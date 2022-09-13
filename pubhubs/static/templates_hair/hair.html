@@ -1,0 +1,311 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>PubHubs</title>
+    <link rel="icon" type="image/png" href="/images/favicon.png">
+    <link rel="stylesheet" type="text/css" href="/css/style.css">
+</head>
+<body class="bg-primary">
+
+{{call *content}}
+
+{{define error}}
+<div class="container">
+    <div class="row">
+        <div class="col">
+            <div class="card bg-white m-3 p-4 mb-0">
+                <h2>{{=tr("error","Oeps er ging iets fout")}}</h2>
+                <p>{{=error_message}}</p>
+                <p>{{=tr("error_contact","Laat de volgende code zien als je contact opneemt")}} {{=code}}</p>
+            </div>
+        </div>
+    </div>
+</div>
+{{enddefine}}
+{{define index}}
+<p>{{=index_content}}</p>
+{{enddefine}}
+{{define hubs_tmpl}}
+<table>
+    <thead>
+    <tr>
+        <th>id</th>
+        <th>{{=tr("name","naam")}}</th>
+        <th>{{=tr("description","omschrijving")}}</th>
+        <th>{{=tr("redirection_uri","omleidings URI")}}</th>
+    </tr>
+    </thead>
+    {{for hub in hubs}}
+    <tr>
+        <td> <a href="/admin/hubs/{{=hub.id}}">{{=hub.id}}</a></td>
+        <td>{{=hub.name}}</td>
+        <td>{{=hub.description}}</td>
+        <td>{{=hub.redirection_uri}}</td>
+    </tr>
+    {{end}}
+</table>
+<form method="post">
+    <div><label for="name">{{=tr("enter_name","Voer naam in:")}} </label>
+        <input type="text" name="name" id="name" required></div>
+    <div><label for="description">{{=tr("enter_description","Voer omschrijving in:")}} </label>
+        <input type="text" name="description" id="description" required></div>
+    <div><label for="redirection_uri">{{=tr("enter_redirection","Voer omleidings URI in:")}} </label>
+        <input type="text" name="redirection_uri" id="redirection_uri" required></div>
+    <div><label for="passphrase">{{=tr("enter_passphrase","Voer wachtwoord in:")}} </label>
+        <input type="password" name="passphrase" id="passphrase" minlength="8" required></div>
+    <input type="submit" value="add"></form>
+{{enddefine}}
+{{define hub}}
+<p>Hub id: {{=id}}</p>
+<p> Decryption key: ||{{=key}}^^</p>
+<form method="post">
+    <div><label for="name">{{=tr("enter_name","Voer naam in:")}} </label>
+        <input type="text" name="name" id="name" value="{{=name}}" required></div>
+    <div><label for="description">{{=tr("enter_description","Voer omschrijving in:")}} </label>
+        <input type="text" name="description" id="description" value="{{=description}}" required></div>
+    <input type="submit" value="update"></form>
+{{enddefine}}
+{{define users_tmpl}}
+<table>
+    <thead>
+    <tr>
+        <th>id</th>
+        <th>email</th>
+        <th>{{=tr("telephone","telefoon")}}</th>
+    </tr>
+    </thead>
+    {{for user in users}}
+    <tr>
+        <td>{{=user.id}}</td>
+        <td>{{=user.email}}</td>
+        <td>{{=user.telephone}}</td>
+    </tr>
+    {{end}}
+</table>
+{{enddefine}}
+{{define user}}
+<div class="container">
+    <div class ="row justify-content-md-center">
+        <div class="col">
+            {{call page_header with {default: "Mijn PubHubs account", title: "my_ph_account"}}}
+        </div>
+        <div class="col-md-auto">
+            <a href="/logout">{{call logout_button}}</a>
+        </div>
+    </div>
+</div>
+<div class="container bg-primary">
+    <div class="row">
+        <div class="col">
+            <div class="card bg-white m-3 p-4 mb-0">
+                <h2>{{=tr("hub_overview","Hub overzicht")}} {{call spraak}}</h2>
+                {{for hub in hubs}}
+                <div class="container">
+                    <div class="row">
+                        <div class="col-md-auto">
+                            {{call spraak with {width: 40, class: "secondary-speech"}}}
+                        </div>
+                        <div class="col">
+                            <h2>{{=hub.name}}</h2>
+                            <p>{{=hub.description}}</p>
+                        </div>
+                    </div>
+                </div>
+                {{end}}
+            </div>
+        </div>
+        <div class="col">
+            <div class="container bg-primary">
+                <div class="col">
+                    <div class="card bg-light m-3 p-4 mb-0">
+                        <h4>{{=tr("my_data","Mijn gegevens")}} {{call spraak}}</h4>
+                        <h5>email</h5>
+                        <p>{{=email}}</p>
+                        <h5>{{=tr("telephone","telefoon")}}</h5>
+                        <p>{{=telephone}}</p>
+                    </div>
+                </div>
+                <div class="col">
+                    <div class="card bg-white m-3 p-4 mb-0">
+                        <h4>Account verwijderen {{call spraak}}</h4>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{{enddefine}}
+{{define authenticate defaults {login: true}}}
+<div class="container">
+    {{if hub_name == ""}}
+        {{call page_header with {title: "to_my_account",default: "Naar mijn PubHubs account"}}}
+    {{else}}
+    <header class="bg-primary text-white p-5"><h2 class="bg-primary text-white">{{=tr("login_at","Login bij de")}} {{=hub_name}} Hub {{call spraak}}</h2></header>
+    {{endif}}
+</div>
+<div class="container bg-primary">
+    <div class="row">
+        <div class="col">
+            <div class="card bg-secondary h-100 mb-5">
+                <div class="container h-100">
+                    <div class="row h-100">
+                        <div class="col d-flex align-items-center">
+                            <div>
+                                <h2 class="text-white ">{{if login}}Log in{{else}}{{=tr("register","Registreer")}}{{endif}} {{=tr("with", "met")}} <span class="align-middle">{{call irmalogo}}</span></h2>
+                                <h5 class="text-white ">{{=tr("scan","Scan de QR code met je IRMA app")}}.</h5>
+                                <p><a href="https://irma.app/ -middle">{{=tr("login_trouble","Problemen met inloggen")}}?</a></p>
+                            </div>
+                        </div>
+                        <div class="col d-flex align-items-center">
+                            <div id="irma-modal" hidden></div>
+                            <div id="irma-status"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col col-lg-5">
+            {{if login}}
+            <div class="card bg-white m-3 p-4 mt-0 text-center "><h5>{{=tr("dont_have","Nog geen")}} {{call pubhubslogo}} account?</h5>
+                <form action="{{=url_prefix}}/register" method="get">
+                    <input type="text" name="hub" value="{{=hub}}" hidden>
+                    <input type="text" name="state" value="{{=state}}" hidden>
+                    <input type="text" name="url" value="{{=url}}" hidden>
+                    <button class="btn btn-secondary btn-rounded align-content-center text-white">{{=tr("register","Registreren")}}</button>
+                </form>
+            </div>
+            {{endif}}
+            {{if hub_name == ""}}
+            <div class="card bg-light m-3 p-4 mb-0">
+                <h3>{{=tr("my_ph_account","Mijn PubHubs account")}}</h3>
+                <p>{{=tr("account_explanation","Op je account pagina kan je je gegevens aanpassen, de instellingen veranderen en kan je een overzicht van de hubs zien")}}.</p>
+                <h3>{{=tr("hub_settings","Instellingen Hubs")}}</h3>
+                <p>{{=tr("sep_hub_explanation","Iedere Hub heeft een eigen instellingen pagina en regels. Als je de instellingen ven een specifieke Hub wilt inzien log dan in en navigeer naar de Hub waarvan je de instellingen wilt veranderen")}}.</p>
+            </div>
+            {{else}}
+            <div class="card bg-light m-3 p-4 mb-0">
+                <h3>{{=tr("whats_ph","Wat is PubHubs")}}?</h3>
+                <p>{{=tr("answer_ph","Een netwerk van aparte hubs voor sociaal contact en informatie, zie")}} <a href="https://pubhubs.net">pubhubs.net</a></p>
+                <h3>{{=tr("whats_irma","Wat is IRMA")}}?</h3>
+                <p>{{=tr("answer_irma","Een app voor privacy-vriendelijk inloggen, zie")}} <a href="https://irma.app">irma.app</a></p>
+            </div>
+            <div class="card bg-white m-3 p-4 mb-0">
+                <div class="container">
+                    <div class="row">
+                        <div class="col">
+                            <h6 class="text-nowrap">{{=tr("to_my_account","Naar mijn PubHubs account")}}</h6>
+                        </div>
+                        <div class="col col-lg-4">
+                            <a class="btn btn-secondary btn-rounded text-white text-nowrap" href="{{=url_prefix}}/login">{{=tr("my_account","Mijn account")}}</a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            {{endif}}
+        </div>
+    </div>
+</div>
+
+<script src="/js/irma.js"></script>
+<script type="text/javascript">
+    let hub = {{=hub}};
+    let state = {{=state}};
+    let url = {{=url}};
+    let endpoint = {{=url_prefix}} + {{=login?"/irma-endpoint/start":"/irma-endpoint/register"}};
+    window.irmaLoginWithDetailsProvided = () => {
+        irmaLogin(endpoint, hub, state, url);
+    }
+    // pageshow is also invoked when the page is reloaded from the back/forward cache,
+    // see https://web.dev/bfcache/ and issue #25
+    window.addEventListener('pageshow', () => window.irmaLoginWithDetailsProvided());
+</script>
+
+{{enddefine}}
+{{define irmalogo defaults { width: 15}}}
+<svg width="{{=width}}%"  viewBox="0 0 170 170" version="1.1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" xml:space="preserve" xmlns:serif="http://www.serif.com/" style="fill-rule:evenodd;clip-rule:evenodd;stroke-linejoin:round;stroke-miterlimit:1.41421;">
+    <g transform="matrix(1,0,0,1,-0.588574,-0.544313)">
+        <g id="Rounded_Rectangle_1_1_" transform="matrix(0.945114,-0.32674,0.32674,0.945114,-8.94903,58.0541)">
+            <g transform="matrix(0.945114,0.32674,-0.32674,0.945114,23.6518,-9.46055)">
+                <path d="M33.906,116.205C29.989,116.205 26.567,113.866 25.389,110.385L4.684,49.145C3.134,44.563 5.885,39.476 10.816,37.805L109.378,4.405C110.432,4.048 111.523,3.866 112.619,3.866C116.536,3.866 119.959,6.205 121.137,9.687L141.842,70.926C143.392,75.507 140.641,80.595 135.71,82.267L37.147,115.666C36.093,116.024 35.003,116.205 33.906,116.205L33.906,116.205Z" style="fill:#d44454;fill-rule:nonzero;"/>
+                <path d="M112.619,7.116C115.084,7.116 117.302,8.492 118.057,10.728L138.762,71.967C139.74,74.857 137.906,78.09 134.665,79.189L36.103,112.588C35.369,112.837 34.627,112.954 33.905,112.954C31.44,112.954 29.222,111.578 28.466,109.343L7.762,48.104C6.784,45.214 8.619,41.98 11.859,40.883L110.421,7.483C111.154,7.234 111.897,7.116 112.619,7.116M112.619,0.616C111.167,0.616 109.725,0.855 108.335,1.326L9.773,34.726C3.145,36.972 -0.519,43.907 1.605,50.186L22.31,111.424C23.935,116.227 28.595,119.453 33.907,119.453C35.359,119.453 36.801,119.215 38.192,118.743L136.753,85.344C143.381,83.097 147.045,76.161 144.921,69.883L124.214,8.646C122.59,3.843 117.93,0.616 112.619,0.616Z" style="fill:#d44454;fill-rule:nonzero;"/>
+            </g>
+            <g transform="matrix(0.945114,0.32674,-0.32674,0.945114,38.5375,-37.9081)">
+                <path d="M33.906,116.205C29.989,116.205 26.567,113.866 25.389,110.385L4.684,49.145C3.134,44.563 5.885,39.476 10.816,37.805L109.378,4.405C110.432,4.048 111.523,3.866 112.619,3.866C116.536,3.866 119.959,6.205 121.137,9.687L141.842,70.926C143.392,75.507 140.641,80.595 135.71,82.267L37.147,115.666C36.093,116.024 35.003,116.205 33.906,116.205L33.906,116.205Z" style="fill:#ffbb58;fill-rule:nonzero;"/>
+                <path d="M112.619,7.116C115.084,7.116 117.302,8.492 118.057,10.728L138.762,71.967C139.74,74.857 137.906,78.09 134.665,79.189L36.103,112.588C35.369,112.837 34.627,112.954 33.905,112.954C31.44,112.954 29.222,111.578 28.466,109.343L7.762,48.104C6.784,45.214 8.619,41.98 11.859,40.883L110.421,7.483C111.154,7.234 111.897,7.116 112.619,7.116M112.619,0.616C111.167,0.616 109.725,0.855 108.335,1.326L9.773,34.726C3.145,36.972 -0.519,43.907 1.605,50.186L22.31,111.424C23.935,116.227 28.595,119.453 33.907,119.453C35.359,119.453 36.801,119.215 38.192,118.743L136.753,85.344C143.381,83.097 147.045,76.161 144.921,69.883L124.214,8.646C122.59,3.843 117.93,0.616 112.619,0.616Z" style="fill:#ffbb58;fill-rule:nonzero;"/>
+            </g>
+            <g transform="matrix(0.872113,0.489304,-0.489304,0.872113,33.7109,-39.4445)">
+                <path d="M33.906,116.205C29.989,116.205 26.567,113.866 25.389,110.385L4.684,49.145C3.134,44.563 5.885,39.476 10.816,37.805L109.378,4.405C110.432,4.048 111.523,3.866 112.619,3.866C116.536,3.866 119.959,6.205 121.137,9.687L141.842,70.926C143.392,75.507 140.641,80.595 135.71,82.267L37.147,115.666C36.093,116.024 35.003,116.205 33.906,116.205L33.906,116.205Z" style="fill:#2bc194;fill-rule:nonzero;"/>
+                <path d="M112.619,7.116C115.084,7.116 117.302,8.492 118.057,10.728L138.762,71.967C139.74,74.857 137.906,78.09 134.665,79.189L36.103,112.588C35.369,112.837 34.627,112.954 33.905,112.954C31.44,112.954 29.222,111.578 28.466,109.343L7.762,48.104C6.784,45.214 8.619,41.98 11.859,40.883L110.421,7.483C111.154,7.234 111.897,7.116 112.619,7.116M112.619,0.616C111.167,0.616 109.725,0.855 108.335,1.326L9.773,34.726C3.145,36.972 -0.519,43.907 1.605,50.186L22.31,111.424C23.935,116.227 28.595,119.453 33.907,119.453C35.359,119.453 36.801,119.215 38.192,118.743L136.753,85.344C143.381,83.097 147.045,76.161 144.921,69.883L124.214,8.646C122.59,3.843 117.93,0.616 112.619,0.616Z" style="fill:#2bc194;fill-rule:nonzero;"/>
+            </g>
+            <g transform="matrix(0.876971,0.480544,-0.480544,0.876971,56.23,-21.0767)">
+                <path d="M33.906,116.205C29.989,116.205 26.567,113.866 25.389,110.385L4.684,49.145C3.134,44.563 5.885,39.476 10.816,37.805L109.378,4.405C110.432,4.048 111.523,3.866 112.619,3.866C116.536,3.866 119.959,6.205 121.137,9.687L141.842,70.926C143.392,75.507 140.641,80.595 135.71,82.267L37.147,115.666C36.093,116.024 35.003,116.205 33.906,116.205L33.906,116.205Z" style="fill:#00b1e6;fill-rule:nonzero;"/>
+                <path d="M112.619,7.116C115.084,7.116 117.302,8.492 118.057,10.728L138.762,71.967C139.74,74.857 137.906,78.09 134.665,79.189L36.103,112.588C35.369,112.837 34.627,112.954 33.905,112.954C31.44,112.954 29.222,111.578 28.466,109.343L7.762,48.104C6.784,45.214 8.619,41.98 11.859,40.883L110.421,7.483C111.154,7.234 111.897,7.116 112.619,7.116M112.619,0.616C111.167,0.616 109.725,0.855 108.335,1.326L9.773,34.726C3.145,36.972 -0.519,43.907 1.605,50.186L22.31,111.424C23.935,116.227 28.595,119.453 33.907,119.453C35.359,119.453 36.801,119.215 38.192,118.743L136.753,85.344C143.381,83.097 147.045,76.161 144.921,69.883L124.214,8.646C122.59,3.843 117.93,0.616 112.619,0.616Z" style="fill:#00b1e6;fill-rule:nonzero;"/>
+            </g>
+        </g>
+        <g id="Rounded_Rectangle_1_1_1" serif:id="Rounded_Rectangle_1_1_" transform="matrix(1,0,0,1,12.3739,26.4544)">
+            <g>
+                <path d="M33.906,116.205C29.989,116.205 26.567,113.866 25.389,110.385L4.684,49.145C3.134,44.563 5.885,39.476 10.816,37.805L109.378,4.405C110.432,4.048 111.523,3.866 112.619,3.866C116.536,3.866 119.959,6.205 121.137,9.687L141.842,70.926C143.392,75.507 140.641,80.595 135.71,82.267L37.147,115.666C36.093,116.024 35.003,116.205 33.906,116.205L33.906,116.205Z" style="fill:#004c92;fill-rule:nonzero;"/>
+                <path d="M112.619,7.116C115.084,7.116 117.302,8.492 118.057,10.728L138.762,71.967C139.74,74.857 137.906,78.09 134.665,79.189L36.103,112.588C35.369,112.837 34.627,112.954 33.905,112.954C31.44,112.954 29.222,111.578 28.466,109.343L7.762,48.104C6.784,45.214 8.619,41.98 11.859,40.883L110.421,7.483C111.154,7.234 111.897,7.116 112.619,7.116M112.619,0.616C111.167,0.616 109.725,0.855 108.335,1.326L9.773,34.726C3.145,36.972 -0.519,43.907 1.605,50.186L22.31,111.424C23.935,116.227 28.595,119.453 33.907,119.453C35.359,119.453 36.801,119.215 38.192,118.743L136.753,85.344C143.381,83.097 147.045,76.161 144.921,69.883L124.214,8.646C122.59,3.843 117.93,0.616 112.619,0.616Z" style="fill:#fff;fill-rule:nonzero;"/>
+            </g>
+        </g>
+        <g id="IRMA_1_" transform="matrix(1,0,0,1,12.3739,26.4544)">
+            <clipPath id="_clip1">
+                <path d="M139.203,72.585L128.166,39.679L135.507,39.343L146.64,71.321L146.64,0L0,0L0,120.72L146.64,120.72L146.64,73.073L139.203,72.585Z"/>
+            </clipPath>
+            <g clip-path="url(#_clip1)">
+                <rect x="42.199" y="40.296" width="6.083" height="32.149" style="fill:#fff;fill-rule:nonzero;"/>
+                <path d="M55.331,40.296L66.484,40.296C69.767,40.296 72.438,41.26 74.498,43.19C76.559,45.119 77.59,47.507 77.59,50.355C77.59,52.376 77.026,54.19 75.899,55.797C74.774,57.404 73.245,58.606 71.314,59.402L78.796,72.445L72.086,72.445L65.568,60.32L61.415,60.32L61.415,72.445L55.332,72.445L55.332,40.296L55.331,40.296ZM66.484,45.624L61.415,45.624L61.415,54.993L66.484,54.993C67.932,54.993 69.091,54.564 69.96,53.707C70.829,52.85 71.264,51.717 71.264,50.309C71.264,48.931 70.829,47.806 69.96,46.933C69.091,46.06 67.932,45.624 66.484,45.624Z" style="fill:#fff;fill-rule:nonzero;"/>
+                <path d="M101.017,63.91L96.001,63.893L89.512,52.478L89.512,72.444L83.429,72.444L83.429,40.296L88.836,40.296L98.491,57.426L108.196,40.296L113.555,40.296L113.555,72.445L107.472,72.445L107.472,52.513L101.017,63.91Z" style="fill:#fff;fill-rule:nonzero;"/>
+                <path d="M139.772,72.445L137.608,65.602L126.101,65.602L123.936,72.445L117.322,72.445L128.764,40.296L134.897,40.296L146.338,72.445L139.772,72.445ZM131.854,47.506L127.596,60.871L136.112,60.871L131.854,47.506Z" style="fill:#fff;fill-rule:nonzero;"/>
+            </g>
+        </g>
+    </g>
+</svg>
+{{enddefine}}
+{{define pubhubslogo defaults { width: 100}}}
+<img src="/images/logo.png" alt="pubhubs logo" width="{{=width}}">
+{{enddefine}}
+{{define spraak defaults {class: "light-speech", width: 20}}}
+<span class="d-inline-flex">
+<svg class="{{=class}} pb-3" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 25.99 24.37" width="{{=width}}"><defs><style>.d{fill:#4ee9a4;}</style></defs><g id="a"/><g id="b"><g id="c"><path class="d" d="M25.96,11.35c.46,6.71-4.61,12.53-11.32,12.99-3.6,.25-6.95-1.1-9.34-3.43l-5.3,.34,3.07-3.28h0c-.81-1.48-1.31-3.16-1.44-4.95C1.18,6.31,6.25,.49,12.96,.03c6.71-.46,12.53,4.61,12.99,11.32Z"/></g></g></svg>
+</span>
+{{enddefine}}
+{{define logout_button defaults { width: 150}}}
+<?xml version="1.0" encoding="UTF-8"?><svg class="outlog_button" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 125.01 27.73" width="{{=width}}"><defs><style>.d{fill:#fff;}.e,.f,.g{fill:none;stroke:#fff;}.e.g{stroke-miterlimit:10;}.f{stroke-linejoin:round;}.f,.g{stroke-linecap:round;}</style></defs><g id="a"/><g id="b"><g id="c"><path class="g" d="M23.03,5.28C20.86,2.18,17.17,.25,13.11,.53,6.95,.96,2.31,6.29,2.73,12.45c.11,1.64,.58,3.18,1.31,4.54l-2.81,3,4.85-.31c2.19,2.14,5.26,3.37,8.56,3.15,3.61-.25,6.69-2.18,8.55-4.97"/><polyline class="f" points="15.57 11.69 36.86 11.69 30.39 18.16 36.86 11.69 30.49 5.44"/><g><path class="d" d="M55.65,6.51v7.45c0,1.52-.4,2.67-1.21,3.45-.8,.77-1.96,1.16-3.46,1.16s-2.64-.39-3.45-1.16c-.81-.77-1.21-1.92-1.21-3.45V6.51h1.44v7.09c0,1.24,.26,2.15,.78,2.74,.52,.59,1.33,.88,2.44,.88s1.92-.29,2.44-.88c.52-.59,.78-1.5,.78-2.74V6.51h1.44Z"/><path class="d" d="M59.67,7.66c-.32,0-.58-.1-.78-.3-.2-.2-.3-.46-.3-.78s.1-.58,.3-.78c.2-.2,.46-.3,.78-.3s.58,.1,.78,.3,.3,.46,.3,.78-.1,.58-.3,.78c-.2,.2-.46,.3-.78,.3Zm.72,1.73v9h-1.44V9.39h1.44Z"/><path class="d" d="M69.13,9.39v1.24h-6.52v-1.24h6.52Zm-3.28-2.56V15.9c0,.44,.13,.77,.38,.99s.58,.32,.97,.32c.35,0,.65-.06,.9-.18s.48-.28,.68-.49l.5,1.21c-.28,.25-.6,.45-.98,.59-.38,.14-.81,.22-1.3,.22-.46,0-.88-.08-1.28-.24-.4-.16-.71-.42-.95-.77-.23-.35-.36-.82-.37-1.4V7.23l1.44-.4Z"/><path class="d" d="M72.64,5.25v10.85c0,.46,.08,.77,.25,.95s.44,.26,.81,.26c.24,0,.44-.02,.59-.05,.16-.04,.37-.1,.63-.2l-.23,1.26c-.19,.08-.4,.15-.63,.19s-.46,.06-.7,.06c-.73,0-1.28-.2-1.63-.59-.35-.4-.53-1-.53-1.82V5.25h1.44Z"/><path class="d" d="M80.51,9.21c.85,0,1.6,.19,2.26,.56,.65,.37,1.17,.91,1.54,1.61,.37,.7,.56,1.54,.56,2.51s-.19,1.81-.56,2.51c-.37,.7-.89,1.24-1.54,1.61-.65,.37-1.41,.56-2.26,.56s-1.59-.19-2.25-.56c-.66-.37-1.18-.91-1.55-1.61s-.56-1.54-.56-2.51,.19-1.81,.56-2.51,.89-1.24,1.55-1.61c.66-.37,1.41-.56,2.25-.56Zm0,1.24c-.61,0-1.13,.14-1.57,.41-.43,.28-.76,.67-1,1.18s-.35,1.12-.35,1.84,.12,1.32,.35,1.84c.23,.52,.57,.91,1,1.19,.43,.28,.95,.41,1.57,.41s1.13-.14,1.57-.41c.43-.28,.77-.67,1-1.19,.23-.52,.35-1.13,.35-1.84s-.12-1.33-.35-1.84c-.23-.51-.57-.9-1-1.18-.43-.28-.95-.41-1.57-.41Z"/><path class="d" d="M92.42,17.24c.85,0,1.52,.2,2,.58,.48,.39,.72,.91,.72,1.56,0,.59-.2,1.1-.58,1.53-.39,.43-.91,.77-1.57,1-.65,.23-1.39,.35-2.21,.35-1.42,0-2.47-.24-3.18-.72-.7-.48-1.05-1.06-1.05-1.73,0-.48,.16-.91,.48-1.29,.32-.38,.86-.59,1.61-.64l-.13,.27c-.41-.11-.75-.29-1.04-.55-.28-.26-.42-.63-.42-1.12s.18-.92,.55-1.27c.37-.35,.91-.57,1.63-.66l.95,.49h-.18c-.59,.06-1,.21-1.25,.44-.25,.23-.37,.49-.37,.77,0,.34,.12,.58,.37,.75,.25,.16,.59,.24,1.04,.24h2.63Zm-1.78-8.03c.72,0,1.36,.13,1.92,.39,.56,.26,.99,.62,1.3,1.07,.31,.46,.47,.98,.47,1.58s-.16,1.11-.47,1.57c-.31,.46-.75,.82-1.3,1.08-.56,.26-1.2,.39-1.92,.39-1.19,0-2.1-.29-2.74-.86-.64-.57-.95-1.3-.95-2.19,0-.6,.16-1.13,.48-1.58,.32-.46,.75-.81,1.3-1.07,.55-.26,1.19-.39,1.91-.39Zm.13,11.84c.7,0,1.27-.07,1.72-.22,.45-.14,.78-.33,1-.56,.22-.23,.32-.47,.32-.74,0-.32-.13-.58-.39-.77-.26-.19-.72-.29-1.39-.29h-2.77c-.38,0-.71,.1-.97,.3-.26,.2-.4,.47-.4,.82,0,.44,.25,.8,.76,1.06,.51,.26,1.21,.4,2.12,.4Zm-.13-10.67c-.62,0-1.15,.17-1.57,.51s-.63,.79-.63,1.36,.21,1,.63,1.35c.42,.35,.94,.52,1.57,.52s1.15-.17,1.57-.52c.42-.35,.63-.8,.63-1.35s-.21-1.02-.63-1.36-.94-.51-1.57-.51Zm4.52-2.65l.32,1.28h-.13c-.59,0-1.04,.12-1.36,.35-.32,.23-.48,.61-.48,1.12l-.88-.45c0-.47,.11-.88,.32-1.22,.22-.35,.51-.61,.88-.8s.78-.28,1.22-.28h.09Z"/><path class="d" d="M102,17.24c.85,0,1.52,.2,2,.58,.48,.39,.72,.91,.72,1.56,0,.59-.2,1.1-.58,1.53-.39,.43-.91,.77-1.57,1-.65,.23-1.39,.35-2.21,.35-1.42,0-2.47-.24-3.18-.72-.7-.48-1.05-1.06-1.05-1.73,0-.48,.16-.91,.48-1.29,.32-.38,.86-.59,1.61-.64l-.13,.27c-.41-.11-.75-.29-1.04-.55-.28-.26-.42-.63-.42-1.12s.18-.92,.55-1.27c.37-.35,.91-.57,1.63-.66l.95,.49h-.18c-.59,.06-1,.21-1.25,.44-.25,.23-.37,.49-.37,.77,0,.34,.12,.58,.37,.75,.25,.16,.59,.24,1.04,.24h2.63Zm-1.78-8.03c.72,0,1.36,.13,1.92,.39,.56,.26,.99,.62,1.3,1.07,.31,.46,.47,.98,.47,1.58s-.16,1.11-.47,1.57c-.31,.46-.75,.82-1.3,1.08-.56,.26-1.2,.39-1.92,.39-1.19,0-2.1-.29-2.74-.86-.64-.57-.95-1.3-.95-2.19,0-.6,.16-1.13,.48-1.58,.32-.46,.75-.81,1.3-1.07,.55-.26,1.19-.39,1.91-.39Zm.13,11.84c.7,0,1.27-.07,1.72-.22,.45-.14,.78-.33,1-.56,.22-.23,.32-.47,.32-.74,0-.32-.13-.58-.39-.77-.26-.19-.72-.29-1.39-.29h-2.77c-.38,0-.71,.1-.97,.3-.26,.2-.4,.47-.4,.82,0,.44,.25,.8,.76,1.06,.51,.26,1.21,.4,2.12,.4Zm-.13-10.67c-.62,0-1.15,.17-1.57,.51s-.63,.79-.63,1.36,.21,1,.63,1.35c.42,.35,.94,.52,1.57,.52s1.15-.17,1.57-.52c.42-.35,.63-.8,.63-1.35s-.21-1.02-.63-1.36-.94-.51-1.57-.51Zm4.52-2.65l.32,1.28h-.13c-.59,0-1.04,.12-1.36,.35-.32,.23-.48,.61-.48,1.12l-.88-.45c0-.47,.11-.88,.32-1.22,.22-.35,.51-.61,.88-.8s.78-.28,1.22-.28h.09Z"/><path class="d" d="M110.5,18.57c-.85,0-1.61-.19-2.28-.56s-1.19-.91-1.56-1.61-.56-1.54-.56-2.51,.19-1.81,.56-2.51,.88-1.24,1.53-1.61c.65-.37,1.39-.56,2.21-.56s1.56,.18,2.15,.54c.59,.36,1.05,.85,1.36,1.47,.31,.62,.47,1.31,.47,2.08,0,.2,0,.39-.02,.56s-.03,.32-.05,.45h-7.27v-1.28h6.64l-.74,.14c0-.86-.24-1.53-.71-2s-1.09-.7-1.86-.7c-.59,0-1.09,.13-1.52,.41-.43,.27-.76,.66-.99,1.17-.23,.51-.35,1.12-.35,1.84s.12,1.32,.36,1.84c.24,.52,.58,.91,1.02,1.18,.44,.27,.96,.41,1.58,.41,.66,0,1.2-.13,1.61-.38s.75-.59,1-1.03l1.13,.67c-.23,.41-.52,.76-.87,1.06-.35,.3-.77,.53-1.24,.69-.47,.16-1.01,.24-1.59,.24Z"/><path class="d" d="M117.12,18.39V9.39h1.26l.13,2.02-.23-.2c.19-.48,.45-.87,.77-1.16,.32-.29,.7-.51,1.12-.64,.43-.13,.87-.2,1.32-.2,.65,0,1.24,.12,1.76,.37,.53,.25,.95,.62,1.27,1.12,.32,.5,.48,1.15,.48,1.93v5.76h-1.44v-5.26c0-1-.21-1.69-.64-2.08-.43-.39-.95-.58-1.57-.58-.43,0-.86,.1-1.3,.31-.43,.2-.79,.53-1.07,.99-.28,.46-.42,1.07-.42,1.84v4.79h-1.44Z"/></g><line class="e" x1="1.22" y1="27.23" x2="125" y2="27.23"/></g></g></svg>
+{{enddefine}}
+{{define page_header defaults {title: "_nothing", default: "PubHubs"}}}
+<header class="bg-primary text-white p-5"><h2 class="bg-primary text-white">{{=tr(title,default)}} {{call spraak}}</h2></header>
+{{enddefine}}
+{{define policy}}
+<div class="container">
+    <header class="bg-primary text-white p-5"><h2 class="bg-primary text-white">{{=tr("reg_finish1","Registratie bij")}} {{call pubhubslogo}} {{=tr("reg_finish2","bijna klaar!")}} {{call spraak}}</h2></header>
+</div>
+<div class="container">
+    <div class="card bg-secondary m-3 p-4 mt-0 text-white"><h5>{{=tr("rules","Privacy policy en huisregels")}} {{call spraak}}</h5>
+        {{for highlight in highlights}}
+        <div class="row">
+            <div class="col-md-auto">
+                {{call spraak with {width: 40, class: "primary-speech"}}}
+            </div>
+            <div class="col">
+                <p>{{=highlight}}</p>
+            </div>
+        </div>
+        {{end}}
+        <p><a href="{{=url_prefix}}/full_policy?{{=query:url}}">{{=tr("read_policy","Lees hier de hele policy")}}</a></p>
+        {{call policy_accept}}
+    </div>
+</div>
+{{enddefine}}
+{{define full_policy}}
+<div class="card bg-secondary m-3 p-4 mt-0 text-white"><h5>{{=tr("rules","Privacy policy en huisregels")}} {{call spraak}}</h5>
+    <p>{{=policy}}</p>
+    {{call policy_accept}}
+</div>
+{{enddefine}}
+{{define policy_accept}}
+<a href="{{=url_prefix}}/policy_accept?{{=query:url}}" class="btn btn-secondary btn-rounded align-content-center text-white bg-primary">{{=tr("accept","Accepteer")}}</a>
+{{enddefine}}
+</body>
+</html>

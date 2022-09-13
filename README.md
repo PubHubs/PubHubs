@@ -1,0 +1,91 @@
+# PubHubs
+
+PubHubs is the name for a new Dutch community network, based on public values. PubHubs stands for Public Hubs. 
+It is open and transparent and protects data of the network’s participants. PubHubs aims to connect people, 
+in different hubs, such as your family, sports club, school class, museum, local library, neighborhood, or municipality.
+In each such hub, a relevant part of one’s own identity plays a role. 
+PubHubs focuses on reliable information, if necessary with digital signatures, and on trusted communication, 
+if necessary with guarantees of the identity of participants.
+
+For more information see our [website](https://pubhubs.net/en/).
+
+## Current status
+
+The PubHubs project is absolutely not finished yet. Much of the code you find here will be changed before a definitive release.
+However, we'd still like to show everyone the current status of the code.
+
+## Contributing
+
+This repository is a mirror of our internal repository where actual development happens. If you want to contribute or report an issue please contact us through: info@pubhubs.net
+In the longer term we'd like to move to a more open way of developing, but for now our repository is tightly linked to our (testing) infrastructure, and we'd like to keep this link for now.
+
+## Technical details
+
+There are three main parts to PubHubs:
+1. The PubHubs platform itself, for central login and authentication. Hubs will only get pseudonyms but never the central identity.
+2. The hubs, [matrix](https://matrix.org/) homeservers, in the ultimate PubHubs platform these will not be federated so ids are not shared between hubs (in the longer term we;d like to link hubs to be able to share content so  maybe some federation will happen).
+3. A matrix client to make sure the user can communicate with hubs.
+
+This pubhubs directory contains the platform itself. The directory pubhubs_hub contains the modules we need to make hubs work within PubHubs. The client we will develop in the future. 
+
+For the identity oriented functionalities of PubHubs we use [IRMA](https://irma.app/). IRMA is also used for logging in to the central platform.
+
+### Building static assets
+
+Static assets, so far just css, are build through build.rs, before launching the server. The build script expects npm (with sass) to be installed.
+
+### Running the webserver
+
+First install cargo watch
+```bash
+cargo install cargo-watch
+``` 
+
+Then run with auto-reload in the pubhubs directory: 
+```bash
+cargo watch -x 'run'
+```
+
+Setting are in the `default.yaml` file, for development these initial settings should work.
+
+### Setting up external services 
+The external services for development are: an IRMA server, a Hub (matrix home server) and a matrix client. There
+is a script that should automate some set-up: 
+```
+./start_test_setup.sh 
+```
+We've not tested it on Windows, but it should work on linux and mac. It requires the
+PubHubs server to be running. 
+
+This script will launch three containers:
+1. The hub.
+2. Element, the matrix client.
+3. An IRMA server for revealing personal attributes. 
+
+If the hub is not yet registered on the PubHubs server, the script will register the hub.
+
+We currently use our own modified element client, that image is not publicly available. In docker-compose.yaml you will need to change `registry.science.ru.nl/ilab/pubhubs-element-web/pubhubs-element-web` to
+`vectorim/element-web`. We are planning to develop our own client, but that is not yet finished.
+
+If you want to run it on linux you will need to change the file `pubhubs_hub/matrix_test_config/homeserver.yaml`,
+the provided urls including `host.docker.internal` need to be changed to `172.17.0.1`.
+
+#### Public IP address
+For your local PubHubs instance to be reachable by the IRMA app, you must have a public IP address, which PubHubs will try to guess using `ifconfig.me` (provided `pubhubs_host = autodetect`) in the `default.yaml` file.  When the IRMA app suggests you should check your phone's internet access, this might actually indicate that your PubHub instance is behind a NAT.  You can circumvent this problem if you have access to a server with a public IP address, say 1.3.3.7, by forwarding your local port to this server, via
+```
+ssh -R 8080:localhost:8080 username@yourserver.com
+```
+and have the IRMA app contact 1.3.3.7 instead by setting `pubhubs_host = http://1.3.3.7:8080/`.
+
+
+### Development dependencies
+
+We use libpepcli to make pseudonyms. Please install it on your system:
+```bash
+sh -c 'printf "deb http://packages.bitpowder.com/debian-%s main core\n" `lsb_release -cs`' | tee /etc/apt/sources.list.d/bitpowder-repo.list
+curl -L https://bitpowder.com/packages/linux-packages.gpg | tee /etc/apt/trusted.gpg.d/bitpowder.asc
+
+apt-get update && apt-get install -y pepcli
+```
+
+For mac build and add to your path: https://gitlab.science.ru.nl/ilab/libpep

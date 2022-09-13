@@ -1,0 +1,38 @@
+FROM golang:1.17.6 AS irma_build
+
+RUN git clone https://github.com/privacybydesign/irmago
+
+WORKDIR irmago
+
+# version 0.10.0
+RUN git reset 62cb8aa430ca6cd2fdf2aa379743c315fff1a6cf
+
+RUN go env -w GO111MODULE=auto
+
+RUN go install ./irma
+
+FROM matrixdotorg/synapse:latest
+
+COPY --from=irma_build /go/bin//irma /usr/bin/irma
+
+COPY start.sh .
+
+RUN chmod +x start.sh
+
+# Install libpep
+RUN apt update && apt install -y lsb-release
+
+RUN sh -c 'printf "deb http://packages.bitpowder.com/debian-%s main core\n" `lsb_release -cs`' | tee /etc/apt/sources.list.d/bitpowder-repo.list
+RUN curl -L https://bitpowder.com/packages/linux-packages.gpg | tee /etc/apt/trusted.gpg.d/bitpowder.asc
+
+RUN apt-get update && apt-get install -y pepcli
+
+# Secret to be used by libpep to decrypt the pseudonyms
+ENV HUB_SECRET change_me
+
+# Use the modules and templates that are PubHubs specific. To use the modules make sure the configuration in homeserver.yaml points  to the /conf/modules. See the example config.
+COPY ./matrix_test_config/templates /conf/templates
+COPY ./modules /conf/modules
+COPY ./pub_hubs_templates /pub_hubs_templates
+
+ENTRYPOINT ["./start.sh"]

@@ -1,0 +1,9 @@
+requestors:
+  pubhubs:
+    auth_method: hmac
+    key: "aXJtYV9yZXF1ZXN0b3Jfa2V5"
+no_auth: false
+
+# openssl genrsa 4096 -out jwt.priv
+# ("openssl rsa -in jwt.priv -pubout -out jwt.pub", for public key.)
+jwt_privkey_file: jwt.priv

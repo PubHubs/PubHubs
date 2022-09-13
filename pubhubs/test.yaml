@@ -1,0 +1,7 @@
+# configuration used by test using create_test_context()
+
+database_location: null # use in-memory database
+irma:
+  server_url: http://not-actually-used.example.com
+pep: { }
+admins: []

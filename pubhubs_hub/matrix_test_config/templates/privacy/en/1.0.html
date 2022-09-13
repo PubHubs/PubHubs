@@ -1,0 +1,20 @@
+<html>
+<head>
+<title>
+</title>
+</head>
+<body>
+<h1>
+Example privacy policy and Hub rules, version 1.0.
+</h1>
+{% if not public_version %}
+  <!-- The variables used here are only provided when the 'u' param is given to the homeserver -->
+  <form method="post" action="consent">
+    <input type="hidden" name="v" value="{{version}}"/>
+    <input type="hidden" name="u" value="{{user}}"/>
+    <input type="hidden" name="h" value="{{userhmac}}"/>
+    <input type="submit" value="Accept"/>
+  </form>
+{% endif %}
+</body>
+

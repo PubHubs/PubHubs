@@ -1,0 +1,16 @@
+version: '3'
+
+services:
+  matrix:
+    container_name: test_hub
+    build:
+      context: $PWD
+      dockerfile: Dockerfile
+    ports:
+      - "8008:8008"
+    environment:
+      - HUB_SECRET
+      - SYNAPSE_CONFIG_DIR=/data
+      - AUTHLIB_INSECURE_TRANSPORT=for_testing_only_of_course
+    volumes:
+      - $PWD/matrix_test_config:/data:rw

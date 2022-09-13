@@ -1,0 +1,10 @@
+/matrix_test_config/*.db
+/modules/__pycache__
+/matrix_test_config/media_store
+
+__pycache__/
+
+# Ignore editor files.
+/.idea
+/.ropeproject/
+/.vscode/
