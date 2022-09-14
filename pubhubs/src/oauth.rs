@@ -1,4 +1,5 @@
 use crate::data::{HubHandle, Hubid};
+use base64ct::{Base64, Encoding as _};
 use expry::{key_str, value, BytecodeVec};
 use hairy::hairy_eval_html_custom;
 use hyper::header::CONTENT_TYPE;
@@ -496,7 +497,7 @@ fn process_token_header(r: &Request<Body>) -> (Option<String>, Option<String>) {
         }
 
         if let Some(last) = processed_auth_header.last() {
-            if let Ok(decoded) = base64::decode(last) {
+            if let Ok(decoded) = Base64::decode_vec(last) {
                 let header_auth: Vec<String> = String::from_utf8(decoded)
                     .unwrap()
                     .split(':')
@@ -666,7 +667,7 @@ fn generate_16_byte_random_code_in_bas64() -> String {
     let mut rng = rand::thread_rng();
     let mut rand_array: [u8; 16] = [0; 16];
     rng.fill_bytes(&mut rand_array);
-    base64::encode(rand_array)
+    Base64::encode_string(&rand_array)
 }
 
 #[cfg(test)]
@@ -745,7 +746,7 @@ mod tests {
 
         let token_body = serde_urlencoded::to_string(&token_request).unwrap();
 
-        let encoded = base64::encode(format!("{}:{}", client_id, passphrase));
+        let encoded = Base64::encode_string(format!("{}:{}", client_id, passphrase).as_bytes());
 
         let mut token_http_request = Request::new(Body::from(token_body));
         token_http_request.headers_mut().insert(
@@ -928,7 +929,7 @@ mod tests {
             redirect_uri: redirect_uri.to_string(),
         };
 
-        let encoded = base64::encode(format!("{}:{}", client_id, passphrase));
+        let encoded = Base64::encode_string(format!("{}:{}", client_id, passphrase).as_bytes());
 
         let mut token_http_request = Request::new(Body::from(
             serde_urlencoded::to_string(&token_request).unwrap(),
@@ -961,7 +962,8 @@ mod tests {
             redirect_uri: redirect_uri.to_string(),
         };
 
-        let encoded = base64::encode(format!("{}:{}", client_id, "not_the_passphrase"));
+        let encoded =
+            Base64::encode_string(format!("{}:{}", client_id, "not_the_passphrase").as_bytes());
 
         let mut token_http_request = Request::new(Body::from(
             serde_urlencoded::to_string(&token_request).unwrap(),
@@ -994,7 +996,7 @@ mod tests {
             redirect_uri: redirect_uri.to_string(),
         };
 
-        let encoded = base64::encode(format!("{}:{}", client_id, passphrase));
+        let encoded = Base64::encode_string(format!("{}:{}", client_id, passphrase).as_bytes());
 
         let mut token_http_request =
             Request::new(Body::from(serde_json::to_string(&token_request).unwrap()));

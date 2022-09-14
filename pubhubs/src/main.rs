@@ -11,6 +11,7 @@ mod fs;
 mod irma;
 mod irma_proxy;
 mod oauth;
+mod oidc;
 mod policy;
 mod pseudonyms;
 mod serve;
@@ -32,6 +33,7 @@ use std::convert::Infallible;
 use std::fmt::{Debug, Formatter};
 use std::fs::read_to_string;
 use std::net::SocketAddr;
+use std::sync::Arc;
 
 use crate::cookie::{
     accepted_policy, add_cookie, log_out_cookie, user_id_from_verified_cookie, verify_cookie,
@@ -1251,23 +1253,33 @@ mod tests {
         assert!(re.is_match(&body));
     }
 
-    fn start_fake_server(port: u16) {
-        tokio::spawn(async move {
-            // We'll bind to 127.0.0.1:<port>
-            let addr = SocketAddr::from(([127, 0, 0, 1], port));
+    async fn start_fake_server(port: u16) {
+        let port_bound = Arc::new(tokio::sync::Notify::new());
 
-            let make_service = make_service_fn(move |_conn| {
-                let service = service_fn(move |req| handle_test(req));
+        {
+            let port_bound = port_bound.clone();
 
-                async move { Ok::<_, Infallible>(service) }
+            tokio::spawn(async move {
+                // We'll bind to 127.0.0.1:<port>
+                let addr = SocketAddr::from(([127, 0, 0, 1], port));
+
+                let make_service = make_service_fn(move |_conn| {
+                    let service = service_fn(move |req| handle_test(req));
+
+                    async move { Ok::<_, Infallible>(service) }
+                });
+
+                let server = Server::bind(&addr).serve(make_service);
+
+                port_bound.notify_one();
+
+                if let Err(e) = server.await {
+                    eprintln!("server error: {}", e);
+                }
             });
+        }
 
-            let server = Server::bind(&addr).serve(make_service);
-
-            if let Err(e) = server.await {
-                eprintln!("server error: {}", e);
-            }
-        });
+        port_bound.notified().await;
     }
 
     const TEST_TELEPHONE: &'static str = "test_telephone";
@@ -1360,7 +1372,7 @@ mod tests {
     async fn test_irma_register() {
         let context = create_test_context().await.unwrap();
         let req = Request::new(Body::empty());
-        start_fake_server(4001);
+        start_fake_server(4001).await;
 
         let mut resp = irma_register(
             "http://localhost:4001/test1",
@@ -1538,7 +1550,7 @@ mod tests {
         let hubid = create_test_hub(&context).await;
         let token = "token";
         let cookie_secret = "very_secret";
-        start_fake_server(4002);
+        start_fake_server(4002).await;
 
         //existing user account login
         let req1 = Request::new(Body::empty());
@@ -1601,7 +1613,7 @@ mod tests {
         let hubid = create_test_hub(&context).await;
         let token = "token";
         let cookie_secret = "very_secret";
-        start_fake_server(4003);
+        start_fake_server(4003).await;
         //register hub
         let req4 = Request::builder()
             .uri(format!("http://fake.not_exists?hub_id={}", hubid.as_str()))

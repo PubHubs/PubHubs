@@ -2,6 +2,7 @@ use crate::config::having_debug_default;
 use crate::data::DataCommands;
 use crate::oauth::AuthCommands;
 use anyhow::{anyhow, Context, Result};
+use base64ct::{Base64, Encoding as _};
 use expry::BytecodeVec;
 use hairy::hairy_compile_html;
 use hyper::header::HeaderValue;
@@ -163,12 +164,14 @@ impl Irma {
                 .unwrap_or_else(|| config.server_url.clone()),
             server_url: config.server_url,
             requestor: config.requestor,
-            requestor_hmac_key: base64::decode(having_debug_default(
+            requestor_hmac_key: Base64::decode_vec(&having_debug_default(
                 config.requestor_hmac_key,
                 "aXJtYV9yZXF1ZXN0b3Jfa2V5", // base64.encodebytes(b"irma_requestor_key")
                 "irma.requestor_hmac_key",
             )?)
+            .map_err(|e| anyhow!(e)) // because B64Error does not implement StdError
             .context("expected base64-encoded irma requestor hmac key")?,
+
             server_issuer: config.server_issuer,
             server_key,
         })
