@@ -28,7 +28,7 @@
 //! the `redirect_uri`, see [ClientId] for more info.
 
 use aead::{Aead as _, AeadCore as _, KeyInit as _};
-use base64ct::{Base64Url, Encoding as _};
+use base64ct::{Base64, Base64Url, Encoding as _};
 use chacha20poly1305::XChaCha20Poly1305;
 use serde::Deserialize;
 use std::borrow::Cow;
@@ -48,6 +48,7 @@ pub fn new<H: Handler>(h: H, secret: impl AsRef<[u8]>) -> impl Oidc<H = H> {
     OidcImpl::<H> {
         handler: h,
         client_hmac_secret: derive_secret("client-hmac", secret),
+        client_password_secret: derive_secret("client-password", secret),
         auth_code_secret: derive_secret("auth-code", secret),
         auth_request_handle_secret: derive_secret("auth-request-handle", secret),
     }
@@ -174,8 +175,11 @@ pub enum HttpResponse {
     /// Only "form_post" is supported.
     UnsupportedResponseMode,
 
-    /// From RFC6749, section 5.2
-    InvalidRequest,
+    /// Could not parse request body, or unknown parameters were supplied
+    InvalidRequestBody, // invalid_request
+
+    /// Only "application/x-www-form-urlencoded" is supportede
+    InvalidContentType, // invalid_request
 
     /// From RFC6749, section 5.2
     InvalidGrant,
@@ -411,6 +415,7 @@ pub struct TokenCreationData {
 struct OidcImpl<H: Handler> {
     handler: H,
     client_hmac_secret: Secret,
+    client_password_secret: Secret,
     auth_code_secret: Secret,
     auth_request_handle_secret: Secret,
 }
@@ -683,10 +688,14 @@ impl<H: Handler> Oidc for OidcImpl<H> {
             return H::Resp::from(HttpResponse::InvalidMethod);
         }
 
-        // parse query
+        if req.content_type() != Some(ContentType::UrlEncoded) {
+            return H::Resp::from(HttpResponse::InvalidContentType);
+        }
+
+        // parse body
         let query: Result<TokenQuery, _> = serde_urlencoded::from_reader(req.body());
         if query.is_err() {
-            return H::Resp::from(HttpResponse::InvalidRequest);
+            return H::Resp::from(HttpResponse::InvalidRequestBody);
         }
         let query = query.unwrap();
 
@@ -882,7 +891,95 @@ fn is_valid_state(s: &Option<String>) -> bool {
     true
 }
 
-impl<H: Handler> OidcImpl<H> {}
+/// Module for parsing headers such as:
+///
+///   Authorization: Basic czZCaGRSa3F0Mzo3RmpmcDBaQnIxS3REUmJuZlZkbUl3
+///
+/// See section 2 of RFC2617.
+#[doc(hidden)]
+mod basic_auth {
+    use super::*;
+
+    #[derive(Debug, PartialEq)]
+    struct Credentials {
+        userid: String,
+        password: String,
+    }
+
+    #[derive(Error, Debug, Clone, PartialEq)]
+    pub enum Error {
+        #[error("does not start with 'Basic'")]
+        MissingBasic,
+
+        #[error("whitespace missing between Basic and remainder")]
+        MissingWhitespace,
+
+        #[error("invalid base64")]
+        InvalidBase64,
+
+        #[error("invalid utf8")]
+        InvalidUtf8,
+
+        #[error("missing ':' between userid and password")]
+        MissingColon,
+    }
+
+    impl std::str::FromStr for Credentials {
+        type Err = Error;
+
+        fn from_str(s: &str) -> Result<Self, Error> {
+            const BASIC: &str = "Basic";
+
+            let s = s.trim_start(); // remove whitespace from start
+            if !s.starts_with(BASIC) {
+                return Err(Error::MissingBasic);
+            }
+
+            let s = &s[BASIC.len()..];
+
+            // check that the remainder starts with some whitespace
+            if !s
+                .chars()
+                .next()
+                .ok_or_else(|| Error::MissingWhitespace)?
+                .is_whitespace()
+            {
+                return Err(Error::MissingWhitespace);
+            }
+
+            // remove whitespace
+            let s = s.trim();
+
+            // decode base64
+            let s = Base64::decode_vec(s).map_err(|_| Error::InvalidBase64)?;
+            let s = std::str::from_utf8(&s).map_err(|_| Error::InvalidUtf8)?;
+
+            // userid are not allowed to contain an ':'
+            let pos = s.find(':').ok_or_else(|| Error::MissingColon)?;
+
+            return Ok(Credentials {
+                userid: s[..pos].to_owned(),
+                password: s[pos + 1..].to_owned(),
+            });
+        }
+    }
+
+    #[cfg(test)]
+    mod tests {
+        use super::*;
+
+        #[test]
+        fn from_str() {
+            assert_eq!(
+                Credentials::from_str(" Basic  czZCaGRSa3F0Mzo3RmpmcDBaQnIxS3REUmJuZlZkbUl3 "),
+                Ok(Credentials {
+                    userid: "s6BhdRkqt3".to_owned(),
+                    password: "7Fjfp0ZBr1KtDRbnfVdmIw".to_owned(),
+                }),
+            );
+        }
+    }
+}
 
 #[cfg(test)]
 mod tests {
