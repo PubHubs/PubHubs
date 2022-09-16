@@ -153,20 +153,20 @@ pub enum ContentType {
 pub enum HttpResponse {
     /// The method was invalid (not GET for the authorization endpoint or
     /// not POST for the token endpoint.)
-    InvalidMethod,
+    UnsupportedMethod,
 
     /// The query string of the request could not be parsed or contained
     /// unknown fields, or lacked required fields such as client_id,
     /// response_type, or redirect_uri.
-    InvalidQuery,
+    MalformedQuery,
 
     /// The client_id contained invalid characters, or did not contain
     /// a '~' (followed by the MAC.)
-    InvalidClientId,
+    MalformedClientId,
 
     /// The redirect_uri could not be parsed, contained a fragment,
     /// or did not use 'https' as scheme.
-    InvalidRedirectUri,
+    MalformedRedirectUri,
 
     /// The combination of the client_id and redirect_uri was not
     /// authenticated by the MAC inside the client_id.
@@ -176,16 +176,25 @@ pub enum HttpResponse {
     UnsupportedResponseMode,
 
     /// Could not parse request body, or unknown parameters were supplied
-    InvalidRequestBody, // invalid_request
+    MalformedRequestBody, // invalid_request
 
     /// Only "application/x-www-form-urlencoded" is supportede
-    InvalidContentType, // invalid_request
+    UnsupportedContentType, // invalid_request
 
     /// From RFC6749, section 5.2
-    InvalidGrant,
+    InvalidAuthCode,
 
     /// Only "authorization_code" is supported.  From RFC6749, section 5.2
     UnsupportedGrantType,
+
+    /// Missing 'Authorization' header
+    MissingClientCredentials,
+
+    /// Authorization header is malformed
+    MalformedClientCredentials,
+
+    /// The provided credentials were invalid, e.g. incorrect client_id or password.
+    InvalidClientCredentials,
 
     // TODO: organize errors passed directly via HTTP in their own type?
     /// Make the user-agent POST to this URI.
@@ -264,23 +273,43 @@ pub struct ClientId {
     tilde_pos: usize,
 }
 
-impl std::str::FromStr for ClientId {
-    type Err = Error;
+impl std::convert::TryFrom<String> for ClientId {
+    type Error = Error;
 
-    fn from_str(s: &str) -> Result<Self, Self::Err> {
+    fn try_from(s: String) -> Result<Self, Self::Error> {
         let pos = s.rfind('~');
         if pos.is_none() {
-            return Err(Error::InvalidClientId);
+            return Err(Error::MalformedClientId);
         }
 
         if !is_printable_ascii(s.chars()) {
-            return Err(Error::InvalidClientId);
+            return Err(Error::MalformedClientId);
         }
 
         Ok(ClientId {
             tilde_pos: pos.unwrap(), // not none, see above
-            data: s.to_owned(),
+            data: s,
         })
+    }
+}
+
+impl std::str::FromStr for ClientId {
+    type Err = Error;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        Self::try_from(s.to_owned())
+    }
+}
+
+impl AsRef<str> for ClientId {
+    fn as_ref(&self) -> &str {
+        &self.data
+    }
+}
+
+impl Into<String> for ClientId {
+    fn into(self) -> String {
+        self.data
     }
 }
 
@@ -328,7 +357,7 @@ impl ClientId {
 
     /// Generates a new client id including the hmac from the `bare_id`,
     /// the `redirect_uri` and the hmac `secret`.
-    fn new_str(bare_id: &str, secret: &[u8], redirect_uri: &str) -> String {
+    fn new(bare_id: &str, secret: &[u8], redirect_uri: &str) -> ClientId {
         let mac = Base64Url::encode_string(
             &Self::compute_mac(bare_id, secret, redirect_uri)
                 .finalize()
@@ -339,7 +368,47 @@ impl ClientId {
         result.push_str(bare_id);
         result.push('~');
         result.push_str(&mac);
-        return result;
+        return ClientId {
+            data: result,
+            tilde_pos: bare_id.len(),
+        };
+    }
+
+    fn password_mac(client_id: &str, secret: &[u8]) -> impl hmac::Mac {
+        <hmac::Hmac<sha2::Sha256> as hmac::Mac>::new_from_slice(secret)
+            // currently, new_from_slice never returns an error
+            .expect("expected no error from 'Hmac::new_from_slice'")
+            .chain_update(client_id)
+    }
+
+    /// Computes the password associated with the given `client_id`,
+    /// which is the urlsafe base64 encoding of a sha256-hmac
+    /// of `client_id`.
+    ///
+    /// Note:  to check a password, use [check_password] instead, which employs
+    /// constant time equality to prevent timing attacks.
+    fn password(client_id: impl AsRef<str>, secret: impl AsRef<[u8]>) -> String {
+        Base64Url::encode_string(
+            &Self::password_mac(client_id.as_ref(), secret.as_ref())
+                .finalize()
+                .into_bytes(),
+        )
+    }
+
+    fn check_password(
+        client_id: impl AsRef<str>,
+        secret: impl AsRef<[u8]>,
+        password: impl AsRef<str>,
+    ) -> bool {
+        let pw = Base64Url::decode_vec(password.as_ref());
+        if pw.is_err() {
+            return false;
+        }
+        let pw = pw.unwrap();
+
+        Self::password_mac(client_id.as_ref(), secret.as_ref())
+            .verify_slice(&pw)
+            .is_ok()
     }
 }
 
@@ -347,7 +416,7 @@ impl ClientId {
 #[derive(Error, Debug, Clone, PartialEq, PartialOrd)]
 pub enum Error {
     #[error("invalid/corrupted client id")]
-    InvalidClientId,
+    MalformedClientId,
 
     #[error("invalid/corrupted auth_request_handle")]
     InvalidAuthRequestHandle,
@@ -458,7 +527,7 @@ struct AuthQuery {
 
 /// Represents the parameters POSTed to the token endpoint,
 /// see RFC6749, section 4.1.3.
-#[derive(Deserialize, Debug)]
+#[derive(Deserialize, Debug, Clone)]
 #[cfg_attr(test, derive(serde::Serialize))]
 #[serde(deny_unknown_fields)]
 #[doc(hidden)]
@@ -494,20 +563,20 @@ impl<H: Handler> Oidc for OidcImpl<H> {
 
     fn handle_auth(&self, req: H::Req) -> H::Resp {
         if req.method() != HttpMethod::Get {
-            return H::Resp::from(HttpResponse::InvalidMethod);
+            return H::Resp::from(HttpResponse::UnsupportedMethod);
         }
 
         // parse query
         let query = serde_urlencoded::from_str::<AuthQuery>(req.query().as_ref());
         if let Err(_) = query {
-            return H::Resp::from(HttpResponse::InvalidQuery);
+            return H::Resp::from(HttpResponse::MalformedQuery);
         }
         let query = query.unwrap();
 
         // parse client_id
         let client_id: Result<ClientId, Error> = str::parse(&query.client_id);
         if client_id.is_err() {
-            return H::Resp::from(HttpResponse::InvalidClientId);
+            return H::Resp::from(HttpResponse::MalformedClientId);
         }
         let client_id = client_id.unwrap();
 
@@ -519,12 +588,12 @@ impl<H: Handler> Oidc for OidcImpl<H> {
         // check redirect_uri
         let parsed_redirect_uri = url::Url::parse(&query.redirect_uri);
         if parsed_redirect_uri.is_err() {
-            return H::Resp::from(HttpResponse::InvalidRedirectUri);
+            return H::Resp::from(HttpResponse::MalformedRedirectUri);
         }
         let parsed_redirect_uri = parsed_redirect_uri.unwrap();
 
         if parsed_redirect_uri.scheme() != "https" || !parsed_redirect_uri.fragment().is_none() {
-            return H::Resp::from(HttpResponse::InvalidRedirectUri);
+            return H::Resp::from(HttpResponse::MalformedRedirectUri);
         }
 
         // check that the query part of the redirect_uri is valid urlencoded
@@ -532,12 +601,12 @@ impl<H: Handler> Oidc for OidcImpl<H> {
         if let Some(ruq) = parsed_redirect_uri.query() {
             let ruq: Result<RedirectUriSpecialFields, _> = serde_urlencoded::from_str(ruq);
             if let Err(_) = ruq {
-                return H::Resp::from(HttpResponse::InvalidRedirectUri);
+                return H::Resp::from(HttpResponse::MalformedRedirectUri);
             }
             let ruq = ruq.unwrap();
 
             if !ruq.empty() {
-                return H::Resp::from(HttpResponse::InvalidRedirectUri);
+                return H::Resp::from(HttpResponse::MalformedRedirectUri);
             }
         }
 
@@ -685,17 +754,17 @@ impl<H: Handler> Oidc for OidcImpl<H> {
 
     fn handle_token(&self, req: H::Req) -> H::Resp {
         if req.method() != HttpMethod::Post {
-            return H::Resp::from(HttpResponse::InvalidMethod);
+            return H::Resp::from(HttpResponse::UnsupportedMethod);
         }
 
         if req.content_type() != Some(ContentType::UrlEncoded) {
-            return H::Resp::from(HttpResponse::InvalidContentType);
+            return H::Resp::from(HttpResponse::UnsupportedContentType);
         }
 
         // parse body
         let query: Result<TokenQuery, _> = serde_urlencoded::from_reader(req.body());
         if query.is_err() {
-            return H::Resp::from(HttpResponse::InvalidRequestBody);
+            return H::Resp::from(HttpResponse::MalformedRequestBody);
         }
         let query = query.unwrap();
 
@@ -704,9 +773,30 @@ impl<H: Handler> Oidc for OidcImpl<H> {
             return H::Resp::from(HttpResponse::UnsupportedGrantType);
         }
 
+        // check credentials
+        let auth = req.authorization();
+        if auth.is_none() {
+            return H::Resp::from(HttpResponse::MissingClientCredentials);
+        }
+        let auth = auth.unwrap();
+
+        let creds = basic_auth::Credentials::from_str(&auth);
+        if creds.is_err() {
+            return H::Resp::from(HttpResponse::MalformedClientCredentials);
+        }
+        let creds = creds.unwrap();
+
+        if creds.userid != query.client_id {
+            return H::Resp::from(HttpResponse::InvalidClientCredentials);
+        }
+
+        if !ClientId::check_password(creds.userid, self.client_password_secret, creds.password) {
+            return H::Resp::from(HttpResponse::InvalidClientCredentials);
+        }
+
         let acd = AuthCodeData::from_code(query.code, &self.auth_code_secret, &query.client_id);
         if acd.is_err() {
-            return H::Resp::from(HttpResponse::InvalidGrant);
+            return H::Resp::from(HttpResponse::InvalidAuthCode);
         }
         let acd = acd.unwrap();
 
@@ -714,21 +804,17 @@ impl<H: Handler> Oidc for OidcImpl<H> {
         let client_id: Result<ClientId, Error> = str::parse(&query.client_id);
         if client_id.is_err() {
             // should not happen, though, as client_id was already checked by the auth endpoint
-            return H::Resp::from(HttpResponse::InvalidClientId);
+            return H::Resp::from(HttpResponse::MalformedClientId);
         }
         let client_id = client_id.unwrap();
 
-        // check MAC in client_id
+        // check the redirect_uri is correct
         if !client_id.check_mac(&self.client_hmac_secret, &query.redirect_uri) {
             return H::Resp::from(HttpResponse::InvalidClientMAC);
         }
 
         // NB.  We do not need to check the redirect uri, as it has already been
         //      checked by the auth endpoint.
-
-        // TODO: check client credentials
-        //
-        // TODO
 
         return H::Resp::from(HttpResponse::IdToken(acd.id_token));
     }
@@ -759,7 +845,7 @@ impl AuthRequestData {
 
 /// Holds the data sealed in an `auth_code`.
 #[doc(hidden)]
-#[derive(serde::Serialize, serde::Deserialize, PartialEq, Debug)]
+#[derive(serde::Serialize, serde::Deserialize, PartialEq, Debug, Clone)]
 struct AuthCodeData {
     id_token: String,
 }
@@ -891,7 +977,7 @@ fn is_valid_state(s: &Option<String>) -> bool {
     true
 }
 
-/// Module for parsing headers such as:
+/// Module for parsing Basic authorization headers such as:
 ///
 ///   Authorization: Basic czZCaGRSa3F0Mzo3RmpmcDBaQnIxS3REUmJuZlZkbUl3
 ///
@@ -900,14 +986,14 @@ fn is_valid_state(s: &Option<String>) -> bool {
 mod basic_auth {
     use super::*;
 
-    #[derive(Debug, PartialEq)]
-    struct Credentials {
-        userid: String,
-        password: String,
+    #[derive(Debug, PartialEq, Clone)]
+    pub(crate) struct Credentials {
+        pub userid: String,
+        pub password: String,
     }
 
     #[derive(Error, Debug, Clone, PartialEq)]
-    pub enum Error {
+    pub(crate) enum Error {
         #[error("does not start with 'Basic'")]
         MissingBasic,
 
@@ -964,6 +1050,16 @@ mod basic_auth {
         }
     }
 
+    impl std::fmt::Display for Credentials {
+        fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+            write!(
+                f,
+                "Basic {}",
+                Base64::encode_string(format!("{}:{}", self.userid, self.password).as_bytes())
+            )
+        }
+    }
+
     #[cfg(test)]
     mod tests {
         use super::*;
@@ -978,6 +1074,16 @@ mod basic_auth {
                 }),
             );
         }
+
+        #[test]
+        fn to_string() {
+            let c = Credentials {
+                userid: "user".to_string(),
+                password: "pw".to_string(),
+            };
+
+            assert_eq!(c, Credentials::from_str(&c.to_string()).unwrap());
+        }
     }
 }
 
@@ -991,7 +1097,7 @@ mod tests {
             ClientId::from_str("asd"), // no tilde
             ClientId::from_str("~\0"), // invalid character
         ] {
-            assert_eq!(r, Err(Error::InvalidClientId));
+            assert_eq!(r, Err(Error::MalformedClientId));
         }
 
         let c = ClientId::from_str("foo~bar").expect("expected no error");
@@ -1030,7 +1136,7 @@ mod tests {
         let secret = "secret".as_bytes();
         let uri = "uri";
 
-        assert_eq!(cs, ClientId::new_str(id, secret, uri));
+        assert_eq!(cs, ClientId::new(id, secret, uri).as_ref());
 
         let c = ClientId::from_str(cs).expect("expected no error");
 
@@ -1050,7 +1156,23 @@ mod tests {
         assert!(!c.check_mac(secret, uri));
     }
 
+    #[test]
+    fn client_id_password() {
+        // !/usr/bin/env python3
+        // import hmac, base64, hashlib
+        // a = hmac.new(b"secret", msg=b"foo",digestmod=hashlib.sha256).digest()
+        // print(base64.urlsafe_b64encode(a))
+        let pw = "dzukRpPHVT1u4g9h6l0nV6mk9KRNKEGuTpW1LkzWLbQ=";
+        assert_eq!(pw, ClientId::password("foo", "secret"));
+        assert!(ClientId::check_password("foo", "secret", &pw));
+        assert_ne!(pw, ClientId::password("foo1", "secret"));
+        assert_ne!(pw, ClientId::password("foo", "secret1"));
+        assert!(!ClientId::check_password("foo1", "secret", &pw));
+        assert!(!ClientId::check_password("foo", "secret1", &pw));
+    }
+
     /// HttpRequest implementation used for testing
+    #[derive(Debug, Clone, PartialEq)]
     struct MockHttpRequest {
         query: String,
         method: HttpMethod,
@@ -1148,13 +1270,13 @@ mod tests {
         ] {
             assert_eq!(
                 handle_auth(query),
-                MockHttpResponse::FromOidc(HttpResponse::InvalidQuery)
+                MockHttpResponse::FromOidc(HttpResponse::MalformedQuery)
             );
         }
 
         assert_eq!(
             handle_auth(query1),
-            MockHttpResponse::FromOidc(HttpResponse::InvalidClientId)
+            MockHttpResponse::FromOidc(HttpResponse::MalformedClientId)
         );
 
         assert_eq!(
@@ -1171,7 +1293,7 @@ mod tests {
                             response_type: &str| {
             serde_urlencoded::to_string(AuthQuery {
                 response_type: response_type.to_string(),
-                client_id: ClientId::new_str(bare_client_id, &client_hmac_secret, redirect_uri),
+                client_id: ClientId::new(bare_client_id, &client_hmac_secret, redirect_uri).into(),
                 redirect_uri: redirect_uri.to_string(),
                 response_mode: response_mode.map(|a| a.to_string()),
                 scope: scope.map(|a| a.to_string()),
@@ -1212,7 +1334,7 @@ mod tests {
         ] {
             assert_eq!(
                 handle_auth(&create_query_from_uri(uri)),
-                MockHttpResponse::FromOidc(HttpResponse::InvalidRedirectUri)
+                MockHttpResponse::FromOidc(HttpResponse::MalformedRedirectUri)
             );
         }
 
@@ -1499,6 +1621,217 @@ mod tests {
             );
         } else {
             assert!(false);
+        }
+    }
+
+    #[test]
+    fn handle_token() {
+        const secret: &[u8] = "secret".as_bytes();
+        // MARK
+
+        #[derive(Clone)]
+        struct S {
+            auth_code_secret: Secret,
+            client_hmac_secret: Secret,
+            client_password_secret: Secret,
+            redirect_uri: String,
+            client_bare_id: String,
+            client_id: Option<ClientId>,
+            acd: AuthCodeData,
+            credentials: basic_auth::Credentials,
+            query: TokenQuery,
+            req: MockHttpRequest,
+        }
+
+        impl S {
+            fn set_client_id(&mut self) {
+                self.client_id = Some(ClientId::new(
+                    &self.client_bare_id,
+                    &self.client_hmac_secret,
+                    &self.redirect_uri,
+                ));
+            }
+
+            fn set_credentials(&mut self) {
+                self.credentials = basic_auth::Credentials {
+                    userid: self.client_id.as_ref().unwrap().as_ref().to_owned(),
+                    password: ClientId::password(
+                        self.client_id.as_ref().unwrap().as_ref(),
+                        &self.client_password_secret,
+                    ),
+                }
+            }
+
+            fn set_query(&mut self) {
+                self.query.code = self
+                    .acd
+                    .to_code(&self.auth_code_secret, &self.client_id.as_ref().unwrap())
+                    .unwrap();
+                self.query.client_id = self.client_id.as_ref().unwrap().as_ref().to_owned();
+                self.query.redirect_uri = self.redirect_uri.clone();
+            }
+
+            fn set_request(&mut self) {
+                self.req.authorization = Some(self.credentials.to_string());
+                self.req.body = serde_urlencoded::to_string(&self.query).unwrap();
+            }
+
+            fn handle_token(&self, oidc: &impl Oidc<H = MockHandler>) -> HttpResponse {
+                match oidc.handle_token(self.req.clone()) {
+                    MockHttpResponse::FromOidc(result) => result,
+                    _ => panic!("expected FromOidc"),
+                }
+            }
+        }
+
+        let oidc = new(MockHandler {}, secret);
+
+        let mut s = S {
+            auth_code_secret: super::derive_secret("auth-code", secret),
+            client_hmac_secret: super::derive_secret("client-hmac", secret),
+            client_password_secret: super::derive_secret("client-password", secret),
+            redirect_uri: "https://example.com".to_string(),
+            client_bare_id: "foo".to_string(),
+            client_id: None, // set by set_client_id
+            acd: AuthCodeData {
+                id_token: "id_token".to_string(),
+            },
+            credentials: basic_auth::Credentials {
+                userid: "".to_string(),   // set by set_credentials
+                password: "".to_string(), // idem
+            },
+            query: TokenQuery {
+                grant_type: "authorization_code".to_string(),
+                code: "".to_string(),         // set by set_query
+                client_id: "".to_string(),    // idem
+                redirect_uri: "".to_string(), // idem
+            },
+            req: MockHttpRequest {
+                query: "".to_string(),
+                authorization: None, // set by set_request
+                content_type: Some(ContentType::UrlEncoded),
+                body: "".to_string(), // set by set_request
+                method: HttpMethod::Post,
+            },
+        };
+
+        s.set_client_id();
+        s.set_credentials();
+        s.set_query();
+        s.set_request();
+
+        // first test the happy flow
+        assert_eq!(
+            s.handle_token(&oidc),
+            HttpResponse::IdToken("id_token".to_string())
+        );
+
+        // wrong method
+        {
+            let mut s = s.clone();
+            s.req.method = HttpMethod::Get;
+            assert_eq!(s.handle_token(&oidc), HttpResponse::UnsupportedMethod)
+        }
+
+        // wrong content type
+        {
+            let mut s = s.clone();
+            s.req.content_type = None;
+            assert_eq!(s.handle_token(&oidc), HttpResponse::UnsupportedContentType)
+        }
+
+        // invalid body
+        {
+            let mut s = s.clone();
+            s.req.body = "".to_string();
+            assert_eq!(s.handle_token(&oidc), HttpResponse::MalformedRequestBody)
+        }
+
+        // invalid grant type
+        {
+            let mut s = s.clone();
+            s.query.grant_type = "invalid".to_string();
+            s.set_request();
+            assert_eq!(s.handle_token(&oidc), HttpResponse::UnsupportedGrantType)
+        }
+
+        // authorization problems
+        {
+            // missing authorization
+            let mut s = s.clone();
+            s.req.authorization = None;
+            assert_eq!(
+                s.handle_token(&oidc),
+                HttpResponse::MissingClientCredentials
+            );
+
+            // wrong userid
+            s.client_bare_id = "not_foo".to_string();
+            s.set_client_id();
+            s.set_credentials();
+            // We don't do "s.set_query();" so query still holds "foo~..." as client_id.
+            s.set_request();
+            assert_eq!(
+                s.handle_token(&oidc),
+                HttpResponse::InvalidClientCredentials
+            );
+        }
+
+        {
+            // wrong password
+            let mut s = s.clone();
+            s.credentials.password = "gibberish".to_string();
+            s.set_request();
+            assert_eq!(
+                s.handle_token(&oidc),
+                HttpResponse::InvalidClientCredentials
+            );
+        }
+
+        {
+            // invalid client mac
+            let mut s = s.clone();
+
+            s.client_id = Some(ClientId::from_str("some~thing invalid").unwrap());
+            s.set_credentials();
+            s.set_query();
+            s.set_request();
+            assert_eq!(s.handle_token(&oidc), HttpResponse::InvalidClientMAC);
+        }
+
+        {
+            // auth code signed by wrong key
+            let mut s = s.clone();
+
+            s.auth_code_secret = Secret::default();
+            s.set_query();
+            s.set_request();
+            assert_eq!(s.handle_token(&oidc), HttpResponse::InvalidAuthCode);
+        }
+
+        {
+            // auth code destined for other client
+            let mut s = s.clone();
+
+            let old_client_id = s.query.client_id.clone();
+
+            s.client_bare_id = "not foo".to_string();
+            s.set_client_id();
+            s.set_query();
+            s.query.client_id = old_client_id;
+            s.set_request();
+
+            assert_eq!(s.handle_token(&oidc), HttpResponse::InvalidAuthCode);
+        }
+
+        {
+            // invalid redirect_uri
+            let mut s = s.clone();
+
+            s.query.redirect_uri = "something invalid".to_string();
+            s.set_request();
+
+            assert_eq!(s.handle_token(&oidc), HttpResponse::InvalidClientMAC);
         }
     }
 }
