@@ -112,13 +112,17 @@ pub trait Handler {
     }
 }
 
-mod http {
+pub mod http {
     use super::*;
 
-    /// Represents an HTTP request, likely [`hyper::Request<hyper::Body>`]
+    /// Represents an HTTP request.  
     ///
-    /// NB. We have added a lifetime parameter 's for &self to allow Body to be a reference with
-    ///     &self's lifetime, e.g. &'s[u8] --- no longer needed when generic associated types,
+    /// **Note 1:** A [hyper::Request] can be converted asynchronously to an [hyper_support::CompleteRequest]
+    /// which has this [Request] trait
+    /// via [hyper_support::CompleteRequest::from].
+    ///
+    /// **Note 2:**. We have added a lifetime parameter 's for &self to allow Body to be a reference with
+    ///     &self's lifetime, e.g. `&'s[u8]` --- no longer needed when generic associated types,
     ///     see RFC1598, become stable.
     pub trait Request<'s> {
         type Body: std::io::Read;
@@ -223,9 +227,138 @@ mod http {
         /// The provided credentials were invalid, e.g. incorrect client_id or password.
         InvalidClientCredentials,
     }
+
+    /// support for hyper
+    pub mod hyper_support {
+        use super::*;
+
+        impl From<&hyper::Method> for Method {
+            fn from(hm: &hyper::Method) -> Method {
+                match *hm {
+                    hyper::Method::GET => Method::Get,
+                    hyper::Method::POST => Method::Post,
+                    _ => Method::Other,
+                }
+            }
+        }
+
+        /// Represents a small http request whose body has been read completely into memory.
+        pub struct CompleteRequest<Body: hyper::body::HttpBody + Unpin> {
+            underlying: hyper::Request<Body>,
+            body: hyper::body::Bytes,
+        }
+
+        impl<Body: hyper::body::HttpBody + Unpin> CompleteRequest<Body> {
+            /// Reads the body of the given http request into memory provided
+            /// that its content-length does not exceed the provided `max_body_size`.
+            pub async fn from(
+                mut req: hyper::http::Request<Body>,
+                max_body_size: u64,
+            ) -> Result<Option<Self>, Body::Error> {
+                let body = req.body();
+
+                // check body size
+                match body.size_hint().upper() {
+                    Some(s) if s > max_body_size => return Ok(None),
+                    None => return Ok(None),
+                    _ => {}
+                }
+
+                Ok(Some(CompleteRequest {
+                    body: hyper::body::to_bytes(req.body_mut()).await?,
+                    underlying: req,
+                }))
+            }
+
+            /// Retrieves the first value of the given header converted to [&str].
+            /// Returns [None] when no such header exists, or when its first value contains
+            /// an invalid character.
+            #[doc(hidden)]
+            fn header(&self, name: impl hyper::header::AsHeaderName) -> Option<&str> {
+                self.underlying.headers().get(name)?.to_str().ok()
+            }
+        }
+
+        impl<'s, Body: hyper::body::HttpBody + Unpin> Request<'s> for CompleteRequest<Body> {
+            type Body = &'s [u8];
+
+            fn method(&'s self) -> Method {
+                self.underlying.method().into()
+            }
+
+            fn query(&'s self) -> Cow<str> {
+                match self.underlying.uri().query() {
+                    Some(q) => Cow::Borrowed(q),
+                    None => Cow::Owned("".to_string()),
+                }
+            }
+
+            fn body(&'s self) -> Self::Body {
+                &self.body
+            }
+
+            fn content_type(&'s self) -> Option<ContentType> {
+                let ct = self.header(hyper::header::CONTENT_TYPE)?;
+
+                if ct.starts_with("application/x-www-form-urlencoded") {
+                    return Some(ContentType::UrlEncoded);
+                }
+                if ct.starts_with("application/json") {
+                    return Some(ContentType::Json);
+                }
+                Some(ContentType::Other)
+            }
+
+            fn authorization(&'s self) -> Option<Cow<str>> {
+                Some(Cow::Borrowed(self.header(hyper::header::AUTHORIZATION)?))
+            }
+        }
+
+        #[cfg(test)]
+        mod tests {
+            use super::*;
+
+            #[tokio::test]
+            async fn complete_request() {
+                // bodies that are too large are rejected
+                assert!(CompleteRequest::from(
+                    hyper::Request::builder().body("asd".to_string()).unwrap(),
+                    2,
+                )
+                .await
+                .unwrap()
+                .is_none());
+
+                let req = hyper::Request::builder().body("asd".to_string()).unwrap();
+
+                let req = CompleteRequest::from(
+                    hyper::Request::builder()
+                        .method("POST")
+                        .header("Content-Type", "application/json")
+                        .uri("https://example.com/?query#fragment")
+                        .body("asd".to_string())
+                        .unwrap(),
+                    3,
+                )
+                .await
+                .unwrap()
+                .unwrap();
+
+                assert_eq!(req.method(), Method::Post);
+                assert_eq!(req.query(), "query");
+                assert_eq!(req.body(), "asd".as_bytes());
+                assert_eq!(req.content_type(), Some(ContentType::Json));
+                assert_eq!(req.authorization(), None);
+
+                // TODO: write more tests
+            }
+        }
+    }
 }
 
-mod redirect_uri {
+pub mod redirect_uri {
+    use super::*;
+
     /// Represents the response of the [Oidc] to the client of having the
     /// user-agent POST the [ResponseData] to the specified uri.
     #[derive(Debug, PartialEq, Eq)]
@@ -404,7 +537,7 @@ impl ClientId {
     /// which is the urlsafe base64 encoding of a sha256-hmac
     /// of `client_id`.
     ///
-    /// Note:  to check a password, use [check_password] instead, which employs
+    /// Note:  to check a password, use [ClientId::check_password] instead, which employs
     /// constant time equality to prevent timing attacks.
     fn password(client_id: impl AsRef<str>, secret: impl AsRef<[u8]>) -> String {
         Base64Url::encode_string(
