@@ -23,7 +23,7 @@ In the longer term we'd like to move to a more open way of developing, but for n
 
 There are three main parts to PubHubs:
 1. The PubHubs platform itself, for central login and authentication. Hubs will only get pseudonyms but never the central identity.
-2. The hubs, [matrix](https://matrix.org/) homeservers, in the ultimate PubHubs platform these will not be federated so ids are not shared between hubs (in the longer term we;d like to link hubs to be able to share content so  maybe some federation will happen).
+2. The hubs, [matrix](https://matrix.org/) homeservers, in the ultimate PubHubs platform these will not be federated so ids are not shared between hubs (in the longer term we'd like to link hubs to be able to share content so  maybe some federation will happen).
 3. A matrix client to make sure the user can communicate with hubs.
 
 This pubhubs directory contains the platform itself. The directory pubhubs_hub contains the modules we need to make hubs work within PubHubs. The client we will develop in the future. 
@@ -64,7 +64,7 @@ This script will launch three containers:
 
 If the hub is not yet registered on the PubHubs server, the script will register the hub.
 
-We currently use our own modified element client, that image is not publicly available. In docker-compose.yaml you will need to change `registry.science.ru.nl/ilab/pubhubs-element-web/pubhubs-element-web` to
+We currently use our own modified Element client, that image is not publicly available. In docker-compose.yaml you will need to change `registry.science.ru.nl/ilab/pubhubs-element-web/pubhubs-element-web` to
 `vectorim/element-web`. We are planning to develop our own client, but that is not yet finished.
 
 If you want to run it on linux you will need to change the file `pubhubs_hub/matrix_test_config/homeserver.yaml`,
