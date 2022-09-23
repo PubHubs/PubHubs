@@ -271,8 +271,8 @@ pub mod http {
             }
 
             /// Retrieves the first value of the given header converted to [&str].
-            /// Returns [None] when no such header exists, or when its first value contains
-            /// an invalid character.
+            /// Returns [None] when no such header exists, or when its first value
+            /// contains an invalid or opaque character, see [tests::valid_header_characters].
             #[doc(hidden)]
             fn header(&self, name: impl hyper::header::AsHeaderName) -> Option<&str> {
                 self.underlying.headers().get(name)?.to_str().ok()
@@ -318,6 +318,35 @@ pub mod http {
         mod tests {
             use super::*;
 
+            #[test]
+            /// This test clarifies which characters may appear in a [hyper::header::HeaderValue].
+            fn valid_header_characters() {
+                // According to RFC7230 (see 'field-content' in section 3.2),
+                // header values may contain the following bytes:
+                //
+                //  - 9, a tab ('\t');
+                //  - 32, a space (' ');
+                //  - 33 ('!') to 126 ('~') inclusive, that is, anyvisible ASCII character (VCHAR);
+                //  - 128 to 255, so-called 'opaque characters'.
+                //
+                // The opaque characters are allowed only for historic reasons, and should not be
+                // used, and may even be invalid unicode.
+                //
+                // Whence HeaderValue::to_str() rejects any opaque characters.
+                //
+                // Note: while RFC7230 includes "obs-fold" in the definition of "field-value",
+                //       its use is banned except within a 'message/http' (yes, 'http') -
+                //       a MIME type which has not caught on it seems.
+                for byte in 0..=255 {
+                    let hv = hyper::header::HeaderValue::from_bytes([byte].as_slice());
+                    assert_eq!(hv.is_ok(), byte >= 32 && byte != 127 || byte == 9);
+                    if let Ok(hv) = hv {
+                        let ts = hv.to_str();
+                        assert_eq!(ts.is_ok(), byte < 127);
+                    }
+                }
+            }
+
             #[tokio::test]
             async fn complete_request() {
                 // bodies that are too large are rejected
@@ -329,8 +358,114 @@ pub mod http {
                 .unwrap()
                 .is_none());
 
-                let req = hyper::Request::builder().body("asd".to_string()).unwrap();
+                // test method
+                for (ms, m) in vec![
+                    ("GET", Method::Get),
+                    ("POST", Method::Post),
+                    ("PATCH", Method::Other),
+                ] {
+                    let req = CompleteRequest::from(
+                        hyper::Request::builder()
+                            .method(ms)
+                            .body("asd".to_string())
+                            .unwrap(),
+                        4,
+                    )
+                    .await
+                    .unwrap()
+                    .unwrap();
+                    assert_eq!(req.method(), m);
+                }
 
+                // test query
+                for (u, q) in vec![
+                    ("https://no-query.com", ""),
+                    ("http://query.com?", ""),
+                    ("https://query.com?some-query#fragment", "some-query"),
+                ] {
+                    let req = CompleteRequest::from(
+                        hyper::Request::builder()
+                            .uri(u)
+                            .body("asd".to_string())
+                            .unwrap(),
+                        4,
+                    )
+                    .await
+                    .unwrap()
+                    .unwrap();
+                    assert_eq!(req.query(), q);
+                }
+
+                // empty body
+                let req = CompleteRequest::from(
+                    hyper::Request::builder()
+                        .body(hyper::body::Body::empty())
+                        .unwrap(),
+                    4,
+                )
+                .await
+                .unwrap()
+                .unwrap();
+                assert_eq!(req.body(), "".as_bytes());
+
+                // string body
+                let req = CompleteRequest::from(
+                    hyper::Request::builder().body("asd".to_string()).unwrap(),
+                    4,
+                )
+                .await
+                .unwrap()
+                .unwrap();
+                assert_eq!(req.body(), "asd".as_bytes());
+
+                // content-type
+                for (cts, ct) in vec![
+                    (
+                        Some(b"application/json".as_slice()),
+                        Some(ContentType::Json),
+                    ),
+                    (
+                        Some(b"application/x-www-form-urlencoded".as_slice()),
+                        Some(ContentType::UrlEncoded),
+                    ),
+                    (Some(b"text/plain".as_slice()), Some(ContentType::Other)),
+                    (None, None),
+                    (Some(b"\t".as_slice()), Some(ContentType::Other)),
+                    (Some(b"\xff".as_slice()), None), // 'opaque' character
+                ] {
+                    let mut rb = hyper::Request::builder();
+
+                    if let Some(cts) = cts {
+                        rb = rb.header("Content-Type", cts);
+                    }
+
+                    let req = CompleteRequest::from(rb.body("asd".to_string()).unwrap(), 4)
+                        .await
+                        .unwrap()
+                        .unwrap();
+                    assert_eq!(req.content_type(), ct);
+                }
+
+                // authorization
+                for auth in vec![None, Some("Blaat")] {
+                    let mut rb = hyper::Request::builder();
+
+                    if let Some(auth) = auth {
+                        rb = rb.header("Authorization", auth);
+                    }
+
+                    let req = CompleteRequest::from(rb.body("asd".to_string()).unwrap(), 4)
+                        .await
+                        .unwrap()
+                        .unwrap();
+
+                    assert_eq!(
+                        req.authorization().map(|a| a.into_owned()),
+                        auth.map(|a| a.to_string())
+                    );
+                }
+
+                // example
                 let req = CompleteRequest::from(
                     hyper::Request::builder()
                         .method("POST")
@@ -349,8 +484,6 @@ pub mod http {
                 assert_eq!(req.body(), "asd".as_bytes());
                 assert_eq!(req.content_type(), Some(ContentType::Json));
                 assert_eq!(req.authorization(), None);
-
-                // TODO: write more tests
             }
         }
     }
@@ -1788,7 +1921,6 @@ mod tests {
     #[test]
     fn handle_token() {
         const SECRET: &[u8] = "secret".as_bytes();
-        // MARK
 
         #[derive(Clone)]
         struct S {
