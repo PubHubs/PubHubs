@@ -47,6 +47,16 @@ unit-test-rust-code:
     paths:
       - target/
 
+cargo-deny:
+  stage: build
+  tags:
+    - docker
+  image: registry.science.ru.nl/ilab/docker-build/rust-stable:main
+  script:
+    - cd pubhubs
+    - cargo deny check
+
+
 build-pubhubs-image:
   stage: build-images
   only:

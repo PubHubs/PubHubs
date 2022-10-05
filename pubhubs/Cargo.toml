@@ -2,6 +2,7 @@
 name = "pub_hubs"
 version = "0.1.0"
 edition = "2021"
+license-file = "../LICENSE"
 
 [features]
 real_credentials = []
@@ -27,7 +28,9 @@ rand = "0.8"
 # IRMA interaction
 regex = "1.5"
 qrcode = "0.12"
-chrono = "0.4"
+chrono = {version="0.4", default_features = false, features = ["clock"]}
+# note: we don't use chrono 0.4's default features, because it includes oldtime,
+#       which pulls in time 0.1, which has a vulnerability (viz. RUSTSEC-2020-0071)
 async-recursion = "1.0"
 
 # Web dependencies
