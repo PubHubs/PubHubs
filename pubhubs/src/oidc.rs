@@ -1,4 +1,5 @@
 //! Module to deal with the OAuth 2.0 and OpenID Connect endpoints and flows.
+//! See [new] for basic usage.
 //!
 //! NOTE: We attempt to keep this code separate from other PubHubs code
 //! in the hope of turning into a library in the future.
@@ -43,6 +44,154 @@ use sha2::Digest as _;
 /// Creates a new [Oidc] trait object that handles the OAuth 2.0 and
 /// OpenID Connect endpoints to the extend that it can, passing
 /// the remaining work/choices to the specified [Handler].
+///
+/// ```
+/// use pub_hubs::oidc::{self, ClientId, Oidc as _};
+/// use pub_hubs::oidc::http::{Method, ContentType};
+/// use std::borrow::Cow;
+/// use std::str::FromStr as _;
+///
+/// // Suppose the HTTP requests we receive look like this:
+/// struct Request {
+///     body : Vec<u8>,
+///     method : Method,
+///     query : String,
+///     content_type : Option<ContentType>,
+///     authorization : Option<String>,
+/// }
+///
+/// // Then the first step is to have them implement the oidc::http::Request trait,
+/// // so that oidc can deal with them.
+/// impl<'s> oidc::http::Request<'s> for Request {
+///     type Body = &'s [u8];
+///
+///     fn method(&'s self) -> Method { self.method }
+///     fn query(&'s self) ->Cow<str>  { Cow::Borrowed(&self.query) }
+///     fn body(&'s self) -> Self::Body { &self.body }
+///     fn content_type(&'s self) -> Option<ContentType> { self.content_type }
+///     fn authorization(&'s self) -> Option<Cow<str>> {
+///         self.authorization.as_ref().map(|a| Cow::Borrowed(a.as_str()))
+///     }
+/// }
+///
+/// // We must also define a transformation from the oidc::http::Response enum
+/// // to the type we use for HTTP responses.
+/// #[derive(Debug)]
+/// enum Response {
+///     FromOidc(oidc::http::Response),
+///     Own(String),
+/// }
+///
+/// impl From<oidc::http::Response> for Response {
+///     fn from(r : oidc::http::Response) -> Self { Response::FromOidc(r) }
+/// }
+///
+/// // Some input from our end is required, which we provide via the `MyHandler` class.
+/// struct MyHandler {}
+///
+/// impl oidc::Handler for MyHandler {
+///     type Req = Request;
+///     type Resp = Response;
+///
+///     fn handle_auth(&self, req : Self::Req, auth_request_handle : String) -> Self::Resp {
+///         // This should return some page where a user can authenticate.
+///         // When the user is authenticated, we use the `auth_request_handle` to
+///         // to obtain an `auth_code` we have the user send back to the client.
+///
+///         // For this demonstration, we perform no authentication, but
+///         // simply return the `auth_request_handle`.
+///         Response::Own(auth_request_handle)
+///     }
+///
+///     fn is_valid_client(&self, client_id : &ClientId, redirect_uri : &str) -> bool {
+///         // This function is called to afford us the opportunity to ban
+///         // certain `clients` and `redirect_uri`'s.
+///         client_id.bare_id() != "banned" && redirect_uri != "https://example.com/banned"
+///     }
+/// }
+///
+/// let h = MyHandler{};
+///
+/// // If "some secret" changes, all `client_id`'s, `auth_code`'s, `auth_request_handle`,
+/// // and client passwords become invalid.
+/// let o = oidc::new::<MyHandler>(h, "some secret".as_bytes());
+///
+/// // Create new client credentials.
+/// let client_creds = o.generate_client_credentials("some-client", "https://example.com");
+///
+/// // Simulate a user-agent that has been sent by a client to the authorization endpoint.
+/// // This is the first step the client takes to obtain an `id_token` for this user-agent.
+/// let resp = o.handle_auth(Request{
+///     body: vec![],
+///     method: Method::Get,
+///     query:
+///     format!("client_id={client_id}&redirect_uri=https://example.com&response_type=code&response_mode=form_post&state=state&nonce=nonce&scope=oidc", client_id = client_creds.client_id.as_ref()),
+///     content_type: None,
+///     authorization: None,
+/// });
+///
+/// let mut auth_request_handle = String::new();
+///
+/// match resp {
+///     Response::Own(s) => { auth_request_handle = s; }
+///     Response::FromOidc(r) => { assert!(false, "did not expect {:?}", r); }
+/// }
+///
+/// // Here the user should be authenticated by some appropriate process.
+/// // Once we are satisfied, we use the `auth_request_handle` to create
+/// // an `auth_code` to have the user POST back to the client.
+/// //
+/// // At that point we also already create the `id_token`, which is sealed inside the `auth_code`,
+/// // and only extracted after a proper request of the client to the token endpoint.
+/// let resp : oidc::http::Response  = o.grant_code(auth_request_handle,
+///     |tcd : oidc::TokenCreationData| -> Result<String,()> {
+///
+///     assert_eq!(tcd.nonce, "nonce");
+///     assert_eq!(ClientId::from_str(&tcd.client_id).unwrap().bare_id(), "some-client");
+///
+///     Ok("id_token".to_string())
+///     // This is of course not a proper `id_token`.
+///     // Don't forget to include the `tcd.nonce` and `tcd.client_id`
+///     // in the `id_token`!
+/// }).unwrap();
+///
+/// // The http response `resp` when server to the user-agent, makes them post the
+/// // `auth_code` to `redirect_uri` of the client.
+///
+/// // The auth_code can be extracted from `resp`, as follows.
+/// let mut auth_code = String::new();
+///
+/// match resp {
+///     oidc::http::Response::Grant(oidc::redirect_uri::Response{
+///         uri,
+///         data: oidc::redirect_uri::ResponseData::CodeGrant{ code, state },
+///     }) => {
+///         assert_eq!(state, "state");
+///         assert_eq!(uri, "https://example.com");
+///         auth_code = code;
+///     },
+///     _ => { assert!(false, "unexpected response: {:?}", resp); }
+/// }
+///
+/// // The client, upon receiving the `auth_code`, can use it to obtain the `id_token`:
+/// let resp = o.handle_token(Request{
+///     body : format!("grant_type=authorization_code&code={auth_code}&client_id={client_id}&redirect_uri={redirect_uri}",
+///         auth_code = auth_code,
+///         client_id = client_creds.client_id.as_ref(),
+///         redirect_uri = "https://example.com",
+///     ).as_bytes().to_vec(),
+///     method : Method::Post,
+///     query : String::new(),
+///     content_type : Some(ContentType::UrlEncoded),
+///     authorization : Some(client_creds.basic_auth())
+/// });
+///
+/// match resp {
+///     Response::FromOidc(oidc::http::Response::Token(oidc::http::TokenResponse::IdToken(id_token)))
+///         => { assert_eq!(id_token, "id_token") },
+///     _ => { assert!(false, "did not expect {:?}", resp) }
+/// }
+/// ```
 pub fn new<H: Handler>(h: H, secret: impl AsRef<[u8]>) -> impl Oidc<H = H> {
     let secret = secret.as_ref();
 
@@ -78,13 +227,20 @@ pub trait Oidc {
         &self,
         auth_request_handle: String,
         id_token_creator: impl FnOnce(TokenCreationData) -> Result<String, ()>,
-    ) -> Result<redirect_uri::Response, Error>;
+    ) -> Result<http::Response, Error>;
 
     /// Handles the RFC6749 4.1.3 Access Token Request.
     ///
     /// The client retrieves the id_token of the user using the auth_code it got via
     /// the resource owner's user-agent.
     fn handle_token(&self, req: <Self::H as Handler>::Req) -> <Self::H as Handler>::Resp;
+
+    /// Generates [ClientCredentials] from a `bare_id` and `redirect_uri`.
+    fn generate_client_credentials(
+        &self,
+        bare_id: impl AsRef<str>,
+        redirect_uri: impl AsRef<str>,
+    ) -> ClientCredentials;
 }
 
 /// A [Handler] instance (passed to [new]) returns control to you
@@ -159,8 +315,14 @@ pub mod http {
     /// [`hyper::Response<hyper::Body>`].
     #[derive(Debug, PartialEq, Eq)]
     pub enum Response {
+        /// returned by [Oidc::handle_auth]
         Auth(AuthResponse),
+
+        /// returned by [Oidc::handle_token]
         Token(TokenResponse),
+
+        /// returned by [Oidc::grant_code]
+        Grant(redirect_uri::Response),
     }
 
     /// [AuthResponse] enumerates the possible HTTP responses generated by
@@ -227,7 +389,9 @@ pub mod http {
             // If rust gets the "yield" keyword, this awkward business can be avoided.
             const HEADERS: [(&'static str, fn(&Response) -> Option<&'static str>); 4] = [
                 ("Content-Type", |s| match s {
-                    Response::Auth(AuthResponse::FormPost(_)) => Some("text/html;charset=UTF-8"),
+                    Response::Auth(AuthResponse::FormPost(_)) | Response::Grant(_) => {
+                        Some("text/html;charset=UTF-8")
+                    }
                     Response::Auth(AuthResponse::Error(_)) => Some("plain/text;charset=UTF-8"),
                     Response::Token(_) => Some("application/json;charset=UTF-8"),
                 }),
@@ -250,22 +414,40 @@ pub mod http {
                 })
         }
 
+        /// Returns the HTTP body associated with this response.
+        ///
+        /// The body is returned as a String (instead of, say a [std::io::Read]
+        /// or
+        /// [futures::stream::Stream](https://docs.rs/futures/latest/futures/stream/trait.Stream.html), because the body is generally small
         pub fn into_body(self) -> String {
             match self {
                 Response::Auth(AuthResponse::Error(e)) => {
                     format!("Oops! something went wrong - sorry about that.\n\nWe can't tell for sure who sent you here, but it might have been a fool's errand. \n\nIf you think it isn't, please contact the website that sent you here, and provide them the following information.\n\n{}\n\n{}", e.error(), e.error_description())
                 }
-                Response::Auth(AuthResponse::FormPost(e)) => {
+                Response::Auth(AuthResponse::FormPost(rur)) | Response::Grant(rur) => {
+                    let mut inputs = String::new();
+
+                    rur.data.walk_fields(|field_name: &str, field_value: &str| {
+                        inputs.push_str(&format!(
+                            "<input type=\"hidden\" name=\"{name}\" value=\"{value}\">\n",
+                            name = html::escape(field_name),
+                            value = html::escape(field_value)
+                        ));
+                    });
+
                     format!(
                         r#"<html>
                             <head><title>Form redirection...</title></head>
                             <body onload="javascript:document.forms[0].submit()">
-                                <form method="post" action="">
+                                <form method="post" action="{redirect_uri}">
                                     <input type="hidden">
+                                    {inputs}
                                     <input type="submit" value="Click here to proceed">
                                 </form>
                             </body>
-                        </html>"#
+                        </html>"#,
+                        redirect_uri = html::escape(&rur.uri),
+                        inputs = inputs,
                     )
                 }
                 Response::Token(TokenResponse::Error(e)) => {
@@ -694,7 +876,7 @@ pub mod http {
 
 pub mod redirect_uri {
 
-    /// Represents the response of the [Oidc] to the client of having the
+    /// Represents the response of the [super::Oidc] to the client of having the
     /// user-agent POST the [ResponseData] to the specified uri.
     #[derive(Debug, PartialEq, Eq)]
     pub struct Response {
@@ -720,6 +902,31 @@ pub mod redirect_uri {
         InvalidScope,
         UnauthorizedClient,
         ServerError,
+    }
+
+    impl ResponseData {
+        /// Enumerates then fields that are to be POSTed to the [Response::uri], by calling
+        ///   `cb(field_name, field_value)`
+        /// for each field.
+        ///
+        /// NB. the `field_name` and `field_value` are not (yet) encoded for embedding in HTML.
+        pub fn walk_fields(&self, mut cb: impl FnMut(&str, &str)) {
+            match self {
+                ResponseData::CodeGrant { code, state } => {
+                    cb("code", code);
+                    cb("state", state);
+                }
+                ResponseData::Error { error, state } => {
+                    cb("error", error.error());
+                    if let Some(desc) = error.error_description() {
+                        cb("error_description", &desc);
+                    }
+                    if let Some(state) = state {
+                        cb("state", state);
+                    }
+                }
+            }
+        }
     }
 
     impl Error {
@@ -749,12 +956,43 @@ pub mod redirect_uri {
     }
 }
 
+/// Represents login details for a client when contacting the token endpoint,
+/// see [Oidc::handle_token].
+///
+/// Can be created using [Oidc::generate_login_credentials].
 #[derive(PartialEq, Eq, Debug, Clone, PartialOrd, Hash)]
+pub struct ClientCredentials {
+    pub client_id: ClientId,
+    pub password: String,
+}
+
+impl ClientCredentials {
+    /// Returns the credentials wrapped in an "Authorization" header value.
+    ///
+    /// ```
+    /// use pub_hubs::oidc;
+    /// use std::str::FromStr as _;
+    ///
+    /// assert_eq!(oidc::ClientCredentials{
+    ///     client_id: oidc::ClientId::from_str("some-client~mac").unwrap(),
+    ///     password: "password".to_string()
+    /// }.basic_auth(), "Basic c29tZS1jbGllbnR+bWFjOnBhc3N3b3Jk".to_string())
+    /// ```
+    pub fn basic_auth(&self) -> String {
+        basic_auth::Credentials {
+            userid: self.client_id.as_ref().to_string(),
+            password: self.password.clone(),
+        }
+        .to_string()
+    }
+}
+
 /// Wraps a [String] holding a client's identifier of the form
 /// `<bare_id>~<mac>`, where `bare_id` is arbitrary (e.g. `test_hub`)
 /// and `mac` is a message authentication code that binds the `bare_id`
 /// to a `redirect_uri` using a secret derived from the secret
 /// passed to the [Oidc] via [new].
+#[derive(PartialEq, Eq, Debug, Clone, PartialOrd, Hash)]
 pub struct ClientId {
     data: String,
     tilde_pos: usize,
@@ -1210,7 +1448,7 @@ impl<H: Handler> Oidc for OidcImpl<H> {
         &self,
         auth_request_handle: String,
         id_token_creator: impl FnOnce(TokenCreationData) -> Result<String, ()>,
-    ) -> Result<redirect_uri::Response, Error> {
+    ) -> Result<http::Response, Error> {
         let data =
             AuthRequestData::from_handle(auth_request_handle, &self.auth_request_handle_secret)?;
 
@@ -1226,24 +1464,24 @@ impl<H: Handler> Oidc for OidcImpl<H> {
         if let Err(err) = code {
             log::error!("failed to create auth_code: {}", err);
 
-            return Ok(redirect_uri::Response {
+            return Ok(http::Response::Grant(redirect_uri::Response {
                 uri: data.redirect_uri,
                 data: redirect_uri::ResponseData::Error {
                     error: redirect_uri::Error::ServerError,
                     state: Some(data.state),
                 },
-            });
+            }));
         }
 
         let code = code.unwrap();
 
-        Ok(redirect_uri::Response {
+        Ok(http::Response::Grant(redirect_uri::Response {
             uri: data.redirect_uri,
             data: redirect_uri::ResponseData::CodeGrant {
                 state: data.state,
                 code,
             },
-        })
+        }))
     }
 
     fn handle_token(&self, req: H::Req) -> H::Resp {
@@ -1317,6 +1555,22 @@ impl<H: Handler> Oidc for OidcImpl<H> {
         //      checked by the auth endpoint.
 
         H::Resp::from(http::TokenResponse::IdToken(acd.id_token).into())
+    }
+
+    fn generate_client_credentials(
+        &self,
+        bare_id: impl AsRef<str>,
+        redirect_uri: impl AsRef<str>,
+    ) -> ClientCredentials {
+        let client_id = ClientId::new(
+            bare_id.as_ref(),
+            &self.client_hmac_secret,
+            redirect_uri.as_ref(),
+        );
+        ClientCredentials {
+            password: ClientId::password(client_id.as_ref(), self.client_password_secret),
+            client_id,
+        }
     }
 }
 
@@ -1587,14 +1841,26 @@ mod basic_auth {
     }
 }
 
-mod html {
+pub mod html {
     use super::*;
 
     /// [escape] replaces the characters '<', '>', '&', '\'', and '"' with character references.
     ///
     /// There is a crate that does this, html_escape, but it's soo easy, it's worth doing to
     /// avoid the additional dependency.
-    fn escape<'a>(s: &str) -> Cow<str> {
+    ///
+    /// ```
+    /// use pub_hubs::oidc::html::escape;
+    ///
+    /// let s: &str = "no special characters";
+    /// assert!(std::ptr::eq(escape(s).as_ref(), s));
+    /// assert_eq!(escape("<>&\"'"), "&lt;&gt;&amp;&quot;&#27;");
+    /// assert_eq!(
+    ///     escape("and < now > with & some \" text ' in between"),
+    ///     "and &lt; now &gt; with &amp; some &quot; text &#27; in between"
+    /// );
+    /// ```
+    pub fn escape<'a>(s: &str) -> Cow<str> {
         let mut it = s
             .match_indices(['<', '>', '&', '\'', '"'].as_slice())
             .peekable();
@@ -1625,22 +1891,6 @@ mod html {
         result.push_str(&s[last_idx..]);
 
         Cow::Owned(result)
-    }
-
-    #[cfg(test)]
-    mod tests {
-        use super::*;
-
-        #[test]
-        fn escape_test() {
-            let s: &str = "no special characters";
-            assert!(std::ptr::eq(escape(s).as_ref(), s));
-            assert_eq!(escape("<>&\"'"), "&lt;&gt;&amp;&quot;&#27;");
-            assert_eq!(
-                escape("and < now > with & some \" text ' in between"),
-                "and &lt; now &gt; with &amp; some &quot; text &#27; in between"
-            );
-        }
     }
 }
 

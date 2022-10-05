@@ -11,7 +11,6 @@ mod fs;
 mod irma;
 mod irma_proxy;
 mod oauth;
-mod oidc;
 mod policy;
 mod pseudonyms;
 mod serve;
