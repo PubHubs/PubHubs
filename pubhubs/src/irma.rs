@@ -11,6 +11,7 @@ use qrcode::QrCode;
 use regex::Regex;
 use serde::{Deserialize, Serialize};
 use std::fmt::{Debug, Formatter};
+use std::sync::Arc;
 use std::time::{Duration, SystemTime, UNIX_EPOCH};
 use tokio::time::sleep;
 
@@ -593,7 +594,7 @@ mod tests {
 
     #[tokio::test]
     async fn can_start_session() {
-        start_fake_server(3000);
+        start_fake_server(3000).await;
         let test_pub_hubs_host = "test_host/";
         let resp = login(
             "http://localhost:3000/test1",
@@ -630,7 +631,7 @@ mod tests {
 
     #[tokio::test]
     async fn can_get_disclosed_values() {
-        start_fake_server(3001);
+        start_fake_server(3001).await;
         let resp = disclosed_email_and_telephone("http://localhost:3001/test2", "test_token")
             .await
             .unwrap();
@@ -1034,22 +1035,32 @@ mL8ccRpy26VYM7CYRcsoeJMCAwEAAQ==
         }
     }
 
-    fn start_fake_server(port: u16) {
-        tokio::spawn(async move {
-            // We'll bind to 127.0.0.1:<port>
-            let addr = SocketAddr::from(([127, 0, 0, 1], port));
+    async fn start_fake_server(port: u16) {
+        let port_bound = Arc::new(tokio::sync::Notify::new());
 
-            let make_service = make_service_fn(move |_conn| {
-                let service = service_fn(move |req| handle(req));
+        {
+            let port_bound = port_bound.clone();
 
-                async move { Ok::<_, Infallible>(service) }
+            tokio::spawn(async move {
+                // We'll bind to 127.0.0.1:<port>
+                let addr = SocketAddr::from(([127, 0, 0, 1], port));
+
+                let make_service = make_service_fn(move |_conn| {
+                    let service = service_fn(move |req| handle(req));
+
+                    async move { Ok::<_, Infallible>(service) }
+                });
+
+                let server = Server::bind(&addr).serve(make_service);
+
+                port_bound.notify_one();
+
+                if let Err(e) = server.await {
+                    eprintln!("server error: {}", e);
+                }
             });
+        }
 
-            let server = Server::bind(&addr).serve(make_service);
-
-            if let Err(e) = server.await {
-                eprintln!("server error: {}", e);
-            }
-        });
+        port_bound.notified().await;
     }
 }

@@ -98,10 +98,11 @@ mod tests {
     use hyper::{Body, Request, Response};
     use hyper::{Server, StatusCode};
     use std::net::SocketAddr;
+    use std::sync::Arc;
 
     #[tokio::test]
     async fn it_works() {
-        start_fake_server();
+        start_fake_server().await;
         let mut req = Request::new(Body::empty());
         req.headers_mut()
             .insert("x-test", HeaderValue::from_str("yes").unwrap());
@@ -114,25 +115,34 @@ mod tests {
         assert_eq!(content, "Hello, World".to_string())
     }
 
-    fn start_fake_server() {
-        tokio::spawn(async move {
-            // We'll bind to 127.0.0.1:3005
-            let addr = SocketAddr::from(([127, 0, 0, 1], 3005));
+    async fn start_fake_server() {
+        let port_bound = Arc::new(tokio::sync::Notify::new());
 
-            // A `Service` is needed for every connection, so this
-            // creates one from our `hello_world` function.
-            let make_svc = make_service_fn(|_conn| async {
-                // service_fn converts our function into a `Service`
-                Ok::<_, Infallible>(service_fn(move |req| handle(req)))
+        {
+            let port_bound = port_bound.clone();
+            tokio::spawn(async move {
+                // We'll bind to 127.0.0.1:3005
+                let addr = SocketAddr::from(([127, 0, 0, 1], 3005));
+
+                // A `Service` is needed for every connection, so this
+                // creates one from our `hello_world` function.
+                let make_svc = make_service_fn(|_conn| async {
+                    // service_fn converts our function into a `Service`
+                    Ok::<_, Infallible>(service_fn(move |req| handle(req)))
+                });
+
+                let server = Server::bind(&addr).serve(make_svc);
+
+                port_bound.notify_one();
+
+                // Run this server for... forever!
+                if let Err(e) = server.await {
+                    eprintln!("server error: {}", e);
+                }
             });
+        }
 
-            let server = Server::bind(&addr).serve(make_svc);
-
-            // Run this server for... forever!
-            if let Err(e) = server.await {
-                eprintln!("server error: {}", e);
-            }
-        });
+        port_bound.notified().await;
     }
 
     async fn handle(req: Request<Body>) -> Result<Response<Body>, Infallible> {

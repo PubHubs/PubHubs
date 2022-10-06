@@ -1,10 +1,11 @@
 use crate::Response;
+use base64ct::{Base64, Encoding as _};
 use chrono::{Duration, Utc};
 use hmac::{Hmac, Mac};
 use hyper::http::HeaderValue;
 use hyper::{Body, Request};
 use sha2::Sha256;
-use std::str::FromStr;
+use std::str::FromStr as _;
 
 type HmacSha256 = Hmac<Sha256>;
 const COOKIE_NAME: &str = "PHAccount";
@@ -31,7 +32,9 @@ impl Cookie {
         let result = mac.finalize();
         let signature = result;
 
-        let cookie_value = base64::encode(format!("{}.{:X}", content, signature.into_bytes()));
+        let cookie_value = Base64::encode_string(
+            &format!("{}.{:X}", content, signature.into_bytes()).into_bytes(),
+        );
 
         //TODO strict and secure attribute
         let cookie = format!(
@@ -54,7 +57,8 @@ impl Cookie {
 
         for content in results {
             let original: String = String::from_utf8(
-                base64::decode(content).expect("Trying to decode base64 from a cookie"),
+                base64ct::Base64::decode_vec(content)
+                    .expect("Trying to decode base64 from a cookie"),
             )
             .expect("Trying to make a string from cookie content");
             let content: Vec<&str> = original.split('.').collect();
@@ -239,7 +243,9 @@ mod tests {
         let result = mac.finalize();
         let signature = result.into_bytes();
 
-        let cookie_value = base64::encode(format!("{}={}.{:X}", COOKIE_NAME, content, signature));
+        let cookie_value = base64ct::Base64::encode_string(
+            format!("{}={}.{:X}", COOKIE_NAME, content, signature).as_bytes(),
+        );
 
         let mut req2 = Request::new(Body::empty());
         req2.headers_mut()
