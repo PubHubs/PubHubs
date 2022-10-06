@@ -250,7 +250,7 @@ pub trait Handler {
     type Resp: From<http::Response>;
 
     /// The handle_auth method is called when the details passed to the authorization
-    /// endpoint check out as far as this OIDC libary is concerned, and
+    /// endpoint check out as far as this OIDC library is concerned, and
     /// the application can proceed to authenticate the user by sending
     /// the appropriate response (containing, for example, a page
     /// with an IRMA QR-code.)
@@ -397,7 +397,7 @@ pub mod http {
                 }),
                 ("Cache-Control", |_| Some("no-store")),
                 // RFC6749 demands the "Pragma: no-cache" header too,
-                // but "Pragma" has been depricated, so we ignore this demand.
+                // but "Pragma" has been deprecated, so we ignore this demand.
                 ("WWW-Authenticate", |s| match s.status() {
                     401 => Some("Basic"),
                     _ => None,
@@ -487,7 +487,7 @@ pub mod http {
     /// client via the redirect_uri, for example, when the authenticity of the redirect_uri could
     /// not be established.  
     ///
-    /// For more detailsi on each error, see the "error_description" method.
+    /// For more details on each error, see the "error_description" method.
     #[derive(Debug, PartialEq, Eq)]
     pub enum S52Error {
         UnsupportedMethod,
@@ -711,7 +711,7 @@ pub mod http {
                 //
                 //  - 9, a tab ('\t');
                 //  - 32, a space (' ');
-                //  - 33 ('!') to 126 ('~') inclusive, that is, anyvisible ASCII character (VCHAR);
+                //  - 33 ('!') to 126 ('~') inclusive, that is, any visible ASCII character (VCHAR);
                 //  - 128 to 255, so-called 'opaque characters'.
                 //
                 // The opaque characters are allowed only for historic reasons, and should not be
