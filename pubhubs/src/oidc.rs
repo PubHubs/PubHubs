@@ -2409,10 +2409,10 @@ mod tests {
         );
 
         // correct inputs lead to the correct outputs
-        if let Ok(redirect_uri::Response {
+        if let Ok(http::Response::Grant(redirect_uri::Response {
             uri,
             data: redirect_uri::ResponseData::CodeGrant { code, state },
-        }) = oidc.grant_code(handle, |tcd| {
+        })) = oidc.grant_code(handle, |tcd| {
             assert_eq!(
                 tcd,
                 TokenCreationData {
