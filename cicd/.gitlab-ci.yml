@@ -47,6 +47,19 @@ unit-test-rust-code:
     paths:
       - target/
 
+cargo-miri-test:
+  stage: build
+  tags:
+    - docker
+  image: registry.science.ru.nl/ilab/docker-build/rust-stable:main
+  script:
+    - cd pubhubs
+    - cargo miri test
+  cache:
+    key: "${CI_COMMIT_REF_NAME}-${CI_JOB_NAME}"
+    paths:
+      - target/
+
 cargo-deny:
   stage: build
   tags:
