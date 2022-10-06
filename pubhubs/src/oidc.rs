@@ -33,6 +33,7 @@ use base64ct::{Base64, Base64Url, Encoding as _};
 use chacha20poly1305::XChaCha20Poly1305;
 use serde::Deserialize;
 use std::borrow::Cow;
+use std::fmt::Write as _;
 use std::str::FromStr as _;
 use thiserror::Error; // this module is written like a library - don't use anyhow
                       // for errors returned to the user of the library
@@ -387,7 +388,9 @@ pub mod http {
             // Header-Name is to be included.
             //
             // If rust gets the "yield" keyword, this awkward business can be avoided.
-            const HEADERS: [(&'static str, fn(&Response) -> Option<&'static str>); 4] = [
+            type HeaderValueCreator = fn(&Response) -> Option<&'static str>;
+
+            const HEADERS: [(&str, HeaderValueCreator); 4] = [
                 ("Content-Type", |s| match s {
                     Response::Auth(AuthResponse::FormPost(_)) | Response::Grant(_) => {
                         Some("text/html;charset=UTF-8")
@@ -408,10 +411,7 @@ pub mod http {
 
             HEADERS
                 .into_iter()
-                .filter_map(|(name, gen)| match gen(self) {
-                    Some(value) => Some((name, value)),
-                    None => None,
-                })
+                .filter_map(|(name, gen)| gen(self).map(|value| (name, value)))
         }
 
         /// Returns the HTTP body associated with this response.
@@ -428,11 +428,13 @@ pub mod http {
                     let mut inputs = String::new();
 
                     rur.data.walk_fields(|field_name: &str, field_value: &str| {
-                        inputs.push_str(&format!(
-                            "<input type=\"hidden\" name=\"{name}\" value=\"{value}\">\n",
+                        writeln!(
+                            inputs,
+                            "<input type=\"hidden\" name=\"{name}\" value=\"{value}\">",
                             name = html::escape(field_name),
                             value = html::escape(field_value)
-                        ));
+                        )
+                        .unwrap()
                     });
 
                     format!(
@@ -1860,7 +1862,7 @@ pub mod html {
     ///     "and &lt; now &gt; with &amp; some &quot; text &#27; in between"
     /// );
     /// ```
-    pub fn escape<'a>(s: &str) -> Cow<str> {
+    pub fn escape(s: &str) -> Cow<str> {
         let mut it = s
             .match_indices(['<', '>', '&', '\'', '"'].as_slice())
             .peekable();
