@@ -299,7 +299,7 @@ pub mod http {
         Other,
     }
 
-    /// Enumerates tjhe content-types used here.
+    /// Enumerates the content-types used here.
     #[non_exhaustive]
     #[derive(Debug, PartialEq, Eq, Clone, Copy)]
     pub enum ContentType {
