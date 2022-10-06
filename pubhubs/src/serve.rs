@@ -1,5 +1,7 @@
 use anyhow::{anyhow, Result};
+use base64ct::{Base64, Encoding as _};
 use hyper::{header, Body, Request, Response, StatusCode};
+use sha2::Digest;
 use std::collections::HashMap;
 use std::ffi::OsStr;
 use std::fs::DirEntry;
@@ -49,12 +51,12 @@ impl StaticAssets {
 
             let content: Vec<u8> = std::fs::read(&full_path)?;
 
-            let mut h = openssl::sha::Sha256::new();
+            let mut h = sha2::Sha256::new();
             h.update(&content);
 
-            let hash: [u8; 32] = h.finish();
+            let hash = h.finalize();
 
-            let etag = format!("\"{}\"", openssl::base64::encode_block(&hash));
+            let etag = format!("\"{}\"", Base64::encode_string(&hash));
 
             let extension = path.extension().ok_or_else(|| {
                 anyhow!(
