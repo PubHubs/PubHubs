@@ -14,3 +14,5 @@ services:
       - AUTHLIB_INSECURE_TRANSPORT=for_testing_only_of_course
     volumes:
       - $PWD/matrix_test_config:/data:rw
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
