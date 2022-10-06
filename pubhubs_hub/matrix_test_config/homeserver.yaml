@@ -17,7 +17,7 @@
 modules:
   - module: conf.modules.pseudonyms.Pseudonym
     config: {
-      userinfo_endpoint : 'http://172.17.0.1:8080/userinfo',
+      userinfo_endpoint : 'http://host.docker.internal:8080/userinfo',
     }
 #    Below is the example config for adding attribute based authentication to rooms, room id's will be different depending on your server.
 #    Make sure to enable server_notices system_mxid_localpart (also in homeserver.yaml) as that will be the user making the waiting rooms.
@@ -1927,7 +1927,7 @@ oidc_providers:
   client_secret: "test_hub"
   scopes: ["profile"]
   authorization_endpoint: "http://localhost:8080/oauth2/auth"
-  token_endpoint: "http://172.17.0.1:8080/oauth2/token"
+  token_endpoint: "http://host.docker.internal:8080/oauth2/token"
   userinfo_endpoint: "http://localhost:8008/_synapse/client/pseudonym"  # calls the webresource of the pseudonyms module - this is also the url the webresource sets as its endpoint - set pubhubs endpoint in the pseudonyms module
   skip_verification: false
   user_mapping_provider:

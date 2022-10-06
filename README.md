@@ -67,9 +67,6 @@ If the hub is not yet registered on the PubHubs server, the script will register
 We currently use our own modified Element client, that image is not publicly available. In docker-compose.yaml you will need to change `registry.science.ru.nl/ilab/pubhubs-element-web/pubhubs-element-web` to
 `vectorim/element-web`. We are planning to develop our own client, but that is not yet finished.
 
-If you want to run it on linux you will need to change the file `pubhubs_hub/matrix_test_config/homeserver.yaml`,
-the provided urls including `host.docker.internal` need to be changed to `172.17.0.1`.
-
 #### Public IP address
 For your local PubHubs instance to be reachable by the IRMA app, you must have a public IP address, which PubHubs will try to guess using `ifconfig.me` (provided `pubhubs_host = autodetect`) in the `default.yaml` file.  When the IRMA app suggests you should check your phone's internet access, this might actually indicate that your PubHub instance is behind a NAT.  You can circumvent this problem if you have access to a server with a public IP address, say 1.3.3.7, by forwarding your local port to this server, via
 ```
