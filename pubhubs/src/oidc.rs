@@ -47,8 +47,8 @@ use sha2::Digest as _;
 /// the remaining work/choices to the specified [Handler].
 ///
 /// ```
-/// use pub_hubs::oidc::{self, ClientId, Oidc as _};
-/// use pub_hubs::oidc::http::{Method, ContentType};
+/// use pubhubs::oidc::{self, ClientId, Oidc as _};
+/// use pubhubs::oidc::http::{Method, ContentType};
 /// use std::borrow::Cow;
 /// use std::str::FromStr as _;
 ///
@@ -961,7 +961,7 @@ pub mod redirect_uri {
 /// Represents login details for a client when contacting the token endpoint,
 /// see [Oidc::handle_token].
 ///
-/// Can be created using [Oidc::generate_login_credentials].
+/// Can be created using [Oidc::generate_client_credentials].
 #[derive(PartialEq, Eq, Debug, Clone, PartialOrd, Hash)]
 pub struct ClientCredentials {
     pub client_id: ClientId,
@@ -972,7 +972,7 @@ impl ClientCredentials {
     /// Returns the credentials wrapped in an "Authorization" header value.
     ///
     /// ```
-    /// use pub_hubs::oidc;
+    /// use pubhubs::oidc;
     /// use std::str::FromStr as _;
     ///
     /// assert_eq!(oidc::ClientCredentials{
@@ -1852,7 +1852,7 @@ pub mod html {
     /// avoid the additional dependency.
     ///
     /// ```
-    /// use pub_hubs::oidc::html::escape;
+    /// use pubhubs::oidc::html::escape;
     ///
     /// let s: &str = "no special characters";
     /// assert!(std::ptr::eq(escape(s).as_ref(), s));

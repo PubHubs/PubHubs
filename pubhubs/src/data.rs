@@ -155,7 +155,7 @@ pub enum DataCommands {
     GetLatestPolicy {
         resp: oneshot::Sender<Result<Option<Policy>>>,
     },
-    #[cfg(test)]
+    // #[cfg(test)] // does not work for the binary
     Terminate {},
 }
 
@@ -257,7 +257,7 @@ async fn handle_command(mut rx: Receiver<DataCommands>, mut manager: Connection)
             DataCommands::GetLatestPolicy { resp } => resp
                 .send(get_latest_policy(&manager))
                 .expect("Expected to use the data channel"),
-            #[cfg(test)]
+            //#[cfg(test)]
             DataCommands::Terminate {} => break,
         }
     }
@@ -278,10 +278,10 @@ pub fn get_connection_memory() -> Result<Connection> {
 
 #[derive(Debug)]
 pub struct Policy {
-    pub(crate) id: u32,
-    pub(crate) content: String,
-    pub(crate) version: u32,
-    pub(crate) highlights: Vec<String>,
+    pub id: u32,
+    pub content: String,
+    pub version: u32,
+    pub highlights: Vec<String>,
 }
 
 pub fn create_new_policy(
@@ -373,17 +373,17 @@ fn map_policy(row: &Row) -> Result<Policy, rusqlite::Error> {
 
 #[derive(PartialEq, Eq, Serialize, Clone)]
 pub struct Hub {
-    pub(crate) id: Hubid,
+    pub id: Hubid,
     // While id being used for the generation of local pseudonyms ought
     // to be immutable, a mutable decryption_id is used to generate
     // the hub's local decryption key (aka the 'Hub secret') so that it
     // can be changed when the Hub secret is compromised.
-    pub(crate) decryption_id: Hubid,
-    pub(crate) name: String,
-    pub(crate) description: String,
-    pub(crate) redirection_uri: String,
-    pub(crate) passphrase: String,
-    pub(crate) active: bool,
+    pub decryption_id: Hubid,
+    pub name: String,
+    pub description: String,
+    pub redirection_uri: String,
+    pub passphrase: String,
+    pub active: bool,
 }
 
 /// Represents a (decryption) id of a Hub,
@@ -397,6 +397,8 @@ pub struct Hubid {
 impl Hubid {
     pub const LENGTH: usize = uuid::fmt::Hyphenated::LENGTH;
 
+    // we don't want to implement Default for Hubid
+    #[allow(clippy::new_without_default)]
     pub fn new() -> Self {
         Self::from_uuid(Uuid::new_v4())
     }
@@ -668,12 +670,12 @@ pub fn update_hub_details(
 
 #[derive(PartialEq, Eq, Serialize)]
 pub struct User {
-    pub(crate) id: i32,
-    pub(crate) email: String,
-    pub(crate) telephone: String,
-    pub(crate) pseudonym: String,
-    pub(crate) active: bool,
-    pub(crate) administrator: bool,
+    pub id: i32,
+    pub email: String,
+    pub telephone: String,
+    pub pseudonym: String,
+    pub active: bool,
+    pub administrator: bool,
 }
 
 impl Debug for User {

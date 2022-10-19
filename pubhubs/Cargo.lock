@@ -902,7 +902,7 @@ dependencies = [
 ]
 
 [[package]]
-name = "pub_hubs"
+name = "pubhubs"
 version = "0.1.0"
 dependencies = [
  "aead",

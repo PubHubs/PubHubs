@@ -89,7 +89,6 @@ async fn body_to_string(mut response: &mut Response<Body>) -> String {
 #[cfg(test)]
 #[allow(unused_must_use)]
 mod tests {
-    use crate::irma_proxy;
     use core::convert::Infallible;
     use hyper::body::HttpBody;
     use hyper::http::HeaderValue;
@@ -107,7 +106,7 @@ mod tests {
         req.headers_mut()
             .insert("x-test", HeaderValue::from_str("yes").unwrap());
 
-        let resp = irma_proxy(req, "http://localhost:3005", "none").await;
+        let resp = super::irma_proxy(req, "http://localhost:3005", "none").await;
         assert_eq!(resp.status(), StatusCode::OK);
         let content =
             String::from_utf8(resp.into_body().data().await.unwrap().unwrap().to_vec()).unwrap();
