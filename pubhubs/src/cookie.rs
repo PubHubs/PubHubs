@@ -1,9 +1,7 @@
-use crate::Response;
 use base64ct::{Base64, Encoding as _};
 use chrono::{Duration, Utc};
 use hmac::{Hmac, Mac};
-use hyper::http::HeaderValue;
-use hyper::{Body, Request};
+use hyper::{http::HeaderValue, Body, Request, Response};
 use sha2::Sha256;
 use std::str::FromStr as _;
 

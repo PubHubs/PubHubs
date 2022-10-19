@@ -1,54 +1,39 @@
-use crate::irma::{
-    disclosed_email_and_telephone, login, next_session, register, SessionDataWithImage,
-};
-
-use serde::{Deserialize, Serialize};
-mod config;
-mod context;
-mod cookie;
-mod data;
-mod fs;
-mod irma;
-mod irma_proxy;
-mod oauth;
-mod policy;
-mod pseudonyms;
-mod serve;
-mod translate;
-
-use crate::data::Hub;
-use crate::oauth::{get_authorize, post_authorize, token, user_info};
-use crate::DataCommands::{AllHubs, CreateHub, CreateUser, GetHub, GetUser, GetUserById};
-use data::DataCommands;
-use expry::{key_str, value, BytecodeVec};
-use uuid::Uuid;
-
-use hairy::hairy_eval_html_custom;
-use hyper::header::{HeaderValue, CONTENT_TYPE, LOCATION};
-use hyper::service::{make_service_fn, service_fn};
-use hyper::{Body, Method, Request, Response, Server, StatusCode};
-use log::{debug, error, info};
 use std::convert::Infallible;
 use std::fmt::{Debug, Formatter};
 use std::fs::read_to_string;
 use std::net::SocketAddr;
+use std::str::FromStr;
 use std::sync::Arc;
 
-use crate::cookie::{
-    accepted_policy, add_cookie, log_out_cookie, user_id_from_verified_cookie, verify_cookie,
-};
-use crate::data::{HubHandle, Hubid};
-use crate::irma_proxy::{irma_proxy, irma_proxy_stream};
-use crate::policy::{full_policy, policy, policy_accept};
-use crate::translate::{get_translations, TranslateFuncs};
 use anyhow::{Context, Result};
 use env_logger::Env;
-use std::str::FromStr;
+use hyper::header::{HeaderValue, CONTENT_TYPE, LOCATION};
+use hyper::service::{make_service_fn, service_fn};
+use hyper::{Body, Method, Request, Response, Server, StatusCode};
+use log::{debug, error, info};
+use serde::{Deserialize, Serialize};
 use tokio::sync::mpsc::Sender;
 use tokio::sync::oneshot;
+use uuid::Uuid;
 
-extern crate core;
-extern crate serde_json;
+use expry::{key_str, value, BytecodeVec};
+
+use pubhubs::{
+    cookie::{
+        accepted_policy, add_cookie, log_out_cookie, user_id_from_verified_cookie, verify_cookie,
+    },
+    data::{
+        DataCommands::{self, AllHubs, CreateHub, CreateUser, GetHub, GetUser, GetUserById},
+        Hub, HubHandle, Hubid,
+    },
+    hairy_ext::hairy_eval_html_custom_by_val as hairy_eval_html_custom,
+    irma::{disclosed_email_and_telephone, login, next_session, register, SessionDataWithImage},
+    irma_proxy::{irma_proxy, irma_proxy_stream},
+    oauth::{get_authorize, post_authorize, token, user_info},
+    policy::{full_policy, policy, policy_accept},
+    pseudonyms::PepContext,
+    translate::{get_translations, Translations},
+};
 
 #[derive(Deserialize, Serialize)]
 struct HubForm {
@@ -74,7 +59,7 @@ struct HubFormUpdate {
     description: String,
 }
 
-async fn index(_translations: &mut TranslateFuncs) -> Response<Body> {
+async fn index(_translations: Translations<'_>) -> Response<Body> {
     //TODO make contents templated and read from a file with messages plus update with site from real latest pubhubs.net
     let contents = read_to_string("static/templates_hair/front.html")
         .expect("Something went wrong reading the file");
@@ -83,9 +68,9 @@ async fn index(_translations: &mut TranslateFuncs) -> Response<Body> {
 }
 
 async fn get_hubs<'a>(
-    context: &crate::context::Main,
+    context: &pubhubs::context::Main,
     request: &Request<Body>,
-    translations: &mut TranslateFuncs,
+    translations: Translations<'_>,
 ) -> Response<Body> {
     let (resp_tx, resp_rx) = oneshot::channel();
     context
@@ -118,9 +103,9 @@ async fn get_hubs<'a>(
 }
 
 async fn add_hub(
-    context: &crate::context::Main,
+    context: &pubhubs::context::Main,
     mut request: Request<Body>,
-    translations: &mut TranslateFuncs,
+    translations: Translations<'_>,
 ) -> Response<Body> {
     let body = String::from_utf8(Vec::from(
         hyper::body::to_bytes(&mut request).await.unwrap().as_ref(),
@@ -179,9 +164,9 @@ async fn add_hub(
 
 async fn get_hub_details(
     id: &str,
-    context: &crate::context::Main,
+    context: &pubhubs::context::Main,
     request: &Request<Body>,
-    translations: &mut TranslateFuncs,
+    translations: Translations<'_>,
 ) -> Response<Body> {
     let (tx, rx) = oneshot::channel();
     match Hubid::from_str(id) {
@@ -233,9 +218,9 @@ async fn get_hub_details(
 
 async fn get_hubid(
     name: &str,
-    context: &crate::context::Main,
+    context: &pubhubs::context::Main,
     request: &Request<Body>,
-    translations: &mut TranslateFuncs,
+    translations: Translations<'_>,
 ) -> Response<Body> {
     let (tx, rx) = oneshot::channel();
     context
@@ -268,9 +253,9 @@ async fn get_hubid(
 
 fn render_hub(
     hair: &BytecodeVec,
-    pep: &pseudonyms::PepContext,
+    pep: &PepContext,
     hub: &Hub,
-    translations: &mut TranslateFuncs,
+    translations: Translations<'_>,
 ) -> Response<Body> {
     let id = hub.id.to_string();
     let decryption_id = hub.decryption_id.to_string();
@@ -293,9 +278,9 @@ fn render_hub(
 
 async fn update_hub(
     id: &str,
-    context: &crate::context::Main,
+    context: &pubhubs::context::Main,
     mut request: Request<Body>,
-    translations: &mut TranslateFuncs,
+    translations: Translations<'_>,
 ) -> Response<Body> {
     let body = String::from_utf8(Vec::from(
         hyper::body::to_bytes(&mut request).await.unwrap().as_ref(),
@@ -357,9 +342,9 @@ async fn update_hub(
 }
 
 async fn get_users(
-    context: &crate::context::Main,
+    context: &pubhubs::context::Main,
     request: Request<Body>,
-    translations: &mut TranslateFuncs,
+    translations: Translations<'_>,
 ) -> Response<Body> {
     let (resp_tx, resp_rx) = oneshot::channel();
     context
@@ -397,7 +382,7 @@ pub fn internal_server_error(
     hair: &BytecodeVec,
     internal_message: &str,
     request: &Request<Body>,
-    translations: &mut TranslateFuncs,
+    translations: Translations<'_>,
 ) -> Response<Body> {
     let code = Uuid::new_v4();
     error!(
@@ -423,7 +408,7 @@ pub fn bad_request(
     hair: &BytecodeVec,
     internal_message: &str,
     request: &Request<Body>,
-    translations: &mut TranslateFuncs,
+    translations: Translations<'_>,
 ) -> Response<Body> {
     let code = Uuid::new_v4();
     error!(
@@ -448,16 +433,16 @@ async fn irma_start(
     irma_host: &str,
     irma_requestor: &str,
     irma_requestor_hmac_key: &[u8],
-    pub_hubs_host: &str,
+    pubhubs_host: &str,
     hair: &BytecodeVec,
     request: Request<Body>,
-    translations: &mut TranslateFuncs,
+    translations: Translations<'_>,
 ) -> Response<Body> {
     match login(
         irma_host,
         irma_requestor,
         irma_requestor_hmac_key,
-        pub_hubs_host,
+        pubhubs_host,
     )
     .await
     {
@@ -479,16 +464,16 @@ async fn irma_register(
     irma_host: &str,
     irma_requestor: &str,
     irma_requestor_hmac_key: &[u8],
-    pub_hubs_host: &str,
+    pubhubs_host: &str,
     hair: &BytecodeVec,
     request: Request<Body>,
-    translations: &mut TranslateFuncs,
+    translations: Translations<'_>,
 ) -> Response<Body> {
     match register(
         irma_host,
         irma_requestor,
         irma_requestor_hmac_key,
-        pub_hubs_host,
+        pubhubs_host,
     )
     .await
     {
@@ -522,10 +507,10 @@ struct HubIdForm {
 }
 
 async fn irma_result(
-    context: &crate::context::Main,
+    context: &pubhubs::context::Main,
     token: &str,
     request: &Request<Body>,
-    translations: &mut TranslateFuncs,
+    translations: Translations<'_>,
 ) -> Response<Body> {
     match _irma_result(context, token, request).await {
         Ok(response) => response,
@@ -543,7 +528,7 @@ async fn irma_result(
 }
 
 async fn _irma_result(
-    context: &crate::context::Main,
+    context: &pubhubs::context::Main,
     token: &str,
     request: &Request<Body>,
 ) -> Result<Response<Body>> {
@@ -627,7 +612,7 @@ async fn get_account(
     cookie_secret: &str,
     hair: &BytecodeVec,
     db_tx: Sender<DataCommands>,
-    translations: &mut TranslateFuncs,
+    translations: Translations<'_>,
 ) -> Response<Body> {
     if verify_cookie(req, cookie_secret, id) {
         if let Ok(id) = u32::from_str(id) {
@@ -698,11 +683,11 @@ async fn account_login(
     req: &Request<Body>,
     hair: &BytecodeVec,
     cookie_secret: &str,
-    translations: &mut TranslateFuncs,
+    translations: Translations<'_>,
 ) -> Response<Body> {
     match user_id_from_verified_cookie(req, cookie_secret) {
         None => {
-            let prefix = translations.get_prefix();
+            let prefix = translations.get_prefix().to_string();
             let data = value!( {
                 "hub": "",
                 "url": "",
@@ -732,7 +717,7 @@ async fn account_login(
     }
 }
 
-fn account_logout(translations: &TranslateFuncs) -> Response<Body> {
+fn account_logout(translations: Translations<'_>) -> Response<Body> {
     let mut resp = Response::new(Body::empty());
     let logout_cookie = log_out_cookie();
     resp.headers_mut().insert(
@@ -759,7 +744,7 @@ async fn register_account(
     req: &Request<Body>,
     hair: &BytecodeVec,
     db_tx: &Sender<DataCommands>,
-    translations: &mut TranslateFuncs,
+    translations: Translations<'_>,
 ) -> Response<Body> {
     if !accepted_policy(req) {
         let mut resp = Response::new(Body::empty());
@@ -776,7 +761,7 @@ async fn register_account(
         resp.headers_mut().insert(LOCATION, val);
         return resp;
     }
-    let prefix = translations.get_prefix();
+    let prefix = translations.get_prefix().to_string();
     let mut data = value!( {
         "hub": "",
         "url": "",
@@ -804,7 +789,7 @@ async fn register_account(
             } else {
                 "".to_string()
             };
-            let prefix = translations.get_prefix();
+            let prefix = translations.get_prefix().to_string();
             data = value!( {
                 "hub": register.hub,
                 "url": register.url,
@@ -835,7 +820,7 @@ struct JsonResponseIRMAToAccount {
 
 async fn handle(
     req: Request<Body>,
-    context: &crate::context::Main,
+    context: &pubhubs::context::Main,
 ) -> Result<Response<Body>, Infallible> {
     debug!("{:?}", req);
 
@@ -844,39 +829,40 @@ async fn handle(
         return Ok(resp);
     }
 
-    let uri = req.uri().path().to_string();
+    // Compute the parts of the uri's path.  We clone path to prevent borrowing req.
+    let uri_path: String = req.uri().path().to_string();
+    let mut parts: Vec<&str> = uri_path.split('/').collect();
 
-    let parts: Vec<&str> = uri.split('/').collect();
+    // remove any empty initial part (caused by a leading '/'.)
+    if parts[0].is_empty() {
+        parts.remove(0);
+    }
 
-    let (parts, mut translations) = get_translations(&context.translations, parts);
+    // Remove any language indicator from parts.  E.g.,
+    //    https://example.com/en/foo/bar ->  ["foo", "bar"].
+    let (parts, translations) = get_translations(&context.translations, &parts);
 
     // NB: matching is likely O(n) where n is the number of cases;
     //     if the number of cases grows substantially, we should replace
     //     this match with some sort of look-up table.
-    let resp = match (parts[1], req.method()) {
-        ("", &Method::GET) => index(&mut translations).await,
-        ("policy", &Method::GET) => {
-            policy(&req, &context.hair, &context.db_tx, &mut translations).await
-        }
+    let resp = match (parts[0], req.method()) {
+        ("", &Method::GET) => index(translations).await,
+        ("policy", &Method::GET) => policy(&req, &context.hair, &context.db_tx, translations).await,
         ("full_policy", &Method::GET) => {
-            full_policy(&req, &context.hair, &context.db_tx, &mut translations).await
+            full_policy(&req, &context.hair, &context.db_tx, translations).await
         }
-        ("policy_accept", &Method::GET) => policy_accept(&req, &translations).await,
-        ("admin", method) => match (parts[2], method, context.is_admin_request(&req).await) {
-            ("hubs", method, true) => match (parts.get(3), method) {
-                (None, &Method::GET) => get_hubs(context, &req, &mut translations).await,
-                (Some(id), &Method::POST) => update_hub(id, context, req, &mut translations).await,
-                (None, &Method::POST) => add_hub(context, req, &mut translations).await,
-                (Some(id), &Method::GET) => {
-                    get_hub_details(id, context, &req, &mut translations).await
-                }
+        ("policy_accept", &Method::GET) => policy_accept(&req, translations).await,
+        ("admin", method) => match (parts[1], method, context.is_admin_request(&req).await) {
+            ("hubs", method, true) => match (parts.get(2), method) {
+                (None, &Method::GET) => get_hubs(context, &req, translations).await,
+                (Some(id), &Method::POST) => update_hub(id, context, req, translations).await,
+                (None, &Method::POST) => add_hub(context, req, translations).await,
+                (Some(id), &Method::GET) => get_hub_details(id, context, &req, translations).await,
                 (_, _) => not_found(),
             },
-            ("users", &Method::GET, true) => get_users(context, req, &mut translations).await,
-            ("hubid", method, true) => match (parts.get(3), method) {
-                (Some(name), &Method::GET) => {
-                    get_hubid(name, context, &req, &mut translations).await
-                }
+            ("users", &Method::GET, true) => get_users(context, req, translations).await,
+            ("hubid", method, true) => match (parts.get(2), method) {
+                (Some(name), &Method::GET) => get_hubid(name, context, &req, translations).await,
                 (_, _) => not_found(),
             },
             _ => unauthorized(),
@@ -888,7 +874,7 @@ async fn handle(
                 irma_proxy(req, &context.irma.client_url, &context.url).await
             }
         }
-        ("irma-endpoint", &Method::GET) => match (parts.get(2), parts.get(3)) {
+        ("irma-endpoint", &Method::GET) => match (parts.get(1), parts.get(2)) {
             (Some(&"start"), None) => {
                 irma_start(
                     &context.irma.server_url,
@@ -897,7 +883,7 @@ async fn handle(
                     &context.url,
                     &context.hair,
                     req,
-                    &mut translations,
+                    translations,
                 )
                 .await
             }
@@ -909,17 +895,15 @@ async fn handle(
                     &context.url,
                     &context.hair,
                     req,
-                    &mut translations,
+                    translations,
                 )
                 .await
             }
-            (Some(token), Some(&"result")) => {
-                irma_result(context, token, &req, &mut translations).await
-            }
+            (Some(token), Some(&"result")) => irma_result(context, token, &req, translations).await,
             (_, _) => not_found(),
         },
         ("irma-endpoint", &Method::POST) => next_session(req, &context.irma, &context.url).await,
-        ("oauth2", method) => match (parts.get(2), method) {
+        ("oauth2", method) => match (parts.get(1), method) {
             (Some(&"auth"), &Method::POST) => post_authorize(req, context.auth_tx.clone()).await,
             (Some(&"token"), &Method::POST) => token(req, context.auth_tx.clone()).await,
             (Some(&"auth"), &Method::GET) => {
@@ -928,16 +912,16 @@ async fn handle(
                     req.uri().query(),
                     context.auth_tx.clone(),
                     &context.db_tx,
-                    &mut translations,
+                    translations,
                 )
                 .await
             }
             (_, _) => not_found(),
         },
         ("register", &Method::GET) => {
-            register_account(&req, &context.hair, &context.db_tx, &mut translations).await
+            register_account(&req, &context.hair, &context.db_tx, translations).await
         }
-        ("account", method) => match (parts.get(2), method) {
+        ("account", method) => match (parts.get(1), method) {
             (Some(id), &Method::GET) => {
                 get_account(
                     &req,
@@ -945,22 +929,16 @@ async fn handle(
                     &context.cookie_secret,
                     &context.hair,
                     context.db_tx.clone(),
-                    &mut translations,
+                    translations,
                 )
                 .await
             }
             (_, _) => not_found(),
         },
         ("login", &Method::GET) => {
-            account_login(
-                &req,
-                &context.hair,
-                &context.cookie_secret,
-                &mut translations,
-            )
-            .await
+            account_login(&req, &context.hair, &context.cookie_secret, translations).await
         }
-        ("logout", &Method::GET) => account_logout(&translations),
+        ("logout", &Method::GET) => account_logout(translations),
         ("userinfo", &Method::GET) => user_info(req, context.auth_tx.clone()).await,
         (_, _) => not_found(),
     };
@@ -990,18 +968,42 @@ async fn main() -> Result<()> {
     // Construct our SocketAddr to listen on...
     let addr = SocketAddr::from(([0, 0, 0, 0], 8080));
 
-    // Create a reference to a new State with static lifetime
-    let context: &'static crate::context::Main = Box::leak(Box::new(
-        crate::context::Main::create(
-            crate::config::File::from_env().context("failed to load configuration file")?,
-        )
-        .await
-        .context("failed to initialize")?,
-    ));
+    let context = pubhubs::context::Main::create(
+        pubhubs::config::File::from_env().context("failed to load configuration file")?,
+    )
+    .await
+    .context("failed to initialize")?;
 
-    // And a MakeService to handle each connection...
+    // Put context into an Arc so that it can be moved accross threads.
+    let context = Arc::new(context);
+
+    // Create a 'service' to handle incoming connections.
+    //
+    // NOTE: the "move"s in the closures and async blocks below cause 'context'
+    // to be moved instead of borrowed (which would be problematic, because these closures
+    // and and async blocks outlive the context in which they are created.)
+    //
+    // The "let context = context.clone()" in the closures below before moving out of
+    // context are necessary because these closures are called multiple times,
+    // but 'move-capture' context only once.
+    //
+    // (All in all, the reference count of context will be the number of connections
+    // plus the number of requests.)
     let make_service = make_service_fn(move |_conn| {
-        let service = service_fn(move |req| handle(req, context));
+        let context = context.clone();
+
+        let service = service_fn(move |req| {
+            let context = context.clone();
+
+            // NOTE: One might be tempted to replace this
+            async move { handle(req, &context).await }
+            // by
+            // ```
+            // handle(req, &context)
+            // ```
+            // but this fails because the Future returned by handle(req, &context)
+            // borrows context instead of moving it as "async move { ... }" does.
+        });
 
         async move { Ok::<_, Infallible>(service) }
     });
@@ -1019,22 +1021,20 @@ async fn main() -> Result<()> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::data::{Policy, User};
     use hyper::header::COOKIE;
     use hyper::{http, Uri};
+    use pubhubs::data::{Policy, User};
     use std::collections::HashMap;
 
-    use crate::irma::SessionType::Disclosing;
-    use crate::irma::{
-        Attribute, SessionData, SessionPointer, SessionResult, SessionType, Status, MAIL,
-        MOBILE_NO, PUB_HUBS_MAIL, PUB_HUBS_PHONE,
+    use pubhubs::irma::{
+        Attribute, SessionData, SessionPointer, SessionResult, SessionType,
+        SessionType::Disclosing, Status, MAIL, MOBILE_NO, PUB_HUBS_MAIL, PUB_HUBS_PHONE,
     };
     use regex::Regex;
 
     #[tokio::test]
     async fn test_index() {
-        let mut translations = TranslateFuncs::default();
-        let mut response = index(&mut translations).await;
+        let mut response = index(Translations::None).await;
         assert_eq!(response.status(), StatusCode::OK);
 
         let body = body_to_string(&mut response).await;
@@ -1050,8 +1050,7 @@ mod tests {
         create_hub(name, &context).await;
 
         let request = http::Request::new(Body::empty());
-        let mut translations = TranslateFuncs::default();
-        let mut response = get_hubs(&context, &request, &mut translations).await;
+        let mut response = get_hubs(&context, &request, Translations::None).await;
         assert_eq!(response.status(), StatusCode::OK);
 
         let body = body_to_string(&mut response).await;
@@ -1070,7 +1069,7 @@ mod tests {
         context.db_tx.send(DataCommands::Terminate {}).await;
 
         let request = http::Request::new(Body::empty());
-        let mut response = get_hubs(&context, &request, &mut TranslateFuncs::default()).await;
+        let mut response = get_hubs(&context, &request, Translations::None).await;
         assert_eq!(response.status(), StatusCode::INTERNAL_SERVER_ERROR);
 
         let body = body_to_string(&mut response).await;
@@ -1090,7 +1089,7 @@ mod tests {
         };
 
         let request = http::Request::new(Body::from(serde_urlencoded::to_string(hub).unwrap()));
-        let response = add_hub(&context, request, &mut TranslateFuncs::default()).await;
+        let response = add_hub(&context, request, Translations::None).await;
         assert_eq!(response.status(), StatusCode::FOUND);
         assert_eq!(response.headers().get(LOCATION).unwrap(), "/hubs");
     }
@@ -1108,7 +1107,7 @@ mod tests {
             .unwrap()
             .replace("&passphrase=test_passphrase", "");
         let request = http::Request::new(Body::from(form_string));
-        let mut response = add_hub(&context, request, &mut TranslateFuncs::default()).await;
+        let mut response = add_hub(&context, request, Translations::None).await;
         assert_eq!(response.status(), StatusCode::BAD_REQUEST);
 
         let body = body_to_string(&mut response).await;
@@ -1123,13 +1122,8 @@ mod tests {
         let hubid = create_hub(name, &context).await;
 
         let request = http::Request::new(Body::empty());
-        let mut response = get_hub_details(
-            hubid.as_str(),
-            &context,
-            &request,
-            &mut TranslateFuncs::default(),
-        )
-        .await;
+        let mut response =
+            get_hub_details(hubid.as_str(), &context, &request, Translations::None).await;
         assert_eq!(response.status(), StatusCode::OK);
 
         let body = body_to_string(&mut response).await;
@@ -1143,13 +1137,7 @@ mod tests {
         let _name = "test_name";
 
         let request = http::Request::new(Body::empty());
-        let mut response = get_hub_details(
-            "notanid",
-            &context,
-            &request,
-            &mut TranslateFuncs::default(),
-        )
-        .await;
+        let mut response = get_hub_details("notanid", &context, &request, Translations::None).await;
         assert_eq!(response.status(), StatusCode::BAD_REQUEST);
 
         let body = body_to_string(&mut response).await;
@@ -1170,13 +1158,7 @@ mod tests {
         };
 
         let request = http::Request::new(Body::from(serde_urlencoded::to_string(hub).unwrap()));
-        let mut response = update_hub(
-            hubid.as_str(),
-            &context,
-            request,
-            &mut TranslateFuncs::default(),
-        )
-        .await;
+        let mut response = update_hub(hubid.as_str(), &context, request, Translations::None).await;
         assert_eq!(response.status(), StatusCode::OK);
 
         let body = body_to_string(&mut response).await;
@@ -1202,13 +1184,7 @@ mod tests {
         context.db_tx.send(DataCommands::Terminate {}).await;
 
         let request = http::Request::new(Body::from(serde_urlencoded::to_string(hub).unwrap()));
-        let mut response = update_hub(
-            hubid.as_str(),
-            &context,
-            request,
-            &mut TranslateFuncs::default(),
-        )
-        .await;
+        let mut response = update_hub(hubid.as_str(), &context, request, Translations::None).await;
         assert_eq!(response.status(), StatusCode::INTERNAL_SERVER_ERROR);
 
         let body = body_to_string(&mut response).await;
@@ -1225,7 +1201,7 @@ mod tests {
         create_user(email2, &context).await;
 
         let request = http::Request::new(Body::empty());
-        let mut response = get_users(&context, request, &mut TranslateFuncs::default()).await;
+        let mut response = get_users(&context, request, Translations::None).await;
         assert_eq!(response.status(), StatusCode::OK);
 
         let body = body_to_string(&mut response).await;
@@ -1244,7 +1220,7 @@ mod tests {
         context.db_tx.send(DataCommands::Terminate {}).await;
 
         let request = http::Request::new(Body::empty());
-        let mut response = get_users(&context, request, &mut TranslateFuncs::default()).await;
+        let mut response = get_users(&context, request, Translations::None).await;
         assert_eq!(response.status(), StatusCode::INTERNAL_SERVER_ERROR);
 
         let body = body_to_string(&mut response).await;
@@ -1253,7 +1229,7 @@ mod tests {
     }
 
     async fn start_fake_server(port: u16) {
-        let port_bound = Arc::new(tokio::sync::Notify::new());
+        let port_bound = std::sync::Arc::new(tokio::sync::Notify::new());
 
         {
             let port_bound = port_bound.clone();
@@ -1380,7 +1356,7 @@ mod tests {
             &context.url,
             &context.hair,
             req,
-            &mut TranslateFuncs::default(),
+            Translations::None,
         )
         .await;
 
@@ -1395,13 +1371,8 @@ mod tests {
     async fn test_register_account_redirects_if_policy_not_accepted() {
         let context = create_test_context().await.unwrap();
         let req = Request::new(Body::empty());
-        let response = register_account(
-            &req,
-            &context.hair,
-            &context.db_tx,
-            &mut TranslateFuncs::default(),
-        )
-        .await;
+        let response =
+            register_account(&req, &context.hair, &context.db_tx, Translations::None).await;
 
         assert_eq!(response.status(), StatusCode::FOUND);
         assert_eq!(
@@ -1421,13 +1392,8 @@ mod tests {
         let mut req = Request::new(Body::empty());
         req.headers_mut()
             .insert(COOKIE, HeaderValue::from_str("AcceptedPolicy=1").unwrap());
-        let mut response = register_account(
-            &req,
-            &context.hair,
-            &context.db_tx,
-            &mut TranslateFuncs::default(),
-        )
-        .await;
+        let mut response =
+            register_account(&req, &context.hair, &context.db_tx, Translations::None).await;
 
         let body = body_to_string(&mut response).await;
 
@@ -1447,7 +1413,7 @@ mod tests {
             &req,
             &context.hair,
             &context.cookie_secret,
-            &mut TranslateFuncs::default(),
+            Translations::None,
         )
         .await;
 
@@ -1463,7 +1429,10 @@ mod tests {
             &req,
             &context.hair,
             &context.cookie_secret,
-            &mut TranslateFuncs::new(HashMap::new(), "/en"),
+            Translations::Some {
+                translations: &HashMap::new(),
+                prefix: "en",
+            },
         )
         .await;
 
@@ -1490,7 +1459,7 @@ mod tests {
             secret,
             &context.hair,
             context.db_tx,
-            &mut TranslateFuncs::default(),
+            Translations::None,
         )
         .await;
 
@@ -1528,7 +1497,7 @@ mod tests {
             &context.cookie_secret,
             &context.hair,
             context.db_tx,
-            &mut TranslateFuncs::default(),
+            Translations::None,
         )
         .await;
 
@@ -1558,8 +1527,7 @@ mod tests {
         context.irma.client_url = "http://localhost:4002/test1".to_string();
         context.irma.server_url = "http://localhost:4002/test1".to_string();
 
-        let mut response =
-            irma_result(&context, token, &req1, &mut TranslateFuncs::default()).await;
+        let mut response = irma_result(&context, token, &req1, Translations::None).await;
         let body = body_to_string(&mut response).await;
         assert_eq!(StatusCode::OK, response.status(),);
         let deserialized: JsonResponseIRMAToAccount = serde_json::from_str(&body).unwrap();
@@ -1571,8 +1539,7 @@ mod tests {
             .body(Body::empty())
             .unwrap();
 
-        let mut response =
-            irma_result(&context, token, &req2, &mut TranslateFuncs::default()).await;
+        let mut response = irma_result(&context, token, &req2, Translations::None).await;
         assert_eq!(response.status(), StatusCode::OK);
         let body = body_to_string(&mut response).await;
         serde_json::from_str::<JsonResponseIRMAToHub>(&body).unwrap();
@@ -1582,8 +1549,7 @@ mod tests {
         // Discloses new an
         context.irma.client_url = "http://localhost:4002/test2".to_string();
         context.irma.server_url = "http://localhost:4002/test2".to_string();
-        let mut response =
-            irma_result(&context, token, &req3, &mut TranslateFuncs::default()).await;
+        let mut response = irma_result(&context, token, &req3, Translations::None).await;
         assert_eq!(response.status(), StatusCode::OK);
         let body = body_to_string(&mut response).await;
         let deserialized: JsonResponseIRMAToAccount = serde_json::from_str(&body).unwrap();
@@ -1598,8 +1564,7 @@ mod tests {
         context.irma.client_url = "http://no-irma".to_string();
         context.irma.server_url = "http://no-irma".to_string();
 
-        let mut response =
-            irma_result(&context, token, &req_error, &mut TranslateFuncs::default()).await;
+        let mut response = irma_result(&context, token, &req_error, Translations::None).await;
         assert_eq!(response.status(), StatusCode::INTERNAL_SERVER_ERROR);
         let body = body_to_string(&mut response).await;
         assert!(body.contains("We are having some trouble with your account"))
@@ -1628,7 +1593,7 @@ mod tests {
             &context,
             token,
             &req4,
-            &mut TranslateFuncs::default(),
+            Translations::None,
         )
         .await;
         assert_eq!(response.status(), StatusCode::OK);
@@ -1655,13 +1620,7 @@ mod tests {
         .await;
 
         let req = Request::new(Body::empty());
-        let mut response = policy(
-            &req,
-            &context.hair,
-            &context.db_tx,
-            &mut TranslateFuncs::default(),
-        )
-        .await;
+        let mut response = policy(&req, &context.hair, &context.db_tx, Translations::None).await;
 
         let body = body_to_string(&mut response).await;
         for highlight in highlights {
@@ -1684,13 +1643,7 @@ mod tests {
         .await;
 
         let req = Request::new(Body::empty());
-        let mut response = policy(
-            &req,
-            &context.hair,
-            &context.db_tx,
-            &mut TranslateFuncs::default(),
-        )
-        .await;
+        let mut response = policy(&req, &context.hair, &context.db_tx, Translations::None).await;
 
         let body = body_to_string(&mut response).await;
         assert!(body.contains(&full_policy));
@@ -1702,7 +1655,7 @@ mod tests {
 
         let mut req = Request::new(Body::empty());
         *req.uri_mut() = format!("/smth?{}", query).parse().unwrap();
-        let response = policy_accept(&req, &TranslateFuncs::default()).await;
+        let response = policy_accept(&req, Translations::None).await;
         assert_eq!(response.status(), StatusCode::FOUND);
         let location = response
             .headers()
@@ -1713,7 +1666,7 @@ mod tests {
         assert!(location.ends_with(query))
     }
 
-    async fn create_hub(name: &str, context: &crate::context::Main) -> Hubid {
+    async fn create_hub(name: &str, context: &pubhubs::context::Main) -> Hubid {
         let (tx, rx) = oneshot::channel();
         context
             .db_tx
@@ -1728,7 +1681,7 @@ mod tests {
         rx.await.unwrap().unwrap()
     }
 
-    async fn create_user(email: &str, context: &crate::context::Main) -> i32 {
+    async fn create_user(email: &str, context: &pubhubs::context::Main) -> i32 {
         let (tx, rx) = oneshot::channel();
         context
             .db_tx
@@ -1743,7 +1696,11 @@ mod tests {
         rx.await.unwrap().unwrap().id
     }
 
-    async fn get_db_user(context: &crate::context::Main, mail: &str, phone: &str) -> Option<User> {
+    async fn get_db_user(
+        context: &pubhubs::context::Main,
+        mail: &str,
+        phone: &str,
+    ) -> Option<User> {
         let (tx, rx) = oneshot::channel();
         context
             .db_tx
@@ -1756,7 +1713,7 @@ mod tests {
         rx.await.unwrap().unwrap()
     }
 
-    async fn create_test_hub(context: &crate::context::Main) -> Hubid {
+    async fn create_test_hub(context: &pubhubs::context::Main) -> Hubid {
         let (tx, rx) = oneshot::channel();
         context
             .db_tx
@@ -1771,13 +1728,13 @@ mod tests {
         rx.await.unwrap().unwrap()
     }
 
-    async fn create_test_context() -> Result<crate::context::Main> {
+    async fn create_test_context() -> Result<pubhubs::context::Main> {
         let _ = env_logger::builder().is_test(true).try_init();
         // make sure logs are displayed, see
         //   https://docs.rs/env_logger/latest/env_logger/#capturing-logs-in-tests
         // well, at least in those tests using create_test_context()
 
-        crate::context::Main::create(crate::config::File::from_path("test.yaml")?).await
+        pubhubs::context::Main::create(pubhubs::config::File::from_path("test.yaml")?).await
     }
 
     async fn body_to_string(mut response: &mut Response<Body>) -> String {

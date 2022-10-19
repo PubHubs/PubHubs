@@ -1,24 +1,34 @@
-use crate::data::{HubHandle, Hubid};
+use std::collections::HashMap;
+use std::fmt::{Debug, Formatter};
+use std::time::{Duration, Instant};
+
 use base64ct::{Base64, Encoding as _};
-use expry::{key_str, value, BytecodeVec};
-use hairy::hairy_eval_html_custom;
 use hyper::header::CONTENT_TYPE;
 use hyper::http::HeaderValue;
 use hyper::{Body, Request, Response, StatusCode};
 use pbkdf2::password_hash::{PasswordHash, PasswordVerifier};
 use pbkdf2::Pbkdf2;
 use rand::RngCore;
-use std::collections::HashMap;
-use std::fmt::{Debug, Formatter};
-
-use std::time::{Duration, Instant};
-
-use crate::oauth::AuthCommands::{AuthorizeGrantRequest, CreateAuthRequest, CreateToken, GetId};
-use crate::oauth::GrantValue::{Authorized, Requested, Tokenized};
-use crate::{DataCommands, GetHub, TranslateFuncs};
 use serde_json::json;
-use tokio::sync::mpsc::{Receiver, Sender};
-use tokio::sync::oneshot;
+use tokio::sync::{
+    mpsc::{Receiver, Sender},
+    oneshot,
+};
+
+use expry::{key_str, value, BytecodeVec};
+
+use crate::{
+    data::{
+        DataCommands::{self, GetHub},
+        HubHandle, Hubid,
+    },
+    hairy_ext::hairy_eval_html_custom_by_val as hairy_eval_html_custom,
+    oauth::{
+        AuthCommands::{AuthorizeGrantRequest, CreateAuthRequest, CreateToken, GetId},
+        GrantValue::{Authorized, Requested, Tokenized},
+    },
+    translate::Translations,
+};
 
 // 7 days validity for a token.
 const TOKEN_DURATION: u64 = 60 * 60 * 24 * 7;
@@ -302,12 +312,12 @@ impl Grant {
 }
 
 /// The authorization request is received here. See <https://datatracker.ietf.org/doc/html/rfc6749#section-4.1.1>
-pub(crate) async fn get_authorize(
+pub async fn get_authorize(
     hair: &BytecodeVec,
     grant_request: Option<&str>,
     auth_state: Sender<AuthCommands>,
     _db_tx: &Sender<DataCommands>,
-    translations: &mut TranslateFuncs,
+    translations: Translations<'_>,
 ) -> Response<Body> {
     let grant_request: Grant = match serde_urlencoded::from_str(grant_request.unwrap_or("")) {
         Ok(req) => req,
@@ -336,7 +346,7 @@ pub(crate) async fn get_authorize(
             .hubid
             .expect("some hubid to be set by CreateAuthRequest")
             .to_string();
-        let prefix = translations.get_prefix();
+        let prefix = translations.get_prefix().to_string();
         let data = value!( {
             "hub": hubid,
             "url": "/oauth2/auth",
@@ -373,7 +383,7 @@ impl Debug for AcceptForm {
 /// The response here will be the authorization response, this will redirect the resource owner back to the client (the hub), with the authorization code.
 /// Allowing the client to request a token.
 /// See here: <https://datatracker.ietf.org/doc/html/rfc6749#section-4.1.2>
-pub(crate) async fn post_authorize(
+pub async fn post_authorize(
     mut request: Request<Body>,
     auth_state: Sender<AuthCommands>,
 ) -> Response<Body> {
@@ -423,10 +433,7 @@ pub struct TokenRequest {
 }
 
 /// Issue the token as specified in <https://datatracker.ietf.org/doc/html/rfc6749#section-5>
-pub(crate) async fn token(
-    mut request: Request<Body>,
-    auth_state: Sender<AuthCommands>,
-) -> Response<Body> {
+pub async fn token(mut request: Request<Body>, auth_state: Sender<AuthCommands>) -> Response<Body> {
     let (client_id, passphrase) = process_token_header(&request);
 
     if client_id.is_none() || passphrase.is_none() {
@@ -517,10 +524,7 @@ fn process_token_header(r: &Request<Body>) -> (Option<String>, Option<String>) {
 
 /// Retrieves the user info corresponding to a token. On the current matrix home server configuration this is just an id.
 /// In the end this will be the encrypted local pseudonym.
-pub(crate) async fn user_info(
-    r: Request<Body>,
-    auth_state: Sender<AuthCommands>,
-) -> Response<Body> {
+pub async fn user_info(r: Request<Body>, auth_state: Sender<AuthCommands>) -> Response<Body> {
     let (token_type_option, token_option) = process_user_info_header(r);
 
     if let (None, None) = (&token_type_option, &token_option) {
@@ -674,8 +678,8 @@ fn generate_16_byte_random_code_in_bas64() -> String {
 #[allow(unused_must_use)]
 mod tests {
     use super::*;
+    use crate::data::DataCommands::CreateHub;
     use crate::data::{make_in_memory_database_manager, Hubid};
-    use crate::DataCommands::CreateHub;
     use hairy::hairy_compile_html;
     use hyper::header::AUTHORIZATION;
 
@@ -695,14 +699,12 @@ mod tests {
         let query_input = query_input_for_get_request(client_id, redirect_uri);
         let query = serde_urlencoded::to_string(query_input).unwrap();
 
-        let mut translations = TranslateFuncs::default();
-
         let resp = get_authorize(
             &hair,
             Some(&query),
             auth_state.clone(),
             &db_tx,
-            &mut translations,
+            Translations::None,
         )
         .await;
         assert_eq!(resp.status(), StatusCode::OK);
@@ -799,13 +801,12 @@ mod tests {
         let grants = HashMap::new();
         let (_hubid, _client_id, _passphrase, _redirect_uri, hair, auth_state, db_tx) =
             get_config(grants).await;
-        let mut translations = TranslateFuncs::default();
         let resp = get_authorize(
             &hair,
             Some(""),
             auth_state.clone(),
             &db_tx,
-            &mut translations,
+            Translations::None,
         )
         .await;
         assert_eq!(resp.status(), StatusCode::BAD_REQUEST)
@@ -872,13 +873,12 @@ mod tests {
         db_tx: &Sender<DataCommands>,
     ) {
         let query = serde_urlencoded::to_string(query_input).unwrap();
-        let mut translations = TranslateFuncs::default();
         let result = get_authorize(
             hair,
             Some(query.as_str()),
             auth_state,
             db_tx,
-            &mut translations,
+            Translations::None,
         )
         .await;
 
@@ -1219,13 +1219,12 @@ mod tests {
             get_config(grants).await;
         let query_input = filter_query_params(client_id, redirect_uri, param);
         let query = serde_urlencoded::to_string(query_input).unwrap();
-        let mut translations = TranslateFuncs::default();
         let resp = get_authorize(
             &hair,
             Some(query.as_str()),
             auth_state.clone(),
             &db_tx,
-            &mut translations,
+            Translations::None,
         )
         .await;
         assert_eq!(resp.status(), StatusCode::BAD_REQUEST)

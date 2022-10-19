@@ -1,41 +1,42 @@
 use crate::context::Irma as IrmaContext;
-use crate::Request;
 use anyhow::{anyhow, bail, Result};
 use async_recursion::async_recursion;
 use chrono::Utc;
-use hyper::header::{HeaderValue, CONTENT_TYPE};
-use hyper::{body, Body, Client, Method, Response, StatusCode};
+use hyper::{
+    body,
+    header::{HeaderValue, CONTENT_TYPE},
+    Body, Client, Method, Request, Response, StatusCode,
+};
 use log::error;
 use qrcode::render::svg;
 use qrcode::QrCode;
 use regex::Regex;
 use serde::{Deserialize, Serialize};
 use std::fmt::{Debug, Formatter};
-use std::sync::Arc;
 use std::time::{Duration, SystemTime, UNIX_EPOCH};
 use tokio::time::sleep;
 
 #[cfg(not(feature = "real_credentials"))]
-pub(crate) const MAIL: &str = "irma-demo.sidn-pbdf.email.email";
+pub const MAIL: &str = "irma-demo.sidn-pbdf.email.email";
 #[cfg(not(feature = "real_credentials"))]
-pub(crate) const MOBILE_NO: &str = "irma-demo.sidn-pbdf.mobilenumber.mobilenumber";
+pub const MOBILE_NO: &str = "irma-demo.sidn-pbdf.mobilenumber.mobilenumber";
 #[cfg(not(feature = "real_credentials"))]
-pub(crate) const PUB_HUBS: &str = "irma-demo.PubHubs.pubhubsaccount";
+pub const PUB_HUBS: &str = "irma-demo.PubHubs.pubhubsaccount";
 #[cfg(not(feature = "real_credentials"))]
-pub(crate) const PUB_HUBS_MAIL: &str = "irma-demo.PubHubs.pubhubsaccount.email";
+pub const PUB_HUBS_MAIL: &str = "irma-demo.PubHubs.pubhubsaccount.email";
 #[cfg(not(feature = "real_credentials"))]
-pub(crate) const PUB_HUBS_PHONE: &str = "irma-demo.PubHubs.pubhubsaccount.mobilenumber";
+pub const PUB_HUBS_PHONE: &str = "irma-demo.PubHubs.pubhubsaccount.mobilenumber";
 
 #[cfg(feature = "real_credentials")]
-pub(crate) const MAIL: &str = "pbdf.sidn-pbdf.email.email";
+pub const MAIL: &str = "pbdf.sidn-pbdf.email.email";
 #[cfg(feature = "real_credentials")]
-pub(crate) const MOBILE_NO: &str = "pbdf.sidn-pbdf.mobilenumber.mobilenumber";
+pub const MOBILE_NO: &str = "pbdf.sidn-pbdf.mobilenumber.mobilenumber";
 #[cfg(feature = "real_credentials")]
-pub(crate) const PUB_HUBS: &str = "pbdf.PubHubs.pubhubsaccount";
+pub const PUB_HUBS: &str = "pbdf.PubHubs.pubhubsaccount";
 #[cfg(feature = "real_credentials")]
-pub(crate) const PUB_HUBS_MAIL: &str = "pbdf.PubHubs.pubhubsaccount.email";
+pub const PUB_HUBS_MAIL: &str = "pbdf.PubHubs.pubhubsaccount.email";
 #[cfg(feature = "real_credentials")]
-pub(crate) const PUB_HUBS_PHONE: &str = "pbdf.PubHubs.pubhubsaccount.mobilenumber";
+pub const PUB_HUBS_PHONE: &str = "pbdf.PubHubs.pubhubsaccount.mobilenumber";
 
 #[allow(dead_code)] //This is used in SessionRequest
 #[derive(Debug, Serialize, Deserialize, PartialEq, Eq)]
@@ -49,14 +50,14 @@ pub enum Context {
 }
 
 #[derive(Debug, Serialize, Deserialize)]
-pub(crate) struct PubhubsAttributes {
+pub struct PubhubsAttributes {
     email: String,
     mobilenumber: String,
     registrationdate: String,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
-pub(crate) struct PubHubsCredential {
+pub struct PubHubsCredential {
     credential: String,
     validity: u64,
     attributes: PubhubsAttributes,
@@ -95,9 +96,9 @@ pub struct SessionRequest {
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct ExtendedSessionRequest {
-    pub(crate) request: SessionRequest,
+    pub request: SessionRequest,
     #[serde(rename = "nextSession")]
-    pub(crate) next_session: Option<NextSession>,
+    pub next_session: Option<NextSession>,
 }
 
 // Contents (or 'claims') of a(n extended) signed session request JWT.
@@ -260,15 +261,15 @@ pub enum SessionType {
 
 #[derive(Serialize, Deserialize, Debug)]
 pub struct SessionPointer {
-    pub(crate) u: String,
-    pub(crate) irmaqr: SessionType,
+    pub u: String,
+    pub irmaqr: SessionType,
 }
 
 #[derive(Serialize, Deserialize, Debug)]
 pub struct SessionData {
     #[serde(rename = "sessionPtr")]
     pub session_ptr: SessionPointer,
-    pub(crate) token: String,
+    pub token: String,
 }
 
 #[derive(Serialize, Deserialize, Debug)]
@@ -294,7 +295,7 @@ impl Default for IrmaErrorMessage {
 pub struct SessionDataWithImage {
     svg: String,
     #[serde(rename = "sessionPtr")]
-    pub(crate) session_ptr: SessionPointer,
+    pub session_ptr: SessionPointer,
     /// The token for further interaction with the session
     token: String,
 }
@@ -535,9 +536,9 @@ pub enum ProofStatus {
 #[derive(Serialize, Deserialize, Debug)]
 pub struct Attribute {
     #[serde(rename = "rawvalue")]
-    pub(crate) raw_value: String,
-    pub(crate) status: String,
-    pub(crate) id: String,
+    pub raw_value: String,
+    pub status: String,
+    pub id: String,
     // value: TranslatedString
 }
 
@@ -554,15 +555,15 @@ pub struct SignedSessionResultClaims {
 
 #[derive(Serialize, Deserialize, Debug)]
 pub struct SessionResult {
-    pub(crate) disclosed: Option<Vec<Vec<Attribute>>>,
-    pub(crate) status: Status,
+    pub disclosed: Option<Vec<Vec<Attribute>>>,
+    pub status: Status,
     #[serde(rename = "type")]
-    pub(crate) session_type: SessionType,
+    pub session_type: SessionType,
     #[serde(rename = "proofStatus")]
-    pub(crate) proof_status: Option<ProofStatus>,
+    pub proof_status: Option<ProofStatus>,
     #[serde(rename = "nextSession")]
-    pub(crate) next_session: Option<String>,
-    pub(crate) error: Option<String>,
+    pub next_session: Option<String>,
+    pub error: Option<String>,
 }
 
 fn get_first_attribute_raw_value(attribute_name: &str, result: &SessionResult) -> Result<String> {
@@ -591,6 +592,7 @@ mod tests {
     use hyper::Server;
     use std::convert::Infallible;
     use std::net::SocketAddr;
+    use std::sync::Arc;
 
     #[tokio::test]
     async fn can_start_session() {

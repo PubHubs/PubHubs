@@ -1,20 +1,23 @@
-use crate::cookie::add_accepted_policy_session_cookie;
-use crate::data::Policy;
-use crate::DataCommands::GetLatestPolicy;
-use crate::{DataCommands, HeaderValue, TranslateFuncs};
-use expry::key_str;
-use expry::{value, BytecodeVec, ValueVec};
-use hairy::hairy_eval_html_custom;
-use hyper::header::LOCATION;
-use hyper::{Body, Request, Response, StatusCode};
-
 use std::ffi::OsString;
 use std::fs;
 use std::path::Path;
-use tokio::sync::mpsc::Sender;
-use tokio::sync::oneshot;
 
 use anyhow::{anyhow, Result};
+use hyper::{
+    header::{HeaderValue, LOCATION},
+    Body, Request, Response, StatusCode,
+};
+use tokio::sync::{mpsc::Sender, oneshot};
+
+use expry::{key_str, value, BytecodeVec, ValueVec};
+
+use crate::cookie::add_accepted_policy_session_cookie;
+use crate::data::{
+    DataCommands::{self, GetLatestPolicy},
+    Policy,
+};
+use crate::hairy_ext::hairy_eval_html_custom_by_val as hairy_eval_html_custom;
+use crate::translate::Translations;
 
 pub(crate) async fn initialize_latest_policy<P: AsRef<Path>>(
     db: &Sender<DataCommands>,
@@ -83,12 +86,12 @@ pub async fn policy(
     req: &Request<Body>,
     hair: &BytecodeVec,
     db_tx: &Sender<DataCommands>,
-    translations: &mut TranslateFuncs,
+    translations: Translations<'_>,
 ) -> Response<Body> {
     //TODO think about language of policy?
     let policy = get_latest_policy(db_tx).await.highlights;
     let query = req.uri().query().unwrap_or("");
-    let prefix = translations.get_prefix();
+    let prefix = translations.get_prefix().to_string();
     let value =
         value!({"content": "policy", "highlights": policy, "query": query, "url_prefix": prefix})
             .to_vec(false);
@@ -100,11 +103,11 @@ pub async fn full_policy(
     req: &Request<Body>,
     hair: &BytecodeVec,
     db_tx: &Sender<DataCommands>,
-    translations: &mut TranslateFuncs,
+    translations: Translations<'_>,
 ) -> Response<Body> {
     let policy = get_latest_policy(db_tx).await.content;
     let query = req.uri().query().unwrap_or("");
-    let prefix = translations.get_prefix();
+    let prefix = translations.get_prefix().to_string();
     let value =
         value!({"content": "full_policy", "policy": policy, "query": query, "url_prefix": prefix})
             .to_vec(false);
@@ -115,7 +118,7 @@ pub async fn full_policy(
 pub fn make_resp(
     hair: &BytecodeVec,
     value: ValueVec,
-    translations: &mut TranslateFuncs,
+    translations: Translations<'_>,
 ) -> Response<Body> {
     let body = hairy_eval_html_custom(hair.to_ref(), value.to_ref(), translations)
         .expect("Expected to render a template");
@@ -139,7 +142,7 @@ async fn get_latest_policy(db_tx: &Sender<DataCommands>) -> Policy {
     }
 }
 
-pub async fn policy_accept(req: &Request<Body>, translations: &TranslateFuncs) -> Response<Body> {
+pub async fn policy_accept(req: &Request<Body>, translations: Translations<'_>) -> Response<Body> {
     let mut resp = Response::new(Body::empty());
     resp = add_accepted_policy_session_cookie(resp);
     *resp.status_mut() = StatusCode::FOUND;
