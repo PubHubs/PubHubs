@@ -22,7 +22,7 @@ RUN curl -L https://bitpowder.com/packages/linux-packages.gpg | tee /etc/apt/tru
 RUN apt-get update && apt-get install -y pepcli
 
 COPY --from=builder /root/.cargo/bin/pubhubs /usr/local/bin/pubhubs
-COPY --from=builder /usr/src/pub_hubs/static/ static/
+COPY --from=builder /usr/src/pubhubs/static/ static/
 COPY default.yaml .
 
 # TODO change on deployment obviously maybe even just set something that will fail! Much better I guess.
