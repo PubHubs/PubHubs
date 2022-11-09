@@ -1,11 +1,8 @@
 FROM golang:1.17.6 AS irma_build
 
-RUN git clone https://github.com/privacybydesign/irmago
+RUN git clone https://github.com/privacybydesign/irmago --branch v0.10.0 --depth 1
 
 WORKDIR irmago
-
-# version 0.10.0
-RUN git reset 62cb8aa430ca6cd2fdf2aa379743c315fff1a6cf
 
 RUN go env -w GO111MODULE=auto
 
