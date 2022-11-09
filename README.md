@@ -43,14 +43,16 @@ cargo install cargo-watch
 
 Then run with auto-reload in the pubhubs directory: 
 ```bash
-cargo watch -x 'run'
+cargo watch --watch-when-idle -x 'run'
 ```
 
 Setting are in the `default.yaml` file, for development these initial settings should work.
 
-### Setting up external services 
-The external services for development are: an IRMA server, a Hub (matrix home server) and a matrix client. There
-is a script that should automate some set-up: 
+### Setting up external services
+The external services for development are: an IRMA server, a Hub (matrix home server) and a matrix client. We currently use our own modified Element client, that image is not publicly available. In docker-compose.yaml you will need to change `registry.science.ru.nl/ilab/pubhubs-element-web/pubhubs-element-web` to
+`vectorim/element-web`. We are planning to develop our own client, but that is not yet finished. 
+
+There is a script that should automate some set-up: 
 ```
 ./start_test_setup.sh 
 ```
@@ -64,8 +66,7 @@ This script will launch three containers:
 
 If the hub is not yet registered on the PubHubs server, the script will register the hub.
 
-We currently use our own modified Element client, that image is not publicly available. In docker-compose.yaml you will need to change `registry.science.ru.nl/ilab/pubhubs-element-web/pubhubs-element-web` to
-`vectorim/element-web`. We are planning to develop our own client, but that is not yet finished.
+After running the script the hub can be used on http://localhost:8800.
 
 #### Public IP address
 For your local PubHubs instance to be reachable by the IRMA app, you must have a public IP address, which PubHubs will try to guess using `ifconfig.me` (provided `pubhubs_host = autodetect`) in the `default.yaml` file.  When the IRMA app suggests you should check your phone's internet access, this might actually indicate that your PubHub instance is behind a NAT.  You can circumvent this problem if you have access to a server with a public IP address, say 1.3.3.7, by forwarding your local port to this server, via
