@@ -1,4 +1,4 @@
-from typing import Optional, List, Tuple
+from typing import Optional, List, Tuple, Mapping, Collection
 from unittest import IsolatedAsyncioTestCase
 
 import sys
@@ -67,6 +67,12 @@ class FakeHsConfig():
     servernotices = FakeNoticesManager()
     worker = FakeWorker()
 
+class FakeState():
+    async def get_state_group_for_events(self, event_ids: Collection[str],) -> Mapping[str, int]:
+        return { id: i for (i,id) in [(i,id) for i,id in enumerate(event_ids)] }
+
+class FakeStorageControllers():
+    state = FakeState()
 
 class FakeAuth():
     async def check_auth_blocking(self, requester):
@@ -226,7 +232,7 @@ class FakeHs():
         return FakeAccountDataHandler()
 
     def get_storage_controllers(self):
-        pass
+        return FakeStorageControllers()
 
     def get_auth_blocking(self):
         return FakeAuth()
