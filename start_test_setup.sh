@@ -24,7 +24,7 @@ ADMH="X-Admin-API-Key: api_key"
 if HUBID=$( curl -X GET -H "$ADMH" -f http://localhost:8080/admin/hubid/testhub); then
   echo "  Test hub exists"
 else
-  curl -X POST http://localhost:8080/admin/hubs -H "$ADMH" -H "Content-Type: application/x-www-form-urlencoded"  -d "name=testhub&=description=testhub&description=test_hub_description&redirection_uri=http://localhost:8008/_synapse/client/oidc/callback&passphrase=test_hub"
+  curl -X POST http://localhost:8080/admin/hubs -H "$ADMH" -H "Content-Type: application/x-www-form-urlencoded"  -d "name=testhub&=description=testhub&description=test_hub_description&redirection_uri=http://localhost:8008/_synapse/client/oidc/callback"
   if ! HUBID=$(curl -X GET -H "$ADMH" -f http://localhost:8080/admin/hubid/testhub); then
     echo "failed to retrieve HUBID after creation of the hub"
     exit 1

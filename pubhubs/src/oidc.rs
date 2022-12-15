@@ -27,20 +27,19 @@
 //! To prevent having to look up `client_id`s in a database, we attach a
 //! hmac to all `client_id`s that authenticates both the client's id, and
 //! the `redirect_uri`, see [ClientId] for more info.
-
-use aead::{Aead as _, AeadCore as _, KeyInit as _};
-use base64ct::{Base64, Base64Url, Encoding as _};
-use chacha20poly1305::XChaCha20Poly1305;
-use serde::Deserialize;
+//!
 use std::borrow::Cow;
 use std::fmt::Write as _;
 use std::str::FromStr as _;
+
+use base64ct::{Base64, Base64Url, Encoding as _};
+use serde::Deserialize;
 use thiserror::Error; // this module is written like a library - don't use anyhow
                       // for errors returned to the user of the library
-use anyhow::Context as _;
 use hmac::Mac as _;
-use http::Request as _;
-use sha2::Digest as _;
+
+use crate::crypto::derive_secret;
+use crate::oidc::http::Request as _;
 
 /// Creates a new [Oidc] trait object that handles the OAuth 2.0 and
 /// OpenID Connect endpoints to the extend that it can, passing
@@ -63,14 +62,14 @@ use sha2::Digest as _;
 ///
 /// // Then the first step is to have them implement the oidc::http::Request trait,
 /// // so that oidc can deal with them.
-/// impl<'s> oidc::http::Request<'s> for Request {
-///     type Body = &'s [u8];
+/// impl oidc::http::Request for &Request {
+///     type Body<'b> = &'b [u8] where Self : 'b;
 ///
-///     fn method(&'s self) -> Method { self.method }
-///     fn query(&'s self) ->Cow<str>  { Cow::Borrowed(&self.query) }
-///     fn body(&'s self) -> Self::Body { &self.body }
-///     fn content_type(&'s self) -> Option<ContentType> { self.content_type }
-///     fn authorization(&'s self) -> Option<Cow<str>> {
+///     fn method(&self) -> Method { self.method }
+///     fn query(&self) ->Cow<str>  { Cow::Borrowed(&self.query) }
+///     fn body(&self) -> Self::Body<'_> { &self.body }
+///     fn content_type(&self) -> Option<ContentType> { self.content_type }
+///     fn authorization(&self) -> Option<Cow<str>> {
 ///         self.authorization.as_ref().map(|a| Cow::Borrowed(a.as_str()))
 ///     }
 /// }
@@ -91,10 +90,11 @@ use sha2::Digest as _;
 /// struct MyHandler {}
 ///
 /// impl oidc::Handler for MyHandler {
-///     type Req = Request;
+///     type Req<'r> = &'r Request;
 ///     type Resp = Response;
+///     type AdditionalData<'r> = ();
 ///
-///     fn handle_auth(&self, req : Self::Req, auth_request_handle : String) -> Self::Resp {
+///     fn handle_auth<'r>(&self, req : Self::Req<'r>, auth_request_handle : String, client_id : ClientId, _ad: Self::AdditionalData<'r>) -> Self::Resp {
 ///         // This should return some page where a user can authenticate.
 ///         // When the user is authenticated, we use the `auth_request_handle` to
 ///         // to obtain an `auth_code` we have the user send back to the client.
@@ -122,20 +122,20 @@ use sha2::Digest as _;
 ///
 /// // Simulate a user-agent that has been sent by a client to the authorization endpoint.
 /// // This is the first step the client takes to obtain an `id_token` for this user-agent.
-/// let resp = o.handle_auth(Request{
+/// let resp = o.handle_auth(&Request{
 ///     body: vec![],
 ///     method: Method::Get,
 ///     query:
-///     format!("client_id={client_id}&redirect_uri=https://example.com&response_type=code&response_mode=form_post&state=state&nonce=nonce&scope=oidc", client_id = client_creds.client_id.as_ref()),
+///     format!("client_id={client_id}&redirect_uri=https://example.com&response_type=code&response_mode=form_post&state=state&nonce=nonce&scope=openid", client_id = client_creds.client_id.as_ref()),
 ///     content_type: None,
 ///     authorization: None,
-/// });
+/// }, ());
 ///
 /// let mut auth_request_handle = String::new();
 ///
 /// match resp {
 ///     Response::Own(s) => { auth_request_handle = s; }
-///     Response::FromOidc(r) => { assert!(false, "did not expect {:?}", r); }
+///     Response::FromOidc(r) => { assert!(false, "did not expect {:?} but Response::Own(...)", r); }
 /// }
 ///
 /// // Here the user should be authenticated by some appropriate process.
@@ -144,7 +144,11 @@ use sha2::Digest as _;
 /// //
 /// // At that point we also already create the `id_token`, which is sealed inside the `auth_code`,
 /// // and only extracted after a proper request of the client to the token endpoint.
-/// let resp : oidc::http::Response  = o.grant_code(auth_request_handle,
+///
+/// let authentic_arh = o.open_auth_request_handle(auth_request_handle).unwrap();
+/// assert!(authentic_arh.client_id().starts_with("some-client"));
+///
+/// let resp : oidc::http::Response  = o.grant_code(authentic_arh,
 ///     |tcd : oidc::TokenCreationData| -> Result<String,()> {
 ///
 ///     assert_eq!(tcd.nonce, "nonce");
@@ -175,10 +179,9 @@ use sha2::Digest as _;
 /// }
 ///
 /// // The client, upon receiving the `auth_code`, can use it to obtain the `id_token`:
-/// let resp = o.handle_token(Request{
-///     body : format!("grant_type=authorization_code&code={auth_code}&client_id={client_id}&redirect_uri={redirect_uri}",
+/// let resp = o.handle_token(&Request{
+///     body : format!("grant_type=authorization_code&code={auth_code}&redirect_uri={redirect_uri}",
 ///         auth_code = auth_code,
-///         client_id = client_creds.client_id.as_ref(),
 ///         redirect_uri = "https://example.com",
 ///     ).as_bytes().to_vec(),
 ///     method : Method::Post,
@@ -190,10 +193,10 @@ use sha2::Digest as _;
 /// match resp {
 ///     Response::FromOidc(oidc::http::Response::Token(oidc::http::TokenResponse::IdToken(id_token)))
 ///         => { assert_eq!(id_token, "id_token") },
-///     _ => { assert!(false, "did not expect {:?}", resp) }
+///     _ => { assert!(false, "did not expect {:?} but Response::FromOidc(Token(IdToken(...)))", resp) }
 /// }
 /// ```
-pub fn new<H: Handler>(h: H, secret: impl AsRef<[u8]>) -> impl Oidc<H = H> {
+pub fn new<H: Handler>(h: H, secret: impl AsRef<[u8]>) -> OidcImpl<H> {
     let secret = secret.as_ref();
 
     OidcImpl::<H> {
@@ -216,17 +219,31 @@ pub trait Oidc {
     /// The client asks us to authenticate the present user-agent, and after having done so
     /// have the user-agent POST an auth_code to the client's redirect_uri that can be used
     /// by the client to obtain an id_token from the Token Endpoint.
-    fn handle_auth(&self, req: <Self::H as Handler>::Req) -> <Self::H as Handler>::Resp;
+    fn handle_auth<'s, 'r>(
+        &'s self,
+        req: <Self::H as Handler>::Req<'r>,
+        additional_data: <Self::H as Handler>::AdditionalData<'r>,
+    ) -> <Self::H as Handler>::Resp
+    where
+        's: 'r;
 
-    /// Generates an auth_code for the given auth_request_handle (see [Handler::handle_auth]) that
+    /// Checks that the given `auth_request_handle` is valid, turning it into an
+    /// [AuthenticAuthRequestHandle] which can be used to grant an auth code using [Oidc::grant_code].
+    ///
+    /// Fails with Error::InvalidAuthRequestHandle if the auth_request_handle is invalid.
+    fn open_auth_request_handle(
+        &self,
+        auth_request_handle: impl AsRef<str>,
+    ) -> Result<AuthenticAuthRequestHandle, Error>;
+
+    /// Generates an auth_code for the given [AuthenticAuthRequestHandle] (see [Oidc::open_auth_request_handle]) that
     /// will have the Token Endpoint return the `id_token` created by the `id_token_creator`.
     ///
-    /// Fails with Error::InvalidAuthRequestHandle if the auth_request_handle is invalid,
-    /// and Response::IdTokenCreation when id_token_creator fails, but passes all
+    /// Fails with Response::IdTokenCreation when id_token_creator fails, but passes all
     /// other errors via the redirect_uri::Response::Error via the user-agent to the client.
     fn grant_code(
         &self,
-        auth_request_handle: String,
+        auth_request_handle: AuthenticAuthRequestHandle,
         id_token_creator: impl FnOnce(TokenCreationData) -> Result<String, ()>,
     ) -> Result<http::Response, Error>;
 
@@ -234,7 +251,12 @@ pub trait Oidc {
     ///
     /// The client retrieves the id_token of the user using the auth_code it got via
     /// the resource owner's user-agent.
-    fn handle_token(&self, req: <Self::H as Handler>::Req) -> <Self::H as Handler>::Resp;
+    fn handle_token<'s, 'r>(
+        &'s self,
+        req: <Self::H as Handler>::Req<'r>,
+    ) -> <Self::H as Handler>::Resp
+    where
+        's: 'r;
 
     /// Generates [ClientCredentials] from a `bare_id` and `redirect_uri`.
     fn generate_client_credentials(
@@ -247,8 +269,13 @@ pub trait Oidc {
 /// A [Handler] instance (passed to [new]) returns control to you
 /// when needed (to authorize the resource owner, and so on.)
 pub trait Handler {
-    type Req: for<'s> http::Request<'s>;
+    type Req<'r>: http::Request
+    where
+        Self: 'r;
     type Resp: From<http::Response>;
+    type AdditionalData<'ad>
+    where
+        Self: 'ad;
 
     /// The handle_auth method is called when the details passed to the authorization
     /// endpoint check out as far as this OIDC library is concerned, and
@@ -258,7 +285,13 @@ pub trait Handler {
     ///
     /// When the user has been authenticated, the handle can be passed to
     /// the grant_auth method of the Oidc instance.
-    fn handle_auth(&self, req: Self::Req, auth_request_handle: String) -> Self::Resp;
+    fn handle_auth<'r>(
+        &self,
+        req: Self::Req<'r>,
+        auth_request_handle: String,
+        client_id: ClientId,
+        additional_data: Self::AdditionalData<'r>,
+    ) -> Self::Resp;
 
     /// IsValidClient allows the handler to reject certain clients.
     ///
@@ -274,21 +307,19 @@ pub mod http {
 
     /// Represents an HTTP request.  
     ///
-    /// **Note 1:** A [hyper::Request] can be converted asynchronously to an [hyper_support::CompleteRequest]
+    /// NB. A [hyper::Request] can be converted asynchronously to an [hyper_support::CompleteRequest]
     /// which has this [Request] trait
     /// via [hyper_support::CompleteRequest::from].
-    ///
-    /// **Note 2:**. We have added a lifetime parameter 's for &self to allow Body to be a reference with
-    ///     &self's lifetime, e.g. `&'s[u8]` --- no longer needed when generic associated types,
-    ///     see RFC1598, become stable.
-    pub trait Request<'s> {
-        type Body: std::io::Read;
+    pub trait Request {
+        type Body<'b>: std::io::Read
+        where
+            Self: 'b;
 
-        fn method(&'s self) -> Method;
-        fn query(&'s self) -> Cow<str>;
-        fn body(&'s self) -> Self::Body;
-        fn content_type(&'s self) -> Option<ContentType>;
-        fn authorization(&'s self) -> Option<Cow<str>>;
+        fn method(&self) -> Method;
+        fn query(&self) -> Cow<str>;
+        fn body(&self) -> Self::Body<'_>;
+        fn content_type(&self) -> Option<ContentType>;
+        fn authorization(&self) -> Option<Cow<str>>;
     }
 
     /// Enumerates the Http methods used here.
@@ -309,6 +340,18 @@ pub mod http {
         /// application/json
         Json,
         Other,
+    }
+
+    impl From<&str> for ContentType {
+        fn from(ct: &str) -> ContentType {
+            if ct.starts_with("application/x-www-form-urlencoded") {
+                return ContentType::UrlEncoded;
+            }
+            if ct.starts_with("application/json") {
+                return ContentType::Json;
+            }
+            ContentType::Other
+        }
     }
 
     /// [Response] enumerates the possible HTTP responses generated by an
@@ -395,7 +438,7 @@ pub mod http {
                     Response::Auth(AuthResponse::FormPost(_)) | Response::Grant(_) => {
                         Some("text/html;charset=UTF-8")
                     }
-                    Response::Auth(AuthResponse::Error(_)) => Some("plain/text;charset=UTF-8"),
+                    Response::Auth(AuthResponse::Error(_)) => Some("text/plain;charset=UTF-8"),
                     Response::Token(_) => Some("application/json;charset=UTF-8"),
                 }),
                 ("Cache-Control", |_| Some("no-store")),
@@ -578,12 +621,12 @@ pub mod http {
         S52Error::UnsupportedMethod => "Invalid HTTP method - GET must be used for the authorization endpoint, and POST for the token endpoint",
         S52Error::MalformedQuery => "The query string could not be parsed, contained unknown fields, or lacked required fields such as client_id, response_type or redirect_uri.",
         S52Error::MalformedClientId => "The client_id contained invalid characters, or did not contain a tilde ('~').",
-        S52Error::MalformedRedirectUri => "The redirect_uri could not be parsed, contained a fragment (which is prohibited) or did not use the 'https' scheme.",
+        S52Error::MalformedRedirectUri => "The redirect_uri could not be parsed, contained a fragment (which is prohibited), was not absolute, or did not use the 'https' scheme.",
         S52Error::InvalidClientMAC => "The combination of client_id and redirect_uri was not authenticated by the MAC inside the client_id.",
-        S52Error::UnsupportedResponseMode => "Unsupported response_mode; only 'form_post' is supported.",
+        S52Error::UnsupportedResponseMode => "Unsupported (or missing) response_mode; only 'form_post' is supported.",
         S52Error::MalformedRequestBody => "The request body could not be parsed, contained unknown fields, or lacked required fields.",
         S52Error::UnsupportedContentType => "Unsupported Content-Type; only 'application/x-www-form-urlencoded' is supported",
-        S52Error::InvalidAuthCode => "Invalid authorization code.",
+        S52Error::InvalidAuthCode => "Invalid authorization code (for given client_id)",
         S52Error::UnsupportedGrantType => "Unsupported grant_type; only 'authorization_code' is supported.",
         S52Error::MissingClientCredentials => "Missing 'Authorization' HTTP header.",
         S52Error::MalformedClientCredentials => "Malformed 'Authorization: Basic ...' header.",
@@ -592,33 +635,171 @@ pub mod http {
         }
     }
 
-    /// support for hyper
-    pub mod hyper_support {
-        use super::*;
+    impl From<&::http::Method> for Method {
+        /// Converts [::http::Method] into [Method].
+        /// ```
+        /// use pubhubs::oidc::http::Method;
+        ///
+        /// assert_eq!(Method::from(&::http::Method::GET), Method::Get);
+        /// assert_eq!(Method::from(&::http::Method::POST), Method::Post);
+        /// assert_eq!(Method::from(&::http::Method::PATCH), Method::Other);
+        /// ```
+        fn from(hm: &::http::Method) -> Method {
+            match *hm {
+                ::http::Method::GET => Method::Get,
+                ::http::Method::POST => Method::Post,
+                _ => Method::Other,
+            }
+        }
+    }
 
-        impl From<&hyper::Method> for Method {
-            fn from(hm: &hyper::Method) -> Method {
-                match *hm {
-                    hyper::Method::GET => Method::Get,
-                    hyper::Method::POST => Method::Post,
-                    _ => Method::Other,
+    /// support for actix
+    pub mod actix_support {
+        use super::*;
+        use actix_web::HttpMessage as _;
+
+        /// Represents a small http request whose payload has been read into memory.
+        #[derive(Debug)]
+        pub struct CompleteRequest {
+            pub request: actix_web::HttpRequest,
+            pub payload: bytes::Bytes,
+        }
+
+        impl CompleteRequest {
+            /// Retrieves the first value of the given header converted to [&str].
+            /// Returns [None] when no such header exists, or when its first value
+            /// contains an invalid or opaque character.
+            fn header(&self, name: impl actix_web::http::header::AsHeaderName) -> Option<&str> {
+                self.request.headers().get(name)?.to_str().ok()
+            }
+        }
+
+        impl Request for CompleteRequest {
+            type Body<'a> = &'a [u8];
+
+            fn method(&self) -> Method {
+                self.request.method().into()
+            }
+
+            fn query(&self) -> Cow<'_, str> {
+                Cow::Borrowed(self.request.query_string())
+            }
+
+            fn body(&self) -> Self::Body<'_> {
+                self.payload.as_ref()
+            }
+
+            fn content_type(&self) -> Option<ContentType> {
+                let ct = self.request.content_type();
+                if ct.is_empty() {
+                    return None;
+                }
+                Some(ct.into())
+            }
+
+            fn authorization(&self) -> Option<Cow<'_, str>> {
+                Some(Cow::Borrowed(self.header(hyper::header::AUTHORIZATION)?))
+            }
+        }
+
+        /// Implements extractor
+        /// ```
+        /// use bytes::Bytes;
+        /// use actix_web::{test, web, App, HttpResponse, http::StatusCode, dev::Service,
+        /// HttpRequest};
+        /// use pubhubs::oidc::http::actix_support::CompleteRequest;
+        ///
+        /// tokio_test::block_on(async {
+        ///     let app = test::init_service(
+        ///     App::new().service(web::resource("/test").to(|cr : CompleteRequest, r: HttpRequest| async move {
+        ///         assert_eq!(cr.payload, Bytes::from_static(b"hello there!"));
+        ///         "OK"
+        ///     }))).await;
+        ///     let req = test::TestRequest::with_uri("/test").set_payload(
+        ///         Bytes::from_static(b"hello there!")
+        ///     ).to_request();
+        ///     let res = app.call(req).await.unwrap();
+        ///     assert_eq!(res.status(), StatusCode::OK);
+        /// });
+        /// ```
+        impl actix_web::FromRequest for CompleteRequest {
+            type Error = <bytes::Bytes as actix_web::FromRequest>::Error;
+            type Future = CompleteRequestExtractFut;
+
+            fn from_request(
+                req: &actix_web::HttpRequest,
+                payload: &mut actix_web::dev::Payload,
+            ) -> Self::Future {
+                CompleteRequestExtractFut {
+                    request: req.clone(),
+                    bytes_fut: bytes::Bytes::from_request(req, payload),
                 }
             }
         }
 
-        /// Represents a small http request whose body has been read completely into memory.
-        pub struct CompleteRequest<Body: hyper::body::HttpBody + Unpin> {
-            underlying: hyper::Request<Body>,
-            body: hyper::body::Bytes,
+        /// Future for implementing [actix_web::FromRequest] for [CompleteRequest].
+        pub struct CompleteRequestExtractFut {
+            bytes_fut: <bytes::Bytes as actix_web::FromRequest>::Future,
+            request: actix_web::HttpRequest,
         }
 
-        impl<Body: hyper::body::HttpBody + Unpin> CompleteRequest<Body> {
+        impl std::future::Future for CompleteRequestExtractFut {
+            type Output = Result<CompleteRequest, actix_web::error::Error>;
+
+            fn poll(
+                mut self: std::pin::Pin<&mut Self>,
+                cx: &mut std::task::Context<'_>,
+            ) -> std::task::Poll<Self::Output> {
+                std::pin::Pin::new(&mut self.bytes_fut)
+                    .poll(cx)
+                    .map_ok(|body: bytes::Bytes| CompleteRequest {
+                        payload: body,
+                        request: self.request.clone(),
+                    })
+            }
+        }
+
+        impl Response {
+            /// Turns [Response] into an [actix_web::HttpResponse] starting from the given
+            /// [actix_web::HttpResponseBuilder] permitting customizations such as adding cookies.
+            pub fn into_actix_builder(
+                self,
+                mut builder: actix_web::HttpResponseBuilder,
+            ) -> anyhow::Result<actix_web::HttpResponse> {
+                builder.status(::http::StatusCode::from_u16(self.status())?);
+
+                for (header_name, header_value) in self.headers() {
+                    builder.append_header((header_name, header_value));
+                }
+
+                Ok(builder.body(self.into_body()))
+            }
+        }
+
+        impl From<Response> for anyhow::Result<actix_web::HttpResponse> {
+            fn from(r: Response) -> anyhow::Result<actix_web::HttpResponse> {
+                r.into_actix_builder(actix_web::HttpResponse::Ok())
+            }
+        }
+    }
+
+    /// support for hyper
+    pub mod hyper_support {
+        use super::*;
+
+        /// Represents a small http request whose body has been read completely into memory.
+        pub struct CompleteRequest<'r, Body: hyper::body::HttpBody + Unpin> {
+            pub underlying: &'r hyper::Request<Body>,
+            pub body: hyper::body::Bytes,
+        }
+
+        impl<'r, Body: hyper::body::HttpBody + Unpin> CompleteRequest<'r, Body> {
             /// Reads the body of the given http request into memory provided
             /// that its content-length does not exceed the provided `max_body_size`.
             pub async fn from(
-                mut req: hyper::http::Request<Body>,
+                req: &'r mut hyper::http::Request<Body>,
                 max_body_size: u64,
-            ) -> Result<Option<Self>, Body::Error> {
+            ) -> Result<Option<CompleteRequest<'r, Body>>, Body::Error> {
                 let body = req.body();
 
                 // check body size
@@ -646,37 +827,29 @@ pub mod http {
             }
         }
 
-        impl<'s, Body: hyper::body::HttpBody + Unpin> Request<'s> for CompleteRequest<Body> {
-            type Body = &'s [u8];
+        impl<'r, Body: hyper::body::HttpBody + Unpin> Request for CompleteRequest<'r, Body> {
+            type Body<'b> = &'b [u8] where Self:'b,Body:'b;
 
-            fn method(&'s self) -> Method {
+            fn method(&self) -> Method {
                 self.underlying.method().into()
             }
 
-            fn query(&'s self) -> Cow<str> {
+            fn query(&self) -> Cow<str> {
                 match self.underlying.uri().query() {
                     Some(q) => Cow::Borrowed(q),
                     None => Cow::Owned("".to_string()),
                 }
             }
 
-            fn body(&'s self) -> Self::Body {
+            fn body(&self) -> Self::Body<'_> {
                 &self.body
             }
 
-            fn content_type(&'s self) -> Option<ContentType> {
-                let ct = self.header(hyper::header::CONTENT_TYPE)?;
-
-                if ct.starts_with("application/x-www-form-urlencoded") {
-                    return Some(ContentType::UrlEncoded);
-                }
-                if ct.starts_with("application/json") {
-                    return Some(ContentType::Json);
-                }
-                Some(ContentType::Other)
+            fn content_type(&self) -> Option<ContentType> {
+                Some(self.header(hyper::header::CONTENT_TYPE)?.into())
             }
 
-            fn authorization(&'s self) -> Option<Cow<str>> {
+            fn authorization(&self) -> Option<Cow<str>> {
                 Some(Cow::Borrowed(self.header(hyper::header::AUTHORIZATION)?))
             }
         }
@@ -737,13 +910,8 @@ pub mod http {
             #[tokio::test]
             async fn complete_request() {
                 // bodies that are too large are rejected
-                assert!(CompleteRequest::from(
-                    hyper::Request::builder().body("asd".to_string()).unwrap(),
-                    2,
-                )
-                .await
-                .unwrap()
-                .is_none());
+                let mut hr = hyper::Request::builder().body("asd".to_string()).unwrap();
+                assert!(CompleteRequest::from(&mut hr, 2,).await.unwrap().is_none());
 
                 // test method
                 for (ms, m) in vec![
@@ -751,16 +919,11 @@ pub mod http {
                     ("POST", Method::Post),
                     ("PATCH", Method::Other),
                 ] {
-                    let req = CompleteRequest::from(
-                        hyper::Request::builder()
-                            .method(ms)
-                            .body("asd".to_string())
-                            .unwrap(),
-                        4,
-                    )
-                    .await
-                    .unwrap()
-                    .unwrap();
+                    let mut hr = hyper::Request::builder()
+                        .method(ms)
+                        .body("asd".to_string())
+                        .unwrap();
+                    let req = CompleteRequest::from(&mut hr, 4).await.unwrap().unwrap();
                     assert_eq!(req.method(), m);
                 }
 
@@ -770,39 +933,24 @@ pub mod http {
                     ("http://query.com?", ""),
                     ("https://query.com?some-query#fragment", "some-query"),
                 ] {
-                    let req = CompleteRequest::from(
-                        hyper::Request::builder()
-                            .uri(u)
-                            .body("asd".to_string())
-                            .unwrap(),
-                        4,
-                    )
-                    .await
-                    .unwrap()
-                    .unwrap();
+                    let mut hr = hyper::Request::builder()
+                        .uri(u)
+                        .body("asd".to_string())
+                        .unwrap();
+                    let req = CompleteRequest::from(&mut hr, 4).await.unwrap().unwrap();
                     assert_eq!(req.query(), q);
                 }
 
                 // empty body
-                let req = CompleteRequest::from(
-                    hyper::Request::builder()
-                        .body(hyper::body::Body::empty())
-                        .unwrap(),
-                    4,
-                )
-                .await
-                .unwrap()
-                .unwrap();
+                let mut hr = hyper::Request::builder()
+                    .body(hyper::body::Body::empty())
+                    .unwrap();
+                let req = CompleteRequest::from(&mut hr, 4).await.unwrap().unwrap();
                 assert_eq!(req.body(), "".as_bytes());
 
                 // string body
-                let req = CompleteRequest::from(
-                    hyper::Request::builder().body("asd".to_string()).unwrap(),
-                    4,
-                )
-                .await
-                .unwrap()
-                .unwrap();
+                let mut hr = hyper::Request::builder().body("asd".to_string()).unwrap();
+                let req = CompleteRequest::from(&mut hr, 4).await.unwrap().unwrap();
                 assert_eq!(req.body(), "asd".as_bytes());
 
                 // content-type
@@ -826,10 +974,8 @@ pub mod http {
                         rb = rb.header("Content-Type", cts);
                     }
 
-                    let req = CompleteRequest::from(rb.body("asd".to_string()).unwrap(), 4)
-                        .await
-                        .unwrap()
-                        .unwrap();
+                    let mut hr = rb.body("asd".to_string()).unwrap();
+                    let req = CompleteRequest::from(&mut hr, 4).await.unwrap().unwrap();
                     assert_eq!(req.content_type(), ct);
                 }
 
@@ -841,10 +987,8 @@ pub mod http {
                         rb = rb.header("Authorization", auth);
                     }
 
-                    let req = CompleteRequest::from(rb.body("asd".to_string()).unwrap(), 4)
-                        .await
-                        .unwrap()
-                        .unwrap();
+                    let mut hr = rb.body("asd".to_string()).unwrap();
+                    let req = CompleteRequest::from(&mut hr, 4).await.unwrap().unwrap();
 
                     assert_eq!(
                         req.authorization().map(|a| a.into_owned()),
@@ -853,18 +997,13 @@ pub mod http {
                 }
 
                 // example
-                let req = CompleteRequest::from(
-                    hyper::Request::builder()
-                        .method("POST")
-                        .header("Content-Type", "application/json")
-                        .uri("https://example.com/?query#fragment")
-                        .body("asd".to_string())
-                        .unwrap(),
-                    3,
-                )
-                .await
-                .unwrap()
-                .unwrap();
+                let mut hr = hyper::Request::builder()
+                    .method("POST")
+                    .header("Content-Type", "application/json")
+                    .uri("https://example.com/?query#fragment")
+                    .body("asd".to_string())
+                    .unwrap();
+                let req = CompleteRequest::from(&mut hr, 3).await.unwrap().unwrap();
 
                 assert_eq!(req.method(), Method::Post);
                 assert_eq!(req.query(), "query");
@@ -950,7 +1089,7 @@ pub mod redirect_uri {
                 Self::UnsupportedParameter(param) => Some(format!("parameter '{param}' is not supported")) ,
                 Self::InvalidState => Some("'state' parameter must be set, non-empty and printable ascii".to_string()),
                 Self::InvalidNonce => Some("'nonce' parameter must be set, non-empty and printable ascii".to_string()),
-                Self::InvalidScope => Some("'scope' parameter must be set, include 'oidc', and may contain only printable ascii characters excluding '\"' and '\\'".to_string()),
+                Self::InvalidScope => Some("'scope' parameter must be set, include 'openid', and may contain only printable ascii characters excluding '\"' and '\\'".to_string()),
                 Self::UnauthorizedClient => None,
                 Self::ServerError => Some("internal server error".to_string()),
             }
@@ -1206,8 +1345,8 @@ pub struct TokenCreationData {
     pub scope: String,
 }
 
-#[doc(hidden)]
-struct OidcImpl<H: Handler> {
+/// Canonical implementation of [super::oidc::Oidc].
+pub struct OidcImpl<H: Handler> {
     handler: H,
     client_hmac_secret: Secret,
     client_password_secret: Secret,
@@ -1260,8 +1399,8 @@ struct AuthQuery {
 struct TokenQuery {
     grant_type: String,
     code: String,
-    client_id: String,
     redirect_uri: String,
+    // NB client_id is not required because the client authenticates via the Authorization header
 }
 
 /// Represents the fields POSTed to redirect_uri
@@ -1284,13 +1423,26 @@ impl RedirectUriSpecialFields {
     }
 }
 
-impl<H: Handler> Oidc for OidcImpl<H> {
-    type H = H;
-
-    fn handle_auth(&self, req: H::Req) -> H::Resp {
+impl<H: Handler> OidcImpl<H> {
+    /// Like [Oidc::handle_auth], but return `auth_request_handle`, [ClientId] and
+    /// the original request instead of passing them to the [Handler] via [Handler::handle_auth].  
+    /// The [Handler::Resp] that would have been returned is returned as [Result::Err].
+    ///
+    /// The [Handler::is_valid_client] is consulted though, (while [Handler::handle_auth] is not.)
+    ///
+    /// Useful for testing.
+    pub fn issue_auth_request_handle<'s, 'r>(
+        &'s self,
+        req: H::Req<'r>,
+    ) -> Result<(H::Req<'r>, String, ClientId), H::Resp>
+    where
+        's: 'r,
+    {
         macro_rules! http_error {
             ($param:tt) => {
-                H::Resp::from(http::AuthResponse::from(http::S52Error::$param).into())
+                Err(H::Resp::from(
+                    http::AuthResponse::from(http::S52Error::$param).into(),
+                ))
             };
         }
 
@@ -1319,12 +1471,30 @@ impl<H: Handler> Oidc for OidcImpl<H> {
 
         // check redirect_uri
         let parsed_redirect_uri = url::Url::parse(&query.redirect_uri);
+        //   NB. url::Url::parse errs when query.redirect_uri is not absolute,
+        //       see the  url_parse_forces_absolute  test below.
         if parsed_redirect_uri.is_err() {
             return http_error!(MalformedRedirectUri);
         }
         let parsed_redirect_uri = parsed_redirect_uri.unwrap();
 
-        if parsed_redirect_uri.scheme() != "https" || parsed_redirect_uri.fragment().is_some() {
+        'check_scheme: {
+            if parsed_redirect_uri.scheme() == "https" {
+                break 'check_scheme;
+            }
+
+            // We tolerate http (instead of https) only for localhost under debug.
+            #[cfg(debug_assertions)]
+            if parsed_redirect_uri.scheme() == "http"
+                && parsed_redirect_uri.domain() == Some("localhost")
+            {
+                break 'check_scheme;
+            }
+
+            return http_error!(MalformedRedirectUri);
+        }
+
+        if parsed_redirect_uri.fragment().is_some() {
             return http_error!(MalformedRedirectUri);
         }
 
@@ -1350,15 +1520,15 @@ impl<H: Handler> Oidc for OidcImpl<H> {
         // NOTE: from here on we can post our errors to the client
         // by redirecting the user-agent.
 
-        let err_resp = |error_type: redirect_uri::Error| -> H::Resp {
-            H::Resp::from(http::Response::Auth(http::AuthResponse::FormPost(
-                redirect_uri::Response {
+        let err_resp = |error_type: redirect_uri::Error| -> Result<_, H::Resp> {
+            Err(H::Resp::from(http::Response::Auth(
+                http::AuthResponse::FormPost(redirect_uri::Response {
                     uri: query.redirect_uri.clone(),
                     data: redirect_uri::ResponseData::Error {
                         error: error_type,
                         state: query.state.clone(),
                     },
-                },
+                }),
             )))
         };
 
@@ -1398,7 +1568,7 @@ impl<H: Handler> Oidc for OidcImpl<H> {
         }
 
         // check scope - must include 'openid' per 3.1.2.1 of OIDCC1.0
-        if query.scope == None {
+        if query.scope.is_none() {
             return err_resp(redirect_uri::Error::InvalidScope);
         }
 
@@ -1408,7 +1578,7 @@ impl<H: Handler> Oidc for OidcImpl<H> {
         }
 
         let scope = scope.unwrap();
-        if scope.binary_search_by(|x| "oidc".cmp(x)).is_err() {
+        if scope.binary_search_by(|x| x.cmp(&"openid")).is_err() {
             return err_resp(redirect_uri::Error::InvalidScope);
         }
 
@@ -1420,8 +1590,6 @@ impl<H: Handler> Oidc for OidcImpl<H> {
             return err_resp(redirect_uri::Error::UnauthorizedClient);
         }
 
-        // Okay, everything seems to be in order;  hand over control
-        // to the handler.
         match (AuthRequestData {
             state: query
                 .state
@@ -1438,21 +1606,55 @@ impl<H: Handler> Oidc for OidcImpl<H> {
         }
         .to_handle(&self.auth_request_handle_secret))
         {
-            Ok(handle) => self.handler.handle_auth(req, handle),
+            Ok(handle) => Ok((req, handle, client_id)),
             Err(err) => {
                 log::error!("failed to create auth_request_handle: {}", err);
                 err_resp(redirect_uri::Error::ServerError)
             }
         }
     }
+}
+
+impl<H: Handler> Oidc for OidcImpl<H> {
+    type H = H;
+
+    fn handle_auth<'s, 'r>(
+        &'s self,
+        req: H::Req<'r>,
+        additional_data: H::AdditionalData<'r>,
+    ) -> H::Resp
+    where
+        's: 'r,
+    {
+        match self.issue_auth_request_handle(req) {
+            Ok((req, handle, client_id)) => {
+                // Okay, everything seems to be in order;  hand over control
+                // to the handler.
+                self.handler
+                    .handle_auth(req, handle, client_id, additional_data)
+            }
+            Err(resp) => resp,
+        }
+    }
+
+    fn open_auth_request_handle(
+        &self,
+        auth_request_handle: impl AsRef<str>,
+    ) -> Result<AuthenticAuthRequestHandle, Error> {
+        Ok(AuthenticAuthRequestHandle {
+            inner: AuthRequestData::from_handle(
+                auth_request_handle,
+                &self.auth_request_handle_secret,
+            )?,
+        })
+    }
 
     fn grant_code(
         &self,
-        auth_request_handle: String,
+        auth_request_handle: AuthenticAuthRequestHandle,
         id_token_creator: impl FnOnce(TokenCreationData) -> Result<String, ()>,
     ) -> Result<http::Response, Error> {
-        let data =
-            AuthRequestData::from_handle(auth_request_handle, &self.auth_request_handle_secret)?;
+        let AuthenticAuthRequestHandle { inner: data } = auth_request_handle;
 
         let id_token = id_token_creator(TokenCreationData {
             nonce: data.nonce,
@@ -1486,7 +1688,10 @@ impl<H: Handler> Oidc for OidcImpl<H> {
         }))
     }
 
-    fn handle_token(&self, req: H::Req) -> H::Resp {
+    fn handle_token<'s, 'r>(&'s self, req: H::Req<'r>) -> H::Resp
+    where
+        's: 'r,
+    {
         macro_rules! http_error {
             ($param:tt) => {
                 H::Resp::from(http::TokenResponse::from(http::S52Error::$param).into())
@@ -1526,22 +1731,18 @@ impl<H: Handler> Oidc for OidcImpl<H> {
         }
         let creds = creds.unwrap();
 
-        if creds.userid != query.client_id {
+        if !ClientId::check_password(&creds.userid, self.client_password_secret, creds.password) {
             return http_error!(InvalidClientCredentials);
         }
 
-        if !ClientId::check_password(creds.userid, self.client_password_secret, creds.password) {
-            return http_error!(InvalidClientCredentials);
-        }
-
-        let acd = AuthCodeData::from_code(query.code, &self.auth_code_secret, &query.client_id);
+        let acd = AuthCodeData::from_code(query.code, &self.auth_code_secret, &creds.userid);
         if acd.is_err() {
             return http_error!(InvalidAuthCode);
         }
         let acd = acd.unwrap();
 
         // parse client_id
-        let client_id: Result<ClientId, Error> = str::parse(&query.client_id);
+        let client_id: Result<ClientId, Error> = str::parse(&creds.userid);
         if client_id.is_err() {
             // should not happen, though, as client_id was already checked by the auth endpoint
             return http_error!(MalformedClientId);
@@ -1576,9 +1777,25 @@ impl<H: Handler> Oidc for OidcImpl<H> {
     }
 }
 
+/// Represents an authentic auth_request_handle, see [Oidc::open_auth_request_handle],
+/// which can be used to grant an auth code with [Oidc::grant_code].
+#[derive(PartialEq, Eq, Debug, Clone)]
+pub struct AuthenticAuthRequestHandle {
+    // note:  we do not expose AuthRequestData directly, because we do not want
+    //        it to be accidentally serialized and passed to the user-agent,
+    //        or - heaven forbid - be manually created.
+    inner: AuthRequestData,
+}
+
+impl AuthenticAuthRequestHandle {
+    /// Returns the `client_id` associated to this auth request.
+    pub fn client_id(&self) -> &str {
+        &self.inner.client_id
+    }
+}
+
 /// Holds the data sealed in an `auth_request_handle`.
-#[doc(hidden)]
-#[derive(serde::Serialize, serde::Deserialize, PartialEq, Eq, Debug)]
+#[derive(serde::Serialize, serde::Deserialize, PartialEq, Eq, Debug, Clone)]
 struct AuthRequestData {
     state: String,
     nonce: String,
@@ -1588,14 +1805,12 @@ struct AuthRequestData {
 }
 
 impl AuthRequestData {
-    #[doc(hidden)]
     fn to_handle(&self, key: &chacha20poly1305::Key) -> anyhow::Result<String> {
-        seal(&self, key, b"")
+        crate::crypto::seal(&self, key, b"")
     }
 
-    #[doc(hidden)]
     fn from_handle(handle: impl AsRef<str>, key: &chacha20poly1305::Key) -> Result<Self, Error> {
-        unseal(handle, key, b"").map_err(|_| Error::InvalidAuthRequestHandle)
+        crate::crypto::unseal(handle, key, b"").map_err(|_| Error::InvalidAuthRequestHandle)
     }
 }
 
@@ -1613,7 +1828,7 @@ impl AuthCodeData {
         key: &chacha20poly1305::Key,
         client_id: impl AsRef<str>,
     ) -> anyhow::Result<String> {
-        seal(&self, key, client_id.as_ref().as_bytes())
+        crate::crypto::seal(&self, key, client_id.as_ref().as_bytes())
     }
 
     #[doc(hidden)]
@@ -1622,98 +1837,14 @@ impl AuthCodeData {
         key: &chacha20poly1305::Key,
         client_id: impl AsRef<str>,
     ) -> Result<Self, Error> {
-        unseal(code, key, client_id.as_ref().as_bytes()).map_err(|_| Error::InvalidAuthCode)
+        crate::crypto::unseal(code, key, client_id.as_ref().as_bytes())
+            .map_err(|_| Error::InvalidAuthCode)
     }
-}
-
-/// Singleton failure type for internal use
-#[doc(hidden)]
-#[derive(Debug, Error, PartialEq, Eq)]
-enum Failure {
-    #[error("failure")]
-    Failure,
-}
-
-/// Encodes and encrypts the given obj with additional associated data (or b"" if none)
-/// and returns it as urlsafe base64 string.  Use [unseal] to revert.
-#[doc(hidden)]
-fn seal<T: serde::Serialize>(
-    obj: &T,
-    key: &chacha20poly1305::Key,
-    aad: impl AsRef<[u8]>,
-) -> anyhow::Result<String> {
-    let plaintext = rmp_serde::to_vec(obj).context("serializing")?;
-
-    let nonce = XChaCha20Poly1305::generate_nonce(&mut aead::OsRng);
-    let ciphertext = XChaCha20Poly1305::new(key)
-        .encrypt(
-            &nonce,
-            aead::Payload {
-                msg: plaintext.as_slice(),
-                aad: aad.as_ref(),
-            },
-        )
-        .map_err(|e| anyhow::anyhow!(e))
-        .context("encrypting")?;
-
-    let mut buf = Vec::with_capacity(nonce.len() + ciphertext.len());
-    buf.extend_from_slice(&nonce);
-    buf.extend_from_slice(&ciphertext);
-
-    Ok(Base64Url::encode_string(&buf))
-}
-
-/// Reverse of the [seal] operation.
-#[doc(hidden)]
-fn unseal<T: serde::de::DeserializeOwned>(
-    envelope: impl AsRef<str>,
-    key: &chacha20poly1305::Key,
-    aad: impl AsRef<[u8]>,
-) -> Result<T, Failure> {
-    let buf = Base64Url::decode_vec(envelope.as_ref()).map_err(|_| Failure::Failure)?;
-
-    #[allow(dead_code)] // buf[..NONCE_LEN] is not considered usage - a bug?
-    const NONCE_LEN: usize = chacha20poly1305::XNonce::LENGTH;
-
-    if buf.len() < NONCE_LEN {
-        return Err(Failure::Failure);
-    }
-
-    let plaintext = XChaCha20Poly1305::new(key)
-        .decrypt(
-            (&buf[..NONCE_LEN]).into(),
-            aead::Payload {
-                msg: &buf[NONCE_LEN..],
-                aad: aad.as_ref(),
-            },
-        )
-        .map_err(|_| Failure::Failure)?;
-
-    rmp_serde::from_slice(&plaintext).map_err(|_| Failure::Failure)
-}
-
-/// trait to extract the length from a GenericArray
-#[doc(hidden)]
-trait GenericArrayExt {
-    const LENGTH: usize;
-}
-
-impl<T, U: generic_array::ArrayLength<T>> GenericArrayExt for generic_array::GenericArray<T, U> {
-    const LENGTH: usize = <U as typenum::marker_traits::Unsigned>::USIZE;
 }
 
 /// Type to hold secrets for internal use- basically an [u8, 32], i.e., an 'u256'
 #[doc(hidden)]
 type Secret = generic_array::GenericArray<u8, typenum::consts::U32>;
-
-#[doc(hidden)]
-fn derive_secret(concerns: &str, secret: &[u8]) -> Secret {
-    sha2::Sha256::new()
-        .chain_update(concerns.as_bytes())
-        .chain_update(b"\0")
-        .chain_update(secret)
-        .finalize()
-}
 
 #[doc(hidden)]
 fn is_valid_state(s: &Option<String>) -> bool {
@@ -1899,6 +2030,9 @@ pub mod html {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::crypto::GenericArrayExt as _;
+    use aead::KeyInit as _;
+    use chacha20poly1305::XChaCha20Poly1305;
 
     #[test]
     fn client_id_from_str() {
@@ -1990,26 +2124,26 @@ mod tests {
         authorization: Option<String>,
     }
 
-    impl<'s> http::Request<'s> for MockHttpRequest {
-        type Body = &'s [u8];
+    impl http::Request for MockHttpRequest {
+        type Body<'b> = &'b [u8];
 
-        fn query(&'s self) -> Cow<str> {
+        fn query(&self) -> Cow<str> {
             Cow::Borrowed(&self.query)
         }
 
-        fn method(&'s self) -> http::Method {
+        fn method(&self) -> http::Method {
             self.method
         }
 
-        fn body(&'s self) -> &[u8] {
+        fn body(&self) -> &[u8] {
             self.body.as_bytes()
         }
 
-        fn content_type(&'s self) -> Option<http::ContentType> {
+        fn content_type(&self) -> Option<http::ContentType> {
             self.content_type
         }
 
-        fn authorization(&'s self) -> Option<Cow<str>> {
+        fn authorization(&self) -> Option<Cow<str>> {
             match self.authorization {
                 None => None,
                 Some(ref s) => Some(Cow::Borrowed(s.as_str())),
@@ -2021,7 +2155,10 @@ mod tests {
     #[derive(Debug, PartialEq, Eq)]
     enum MockHttpResponse {
         FromOidc(http::Response),
-        HandleAuthPage(String),
+        HandleAuthPage {
+            client_id: ClientId,
+            auth_request_handle: String,
+        },
     }
 
     impl From<http::Response> for MockHttpResponse {
@@ -2034,15 +2171,21 @@ mod tests {
     struct MockHandler {}
 
     impl Handler for MockHandler {
-        type Req = MockHttpRequest;
+        type Req<'r> = MockHttpRequest;
         type Resp = MockHttpResponse;
+        type AdditionalData<'ad> = ();
 
         fn handle_auth(
             &self,
             _req: MockHttpRequest,
             auth_request_handle: String,
+            client_id: ClientId,
+            _additional_data: (),
         ) -> MockHttpResponse {
-            MockHttpResponse::HandleAuthPage(auth_request_handle)
+            MockHttpResponse::HandleAuthPage {
+                auth_request_handle,
+                client_id,
+            }
         }
 
         fn is_valid_client(&self, client_id: &ClientId, _redirect_uri: &str) -> bool {
@@ -2059,13 +2202,16 @@ mod tests {
         let oidc = new(MockHandler {}, secret);
 
         let handle_auth = |query: &str| {
-            oidc.handle_auth(MockHttpRequest {
-                query: query.to_owned(),
-                authorization: None,
-                content_type: None,
-                body: "".to_string(),
-                method: http::Method::Get,
-            })
+            oidc.handle_auth(
+                MockHttpRequest {
+                    query: query.to_owned(),
+                    authorization: None,
+                    content_type: None,
+                    body: "".to_string(),
+                    method: http::Method::Get,
+                },
+                (),
+            )
         };
 
         let query1 = "response_type=code&redirect_uri=uri&client_id=foo";
@@ -2122,7 +2268,7 @@ mod tests {
                 "foo",
                 uri,
                 Some("form_post"),
-                Some("oidc"),
+                Some("openid"),
                 Some("state"),
                 Some("nonce"),
                 "code",
@@ -2145,10 +2291,16 @@ mod tests {
             );
         }
 
-        if let MockHttpResponse::HandleAuthPage(h) = handle_auth(&create_query_from_uri(
+        if let MockHttpResponse::HandleAuthPage {
+            client_id,
+            auth_request_handle,
+        } = handle_auth(&create_query_from_uri(
             "https://valid.com?valid_parameter=something",
         )) {
-            let ard = AuthRequestData::from_handle(h, &auth_request_handle_secret).unwrap();
+            assert_eq!(client_id.bare_id(), "foo");
+            let ard =
+                AuthRequestData::from_handle(auth_request_handle, &auth_request_handle_secret)
+                    .unwrap();
 
             assert_eq!(ard.state, "state");
             assert_eq!(ard.nonce, "nonce");
@@ -2156,7 +2308,7 @@ mod tests {
                 ard.redirect_uri,
                 "https://valid.com?valid_parameter=something"
             );
-            assert_eq!(ard.scope, "oidc");
+            assert_eq!(ard.scope, "openid");
             assert_eq!(ClientId::from_str(&ard.client_id).unwrap().bare_id(), "foo");
         } else {
             assert!(false);
@@ -2197,7 +2349,7 @@ mod tests {
                     "foo",
                     "https://valid.com?valid_parameter=something",
                     rm,
-                    Some("oidc"),
+                    Some("openid"),
                     Some("state"),
                     Some("nonce"),
                     "code",
@@ -2212,7 +2364,7 @@ mod tests {
                     "foo",
                     "https://valid.com?valid_parameter=something",
                     Some("form_post"),
-                    Some("oidc"),
+                    Some("openid"),
                     Some("state"),
                     Some("nonce"),
                     rt,
@@ -2236,7 +2388,7 @@ mod tests {
                     "foo",
                     "https://valid.com?valid_parameter=something",
                     Some("form_post"),
-                    Some("oidc"),
+                    Some("openid"),
                     s,
                     Some("nonce"),
                     "code",
@@ -2260,7 +2412,7 @@ mod tests {
                     "foo",
                     "https://valid.com?valid_parameter=something",
                     Some("form_post"),
-                    Some("oidc"),
+                    Some("openid"),
                     Some("state"),
                     n,
                     "code",
@@ -2283,7 +2435,7 @@ mod tests {
             Some(""),
             Some("invalid character \0"),
             Some("another invalid character '"),
-            Some("no-oidc"),
+            Some("no-openid"),
         ] {
             assert_eq!(
                 handle_auth(&create_query(
@@ -2314,7 +2466,7 @@ mod tests {
                 "invalid_client",
                 "https://valid.com?valid_parameter=something",
                 Some("form_post"),
-                Some("oidc"),
+                Some("openid"),
                 Some("state"),
                 Some("nonce"),
                 "code",
@@ -2337,6 +2489,13 @@ mod tests {
         assert_eq!(chacha20poly1305::Key::LENGTH, 32);
         assert_eq!(chacha20poly1305::XNonce::LENGTH, 24);
         assert_eq!(chacha20poly1305::Tag::LENGTH, 16);
+    }
+
+    #[test]
+    fn url_parse_forces_absolute() {
+        assert!(url::Url::parse("/relative-url").is_err());
+        assert!(url::Url::parse("relative-url").is_err());
+        assert!(url::Url::parse("../relative-url").is_err());
     }
 
     #[test]
@@ -2390,7 +2549,7 @@ mod tests {
 
         // invalid_auth_handle results in error
         assert_eq!(
-            oidc.grant_code("".to_string(), |_| Ok("".to_string())),
+            oidc.open_auth_request_handle("".to_string()),
             Err(Error::InvalidAuthRequestHandle)
         );
 
@@ -2403,6 +2562,8 @@ mod tests {
         }
         .to_handle(&auth_request_handle_secret)
         .unwrap();
+
+        let handle = oidc.open_auth_request_handle(handle).unwrap();
 
         // error in creation of id_token result in error
         assert_eq!(
@@ -2490,7 +2651,6 @@ mod tests {
                     .acd
                     .to_code(&self.auth_code_secret, &self.client_id.as_ref().unwrap())
                     .unwrap();
-                self.query.client_id = self.client_id.as_ref().unwrap().as_ref().to_owned();
                 self.query.redirect_uri = self.redirect_uri.clone();
             }
 
@@ -2526,7 +2686,6 @@ mod tests {
             query: TokenQuery {
                 grant_type: "authorization_code".to_string(),
                 code: "".to_string(),         // set by set_query
-                client_id: "".to_string(),    // idem
                 redirect_uri: "".to_string(), // idem
             },
             req: MockHttpRequest {
@@ -2595,9 +2754,11 @@ mod tests {
             s.client_bare_id = "not_foo".to_string();
             s.set_client_id();
             s.set_credentials();
-            // We don't do "s.set_query();" so query still holds "foo~..." as client_id.
+            s.client_bare_id = "foo".to_string();
+            s.set_client_id();
+            s.set_query();
             s.set_request();
-            assert_eq!(s.handle_token(&oidc), err!(InvalidClientCredentials));
+            assert_eq!(s.handle_token(&oidc), err!(InvalidAuthCode));
         }
 
         {
@@ -2630,21 +2791,6 @@ mod tests {
         }
 
         {
-            // auth code destined for other client
-            let mut s = s.clone();
-
-            let old_client_id = s.query.client_id.clone();
-
-            s.client_bare_id = "not foo".to_string();
-            s.set_client_id();
-            s.set_query();
-            s.query.client_id = old_client_id;
-            s.set_request();
-
-            assert_eq!(s.handle_token(&oidc), err!(InvalidAuthCode));
-        }
-
-        {
             // invalid redirect_uri
             let mut s = s.clone();
 
@@ -2655,3 +2801,11 @@ mod tests {
         }
     }
 }
+
+/// Constants to be used for OpenID Provider Metadata,
+/// see "OpenID Connect Discovery 1.0 [...]", Section 3.
+pub const RESPONSE_TYPES_SUPPORTED: [&str; 1] = ["code"];
+pub const RESPONSE_MODES_SUPPORTED: [&str; 1] = ["form_post"];
+pub const SCOPES_SUPPORTED: [&str; 1] = ["openid"];
+pub const GRANT_TYPES_SUPPORTED: [&str; 1] = ["authorization_code"];
+pub const TOKEN_ENDPOINT_AUTH_METHODS_SUPPORTED: [&str; 1] = ["client_secret_basic"];

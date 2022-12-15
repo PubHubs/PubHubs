@@ -4,14 +4,6 @@
 #   - decrypt pseudonym from pubhubs server at registration / login
 #   - makes sure that the displayname always ends with pseudonym or is the same as the pseudonym
 #
-# Setting in homeserver.yaml:
-#
-# modules:
-#  - module: data.modules.pseudonyms.Pseudonym
-#    config: {
-#       userinfo_endpoint : 'http://host.docker.internal:8080/userinfo',
-#    }
-#
 
 import re
 import os
@@ -22,6 +14,9 @@ from synapse.types import UserID
 from synapse.module_api import ModuleApi
 from synapse.http.server import DirectServeJsonResource, respond_with_json
 from synapse.http.site import SynapseRequest
+from synapse.handlers.oidc import UserAttributeDict
+
+logger = logging.getLogger(__name__)
 
 
 #
@@ -38,14 +33,6 @@ class Pseudonym:
         )
         self.api.register_third_party_rules_callbacks(
             on_profile_update = self.change_displayname,
-        )
-
-        # register webresource for creating pseudonym @registration/login. webresource_url is created from the 'oicd.userinfo_endpoint'
-        webresource_url = self.api._hs.config.oidc.oidc_providers[0].userinfo_endpoint
-        webresource_url = re.sub(r'.*?/_synapse/', "/_synapse/", webresource_url)
-        self.api.register_web_resource(
-            webresource_url,
-            PseudonymWebResource( config, api )
         )
 
     #
@@ -66,66 +53,51 @@ class Pseudonym:
         await self.api._store.set_profile_displayname( localpart, display_name )
 
 
+# Oidc mapping provider for PubHubs that decrypts the encrypted local pseudonym, and
+# turns it into a short pseudonym.
+# 
+# References:
+#   - https://matrix-org.github.io/synapse/latest/sso_mapping_providers.html
+#   - https://github.com/matrix-org/synapse/blob/6ac35667af31f6d3aa81a8b5d00425e6e7e657e7/synapse/handlers/oidc.py#L1532
+class OidcMappingProvider:
+    def __init__(self, config):
+        self._config = config
+        self._secret = os.environ['HUB_SECRET']
 
-#
-# Getting pseudonym at registration/login and decrypt it using libpepcli
-#
-class PseudonymWebResource(DirectServeJsonResource):
-    def __init__(self, config: dict, api: ModuleApi):
-        super().__init__()
-        self.api = api
+    @staticmethod
+    def parse_config(config):
+        return None
 
-        self.server_name = self.api.server_name
-        self.userinfo_endpoint = config.get('userinfo_endpoint') or ''
-        self.secret = os.environ['HUB_SECRET']
-
-        if self.userinfo_endpoint == '':
-            raise RuntimeError("No userinfo_endpoint set for module pseudonym.")
-
-    #
-    # After calling the pubhubs server, the given pseudonym needs to be decrypted and a localpart needs te be generated. This method does just that, given the encrypted pseuydonym
-    #
-    async def _async_render_GET(self, request: SynapseRequest):
-        # For testing purposes (clumsy FakeRequest) all functionality, except the json response, in `async_get`
-        response = await self.async_get(request)
-        respond_with_json(request, 200, response)
-
-    async def async_get(self, request: SynapseRequest) -> dict:
-        # Call pubhubs server to get pseudonym
-        AuthorizationHeader = request.getHeader('Authorization')
-        response = await self.api.http_client.get_json(
-            self.userinfo_endpoint,
-            headers={"Authorization": [AuthorizationHeader]},
-        )
+    def get_remote_user_id(self, userinfo):
+        logger.info(f"get_remote_user_id {userinfo}")
+        encrypted_local_pseudonym = userinfo["sub"]
 
         # Decrypt the pseudonym
+        # TODO: SECURITY:  do not pass secret via command line
         decrypted_local_pseudonym = subprocess.run(
-            ["libpepcli", "decrypt-local-pseudonym", response["id"], self.secret],
+            ["libpepcli", "decrypt-local-pseudonym", encrypted_local_pseudonym, self._secret],
             capture_output=True, check=True) \
             .stderr.decode('UTF-8') \
             .strip()
 
-        # Get a short-pseudonym and test if its is allready used, if so take another
-        localpart = None
-        for localpart_candidate in PseudonymHelper.short_pseudonyms(decrypted_local_pseudonym):
-            user_id = UserID(localpart, self.server_name).to_string()
-            users = await self.api._store.get_users_by_id_case_insensitive(user_id)
-            if not users or len(users) == 0:
-                localpart = localpart_candidate
-                break
-        else:
-            raise RuntimeError(
-                f"All abbreviations of the local pseudonym { decrypted_local_pseudonym } have already been taken, which is exceedingly unlikely (unless the same user keeps re-registering.)")
+        # HACK: For efficiency's sake, we add the decrypted local pseudonym to userinfo,
+        # so that it can be used in map_user_attributes below.  This seems to work for now,
+        # but might break in the future as it's not clear that mutating userinfo like this is
+        # a feature intended by the synapse authors.  If it breaks, we could add a lookup table
+        # from "sub" to "phlp" in this (OidcMappingProvider) class.
+        userinfo["phlp"] = decrypted_local_pseudonym
 
-        # Response with users' localpart and pseudonym
-        response = {
-            "id": decrypted_local_pseudonym,
-            "short_pseudonym": localpart
-        }
-        logging.info(f"PUBHUBS: Unless { decrypted_local_pseudonym } is already assigned a local part, it will be { localpart }.")
-        return response
+        return decrypted_local_pseudonym
 
+    async def map_user_attributes(self, userinfo, token, failures):
+        logger.info(f"map_user_attributes {userinfo} {token} {failures}")
+        return UserAttributeDict(
+                localpart = PseudonymHelper.short_pseudonym_nr(userinfo["phlp"], failures),
+                confirm_localpart = False)
 
+    async def get_extra_attributes(self, userinfo, token):
+        logger.info(f"get_extra_attributes {userinfo} {token}")
+        return {}
 
 
 class PseudonymHelper:
@@ -147,27 +119,24 @@ class PseudonymHelper:
     def is_local_pseudonym(s):
         return PseudonymHelper.local_pseudonym_pattern.fullmatch(s) != None
 
-    def short_pseudonyms(local_pseudonym):
-        return PseudonymHelper.ShortPseudonymsIterator(local_pseudonym)
+    # used for testing
+    @classmethod
+    def short_pseudonyms(cls, local_pseudonym):
+        for n in range(14):
+            yield cls.short_pseudonym_nr(local_pseudonym, n)
 
-    class ShortPseudonymsIterator:
-        def __init__(self, local_pseudonym):
-            if not PseudonymHelper.is_local_pseudonym(local_pseudonym):
-                raise ValueError(
-                    f"{ local_pseudonym } is not a valid local pseudonym")
-            self._lp = local_pseudonym
-            self._counter = 1  # start with a 6-letter short pseudonym
+    # returns the nth short pseudonym associated to the local_pseudonym,
+    # the nth consisting of 2*(3+n) letters and a '-'. 
+    def short_pseudonym_nr(local_pseudonym, n):
+        if not PseudonymHelper.is_local_pseudonym(local_pseudonym):
+            raise ValueError(
+                f"{ local_pseudonym } is not a valid local pseudonym")
+        if n > 13:
+            raise ValueError("n can't exceed 14")
+        prefix_len = n + 2
+        prefix, suffix = local_pseudonym[:prefix_len], local_pseudonym[-prefix_len:]
 
-        def __iter__(self):
-            return self
-
-        def __next__(self):
-            self._counter += 1
-            if self._counter > 15:
-                raise StopIteration
-            prefix, suffix = self._lp[:self._counter], self._lp[-self._counter:]
-
-            return f"{ prefix }{ PseudonymHelper.checkdigit(prefix) }-{ PseudonymHelper.checkdigit(suffix) }{ suffix }"
+        return f"{ prefix }{ PseudonymHelper.checkdigit(prefix) }-{ PseudonymHelper.checkdigit(suffix) }{ suffix }"
 
     #
     # Cleanup localpart/pseudonyms from displayname, and add it again at end of displayname. Or if empty, just the localpart

@@ -1,65 +1,77 @@
-use hyper::http::HeaderValue;
-use hyper::{Body, Client, Request, Response};
-use hyper_tls::HttpsConnector;
+use actix_web::http::header::CONTENT_LENGTH;
+use actix_web::web::Data;
+use actix_web::{HttpRequest, HttpResponse};
+use anyhow::anyhow;
 use regex::Regex;
 
-pub async fn irma_proxy_stream(request: Request<Body>, irma_url: &str) -> Response<Body> {
-    let method = request.method().clone();
+use crate::context::Main;
+use crate::error::{AnyhowExt, HttpContextExt, TranslatedError};
+
+pub async fn irma_proxy_stream(
+    request: HttpRequest,
+    context: Data<Main>,
+    body: String,
+) -> Result<HttpResponse, TranslatedError> {
+    let irma_url = &context.irma.client_url;
+    let client = awc::Client::default();
     let uri = request.uri().to_string();
-    let headers = request.headers().clone();
-    let https = HttpsConnector::new();
-    let client = Client::builder().build::<_, hyper::Body>(https);
 
-    let body = String::from_utf8(Vec::from(
-        hyper::body::to_bytes(&mut request.into_body())
-            .await
-            .unwrap()
-            .as_ref(),
-    ))
-    .unwrap();
-
-    let mut req = Request::builder().uri(irma_url.to_owned() + &uri);
-
-    for (x, y) in headers {
-        req = req.header(x.unwrap(), y);
+    let mut request_to_irma = client.request(request.method().clone(), irma_url.to_owned() + &uri);
+    for pair in request.headers() {
+        request_to_irma = request_to_irma.insert_header(pair);
     }
 
-    let req = req.method(method).body(Body::from(body)).unwrap();
+    let original_response = request_to_irma
+        .send_body(body)
+        .await
+        .map_err(|e| anyhow!(e.to_string()))
+        .bad_gateway()
+        .into_translated_error(&request)?;
 
-    client.request(req).await.unwrap()
+    let mut resp = HttpResponse::build(original_response.status());
+    for pair in original_response.headers() {
+        resp.insert_header(pair);
+    }
+    Ok(resp.streaming(original_response))
 }
 
 pub async fn irma_proxy(
-    request: Request<Body>,
-    irma_url: &str,
-    proxy_host: &str,
-) -> Response<Body> {
-    let method = request.method().clone();
+    request: HttpRequest,
+    context: Data<Main>,
+    body: String,
+) -> Result<HttpResponse, TranslatedError> {
+    let irma_url = &context.irma.client_url;
+    let proxy_host = &context.url;
     let uri = request.uri().to_string();
-    let headers = request.headers().clone();
-    let https = HttpsConnector::new();
-    let client = Client::builder().build::<_, hyper::Body>(https);
+    let client = awc::Client::default();
 
-    let body = String::from_utf8(Vec::from(
-        hyper::body::to_bytes(&mut request.into_body())
-            .await
-            .unwrap()
-            .as_ref(),
-    ))
-    .unwrap();
-
-    let mut req = Request::builder().uri(irma_url.to_owned() + &uri);
-
-    for (x, y) in headers {
-        req = req.header(x.unwrap(), y);
+    let mut request_to_irma = client.request(request.method().clone(), irma_url.to_owned() + &uri);
+    for pair in request.headers() {
+        request_to_irma = request_to_irma.insert_header(pair);
     }
 
-    let req = req.method(method).body(Body::from(body)).unwrap();
-    // client.request(req).await.unwrap()
-    let mut resp = client.request(req).await.unwrap();
-    let h = resp.headers().clone();
-    let r = body_to_string(&mut resp).await;
-    //TODO actually parse this, very sloppy this way
+    let mut original_response = request_to_irma
+        .send_body(body)
+        .await
+        .map_err(|e| anyhow!(e.to_string()))
+        .bad_gateway()
+        .into_translated_error(&request)?;
+
+    let mut resp = HttpResponse::build(original_response.status());
+    for pair in original_response.headers() {
+        resp.insert_header(pair);
+    }
+    let r = String::from_utf8(
+        original_response
+            .body()
+            .await
+            .bad_gateway()
+            .into_translated_error(&request)?
+            .to_vec(),
+    )
+    .into_translated_error(&request)?;
+
+    // We want to replace all instances of a "u" in a IRMA response whatever the structure of the request is.
     let re = Regex::new(r#""u":"https?://[^/]+/"#).unwrap();
 
     let body_with_new_url = if re.is_match(&r) {
@@ -71,47 +83,63 @@ pub async fn irma_proxy(
             .replace(&r, format!(r#""u":"{}irma/"#, proxy_host))
             .to_string()
     };
-    let mut rresp = Response::new(Body::from(body_with_new_url.clone()));
-    *rresp.headers_mut() = h;
-    rresp
-        .headers_mut()
-        .insert("content-length", HeaderValue::from(body_with_new_url.len()));
-    rresp
-}
 
-async fn body_to_string(mut response: &mut Response<Body>) -> String {
-    String::from_utf8(Vec::from(
-        hyper::body::to_bytes(&mut response).await.unwrap().as_ref(),
-    ))
-    .unwrap()
+    resp.insert_header((CONTENT_LENGTH, body_with_new_url.len()));
+    Ok(resp.body(body_with_new_url))
 }
 
 #[cfg(test)]
 #[allow(unused_must_use)]
 mod tests {
+    use crate::config::File;
+    use crate::context::Main;
+    use actix_web::test::TestRequest;
+    use actix_web::web::Data;
+    use actix_web::{body::MessageBody, rt::pin, web};
     use core::convert::Infallible;
-    use hyper::body::HttpBody;
-    use hyper::http::HeaderValue;
     use hyper::service::make_service_fn;
     use hyper::service::service_fn;
     use hyper::{Body, Request, Response};
     use hyper::{Server, StatusCode};
+    use std::future;
     use std::net::SocketAddr;
     use std::sync::Arc;
 
-    #[tokio::test]
+    #[actix_web::test]
     async fn it_works() {
         start_fake_server().await;
-        let mut req = Request::new(Body::empty());
-        req.headers_mut()
-            .insert("x-test", HeaderValue::from_str("yes").unwrap());
+        let req = TestRequest::get()
+            .insert_header(("x-test", "yes"))
+            .to_http_request();
+        let context = create_test_context_with(|mut f| {
+            f.irma.client_url = Some("http://localhost:3005/test1".to_string());
+            f
+        })
+        .await
+        .unwrap();
 
-        let resp = super::irma_proxy(req, "http://localhost:3005", "none").await;
+        let resp = super::irma_proxy(req.clone(), Data::from(context.clone()), "none".to_owned())
+            .await
+            .unwrap();
         assert_eq!(resp.status(), StatusCode::OK);
         let content =
-            String::from_utf8(resp.into_body().data().await.unwrap().unwrap().to_vec()).unwrap();
+            String::from_utf8(resp.into_body().try_into_bytes().unwrap().to_vec()).unwrap();
 
-        assert_eq!(content, "Hello, World".to_string())
+        assert_eq!(content, "Hello, World".to_string());
+
+        let resp = super::irma_proxy_stream(req, Data::from(context), "none".to_owned())
+            .await
+            .unwrap();
+        assert_eq!(resp.status(), StatusCode::OK);
+
+        let body = resp.into_body();
+        pin!(body);
+
+        let bytes = future::poll_fn(|cx| body.as_mut().poll_next(cx)).await;
+        assert_eq!(
+            bytes.unwrap().unwrap(),
+            web::Bytes::from_static(b"Hello, World")
+        );
     }
 
     async fn start_fake_server() {
@@ -153,5 +181,11 @@ mod tests {
             "yes"
         );
         Response::new("Hello, World".into())
+    }
+
+    async fn create_test_context_with(
+        config: impl FnOnce(File) -> File,
+    ) -> anyhow::Result<Arc<Main>> {
+        Main::create(config(File::for_testing())).await
     }
 }
