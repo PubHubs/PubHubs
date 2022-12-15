@@ -25,7 +25,6 @@ COPY --from=builder /root/.cargo/bin/pubhubs /usr/local/bin/pubhubs
 COPY --from=builder /usr/src/pubhubs/static/ static/
 COPY default.yaml .
 
-# TODO change on deployment obviously maybe even just set something that will fail! Much better I guess.
-ENV PUBHUBS_CONFIG="default.yaml"
+ENV PUBHUBS_CONFIG="provide_me_when_running_as_a_container"
 
 CMD ["pubhubs"]

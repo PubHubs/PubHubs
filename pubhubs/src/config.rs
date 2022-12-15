@@ -1,9 +1,12 @@
-use anyhow::{anyhow, bail, ensure, Context, Result};
-use log::{info, warn};
-use serde::{Deserialize, Serialize};
 use std::collections::HashSet;
 use std::path::PathBuf;
 use std::str::FromStr;
+
+use anyhow::{anyhow, bail, ensure, Context, Result};
+use log::{info, warn};
+use serde::{Deserialize, Serialize};
+
+use crate::serde_ext::B64;
 
 #[derive(Serialize, Deserialize)]
 pub struct File {
@@ -15,9 +18,20 @@ pub struct File {
     /// public url to reach PubHubs, for the Irma app;
     /// if None and not in production, it
     /// will be set to the IP address returned by ifconfig.me,
-    /// (which might, or might not, be publically reachable.)
+    /// (which might, or might not, be publically reachable)
+    /// with as port the one from `bind_to` below.
     #[serde(default)]
     pub url: Option<String>,
+
+    /// Bind to this address.  Defaults to ("0.0.0.0", "8080").
+    #[serde(default = "default_bind_to")]
+    pub bind_to: (String, u16),
+
+    /// When pubhubs checks it can connect to itself, this value is expected.
+    /// When None, it is randomly generated.  Set it to some none-None value
+    /// when pubhubs is behind a load balancer.
+    #[serde(default)]
+    pub connection_check_nonce: Option<String>,
 
     /// location of the database file, or None when an in-memory database
     /// is to be used
@@ -40,11 +54,17 @@ pub struct File {
 
     pub cookie_secret: Option<String>,
     pub admin_api_key: Option<String>,
+    pub metrics_key: Option<String>,
+
+    pub oidc_secret: Option<B64>,
 
     pub irma: Irma,
     pub pep: Pep,
 }
 
+fn default_bind_to() -> (String, u16) {
+    ("0.0.0.0".to_string(), 8080)
+}
 fn default_policy_directory() -> String {
     "default_policies".to_string()
 }
@@ -59,33 +79,68 @@ fn default_templates_file() -> String {
 }
 
 static ENV: &str = "PUBHUBS_CONFIG";
-static DEFAULT_PATH: &str = "default.yaml";
+
+/// When `PUBHUBS_CONFIG` (see [ENV]) is not set, pubhubs will look for a configuration
+/// file at these paths, in the order they are listed here.
+static DEFAULT_PATHS: [&str; 2] = ["config.yaml", "default.yaml"];
 
 impl File {
-    pub fn from_path(path_str: &str) -> Result<Self> {
+    /// Loads configuration from given path; returns [None] if the path does not exist.
+    pub fn from_path(path_str: &str) -> Result<Option<Self>> {
         let path = PathBuf::from_str(path_str)?;
 
-        let mut res: Self = serde_yaml::from_reader(std::fs::File::open(&path)?)?;
+        let file = match std::fs::File::open(&path) {
+            Ok(file) => file,
+            Err(e) => match e.kind() {
+                std::io::ErrorKind::NotFound => return Ok(None),
+                _ => return Err(e).with_context(|| format!("loading {:?}", path)),
+            },
+        };
+
+        let mut res: Self = serde_yaml::from_reader(file)?;
         res.path = path;
-        Ok(res)
+        Ok(Some(res))
     }
 
+    /// Loads configuration from the path specified by the environmental variable
+    /// `PUBHUBS_CONFIG`, or, if it has not been set, from one of the `DEFAULT_PATHS`.
     pub fn from_env() -> Result<Self> {
-        let path =
-            &std::env::var(ENV /* = "PUBHUBS_CONFIG" */).or_else(|err: std::env::VarError| {
-                if let std::env::VarError::NotPresent = err {
-                    warn!(
-                        "Environment variable '{}' not set. Using default values from '{}'",
-                        ENV, DEFAULT_PATH
-                    );
-                    return Ok(DEFAULT_PATH.to_string());
-                }
-                bail!(
-                    "unexpected error while retrieving the environmental variable {}",
-                    ENV
-                );
-            })?;
-        Self::from_path(path).with_context(|| format!("loading {}", path))
+        match std::env::var(ENV) {
+            Ok(p) => {
+                return Self::from_path(&p)?.ok_or_else(|| {
+                    anyhow::anyhow!(
+                        "configuration file {:?} set in {:?} could not be found",
+                        p,
+                        ENV
+                    )
+                })
+            }
+            Err(std::env::VarError::NotPresent) => { /* break */ }
+            Err(e) => {
+                return Err(e)
+                    .with_context(|| format!("could not read environmental variable {:?}", ENV))
+            }
+        }
+
+        info!(
+            "Environmental variable {:?} not set, searching for configuration at one of the default locations: {:?} ...", ENV, DEFAULT_PATHS,
+        );
+
+        for p in DEFAULT_PATHS {
+            if let Some(conf) = Self::from_path(p).with_context(|| format!("loading {:?}", p))? {
+                info!("loaded configuration from {}", p);
+                return Ok(conf);
+            }
+        }
+
+        Err(anyhow!("no configuration file found"))
+    }
+
+    /// Loads configuration for testing, from 'test.yaml'.
+    pub fn for_testing() -> Self {
+        Self::from_path("test.yaml")
+            .expect("test.yaml to load")
+            .expect("test.yaml to exist")
     }
 
     /// interprets a path relative to the directory that holds
@@ -164,23 +219,34 @@ impl File {
 
         info!("autodetecting your public ip address...");
 
-        let resp = hyper::Client::new()
-            .get("http://ifconfig.me".parse().unwrap())
-            .await?;
+        // the awc crate has no multi-thread support, see
+        //   https://github.com/actix/actix-web/issues/2679#issuecomment-1059141565
+        // so we execute awc on a single thread..
+        tokio::task::LocalSet::new()
+            .run_until(async move {
+                // get ip address..
+                let client = awc::Client::default();
+                let mut resp = client
+                    .get("http://ifconfig.me")
+                    .send()
+                    .await
+                    .map_err(|e| anyhow!(e.to_string() /* e is not Send */))?;
 
-        let status = resp.status();
-        ensure!(
-            status.is_success(),
-            "ifconfig.me returned status {}",
-            status
-        );
+                let status = resp.status();
+                ensure!(
+                    status.is_success(),
+                    "ifconfig.me returned status {}",
+                    status
+                );
 
-        let bytes = hyper::body::to_bytes(resp.into_body()).await?;
-        let result = String::from_utf8(bytes.to_vec())?;
+                let bytes = resp.body().await?;
+                let result = String::from_utf8(bytes.to_vec())?;
 
-        info!("your ip address is {}", result);
+                info!("your ip address is {}", result);
 
-        Ok(format!("http://{}:8080/", result))
+                Ok(format!("http://{}:{}/", result, self.bind_to.1))
+            })
+            .await
     }
 }
 

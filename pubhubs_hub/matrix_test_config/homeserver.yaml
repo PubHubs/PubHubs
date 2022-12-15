@@ -16,9 +16,6 @@
 #
 modules:
   - module: conf.modules.pseudonyms.Pseudonym
-    config: {
-      userinfo_endpoint : 'http://host.docker.internal:8080/userinfo',
-    }
 #    Below is the example config for adding attribute based authentication to rooms, room id's will be different depending on your server.
 #    Make sure to enable server_notices system_mxid_localpart (also in homeserver.yaml) as that will be the user making the waiting rooms.
 #  - module: conf.modules.pubhubs.IrmaRoomJoiner
@@ -1921,19 +1918,20 @@ oidc_providers:
 - idp_id: pubhubs
   idp_name: "PubHubs ID provider"
 #  idp_icon: "mxc://localhost:8080/mediaid"
-  discover: false
-  issuer: "http://localhost:8080"
-  client_id: "testhub"
-  client_secret: "test_hub"
-  scopes: ["profile"]
-  authorization_endpoint: "http://localhost:8080/oauth2/auth"
-  token_endpoint: "http://host.docker.internal:8080/oauth2/token"
-  userinfo_endpoint: "http://localhost:8008/_synapse/client/pseudonym"  # calls the webresource of the pseudonyms module - this is also the url the webresource sets as its endpoint - set pubhubs endpoint in the pseudonyms module
+  discover: true
+  issuer: "http://host.docker.internal:8080"
+  client_id: "testhub~TwE1w3BX-RrDRe7FFqkbRlkp4FiBh4cgtRwtrpmv7Gc="
+  client_secret: "p7v7c_L_Eo0Clkx-fBvbGddHPkTEbR59oueM6XaKVYI="
+  scopes: [openid]
+  response_mode: form_post
+  #client_auth_method: client_secret_basic
+  #authorization_endpoint: "http://localhost:8080/oauth2/auth?response_mode=form_post"
+  #token_endpoint: "http://host.docker.internal:8080/oauth2/token"
+  #userinfo_endpoint: "http://localhost:8008/_synapse/client/pseudonym"  # calls the webresource of the pseudonyms module - this is also the url the webresource sets as its endpoint - set pubhubs endpoint in the pseudonyms module
   skip_verification: false
   user_mapping_provider:
-     config:
-       subject_claim: "id"
-       localpart_template: "{{ user.short_pseudonym }}"
+    module: conf.modules.pseudonyms.OidcMappingProvider
+    config:
 
 
 # Enable Central Authentication Service (CAS) for registration and login.

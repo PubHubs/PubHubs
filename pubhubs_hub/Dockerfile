@@ -1,6 +1,6 @@
-FROM golang:1.17.6 AS irma_build
+FROM golang:1.18 AS irma_build
 
-RUN git clone https://github.com/privacybydesign/irmago --branch v0.10.0 --depth 1
+RUN git clone https://github.com/privacybydesign/irmago --branch v0.11.0 --depth 1
 
 WORKDIR irmago
 

@@ -137,7 +137,6 @@ mod tests {
             active: false,
             redirection_uri: "https://not-used.com".to_string(),
             description: "not used".to_string(),
-            passphrase: "not used".to_string(),
         };
 
         // libpepcli make-local-decryption-key

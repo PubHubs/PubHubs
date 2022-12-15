@@ -1,23 +1,32 @@
-use std::convert::Infallible;
+use actix_web::http::header::{CONTENT_TYPE, LOCATION, SET_COOKIE};
+use actix_web::{App, HttpRequest, HttpResponse, HttpServer, Responder};
+
 use std::fmt::{Debug, Formatter};
+
 use std::fs::read_to_string;
-use std::net::SocketAddr;
+
 use std::str::FromStr;
-use std::sync::Arc;
+
+use actix_web::web::{self, Data, Form, Path};
 
 use anyhow::{Context, Result};
 use env_logger::Env;
-use hyper::header::{HeaderValue, CONTENT_TYPE, LOCATION};
-use hyper::service::{make_service_fn, service_fn};
-use hyper::{Body, Method, Request, Response, Server, StatusCode};
-use log::{debug, error, info};
+
+use log::{error, info};
 use serde::{Deserialize, Serialize};
-use tokio::sync::mpsc::Sender;
+
 use tokio::sync::oneshot;
-use uuid::Uuid;
 
 use expry::{key_str, value, BytecodeVec};
+use prometheus::{Encoder, TextEncoder};
 
+use uuid::Uuid;
+
+use pubhubs::context::Main;
+use pubhubs::error::{AnyhowExt, TranslatedError};
+use pubhubs::hairy_ext::hairy_eval_html_translations;
+use pubhubs::middleware;
+use pubhubs::middleware::{metrics_auth, metrics_middleware};
 use pubhubs::{
     cookie::{
         accepted_policy, add_cookie, log_out_cookie, user_id_from_verified_cookie, verify_cookie,
@@ -26,21 +35,21 @@ use pubhubs::{
         DataCommands::{self, AllHubs, CreateHub, CreateUser, GetHub, GetUser, GetUserById},
         Hub, HubHandle, Hubid,
     },
-    hairy_ext::hairy_eval_html_custom_by_val as hairy_eval_html_custom,
     irma::{disclosed_email_and_telephone, login, next_session, register, SessionDataWithImage},
     irma_proxy::{irma_proxy, irma_proxy_stream},
-    oauth::{get_authorize, post_authorize, token, user_info},
+    oidc::Oidc as _,
     policy::{full_policy, policy, policy_accept},
-    pseudonyms::PepContext,
-    translate::{get_translations, Translations},
+    translate::Translations,
 };
+
+// Limit to 10KB
+const PAYLOAD_MAX_SIZE: usize = 10 * 1024;
 
 #[derive(Deserialize, Serialize)]
 struct HubForm {
     name: String,
     description: String,
     redirection_uri: String,
-    passphrase: String,
 }
 
 impl Debug for HubForm {
@@ -59,19 +68,16 @@ struct HubFormUpdate {
     description: String,
 }
 
-async fn index(_translations: Translations<'_>) -> Response<Body> {
-    //TODO make contents templated and read from a file with messages plus update with site from real latest pubhubs.net
-    let contents = read_to_string("static/templates_hair/front.html")
-        .expect("Something went wrong reading the file");
-
-    Response::new(Body::from(contents))
+async fn index(req: HttpRequest) -> Result<HttpResponse, TranslatedError> {
+    Ok(HttpResponse::Ok()
+        .body(read_to_string("static/templates_hair/front.html").into_translated_error(&req)?))
 }
 
 async fn get_hubs<'a>(
-    context: &pubhubs::context::Main,
-    request: &Request<Body>,
-    translations: Translations<'_>,
-) -> Response<Body> {
+    context: Data<Main>,
+    request: HttpRequest,
+    translations: Translations,
+) -> HttpResponse {
     let (resp_tx, resp_rx) = oneshot::channel();
     context
         .db_tx
@@ -88,45 +94,28 @@ async fn get_hubs<'a>(
             })
             .to_vec(false);
 
-            let body = hairy_eval_html_custom(context.hair.to_ref(), data.to_ref(), translations)
-                .expect("Expected to render a template");
-            Response::new(Body::from(body))
+            //TODO return result, let it bubble up
+            HttpResponse::Ok().body(
+                hairy_eval_html_translations(context.hair.to_ref(), data.to_ref(), translations)
+                    .expect("Expected to render a template"),
+            )
         }
         error => internal_server_error(
             "Could not get hubs",
             &context.hair,
             &format!("Someone looked for all hubs and got this error {:?}", error,),
-            request,
+            &request,
             translations,
         ),
     }
 }
 
 async fn add_hub(
-    context: &pubhubs::context::Main,
-    mut request: Request<Body>,
-    translations: Translations<'_>,
-) -> Response<Body> {
-    let body = String::from_utf8(Vec::from(
-        hyper::body::to_bytes(&mut request).await.unwrap().as_ref(),
-    ))
-    .unwrap();
-    let hub: HubForm = match serde_urlencoded::from_str(&body) {
-        Ok(hub_form) => hub_form,
-        Err(decoding_error) => {
-            return bad_request(
-                decoding_error.to_string().as_str(),
-                &context.hair,
-                &format!(
-                    "Someone tried to add a hub with parameters {:?} and got this error {:?}",
-                    body, decoding_error,
-                ),
-                &request,
-                translations,
-            );
-        }
-    };
-
+    context: Data<Main>,
+    request: HttpRequest,
+    hub: Form<HubForm>,
+    translations: Translations,
+) -> HttpResponse {
     let (resp_tx, resp_rx) = oneshot::channel();
     context
         .db_tx
@@ -134,21 +123,15 @@ async fn add_hub(
             name: (hub.name).to_string(),
             description: (hub.description).to_string(),
             redirection_uri: (hub.redirection_uri).to_string(),
-            passphrase: (hub.passphrase).to_string(),
             resp: resp_tx,
         })
         .await
         .expect("To use our channel");
 
     match resp_rx.await {
-        Ok(Ok(_)) => {
-            let mut resp = Response::new(Body::empty());
-            *resp.status_mut() = StatusCode::FOUND;
-            let val =
-                HeaderValue::from_str(&format!("{}/hubs", translations.get_prefix())).unwrap();
-            resp.headers_mut().insert(LOCATION, val);
-            resp
-        }
+        Ok(Ok(_)) => HttpResponse::Found()
+            .insert_header((LOCATION, format!("{}/hubs", translations.prefix())))
+            .finish(),
         error => internal_server_error(
             "Could not create hub",
             &context.hair,
@@ -163,13 +146,14 @@ async fn add_hub(
 }
 
 async fn get_hub_details(
-    id: &str,
-    context: &pubhubs::context::Main,
-    request: &Request<Body>,
-    translations: Translations<'_>,
-) -> Response<Body> {
+    id: Path<String>,
+    context: Data<Main>,
+    request: HttpRequest,
+    translations: Translations,
+) -> HttpResponse {
     let (tx, rx) = oneshot::channel();
-    match Hubid::from_str(id) {
+    let id = id.into_inner();
+    match Hubid::from_str(&id) {
         Ok(id) => {
             context
                 .db_tx
@@ -186,9 +170,9 @@ async fn get_hub_details(
                             let body = context.pep.make_local_decryption_key(
                                 &hub,
                             ).unwrap(); // TODO: replace this unwrap
-                            Response::new(Body::from(body))
+                            HttpResponse::Ok().body(body)
                         },
-                        _ => render_hub(&context.hair, &context.pep, &hub, translations)
+                        _ => render_hub(&context, &hub, translations)
                     }
                 },
                 error =>
@@ -199,7 +183,7 @@ async fn get_hub_details(
                             "Someone tried to get details of a hub with parameters {:} and got this error {:?}",
                             id, error,
                         ),
-                        request,translations
+                        &request,translations
                     ),
             }
         }
@@ -210,19 +194,21 @@ async fn get_hub_details(
                 "Someone looked for hub with id {} and got this error {:?}",
                 id, err,
             ),
-            request,
+            &request,
+            //TODO
             translations,
         ),
     }
 }
 
 async fn get_hubid(
-    name: &str,
-    context: &pubhubs::context::Main,
-    request: &Request<Body>,
-    translations: Translations<'_>,
-) -> Response<Body> {
+    name: Path<String>,
+    context: Data<Main>,
+    request: HttpRequest,
+    translations: Translations,
+) -> HttpResponse {
     let (tx, rx) = oneshot::channel();
+    let name = name.into_inner();
     context
         .db_tx
         .send(DataCommands::GetHubid {
@@ -232,12 +218,8 @@ async fn get_hubid(
         .await
         .expect("To use our channel");
     match rx.await {
-        Ok(Ok(Some(hubid))) => Response::new(Body::from(hubid.to_string())),
-
-        Ok(Ok(None)) => Response::builder()
-            .status(StatusCode::NOT_FOUND)
-            .body(Body::from(format!("there is no hub named {}", name)))
-            .unwrap(),
+        Ok(Ok(Some(hubid))) => HttpResponse::Ok().body(hubid.to_string()),
+        Ok(Ok(None)) => HttpResponse::NotFound().body(format!("there is no hub named {}", name)),
         error => internal_server_error(
             "Could not get hubid",
             &context.hair,
@@ -245,25 +227,30 @@ async fn get_hubid(
                 "Someone tried to get the id of a hub named {:} with but got this error {:?}",
                 name, error,
             ),
-            request,
+            &request,
             translations,
         ),
     }
 }
 
-fn render_hub(
-    hair: &BytecodeVec,
-    pep: &PepContext,
-    hub: &Hub,
-    translations: Translations<'_>,
-) -> Response<Body> {
+fn render_hub(context: &Data<Main>, hub: &Hub, translations: Translations) -> HttpResponse {
     let id = hub.id.to_string();
     let decryption_id = hub.decryption_id.to_string();
-    let key = pep
+
+    let pubhubs::oidc::ClientCredentials {
+        client_id: oidc_client_id,
+        password: oidc_client_password,
+    } = hub.oidc_credentials(&context.oidc);
+    let oidc_client_id: String = oidc_client_id.into();
+
+    let key = context
+        .pep
         .make_local_decryption_key(hub)
         .expect("To make a decryption key");
     let data = value!({
         "id": id,
+        "oidc_client_id": oidc_client_id,
+        "oidc_client_password": oidc_client_password,
         "decryption_id": decryption_id,
         "name": hub.name,
         "description": hub.description,
@@ -272,39 +259,23 @@ fn render_hub(
         "content": "hub"
     })
     .to_vec(false);
-    let body = hairy_eval_html_custom(hair.to_ref(), data.to_ref(), translations).unwrap();
-    Response::new(Body::from(body))
+    HttpResponse::Ok().body(
+        hairy_eval_html_translations(context.hair.to_ref(), data.to_ref(), translations).unwrap(),
+    )
 }
 
 async fn update_hub(
-    id: &str,
-    context: &pubhubs::context::Main,
-    mut request: Request<Body>,
-    translations: Translations<'_>,
-) -> Response<Body> {
-    let body = String::from_utf8(Vec::from(
-        hyper::body::to_bytes(&mut request).await.unwrap().as_ref(),
-    ))
-    .unwrap();
+    id: Path<String>,
+    context: Data<Main>,
+    request: HttpRequest,
+    translations: Translations,
+    hub_form: Form<HubFormUpdate>,
+) -> HttpResponse {
     let (tx, rx) = oneshot::channel();
-    match Hubid::from_str(id) {
+    let id = id.into_inner();
+
+    match Hubid::from_str(&id) {
         Ok(id) => {
-            let hub_form = serde_urlencoded::from_str(&body);
-            let hub_form: HubFormUpdate = match hub_form {
-                Ok(hub_form) => hub_form,
-                Err(decoding_error) => {
-                    return bad_request(
-                        decoding_error.to_string().as_str(),
-                        &context.hair,
-                        &format!(
-                      "Someone tried to update a hub with parameters {:?} and got this error {:?}",
-                      body, decoding_error,
-                  ),
-                        &request,
-                        translations,
-                    );
-                }
-            };
             context
                 .db_tx
                 .send(DataCommands::UpdateHub {
@@ -316,7 +287,7 @@ async fn update_hub(
                 .await
                 .expect("To use our channel");
             match rx.await  {
-                Ok(Ok(hub)) => render_hub(&context.hair, &context.pep, &hub, translations),
+                Ok(Ok(hub)) => render_hub(&context, &hub, translations),
                 error => internal_server_error(
                     "Could not update hub",
                     &context.hair,
@@ -342,10 +313,10 @@ async fn update_hub(
 }
 
 async fn get_users(
-    context: &pubhubs::context::Main,
-    request: Request<Body>,
-    translations: Translations<'_>,
-) -> Response<Body> {
+    context: Data<Main>,
+    request: HttpRequest,
+    translations: Translations,
+) -> HttpResponse {
     let (resp_tx, resp_rx) = oneshot::channel();
     context
         .db_tx
@@ -360,9 +331,11 @@ async fn get_users(
                 "content": "users_tmpl"
             })
             .to_vec(false);
-            let body = hairy_eval_html_custom(context.hair.to_ref(), data.to_ref(), translations)
-                .expect("Expected to render a template");
-            Response::new(Body::from(body))
+
+            HttpResponse::Ok().body(
+                hairy_eval_html_translations(context.hair.to_ref(), data.to_ref(), translations)
+                    .expect("Expected to render a template"),
+            )
         }
         error => internal_server_error(
             "Could not list users",
@@ -377,13 +350,14 @@ async fn get_users(
     }
 }
 
+//TODO callers to errorresponse to bubble
 pub fn internal_server_error(
     message: &str,
     hair: &BytecodeVec,
     internal_message: &str,
-    request: &Request<Body>,
-    translations: Translations<'_>,
-) -> Response<Body> {
+    request: &HttpRequest,
+    translations: Translations,
+) -> HttpResponse {
     let code = Uuid::new_v4();
     error!(
         "Something went wrong: {:?} gave it user code {} and showed them the message {:?}. The origin was this request: {:?}",
@@ -396,20 +370,19 @@ pub fn internal_server_error(
         "code": code,
     })
     .to_vec(false);
-    let body = hairy_eval_html_custom(hair.to_ref(), data.to_ref(), translations)
-        .expect("Expected to render a template");
-    let mut response = Response::new(Body::from(body));
-    *response.status_mut() = StatusCode::INTERNAL_SERVER_ERROR;
-    response
+    HttpResponse::InternalServerError().body(
+        hairy_eval_html_translations(hair.to_ref(), data.to_ref(), translations)
+            .expect("Expected to render a template"),
+    )
 }
 
 pub fn bad_request(
     message: &str,
     hair: &BytecodeVec,
     internal_message: &str,
-    request: &Request<Body>,
-    translations: Translations<'_>,
-) -> Response<Body> {
+    request: &HttpRequest,
+    translations: Translations,
+) -> HttpResponse {
     let code = Uuid::new_v4();
     error!(
         "Someone made a bad request: {} gave it user code {} and showed them the message {}. The origin was this request: {:?}",
@@ -422,22 +395,23 @@ pub fn bad_request(
         "code": code,
     })
     .to_vec(false);
-    let body = hairy_eval_html_custom(hair.to_ref(), data.to_ref(), translations)
-        .expect("Expected to render a template");
-    let mut response = Response::new(Body::from(body));
-    *response.status_mut() = StatusCode::BAD_REQUEST;
-    response
+    HttpResponse::BadRequest().body(
+        hairy_eval_html_translations(hair.to_ref(), data.to_ref(), translations)
+            .expect("To render a template"),
+    )
 }
 
 async fn irma_start(
-    irma_host: &str,
-    irma_requestor: &str,
-    irma_requestor_hmac_key: &[u8],
-    pubhubs_host: &str,
-    hair: &BytecodeVec,
-    request: Request<Body>,
-    translations: Translations<'_>,
-) -> Response<Body> {
+    request: HttpRequest,
+    translations: Translations,
+    context: Data<Main>,
+) -> HttpResponse {
+    let irma_host = &context.irma.server_url;
+    let irma_requestor = &context.irma.requestor;
+    let irma_requestor_hmac_key = &context.irma.requestor_hmac_key;
+    let pubhubs_host = &context.url;
+    let hair = &context.hair;
+
     match login(
         irma_host,
         irma_requestor,
@@ -451,7 +425,9 @@ async fn irma_start(
             "We're having some trouble with IRMA",
             hair,
             &format!(
-                "Someone tried to start an IRMA sessions and got this error {:?}",
+                "Someone tried to start an IRMA session with {} as requestor {} and got this error {:?}",
+                irma_host,
+                irma_requestor,
                 error,
             ),
             &request,
@@ -461,14 +437,16 @@ async fn irma_start(
 }
 
 async fn irma_register(
-    irma_host: &str,
-    irma_requestor: &str,
-    irma_requestor_hmac_key: &[u8],
-    pubhubs_host: &str,
-    hair: &BytecodeVec,
-    request: Request<Body>,
-    translations: Translations<'_>,
-) -> Response<Body> {
+    context: Data<Main>,
+    translations: Translations,
+    request: HttpRequest,
+) -> HttpResponse {
+    let irma_host = &context.irma.server_url;
+    let irma_requestor = &context.irma.requestor;
+    let irma_requestor_hmac_key = &context.irma.requestor_hmac_key;
+    let pubhubs_host = &context.url;
+    let hair = &context.hair;
+
     match register(
         irma_host,
         irma_requestor,
@@ -491,50 +469,41 @@ async fn irma_register(
     }
 }
 
-fn irma_response(session: &SessionDataWithImage) -> Response<Body> {
+fn irma_response(session: &SessionDataWithImage) -> HttpResponse {
     let body = serde_json::to_string(&session).expect("To be able to serialize the session");
-    let mut resp = Response::new(Body::from(body));
-    resp.headers_mut().insert(
-        CONTENT_TYPE,
-        HeaderValue::from_str("application/json").unwrap(),
-    );
-    resp
+    HttpResponse::Ok()
+        .insert_header((CONTENT_TYPE, "application/json"))
+        .body(body)
 }
 
-#[derive(Deserialize)]
-struct HubIdForm {
-    hub_id: Option<Hubid>,
+#[derive(Deserialize, Serialize)]
+struct IrmaFinishParams {
+    irma_token: String,
+    oidc_auth_request_handle: Option<String>,
 }
 
-async fn irma_result(
-    context: &pubhubs::context::Main,
-    token: &str,
-    request: &Request<Body>,
-    translations: Translations<'_>,
-) -> Response<Body> {
-    match _irma_result(context, token, request).await {
-        Ok(response) => response,
-        Err(error) => internal_server_error(
-            "We are having some trouble with your account",
-            &context.hair,
-            &format!(
-                "Trying to use an irma result and got this error {:?}",
-                error,
-            ),
-            request,
-            translations,
-        ),
-    }
+/// Non-API endpoint that retrieves the result of the irma session with given `token`, and either
+///  - redirects the user to the oauth redirect_uri (via POST using an auto-submitting form)
+///    when the irma sessions was part of an oauth flow, or
+///  - 303-redirects the user to their profile page otherwise.
+async fn irma_finish_and_redirect(
+    request: HttpRequest,
+    context: Data<Main>,
+    params: actix_web::web::Form<IrmaFinishParams>,
+) -> Result<HttpResponse, TranslatedError> {
+    irma_finish_and_redirect_anyhow(context, params)
+        .await
+        .into_translated_error(&request)
 }
 
-async fn _irma_result(
-    context: &pubhubs::context::Main,
-    token: &str,
-    request: &Request<Body>,
-) -> Result<Response<Body>> {
-    let hub: HubIdForm = serde_urlencoded::from_str(request.uri().query().unwrap_or(""))?;
-    let (email, telephone) = disclosed_email_and_telephone(&context.irma.server_url, token).await?;
+async fn irma_finish_and_redirect_anyhow(
+    context: Data<Main>,
+    params: actix_web::web::Form<IrmaFinishParams>,
+) -> Result<HttpResponse, anyhow::Error> {
+    let (email, telephone) =
+        disclosed_email_and_telephone(&context.irma.server_url, &params.irma_token).await?;
 
+    // retrieve user
     let user = {
         let (user_tx, user_rx) = oneshot::channel();
         context
@@ -547,113 +516,151 @@ async fn _irma_result(
             .await
             .expect("To use our channel");
 
-        let some_user_or_none = user_rx.await.expect("Expected to use our channel")?;
+        // NB: can't use  Option<>::unwrap_or_else  with async.
+        match user_rx.await.expect("Expected to use our channel")? {
+            Some(user) => user,
+            None => {
+                // register the new user
+                let (user_tx, user_rx) = oneshot::channel();
 
-        if let Some(user) = some_user_or_none {
-            user
-        } else {
-            // register the new user
-            let (user_tx, user_rx) = oneshot::channel();
-
-            context
-                .db_tx
-                .send(CreateUser {
-                    resp: user_tx,
-                    email: email.clone(),
-                    telephone: telephone.clone(),
-                    config: context.pep.clone(),
-                    is_admin: context.admins.contains(&email),
-                })
-                .await
-                .expect("To use our channel");
-            user_rx.await.expect("To use our channel")?
+                context
+                    .db_tx
+                    .send(CreateUser {
+                        resp: user_tx,
+                        email: email.clone(),
+                        telephone: telephone.clone(),
+                        config: context.pep.clone(),
+                        is_admin: context.admins.contains(&email),
+                    })
+                    .await
+                    .expect("To use our channel");
+                user_rx.await.expect("To use our channel")?
+            }
         }
     };
 
-    let body = match hub.hub_id {
-        None => serde_json::to_string(&JsonResponseIRMAToAccount {
-            account_id: user.id,
-        })
-        .unwrap(),
-        Some(hub_id) => {
-            let (tx, rx) = oneshot::channel();
+    let mut resp_with_cookie = HttpResponse::Ok();
+    add_cookie(&mut resp_with_cookie, user.id, &context.cookie_secret);
 
-            context
-                .db_tx
-                .send(GetHub {
-                    resp: tx,
-                    handle: HubHandle::Id(hub_id),
-                })
-                .await
-                .expect("To use our channel");
+    if params.oidc_auth_request_handle.is_none() {
+        // GET-redirect user to the account page
+        resp_with_cookie.status(http::StatusCode::SEE_OTHER);
+        resp_with_cookie.insert_header((http::header::LOCATION, format!("/account/{}", user.id)));
+        return Ok(resp_with_cookie.finish());
+    }
 
-            let hub = rx.await.expect("Expected to use our channel")?;
+    // Create oidc auth_code and have the user POST it to the redirect_uri,
+    // but first check that the auth_request_handle is valid.
+    let authentic_auth_request_handle = context
+        .oidc
+        .open_auth_request_handle(params.oidc_auth_request_handle.as_ref().unwrap())?;
 
-            serde_json::to_string(&JsonResponseIRMAToHub {
-                pseudonym: context
-                    .pep
-                    .convert_to_local_pseudonym(&user.pseudonym, &hub)?,
+    // Retrieve hub
+    let hub = {
+        let (tx, rx) = oneshot::channel();
+        context
+            .db_tx
+            .send(GetHub {
+                resp: tx,
+                handle: HubHandle::Name(
+                    pubhubs::oidc::ClientId::from_str(authentic_auth_request_handle.client_id())?
+                        .bare_id()
+                        .to_string(),
+                ),
             })
-            .expect("Expected to serialize our response")
-        }
+            .await
+            .expect("to use our channel");
+
+        rx.await.expect("expected to use our channel")?
     };
 
-    let mut resp = Response::new(Body::from(body));
-    resp.headers_mut().insert(
-        CONTENT_TYPE,
-        HeaderValue::from_str("application/json").unwrap(),
-    );
-    Ok(add_cookie(resp, user.id, &context.cookie_secret))
+    // create auth_code containing an id_token containing the encrypted local pseudonym
+    context
+        .oidc
+        .grant_code(
+            authentic_auth_request_handle,
+            |tcd: pubhubs::oidc::TokenCreationData| -> Result<String, ()> {
+                let pseudonym = context
+                    .pep
+                    .convert_to_local_pseudonym(&user.pseudonym, &hub)
+                    .map_err(|e| {
+                        log::warn!("error while translating pseudonym: {}", e);
+                    })?;
+
+                pubhubs::jwt::sign(
+                    // id_token claims, see Section 2 of OpenID Connect Core 1.0
+                    &serde_json::json!({
+                        "iss": context.url,
+                        "sub": pseudonym,
+                        "aud": tcd.client_id,
+                        "exp": jsonwebtoken::get_current_timestamp() + 10*60*60,
+                        "iat": jsonwebtoken::get_current_timestamp(),
+                        "nonce": tcd.nonce,
+                    }),
+                    &context.id_token_key,
+                )
+                .map_err(|e| {
+                    log::warn!("error while signing id_token: {}", e);
+                })
+            },
+        )?
+        .into_actix_builder(resp_with_cookie)
 }
 
 async fn get_account(
-    req: &Request<Body>,
-    id: &str,
-    cookie_secret: &str,
-    hair: &BytecodeVec,
-    db_tx: Sender<DataCommands>,
-    translations: Translations<'_>,
-) -> Response<Body> {
-    if verify_cookie(req, cookie_secret, id) {
-        if let Ok(id) = u32::from_str(id) {
+    req: HttpRequest,
+    id: Path<String>,
+    context: Data<Main>,
+    translations: Translations,
+) -> HttpResponse {
+    let cookie_secret = &context.cookie_secret;
+    let hair = &context.hair;
+    let db_tx = &context.db_tx;
+    let id = id.into_inner();
+    if verify_cookie(&req, cookie_secret, &id) {
+        if let Ok(id) = u32::from_str(&id) {
             let (user_tx, user_rx) = oneshot::channel();
             db_tx
                 .send(GetUserById { resp: user_tx, id })
                 .await
                 .expect("To use our channel");
-            match user_rx.await{
+            match user_rx.await {
                 Ok(Ok(user)) => {
                     let (hub_tx, hub_rx) = oneshot::channel();
                     db_tx.send(AllHubs { resp: hub_tx }).await.expect("Expected to find all hubs");
                     let hubs = hub_rx.await.expect("Expected to fetch all hubs").expect("Expected to fetch all hubs");
-            let data = value!({
+                    let data = value!({
                 "email": user.email,
                 "telephone": user.telephone,
                 "hubs": hubs,
                 "content": "user"
                 })
-                .to_vec(false);
-            let body = hairy_eval_html_custom(hair.to_ref(), data.to_ref(), translations).unwrap();
-            Response::new(Body::from(body))}
-                Ok(Err(error)) => internal_server_error(
-                    "Could not locate user",
-                    hair,
-                    &format!(
-                        "Someone tried to get an account page with a valid cookie with id: '{}' and got this error {:?}",
-                        id, error,
+                        .to_vec(false);
+
+                    HttpResponse::Ok().body(hairy_eval_html_translations(hair.to_ref(), data.to_ref(), translations).unwrap())
+                }
+                    Ok(Err(error)) =>
+                    internal_server_error(
+                        "Could not locate user",
+                        hair,
+                        &format!(
+                            "Someone tried to get an account page with a valid cookie with id: '{}' and got this error {:?}",
+                            id, error,
+                        ),
+                        &req,
+                        translations
                     ),
-                    req,
-                    translations
-                ),
-                Err(error) => internal_server_error(
-                    "Could not locate user",
-                    hair,
-                    &format!(
-                        "Someone tried to get an account page with a valid cookie with id: '{}' and got this error {:?}",
-                        id, error,
+                    Err(error) =>
+                    internal_server_error(
+                        "Could not locate user",
+                        hair,
+                        &format!(
+                            "Someone tried to get an account page with a valid cookie with id: '{}' and got this error {:?}",
+                            id, error,
+                        ),
+                        &req, translations
                     ),
-                    req,translations
-                ),
+
             }
         } else {
             internal_server_error(
@@ -664,300 +671,132 @@ async fn get_account(
                     id
                 )
                 .as_str(),
-                req,
+                &req,
                 translations,
             )
         }
     } else {
-        let mut resp = Response::new(Body::empty());
-        resp.headers_mut().insert(
-            LOCATION,
-            HeaderValue::from_str(&format!("{}/login", translations.get_prefix())).unwrap(),
-        );
-        *resp.status_mut() = StatusCode::FOUND;
-        resp
+        HttpResponse::Found()
+            .insert_header((LOCATION, format!("{}/login", translations.prefix())))
+            .finish()
     }
 }
-
 async fn account_login(
-    req: &Request<Body>,
-    hair: &BytecodeVec,
-    cookie_secret: &str,
-    translations: Translations<'_>,
-) -> Response<Body> {
-    match user_id_from_verified_cookie(req, cookie_secret) {
+    req: HttpRequest,
+    // hair: &BytecodeVec,
+    // cookie_secret: &str,
+    context: Data<Main>,
+    translations: Translations,
+) -> HttpResponse {
+    match user_id_from_verified_cookie(req.headers(), &context.cookie_secret) {
         None => {
-            let prefix = translations.get_prefix().to_string();
+            let prefix = translations.prefix().to_string();
             let data = value!( {
-                "hub": "",
-                "url": "",
-                "state": "",
-                "hub_name": "",
                 "content": "authenticate",
                 "url_prefix": prefix
             })
             .to_vec(false);
-
-            let body = hairy_eval_html_custom(hair.to_ref(), data.to_ref(), translations)
-                .expect("To render a template");
-            Response::new(Body::from(body))
+            HttpResponse::Ok().body(
+                hairy_eval_html_translations(context.hair.to_ref(), data.to_ref(), translations)
+                    .expect("To render a template"),
+            )
         }
-        Some(id) => {
-            let mut resp = Response::new(Body::empty());
-            resp.headers_mut().insert(
+        Some(id) => HttpResponse::Found()
+            .insert_header((
                 LOCATION,
-                HeaderValue::from_str(
-                    format!("{}/account/{}", translations.get_prefix(), id).as_str(),
-                )
-                .unwrap(),
-            );
-            *resp.status_mut() = StatusCode::FOUND;
-            resp
-        }
+                format!("{}/account/{}", translations.prefix(), id),
+            ))
+            .finish(),
     }
 }
 
-fn account_logout(translations: Translations<'_>) -> Response<Body> {
-    let mut resp = Response::new(Body::empty());
+//TODO look at cookie session in actix itself
+async fn account_logout(translations: Translations) -> impl Responder {
     let logout_cookie = log_out_cookie();
-    resp.headers_mut().insert(
-        "Set-Cookie",
-        HeaderValue::from_str(logout_cookie.as_str()).unwrap(),
-    );
-
-    resp.headers_mut().insert(
-        LOCATION,
-        HeaderValue::from_str(&format!("{}/login", translations.get_prefix())).unwrap(),
-    );
-    *resp.status_mut() = StatusCode::FOUND;
-    resp
+    HttpResponse::Found()
+        .insert_header((LOCATION, format!("{}/login", translations.prefix())))
+        .insert_header((SET_COOKIE, logout_cookie))
+        .finish()
 }
 
 #[derive(Deserialize, Serialize)]
-struct Register {
-    hub: String,
-    state: String,
-    url: String,
+struct RegisterParams {
+    oidc_handle: String,
+    hub_name: String,
 }
 
 async fn register_account(
-    req: &Request<Body>,
-    hair: &BytecodeVec,
-    db_tx: &Sender<DataCommands>,
-    translations: Translations<'_>,
-) -> Response<Body> {
-    if !accepted_policy(req) {
-        let mut resp = Response::new(Body::empty());
-        *resp.status_mut() = StatusCode::FOUND;
-        let val = HeaderValue::from_str(
-            format!(
-                "{}/policy?{}",
-                translations.get_prefix(),
-                req.uri().query().unwrap_or("")
-            )
-            .as_str(),
-        )
-        .unwrap();
-        resp.headers_mut().insert(LOCATION, val);
+    req: HttpRequest,
+    context: Data<Main>,
+    params: Option<Form<RegisterParams>>,
+    translations: Translations,
+) -> HttpResponse {
+    if !accepted_policy(&req) {
+        let resp = HttpResponse::Found()
+            .insert_header((
+                LOCATION,
+                format!(
+                    "{}/policy?{}",
+                    translations.prefix(),
+                    req.uri().query().unwrap_or("")
+                ),
+            ))
+            .finish();
         return resp;
     }
-    let prefix = translations.get_prefix().to_string();
-    let mut data = value!( {
-        "hub": "",
-        "url": "",
-        "state": "",
-        "hub_name": "",
-        "login": false,
+
+    let (oidc_handle, hub_name) = params.map_or_else(Default::default, |params| {
+        (params.oidc_handle.clone(), params.hub_name.clone())
+    });
+
+    let prefix = translations.prefix().to_string();
+    let data = value!( {
+        "register": true,
+        "oidc_auth_request_handle": oidc_handle,
+        "hub_name": hub_name,
         "content": "authenticate",
         "url_prefix": prefix
     })
     .to_vec(false);
 
-    if let Some(query) = req.uri().query() {
-        if let Ok(register) = serde_urlencoded::from_str::<Register>(query) {
-            // TODO errors
-            let (tx, rx) = oneshot::channel();
-            let hub_name = if !register.hub.is_empty() {
-                db_tx
-                    .send(GetHub {
-                        resp: tx,
-                        handle: HubHandle::Id(register.hub.parse().unwrap()),
-                    })
-                    .await
-                    .expect("Expected to send a command");
-                rx.await.unwrap().expect("Expected a hub").name
-            } else {
-                "".to_string()
-            };
-            let prefix = translations.get_prefix().to_string();
-            data = value!( {
-                "hub": register.hub,
-                "url": register.url,
-                "state": register.state,
-                 "hub_name": hub_name,
-                "login": false,
-                "content": "authenticate",
-                "url_prefix": prefix
-            })
-            .to_vec(false);
-        }
-    }
-
-    let body = hairy_eval_html_custom(hair.to_ref(), data.to_ref(), translations)
-        .expect("To render a template");
-    Response::new(Body::from(body))
+    HttpResponse::Ok().body(
+        hairy_eval_html_translations(context.hair.to_ref(), data.to_ref(), translations)
+            .expect("To render a template"),
+    )
 }
 
-#[derive(Serialize, Deserialize)]
-struct JsonResponseIRMAToHub {
-    pseudonym: String,
+async fn not_found() -> impl Responder {
+    HttpResponse::NotFound().body("Not found!")
 }
 
-#[derive(Serialize, Deserialize)]
-struct JsonResponseIRMAToAccount {
-    account_id: i32,
+async fn metrics(context: Data<Main>) -> HttpResponse {
+    let encoder = TextEncoder::new();
+    let metric_families = context.registry.gather();
+
+    let mut buffer = vec![];
+    encoder.encode(&metric_families, &mut buffer).unwrap();
+
+    HttpResponse::Ok().body(buffer)
 }
 
-async fn handle(
-    req: Request<Body>,
-    context: &pubhubs::context::Main,
-) -> Result<Response<Body>, Infallible> {
-    debug!("{:?}", req);
-
-    // check whether a static file was requested
-    if let Some(resp) = context.static_assets.serve(&req) {
-        return Ok(resp);
-    }
-
-    // Compute the parts of the uri's path.  We clone path to prevent borrowing req.
-    let uri_path: String = req.uri().path().to_string();
-    let mut parts: Vec<&str> = uri_path.split('/').collect();
-
-    // remove any empty initial part (caused by a leading '/'.)
-    if parts[0].is_empty() {
-        parts.remove(0);
-    }
-
-    // Remove any language indicator from parts.  E.g.,
-    //    https://example.com/en/foo/bar ->  ["foo", "bar"].
-    let (parts, translations) = get_translations(&context.translations, &parts);
-
-    // NB: matching is likely O(n) where n is the number of cases;
-    //     if the number of cases grows substantially, we should replace
-    //     this match with some sort of look-up table.
-    let resp = match (parts[0], req.method()) {
-        ("", &Method::GET) => index(translations).await,
-        ("policy", &Method::GET) => policy(&req, &context.hair, &context.db_tx, translations).await,
-        ("full_policy", &Method::GET) => {
-            full_policy(&req, &context.hair, &context.db_tx, translations).await
-        }
-        ("policy_accept", &Method::GET) => policy_accept(&req, translations).await,
-        ("admin", method) => match (parts[1], method, context.is_admin_request(&req).await) {
-            ("hubs", method, true) => match (parts.get(2), method) {
-                (None, &Method::GET) => get_hubs(context, &req, translations).await,
-                (Some(id), &Method::POST) => update_hub(id, context, req, translations).await,
-                (None, &Method::POST) => add_hub(context, req, translations).await,
-                (Some(id), &Method::GET) => get_hub_details(id, context, &req, translations).await,
-                (_, _) => not_found(),
-            },
-            ("users", &Method::GET, true) => get_users(context, req, translations).await,
-            ("hubid", method, true) => match (parts.get(2), method) {
-                (Some(name), &Method::GET) => get_hubid(name, context, &req, translations).await,
-                (_, _) => not_found(),
-            },
-            _ => unauthorized(),
-        },
-        ("irma", _) => {
-            if parts.contains(&"statusevents") {
-                irma_proxy_stream(req, &context.irma.client_url).await
-            } else {
-                irma_proxy(req, &context.irma.client_url, &context.url).await
-            }
-        }
-        ("irma-endpoint", &Method::GET) => match (parts.get(1), parts.get(2)) {
-            (Some(&"start"), None) => {
-                irma_start(
-                    &context.irma.server_url,
-                    &context.irma.requestor,
-                    &context.irma.requestor_hmac_key,
-                    &context.url,
-                    &context.hair,
-                    req,
-                    translations,
-                )
-                .await
-            }
-            (Some(&"register"), None) => {
-                irma_register(
-                    &context.irma.server_url,
-                    &context.irma.requestor,
-                    &context.irma.requestor_hmac_key,
-                    &context.url,
-                    &context.hair,
-                    req,
-                    translations,
-                )
-                .await
-            }
-            (Some(token), Some(&"result")) => irma_result(context, token, &req, translations).await,
-            (_, _) => not_found(),
-        },
-        ("irma-endpoint", &Method::POST) => next_session(req, &context.irma, &context.url).await,
-        ("oauth2", method) => match (parts.get(1), method) {
-            (Some(&"auth"), &Method::POST) => post_authorize(req, context.auth_tx.clone()).await,
-            (Some(&"token"), &Method::POST) => token(req, context.auth_tx.clone()).await,
-            (Some(&"auth"), &Method::GET) => {
-                get_authorize(
-                    &context.hair,
-                    req.uri().query(),
-                    context.auth_tx.clone(),
-                    &context.db_tx,
-                    translations,
-                )
-                .await
-            }
-            (_, _) => not_found(),
-        },
-        ("register", &Method::GET) => {
-            register_account(&req, &context.hair, &context.db_tx, translations).await
-        }
-        ("account", method) => match (parts.get(1), method) {
-            (Some(id), &Method::GET) => {
-                get_account(
-                    &req,
-                    id,
-                    &context.cookie_secret,
-                    &context.hair,
-                    context.db_tx.clone(),
-                    translations,
-                )
-                .await
-            }
-            (_, _) => not_found(),
-        },
-        ("login", &Method::GET) => {
-            account_login(&req, &context.hair, &context.cookie_secret, translations).await
-        }
-        ("logout", &Method::GET) => account_logout(translations),
-        ("userinfo", &Method::GET) => user_info(req, context.auth_tx.clone()).await,
-        (_, _) => not_found(),
-    };
-    debug!("{:?}", resp);
-    Ok(resp)
+async fn handle_oidc_token(
+    req: pubhubs::oidc::http::actix_support::CompleteRequest,
+    context: Data<Main>,
+) -> HttpResponse {
+    context.oidc.handle_token(req).expect("did not expect token endpoint to return an Err - it returns its errors to the oauth client")
 }
 
-fn not_found() -> Response<Body> {
-    let mut resp = Response::new(Body::empty());
-    *resp.status_mut() = StatusCode::NOT_FOUND;
-    *resp.body_mut() = hyper::Body::from("Not found!");
-    resp
-}
+pub async fn handle_oidc_authorize(
+    req: pubhubs::oidc::http::actix_support::CompleteRequest,
+    context: Data<Main>,
+    translations: Translations,
+) -> Result<HttpResponse, TranslatedError> {
+    let inner_req = req.request.clone(); // HttpRequests are cheaply cloneable
 
-fn unauthorized() -> Response<Body> {
-    let mut resp = Response::new(Body::empty());
-    *resp.status_mut() = StatusCode::UNAUTHORIZED;
-    *resp.body_mut() = hyper::Body::from("Unauthorized");
-    resp
+    context
+        .oidc
+        .handle_auth(req, pubhubs::oidc_handler::AD { translations })
+        .into_translated_error(&inner_req)
 }
 
 #[tokio::main]
@@ -965,101 +804,215 @@ async fn main() -> Result<()> {
     env_logger::Builder::from_env(Env::default().default_filter_or("info")).init();
     info!("Starting PubHubs!");
 
-    // Construct our SocketAddr to listen on...
-    let addr = SocketAddr::from(([0, 0, 0, 0], 8080));
-
     let context = pubhubs::context::Main::create(
         pubhubs::config::File::from_env().context("failed to load configuration file")?,
     )
     .await
     .context("failed to initialize")?;
 
-    // Put context into an Arc so that it can be moved accross threads.
-    let context = Arc::new(context);
+    let context = Data::from(context);
 
-    // Create a 'service' to handle incoming connections.
-    //
-    // NOTE: the "move"s in the closures and async blocks below cause 'context'
-    // to be moved instead of borrowed (which would be problematic, because these closures
-    // and and async blocks outlive the context in which they are created.)
-    //
-    // The "let context = context.clone()" in the closures below before moving out of
-    // context are necessary because these closures are called multiple times,
-    // but 'move-capture' context only once.
-    //
-    // (All in all, the reference count of context will be the number of connections
-    // plus the number of requests.)
-    let make_service = make_service_fn(move |_conn| {
+    let bind_to = context.bind_to.clone();
+    let url = context.url.clone();
+    let connection_check_nonce = context.connection_check_nonce.clone();
+
+    info!("binding to {}:{}", bind_to.0, bind_to.1);
+    let server_fut = HttpServer::new(move || {
         let context = context.clone();
+        App::new()
+            .configure(move |cfg| create_app(cfg, context))
+            .wrap_fn(metrics_middleware)
+    })
+    .bind(bind_to.clone())?
+    .run();
 
-        let service = service_fn(move |req| {
-            let context = context.clone();
+    futures::try_join!(
+        // run server
+        async move { server_fut.await.context("failed to run server") },
+        // and also check that the server is reachable via the public url specified in the config
+        async move {
+            tokio::task::LocalSet::new() // awc works only in such single-threaded context
+                .run_until(async move {
+                    info!("checking that you are reachable via {} ...", url);
 
-            // NOTE: One might be tempted to replace this
-            async move { handle(req, &context).await }
-            // by
-            // ```
-            // handle(req, &context)
-            // ```
-            // but this fails because the Future returned by handle(req, &context)
-            // borrows context instead of moving it as "async move { ... }" does.
-        });
+                    let url = url + "_connection_check";
 
-        async move { Ok::<_, Infallible>(service) }
-    });
+                    let client = awc::Client::default();
+                    let mut resp = client
+                        .get(&url)
+                        .send()
+                        .await
+                        .map_err(|e| anyhow::anyhow!(e.to_string() /* e is not Send */))?;
 
-    // Then bind and serve...
-    let server = Server::bind(&addr).serve(make_service);
+                    let status = resp.status();
+                    anyhow::ensure!(status.is_success(), "{} returned status {}", url, status);
 
-    // And run forever?
-    server.await?;
+                    let bytes = resp.body().await?;
+                    let result = String::from_utf8(bytes.to_vec())?;
 
+                    anyhow::ensure!(result == connection_check_nonce, "{} did not return {}; we probably connected toanother pubhubs instance, or to something else entirely", url, connection_check_nonce);
+
+                    info!(" ✓ got correct response from {}", url);
+                    Ok(())
+                })
+                .await.map_err(|_e|{
+                    if cfg!(debug_assertions) {
+                        info!("\n\nHINT:  if your ports are not publically accessible, \nreverse forward a port to a remote server, via, e.g.,\n\n ssh -NTR 8080:localhost:8080 user@server.com\n\nand do not forget to set \"url\" to \"http://server.com:8080/\" in your configuration.\n\n");
+                    }
+                    _e
+                })
+        }
+    )?;
     Ok(())
+}
+
+// cfg: &mut web::ServiceConfig
+fn create_app(cfg: &mut web::ServiceConfig, context: Data<Main>) {
+    cfg.app_data(context)
+        .service(actix_files::Files::new("/css", "./static/assets/css").use_etag(true))
+        .service(actix_files::Files::new("/fonts", "./static/assets/fonts").use_etag(true))
+        .service(actix_files::Files::new("/images", "./static/assets/images").use_etag(true))
+        .service(actix_files::Files::new("/js", "./static/assets/js").use_etag(true))
+        // routes below map be prefixed with a language prefix "/nl", "/en", etc., which
+        // will be stripped by the translation middleware
+        .service(
+            web::scope("/metrics")
+                .wrap_fn(metrics_auth)
+                .route("", web::get().to(metrics)),
+        )
+        .route(
+            "/.well-known/openid-configuration",
+            web::get().to(|context: Data<Main>| async move {
+                actix_web::HttpResponse::Ok()
+                    .content_type(actix_web::http::header::ContentType::json())
+                    .body(context.well_known_openid_configuration.clone())
+            }),
+        )
+        .route(
+            "/.well-known/jwks.json",
+            web::get().to(|context: Data<Main>| async move {
+                actix_web::HttpResponse::Ok()
+                    .content_type(actix_web::http::header::ContentType::json())
+                    .body(context.well_known_jwks_json.clone())
+            }),
+        )
+        .route(
+            "/_connection_check",
+            web::get().to(|context: Data<Main>| async move {
+                actix_web::HttpResponse::Ok().body(context.connection_check_nonce.clone())
+            }),
+        )
+        .service(
+            web::scope("")
+                .wrap_fn(middleware::translate)
+                .route("/", web::get().to(index))
+                .route("/policy", web::get().to(policy))
+                .route("/full_policy", web::get().to(full_policy))
+                .route("/policy_accept", web::get().to(policy_accept))
+                .service(
+                    web::scope("admin")
+                        .wrap(middleware::Auth {})
+                        .route("/hubs", web::get().to(get_hubs))
+                        .route("/hubs/{id}", web::post().to(update_hub))
+                        .route("/hubs", web::post().to(add_hub))
+                        .route("/hubs/{id}", web::get().to(get_hub_details))
+                        .route("/users", web::get().to(get_users))
+                        .route("/hubid/{name}", web::get().to(get_hubid)),
+                )
+                .service(
+                    // when changing these endpoints, please also update
+                    //   .well-known/openid-configuration
+                    web::scope("oidc")
+                        // shows user-agent page with irma QR code
+                        .route("/auth", web::get().to(handle_oidc_authorize))
+                        // Hub retrieves id_token from here
+                        .route("/token", web::post().to(handle_oidc_token)),
+                )
+                .service(
+                    web::scope("irma")
+                        .route("/session/{token}/statusevents", web::to(irma_proxy_stream))
+                        .route("/{tail:.*}", web::to(irma_proxy)),
+                )
+                .service(
+                    web::scope("irma-endpoint")
+                        .route("/", web::post().to(next_session))
+                        .route("/start", web::get().to(irma_start))
+                        .route("/register", web::get().to(irma_register))
+                        .route(
+                            "/finish-and-redirect",
+                            web::post().to(irma_finish_and_redirect),
+                        ),
+                )
+                .route("/register", web::get().to(register_account))
+                .route("/register", web::post().to(register_account))
+                .route("/account/{id}", web::get().to(get_account))
+                .route("/login", web::get().to(account_login))
+                .route("/logout", web::get().to(account_logout))
+                .default_service(web::route().to(not_found))
+                .configure(|cfg| {
+                    cfg.app_data(web::PayloadConfig::new(PAYLOAD_MAX_SIZE));
+                }),
+        );
 }
 
 #[allow(unused_must_use)]
 #[cfg(test)]
 mod tests {
     use super::*;
+    use actix_web::body::MessageBody;
+    use actix_web::dev::Service;
+    use actix_web::http::StatusCode;
+    use actix_web::test;
+    use actix_web::test::TestRequest;
+    use actix_web::FromRequest as _;
+    use http::header::AUTHORIZATION;
     use hyper::header::COOKIE;
-    use hyper::{http, Uri};
+    use hyper::service::{make_service_fn, service_fn};
+    use hyper::{Body, Request, Response, Server};
     use pubhubs::data::{Policy, User};
     use std::collections::HashMap;
+    use std::convert::Infallible;
+    use std::net::SocketAddr;
+    use std::sync::Arc;
 
+    use pubhubs::cookie::Cookie;
     use pubhubs::irma::{
         Attribute, SessionData, SessionPointer, SessionResult, SessionType,
         SessionType::Disclosing, Status, MAIL, MOBILE_NO, PUB_HUBS_MAIL, PUB_HUBS_PHONE,
     };
     use regex::Regex;
 
-    #[tokio::test]
+    #[actix_web::test]
     async fn test_index() {
-        let mut response = index(Translations::None).await;
+        let response = index(test::TestRequest::default().to_http_request())
+            .await
+            .unwrap();
         assert_eq!(response.status(), StatusCode::OK);
 
-        let body = body_to_string(&mut response).await;
+        let body =
+            String::from_utf8(response.into_body().try_into_bytes().unwrap().to_vec()).unwrap();
 
         let re = Regex::new(r"Pubhubs gaat van start</h2>").unwrap();
         assert!(re.is_match(&body));
     }
 
-    #[tokio::test]
+    #[actix_web::test]
     async fn test_hubs_ok() {
         let context = create_test_context().await.unwrap();
         let name = "test_name";
         create_hub(name, &context).await;
 
-        let request = http::Request::new(Body::empty());
-        let mut response = get_hubs(&context, &request, Translations::None).await;
+        let request = test::TestRequest::default().to_http_request();
+        let response = get_hubs(Data::from(context), request, Translations::NONE).await;
         assert_eq!(response.status(), StatusCode::OK);
 
-        let body = body_to_string(&mut response).await;
+        let body = body_to_string(response).await;
 
         let re = Regex::new(format!("<td>{}</td>", name).as_str()).unwrap();
         assert!(re.is_match(&body))
     }
 
-    #[tokio::test]
+    #[actix_web::test]
     async fn test_hubs_error() {
         let context = create_test_context().await.unwrap();
         let name = "test_name";
@@ -1068,85 +1021,74 @@ mod tests {
         // Close the database actor
         context.db_tx.send(DataCommands::Terminate {}).await;
 
-        let request = http::Request::new(Body::empty());
-        let mut response = get_hubs(&context, &request, Translations::None).await;
+        let request = test::TestRequest::default().to_http_request();
+        let response = get_hubs(Data::from(context), request, Translations::NONE).await;
         assert_eq!(response.status(), StatusCode::INTERNAL_SERVER_ERROR);
 
-        let body = body_to_string(&mut response).await;
+        let body = body_to_string(response).await;
 
         let re = Regex::new("<p>Could not get hubs</p>").unwrap();
         assert!(re.is_match(&body))
     }
 
-    #[tokio::test]
+    #[actix_web::test]
     async fn create_hub_ok() {
         let context = create_test_context().await.unwrap();
         let hub = HubForm {
             name: "test_hub".to_string(),
             description: "test description".to_string(),
             redirection_uri: "/test_redirect".to_string(),
-            passphrase: "test_passphrase".to_string(),
         };
 
-        let request = http::Request::new(Body::from(serde_urlencoded::to_string(hub).unwrap()));
-        let response = add_hub(&context, request, Translations::None).await;
+        let request = test::TestRequest::default().to_http_request();
+        let response = add_hub(Data::from(context), request, Form(hub), Translations::NONE).await;
         assert_eq!(response.status(), StatusCode::FOUND);
         assert_eq!(response.headers().get(LOCATION).unwrap(), "/hubs");
     }
 
-    #[tokio::test]
-    async fn create_hub_error() {
-        let context = create_test_context().await.unwrap();
-        let hub = HubForm {
-            name: "test_hub".to_string(),
-            description: "test description".to_string(),
-            redirection_uri: "/test_redirect".to_string(),
-            passphrase: "test_passphrase".to_string(),
-        };
-        let form_string = serde_urlencoded::to_string(hub)
-            .unwrap()
-            .replace("&passphrase=test_passphrase", "");
-        let request = http::Request::new(Body::from(form_string));
-        let mut response = add_hub(&context, request, Translations::None).await;
-        assert_eq!(response.status(), StatusCode::BAD_REQUEST);
-
-        let body = body_to_string(&mut response).await;
-        let re = Regex::new("<p>missing field `passphrase`</p>").unwrap();
-        assert!(re.is_match(&body))
-    }
-
-    #[tokio::test]
+    #[actix_web::test]
     async fn test_hub_details() {
         let context = create_test_context().await.unwrap();
         let name = "test_name";
         let hubid = create_hub(name, &context).await;
 
-        let request = http::Request::new(Body::empty());
-        let mut response =
-            get_hub_details(hubid.as_str(), &context, &request, Translations::None).await;
+        let request = test::TestRequest::default().to_http_request();
+        let response = get_hub_details(
+            hubid.to_string().into(),
+            Data::from(context),
+            request,
+            Translations::NONE,
+        )
+        .await;
         assert_eq!(response.status(), StatusCode::OK);
 
-        let body = body_to_string(&mut response).await;
+        let body = body_to_string(response).await;
 
         assert!(body.contains(&format!("<p>Hub id: {}</p>", hubid.as_str())))
     }
 
-    #[tokio::test]
+    #[actix_web::test]
     async fn test_hub_details_error() {
         let context = create_test_context().await.unwrap();
         let _name = "test_name";
 
-        let request = http::Request::new(Body::empty());
-        let mut response = get_hub_details("notanid", &context, &request, Translations::None).await;
+        let request = test::TestRequest::default().to_http_request();
+        let response = get_hub_details(
+            "notanid".to_string().into(),
+            Data::from(context),
+            request,
+            Translations::NONE,
+        )
+        .await;
         assert_eq!(response.status(), StatusCode::BAD_REQUEST);
 
-        let body = body_to_string(&mut response).await;
+        let body = body_to_string(response).await;
 
         let re = Regex::new("<p>not an id</p>").unwrap();
         assert!(re.is_match(&body))
     }
 
-    #[tokio::test]
+    #[actix_web::test]
     async fn test_update_hub_details() {
         let context = create_test_context().await.unwrap();
         let name = "test_name";
@@ -1157,11 +1099,18 @@ mod tests {
             description: "test description".to_string(),
         };
 
-        let request = http::Request::new(Body::from(serde_urlencoded::to_string(hub).unwrap()));
-        let mut response = update_hub(hubid.as_str(), &context, request, Translations::None).await;
+        let request = test::TestRequest::default().to_http_request();
+        let response = update_hub(
+            hubid.to_string().into(),
+            Data::from(context),
+            request,
+            Translations::NONE,
+            Form(hub),
+        )
+        .await;
         assert_eq!(response.status(), StatusCode::OK);
 
-        let body = body_to_string(&mut response).await;
+        let body = body_to_string(response).await;
         let re = Regex::new(
             r#"<input type="text" name="name" id="name" value="test_name_updated" required>"#,
         )
@@ -1169,7 +1118,7 @@ mod tests {
         assert!(re.is_match(&body))
     }
 
-    #[tokio::test]
+    #[actix_web::test]
     async fn test_update_hub_details_error() {
         let context = create_test_context().await.unwrap();
         let name = "test_name";
@@ -1183,16 +1132,23 @@ mod tests {
         // Close the database actor
         context.db_tx.send(DataCommands::Terminate {}).await;
 
-        let request = http::Request::new(Body::from(serde_urlencoded::to_string(hub).unwrap()));
-        let mut response = update_hub(hubid.as_str(), &context, request, Translations::None).await;
+        let request = test::TestRequest::default().to_http_request();
+        let response = update_hub(
+            hubid.to_string().into(),
+            Data::from(context),
+            request,
+            Translations::NONE,
+            Form(hub),
+        )
+        .await;
         assert_eq!(response.status(), StatusCode::INTERNAL_SERVER_ERROR);
 
-        let body = body_to_string(&mut response).await;
+        let body = body_to_string(response).await;
         let re = Regex::new("<p>Could not update hub</p>").unwrap();
         assert!(re.is_match(&body))
     }
 
-    #[tokio::test]
+    #[actix_web::test]
     async fn test_users_ok() {
         let context = create_test_context().await.unwrap();
         let email = "test_email";
@@ -1200,11 +1156,11 @@ mod tests {
         create_user(email, &context).await;
         create_user(email2, &context).await;
 
-        let request = http::Request::new(Body::empty());
-        let mut response = get_users(&context, request, Translations::None).await;
+        let request = test::TestRequest::default().to_http_request();
+        let response = get_users(Data::from(context), request, Translations::NONE).await;
         assert_eq!(response.status(), StatusCode::OK);
 
-        let body = body_to_string(&mut response).await;
+        let body = body_to_string(response).await;
 
         let re = Regex::new(format!("<td>{}</td>", email).as_str()).unwrap();
         assert!(re.is_match(&body));
@@ -1212,19 +1168,19 @@ mod tests {
         assert!(re2.is_match(&body))
     }
 
-    #[tokio::test]
+    #[actix_web::test]
     async fn test_users_error() {
         let context = create_test_context().await.unwrap();
 
         // Close the database actor
         context.db_tx.send(DataCommands::Terminate {}).await;
 
-        let request = http::Request::new(Body::empty());
-        let mut response = get_users(&context, request, Translations::None).await;
+        let request = test::TestRequest::default().to_http_request();
+        let response = get_users(Data::from(context), request, Translations::NONE).await;
         assert_eq!(response.status(), StatusCode::INTERNAL_SERVER_ERROR);
 
-        let body = body_to_string(&mut response).await;
-        let re = Regex::new(format!("<p>Could not list users</p>").as_str()).unwrap();
+        let body = body_to_string(response).await;
+        let re = Regex::new("<p>Could not list users</p>".to_string().as_str()).unwrap();
         assert!(re.is_match(&body));
     }
 
@@ -1239,7 +1195,7 @@ mod tests {
                 let addr = SocketAddr::from(([127, 0, 0, 1], port));
 
                 let make_service = make_service_fn(move |_conn| {
-                    let service = service_fn(move |req| handle_test(req));
+                    let service = service_fn(handle_test);
 
                     async move { Ok::<_, Infallible>(service) }
                 });
@@ -1257,13 +1213,13 @@ mod tests {
         port_bound.notified().await;
     }
 
-    const TEST_TELEPHONE: &'static str = "test_telephone";
+    const TEST_TELEPHONE: &str = "test_telephone";
 
-    const TEST_EMAIL: &'static str = "testemail";
+    const TEST_EMAIL: &str = "testemail";
 
-    const NEW_TEST_TELEPHONE: &'static str = "new_test_telephone";
+    const NEW_TEST_TELEPHONE: &str = "new_test_telephone";
 
-    const NEW_TEST_EMAIL: &'static str = "new_testemail";
+    const NEW_TEST_EMAIL: &str = "new_testemail";
 
     async fn handle_test(req: Request<Body>) -> Result<Response<Body>, Infallible> {
         let endpoint = req.uri().path().to_string();
@@ -1328,51 +1284,46 @@ mod tests {
             status: Status::DONE,
             session_type: SessionType::Disclosing,
             proof_status: None,
-            next_session: next_session,
+            next_session,
             error: None,
         };
         let resp_body = serde_json::to_string(&resp_data).unwrap();
         Ok(Response::new(Body::from(resp_body)))
     }
 
-    fn add_cookie_request(mut req: Request<Body>, secret: &str, id: i32) -> Request<Body> {
-        let resp = Response::new(Body::empty());
-        let resp = add_cookie(resp, id, secret);
-        req.headers_mut()
-            .insert("Cookie", resp.headers().get("Set-Cookie").unwrap().clone());
-        req
+    fn add_cookie_request(req: TestRequest, secret: &str, id: i32) -> TestRequest {
+        let mut resp = HttpResponse::Ok();
+        let resp = add_cookie(&mut resp, id, secret).finish();
+
+        req.insert_header(("Cookie", resp.headers().get("Set-Cookie").unwrap().clone()))
     }
 
-    #[tokio::test]
+    #[actix_web::test]
     async fn test_irma_register() {
-        let context = create_test_context().await.unwrap();
-        let req = Request::new(Body::empty());
+        let context = create_test_context_with(|mut f| {
+            f.irma.server_url = "http://localhost:4001/test1".to_string();
+            f
+        })
+        .await
+        .unwrap();
+        let request = test::TestRequest::default().to_http_request();
         start_fake_server(4001).await;
 
-        let mut resp = irma_register(
-            "http://localhost:4001/test1",
-            "",
-            &vec![],
-            &context.url,
-            &context.hair,
-            req,
-            Translations::None,
-        )
-        .await;
+        let resp = irma_register(Data::from(context), Translations::NONE, request).await;
 
         assert_eq!(resp.status(), StatusCode::OK);
-        let body = body_to_string(&mut resp).await;
+        let body = body_to_string(resp).await;
         let session = serde_json::from_str::<SessionDataWithImage>(&body);
         assert!(session.is_ok());
         assert_eq!(session.unwrap().session_ptr.irmaqr, Disclosing);
     }
 
-    #[tokio::test]
+    #[actix_web::test]
     async fn test_register_account_redirects_if_policy_not_accepted() {
         let context = create_test_context().await.unwrap();
-        let req = Request::new(Body::empty());
+        let request = test::TestRequest::default().to_http_request();
         let response =
-            register_account(&req, &context.hair, &context.db_tx, Translations::None).await;
+            register_account(request, Data::from(context), None, Translations::NONE).await;
 
         assert_eq!(response.status(), StatusCode::FOUND);
         assert_eq!(
@@ -1386,118 +1337,127 @@ mod tests {
         );
     }
 
-    #[tokio::test]
+    #[actix_web::test]
     async fn test_register_account() {
         let context = create_test_context().await.unwrap();
-        let mut req = Request::new(Body::empty());
-        req.headers_mut()
-            .insert(COOKIE, HeaderValue::from_str("AcceptedPolicy=1").unwrap());
-        let mut response =
-            register_account(&req, &context.hair, &context.db_tx, Translations::None).await;
+        let request = test::TestRequest::default()
+            .insert_header((COOKIE, "AcceptedPolicy=1"))
+            .to_http_request();
 
-        let body = body_to_string(&mut response).await;
+        let response =
+            register_account(request, Data::from(context), None, Translations::NONE).await;
 
-        assert!(body.contains("let hub = \"\""));
-        assert!(body.contains("let state = \"\""));
-        assert!(body.contains("let url = \"\""));
-        assert!(body.contains("let endpoint = \"\" + \"/irma-endpoint/register\""));
-        assert!(body.contains("irmaLogin(endpoint, hub, state, url);"));
-        assert!(!body.contains("<button>Register</button>"));
+        let body = body_to_string(response).await;
+
+        assert!(body.contains("let oidc_handle = "));
+        assert!(body.contains("let register = true"));
+        assert!(body.contains("let url_prefix = \"\""));
+        assert!(body.contains("irmaLogin(url_prefix, register, oidc_handle);"));
     }
 
-    #[tokio::test]
+    // TODO: add test for register_account with RegisterParams not None
+
+    #[actix_web::test]
     async fn test_account_login() {
         let context = create_test_context().await.unwrap();
-        let req = Request::new(Body::empty());
-        let mut response = account_login(
-            &req,
-            &context.hair,
-            &context.cookie_secret,
-            Translations::None,
-        )
-        .await;
+        let request = test::TestRequest::default().to_http_request();
+        let response = account_login(request, Data::from(context), Translations::NONE).await;
 
-        let body = body_to_string(&mut response).await;
-        assert!(body.contains("let hub = \"\""));
-        assert!(body.contains("let state = \"\""));
-        assert!(body.contains("let url = \"\""));
-        assert!(body.contains("let endpoint = \"\" + \"/irma-endpoint/start\";"));
-        assert!(body.contains("irmaLogin(endpoint, hub, state, url);"));
+        let body = body_to_string(response).await;
+        assert!(body.contains("let oidc_handle = null"));
+        assert!(body.contains("let register = false"));
+        assert!(body.contains("let url_prefix = \"\""));
+        assert!(body.contains("irmaLogin(url_prefix, register, oidc_handle);"));
         assert!(body.contains(r#"<button class="btn btn-secondary btn-rounded align-content-center text-white">Registreren</button>"#));
 
-        let mut response = account_login(
-            &req,
-            &context.hair,
-            &context.cookie_secret,
-            Translations::Some {
-                translations: &HashMap::new(),
-                prefix: "en",
-            },
+        let context = create_test_context().await.unwrap();
+        let request = test::TestRequest::default().to_http_request();
+        let response = account_login(
+            request,
+            Data::from(context),
+            Translations::new("en".to_string(), HashMap::new()),
         )
         .await;
 
-        let body = body_to_string(&mut response).await;
-        assert!(body.contains("let hub = \"\""));
-        assert!(body.contains("let state = \"\""));
-        assert!(body.contains("let url = \"\""));
-        assert!(body.contains("let endpoint = \"/en\" + \"/irma-endpoint/start\";"));
-        assert!(body.contains("irmaLogin(endpoint, hub, state, url);"));
+        let body = body_to_string(response).await;
+        assert!(body.contains("let oidc_handle = null"));
+        assert!(body.contains("let register = false"));
+        assert!(body.contains("let url_prefix = \"/en\""));
+        assert!(body.contains("irmaLogin(url_prefix, register, oidc_handle);"));
         assert!(body.contains(r#"<button class="btn btn-secondary btn-rounded align-content-center text-white">Registreren</button>"#));
     }
 
-    #[tokio::test]
+    #[actix_web::test]
     async fn test_get_account() {
-        let context = create_test_context().await.unwrap();
+        let secret = "very secret";
+        let context = create_test_context_with(|mut f| {
+            f.cookie_secret = Some(secret.to_string());
+            f
+        })
+        .await
+        .unwrap();
         let email = "email@test.com";
         let user_id = create_user(email, &context).await;
-        let req = Request::new(Body::empty());
-        let secret = "very secret";
-        let req = add_cookie_request(req, secret, user_id);
-        let mut response = get_account(
-            &req,
-            &user_id.to_string(),
-            secret,
-            &context.hair,
-            context.db_tx,
-            Translations::None,
+        let request = test::TestRequest::default();
+
+        let request = add_cookie_request(request, secret, user_id);
+        let response = get_account(
+            request.to_http_request(),
+            user_id.to_string().into(),
+            Data::from(context),
+            Translations::NONE,
         )
         .await;
 
         assert_eq!(response.status(), StatusCode::OK);
-        let body = body_to_string(&mut response).await;
+        let body = body_to_string(response).await;
         assert!(body.contains(format!("<p>{}</p>", email).as_str()));
         assert!(body.contains(" <p>test_telephone</p>"));
     }
 
-    #[tokio::test]
+    #[actix_web::test]
     async fn test_no_access_to_admin() {
         let context = create_test_context().await.unwrap();
         let email = "email@test.com";
         let user_id = create_user(email, &context).await;
-        let mut req = Request::new(Body::empty());
-        *req.uri_mut() = Uri::from_static("https://some.host/admin/hubs");
         let secret = "very secret";
-        let req = add_cookie_request(req, secret, user_id);
-        let mut response = handle(req, &context).await.unwrap();
-        assert_eq!(response.status(), StatusCode::UNAUTHORIZED);
-        let body = body_to_string(&mut response).await;
-        assert_eq!(body, "Unauthorized");
+
+        let cookie = Cookie::new(user_id, secret).cookie.as_str().to_owned();
+
+        let app = test::init_service(
+            App::new().configure(move |cfg| create_app(cfg, Data::from(context))),
+        )
+        .await;
+        let req = test::TestRequest::get()
+            .uri("/admin/hubs")
+            .insert_header((COOKIE, cookie))
+            .to_request();
+
+        let response = app.call(req).await;
+        match response {
+            Ok(_) => {
+                assert!(false)
+            }
+            Err(forbidden) => {
+                let resp = forbidden.error_response();
+                assert_eq!(resp.status(), StatusCode::FORBIDDEN);
+                assert_eq!(body_to_string(resp).await, "Forbidden");
+            }
+        }
     }
 
-    #[tokio::test]
+    #[actix_web::test]
     async fn test_get_account_only_authorized() {
         let context = create_test_context().await.unwrap();
         let user_id = create_user("email", &context).await.to_string();
-        let mut req = Request::new(Body::empty());
-        req.headers_mut()
-            .insert("Cookie", HeaderValue::from_str("no").unwrap());
+        let request = test::TestRequest::get()
+            .insert_header((COOKIE, "no"))
+            .to_http_request();
         let response = get_account(
-            &req,
-            &user_id,
-            &context.cookie_secret,
-            &context.hair,
-            context.db_tx,
-            Translations::None,
+            request,
+            user_id.into(),
+            Data::from(context),
+            Translations::NONE,
         )
         .await;
 
@@ -1511,101 +1471,129 @@ mod tests {
         assert_eq!("/login", location);
     }
 
-    #[tokio::test]
-    async fn test_irma_result() {
-        let mut context = create_test_context().await.unwrap();
-        let user_id = create_user("testemail", &context).await;
-        let hubid = create_test_hub(&context).await;
-        let token = "token";
+    #[actix_web::test]
+    async fn test_irma_finish_and_redirect() {
         let cookie_secret = "very_secret";
+
+        let context = create_test_context_with(|mut f| {
+            f.cookie_secret = Some(cookie_secret.to_string());
+            f.irma.server_url = "http://localhost:4002/test1".to_string();
+            f
+        })
+        .await
+        .unwrap();
+        let _user_id = create_user("testemail", &context).await;
+        let _hubid = create_test_hub(&context).await;
+        let token = "token".to_owned();
         start_fake_server(4002).await;
 
         //existing user account login
-        let req1 = Request::new(Body::empty());
+        let (req1, mut req1payload) = test::TestRequest::post()
+            .set_form(IrmaFinishParams {
+                irma_token: token.clone(),
+                oidc_auth_request_handle: None,
+            })
+            .to_http_parts();
 
-        context.cookie_secret = cookie_secret.to_string();
-        context.irma.client_url = "http://localhost:4002/test1".to_string();
-        context.irma.server_url = "http://localhost:4002/test1".to_string();
+        let response = irma_finish_and_redirect_anyhow(
+            Data::from(context.clone()),
+            actix_web::web::Form::from_request(&req1, &mut req1payload)
+                .await
+                .unwrap(),
+        )
+        .await
+        .unwrap();
 
-        let mut response = irma_result(&context, token, &req1, Translations::None).await;
-        let body = body_to_string(&mut response).await;
-        assert_eq!(StatusCode::OK, response.status(),);
-        let deserialized: JsonResponseIRMAToAccount = serde_json::from_str(&body).unwrap();
-        assert_eq!(deserialized.account_id, user_id);
+        assert_eq!(StatusCode::SEE_OTHER, response.status());
+        assert!(response.headers().contains_key(SET_COOKIE));
+        assert_eq!(response.headers().get(LOCATION).unwrap(), "/account/1");
 
         //existing user hub login
-        let req2 = Request::builder()
-            .uri(format!("http://fake.not_exists?hub_id={}", hubid.as_str()))
-            .body(Body::empty())
+        let client_creds = context
+            .oidc
+            .generate_client_credentials("", "https://example.com");
+
+        let (auth_req, mut auth_req_payload) = test::TestRequest::with_uri(&format!(
+            "https://example.com/?{}",
+            serde_urlencoded::to_string([
+                ("response_type", "code"),
+                ("client_id", client_creds.client_id.as_ref()),
+                ("redirect_uri", "https://example.com"),
+                ("response_mode", "form_post"),
+                ("scope", "openid"),
+                ("state", "state"),
+                ("nonce", "nonce"),
+            ])
+            .unwrap()
+        ))
+        .to_http_parts();
+
+        let (_, auth_request_handle, _) = context
+            .oidc
+            .issue_auth_request_handle(
+                pubhubs::oidc::http::actix_support::CompleteRequest::from_request(
+                    &auth_req,
+                    &mut auth_req_payload,
+                )
+                .await
+                .unwrap(),
+            )
             .unwrap();
 
-        let mut response = irma_result(&context, token, &req2, Translations::None).await;
+        let (req2, mut req2payload) = test::TestRequest::post()
+            .set_form(IrmaFinishParams {
+                irma_token: token.clone(),
+                oidc_auth_request_handle: Some(auth_request_handle),
+            })
+            .to_http_parts();
+
+        let response = irma_finish_and_redirect_anyhow(
+            Data::from(context.clone()),
+            actix_web::web::Form::from_request(&req2, &mut req2payload)
+                .await
+                .unwrap(),
+        )
+        .await
+        .unwrap();
+
         assert_eq!(response.status(), StatusCode::OK);
-        let body = body_to_string(&mut response).await;
-        serde_json::from_str::<JsonResponseIRMAToHub>(&body).unwrap();
+        assert!(response.headers().contains_key(SET_COOKIE));
+        // TODO: check that response is a POST-redirect in some way?
 
         //register account
-        let req3 = Request::new(Body::empty());
-        // Discloses new an
-        context.irma.client_url = "http://localhost:4002/test2".to_string();
-        context.irma.server_url = "http://localhost:4002/test2".to_string();
-        let mut response = irma_result(&context, token, &req3, Translations::None).await;
-        assert_eq!(response.status(), StatusCode::OK);
-        let body = body_to_string(&mut response).await;
-        let deserialized: JsonResponseIRMAToAccount = serde_json::from_str(&body).unwrap();
-        let user = get_db_user(&context, NEW_TEST_EMAIL, NEW_TEST_TELEPHONE)
-            .await
-            .unwrap();
-        assert_eq!(deserialized.account_id, user.id);
+        // Discloses new
+        let context = create_test_context_with(|mut f| {
+            f.cookie_secret = Some(cookie_secret.to_string());
+            f.irma.server_url = "http://localhost:4002/test2".to_string();
+            f
+        })
+        .await
+        .unwrap();
+        let (req3, mut req3payload) = test::TestRequest::post()
+            .set_form(IrmaFinishParams {
+                irma_token: token.clone(),
+                oidc_auth_request_handle: None,
+            })
+            .to_http_parts();
 
-        //error
-        let req_error = Request::new(Body::empty());
-
-        context.irma.client_url = "http://no-irma".to_string();
-        context.irma.server_url = "http://no-irma".to_string();
-
-        let mut response = irma_result(&context, token, &req_error, Translations::None).await;
-        assert_eq!(response.status(), StatusCode::INTERNAL_SERVER_ERROR);
-        let body = body_to_string(&mut response).await;
-        assert!(body.contains("We are having some trouble with your account"))
-    }
-
-    #[tokio::test]
-    async fn test_irma_result_register_through_hub() {
-        let mut context = create_test_context().await.unwrap();
-        let user_id = create_user("testemail", &context).await;
-        let hubid = create_test_hub(&context).await;
-        let token = "token";
-        let cookie_secret = "very_secret";
-        start_fake_server(4003).await;
-        //register hub
-        let req4 = Request::builder()
-            .uri(format!("http://fake.not_exists?hub_id={}", hubid.as_str()))
-            .body(Body::empty())
-            .unwrap();
-
-        context.cookie_secret = cookie_secret.to_string();
-        context.irma.client_url = "http://localhost:4003/test2".to_string();
-        context.irma.server_url = "http://localhost:4003/test2".to_string();
-
-        let mut response = irma_result(
-            // Discloses new an
-            &context,
-            token,
-            &req4,
-            Translations::None,
+        let response = irma_finish_and_redirect_anyhow(
+            Data::from(context.clone()),
+            actix_web::web::Form::from_request(&req3, &mut req3payload)
+                .await
+                .unwrap(),
         )
-        .await;
-        assert_eq!(response.status(), StatusCode::OK);
-        let body = body_to_string(&mut response).await;
-        serde_json::from_str::<JsonResponseIRMAToHub>(&body).unwrap();
-        let user = get_db_user(&context, NEW_TEST_EMAIL, NEW_TEST_TELEPHONE)
+        .await
+        .unwrap();
+        assert_eq!(response.status(), StatusCode::SEE_OTHER);
+        // TODO: check location of redirect?
+        assert!(response.headers().contains_key(SET_COOKIE));
+
+        get_db_user(&context, NEW_TEST_EMAIL, NEW_TEST_TELEPHONE)
             .await
-            .unwrap();
-        assert_ne!(user_id, user.id);
+            .expect("new user to have been created");
     }
 
-    #[tokio::test]
+    #[actix_web::test]
     async fn test_policy() {
         let context = create_test_context().await.unwrap();
         let highlights = ["highlight1".to_string(), "highlight2".to_string()];
@@ -1619,16 +1607,16 @@ mod tests {
         )
         .await;
 
-        let req = Request::new(Body::empty());
-        let mut response = policy(&req, &context.hair, &context.db_tx, Translations::None).await;
+        let req = TestRequest::default().to_http_request();
+        let response = policy(req, Data::from(context), Translations::NONE).await;
 
-        let body = body_to_string(&mut response).await;
+        let body = body_to_string(response).await;
         for highlight in highlights {
             assert!(body.contains(&highlight));
         }
     }
 
-    #[tokio::test]
+    #[actix_web::test]
     async fn test_full_policy() {
         let context = create_test_context().await.unwrap();
         let highlights = ["highlight1".to_string(), "highlight2".to_string()];
@@ -1642,20 +1630,21 @@ mod tests {
         )
         .await;
 
-        let req = Request::new(Body::empty());
-        let mut response = policy(&req, &context.hair, &context.db_tx, Translations::None).await;
+        let req = TestRequest::default().to_http_request();
+        let response = policy(req, Data::from(context), Translations::NONE).await;
 
-        let body = body_to_string(&mut response).await;
-        assert!(body.contains(&full_policy));
+        let body = body_to_string(response).await;
+        assert!(body.contains(full_policy));
     }
 
-    #[tokio::test]
+    #[actix_web::test]
     async fn test_policy_accept() {
         let query = "smt=a&smthelse=b";
-
-        let mut req = Request::new(Body::empty());
-        *req.uri_mut() = format!("/smth?{}", query).parse().unwrap();
-        let response = policy_accept(&req, Translations::None).await;
+        let response = policy_accept(
+            Translations::NONE,
+            Some(actix_web::web::Query(query.to_owned())),
+        )
+        .await;
         assert_eq!(response.status(), StatusCode::FOUND);
         let location = response
             .headers()
@@ -1666,6 +1655,80 @@ mod tests {
         assert!(location.ends_with(query))
     }
 
+    #[actix_web::test]
+    async fn test_size_limit() {
+        let context = create_test_context().await.unwrap();
+
+        let app = test::init_service(
+            App::new().configure(move |cfg| create_app(cfg, Data::from(context))),
+        )
+        .await;
+
+        // Too large requests are blocked.
+        let too_large_request = test::TestRequest::post()
+            .uri("/irma-endpoint/")
+            .set_payload(['a' as u8; (PAYLOAD_MAX_SIZE + 1)].to_vec())
+            .to_request();
+
+        let response = app.call(too_large_request).await.unwrap();
+        assert_eq!(response.status(), StatusCode::PAYLOAD_TOO_LARGE);
+    }
+
+    #[actix_web::test]
+    async fn test_metrics() {
+        let context = create_test_context().await.unwrap();
+
+        create_hub("to_generate_some_database_metrics", &context).await;
+
+        let req = test::TestRequest::get()
+            .uri("/metrics")
+            .insert_header((AUTHORIZATION, format!("Bearer {}", &context.metrics_key)))
+            .to_request();
+
+        let app = test::init_service(
+            App::new()
+                .configure(move |cfg| create_app(cfg, Data::from(context)))
+                .wrap_fn(metrics_middleware),
+        )
+        .await;
+
+        // Unauthorized requests are forbidden.
+        let unauthorized_req = test::TestRequest::get()
+            .uri("/metrics")
+            .insert_header((AUTHORIZATION, "Bearer not_the_key"))
+            .to_request();
+
+        let response = app.call(unauthorized_req).await;
+        let error = response.unwrap_err();
+        assert_eq!(error.error_response().status(), StatusCode::FORBIDDEN);
+
+        //Requests with no authorization are forbidden
+        let unauthorized_req = test::TestRequest::get().uri("/metrics").to_request();
+
+        let response = app.call(unauthorized_req).await;
+        let error = response.unwrap_err();
+        assert_eq!(error.error_response().status(), StatusCode::FORBIDDEN);
+
+        // Make authorized request.
+        let response = app.call(req).await.unwrap();
+
+        assert_eq!(response.status(), StatusCode::OK);
+
+        let body = body_to_string(response.into_parts().1).await;
+
+        // Database metrics
+        assert!(body.contains(
+            r#"database_request_duration_seconds_bucket{command="CreateHub",le="+Inf"}"#
+        ));
+
+        // Http metrics
+        assert!(
+            body.contains(r#"http_request_duration_seconds_bucket{handler="/metrics",le="0.005"}"#)
+        );
+
+        assert!(body.contains(r#"http_request_responses{handler="/metrics",response_code="403"}"#));
+    }
+
     async fn create_hub(name: &str, context: &pubhubs::context::Main) -> Hubid {
         let (tx, rx) = oneshot::channel();
         context
@@ -1674,7 +1737,6 @@ mod tests {
                 name: name.to_string(),
                 description: "test_description".to_string(),
                 redirection_uri: "/test_redirect".to_string(),
-                passphrase: "test_passphrase".to_string(),
                 resp: tx,
             })
             .await;
@@ -1721,26 +1783,29 @@ mod tests {
                 name: "".to_string(),
                 description: "".to_string(),
                 redirection_uri: "".to_string(),
-                passphrase: "".to_string(),
                 resp: tx,
             })
             .await;
         rx.await.unwrap().unwrap()
     }
 
-    async fn create_test_context() -> Result<pubhubs::context::Main> {
+    async fn create_test_context() -> Result<Arc<pubhubs::context::Main>> {
+        create_test_context_with(|f| f).await
+    }
+
+    async fn create_test_context_with(
+        config: impl FnOnce(pubhubs::config::File) -> pubhubs::config::File,
+    ) -> Result<Arc<pubhubs::context::Main>> {
         let _ = env_logger::builder().is_test(true).try_init();
         // make sure logs are displayed, see
         //   https://docs.rs/env_logger/latest/env_logger/#capturing-logs-in-tests
         // well, at least in those tests using create_test_context()
 
-        pubhubs::context::Main::create(pubhubs::config::File::from_path("test.yaml")?).await
+        pubhubs::context::Main::create(config(pubhubs::config::File::for_testing())).await
     }
 
-    async fn body_to_string(mut response: &mut Response<Body>) -> String {
-        String::from_utf8(Vec::from(
-            hyper::body::to_bytes(&mut response).await.unwrap().as_ref(),
-        ))
-        .unwrap()
+    async fn body_to_string(response: HttpResponse) -> String {
+        let b: Vec<u8> = response.into_body().try_into_bytes().unwrap().to_vec();
+        String::from_utf8(b).unwrap()
     }
 }

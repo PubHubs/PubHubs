@@ -52,13 +52,13 @@
         <input type="text" name="description" id="description" required></div>
     <div><label for="redirection_uri">{{=tr("enter_redirection","Voer omleidings URI in:")}} </label>
         <input type="text" name="redirection_uri" id="redirection_uri" required></div>
-    <div><label for="passphrase">{{=tr("enter_passphrase","Voer wachtwoord in:")}} </label>
-        <input type="password" name="passphrase" id="passphrase" minlength="8" required></div>
     <input type="submit" value="add"></form>
 {{enddefine}}
 {{define hub}}
 <p>Hub id: {{=id}}</p>
 <p> Decryption key: ||{{=key}}^^</p>
+<p> OpenID Connect Client ID: {{=oidc_client_id}}</p>
+<p> OpenID Connect Client Password: {{=oidc_client_password}}</p>
 <form method="post">
     <div><label for="name">{{=tr("enter_name","Voer naam in:")}} </label>
         <input type="text" name="name" id="name" value="{{=name}}" required></div>
@@ -136,7 +136,7 @@
     </div>
 </div>
 {{enddefine}}
-{{define authenticate defaults {login: true}}}
+{{define authenticate defaults {register: false, hub_name: "", oidc_auth_request_handle: null }}}
 <div class="container">
     {{if hub_name == ""}}
         {{call page_header with {title: "to_my_account",default: "Naar mijn PubHubs account"}}}
@@ -152,7 +152,7 @@
                     <div class="row h-100">
                         <div class="col d-flex align-items-center">
                             <div>
-                                <h2 class="text-white ">{{if login}}Log in{{else}}{{=tr("register","Registreer")}}{{endif}} {{=tr("with", "met")}} <span class="align-middle">{{call irmalogo}}</span></h2>
+                                <h2 class="text-white ">{{if !register}}Log in{{else}}{{=tr("register","Registreer")}}{{endif}} {{=tr("with", "met")}} <span class="align-middle">{{call irmalogo}}</span></h2>
                                 <h5 class="text-white ">{{=tr("scan","Scan de QR code met je IRMA app")}}.</h5>
                                 <p><a href="https://irma.app/ -middle">{{=tr("login_trouble","Problemen met inloggen")}}?</a></p>
                             </div>
@@ -166,12 +166,11 @@
             </div>
         </div>
         <div class="col col-lg-5">
-            {{if login}}
+            {{if !register}}
             <div class="card bg-white m-3 p-4 mt-0 text-center "><h5>{{=tr("dont_have","Nog geen")}} {{call pubhubslogo}} account?</h5>
-                <form action="{{=url_prefix}}/register" method="get">
-                    <input type="text" name="hub" value="{{=hub}}" hidden>
-                    <input type="text" name="state" value="{{=state}}" hidden>
-                    <input type="text" name="url" value="{{=url}}" hidden>
+                <form action="{{=url_prefix}}/register" method="POST">
+                    <input type="text" name="oidc_handle" value="{{=oidc_auth_request_handle}}" hidden>
+                    <input type="text" name="hub_name" value="{{=hub_name}}" hidden>
                     <button class="btn btn-secondary btn-rounded align-content-center text-white">{{=tr("register","Registreren")}}</button>
                 </form>
             </div>
@@ -209,12 +208,11 @@
 
 <script src="/js/irma.js"></script>
 <script type="text/javascript">
-    let hub = {{=hub}};
-    let state = {{=state}};
-    let url = {{=url}};
-    let endpoint = {{=url_prefix}} + {{=login?"/irma-endpoint/start":"/irma-endpoint/register"}};
+    let oidc_handle = {{=oidc_auth_request_handle}};
+    let register = {{=register}};
+    let url_prefix = {{=url_prefix}};
     window.irmaLoginWithDetailsProvided = () => {
-        irmaLogin(endpoint, hub, state, url);
+        irmaLogin(url_prefix, register, oidc_handle);
     }
     // pageshow is also invoked when the page is reloaded from the back/forward cache,
     // see https://web.dev/bfcache/ and issue #25

@@ -25,6 +25,10 @@ rmp-serde = "1.1"
 rusqlite = {version = "0.27.0", features = ["bundled"]}
 rand = "0.8"
 
+# for ed25519_dalek, see https://stackoverflow.com/questions/65562447/the-trait-rand-corecryptorng-is-not-implemented-for-osrng
+rand_07 = { package = "rand", version = "0.7" }
+
+
 # IRMA interaction
 regex = "1.5"
 qrcode = "0.12"
@@ -34,24 +38,41 @@ chrono = {version="0.4", default_features = false, features = ["clock"]}
 async-recursion = "1.0"
 
 # Web dependencies
-tokio = {version = "1.17", features = ["rt", "macros", "rt-multi-thread", "sync", "time"]}
+tokio = {version = "1.21", features = ["rt", "macros", "rt-multi-thread", "sync", "time"]}
+tokio-test = "0.4"
 hyper = {version= "0.14", features= ["server", "client", "http1", "stream" ]}
 hyper-tls = "0.5"
 url = "2.2" 
+bytes = "1"
+http = "0.2"
 uuid = {version = "1.1", features = ["v4"]}
 env_logger = "0.9"
 log = "0.4"
 jsonwebtoken = "8.1"  # uses non RustCrypto - perhaps replace?
+actix-web = "4.2"
+actix-files = "0.6"
+# Proxying requests to IRMA
+awc = "3.0"
 
 # RustCrypto packages
 hmac = "0.12"
-pbkdf2 = "0.11"
 sha2 = "0.10"
 base64ct = {version = "1.5", features = ["alloc"]}
+base16ct = {version = "0.1", features = ["alloc"]} # hex
 chacha20poly1305 = "0.10"
 aead = "0.5"
 generic-array = "0.14"
 typenum = "1.15"
+ed25519 = {version = "1.5", features = ["pkcs8", "alloc", "pem"]}
+ed25519-dalek = "1.0"
+# Constant time operations to prevent timing attacks.
+subtle = "2.4"
+
+#metrics
+prometheus = "0.13"
+lazy_static = "1.4"
+strum_macros = "0.24"
+futures = "0.3"
 
 #iLab crates
 hairy = "0.1.2"

@@ -1,14 +1,14 @@
+use actix_web::http::header::LOCATION;
+use actix_web::web::Query;
+use actix_web::{web, HttpRequest, HttpResponse};
 use std::ffi::OsString;
 use std::fs;
 use std::path::Path;
 
 use anyhow::{anyhow, Result};
-use hyper::{
-    header::{HeaderValue, LOCATION},
-    Body, Request, Response, StatusCode,
-};
 use tokio::sync::{mpsc::Sender, oneshot};
 
+use crate::context::Main;
 use expry::{key_str, value, BytecodeVec, ValueVec};
 
 use crate::cookie::add_accepted_policy_session_cookie;
@@ -16,7 +16,7 @@ use crate::data::{
     DataCommands::{self, GetLatestPolicy},
     Policy,
 };
-use crate::hairy_ext::hairy_eval_html_custom_by_val as hairy_eval_html_custom;
+use crate::hairy_ext::hairy_eval_html_translations;
 use crate::translate::Translations;
 
 pub(crate) async fn initialize_latest_policy<P: AsRef<Path>>(
@@ -71,10 +71,10 @@ async fn create_latest_policy<P: AsRef<Path>>(
 ) -> Result<Policy> {
     let policy_location = policy_location.as_ref();
 
-    let policy = fs::read_to_string(policy_location.join(&i.to_string()).join("policy.txt"))?;
+    let policy = fs::read_to_string(policy_location.join(i.to_string()).join("policy.txt"))?;
 
     let highlights =
-        fs::read_to_string(policy_location.join(&i.to_string()).join("highlights.txt"))?
+        fs::read_to_string(policy_location.join(i.to_string()).join("highlights.txt"))?
             .lines()
             .map(|x| x.trim().to_string())
             .filter(|x| !x.is_empty())
@@ -83,15 +83,21 @@ async fn create_latest_policy<P: AsRef<Path>>(
 }
 
 pub async fn policy(
-    req: &Request<Body>,
-    hair: &BytecodeVec,
-    db_tx: &Sender<DataCommands>,
-    translations: Translations<'_>,
-) -> Response<Body> {
+    req: HttpRequest,
+    context: web::Data<Main>,
+    translations: Translations,
+) -> HttpResponse {
     //TODO think about language of policy?
+
+    let hair = &context.hair;
+    let db_tx = &context.db_tx;
+
     let policy = get_latest_policy(db_tx).await.highlights;
-    let query = req.uri().query().unwrap_or("");
-    let prefix = translations.get_prefix().to_string();
+    // let query = req.uri().query().unwrap_or("");
+    //TODO check if we can type and use web::Query<> and deserialize to a struct....
+    let query = req.query_string();
+
+    let prefix = translations.prefix().to_string();
     let value =
         value!({"content": "policy", "highlights": policy, "query": query, "url_prefix": prefix})
             .to_vec(false);
@@ -100,14 +106,16 @@ pub async fn policy(
 }
 
 pub async fn full_policy(
-    req: &Request<Body>,
-    hair: &BytecodeVec,
-    db_tx: &Sender<DataCommands>,
-    translations: Translations<'_>,
-) -> Response<Body> {
+    req: HttpRequest,
+    context: web::Data<Main>,
+    translations: Translations,
+) -> HttpResponse {
+    let hair = &context.hair;
+    let db_tx = &context.db_tx;
+    let _policy = get_latest_policy(db_tx).await.highlights;
+    let query = req.query_string();
     let policy = get_latest_policy(db_tx).await.content;
-    let query = req.uri().query().unwrap_or("");
-    let prefix = translations.get_prefix().to_string();
+    let prefix = translations.prefix().to_string();
     let value =
         value!({"content": "full_policy", "policy": policy, "query": query, "url_prefix": prefix})
             .to_vec(false);
@@ -115,15 +123,14 @@ pub async fn full_policy(
     make_resp(hair, value, translations)
 }
 
-pub fn make_resp(
-    hair: &BytecodeVec,
-    value: ValueVec,
-    translations: Translations<'_>,
-) -> Response<Body> {
-    let body = hairy_eval_html_custom(hair.to_ref(), value.to_ref(), translations)
-        .expect("Expected to render a template");
+pub fn make_resp(hair: &BytecodeVec, value: ValueVec, translations: Translations) -> HttpResponse {
+    //TODO return result, let it bubble up
+    HttpResponse::Ok().body(
+        hairy_eval_html_translations(hair.to_ref(), value.to_ref(), translations)
+            .expect("Expected to render a template"),
+    )
 
-    Response::new(Body::from(body))
+    // Response::new(Body::from(body))
 }
 
 async fn get_latest_policy(db_tx: &Sender<DataCommands>) -> Policy {
@@ -142,29 +149,28 @@ async fn get_latest_policy(db_tx: &Sender<DataCommands>) -> Policy {
     }
 }
 
-pub async fn policy_accept(req: &Request<Body>, translations: Translations<'_>) -> Response<Body> {
-    let mut resp = Response::new(Body::empty());
-    resp = add_accepted_policy_session_cookie(resp);
-    *resp.status_mut() = StatusCode::FOUND;
-    resp.headers_mut().insert(
+pub async fn policy_accept(
+    translations: Translations,
+    query: Option<Query<String>>,
+) -> HttpResponse {
+    let mut resp = HttpResponse::Found();
+    add_accepted_policy_session_cookie(&mut resp);
+    resp.insert_header((
         LOCATION,
-        HeaderValue::from_str(
-            format!(
-                "{}/register?{}",
-                translations.get_prefix(),
-                req.uri().query().unwrap_or("")
-            )
-            .as_str(),
-        )
-        .unwrap(),
-    );
-    resp
+        format!(
+            "{}/register?{}",
+            translations.prefix(),
+            query.unwrap_or_else(|| Query("".to_owned())).as_str()
+        ),
+    ));
+    resp.finish()
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
     use crate::data::make_in_memory_database_manager;
+    use prometheus::{HistogramOpts, HistogramVec};
     use std::fs::File;
     use std::io::Write;
     use tempfile::tempdir;
@@ -173,8 +179,7 @@ mod tests {
     //endpoint tests found in main.rs
     #[tokio::test]
     async fn test_will_initialize_policy() {
-        let (db_tx, db_rx) = mpsc::channel(1_000);
-        make_in_memory_database_manager(db_rx);
+        let db_tx = create_db();
 
         let dir = tempdir().unwrap();
         let v1 = dir.path().join("1");
@@ -205,8 +210,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_will_override_older_policies() {
-        let (db_tx, db_rx) = mpsc::channel(1_000);
-        make_in_memory_database_manager(db_rx);
+        let db_tx = create_db();
 
         let dir = tempdir().unwrap();
         let v1 = dir.path().join("1");
@@ -255,5 +259,27 @@ mod tests {
         assert_eq!(policy.content, policy_text);
 
         assert_eq!(policy.highlights, highlights_text);
+    }
+
+    fn create_db() -> Sender<DataCommands> {
+        let (db_tx, db_rx) = mpsc::channel(1_000);
+        let database_req_histogram = HistogramVec::new(
+            HistogramOpts::new(
+                "database_request_duration_seconds",
+                "The database request latencies in seconds per handler.",
+            )
+            .buckets(
+                ([
+                    0.0001f64, 0.0005f64, 0.001f64, 0.0025f64, 0.005f64, 0.01f64, 0.025f64,
+                    0.05f64, 0.1f64, 0.25f64, 0.5f64,
+                ])
+                .to_vec(),
+            ),
+            &["command"],
+        )
+        .unwrap();
+
+        make_in_memory_database_manager(db_rx, database_req_histogram);
+        db_tx
     }
 }

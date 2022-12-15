@@ -2,24 +2,25 @@ use crate::pseudonyms::PepContext;
 use anyhow::{anyhow, bail, ensure, Result};
 use expry::key_str;
 use expry::{value, DecodedValue};
-use pbkdf2::password_hash::rand_core::OsRng;
-use pbkdf2::password_hash::{PasswordHasher, SaltString};
-use pbkdf2::Pbkdf2;
+
+use prometheus::HistogramVec;
 use rand::distributions::Alphanumeric;
 use rand::Rng;
 use rusqlite::Error::QueryReturnedNoRows;
 use rusqlite::{params, Connection, Row};
 use serde::{Deserialize, Serialize};
+use std::convert::AsRef;
 use std::fmt::{Debug, Formatter};
 use std::path::Path;
 use std::str::FromStr;
+use strum_macros::AsRefStr;
 use tokio::sync::mpsc::{Receiver, Sender};
 use tokio::sync::oneshot;
 use uuid::Uuid;
 
 // Add new DDL statements at end of this vector. Do not modify previous statements. User version of the database
 // schema will be determined based on the index in the array.
-const MIGRATIONS: [&str; 5] = [
+const MIGRATIONS: [&str; 6] = [
     "
         -- Commented out, for efficiency,
         --   because it's dropped later on anyhow 
@@ -99,9 +100,11 @@ const MIGRATIONS: [&str; 5] = [
 
         CREATE UNIQUE INDEX idx_hub_name ON hub (name);
     ",
+    // passphrase no longer needed
+    "ALTER TABLE hub DROP COLUMN passphrase;",
 ];
 
-#[derive(Debug)]
+#[derive(Debug, AsRefStr)]
 pub enum DataCommands {
     AllHubs {
         resp: oneshot::Sender<Result<Vec<Hub>>>,
@@ -110,7 +113,6 @@ pub enum DataCommands {
         name: String,
         description: String,
         redirection_uri: String,
-        passphrase: String,
         resp: oneshot::Sender<Result<Hubid>>,
     },
     GetHub {
@@ -159,25 +161,39 @@ pub enum DataCommands {
     Terminate {},
 }
 
-pub fn make_database_manager<P: AsRef<Path>>(path: P, rx: Receiver<DataCommands>) {
+pub fn make_database_manager<P: AsRef<Path>>(
+    path: P,
+    rx: Receiver<DataCommands>,
+    database_req_histogram: HistogramVec,
+) {
     // can't pass reference to new thread
     let path = path.as_ref().to_path_buf();
 
     tokio::spawn(async move {
         let manager = get_manager(path).expect("A database connection");
-        handle_command(rx, manager).await
+        handle_command(rx, manager, database_req_histogram).await
     });
 }
 
-pub fn make_in_memory_database_manager(rx: Receiver<DataCommands>) {
+pub fn make_in_memory_database_manager(
+    rx: Receiver<DataCommands>,
+    database_req_histogram: HistogramVec,
+) {
     tokio::spawn(async move {
         let manager = get_connection_memory().expect("A connection to an in-memory database");
-        handle_command(rx, manager).await
+        handle_command(rx, manager, database_req_histogram).await
     });
 }
 
-async fn handle_command(mut rx: Receiver<DataCommands>, mut manager: Connection) {
+async fn handle_command(
+    mut rx: Receiver<DataCommands>,
+    mut manager: Connection,
+    database_req_histogram: HistogramVec,
+) {
     while let Some(cmd) = rx.recv().await {
+        let timer = database_req_histogram
+            .with_label_values(&[cmd.as_ref()])
+            .start_timer();
         match cmd {
             DataCommands::AllHubs { resp } => {
                 let hubs = get_all_hubs(&manager);
@@ -187,17 +203,10 @@ async fn handle_command(mut rx: Receiver<DataCommands>, mut manager: Connection)
                 name,
                 description,
                 redirection_uri,
-                passphrase,
                 resp,
             } => {
-                resp.send(create_hub(
-                    &manager,
-                    &name,
-                    &description,
-                    &redirection_uri,
-                    &passphrase,
-                ))
-                .expect("To use our channel");
+                resp.send(create_hub(&manager, &name, &description, &redirection_uri))
+                    .expect("To use our channel");
             }
             DataCommands::GetHub { resp, handle } => {
                 resp.send(get_hub(&manager, handle))
@@ -260,6 +269,7 @@ async fn handle_command(mut rx: Receiver<DataCommands>, mut manager: Connection)
             //#[cfg(test)]
             DataCommands::Terminate {} => break,
         }
+        timer.stop_and_record();
     }
 }
 
@@ -382,7 +392,6 @@ pub struct Hub {
     pub name: String,
     pub description: String,
     pub redirection_uri: String,
-    pub passphrase: String,
     pub active: bool,
 }
 
@@ -538,6 +547,14 @@ impl Hub {
     pub fn pseudonymisation_context(&self) -> String {
         format!("Hub #{}", self.id)
     }
+
+    /// Given the [crate::oidc::Oidc] instance, returns the oidc client credentials for this hub.
+    pub fn oidc_credentials(
+        &self,
+        oidc: &impl crate::oidc::Oidc,
+    ) -> crate::oidc::ClientCredentials {
+        oidc.generate_client_credentials(&self.name, &self.redirection_uri)
+    }
 }
 
 impl Debug for Hub {
@@ -561,21 +578,14 @@ pub fn create_hub(
     name: &str,
     description: &str,
     redirection_uri: &str,
-    passphrase: &str,
 ) -> Result<Hubid> {
-    let salt = SaltString::generate(&mut OsRng);
-    let passphrase = Pbkdf2
-        .hash_password(passphrase.as_ref(), &salt)
-        .unwrap()
-        .to_string();
-
     let hubid = Hubid::new();
     let decryption_id = Hubid::new();
 
     let rows_changed = db.execute(
-        "INSERT INTO hub (name, description, redirection_uri, passphrase, active, id, decryption_id)
-        values (?1, ?2, ?3, ?4, TRUE, ?5, ?6)",
-        params![name, description, redirection_uri, passphrase, hubid, decryption_id],
+        "INSERT INTO hub (name, description, redirection_uri,  active, id, decryption_id)
+        values (?1, ?2, ?3, TRUE, ?4, ?5)",
+        params![name, description, redirection_uri, hubid, decryption_id],
     )?;
 
     ensure!(
@@ -593,15 +603,14 @@ fn map_hub(row: &Row) -> rusqlite::Result<Hub> {
         name: row.get(2)?,
         description: row.get(3)?,
         redirection_uri: row.get(4)?,
-        passphrase: row.get(5)?,
-        active: row.get(6)?,
+        active: row.get(5)?,
     })
 }
 
 /// Get a hub by id if it's active.
 pub fn get_hub(db: &Connection, handle: HubHandle) -> Result<Hub> {
     let query = format!(
-        "SELECT id, decryption_id, name, description, redirection_uri, passphrase, active FROM hub
+        "SELECT id, decryption_id, name, description, redirection_uri, active FROM hub
         WHERE active = TRUE AND {} = ?1",
         handle.column_name()
     );
@@ -626,7 +635,7 @@ pub fn get_hubid(db: &Connection, name: &str) -> Result<Option<Hubid>> {
 /// List all hubs
 pub fn get_all_hubs(db: &Connection) -> Result<Vec<Hub>> {
     let mut stmt = db.prepare(
-        "SELECT id, decryption_id, name, description, redirection_uri, passphrase, active FROM hub WHERE active = TRUE",
+        "SELECT id, decryption_id, name, description, redirection_uri, active FROM hub WHERE active = TRUE",
     )?;
     let result: Result<Vec<Hub>, rusqlite::Error> = stmt.query_map([], map_hub)?.collect();
     Ok(result?)
@@ -853,7 +862,7 @@ mod tests {
         let description1 = "description1";
         let name2 = "hub2";
         let description2 = "description2";
-        let hubid1 = create_hub(&pool, name1, description1, "/callback", "password").unwrap();
+        let hubid1 = create_hub(&pool, name1, description1, "/callback").unwrap();
         let hub = get_hub(&pool, HubHandle::Id(hubid1)).unwrap();
         assert!(hub.active);
         assert_eq!(hub.pseudonymisation_context(), format!("Hub #{}", hubid1)); // DO NOT CHANGE the pseudonymisation_context lest all local pseudonyms will change
@@ -862,10 +871,10 @@ mod tests {
             format!("Hub decryption key #{}", hub.decryption_id)
         );
         assert_eq!(hub.name, name1);
-        let not_unique = create_hub(&pool, name1, description1, "/callback", "password");
+        let not_unique = create_hub(&pool, name1, description1, "/callback");
         compare_error("UNIQUE constraint failed: hub.name", not_unique);
 
-        let hubid2 = create_hub(&pool, name2, description2, "/callback", "password").unwrap();
+        let hubid2 = create_hub(&pool, name2, description2, "/callback").unwrap();
         let hub2_really = get_hub(&pool, HubHandle::Id(hubid2)).unwrap();
         assert_eq!(hub2_really.id, hubid2);
     }
@@ -875,7 +884,7 @@ mod tests {
         let (pool, delete) = set_up("can_delete_hub");
         let name1 = "hub1";
         let description1 = "description1";
-        let hubid1 = create_hub(&pool, name1, description1, "/callback", "password").unwrap();
+        let hubid1 = create_hub(&pool, name1, description1, "/callback").unwrap();
         let hub = get_hub(&pool, HubHandle::Id(hubid1)).unwrap();
         assert!(hub.active);
         delete_hub(&pool, hubid1);
@@ -884,7 +893,7 @@ mod tests {
 
         let hub = pool
             .query_row(
-                "SELECT id, decryption_id, name, description, redirection_uri, passphrase, active FROM hub WHERE name = ?1",
+                "SELECT id, decryption_id, name, description, redirection_uri, active FROM hub WHERE name = ?1",
                 [name1],
                 map_hub,
             )
@@ -897,7 +906,7 @@ mod tests {
         let (pool, delete) = set_up("can_update_hub_name");
         let name1 = "hub1";
         let description1 = "description1";
-        let hubid1 = create_hub(&pool, name1, description1, "/callback", "password").unwrap();
+        let hubid1 = create_hub(&pool, name1, description1, "/callback").unwrap();
         let hub = get_hub(&pool, HubHandle::Id(hubid1)).unwrap();
         assert_eq!(hub.name, name1);
         let name2 = "name2";
@@ -907,7 +916,7 @@ mod tests {
         assert_eq!(updated_hub.name, name2);
 
         // Different hub
-        let hubid2 = create_hub(&pool, name1, description1, "/callback", "password").unwrap();
+        let hubid2 = create_hub(&pool, name1, description1, "/callback").unwrap();
         // Rename to existing name
         let update_result = update_hub_details(&pool, hubid2, name2, description2);
         compare_error("UNIQUE constraint failed: hub.name", update_result);
