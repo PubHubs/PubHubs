@@ -866,6 +866,9 @@ async fn check_connection(url: impl AsRef<str>, nonce: impl AsRef<str>) -> Resul
     let client = awc::Client::default();
     let mut resp = client
         .get(url)
+        // awc cannot deal with the deflate content-encoding produced by the iLab proxy - not sure who's at
+        // fault, but we circumvent this problem by setting Accept-Encoding to "identity".
+        .insert_header((http::header::ACCEPT_ENCODING, awc::http::header::ContentEncoding::Identity)) 
         .send()
         .await
         .map_err(|e| anyhow::anyhow!(e.to_string() /* e is not Send */))?;
