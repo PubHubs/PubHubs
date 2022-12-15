@@ -830,45 +830,84 @@ async fn main() -> Result<()> {
         // run server
         async move { server_fut.await.context("failed to run server") },
         // and also check that the server is reachable via the public url specified in the config
-        async move {
-            tokio::task::LocalSet::new() // awc works only in such single-threaded context
-                .run_until(async move {
-                    info!("checking that you are reachable via {} ...", url);
-                    let url = url + "_connection_check";
-                    for n in 0..10 {
-                        match check_connection(&url, &connection_check_nonce).await {
-                            Ok(_) => return Ok(()),
-                            Err(e) => {
-                                log::warn!("try nr. {} failed:  {}", n, e)
-                                
-                            }
-                        }
-                        tokio::time::sleep(tokio::time::Duration::from_millis(2_u64.pow(n) * 100)).await;
-                    }
-
-                    Err(anyhow::anyhow!("Could not connect to self."))
-                })
-                .await.map_err(|_e|{
-                    if cfg!(debug_assertions) {
-                        info!("\n\nHINT:  if your ports are not publicly accessible, \nreverse forward a port to a remote server, via, e.g.,\n\n ssh -NTR 8080:localhost:8080 user@server.com\n\nand do not forget to set \"url\" to \"http://server.com:8080/\" in your configuration.\n\n");
-                    }
-                    _e
-                })
-        }
+        check_connection_abortable(url + "_connection_check", connection_check_nonce),
     )?;
     Ok(())
 }
 
-async fn check_connection(url: impl AsRef<str>, nonce: impl AsRef<str>) -> Result<()> {
+/// Checks `url` returns `nonce`.  Retries a few times upon failure.  Aborts on ctrl+c.
+async fn check_connection_abortable(url: impl AsRef<str>, nonce: impl AsRef<str>) -> Result<()> {
     let url = url.as_ref();
     let nonce = nonce.as_ref();
 
+    let (abort_handle, abort_registration) = futures::future::AbortHandle::new_pair();
+
+    futures::try_join!(
+        async {
+            futures::future::Abortable::new(check_connection(url, nonce), abort_registration)
+                .await
+                .unwrap_or_else(|_| {
+                    log::warn!("aborted connection check");
+                    Ok(())
+                })
+        },
+        async {
+            tokio::signal::ctrl_c()
+                .await
+                .context("waiting for ctrl+c")?;
+            abort_handle.abort();
+            Ok(())
+        }
+    )
+    .map(|_| ())
+}
+
+async fn check_connection(url: &str, nonce: &str) -> Result<()> {
+    // awc works only in such single-threaded context
+    tokio::task::LocalSet::new()
+        .run_until(async move {
+            info!("checking that you are reachable via {} ...", url);
+            for n in 0..10 {
+                match check_connection_once(url, nonce).await {
+                    Ok(_) => return Ok(()),
+                    Err(e) => log::warn!("try nr. {} failed:  {}", n, e),
+                };
+
+                tokio::time::sleep(tokio::time::Duration::from_millis(2_u64.pow(n) * 100)).await;
+            }
+
+            Err(anyhow::anyhow!("Could not connect to self."))
+        })
+        .await
+        .map_err(|_e| {
+            if cfg!(debug_assertions) {
+                info!(
+                    r#"HINT:  
+
+If your ports are not publicly accessible,
+reverse forward a port to a remote server, via, e.g.,
+
+ssh -NTR 8080:localhost:8080 user@server.com
+
+and do not forget to set "url" to "http://server.com:8080/" in your configuration.
+
+"#
+                );
+            }
+            _e
+        })
+}
+
+async fn check_connection_once(url: &str, nonce: &str) -> Result<()> {
     let client = awc::Client::default();
     let mut resp = client
         .get(url)
         // awc cannot deal with the deflate content-encoding produced by the iLab proxy - not sure who's at
         // fault, but we circumvent this problem by setting Accept-Encoding to "identity".
-        .insert_header((http::header::ACCEPT_ENCODING, awc::http::header::ContentEncoding::Identity)) 
+        .insert_header((
+            http::header::ACCEPT_ENCODING,
+            awc::http::header::ContentEncoding::Identity,
+        ))
         .send()
         .await
         .map_err(|e| anyhow::anyhow!(e.to_string() /* e is not Send */))?;
