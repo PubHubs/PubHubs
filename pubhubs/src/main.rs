@@ -834,35 +834,51 @@ async fn main() -> Result<()> {
             tokio::task::LocalSet::new() // awc works only in such single-threaded context
                 .run_until(async move {
                     info!("checking that you are reachable via {} ...", url);
-
                     let url = url + "_connection_check";
+                    for n in 0..10 {
+                        match check_connection(&url, &connection_check_nonce).await {
+                            Ok(_) => return Ok(()),
+                            Err(e) => {
+                                log::warn!("try nr. {} failed:  {}", n, e)
+                                
+                            }
+                        }
+                        tokio::time::sleep(tokio::time::Duration::from_millis(2_u64.pow(n) * 100)).await;
+                    }
 
-                    let client = awc::Client::default();
-                    let mut resp = client
-                        .get(&url)
-                        .send()
-                        .await
-                        .map_err(|e| anyhow::anyhow!(e.to_string() /* e is not Send */))?;
-
-                    let status = resp.status();
-                    anyhow::ensure!(status.is_success(), "{} returned status {}", url, status);
-
-                    let bytes = resp.body().await?;
-                    let result = String::from_utf8(bytes.to_vec())?;
-
-                    anyhow::ensure!(result == connection_check_nonce, "{} did not return {}; we probably connected toanother pubhubs instance, or to something else entirely", url, connection_check_nonce);
-
-                    info!(" ✓ got correct response from {}", url);
-                    Ok(())
+                    Err(anyhow::anyhow!("Could not connect to self."))
                 })
                 .await.map_err(|_e|{
                     if cfg!(debug_assertions) {
-                        info!("\n\nHINT:  if your ports are not publically accessible, \nreverse forward a port to a remote server, via, e.g.,\n\n ssh -NTR 8080:localhost:8080 user@server.com\n\nand do not forget to set \"url\" to \"http://server.com:8080/\" in your configuration.\n\n");
+                        info!("\n\nHINT:  if your ports are not publicly accessible, \nreverse forward a port to a remote server, via, e.g.,\n\n ssh -NTR 8080:localhost:8080 user@server.com\n\nand do not forget to set \"url\" to \"http://server.com:8080/\" in your configuration.\n\n");
                     }
                     _e
                 })
         }
     )?;
+    Ok(())
+}
+
+async fn check_connection(url: impl AsRef<str>, nonce: impl AsRef<str>) -> Result<()> {
+    let url = url.as_ref();
+    let nonce = nonce.as_ref();
+
+    let client = awc::Client::default();
+    let mut resp = client
+        .get(url)
+        .send()
+        .await
+        .map_err(|e| anyhow::anyhow!(e.to_string() /* e is not Send */))?;
+
+    let status = resp.status();
+    anyhow::ensure!(status.is_success(), "{} returned status {}", url, status);
+
+    let bytes = resp.body().await?;
+    let result = String::from_utf8(bytes.to_vec())?;
+
+    anyhow::ensure!(result == nonce, "{} did not return {}; we probably connected to another pubhubs instance, or to something else entirely", url, nonce);
+
+    info!(" ✓ got correct response from {}", url);
     Ok(())
 }
 
