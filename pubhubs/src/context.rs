@@ -293,7 +293,7 @@ pub struct Irma {
     pub server_url: String,
     pub client_url: String,
     pub requestor: String,
-    pub requestor_hmac_key: Vec<u8>,
+    pub requestor_hmac_key: crate::jwt::HS256,
     pub server_issuer: String,
     pub server_key: jsonwebtoken::DecodingKey,
 }
@@ -323,13 +323,13 @@ impl Irma {
                 .unwrap_or_else(|| config.server_url.clone()),
             server_url: config.server_url,
             requestor: config.requestor,
-            requestor_hmac_key: Base64::decode_vec(&having_debug_default(
+            requestor_hmac_key: crate::jwt::HS256(Base64::decode_vec(&having_debug_default(
                 config.requestor_hmac_key,
                 "aXJtYV9yZXF1ZXN0b3Jfa2V5", // base64.encodebytes(b"irma_requestor_key")
                 "irma.requestor_hmac_key",
             )?)
             .map_err(|e| anyhow!(e)) // because B64Error does not implement StdError
-            .context("expected base64-encoded irma requestor hmac key")?,
+            .context("expected base64-encoded irma requestor hmac key")?),
 
             server_issuer: config.server_issuer,
             server_key,

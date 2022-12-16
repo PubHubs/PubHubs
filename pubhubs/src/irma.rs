@@ -137,7 +137,7 @@ pub enum Subject {
 pub async fn login(
     irma_host: &str,
     irma_requestor: &str,
-    irma_requestor_hmac_key: &[u8],
+    irma_requestor_hmac_key: &crate::jwt::HS256,
     pub_hubs_host: &str,
 ) -> Result<SessionDataWithImage> {
     let to_disclose = vec![vec![vec![
@@ -159,7 +159,7 @@ pub async fn login(
 pub async fn register(
     irma_host: &str,
     irma_requestor: &str,
-    irma_requestor_hmac_key: &[u8],
+    irma_requestor_hmac_key: &crate::jwt::HS256,
     pub_hubs_host: &str,
 ) -> Result<SessionDataWithImage> {
     let to_disclose = vec![
@@ -184,14 +184,13 @@ pub async fn register(
 async fn disclose(
     irma_host: &str,
     irma_requestor: &str,
-    irma_requestor_hmac_key: &[u8],
+    irma_requestor_hmac_key: &crate::jwt::HS256,
     pub_hubs_host: &str,
     to_disclose: Vec<Vec<Vec<String>>>,
     next_session: Option<NextSession>,
 ) -> Result<SessionDataWithImage> {
     let client = Client::new();
-    let body = jsonwebtoken::encode(
-        &jsonwebtoken::Header::new(jsonwebtoken::Algorithm::HS256),
+    let body = crate::jwt::sign(
         &Claims {
             iss: irma_requestor.to_string(),
             iat: jsonwebtoken::get_current_timestamp(),
@@ -205,7 +204,7 @@ async fn disclose(
                 next_session,
             }),
         },
-        &jsonwebtoken::EncodingKey::from_secret(irma_requestor_hmac_key),
+        irma_requestor_hmac_key,
     )
     .unwrap();
 
@@ -594,7 +593,7 @@ mod tests {
         let resp = login(
             "http://localhost:3000/test1",
             "",
-            &vec![],
+            &crate::jwt::HS256(vec![]),
             test_pub_hubs_host,
         )
         .await
@@ -611,7 +610,7 @@ mod tests {
         let result = login(
             "http://localhost:3000/test1_1",
             "",
-            &vec![],
+            &crate::jwt::HS256(vec![]),
             test_pub_hubs_host,
         )
         .await;
@@ -764,7 +763,7 @@ mL8ccRpy26VYM7CYRcsoeJMCAwEAAQ==
             .unwrap(),
             client_url: "".to_string(),
             requestor: "".to_string(),
-            requestor_hmac_key: vec![],
+            requestor_hmac_key: crate::jwt::HS256(vec![]),
             server_url: "".to_string(),
         }
     }
