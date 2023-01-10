@@ -6,7 +6,7 @@ before_script:
   - test -f ${ENV_FILE} && source ${ENV_FILE} # 'source ${ENV_FILE} || true' does not work on busybox
 
 # For more information, see: https://docs.gitlab.com/ee/ci/yaml/index.html#stages
-stages:          # List of stages for jobs, and their order of execution
+stages: # List of stages for jobs, and their order of execution
   - build
   - build-images
   - deploy
@@ -26,7 +26,7 @@ clippy:
       codequality: pubhubs/gl-code-quality-report.json
     expire_in: 1 week
   rules:
-    - if: '$CODE_QUALITY_DISABLED'
+    - if: "$CODE_QUALITY_DISABLED"
       when: never
     - if: '$CI_PIPELINE_SOURCE == "push"'
   cache:
@@ -60,7 +60,6 @@ cargo-deny:
     - cd pubhubs
     - cargo deny check
 
-
 build-pubhubs-image:
   stage: build-images
   only:
@@ -83,7 +82,7 @@ deploy-main:
   stage: deploy
   only:
     - main
-  environment: $CI_COMMIT_REF_NAME 
+  environment: $CI_COMMIT_REF_NAME
   tags: [docker]
   image: ubuntu:rolling
   script:
@@ -107,6 +106,19 @@ deploy-stable:
     - chmod 600 $ILAB_VM_TRIGGER_UPDATE_KEY
     - ssh -o UserKnownHostsFile=$ILAB_VM_TRIGGER_UPDATE_KNOWN_HOSTS $ILAB_VM_TRIGGER_UPDATE_USER@$ILAB_VM_TRIGGER_UPDATE_HOST_STABLE -i $ILAB_VM_TRIGGER_UPDATE_KEY docker-pubhubs-stable
 
+unit-test-build-script:
+  stage: build
+  tags:
+    - docker
+  image: python:latest
+  variables:
+    PIP_CACHE_DIR: "$CI_PROJECT_DIR/.cache/pip"
+  script:
+    - pip install virtualenv
+    - virtualenv venv
+    - source venv/bin/activate
+    - python3 start_test_setup.py test
+
 unit-test-hub: # This job runs in the test stage.
   stage: build
   tags:
@@ -115,7 +127,7 @@ unit-test-hub: # This job runs in the test stage.
   variables:
     PIP_CACHE_DIR: "$CI_PROJECT_DIR/.cache/pip"
   before_script: #install libpepcli
-    - python --version  # For debugging
+    - python --version # For debugging
     - pip install virtualenv
     - virtualenv venv
     - source venv/bin/activate
@@ -143,30 +155,29 @@ unit-test-hub: # This job runs in the test stage.
     expire_in: 1 week
 
 build-image-hub:
-    stage: build-images
-    only:
-      - main
-      - stable
-    needs:
-      - unit-test-hub
-    tags:
-      - docker
-    image: docker:stable
-    variables:
-      CONTAINER_IMAGE: ${CI_REGISTRY}/${CI_PROJECT_PATH}/pubhubs_hub:${CI_COMMIT_REF_NAME}
-    script:
-      - cd pubhubs_hub
-      - docker login -u $CI_REGISTRY_USER -p $CI_REGISTRY_PASSWORD $CI_REGISTRY
-      - DOCKER_BUILDKIT=1 docker build -t ${CONTAINER_IMAGE} .
-      - docker push ${CONTAINER_IMAGE}
-
+  stage: build-images
+  only:
+    - main
+    - stable
+  needs:
+    - unit-test-hub
+  tags:
+    - docker
+  image: docker:stable
+  variables:
+    CONTAINER_IMAGE: ${CI_REGISTRY}/${CI_PROJECT_PATH}/pubhubs_hub:${CI_COMMIT_REF_NAME}
+  script:
+    - cd pubhubs_hub
+    - docker login -u $CI_REGISTRY_USER -p $CI_REGISTRY_PASSWORD $CI_REGISTRY
+    - DOCKER_BUILDKIT=1 docker build -t ${CONTAINER_IMAGE} .
+    - docker push ${CONTAINER_IMAGE}
 
 deploy-main-hub:
   stage: deploy
   only:
     - main
   environment: $CI_COMMIT_REF_NAME
-  tags: [ docker ]
+  tags: [docker]
   image: registry.science.ru.nl/ilab/docker-build/ubuntu-iso:main
   script:
     - cd pubhubs_hub
@@ -178,7 +189,7 @@ deploy-stable-hub:
   only:
     - stable
   environment: $CI_COMMIT_REF_NAME
-  tags: [ docker ]
+  tags: [docker]
   image: registry.science.ru.nl/ilab/docker-build/ubuntu-iso:main
   script:
     - cd pubhubs_hub
