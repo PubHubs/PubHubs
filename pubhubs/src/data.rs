@@ -1,5 +1,5 @@
 use crate::pseudonyms::PepContext;
-use anyhow::{anyhow, bail, ensure, Result};
+use anyhow::{anyhow, bail, ensure, Context as _, Result};
 use expry::key_str;
 use expry::{value, DecodedValue};
 
@@ -20,7 +20,7 @@ use uuid::Uuid;
 
 // Add new DDL statements at end of this vector. Do not modify previous statements. User version of the database
 // schema will be determined based on the index in the array.
-const MIGRATIONS: [&str; 6] = [
+const MIGRATIONS: [&str; 8] = [
     "
         -- Commented out, for efficiency,
         --   because it's dropped later on anyhow 
@@ -102,6 +102,9 @@ const MIGRATIONS: [&str; 6] = [
     ",
     // passphrase no longer needed
     "ALTER TABLE hub DROP COLUMN passphrase;",
+    // add bar state
+    "ALTER TABLE user ADD bar_state BLOB;",
+    "ALTER TABLE user ADD bar_state_etag TEXT;",
 ];
 
 #[derive(Debug, AsRefStr)]
@@ -147,6 +150,19 @@ pub enum DataCommands {
     GetUserById {
         resp: oneshot::Sender<Result<User>>,
         id: u32,
+    },
+    GetBarState {
+        resp: oneshot::Sender<Result<Option<BarState>>>,
+        id: u32,
+    },
+    // Updates bar_state to `state` if the current state has etag `old_etag` in which case
+    // `Ok(Some(etag))` is returned where `etag` is the new etag.  Otherwise, when `old_etag` is
+    // outdated, `Ok(None)` is returned.
+    UpdateBarState {
+        resp: oneshot::Sender<Result<Option<String>>>,
+        id: u32,
+        old_etag: String,
+        state: bytes::Bytes,
     },
     CreatePolicy {
         resp: oneshot::Sender<Result<Policy>>,
@@ -250,6 +266,17 @@ async fn handle_command(
             DataCommands::GetUserById { resp, id } => resp
                 .send(get_user_by_id(&manager, id))
                 .expect("Trying to use the data channel"),
+            DataCommands::GetBarState { resp, id } => resp
+                .send(get_bar_state(&manager, id))
+                .expect("Trying to use the data channel"),
+            DataCommands::UpdateBarState {
+                resp,
+                id,
+                old_etag,
+                state,
+            } => resp
+                .send(update_bar_state(&manager, id, old_etag, state))
+                .expect("Trying to use the data channel"),
             DataCommands::CreatePolicy {
                 resp,
                 content,
@@ -290,7 +317,7 @@ pub fn get_connection_memory() -> Result<Connection> {
 pub struct Policy {
     pub id: u32,
     pub content: String,
-    pub version: u32,
+    pub version: i32,
     pub highlights: Vec<String>,
 }
 
@@ -679,12 +706,19 @@ pub fn update_hub_details(
 
 #[derive(PartialEq, Eq, Serialize)]
 pub struct User {
-    pub id: i32,
+    pub id: u32,
     pub email: String,
     pub telephone: String,
     pub pseudonym: String,
     pub active: bool,
     pub administrator: bool,
+    // NOTE: the 'bar_state*' fields are stored in the BarState struct instead
+}
+
+#[derive(PartialEq, Eq, Debug)]
+pub struct BarState {
+    pub state: Vec<u8>,
+    pub state_etag: String,
 }
 
 impl Debug for User {
@@ -751,6 +785,33 @@ pub fn get_user_by_id(db: &Connection, id: u32) -> Result<User> {
     Ok(result)
 }
 
+pub fn get_bar_state(db: &Connection, id: u32) -> Result<Option<BarState>> {
+    db.query_row(
+        "SELECT bar_state, bar_state_etag FROM user WHERE active = TRUE and id = ?1",
+        [id],
+        map_bar_state,
+    )
+    .context("getting bar state from database")
+}
+
+pub fn update_bar_state(
+    db: &Connection,
+    id: u32,
+    old_etag: String,
+    state: bytes::Bytes,
+) -> Result<Option<String>> {
+    let new_etag: String = todo!();
+
+    match db.execute(
+        "UPDATE user SET bar_state = ?1, bar_state_etag = ?2 WHERE id = ?3 AND bar_state_etag = ?4;",
+        [state, new_etag, id, old_etag],
+        map_bar_state,
+    )? {
+        1 => Some(old_etag),
+        _ => None,
+    }
+}
+
 pub fn get_all_users(db: &Connection) -> Result<Vec<User>> {
     let mut stmt =
         db.prepare("SELECT id, email, telephone, pseudonym, active, administrator FROM user WHERE active = TRUE")?;
@@ -798,6 +859,20 @@ fn map_user(row: &Row) -> Result<User, rusqlite::Error> {
     })
 }
 
+fn map_bar_state(row: &Row) -> Result<Option<BarState>, rusqlite::Error> {
+    let state: Option<Vec<u8>> = row.get(0)?;
+    let state_etag: Option<String> = row.get(1)?;
+
+    if state.is_none() || state_etag.is_none() {
+        return Ok(None);
+    }
+
+    Ok(Some(BarState {
+        state: state.unwrap(),
+        state_etag: state_etag.unwrap(),
+    }))
+}
+
 fn schema_version(db: &Connection) -> Result<usize, rusqlite::Error> {
     db.query_row_and_then("PRAGMA user_version", [], |row| row.get(0))
 }
@@ -805,7 +880,8 @@ fn schema_version(db: &Connection) -> Result<usize, rusqlite::Error> {
 fn init_database(db: &mut Connection) -> Result<()> {
     for (previous_version, migration) in MIGRATIONS.iter().enumerate() {
         if previous_version == schema_version(db)? {
-            migrate(db, migration, previous_version + 1)?
+            migrate(db, migration, previous_version + 1)
+                .with_context(|| format!("while running migration {migration}"))?
         }
     }
 

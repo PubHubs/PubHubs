@@ -18,12 +18,12 @@ const SECURE: &str = " Secure;";
 const SECURE: &str = "";
 
 pub struct Cookie {
-    user_id: i32,
+    user_id: u32,
     pub cookie: String,
 }
 
 impl Cookie {
-    pub fn new(user_id: i32, cookie_secret: &str) -> Self {
+    pub fn new(user_id: u32, cookie_secret: &str) -> Self {
         let until = Utc::now()
             .checked_add_signed(Duration::seconds(MAX_AGE))
             .expect("Tried to turn a date time into a timestamp")
@@ -97,28 +97,38 @@ impl Cookie {
 
 pub fn add_cookie<'a>(
     resp: &'a mut HttpResponseBuilder,
-    user_id: i32,
+    user_id: u32,
     cookie_secret: &'a str,
 ) -> &'a mut HttpResponseBuilder {
     let cookie = Cookie::new(user_id, cookie_secret);
     resp.insert_header((SET_COOKIE, cookie.cookie.as_str()))
 }
 
-pub fn verify_cookie(req: &HttpRequest, cookie_secret: &str, id: &str) -> bool {
-    if let Some(cookies) = req.headers().get("Cookie") {
-        let cookies = cookies
-            .to_str()
-            .expect("Turning a Cookie header value into a string");
-        if let Ok(cookie) = Cookie::deserialize(cookies, cookie_secret) {
-            if let Ok(user_id) = id.parse::<i32>() {
-                return cookie.user_id == user_id;
-            }
-        }
-    }
-    false
+pub trait HttpRequestCookieExt {
+    /// Verifies `PHAccount` cookie,  and extracts userid from it.  Returns None
+    /// if there's no (valid) cookie.
+    fn user_id_from_cookie(self, cookie_secret: &str) -> Option<u32>;
 }
 
-pub fn user_id_from_verified_cookie(headers: &HeaderMap, cookie_secret: &str) -> Option<i32> {
+impl<'s> HttpRequestCookieExt for &'s HttpRequest {
+    fn user_id_from_cookie(self, cookie_secret: &str) -> Option<u32> {
+        Some(
+            Cookie::deserialize(self.headers().get("Cookie")?.to_str().ok()?, cookie_secret)
+                .ok()?
+                .user_id,
+        )
+    }
+}
+
+pub fn verify_cookie(req: &HttpRequest, cookie_secret: &str, id: &str) -> bool {
+    let user_id = id.parse::<u32>().ok();
+    // user_id.is_some() is required because we don't want to return true
+    // when both the cookie and id are invalid.
+    return user_id.is_some() && user_id == req.user_id_from_cookie(cookie_secret);
+}
+
+pub fn user_id_from_verified_cookie(headers: &HeaderMap, cookie_secret: &str) -> Option<u32> {
+    // TODO: dangerous function - remove?
     if let Some(cookies) = headers.get("Cookie") {
         let cookies = cookies
             .to_str()

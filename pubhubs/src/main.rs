@@ -1001,6 +1001,13 @@ fn create_app(cfg: &mut web::ServiceConfig, context: Data<Main>) {
                             web::post().to(irma_finish_and_redirect),
                         ),
                 )
+                .service(
+                    web::scope("bar")
+                        // get and put the state of the side bar used to switch
+                        // between hubs
+                        .route("/state", web::get().to(pubhubs::bar::get_state))
+                        .route("/state", web::put().to(pubhubs::bar::put_state)),
+                )
                 .route("/register", web::get().to(register_account))
                 .route("/register", web::post().to(register_account))
                 .route("/account/{id}", web::get().to(get_account))
@@ -1349,7 +1356,7 @@ mod tests {
         Ok(Response::new(Body::from(resp_body)))
     }
 
-    fn add_cookie_request(req: TestRequest, secret: &str, id: i32) -> TestRequest {
+    fn add_cookie_request(req: TestRequest, secret: &str, id: u32) -> TestRequest {
         let mut resp = HttpResponse::Ok();
         let resp = add_cookie(&mut resp, id, secret).finish();
 
@@ -1801,7 +1808,7 @@ mod tests {
         rx.await.unwrap().unwrap()
     }
 
-    async fn create_user(email: &str, context: &pubhubs::context::Main) -> i32 {
+    async fn create_user(email: &str, context: &pubhubs::context::Main) -> u32 {
         let (tx, rx) = oneshot::channel();
         context
             .db_tx

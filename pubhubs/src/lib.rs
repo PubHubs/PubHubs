@@ -1,3 +1,4 @@
+pub mod bar;
 pub mod config;
 pub mod context;
 pub mod cookie;
