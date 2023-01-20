@@ -197,9 +197,9 @@ def main_runner() -> None:
     run_docker_compose()
 
     # Run server in another process so that we can keep this script continue executing.
-    os.chdir("pubhubs")
-    process_pubhub_server = Process(target=run_pubhubs_server)
-    process_pubhub_server.start()
+    os.chdir("pubhubs") 
+    #process_pubhub_server = Process(target=run_pubhubs_server)
+    #process_pubhub_server.start()
     os.chdir(root_dir)
 
     # Check if the server has been started successfully
@@ -221,7 +221,7 @@ def main_runner() -> None:
 
     # we want the server to continue running in a separate process, we call join()
     # Main process will wait for puhhub server process to finish
-    process_pubhub_server.join()
+    #process_pubhub_server.join()
 
 
 ## TEST SECTION ##

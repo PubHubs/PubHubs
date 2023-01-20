@@ -189,7 +189,6 @@ impl Main {
             // Each client (i.e. hub) gets a different "sub" for the same end-user,
             // see section 8 of OpenID Connect Core 1.0.
             "subject_types_supported": ["pairwise"], 
-            
             // TODO: what does this signify?  Doesn't the OpenID provider (i.e. PubHubs)
             // simply choose what 'alg' to use?
             "id_token_signing_alg_values_supported": ["EdDSA"],
@@ -323,13 +322,15 @@ impl Irma {
                 .unwrap_or_else(|| config.server_url.clone()),
             server_url: config.server_url,
             requestor: config.requestor,
-            requestor_hmac_key: crate::jwt::HS256(Base64::decode_vec(&having_debug_default(
-                config.requestor_hmac_key,
-                "aXJtYV9yZXF1ZXN0b3Jfa2V5", // base64.encodebytes(b"irma_requestor_key")
-                "irma.requestor_hmac_key",
-            )?)
-            .map_err(|e| anyhow!(e)) // because B64Error does not implement StdError
-            .context("expected base64-encoded irma requestor hmac key")?),
+            requestor_hmac_key: crate::jwt::HS256(
+                Base64::decode_vec(&having_debug_default(
+                    config.requestor_hmac_key,
+                    "aXJtYV9yZXF1ZXN0b3Jfa2V5", // base64.encodebytes(b"irma_requestor_key")
+                    "irma.requestor_hmac_key",
+                )?)
+                .map_err(|e| anyhow!(e)) // because B64Error does not implement StdError
+                .context("expected base64-encoded irma requestor hmac key")?,
+            ),
 
             server_issuer: config.server_issuer,
             server_key,

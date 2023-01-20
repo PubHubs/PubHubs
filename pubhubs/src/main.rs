@@ -1512,6 +1512,92 @@ mod tests {
     }
 
     #[actix_web::test]
+    async fn test_bar_state() {
+        let context = create_test_context().await.unwrap();
+        let user_id = create_user("email@example.com", &context).await;
+        let ok_cookie = Cookie::new(user_id, &context.cookie_secret)
+            .cookie
+            .as_str()
+            .to_owned();
+        let invalid_cookie = Cookie::new(user_id, "not the cookie secret")
+            .cookie
+            .as_str()
+            .to_owned();
+
+        let app = test::init_service(
+            App::new().configure(move |cfg| create_app(cfg, Data::from(context))),
+        )
+        .await;
+
+        // FORBIDDEN when GETting /bar/state with invalid cookie
+        assert_eq!(
+            app.call(
+                test::TestRequest::get()
+                    .uri("/bar/state")
+                    .insert_header((COOKIE, invalid_cookie))
+                    .to_request(),
+            )
+            .await
+            .unwrap()
+            .status(),
+            http::StatusCode::FORBIDDEN
+        );
+
+        // FORBIDDEN when GETting /bar/state with no cookie
+        assert_eq!(
+            app.call(test::TestRequest::get().uri("/bar/state").to_request(),)
+                .await
+                .unwrap()
+                .status(),
+            http::StatusCode::FORBIDDEN
+        );
+
+        // OK when GETting /bar/state with valid cookie
+        let resp = app
+            .call(
+                test::TestRequest::get()
+                    .uri("/bar/state")
+                    .insert_header((COOKIE, ok_cookie.clone()))
+                    .to_request(),
+            )
+            .await
+            .unwrap();
+        assert_eq!(resp.status(), http::StatusCode::OK);
+        assert_eq!(
+            resp.headers().get("ETag").unwrap(),
+            "\"e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855\""
+        );
+        assert!(actix_web::test::read_body(resp).await.is_empty());
+
+        // OK when PUTting /bar/state with invalid cookie
+        let resp = app
+            .call(
+                test::TestRequest::put()
+                    .uri("/bar/state")
+                    .insert_header((COOKIE, ok_cookie.clone()))
+                    .insert_header((CONTENT_TYPE, "application/octet-stream"))
+                    .insert_header((
+                        actix_web::http::header::IF_MATCH,
+                        "\"e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855\"",
+                    ))
+                    .set_payload("new state")
+                    .to_request(),
+            )
+            .await
+            .unwrap();
+        println!("{}", resp.response().head().reason());
+        assert_eq!(resp.status(), http::StatusCode::OK);
+        assert_eq!(
+            resp.headers().get("ETag").unwrap(),
+            "\"8b2eec684b350a01bf1d574d264704722cdf5f0484beee6bf22bb7b26b267329\""
+        );
+        assert_eq!(
+            std::str::from_utf8(&*actix_web::test::read_body(resp).await).unwrap(),
+            "new state"
+        );
+    }
+
+    #[actix_web::test]
     async fn test_get_account_only_authorized() {
         let context = create_test_context().await.unwrap();
         let user_id = create_user("email", &context).await.to_string();

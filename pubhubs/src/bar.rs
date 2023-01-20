@@ -1,7 +1,7 @@
 use crate::cookie::HttpRequestCookieExt as _;
 use crate::error::AnyhowExt as _;
 use crate::error::TranslatedError;
-use actix_web::http::header::TryIntoHeaderValue as _;
+use actix_web::http::header::{Header as _, TryIntoHeaderValue as _};
 use anyhow::Result;
 
 pub async fn get_state(
@@ -22,7 +22,7 @@ async fn get_state_anyhow(
         Err(err_resp) => return Ok(err_resp),
     };
 
-    let bar_state: Option<crate::data::BarState> = {
+    let bar_state: crate::data::BarState = {
         let (bs_tx, bs_rx) = tokio::sync::oneshot::channel();
         context
             .db_tx
@@ -33,12 +33,6 @@ async fn get_state_anyhow(
             .await?;
         bs_rx.await??
     };
-
-    if bar_state.is_none() {
-        return Ok(actix_web::HttpResponse::NoContent().finish());
-    }
-
-    let bar_state = bar_state.unwrap();
 
     Ok(actix_web::HttpResponse::Ok()
         .insert_header(actix_web::http::header::ETag(
@@ -71,9 +65,9 @@ pub async fn put_state_anyhow(
     macro_rules! bad_req {
         ($m:expr) => {
             return Ok(actix_web::HttpResponse::BadRequest()
-                .reason(format!("Bad Request - {}", $m)
-                .finish());
-        }
+                .reason(concat!("Bad Request - ", $m))
+                .finish())
+        };
     }
 
     if req.headers().get("Content-Type")
@@ -86,24 +80,25 @@ pub async fn put_state_anyhow(
         bad_req!("Content-Type must be 'application/octet-stream'");
     }
 
-    let if_match = req.headers().get("If-Match");
+    let if_match = actix_web::http::header::IfMatch::parse(req)?;
 
+    /* TODO: check error for missing If-Match
     if if_match.is_none() {
         bad_req!("you must send the ETag (and only this ETag) of the old (and still current) state via the If-Match header");
     }
+    */
 
-    let old_etag : String = {
+    let old_etag: String = {
         match if_match {
-            Some(actix_web::http::header::IfMatch::Items(etags)) => {
+            actix_web::http::header::IfMatch::Items(etags) =>  {
                 if etags.len() != 1 {
-                    bad_req!("Sending multiple ETags via If-Match is not supported here")
+                    bad_req!("Sending multiple ETags via If-Match is not supported here");
                 }
-                etags.first().tag().to_string()
+                etags.first().expect("Expect IfMatch to not accept an empty list of ETags").tag().to_string()
             },
             _ => bad_req!("'If-Match: *' is not supported here; you must send the ETag of the old (and still current) state."),
         }
     };
-            
 
     let new_etag: Option<String> = {
         let (etag_tx, etag_rx) = tokio::sync::oneshot::channel();
@@ -130,7 +125,7 @@ pub async fn put_state_anyhow(
     Ok(actix_web::HttpResponse::NoContent()
         .content_type(actix_web::http::header::ContentType::plaintext())
         .insert_header(actix_web::http::header::ETag(
-            actix_web::http::header::EntityTag::new_strong(etag.unwrap()),
+            actix_web::http::header::EntityTag::new_strong(new_etag.unwrap()),
         ))
         .finish())
 }

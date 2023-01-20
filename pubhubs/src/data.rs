@@ -9,6 +9,7 @@ use rand::Rng;
 use rusqlite::Error::QueryReturnedNoRows;
 use rusqlite::{params, Connection, Row};
 use serde::{Deserialize, Serialize};
+use sha2::Digest as _;
 use std::convert::AsRef;
 use std::fmt::{Debug, Formatter};
 use std::path::Path;
@@ -102,9 +103,9 @@ const MIGRATIONS: [&str; 8] = [
     ",
     // passphrase no longer needed
     "ALTER TABLE hub DROP COLUMN passphrase;",
-    // add bar state
-    "ALTER TABLE user ADD bar_state BLOB;",
-    "ALTER TABLE user ADD bar_state_etag TEXT;",
+    // add bar state; NB: sha256("")="e3b0[...]"
+    "ALTER TABLE user ADD bar_state BLOB DEFAULT X'' NOT NULL;",
+    "ALTER TABLE user ADD bar_state_etag TEXT DEFAULT \"e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855\" NOT NULL;",
 ];
 
 #[derive(Debug, AsRefStr)]
@@ -152,7 +153,7 @@ pub enum DataCommands {
         id: u32,
     },
     GetBarState {
-        resp: oneshot::Sender<Result<Option<BarState>>>,
+        resp: oneshot::Sender<Result<BarState>>,
         id: u32,
     },
     // Updates bar_state to `state` if the current state has etag `old_etag` in which case
@@ -785,7 +786,7 @@ pub fn get_user_by_id(db: &Connection, id: u32) -> Result<User> {
     Ok(result)
 }
 
-pub fn get_bar_state(db: &Connection, id: u32) -> Result<Option<BarState>> {
+pub fn get_bar_state(db: &Connection, id: u32) -> Result<BarState> {
     db.query_row(
         "SELECT bar_state, bar_state_etag FROM user WHERE active = TRUE and id = ?1",
         [id],
@@ -800,15 +801,24 @@ pub fn update_bar_state(
     old_etag: String,
     state: bytes::Bytes,
 ) -> Result<Option<String>> {
-    let new_etag: String = todo!();
+    let new_etag: String = base16ct::lower::encode_string(
+        sha2::Sha256::new()
+            .chain_update(&state)
+            .finalize()
+            .as_slice(),
+    );
 
     match db.execute(
-        "UPDATE user SET bar_state = ?1, bar_state_etag = ?2 WHERE id = ?3 AND bar_state_etag = ?4;",
-        [state, new_etag, id, old_etag],
-        map_bar_state,
+        "UPDATE user SET bar_state = :bar_state, bar_state_etag = :new_etag WHERE id = :id AND bar_state_etag = :old_etag;",
+        rusqlite::named_params! {
+            ":bar_state": &*state, // &* = bytes.Bytes -> &[u8]
+            ":new_etag": new_etag,
+            ":id": id,
+            ":old_etag": old_etag,
+        },
     )? {
-        1 => Some(old_etag),
-        _ => None,
+        1 => Ok(Some(new_etag)),
+        _ => Ok(None),
     }
 }
 
@@ -859,18 +869,11 @@ fn map_user(row: &Row) -> Result<User, rusqlite::Error> {
     })
 }
 
-fn map_bar_state(row: &Row) -> Result<Option<BarState>, rusqlite::Error> {
-    let state: Option<Vec<u8>> = row.get(0)?;
-    let state_etag: Option<String> = row.get(1)?;
-
-    if state.is_none() || state_etag.is_none() {
-        return Ok(None);
-    }
-
-    Ok(Some(BarState {
-        state: state.unwrap(),
-        state_etag: state_etag.unwrap(),
-    }))
+fn map_bar_state(row: &Row) -> Result<BarState, rusqlite::Error> {
+    Ok(BarState {
+        state: row.get(0)?,
+        state_etag: row.get(1)?,
+    })
 }
 
 fn schema_version(db: &Connection) -> Result<usize, rusqlite::Error> {
