@@ -56,8 +56,16 @@ The external services for development are: an IRMA server, a Hub (matrix home se
 There is a python script that should automate some set-up:
 
 ```shell
-python3 start_test_setup.py run
+python3 start_test_setup.py run --cargo-disabled
 ```
+
+This will only build containers for IRMA, Hub and Client. Central Platform should be build and run separately with cargo.
+
+```shell
+python3 start_test_setup.py run --cargo-enabled <cargo_arguments>
+```
+
+This will only build containers for IRMA, Hub and Client, This will also build and run Central Platform with cargo. Cargo arguments `<cargo_arguments>` needs to be provided by the user e.g., cargo run or cargo watch.
 
 We've not tested it on Windows, but it should work on linux and mac.
 
@@ -105,4 +113,4 @@ curl -L https://bitpowder.com/packages/linux-packages.gpg | tee /etc/apt/trusted
 apt-get update && apt-get install -y pepcli
 ```
 
-For mac build and add to your path: https://gitlab.science.ru.nl/ilab/libpep
+For mac build, see https://gitlab.science.ru.nl/ilab/libpep
