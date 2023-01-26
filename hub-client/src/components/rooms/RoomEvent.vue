@@ -1,0 +1,31 @@
+<template>
+    <div v-if="settings.isVisibleEventType(event.type)" class="flex flex-row space-x-4 mb-8">
+        <Avatar :class="bgColor(userColor)"></Avatar>
+        <div class="w-full">
+            <H3 :class="textColor(userColor)">
+                <UserDisplayName :user="event.sender"></UserDisplayName>
+                <EventTime class="ml-2" :timestamp="event.origin_server_ts"> </EventTime>
+            </H3>
+            <Message v-if="event.content.msgtype=='m.text'" :message="event.content.body"></Message>
+            <MessageFile v-if="event.content.msgtype=='m.file'" :message="event.content"></MessageFile>
+        </div>
+    </div>
+</template>
+
+<script setup lang="ts">
+    import { useSettings } from '@/store/store'
+    import { useUserColor } from '@/composables/useUserColor';
+
+    const settings = useSettings();
+    const {color,textColor,bgColor} = useUserColor();
+
+    const userColor = color();
+
+    defineProps({
+        event: {
+            type: Object,
+            required:true,
+        },
+    });
+
+</script>
