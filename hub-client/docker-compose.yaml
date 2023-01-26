@@ -1,0 +1,9 @@
+version: "3"
+services:
+  hubclient:
+    container_name: client
+    ports:
+      - "8800:8800"
+    build: # "context" and "dockerfile" fields have to be under "build"
+      context: .
+      dockerfile: Dockerfile
