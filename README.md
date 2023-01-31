@@ -25,15 +25,18 @@ There are three main parts to PubHubs:
 
 1. The PubHubs platform itself, for central login and authentication. Hubs will only get pseudonyms but never the central identity.
 2. The hubs, [matrix](https://matrix.org/) homeservers, in the ultimate PubHubs platform these will not be federated so ids are not shared between hubs (in the longer term we'd like to link hubs to be able to share content so maybe some federation will happen).
-3. A matrix client to make sure the user can communicate with hubs.
+3. A client to make sure the user can communicate with hubs. This client is at its core a matrix client with specifics for PubHubs.
 
-This pubhubs directory contains the platform itself. The directory pubhubs_hub contains the modules we need to make hubs work within PubHubs. The client we will develop in the future.
+This pubhubs directory contains the platform itself. The directory pubhubs_hub contains the modules we need to make hubs work within PubHubs.
 
 For the identity oriented functionalities of PubHubs we use [IRMA](https://irma.app/). IRMA is also used for logging in to the central platform.
 
 ### Building static assets
 
-Static assets, so far just css, are build through build.rs, before launching the server. The build script expects npm (with sass) to be installed.
+Static assets for the PubHubs central server, so far just css, are build through build.rs, before launching the server. The build script expects npm (with sass) to be installed.
+
+Assets needed for the client are build with the several build options for the client.
+
 
 ### Running the webserver for (development purpose only)
 
@@ -48,10 +51,17 @@ Settings are in the `default.yaml` file, for development these initial settings 
 - [Sass](https://sass-lang.com/install)
 - [Libpepcli](https://gitlab.science.ru.nl/bernardg/libpep-cpp)
 
+Several libraries for the client, most important:
+- [matrix-js-sdk](https://github.com/matrix-org/matrix-js-sdk)
+- [TypeScript](https://www.typescriptlang.org)
+- [Vue](https://vuejs.org)
+- [Pinia](https://pinia.vuejs.org)
+- [Vitest](https://vitest.dev)
+- [Histoire](https://histoire.dev)
+
 ### Setting up external services
 
-The external services for development are: an IRMA server, a Hub (matrix home server) and a matrix client. We currently use our own modified Element client, that image is not publicly available. In docker-compose.yaml you will need to change `registry.science.ru.nl/ilab/pubhubs-element-web/pubhubs-element-web` to
-`vectorim/element-web`. We are planning to develop our own client, but that is not yet finished.
+The external services for development are: an IRMA server, a Hub (matrix home server) and a client.
 
 There is a python script that should automate some set-up:
 
@@ -72,7 +82,7 @@ We've not tested it on Windows, but it should work on linux and mac.
 This script will launch three containers:
 
 1. The hub.
-2. Element, the matrix client.
+2. The client.
 3. An IRMA server for revealing personal attributes.
 
 If the hub is not yet registered on the PubHubs server, the script will register the hub.
