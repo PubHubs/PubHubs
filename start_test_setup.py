@@ -229,11 +229,7 @@ def main_runner(cargo_setup:str = None) -> None:
 
     os.chdir("pubhubs_hub")
     run_docker_compose(hub_secret, " --build --force-recreate")
-    os.chdir(root_dir)
-    
-    os.chdir("hub-client")
-    run_docker_compose()
-    os.chdir(root_dir)
+
     # we want the server to continue running in a separate process, we call join()
     # Main process will wait for puhhub server process to finish
     process_pubhub_server.join()
