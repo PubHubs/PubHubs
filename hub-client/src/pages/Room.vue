@@ -1,14 +1,15 @@
 <template>
-    <div>
-        <div v-if="rooms.currentRoomExists">
-            <div class="fixed">
-                <H1>{{ $t("rooms.title",[rooms.currentRoom.name]) }}</H1>
-            </div>
+    <HeaderFooter v-if="rooms.currentRoomExists">
+        <template #header>
+            <H1>{{ $t("rooms.title",[rooms.currentRoom.name]) }}</H1>
+        </template>
 
-            <RoomTimeline class="pt-12" :room_id="rooms.currentRoomId"></RoomTimeline>
+        <RoomTimeline class="pt-12" :room_id="rooms.currentRoomId"></RoomTimeline>
+
+        <template #footer>
             <LineInput :placeholder="$t('rooms.new_message')" @update="addMessage($event)"></LineInput>
-        </div>
-    </div>
+        </template>
+    </HeaderFooter>
 </template>
 
 <script setup lang="ts">
