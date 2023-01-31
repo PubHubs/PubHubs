@@ -195,3 +195,35 @@ deploy-stable-hub:
     - cd pubhubs_hub
     - chmod 600 $ILAB_VM_TRIGGER_UPDATE_KEY
     - ssh -o UserKnownHostsFile=$ILAB_VM_TRIGGER_UPDATE_KNOWN_HOSTS $ILAB_VM_TRIGGER_UPDATE_USER@$ILAB_VM_TRIGGER_UPDATE_HOST_STABLE -i $ILAB_VM_TRIGGER_UPDATE_KEY docker-testhub-matrix-stable
+
+unit-test-client:
+  stage: build
+  tags: [docker]
+  image: node:latest
+  before_script:
+    - cd hub-client
+    - npm ci --cache .npm --prefer-offline
+  script:
+    - npm run test
+  cache:
+    key: ${CI_COMMIT_REF_SLUG}
+    paths:
+      - .npm/
+
+build-client:
+  stage: build-images
+  only:
+    - main
+    - stable
+  needs:
+    - unit-test-client
+  tags:
+    - docker
+  image: docker:stable
+  variables:
+    CONTAINER_IMAGE: ${CI_REGISTRY}/${CI_PROJECT_PATH}/pubhubs_client:${CI_COMMIT_REF_NAME}
+  script:
+    - cd hub-client
+    - docker login -u $CI_REGISTRY_USER -p $CI_REGISTRY_PASSWORD $CI_REGISTRY
+    - DOCKER_BUILDKIT=1 docker build -t ${CONTAINER_IMAGE} .
+    - docker push ${CONTAINER_IMAGE}
