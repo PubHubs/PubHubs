@@ -4,6 +4,20 @@ use crate::error::TranslatedError;
 use actix_web::http::header::{Header as _, TryIntoHeaderValue as _};
 use anyhow::Result;
 
+pub mod reason {
+    pub const IF_MATCH_DIDNT_MATCH: &'static str =
+        "Precondition Failed - current state does not have the ETag mentioned in If-Match";
+    pub const INVALID_CONTENT_TYPE: &'static str =
+        "Bad Request - Content-Type must be 'application/octet-stream'";
+    pub const IF_MATCH_MISSING: &'static str =
+        "Bad Request - You must send an If-Match header (with the ETag of the current state)";
+    pub const IF_MATCH_MULTIPLE_ETAGS: &'static str =
+        "Bad Request - Sending multiple ETags via If-Match is not supported here";
+    pub const IF_MATCH_STAR: &'static str =
+                "Bad Request - 'If-Match: *' is not supported here; you must send the ETag of the old (and still current) state.";
+    pub const MISSING_COOKIE: &'static str = "Forbidden - missing (valid) cookie";
+}
+
 pub async fn get_state(
     req: actix_web::HttpRequest,
     context: actix_web::web::Data<crate::context::Main>,
@@ -63,10 +77,8 @@ pub async fn put_state_anyhow(
     };
 
     macro_rules! bad_req {
-        ($m:expr) => {
-            return Ok(actix_web::HttpResponse::BadRequest()
-                .reason(concat!("Bad Request - ", $m))
-                .finish())
+        ($r:expr) => {
+            return Ok(actix_web::HttpResponse::BadRequest().reason($r).finish())
         };
     }
 
@@ -77,26 +89,30 @@ pub async fn put_state_anyhow(
                 .expect("octet_stream to be a valid header value"),
         )
     {
-        bad_req!("Content-Type must be 'application/octet-stream'");
+        bad_req!(reason::INVALID_CONTENT_TYPE);
     }
 
     let if_match = actix_web::http::header::IfMatch::parse(req)?;
-
-    /* TODO: check error for missing If-Match
-    if if_match.is_none() {
-        bad_req!("you must send the ETag (and only this ETag) of the old (and still current) state via the If-Match header");
-    }
-    */
+    // NOTE: interestingly, a missing "If-Match" does not result in an error, but instead in an
+    // IfMatch::Items(etags) where etags is empty.
 
     let old_etag: String = {
         match if_match {
-            actix_web::http::header::IfMatch::Items(etags) =>  {
-                if etags.len() != 1 {
-                    bad_req!("Sending multiple ETags via If-Match is not supported here");
+            actix_web::http::header::IfMatch::Items(etags) => {
+                if etags.is_empty() {
+                    bad_req!(reason::IF_MATCH_MISSING);
                 }
-                etags.first().expect("Expect IfMatch to not accept an empty list of ETags").tag().to_string()
-            },
-            _ => bad_req!("'If-Match: *' is not supported here; you must send the ETag of the old (and still current) state."),
+                println!("{etags:?}");
+                if etags.len() > 1 {
+                    bad_req!(reason::IF_MATCH_MULTIPLE_ETAGS);
+                }
+                etags
+                    .first()
+                    .expect("Expected tags.len() > 1")
+                    .tag()
+                    .to_string()
+            }
+            _ => bad_req!(reason::IF_MATCH_STAR),
         }
     };
 
@@ -116,9 +132,7 @@ pub async fn put_state_anyhow(
 
     if new_etag.is_none() {
         return Ok(actix_web::HttpResponse::PreconditionFailed()
-            .reason(
-                "Precondition Failed - current state does not have the ETag mentioned in If-Match",
-            )
+            .reason(reason::IF_MATCH_DIDNT_MATCH)
             .finish());
     }
 
@@ -138,7 +152,7 @@ fn get_user_id(
 
     if user_id.is_none() {
         return Err(actix_web::HttpResponse::Forbidden()
-            .reason("Forbidden - missing (valid) cookie")
+            .reason(reason::MISSING_COOKIE)
             .finish());
     }
 

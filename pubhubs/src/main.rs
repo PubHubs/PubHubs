@@ -1585,7 +1585,6 @@ mod tests {
             )
             .await
             .unwrap();
-        println!("{}", resp.response().head().reason());
         assert_eq!(resp.status(), http::StatusCode::NO_CONTENT);
         assert_eq!(
             resp.headers().get("ETag").unwrap(),
@@ -1633,7 +1632,10 @@ mod tests {
             )
             .await
             .unwrap();
-        println!("{}", resp.response().head().reason());
+        assert_eq!(
+            resp.response().head().reason(),
+            pubhubs::bar::reason::IF_MATCH_DIDNT_MATCH
+        );
         assert_eq!(resp.status(), http::StatusCode::PRECONDITION_FAILED);
 
         // FORBIDDEN  when PUTting /bar/state with invalid cookie
@@ -1652,8 +1654,11 @@ mod tests {
             )
             .await
             .unwrap();
-        println!("{}", resp.response().head().reason());
         assert_eq!(resp.status(), http::StatusCode::FORBIDDEN);
+        assert_eq!(
+            resp.response().head().reason(),
+            pubhubs::bar::reason::MISSING_COOKIE
+        );
 
         // FORBIDDEN  when PUTting /bar/state with no cookie
         let resp = app
@@ -1670,8 +1675,11 @@ mod tests {
             )
             .await
             .unwrap();
-        println!("{}", resp.response().head().reason());
         assert_eq!(resp.status(), http::StatusCode::FORBIDDEN);
+        assert_eq!(
+            resp.response().head().reason(),
+            pubhubs::bar::reason::MISSING_COOKIE
+        );
 
         // BAD_REQUEST  when PUTting /bar/state without If-Match
         let resp = app
@@ -1685,10 +1693,13 @@ mod tests {
             )
             .await
             .unwrap();
-        println!("{}", resp.response().head().reason());
-        assert_eq!(resp.status(), http::StatusCode::FORBIDDEN);
+        assert_eq!(resp.status(), http::StatusCode::BAD_REQUEST);
+        assert_eq!(
+            resp.response().head().reason(),
+            pubhubs::bar::reason::IF_MATCH_MISSING
+        );
 
-        // BAD_REQUEST when PUTting /bar/state without application/octet-stream Content-Type
+        // BAD_REQUEST when PUTting /bar/state with invalid Content-Type
         let resp = app
             .call(
                 test::TestRequest::put()
@@ -1704,8 +1715,73 @@ mod tests {
             )
             .await
             .unwrap();
-        println!("{}", resp.response().head().reason());
         assert_eq!(resp.status(), http::StatusCode::BAD_REQUEST);
+        assert_eq!(
+            resp.response().head().reason(),
+            pubhubs::bar::reason::INVALID_CONTENT_TYPE
+        );
+
+        // BAD_REQUEST when PUTting /bar/state with no Content-Type
+        let resp = app
+            .call(
+                test::TestRequest::put()
+                    .uri("/bar/state")
+                    .insert_header((COOKIE, ok_cookie.clone()))
+                    .insert_header((
+                        actix_web::http::header::IF_MATCH,
+                        "\"8b2eec684b350a01bf1d574d264704722cdf5f0484beee6bf22bb7b26b267329\"",
+                    ))
+                    .set_payload("new state 2")
+                    .to_request(),
+            )
+            .await
+            .unwrap();
+        assert_eq!(resp.status(), http::StatusCode::BAD_REQUEST);
+        assert_eq!(
+            resp.response().head().reason(),
+            pubhubs::bar::reason::INVALID_CONTENT_TYPE
+        );
+
+        // BAD_REQUEST when PUTting /bar/state with multiple ETags
+        let resp = app
+            .call(
+                test::TestRequest::put()
+                    .uri("/bar/state")
+                    .insert_header((COOKIE, ok_cookie.clone()))
+                    .insert_header((CONTENT_TYPE, "application/octet-stream"))
+                    .insert_header((
+                        actix_web::http::header::IF_MATCH,
+                        "\"8b2eec684b350a01bf1d574d264704722cdf5f0484beee6bf22bb7b26b267329\", \"or_this_perhaps?\"",
+                    ))
+                    .set_payload("new state 2")
+                    .to_request(),
+            )
+            .await
+            .unwrap();
+        assert_eq!(resp.status(), http::StatusCode::BAD_REQUEST);
+        assert_eq!(
+            resp.response().head().reason(),
+            pubhubs::bar::reason::IF_MATCH_MULTIPLE_ETAGS
+        );
+
+        // BAD_REQUEST when PUTting /bar/state with '*' If-Match
+        let resp = app
+            .call(
+                test::TestRequest::put()
+                    .uri("/bar/state")
+                    .insert_header((COOKIE, ok_cookie.clone()))
+                    .insert_header((CONTENT_TYPE, "application/octet-stream"))
+                    .insert_header((actix_web::http::header::IF_MATCH, "*"))
+                    .set_payload("new state 2")
+                    .to_request(),
+            )
+            .await
+            .unwrap();
+        assert_eq!(resp.status(), http::StatusCode::BAD_REQUEST);
+        assert_eq!(
+            resp.response().head().reason(),
+            pubhubs::bar::reason::IF_MATCH_STAR
+        );
     }
 
     #[actix_web::test]
