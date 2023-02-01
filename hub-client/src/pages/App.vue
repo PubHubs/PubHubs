@@ -7,7 +7,7 @@
                     <template #header>
                         <router-link to="/">
                             <Badge v-if="rooms.totalUnreadMessages>0" class="-ml-2 -mt-2">{{rooms.totalUnreadMessages}}</Badge>
-                            <Logo class="h-full"></Logo>
+                            <Logo class="h-4/5"></Logo>
                         </router-link>
                     </template>
 

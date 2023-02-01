@@ -1,5 +1,5 @@
 <template>
-    <TextInput :placeholder="$t('rooms.search')" :visible="false" @update="addNewRoom($event)" @changed="findPublicRooms($event)" @cancel="findPublicRooms('')"></TextInput>
+    <TextInput :placeholder="$t('rooms.search')" :visible="false" @submit="addNewRoom($event)" @changed="findPublicRooms($event)" @cancel="findPublicRooms('')"></TextInput>
 
     <ul v-if="hasPublicRooms" class="bg-white rounded-lg p-2">
         <li v-for="room in publicRooms" :key="room.room_id" class="flex flex-row cursor-pointer" @click="joinPublicRoom(room.room_id)">
