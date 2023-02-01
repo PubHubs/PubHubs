@@ -144,14 +144,16 @@ def export_hub_secret(hub_id: str, uri: str) -> str:
 
 
 # option cargo watch //
-def run_pubhubs_server(arg: str = None) -> None:
-    """This is a Rust server, using the default settings"""
-
-    if arg is None:
-        os.system("cargo watch --watch-when-idle -x 'run'")
-    else:
+def run_pubhubs_server(arg:str) -> None:
+    """This is a Rust server, using the default settings
+       arg    str  cargo watch --watch-when-idle -x 'run' which is provided by the user. 
+              If nothing is provided, it will not do anything.
+    """
+    
+    if arg:
         os.system(arg)
 
+    
 
 def run_docker_compose(env_value=None, args: str = None) -> None:
     """Runs docker compose command with or without supplied arguments"""
@@ -164,9 +166,18 @@ def run_docker_compose(env_value=None, args: str = None) -> None:
 
     subprocess.call(docker_command, shell=True)
 
+# No need for having a unit test for cli_error_message() code.
+def cli_error_message():
+    sys.exit(
+            "Usage -- python3 start.py run (for running automation) OR python3 start.py test (for running unit tests)\n\n"
+                "Arguments with run:\n"
+                "python3 start.py run --cargo-disabled \t\t\t\t\t This will not run Rust code from the script. You can run Cargo separately\n"
+                "python3 start.py run --cargo-enabled <argument for running cargo> \t Argument can be cargo run or cargo watch"
+                
+        )
 
 # Starting point for building pubhub testing infrastructure
-def main_runner() -> None:
+def main_runner(cargo_setup:str = None) -> None:
 
     # Check all dependencies for the given project and run pubhubs server and build the pubhubs infrastructure
     dep_list = ["cargo", "cargo-watch", "npm", "docker", "sass", "libpepcli"]
@@ -197,9 +208,9 @@ def main_runner() -> None:
     run_docker_compose()
 
     # Run server in another process so that we can keep this script continue executing.
-    os.chdir("pubhubs") 
-    #process_pubhub_server = Process(target=run_pubhubs_server)
-    #process_pubhub_server.start()
+    os.chdir("pubhubs")
+    process_pubhub_server = Process(target=run_pubhubs_server, args=(cargo_setup,))
+    process_pubhub_server.start()
     os.chdir(root_dir)
 
     # Check if the server has been started successfully
@@ -218,10 +229,14 @@ def main_runner() -> None:
 
     os.chdir("pubhubs_hub")
     run_docker_compose(hub_secret, " --build --force-recreate")
-
+    os.chdir(root_dir)
+    
+    os.chdir("hub-client")
+    run_docker_compose()
+    os.chdir(root_dir)
     # we want the server to continue running in a separate process, we call join()
     # Main process will wait for puhhub server process to finish
-    #process_pubhub_server.join()
+    process_pubhub_server.join()
 
 
 ## TEST SECTION ##
@@ -318,7 +333,8 @@ class TestPubHubsAutomation(unittest.TestCase):
 
     @mock.patch("os.system")
     def test_run_pubhubs_server(self, os_system):
-        run_pubhubs_server()
+        cargo_arg = "cargo watch --watch-when-idle -x 'run'"
+        run_pubhubs_server(cargo_arg)
         os_system.assert_called_once_with("cargo watch --watch-when-idle -x 'run'")
 
     # HTTP endpoint related unit tests.
@@ -351,14 +367,24 @@ if __name__ == "__main__":
             # We dont want argument to be read by test runner.
             unittest.main(argv=["first-arg-is-ignored"], verbosity=2)
         elif sys.argv[1].lower() == "run":
-            main_runner()
+            # Run arguments for cargo not provided.
+            if len(sys.argv) < 3:
+                cli_error_message()
+            else:
+                if sys.argv[2].lower() == "--cargo-disabled":
+                    main_runner()
+                else:
+                    if sys.argv[2].lower() == "--cargo-enabled":
+                        if len(sys.argv) < 4:
+                            cli_error_message()
+                        else:
+                            # Arguments after cargo-enabled should not be split by the argparse of python.
+                            cargo_arg = ' '.join(sys.argv[3:])
+                            main_runner(cargo_arg)
+
         else:
-            sys.exit(
-                "Usage -- python3 start.py run (for running automation) OR python3 start.py test (for running unit tests)"
-            )
+           cli_error_message() 
 
     # Default behavior in case of no argument supplied i.e., run main
     else:
-        sys.exit(
-            "Usage -- python3 start.py run (for running automation) OR python3 start.py test (for running unit tests)"
-        )
+        cli_error_message()
