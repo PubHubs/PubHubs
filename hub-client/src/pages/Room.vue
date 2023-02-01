@@ -14,7 +14,7 @@
         <RoomTimeline class="pt-12" :room_id="rooms.currentRoomId"></RoomTimeline>
 
         <template #footer>
-            <LineInput :placeholder="$t('rooms.new_message')" @submit="addMessage($event)"></LineInput>
+            <MessageInput @submit="addMessage($event)"></MessageInput>
         </template>
     </HeaderFooter>
 </template>

@@ -31,7 +31,7 @@
   },
   "rooms": {
     "leave_sure": "Do you realy won't to leave this room?",
-    "new_message": "New message",
+    "new_message": "Type your message here",
     "private_rooms": "Private rooms",
     "rooms": "Rooms",
     "search": "Search room or create new room",
@@ -48,5 +48,8 @@
     "dark": "Dark",
     "light": "Light",
     "system": "System"
+  },
+  "message": {
+    "send": "Send"
   }
 }

@@ -31,7 +31,7 @@
   },
   "rooms": {
     "leave_sure": "Weet je zeker dit gesprek wilt verlaten?",
-    "new_message": "Nieuw bericht",
+    "new_message": "Typ hier je chatbericht",
     "private_rooms": "Privé gesprekken",
     "rooms": "Gesprekken",
     "search": "Zoek gesprek of maak nieuw gesprek",
@@ -48,5 +48,8 @@
     "dark": "Donker",
     "light": "Licht",
     "system": "Systeem"
+  },
+  "message": {
+    "send": "Verstuur"
   }
 }
