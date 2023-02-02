@@ -25,6 +25,7 @@ class Authentication {
             sameSite:'strict',
             // domain: this.clientUrl,
         };
+        // debugger; // eslint-disable-line no-debugger
     }
 
 
@@ -34,6 +35,7 @@ class Authentication {
 
     private _storeAuth(response: any) {
         const auth = {
+            baseUrl: this.baseUrl,
             accessToken: response.access_token,
             userId: response.user_id,
         }
@@ -80,11 +82,11 @@ class Authentication {
         return new Promise((resolve,reject) => {
             // First check if we have an accesstoken stored
 
-            if (this._fetchAuth() !== null) {
+            const auth = this._fetchAuth();
+            if ( auth !== null && auth.baseUrl == this.baseUrl ) {
 
                 // Start client with token
                 const auth = this._fetchAuth();
-                auth.baseUrl = this.baseUrl;
                 auth.timelineSupport = true;
                 this.client = sdk.createClient(auth);
 
@@ -142,7 +144,12 @@ class Authentication {
 
             }
             else {
-                resolve(this.client);
+                if ( this.client.baseUrl == this.baseUrl ) {
+                    resolve( this.client );
+                }
+                else {
+                    resolve( false );
+                }
             }
 
         });

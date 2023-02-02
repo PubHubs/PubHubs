@@ -34,7 +34,7 @@ class PubHubs {
 
     startClient() {
         const self = this;
-        this.Auth.login().then( (client) => {
+        this.Auth.login().then( (client:any) => {
             self.client = client as MatrixClient;
             self.Events = new Events(self.client);
             self.Events.initEvents().then(()=>{
