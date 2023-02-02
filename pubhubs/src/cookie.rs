@@ -124,7 +124,7 @@ pub fn verify_cookie(req: &HttpRequest, cookie_secret: &str, id: &str) -> bool {
     let user_id = id.parse::<u32>().ok();
     // user_id.is_some() is required because we don't want to return true
     // when both the cookie and id are invalid.
-    return user_id.is_some() && user_id == req.user_id_from_cookie(cookie_secret);
+    user_id.is_some() && user_id == req.user_id_from_cookie(cookie_secret)
 }
 
 pub fn user_id_from_verified_cookie(headers: &HeaderMap, cookie_secret: &str) -> Option<u32> {

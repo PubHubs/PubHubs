@@ -8,7 +8,7 @@ use base64ct::{Base64UrlUnpadded, Encoding as _};
 use hmac::Mac as _;
 
 /// Signs `claims` using `key` yielding a JWT.
-pub fn sign<SK: SigningKey>(claims: &impl serde::Serialize, key: SK) -> anyhow::Result<String> {
+pub fn sign<SK: SigningKey>(claims: &impl serde::Serialize, key: &SK) -> anyhow::Result<String> {
     let to_be_signed: String = format!(
         "{}.{}",
         Base64UrlUnpadded::encode_string(&serde_json::to_vec(&serde_json::json!({
@@ -38,16 +38,16 @@ pub trait SigningKey: Key {
     type Signature: AsRef<[u8]>;
 
     /// Returns a (non-base64-encoded) signature on `s`.
-    fn sign(self, s: &[u8]) -> anyhow::Result<Self::Signature>;
+    fn sign(&self, s: &[u8]) -> anyhow::Result<Self::Signature>;
 
     /// Returns JSON Web Key description of the associated public key.
-    fn jwk(self) -> serde_json::Value;
+    fn jwk(&self) -> serde_json::Value;
 }
 
 /// Represents a key that can be used to verify the signature on a JWT.
 pub trait VerifyingKey: Key {
     /// Verifies signature.
-    fn is_valid_signature(self, message: &[u8], signature: Vec<u8>) -> bool;
+    fn is_valid_signature(&self, message: &[u8], signature: Vec<u8>) -> bool;
 }
 
 /// What [SigningKey] and [VerifyingKey] have in common.
@@ -90,14 +90,14 @@ pub trait Key {
 ///     "use": "sig",
 /// }));
 /// ```
-impl SigningKey for &ed25519_dalek::Keypair {
+impl SigningKey for ed25519_dalek::Keypair {
     type Signature = ed25519_dalek::Signature;
 
-    fn sign(self, s: &[u8]) -> anyhow::Result<ed25519_dalek::Signature> {
+    fn sign(&self, s: &[u8]) -> anyhow::Result<ed25519_dalek::Signature> {
         Ok(ed25519_dalek::Signer::sign(self, s))
     }
 
-    fn jwk(self) -> serde_json::Value {
+    fn jwk(&self) -> serde_json::Value {
         serde_json::json!({
             "kty": "OKP", // not "EC", see RFC8037, Section 2.
             "alg": Self::ALG,
@@ -109,7 +109,7 @@ impl SigningKey for &ed25519_dalek::Keypair {
     }
 }
 
-impl Key for &ed25519_dalek::Keypair {
+impl Key for ed25519_dalek::Keypair {
     const ALG: &'static str = "EdDSA";
 }
 
@@ -127,16 +127,16 @@ pub struct HS256(pub Vec<u8>);
 /// assert_eq!(Base64UrlUnpadded::encode_string(&result),
 ///     "dBjftJeZ4CVP-mB92K27uhbUJU1p1r_wW1gFWFOEjXk");
 /// ```
-impl SigningKey for &HS256 {
+impl SigningKey for HS256 {
     type Signature = generic_array::GenericArray<u8, typenum::U32>;
 
-    fn sign(self, s: &[u8]) -> anyhow::Result<generic_array::GenericArray<u8, typenum::U32>> {
+    fn sign(&self, s: &[u8]) -> anyhow::Result<generic_array::GenericArray<u8, typenum::U32>> {
         let mut mac = hmac::Hmac::<sha2::Sha256>::new_from_slice(&self.0)?;
         mac.update(s);
         Ok(mac.finalize().into_bytes())
     }
 
-    fn jwk(self) -> serde_json::Value {
+    fn jwk(&self) -> serde_json::Value {
         panic!("HS256 has no public key to describe using JWK");
     }
 }
@@ -149,8 +149,8 @@ impl SigningKey for &HS256 {
 /// let key = HS256(Base64UrlUnpadded::decode_vec("AyM1SysPpbyDfgZld3umj1qzKObwVMkoqQ-EstJQLr_T-1qS0gZH75aKtMN3Yj0iPS4hcgUuTwjAzZr1Z9CAow").unwrap().into());
 /// assert!(key.is_valid_signature("eyJ0eXAiOiJKV1QiLA0KICJhbGciOiJIUzI1NiJ9.eyJpc3MiOiJqb2UiLA0KICJleHAiOjEzMDA4MTkzODAsDQogImh0dHA6Ly9leGFtcGxlLmNvbS9pc19yb290Ijp0cnVlfQ".as_bytes(), Base64UrlUnpadded::decode_vec("dBjftJeZ4CVP-mB92K27uhbUJU1p1r_wW1gFWFOEjXk").unwrap()));
 /// ```
-impl VerifyingKey for &HS256 {
-    fn is_valid_signature(self, message: &[u8], signature: Vec<u8>) -> bool {
+impl VerifyingKey for HS256 {
+    fn is_valid_signature(&self, message: &[u8], signature: Vec<u8>) -> bool {
         let mut mac = hmac::Hmac::<sha2::Sha256>::new_from_slice(&self.0)
             .expect("expect a sha256 mac to accept a key of any size");
         mac.update(message);
@@ -158,6 +158,6 @@ impl VerifyingKey for &HS256 {
     }
 }
 
-impl Key for &HS256 {
+impl Key for HS256 {
     const ALG: &'static str = "HS256";
 }

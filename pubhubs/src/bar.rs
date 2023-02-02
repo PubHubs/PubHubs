@@ -5,17 +5,17 @@ use actix_web::http::header::{Header as _, TryIntoHeaderValue as _};
 use anyhow::Result;
 
 pub mod reason {
-    pub const IF_MATCH_DIDNT_MATCH: &'static str =
+    pub const IF_MATCH_DIDNT_MATCH: &str =
         "Precondition Failed - current state does not have the ETag mentioned in If-Match";
-    pub const INVALID_CONTENT_TYPE: &'static str =
+    pub const INVALID_CONTENT_TYPE: &str =
         "Bad Request - Content-Type must be 'application/octet-stream'";
-    pub const IF_MATCH_MISSING: &'static str =
+    pub const IF_MATCH_MISSING: &str =
         "Bad Request - You must send an If-Match header (with the ETag of the current state)";
-    pub const IF_MATCH_MULTIPLE_ETAGS: &'static str =
+    pub const IF_MATCH_MULTIPLE_ETAGS: &str =
         "Bad Request - Sending multiple ETags via If-Match is not supported here";
-    pub const IF_MATCH_STAR: &'static str =
+    pub const IF_MATCH_STAR: & str =
                 "Bad Request - 'If-Match: *' is not supported here; you must send the ETag of the old (and still current) state.";
-    pub const MISSING_COOKIE: &'static str = "Forbidden - missing (valid) cookie";
+    pub const MISSING_COOKIE: &str = "Forbidden - missing (valid) cookie";
 }
 
 pub async fn get_state(
@@ -31,7 +31,7 @@ async fn get_state_anyhow(
     req: &actix_web::HttpRequest,
     context: actix_web::web::Data<crate::context::Main>,
 ) -> Result<actix_web::HttpResponse> {
-    let user_id = match get_user_id(&req, &context) {
+    let user_id = match get_user_id(req, &context) {
         Ok(user_id) => user_id,
         Err(err_resp) => return Ok(err_resp),
     };
@@ -71,7 +71,7 @@ pub async fn put_state_anyhow(
     context: actix_web::web::Data<crate::context::Main>,
     state: bytes::Bytes,
 ) -> Result<actix_web::HttpResponse> {
-    let user_id = match get_user_id(&req, &context) {
+    let user_id = match get_user_id(req, &context) {
         Ok(user_id) => user_id,
         Err(err_resp) => return Ok(err_resp),
     };
