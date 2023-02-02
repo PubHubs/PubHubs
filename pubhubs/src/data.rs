@@ -169,7 +169,7 @@ pub enum DataCommands {
         resp: oneshot::Sender<Result<Policy>>,
         content: String,
         highlights: Vec<String>,
-        version: i32,
+        version: u32,
     },
     GetLatestPolicy {
         resp: oneshot::Sender<Result<Option<Policy>>>,
@@ -318,7 +318,7 @@ pub fn get_connection_memory() -> Result<Connection> {
 pub struct Policy {
     pub id: u32,
     pub content: String,
-    pub version: i32,
+    pub version: u32,
     pub highlights: Vec<String>,
 }
 
@@ -326,7 +326,7 @@ pub fn create_new_policy(
     db: &mut Connection,
     content: &str,
     highlights: Vec<String>,
-    version: i32,
+    version: u32,
 ) -> Result<Policy> {
     let tx = db.transaction()?;
     tx.execute(
@@ -347,7 +347,7 @@ impl Policy {
         content: String,
         highlights: Vec<String>,
         db: &Sender<DataCommands>,
-        version: i32,
+        version: u32,
     ) -> Self {
         let (tx, rx) = oneshot::channel();
         db.send(DataCommands::CreatePolicy {
