@@ -29,7 +29,7 @@ use pubhubs::middleware;
 use pubhubs::middleware::{metrics_auth, metrics_middleware};
 use pubhubs::{
     cookie::{
-        accepted_policy, add_cookie, log_out_cookie, user_id_from_verified_cookie, verify_cookie,
+        accepted_policy, add_cookie, log_out_cookie, verify_cookie, HttpRequestCookieExt as _,
     },
     data::{
         DataCommands::{self, AllHubs, CreateHub, CreateUser, GetHub, GetUser, GetUserById},
@@ -688,7 +688,7 @@ async fn account_login(
     context: Data<Main>,
     translations: Translations,
 ) -> HttpResponse {
-    match user_id_from_verified_cookie(req.headers(), &context.cookie_secret) {
+    match req.user_id_from_cookie(&context.cookie_secret) {
         None => {
             let prefix = translations.prefix().to_string();
             let data = value!( {

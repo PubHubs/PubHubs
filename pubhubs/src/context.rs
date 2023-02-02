@@ -16,7 +16,10 @@ use subtle::ConstantTimeEq;
 use tokio::sync::mpsc::Sender;
 use tokio::sync::{mpsc, oneshot};
 
-use crate::{config::having_debug_default, context, data::DataCommands, oidc, oidc_handler};
+use crate::{
+    config::having_debug_default, context, cookie::HttpRequestCookieExt as _, data::DataCommands,
+    oidc, oidc_handler,
+};
 
 pub struct Main {
     pub url: String,
@@ -259,20 +262,19 @@ impl Main {
         false
     }
 
-    pub async fn is_admin_request(&self, headers: &HeaderMap) -> bool {
+    pub async fn is_admin_request(&self, req: &actix_web::HttpRequest) -> bool {
         // a request is considered an admin request when either
         // the admin_api_key has been sent along in the X-Admin-API-Key header
         // or the user (authenticated by the session cookie) is an admin
 
-        if let Some(supposed_admin_api_key) = headers.get("X-Admin-API-Key") {
+        if let Some(supposed_admin_api_key) = req.headers().get("X-Admin-API-Key") {
             return supposed_admin_api_key
                 .as_bytes()
                 .ct_eq(self.admin_api_key.as_bytes())
                 .into();
         }
 
-        if let Some(id) = crate::cookie::user_id_from_verified_cookie(headers, &self.cookie_secret)
-        {
+        if let Some(id) = req.user_id_from_cookie(&self.cookie_secret) {
             let (tx, rx) = oneshot::channel();
             self.db_tx
                 .send(crate::data::DataCommands::GetUserById {

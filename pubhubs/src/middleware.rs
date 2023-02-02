@@ -79,7 +79,7 @@ where
         Box::pin(async move {
             let context = context_from_request(&req);
 
-            if !context.is_admin_request(req.headers()).await {
+            if !context.is_admin_request(req.request()).await {
                 return Err(Error::from(Forbidden {}));
             }
             service.call(req).await

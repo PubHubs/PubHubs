@@ -1,4 +1,4 @@
-use actix_web::http::header::{HeaderMap, SET_COOKIE};
+use actix_web::http::header::SET_COOKIE;
 use actix_web::{HttpRequest, HttpResponseBuilder};
 use base64ct::{Base64, Encoding as _};
 use chrono::{Duration, Utc};
@@ -125,19 +125,6 @@ pub fn verify_cookie(req: &HttpRequest, cookie_secret: &str, id: &str) -> bool {
     // user_id.is_some() is required because we don't want to return true
     // when both the cookie and id are invalid.
     user_id.is_some() && user_id == req.user_id_from_cookie(cookie_secret)
-}
-
-pub fn user_id_from_verified_cookie(headers: &HeaderMap, cookie_secret: &str) -> Option<u32> {
-    // TODO: dangerous function - remove?
-    if let Some(cookies) = headers.get("Cookie") {
-        let cookies = cookies
-            .to_str()
-            .expect("Turning a Cookie header value into a string");
-        if let Ok(cookie) = Cookie::deserialize(cookies, cookie_secret) {
-            return Some(cookie.user_id);
-        }
-    }
-    None
 }
 
 pub fn log_out_cookie() -> String {
