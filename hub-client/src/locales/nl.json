@@ -26,15 +26,16 @@
     "tool": "Gereedschap"
   },
   "others": {
-    "nop": "Deze functionaleit is nog niet gerealiseerd."
+    "nop": "Deze functionaleit is nog niet gerealiseerd.",
+    "search": "zoeken"
   },
   "rooms": {
     "leave_sure": "Weet je zeker dit gesprek wilt verlaten?",
-    "new_message": "Nieuw bericht",
+    "new_message": "Typ hier je chatbericht",
     "private_rooms": "Privé gesprekken",
     "rooms": "Gesprekken",
     "search": "Zoek gesprek of maak nieuw gesprek",
-    "title": "Je bent in gesprek `{0}`."
+    "title": "{0}"
   },
   "settings": {
     "displayname": "Bijnaam",
@@ -47,5 +48,8 @@
     "dark": "Donker",
     "light": "Licht",
     "system": "Systeem"
+  },
+  "message": {
+    "send": "Verstuur"
   }
 }

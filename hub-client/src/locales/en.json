@@ -26,15 +26,16 @@
     "tool": "Tools"
   },
   "others": {
-    "nop": "This feature is not implement yet."
+    "nop": "This feature is not implement yet.",
+    "search": "search"
   },
   "rooms": {
     "leave_sure": "Do you realy won't to leave this room?",
-    "new_message": "New message",
+    "new_message": "Type your message here",
     "private_rooms": "Private rooms",
     "rooms": "Rooms",
     "search": "Search room or create new room",
-    "title": "You are in room `{0}`"
+    "title": "{0}"
   },
   "settings": {
     "displayname": "Nickname",
@@ -47,5 +48,8 @@
     "dark": "Dark",
     "light": "Light",
     "system": "System"
+  },
+  "message": {
+    "send": "Send"
   }
 }

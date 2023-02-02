@@ -65,7 +65,7 @@ const useFormInputEvents = (emit:any) => {
 
     const submit = () => {
         if (value.value !== '') {
-            emit('update', value.value);
+            emit('submit', value.value);
         }
         value.value = '';
     }

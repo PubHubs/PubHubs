@@ -88,6 +88,20 @@ const icons : { [key:string]:string } = {
         </g>
         </g>
         `,
+    'search' :
+        `
+        <path stroke="none" d="M0 0h24v24H0z"/>
+        <circle cx="10" cy="10" r="7" />  <line x1="21" y1="21" x2="15" y2="15" />
+        `,
+    'emoticon' :
+        `
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14.828 14.828a4 4 0 01-5.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+        `,
+    'paperclip' :
+        `
+        <path stroke="none" d="M0 0h24v24H0z"/>
+        <path d="M15 7l-6.5 6.5a1.5 1.5 0 0 0 3 3l6.5 -6.5a3 3 0 0 0 -6 -6l-6.5 6.5a4.5 4.5 0 0 0 9 9 l6.5 -6.5" />
+        `,
 };
 
 export { icons, iconSizes as sizes }
