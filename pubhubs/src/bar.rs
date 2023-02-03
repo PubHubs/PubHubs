@@ -102,7 +102,6 @@ pub async fn put_state_anyhow(
                 if etags.is_empty() {
                     bad_req!(reason::IF_MATCH_MISSING);
                 }
-                println!("{etags:?}");
                 if etags.len() > 1 {
                     bad_req!(reason::IF_MATCH_MULTIPLE_ETAGS);
                 }
