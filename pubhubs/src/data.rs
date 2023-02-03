@@ -1,5 +1,5 @@
 use crate::pseudonyms::PepContext;
-use anyhow::{anyhow, bail, ensure, Result};
+use anyhow::{anyhow, bail, ensure, Context as _, Result};
 use expry::key_str;
 use expry::{value, DecodedValue};
 
@@ -9,6 +9,7 @@ use rand::Rng;
 use rusqlite::Error::QueryReturnedNoRows;
 use rusqlite::{params, Connection, Row};
 use serde::{Deserialize, Serialize};
+use sha2::Digest as _;
 use std::convert::AsRef;
 use std::fmt::{Debug, Formatter};
 use std::path::Path;
@@ -20,7 +21,7 @@ use uuid::Uuid;
 
 // Add new DDL statements at end of this vector. Do not modify previous statements. User version of the database
 // schema will be determined based on the index in the array.
-const MIGRATIONS: [&str; 6] = [
+const MIGRATIONS: [&str; 8] = [
     "
         -- Commented out, for efficiency,
         --   because it's dropped later on anyhow 
@@ -102,6 +103,9 @@ const MIGRATIONS: [&str; 6] = [
     ",
     // passphrase no longer needed
     "ALTER TABLE hub DROP COLUMN passphrase;",
+    // add bar state; NB: sha256("")="e3b0[...]"
+    "ALTER TABLE user ADD bar_state BLOB DEFAULT X'' NOT NULL;",
+    "ALTER TABLE user ADD bar_state_etag TEXT DEFAULT \"e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855\" NOT NULL;",
 ];
 
 #[derive(Debug, AsRefStr)]
@@ -148,11 +152,24 @@ pub enum DataCommands {
         resp: oneshot::Sender<Result<User>>,
         id: u32,
     },
+    GetBarState {
+        resp: oneshot::Sender<Result<BarState>>,
+        id: u32,
+    },
+    // Updates bar_state to `state` if the current state has etag `old_etag` in which case
+    // `Ok(Some(etag))` is returned where `etag` is the new etag.  Otherwise, when `old_etag` is
+    // outdated, `Ok(None)` is returned.
+    UpdateBarState {
+        resp: oneshot::Sender<Result<Option<String>>>,
+        id: u32,
+        old_etag: String,
+        state: bytes::Bytes,
+    },
     CreatePolicy {
         resp: oneshot::Sender<Result<Policy>>,
         content: String,
         highlights: Vec<String>,
-        version: i32,
+        version: u32,
     },
     GetLatestPolicy {
         resp: oneshot::Sender<Result<Option<Policy>>>,
@@ -250,6 +267,17 @@ async fn handle_command(
             DataCommands::GetUserById { resp, id } => resp
                 .send(get_user_by_id(&manager, id))
                 .expect("Trying to use the data channel"),
+            DataCommands::GetBarState { resp, id } => resp
+                .send(get_bar_state(&manager, id))
+                .expect("Trying to use the data channel"),
+            DataCommands::UpdateBarState {
+                resp,
+                id,
+                old_etag,
+                state,
+            } => resp
+                .send(update_bar_state(&manager, id, old_etag, state))
+                .expect("Trying to use the data channel"),
             DataCommands::CreatePolicy {
                 resp,
                 content,
@@ -298,7 +326,7 @@ pub fn create_new_policy(
     db: &mut Connection,
     content: &str,
     highlights: Vec<String>,
-    version: i32,
+    version: u32,
 ) -> Result<Policy> {
     let tx = db.transaction()?;
     tx.execute(
@@ -319,7 +347,7 @@ impl Policy {
         content: String,
         highlights: Vec<String>,
         db: &Sender<DataCommands>,
-        version: i32,
+        version: u32,
     ) -> Self {
         let (tx, rx) = oneshot::channel();
         db.send(DataCommands::CreatePolicy {
@@ -679,12 +707,19 @@ pub fn update_hub_details(
 
 #[derive(PartialEq, Eq, Serialize)]
 pub struct User {
-    pub id: i32,
+    pub id: u32,
     pub email: String,
     pub telephone: String,
     pub pseudonym: String,
     pub active: bool,
     pub administrator: bool,
+    // NOTE: the 'bar_state*' fields are stored in the BarState struct instead
+}
+
+#[derive(PartialEq, Eq, Debug)]
+pub struct BarState {
+    pub state: Vec<u8>,
+    pub state_etag: String,
 }
 
 impl Debug for User {
@@ -751,6 +786,42 @@ pub fn get_user_by_id(db: &Connection, id: u32) -> Result<User> {
     Ok(result)
 }
 
+pub fn get_bar_state(db: &Connection, id: u32) -> Result<BarState> {
+    db.query_row(
+        "SELECT bar_state, bar_state_etag FROM user WHERE active = TRUE and id = ?1",
+        [id],
+        map_bar_state,
+    )
+    .context("getting bar state from database")
+}
+
+pub fn update_bar_state(
+    db: &Connection,
+    id: u32,
+    old_etag: String,
+    state: bytes::Bytes,
+) -> Result<Option<String>> {
+    let new_etag: String = base16ct::lower::encode_string(
+        sha2::Sha256::new()
+            .chain_update(&state)
+            .finalize()
+            .as_slice(),
+    );
+
+    match db.execute(
+        "UPDATE user SET bar_state = :bar_state, bar_state_etag = :new_etag WHERE id = :id AND bar_state_etag = :old_etag;",
+        rusqlite::named_params! {
+            ":bar_state": &*state, // &* = bytes.Bytes -> &[u8]
+            ":new_etag": new_etag,
+            ":id": id,
+            ":old_etag": old_etag,
+        },
+    )? {
+        1 => Ok(Some(new_etag)),
+        _ => Ok(None),
+    }
+}
+
 pub fn get_all_users(db: &Connection) -> Result<Vec<User>> {
     let mut stmt =
         db.prepare("SELECT id, email, telephone, pseudonym, active, administrator FROM user WHERE active = TRUE")?;
@@ -798,6 +869,13 @@ fn map_user(row: &Row) -> Result<User, rusqlite::Error> {
     })
 }
 
+fn map_bar_state(row: &Row) -> Result<BarState, rusqlite::Error> {
+    Ok(BarState {
+        state: row.get(0)?,
+        state_etag: row.get(1)?,
+    })
+}
+
 fn schema_version(db: &Connection) -> Result<usize, rusqlite::Error> {
     db.query_row_and_then("PRAGMA user_version", [], |row| row.get(0))
 }
@@ -805,7 +883,8 @@ fn schema_version(db: &Connection) -> Result<usize, rusqlite::Error> {
 fn init_database(db: &mut Connection) -> Result<()> {
     for (previous_version, migration) in MIGRATIONS.iter().enumerate() {
         if previous_version == schema_version(db)? {
-            migrate(db, migration, previous_version + 1)?
+            migrate(db, migration, previous_version + 1)
+                .with_context(|| format!("while running migration {migration}"))?
         }
     }
 

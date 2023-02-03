@@ -16,7 +16,10 @@ use subtle::ConstantTimeEq;
 use tokio::sync::mpsc::Sender;
 use tokio::sync::{mpsc, oneshot};
 
-use crate::{config::having_debug_default, context, data::DataCommands, oidc, oidc_handler};
+use crate::{
+    config::having_debug_default, context, cookie::HttpRequestCookieExt as _, data::DataCommands,
+    oidc, oidc_handler,
+};
 
 pub struct Main {
     pub url: String,
@@ -189,7 +192,6 @@ impl Main {
             // Each client (i.e. hub) gets a different "sub" for the same end-user,
             // see section 8 of OpenID Connect Core 1.0.
             "subject_types_supported": ["pairwise"], 
-            
             // TODO: what does this signify?  Doesn't the OpenID provider (i.e. PubHubs)
             // simply choose what 'alg' to use?
             "id_token_signing_alg_values_supported": ["EdDSA"],
@@ -260,20 +262,19 @@ impl Main {
         false
     }
 
-    pub async fn is_admin_request(&self, headers: &HeaderMap) -> bool {
+    pub async fn is_admin_request(&self, req: &actix_web::HttpRequest) -> bool {
         // a request is considered an admin request when either
         // the admin_api_key has been sent along in the X-Admin-API-Key header
         // or the user (authenticated by the session cookie) is an admin
 
-        if let Some(supposed_admin_api_key) = headers.get("X-Admin-API-Key") {
+        if let Some(supposed_admin_api_key) = req.headers().get("X-Admin-API-Key") {
             return supposed_admin_api_key
                 .as_bytes()
                 .ct_eq(self.admin_api_key.as_bytes())
                 .into();
         }
 
-        if let Some(id) = crate::cookie::user_id_from_verified_cookie(headers, &self.cookie_secret)
-        {
+        if let Some(id) = req.user_id_from_cookie(&self.cookie_secret) {
             let (tx, rx) = oneshot::channel();
             self.db_tx
                 .send(crate::data::DataCommands::GetUserById {
@@ -323,13 +324,15 @@ impl Irma {
                 .unwrap_or_else(|| config.server_url.clone()),
             server_url: config.server_url,
             requestor: config.requestor,
-            requestor_hmac_key: crate::jwt::HS256(Base64::decode_vec(&having_debug_default(
-                config.requestor_hmac_key,
-                "aXJtYV9yZXF1ZXN0b3Jfa2V5", // base64.encodebytes(b"irma_requestor_key")
-                "irma.requestor_hmac_key",
-            )?)
-            .map_err(|e| anyhow!(e)) // because B64Error does not implement StdError
-            .context("expected base64-encoded irma requestor hmac key")?),
+            requestor_hmac_key: crate::jwt::HS256(
+                Base64::decode_vec(&having_debug_default(
+                    config.requestor_hmac_key,
+                    "aXJtYV9yZXF1ZXN0b3Jfa2V5", // base64.encodebytes(b"irma_requestor_key")
+                    "irma.requestor_hmac_key",
+                )?)
+                .map_err(|e| anyhow!(e)) // because B64Error does not implement StdError
+                .context("expected base64-encoded irma requestor hmac key")?,
+            ),
 
             server_issuer: config.server_issuer,
             server_key,

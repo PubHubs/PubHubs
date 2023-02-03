@@ -1,7 +1,6 @@
 use actix_web::http::header::LOCATION;
 use actix_web::web::Query;
 use actix_web::{web, HttpRequest, HttpResponse};
-use std::ffi::OsString;
 use std::fs;
 use std::path::Path;
 
@@ -30,31 +29,22 @@ pub(crate) async fn initialize_latest_policy<P: AsRef<Path>>(
 
     let versions = fs::read_dir(&policy_location)?;
 
-    let latest_location = versions
-        .map(|x| match x {
-            Ok(x) => {
-                if x.path().is_dir() {
-                    x.path()
-                        .file_name()
-                        .unwrap_or(&OsString::from("-1"))
-                        .to_str()
-                        .unwrap_or("-1")
-                        .parse()
-                        .unwrap_or(-1)
-                } else {
-                    -1
-                }
+    let latest_location: Option<u32> = versions
+        .filter_map(|x: std::io::Result<std::fs::DirEntry>| -> Option<u32> {
+            let x = x.expect("to read policy directory");
+            let p = x.path();
+            if !p.is_dir() {
+                return None;
             }
-            _ => -1,
+            p.file_name()?.to_str()?.parse().ok()
         })
-        .filter(|x| *x > 0)
         .max();
 
-    let i: i32 = latest_location.ok_or_else(|| anyhow!("No latest policy can be found"))?;
+    let i: u32 = latest_location.ok_or_else(|| anyhow!("No latest policy can be found"))?;
 
     match rx.await.expect("Expected to use our channel")? {
         Some(policy) => {
-            if i <= policy.version as i32 {
+            if i <= policy.version {
                 Ok(policy)
             } else {
                 create_latest_policy(db, &policy_location, &i).await
@@ -67,7 +57,7 @@ pub(crate) async fn initialize_latest_policy<P: AsRef<Path>>(
 async fn create_latest_policy<P: AsRef<Path>>(
     db: &Sender<DataCommands>,
     policy_location: P,
-    i: &i32,
+    i: &u32,
 ) -> Result<Policy> {
     let policy_location = policy_location.as_ref();
 

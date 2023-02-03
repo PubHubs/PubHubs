@@ -155,7 +155,7 @@ where
     fn into_translated_error(self, request: &HttpRequest) -> Result<T, TranslatedError> {
         self.map_err(|e| {
             let e = e.into();
-            let msg = e.to_string();
+            let msg = format!("{e:?}");
             let http_context: Result<HttpContext, anyhow::Error> = e.try_into();
             let status_code =
                 http_context.map_or(StatusCode::INTERNAL_SERVER_ERROR, |c| c.status_code);

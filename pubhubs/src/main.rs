@@ -29,7 +29,7 @@ use pubhubs::middleware;
 use pubhubs::middleware::{metrics_auth, metrics_middleware};
 use pubhubs::{
     cookie::{
-        accepted_policy, add_cookie, log_out_cookie, user_id_from_verified_cookie, verify_cookie,
+        accepted_policy, add_cookie, log_out_cookie, verify_cookie, HttpRequestCookieExt as _,
     },
     data::{
         DataCommands::{self, AllHubs, CreateHub, CreateUser, GetHub, GetUser, GetUserById},
@@ -688,7 +688,7 @@ async fn account_login(
     context: Data<Main>,
     translations: Translations,
 ) -> HttpResponse {
-    match user_id_from_verified_cookie(req.headers(), &context.cookie_secret) {
+    match req.user_id_from_cookie(&context.cookie_secret) {
         None => {
             let prefix = translations.prefix().to_string();
             let data = value!( {
@@ -1000,6 +1000,13 @@ fn create_app(cfg: &mut web::ServiceConfig, context: Data<Main>) {
                             "/finish-and-redirect",
                             web::post().to(irma_finish_and_redirect),
                         ),
+                )
+                .service(
+                    web::scope("bar")
+                        // get and put the state of the side bar used to switch
+                        // between hubs
+                        .route("/state", web::get().to(pubhubs::bar::get_state))
+                        .route("/state", web::put().to(pubhubs::bar::put_state)),
                 )
                 .route("/register", web::get().to(register_account))
                 .route("/register", web::post().to(register_account))
@@ -1349,7 +1356,7 @@ mod tests {
         Ok(Response::new(Body::from(resp_body)))
     }
 
-    fn add_cookie_request(req: TestRequest, secret: &str, id: i32) -> TestRequest {
+    fn add_cookie_request(req: TestRequest, secret: &str, id: u32) -> TestRequest {
         let mut resp = HttpResponse::Ok();
         let resp = add_cookie(&mut resp, id, secret).finish();
 
@@ -1502,6 +1509,279 @@ mod tests {
                 assert_eq!(body_to_string(resp).await, "Forbidden");
             }
         }
+    }
+
+    #[actix_web::test]
+    async fn test_bar_state() {
+        let context = create_test_context().await.unwrap();
+        let user_id = create_user("email@example.com", &context).await;
+        let ok_cookie = Cookie::new(user_id, &context.cookie_secret)
+            .cookie
+            .as_str()
+            .to_owned();
+        let invalid_cookie = Cookie::new(user_id, "not the cookie secret")
+            .cookie
+            .as_str()
+            .to_owned();
+
+        let app = test::init_service(
+            App::new().configure(move |cfg| create_app(cfg, Data::from(context))),
+        )
+        .await;
+
+        // FORBIDDEN when GETting /bar/state with invalid cookie
+        assert_eq!(
+            app.call(
+                test::TestRequest::get()
+                    .uri("/bar/state")
+                    .insert_header((COOKIE, invalid_cookie.clone()))
+                    .to_request(),
+            )
+            .await
+            .unwrap()
+            .status(),
+            http::StatusCode::FORBIDDEN
+        );
+
+        // FORBIDDEN when GETting /bar/state with no cookie
+        assert_eq!(
+            app.call(test::TestRequest::get().uri("/bar/state").to_request(),)
+                .await
+                .unwrap()
+                .status(),
+            http::StatusCode::FORBIDDEN
+        );
+
+        // OK when GETting /bar/state with valid cookie
+        let resp = app
+            .call(
+                test::TestRequest::get()
+                    .uri("/bar/state")
+                    .insert_header((COOKIE, ok_cookie.clone()))
+                    .to_request(),
+            )
+            .await
+            .unwrap();
+        assert_eq!(resp.status(), http::StatusCode::OK);
+        assert_eq!(
+            resp.headers().get("ETag").unwrap(),
+            "\"e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855\""
+        );
+        assert!(actix_web::test::read_body(resp).await.is_empty());
+
+        // NO_CONTENT when PUTting /bar/state with valid cookie and If-Match
+        let resp = app
+            .call(
+                test::TestRequest::put()
+                    .uri("/bar/state")
+                    .insert_header((COOKIE, ok_cookie.clone()))
+                    .insert_header((CONTENT_TYPE, "application/octet-stream"))
+                    .insert_header((
+                        actix_web::http::header::IF_MATCH,
+                        "\"e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855\"",
+                    ))
+                    .set_payload("new state")
+                    .to_request(),
+            )
+            .await
+            .unwrap();
+        assert_eq!(resp.status(), http::StatusCode::NO_CONTENT);
+        assert_eq!(
+            resp.headers().get("ETag").unwrap(),
+            "\"8b2eec684b350a01bf1d574d264704722cdf5f0484beee6bf22bb7b26b267329\""
+        );
+        assert_eq!(
+            std::str::from_utf8(&*actix_web::test::read_body(resp).await).unwrap(),
+            ""
+        );
+
+        // /bar/state has now changed...
+        let resp = app
+            .call(
+                test::TestRequest::get()
+                    .uri("/bar/state")
+                    .insert_header((COOKIE, ok_cookie.clone()))
+                    .to_request(),
+            )
+            .await
+            .unwrap();
+        assert_eq!(resp.status(), http::StatusCode::OK);
+        assert_eq!(
+            resp.headers().get("ETag").unwrap(),
+            "\"8b2eec684b350a01bf1d574d264704722cdf5f0484beee6bf22bb7b26b267329\""
+        );
+        assert_eq!(
+            std::str::from_utf8(&*actix_web::test::read_body(resp).await).unwrap(),
+            "new state"
+        );
+
+        // PRECONDITION_FAILED when PUTting /bar/state with invalid hash
+        let resp = app
+            .call(
+                test::TestRequest::put()
+                    .uri("/bar/state")
+                    .insert_header((COOKIE, ok_cookie.clone()))
+                    .insert_header((CONTENT_TYPE, "application/octet-stream"))
+                    .insert_header((
+                        actix_web::http::header::IF_MATCH,
+                        // = sha256("")
+                        "\"e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855\"",
+                    ))
+                    .set_payload("new state 2")
+                    .to_request(),
+            )
+            .await
+            .unwrap();
+        assert_eq!(
+            resp.response().head().reason(),
+            pubhubs::bar::reason::IF_MATCH_DIDNT_MATCH
+        );
+        assert_eq!(resp.status(), http::StatusCode::PRECONDITION_FAILED);
+
+        // FORBIDDEN  when PUTting /bar/state with invalid cookie
+        let resp = app
+            .call(
+                test::TestRequest::put()
+                    .uri("/bar/state")
+                    .insert_header((COOKIE, invalid_cookie.clone()))
+                    .insert_header((CONTENT_TYPE, "application/octet-stream"))
+                    .insert_header((
+                        actix_web::http::header::IF_MATCH,
+                        "\"8b2eec684b350a01bf1d574d264704722cdf5f0484beee6bf22bb7b26b267329\"",
+                    ))
+                    .set_payload("new state 2")
+                    .to_request(),
+            )
+            .await
+            .unwrap();
+        assert_eq!(resp.status(), http::StatusCode::FORBIDDEN);
+        assert_eq!(
+            resp.response().head().reason(),
+            pubhubs::bar::reason::MISSING_COOKIE
+        );
+
+        // FORBIDDEN  when PUTting /bar/state with no cookie
+        let resp = app
+            .call(
+                test::TestRequest::put()
+                    .uri("/bar/state")
+                    .insert_header((CONTENT_TYPE, "application/octet-stream"))
+                    .insert_header((
+                        actix_web::http::header::IF_MATCH,
+                        "\"8b2eec684b350a01bf1d574d264704722cdf5f0484beee6bf22bb7b26b267329\"",
+                    ))
+                    .set_payload("new state 2")
+                    .to_request(),
+            )
+            .await
+            .unwrap();
+        assert_eq!(resp.status(), http::StatusCode::FORBIDDEN);
+        assert_eq!(
+            resp.response().head().reason(),
+            pubhubs::bar::reason::MISSING_COOKIE
+        );
+
+        // BAD_REQUEST  when PUTting /bar/state without If-Match
+        let resp = app
+            .call(
+                test::TestRequest::put()
+                    .uri("/bar/state")
+                    .insert_header((COOKIE, ok_cookie.clone()))
+                    .insert_header((CONTENT_TYPE, "application/octet-stream"))
+                    .set_payload("new state 2")
+                    .to_request(),
+            )
+            .await
+            .unwrap();
+        assert_eq!(resp.status(), http::StatusCode::BAD_REQUEST);
+        assert_eq!(
+            resp.response().head().reason(),
+            pubhubs::bar::reason::IF_MATCH_MISSING
+        );
+
+        // BAD_REQUEST when PUTting /bar/state with invalid Content-Type
+        let resp = app
+            .call(
+                test::TestRequest::put()
+                    .uri("/bar/state")
+                    .insert_header((COOKIE, ok_cookie.clone()))
+                    .insert_header((CONTENT_TYPE, "application/json"))
+                    .insert_header((
+                        actix_web::http::header::IF_MATCH,
+                        "\"8b2eec684b350a01bf1d574d264704722cdf5f0484beee6bf22bb7b26b267329\"",
+                    ))
+                    .set_payload("new state 2")
+                    .to_request(),
+            )
+            .await
+            .unwrap();
+        assert_eq!(resp.status(), http::StatusCode::BAD_REQUEST);
+        assert_eq!(
+            resp.response().head().reason(),
+            pubhubs::bar::reason::INVALID_CONTENT_TYPE
+        );
+
+        // BAD_REQUEST when PUTting /bar/state with no Content-Type
+        let resp = app
+            .call(
+                test::TestRequest::put()
+                    .uri("/bar/state")
+                    .insert_header((COOKIE, ok_cookie.clone()))
+                    .insert_header((
+                        actix_web::http::header::IF_MATCH,
+                        "\"8b2eec684b350a01bf1d574d264704722cdf5f0484beee6bf22bb7b26b267329\"",
+                    ))
+                    .set_payload("new state 2")
+                    .to_request(),
+            )
+            .await
+            .unwrap();
+        assert_eq!(resp.status(), http::StatusCode::BAD_REQUEST);
+        assert_eq!(
+            resp.response().head().reason(),
+            pubhubs::bar::reason::INVALID_CONTENT_TYPE
+        );
+
+        // BAD_REQUEST when PUTting /bar/state with multiple ETags
+        let resp = app
+            .call(
+                test::TestRequest::put()
+                    .uri("/bar/state")
+                    .insert_header((COOKIE, ok_cookie.clone()))
+                    .insert_header((CONTENT_TYPE, "application/octet-stream"))
+                    .insert_header((
+                        actix_web::http::header::IF_MATCH,
+                        "\"8b2eec684b350a01bf1d574d264704722cdf5f0484beee6bf22bb7b26b267329\", \"or_this_perhaps?\"",
+                    ))
+                    .set_payload("new state 2")
+                    .to_request(),
+            )
+            .await
+            .unwrap();
+        assert_eq!(resp.status(), http::StatusCode::BAD_REQUEST);
+        assert_eq!(
+            resp.response().head().reason(),
+            pubhubs::bar::reason::IF_MATCH_MULTIPLE_ETAGS
+        );
+
+        // BAD_REQUEST when PUTting /bar/state with '*' If-Match
+        let resp = app
+            .call(
+                test::TestRequest::put()
+                    .uri("/bar/state")
+                    .insert_header((COOKIE, ok_cookie.clone()))
+                    .insert_header((CONTENT_TYPE, "application/octet-stream"))
+                    .insert_header((actix_web::http::header::IF_MATCH, "*"))
+                    .set_payload("new state 2")
+                    .to_request(),
+            )
+            .await
+            .unwrap();
+        assert_eq!(resp.status(), http::StatusCode::BAD_REQUEST);
+        assert_eq!(
+            resp.response().head().reason(),
+            pubhubs::bar::reason::IF_MATCH_STAR
+        );
     }
 
     #[actix_web::test]
@@ -1801,7 +2081,7 @@ mod tests {
         rx.await.unwrap().unwrap()
     }
 
-    async fn create_user(email: &str, context: &pubhubs::context::Main) -> i32 {
+    async fn create_user(email: &str, context: &pubhubs::context::Main) -> u32 {
         let (tx, rx) = oneshot::channel();
         context
             .db_tx
