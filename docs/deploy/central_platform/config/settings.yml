@@ -1,0 +1,64 @@
+# NOTE: This is a sample file for demontration purpose. 
+# The values needs to be updated. The settings will not work if used.
+# Public for url for central platform. If a url is not provided then Central Platform will
+# will detect public IP automatically.
+url: https://<central-platform-url>/
+
+# Database location in central platform. It should point to SQLlite file
+database_location: /data/mydata.db
+
+#  Policy of central platform.
+policy_directory: /data/policy
+
+# List of admin email addresses. There is another way to use admin functionality.
+admins: ["dummy@example.commmm"]
+
+# Central platform admin key
+# Generate the api key command is as follows:
+# openssl rand -hex 32
+admin_api_key: changeme
+
+# Generate the real secret
+# openssl rand -hex 32
+cookie_secret: changeme
+
+# oidc 
+#openssl rand -base64 32
+# This should be changed!
+oidc_secret: ZGWlJ4q3z9PCkngjQJiu016Ba4iP7XIgBi5MyOtvG/Y=
+
+# openssl rand -hex 32
+# This is the authentication required for /metrics endpoint.
+metrics_key: changeme
+
+#
+irma: {
+    # This should point to the issuer url of IRMA instance.
+    # This example url is only for local host testing.
+    server_url: http://host.docker.internal:8088,
+ 
+    # Client URL for the irma server. You want a different client url in a real deployment
+    # This example url is only for local host testing.
+    client_url: http://host.docker.internal:8088,
+
+    # To secure the IRMA server request. This should be changed!
+    requestor_hmac_key: aXJtYV9yZXF1ZXN0b3Jfa2V5,
+
+    # This should be the public key of your IRMA server.
+    server_key_file: /config/jwt.pub,
+    # JWT issuer setttings of IRMA server. We use the default name. To use a different name, you need to specify it.
+  }
+
+pep: {
+    # Generate public key and secret key  with libpepcli e.g., libpepcli generate-global-keys command. This should be changed!
+    global_public_key: c292c351ed48fbb6212fb8afdb696bbbe3cbdebde6074ba17b4aac53a0f2b03b,
+
+    global_secret_key: 69e6bc111dbc963f39f93a172e6a7bd9ff00b5d07149b01a25faefed3d162001,
+
+    factor_secret: changeme,
+  }
+
+## Not necessary to change!
+translations_directory: /static/translations
+assets_directory: /static/assets
+templates_file: /static/templates_hair/hair.html
