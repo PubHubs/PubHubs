@@ -34,7 +34,9 @@ docker run -p 8080:8080 --mount "type=bind,src=<absolute_path>/config,dst=/confi
 
  <img src=../../pictures/admin-page.png alt="drawing" width="3000"/>
 
-- Fill in the hub name, it description, and redirection URI e.g., `https://<hub-domain-name>/_synapse/client/oidc/callback`. This redirection URI will be provided by the hub owner. The redirection URI is the resource where the users using the client  will be redirected to,  after logging in at the central platform.
+- Fill in the hub name, it description, and redirection URI e.g., `https://<hub-domain-name>/_synapse/client/oidc/callback`. This redirection URI will be provided by the hub owner. The redirection URI is the resource where the users using the client will be redirected to, after logging in at the central platform.
+
+> After adding the Hub if you are directed to Not Found message page. Go back from browser and Refresh the page.
 
 - The secret and confidential information about Hub can be downloaded by clicking on the `+`icon under Detail column for each Hub.
 
