@@ -19,10 +19,98 @@ use tokio::sync::mpsc::{Receiver, Sender};
 use tokio::sync::oneshot;
 use uuid::Uuid;
 
-// Add new DDL statements at end of this vector. Do not modify previous statements. User version of the database
-// schema will be determined based on the index in the array.
-const MIGRATIONS: [&str; 8] = [
-    "
+/// Trait for a database migration.  Implemented by `str` for simple SQL-statements.
+///
+/// See [MIGRATIONS] for more details.
+trait Migration {
+    /// Describes this migration, for error messages.
+    fn describe(&'static self) -> &'static str;
+
+    /// Performs the migration within the given database transaction.
+    ///
+    /// Does not update `user_version`.
+    fn perform_in_tx(&'static self, tx: &rusqlite::Transaction) -> Result<()>;
+
+    /// Performs the migration on the given database connection.
+    ///
+    /// Updates `user_version`.
+    fn perform_on_db(&'static self, db: &mut Connection, next_migration_nr: usize) -> Result<()> {
+        let tx = db.transaction()?;
+        self.perform_in_tx(&tx)?;
+
+        // Yes it's a formatted string, this is because rusqlite
+        // does not let us make a prepared statement with PRAGMA. Fortunately it's a usize parameter.
+        tx.execute(
+            format!("PRAGMA user_version = {next_migration_nr}").as_str(),
+            [],
+        )?;
+        tx.commit()?;
+        Ok(())
+    }
+}
+
+// NB. I tried, but could not let str (instead of &'static str) implement Migration,
+// without causing "str is not Sized" errors when defining the MIGRATIONS array.
+impl Migration for &'static str {
+    fn perform_in_tx(&'static self, tx: &rusqlite::Transaction) -> Result<()> {
+        tx.execute_batch(self)?;
+        Ok(())
+    }
+
+    fn describe(&'static self) -> &'static str {
+        self
+    }
+}
+
+impl<T> Migration for (&'static str, T)
+where
+    T: Fn(&rusqlite::Transaction) -> Result<()>,
+{
+    fn perform_in_tx(&'static self, tx: &rusqlite::Transaction) -> Result<()> {
+        self.1(tx)
+    }
+
+    fn describe(&'static self) -> &'static str {
+        self.0
+    }
+}
+
+fn schema_version(db: &Connection) -> Result<usize, rusqlite::Error> {
+    db.query_row_and_then("PRAGMA user_version", [], |row| row.get(0))
+}
+
+/// Performs any missing migrations up_to but not including `up_to`.
+/// If `up_to` is `None`, performs all missing migrations.
+fn migrate_database(db: &mut Connection, do_migrations: DoMigrations) -> Result<()> {
+    let next_version = schema_version(db)?;
+
+    // up to, but not including
+    let up_to: usize = match do_migrations {
+        DoMigrations::All => MIGRATIONS.len(),
+        DoMigrations::UpTo(up_to) => up_to,
+    };
+
+    for i in next_version..up_to {
+        let migration = MIGRATIONS[i];
+
+        migration
+            .perform_on_db(db, i + 1) // the next migration number is i+1
+            .with_context(|| format!("while running migration #{i} {}", migration.describe()))?;
+    }
+
+    Ok(())
+}
+
+/// Add new DDL statements at end of this vector. Do not modify previous statements (unless you are completely
+/// sure it does no harm.)
+///
+/// The migrations are numbered by their index from this array, and should be performed in order.
+/// When migration n has been performed, the `user_version` is set to n+1.  So `user_version` must
+/// be interpretted as the index of the next migration to be performed.
+///
+/// Since a blank database starts with `user_version=0`, migration number 0 will be performed first.
+const MIGRATIONS: [&dyn Migration; 10] = [
+    &"
         -- Commented out, for efficiency,
         --   because it's dropped later on anyhow 
         --
@@ -48,10 +136,10 @@ const MIGRATIONS: [&str; 8] = [
         );
 
         CREATE UNIQUE INDEX idx_user_email_telephone ON user (email, telephone);",
-    "
+    &"
         ALTER TABLE user ADD administrator INTEGER NOT NULL DEFAULT 0; 
         ", //0 is the value for a boolean false
-    "
+    &"
         CREATE TABLE policy (
             id  INTEGER PRIMARY KEY,
             content TEXT NOT NULL,
@@ -71,7 +159,7 @@ const MIGRATIONS: [&str; 8] = [
        );
     ",
     // not migrating existing hubs (as it's not worth the effort)
-    "
+    &"
         -- DROP TABLE hub;
         --
         -- CREATE TABLE hub (
@@ -86,7 +174,7 @@ const MIGRATIONS: [&str; 8] = [
         -- CREATE UNIQUE INDEX idx_hub_name ON hub (name);
     ",
     // forgot one field..
-    "
+    &"
         DROP TABLE IF EXISTS hub;
 
         CREATE TABLE hub (
@@ -102,11 +190,46 @@ const MIGRATIONS: [&str; 8] = [
         CREATE UNIQUE INDEX idx_hub_name ON hub (name);
     ",
     // passphrase no longer needed
-    "ALTER TABLE hub DROP COLUMN passphrase;",
+    &"ALTER TABLE hub DROP COLUMN passphrase;",
     // add bar state; NB: sha256("")="e3b0[...]"
-    "ALTER TABLE user ADD bar_state BLOB DEFAULT X'' NOT NULL;",
-    "ALTER TABLE user ADD bar_state_etag TEXT DEFAULT \"e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855\" NOT NULL;",
+    &"ALTER TABLE user ADD bar_state BLOB DEFAULT X'' NOT NULL;",
+    &"ALTER TABLE user ADD bar_state_etag TEXT DEFAULT \"e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855\" NOT NULL;",
+    &"ALTER TABLE hub RENAME COLUMN redirection_uri TO oidc_redirect_uri;", // #8
+    &("adding client_uri to hub", migration_add_client_uri) // #9
 ];
+
+/// Adds `client_uri` field to hub, with as initial value the `oidc_redirect_uri` but with path,
+/// query and fragment cleared.
+fn migration_add_client_uri(tx: &rusqlite::Transaction) -> Result<()> {
+    tx.execute(
+        "ALTER TABLE hub ADD client_uri TEXT NOT NULL DEFAULT ''",
+        [],
+    )?;
+
+    let mut select_stmt = tx.prepare("SELECT id, oidc_redirect_uri from hub")?;
+
+    let rows = select_stmt.query_map([], |row| {
+        let id: String = row.get(0)?;
+        let oidc_redirect_uri: String = row.get(1)?;
+
+        Ok((id, oidc_redirect_uri))
+    })?;
+
+    let mut update_stmt = tx.prepare("UPDATE hub SET client_uri = :uri WHERE id = :id")?;
+
+    for row_result in rows {
+        let (id, oidc_redirect_uri) = row_result?;
+
+        let mut uri = url::Url::parse(&oidc_redirect_uri)?;
+        uri.set_path("");
+        uri.set_query(None);
+        uri.set_fragment(None);
+
+        update_stmt.execute(rusqlite::named_params! { ":id": id, ":uri": uri.to_string()})?;
+    }
+
+    Ok(())
+}
 
 #[derive(Debug, AsRefStr)]
 pub enum DataCommands {
@@ -116,7 +239,7 @@ pub enum DataCommands {
     CreateHub {
         name: String,
         description: String,
-        redirection_uri: String,
+        oidc_redirect_uri: String,
         resp: oneshot::Sender<Result<Hubid>>,
     },
     GetHub {
@@ -197,7 +320,8 @@ pub fn make_in_memory_database_manager(
     database_req_histogram: HistogramVec,
 ) {
     tokio::spawn(async move {
-        let manager = get_connection_memory().expect("A connection to an in-memory database");
+        let manager = get_connection_memory(DoMigrations::All)
+            .expect("A connection to an in-memory database");
         handle_command(rx, manager, database_req_histogram).await
     });
 }
@@ -219,11 +343,16 @@ async fn handle_command(
             DataCommands::CreateHub {
                 name,
                 description,
-                redirection_uri,
+                oidc_redirect_uri,
                 resp,
             } => {
-                resp.send(create_hub(&manager, &name, &description, &redirection_uri))
-                    .expect("To use our channel");
+                resp.send(create_hub(
+                    &manager,
+                    &name,
+                    &description,
+                    &oidc_redirect_uri,
+                ))
+                .expect("To use our channel");
             }
             DataCommands::GetHub { resp, handle } => {
                 resp.send(get_hub(&manager, handle))
@@ -304,13 +433,22 @@ async fn handle_command(
 /// Fetch a pool to a database located at the given path. Will initialize the database with the correct schemas if not created yet.
 pub fn get_manager<P: AsRef<Path>>(path: P) -> Result<Connection> {
     let mut manager = Connection::open(path)?;
-    init_database(&mut manager)?;
+    migrate_database(&mut manager, DoMigrations::All)?;
     Ok(manager)
 }
 
-pub fn get_connection_memory() -> Result<Connection> {
+/// Specify which migrations to perform.
+pub enum DoMigrations {
+    All,
+    /// up to, but not including, the migration with this number
+    UpTo(usize),
+}
+
+/// Creates a blank in-mempory database, and applies all migrations to it up to (but not including)
+/// number `migrate_up_to`.  Performs all migrations if `migrate_up_to` is `None`.
+pub fn get_connection_memory(do_migrations: DoMigrations) -> Result<Connection> {
     let mut manager = Connection::open_in_memory()?;
-    init_database(&mut manager)?;
+    migrate_database(&mut manager, do_migrations)?;
     Ok(manager)
 }
 
@@ -419,7 +557,7 @@ pub struct Hub {
     pub decryption_id: Hubid,
     pub name: String,
     pub description: String,
-    pub redirection_uri: String,
+    pub oidc_redirect_uri: String,
     pub active: bool,
 }
 
@@ -581,7 +719,7 @@ impl Hub {
         &self,
         oidc: &impl crate::oidc::Oidc,
     ) -> crate::oidc::ClientCredentials {
-        oidc.generate_client_credentials(&self.name, &self.redirection_uri)
+        oidc.generate_client_credentials(&self.name, &self.oidc_redirect_uri)
     }
 }
 
@@ -597,7 +735,7 @@ impl Debug for Hub {
 
 impl<'a> From<&'a Hub> for DecodedValue<'a> {
     fn from(v: &'a Hub) -> Self {
-        value!({"id": v.id.data, "name": v.name, "description": v.description, "redirection_uri": v.redirection_uri})
+        value!({"id": v.id.data, "name": v.name, "description": v.description, "oidc_redirect_uri": v.oidc_redirect_uri})
     }
 }
 
@@ -605,15 +743,15 @@ pub fn create_hub(
     db: &Connection,
     name: &str,
     description: &str,
-    redirection_uri: &str,
+    oidc_redirect_uri: &str,
 ) -> Result<Hubid> {
     let hubid = Hubid::new();
     let decryption_id = Hubid::new();
 
     let rows_changed = db.execute(
-        "INSERT INTO hub (name, description, redirection_uri,  active, id, decryption_id)
+        "INSERT INTO hub (name, description, oidc_redirect_uri,  active, id, decryption_id)
         values (?1, ?2, ?3, TRUE, ?4, ?5)",
-        params![name, description, redirection_uri, hubid, decryption_id],
+        params![name, description, oidc_redirect_uri, hubid, decryption_id],
     )?;
 
     ensure!(
@@ -630,7 +768,7 @@ fn map_hub(row: &Row) -> rusqlite::Result<Hub> {
         decryption_id: row.get(1)?,
         name: row.get(2)?,
         description: row.get(3)?,
-        redirection_uri: row.get(4)?,
+        oidc_redirect_uri: row.get(4)?,
         active: row.get(5)?,
     })
 }
@@ -638,7 +776,7 @@ fn map_hub(row: &Row) -> rusqlite::Result<Hub> {
 /// Get a hub by id if it's active.
 pub fn get_hub(db: &Connection, handle: HubHandle) -> Result<Hub> {
     let query = format!(
-        "SELECT id, decryption_id, name, description, redirection_uri, active FROM hub
+        "SELECT id, decryption_id, name, description, oidc_redirect_uri, active FROM hub
         WHERE active = TRUE AND {} = ?1",
         handle.column_name()
     );
@@ -663,7 +801,7 @@ pub fn get_hubid(db: &Connection, name: &str) -> Result<Option<Hubid>> {
 /// List all hubs
 pub fn get_all_hubs(db: &Connection) -> Result<Vec<Hub>> {
     let mut stmt = db.prepare(
-        "SELECT id, decryption_id, name, description, redirection_uri, active FROM hub WHERE active = TRUE",
+        "SELECT id, decryption_id, name, description, oidc_redirect_uri, active FROM hub WHERE active = TRUE",
     )?;
     let result: Result<Vec<Hub>, rusqlite::Error> = stmt.query_map([], map_hub)?.collect();
     Ok(result?)
@@ -876,67 +1014,74 @@ fn map_bar_state(row: &Row) -> Result<BarState, rusqlite::Error> {
     })
 }
 
-fn schema_version(db: &Connection) -> Result<usize, rusqlite::Error> {
-    db.query_row_and_then("PRAGMA user_version", [], |row| row.get(0))
-}
-
-fn init_database(db: &mut Connection) -> Result<()> {
-    for (previous_version, migration) in MIGRATIONS.iter().enumerate() {
-        if previous_version == schema_version(db)? {
-            migrate(db, migration, previous_version + 1)
-                .with_context(|| format!("while running migration {migration}"))?
-        }
-    }
-
-    Ok(())
-}
-
-fn migrate(db: &mut Connection, sql: &str, version: usize) -> Result<()> {
-    let tx = db.transaction()?;
-    tx.execute_batch(sql)?;
-    // Yes it's a formatted string, this is because rusqlite
-    // does not let us make a prepared statement with PRAGMA. Fortunately it's a usize parameter.
-    tx.execute(format!("PRAGMA user_version = {version};").as_str(), [])?;
-    tx.commit()?;
-    Ok(())
-}
-
 #[cfg(test)]
 #[allow(unused_variables)]
 #[allow(unused_must_use)]
 mod tests {
     use super::*;
-    use std::fs::remove_file;
-    use uuid::Uuid;
 
-    struct AutoDeleteDb {
-        location: String,
+    fn set_up() -> Connection {
+        get_connection_memory(DoMigrations::All).unwrap()
     }
 
-    impl AutoDeleteDb {
-        fn set_up(location: &str) -> Self {
-            AutoDeleteDb {
-                location: location.to_string(),
-            }
+    #[test]
+    fn hub_client_uri_migration() {
+        // initialize a database, and do all migrations up to but not including 'migration_add_client_uri'
+        let mut conn = get_connection_memory(DoMigrations::UpTo(9)).unwrap();
+
+        let hub_id1 = Hubid::new();
+
+        {
+            let mut insert_stmt = conn
+            .prepare(
+                "INSERT INTO hub (name, description, oidc_redirect_uri, active, id, decryption_id)
+            VALUES (:name, :description, :oidc_redirect_uri, TRUE, :id, :decryption_id)",
+            )
+            .unwrap();
+
+            insert_stmt
+            .execute(rusqlite::named_params! {
+                ":name": "hub1",
+                ":description": "hub1 description",
+                ":oidc_redirect_uri": "https://some-url.com/_synapse/somthing?or_other#fragment",
+                ":id": hub_id1,
+                ":decryption_id": "",
+            })
+            .unwrap();
+
+            insert_stmt
+            .execute(rusqlite::named_params! {
+                ":name": "hub2",
+                ":description": "hub2 description",
+                ":oidc_redirect_uri": "https://some-other-url.com/_synapse/somthing?or_other#fragment",
+                ":id": Hubid::new(),
+                ":decryption_id": "",
+            })
+            .unwrap();
         }
-    }
 
-    impl Drop for AutoDeleteDb {
-        fn drop(&mut self) {
-            remove_file(&self.location);
-        }
-    }
+        migrate_database(&mut conn, DoMigrations::UpTo(10)).unwrap();
 
-    fn set_up(name: &str) -> (Connection, AutoDeleteDb) {
-        let uuid = Uuid::new_v4();
-        let test_db = format!("{}{}.db", name, uuid);
-        let will_be_dropped = AutoDeleteDb::set_up(test_db.as_str());
-        (get_manager(test_db.as_str()).unwrap(), will_be_dropped)
+        assert_eq!(
+            &conn
+                .query_row(
+                    "SELECT client_uri FROM hub WHERE id=:id",
+                    rusqlite::named_params! {
+                    ":id": hub_id1,
+                    },
+                    |row: &Row| {
+                        let oidc_redirect_uri: String = row.get(0)?;
+                        Ok(oidc_redirect_uri)
+                    }
+                )
+                .unwrap(),
+            "https://some-url.com/"
+        );
     }
 
     #[test]
     fn can_create_hub_and_name_needs_to_be_unique() {
-        let (pool, delete) = set_up("can_create_hub_and_name_needs_to_be_unique");
+        let pool = set_up();
         let name1 = "hub1";
         let description1 = "description1";
         let name2 = "hub2";
@@ -960,7 +1105,7 @@ mod tests {
 
     #[test]
     fn can_delete_hub() {
-        let (pool, delete) = set_up("can_delete_hub");
+        let pool = set_up();
         let name1 = "hub1";
         let description1 = "description1";
         let hubid1 = create_hub(&pool, name1, description1, "/callback").unwrap();
@@ -972,7 +1117,7 @@ mod tests {
 
         let hub = pool
             .query_row(
-                "SELECT id, decryption_id, name, description, redirection_uri, active FROM hub WHERE name = ?1",
+                "SELECT id, decryption_id, name, description, oidc_redirect_uri, active FROM hub WHERE name = ?1",
                 [name1],
                 map_hub,
             )
@@ -982,7 +1127,7 @@ mod tests {
 
     #[test]
     fn can_update_hub_name() {
-        let (pool, delete) = set_up("can_update_hub_name");
+        let pool = set_up();
         let name1 = "hub1";
         let description1 = "description1";
         let hubid1 = create_hub(&pool, name1, description1, "/callback").unwrap();
@@ -1003,7 +1148,7 @@ mod tests {
 
     #[test]
     fn can_create_user_and_mail_telephone_needs_to_be_unique() {
-        let (pool, delete) = set_up("can_create_user_and_mail_telephone_needs_to_be_unique");
+        let pool = set_up();
         let mail1 = "mail1";
         let tel1 = "tel1";
         let config = &PepContext::test_config();
@@ -1030,7 +1175,7 @@ mod tests {
 
     #[test]
     fn can_get_user_by_id() {
-        let (pool, delete) = set_up("can_create_user_and_mail_telephone_needs_to_be_unique");
+        let pool = set_up();
         let mail1 = "mail1";
         let tel1 = "tel1";
         let config = &PepContext::test_config();
@@ -1049,7 +1194,7 @@ mod tests {
 
     #[test]
     fn can_delete_user() {
-        let (pool, delete) = set_up("can_create_user_and_mail_telephone_needs_to_be_unique");
+        let pool = set_up();
         let mail = "mail1";
         let tel = "tel1";
         let config = &PepContext::test_config();
@@ -1072,7 +1217,7 @@ mod tests {
 
     #[test]
     fn can_update_user() {
-        let (pool, delete) = set_up("can_create_user_and_mail_telephone_needs_to_be_unique");
+        let pool = set_up();
         let mail = "mail1";
         let tel = "tel1";
         let config = &PepContext::test_config();
@@ -1119,7 +1264,7 @@ mod tests {
 
     #[test]
     fn migrations_increment_the_user_version() {
-        let (pool, _delete) = set_up("migrations_increment_the_user_version");
+        let pool = set_up();
         assert_eq!(schema_version(&pool).unwrap(), MIGRATIONS.len())
     }
 

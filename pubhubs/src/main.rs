@@ -49,7 +49,7 @@ const PAYLOAD_MAX_SIZE: usize = 10 * 1024;
 struct HubForm {
     name: String,
     description: String,
-    redirection_uri: String,
+    oidc_redirect_uri: String,
 }
 
 impl Debug for HubForm {
@@ -57,7 +57,7 @@ impl Debug for HubForm {
         f.debug_struct("HubForm")
             .field("name", &self.name)
             .field("description", &self.description)
-            .field("redirection_uri", &self.redirection_uri)
+            .field("oidc_redirect_uri", &self.oidc_redirect_uri)
             .finish()
     }
 }
@@ -122,7 +122,7 @@ async fn add_hub(
         .send(CreateHub {
             name: (hub.name).to_string(),
             description: (hub.description).to_string(),
-            redirection_uri: (hub.redirection_uri).to_string(),
+            oidc_redirect_uri: (hub.oidc_redirect_uri).to_string(),
             resp: resp_tx,
         })
         .await
@@ -254,7 +254,7 @@ fn render_hub(context: &Data<Main>, hub: &Hub, translations: Translations) -> Ht
         "decryption_id": decryption_id,
         "name": hub.name,
         "description": hub.description,
-        "redirection_uri": hub.redirection_uri,
+        "oidc_redirect_uri": hub.oidc_redirect_uri,
         "key": key,
         "content": "hub"
     })
@@ -1102,7 +1102,7 @@ mod tests {
         let hub = HubForm {
             name: "test_hub".to_string(),
             description: "test description".to_string(),
-            redirection_uri: "/test_redirect".to_string(),
+            oidc_redirect_uri: "/test_redirect".to_string(),
         };
 
         let request = test::TestRequest::default().to_http_request();
@@ -2086,7 +2086,7 @@ mod tests {
             .send(CreateHub {
                 name: name.to_string(),
                 description: "test_description".to_string(),
-                redirection_uri: "/test_redirect".to_string(),
+                oidc_redirect_uri: "/test_redirect".to_string(),
                 resp: tx,
             })
             .await;
@@ -2132,7 +2132,7 @@ mod tests {
             .send(CreateHub {
                 name: "".to_string(),
                 description: "".to_string(),
-                redirection_uri: "".to_string(),
+                oidc_redirect_uri: "".to_string(),
                 resp: tx,
             })
             .await;

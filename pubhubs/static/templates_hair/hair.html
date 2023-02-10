@@ -53,7 +53,7 @@
           <td>{{=hub.id}}</td>
           <td>{{=hub.name}}</td>
           <td>{{=hub.description}}</td>
-          <td>{{=hub.redirection_uri}}</td>
+          <td>{{=hub.oidc_redirect_uri}}</td>
           <td>
             <a class="detail-style" href="/admin/hubs/{{=hub.id}}"> + </a>
           </td>
@@ -83,13 +83,13 @@
           />
         </div>
         <div>
-          <label for="redirection_uri"
+          <label for="oidc_redirect_uri"
             >{{=tr("enter_redirection","Voer omleidings URI in:")}}
           </label>
           <input
             type="text"
-            name="redirection_uri"
-            id="redirection_uri"
+            name="oidc_redirect_uri"
+            id="oidc_redirect_uri"
             size="60"
             placeholder="e.g., http://hub-url/_synapse/client/oidc/callback"
             required

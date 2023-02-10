@@ -135,7 +135,7 @@ mod tests {
             decryption_id: Hubid::from_str("936da01f-9abd-4d9d-80c7-02af85c822a8").unwrap(),
             name: "not used".to_string(),
             active: false,
-            redirection_uri: "https://not-used.com".to_string(),
+            oidc_redirect_uri: "https://not-used.com".to_string(),
             description: "not used".to_string(),
         };
 
