@@ -1,19 +1,19 @@
 $primary: #001242 !default;
-$secondary: #118DE8 !default;
-$light: #4EE9A4 !default;
+$secondary: #118de8 !default;
+$light: #4ee9a4 !default;
 
 @import "standard";
+@import "admin";
 
 @font-face {
   font-family: "Work Sans";
-  src:  url("/fonts/WorkSans-Regular.ttf"),
-        url("/fonts/WorkSans-SemiBold");
+  src: url("/fonts/WorkSans-Regular.ttf"), url("/fonts/WorkSans-SemiBold");
 }
 
 //$headings-font-family: "Work Sans";
 
 h1 h2 h3 h4 h5 h6 button {
-  font-family: 'Work Sans', WorkSans-SemiBold;
+  font-family: "Work Sans", WorkSans-SemiBold;
 }
 
 h6 {
@@ -21,7 +21,7 @@ h6 {
 }
 
 body {
-  font-family: 'Work Sans', WorkSans-Regular;
+  font-family: "Work Sans", WorkSans-Regular;
 }
 
 .card {
@@ -33,21 +33,21 @@ body {
 }
 
 .outlog_button .d {
-  fill: $white!important;
+  fill: $white !important;
 }
 
 .light-speech .d {
-  fill: $light!important;
+  fill: $light !important;
 }
 
 .white-speech .d {
-  fill: $white!important;
+  fill: $white !important;
 }
 
 .primary-speech .d {
-  fill: $primary!important;
+  fill: $primary !important;
 }
 
 .secondary-speech .d {
-  fill: $secondary!important;
+  fill: $secondary !important;
 }
