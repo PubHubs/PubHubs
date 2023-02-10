@@ -1128,8 +1128,11 @@ mod tests {
         assert_eq!(response.status(), StatusCode::OK);
 
         let body = body_to_string(response).await;
-
-        assert!(body.contains(&format!("<p>Hub id: {}</p>", hubid.as_str())))
+        let regex_specialch = Regex::new(r#"[\n\r]"#).unwrap();
+        let body = regex_specialch.replace_all(&body, "");
+        let comp: String = format!(r#"Hub id:.*{}<"#, hubid.as_str());
+        let re = Regex::new(&comp).unwrap();
+        assert!(re.is_match(&body))
     }
 
     #[actix_web::test]
@@ -1176,10 +1179,10 @@ mod tests {
         assert_eq!(response.status(), StatusCode::OK);
 
         let body = body_to_string(response).await;
-        let re = Regex::new(
-            r#"<input type="text" name="name" id="name" value="test_name_updated" required>"#,
-        )
-        .unwrap();
+        // To negate element style that places \n or \r in different OS
+        let regex_specialch = Regex::new(r#"[\n\r\t]"#).unwrap();
+        let body = regex_specialch.replace_all(&body, "");
+        let re = Regex::new(r#"input.+test_name_updated.+test description.+required"#).unwrap();
         assert!(re.is_match(&body))
     }
 
@@ -1429,11 +1432,15 @@ mod tests {
         let response = account_login(request, Data::from(context), Translations::NONE).await;
 
         let body = body_to_string(response).await;
+        //To negate element style that places \n or \r in different OS
+        let regex_specialch = Regex::new(r"[\n\r]").unwrap();
+        let body = regex_specialch.replace_all(&body, "");
         assert!(body.contains("let oidc_handle = null"));
         assert!(body.contains("let register = false"));
         assert!(body.contains("let url_prefix = \"\""));
         assert!(body.contains("irmaLogin(url_prefix, register, oidc_handle);"));
-        assert!(body.contains(r#"<button class="btn btn-secondary btn-rounded align-content-center text-white">Registreren</button>"#));
+        let re = Regex::new(r#"<button.+Registreren.+button>"#).unwrap();
+        assert!(re.is_match(&body));
 
         let context = create_test_context().await.unwrap();
         let request = test::TestRequest::default().to_http_request();
@@ -1445,11 +1452,16 @@ mod tests {
         .await;
 
         let body = body_to_string(response).await;
+        // To negate styles because block elements from html
+        let regex_specialch = Regex::new(r"[\n\r]").unwrap();
+        let body = regex_specialch.replace_all(&body, "");
+        println!("{}", body);
         assert!(body.contains("let oidc_handle = null"));
         assert!(body.contains("let register = false"));
         assert!(body.contains("let url_prefix = \"/en\""));
         assert!(body.contains("irmaLogin(url_prefix, register, oidc_handle);"));
-        assert!(body.contains(r#"<button class="btn btn-secondary btn-rounded align-content-center text-white">Registreren</button>"#));
+        let re = Regex::new(r#"<button.+Registreren.+button>"#).unwrap();
+        assert!(re.is_match(&body));
     }
 
     #[actix_web::test]
