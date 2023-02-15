@@ -50,6 +50,7 @@ struct HubForm {
     name: String,
     description: String,
     oidc_redirect_uri: String,
+    client_uri: String,
 }
 
 impl Debug for HubForm {
@@ -58,6 +59,7 @@ impl Debug for HubForm {
             .field("name", &self.name)
             .field("description", &self.description)
             .field("oidc_redirect_uri", &self.oidc_redirect_uri)
+            .field("client_uri", &self.client_uri)
             .finish()
     }
 }
@@ -66,6 +68,8 @@ impl Debug for HubForm {
 struct HubFormUpdate {
     name: String,
     description: String,
+    oidc_redirect_uri: String,
+    client_uri: String,
 }
 
 async fn index(req: HttpRequest) -> Result<HttpResponse, TranslatedError> {
@@ -123,6 +127,7 @@ async fn add_hub(
             name: (hub.name).to_string(),
             description: (hub.description).to_string(),
             oidc_redirect_uri: (hub.oidc_redirect_uri).to_string(),
+            client_uri: (hub.client_uri).to_string(),
             resp: resp_tx,
         })
         .await
@@ -130,7 +135,7 @@ async fn add_hub(
 
     match resp_rx.await {
         Ok(Ok(_)) => HttpResponse::Found()
-            .insert_header((LOCATION, format!("{}/hubs", translations.prefix())))
+            .insert_header((LOCATION, format!("{}/admin/hubs", translations.prefix())))
             .finish(),
         error => internal_server_error(
             "Could not create hub",
@@ -255,6 +260,7 @@ fn render_hub(context: &Data<Main>, hub: &Hub, translations: Translations) -> Ht
         "name": hub.name,
         "description": hub.description,
         "oidc_redirect_uri": hub.oidc_redirect_uri,
+        "client_uri": hub.client_uri,
         "key": key,
         "content": "hub"
     })
@@ -283,6 +289,8 @@ async fn update_hub(
                     id,
                     name: hub_form.name.clone(),
                     description: hub_form.description.clone(),
+                    oidc_redirect_uri: hub_form.oidc_redirect_uri.clone(),
+                    client_uri: hub_form.client_uri.clone(),
                 })
                 .await
                 .expect("To use our channel");
@@ -1103,12 +1111,13 @@ mod tests {
             name: "test_hub".to_string(),
             description: "test description".to_string(),
             oidc_redirect_uri: "/test_redirect".to_string(),
+            client_uri: "/client".to_string(),
         };
 
         let request = test::TestRequest::default().to_http_request();
         let response = add_hub(Data::from(context), request, Form(hub), Translations::NONE).await;
         assert_eq!(response.status(), StatusCode::FOUND);
-        assert_eq!(response.headers().get(LOCATION).unwrap(), "/hubs");
+        assert_eq!(response.headers().get(LOCATION).unwrap(), "/admin/hubs");
     }
 
     #[actix_web::test]
@@ -1165,6 +1174,8 @@ mod tests {
         let hub = HubFormUpdate {
             name: "test_name_updated".to_string(),
             description: "test description".to_string(),
+            oidc_redirect_uri: "http://synapse.example.com".to_string(),
+            client_uri: "http://client.example.com".to_string(),
         };
 
         let request = test::TestRequest::default().to_http_request();
@@ -1195,6 +1206,8 @@ mod tests {
         let hub = HubFormUpdate {
             name: "test_name_updated".to_string(),
             description: "test description".to_string(),
+            oidc_redirect_uri: "http://synapse.example.com".to_string(),
+            client_uri: "http://client.example.com".to_string(),
         };
 
         // Close the database actor
@@ -2087,6 +2100,7 @@ mod tests {
                 name: name.to_string(),
                 description: "test_description".to_string(),
                 oidc_redirect_uri: "/test_redirect".to_string(),
+                client_uri: "/client".to_string(),
                 resp: tx,
             })
             .await;
@@ -2133,6 +2147,7 @@ mod tests {
                 name: "".to_string(),
                 description: "".to_string(),
                 oidc_redirect_uri: "".to_string(),
+                client_uri: "".to_string(),
                 resp: tx,
             })
             .await;

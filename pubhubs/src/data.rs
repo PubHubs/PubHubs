@@ -90,6 +90,7 @@ fn migrate_database(db: &mut Connection, do_migrations: DoMigrations) -> Result<
         DoMigrations::UpTo(up_to) => up_to,
     };
 
+    #[allow(clippy::needless_range_loop)] // Clippy's suggestion is quite unreadable
     for i in next_version..up_to {
         let migration = MIGRATIONS[i];
 
@@ -240,6 +241,7 @@ pub enum DataCommands {
         name: String,
         description: String,
         oidc_redirect_uri: String,
+        client_uri: String,
         resp: oneshot::Sender<Result<Hubid>>,
     },
     GetHub {
@@ -255,6 +257,8 @@ pub enum DataCommands {
         id: Hubid,
         name: String,
         description: String,
+        oidc_redirect_uri: String,
+        client_uri: String,
     },
     AllUsers {
         resp: oneshot::Sender<Result<Vec<User>>>,
@@ -344,6 +348,7 @@ async fn handle_command(
                 name,
                 description,
                 oidc_redirect_uri,
+                client_uri,
                 resp,
             } => {
                 resp.send(create_hub(
@@ -351,6 +356,7 @@ async fn handle_command(
                     &name,
                     &description,
                     &oidc_redirect_uri,
+                    &client_uri,
                 ))
                 .expect("To use our channel");
             }
@@ -367,9 +373,18 @@ async fn handle_command(
                 id,
                 name,
                 description,
+                oidc_redirect_uri,
+                client_uri,
             } => {
-                resp.send(update_hub_details(&manager, id, &name, &description))
-                    .expect("To use our channel");
+                resp.send(update_hub_details(
+                    &manager,
+                    id,
+                    &name,
+                    &description,
+                    &oidc_redirect_uri,
+                    &client_uri,
+                ))
+                .expect("To use our channel");
             }
             DataCommands::AllUsers { resp } => {
                 let users = get_all_users(&manager);
@@ -558,6 +573,7 @@ pub struct Hub {
     pub name: String,
     pub description: String,
     pub oidc_redirect_uri: String,
+    pub client_uri: String,
     pub active: bool,
 }
 
@@ -735,7 +751,13 @@ impl Debug for Hub {
 
 impl<'a> From<&'a Hub> for DecodedValue<'a> {
     fn from(v: &'a Hub) -> Self {
-        value!({"id": v.id.data, "name": v.name, "description": v.description, "oidc_redirect_uri": v.oidc_redirect_uri})
+        value!({
+            "id": v.id.data,
+            "name": v.name,
+            "description": v.description,
+            "oidc_redirect_uri": v.oidc_redirect_uri,
+            "client_uri": v.client_uri,
+        })
     }
 }
 
@@ -744,14 +766,22 @@ pub fn create_hub(
     name: &str,
     description: &str,
     oidc_redirect_uri: &str,
+    client_uri: &str,
 ) -> Result<Hubid> {
     let hubid = Hubid::new();
     let decryption_id = Hubid::new();
 
     let rows_changed = db.execute(
-        "INSERT INTO hub (name, description, oidc_redirect_uri,  active, id, decryption_id)
-        values (?1, ?2, ?3, TRUE, ?4, ?5)",
-        params![name, description, oidc_redirect_uri, hubid, decryption_id],
+        "INSERT INTO hub (name, description, oidc_redirect_uri,  active, id, decryption_id, client_uri)
+        values (:name, :description, :oidc_redirect_uri, TRUE, :hubid, :decryption_id, :client_uri)",
+        rusqlite::named_params!{
+            ":name": name,
+            ":description": description, 
+            ":oidc_redirect_uri": oidc_redirect_uri, 
+            ":hubid": hubid, 
+            ":decryption_id": decryption_id,
+            ":client_uri": client_uri,
+        }
     )?;
 
     ensure!(
@@ -769,14 +799,15 @@ fn map_hub(row: &Row) -> rusqlite::Result<Hub> {
         name: row.get(2)?,
         description: row.get(3)?,
         oidc_redirect_uri: row.get(4)?,
-        active: row.get(5)?,
+        client_uri: row.get(5)?,
+        active: row.get(6)?,
     })
 }
 
 /// Get a hub by id if it's active.
 pub fn get_hub(db: &Connection, handle: HubHandle) -> Result<Hub> {
     let query = format!(
-        "SELECT id, decryption_id, name, description, oidc_redirect_uri, active FROM hub
+        "SELECT id, decryption_id, name, description, oidc_redirect_uri, client_uri, active FROM hub
         WHERE active = TRUE AND {} = ?1",
         handle.column_name()
     );
@@ -801,7 +832,7 @@ pub fn get_hubid(db: &Connection, name: &str) -> Result<Option<Hubid>> {
 /// List all hubs
 pub fn get_all_hubs(db: &Connection) -> Result<Vec<Hub>> {
     let mut stmt = db.prepare(
-        "SELECT id, decryption_id, name, description, oidc_redirect_uri, active FROM hub WHERE active = TRUE",
+        "SELECT id, decryption_id, name, description, oidc_redirect_uri, client_uri, active FROM hub WHERE active = TRUE",
     )?;
     let result: Result<Vec<Hub>, rusqlite::Error> = stmt.query_map([], map_hub)?.collect();
     Ok(result?)
@@ -824,12 +855,20 @@ pub fn update_hub_details(
     id: Hubid,
     name: &str,
     description: &str,
+    oidc_redirect_uri: &str,
+    client_uri: &str,
 ) -> Result<Hub> {
     let rows_changed = db.execute(
         "UPDATE hub
-        SET name = ?1, description = ?2
-        WHERE active = TRUE AND id = ?3",
-        params![name, description, id.to_string()],
+        SET name = :name, description = :description, oidc_redirect_uri = :oidc_redirect_uri, client_uri = :client_uri
+        WHERE active = TRUE AND id = :id",
+        rusqlite::named_params!{
+            ":name": name, 
+            ":description": description,
+            ":id": id.to_string(),
+            ":oidc_redirect_uri": oidc_redirect_uri,
+            ":client_uri": client_uri,
+        }
     )?;
 
     ensure!(
@@ -1086,7 +1125,7 @@ mod tests {
         let description1 = "description1";
         let name2 = "hub2";
         let description2 = "description2";
-        let hubid1 = create_hub(&pool, name1, description1, "/callback").unwrap();
+        let hubid1 = create_hub(&pool, name1, description1, "/callback", "client").unwrap();
         let hub = get_hub(&pool, HubHandle::Id(hubid1)).unwrap();
         assert!(hub.active);
         assert_eq!(hub.pseudonymisation_context(), format!("Hub #{}", hubid1)); // DO NOT CHANGE the pseudonymisation_context lest all local pseudonyms will change
@@ -1095,10 +1134,10 @@ mod tests {
             format!("Hub decryption key #{}", hub.decryption_id)
         );
         assert_eq!(hub.name, name1);
-        let not_unique = create_hub(&pool, name1, description1, "/callback");
+        let not_unique = create_hub(&pool, name1, description1, "/callback", "client");
         compare_error("UNIQUE constraint failed: hub.name", not_unique);
 
-        let hubid2 = create_hub(&pool, name2, description2, "/callback").unwrap();
+        let hubid2 = create_hub(&pool, name2, description2, "/callback", "client").unwrap();
         let hub2_really = get_hub(&pool, HubHandle::Id(hubid2)).unwrap();
         assert_eq!(hub2_really.id, hubid2);
     }
@@ -1108,7 +1147,7 @@ mod tests {
         let pool = set_up();
         let name1 = "hub1";
         let description1 = "description1";
-        let hubid1 = create_hub(&pool, name1, description1, "/callback").unwrap();
+        let hubid1 = create_hub(&pool, name1, description1, "/callback", "client").unwrap();
         let hub = get_hub(&pool, HubHandle::Id(hubid1)).unwrap();
         assert!(hub.active);
         delete_hub(&pool, hubid1);
@@ -1117,7 +1156,7 @@ mod tests {
 
         let hub = pool
             .query_row(
-                "SELECT id, decryption_id, name, description, oidc_redirect_uri, active FROM hub WHERE name = ?1",
+                "SELECT id, decryption_id, name, description, oidc_redirect_uri, client_uri,active FROM hub WHERE name = ?1",
                 [name1],
                 map_hub,
             )
@@ -1130,19 +1169,23 @@ mod tests {
         let pool = set_up();
         let name1 = "hub1";
         let description1 = "description1";
-        let hubid1 = create_hub(&pool, name1, description1, "/callback").unwrap();
+        let hubid1 = create_hub(&pool, name1, description1, "/callback", "client").unwrap();
         let hub = get_hub(&pool, HubHandle::Id(hubid1)).unwrap();
         assert_eq!(hub.name, name1);
+        assert_eq!(hub.oidc_redirect_uri, "/callback");
+        assert_eq!(hub.client_uri, "client");
         let name2 = "name2";
         let description2 = "description2";
-        update_hub_details(&pool, hubid1, name2, description2);
+        update_hub_details(&pool, hubid1, name2, description2, "/callback2", "client2");
         let updated_hub = get_hub(&pool, HubHandle::Id(hubid1)).unwrap();
         assert_eq!(updated_hub.name, name2);
+        assert_eq!(updated_hub.oidc_redirect_uri, "/callback2");
+        assert_eq!(updated_hub.client_uri, "client2");
 
         // Different hub
-        let hubid2 = create_hub(&pool, name1, description1, "/callback").unwrap();
+        let hubid2 = create_hub(&pool, name1, description1, "/callback", "client").unwrap();
         // Rename to existing name
-        let update_result = update_hub_details(&pool, hubid2, name2, description2);
+        let update_result = update_hub_details(&pool, hubid2, name2, description2, "some", "thing");
         compare_error("UNIQUE constraint failed: hub.name", update_result);
     }
 
