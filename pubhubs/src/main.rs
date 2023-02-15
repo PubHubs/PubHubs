@@ -1014,7 +1014,8 @@ fn create_app(cfg: &mut web::ServiceConfig, context: Data<Main>) {
                         // get and put the state of the side bar used to switch
                         // between hubs
                         .route("/state", web::get().to(pubhubs::bar::get_state))
-                        .route("/state", web::put().to(pubhubs::bar::put_state)),
+                        .route("/state", web::put().to(pubhubs::bar::put_state))
+                        .route("/hubs", web::get().to(pubhubs::bar::get_hubs)),
                 )
                 .route("/register", web::get().to(register_account))
                 .route("/register", web::post().to(register_account))

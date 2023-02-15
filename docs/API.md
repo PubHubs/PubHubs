@@ -29,7 +29,7 @@ Return `204 No Content` upon success, with empty body, but including the new ETa
  - `412 Precondition Failed` when the ETag from `If-Match` did not match the ETag of the current bar state.  This is to prevent the bar from accidentally overriding previous changes made from a different device.  
 
 ## Hubs
-### `GET /bar/hubs` ...
+### `GET /bar/hubs`...
 
 
 
