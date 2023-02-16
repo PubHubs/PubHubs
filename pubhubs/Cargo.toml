@@ -16,13 +16,13 @@ anyhow = "1.0"
 
 # serde
 serde = {version = "1.0", features = ["derive"]}
-serde_yaml = "0.8"
+serde_yaml = "0.9"
 serde_json = "1.0"
 serde_urlencoded = "0.7"
 rmp-serde = "1.1"
 
 # Database interaction
-rusqlite = {version = "0.27.0", features = ["bundled"]}
+rusqlite = {version = "0.28.0", features = ["bundled"]}
 rand = "0.8"
 
 # for ed25519_dalek, see https://stackoverflow.com/questions/65562447/the-trait-rand-corecryptorng-is-not-implemented-for-osrng
@@ -46,7 +46,7 @@ url = "2.2"
 bytes = "1"
 http = "0.2"
 uuid = {version = "1.1", features = ["v4"]}
-env_logger = "0.9"
+env_logger = "0.10"
 log = "0.4"
 jsonwebtoken = "8.1"  # uses non RustCrypto - perhaps replace?
 actix-web = "4.2"
@@ -63,7 +63,7 @@ chacha20poly1305 = "0.10"
 aead = "0.5"
 generic-array = "0.14"
 typenum = "1.15"
-ed25519 = {version = "1.5", features = ["pkcs8", "alloc", "pem"]}
+ed25519 = {version = "2.1", features = ["pkcs8", "alloc", "pem"]}
 ed25519-dalek = "1.0"
 # Constant time operations to prevent timing attacks.
 subtle = "2.4"
