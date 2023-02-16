@@ -1538,6 +1538,78 @@ mod tests {
     }
 
     #[actix_web::test]
+    async fn test_bar_hubs() {
+        let context = create_test_context().await.unwrap();
+        let user_id = create_user("email@example.com", &context).await;
+        let ok_cookie = Cookie::new(user_id, &context.cookie_secret)
+            .cookie
+            .as_str()
+            .to_owned();
+        let invalid_cookie = Cookie::new(user_id, "not the cookie secret")
+            .cookie
+            .as_str()
+            .to_owned();
+
+        let context_clone = context.clone();
+        let app = test::init_service(
+            App::new().configure(move |cfg| create_app(cfg, Data::from(context_clone))),
+        )
+        .await;
+
+        create_hub("hub1", &context).await;
+
+        // FORBIDDEN when GETting /bar/hubs with invalid cookie
+        assert_eq!(
+            app.call(
+                test::TestRequest::get()
+                    .uri("/bar/hubs")
+                    .insert_header((COOKIE, invalid_cookie.clone()))
+                    .to_request(),
+            )
+            .await
+            .unwrap()
+            .status(),
+            http::StatusCode::FORBIDDEN
+        );
+
+        // FORBIDDEN when GETting /bar/hubs with no cookie
+        assert_eq!(
+            app.call(test::TestRequest::get().uri("/bar/hubs").to_request(),)
+                .await
+                .unwrap()
+                .status(),
+            http::StatusCode::FORBIDDEN
+        );
+
+        // OK when GETting /bar/hubs with valid cookie
+        let resp = app
+            .call(
+                test::TestRequest::get()
+                    .uri("/bar/hubs")
+                    .insert_header((COOKIE, ok_cookie.clone()))
+                    .to_request(),
+            )
+            .await
+            .unwrap();
+        assert_eq!(resp.status(), http::StatusCode::OK);
+        assert_eq!(
+            resp.headers().get("Content-Type").unwrap(),
+            "application/json"
+        );
+        let result: serde_json::Value =
+            serde_json::from_slice(&actix_web::test::read_body(resp).await).unwrap();
+        assert_eq!(
+            result,
+            serde_json::json!([{
+                "name": "hub1",
+                "description": "test_description",
+                "oidc_redirect_uri": "/test_redirect",
+                "client_uri": "/client",
+            }])
+        );
+    }
+
+    #[actix_web::test]
     async fn test_bar_state() {
         let context = create_test_context().await.unwrap();
         let user_id = create_user("email@example.com", &context).await;
@@ -1592,6 +1664,10 @@ mod tests {
         assert_eq!(
             resp.headers().get("ETag").unwrap(),
             "\"e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855\""
+        );
+        assert_eq!(
+            resp.headers().get("Content-Type").unwrap(),
+            "application/octet-stream"
         );
         assert!(actix_web::test::read_body(resp).await.is_empty());
 
