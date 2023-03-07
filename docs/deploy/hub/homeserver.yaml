@@ -1,0 +1,62 @@
+# Default settings for Pubhubs Homeserver.
+# Some settings such as modules should not be changed.
+# For more information related to additional settings for your infrastructure see link below:
+# https://matrix-org.github.io/synapse/develop/usage/configuration/config_documentation.html
+
+## WARNING: modules SHOULD NOT BE CHANGED ##
+modules:
+  - module: conf.modules.pseudonyms.Pseudonym
+
+# Domain of the server.
+# More information can be found in https://matrix-org.github.io/synapse/develop/usage/configuration/config_documentation.html#server_name
+# THIS SHOULD BE CHANGED
+server_name: "testhub.matrix.host"
+
+# This is the public url for the hub where client gets connected.
+# THIS SHOULD BE CHANGED
+public_baseurl: https://145.137.183.5:8008
+
+# List of ports that Synapse should listen on, their purpose and their configuration.
+# More information can be found in https://matrix-org.github.io/synapse/develop/usage/configuration/config_documentation.html#listeners
+listeners:
+  - port: 8008
+    tls: false
+    type: http
+    x_forwarded: true
+
+# Type of database and its path
+database:
+  name: sqlite3
+  args:
+    database: /data/homeserver.db
+
+log_config: "/data/test_hub.log.config"
+
+media_store_path: "/data/media_store"
+
+report_stats: true
+
+form_secret: "changeme"
+
+# issuer, client_id and client_secret must be changed. Please see the documentation for updating client_id and client_secret.
+oidc_providers:
+  - idp_id: pubhubs
+    idp_name: "PubHubs ID provider"
+    discover: true
+    issuer: "http://145.137.183.5:8080"
+    client_id: "testhub~iaFtH8zLiCDOHJNVL6yyhxIkiUih7UqJyBciGHOgi80="
+    client_secret: "N5W1ZnKcufNiU-Z-G8HvES9M7EB2gVoXZ0_zUHO8m8g="
+    scopes: ["openid"]
+    skip_verification: false
+    user_mapping_provider:
+      module: conf.modules.pseudonyms.OidcMappingProvider
+      config:
+
+user_consent:
+  template_dir: /data/templates/privacy
+  version: 1.0
+  block_events_error: >-
+    De regels en het privacybeleid zijn aangepast. Om gebruik te blijven
+    maken van deze Hub zul je de nieuwe versie moeten lezen
+    en accepteren via deze link %(consent_uri)s
+  require_at_registration: true

@@ -6,7 +6,7 @@ before_script:
   - test -f ${ENV_FILE} && source ${ENV_FILE} # 'source ${ENV_FILE} || true' does not work on busybox
 
 # For more information, see: https://docs.gitlab.com/ee/ci/yaml/index.html#stages
-stages:          # List of stages for jobs, and their order of execution
+stages: # List of stages for jobs, and their order of execution
   - build
   - build-images
   - deploy
@@ -23,16 +23,16 @@ clippy:
     - cargo +nightly clippy --message-format=json | gitlab-report -p clippy > gl-code-quality-report.json
   artifacts:
     reports:
-      codequality: gl-code-quality-report.json
+      codequality: pubhubs/gl-code-quality-report.json
     expire_in: 1 week
   rules:
-    - if: '$CODE_QUALITY_DISABLED'
+    - if: "$CODE_QUALITY_DISABLED"
       when: never
     - if: '$CI_PIPELINE_SOURCE == "push"'
   cache:
     key: "${CI_COMMIT_REF_NAME}-${CI_JOB_NAME}"
     paths:
-      - target/
+      - pubhubs/target/
 
 unit-test-rust-code:
   stage: build
@@ -41,11 +41,24 @@ unit-test-rust-code:
   image: registry.science.ru.nl/ilab/docker-build/rust-stable:main
   script:
     - cd pubhubs
-    - env RUST_BACKTRACE=full cargo +stable test
+    - env RUST_BACKTRACE=full cargo +stable test --no-fail-fast -- -Z unstable-options --format json | gitlab-report -p test > report.xml
+  artifacts:
+    reports:
+      junit: pubhubs/report.xml
+    expire_in: 1 week
   cache:
     key: "${CI_COMMIT_REF_NAME}-${CI_JOB_NAME}"
     paths:
-      - target/
+      - pubhubs/target/
+
+cargo-deny:
+  stage: build
+  tags:
+    - docker
+  image: registry.science.ru.nl/ilab/docker-build/rust-stable:main
+  script:
+    - cd pubhubs
+    - cargo deny check
 
 build-pubhubs-image:
   stage: build-images
@@ -67,10 +80,9 @@ build-pubhubs-image:
 
 deploy-main:
   stage: deploy
-  needs: [build-pubhubs-image]
   only:
     - main
-  environment: $CI_COMMIT_REF_NAME 
+  environment: $CI_COMMIT_REF_NAME
   tags: [docker]
   image: ubuntu:rolling
   script:
@@ -82,10 +94,9 @@ deploy-main:
 
 deploy-stable:
   stage: deploy
-  needs: [build-pubhubs-image]
   only:
     - stable
-  environment: $CI_COMMIT_REF_NAME 
+  environment: $CI_COMMIT_REF_NAME
   tags: [docker]
   image: ubuntu:rolling
   script:
@@ -95,6 +106,19 @@ deploy-stable:
     - chmod 600 $ILAB_VM_TRIGGER_UPDATE_KEY
     - ssh -o UserKnownHostsFile=$ILAB_VM_TRIGGER_UPDATE_KNOWN_HOSTS $ILAB_VM_TRIGGER_UPDATE_USER@$ILAB_VM_TRIGGER_UPDATE_HOST_STABLE -i $ILAB_VM_TRIGGER_UPDATE_KEY docker-pubhubs-stable
 
+unit-test-build-script:
+  stage: build
+  tags:
+    - docker
+  image: python:latest
+  variables:
+    PIP_CACHE_DIR: "$CI_PROJECT_DIR/.cache/pip"
+  script:
+    - pip install virtualenv
+    - virtualenv venv
+    - source venv/bin/activate
+    - python3 start_test_setup.py test
+
 unit-test-hub: # This job runs in the test stage.
   stage: build
   tags:
@@ -103,10 +127,11 @@ unit-test-hub: # This job runs in the test stage.
   variables:
     PIP_CACHE_DIR: "$CI_PROJECT_DIR/.cache/pip"
   before_script: #install libpepcli
-    - python --version  # For debugging
+    - python --version # For debugging
     - pip install virtualenv
     - virtualenv venv
     - source venv/bin/activate
+    - pip install unittest-xml-reporting
     - apt update && apt install -y lsb-release
     - sh -c 'printf "deb http://packages.bitpowder.com/debian-%s main core\n" `lsb_release -cs`' | tee /etc/apt/sources.list.d/bitpowder-repo.list
     - curl -L https://bitpowder.com/packages/linux-packages.gpg | tee /etc/apt/trusted.gpg.d/bitpowder.asc
@@ -114,7 +139,7 @@ unit-test-hub: # This job runs in the test stage.
   script:
     - cd pubhubs_hub
     - pip install --upgrade -r requirements.txt
-    - python -m unittest discover -p '*_test.py' -s 'test'
+    - python -m xmlrunner discover -p '*_test.py' --output-file report.xml
     # Pip's cache doesn't store the python packages
     # https://pip.pypa.io/en/stable/reference/pip_install/#caching
     #
@@ -122,35 +147,37 @@ unit-test-hub: # This job runs in the test stage.
     # them in a virtualenv and cache it as well.
   cache:
     paths:
-      - .cache/pip
-      - venv/
+      - pubhubs_hub/.cache/pip
+      - pubhubs_hub/venv/
+  artifacts:
+    reports:
+      junit: pubhubs_hub/report.xml
+    expire_in: 1 week
 
 build-image-hub:
-    stage: build-images
-    only:
-      - main
-      - stable
-    needs:
-      - unit-test-hub
-    tags:
-      - docker
-    image: docker:stable
-    variables:
-      CONTAINER_IMAGE: ${CI_REGISTRY}/${CI_PROJECT_PATH}/pubhubs_hub:${CI_COMMIT_REF_NAME}
-    script:
-      - cd pubhubs_hub
-      - docker login -u $CI_REGISTRY_USER -p $CI_REGISTRY_PASSWORD $CI_REGISTRY
-      - DOCKER_BUILDKIT=1 docker build -t ${CONTAINER_IMAGE} .
-      - docker push ${CONTAINER_IMAGE}
-
+  stage: build-images
+  only:
+    - main
+    - stable
+  needs:
+    - unit-test-hub
+  tags:
+    - docker
+  image: docker:stable
+  variables:
+    CONTAINER_IMAGE: ${CI_REGISTRY}/${CI_PROJECT_PATH}/pubhubs_hub:${CI_COMMIT_REF_NAME}
+  script:
+    - cd pubhubs_hub
+    - docker login -u $CI_REGISTRY_USER -p $CI_REGISTRY_PASSWORD $CI_REGISTRY
+    - DOCKER_BUILDKIT=1 docker build -t ${CONTAINER_IMAGE} .
+    - docker push ${CONTAINER_IMAGE}
 
 deploy-main-hub:
   stage: deploy
-  needs: [ build-image-hub ]
   only:
     - main
   environment: $CI_COMMIT_REF_NAME
-  tags: [ docker ]
+  tags: [docker]
   image: registry.science.ru.nl/ilab/docker-build/ubuntu-iso:main
   script:
     - cd pubhubs_hub
@@ -159,13 +186,68 @@ deploy-main-hub:
 
 deploy-stable-hub:
   stage: deploy
-  needs: [ build-image-hub ]
   only:
     - stable
   environment: $CI_COMMIT_REF_NAME
-  tags: [ docker ]
+  tags: [docker]
   image: registry.science.ru.nl/ilab/docker-build/ubuntu-iso:main
   script:
     - cd pubhubs_hub
     - chmod 600 $ILAB_VM_TRIGGER_UPDATE_KEY
     - ssh -o UserKnownHostsFile=$ILAB_VM_TRIGGER_UPDATE_KNOWN_HOSTS $ILAB_VM_TRIGGER_UPDATE_USER@$ILAB_VM_TRIGGER_UPDATE_HOST_STABLE -i $ILAB_VM_TRIGGER_UPDATE_KEY docker-testhub-matrix-stable
+
+unit-test-client:
+  stage: build
+  tags: [docker]
+  image: node:latest
+  before_script:
+    - cd hub-client
+    - npm ci --cache .npm --prefer-offline
+  script:
+    - npm run test
+  cache:
+    key: ${CI_COMMIT_REF_SLUG}
+    paths:
+      - .npm/
+
+build-client:
+  stage: build-images
+  only:
+    - main
+    - stable
+  needs:
+    - unit-test-client
+  tags:
+    - docker
+  image: docker:stable
+  variables:
+    CONTAINER_IMAGE: ${CI_REGISTRY}/${CI_PROJECT_PATH}/pubhubs_client:${CI_COMMIT_REF_NAME}
+  script:
+    - cd hub-client
+    - docker login -u $CI_REGISTRY_USER -p $CI_REGISTRY_PASSWORD $CI_REGISTRY
+    - DOCKER_BUILDKIT=1 docker build -t ${CONTAINER_IMAGE} .
+    - docker push ${CONTAINER_IMAGE}
+
+deploy-main-client:
+  stage: deploy
+  only:
+    - main
+  environment: $CI_COMMIT_REF_NAME
+  tags: [docker]
+  image: registry.science.ru.nl/ilab/docker-build/ubuntu-iso:main
+  script:
+    - cd hub-client
+    - chmod 600 $ILAB_VM_TRIGGER_UPDATE_KEY
+    - ssh -o UserKnownHostsFile=$ILAB_VM_TRIGGER_UPDATE_KNOWN_HOSTS $ILAB_VM_TRIGGER_UPDATE_USER@$ILAB_VM_TRIGGER_UPDATE_HOST_MAIN -i $ILAB_VM_TRIGGER_UPDATE_KEY docker-testhub-element-main
+
+deploy-stable-client:
+  stage: deploy
+  only:
+    - stable
+  environment: $CI_COMMIT_REF_NAME
+  tags: [docker]
+  image: registry.science.ru.nl/ilab/docker-build/ubuntu-iso:main
+  script:
+    - cd hub-client
+    - chmod 600 $ILAB_VM_TRIGGER_UPDATE_KEY
+    - ssh -o UserKnownHostsFile=$ILAB_VM_TRIGGER_UPDATE_KNOWN_HOSTS $ILAB_VM_TRIGGER_UPDATE_USER@$ILAB_VM_TRIGGER_UPDATE_HOST_STABLE -i $ILAB_VM_TRIGGER_UPDATE_KEY docker-testhub-element-stable

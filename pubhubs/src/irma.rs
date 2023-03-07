@@ -1,10 +1,12 @@
-use crate::context::Irma as IrmaContext;
-use crate::Request;
+use crate::context::{Irma as IrmaContext, Main};
+use actix_web::web::Data;
+use actix_web::{HttpRequest, HttpResponse};
 use anyhow::{anyhow, bail, Result};
 use async_recursion::async_recursion;
 use chrono::Utc;
-use hyper::header::{HeaderValue, CONTENT_TYPE};
-use hyper::{body, Body, Client, Method, Response, StatusCode};
+
+use actix_web::http::header::CONTENT_TYPE;
+use hyper::{body, Body, Client, Method, Request, StatusCode};
 use log::error;
 use qrcode::render::svg;
 use qrcode::QrCode;
@@ -12,29 +14,30 @@ use regex::Regex;
 use serde::{Deserialize, Serialize};
 use std::fmt::{Debug, Formatter};
 use std::time::{Duration, SystemTime, UNIX_EPOCH};
+
 use tokio::time::sleep;
 
 #[cfg(not(feature = "real_credentials"))]
-pub(crate) const MAIL: &str = "irma-demo.sidn-pbdf.email.email";
+pub const MAIL: &str = "irma-demo.sidn-pbdf.email.email";
 #[cfg(not(feature = "real_credentials"))]
-pub(crate) const MOBILE_NO: &str = "irma-demo.sidn-pbdf.mobilenumber.mobilenumber";
+pub const MOBILE_NO: &str = "irma-demo.sidn-pbdf.mobilenumber.mobilenumber";
 #[cfg(not(feature = "real_credentials"))]
-pub(crate) const PUB_HUBS: &str = "irma-demo.PubHubs.pubhubsaccount";
+pub const PUB_HUBS: &str = "irma-demo.PubHubs.pubhubsaccount";
 #[cfg(not(feature = "real_credentials"))]
-pub(crate) const PUB_HUBS_MAIL: &str = "irma-demo.PubHubs.pubhubsaccount.email";
+pub const PUB_HUBS_MAIL: &str = "irma-demo.PubHubs.pubhubsaccount.email";
 #[cfg(not(feature = "real_credentials"))]
-pub(crate) const PUB_HUBS_PHONE: &str = "irma-demo.PubHubs.pubhubsaccount.mobilenumber";
+pub const PUB_HUBS_PHONE: &str = "irma-demo.PubHubs.pubhubsaccount.mobilenumber";
 
 #[cfg(feature = "real_credentials")]
-pub(crate) const MAIL: &str = "pbdf.sidn-pbdf.email.email";
+pub const MAIL: &str = "pbdf.sidn-pbdf.email.email";
 #[cfg(feature = "real_credentials")]
-pub(crate) const MOBILE_NO: &str = "pbdf.sidn-pbdf.mobilenumber.mobilenumber";
+pub const MOBILE_NO: &str = "pbdf.sidn-pbdf.mobilenumber.mobilenumber";
 #[cfg(feature = "real_credentials")]
-pub(crate) const PUB_HUBS: &str = "pbdf.PubHubs.pubhubsaccount";
+pub const PUB_HUBS: &str = "pbdf.PubHubs.pubhubsaccount";
 #[cfg(feature = "real_credentials")]
-pub(crate) const PUB_HUBS_MAIL: &str = "pbdf.PubHubs.pubhubsaccount.email";
+pub const PUB_HUBS_MAIL: &str = "pbdf.PubHubs.pubhubsaccount.email";
 #[cfg(feature = "real_credentials")]
-pub(crate) const PUB_HUBS_PHONE: &str = "pbdf.PubHubs.pubhubsaccount.mobilenumber";
+pub const PUB_HUBS_PHONE: &str = "pbdf.PubHubs.pubhubsaccount.mobilenumber";
 
 #[allow(dead_code)] //This is used in SessionRequest
 #[derive(Debug, Serialize, Deserialize, PartialEq, Eq)]
@@ -48,14 +51,14 @@ pub enum Context {
 }
 
 #[derive(Debug, Serialize, Deserialize)]
-pub(crate) struct PubhubsAttributes {
+pub struct PubhubsAttributes {
     email: String,
     mobilenumber: String,
     registrationdate: String,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
-pub(crate) struct PubHubsCredential {
+pub struct PubHubsCredential {
     credential: String,
     validity: u64,
     attributes: PubhubsAttributes,
@@ -94,9 +97,9 @@ pub struct SessionRequest {
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct ExtendedSessionRequest {
-    pub(crate) request: SessionRequest,
+    pub request: SessionRequest,
     #[serde(rename = "nextSession")]
-    pub(crate) next_session: Option<NextSession>,
+    pub next_session: Option<NextSession>,
 }
 
 // Contents (or 'claims') of a(n extended) signed session request JWT.
@@ -134,7 +137,7 @@ pub enum Subject {
 pub async fn login(
     irma_host: &str,
     irma_requestor: &str,
-    irma_requestor_hmac_key: &[u8],
+    irma_requestor_hmac_key: &crate::jwt::HS256,
     pub_hubs_host: &str,
 ) -> Result<SessionDataWithImage> {
     let to_disclose = vec![vec![vec![
@@ -156,7 +159,7 @@ pub async fn login(
 pub async fn register(
     irma_host: &str,
     irma_requestor: &str,
-    irma_requestor_hmac_key: &[u8],
+    irma_requestor_hmac_key: &crate::jwt::HS256,
     pub_hubs_host: &str,
 ) -> Result<SessionDataWithImage> {
     let to_disclose = vec![
@@ -165,7 +168,7 @@ pub async fn register(
     ];
     // Will immediately ask for issuing card after disclosing with a chained session.
     let next_session = Some(NextSession {
-        url: pub_hubs_host.to_string() + "irma-endpoint",
+        url: pub_hubs_host.to_string() + "irma-endpoint/",
     });
     disclose(
         irma_host,
@@ -181,14 +184,13 @@ pub async fn register(
 async fn disclose(
     irma_host: &str,
     irma_requestor: &str,
-    irma_requestor_hmac_key: &[u8],
+    irma_requestor_hmac_key: &crate::jwt::HS256,
     pub_hubs_host: &str,
     to_disclose: Vec<Vec<Vec<String>>>,
     next_session: Option<NextSession>,
 ) -> Result<SessionDataWithImage> {
     let client = Client::new();
-    let body = jsonwebtoken::encode(
-        &jsonwebtoken::Header::new(jsonwebtoken::Algorithm::HS256),
+    let body = crate::jwt::sign(
         &Claims {
             iss: irma_requestor.to_string(),
             iat: jsonwebtoken::get_current_timestamp(),
@@ -202,7 +204,7 @@ async fn disclose(
                 next_session,
             }),
         },
-        &jsonwebtoken::EncodingKey::from_secret(irma_requestor_hmac_key),
+        irma_requestor_hmac_key,
     )
     .unwrap();
 
@@ -259,15 +261,15 @@ pub enum SessionType {
 
 #[derive(Serialize, Deserialize, Debug)]
 pub struct SessionPointer {
-    pub(crate) u: String,
-    pub(crate) irmaqr: SessionType,
+    pub u: String,
+    pub irmaqr: SessionType,
 }
 
 #[derive(Serialize, Deserialize, Debug)]
 pub struct SessionData {
     #[serde(rename = "sessionPtr")]
     pub session_ptr: SessionPointer,
-    pub(crate) token: String,
+    pub token: String,
 }
 
 #[derive(Serialize, Deserialize, Debug)]
@@ -293,7 +295,7 @@ impl Default for IrmaErrorMessage {
 pub struct SessionDataWithImage {
     svg: String,
     #[serde(rename = "sessionPtr")]
-    pub(crate) session_ptr: SessionPointer,
+    pub session_ptr: SessionPointer,
     /// The token for further interaction with the session
     token: String,
 }
@@ -336,7 +338,7 @@ pub async fn disclosed_email_and_telephone(
     token: &str,
 ) -> Result<(String, String)> {
     let client = Client::new();
-    for _i in 0..5 {
+    for _i in 0..2 {
         let request = Request::builder()
             .method(Method::GET)
             .uri(irma_host.to_owned() + format!("/session/{token}/result").as_str())
@@ -398,22 +400,21 @@ pub async fn disclosed_email_and_telephone(
     bail!("Did not get IRMA result in 3 tries");
 }
 
-pub async fn next_session(
-    req: Request<Body>,
-    irma: &IrmaContext,
-    pub_hubs_host: &str,
-) -> Response<Body> {
-    match next_session_priv(req, irma, pub_hubs_host).await {
+pub async fn next_session(req: HttpRequest, context: Data<Main>, jwt_text: String) -> HttpResponse {
+    let pub_hubs_host = &context.url;
+    let irma = &context.irma;
+    match next_session_priv(req, irma, pub_hubs_host, &jwt_text).await {
         Ok(a) => a,
         Err(_) => empty_result(),
     }
 }
 
 async fn next_session_priv(
-    req: Request<Body>,
+    req: HttpRequest,
     irma: &IrmaContext,
     pub_hubs_host: &str,
-) -> Result<Response<Body>> {
+    jwt_text: &str,
+) -> Result<HttpResponse> {
     if let Some(ct) = req.headers().get(CONTENT_TYPE) {
         let ct = ct.to_str().unwrap_or("<could not convert to string>");
 
@@ -422,16 +423,11 @@ async fn next_session_priv(
                 "Irma server called back with Content-Type {} instead of 'text/plain' - has a jwt_privkey(_file) been configurad for the IRMA server?",
                 ct
             );
-            return Ok(Response::builder()
-                .status(StatusCode::INTERNAL_SERVER_ERROR)
-                .body(Body::empty())?);
+            return Ok(HttpResponse::InternalServerError().finish());
         }
     }
 
-    let jwt_text =
-        std::str::from_utf8(body::to_bytes(req.into_body()).await?.as_ref())?.to_string();
-
-    let jwt = jsonwebtoken::decode::<SignedSessionResultClaims>(&jwt_text, &irma.server_key, &{
+    let jwt = jsonwebtoken::decode::<SignedSessionResultClaims>(jwt_text, &irma.server_key, &{
         let mut val = jsonwebtoken::Validation::new(jsonwebtoken::Algorithm::RS256);
 
         val.set_issuer(&[irma.server_issuer.clone()]);
@@ -445,9 +441,7 @@ async fn next_session_priv(
             jwt_text,
             jwt.unwrap_err()
         );
-        return Ok(Response::builder()
-            .status(StatusCode::INTERNAL_SERVER_ERROR)
-            .body(Body::empty())?);
+        return Ok(HttpResponse::InternalServerError().finish());
     }
 
     let claims = jwt.unwrap().claims;
@@ -483,16 +477,14 @@ async fn next_session_priv(
                             )]),
                         },
                         next_session: Some(NextSession {
-                            url: pub_hubs_host.to_owned() + "irma-endpoint",
+                            url: pub_hubs_host.to_owned() + "irma-endpoint/",
                         }),
                     })
                     .unwrap();
 
-                    let mut resp = Response::new(Body::from(body));
-                    resp.headers_mut().insert(
-                        CONTENT_TYPE,
-                        HeaderValue::from_str("application/json").unwrap(),
-                    );
+                    let resp = HttpResponse::Ok()
+                        .insert_header((CONTENT_TYPE, "application/json"))
+                        .body(body);
                     Ok(resp)
                 }
             }
@@ -501,10 +493,8 @@ async fn next_session_priv(
     }
 }
 
-fn empty_result() -> Response<Body> {
-    let mut resp = Response::new(Body::empty());
-    *resp.status_mut() = StatusCode::NO_CONTENT;
-    resp
+fn empty_result() -> HttpResponse {
+    HttpResponse::NoContent().finish()
 }
 
 #[derive(Serialize, Deserialize, Debug, PartialEq, Eq, Clone)]
@@ -534,9 +524,9 @@ pub enum ProofStatus {
 #[derive(Serialize, Deserialize, Debug)]
 pub struct Attribute {
     #[serde(rename = "rawvalue")]
-    pub(crate) raw_value: String,
-    pub(crate) status: String,
-    pub(crate) id: String,
+    pub raw_value: String,
+    pub status: String,
+    pub id: String,
     // value: TranslatedString
 }
 
@@ -553,15 +543,15 @@ pub struct SignedSessionResultClaims {
 
 #[derive(Serialize, Deserialize, Debug)]
 pub struct SessionResult {
-    pub(crate) disclosed: Option<Vec<Vec<Attribute>>>,
-    pub(crate) status: Status,
+    pub disclosed: Option<Vec<Vec<Attribute>>>,
+    pub status: Status,
     #[serde(rename = "type")]
-    pub(crate) session_type: SessionType,
+    pub session_type: SessionType,
     #[serde(rename = "proofStatus")]
-    pub(crate) proof_status: Option<ProofStatus>,
+    pub proof_status: Option<ProofStatus>,
     #[serde(rename = "nextSession")]
-    pub(crate) next_session: Option<String>,
-    pub(crate) error: Option<String>,
+    pub next_session: Option<String>,
+    pub error: Option<String>,
 }
 
 fn get_first_attribute_raw_value(attribute_name: &str, result: &SessionResult) -> Result<String> {
@@ -586,19 +576,24 @@ fn get_first_attribute_raw_value(attribute_name: &str, result: &SessionResult) -
 #[allow(unused_must_use)]
 mod tests {
     use super::*;
+    use crate::config::File;
+    use actix_web::body::MessageBody;
+    use actix_web::test;
+    use actix_web::test::TestRequest;
     use hyper::service::{make_service_fn, service_fn};
-    use hyper::Server;
+    use hyper::{Response, Server};
     use std::convert::Infallible;
     use std::net::SocketAddr;
+    use std::sync::Arc;
 
-    #[tokio::test]
+    #[actix_web::test]
     async fn can_start_session() {
-        start_fake_server(3000);
+        start_fake_server(3000).await;
         let test_pub_hubs_host = "test_host/";
         let resp = login(
             "http://localhost:3000/test1",
             "",
-            &vec![],
+            &crate::jwt::HS256(vec![]),
             test_pub_hubs_host,
         )
         .await
@@ -615,7 +610,7 @@ mod tests {
         let result = login(
             "http://localhost:3000/test1_1",
             "",
-            &vec![],
+            &crate::jwt::HS256(vec![]),
             test_pub_hubs_host,
         )
         .await;
@@ -628,9 +623,9 @@ mod tests {
         );
     }
 
-    #[tokio::test]
+    #[actix_web::test]
     async fn can_get_disclosed_values() {
-        start_fake_server(3001);
+        start_fake_server(3001).await;
         let resp = disclosed_email_and_telephone("http://localhost:3001/test2", "test_token")
             .await
             .unwrap();
@@ -734,6 +729,17 @@ OdC+rxjYNxRU4uNt8fgMfCdTL4wdxucOp0L8E5Enp+b96tpELIRhBkNEpQo=
         .unwrap();
     }
 
+    fn fake_irma_context() -> crate::config::Irma {
+        crate::config::Irma {
+            server_issuer: "irmaserver/".to_string(),
+            client_url: Some("some.host/".to_string()),
+            requestor: "some.host/".to_string(),
+            requestor_hmac_key: None,
+            server_url: "some.host/".to_string(),
+            server_key_file: Some(r#"../docker_irma/jwt.priv"#.to_string()),
+        }
+    }
+
     fn fake_irma_state() -> IrmaContext {
         IrmaContext {
             server_issuer: "irmaserver".to_string(),
@@ -757,12 +763,12 @@ mL8ccRpy26VYM7CYRcsoeJMCAwEAAQ==
             .unwrap(),
             client_url: "".to_string(),
             requestor: "".to_string(),
-            requestor_hmac_key: vec![],
+            requestor_hmac_key: crate::jwt::HS256(vec![]),
             server_url: "".to_string(),
         }
     }
 
-    #[tokio::test]
+    #[actix_web::test]
     async fn done_after_issue() {
         let body = sign_fake_session_result(SessionResult {
             disclosed: None,
@@ -772,14 +778,14 @@ mL8ccRpy26VYM7CYRcsoeJMCAwEAAQ==
             next_session: None,
             error: None,
         });
-        let req = Request::new(Body::from(body));
-        let resp = next_session_priv(req, &fake_irma_state(), "test_host")
+        let req = test::TestRequest::default().to_http_request();
+        let resp = next_session_priv(req, &fake_irma_state(), "test_host", &body)
             .await
             .unwrap();
         assert_eq!(resp.status(), StatusCode::NO_CONTENT);
     }
 
-    #[tokio::test]
+    #[actix_web::test]
     async fn can_extend_session_after_disclose_mail_and_phone() {
         let body = sign_fake_session_result(SessionResult {
             disclosed: Some(vec![vec![
@@ -800,18 +806,19 @@ mL8ccRpy26VYM7CYRcsoeJMCAwEAAQ==
             next_session: None,
             error: None,
         });
-        let req = Request::new(Body::from(body));
-        let resp = next_session_priv(req, &fake_irma_state(), "test_host/")
+        let req = TestRequest::default().to_http_request();
+        let resp = next_session_priv(req, &fake_irma_state(), "test_host/", &body)
             .await
             .unwrap();
 
-        let resp_body = body::to_bytes(resp).await.unwrap();
+        let resp_body =
+            String::from_utf8(resp.into_body().try_into_bytes().unwrap().to_vec()).unwrap();
         let slice = resp_body.as_ref();
         let session_request: ExtendedSessionRequest = serde_json::from_slice(slice).unwrap();
         assert_eq!(
             session_request.next_session.as_ref().unwrap(),
             &NextSession {
-                url: "test_host/irma-endpoint".to_string()
+                url: "test_host/irma-endpoint/".to_string()
             }
         );
         assert_eq!(session_request.request.context, Context::Issuance);
@@ -824,7 +831,7 @@ mL8ccRpy26VYM7CYRcsoeJMCAwEAAQ==
         assert_eq!(credential.attributes.mobilenumber, "phone");
     }
 
-    #[tokio::test]
+    #[actix_web::test]
     async fn cannot_extend_session_after_disclose_mail_and_phone_from_pubhubs() {
         let body = sign_fake_session_result(SessionResult {
             disclosed: Some(vec![vec![
@@ -845,16 +852,17 @@ mL8ccRpy26VYM7CYRcsoeJMCAwEAAQ==
             next_session: None,
             error: None,
         });
-        let req = Request::new(Body::from(body));
-        let resp = next_session_priv(req, &fake_irma_state(), "test_host")
+        let req = TestRequest::default().to_http_request();
+        let resp = next_session_priv(req, &fake_irma_state(), "test_host", &body)
             .await
             .unwrap();
 
-        let resp_body = body::to_bytes(resp).await.unwrap();
+        let resp_body =
+            String::from_utf8(resp.into_body().try_into_bytes().unwrap().to_vec()).unwrap();
         assert!(resp_body.is_empty());
     }
 
-    #[tokio::test]
+    #[actix_web::test]
     async fn extend_session_will_return_empty_responses() {
         for status in [
             Status::CONNECTED,
@@ -883,10 +891,20 @@ mL8ccRpy26VYM7CYRcsoeJMCAwEAAQ==
                     next_session: None,
                     error: None,
                 });
-                let req = Request::new(Body::from(body));
-                let resp = next_session(req, &fake_irma_state(), "test_host").await;
+                let req = TestRequest::default().to_http_request();
 
-                let resp_body = body::to_bytes(resp).await.unwrap();
+                let context = create_test_context_with(|mut f| {
+                    f.url = Some("https://test.host/".to_string());
+                    f.irma = fake_irma_context();
+                    f
+                })
+                .await
+                .unwrap();
+
+                let resp = next_session(req, Data::from(context), body).await;
+
+                let resp_body =
+                    String::from_utf8(resp.into_body().try_into_bytes().unwrap().to_vec()).unwrap();
                 assert!(resp_body.is_empty());
             }
         }
@@ -1034,22 +1052,38 @@ mL8ccRpy26VYM7CYRcsoeJMCAwEAAQ==
         }
     }
 
-    fn start_fake_server(port: u16) {
-        tokio::spawn(async move {
-            // We'll bind to 127.0.0.1:<port>
-            let addr = SocketAddr::from(([127, 0, 0, 1], port));
+    async fn start_fake_server(port: u16) {
+        let port_bound = Arc::new(tokio::sync::Notify::new());
 
-            let make_service = make_service_fn(move |_conn| {
-                let service = service_fn(move |req| handle(req));
+        {
+            let port_bound = port_bound.clone();
 
-                async move { Ok::<_, Infallible>(service) }
+            tokio::spawn(async move {
+                // We'll bind to 127.0.0.1:<port>
+                let addr = SocketAddr::from(([127, 0, 0, 1], port));
+
+                let make_service = make_service_fn(move |_conn| {
+                    let service = service_fn(move |req| handle(req));
+
+                    async move { Ok::<_, Infallible>(service) }
+                });
+
+                let server = Server::bind(&addr).serve(make_service);
+
+                port_bound.notify_one();
+
+                if let Err(e) = server.await {
+                    eprintln!("server error: {}", e);
+                }
             });
+        }
 
-            let server = Server::bind(&addr).serve(make_service);
+        port_bound.notified().await;
+    }
 
-            if let Err(e) = server.await {
-                eprintln!("server error: {}", e);
-            }
-        });
+    async fn create_test_context_with(
+        config: impl FnOnce(File) -> File,
+    ) -> anyhow::Result<Arc<Main>> {
+        Main::create(config(File::for_testing())).await
     }
 }

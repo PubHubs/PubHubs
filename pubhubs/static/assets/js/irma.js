@@ -1,13 +1,16 @@
-function irmaLogin(endpoint,hub, state,result_url ) {
+// starts an irma session to login
+function irmaLogin(url_prefix, register, oidc_handle) {
+    let endpoint = register ? "/irma-endpoint/register" : "/irma-endpoint/start";
     let irma = {};
     let evtSource = null;
+
     fetch(endpoint)
         .then(response => {
             if (!response.ok) {
                 throw new Error('Network response was not OK');
             }
             return response.json()})
-        .then(data=> {
+        .then(data => {
             let json = JSON.stringify(data.sessionPtr);
             let universalLink = `https://irma.app/-/session#${encodeURIComponent(json)}`;
 
@@ -16,13 +19,12 @@ function irmaLogin(endpoint,hub, state,result_url ) {
             let fallback = `S.browser_fallback_url=${encodeURIComponent(universalLink)}`;
             let mobileLink =  `intent://qr/json/${encodeURIComponent(json)}#${intent};${fallback};end`;
 
-            let after = !hub ? `/irma-endpoint/${data.token}/result` : `/irma-endpoint/${data.token}/result?hub_id=${hub}`;
-
+            let irma_token = data.token;
+	
             let redirectOnFocus = function() {
                 window.addEventListener("focus", function(event) {
                     if (irma.st != null) {
-                        // redirect to retrieve hub pseudonym
-                        redirect(after);
+                        finish_and_redirect(irma_token);
                     }
                 });
                 return true;
@@ -55,13 +57,13 @@ function irmaLogin(endpoint,hub, state,result_url ) {
             let eventsURL =	data.sessionPtr.u + "/statusevents";
             irma.st = st;
             irma.eventsURL = eventsURL;
-            irmaConnect(st, eventsURL, after, true);
+            irmaConnect(st, eventsURL, irma_token, true);
         }).catch(e => {
         console.error('There has been a problem with your fetch operation:', e);
-        irmaError()
+        irmaError();
     });
 
-    function irmaConnect(st, eventsURL, after, reconnectOnFocus) {
+    function irmaConnect(st, eventsURL, irma_token, reconnectOnFocus) {
         if (evtSource != null)
             evtSource.close();
         evtSource = new EventSource(eventsURL);
@@ -76,7 +78,7 @@ function irmaLogin(endpoint,hub, state,result_url ) {
                 // expect the event source to be closed
                 evtSource.onerror = null;
 
-                redirect(after);
+		finish_and_redirect(irma_token);
                 return;
             }
             if (event.data == '"CANCELLED"') {
@@ -112,37 +114,31 @@ function irmaLogin(endpoint,hub, state,result_url ) {
     };
     window.irmaError = irmaError; // so we can simulate an error via the javascript console
 
-    function redirect(url) {
-        fetch(new Request(url))
-            .then(response => {
-                if (!response.ok) {
-                    throw new Error('Network response was not OK');
-                }
-                return response.json();
-            })
-            .then( result => {
-                if (hub) {
-                const request = new Request(result_url, {method: 'POST', body: `{"pmp": "${ result.pseudonym }", "state": "${state}"}`})
-                request.headers.set("Content-Type", "application/json");
-                const response = fetch(request);
-                response.then(r => {
-                    if (!r.ok) {
-                        throw new Error('Network response was not OK');
-                    }
-                    return r.text();
-                })
-                    .then(text => {
-                        window.location.href = text;
-                    })
-                }  else {
-                        window.location.href = `/account/${result.account_id}`;
-                }
-            }
-            ).catch(e => {
-            console.error('There has been a problem with your fetch operation:', e);
-            irmaError()
-        });
+    function finish_and_redirect(irma_token) {
+	// obtain cookie and redirect user-agent to appropriate location
+	let form = document.createElement("form");
+	form.setAttribute("method", "POST");
+	form.setAttribute("action", "/irma-endpoint/finish-and-redirect");
 
+	
+	let irma_token_inp = document.createElement("input");
+	irma_token_inp.setAttribute("type", "hidden");
+	irma_token_inp.setAttribute("name", "irma_token");
+	irma_token_inp.setAttribute("value", irma_token);
+	form.appendChild(irma_token_inp);
+
+	if (oidc_handle) {
+		let oidc_handle_inp = document.createElement("input");
+		oidc_handle_inp.setAttribute("type", "hidden");
+		oidc_handle_inp.setAttribute("name", "oidc_auth_request_handle");
+		oidc_handle_inp.setAttribute("value", oidc_handle);
+		form.appendChild(oidc_handle_inp);
+	}
+	
+	// required for some reason
+	document.body.appendChild(form);
+
+	form.submit();
     }
 
     function userAgent() {

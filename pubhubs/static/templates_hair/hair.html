@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -27,44 +28,147 @@
 <p>{{=index_content}}</p>
 {{enddefine}}
 {{define hubs_tmpl}}
-<table>
-    <thead>
-    <tr>
-        <th>id</th>
-        <th>{{=tr("name","naam")}}</th>
-        <th>{{=tr("description","omschrijving")}}</th>
-        <th>{{=tr("redirection_uri","omleidings URI")}}</th>
-    </tr>
-    </thead>
-    {{for hub in hubs}}
-    <tr>
-        <td> <a href="/admin/hubs/{{=hub.id}}">{{=hub.id}}</a></td>
-        <td>{{=hub.name}}</td>
-        <td>{{=hub.description}}</td>
-        <td>{{=hub.redirection_uri}}</td>
-    </tr>
-    {{end}}
-</table>
-<form method="post">
-    <div><label for="name">{{=tr("enter_name","Voer naam in:")}} </label>
-        <input type="text" name="name" id="name" required></div>
-    <div><label for="description">{{=tr("enter_description","Voer omschrijving in:")}} </label>
-        <input type="text" name="description" id="description" required></div>
-    <div><label for="redirection_uri">{{=tr("enter_redirection","Voer omleidings URI in:")}} </label>
-        <input type="text" name="redirection_uri" id="redirection_uri" required></div>
-    <div><label for="passphrase">{{=tr("enter_passphrase","Voer wachtwoord in:")}} </label>
-        <input type="password" name="passphrase" id="passphrase" minlength="8" required></div>
-    <input type="submit" value="add"></form>
+<div class="admin-page">
+    <h3>
+      <img
+        src="/images/favicon.png"
+        height="40px"
+        width="40px"
+        alt="pubhub-icon"
+      />Central Platform Admin DashBoard
+    </h3>
+    <div class="admin-hub-info">
+      <table>
+        <thead>
+          <tr>
+            <th>id</th>
+            <th>{{=tr("Name","Naam")}}</th>
+            <th>{{=tr("Description","Omschrijving")}}</th>
+            <th>{{=tr("Redirection_uri","Omleidings URI")}}</th>
+            <th>{{=tr("Detail","Detail")}}</th>
+          </tr>
+        </thead>
+        {{for hub in hubs}}
+        <tr>
+          <td>{{=hub.id}}</td>
+          <td>{{=hub.name}}</td>
+          <td>{{=hub.description}}</td>
+          <td>{{=hub.redirection_uri}}</td>
+          <td>
+            <a class="detail-style" href="/admin/hubs/{{=hub.id}}"> + </a>
+          </td>
+        </tr>
+        {{end}}
+      </table>
+    </div>
+    <div class="new-hub-form">
+      <form method="post">
+        <div>
+          <p class="form-head">
+            {{=tr("New Hub Information","New Hub Information")}}
+          </p>
+          <label for="name">{{=tr("enter_name","Voer naam in:")}} </label>
+          <input type="text" name="name" id="name" size="60" required />
+        </div>
+        <div>
+          <label for="description"
+            >{{=tr("enter_description","Voer omschrijving in:")}}
+          </label>
+          <input
+            type="text"
+            name="description"
+            id="description"
+            size="60"
+            required
+          />
+        </div>
+        <div>
+          <label for="redirection_uri"
+            >{{=tr("enter_redirection","Voer omleidings URI in:")}}
+          </label>
+          <input
+            type="text"
+            name="redirection_uri"
+            id="redirection_uri"
+            size="60"
+            placeholder="e.g., http://hub-url/_synapse/client/oidc/callback"
+            required
+          />
+        </div>
+        <input
+          class="btn btn-secondary btn-rounded align-content-center text-white space-style"
+          type="submit"
+          value="+ Add New Hub"
+        />
+      </form>
+    </div>
+  </div>
 {{enddefine}}
 {{define hub}}
-<p>Hub id: {{=id}}</p>
-<p> Decryption key: ||{{=key}}^^</p>
-<form method="post">
-    <div><label for="name">{{=tr("enter_name","Voer naam in:")}} </label>
-        <input type="text" name="name" id="name" value="{{=name}}" required></div>
-    <div><label for="description">{{=tr("enter_description","Voer omschrijving in:")}} </label>
-        <input type="text" name="description" id="description" value="{{=description}}" required></div>
-    <input type="submit" value="update"></form>
+<div class="detail-page">
+    <div class="detail-hub-info">
+      <div class="header">Hub Details</div>
+      <dl>
+        <dt>Hub id:</dt>
+        <dd>{{=id}}</dd>
+        <dt>Hub name:</dt>
+        <dd>{{=name}}</dd>
+        <dt>Decryption key:</dt>
+        <dd>||{{=key}}^^</dd>
+        <dt>OpenID Connect Client ID:</dt>
+        <dd>{{=oidc_client_id}}</dd>
+        <dt>OpenID Connect Client Password:</dt>
+        <dd>{{=oidc_client_password}}</dd>
+      </dl>
+      <button
+        class="btn btn-secondary btn-rounded align-content-center text-white space-style dwnld-btn"
+      >
+        Download
+      </button>
+    </div>
+
+    <div class="update-hub-form">
+      <div class="header">Update Hub Information</div>
+      <form method="post">
+        <div>
+          <label for="name">{{=tr("enter_name","Voer naam in:")}} </label>
+          <input
+            type="text"
+            name="name"
+            id="name"
+            size="80"
+            value="{{=name}}"
+            required
+          />
+        </div>
+        <div>
+          <label for="description"
+            >{{=tr("enter_description","Voer omschrijving in:")}}
+          </label>
+          <input
+            type="text"
+            name="description"
+            id="description"
+            size="80"
+            value="{{=description}}"
+            required
+          />
+        </div>
+        <input
+          type="submit"
+          class="btn btn-secondary btn-rounded align-content-center text-white space-style"
+          value="update"
+        />
+      </form>
+    </div>
+    <button
+      class="btn btn-secondary btn-rounded align-content-center text-white space-style"
+    >
+      <a href="/admin/hubs">Back</a>
+    </button>
+  </div>
+  <script src="/js/admin.js"></script>
+
 {{enddefine}}
 {{define users_tmpl}}
 <table>
@@ -136,7 +240,7 @@
     </div>
 </div>
 {{enddefine}}
-{{define authenticate defaults {login: true}}}
+{{define authenticate defaults {register: false, hub_name: "", oidc_auth_request_handle: null }}}
 <div class="container">
     {{if hub_name == ""}}
         {{call page_header with {title: "to_my_account",default: "Naar mijn PubHubs account"}}}
@@ -152,7 +256,7 @@
                     <div class="row h-100">
                         <div class="col d-flex align-items-center">
                             <div>
-                                <h2 class="text-white ">{{if login}}Log in{{else}}{{=tr("register","Registreer")}}{{endif}} {{=tr("with", "met")}} <span class="align-middle">{{call irmalogo}}</span></h2>
+                                <h2 class="text-white ">{{if !register}}Log in{{else}}{{=tr("register","Registreer")}}{{endif}} {{=tr("with", "met")}} <span class="align-middle">{{call irmalogo}}</span></h2>
                                 <h5 class="text-white ">{{=tr("scan","Scan de QR code met je IRMA app")}}.</h5>
                                 <p><a href="https://irma.app/ -middle">{{=tr("login_trouble","Problemen met inloggen")}}?</a></p>
                             </div>
@@ -166,12 +270,11 @@
             </div>
         </div>
         <div class="col col-lg-5">
-            {{if login}}
+            {{if !register}}
             <div class="card bg-white m-3 p-4 mt-0 text-center "><h5>{{=tr("dont_have","Nog geen")}} {{call pubhubslogo}} account?</h5>
-                <form action="{{=url_prefix}}/register" method="get">
-                    <input type="text" name="hub" value="{{=hub}}" hidden>
-                    <input type="text" name="state" value="{{=state}}" hidden>
-                    <input type="text" name="url" value="{{=url}}" hidden>
+                <form action="{{=url_prefix}}/register" method="POST">
+                    <input type="text" name="oidc_handle" value="{{=oidc_auth_request_handle}}" hidden>
+                    <input type="text" name="hub_name" value="{{=hub_name}}" hidden>
                     <button class="btn btn-secondary btn-rounded align-content-center text-white">{{=tr("register","Registreren")}}</button>
                 </form>
             </div>
@@ -209,12 +312,11 @@
 
 <script src="/js/irma.js"></script>
 <script type="text/javascript">
-    let hub = {{=hub}};
-    let state = {{=state}};
-    let url = {{=url}};
-    let endpoint = {{=url_prefix}} + {{=login?"/irma-endpoint/start":"/irma-endpoint/register"}};
+    let oidc_handle = {{=oidc_auth_request_handle}};
+    let register = {{=register}};
+    let url_prefix = {{=url_prefix}};
     window.irmaLoginWithDetailsProvided = () => {
-        irmaLogin(endpoint, hub, state, url);
+        irmaLogin(url_prefix, register, oidc_handle);
     }
     // pageshow is also invoked when the page is reloaded from the back/forward cache,
     // see https://web.dev/bfcache/ and issue #25

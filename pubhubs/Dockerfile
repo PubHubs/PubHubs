@@ -1,5 +1,5 @@
 FROM registry.science.ru.nl/ilab/docker-build/rust-stable:main as builder
-WORKDIR /usr/src/pub_hubs
+WORKDIR /usr/src/pubhubs
 COPY build.rs build.rs
 COPY static/ static/
 COPY src/ src/
@@ -21,11 +21,10 @@ RUN curl -L https://bitpowder.com/packages/linux-packages.gpg | tee /etc/apt/tru
 
 RUN apt-get update && apt-get install -y pepcli
 
-COPY --from=builder /root/.cargo/bin/pub_hubs /usr/local/bin/pub_hubs
-COPY --from=builder /usr/src/pub_hubs/static/ static/
+COPY --from=builder /root/.cargo/bin/pubhubs /usr/local/bin/pubhubs
+COPY --from=builder /usr/src/pubhubs/static/ static/
 COPY default.yaml .
 
-# TODO change on deployment obviously maybe even just set something that will fail! Much better I guess.
-ENV PUBHUBS_CONFIG="default.yaml"
+ENV PUBHUBS_CONFIG="provide_me_when_running_as_a_container"
 
-CMD ["pub_hubs"]
+CMD ["pubhubs"]

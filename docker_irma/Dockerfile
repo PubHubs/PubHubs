@@ -1,12 +1,8 @@
-FROM golang:1.17.6
+FROM golang:1.18
 
-RUN git clone https://github.com/privacybydesign/irmago
+RUN git clone https://github.com/privacybydesign/irmago --branch v0.11.0 --depth 1
 
 WORKDIR irmago
-
-# version 0.10.0
-RUN git reset 62cb8aa430ca6cd2fdf2aa379743c315fff1a6cf
-#RUN git reset 5a14bccc721d74a6857445145331523f2b130ebc 0.9.0
 
 RUN go env -w GO111MODULE=auto
 

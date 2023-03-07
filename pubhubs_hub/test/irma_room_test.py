@@ -1,12 +1,14 @@
-from typing import Optional, List
+from typing import Optional, List, Tuple, Mapping, Collection
 from unittest import IsolatedAsyncioTestCase
 
 import sys
 from synapse.config import ConfigError
+from synapse.events import EventBase
+from synapse.handlers.room import EventContext
 
 from synapse.types import (
     Requester,
-    UserID
+    UserID, StateMap
 )
 
 sys.path.append("modules")
@@ -65,6 +67,12 @@ class FakeHsConfig():
     servernotices = FakeNoticesManager()
     worker = FakeWorker()
 
+class FakeState():
+    async def get_state_group_for_events(self, event_ids: Collection[str],) -> Mapping[str, int]:
+        return { id: i for (i,id) in [(i,id) for i,id in enumerate(event_ids)] }
+
+class FakeStorageControllers():
+    state = FakeState()
 
 class FakeAuth():
     async def check_auth_blocking(self, requester):
@@ -83,10 +91,41 @@ class FakeRequestRateLimiter:
     async def ratelimit(self, requester):
         return None
 
+class FakeEventContext:
+    _state_group = "state_group"
 
 class FakeEvencreationHandler:
     async def assert_accepted_privacy_policy(self, requester):
         return True
+
+    async def create_event(
+            self,
+            requester: Requester,
+            event_dict: dict,
+            txn_id: Optional[str] = None,
+            allow_no_prev_events: bool = False,
+            prev_event_ids: Optional[List[str]] = None,
+            auth_event_ids: Optional[List[str]] = None,
+            state_event_ids: Optional[List[str]] = None,
+            require_consent: bool = True,
+            outlier: bool = False,
+            historical: bool = False,
+            depth: Optional[int] = None,
+            state_map: Optional[StateMap[str]] = None,
+            for_batch: bool = False,
+            current_state_group: Optional[int] = None,
+    ):
+        return (FakeEvent(), FakeEventContext())
+
+    async def handle_new_client_event(
+            self,
+            requester: Requester,
+            events_and_context: List[Tuple[EventBase, EventContext]],
+            ratelimit: bool = True,
+            extra_users: Optional[List[UserID]] = None,
+            ignore_shadow_ban: bool = False,
+    ):
+        return FakeEvent
 
     async def create_and_send_nonmember_event(self,
                                               requester: Requester,
@@ -193,13 +232,19 @@ class FakeHs():
         return FakeAccountDataHandler()
 
     def get_storage_controllers(self):
-        pass
+        return FakeStorageControllers()
 
     def get_auth_blocking(self):
         return FakeAuth()
 
+class FakeMetaData:
+    stream_ordering = "ordering"
+
 class FakeEvent:
-    event_id = 'event_id'
+    event_id = 'event_id',
+    type = "type",
+    state_key = "state key"
+    internal_metadata = FakeMetaData
 
 
 class FakeModuleApi():

@@ -1,25 +1,27 @@
 use crate::pseudonyms::PepContext;
-use anyhow::{anyhow, bail, ensure, Result};
+use anyhow::{anyhow, bail, ensure, Context as _, Result};
 use expry::key_str;
 use expry::{value, DecodedValue};
-use pbkdf2::password_hash::rand_core::OsRng;
-use pbkdf2::password_hash::{PasswordHasher, SaltString};
-use pbkdf2::Pbkdf2;
+
+use prometheus::HistogramVec;
 use rand::distributions::Alphanumeric;
 use rand::Rng;
 use rusqlite::Error::QueryReturnedNoRows;
 use rusqlite::{params, Connection, Row};
 use serde::{Deserialize, Serialize};
+use sha2::Digest as _;
+use std::convert::AsRef;
 use std::fmt::{Debug, Formatter};
 use std::path::Path;
 use std::str::FromStr;
+use strum_macros::AsRefStr;
 use tokio::sync::mpsc::{Receiver, Sender};
 use tokio::sync::oneshot;
 use uuid::Uuid;
 
 // Add new DDL statements at end of this vector. Do not modify previous statements. User version of the database
 // schema will be determined based on the index in the array.
-const MIGRATIONS: [&str; 5] = [
+const MIGRATIONS: [&str; 8] = [
     "
         -- Commented out, for efficiency,
         --   because it's dropped later on anyhow 
@@ -99,9 +101,14 @@ const MIGRATIONS: [&str; 5] = [
 
         CREATE UNIQUE INDEX idx_hub_name ON hub (name);
     ",
+    // passphrase no longer needed
+    "ALTER TABLE hub DROP COLUMN passphrase;",
+    // add bar state; NB: sha256("")="e3b0[...]"
+    "ALTER TABLE user ADD bar_state BLOB DEFAULT X'' NOT NULL;",
+    "ALTER TABLE user ADD bar_state_etag TEXT DEFAULT \"e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855\" NOT NULL;",
 ];
 
-#[derive(Debug)]
+#[derive(Debug, AsRefStr)]
 pub enum DataCommands {
     AllHubs {
         resp: oneshot::Sender<Result<Vec<Hub>>>,
@@ -110,7 +117,6 @@ pub enum DataCommands {
         name: String,
         description: String,
         redirection_uri: String,
-        passphrase: String,
         resp: oneshot::Sender<Result<Hubid>>,
     },
     GetHub {
@@ -146,38 +152,65 @@ pub enum DataCommands {
         resp: oneshot::Sender<Result<User>>,
         id: u32,
     },
+    GetBarState {
+        resp: oneshot::Sender<Result<BarState>>,
+        id: u32,
+    },
+    // Updates bar_state to `state` if the current state has etag `old_etag` in which case
+    // `Ok(Some(etag))` is returned where `etag` is the new etag.  Otherwise, when `old_etag` is
+    // outdated, `Ok(None)` is returned.
+    UpdateBarState {
+        resp: oneshot::Sender<Result<Option<String>>>,
+        id: u32,
+        old_etag: String,
+        state: bytes::Bytes,
+    },
     CreatePolicy {
         resp: oneshot::Sender<Result<Policy>>,
         content: String,
         highlights: Vec<String>,
-        version: i32,
+        version: u32,
     },
     GetLatestPolicy {
         resp: oneshot::Sender<Result<Option<Policy>>>,
     },
-    #[cfg(test)]
+    // #[cfg(test)] // does not work for the binary
     Terminate {},
 }
 
-pub fn make_database_manager<P: AsRef<Path>>(path: P, rx: Receiver<DataCommands>) {
+pub fn make_database_manager<P: AsRef<Path>>(
+    path: P,
+    rx: Receiver<DataCommands>,
+    database_req_histogram: HistogramVec,
+) {
     // can't pass reference to new thread
     let path = path.as_ref().to_path_buf();
 
     tokio::spawn(async move {
         let manager = get_manager(path).expect("A database connection");
-        handle_command(rx, manager).await
+        handle_command(rx, manager, database_req_histogram).await
     });
 }
 
-pub fn make_in_memory_database_manager(rx: Receiver<DataCommands>) {
+pub fn make_in_memory_database_manager(
+    rx: Receiver<DataCommands>,
+    database_req_histogram: HistogramVec,
+) {
     tokio::spawn(async move {
         let manager = get_connection_memory().expect("A connection to an in-memory database");
-        handle_command(rx, manager).await
+        handle_command(rx, manager, database_req_histogram).await
     });
 }
 
-async fn handle_command(mut rx: Receiver<DataCommands>, mut manager: Connection) {
+async fn handle_command(
+    mut rx: Receiver<DataCommands>,
+    mut manager: Connection,
+    database_req_histogram: HistogramVec,
+) {
     while let Some(cmd) = rx.recv().await {
+        let timer = database_req_histogram
+            .with_label_values(&[cmd.as_ref()])
+            .start_timer();
         match cmd {
             DataCommands::AllHubs { resp } => {
                 let hubs = get_all_hubs(&manager);
@@ -187,17 +220,10 @@ async fn handle_command(mut rx: Receiver<DataCommands>, mut manager: Connection)
                 name,
                 description,
                 redirection_uri,
-                passphrase,
                 resp,
             } => {
-                resp.send(create_hub(
-                    &manager,
-                    &name,
-                    &description,
-                    &redirection_uri,
-                    &passphrase,
-                ))
-                .expect("To use our channel");
+                resp.send(create_hub(&manager, &name, &description, &redirection_uri))
+                    .expect("To use our channel");
             }
             DataCommands::GetHub { resp, handle } => {
                 resp.send(get_hub(&manager, handle))
@@ -241,6 +267,17 @@ async fn handle_command(mut rx: Receiver<DataCommands>, mut manager: Connection)
             DataCommands::GetUserById { resp, id } => resp
                 .send(get_user_by_id(&manager, id))
                 .expect("Trying to use the data channel"),
+            DataCommands::GetBarState { resp, id } => resp
+                .send(get_bar_state(&manager, id))
+                .expect("Trying to use the data channel"),
+            DataCommands::UpdateBarState {
+                resp,
+                id,
+                old_etag,
+                state,
+            } => resp
+                .send(update_bar_state(&manager, id, old_etag, state))
+                .expect("Trying to use the data channel"),
             DataCommands::CreatePolicy {
                 resp,
                 content,
@@ -257,9 +294,10 @@ async fn handle_command(mut rx: Receiver<DataCommands>, mut manager: Connection)
             DataCommands::GetLatestPolicy { resp } => resp
                 .send(get_latest_policy(&manager))
                 .expect("Expected to use the data channel"),
-            #[cfg(test)]
+            //#[cfg(test)]
             DataCommands::Terminate {} => break,
         }
+        timer.stop_and_record();
     }
 }
 
@@ -278,17 +316,17 @@ pub fn get_connection_memory() -> Result<Connection> {
 
 #[derive(Debug)]
 pub struct Policy {
-    pub(crate) id: u32,
-    pub(crate) content: String,
-    pub(crate) version: u32,
-    pub(crate) highlights: Vec<String>,
+    pub id: u32,
+    pub content: String,
+    pub version: u32,
+    pub highlights: Vec<String>,
 }
 
 pub fn create_new_policy(
     db: &mut Connection,
     content: &str,
     highlights: Vec<String>,
-    version: i32,
+    version: u32,
 ) -> Result<Policy> {
     let tx = db.transaction()?;
     tx.execute(
@@ -309,7 +347,7 @@ impl Policy {
         content: String,
         highlights: Vec<String>,
         db: &Sender<DataCommands>,
-        version: i32,
+        version: u32,
     ) -> Self {
         let (tx, rx) = oneshot::channel();
         db.send(DataCommands::CreatePolicy {
@@ -373,17 +411,16 @@ fn map_policy(row: &Row) -> Result<Policy, rusqlite::Error> {
 
 #[derive(PartialEq, Eq, Serialize, Clone)]
 pub struct Hub {
-    pub(crate) id: Hubid,
+    pub id: Hubid,
     // While id being used for the generation of local pseudonyms ought
     // to be immutable, a mutable decryption_id is used to generate
     // the hub's local decryption key (aka the 'Hub secret') so that it
     // can be changed when the Hub secret is compromised.
-    pub(crate) decryption_id: Hubid,
-    pub(crate) name: String,
-    pub(crate) description: String,
-    pub(crate) redirection_uri: String,
-    pub(crate) passphrase: String,
-    pub(crate) active: bool,
+    pub decryption_id: Hubid,
+    pub name: String,
+    pub description: String,
+    pub redirection_uri: String,
+    pub active: bool,
 }
 
 /// Represents a (decryption) id of a Hub,
@@ -397,6 +434,8 @@ pub struct Hubid {
 impl Hubid {
     pub const LENGTH: usize = uuid::fmt::Hyphenated::LENGTH;
 
+    // we don't want to implement Default for Hubid
+    #[allow(clippy::new_without_default)]
     pub fn new() -> Self {
         Self::from_uuid(Uuid::new_v4())
     }
@@ -536,6 +575,14 @@ impl Hub {
     pub fn pseudonymisation_context(&self) -> String {
         format!("Hub #{}", self.id)
     }
+
+    /// Given the [crate::oidc::Oidc] instance, returns the oidc client credentials for this hub.
+    pub fn oidc_credentials(
+        &self,
+        oidc: &impl crate::oidc::Oidc,
+    ) -> crate::oidc::ClientCredentials {
+        oidc.generate_client_credentials(&self.name, &self.redirection_uri)
+    }
 }
 
 impl Debug for Hub {
@@ -559,21 +606,14 @@ pub fn create_hub(
     name: &str,
     description: &str,
     redirection_uri: &str,
-    passphrase: &str,
 ) -> Result<Hubid> {
-    let salt = SaltString::generate(&mut OsRng);
-    let passphrase = Pbkdf2
-        .hash_password(passphrase.as_ref(), &salt)
-        .unwrap()
-        .to_string();
-
     let hubid = Hubid::new();
     let decryption_id = Hubid::new();
 
     let rows_changed = db.execute(
-        "INSERT INTO hub (name, description, redirection_uri, passphrase, active, id, decryption_id)
-        values (?1, ?2, ?3, ?4, TRUE, ?5, ?6)",
-        params![name, description, redirection_uri, passphrase, hubid, decryption_id],
+        "INSERT INTO hub (name, description, redirection_uri,  active, id, decryption_id)
+        values (?1, ?2, ?3, TRUE, ?4, ?5)",
+        params![name, description, redirection_uri, hubid, decryption_id],
     )?;
 
     ensure!(
@@ -591,15 +631,14 @@ fn map_hub(row: &Row) -> rusqlite::Result<Hub> {
         name: row.get(2)?,
         description: row.get(3)?,
         redirection_uri: row.get(4)?,
-        passphrase: row.get(5)?,
-        active: row.get(6)?,
+        active: row.get(5)?,
     })
 }
 
 /// Get a hub by id if it's active.
 pub fn get_hub(db: &Connection, handle: HubHandle) -> Result<Hub> {
     let query = format!(
-        "SELECT id, decryption_id, name, description, redirection_uri, passphrase, active FROM hub
+        "SELECT id, decryption_id, name, description, redirection_uri, active FROM hub
         WHERE active = TRUE AND {} = ?1",
         handle.column_name()
     );
@@ -624,7 +663,7 @@ pub fn get_hubid(db: &Connection, name: &str) -> Result<Option<Hubid>> {
 /// List all hubs
 pub fn get_all_hubs(db: &Connection) -> Result<Vec<Hub>> {
     let mut stmt = db.prepare(
-        "SELECT id, decryption_id, name, description, redirection_uri, passphrase, active FROM hub WHERE active = TRUE",
+        "SELECT id, decryption_id, name, description, redirection_uri, active FROM hub WHERE active = TRUE",
     )?;
     let result: Result<Vec<Hub>, rusqlite::Error> = stmt.query_map([], map_hub)?.collect();
     Ok(result?)
@@ -668,12 +707,19 @@ pub fn update_hub_details(
 
 #[derive(PartialEq, Eq, Serialize)]
 pub struct User {
-    pub(crate) id: i32,
-    pub(crate) email: String,
-    pub(crate) telephone: String,
-    pub(crate) pseudonym: String,
-    pub(crate) active: bool,
-    pub(crate) administrator: bool,
+    pub id: u32,
+    pub email: String,
+    pub telephone: String,
+    pub pseudonym: String,
+    pub active: bool,
+    pub administrator: bool,
+    // NOTE: the 'bar_state*' fields are stored in the BarState struct instead
+}
+
+#[derive(PartialEq, Eq, Debug)]
+pub struct BarState {
+    pub state: Vec<u8>,
+    pub state_etag: String,
 }
 
 impl Debug for User {
@@ -740,6 +786,42 @@ pub fn get_user_by_id(db: &Connection, id: u32) -> Result<User> {
     Ok(result)
 }
 
+pub fn get_bar_state(db: &Connection, id: u32) -> Result<BarState> {
+    db.query_row(
+        "SELECT bar_state, bar_state_etag FROM user WHERE active = TRUE and id = ?1",
+        [id],
+        map_bar_state,
+    )
+    .context("getting bar state from database")
+}
+
+pub fn update_bar_state(
+    db: &Connection,
+    id: u32,
+    old_etag: String,
+    state: bytes::Bytes,
+) -> Result<Option<String>> {
+    let new_etag: String = base16ct::lower::encode_string(
+        sha2::Sha256::new()
+            .chain_update(&state)
+            .finalize()
+            .as_slice(),
+    );
+
+    match db.execute(
+        "UPDATE user SET bar_state = :bar_state, bar_state_etag = :new_etag WHERE id = :id AND bar_state_etag = :old_etag;",
+        rusqlite::named_params! {
+            ":bar_state": &*state, // &* = bytes.Bytes -> &[u8]
+            ":new_etag": new_etag,
+            ":id": id,
+            ":old_etag": old_etag,
+        },
+    )? {
+        1 => Ok(Some(new_etag)),
+        _ => Ok(None),
+    }
+}
+
 pub fn get_all_users(db: &Connection) -> Result<Vec<User>> {
     let mut stmt =
         db.prepare("SELECT id, email, telephone, pseudonym, active, administrator FROM user WHERE active = TRUE")?;
@@ -787,6 +869,13 @@ fn map_user(row: &Row) -> Result<User, rusqlite::Error> {
     })
 }
 
+fn map_bar_state(row: &Row) -> Result<BarState, rusqlite::Error> {
+    Ok(BarState {
+        state: row.get(0)?,
+        state_etag: row.get(1)?,
+    })
+}
+
 fn schema_version(db: &Connection) -> Result<usize, rusqlite::Error> {
     db.query_row_and_then("PRAGMA user_version", [], |row| row.get(0))
 }
@@ -794,7 +883,8 @@ fn schema_version(db: &Connection) -> Result<usize, rusqlite::Error> {
 fn init_database(db: &mut Connection) -> Result<()> {
     for (previous_version, migration) in MIGRATIONS.iter().enumerate() {
         if previous_version == schema_version(db)? {
-            migrate(db, migration, previous_version + 1)?
+            migrate(db, migration, previous_version + 1)
+                .with_context(|| format!("while running migration {migration}"))?
         }
     }
 
@@ -851,7 +941,7 @@ mod tests {
         let description1 = "description1";
         let name2 = "hub2";
         let description2 = "description2";
-        let hubid1 = create_hub(&pool, name1, description1, "/callback", "password").unwrap();
+        let hubid1 = create_hub(&pool, name1, description1, "/callback").unwrap();
         let hub = get_hub(&pool, HubHandle::Id(hubid1)).unwrap();
         assert!(hub.active);
         assert_eq!(hub.pseudonymisation_context(), format!("Hub #{}", hubid1)); // DO NOT CHANGE the pseudonymisation_context lest all local pseudonyms will change
@@ -860,10 +950,10 @@ mod tests {
             format!("Hub decryption key #{}", hub.decryption_id)
         );
         assert_eq!(hub.name, name1);
-        let not_unique = create_hub(&pool, name1, description1, "/callback", "password");
+        let not_unique = create_hub(&pool, name1, description1, "/callback");
         compare_error("UNIQUE constraint failed: hub.name", not_unique);
 
-        let hubid2 = create_hub(&pool, name2, description2, "/callback", "password").unwrap();
+        let hubid2 = create_hub(&pool, name2, description2, "/callback").unwrap();
         let hub2_really = get_hub(&pool, HubHandle::Id(hubid2)).unwrap();
         assert_eq!(hub2_really.id, hubid2);
     }
@@ -873,7 +963,7 @@ mod tests {
         let (pool, delete) = set_up("can_delete_hub");
         let name1 = "hub1";
         let description1 = "description1";
-        let hubid1 = create_hub(&pool, name1, description1, "/callback", "password").unwrap();
+        let hubid1 = create_hub(&pool, name1, description1, "/callback").unwrap();
         let hub = get_hub(&pool, HubHandle::Id(hubid1)).unwrap();
         assert!(hub.active);
         delete_hub(&pool, hubid1);
@@ -882,7 +972,7 @@ mod tests {
 
         let hub = pool
             .query_row(
-                "SELECT id, decryption_id, name, description, redirection_uri, passphrase, active FROM hub WHERE name = ?1",
+                "SELECT id, decryption_id, name, description, redirection_uri, active FROM hub WHERE name = ?1",
                 [name1],
                 map_hub,
             )
@@ -895,7 +985,7 @@ mod tests {
         let (pool, delete) = set_up("can_update_hub_name");
         let name1 = "hub1";
         let description1 = "description1";
-        let hubid1 = create_hub(&pool, name1, description1, "/callback", "password").unwrap();
+        let hubid1 = create_hub(&pool, name1, description1, "/callback").unwrap();
         let hub = get_hub(&pool, HubHandle::Id(hubid1)).unwrap();
         assert_eq!(hub.name, name1);
         let name2 = "name2";
@@ -905,7 +995,7 @@ mod tests {
         assert_eq!(updated_hub.name, name2);
 
         // Different hub
-        let hubid2 = create_hub(&pool, name1, description1, "/callback", "password").unwrap();
+        let hubid2 = create_hub(&pool, name1, description1, "/callback").unwrap();
         // Rename to existing name
         let update_result = update_hub_details(&pool, hubid2, name2, description2);
         compare_error("UNIQUE constraint failed: hub.name", update_result);
