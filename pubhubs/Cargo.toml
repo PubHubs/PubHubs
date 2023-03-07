@@ -79,4 +79,4 @@ hairy = "0.1.2"
 expry = "0.1.2"
 
 [dev-dependencies]
-tempfile = "3.3"
+tempfile = "3.4"
