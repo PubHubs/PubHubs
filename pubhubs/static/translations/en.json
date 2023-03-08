@@ -3,7 +3,7 @@
   "error_msg": "Please show the following code when contacting support",
   "name": "name",
   "description":"description",
-  "redirection_uri": "redirection URI",
+  "oidc_redirect_uri": "OIDC redirection URI",
   "accept": "Accept",
   "read_policy": "Read the full policy here",
   "rules": "Privacy policy and house rules",

@@ -49,7 +49,8 @@ const PAYLOAD_MAX_SIZE: usize = 10 * 1024;
 struct HubForm {
     name: String,
     description: String,
-    redirection_uri: String,
+    oidc_redirect_uri: String,
+    client_uri: String,
 }
 
 impl Debug for HubForm {
@@ -57,7 +58,8 @@ impl Debug for HubForm {
         f.debug_struct("HubForm")
             .field("name", &self.name)
             .field("description", &self.description)
-            .field("redirection_uri", &self.redirection_uri)
+            .field("oidc_redirect_uri", &self.oidc_redirect_uri)
+            .field("client_uri", &self.client_uri)
             .finish()
     }
 }
@@ -66,6 +68,8 @@ impl Debug for HubForm {
 struct HubFormUpdate {
     name: String,
     description: String,
+    oidc_redirect_uri: String,
+    client_uri: String,
 }
 
 async fn index(req: HttpRequest) -> Result<HttpResponse, TranslatedError> {
@@ -122,7 +126,8 @@ async fn add_hub(
         .send(CreateHub {
             name: (hub.name).to_string(),
             description: (hub.description).to_string(),
-            redirection_uri: (hub.redirection_uri).to_string(),
+            oidc_redirect_uri: (hub.oidc_redirect_uri).to_string(),
+            client_uri: (hub.client_uri).to_string(),
             resp: resp_tx,
         })
         .await
@@ -130,7 +135,7 @@ async fn add_hub(
 
     match resp_rx.await {
         Ok(Ok(_)) => HttpResponse::Found()
-            .insert_header((LOCATION, format!("{}/hubs", translations.prefix())))
+            .insert_header((LOCATION, format!("{}/admin/hubs", translations.prefix())))
             .finish(),
         error => internal_server_error(
             "Could not create hub",
@@ -254,7 +259,8 @@ fn render_hub(context: &Data<Main>, hub: &Hub, translations: Translations) -> Ht
         "decryption_id": decryption_id,
         "name": hub.name,
         "description": hub.description,
-        "redirection_uri": hub.redirection_uri,
+        "oidc_redirect_uri": hub.oidc_redirect_uri,
+        "client_uri": hub.client_uri,
         "key": key,
         "content": "hub"
     })
@@ -283,6 +289,8 @@ async fn update_hub(
                     id,
                     name: hub_form.name.clone(),
                     description: hub_form.description.clone(),
+                    oidc_redirect_uri: hub_form.oidc_redirect_uri.clone(),
+                    client_uri: hub_form.client_uri.clone(),
                 })
                 .await
                 .expect("To use our channel");
@@ -1006,7 +1014,8 @@ fn create_app(cfg: &mut web::ServiceConfig, context: Data<Main>) {
                         // get and put the state of the side bar used to switch
                         // between hubs
                         .route("/state", web::get().to(pubhubs::bar::get_state))
-                        .route("/state", web::put().to(pubhubs::bar::put_state)),
+                        .route("/state", web::put().to(pubhubs::bar::put_state))
+                        .route("/hubs", web::get().to(pubhubs::bar::get_hubs)),
                 )
                 .route("/register", web::get().to(register_account))
                 .route("/register", web::post().to(register_account))
@@ -1102,13 +1111,14 @@ mod tests {
         let hub = HubForm {
             name: "test_hub".to_string(),
             description: "test description".to_string(),
-            redirection_uri: "/test_redirect".to_string(),
+            oidc_redirect_uri: "/test_redirect".to_string(),
+            client_uri: "/client".to_string(),
         };
 
         let request = test::TestRequest::default().to_http_request();
         let response = add_hub(Data::from(context), request, Form(hub), Translations::NONE).await;
         assert_eq!(response.status(), StatusCode::FOUND);
-        assert_eq!(response.headers().get(LOCATION).unwrap(), "/hubs");
+        assert_eq!(response.headers().get(LOCATION).unwrap(), "/admin/hubs");
     }
 
     #[actix_web::test]
@@ -1165,6 +1175,8 @@ mod tests {
         let hub = HubFormUpdate {
             name: "test_name_updated".to_string(),
             description: "test description".to_string(),
+            oidc_redirect_uri: "http://synapse.example.com".to_string(),
+            client_uri: "http://client.example.com".to_string(),
         };
 
         let request = test::TestRequest::default().to_http_request();
@@ -1195,6 +1207,8 @@ mod tests {
         let hub = HubFormUpdate {
             name: "test_name_updated".to_string(),
             description: "test description".to_string(),
+            oidc_redirect_uri: "http://synapse.example.com".to_string(),
+            client_uri: "http://client.example.com".to_string(),
         };
 
         // Close the database actor
@@ -1524,6 +1538,77 @@ mod tests {
     }
 
     #[actix_web::test]
+    async fn test_bar_hubs() {
+        let context = create_test_context().await.unwrap();
+        let user_id = create_user("email@example.com", &context).await;
+        let ok_cookie = Cookie::new(user_id, &context.cookie_secret)
+            .cookie
+            .as_str()
+            .to_owned();
+        let invalid_cookie = Cookie::new(user_id, "not the cookie secret")
+            .cookie
+            .as_str()
+            .to_owned();
+
+        let context_clone = context.clone();
+        let app = test::init_service(
+            App::new().configure(move |cfg| create_app(cfg, Data::from(context_clone))),
+        )
+        .await;
+
+        create_hub("hub1", &context).await;
+
+        // FORBIDDEN when GETting /bar/hubs with invalid cookie
+        assert_eq!(
+            app.call(
+                test::TestRequest::get()
+                    .uri("/bar/hubs")
+                    .insert_header((COOKIE, invalid_cookie.clone()))
+                    .to_request(),
+            )
+            .await
+            .unwrap()
+            .status(),
+            http::StatusCode::FORBIDDEN
+        );
+
+        // FORBIDDEN when GETting /bar/hubs with no cookie
+        assert_eq!(
+            app.call(test::TestRequest::get().uri("/bar/hubs").to_request(),)
+                .await
+                .unwrap()
+                .status(),
+            http::StatusCode::FORBIDDEN
+        );
+
+        // OK when GETting /bar/hubs with valid cookie
+        let resp = app
+            .call(
+                test::TestRequest::get()
+                    .uri("/bar/hubs")
+                    .insert_header((COOKIE, ok_cookie.clone()))
+                    .to_request(),
+            )
+            .await
+            .unwrap();
+        assert_eq!(resp.status(), http::StatusCode::OK);
+        assert_eq!(
+            resp.headers().get("Content-Type").unwrap(),
+            "application/json"
+        );
+        let result: serde_json::Value =
+            serde_json::from_slice(&actix_web::test::read_body(resp).await).unwrap();
+        assert_eq!(
+            result,
+            serde_json::json!([{
+                "name": "hub1",
+                "description": "test_description",
+                "client_uri": "/client",
+            }])
+        );
+    }
+
+    #[actix_web::test]
     async fn test_bar_state() {
         let context = create_test_context().await.unwrap();
         let user_id = create_user("email@example.com", &context).await;
@@ -1578,6 +1663,10 @@ mod tests {
         assert_eq!(
             resp.headers().get("ETag").unwrap(),
             "\"e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855\""
+        );
+        assert_eq!(
+            resp.headers().get("Content-Type").unwrap(),
+            "application/octet-stream"
         );
         assert!(actix_web::test::read_body(resp).await.is_empty());
 
@@ -2086,7 +2175,8 @@ mod tests {
             .send(CreateHub {
                 name: name.to_string(),
                 description: "test_description".to_string(),
-                redirection_uri: "/test_redirect".to_string(),
+                oidc_redirect_uri: "/test_redirect".to_string(),
+                client_uri: "/client".to_string(),
                 resp: tx,
             })
             .await;
@@ -2132,7 +2222,8 @@ mod tests {
             .send(CreateHub {
                 name: "".to_string(),
                 description: "".to_string(),
-                redirection_uri: "".to_string(),
+                oidc_redirect_uri: "".to_string(),
+                client_uri: "".to_string(),
                 resp: tx,
             })
             .await;
