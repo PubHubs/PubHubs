@@ -44,7 +44,8 @@
             <th>id</th>
             <th>{{=tr("Name","Naam")}}</th>
             <th>{{=tr("Description","Omschrijving")}}</th>
-            <th>{{=tr("Redirection_uri","Omleidings URI")}}</th>
+            <th>{{=tr("OIDC Redirect URI","OIDC terugverwijzings URI")}}</th>
+            <th>{{=tr("Client URI","client URI")}}</th>
             <th>{{=tr("Detail","Detail")}}</th>
           </tr>
         </thead>
@@ -53,7 +54,8 @@
           <td>{{=hub.id}}</td>
           <td>{{=hub.name}}</td>
           <td>{{=hub.description}}</td>
-          <td>{{=hub.redirection_uri}}</td>
+          <td>{{=hub.oidc_redirect_uri}}</td>
+          <td>{{=hub.client_uri}}</td>
           <td>
             <a class="detail-style" href="/admin/hubs/{{=hub.id}}"> + </a>
           </td>
@@ -83,15 +85,28 @@
           />
         </div>
         <div>
-          <label for="redirection_uri"
-            >{{=tr("enter_redirection","Voer omleidings URI in:")}}
+          <label for="oidc_redirect_uri"
+            >{{=tr("enter_oidc_redirect_uri","Voer OIDC terugverwijzings URI in:")}}
           </label>
           <input
             type="text"
-            name="redirection_uri"
-            id="redirection_uri"
+            name="oidc_redirect_uri"
+            id="oidc_redirect_uri"
             size="60"
-            placeholder="e.g., http://hub-url/_synapse/client/oidc/callback"
+            placeholder="e.g., http://hub.url/_synapse/client/oidc/callback"
+            required
+          />
+        </div>
+        <div>
+          <label for="client_uri"
+            >{{=tr("enter_client_uri","Voer client URI in")}}
+          </label>
+          <input
+            type="text"
+            name="client_uri"
+            id="client_uri"
+            size="60"
+            placeholder="e.g., http://client.url"
             required
           />
         </div>
@@ -114,7 +129,7 @@
         <dt>Hub name:</dt>
         <dd>{{=name}}</dd>
         <dt>Decryption key:</dt>
-        <dd>||{{=key}}^^</dd>
+        <dd>{{=key}}</dd>
         <dt>OpenID Connect Client ID:</dt>
         <dd>{{=oidc_client_id}}</dd>
         <dt>OpenID Connect Client Password:</dt>
@@ -129,6 +144,7 @@
 
     <div class="update-hub-form">
       <div class="header">Update Hub Information</div>
+      <div class="warning">{{=tr("update_hub_warning","WAARSCHUWING:  het wijzigen van de naam of de OIDC terugverwijzings-URI doet de huidige OpenID Connect Client ID en Client Password vervallen")}}</div>
       <form method="post">
         <div>
           <label for="name">{{=tr("enter_name","Voer naam in:")}} </label>
@@ -151,6 +167,32 @@
             id="description"
             size="80"
             value="{{=description}}"
+            required
+          />
+        </div>
+        <div>
+          <label for="oidc_redirect_uri"
+            >{{=tr("enter_description","Voer OpenID Connect terugverwijzings URI in:")}}
+          </label>
+          <input
+            type="text"
+            name="oidc_redirect_uri"
+            id="oidc_redirect_uri"
+            size="80"
+            value="{{=oidc_redirect_uri}}"
+            required
+          />
+        </div>
+        <div>
+          <label for="client_uri"
+            >{{=tr("enter_description","Voer client URI in:")}}
+          </label>
+          <input
+            type="text"
+            name="client_uri"
+            id="client_uri"
+            size="80"
+            value="{{=client_uri}}"
             required
           />
         </div>

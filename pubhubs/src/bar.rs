@@ -3,6 +3,8 @@ use crate::error::AnyhowExt as _;
 use crate::error::TranslatedError;
 use actix_web::http::header::{Header as _, TryIntoHeaderValue as _};
 use anyhow::Result;
+use serde::ser::SerializeMap as _;
+use serde::ser::SerializeSeq as _;
 
 pub mod reason {
     pub const IF_MATCH_DIDNT_MATCH: &str =
@@ -141,6 +143,72 @@ pub async fn put_state_anyhow(
             actix_web::http::header::EntityTag::new_strong(new_etag.unwrap()),
         ))
         .finish())
+}
+
+pub async fn get_hubs(
+    req: actix_web::HttpRequest,
+    context: actix_web::web::Data<crate::context::Main>,
+) -> Result<actix_web::HttpResponse, TranslatedError> {
+    get_hubs_anyhow(&req, context)
+        .await
+        .into_translated_error(&req)
+}
+
+async fn get_hubs_anyhow(
+    req: &actix_web::HttpRequest,
+    context: actix_web::web::Data<crate::context::Main>,
+) -> Result<actix_web::HttpResponse> {
+    // make sure user is authenticated
+    if let Err(err_resp) = get_user_id(req, &context) {
+        return Ok(err_resp);
+    };
+
+    let hubs: Vec<crate::data::Hub> = {
+        let (bs_tx, bs_rx) = tokio::sync::oneshot::channel();
+        context
+            .db_tx
+            .send(crate::data::DataCommands::AllHubs { resp: bs_tx })
+            .await?;
+        bs_rx.await??
+    };
+
+    // Hub contains some sensitive data that we do not want to pass to
+    // the bar, so redefine Serialize for Hub by wrapping it in the following type.
+    struct SerializeHub<'s>(&'s crate::data::Hub);
+
+    impl<'s> serde::Serialize for SerializeHub<'s> {
+        fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+        where
+            S: serde::Serializer,
+        {
+            let hub = &self.0;
+            let mut map = serializer.serialize_map(None)?;
+            map.serialize_entry("name", &hub.name)?;
+            map.serialize_entry("description", &hub.description)?;
+            map.serialize_entry("client_uri", &hub.client_uri)?;
+            map.end()
+        }
+    }
+
+    struct SerializeHubs(Vec<crate::data::Hub>);
+
+    impl serde::Serialize for SerializeHubs {
+        fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+        where
+            S: serde::Serializer,
+        {
+            let hubs = &self.0;
+            let mut seq = serializer.serialize_seq(None)?;
+            for hub in hubs {
+                seq.serialize_element(&SerializeHub(hub))?;
+            }
+            seq.end()
+        }
+    }
+
+    Ok(actix_web::HttpResponse::Ok()
+        .content_type(actix_web::http::header::ContentType::json())
+        .json(SerializeHubs(hubs)))
 }
 
 fn get_user_id(
