@@ -185,7 +185,6 @@ async fn get_hubs_anyhow(
             let mut map = serializer.serialize_map(None)?;
             map.serialize_entry("name", &hub.name)?;
             map.serialize_entry("description", &hub.description)?;
-            map.serialize_entry("oidc_redirect_uri", &hub.oidc_redirect_uri)?;
             map.serialize_entry("client_uri", &hub.client_uri)?;
             map.end()
         }

@@ -1603,7 +1603,6 @@ mod tests {
             serde_json::json!([{
                 "name": "hub1",
                 "description": "test_description",
-                "oidc_redirect_uri": "/test_redirect",
                 "client_uri": "/client",
             }])
         );

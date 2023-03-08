@@ -33,8 +33,6 @@ Return `204 No Content` upon success, with empty body, but including the new ETa
 Returns `200 Ok` with an `application/json` body consisting of an array of objects (one for each hub) with the following fields.
  - `name`;
  - `description`;
- - `oidc_redirect_uri`, the hub's endpoint, usually of the form `https://<synapse-subdomain>.<hub-domain-name>/_synapse/client/oidc/callback`,  that the end-user is redirected back to after authenticating itself
-    towards PubHubs central;
  - `client_uri`, the Hub's client location, to be loaded in an iframe of the global client.
 
 **Errors** Returns -
