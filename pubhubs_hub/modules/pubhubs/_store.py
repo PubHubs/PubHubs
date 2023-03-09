@@ -1,11 +1,14 @@
+import json
 import logging
 import secrets
 import string
 import time
-from typing import Optional, Tuple
+from typing import Optional
 
 from synapse.module_api import ModuleApi
 from synapse.storage.database import LoggingTransaction
+
+from ._secured_rooms_class import SecuredRoom, RoomAttributeEncoder, RoomAttribute
 
 logger = logging.getLogger(__name__)
 
@@ -54,12 +57,10 @@ class IrmaRoomJoinStore:
 
             txn.execute(
                 """
-                CREATE TABLE IF NOT EXISTS wants_to_join_room(
-                    user_id TEXT NOT NULL,
+                CREATE TABLE IF NOT EXISTS secured_rooms(
                     room_id TEXT NOT NULL,
-                    waiting_room_id NOT NULL,
-                    token TEXT NOT NULL,
-                    token_expiration BIGINT NOT NULL
+                    accepted TEXT NOT NULL,
+                    user_txt TEXT
                 )
                 """,
                 (),
@@ -67,22 +68,14 @@ class IrmaRoomJoinStore:
 
             txn.execute(
                 """
-                CREATE UNIQUE INDEX IF NOT EXISTS wants_user_room_idx
-                    ON wants_to_join_room(user_id, room_id, waiting_room_id)
-                """,
-                (),
-            )
-
-            txn.execute(
-                """
-                CREATE UNIQUE INDEX IF NOT EXISTS wants_user_room_token_idx
-                    ON wants_to_join_room(token)
+                CREATE UNIQUE INDEX IF NOT EXISTS secured_rooms_id_idx
+                    ON secured_rooms(room_id)
                 """,
                 (),
             )
 
         await self.module_api.run_db_interaction(
-            "allowed_and_wants_to_join_room_create_tables",
+            "allowed_and_secured_rooms_create_tables",
             create_tables_txn,
         )
 
@@ -139,194 +132,113 @@ class IrmaRoomJoinStore:
             room_id
         )
 
-    async def wants_to_join(self, user_id: str, room_id: str, waiting_room_id: str) -> str:
-        """Register the waiting room for a room and user
+    async def get_secured_rooms(self) -> Optional[list[SecuredRoom]]:
+        """Get all secured rooms"""
 
-        :param user_id: the user
-        :param room_id: the room to join
-        :param waiting_room_id: the waiting room
-
-        :return: the token to use to register, the token will expire after  a while
-        """
-
-        def wants_txn(
-                txn: LoggingTransaction,
-                user_id_txn: str,
-                room_id_txn: str,
-                waiting_room_id_txn: str,
-                token_txn: str,
-                token_expiration_txn: int):
+        def get_secured_rooms_txn(txn: LoggingTransaction):
             txn.execute(
                 """
-                INSERT INTO wants_to_join_room(user_id, room_id, waiting_room_id,token,token_expiration) VALUES (?, ?, ?
-                , ?, ?)
-                """,
-                (user_id_txn, room_id_txn, waiting_room_id_txn,
-                 token_txn, token_expiration_txn),
-            )
+                        SELECT sr.room_id, rss.name, accepted, user_txt, rss.room_type 
+                        FROM secured_rooms AS sr 
+                        INNER JOIN room_stats_state AS rss ON sr.room_id = rss.room_id AND rss.name NOT NULL
+                        """)
 
-        (token, token_expiration) = _generate_token()
-        await self.module_api.run_db_interaction(
-            "insert_wants_txn",
-            wants_txn,
-            user_id,
-            room_id,
-            waiting_room_id,
-            token,
-            token_expiration
+            return txn.fetchall()
+
+        rooms = await self.module_api.run_db_interaction(
+            "get_secured_rooms",
+            get_secured_rooms_txn
         )
 
-        return token
+        result = map(tuple_to_room, rooms)
 
-    async def user_and_waiting_from_token(self, token) -> Optional[Tuple[str, str]]:
-        """Get the corresponding user and waiting room id for a token, that is not expired.
+        return result
 
-        :param token: the token
-        :return: a tuple containing the user id and waiting room id or None if there is no corresponding user
-        and waiting room or the token is expired.
-        """
+    async def get_secured_room(self, id: str) -> Optional[SecuredRoom]:
+        """Get a SecuredRoom by id."""
 
-        def user_from_token_txn(
-                txn: LoggingTransaction,
-                token_txn: str,
-                current_time: int):
+        def get_secured_room_txn(txn: LoggingTransaction, id_tx: str):
             txn.execute(
                 """
-               SELECT user_id, waiting_room_id FROM wants_to_join_room WHERE token = ? AND token_expiration  > ?
-               """,
-                (token_txn, current_time),
-            )
-            selected = txn.fetchone()
-            return selected
-
-        return await self.module_api.run_db_interaction(
-            "select_user_from_join_irma_token",
-            user_from_token_txn,
-            token,
-            int(time.time())
-        )
-
-    async def refresh_token(self, old_token: str) -> str:
-        """Refresh an expired token. Old token cannot be used anymore and the new token will need to be communicated
-        to the user.
-
-        :param old_token: the token to refresh
-        :return: the newly refreshed token for the user and waiting room
-        """
-
-        def refresh_token_txn(
-                txn: LoggingTransaction,
-                new_token: str,
-                token_expiration_txn: int,
-                old_token_txn: str):
-            txn.execute(
-                """
-                UPDATE wants_to_join_room SET token = ?, token_expiration = ? WHERE token = ?
-                """,
-                (new_token, token_expiration_txn, old_token_txn)
-            )
-
-        (token, token_expiration) = _generate_token()
-
-        await self.module_api.run_db_interaction(
-            "refresh_join_irma_token",
-            refresh_token_txn,
-            token,
-            token_expiration,
-            old_token,
-        )
-
-        return token
-
-    async def valid_waiting_room(self, user_id: str, room_id: str) -> Optional[Tuple[str, str]]:
-        """Find a valid waiting room for a user and room.
-
-        :param user_id: the user id
-        :param room_id: the room that possibly has a waiting room for the supplied user
-        :return: a tuple consisting of the waiting room id and the corresponding token or none if no waiting room exists
-        with a non-expired token
-        """
-
-        def select_txn(
-                txn: LoggingTransaction,
-                user_id_txn: str,
-                room_id_txn: str,
-                token_expiration: int):
-            txn.execute(
-                """
-               SELECT waiting_room_id, token FROM wants_to_join_room WHERE user_id = ? AND room_id = ? AND
-               token_expiration  > ?
-               """,
-                (user_id_txn, room_id_txn, token_expiration),
-            )
-            selected = txn.fetchone()
-
-            return selected
-
-        return await self.module_api.run_db_interaction(
-            "select_waiting_room",
-            select_txn,
-            user_id,
-            room_id,
-            int(time.time())
-        )
-
-    async def expired_token_waiting_room(self, user_id: str, room_id: str) -> Optional[str]:
-        """Find a waiting room for a user and room with an expired token.
-
-        :param user_id: the user id
-        :param room_id: the room that has a waiting room with an expired token for the supplied user
-        :return: a tuple consisting of the waiting room id and the corresponding token or none if no waiting room exists
-        with an expired token
-        """
-        def select_expired_txn(
-                txn: LoggingTransaction,
-                user_id_txn: str,
-                room_id_txn: str,
-                current_time: int):
-            txn.execute(
-                """
-               SELECT waiting_room_id, token FROM wants_to_join_room WHERE user_id = ? AND room_id = ? AND
-               token_expiration  <= ?
-               """,
-                (user_id_txn, room_id_txn, current_time),
-            )
-            selected = txn.fetchone()
-
-            return selected
-
-        return await self.module_api.run_db_interaction(
-            "select_expired_waiting_room",
-            select_expired_txn,
-            user_id,
-            room_id,
-            int(time.time())
-        )
-
-    async def get_room_name(self, room_id: str) -> Optional[str]:
-        """ Get the name of a room.
-
-        :param room_id: the room id
-        :return: the name of the room or None of no such room exists
-        """
-        def get_room_name_txn(
-                txn: LoggingTransaction,
-                room_id_txn: str) -> None:
-            txn.execute(
-                """
-                    SELECT name FROM room_stats_state WHERE room_id = ?
+                    SELECT sr.room_id, rss.name, accepted, user_txt, rss.room_type 
+                    FROM secured_rooms AS sr 
+                    INNER JOIN room_stats_state AS rss ON sr.room_id = rss.room_id AND rss.name NOT NULL
+                    WHERE sr.room_id = ? 
                     """,
-                [room_id_txn],
+                [id_tx])
+
+            return txn.fetchone()
+
+        room = await self.module_api.run_db_interaction(
+            "get_secured_room",
+            get_secured_room_txn,
+            id
+        )
+        if room:
+            result = tuple_to_room(room)
+            return result
+        else:
+            return None
+
+    async def create_secured_room(self, room: SecuredRoom):
+        """Turn database results into a SecuredRoom"""
+
+        def create_secured_room_txn(txn: LoggingTransaction, room_tx: SecuredRoom):
+            txn.execute(
+                """
+                    INSERT INTO secured_rooms(room_id, accepted, user_txt) VALUES (?, ?, ?)
+                    """,
+                (room_tx.room_id, json.dumps(room_tx.accepted, default=RoomAttributeEncoder().default), room_tx.user_txt)
             )
 
-            result = txn.fetchone()
-            if result:
-                return result[0]
-            else:
-                return None
-
-        return await self.module_api.run_db_interaction(
-            "get_room_name",
-            get_room_name_txn,
-            room_id
+        await self.module_api.run_db_interaction(
+            "create secured room",
+            create_secured_room_txn,
+            room
         )
+
+    async def update_secured_room(self, room: SecuredRoom):
+        """Update a SecuredRoom by id.
+        """
+
+        def update_secured_room_txn(
+                txn: LoggingTransaction,
+                room_tx: SecuredRoom):
+            txn.execute(
+                """
+                UPDATE secured_rooms SET accepted = ?, user_txt = ? WHERE room_id = ?
+                """,
+                (json.dumps(room_tx.accepted, default=RoomAttributeEncoder().default), room_tx.user_txt,
+                 room_tx.room_id)
+            )
+
+        await self.module_api.run_db_interaction(
+            "update_secured_room",
+            update_secured_room_txn,
+            room,
+        )
+
+    async def delete_secured_room(self, room: SecuredRoom):
+        """Delete a SecuredRoom. Match will happen on all room fields in secured_rooms table
+        """
+
+        def delete_secured_room_txn(
+                txn: LoggingTransaction,
+                room_tx: SecuredRoom):
+            txn.execute(
+                """
+                DELETE FROM secured_rooms WHERE accepted = ? AND user_txt = ? AND room_id = ?
+                """,
+                (json.dumps(room_tx.accepted, default=RoomAttributeEncoder().default), room_tx.user_txt, room_tx.room_id)
+            )
+
+        await self.module_api.run_db_interaction(
+            "delete_secured_room",
+            delete_secured_room_txn,
+            room,
+        )
+
+
+def tuple_to_room(room) -> SecuredRoom:
+    (room_id, room_name, accepted, user_txt, type) = room
+    return SecuredRoom(room_id=room_id, room_name=room_name, accepted=json.loads(accepted), user_txt=user_txt, type=type)

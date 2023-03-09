@@ -3,9 +3,15 @@
 # For more information related to additional settings for your infrastructure see link below:
 # https://matrix-org.github.io/synapse/develop/usage/configuration/config_documentation.html
 
-## WARNING: modules SHOULD NOT BE CHANGED ##
+## WARNING: modules SHOULD NOT BE CHANGED, except to customize with your client URL ##
 modules:
   - module: conf.modules.pseudonyms.Pseudonym
+  - module: conf.modules.pubhubs.IrmaRoomJoiner
+    config:
+      {
+        # Client url is necessary for redirection to the room once allowed.
+        client_url: "https://<your-client-url>",
+      }
 
 # Domain of the server.
 # More information can be found in https://matrix-org.github.io/synapse/develop/usage/configuration/config_documentation.html#server_name
@@ -15,6 +21,11 @@ server_name: "testhub.matrix.host"
 # This is the public url for the hub where client gets connected.
 # THIS SHOULD BE CHANGED
 public_baseurl: https://145.137.183.5:8008
+
+# The 'user' that can make announcements on behalve of the hub. Used when disclosing attributes to a room. The name
+# 'notices_user' can be changed if desired.
+server_notices:
+  system_mxid_localpart: notices_user
 
 # List of ports that Synapse should listen on, their purpose and their configuration.
 # More information can be found in https://matrix-org.github.io/synapse/develop/usage/configuration/config_documentation.html#listeners
