@@ -2,6 +2,8 @@ from typing import Optional, List, Tuple, Mapping, Collection
 from unittest import IsolatedAsyncioTestCase
 
 import sys
+
+from synapse.api.errors import LoginError
 from synapse.config import ConfigError
 from synapse.events import EventBase
 from synapse.handlers.room import EventContext
@@ -14,7 +16,8 @@ from synapse.types import (
 sys.path.append("modules")
 from pubhubs import IrmaRoomJoiner
 from pubhubs._web import IrmaResult
-
+from pubhubs._secured_rooms_class import SecuredRoom, PubHubsSecuredRoomType
+from pubhubs._secured_rooms_web import SecuredRoomsServlet
 
 class FakeNoticesManager():
     server_notices_mxid = "@notices_user:domain"
@@ -187,6 +190,17 @@ class FakeDataReplicationHandler:
         pass
 
 
+fake_secured_rooms = {}
+
+class FakeRoomCreationHandler:
+    async def create_room(self, config):
+        id = f"room_id{len(fake_secured_rooms)}"
+        fake_secured_rooms[id] = config
+        return [{'room_id': id}, None]
+
+class FakeRoomShutdownHandler:
+    pass
+
 class FakeHs():
     hostname = "hostname"
 
@@ -237,6 +251,9 @@ class FakeHs():
     def get_auth_blocking(self):
         return FakeAuth()
 
+    def get_room_creation_handler(self):
+        return FakeRoomCreationHandler()
+
 class FakeMetaData:
     stream_ordering = "ordering"
 
@@ -246,17 +263,27 @@ class FakeEvent:
     state_key = "state key"
     internal_metadata = FakeMetaData
 
+class Fuser():
+    class User():
+        def to_string(self):
+            return "user"
+
+    user = User()
+
 
 class FakeModuleApi():
-    def __init__(self, queries={}):
-        self.queries = queries
+    def __init__(self,allAdmins=False):
         self.msg_count = 0
+        self.allAdmins = allAdmins
 
     _hs = FakeHs()
     public_baseurl = "http://public/"
 
-    async def run_db_interaction(self, name, txn, *args):
-        return self.queries.get(name, None)
+    async def get_user_by_req(self,request):
+        return Fuser()
+
+    async def is_user_admin(self, user):
+        return self.allAdmins
 
     def register_web_resource(self, path, servlet):
         return None
@@ -267,31 +294,27 @@ class FakeModuleApi():
     def register_spam_checker_callbacks(self, user_may_join_room):
         return None
 
-    def register_account_validity_callbacks(self, on_user_registration):
-        return None
-
     async def update_room_membership(self, action_user, user, room, type):
         pass
 
-    async def create_and_send_event_into_room(self, event):
-        if event['type'] not in ['im.vector.modular.widgets', 'io.element.widgets.layout']:
-            print(f"Wrong type: '{type}'")
-            raise Exception
-        self.msg_count += 1
-        return FakeEvent()
+class FakeStore:
 
+    def __init__(self, isAllowed=False):
+        self.isAllowed = isAllowed
 
-class Fake_Store:
-    pass
+    async def get_secured_room(self, room_id):
+        return fake_secured_rooms.get(room_id,None)
 
+    async def is_allowed(self, user, room):
+        return self.isAllowed
+
+    async def create_tables(self):
+        pass
+
+    async def get_secured_rooms(self):
+        return fake_secured_rooms.values()
 
 valid_config = {
-    'secured_rooms': [{
-        'id': 'some_id',
-        'attributes': ['a'],
-        'accepted': [{'a': ['b']}],
-        'user_txt': ''
-    }],
     'client_url': ''
 }
 
@@ -308,7 +331,9 @@ class TestAsync(IsolatedAsyncioTestCase):
             self.assertRaises(ConfigError, IrmaRoomJoiner.parse_config, copy)
 
     async def test_on_trying_to_join_room(self):
-        joiner = IrmaRoomJoiner(valid_config.copy(), FakeModuleApi())
+        api = FakeModuleApi()
+        joiner = IrmaRoomJoiner(valid_config.copy(), api, FakeStore())
+        fake_secured_rooms['some_id'] = SecuredRoom(room_name="", accepted={"something": {"profile": True ,"accepted_values": ["has a requirement"]}}, user_txt='', type=PubHubsSecuredRoomType.MESSAGES,room_id='some_id')
 
         # Join a room that is secured and not already allowed
         result = await joiner.joining('@some_user:domain', 'some_id', None)
@@ -320,54 +345,67 @@ class TestAsync(IsolatedAsyncioTestCase):
 
         self.assertEqual(result, True)
 
-        joiner = IrmaRoomJoiner(valid_config.copy(), FakeModuleApi(queries={"allowed_to_join_room_select": True}))
+        joiner = IrmaRoomJoiner(valid_config.copy(), FakeModuleApi(), FakeStore(isAllowed=True))
         # Join a room that is secured and already allowed
         result = await joiner.joining('@some_user:domain', 'some_id', None)
 
         self.assertEqual(result, True)
 
-    async def test_on_registration(self):
-        api = FakeModuleApi()
-        joiner = IrmaRoomJoiner(valid_config.copy(), api)
-
-        await joiner.invite_to_all("new_user")
-
-        # Room not set to auto-invite
-        self.assertEqual(api.msg_count, 0)
-
-        new_config = valid_config.copy()
-        new_config['secured_rooms'][0]['default_invite'] = True
-        api = FakeModuleApi()
-        joiner = IrmaRoomJoiner(new_config, api)
-
-        await joiner.invite_to_all("new_user")
-
-        # Room set to auto-invite, 2 messages to create and display the widget.
-        self.assertEqual(api.msg_count, 2)
-
-    def test_allowed_in(self):
+    async def test_allowed_in(self):
         # Not allowed when nothing is disclosed
         api = FakeModuleApi()
-        joiner = IrmaRoomJoiner(valid_config.copy(), api)
-        checker = IrmaResult(valid_config.copy(), api, Fake_Store(), joiner)
+        # Create the secured room
+        fake_secured_rooms['some_id'] = SecuredRoom(room_name="", accepted={"something": {"profile": True ,"accepted_values": ["has a requirement"]}}, user_txt='', type=PubHubsSecuredRoomType.MESSAGES,room_id='some_id')
+        joiner = IrmaRoomJoiner(valid_config.copy(), api, FakeStore())
+        checker = IrmaResult(valid_config.copy(), api, FakeStore(), joiner)
 
-        result = checker.check_allowed({}, 'some_id')
-        self.assertEqual(result, False)
+        result = await checker.check_allowed({}, 'some_id')
+        self.assertEqual(result, None)
 
         # Allowed when the right thing is disclosed
         api = FakeModuleApi()
-        joiner = IrmaRoomJoiner(valid_config.copy(), api)
-        checker = IrmaResult(valid_config.copy(), api, Fake_Store(), joiner)
+        joiner = IrmaRoomJoiner(valid_config.copy(), api, FakeStore())
+        checker = IrmaResult(valid_config.copy(), api, FakeStore(), joiner)
 
-        result = checker.check_allowed({"proofStatus": "VALID", "disclosed": [[{"id": "a", "rawvalue": "b"}]]},
+        result = await checker.check_allowed({"proofStatus": "VALID", "disclosed": [[{"id": "something", "rawvalue": "has a requirement"}]]},
                                        'some_id')
-        self.assertEqual(result, True)
+        self.assertEqual(result, {'something': 'has a requirement'})
 
         # Not allowed when the right attribute with the wrong value is disclosed
         api = FakeModuleApi()
-        joiner = IrmaRoomJoiner(valid_config.copy(), api)
-        checker = IrmaResult(valid_config.copy(), api, Fake_Store(), joiner)
+        joiner = IrmaRoomJoiner(valid_config.copy(), api, FakeStore())
+        checker = IrmaResult(valid_config.copy(), api, FakeStore(), joiner)
 
-        result = checker.check_allowed({"proofStatus": "VALID", "disclosed": [[{"id": "a", "rawvalue": "a"}]]},
+        result = await checker.check_allowed({"proofStatus": "VALID", "disclosed": [[{"id": "something", "rawvalue": "wrong value"}]]},
                                        'some_id')
-        self.assertEqual(result, False)
+        self.assertEqual(result, None)
+
+        # Not allowed when required attribute not given
+        result = await checker.check_allowed({"proofStatus": "VALID", "disclosed": [[{"id": "not something", "rawvalue": "has a requirement"}]]},
+                                         'some_id')
+        self.assertEqual(result, None)
+
+        # Allowed when no values given
+        fake_secured_rooms['some_id'] = SecuredRoom(room_name="", accepted={"something": {"profile": True ,"accepted_values": []}}, user_txt='', type=PubHubsSecuredRoomType.MESSAGES,room_id='some_id')
+
+        result = await checker.check_allowed({"proofStatus": "VALID", "disclosed": [[{"id": "something", "rawvalue": "should not matter"}]]},
+                                             'some_id')
+        self.assertEqual(result, {'something': 'should not matter'})
+
+        # All required should be met
+        fake_secured_rooms['some_id'] = SecuredRoom(room_name="", accepted={"something": {"profile": True ,"accepted_values": []}, "something_else": {"profile": False,"accepted_values": []}}, user_txt='', type=PubHubsSecuredRoomType.MESSAGES,room_id='some_id')
+
+        result = await checker.check_allowed({"proofStatus": "VALID", "disclosed": [[{"id": "something", "rawvalue": "should not matter"}]]},
+                                             'some_id')
+        self.assertEqual(result, None)
+
+        # Only profile variables returned to show in the room
+        result = await checker.check_allowed({"proofStatus": "VALID", "disclosed": [[{"id": "something", "rawvalue": "should not matter"},{"id": "something_else", "rawvalue": "a"}]]},
+                                         'some_id')
+        self.assertEqual(result, {'something': 'should not matter'})
+
+    async def test_routes_secured(self):
+        servlet = SecuredRoomsServlet(valid_config,FakeStore(),FakeModuleApi(),FakeRoomCreationHandler(),FakeRoomShutdownHandler(),"@notices.some.hub")
+        for method in [servlet._async_render_DELETE,servlet._async_render_GET, servlet._async_render_POST, servlet._async_render_PUT]:
+            with self.assertRaises(LoginError):
+                await method({})
