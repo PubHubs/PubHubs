@@ -5,6 +5,8 @@ import { Authentication } from '@/core/authentication';
 import { Events } from '@/core/events';
 
 import { useSettings, useUser, useRooms } from '@/store/store';
+import { i18n } from '../i18n';
+
 
 
 class PubHubs {
@@ -25,9 +27,11 @@ class PubHubs {
         this.user = useUser();
 
         logger.getLogger('matrix').setLevel(5);
+        const css = "color:#3EA439;font-weight:bold;"
         console.info(' ');
-        console.info('[============= PubHubs ================]');
-        console.debug(' ');
+        console.info('%c[=== PubHubs Hub Client @' + window.location.href + ' ===]',css);
+        console.info('%c[=== Use the console wisely ;-)',css);
+        console.info(' ');
 
         this.startClient();
     }
@@ -70,7 +74,8 @@ class PubHubs {
     }
 
     showError(error:string) {
-        const message = "Helaas, er is een fout opgetreden. Neem contact op met de developers.\n\n" + error;
+        const { t } = i18n.global;
+        const message = t('errors.error',error);
         this.showDialog(message);
     }
 

@@ -8,7 +8,6 @@
     import { inject, onMounted } from 'vue';
     import { useRouter } from 'vue-router';
     import { useI18n } from 'vue-i18n';
-    import H1 from '@/components/elements/H1.vue'
 
     const router = useRouter()
     const { t } = useI18n();

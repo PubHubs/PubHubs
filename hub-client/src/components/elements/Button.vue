@@ -1,10 +1,11 @@
 <template>
-    <div :class="buttonClass" class="block py-2 px-4 font-semibold rounded-lg focus:outline-none focus:ring-2 focus:ring-opacity-75">
+    <div :class="buttonClass" class="block font-semibold rounded-lg focus:outline-none focus:ring-2 focus:ring-opacity-75">
         <slot></slot>
     </div>
 </template>
 
-<script lang="ts">
+<script setup lang="ts">
+    import { computed } from 'vue';
     import { buttonSizes } from '@/assets/sizes';
 
     const colorClass : { [key:string]:string } = {
@@ -15,25 +16,15 @@
         'green':        'bg-green hover:bg-green-dark text-white shadow-md cursor-pointer',
         'red':          'bg-red hover:bg-red-dark text-white shadow-md cursor-pointer',
     };
-</script>
-
-<script setup lang="ts">
-    import { computed } from 'vue';
 
     const props = defineProps({
         color: {
             type: String,
             default: 'blue',
-            validator(value:string) {
-                return Object.keys(colorClass).includes(value);
-            }
         },
         size: {
             type: String,
             default: 'base',
-            validator(value:string) {
-                return Object.keys(buttonSizes).includes(value);
-            }
         },
         disabled: {
             type: Boolean,

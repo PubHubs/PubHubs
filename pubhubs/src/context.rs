@@ -27,6 +27,7 @@ pub struct Main {
     pub connection_check_nonce: String,
 
     pub admins: HashSet<String>,
+    pub allowed_embedding_contexts: Vec<String>,
     pub admin_api_key: HeaderValue,
     pub cookie_secret: String,
     pub metrics_key: String,
@@ -229,6 +230,7 @@ impl Main {
                 pep,
                 irma,
                 admins: config.admins,
+                allowed_embedding_contexts: config.allowed_embedding_contexts,
                 admin_api_key,
                 cookie_secret,
                 metrics_key,
@@ -279,7 +281,7 @@ impl Main {
             self.db_tx
                 .send(crate::data::DataCommands::GetUserById {
                     resp: tx,
-                    id: id as u32,
+                    id
                 })
                 .await
                 .unwrap();

@@ -1,4 +1,16 @@
 {
+  "dialog" : {
+    "ok" : "Ok",
+    "cancel" : "Cancel",
+    "close" : "Close",
+    "yes" : "Yes",
+    "no" : "No",
+    "submit" : "Submit",
+    "title_sure" : "Are you sure?"
+  },
+  "errors" : {
+    "error" : "Unfortanatly an error occured. Please contact opthe developers.\n\n {0}"
+  },
   "file": {
     "file": "File"
   },

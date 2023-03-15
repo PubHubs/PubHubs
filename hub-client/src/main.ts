@@ -1,6 +1,6 @@
 import { createApp } from 'vue'
 import { createPinia } from 'pinia'
-import { createRouter, createWebHashHistory } from 'vue-router';
+import { createRouter, createWebHistory } from 'vue-router';
 import '@/registerServiceWorker'
 import '@/assets/tailwind.css'
 import { i18n } from '@/i18n';
@@ -11,8 +11,12 @@ import { routes } from '@/core/routes';
 import { focus, twClass } from '@/core/directives';
 import App from '@/pages/App.vue'
 
+import { ReplaceConsole } from '@/console';
+ReplaceConsole();
+
+
 const router = createRouter({
-    history: createWebHashHistory(),
+    history: createWebHistory(),
     routes: routes,
 });
 const pinia = createPinia()

@@ -1,13 +1,13 @@
 <template>
     <div :class="settings.getActiveTheme">
-        <div class="w-screen h-screen bg-white text-black dark:bg-blue-dark dark:text-white">
+        <div class="w-screen h-screen bg-white text-black dark:bg-gray-dark dark:text-white">
 
             <div v-if="user.isLoggedIn" class="grid grid-cols-8">
                 <HeaderFooter class="col-span-2">
                     <template #header>
                         <router-link to="/">
-                            <Badge v-if="rooms.totalUnreadMessages>0" class="-ml-2 -mt-2">{{rooms.totalUnreadMessages}}</Badge>
-                            <Logo class="h-4/5"></Logo>
+                            <Badge v-if="hubSettings.isSolo && rooms.totalUnreadMessages>0" class="-ml-2 -mt-2">{{rooms.totalUnreadMessages}}</Badge>
+                            <Logo class="absolute h-2/5 bottom-3"></Logo>
                         </router-link>
                     </template>
 
@@ -38,7 +38,7 @@
                     </Menu>
 
                     <template #footer>
-                        <Menu>
+                        <Menu v-if="hubSettings.isSolo">
                             <router-link :to="{ name: 'settings', params: {} }" v-slot="{ isActive }">
                                 <MenuItem icon="cog" :active="isActive">
                                     {{ $t("menu.settings") }}
@@ -53,7 +53,7 @@
                     </template>
                 </HeaderFooter>
 
-                <div v-if="rooms.hasRooms" class="col-span-6 overflow-auto">
+                <div v-if="rooms.hasRooms" class="col-span-6 overflow-auto bg-white dark:bg-gray-middle px-3">
                     <router-view></router-view>
                 </div>
             </div>
@@ -65,12 +65,32 @@
 
 <script setup lang="ts">
     import filters from "@/core/filters";
+    import { useSettings, useHubSettings, Theme, useUser, useRooms, MessageType, Message, MessageBoxType, useMessageBox } from '@/store/store'
+    import { useRouter } from 'vue-router'
 
-    import { useSettings, useUser, useRooms } from '@/store/store'
-
+    const router = useRouter();
     const settings = useSettings();
+    const hubSettings = useHubSettings();
     const user = useUser();
     const rooms = useRooms();
+    const messagebox = useMessageBox();
+
+    messagebox.init( MessageBoxType.Child, process.env.VUE_APP_PARENTURL as string ).then(()=>{
+
+        // Listen to roomchange
+        messagebox.addCallback( MessageType.RoomChange, (message:Message) => {
+            const roomId = message.content;
+            if ( rooms.currentRoomId !== roomId ) {
+                router.push({name:'room',params:{id:roomId}});
+            }
+        });
+
+        // Listen to sync settings
+        messagebox.addCallback( MessageType.Settings, (message:Message) => {
+            settings.setTheme(message.content.theme as Theme);
+        });
+
+    });
 
 
 </script>
