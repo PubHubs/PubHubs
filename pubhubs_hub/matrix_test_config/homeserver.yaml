@@ -1974,8 +1974,10 @@ sso:
 #
 # By default, this list is empty.
 #
-client_whitelist:
-  - http://localhost:8080/
+  client_whitelist:
+    - http://localhost
+#  - http://localhost:8081
+#  - http://localhost:8008
 #  - https://riot.im/develop
 #  - https://my.custom.client/
 

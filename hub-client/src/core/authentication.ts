@@ -131,7 +131,7 @@ class Authentication {
                         },
                         (error: any) => {
                             if ( typeof(error)=="string" && error.indexOf('Invalid login token')<0 ) {
-                                console.debug('ERROR:', error);
+                                console.error('ERROR:', error);
                             }
                             else {
                                 // this._redirectToPubHubsLogin();

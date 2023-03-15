@@ -4,10 +4,6 @@
     </div>
 </template>
 
-<script lang="ts">
-    import { buttonSizes } from '@/assets/sizes';
-</script>
-
 
 <script setup lang="ts">
     import { PropType } from 'vue';
@@ -25,9 +21,6 @@
         size: {
             type: String,
             default: 'base',
-            validator(size:string) {
-                return Object.keys(buttonSizes).includes(size);
-            }
         },
     });
 

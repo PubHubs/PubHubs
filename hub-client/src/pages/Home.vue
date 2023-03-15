@@ -6,7 +6,3 @@
         </div>
     </div>
 </template>
-
-<script setup lang="ts">
-    import Logo from '@/components/ui/Logo.vue'
-</script>

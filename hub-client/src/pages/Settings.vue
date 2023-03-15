@@ -1,21 +1,26 @@
 <template>
-    <div>
-        <H1>{{ $t('settings.title') }}</H1>
-        <form @submit.prevent>
-            <div class="flex flex-row mb-2">
-                <label class="w-2/6">{{ $t('settings.displayname') }}</label>
-                <TextInput class="w-4/6 p-1" name="displayname" v-model="data.displayName" :placeholder="user.user.displayName" @changed="updateData('displayName',$event)"></TextInput>
-            </div>
+    <div class="flex flex-col h-screen">
+        <div class="h-20 pt-4 px-4 z-10 overflow-hidden">
+            <H1 class="mt-4">{{ $t('settings.title') }}</H1>
+        </div>
+        <Line class="m-4 mb-4"></Line>
+        <div class="px-4">
+            <form @submit.prevent>
+                <div class="flex flex-row mb-2">
+                    <label class="w-2/6">{{ $t('settings.displayname') }}</label>
+                    <TextInput class="w-4/6 p-1" name="displayname" v-model="data.displayName" :placeholder="user.user.displayName" @changed="updateData('displayName',$event)"></TextInput>
+                </div>
 
-            <div class="flex flex-row mb-4">
-                <label class="w-2/6">{{ $t('settings.theme') }}</label>
-                <ButtonGroup class="w-4/6" size="sm" v-model="data.theme" :value="data.theme" :options="settings.getThemeOptions($t)" @changed="updateData('theme',$event)"></ButtonGroup>
-            </div>
+                <div class="flex flex-row mb-4">
+                    <label class="w-2/6">{{ $t('settings.theme') }}</label>
+                    <ButtonGroup class="w-4/6" size="sm" v-model="data.theme" :value="data.theme" :options="settings.getThemeOptions($t)" @changed="updateData('theme',$event)"></ButtonGroup>
+                </div>
 
-            <div class="flex flex-row">
-                <Button @click.prevent="submit()" :disabled="!changed">{{ $t('forms.submit')}}</Button>
-            </div>
-        </form>
+                <div class="flex flex-row">
+                    <Button @click.prevent="submit()" :disabled="!changed">{{ $t('forms.submit')}}</Button>
+                </div>
+            </form>
+        </div>
     </div>
     <div v-if="message!=''" class="rounded-lg bg-red p-2 mt-2">
         {{message}}

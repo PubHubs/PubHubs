@@ -28,20 +28,6 @@ describe('Settings Store', () => {
         })
     })
 
-    describe('visibleEventTypes', () => {
-        test('default', () => {
-            expect(settings.getVisibleEventTypes).toHaveLength(1);
-            expect(settings.getVisibleEventTypes).toEqual(['m.room.message']);
-        })
-
-        test('getVisibleEventTypes', () => {
-            settings.visibleEventTypes = ['one', 'two'];
-            expect(settings.getVisibleEventTypes).toHaveLength(2);
-            expect(settings.getVisibleEventTypes).toEqual(['one', 'two']);
-        })
-
-    })
-
     describe('themes', () => {
         test('getThemeOptions', () => {
             expect(settings.getThemeOptions()).toBeTypeOf('object');

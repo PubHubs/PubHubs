@@ -4,4 +4,5 @@ database_location: null # use in-memory database
 irma:
   server_url: http://not-actually-used.example.com
 pep: { }
+allowed_embedding_contexts: ["localhost:8082,localhost:8080"]
 admins: []

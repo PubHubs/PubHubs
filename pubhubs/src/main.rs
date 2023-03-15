@@ -18,6 +18,7 @@ use serde::{Deserialize, Serialize};
 use tokio::sync::oneshot;
 
 use expry::{key_str, value, BytecodeVec};
+use http::{header, HeaderValue};
 use prometheus::{Encoder, TextEncoder};
 
 use uuid::Uuid;
@@ -613,6 +614,21 @@ async fn irma_finish_and_redirect_anyhow(
             },
         )?
         .into_actix_builder(resp_with_cookie)
+        // into_actix_builder puts a CSP header not allowing the request to be embedded.
+        // This is correct. However for our global client we might need to embed.
+        .map(|mut res|
+            {let headers = res.headers_mut();
+                let allowed = if context.allowed_embedding_contexts.is_empty(){
+                    HeaderValue::from_static("frame-ancestors none;")
+                } else {
+                    let list = &context.allowed_embedding_contexts.join(" ");
+                    match HeaderValue::from_str(format!("frame-ancestors {list};").as_str()) {
+                        Ok(x) => x,
+                        Err(_) => HeaderValue::from_static("frame-ancestors none;")
+                    }
+                };
+                headers.insert(header::CONTENT_SECURITY_POLICY,allowed);
+                res})
 }
 
 async fn get_account(
