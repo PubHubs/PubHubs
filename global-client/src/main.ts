@@ -20,6 +20,7 @@ import Button from '@/../../hub-client/src/components/elements/Button.vue'
 import TruncatedText from '@/../../hub-client/src/components/elements/TruncatedText.vue'
 import ButtonGroup from '@/../../hub-client/src/components/forms/ButtonGroup.vue'
 import Logo from '@/../../hub-client/src/components/ui/Logo.vue'
+import Dialog from '@/../../hub-client/src/components/ui/Dialog.vue'
 
 import { ReplaceConsole } from '@/../../hub-client/src/console';
 ReplaceConsole();
@@ -46,6 +47,7 @@ app.component('Button',Button);
 app.component('TruncatedText',TruncatedText);
 app.component('ButtonGroup',ButtonGroup);
 app.component('Logo',Logo);
+app.component('Dialog',Dialog);
 
 app.use(router);
 app.use(pinia);
