@@ -906,7 +906,7 @@ async fn check_connection(url: &str, nonce: &str) -> Result<()> {
         .map_err(|_e| {
             if cfg!(debug_assertions) {
                 info!(
-                    r#"HINT:  
+                    r#"HINT:
 
 If your ports are not publicly accessible,
 reverse forward a port to a remote server, via, e.g.,
@@ -955,6 +955,7 @@ fn create_app(cfg: &mut web::ServiceConfig, context: Data<Main>) {
         .service(actix_files::Files::new("/fonts", "./static/assets/fonts").use_etag(true))
         .service(actix_files::Files::new("/images", "./static/assets/images").use_etag(true))
         .service(actix_files::Files::new("/js", "./static/assets/js").use_etag(true))
+        .service(actix_files::Files::new("/global_client", "./static/assets/client").use_etag(true))
         // routes below map be prefixed with a language prefix "/nl", "/en", etc., which
         // will be stripped by the translation middleware
         .service(

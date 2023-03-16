@@ -5,7 +5,7 @@
   "scripts": {
     "serve": "vue-cli-service serve --port=8080",
     "build": "vue-cli-service build",
-    "watch": "vue-cli-service build --watch --dest ../testbuild",
+    "watch": "vue-cli-service build --watch --dest ../pubhubs/static/assets/client",
     "lint": "vue-cli-service lint",
     "pwa": "vue-cli-service build && npx http-server dist",
     "test": "vitest",

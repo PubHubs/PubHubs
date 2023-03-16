@@ -336,7 +336,7 @@ const useMessageBox = defineStore('messagebox', {
             if ( this.type==MessageBoxType.Parent && this.handshake == HandshakeState.Ready ) {
                 console.log('<= '+this.type+' RECEIVED', message );
                 const dialog = useDialog();
-                dialog.okcancel( message.content ).then((answer)=>{
+                dialog.okcancel( message.content ).then((answer:any)=>{
                     this.sendMessage( new Message(MessageType.DialogAnswer,answer));
                 });
             }
