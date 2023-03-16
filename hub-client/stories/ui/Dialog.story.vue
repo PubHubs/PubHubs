@@ -7,6 +7,6 @@
 </template>
 
 <script setup lang="ts">
-    import Dialog from '../../../global-client/src/components/ui/Dialog.vue';
+    import Dialog from '@/components/ui/Dialog.vue';
 </script>
 
