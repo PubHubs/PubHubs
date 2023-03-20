@@ -22,7 +22,7 @@
     "roboto-sass": "^1.0.4",
     "sass": "^1.49.10",
     "syntaxhighlighter": "^4.0.1",
-    "webpack": "^5.6.0",
+    "webpack": "^5.76",
     "webpack-cli": "^4.2.0",
     "zepto": "^1.2.0"
   },
