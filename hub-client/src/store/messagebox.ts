@@ -56,16 +56,15 @@ enum MessageBoxType {
 
 /**
  * Message types
- * TODO: when TypeScript 5.0 released, uncomment the next two constants and replace them where they are hardcode now.
  */
-// const 'handshake' = 'handshake';
-// const 'dialog' = 'dialog';
+const handShakePrefix = 'handshake';
+const dialogPrefix = 'dialog';
 enum MessageType {
-    HandshakeStart = 'handshake' + '-start',        // Start the handshake
-    HandshakeReady = 'handshake' + '-ready',        // Handshake is ready
+    HandshakeStart = handShakePrefix + '-start',        // Start the handshake
+    HandshakeReady = handShakePrefix + '-ready',        // Handshake is ready
 
-    DialogStart = 'dialog' + '-start',              // Show confirm dialog, and give results back
-    DialogAnswer = 'dialog' + '-answer',            // Show confirm dialog, and give results back
+    DialogStart = dialogPrefix + '-start',              // Show confirm dialog, and give results back
+    DialogAnswer = dialogPrefix + '-answer',            // Show confirm dialog, and give results back
 
     UnreadMessages = 'unreadmessages',                  // Sync total of unread messages for a hub
     Settings = 'settings',                              // Sync settings
@@ -104,7 +103,7 @@ class Message {
     isHandShakeMessage() {
         const type = this.type;
         if ( typeof(type) == 'string' ) {
-            return type.substring(0,'handshake'.length) == 'handshake';
+            return type.substring(0,handShakePrefix.length) == handShakePrefix;
         }
         return false;
     }
@@ -116,7 +115,7 @@ class Message {
     isDialogMessage() {
         const type = this.type;
         if ( typeof(type) == 'string' ) {
-            return type.substring(0,'dialog'.length) == 'dialog';
+            return type.substring(0,dialogPrefix.length) == dialogPrefix;
         }
         return false;
     }
