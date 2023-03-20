@@ -15,7 +15,7 @@ module.exports = defineConfig({
         config.resolve.alias.set("pinia", path.resolve("./node_modules/pinia"));
     },
     transpileDependencies: true,
-    publicPath: "/",
+    publicPath: "/client",
     // publicPath:
     //   process.env.NODE_ENV === "production"
     //     ? ("/" + process.env.CI_PROJECT_NAME + "/").replace(/\/\//g, "/")
