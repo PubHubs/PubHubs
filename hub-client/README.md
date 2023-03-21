@@ -28,7 +28,7 @@ VUE_APP_BASEURL = https://localhost:8008 // Default for local development togeth
 For developing/theming on the client only, create and set `.env.local` to:
 
 ```
-VUE_APP_BASEURL = https://main.testhub-matrix.ihub.ru.nl`.
+VUE_APP_BASEURL = https://main.testhub-matrix.ihub.ru.nl.
 ```
 
 [Read more about VueCLI](https://cli.vuejs.org/guide/mode-and-env.html#environment-variables) `.env` & `.env.local`.
