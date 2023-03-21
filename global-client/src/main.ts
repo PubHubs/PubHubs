@@ -1,7 +1,7 @@
 /* eslint-disable */
 import { createApp, markRaw } from 'vue'
 import { createPinia } from 'pinia'
-import { createRouter, createWebHistory } from 'vue-router';
+import { createRouter, createWebHashHistory } from 'vue-router';
 import '@/registerServiceWorker'
 import '@/assets/tailwind.css'
 import { i18n } from '@/i18n';
@@ -27,7 +27,7 @@ ReplaceConsole();
 
 
 const router = createRouter({
-    history: createWebHistory(),
+    history: createWebHashHistory(),
     routes: routes,
     sensitive:true,
 });

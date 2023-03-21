@@ -29,25 +29,33 @@ Theming importerd from hub-client in: `../hub-client/src/assets/pubhubs-theme.js
 
 ## Development
 
+See `../hub-client/README.md` for starting a local hub-client.
+
+### Without hubs
+
 First setup a development environment (see above). Then start the development server and open the given URL in the browser. This has Hot Module Replacement for fast UI development:
 
 ```
 npm run serve
 ```
 
-## Production
+### With hubs
 
-Should be done automatically with deployment. But can be tested locally.
-
-```
-npm run build
-```
-
-As a PWA:
+If you need to test and switch with hubs, start the global client with the general startup script (see `../README.md`):
 
 ```
-npm run pwa
+python3 start_test_setup.py run --cargo-enabled cargo run
 ```
+
+This will serve the global-client from `http://localhost:8080/client/index.html`.
+
+Building the global-client with a watcher:
+
+```
+npm run watch
+```
+
+NB There is no Hot Module Replacement, so you need to manualy refresh.
 
 
 ## Testing
@@ -55,7 +63,3 @@ npm run pwa
 ```
 npm run test
 ```
-
-# Technical overview
-
-The client is build with [TypeScript](https://www.typescriptlang.org/), [VueJS](https://vuejs.org/) for the coding and [Tailwind](https://tailwindcss.com/) for the theming.

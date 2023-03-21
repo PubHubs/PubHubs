@@ -16,8 +16,4 @@ module.exports = defineConfig({
     },
     transpileDependencies: true,
     publicPath: "/client",
-    // publicPath:
-    //   process.env.NODE_ENV === "production"
-    //     ? ("/" + process.env.CI_PROJECT_NAME + "/").replace(/\/\//g, "/")
-    //     : "/",
 });
