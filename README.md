@@ -102,15 +102,38 @@ level=info msg="checking for updates" scheme=irma-demo type=issuer
 
 The hub can be used on http://localhost:8800.
 
-#### Public IP address
+#### Reachable IP address
 
-For your local PubHubs instance to be reachable by the IRMA app, you must have a public IP address, which PubHubs will try to guess using `ifconfig.me` (provided `pubhubs_host = autodetect`) in the `default.yaml` file. When the IRMA app suggests you should check your phone's internet access, this might actually indicate that your PubHub instance is behind a NAT. You can circumvent this problem if you have access to a server with a public IP address, say 1.3.3.7, by forwarding your local port to this server, via
+For your local PubHubs instance to be reachable by the IRMA app, your host's IP address must be reachable by your phone (perhaps by having them both on the same Wi-Fi network.)  PubHubs will try to guess your IP address using `ifconfig.me` (provided `pubhubs_host = autodetect`) in the `default.yaml` file, but you can also set `pubhubs_host` manually. 
+
+When the IRMA app suggests you should check your phone's internet access, this might actually indicate that:
+  - **Your host is behind a NAT.**  This is the case when the IP address reported by your operating system differs from the one from, say, https://ifconfig.me.  (If you have control over the NAT, you might be able to setup port forwarding, pinholing, or put your host in the DMZ.)
+  - **Your host is behind a firewall.**  To check this, run, say, `nmap 1.2.3.4` if `1.2.3.4` is your IP address.  When no firewall is present, you should get:
+    ```
+    PORT      STATE SERVICE
+    8008/tcp  open  http
+    8080/tcp  open  http-proxy
+    8088/tcp  open  radan-http
+    ```
+    For comparison, Apple's firewall blocking port 8080 looks like this:
+    ```
+    PORT     STATE    SERVICE
+    8008/tcp open     http
+    8080/tcp filtered http-proxy
+    8088/tcp open     radan-http
+    ```
+    If you have control over the firewall, you might choose to disable it.  (Making an exception for PubHubs might prove tedious, since the binary changes with every recompilation.)
+
+  - **If you're using an iPhone on the same network as your host**, that your iPhone's traffic is routed through one of Apple's server via **[private relay](https://support.apple.com/en-us/HT212614)**.  You can disable Private Relay globally, or just "Limit IP Address Tracking" per Wi-Fi network.
+
+If nothing else helps, and you have access to a server with a public IP address, say 1.3.3.7, you can solve the problem by forwarding your local port to this server, via
 
 ```shell
 ssh -R 8080:localhost:8080 username@yourserver.com
 ```
 
 and have the IRMA app contact 1.3.3.7 instead by setting `pubhubs_host = http://1.3.3.7:8080/`.
+
 
 ### Development dependencies
 
