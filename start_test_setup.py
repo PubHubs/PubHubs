@@ -84,6 +84,7 @@ def create_test_pub_hub(url: str) -> str:
         "name": "testhub",
         "description": "test_hub_description",
         "oidc_redirect_uri": "http://localhost:8008/_synapse/client/oidc/callback",
+        "client_uri": "http://localhost:8080/client/index.html",
     }
 
     # Create a test hub, if it doesn't  store hub information
