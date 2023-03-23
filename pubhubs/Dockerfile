@@ -1,5 +1,10 @@
 FROM registry.science.ru.nl/ilab/docker-build/rust-stable:main as builder
+
+COPY ./global-client/ /usr/src/global-client/
+COPY ./hub-client/ /usr/src/hub-client/
+
 WORKDIR /usr/src/pubhubs
+
 COPY build.rs build.rs
 COPY static/ static/
 COPY src/ src/

@@ -12,11 +12,8 @@
     </svg>
 </template>
 
-<script lang="ts">
-    import {icons,sizes} from '@/assets/icons';
-</script>
-
 <script setup lang="ts">
+    import {icons,sizes} from '@/assets/icons';
     defineProps({
         type : {
             type: String,

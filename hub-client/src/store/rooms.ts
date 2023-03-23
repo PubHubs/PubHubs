@@ -10,6 +10,8 @@
 import { defineStore } from 'pinia'
 import { Room as MatrixRoom, MatrixClient } from 'matrix-js-sdk';
 
+import { Message, MessageType, useMessageBox } from './messagebox';
+
 
 /**
  *  Extending the MatrixRoom with some extra properties and there methods:
@@ -134,9 +136,14 @@ const useRooms = defineStore('rooms', {
     actions: {
 
         changeRoom( roomId:string ) {
-            this.currentRoomId = roomId;
-            if ( roomId!='' && this.rooms[roomId]) {
-                this.rooms[roomId].resetUnreadMessages();
+            if ( this.currentRoomId!==roomId ) {
+                this.currentRoomId = roomId;
+                if ( roomId!='' && this.rooms[roomId]) {
+                    this.rooms[roomId].resetUnreadMessages();
+                    this.sendUnreadMessageCounter();
+                    const messagebox = useMessageBox();
+                    messagebox.sendMessage( new Message(MessageType.RoomChange,roomId) );
+                }
             }
         },
 
@@ -162,6 +169,16 @@ const useRooms = defineStore('rooms', {
             }
             this.rooms[room.roomId] = Object.assign(new Room(room.roomId,room.client,room.myUserId),room);
         },
+
+        addRoomUnreadMessages( roomId:string, unread:number = 1 ) {
+            this.rooms[roomId].addUnreadMessages(unread);
+            this.sendUnreadMessageCounter();
+        },
+
+        sendUnreadMessageCounter() {
+            const messagebox = useMessageBox();
+            messagebox.sendMessage( new Message(MessageType.UnreadMessages,this.totalUnreadMessages) );
+        }
 
 
     },

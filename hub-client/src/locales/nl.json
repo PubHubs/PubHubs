@@ -1,4 +1,16 @@
 {
+  "dialog" : {
+    "ok" : "Ok",
+    "cancel" : "Annuleer",
+    "close" : "Sluiten",
+    "yes" : "Ja",
+    "no" : "Nee",
+    "submit" : "Invoeren",
+    "title_sure" : "Weet je het zeker?"
+  },
+  "errors" : {
+    "error" : "Helaas, er is een fout opgetreden. Neem contact op met de developers.\n\n {0}"
+  },
   "file": {
     "file": "Bestand"
   },

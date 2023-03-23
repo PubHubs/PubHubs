@@ -51,6 +51,7 @@ pub struct File {
     pub templates_file: String,
 
     pub admins: HashSet<String>,
+    pub allowed_embedding_contexts: Vec<String>,
 
     pub cookie_secret: Option<String>,
     pub admin_api_key: Option<String>,

@@ -40,6 +40,8 @@ unit-test-rust-code:
     - docker
   image: registry.science.ru.nl/ilab/docker-build/rust-stable:main
   script:
+    - cp -r global-client/ pubhubs
+    - cp -r hub-client/ pubhubs
     - cd pubhubs
     - env RUST_BACKTRACE=full cargo +stable test --no-fail-fast -- -Z unstable-options --format json | gitlab-report -p test > report.xml
   artifacts:
@@ -73,6 +75,8 @@ build-pubhubs-image:
   variables:
     CONTAINER_IMAGE: ${CI_REGISTRY}/${CI_PROJECT_PATH}/pubhubs:${CI_COMMIT_REF_NAME}
   script:
+    - cp -r global-client/ pubhubs
+    - cp -r hub-client/ pubhubs
     - cd pubhubs
     - docker login -u $CI_REGISTRY_USER -p $CI_REGISTRY_PASSWORD $CI_REGISTRY
     - docker build --build-arg "CARGO_FEATURES=${CARGO_FEATURES}" -f Dockerfile -t ${CONTAINER_IMAGE} .

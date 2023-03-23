@@ -14,6 +14,7 @@ if ( supportedLanguages.indexOf(browserLanguage) >= 0 ) {
 
 const i18n = createI18n({
     legacy: false,
+    warnHtmlMessage: false,
     globalInjection: true,
     locale: setLocale,
     fallbackLocale: fallbackLocale,
