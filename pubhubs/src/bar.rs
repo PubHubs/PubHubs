@@ -155,14 +155,13 @@ pub async fn get_hubs(
 }
 
 async fn get_hubs_anyhow(
-    req: &actix_web::HttpRequest,
+    _req: &actix_web::HttpRequest,
     context: actix_web::web::Data<crate::context::Main>,
 ) -> Result<actix_web::HttpResponse> {
-    // make sure user is authenticated
-    if let Err(err_resp) = get_user_id(req, &context) {
-        return Ok(err_resp);
-    };
+    // NB. We do not require the user to be authenticated, because the global client
+    // needs to be able to display a list of hubs before the end-user has authenticated.
 
+    // TODO: take measures to prevent DOS (rate limiting or caching)
     let hubs: Vec<crate::data::Hub> = {
         let (bs_tx, bs_rx) = tokio::sync::oneshot::channel();
         context

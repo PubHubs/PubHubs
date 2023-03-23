@@ -616,19 +616,20 @@ async fn irma_finish_and_redirect_anyhow(
         .into_actix_builder(resp_with_cookie)
         // into_actix_builder puts a CSP header not allowing the request to be embedded.
         // This is correct. However for our global client we might need to embed.
-        .map(|mut res|
-            {let headers = res.headers_mut();
-                let allowed = if context.allowed_embedding_contexts.is_empty(){
-                    HeaderValue::from_static("frame-ancestors none;")
-                } else {
-                    let list = &context.allowed_embedding_contexts.join(" ");
-                    match HeaderValue::from_str(format!("frame-ancestors {list};").as_str()) {
-                        Ok(x) => x,
-                        Err(_) => HeaderValue::from_static("frame-ancestors none;")
-                    }
-                };
-                headers.insert(header::CONTENT_SECURITY_POLICY,allowed);
-                res})
+        .map(|mut res| {
+            let headers = res.headers_mut();
+            let allowed = if context.allowed_embedding_contexts.is_empty() {
+                HeaderValue::from_static("frame-ancestors none;")
+            } else {
+                let list = &context.allowed_embedding_contexts.join(" ");
+                match HeaderValue::from_str(format!("frame-ancestors {list};").as_str()) {
+                    Ok(x) => x,
+                    Err(_) => HeaderValue::from_static("frame-ancestors none;"),
+                }
+            };
+            headers.insert(header::CONTENT_SECURITY_POLICY, allowed);
+            res
+        })
 }
 
 async fn get_account(
@@ -1557,15 +1558,6 @@ mod tests {
     #[actix_web::test]
     async fn test_bar_hubs() {
         let context = create_test_context().await.unwrap();
-        let user_id = create_user("email@example.com", &context).await;
-        let ok_cookie = Cookie::new(user_id, &context.cookie_secret)
-            .cookie
-            .as_str()
-            .to_owned();
-        let invalid_cookie = Cookie::new(user_id, "not the cookie secret")
-            .cookie
-            .as_str()
-            .to_owned();
 
         let context_clone = context.clone();
         let app = test::init_service(
@@ -1575,37 +1567,9 @@ mod tests {
 
         create_hub("hub1", &context).await;
 
-        // FORBIDDEN when GETting /bar/hubs with invalid cookie
-        assert_eq!(
-            app.call(
-                test::TestRequest::get()
-                    .uri("/bar/hubs")
-                    .insert_header((COOKIE, invalid_cookie.clone()))
-                    .to_request(),
-            )
-            .await
-            .unwrap()
-            .status(),
-            http::StatusCode::FORBIDDEN
-        );
-
-        // FORBIDDEN when GETting /bar/hubs with no cookie
-        assert_eq!(
-            app.call(test::TestRequest::get().uri("/bar/hubs").to_request(),)
-                .await
-                .unwrap()
-                .status(),
-            http::StatusCode::FORBIDDEN
-        );
-
-        // OK when GETting /bar/hubs with valid cookie
+        // OK when GETting /bar/hubs
         let resp = app
-            .call(
-                test::TestRequest::get()
-                    .uri("/bar/hubs")
-                    .insert_header((COOKIE, ok_cookie.clone()))
-                    .to_request(),
-            )
+            .call(test::TestRequest::get().uri("/bar/hubs").to_request())
             .await
             .unwrap();
         assert_eq!(resp.status(), http::StatusCode::OK);
