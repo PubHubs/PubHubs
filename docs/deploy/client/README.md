@@ -18,5 +18,5 @@ docker pull registry.science.ru.nl/ilab/pubhubs_canonical/pubhubs_client:main
 
 ```shell
 
-docker run --env VUE_APP_BASEURL=<url-to-hub-server>  -p 8800:8800 registry.science.ru.nl/ilab/pubhubs_canonical/pubhubs_client:main
+docker run --env VUE_APP_BASEURL=<url-to-hub-server> --env 'BAR_URL=frame-ancestors https://stable.pubhubs.ihub.ru.nl/;'   -p 8800:8800 registry.science.ru.nl/ilab/pubhubs_canonical/pubhubs_client:main
 ```
