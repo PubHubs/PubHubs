@@ -42,7 +42,7 @@ impl Cookie {
         );
 
         let cookie = format!(
-            "{}={}; Max-Age={}; SameSite=Strict;{SECURE} Path=/",
+            "{}={}; Max-Age={}; SameSite=Lax;{SECURE} Path=/",
             COOKIE_NAME, cookie_value, MAX_AGE
         );
 
@@ -128,13 +128,10 @@ pub fn verify_cookie(req: &HttpRequest, cookie_secret: &str, id: &str) -> bool {
 }
 
 pub fn log_out_cookie() -> String {
-    format!(
-        "{}=deleted ; Max-Age={}; SameSite=Strict;{SECURE} Path=/",
-        COOKIE_NAME, 0
-    )
+    format!("{}=deleted ; Max-Age={}; {SECURE} Path=/", COOKIE_NAME, 0)
 }
 
-const COOKIE_TEXT: &str = "AcceptedPolicy=1; SameSite=Strict;{SECURE} Path=/";
+const COOKIE_TEXT: &str = "AcceptedPolicy=1; SameSite=Lax;{SECURE} Path=/";
 
 pub fn add_accepted_policy_session_cookie(resp: &mut HttpResponseBuilder) {
     let cookie = COOKIE_TEXT;
@@ -203,7 +200,7 @@ mod tests {
         // ```
         // and
         // `cargo test --profile=test-without-debug test_add_cookie_that_can_be_verified`
-        assert!(cookie.contains(&format!("Max-Age=2592000; SameSite=Strict;{SECURE} Path=/")));
+        assert!(cookie.contains(&format!("Max-Age=2592000; SameSite=Lax;{SECURE} Path=/")));
         let re = Regex::new("PHAccount=[A-Za-z0-9]{12,}={0,2}; ").unwrap();
         assert!(re.is_match(cookie.as_bytes()));
 
