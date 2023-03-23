@@ -1738,15 +1738,6 @@ mod tests {
     #[actix_web::test]
     async fn test_bar_hubs() {
         let context = create_test_context().await.unwrap();
-        let user_id = create_user("email@example.com", &context).await;
-        let ok_cookie = Cookie::new(user_id, &context.cookie_secret)
-            .cookie
-            .as_str()
-            .to_owned();
-        let invalid_cookie = Cookie::new(user_id, "not the cookie secret")
-            .cookie
-            .as_str()
-            .to_owned();
 
         let context_clone = context.clone();
         let app = test::init_service(
@@ -1756,37 +1747,9 @@ mod tests {
 
         create_hub("hub1", &context).await;
 
-        // FORBIDDEN when GETting /bar/hubs with invalid cookie
-        assert_eq!(
-            app.call(
-                test::TestRequest::get()
-                    .uri("/bar/hubs")
-                    .insert_header((COOKIE, invalid_cookie.clone()))
-                    .to_request(),
-            )
-            .await
-            .unwrap()
-            .status(),
-            http::StatusCode::FORBIDDEN
-        );
-
-        // FORBIDDEN when GETting /bar/hubs with no cookie
-        assert_eq!(
-            app.call(test::TestRequest::get().uri("/bar/hubs").to_request(),)
-                .await
-                .unwrap()
-                .status(),
-            http::StatusCode::FORBIDDEN
-        );
-
-        // OK when GETting /bar/hubs with valid cookie
+        // OK when GETting /bar/hubs
         let resp = app
-            .call(
-                test::TestRequest::get()
-                    .uri("/bar/hubs")
-                    .insert_header((COOKIE, ok_cookie.clone()))
-                    .to_request(),
-            )
+            .call(test::TestRequest::get().uri("/bar/hubs").to_request())
             .await
             .unwrap();
         assert_eq!(resp.status(), http::StatusCode::OK);
