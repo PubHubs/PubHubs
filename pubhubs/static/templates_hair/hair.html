@@ -243,24 +243,7 @@
 </div>
 <div class="container bg-primary">
     <div class="row">
-        <div class="col">
-            <div class="card bg-white m-3 p-4 mb-0">
-                <h2>{{=tr("hub_overview","Hub overzicht")}} {{call spraak}}</h2>
-                {{for hub in hubs}}
-                <div class="container">
-                    <div class="row">
-                        <div class="col-md-auto">
-                            {{call spraak with {width: 40, class: "secondary-speech"}}}
-                        </div>
-                        <div class="col">
-                            <h2>{{=hub.name}}</h2>
-                            <p>{{=hub.description}}</p>
-                        </div>
-                    </div>
-                </div>
-                {{end}}
-            </div>
-        </div>
+
         <div class="col">
             <div class="container bg-primary">
                 <div class="col">
@@ -273,9 +256,11 @@
                     </div>
                 </div>
                 <div class="col">
-                    <div class="card bg-white m-3 p-4 mb-0">
-                        <h4>Account verwijderen {{call spraak}}</h4>
-                    </div>
+	            <a href="{{=global_client_uri}}">
+		        <div class="card bg-white m-3 p-4 mb-0">
+		            <h4>Ga door naar PubHubs Client {{call spraak}}</h4>
+		        </div>
+		    </a>
                 </div>
             </div>
         </div>

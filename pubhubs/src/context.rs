@@ -287,6 +287,10 @@ impl Main {
         }
         false
     }
+
+    pub fn global_client_uri(&self) -> &str {
+        "/client"
+    }
 }
 
 pub struct Irma {
