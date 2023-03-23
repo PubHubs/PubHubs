@@ -651,40 +651,38 @@ async fn get_account(
                 .expect("To use our channel");
             match user_rx.await {
                 Ok(Ok(user)) => {
-                    let (hub_tx, hub_rx) = oneshot::channel();
-                    db_tx.send(AllHubs { resp: hub_tx }).await.expect("Expected to find all hubs");
-                    let hubs = hub_rx.await.expect("Expected to fetch all hubs").expect("Expected to fetch all hubs");
-                    let data = value!({
-                "email": user.email,
-                "telephone": user.telephone,
-                "hubs": hubs,
-                "content": "user"
-                })
-                        .to_vec(false);
 
+                    let global_client_uri : &str = context.global_client_uri();
+
+                    let data = value!({
+                        "email": user.email,
+                        "telephone": user.telephone,
+                        "global_client_uri": global_client_uri,
+                        "content": "user",
+                    }).to_vec(false);
                     HttpResponse::Ok().body(hairy_eval_html_translations(hair.to_ref(), data.to_ref(), translations).unwrap())
-                }
-                    Ok(Err(error)) =>
-                    internal_server_error(
-                        "Could not locate user",
-                        hair,
-                        &format!(
-                            "Someone tried to get an account page with a valid cookie with id: '{}' and got this error {:?}",
-                            id, error,
-                        ),
-                        &req,
-                        translations
+                },
+                Ok(Err(error)) =>
+                internal_server_error(
+                    "Could not locate user",
+                    hair,
+                    &format!(
+                        "Someone tried to get an account page with a valid cookie with id: '{}' and got this error {:?}",
+                        id, error,
                     ),
-                    Err(error) =>
-                    internal_server_error(
-                        "Could not locate user",
-                        hair,
-                        &format!(
-                            "Someone tried to get an account page with a valid cookie with id: '{}' and got this error {:?}",
-                            id, error,
-                        ),
-                        &req, translations
+                    &req,
+                    translations
+                ),
+                Err(error) =>
+                internal_server_error(
+                    "Could not locate user",
+                    hair,
+                    &format!(
+                        "Someone tried to get an account page with a valid cookie with id: '{}' and got this error {:?}",
+                        id, error,
                     ),
+                    &req, translations
+                ),
 
             }
         } else {
@@ -956,7 +954,11 @@ fn create_app(cfg: &mut web::ServiceConfig, context: Data<Main>) {
         .service(actix_files::Files::new("/fonts", "./static/assets/fonts").use_etag(true))
         .service(actix_files::Files::new("/images", "./static/assets/images").use_etag(true))
         .service(actix_files::Files::new("/js", "./static/assets/js").use_etag(true))
-        .service(actix_files::Files::new("/client", "./static/assets/client").use_etag(true))
+        .service(
+            actix_files::Files::new("/client", "./static/assets/client")
+                .index_file("index.html")
+                .use_etag(true),
+        )
         // routes below map be prefixed with a language prefix "/nl", "/en", etc., which
         // will be stripped by the translation middleware
         .service(

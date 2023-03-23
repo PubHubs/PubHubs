@@ -71,12 +71,7 @@ fn generate_global_client() {
     }
 
     let output = Command::new("npm")
-        .args([
-            "run",
-            "--prefix",
-            "../global-client",
-            "build",
-        ])
+        .args(["run", "--prefix", "../global-client", "build"])
         .output()
         .expect("Expected to use global client build script");
     if !output.status.success() {
@@ -87,11 +82,7 @@ fn generate_global_client() {
     }
 
     let output = Command::new("cp")
-        .args([
-            "-a",
-            "../global-client/dist/.",
-            "static/assets/client",
-        ])
+        .args(["-a", "../global-client/dist/.", "static/assets/client"])
         .output()
         .expect("Expected to copy the global client build output");
     if !output.status.success() {
