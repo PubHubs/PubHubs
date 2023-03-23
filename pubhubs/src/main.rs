@@ -1,5 +1,5 @@
 use actix_web::http::header::{CONTENT_TYPE, LOCATION, SET_COOKIE};
-use actix_web::{App, HttpRequest, HttpResponse, HttpServer, Responder};
+use actix_web::{App, HttpRequest, HttpResponse, HttpResponseBuilder, HttpServer, Responder};
 
 use std::fmt::{Debug, Formatter};
 
@@ -20,14 +20,18 @@ use tokio::sync::oneshot;
 use expry::{key_str, value, BytecodeVec};
 use http::{header, HeaderValue};
 use prometheus::{Encoder, TextEncoder};
+use tokio::sync::mpsc::Sender;
 
 use uuid::Uuid;
 
 use pubhubs::context::Main;
+use pubhubs::data::User;
 use pubhubs::error::{AnyhowExt, TranslatedError};
 use pubhubs::hairy_ext::hairy_eval_html_translations;
 use pubhubs::middleware;
 use pubhubs::middleware::{metrics_auth, metrics_middleware};
+use pubhubs::oidc::http::actix_support::CompleteRequest;
+use pubhubs::oidc::AuthenticAuthRequestHandle;
 use pubhubs::{
     cookie::{
         accepted_policy, add_cookie, log_out_cookie, verify_cookie, HttpRequestCookieExt as _,
@@ -564,6 +568,21 @@ async fn irma_finish_and_redirect_anyhow(
         .oidc
         .open_auth_request_handle(params.oidc_auth_request_handle.as_ref().unwrap())?;
 
+    oidc_response_from_oidc_handle(
+        authentic_auth_request_handle,
+        context,
+        &user,
+        resp_with_cookie,
+    )
+    .await
+}
+
+async fn oidc_response_from_oidc_handle(
+    authentic_auth_request_handle: AuthenticAuthRequestHandle,
+    context: Data<Main>,
+    user: &User,
+    resp_with_cookie: HttpResponseBuilder,
+) -> Result<HttpResponse, anyhow::Error> {
     // Retrieve hub
     let hub = {
         let (tx, rx) = oneshot::channel();
@@ -616,19 +635,20 @@ async fn irma_finish_and_redirect_anyhow(
         .into_actix_builder(resp_with_cookie)
         // into_actix_builder puts a CSP header not allowing the request to be embedded.
         // This is correct. However for our global client we might need to embed.
-        .map(|mut res|
-            {let headers = res.headers_mut();
-                let allowed = if context.allowed_embedding_contexts.is_empty(){
-                    HeaderValue::from_static("frame-ancestors none;")
-                } else {
-                    let list = &context.allowed_embedding_contexts.join(" ");
-                    match HeaderValue::from_str(format!("frame-ancestors {list};").as_str()) {
-                        Ok(x) => x,
-                        Err(_) => HeaderValue::from_static("frame-ancestors none;")
-                    }
-                };
-                headers.insert(header::CONTENT_SECURITY_POLICY,allowed);
-                res})
+        .map(|mut res| {
+            let headers = res.headers_mut();
+            let allowed = if context.allowed_embedding_contexts.is_empty() {
+                HeaderValue::from_static("frame-ancestors none;")
+            } else {
+                let list = &context.allowed_embedding_contexts.join(" ");
+                match HeaderValue::from_str(format!("frame-ancestors {list};").as_str()) {
+                    Ok(x) => x,
+                    Err(_) => HeaderValue::from_static("frame-ancestors none;"),
+                }
+            };
+            headers.insert(header::CONTENT_SECURITY_POLICY, allowed);
+            res
+        })
 }
 
 async fn get_account(
@@ -691,7 +711,7 @@ async fn get_account(
                 "That's not an account id",
                 hair,
                 format!(
-                    "Someone had a valid cookie for id '{}' but it's not an i32",
+                    "Someone had a valid cookie for id '{}' but it's not an u32",
                     id
                 )
                 .as_str(),
@@ -707,8 +727,6 @@ async fn get_account(
 }
 async fn account_login(
     req: HttpRequest,
-    // hair: &BytecodeVec,
-    // cookie_secret: &str,
     context: Data<Main>,
     translations: Translations,
 ) -> HttpResponse {
@@ -734,7 +752,6 @@ async fn account_login(
     }
 }
 
-//TODO look at cookie session in actix itself
 async fn account_logout(translations: Translations) -> impl Responder {
     let logout_cookie = log_out_cookie();
     HttpResponse::Found()
@@ -817,10 +834,77 @@ pub async fn handle_oidc_authorize(
 ) -> Result<HttpResponse, TranslatedError> {
     let inner_req = req.request.clone(); // HttpRequests are cheaply cloneable
 
+    // In general we expected users to be logged into PH central when logging in to a hub.
+    // In that case we recognize the cookie and create an auth request handle. While this is
+    // inefficient, it prevents code duplication.
+    if let Some(id) = req.request.user_id_from_cookie(&context.cookie_secret) {
+        let extra = CompleteRequest {
+            request: inner_req.clone(),
+            payload: req.payload.clone(),
+        };
+        return match context.oidc.issue_auth_request_handle(extra) {
+            // Create oidc auth_code and have the user POST it to the redirect_uri,
+            Ok((_, handle, _)) => {
+                let authentic_auth_request_handle = context
+                    .oidc
+                    .open_auth_request_handle(handle)
+                    .into_translated_error(&inner_req)?;
+
+                match get_user_by_id_wrap(&context.db_tx, id, &req.request, &context, translations)
+                    .await
+                {
+                    Ok(user) => oidc_response_from_oidc_handle(
+                        authentic_auth_request_handle,
+                        context,
+                        &user,
+                        HttpResponse::Ok(),
+                    )
+                    .await
+                    .into_translated_error(&inner_req),
+
+                    Err(resp) => Ok(resp),
+                }
+            }
+            Err(resp) => resp.into_translated_error(&inner_req),
+        };
+    }
+
+    // Not yet logged in, send user on with the Yivi login flow.
     context
         .oidc
         .handle_auth(req, pubhubs::oidc_handler::AD { translations })
         .into_translated_error(&inner_req)
+}
+
+async fn get_user_by_id_wrap(
+    db_tx: &Sender<DataCommands>,
+    id: u32,
+    req: &HttpRequest,
+    context: &Main,
+    translations: Translations,
+) -> Result<User, HttpResponse> {
+    let hair = &context.hair;
+    let (user_tx, user_rx) = oneshot::channel();
+    let error = match db_tx.send(GetUserById { resp: user_tx, id }).await {
+        Ok(_) => match user_rx.await {
+            Ok(Ok(res)) => {
+                return Ok(res);
+            }
+            Err(error) => format!("{error}"),
+            Ok(Err(error)) => format!("{error}"),
+        },
+        Err(error) => format!("{error}"),
+    };
+    Err(internal_server_error(
+        "Could not locate user",
+        hair,
+        &format!(
+            "Someone tried to get a redirect to a hub page with a valid cookie with id: '{}' and got this error {:?}",
+            id, error,
+        ),
+        req,
+        translations
+    ))
 }
 
 #[tokio::main]
@@ -1006,7 +1090,7 @@ fn create_app(cfg: &mut web::ServiceConfig, context: Data<Main>) {
                     // when changing these endpoints, please also update
                     //   .well-known/openid-configuration
                     web::scope("oidc")
-                        // shows user-agent page with irma QR code
+                        // shows user-agent page with irma QR code or uses cookie to authenticate
                         .route("/auth", web::get().to(handle_oidc_authorize))
                         // Hub retrieves id_token from here
                         .route("/token", web::post().to(handle_oidc_token)),
@@ -1067,10 +1151,12 @@ mod tests {
     use std::sync::Arc;
 
     use pubhubs::cookie::Cookie;
+    use pubhubs::data::HubHandle::Id;
     use pubhubs::irma::{
         Attribute, SessionData, SessionPointer, SessionResult, SessionType,
         SessionType::Disclosing, Status, MAIL, MOBILE_NO, PUB_HUBS_MAIL, PUB_HUBS_PHONE,
     };
+    use pubhubs::serde_ext::B64;
     use regex::Regex;
 
     #[actix_web::test]
@@ -1493,6 +1579,101 @@ mod tests {
         assert!(body.contains("irmaLogin(url_prefix, register, oidc_handle);"));
         let re = Regex::new(r#"<button.+Registreren.+button>"#).unwrap();
         assert!(re.is_match(&body));
+    }
+
+    #[actix_web::test]
+    async fn test_no_cookie_hub_login() {
+        let oidc_secret: B64 = b"verysecret".into();
+        let context = create_test_context_with(|mut f| {
+            f.oidc_secret = Some(oidc_secret);
+            f
+        })
+        .await
+        .unwrap();
+
+        let hub_id = create_hub("hub", &context).await;
+        let (s, r) = oneshot::channel();
+        context
+            .db_tx
+            .send(GetHub {
+                resp: s,
+                handle: Id(hub_id),
+            })
+            .await
+            .unwrap();
+        let hub = r.await.unwrap().unwrap();
+
+        let pubhubs::oidc::ClientCredentials {
+            client_id: oidc_client_id,
+            password: _oidc_client_password,
+        } = hub.oidc_credentials(&context.oidc);
+        let oidc_client_id: String = oidc_client_id.into();
+        let ru = hub.oidc_redirect_uri;
+
+        let test_request = TestRequest::default();
+        let test_request = test_request.uri(format!("http://smth.example?client_id={oidc_client_id}&response_mode=form_post&response_type=code&redirect_uri={ru}&state=state&nonce=nonce&scope=openid").as_str());
+        let (request, mut payload) = test_request.to_http_parts();
+
+        let request = CompleteRequest::from_request(&request, &mut payload)
+            .await
+            .unwrap();
+        let response = handle_oidc_authorize(request, Data::from(context), Translations::NONE)
+            .await
+            .unwrap();
+        assert_eq!(response.status(), StatusCode::OK);
+        let body = body_to_string(response).await;
+        assert!(&body.contains("<title>PubHubs</title>"));
+        assert!(!&body.contains("error"));
+    }
+
+    #[actix_web::test]
+    async fn test_cookie_skips_hub_login() {
+        let secret = "very secret";
+        let oidc_secret: B64 = b"verysecret".into();
+        let context = create_test_context_with(|mut f| {
+            f.cookie_secret = Some(secret.to_string());
+            f.oidc_secret = Some(oidc_secret);
+            f
+        })
+        .await
+        .unwrap();
+
+        let hub_id = create_hub("hub", &context).await;
+        let (s, r) = oneshot::channel();
+        context
+            .db_tx
+            .send(GetHub {
+                resp: s,
+                handle: Id(hub_id),
+            })
+            .await
+            .unwrap();
+        let hub = r.await.unwrap().unwrap();
+
+        let pubhubs::oidc::ClientCredentials {
+            client_id: oidc_client_id,
+            password: _oidc_client_password,
+        } = hub.oidc_credentials(&context.oidc);
+        let oidc_client_id: String = oidc_client_id.into();
+        let ru = hub.oidc_redirect_uri;
+
+        let user = create_user("email", &context).await;
+
+        let test_request = test::TestRequest::default();
+        let test_request = add_cookie_request(test_request, secret, user);
+        let test_request = test_request.uri(format!("http://smth.example?client_id={oidc_client_id}&response_mode=form_post&response_type=code&redirect_uri={ru}&state=state&nonce=nonce&scope=openid").as_str());
+        let (request, mut payload) = test_request.to_http_parts();
+
+        let request = CompleteRequest::from_request(&request, &mut payload)
+            .await
+            .unwrap();
+        let response = handle_oidc_authorize(request, Data::from(context), Translations::NONE)
+            .await
+            .unwrap();
+        assert_eq!(response.status(), StatusCode::OK);
+        let body = body_to_string(response).await;
+        assert!(&body.contains("<title>Form redirection...</title>"));
+        assert!(!&body.contains("error"));
     }
 
     #[actix_web::test]
@@ -2192,7 +2373,7 @@ mod tests {
             .send(CreateHub {
                 name: name.to_string(),
                 description: "test_description".to_string(),
-                oidc_redirect_uri: "/test_redirect".to_string(),
+                oidc_redirect_uri: "https://somehub/test_redirect".to_string(),
                 client_uri: "/client".to_string(),
                 resp: tx,
             })
