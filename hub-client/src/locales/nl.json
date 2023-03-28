@@ -21,7 +21,8 @@
     "welcome": "Welkom bij <a href=\"https://pubhubs.net\">PubHubs</a>.<br>PubHubs is een community netwerk gebaseerd op publieke waarden."
   },
   "login": {
-    "login": "Login"
+    "login": "Login",
+    "global_login": "Login bij PubHubs"
   },
   "logout": {
     "logout": "Logout",
