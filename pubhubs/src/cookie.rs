@@ -17,6 +17,22 @@ const SECURE: &str = " Secure;";
 #[cfg(debug_assertions)]
 const SECURE: &str = "";
 
+#[cfg(not(debug_assertions))]
+macro_rules! secure_cookie_attribute {
+    () => {
+        " Secure;"
+    }
+}
+
+#[cfg(debug_assertions)]
+macro_rules! secure_cookie_attribute {
+    () => {
+        ""
+    }
+}
+
+const COOKIE_TEXT: &str = concat!("AcceptedPolicy=1;", secure_cookie_attribute!(), " Path=/");
+
 pub struct Cookie {
     user_id: u32,
     pub cookie: String,
@@ -130,8 +146,6 @@ pub fn verify_cookie(req: &HttpRequest, cookie_secret: &str, id: &str) -> bool {
 pub fn log_out_cookie() -> String {
     format!("{}=deleted ; Max-Age={}; {SECURE} Path=/", COOKIE_NAME, 0)
 }
-
-const COOKIE_TEXT: &str = "AcceptedPolicy=1; SameSite=Lax;{SECURE} Path=/";
 
 pub fn add_accepted_policy_session_cookie(resp: &mut HttpResponseBuilder) {
     let cookie = COOKIE_TEXT;

@@ -11,8 +11,9 @@ pep: {
   # libpep_location: /path/to/libpepcli
 }
 
-# Allowed contexts for embedding the login-flow. This will be the PubHubs global client.
-allowed_embedding_contexts: ["localhost:8082"]
+# Allowed contexts for embedding the login-flow. This will be the PubHubs global client(8080), allowing it to embed
+# itself, in case we need to authenticate for a specific hub and are not (yet) logged in globally.
+allowed_embedding_contexts: [localhost:8080]
 
 admins:
   - admin@example.com

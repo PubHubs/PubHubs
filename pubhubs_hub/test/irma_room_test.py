@@ -315,7 +315,8 @@ class FakeStore:
         return fake_secured_rooms.values()
 
 valid_config = {
-    'client_url': ''
+    'client_url': '',
+    'global_client_url': ''
 }
 
 
