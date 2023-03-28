@@ -143,7 +143,8 @@ const useMessageBox = defineStore('messagebox', {
             type : MessageBoxType.Unset,                                // Parent or Child
             receiverUrl : '' as string,                                 // The url to which this messagebox can send and receive messages
             handshake : HandshakeState.Idle,                            // Handshake state
-            callbacks : {} as { [index in MessageType]: Function }      // List of callbacks per MessageType
+            callbacks : {} as { [index in MessageType]: Function },     // List of callbacks per MessageType
+            _windowMessageListener : {} as any                          // Event listener, set at init
         }
     },
 
@@ -189,7 +190,8 @@ const useMessageBox = defineStore('messagebox', {
 
                 // Start listening
                 if ( this.isConnected ) {
-                    window.addEventListener("message", (event) => {
+
+                    this._windowMessageListener = (event:any) => {
 
                         // Allways test if message is from expected domain
                         if ( event.origin == this.receiverUrl ) {
@@ -224,7 +226,9 @@ const useMessageBox = defineStore('messagebox', {
                             }
 
                         }
-                    });
+                    }
+
+                    window.addEventListener("message", this._windowMessageListener );
                 }
                 else {
                     reject();
@@ -236,6 +240,7 @@ const useMessageBox = defineStore('messagebox', {
          * Resets the messagebox. Messages can't be send or received anymore.
          */
         reset() {
+            window.removeEventListener("message", this._windowMessageListener );
             this.inIframe = window.self !== window.top;
             this.type = MessageBoxType.Unset;
             this.receiverUrl = '';

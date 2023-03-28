@@ -89,6 +89,8 @@ const useHubs = defineStore('hubs', {
             const roomId = params.roomId;
             const self = this;
 
+            const messagebox = useMessageBox();
+
             // Only change to a Hub if there is a hubId given
             if ( typeof(hubId)!=="undefined" ) {
 
@@ -97,7 +99,6 @@ const useHubs = defineStore('hubs', {
                     this.currentHubId = hubId;
 
                     // Start conversation with hub frame and sync latest settings
-                    const messagebox = useMessageBox();
                     messagebox.init( MessageBoxType.Parent, this.currentHub.url ).then(()=>{
 
                         // Send current settings
@@ -133,7 +134,6 @@ const useHubs = defineStore('hubs', {
             }
             else {
                 this.currentHubId = "";
-                const messagebox = useMessageBox();
                 messagebox.reset();
             }
 
