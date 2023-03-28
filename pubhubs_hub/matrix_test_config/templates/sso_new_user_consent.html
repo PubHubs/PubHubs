@@ -9,6 +9,7 @@
 </head>
 
 <body class="d-flex justify-content-center">
+    {% if not public_version %}
     <form method="post" class="mt-3" action="{{my_url}}" id="consent_form">
         <div class="bg-light p-5 mt-5 border rounded">
             <header class="lead">
@@ -39,6 +40,16 @@
             </main>
         </div>
     </form>
+    {% else %}
+    <div class="bg-light p-5 mt-5 border rounded">
+        <header class="lead">
+            <h1>Helaas alleen als u bent ingelogd kunt u akkoord gaan met de voorwaarden.</h1>
+        </header>
+        <main>
+            <a href="{{ terms_url }}" target="_blank" rel="noopener">Lees hier de volledige versie</a>.
+        </main>
+    </div>
+    {% endif %}
 </body>
 
 </html>

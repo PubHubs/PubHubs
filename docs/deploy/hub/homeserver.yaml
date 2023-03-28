@@ -11,6 +11,10 @@ modules:
       {
         # Client url is necessary for redirection to the room once allowed.
         client_url: "https://<your-client-url>",
+        # The global hub client where we need to allow the hubs' terms and conditions to be shown form as an embedded page.
+        # THIS SHOULD BE CHANGED to the same address as used in the issuer below, the global client is hosted together with
+        # the PubHubs central platform.
+        global_client_url: "https://<pubhubs-central-url>",
       }
 
 # Domain of the server.
@@ -20,7 +24,7 @@ server_name: "testhub.matrix.host"
 
 # This is the public url for the hub where client gets connected.
 # THIS SHOULD BE CHANGED
-public_baseurl: https://145.137.183.5:8008
+public_baseurl: https://<url-of-this-hub>
 
 # The 'user' that can make announcements on behalve of the hub. Used when disclosing attributes to a room. The name
 # 'notices_user' can be changed if desired.
@@ -34,6 +38,8 @@ listeners:
     tls: false
     type: http
     x_forwarded: true
+    resources:
+      - names: [client, consent]
 
 # Type of database and its path
 database:
@@ -54,7 +60,7 @@ oidc_providers:
   - idp_id: pubhubs
     idp_name: "PubHubs ID provider"
     discover: true
-    issuer: "http://145.137.183.5:8080"
+    issuer: "https://<pubhubs-central-url>"
     client_id: "testhub~iaFtH8zLiCDOHJNVL6yyhxIkiUih7UqJyBciGHOgi80="
     client_secret: "N5W1ZnKcufNiU-Z-G8HvES9M7EB2gVoXZ0_zUHO8m8g="
     scopes: ["openid"]

@@ -1,29 +1,45 @@
 import logging
-from urllib.parse import urlparse
 
-from typing import Tuple
-
-from synapse.events import EventBase
+import synapse
 from synapse.handlers.room import RoomCreationHandler, RoomShutdownHandler
+from synapse.http.server import set_clickjacking_protection_headers
 from synapse.logging.context import run_in_background
 from synapse.module_api import ModuleApi
 from synapse.module_api.errors import ConfigError
-from synapse.types import create_requester
-from synapse.api.constants import RoomCreationPreset
+from twisted.web.server import Request
 
 from ._irma_proxy import ProxyServlet
-from ._secured_rooms_class import SecuredRoom
 from ._secured_rooms_web import SecuredRoomsServlet
 from ._store import IrmaRoomJoinStore
 from ._web import JoinServlet
-from ._constants import CLIENT_URL, SERVER_NOTICES_USER, ROOM_ID
+from ._constants import CLIENT_URL, SERVER_NOTICES_USER, GLOBAL_CLIENT_URL
 
 logger = logging.getLogger("synapse.contrib." + __name__)
+
+
+def modify_set_clickjacking_protection_headers(original, global_client_url: str):
+    """
+    This function returns a changed form of `synapse.http.server.set_clickjacking_protection_headers`.
+    This allows embedding the page asking the user to agree to the hub's terms and conditions.
+    It is a bit hacky. And we hope it will become configurable in Synapse.
+
+    Args:
+        original: The original clickjacking protection function.
+        global_client_url: The global client url the terms and conditions can be allowed in.
+    """
+    def modified(request: Request):
+        original(request)
+        if request.path == b'/_synapse/client/new_user_consent':
+            request.responseHeaders.removeHeader(b"X-Frame-Options")
+            request.setHeader(b"Content-Security-Policy", f"frame-ancestors {global_client_url};".encode())
+    return modified
+
 
 class IrmaRoomJoiner(object):
     """Main class that has the methods to create waiting rooms with widgets that serve an IRMA QR that allows users to
     join secured rooms based on certain attributes. It's used as a synapse module.
     """
+
     async def joining(self, user: str, room: str, invited: bool) -> bool:
         """The hook for:
         https://matrix-org.github.io/synapse/v1.48/modules/spam_checker_callbacks.html#user_may_join_room
@@ -40,6 +56,9 @@ class IrmaRoomJoiner(object):
         return True
 
     def __init__(self, config: dict, api: ModuleApi, store=None):
+
+        synapse.http.server.set_clickjacking_protection_headers = modify_set_clickjacking_protection_headers(synapse.http.server.set_clickjacking_protection_headers,config.get(GLOBAL_CLIENT_URL))
+
         self.config = config
 
         # Assert the server notices user exists, we have to make this mandatory
@@ -71,8 +90,12 @@ class IrmaRoomJoiner(object):
                 self.config,
                 self.module_api))
 
-        api.register_web_resource("/_synapse/client/secured_rooms", SecuredRoomsServlet( self.config,self.store,
-                                                                                               self.module_api,self.room_creation_handler,self.room_shutdown_handler, self.config[SERVER_NOTICES_USER]))
+        api.register_web_resource("/_synapse/client/secured_rooms", SecuredRoomsServlet(self.config, self.store,
+                                                                                        self.module_api,
+                                                                                        self.room_creation_handler,
+                                                                                        self.room_shutdown_handler,
+                                                                                        self.config[
+                                                                                            SERVER_NOTICES_USER]))
 
         api.register_spam_checker_callbacks(user_may_join_room=self.joining)
 
@@ -83,5 +106,10 @@ class IrmaRoomJoiner(object):
                 config.get(CLIENT_URL), str):
             raise ConfigError(
                 f"'{CLIENT_URL}' should be a string in the config")
+
+        if config.get(GLOBAL_CLIENT_URL) is None or not isinstance(
+                config.get(GLOBAL_CLIENT_URL), str):
+            raise ConfigError(
+                f"'{GLOBAL_CLIENT_URL}' should be a string in the config")
 
         return config

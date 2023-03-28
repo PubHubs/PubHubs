@@ -28,6 +28,8 @@ modules:
 
         # Client url is necessary for redirection to the room once allowed.
         client_url: "http://localhost:8800",
+        # The global hub client where we need to allow the hubs' terms and conditions to be shown form as an embedded page.
+        global_client_url: "http://localhost:8080"
       }
 
 
@@ -303,7 +305,6 @@ listeners:
     x_forwarded: true
 
     resources:
-#      TODO check out security conditions of adding webclient here. It's not recommended
       - names:
           - client
           - consent
