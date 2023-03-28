@@ -21,7 +21,8 @@
     "welcome": "Welcome to <a href=\"https://pubhubs.net\">PubHubs</a>.<br>PubHubs is a community platform based on public values."
   },
   "login": {
-    "login": "Login"
+    "login": "Login",
+    "global_login": "Login with PubHubs"
   },
   "logout": {
     "logout": "Logout",

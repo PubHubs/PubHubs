@@ -1,5 +1,5 @@
 <template>
-    <div :class="buttonClass" class="block font-semibold rounded-lg focus:outline-none focus:ring-2 focus:ring-opacity-75">
+    <div :class="buttonClass" class="block font-semibold rounded-lg focus:outline-none focus:ring-2 focus:ring-opacity-75 text-center">
         <slot></slot>
     </div>
 </template>

@@ -5,12 +5,16 @@ import { createRouter, createWebHashHistory } from 'vue-router';
 import '@/registerServiceWorker'
 import '@/assets/tailwind.css'
 import { i18n } from '@/i18n';
-
-import { registerComponents } from '@/registerComponents.js';
 import { routes } from '@/core/routes';
 import { focus, twClass } from '@/core/directives';
-import App from '@/pages/App.vue'
 
+// import { PubHubs } from '@/core/pubhubs';
+
+// Local components
+import App from '@/pages/App.vue'
+import { registerComponents } from '@/registerComponents.js';
+
+// Components from hub-client
 import H1 from '@/../../hub-client/src/components/elements/H1.vue'
 import H2 from '@/../../hub-client/src/components/elements/H2.vue'
 import Icon from '@/../../hub-client/src/components/elements/Icon.vue'
@@ -24,7 +28,6 @@ import Dialog from '@/../../hub-client/src/components/ui/Dialog.vue'
 
 import { ReplaceConsole } from '@/../../hub-client/src/console';
 ReplaceConsole();
-
 
 const router = createRouter({
     history: createWebHashHistory(),
@@ -54,5 +57,6 @@ app.use(pinia);
 app.use(i18n);
 app.directive('focus', focus);
 app.directive('tw-class', twClass);
+// app.provide('pubhubs', new PubHubs());
 
 app.mount('#app');
