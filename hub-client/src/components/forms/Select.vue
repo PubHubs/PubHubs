@@ -1,5 +1,5 @@
 <template>
-    <select v-model="inputValue" v-tw-class="'w-full'" class="rounded-lg dark:bg-transparent dark:text-white dark:border-white focus:border-black focus:outline-0 focus:outline-offset-0 focus:ring-0" @change="changed()" @keydown.enter="submit()" @keydown.esc="cancel()">
+    <select v-model="inputValue" v-tw-class="'w-full'" class="border p-2 rounded-lg dark:bg-transparent dark:text-white dark:border-white focus:border-black focus:outline-0 focus:outline-offset-0 focus:ring-0" @change="changed()" @keydown.enter="submit()" @keydown.esc="cancel()">
         <option v-for="option in options" :key="option.value" :value="option.value" :selected="optionIsSelected(option.value)" @click="selectOption(option)">{{option.label}}</option>
     </select>
 </template>

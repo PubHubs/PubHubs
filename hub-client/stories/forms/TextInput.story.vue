@@ -1,6 +1,6 @@
 <template>
     <Story title="Forms/TextInput">
-        <TextInput></TextInput>
+        <TextInput placeholder="Type something here"></TextInput>
     </Story>
 </template>
 

@@ -18,15 +18,9 @@
 </template>
 
 <script setup lang="ts">
-    import { reactive } from 'vue'
     import {icons,sizes} from '@/assets/icons';
     import Icon from '@/components/elements/Icon.vue';
 
     const iconKeys = Object.keys(icons);
     const sizeKeys = Object.keys(sizes);
-
-    const state = reactive({
-        type:'circle',
-        size:'base',
-    })
 </script>

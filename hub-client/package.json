@@ -35,7 +35,7 @@
   "devDependencies": {
     "@babel/core": "^7.12.16",
     "@babel/eslint-parser": "^7.12.16",
-    "@histoire/plugin-vue": "^0.12",
+    "@histoire/plugin-vue": "^0.15.8",
     "@typescript-eslint/eslint-plugin": "^5.4.0",
     "@typescript-eslint/parser": "^5.4.0",
     "@vitejs/plugin-vue": "^4",
@@ -47,9 +47,9 @@
     "@vue/eslint-config-typescript": "^11",
     "eslint": "^8",
     "eslint-plugin-vue": "^9",
-    "histoire": "^0.12",
-    "typescript": "^5.0.2",
+    "histoire": "^0.15.9",
     "jsdom": "^20.0.2",
+    "typescript": "^5.0.2",
     "vitest": "^0.26",
     "vue-cli-plugin-tailwind": "~3.0.0"
   },
