@@ -5,18 +5,18 @@ class Hub {
 
     readonly hubId  : string;
     readonly url    : string;
-    name            : string;
+    description     : string;
     logo            : string;
     unreadMessages  : number;
 
-    constructor( hubId: string,  url: string, name?: string ) {
+    constructor( hubId: string,  url: string, description?: string ) {
         this.hubId = hubId;
         this.url = url;
-        if ( typeof(name)!=="undefined" ) {
-            this.name = name;
+        if ( typeof(description)!=="undefined" ) {
+            this.description = description;
         }
         else {
-            this.name = hubId;
+            this.description = hubId;
         }
         this.logo = '';
         this.unreadMessages = 0;
@@ -44,7 +44,7 @@ const useHubs = defineStore('hubs', {
 
         sortedHubsArray() :Array<Hub> {
             const hubs:Array<Hub> = Object.assign([],this.hubsArray);
-            hubs.sort( (a,b) => (a.name > b.name ? 1:-1) );
+            hubs.sort( (a,b) => (a.description > b.description ? 1:-1) );
             return hubs;
         },
 
@@ -82,6 +82,12 @@ const useHubs = defineStore('hubs', {
 
         addHub( hub:Hub ) {
             this.hubs[hub.hubId] = Object.assign(new Hub(hub.hubId,hub.url),hub);
+        },
+
+        addHubs( hubs:Array<Hub> ) {
+            hubs.forEach( (hub:Hub) => {
+                this.addHub(hub);
+            });
         },
 
         changeHub( params:any ) {

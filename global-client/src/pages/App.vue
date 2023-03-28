@@ -51,21 +51,13 @@
 
     onMounted(() => {
         console.clear();
-
-        global.checkLogin().then( ()=>{
-
-            if ( global.loggedIn ) {
-
-                // TODO: for now just some local test hubs
-                hubs.addHub( new Hub('local','http://localhost:8081','Local') );
-                hubs.addHub( new Hub('main','https://main.testhub-element.ihub.ru.nl','Main Hub') );
-                hubs.addHub( new Hub('stable','https://stable.testhub-element.ihub.ru.nl','Stable Hub') );
-                hubs.addHub( new Hub('test2','https://main.testhub2-element.ihub.ru.nl','Test Hub 2') );
-
-            }
-
-
+        global.checkLogin().finally(()=>{
+            global.getHubs().then((hubsResponse:any) => {
+                hubs.addHubs(hubsResponse as Array<Hub>);
+            });
         });
+        // hubs.addHub( new Hub('local','http://localhost:8081','Local') );
+        // hubs.addHub( new Hub('main','https://main.testhub-element.ihub.ru.nl','Main Hub') );
     });
 
 
