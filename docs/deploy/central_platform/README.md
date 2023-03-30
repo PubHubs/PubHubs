@@ -13,7 +13,7 @@ docker pull registry.science.ru.nl/ilab/pubhubs_canonical/pubhubs:main
 - Setting up and running Central Platform container.
 
 ```shell
-docker run -p 8080:8080 --mount "type=bind,src=<absolute_path>/config,dst=/config" --mount "type=bind,src=<absolute_path>/data,dst=/data" -e PUBHUBS_CONFIG=/config/settings.yml registry.science.ru.nl/ilab/pubhubs_canonical/pubhubs:main
+docker run -p 8080:8080 --mount "type=bind,src=<absolute_path>/config,dst=/config" --mount "type=bind,src=<absolute_path>/data,dst=/data" -e PUBHUBS_CONFIG=/config/settings.yml -e PUBHUBS_URL=https://<url_for_the_central_platform> registry.science.ru.nl/ilab/pubhubs_canonical/pubhubs:main
 ```
 
 `<absolute_path>` should be replaced by the absolute path of your filesystem e.g., `/myuser/project/pubhubs/`
@@ -21,6 +21,8 @@ docker run -p 8080:8080 --mount "type=bind,src=<absolute_path>/config,dst=/confi
 `config` directory contains settings in a yaml file format. See a sample `settings.yml` in `config` directory that contains sample configuration settings.
 
 `data` directory contains policy information regarding the use of Hubs. A sample file is available in the PubHubs repository such as `/pubhubs/default_policies/1`.
+
+`<url_for_the_central_platform>` is the url so the global client will know where the central platform is running.
 
 > One of the important task for Central Platform administrator is to register the Hub. We see the steps taken by the administrator in the following section.
 

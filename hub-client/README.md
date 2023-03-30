@@ -19,16 +19,16 @@ For Development or Theming see below.
 npm install
 ```
 
-Set url of the hubs-homeserver in `.env`:
+Set url of the hubs-homeserver in `public/client-config.js`:
 
 ```
-VUE_APP_BASEURL = https://localhost:8008 // Default for local development together with backend servers.
+"HUB_URL": "https://localhost:8008" // Default for local development together with backend servers.
 ```
 
 For developing/theming on the client only, create and set `.env.local` to:
 
 ```
-VUE_APP_BASEURL = https://main.testhub-matrix.ihub.ru.nl.
+"HUB_URL": "https://main.testhub-matrix.ihub.ru.nl"
 ```
 
 [Read more about VueCLI](https://cli.vuejs.org/guide/mode-and-env.html#environment-variables) `.env` & `.env.local`.

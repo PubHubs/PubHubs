@@ -43,7 +43,7 @@ fn generate_css() {
 
 fn generate_global_client() {
     let output_install = Command::new("npm")
-        .args(["install", "--prefix", "../global-client"])
+        .args(["ci", "--prefix", "../global-client"])
         .output()
         .expect("Expected to use npm install");
     if !output_install.status.success() {
@@ -57,7 +57,7 @@ fn generate_global_client() {
     }
 
     let output_install = Command::new("npm")
-        .args(["install", "--prefix", "../hub-client"])
+        .args(["ci", "--prefix", "../hub-client"])
         .output()
         .expect("Expected to use npm install");
     if !output_install.status.success() {
