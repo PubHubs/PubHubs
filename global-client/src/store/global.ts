@@ -2,7 +2,8 @@ import { defineStore } from 'pinia'
 
 import { Hub } from '@/store/hubs'
 
-const baseUrl = process.env.VUE_APP_BASEURL as String;
+// @ts-ignore
+const baseUrl = _env.PUBHUBS_URL;
 const loginUrl = baseUrl + '/login';
 const logoutUrl = baseUrl + '/logout';
 const barAPI = baseUrl + '/bar/state';

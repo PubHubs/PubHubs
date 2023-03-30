@@ -17,8 +17,9 @@ class Authentication {
     private cookieSettings:object;
 
     constructor() {
+        // @ts-ignore
+        this.baseUrl = _env.HUB_URL;
         this.loginToken = '';
-        this.baseUrl = process.env.VUE_APP_BASEURL!.toString();
         this.clientUrl = location.protocol + '//' + location.host + location.pathname;
         this.cookieSettings = {
             secure:true,
