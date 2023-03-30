@@ -31,5 +31,6 @@ COPY --from=builder /usr/src/pubhubs/static/ static/
 COPY default.yaml .
 
 ENV PUBHUBS_CONFIG="provide_me_when_running_as_a_container"
+ENV PUBHUBS_URL="provide_me_when_running_as_a_container"
 
-CMD ["pubhubs"]
+CMD echo "const _env = {\"PUBHUBS_URL\": \"$PUBHUBS_URL\"}" > /static/assets/client/client-config.js && pubhubs
