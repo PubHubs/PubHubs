@@ -3,3 +3,9 @@
         <slot></slot>
     </h3>
 </template>
+
+<style scoped>
+h3 {
+    font-family: 'work_sansregular';
+}
+</style>
