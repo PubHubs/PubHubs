@@ -3,8 +3,8 @@
 
         <div class="w-screen h-screen bg-white text-black dark:bg-gray-darker dark:text-white">
 
-            <div class="grid grid-cols-8">
-                <div class="col-span-1 flex flex-col h-screen p-4">
+            <div class="flex">
+                <div class="flex-none w-20 sm:w-32 flex flex-col h-screen">
                     <div class="flex-1 text-center">
                         <router-link to="/" v-slot="{ isActive }">
                             <HubIcon type="home" :active="isActive"></HubIcon>
@@ -24,7 +24,7 @@
                     </div>
                 </div>
 
-                <div class="col-span-7 dark:bg-gray-dark">
+                <div class="flex-1 dark:bg-gray-dark">
                     <router-view></router-view>
                 </div>
             </div>

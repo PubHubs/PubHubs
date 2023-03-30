@@ -1,7 +1,7 @@
 <template>
     <div class="block text-center mb-2 cursor-pointer" :class="colorClass[active]">
         <Badge v-if="hub && hub.unreadMessages>0">{{ hub.unreadMessages }}</Badge>
-        <Icon :type="type" size="4xl" class="mx-auto"></Icon>
+        <Icon :type="type" size="3xl" class="mx-auto"></Icon>
     </div>
 </template>
 
