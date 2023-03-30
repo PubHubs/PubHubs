@@ -69,6 +69,11 @@ oidc_providers:
       module: conf.modules.pseudonyms.OidcMappingProvider
       config:
 
+# Skips having to check the redirection with user interaction.
+sso:
+  client_whitelist:
+    - https://<your-client-url>
+
 user_consent:
   template_dir: /data/templates/privacy
   version: 1.0
