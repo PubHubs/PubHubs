@@ -43,7 +43,7 @@
     "search": "search"
   },
   "rooms": {
-    "leave_sure": "Do you realy won't to leave this room?",
+    "leave_sure": "Do you really want to leave this room?",
     "new_message": "Type your message here",
     "private_rooms": "Private rooms",
     "rooms": "Rooms",
