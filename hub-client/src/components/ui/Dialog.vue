@@ -7,8 +7,8 @@
 <template>
     <div class="absolute h-screen w-screen top-0 left-0">
         <div v-if="dialog.properties.modal" class="absolute inset-0 h-screen z-0 bg-gray-middle opacity-75"></div>
-        <div class="absolute inset-0 h-screen flex z-10" @click="doAction(false)">
-            <div class="m-auto w-2/6 p-4 rounded-lg shadow-xl shadow-black bg-white" @click.stop>
+        <div v-if="!dialog.properties.modalonly" class="absolute inset-0 h-screen flex z-10" @click="doAction(false)">
+            <div class="m-auto w-2/6 p-4 rounded-lg shadow-xl shadow-black bg-white" :class="centerClass" @click.stop>
                 <div>
                     <Icon v-if="dialog.properties.close" type="close" size="md" class="float-right -mt-1 text-gray hover:text-red" @click="doAction(false)"></Icon>
                     <H2 v-if="dialog.properties.title !== ''" class="m-0 text-black text-left">{{ dialog.properties.title }}</H2>
@@ -32,7 +32,7 @@
 
 <script setup lang="ts">
     import { onMounted,useSlots,computed } from 'vue';
-    import { DialogButton, useDialog } from '@/store/dialog'
+    import { DialogButton, useDialog } from '@/store/dialog';
 
     const emit = defineEmits(['close']);
     const dialog = useDialog();
@@ -40,6 +40,13 @@
 
     const hasContent = computed(() => {
         return slots['default'] || dialog.properties.content !=='';
+    });
+
+    const centerClass = computed(()=>{
+        if (window.self !== window.top) {
+            return 'adjust-left';
+        }
+        return '';
     });
 
 
@@ -51,7 +58,7 @@
         buttons : {
             type: Array<DialogButton>,
             default: []
-        }
+        },
     });
 
 
@@ -79,4 +86,17 @@
         emit('close', action);
         dialog.close(action);
     }
+
 </script>
+
+<style scoped>
+    .adjust-left {
+        transform:translateX(-2.5rem);
+    }
+    /* sm - width of bar = 640 - 128 =  512 */
+    @media (min-width: 512px) {
+        .adjust-left {
+            transform:translateX(-4rem);
+        }
+    }
+</style>

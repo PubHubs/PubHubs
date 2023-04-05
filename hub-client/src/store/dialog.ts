@@ -1,4 +1,5 @@
 import { defineStore } from 'pinia'
+import { MessageType, Message, useMessageBox } from './messagebox';
 
 /**
  * Global Dialog, uses components/ui/Dialog.vue component which is globally present in App.vue
@@ -73,6 +74,7 @@ const useDialog = defineStore('dialog', {
 
     state: () => {
         return {
+            global : false as Boolean,
             visible : false as Boolean,
             properties : new DialogProperties(),
             resolveDialog : {} as any,
@@ -86,6 +88,10 @@ const useDialog = defineStore('dialog', {
 
     actions: {
 
+        asGlobal( global = true ) {
+            this.global = global;
+        },
+
         /**
          * Call this to show a generic dialog with the given properties.
          *
@@ -93,6 +99,10 @@ const useDialog = defineStore('dialog', {
          * @returns Promise with the answer of the pressed button
          */
         show( properties: DialogProperties | null = null ) {
+            if (window.self !== window.top) {
+                const messagebox = useMessageBox();
+                messagebox.sendMessage( new Message( MessageType.DialogShowModal ) );
+            }
             return new Promise((resolve) => {
                 if (properties === null) {
                     this.properties = new DialogProperties();
@@ -111,6 +121,10 @@ const useDialog = defineStore('dialog', {
          * @param returnValue the answer that will be given back
          */
         close( returnValue:any ) {
+            if (window.self !== window.top) {
+                const messagebox = useMessageBox();
+                messagebox.sendMessage( new Message( MessageType.DialogHideModal ) );
+            }
             this.visible = false;
             const callback = this.callbacks[returnValue];
             if (callback) {

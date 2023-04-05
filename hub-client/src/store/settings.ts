@@ -13,7 +13,6 @@ enum Theme {
     Dark = 'dark',
 }
 
-
 interface Settings {
 
     /**
@@ -110,8 +109,7 @@ const useSettings = defineStore('settings', {
             }
             const messagebox = useMessageBox();
             messagebox.sendMessage( new Message(MessageType.Settings,currentSettings) );
-        }
-
+        },
 
     },
 

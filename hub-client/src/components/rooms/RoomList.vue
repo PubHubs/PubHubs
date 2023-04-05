@@ -18,7 +18,7 @@
 <script setup lang="ts">
     import { inject } from 'vue';
     import { useI18n } from 'vue-i18n';
-    import { useRooms, Message,MessageType,useMessageBox } from '@/store/store';
+    import { useRooms, useDialog } from '@/store/store';
 
     const { t } = useI18n();
 
@@ -33,8 +33,8 @@
     const pubhubs:any = inject('pubhubs');
 
     function leaveRoom(roomId:string) {
-        const messsagebox = useMessageBox();
-        messsagebox.dialog( new Message(MessageType.DialogStart,t('rooms.leave_sure')) ).then((answer)=> {
+        const dialog = useDialog();
+        dialog.okcancel(t('rooms.leave_sure')).then((answer)=> {
             if (answer) {
                 pubhubs.leaveRoom(roomId);
             }
