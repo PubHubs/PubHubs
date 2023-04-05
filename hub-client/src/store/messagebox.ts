@@ -1,5 +1,4 @@
 import { defineStore } from 'pinia'
-import { useDialog } from '@/store/dialog';
 
 /**
  * This store is used to exchange messages from global client (parent frame) to hub client (iframe) and the other way around.
@@ -58,13 +57,13 @@ enum MessageBoxType {
  * Message types
  */
 const handShakePrefix = 'handshake';
-const dialogPrefix = 'dialog';
+const modalPrefix = 'dialog-modal';
 enum MessageType {
     HandshakeStart = handShakePrefix + '-start',        // Start the handshake
     HandshakeReady = handShakePrefix + '-ready',        // Handshake is ready
 
-    DialogStart = dialogPrefix + '-start',              // Show confirm dialog, and give results back
-    DialogAnswer = dialogPrefix + '-answer',            // Show confirm dialog, and give results back
+    DialogShowModal = modalPrefix + '-show',            // Show modal over bar
+    DialogHideModal = modalPrefix + '-hide',            // Hide modal over bar
 
     UnreadMessages = 'unreadmessages',                  // Sync total of unread messages for a hub
     Settings = 'settings',                              // Sync settings
@@ -104,18 +103,6 @@ class Message {
         const type = this.type;
         if ( typeof(type) == 'string' ) {
             return type.substring(0,handShakePrefix.length) == handShakePrefix;
-        }
-        return false;
-    }
-
-    isDialogStart() {
-        return this.type == MessageType.DialogStart;
-    }
-
-    isDialogMessage() {
-        const type = this.type;
-        if ( typeof(type) == 'string' ) {
-            return type.substring(0,dialogPrefix.length) == dialogPrefix;
         }
         return false;
     }
@@ -213,12 +200,6 @@ const useMessageBox = defineStore('messagebox', {
                                 resolve(true);
                             }
 
-                            // Answer to dialog
-                            else if ( message.isDialogStart() && type == MessageBoxType.Parent ) {
-                                this.showDialog(message);
-                                reject();
-                            }
-
                             // Normal message was received and is of a know message type
                             else if ( Object.values(MessageType).includes(message.type) ) {
                                 this.receivedMessage(message);
@@ -313,38 +294,6 @@ const useMessageBox = defineStore('messagebox', {
         removeCallback(type:MessageType) {
             delete(this.callbacks[type]);
         },
-
-        /**
-         * The hub-client can use the global dialog with this message. It will show a Yes/Cancel dialog and returns a promise with the answer (true|false).
-         * Use only with not sensitive data in the message: just a simple question without any data.
-         *
-         * @param message Message to be send to the dialog
-         * @returns Promise (true|false)
-         */
-        dialog(message:Message) {
-            if ( this.type==MessageBoxType.Child ) {
-                return new Promise((resolve)=>{
-                    this.sendMessage(message);
-                    this.addCallback(MessageType.DialogAnswer,(message:Message)=>{
-                        resolve(message.content);
-                    });
-                })
-            }
-        },
-
-        /**
-         * This is called by the global-client to show the dialog the hub-client asked for. And sends a message back with the answer.
-         * @ignore
-         */
-        showDialog(message:Message) {
-            if ( this.type==MessageBoxType.Parent && this.handshake == HandshakeState.Ready ) {
-                console.log('<= '+this.type+' RECEIVED', message );
-                const dialog = useDialog();
-                dialog.okcancel( message.content ).then((answer:any)=>{
-                    this.sendMessage( new Message(MessageType.DialogAnswer,answer));
-                });
-            }
-        }
 
     },
 

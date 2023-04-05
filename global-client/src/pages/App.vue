@@ -4,24 +4,26 @@
         <div class="w-screen h-screen bg-white text-black dark:bg-gray-darker dark:text-white">
 
             <div class="flex">
-                <div class="flex-none w-20 sm:w-32 flex flex-col h-screen">
-                    <div class="flex-1 text-center">
-                        <router-link to="/" v-slot="{ isActive }">
-                            <HubIcon type="home" :active="isActive"></HubIcon>
-                        </router-link>
+                <div id="pubhubs-bar" class="flex-none w-20 sm:w-32 flex flex-col h-screen pt-2">
+                    <Modal :show="global.isModalVisible">
+                        <div class="flex-1 text-center">
+                            <router-link to="/" v-slot="{ isActive }">
+                                <HubIcon type="home" :active="isActive"></HubIcon>
+                            </router-link>
 
-                        <router-link v-for="hub in hubs.sortedHubsArray" :key="hub.hubId" :to="{ name: 'hub', params: { 'id':hub.hubId } }" v-slot="{ isActive }">
-                            <HubIcon :hub="hub" :active="isActive"></HubIcon>
-                        </router-link>
-                    </div>
+                            <router-link v-for="hub in hubs.sortedHubsArray" :key="hub.hubId" :to="{ name: 'hub', params: { 'id':hub.hubId } }" v-slot="{ isActive }">
+                                <HubIcon :hub="hub" :active="isActive"></HubIcon>
+                            </router-link>
+                        </div>
 
-                    <div class="text-center" v-if="global.loggedIn">
-                        <HubIcon type="cog" @click="settingsDialog = true"></HubIcon>
-                        <Dialog v-if="settingsDialog" @close="settingsDialog=false" :title="$t('settings.title')" :buttons="buttonsSubmitCancel">
-                            <Settings></Settings>
-                        </Dialog>
-                        <HubIcon type="power" @click="logout()"></HubIcon>
-                    </div>
+                        <div class="text-center" v-if="global.loggedIn">
+                            <HubIcon type="cog" @click="settingsDialog = true"></HubIcon>
+                            <Dialog v-if="settingsDialog" @close="settingsDialog=false" :title="$t('settings.title')" :buttons="buttonsSubmitCancel">
+                                <Settings></Settings>
+                            </Dialog>
+                            <HubIcon type="power" @click="logout()"></HubIcon>
+                        </div>
+                    </Modal>
                 </div>
 
                 <div class="flex-1 dark:bg-gray-dark">
@@ -51,13 +53,15 @@
 
     onMounted(() => {
         console.clear();
+        dialog.asGlobal();
+
         global.checkLogin().finally(()=>{
+            // hubs.addHub( new Hub('local','http://localhost:8081','Local') );
+            // hubs.addHub( new Hub('main','https://main.testhub-element.ihub.ru.nl','Main Hub') );
             global.getHubs().then((hubsResponse:any) => {
                 hubs.addHubs(hubsResponse as Array<Hub>);
             });
         });
-        // hubs.addHub( new Hub('local','http://localhost:8081','Local') );
-        // hubs.addHub( new Hub('main','https://main.testhub-element.ihub.ru.nl','Main Hub') );
     });
 
 

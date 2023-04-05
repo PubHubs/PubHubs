@@ -1,5 +1,5 @@
 import { defineStore } from 'pinia'
-import { MessageType, Message, MessageBoxType, useMessageBox, Theme, useSettings } from '@/store/store'
+import { MessageType, Message, MessageBoxType, useMessageBox, Theme, useSettings, useGlobal } from '@/store/store'
 
 class Hub {
 
@@ -136,6 +136,17 @@ const useHubs = defineStore('hubs', {
                             messagebox.addCallback( MessageType.UnreadMessages, (message:Message) => {
                                 self.hubs[hubId].unreadMessages = message.content;
                             });
+
+                            // Listen to modal show/hide
+                            messagebox.addCallback( MessageType.DialogShowModal, () => {
+                                const global = useGlobal();
+                                global.showModal();
+                            });
+                            messagebox.addCallback( MessageType.DialogHideModal, () => {
+                                const global = useGlobal();
+                                global.hideModal();
+                            });
+
                         });
 
                     }

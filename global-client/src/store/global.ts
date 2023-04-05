@@ -18,10 +18,15 @@ const useGlobal = defineStore('global', {
     state: () => {
         return {
             loggedIn : false,
+            modalVisible : false,
         }
     },
 
     getters: {
+
+        isModalVisible(state) : Boolean {
+            return state.modalVisible;
+        },
 
     },
 
@@ -71,7 +76,17 @@ const useGlobal = defineStore('global', {
                         }
                     });
             });
-        }
+        },
+
+        showModal() {
+            this.modalVisible = true;
+        },
+
+        hideModal() {
+            this.modalVisible = false;
+        },
+
+
     },
 
 })

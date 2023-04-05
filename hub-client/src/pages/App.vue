@@ -59,13 +59,16 @@
             </div>
 
         </div>
+
+        <Dialog v-if="dialog.visible" @close="dialog.close"></Dialog>
+
     </div>
 
 </template>
 
 <script setup lang="ts">
     import filters from "@/core/filters";
-    import { useSettings, useHubSettings, Theme, useUser, useRooms, MessageType, Message, MessageBoxType, useMessageBox } from '@/store/store'
+    import { useSettings, useHubSettings, Theme, useUser, useRooms, MessageType, Message, MessageBoxType, useMessageBox, useDialog } from '@/store/store'
     import { useRouter } from 'vue-router'
 
     const router = useRouter();
@@ -74,6 +77,7 @@
     const user = useUser();
     const rooms = useRooms();
     const messagebox = useMessageBox();
+    const dialog = useDialog();
 
     if ( ! hubSettings.isSolo ) {
 

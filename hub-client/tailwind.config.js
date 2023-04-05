@@ -4,6 +4,13 @@ const pubhubsTheme = require('./src/assets/pubhubs-theme.js');
 const safeList = [
     '-mt-1',
     'absolute',
+    'bg-avatar-green',
+    'bg-avatar-purple',
+    'bg-avatar-yellow',
+    'bg-avatar-red',
+    'bg-avatar-lime',
+    'bg-avatar-blue',
+    'bg-avatar-orange',
     'bg-blue-dark',
     'bg-blue',
     'bg-gray-light',
