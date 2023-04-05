@@ -38,6 +38,7 @@
     function addNewRoom(name:string) {
         pubhubs.newRoom({
             name: name,
+            visibility: "public"
         });
     }
 
