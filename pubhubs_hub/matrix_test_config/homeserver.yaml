@@ -18,13 +18,13 @@ modules:
   - module: conf.modules.pseudonyms.Pseudonym
 #    Below is the example config for adding attribute based authentication to rooms, room id's will be different depending on your server.
 #    Make sure to enable server_notices system_mxid_localpart (also in homeserver.yaml) as that will be the user making the waiting rooms.
-  - module: conf.modules.pubhubs.IrmaRoomJoiner
+  - module: conf.modules.pubhubs.YiviRoomJoiner
     config:
       {
 #         3 lines belows are optional! For (internal) development purposes.
-#         irma_url: "http://<outside container>:8089",
-#         irma_client_url: "http://<outside container>:8089",
-#         public_irma_url: "http://<outside container>:8008/",
+#         yivi_url: "http://<outside container>:8089",
+#         yivi_client_url: "http://<outside container>:8089",
+#         public_yivi_url: "http://<outside container>:8008/",
 
         # Client url is necessary for redirection to the room once allowed.
         client_url: "http://localhost:8800",
@@ -78,7 +78,7 @@ pid_file: /data/homeserver.pid
 # Otherwise, it should be the URL to reach Synapse's client HTTP listener (see
 # 'listeners' below).
 #
-# to use with the irma proxy for secured rooms make sure it's publicly accessible
+# to use with the Yivi proxy for secured rooms make sure it's publicly accessible
 public_baseurl: http://localhost:8008
 
 # Set the soft limit on the number of file descriptors synapse can use
@@ -2446,7 +2446,7 @@ stats:
 #
 # It's also possible to override the room name, the display name of the
 # "notices" user, and the avatar for the user.
-# Needed for IrmaRoomJoiner module
+# Needed for YiviRoomJoiner module
 server_notices:
   system_mxid_localpart: notices_user
 #  system_mxid_display_name: "Server Notices"

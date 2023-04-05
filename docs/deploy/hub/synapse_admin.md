@@ -33,7 +33,7 @@ that has a user_id we can use with `ModuleAPI::is_user_admin` to see if someone 
 *Needs:*
 - Instructions for our modules, should be part of the set-up guide.
 - Move secured rooms set-up from `homeserver.yaml` to an admin accessible API, basically CRUD, I guess. Can add the threaded rooms as an option here.
-- Expiring access to secured rooms based on expiry date of IRMA credentials.
+- Expiring access to secured rooms based on expiry date of Yivi credentials.
 - Better way to get QR code to users: basically integration with our new front-end.
 
 *Slightly more long term:*
@@ -41,7 +41,7 @@ that has a user_id we can use with `ModuleAPI::is_user_admin` to see if someone 
 Specific attributes only in one room:
 - Research how to be totally sure the revealed attributes do not leave the room, don't forget federation!
 - Add to admin CRUD api for configuration of existing rooms.
-- Some way to get the IRMA QR to the end-user.
+- Some way to get the Yivi QR to the end-user.
 - Expiry dates?
 
 ## Non admin related work ##
@@ -51,9 +51,9 @@ certainly for the secured rooms.
 
 The general idea for naming will be: 
 
-Add `{"type": "ph.< messages | threading >.restricted"}` [when creating a room in this way through the new admin API](https://gitlab.science.ru.nl/ilab/pubhubs_canonical/-/blob/main/pubhubs_hub/modules/pubhubs/IrmaRoomJoiner.py#L141)
+Add `{"type": "ph.< messages | threading >.restricted"}` [when creating a room in this way through the new admin API](https://gitlab.science.ru.nl/ilab/pubhubs_canonical/-/blob/main/pubhubs_hub/modules/pubhubs/YiviRoomJoiner.py#L141)
 and convention will be: ph.threading.< visbility > vs ph.messages.< visibilty >. For thread vs. chat rooms.
-With so far visibility either 'public' or 'restricted' (for rooms wiht IRMA requirements). 
+With so far visibility either 'public' or 'restricted' (for rooms with Yivi requirements). 
 
 
 *Needs:*

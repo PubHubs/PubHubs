@@ -32,21 +32,21 @@ oidc_secret: ZGWlJ4q3z9PCkngjQJiu016Ba4iP7XIgBi5MyOtvG/Y=
 metrics_key: changeme
 
 #
-irma: {
-    # This should point to the issuer url of IRMA instance.
+yivi: {
+    # This should point to the issuer url of Yivi instance.
     # This example url is only for local host testing.
     server_url: http://host.docker.internal:8088,
  
-    # Client URL for the irma server. You want a different client url in a real deployment
+    # Client URL for the Yivi server. You want a different client url in a real deployment
     # This example url is only for local host testing.
     client_url: http://host.docker.internal:8088,
 
-    # To secure the IRMA server request. This should be changed!
+    # To secure the Yivi server request. This should be changed!
     requestor_hmac_key: aXJtYV9yZXF1ZXN0b3Jfa2V5,
 
-    # This should be the public key of your IRMA server.
+    # This should be the public key of your Yivi server.
     server_key_file: /config/jwt.pub,
-    # JWT issuer setttings of IRMA server. We use the default name. To use a different name, you need to specify it.
+    # JWT issuer setttings of Yivi server. We use the default name. To use a different name, you need to specify it.
   }
 
 pep: {

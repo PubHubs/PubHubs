@@ -7,10 +7,10 @@ from synapse.http.server import DirectServeJsonResource, respond_with_json
 from synapse.types import JsonDict
 from twisted.web.resource import Resource
 
-from . import IrmaRoomJoiner
+from . import YiviRoomJoiner
 from ._constants import SERVER_NOTICES_USER, CLIENT_URL
 from ._secured_rooms_class import RoomAttribute
-from ._store import IrmaRoomJoinStore
+from ._store import YiviRoomJoinStore
 
 logger = logging.getLogger("synapse.contrib." + __name__)
 
@@ -23,44 +23,44 @@ class JoinServlet(Resource):
             self,
             config: dict,
             module_api: ModuleApi,
-            store: IrmaRoomJoinStore,
-            joiner: IrmaRoomJoiner):
+            store: YiviRoomJoinStore,
+            joiner: YiviRoomJoiner):
         super().__init__()
         self.module_api = module_api
         self.config = config
 
         self.putChild(
-            b'irma-endpoint',
-            IrmaEndpoint(
+            b'yivi-endpoint',
+            YiviEndpoint(
                 config,
                 module_api,
                 store,
                 joiner))
 
 
-class IrmaEndpoint(Resource):
-    """Servlet that bundles the IRMA endpoints for the javascript client to communicate with.
+class YiviEndpoint(Resource):
+    """Servlet that bundles the Yivi endpoints for the javascript client to communicate with.
     """
 
     def __init__(
             self,
             config: dict,
             module_api: ModuleApi,
-            store: IrmaRoomJoinStore,
-            joiner: IrmaRoomJoiner):
+            store: YiviRoomJoinStore,
+            joiner: YiviRoomJoiner):
         super().__init__()
         self.module_api = module_api
         self.config = config
-        self.putChild(b'start', IrmaStart(config, module_api, store))
-        self.putChild(b'result', IrmaResult(config, module_api, store, joiner))
+        self.putChild(b'start', YiviStart(config, module_api, store))
+        self.putChild(b'result', YiviResult(config, module_api, store, joiner))
 
 
-class IrmaStart(DirectServeJsonResource):
-    """ Servlet containing the endpoint to start the IRMA session.
+class YiviStart(DirectServeJsonResource):
+    """ Servlet containing the endpoint to start the Yivi session.
     Will ask to disclose the attributes as specified in the module configuration
     """
 
-    def __init__(self, config: dict, module_api: ModuleApi, store: IrmaRoomJoinStore):
+    def __init__(self, config: dict, module_api: ModuleApi, store: YiviRoomJoinStore):
         super().__init__()
         self.module_api = module_api
         self.config = config
@@ -91,15 +91,15 @@ class IrmaStart(DirectServeJsonResource):
             ]
         }
 
-        irma_url = self.config.get("irma_url", "http://localhost:8089")
-        answer = await http_client.post_json_get_json(f"{irma_url}/session", session_request)
+        yivi_url = self.config.get("yivi_url", "http://localhost:8089")
+        answer = await http_client.post_json_get_json(f"{yivi_url}/session", session_request)
         # Make sure the 'ultimate' client uses the proxy used by the module.
-        public_irma_url = self.config.get("public_irma_url", self.module_api.public_baseurl)
-        answer['sessionPtr']['u'] = public_irma_url + \
-                                    '_synapse/client/irmaproxy/' + \
+        public_yivi_url = self.config.get("public_yivi_url", self.module_api.public_baseurl)
+        answer['sessionPtr']['u'] = public_yivi_url + \
+                                    '_synapse/client/yiviproxy/' + \
                                     '/'.join(answer['sessionPtr']['u'].split('/')[3:])
 
-        logger.debug(f"rewrote irma url to {answer['sessionPtr']['u']}")
+        logger.debug(f"rewrote Yivi url to {answer['sessionPtr']['u']}")
 
         # Now client makes the request
         request.setHeader(
@@ -109,7 +109,7 @@ class IrmaStart(DirectServeJsonResource):
         respond_with_json(request, 200, answer)
 
 
-class IrmaResult(DirectServeJsonResource):
+class YiviResult(DirectServeJsonResource):
     """Servlet containing the endpoint the JS client will call when the session is done,
      will collect and check the session result and see if
       correct attributes are disclosed.
@@ -120,18 +120,18 @@ class IrmaResult(DirectServeJsonResource):
             self,
             config: dict,
             module_api: ModuleApi,
-            store: IrmaRoomJoinStore,
-            irma_room_joiner: IrmaRoomJoiner):
+            store: YiviRoomJoinStore,
+            yivi_room_joiner: YiviRoomJoiner):
         super().__init__()
         self.module_api = module_api
         self.config = config
         self.store = store
-        self.irma_room_joiner = irma_room_joiner
+        self.yivi_room_joiner = yivi_room_joiner
 
     async def check_allowed(self, result: dict, room_id: str) -> Optional[JsonDict]:
-        """Check whether the IRMA result fits the entry requirements of the room.
+        """Check whether the Yivi result fits the entry requirements of the room.
 
-        :param result: IRMA session result
+        :param result: Yivi session result
         :param room_id: the id of the room to join
         :return: None is not allowed and the disclosed attributes when allowed.
         """
@@ -201,8 +201,8 @@ class IrmaResult(DirectServeJsonResource):
 
         user_id = user.user.to_string()
 
-        irma_url = self.config.get("irma_url", "http://localhost:8089")
-        result = await http_client.get_json(f"{irma_url}/session/{token}/result")
+        yivi_url = self.config.get("yivi_url", "http://localhost:8089")
+        result = await http_client.get_json(f"{yivi_url}/session/{token}/result")
         allowed = await self.check_allowed(result, room_id)
         if allowed:
             await self.store.allow(user_id,room_id)

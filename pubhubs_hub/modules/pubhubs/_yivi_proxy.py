@@ -22,8 +22,8 @@ logger = logging.getLogger("synapse.contrib." + __name__)
 
 
 class ProxyServlet(DirectServeJsonResource):
-    """Servlet to proxy the IRMA requests and responses, made to join rooms with certain attribute requirements,
-    so required configuration is minimized and the IRMA server to disclose can run in the same image as the Synapse server.
+    """Servlet to proxy the Yivi requests and responses, made to join rooms with certain attribute requirements,
+    so required configuration is minimized and the Yivi server to disclose can run in the same image as the Synapse server.
     """
 
     def __init__(self, config: dict, api: ModuleApi):
@@ -46,7 +46,7 @@ class ProxyServlet(DirectServeJsonResource):
             await self.handle_status_events(request)
         else:
             resp: IResponse = await http_client.request(request.method.decode(),
-                                                        f"{self.config.get('irma_client_url', 'http://localhost:8088')}/{'/'.join(request.path.decode().split('/')[4:])}",
+                                                        f"{self.config.get('yivi_client_url', 'http://localhost:8088')}/{'/'.join(request.path.decode().split('/')[4:])}",
                                                         content, request.requestHeaders)
 
             request.setHeader(
@@ -59,13 +59,13 @@ class ProxyServlet(DirectServeJsonResource):
                 resp_json = json.loads(resp_content)
                 respond_with_json(request, resp.code, resp_json)
             except JSONDecodeError:
-                logger.error(f"Got a non-json response from IRMA: '{resp_content}'")
+                logger.error(f"Got a non-json response from Yivi: '{resp_content}'")
                 respond_with_json(request, 500, {})
 
     async def handle_status_events(self, request):
         agent = Agent(reactor)
         url = bytes(
-            f"{self.config.get('irma_client_url', 'http://localhost:8088')}/{'/'.join(request.path.decode().split('/')[4:])}",
+            f"{self.config.get('yivi_client_url', 'http://localhost:8088')}/{'/'.join(request.path.decode().split('/')[4:])}",
             "utf-8")
         d = agent.request(request.method, url, request.requestHeaders)
 

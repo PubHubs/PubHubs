@@ -7,21 +7,21 @@ use regex::Regex;
 use crate::context::Main;
 use crate::error::{AnyhowExt, HttpContextExt, TranslatedError};
 
-pub async fn irma_proxy_stream(
+pub async fn yivi_proxy_stream(
     request: HttpRequest,
     context: Data<Main>,
     body: String,
 ) -> Result<HttpResponse, TranslatedError> {
-    let irma_url = &context.irma.client_url;
+    let yivi_url = &context.yivi.client_url;
     let client = awc::Client::default();
-    let uri = request.uri().to_string();
+    let uri = request.uri().to_string().replace("yivi", "irma");
 
-    let mut request_to_irma = client.request(request.method().clone(), irma_url.to_owned() + &uri);
+    let mut request_to_yivi = client.request(request.method().clone(), yivi_url.to_owned() + &uri);
     for pair in request.headers() {
-        request_to_irma = request_to_irma.insert_header(pair);
+        request_to_yivi = request_to_yivi.insert_header(pair);
     }
 
-    let original_response = request_to_irma
+    let original_response = request_to_yivi
         .send_body(body)
         .await
         .map_err(|e| anyhow!(e.to_string()))
@@ -35,22 +35,22 @@ pub async fn irma_proxy_stream(
     Ok(resp.streaming(original_response))
 }
 
-pub async fn irma_proxy(
+pub async fn yivi_proxy(
     request: HttpRequest,
     context: Data<Main>,
     body: String,
 ) -> Result<HttpResponse, TranslatedError> {
-    let irma_url = &context.irma.client_url;
+    let yivi_url = &context.yivi.client_url;
     let proxy_host = &context.url;
-    let uri = request.uri().to_string();
+    let uri = request.uri().to_string().replace("yivi", "irma");
     let client = awc::Client::default();
 
-    let mut request_to_irma = client.request(request.method().clone(), irma_url.to_owned() + &uri);
+    let mut request_to_yivi = client.request(request.method().clone(), yivi_url.to_owned() + &uri);
     for pair in request.headers() {
-        request_to_irma = request_to_irma.insert_header(pair);
+        request_to_yivi = request_to_yivi.insert_header(pair);
     }
 
-    let mut original_response = request_to_irma
+    let mut original_response = request_to_yivi
         .send_body(body)
         .await
         .map_err(|e| anyhow!(e.to_string()))
@@ -71,7 +71,7 @@ pub async fn irma_proxy(
     )
     .into_translated_error(&request)?;
 
-    // We want to replace all instances of a "u" in a IRMA response whatever the structure of the request is.
+    // We want to replace all instances of a "u" in a Yivi response whatever the structure of the request is.
     let re = Regex::new(r#""u":"https?://[^/]+/"#).unwrap();
 
     let body_with_new_url = if re.is_match(&r) {
@@ -80,7 +80,7 @@ pub async fn irma_proxy(
     } else {
         let re_api = Regex::new(r#""u":""#).unwrap();
         re_api
-            .replace(&r, format!(r#""u":"{}irma/"#, proxy_host))
+            .replace(&r, format!(r#""u":"{}yivi/"#, proxy_host))
             .to_string()
     };
 
@@ -112,13 +112,13 @@ mod tests {
             .insert_header(("x-test", "yes"))
             .to_http_request();
         let context = create_test_context_with(|mut f| {
-            f.irma.client_url = Some("http://localhost:3005/test1".to_string());
+            f.yivi.client_url = Some("http://localhost:3005/test1".to_string());
             f
         })
         .await
         .unwrap();
 
-        let resp = super::irma_proxy(req.clone(), Data::from(context.clone()), "none".to_owned())
+        let resp = super::yivi_proxy(req.clone(), Data::from(context.clone()), "none".to_owned())
             .await
             .unwrap();
         assert_eq!(resp.status(), StatusCode::OK);
@@ -127,7 +127,7 @@ mod tests {
 
         assert_eq!(content, "Hello, World".to_string());
 
-        let resp = super::irma_proxy_stream(req, Data::from(context), "none".to_owned())
+        let resp = super::yivi_proxy_stream(req, Data::from(context), "none".to_owned())
             .await
             .unwrap();
         assert_eq!(resp.status(), StatusCode::OK);

@@ -1,7 +1,7 @@
-// starts an irma session to login
-function irmaLogin(url_prefix, register, oidc_handle) {
-    let endpoint = register ? "/irma-endpoint/register" : "/irma-endpoint/start";
-    let irma = {};
+// starts an Yivi session to login
+function yiviLogin(url_prefix, register, oidc_handle) {
+    let endpoint = register ? "/yivi-endpoint/register" : "/yivi-endpoint/start";
+    let yivi = {};
     let evtSource = null;
 
     fetch(endpoint)
@@ -19,12 +19,12 @@ function irmaLogin(url_prefix, register, oidc_handle) {
             let fallback = `S.browser_fallback_url=${encodeURIComponent(universalLink)}`;
             let mobileLink =  `intent://qr/json/${encodeURIComponent(json)}#${intent};${fallback};end`;
 
-            let irma_token = data.token;
+            let yivi_token = data.token;
 	
             let redirectOnFocus = function() {
                 window.addEventListener("focus", function(event) {
-                    if (irma.st != null) {
-                        finish_and_redirect(irma_token);
+                    if (yivi.st != null) {
+                        finish_and_redirect(yivi_token);
                     }
                 });
                 return true;
@@ -36,7 +36,7 @@ function irmaLogin(url_prefix, register, oidc_handle) {
             openInApp.innerHTML = '<button>Open in App</button>';
             openInApp.addEventListener('click', redirectOnFocus);
 
-            let st = document.getElementById('irma-status')
+            let st = document.getElementById('yivi-status')
             st.innerHTML = '';
             if (ua == "Android" || ua == "iOS") {
                 st.appendChild(openInApp);
@@ -51,24 +51,24 @@ function irmaLogin(url_prefix, register, oidc_handle) {
                 st.innerHTML = '<div style="max-width: fit-content">' + data.svg + '</div>';
             }
 
-            let modal = document.getElementById('irma-modal');
+            let modal = document.getElementById('yivi-modal');
             modal.hidden = false;
 
             let eventsURL =	data.sessionPtr.u + "/statusevents";
-            irma.st = st;
-            irma.eventsURL = eventsURL;
-            irmaConnect(st, eventsURL, irma_token, true);
+            yivi.st = st;
+            yivi.eventsURL = eventsURL;
+            yiviConnect(st, eventsURL, yivi_token, true);
         }).catch(e => {
         console.error('There has been a problem with your fetch operation:', e);
-        irmaError();
+        yiviError();
     });
 
-    function irmaConnect(st, eventsURL, irma_token, reconnectOnFocus) {
+    function yiviConnect(st, eventsURL, yivi_token, reconnectOnFocus) {
         if (evtSource != null)
             evtSource.close();
         evtSource = new EventSource(eventsURL);
 
-        evtSource.onerror = irmaError;
+        evtSource.onerror = yiviError;
         evtSource.onmessage = function(event) {
             if (event.data == '"CONNECTED"') {
                 st.innerHTML = '<p>Connected, please disclose your attributes in the app;</p>';
@@ -78,14 +78,14 @@ function irmaLogin(url_prefix, register, oidc_handle) {
                 // expect the event source to be closed
                 evtSource.onerror = null;
 
-		finish_and_redirect(irma_token);
+		finish_and_redirect(yivi_token);
                 return;
             }
             if (event.data == '"CANCELLED"') {
-                irma = {};
+                yivi = {};
             }
             console.log("cancelled: " + event.data);
-            irmaError();
+            yiviError();
         }
 
         window.addEventListener('pagehide', () => {
@@ -99,33 +99,33 @@ function irmaLogin(url_prefix, register, oidc_handle) {
         });
     }
 
-    function irmaError(e) {
+    function yiviError(e) {
         if (evtSource === null) {
             // ignore error thrown by the event source in safari when 
             // its reloaded from the back/forward cache;
-            // irmaLogin is reinvoked anyways, via the 'pageshow' event
+            // yiviLogin is reinvoked anyways, via the 'pageshow' event
             return;
         }
-        console.error("irma error:", e);
-        let st = document.getElementById('irma-status');
-        st.innerHTML = '<button onclick="window.irmaLoginWithDetailsProvided()">A problem occurred click to retry</button>';
+        console.error("Yivi error:", e);
+        let st = document.getElementById('yivi-status');
+        st.innerHTML = '<button onclick="window.yiviLoginWithDetailsProvided()">A problem occurred click to retry</button>';
         evtSource.close();
         evtSource = null;
     };
-    window.irmaError = irmaError; // so we can simulate an error via the javascript console
+    window.yiviError = yiviError; // so we can simulate an error via the javascript console
 
-    function finish_and_redirect(irma_token) {
+    function finish_and_redirect(yivi_token) {
 	// obtain cookie and redirect user-agent to appropriate location
 	let form = document.createElement("form");
 	form.setAttribute("method", "POST");
-	form.setAttribute("action", "/irma-endpoint/finish-and-redirect");
+	form.setAttribute("action", "/yivi-endpoint/finish-and-redirect");
 
 	
-	let irma_token_inp = document.createElement("input");
-	irma_token_inp.setAttribute("type", "hidden");
-	irma_token_inp.setAttribute("name", "irma_token");
-	irma_token_inp.setAttribute("value", irma_token);
-	form.appendChild(irma_token_inp);
+	let yivi_token_inp = document.createElement("input");
+	yivi_token_inp.setAttribute("type", "hidden");
+	yivi_token_inp.setAttribute("name", "yivi_token");
+	yivi_token_inp.setAttribute("value", yivi_token);
+	form.appendChild(yivi_token_inp);
 
 	if (oidc_handle) {
 		let oidc_handle_inp = document.createElement("input");

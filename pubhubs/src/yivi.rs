@@ -1,4 +1,4 @@
-use crate::context::{Irma as IrmaContext, Main};
+use crate::context::{Main, Yivi as YiviContext};
 use actix_web::web::Data;
 use actix_web::{HttpRequest, HttpResponse};
 use anyhow::{anyhow, bail, Result};
@@ -135,9 +135,9 @@ pub enum Subject {
 
 /// Generate a QR code to disclose email and telephone fromPubHubs card. Returns the session
 pub async fn login(
-    irma_host: &str,
-    irma_requestor: &str,
-    irma_requestor_hmac_key: &crate::jwt::HS256,
+    yivi_host: &str,
+    yivi_requestor: &str,
+    yivi_requestor_hmac_key: &crate::jwt::HS256,
     pub_hubs_host: &str,
 ) -> Result<SessionDataWithImage> {
     let to_disclose = vec![vec![vec![
@@ -146,9 +146,9 @@ pub async fn login(
     ]]];
     let next_session = None;
     disclose(
-        irma_host,
-        irma_requestor,
-        irma_requestor_hmac_key,
+        yivi_host,
+        yivi_requestor,
+        yivi_requestor_hmac_key,
         pub_hubs_host,
         to_disclose,
         next_session,
@@ -157,9 +157,9 @@ pub async fn login(
 }
 
 pub async fn register(
-    irma_host: &str,
-    irma_requestor: &str,
-    irma_requestor_hmac_key: &crate::jwt::HS256,
+    yivi_host: &str,
+    yivi_requestor: &str,
+    yivi_requestor_hmac_key: &crate::jwt::HS256,
     pub_hubs_host: &str,
 ) -> Result<SessionDataWithImage> {
     let to_disclose = vec![
@@ -168,12 +168,12 @@ pub async fn register(
     ];
     // Will immediately ask for issuing card after disclosing with a chained session.
     let next_session = Some(NextSession {
-        url: pub_hubs_host.to_string() + "irma-endpoint/",
+        url: pub_hubs_host.to_string() + "yivi-endpoint/",
     });
     disclose(
-        irma_host,
-        irma_requestor,
-        irma_requestor_hmac_key,
+        yivi_host,
+        yivi_requestor,
+        yivi_requestor_hmac_key,
         pub_hubs_host,
         to_disclose,
         next_session,
@@ -182,9 +182,9 @@ pub async fn register(
 }
 
 async fn disclose(
-    irma_host: &str,
-    irma_requestor: &str,
-    irma_requestor_hmac_key: &crate::jwt::HS256,
+    yivi_host: &str,
+    yivi_requestor: &str,
+    yivi_requestor_hmac_key: &crate::jwt::HS256,
     pub_hubs_host: &str,
     to_disclose: Vec<Vec<Vec<String>>>,
     next_session: Option<NextSession>,
@@ -192,7 +192,7 @@ async fn disclose(
     let client = Client::new();
     let body = crate::jwt::sign(
         &Claims {
-            iss: irma_requestor.to_string(),
+            iss: yivi_requestor.to_string(),
             iat: jsonwebtoken::get_current_timestamp(),
             sub: Subject::Disclosure,
             request: TaggedSessionRequest::Disclosure(ExtendedSessionRequest {
@@ -204,13 +204,13 @@ async fn disclose(
                 next_session,
             }),
         },
-        irma_requestor_hmac_key,
+        yivi_requestor_hmac_key,
     )
     .unwrap();
 
     let request = Request::builder()
         .method(Method::POST)
-        .uri(irma_host.to_owned() + "/session")
+        .uri(yivi_host.to_owned() + "/session")
         .header("content-type", "text/plain")
         .body(Body::from(body))
         .expect("a request");
@@ -221,15 +221,15 @@ async fn disclose(
     let slice = body.as_ref();
 
     if status != StatusCode::OK {
-        let error: IrmaErrorMessage = match serde_json::from_slice(slice) {
+        let error: YiviErrorMessage = match serde_json::from_slice(slice) {
             Ok(msg) => msg,
             Err(e) => {
                 error!("Could not deserialize a non-200 response {e}");
-                IrmaErrorMessage::default()
+                YiviErrorMessage::default()
             }
         };
-        error!("Did not receive OK from IRMA server on disclosure request, status '{status}', error '{:?}' ", error);
-        bail!("Did not receive OK from IRMA server on disclosure request");
+        error!("Did not receive OK from Yivi server on disclosure request, status '{status}', error '{:?}' ", error);
+        bail!("Did not receive OK from Yivi server on disclosure request");
     }
 
     let mut session: SessionData = serde_json::from_slice(slice)?;
@@ -237,10 +237,10 @@ async fn disclose(
     let re = Regex::new(r#"https?://[^/]+/(irma/)?"#).unwrap();
 
     let new_url = if re.is_match(&session.session_ptr.u) {
-        re.replace(&session.session_ptr.u, format!("{}irma/", pub_hubs_host))
+        re.replace(&session.session_ptr.u, format!("{}yivi/", pub_hubs_host))
             .to_string()
     } else {
-        format!("{}irma/{}", pub_hubs_host, &session.session_ptr.u)
+        format!("{}yivi/{}", pub_hubs_host, &session.session_ptr.u)
     };
 
     session.session_ptr = SessionPointer {
@@ -273,17 +273,17 @@ pub struct SessionData {
 }
 
 #[derive(Serialize, Deserialize, Debug)]
-pub struct IrmaErrorMessage {
+pub struct YiviErrorMessage {
     error: String,
     description: String,
     message: String,
-    // N.B.:  irma.RemoteError also has the fields 'status' and 'stacktrace',
+    // N.B.:  yivi.RemoteError also has the fields 'status' and 'stacktrace',
     //        see https://irma.app/docs/v0.2.0/api-irma-server/#api-reference
 }
 
-impl Default for IrmaErrorMessage {
+impl Default for YiviErrorMessage {
     fn default() -> Self {
-        IrmaErrorMessage {
+        YiviErrorMessage {
             error: "internal PubHubs default".to_string(),
             description: "internal PubHubs default".to_string(),
             message: "internal PubHubs default".to_string(),
@@ -334,14 +334,14 @@ impl Debug for SessionDataWithImage {
 
 #[async_recursion]
 pub async fn disclosed_email_and_telephone(
-    irma_host: &str,
+    yivi_host: &str,
     token: &str,
 ) -> Result<(String, String)> {
     let client = Client::new();
     for _i in 0..2 {
         let request = Request::builder()
             .method(Method::GET)
-            .uri(irma_host.to_owned() + format!("/session/{token}/result").as_str())
+            .uri(yivi_host.to_owned() + format!("/session/{token}/result").as_str())
             .header("content-type", "application/json")
             .body(Body::empty())
             .expect("a request");
@@ -354,17 +354,17 @@ pub async fn disclosed_email_and_telephone(
         let slice = body.as_ref();
 
         if status != StatusCode::OK {
-            let error: IrmaErrorMessage = match serde_json::from_slice(slice) {
+            let error: YiviErrorMessage = match serde_json::from_slice(slice) {
                 Ok(msg) => msg,
                 Err(e) => {
                     error!(
-                        "Could not deserialize irma error from none-200 response, got error {e}"
+                        "Could not deserialize Yivi error from none-200 response, got error {e}"
                     );
-                    IrmaErrorMessage::default()
+                    YiviErrorMessage::default()
                 }
             };
-            error!("Did not receive OK from IRMA server on polling request for result, status '{status}', error '{:?}' ", error);
-            bail!("Did not receive OK from IRMA server on disclosure request");
+            error!("Did not receive OK from Yivi server on polling request for result, status '{status}', error '{:?}' ", error);
+            bail!("Did not receive OK from Yivi server on disclosure request");
         }
 
         let result: SessionResult = serde_json::from_slice(slice)?;
@@ -380,7 +380,7 @@ pub async fn disclosed_email_and_telephone(
                     return Ok((email, telephone));
                 }
                 Some(new_token) => {
-                    return disclosed_email_and_telephone(irma_host, &new_token).await
+                    return disclosed_email_and_telephone(yivi_host, &new_token).await
                 }
             },
             (Status::DONE, &SessionType::Issuing) => {
@@ -397,13 +397,13 @@ pub async fn disclosed_email_and_telephone(
             }
         }
     }
-    bail!("Did not get IRMA result in 3 tries");
+    bail!("Did not get Yivi result in 3 tries");
 }
 
 pub async fn next_session(req: HttpRequest, context: Data<Main>, jwt_text: String) -> HttpResponse {
     let pub_hubs_host = &context.url;
-    let irma = &context.irma;
-    match next_session_priv(req, irma, pub_hubs_host, &jwt_text).await {
+    let yivi = &context.yivi;
+    match next_session_priv(req, yivi, pub_hubs_host, &jwt_text).await {
         Ok(a) => a,
         Err(_) => empty_result(),
     }
@@ -411,7 +411,7 @@ pub async fn next_session(req: HttpRequest, context: Data<Main>, jwt_text: Strin
 
 async fn next_session_priv(
     req: HttpRequest,
-    irma: &IrmaContext,
+    yivi: &YiviContext,
     pub_hubs_host: &str,
     jwt_text: &str,
 ) -> Result<HttpResponse> {
@@ -420,24 +420,24 @@ async fn next_session_priv(
 
         if !ct.starts_with("text/plain") {
             log::warn!(
-                "Irma server called back with Content-Type {} instead of 'text/plain' - has a jwt_privkey(_file) been configurad for the IRMA server?",
+                "Yivi server called back with Content-Type {} instead of 'text/plain' - has a jwt_privkey(_file) been configurad for the Yivi server?",
                 ct
             );
             return Ok(HttpResponse::InternalServerError().finish());
         }
     }
 
-    let jwt = jsonwebtoken::decode::<SignedSessionResultClaims>(jwt_text, &irma.server_key, &{
+    let jwt = jsonwebtoken::decode::<SignedSessionResultClaims>(jwt_text, &yivi.server_key, &{
         let mut val = jsonwebtoken::Validation::new(jsonwebtoken::Algorithm::RS256);
 
-        val.set_issuer(&[irma.server_issuer.clone()]);
+        val.set_issuer(&[yivi.server_issuer.clone()]);
         val.set_required_spec_claims(&["exp", "iat", "iss", "sub"]);
         val
     });
 
     if jwt.is_err() {
         log::warn!(
-            "Failed to decode/verify JWT ({}) from IRMA server callback: {}",
+            "Failed to decode/verify JWT ({}) from Yivi server callback: {}",
             jwt_text,
             jwt.unwrap_err()
         );
@@ -477,7 +477,7 @@ async fn next_session_priv(
                             )]),
                         },
                         next_session: Some(NextSession {
-                            url: pub_hubs_host.to_owned() + "irma-endpoint/",
+                            url: pub_hubs_host.to_owned() + "yivi-endpoint/",
                         }),
                     })
                     .unwrap();
@@ -498,7 +498,7 @@ fn empty_result() -> HttpResponse {
 }
 
 #[derive(Serialize, Deserialize, Debug, PartialEq, Eq, Clone)]
-#[allow(non_camel_case_types)] // Follow IRMA naming
+#[allow(non_camel_case_types)] // Follow Yivi naming
 #[allow(clippy::upper_case_acronyms)]
 pub enum Status {
     DONE,
@@ -510,7 +510,7 @@ pub enum Status {
 }
 
 #[derive(Serialize, Deserialize, Debug)]
-#[allow(non_camel_case_types)] // Follow IRMA naming
+#[allow(non_camel_case_types)] // Follow Yivi naming
 #[allow(clippy::upper_case_acronyms)]
 pub enum ProofStatus {
     VALID,
@@ -599,7 +599,7 @@ mod tests {
         .await
         .unwrap();
 
-        assert_eq!(resp.session_ptr.u, "test_host/irma/test_token/session");
+        assert_eq!(resp.session_ptr.u, "test_host/yivi/test_token/session");
         assert_ne!(resp.token, "");
         assert_eq!(resp.session_ptr.irmaqr, SessionType::Disclosing);
         assert!(resp
@@ -619,7 +619,7 @@ mod tests {
         let err = result.unwrap_err();
         assert_eq!(
             err.to_string(),
-            "Did not receive OK from IRMA server on disclosure request"
+            "Did not receive OK from Yivi server on disclosure request"
         );
     }
 
@@ -650,7 +650,7 @@ mod tests {
                 assert_eq!(e3.to_string(), "test_error");
                 assert_eq!(
                     e4.to_string(),
-                    "Did not receive OK from IRMA server on disclosure request"
+                    "Did not receive OK from Yivi server on disclosure request"
                 );
             }
             (_1, _2, _3, _4) => {
@@ -667,7 +667,7 @@ mod tests {
                 result: result,
                 iat: jsonwebtoken::get_current_timestamp(),
                 exp: jsonwebtoken::get_current_timestamp() + 100,
-                iss: "irmaserver".to_string(),
+                iss: "yiviserver".to_string(),
                 sub: "not checked for now".to_string(),
             },
             &jsonwebtoken::EncodingKey::from_rsa_pem(
@@ -729,20 +729,20 @@ OdC+rxjYNxRU4uNt8fgMfCdTL4wdxucOp0L8E5Enp+b96tpELIRhBkNEpQo=
         .unwrap();
     }
 
-    fn fake_irma_context() -> crate::config::Irma {
-        crate::config::Irma {
-            server_issuer: "irmaserver/".to_string(),
+    fn fake_yivi_context() -> crate::config::Yivi {
+        crate::config::Yivi {
+            server_issuer: "yiviserver/".to_string(),
             client_url: Some("some.host/".to_string()),
             requestor: "some.host/".to_string(),
             requestor_hmac_key: None,
             server_url: "some.host/".to_string(),
-            server_key_file: Some(r#"../docker_irma/jwt.priv"#.to_string()),
+            server_key_file: Some(r#"../docker_yivi/jwt.priv"#.to_string()),
         }
     }
 
-    fn fake_irma_state() -> IrmaContext {
-        IrmaContext {
-            server_issuer: "irmaserver".to_string(),
+    fn fake_yivi_state() -> YiviContext {
+        YiviContext {
+            server_issuer: "yiviserver".to_string(),
             server_key: jsonwebtoken::DecodingKey::from_rsa_pem(
                 r#"-----BEGIN PUBLIC KEY-----
 MIICIjANBgkqhkiG9w0BAQEFAAOCAg8AMIICCgKCAgEA5SJ3K2E7te+XETt7P6KI
@@ -779,7 +779,7 @@ mL8ccRpy26VYM7CYRcsoeJMCAwEAAQ==
             error: None,
         });
         let req = test::TestRequest::default().to_http_request();
-        let resp = next_session_priv(req, &fake_irma_state(), "test_host", &body)
+        let resp = next_session_priv(req, &fake_yivi_state(), "test_host", &body)
             .await
             .unwrap();
         assert_eq!(resp.status(), StatusCode::NO_CONTENT);
@@ -807,7 +807,7 @@ mL8ccRpy26VYM7CYRcsoeJMCAwEAAQ==
             error: None,
         });
         let req = TestRequest::default().to_http_request();
-        let resp = next_session_priv(req, &fake_irma_state(), "test_host/", &body)
+        let resp = next_session_priv(req, &fake_yivi_state(), "test_host/", &body)
             .await
             .unwrap();
 
@@ -818,7 +818,7 @@ mL8ccRpy26VYM7CYRcsoeJMCAwEAAQ==
         assert_eq!(
             session_request.next_session.as_ref().unwrap(),
             &NextSession {
-                url: "test_host/irma-endpoint/".to_string()
+                url: "test_host/yivi-endpoint/".to_string()
             }
         );
         assert_eq!(session_request.request.context, Context::Issuance);
@@ -853,7 +853,7 @@ mL8ccRpy26VYM7CYRcsoeJMCAwEAAQ==
             error: None,
         });
         let req = TestRequest::default().to_http_request();
-        let resp = next_session_priv(req, &fake_irma_state(), "test_host", &body)
+        let resp = next_session_priv(req, &fake_yivi_state(), "test_host", &body)
             .await
             .unwrap();
 
@@ -895,7 +895,7 @@ mL8ccRpy26VYM7CYRcsoeJMCAwEAAQ==
 
                 let context = create_test_context_with(|mut f| {
                     f.url = Some("https://test.host/".to_string());
-                    f.irma = fake_irma_context();
+                    f.yivi = fake_yivi_context();
                     f
                 })
                 .await

@@ -1,4 +1,4 @@
-FROM golang:1.18 AS irma_build
+FROM golang:1.18 AS yivi_build
 
 RUN git clone https://github.com/privacybydesign/irmago --branch v0.12.0 --depth 1
 
@@ -10,7 +10,7 @@ RUN go install ./irma
 
 FROM matrixdotorg/synapse:latest
 
-COPY --from=irma_build /go/bin//irma /usr/bin/irma
+COPY --from=yivi_build /go/bin//irma /usr/bin/irma
 
 COPY start.sh .
 

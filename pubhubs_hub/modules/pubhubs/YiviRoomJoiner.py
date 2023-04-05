@@ -8,9 +8,9 @@ from synapse.module_api import ModuleApi
 from synapse.module_api.errors import ConfigError
 from twisted.web.server import Request
 
-from ._irma_proxy import ProxyServlet
+from ._yivi_proxy import ProxyServlet
 from ._secured_rooms_web import SecuredRoomsServlet
-from ._store import IrmaRoomJoinStore
+from ._store import YiviRoomJoinStore
 from ._web import JoinServlet
 from ._constants import CLIENT_URL, SERVER_NOTICES_USER, GLOBAL_CLIENT_URL
 
@@ -35,15 +35,15 @@ def modify_set_clickjacking_protection_headers(original, global_client_url: str)
     return modified
 
 
-class IrmaRoomJoiner(object):
-    """Main class that has the methods to create waiting rooms with widgets that serve an IRMA QR that allows users to
+class YiviRoomJoiner(object):
+    """Main class that has the methods to create waiting rooms with widgets that serve an Yivi QR that allows users to
     join secured rooms based on certain attributes. It's used as a synapse module.
     """
 
     async def joining(self, user: str, room: str, invited: bool) -> bool:
         """The hook for:
         https://matrix-org.github.io/synapse/v1.48/modules/spam_checker_callbacks.html#user_may_join_room
-        Will check if user is allowed to join the room (correct attributes revealed through IRMA) if not will create the
+        Will check if user is allowed to join the room (correct attributes revealed through Yivi) if not will create the
         waiting room if it doesn't exist or refresh the waiting room token if it's expired.
         """
         logger.debug(
@@ -69,7 +69,7 @@ class IrmaRoomJoiner(object):
         if store:
             self.store = store
         else:
-            self.store = IrmaRoomJoinStore(api)
+            self.store = YiviRoomJoinStore(api)
         self.module_api = api
         # We need the private fields for account data to set widgets
         self.room_creation_handler = RoomCreationHandler(api._hs)
@@ -85,7 +85,7 @@ class IrmaRoomJoiner(object):
                 self.store,
                 self))
         api.register_web_resource(
-            "/_synapse/client/irmaproxy",
+            "/_synapse/client/yiviproxy",
             ProxyServlet(
                 self.config,
                 self.module_api))

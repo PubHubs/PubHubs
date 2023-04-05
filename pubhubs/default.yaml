@@ -4,7 +4,7 @@
 
 database_location: dev.db  # if not set, in memory database is used
 
-irma:
+yivi:
   server_url: http://localhost:8088
 
 pep: {

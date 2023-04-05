@@ -1,4 +1,4 @@
-//! [oidc::Handler] implementation for pubhubs, using irma.
+//! [oidc::Handler] implementation for pubhubs, using Yivi.
 use std::sync::{Arc, Weak};
 
 use crate::{

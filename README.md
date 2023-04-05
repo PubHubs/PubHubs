@@ -29,7 +29,7 @@ There are three main parts to PubHubs:
 
 This pubhubs directory contains the platform itself. The directory pubhubs_hub contains the modules we need to make hubs work within PubHubs.
 
-For the identity oriented functionalities of PubHubs we use [IRMA](https://irma.app/). IRMA is also used for logging in to the central platform.
+For the identity oriented functionalities of PubHubs we use [Yivi](https://Yivi.app/). Yivi is also used for logging in to the central platform.
 
 ### Building static assets
 
@@ -61,7 +61,7 @@ Several libraries for the client, most important:
 
 ### Setting up external services
 
-The external services for development are: an IRMA server, a Hub (matrix home server) and a client.
+The external services for development are: an Yivi server, a Hub (matrix home server) and a client.
 
 There is a python script that should automate some set-up:
 
@@ -69,13 +69,13 @@ There is a python script that should automate some set-up:
 python3 start_test_setup.py run --cargo-disabled
 ```
 
-This will only build containers for IRMA, Hub and Client. Central Platform should be build and run separately with cargo.
+This will only build containers for Yivi, Hub and Client. Central Platform should be build and run separately with cargo.
 
 ```shell
 python3 start_test_setup.py run --cargo-enabled <cargo_arguments>
 ```
 
-This will only build containers for IRMA, Hub and Client, This will also build and run Central Platform with cargo. Cargo arguments `<cargo_arguments>` needs to be provided by the user e.g., cargo run or cargo watch.
+This will only build containers for Yivi, Hub and Client, This will also build and run Central Platform with cargo. Cargo arguments `<cargo_arguments>` needs to be provided by the user e.g., cargo run or cargo watch.
 
 We've not tested it on Windows, but it should work on linux and mac.
 
@@ -83,17 +83,17 @@ This script will launch three containers:
 
 1. The hub.
 2. The client.
-3. An IRMA server for revealing personal attributes.
+3. An Yivi server for revealing personal attributes.
 
 If the hub is not yet registered on the PubHubs server, the script will register the hub.
 
-After running the script, check whether the IRMA server has started by checking the log of IRMA container.
+After running the script, check whether the Yivi server has started by checking the log of Yivi container.
 
 ```shell
-   docker logs -f irma
+   docker logs -f yivi
 ```
 
-The following output would be achieved when IRMA server is started e.g.,:
+The following output would be achieved when Yivi server is started e.g.,:
 
 ```shell
 level=info msg="Server listening at :8088/"
@@ -104,9 +104,9 @@ The hub can be used on http://localhost:8800.
 
 #### Reachable IP address
 
-For your local PubHubs instance to be reachable by the IRMA app, your host's IP address must be reachable by your phone (perhaps by having them both on the same Wi-Fi network.)  PubHubs will try to guess your IP address using `ifconfig.me` (provided `pubhubs_host = autodetect`) in the `default.yaml` file, but you can also set `pubhubs_host` manually. 
+For your local PubHubs instance to be reachable by the Yivi app, your host's IP address must be reachable by your phone (perhaps by having them both on the same Wi-Fi network.)  PubHubs will try to guess your IP address using `ifconfig.me` (provided `pubhubs_host = autodetect`) in the `default.yaml` file, but you can also set `pubhubs_host` manually. 
 
-When the IRMA app suggests you should check your phone's internet access, this might actually indicate that:
+When the Yivi app suggests you should check your phone's internet access, this might actually indicate that:
   - **Your host is behind a NAT.**  This is the case when the IP address reported by your operating system differs from the one from, say, https://ifconfig.me.  (If you have control over the NAT, you might be able to setup port forwarding, pinholing, or put your host in the DMZ.)
   - **Your host is behind a firewall.**  To check this, run, say, `nmap 1.2.3.4` if `1.2.3.4` is your IP address.  When no firewall is present, you should get:
     ```
@@ -132,7 +132,7 @@ If nothing else helps, and you have access to a server with a public IP address,
 ssh -R 8080:localhost:8080 username@yourserver.com
 ```
 
-and have the IRMA app contact 1.3.3.7 instead by setting `pubhubs_host = http://1.3.3.7:8080/`.
+and have the Yivi app contact 1.3.3.7 instead by setting `pubhubs_host = http://1.3.3.7:8080/`.
 
 
 ### Development dependencies

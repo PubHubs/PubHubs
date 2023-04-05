@@ -40,11 +40,11 @@ use pubhubs::{
         DataCommands::{self, AllHubs, CreateHub, CreateUser, GetHub, GetUser, GetUserById},
         Hub, HubHandle, Hubid,
     },
-    irma::{disclosed_email_and_telephone, login, next_session, register, SessionDataWithImage},
-    irma_proxy::{irma_proxy, irma_proxy_stream},
     oidc::Oidc as _,
     policy::{full_policy, policy, policy_accept},
     translate::Translations,
+    yivi::{disclosed_email_and_telephone, login, next_session, register, SessionDataWithImage},
+    yivi_proxy::{yivi_proxy, yivi_proxy_stream},
 };
 
 // Limit to 10KB
@@ -414,33 +414,33 @@ pub fn bad_request(
     )
 }
 
-async fn irma_start(
+async fn yivi_start(
     request: HttpRequest,
     translations: Translations,
     context: Data<Main>,
 ) -> HttpResponse {
-    let irma_host = &context.irma.server_url;
-    let irma_requestor = &context.irma.requestor;
-    let irma_requestor_hmac_key = &context.irma.requestor_hmac_key;
+    let yivi_host = &context.yivi.server_url;
+    let yivi_requestor = &context.yivi.requestor;
+    let yivi_requestor_hmac_key = &context.yivi.requestor_hmac_key;
     let pubhubs_host = &context.url;
     let hair = &context.hair;
 
     match login(
-        irma_host,
-        irma_requestor,
-        irma_requestor_hmac_key,
+        yivi_host,
+        yivi_requestor,
+        yivi_requestor_hmac_key,
         pubhubs_host,
     )
     .await
     {
-        Ok(session) => irma_response(&session),
+        Ok(session) => yivi_response(&session),
         Err(error) => internal_server_error(
-            "We're having some trouble with IRMA",
+            "We're having some trouble with Yivi",
             hair,
             &format!(
-                "Someone tried to start an IRMA session with {} as requestor {} and got this error {:?}",
-                irma_host,
-                irma_requestor,
+                "Someone tried to start an Yivi session with {} as requestor {} and got this error {:?}",
+                yivi_host,
+                yivi_requestor,
                 error,
             ),
             &request,
@@ -449,31 +449,31 @@ async fn irma_start(
     }
 }
 
-async fn irma_register(
+async fn yivi_register(
     context: Data<Main>,
     translations: Translations,
     request: HttpRequest,
 ) -> HttpResponse {
-    let irma_host = &context.irma.server_url;
-    let irma_requestor = &context.irma.requestor;
-    let irma_requestor_hmac_key = &context.irma.requestor_hmac_key;
+    let yivi_host = &context.yivi.server_url;
+    let yivi_requestor = &context.yivi.requestor;
+    let yivi_requestor_hmac_key = &context.yivi.requestor_hmac_key;
     let pubhubs_host = &context.url;
     let hair = &context.hair;
 
     match register(
-        irma_host,
-        irma_requestor,
-        irma_requestor_hmac_key,
+        yivi_host,
+        yivi_requestor,
+        yivi_requestor_hmac_key,
         pubhubs_host,
     )
     .await
     {
-        Ok(session) => irma_response(&session),
+        Ok(session) => yivi_response(&session),
         Err(error) => internal_server_error(
-            "We're having some trouble with IRMA",
+            "We're having some trouble with Yivi",
             hair,
             &format!(
-                "Someone tried to start an IRMA sessions and got this error {:?}",
+                "Someone tried to start an Yivi sessions and got this error {:?}",
                 error,
             ),
             &request,
@@ -482,7 +482,7 @@ async fn irma_register(
     }
 }
 
-fn irma_response(session: &SessionDataWithImage) -> HttpResponse {
+fn yivi_response(session: &SessionDataWithImage) -> HttpResponse {
     let body = serde_json::to_string(&session).expect("To be able to serialize the session");
     HttpResponse::Ok()
         .insert_header((CONTENT_TYPE, "application/json"))
@@ -490,31 +490,31 @@ fn irma_response(session: &SessionDataWithImage) -> HttpResponse {
 }
 
 #[derive(Deserialize, Serialize)]
-struct IrmaFinishParams {
-    irma_token: String,
+struct YiviFinishParams {
+    yivi_token: String,
     oidc_auth_request_handle: Option<String>,
 }
 
-/// Non-API endpoint that retrieves the result of the irma session with given `token`, and either
+/// Non-API endpoint that retrieves the result of the Yivi session with given `token`, and either
 ///  - redirects the user to the oauth redirect_uri (via POST using an auto-submitting form)
-///    when the irma sessions was part of an oauth flow, or
+///    when the Yivi sessions was part of an oauth flow, or
 ///  - 303-redirects the user to their profile page otherwise.
-async fn irma_finish_and_redirect(
+async fn yivi_finish_and_redirect(
     request: HttpRequest,
     context: Data<Main>,
-    params: actix_web::web::Form<IrmaFinishParams>,
+    params: actix_web::web::Form<YiviFinishParams>,
 ) -> Result<HttpResponse, TranslatedError> {
-    irma_finish_and_redirect_anyhow(context, params)
+    yivi_finish_and_redirect_anyhow(context, params)
         .await
         .into_translated_error(&request)
 }
 
-async fn irma_finish_and_redirect_anyhow(
+async fn yivi_finish_and_redirect_anyhow(
     context: Data<Main>,
-    params: actix_web::web::Form<IrmaFinishParams>,
+    params: actix_web::web::Form<YiviFinishParams>,
 ) -> Result<HttpResponse, anyhow::Error> {
     let (email, telephone) =
-        disclosed_email_and_telephone(&context.irma.server_url, &params.irma_token).await?;
+        disclosed_email_and_telephone(&context.yivi.server_url, &params.yivi_token).await?;
 
     // retrieve user
     let user = {
@@ -1092,24 +1092,24 @@ fn create_app(cfg: &mut web::ServiceConfig, context: Data<Main>) {
                     // when changing these endpoints, please also update
                     //   .well-known/openid-configuration
                     web::scope("oidc")
-                        // shows user-agent page with irma QR code or uses cookie to authenticate
+                        // shows user-agent page with Yivi QR code or uses cookie to authenticate
                         .route("/auth", web::get().to(handle_oidc_authorize))
                         // Hub retrieves id_token from here
                         .route("/token", web::post().to(handle_oidc_token)),
                 )
                 .service(
-                    web::scope("irma")
-                        .route("/session/{token}/statusevents", web::to(irma_proxy_stream))
-                        .route("/{tail:.*}", web::to(irma_proxy)),
+                    web::scope("yivi")
+                        .route("/session/{token}/statusevents", web::to(yivi_proxy_stream))
+                        .route("/{tail:.*}", web::to(yivi_proxy)),
                 )
                 .service(
-                    web::scope("irma-endpoint")
+                    web::scope("yivi-endpoint")
                         .route("/", web::post().to(next_session))
-                        .route("/start", web::get().to(irma_start))
-                        .route("/register", web::get().to(irma_register))
+                        .route("/start", web::get().to(yivi_start))
+                        .route("/register", web::get().to(yivi_register))
                         .route(
                             "/finish-and-redirect",
-                            web::post().to(irma_finish_and_redirect),
+                            web::post().to(yivi_finish_and_redirect),
                         ),
                 )
                 .service(
@@ -1154,11 +1154,11 @@ mod tests {
 
     use pubhubs::cookie::Cookie;
     use pubhubs::data::HubHandle::Id;
-    use pubhubs::irma::{
+    use pubhubs::serde_ext::B64;
+    use pubhubs::yivi::{
         Attribute, SessionData, SessionPointer, SessionResult, SessionType,
         SessionType::Disclosing, Status, MAIL, MOBILE_NO, PUB_HUBS_MAIL, PUB_HUBS_PHONE,
     };
-    use pubhubs::serde_ext::B64;
     use regex::Regex;
 
     #[actix_web::test]
@@ -1486,9 +1486,9 @@ mod tests {
     }
 
     #[actix_web::test]
-    async fn test_irma_register() {
+    async fn test_yivi_register() {
         let context = create_test_context_with(|mut f| {
-            f.irma.server_url = "http://localhost:4001/test1".to_string();
+            f.yivi.server_url = "http://localhost:4001/test1".to_string();
             f
         })
         .await
@@ -1496,7 +1496,7 @@ mod tests {
         let request = test::TestRequest::default().to_http_request();
         start_fake_server(4001).await;
 
-        let resp = irma_register(Data::from(context), Translations::NONE, request).await;
+        let resp = yivi_register(Data::from(context), Translations::NONE, request).await;
 
         assert_eq!(resp.status(), StatusCode::OK);
         let body = body_to_string(resp).await;
@@ -1539,7 +1539,7 @@ mod tests {
         assert!(body.contains("let oidc_handle = "));
         assert!(body.contains("let register = true"));
         assert!(body.contains("let url_prefix = \"\""));
-        assert!(body.contains("irmaLogin(url_prefix, register, oidc_handle);"));
+        assert!(body.contains("yiviLogin(url_prefix, register, oidc_handle);"));
     }
 
     // TODO: add test for register_account with RegisterParams not None
@@ -1557,7 +1557,7 @@ mod tests {
         assert!(body.contains("let oidc_handle = null"));
         assert!(body.contains("let register = false"));
         assert!(body.contains("let url_prefix = \"\""));
-        assert!(body.contains("irmaLogin(url_prefix, register, oidc_handle);"));
+        assert!(body.contains("yiviLogin(url_prefix, register, oidc_handle);"));
         let re = Regex::new(r#"<button.+Registreren.+button>"#).unwrap();
         assert!(re.is_match(&body));
 
@@ -1578,7 +1578,7 @@ mod tests {
         assert!(body.contains("let oidc_handle = null"));
         assert!(body.contains("let register = false"));
         assert!(body.contains("let url_prefix = \"/en\""));
-        assert!(body.contains("irmaLogin(url_prefix, register, oidc_handle);"));
+        assert!(body.contains("yiviLogin(url_prefix, register, oidc_handle);"));
         let re = Regex::new(r#"<button.+Registreren.+button>"#).unwrap();
         assert!(re.is_match(&body));
     }
@@ -2074,12 +2074,12 @@ mod tests {
     }
 
     #[actix_web::test]
-    async fn test_irma_finish_and_redirect() {
+    async fn test_yivi_finish_and_redirect() {
         let cookie_secret = "very_secret";
 
         let context = create_test_context_with(|mut f| {
             f.cookie_secret = Some(cookie_secret.to_string());
-            f.irma.server_url = "http://localhost:4002/test1".to_string();
+            f.yivi.server_url = "http://localhost:4002/test1".to_string();
             f
         })
         .await
@@ -2091,13 +2091,13 @@ mod tests {
 
         //existing user account login
         let (req1, mut req1payload) = test::TestRequest::post()
-            .set_form(IrmaFinishParams {
-                irma_token: token.clone(),
+            .set_form(YiviFinishParams {
+                yivi_token: token.clone(),
                 oidc_auth_request_handle: None,
             })
             .to_http_parts();
 
-        let response = irma_finish_and_redirect_anyhow(
+        let response = yivi_finish_and_redirect_anyhow(
             Data::from(context.clone()),
             actix_web::web::Form::from_request(&req1, &mut req1payload)
                 .await
@@ -2143,13 +2143,13 @@ mod tests {
             .unwrap();
 
         let (req2, mut req2payload) = test::TestRequest::post()
-            .set_form(IrmaFinishParams {
-                irma_token: token.clone(),
+            .set_form(YiviFinishParams {
+                yivi_token: token.clone(),
                 oidc_auth_request_handle: Some(auth_request_handle),
             })
             .to_http_parts();
 
-        let response = irma_finish_and_redirect_anyhow(
+        let response = yivi_finish_and_redirect_anyhow(
             Data::from(context.clone()),
             actix_web::web::Form::from_request(&req2, &mut req2payload)
                 .await
@@ -2166,19 +2166,19 @@ mod tests {
         // Discloses new
         let context = create_test_context_with(|mut f| {
             f.cookie_secret = Some(cookie_secret.to_string());
-            f.irma.server_url = "http://localhost:4002/test2".to_string();
+            f.yivi.server_url = "http://localhost:4002/test2".to_string();
             f
         })
         .await
         .unwrap();
         let (req3, mut req3payload) = test::TestRequest::post()
-            .set_form(IrmaFinishParams {
-                irma_token: token.clone(),
+            .set_form(YiviFinishParams {
+                yivi_token: token.clone(),
                 oidc_auth_request_handle: None,
             })
             .to_http_parts();
 
-        let response = irma_finish_and_redirect_anyhow(
+        let response = yivi_finish_and_redirect_anyhow(
             Data::from(context.clone()),
             actix_web::web::Form::from_request(&req3, &mut req3payload)
                 .await
@@ -2268,7 +2268,7 @@ mod tests {
 
         // Too large requests are blocked.
         let too_large_request = test::TestRequest::post()
-            .uri("/irma-endpoint/")
+            .uri("/yivi-endpoint/")
             .set_payload(['a' as u8; (PAYLOAD_MAX_SIZE + 1)].to_vec())
             .to_request();
 

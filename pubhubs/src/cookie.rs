@@ -21,14 +21,14 @@ const SECURE: &str = "";
 macro_rules! secure_cookie_attribute {
     () => {
         " Secure;"
-    }
+    };
 }
 
 #[cfg(debug_assertions)]
 macro_rules! secure_cookie_attribute {
     () => {
         ""
-    }
+    };
 }
 
 const COOKIE_TEXT: &str = concat!("AcceptedPolicy=1;", secure_cookie_attribute!(), " Path=/");
