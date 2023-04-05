@@ -7,7 +7,7 @@
     defineProps({
         img : {
             type: String,
-            default: 'empty',
+            default: '',
         },
         alt : {
             type: String,
