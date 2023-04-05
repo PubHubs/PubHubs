@@ -116,6 +116,10 @@ const useRooms = defineStore('rooms', {
             return state.rooms[state.currentRoomId];
         },
 
+        currentRoomHasEvents(state) : Boolean {
+            return state.rooms[state.currentRoomId].timeline.length > 0;
+        },
+
         currentRoomExists(state):boolean {
             return this.roomExists(state.currentRoomId);
         },
