@@ -77,7 +77,7 @@
 
     if ( ! hubSettings.isSolo ) {
 
-        messagebox.init( MessageBoxType.Child, process.env.VUE_APP_PARENTURL as string ).then(()=>{
+        messagebox.init( MessageBoxType.Child, hubSettings.parentUrl ).then(()=>{
 
             // Listen to roomchange
             messagebox.addCallback( MessageType.RoomChange, (message:Message) => {
