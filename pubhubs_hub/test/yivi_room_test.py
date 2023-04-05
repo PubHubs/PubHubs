@@ -14,8 +14,8 @@ from synapse.types import (
 )
 
 sys.path.append("modules")
-from pubhubs import IrmaRoomJoiner
-from pubhubs._web import IrmaResult
+from pubhubs import YiviRoomJoiner
+from pubhubs._web import YiviResult
 from pubhubs._secured_rooms_class import SecuredRoom, PubHubsSecuredRoomType
 from pubhubs._secured_rooms_web import SecuredRoomsServlet
 
@@ -323,17 +323,17 @@ valid_config = {
 class TestAsync(IsolatedAsyncioTestCase):
 
     def test_parse_config(self):
-        parsed = IrmaRoomJoiner.parse_config(valid_config)
+        parsed = YiviRoomJoiner.parse_config(valid_config)
         self.assertEqual(valid_config, parsed)
 
         for key in valid_config.keys():
             copy = valid_config.copy()
             copy.pop(key)
-            self.assertRaises(ConfigError, IrmaRoomJoiner.parse_config, copy)
+            self.assertRaises(ConfigError, YiviRoomJoiner.parse_config, copy)
 
     async def test_on_trying_to_join_room(self):
         api = FakeModuleApi()
-        joiner = IrmaRoomJoiner(valid_config.copy(), api, FakeStore())
+        joiner = YiviRoomJoiner(valid_config.copy(), api, FakeStore())
         fake_secured_rooms['some_id'] = SecuredRoom(room_name="", accepted={"something": {"profile": True ,"accepted_values": ["has a requirement"]}}, user_txt='', type=PubHubsSecuredRoomType.MESSAGES,room_id='some_id')
 
         # Join a room that is secured and not already allowed
@@ -346,7 +346,7 @@ class TestAsync(IsolatedAsyncioTestCase):
 
         self.assertEqual(result, True)
 
-        joiner = IrmaRoomJoiner(valid_config.copy(), FakeModuleApi(), FakeStore(isAllowed=True))
+        joiner = YiviRoomJoiner(valid_config.copy(), FakeModuleApi(), FakeStore(isAllowed=True))
         # Join a room that is secured and already allowed
         result = await joiner.joining('@some_user:domain', 'some_id', None)
 
@@ -357,16 +357,16 @@ class TestAsync(IsolatedAsyncioTestCase):
         api = FakeModuleApi()
         # Create the secured room
         fake_secured_rooms['some_id'] = SecuredRoom(room_name="", accepted={"something": {"profile": True ,"accepted_values": ["has a requirement"]}}, user_txt='', type=PubHubsSecuredRoomType.MESSAGES,room_id='some_id')
-        joiner = IrmaRoomJoiner(valid_config.copy(), api, FakeStore())
-        checker = IrmaResult(valid_config.copy(), api, FakeStore(), joiner)
+        joiner = YiviRoomJoiner(valid_config.copy(), api, FakeStore())
+        checker = YiviResult(valid_config.copy(), api, FakeStore(), joiner)
 
         result = await checker.check_allowed({}, 'some_id')
         self.assertEqual(result, None)
 
         # Allowed when the right thing is disclosed
         api = FakeModuleApi()
-        joiner = IrmaRoomJoiner(valid_config.copy(), api, FakeStore())
-        checker = IrmaResult(valid_config.copy(), api, FakeStore(), joiner)
+        joiner = YiviRoomJoiner(valid_config.copy(), api, FakeStore())
+        checker = YiviResult(valid_config.copy(), api, FakeStore(), joiner)
 
         result = await checker.check_allowed({"proofStatus": "VALID", "disclosed": [[{"id": "something", "rawvalue": "has a requirement"}]]},
                                        'some_id')
@@ -374,8 +374,8 @@ class TestAsync(IsolatedAsyncioTestCase):
 
         # Not allowed when the right attribute with the wrong value is disclosed
         api = FakeModuleApi()
-        joiner = IrmaRoomJoiner(valid_config.copy(), api, FakeStore())
-        checker = IrmaResult(valid_config.copy(), api, FakeStore(), joiner)
+        joiner = YiviRoomJoiner(valid_config.copy(), api, FakeStore())
+        checker = YiviResult(valid_config.copy(), api, FakeStore(), joiner)
 
         result = await checker.check_allowed({"proofStatus": "VALID", "disclosed": [[{"id": "something", "rawvalue": "wrong value"}]]},
                                        'some_id')

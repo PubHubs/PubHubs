@@ -8,7 +8,7 @@
 docker pull registry.science.ru.nl/ilab/pubhubs_canonical/pubhubs:main
 ```
 
-:exclamation: If central platform image with `main` tag is used, then IRMA demo card will be needed for authentication.
+:exclamation: If central platform image with `main` tag is used, then Yivi demo card will be needed for authentication.
 
 - Setting up and running Central Platform container.
 

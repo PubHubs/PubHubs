@@ -1,1 +1,1 @@
-from .IrmaRoomJoiner import IrmaRoomJoiner
+from .YiviRoomJoiner import YiviRoomJoiner

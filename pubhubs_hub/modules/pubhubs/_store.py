@@ -23,19 +23,19 @@ def _generate_token() -> (str, int):
     return token, token_expiration
 
 
-class IrmaRoomJoinStore:
-    """Contains methods for database operations connected to room access with IRMA.
+class YiviRoomJoinStore:
+    """Contains methods for database operations connected to room access with Yivi.
     """
 
     def __init__(self, module_api: ModuleApi):
         self.module_api = module_api
 
     async def create_tables(self):
-        """Creates the necessary tables for allowing users access using IRMA.
+        """Creates the necessary tables for allowing users access using Yivi.
         """
 
         def create_tables_txn(txn: LoggingTransaction):
-            # No functionality yet for expired IRMA attributes, now able to join room forever.
+            # No functionality yet for expired Yivi attributes, now able to join room forever.
             # Make some background check for it see: https://github.com/matrix-org/synapse-email-account-validity for an example.
             txn.execute(
                 """

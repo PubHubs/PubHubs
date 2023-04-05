@@ -197,8 +197,3 @@
    
    This product bundles Atkinson Hyperlegible Font, which is available under a
    "SIL Open Font License 1.1" license. For the files, see hub-client/src/assets/fonts.
-
-   This product bundles irma-frontend-packages v0.4.3, which is available
-   from https://github.com/privacybydesign/irma-frontend-packages which re-uses the buffer module from node.js,
-   which is available under a "MIT" license. For details, see pubhubs_hub/pub_hubs_templates/irma.css
-   and pubhubs_hub/pub_hubs_templates/irma.js

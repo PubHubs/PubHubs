@@ -15,7 +15,7 @@ pub struct File {
     #[serde(skip)]
     pub path: PathBuf,
 
-    /// public url to reach PubHubs, for the Irma app;
+    /// public url to reach PubHubs, for the yivi app;
     /// if None and not in production, it
     /// will be set to the IP address returned by ifconfig.me,
     /// (which might, or might not, be publically reachable)
@@ -59,7 +59,7 @@ pub struct File {
 
     pub oidc_secret: Option<B64>,
 
-    pub irma: Irma,
+    pub yivi: Yivi,
     pub pep: Pep,
 }
 
@@ -159,30 +159,30 @@ impl File {
 }
 
 #[derive(Serialize, Deserialize)]
-pub struct Irma {
+pub struct Yivi {
     pub server_url: String,
 
-    /// Base url for IRMA app endpoints;  
+    /// Base url for Yivi app endpoints;
     /// if none, will be the same as server_url
     #[serde(default)]
     pub client_url: Option<String>,
 
-    #[serde(default = "default_irma_requestor")]
+    #[serde(default = "default_yivi_requestor")]
     pub requestor: String,
 
     pub requestor_hmac_key: Option<String>, // must be base64
 
-    #[serde(default = "default_irma_server_issuer")]
+    #[serde(default = "default_yivi_server_issuer")]
     pub server_issuer: String,
 
     pub server_key_file: Option<String>,
 }
 
-fn default_irma_requestor() -> String {
+fn default_yivi_requestor() -> String {
     "pubhubs".to_string()
 }
-fn default_irma_server_issuer() -> String {
-    "irmaserver".to_string()
+fn default_yivi_server_issuer() -> String {
+    "yiviserver".to_string()
 }
 
 #[derive(Serialize, Deserialize)]
@@ -210,7 +210,7 @@ impl File {
         }
 
         if cfg!(not(debug_assertions)) {
-            bail!("autodection of your (and thus PubHubs') public IP address (so the IRMA app can reach PubHubs) is only supported in debug mode - please specify the 'url' configuration field manually");
+            bail!("autodection of your (and thus PubHubs') public IP address (so the Yivi app can reach PubHubs) is only supported in debug mode - please specify the 'url' configuration field manually");
         }
 
         if cfg!(test) {

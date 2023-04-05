@@ -6,7 +6,7 @@
 ## WARNING: modules SHOULD NOT BE CHANGED, except to customize with your client URL ##
 modules:
   - module: conf.modules.pseudonyms.Pseudonym
-  - module: conf.modules.pubhubs.IrmaRoomJoiner
+  - module: conf.modules.pubhubs.YiviRoomJoiner
     config:
       {
         # Client url is necessary for redirection to the room once allowed.

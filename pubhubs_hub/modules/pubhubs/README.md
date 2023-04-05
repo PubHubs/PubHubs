@@ -1,8 +1,8 @@
 # Secured rooms
 
-## Goal of IrmaRoomJoiner module
+## Goal of YiviRoomJoiner module
 
-Certain rooms will only be accessible after disclosing certain attributes in IRMA, this module makes that possible.
+Certain rooms will only be accessible after disclosing certain attributes in Yivi, this module makes that possible.
 
 The rooms and the attributes are configured through the secured rooms endpoint on `/_synapse/client/secured_rooms`.
 
@@ -10,7 +10,7 @@ The rooms and the attributes are configured through the secured rooms endpoint o
 
 Two extra settings in homeserver.yaml are required to make the module work:
 - Enable `server_notices` `system_mxid_localpart` to have a user making the waiting rooms
-- `public_baseurl` needs to be set to something publicly reachable if you want to be able to use the proxied IRMA service. Unless your phone will reach the synapse server on the default public baseurl
+- `public_baseurl` needs to be set to something publicly reachable if you want to be able to use the proxied Yivi service. Unless your phone will reach the synapse server on the default public baseurl
 
 As in all matrix settings with docker on mac 'host.docker.internal' works on linux replace with: '172.17.0.1'
 
@@ -129,16 +129,16 @@ Returns the id of the deleted room:
 - `401 Forbidden` if no token or a non-admin is provided.
 - `400 Bad Request` with a body of errors if the request body is malformed or the room cannot be matched.
 
-### `GET /_synapse/client/ph/irma-endpoint/start` and `GET /_synapse/client/ph/irma-endpoint/result`
+### `GET /_synapse/client/ph/yivi-endpoint/start` and `GET /_synapse/client/ph/yivi-endpoint/result`
 
-The generic IRMA endpoints to use to get the session to the front end. See for an example: https://github.com/privacybydesign/irma-frontend-packages
+The generic Yivi endpoints to use to get the session to the front end. See for an example: https://github.com/privacybydesign/irma-frontend-packages
 
-### `/_synapse/client/irmaproxy`
+### `/_synapse/client/yiviproxy`
 
 Allow the front end session to check the session status. 
 
 ## Used endpoints by this module
 
-- /_synapse/client/ph/irma-endpoint
-- /_synapse/client/irmaproxy
+- /_synapse/client/ph/yivi-endpoint
+- /_synapse/client/yiviproxy
 - /_synapse/client/secured_rooms

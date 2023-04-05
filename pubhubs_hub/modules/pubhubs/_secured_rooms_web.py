@@ -10,13 +10,13 @@ from synapse.module_api import ModuleApi
 from synapse.types import Requester
 
 from ._secured_rooms_class import SecuredRoom
-from ._store import IrmaRoomJoinStore
+from ._store import YiviRoomJoinStore
 
 
 class SecuredRoomsServlet(DirectServeJsonResource):
     """The secured rooms controller containing its basic CRUD functionality."""
 
-    def __init__(self, config: dict, store: IrmaRoomJoinStore, api: ModuleApi,
+    def __init__(self, config: dict, store: YiviRoomJoinStore, api: ModuleApi,
                  room_creation_handler: RoomCreationHandler,
                  room_shutdown_handler: RoomShutdownHandler,
                  server_notices_user: str):
