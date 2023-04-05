@@ -104,37 +104,42 @@ const useHubs = defineStore('hubs', {
                 if ( hubId !== this.currentHubId || this.currentHubId =='' ) {
                     this.currentHubId = hubId;
 
-                    // Start conversation with hub frame and sync latest settings
-                    messagebox.init( MessageBoxType.Parent, this.currentHub.url ).then(()=>{
+                    if ( this.currentHub !== undefined ) {
 
-                        // Send current settings
-                        const settings = useSettings();
-                        settings.sendSettings();
+                        // Start conversation with hub frame and sync latest settings
+                        messagebox.init( MessageBoxType.Parent, this.currentHub.url ).then(()=>{
 
-                        // Let hub navigate to given room
-                        if ( roomId!==undefined && roomId!=="" ) {
-                            messagebox.sendMessage( new Message( MessageType.RoomChange, roomId ) );
-                        }
-
-                        // Listen to room change
-                        messagebox.addCallback( MessageType.RoomChange, (message:Message) => {
-                            const roomId = message.content;
-                            // TODO: find a way router can be part of a store that TypeScript swallows.
-                            // @ts-ignore
-                            this.router.push({name:'hub',params:{id:hubId,roomId:roomId}})
-                        });
-
-                        // Listen to sync settings
-                        messagebox.addCallback( MessageType.Settings, (message:Message) => {
+                            // Send current settings
                             const settings = useSettings();
-                            settings.setTheme(message.content.theme as Theme);
+                            settings.sendSettings();
+
+                            // Let hub navigate to given room
+                            if ( roomId!==undefined && roomId!=="" ) {
+                                messagebox.sendMessage( new Message( MessageType.RoomChange, roomId ) );
+                            }
+
+                            // Listen to room change
+                            messagebox.addCallback( MessageType.RoomChange, (message:Message) => {
+                                const roomId = message.content;
+                                // TODO: find a way router can be part of a store that TypeScript swallows.
+                                // @ts-ignore
+                                this.router.push({name:'hub',params:{id:hubId,roomId:roomId}})
+                            });
+
+                            // Listen to sync settings
+                            messagebox.addCallback( MessageType.Settings, (message:Message) => {
+                                const settings = useSettings();
+                                settings.setTheme(message.content.theme as Theme);
+                            });
+
+                            // Listen to sync unreadmessages
+                            messagebox.addCallback( MessageType.UnreadMessages, (message:Message) => {
+                                self.hubs[hubId].unreadMessages = message.content;
+                            });
                         });
 
-                        // Listen to sync unreadmessages
-                        messagebox.addCallback( MessageType.UnreadMessages, (message:Message) => {
-                            self.hubs[hubId].unreadMessages = message.content;
-                        });
-                    });
+                    }
+
                 }
 
             }
