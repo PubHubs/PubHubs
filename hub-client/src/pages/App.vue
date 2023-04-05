@@ -75,22 +75,28 @@
     const rooms = useRooms();
     const messagebox = useMessageBox();
 
-    messagebox.init( MessageBoxType.Child, process.env.VUE_APP_PARENTURL as string ).then(()=>{
+    if ( ! hubSettings.isSolo ) {
 
-        // Listen to roomchange
-        messagebox.addCallback( MessageType.RoomChange, (message:Message) => {
-            const roomId = message.content;
-            if ( rooms.currentRoomId !== roomId ) {
-                router.push({name:'room',params:{id:roomId}});
-            }
+        messagebox.init( MessageBoxType.Child, process.env.VUE_APP_PARENTURL as string ).then(()=>{
+
+            // Listen to roomchange
+            messagebox.addCallback( MessageType.RoomChange, (message:Message) => {
+                const roomId = message.content;
+                if ( rooms.currentRoomId !== roomId ) {
+                    router.push({name:'room',params:{id:roomId}});
+                }
+            });
+
+            // Listen to sync settings
+            messagebox.addCallback( MessageType.Settings, (message:Message) => {
+                settings.setTheme(message.content.theme as Theme);
+            });
+
         });
 
-        // Listen to sync settings
-        messagebox.addCallback( MessageType.Settings, (message:Message) => {
-            settings.setTheme(message.content.theme as Theme);
-        });
+    }
 
-    });
+
 
 
 </script>
