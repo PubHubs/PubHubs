@@ -16,5 +16,6 @@ RUN chmod +x ./start.sh
 EXPOSE 8800
 
 ENV HUB_URL="provide_me_when_running_as_a_container"
+ENV PARENT_URL="provide_me_when_running_as_a_container"
 
 CMD ./start.sh && /docker-entrypoint.sh nginx -g "daemon off;"

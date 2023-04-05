@@ -8,6 +8,8 @@ const useHubSettings = defineStore('hub-settings', {
 
     state: () => {
         return {
+            // @ts-ignore
+            parentUrl : _env.PARENT_URL,
             isSolo : window.self === window.top,
             visibleEventTypes: ['m.room.message'],
         };
