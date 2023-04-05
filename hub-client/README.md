@@ -25,7 +25,7 @@ Set url of the hubs-homeserver in `public/client-config.js`:
 "HUB_URL": "https://localhost:8008" // Default for local development together with backend servers.
 ```
 
-For developing/theming on the client only, create and set `.env.local` to:
+For developing/theming on the client only, set to:
 
 ```
 "HUB_URL": "https://main.testhub-matrix.ihub.ru.nl"
