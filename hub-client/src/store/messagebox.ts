@@ -164,6 +164,7 @@ const useMessageBox = defineStore('messagebox', {
          * @returns a Promise after handshake is ready. Add callbacks after the promise is resolved.
          */
         init( type:MessageBoxType, url: string ) : Promise<any> {
+            console.info('Messagebox.Init',type,url);
             return new Promise((resolve,reject) => {
                 this.reset();
                 this.type = type;
@@ -176,9 +177,12 @@ const useMessageBox = defineStore('messagebox', {
                 }
 
                 // Start listening
+                console.info(this.type,'...init isConnected',this.isConnected);
                 if ( this.isConnected ) {
 
                     this._windowMessageListener = (event:any) => {
+
+                        console.info('??',this.type+' RECEIVED ', event );
 
                         // Allways test if message is from expected domain
                         if ( event.origin == this.receiverUrl ) {

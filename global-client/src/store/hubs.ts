@@ -110,7 +110,7 @@ const useHubs = defineStore('hubs', {
 
                     if ( this.currentHub !== undefined ) {
 
-                        console.info('changeHub (3)');
+                        console.info('changeHub (3)',this.currentHub.url);
 
                         // Start conversation with hub frame and sync latest settings
                         messagebox.init( MessageBoxType.Parent, this.currentHub.url ).then(()=>{
