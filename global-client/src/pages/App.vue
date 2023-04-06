@@ -52,8 +52,12 @@
     const { t } = useI18n();
 
     onMounted(() => {
-        console.clear();
+        // console.clear();
         dialog.asGlobal();
+
+        /*global _env */
+        /*eslint no-undef: "error"*/
+        console.info('Global ENV',_env);
 
         global.checkLogin().finally(()=>{
             // hubs.addHub( new Hub('local','http://localhost:8081','Local') );
