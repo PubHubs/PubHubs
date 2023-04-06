@@ -352,7 +352,7 @@ def docker_run_hub(env_value, image_name, client_port, hub_port):
     """
     
     if "testclient" in image_name:
-        docker_command = f""" docker run --name {image_name}_{client_port} -e PORT={client_port} -e 'VUE_APP_BASEURL=http://localhost:{hub_port}' -e 'BAR_URL=frame-ancestors http://localhost:8080' -e 'HUB_URL=http://localhost:{hub_port}' -e 'PARENT_URL=http://localhost:8080' -d -p {client_port}:8800 {image_name} """
+        docker_command = f""" docker run --name {image_name}_{client_port} -e PORT={client_port}  -e 'BAR_URL=frame-ancestors http://localhost:8080' -e 'HUB_URL=http://localhost:{hub_port}' -e 'PARENT_URL=http://localhost:8080' -d -p {client_port}:8800 {image_name} """
     else:            
         docker_command =  f"docker run --name {image_name}_{hub_port} -d -p {hub_port}:{hub_port} -e HUB_SECRET={env_value} \
            -e SYNAPSE_CONFIG_DIR=/data \
@@ -485,8 +485,8 @@ def initialization():
     # Create Temporary files
     create_temporary_files()
     
-    # Modify files
-    comment_lines()
+    
+    
 
     # 
 
