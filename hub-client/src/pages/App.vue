@@ -79,10 +79,6 @@
     const messagebox = useMessageBox();
     const dialog = useDialog();
 
-    /*global _env */
-    /*eslint no-undef: "error"*/
-    console.info('Local ENV',_env);
-
     if ( ! hubSettings.isSolo ) {
 
         messagebox.init( MessageBoxType.Child, hubSettings.parentUrl ).then(()=>{

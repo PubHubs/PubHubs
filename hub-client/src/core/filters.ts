@@ -20,4 +20,8 @@ export default {
         return date.toLocaleDateString() + ' ' + date.toLocaleTimeString();
     },
 
+    removeBackSlash( url:string ) {
+        return url.replace(/\/$/g, "");
+    },
+
 };

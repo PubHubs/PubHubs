@@ -1,4 +1,6 @@
 import { defineStore } from 'pinia'
+import filters from '@/core/filters'
+
 
 /**
  * This store is used to exchange messages from global client (parent frame) to hub client (iframe) and the other way around.
@@ -185,13 +187,13 @@ const useMessageBox = defineStore('messagebox', {
                         console.info('??',this.type+' RECEIVED ', event );
 
                         // Allways test if message is from expected domain
-                        if ( event.origin == this.receiverUrl ) {
+                        if ( filters.removeBackSlash(event.origin) == filters.removeBackSlash(this.receiverUrl) ) {
 
                             const message = new Message(event.data.type,event.data.content);
 
                             // Answer to handshake as parent
                             if ( message.isHandShakeStart() && type == MessageBoxType.Parent ) {
-                                console.info('<= '+this.type+' RECEIVED handshake:', this.receiverUrl );
+                                console.log('<= '+this.type+' RECEIVED handshake:', this.receiverUrl );
                                 this.sendMessage( new Message(MessageType.HandshakeReady) )
                                 this.handshake = HandshakeState.Ready;
                                 resolve(true);
@@ -199,7 +201,7 @@ const useMessageBox = defineStore('messagebox', {
 
                             // Answer to handshake as child
                             else if ( message.isHandShakeReady() && type == MessageBoxType.Child ) {
-                                console.info('=> '+this.type+' RECEIVED', HandshakeState.Ready );
+                                console.log('=> '+this.type+' RECEIVED', HandshakeState.Ready );
                                 this.handshake = HandshakeState.Ready;
                                 resolve(true);
                             }
@@ -259,7 +261,7 @@ const useMessageBox = defineStore('messagebox', {
         sendMessage(message:Message) {
             if ( this.isConnected ) {
                 const target = this.resolveTarget();
-                console.info('=> '+this.type+' SEND',message, this.receiverUrl );
+                console.log('=> '+this.type+' SEND',message, this.receiverUrl );
                 target.postMessage( message, this.receiverUrl );
             }
         },
@@ -272,7 +274,7 @@ const useMessageBox = defineStore('messagebox', {
          */
         receivedMessage(message:Message) {
             if ( this.handshake == HandshakeState.Ready ) {
-                console.info('<= '+this.type+' RECEIVED', message );
+                console.log('<= '+this.type+' RECEIVED', message );
                 const callback = this.callbacks[message.type];
                 if (callback) {
                     callback(message as Message);
