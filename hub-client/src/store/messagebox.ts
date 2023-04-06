@@ -187,7 +187,7 @@ const useMessageBox = defineStore('messagebox', {
 
                             // Answer to handshake as parent
                             if ( message.isHandShakeStart() && type == MessageBoxType.Parent ) {
-                                console.log('<= '+this.type+' RECEIVED handshake:', this.receiverUrl );
+                                console.info('<= '+this.type+' RECEIVED handshake:', this.receiverUrl );
                                 this.sendMessage( new Message(MessageType.HandshakeReady) )
                                 this.handshake = HandshakeState.Ready;
                                 resolve(true);
@@ -195,7 +195,7 @@ const useMessageBox = defineStore('messagebox', {
 
                             // Answer to handshake as child
                             else if ( message.isHandShakeReady() && type == MessageBoxType.Child ) {
-                                console.log('=> '+this.type+' RECEIVED', HandshakeState.Ready );
+                                console.info('=> '+this.type+' RECEIVED', HandshakeState.Ready );
                                 this.handshake = HandshakeState.Ready;
                                 resolve(true);
                             }
@@ -255,7 +255,7 @@ const useMessageBox = defineStore('messagebox', {
         sendMessage(message:Message) {
             if ( this.isConnected ) {
                 const target = this.resolveTarget();
-                console.log('=> '+this.type+' SEND',message, this.receiverUrl );
+                console.info('=> '+this.type+' SEND',message, this.receiverUrl );
                 target.postMessage( message, this.receiverUrl );
             }
         },
@@ -268,7 +268,7 @@ const useMessageBox = defineStore('messagebox', {
          */
         receivedMessage(message:Message) {
             if ( this.handshake == HandshakeState.Ready ) {
-                console.log('<= '+this.type+' RECEIVED', message );
+                console.info('<= '+this.type+' RECEIVED', message );
                 const callback = this.callbacks[message.type];
                 if (callback) {
                     callback(message as Message);
