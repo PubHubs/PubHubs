@@ -667,7 +667,7 @@ mod tests {
                 result: result,
                 iat: jsonwebtoken::get_current_timestamp(),
                 exp: jsonwebtoken::get_current_timestamp() + 100,
-                iss: "yiviserver".to_string(),
+                iss: "irmaserver".to_string(),
                 sub: "not checked for now".to_string(),
             },
             &jsonwebtoken::EncodingKey::from_rsa_pem(
@@ -742,7 +742,7 @@ OdC+rxjYNxRU4uNt8fgMfCdTL4wdxucOp0L8E5Enp+b96tpELIRhBkNEpQo=
 
     fn fake_yivi_state() -> YiviContext {
         YiviContext {
-            server_issuer: "yiviserver".to_string(),
+            server_issuer: "irmaserver".to_string(),
             server_key: jsonwebtoken::DecodingKey::from_rsa_pem(
                 r#"-----BEGIN PUBLIC KEY-----
 MIICIjANBgkqhkiG9w0BAQEFAAOCAg8AMIICCgKCAgEA5SJ3K2E7te+XETt7P6KI

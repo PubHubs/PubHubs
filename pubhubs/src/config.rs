@@ -182,7 +182,7 @@ fn default_yivi_requestor() -> String {
     "pubhubs".to_string()
 }
 fn default_yivi_server_issuer() -> String {
-    "yiviserver".to_string()
+    "irmaserver".to_string()
 }
 
 #[derive(Serialize, Deserialize)]
