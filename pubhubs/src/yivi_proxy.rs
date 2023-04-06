@@ -72,10 +72,10 @@ pub async fn yivi_proxy(
     .into_translated_error(&request)?;
 
     // We want to replace all instances of a "u" in a Yivi response whatever the structure of the request is.
-    let re = Regex::new(r#""u":"https?://[^/]+/"#).unwrap();
+    let re = Regex::new(r#""u":"https?://[^/]+/irma"#).unwrap();
 
     let body_with_new_url = if re.is_match(&r) {
-        re.replace(&r, format!(r#""u":"{}"#, proxy_host))
+        re.replace(&r, format!(r#""u":"{}yivi"#, proxy_host))
             .to_string()
     } else {
         let re_api = Regex::new(r#""u":""#).unwrap();
