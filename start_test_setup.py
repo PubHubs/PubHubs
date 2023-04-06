@@ -32,7 +32,7 @@ port = "8080"
 root_dir = os.getcwd()
 
 # These paths are used for intialization and post-processing. See the two methods intialization and post-processing
-paths = [('/hub-client/','start.sh'), ('/pubhubs_hub/matrix_test_config/','homeserver.yaml')]
+paths = [('/hub-client/public/','client-config.js'), ('/pubhubs_hub/matrix_test_config/','homeserver.yaml')]
 
 ## METHOD SECTION ##
 
@@ -430,41 +430,46 @@ def update_homeserver_yaml(file_path, client_id, client_secret,client_port, hub_
         # Truncate the file to the new length (in case the new content is shorter)
         f.truncate()
 
-def update_env_file(file_path, client_port, vue_base_port):
+def update_client_config_file(hub_port):
+    
+    path = paths[0][0]
+    file_name = paths[0][1]
+    dir_path = os.path.dirname(root_dir + path)
+    file_path = os.path.join(dir_path,file_name)
+    
+    
+    
     
     """
-    Update the .env file with the specified client port number and Vue.js base port number.
+    Update the config file for hub by specifying each hub port
 
     Args:
         file_path (str): The path to the .env file.
-        client_port (int): The port number to use for the client.
-        vue_base_port (int): The port number to use for the Vue.js base URL.
-
+        hub_port (int): The port number to use for the client.
+       
     Returns:
         None
     """
     
-    with open(file_path, "r") as f:
-        contents = f.read()
+    with open(file_path, 'r+') as f:
+        # Read the file content
+        lines = f.readlines()
+        for i, line in enumerate(lines):
+            # Check if the line starts with 'client_id:' or 'client_secret:'
+            if line.strip().startswith('HUB_URL:'):
+                # Get the whitespace before the key
+                whitespace = line[:-len(line.lstrip())]
+                if line.strip().startswith('HUB_URL:'):
+                    lines[i] = f'{whitespace}HUB_URL: "http://localhost:{hub_port}",\n'
+                    
+        # Move the file pointer to the beginning of the file
+        f.seek(0)
 
-    # Split the contents into lines
-    lines = contents.split("\n")
+        # Write the updated content back to the file
+        f.writelines(lines)
 
-    # Loop through the lines and replace the port numbers
-    for i, line in enumerate(lines):
-        if line.startswith("PORT="):
-            # Replace the PORT variable value
-            lines[i] = f"PORT={client_port}"
-        elif line.startswith("VUE_APP_BASEURL="):
-            # Replace the port number in the line (if any)
-            lines[i] =  f"VUE_APP_BASEURL=\"http://localhost:{vue_base_port}\""
-
-    # Join the lines back into a single string
-    updated_contents = "\n".join(lines)
-
-    # Write the updated contents back to the file
-    with open(file_path, "w") as f:
-        f.write(updated_contents)
+        # Truncate the file to the new length (in case the new content is shorter)
+        f.truncate()
 
 
 def initialization():
@@ -607,14 +612,13 @@ def remove_container(container_name):
 def cli_error_message():
     sys.exit(
             "Usage -- python3 start_test_setup.py [Main Command] [Options]\n\n"
-            "Example:  python3 start_test_setup.py [exec] [--cargo-enabled ARGS.. --node-command ARGS..  --scale ARGS..]\n\n"
+            "Example:  python3 start_test_setup.py [exec] [--cargo-enabled ARGS..  --scale ARGS..]\n\n"
             "\nMain Command:\n"
             "\texec  Executes the script with options\n\n"
             "\ttest  Tests the script. Only for testing purpose [No Options required]\n\n" 
             "\nOptions:\n\n"
             "\n--cargo-disabled\tThis will not run Rust code from the script. You can run Cargo separately\n\n"
             "\n--cargo-enabled\t\t<argument for running cargo> \t e.g., run or cargo watch --watch-when-idle -x 'run'\n\n"
-            "\n--node-command\t\tRuns npm with arguments [default: npm run watch]\n\n"
             "\n--scale\t\t\tScales the number of hubs and clients [default: 1]\n"
         )
 
@@ -762,6 +766,7 @@ def main_runner(cargo_setup:str, node_arg:str, hubs:int = 1) -> None:
     
         os.chdir("hub-client")
         # update_env_file(".env", client_port, matrix_port)
+        update_client_config_file(matrix_port)
         client_name = "testclient" + str(i)
         container_name = f"{client_name}_{client_port}"
         remove_container(container_name)
