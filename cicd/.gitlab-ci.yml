@@ -232,6 +232,27 @@ build-client:
     - DOCKER_BUILDKIT=1 docker build -t ${CONTAINER_IMAGE} .
     - docker push ${CONTAINER_IMAGE}
 
+build-client2:
+  stage: build-images
+  only:
+    - main
+  needs:
+    - unit-test-client
+  tags:
+    - docker
+  image: docker:stable
+  variables:
+    CONTAINER_IMAGE: ${CI_REGISTRY}/${CI_PROJECT_PATH}/pubhubs_client2:${CI_COMMIT_REF_NAME}
+  script:
+    - cd hub-client
+    - cp ../cicd/temp_testhub/logo.svg public/img/logo.svg
+    - cp ../cicd/temp_testhub/logo.svg src/assets/pubhubs-logo.svg
+    - cp ../cicd/temp_testhub/logo.svg src/assets/pubhubs-logo-dark.svg
+    - cp ../cicd/temp_testhub/pubhubs-theme.js src/assets/pubhubs-theme.js
+    - docker login -u $CI_REGISTRY_USER -p $CI_REGISTRY_PASSWORD $CI_REGISTRY
+    - DOCKER_BUILDKIT=1 docker build -t ${CONTAINER_IMAGE} .
+    - docker push ${CONTAINER_IMAGE}
+
 deploy-main-client:
   stage: deploy
   only:
@@ -243,6 +264,7 @@ deploy-main-client:
     - cd hub-client
     - chmod 600 $ILAB_VM_TRIGGER_UPDATE_KEY
     - ssh -o UserKnownHostsFile=$ILAB_VM_TRIGGER_UPDATE_KNOWN_HOSTS $ILAB_VM_TRIGGER_UPDATE_USER@$ILAB_VM_TRIGGER_UPDATE_HOST_MAIN -i $ILAB_VM_TRIGGER_UPDATE_KEY docker-testhub-element-main
+    - ssh -o UserKnownHostsFile=$ILAB_VM_TRIGGER_UPDATE_KNOWN_HOSTS $ILAB_VM_TRIGGER_UPDATE_USER@$ILAB_VM_TRIGGER_UPDATE_HOST_MAIN -i $ILAB_VM_TRIGGER_UPDATE_KEY docker-testhub2-client-main
 
 deploy-stable-client:
   stage: deploy
