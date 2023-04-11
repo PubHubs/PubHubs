@@ -537,24 +537,6 @@ def create_temporary_files():
         shutil.copyfile(original_file, bk_file)
 
 
-
-def comment_lines(file_to_comment="hub-client/start.sh"):
-    
-    file_name = os.path.join(root_dir,file_to_comment)
-    
-    
-    if os.path.exists(file_name):
-        #Open the file in read mode
-        with open(file_name, 'r') as file:
-        # Read all lines into a list
-            lines = file.readlines()
-            # Add a hash character at the beginning of each line
-            commented_lines = ['#' + line for line in lines]
-
-        # Open the file in write mode and write the commented lines
-        with open(file_name, 'w') as file:
-            file.writelines(commented_lines)
-
 def run_command(cmd):
     
     """
