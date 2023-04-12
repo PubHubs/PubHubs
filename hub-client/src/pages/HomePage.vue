@@ -8,3 +8,11 @@
         </div>
     </div>
 </template>
+
+<script setup lang="ts">
+    /**
+     *
+     * This HOME page will be shown if a user is authenticated in PubHubs Central.
+     *
+     */
+</script>

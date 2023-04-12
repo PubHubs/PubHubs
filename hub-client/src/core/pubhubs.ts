@@ -32,11 +32,15 @@ class PubHubs {
         console.info('%c[=== PubHubs Hub Client @' + window.location.href + ' ===]',css);
         console.info('%c[=== Use the console wisely ;-)',css);
         console.info(' ');
-
-        this.startClient();
     }
 
-    startClient() {
+    centralLogin() {
+        // @ts-ignore
+        const centralLoginUrl = _env.PARENT_URL + '/login';
+        window.top?.location.replace(centralLoginUrl);
+    }
+
+    login() {
         const self = this;
         this.Auth.login().then( (client:any) => {
             self.client = client as MatrixClient;
