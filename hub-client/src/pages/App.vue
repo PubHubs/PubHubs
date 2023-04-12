@@ -44,18 +44,17 @@
                                     {{ $t("menu.settings") }}
                                 </MenuItem>
                             </router-link>
-                            <router-link v-if="user.isLoggedIn" :to="{ name: 'logout', params: {} }" v-slot="{ isActive }">
-                                <MenuItem icon="power" :active="isActive" >
-                                    {{ $t("menu.logout") }}&nbsp;<span v-if="user.user.displayName" :title="user.user.displayName">[{{filters.matrixDisplayName(user.user.displayName)}}]</span>
-                                </MenuItem>
-                            </router-link>
                         </Menu>
                     </template>
                 </HeaderFooter>
 
-                <div v-if="rooms.hasRooms" class="col-span-6 overflow-auto bg-white dark:bg-gray-middle px-3">
+                <div class="col-span-6 overflow-auto bg-white dark:bg-gray-middle px-3">
                     <router-view></router-view>
                 </div>
+            </div>
+
+            <div v-else>
+                <router-view></router-view>
             </div>
 
         </div>
@@ -67,10 +66,12 @@
 </template>
 
 <script setup lang="ts">
-    import filters from "@/core/filters";
     import { useSettings, useHubSettings, Theme, useUser, useRooms, MessageType, Message, MessageBoxType, useMessageBox, useDialog } from '@/store/store'
     import { useRouter } from 'vue-router'
+    import { inject } from 'vue';
+    import { onMounted } from 'vue';
 
+    const pubhubs:any = inject('pubhubs');
     const router = useRouter();
     const settings = useSettings();
     const hubSettings = useHubSettings();
@@ -78,6 +79,14 @@
     const rooms = useRooms();
     const messagebox = useMessageBox();
     const dialog = useDialog();
+
+    onMounted(() => {
+        if ( window.location.pathname!=='/hub' ) {
+            pubhubs.login();
+            router.push({name:'home'});
+        }
+    })
+
 
     if ( ! hubSettings.isSolo ) {
 
@@ -99,8 +108,5 @@
         });
 
     }
-
-
-
 
 </script>

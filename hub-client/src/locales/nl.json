@@ -9,7 +9,9 @@
     "title_sure" : "Weet je het zeker?"
   },
   "errors" : {
-    "error" : "Helaas, er is een fout opgetreden. Neem contact op met de developers.\n\n {0}"
+    "error" : "Helaas, er is een fout opgetreden. Neem contact op met de developers.\n\n {0}",
+    "server" : "Fout van de server",
+    "M_LIMIT_EXCEEDED" : "Te veel inlogpogingen achter elkaar. Probeer het over {0} seconden nog eens."
   },
   "file": {
     "file": "Bestand"

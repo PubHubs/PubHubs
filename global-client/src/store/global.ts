@@ -43,7 +43,7 @@ const useGlobal = defineStore('global', {
                         }
                         else {
                             self.loggedIn = false;
-                            reject();
+                            resolve(false);
                         }
                     })
                     .catch(()=>{

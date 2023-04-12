@@ -9,7 +9,9 @@
     "title_sure" : "Are you sure?"
   },
   "errors" : {
-    "error" : "Unfortanatly an error occured. Please contact opthe developers.\n\n {0}"
+    "error" : "Unfortanatly an error occured. Please contact opthe developers.\n\n {0}",
+    "server" : "Server error",
+    "M_LIMIT_EXCEEDED" : "Too much login attempts. Try again in {0} seconds."
   },
   "file": {
     "file": "File"
