@@ -87,6 +87,7 @@ const safeList = [
     'text-sm',
     'text-white',
     'top-0',
+    'truncate',
     'w-12',
     'w-16',
     'w-2/6',
