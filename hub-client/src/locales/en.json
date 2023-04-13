@@ -20,7 +20,8 @@
     "submit": "Submit"
   },
   "home": {
-    "welcome": "Welcome to <a href=\"https://pubhubs.net\">PubHubs</a>.<br>PubHubs is a community platform based on public values."
+    "welcome": "Welcome to <a href=\"https://pubhubs.net\">PubHubs</a>.<br>PubHubs is a community platform based on public values.",
+    "highlighted_hubs" : "Highlighted Hubs"
   },
   "login": {
     "login": "Login",
