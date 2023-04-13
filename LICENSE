@@ -193,7 +193,7 @@
    "MIT" license. For details, see pubhubs/static/assets/css/front.css and pubhubs/static/assets/js/bootstrap.js.
 
    This product bundles WorkSans, which is available under a
-   "Open Font License" license. For the files, see pubhubs/static/assets/fonts.
+   "Open Font License" license. For the files, see pubhubs/static/assets/fonts and global-client/src/assets/fonts.
    
    This product bundles Atkinson Hyperlegible Font, which is available under a
-   "SIL Open Font License 1.1" license. For the files, see hub-client/src/assets/fonts.
+   "SIL Open Font License 1.1" license. For the files, see hub-client/src/assets/fonts and global-client/src/assets/fonts.
