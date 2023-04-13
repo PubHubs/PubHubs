@@ -81,7 +81,7 @@
     const dialog = useDialog();
 
     onMounted(() => {
-        if ( window.location.pathname!=='/hub' ) {
+        if ( window.location.hash!=='#/hub/' ) {
             pubhubs.login();
             router.push({name:'home'});
         }

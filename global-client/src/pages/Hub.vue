@@ -21,7 +21,7 @@
 
     const hubUrl = computed(() => {
         if ( !global.loggedIn ) {
-            return hubs.currentHub.url + '/hub';
+            return hubs.currentHub.url + '#/hub/';
         }
         return hubs.currentHub.url;
     })
