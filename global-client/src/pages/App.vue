@@ -8,12 +8,12 @@
                     <Modal :show="global.isModalVisible">
 
                         <div class="flex-1 text-center">
-                            <router-link v-if=" hubs.currentHubId=='' " to="/" v-slot="{ isActive }">
+                            <router-link to="/" v-slot="{ isActive }">
                                 <HubIcon type="pubhubs-home" :active="isActive" class="text-blue dark:text-white"></HubIcon>
                             </router-link>
 
                             <router-link v-for="hub in hubs.sortedHubsArray" :key="hub.hubId" :to="{ name: 'hub', params: { 'id':hub.hubId } }" v-slot="{ isActive }">
-                                <HubIcon v-if="global.loggedIn || hubs.currentHubId=='' || hub.hubId==hubs.currentHubId" :hub="hub" :active="isActive"></HubIcon>
+                                <HubIcon v-if="global.loggedIn || hub.hubId==hubs.currentHubId" :hub="hub" :active="isActive"></HubIcon>
                             </router-link>
 
                             <Line v-if="global.loggedIn" class="m-2 sm:m-6 mt-8"></Line>
