@@ -19,6 +19,7 @@ module.exports = {
             'dark'      : '#648fff',
         },
         'green': {
+            'lighter'   : '#785ef0',
             'light'     : '#785ef0',
             'DEFAULT'   : '#785ef0',
             'dark'      : '#785ef0',

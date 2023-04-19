@@ -48,7 +48,7 @@
                     </template>
                 </HeaderFooter>
 
-                <div class="col-span-6 overflow-auto bg-white dark:bg-gray-middle px-3">
+                <div class="col-span-6 overflow-auto bg-white dark:bg-gray-middle">
                     <router-view></router-view>
                 </div>
             </div>
