@@ -12,6 +12,8 @@
                                 <HubIcon type="pubhubs-home" :active="isActive" class="text-blue dark:text-white"></HubIcon>
                             </router-link>
 
+                            <Line v-if="global.loggedIn" class="m-2 sm:m-6 mt-8"></Line>
+
                             <router-link v-for="hub in hubs.sortedHubsArray" :key="hub.hubId" :to="{ name: 'hub', params: { 'id':hub.hubId } }" v-slot="{ isActive }">
                                 <HubIcon v-if="global.loggedIn || hub.hubId==hubs.currentHubId" :hub="hub" :active="isActive"></HubIcon>
                             </router-link>
