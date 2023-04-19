@@ -245,6 +245,7 @@ build-client2:
     CONTAINER_IMAGE: ${CI_REGISTRY}/${CI_PROJECT_PATH}/pubhubs_client2:${CI_COMMIT_REF_NAME}
   script:
     - cd hub-client
+    - cp ../cicd/temp_testhub/HubPage.vue src/pages/HubPage.vue
     - cp ../cicd/temp_testhub/logo.svg public/img/logo.svg
     - cp ../cicd/temp_testhub/logo.svg src/assets/pubhubs-logo.svg
     - cp ../cicd/temp_testhub/logo.svg src/assets/pubhubs-logo-dark.svg
