@@ -419,17 +419,17 @@ async fn yivi_start(
     translations: Translations,
     context: Data<Main>,
 ) -> HttpResponse {
-    let yivi_host = &context.yivi.server_url;
+    let yivi_host = &context.yivi.requestor_api_url;
     let yivi_requestor = &context.yivi.requestor;
     let yivi_requestor_hmac_key = &context.yivi.requestor_hmac_key;
-    let pubhubs_host = &context.url;
+    let pubhubs_url_for_yivi_app = &context.url_for_yivi_app;
     let hair = &context.hair;
 
     match login(
         yivi_host,
         yivi_requestor,
         yivi_requestor_hmac_key,
-        pubhubs_host,
+        pubhubs_url_for_yivi_app,
     )
     .await
     {
@@ -454,17 +454,17 @@ async fn yivi_register(
     translations: Translations,
     request: HttpRequest,
 ) -> HttpResponse {
-    let yivi_host = &context.yivi.server_url;
+    let yivi_host = &context.yivi.requestor_api_url;
     let yivi_requestor = &context.yivi.requestor;
     let yivi_requestor_hmac_key = &context.yivi.requestor_hmac_key;
-    let pubhubs_host = &context.url;
+    let pubhubs_url_for_yivi_app = &context.url_for_yivi_app;
     let hair = &context.hair;
 
     match register(
         yivi_host,
         yivi_requestor,
         yivi_requestor_hmac_key,
-        pubhubs_host,
+        pubhubs_url_for_yivi_app,
     )
     .await
     {
@@ -514,7 +514,7 @@ async fn yivi_finish_and_redirect_anyhow(
     params: actix_web::web::Form<YiviFinishParams>,
 ) -> Result<HttpResponse, anyhow::Error> {
     let (email, telephone) =
-        disclosed_email_and_telephone(&context.yivi.server_url, &params.yivi_token).await?;
+        disclosed_email_and_telephone(&context.yivi.requestor_api_url, &params.yivi_token).await?;
 
     // retrieve user
     let user = {
@@ -920,6 +920,8 @@ async fn main() -> Result<()> {
 
     let bind_to = context.bind_to.clone();
     let url = context.url.clone();
+    let url_for_yivi_app = context.url_for_yivi_app.clone();
+
     let connection_check_nonce = context.connection_check_nonce.clone();
 
     info!("binding to {}:{}", bind_to.0, bind_to.1);
@@ -935,8 +937,12 @@ async fn main() -> Result<()> {
     futures::try_join!(
         // run server
         async move { server_fut.await.context("failed to run server") },
-        // and also check that the server is reachable via the public url specified in the config
-        check_connection_abortable(url + "_connection_check", connection_check_nonce),
+        // and also check that the server is reachable via the url(s) specified in the config
+        check_connection_abortable(url + "_connection_check", connection_check_nonce.clone()),
+        check_connection_abortable(
+            url_for_yivi_app + "_connection_check",
+            connection_check_nonce
+        )
     )?;
     Ok(())
 }
@@ -953,7 +959,7 @@ async fn check_connection_abortable(url: impl AsRef<str>, nonce: impl AsRef<str>
             futures::future::Abortable::new(check_connection(url, nonce), abort_registration)
                 .await
                 .unwrap_or_else(|_| {
-                    log::warn!("aborted connection check");
+                    log::warn!("aborted connection check of {}", url);
                     Ok(())
                 })
         },
@@ -982,7 +988,7 @@ async fn check_connection(url: &str, nonce: &str) -> Result<()> {
                 tokio::time::sleep(tokio::time::Duration::from_millis(2_u64.pow(n) * 100)).await;
             }
 
-            Err(anyhow::anyhow!("Could not connect to self."))
+            Err(anyhow::anyhow!("Could not connect to self via {}.", url))
         })
         .await
         .map_err(|_e| {
@@ -1488,7 +1494,7 @@ mod tests {
     #[actix_web::test]
     async fn test_yivi_register() {
         let context = create_test_context_with(|mut f| {
-            f.yivi.server_url = "http://localhost:4001/test1".to_string();
+            f.yivi.requestor_api_url = "http://localhost:4001/test1".to_string();
             f
         })
         .await
@@ -2079,7 +2085,7 @@ mod tests {
 
         let context = create_test_context_with(|mut f| {
             f.cookie_secret = Some(cookie_secret.to_string());
-            f.yivi.server_url = "http://localhost:4002/test1".to_string();
+            f.yivi.requestor_api_url = "http://localhost:4002/test1".to_string();
             f
         })
         .await
@@ -2166,7 +2172,7 @@ mod tests {
         // Discloses new
         let context = create_test_context_with(|mut f| {
             f.cookie_secret = Some(cookie_secret.to_string());
-            f.yivi.server_url = "http://localhost:4002/test2".to_string();
+            f.yivi.requestor_api_url = "http://localhost:4002/test2".to_string();
             f
         })
         .await

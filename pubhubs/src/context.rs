@@ -23,6 +23,7 @@ use crate::{
 
 pub struct Main {
     pub url: String,
+    pub url_for_yivi_app: String,
     pub bind_to: (String, u16),
     pub connection_check_nonce: String,
 
@@ -126,10 +127,12 @@ impl Main {
         .await
         .context("setting up the policy failed")?;
 
-        let url = config
-            .determine_url()
+        let url: String = config.determine_url()?.into_owned();
+
+        let url_for_yivi_app = config
+            .determine_url_for_yivi_app()
             .await
-            .context("resolving pubhubs host failed")?;
+            .context("finding PubHubs Central URL for Yivi App failed")?;
 
         let pep = crate::pseudonyms::PepContext::from_config(config.pep)?;
 
@@ -225,6 +228,7 @@ impl Main {
 
             Self {
                 url,
+                url_for_yivi_app,
                 bind_to: config.bind_to,
                 connection_check_nonce,
                 pep,
@@ -294,8 +298,8 @@ impl Main {
 }
 
 pub struct Yivi {
-    pub server_url: String,
-    pub client_url: String,
+    pub requestor_api_url: String,
+    pub client_api_url: String,
     pub requestor: String,
     pub requestor_hmac_key: crate::jwt::HS256,
     pub server_issuer: String,
@@ -322,10 +326,10 @@ impl Yivi {
         let server_key = jsonwebtoken::DecodingKey::from_rsa_pem(&buff)?;
 
         Ok(Self {
-            client_url: config
-                .client_url
-                .unwrap_or_else(|| config.server_url.clone()),
-            server_url: config.server_url,
+            client_api_url: config
+                .client_api_url
+                .unwrap_or_else(|| config.requestor_api_url.clone()),
+            requestor_api_url: config.requestor_api_url,
             requestor: config.requestor,
             requestor_hmac_key: crate::jwt::HS256(
                 Base64::decode_vec(&having_debug_default(

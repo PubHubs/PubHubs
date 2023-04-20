@@ -1,11 +1,17 @@
-# if url is not set, pubhubs will attempt to autodetect your public ip (if you have one)
-# if url is set, it must have a trailing slash ('/')
-# url: url-pointing-to-this-machine-reachable-from-your-phone.example.com/
+## If url is not set, it will be http://localhost:port-binded-to/.  Must end with a slash ('/').
+# url: https://some-server.com/
+
+## The url used by the yivi app to contact PubHubs Central.  To use the same url as 'url', use
+# url_for_yivi_app: !same
+## To autodetect your public IP address, and try that, use:
+url_for_yivi_app: !autodetect
+## To configure a URL manually, use
+#url_for_yivi_app: !manual https://some-server.com/ 
 
 database_location: dev.db  # if not set, in memory database is used
 
 yivi:
-  server_url: http://localhost:8088
+  requestor_api_url: http://localhost:8088
 
 pep: {
   # libpep_location: /path/to/libpepcli
