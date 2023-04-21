@@ -62,7 +62,7 @@ pub struct Urls {
     ///   e.g. http://localhost:8080/
     pub for_browser: url::Url,
     /// Where can a hub (possibly from within a docker container) reach PubHubs Central?
-    ///   e.g. http://host.docker.internal:8080/
+    ///   e.g. <http://host.docker.internal:8080/>
     pub for_hub: url::Url,
     /// Where can the Yivi App (possibly from another network) reach PubHubs Central?
     ///   e.g. http://1.2.3.4:8080/

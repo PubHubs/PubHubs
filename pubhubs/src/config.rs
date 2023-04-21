@@ -22,7 +22,7 @@ pub struct File {
     /// Offers more fine grained control over who gets what URL for PubHubs Central.
     /// The user's browser might reach PubHubs Central
     /// via http://localhost:8080, while hubs in a docker container
-    /// might need to use http://host.docker.internal:8080, or, e.g., http://1.2.3.4:8080
+    /// might need to use <http://host.docker.internal:8080>, or, e.g., http://1.2.3.4:8080
     #[serde(default)]
     pub urls: Option<Urls>,
 
@@ -171,7 +171,7 @@ pub struct Yivi {
     /// serve the client endpoints via a different (IP address and) port, via `client_port` (and
     /// `client_listen_addr`, see:
     ///
-    ///  https://irma.app/docs/irma-server/#http-server-endpoints
+    ///  <https://irma.app/docs/irma-server/#http-server-endpoints>
     ///
     /// Seperate ports make it possible to shield the requestor endpoint from the wider internet.
 
