@@ -422,7 +422,7 @@ async fn yivi_start(
     let yivi_host = &context.yivi.requestor_api_url;
     let yivi_requestor = &context.yivi.requestor;
     let yivi_requestor_hmac_key = &context.yivi.requestor_hmac_key;
-    let pubhubs_url_for_yivi_app = &context.url_for_yivi_app;
+    let pubhubs_url_for_yivi_app = &context.url.for_yivi_app.as_str();
     let hair = &context.hair;
 
     match login(
@@ -457,7 +457,7 @@ async fn yivi_register(
     let yivi_host = &context.yivi.requestor_api_url;
     let yivi_requestor = &context.yivi.requestor;
     let yivi_requestor_hmac_key = &context.yivi.requestor_hmac_key;
-    let pubhubs_url_for_yivi_app = &context.url_for_yivi_app;
+    let pubhubs_url_for_yivi_app = &context.url.for_yivi_app.as_str();
     let hair = &context.hair;
 
     match register(
@@ -618,7 +618,7 @@ async fn oidc_response_from_oidc_handle(
                 pubhubs::jwt::sign(
                     // id_token claims, see Section 2 of OpenID Connect Core 1.0
                     &serde_json::json!({
-                        "iss": context.url,
+                        "iss": context.url.for_hub.as_str(),
                         "sub": pseudonym,
                         "aud": tcd.client_id,
                         "exp": pubhubs::jwt::get_current_timestamp() + 10*60*60,
@@ -919,10 +919,9 @@ async fn main() -> Result<()> {
     let context = Data::from(context);
 
     let bind_to = context.bind_to.clone();
-    let url = context.url.clone();
-    let url_for_yivi_app = context.url_for_yivi_app.clone();
 
     let connection_check_nonce = context.connection_check_nonce.clone();
+    let urls = context.url.clone();
 
     info!("binding to {}:{}", bind_to.0, bind_to.1);
     let server_fut = HttpServer::new(move || {
@@ -938,25 +937,41 @@ async fn main() -> Result<()> {
         // run server
         async move { server_fut.await.context("failed to run server") },
         // and also check that the server is reachable via the url(s) specified in the config
-        check_connection_abortable(url + "_connection_check", connection_check_nonce.clone()),
-        check_connection_abortable(
-            url_for_yivi_app + "_connection_check",
-            connection_check_nonce
-        )
+        check_connections(urls, connection_check_nonce),
     )?;
     Ok(())
 }
 
-/// Checks `url` returns `nonce`.  Retries a few times upon failure.  Aborts on ctrl+c.
-async fn check_connection_abortable(url: impl AsRef<str>, nonce: impl AsRef<str>) -> Result<()> {
-    let url = url.as_ref();
-    let nonce = nonce.as_ref();
+async fn check_connections(urls: pubhubs::context::Urls, nonce: String) -> Result<()> {
+    // Remove repetitions from [urls.for_browser, urls.for_yivi_app];
+    // we do not check urls.for_hub, because this might be something like http://host.docker.internal
+    let urlset: std::collections::HashSet<&url::Url> = [&urls.for_browser, &urls.for_yivi_app]
+        .into_iter()
+        .collect();
+    // Put into a Vec of length 2, filling empty spots with None.
+    let mut urls: Vec<Option<&url::Url>> = urlset.into_iter().map(Into::into).collect();
+    urls.resize_with(2, Default::default);
+
+    futures::try_join!(
+        check_connection_abortable(urls[0], &nonce),
+        check_connection_abortable(urls[1], &nonce),
+    )?;
+    Ok(())
+}
+
+/// Checks `url` returns `nonce`, provided url is not None.  Retries a few times upon failure.  Aborts on ctrl+c.
+async fn check_connection_abortable(url: Option<&url::Url>, nonce: &str) -> Result<()> {
+    if url.is_none() {
+        return Ok(());
+    }
+
+    let url = url.unwrap().as_str().to_owned() + "_connection_check";
 
     let (abort_handle, abort_registration) = futures::future::AbortHandle::new_pair();
 
     futures::try_join!(
         async {
-            futures::future::Abortable::new(check_connection(url, nonce), abort_registration)
+            futures::future::Abortable::new(check_connection(&url, nonce), abort_registration)
                 .await
                 .unwrap_or_else(|_| {
                     log::warn!("aborted connection check of {}", url);
@@ -991,23 +1006,6 @@ async fn check_connection(url: &str, nonce: &str) -> Result<()> {
             Err(anyhow::anyhow!("Could not connect to self via {}.", url))
         })
         .await
-        .map_err(|_e| {
-            if cfg!(debug_assertions) {
-                info!(
-                    r#"HINT:  
-
-If your ports are not publicly accessible,
-reverse forward a port to a remote server, via, e.g.,
-
-ssh -NTR 8080:localhost:8080 user@server.com
-
-and do not forget to set "url" to "http://server.com:8080/" in your configuration.
-
-"#
-                );
-            }
-            _e
-        })
 }
 
 async fn check_connection_once(url: &str, nonce: &str) -> Result<()> {

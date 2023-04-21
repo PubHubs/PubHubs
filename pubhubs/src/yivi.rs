@@ -407,7 +407,7 @@ pub async fn disclosed_email_and_telephone(
 }
 
 pub async fn next_session(req: HttpRequest, context: Data<Main>, jwt_text: String) -> HttpResponse {
-    let pubhubs_url_for_yivi_app = &context.url_for_yivi_app;
+    let pubhubs_url_for_yivi_app = &context.url.for_yivi_app.as_str();
     let yivi = &context.yivi;
     match next_session_priv(req, yivi, pubhubs_url_for_yivi_app, &jwt_text).await {
         Ok(a) => a,
@@ -900,7 +900,7 @@ mL8ccRpy26VYM7CYRcsoeJMCAwEAAQ==
                 let req = TestRequest::default().to_http_request();
 
                 let context = create_test_context_with(|mut f| {
-                    f.url = Some("https://test.host/".to_string());
+                    f.url = Some(url::Url::parse("https://test.host/").unwrap());
                     f.yivi = fake_yivi_context();
                     f
                 })

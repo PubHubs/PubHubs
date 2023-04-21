@@ -41,7 +41,7 @@ pub async fn yivi_proxy(
     body: String,
 ) -> Result<HttpResponse, TranslatedError> {
     let yivi_url = &context.yivi.client_api_url;
-    let proxy_host = &context.url;
+    let proxy_host = &context.url.for_yivi_app.as_str();
     let uri = request.uri().to_string().replace("yivi", "irma");
     let client = awc::Client::default();
 

@@ -1,4 +1,3 @@
-use std::borrow::Cow;
 use std::collections::HashSet;
 use std::path::PathBuf;
 use std::str::FromStr;
@@ -16,16 +15,16 @@ pub struct File {
     #[serde(skip)]
     pub path: PathBuf,
 
-    /// Url of PubHubs Central.
-    ///
-    /// If None and not in production, it will be localhost with as port the one from `bind_to` below.
+    /// Url of PubHubs Central.  If None, 'urls' below are used.
     #[serde(default)]
-    pub url: Option<String>,
+    pub url: Option<url::Url>,
 
-    /// Url of PubHubs Central reachable by the Yivi app, so 'localhost' might not work here.
-    /// By default, `url` is used.  For more details, see [UrlForYiviApp].
+    /// Offers more fine grained control over who gets what URL for PubHubs Central.
+    /// The user's browser might reach PubHubs Central
+    /// via http://localhost:8080, while hubs in a docker container
+    /// might need to use http://host.docker.internal:8080, or, e.g., http://1.2.3.4:8080
     #[serde(default)]
-    pub url_for_yivi_app: UrlForYiviApp,
+    pub urls: Option<Urls>,
 
     /// Bind to this address.  Defaults to ("0.0.0.0", "8080").
     #[serde(default = "default_bind_to")]
@@ -201,24 +200,27 @@ pub struct Yivi {
 }
 
 #[derive(Serialize, Deserialize, PartialEq, Eq, Debug)]
-#[serde(rename_all = "lowercase")]
-pub enum UrlForYiviApp {
-    /// Don't use a special URL for PubHubs Central for the Yivi app.
-    /// This is the value expected in production.
-    Same,
-
-    /// Use this URL.
-    Manual(String),
-
-    /// Autodetect public IP address of the local host using ifconfig.me,
-    /// and use that one with the port from `bind_to` as URL for the Yivi app.
-    Autodetect,
+pub struct Urls {
+    for_browser: url::Url,
+    for_hub: AltUrl,
+    for_yivi_app: AltUrl,
 }
 
-impl Default for UrlForYiviApp {
-    fn default() -> Self {
-        UrlForYiviApp::Same
-    }
+#[derive(Serialize, Deserialize, PartialEq, Eq, Debug)]
+#[serde(rename_all = "snake_case")]
+pub enum AltUrl {
+    /// Don't use a special URL, but the same as for the browser.
+    /// This is the expected value in production.
+    SameAsForBrowser,
+
+    /// Use this URL
+    Manual(url::Url),
+
+    /// Autodetect public IP address of the local host using ifconfig.me,
+    /// and use that one with the port from `bind_to`.
+    ///
+    /// Warning:  you might be behind a NAT or firewall
+    Autodetect,
 }
 
 fn default_yivi_requestor() -> String {
@@ -243,85 +245,116 @@ fn default_libpep_location() -> String {
 }
 
 impl File {
-    pub fn determine_url(&self) -> Result<Cow<str>> {
-        match self.url {
-            Some(ref url) => {
-                ensure!(
-                    url.ends_with('/'),
-                    "pubhubs manual url for yivi app  must end with a slash ('/')"
-                );
-                return Ok(Cow::Borrowed(url));
-            }
-            None => {
-                return Ok(Cow::Owned(format!("http://localhost:{}/", self.bind_to.1)));
-            }
-        }
-    }
-
-    pub async fn determine_url_for_yivi_app(&self) -> Result<String> {
-        if self.url_for_yivi_app == UrlForYiviApp::Same {
-            let url = self.determine_url()?.into_owned();
-
-            if self.url.is_none() {
-                log::error!("'url_for_yifi_app' is set to be the same as 'url', which is not set and thus {} by default;  the Yivi app will probably not be able to reach PubHubs Central there", url);
-            }
-
-            return Ok(url);
-        }
-
-        if cfg!(not(debug_assertions)) {
-            bail!("autodection or manual configuration of the PubHubs URL communicated to the  Yivi App is only allowed in debug mode; please set 'url_for_yivi' app to 'same'.");
-        }
-
-        if let UrlForYiviApp::Manual(ref url) = self.url_for_yivi_app {
-            ensure!(
-                url.ends_with('/'),
-                "pubhubs manual url for yivi app  must end with a slash ('/')"
-            );
-            return Ok(url.clone());
+    pub async fn determine_urls(&self) -> Result<crate::context::Urls> {
+        if cfg!(not(debug_assertions)) && self.url.is_none() {
+            bail!("in production 'url' must be set (and 'urls' can't be used)");
         }
 
         ensure!(
-            self.url_for_yivi_app == UrlForYiviApp::Autodetect,
-            "unknown variant, {:?}",
-            self.url_for_yivi_app
+            self.url.is_none() != self.urls.is_none(),
+            "either 'url' or 'urls' must be specified, but in {} they are neither or both",
+            self.path.display()
         );
 
-        if cfg!(test) {
-            warn!("won't autodetect your public IP address during testing");
-            return Ok("http://example.com/?autodetection_of_pubhubs_public_ip_address_is_disabled_during_tests__please_set_it_manually_if_really_needed".to_string());
+        if let Some(ref url) = self.url {
+            ensure!(
+                url.as_str().ends_with('/'),
+                "'url' must end with a slash ('/')"
+            );
+
+            return Ok(crate::context::Urls {
+                for_browser: url.clone(),
+                for_hub: url.clone(),
+                for_yivi_app: url.clone(),
+            });
         }
 
-        info!("autodetecting your public ip address (for the yifi app)...");
+        let urls = self.urls.as_ref().unwrap();
+
+        let autodetected = urls.autodetect(self).await?;
+
+        Ok(crate::context::Urls {
+            for_browser: urls.for_browser.clone(),
+            for_hub: urls
+                .for_hub
+                .evaluate("urls.for_hub", &urls.for_browser, &autodetected)?,
+            for_yivi_app: urls.for_yivi_app.evaluate(
+                "urls.for_yivi_app",
+                &urls.for_browser,
+                &autodetected,
+            )?,
+        })
+    }
+}
+
+impl Urls {
+    /// If for_hub or for_yivi_app is autodetect, autodetect URL;  else returns None.
+    async fn autodetect(&self, file: &File) -> Result<Option<url::Url>> {
+        if self.for_hub != AltUrl::Autodetect && self.for_yivi_app != AltUrl::Autodetect {
+            return Ok(None);
+        }
+
+        ensure!(
+            !cfg!(test),
+            "autodetection of public IP address not permitted during tests!"
+        );
+
+        info!("autodetecting your public ip address...");
 
         // the awc crate has no multi-thread support, see
         //   https://github.com/actix/actix-web/issues/2679#issuecomment-1059141565
         // so we execute awc on a single thread..
-        tokio::task::LocalSet::new()
-            .run_until(async move {
-                // get ip address..
-                let client = awc::Client::default();
-                let mut resp = client
-                    .get("http://ifconfig.me")
-                    .send()
-                    .await
-                    .map_err(|e| anyhow!(e.to_string() /* e is not Send */))?;
+        Ok(Some(url::Url::parse(
+            &tokio::task::LocalSet::new()
+                .run_until(async move {
+                    // get ip address..
+                    let client = awc::Client::default();
+                    let mut resp = client
+                        .get("http://ifconfig.me")
+                        .send()
+                        .await
+                        .map_err(|e| anyhow!(e.to_string() /* e is not Send */))?;
 
-                let status = resp.status();
+                    let status = resp.status();
+                    ensure!(
+                        status.is_success(),
+                        "ifconfig.me returned status {}",
+                        status
+                    );
+
+                    let bytes = resp.body().await?;
+                    let result = String::from_utf8(bytes.to_vec())?;
+
+                    info!("your ip address is {}", result);
+
+                    Ok(format!("http://{}:{}/", result, file.bind_to.1))
+                })
+                .await?,
+        )?))
+    }
+}
+
+impl AltUrl {
+    fn evaluate(
+        &self,
+        name: &'static str,
+        for_browser: &url::Url,
+        autodetected: &Option<url::Url>,
+    ) -> Result<url::Url> {
+        Ok(match self {
+            AltUrl::SameAsForBrowser => for_browser.clone(),
+            AltUrl::Manual(ref url) => {
                 ensure!(
-                    status.is_success(),
-                    "ifconfig.me returned status {}",
-                    status
+                    url.as_str().ends_with('/'),
+                    format!("'{}' must end with a slash ('/')", name),
                 );
-
-                let bytes = resp.body().await?;
-                let result = String::from_utf8(bytes.to_vec())?;
-
-                info!("your ip address is {}", result);
-
-                Ok(format!("http://{}:{}/", result, self.bind_to.1))
-            })
-            .await
+                url.clone()
+            }
+            AltUrl::Autodetect => autodetected
+                .as_ref()
+                .expect("autodetected to have been set")
+                .clone(),
+        })
     }
 }
 

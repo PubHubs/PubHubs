@@ -42,7 +42,7 @@ tokio = {version = "1.23", features = ["rt", "macros", "rt-multi-thread", "sync"
 tokio-test = "0.4"
 hyper = {version= "0.14", features= ["server", "client", "http1", "stream" ]}
 hyper-tls = "0.5"
-url = "2.2" 
+url = {version="2.2", features=["serde"]} 
 bytes = "1"
 http = "0.2"
 uuid = {version = "1.1", features = ["v4"]}
