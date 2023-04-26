@@ -1,9 +1,9 @@
 import sdk from 'matrix-js-sdk';
 import { MatrixClient } from 'matrix-js-sdk';
-
 import { setCookie, getCookie, removeCookie } from 'typescript-cookie'
 
-import { User, useUser } from '@/store/store';
+import { User, useUser,useDialog } from '@/store/store';
+import { i18n } from '../i18n';
 
 
 class Authentication {
@@ -17,15 +17,15 @@ class Authentication {
     private cookieSettings:object;
 
     constructor() {
+        // @ts-ignore
+        this.baseUrl = _env.HUB_URL;
         this.loginToken = '';
-        this.baseUrl = process.env.VUE_APP_BASEURL!.toString();
         this.clientUrl = location.protocol + '//' + location.host + location.pathname;
         this.cookieSettings = {
             secure:true,
             sameSite:'strict',
             // domain: this.clientUrl,
         };
-        // debugger; // eslint-disable-line no-debugger
     }
 
 
@@ -64,7 +64,7 @@ class Authentication {
      * Login is handled by global PupHubs server via a SSO redirect
      */
 
-    private _redirectToPubHubsLogin() {
+    public redirectToPubHubsLogin() {
         this.client = sdk.createClient({
             baseUrl: this.baseUrl,
         });
@@ -102,6 +102,7 @@ class Authentication {
             }
 
 
+
             // Check if we are logged in allready
             if ( !this.client.isLoggedIn() ) {
 
@@ -118,7 +119,7 @@ class Authentication {
                 //  Redirect to PubHubs login if we realy don't have a token
                 if (this.loginToken == '') {
 
-                    this._redirectToPubHubsLogin();
+                    this.redirectToPubHubsLogin();
 
                 }
                 else {
@@ -130,12 +131,27 @@ class Authentication {
                             resolve(this.client);
                         },
                         (error: any) => {
+                            const err = error.data;
+                            const dialog = useDialog();
+                            const { t } = i18n.global;
+
                             if ( typeof(error)=="string" && error.indexOf('Invalid login token')<0 ) {
-                                console.debug('ERROR:', error);
+                                dialog.confirm(t('errors.server'),error).then(()=>{
+                                    reject(error);
+                                });
                             }
+
+                            else if ( error.data.errcode == 'M_LIMIT_EXCEEDED' ) {
+                                const message = t('errors.M_LIMIT_EXCEEDED',[Math.round(err.retry_after_ms / 1000)]);
+                                dialog.confirm(t('errors.server'),message).then(()=>{
+                                    reject(error);
+                                });
+                            }
+
                             else {
-                                // this._redirectToPubHubsLogin();
+                                console.error(error);
                             }
+
                             reject(error);
                         });
 
@@ -157,8 +173,6 @@ class Authentication {
 
     logout() {
         this._clearAuth();
-        this.client.logout();
-        // this.client.clearStores();
         window.location.replace(this.clientUrl);
     }
 

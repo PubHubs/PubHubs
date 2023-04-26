@@ -8,12 +8,12 @@
 docker pull registry.science.ru.nl/ilab/pubhubs_canonical/pubhubs:main
 ```
 
-:exclamation: If central platform image with `main` tag is used, then IRMA demo card will be needed for authentication.
+:exclamation: If central platform image with `main` tag is used, then Yivi demo card will be needed for authentication.
 
 - Setting up and running Central Platform container.
 
 ```shell
-docker run -p 8080:8080 --mount "type=bind,src=<absolute_path>/config,dst=/config" --mount "type=bind,src=<absolute_path>/data,dst=/data" -e PUBHUBS_CONFIG=/config/settings.yml registry.science.ru.nl/ilab/pubhubs_canonical/pubhubs:main
+docker run -p 8080:8080 --mount "type=bind,src=<absolute_path>/config,dst=/config" --mount "type=bind,src=<absolute_path>/data,dst=/data" -e PUBHUBS_CONFIG=/config/settings.yml -e PUBHUBS_URL=https://<url_for_the_central_platform> registry.science.ru.nl/ilab/pubhubs_canonical/pubhubs:main
 ```
 
 `<absolute_path>` should be replaced by the absolute path of your filesystem e.g., `/myuser/project/pubhubs/`
@@ -21,6 +21,8 @@ docker run -p 8080:8080 --mount "type=bind,src=<absolute_path>/config,dst=/confi
 `config` directory contains settings in a yaml file format. See a sample `settings.yml` in `config` directory that contains sample configuration settings.
 
 `data` directory contains policy information regarding the use of Hubs. A sample file is available in the PubHubs repository such as `/pubhubs/default_policies/1`.
+
+`<url_for_the_central_platform>` is the url so the global client will know where the central platform is running.
 
 > One of the important task for Central Platform administrator is to register the Hub. We see the steps taken by the administrator in the following section.
 
@@ -35,8 +37,9 @@ docker run -p 8080:8080 --mount "type=bind,src=<absolute_path>/config,dst=/confi
  <img src=../../pictures/admin-page.png alt="drawing" width="3000"/>
 
 - Fill in the hub name, it description, and redirection URI e.g., `https://<hub-domain-name>/_synapse/client/oidc/callback`. This redirection URI will be provided by the hub owner. The redirection URI is the resource where the users using the client will be redirected to, after logging in at the central platform.
+- You will also see a client URI field, which is the public url of the client. The client URI must also be provided.
 
-> After adding the Hub if you are directed to Not Found message page. Go back from browser and Refresh the page.
+  > After adding the Hub if you are directed to Not Found message page. Go back from browser and Refresh the page.
 
 - The secret and confidential information about Hub can be downloaded by clicking on the `+`icon under Detail column for each Hub.
 

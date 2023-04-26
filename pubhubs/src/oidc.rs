@@ -281,7 +281,7 @@ pub trait Handler {
     /// endpoint check out as far as this OIDC library is concerned, and
     /// the application can proceed to authenticate the user by sending
     /// the appropriate response (containing, for example, a page
-    /// with an IRMA QR-code.)
+    /// with an Yivi QR-code.)
     ///
     /// When the user has been authenticated, the handle can be passed to
     /// the grant_auth method of the Oidc instance.

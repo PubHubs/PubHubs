@@ -18,29 +18,19 @@ modules:
   - module: conf.modules.pseudonyms.Pseudonym
 #    Below is the example config for adding attribute based authentication to rooms, room id's will be different depending on your server.
 #    Make sure to enable server_notices system_mxid_localpart (also in homeserver.yaml) as that will be the user making the waiting rooms.
-#  - module: conf.modules.pubhubs.IrmaRoomJoiner
-#    config:
-#      {
-#        # An array of rooms to secure, will have the id of the room plus the attributes in IRMA format. Can provide
-#        # accepted attrributes as key-value pairs, leaving 'accepted' empty means any disclosure is accepted.
-#        # user_txt will be shown in the widget for the waiting room.
-#        # Default invite means users will get a waiting room on registration for the specified room.
-#        secured_rooms: [
-#           {
-#             id: "!wzHbjFuSZTDbbTNAEr:testhub.matrix.host",
-#             attributes: ["pbdf.sidn-pbdf.email.domain"],
-#             accepted: [pbdf.sidn-pbdf.email.domain: ["ru.nl"]],
-#             user_txt: "Please disclose your email here, ru.nl mail addresses will be accepted",
-#             default_invite: true
-#           },
-#         
-#        ],
-#        #  2 lines belows are optional! For (internal) development purposes.
-#        # irma_url: "http://172.17.0.1:8089",
-#        # irma_client_url: "http://172.17.0.1:8088",
-#        # Client url is necessary for redirection to the room once allowed.
-#        client_url: "http://localhost:8800",
-#      }
+  - module: conf.modules.pubhubs.YiviRoomJoiner
+    config:
+      {
+#         3 lines belows are optional! For (internal) development purposes.
+#         yivi_url: "http://<outside container>:8089",
+#         yivi_client_url: "http://<outside container>:8089",
+#         public_yivi_url: "http://<outside container>:8008/",
+
+        # Client url is necessary for redirection to the room once allowed.
+        client_url: "http://localhost:8800",
+        # The global hub client where we need to allow the hubs' terms and conditions to be shown form as an embedded page.
+        global_client_url: "http://localhost:8080"
+      }
 
 
 
@@ -88,7 +78,7 @@ pid_file: /data/homeserver.pid
 # Otherwise, it should be the URL to reach Synapse's client HTTP listener (see
 # 'listeners' below).
 #
-# to use with the irma proxy for secured rooms make sure it's publicly accessible
+# to use with the Yivi proxy for secured rooms make sure it's publicly accessible
 public_baseurl: http://localhost:8008
 
 # Set the soft limit on the number of file descriptors synapse can use
@@ -315,7 +305,6 @@ listeners:
     x_forwarded: true
 
     resources:
-#      TODO check out security conditions of adding webclient here. It's not recommended
       - names:
           - client
           - consent
@@ -1986,8 +1975,10 @@ sso:
 #
 # By default, this list is empty.
 #
-client_whitelist:
-  - http://localhost:8080/
+  client_whitelist:
+    - http://localhost
+#  - http://localhost:8081
+#  - http://localhost:8008
 #  - https://riot.im/develop
 #  - https://my.custom.client/
 
@@ -2455,7 +2446,7 @@ stats:
 #
 # It's also possible to override the room name, the display name of the
 # "notices" user, and the avatar for the user.
-# Needed for IrmaRoomJoiner module
+# Needed for YiviRoomJoiner module
 server_notices:
   system_mxid_localpart: notices_user
 #  system_mxid_display_name: "Server Notices"

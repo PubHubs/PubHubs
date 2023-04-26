@@ -20,3 +20,8 @@ dev.log
 
 # cache
 .sass-cache/
+
+# ignore client files
+static/assets/client
+global-client/
+hub-client/

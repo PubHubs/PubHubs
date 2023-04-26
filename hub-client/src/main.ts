@@ -11,6 +11,10 @@ import { routes } from '@/core/routes';
 import { focus, twClass } from '@/core/directives';
 import App from '@/pages/App.vue'
 
+import { ReplaceConsole } from '@/console';
+ReplaceConsole();
+
+
 const router = createRouter({
     history: createWebHashHistory(),
     routes: routes,

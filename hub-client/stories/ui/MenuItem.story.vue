@@ -1,10 +1,10 @@
 <template>
     <Story title="UI/Menu & MenuItem">
         <Menu>
-            <MenuItem class="dark:text-white" icon="home">Home</MenuItem>
-            <MenuItem class="dark:text-white" active="true">Default & Active</MenuItem>
-            <MenuItem class="dark:text-white" :icon="state.icon">Item</MenuItem>
-            <MenuItem class="dark:text-white" :icon="state.icon">Very long menu item too see what needs to be done with these very long items</MenuItem>
+            <MenuItem icon="home">Home</MenuItem>
+            <MenuItem active="true">Default & Active</MenuItem>
+            <MenuItem :icon="state.icon">Item</MenuItem>
+            <MenuItem :icon="state.icon">Very long menu item too see what needs to be done with these very long items</MenuItem>
         </Menu>
         <template #controls>
             <HstSelect v-model="state.icon" title="Icon" :options="iconKeys" />

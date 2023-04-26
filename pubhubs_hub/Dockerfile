@@ -1,6 +1,6 @@
-FROM golang:1.18 AS irma_build
+FROM golang:1.18 AS yivi_build
 
-RUN git clone https://github.com/privacybydesign/irmago --branch v0.11.0 --depth 1
+RUN git clone https://github.com/privacybydesign/irmago --branch v0.12.0 --depth 1
 
 WORKDIR irmago
 
@@ -10,7 +10,7 @@ RUN go install ./irma
 
 FROM matrixdotorg/synapse:latest
 
-COPY --from=irma_build /go/bin//irma /usr/bin/irma
+COPY --from=yivi_build /go/bin//irma /usr/bin/irma
 
 COPY start.sh .
 
@@ -30,6 +30,5 @@ ENV HUB_SECRET change_me
 # Use the modules and templates that are PubHubs specific. To use the modules make sure the configuration in homeserver.yaml points  to the /conf/modules. See the example config.
 COPY ./matrix_test_config/templates /conf/templates
 COPY ./modules /conf/modules
-COPY ./pub_hubs_templates /pub_hubs_templates
 
 ENTRYPOINT ["./start.sh"]

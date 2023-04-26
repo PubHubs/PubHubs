@@ -19,16 +19,16 @@ For Development or Theming see below.
 npm install
 ```
 
-Set url of the hubs-homeserver in `.env`:
+Set url of the hubs-homeserver in `public/client-config.js`:
 
 ```
-VUE_APP_BASEURL = https://localhost:8008 // Default for local development together with backend servers.
+"HUB_URL": "https://localhost:8008" // Default for local development together with backend servers.
 ```
 
-For developing/theming on the client only, create and set `.env.local` to:
+For developing/theming on the client only, set to:
 
 ```
-VUE_APP_BASEURL = https://main.testhub-matrix.ihub.ru.nl`.
+"HUB_URL": "https://main.testhub-matrix.ihub.ru.nl"
 ```
 
 [Read more about VueCLI](https://cli.vuejs.org/guide/mode-and-env.html#environment-variables) `.env` & `.env.local`.
@@ -140,23 +140,3 @@ docker run -p 8080:8080 hub-client
 ```
 npm run test
 ```
-
-# Technical overview
-
-The client is build with [TypeScript](https://www.typescriptlang.org/), [VueJS](https://vuejs.org/) for the coding and [Tailwind](https://tailwindcss.com/) for the theming.
-
-To have a jumpstart with the [Matrix API](https://spec.matrix.org/latest/) we use the [matrix-js-sdk](https://github.com/matrix-org/matrix-js-sdk). Which give us some classes (for example for Rooms and Users) and an event system.
-
-We extended the SDK classes into [Pinia](https://pinia.vuejs.org/) stores. See `./src/store`. These stores can be used in a page or component (for example the Rooms class and store):
-
-```ts
-import { Room, useRooms } from '@/store/store'
-```
-
-Calls to the SDK should not be given directly to the SKD but through the PubHubs wrapper `./src/pubhubs.ts`. Which can be injected in a page or component with:
-
-```ts
-const pubhubs:any = inject('pubhubs');
-```
-
-The Events fired by the SDK are captured and processed within `./src/core/events.ts`.

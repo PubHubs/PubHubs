@@ -27,6 +27,7 @@ pub struct Main {
     pub connection_check_nonce: String,
 
     pub admins: HashSet<String>,
+    pub allowed_embedding_contexts: Vec<String>,
     pub admin_api_key: HeaderValue,
     pub cookie_secret: String,
     pub metrics_key: String,
@@ -36,7 +37,7 @@ pub struct Main {
     pub translations: crate::translate::AllTranslations,
     pub hair: BytecodeVec,
 
-    pub irma: Irma,
+    pub yivi: Yivi,
     pub pep: crate::pseudonyms::PepContext,
     pub oidc: oidc::OidcImpl<oidc_handler::Handler>,
 
@@ -132,8 +133,8 @@ impl Main {
 
         let pep = crate::pseudonyms::PepContext::from_config(config.pep)?;
 
-        let irma = Irma::from_config(config.irma, &path_interpreter)
-            .context("failed to load irma configuration")?;
+        let yivi = Yivi::from_config(config.yivi, &path_interpreter)
+            .context("failed to load yivi configuration")?;
 
         let admin_api_key = HeaderValue::from_str(&having_debug_default(
             config.admin_api_key,
@@ -227,8 +228,9 @@ impl Main {
                 bind_to: config.bind_to,
                 connection_check_nonce,
                 pep,
-                irma,
+                yivi,
                 admins: config.admins,
+                allowed_embedding_contexts: config.allowed_embedding_contexts,
                 admin_api_key,
                 cookie_secret,
                 metrics_key,
@@ -277,10 +279,7 @@ impl Main {
         if let Some(id) = req.user_id_from_cookie(&self.cookie_secret) {
             let (tx, rx) = oneshot::channel();
             self.db_tx
-                .send(crate::data::DataCommands::GetUserById {
-                    resp: tx,
-                    id: id as u32,
-                })
+                .send(crate::data::DataCommands::GetUserById { resp: tx, id })
                 .await
                 .unwrap();
             let user = rx.await.unwrap().unwrap();
@@ -288,9 +287,13 @@ impl Main {
         }
         false
     }
+
+    pub fn global_client_uri(&self) -> &str {
+        "/client"
+    }
 }
 
-pub struct Irma {
+pub struct Yivi {
     pub server_url: String,
     pub client_url: String,
     pub requestor: String,
@@ -299,12 +302,12 @@ pub struct Irma {
     pub server_key: jsonwebtoken::DecodingKey,
 }
 
-impl Irma {
-    fn from_config(config: crate::config::Irma, pi: impl Fn(&str) -> PathBuf) -> Result<Self> {
+impl Yivi {
+    fn from_config(config: crate::config::Yivi, pi: impl Fn(&str) -> PathBuf) -> Result<Self> {
         let server_key_file = having_debug_default(
             config.server_key_file,
-            "../docker_irma/jwt.pub",
-            "irma.server_key_file",
+            "../docker_yivi/jwt.pub",
+            "yivi.server_key_file",
         )?;
 
         // pi interprets server key file's location relative to
@@ -327,11 +330,11 @@ impl Irma {
             requestor_hmac_key: crate::jwt::HS256(
                 Base64::decode_vec(&having_debug_default(
                     config.requestor_hmac_key,
-                    "aXJtYV9yZXF1ZXN0b3Jfa2V5", // base64.encodebytes(b"irma_requestor_key")
-                    "irma.requestor_hmac_key",
+                    "aXJtYV9yZXF1ZXN0b3Jfa2V5", // base64.encodebytes(b"yivi_requestor_key")
+                    "yivi.requestor_hmac_key",
                 )?)
                 .map_err(|e| anyhow!(e)) // because B64Error does not implement StdError
-                .context("expected base64-encoded irma requestor hmac key")?,
+                .context("expected base64-encoded yivi requestor hmac key")?,
             ),
 
             server_issuer: config.server_issuer,

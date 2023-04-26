@@ -1,5 +1,5 @@
 <template>
-    <HeaderFooter v-if="rooms.currentRoomExists">
+    <HeaderFooter v-if="rooms.currentRoomExists" class="pl-3">
         <template #header>
             <div class="flex">
                 <Icon type="room" class="text-blue mt-2" size="lg"></Icon>

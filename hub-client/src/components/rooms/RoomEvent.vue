@@ -1,5 +1,5 @@
 <template>
-    <div v-if="settings.isVisibleEventType(event.type)" class="flex flex-row space-x-4 mb-8">
+    <div v-if="hubSettings.isVisibleEventType(event.type)" class="flex flex-row space-x-4 mb-8">
         <Avatar :class="bgColor(userColor)"></Avatar>
         <div class="w-full">
             <H3 :class="textColor(userColor)">
@@ -13,10 +13,10 @@
 </template>
 
 <script setup lang="ts">
-    import { useSettings } from '@/store/store'
+    import { useHubSettings } from '@/store/store'
     import { useUserColor } from '@/composables/useUserColor';
 
-    const settings = useSettings();
+    const hubSettings = useHubSettings();
     const {color,textColor,bgColor} = useUserColor();
 
     const props = defineProps({

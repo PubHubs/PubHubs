@@ -13,10 +13,8 @@ class Events {
 
     initEvents() {
         return new Promise((resolve) => {
-            console.debug('initEvents');
             const self = this;
             this.client.on( ClientEvent.Sync, (state: any) => {
-                console.debug('SYNC: ', state);
 
                 if (state=="PREPARED") {
                     // this.client.on("event", (event) => {
@@ -60,7 +58,9 @@ class Events {
             }
             else {
                 rooms.addMatrixRoom(room);
-                if (event.event.type == 'm.room.message' && room.roomId!==rooms.currentRoomId) rooms.rooms[room.roomId].unreadMessages++;
+                if (event.event.type == 'm.room.message' && room.roomId!==rooms.currentRoomId) {
+                    rooms.addRoomUnreadMessages(room.roomId);
+                }
             }
         }
     }

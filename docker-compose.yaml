@@ -1,9 +1,9 @@
 version: "3"
 services:
-  irma:
-    container_name: irma
+  yivi:
+    container_name: yivi
     build:
       context: $PWD
-      dockerfile: docker_irma/Dockerfile
+      dockerfile: docker_yivi/Dockerfile
     ports:
       - "8088:8088"

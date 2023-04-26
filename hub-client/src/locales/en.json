@@ -1,4 +1,18 @@
 {
+  "dialog" : {
+    "ok" : "Ok",
+    "cancel" : "Cancel",
+    "close" : "Close",
+    "yes" : "Yes",
+    "no" : "No",
+    "submit" : "Submit",
+    "title_sure" : "Are you sure?"
+  },
+  "errors" : {
+    "error" : "Unfortanatly an error occured. Please contact opthe developers.\n\n {0}",
+    "server" : "Server error",
+    "M_LIMIT_EXCEEDED" : "Too much login attempts. Try again in {0} seconds."
+  },
   "file": {
     "file": "File"
   },
@@ -6,10 +20,12 @@
     "submit": "Submit"
   },
   "home": {
-    "welcome": "Welcome to <a href=\"https://pubhubs.net\">PubHubs</a>.<br>PubHubs is a community platform based on public values."
+    "welcome": "Welcome to <a href=\"https://pubhubs.net\">PubHubs</a>.<br>PubHubs is a community platform based on public values.",
+    "highlighted_hubs" : "Highlighted Hubs"
   },
   "login": {
-    "login": "Login"
+    "login": "Login",
+    "global_login": "Login to PubHubs"
   },
   "logout": {
     "logout": "Logout",
@@ -30,7 +46,7 @@
     "search": "search"
   },
   "rooms": {
-    "leave_sure": "Do you realy won't to leave this room?",
+    "leave_sure": "Do you really want to leave this room?",
     "new_message": "Type your message here",
     "private_rooms": "Private rooms",
     "rooms": "Rooms",

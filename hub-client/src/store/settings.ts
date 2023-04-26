@@ -1,14 +1,10 @@
 /**
  * This store is used for global and user settings.
- *
- * with:
- * - definition (Name)
- * - defaults - defaults of this store (defaultName)
- * - the store itself (useName)
- *
  */
 
 import { defineStore } from 'pinia'
+
+import { MessageType,Message,useMessageBox } from '@/store/messagebox';
 
 
 enum Theme {
@@ -17,7 +13,6 @@ enum Theme {
     Dark = 'dark',
 }
 
-
 interface Settings {
 
     /**
@@ -25,12 +20,6 @@ interface Settings {
      */
 
     pagination: number,
-
-    /**
-     * What message types will be visible as a normal message
-     */
-
-    visibleEventTypes: string[],
 
     /**
      * UI theme: system|dark|light
@@ -42,9 +31,8 @@ interface Settings {
 
 
 const defaultSettings: Settings = {
-    theme : Theme.System,
+    theme : Theme.Dark,
     pagination: 50,
-    visibleEventTypes: ['m.room.message'],
 }
 
 
@@ -57,9 +45,6 @@ const useSettings = defineStore('settings', {
     getters: {
 
         getPagination: (state: Settings) => state.pagination,
-
-        getVisibleEventTypes: (state: Settings) => state.visibleEventTypes,
-
 
         /**
          * Get theme set in preferences
@@ -103,10 +88,6 @@ const useSettings = defineStore('settings', {
             return options;
         },
 
-        isVisibleEventType : (state) => (type:string) => {
-            return state.visibleEventTypes.includes(type);
-        }
-
     },
 
     actions: {
@@ -116,8 +97,19 @@ const useSettings = defineStore('settings', {
         },
 
         setTheme(newTheme:Theme) {
-            this.theme = newTheme;
-        }
+            if (this.theme !== newTheme) {
+                this.theme = newTheme;
+                this.sendSettings();
+            }
+        },
+
+        sendSettings() {
+            const currentSettings = {
+                theme : this.theme,
+            }
+            const messagebox = useMessageBox();
+            messagebox.sendMessage( new Message(MessageType.Settings,currentSettings) );
+        },
 
     },
 

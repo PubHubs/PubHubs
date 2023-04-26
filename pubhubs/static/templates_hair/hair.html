@@ -44,7 +44,8 @@
             <th>id</th>
             <th>{{=tr("Name","Naam")}}</th>
             <th>{{=tr("Description","Omschrijving")}}</th>
-            <th>{{=tr("Redirection_uri","Omleidings URI")}}</th>
+            <th>{{=tr("OIDC Redirect URI","OIDC terugverwijzings URI")}}</th>
+            <th>{{=tr("Client URI","client URI")}}</th>
             <th>{{=tr("Detail","Detail")}}</th>
           </tr>
         </thead>
@@ -53,7 +54,8 @@
           <td>{{=hub.id}}</td>
           <td>{{=hub.name}}</td>
           <td>{{=hub.description}}</td>
-          <td>{{=hub.redirection_uri}}</td>
+          <td>{{=hub.oidc_redirect_uri}}</td>
+          <td>{{=hub.client_uri}}</td>
           <td>
             <a class="detail-style" href="/admin/hubs/{{=hub.id}}"> + </a>
           </td>
@@ -83,15 +85,28 @@
           />
         </div>
         <div>
-          <label for="redirection_uri"
-            >{{=tr("enter_redirection","Voer omleidings URI in:")}}
+          <label for="oidc_redirect_uri"
+            >{{=tr("enter_oidc_redirect_uri","Voer OIDC terugverwijzings URI in:")}}
           </label>
           <input
             type="text"
-            name="redirection_uri"
-            id="redirection_uri"
+            name="oidc_redirect_uri"
+            id="oidc_redirect_uri"
             size="60"
-            placeholder="e.g., http://hub-url/_synapse/client/oidc/callback"
+            placeholder="e.g., http://hub.url/_synapse/client/oidc/callback"
+            required
+          />
+        </div>
+        <div>
+          <label for="client_uri"
+            >{{=tr("enter_client_uri","Voer client URI in")}}
+          </label>
+          <input
+            type="text"
+            name="client_uri"
+            id="client_uri"
+            size="60"
+            placeholder="e.g., http://client.url"
             required
           />
         </div>
@@ -114,7 +129,7 @@
         <dt>Hub name:</dt>
         <dd>{{=name}}</dd>
         <dt>Decryption key:</dt>
-        <dd>||{{=key}}^^</dd>
+        <dd>{{=key}}</dd>
         <dt>OpenID Connect Client ID:</dt>
         <dd>{{=oidc_client_id}}</dd>
         <dt>OpenID Connect Client Password:</dt>
@@ -129,6 +144,7 @@
 
     <div class="update-hub-form">
       <div class="header">Update Hub Information</div>
+      <div class="warning">{{=tr("update_hub_warning","WAARSCHUWING:  het wijzigen van de naam of de OIDC terugverwijzings-URI doet de huidige OpenID Connect Client ID en Client Password vervallen")}}</div>
       <form method="post">
         <div>
           <label for="name">{{=tr("enter_name","Voer naam in:")}} </label>
@@ -151,6 +167,32 @@
             id="description"
             size="80"
             value="{{=description}}"
+            required
+          />
+        </div>
+        <div>
+          <label for="oidc_redirect_uri"
+            >{{=tr("enter_description","Voer OpenID Connect terugverwijzings URI in:")}}
+          </label>
+          <input
+            type="text"
+            name="oidc_redirect_uri"
+            id="oidc_redirect_uri"
+            size="80"
+            value="{{=oidc_redirect_uri}}"
+            required
+          />
+        </div>
+        <div>
+          <label for="client_uri"
+            >{{=tr("enter_description","Voer client URI in:")}}
+          </label>
+          <input
+            type="text"
+            name="client_uri"
+            id="client_uri"
+            size="80"
+            value="{{=client_uri}}"
             required
           />
         </div>
@@ -201,24 +243,7 @@
 </div>
 <div class="container bg-primary">
     <div class="row">
-        <div class="col">
-            <div class="card bg-white m-3 p-4 mb-0">
-                <h2>{{=tr("hub_overview","Hub overzicht")}} {{call spraak}}</h2>
-                {{for hub in hubs}}
-                <div class="container">
-                    <div class="row">
-                        <div class="col-md-auto">
-                            {{call spraak with {width: 40, class: "secondary-speech"}}}
-                        </div>
-                        <div class="col">
-                            <h2>{{=hub.name}}</h2>
-                            <p>{{=hub.description}}</p>
-                        </div>
-                    </div>
-                </div>
-                {{end}}
-            </div>
-        </div>
+
         <div class="col">
             <div class="container bg-primary">
                 <div class="col">
@@ -231,9 +256,11 @@
                     </div>
                 </div>
                 <div class="col">
-                    <div class="card bg-white m-3 p-4 mb-0">
-                        <h4>Account verwijderen {{call spraak}}</h4>
-                    </div>
+	            <a href="{{=global_client_uri}}">
+		        <div class="card bg-white m-3 p-4 mb-0">
+		            <h4>Ga door naar PubHubs Client {{call spraak}}</h4>
+		        </div>
+		    </a>
                 </div>
             </div>
         </div>
@@ -256,14 +283,14 @@
                     <div class="row h-100">
                         <div class="col d-flex align-items-center">
                             <div>
-                                <h2 class="text-white ">{{if !register}}Log in{{else}}{{=tr("register","Registreer")}}{{endif}} {{=tr("with", "met")}} <span class="align-middle">{{call irmalogo}}</span></h2>
-                                <h5 class="text-white ">{{=tr("scan","Scan de QR code met je IRMA app")}}.</h5>
-                                <p><a href="https://irma.app/ -middle">{{=tr("login_trouble","Problemen met inloggen")}}?</a></p>
+                                <h2 class="text-white ">{{if !register}}Log in{{else}}{{=tr("register","Registreer")}}{{endif}} {{=tr("with", "met")}} <span class="align-middle">{{call yivilogo}}</span></h2>
+                                <h5 class="text-white ">{{=tr("scan","Scan de QR code met je Yivi app")}}.</h5>
+                                <p><a href="https://yivi.app">{{=tr("login_trouble","Problemen met inloggen")}}?</a></p>
                             </div>
                         </div>
                         <div class="col d-flex align-items-center">
-                            <div id="irma-modal" hidden></div>
-                            <div id="irma-status"></div>
+                            <div id="yivi-modal" hidden></div>
+                            <div id="yivi-status"></div>
                         </div>
                     </div>
                 </div>
@@ -290,8 +317,8 @@
             <div class="card bg-light m-3 p-4 mb-0">
                 <h3>{{=tr("whats_ph","Wat is PubHubs")}}?</h3>
                 <p>{{=tr("answer_ph","Een netwerk van aparte hubs voor sociaal contact en informatie, zie")}} <a href="https://pubhubs.net">pubhubs.net</a></p>
-                <h3>{{=tr("whats_irma","Wat is IRMA")}}?</h3>
-                <p>{{=tr("answer_irma","Een app voor privacy-vriendelijk inloggen, zie")}} <a href="https://irma.app">irma.app</a></p>
+                <h3>{{=tr("whats_yivi","Wat is Yivi")}}?</h3>
+                <p>{{=tr("answer_yivi","Een app voor privacy-vriendelijk inloggen, zie")}} <a href="https://yivi.app">yivi.app</a></p>
             </div>
             <div class="card bg-white m-3 p-4 mb-0">
                 <div class="container">
@@ -310,59 +337,63 @@
     </div>
 </div>
 
-<script src="/js/irma.js"></script>
+<script src="/js/yivi.js"></script>
 <script type="text/javascript">
     let oidc_handle = {{=oidc_auth_request_handle}};
     let register = {{=register}};
     let url_prefix = {{=url_prefix}};
-    window.irmaLoginWithDetailsProvided = () => {
-        irmaLogin(url_prefix, register, oidc_handle);
+    window.yiviLoginWithDetailsProvided = () => {
+        yiviLogin(url_prefix, register, oidc_handle);
     }
     // pageshow is also invoked when the page is reloaded from the back/forward cache,
     // see https://web.dev/bfcache/ and issue #25
-    window.addEventListener('pageshow', () => window.irmaLoginWithDetailsProvided());
+    window.addEventListener('pageshow', () => window.yiviLoginWithDetailsProvided());
 </script>
 
 {{enddefine}}
-{{define irmalogo defaults { width: 15}}}
-<svg width="{{=width}}%"  viewBox="0 0 170 170" version="1.1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" xml:space="preserve" xmlns:serif="http://www.serif.com/" style="fill-rule:evenodd;clip-rule:evenodd;stroke-linejoin:round;stroke-miterlimit:1.41421;">
-    <g transform="matrix(1,0,0,1,-0.588574,-0.544313)">
-        <g id="Rounded_Rectangle_1_1_" transform="matrix(0.945114,-0.32674,0.32674,0.945114,-8.94903,58.0541)">
-            <g transform="matrix(0.945114,0.32674,-0.32674,0.945114,23.6518,-9.46055)">
-                <path d="M33.906,116.205C29.989,116.205 26.567,113.866 25.389,110.385L4.684,49.145C3.134,44.563 5.885,39.476 10.816,37.805L109.378,4.405C110.432,4.048 111.523,3.866 112.619,3.866C116.536,3.866 119.959,6.205 121.137,9.687L141.842,70.926C143.392,75.507 140.641,80.595 135.71,82.267L37.147,115.666C36.093,116.024 35.003,116.205 33.906,116.205L33.906,116.205Z" style="fill:#d44454;fill-rule:nonzero;"/>
-                <path d="M112.619,7.116C115.084,7.116 117.302,8.492 118.057,10.728L138.762,71.967C139.74,74.857 137.906,78.09 134.665,79.189L36.103,112.588C35.369,112.837 34.627,112.954 33.905,112.954C31.44,112.954 29.222,111.578 28.466,109.343L7.762,48.104C6.784,45.214 8.619,41.98 11.859,40.883L110.421,7.483C111.154,7.234 111.897,7.116 112.619,7.116M112.619,0.616C111.167,0.616 109.725,0.855 108.335,1.326L9.773,34.726C3.145,36.972 -0.519,43.907 1.605,50.186L22.31,111.424C23.935,116.227 28.595,119.453 33.907,119.453C35.359,119.453 36.801,119.215 38.192,118.743L136.753,85.344C143.381,83.097 147.045,76.161 144.921,69.883L124.214,8.646C122.59,3.843 117.93,0.616 112.619,0.616Z" style="fill:#d44454;fill-rule:nonzero;"/>
-            </g>
-            <g transform="matrix(0.945114,0.32674,-0.32674,0.945114,38.5375,-37.9081)">
-                <path d="M33.906,116.205C29.989,116.205 26.567,113.866 25.389,110.385L4.684,49.145C3.134,44.563 5.885,39.476 10.816,37.805L109.378,4.405C110.432,4.048 111.523,3.866 112.619,3.866C116.536,3.866 119.959,6.205 121.137,9.687L141.842,70.926C143.392,75.507 140.641,80.595 135.71,82.267L37.147,115.666C36.093,116.024 35.003,116.205 33.906,116.205L33.906,116.205Z" style="fill:#ffbb58;fill-rule:nonzero;"/>
-                <path d="M112.619,7.116C115.084,7.116 117.302,8.492 118.057,10.728L138.762,71.967C139.74,74.857 137.906,78.09 134.665,79.189L36.103,112.588C35.369,112.837 34.627,112.954 33.905,112.954C31.44,112.954 29.222,111.578 28.466,109.343L7.762,48.104C6.784,45.214 8.619,41.98 11.859,40.883L110.421,7.483C111.154,7.234 111.897,7.116 112.619,7.116M112.619,0.616C111.167,0.616 109.725,0.855 108.335,1.326L9.773,34.726C3.145,36.972 -0.519,43.907 1.605,50.186L22.31,111.424C23.935,116.227 28.595,119.453 33.907,119.453C35.359,119.453 36.801,119.215 38.192,118.743L136.753,85.344C143.381,83.097 147.045,76.161 144.921,69.883L124.214,8.646C122.59,3.843 117.93,0.616 112.619,0.616Z" style="fill:#ffbb58;fill-rule:nonzero;"/>
-            </g>
-            <g transform="matrix(0.872113,0.489304,-0.489304,0.872113,33.7109,-39.4445)">
-                <path d="M33.906,116.205C29.989,116.205 26.567,113.866 25.389,110.385L4.684,49.145C3.134,44.563 5.885,39.476 10.816,37.805L109.378,4.405C110.432,4.048 111.523,3.866 112.619,3.866C116.536,3.866 119.959,6.205 121.137,9.687L141.842,70.926C143.392,75.507 140.641,80.595 135.71,82.267L37.147,115.666C36.093,116.024 35.003,116.205 33.906,116.205L33.906,116.205Z" style="fill:#2bc194;fill-rule:nonzero;"/>
-                <path d="M112.619,7.116C115.084,7.116 117.302,8.492 118.057,10.728L138.762,71.967C139.74,74.857 137.906,78.09 134.665,79.189L36.103,112.588C35.369,112.837 34.627,112.954 33.905,112.954C31.44,112.954 29.222,111.578 28.466,109.343L7.762,48.104C6.784,45.214 8.619,41.98 11.859,40.883L110.421,7.483C111.154,7.234 111.897,7.116 112.619,7.116M112.619,0.616C111.167,0.616 109.725,0.855 108.335,1.326L9.773,34.726C3.145,36.972 -0.519,43.907 1.605,50.186L22.31,111.424C23.935,116.227 28.595,119.453 33.907,119.453C35.359,119.453 36.801,119.215 38.192,118.743L136.753,85.344C143.381,83.097 147.045,76.161 144.921,69.883L124.214,8.646C122.59,3.843 117.93,0.616 112.619,0.616Z" style="fill:#2bc194;fill-rule:nonzero;"/>
-            </g>
-            <g transform="matrix(0.876971,0.480544,-0.480544,0.876971,56.23,-21.0767)">
-                <path d="M33.906,116.205C29.989,116.205 26.567,113.866 25.389,110.385L4.684,49.145C3.134,44.563 5.885,39.476 10.816,37.805L109.378,4.405C110.432,4.048 111.523,3.866 112.619,3.866C116.536,3.866 119.959,6.205 121.137,9.687L141.842,70.926C143.392,75.507 140.641,80.595 135.71,82.267L37.147,115.666C36.093,116.024 35.003,116.205 33.906,116.205L33.906,116.205Z" style="fill:#00b1e6;fill-rule:nonzero;"/>
-                <path d="M112.619,7.116C115.084,7.116 117.302,8.492 118.057,10.728L138.762,71.967C139.74,74.857 137.906,78.09 134.665,79.189L36.103,112.588C35.369,112.837 34.627,112.954 33.905,112.954C31.44,112.954 29.222,111.578 28.466,109.343L7.762,48.104C6.784,45.214 8.619,41.98 11.859,40.883L110.421,7.483C111.154,7.234 111.897,7.116 112.619,7.116M112.619,0.616C111.167,0.616 109.725,0.855 108.335,1.326L9.773,34.726C3.145,36.972 -0.519,43.907 1.605,50.186L22.31,111.424C23.935,116.227 28.595,119.453 33.907,119.453C35.359,119.453 36.801,119.215 38.192,118.743L136.753,85.344C143.381,83.097 147.045,76.161 144.921,69.883L124.214,8.646C122.59,3.843 117.93,0.616 112.619,0.616Z" style="fill:#00b1e6;fill-rule:nonzero;"/>
-            </g>
-        </g>
-        <g id="Rounded_Rectangle_1_1_1" serif:id="Rounded_Rectangle_1_1_" transform="matrix(1,0,0,1,12.3739,26.4544)">
-            <g>
-                <path d="M33.906,116.205C29.989,116.205 26.567,113.866 25.389,110.385L4.684,49.145C3.134,44.563 5.885,39.476 10.816,37.805L109.378,4.405C110.432,4.048 111.523,3.866 112.619,3.866C116.536,3.866 119.959,6.205 121.137,9.687L141.842,70.926C143.392,75.507 140.641,80.595 135.71,82.267L37.147,115.666C36.093,116.024 35.003,116.205 33.906,116.205L33.906,116.205Z" style="fill:#004c92;fill-rule:nonzero;"/>
-                <path d="M112.619,7.116C115.084,7.116 117.302,8.492 118.057,10.728L138.762,71.967C139.74,74.857 137.906,78.09 134.665,79.189L36.103,112.588C35.369,112.837 34.627,112.954 33.905,112.954C31.44,112.954 29.222,111.578 28.466,109.343L7.762,48.104C6.784,45.214 8.619,41.98 11.859,40.883L110.421,7.483C111.154,7.234 111.897,7.116 112.619,7.116M112.619,0.616C111.167,0.616 109.725,0.855 108.335,1.326L9.773,34.726C3.145,36.972 -0.519,43.907 1.605,50.186L22.31,111.424C23.935,116.227 28.595,119.453 33.907,119.453C35.359,119.453 36.801,119.215 38.192,118.743L136.753,85.344C143.381,83.097 147.045,76.161 144.921,69.883L124.214,8.646C122.59,3.843 117.93,0.616 112.619,0.616Z" style="fill:#fff;fill-rule:nonzero;"/>
-            </g>
-        </g>
-        <g id="IRMA_1_" transform="matrix(1,0,0,1,12.3739,26.4544)">
-            <clipPath id="_clip1">
-                <path d="M139.203,72.585L128.166,39.679L135.507,39.343L146.64,71.321L146.64,0L0,0L0,120.72L146.64,120.72L146.64,73.073L139.203,72.585Z"/>
-            </clipPath>
-            <g clip-path="url(#_clip1)">
-                <rect x="42.199" y="40.296" width="6.083" height="32.149" style="fill:#fff;fill-rule:nonzero;"/>
-                <path d="M55.331,40.296L66.484,40.296C69.767,40.296 72.438,41.26 74.498,43.19C76.559,45.119 77.59,47.507 77.59,50.355C77.59,52.376 77.026,54.19 75.899,55.797C74.774,57.404 73.245,58.606 71.314,59.402L78.796,72.445L72.086,72.445L65.568,60.32L61.415,60.32L61.415,72.445L55.332,72.445L55.332,40.296L55.331,40.296ZM66.484,45.624L61.415,45.624L61.415,54.993L66.484,54.993C67.932,54.993 69.091,54.564 69.96,53.707C70.829,52.85 71.264,51.717 71.264,50.309C71.264,48.931 70.829,47.806 69.96,46.933C69.091,46.06 67.932,45.624 66.484,45.624Z" style="fill:#fff;fill-rule:nonzero;"/>
-                <path d="M101.017,63.91L96.001,63.893L89.512,52.478L89.512,72.444L83.429,72.444L83.429,40.296L88.836,40.296L98.491,57.426L108.196,40.296L113.555,40.296L113.555,72.445L107.472,72.445L107.472,52.513L101.017,63.91Z" style="fill:#fff;fill-rule:nonzero;"/>
-                <path d="M139.772,72.445L137.608,65.602L126.101,65.602L123.936,72.445L117.322,72.445L128.764,40.296L134.897,40.296L146.338,72.445L139.772,72.445ZM131.854,47.506L127.596,60.871L136.112,60.871L131.854,47.506Z" style="fill:#fff;fill-rule:nonzero;"/>
-            </g>
-        </g>
-    </g>
+{{define yivilogo defaults { width: 40}}}
+<svg version="1.1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" x="0px" y="0px"
+                               width="{{=width}}%" viewBox="0 0 1190.55 841.89" enable-background="new 0 0 1190.55 841.89"
+                               xml:space="preserve">
+<g id="Layer_1">
+</g>
+    <g id="Laag_1">
+	<g>
+		<polygon fill="#3EA6DE" points="552.844,309.725 637.883,538.174 722.922,538.174 637.883,309.725 		"/>
+        <path fill="#E02146" d="M802.842,245.254c0-24.512,19.426-45.326,47.639-45.326s47.639,20.814,47.639,45.326
+			s-19.426,45.789-47.639,45.789S802.842,269.766,802.842,245.254z"/>
+        <g>
+			<polygon fill="#97C6DD" points="893,309.725 893,309.727 893,538.174 893.002,538.174 978.041,309.725 			"/>
+            <polygon fill="#E02146" points="893,309.725 807.961,309.725 807.961,538.174 807.961,538.174 893,309.727 			"/>
+            <polygon fill="#6A2E4A" points="807.961,538.174 893,538.174 893,309.727 			"/>
+		</g>
+        <g>
+			<polygon fill="#97C6DD" points="552.844,309.725 552.842,309.727 552.842,538.174 552.844,538.174 637.885,309.725 			"/>
+            <polygon fill="#E02146" points="552.842,309.725 467.803,309.725 467.803,538.174 467.805,538.174 552.842,309.727 			"/>
+            <polygon fill="#6A2E4A" points="467.805,538.174 552.842,538.174 552.842,309.727 			"/>
+		</g>
+        <path fill="#E02146" d="M297.725,538.174c-7.635,20.516-18.471,25.9-36.51,25.9c-11.562,0-20.77-1.85-29.49-4.625l-1.441,61.051
+			c11.947,3.238,27.178,4.625,40.59,4.625c59.201,0,87.168-20.521,105.021-68.488l6.871-18.463H297.725z"/>
+        <polygon fill="#E02146" points="552.844,309.725 637.883,538.174 722.922,538.174 637.883,309.725 		"/>
+        <path fill="#E02146" d="M462.686,245.254c0-24.512,19.424-45.326,47.637-45.326s47.639,20.814,47.639,45.326
+			s-19.426,45.789-47.639,45.789S462.686,269.766,462.686,245.254z"/>
+	</g>
+        <g>
+		<polygon fill="#6A2E4A" points="722.922,309.725 680.402,423.963 722.922,538.174 722.924,538.174 807.963,309.725 		"/>
+	</g>
+        <g>
+		<polygon fill="#6A2E4A" points="382.764,309.725 340.246,423.963 382.766,538.174 382.766,538.174 467.805,309.725 		"/>
+	</g>
+        <polygon fill="#E02146" points="212.686,309.725 297.725,538.174 382.766,538.174 297.727,309.725 	"/>
+        <g>
+		<polygon fill="#97C6DD" points="297.727,309.725 297.727,309.725 297.727,309.727 		"/>
+            <polygon fill="#E02146" points="212.686,309.725 212.686,309.727 212.686,309.725 		"/>
+            <polygon fill="#6A2E4A" points="297.727,309.725 212.686,309.725 212.686,309.727 255.205,423.967 297.727,309.727 		"/>
+            <polygon fill="#BA3353" points="637.883,309.725 552.844,309.725 552.844,309.727 595.363,423.967 637.883,309.727 		"/>
+            <polygon fill="#BA3353" points="637.883,538.178 722.924,538.178 722.924,538.176 680.402,423.967 637.883,538.176 		"/>
+            <polygon fill="#BA3353" points="297.725,538.178 382.766,538.178 382.766,538.176 340.246,423.967 297.725,538.176 		"/>
+	</g>
+</g>
 </svg>
 {{enddefine}}
 {{define pubhubslogo defaults { width: 100}}}

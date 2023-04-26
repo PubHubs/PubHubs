@@ -5,6 +5,8 @@ import { Authentication } from '@/core/authentication';
 import { Events } from '@/core/events';
 
 import { useSettings, useUser, useRooms } from '@/store/store';
+import { i18n } from '../i18n';
+
 
 
 class PubHubs {
@@ -25,14 +27,20 @@ class PubHubs {
         this.user = useUser();
 
         logger.getLogger('matrix').setLevel(5);
+        const css = "color:#3EA439;font-weight:bold;"
         console.info(' ');
-        console.info('[============= PubHubs ================]');
-        console.debug(' ');
-
-        this.startClient();
+        console.info('%c[=== PubHubs Hub Client @' + window.location.href + ' ===]',css);
+        console.info('%c[=== Use the console wisely ;-)',css);
+        console.info(' ');
     }
 
-    startClient() {
+    centralLogin() {
+        // @ts-ignore
+        const centralLoginUrl = _env.PARENT_URL + '/login';
+        window.top?.location.replace(centralLoginUrl);
+    }
+
+    login() {
         const self = this;
         this.Auth.login().then( (client:any) => {
             self.client = client as MatrixClient;
@@ -70,7 +78,8 @@ class PubHubs {
     }
 
     showError(error:string) {
-        const message = "Helaas, er is een fout opgetreden. Neem contact op met de developers.\n\n" + error;
+        const { t } = i18n.global;
+        const message = t('errors.error',error);
         this.showDialog(message);
     }
 

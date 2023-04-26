@@ -18,5 +18,9 @@ docker pull registry.science.ru.nl/ilab/pubhubs_canonical/pubhubs_client:main
 
 ```shell
 
-docker run --env VUE_APP_BASEURL=<url-to-hub-server>  -p 8800:8800 registry.science.ru.nl/ilab/pubhubs_canonical/pubhubs_client:main
+docker run --env 'BAR_URL=frame-ancestors https://<central_platform_url>;' --env 'HUB_URL=https://<hub_url>' --env 'PARENT_URL=https://<central_platform_url>'  -p 8800:8800 registry.science.ru.nl/ilab/pubhubs_canonical/pubhubs_client:main
 ```
+
+`<central_platform_url>` is the url of the global client since the client needs to be embedded in it.
+
+`<hub_url>` is the url of the associated hub of the client.

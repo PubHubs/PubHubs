@@ -26,10 +26,10 @@ rusqlite = {version = "0.28.0", features = ["bundled"]}
 rand = "0.8"
 
 # for ed25519_dalek, see https://stackoverflow.com/questions/65562447/the-trait-rand-corecryptorng-is-not-implemented-for-osrng
-rand_07 = { package = "rand", version = "0.7" }
+#rand_07 = { package = "rand", version = "0.7" }
 
 
-# IRMA interaction
+# Yivi interaction
 regex = "1.5"
 qrcode = "0.12"
 chrono = {version="0.4", default_features = false, features = ["clock"]}
@@ -51,14 +51,14 @@ log = "0.4"
 jsonwebtoken = "8.1"  # uses non RustCrypto - perhaps replace?
 actix-web = "4.2"
 actix-files = "0.6"
-# Proxying requests to IRMA and connection check
-awc = { version = "3.0", features = ["openssl"] }
+# Proxying requests to Yivi and connection check
+awc = { version = "3.1", features = ["openssl"] }
 
 # RustCrypto packages
 hmac = "0.12"
 sha2 = "0.10"
-base64ct = {version = "1.5", features = ["alloc"]}
-base16ct = {version = "0.1", features = ["alloc"]} # hex
+base64ct = {version = "1.6", features = ["alloc"]}
+base16ct = {version = "0.2", features = ["alloc"]} # hex
 chacha20poly1305 = "0.10"
 aead = "0.5"
 generic-array = "0.14"

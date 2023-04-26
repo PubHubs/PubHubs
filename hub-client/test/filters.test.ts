@@ -17,3 +17,15 @@ test('localeDateFromTimestamp', () => {
     const timestamp = Date.now();
     expect(filters.localeDateFromTimestamp(timestamp)).toBeTypeOf('string');
 })
+
+test('removeBackSlash', () => {
+    let url = "https://main.testhub-matrix.ihub.ru.nl/";
+    expect( filters.removeBackSlash(url)).toBeTypeOf('string');
+    expect( filters.removeBackSlash(url)).toEqual("https://main.testhub-matrix.ihub.ru.nl");
+
+    url = "https://main.testhub-matrix.ihub.ru.nl";
+    expect( filters.removeBackSlash(url)).toBeTypeOf('string');
+    expect( filters.removeBackSlash(url)).toEqual("https://main.testhub-matrix.ihub.ru.nl");
+})
+
+

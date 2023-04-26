@@ -61,4 +61,8 @@ docker run -p 8008:8008 --mount "type=bind,src=<absolute_path>/hub,dst=/data"  -
 
 A `templates` directory can be created specifying the terms and conditions of the Hub. See sample in pubhubs repository `pubhubs_hub/matrix_test_config/templates`.
 
+## Hub administration
+
+The hub itself is using [the Synapse server](https://github.com/matrix-org/synapse), for some hints on its administration see the [instructions](synapse_admin.md).
+
 [Client Instructions &rarr;](../client/README.md)

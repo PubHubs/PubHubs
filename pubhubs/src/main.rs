@@ -1,5 +1,5 @@
 use actix_web::http::header::{CONTENT_TYPE, LOCATION, SET_COOKIE};
-use actix_web::{App, HttpRequest, HttpResponse, HttpServer, Responder};
+use actix_web::{App, HttpRequest, HttpResponse, HttpResponseBuilder, HttpServer, Responder};
 
 use std::fmt::{Debug, Formatter};
 
@@ -18,15 +18,20 @@ use serde::{Deserialize, Serialize};
 use tokio::sync::oneshot;
 
 use expry::{key_str, value, BytecodeVec};
+use http::{header, HeaderValue};
 use prometheus::{Encoder, TextEncoder};
+use tokio::sync::mpsc::Sender;
 
 use uuid::Uuid;
 
 use pubhubs::context::Main;
+use pubhubs::data::User;
 use pubhubs::error::{AnyhowExt, TranslatedError};
 use pubhubs::hairy_ext::hairy_eval_html_translations;
 use pubhubs::middleware;
 use pubhubs::middleware::{metrics_auth, metrics_middleware};
+use pubhubs::oidc::http::actix_support::CompleteRequest;
+use pubhubs::oidc::AuthenticAuthRequestHandle;
 use pubhubs::{
     cookie::{
         accepted_policy, add_cookie, log_out_cookie, verify_cookie, HttpRequestCookieExt as _,
@@ -35,11 +40,11 @@ use pubhubs::{
         DataCommands::{self, AllHubs, CreateHub, CreateUser, GetHub, GetUser, GetUserById},
         Hub, HubHandle, Hubid,
     },
-    irma::{disclosed_email_and_telephone, login, next_session, register, SessionDataWithImage},
-    irma_proxy::{irma_proxy, irma_proxy_stream},
     oidc::Oidc as _,
     policy::{full_policy, policy, policy_accept},
     translate::Translations,
+    yivi::{disclosed_email_and_telephone, login, next_session, register, SessionDataWithImage},
+    yivi_proxy::{yivi_proxy, yivi_proxy_stream},
 };
 
 // Limit to 10KB
@@ -49,7 +54,8 @@ const PAYLOAD_MAX_SIZE: usize = 10 * 1024;
 struct HubForm {
     name: String,
     description: String,
-    redirection_uri: String,
+    oidc_redirect_uri: String,
+    client_uri: String,
 }
 
 impl Debug for HubForm {
@@ -57,7 +63,8 @@ impl Debug for HubForm {
         f.debug_struct("HubForm")
             .field("name", &self.name)
             .field("description", &self.description)
-            .field("redirection_uri", &self.redirection_uri)
+            .field("oidc_redirect_uri", &self.oidc_redirect_uri)
+            .field("client_uri", &self.client_uri)
             .finish()
     }
 }
@@ -66,6 +73,8 @@ impl Debug for HubForm {
 struct HubFormUpdate {
     name: String,
     description: String,
+    oidc_redirect_uri: String,
+    client_uri: String,
 }
 
 async fn index(req: HttpRequest) -> Result<HttpResponse, TranslatedError> {
@@ -122,7 +131,8 @@ async fn add_hub(
         .send(CreateHub {
             name: (hub.name).to_string(),
             description: (hub.description).to_string(),
-            redirection_uri: (hub.redirection_uri).to_string(),
+            oidc_redirect_uri: (hub.oidc_redirect_uri).to_string(),
+            client_uri: (hub.client_uri).to_string(),
             resp: resp_tx,
         })
         .await
@@ -130,7 +140,7 @@ async fn add_hub(
 
     match resp_rx.await {
         Ok(Ok(_)) => HttpResponse::Found()
-            .insert_header((LOCATION, format!("{}/hubs", translations.prefix())))
+            .insert_header((LOCATION, format!("{}/admin/hubs", translations.prefix())))
             .finish(),
         error => internal_server_error(
             "Could not create hub",
@@ -254,7 +264,8 @@ fn render_hub(context: &Data<Main>, hub: &Hub, translations: Translations) -> Ht
         "decryption_id": decryption_id,
         "name": hub.name,
         "description": hub.description,
-        "redirection_uri": hub.redirection_uri,
+        "oidc_redirect_uri": hub.oidc_redirect_uri,
+        "client_uri": hub.client_uri,
         "key": key,
         "content": "hub"
     })
@@ -283,6 +294,8 @@ async fn update_hub(
                     id,
                     name: hub_form.name.clone(),
                     description: hub_form.description.clone(),
+                    oidc_redirect_uri: hub_form.oidc_redirect_uri.clone(),
+                    client_uri: hub_form.client_uri.clone(),
                 })
                 .await
                 .expect("To use our channel");
@@ -401,33 +414,33 @@ pub fn bad_request(
     )
 }
 
-async fn irma_start(
+async fn yivi_start(
     request: HttpRequest,
     translations: Translations,
     context: Data<Main>,
 ) -> HttpResponse {
-    let irma_host = &context.irma.server_url;
-    let irma_requestor = &context.irma.requestor;
-    let irma_requestor_hmac_key = &context.irma.requestor_hmac_key;
+    let yivi_host = &context.yivi.server_url;
+    let yivi_requestor = &context.yivi.requestor;
+    let yivi_requestor_hmac_key = &context.yivi.requestor_hmac_key;
     let pubhubs_host = &context.url;
     let hair = &context.hair;
 
     match login(
-        irma_host,
-        irma_requestor,
-        irma_requestor_hmac_key,
+        yivi_host,
+        yivi_requestor,
+        yivi_requestor_hmac_key,
         pubhubs_host,
     )
     .await
     {
-        Ok(session) => irma_response(&session),
+        Ok(session) => yivi_response(&session),
         Err(error) => internal_server_error(
-            "We're having some trouble with IRMA",
+            "We're having some trouble with Yivi",
             hair,
             &format!(
-                "Someone tried to start an IRMA session with {} as requestor {} and got this error {:?}",
-                irma_host,
-                irma_requestor,
+                "Someone tried to start an Yivi session with {} as requestor {} and got this error {:?}",
+                yivi_host,
+                yivi_requestor,
                 error,
             ),
             &request,
@@ -436,31 +449,31 @@ async fn irma_start(
     }
 }
 
-async fn irma_register(
+async fn yivi_register(
     context: Data<Main>,
     translations: Translations,
     request: HttpRequest,
 ) -> HttpResponse {
-    let irma_host = &context.irma.server_url;
-    let irma_requestor = &context.irma.requestor;
-    let irma_requestor_hmac_key = &context.irma.requestor_hmac_key;
+    let yivi_host = &context.yivi.server_url;
+    let yivi_requestor = &context.yivi.requestor;
+    let yivi_requestor_hmac_key = &context.yivi.requestor_hmac_key;
     let pubhubs_host = &context.url;
     let hair = &context.hair;
 
     match register(
-        irma_host,
-        irma_requestor,
-        irma_requestor_hmac_key,
+        yivi_host,
+        yivi_requestor,
+        yivi_requestor_hmac_key,
         pubhubs_host,
     )
     .await
     {
-        Ok(session) => irma_response(&session),
+        Ok(session) => yivi_response(&session),
         Err(error) => internal_server_error(
-            "We're having some trouble with IRMA",
+            "We're having some trouble with Yivi",
             hair,
             &format!(
-                "Someone tried to start an IRMA sessions and got this error {:?}",
+                "Someone tried to start an Yivi sessions and got this error {:?}",
                 error,
             ),
             &request,
@@ -469,7 +482,7 @@ async fn irma_register(
     }
 }
 
-fn irma_response(session: &SessionDataWithImage) -> HttpResponse {
+fn yivi_response(session: &SessionDataWithImage) -> HttpResponse {
     let body = serde_json::to_string(&session).expect("To be able to serialize the session");
     HttpResponse::Ok()
         .insert_header((CONTENT_TYPE, "application/json"))
@@ -477,31 +490,31 @@ fn irma_response(session: &SessionDataWithImage) -> HttpResponse {
 }
 
 #[derive(Deserialize, Serialize)]
-struct IrmaFinishParams {
-    irma_token: String,
+struct YiviFinishParams {
+    yivi_token: String,
     oidc_auth_request_handle: Option<String>,
 }
 
-/// Non-API endpoint that retrieves the result of the irma session with given `token`, and either
+/// Non-API endpoint that retrieves the result of the Yivi session with given `token`, and either
 ///  - redirects the user to the oauth redirect_uri (via POST using an auto-submitting form)
-///    when the irma sessions was part of an oauth flow, or
+///    when the Yivi sessions was part of an oauth flow, or
 ///  - 303-redirects the user to their profile page otherwise.
-async fn irma_finish_and_redirect(
+async fn yivi_finish_and_redirect(
     request: HttpRequest,
     context: Data<Main>,
-    params: actix_web::web::Form<IrmaFinishParams>,
+    params: actix_web::web::Form<YiviFinishParams>,
 ) -> Result<HttpResponse, TranslatedError> {
-    irma_finish_and_redirect_anyhow(context, params)
+    yivi_finish_and_redirect_anyhow(context, params)
         .await
         .into_translated_error(&request)
 }
 
-async fn irma_finish_and_redirect_anyhow(
+async fn yivi_finish_and_redirect_anyhow(
     context: Data<Main>,
-    params: actix_web::web::Form<IrmaFinishParams>,
+    params: actix_web::web::Form<YiviFinishParams>,
 ) -> Result<HttpResponse, anyhow::Error> {
     let (email, telephone) =
-        disclosed_email_and_telephone(&context.irma.server_url, &params.irma_token).await?;
+        disclosed_email_and_telephone(&context.yivi.server_url, &params.yivi_token).await?;
 
     // retrieve user
     let user = {
@@ -555,6 +568,21 @@ async fn irma_finish_and_redirect_anyhow(
         .oidc
         .open_auth_request_handle(params.oidc_auth_request_handle.as_ref().unwrap())?;
 
+    oidc_response_from_oidc_handle(
+        authentic_auth_request_handle,
+        context,
+        &user,
+        resp_with_cookie,
+    )
+    .await
+}
+
+async fn oidc_response_from_oidc_handle(
+    authentic_auth_request_handle: AuthenticAuthRequestHandle,
+    context: Data<Main>,
+    user: &User,
+    resp_with_cookie: HttpResponseBuilder,
+) -> Result<HttpResponse, anyhow::Error> {
     // Retrieve hub
     let hub = {
         let (tx, rx) = oneshot::channel();
@@ -605,6 +633,22 @@ async fn irma_finish_and_redirect_anyhow(
             },
         )?
         .into_actix_builder(resp_with_cookie)
+        // into_actix_builder puts a CSP header not allowing the request to be embedded.
+        // This is correct. However for our global client we might need to embed.
+        .map(|mut res| {
+            let headers = res.headers_mut();
+            let allowed = if context.allowed_embedding_contexts.is_empty() {
+                HeaderValue::from_static("frame-ancestors none;")
+            } else {
+                let list = &context.allowed_embedding_contexts.join(" ");
+                match HeaderValue::from_str(format!("frame-ancestors {list};").as_str()) {
+                    Ok(x) => x,
+                    Err(_) => HeaderValue::from_static("frame-ancestors none;"),
+                }
+            };
+            headers.insert(header::CONTENT_SECURITY_POLICY, allowed);
+            res
+        })
 }
 
 async fn get_account(
@@ -626,40 +670,38 @@ async fn get_account(
                 .expect("To use our channel");
             match user_rx.await {
                 Ok(Ok(user)) => {
-                    let (hub_tx, hub_rx) = oneshot::channel();
-                    db_tx.send(AllHubs { resp: hub_tx }).await.expect("Expected to find all hubs");
-                    let hubs = hub_rx.await.expect("Expected to fetch all hubs").expect("Expected to fetch all hubs");
-                    let data = value!({
-                "email": user.email,
-                "telephone": user.telephone,
-                "hubs": hubs,
-                "content": "user"
-                })
-                        .to_vec(false);
 
+                    let global_client_uri : &str = context.global_client_uri();
+
+                    let data = value!({
+                        "email": user.email,
+                        "telephone": user.telephone,
+                        "global_client_uri": global_client_uri,
+                        "content": "user",
+                    }).to_vec(false);
                     HttpResponse::Ok().body(hairy_eval_html_translations(hair.to_ref(), data.to_ref(), translations).unwrap())
-                }
-                    Ok(Err(error)) =>
-                    internal_server_error(
-                        "Could not locate user",
-                        hair,
-                        &format!(
-                            "Someone tried to get an account page with a valid cookie with id: '{}' and got this error {:?}",
-                            id, error,
-                        ),
-                        &req,
-                        translations
+                },
+                Ok(Err(error)) =>
+                internal_server_error(
+                    "Could not locate user",
+                    hair,
+                    &format!(
+                        "Someone tried to get an account page with a valid cookie with id: '{}' and got this error {:?}",
+                        id, error,
                     ),
-                    Err(error) =>
-                    internal_server_error(
-                        "Could not locate user",
-                        hair,
-                        &format!(
-                            "Someone tried to get an account page with a valid cookie with id: '{}' and got this error {:?}",
-                            id, error,
-                        ),
-                        &req, translations
+                    &req,
+                    translations
+                ),
+                Err(error) =>
+                internal_server_error(
+                    "Could not locate user",
+                    hair,
+                    &format!(
+                        "Someone tried to get an account page with a valid cookie with id: '{}' and got this error {:?}",
+                        id, error,
                     ),
+                    &req, translations
+                ),
 
             }
         } else {
@@ -667,7 +709,7 @@ async fn get_account(
                 "That's not an account id",
                 hair,
                 format!(
-                    "Someone had a valid cookie for id '{}' but it's not an i32",
+                    "Someone had a valid cookie for id '{}' but it's not an u32",
                     id
                 )
                 .as_str(),
@@ -683,8 +725,6 @@ async fn get_account(
 }
 async fn account_login(
     req: HttpRequest,
-    // hair: &BytecodeVec,
-    // cookie_secret: &str,
     context: Data<Main>,
     translations: Translations,
 ) -> HttpResponse {
@@ -710,7 +750,6 @@ async fn account_login(
     }
 }
 
-//TODO look at cookie session in actix itself
 async fn account_logout(translations: Translations) -> impl Responder {
     let logout_cookie = log_out_cookie();
     HttpResponse::Found()
@@ -793,10 +832,77 @@ pub async fn handle_oidc_authorize(
 ) -> Result<HttpResponse, TranslatedError> {
     let inner_req = req.request.clone(); // HttpRequests are cheaply cloneable
 
+    // In general we expected users to be logged into PH central when logging in to a hub.
+    // In that case we recognize the cookie and create an auth request handle. While this is
+    // inefficient, it prevents code duplication.
+    if let Some(id) = req.request.user_id_from_cookie(&context.cookie_secret) {
+        let extra = CompleteRequest {
+            request: inner_req.clone(),
+            payload: req.payload.clone(),
+        };
+        return match context.oidc.issue_auth_request_handle(extra) {
+            // Create oidc auth_code and have the user POST it to the redirect_uri,
+            Ok((_, handle, _)) => {
+                let authentic_auth_request_handle = context
+                    .oidc
+                    .open_auth_request_handle(handle)
+                    .into_translated_error(&inner_req)?;
+
+                match get_user_by_id_wrap(&context.db_tx, id, &req.request, &context, translations)
+                    .await
+                {
+                    Ok(user) => oidc_response_from_oidc_handle(
+                        authentic_auth_request_handle,
+                        context,
+                        &user,
+                        HttpResponse::Ok(),
+                    )
+                    .await
+                    .into_translated_error(&inner_req),
+
+                    Err(resp) => Ok(resp),
+                }
+            }
+            Err(resp) => resp.into_translated_error(&inner_req),
+        };
+    }
+
+    // Not yet logged in, send user on with the Yivi login flow.
     context
         .oidc
         .handle_auth(req, pubhubs::oidc_handler::AD { translations })
         .into_translated_error(&inner_req)
+}
+
+async fn get_user_by_id_wrap(
+    db_tx: &Sender<DataCommands>,
+    id: u32,
+    req: &HttpRequest,
+    context: &Main,
+    translations: Translations,
+) -> Result<User, HttpResponse> {
+    let hair = &context.hair;
+    let (user_tx, user_rx) = oneshot::channel();
+    let error = match db_tx.send(GetUserById { resp: user_tx, id }).await {
+        Ok(_) => match user_rx.await {
+            Ok(Ok(res)) => {
+                return Ok(res);
+            }
+            Err(error) => format!("{error}"),
+            Ok(Err(error)) => format!("{error}"),
+        },
+        Err(error) => format!("{error}"),
+    };
+    Err(internal_server_error(
+        "Could not locate user",
+        hair,
+        &format!(
+            "Someone tried to get a redirect to a hub page with a valid cookie with id: '{}' and got this error {:?}",
+            id, error,
+        ),
+        req,
+        translations
+    ))
 }
 
 #[tokio::main]
@@ -931,6 +1037,11 @@ fn create_app(cfg: &mut web::ServiceConfig, context: Data<Main>) {
         .service(actix_files::Files::new("/fonts", "./static/assets/fonts").use_etag(true))
         .service(actix_files::Files::new("/images", "./static/assets/images").use_etag(true))
         .service(actix_files::Files::new("/js", "./static/assets/js").use_etag(true))
+        .service(
+            actix_files::Files::new("/client", "./static/assets/client")
+                .index_file("index.html")
+                .use_etag(true),
+        )
         // routes below map be prefixed with a language prefix "/nl", "/en", etc., which
         // will be stripped by the translation middleware
         .service(
@@ -981,24 +1092,24 @@ fn create_app(cfg: &mut web::ServiceConfig, context: Data<Main>) {
                     // when changing these endpoints, please also update
                     //   .well-known/openid-configuration
                     web::scope("oidc")
-                        // shows user-agent page with irma QR code
+                        // shows user-agent page with Yivi QR code or uses cookie to authenticate
                         .route("/auth", web::get().to(handle_oidc_authorize))
                         // Hub retrieves id_token from here
                         .route("/token", web::post().to(handle_oidc_token)),
                 )
                 .service(
-                    web::scope("irma")
-                        .route("/session/{token}/statusevents", web::to(irma_proxy_stream))
-                        .route("/{tail:.*}", web::to(irma_proxy)),
+                    web::scope("yivi")
+                        .route("/session/{token}/statusevents", web::to(yivi_proxy_stream))
+                        .route("/{tail:.*}", web::to(yivi_proxy)),
                 )
                 .service(
-                    web::scope("irma-endpoint")
+                    web::scope("yivi-endpoint")
                         .route("/", web::post().to(next_session))
-                        .route("/start", web::get().to(irma_start))
-                        .route("/register", web::get().to(irma_register))
+                        .route("/start", web::get().to(yivi_start))
+                        .route("/register", web::get().to(yivi_register))
                         .route(
                             "/finish-and-redirect",
-                            web::post().to(irma_finish_and_redirect),
+                            web::post().to(yivi_finish_and_redirect),
                         ),
                 )
                 .service(
@@ -1006,7 +1117,8 @@ fn create_app(cfg: &mut web::ServiceConfig, context: Data<Main>) {
                         // get and put the state of the side bar used to switch
                         // between hubs
                         .route("/state", web::get().to(pubhubs::bar::get_state))
-                        .route("/state", web::put().to(pubhubs::bar::put_state)),
+                        .route("/state", web::put().to(pubhubs::bar::put_state))
+                        .route("/hubs", web::get().to(pubhubs::bar::get_hubs)),
                 )
                 .route("/register", web::get().to(register_account))
                 .route("/register", web::post().to(register_account))
@@ -1041,7 +1153,9 @@ mod tests {
     use std::sync::Arc;
 
     use pubhubs::cookie::Cookie;
-    use pubhubs::irma::{
+    use pubhubs::data::HubHandle::Id;
+    use pubhubs::serde_ext::B64;
+    use pubhubs::yivi::{
         Attribute, SessionData, SessionPointer, SessionResult, SessionType,
         SessionType::Disclosing, Status, MAIL, MOBILE_NO, PUB_HUBS_MAIL, PUB_HUBS_PHONE,
     };
@@ -1102,13 +1216,14 @@ mod tests {
         let hub = HubForm {
             name: "test_hub".to_string(),
             description: "test description".to_string(),
-            redirection_uri: "/test_redirect".to_string(),
+            oidc_redirect_uri: "/test_redirect".to_string(),
+            client_uri: "/client".to_string(),
         };
 
         let request = test::TestRequest::default().to_http_request();
         let response = add_hub(Data::from(context), request, Form(hub), Translations::NONE).await;
         assert_eq!(response.status(), StatusCode::FOUND);
-        assert_eq!(response.headers().get(LOCATION).unwrap(), "/hubs");
+        assert_eq!(response.headers().get(LOCATION).unwrap(), "/admin/hubs");
     }
 
     #[actix_web::test]
@@ -1165,6 +1280,8 @@ mod tests {
         let hub = HubFormUpdate {
             name: "test_name_updated".to_string(),
             description: "test description".to_string(),
+            oidc_redirect_uri: "http://synapse.example.com".to_string(),
+            client_uri: "http://client.example.com".to_string(),
         };
 
         let request = test::TestRequest::default().to_http_request();
@@ -1195,6 +1312,8 @@ mod tests {
         let hub = HubFormUpdate {
             name: "test_name_updated".to_string(),
             description: "test description".to_string(),
+            oidc_redirect_uri: "http://synapse.example.com".to_string(),
+            client_uri: "http://client.example.com".to_string(),
         };
 
         // Close the database actor
@@ -1367,9 +1486,9 @@ mod tests {
     }
 
     #[actix_web::test]
-    async fn test_irma_register() {
+    async fn test_yivi_register() {
         let context = create_test_context_with(|mut f| {
-            f.irma.server_url = "http://localhost:4001/test1".to_string();
+            f.yivi.server_url = "http://localhost:4001/test1".to_string();
             f
         })
         .await
@@ -1377,7 +1496,7 @@ mod tests {
         let request = test::TestRequest::default().to_http_request();
         start_fake_server(4001).await;
 
-        let resp = irma_register(Data::from(context), Translations::NONE, request).await;
+        let resp = yivi_register(Data::from(context), Translations::NONE, request).await;
 
         assert_eq!(resp.status(), StatusCode::OK);
         let body = body_to_string(resp).await;
@@ -1420,7 +1539,7 @@ mod tests {
         assert!(body.contains("let oidc_handle = "));
         assert!(body.contains("let register = true"));
         assert!(body.contains("let url_prefix = \"\""));
-        assert!(body.contains("irmaLogin(url_prefix, register, oidc_handle);"));
+        assert!(body.contains("yiviLogin(url_prefix, register, oidc_handle);"));
     }
 
     // TODO: add test for register_account with RegisterParams not None
@@ -1438,7 +1557,7 @@ mod tests {
         assert!(body.contains("let oidc_handle = null"));
         assert!(body.contains("let register = false"));
         assert!(body.contains("let url_prefix = \"\""));
-        assert!(body.contains("irmaLogin(url_prefix, register, oidc_handle);"));
+        assert!(body.contains("yiviLogin(url_prefix, register, oidc_handle);"));
         let re = Regex::new(r#"<button.+Registreren.+button>"#).unwrap();
         assert!(re.is_match(&body));
 
@@ -1459,9 +1578,104 @@ mod tests {
         assert!(body.contains("let oidc_handle = null"));
         assert!(body.contains("let register = false"));
         assert!(body.contains("let url_prefix = \"/en\""));
-        assert!(body.contains("irmaLogin(url_prefix, register, oidc_handle);"));
+        assert!(body.contains("yiviLogin(url_prefix, register, oidc_handle);"));
         let re = Regex::new(r#"<button.+Registreren.+button>"#).unwrap();
         assert!(re.is_match(&body));
+    }
+
+    #[actix_web::test]
+    async fn test_no_cookie_hub_login() {
+        let oidc_secret: B64 = b"verysecret".into();
+        let context = create_test_context_with(|mut f| {
+            f.oidc_secret = Some(oidc_secret);
+            f
+        })
+        .await
+        .unwrap();
+
+        let hub_id = create_hub("hub", &context).await;
+        let (s, r) = oneshot::channel();
+        context
+            .db_tx
+            .send(GetHub {
+                resp: s,
+                handle: Id(hub_id),
+            })
+            .await
+            .unwrap();
+        let hub = r.await.unwrap().unwrap();
+
+        let pubhubs::oidc::ClientCredentials {
+            client_id: oidc_client_id,
+            password: _oidc_client_password,
+        } = hub.oidc_credentials(&context.oidc);
+        let oidc_client_id: String = oidc_client_id.into();
+        let ru = hub.oidc_redirect_uri;
+
+        let test_request = TestRequest::default();
+        let test_request = test_request.uri(format!("http://smth.example?client_id={oidc_client_id}&response_mode=form_post&response_type=code&redirect_uri={ru}&state=state&nonce=nonce&scope=openid").as_str());
+        let (request, mut payload) = test_request.to_http_parts();
+
+        let request = CompleteRequest::from_request(&request, &mut payload)
+            .await
+            .unwrap();
+        let response = handle_oidc_authorize(request, Data::from(context), Translations::NONE)
+            .await
+            .unwrap();
+        assert_eq!(response.status(), StatusCode::OK);
+        let body = body_to_string(response).await;
+        assert!(&body.contains("<title>PubHubs</title>"));
+        assert!(!&body.contains("error"));
+    }
+
+    #[actix_web::test]
+    async fn test_cookie_skips_hub_login() {
+        let secret = "very secret";
+        let oidc_secret: B64 = b"verysecret".into();
+        let context = create_test_context_with(|mut f| {
+            f.cookie_secret = Some(secret.to_string());
+            f.oidc_secret = Some(oidc_secret);
+            f
+        })
+        .await
+        .unwrap();
+
+        let hub_id = create_hub("hub", &context).await;
+        let (s, r) = oneshot::channel();
+        context
+            .db_tx
+            .send(GetHub {
+                resp: s,
+                handle: Id(hub_id),
+            })
+            .await
+            .unwrap();
+        let hub = r.await.unwrap().unwrap();
+
+        let pubhubs::oidc::ClientCredentials {
+            client_id: oidc_client_id,
+            password: _oidc_client_password,
+        } = hub.oidc_credentials(&context.oidc);
+        let oidc_client_id: String = oidc_client_id.into();
+        let ru = hub.oidc_redirect_uri;
+
+        let user = create_user("email", &context).await;
+
+        let test_request = test::TestRequest::default();
+        let test_request = add_cookie_request(test_request, secret, user);
+        let test_request = test_request.uri(format!("http://smth.example?client_id={oidc_client_id}&response_mode=form_post&response_type=code&redirect_uri={ru}&state=state&nonce=nonce&scope=openid").as_str());
+        let (request, mut payload) = test_request.to_http_parts();
+
+        let request = CompleteRequest::from_request(&request, &mut payload)
+            .await
+            .unwrap();
+        let response = handle_oidc_authorize(request, Data::from(context), Translations::NONE)
+            .await
+            .unwrap();
+        assert_eq!(response.status(), StatusCode::OK);
+        let body = body_to_string(response).await;
+        assert!(&body.contains("<title>Form redirection...</title>"));
+        assert!(!&body.contains("error"));
     }
 
     #[actix_web::test]
@@ -1524,6 +1738,40 @@ mod tests {
     }
 
     #[actix_web::test]
+    async fn test_bar_hubs() {
+        let context = create_test_context().await.unwrap();
+
+        let context_clone = context.clone();
+        let app = test::init_service(
+            App::new().configure(move |cfg| create_app(cfg, Data::from(context_clone))),
+        )
+        .await;
+
+        create_hub("hub1", &context).await;
+
+        // OK when GETting /bar/hubs
+        let resp = app
+            .call(test::TestRequest::get().uri("/bar/hubs").to_request())
+            .await
+            .unwrap();
+        assert_eq!(resp.status(), http::StatusCode::OK);
+        assert_eq!(
+            resp.headers().get("Content-Type").unwrap(),
+            "application/json"
+        );
+        let result: serde_json::Value =
+            serde_json::from_slice(&actix_web::test::read_body(resp).await).unwrap();
+        assert_eq!(
+            result,
+            serde_json::json!([{
+                "name": "hub1",
+                "description": "test_description",
+                "client_uri": "/client",
+            }])
+        );
+    }
+
+    #[actix_web::test]
     async fn test_bar_state() {
         let context = create_test_context().await.unwrap();
         let user_id = create_user("email@example.com", &context).await;
@@ -1578,6 +1826,10 @@ mod tests {
         assert_eq!(
             resp.headers().get("ETag").unwrap(),
             "\"e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855\""
+        );
+        assert_eq!(
+            resp.headers().get("Content-Type").unwrap(),
+            "application/octet-stream"
         );
         assert!(actix_web::test::read_body(resp).await.is_empty());
 
@@ -1822,12 +2074,12 @@ mod tests {
     }
 
     #[actix_web::test]
-    async fn test_irma_finish_and_redirect() {
+    async fn test_yivi_finish_and_redirect() {
         let cookie_secret = "very_secret";
 
         let context = create_test_context_with(|mut f| {
             f.cookie_secret = Some(cookie_secret.to_string());
-            f.irma.server_url = "http://localhost:4002/test1".to_string();
+            f.yivi.server_url = "http://localhost:4002/test1".to_string();
             f
         })
         .await
@@ -1839,13 +2091,13 @@ mod tests {
 
         //existing user account login
         let (req1, mut req1payload) = test::TestRequest::post()
-            .set_form(IrmaFinishParams {
-                irma_token: token.clone(),
+            .set_form(YiviFinishParams {
+                yivi_token: token.clone(),
                 oidc_auth_request_handle: None,
             })
             .to_http_parts();
 
-        let response = irma_finish_and_redirect_anyhow(
+        let response = yivi_finish_and_redirect_anyhow(
             Data::from(context.clone()),
             actix_web::web::Form::from_request(&req1, &mut req1payload)
                 .await
@@ -1891,13 +2143,13 @@ mod tests {
             .unwrap();
 
         let (req2, mut req2payload) = test::TestRequest::post()
-            .set_form(IrmaFinishParams {
-                irma_token: token.clone(),
+            .set_form(YiviFinishParams {
+                yivi_token: token.clone(),
                 oidc_auth_request_handle: Some(auth_request_handle),
             })
             .to_http_parts();
 
-        let response = irma_finish_and_redirect_anyhow(
+        let response = yivi_finish_and_redirect_anyhow(
             Data::from(context.clone()),
             actix_web::web::Form::from_request(&req2, &mut req2payload)
                 .await
@@ -1914,19 +2166,19 @@ mod tests {
         // Discloses new
         let context = create_test_context_with(|mut f| {
             f.cookie_secret = Some(cookie_secret.to_string());
-            f.irma.server_url = "http://localhost:4002/test2".to_string();
+            f.yivi.server_url = "http://localhost:4002/test2".to_string();
             f
         })
         .await
         .unwrap();
         let (req3, mut req3payload) = test::TestRequest::post()
-            .set_form(IrmaFinishParams {
-                irma_token: token.clone(),
+            .set_form(YiviFinishParams {
+                yivi_token: token.clone(),
                 oidc_auth_request_handle: None,
             })
             .to_http_parts();
 
-        let response = irma_finish_and_redirect_anyhow(
+        let response = yivi_finish_and_redirect_anyhow(
             Data::from(context.clone()),
             actix_web::web::Form::from_request(&req3, &mut req3payload)
                 .await
@@ -2016,7 +2268,7 @@ mod tests {
 
         // Too large requests are blocked.
         let too_large_request = test::TestRequest::post()
-            .uri("/irma-endpoint/")
+            .uri("/yivi-endpoint/")
             .set_payload(['a' as u8; (PAYLOAD_MAX_SIZE + 1)].to_vec())
             .to_request();
 
@@ -2086,7 +2338,8 @@ mod tests {
             .send(CreateHub {
                 name: name.to_string(),
                 description: "test_description".to_string(),
-                redirection_uri: "/test_redirect".to_string(),
+                oidc_redirect_uri: "https://somehub/test_redirect".to_string(),
+                client_uri: "/client".to_string(),
                 resp: tx,
             })
             .await;
@@ -2132,7 +2385,8 @@ mod tests {
             .send(CreateHub {
                 name: "".to_string(),
                 description: "".to_string(),
-                redirection_uri: "".to_string(),
+                oidc_redirect_uri: "".to_string(),
+                client_uri: "".to_string(),
                 resp: tx,
             })
             .await;

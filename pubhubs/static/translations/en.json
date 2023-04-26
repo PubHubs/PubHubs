@@ -3,7 +3,7 @@
   "error_msg": "Please show the following code when contacting support",
   "name": "name",
   "description":"description",
-  "redirection_uri": "redirection URI",
+  "oidc_redirect_uri": "OIDC redirection URI",
   "accept": "Accept",
   "read_policy": "Read the full policy here",
   "rules": "Privacy policy and house rules",
@@ -22,7 +22,7 @@
   "delete_account": "Delete account",
   "login_at": "Login at the",
   "register": "Register",
-  "scan": "Scan the QR code with the IRMA app",
+  "scan": "Scan the QR code with the Yivi app",
   "login_trouble": "Trouble logging in",
   "dont_have": "Don't have a",
   "account_explanation": "On your account page you can alter your data, update your settings and see an overview of the hubs",
@@ -30,7 +30,7 @@
   "sep_hub_explanation": "Every hub has its own settings page and rules. If you want to view the settings of a specific hub, log in to that hub",
   "whats_ph": "What is PubHubs",
   "answer_ph": "A network of separate hubs for social connections and information, see",
-  "whats_irma": "What is IRMA",
-  "answer_irma": "An app for logging in, in a privacy friendly way, see",
+  "whats_yivi": "What is Yivi",
+  "answer_yivi": "An app for logging in, in a privacy friendly way, see",
   "with": "with"
 }
