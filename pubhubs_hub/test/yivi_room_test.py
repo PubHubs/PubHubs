@@ -216,9 +216,6 @@ class FakeHs():
     def get_clock(self):
         return None
 
-    def get_spam_checker(self):
-        return None
-
     def get_event_creation_handler(self):
         return FakeEvencreationHandler()
 
@@ -253,6 +250,12 @@ class FakeHs():
 
     def get_room_creation_handler(self):
         return FakeRoomCreationHandler()
+
+    def get_module_api_callbacks(self):
+        return FakeModuleApiCallbacks()
+
+class FakeModuleApiCallbacks():
+    spam_checker = None
 
 class FakeMetaData:
     stream_ordering = "ordering"
