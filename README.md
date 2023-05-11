@@ -104,7 +104,7 @@ The hub can be used on http://localhost:8800.
 
 #### Reachable IP address
 
-For your local PubHubs instance to be reachable by the Yivi app, your host's IP address must be reachable by your phone (perhaps by having them both on the same Wi-Fi network.) PubHubs will try to guess your IP address using `ifconfig.me` (provided `pubhubs_host = autodetect`) in the `default.yaml` file, but you can also set `pubhubs_host` manually.
+For your local PubHubs instance to be reachable by the Yivi app, your host's IP address must be reachable by your phone (perhaps by having them both on the same Wi-Fi network.) PubHubs will try to guess your IP address using `ifconfig.me` (provided `urls.for_yivi_app: !autodetect`) in the `config.yaml` file, but you can also set `url.for_yivi_app` manually.  For details, see comments in `default.yaml`.
 
 When the Yivi app suggests you should check your phone's internet access, this might actually indicate that:
 
@@ -137,7 +137,12 @@ If nothing else helps, and you have access to a server with a public IP address,
 ssh -R 8080:localhost:8080 username@yourserver.com
 ```
 
-and have the Yivi app contact 1.3.3.7 instead by setting `pubhubs_host = http://1.3.3.7:8080/`.
+and have the Yivi app contact 1.3.3.7 instead by setting 
+```
+urls:
+    # [...]
+    for_yivi_app: !manual http://1.3.3.7:8080/
+```
 
 ### Development dependencies
 

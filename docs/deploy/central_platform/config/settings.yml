@@ -1,7 +1,6 @@
 # NOTE: This is a sample file for demontration purpose. 
 # The values needs to be updated. The settings will not work if used.
-# Public for url for central platform. If a url is not provided then Central Platform will
-# will detect public IP automatically.
+# Public for url for central platform.
 url: https://<central-platform-url>/
 
 # Database location in central platform. It should point to SQLlite file
