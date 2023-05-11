@@ -138,7 +138,7 @@ pub async fn login(
     yivi_host: &str,
     yivi_requestor: &str,
     yivi_requestor_hmac_key: &crate::jwt::HS256,
-    pub_hubs_host: &str,
+    pubhubs_url_for_yivi_app: &str,
 ) -> Result<SessionDataWithImage> {
     let to_disclose = vec![vec![vec![
         PUB_HUBS_MAIL.to_string(),
@@ -149,7 +149,7 @@ pub async fn login(
         yivi_host,
         yivi_requestor,
         yivi_requestor_hmac_key,
-        pub_hubs_host,
+        pubhubs_url_for_yivi_app,
         to_disclose,
         next_session,
     )
@@ -160,7 +160,7 @@ pub async fn register(
     yivi_host: &str,
     yivi_requestor: &str,
     yivi_requestor_hmac_key: &crate::jwt::HS256,
-    pub_hubs_host: &str,
+    pubhubs_url_for_yivi_app: &str,
 ) -> Result<SessionDataWithImage> {
     let to_disclose = vec![
         vec![vec![MAIL.to_string()]],
@@ -168,13 +168,13 @@ pub async fn register(
     ];
     // Will immediately ask for issuing card after disclosing with a chained session.
     let next_session = Some(NextSession {
-        url: pub_hubs_host.to_string() + "yivi-endpoint/",
+        url: pubhubs_url_for_yivi_app.to_string() + "yivi-endpoint/",
     });
     disclose(
         yivi_host,
         yivi_requestor,
         yivi_requestor_hmac_key,
-        pub_hubs_host,
+        pubhubs_url_for_yivi_app,
         to_disclose,
         next_session,
     )
@@ -185,7 +185,7 @@ async fn disclose(
     yivi_host: &str,
     yivi_requestor: &str,
     yivi_requestor_hmac_key: &crate::jwt::HS256,
-    pub_hubs_host: &str,
+    pubhubs_url_for_yivi_app: &str,
     to_disclose: Vec<Vec<Vec<String>>>,
     next_session: Option<NextSession>,
 ) -> Result<SessionDataWithImage> {
@@ -237,10 +237,16 @@ async fn disclose(
     let re = Regex::new(r#"https?://[^/]+/(irma/)?"#).unwrap();
 
     let new_url = if re.is_match(&session.session_ptr.u) {
-        re.replace(&session.session_ptr.u, format!("{}yivi/", pub_hubs_host))
-            .to_string()
+        re.replace(
+            &session.session_ptr.u,
+            format!("{}yivi/", pubhubs_url_for_yivi_app),
+        )
+        .to_string()
     } else {
-        format!("{}yivi/{}", pub_hubs_host, &session.session_ptr.u)
+        format!(
+            "{}yivi/{}",
+            pubhubs_url_for_yivi_app, &session.session_ptr.u
+        )
     };
 
     session.session_ptr = SessionPointer {
@@ -401,9 +407,9 @@ pub async fn disclosed_email_and_telephone(
 }
 
 pub async fn next_session(req: HttpRequest, context: Data<Main>, jwt_text: String) -> HttpResponse {
-    let pub_hubs_host = &context.url;
+    let pubhubs_url_for_yivi_app = &context.url.for_yivi_app.as_str();
     let yivi = &context.yivi;
-    match next_session_priv(req, yivi, pub_hubs_host, &jwt_text).await {
+    match next_session_priv(req, yivi, pubhubs_url_for_yivi_app, &jwt_text).await {
         Ok(a) => a,
         Err(_) => empty_result(),
     }
@@ -412,7 +418,7 @@ pub async fn next_session(req: HttpRequest, context: Data<Main>, jwt_text: Strin
 async fn next_session_priv(
     req: HttpRequest,
     yivi: &YiviContext,
-    pub_hubs_host: &str,
+    pubhubs_url_for_yivi_app: &str,
     jwt_text: &str,
 ) -> Result<HttpResponse> {
     if let Some(ct) = req.headers().get(CONTENT_TYPE) {
@@ -477,7 +483,7 @@ async fn next_session_priv(
                             )]),
                         },
                         next_session: Some(NextSession {
-                            url: pub_hubs_host.to_owned() + "yivi-endpoint/",
+                            url: pubhubs_url_for_yivi_app.to_owned() + "yivi-endpoint/",
                         }),
                     })
                     .unwrap();
@@ -732,10 +738,10 @@ OdC+rxjYNxRU4uNt8fgMfCdTL4wdxucOp0L8E5Enp+b96tpELIRhBkNEpQo=
     fn fake_yivi_context() -> crate::config::Yivi {
         crate::config::Yivi {
             server_issuer: "yiviserver/".to_string(),
-            client_url: Some("some.host/".to_string()),
+            client_api_url: Some("some.host/".to_string()),
             requestor: "some.host/".to_string(),
             requestor_hmac_key: None,
-            server_url: "some.host/".to_string(),
+            requestor_api_url: "some.host/".to_string(),
             server_key_file: Some(r#"../docker_yivi/jwt.priv"#.to_string()),
         }
     }
@@ -761,10 +767,10 @@ mL8ccRpy26VYM7CYRcsoeJMCAwEAAQ==
                     .as_bytes(),
             )
             .unwrap(),
-            client_url: "".to_string(),
+            client_api_url: "".to_string(),
             requestor: "".to_string(),
             requestor_hmac_key: crate::jwt::HS256(vec![]),
-            server_url: "".to_string(),
+            requestor_api_url: "".to_string(),
         }
     }
 
@@ -894,7 +900,7 @@ mL8ccRpy26VYM7CYRcsoeJMCAwEAAQ==
                 let req = TestRequest::default().to_http_request();
 
                 let context = create_test_context_with(|mut f| {
-                    f.url = Some("https://test.host/".to_string());
+                    f.url = Some(url::Url::parse("https://test.host/").unwrap());
                     f.yivi = fake_yivi_context();
                     f
                 })

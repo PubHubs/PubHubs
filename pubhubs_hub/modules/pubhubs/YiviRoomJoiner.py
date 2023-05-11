@@ -29,7 +29,7 @@ def modify_set_clickjacking_protection_headers(original, global_client_url: str)
     """
     def modified(request: Request):
         original(request)
-        if request.path == b'/_synapse/client/new_user_consent':
+        if request.path in (b'/_synapse/client/new_user_consent', b'/_synapse/client/oidc/callback'):
             request.responseHeaders.removeHeader(b"X-Frame-Options")
             request.setHeader(b"Content-Security-Policy", f"frame-ancestors {global_client_url};".encode())
     return modified
