@@ -195,7 +195,7 @@ pub fn create_error_response(
     };
 
     log::log!(log_level,
-        "Something went wrong: {:?} gave it user code {} with status {}. The origin was this request: {:?}",
+        "Something went wrong: \n\n{}\n\n gave it user code {} with status {}. The origin was this request: {:?}",
         internal_message.unwrap_or_default(), code, status_code, request);
 
     // Perhaps we could we could use crypto::seal on the log message instead?
