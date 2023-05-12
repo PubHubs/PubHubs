@@ -12,7 +12,7 @@ real_credentials = []
 # Error handling
 # note:  anyhow is also used by cargo
 thiserror = "1.0"
-anyhow = "1.0"
+anyhow = {version = "1.0", features = ["backtrace"]}
 
 # serde
 serde = {version = "1.0", features = ["derive"]}
