@@ -1,7 +1,7 @@
 /**
  *
  * Colors for the users/avatars in a room.
- * TODO: for now just random, in the future a user should have onw color
+ * TODO: for now just random, in the future a user should have own color
  *
  */
 
