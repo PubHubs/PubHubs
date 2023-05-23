@@ -69,6 +69,10 @@ class PubHubs {
         this.rooms.updateRoomsWithMatrixRooms(rooms);
     }
 
+    getBaseUrl() {
+        return this.Auth.getBaseUrl();
+    }
+
     /**
      * Helpers
      */
@@ -119,6 +123,10 @@ class PubHubs {
             "msgtype": "m.text"
         }
         this.client.sendEvent(roomId, "m.room.message", content, "");
+    }
+
+    addImage(roomId: string, uri: string) {
+        this.client.sendImageMessage(roomId,uri)
     }
 
     changeDisplayName(name: string) {
