@@ -4,17 +4,26 @@
             <Icon class="absolute left-3 top-2 dark:text-white" type="paperclip" @click="clickedAttachment"></Icon>
             <input type="file" accept="image/png, image/jpeg, image/svg" id="help_element" ref="file" @change="submitFile" hidden>
             <input v-focus class="px-10 py-2 w-full truncate border rounded-lg dark:bg-transparent dark:text-white dark:border-white focus:border-black focus:outline-0 focus:outline-offset-0 focus:ring-0" type="text" v-model="value" :placeholder="$t('rooms.new_message')" :title="$t('rooms.new_message')" @keydown="changed();checkButtonState()" @keydown.enter="submit()" @keydown.esc="cancel()" />
-            <Icon class="absolute right-3 top-2 dark:text-white" type="emoticon" @click="clickedEmoticon"></Icon>
+            <Icon class="absolute right-3 top-2 dark:text-white" type="emoticon" @click.stop="showEmojiPicker = !showEmojiPicker"></Icon>
+
         </div>
         <Button class="ml-2 flex" :disabled="!buttonEnabled" @click="submit()"><Icon type="talk" size="sm" class="mr-2 mt-1"></Icon>{{ $t('message.send') }}</Button>
+        <div v-if="showEmojiPicker" class="absolute bottom-16 right-8" ref="emojiPicker">
+                <EmojiPicker @emojiSelected="clickedEmoticon" />
+            </div>
+
     </div>
 </template>
 
 <script setup lang="ts">
-import {inject, ref} from 'vue';
+import {inject, ref, onMounted, onUnmounted, nextTick} from 'vue';
     import { useFormInputEvents, usedEvents } from '@/composables/useFormInputEvents';
     import {PubHubs} from "@/core/pubhubs";
     import { useRooms } from '@/store/store'
+    const showEmojiPicker = ref(false);
+    const emojiPicker = ref<HTMLElement | null>(null); // Add this reference
+    
+
 
     const rooms = useRooms();
     const pubhubs: PubHubs | undefined = inject('pubhubs');
@@ -33,9 +42,8 @@ import {inject, ref} from 'vue';
         }
     }
 
-    // TODO
-    function clickedEmoticon() {
-        alert('Clicked Emotion');
+    function clickedEmoticon(emoji:any) {
+        value.value += emoji.emoji;
     }
 
     function clickedAttachment() {
@@ -57,7 +65,7 @@ import {inject, ref} from 'vue';
             req.setRequestHeader("Content-Type", files[0].type);
             req.send(evt.target.result);
 
-        };
+        }; 
 
         req.onreadystatechange = function () {
             if (req.readyState === 4) {
@@ -69,4 +77,26 @@ import {inject, ref} from 'vue';
             }
         };
     }
+
+    onMounted(() => {
+        nextTick(() => {
+        document.addEventListener("click", handleClickOutside);
+        });
+    });
+
+    onUnmounted(() => {
+        document.removeEventListener("click", handleClickOutside);  
+    });
+
+    function handleClickOutside(e: MouseEvent) {
+        if (
+            emojiPicker.value !== null &&
+            !emojiPicker.value.contains(e.target as Node)
+        ) {
+            showEmojiPicker.value = false;
+        }
+    }
+
+
+
 </script>
