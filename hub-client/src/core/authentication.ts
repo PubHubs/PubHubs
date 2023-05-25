@@ -103,7 +103,7 @@ class Authentication {
 
 
 
-            // Check if we are logged in allready
+            // Check if we are logged in already
             if ( !this.client.isLoggedIn() ) {
 
 
@@ -174,6 +174,10 @@ class Authentication {
     logout() {
         this._clearAuth();
         window.location.replace(this.clientUrl);
+    }
+
+    getBaseUrl() {
+        return this.baseUrl;
     }
 
 }

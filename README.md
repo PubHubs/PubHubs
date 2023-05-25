@@ -100,7 +100,7 @@ level=info msg="Server listening at :8088/"
 level=info msg="checking for updates" scheme=irma-demo type=issuer
 ```
 
-The hub can be used on http://localhost:8800.
+The PubHubs javascript client can be found here: http://localhost:8080/client
 
 #### Reachable IP address
 
