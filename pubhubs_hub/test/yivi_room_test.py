@@ -256,6 +256,7 @@ class FakeHs():
 
 class FakeModuleApiCallbacks():
     spam_checker = None
+    third_party_event_rules = None
 
 class FakeMetaData:
     stream_ordering = "ordering"
