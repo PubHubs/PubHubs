@@ -1,4 +1,5 @@
 use crate::context::{Main, Yivi as YiviContext};
+use crate::error::HttpContextExt as _;
 use actix_web::web::Data;
 use actix_web::{HttpRequest, HttpResponse};
 use anyhow::{anyhow, bail, Result};
@@ -344,7 +345,15 @@ pub async fn disclosed_email_and_telephone(
     token: &str,
 ) -> Result<(String, String)> {
     let client = Client::new();
-    for _i in 0..2 {
+    let started = std::time::SystemTime::now();
+    let mut attempt_nr: u32 = 0;
+    loop {
+        attempt_nr += 1;
+        log::info!("waiting for Yivi session with token {token} to finish");
+        if started.elapsed()?.as_secs() > 5 * 60 {
+            break;
+        }
+
         let request = Request::builder()
             .method(Method::GET)
             .uri(yivi_host.to_owned() + format!("/session/{token}/result").as_str())
@@ -398,12 +407,17 @@ pub async fn disclosed_email_and_telephone(
                 bail!("Session '{token}' ended");
             }
             _ => {
-                sleep(Duration::from_secs(3)).await;
+                // NOTE: we sleep only 2 seconds to prevent registration from feeling too slugish
+                sleep(Duration::from_secs(2_u64)).await;
                 continue;
             }
         }
     }
-    bail!("Did not get Yivi result in 3 tries");
+    Err(anyhow!("Did not get Yivi result in {attempt_nr} tries")).http_context(
+        http::StatusCode::INTERNAL_SERVER_ERROR,
+        Some("We haven't heard back from the Yivi server.  Did you perhaps forget to add your PubHubs card to Yivi?  If so, please register again.".to_owned())
+        // NOTE:  this error message is not always appropriate, but this code will be replaced by the authentication server in the future anyhow
+    )
 }
 
 pub async fn next_session(req: HttpRequest, context: Data<Main>, jwt_text: String) -> HttpResponse {

@@ -1,6 +1,7 @@
 //! Error handling helpers
 //!
-//! The [HttpContextExt] trait is used to turn [anyhow::Result]s into [hyper::Response]s.
+//! The [HttpContextExt] trait is used to turn [anyhow::Result]s into an
+//! [actix_web::ResponseError].
 
 use actix_web::body::BoxBody;
 use actix_web::{HttpMessage, HttpRequest, HttpResponse};
@@ -22,7 +23,7 @@ use crate::translate::Translations;
 ///
 /// ```
 /// use pubhubs::error::{HttpContextExt as _, HttpContext};
-/// use hyper::StatusCode;
+/// use http::StatusCode;
 /// use anyhow::{anyhow, Context as _};
 ///
 /// // extracting a http context from an error that has none gives back the original error
@@ -32,51 +33,55 @@ use crate::translate::Translations;
 ///
 /// // but if a http context is set...
 /// let err = Err::<(),_>(err)
-///     .status(StatusCode::INTERNAL_SERVER_ERROR)
+///     .http_context(StatusCode::INTERNAL_SERVER_ERROR, Some("message".to_owned()))
 ///     .err().unwrap();
 ///
 /// // then we do get back a HttpContext instance:
 /// let hc = HttpContext::try_from(err).unwrap();
-/// assert_eq!(hc.to_string(), "500 Internal Server Error");
+/// assert_eq!(hc.to_string(), "500 Internal Server Error - message");
 ///
 /// // If multiple http contexts are added...
 /// let err = Err::<(),_>(anyhow!(ERR_MSG))
-///     .status(StatusCode::INTERNAL_SERVER_ERROR)
+///     .http_context(StatusCode::INTERNAL_SERVER_ERROR, Some("ise".to_owned()))
 ///     .with_context(|| "loading configuration")
-///     .status(StatusCode::BAD_REQUEST)
+///     .http_context(StatusCode::BAD_REQUEST, Some("br".to_owned()))
 ///     .with_context(|| "handling request from ip address 1.2.3.4").err().unwrap();
 ///
 /// // The last http context is used
-/// assert_eq!(HttpContext::try_from(err).unwrap().to_string(), "400 Bad Request")
+/// assert_eq!(HttpContext::try_from(err).unwrap().to_string(), "400 Bad Request - br")
 /// ```
 pub trait HttpContextExt<T> {
     /// Adds additional context to the error value that is used when this result
     /// (or one derived from it by [anyhow::Context::context] calls)
-    /// is turned into a [hyper::Response].
+    /// is turned into a [actix_web::ResponseError].
     ///
-    /// When [HttpContextExt::status] is called multiple times, the last call determines
-    /// the details used to create the [hyper::Response].
-    fn status(self, status_code: http::StatusCode) -> anyhow::Result<T>;
+    /// When e.g. [HttpContextExt::http_context] is called multiple times, the last call determines
+    /// the details used to create the [actix_web::ResponseError].
+    fn http_context(
+        self,
+        status_code: http::StatusCode,
+        public_message: Option<String>,
+    ) -> anyhow::Result<T>;
 
-    fn internal_server_error(self) -> anyhow::Result<T>
+    fn internal_server_error(self, public_message: Option<String>) -> anyhow::Result<T>
     where
         Self: Sized,
     {
-        self.status(StatusCode::INTERNAL_SERVER_ERROR)
+        self.http_context(StatusCode::INTERNAL_SERVER_ERROR, public_message)
     }
 
-    fn bad_request(self) -> anyhow::Result<T>
+    fn bad_request(self, public_message: Option<String>) -> anyhow::Result<T>
     where
         Self: Sized,
     {
-        self.status(StatusCode::BAD_REQUEST)
+        self.http_context(StatusCode::BAD_REQUEST, public_message)
     }
 
-    fn bad_gateway(self) -> anyhow::Result<T>
+    fn bad_gateway(self, public_message: Option<String>) -> anyhow::Result<T>
     where
         Self: Sized,
     {
-        self.status(StatusCode::BAD_GATEWAY)
+        self.http_context(StatusCode::BAD_GATEWAY, public_message)
     }
 }
 
@@ -84,8 +89,15 @@ impl<T, E> HttpContextExt<T> for Result<T, E>
 where
     Result<T, E>: anyhow::Context<T, E>,
 {
-    fn status(self, status_code: hyper::StatusCode) -> anyhow::Result<T> {
-        self.with_context(|| HttpContext { status_code })
+    fn http_context(
+        self,
+        status_code: http::StatusCode,
+        public_message: Option<String>,
+    ) -> anyhow::Result<T> {
+        self.with_context(|| HttpContext {
+            status_code,
+            public_message,
+        })
     }
 }
 
@@ -93,11 +105,25 @@ where
 #[derive(Debug)]
 pub struct HttpContext {
     pub status_code: http::StatusCode,
+    pub public_message: Option<String>,
+}
+
+impl Default for HttpContext {
+    fn default() -> Self {
+        HttpContext {
+            status_code: http::StatusCode::INTERNAL_SERVER_ERROR,
+            public_message: None,
+        }
+    }
 }
 
 impl Display for HttpContext {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
-        std::fmt::Display::fmt(&self.status_code, f)
+        std::fmt::Display::fmt(&self.status_code, f)?;
+        if self.public_message.is_none() {
+            return Ok(());
+        }
+        write!(f, " - {}", self.public_message.as_ref().unwrap())
     }
 }
 
@@ -109,17 +135,6 @@ impl TryFrom<anyhow::Error> for HttpContext {
     fn try_from(err: anyhow::Error) -> Result<HttpContext, anyhow::Error> {
         err.downcast()
     }
-}
-
-/// Trait that adds the [IntoResponse::into_response] method to
-/// `anyhow::Result<hyper::Response<hyper::Body>>`.
-pub trait IntoResponse {
-    fn into_response(
-        self,
-        hair: &expry::BytecodeVec,
-        request: &hyper::Request<hyper::Body>,
-        translations: Translations,
-    ) -> hyper::Response<hyper::Body>;
 }
 
 #[derive(Debug)]
@@ -157,8 +172,7 @@ where
             let e = e.into();
             let msg = format!("{e:?}");
             let http_context: Result<HttpContext, anyhow::Error> = e.try_into();
-            let status_code =
-                http_context.map_or(StatusCode::INTERNAL_SERVER_ERROR, |c| c.status_code);
+            let http_context = http_context.unwrap_or_default();
             let context: &actix_web::web::Data<Main> =
                 request.app_data().expect("Forgot context..");
             create_error_response(
@@ -170,7 +184,8 @@ where
                     .get::<Translations>()
                     .map(Clone::clone)
                     .unwrap_or(Translations::NONE),
-                status_code,
+                http_context.status_code,
+                http_context.public_message,
             )
         })
     }
@@ -182,6 +197,7 @@ pub fn create_error_response(
     request: &HttpRequest,
     translations: Translations,
     status_code: http::StatusCode,
+    public_message: Option<String>,
 ) -> TranslatedError {
     use expry::key_str; // for expry::value!
 
@@ -200,9 +216,12 @@ pub fn create_error_response(
 
     // Perhaps we could we could use crypto::seal on the log message instead?
     let code = code.to_string();
+
+    let public_message: String = public_message.unwrap_or_else(|| "".into());
+
     let data = expry::value!({
         "content": "error",
-        "error_message": "error_message_TODO",
+        "error_message": public_message,
         "code": code,
     })
     .to_vec(false);
