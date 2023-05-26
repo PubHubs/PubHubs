@@ -38,19 +38,26 @@ class Pseudonym:
     #
     # Make sure displayname is pseudonym at registration
     #
-    async def on_user_registration( self, user_id:str ):
-        localpart = PseudonymHelper.get_local_username_part(user_id)
-        current_displayname = await self.api._store.get_profile_displayname( localpart )
-        display_name = PseudonymHelper.normalised_displayname( current_displayname, localpart )
-        await self.api._store.set_profile_displayname( localpart, display_name )
+    async def on_user_registration( self, user_id : str ):
+        await self.normalize_displayname( user_id )
 
     #
     # Make sure pseudonym is added to displayname when user changed displayname
     #
     async def change_displayname(self, user_id: str, new_profile: "synapse.module_api.ProfileInfo", by_admin: bool, deactivation: bool):
-        localpart = PseudonymHelper.get_local_username_part(user_id)
-        display_name = PseudonymHelper.normalised_displayname( new_profile.display_name, localpart )
-        await self.api._store.set_profile_displayname( localpart, display_name )
+        await self.normalize_displayname( user_id, new_profile.display_name )
+
+    #
+    # Normalizes user_id's display_name.  If suggested_displayname is not None, uses that (after normalization.)
+    # 
+    async def normalize_displayname(self, user_id : str, suggested_displayname=None):
+        user_id = UserID.from_string(user_id)
+        displayname = suggested_displayname if suggested_displayname is not None else await self.api._store.get_profile_displayname( user_id.localpart )
+        normalized_displayname = PseudonymHelper.normalised_displayname( suggested_displayname, user_id.localpart )
+        logger.info(f"normalize_displayname {displayname} -> {normalized_displayname}")
+        if normalized_displayname != displayname:
+            await self.api._store.set_profile_displayname( user_id, normalized_displayname )
+
 
 
 # Oidc mapping provider for PubHubs that decrypts the encrypted local pseudonym, and
