@@ -25,7 +25,7 @@ pub async fn yivi_proxy_stream(
         .send_body(body)
         .await
         .map_err(|e| anyhow!(e.to_string()))
-        .bad_gateway()
+        .bad_gateway(None)
         .into_translated_error(&request)?;
 
     let mut resp = HttpResponse::build(original_response.status());
@@ -54,7 +54,7 @@ pub async fn yivi_proxy(
         .send_body(body)
         .await
         .map_err(|e| anyhow!(e.to_string()))
-        .bad_gateway()
+        .bad_gateway(None)
         .into_translated_error(&request)?;
 
     let mut resp = HttpResponse::build(original_response.status());
@@ -65,7 +65,7 @@ pub async fn yivi_proxy(
         original_response
             .body()
             .await
-            .bad_gateway()
+            .bad_gateway(None)
             .into_translated_error(&request)?
             .to_vec(),
     )

@@ -1,3 +1,4 @@
+#!/usr/bin/env python3
 __author__ = "PubHub Team / iHub, Radboud University, Nijmegen, Netherlands"
 __license__ = "Apache License, Version 2.0, January 2004"
 __version__ = "1.0"
