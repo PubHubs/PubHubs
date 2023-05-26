@@ -349,7 +349,7 @@ pub async fn disclosed_email_and_telephone(
     let mut attempt_nr: u32 = 0;
     loop {
         attempt_nr += 1;
-        log::info!("waiting for Yivi session with token {token} to finish");
+        log::debug!("waiting for Yivi session with token {token} to finish");
         if started.elapsed()?.as_secs() > 5 * 60 {
             break;
         }
