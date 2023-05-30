@@ -5,15 +5,21 @@ COPY ./hub-client/ /usr/src/hub-client/
 
 WORKDIR /usr/src/pubhubs
 
-COPY build.rs build.rs
-COPY static/ static/
-COPY src/ src/
-COPY Cargo.toml .
-COPY Cargo.lock .
+COPY ./pubhubs/build.rs build.rs
+COPY ./pubhubs/static/ static/
+COPY ./pubhubs/src/ src/
+COPY ./pubhubs/Cargo.toml .
+COPY ./pubhubs/Cargo.lock .
 
 RUN apt-get update && apt-get install -y npm
 
 ARG CARGO_FEATURES
+
+# Build global client
+RUN npm ci --prefix ../global-client
+RUN npm ci --prefix ../hub-client
+RUN npm run --prefix ../global-client build
+RUN cp -a ../global-client/dist/. static/assets/client
 
 RUN cargo install $CARGO_FEATURES --path .
 
@@ -28,7 +34,8 @@ RUN apt-get update && apt-get install -y pepcli
 
 COPY --from=builder /root/.cargo/bin/pubhubs /usr/local/bin/pubhubs
 COPY --from=builder /usr/src/pubhubs/static/ static/
-COPY default.yaml .
+
+COPY ./pubhubs/default.yaml .
 
 ENV PUBHUBS_CONFIG="provide_me_when_running_as_a_container"
 ENV PUBHUBS_URL="provide_me_when_running_as_a_container"

@@ -1,0 +1,6 @@
+# To build the PHC image we need the global client, which depends on some code from the hub client.
+# We don't need other files however.
+*
+!pubhubs/
+!hub-client/
+!global-client/
