@@ -3,7 +3,6 @@ services:
   yivi:
     container_name: yivi
     build:
-      context: $PWD
-      dockerfile: docker_yivi/Dockerfile
+      dockerfile: Dockerfile
     ports:
       - "8088:8088"
