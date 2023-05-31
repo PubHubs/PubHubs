@@ -698,7 +698,9 @@ def main_runner(cargo_setup:str, node_arg:str, hubs:int = 1) -> None:
     os.chdir(root_dir)
 
     # Building Yivi
+    os.chdir("docker_yivi")
     run_docker_compose()
+    os.chdir(root_dir)
 
 
     # Run global client first
