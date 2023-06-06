@@ -43,7 +43,11 @@ unit-test-rust-code:
     - cp -r global-client/ pubhubs
     - cp -r hub-client/ pubhubs
     - cd pubhubs
-    - env RUST_BACKTRACE=full cargo +stable test --no-fail-fast -- -Z unstable-options --format json | gitlab-report -p test > report.xml
+#    No pretty reporting for now unfortunatly, see https://github.com/rust-lang/rust/issues/49359
+#    (more background:  https://github.com/rust-lang/rust/pull/109044), when JSON output is finalized let's turn reporting
+#    back on.
+#    - env RUST_BACKTRACE=full cargo +stable test --no-fail-fast -- -Z unstable-options --format json | gitlab-report -p test > report.xml
+    - env RUST_BACKTRACE=full cargo +stable test --no-fail-fast
   artifacts:
     reports:
       junit: pubhubs/report.xml
