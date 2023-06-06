@@ -2,8 +2,12 @@ import { defineStore } from 'pinia'
 
 import { Hub } from '@/store/hubs'
 
+let baseUrl = '';
 // @ts-ignore
-const baseUrl = _env.PUBHUBS_URL;
+if ( typeof(_env) !== 'undefined' ) {
+    // @ts-ignore
+    baseUrl = _env.PUBHUBS_URL;
+}
 const loginUrl = baseUrl + '/login';
 const logoutUrl = baseUrl + '/logout';
 const barAPI = baseUrl + '/bar/state';
