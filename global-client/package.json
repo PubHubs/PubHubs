@@ -70,7 +70,7 @@
         {
           "vars": "all",
           "args": "after-used",
-          "varsIgnorePattern": "^props|value",
+          "varsIgnorePattern": "^props|value|Hub",
           "ignoreRestSiblings": false
         }
       ],

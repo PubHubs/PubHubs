@@ -20,15 +20,16 @@
 </template>
 
 <script setup lang="ts">
-    import { inject,onMounted, watch } from 'vue';
+    import { onMounted, watch } from 'vue';
     import { useRoute } from 'vue-router'
     import { useI18n } from 'vue-i18n';
-
     import { useRooms } from '@/store/store'
-    const rooms = useRooms();
-    const pubhubs:any = inject('pubhubs');
+    import { usePubHubs } from '@/core/pubhubsStore';
+
     const route = useRoute();
     const { t } = useI18n();
+    const rooms = useRooms();
+    const pubhubs = usePubHubs();
 
 
     onMounted( () => {

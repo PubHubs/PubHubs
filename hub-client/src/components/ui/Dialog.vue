@@ -7,10 +7,10 @@
 <template>
     <div class="absolute h-screen w-screen top-0 left-0">
         <div v-if="dialog.properties.modal" class="absolute inset-0 h-screen z-0 bg-gray-middle opacity-75"></div>
-        <div v-if="!dialog.properties.modalonly" class="absolute inset-0 h-screen flex z-10" @click="doAction(false)">
+        <div v-if="!dialog.properties.modalonly" class="absolute inset-0 h-screen flex z-10" @click="doAction(DialogFalse)">
             <div class="m-auto w-2/6 p-4 rounded-lg shadow-xl shadow-black bg-white" :class="centerClass" @click.stop>
                 <div>
-                    <Icon v-if="dialog.properties.close" type="close" size="md" class="float-right -mt-1 text-gray hover:text-red" @click="doAction(false)"></Icon>
+                    <Icon v-if="dialog.properties.close" type="close" size="md" class="float-right -mt-1 text-gray hover:text-red" @click="doAction(DialogFalse)"></Icon>
                     <H2 v-if="dialog.properties.title !== ''" class="m-0 text-black text-left">{{ dialog.properties.title }}</H2>
                     <slot name="header"></slot>
                 </div>
@@ -32,7 +32,7 @@
 
 <script setup lang="ts">
     import { onMounted,useSlots,computed } from 'vue';
-    import { DialogButton, useDialog } from '@/store/dialog';
+    import { DialogButton, DialogButtonAction, DialogTrue, DialogFalse, useDialog } from '@/store/dialog';
 
     const emit = defineEmits(['close']);
     const dialog = useDialog();
@@ -73,16 +73,16 @@
 
         document.addEventListener('keydown', (e) => {
             if (e.code == "Escape") {
-                doAction(false);
+                doAction(DialogFalse);
             }
             if (e.code == "Enter") {
-                doAction(true);
+                doAction(DialogTrue);
             }
         });
 
     });
 
-    function doAction(action: any) {
+    function doAction(action: DialogButtonAction) {
         emit('close', action);
         dialog.close(action);
     }

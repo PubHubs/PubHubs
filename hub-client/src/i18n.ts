@@ -1,7 +1,7 @@
 import { createI18n } from 'vue-i18n';
 
-import nl from '@/locales/nl.json';
-import en from '@/locales/en.json';
+import {nl} from '@/locales/nl';
+import {en} from '@/locales/en';
 
 const supportedLanguages = ['nl', 'en'];
 const fallbackLocale = 'en';

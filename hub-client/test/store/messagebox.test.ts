@@ -3,10 +3,10 @@ import { describe, beforeEach, expect, test, vi } from 'vitest'
 import { Message, MessageType, MessageBoxType, useMessageBox } from '@/store/messagebox'
 
 
-let messages = [];
+const messages = [];
 const mockTarget = () => {
     return {
-        postMessage : (message:any,url:string) => {
+        postMessage : (message:string,url:string) => {
             messages.push({'message':message,'url':url});
         }
     }

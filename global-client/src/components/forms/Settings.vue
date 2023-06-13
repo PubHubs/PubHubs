@@ -9,25 +9,25 @@
 
 <script setup lang="ts">
     import { onMounted } from 'vue'
-    import { useSettings } from '@/store/store'
-    import { useFormState } from '@/composables/useFormState';
-    import { useDialog } from '@/store/store';
+    import { useSettings, Theme } from '@/store/store'
+    import { useFormState, FormDataType } from '@/composables/useFormState';
+    import { useDialog, DialogTrue } from '@/store/store';
 
     const { data, setData, updateData, dataIsChanged, changed } = useFormState();
     const settings = useSettings();
     const dialog = useDialog();
 
     setData({
-        displayName : '',
-        theme : settings.getSetTheme as string,
+        displayName : '' as FormDataType,
+        theme : settings.getSetTheme as FormDataType,
     });
 
 
     onMounted(() => {
-        dialog.addCallback(true,()=>{
+        dialog.addCallback(DialogTrue,()=>{
             if (changed) {
                 if ( dataIsChanged('theme') ) {
-                    settings.setTheme(data.theme);
+                    settings.setTheme( data.theme as Theme);
                 }
             }
         });

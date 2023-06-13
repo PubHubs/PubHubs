@@ -28,30 +28,31 @@
 </template>
 
 <script setup lang="ts">
-    import { inject } from 'vue';
-    import { useUser, useSettings } from '@/store/store'
+    import { useUser, useSettings, Theme } from '@/store/store'
     import { useI18n } from 'vue-i18n';
     import { useFormState } from '@/composables/useFormState';
-    const { data, setData, updateData, dataIsChanged, changed, message, setMessage } = useFormState();
-    const { t } = useI18n();
+    import { usePubHubs } from '@/core/pubhubsStore';
+
     const user = useUser();
     const settings = useSettings();
-    const pubhubs:any = inject('pubhubs');
+    const { t } = useI18n();
+    const { data, setData, updateData, dataIsChanged, changed, message, setMessage } = useFormState();
+    const pubhubs = usePubHubs();
 
     setData({
         displayName : '',
-        theme : settings.getSetTheme as string,
+        theme : settings.getSetTheme as Theme,
     });
 
     function submit() {
         if (changed) {
             if ( dataIsChanged('displayName') ) {
-                pubhubs.changeDisplayName(data.displayName);
+                pubhubs.changeDisplayName(data.displayName as string);
                 setMessage(t('settings.displayname_changed',[data.displayName]));
                 updateData('displayName','');
             }
             if ( dataIsChanged('theme') ) {
-                settings.setTheme(data.theme);
+                settings.setTheme(data.theme as Theme);
                 setMessage(t('settings.theme_changed', [t('themes.'+data.theme)]) );
             }
         }

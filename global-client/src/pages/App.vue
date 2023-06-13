@@ -36,7 +36,7 @@
                     </Modal>
                 </div>
 
-                <div class="flex-1 dark:bg-gray-dark">
+                <div v-if="hubs.hasHubs" class="flex-1 dark:bg-gray-dark">
                     <router-view></router-view>
                 </div>
             </div>
@@ -51,7 +51,7 @@
 
 <script setup lang="ts">
     import { onMounted,ref } from 'vue';
-    import { useGlobal, useSettings, Hub, useHubs, buttonsSubmitCancel, useDialog } from '@/store/store'
+    import { useGlobal, useSettings, Hub, HubList, useHubs, buttonsSubmitCancel, useDialog } from '@/store/store'
     import { useI18n } from 'vue-i18n';
 
     const global = useGlobal();
@@ -69,21 +69,23 @@
         dialog.asGlobal();
 
         global.checkLogin().finally(()=>{
-            // hubs.addHub( new Hub('local','http://localhost:8081','Local') );
-            // hubs.addHub( new Hub('main','https://main.testhub-element.ihub.ru.nl','Main Hub') );
-            global.getHubs().then((hubsResponse:any) => {
-                hubs.addHubs(hubsResponse as Array<Hub>);
-            });
+            addHubs();
         });
     });
 
+    async function addHubs() {
+        hubs.addHub( new Hub('local','http://localhost:8081','Local') ); // TODO i add this allmost everytime when developing on hub-client -> can we make this an option in start script?
+        const hubsResponse : HubList | undefined = await global.getHubs();
+        if ( hubsResponse ) {
+            hubs.addHubs(hubsResponse as HubList);
+        }
+    }
 
-    function logout() {
-        dialog.yesno( t("logout.logout_sure") ).then((answer) => {
-            if (answer) {
-                global.logout();
-            }
-        });
+
+    async function logout() {
+        if ( await dialog.yesno( t("logout.logout_sure") ) ) {
+            global.logout();
+        }
     }
 
 

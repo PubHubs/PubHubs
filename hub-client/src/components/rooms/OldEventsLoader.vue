@@ -5,9 +5,9 @@
 </template>
 
 <script setup lang="ts">
-    import { inject } from 'vue';
-    const pubhubs:any = inject('pubhubs');
+    import { usePubHubs } from '@/core/pubhubsStore';
 
+    const pubhubs = usePubHubs();
     const emit = defineEmits(['loaded'])
 
     const props = defineProps({
@@ -17,8 +17,8 @@
         },
     });
 
-    function loadOldMessages() {
-        pubhubs.loadOlderEvents(props.room_id);
+    async function loadOldMessages() {
+        await pubhubs.loadOlderEvents(props.room_id);
         emit('loaded');
     }
 

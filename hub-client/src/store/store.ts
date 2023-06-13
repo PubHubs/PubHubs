@@ -7,6 +7,6 @@ import { Theme, defaultSettings, useSettings } from '@/store/settings'
 import { useHubSettings } from '@/store/hub-settings'
 import { Room, useRooms } from '@/store/rooms'
 import { MessageType, Message, MessageBoxType, useMessageBox } from '@/store/messagebox'
-import { buttonsSubmitCancel, DialogButton, DialogProperties, useDialog } from '@/store/dialog'
+import { buttonsSubmitCancel, DialogButton, DialogProperties, useDialog, DialogButtonAction, DialogFalse, DialogTrue } from '@/store/dialog'
 
-export { User, defaultUser, useUser, Theme, defaultSettings, useSettings, useHubSettings, Room, useRooms, MessageType, Message, MessageBoxType, useMessageBox, buttonsSubmitCancel, DialogButton, DialogProperties, useDialog }
+export { User, defaultUser, useUser, Theme, defaultSettings, useSettings, useHubSettings, Room, useRooms, MessageType, Message, MessageBoxType, useMessageBox, buttonsSubmitCancel, DialogButton, DialogProperties, useDialog, type DialogButtonAction, DialogFalse, DialogTrue }
