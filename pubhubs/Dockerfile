@@ -23,7 +23,7 @@ RUN cp -a ../global-client/dist/. static/assets/client
 
 RUN cargo install $CARGO_FEATURES --path .
 
-FROM debian:stable-slim
+FROM debian:oldstable-slim
 RUN apt-get update && apt-get install -y curl lsb-release && rm -rf /var/lib/apt/lists/*
 
 # TODO now on main, on stable release use stable
