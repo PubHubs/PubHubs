@@ -70,7 +70,7 @@ const useSettings = defineStore('settings', {
          * Get themes as options (for form selecting).
          * If nothing is given the label will be a capitalized version of the theme. If a function is given, the function will be used to generate the label. So you can give the localisation function $t.
          */
-        getThemeOptions: () => (themes:any) => {
+        getThemeOptions: () => (themes:Function|undefined) => {
             const options = Object.values(Theme).map( e => {
                 if ( typeof(themes) !== 'function') {
                     return {
@@ -99,16 +99,13 @@ const useSettings = defineStore('settings', {
         setTheme(newTheme:Theme) {
             if (this.theme !== newTheme) {
                 this.theme = newTheme;
-                this.sendSettings();
+                this.sendTheme();
             }
         },
 
-        sendSettings() {
-            const currentSettings = {
-                theme : this.theme,
-            }
+        sendTheme() {
             const messagebox = useMessageBox();
-            messagebox.sendMessage( new Message(MessageType.Settings,currentSettings) );
+            messagebox.sendMessage( new Message(MessageType.Settings,this.theme) );
         },
 
     },

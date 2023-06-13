@@ -119,7 +119,7 @@ export default {
       this.selectedGroup = group;
     },
     selectEmoji(emoji) {
-      this.$emit("emojiSelected", emoji);
+      this.$emit("emojiSelected", emoji.emoji);
     },
     groupLabel() {
       const labels = [

@@ -8,7 +8,6 @@ import { i18n } from '@/i18n';
 import { routes } from '@/core/routes';
 import { focus, twClass } from '@/core/directives';
 
-// import { PubHubs } from '@/core/pubhubs';
 
 // Local components
 import App from '@/pages/App.vue'
@@ -17,6 +16,7 @@ import { registerComponents } from '@/registerComponents.js';
 // Components from hub-client
 import H1 from '@/../../hub-client/src/components/elements/H1.vue'
 import H2 from '@/../../hub-client/src/components/elements/H2.vue'
+import H3 from '@/../../hub-client/src/components/elements/H3.vue'
 import Icon from '@/../../hub-client/src/components/elements/Icon.vue'
 import Line from '@/../../hub-client/src/components/elements/Line.vue'
 import Badge from '@/../../hub-client/src/components/elements/Badge.vue'
@@ -43,6 +43,7 @@ registerComponents(app);
 
 app.component('H1',H1);
 app.component('H2',H2);
+app.component('H3',H3);
 app.component('Icon',Icon);
 app.component('Line',Line);
 app.component('Badge',Badge);
@@ -57,6 +58,5 @@ app.use(pinia);
 app.use(i18n);
 app.directive('focus', focus);
 app.directive('tw-class', twClass);
-// app.provide('pubhubs', new PubHubs());
 
 app.mount('#app');

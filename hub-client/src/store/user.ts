@@ -14,18 +14,26 @@ import { MatrixClient } from 'matrix-js-sdk';
 
 const defaultUser = {} as User;
 
+type State = {
+    user: User
+}
+
+type getProfileInfoResponseType = {
+    avatar_url? : string | undefined,
+    displayname? : string | undefined,
+}
+
+
 const useUser = defineStore('user', {
 
-    state: () => {
-        return {
-            user : defaultUser,
-        }
-    },
+    state: () : State => ({
+        user : defaultUser
+    }),
 
     getters: {
 
-        isLoggedIn(state:any) {
-            return typeof(state.user.userId) == 'string';
+        isLoggedIn({user}) {
+            return typeof(user.userId) == 'string';
         },
 
     },
@@ -36,12 +44,13 @@ const useUser = defineStore('user', {
             this.user = user;
         },
 
-        fetchDisplayName(client:MatrixClient) {
-            client.getProfileInfo(this.user.userId, 'displayname').then((response: any) => {
-                if (typeof (response.displayname) == 'string') {
-                    this.user.setDisplayName(response.displayname);
-                }
-            });
+        async fetchDisplayName(client:MatrixClient) {
+
+            const response : getProfileInfoResponseType= await client.getProfileInfo(this.user.userId, 'displayname');
+            if (typeof (response.displayname) == 'string') {
+                this.user.setDisplayName(response.displayname);
+            }
+
         },
 
     },

@@ -30,7 +30,7 @@
                         <template #category>Room</template>
                         <template #content>Gesprekken over het laatste tech gerelateerde nieuws.</template>
                     </ArticleBlock>
-                  
+
                     <ArticleBlock>
                         <template #image></template>
                         <template #header>Smartphones en jonge kinderen</template>
@@ -39,7 +39,7 @@
                     </ArticleBlock>
                 </div>
             </div>
-            
+
             <div class="flex flex-col h-1/3">
                 <H2 class="mb-5 mt-12">Uitgelichte discussies van de voorbeeldhub</H2>
                 <div class="flex justify-between h-full gap-4">
@@ -65,16 +65,16 @@
 <!-- <Button class="w-3/6 m-auto" @click="login()">{{ $t("login.login") }}</Button> -->
 
 <script setup lang="ts">
-/**
- *
- * This HUB page will be shown if a user is not yet registered or authenticated in PubHubs Central
- *
- */
+    /**
+     *
+     * This HUB page will be shown if a user is not yet registered or authenticated in PubHubs Central
+     *
+     */
 
-import { inject } from "vue";
-const pubhubs: any = inject("pubhubs");
+    import { usePubHubs } from '@/core/pubhubsStore';
+    const pubhubs = usePubHubs();
 
-function login() {
-    pubhubs.centralLogin();
-}
+    function login() {
+        pubhubs.centralLogin();
+    }
 </script>
