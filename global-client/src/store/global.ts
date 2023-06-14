@@ -1,16 +1,12 @@
 import { defineStore } from 'pinia'
 
-import { Hub } from '@/store/hubs'
+import { Hub, HubList } from '@/store/hubs'
+import { apiURLS, apiStatus, apiGET } from '@/core/api'
 
-// @ts-ignore
-const baseUrl = _env.PUBHUBS_URL;
-const loginUrl = baseUrl + '/login';
-const logoutUrl = baseUrl + '/logout';
-const barAPI = baseUrl + '/bar/state';
-const hubsAPI = baseUrl + '/bar/hubs';
-
-const apiOptionsGET = {
-    method : "GET",
+interface hubResponseItem {
+    name:string;
+    client_uri:string;
+    description:string;
 }
 
 const useGlobal = defineStore('global', {
@@ -32,50 +28,33 @@ const useGlobal = defineStore('global', {
 
     actions: {
 
-        checkLogin() : Promise<any> {
-            const self = this;
-            return new Promise((resolve,reject) => {
-                fetch( barAPI, apiOptionsGET )
-                    .then( (response) => {
-                        if ( response.status==200 ) {
-                            self.loggedIn = true;
-                            resolve(true);
-                        }
-                        else {
-                            self.loggedIn = false;
-                            resolve(false);
-                        }
-                    })
-                    .catch(()=>{
-                        reject();
-                    });
-            });
+        async checkLogin() {
+            if ( await apiStatus( apiURLS.bar ) ) {
+                this.loggedIn = true;
+                return true;
+            }
+            else {
+                this.loggedIn = false;
+                return false;
+            }
         },
 
         login() {
-            window.location.replace(loginUrl);
+            window.location.replace(apiURLS.login);
         },
 
         logout() {
             this.loggedIn = false;
-            window.location.replace(logoutUrl);
+            window.location.replace(apiURLS.logout);
         },
 
-        getHubs() {
-            return new Promise((resolve) => {
-                fetch( hubsAPI, apiOptionsGET )
-                    .then( (response) => {
-                        if ( response.status==200) {
-                            response.json().then((data)=>{
-                                const hubs = [] as Array<Hub>;
-                                data.forEach( (item:any) => {
-                                    hubs.push( new Hub(item.name,item.client_uri,item.description) )
-                                });
-                                resolve(hubs);
-                            });
-                        }
-                    });
+        async getHubs() {
+            const data = await apiGET<Array<hubResponseItem>>( apiURLS.hubs );
+            const hubs = [] as HubList;
+            data.forEach( (item:hubResponseItem) => {
+                hubs.push( new Hub(item.name,item.client_uri,item.description) )
             });
+            return hubs;
         },
 
         showModal() {

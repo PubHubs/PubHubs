@@ -698,13 +698,20 @@ def main_runner(cargo_setup:str, node_arg:str, hubs:int = 1) -> None:
     os.chdir(root_dir)
 
     # Building Yivi
+    os.chdir("docker_yivi")
     run_docker_compose()
+    os.chdir(root_dir)
 
 
-    # # # Run global client first
-    
+    # Run global client first
+    os.chdir("global-client")
+    subprocess.run(["npm", "install"], check=True)
+    global_client_proces = Process(target=os.system, args=("npm run watch",))
+    global_client_proces.start()
+
 
     # Run server in another process so that we can keep this script continue executing.
+    os.chdir(root_dir)
     os.chdir("pubhubs")
     process_pubhub_server = Process(target=run_external_command, args=(cargo_setup,))
     process_pubhub_server.start()

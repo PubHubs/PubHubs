@@ -1,3 +1,4 @@
+import { SyncState } from 'matrix-js-sdk/lib/sync';
 import { MatrixClient, MatrixEvent, ClientEvent, Room as MatrixRoom, RoomEvent, RoomMemberEvent, RoomMember } from 'matrix-js-sdk';
 
 import { useSettings, useUser, useRooms } from '@/store/store';
@@ -7,14 +8,14 @@ class Events {
 
     private client!: MatrixClient;
 
-    constructor(client:MatrixClient) {
+    startWithClient( client:MatrixClient ) {
         this.client = client;
     }
 
     initEvents() {
         return new Promise((resolve) => {
             const self = this;
-            this.client.on( ClientEvent.Sync, (state: any) => {
+            this.client.on( ClientEvent.Sync, (state: SyncState) => {
 
                 if (state=="PREPARED") {
                     // this.client.on("event", (event) => {
@@ -68,9 +69,11 @@ class Events {
     eventRoomMemberName(event: MatrixEvent, member: RoomMember) {
         const user = useUser();
         console.debug("RoomMember.name",member.user?.displayName);
-        if (member.user!==undefined) {
+        if ( member.user!==undefined ) {
             user.setUser(member.user);
-            user.user.setDisplayName(member.user.displayName);
+            if ( member.user.displayName!==undefined) {
+                user.user.setDisplayName( member.user.displayName );
+            }
         }
     }
 

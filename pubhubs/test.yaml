@@ -6,3 +6,4 @@ yivi:
 pep: { }
 allowed_embedding_contexts: ["localhost:8082,localhost:8080"]
 admins: []
+

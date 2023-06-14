@@ -3,22 +3,28 @@
  */
 
 import { twMerge } from 'tailwind-merge';
+import { DirectiveBinding, VNode } from 'vue';
 
 const focus = {
-    mounted(el: any) {
+    mounted(el: HTMLElement) {
         el.focus()
     }
 }
 
 
 const twClass = {
-    mounted: (el: any, binding: any, vnode: any) => {
+    mounted: (el: HTMLElement, binding: DirectiveBinding, vnode: VNode) => {
+        let classes = '';
         if (vnode.props !== null && typeof (vnode.props.class) == 'string') {
-            el.classList = twMerge(binding.value, vnode.props.class);
+            classes = twMerge(binding.value, vnode.props.class);
         }
         else {
-            el.classList = binding.value;
+            classes = binding.value;
         }
+        const classesList = classes.split(' ');
+        classesList.forEach( (item) => {
+            el.classList.add( item );
+        } )
     }
 }
 

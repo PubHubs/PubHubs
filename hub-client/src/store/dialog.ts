@@ -1,5 +1,6 @@
 import { defineStore } from 'pinia'
 import { MessageType, Message, useMessageBox } from './messagebox';
+import { i18n } from '../i18n';
 
 /**
  * Global Dialog, uses components/ui/Dialog.vue component which is globally present in App.vue
@@ -12,12 +13,17 @@ import { MessageType, Message, useMessageBox } from './messagebox';
  * - color
  * - action (return value)
  */
+
+type DialogButtonAction = string|number;
+const DialogFalse = 0;
+const DialogTrue = 1;
+
 class DialogButton {
     label: string;
     color: string;
-    action: any;
+    action: DialogButtonAction;
 
-    constructor(label='',color='',action=false) {
+    constructor(label='',color='',action=DialogFalse) {
         this.label = label;
         this.color = color;
         this.action = action;
@@ -25,22 +31,22 @@ class DialogButton {
 }
 
 const buttonsOk : Array<DialogButton> = [
-    new DialogButton('ok','blue',true),
+    new DialogButton('ok','blue',DialogTrue),
 ]
 
 const buttonsOkCancel : Array<DialogButton> = [
-    new DialogButton('ok','blue',true),
-    new DialogButton('cancel','red',false),
+    new DialogButton('ok','blue',DialogTrue),
+    new DialogButton('cancel','red',DialogFalse),
 ]
 
 const buttonsSubmitCancel : Array<DialogButton> = [
-    new DialogButton('submit','blue',true),
-    new DialogButton('cancel','red',false),
+    new DialogButton('submit','blue',DialogTrue),
+    new DialogButton('cancel','red',DialogFalse),
 ]
 
 const buttonsYesNo : Array<DialogButton> = [
-    new DialogButton('yes','blue',true),
-    new DialogButton('no','red',false),
+    new DialogButton('yes','blue',DialogTrue),
+    new DialogButton('no','red',DialogFalse),
 ]
 
 /**
@@ -48,9 +54,10 @@ const buttonsYesNo : Array<DialogButton> = [
  */
 class DialogProperties {
     title : string;
-    content : any;
+    content : string;
     buttons : Array<DialogButton>;
     modal : Boolean;
+    modalonly : Boolean;
     close : Boolean;
 
     constructor( title = "", content = "", buttons:Array<DialogButton> = [], modal = true, close = true ) {
@@ -63,6 +70,7 @@ class DialogProperties {
             this.buttons = buttons;
         }
         this.modal = modal;
+        this.modalonly = false;
         this.close = close;
     }
 }
@@ -77,8 +85,8 @@ const useDialog = defineStore('dialog', {
             global : false as Boolean,
             visible : false as Boolean,
             properties : new DialogProperties(),
-            resolveDialog : {} as any,
-            callbacks : {} as { [index:string]: Function }
+            resolveDialog : {} as Function,
+            callbacks : {} as { [index:DialogButtonAction]: Function }
         }
     },
 
@@ -120,7 +128,7 @@ const useDialog = defineStore('dialog', {
          *
          * @param returnValue the answer that will be given back
          */
-        close( returnValue:any ) {
+        close( returnValue:DialogButtonAction ) {
             if (window.self !== window.top) {
                 const messagebox = useMessageBox();
                 messagebox.sendMessage( new Message( MessageType.DialogHideModal ) );
@@ -133,6 +141,19 @@ const useDialog = defineStore('dialog', {
             if ( typeof(this.resolveDialog) === "function" ) {
                 this.resolveDialog(returnValue);
             }
+        },
+
+        /**
+         * Shows a simple confirm dialog, with an error prefix, with only an 'Ok' button.
+         *
+         * @param title Text in the header of the dialog (prefixed by an error)
+         * @param content @default[''] Text in the main area of the dialog
+         * @returns
+         */
+        showError( title:string, content:string = '') {
+            const { t } = i18n.global;
+            const message = t('errors.error',title);
+            return this.show( new DialogProperties(message,content,buttonsOk));
         },
 
         /**
@@ -169,11 +190,11 @@ const useDialog = defineStore('dialog', {
         },
 
 
-        addCallback(action:any, callback:Function) {
+        addCallback(action:DialogButtonAction, callback:Function) {
             this.callbacks[action] = callback;
         },
 
-        removeCallback(action:any) {
+        removeCallback(action:DialogButtonAction) {
             delete(this.callbacks[action]);
         }
 
@@ -181,4 +202,4 @@ const useDialog = defineStore('dialog', {
 
 })
 
-export { buttonsSubmitCancel, DialogButton, DialogProperties, useDialog }
+export { buttonsSubmitCancel, DialogButton, type DialogButtonAction, DialogFalse, DialogTrue, DialogProperties, useDialog }

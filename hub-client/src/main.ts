@@ -6,14 +6,13 @@ import '@/assets/tailwind.css'
 import { i18n } from '@/i18n';
 
 import { registerComponents } from '@/registerComponents.js';
-import { PubHubs } from '@/core/pubhubs';
+
 import { routes } from '@/core/routes';
 import { focus, twClass } from '@/core/directives';
 import App from '@/pages/App.vue'
 
 import { ReplaceConsole } from '@/console';
 ReplaceConsole();
-
 
 const router = createRouter({
     history: createWebHashHistory(),
@@ -27,7 +26,6 @@ registerComponents(app);
 app.use(router);
 app.use(pinia);
 app.use(i18n);
-app.provide('pubhubs', new PubHubs());
 app.directive('focus', focus);
 app.directive('tw-class', twClass);
 

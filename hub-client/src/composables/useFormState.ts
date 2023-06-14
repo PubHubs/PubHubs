@@ -1,6 +1,7 @@
 import { ref, reactive } from 'vue';
 
-type FormData = {[key:string]:any}
+type FormDataType = string | number
+type FormData = {[key:string]:FormDataType}
 
 const useFormState = () => {
 
@@ -16,7 +17,7 @@ const useFormState = () => {
         });
     }
 
-    const updateData = ( key:string, value:any) => {
+    const updateData = ( key:string, value:FormDataType) => {
         data[key] = value;
         changed.value = false;
         Object.keys(data).forEach(key => {
@@ -45,5 +46,5 @@ const useFormState = () => {
 }
 
 
-export { useFormState };
+export { useFormState, type FormDataType };
 
