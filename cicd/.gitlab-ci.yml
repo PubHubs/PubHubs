@@ -18,23 +18,28 @@ stages: # List of stages for jobs, and their order of execution
       - README.md
       - LICENSE
 
+
 .rustchanges: &rustchanges
   changes:
     - pubhubs/*
+    - cicd/.gitlab-ci.yml
 
 .phc_image_changes: &phc_image_changes
   changes:
     - pubhubs/*
     - global-client/* # global client is included in PHC image
     - hub-client/* # global client depends on hub-client
+    - cicd/.gitlab-ci.yml
 
 .hubclientchanges: &hubclientchanges
   changes:
     - hub-client/*
+    - cicd/.gitlab-ci.yml
 
 .hubchanges: &hubchanges
   changes:
     - pubhubs_hub/*
+    - cicd/.gitlab-ci.yml
 
 rust-clippy:
   stage: build
