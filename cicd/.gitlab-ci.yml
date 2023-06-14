@@ -367,8 +367,8 @@ set-blueprints:
   tags: [docker]
   image: registry.gitlab.com/islandoftex/images/texlive:latest
   script:
-    cd docs/blueprints
-    arara main
+    - cd docs/blueprints
+    - arara main
   artifacts:
     paths:
       - ./main.pdf
