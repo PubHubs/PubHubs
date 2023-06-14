@@ -371,4 +371,4 @@ set-blueprints:
     - arara main
   artifacts:
     paths:
-      - ./main.pdf
+      - ./docs/blueprints/main.pdf
