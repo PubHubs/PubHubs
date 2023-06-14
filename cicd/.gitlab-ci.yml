@@ -359,15 +359,16 @@ deploy-stable-client:
 set-blueprints:
   stage: build
   only:
-    #refs:
-    #  - main
+    refs:
+      - main
     changes:
       - docs/blueprints/*
       - cicd/.gitlab-ci.yml
   tags: [docker]
   image: registry.gitlab.com/islandoftex/images/texlive:latest
   script:
-       arara main
+    cd docs/blueprints
+    arara main
   artifacts:
     paths:
       - ./main.pdf
