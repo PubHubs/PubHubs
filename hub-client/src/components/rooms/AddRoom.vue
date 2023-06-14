@@ -2,7 +2,7 @@
     <TextInput :placeholder="$t('rooms.search')" :visible="false" @submit="addNewRoom($event)" @changed="findPublicRooms($event)" @cancel="findPublicRooms('')"></TextInput>
 
     <ul v-if="hasPublicRooms" class="bg-white rounded-lg p-2">
-        <li v-for="room in publicRooms" :key="room.roomId" class="flex flex-row cursor-pointer" @click="joinPublicRoom(room.roomId)">
+        <li v-for="room in publicRooms" :key="room.roomId" class="flex flex-row cursor-pointer" @click="joinPublicRoom(room.room_id)">
             <span class="bg-green rounded-lg p-2 m-1">{{room.name}}</span>
         </li>
     </ul>
