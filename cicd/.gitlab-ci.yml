@@ -11,6 +11,17 @@ stages: # List of stages for jobs, and their order of execution
   - build-images
   - deploy
 
+.exceptdoc: &exceptdoc
+  except:
+    changes: &changesdoc
+      - docs/*
+      - README.md
+      - LICENSE
+
+.rustchanges: &rustchanges
+  changes:
+    - pubhubs/*
+
 clippy:
   stage: build
   tags:
@@ -28,7 +39,9 @@ clippy:
   rules:
     - if: "$CODE_QUALITY_DISABLED"
       when: never
-    - if: '$CI_PIPELINE_SOURCE == "push"'
+    - if: '$CI_PIPELINE_SOURCE != "push"'
+      when: never
+    - *rustchanges
   cache:
     key: "${CI_COMMIT_REF_NAME}-${CI_JOB_NAME}"
     paths:
@@ -38,6 +51,7 @@ unit-test-rust-code:
   stage: build
   tags:
     - docker
+  only: *rustchanges
   image: registry.science.ru.nl/ilab/docker-build/rust-stable:main
   script:
     - cp -r global-client/ pubhubs
@@ -59,6 +73,7 @@ unit-test-rust-code:
 
 cargo-deny:
   stage: build
+  only: *rustchanges
   tags:
     - docker
   image: registry.science.ru.nl/ilab/docker-build/rust-stable:main
@@ -69,8 +84,10 @@ cargo-deny:
 build-pubhubs-image:
   stage: build-images
   only:
-    - main
-    - stable
+    refs:
+      - main
+      - stable
+    <<: *rustchanges
   needs:
     - unit-test-rust-code
   tags:
@@ -87,6 +104,7 @@ deploy-main:
   stage: deploy
   only:
     - main
+  <<: *exceptdoc
   environment: $CI_COMMIT_REF_NAME
   tags: [docker]
   image: ubuntu:rolling
@@ -101,6 +119,7 @@ deploy-stable:
   stage: deploy
   only:
     - stable
+  <<: *exceptdoc
   environment: $CI_COMMIT_REF_NAME
   tags: [docker]
   image: ubuntu:rolling
@@ -113,6 +132,7 @@ deploy-stable:
 
 unit-test-build-script:
   stage: build
+  <<: *exceptdoc
   tags:
     - docker
   image: python:latest
@@ -126,6 +146,7 @@ unit-test-build-script:
 
 unit-test-hub: # This job runs in the test stage.
   stage: build
+  <<: *exceptdoc
   tags:
     - docker
   image: python:latest
@@ -164,6 +185,7 @@ build-image-hub:
   only:
     - main
     - stable
+  <<: *exceptdoc
   needs:
     - unit-test-hub
   tags:
@@ -181,6 +203,7 @@ deploy-main-hub:
   stage: deploy
   only:
     - main
+  <<: *exceptdoc
   environment: $CI_COMMIT_REF_NAME
   tags: [docker]
   image: registry.science.ru.nl/ilab/docker-build/ubuntu-iso:main
@@ -193,6 +216,7 @@ deploy-stable-hub:
   stage: deploy
   only:
     - stable
+  <<: *exceptdoc
   environment: $CI_COMMIT_REF_NAME
   tags: [docker]
   image: registry.science.ru.nl/ilab/docker-build/ubuntu-iso:main
@@ -203,6 +227,7 @@ deploy-stable-hub:
 
 unit-test-client:
   stage: build
+  <<: *exceptdoc
   tags: [docker]
   image: node:latest
   before_script:
@@ -220,6 +245,7 @@ build-client:
   only:
     - main
     - stable
+  <<: *exceptdoc
   needs:
     - unit-test-client
   tags:
@@ -237,6 +263,7 @@ build-client2:
   stage: build-images
   only:
     - main
+  <<: *exceptdoc
   needs:
     - unit-test-client
   tags:
@@ -259,6 +286,7 @@ deploy-main-client:
   stage: deploy
   only:
     - main
+  <<: *exceptdoc
   environment: $CI_COMMIT_REF_NAME
   tags: [docker]
   image: registry.science.ru.nl/ilab/docker-build/ubuntu-iso:main
@@ -272,6 +300,7 @@ deploy-stable-client:
   stage: deploy
   only:
     - stable
+  <<: *exceptdoc
   environment: $CI_COMMIT_REF_NAME
   tags: [docker]
   image: registry.science.ru.nl/ilab/docker-build/ubuntu-iso:main
