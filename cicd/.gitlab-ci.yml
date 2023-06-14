@@ -325,7 +325,8 @@ deploy-main-hubclient:
     <<: *hubclientchanges
   needs: &deployhubclientneeds
     - build-hubclient
-    - build-hubclient2
+    - job: build-hubclient2
+      optional: true
   environment: $CI_COMMIT_REF_NAME
   tags: [docker]
   image: registry.science.ru.nl/ilab/docker-build/ubuntu-iso:main
