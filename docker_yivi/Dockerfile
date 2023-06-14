@@ -10,8 +10,8 @@ RUN go install ./irma
 
 EXPOSE 8088
 
-COPY docker_yivi/irmaserver.yaml .
-COPY docker_yivi/jwt.priv .
+COPY irmaserver.yaml .
+COPY jwt.priv .
 
 CMD ["irma", "server", "-vvvvvv", "--no-tls", "--sse", "--allow-unsigned-callbacks"]
 #"-u", "http://172.18.0.2:8088"

@@ -12,7 +12,7 @@ pub async fn yivi_proxy_stream(
     context: Data<Main>,
     body: String,
 ) -> Result<HttpResponse, TranslatedError> {
-    let yivi_url = &context.yivi.client_url;
+    let yivi_url = &context.yivi.client_api_url;
     let client = awc::Client::default();
     let uri = request.uri().to_string().replace("yivi", "irma");
 
@@ -25,7 +25,7 @@ pub async fn yivi_proxy_stream(
         .send_body(body)
         .await
         .map_err(|e| anyhow!(e.to_string()))
-        .bad_gateway()
+        .bad_gateway(None)
         .into_translated_error(&request)?;
 
     let mut resp = HttpResponse::build(original_response.status());
@@ -40,8 +40,8 @@ pub async fn yivi_proxy(
     context: Data<Main>,
     body: String,
 ) -> Result<HttpResponse, TranslatedError> {
-    let yivi_url = &context.yivi.client_url;
-    let proxy_host = &context.url;
+    let yivi_url = &context.yivi.client_api_url;
+    let proxy_host = &context.url.for_yivi_app.as_str();
     let uri = request.uri().to_string().replace("yivi", "irma");
     let client = awc::Client::default();
 
@@ -54,7 +54,7 @@ pub async fn yivi_proxy(
         .send_body(body)
         .await
         .map_err(|e| anyhow!(e.to_string()))
-        .bad_gateway()
+        .bad_gateway(None)
         .into_translated_error(&request)?;
 
     let mut resp = HttpResponse::build(original_response.status());
@@ -65,7 +65,7 @@ pub async fn yivi_proxy(
         original_response
             .body()
             .await
-            .bad_gateway()
+            .bad_gateway(None)
             .into_translated_error(&request)?
             .to_vec(),
     )
@@ -112,7 +112,7 @@ mod tests {
             .insert_header(("x-test", "yes"))
             .to_http_request();
         let context = create_test_context_with(|mut f| {
-            f.yivi.client_url = Some("http://localhost:3005/test1".to_string());
+            f.yivi.client_api_url = Some("http://localhost:3005/test1".to_string());
             f
         })
         .await

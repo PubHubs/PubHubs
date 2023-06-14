@@ -1,3 +1,4 @@
+#!/usr/bin/env python3
 __author__ = "PubHub Team / iHub, Radboud University, Nijmegen, Netherlands"
 __license__ = "Apache License, Version 2.0, January 2004"
 __version__ = "1.0"
@@ -334,6 +335,7 @@ def build_test_hub_image(image_name):
     """
     
     docker_build_command = "docker build -t " +  image_name + " ."
+    print(f"\033[92m{docker_build_command}\033[0m")
     subprocess.call(docker_build_command, shell=True)
 
 def docker_run_hub(env_value, image_name, client_port, hub_port):
@@ -361,6 +363,8 @@ def docker_run_hub(env_value, image_name, client_port, hub_port):
            --add-host host.docker.internal:host-gateway \
            {image_name}"
    
+    
+    print(f"\033[92m{docker_command}\033[0m")
     subprocess.call(docker_command, shell=True)
 
 def run_docker_compose(env_value=None, args: str = None) -> None:
@@ -381,6 +385,7 @@ def run_docker_compose(env_value=None, args: str = None) -> None:
     if args is not None:
         docker_command += args
 
+    print(f"\033[92m{docker_command}\033[0m")
     subprocess.call(docker_command, shell=True)
 
 
@@ -549,6 +554,7 @@ def run_command(cmd):
         A tuple containing the stdout and stderr output from the subprocess.
     """
     
+    print(f"\033[92m{cmd}\033[0m")
     result = subprocess.run(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True, shell=True)
     return result.stdout.strip(), result.stderr.strip()
 
@@ -564,8 +570,7 @@ def remove_container(container_name):
     Returns:
         None
     """
-    
-    cmd = f"docker ps --filter 'name={container_name}' --format '{{{{.Names}}}}'"
+    cmd = f"docker ps -a --filter 'name={container_name}' --format '{{{{.Names}}}}'"
     container_status, _ = run_command(cmd)
 
     # If the container is running or exists, stop and remove it
@@ -675,8 +680,10 @@ def main_runner(cargo_setup:str, node_arg:str, hubs:int = 1) -> None:
         sys.exit("-----Missing dependency----\nPubhubs build will now terminate with failure.")
 
     # Additional check for docker and docker compose because they could be installed but not running.
+    print(f"\033[92mdocker ps\033[0m")
     subprocess.check_output("docker ps", shell=True)
 
+    print(f"\033[92mdocker compose\033[0m")
     subprocess.check_output("docker compose", shell=True)
 
     # Change permissions of relevant matrix config directory
@@ -691,13 +698,20 @@ def main_runner(cargo_setup:str, node_arg:str, hubs:int = 1) -> None:
     os.chdir(root_dir)
 
     # Building Yivi
+    os.chdir("docker_yivi")
     run_docker_compose()
+    os.chdir(root_dir)
 
 
-    # # # Run global client first
-    
+    # Run global client first
+    os.chdir("global-client")
+    subprocess.run(["npm", "install"], check=True)
+    global_client_proces = Process(target=os.system, args=("npm run watch",))
+    global_client_proces.start()
+
 
     # Run server in another process so that we can keep this script continue executing.
+    os.chdir(root_dir)
     os.chdir("pubhubs")
     process_pubhub_server = Process(target=run_external_command, args=(cargo_setup,))
     process_pubhub_server.start()
@@ -921,7 +935,7 @@ class TestPubHubsAutomation(unittest.TestCase):
 
         with patch(f"{__name__}.run_command", run_command_mock):
             remove_container(container_name)
-            run_command_mock.assert_any_call(f"docker ps --filter 'name={container_name}' --format '{{{{.Names}}}}'")
+            run_command_mock.assert_any_call(f"docker ps -a --filter 'name={container_name}' --format '{{{{.Names}}}}'")
             run_command_mock.assert_any_call(f"docker stop {container_name}")
             run_command_mock.assert_any_call(f"docker rm {container_name}")
 
@@ -933,7 +947,7 @@ class TestPubHubsAutomation(unittest.TestCase):
 
         with patch(f'{__name__}.run_command', run_command_mock):
             remove_container(container_name)
-            run_command_mock.assert_called_once_with(f"docker ps --filter 'name={container_name}' --format '{{{{.Names}}}}'")
+            run_command_mock.assert_called_once_with(f"docker ps -a --filter 'name={container_name}' --format '{{{{.Names}}}}'")
 
 
     def test_update_homeserver_yaml(self):

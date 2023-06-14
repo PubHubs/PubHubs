@@ -8,6 +8,7 @@
             </H3>
             <Message v-if="event.content.msgtype=='m.text'" :message="event.content.body"></Message>
             <MessageFile v-if="event.content.msgtype=='m.file'" :message="event.content"></MessageFile>
+            <MessageImage v-if="event.content.msgtype=='m.image'" :message="event.content"></MessageImage>
         </div>
     </div>
 </template>

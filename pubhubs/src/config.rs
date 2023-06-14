@@ -15,13 +15,16 @@ pub struct File {
     #[serde(skip)]
     pub path: PathBuf,
 
-    /// public url to reach PubHubs, for the yivi app;
-    /// if None and not in production, it
-    /// will be set to the IP address returned by ifconfig.me,
-    /// (which might, or might not, be publically reachable)
-    /// with as port the one from `bind_to` below.
+    /// Url of PubHubs Central.  If None, 'urls' below are used.
     #[serde(default)]
-    pub url: Option<String>,
+    pub url: Option<url::Url>,
+
+    /// Offers more fine grained control over who gets what URL for PubHubs Central.
+    /// The user's browser might reach PubHubs Central
+    /// via http://localhost:8080, while hubs in a docker container
+    /// might need to use <http://host.docker.internal:8080>, or, e.g., http://1.2.3.4:8080
+    #[serde(default)]
+    pub urls: Option<Urls>,
 
     /// Bind to this address.  Defaults to ("0.0.0.0", "8080").
     #[serde(default = "default_bind_to")]
@@ -160,12 +163,30 @@ impl File {
 
 #[derive(Serialize, Deserialize)]
 pub struct Yivi {
-    pub server_url: String,
+    /// The Yivi server serves two APIs:
+    ///  1.)  One, under /irma,  for 'clients' (i.e. Yivi apps)  to disclose, sign, and receive credentials, and
+    ///  2.)  one, under /session,  for 'requestors' to start and inspect Yivi sessions.
+    ///
+    /// By default, Yivi serves both on the same (IP address and) port, but it can be configured to
+    /// serve the client endpoints via a different (IP address and) port, via `client_port` (and
+    /// `client_listen_addr`, see:
+    ///
+    ///  <https://irma.app/docs/irma-server/#http-server-endpoints>
+    ///
+    /// Seperate ports make it possible to shield the requestor endpoint from the wider internet.
 
-    /// Base url for Yivi app endpoints;
-    /// if none, will be the same as server_url
+    /// Base url (so without the /session) to the Yivi server's requestor API for use by
+    /// PubHubs Central.
+    #[serde(alias = "server_url")]
+    pub requestor_api_url: String,
+
+    /// Base url (so without the /irma) to the Yivi server's client API for use by the PubHubs
+    /// Central Yivi proxy.  Note that this is not the url used by the Yivi app.
+    ///
+    /// If None, `requestor_api_url` will be used.
     #[serde(default)]
-    pub client_url: Option<String>,
+    #[serde(alias = "client_url")]
+    pub client_api_url: Option<String>,
 
     #[serde(default = "default_yivi_requestor")]
     pub requestor: String,
@@ -176,6 +197,30 @@ pub struct Yivi {
     pub server_issuer: String,
 
     pub server_key_file: Option<String>,
+}
+
+#[derive(Serialize, Deserialize, PartialEq, Eq, Debug)]
+pub struct Urls {
+    for_browser: url::Url,
+    for_hub: AltUrl,
+    for_yivi_app: AltUrl,
+}
+
+#[derive(Serialize, Deserialize, PartialEq, Eq, Debug)]
+#[serde(rename_all = "snake_case")]
+pub enum AltUrl {
+    /// Don't use a special URL, but the same as for the browser.
+    /// This is the expected value in production.
+    SameAsForBrowser,
+
+    /// Use this URL
+    Manual(url::Url),
+
+    /// Autodetect public IP address of the local host using ifconfig.me,
+    /// and use that one with the port from `bind_to`.
+    ///
+    /// Warning:  you might be behind a NAT or firewall
+    Autodetect,
 }
 
 fn default_yivi_requestor() -> String {
@@ -200,54 +245,116 @@ fn default_libpep_location() -> String {
 }
 
 impl File {
-    pub async fn determine_url(&self) -> Result<String> {
-        if let Some(url) = self.url.clone() {
+    pub async fn determine_urls(&self) -> Result<crate::context::Urls> {
+        if cfg!(not(debug_assertions)) && self.url.is_none() {
+            bail!("in production 'url' must be set (and 'urls' can't be used)");
+        }
+
+        ensure!(
+            self.url.is_none() != self.urls.is_none(),
+            "either 'url' or 'urls' must be specified, but in {} they are neither or both",
+            self.path.display()
+        );
+
+        if let Some(ref url) = self.url {
             ensure!(
-                url.ends_with('/'),
-                "pubhubs url must end with a slash ('/')"
+                url.as_str().ends_with('/'),
+                "'url' must end with a slash ('/')"
             );
-            return Ok(url);
+
+            return Ok(crate::context::Urls {
+                for_browser: url.clone(),
+                for_hub: url.clone(),
+                for_yivi_app: url.clone(),
+            });
         }
 
-        if cfg!(not(debug_assertions)) {
-            bail!("autodection of your (and thus PubHubs') public IP address (so the Yivi app can reach PubHubs) is only supported in debug mode - please specify the 'url' configuration field manually");
+        let urls = self.urls.as_ref().unwrap();
+
+        let autodetected = urls.autodetect(self).await?;
+
+        Ok(crate::context::Urls {
+            for_browser: urls.for_browser.clone(),
+            for_hub: urls
+                .for_hub
+                .evaluate("urls.for_hub", &urls.for_browser, &autodetected)?,
+            for_yivi_app: urls.for_yivi_app.evaluate(
+                "urls.for_yivi_app",
+                &urls.for_browser,
+                &autodetected,
+            )?,
+        })
+    }
+}
+
+impl Urls {
+    /// If for_hub or for_yivi_app is autodetect, autodetect URL;  else returns None.
+    async fn autodetect(&self, file: &File) -> Result<Option<url::Url>> {
+        if self.for_hub != AltUrl::Autodetect && self.for_yivi_app != AltUrl::Autodetect {
+            return Ok(None);
         }
 
-        if cfg!(test) {
-            warn!("won't autodetect your public IP address during testing");
-            return Ok("http://example.com/?autodetection_of_pubhubs_public_ip_address_is_disabled_during_tests__please_set_it_manually_if_really_needed".to_string());
-        }
+        ensure!(
+            !cfg!(test),
+            "autodetection of public IP address not permitted during tests!"
+        );
 
         info!("autodetecting your public ip address...");
 
         // the awc crate has no multi-thread support, see
         //   https://github.com/actix/actix-web/issues/2679#issuecomment-1059141565
         // so we execute awc on a single thread..
-        tokio::task::LocalSet::new()
-            .run_until(async move {
-                // get ip address..
-                let client = awc::Client::default();
-                let mut resp = client
-                    .get("http://ifconfig.me")
-                    .send()
-                    .await
-                    .map_err(|e| anyhow!(e.to_string() /* e is not Send */))?;
+        Ok(Some(url::Url::parse(
+            &tokio::task::LocalSet::new()
+                .run_until(async move {
+                    // get ip address..
+                    let client = awc::Client::default();
+                    let mut resp = client
+                        .get("http://ifconfig.me")
+                        .send()
+                        .await
+                        .map_err(|e| anyhow!(e.to_string() /* e is not Send */))?;
 
-                let status = resp.status();
+                    let status = resp.status();
+                    ensure!(
+                        status.is_success(),
+                        "ifconfig.me returned status {}",
+                        status
+                    );
+
+                    let bytes = resp.body().await?;
+                    let result = String::from_utf8(bytes.to_vec())?;
+
+                    info!("your ip address is {}", result);
+
+                    Ok(format!("http://{}:{}/", result, file.bind_to.1))
+                })
+                .await?,
+        )?))
+    }
+}
+
+impl AltUrl {
+    fn evaluate(
+        &self,
+        name: &'static str,
+        for_browser: &url::Url,
+        autodetected: &Option<url::Url>,
+    ) -> Result<url::Url> {
+        Ok(match self {
+            AltUrl::SameAsForBrowser => for_browser.clone(),
+            AltUrl::Manual(ref url) => {
                 ensure!(
-                    status.is_success(),
-                    "ifconfig.me returned status {}",
-                    status
+                    url.as_str().ends_with('/'),
+                    format!("'{}' must end with a slash ('/')", name),
                 );
-
-                let bytes = resp.body().await?;
-                let result = String::from_utf8(bytes.to_vec())?;
-
-                info!("your ip address is {}", result);
-
-                Ok(format!("http://{}:{}/", result, self.bind_to.1))
-            })
-            .await
+                url.clone()
+            }
+            AltUrl::Autodetect => autodetected
+                .as_ref()
+                .expect("autodetected to have been set")
+                .clone(),
+        })
     }
 }
 

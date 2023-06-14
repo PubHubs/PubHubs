@@ -24,27 +24,31 @@
 
 import { ref, PropType } from 'vue';
 
+type inputType = string | number | undefined
+
+type optionType = string | number
+
 interface Option {
     label: string,
-    value : any,
+    value : optionType,
 }
 
-type Options = Array<Option>
+type Options = Array<PropType<Option>>
 
 
-const usedEvents = ['update','changed','cancel'];
+const usedEvents = ['update','changed','cancel','submit'];
 
-const useFormInputEvents = (emit:any) => {
+const useFormInputEvents = (emit:Function) => {
 
-    const value:any = ref('');
+    const value = ref<inputType>('');
 
-    let options = Array as PropType<Options>;
+    let options = [] as Options;
 
-    const setValue = ( set:any ) => {
+    const setValue = ( set:inputType ) => {
         value.value = set;
     }
 
-    const setOptions = ( set:any ) => {
+    const setOptions = ( set:Options ) => {
         options = set;
     }
 
@@ -61,7 +65,7 @@ const useFormInputEvents = (emit:any) => {
     }
 
     const submit = () => {
-        if (value.value !== '') {
+        if (value.value !== undefined && value.value !== '') {
             emit('submit', value.value);
         }
         value.value = '';
@@ -76,5 +80,5 @@ const useFormInputEvents = (emit:any) => {
 }
 
 
-export { Option, Options, useFormInputEvents, usedEvents };
+export { type Option, type Options, useFormInputEvents, usedEvents };
 

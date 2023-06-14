@@ -1,11 +1,19 @@
-# if url is not set, pubhubs will attempt to autodetect your public ip (if you have one)
-# if url is set, it must have a trailing slash ('/')
-# url: url-pointing-to-this-machine-reachable-from-your-phone.example.com/
+## Specifies the url of PubHubs Central; must end with a slash ('/')
+#url: https://your-pubhubs-server.com:8080/
+# If you want more control, you can configure 'urls' instead:
+urls:
+  for_browser:  http://localhost:8080
+  for_hub: !manual http://host.docker.internal:8080
+  #for_hub: !autodetect
+  #for_hub: !same_as_for_browser
+  for_yivi_app: !autodetect
+  #for_yivi_app: !manual http://1.2.3.4:1234/
+  #for_yivi_app: !same_as_for_browser
 
 database_location: dev.db  # if not set, in memory database is used
 
 yivi:
-  server_url: http://localhost:8088
+  requestor_api_url: http://localhost:8088
 
 pep: {
   # libpep_location: /path/to/libpepcli

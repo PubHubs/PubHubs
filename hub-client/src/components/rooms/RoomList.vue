@@ -16,11 +16,13 @@
 </template>
 
 <script setup lang="ts">
-    import { inject } from 'vue';
     import { useI18n } from 'vue-i18n';
     import { useRooms, useDialog } from '@/store/store';
+    import { usePubHubs } from '@/core/pubhubsStore';
 
     const { t } = useI18n();
+    const rooms = useRooms();
+    const pubhubs = usePubHubs();
 
     const props = defineProps({
         edit : {
@@ -29,16 +31,12 @@
         },
     });
 
-    const rooms = useRooms();
-    const pubhubs:any = inject('pubhubs');
 
-    function leaveRoom(roomId:string) {
+    async function leaveRoom(roomId:string) {
         const dialog = useDialog();
-        dialog.okcancel(t('rooms.leave_sure')).then((answer)=> {
-            if (answer) {
-                pubhubs.leaveRoom(roomId);
-            }
-        });
+        if (await dialog.okcancel(t('rooms.leave_sure'))) {
+            pubhubs.leaveRoom(roomId);
+        }
     }
 
 </script>

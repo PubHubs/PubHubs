@@ -1,8 +1,8 @@
 <template>
-    <div class="flex flex-col w-5/12">
+    <div class="flex flex-col w-60 grow mr-4 my-2">
 
         <slot name="image">
-            <div class="min-h-[4rem]  grow rounded-t-md bg-gradient-to-t from-blue-light via-avatar-blue to-blue"></div>
+            <div class="min-h-[4rem] max-h-[8rem] grow rounded-t-md bg-gradient-to-t from-blue-light via-avatar-blue to-blue"></div>
         </slot>
 
 
@@ -12,7 +12,7 @@
                 <p class="pl-2"><slot name="category"></slot></p>
             </div>
             <div class="flex flex-col px-4 pb-1 mt-1">
-                <H3><slot name="header"></slot></H3>
+                <H3 class="truncate"><slot name="header"></slot></H3>
                 <p class="-mt-1 truncate"><slot name="content"></slot></p>
             </div>
         </div>

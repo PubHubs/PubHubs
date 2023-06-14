@@ -5,10 +5,15 @@ import { setCookie, getCookie, removeCookie } from 'typescript-cookie'
 import { User, useUser,useDialog } from '@/store/store';
 import { i18n } from '../i18n';
 
+type loginResponse = {
+    access_token : string,
+    user_id :string,
+}
+
 
 class Authentication {
 
-    private user: any;
+    private user = useUser();
 
     private loginToken: string;
     private baseUrl: string;
@@ -30,10 +35,10 @@ class Authentication {
 
 
     /**
-     * Store & Fetch locally saved access_token (TODO: More secure!!)
+     * Store & Fetch locally saved access_token
      */
 
-    private _storeAuth(response: any) {
+    private _storeAuth(response:loginResponse) {
         const auth = {
             baseUrl: this.baseUrl,
             accessToken: response.access_token,
@@ -59,6 +64,11 @@ class Authentication {
         removeCookie("pubhub");
     }
 
+    public getAccessToken() {
+        const auth = this._fetchAuth();
+        return auth.accessToken;
+    }
+
 
     /**
      * Login is handled by global PupHubs server via a SSO redirect
@@ -79,7 +89,7 @@ class Authentication {
 
     login() {
         this.user = useUser();
-        return new Promise((resolve,reject) => {
+        return new Promise((resolve,reject) =>  {
             // First check if we have an accesstoken stored
 
             const auth = this._fetchAuth();
@@ -103,7 +113,7 @@ class Authentication {
 
 
 
-            // Check if we are logged in allready
+            // Check if we are logged in already
             if ( !this.client.isLoggedIn() ) {
 
 
@@ -125,12 +135,12 @@ class Authentication {
                 else {
 
                     this.client.loginWithToken(this.loginToken).then(
-                        (response: any) => {
+                        (response) => {
                             window.history.pushState("", "", '/');
-                            this._storeAuth(response);
+                            this._storeAuth(response as loginResponse);
                             resolve(this.client);
                         },
-                        (error: any) => {
+                        (error) => {
                             const err = error.data;
                             const dialog = useDialog();
                             const { t } = i18n.global;
@@ -174,6 +184,10 @@ class Authentication {
     logout() {
         this._clearAuth();
         window.location.replace(this.clientUrl);
+    }
+
+    getBaseUrl() {
+        return this.baseUrl;
     }
 
 }
