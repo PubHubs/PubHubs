@@ -1,6 +1,10 @@
 import { defineStore } from 'pinia'
+import { RouteParams } from 'vue-router'
 import { MessageType, Message, MessageBoxType, useMessageBox, Theme, useSettings, useGlobal } from '@/store/store'
 
+
+
+// Single Hub
 class Hub {
 
     readonly hubId  : string;
@@ -24,6 +28,10 @@ class Hub {
 
 }
 
+// Array of Hubs
+interface HubList extends Array<Hub> {}
+
+
 
 const useHubs = defineStore('hubs', {
 
@@ -36,14 +44,14 @@ const useHubs = defineStore('hubs', {
 
     getters: {
 
-        hubsArray(state) :Array<Hub> {
+        hubsArray(state) :HubList {
             const values = Object.values(state.hubs);
             const hubs = values.filter( item => typeof(item?.hubId) !== "undefined" );
             return hubs;
         },
 
-        sortedHubsArray() :Array<Hub> {
-            const hubs:Array<Hub> = Object.assign([],this.hubsArray);
+        sortedHubsArray() :HubList {
+            const hubs:HubList = Object.assign([],this.hubsArray);
             hubs.sort( (a,b) => (a.description > b.description ? 1:-1) );
             return hubs;
         },
@@ -84,15 +92,15 @@ const useHubs = defineStore('hubs', {
             this.hubs[hub.hubId] = Object.assign(new Hub(hub.hubId,hub.url),hub);
         },
 
-        addHubs( hubs:Array<Hub> ) {
+        addHubs( hubs:HubList ) {
             hubs.forEach( (hub:Hub) => {
                 this.addHub(hub);
             });
         },
 
-        changeHub( params:any ) {
-            const hubId = params.id;
-            const roomId = params.roomId;
+        async changeHub( params:RouteParams ) {
+            const hubId = params.id as string;
+            const roomId = params.roomId as string;
             const self = this;
 
             const messagebox = useMessageBox();
@@ -103,50 +111,49 @@ const useHubs = defineStore('hubs', {
                 // Test if changing to current hub (through url for example)
                 if ( hubId !== this.currentHubId || this.currentHubId =='' ) {
                     this.currentHubId = hubId;
+                    console.log('changeHub',params,hubId,this.currentHubId, this.currentHubExists);
 
-                    if ( this.currentHub !== undefined ) {
+                    if ( this.currentHubExists ) {
 
                         // Start conversation with hub frame and sync latest settings
-                        messagebox.init( MessageBoxType.Parent, this.currentHub.url ).then(()=>{
+                        await messagebox.init( MessageBoxType.Parent, this.currentHub.url );
 
-                            // Send current settings
+                        // Send current theme
+                        const settings = useSettings();
+                        settings.sendTheme();
+
+                        // Let hub navigate to given room
+                        if ( roomId!==undefined && roomId!=="" ) {
+                            messagebox.sendMessage( new Message( MessageType.RoomChange, roomId ) );
+                        }
+
+                        // Listen to room change
+                        messagebox.addCallback( MessageType.RoomChange, (message:Message) => {
+                            const roomId = message.content;
+                            // TODO: find a way router can be part of a store that TypeScript swallows.
+                            // @ts-ignore
+                            this.router.push({name:'hub',params:{id:hubId,roomId:roomId}})
+                        });
+
+                        // Listen to sync settings
+                        messagebox.addCallback( MessageType.Settings, (message:Message) => {
                             const settings = useSettings();
-                            settings.sendSettings();
+                            settings.setTheme(message.content as Theme);
+                        });
 
-                            // Let hub navigate to given room
-                            if ( roomId!==undefined && roomId!=="" ) {
-                                messagebox.sendMessage( new Message( MessageType.RoomChange, roomId ) );
-                            }
+                        // Listen to sync unreadmessages
+                        messagebox.addCallback( MessageType.UnreadMessages, (message:Message) => {
+                            self.hubs[hubId].unreadMessages = message.content as number;
+                        });
 
-                            // Listen to room change
-                            messagebox.addCallback( MessageType.RoomChange, (message:Message) => {
-                                const roomId = message.content;
-                                // TODO: find a way router can be part of a store that TypeScript swallows.
-                                // @ts-ignore
-                                this.router.push({name:'hub',params:{id:hubId,roomId:roomId}})
-                            });
-
-                            // Listen to sync settings
-                            messagebox.addCallback( MessageType.Settings, (message:Message) => {
-                                const settings = useSettings();
-                                settings.setTheme(message.content.theme as Theme);
-                            });
-
-                            // Listen to sync unreadmessages
-                            messagebox.addCallback( MessageType.UnreadMessages, (message:Message) => {
-                                self.hubs[hubId].unreadMessages = message.content;
-                            });
-
-                            // Listen to modal show/hide
-                            messagebox.addCallback( MessageType.DialogShowModal, () => {
-                                const global = useGlobal();
-                                global.showModal();
-                            });
-                            messagebox.addCallback( MessageType.DialogHideModal, () => {
-                                const global = useGlobal();
-                                global.hideModal();
-                            });
-
+                        // Listen to modal show/hide
+                        messagebox.addCallback( MessageType.DialogShowModal, () => {
+                            const global = useGlobal();
+                            global.showModal();
+                        });
+                        messagebox.addCallback( MessageType.DialogHideModal, () => {
+                            const global = useGlobal();
+                            global.hideModal();
                         });
 
                     }
@@ -165,4 +172,4 @@ const useHubs = defineStore('hubs', {
 
 })
 
-export { Hub, useHubs }
+export { Hub, HubList, useHubs }

@@ -66,12 +66,11 @@
 </template>
 
 <script setup lang="ts">
-    import { useSettings, useHubSettings, Theme, useUser, useRooms, MessageType, Message, MessageBoxType, useMessageBox, useDialog } from '@/store/store'
-    import { useRouter } from 'vue-router'
-    import { inject } from 'vue';
     import { onMounted } from 'vue';
+    import { RouteParamValue, useRouter } from 'vue-router'
+    import { useSettings, useHubSettings, Theme, useUser, useRooms, MessageType, Message, MessageBoxType, useMessageBox, useDialog } from '@/store/store'
+    import { usePubHubs } from '@/core/pubhubsStore';
 
-    const pubhubs:any = inject('pubhubs');
     const router = useRouter();
     const settings = useSettings();
     const hubSettings = useHubSettings();
@@ -79,22 +78,25 @@
     const rooms = useRooms();
     const messagebox = useMessageBox();
     const dialog = useDialog();
+    const pubhubs = usePubHubs();
 
     onMounted(() => {
         if ( window.location.hash!=='#/hub/' ) {
             pubhubs.login();
             router.push({name:'home'});
         }
+        startMessageBox();
     })
 
 
-    if ( ! hubSettings.isSolo ) {
+    async function startMessageBox() {
+        if ( ! hubSettings.isSolo ) {
 
-        messagebox.init( MessageBoxType.Child, hubSettings.parentUrl ).then(()=>{
+            await messagebox.init( MessageBoxType.Child, hubSettings.parentUrl );
 
             // Listen to roomchange
             messagebox.addCallback( MessageType.RoomChange, (message:Message) => {
-                const roomId = message.content;
+                const roomId = message.content as RouteParamValue;
                 if ( rooms.currentRoomId !== roomId ) {
                     router.push({name:'room',params:{id:roomId}});
                 }
@@ -102,11 +104,14 @@
 
             // Listen to sync settings
             messagebox.addCallback( MessageType.Settings, (message:Message) => {
-                settings.setTheme(message.content.theme as Theme);
+                settings.setTheme(message.content as Theme);
             });
 
-        });
-
+        }
     }
+
+
+
+
 
 </script>

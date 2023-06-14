@@ -1,6 +1,8 @@
 import { defineStore } from 'pinia'
 import filters from '@/core/filters'
 
+import { Theme } from '@/store/store'
+
 
 /**
  * This store is used to exchange messages from global client (parent frame) to hub client (iframe) and the other way around.
@@ -79,11 +81,14 @@ enum MessageType {
  *  - type - a MessageType. Only messages wit a known type can be send and received. Also a callback can be set to a certain message type.
  *  - content - can be anything
  */
+
+type MessageContent = string|number|object|Theme;
+
 class Message {
     type : MessageType;
-    content : any;
+    content : MessageContent;
 
-    constructor( type:MessageType, content: any = '' ) {
+    constructor( type:MessageType, content: MessageContent = '' ) {
         this.type = type;
         if ( this.isHandShakeMessage() ) {
             this.content = type;
@@ -128,12 +133,12 @@ const useMessageBox = defineStore('messagebox', {
 
     state: () => {
         return {
-            inIframe : false,                                           // Is the messagebox inside an iframe? Used to determine if a hub is on its own or inside an iframe of the global client.
-            type : MessageBoxType.Unset,                                // Parent or Child
-            receiverUrl : '' as string,                                 // The url to which this messagebox can send and receive messages
-            handshake : HandshakeState.Idle,                            // Handshake state
-            callbacks : {} as { [index in MessageType]: Function },     // List of callbacks per MessageType
-            _windowMessageListener : {} as any                          // Event listener, set at init
+            inIframe : false,                                                   // Is the messagebox inside an iframe? Used to determine if a hub is on its own or inside an iframe of the global client.
+            type : MessageBoxType.Unset,                                        // Parent or Child
+            receiverUrl : '' as string,                                         // The url to which this messagebox can send and receive messages
+            handshake : HandshakeState.Idle,                                    // Handshake state
+            callbacks : {} as { [index in MessageType]: Function },             // List of callbacks per MessageType
+            _windowMessageListener : {} as any                                  // Event listener, set at init - (ts: a lot off overhead to replace any)
         }
     },
 
@@ -165,7 +170,7 @@ const useMessageBox = defineStore('messagebox', {
          *
          * @returns a Promise after handshake is ready. Add callbacks after the promise is resolved.
          */
-        init( type:MessageBoxType, url: string ) : Promise<any> {
+        init( type:MessageBoxType, url: string ) : Promise<boolean> {
             return new Promise((resolve,reject) => {
                 this.reset();
                 this.type = type;
@@ -180,7 +185,7 @@ const useMessageBox = defineStore('messagebox', {
                 // Start listening
                 if ( this.isConnected ) {
 
-                    this._windowMessageListener = (event:any) => {
+                    this._windowMessageListener = (event:MessageEvent) => {
 
                         // Allways test if message is from expected domain
                         if ( filters.removeBackSlash(event.origin) == filters.removeBackSlash(this.receiverUrl) ) {
@@ -236,13 +241,13 @@ const useMessageBox = defineStore('messagebox', {
          * @ignore
          */
         resolveTarget() {
-            let target = null as any;
+            let target = null;
             if ( this.type == MessageBoxType.Child ) {
                 target = window.parent;
             }
             else {
-                const el :any = document.getElementById(iframeHubId);
-                if ( el && typeof(el.contentWindow) !== "undefined") {
+                const el:HTMLIFrameElement|null = document.querySelector('iframe#'+iframeHubId);
+                if ( el !== null && typeof(el.contentWindow) !== "undefined") {
                     target = el ? el.contentWindow : null;
                 }
             }
@@ -257,8 +262,10 @@ const useMessageBox = defineStore('messagebox', {
         sendMessage(message:Message) {
             if ( this.isConnected ) {
                 const target = this.resolveTarget();
-                console.log('=> '+this.type+' SEND',message, this.receiverUrl );
-                target.postMessage( message, this.receiverUrl );
+                if (target) {
+                    console.log('=> '+this.type+' SEND',message, this.receiverUrl );
+                    target.postMessage( message, this.receiverUrl );
+                }
             }
         },
 

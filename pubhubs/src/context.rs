@@ -22,7 +22,7 @@ use crate::{
 };
 
 pub struct Main {
-    pub url: String,
+    pub url: Urls,
     pub bind_to: (String, u16),
     pub connection_check_nonce: String,
 
@@ -54,6 +54,19 @@ pub struct Main {
     pub well_known_jwks_json: bytes::Bytes,
     // NB. We're using bytes::Bytes' instead of Strings, since the former are cheaply cloneable,
     //     and cloning is required for contructing an actix_web::HttpResponse.
+}
+
+#[derive(Clone)]
+pub struct Urls {
+    /// Where can the browser reach PubHubs Central?
+    ///   e.g. http://localhost:8080/
+    pub for_browser: url::Url,
+    /// Where can a hub (possibly from within a docker container) reach PubHubs Central?
+    ///   e.g. <http://host.docker.internal:8080/>
+    pub for_hub: url::Url,
+    /// Where can the Yivi App (possibly from another network) reach PubHubs Central?
+    ///   e.g. http://1.2.3.4:8080/
+    pub for_yivi_app: url::Url,
 }
 
 impl Main {
@@ -126,10 +139,10 @@ impl Main {
         .await
         .context("setting up the policy failed")?;
 
-        let url = config
-            .determine_url()
+        let url: Urls = config
+            .determine_urls()
             .await
-            .context("resolving pubhubs host failed")?;
+            .context("determining URL(s) for PubHubs Central failed")?;
 
         let pep = crate::pseudonyms::PepContext::from_config(config.pep)?;
 
@@ -176,15 +189,13 @@ impl Main {
         let oidc_secret =
             having_debug_default(config.oidc_secret, b"default_oidc_secret", "oidc_secret")?;
 
-        let url_parsed = url::Url::parse(&url)?;
-
         let well_known_openid_configuration : bytes::Bytes = serde_json::to_string_pretty(&serde_json::json!({
-            "issuer": url,
+            "issuer": url.for_hub.as_str(),
             // NB: we need to include response_mode=form_post in the authorization endpoint,
             //     because synapse can currently not be configured to include it
-            "authorization_endpoint": url_parsed.join("oidc/auth?response_mode=form_post")?.to_string(),
-            "token_endpoint": url_parsed.join("oidc/token")?.to_string(),
-            "jwks_uri": url_parsed.join(".well-known/jwks.json")?.to_string(),
+            "authorization_endpoint": url.for_browser.join("oidc/auth?response_mode=form_post")?.to_string(),
+            "token_endpoint": url.for_hub.join("oidc/token")?.to_string(),
+            "jwks_uri": url.for_hub.join(".well-known/jwks.json")?.to_string(),
             "response_types_supported": crate::oidc::RESPONSE_TYPES_SUPPORTED,
             "response_modes_supported": crate::oidc::RESPONSE_MODES_SUPPORTED,
             "scopes_supported": crate::oidc::SCOPES_SUPPORTED,
@@ -294,8 +305,8 @@ impl Main {
 }
 
 pub struct Yivi {
-    pub server_url: String,
-    pub client_url: String,
+    pub requestor_api_url: String,
+    pub client_api_url: String,
     pub requestor: String,
     pub requestor_hmac_key: crate::jwt::HS256,
     pub server_issuer: String,
@@ -322,10 +333,10 @@ impl Yivi {
         let server_key = jsonwebtoken::DecodingKey::from_rsa_pem(&buff)?;
 
         Ok(Self {
-            client_url: config
-                .client_url
-                .unwrap_or_else(|| config.server_url.clone()),
-            server_url: config.server_url,
+            client_api_url: config
+                .client_api_url
+                .unwrap_or_else(|| config.requestor_api_url.clone()),
+            requestor_api_url: config.requestor_api_url,
             requestor: config.requestor,
             requestor_hmac_key: crate::jwt::HS256(
                 Base64::decode_vec(&having_debug_default(

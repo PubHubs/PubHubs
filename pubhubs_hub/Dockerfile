@@ -8,7 +8,7 @@ RUN go env -w GO111MODULE=auto
 
 RUN go install ./irma
 
-FROM matrixdotorg/synapse:latest
+FROM matrixdotorg/synapse:v1.84.0
 
 COPY --from=yivi_build /go/bin//irma /usr/bin/irma
 

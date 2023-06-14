@@ -17,6 +17,7 @@ from ._constants import CLIENT_URL, SERVER_NOTICES_USER, GLOBAL_CLIENT_URL
 logger = logging.getLogger("synapse.contrib." + __name__)
 
 
+# TODO: move this from YiviRoomJoiner to some more general spot
 def modify_set_clickjacking_protection_headers(original, global_client_url: str):
     """
     This function returns a changed form of `synapse.http.server.set_clickjacking_protection_headers`.
@@ -29,7 +30,7 @@ def modify_set_clickjacking_protection_headers(original, global_client_url: str)
     """
     def modified(request: Request):
         original(request)
-        if request.path == b'/_synapse/client/new_user_consent':
+        if request.path in (b'/_synapse/client/new_user_consent', b'/_synapse/client/oidc/callback', b'/_synapse/client/sso_register'):
             request.responseHeaders.removeHeader(b"X-Frame-Options")
             request.setHeader(b"Content-Security-Policy", f"frame-ancestors {global_client_url};".encode())
     return modified

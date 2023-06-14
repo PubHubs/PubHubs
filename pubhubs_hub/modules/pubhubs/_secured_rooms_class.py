@@ -106,8 +106,9 @@ class SecuredRoom:
             # events to the room.
             "power_level_content_override": {"users": {user: 100, server_notices_user: 50}}
         }
-        [room_dict, _int] = await room_creation_handler.create_room(requester, config)
-        self.room_id = room_dict[ROOM_ID]
+        [room_id, _room_alias, _int] = await room_creation_handler.create_room(requester, config)
+
+        self.room_id = room_id
 
         # Add server notices user, creator is automatically a member
         await module_api.update_room_membership(server_notices_user, server_notices_user, self.room_id, 'join')

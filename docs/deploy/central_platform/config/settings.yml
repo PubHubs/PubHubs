@@ -1,7 +1,6 @@
 # NOTE: This is a sample file for demontration purpose. 
 # The values needs to be updated. The settings will not work if used.
-# Public for url for central platform. If a url is not provided then Central Platform will
-# will detect public IP automatically.
+# Public for url for central platform.
 url: https://<central-platform-url>/
 
 # Database location in central platform. It should point to SQLlite file
@@ -33,13 +32,11 @@ metrics_key: changeme
 
 #
 yivi: {
-    # This should point to the issuer url of Yivi instance.
-    # This example url is only for local host testing.
-    server_url: http://host.docker.internal:8088,
- 
-    # Client URL for the Yivi server. You want a different client url in a real deployment
-    # This example url is only for local host testing.
-    client_url: http://host.docker.internal:8088,
+    # The Yivi server provides two APIs that can be served on different ports.
+    # The 'client api' is contacted by the Yivi app (via our proxy), while
+    # the 'requestor api' is contacted by PubHubs Central, and javascript code.
+    requestor_api_url: http://host.docker.internal:8088,
+    client_api_url: http://host.docker.internal:8088,
 
     # To secure the Yivi server request. This should be changed!
     requestor_hmac_key: aXJtYV9yZXF1ZXN0b3Jfa2V5,

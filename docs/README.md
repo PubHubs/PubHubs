@@ -2,7 +2,7 @@
 
 ## Introduction
 
-<img src=pictures/logo.png alt="drawing" width="100"/> is a decentralized community-based platform for people to communicate in a secure and privacy-friendly manner. We provide guide to setup and deploy Pubhubs in an organization's infrastructure.<mark> Communication between client and hubs are done in a secure manner. Therefore, HTTPS communication protocol is required <mark>.
+<img src=pictures/logo.png alt="drawing" width="100"/> is a decentralized community-based platform for people to communicate in a secure and privacy-friendly manner. We provide guide to setup and deploy Pubhubs in an organization's infrastructure.<mark> Communication between client and hubs are done in a secure manner. Therefore, HTTPS communication protocol is required <mark>. We currently do not support federation of Matrix server.
 
 There are different components of Pubhubs such as Central Platform, Hub and a client. Each of these have different deployment configuration and settings. Information about each settings are provided in their corresponding directory.
 

@@ -11,7 +11,32 @@ stages: # List of stages for jobs, and their order of execution
   - build-images
   - deploy
 
-clippy:
+.exceptdoc: &exceptdoc
+  except:
+    changes: &changesdoc
+      - docs/*
+      - README.md
+      - LICENSE
+
+.rustchanges: &rustchanges
+  changes:
+    - pubhubs/*
+
+.phc_image_changes: &phc_image_changes
+  changes:
+    - pubhubs/*
+    - global-client/* # global client is included in PHC image
+    - hub-client/* # global client depends on hub-client
+
+.hubclientchanges: &hubclientchanges
+  changes:
+    - hub-client/*
+
+.hubchanges: &hubchanges
+  changes:
+    - pubhubs_hub/*
+
+rust-clippy:
   stage: build
   tags:
     - docker
@@ -28,22 +53,29 @@ clippy:
   rules:
     - if: "$CODE_QUALITY_DISABLED"
       when: never
-    - if: '$CI_PIPELINE_SOURCE == "push"'
+    - if: '$CI_PIPELINE_SOURCE != "push"'
+      when: never
+    - *rustchanges
   cache:
     key: "${CI_COMMIT_REF_NAME}-${CI_JOB_NAME}"
     paths:
       - pubhubs/target/
 
-unit-test-rust-code:
+rust-unit-test:
   stage: build
   tags:
     - docker
+  only: *rustchanges
   image: registry.science.ru.nl/ilab/docker-build/rust-stable:main
   script:
     - cp -r global-client/ pubhubs
     - cp -r hub-client/ pubhubs
     - cd pubhubs
-    - env RUST_BACKTRACE=full cargo +stable test --no-fail-fast -- -Z unstable-options --format json | gitlab-report -p test > report.xml
+#    No pretty reporting for now unfortunatly, see https://github.com/rust-lang/rust/issues/49359
+#    (more background:  https://github.com/rust-lang/rust/pull/109044), when JSON output is finalized let's turn reporting
+#    back on.
+#    - env RUST_BACKTRACE=full cargo +stable test --no-fail-fast -- -Z unstable-options --format json | gitlab-report -p test > report.xml
+    - env RUST_BACKTRACE=full cargo +stable test --no-fail-fast
   artifacts:
     reports:
       junit: pubhubs/report.xml
@@ -53,8 +85,9 @@ unit-test-rust-code:
     paths:
       - pubhubs/target/
 
-cargo-deny:
+rust-cargo-deny:
   stage: build
+  only: *rustchanges
   tags:
     - docker
   image: registry.science.ru.nl/ilab/docker-build/rust-stable:main
@@ -65,27 +98,36 @@ cargo-deny:
 build-pubhubs-image:
   stage: build-images
   only:
-    - main
-    - stable
+    refs:
+      - main
+      - stable
+    <<: *rustchanges
   needs:
-    - unit-test-rust-code
+    - job: rust-unit-test
+      optional: true
+    - job: rust-cargo-deny
+      optional: true
+    - job: rust-clippy
+      optional: true
+
   tags:
     - docker
   image: docker:stable
   variables:
     CONTAINER_IMAGE: ${CI_REGISTRY}/${CI_PROJECT_PATH}/pubhubs:${CI_COMMIT_REF_NAME}
   script:
-    - cp -r global-client/ pubhubs
-    - cp -r hub-client/ pubhubs
-    - cd pubhubs
     - docker login -u $CI_REGISTRY_USER -p $CI_REGISTRY_PASSWORD $CI_REGISTRY
-    - docker build --build-arg "CARGO_FEATURES=${CARGO_FEATURES}" -f Dockerfile -t ${CONTAINER_IMAGE} .
+    - docker build --build-arg "CARGO_FEATURES=${CARGO_FEATURES}" -f pubhubs/Dockerfile -t ${CONTAINER_IMAGE} .
     - docker push ${CONTAINER_IMAGE}
 
-deploy-main:
+deploy-main-phc:
   stage: deploy
   only:
-    - main
+    refs:
+      - main
+    <<: *phc_image_changes
+  needs: 
+    - build-pubhubs-image
   environment: $CI_COMMIT_REF_NAME
   tags: [docker]
   image: ubuntu:rolling
@@ -96,10 +138,14 @@ deploy-main:
     - chmod 600 $ILAB_VM_TRIGGER_UPDATE_KEY
     - ssh -o UserKnownHostsFile=$ILAB_VM_TRIGGER_UPDATE_KNOWN_HOSTS $ILAB_VM_TRIGGER_UPDATE_USER@$ILAB_VM_TRIGGER_UPDATE_HOST_MAIN -i $ILAB_VM_TRIGGER_UPDATE_KEY docker-pubhubs-main
 
-deploy-stable:
+deploy-stable-phc:
   stage: deploy
   only:
-    - stable
+    refs:
+      - stable
+    <<: *phc_image_changes
+  needs: 
+    - build-pubhubs-image
   environment: $CI_COMMIT_REF_NAME
   tags: [docker]
   image: ubuntu:rolling
@@ -110,8 +156,9 @@ deploy-stable:
     - chmod 600 $ILAB_VM_TRIGGER_UPDATE_KEY
     - ssh -o UserKnownHostsFile=$ILAB_VM_TRIGGER_UPDATE_KNOWN_HOSTS $ILAB_VM_TRIGGER_UPDATE_USER@$ILAB_VM_TRIGGER_UPDATE_HOST_STABLE -i $ILAB_VM_TRIGGER_UPDATE_KEY docker-pubhubs-stable
 
-unit-test-build-script:
+start-test-setup-unit-test:
   stage: build
+  <<: *exceptdoc
   tags:
     - docker
   image: python:latest
@@ -123,8 +170,10 @@ unit-test-build-script:
     - source venv/bin/activate
     - python3 start_test_setup.py test
 
-unit-test-hub: # This job runs in the test stage.
+hub-unit-test: # This job runs in the test stage.
   stage: build
+  only:
+    *hubchanges
   tags:
     - docker
   image: python:latest
@@ -161,10 +210,12 @@ unit-test-hub: # This job runs in the test stage.
 build-image-hub:
   stage: build-images
   only:
-    - main
-    - stable
+    refs:
+      - main
+      - stable
+    <<: *hubchanges
   needs:
-    - unit-test-hub
+    - hub-unit-test
   tags:
     - docker
   image: docker:stable
@@ -179,7 +230,11 @@ build-image-hub:
 deploy-main-hub:
   stage: deploy
   only:
-    - main
+    refs:
+      - main
+    <<: *hubchanges
+  needs: &mainhubdeployneeds
+    - build-image-hub
   environment: $CI_COMMIT_REF_NAME
   tags: [docker]
   image: registry.science.ru.nl/ilab/docker-build/ubuntu-iso:main
@@ -191,7 +246,10 @@ deploy-main-hub:
 deploy-stable-hub:
   stage: deploy
   only:
-    - stable
+    refs:
+      - stable
+    <<: *hubchanges
+  needs: *mainhubdeployneeds
   environment: $CI_COMMIT_REF_NAME
   tags: [docker]
   image: registry.science.ru.nl/ilab/docker-build/ubuntu-iso:main
@@ -200,8 +258,9 @@ deploy-stable-hub:
     - chmod 600 $ILAB_VM_TRIGGER_UPDATE_KEY
     - ssh -o UserKnownHostsFile=$ILAB_VM_TRIGGER_UPDATE_KNOWN_HOSTS $ILAB_VM_TRIGGER_UPDATE_USER@$ILAB_VM_TRIGGER_UPDATE_HOST_STABLE -i $ILAB_VM_TRIGGER_UPDATE_KEY docker-testhub-matrix-stable
 
-unit-test-client:
+hubclient-unit-test:
   stage: build
+  only: *hubclientchanges
   tags: [docker]
   image: node:latest
   before_script:
@@ -214,13 +273,15 @@ unit-test-client:
     paths:
       - .npm/
 
-build-client:
+build-hubclient:
   stage: build-images
   only:
-    - main
-    - stable
+    refs:
+      - main
+      - stable
+    <<: *hubclientchanges
   needs:
-    - unit-test-client
+    - hubclient-unit-test
   tags:
     - docker
   image: docker:stable
@@ -232,12 +293,14 @@ build-client:
     - DOCKER_BUILDKIT=1 docker build -t ${CONTAINER_IMAGE} .
     - docker push ${CONTAINER_IMAGE}
 
-build-client2:
+build-hubclient2:
   stage: build-images
   only:
-    - main
+    refs:
+      - main
+    <<: *hubclientchanges
   needs:
-    - unit-test-client
+    - hubclient-unit-test
   tags:
     - docker
   image: docker:stable
@@ -254,10 +317,15 @@ build-client2:
     - DOCKER_BUILDKIT=1 docker build -t ${CONTAINER_IMAGE} .
     - docker push ${CONTAINER_IMAGE}
 
-deploy-main-client:
+deploy-main-hubclient:
   stage: deploy
   only:
-    - main
+    refs:
+      - main
+    <<: *hubclientchanges
+  needs: &deployhubclientneeds
+    - build-hubclient
+    - build-hubclient2
   environment: $CI_COMMIT_REF_NAME
   tags: [docker]
   image: registry.science.ru.nl/ilab/docker-build/ubuntu-iso:main
@@ -270,7 +338,10 @@ deploy-main-client:
 deploy-stable-client:
   stage: deploy
   only:
-    - stable
+    refs:
+      - stable
+    <<: *hubclientchanges
+  needs: *deployhubclientneeds
   environment: $CI_COMMIT_REF_NAME
   tags: [docker]
   image: registry.science.ru.nl/ilab/docker-build/ubuntu-iso:main
