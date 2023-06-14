@@ -11,14 +11,6 @@ stages: # List of stages for jobs, and their order of execution
   - build-images
   - deploy
 
-.exceptdoc: &exceptdoc
-  except:
-    changes: &changesdoc
-      - docs/*
-      - README.md
-      - LICENSE
-
-
 .rustchanges: &rustchanges
   changes:
     - pubhubs/*
@@ -29,6 +21,15 @@ stages: # List of stages for jobs, and their order of execution
     - pubhubs/*
     - global-client/* # global client is included in PHC image
     - hub-client/* # global client depends on hub-client
+    - cicd/.gitlab-ci.yml
+
+.anycodechanges: &anycodechanges
+  changes:
+    - pubhubs/*
+    - global-client/*
+    - hub-client/*
+    - pubhubs_hub/*
+    - start_test_setup.py
     - cicd/.gitlab-ci.yml
 
 .hubclientchanges: &hubclientchanges
@@ -163,7 +164,9 @@ deploy-stable-phc:
 
 start-test-setup-unit-test:
   stage: build
-  <<: *exceptdoc
+  only:
+    changes:
+
   tags:
     - docker
   image: python:latest
