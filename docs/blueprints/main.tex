@@ -1,0 +1,48 @@
+% Compile using: arara -v main 
+
+% arara: pdflatex
+% arara: bibtex
+% arara: makeindex
+% arara: pdflatex
+% arara: pdflatex
+\documentclass[a4paper]{amsbook}
+
+\usepackage{hyperref}
+
+\makeindex
+
+\begin{document}
+
+\frontmatter
+
+\title{PubHubs Blueprints\footnote{See
+	\url{https://github.com/PubHubs/PubHubs/tree/main/docs/blueprints}i for the source.}}
+
+\author{The PubHubs team}
+
+
+\begin{abstract}
+	This document provides a detailed technical overview of the PubHubs\ system as a whole.
+For a high-level introduction,
+	please consult the white paper\cite{whitepaper}\index{whitepaper}.
+
+\end{abstract}
+
+\maketitle
+
+\setcounter{page}{4}
+
+\tableofcontents
+
+\mainmatter
+
+\appendix
+
+\backmatter
+
+\bibliographystyle{amsalpha}
+\bibliography{main}
+
+\printindex
+
+\end{document}
