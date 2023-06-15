@@ -50,6 +50,7 @@ const safeList = [
     'm-auto',
     'mb-3',
     'mb-4',
+    'ml-2',
     'mt-2',
     'mt-6',
     'opacity-75',
