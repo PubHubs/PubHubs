@@ -107,7 +107,7 @@ build-pubhubs-image:
     refs:
       - main
       - stable
-    <<: *rustchanges
+    <<: *phc_image_changes
   needs:
     - job: rust-unit-test
       optional: true
