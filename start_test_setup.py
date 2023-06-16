@@ -617,6 +617,7 @@ def main():
             unittest.main(argv=["first-arg-is-ignored"], verbosity=2)
         elif sys.argv[1].lower() == "exec":
             if "--scale" in sys.argv:
+                    print ("<< WARNING >>> Scale option, with a scale greater than 1, is unstable for now, it will lead to incorrect hub behavior.")
                     hub_cmd_start_index= sys.argv.index("--scale")
                     hub_arg = int(sys.argv[hub_cmd_start_index+1])
 
@@ -775,6 +776,10 @@ def main_runner(cargo_setup:str, node_arg:str, hubs:int = 1) -> None:
         client_port = client_port + 1
 
     print ("<< Message>>> Development setup is ready to run. Please follow the instructions in the README of the project.")
+
+    # This sleep should be removed when we mount different directories to different hubs where we do not
+    # modify the configuration in the mounted volume.
+    time.sleep(5)
     post_processing()
     # process_global_client.join()
     # process_pubhub_server.join()
