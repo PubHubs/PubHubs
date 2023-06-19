@@ -1,7 +1,7 @@
 <template>
     <div id="room-timeline" class="room-timeline relative">
         <div class="fixed right-3">
-            <OldEventsLoader v-if="!roomPaginationEnded" :room_id="room_id" @loaded="preventScroll=true"></OldEventsLoader>
+            <OldEventsLoader v-if="!roomPaginationEnded" :room_id="room_id" @loaded="preventScroll = true"></OldEventsLoader>
         </div>
         <RoomEvent v-for="item in rooms.rooms[room_id].timeline" :key="item.event.eventId" :event="item.event"></RoomEvent>
     </div>
@@ -9,7 +9,7 @@
 
 <script setup lang="ts">
     import { ref, onMounted, onBeforeUpdate } from 'vue';
-    import { useRooms } from '@/store/store'
+    import { useRooms } from '@/store/store';
 
     const rooms = useRooms();
 
@@ -25,21 +25,21 @@
 
     onMounted(() => {
         scrollToBottom();
-    })
+    });
 
-    onBeforeUpdate(()=>{
-        roomPaginationEnded.value = (rooms.rooms[props.room_id].timeline[0].event.type=='m.room.create' );
+    onBeforeUpdate(() => {
+        roomPaginationEnded.value = rooms.rooms[props.room_id].timeline[0].event.type == 'm.room.create';
         scrollToBottom();
-    })
+    });
 
     function scrollToBottom() {
-        if ( ! preventScroll.value ) {
-            window.setTimeout(()=>{
-                const el = document.getElementById("room-timeline");
-                if (el!==null) {
+        if (!preventScroll.value) {
+            window.setTimeout(() => {
+                const el = document.getElementById('room-timeline');
+                if (el !== null) {
                     el.scrollIntoView(false);
                 }
-            },10);
+            }, 10);
         }
         preventScroll.value = false;
     }
