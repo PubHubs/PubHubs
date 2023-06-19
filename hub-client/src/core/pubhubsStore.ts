@@ -1,34 +1,27 @@
-import { defineStore } from 'pinia'
+import { defineStore } from 'pinia';
 
-import { Optional } from "matrix-events-sdk";
+import { Optional } from 'matrix-events-sdk';
 import { MatrixClient, EventTimeline } from 'matrix-js-sdk';
 
 import { Authentication } from '@/core/authentication';
 import { Events } from '@/core/events';
-
 import { useSettings, useUser, useRooms } from '@/store/store';
 
-
-
 const usePubHubs = defineStore('pubhubs', {
-
     state: () => {
         return {
-            Auth : new Authentication(),
-            client : {} as MatrixClient,
-        }
+            Auth: new Authentication(),
+            client: {} as MatrixClient,
+        };
     },
 
     getters: {
-
         getBaseUrl(state) {
             return state.Auth.getBaseUrl();
         },
-
     },
 
     actions: {
-
         centralLogin() {
             // @ts-ignore
             const centralLoginUrl = _env.PARENT_URL + '/login';
@@ -51,7 +44,7 @@ const usePubHubs = defineStore('pubhubs', {
                     user.fetchDisplayName(this.client as MatrixClient);
                 }
             } catch (error) {
-                if ( typeof(error)=="string" && error.indexOf('M_FORBIDDEN')<0 ) {
+                if (typeof error == 'string' && error.indexOf('M_FORBIDDEN') < 0) {
                     console.debug('ERROR:', error);
                 }
             }
@@ -72,12 +65,12 @@ const usePubHubs = defineStore('pubhubs', {
          * Helpers
          */
 
-        showDialog(message:string) {
+        showDialog(message: string) {
             alert(message);
         },
 
-        showError(error:string) {
-            const message = 'Unfortanatly an error occured. Please contact opthe developers.\n\n' + error;
+        showError(error: string) {
+            const message = 'Unfortanatly an error occured. Please contact the developers.\n\n' + error;
             this.showDialog(message);
         },
 
@@ -90,17 +83,30 @@ const usePubHubs = defineStore('pubhubs', {
                 limit: 10,
                 filter: {
                     generic_search_term: search,
-                }
+                },
             });
         },
 
-        async joinRoom(roomId: string) {
+        async joinRoom(roomId: string, router: any, search: string) {
+            //
+            const response = await this.getPublicRooms(search);
+            console.info(`RESPONSE ---> ${response}`);
             try {
-                this.client.joinRoom(roomId)
+                await this.client.joinRoom(roomId);
                 this.updateRooms();
-
             } catch (error) {
-                this.showError(error as string);
+                // it returns an unknown type. Only option seems like to typecast to string.
+                // Better to use the exact reason as the condition instead of status code.
+                if (String(error).includes('M_FORBIDDEN')) {
+                    console.info('Is Forbidden');
+                    // User is forbidden but it is because it is secured room he is trying to access.
+                    if (response.chunk[0].room_type === 'ph.messages.restricted') {
+                        router.push({ name: 'secure-room', params: { id: roomId } });
+                    } else {
+                        // If not then there is some other issue. Show the error message.
+                        this.showError(error as string);
+                    }
+                }
             }
         },
 
@@ -114,14 +120,14 @@ const usePubHubs = defineStore('pubhubs', {
 
         addMessage(roomId: string, text: string) {
             const content = {
-                "body": text,
-                "msgtype": "m.text"
-            }
-            this.client.sendEvent(roomId, "m.room.message", content, "");
+                body: text,
+                msgtype: 'm.text',
+            };
+            this.client.sendEvent(roomId, 'm.room.message', content, '');
         },
 
         addImage(roomId: string, uri: string) {
-            this.client.sendImageMessage(roomId,uri)
+            this.client.sendImageMessage(roomId, uri);
         },
 
         async changeDisplayName(name: string) {
@@ -134,7 +140,7 @@ const usePubHubs = defineStore('pubhubs', {
 
         async loadOlderEvents(roomId: string) {
             const self = this;
-            return new Promise( (resolve) => {
+            return new Promise((resolve) => {
                 const room = self.client.getRoom(roomId);
                 if (room != null) {
                     const firstEvent = room.timeline[0].event;
@@ -142,33 +148,34 @@ const usePubHubs = defineStore('pubhubs', {
                         const timelineSet = room.getTimelineSets()[0];
                         const eventId = firstEvent.event_id;
                         if (eventId !== undefined) {
-                            self.client.getEventTimeline(timelineSet, eventId)
+                            self.client
+                                .getEventTimeline(timelineSet, eventId)
                                 .then((eventTimeline: Optional<EventTimeline>) => {
                                     if (eventTimeline) {
                                         const settings = useSettings();
-                                        resolve( self.client.paginateEventTimeline(eventTimeline, { backwards: true, limit: settings.pagination }) );
-                                    }
-                                    else {
+                                        resolve(
+                                            self.client.paginateEventTimeline(eventTimeline, {
+                                                backwards: true,
+                                                limit: settings.pagination,
+                                            })
+                                        );
+                                    } else {
                                         resolve(false);
                                     }
-                                }
-                                ).catch((error: string) => {
+                                })
+                                .catch((error: string) => {
                                     self.showError(error);
                                 });
                         }
-                    }
-                    else {
+                    } else {
                         resolve(false);
                     }
-                }
-                else {
+                } else {
                     resolve(false);
                 }
             });
         },
-
     },
+});
 
-})
-
-export { usePubHubs }
+export { usePubHubs };
