@@ -412,7 +412,7 @@ set-blueprints:
       when: never
     # do run when any relevant files have changed
     - changes:
-       - docs/blueprints/*
+       - docs/blueprints/**/*
        - cicd/.gitlab-ci.yml
     # when no relevant changes have been made, don't run automatically, but allow the job to be rin manually
     - when: manual
