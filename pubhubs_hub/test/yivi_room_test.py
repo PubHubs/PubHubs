@@ -8,10 +8,7 @@ from synapse.config import ConfigError
 from synapse.events import EventBase
 from synapse.handlers.room import EventContext
 
-from synapse.types import (
-    Requester,
-    UserID, StateMap
-)
+from synapse.types import Requester, UserID, StateMap
 
 sys.path.append("modules")
 from pubhubs import YiviRoomJoiner
@@ -19,25 +16,28 @@ from pubhubs._web import YiviResult
 from pubhubs._secured_rooms_class import SecuredRoom, PubHubsSecuredRoomType
 from pubhubs._secured_rooms_web import SecuredRoomsServlet
 
-class FakeNoticesManager():
+
+class FakeNoticesManager:
     server_notices_mxid = "@notices_user:domain"
 
 
 class FakeRoomStore:
-    async def store_room(self,
-                         room_id="gen_room_id",
-                         room_creator_user_id="creator_id",
-                         is_public="is_public",
-                         room_version="room_version", ):
+    async def store_room(
+        self,
+        room_id="gen_room_id",
+        room_creator_user_id="creator_id",
+        is_public="is_public",
+        room_version="room_version",
+    ):
         return room_id
 
 
-class HasMain():
+class HasMain:
     main = FakeRoomStore()
 
 
-class FakeRoomConfig():
-    encryption_enabled_by_default_for_room_presets = {'eh': False}
+class FakeRoomConfig:
+    encryption_enabled_by_default_for_room_presets = {"eh": False}
     default_power_level_content_override = None
 
 
@@ -60,29 +60,35 @@ class FakeWorker:
 
 class FakeAccountDataHandler:
     async def add_account_data_to_room(self, room, user, type, settings):
-        if type != 'im.vector.setting.allowed_widgets':
+        if type != "im.vector.setting.allowed_widgets":
             raise Exception
 
 
-class FakeHsConfig():
+class FakeHsConfig:
     room = FakeRoomConfig
     server = FakeServer
     servernotices = FakeNoticesManager()
     worker = FakeWorker()
 
-class FakeState():
-    async def get_state_group_for_events(self, event_ids: Collection[str],) -> Mapping[str, int]:
-        return { id: i for (i,id) in [(i,id) for i,id in enumerate(event_ids)] }
 
-class FakeStorageControllers():
+class FakeState:
+    async def get_state_group_for_events(
+        self,
+        event_ids: Collection[str],
+    ) -> Mapping[str, int]:
+        return {id: i for (i, id) in [(i, id) for i, id in enumerate(event_ids)]}
+
+
+class FakeStorageControllers:
     state = FakeState()
 
-class FakeAuth():
+
+class FakeAuth:
     async def check_auth_blocking(self, requester):
         return None
 
 
-class FakeThirdPartyEventRules():
+class FakeThirdPartyEventRules:
     async def on_create_room(self, config, is_requester_admin=False):
         return None
 
@@ -94,54 +100,58 @@ class FakeRequestRateLimiter:
     async def ratelimit(self, requester):
         return None
 
+
 class FakeEventContext:
     _state_group = "state_group"
+
 
 class FakeEvencreationHandler:
     async def assert_accepted_privacy_policy(self, requester):
         return True
 
     async def create_event(
-            self,
-            requester: Requester,
-            event_dict: dict,
-            txn_id: Optional[str] = None,
-            allow_no_prev_events: bool = False,
-            prev_event_ids: Optional[List[str]] = None,
-            auth_event_ids: Optional[List[str]] = None,
-            state_event_ids: Optional[List[str]] = None,
-            require_consent: bool = True,
-            outlier: bool = False,
-            historical: bool = False,
-            depth: Optional[int] = None,
-            state_map: Optional[StateMap[str]] = None,
-            for_batch: bool = False,
-            current_state_group: Optional[int] = None,
+        self,
+        requester: Requester,
+        event_dict: dict,
+        txn_id: Optional[str] = None,
+        allow_no_prev_events: bool = False,
+        prev_event_ids: Optional[List[str]] = None,
+        auth_event_ids: Optional[List[str]] = None,
+        state_event_ids: Optional[List[str]] = None,
+        require_consent: bool = True,
+        outlier: bool = False,
+        historical: bool = False,
+        depth: Optional[int] = None,
+        state_map: Optional[StateMap[str]] = None,
+        for_batch: bool = False,
+        current_state_group: Optional[int] = None,
     ):
         return (FakeEvent(), FakeEventContext())
 
     async def handle_new_client_event(
-            self,
-            requester: Requester,
-            events_and_context: List[Tuple[EventBase, EventContext]],
-            ratelimit: bool = True,
-            extra_users: Optional[List[UserID]] = None,
-            ignore_shadow_ban: bool = False,
+        self,
+        requester: Requester,
+        events_and_context: List[Tuple[EventBase, EventContext]],
+        ratelimit: bool = True,
+        extra_users: Optional[List[UserID]] = None,
+        ignore_shadow_ban: bool = False,
     ):
         return FakeEvent
 
-    async def create_and_send_nonmember_event(self,
-                                              requester: Requester,
-                                              event_dict: dict,
-                                              allow_no_prev_events: bool = False,
-                                              prev_event_ids: Optional[List[str]] = None,
-                                              state_event_ids: Optional[List[str]] = None,
-                                              ratelimit: bool = True,
-                                              txn_id: Optional[str] = None,
-                                              ignore_shadow_ban: bool = False,
-                                              outlier: bool = False,
-                                              historical: bool = False,
-                                              depth: Optional[int] = None,):
+    async def create_and_send_nonmember_event(
+        self,
+        requester: Requester,
+        event_dict: dict,
+        allow_no_prev_events: bool = False,
+        prev_event_ids: Optional[List[str]] = None,
+        state_event_ids: Optional[List[str]] = None,
+        ratelimit: bool = True,
+        txn_id: Optional[str] = None,
+        ignore_shadow_ban: bool = False,
+        outlier: bool = False,
+        historical: bool = False,
+        depth: Optional[int] = None,
+    ):
         return (FakeEvent(), 1)
 
 
@@ -150,7 +160,7 @@ class FakeDirectoryHandler:
 
 
 class FakeMemberLinearizer:
-    class queue():
+    class queue:
         def __init__(self, args):
             pass
 
@@ -162,25 +172,27 @@ class FakeMemberLinearizer:
 
 
 class FakeRoomMemberHandler:
-    async def update_membership( self,
-                                 requester: Requester,
-                                 target: UserID,
-                                 room_id: str,
-                                 action: str,
-                                 txn_id: Optional[str] = None,
-                                 remote_room_hosts: Optional[List[str]] = None,
-                                 third_party_signed: Optional[dict] = None,
-                                 ratelimit: bool = True,
-                                 content: Optional[dict] = None,
-                                 new_room: bool = False,
-                                 require_consent: bool = True,
-                                 outlier: bool = False,
-                                 historical: bool = False,
-                                 allow_no_prev_events: bool = False,
-                                 prev_event_ids: Optional[List[str]] = None,
-                                 state_event_ids: Optional[List[str]] = None,
-                                 depth: Optional[int] = None,):
-        return (1,None)
+    async def update_membership(
+        self,
+        requester: Requester,
+        target: UserID,
+        room_id: str,
+        action: str,
+        txn_id: Optional[str] = None,
+        remote_room_hosts: Optional[List[str]] = None,
+        third_party_signed: Optional[dict] = None,
+        ratelimit: bool = True,
+        content: Optional[dict] = None,
+        new_room: bool = False,
+        require_consent: bool = True,
+        outlier: bool = False,
+        historical: bool = False,
+        allow_no_prev_events: bool = False,
+        prev_event_ids: Optional[List[str]] = None,
+        state_event_ids: Optional[List[str]] = None,
+        depth: Optional[int] = None,
+    ):
+        return (1, None)
 
     member_linearizer = FakeMemberLinearizer()
 
@@ -192,16 +204,19 @@ class FakeDataReplicationHandler:
 
 fake_secured_rooms = {}
 
+
 class FakeRoomCreationHandler:
     async def create_room(self, config):
         id = f"room_id{len(fake_secured_rooms)}"
         fake_secured_rooms[id] = config
-        return [{'room_id': id}, None]
+        return [{"room_id": id}, None]
+
 
 class FakeRoomShutdownHandler:
     pass
 
-class FakeHs():
+
+class FakeHs:
     hostname = "hostname"
 
     def get_server_notices_manager(self):
@@ -254,36 +269,40 @@ class FakeHs():
     def get_module_api_callbacks(self):
         return FakeModuleApiCallbacks()
 
-class FakeModuleApiCallbacks():
+
+class FakeModuleApiCallbacks:
     spam_checker = None
     third_party_event_rules = None
+
 
 class FakeMetaData:
     stream_ordering = "ordering"
 
+
 class FakeEvent:
-    event_id = 'event_id',
-    type = "type",
+    event_id = ("event_id",)
+    type = ("type",)
     state_key = "state key"
     internal_metadata = FakeMetaData
 
-class Fuser():
-    class User():
+
+class Fuser:
+    class User:
         def to_string(self):
             return "user"
 
     user = User()
 
 
-class FakeModuleApi():
-    def __init__(self,allAdmins=False):
+class FakeModuleApi:
+    def __init__(self, allAdmins=False):
         self.msg_count = 0
         self.allAdmins = allAdmins
 
     _hs = FakeHs()
     public_baseurl = "http://public/"
 
-    async def get_user_by_req(self,request):
+    async def get_user_by_req(self, request):
         return Fuser()
 
     async def is_user_admin(self, user):
@@ -301,13 +320,13 @@ class FakeModuleApi():
     async def update_room_membership(self, action_user, user, room, type):
         pass
 
-class FakeStore:
 
+class FakeStore:
     def __init__(self, isAllowed=False):
         self.isAllowed = isAllowed
 
     async def get_secured_room(self, room_id):
-        return fake_secured_rooms.get(room_id,None)
+        return fake_secured_rooms.get(room_id, None)
 
     async def is_allowed(self, user, room):
         return self.isAllowed
@@ -318,14 +337,11 @@ class FakeStore:
     async def get_secured_rooms(self):
         return fake_secured_rooms.values()
 
-valid_config = {
-    'client_url': '',
-    'global_client_url': ''
-}
+
+valid_config = {"client_url": "", "global_client_url": ""}
 
 
 class TestAsync(IsolatedAsyncioTestCase):
-
     def test_parse_config(self):
         parsed = YiviRoomJoiner.parse_config(valid_config)
         self.assertEqual(valid_config, parsed)
@@ -338,21 +354,27 @@ class TestAsync(IsolatedAsyncioTestCase):
     async def test_on_trying_to_join_room(self):
         api = FakeModuleApi()
         joiner = YiviRoomJoiner(valid_config.copy(), api, FakeStore())
-        fake_secured_rooms['some_id'] = SecuredRoom(room_name="", accepted={"something": {"profile": True ,"accepted_values": ["has a requirement"]}}, user_txt='', type=PubHubsSecuredRoomType.MESSAGES,room_id='some_id')
+        fake_secured_rooms["some_id"] = SecuredRoom(
+            room_name="",
+            accepted={"something": {"profile": True, "accepted_values": ["has a requirement"]}},
+            user_txt="",
+            type=PubHubsSecuredRoomType.MESSAGES,
+            room_id="some_id",
+        )
 
         # Join a room that is secured and not already allowed
-        result = await joiner.joining('@some_user:domain', 'some_id', None)
+        result = await joiner.joining("@some_user:domain", "some_id", None)
 
         self.assertEqual(result, False)
 
         # Join a room that is not secured
-        result = await joiner.joining('@some_user:domain', 'some_other_id', None)
+        result = await joiner.joining("@some_user:domain", "some_other_id", None)
 
         self.assertEqual(result, True)
 
         joiner = YiviRoomJoiner(valid_config.copy(), FakeModuleApi(), FakeStore(isAllowed=True))
         # Join a room that is secured and already allowed
-        result = await joiner.joining('@some_user:domain', 'some_id', None)
+        result = await joiner.joining("@some_user:domain", "some_id", None)
 
         self.assertEqual(result, True)
 
@@ -360,11 +382,17 @@ class TestAsync(IsolatedAsyncioTestCase):
         # Not allowed when nothing is disclosed
         api = FakeModuleApi()
         # Create the secured room
-        fake_secured_rooms['some_id'] = SecuredRoom(room_name="", accepted={"something": {"profile": True ,"accepted_values": ["has a requirement"]}}, user_txt='', type=PubHubsSecuredRoomType.MESSAGES,room_id='some_id')
+        fake_secured_rooms["some_id"] = SecuredRoom(
+            room_name="",
+            accepted={"something": {"profile": True, "accepted_values": ["has a requirement"]}},
+            user_txt="",
+            type=PubHubsSecuredRoomType.MESSAGES,
+            room_id="some_id",
+        )
         joiner = YiviRoomJoiner(valid_config.copy(), api, FakeStore())
         checker = YiviResult(valid_config.copy(), api, FakeStore(), joiner)
 
-        result = await checker.check_allowed({}, 'some_id')
+        result = await checker.check_allowed({}, "some_id")
         self.assertEqual(result, None)
 
         # Allowed when the right thing is disclosed
@@ -372,45 +400,85 @@ class TestAsync(IsolatedAsyncioTestCase):
         joiner = YiviRoomJoiner(valid_config.copy(), api, FakeStore())
         checker = YiviResult(valid_config.copy(), api, FakeStore(), joiner)
 
-        result = await checker.check_allowed({"proofStatus": "VALID", "disclosed": [[{"id": "something", "rawvalue": "has a requirement"}]]},
-                                       'some_id')
-        self.assertEqual(result, {'something': 'has a requirement'})
+        result = await checker.check_allowed(
+            {"proofStatus": "VALID", "disclosed": [[{"id": "something", "rawvalue": "has a requirement"}]]}, "some_id"
+        )
+        self.assertEqual(result, {"something": "has a requirement"})
 
         # Not allowed when the right attribute with the wrong value is disclosed
         api = FakeModuleApi()
         joiner = YiviRoomJoiner(valid_config.copy(), api, FakeStore())
         checker = YiviResult(valid_config.copy(), api, FakeStore(), joiner)
 
-        result = await checker.check_allowed({"proofStatus": "VALID", "disclosed": [[{"id": "something", "rawvalue": "wrong value"}]]},
-                                       'some_id')
+        result = await checker.check_allowed(
+            {"proofStatus": "VALID", "disclosed": [[{"id": "something", "rawvalue": "wrong value"}]]}, "some_id"
+        )
         self.assertEqual(result, None)
 
         # Not allowed when required attribute not given
-        result = await checker.check_allowed({"proofStatus": "VALID", "disclosed": [[{"id": "not something", "rawvalue": "has a requirement"}]]},
-                                         'some_id')
+        result = await checker.check_allowed(
+            {"proofStatus": "VALID", "disclosed": [[{"id": "not something", "rawvalue": "has a requirement"}]]},
+            "some_id",
+        )
         self.assertEqual(result, None)
 
         # Allowed when no values given
-        fake_secured_rooms['some_id'] = SecuredRoom(room_name="", accepted={"something": {"profile": True ,"accepted_values": []}}, user_txt='', type=PubHubsSecuredRoomType.MESSAGES,room_id='some_id')
+        fake_secured_rooms["some_id"] = SecuredRoom(
+            room_name="",
+            accepted={"something": {"profile": True, "accepted_values": []}},
+            user_txt="",
+            type=PubHubsSecuredRoomType.MESSAGES,
+            room_id="some_id",
+        )
 
-        result = await checker.check_allowed({"proofStatus": "VALID", "disclosed": [[{"id": "something", "rawvalue": "should not matter"}]]},
-                                             'some_id')
-        self.assertEqual(result, {'something': 'should not matter'})
+        result = await checker.check_allowed(
+            {"proofStatus": "VALID", "disclosed": [[{"id": "something", "rawvalue": "should not matter"}]]}, "some_id"
+        )
+        self.assertEqual(result, {"something": "should not matter"})
 
         # All required should be met
-        fake_secured_rooms['some_id'] = SecuredRoom(room_name="", accepted={"something": {"profile": True ,"accepted_values": []}, "something_else": {"profile": False,"accepted_values": []}}, user_txt='', type=PubHubsSecuredRoomType.MESSAGES,room_id='some_id')
+        fake_secured_rooms["some_id"] = SecuredRoom(
+            room_name="",
+            accepted={
+                "something": {"profile": True, "accepted_values": []},
+                "something_else": {"profile": False, "accepted_values": []},
+            },
+            user_txt="",
+            type=PubHubsSecuredRoomType.MESSAGES,
+            room_id="some_id",
+        )
 
-        result = await checker.check_allowed({"proofStatus": "VALID", "disclosed": [[{"id": "something", "rawvalue": "should not matter"}]]},
-                                             'some_id')
+        result = await checker.check_allowed(
+            {"proofStatus": "VALID", "disclosed": [[{"id": "something", "rawvalue": "should not matter"}]]}, "some_id"
+        )
         self.assertEqual(result, None)
 
         # Only profile variables returned to show in the room
-        result = await checker.check_allowed({"proofStatus": "VALID", "disclosed": [[{"id": "something", "rawvalue": "should not matter"},{"id": "something_else", "rawvalue": "a"}]]},
-                                         'some_id')
-        self.assertEqual(result, {'something': 'should not matter'})
+        result = await checker.check_allowed(
+            {
+                "proofStatus": "VALID",
+                "disclosed": [
+                    [{"id": "something", "rawvalue": "should not matter"}, {"id": "something_else", "rawvalue": "a"}]
+                ],
+            },
+            "some_id",
+        )
+        self.assertEqual(result, {"something": "should not matter", "something_else": {"": ""}})
 
     async def test_routes_secured(self):
-        servlet = SecuredRoomsServlet(valid_config,FakeStore(),FakeModuleApi(),FakeRoomCreationHandler(),FakeRoomShutdownHandler(),"@notices.some.hub")
-        for method in [servlet._async_render_DELETE,servlet._async_render_GET, servlet._async_render_POST, servlet._async_render_PUT]:
+        servlet = SecuredRoomsServlet(
+            valid_config,
+            FakeStore(),
+            FakeModuleApi(),
+            FakeRoomCreationHandler(),
+            FakeRoomShutdownHandler(),
+            "@notices.some.hub",
+        )
+        for method in [
+            servlet._async_render_DELETE,
+            servlet._async_render_GET,
+            servlet._async_render_POST,
+            servlet._async_render_PUT,
+        ]:
             with self.assertRaises(LoginError):
                 await method({})

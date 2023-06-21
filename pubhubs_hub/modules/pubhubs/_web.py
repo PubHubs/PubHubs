@@ -16,47 +16,29 @@ logger = logging.getLogger("synapse.contrib." + __name__)
 
 
 class JoinServlet(Resource):
-    """Main servlet to handle the disclosed attributes.
-    """
+    """Main servlet to handle the disclosed attributes."""
 
-    def __init__(
-            self,
-            config: dict,
-            module_api: ModuleApi,
-            store: YiviRoomJoinStore,
-            joiner: YiviRoomJoiner):
+    def __init__(self, config: dict, module_api: ModuleApi, store: YiviRoomJoinStore, joiner: YiviRoomJoiner):
         super().__init__()
         self.module_api = module_api
         self.config = config
 
-        self.putChild(
-            b'yivi-endpoint',
-            YiviEndpoint(
-                config,
-                module_api,
-                store,
-                joiner))
+        self.putChild(b"yivi-endpoint", YiviEndpoint(config, module_api, store, joiner))
 
 
 class YiviEndpoint(Resource):
-    """Servlet that bundles the Yivi endpoints for the javascript client to communicate with.
-    """
+    """Servlet that bundles the Yivi endpoints for the javascript client to communicate with."""
 
-    def __init__(
-            self,
-            config: dict,
-            module_api: ModuleApi,
-            store: YiviRoomJoinStore,
-            joiner: YiviRoomJoiner):
+    def __init__(self, config: dict, module_api: ModuleApi, store: YiviRoomJoinStore, joiner: YiviRoomJoiner):
         super().__init__()
         self.module_api = module_api
         self.config = config
-        self.putChild(b'start', YiviStart(config, module_api, store))
-        self.putChild(b'result', YiviResult(config, module_api, store, joiner))
+        self.putChild(b"start", YiviStart(config, module_api, store))
+        self.putChild(b"result", YiviResult(config, module_api, store, joiner))
 
 
 class YiviStart(DirectServeJsonResource):
-    """ Servlet containing the endpoint to start the Yivi session.
+    """Servlet containing the endpoint to start the Yivi session.
     Will ask to disclose the attributes as specified in the module configuration
     """
 
@@ -82,46 +64,32 @@ class YiviStart(DirectServeJsonResource):
             return
 
         to_disclose = list(room.accepted.keys())
-        session_request = {
-            "@context": "https://irma.app/ld/request/disclosure/v2",
-            "disclose": [
-                [
-                    to_disclose
-                ]
-            ]
-        }
+        session_request = {"@context": "https://irma.app/ld/request/disclosure/v2", "disclose": [[to_disclose]]}
 
         yivi_url = self.config.get("yivi_url", "http://localhost:8089")
         answer = await http_client.post_json_get_json(f"{yivi_url}/session", session_request)
         # Make sure the 'ultimate' client uses the proxy used by the module.
         public_yivi_url = self.config.get("public_yivi_url", self.module_api.public_baseurl)
-        answer['sessionPtr']['u'] = public_yivi_url + \
-                                    '_synapse/client/yiviproxy/' + \
-                                    '/'.join(answer['sessionPtr']['u'].split('/')[3:])
+        answer["sessionPtr"]["u"] = (
+            public_yivi_url + "_synapse/client/yiviproxy/" + "/".join(answer["sessionPtr"]["u"].split("/")[3:])
+        )
 
         logger.debug(f"rewrote Yivi url to {answer['sessionPtr']['u']}")
 
         # Now client makes the request
-        request.setHeader(
-            b"Access-Control-Allow-Origin",
-            f"{self.config[CLIENT_URL]}".encode())
+        request.setHeader(b"Access-Control-Allow-Origin", f"{self.config[CLIENT_URL]}".encode())
 
         respond_with_json(request, 200, answer)
 
 
 class YiviResult(DirectServeJsonResource):
     """Servlet containing the endpoint the JS client will call when the session is done,
-     will collect and check the session result and see if
-      correct attributes are disclosed.
-      If so will return the url of the room the waiting room was for.
+    will collect and check the session result and see if
+     correct attributes are disclosed.
+     If so will return the url of the room the waiting room was for.
     """
 
-    def __init__(
-            self,
-            config: dict,
-            module_api: ModuleApi,
-            store: YiviRoomJoinStore,
-            yivi_room_joiner: YiviRoomJoiner):
+    def __init__(self, config: dict, module_api: ModuleApi, store: YiviRoomJoinStore, yivi_room_joiner: YiviRoomJoiner):
         super().__init__()
         self.module_api = module_api
         self.config = config
@@ -141,7 +109,6 @@ class YiviResult(DirectServeJsonResource):
             return None
 
         if result["proofStatus"] == "VALID":
-
             if result.get("disclosed") is None:
                 return None
 
@@ -168,9 +135,14 @@ class YiviResult(DirectServeJsonResource):
                 if disclosed_value:
                     room_attribute: RoomAttribute = room.accepted[required]
                     if room_attribute:
-                        if len(room_attribute.accepted_values) == 0 or disclosed_value in room_attribute.accepted_values:
+                        if (
+                            len(room_attribute.accepted_values) == 0
+                            or disclosed_value in room_attribute.accepted_values
+                        ):
                             if room_attribute.profile:
                                 disclosed_to_show[required] = disclosed_value
+                            else:
+                                disclosed_to_show[required] = {"": ""}
                         else:
                             return None
                     else:
@@ -185,17 +157,14 @@ class YiviResult(DirectServeJsonResource):
     async def _async_render_GET(self, request: SynapseRequest):
         http_client = self.module_api.http_client
 
-        request.setHeader(
-            b"Access-Control-Allow-Origin",
-            f"{self.config[CLIENT_URL]}".encode())
+        request.setHeader(b"Access-Control-Allow-Origin", f"{self.config[CLIENT_URL]}".encode())
 
-        if not request.args.get(b"session_token") or not request.args.get(
-                b"room_id"):
+        if not request.args.get(b"session_token") or not request.args.get(b"room_id"):
             respond_with_json(request, 400, {})
             return
 
-        token = b''.join(request.args.get(b"session_token")).decode()
-        room_id = b''.join(request.args.get(b"room_id")).decode()
+        token = b"".join(request.args.get(b"session_token")).decode()
+        room_id = b"".join(request.args.get(b"room_id")).decode()
 
         user = await self.module_api.get_user_by_req(request)
 
@@ -205,25 +174,25 @@ class YiviResult(DirectServeJsonResource):
         result = await http_client.get_json(f"{yivi_url}/session/{token}/result")
         allowed = await self.check_allowed(result, room_id)
         if allowed:
-            await self.store.allow(user_id,room_id)
-            await self.module_api.update_room_membership(user_id, user_id, room_id, 'join')
+            await self.store.allow(user_id, room_id)
+            await self.module_api.update_room_membership(user_id, user_id, room_id, "join")
 
             answer = {"goto": f"{self.config[CLIENT_URL]}#/room/{room_id}"}
 
             disclosed = allowed
 
-            await self.module_api.create_and_send_event_into_room({
-                'type': 'm.room.message',
-                'room_id': room_id,
-                'sender': self.config[SERVER_NOTICES_USER],
-                'content': {
-                    "body": f"{user_id} joined the room with attributes {disclosed}",
-                    "msgtype": "m.notice"
+            await self.module_api.create_and_send_event_into_room(
+                {
+                    "type": "m.room.message",
+                    "room_id": room_id,
+                    "sender": self.config[SERVER_NOTICES_USER],
+                    "content": {
+                        "body": f"{user_id} joined the room with attributes {disclosed}",
+                        "msgtype": "m.notice",
+                    },
                 }
-            })
+            )
 
             respond_with_json(request, 200, answer)
         else:
-            respond_with_json(
-                request, 200, {
-                    "not_correct": "unfortunately not allowed in the room"})
+            respond_with_json(request, 200, {"not_correct": "unfortunately not allowed in the room"})
