@@ -165,8 +165,7 @@ deploy-stable-phc:
 start-test-setup-unit-test:
   stage: build
   only:
-    changes:
-
+    <<: *anycodechanges
   tags:
     - docker
   image: python:latest
