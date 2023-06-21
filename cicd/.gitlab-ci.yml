@@ -13,33 +13,33 @@ stages: # List of stages for jobs, and their order of execution
 
 .rustchanges: &rustchanges
   changes:
-    - pubhubs/*
+    - pubhubs/**/*
     - cicd/.gitlab-ci.yml
 
 .phc_image_changes: &phc_image_changes
   changes:
-    - pubhubs/*
-    - global-client/* # global client is included in PHC image
-    - hub-client/* # global client depends on hub-client
+    - pubhubs/**/*
+    - global-client/**/* # global client is included in PHC image
+    - hub-client/**/* # global client depends on hub-client
     - cicd/.gitlab-ci.yml
 
 .anycodechanges: &anycodechanges
   changes:
-    - pubhubs/*
-    - global-client/*
-    - hub-client/*
-    - pubhubs_hub/*
+    - pubhubs/**/*
+    - global-client/**/*
+    - hub-client/**/*
+    - pubhubs_hub/**/*
     - start_test_setup.py
     - cicd/.gitlab-ci.yml
 
 .hubclientchanges: &hubclientchanges
   changes:
-    - hub-client/*
+    - hub-client/**/*
     - cicd/.gitlab-ci.yml
 
 .hubchanges: &hubchanges
   changes:
-    - pubhubs_hub/*
+    - pubhubs_hub/**/*
     - cicd/.gitlab-ci.yml
 
 rust-clippy:
