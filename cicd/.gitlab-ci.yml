@@ -13,33 +13,33 @@ stages: # List of stages for jobs, and their order of execution
 
 .rustchanges: &rustchanges
   changes:
-    - pubhubs/*
+    - pubhubs/**/*
     - cicd/.gitlab-ci.yml
 
 .phc_image_changes: &phc_image_changes
   changes:
-    - pubhubs/*
-    - global-client/* # global client is included in PHC image
-    - hub-client/* # global client depends on hub-client
+    - pubhubs/**/*
+    - global-client/**/* # global client is included in PHC image
+    - hub-client/**/* # global client depends on hub-client
     - cicd/.gitlab-ci.yml
 
 .anycodechanges: &anycodechanges
   changes:
-    - pubhubs/*
-    - global-client/*
-    - hub-client/*
-    - pubhubs_hub/*
+    - pubhubs/**/*
+    - global-client/**/*
+    - hub-client/**/*
+    - pubhubs_hub/**/*
     - start_test_setup.py
     - cicd/.gitlab-ci.yml
 
 .hubclientchanges: &hubclientchanges
   changes:
-    - hub-client/*
+    - hub-client/**/*
     - cicd/.gitlab-ci.yml
 
 .hubchanges: &hubchanges
   changes:
-    - pubhubs_hub/*
+    - pubhubs_hub/**/*
     - cicd/.gitlab-ci.yml
 
 rust-clippy:
@@ -62,6 +62,7 @@ rust-clippy:
     - if: '$CI_PIPELINE_SOURCE != "push"'
       when: never
     - *rustchanges
+    - when: manual
   cache:
     key: "${CI_COMMIT_REF_NAME}-${CI_JOB_NAME}"
     paths:
@@ -71,7 +72,9 @@ rust-unit-test:
   stage: build
   tags:
     - docker
-  only: *rustchanges
+  rules: 
+    - *rustchanges
+    - when: manual
   image: registry.science.ru.nl/ilab/docker-build/rust-stable:main
   script:
     - cp -r global-client/ pubhubs
@@ -93,7 +96,9 @@ rust-unit-test:
 
 rust-cargo-deny:
   stage: build
-  only: *rustchanges
+  rules: 
+    - *rustchanges
+    - when: manual
   tags:
     - docker
   image: registry.science.ru.nl/ilab/docker-build/rust-stable:main
@@ -103,11 +108,14 @@ rust-cargo-deny:
 
 build-pubhubs-image:
   stage: build-images
-  only:
-    refs:
-      - main
-      - stable
-    <<: *phc_image_changes
+  rules:
+    # don't run when branch is not main or stable
+    - if:  $CI_COMMIT_BRANCH != "main" && $CI_COMMIT_BRANCH != "stable"
+      when: never
+    # do run when any relevant files have changed
+    - <<: *phc_image_changes
+    # when no relevant changes have been made, don't run automatically, but allow the job to be rin manually
+    - when: manual
   needs:
     - job: rust-unit-test
       optional: true
@@ -128,10 +136,14 @@ build-pubhubs-image:
 
 deploy-main-phc:
   stage: deploy
-  only:
-    refs:
-      - main
-    <<: *phc_image_changes
+  rules:
+    # don't run when branch is not main
+    - if:  $CI_COMMIT_BRANCH != "main"
+      when: never
+    # do run when any relevant files have changed
+    - <<: *phc_image_changes
+    # when no relevant changes have been made, don't run automatically, but allow the job to be rin manually
+    - when: manual
   needs: 
     - build-pubhubs-image
   environment: $CI_COMMIT_REF_NAME
@@ -146,10 +158,14 @@ deploy-main-phc:
 
 deploy-stable-phc:
   stage: deploy
-  only:
-    refs:
-      - stable
-    <<: *phc_image_changes
+  rules:
+    # don't run when branch is not stable
+    - if:  $CI_COMMIT_BRANCH != "stable"
+      when: never
+    # do run when any relevant files have changed
+    - <<: *phc_image_changes
+    # when no relevant changes have been made, don't run automatically, but allow the job to be rin manually
+    - when: manual
   needs: 
     - build-pubhubs-image
   environment: $CI_COMMIT_REF_NAME
@@ -164,9 +180,9 @@ deploy-stable-phc:
 
 start-test-setup-unit-test:
   stage: build
-  only:
-    changes:
-
+  rules:
+    - <<: *anycodechanges
+    - when: manual
   tags:
     - docker
   image: python:latest
@@ -180,8 +196,9 @@ start-test-setup-unit-test:
 
 hub-unit-test: # This job runs in the test stage.
   stage: build
-  only:
-    *hubchanges
+  rules:
+    - *hubchanges
+    - when: manual
   tags:
     - docker
   image: python:latest
@@ -217,11 +234,14 @@ hub-unit-test: # This job runs in the test stage.
 
 build-image-hub:
   stage: build-images
-  only:
-    refs:
-      - main
-      - stable
-    <<: *hubchanges
+  rules:
+    # don't run when branch is not stable or main
+    - if:  $CI_COMMIT_BRANCH != "stable" &&  $CI_COMMIT_BRANCH != "main"
+      when: never
+    # do run when any relevant files have changed
+    - <<: *hubchanges
+    # when no relevant changes have been made, don't run automatically, but allow the job to be rin manually
+    - when: manual
   needs:
     - hub-unit-test
   tags:
@@ -237,10 +257,14 @@ build-image-hub:
 
 deploy-main-hub:
   stage: deploy
-  only:
-    refs:
-      - main
-    <<: *hubchanges
+  rules:
+    # don't run when branch is not main
+    - if:   $CI_COMMIT_BRANCH != "main"
+      when: never
+    # do run when any relevant files have changed
+    - <<: *hubchanges
+    # when no relevant changes have been made, don't run automatically, but allow the job to be rin manually
+    - when: manual
   needs: &mainhubdeployneeds
     - build-image-hub
   environment: $CI_COMMIT_REF_NAME
@@ -253,10 +277,14 @@ deploy-main-hub:
 
 deploy-stable-hub:
   stage: deploy
-  only:
-    refs:
-      - stable
-    <<: *hubchanges
+  rules:
+    # don't run when branch is not stable
+    - if:   $CI_COMMIT_BRANCH != "stable"
+      when: never
+    # do run when any relevant files have changed
+    - <<: *hubchanges
+    # when no relevant changes have been made, don't run automatically, but allow the job to be rin manually
+    - when: manual
   needs: *mainhubdeployneeds
   environment: $CI_COMMIT_REF_NAME
   tags: [docker]
@@ -268,7 +296,9 @@ deploy-stable-hub:
 
 hubclient-unit-test:
   stage: build
-  only: *hubclientchanges
+  rules: 
+    - *hubclientchanges
+    - when: manual
   tags: [docker]
   image: node:latest
   before_script:
@@ -283,11 +313,14 @@ hubclient-unit-test:
 
 build-hubclient:
   stage: build-images
-  only:
-    refs:
-      - main
-      - stable
-    <<: *hubclientchanges
+  rules:
+    # don't run when branch is not main or stable
+    - if:   $CI_COMMIT_BRANCH != "main" && $CI_COMMIT_BRANCH != "stable"
+      when: never
+    # do run when any relevant files have changed
+    - <<: *hubclientchanges
+    # when no relevant changes have been made, don't run automatically, but allow the job to be rin manually
+    - when: manual
   needs:
     - hubclient-unit-test
   tags:
@@ -303,10 +336,14 @@ build-hubclient:
 
 build-hubclient2:
   stage: build-images
-  only:
-    refs:
-      - main
-    <<: *hubclientchanges
+  rules:
+    # don't run when branch is not main
+    - if:   $CI_COMMIT_BRANCH != "main" 
+      when: never
+    # do run when any relevant files have changed
+    - <<: *hubclientchanges
+    # when no relevant changes have been made, don't run automatically, but allow the job to be rin manually
+    - when: manual
   needs:
     - hubclient-unit-test
   tags:
@@ -327,10 +364,14 @@ build-hubclient2:
 
 deploy-main-hubclient:
   stage: deploy
-  only:
-    refs:
-      - main
-    <<: *hubclientchanges
+  rules:
+    # don't run when branch is not main
+    - if:   $CI_COMMIT_BRANCH != "main"
+      when: never
+    # do run when any relevant files have changed
+    - <<: *hubclientchanges
+    # when no relevant changes have been made, don't run automatically, but allow the job to be rin manually
+    - when: manual
   needs: &deployhubclientneeds
     - build-hubclient
     - job: build-hubclient2
@@ -346,10 +387,14 @@ deploy-main-hubclient:
 
 deploy-stable-client:
   stage: deploy
-  only:
-    refs:
-      - stable
-    <<: *hubclientchanges
+  rules:
+    # don't run when branch is not stab,e
+    - if:  $CI_COMMIT_BRANCH != "stable"
+      when: never
+    # do run when any relevant files have changed
+    - <<: *hubclientchanges
+    # when no relevant changes have been made, don't run automatically, but allow the job to be rin manually
+    - when: manual
   needs: *deployhubclientneeds
   environment: $CI_COMMIT_REF_NAME
   tags: [docker]
@@ -361,12 +406,16 @@ deploy-stable-client:
 
 set-blueprints:
   stage: build
-  only:
-    refs:
-      - main
-    changes:
-      - docs/blueprints/*
-      - cicd/.gitlab-ci.yml
+  rules:
+    # don't run when branch is not main
+    - if:   $CI_COMMIT_BRANCH != "main"
+      when: never
+    # do run when any relevant files have changed
+    - changes:
+       - docs/blueprints/**/*
+       - cicd/.gitlab-ci.yml
+    # when no relevant changes have been made, don't run automatically, but allow the job to be rin manually
+    - when: manual
   tags: [docker]
   image: registry.gitlab.com/islandoftex/images/texlive:latest
   script:
