@@ -4,7 +4,7 @@ __license__ = "Apache License, Version 2.0, January 2004"
 __version__ = "1.0"
 
 
-# OS-level dependencies
+# OS-level dependencies.
 import os
 import sys
 from shutil import which
@@ -32,8 +32,6 @@ port = "8080"
 
 root_dir = os.getcwd()
 
-# These paths are used for intialization and post-processing. See the two methods intialization and post-processing
-paths = [('/hub-client/public/','client-config.js'), ('/pubhubs_hub/matrix_test_config/','homeserver.yaml')]
 
 ## METHOD SECTION ##
 
@@ -338,32 +336,46 @@ def build_test_hub_image(image_name):
     print(f"\033[92m{docker_build_command}\033[0m")
     subprocess.call(docker_build_command, shell=True)
 
-def docker_run_hub(env_value, image_name, client_port, hub_port):
-    
+def docker_run_hub_client(image_name, container_name, client_port, hub_matrix_port):
     """
     Run a Docker container using the specified image and environment variables.
 
     Args:
-        env_value (str): The value of the HUB_SECRET environment variable.
         image_name (str): The name of the Docker image to use.
-        client_port (str): The port to use for the client.
-        matrix_port (str): The port to use for the each Hub.
+        container_name (str): The name of the container to create and run.
+        client_port (str): The local port on which to expose the hub client.
+        hub_matrix_port (str): The local port on which to reach the hub server.
 
     Returns:
         None
     """
     
-    if "testclient" in image_name:
-        docker_command = f""" docker run --name {image_name}_{client_port} -e PORT={client_port}  -e 'BAR_URL=frame-ancestors http://localhost:8080' -e 'HUB_URL=http://localhost:{hub_port}' -e 'PARENT_URL=http://localhost:8080' -d -p {client_port}:8800 {image_name} """
-    else:            
-        docker_command =  f"docker run --name {image_name}_{hub_port} -d -p {hub_port}:{hub_port} -e HUB_SECRET={env_value} \
-           -e SYNAPSE_CONFIG_DIR=/data \
-           -e AUTHLIB_INSECURE_TRANSPORT=for_testing_only_of_course \
-           -v {os.getcwd()}/matrix_test_config:/data:rw \
-           --add-host host.docker.internal:host-gateway \
-           {image_name}"
-   
+    docker_command = f""" docker run --name {container_name} -e PORT={client_port}  -e 'BAR_URL=frame-ancestors http://localhost:8080' -e 'HUB_URL=http://localhost:{hub_matrix_port}' -e 'PARENT_URL=http://localhost:8080' -d -p {client_port}:8800 {image_name} """
+    print(f"\033[92m{docker_command}\033[0m")
+    subprocess.call(docker_command, shell=True)
+
+def docker_run_hub_server(hub_secret, image_name, container_name, hub_matrix_port, config_dir):
+    """
+    Run a Docker container using the specified image and environment variables.
+
+    Args:
+        hub_secret (str): The value of the HUB_SECRET environment variable.
+        image_name (str): The name of the Docker image to use.
+        container_name (str): The name of the container to create and run.
+        hub_matrix_port (str): The local port on which to expose the hub server.
+        config_dir (str): The local dir holding synapse config and data,
+            to be mounted into the container.
+
+    Returns:
+        None
+    """
     
+    docker_command = f"docker run --name {container_name} -d -p {hub_matrix_port}:{hub_matrix_port} -e HUB_SECRET={hub_secret} \
+       -e SYNAPSE_CONFIG_DIR=/data \
+       -e AUTHLIB_INSECURE_TRANSPORT=for_testing_only_of_course \
+       -v {config_dir}:/data:rw \
+       --add-host host.docker.internal:host-gateway \
+       {image_name}"
     print(f"\033[92m{docker_command}\033[0m")
     subprocess.call(docker_command, shell=True)
 
@@ -389,13 +401,14 @@ def run_docker_compose(env_value=None, args: str = None) -> None:
     subprocess.call(docker_command, shell=True)
 
 
-def update_homeserver_yaml(file_path, client_id, client_secret,client_port, hub_port):
+def update_homeserver_yaml(input_path, output_path, client_id, client_secret,client_port, hub_port):
       
     """
-    Update the homeserver.yaml file with the specified client ID, client secret, and client URL.
+    Write the homeserver.yaml file with the specified client ID, client secret, and client URL.
 
     Args:
-        file_path (str): The path to the homeserver.yaml file.
+        input_path (str): The path to an existing homeserver.yaml file to use as a template.
+        output_path (str): The path to the homeserver.yaml file.
         client_id (str): The new client ID to use.
         client_secret (str): The new client secret to use.
         client_port (int): The port number to use for the client.
@@ -404,7 +417,7 @@ def update_homeserver_yaml(file_path, client_id, client_secret,client_port, hub_
         None
     """
   
-    with open(file_path, 'r+') as f:
+    with open(input_path, 'r') as f:
         # Read the file content
         lines = f.readlines()
 
@@ -426,55 +439,9 @@ def update_homeserver_yaml(file_path, client_id, client_secret,client_port, hub_
                     lines[i] = f'{whitespace}public_baseurl: "http://localhost:{hub_port}"\n'
                 else:
                     lines[i] = f'{whitespace}- port: {hub_port}\n'
-        # Move the file pointer to the beginning of the file
-        f.seek(0)
 
-        # Write the updated content back to the file
+    with open(output_path, 'w') as f:
         f.writelines(lines)
-
-        # Truncate the file to the new length (in case the new content is shorter)
-        f.truncate()
-
-def update_client_config_file(hub_port):
-    
-    path = paths[0][0]
-    file_name = paths[0][1]
-    dir_path = os.path.dirname(root_dir + path)
-    file_path = os.path.join(dir_path,file_name)
-    
-    
-    
-    
-    """
-    Update the config file for hub by specifying each hub port
-
-    Args:
-        file_path (str): The path to the .env file.
-        hub_port (int): The port number to use for the client.
-       
-    Returns:
-        None
-    """
-    
-    with open(file_path, 'r+') as f:
-        # Read the file content
-        lines = f.readlines()
-        for i, line in enumerate(lines):
-            # Check if the line starts with 'client_id:' or 'client_secret:'
-            if line.strip().startswith('HUB_URL:'):
-                # Get the whitespace before the key
-                whitespace = line[:-len(line.lstrip())]
-                if line.strip().startswith('HUB_URL:'):
-                    lines[i] = f'{whitespace}HUB_URL: "http://localhost:{hub_port}",\n'
-                    
-        # Move the file pointer to the beginning of the file
-        f.seek(0)
-
-        # Write the updated content back to the file
-        f.writelines(lines)
-
-        # Truncate the file to the new length (in case the new content is shorter)
-        f.truncate()
 
 
 def initialization():
@@ -487,13 +454,7 @@ def initialization():
     Returns:
         None
     """
-    # Create Temporary files
-    create_temporary_files()
-    
-    
-    
-
-    # 
+    pass  # currently nothing needed
 
 
 def post_processing():
@@ -506,40 +467,7 @@ def post_processing():
     Returns:
         None
     """
-    for path, file_name in paths:
-        dir_path = os.path.dirname(root_dir + path)
-        file_path = os.path.join(dir_path,file_name)
-        original_file = file_path
-        bk_file = original_file + ".bk"
-        shutil.copyfile(bk_file, original_file)
-        if os.path.exists(bk_file):
-            os.remove(bk_file)
-
-
-def create_temporary_files():
-    
-    for path, file_name in paths:
-        
-        dir_path = os.path.dirname(root_dir + path)
-        
-        # path to the file you want to create a temporary copy of
-        file_path = os.path.join(dir_path,file_name)
-        
-        original_file = file_path
-        
-        bk_file = original_file + ".bk"
-        
-        # IF the script is stop voluntarily.
-        if os.path.exists(bk_file):
-            
-            if os.path.exists(original_file):
-               
-                os.remove(original_file)
-            
-            os.rename(bk_file,original_file)
-        
-        # create a temporary file with the same name as the original file    
-        shutil.copyfile(original_file, bk_file)
+    pass  # currently nothing needed
 
 
 def run_command(cmd):
@@ -617,7 +545,6 @@ def main():
             unittest.main(argv=["first-arg-is-ignored"], verbosity=2)
         elif sys.argv[1].lower() == "exec":
             if "--scale" in sys.argv:
-                    print ("<< WARNING >>> Scale option, with a scale greater than 1, is unstable for now, it will lead to incorrect hub behavior.")
                     hub_cmd_start_index= sys.argv.index("--scale")
                     hub_arg = int(sys.argv[hub_cmd_start_index+1])
 
@@ -687,17 +614,6 @@ def main_runner(cargo_setup:str, node_arg:str, hubs:int = 1) -> None:
     print(f"\033[92mdocker compose\033[0m")
     subprocess.check_output("docker compose", shell=True)
 
-    # Change permissions of relevant matrix config directory
-    matrix_config_list = [
-        "matrix_test_config",
-        "matrix_test_config/homeserver.yaml",
-        "matrix_test_config/test_hub.log.config",
-        "matrix_test_config/testhub.signing.key",
-    ]
-    os.chdir("pubhubs_hub")
-    matrix_config_permission_change(matrix_config_list)
-    os.chdir(root_dir)
-
     # Building Yivi
     os.chdir("docker_yivi")
     run_docker_compose()
@@ -730,10 +646,16 @@ def main_runner(cargo_setup:str, node_arg:str, hubs:int = 1) -> None:
         time.sleep(5)
 
       
-    # Create a test Hub
-    
-    
-    for index,i in enumerate(range(0,num_of_hubs)):
+    # Build the test hub images
+    os.chdir("pubhubs_hub")
+    build_test_hub_image("testhub")
+    os.chdir(root_dir)
+    os.chdir("hub-client")
+    build_test_hub_image("testclient")
+    os.chdir(root_dir)
+
+    # Create test Hubs
+    for i in range(num_of_hubs):
         
         hub_name = "testhub" + str(i)
         
@@ -748,27 +670,50 @@ def main_runner(cargo_setup:str, node_arg:str, hubs:int = 1) -> None:
         client_id = oidc_secret[0]
         client_password = oidc_secret[1]
         
-        homeserver_path = get_homeserver_path()
-        
-        # Update homeserver file with new client id and password, and other import ports
-        update_homeserver_yaml(homeserver_path,client_id, client_password, client_port, matrix_port)
-        
         hub_secret = export_hub_secret(hub_id, url)
+
+        # Make the data dir for this hub server
+        hub_data_dir = os.path.abspath(f'pubhubs_hub/{hub_name}')
+        os.makedirs(hub_data_dir, exist_ok=True)
+
+        # Copy the config files that do not need any changes
+        for f in ['test_hub.log.config',
+                  'testhub.signing.key']:
+            shutil.copyfile(os.path.join('pubhubs_hub/matrix_test_config', f),
+                            os.path.join(hub_data_dir, f))
+        shutil.copytree('pubhubs_hub/matrix_test_config/templates',
+                        os.path.join(hub_data_dir, 'templates'),
+                        dirs_exist_ok=True)
+        
+        # Create homeserver file with new client id and password, and other import ports
+        homeserver_path = os.path.join(hub_data_dir, 'homeserver.yaml')
+        update_homeserver_yaml(get_homeserver_path(), homeserver_path,
+                               client_id, client_password, client_port, matrix_port)
+        
+        # Change permissions of relevant matrix config directory
+        matrix_config_list = [
+            ".",
+            "homeserver.yaml",
+            "test_hub.log.config",
+            "testhub.signing.key",
+        ]
+        matrix_config_permission_change([os.path.join(hub_data_dir, f) for f in matrix_config_list])
+
+        # Run the hub server
         os.chdir("pubhubs_hub")
         container_name = f"{hub_name}_{matrix_port}"
         remove_container(container_name)
-        build_test_hub_image(hub_name)
-        docker_run_hub(hub_secret, hub_name, client_port, matrix_port)
+        docker_run_hub_server(hub_secret, "testhub", container_name, matrix_port, hub_data_dir)
         os.chdir(root_dir)
     
-        os.chdir("hub-client")
-        # update_env_file(".env", client_port, matrix_port)
-        update_client_config_file(matrix_port)
+        # Hub Client
+
         client_name = "testclient" + str(i)
+
+        os.chdir("hub-client")
         container_name = f"{client_name}_{client_port}"
         remove_container(container_name)
-        build_test_hub_image(client_name)
-        docker_run_hub(hub_secret, client_name, client_port, matrix_port)
+        docker_run_hub_client("testclient", container_name, client_port, matrix_port)
         os.chdir(root_dir)
 
         # Update the ports in sequence 
@@ -776,10 +721,6 @@ def main_runner(cargo_setup:str, node_arg:str, hubs:int = 1) -> None:
         client_port = client_port + 1
 
     print ("<< Message>>> Development setup is ready to run. Please follow the instructions in the README of the project.")
-
-    # This sleep should be removed when we mount different directories to different hubs where we do not
-    # modify the configuration in the mounted volume.
-    time.sleep(5)
     post_processing()
     # process_global_client.join()
     # process_pubhub_server.join()
@@ -978,7 +919,7 @@ public_baseurl: "http://localhost:8080"
 
         try:
             # Call the update_homeserver_yaml function to update the content
-            update_homeserver_yaml(temp_file_path, new_client_id, new_client_secret, new_client_port, new_hub_port)
+            update_homeserver_yaml(temp_file_path, temp_file_path, new_client_id, new_client_secret, new_client_port, new_hub_port)
 
             # Read the updated content and assert that it's correct
             with open(temp_file_path, 'r') as updated_file:
