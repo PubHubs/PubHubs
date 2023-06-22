@@ -2,8 +2,8 @@
     <div class="block text-center mb-2 cursor-pointer relative" :class="colorClass[active]">
         <Badge v-if="hub && hub.unreadMessages>0" class="sm:ml-6">{{ hub.unreadMessages }}</Badge>
         <Icon :type="type" :size="size" class="mx-auto"></Icon>
-        <img v-if="hub" :src="hub.url + '/img/logo.svg'" :alt ="'logo of ' + hub.hubId" class="absolute z-10 h-16 w-16 left-2 sm:left-8 top-2">
-        <div v-if="hub" class="triangle border-green"></div>
+        <img v-if="hub" v-show="logoLoaded" @load="imgLoadReady()" :src="hub.url + '/img/logo.svg'" :alt ="'logo of ' + hub.hubId" class="absolute z-10 h-16 w-16">
+        <!-- <div v-if="hub" class="triangle border-green"></div> -->
     </div>
 </template>
 
@@ -15,6 +15,7 @@
 </script>
 
 <script setup lang="ts">
+    import { ref } from 'vue'
 
     const props = defineProps({
         type: {
@@ -35,7 +36,13 @@
         }
     });
 
+    const logoLoaded = ref(false);
+
+    function imgLoadReady(){
+        logoLoaded.value = true;
+    }
 </script>
+
 
 <style scoped>
     .triangle {
@@ -44,5 +51,10 @@
         bottom:15%;
         border-bottom: 25px solid;
         border-right: 25px solid transparent;
+    }
+    img {
+        top:50%;
+        left:50%;
+        transform: translate(-50%,-50%);
     }
 </style>
