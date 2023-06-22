@@ -1,6 +1,6 @@
 <template>
     <li class="mb-2 menu-item" :class="activeClass">
-        <Icon v-if="isSecuredRoom()" type="lock" class="cursor-pointer text-red ml-2 float-left"></Icon>
+        <Icon v-if="isSecuredRoom()" type="lock" class="mr-4 float-left"></Icon>
         <Icon v-else class="mr-4 float-left" :type="icon"></Icon>
         <TruncatedText><slot></slot></TruncatedText>
     </li>
