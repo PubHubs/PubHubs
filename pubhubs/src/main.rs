@@ -1157,7 +1157,7 @@ mod tests {
     use actix_web::test;
     use actix_web::test::TestRequest;
     use actix_web::FromRequest as _;
-    use http::header::AUTHORIZATION;
+    use http::header::{AUTHORIZATION, SET_COOKIE};
     use hyper::header::COOKIE;
     use hyper::service::{make_service_fn, service_fn};
     use hyper::{Body, Request, Response, Server};
@@ -1555,7 +1555,9 @@ mod tests {
     async fn test_account_login() {
         let context = create_test_context().await.unwrap();
         let request = test::TestRequest::default().to_http_request();
-        let response = account_login(request, Data::from(context), Translations::NONE).await;
+        let response = account_login(request, Data::from(context), Translations::NONE)
+            .await
+            .unwrap();
 
         let body = body_to_string(response).await;
         //To negate element style that places \n or \r in different OS
@@ -1575,7 +1577,8 @@ mod tests {
             Data::from(context),
             Translations::new("en".to_string(), HashMap::new()),
         )
-        .await;
+        .await
+        .unwrap();
 
         let body = body_to_string(response).await;
         // To negate styles because block elements from html
