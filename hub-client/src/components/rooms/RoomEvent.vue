@@ -3,27 +3,28 @@
         <Avatar :class="bgColor(userColor)"></Avatar>
         <div class="w-full">
             <H3 :class="textColor(userColor)">
-                <UserDisplayName :user="event.sender"></UserDisplayName>
+                <UserDisplayName :user="event.sender" :attribute="event"></UserDisplayName>
                 <EventTime class="ml-2" :timestamp="event.origin_server_ts"> </EventTime>
             </H3>
-            <Message v-if="event.content.msgtype=='m.text'" :message="event.content.body"></Message>
-            <MessageFile v-if="event.content.msgtype=='m.file'" :message="event.content"></MessageFile>
-            <MessageImage v-if="event.content.msgtype=='m.image'" :message="event.content"></MessageImage>
+            <ProfileAttributes v-if="event.content.msgtype == 'm.notice'" :attribute="event.content.body"></ProfileAttributes>
+            <Message v-if="event.content.msgtype == 'm.text'" :message="event.content.body"></Message>
+            <MessageFile v-if="event.content.msgtype == 'm.file'" :message="event.content"></MessageFile>
+            <MessageImage v-if="event.content.msgtype == 'm.image'" :message="event.content"></MessageImage>
         </div>
     </div>
 </template>
 
 <script setup lang="ts">
-    import { useHubSettings } from '@/store/store'
+    import { useHubSettings } from '@/store/store';
     import { useUserColor } from '@/composables/useUserColor';
 
     const hubSettings = useHubSettings();
-    const {color,textColor,bgColor} = useUserColor();
+    const { color, textColor, bgColor } = useUserColor();
 
     const props = defineProps({
         event: {
             type: Object,
-            required:true,
+            required: true,
         },
     });
 
