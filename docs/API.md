@@ -34,3 +34,38 @@ Returns `200 Ok` with an `application/json` body consisting of an array of objec
  - `name`;
  - `description`;
  - `client_uri`, the Hub's client location, to be loaded in an iframe of the global client.
+
+# PubHubs session cookie - `PHAccount`
+The `PHAccount` cookie, which is used by PubHubs Central to authenticate the user, has the following format.
+```
+base64urlunpadded(user_id + "." + created + "." + until + "." + TAG))
+```
+where:
+ - `base64urlunpadded(x)` represents the urlsafe base64-encoding (so using the digits `A`, ..., `Z`, `a`, ..., `z`, `0`, ..., `9`, `-`, `_`) of `x` without padding (so no trailing `=` or `==`); 
+ - `user_id`:  the user id (an opaque identifier that does not contain a `.`);
+ - `created`: the timestamp (number of seconds since 1970 in UTC) of the creation of this cookie, written in decimal notation;
+ - `until`: the timestamp of expiry of this cookie, in decimal;
+ - `TAG`: the hex-encoded SHA-256 HMAC of `user_id + "." + created + "." + until` with `cookie_secret` as key.
+
+### Example
+Consider:
+```
+My4xNjg3NTIzMjA0LjE2OTAxMTUyMDQuN0IwMTI5QjFFNDQ0MDdFRDRBMDAyMkE0NUMzRUQxNkREQUYwQTdENjVDQTBCRUJFNEFERTk4MzIxNTk0MEE1NA
+```
+This is the urlsafe base64 unpadded encoding of:
+```
+3.1687523204.1690115204.7B0129B1E44407ED4A0022A45C3ED16DDAF0A7D65CA0BEBE4ADE983215940A54
+```
+So:
+ - `user_id` is `3`;
+ - the cookie was created at 14:26:44 on 2023-06-23, CEST;
+ - the cookie expires at 14:26:44 on 2023-07-23, CEST;
+ - the `cookie_secret` is `default_cookie_secret` as can be verified with the following python3 code
+   ```
+   import hmac
+   hmac.digest(b"default_cookie_secret", b"3.1687523204.1690115204","sha256").hex()
+   '7b0129b1e44407ed4a0022a45c3ed16ddaf0a7d65ca0bebe4ade983215940a54'
+   ```
+
+
+
