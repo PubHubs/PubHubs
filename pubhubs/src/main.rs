@@ -1,4 +1,4 @@
-use actix_web::http::header::{CONTENT_TYPE, LOCATION, SET_COOKIE};
+use actix_web::http::header::{CONTENT_TYPE, LOCATION};
 use actix_web::{App, HttpRequest, HttpResponse, HttpResponseBuilder, HttpServer, Responder};
 
 use std::fmt::{Debug, Formatter};
@@ -34,7 +34,7 @@ use pubhubs::oidc::http::actix_support::CompleteRequest;
 use pubhubs::oidc::AuthenticAuthRequestHandle;
 use pubhubs::{
     cookie::{
-        accepted_policy, add_cookie, log_out_cookie, verify_cookie, HttpRequestCookieExt as _,
+        policy_cookie::accepted_policy, HttpRequestCookieExt as _, HttpResponseBuilderExt as _,
     },
     data::{
         DataCommands::{self, AllHubs, CreateHub, CreateUser, GetHub, GetUser, GetUserById},
@@ -553,7 +553,7 @@ async fn yivi_finish_and_redirect_anyhow(
     };
 
     let mut resp_with_cookie = HttpResponse::Ok();
-    add_cookie(&mut resp_with_cookie, user.id, &context.cookie_secret);
+    resp_with_cookie.add_session_cookie(user.id, &context.cookie_secret)?;
 
     if params.oidc_auth_request_handle.is_none() {
         // GET-redirect user to the account page
@@ -661,7 +661,10 @@ async fn get_account(
     let hair = &context.hair;
     let db_tx = &context.db_tx;
     let id = id.into_inner();
-    if verify_cookie(&req, cookie_secret, &id) {
+    if req
+        .assert_user_id(cookie_secret, id.parse().unwrap())
+        .is_ok()
+    {
         if let Ok(id) = u32::from_str(&id) {
             let (user_tx, user_rx) = oneshot::channel();
             db_tx
@@ -723,12 +726,17 @@ async fn get_account(
             .finish()
     }
 }
+
 async fn account_login(
     req: HttpRequest,
     context: Data<Main>,
     translations: Translations,
-) -> HttpResponse {
-    match req.user_id_from_cookie(&context.cookie_secret) {
+) -> Result<HttpResponse, TranslatedError> {
+    let user_id = req
+        .user_id_from_cookie(&context.cookie_secret)
+        .into_translated_error(&req)?;
+
+    match user_id {
         None => {
             let prefix = translations.prefix().to_string();
             let data = value!( {
@@ -736,25 +744,24 @@ async fn account_login(
                 "url_prefix": prefix
             })
             .to_vec(false);
-            HttpResponse::Ok().body(
+            Ok(HttpResponse::Ok().body(
                 hairy_eval_html_translations(context.hair.to_ref(), data.to_ref(), translations)
                     .expect("To render a template"),
-            )
+            ))
         }
-        Some(id) => HttpResponse::Found()
+        Some(id) => Ok(HttpResponse::Found()
             .insert_header((
                 LOCATION,
                 format!("{}/account/{}", translations.prefix(), id),
             ))
-            .finish(),
+            .finish()),
     }
 }
 
 async fn account_logout(translations: Translations) -> impl Responder {
-    let logout_cookie = log_out_cookie();
     HttpResponse::Found()
         .insert_header((LOCATION, format!("{}/login", translations.prefix())))
-        .insert_header((SET_COOKIE, logout_cookie))
+        .remove_session_cookie() // logout
         .finish()
 }
 
@@ -835,7 +842,11 @@ pub async fn handle_oidc_authorize(
     // In general we expected users to be logged into PH central when logging in to a hub.
     // In that case we recognize the cookie and create an auth request handle. While this is
     // inefficient, it prevents code duplication.
-    if let Some(id) = req.request.user_id_from_cookie(&context.cookie_secret) {
+    if let Some(id) = req
+        .request
+        .user_id_from_cookie(&context.cookie_secret)
+        .unwrap()
+    {
         let extra = CompleteRequest {
             request: inner_req.clone(),
             payload: req.payload.clone(),
@@ -1156,7 +1167,6 @@ mod tests {
     use std::net::SocketAddr;
     use std::sync::Arc;
 
-    use pubhubs::cookie::Cookie;
     use pubhubs::data::HubHandle::Id;
     use pubhubs::serde_ext::B64;
     use pubhubs::yivi::{
@@ -1482,13 +1492,6 @@ mod tests {
         Ok(Response::new(Body::from(resp_body)))
     }
 
-    fn add_cookie_request(req: TestRequest, secret: &str, id: u32) -> TestRequest {
-        let mut resp = HttpResponse::Ok();
-        let resp = add_cookie(&mut resp, id, secret).finish();
-
-        req.insert_header(("Cookie", resp.headers().get("Set-Cookie").unwrap().clone()))
-    }
-
     #[actix_web::test]
     async fn test_yivi_register() {
         let context = create_test_context_with(|mut f| {
@@ -1665,8 +1668,9 @@ mod tests {
 
         let user = create_user("email", &context).await;
 
-        let test_request = test::TestRequest::default();
-        let test_request = add_cookie_request(test_request, secret, user);
+        let test_request = test::TestRequest::default()
+            .add_session_cookie(user, secret)
+            .unwrap();
         let test_request = test_request.uri(format!("http://smth.example?client_id={oidc_client_id}&response_mode=form_post&response_type=code&redirect_uri={ru}&state=state&nonce=nonce&scope=openid").as_str());
         let (request, mut payload) = test_request.to_http_parts();
 
@@ -1693,9 +1697,10 @@ mod tests {
         .unwrap();
         let email = "email@test.com";
         let user_id = create_user(email, &context).await;
-        let request = test::TestRequest::default();
+        let request = test::TestRequest::default()
+            .add_session_cookie(user_id, secret)
+            .unwrap();
 
-        let request = add_cookie_request(request, secret, user_id);
         let response = get_account(
             request.to_http_request(),
             user_id.to_string().into(),
@@ -1717,15 +1722,14 @@ mod tests {
         let user_id = create_user(email, &context).await;
         let secret = "very secret";
 
-        let cookie = Cookie::new(user_id, secret).cookie.as_str().to_owned();
-
         let app = test::init_service(
             App::new().configure(move |cfg| create_app(cfg, Data::from(context))),
         )
         .await;
         let req = test::TestRequest::get()
             .uri("/admin/hubs")
-            .insert_header((COOKIE, cookie))
+            .add_session_cookie(user_id, secret)
+            .unwrap()
             .to_request();
 
         let response = app.call(req).await;
@@ -1779,17 +1783,10 @@ mod tests {
     async fn test_bar_state() {
         let context = create_test_context().await.unwrap();
         let user_id = create_user("email@example.com", &context).await;
-        let ok_cookie = Cookie::new(user_id, &context.cookie_secret)
-            .cookie
-            .as_str()
-            .to_owned();
-        let invalid_cookie = Cookie::new(user_id, "not the cookie secret")
-            .cookie
-            .as_str()
-            .to_owned();
 
+        let context_clone = context.clone();
         let app = test::init_service(
-            App::new().configure(move |cfg| create_app(cfg, Data::from(context))),
+            App::new().configure(move |cfg| create_app(cfg, Data::from(context_clone))),
         )
         .await;
 
@@ -1798,7 +1795,8 @@ mod tests {
             app.call(
                 test::TestRequest::get()
                     .uri("/bar/state")
-                    .insert_header((COOKIE, invalid_cookie.clone()))
+                    .add_session_cookie(user_id, "not the cookie secret")
+                    .unwrap()
                     .to_request(),
             )
             .await
@@ -1821,7 +1819,8 @@ mod tests {
             .call(
                 test::TestRequest::get()
                     .uri("/bar/state")
-                    .insert_header((COOKIE, ok_cookie.clone()))
+                    .add_session_cookie(user_id, &context.cookie_secret)
+                    .unwrap()
                     .to_request(),
             )
             .await
@@ -1842,7 +1841,8 @@ mod tests {
             .call(
                 test::TestRequest::put()
                     .uri("/bar/state")
-                    .insert_header((COOKIE, ok_cookie.clone()))
+                    .add_session_cookie(user_id, &context.cookie_secret)
+                    .unwrap()
                     .insert_header((CONTENT_TYPE, "application/octet-stream"))
                     .insert_header((
                         actix_web::http::header::IF_MATCH,
@@ -1868,7 +1868,8 @@ mod tests {
             .call(
                 test::TestRequest::get()
                     .uri("/bar/state")
-                    .insert_header((COOKIE, ok_cookie.clone()))
+                    .add_session_cookie(user_id, &context.cookie_secret)
+                    .unwrap()
                     .to_request(),
             )
             .await
@@ -1888,7 +1889,8 @@ mod tests {
             .call(
                 test::TestRequest::put()
                     .uri("/bar/state")
-                    .insert_header((COOKIE, ok_cookie.clone()))
+                    .add_session_cookie(user_id, &context.cookie_secret)
+                    .unwrap()
                     .insert_header((CONTENT_TYPE, "application/octet-stream"))
                     .insert_header((
                         actix_web::http::header::IF_MATCH,
@@ -1911,7 +1913,8 @@ mod tests {
             .call(
                 test::TestRequest::put()
                     .uri("/bar/state")
-                    .insert_header((COOKIE, invalid_cookie.clone()))
+                    .add_session_cookie(user_id, "not the cookie secret")
+                    .unwrap()
                     .insert_header((CONTENT_TYPE, "application/octet-stream"))
                     .insert_header((
                         actix_web::http::header::IF_MATCH,
@@ -1925,7 +1928,7 @@ mod tests {
         assert_eq!(resp.status(), http::StatusCode::FORBIDDEN);
         assert_eq!(
             resp.response().head().reason(),
-            pubhubs::bar::reason::MISSING_COOKIE
+            pubhubs::bar::reason::INVALID_COOKIE
         );
 
         // FORBIDDEN  when PUTting /bar/state with no cookie
@@ -1954,7 +1957,8 @@ mod tests {
             .call(
                 test::TestRequest::put()
                     .uri("/bar/state")
-                    .insert_header((COOKIE, ok_cookie.clone()))
+                    .add_session_cookie(user_id, &context.cookie_secret)
+                    .unwrap()
                     .insert_header((CONTENT_TYPE, "application/octet-stream"))
                     .set_payload("new state 2")
                     .to_request(),
@@ -1972,7 +1976,8 @@ mod tests {
             .call(
                 test::TestRequest::put()
                     .uri("/bar/state")
-                    .insert_header((COOKIE, ok_cookie.clone()))
+                    .add_session_cookie(user_id, &context.cookie_secret)
+                    .unwrap()
                     .insert_header((CONTENT_TYPE, "application/json"))
                     .insert_header((
                         actix_web::http::header::IF_MATCH,
@@ -1994,7 +1999,8 @@ mod tests {
             .call(
                 test::TestRequest::put()
                     .uri("/bar/state")
-                    .insert_header((COOKIE, ok_cookie.clone()))
+                    .add_session_cookie(user_id, &context.cookie_secret)
+                    .unwrap()
                     .insert_header((
                         actix_web::http::header::IF_MATCH,
                         "\"8b2eec684b350a01bf1d574d264704722cdf5f0484beee6bf22bb7b26b267329\"",
@@ -2015,7 +2021,7 @@ mod tests {
             .call(
                 test::TestRequest::put()
                     .uri("/bar/state")
-                    .insert_header((COOKIE, ok_cookie.clone()))
+                    .add_session_cookie(user_id, &context.cookie_secret).unwrap()
                     .insert_header((CONTENT_TYPE, "application/octet-stream"))
                     .insert_header((
                         actix_web::http::header::IF_MATCH,
@@ -2037,7 +2043,8 @@ mod tests {
             .call(
                 test::TestRequest::put()
                     .uri("/bar/state")
-                    .insert_header((COOKIE, ok_cookie.clone()))
+                    .add_session_cookie(user_id, &context.cookie_secret)
+                    .unwrap()
                     .insert_header((CONTENT_TYPE, "application/octet-stream"))
                     .insert_header((actix_web::http::header::IF_MATCH, "*"))
                     .set_payload("new state 2")

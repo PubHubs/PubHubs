@@ -57,8 +57,8 @@ awc = { version = "3.1", features = ["openssl"] }
 # RustCrypto packages
 hmac = "0.12"
 sha2 = "0.10"
-base64ct = {version = "1.6", features = ["alloc"]}
-base16ct = {version = "0.2", features = ["alloc"]} # hex
+base64ct = {version = "1.6", features = ["alloc", "std"]}
+base16ct = {version = "0.2", features = ["alloc", "std"]} # hex
 chacha20poly1305 = "0.10"
 aead = "0.5"
 generic-array = "0.14"
