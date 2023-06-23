@@ -19,7 +19,7 @@ use crate::hairy_ext::hairy_eval_html_translations;
 
 use crate::translate::Translations;
 
-/// Trait to add the [HttpContextExt::status] method to [Result].
+/// Trait to add the [HttpContextExt::http_context] method to [Result].
 ///
 /// ```
 /// use pubhubs::error::{HttpContextExt as _, HttpContext};
