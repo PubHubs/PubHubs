@@ -74,7 +74,7 @@
     });
 
     async function addHubs() {
-        hubs.addHub( new Hub('local','http://localhost:8082','Local') ); // TODO i add this allmost everytime when developing on hub-client -> can we make this an option in start script?
+        // hubs.addHub( new Hub('local','http://localhost:8082','Local') ); // TODO i add this allmost everytime when developing on hub-client -> can we make this an option in start script?
         const hubsResponse : HubList | undefined = await global.getHubs();
         if ( hubsResponse ) {
             hubs.addHubs(hubsResponse as HubList);
