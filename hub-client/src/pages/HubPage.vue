@@ -1,75 +1,81 @@
 <template>
-<div class="h-full flex flex-col">
-    <div class="p-5 h-28 items-center bg-cover bg-center bg-gradient-to-t from-blue-light via-avatar-blue to-blue">
-        <H1><template></template>Radboud hubpage</H1>
+<div class="h-full flex flex-col w-full overflow-hidden">
+    <div class="h-36 overflow-hidden relative">
+        <H1 class="mt-12 ml-12 absolute text-white">Voorbeeld hubpage</H1>
+        <ImagePlaceholder  src="img/imageplaceholder.jpg"></ImagePlaceholder>
     </div>
-
-    <div class="flex items-start h-full">
-        <div class="flex justify-center flex-col p-12 w-1/3 h-full ">
-            <H2>Over de Radboud Hub</H2>
-            <p class="my-4">
-                Lorem ipsum dolor sit amet, consectetur adipiscing elit. Lectus fermentum diam, mi blandit ornare quam eu dolor.
-                Neque, risus ut eget sit sit neque eu in. Nibh sociis eu sapien augue. Integer proin interdum lacus, ornare quam
-                facilisi.
-            </p>
-            <p class="my-4">
-                Lorem ipsum dolor sit amet, consectetur adipiscing elit. Lectus fermentum diam, mi blandit ornare quam eu dolor.
-                Neque, risus ut eget sit sit neque eu in. Nibh sociis eu sapien augue. Integer proin interdum lacus, ornare quam
-                facilisi.
-            </p>
-            <Button @click="login()">Doe mee met Radboud hub!</Button>
+    
+    <div class="px-9 pt-9 max-w-7xl mx-auto">
+        <H2>Over de voorbeeldhub</H2>
+        <div class="flex flex-col md:flex-row md:justify-between md:gap-x-4 md:mb-16">
+            <div class="flex flex-col md:basis-1/3 md:pr-2 ">
+                <p>Lorem ipsum dolor sit amet, consectetur adipiscing elit. 
+                    Lectus fermentum diam, mi blandit ornare quam eu dolor. 
+                    Neque, risus ut eget sit sit neque eu in. Nibh sociis eu sapien augue. 
+                    Integer proin interdum lacus, ornare quam facilisi.</p>
+                <Button class="w-fit mt-4" @click="login()">Doe mee met Voorbeeld hub!</Button>
+            </div>
+            <ArticleBlock>
+                <template #header>ChatGPT en het onderwijs</template>
+                <template #category>Room</template>
+                <template #content>De description tekst is altijd maar zo breed, dan past de knop</template>
+            </ArticleBlock>
+            <ArticleBlock>
+                <template #header>Dit is hoe een langere titel eruit gaat zien</template>
+                <template #category>Room</template>
+                <template #content>Het witte gedeelte schaalt mee met de titel hoogte.</template>
+            </ArticleBlock>
         </div>
 
-        <div class="flex flex-col w-2/3 p-4 h-full">
-            <div class="flex flex-col h-1/3">
-                <H2 class="mb-5 mt-12">Uitgelichte rooms van de voorbeeldhub</H2>
-                <div class="flex justify-between h-full gap-4">
-                    <ArticleBlock>
-                        <template #image></template>
-                        <template #header>Tech nieuws</template>
-                        <template #category>Room</template>
-                        <template #content>Gesprekken over het laatste tech gerelateerde nieuws.</template>
-                    </ArticleBlock>
 
-                    <ArticleBlock>
-                        <template #image></template>
-                        <template #header>Smartphones en jonge kinderen</template>
-                        <template #category>Room</template>
-                        <template #content>Gesprekken over hoe om te gaan met smartphones en jonge kinderen.</template>
-                    </ArticleBlock>
-                </div>
+        
+        <div>
+            <div  class="flex flex-row justify-between gap-x-8 mb-4">
+                <Pill>
+                    <template #header>ChatGPT en het onderwijs</template>
+                    <template #category>Room</template>
+                    <template #content>De description tekst is altijd maar zo breed, dan past de knop</template>
+                </Pill>
+                <Pill>
+                    <template #header>ChatGPT en het onderwijs</template>
+                    <template #category>Room</template>
+                    <template #content>De description tekst is altijd maar zo breed, dan past de knop</template>
+                </Pill>
+                <Pill>
+                    <template #header>Dit is hoe een langere titel eruit gaat zien</template>
+                    <template #category>Room</template>
+                    <template #content>Het witte gedeelte schaalt mee met de titel hoogte.</template>
+                </Pill>
             </div>
-
-            <div class="flex flex-col h-1/3">
-                <H2 class="mb-5 mt-12">Uitgelichte discussies van de voorbeeldhub</H2>
-                <div class="flex justify-between h-full gap-4">
-                    <ArticleBlock>
-                        <template #image></template>
-                        <template #header>ChatGPT en het onderwijs</template>
-                        <template #category>Discussie</template>
-                        <template #content>Discussie over iets lorem bla bla bla bla bla bla bla bla omschrijving.</template>
-                    </ArticleBlock>
-                    <ArticleBlock>
-                        <template #image></template>
-                        <template #header>Voorbeeld titel van een room</template>
-                        <template #category>Discussie</template>
-                        <template #content>Discussie over iets lorem bla bla bla bla bla bla bla bla omschrijving.</template>
-                    </ArticleBlock>
-                </div>
+            <div  class="flex flex-row justify-between gap-x-8">
+                <Pill>
+                    <template #header>ChatGPT en het onderwijs</template>
+                    <template #category>Room</template>
+                    <template #content>De description tekst is altijd maar zo breed, dan past de knop</template>
+                </Pill>
+                <Pill>
+                    <template #header>ChatGPT en het onderwijs</template>
+                    <template #category>Room</template>
+                    <template #content>De description tekst is altijd maar zo breed, dan past de knop</template>
+                </Pill>
+                <Pill>
+                    <template #header>Dit is hoe een langere titel eruit gaat zien</template>
+                    <template #category>Room</template>
+                    <template #content>Het witte gedeelte schaalt mee met de titel hoogte.</template>
+                </Pill>
             </div>
         </div>
     </div>
 </div>
 </template>
 
-<!-- <Button class="w-3/6 m-auto" @click="login()">{{ $t("login.login") }}</Button> -->
-
 <script setup lang="ts">
-    /**
-     *
-     * This HUB page will be shown if a user is not yet registered or authenticated in PubHubs Central
-     *
-     */
+
+/**
+ *
+ * This HUB page will be shown if a user is not yet registered or authenticated in PubHubs Central
+ *
+ */
 
     import { usePubHubs } from '@/core/pubhubsStore';
     const pubhubs = usePubHubs();
