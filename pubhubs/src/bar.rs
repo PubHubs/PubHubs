@@ -17,7 +17,8 @@ pub mod reason {
         "Bad Request - Sending multiple ETags via If-Match is not supported here";
     pub const IF_MATCH_STAR: & str =
                 "Bad Request - 'If-Match: *' is not supported here; you must send the ETag of the old (and still current) state.";
-    pub const MISSING_COOKIE: &str = "Forbidden - missing (valid) cookie";
+    pub const MISSING_COOKIE: &str = "Forbidden - missing PHAccount cookie";
+    pub const INVALID_COOKIE: &str = "Forbidden - invalid PHAccount cookie";
 }
 
 pub async fn get_state(
@@ -215,6 +216,14 @@ fn get_user_id(
     context: &actix_web::web::Data<crate::context::Main>,
 ) -> Result<u32, actix_web::HttpResponse> {
     let user_id = req.user_id_from_cookie(&context.cookie_secret);
+
+    if user_id.is_err() {
+        return Err(actix_web::HttpResponse::Forbidden()
+            .reason(reason::INVALID_COOKIE)
+            .finish());
+    }
+
+    let user_id = user_id.unwrap();
 
     if user_id.is_none() {
         return Err(actix_web::HttpResponse::Forbidden()

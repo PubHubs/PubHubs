@@ -10,7 +10,7 @@ use tokio::sync::{mpsc::Sender, oneshot};
 use crate::context::Main;
 use expry::{key_str, value, BytecodeVec, ValueVec};
 
-use crate::cookie::add_accepted_policy_session_cookie;
+use crate::cookie::policy_cookie::add_accepted_policy_session_cookie;
 use crate::data::{
     DataCommands::{self, GetLatestPolicy},
     Policy,
