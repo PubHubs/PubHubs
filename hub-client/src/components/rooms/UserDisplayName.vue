@@ -16,6 +16,7 @@
             type: String,
             required: true,
         },
+            
     });
 
     const displayName = computed(() => {
@@ -30,6 +31,19 @@
     });
     const attribute = computed(() => {
         const currentRoom = rooms.currentRoom;
+        if (displayName.value.startsWith('@')) {
+            const startIndex = displayName.value.indexOf('@') + 1;
+            const endIndex = displayName.value.indexOf(':');
+
+            if (endIndex !== -1) {
+                
+                const attributeName = displayName.value.substring(startIndex, endIndex);      
+                return rooms.roomIsSecure(currentRoom.roomId) && rooms.currentUserAttribute(attributeName);
+                
+                
+            }
+        }        
         return rooms.roomIsSecure(currentRoom.roomId) && rooms.currentUserAttribute(displayName.value);
     });
+
 </script>

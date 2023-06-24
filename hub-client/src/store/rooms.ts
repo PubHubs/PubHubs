@@ -9,10 +9,9 @@
 
 import { defineStore } from 'pinia';
 import { Room as MatrixRoom, MatrixClient } from 'matrix-js-sdk';
-
 import { Message, MessageType, useMessageBox } from './messagebox';
 import { useRouter } from 'vue-router';
-
+import { usePubHubs } from '@/core/pubhubsStore';
 /**
  *  Extending the MatrixRoom with some extra properties and there methods:
  *
@@ -76,6 +75,7 @@ const useRooms = defineStore('rooms', {
             currentRoomId: '' as string,
             rooms: {} as { [index: string]: Room },
             userAttributes: {} as { [userId: string]: string },
+            roomType: {} as { [roomId: string]: string },
         };
     },
 
@@ -182,20 +182,22 @@ const useRooms = defineStore('rooms', {
         },
 
         // Sepcific methods for secured rooms.
+        createRoomType(roomId: string, roomType: string) { 
+            this.roomType[roomId]= roomType;
+        },
 
         roomIsSecure(roomId: string) {
-            if (this.rooms[roomId] !== undefined) {
-                if (this.rooms[roomId].timeline[0].event.content?.type !== undefined) {
-                    return true;
-                }
-                return false;
+            if (this.roomType[roomId] === 'ph.messages.restricted') {
+                return true;
             }
             return false;
         },
 
+
         yiviSecuredRoomflow(roomId: string, authToken: string) {
             const router = useRouter();
-
+            const pubhubs = usePubHubs();
+            
             const yivi = require('@privacybydesign/yivi-frontend');
             // @ts-ignore
             const urlll = _env.HUB_URL + '/_synapse/client/ph';
@@ -232,6 +234,7 @@ const useRooms = defineStore('rooms', {
                     if (result.not_correct) {
                         router.push({ name: 'error-page-room', params: { id: roomId } });
                     } else if (result.goto) {
+                        pubhubs.updateRooms();
                         router.push({ name: 'room', params: { id: roomId } });
                     }
                 })
@@ -239,7 +242,7 @@ const useRooms = defineStore('rooms', {
                     console.info(`There is an Error: ${error}`);
                 });
         },
-
+        
         createAttributeRelation(userNotice: string) {
             const [userId] = userNotice.split(':');
             const lastIndex = userNotice.lastIndexOf(':');
