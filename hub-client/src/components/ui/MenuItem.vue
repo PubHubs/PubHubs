@@ -23,8 +23,8 @@
             default: false,
         },
         roomInfo: {
-            type: Room,
-            default: true,
+            type: [Room , Object],
+            default: Object,
         },
     });
 
@@ -35,11 +35,14 @@
         return 'text-green hover:text-green-dark';
     });
 
-    function isSecuredRoom() {
+function isSecuredRoom() {
+    if (props.roomInfo !== undefined) { 
         if (rooms.roomIsSecure(props.roomInfo.roomId)) {
             return true;
         } else {
             return false;
         }
+    }
+    return false;
     }
 </script>
