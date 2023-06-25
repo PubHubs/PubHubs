@@ -28,13 +28,9 @@
         },
     });
 
-    // Notice user event is skipp
-    function skipNoticeUserEvent(event: any) {
-        if (String(event.sender) === "@notices_user:testhub.matrix.host") { 
-            return false;
-        }
-        return true;   
+    // Notice user event is skipped. We don't see notice at the top
+    function skipNoticeUserEvent(event: any){
+        return String(event.sender).includes("@notices_user") ? false : true;
     }
-
     const userColor = color(props.event.sender);
 </script>
