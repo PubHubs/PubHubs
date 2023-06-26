@@ -22,8 +22,9 @@
 </template>
 
 <script setup lang="ts">
-    import { computed, ref, onMounted } from 'vue';
-    import { Room, useRooms } from '@/store/store';
+    // import { computed, ref, onMounted } from 'vue';
+    import { computed, ref} from 'vue';
+    import { Room } from '@/store/store';
     import { usePubHubs } from '@/core/pubhubsStore';
     import { useRouter } from 'vue-router';
 
@@ -56,16 +57,10 @@
         });
     }
 
-    // To create a room type object consisting of roomId and its corresponding type.
-    onMounted(() => {
-        const roomStore = useRooms();    
-        pubhubs.getAllPublicRooms().then((rooms) => {
-        rooms.chunk.forEach((room) => {            
-            if (room.room_type !== undefined) {  
-                roomStore.createRoomType(room.room_id, room.room_type);
-            }
-        });
-    });
-});
+ 
+ 
+
+
+
 
 </script>

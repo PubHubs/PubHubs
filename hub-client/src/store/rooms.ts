@@ -75,7 +75,7 @@ const useRooms = defineStore('rooms', {
             currentRoomId: '' as string,
             rooms: {} as { [index: string]: Room },
             userAttributes: {} as { [userId: string]: string },
-            roomType: {} as { [roomId: string]: string },
+            
         };
     },
 
@@ -182,16 +182,18 @@ const useRooms = defineStore('rooms', {
         },
 
         // Sepcific methods for secured rooms.
-        createRoomType(roomId: string, roomType: string) { 
-            this.roomType[roomId]= roomType;
-        },
+     
 
         roomIsSecure(roomId: string) {
-            if (this.roomType[roomId] === 'ph.messages.restricted') {
-                return true;
+            if (this.rooms[roomId] !== undefined) {
+                if (this.rooms[roomId].timeline[0].event.content?.type !== undefined) {
+                    return true;
+                }
+                return false;
             }
             return false;
         },
+
 
 
         yiviSecuredRoomflow(roomId: string, authToken: string) {
