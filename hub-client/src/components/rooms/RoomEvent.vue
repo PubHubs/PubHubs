@@ -29,7 +29,9 @@
     });
 
     // Notice user event is skipped. We don't see notice at the top
-    function skipNoticeUserEvent(event: any){
+    function skipNoticeUserEvent(event: any) {
+        console.info(`INF: notice sender:  ${event.sender}`);
+        
         return String(event.sender).includes("@notices_user") ? false : true;
     }
     const userColor = color(props.event.sender);
