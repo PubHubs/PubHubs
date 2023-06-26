@@ -32,7 +32,8 @@
     function skipNoticeUserEvent(event: any) {
         console.info(`INF: notice sender:  ${event.sender}`);
         
-        return String(event.sender).includes("@notices_user") ? false : true;
+        return String(event.sender).includes("@notices") ? false : true;
     }
+
     const userColor = color(props.event.sender);
 </script>
