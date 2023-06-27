@@ -1,11 +1,11 @@
 <template>
-    <div v-if="hubSettings.isVisibleEventType(event.type)" class="flex flex-row space-x-4 mb-8">
-        <ProfileAttributes v-if="event.content.msgtype == 'm.notice'" :attribute="event.content.body"></ProfileAttributes>
+    <ProfileAttributes v-if="event.content.msgtype == 'm.notice'" :attribute="event.content.body"></ProfileAttributes>
+    <div v-if="hubSettings.isVisibleEventType(event.type) && skipNoticeUserEvent(event)" class="flex flex-row space-x-4 mb-8">
         <Avatar :class="bgColor(userColor)"></Avatar>
-        <div class="w-full">
+        <div  class="w-full">
             <H3 :class="textColor(userColor)">
-                <UserDisplayName v-if="skipNoticeUserEvent(event)" :user="event.sender"></UserDisplayName>
-                <EventTime class="ml-2" v-if="skipNoticeUserEvent(event)" :timestamp="event.origin_server_ts"> </EventTime>
+                <UserDisplayName :user="event.sender"></UserDisplayName>
+                <EventTime class="ml-2" :timestamp="event.origin_server_ts"> </EventTime>
             </H3>  
             <Message v-if="event.content.msgtype == 'm.text'" :message="event.content.body"></Message>
             <MessageFile v-if="event.content.msgtype == 'm.file'" :message="event.content"></MessageFile>

@@ -38,12 +38,12 @@
             if (endIndex !== -1) {
                 
                 const attributeName = displayName.value.substring(startIndex, endIndex);      
-                return rooms.roomIsSecure(currentRoom.roomId) && rooms.currentUserAttribute(attributeName);
+                return rooms.roomIsSecure(currentRoom.roomId) && rooms.currentUserAttribute(currentRoom.roomId,attributeName);
                 
                 
             }
         }        
-        return rooms.roomIsSecure(currentRoom.roomId) && rooms.currentUserAttribute(displayName.value);
+        return rooms.roomIsSecure(currentRoom.roomId) && rooms.currentUserAttribute(currentRoom.roomId, displayName.value);
     });
 
 </script>
