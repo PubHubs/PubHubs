@@ -184,15 +184,22 @@ const useRooms = defineStore('rooms', {
         // Sepcific methods for secured rooms.
      
 
-        roomIsSecure(roomId: string) {
-            if (this.rooms[roomId] !== undefined) {
-                if (this.rooms[roomId].timeline[0].event.content?.type !== undefined) {
-                    return true;
-                }
-                return false;
+        roomIsSecure(roomId:string): boolean {
+            if (this.rooms[roomId] === undefined) {
+              return false;
             }
-            return false;
-        },
+            
+            if (this.rooms[roomId].timeline === undefined) {
+              return false;
+            }
+            
+            if (this.rooms[roomId].timeline[0].event.content?.type === undefined) {
+              return false;
+            }
+            
+            return true;
+          },
+          
 
 
 
@@ -245,22 +252,22 @@ const useRooms = defineStore('rooms', {
                 });
         },
         
-        createAttributeRelation(userNotice: string) {
+        createAttributeRelation(roomId: string, userNotice: string) {
             const [userId] = userNotice.split(':');
             const lastIndex = userNotice.lastIndexOf(':');
             const attribute = userNotice
                 .slice(lastIndex + 1)
                 .replace(/[{}']/g, '')
                 .trim();
-            this.userAttributes[userId] = attribute;
+            this.userAttributes[userId+':'+roomId] = attribute;
+            
         },
-        currentUserAttribute(userId: string) {
+        currentUserAttribute(roomId: string, userId: string) {
             const currentUserId = '@' + userId;
-            for (const key in this.userAttributes) {
-                const value = this.userAttributes[key];
-                console.info(`Map content${key}, ${value}`);
-            }
-            return this.userAttributes[currentUserId];
+            const key = currentUserId + ':' + roomId;
+            const attributes = this.userAttributes[key];
+            return attributes;
+
         },
     },
 });
