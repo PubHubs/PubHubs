@@ -4,6 +4,7 @@ pub mod context;
 pub mod cookie;
 pub mod crypto;
 pub mod data;
+pub mod elgamal;
 pub mod error;
 pub mod hairy_ext;
 pub mod jwt;
