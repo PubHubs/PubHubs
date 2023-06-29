@@ -22,10 +22,12 @@
 </template>
 
 <script setup lang="ts">
-    import { computed, ref } from 'vue';
+    // import { computed, ref, onMounted } from 'vue';
+    import { computed, ref} from 'vue';
     import { Room } from '@/store/store';
     import { usePubHubs } from '@/core/pubhubsStore';
     import { useRouter } from 'vue-router';
+
 
     let publicRooms = ref<Room[]>([]);
     const pubhubs = usePubHubs();
@@ -54,4 +56,11 @@
             visibility: 'public',
         });
     }
+
+ 
+ 
+
+
+
+
 </script>

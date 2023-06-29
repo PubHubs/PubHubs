@@ -9,10 +9,9 @@
 
 import { defineStore } from 'pinia';
 import { Room as MatrixRoom, MatrixClient } from 'matrix-js-sdk';
-
 import { Message, MessageType, useMessageBox } from './messagebox';
 import { useRouter } from 'vue-router';
-
+import { usePubHubs } from '@/core/pubhubsStore';
 /**
  *  Extending the MatrixRoom with some extra properties and there methods:
  *
@@ -76,6 +75,7 @@ const useRooms = defineStore('rooms', {
             currentRoomId: '' as string,
             rooms: {} as { [index: string]: Room },
             userAttributes: {} as { [userId: string]: string },
+            
         };
     },
 
@@ -182,20 +182,31 @@ const useRooms = defineStore('rooms', {
         },
 
         // Sepcific methods for secured rooms.
+     
 
-        roomIsSecure(roomId: string) {
-            if (this.rooms[roomId] !== undefined) {
-                if (this.rooms[roomId].timeline[0].event.content?.type !== undefined) {
-                    return true;
-                }
-                return false;
+        roomIsSecure(roomId:string): boolean {
+            if (this.rooms[roomId] === undefined) {
+              return false;
             }
-            return false;
-        },
+            
+            if (this.rooms[roomId].timeline === undefined) {
+              return false;
+            }
+            
+            if (this.rooms[roomId].timeline[0].event.content?.type === undefined) {
+              return false;
+            }
+            
+            return true;
+          },
+          
+
+
 
         yiviSecuredRoomflow(roomId: string, authToken: string) {
             const router = useRouter();
-
+            const pubhubs = usePubHubs();
+            
             const yivi = require('@privacybydesign/yivi-frontend');
             // @ts-ignore
             const urlll = _env.HUB_URL + '/_synapse/client/ph';
@@ -232,6 +243,7 @@ const useRooms = defineStore('rooms', {
                     if (result.not_correct) {
                         router.push({ name: 'error-page-room', params: { id: roomId } });
                     } else if (result.goto) {
+                        pubhubs.updateRooms();
                         router.push({ name: 'room', params: { id: roomId } });
                     }
                 })
@@ -239,23 +251,23 @@ const useRooms = defineStore('rooms', {
                     console.info(`There is an Error: ${error}`);
                 });
         },
-
-        createAttributeRelation(userNotice: string) {
+        
+        createAttributeRelation(roomId: string, userNotice: string) {
             const [userId] = userNotice.split(':');
             const lastIndex = userNotice.lastIndexOf(':');
             const attribute = userNotice
                 .slice(lastIndex + 1)
                 .replace(/[{}']/g, '')
                 .trim();
-            this.userAttributes[userId] = attribute;
+            this.userAttributes[userId+':'+roomId] = attribute;
+            
         },
-        currentUserAttribute(userId: string) {
+        currentUserAttribute(roomId: string, userId: string) {
             const currentUserId = '@' + userId;
-            for (const key in this.userAttributes) {
-                const value = this.userAttributes[key];
-                console.info(`Map content${key}, ${value}`);
-            }
-            return this.userAttributes[currentUserId];
+            const key = currentUserId + ':' + roomId;
+            const attributes = this.userAttributes[key];
+            return attributes;
+
         },
     },
 });

@@ -8,7 +8,7 @@
             <form @submit.prevent>
                 <div class="flex flex-row mb-2">
                     <label class="w-2/6">{{ $t('settings.displayname') }}</label>
-                    <TextInput class="w-4/6 p-1" name="displayname" v-model="data.displayName" :placeholder="user.user.displayName" @changed="updateData('displayName',$event)"></TextInput>
+                    <TextInput class="w-4/6 p-1" name="displayname" v-model="data.displayName" :placeholder="user.user.displayName" @changed="updateData('displayName',$event)" @submit="submit"></TextInput>
                 </div>
 
                 <div class="flex flex-row mb-4">
@@ -20,10 +20,8 @@
                     <Button @click.prevent="submit()" :disabled="!changed">{{ $t('forms.submit')}}</Button>
                 </div>
             </form>
+            <div v-if="message!=''" class="rounded-lg bg-red p-2 mt-2">{{message}}</div>
         </div>
-    </div>
-    <div v-if="message!=''" class="rounded-lg bg-red p-2 mt-2">
-        {{message}}
     </div>
 </template>
 
@@ -45,15 +43,16 @@
     });
 
     function submit() {
-        if (changed) {
+        console.log( 'SUBMIT' );
+        if (changed.value) {
+            if ( dataIsChanged('theme') ) {
+                settings.setTheme(data.theme as Theme);
+                setMessage(t('settings.theme_changed', [t('themes.'+data.theme)]) );
+            }
             if ( dataIsChanged('displayName') ) {
                 pubhubs.changeDisplayName(data.displayName as string);
                 setMessage(t('settings.displayname_changed',[data.displayName]));
                 updateData('displayName','');
-            }
-            if ( dataIsChanged('theme') ) {
-                settings.setTheme(data.theme as Theme);
-                setMessage(t('settings.theme_changed', [t('themes.'+data.theme)]) );
             }
         }
     }

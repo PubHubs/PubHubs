@@ -3,7 +3,7 @@
 </template>
 
 <script setup lang="ts">
-    import { onMounted } from 'vue';
+    import { onMounted} from 'vue';
     import { useRooms } from '@/store/store';
     const rooms = useRooms();
     const props = defineProps({
@@ -13,7 +13,9 @@
         },
     });
 
-    onMounted(() => {
-        rooms.createAttributeRelation(props.attribute);
+
+
+onMounted(() => {
+        rooms.createAttributeRelation(rooms.currentRoom.roomId, props.attribute);
     });
 </script>

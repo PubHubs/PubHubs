@@ -19,6 +19,7 @@ const usePubHubs = defineStore('pubhubs', {
         getBaseUrl(state) {
             return state.Auth.getBaseUrl();
         },
+    
     },
 
     actions: {
@@ -87,10 +88,18 @@ const usePubHubs = defineStore('pubhubs', {
             });
         },
 
+        async getAllPublicRooms() {
+            return await this.client.publicRooms({
+                limit: 1000,
+                filter: {
+                    generic_search_term: "",
+                },
+            });
+        },
+
         async joinRoom(roomId: string, router: any, search: string) {
             //
             const response = await this.getPublicRooms(search);
-            console.info(`RESPONSE ---> ${response}`);
             try {
                 await this.client.joinRoom(roomId);
                 this.updateRooms();
@@ -102,6 +111,7 @@ const usePubHubs = defineStore('pubhubs', {
                     // User is forbidden but it is because it is secured room he is trying to access.
                     if (response.chunk[0].room_type === 'ph.messages.restricted') {
                         router.push({ name: 'secure-room', params: { id: roomId } });
+                        
                     } else {
                         // If not then there is some other issue. Show the error message.
                         this.showError(error as string);
