@@ -50,11 +50,12 @@
 
 <script setup lang="ts">
     import { onMounted, ref, computed } from 'vue';
-    import { fetchEmojis } from 'emojibase';
+    import { Emoji, fetchEmojis } from 'emojibase';
 
-    const emojis = ref([]);
+    const emojis = ref([] as Emoji[]);
     const searchQuery = ref('');
     const selectedGroup :any = ref(undefined);
+    const emit = defineEmits(['emojiSelected'])
 
     onMounted( async () => {
         const emojiData = await fetchEmojis('en');
@@ -93,12 +94,12 @@
         return filtered;
     })
 
-    function selectEmojiByGroup(group) {
+    function selectEmojiByGroup(group:Number = 0) {
         selectedGroup.value = group;
     }
 
-    function selectEmoji(emoji) {
-        this.$emit('emojiSelected', emoji.emoji);
+    function selectEmoji(emoji:Emoji) {
+        emit('emojiSelected', emoji.emoji);
     }
 
     function groupLabel() {
