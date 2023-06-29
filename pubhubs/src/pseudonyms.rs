@@ -1,12 +1,13 @@
 use crate::config::having_debug_default;
 use crate::data::Hub;
-use anyhow::{ensure, Result};
+use crate::elgamal;
+use anyhow::{anyhow, ensure, Context as _, Result};
 use std::fmt::{Debug, Formatter};
 
 /// A convenience struct that can be used to share needed configuration around.
 #[derive(Clone)]
 pub struct PepContext {
-    global_public_key: String,
+    global_public_key: elgamal::PublicKey,
     global_secret_key: String,
     factor_secret: String,
     libpep_location: String,
@@ -23,11 +24,12 @@ impl Debug for PepContext {
 impl PepContext {
     pub fn from_config(config: crate::config::Pep) -> Result<Self> {
         Ok(PepContext {
-            global_public_key: having_debug_default(
+            global_public_key: elgamal::PublicKey::from_hex(&having_debug_default(
                 config.global_public_key,
                 "d4d7f622c53c86d64597f089273350b950aa53b078185aa4a04c487d9709d66d",
                 "pep.global_public_key",
-            )?,
+            )?)
+            .context("invalid global_public_key hex representation")?,
             global_secret_key: having_debug_default(
                 config.global_secret_key,
                 "b6c57e69b093a34fa2546bc59c7940fd304d91e9c68602d237989d74f1172908",
@@ -64,8 +66,8 @@ impl PepContext {
     }
 
     /// Generate the (polymorphic and encrypted) pseudonym for a user.
-    pub fn generate_pseudonym(&self, identity: &str) -> Result<String> {
-        self.libpepcli(["generate-pseudonym", identity, &self.global_public_key])
+    pub fn generate_pseudonym(&self) -> elgamal::Triple {
+        self.global_public_key.encrypt_random()
     }
 
     pub fn make_local_decryption_key(&self, hub: &Hub) -> Result<String> {
@@ -118,17 +120,22 @@ mod tests {
         };
         let pep = PepContext::from_config(pepcfg).unwrap();
 
-        let pseudonym = pep.generate_pseudonym("identity").unwrap();
+        let pseudonym = pep.generate_pseudonym().to_hex();
 
         // libpepcli generate-pseudonym identity
         // bcf2616f1de8875be554fd8db683664c52792b0e434dc15d0465bc6b687bb15d
         //
-        // Note: due to the rerandomisation, only the last portion of pseudonym is predicatable
+        // Note: due to the rerandomisation, only the last portion of pseudonym is predictable
         assert!(Regex::new(
             "[a-f0-9]{128}bcf2616f1de8875be554fd8db683664c52792b0e434dc15d0465bc6b687bb15d",
         )
         .unwrap()
         .is_match(pseudonym.as_str()));
+
+        // Use fixed pseudonym for further computations.
+        // (We do this to get predictable results because unlike libpepcli which derives the
+        // pseudonym from "identity", our code picks a random pseudonym.)
+        let pseudonym = "b8da9641166865dad63bb83ba5298f9ab0bf62c80e9cd517a78ba42ea95c4f5816e54bfe19328165c059f70473200dbb5acdd2ff2f070b4643ee09ae625e1677bcf2616f1de8875be554fd8db683664c52792b0e434dc15d0465bc6b687bb15d".to_string();
 
         let hub = Hub {
             id: Hubid::from_str("936da01f-9abd-4d9d-80c7-02af85c822a8").unwrap(),
@@ -148,14 +155,14 @@ mod tests {
         assert_eq!(
             local_decryption_key,
             "02a1348c03aa13dde10a2eb8f2c5aacd2201703e3a5944a2d6c7aaf219d0500f",
-            "got unexpected local decryption key.  (Note: the way libpepcli computes factors changed June 1st 2022; make use the new version.)"
+            "got unexpected local decryption key.  (Note: the way libpepcli computes factors changed June 1st 2022; use the new version.)"
         );
 
         let encrypted_local_pseudonym = pep.convert_to_local_pseudonym(&pseudonym, &hub).unwrap();
 
         // libpepcli convert-to-local-pseudonym a8457aaed982dbb9d086dc6a8e1b6f7679ca9849d6776da5a7e6c4797289c07712f8bd8e52e010c42aa0faecedf09d03790f3be047b86c546a03fbb4a82c3531bcf2616f1de8875be554fd8db683664c52792b0e434dc15d0465bc6b687bb15d "is also called server secret" "Hub decryption key #936da01f-9abd-4d9d-80c7-02af85c822a8" "Hub #936da01f-9abd-4d9d-80c7-02af85c822a8"
         //
-        // Note: due to the rerandomisation, only the last portion of local_pseudonym is predicatable
+        // Note: due to the rerandomisation, only the last portion of local_pseudonym is predictable
         assert!(Regex::new(
             "[a-f0-9]{128}127b805c293508ae6cb222d9606851f8f8db3d940d8b3f1e31274990021d8212",
         )
@@ -179,8 +186,10 @@ mod tests {
         /// test config for use by data.rs
         pub fn test_config() -> Self {
             Self {
-                global_public_key:
-                    "1c561577b91b0ea945a95161dd1fe44c1433ff6a21419aa606838a9db5c6106c".to_string(),
+                global_public_key: elgamal::PublicKey::from_hex(
+                    "1c561577b91b0ea945a95161dd1fe44c1433ff6a21419aa606838a9db5c6106c",
+                )
+                .unwrap(),
                 global_secret_key:
                     "1ff1accd4b711f1e3b149fdbe2254fb3397b3f2b1fd09f15c8d79c1a99b5330b".to_string(),
                 factor_secret: "some secret".to_string(),

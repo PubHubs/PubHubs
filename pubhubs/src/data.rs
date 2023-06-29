@@ -4,8 +4,6 @@ use expry::key_str;
 use expry::{value, DecodedValue};
 
 use prometheus::HistogramVec;
-use rand::distributions::Alphanumeric;
-use rand::Rng;
 use rusqlite::Error::QueryReturnedNoRows;
 use rusqlite::{params, Connection, Row};
 use serde::{Deserialize, Serialize};
@@ -922,18 +920,15 @@ pub fn create_user(
     pep: &PepContext,
     is_admin: bool,
 ) -> Result<User> {
-    let s: String = rand::thread_rng()
-        .sample_iter(&Alphanumeric)
-        .take(10)
-        .map(char::from)
-        .collect();
-    let uuid = Uuid::new_v4().to_string();
-
-    let pseudonym = pep.generate_pseudonym(&format!("{}{}", s, uuid))?;
     db.execute(
         "INSERT INTO user (email, telephone, pseudonym, active, administrator)
         values (?1, ?2, ?3, TRUE, ?4)",
-        params![email, telephone, pseudonym, is_admin],
+        params![
+            email,
+            telephone,
+            pep.generate_pseudonym().to_hex(),
+            is_admin
+        ],
     )?;
     Ok(get_user(db, email, telephone)?.expect("user to exist after succesful insertion"))
 }

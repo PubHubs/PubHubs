@@ -1,7 +1,9 @@
 //! ElGamal
 
 use curve25519_dalek::{
-    constants::RISTRETTO_BASEPOINT_TABLE as B, ristretto::RistrettoPoint, scalar::Scalar,
+    constants::RISTRETTO_BASEPOINT_TABLE as B,
+    ristretto::{CompressedRistretto, RistrettoPoint},
+    scalar::Scalar,
 };
 
 /// `osrng!()` is an abbreviation for `&mut rand_07::rngs::OsRng` the rng used by this module.
@@ -30,6 +32,23 @@ pub struct Triple {
 }
 
 impl Triple {
+    /// Returns the 192-digit hex string representation of this triple.
+    pub fn to_hex(&self) -> String {
+        let mut buf = [0u8; 3 * 2 * 32];
+
+        // NOTE:  encode only fails when the destination slice is too small (not
+        // at least twice the size of the input) which it shouldn't be here.
+        base16ct::lower::encode(self.ek.compress().as_bytes(), &mut buf[0..64]).unwrap();
+        base16ct::lower::encode(self.ct.compress().as_bytes(), &mut buf[64..128]).unwrap();
+        base16ct::lower::encode(self.pk.compress().as_bytes(), &mut buf[128..192]).unwrap();
+
+        unsafe {
+            // At this point, the whole buffer is filled with lower-case hex characters,
+            // which is valid utf-8.
+            return String::from_utf8_unchecked(buf.into());
+        }
+    }
+
     /// Decrypts the triple using the given private key `sk`.  If the triple was encrypted
     /// for a different private key, the result is a random point.
     pub fn decrypt_into(self, sk: &PrivateKey) -> RistrettoPoint {
@@ -148,6 +167,15 @@ pub struct PublicKey {
 }
 
 impl PublicKey {
+    pub fn from_hex(hexstr: &str) -> Option<Self> {
+        let mut buf = [0u8; 32];
+        base16ct::mixed::decode(hexstr, &mut buf).ok()?;
+        let cpt = CompressedRistretto::from_slice(&buf);
+        Some(PublicKey {
+            point: cpt.decompress()?,
+        })
+    }
+
     /// Encrypts the given `plaintext` for this public key.
     /// If the plaintext is a random point, consider using [Self::encrypt_random].
     pub fn encrypt(&self, plaintext: RistrettoPoint) -> Triple {
