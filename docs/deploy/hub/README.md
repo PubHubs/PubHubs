@@ -3,6 +3,7 @@
 > These settings are important for Hub Owners
 
 Hub Owner will make a contract with Central Platform by providing their information such as Hub Name, Hub Description and Redirection URI by email. This will allow Central Platform to issue a confidential file to the Hub Owner.
+> We also provide a docker compose file in `/docs/deploy/`. Please note that the docker compose file might be outdated and we advise not to use it rather follow docker steps mentioned in this guide.
 
 <img src=../../pictures/key-exchange.png alt="drawing" width="3000"/>
 
