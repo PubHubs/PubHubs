@@ -10,7 +10,8 @@ services:
       # Only for localhost testing
       #- AUTHLIB_INSECURE_TRANSPORT=for_testing_only_of_course
     volumes:
-      - $PWD/pubhubs_hub/matrix_test_config:/data:rw
+      #- $PWD/pubhubs_hub/matrix_test_config:/data:rw
+       - <absolute_path>/hub:/data:rw
     #extra_hosts:
     #  - "host.docker.internal:host-gateway"
     
