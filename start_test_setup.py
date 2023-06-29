@@ -622,7 +622,7 @@ def main_runner(cargo_setup:str, node_arg:str, hubs:int = 1) -> None:
 
     # Run global client first
     os.chdir("global-client")
-    subprocess.run(["npm", "install"], check=True)
+    subprocess.run(["npm", "install"], check=True, shell=True)
     global_client_proces = Process(target=os.system, args=("npm run watch",))
     global_client_proces.start()
 
