@@ -27,8 +27,8 @@ class Authentication {
         this.loginToken = '';
         this.clientUrl = location.protocol + '//' + location.host + location.pathname;
         this.cookieSettings = {
-            secure:true,
-            sameSite:'strict',
+            secure:false,
+            // sameSite:'strict',
             // domain: this.clientUrl,
         };
     }
@@ -191,7 +191,7 @@ class Authentication {
     }
 
 
-  
+
 }
 
 
