@@ -60,7 +60,7 @@ docker run -p 8008:8008 --mount "type=bind,src=<absolute_path>/hub,dst=/data"  -
 
 ## Terms and conditions for the Hub
 
-A `templates` directory can be created specifying the terms and conditions of the Hub. See sample in pubhubs repository `pubhubs_hub/matrix_test_config/templates`.
+A `templates` directory can be created specifying the terms and conditions of the Hub. See sample in pubhubs repository `pubhubs_hub/matrix_test_config/templates`. The template directory can be used for styling the hub. A sample template directory can be found in `pubhubs_hub/matrix_test_config/templates`. Copy this template directory in <absolute_path>/hub (path mounted in docker run). Update the test_hub.log.config file with the one present in the template directory `docs/deploy/test_hub.log.config`.
 
 ## Hub administration
 
