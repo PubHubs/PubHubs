@@ -201,7 +201,7 @@ hub-unit-test: # This job runs in the test stage.
     - when: manual
   tags:
     - docker
-  image: python:latest
+  image: python:3.10.12
   variables:
     PIP_CACHE_DIR: "$CI_PROJECT_DIR/.cache/pip"
   before_script: #install libpepcli
