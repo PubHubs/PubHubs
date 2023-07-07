@@ -38,11 +38,9 @@
                     </Menu>
 
                     <template #footer>
-                        <Menu v-if="hubSettings.isSolo">
+                        <Menu>
                             <router-link :to="{ name: 'settings', params: {} }" v-slot="{ isActive }">
-                                <MenuItem icon="cog" :active="isActive">
-                                    {{ $t("menu.settings") }}
-                                </MenuItem>
+                                <MenuItem icon="cog" :active="isActive"></MenuItem>
                             </router-link>
                         </Menu>
                     </template>
