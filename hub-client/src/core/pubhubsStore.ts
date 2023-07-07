@@ -55,6 +55,10 @@ const usePubHubs = defineStore('pubhubs', {
             this.Auth.logout();
         },
 
+        updateLoggedInStatusBasedOnGlobalStatus(globalLoginTime: string) {
+            this.Auth.updateLoggedInStatusBasedOnGlobalStatus(globalLoginTime);
+        },
+
         updateRooms() {
             console.log('PubHubs.updateRooms');
             const rooms = useRooms();

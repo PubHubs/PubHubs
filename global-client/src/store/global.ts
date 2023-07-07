@@ -2,6 +2,8 @@ import { defineStore } from 'pinia'
 
 import { Hub, HubList } from '@/store/hubs'
 import { apiURLS, apiStatus, apiGET } from '@/core/api'
+import {getCookie} from "typescript-cookie";
+import { Buffer } from "buffer";
 
 interface hubResponseItem {
     name:string;
@@ -15,6 +17,7 @@ const useGlobal = defineStore('global', {
         return {
             loggedIn : false,
             modalVisible : false,
+            loginTime: ""
         }
     },
 
@@ -31,6 +34,11 @@ const useGlobal = defineStore('global', {
         async checkLogin() {
             if ( await apiStatus( apiURLS.bar ) ) {
                 this.loggedIn = true;
+                if (getCookie("PHAccount")) {
+                    const base64Cookie = getCookie("PHAccount") as string; // see docs/API.md
+                    this.loginTime = Buffer.from(base64Cookie, 'base64').toString('binary').split(".")[1];
+                }
+
                 return true;
             }
             else {
