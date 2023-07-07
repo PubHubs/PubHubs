@@ -36,6 +36,7 @@ class Authentication {
             baseUrl: this.baseUrl,
             accessToken: response.access_token,
             userId: response.user_id,
+            loginTime: String(Date.now()),
         }
         this.user.setUser( new User(auth.userId) );
         localStorage.setItem("pubhub", JSON.stringify(auth));
@@ -172,6 +173,19 @@ class Authentication {
             }
 
         });
+    }
+
+    public updateLoggedInStatusBasedOnGlobalStatus(globalLoginTime: string) {
+        const pubhub = localStorage.getItem("pubhub");
+
+        if (pubhub) {
+            const loginTime = JSON.parse(pubhub).loginTime;
+            // Either we get no global time (empty string), so we know it's not logged in, or we get a global login time (in milliseconds), and we check if it's
+            // before ours (in micro seconds).
+            if (!globalLoginTime || parseInt(globalLoginTime)*1000 > parseInt(loginTime)) {
+                this._clearAuth();
+            }
+        }
     }
 
     logout() {

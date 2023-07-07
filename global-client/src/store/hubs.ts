@@ -1,7 +1,6 @@
-import { defineStore } from 'pinia'
-import { RouteParams } from 'vue-router'
-import { MessageType, Message, MessageBoxType, useMessageBox, Theme, useSettings, useGlobal } from '@/store/store'
-
+import {defineStore} from 'pinia'
+import {RouteParams} from 'vue-router'
+import {Message, MessageBoxType, MessageType, Theme, useGlobal, useMessageBox, useSettings} from '@/store/store'
 
 
 // Single Hub
@@ -117,6 +116,12 @@ const useHubs = defineStore('hubs', {
 
                         // Start conversation with hub frame and sync latest settings
                         await messagebox.init( MessageBoxType.Parent, this.currentHub.url );
+
+                        // Send global login time
+                        const global = useGlobal();
+
+                        const loginTime = global.loginTime;
+                        messagebox.sendMessage(new Message(MessageType.GlobalLoginTime, loginTime));
 
                         // Send current theme
                         const settings = useSettings();
