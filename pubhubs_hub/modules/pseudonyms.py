@@ -52,7 +52,7 @@ class Pseudonym:
     # 
     async def normalize_displayname(self, user_id : str, suggested_displayname=None):
         user_id = UserID.from_string(user_id)
-        displayname = suggested_displayname if suggested_displayname is not None else await self.api._store.get_profile_displayname( user_id.localpart )
+        displayname = suggested_displayname if suggested_displayname is not None else await self.api._store.get_profile_displayname( user_id )
         normalized_displayname = PseudonymHelper.normalised_displayname( suggested_displayname, user_id.localpart )
         logger.info(f"normalize_displayname {displayname} -> {normalized_displayname}")
         if normalized_displayname != displayname:

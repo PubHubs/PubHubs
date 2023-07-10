@@ -181,9 +181,29 @@ const useRooms = defineStore('rooms', {
             messagebox.sendMessage(new Message(MessageType.UnreadMessages, this.totalUnreadMessages));
         },
 
-        // Sepcific methods for secured rooms.
-     
 
+        // This extracts the notice which is used in secured rooms. 
+        // The notice contains the user id and the profile attribute.
+        getBadgeInSecureRoom(roomId: string, displayName: string): string {
+            let attribute = '';
+            
+            for (const evt of this.rooms[roomId].timeline) {
+                if (evt.getContent().msgtype === 'm.notice') {
+                    // This notice is specific to secured room, there should be attributes.
+                     if (String(evt.getContent().body).includes('attributes') &&
+                         String(evt.getContent().body).includes(displayName)) {
+                        const lastIndex = evt.getContent().body.lastIndexOf(':');
+                        attribute = evt.getContent().body.slice(lastIndex + 1)
+                            .replace(/[{}']/g, '')
+                            .trim();
+                        //Once user attribue is found, dont iterate over to save time.
+                        break;
+                    }
+                }
+            }
+            return attribute;
+        },
+        
         roomIsSecure(roomId:string): boolean {
             if (this.rooms[roomId] === undefined) {
               return false;
@@ -252,23 +272,6 @@ const useRooms = defineStore('rooms', {
                 });
         },
         
-        createAttributeRelation(roomId: string, userNotice: string) {
-            const [userId] = userNotice.split(':');
-            const lastIndex = userNotice.lastIndexOf(':');
-            const attribute = userNotice
-                .slice(lastIndex + 1)
-                .replace(/[{}']/g, '')
-                .trim();
-            this.userAttributes[userId+':'+roomId] = attribute;
-            
-        },
-        currentUserAttribute(roomId: string, userId: string) {
-            const currentUserId = '@' + userId;
-            const key = currentUserId + ':' + roomId;
-            const attributes = this.userAttributes[key];
-            return attributes;
-
-        },
     },
 });
 

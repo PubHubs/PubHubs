@@ -1,6 +1,5 @@
 import sdk from 'matrix-js-sdk';
 import { MatrixClient } from 'matrix-js-sdk';
-import { setCookie, getCookie, removeCookie } from 'typescript-cookie'
 
 import { User, useUser,useDialog } from '@/store/store';
 import { i18n } from '../i18n';
@@ -19,18 +18,12 @@ class Authentication {
     private baseUrl: string;
     private clientUrl: string;
     private client!: MatrixClient;
-    private cookieSettings:object;
 
     constructor() {
         // @ts-ignore
         this.baseUrl = _env.HUB_URL;
         this.loginToken = '';
         this.clientUrl = location.protocol + '//' + location.host + location.pathname;
-        this.cookieSettings = {
-            secure:true,
-            sameSite:'strict',
-            // domain: this.clientUrl,
-        };
     }
 
 
@@ -43,14 +36,15 @@ class Authentication {
             baseUrl: this.baseUrl,
             accessToken: response.access_token,
             userId: response.user_id,
+            loginTime: String(Date.now()),
         }
         this.user.setUser( new User(auth.userId) );
-        setCookie("pubhub", JSON.stringify(auth), this.cookieSettings);
+        localStorage.setItem("pubhub", JSON.stringify(auth));
     }
 
     private _fetchAuth() {
         let auth = null;
-        const stored = getCookie("pubhub");
+        const stored = localStorage.getItem("pubhub");
         if (stored) {
             auth = JSON.parse(stored);
             if (auth) {
@@ -61,7 +55,7 @@ class Authentication {
     }
 
     private _clearAuth() {
-        removeCookie("pubhub");
+        localStorage.removeItem("pubhub");
     }
 
     public getAccessToken() {
@@ -181,6 +175,19 @@ class Authentication {
         });
     }
 
+    public updateLoggedInStatusBasedOnGlobalStatus(globalLoginTime: string) {
+        const pubhub = localStorage.getItem("pubhub");
+
+        if (pubhub) {
+            const loginTime = JSON.parse(pubhub).loginTime;
+            // Either we get no global time (empty string), so we know it's not logged in, or we get a global login time (in milliseconds), and we check if it's
+            // before ours (in micro seconds).
+            if (!globalLoginTime || parseInt(globalLoginTime)*1000 > parseInt(loginTime)) {
+                this._clearAuth();
+            }
+        }
+    }
+
     logout() {
         this._clearAuth();
         window.location.replace(this.clientUrl);
@@ -191,7 +198,7 @@ class Authentication {
     }
 
 
-  
+
 }
 
 

@@ -38,11 +38,9 @@
                     </Menu>
 
                     <template #footer>
-                        <Menu v-if="hubSettings.isSolo">
+                        <Menu>
                             <router-link :to="{ name: 'settings', params: {} }" v-slot="{ isActive }">
-                                <MenuItem icon="cog" :active="isActive">
-                                    {{ $t("menu.settings") }}
-                                </MenuItem>
+                                <MenuItem icon="cog" :active="isActive"></MenuItem>
                             </router-link>
                         </Menu>
                     </template>
@@ -66,12 +64,23 @@
 </template>
 
 <script setup lang="ts">
-    import { onMounted } from 'vue';
-    import { RouteParamValue, useRouter } from 'vue-router'
-    import { useSettings, useHubSettings, Theme, useUser, useRooms, MessageType, Message, MessageBoxType, useMessageBox, useDialog } from '@/store/store'
-    import { usePubHubs } from '@/core/pubhubsStore';
+import {onMounted} from 'vue';
+import {RouteParamValue, useRouter} from 'vue-router'
+import {
+  Message,
+  MessageBoxType,
+  MessageType,
+  Theme,
+  useDialog,
+  useHubSettings,
+  useMessageBox,
+  useRooms,
+  useSettings,
+  useUser
+} from '@/store/store'
+import {usePubHubs} from '@/core/pubhubsStore';
 
-    const router = useRouter();
+const router = useRouter();
     const settings = useSettings();
     const hubSettings = useHubSettings();
     const user = useUser();
@@ -105,6 +114,11 @@
             // Listen to sync settings
             messagebox.addCallback( MessageType.Settings, (message:Message) => {
                 settings.setTheme(message.content as Theme);
+            });
+
+            //Listen to log in time
+            messagebox.addCallback( MessageType.GlobalLoginTime, (message:Message) => {
+              pubhubs.updateLoggedInStatusBasedOnGlobalStatus(message.content as string);
             });
 
         }
