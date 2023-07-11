@@ -14,9 +14,7 @@
 
                             <Line v-if="global.loggedIn" class="m-2 sm:m-6 mt-8"></Line>
 
-                            <router-link v-for="hub in hubs.sortedHubsArray" :key="hub.hubId" :to="{ name: 'hub', params: { 'id':hub.hubId } }" v-slot="{ isActive }">
-                                <HubIcon v-if="global.loggedIn || hub.hubId==hubs.currentHubId" :hub="hub" :active="isActive"></HubIcon>
-                            </router-link>
+                            <HubMenu></HubMenu>
 
                             <Line v-if="global.loggedIn" class="m-2 sm:m-6 mt-8"></Line>
                         </div>
@@ -64,13 +62,21 @@
     // eslint-disable-next-line
     const pubHubsUrl = _env.PUBHUBS_URL;
 
-    onMounted(() => {
+    onMounted( async () => {
         console.clear();
         dialog.asGlobal();
 
-        global.checkLogin().finally(()=>{
-            addHubs();
+        await global.checkLoginAndSettings();
+        await addHubs();
+
+        // save settings when changed
+        global.$subscribe(()=>{
+            global.saveGlobalSettings();
         });
+        settings.$subscribe(()=>{
+            global.saveGlobalSettings();
+        });
+
     });
 
     async function addHubs() {
@@ -87,6 +93,5 @@
             global.logout();
         }
     }
-
 
 </script>

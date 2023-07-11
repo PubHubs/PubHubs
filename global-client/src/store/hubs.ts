@@ -110,7 +110,6 @@ const useHubs = defineStore('hubs', {
                 // Test if changing to current hub (through url for example)
                 if ( hubId !== this.currentHubId || this.currentHubId =='' ) {
                     this.currentHubId = hubId;
-                    console.log('changeHub',params,hubId,this.currentHubId, this.currentHubExists);
 
                     if ( this.currentHubExists ) {
 

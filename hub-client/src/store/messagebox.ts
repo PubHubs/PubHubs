@@ -264,7 +264,7 @@ const useMessageBox = defineStore('messagebox', {
             if ( this.isConnected ) {
                 const target = this.resolveTarget();
                 if (target) {
-                    console.log('=> '+this.type+' SEND',message, this.receiverUrl );
+                    // console.log('=> '+this.type+' SEND',message, this.receiverUrl );
                     target.postMessage( message, this.receiverUrl );
                 }
             }
@@ -278,7 +278,7 @@ const useMessageBox = defineStore('messagebox', {
          */
         receivedMessage(message:Message) {
             if ( this.handshake == HandshakeState.Ready ) {
-                console.log('<= '+this.type+' RECEIVED', message );
+                // console.log('<= '+this.type+' RECEIVED', message );
                 const callback = this.callbacks[message.type];
                 if (callback) {
                     callback(message as Message);
