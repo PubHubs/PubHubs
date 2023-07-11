@@ -1,9 +1,23 @@
 import { defineStore } from 'pinia'
+import { setLanguage } from '@/i18n';
+import { getCookie } from "typescript-cookie";
+import { Buffer } from "buffer";
 
 import { Hub, HubList } from '@/store/hubs'
-import { apiURLS, apiStatus, apiGET } from '@/core/api'
-import {getCookie} from "typescript-cookie";
-import { Buffer } from "buffer";
+import { apiURLS, useApi } from '@/store/api'
+import { Theme, useSettings } from './settings';
+
+type PinnedHub = {
+    hubId : string
+}
+
+type PinnedHubs = Array<PinnedHub>;
+
+interface GlobalSettings {
+    theme : Theme,
+    language : string,
+    hubs : PinnedHubs
+}
 
 interface hubResponseItem {
     name:string;
@@ -11,12 +25,14 @@ interface hubResponseItem {
     description:string;
 }
 
+
 const useGlobal = defineStore('global', {
 
     state: () => {
         return {
             loggedIn : false,
             modalVisible : false,
+            pinnedHubs : [] as PinnedHubs,
             loginTime: ""
         }
     },
@@ -27,12 +43,29 @@ const useGlobal = defineStore('global', {
             return state.modalVisible;
         },
 
+        getGlobalSettings(state) : GlobalSettings {
+            const settings = useSettings();
+            const globalSettings : GlobalSettings = {
+                theme : settings.getActiveTheme,
+                language : setLanguage,
+                hubs : state.pinnedHubs,
+            }
+            return globalSettings;
+        },
+
+        hasPinnedHubs(state) : Boolean {
+            return state.pinnedHubs.length > 0;
+        },
+
     },
 
     actions: {
 
-        async checkLogin() {
-            if ( await apiStatus( apiURLS.bar ) ) {
+        async checkLoginAndSettings() {
+            const api = useApi();
+            const data = await api.api<GlobalSettings|boolean>( apiURLS.bar );
+            if ( data ) {
+                this.setGlobalSettings(data);
                 this.loggedIn = true;
                 if (getCookie("PHAccount")) {
                     const base64Cookie = getCookie("PHAccount") as string; // see docs/API.md
@@ -47,6 +80,12 @@ const useGlobal = defineStore('global', {
             }
         },
 
+        setGlobalSettings(data:any) {
+            const settings = useSettings();
+            settings.setTheme(data.theme);
+            this.pinnedHubs = data.hubs;
+        },
+
         login() {
             window.location.replace(apiURLS.login);
         },
@@ -56,14 +95,42 @@ const useGlobal = defineStore('global', {
             window.location.replace(apiURLS.logout);
         },
 
+        // Will be called after each change in state (subscribed in App.vue)
+        async saveGlobalSettings() {
+            const api = useApi();
+            await api.apiPUT<any>( apiURLS.bar, this.getGlobalSettings, true );
+        },
+
+        addPinnedHub( hub: PinnedHub, order: number = -1) {
+            // make sure the hub is flattend, we only need the hubId
+            hub = { hubId:hub.hubId };
+            if ( order<0 || order > this.pinnedHubs.length ) {
+                this.pinnedHubs.push( hub );
+            }
+            else {
+                this.pinnedHubs.splice(order,0,hub);
+            }
+        },
+
+        removePinnedHub( order: number ) {
+            this.pinnedHubs.splice(order,1);
+        },
+
         async getHubs() {
-            const data = await apiGET<Array<hubResponseItem>>( apiURLS.hubs );
+            const api = useApi();
+            const data = await api.apiGET<Array<hubResponseItem>>( apiURLS.hubs );
             const hubs = [] as HubList;
             data.forEach( (item:hubResponseItem) => {
                 hubs.push( new Hub(item.name,item.client_uri,item.description) )
             });
             return hubs;
         },
+
+        existsInPinnedHubs(hubId:string) {
+            const found = this.pinnedHubs.find( hub => (hub.hubId == hubId) );
+            return found;
+        },
+
 
         showModal() {
             this.modalVisible = true;
@@ -78,4 +145,4 @@ const useGlobal = defineStore('global', {
 
 })
 
-export { useGlobal }
+export { useGlobal, type PinnedHub, type PinnedHubs }

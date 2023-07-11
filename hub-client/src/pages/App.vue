@@ -1,6 +1,6 @@
 <template>
     <div :class="settings.getActiveTheme">
-        <div class="w-screen h-screen bg-white text-black dark:bg-gray-dark dark:text-white">
+        <div v-if="setupReady" class="w-screen h-screen bg-white text-black dark:bg-gray-dark dark:text-white">
 
             <div v-if="user.isLoggedIn" class="grid grid-cols-8">
                 <HeaderFooter class="col-span-2">
@@ -64,7 +64,7 @@
 </template>
 
 <script setup lang="ts">
-import {onMounted} from 'vue';
+    import { onMounted,ref } from 'vue';
 import {RouteParamValue, useRouter} from 'vue-router'
 import {
   Message,
@@ -80,6 +80,8 @@ import {
 } from '@/store/store'
 import {usePubHubs} from '@/core/pubhubsStore';
 
+    const setupReady = ref(false);
+
 const router = useRouter();
     const settings = useSettings();
     const hubSettings = useHubSettings();
@@ -89,12 +91,12 @@ const router = useRouter();
     const dialog = useDialog();
     const pubhubs = usePubHubs();
 
-    onMounted(() => {
+    onMounted( async () => {
         if ( window.location.hash!=='#/hub/' ) {
-            pubhubs.login();
+            await pubhubs.login();
             router.push({name:'home'});
+            await startMessageBox();
         }
-        startMessageBox();
     })
 
 
@@ -114,6 +116,7 @@ const router = useRouter();
             // Listen to sync settings
             messagebox.addCallback( MessageType.Settings, (message:Message) => {
                 settings.setTheme(message.content as Theme);
+                setupReady.value = true;
             });
 
             //Listen to log in time

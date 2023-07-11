@@ -4,20 +4,20 @@ import {nl} from '@/locales/nl';
 import {en} from '@/locales/en';
 
 const supportedLanguages = ['nl', 'en'];
-const fallbackLocale = 'en';
-let setLocale = fallbackLocale;
+const fallbackLanguage = 'en';
+let setLanguage = fallbackLanguage;
 
 const browserLanguage = navigator.language;
 if ( supportedLanguages.indexOf(browserLanguage) >= 0 ) {
-    setLocale = browserLanguage;
+    setLanguage = browserLanguage;
 }
 
 const i18n = createI18n({
     legacy: false,
     warnHtmlMessage: false,
     globalInjection: true,
-    locale: setLocale,
-    fallbackLocale: fallbackLocale,
+    locale: setLanguage,
+    fallbackLocale: fallbackLanguage,
     messages: {
         nl: nl,
         en: en,
@@ -44,4 +44,4 @@ const i18n = createI18n({
     }
 });
 
-export { i18n, supportedLanguages }
+export { i18n, supportedLanguages, setLanguage }
