@@ -49,12 +49,23 @@ const useApi = defineStore('api', {
 
     actions : {
 
-        fetchEtagFromHeaders(headers:Headers) {
+        fetchEtagFromHeaders(headers:Headers) : string {
             headers.forEach( (header,key) => {
                 if (key=="etag") {
                     this.etag = header;
                 }
             });
+            return this.etag;
+        },
+
+        fetchContentLength(headers:Headers) : number {
+            let len = 0;
+            headers.forEach( (header,key) => {
+                if (key=="content-length") {
+                    len = parseInt(header);
+                }
+            });
+            return len;
         },
 
         async api<T>( url:string, options:ApiOptions = apiOptionsGET ): Promise<T> {
@@ -66,7 +77,12 @@ const useApi = defineStore('api', {
             if ( response.status == 204 ) {
                 return true as T;
             }
-            return response.json() as Promise<T>;
+            const len = this.fetchContentLength(response.headers);
+            if (len==0) {
+                return {} as T;
+            }
+            const json = response.json() as Promise<T>;
+            return json as T;
         },
 
         async apiGET<T>( url:string ) : Promise<T> {

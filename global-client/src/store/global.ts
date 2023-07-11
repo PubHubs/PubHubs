@@ -54,6 +54,7 @@ const useGlobal = defineStore('global', {
         },
 
         hasPinnedHubs(state) : Boolean {
+            if ( ! state.pinnedHubs ) return false;
             return state.pinnedHubs.length > 0;
         },
 
@@ -71,7 +72,6 @@ const useGlobal = defineStore('global', {
                     const base64Cookie = getCookie("PHAccount") as string; // see docs/API.md
                     this.loginTime = Buffer.from(base64Cookie, 'base64').toString('binary').split(".")[1];
                 }
-
                 return true;
             }
             else {
@@ -102,6 +102,9 @@ const useGlobal = defineStore('global', {
         },
 
         addPinnedHub( hub: PinnedHub, order: number = -1) {
+            if ( !this.pinnedHubs ) {
+                this.pinnedHubs = [] as PinnedHubs;
+            }
             // make sure the hub is flattend, we only need the hubId
             hub = { hubId:hub.hubId };
             if ( order<0 || order > this.pinnedHubs.length ) {
@@ -127,6 +130,7 @@ const useGlobal = defineStore('global', {
         },
 
         existsInPinnedHubs(hubId:string) {
+            if ( ! this.pinnedHubs ) return false;
             const found = this.pinnedHubs.find( hub => (hub.hubId == hubId) );
             return found;
         },
