@@ -65,24 +65,13 @@
 
 <script setup lang="ts">
     import { onMounted,ref } from 'vue';
-import {RouteParamValue, useRouter} from 'vue-router'
-import {
-  Message,
-  MessageBoxType,
-  MessageType,
-  Theme,
-  useDialog,
-  useHubSettings,
-  useMessageBox,
-  useRooms,
-  useSettings,
-  useUser
-} from '@/store/store'
-import {usePubHubs} from '@/core/pubhubsStore';
+    import {RouteParamValue, useRouter} from 'vue-router'
+    import {Message,MessageBoxType,MessageType,Theme,useDialog,useHubSettings,useMessageBox,useRooms,useSettings,useUser} from '@/store/store'
+    import {usePubHubs} from '@/core/pubhubsStore';
 
     const setupReady = ref(false);
 
-const router = useRouter();
+    const router = useRouter();
     const settings = useSettings();
     const hubSettings = useHubSettings();
     const user = useUser();
@@ -95,12 +84,15 @@ const router = useRouter();
         if ( window.location.hash!=='#/hub/' ) {
             await pubhubs.login();
             router.push({name:'home'});
-            await startMessageBox();
+            setupReady.value = true;
         }
+        await startMessageBox();
     })
 
 
     async function startMessageBox() {
+        let messageBoxStarted = false;
+
         if ( ! hubSettings.isSolo ) {
 
             await messagebox.init( MessageBoxType.Child, hubSettings.parentUrl );
@@ -116,13 +108,24 @@ const router = useRouter();
             // Listen to sync settings
             messagebox.addCallback( MessageType.Settings, (message:Message) => {
                 settings.setTheme(message.content as Theme);
-                setupReady.value = true;
+                messageBoxStarted = true;
             });
 
             //Listen to log in time
             messagebox.addCallback( MessageType.GlobalLoginTime, (message:Message) => {
-              pubhubs.updateLoggedInStatusBasedOnGlobalStatus(message.content as string);
+                pubhubs.updateLoggedInStatusBasedOnGlobalStatus(message.content as string);
             });
+
+            // Wait for theme change happened
+            const wait = setInterval(()=>{
+                if (messageBoxStarted) {
+                    setupReady.value = true;
+                    clearInterval(wait);
+                }
+            },10);
+            setTimeout(()=>{
+                clearInterval(wait);
+            },250);
 
         }
     }

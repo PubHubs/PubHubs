@@ -19,7 +19,7 @@ const usePubHubs = defineStore('pubhubs', {
         getBaseUrl(state) {
             return state.Auth.getBaseUrl();
         },
-    
+
     },
 
     actions: {
@@ -115,7 +115,7 @@ const usePubHubs = defineStore('pubhubs', {
                     // User is forbidden but it is because it is secured room he is trying to access.
                     if (response.chunk[0].room_type === 'ph.messages.restricted') {
                         router.push({ name: 'secure-room', params: { id: roomId } });
-                        
+
                     } else {
                         // If not then there is some other issue. Show the error message.
                         this.showError(error as string);

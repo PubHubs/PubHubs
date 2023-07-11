@@ -183,7 +183,7 @@ class Authentication {
             // Either we get no global time (empty string), so we know it's not logged in, or we get a global login time (in milliseconds), and we check if it's
             // before ours (in micro seconds).
             if (!globalLoginTime || parseInt(globalLoginTime)*1000 > parseInt(loginTime)) {
-                this._clearAuth();
+                this.logout();
             }
         }
     }
