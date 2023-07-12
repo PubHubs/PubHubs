@@ -50,22 +50,20 @@ const useApi = defineStore('api', {
     actions : {
 
         fetchEtagFromHeaders(headers:Headers) : string {
-            headers.forEach( (header,key) => {
-                if (key=="etag") {
-                    this.etag = header;
-                }
-            });
+            if ( headers.get('etag') ) {
+                this.etag = headers.get('etag') as string;
+            }
             return this.etag;
         },
 
-        fetchContentLength(headers:Headers) : number {
-            let len = 0;
-            headers.forEach( (header,key) => {
-                if (key=="content-length") {
-                    len = parseInt(header);
-                }
-            });
-            return len;
+        isJsonResponse(headers:Headers) : boolean {
+            if ( headers.get('content-type') == "application/json" ) {
+                return true;
+            }
+            if ( headers.get('content-type') == "application/octet-stream" && headers.get('content-length')!=null ) {
+                return true;
+            }
+            return false;
         },
 
         async api<T>( url:string, options:ApiOptions = apiOptionsGET ): Promise<T> {
@@ -77,12 +75,10 @@ const useApi = defineStore('api', {
             if ( response.status == 204 ) {
                 return true as T;
             }
-            const len = this.fetchContentLength(response.headers);
-            if (len==0) {
-                return {} as T;
+            if (this.isJsonResponse(response.headers)) {
+                return response.json() as Promise<T>;
             }
-            const json = response.json() as Promise<T>;
-            return json as T;
+            return response as T;
         },
 
         async apiGET<T>( url:string ) : Promise<T> {
