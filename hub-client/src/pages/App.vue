@@ -125,6 +125,7 @@
             },10);
             setTimeout(()=>{
                 clearInterval(wait);
+                setupReady.value = true;
             },250);
 
         }
