@@ -21,7 +21,7 @@ const COOKIE_NAME: &str = "PHAccount";
 const MAX_AGE: i64 = 60 * 60 * 24 * 30;
 
 #[cfg(not(debug_assertions))]
-const SECURE: &str = " Secure;";
+const SECURE: &str = " SameSite=None; Secure;";
 #[cfg(debug_assertions)]
 const SECURE: &str = "";
 
@@ -67,7 +67,7 @@ fn create_session_cookie(user_id: u32, cookie_secret: &str) -> Result<String> {
 fn create_session_set_cookie(user_id: u32, cookie_secret: &str) -> Result<String> {
     let val = create_session_cookie(user_id, cookie_secret)?;
     Ok(format!(
-        "{val}; Max-Age={MAX_AGE}; SameSite=Lax;{SECURE} Path=/"
+        "{val}; Max-Age={MAX_AGE};{SECURE} Path=/"
     ))
 }
 
@@ -238,7 +238,7 @@ mod tests {
         // ```
         // and
         // `cargo test --profile=test-without-debug test_add_cookie_that_can_be_verified`
-        assert!(cookie.contains(&format!("Max-Age=2592000; SameSite=Lax;{SECURE} Path=/")));
+        assert!(cookie.contains(&format!("Max-Age=2592000;{SECURE} Path=/")));
         let re = Regex::new("PHAccount=[A-Za-z0-9]{12,}={0,2}; ").unwrap();
         assert!(re.is_match(cookie.as_bytes()));
 
