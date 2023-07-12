@@ -98,8 +98,9 @@ const icons: { [key: string]: string } = {
         <path stroke="none" d="M0 0h24v24H0z"/>
         <path d="M15 7l-6.5 6.5a1.5 1.5 0 0 0 3 3l6.5 -6.5a3 3 0 0 0 -6 -6l-6.5 6.5a4.5 4.5 0 0 0 9 9 l6.5 -6.5" />
         `,
-    lock: `<path d="M15.1176 4.48959L8.17454 1L1 4.48959C2.15718 9.2003 4.93443 16.0733 8.17454 17C11.6461 15.8416 14.269 9.2003 15.1176 4.48959Z" fill="white" stroke="white" stroke-linejoin="round"/>`,
-
+    lock: `
+        <path d="M15.1176 4.48959L8.17454 1L1 4.48959C2.15718 9.2003 4.93443 16.0733 8.17454 17C11.6461 15.8416 14.269 9.2003 15.1176 4.48959Z" fill="white" stroke="white" stroke-linejoin="round"/>
+        `,
     'arrow-right': `
         <path stroke="none" d="M0 0h24v24H0z"/>  <line x1="5" y1="12" x2="19" y2="12" />  <line x1="15" y1="16" x2="19" y2="12" />  <line x1="15" y1="8" x2="19" y2="12" />
         `,

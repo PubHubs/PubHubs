@@ -11,7 +11,6 @@
 
 <script setup lang="ts">
     import { reactive } from 'vue'
-    import Button from '@/components/elements/Button.vue';
     import { buttonSizes } from '@/assets/sizes';
 
     const colors = ['blue','green','red'];
