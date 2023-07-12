@@ -114,5 +114,5 @@ module.exports = {
     ],
     safelist: safeList,
     theme: pubhubsTheme,
-    darkMode: 'class'
+    darkMode: 'class',
 }
