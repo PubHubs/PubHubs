@@ -1,5 +1,4 @@
 import { defineStore } from 'pinia'
-import { setLanguage } from '@/i18n';
 import { getCookie } from "typescript-cookie";
 import { Buffer } from "buffer";
 
@@ -47,7 +46,7 @@ const useGlobal = defineStore('global', {
             const settings = useSettings();
             const globalSettings : GlobalSettings = {
                 theme : settings.getActiveTheme,
-                language : setLanguage,
+                language : settings.getActiveLanguage,
                 hubs : state.pinnedHubs,
             }
             return globalSettings;
@@ -83,6 +82,10 @@ const useGlobal = defineStore('global', {
         setGlobalSettings(data:any) {
             const settings = useSettings();
             settings.setTheme(data.theme);
+            if ( !data.language || data.language=='') {
+                data.language = navigator.language;
+            }
+            settings.setLanguage(data.language);
             this.pinnedHubs = data.hubs;
         },
 
@@ -97,8 +100,10 @@ const useGlobal = defineStore('global', {
 
         // Will be called after each change in state (subscribed in App.vue)
         async saveGlobalSettings() {
-            const api = useApi();
-            await api.apiPUT<any>( apiURLS.bar, this.getGlobalSettings, true );
+            if ( this.loggedIn ) {
+                const api = useApi();
+                await api.apiPUT<any>( apiURLS.bar, this.getGlobalSettings, true );
+            }
         },
 
         addPinnedHub( hub: PinnedHub, order: number = -1) {

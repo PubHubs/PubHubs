@@ -62,6 +62,8 @@ const en = {
         displayname_changed: 'Nickname changed to `{0}`.',
         theme: 'Theme',
         theme_changed: 'Theme changed to `{0}`.',
+        language: 'Language',
+        language_changed: 'Language changed to `{0}`.',
         title: 'Settings',
     },
     themes: {

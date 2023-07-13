@@ -68,9 +68,9 @@
     import {RouteParamValue, useRouter} from 'vue-router'
     import {Message,MessageBoxType,MessageType,Theme,useDialog,useHubSettings,useMessageBox,useRooms,useSettings,useUser} from '@/store/store'
     import {usePubHubs} from '@/core/pubhubsStore';
+    import { useI18n } from 'vue-i18n';
 
-    const setupReady = ref(false);
-
+    const { locale, availableLocales } = useI18n();
     const router = useRouter();
     const settings = useSettings();
     const hubSettings = useHubSettings();
@@ -80,7 +80,16 @@
     const dialog = useDialog();
     const pubhubs = usePubHubs();
 
+    const setupReady = ref(false);
+
+
     onMounted( async () => {
+        settings.initI18b( {locale:locale,availableLocales:availableLocales});
+        // set language when changed
+        settings.$subscribe(()=>{
+            locale.value = settings.getActiveLanguage;
+        });
+
         if ( window.location.hash!=='#/hub/' ) {
             await pubhubs.login();
             router.push({name:'home'});
@@ -107,7 +116,8 @@
 
             // Listen to sync settings
             messagebox.addCallback( MessageType.Settings, (message:Message) => {
-                settings.setTheme(message.content as Theme);
+                settings.setTheme(message.content.theme as Theme);
+                settings.setLanguage(message.content.language);
                 messageBoxStarted = true;
             });
 

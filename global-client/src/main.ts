@@ -4,7 +4,7 @@ import { createPinia } from 'pinia'
 import { createRouter, createWebHashHistory } from 'vue-router';
 import '@/registerServiceWorker'
 import '@/assets/tailwind.css'
-import { i18n } from '@/i18n';
+import { setUpi18n } from '@/i18n';
 import { routes } from '@/core/routes';
 import { focus, twClass } from '@/core/directives';
 
@@ -28,6 +28,8 @@ import Dialog from '@/../../hub-client/src/components/ui/Dialog.vue'
 
 import { ReplaceConsole } from '@/../../hub-client/src/console';
 ReplaceConsole();
+
+const i18n = setUpi18n();
 
 const router = createRouter({
     history: createWebHashHistory(),

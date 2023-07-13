@@ -2,7 +2,7 @@ import sdk from 'matrix-js-sdk';
 import { MatrixClient } from 'matrix-js-sdk';
 
 import { User, useUser,useDialog } from '@/store/store';
-import { i18n } from '../i18n';
+import { useI18n, } from 'vue-i18n';
 
 type loginResponse = {
     access_token : string,
@@ -137,7 +137,7 @@ class Authentication {
                         (error) => {
                             const err = error.data;
                             const dialog = useDialog();
-                            const { t } = i18n.global;
+                            const { t } = useI18n();
 
                             if ( typeof(error)=="string" && error.indexOf('Invalid login token')<0 ) {
                                 dialog.confirm(t('errors.server'),error).then(()=>{
