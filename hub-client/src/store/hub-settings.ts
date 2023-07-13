@@ -26,6 +26,10 @@ const useHubSettings = defineStore('hub-settings', {
     },
 
     actions: {
+        skipNoticeUserEvent(event: Record<string,any>): boolean {
+            return String(event.sender).includes("@notices") ? false : true;
+        }
+    
 
     },
 

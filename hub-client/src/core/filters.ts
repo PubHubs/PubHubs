@@ -1,3 +1,5 @@
+import { MatrixEvent } from "matrix-js-sdk";
+
 export default {
 
     matrixDisplayName(name:string) {
@@ -23,5 +25,12 @@ export default {
     removeBackSlash( url:string ) {
         return url.replace(/\/$/g, "");
     },
+
+    extractJSONFromEventString(evt: MatrixEvent):string { 
+        const jsonStartIndex = evt.getContent().body.indexOf("{");
+        const jsonEndIndex = evt.getContent().body.lastIndexOf("}");
+        return evt.getContent().body.substring(jsonStartIndex, jsonEndIndex + 1);
+    },
+
 
 };

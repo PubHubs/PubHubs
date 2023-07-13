@@ -142,7 +142,7 @@ class YiviResult(DirectServeJsonResource):
                             if room_attribute.profile:
                                 disclosed_to_show[required] = disclosed_value
                             else:
-                                disclosed_to_show[required] = {"": ""}
+                                disclosed_to_show[required] = ""
                         else:
                             return None
                     else:
