@@ -36,7 +36,7 @@
     });
 
 function isSecuredRoom() {
-    if (props.roomInfo !== undefined) { 
+    if (props.roomInfo?.roomId !== undefined) { 
         if (rooms.roomIsSecure(props.roomInfo.roomId)) {
             return true;
         } else {

@@ -12,6 +12,7 @@ import { Room as MatrixRoom, MatrixClient } from 'matrix-js-sdk';
 import { Message, MessageType, useMessageBox } from './messagebox';
 import { useRouter } from 'vue-router';
 import { usePubHubs } from '@/core/pubhubsStore';
+import filters from '@/core/filters';
 /**
  *  Extending the MatrixRoom with some extra properties and there methods:
  *
@@ -73,9 +74,7 @@ const useRooms = defineStore('rooms', {
     state: () => {
         return {
             currentRoomId: '' as string,
-            rooms: {} as { [index: string]: Room },
-            userAttributes: {} as { [userId: string]: string },
-            
+            rooms: {} as { [index: string]: Room },            
         };
     },
 
@@ -190,14 +189,10 @@ const useRooms = defineStore('rooms', {
             for (const evt of this.rooms[roomId].timeline) {
                 if (evt.getContent().msgtype === 'm.notice') {
                     // This notice is specific to secured room, there should be attributes.
-                     if (String(evt.getContent().body).includes('attributes') &&
-                         String(evt.getContent().body).includes(displayName)) {
-                        const lastIndex = evt.getContent().body.lastIndexOf(':');
-                        attribute = evt.getContent().body.slice(lastIndex + 1)
-                            .replace(/[{}']/g, '')
-                            .trim();
-                        //Once user attribue is found, dont iterate over to save time.
-                        break;
+                     if (evt.getContent().body.includes('attributes') &&
+                         evt.getContent().body.includes(displayName)) {
+                            attribute = filters.extractJSONFromEventString(evt)
+                            break;
                     }
                 }
             }
@@ -205,19 +200,15 @@ const useRooms = defineStore('rooms', {
         },
         
         roomIsSecure(roomId:string): boolean {
-            if (this.rooms[roomId] === undefined) {
-              return false;
+            for (const evt of this.rooms[roomId].timeline) {
+                if (evt.getContent().msgtype === 'm.notice') {
+                    // This notice is specific to secured room, there should be attributes.
+                    if (String(evt.getContent().body).includes('attributes')) {
+                        return true;
+                    }
+                }
             }
-            
-            if (this.rooms[roomId].timeline === undefined) {
-              return false;
-            }
-            
-            if (this.rooms[roomId].timeline[0].event.content?.type === undefined) {
-              return false;
-            }
-            
-            return true;
+            return false;
           },
           
 
@@ -271,7 +262,7 @@ const useRooms = defineStore('rooms', {
                     console.info(`There is an Error: ${error}`);
                 });
         },
-        
+ 
     },
 });
 

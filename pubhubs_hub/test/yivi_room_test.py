@@ -463,7 +463,7 @@ class TestAsync(IsolatedAsyncioTestCase):
             },
             "some_id",
         )
-        self.assertEqual(result, {"something": "should not matter", "something_else": {"": ""}})
+        self.assertEqual(result, {"something": "should not matter", "something_else": ""})
 
     async def test_routes_secured(self):
         servlet = SecuredRoomsServlet(
