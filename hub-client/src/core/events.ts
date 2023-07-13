@@ -68,8 +68,8 @@ class Events {
 
     eventRoomMemberName(event: MatrixEvent, member: RoomMember) {
         const user = useUser();
-        console.debug("RoomMember.name",member.user?.displayName);
-        if ( member.user!==undefined ) {
+        console.debug("RoomMember.name",member.user);
+        if ( member.user!==undefined && member.user.userId == user.user.userId ) {
             user.setUser(member.user);
             if ( member.user.displayName!==undefined) {
                 user.user.setDisplayName( member.user.displayName );
