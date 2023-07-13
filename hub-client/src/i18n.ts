@@ -1,22 +1,16 @@
-import { createI18n } from 'vue-i18n';
+import { I18nOptions, createI18n } from 'vue-i18n';
 
 import {nl} from '@/locales/nl';
 import {en} from '@/locales/en';
 
 const supportedLanguages = ['nl', 'en'];
 const fallbackLanguage = 'en';
-let setLanguage = fallbackLanguage;
 
-const browserLanguage = navigator.language;
-if ( supportedLanguages.indexOf(browserLanguage) >= 0 ) {
-    setLanguage = browserLanguage;
-}
-
-const i18n = createI18n({
+const i18nOptions : I18nOptions= {
     legacy: false,
     warnHtmlMessage: false,
     globalInjection: true,
-    locale: setLanguage,
+    locale: fallbackLanguage,
     fallbackLocale: fallbackLanguage,
     messages: {
         nl: nl,
@@ -42,6 +36,22 @@ const i18n = createI18n({
             }
         }
     }
-});
+}
 
-export { i18n, supportedLanguages, setLanguage }
+const setUpi18n = function() {
+    const i18n = createI18n(i18nOptions);
+    setLanguage(i18n,fallbackLanguage);
+    return i18n;
+}
+
+const setLanguage = function( i18n:any, language:string) {
+    i18n.global.locale.value = language;
+}
+
+const currentLanguage = function( i18n:any ) {
+    return i18n.global.locale.value;
+}
+
+
+
+export { setUpi18n, setLanguage, fallbackLanguage, currentLanguage, supportedLanguages }

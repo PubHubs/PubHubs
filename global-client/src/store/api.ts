@@ -60,7 +60,7 @@ const useApi = defineStore('api', {
             if ( headers.get('content-type') == "application/json" ) {
                 return true;
             }
-            if ( headers.get('content-type') == "application/octet-stream" && headers.get('content-length')!=null ) {
+            if ( headers.get('content-type') == "application/octet-stream" && headers.get('content-length')!="0"  ) {
                 return true;
             }
             return false;

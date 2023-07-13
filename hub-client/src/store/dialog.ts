@@ -1,6 +1,6 @@
 import { defineStore } from 'pinia'
 import { MessageType, Message, useMessageBox } from './messagebox';
-import { i18n } from '../i18n';
+import { setUpi18n } from '../i18n';
 
 /**
  * Global Dialog, uses components/ui/Dialog.vue component which is globally present in App.vue
@@ -151,6 +151,7 @@ const useDialog = defineStore('dialog', {
          * @returns
          */
         showError( title:string, content:string = '') {
+            const i18n = setUpi18n();
             const { t } = i18n.global;
             const message = t('errors.error',title);
             return this.show( new DialogProperties(message,content,buttonsOk));

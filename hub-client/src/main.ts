@@ -3,7 +3,7 @@ import { createPinia } from 'pinia'
 import { createRouter, createWebHashHistory } from 'vue-router';
 import '@/registerServiceWorker'
 import '@/assets/tailwind.css'
-import { i18n } from '@/i18n';
+import { setUpi18n } from '@/i18n';
 
 import { registerComponents } from '@/registerComponents.js';
 
@@ -13,6 +13,8 @@ import App from '@/pages/App.vue'
 
 import { ReplaceConsole } from '@/console';
 ReplaceConsole();
+
+const i18n = setUpi18n();
 
 const router = createRouter({
     history: createWebHashHistory(),

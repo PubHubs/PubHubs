@@ -12,10 +12,8 @@
                                 <HubIcon type="pubhubs-home" :active="isActive" class="text-blue dark:text-white"></HubIcon>
                             </router-link>
 
-                            <Line v-if="global.loggedIn" class="m-2 sm:m-6 mt-8"></Line>
-
+                            <Line v-if="global.loggedIn && global.hasPinnedHubs" class="m-2 sm:m-6 mt-8"></Line>
                             <HubMenu></HubMenu>
-
                             <Line v-if="global.loggedIn" class="m-2 sm:m-6 mt-8"></Line>
                         </div>
 
@@ -57,25 +55,34 @@
     const hubs = useHubs();
     const dialog = useDialog();
     const settingsDialog = ref(false);
-    const { t } = useI18n();
+    const { t, locale, availableLocales } = useI18n();
 
     // eslint-disable-next-line
     const pubHubsUrl = _env.PUBHUBS_URL;
 
     onMounted( async () => {
         console.clear();
+        settings.initI18b( {locale:locale,availableLocales:availableLocales});
         dialog.asGlobal();
 
-        await global.checkLoginAndSettings();
-        await addHubs();
+        if (await global.checkLoginAndSettings()) {
 
-        // save settings when changed
-        global.$subscribe(()=>{
-            global.saveGlobalSettings();
-        });
-        settings.$subscribe(()=>{
-            global.saveGlobalSettings();
-        });
+            // set language when changed
+            settings.$subscribe(()=>{
+                locale.value = settings.getActiveLanguage;
+            });
+
+            // save settings when changed
+            global.$subscribe(()=>{
+                global.saveGlobalSettings();
+            });
+            settings.$subscribe(()=>{
+                global.saveGlobalSettings();
+            });
+
+        }
+
+        await addHubs();
 
     });
 

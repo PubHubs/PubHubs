@@ -122,9 +122,9 @@ const useHubs = defineStore('hubs', {
                         const loginTime = global.loginTime;
                         messagebox.sendMessage(new Message(MessageType.GlobalLoginTime, loginTime));
 
-                        // Send current theme
+                        // Send current settings
                         const settings = useSettings();
-                        settings.sendTheme();
+                        settings.sendSettings();
 
                         // Let hub navigate to given room
                         if ( roomId!==undefined && roomId!=="" ) {
@@ -142,7 +142,9 @@ const useHubs = defineStore('hubs', {
                         // Listen to sync settings
                         messagebox.addCallback( MessageType.Settings, (message:Message) => {
                             const settings = useSettings();
-                            settings.setTheme(message.content as Theme);
+                            const content = message.content as any;
+                            settings.setTheme(content.theme as Theme);
+                            settings.setLanguage(content.language);
                         });
 
                         // Listen to sync unreadmessages

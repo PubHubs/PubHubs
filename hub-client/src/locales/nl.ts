@@ -63,6 +63,8 @@ const nl = {
         displayname_changed: 'Bijnaam gewijzigd in `{0}`.',
         theme: 'Thema',
         theme_changed: 'Thema gewijzigd in `{0}`.',
+        language: 'Taal',
+        language_changed: 'Taal gewijzigd in `{0}`.',
         title: 'Instellingen',
     },
     themes: {
