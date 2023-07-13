@@ -11,7 +11,7 @@
             </div>
         </template>
 
-        <RoomTimeline class="pt-12" :room_id="rooms.currentRoomId"></RoomTimeline>
+        <RoomTimeline class="pt-12 pb-3" :room_id="rooms.currentRoomId"></RoomTimeline>
 
         <template #footer>
             <MessageInput @submit="addMessage($event)"></MessageInput>
