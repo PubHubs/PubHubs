@@ -8,34 +8,34 @@ import { defineStore } from 'pinia'
 
 let baseUrl = '';
 // @ts-ignore
-if ( typeof(_env) !== 'undefined' ) {
+if (typeof (_env) !== 'undefined') {
     // @ts-ignore
     baseUrl = _env.PUBHUBS_URL;
 }
 
 const apiURLS = {
-    'login'     : baseUrl + '/login',
-    'logout'    : baseUrl + '/logout',
-    'bar'       : baseUrl + '/bar/state',
-    'hubs'      : baseUrl + '/bar/hubs',
+    'login': baseUrl + '/login',
+    'logout': baseUrl + '/logout',
+    'bar': baseUrl + '/bar/state',
+    'hubs': baseUrl + '/bar/hubs',
 }
 
 interface ApiOptions {
-    method:string;
-    body?:string;
+    method: string;
+    body?: string;
     headers?: Object;
 }
 
-const apiOptionsGET:ApiOptions = {
-    method : "GET",
+const apiOptionsGET: ApiOptions = {
+    method: "GET",
 }
 
-const apiOptionsPOST:ApiOptions = {
-    method : "POST",
+const apiOptionsPOST: ApiOptions = {
+    method: "POST",
 }
 
-const apiOptionsPUT:ApiOptions = {
-    method : "PUT",
+const apiOptionsPUT: ApiOptions = {
+    method: "PUT",
 }
 
 
@@ -43,55 +43,56 @@ const useApi = defineStore('api', {
 
     state: () => {
         return {
-            etag : '',
+            etag: '',
         }
     },
 
-    actions : {
+    actions: {
 
-        fetchEtagFromHeaders(headers:Headers) : string {
-            if ( headers.get('etag') ) {
+        fetchEtagFromHeaders(headers: Headers): string {
+            if (headers.get('etag')) {
                 this.etag = headers.get('etag') as string;
             }
             return this.etag;
         },
 
-        isJsonResponse(headers:Headers) : boolean {
-            if ( headers.get('content-type') == "application/json" ) {
+        isJsonResponse(headers: Headers): boolean {
+            if (headers.get('content-type') == "application/json") {
                 return true;
             }
-            if ( headers.get('content-type') == "application/octet-stream" && headers.get('content-length')!="0"  ) {
+            const contentLength = headers.get('content-length');
+            if (headers.get('content-type') == "application/octet-stream" && contentLength !== null && contentLength != "0") {
                 return true;
             }
             return false;
         },
 
-        async api<T>( url:string, options:ApiOptions = apiOptionsGET ): Promise<T> {
-            const response = await fetch(url,options as RequestInit);
-            if ( !response.ok ) {
+        async api<T>(url: string, options: ApiOptions = apiOptionsGET, defaultResponseData: any = undefined): Promise<T> {
+            const response = await fetch(url, options as RequestInit);
+            if (!response.ok) {
                 return false as T;
             }
             this.fetchEtagFromHeaders(response.headers);
-            if ( response.status == 204 ) {
+            if (response.status == 204) {
                 return true as T;
             }
             if (this.isJsonResponse(response.headers)) {
                 return response.json() as Promise<T>;
             }
-            return response as T;
+            return defaultResponseData as T;
         },
 
-        async apiGET<T>( url:string ) : Promise<T> {
-            return this.api<T>( url, apiOptionsGET );
+        async apiGET<T>(url: string): Promise<T> {
+            return this.api<T>(url, apiOptionsGET);
         },
 
-        async apiPOST<T>( url:string, data:any ) : Promise<T> {
+        async apiPOST<T>(url: string, data: any): Promise<T> {
             const options = apiOptionsPOST;
             options.body = JSON.stringify(data);
-            return this.api<T>( url, options );
+            return this.api<T>(url, options);
         },
 
-        async apiPUT<T>( url:string, data:any, etag:boolean = false ) : Promise<T> {
+        async apiPUT<T>(url: string, data: any, etag: boolean = false): Promise<T> {
             const options = apiOptionsPUT;
             options.headers = {
                 "Content-Type": "application/octet-stream",
@@ -103,7 +104,7 @@ const useApi = defineStore('api', {
                 }
             }
             options.body = JSON.stringify(data);
-            return this.api<T>( url, options );
+            return this.api<T>(url, options);
         },
 
     }
