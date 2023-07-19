@@ -12,7 +12,7 @@ use actix_web::web::{self, Data, Form, Path};
 use anyhow::{Context, Result};
 use env_logger::Env;
 
-use log::{error, info};
+use log::{error, info, warn};
 use serde::{Deserialize, Serialize};
 
 use tokio::sync::oneshot;
@@ -1008,13 +1008,23 @@ async fn check_connection(url: &str, nonce: &str) -> Result<()> {
             for n in 0..10 {
                 match check_connection_once(url, nonce).await {
                     Ok(_) => return Ok(()),
-                    Err(e) => log::warn!("try nr. {} failed:  {}", n, e),
+                    Err(e) => warn!("try nr. {} failed:  {}", n, e),
                 };
 
                 tokio::time::sleep(tokio::time::Duration::from_millis(2_u64.pow(n) * 100)).await;
             }
 
-            Err(anyhow::anyhow!("Could not connect to self via {}.", url))
+            #[cfg(debug_assertions)]
+            error!("When running PubHubs as a developer, we often need to configure some urls to use the system, \
+            we check reachability for two of them: 'urls.for_browser' and 'urls.for_yivi_app'. The browser url is what you can use on your local system to access the \
+            platform via the browser. The yivi app is the url your phone needs to connect via the yivi app with the PubHubs central platform. By default change these settings \
+            in 'default.yaml'. \
+            In a real situation these will all be the same url, and can be configured under a single 'url' key,\
+             but as a developer it's much harder to configure that way.");
+
+            Err(anyhow::anyhow!("Could not connect to self via {}. This check is to see if users can reach PubHubs, since they need to be able to reach the server on the provided url. \
+            Configure it in the file specified in 'PUBHUBS_CONFIG'.", url))
+
         })
         .await
 }
