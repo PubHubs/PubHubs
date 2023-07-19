@@ -66,9 +66,7 @@ fn create_session_cookie(user_id: u32, cookie_secret: &str) -> Result<String> {
 /// Creates `PHAccount` session `Set-Cookie` header value
 fn create_session_set_cookie(user_id: u32, cookie_secret: &str) -> Result<String> {
     let val = create_session_cookie(user_id, cookie_secret)?;
-    Ok(format!(
-        "{val}; Max-Age={MAX_AGE};{SECURE} Path=/"
-    ))
+    Ok(format!("{val}; Max-Age={MAX_AGE};{SECURE} Path=/"))
 }
 
 /// Searches cookie string `cookies` for a PHAccount session cookie, and - after validating the
