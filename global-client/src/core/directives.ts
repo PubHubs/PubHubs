@@ -1,2 +1,2 @@
-import { focus, twClass} from '../../../hub-client/src/core/directives';
-export { focus, twClass }
+import { focus, twClass } from '../../../hub-client/src/core/directives';
+export { focus, twClass };

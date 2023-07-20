@@ -1,8 +1,7 @@
-import { defineStore } from 'pinia'
-import filters from '@/core/filters'
+import { defineStore } from 'pinia';
+import filters from '@/core/filters';
 
-import { Theme } from '@/store/store'
-
+import { Theme } from '@/store/store';
 
 /**
  * This store is used to exchange messages from global client (parent frame) to hub client (iframe) and the other way around.
@@ -41,20 +40,18 @@ import { Theme } from '@/store/store'
  *
  */
 
-
 /**
  * The id of the iframe used to embed the hub's client.
  */
 const iframeHubId = 'hub-frame-id';
 
-
 /**
  * Messagebox types
  */
 enum MessageBoxType {
-    Unset = '',
-    Child = 'CHILD',
-    Parent = 'PARENT',
+	Unset = '',
+	Child = 'CHILD',
+	Parent = 'PARENT',
 }
 
 /**
@@ -63,18 +60,17 @@ enum MessageBoxType {
 const handShakePrefix = 'handshake';
 const modalPrefix = 'dialog-modal';
 enum MessageType {
-    HandshakeStart = handShakePrefix + '-start',        // Start the handshake
-    HandshakeReady = handShakePrefix + '-ready',        // Handshake is ready
+	HandshakeStart = handShakePrefix + '-start', // Start the handshake
+	HandshakeReady = handShakePrefix + '-ready', // Handshake is ready
 
-    DialogShowModal = modalPrefix + '-show',            // Show modal over bar
-    DialogHideModal = modalPrefix + '-hide',            // Hide modal over bar
+	DialogShowModal = modalPrefix + '-show', // Show modal over bar
+	DialogHideModal = modalPrefix + '-hide', // Hide modal over bar
 
-    UnreadMessages = 'unreadmessages',                  // Sync total of unread messages for a hub
-    Settings = 'settings',                              // Sync settings
-    RoomChange = 'roomchange',                          // Change to a room - makes it possible to reflect the room in the url
-    GlobalLoginTime = "globallogintime",                // Let Hub know if it should log itself out, if its own login predates the global login
+	UnreadMessages = 'unreadmessages', // Sync total of unread messages for a hub
+	Settings = 'settings', // Sync settings
+	RoomChange = 'roomchange', // Change to a room - makes it possible to reflect the room in the url
+	GlobalLoginTime = 'globallogintime', // Let Hub know if it should log itself out, if its own login predates the global login
 }
-
 
 /**
  * A message is an object with:
@@ -83,230 +79,215 @@ enum MessageType {
  *  - content - can be anything
  */
 
-type MessageContent = string|number|object|Theme;
+type MessageContent = string | number | object | Theme;
 
 class Message {
-    type : MessageType;
-    content : MessageContent;
+	type: MessageType;
+	content: MessageContent;
 
-    constructor( type:MessageType, content: MessageContent = '' ) {
-        this.type = type;
-        if ( this.isHandShakeMessage() ) {
-            this.content = type;
-        }
-        else {
-            this.content = content;
-        }
-    }
+	constructor(type: MessageType, content: MessageContent = '') {
+		this.type = type;
+		if (this.isHandShakeMessage()) {
+			this.content = type;
+		} else {
+			this.content = content;
+		}
+	}
 
-    isHandShakeStart() {
-        return this.type == MessageType.HandshakeStart;
-    }
+	isHandShakeStart() {
+		return this.type == MessageType.HandshakeStart;
+	}
 
-    isHandShakeReady() {
-        return this.type == MessageType.HandshakeReady;
-    }
+	isHandShakeReady() {
+		return this.type == MessageType.HandshakeReady;
+	}
 
-    isHandShakeMessage() {
-        const type = this.type;
-        if ( typeof(type) == 'string' ) {
-            return type.substring(0,handShakePrefix.length) == handShakePrefix;
-        }
-        return false;
-    }
-
+	isHandShakeMessage() {
+		const type = this.type;
+		if (typeof type == 'string') {
+			return type.substring(0, handShakePrefix.length) == handShakePrefix;
+		}
+		return false;
+	}
 }
 
 /**
  * Handshake state
  */
 enum HandshakeState {
-    Idle = 'idle',
-    Started = 'started',
-    Ready = 'ready',
+	Idle = 'idle',
+	Started = 'started',
+	Ready = 'ready',
 }
-
 
 /**
  * The messagebox itself
  */
 const useMessageBox = defineStore('messagebox', {
+	state: () => {
+		return {
+			inIframe: false, // Is the messagebox inside an iframe? Used to determine if a hub is on its own or inside an iframe of the global client.
+			type: MessageBoxType.Unset, // Parent or Child
+			receiverUrl: '' as string, // The url to which this messagebox can send and receive messages
+			handshake: HandshakeState.Idle, // Handshake state
+			callbacks: {} as { [index in MessageType]: Function }, // List of callbacks per MessageType
+			_windowMessageListener: {} as any, // Event listener, set at init - (ts: a lot off overhead to replace any)
+		};
+	},
 
-    state: () => {
-        return {
-            inIframe : false,                                                   // Is the messagebox inside an iframe? Used to determine if a hub is on its own or inside an iframe of the global client.
-            type : MessageBoxType.Unset,                                        // Parent or Child
-            receiverUrl : '' as string,                                         // The url to which this messagebox can send and receive messages
-            handshake : HandshakeState.Idle,                                    // Handshake state
-            callbacks : {} as { [index in MessageType]: Function },             // List of callbacks per MessageType
-            _windowMessageListener : {} as any                                  // Event listener, set at init - (ts: a lot off overhead to replace any)
-        }
-    },
+	getters: {
+		/**
+		 * Handshake is ready (true)
+		 */
+		isReady(state): Boolean {
+			return state.handshake === HandshakeState.Ready;
+		},
 
-    getters: {
+		/**
+		 * If the hub-client is part of global-client (or standalone, in which case no messages are send/received)
+		 */
+		isConnected(state): Boolean {
+			return state.type == MessageBoxType.Parent || state.inIframe;
+		},
+	},
 
-        /**
-         * Handshake is ready (true)
-         */
-        isReady(state) : Boolean {
-            return (state.handshake === HandshakeState.Ready);
-        },
+	actions: {
+		/**
+		 * Both parent and hub needs to be initialised.
+		 *
+		 * @param type MessageBoxType (PARENT|CHILD)
+		 * @param url url of the other side
+		 *
+		 * @returns a Promise after handshake is ready. Add callbacks after the promise is resolved.
+		 */
+		init(type: MessageBoxType, url: string): Promise<boolean> {
+			return new Promise((resolve, reject) => {
+				this.reset();
+				this.type = type;
+				this.receiverUrl = url;
 
-        /**
-         * If the hub-client is part of global-client (or standalone, in which case no messages are send/received)
-         */
-        isConnected(state) : Boolean {
-            return (state.type == MessageBoxType.Parent || state.inIframe);
-        }
+				// If Child: start handshake with parent
+				if (this.inIframe && this.type == MessageBoxType.Child) {
+					this.sendMessage(new Message(MessageType.HandshakeStart));
+					this.handshake = HandshakeState.Started;
+				}
 
-    },
+				// Start listening
+				if (this.isConnected) {
+					this._windowMessageListener = (event: MessageEvent) => {
+						// Allways test if message is from expected domain
+						if (filters.removeBackSlash(event.origin) == filters.removeBackSlash(this.receiverUrl)) {
+							const message = new Message(event.data.type, event.data.content);
 
-    actions: {
+							// Answer to handshake as parent
+							if (message.isHandShakeStart() && type == MessageBoxType.Parent) {
+								console.log('<= ' + this.type + ' RECEIVED handshake:', this.receiverUrl);
+								this.sendMessage(new Message(MessageType.HandshakeReady));
+								this.handshake = HandshakeState.Ready;
+								resolve(true);
+							}
 
-        /**
-         * Both parent and hub needs to be initialised.
-         *
-         * @param type MessageBoxType (PARENT|CHILD)
-         * @param url url of the other side
-         *
-         * @returns a Promise after handshake is ready. Add callbacks after the promise is resolved.
-         */
-        init( type:MessageBoxType, url: string ) : Promise<boolean> {
-            return new Promise((resolve,reject) => {
-                this.reset();
-                this.type = type;
-                this.receiverUrl = url;
+							// Answer to handshake as child
+							else if (message.isHandShakeReady() && type == MessageBoxType.Child) {
+								console.log('=> ' + this.type + ' RECEIVED', HandshakeState.Ready);
+								this.handshake = HandshakeState.Ready;
+								resolve(true);
+							}
 
-                // If Child: start handshake with parent
-                if ( this.inIframe && this.type == MessageBoxType.Child ) {
-                    this.sendMessage( new Message(MessageType.HandshakeStart) );
-                    this.handshake = HandshakeState.Started;
-                }
+							// Normal message was received and is of a know message type
+							else if (Object.values(MessageType).includes(message.type)) {
+								this.receivedMessage(message);
+								reject();
+							}
+						}
+					};
 
-                // Start listening
-                if ( this.isConnected ) {
+					window.addEventListener('message', this._windowMessageListener);
+				} else {
+					reject();
+				}
+			});
+		},
 
-                    this._windowMessageListener = (event:MessageEvent) => {
+		/**
+		 * Resets the messagebox. Messages can't be send or received anymore.
+		 */
+		reset() {
+			window.removeEventListener('message', this._windowMessageListener);
+			this.inIframe = window.self !== window.top;
+			this.type = MessageBoxType.Unset;
+			this.receiverUrl = '';
+			this.handshake = HandshakeState.Idle;
+			this.callbacks = {} as { [index in MessageType]: Function };
+		},
 
-                        // Allways test if message is from expected domain
-                        if ( filters.removeBackSlash(event.origin) == filters.removeBackSlash(this.receiverUrl) ) {
+		/**
+		 * Depending on which client, resolve the target window.
+		 * @ignore
+		 */
+		resolveTarget() {
+			let target = null;
+			if (this.type == MessageBoxType.Child) {
+				target = window.parent;
+			} else {
+				const el: HTMLIFrameElement | null = document.querySelector('iframe#' + iframeHubId);
+				if (el !== null && typeof el.contentWindow !== 'undefined') {
+					target = el ? el.contentWindow : null;
+				}
+			}
+			return target;
+		},
 
-                            const message = new Message(event.data.type,event.data.content);
+		/**
+		 * Send a message
+		 *
+		 * @param message Message
+		 */
+		sendMessage(message: Message) {
+			if (this.isConnected) {
+				const target = this.resolveTarget();
+				if (target) {
+					// console.log('=> '+this.type+' SEND',message, this.receiverUrl );
+					target.postMessage(message, this.receiverUrl);
+				}
+			}
+		},
 
-                            // Answer to handshake as parent
-                            if ( message.isHandShakeStart() && type == MessageBoxType.Parent ) {
-                                console.log('<= '+this.type+' RECEIVED handshake:', this.receiverUrl );
-                                this.sendMessage( new Message(MessageType.HandshakeReady) )
-                                this.handshake = HandshakeState.Ready;
-                                resolve(true);
-                            }
+		/**
+		 * Called when a valid message is received
+		 * It will call the callback that is set for the MessageType
+		 *
+		 * @param message Message
+		 */
+		receivedMessage(message: Message) {
+			if (this.handshake == HandshakeState.Ready) {
+				// console.log('<= '+this.type+' RECEIVED', message );
+				const callback = this.callbacks[message.type];
+				if (callback) {
+					callback(message as Message);
+				}
+			}
+		},
 
-                            // Answer to handshake as child
-                            else if ( message.isHandShakeReady() && type == MessageBoxType.Child ) {
-                                console.log('=> '+this.type+' RECEIVED', HandshakeState.Ready );
-                                this.handshake = HandshakeState.Ready;
-                                resolve(true);
-                            }
+		/**
+		 * Add a callback to a given MessageType. The callback will be called after that MessageType has been received with the message.
+		 *
+		 * @param type MessageType
+		 * @param callback Function(message)
+		 */
+		addCallback(type: MessageType, callback: Function) {
+			this.callbacks[type] = callback;
+		},
 
-                            // Normal message was received and is of a know message type
-                            else if ( Object.values(MessageType).includes(message.type) ) {
-                                this.receivedMessage(message);
-                                reject();
-                            }
+		/**
+		 * Remove a callback
+		 *
+		 * @param type MessageType
+		 */
+		removeCallback(type: MessageType) {
+			delete this.callbacks[type];
+		},
+	},
+});
 
-                        }
-                    }
-
-                    window.addEventListener("message", this._windowMessageListener );
-                }
-                else {
-                    reject();
-                }
-            });
-        },
-
-        /**
-         * Resets the messagebox. Messages can't be send or received anymore.
-         */
-        reset() {
-            window.removeEventListener("message", this._windowMessageListener );
-            this.inIframe = window.self !== window.top;
-            this.type = MessageBoxType.Unset;
-            this.receiverUrl = '';
-            this.handshake = HandshakeState.Idle;
-            this.callbacks = {} as { [index in MessageType]: Function };
-        },
-
-        /**
-         * Depending on which client, resolve the target window.
-         * @ignore
-         */
-        resolveTarget() {
-            let target = null;
-            if ( this.type == MessageBoxType.Child ) {
-                target = window.parent;
-            }
-            else {
-                const el:HTMLIFrameElement|null = document.querySelector('iframe#'+iframeHubId);
-                if ( el !== null && typeof(el.contentWindow) !== "undefined") {
-                    target = el ? el.contentWindow : null;
-                }
-            }
-            return target;
-        },
-
-        /**
-         * Send a message
-         *
-         * @param message Message
-         */
-        sendMessage(message:Message) {
-            if ( this.isConnected ) {
-                const target = this.resolveTarget();
-                if (target) {
-                    // console.log('=> '+this.type+' SEND',message, this.receiverUrl );
-                    target.postMessage( message, this.receiverUrl );
-                }
-            }
-        },
-
-        /**
-         * Called when a valid message is received
-         * It will call the callback that is set for the MessageType
-         *
-         * @param message Message
-         */
-        receivedMessage(message:Message) {
-            if ( this.handshake == HandshakeState.Ready ) {
-                // console.log('<= '+this.type+' RECEIVED', message );
-                const callback = this.callbacks[message.type];
-                if (callback) {
-                    callback(message as Message);
-                }
-            }
-        },
-
-        /**
-         * Add a callback to a given MessageType. The callback will be called after that MessageType has been received with the message.
-         *
-         * @param type MessageType
-         * @param callback Function(message)
-         */
-        addCallback(type:MessageType, callback:Function) {
-            this.callbacks[type] = callback;
-        },
-
-        /**
-         * Remove a callback
-         *
-         * @param type MessageType
-         */
-        removeCallback(type:MessageType) {
-            delete(this.callbacks[type]);
-        },
-
-    },
-
-})
-
-export { iframeHubId, MessageType, Message, MessageBoxType, useMessageBox }
+export { iframeHubId, MessageType, Message, MessageBoxType, useMessageBox };

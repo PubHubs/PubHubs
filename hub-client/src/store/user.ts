@@ -8,53 +8,44 @@
  *
  */
 
-import { defineStore } from 'pinia'
+import { defineStore } from 'pinia';
 import { User } from 'matrix-js-sdk';
 import { MatrixClient } from 'matrix-js-sdk';
 
 const defaultUser = {} as User;
 
 type State = {
-    user: User
-}
+	user: User;
+};
 
 type getProfileInfoResponseType = {
-    avatar_url? : string | undefined,
-    displayname? : string | undefined,
-}
-
+	avatar_url?: string | undefined;
+	displayname?: string | undefined;
+};
 
 const useUser = defineStore('user', {
+	state: (): State => ({
+		user: defaultUser,
+	}),
 
-    state: () : State => ({
-        user : defaultUser
-    }),
+	getters: {
+		isLoggedIn({ user }) {
+			return typeof user.userId == 'string';
+		},
+	},
 
-    getters: {
+	actions: {
+		setUser(user: User) {
+			this.user = user;
+		},
 
-        isLoggedIn({user}) {
-            return typeof(user.userId) == 'string';
-        },
+		async fetchDisplayName(client: MatrixClient) {
+			const response: getProfileInfoResponseType = await client.getProfileInfo(this.user.userId, 'displayname');
+			if (typeof response.displayname == 'string') {
+				this.user.setDisplayName(response.displayname);
+			}
+		},
+	},
+});
 
-    },
-
-    actions: {
-
-        setUser(user: User) {
-            this.user = user;
-        },
-
-        async fetchDisplayName(client:MatrixClient) {
-
-            const response : getProfileInfoResponseType= await client.getProfileInfo(this.user.userId, 'displayname');
-            if (typeof (response.displayname) == 'string') {
-                this.user.setDisplayName(response.displayname);
-            }
-
-        },
-
-    },
-
-})
-
-export { User, defaultUser, useUser }
+export { User, defaultUser, useUser };
