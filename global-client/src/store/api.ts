@@ -4,111 +4,106 @@
  *
  */
 
-import { defineStore } from 'pinia'
+import { defineStore } from 'pinia';
 
 let baseUrl = '';
 // @ts-ignore
-if (typeof (_env) !== 'undefined') {
-    // @ts-ignore
-    baseUrl = _env.PUBHUBS_URL;
+if (typeof _env !== 'undefined') {
+	// @ts-ignore
+	baseUrl = _env.PUBHUBS_URL;
 }
 
 const apiURLS = {
-    'login': baseUrl + '/login',
-    'logout': baseUrl + '/logout',
-    'bar': baseUrl + '/bar/state',
-    'hubs': baseUrl + '/bar/hubs',
-}
+	login: baseUrl + '/login',
+	logout: baseUrl + '/logout',
+	bar: baseUrl + '/bar/state',
+	hubs: baseUrl + '/bar/hubs',
+};
 
 interface ApiOptions {
-    method: string;
-    body?: string;
-    headers?: Object;
+	method: string;
+	body?: string;
+	headers?: Object;
 }
 
 const apiOptionsGET: ApiOptions = {
-    method: "GET",
-}
+	method: 'GET',
+};
 
 const apiOptionsPOST: ApiOptions = {
-    method: "POST",
-}
+	method: 'POST',
+};
 
 const apiOptionsPUT: ApiOptions = {
-    method: "PUT",
-}
-
+	method: 'PUT',
+};
 
 const useApi = defineStore('api', {
+	state: () => {
+		return {
+			etag: '',
+		};
+	},
 
-    state: () => {
-        return {
-            etag: '',
-        }
-    },
+	actions: {
+		fetchEtagFromHeaders(headers: Headers): string {
+			if (headers.get('etag')) {
+				this.etag = headers.get('etag') as string;
+			}
+			return this.etag;
+		},
 
-    actions: {
+		isJsonResponse(headers: Headers): boolean {
+			if (headers.get('content-type') == 'application/json') {
+				return true;
+			}
+			const contentLength = headers.get('content-length');
+			if (headers.get('content-type') == 'application/octet-stream' && contentLength !== null && contentLength != '0') {
+				return true;
+			}
+			return false;
+		},
 
-        fetchEtagFromHeaders(headers: Headers): string {
-            if (headers.get('etag')) {
-                this.etag = headers.get('etag') as string;
-            }
-            return this.etag;
-        },
+		async api<T>(url: string, options: ApiOptions = apiOptionsGET, defaultResponseData: any = undefined): Promise<T> {
+			const response = await fetch(url, options as RequestInit);
+			if (!response.ok) {
+				return false as T;
+			}
+			this.fetchEtagFromHeaders(response.headers);
+			if (response.status == 204) {
+				return true as T;
+			}
+			if (this.isJsonResponse(response.headers)) {
+				return response.json() as Promise<T>;
+			}
+			return defaultResponseData as T;
+		},
 
-        isJsonResponse(headers: Headers): boolean {
-            if (headers.get('content-type') == "application/json") {
-                return true;
-            }
-            const contentLength = headers.get('content-length');
-            if (headers.get('content-type') == "application/octet-stream" && contentLength !== null && contentLength != "0") {
-                return true;
-            }
-            return false;
-        },
+		async apiGET<T>(url: string): Promise<T> {
+			return this.api<T>(url, apiOptionsGET);
+		},
 
-        async api<T>(url: string, options: ApiOptions = apiOptionsGET, defaultResponseData: any = undefined): Promise<T> {
-            const response = await fetch(url, options as RequestInit);
-            if (!response.ok) {
-                return false as T;
-            }
-            this.fetchEtagFromHeaders(response.headers);
-            if (response.status == 204) {
-                return true as T;
-            }
-            if (this.isJsonResponse(response.headers)) {
-                return response.json() as Promise<T>;
-            }
-            return defaultResponseData as T;
-        },
+		async apiPOST<T>(url: string, data: any): Promise<T> {
+			const options = apiOptionsPOST;
+			options.body = JSON.stringify(data);
+			return this.api<T>(url, options);
+		},
 
-        async apiGET<T>(url: string): Promise<T> {
-            return this.api<T>(url, apiOptionsGET);
-        },
+		async apiPUT<T>(url: string, data: any, etag: boolean = false): Promise<T> {
+			const options = apiOptionsPUT;
+			options.headers = {
+				'Content-Type': 'application/octet-stream',
+			};
+			if (etag) {
+				options.headers = {
+					'Content-Type': 'application/octet-stream',
+					'If-Match': this.etag,
+				};
+			}
+			options.body = JSON.stringify(data);
+			return this.api<T>(url, options);
+		},
+	},
+});
 
-        async apiPOST<T>(url: string, data: any): Promise<T> {
-            const options = apiOptionsPOST;
-            options.body = JSON.stringify(data);
-            return this.api<T>(url, options);
-        },
-
-        async apiPUT<T>(url: string, data: any, etag: boolean = false): Promise<T> {
-            const options = apiOptionsPUT;
-            options.headers = {
-                "Content-Type": "application/octet-stream",
-            }
-            if (etag) {
-                options.headers = {
-                    "Content-Type": "application/octet-stream",
-                    "If-Match": this.etag,
-                }
-            }
-            options.body = JSON.stringify(data);
-            return this.api<T>(url, options);
-        },
-
-    }
-
-})
-
-export { apiURLS, apiOptionsGET, apiOptionsPOST, apiOptionsPUT, useApi }
+export { apiURLS, apiOptionsGET, apiOptionsPOST, apiOptionsPUT, useApi };

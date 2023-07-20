@@ -1,20 +1,20 @@
 // NB: Set classes also in safeList of tailwind.config.js
 
-const iconSizes : { [key:string]:string } = {
-    'sm': 'h-4 w-4',
-    'base': 'h-6 w-6',
-    'md': 'h-7 w-7',
-    'lg': 'h-8 w-8',
-    'xl': 'h-12 w-12',
-    '2xl': 'h-16 w-16',
-    '3xl': 'h-20 w-20',
-    '4xl': 'h-24 w-24',
+const iconSizes: { [key: string]: string } = {
+	sm: 'h-4 w-4',
+	base: 'h-6 w-6',
+	md: 'h-7 w-7',
+	lg: 'h-8 w-8',
+	xl: 'h-12 w-12',
+	'2xl': 'h-16 w-16',
+	'3xl': 'h-20 w-20',
+	'4xl': 'h-24 w-24',
 };
 
-const buttonSizes : { [key:string]:string } = {
-    'sm': 'py-1 px-2',
-    'base': 'py-2 px-4',
-    'lg': 'py-3 px-6',
+const buttonSizes: { [key: string]: string } = {
+	sm: 'py-1 px-2',
+	base: 'py-2 px-4',
+	lg: 'py-3 px-6',
 };
 
-export { iconSizes, buttonSizes }
+export { iconSizes, buttonSizes };

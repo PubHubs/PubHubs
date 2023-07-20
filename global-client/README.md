@@ -10,7 +10,6 @@ For normal use this should automatically be done with the PubHubs deployment and
 
 For Development or Theming see below.
 
-
 # Setup for development or theming
 
 [Node](https://nodejs.org) should be present on your system.
@@ -56,7 +55,6 @@ npm run watch
 ```
 
 NB There is no Hot Module Replacement, so you need to manualy refresh.
-
 
 ## Testing
 
