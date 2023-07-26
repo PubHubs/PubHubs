@@ -1,117 +1,135 @@
 <template>
-    <div :class="settings.getActiveTheme">
-        <div class="w-screen h-screen bg-white text-black dark:bg-gray-dark dark:text-white">
+	<div :class="settings.getActiveTheme">
+		<div v-if="setupReady" class="w-screen h-screen bg-white text-black dark:bg-gray-dark dark:text-white">
+			<div v-if="user.isLoggedIn" class="grid grid-cols-8">
+				<HeaderFooter class="col-span-2">
+					<template #header>
+						<router-link to="/">
+							<Badge v-if="hubSettings.isSolo && rooms.totalUnreadMessages > 0" class="-ml-2 -mt-2">{{ rooms.totalUnreadMessages }}</Badge>
+							<Logo class="absolute h-2/5 bottom-3"></Logo>
+						</router-link>
+					</template>
 
-            <div v-if="user.isLoggedIn" class="grid grid-cols-8">
-                <HeaderFooter class="col-span-2">
-                    <template #header>
-                        <router-link to="/">
-                            <Badge v-if="hubSettings.isSolo && rooms.totalUnreadMessages>0" class="-ml-2 -mt-2">{{rooms.totalUnreadMessages}}</Badge>
-                            <Logo class="absolute h-2/5 bottom-3"></Logo>
-                        </router-link>
-                    </template>
+					<Menu>
+						<router-link to="/" v-slot="{ isActive }">
+							<MenuItem icon="home" :active="isActive">{{ $t('menu.home') }}</MenuItem>
+						</router-link>
+						<MenuItem>{{ $t('menu.calender') }}</MenuItem>
+						<MenuItem>{{ $t('menu.tool') }}</MenuItem>
+					</Menu>
 
-                    <Menu>
-                        <router-link to="/" v-slot="{ isActive }">
-                            <MenuItem icon="home" :active="isActive">{{ $t("menu.home") }}</MenuItem>
-                        </router-link>
-                        <MenuItem>{{ $t("menu.calender") }}</MenuItem>
-                        <MenuItem>{{ $t("menu.tool") }}</MenuItem>
-                    </Menu>
+					<Toggler class="mt-12">
+						<template #title>
+							<H2 class="mt-0">{{ $t('menu.rooms') }}</H2>
+						</template>
+						<template #content="toggler">
+							<Line></Line>
+							<RoomList :edit="toggler.state"></RoomList>
+						</template>
+					</Toggler>
 
-                    <Toggler class="mt-12">
-                        <template #title>
-                            <H2 class="mt-0">{{ $t("menu.rooms") }}</H2>
-                        </template>
-                        <template #content="toggler">
-                            <Line></Line>
-                            <RoomList :edit="toggler.state"></RoomList>
-                        </template>
-                    </Toggler>
+					<div class="mt-12">
+						<H2>{{ $t('menu.private_rooms') }}</H2>
+						<Line></Line>
+					</div>
+					<Menu>
+						<MenuItem>{{ $t('menu.name') }}</MenuItem>
+					</Menu>
 
-                    <div class="mt-12">
-                        <H2>{{ $t("menu.private_rooms") }}</H2>
-                        <Line></Line>
-                    </div>
-                    <Menu>
-                        <MenuItem>{{ $t("menu.name") }}</MenuItem>
-                    </Menu>
+					<template #footer>
+						<Menu>
+							<router-link :to="{ name: 'settings', params: {} }" v-slot="{ isActive }">
+								<MenuItem icon="cog" :active="isActive"></MenuItem>
+							</router-link>
+						</Menu>
+					</template>
+				</HeaderFooter>
 
-                    <template #footer>
-                        <Menu v-if="hubSettings.isSolo">
-                            <router-link :to="{ name: 'settings', params: {} }" v-slot="{ isActive }">
-                                <MenuItem icon="cog" :active="isActive">
-                                    {{ $t("menu.settings") }}
-                                </MenuItem>
-                            </router-link>
-                        </Menu>
-                    </template>
-                </HeaderFooter>
+				<div class="col-span-6 overflow-auto bg-white dark:bg-gray-middle">
+					<router-view></router-view>
+				</div>
+			</div>
 
-                <div class="col-span-6 overflow-auto bg-white dark:bg-gray-middle">
-                    <router-view></router-view>
-                </div>
-            </div>
+			<div v-else>
+				<router-view></router-view>
+			</div>
+		</div>
 
-            <div v-else>
-                <router-view></router-view>
-            </div>
-
-        </div>
-
-        <Dialog v-if="dialog.visible" @close="dialog.close"></Dialog>
-
-    </div>
-
+		<Dialog v-if="dialog.visible" @close="dialog.close"></Dialog>
+	</div>
 </template>
 
 <script setup lang="ts">
-    import { onMounted } from 'vue';
-    import { RouteParamValue, useRouter } from 'vue-router'
-    import { useSettings, useHubSettings, Theme, useUser, useRooms, MessageType, Message, MessageBoxType, useMessageBox, useDialog } from '@/store/store'
-    import { usePubHubs } from '@/core/pubhubsStore';
+	import { onMounted, ref } from 'vue';
+	import { RouteParamValue, useRouter } from 'vue-router';
+	import { Message, MessageBoxType, MessageType, Theme, useDialog, useHubSettings, useMessageBox, useRooms, useSettings, useUser } from '@/store/store';
+	import { usePubHubs } from '@/core/pubhubsStore';
+	import { useI18n } from 'vue-i18n';
 
-    const router = useRouter();
-    const settings = useSettings();
-    const hubSettings = useHubSettings();
-    const user = useUser();
-    const rooms = useRooms();
-    const messagebox = useMessageBox();
-    const dialog = useDialog();
-    const pubhubs = usePubHubs();
+	const { locale, availableLocales } = useI18n();
+	const router = useRouter();
+	const settings = useSettings();
+	const hubSettings = useHubSettings();
+	const user = useUser();
+	const rooms = useRooms();
+	const messagebox = useMessageBox();
+	const dialog = useDialog();
+	const pubhubs = usePubHubs();
 
-    onMounted(() => {
-        if ( window.location.hash!=='#/hub/' ) {
-            pubhubs.login();
-            router.push({name:'home'});
-        }
-        startMessageBox();
-    })
+	const setupReady = ref(false);
 
+	onMounted(async () => {
+		settings.initI18b({ locale: locale, availableLocales: availableLocales });
+		// set language when changed
+		settings.$subscribe(() => {
+			locale.value = settings.getActiveLanguage;
+		});
 
-    async function startMessageBox() {
-        if ( ! hubSettings.isSolo ) {
+		if (window.location.hash !== '#/hub/') {
+			await pubhubs.login();
+			router.push({ name: 'home' });
+			setupReady.value = true;
+		}
+		await startMessageBox();
+	});
 
-            await messagebox.init( MessageBoxType.Child, hubSettings.parentUrl );
+	async function startMessageBox() {
+		let messageBoxStarted = false;
 
-            // Listen to roomchange
-            messagebox.addCallback( MessageType.RoomChange, (message:Message) => {
-                const roomId = message.content as RouteParamValue;
-                if ( rooms.currentRoomId !== roomId ) {
-                    router.push({name:'room',params:{id:roomId}});
-                }
-            });
+		if (!hubSettings.isSolo) {
+			await messagebox.init(MessageBoxType.Child, hubSettings.parentUrl);
 
-            // Listen to sync settings
-            messagebox.addCallback( MessageType.Settings, (message:Message) => {
-                settings.setTheme(message.content as Theme);
-            });
+			// Listen to roomchange
+			messagebox.addCallback(MessageType.RoomChange, (message: Message) => {
+				const roomId = message.content as RouteParamValue;
+				if (rooms.currentRoomId !== roomId) {
+					router.push({ name: 'room', params: { id: roomId } });
+				}
+			});
 
-        }
-    }
+			// Listen to sync settings
+			messagebox.addCallback(MessageType.Settings, (message: Message) => {
+				settings.setTheme(message.content.theme as Theme);
+				settings.setLanguage(message.content.language);
+				messageBoxStarted = true;
+			});
 
+			//Listen to log in time
+			messagebox.addCallback(MessageType.GlobalLoginTime, (message: Message) => {
+				pubhubs.updateLoggedInStatusBasedOnGlobalStatus(message.content as string);
+			});
 
-
-
-
+			// Wait for theme change happened
+			const wait = setInterval(() => {
+				if (messageBoxStarted) {
+					setupReady.value = true;
+					clearInterval(wait);
+				}
+			}, 10);
+			setTimeout(() => {
+				clearInterval(wait);
+				setupReady.value = true;
+			}, 250);
+		}
+	}
 </script>

@@ -24,61 +24,57 @@
 
 import { ref, PropType } from 'vue';
 
-type inputType = string | number | undefined
+type inputType = string | number | undefined;
 
-type optionType = string | number
+type optionType = string | number;
 
 interface Option {
-    label: string,
-    value : optionType,
+	label: string;
+	value: optionType;
 }
 
-type Options = Array<PropType<Option>>
+type Options = Array<PropType<Option>>;
 
+const usedEvents = ['update', 'changed', 'cancel', 'submit'];
 
-const usedEvents = ['update','changed','cancel','submit'];
+const useFormInputEvents = (emit: Function) => {
+	const value = ref<inputType>('');
 
-const useFormInputEvents = (emit:Function) => {
+	let options = [] as Options;
 
-    const value = ref<inputType>('');
+	const setValue = (set: inputType) => {
+		value.value = set;
+	};
 
-    let options = [] as Options;
+	const setOptions = (set: Options) => {
+		options = set;
+	};
 
-    const setValue = ( set:inputType ) => {
-        value.value = set;
-    }
+	const selectOption = (option: Option) => {
+		value.value = option.value;
+	};
 
-    const setOptions = ( set:Options ) => {
-        options = set;
-    }
+	const optionIsSelected = (option: Option) => {
+		return JSON.stringify(value.value) == JSON.stringify(option.value);
+	};
 
-    const selectOption = ( option:Option ) => {
-        value.value = option.value;
-    }
+	const changed = () => {
+		emit('changed', value.value);
+	};
 
-    const optionIsSelected = ( option:Option ) => {
-        return ( JSON.stringify(value.value) == JSON.stringify(option.value) ) ;
-    }
+	const submit = () => {
+		if (value.value !== undefined && value.value !== '') {
+			emit('submit', value.value);
+		}
+		value.value = '';
+	};
 
-    const changed = () => {
-        emit('changed', value.value);
-    }
+	const cancel = () => {
+		value.value = '';
+		emit('cancel');
+	};
 
-    const submit = () => {
-        if (value.value !== undefined && value.value !== '') {
-            emit('submit', value.value);
-        }
-        value.value = '';
-    }
-
-    const cancel = () => {
-        value.value = '';
-        emit('cancel');
-    }
-
-    return { value, setValue, options, setOptions, selectOption, optionIsSelected, changed, submit, cancel }
-}
-
+	return { value, setValue, options, setOptions, selectOption, optionIsSelected, changed, submit, cancel };
+};
 
 export { type Option, type Options, useFormInputEvents, usedEvents };
-

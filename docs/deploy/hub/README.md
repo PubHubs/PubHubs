@@ -3,6 +3,7 @@
 > These settings are important for Hub Owners
 
 Hub Owner will make a contract with Central Platform by providing their information such as Hub Name, Hub Description and Redirection URI by email. This will allow Central Platform to issue a confidential file to the Hub Owner.
+> We also provide a docker compose file in `/docs/deploy/`. Please note that the docker compose file might be outdated and we advise not to use it rather follow docker steps mentioned in this guide.
 
 <img src=../../pictures/key-exchange.png alt="drawing" width="3000"/>
 
@@ -57,9 +58,12 @@ chmod -R 777 hub
 docker run -p 8008:8008 --mount "type=bind,src=<absolute_path>/hub,dst=/data"  -e HUB_SECRET=<decryption_key> -e SYNAPSE_CONFIG_DIR=/data registry.science.ru.nl/ilab/pubhubs_canonical/pubhubs_hub:main
 ```
 
+Please do not publish other ports to prevent matrix federation, which is currently a bit of a mismatch
+with the PubHubs identity principles.
+
 ## Terms and conditions for the Hub
 
-A `templates` directory can be created specifying the terms and conditions of the Hub. See sample in pubhubs repository `pubhubs_hub/matrix_test_config/templates`.
+A `templates` directory can be created specifying the terms and conditions of the Hub. See sample in pubhubs repository `pubhubs_hub/matrix_test_config/templates`. The template directory can be used for styling the hub. A sample template directory can be found in `pubhubs_hub/matrix_test_config/templates`. Copy this template directory in <absolute_path>/hub (path mounted in docker run). Update the test_hub.log.config file with the one present in the template directory `docs/deploy/test_hub.log.config`.
 
 ## Hub administration
 

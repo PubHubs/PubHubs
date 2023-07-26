@@ -35,7 +35,7 @@ root_dir = os.getcwd()
 
 ## METHOD SECTION ##
 
-# 
+#
 def get_homeserver_path(path:str ='/pubhubs_hub/matrix_test_config/') -> str:
     """ Get homeserver file path
 
@@ -45,7 +45,7 @@ def get_homeserver_path(path:str ='/pubhubs_hub/matrix_test_config/') -> str:
     Returns:
         path(str): Returns the homeserver file path.
     """
-    
+
     dir_path = os.path.dirname(root_dir +path)
     file_name = "homeserver.yaml"
     return os.path.join(dir_path,file_name)
@@ -88,7 +88,7 @@ def check_project_dependencies(dep_list: list) -> list[bool]:
     whether each dependency is installed and executable. The keys of the dictionary are the dependency names,
     and the values are the status of each dependency.
     """
-    
+
     dep_status_list = [{dep_name: which(dep_name) is not None} for dep_name in dep_list]
 
     # flatten list of dictionary
@@ -97,7 +97,7 @@ def check_project_dependencies(dep_list: list) -> list[bool]:
 
 
 def print_status(dep_dict: dict) -> None:
-    
+
     """
     Print the status of each dependency in `dep_dict`.
 
@@ -115,8 +115,8 @@ def print_status(dep_dict: dict) -> None:
     The function prints the status of each dependency in a formatted table, with two columns:
     the dependency name and its status (either 'True' or 'False').
     """
-    
-    
+
+
     print("Package\t\t\t\tStatus")
     print("-------\t\t\t\t------")
     for key in dep_dict:
@@ -124,7 +124,7 @@ def print_status(dep_dict: dict) -> None:
 
 
 def check_server_status(uri) -> dict:
-    
+
     """
     Check the status of a server at the specified URI.
 
@@ -143,8 +143,8 @@ def check_server_status(uri) -> dict:
     the HTTP status code, reason phrase, and headers returned by the server. If an error occurs, the dictionary
     contains an error code (-1), an error message, and an empty dictionary for headers.
     """
-    
-    
+
+
     req = Request(uri)
 
     try:
@@ -202,7 +202,7 @@ def create_test_pub_hub(url: str, hub_name, matrix_server_port, client_port) -> 
             data=data,
             headers={"X-Admin-API-Key": "api_key", "Content-Type": "application/x-www-form-urlencoded"},
         )
-    
+
         try:
             post = request.urlopen(req)
             print(post.__dict__)
@@ -226,7 +226,7 @@ def create_test_pub_hub(url: str, hub_name, matrix_server_port, client_port) -> 
 
 
 def export_hub_secret(hub_id: str, uri: str) -> str:
-    
+
     """
     Retrieve the secret associated with the specified hub ID from the admin API endpoint.
 
@@ -241,7 +241,7 @@ def export_hub_secret(hub_id: str, uri: str) -> str:
         HTTPError: If an HTTP error occurs while retrieving the secret.
         URLError: If a network error occurs while retrieving the secret.
     """
-    
+
     req = Request(uri + "/admin/hubs/" + hub_id + "?secret", headers={"X-Admin-API-Key": "api_key"})
 
     try:
@@ -306,7 +306,7 @@ def get_oidc_id_secret(html_str:str) -> tuple[str]:
 
 
 def run_external_command(arg:str) -> None:
-    
+
     """
     Execute a command in the shell.
 
@@ -316,12 +316,12 @@ def run_external_command(arg:str) -> None:
     Returns:
         None
     """
-    
+
     if arg:
         os.system(arg)
 
 def build_test_hub_image(image_name):
-    
+
     """
     Build a Docker image with the specified name.
 
@@ -331,12 +331,12 @@ def build_test_hub_image(image_name):
     Returns:
         None
     """
-    
+
     docker_build_command = "docker build -t " +  image_name + " ."
     print(f"\033[92m{docker_build_command}\033[0m")
     subprocess.call(docker_build_command, shell=True)
 
-def docker_run_hub_client(image_name, container_name, client_port, hub_matrix_port):
+def docker_run_hub_client(image_name, client_number, container_name, client_port, hub_matrix_port):
     """
     Run a Docker container using the specified image and environment variables.
 
@@ -349,10 +349,12 @@ def docker_run_hub_client(image_name, container_name, client_port, hub_matrix_po
     Returns:
         None
     """
-    
+
     docker_command = f""" docker run --name {container_name} -e PORT={client_port}  -e 'BAR_URL=frame-ancestors http://localhost:8080' -e 'HUB_URL=http://localhost:{hub_matrix_port}' -e 'PARENT_URL=http://localhost:8080' -d -p {client_port}:8800 {image_name} """
     print(f"\033[92m{docker_command}\033[0m")
     subprocess.call(docker_command, shell=True)
+    docker_copy_command = f""" docker cp {root_dir}/hub-client/public/img/testlogos/logo{client_number}.svg {container_name}:/usr/var/static/img/logo.svg"""
+    subprocess.call(docker_copy_command, shell=True)
 
 def docker_run_hub_server(hub_secret, image_name, container_name, hub_matrix_port, config_dir):
     """
@@ -369,7 +371,7 @@ def docker_run_hub_server(hub_secret, image_name, container_name, hub_matrix_por
     Returns:
         None
     """
-    
+
     docker_command = f"docker run --name {container_name} -d -p {hub_matrix_port}:{hub_matrix_port} -e HUB_SECRET={hub_secret} \
        -e SYNAPSE_CONFIG_DIR=/data \
        -e AUTHLIB_INSECURE_TRANSPORT=for_testing_only_of_course \
@@ -380,7 +382,7 @@ def docker_run_hub_server(hub_secret, image_name, container_name, hub_matrix_por
     subprocess.call(docker_command, shell=True)
 
 def run_docker_compose(env_value=None, args: str = None) -> None:
-    
+
     """
     Start the services defined in a Docker Compose file.
 
@@ -391,7 +393,7 @@ def run_docker_compose(env_value=None, args: str = None) -> None:
     Returns:
         None
     """
-    
+
     docker_command = "docker compose up -d"
 
     if args is not None:
@@ -402,7 +404,7 @@ def run_docker_compose(env_value=None, args: str = None) -> None:
 
 
 def update_homeserver_yaml(input_path, output_path, client_id, client_secret,client_port, hub_port):
-      
+
     """
     Write the homeserver.yaml file with the specified client ID, client secret, and client URL.
 
@@ -416,7 +418,7 @@ def update_homeserver_yaml(input_path, output_path, client_id, client_secret,cli
     Returns:
         None
     """
-  
+
     with open(input_path, 'r') as f:
         # Read the file content
         lines = f.readlines()
@@ -435,7 +437,7 @@ def update_homeserver_yaml(input_path, output_path, client_id, client_secret,cli
                     lines[i] = f'{whitespace}client_secret: {client_secret}\n'
                 elif line.strip().startswith('client_url:'):
                     lines[i] = f'{whitespace}client_url: "http://localhost:{client_port}",\n'
-                elif line.strip().startswith('public_baseurl:'): 
+                elif line.strip().startswith('public_baseurl:'):
                     lines[i] = f'{whitespace}public_baseurl: "http://localhost:{hub_port}"\n'
                 else:
                     lines[i] = f'{whitespace}- port: {hub_port}\n'
@@ -471,7 +473,7 @@ def post_processing():
 
 
 def run_command(cmd):
-    
+
     """
     Run the specified command in a subprocess and capture its stdout and stderr output.
 
@@ -481,14 +483,14 @@ def run_command(cmd):
     Returns:
         A tuple containing the stdout and stderr output from the subprocess.
     """
-    
+
     print(f"\033[92m{cmd}\033[0m")
     result = subprocess.run(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True, shell=True)
     return result.stdout.strip(), result.stderr.strip()
 
 
 def remove_container(container_name):
-    
+
     """
     Stop and remove the specified Docker container, if it is running or exists.
 
@@ -530,7 +532,7 @@ def cli_error_message():
             "Example:  python3 start_test_setup.py [exec] [--cargo-enabled ARGS..  --scale ARGS..]\n\n"
             "\nMain Command:\n"
             "\texec  Executes the script with options\n\n"
-            "\ttest  Tests the script. Only for testing purpose [No Options required]\n\n" 
+            "\ttest  Tests the script. Only for testing purpose [No Options required]\n\n"
             "\nOptions:\n\n"
             "\n--cargo-disabled\tThis will not run Rust code from the script. You can run Cargo separately\n\n"
             "\n--cargo-enabled\t\t<argument for running cargo> \t e.g., run or cargo watch --watch-when-idle -x 'run'\n\n"
@@ -645,7 +647,7 @@ def main_runner(cargo_setup:str, node_arg:str, hubs:int = 1) -> None:
         # This delay is for server to start, but in any case, we are constantly checking the status of the server
         time.sleep(5)
 
-      
+
     # Build the test hub images
     os.chdir("pubhubs_hub")
     build_test_hub_image("testhub")
@@ -656,20 +658,20 @@ def main_runner(cargo_setup:str, node_arg:str, hubs:int = 1) -> None:
 
     # Create test Hubs
     for i in range(num_of_hubs):
-        
+
         hub_name = "testhub" + str(i)
-        
+
         hub_id = create_test_pub_hub(url, hub_name, matrix_port, client_port)
-        
+
         # Get html page with oidc id and secret
         oidc_page_html = get_odic_secret_info(hub_id, url)
-        
+
         # Get a tuple container client id and client password
         oidc_secret = get_oidc_id_secret(oidc_page_html)
-        
+
         client_id = oidc_secret[0]
         client_password = oidc_secret[1]
-        
+
         hub_secret = export_hub_secret(hub_id, url)
 
         # Make the data dir for this hub server
@@ -684,12 +686,12 @@ def main_runner(cargo_setup:str, node_arg:str, hubs:int = 1) -> None:
         shutil.copytree('pubhubs_hub/matrix_test_config/templates',
                         os.path.join(hub_data_dir, 'templates'),
                         dirs_exist_ok=True)
-        
+
         # Create homeserver file with new client id and password, and other import ports
         homeserver_path = os.path.join(hub_data_dir, 'homeserver.yaml')
         update_homeserver_yaml(get_homeserver_path(), homeserver_path,
                                client_id, client_password, client_port, matrix_port)
-        
+
         # Change permissions of relevant matrix config directory
         matrix_config_list = [
             ".",
@@ -705,7 +707,7 @@ def main_runner(cargo_setup:str, node_arg:str, hubs:int = 1) -> None:
         remove_container(container_name)
         docker_run_hub_server(hub_secret, "testhub", container_name, matrix_port, hub_data_dir)
         os.chdir(root_dir)
-    
+
         # Hub Client
 
         client_name = "testclient" + str(i)
@@ -713,10 +715,10 @@ def main_runner(cargo_setup:str, node_arg:str, hubs:int = 1) -> None:
         os.chdir("hub-client")
         container_name = f"{client_name}_{client_port}"
         remove_container(container_name)
-        docker_run_hub_client("testclient", container_name, client_port, matrix_port)
+        docker_run_hub_client("testclient", i, container_name, client_port, matrix_port)
         os.chdir(root_dir)
 
-        # Update the ports in sequence 
+        # Update the ports in sequence
         matrix_port = matrix_port + 1
         client_port = client_port + 1
 
@@ -724,7 +726,7 @@ def main_runner(cargo_setup:str, node_arg:str, hubs:int = 1) -> None:
     post_processing()
     # process_global_client.join()
     # process_pubhub_server.join()
-    
+
 
 
 ## TEST SECTION ##

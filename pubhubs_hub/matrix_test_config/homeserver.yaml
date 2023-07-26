@@ -641,7 +641,7 @@ retention:
 # purely on this application-layer restriction.  If not specified, the
 # default is to whitelist everything.
 #
-#federation_domain_whitelist:
+federation_domain_whitelist: []
 #  - lon.example.com
 #  - nyc.example.com
 #  - syd.example.com
@@ -1529,7 +1529,8 @@ old_signing_keys:
 #
 #trusted_key_servers:
 #  - server_name: "matrix.org"
-
+# Do not use default, we have no federation and do not need signing keys or a connection to matrix.org at this stage.
+trusted_key_servers: []
 # Uncomment the following to disable the warning that is emitted when the
 # trusted_key_servers include 'matrix.org'. See above.
 #

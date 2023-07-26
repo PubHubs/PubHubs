@@ -53,7 +53,7 @@ Create a new secured room. Example request body:
 
 `user_txt` is some text that can explain to users about what to disclose. This is unused so far.
 
-`type` is the typ of the room to create, for now 2 values are supported "ph.messages.restricted" (regular chat room) 
+`type` is the typ of the room to create, for now 2 values are supported "ph.messages.restricted" (regular chat room)
 and "ph.threaded.restricted" (a more forum-like room).
 
 
@@ -135,7 +135,7 @@ The generic Yivi endpoints to use to get the session to the front end. See for a
 
 ### `/_synapse/client/yiviproxy`
 
-Allow the front end session to check the session status. 
+Allow the front end session to check the session status.
 
 ## Used endpoints by this module
 

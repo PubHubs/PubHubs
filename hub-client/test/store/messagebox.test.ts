@@ -1,98 +1,91 @@
-import { setActivePinia, createPinia } from 'pinia'
-import { describe, beforeEach, expect, test, vi } from 'vitest'
-import { Message, MessageType, MessageBoxType, useMessageBox } from '@/store/messagebox'
-
+import { setActivePinia, createPinia } from 'pinia';
+import { describe, beforeEach, expect, test, vi } from 'vitest';
+import { Message, MessageType, MessageBoxType, useMessageBox } from '@/store/messagebox';
 
 const messages = [];
 const mockTarget = () => {
-    return {
-        postMessage : (message:string,url:string) => {
-            messages.push({'message':message,'url':url});
-        }
-    }
-}
-
+	return {
+		postMessage: (message: string, url: string) => {
+			messages.push({ message: message, url: url });
+		},
+	};
+};
 
 describe('MessageBox Store', () => {
+	let messageboxParent = {} as useMessageBox;
+	let messageboxChild = {} as useMessageBox;
 
-    let messageboxParent = {} as useMessageBox;
-    let messageboxChild = {} as useMessageBox;
+	beforeEach(() => {
+		setActivePinia(createPinia());
+		messageboxParent = useMessageBox();
+		messageboxChild = useMessageBox();
+	});
 
-    beforeEach(() => {
-        setActivePinia(createPinia())
-        messageboxParent = useMessageBox();
-        messageboxChild = useMessageBox();
-    })
+	describe('idle', () => {
+		test('default', () => {
+			expect(messageboxParent.isReady).toBe(false);
+			expect(messageboxParent.isConnected).toBe(false);
+			expect(messageboxChild.isReady).toBe(false);
+			expect(messageboxChild.isConnected).toBe(false);
+			expect(messageboxChild.inIframe).toBe(false);
+		});
+	});
 
-    describe('idle', () => {
+	describe('connect', () => {
+		test('Parent', () => {
+			const spyWindowAddEventListener = vi.spyOn(window, 'addEventListener');
+			vi.stubGlobal('top', 'parent');
+			vi.stubGlobal('self', 'parent');
 
-        test('default', () => {
-            expect( messageboxParent.isReady ).toBe(false);
-            expect( messageboxParent.isConnected ).toBe(false);
-            expect( messageboxChild.isReady ).toBe(false);
-            expect( messageboxChild.isConnected ).toBe(false);
-            expect( messageboxChild.inIframe ).toBe(false);
-        })
+			// init
+			messageboxParent.init(MessageBoxType.Parent, 'http://parent');
+			expect(spyWindowAddEventListener).toHaveBeenCalled();
+			expect(window.top).toBe('parent');
+			expect(window.self).toBe('parent');
+			expect(messageboxParent.inIframe).toBe(false);
+			expect(messageboxParent.isReady).toBe(false);
 
-    })
+			// ready
+			messageboxParent.type = MessageBoxType.Parent;
+			messageboxParent.handshake = 'ready';
+			expect(messageboxParent.isReady).toBe(true);
+			expect(messageboxParent.isConnected).toBe(true);
 
-    describe('connect', () => {
+			// send message
+			const message = new Message(MessageType.UnreadMessages, 4);
 
-        test('Parent', () => {
-            const spyWindowAddEventListener = vi.spyOn(window,'addEventListener');
-            vi.stubGlobal('top', 'parent');
-            vi.stubGlobal('self', 'parent');
+			messageboxParent.resolveTarget = mockTarget;
+			const spyResolveTarget = vi.spyOn(messageboxParent, 'resolveTarget');
+			const currentMessagesLen = messages.length;
+			messageboxParent.sendMessage(message, 'http://parent');
+			expect(spyResolveTarget).toBeCalled();
+			expect(messages.length).toBe(currentMessagesLen + 1);
 
-            // init
-            messageboxParent.init( MessageBoxType.Parent, 'http://parent' );
-            expect(spyWindowAddEventListener).toHaveBeenCalled();
-            expect(window.top).toBe('parent');
-            expect(window.self).toBe('parent');
-            expect(messageboxParent.inIframe).toBe(false);
-            expect(messageboxParent.isReady).toBe(false);
+			// Receive same message and test if callback works
+			const callbackObj = {
+				fake: () => {
+					console.log('FAKE CALLBACK');
+				},
+			};
+			const spyOnCallback = vi.spyOn(callbackObj, 'fake');
+			messageboxParent.addCallback(MessageType.UnreadMessages, callbackObj.fake);
+			expect(Object.keys(messageboxParent.callbacks).length).toBe(1);
+			messageboxParent.receivedMessage(message);
+			expect(spyOnCallback).toBeCalledTimes(1);
+		});
 
-            // ready
-            messageboxParent.type = MessageBoxType.Parent;
-            messageboxParent.handshake = 'ready';
-            expect(messageboxParent.isReady).toBe(true);
-            expect(messageboxParent.isConnected).toBe(true);
+		test('Child', () => {
+			const spyWindowAddEventListener = vi.spyOn(window, 'addEventListener');
+			vi.stubGlobal('top', 'parent');
+			vi.stubGlobal('self', 'child');
 
-            // send message
-            const message = new Message(MessageType.UnreadMessages,4);
-
-            messageboxParent.resolveTarget = mockTarget;
-            const spyResolveTarget = vi.spyOn(messageboxParent,'resolveTarget');
-            const currentMessagesLen = messages.length;
-            messageboxParent.sendMessage( message, 'http://parent' );
-            expect(spyResolveTarget).toBeCalled();
-            expect(messages.length).toBe(currentMessagesLen+1);
-
-            // Receive same message and test if callback works
-            const callbackObj = {
-                fake: () => {console.log('FAKE CALLBACK')},
-            }
-            const spyOnCallback = vi.spyOn(callbackObj,'fake');
-            messageboxParent.addCallback(MessageType.UnreadMessages,callbackObj.fake);
-            expect(Object.keys(messageboxParent.callbacks).length).toBe(1);
-            messageboxParent.receivedMessage(message);
-            expect(spyOnCallback).toBeCalledTimes(1);
-        })
-
-        test('Child', () => {
-            const spyWindowAddEventListener = vi.spyOn(window,'addEventListener');
-            vi.stubGlobal('top', 'parent');
-            vi.stubGlobal('self', 'child');
-
-            messageboxChild.init( MessageBoxType.Child, 'http://child' );
-            expect(spyWindowAddEventListener).toHaveBeenCalled();
-            expect(window.top).toBe('parent');
-            expect(window.self).toBe('child');
-            expect(messageboxChild.inIframe).toBe(true);
-            expect(messageboxChild.isReady).toBe(false);
-            expect(messageboxChild.state = 'started');
-        })
-
-
-    })
-
-})
+			messageboxChild.init(MessageBoxType.Child, 'http://child');
+			expect(spyWindowAddEventListener).toHaveBeenCalled();
+			expect(window.top).toBe('parent');
+			expect(window.self).toBe('child');
+			expect(messageboxChild.inIframe).toBe(true);
+			expect(messageboxChild.isReady).toBe(false);
+			expect((messageboxChild.state = 'started'));
+		});
+	});
+});

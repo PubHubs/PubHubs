@@ -1,88 +1,108 @@
 {
-  "name": "PubHubsGlobalClient",
-  "version": "0.0.1",
-  "private": true,
-  "scripts": {
-    "serve": "vue-cli-service serve --port=8080",
-    "build": "vue-cli-service build",
-    "watch": "vue-cli-service build --watch --dest ../pubhubs/static/assets/client",
-    "lint": "vue-cli-service lint",
-    "pwa": "vue-cli-service build && npx http-server dist",
-    "test": "vitest",
-    "test:run": "vitest run",
-    "test:ui": "vitest --ui",
-    "coverage": "vitest run --coverage"
-  },
-  "dependencies": {
-    "@vue/test-utils": "^2.2.3",
-    "autoprefixer": "^10",
-    "core-js": "^3.8.3",
-    "pinia": "^2.0.26",
-    "postcss": "^8",
-    "register-service-worker": "^1.7.2",
-    "tailwind-merge": "^1.8.1",
-    "tailwindcss": "^3",
-    "typescript-cookie": "^1.0.4",
-    "util": "^0.12.5",
-    "vitest": "^0.29.2",
-    "vue": "^3.2.13",
-    "vue-i18n": "^9.2.2",
-    "vue-router": "^4.1.5",
-    "vuejs3-logger": "1.0.0"
-  },
-  "devDependencies": {
-    "@babel/core": "^7.12.16",
-    "@babel/eslint-parser": "^7.12.16",
-    "@typescript-eslint/eslint-plugin": "^5.4.0",
-    "@typescript-eslint/parser": "^5.4.0",
-    "@vitejs/plugin-vue": "^4.2.3",
-    "@vue/cli-plugin-babel": "~5.0.0",
-    "@vue/cli-plugin-eslint": "~5.0.0",
-    "@vue/cli-plugin-pwa": "~5.0.0",
-    "@vue/cli-plugin-typescript": "~5.0.0",
-    "@vue/cli-service": "~5.0.0",
-    "@vue/eslint-config-typescript": "^11",
-    "eslint": "^8",
-    "eslint-plugin-vue": "^9",
-    "jsdoc": "^4.0.2",
-    "jsdom": "^20.0.2",
-    "typescript": "^5.0.2",
-    "vue-cli-plugin-tailwind": "~3.0.0"
-  },
-  "eslintConfig": {
-    "root": true,
-    "env": {
-      "node": true,
-      "vue/setup-compiler-macros": true
-    },
-    "extends": [
-      "plugin:vue/vue3-essential",
-      "eslint:recommended",
-      "@vue/typescript"
-    ],
-    "parserOptions": {
-      "parser": "@typescript-eslint/parser"
-    },
-    "rules": {
-      "no-unused-vars": "off",
-      "@typescript-eslint/no-unused-vars": [
-        "error",
-        {
-          "vars": "all",
-          "args": "after-used",
-          "varsIgnorePattern": "^props|value|Hub",
-          "ignoreRestSiblings": false
-        }
-      ],
-      "vue/multi-word-component-names": "off"
-    }
-  },
-  "browserslist": [
-    "> 1%",
-    "last 2 versions",
-    "not dead",
-    "not ie 11"
-  ],
-  "_id": "@",
-  "readme": "ERROR: No README data found!"
+	"name": "PubHubsGlobalClient",
+	"version": "0.0.1",
+	"private": true,
+	"scripts": {
+		"serve": "vue-cli-service serve --port=8080",
+		"build": "vue-cli-service build",
+		"watch": "vue-cli-service build --watch --dest ../pubhubs/static/assets/client",
+		"lint": "vue-cli-service lint",
+		"pwa": "vue-cli-service build && npx http-server dist",
+		"test": "vitest",
+		"test:run": "vitest run",
+		"test:ui": "vitest --ui",
+		"coverage": "vitest run --coverage"
+	},
+	"dependencies": {
+		"@vue/test-utils": "^2.2.3",
+		"autoprefixer": "^10",
+		"core-js": "^3.8.3",
+		"pinia": "^2.0.26",
+		"postcss": "^8",
+		"register-service-worker": "^1.7.2",
+		"tailwind-merge": "^1.8.1",
+		"tailwindcss": "^3",
+		"typescript-cookie": "^1.0.4",
+		"util": "^0.12.5",
+		"vitest": "^0.29.2",
+		"vue": "^3.2.13",
+		"vue-i18n": "^9.2.2",
+		"vue-router": "^4.1.5",
+		"vuedraggable": "^4.1.0",
+		"vuejs3-logger": "1.0.0"
+	},
+	"devDependencies": {
+		"@babel/core": "^7.12.16",
+		"@babel/eslint-parser": "^7.12.16",
+		"@typescript-eslint/eslint-plugin": "^5.4.0",
+		"@typescript-eslint/parser": "^5.62.0",
+		"@vitejs/plugin-vue": "^4.2.3",
+		"@vue/cli-plugin-babel": "~5.0.0",
+		"@vue/cli-plugin-eslint": "~5.0.0",
+		"@vue/cli-plugin-pwa": "~5.0.0",
+		"@vue/cli-plugin-typescript": "~5.0.0",
+		"@vue/cli-service": "~5.0.0",
+		"@vue/eslint-config-typescript": "^11",
+		"eslint": "^8.44.0",
+		"eslint-plugin-vue": "^9",
+		"jsdoc": "^4.0.2",
+		"jsdom": "^20.0.2",
+		"prettier": "^2.8.8",
+		"typescript": "^5.0.2",
+		"vue-cli-plugin-tailwind": "~3.0.0",
+		"vue-eslint-parser": "^8.3.0"
+	},
+	"eslintConfig": {
+		"root": true,
+		"env": {
+			"node": true,
+			"vue/setup-compiler-macros": true
+		},
+		"extends": [
+			"plugin:vue/vue3-essential",
+			"eslint:recommended",
+			"@vue/typescript"
+		],
+		"parserOptions": {
+			"parser": "@typescript-eslint/parser"
+		},
+		"rules": {
+			"no-unused-vars": "off",
+			"@typescript-eslint/no-unused-vars": [
+				"error",
+				{
+					"vars": "all",
+					"args": "after-used",
+					"varsIgnorePattern": "^props|value|Hub",
+					"ignoreRestSiblings": false
+				}
+			],
+			"vue/multi-word-component-names": "off"
+		}
+	},
+	"prettier": {
+		"printWidth": 240,
+		"tabWidth": 4,
+		"useTabs": true,
+		"semi": true,
+		"singleQuote": true,
+		"quoteProps": "as-needed",
+		"trailingComma": "all",
+		"bracketSpacing": true,
+		"bracketSameLine": false,
+		"arrowParens": "always",
+		"htmlWhitespaceSensitivity": "css",
+		"vueIndentScriptAndStyle": true,
+		"endOfLine": "lf",
+		"embeddedLanguageFormatting": "auto",
+		"singleAttributePerLine": false
+	},
+	"browserslist": [
+		"> 1%",
+		"last 2 versions",
+		"not dead",
+		"not ie 11"
+	],
+	"_id": "@",
+	"readme": "ERROR: No README data found!"
 }
