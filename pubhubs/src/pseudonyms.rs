@@ -2,13 +2,15 @@ use crate::config::having_debug_default;
 use crate::data::Hub;
 use crate::elgamal;
 use anyhow::{anyhow, ensure, Context as _, Result};
+use curve25519_dalek::scalar::Scalar;
+use ed25519_dalek::Digest as _;
 use std::fmt::{Debug, Formatter};
 
 /// A convenience struct that can be used to share needed configuration around.
 #[derive(Clone)]
 pub struct PepContext {
     global_public_key: elgamal::PublicKey,
-    global_secret_key: String,
+    global_secret_key: elgamal::PrivateKey,
     factor_secret: String,
     libpep_location: String,
 }
@@ -21,6 +23,21 @@ impl Debug for PepContext {
     }
 }
 
+enum FactorType {
+    Pseudonym,
+    Decryption,
+}
+
+impl FactorType {
+    fn libpepcli_repr(&self) -> &'static str {
+        // https://gitlab.science.ru.nl/bernardg/libpep-cpp/-/blob/65b1f346e0edb8a6606b32e8df7b0c23f8832cec/src/libpep.cpp#L44
+        match self {
+            Self::Pseudonym => "pseudonym",
+            Self::Decryption => "decryption",
+        }
+    }
+}
+
 impl PepContext {
     pub fn from_config(config: crate::config::Pep) -> Result<Self> {
         Ok(PepContext {
@@ -29,12 +46,13 @@ impl PepContext {
                 "d4d7f622c53c86d64597f089273350b950aa53b078185aa4a04c487d9709d66d",
                 "pep.global_public_key",
             )?)
-            .context("invalid global_public_key hex representation")?,
-            global_secret_key: having_debug_default(
+            .context("invalid global_public_key")?,
+            global_secret_key: elgamal::PrivateKey::from_hex(&having_debug_default(
                 config.global_secret_key,
                 "b6c57e69b093a34fa2546bc59c7940fd304d91e9c68602d237989d74f1172908",
                 "pep.global_secret_key",
-            )?,
+            )?)
+            .context("invalid global_secret_key")?,
             factor_secret: having_debug_default(
                 config.factor_secret,
                 "default_factor_secret",
@@ -42,6 +60,17 @@ impl PepContext {
             )?,
             libpep_location: config.libpep_location,
         })
+    }
+
+    fn libpepcli_factor(&self, typ: FactorType, context: &str) -> Scalar {
+        // https://gitlab.science.ru.nl/bernardg/libpep-cpp/-/blob/65b1f346e0edb8a6606b32e8df7b0c23f8832cec/src/libpep.cpp#L37
+        let h = ed25519_dalek::Sha512::new()
+            .chain(typ.libpepcli_repr())
+            .chain("|")
+            .chain(&self.factor_secret)
+            .chain("|")
+            .chain(context);
+        Scalar::from_hash(h)
     }
 
     /// Calls libpepcli with the provided arguments.
@@ -70,13 +99,13 @@ impl PepContext {
         self.global_public_key.encrypt_random()
     }
 
-    pub fn make_local_decryption_key(&self, hub: &Hub) -> Result<String> {
-        self.libpepcli([
-            "make-local-decryption-key",
-            &self.global_secret_key,
-            &self.factor_secret, // called "server_secret" by libpepcli
-            &hub.decryption_context(),
-        ])
+    /// Generates the private decryption key for the specified hub
+    pub fn make_local_decryption_key(&self, hub: &Hub) -> Result<elgamal::PrivateKey> {
+        Ok(
+            (self.libpepcli_factor(FactorType::Decryption, &hub.decryption_context())
+                * self.global_secret_key.scalar)
+                .into(),
+        )
     }
 
     pub fn convert_to_local_pseudonym(&self, pseudonym: &str, hub: &Hub) -> Result<String> {
@@ -153,7 +182,7 @@ mod tests {
         let local_decryption_key = pep.make_local_decryption_key(&hub).unwrap();
 
         assert_eq!(
-            local_decryption_key,
+            local_decryption_key.to_hex(),
             "02a1348c03aa13dde10a2eb8f2c5aacd2201703e3a5944a2d6c7aaf219d0500f",
             "got unexpected local decryption key.  (Note: the way libpepcli computes factors changed June 1st 2022; use the new version.)"
         );
@@ -170,7 +199,7 @@ mod tests {
         .is_match(encrypted_local_pseudonym.as_str()),);
 
         let local_pseudonym = pep
-            .decrypt_local_pseudonym(&encrypted_local_pseudonym, &local_decryption_key)
+            .decrypt_local_pseudonym(&encrypted_local_pseudonym, &local_decryption_key.to_hex())
             .unwrap();
 
         // libpepcli decrypt-local-pseudonym
@@ -190,8 +219,10 @@ mod tests {
                     "1c561577b91b0ea945a95161dd1fe44c1433ff6a21419aa606838a9db5c6106c",
                 )
                 .unwrap(),
-                global_secret_key:
-                    "1ff1accd4b711f1e3b149fdbe2254fb3397b3f2b1fd09f15c8d79c1a99b5330b".to_string(),
+                global_secret_key: elgamal::PrivateKey::from_hex(
+                    "1ff1accd4b711f1e3b149fdbe2254fb3397b3f2b1fd09f15c8d79c1a99b5330b",
+                )
+                .unwrap(),
                 factor_secret: "some secret".to_string(),
                 libpep_location: "libpepcli".to_string(),
             }

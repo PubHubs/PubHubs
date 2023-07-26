@@ -179,7 +179,8 @@ async fn get_hub_details(
                         Some("secret") => {
                             let body = context.pep.make_local_decryption_key(
                                 &hub,
-                            ).unwrap(); // TODO: replace this unwrap
+                            ).unwrap() // TODO: replace this unwrap
+                            .to_hex();
                             HttpResponse::Ok().body(body)
                         },
                         _ => render_hub(&context, &hub, translations)
@@ -256,7 +257,8 @@ fn render_hub(context: &Data<Main>, hub: &Hub, translations: Translations) -> Ht
     let key = context
         .pep
         .make_local_decryption_key(hub)
-        .expect("To make a decryption key");
+        .expect("To make a decryption key")
+        .to_hex();
     let data = value!({
         "id": id,
         "oidc_client_id": oidc_client_id,

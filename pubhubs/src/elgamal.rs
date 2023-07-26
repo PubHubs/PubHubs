@@ -42,11 +42,8 @@ impl Triple {
         base16ct::lower::encode(self.ct.compress().as_bytes(), &mut buf[64..128]).unwrap();
         base16ct::lower::encode(self.pk.compress().as_bytes(), &mut buf[128..192]).unwrap();
 
-        unsafe {
-            // At this point, the whole buffer is filled with lower-case hex characters,
-            // which is valid utf-8.
-            return String::from_utf8_unchecked(buf.into());
-        }
+        // safety: buf contains only lower-case hex characters
+        unsafe { String::from_utf8_unchecked(buf.into()) }
     }
 
     /// Decrypts the triple using the given private key `sk`.  If the triple was encrypted
@@ -148,6 +145,27 @@ pub struct PrivateKey {
 }
 
 impl PrivateKey {
+    /// Turns a 64-digit hex string into a [PrivateKey].
+    ///
+    /// Returns None when `hexstr` is not a 64-digit hex string, or when the encoded number has
+    /// not been reduced modulo `\ell`.
+    pub fn from_hex(hexstr: &str) -> Option<Self> {
+        let mut buf = [0u8; 32];
+        base16ct::mixed::decode(hexstr, &mut buf).ok()?;
+        Some(PrivateKey {
+            scalar: Scalar::from_canonical_bytes(buf)?,
+        })
+    }
+
+    /// Returns the 64 digit hex representation of this private key."
+    pub fn to_hex(&self) -> String {
+        let mut buf = [0u8; 64];
+        // NOTE: encode only fails when the destination buffer size is too small
+        base16ct::lower::encode(self.scalar.as_bytes(), &mut buf).unwrap();
+        // safety: buf contains only lower-case hex characters, making it valid utf8
+        unsafe { String::from_utf8_unchecked(buf.into()) }
+    }
+
     pub fn random() -> Self {
         PrivateKey {
             scalar: Scalar::random(osrng!()),
@@ -161,12 +179,22 @@ impl PrivateKey {
     }
 }
 
+impl From<Scalar> for PrivateKey {
+    fn from(scalar: Scalar) -> Self {
+        PrivateKey { scalar }
+    }
+}
+
 #[derive(Clone, PartialEq, Eq)]
 pub struct PublicKey {
     point: RistrettoPoint,
 }
 
 impl PublicKey {
+    /// Turns a 64 digit hex string into a [PublicKey].
+    ///
+    /// Returns None when the hex-encoding is invalid or when the hex-encoded do not encode a
+    /// valid Ristretto point.
     pub fn from_hex(hexstr: &str) -> Option<Self> {
         let mut buf = [0u8; 32];
         base16ct::mixed::decode(hexstr, &mut buf).ok()?;
