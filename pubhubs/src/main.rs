@@ -612,7 +612,12 @@ async fn oidc_response_from_oidc_handle(
             |tcd: pubhubs::oidc::TokenCreationData| -> Result<String, ()> {
                 let pseudonym = context
                     .pep
-                    .convert_to_local_pseudonym(&user.pseudonym, &hub)
+                    .convert_to_local_pseudonym(
+                        pubhubs::elgamal::Triple::from_hex(&user.pseudonym).ok_or_else(|| {
+                            log::warn!("error while parsing user pseudonym");
+                        })?,
+                        &hub,
+                    )
                     .map_err(|e| {
                         log::warn!("error while translating pseudonym: {}", e);
                     })?;
@@ -621,7 +626,7 @@ async fn oidc_response_from_oidc_handle(
                     // id_token claims, see Section 2 of OpenID Connect Core 1.0
                     &serde_json::json!({
                         "iss": context.url.for_hub.as_str(),
-                        "sub": pseudonym,
+                        "sub": pseudonym.to_hex(),
                         "aud": tcd.client_id,
                         "exp": pubhubs::jwt::get_current_timestamp() + 10*60*60,
                         "iat": pubhubs::jwt::get_current_timestamp(),
