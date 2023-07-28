@@ -1,3 +1,4 @@
+use crate::elgamal::Encoding as _;
 use crate::pseudonyms::PepContext;
 use anyhow::{anyhow, bail, ensure, Context as _, Result};
 use expry::key_str;

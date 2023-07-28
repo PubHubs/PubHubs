@@ -26,6 +26,7 @@ use uuid::Uuid;
 
 use pubhubs::context::Main;
 use pubhubs::data::User;
+use pubhubs::elgamal::Encoding as _;
 use pubhubs::error::{AnyhowExt, TranslatedError};
 use pubhubs::hairy_ext::hairy_eval_html_translations;
 use pubhubs::middleware;

@@ -1,9 +1,10 @@
 use crate::config::having_debug_default;
 use crate::data::Hub;
-use crate::elgamal;
+use crate::elgamal::{self, Encoding as _};
 use anyhow::{Context as _, Result};
 use curve25519_dalek::scalar::Scalar;
-use ed25519_dalek::Digest as _;
+use hmac::digest::Update as _;
+use sha2::Digest as _;
 use std::fmt::{Debug, Formatter};
 
 /// A convenience struct that can be used to share needed configuration around.
@@ -62,7 +63,7 @@ impl PepContext {
 
     fn libpepcli_factor(&self, typ: FactorType, context: &str) -> Scalar {
         // https://gitlab.science.ru.nl/bernardg/libpep-cpp/-/blob/65b1f346e0edb8a6606b32e8df7b0c23f8832cec/src/libpep.cpp#L37
-        let h = ed25519_dalek::Sha512::new()
+        let h = sha2::Sha512::new()
             .chain(typ.libpepcli_repr())
             .chain("|")
             .chain(&self.factor_secret)
@@ -103,7 +104,6 @@ impl PepContext {
 mod tests {
     use super::*;
     use crate::data::Hubid;
-    use elgamal::HexExt as _;
     use regex::Regex;
     use std::str::FromStr;
 

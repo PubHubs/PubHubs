@@ -4,6 +4,9 @@ version = "0.1.0"
 edition = "2021"
 license-file = "../LICENSE"
 
+[lib]
+crate-type = ["cdylib","rlib"]
+
 [features]
 real_credentials = []
 
@@ -24,10 +27,6 @@ rmp-serde = "1.1"
 # Database interaction
 rusqlite = {version = "0.28.0", features = ["bundled"]}
 rand = "0.8"
-
-# for ed25519_dalek, see https://stackoverflow.com/questions/65562447/the-trait-rand-corecryptorng-is-not-implemented-for-osrng
-rand_07 = { package = "rand", version = "0.7" }
-
 
 # Yivi interaction
 regex = "1.5"
@@ -65,7 +64,7 @@ generic-array = "0.14"
 typenum = "1.15"
 ed25519 = {version = "2.1", features = ["pkcs8", "alloc", "pem"]}
 ed25519-dalek = "1.0"
-curve25519-dalek = "3.2"
+curve25519-dalek = {version = "4.0", features = ["rand_core", "digest"]}
 subtle = "2.4"
 
 #metrics
