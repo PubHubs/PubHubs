@@ -436,6 +436,7 @@ impl Encoding<96> for Triple {
 }
 
 /// Application binary interface
+#[cfg(feature = "cdylib")]
 pub mod abi {
     use super::*;
 
