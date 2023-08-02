@@ -1,4 +1,3 @@
-
 #
 # This module does two things:
 #   - decrypt pseudonym from pubhubs server at registration / login
@@ -9,12 +8,14 @@ import re
 import os
 import logging
 import subprocess
+import ctypes
 
 from synapse.types import UserID
 from synapse.module_api import ModuleApi
 from synapse.http.server import DirectServeJsonResource, respond_with_json
 from synapse.http.site import SynapseRequest
 from synapse.handlers.oidc import UserAttributeDict
+from synapse.module_api.errors import ConfigError
 
 logger = logging.getLogger(__name__)
 
@@ -70,22 +71,30 @@ class OidcMappingProvider:
     def __init__(self, config):
         self._config = config
         self._secret = os.environ['HUB_SECRET']
+        self._libpubhubs = ctypes.CDLL(config["libpubhubspath"])
 
     @staticmethod
     def parse_config(config):
-        return None
+        if "libpubhubspath" not in config:
+            logger.error(f"the invalid config was: {config}")
+            raise ConfigError("Please configure 'libpubhubspath'")
+        return config
 
     def get_remote_user_id(self, userinfo):
         logger.info(f"get_remote_user_id {userinfo}")
         encrypted_local_pseudonym = userinfo["sub"]
 
-        # Decrypt the pseudonym
-        # TODO: SECURITY:  do not pass secret via command line
-        decrypted_local_pseudonym = subprocess.run(
-            ["libpepcli", "decrypt-local-pseudonym", encrypted_local_pseudonym, self._secret],
-            capture_output=True, check=True) \
-            .stderr.decode('UTF-8') \
-            .strip()
+        result_buf = ctypes.create_string_buffer(32)
+        ciphertext_buf = ctypes.create_string_buffer(96)
+        private_key_buf = ctypes.create_string_buffer(32)
+
+        ciphertext_buf.raw = bytes.fromhex(encrypted_local_pseudonym)
+        private_key_buf.raw = bytes.fromhex(self._secret)
+
+        if self._libpubhubs.decrypt(ctypes.byref(result_buf), ctypes.byref(ciphertext_buf), ctypes.byref(private_key_buf)) != 1:
+            raise RuntimeError("failed to decrypt user's encrypted local pseudonym")
+
+        decrypted_local_pseudonym = result_buf.raw.hex()
 
         # HACK: For efficiency's sake, we add the decrypted local pseudonym to userinfo,
         # so that it can be used in map_user_attributes below.  This seems to work for now,

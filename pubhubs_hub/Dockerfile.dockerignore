@@ -1,0 +1,10 @@
+# ignore everything...
+*
+# except:  * files for the hub ...
+!pubhubs_hub/start.sh
+!pubhubs_hub/matrix_test_config/templates/
+!pubhubs_hub/modules/**/*.py
+# * pubhubs rust sources, needed to make libpubhubs ...
+!pubhubs/src/**/*.rs
+!pubhubs/Cargo.toml
+!pubhubs/Cargo.lock

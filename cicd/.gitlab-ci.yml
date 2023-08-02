@@ -204,16 +204,13 @@ hub-unit-test: # This job runs in the test stage.
   image: python:latest
   variables:
     PIP_CACHE_DIR: "$CI_PROJECT_DIR/.cache/pip"
-  before_script: #install libpepcli
+  before_script: 
     - python --version # For debugging
     - pip install virtualenv
     - virtualenv venv
     - source venv/bin/activate
     - pip install unittest-xml-reporting
     - apt update && apt install -y lsb-release
-    - sh -c 'printf "deb http://packages.bitpowder.com/debian-%s main core\n" `lsb_release -cs`' | tee /etc/apt/sources.list.d/bitpowder-repo.list
-    - curl -L https://bitpowder.com/packages/linux-packages.gpg | tee /etc/apt/trusted.gpg.d/bitpowder.asc
-    - apt-get update && apt-get install -y pepcli
   script:
     - cd pubhubs_hub
     - pip install --upgrade -r requirements.txt

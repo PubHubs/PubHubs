@@ -1921,7 +1921,9 @@ oidc_providers:
   skip_verification: false
   user_mapping_provider:
     module: conf.modules.pseudonyms.OidcMappingProvider
-    config:
+    config: {
+      libpubhubspath: /usr/lib/libpubhubs.so
+    }
 
 
 # Enable Central Authentication Service (CAS) for registration and login.

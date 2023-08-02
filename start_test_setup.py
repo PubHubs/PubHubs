@@ -320,7 +320,7 @@ def run_external_command(arg:str) -> None:
     if arg:
         os.system(arg)
 
-def build_test_hub_image(image_name):
+def build_test_hub_image(image_name, dockerfile="Dockerfile"):
 
     """
     Build a Docker image with the specified name.
@@ -332,9 +332,10 @@ def build_test_hub_image(image_name):
         None
     """
 
-    docker_build_command = "docker build -t " +  image_name + " ."
+    docker_build_command = f"docker build -t {image_name} -f {dockerfile} ."
     print(f"\033[92m{docker_build_command}\033[0m")
-    subprocess.call(docker_build_command, shell=True)
+    if subprocess.call(docker_build_command, shell=True) != 0:
+        raise RuntimeError(f"{docker_build_command} failed")
 
 def docker_run_hub_client(image_name, client_number, container_name, client_port, hub_matrix_port):
     """
@@ -600,7 +601,7 @@ def main_runner(cargo_setup:str, node_arg:str, hubs:int = 1) -> None:
     num_of_hubs = hubs
 
     # Check all dependencies for the given project and run pubhubs server and build the pubhubs infrastructure
-    dep_list = ["cargo", "cargo-watch", "npm", "docker", "sass", "libpepcli"]
+    dep_list = ["cargo", "cargo-watch", "npm", "docker", "sass" ]
     dep_status_dict = check_project_dependencies(dep_list)
 
     # All dependencies should be installed. In dictionary, values are status of package
@@ -649,9 +650,9 @@ def main_runner(cargo_setup:str, node_arg:str, hubs:int = 1) -> None:
 
 
     # Build the test hub images
-    os.chdir("pubhubs_hub")
-    build_test_hub_image("testhub")
-    os.chdir(root_dir)
+    #os.chdir("pubhubs_hub")
+    build_test_hub_image("testhub", "pubhubs_hub/Dockerfile")
+    #os.chdir(root_dir)
     os.chdir("hub-client")
     build_test_hub_image("testclient")
     os.chdir(root_dir)
