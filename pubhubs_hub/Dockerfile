@@ -5,9 +5,9 @@
 # Please keep the pubhubs_hub/Dockerfile.dockerignore up-to-date. 
 
 ### BUILD STAGE:  YIVI
-FROM golang:1.18 AS yivi_build
+FROM golang:1.20 AS yivi_build
 
-RUN git clone https://github.com/privacybydesign/irmago --branch v0.12.0 --depth 1
+RUN git clone https://github.com/privacybydesign/irmago --branch v0.12.6 --depth 1
 
 WORKDIR irmago
 
@@ -21,7 +21,7 @@ COPY pubhubs/ .
 RUN cargo build --no-default-features --lib  --features=cdylib 
 
 ## FINAL CONTAINER STAGE
-FROM matrixdotorg/synapse:v1.87.0
+FROM matrixdotorg/synapse:v1.89.0
 
 COPY --from=yivi_build /go/bin/irma /usr/bin/irma
 COPY --from=libpubhubs_build /target/debug/libpubhubs.so /usr/lib
