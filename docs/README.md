@@ -10,4 +10,5 @@ Central Platform is currently hosted at iHub, Radboud University. Therefore, the
 
 > In this documentation we are using specific port numbers but these are only for demonstration purpose. The port numbers are to be changed based on configuration requirements.
 
-[Central Platform Instructions &rarr;](./deploy/central_platform/README.md)
+[Hub Instructions (Hub Administrators) &rarr;](./deploy/hub/README.md)
+[Central Platform Instructions (Central Administrator only)  &rarr;](./deploy/central_platform/README.md)
