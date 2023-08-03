@@ -18,7 +18,7 @@ FROM rust AS libpubhubs_build
 
 COPY pubhubs/ .
 # only build pubhubs with the features needed for the ABI
-RUN cargo build --no-default-features --lib  --features=cdylib 
+RUN cargo build --no-default-features --lib --features=abi
 
 ## FINAL CONTAINER STAGE
 FROM matrixdotorg/synapse:v1.89.0

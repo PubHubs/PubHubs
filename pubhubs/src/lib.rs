@@ -1,5 +1,5 @@
-#[cfg(feature = "rlib")]
-mod rlib {
+#[cfg(feature = "old")]
+mod old {
     pub mod bar;
     pub mod config;
     pub mod context;
@@ -20,12 +20,17 @@ mod rlib {
     pub mod yivi_proxy;
 }
 
-#[cfg(feature = "rlib")]
-pub use rlib::*;
+#[cfg(feature = "old")]
+pub use old::*;
 
 #[cfg(feature = "common")]
-pub mod elgamal;
+mod common {
+    pub mod elgamal;
+}
+
+#[cfg(feature = "common")]
+pub use common::*;
 
 // only symbols in the root are exported
-#[cfg(feature = "cdylib")]
+#[cfg(feature = "abi")]
 pub use elgamal::abi::*;
