@@ -16,9 +16,14 @@ required-features = ["bin"]
 # bin:     what's used by the pubhubs binary
 # abi:     what's needed for the ABI (libpubhubs.so) used by the hub
 # common:  what's used by both bin and abi.
-# old:     what's used by the old pubhubs binary (no separate authentication server/transcryptor)
-default = ["bin"]
-abi = ["common"]
+# old:     what's used by the old pubhubs library (no separate authentication server/transcryptor)
+# oldbin:  what's used by the old pubhubs binary
+default = [
+	"oldbin",
+]
+abi = [
+	"common",
+]
 common = [
 	"dep:base16ct",
 	"dep:base64ct", 
@@ -26,6 +31,11 @@ common = [
 	"dep:rand", 
 ]
 bin = [
+	"dep:clap",
+	"dep:anyhow",
+]
+oldbin = [
+	"bin",
 	"old",
 	"dep:actix-files",
 	"dep:env_logger",
@@ -137,6 +147,8 @@ strum_macros = { version = "0.25", optional = true }
 expry = { version = "0.1", optional = true } 
 hairy = { version = "0.1", optional = true }
 
+# command line argument parser
+clap = { version = "4.3", features = ["derive"], optional = true }
 
 [dev-dependencies]
 tempfile = "3.4"

@@ -23,6 +23,9 @@ mod old {
 #[cfg(feature = "old")]
 pub use old::*;
 
+#[cfg(feature = "bin")]
+pub mod cli;
+
 #[cfg(feature = "common")]
 mod common {
     pub mod elgamal;
