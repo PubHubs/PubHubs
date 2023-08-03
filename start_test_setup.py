@@ -395,7 +395,7 @@ def run_docker_compose(env_value=None, args: str = None) -> None:
         None
     """
 
-    docker_command = "docker compose up -d"
+    docker_command = "docker compose up --build -d"
 
     if args is not None:
         docker_command += args

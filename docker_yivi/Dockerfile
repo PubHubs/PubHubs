@@ -1,12 +1,10 @@
-FROM golang:1.18
+FROM golang:1.20
 
-RUN git clone https://github.com/privacybydesign/irmago --branch v0.12.0 --depth 1
+RUN git clone https://github.com/privacybydesign/irmago --branch v0.12.6 --depth 1
 
 WORKDIR irmago
 
-RUN go env -w GO111MODULE=auto
-
-RUN go install ./irma
+RUN GO111MODULE=auto go install ./irma
 
 EXPOSE 8088
 
@@ -14,4 +12,3 @@ COPY irmaserver.yaml .
 COPY jwt.priv .
 
 CMD ["irma", "server", "-vvvvvv", "--no-tls", "--sse", "--allow-unsigned-callbacks"]
-#"-u", "http://172.18.0.2:8088"
