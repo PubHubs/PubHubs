@@ -41,6 +41,7 @@ Create a new secured room. Example request body:
 		}
 	},
 	"user_txt": "usertx",
+	"expiration_time_days": 10,
 	"type": "ph.messages.restricted"
 }
 ```
@@ -53,7 +54,9 @@ Create a new secured room. Example request body:
 
 `user_txt` is some text that can explain to users about what to disclose. This is unused so far.
 
-`type` is the typ of the room to create, for now 2 values are supported "ph.messages.restricted" (regular chat room)
+`expiration_time_days` is the number of days for the secured room to expire. Default valie is 90 days.
+
+`type` is the type of the room to create, for now 2 values are supported "ph.messages.restricted" (regular chat room)
 and "ph.threaded.restricted" (a more forum-like room).
 
 
@@ -78,9 +81,11 @@ Update a room with, for example:
 			"profile": true
 		}
 	},
+	"user_txt": "usertx",
+	"expiration_time_days": 10,
 	"room_id": "!pVEtaikxFiGHXPbFOn:testhub.matrix.host",
-	"type": "ph.messages.restricted",
-	"user_txt": "usertx"
+	"type": "ph.messages.restricted"
+	
 }
 ```
 
@@ -112,9 +117,10 @@ Requires the correct values for the room, for example:
 			"profile": true
 		}
 	},
+	"user_txt": "usertx",
+	"expiration_time_days": 10,
 	"room_id": "!pVEtaikxFiGHXPbFOn:testhub.matrix.host",
-	"type": "ph.messages.restricted",
-	"user_txt": "usertx"
+	"type": "ph.messages.restricted"
 }
 ```
 

@@ -1,6 +1,6 @@
 import json
 import traceback
-
+import logging
 from synapse.api.errors import Codes, LoginError
 from synapse.handlers.room import RoomCreationHandler, RoomShutdownHandler
 from synapse.http.server import DirectServeJsonResource, respond_with_json
@@ -9,10 +9,12 @@ from synapse.http.site import SynapseRequest
 from synapse.module_api import ModuleApi
 from synapse.types import Requester
 
+
 from ._secured_rooms_class import SecuredRoom
 from ._store import YiviRoomJoinStore
 
 
+logger = logging.getLogger(__name__)
 class SecuredRoomsServlet(DirectServeJsonResource):
     """The secured rooms controller containing its basic CRUD functionality."""
 
@@ -39,6 +41,8 @@ class SecuredRoomsServlet(DirectServeJsonResource):
     async def _async_render_POST(self, request: SynapseRequest):
         """Create a new secured room"""
         user = await self.assert_is_admin(request)
+
+
 
         try:
             request_body = parse_json_object_from_request(request)

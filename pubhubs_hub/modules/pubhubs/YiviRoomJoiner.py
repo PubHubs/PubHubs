@@ -1,5 +1,5 @@
 import logging
-
+import time
 import synapse
 from synapse.handlers.room import RoomCreationHandler, RoomShutdownHandler
 from synapse.http.server import set_clickjacking_protection_headers
@@ -12,7 +12,8 @@ from ._yivi_proxy import ProxyServlet
 from ._secured_rooms_web import SecuredRoomsServlet
 from ._store import YiviRoomJoinStore
 from ._web import JoinServlet
-from ._constants import CLIENT_URL, SERVER_NOTICES_USER, GLOBAL_CLIENT_URL
+from ._constants import CLIENT_URL, SERVER_NOTICES_USER, GLOBAL_CLIENT_URL, METHOD_POLLING_INTERVAL
+
 
 logger = logging.getLogger("synapse.contrib." + __name__)
 
@@ -49,10 +50,12 @@ class YiviRoomJoiner(object):
         """
         logger.debug(
             f"hi I am the joining method user is '{user}' and I want to join '{room}' config is '{self.config}'")
+          
         secured_room = await self.store.get_secured_room(room)
         if secured_room:
             return await self.store.is_allowed(user, room)
 
+    
         # Fallthrough other rooms which are not set to have to reveal anything
         return True
 
@@ -64,19 +67,26 @@ class YiviRoomJoiner(object):
 
         # Assert the server notices user exists, we have to make this mandatory
         server_notices_user = api._hs.get_server_notices_manager().server_notices_mxid
+        
         assert isinstance(server_notices_user, str)
 
         self.config[SERVER_NOTICES_USER] = server_notices_user
         if store:
             self.store = store
         else:
-            self.store = YiviRoomJoinStore(api)
+            self.store = YiviRoomJoinStore(api, config)
+            #self.store = YiviRoomJoinStore(api)
         self.module_api = api
         # We need the private fields for account data to set widgets
         self.room_creation_handler = RoomCreationHandler(api._hs)
         self.room_shutdown_handler = RoomShutdownHandler(api._hs)
-
+        
+        
         run_in_background(self.store.create_tables)
+
+        
+        self.module_api.looping_background_call(self.store.remove_from_room, METHOD_POLLING_INTERVAL ) 
+
 
         api.register_web_resource(
             "/_synapse/client/ph",
@@ -90,7 +100,7 @@ class YiviRoomJoiner(object):
             ProxyServlet(
                 self.config,
                 self.module_api))
-
+        
         api.register_web_resource("/_synapse/client/secured_rooms", SecuredRoomsServlet(self.config, self.store,
                                                                                         self.module_api,
                                                                                         self.room_creation_handler,

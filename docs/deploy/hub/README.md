@@ -123,5 +123,32 @@ curl --header "Authorization: Bearer <ACCESS TOKEN>" -H "Content-Type: applicati
     -   Update the HUB URL e.g., https://localhost:8008/ for local testing.
 
 -   Login with a normal user (Not as an admin user). Search for secured room (e.g., secureroomtest). You will be prompted with a secured room page. Use Yivi app to disclose your attributes (e.g., baba@baba.com).
+    
+## Secured Room Expiry
 
-    [Client Instructions &rarr;](../client/README.md)
+
+An administrator can also setup an expiry time for a secure room. Default value of expiry is 90 days. 
+The administrator can setup expiry days when creating a secure room. For example, the administrator can set expiry of a room of 10 days as shown in the example below:
+
+
+
+```
+curl --header "Authorization: Bearer <ACCESS TOKEN>" -H "Content-Type: application/json" -X POST -d '{
+        "room_name": "secured_room",
+        "accepted": {
+                "irma-demo.sidn-pbdf.email.domain": {
+                        "accepted_values": [
+                                "gmail.com"
+                        ],
+                        "profile": false
+                }
+        },
+        "user_txt": "usertx",
+        "expiration_time_days": 10,
+        "type": "ph.messages.restricted"
+}' http://127.0.0.1:8008/_synapse/client/secured_rooms
+```
+    
+FOR TESTING PURPOSE: The key expiration_time_days to a small value like `0.002`. This is around 3 minutes. A sufficient time to observe the removal of secured room from the list. 
+    
+  [Client Instructions &rarr;](../client/README.md)
