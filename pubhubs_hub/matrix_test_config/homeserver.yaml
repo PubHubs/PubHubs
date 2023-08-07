@@ -15,6 +15,7 @@
 # documentation on how to configure or create custom modules for Synapse.
 #
 modules:
+  - module: conf.modules.pubhubs.DBMigration
   - module: conf.modules.pseudonyms.Pseudonym
 #    Below is the example config for adding attribute based authentication to rooms, room id's will be different depending on your server.
 #    Make sure to enable server_notices system_mxid_localpart (also in homeserver.yaml) as that will be the user making the waiting rooms.
@@ -31,8 +32,6 @@ modules:
         # The global hub client where we need to allow the hubs' terms and conditions to be shown form as an embedded page.
         global_client_url: "http://localhost:8080"
       }
-
-
 
 ## Server ##
 
