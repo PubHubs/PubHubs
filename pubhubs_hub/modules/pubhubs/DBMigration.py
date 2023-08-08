@@ -38,24 +38,23 @@ class DBMigration(object):
         else:
             self.store = YiviRoomJoinStore(api,config)
         self.module_api = api
-        self.migration =  StoreModifier(api, RemoveColumnsMigrationStrategy())
+        self.migration =  StoreModifier(api, AddColumnsMigrationStrategy())
         
         # Migration rules
         
         
-        #column_info = ("expiration_time_days", "TEXT NOT NULL DEFAULT 90")
-        column_info = ("expiration_time_days",)
+        column_info = ("expiration_time_days", "TEXT NOT NULL DEFAULT 90")
         run_in_background(self.migration.modify, 'secured_rooms',  column_info) 
         
         # Migration related things
             
-        # column_info_list =[
-        #                 ("join_time", "TEXT NOT NULL DEFAULT " + str(time.time())),
-        #                 ("user_expired", "INT NOT NULL DEFAULT 0"), 
-        #                 ]
+        column_info_list =[
+                        ("join_time", "TEXT NOT NULL DEFAULT " + str(time.time())),
+                        ("user_expired", "INT NOT NULL DEFAULT 0"), 
+                        ]
 
-        # for column_info in column_info_list:
-        #     run_in_background(self.migration.modify, 'allowed_to_join_room', column_info)
+        for column_info in column_info_list:
+            run_in_background(self.migration.modify, 'allowed_to_join_room', column_info)
         
       
 
