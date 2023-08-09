@@ -15,9 +15,7 @@ database_location: dev.db  # if not set, in memory database is used
 yivi:
   requestor_api_url: http://localhost:8088
 
-pep: {
-  # libpep_location: /path/to/libpepcli
-}
+pep: { }
 
 # Allowed contexts for embedding the login-flow. This will be the PubHubs global client(8080), allowing it to embed
 # itself, in case we need to authenticate for a specific hub and are not (yet) logged in globally.
