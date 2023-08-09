@@ -39,6 +39,8 @@ stages: # List of stages for jobs, and their order of execution
 
 .hubchanges: &hubchanges
   changes:
+    # NOTE: strictly speaking changes to pubhubs also affect a hub via libpubhubs.so,
+    #       but that happens so seldomly that we better trigger a deploy in those cases manually
     - pubhubs_hub/**/*
     - cicd/.gitlab-ci.yml
 
@@ -204,16 +206,13 @@ hub-unit-test: # This job runs in the test stage.
   image: python:latest
   variables:
     PIP_CACHE_DIR: "$CI_PROJECT_DIR/.cache/pip"
-  before_script: #install libpepcli
+  before_script: 
     - python --version # For debugging
     - pip install virtualenv
     - virtualenv venv
     - source venv/bin/activate
     - pip install unittest-xml-reporting
     - apt update && apt install -y lsb-release
-    - sh -c 'printf "deb http://packages.bitpowder.com/debian-%s main core\n" `lsb_release -cs`' | tee /etc/apt/sources.list.d/bitpowder-repo.list
-    - curl -L https://bitpowder.com/packages/linux-packages.gpg | tee /etc/apt/trusted.gpg.d/bitpowder.asc
-    - apt-get update && apt-get install -y pepcli
   script:
     - cd pubhubs_hub
     - pip install --upgrade -r requirements.txt
@@ -250,9 +249,8 @@ build-image-hub:
   variables:
     CONTAINER_IMAGE: ${CI_REGISTRY}/${CI_PROJECT_PATH}/pubhubs_hub:${CI_COMMIT_REF_NAME}
   script:
-    - cd pubhubs_hub
     - docker login -u $CI_REGISTRY_USER -p $CI_REGISTRY_PASSWORD $CI_REGISTRY
-    - DOCKER_BUILDKIT=1 docker build -t ${CONTAINER_IMAGE} .
+    - DOCKER_BUILDKIT=1 docker build -t ${CONTAINER_IMAGE} -f pubhubs_hub/Dockerfile .
     - docker push ${CONTAINER_IMAGE}
 
 deploy-main-hub:

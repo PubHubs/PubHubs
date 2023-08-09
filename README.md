@@ -48,7 +48,6 @@ Default settings are in the `default.yaml`; for development these initial settin
 - [Node Package Manager](https://docs.npmjs.com/downloading-and-installing-node-js-and-npm)
 - [Docker](https://www.docker.com/)
 - [Sass](https://sass-lang.com/install)
-- [Libpepcli](https://gitlab.science.ru.nl/bernardg/libpep-cpp)
 
 Several libraries for the client, most important:
 
@@ -145,16 +144,3 @@ urls:
 ```
 in your configuration file (e.g. `config.yaml`.)
 
-### Development dependencies
-
-We use libpepcli to make pseudonyms. Please install it on your system:
-
-```shell
-sh -c 'printf "deb http://packages.bitpowder.com/debian-%s main core\n" `lsb_release -cs`' | tee /etc/apt/sources.list.d/bitpowder-repo.list
-curl -L https://bitpowder.com/packages/linux-packages.gpg | tee /etc/apt/trusted.gpg.d/bitpowder.asc
-
-apt-get update && apt-get install -y pepcli
-```
-
-
-For mac build, see https://gitlab.science.ru.nl/ilab/libpep

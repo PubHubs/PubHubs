@@ -235,13 +235,6 @@ pub struct Pep {
     pub global_public_key: Option<String>,
     pub global_secret_key: Option<String>,
     pub factor_secret: Option<String>,
-
-    #[serde(default = "default_libpep_location")]
-    pub libpep_location: String,
-}
-
-fn default_libpep_location() -> String {
-    "libpepcli".to_string()
 }
 
 impl File {
