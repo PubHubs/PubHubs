@@ -27,9 +27,19 @@ impl Cli {
 
             Some(cmd) => match cmd {
                 #[cfg(feature = "oldbin")]
-                Commands::Old(old_args) => old_args.run(),
+                Commands::Old(old_args) => old_args.run().map_err(|err| {
+                    Cli::command()
+                        .find_subcommand_mut("old")
+                        .expect("no 'old' subcommand; was it renamed?")
+                        .error(clap::error::ErrorKind::InvalidValue, format!("{:?}", err))
+                }),
 
-                Commands::Serve(serve_args) => serve_args.run(),
+                Commands::Serve(serve_args) => serve_args.run().map_err(|err| {
+                    Cli::command()
+                        .find_subcommand_mut("serve")
+                        .expect("no 'serve' subcommand; was it renamed?")
+                        .error(clap::error::ErrorKind::InvalidValue, format!("{:?}", err))
+                }),
             },
         }
     }
@@ -59,9 +69,8 @@ mod old {
     }
 
     impl Args {
-        pub fn run(self) -> Result<(), clap::error::Error> {
+        pub fn run(self) -> anyhow::Result<()> {
             pubhubs::cli::old::main()
-                .map_err(|err| Cli::command().error(clap::error::ErrorKind::InvalidValue, err))
         }
     }
 }

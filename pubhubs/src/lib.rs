@@ -26,6 +26,7 @@ pub use old::*;
 #[cfg(feature = "bin")]
 pub mod cli;
 
+#[cfg(feature = "bin")]
 pub mod servers;
 
 #[cfg(feature = "common")]
