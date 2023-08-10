@@ -18,7 +18,7 @@ FROM rust AS libpubhubs_build
 
 COPY pubhubs/ wd
 
-WORDIR wd
+WORKDIR wd
 
 # only build pubhubs with the features needed for the ABI
 RUN cargo build --no-default-features --lib --features=abi
