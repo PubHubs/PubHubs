@@ -52,17 +52,6 @@ const useApi = defineStore('api', {
 			return this.etag;
 		},
 
-		isJsonResponse(headers: Headers): boolean {
-			if (headers.get('content-type') == 'application/json') {
-				return true;
-			}
-			const contentLength = headers.get('content-length');
-			if (headers.get('content-type') == 'application/octet-stream' && contentLength !== null && contentLength != '0') {
-				return true;
-			}
-			return false;
-		},
-
 		async api<T>(url: string, options: ApiOptions = apiOptionsGET, defaultResponseData: any = undefined): Promise<T> {
 			if (this.accessToken) {
 				options.headers = {
@@ -78,14 +67,20 @@ const useApi = defineStore('api', {
 			if (response.status == 204) {
 				return true as T;
 			}
-			if (this.isJsonResponse(response.headers)) {
-				return response.json() as Promise<T>;
+			// Test if JSON response
+			try {
+				const text = await response.text();
+				console.log('try', text);
+				const json = JSON.parse(text + '-');
+				console.log('json', json);
+				return json as Promise<T>;
+			} catch {
+				return defaultResponseData as T;
 			}
-			return defaultResponseData as T;
 		},
 
-		async apiGET<T>(url: string): Promise<T> {
-			return this.api<T>(url, apiOptionsGET);
+		async apiGET<T>(url: string, defaultResponseData: any = undefined): Promise<T> {
+			return this.api<T>(url, apiOptionsGET, defaultResponseData);
 		},
 
 		async apiPOST<T>(url: string, data: any): Promise<T> {

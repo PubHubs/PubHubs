@@ -130,7 +130,7 @@ const useGlobal = defineStore('global', {
 
 		async getHubs() {
 			const api = useApi();
-			const data = await api.apiGET<Array<hubResponseItem>>(apiURLS.hubs);
+			const data = await api.apiGET<Array<hubResponseItem>>(apiURLS.hubs,[]);
 			const hubs = [] as HubList;
 			data.forEach((item: hubResponseItem) => {
 				hubs.push(new Hub(item.name, item.client_uri, item.description));
