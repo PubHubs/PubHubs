@@ -21,7 +21,6 @@
 
 <script setup lang="ts">
 	import { icons, sizes } from '@/assets/icons';
-	import Icon from '@/components/elements/Icon.vue';
 
 	const iconKeys = Object.keys(icons);
 	const sizeKeys = Object.keys(sizes);

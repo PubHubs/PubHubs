@@ -1,18 +1,27 @@
 <template>
-	<input type="checkbox" class="focus:outline-0 focus:outline-offset-0 focus:ring-0 focus:ring-offset-0 focus:ring-offset-width-0 focus:shadow-0" v-model="value" @keydown="changed()" @keydown.enter="submit()" @keydown.esc="cancel()" />
-	<label class="ml-2 dark:text-white">{{ label }}</label>
+	<input
+		type="checkbox"
+		class="h-6 w-6 mt-1 rounded-md text-green bg-transparent border-1 border-black dark:border-white focus:outline-0 focus:outline-offset-0 focus:ring-0 focus:ring-offset-0 focus:ring-offset-width-0 focus:shadow-0"
+		:value="modelValue"
+		:checked="modelValue"
+		@input="update($event.target.checked)"
+		@keydown.esc="cancel()"
+	/>
 </template>
 
 <script setup lang="ts">
 	import { useFormInputEvents, usedEvents } from '@/composables/useFormInputEvents';
 
-	defineProps({
-		label: {
+	const props = defineProps({
+		placeholder: {
 			type: String,
-			required: true,
+			default: '',
+		},
+		modelValue: {
+			type: Boolean,
 		},
 	});
 
 	const emit = defineEmits(usedEvents);
-	const { value, changed, submit, cancel } = useFormInputEvents(emit);
+	const { update, cancel } = useFormInputEvents(emit, props.modelValue);
 </script>
