@@ -70,9 +70,7 @@ const useApi = defineStore('api', {
 			// Test if JSON response
 			try {
 				const text = await response.text();
-				console.log('try', text);
-				const json = JSON.parse(text + '-');
-				console.log('json', json);
+				const json = JSON.parse(text);
 				return json as Promise<T>;
 			} catch {
 				return defaultResponseData as T;
