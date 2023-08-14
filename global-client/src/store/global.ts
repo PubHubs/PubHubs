@@ -64,16 +64,21 @@ const useGlobal = defineStore('global', {
 	actions: {
 		async checkLoginAndSettings() {
 			const api = useApi();
-			const data = await api.api<GlobalSettings | boolean>(apiURLS.bar, apiOptionsGET, defaultGlobalSettings);
-			if (data) {
-				this.setGlobalSettings(data);
-				this.loggedIn = true;
-				if (getCookie('PHAccount')) {
-					const base64Cookie = getCookie('PHAccount') as string; // see docs/API.md
-					this.loginTime = Buffer.from(base64Cookie, 'base64').toString('binary').split('.')[1];
+			try {
+				const data = await api.api<GlobalSettings | boolean>(apiURLS.bar, apiOptionsGET, defaultGlobalSettings);
+				if (data) {
+					this.setGlobalSettings(data);
+					this.loggedIn = true;
+					if (getCookie('PHAccount')) {
+						const base64Cookie = getCookie('PHAccount') as string; // see docs/API.md
+						this.loginTime = Buffer.from(base64Cookie, 'base64').toString('binary').split('.')[1];
+					}
+					return true;
+				} else {
+					this.loggedIn = false;
+					return false;
 				}
-				return true;
-			} else {
+			} catch (error) {
 				this.loggedIn = false;
 				return false;
 			}
