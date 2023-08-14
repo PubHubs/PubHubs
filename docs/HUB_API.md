@@ -59,6 +59,8 @@ Create a new secured room. Example request body:
 `type` is the type of the room to create, for now 2 values are supported "ph.messages.restricted" (regular chat room)
 and "ph.threaded.restricted" (a more forum-like room).
 
+Accepted Yivi attributes can be find here: https://github.com/privacybydesign/pbdf-schememanager
+
 
 Will return the created room including a room id.
 

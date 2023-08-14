@@ -21,6 +21,8 @@ class PubHubsSecuredRoomType(str, enum.Enum):
 def is_list_of_strings(attributes):
     return isinstance(attributes, list) or not all(map(lambda x: isinstance(x, str), attributes))
 
+def accepted_value_is_empty(attributes):
+    return '' in attributes
 
 class RoomAttribute:
     accepted_values: list[str]
@@ -33,6 +35,10 @@ class RoomAttribute:
         if not is_list_of_strings(accepted_values):
             raise TypeError("'accepted_values' should be a list of strings")
 
+        if accepted_value_is_empty(accepted_values):
+             raise TypeError("'accepted_values' should consist of atleast one attribute")
+        
+        
         self.profile = profile
         self.accepted_values = accepted_values
 
@@ -68,6 +74,8 @@ class SecuredRoom:
 
         if not isinstance(room_name, str):
             errors.append("'room_name' should be a string")
+        if not room_name:
+            errors.append("'room_name' should have a valid name")
 
         accepted_error = "'accepted' should be an object with keys of attributes required to join the room, followed " \
                          "by an object with a list of accepted values and a boolean whether they need to show as " \
@@ -78,7 +86,12 @@ class SecuredRoom:
         else:
             try:
                 self.accepted = dict(map(lambda kv: (kv[0], RoomAttribute(**kv[1])), accepted.items()))
-            except TypeError:
+            except TypeError as e:
+                errors.append(str(e))
+    
+    
+    
+        if len(accepted) == 0:
                 errors.append(accepted_error)
    
         if not isinstance(user_txt, str):

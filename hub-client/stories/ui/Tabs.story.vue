@@ -1,0 +1,29 @@
+<template>
+	<Story title="UI/Tabs">
+		<Tabs>
+			<TabHeader>
+				<TabPill>#1</TabPill>
+				<TabPill>#2</TabPill>
+				<TabPill>#3</TabPill>
+			</TabHeader>
+			<TabContainer>
+				<TabContent>Eerste</TabContent>
+				<TabContent>Tweede</TabContent>
+				<TabContent>
+					<Tabs>
+						<TabHeader>
+							<TabPill>#1</TabPill>
+							<TabPill>#2</TabPill>
+							<TabPill>#3</TabPill>
+						</TabHeader>
+						<TabContainer>
+							<TabContent>Eerste</TabContent>
+							<TabContent>Tweede</TabContent>
+							<TabContent>Derde</TabContent>
+						</TabContainer>
+					</Tabs>
+				</TabContent>
+			</TabContainer>
+		</Tabs>
+	</Story>
+</template>

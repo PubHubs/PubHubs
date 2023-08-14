@@ -8,21 +8,35 @@
  */
 
 import { defineStore } from 'pinia';
-import { Room as MatrixRoom, MatrixClient } from 'matrix-js-sdk';
+import { Room as MatrixRoom, IPublicRoomsChunkRoom as PublicRoom, MatrixClient } from 'matrix-js-sdk';
 import { Message, MessageType, useMessageBox } from './messagebox';
 import { useRouter } from 'vue-router';
+import { apiURLS, useApi } from '@/core/api';
 import { usePubHubs } from '@/core/pubhubsStore';
+import { propCompare } from '@/core/extensions';
 import filters from '@/core/filters';
+
+interface SecuredRoomAttributes {
+	[index: string]: {
+		profile: boolean;
+		accepted_values: Array<string>;
+	};
+}
+
+interface SecuredRoom {
+	room_id?: string; // Will be returned by API
+	room_name: string;
+	accepted?: SecuredRoomAttributes | [];
+	user_txt: string;
+	type?: string;
+	secured?: boolean;
+}
+
 /**
  *  Extending the MatrixRoom with some extra properties and there methods:
  *
  *      hidden : boolean        - keep track of 'removed' rooms that are not synced yet.
  *      unreadMessages : number - keep track of new messages in a room that are not read by the user.
- */
-
-/*
- *   Secured Room state types.
- *   This is used only for secured room to check the Yivi status
  */
 
 interface PubHubsRoomProperties {
@@ -75,6 +89,8 @@ const useRooms = defineStore('rooms', {
 		return {
 			currentRoomId: '' as string,
 			rooms: {} as { [index: string]: Room },
+			publicRooms: [] as Array<PublicRoom>,
+			securedRooms: [] as Array<SecuredRoom>,
 		};
 	},
 
@@ -110,16 +126,35 @@ const useRooms = defineStore('rooms', {
 			};
 		},
 
-		currentRoom(state): Room {
-			return state.rooms[state.currentRoomId];
+		currentRoom(state): Room | undefined {
+			if (state.rooms[state.currentRoomId]) {
+				return state.rooms[state.currentRoomId];
+			}
+			return undefined;
 		},
 
 		currentRoomHasEvents(state): Boolean {
-			return state.rooms[state.currentRoomId].timeline.length > 0;
+			const currentRoom = this.currentRoom;
+			if (currentRoom) {
+				return state.rooms[state.currentRoomId].timeline.length > 0;
+			}
+			return false;
 		},
 
 		currentRoomExists(state): boolean {
 			return this.roomExists(state.currentRoomId);
+		},
+
+		hasPublicRooms(state): boolean {
+			return Object.keys(state.publicRooms).length > 0;
+		},
+
+		hasSecuredRooms(state): boolean {
+			return Object.keys(state.securedRooms).length > 0;
+		},
+
+		sortedSecuredRooms(state): Array<SecuredRoom> {
+			return state.securedRooms.sort(propCompare('room_name'));
 		},
 
 		totalUnreadMessages() {
@@ -180,6 +215,46 @@ const useRooms = defineStore('rooms', {
 			messagebox.sendMessage(new Message(MessageType.UnreadMessages, this.totalUnreadMessages));
 		},
 
+		async fetchPublicRooms() {
+			const pubhubs = usePubHubs();
+			const response = await pubhubs.getAllPublicRooms();
+			const rooms = response.chunk as [];
+			this.publicRooms = rooms.sort(propCompare('name'));
+		},
+
+		roomIsSecure(roomId: string): boolean {
+			const publicRoom = this.publicRooms.find((room: PublicRoom) => room.room_id == roomId) as unknown as PublicRoom;
+			if (publicRoom) {
+				if (publicRoom.room_type && publicRoom.room_type == 'ph.messages.restricted') {
+					return true;
+				}
+			}
+			return false;
+		},
+
+		async fetchSecuredRooms() {
+			const { apiGET } = useApi();
+			this.securedRooms = await apiGET<Array<SecuredRoom>>(apiURLS.securedRooms);
+		},
+
+		async addSecuredRoom(room: SecuredRoom) {
+			const { apiPOST } = useApi();
+			const newRoom = await apiPOST<SecuredRoom>(apiURLS.securedRooms, room);
+			this.securedRooms.push(newRoom);
+			this.fetchPublicRooms(); // Reset PublicRooms, so the new room is indeed recognised as a secured room. TODO: could this be improved without doing a fetch?
+			return newRoom;
+		},
+
+		async removeSecuredRoom(room: SecuredRoom) {
+			const { apiDELETE } = useApi();
+			const deleted_id = await apiDELETE(apiURLS.securedRooms, room);
+			const sidx = this.securedRooms.findIndex((room) => room.room_id == deleted_id);
+			this.securedRooms.splice(sidx, 1);
+			const pidx = this.publicRooms.findIndex((room) => room.room_id == deleted_id);
+			this.publicRooms.splice(pidx, 1);
+			return deleted_id;
+		},
+
 		// This extracts the notice which is used in secured rooms.
 		// The notice contains the user id and the profile attribute.
 		getBadgeInSecureRoom(roomId: string, displayName: string): string {
@@ -195,18 +270,6 @@ const useRooms = defineStore('rooms', {
 				}
 			}
 			return attribute;
-		},
-
-		roomIsSecure(roomId: string): boolean {
-			for (const evt of this.rooms[roomId].timeline) {
-				if (evt.getContent().msgtype === 'm.notice') {
-					// This notice is specific to secured room, there should be attributes.
-					if (String(evt.getContent().body).includes('attributes')) {
-						return true;
-					}
-				}
-			}
-			return false;
 		},
 
 		yiviSecuredRoomflow(roomId: string, authToken: string) {
@@ -257,4 +320,4 @@ const useRooms = defineStore('rooms', {
 	},
 });
 
-export { Room, useRooms };
+export { Room, PublicRoom, SecuredRoomAttributes, SecuredRoom, useRooms };

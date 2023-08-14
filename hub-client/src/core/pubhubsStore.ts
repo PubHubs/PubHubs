@@ -5,7 +5,9 @@ import { MatrixClient, EventTimeline } from 'matrix-js-sdk';
 
 import { Authentication } from '@/core/authentication';
 import { Events } from '@/core/events';
-import { useSettings, useUser, useRooms } from '@/store/store';
+import { useSettings, useUser, useRooms, PublicRoom } from '@/store/store';
+
+import { useApi } from '@/core/api';
 
 const usePubHubs = defineStore('pubhubs', {
 	state: () => {
@@ -41,7 +43,10 @@ const usePubHubs = defineStore('pubhubs', {
 				const newUser = this.client.getUser(user.user.userId);
 				if (newUser != null) {
 					user.setUser(newUser);
-					user.fetchDisplayName(this.client as MatrixClient);
+					await user.fetchDisplayName(this.client as MatrixClient);
+					await user.fetchIsAdministrator(this.client as MatrixClient);
+					const { setAccessToken } = useApi();
+					setAccessToken(this.Auth.getAccessToken());
 				}
 			} catch (error) {
 				if (typeof error == 'string' && error.indexOf('M_FORBIDDEN') < 0) {
@@ -58,11 +63,12 @@ const usePubHubs = defineStore('pubhubs', {
 			this.Auth.updateLoggedInStatusBasedOnGlobalStatus(globalLoginTime);
 		},
 
-		updateRooms() {
+		async updateRooms() {
 			console.log('PubHubs.updateRooms');
 			const rooms = useRooms();
 			const currentRooms = this.client.getRooms();
 			rooms.updateRoomsWithMatrixRooms(currentRooms);
+			await rooms.fetchPublicRooms();
 		},
 
 		/**
@@ -100,30 +106,13 @@ const usePubHubs = defineStore('pubhubs', {
 			});
 		},
 
-		async joinRoom(roomId: string, router: any, search: string) {
-			//
-			const response = await this.getPublicRooms(search);
-			try {
-				await this.client.joinRoom(roomId);
-				this.updateRooms();
-			} catch (error) {
-				// it returns an unknown type. Only option seems like to typecast to string.
-				// Better to use the exact reason as the condition instead of status code.
-				if (String(error).includes('M_FORBIDDEN')) {
-					console.info('Is Forbidden');
-					// User is forbidden but it is because it is secured room he is trying to access.
-					if (response.chunk[0].room_type === 'ph.messages.restricted') {
-						router.push({ name: 'secure-room', params: { id: roomId } });
-					} else {
-						// If not then there is some other issue. Show the error message.
-						this.showError(error as string);
-					}
-				}
-			}
+		async joinPublicRoom(room: PublicRoom) {
+			await this.client.joinRoom(room.room_id);
+			this.updateRooms();
 		},
 
-		newRoom(options: object) {
-			this.client.createRoom(options);
+		async newRoom(options: object) {
+			await this.client.createRoom(options);
 		},
 
 		leaveRoom(roomId: string) {

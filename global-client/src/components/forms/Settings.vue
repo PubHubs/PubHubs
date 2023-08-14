@@ -2,11 +2,11 @@
 	<div class="flex flex-col">
 		<div class="flex justify-between mb-2">
 			<label>{{ t('settings.theme') }}</label>
-			<ButtonGroup size="sm" v-model="data.theme" :value="data.theme" :options="settings.getThemeOptions(t)" @changed="updateData('theme', $event)"></ButtonGroup>
+			<ButtonGroup size="sm" v-model="data.theme.value" :value="data.theme.value" :options="settings.getThemeOptions(t)" @changed="updateData('theme', $event)"></ButtonGroup>
 		</div>
 		<div class="flex justify-between mb-2">
 			<label>{{ t('settings.language') }}</label>
-			<ButtonGroup size="sm" v-model="data.language" :value="data.language" :options="settings.getLanguageOptions" @changed="updateData('language', $event)"></ButtonGroup>
+			<ButtonGroup size="sm" v-model="data.language.value" :value="data.language.value" :options="settings.getLanguageOptions" @changed="updateData('language', $event)"></ButtonGroup>
 		</div>
 	</div>
 </template>
@@ -25,8 +25,8 @@
 	const dialog = useDialog();
 
 	setData({
-		theme: settings.getSetTheme as FormDataType,
-		language: settings.getActiveLanguage as FormDataType,
+		theme: { value: settings.getSetTheme as FormDataType },
+		language: { value: settings.getActiveLanguage as FormDataType },
 	});
 
 	onMounted(() => {
@@ -34,11 +34,11 @@
 			if (changed) {
 				let sendSettings = false;
 				if (dataIsChanged('theme')) {
-					settings.setTheme(data.theme as Theme);
+					settings.setTheme(data.theme.value as Theme);
 					sendSettings = true;
 				}
 				if (dataIsChanged('language')) {
-					settings.setLanguage(data.language as string);
+					settings.setLanguage(data.language.value as string);
 					sendSettings = true;
 				}
 				if (sendSettings) {

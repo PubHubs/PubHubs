@@ -99,11 +99,14 @@ const icons: { [key: string]: string } = {
         <path d="M15 7l-6.5 6.5a1.5 1.5 0 0 0 3 3l6.5 -6.5a3 3 0 0 0 -6 -6l-6.5 6.5a4.5 4.5 0 0 0 9 9 l6.5 -6.5" />
         `,
 	lock: `
-        <path d="M15.1176 4.48959L8.17454 1L1 4.48959C2.15718 9.2003 4.93443 16.0733 8.17454 17C11.6461 15.8416 14.269 9.2003 15.1176 4.48959Z" fill="white" stroke="white" stroke-linejoin="round"/>
+        <path d="M15.1176 4.48959L8.17454 1L1 4.48959C2.15718 9.2003 4.93443 16.0733 8.17454 17C11.6461 15.8416 14.269 9.2003 15.1176 4.48959Z" stroke-linejoin="round"/>
         `,
 	'arrow-right': `
         <path stroke="none" d="M0 0h24v24H0z"/>  <line x1="5" y1="12" x2="19" y2="12" />  <line x1="15" y1="16" x2="19" y2="12" />  <line x1="15" y1="8" x2="19" y2="12" />
         `,
+	admin: `
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 14v6m-3-3h6M6 10h2a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v2a2 2 0 002 2zm10 0h2a2 2 0 002-2V6a2 2 0 00-2-2h-2a2 2 0 00-2 2v2a2 2 0 002 2zM6 20h2a2 2 0 002-2v-2a2 2 0 00-2-2H6a2 2 0 00-2 2v2a2 2 0 002 2z"/>
+    `,
 };
 
 export { icons, iconSizes as sizes };

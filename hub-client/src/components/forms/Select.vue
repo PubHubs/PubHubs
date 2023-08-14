@@ -2,7 +2,7 @@
 	<select
 		v-model="inputValue"
 		v-tw-class="'w-full'"
-		class="border p-2 rounded-lg dark:bg-transparent dark:text-white dark:border-white focus:border-black focus:outline-0 focus:outline-offset-0 focus:ring-0"
+		class="w-full border px-2 py-1 rounded-lg dark:bg-transparent theme-light:border-black theme-light:text-black dark:text-white dark:border-white focus:border-black focus:outline-0 focus:outline-offset-0 focus:ring-0"
 		@change="changed()"
 		@keydown.enter="submit()"
 		@keydown.esc="cancel()"

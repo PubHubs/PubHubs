@@ -16,6 +16,7 @@ const defaultUser = {} as User;
 
 type State = {
 	user: User;
+	isAdministrator: boolean;
 };
 
 type getProfileInfoResponseType = {
@@ -26,11 +27,16 @@ type getProfileInfoResponseType = {
 const useUser = defineStore('user', {
 	state: (): State => ({
 		user: defaultUser,
+		isAdministrator: false,
 	}),
 
 	getters: {
 		isLoggedIn({ user }) {
 			return typeof user.userId == 'string';
+		},
+
+		isAdmin({ isAdministrator }) {
+			return isAdministrator;
 		},
 	},
 
@@ -43,6 +49,16 @@ const useUser = defineStore('user', {
 			const response: getProfileInfoResponseType = await client.getProfileInfo(this.user.userId, 'displayname');
 			if (typeof response.displayname == 'string') {
 				this.user.setDisplayName(response.displayname);
+			}
+		},
+
+		async fetchIsAdministrator(client: MatrixClient) {
+			try {
+				const response = await client.isSynapseAdministrator();
+				console.log('fetchIsAdministrator', response);
+				this.isAdministrator = true;
+			} catch (error) {
+				this.isAdministrator = false;
 			}
 		},
 	},

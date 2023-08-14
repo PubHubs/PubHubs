@@ -2,7 +2,6 @@ import sdk from 'matrix-js-sdk';
 import { MatrixClient } from 'matrix-js-sdk';
 
 import { User, useUser, useDialog } from '@/store/store';
-import { useI18n } from 'vue-i18n';
 
 type loginResponse = {
 	access_token: string;
@@ -55,7 +54,7 @@ class Authentication {
 		localStorage.removeItem('pubhub');
 	}
 
-	public getAccessToken() {
+	public getAccessToken(): string {
 		const auth = this._fetchAuth();
 		return auth.accessToken;
 	}
@@ -120,15 +119,14 @@ class Authentication {
 						(error) => {
 							const err = error.data;
 							const dialog = useDialog();
-							const { t } = useI18n();
 
 							if (typeof error == 'string' && error.indexOf('Invalid login token') < 0) {
-								dialog.confirm(t('errors.server'), error).then(() => {
+								dialog.confirm('Server Error', error).then(() => {
 									reject(error);
 								});
 							} else if (error.data.errcode == 'M_LIMIT_EXCEEDED') {
-								const message = t('errors.M_LIMIT_EXCEEDED', [Math.round(err.retry_after_ms / 1000)]);
-								dialog.confirm(t('errors.server'), message).then(() => {
+								const message = `Too much login attempts.Try again in ${[Math.round(err.retry_after_ms / 1000)]} seconds.`;
+								dialog.confirm('Server Error', message).then(() => {
 									reject(error);
 								});
 							} else {
