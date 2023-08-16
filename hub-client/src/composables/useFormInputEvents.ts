@@ -24,25 +24,42 @@
 
 import { ref, PropType } from 'vue';
 
-type inputType = string | number | undefined;
+type InputType = string | number | boolean | undefined;
 
-type optionType = string | number;
+type OptionType = string | number;
 
 interface Option {
 	label: string;
-	value: optionType;
+	value: OptionType;
 }
 
 type Options = Array<PropType<Option>>;
 
-const usedEvents = ['update', 'changed', 'cancel', 'submit'];
+// Types for FormObjectInput
 
-const useFormInputEvents = (emit: Function) => {
-	const value = ref<inputType>('');
+interface FormObjectInputTemplate {
+	key: string;
+	label: string;
+	type: string;
+	options?: Options;
+	default: InputType;
+}
+
+enum FormInputType {
+	Text = 'text',
+	TextArea = 'textarea',
+	CheckBox = 'checkbox',
+	Select = 'select',
+}
+
+const usedEvents = ['update', 'update:modelValue', 'changed', 'cancel', 'submit'];
+
+const useFormInputEvents = (emit: Function, set: InputType = '') => {
+	const value = ref<InputType>(set);
 
 	let options = [] as Options;
 
-	const setValue = (set: inputType) => {
+	const setValue = (set: InputType) => {
 		value.value = set;
 	};
 
@@ -58,8 +75,14 @@ const useFormInputEvents = (emit: Function) => {
 		return JSON.stringify(value.value) == JSON.stringify(option.value);
 	};
 
+	const update = (set: InputType) => {
+		value.value = set;
+		changed();
+	};
+
 	const changed = () => {
 		emit('changed', value.value);
+		emit('update:modelValue', value.value);
 	};
 
 	const submit = () => {
@@ -74,7 +97,7 @@ const useFormInputEvents = (emit: Function) => {
 		emit('cancel');
 	};
 
-	return { value, setValue, options, setOptions, selectOption, optionIsSelected, changed, submit, cancel };
+	return { value, setValue, options, setOptions, selectOption, optionIsSelected, update, changed, submit, cancel };
 };
 
-export { type Option, type Options, useFormInputEvents, usedEvents };
+export { type InputType, type Option, type Options, FormObjectInputTemplate, FormInputType, useFormInputEvents, usedEvents };

@@ -5,6 +5,7 @@
 
 ## WARNING: modules SHOULD NOT BE CHANGED, except to customize with your client URL ##
 modules:
+  - module: conf.modules.pubhubs.DBMigration
   - module: conf.modules.pseudonyms.Pseudonym
   - module: conf.modules.pubhubs.YiviRoomJoiner
     config:

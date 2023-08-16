@@ -1,0 +1,174 @@
+[
+  {
+    "attribute": "pbdf.PubHubs.pubhubsaccount.email",
+    "description_url": "PubHubs/Issues/pubhubsaccount/description.xml"
+  },
+  {
+    "attribute": "pbdf.bzkpilot.address.email",
+    "description_url": "bzkpilot/Issues/email/description.xml"
+  },
+  {
+    "attribute": "pbdf.bzkpilot.personalData.email",
+    "description_url": "bzkpilot/Issues/personalData/description.xml"
+  },
+  {
+    "attribute": "pbdf.chipsoft.bsn.email",
+    "description_url": "chipsoft/Issues/email/description.xml"
+  },
+  {
+    "attribute": "pbdf.chipsoft.testbsn.email",
+    "description_url": "chipsoft/Issues/email/description.xml"
+  },
+  {
+    "attribute": "pbdf.cis.digitalInsurancePassport.email",
+    "description_url": "cis/Issues/digitalInsurancePassport/description.xml"
+  },
+  {
+    "attribute": "pbdf.gebiedonline.livingarea.email",
+    "description_url": "gebiedonline/Issues/livingarea/description.xml"
+  },
+  {
+    "attribute": "pbdf.gebiedonline.useridentification.email",
+    "description_url": "gebiedonline/Issues/useridentification/description.xml"
+  },
+  {
+    "attribute": "pbdf.gebiedonline.workingarea.email",
+    "description_url": "gebiedonline/Issues/workingarea/description.xml"
+  },
+  {
+    "attribute": "pbdf.gemeente.address.email",
+    "description_url": "gemeente/Issues/email/description.xml"
+  },
+  {
+    "attribute": "pbdf.gemeente.personalData.email",
+    "description_url": "gemeente/Issues/personalData/description.xml"
+  },
+  {
+    "attribute": "pbdf.ivido.login.email",
+    "description_url": "ivido/Issues/email/description.xml"
+  },
+  {
+    "attribute": "pbdf.minvws.pilot-2.email",
+    "description_url": "minvws/Issues/pilot/description.xml"
+  },
+  {
+    "attribute": "pbdf.nijmegen.address.email",
+    "description_url": "nijmegen/Issues/email/description.xml"
+  },
+  {
+    "attribute": "pbdf.nijmegen.ageLimits.email",
+    "description_url": "nijmegen/Issues/email/description.xml"
+  },
+  {
+    "attribute": "pbdf.nijmegen.bsn.email",
+    "description_url": "nijmegen/Issues/email/description.xml"
+  },
+  {
+    "attribute": "pbdf.nijmegen.personalData.email",
+    "description_url": "nijmegen/Issues/personalData/description.xml"
+  },
+  {
+    "attribute": "pbdf.nijmegen.travelDocument.email",
+    "description_url": "nijmegen/Issues/travelDocument/description.xml"
+  },
+  {
+    "attribute": "pbdf.nuts.agb.email",
+    "description_url": "nuts/Issues/email/description.xml"
+  },
+  {
+    "attribute": "pbdf.pbdf.ageLimits.email",
+    "description_url": "pbdf/Issues/email/description.xml"
+  },
+  {
+    "attribute": "pbdf.pbdf.big.email",
+    "description_url": "pbdf/Issues/email/description.xml"
+  },
+  {
+    "attribute": "pbdf.pbdf.diploma.email",
+    "description_url": "pbdf/Issues/email/description.xml"
+  },
+  {
+    "attribute": "pbdf.pbdf.email.email",
+    "description_url": "pbdf/Issues/email/description.xml"
+  },
+  {
+    "attribute": "pbdf.pbdf.facebook.email",
+    "description_url": "pbdf/Issues/email/description.xml"
+  },
+  {
+    "attribute": "pbdf.pbdf.ideal.email",
+    "description_url": "pbdf/Issues/email/description.xml"
+  },
+  {
+    "attribute": "pbdf.pbdf.idin.email",
+    "description_url": "pbdf/Issues/email/description.xml"
+  },
+  {
+    "attribute": "pbdf.pbdf.irmatube.email",
+    "description_url": "pbdf/Issues/email/description.xml"
+  },
+  {
+    "attribute": "pbdf.pbdf.linkedin.email",
+    "description_url": "pbdf/Issues/email/description.xml"
+  },
+  {
+    "attribute": "pbdf.pbdf.mijnirma.email",
+    "description_url": "pbdf/Issues/email/description.xml"
+  },
+  {
+    "attribute": "pbdf.pbdf.mobilenumber.email",
+    "description_url": "pbdf/Issues/mobilenumber/description.xml"
+  },
+  {
+    "attribute": "pbdf.pbdf.surfnet-2.email",
+    "description_url": "pbdf/Issues/email/description.xml"
+  },
+  {
+    "attribute": "pbdf.pbdf.surfnet.email",
+    "description_url": "pbdf/Issues/email/description.xml"
+  },
+  {
+    "attribute": "pbdf.pbdf.twitter.email",
+    "description_url": "pbdf/Issues/email/description.xml"
+  },
+  {
+    "attribute": "pbdf.pilot.idcard.email",
+    "description_url": "pilot/Issues/idcard/description.xml"
+  },
+  {
+    "attribute": "pbdf.pilot.passport.email",
+    "description_url": "pilot/Issues/passport/description.xml"
+  },
+  {
+    "attribute": "pbdf.sidn.email.email",
+    "description_url": "sidn/Issues/email/description.xml"
+  },
+  {
+    "attribute": "pbdf.sidn.irma.email",
+    "description_url": "sidn/Issues/irma/description.xml"
+  },
+  {
+    "attribute": "pbdf.sidn.mobilenumber.email",
+    "description_url": "sidn/Issues/mobilenumber/description.xml"
+  },
+  {
+    "attribute": "pbdf.sidn.uniqueid.email",
+    "description_url": "sidn/Issues/uniqueid/description.xml"
+  },
+  {
+    "attribute": "pbdf.signicat.kvkTradeRegister.email",
+    "description_url": "signicat/Issues/kvkTradeRegister/description.xml"
+  },
+  {
+    "attribute": "pbdf.surf.secureid.email",
+    "description_url": "surf/Issues/email/description.xml"
+  },
+  {
+    "attribute": "pbdf.surf.surfdrive.email",
+    "description_url": "surf/Issues/email/description.xml"
+  },
+  {
+    "attribute": "pbdf.vgz.machtiging.email",
+    "description_url": "vgz/Issues/machtiging/description.xml"
+  }
+]

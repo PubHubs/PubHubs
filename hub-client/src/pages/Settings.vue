@@ -8,11 +8,11 @@
 			<form @submit.prevent>
 				<div class="flex flex-row mb-2">
 					<label class="w-2/6">{{ $t('settings.displayname') }}</label>
-					<TextInput class="w-4/6 p-1" name="displayname" v-model="data.displayName" :placeholder="user.user.displayName" @changed="updateData('displayName', $event)" @submit="submit"></TextInput>
+					<TextInput class="w-4/6 p-1" name="displayname" v-model="data.displayName.value" :placeholder="user.user.displayName" @changed="updateData('displayName', $event)" @submit="submit"></TextInput>
 				</div>
 
 				<div class="flex flex-row">
-					<Button @click.prevent="submit()" :disabled="!changed">{{ $t('forms.submit') }}</Button>
+					<Button @click.prevent="submit()" :disabled="!isValidated()">{{ $t('forms.submit') }}</Button>
 				</div>
 			</form>
 			<div v-if="message != ''" class="rounded-lg bg-red p-2 mt-2">{{ message }}</div>
@@ -28,18 +28,21 @@
 
 	const user = useUser();
 	const { t } = useI18n();
-	const { data, setData, updateData, dataIsChanged, changed, message, setMessage } = useFormState();
+	const { data, setData, updateData, dataIsChanged, isValidated, message, setMessage } = useFormState();
 	const pubhubs = usePubHubs();
 
 	setData({
-		displayName: '',
+		displayName: {
+			value: '',
+			validation: { required: true },
+		},
 	});
 
 	function submit() {
-		if (changed.value) {
+		if (isValidated()) {
 			if (dataIsChanged('displayName')) {
-				pubhubs.changeDisplayName(data.displayName as string);
-				setMessage(t('settings.displayname_changed', [data.displayName]));
+				pubhubs.changeDisplayName(data.displayName.value as string);
+				setMessage(t('settings.displayname_changed', [data.displayName.value]));
 				updateData('displayName', '');
 			}
 		}

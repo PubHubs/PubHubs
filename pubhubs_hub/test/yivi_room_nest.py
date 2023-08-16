@@ -319,8 +319,11 @@ class FakeModuleApi:
 
     async def update_room_membership(self, action_user, user, room, type):
         pass
+    
+    async def looping_background_call(self, remove_user, polling_interval):
+        pass
 
-
+    
 class FakeStore:
     def __init__(self, isAllowed=False):
         self.isAllowed = isAllowed
@@ -337,7 +340,8 @@ class FakeStore:
     async def get_secured_rooms(self):
         return fake_secured_rooms.values()
 
-
+    async def remove_from_room(self):
+        pass
 valid_config = {"client_url": "", "global_client_url": ""}
 
 

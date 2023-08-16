@@ -16,7 +16,10 @@ RUN GO111MODULE=auto go install ./irma
 ### BUILD STAGE:  LIBPUBHUBS 
 FROM rust AS libpubhubs_build
 
-COPY pubhubs/ .
+COPY pubhubs/ wd
+
+WORKDIR wd
+
 # only build pubhubs with the features needed for the ABI
 RUN cargo build --no-default-features --lib --features=abi
 
@@ -24,7 +27,7 @@ RUN cargo build --no-default-features --lib --features=abi
 FROM matrixdotorg/synapse:v1.89.0
 
 COPY --from=yivi_build /go/bin/irma /usr/bin/irma
-COPY --from=libpubhubs_build /target/debug/libpubhubs.so /usr/lib
+COPY --from=libpubhubs_build /wd/target/debug/libpubhubs.so /usr/lib
 COPY --chmod=755 pubhubs_hub/start.sh .
 
 # Secret to be used by libpep to decrypt the pseudonyms

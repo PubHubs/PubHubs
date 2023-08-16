@@ -123,6 +123,8 @@ const useDialog = defineStore('dialog', {
 			if (typeof this.resolveDialog === 'function') {
 				this.resolveDialog(returnValue);
 			}
+			// reset
+			this.properties = new DialogProperties();
 		},
 
 		/**
@@ -182,4 +184,4 @@ const useDialog = defineStore('dialog', {
 	},
 });
 
-export { buttonsSubmitCancel, DialogButton, type DialogButtonAction, DialogFalse, DialogTrue, DialogProperties, useDialog };
+export { buttonsOk, buttonsSubmitCancel, DialogButton, type DialogButtonAction, DialogFalse, DialogTrue, DialogProperties, useDialog };

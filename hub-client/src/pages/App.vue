@@ -18,15 +18,10 @@
 						<MenuItem>{{ $t('menu.tool') }}</MenuItem>
 					</Menu>
 
-					<Toggler class="mt-12">
-						<template #title>
-							<H2 class="mt-0">{{ $t('menu.rooms') }}</H2>
-						</template>
-						<template #content="toggler">
-							<Line></Line>
-							<RoomList :edit="toggler.state"></RoomList>
-						</template>
-					</Toggler>
+					<H2 class="mt-12">{{ $t('menu.rooms') }}</H2>
+					<Icon type="plus" class="cursor-pointer hover:text-green float-right -mt-8" @click="joinRoomDialog = true"></Icon>
+					<Line></Line>
+					<RoomList></RoomList>
 
 					<div class="mt-12">
 						<H2>{{ $t('menu.private_rooms') }}</H2>
@@ -37,9 +32,12 @@
 					</Menu>
 
 					<template #footer>
-						<Menu>
+						<Menu class="flex">
 							<router-link :to="{ name: 'settings', params: {} }" v-slot="{ isActive }">
 								<MenuItem icon="cog" :active="isActive"></MenuItem>
+							</router-link>
+							<router-link v-if="user.isAdmin" :to="{ name: 'admin', params: {} }" v-slot="{ isActive }" class="grow">
+								<MenuItem icon="admin" :active="isActive" class="float-right"></MenuItem>
 							</router-link>
 						</Menu>
 					</template>
@@ -55,6 +53,8 @@
 			</div>
 		</div>
 
+		<JoinRoom v-if="joinRoomDialog" @close="joinRoomDialog = false"></JoinRoom>
+
 		<Dialog v-if="dialog.visible" @close="dialog.close"></Dialog>
 	</div>
 </template>
@@ -62,7 +62,8 @@
 <script setup lang="ts">
 	import { onMounted, ref } from 'vue';
 	import { RouteParamValue, useRouter } from 'vue-router';
-	import { Message, MessageBoxType, MessageType, Theme, useDialog, useHubSettings, useMessageBox, useRooms, useSettings, useUser } from '@/store/store';
+	import { Message, MessageBoxType, MessageType, Theme, useHubSettings, useMessageBox, useRooms, useSettings, useUser } from '@/store/store';
+	import { useDialog } from '@/store/dialog';
 	import { usePubHubs } from '@/core/pubhubsStore';
 	import { useI18n } from 'vue-i18n';
 
@@ -77,6 +78,7 @@
 	const pubhubs = usePubHubs();
 
 	const setupReady = ref(false);
+	const joinRoomDialog = ref(false);
 
 	onMounted(async () => {
 		settings.initI18b({ locale: locale, availableLocales: availableLocales });

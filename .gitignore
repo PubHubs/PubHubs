@@ -1,4 +1,4 @@
 # Ignore editor files.
 /.idea
 /.ropeproject/
-/.vscode/.DS_Store
+*.DS_Store
