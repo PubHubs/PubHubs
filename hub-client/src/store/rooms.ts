@@ -11,7 +11,7 @@ import { defineStore } from 'pinia';
 import { Room as MatrixRoom, IPublicRoomsChunkRoom as PublicRoom, MatrixClient } from 'matrix-js-sdk';
 import { Message, MessageType, useMessageBox } from './messagebox';
 import { useRouter } from 'vue-router';
-import { apiURLS, useApi } from '@/core/api';
+import { api } from '@/core/api';
 import { usePubHubs } from '@/core/pubhubsStore';
 import { propCompare } from '@/core/extensions';
 import filters from '@/core/filters';
@@ -233,21 +233,18 @@ const useRooms = defineStore('rooms', {
 		},
 
 		async fetchSecuredRooms() {
-			const { apiGET } = useApi();
-			this.securedRooms = await apiGET<Array<SecuredRoom>>(apiURLS.securedRooms);
+			this.securedRooms = await api.apiGET<Array<SecuredRoom>>(api.apiURLS.securedRooms);
 		},
 
 		async addSecuredRoom(room: SecuredRoom) {
-			const { apiPOST } = useApi();
-			const newRoom = await apiPOST<SecuredRoom>(apiURLS.securedRooms, room);
+			const newRoom = await api.apiPOST<SecuredRoom>(api.apiURLS.securedRooms, room);
 			this.securedRooms.push(newRoom);
 			this.fetchPublicRooms(); // Reset PublicRooms, so the new room is indeed recognised as a secured room. TODO: could this be improved without doing a fetch?
 			return newRoom;
 		},
 
 		async removeSecuredRoom(room: SecuredRoom) {
-			const { apiDELETE } = useApi();
-			const deleted_id = await apiDELETE(apiURLS.securedRooms, room);
+			const deleted_id = await api.apiDELETE(api.apiURLS.securedRooms, room);
 			const sidx = this.securedRooms.findIndex((room) => room.room_id == deleted_id);
 			this.securedRooms.splice(sidx, 1);
 			const pidx = this.publicRooms.findIndex((room) => room.room_id == deleted_id);
