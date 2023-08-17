@@ -2,13 +2,13 @@ use actix_web::web;
 use anyhow::Result;
 use std::rc::Rc;
 
-/// PubHubs Central server
+/// Transcryptor
 pub struct Server {
     config: crate::servers::Config,
 }
 
 impl crate::servers::Server for Server {
-    const NAME: &'static str = "PubHubs Central";
+    const NAME: &'static str = "Transcryptor";
     type AppT = Rc<App>;
     type Modifier = Modifier;
     type AppCreatorT = AppCreator;

@@ -1,10 +1,12 @@
 use anyhow::{Context as _, Result};
+use core::fmt::Debug;
 use std::net::SocketAddr;
 use std::path::{Path, PathBuf};
 use url::Url;
 
 /// One, or several, of the PubHubs servers
 #[derive(serde::Deserialize, Debug, Clone)]
+#[serde(deny_unknown_fields)]
 pub struct Config {
     /// URL of the PubHubs Central server.
     ///
@@ -15,7 +17,20 @@ pub struct Config {
     #[serde(default)]
     pub wd: PathBuf,
 
-    pub phc: Option<phc::Config>,
+    /// Configuration to run PubHubs Central
+    pub phc: Option<ServerConfig<phc::ExtraConfig>>,
+
+    /// Configuration to run the Transcryptor
+    pub transcryptor: Option<ServerConfig<transcryptor::ExtraConfig>>,
+}
+
+#[derive(serde::Deserialize, Debug, Clone)]
+#[serde(deny_unknown_fields)]
+pub struct ServerConfig<ServerSpecific> {
+    pub bind_to: SocketAddr,
+
+    #[serde(flatten)]
+    pub extra: ServerSpecific,
 }
 
 impl Config {
@@ -54,7 +69,7 @@ impl Config {
         }
 
         log::info!(
-            "loaded config file from {};  interpretting relative paths relative to {}",
+            "loaded config file from {};  interpretting relative paths in {}",
             path.display(),
             res.wd.display()
         );
@@ -67,7 +82,14 @@ pub mod phc {
     use super::*;
 
     #[derive(serde::Deserialize, Debug, Clone)]
-    pub struct Config {
-        pub bind_to: SocketAddr,
-    }
+    #[serde(deny_unknown_fields)]
+    pub struct ExtraConfig {}
+}
+
+pub mod transcryptor {
+    use super::*;
+
+    #[derive(serde::Deserialize, Debug, Clone)]
+    #[serde(deny_unknown_fields)]
+    pub struct ExtraConfig {}
 }

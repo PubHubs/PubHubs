@@ -1,6 +1,7 @@
 use actix_web::web;
 use anyhow::Result;
 use std::future::Future;
+use std::net::SocketAddr;
 use std::pin::Pin;
 use std::task::{Context, Poll};
 use tokio::sync::mpsc;
@@ -26,8 +27,6 @@ pub trait Server: Unpin + Sized + 'static {
     fn new(config: &crate::servers::Config) -> Self;
 
     fn app_creator(&self) -> Self::AppCreatorT;
-
-    fn bind_to(&self) -> &std::net::SocketAddr;
 }
 
 /// What's passed to an [App] via [AppCreator] to signal a shutdown command
@@ -45,6 +44,7 @@ pub trait AppCreator<ServerT: Server>: Send + Clone + 'static {
 pub struct Runner<ServerT: Server> {
     pubhubs_server: ServerT,
     actix_server: ActixServer<ServerT>,
+    bind_to: SocketAddr,
 }
 
 struct ActixServer<ServerT: Server> {
@@ -104,7 +104,7 @@ impl<S: Server> std::fmt::Display for ShutdownCommand<S> {
 }
 
 impl<S: Server> ActixServer<S> {
-    fn new(pubhubs_server: &S) -> Result<ActixServer<S>> {
+    fn new(pubhubs_server: &S, bind_to: &SocketAddr) -> Result<ActixServer<S>> {
         let app_creator = pubhubs_server.app_creator();
 
         let (shutdown_sender, shutdown_receiver) = mpsc::channel(1);
@@ -116,7 +116,7 @@ impl<S: Server> ActixServer<S> {
                 actix_web::App::new()
                     .configure(|sc: &mut web::ServiceConfig| app.configure_actix_app(sc))
             })
-            .bind(pubhubs_server.bind_to())?
+            .bind(bind_to)?
             .run(),
 
             state: State::Running { shutdown_receiver },
@@ -125,12 +125,17 @@ impl<S: Server> ActixServer<S> {
 }
 
 impl<S: Server> Runner<S> {
-    pub fn new(config: &crate::servers::Config) -> Result<Self> {
-        let pubhubs_server = S::new(config);
+    pub fn new<T>(
+        global_config: &crate::servers::Config,
+        server_config: &crate::servers::config::ServerConfig<T>,
+    ) -> Result<Self> {
+        let pubhubs_server = S::new(global_config);
+        let bind_to = server_config.bind_to; // SocketAddr : Copy
 
         let result = Ok(Runner {
-            actix_server: ActixServer::new(&pubhubs_server)?,
+            actix_server: ActixServer::new(&pubhubs_server, &bind_to)?,
             pubhubs_server,
+            bind_to,
         });
 
         log::info!("created {}", S::NAME);
@@ -215,7 +220,7 @@ impl<S: Server> Future for Runner<S> {
                     }
 
                     // modification succeeded, so recreate actix server
-                    self.actix_server = ActixServer::new(&self.pubhubs_server)?;
+                    self.actix_server = ActixServer::new(&self.pubhubs_server, &self.bind_to)?;
 
                     // now loop, so that the actix_server.inner and receiver are polled
                 }

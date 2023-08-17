@@ -1,5 +1,7 @@
-# new-setup defailt configuration
+# new-setup default configuration
 
 phc_url: http://localhost:8080
+transcryptor:
+  bind_to: "0.0.0.0:7070"
 phc:
   bind_to: "0.0.0.0:8080"
