@@ -59,14 +59,8 @@ enum Commands {
 mod old {
     use super::*;
 
-    #[derive(clap::Args, Debug)]
+    #[derive(clap::Args, Debug, Default)]
     pub struct Args {}
-
-    impl Default for Args {
-        fn default() -> Self {
-            Self {}
-        }
-    }
 
     impl Args {
         pub fn run(self) -> Result<(), clap::error::Error> {
