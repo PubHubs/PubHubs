@@ -4,18 +4,18 @@ use std::path::{Path, PathBuf};
 use url::Url;
 
 /// One, or several, of the PubHubs servers
-#[derive(serde::Deserialize, Debug)]
+#[derive(serde::Deserialize, Debug, Clone)]
 pub struct Config {
     /// URL of the PubHubs Central server.
     ///
     /// Any information on the other servers that can be stored at PHC is stored at PHC.
-    phc_url: Url,
+    pub phc_url: Url,
 
     /// Path with respect to which relative paths are interpretted.
     #[serde(default)]
-    wd: PathBuf,
+    pub wd: PathBuf,
 
-    phc: Option<phc::Config>,
+    pub phc: Option<phc::Config>,
 }
 
 impl Config {
@@ -66,8 +66,8 @@ impl Config {
 pub mod phc {
     use super::*;
 
-    #[derive(serde::Deserialize, Debug)]
+    #[derive(serde::Deserialize, Debug, Clone)]
     pub struct Config {
-        bind_to: SocketAddr,
+        pub bind_to: SocketAddr,
     }
 }

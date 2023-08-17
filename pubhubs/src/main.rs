@@ -18,10 +18,10 @@ impl Cli {
 
                 #[cfg(not(feature = "oldbin"))]
                 {
-                    return Err(Cli::command().error(
+                    Err(Cli::command().error(
                         clap::error::ErrorKind::MissingSubcommand,
                         "no command provided",
-                    ));
+                    ))
                 }
             }
 

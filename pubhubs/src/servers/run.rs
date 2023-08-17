@@ -6,15 +6,11 @@ use anyhow::Result;
 pub async fn run(config: crate::servers::Config) -> Result<()> {
     let mut joinset = tokio::task::JoinSet::<Result<()>>::new();
 
-    joinset.spawn(async {
-        tokio::time::sleep(core::time::Duration::from_millis(12310)).await;
-        anyhow::bail!("some err");
-    });
-
-    joinset.spawn(async {
-        tokio::time::sleep(core::time::Duration::from_millis(1231)).await;
-        anyhow::bail!("some other err");
-    });
+    if config.phc.is_some() {
+        joinset.spawn(crate::servers::Runner::<crate::servers::phc::Server>::new(
+            &config,
+        )?);
+    }
 
     // Wait for one of the servers to return, panic or be cancelled.
     // By returning, joinset is dropped and all server tasks are aborted.

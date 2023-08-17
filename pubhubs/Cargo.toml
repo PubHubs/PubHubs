@@ -39,6 +39,7 @@ bin = [
 	"dep:log",
 	"dep:env_logger",
 	"dep:tokio", 
+	"dep:actix-web",
 ]
 oldbin = [
 	"bin",

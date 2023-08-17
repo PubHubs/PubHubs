@@ -20,7 +20,7 @@ impl ServeArgs {
         env_logger::init();
 
         let config: Config = 'find_config: {
-            for ref pb in &self.config_search_paths {
+            for pb in &self.config_search_paths {
                 if let Some(config) = Config::load_from_path(pb)? {
                     break 'find_config config;
                 }
