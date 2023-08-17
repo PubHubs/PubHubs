@@ -2,9 +2,8 @@ import { defineStore } from 'pinia';
 import { getCookie } from 'typescript-cookie';
 import { Buffer } from 'buffer';
 
-import { Hub, HubList } from '@/store/hubs';
-import { apiOptionsGET, apiURLS, useApi } from '@/store/api';
-import { Theme, useSettings } from './settings';
+import { Hub, HubList, Theme, useSettings } from '@/store/store';
+import { api } from '@/core/api';
 
 type PinnedHub = {
 	hubId: string;
@@ -19,7 +18,7 @@ interface GlobalSettings {
 }
 
 const defaultGlobalSettings = {
-	theme: Theme.System,
+	theme: 'system', // Theme.System,
 	language: 'en',
 	hubs: [] as PinnedHubs,
 };
@@ -63,9 +62,8 @@ const useGlobal = defineStore('global', {
 
 	actions: {
 		async checkLoginAndSettings() {
-			const api = useApi();
 			try {
-				const data = await api.api<GlobalSettings | boolean>(apiURLS.bar, apiOptionsGET, defaultGlobalSettings);
+				const data = await api.api<GlobalSettings | boolean>(api.apiURLS.bar, api.options.GET, defaultGlobalSettings);
 				if (data) {
 					this.setGlobalSettings(data);
 					this.loggedIn = true;
@@ -95,19 +93,18 @@ const useGlobal = defineStore('global', {
 		},
 
 		login() {
-			window.location.replace(apiURLS.login);
+			window.location.replace(api.apiURLS.login);
 		},
 
 		logout() {
 			this.loggedIn = false;
-			window.location.replace(apiURLS.logout);
+			window.location.replace(api.apiURLS.logout);
 		},
 
 		// Will be called after each change in state (subscribed in App.vue)
 		async saveGlobalSettings() {
 			if (this.loggedIn) {
-				const api = useApi();
-				await api.apiPUT<any>(apiURLS.bar, this.getGlobalSettings, true);
+				await api.apiPUT<any>(api.apiURLS.bar, this.getGlobalSettings, true);
 			}
 		},
 
@@ -129,8 +126,7 @@ const useGlobal = defineStore('global', {
 		},
 
 		async getHubs() {
-			const api = useApi();
-			const data = await api.apiGET<Array<hubResponseItem>>(apiURLS.hubs, []);
+			const data = await api.apiGET<Array<hubResponseItem>>(api.apiURLS.hubs, []);
 			const hubs = [] as HubList;
 			data.forEach((item: hubResponseItem) => {
 				hubs.push(new Hub(item.name, item.client_uri, item.description));

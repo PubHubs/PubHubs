@@ -54,8 +54,7 @@ const useUser = defineStore('user', {
 
 		async fetchIsAdministrator(client: MatrixClient) {
 			try {
-				const response = await client.isSynapseAdministrator();
-				console.log('fetchIsAdministrator', response);
+				await client.isSynapseAdministrator();
 				this.isAdministrator = true;
 			} catch (error) {
 				this.isAdministrator = false;

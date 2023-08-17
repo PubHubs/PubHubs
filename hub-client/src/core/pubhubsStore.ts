@@ -7,7 +7,7 @@ import { Authentication } from '@/core/authentication';
 import { Events } from '@/core/events';
 import { useSettings, useUser, useRooms, PublicRoom } from '@/store/store';
 
-import { useApi } from '@/core/api';
+import { api } from '@/core/api';
 
 const usePubHubs = defineStore('pubhubs', {
 	state: () => {
@@ -45,8 +45,7 @@ const usePubHubs = defineStore('pubhubs', {
 					user.setUser(newUser);
 					await user.fetchDisplayName(this.client as MatrixClient);
 					await user.fetchIsAdministrator(this.client as MatrixClient);
-					const { setAccessToken } = useApi();
-					setAccessToken(this.Auth.getAccessToken());
+					api.setAccessToken(this.Auth.getAccessToken());
 				}
 			} catch (error) {
 				if (typeof error == 'string' && error.indexOf('M_FORBIDDEN') < 0) {
