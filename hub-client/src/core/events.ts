@@ -1,13 +1,15 @@
 import { SyncState } from 'matrix-js-sdk/lib/sync';
 import { MatrixClient, MatrixEvent, ClientEvent, Room as MatrixRoom, RoomEvent, RoomMemberEvent, RoomMember } from 'matrix-js-sdk';
 
-import { useSettings, useUser, useRooms } from '@/store/store';
+import { useSettings, User, useUser, useRooms } from '@/store/store';
 
 class Events {
 	private client!: MatrixClient;
+	private joinPH!: Function;
 
-	startWithClient(client: MatrixClient) {
+	startWithClient(client: MatrixClient, joinPH: Function) {
 		this.client = client;
+		this.joinPH = joinPH;
 	}
 
 	initEvents() {
@@ -21,7 +23,7 @@ class Events {
 					this.client.on(RoomEvent.Name, self.eventRoomName);
 					this.client.on(RoomEvent.Timeline, self.eventRoomTimeline);
 					this.client.on(RoomMemberEvent.Name, self.eventRoomMemberName);
-					this.client.on(RoomMemberEvent.Membership, self.eventRoomMemberMembership);
+					this.client.on(RoomMemberEvent.Membership, self.eventRoomMemberMembership(this.client, this.joinPH));
 
 					resolve(true);
 				}
@@ -65,22 +67,31 @@ class Events {
 		const user = useUser();
 		console.debug('RoomMember.name', member.user);
 		if (member.user !== undefined && member.user.userId == user.user.userId) {
-			user.setUser(member.user);
+			user.setUser(member.user as User);
 			if (member.user.displayName !== undefined) {
 				user.user.setDisplayName(member.user.displayName);
 			}
 		}
 	}
 
-	eventRoomMemberMembership(event: MatrixEvent, member: RoomMember) {
-		const rooms = useRooms();
-		console.debug('RoomMember.membership', member.membership, event.getRoomId());
-		if (member.membership == 'leave') {
-			const roomId = event.getRoomId();
-			if (roomId != undefined) {
-				rooms.rooms[roomId].hidden = true;
+	eventRoomMemberMembership(client: MatrixClient, joinPH: Function) {
+		return function eventRoomMemberMembershipInner(event: MatrixEvent, member: RoomMember) {
+			const rooms = useRooms();
+			console.debug('RoomMember.membership', member.membership, event.getRoomId());
+			if (member.membership == 'leave') {
+				const roomId = event.getRoomId();
+				if (roomId != undefined) {
+					rooms.rooms[roomId].hidden = true;
+				}
+			} else if (member.membership == 'invite') {
+				const me = client.getUserId();
+				if (member.userId == me) {
+					joinPH(member.roomId).then(function () {
+						console.log('joined DM');
+					});
+				}
 			}
-		}
+		};
 	}
 }
 

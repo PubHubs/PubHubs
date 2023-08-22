@@ -1,5 +1,5 @@
 <template>
-	<Dialog :buttons="buttonsOk" width="w-3/6" @close="close($event)">
+	<Dialog :buttons="buttonsOk" width="w-3/6" @close="close()">
 		<template #header>
 			{{ $t('rooms.join_room') }}
 		</template>

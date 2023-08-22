@@ -48,7 +48,12 @@ const nl = {
 	rooms: {
 		leave_sure: 'Weet je zeker dit gesprek wilt verlaten?',
 		new_message: 'Typ hier je chatbericht',
+		private_room: 'Privé gesprek',
+		private_members: 'Met {0},{1}',
 		private_rooms: 'Privé gesprekken',
+		private_topic: 'Een privégesprek tussen',
+		private_add: 'Nieuw privégesprek',
+		private_search_user: 'Zoek persoon',
 		rooms: 'Gesprekken',
 		join_room: 'Wordt lid van een gesprek',
 		add_room: 'Voeg gesprek toe',
