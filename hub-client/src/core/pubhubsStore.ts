@@ -1,11 +1,11 @@
 import { defineStore } from 'pinia';
 
 import { Optional } from 'matrix-events-sdk';
-import { MatrixClient, EventTimeline } from 'matrix-js-sdk';
+import { User as MatrixUser, MatrixClient, EventTimeline } from 'matrix-js-sdk';
 
 import { Authentication } from '@/core/authentication';
 import { Events } from '@/core/events';
-import { useSettings, useUser, useRooms, PublicRoom } from '@/store/store';
+import { useSettings, User, useUser, useRooms, PublicRoom } from '@/store/store';
 
 import { api } from '@/core/api';
 
@@ -36,13 +36,13 @@ const usePubHubs = defineStore('pubhubs', {
 				const matrixClient = await this.Auth.login();
 				this.client = matrixClient as MatrixClient;
 				const events = new Events();
-				events.startWithClient(this.client as MatrixClient);
+				events.startWithClient(this.client as MatrixClient, this.joinPublicRoom);
 				await events.initEvents();
 				this.updateRooms();
 				const user = useUser();
 				const newUser = this.client.getUser(user.user.userId);
 				if (newUser != null) {
-					user.setUser(newUser);
+					user.setUser(newUser as User);
 					await user.fetchDisplayName(this.client as MatrixClient);
 					await user.fetchIsAdministrator(this.client as MatrixClient);
 					api.setAccessToken(this.Auth.getAccessToken());
@@ -136,6 +136,11 @@ const usePubHubs = defineStore('pubhubs', {
 			} catch (error) {
 				this.showError(error as string);
 			}
+		},
+
+		async getUsers(): Promise<Array<MatrixUser>> {
+			const response = (await this.client.getUsers()) as [];
+			return response;
 		},
 
 		async loadOlderEvents(roomId: string) {

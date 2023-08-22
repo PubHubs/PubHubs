@@ -1,21 +1,19 @@
 <template>
-	<Dialog :buttons="buttonsOk" width="w-3/6" @close="close($event)">
+	<Dialog :buttons="buttonsOk" width="w-3/6" @close="close()">
 		<template #header>
 			{{ $t('rooms.join_room') }}
 		</template>
-		<TextInput :placeholder="$t('rooms.filter')" v-model="filter" class="mb-4 w-full"></TextInput>
-		<ul v-if="rooms.hasPublicRooms">
-			<li v-for="room in filteredPublicRooms" :key="room.room_id" class="group cursor-pointer hover:bg-green p-1 rounded" @click="joinPublicRoom(room)">
-				<Icon :type="rooms.roomIsSecure(room.room_id) ? 'lock' : 'room'" class="mr-4 float-left text-green group-hover:text-black"></Icon>
-				<span :title="room.room_id">{{ room.name }}</span>
+		<FilteredList :items="rooms.visiblePublicRooms" :placeholder="$t('rooms.filter')" @click="joinPublicRoom($event)">
+			<template #item="{ item }">
+				<Icon :type="rooms.roomIsSecure(item.room_id) ? 'lock' : 'room'" class="mr-4 float-left text-green group-hover:text-black"></Icon>
+				<span :title="item.room_id">{{ item.name }}</span>
 				<Icon type="plus" class="float-right"></Icon>
-			</li>
-		</ul>
+			</template>
+		</FilteredList>
 	</Dialog>
 </template>
 
 <script setup lang="ts">
-	import { computed, ref } from 'vue';
 	import { PublicRoom, useRooms } from '@/store/store';
 	import { usePubHubs } from '@/core/pubhubsStore';
 	import { useRouter } from 'vue-router';
@@ -25,21 +23,6 @@
 	const pubhubs = usePubHubs();
 	const router = useRouter();
 	const emit = defineEmits(['close']);
-
-	const filter = ref('');
-
-	// Filter out rooms that user is allready member off, and filter string
-	const filteredPublicRooms = computed(() => {
-		return rooms.publicRooms.filter((room: PublicRoom) => {
-			if (rooms.roomExists(room.room_id) && !rooms.room(room.room_id)?._ph.hidden) {
-				return false;
-			}
-			if (filter.value == '') {
-				return true;
-			}
-			return room.name?.includes(filter.value);
-		});
-	});
 
 	async function joinPublicRoom(room: PublicRoom) {
 		if (rooms.roomIsSecure(room.room_id)) {

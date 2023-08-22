@@ -48,7 +48,12 @@ const en = {
 	rooms: {
 		leave_sure: 'Do you really want to leave this room?',
 		new_message: 'Type your message here',
+		private_room: 'Private room',
+		private_members: 'With {0},{1}',
 		private_rooms: 'Private rooms',
+		private_topic: 'A private conversation between',
+		private_add: 'New private conversation',
+		private_search_user: 'Search person',
 		rooms: 'Rooms',
 		join_room: 'Join a room',
 		filter: 'Filter rooms',

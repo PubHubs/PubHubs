@@ -16,6 +16,11 @@ import { usePubHubs } from '@/core/pubhubsStore';
 import { propCompare } from '@/core/extensions';
 import filters from '@/core/filters';
 
+enum PubHubsRoomType {
+	PH_MESSAGES_RESTRICTED = 'ph.messages.restricted',
+	PH_MESSAGES_DM = 'ph.messages.dm',
+}
+
 interface SecuredRoomAttributes {
 	[index: string]: {
 		profile: boolean;
@@ -82,6 +87,16 @@ class Room extends MatrixRoom {
 	addUnreadMessages(add: number = 1) {
 		this.unreadMessages += add;
 	}
+
+	isPrivateRoom(): boolean {
+		return this.getType() == PubHubsRoomType.PH_MESSAGES_DM;
+	}
+
+	getMembersDisplaynames(): Array<String> {
+		const members = this.getMembers();
+		const names = members.map((member) => member.rawDisplayName);
+		return names;
+	}
 }
 
 const useRooms = defineStore('rooms', {
@@ -147,6 +162,15 @@ const useRooms = defineStore('rooms', {
 
 		hasPublicRooms(state): boolean {
 			return Object.keys(state.publicRooms).length > 0;
+		},
+
+		visiblePublicRooms(state): Array<PublicRoom> {
+			return state.publicRooms.filter((room: PublicRoom) => {
+				if (this.roomExists(room.room_id) && !this.room(room.room_id)?._ph.hidden) {
+					return false;
+				}
+				return true;
+			});
 		},
 
 		hasSecuredRooms(state): boolean {
@@ -317,4 +341,4 @@ const useRooms = defineStore('rooms', {
 	},
 });
 
-export { Room, PublicRoom, SecuredRoomAttributes, SecuredRoom, useRooms };
+export { PubHubsRoomType, Room, PublicRoom, SecuredRoomAttributes, SecuredRoom, useRooms };

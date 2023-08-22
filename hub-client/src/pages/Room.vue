@@ -2,10 +2,15 @@
 	<HeaderFooter v-if="rooms.currentRoomExists" class="pl-3">
 		<template #header>
 			<div class="flex">
-				<Icon :type="rooms.roomIsSecure(rooms.currentRoom?.roomId) ? 'lock' : 'room'" class="text-blue mt-2" size="lg"></Icon>
+				<Icon :type="rooms.roomIsSecure(currentRoom.roomId) ? 'lock' : 'room'" class="text-blue mt-2" size="lg"></Icon>
 				<div class="pl-3">
-					<H1 class="m-0 text-blue font-bold">{{ $t('rooms.title', [rooms.currentRoom.name]) }}</H1>
-					<p class="text-sm leading-4">Deze room gaat over .... Lorem ipsum dolor sit amet, consetetur sadipscing elitr.</p>
+					<H1 class="m-0 text-blue font-bold">{{ $t('rooms.title', [roomName()]) }}</H1>
+					<p class="text-sm leading-4">
+						<PrivateRoomMembersName v-if="currentRoom.isPrivateRoom()" :members="members"></PrivateRoomMembersName>
+						<span v-else>
+							{{ getTopic() }}
+						</span>
+					</p>
 				</div>
 				<SearchInput class="ml-16 mt-6 flex-auto" @submit="search"></SearchInput>
 			</div>
@@ -20,10 +25,10 @@
 </template>
 
 <script setup lang="ts">
-	import { onMounted, watch } from 'vue';
+	import { onMounted, watch, ref } from 'vue';
 	import { useRoute } from 'vue-router';
 	import { useI18n } from 'vue-i18n';
-	import { useRooms } from '@/store/store';
+	import { Room, useRooms } from '@/store/store';
 	import { usePubHubs } from '@/core/pubhubsStore';
 
 	const route = useRoute();
@@ -31,13 +36,38 @@
 	const rooms = useRooms();
 	const pubhubs = usePubHubs();
 
+	const currentRoom = ref({} as Room);
+	const members = ref([] as Array<String>);
+
 	onMounted(() => {
 		rooms.changeRoom(route.params.id as string);
+		currentRoom.value = rooms.currentRoom as Room;
+		members.value = currentRoom.value.getMembersDisplaynames();
 	});
 
 	watch(route, () => {
 		rooms.changeRoom(route.params.id as string);
+		currentRoom.value = rooms.currentRoom as Room;
+		members.value = currentRoom.value.getMembersDisplaynames();
 	});
+
+	function roomName() {
+		if (currentRoom.value.isPrivateRoom()) {
+			return t('rooms.private_room', members.value);
+		}
+		return currentRoom.value.name;
+	}
+
+	function getTopic() {
+		if (currentRoom.value.isPrivateRoom()) {
+			return t('rooms.private_members', members.value);
+		}
+		const topicEvent = currentRoom.value.currentState.getStateEvents('m.room.topic', '');
+		if (topicEvent) {
+			return topicEvent.getContent().topic;
+		}
+		return '';
+	}
 
 	function addMessage(text: string) {
 		pubhubs.addMessage(rooms.currentRoomId, text);

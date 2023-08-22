@@ -7,7 +7,7 @@ import { defineStore } from 'pinia';
 import { User, defaultUser, useUser } from '@/store/user';
 import { Theme, defaultSettings, createSettings, type i18nSettings } from '@/store/settings';
 import { useHubSettings } from '@/store/hub-settings';
-import { Room, PublicRoom, SecuredRoomAttributes, SecuredRoom, useRooms } from '@/store/rooms';
+import { PubHubsRoomType, Room, PublicRoom, SecuredRoomAttributes, SecuredRoom, useRooms } from '@/store/rooms';
 import { MessageType, Message, MessageBoxType, useMessageBox } from '@/store/messagebox';
 import { buttonsSubmitCancel, DialogButton, DialogProperties, useDialog, DialogButtonAction, DialogFalse, DialogTrue } from '@/store/dialog';
 
@@ -22,6 +22,7 @@ export {
 	useSettings,
 	type i18nSettings,
 	useHubSettings,
+	PubHubsRoomType,
 	Room,
 	PublicRoom,
 	type SecuredRoomAttributes,
