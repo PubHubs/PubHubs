@@ -68,7 +68,9 @@ oidc_providers:
     skip_verification: false
     user_mapping_provider:
       module: conf.modules.pseudonyms.OidcMappingProvider
-      config:
+      config:  {
+        libpubhubspath: /usr/lib/libpubhubs.so
+      }
 
 # Whitelist no servers for federation. As it's currently a bad match for PubHubs ideas around identity.
 federation_domain_whitelist: []
