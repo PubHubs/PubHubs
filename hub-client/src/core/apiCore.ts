@@ -75,9 +75,14 @@ class Api {
 			try {
 				const result = await response.text();
 				const json = JSON.parse(result);
-				throw new Error(json.errors);
-			} catch (error) {
-				throw new Error(error as string);
+				if (typeof json.error !== undefined) {
+					throw new Error(json.error);
+				} else if (typeof json.errors !== undefined) {
+					throw new Error(json.errors);
+				}
+				throw new Error(result);
+			} catch (error: any) {
+				throw new Error(error);
 			}
 		}
 		this.fetchEtagFromHeaders(response.headers);
