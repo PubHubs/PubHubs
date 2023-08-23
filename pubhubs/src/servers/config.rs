@@ -1,10 +1,11 @@
+//! Configuration (files)
 use anyhow::{Context as _, Result};
 use core::fmt::Debug;
 use std::net::SocketAddr;
 use std::path::{Path, PathBuf};
 use url::Url;
 
-/// One, or several, of the PubHubs servers
+/// Configuration for one, or several, of the PubHubs servers
 #[derive(serde::Deserialize, Debug, Clone)]
 #[serde(deny_unknown_fields)]
 pub struct Config {
@@ -24,6 +25,7 @@ pub struct Config {
     pub transcryptor: Option<ServerConfig<transcryptor::ExtraConfig>>,
 }
 
+/// Configuration for one server
 #[derive(serde::Deserialize, Debug, Clone)]
 #[serde(deny_unknown_fields)]
 pub struct ServerConfig<ServerSpecific> {
@@ -83,7 +85,10 @@ pub mod phc {
 
     #[derive(serde::Deserialize, Debug, Clone)]
     #[serde(deny_unknown_fields)]
-    pub struct ExtraConfig {}
+    pub struct ExtraConfig {
+        /// Where can we reach the transcryptor?
+        transcryptor_url: Url,
+    }
 }
 
 pub mod transcryptor {

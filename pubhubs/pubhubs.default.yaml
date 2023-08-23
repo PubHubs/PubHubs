@@ -4,4 +4,5 @@ phc_url: http://localhost:8080
 transcryptor:
   bind_to: "0.0.0.0:7070"
 phc:
+  transcryptor_url: http://localhost:7070
   bind_to: "0.0.0.0:8080"

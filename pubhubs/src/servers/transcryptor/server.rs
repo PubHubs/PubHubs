@@ -1,10 +1,13 @@
+use std::rc::Rc;
+
 use actix_web::web;
 use anyhow::Result;
-use std::rc::Rc;
+
+use crate::servers::ServerBase;
 
 /// Transcryptor
 pub struct Server {
-    config: crate::servers::Config,
+    base: ServerBase,
 }
 
 impl crate::servers::Server for Server {
@@ -14,8 +17,8 @@ impl crate::servers::Server for Server {
     type AppCreatorT = AppCreator;
 
     fn new(config: &crate::servers::Config) -> Self {
-        Server {
-            config: config.clone(),
+        Self {
+            base: ServerBase::new(config),
         }
     }
 

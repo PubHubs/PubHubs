@@ -1,10 +1,13 @@
+use std::rc::Rc;
+
 use actix_web::web;
 use anyhow::Result;
-use std::rc::Rc;
+
+use crate::servers::ServerBase;
 
 /// PubHubs Central server
 pub struct Server {
-    config: crate::servers::Config,
+    base: ServerBase,
 }
 
 impl crate::servers::Server for Server {
@@ -15,7 +18,7 @@ impl crate::servers::Server for Server {
 
     fn new(config: &crate::servers::Config) -> Self {
         Server {
-            config: config.clone(),
+            base: ServerBase::new(config),
         }
     }
 
