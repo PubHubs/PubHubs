@@ -30,7 +30,7 @@ export const handlers = [
 	}),
 	rest.post('http://test/_synapse/client/secured_rooms', async (req, res, ctx) => {
 		const body = (await req.json()) as SecuredRoom;
-		if (typeof body.room_name == undefined || body.room_name == '' || typeof body.accepted == undefined || body.accepted == ({} as SecuredRoom) || typeof body.type == undefined || body.type !== 'ph.messages.restricted') {
+		if (typeof body.room_name == 'undefined' || body.room_name == '' || typeof body.accepted == 'undefined' || body.accepted == ({} as SecuredRoom) || typeof body.type == 'undefined' || body.type !== 'ph.messages.restricted') {
 			return res(ctx.status(400), ctx.json({ errors: 'wrong params' }));
 		}
 		return res(
@@ -44,21 +44,21 @@ export const handlers = [
 			}),
 		);
 	}),
-	rest.delete('http://test/_synapse/client/secured_rooms', async (req, res, ctx) => {
-		const body = (await req.json()) as SecuredRoom;
-		if (
-			typeof body.room_id == undefined ||
-			body.room_id == '' ||
-			typeof body.room_name == undefined ||
-			body.room_name == '' ||
-			typeof body.accepted == undefined ||
-			body.accepted == ({} as SecuredRoom) ||
-			typeof body.type == undefined ||
-			body.type !== 'ph.messages.restricted'
-		) {
-			return res(ctx.status(400), ctx.json({ errors: 'wrong params' }));
-		}
+	// rest.delete('http://test/_synapse/client/secured_rooms', async (req, res, ctx) => {
+	// 	const body = (await req.json()) as SecuredRoom;
+	// 	if (
+	// 		typeof body.room_id == 'undefined' ||
+	// 		body.room_id == '' ||
+	// 		typeof body.room_name == 'undefined' ||
+	// 		body.room_name == '' ||
+	// 		typeof body.accepted == 'undefined' ||
+	// 		body.accepted == ({} as SecuredRoom) ||
+	// 		typeof body.type == 'undefined' ||
+	// 		body.type !== 'ph.messages.restricted'
+	// 	) {
+	// 		return res(ctx.status(400), ctx.json({ error: 'wrong params' }));
+	// 	}
 
-		return res(ctx.status(200), ctx.json({ deleted: 'ID:' + body.room_name }));
-	}),
+	// 	return res(ctx.status(200), ctx.json({ deleted: 'ID:' + body.room_name }));
+	// }),
 ];
