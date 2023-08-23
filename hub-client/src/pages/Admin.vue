@@ -148,7 +148,11 @@
 	async function removeSecuredRoom(room: SecuredRoom) {
 		const dialog = useDialog();
 		if (await dialog.okcancel(t('admin.secured_remove_sure'))) {
-			await rooms.removeSecuredRoom(room);
+			try {
+				await rooms.removeSecuredRoom(room);
+			} catch (error) {
+				dialog.confirm('ERROR', error as string);
+			}
 		}
 	}
 </script>

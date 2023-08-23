@@ -1,6 +1,6 @@
 import { setActivePinia, createPinia } from 'pinia';
 import { describe, beforeEach, assert, expect, test } from 'vitest';
-import { useSettings } from '@/store/settings';
+import { useSettings } from '@/store/store';
 
 describe('Settings Store', () => {
 	let settings = {} as any;

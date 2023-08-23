@@ -4,7 +4,7 @@
 
 <script setup lang="ts">
 	import { computed } from 'vue';
-	import { useSettings } from '@/store/settings';
+	import { useSettings } from '@/store/store';
 
 	import logoLight from '@/assets/pubhubs-logo.svg';
 	import logoDark from '@/assets/pubhubs-logo-dark.svg';

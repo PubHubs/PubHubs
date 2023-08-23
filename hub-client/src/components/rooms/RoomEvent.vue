@@ -1,6 +1,6 @@
 <template>
 	<div v-if="hubSettings.isVisibleEventType(event.type) && hubSettings.skipNoticeUserEvent(event)" class="flex flex-row space-x-4 mb-8">
-		<Avatar :class="bgColor(userColor)"></Avatar>
+		<Avatar :class="bgColor(userColor)" :user="event.sender"></Avatar>
 		<div class="w-full">
 			<H3 :class="textColor(userColor)">
 				<UserDisplayName :user="event.sender"></UserDisplayName>

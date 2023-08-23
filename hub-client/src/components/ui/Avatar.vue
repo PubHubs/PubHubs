@@ -1,10 +1,10 @@
 <template>
-	<div class="rounded-full w-12 h-12">
+	<div class="rounded-full w-12 h-12" @click="writeUserToCLipboard()">
 		<img v-if="img != ''" :src="img" :alt="alt" />
 	</div>
 </template>
 <script setup lang="ts">
-	defineProps({
+	const props = defineProps({
 		img: {
 			type: String,
 			default: '',
@@ -13,5 +13,13 @@
 			type: String,
 			default: '',
 		},
+		user: {
+			type: String,
+			required: true,
+		},
 	});
+
+	function writeUserToCLipboard() {
+		navigator.clipboard.writeText(props.user);
+	}
 </script>

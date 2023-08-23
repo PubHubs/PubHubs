@@ -58,7 +58,9 @@ oidc_providers:
     skip_verification: false
     user_mapping_provider:
       module: conf.modules.pseudonyms.OidcMappingProvider
-      config:
+      config:  {
+        libpubhubspath: /usr/lib/libpubhubs.so
+      }
 ```
 
 -   Change permission on the `hub/` folder and its subdirectory.

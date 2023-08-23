@@ -23,13 +23,10 @@
 					<Line></Line>
 					<RoomList></RoomList>
 
-					<div class="mt-12">
-						<H2>{{ $t('menu.private_rooms') }}</H2>
-						<Line></Line>
-					</div>
-					<Menu>
-						<MenuItem>{{ $t('menu.name') }}</MenuItem>
-					</Menu>
+					<H2 class="mt-12">{{ $t('menu.private_rooms') }}</H2>
+					<Icon type="plus" class="cursor-pointer hover:text-green float-right -mt-8" @click="addPrivateRoomDialog = true"></Icon>
+					<Line></Line>
+					<RoomList :roomType="PubHubsRoomType.PH_MESSAGES_DM"></RoomList>
 
 					<template #footer>
 						<Menu class="flex">
@@ -54,6 +51,7 @@
 		</div>
 
 		<JoinRoom v-if="joinRoomDialog" @close="joinRoomDialog = false"></JoinRoom>
+		<AddPrivateRoom v-if="addPrivateRoomDialog" @close="addPrivateRoomDialog = false"></AddPrivateRoom>
 
 		<Dialog v-if="dialog.visible" @close="dialog.close"></Dialog>
 	</div>
@@ -62,7 +60,7 @@
 <script setup lang="ts">
 	import { onMounted, ref } from 'vue';
 	import { RouteParamValue, useRouter } from 'vue-router';
-	import { Message, MessageBoxType, MessageType, Theme, useHubSettings, useMessageBox, useRooms, useSettings, useUser } from '@/store/store';
+	import { Message, MessageBoxType, MessageType, Theme, useHubSettings, useMessageBox, PubHubsRoomType, useRooms, useSettings, useUser } from '@/store/store';
 	import { useDialog } from '@/store/dialog';
 	import { usePubHubs } from '@/core/pubhubsStore';
 	import { useI18n } from 'vue-i18n';
@@ -79,6 +77,7 @@
 
 	const setupReady = ref(false);
 	const joinRoomDialog = ref(false);
+	const addPrivateRoomDialog = ref(false);
 
 	onMounted(async () => {
 		settings.initI18b({ locale: locale, availableLocales: availableLocales });

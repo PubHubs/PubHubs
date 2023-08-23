@@ -10,6 +10,7 @@ export default defineConfig({
 		root: './',
 		globals: true,
 		environment: 'jsdom',
+		setupFiles: ['./test/setup-teardown-hooks.ts'],
 	},
 	resolve: {
 		alias,

@@ -9,8 +9,18 @@
  */
 
 import { defineStore } from 'pinia';
-import { User } from 'matrix-js-sdk';
+import { User as MatrixUser } from 'matrix-js-sdk';
 import { MatrixClient } from 'matrix-js-sdk';
+
+/**
+ *  Extending the MatrixUser with some extra PubHubs specific methods :
+ */
+class User extends MatrixUser {
+	get pseudonym(): string {
+		const full = this.userId;
+		return full.split(':')[0].replace('@', '');
+	}
+}
 
 const defaultUser = {} as User;
 
@@ -54,8 +64,7 @@ const useUser = defineStore('user', {
 
 		async fetchIsAdministrator(client: MatrixClient) {
 			try {
-				const response = await client.isSynapseAdministrator();
-				console.log('fetchIsAdministrator', response);
+				await client.isSynapseAdministrator();
 				this.isAdministrator = true;
 			} catch (error) {
 				this.isAdministrator = false;

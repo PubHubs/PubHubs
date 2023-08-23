@@ -4,17 +4,11 @@
  *
  */
 
-import { apiOptionsGET, apiOptionsPOST, apiOptionsPUT, apiOptionsDELETE, useApi } from '@/core/apiCore';
+import { Api } from '@/core/apiCore';
 
-let baseUrl = '';
 // @ts-ignore
-if (typeof _env !== 'undefined') {
-	// @ts-ignore
-	baseUrl = _env.HUB_URL + '/_synapse/client/';
-}
+const api = new Api(_env.HUB_URL + '/_synapse/client', {
+	securedRooms: 'secured_rooms',
+});
 
-const apiURLS = {
-	securedRooms: baseUrl + 'secured_rooms',
-};
-
-export { apiURLS, apiOptionsGET, apiOptionsPOST, apiOptionsPUT, apiOptionsDELETE, useApi };
+export { api };
