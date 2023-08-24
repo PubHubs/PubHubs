@@ -36,7 +36,7 @@ const usePubHubs = defineStore('pubhubs', {
 				const matrixClient = await this.Auth.login();
 				this.client = matrixClient as MatrixClient;
 				const events = new Events();
-				events.startWithClient(this.client as MatrixClient, this.joinPublicRoom);
+				events.startWithClient(this.client as MatrixClient, this.joinRoom);
 				await events.initEvents();
 				this.updateRooms();
 				const user = useUser();
@@ -109,6 +109,11 @@ const usePubHubs = defineStore('pubhubs', {
 			await this.client.joinRoom(room.room_id);
 			this.updateRooms();
 		},
+
+		async joinRoom(roomId: string) {
+				await this.client.joinRoom(roomId);
+				this.updateRooms();
+			},
 
 		async newRoom(options: object) {
 			await this.client.createRoom(options);
