@@ -3,7 +3,7 @@ use std::rc::Rc;
 use actix_web::web;
 use anyhow::Result;
 
-use crate::servers::ServerBase;
+use crate::servers::{AppBase, AppCreatorBase, ServerBase};
 
 /// PubHubs Central server
 pub struct Server {
@@ -13,7 +13,6 @@ pub struct Server {
 impl crate::servers::Server for Server {
     const NAME: &'static str = "PubHubs Central";
     type AppT = Rc<App>;
-    type Modifier = Modifier;
     type AppCreatorT = AppCreator;
 
     fn new(config: &crate::servers::Config) -> Self {
@@ -23,14 +22,14 @@ impl crate::servers::Server for Server {
     }
 
     fn app_creator(&self) -> AppCreator {
-        AppCreator {}
+        AppCreator {
+            base: AppCreatorBase::new(&self.base),
+        }
     }
 }
 
-type Modifier = Box<dyn (FnOnce(&mut Server) -> Result<()>) + Send + 'static>;
-
 pub struct App {
-    shutdown_sender: crate::servers::ShutdownSender<Server>,
+    base: AppBase<Server>,
 }
 
 impl crate::servers::App for Rc<App> {
@@ -43,9 +42,7 @@ impl crate::servers::App for Rc<App> {
                 web::get().to({
                     let app = app.clone();
                     move || {
-                        app.shutdown_sender
-                            .try_send(crate::servers::ShutdownCommand::Exit)
-                            .unwrap();
+                        app.base.stop_server();
 
                         async { "Stopping..." }
                     }
@@ -56,10 +53,8 @@ impl crate::servers::App for Rc<App> {
                 web::get().to({
                     let app = app.clone();
                     move || {
-                        let bx: Modifier = Box::new(|_: &mut Server| -> Result<()> { Ok(()) });
-                        app.shutdown_sender
-                            .try_send(crate::servers::ShutdownCommand::ModifyAndRestart(bx))
-                            .unwrap();
+                        app.base
+                            .restart_server(|_: &mut Server| -> Result<()> { Ok(()) });
 
                         async { "Stopping..." }
                     }
@@ -69,12 +64,14 @@ impl crate::servers::App for Rc<App> {
 }
 
 #[derive(Clone)]
-pub struct AppCreator {}
+pub struct AppCreator {
+    base: AppCreatorBase,
+}
 
 impl crate::servers::AppCreator<Server> for AppCreator {
     fn create(&self, shutdown_sender: &crate::servers::ShutdownSender<Server>) -> Rc<App> {
         Rc::new(App {
-            shutdown_sender: shutdown_sender.clone(),
+            base: AppBase::new(&self.base, shutdown_sender),
         })
     }
 }

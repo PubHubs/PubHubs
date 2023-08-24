@@ -99,13 +99,17 @@ impl<S: Server> Runner<S> {
             bind_to,
         });
 
-        log::info!("created {}", S::NAME);
-
         result
     }
 }
 
-impl<S: Server> Future for Runner<S> {
+impl<S: Server + Unpin> Future for Runner<S> {
+    // NOTE: We rely on the fact that all fields of Runner, and thus Runner itself, is Unpin.
+    // When one of the fields of Runner becomes !Unpin, we should add 'structural pinning' and
+    // corresponding 'projections' for those; see the module level documentation of [std::pin].
+    //
+    // To ensure safety, it might be best to use a crate to provide these projections for us.
+    // The futures crate seems to use the pin-project-lite crate.
     type Output = Result<()>;
 
     fn poll(mut self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Self::Output> {
@@ -174,7 +178,7 @@ impl<S: Server> Future for Runner<S> {
                         return Poll::Ready(result.map_err(Into::into));
                     }
 
-                    let result = modifier(&mut self.pubhubs_server);
+                    let result = modifier.modify(&mut self.pubhubs_server);
 
                     if result.is_err() {
                         return Poll::Ready(result.map_err(Into::into));
@@ -197,6 +201,8 @@ impl<S: Server> ActixServer<S> {
         let app_creator = pubhubs_server.app_creator();
 
         let (shutdown_sender, shutdown_receiver) = mpsc::channel(1);
+
+        log::info!("{}: binding actix server to {}", S::NAME, bind_to);
 
         Ok(ActixServer {
             inner: actix_web::HttpServer::new(move || {
