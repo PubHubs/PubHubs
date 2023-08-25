@@ -14,7 +14,7 @@ WORKDIR irmago
 RUN GO111MODULE=auto go install ./irma
 
 ### BUILD STAGE:  LIBPUBHUBS 
-FROM rust AS libpubhubs_build
+FROM rust:1.71 AS libpubhubs_build
 
 COPY pubhubs/ wd
 
