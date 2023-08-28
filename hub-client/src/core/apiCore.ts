@@ -124,9 +124,11 @@ class Api {
 		return this.api<T>(url, options);
 	}
 
-	async apiDELETE(url: string, data: any): Promise<string> {
+	async apiDELETE(url: string, data?: any): Promise<string> {
 		const options = this.options.DELETE;
-		options.body = JSON.stringify(data);
+		if (typeof data !== 'undefined') {
+			options.body = JSON.stringify(data);
+		}
 		const response = await this.api<ApiDeleteResponse>(url, options);
 		return response.deleted;
 	}

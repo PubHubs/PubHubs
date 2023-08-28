@@ -268,7 +268,7 @@ const useRooms = defineStore('rooms', {
 		},
 
 		async removeSecuredRoom(room: SecuredRoom) {
-			const deleted_id = await api.apiDELETE(api.apiURLS.securedRooms, room);
+			const deleted_id = await api.apiDELETE(api.apiURLS.securedRooms + "?room_id=" + room.room_id );
 			const sidx = this.securedRooms.findIndex((room) => room.room_id == deleted_id);
 			this.securedRooms.splice(sidx, 1);
 			const pidx = this.publicRooms.findIndex((room) => room.room_id == deleted_id);

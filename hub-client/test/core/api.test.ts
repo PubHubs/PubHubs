@@ -78,21 +78,12 @@ describe('api secured rooms', () => {
 		expect(resp).toHaveProperty('room_id');
 	});
 
-	// test('DELETE', async () => {
-	// 	const body = {} as SecuredRoom;
-	// 	await expect(api.apiDELETE(api.apiURLS.securedRooms, body)).rejects.toThrowError('Error');
-	// 	body.room_name = 'Secured';
-	// 	await expect(api.apiDELETE(api.apiURLS.securedRooms, body)).rejects.toThrowError('Error');
-	// 	body.user_txt = 'Bla Bla';
-	// 	await expect(api.apiDELETE(api.apiURLS.securedRooms, body)).rejects.toThrowError('Error');
-	// 	body.accepted = [];
-	// 	await expect(api.apiDELETE(api.apiURLS.securedRooms, body)).rejects.toThrowError('Error');
-	// 	body.type = 'some_type';
-	// 	await expect(api.apiDELETE(api.apiURLS.securedRooms, body)).rejects.toThrowError('Error');
-
-	// 	body.type = 'ph.messages.restricted';
-	// 	const resp = await api.apiDELETE(api.apiURLS.securedRooms, body);
-	// 	expect(resp).toBeTypeOf('string');
-	// 	expect(resp).toEqual('ID:' + body.room_name);
-	// });
+	test('DELETE', async () => {
+		const room_id = 'roomid';
+		await expect(api.apiDELETE(api.apiURLS.securedRooms)).rejects.toThrowError('Error');
+		await expect(api.apiDELETE(api.apiURLS.securedRooms + '?room_id=')).rejects.toThrowError('Error');
+		const resp = await api.apiDELETE(api.apiURLS.securedRooms + '?room_id=' + room_id);
+		expect(resp).toBeTypeOf('string');
+		expect(resp).toEqual('ID:' + room_id);
+	});
 });
