@@ -102,29 +102,9 @@ Returns the id of the updated room:
 - `401 Forbidden` if no token or a non-admin is provided.
 - `400 Bad Request` with a body of errors if the request body is malformed or the room cannot be matched.
 
-### `DELETE /_synapse/client/secured_rooms`
+### `DELETE /_synapse/client/secured_rooms?room_id=<room_id>`
 
 Delete a room including the matrix room, by removing all the users.
-
-Requires the correct values for the room, for example:
-
-```json
-{
-    "room_name": "updated name",
-	"accepted": {
-		"pbdf.sidn-pbdf.email.domain": {
-			"accepted_values": [
-				"ru.nl"
-			],
-			"profile": true
-		}
-	},
-	"user_txt": "usertx",
-	"expiration_time_days": 10,
-	"room_id": "!pVEtaikxFiGHXPbFOn:testhub.matrix.host",
-	"type": "ph.messages.restricted"
-}
-```
 
 Returns the id of the deleted room:
 ```json

@@ -13,6 +13,7 @@ import logging
 
 logger = logging.getLogger(__name__)
 
+
 class PubHubsSecuredRoomType(str, enum.Enum):
     MESSAGES = "ph.messages.restricted"
     THREADING = "ph.threading.restricted"
@@ -21,8 +22,10 @@ class PubHubsSecuredRoomType(str, enum.Enum):
 def is_list_of_strings(attributes):
     return isinstance(attributes, list) or not all(map(lambda x: isinstance(x, str), attributes))
 
+
 def accepted_value_is_empty(attributes):
     return '' in attributes
+
 
 class RoomAttribute:
     accepted_values: list[str]
@@ -36,9 +39,8 @@ class RoomAttribute:
             raise TypeError("'accepted_values' should be a list of strings")
 
         if accepted_value_is_empty(accepted_values):
-             raise TypeError("'accepted_values' should consist of atleast one attribute")
-        
-        
+            raise TypeError("'accepted_values' should consist of at least one attribute")
+
         self.profile = profile
         self.accepted_values = accepted_values
 
@@ -59,8 +61,8 @@ class SecuredRoom:
 
     # Number of days but can also be in decimals e.g. half a day is 0.5
     # Useful for quick testing.
-    expiration_time_days: float 
-    
+    expiration_time_days: float
+
     # TODO translations :), but will see how/if this is used in practice
     user_txt: str
 
@@ -68,7 +70,8 @@ class SecuredRoom:
 
     room_id: Optional[str]  # optional since when creating will be returned  Optional[str]
 
-    def __init__(self, room_name=None, accepted=None,expiration_time_days=DEFAULT_EXPIRATION_TIME_DAYS, user_txt=None,  type=None,
+    def __init__(self, room_name=None, accepted=None, expiration_time_days=DEFAULT_EXPIRATION_TIME_DAYS, user_txt=None,
+                 type=None,
                  room_id=None):
         errors = []
 
@@ -88,12 +91,10 @@ class SecuredRoom:
                 self.accepted = dict(map(lambda kv: (kv[0], RoomAttribute(**kv[1])), accepted.items()))
             except TypeError as e:
                 errors.append(str(e))
-    
-    
-    
+
         if len(accepted) == 0:
-                errors.append(accepted_error)
-   
+            errors.append(accepted_error)
+
         if not isinstance(user_txt, str):
             errors.append("'user_txt' should be a string")
 
@@ -117,7 +118,7 @@ class SecuredRoom:
         self.room_id = room_id
         # Rationale: convert days to minutes to make it simpler for testing and production.
         # For example, a smaller number of days in decimals e.g., 0.001 can be given.
-        self.expiration_time_days = expiration_time_days 
+        self.expiration_time_days = expiration_time_days
 
     async def matrix_create(self, module_api: ModuleApi, room_creation_handler: RoomCreationHandler, user,
                             server_notices_user):
@@ -134,7 +135,6 @@ class SecuredRoom:
         [room_id, _room_alias, _int] = await room_creation_handler.create_room(requester, config)
 
         self.room_id = room_id
-
 
         # Add server notices user, creator is automatically a member
         await module_api.update_room_membership(server_notices_user, server_notices_user, self.room_id, 'join')
@@ -157,6 +157,5 @@ class SecuredRoom:
     def to_dict(self):
         dict_to_return = self.__dict__
         # AttributeError: 'dict' object has no attribute '__dict__'
-        dict_to_return['accepted'] = {k: v.__dict__ for k, v in self.accepted.items()} #self.accepted.__dict__
+        dict_to_return['accepted'] = {k: v.__dict__ for k, v in self.accepted.items()}  # self.accepted.__dict__
         return dict_to_return
-

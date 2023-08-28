@@ -44,21 +44,12 @@ export const handlers = [
 			}),
 		);
 	}),
-	// rest.delete('http://test/_synapse/client/secured_rooms', async (req, res, ctx) => {
-	// 	const body = (await req.json()) as SecuredRoom;
-	// 	if (
-	// 		typeof body.room_id == 'undefined' ||
-	// 		body.room_id == '' ||
-	// 		typeof body.room_name == 'undefined' ||
-	// 		body.room_name == '' ||
-	// 		typeof body.accepted == 'undefined' ||
-	// 		body.accepted == ({} as SecuredRoom) ||
-	// 		typeof body.type == 'undefined' ||
-	// 		body.type !== 'ph.messages.restricted'
-	// 	) {
-	// 		return res(ctx.status(400), ctx.json({ error: 'wrong params' }));
-	// 	}
-
-	// 	return res(ctx.status(200), ctx.json({ deleted: 'ID:' + body.room_name }));
-	// }),
+	rest.delete(/http:\/\/test\/_synapse\/client\/secured_rooms\/*/, async (req, res, ctx) => {
+		const match = req.url.search.match(/.*room_id=(.*)\b/);
+		if (match !== null && match[1] != undefined) {
+			const room_id = match[1];
+			return res(ctx.status(200), ctx.json({ deleted: 'ID:' + room_id }));
+		}
+		return res(ctx.status(400), ctx.json({ errors: 'wrong params' }));
+	}),
 ];
