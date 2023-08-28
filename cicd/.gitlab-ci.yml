@@ -125,6 +125,8 @@ build-pubhubs-image:
     # when no relevant changes have been made, don't run automatically, but allow the job to be rin manually
     - when: manual
   needs:
+    - job: globalclient-unit-test
+      optional: true
     - job: rust-unit-test
       optional: true
     - job: rust-cargo-deny
