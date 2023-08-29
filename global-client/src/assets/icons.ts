@@ -1,4 +1,4 @@
-import { iconSizes } from "./sizes";
-import { icons } from "../../../hub-client/src/assets/icons"
+import { iconSizes } from './sizes';
+import { icons } from '../../../hub-client/src/assets/icons';
 
-export { icons, iconSizes as sizes }
+export { icons, iconSizes as sizes };

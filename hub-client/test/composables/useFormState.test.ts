@@ -1,63 +1,68 @@
-import { describe, expect, test, vi } from 'vitest'
+import { describe, expect, test, vi } from 'vitest';
 
 import { useFormState } from '@/composables/useFormState';
-const { data, setData, updateData, dataIsChanged, isChanged, message, setMessage } = useFormState();
-
+const { data, setData, updateData, dataIsChanged, isChanged, isValidated, message, setMessage } = useFormState();
 
 describe('useFormState', () => {
+	test('setData', () => {
+		setData({
+			aNumber: { value: 3 },
+			aString: { value: 'test' },
+		});
 
-    test('setData', () => {
+		expect(data.aNumber.value).toBeTypeOf('number');
+		expect(data.aNumber.value).toEqual(3);
 
-        setData({
-            aNumber : 3,
-            aString : 'test',
-        });
+		expect(data.aString.value).toBeTypeOf('string');
+		expect(data.aString.value).toEqual('test');
 
-        expect(data.aNumber).toBeTypeOf('number');
-        expect(data.aNumber).toEqual(3);
+		expect(dataIsChanged('aNumber')).toEqual(false);
+		expect(dataIsChanged('aString')).toEqual(false);
 
-        expect(data.aString).toBeTypeOf('string');
-        expect(data.aString).toEqual('test');
+		expect(isChanged()).toEqual(false);
+	});
 
-        expect(dataIsChanged('aNumber')).toEqual(false);
-        expect(dataIsChanged('aString')).toEqual(false);
+	test('updateData', () => {
+		setData({
+			aNumber: { value: 3 },
+			aString: { value: 'test' },
+		});
 
-        expect(isChanged()).toEqual(false);
+		expect(data.aNumber.value).toEqual(3);
+		expect(data.aString.value).toEqual('test');
 
-    })
+		updateData('aNumber', 5);
+		expect(data.aNumber.value).toEqual(5);
+		expect(dataIsChanged('aNumber')).toEqual(true);
+		expect(dataIsChanged('aString')).toEqual(false);
+		expect(isChanged()).toEqual(true);
+	});
 
-    test('updateData', () => {
+	test('Message', () => {
+		vi.useFakeTimers();
 
-        setData({
-            aNumber : 3,
-            aString : 'test',
-        });
+		setMessage('Message');
+		expect(message.value).toEqual('Message');
 
-        expect(data.aNumber).toEqual(3);
-        expect(data.aString).toEqual('test');
+		vi.runAllTimers();
+		expect(message.value).toEqual('');
+	});
 
-        updateData('aNumber',5);
-        expect(data.aNumber).toEqual(5);
-        expect(dataIsChanged('aNumber')).toEqual(true);
-        expect(dataIsChanged('aString')).toEqual(false);
-        expect(isChanged()).toEqual(true);
+	test('Validation', () => {
+		setData({
+			aNumber: { value: '', validation: { required: true } },
+			aString: { value: '', validation: { required: true } },
+		});
 
-    })
+		expect(isValidated()).toEqual(false);
 
-    test('Message', () => {
-        vi.useFakeTimers();
-
-        setMessage('Message');
-        expect(message.value).toEqual('Message');
-
-        vi.runAllTimers();
-        expect(message.value).toEqual('');
-    })
-
-
-
-
-})
-
-
-
+		updateData('aNumber', 5);
+		expect(isValidated()).toEqual(false);
+		updateData('aString', 'test');
+		expect(isValidated()).toEqual(true);
+		updateData('aNumber', 0);
+		expect(isValidated()).toEqual(true);
+		updateData('aString', '');
+		expect(isValidated()).toEqual(false);
+	});
+});

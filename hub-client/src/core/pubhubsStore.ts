@@ -1,181 +1,204 @@
 import { defineStore } from 'pinia';
 
 import { Optional } from 'matrix-events-sdk';
-import { MatrixClient, EventTimeline } from 'matrix-js-sdk';
+import { User as MatrixUser, MatrixClient, EventTimeline } from 'matrix-js-sdk';
 
 import { Authentication } from '@/core/authentication';
 import { Events } from '@/core/events';
-import { useSettings, useUser, useRooms } from '@/store/store';
+import { useSettings, User, useUser, useRooms } from '@/store/store';
+
+import { api } from '@/core/api';
 
 const usePubHubs = defineStore('pubhubs', {
-    state: () => {
-        return {
-            Auth: new Authentication(),
-            client: {} as MatrixClient,
-        };
-    },
+	state: () => {
+		return {
+			Auth: new Authentication(),
+			client: {} as MatrixClient,
+		};
+	},
 
-    getters: {
-        getBaseUrl(state) {
-            return state.Auth.getBaseUrl();
-        },
-    },
+	getters: {
+		getBaseUrl(state) {
+			return state.Auth.getBaseUrl();
+		},
+	},
 
-    actions: {
-        centralLogin() {
-            // @ts-ignore
-            const centralLoginUrl = _env.PARENT_URL + '/login';
-            window.top?.location.replace(centralLoginUrl);
-        },
+	actions: {
+		centralLogin() {
+			// @ts-ignore
+			const centralLoginUrl = _env.PARENT_URL + '/login';
+			window.top?.location.replace(centralLoginUrl);
+		},
 
-        async login() {
-            console.log('PubHubs.login');
-            try {
-                const matrixClient = await this.Auth.login();
-                this.client = matrixClient as MatrixClient;
-                const events = new Events();
-                events.startWithClient(this.client as MatrixClient);
-                await events.initEvents();
-                this.updateRooms();
-                const user = useUser();
-                const newUser = this.client.getUser(user.user.userId);
-                if (newUser != null) {
-                    user.setUser(newUser);
-                    user.fetchDisplayName(this.client as MatrixClient);
-                }
-            } catch (error) {
-                if (typeof error == 'string' && error.indexOf('M_FORBIDDEN') < 0) {
-                    console.debug('ERROR:', error);
-                }
-            }
-        },
+		async login() {
+			console.log('PubHubs.login');
+			try {
+				const matrixClient = await this.Auth.login();
+				this.client = matrixClient as MatrixClient;
+				const events = new Events();
+				events.startWithClient(this.client as MatrixClient);
+				await events.initEvents();
+				this.updateRooms();
+				const user = useUser();
+				const newUser = this.client.getUser(user.user.userId);
+				if (newUser != null) {
+					user.setUser(newUser as User);
+					await user.fetchDisplayName(this.client as MatrixClient);
+					await user.fetchIsAdministrator(this.client as MatrixClient);
+					api.setAccessToken(this.Auth.getAccessToken());
+				}
+			} catch (error) {
+				if (typeof error == 'string' && error.indexOf('M_FORBIDDEN') < 0) {
+					console.debug('ERROR:', error);
+				}
+			}
+		},
 
-        logout() {
-            this.Auth.logout();
-        },
+		logout() {
+			this.Auth.logout();
+		},
 
-        updateRooms() {
-            console.log('PubHubs.updateRooms');
-            const rooms = useRooms();
-            const currentRooms = this.client.getRooms();
-            rooms.updateRoomsWithMatrixRooms(currentRooms);
-        },
+		updateLoggedInStatusBasedOnGlobalStatus(globalLoginTime: string) {
+			this.Auth.updateLoggedInStatusBasedOnGlobalStatus(globalLoginTime);
+		},
 
-        /**
-         * Helpers
-         */
+		async updateRooms() {
+			console.log('PubHubs.updateRooms');
+			const rooms = useRooms();
+			const currentRooms = this.client.getRooms();
+			rooms.updateRoomsWithMatrixRooms(currentRooms);
+			await rooms.fetchPublicRooms();
+		},
 
-        showDialog(message: string) {
-            alert(message);
-        },
+		/**
+		 * Helpers
+		 */
 
-        showError(error: string) {
-            const message = 'Unfortanatly an error occured. Please contact the developers.\n\n' + error;
-            this.showDialog(message);
-        },
+		showDialog(message: string) {
+			alert(message);
+		},
 
-        /**
-         * Wrapper methods for matrix client
-         */
+		showError(error: string) {
+			const message = 'Unfortanatly an error occured. Please contact the developers.\n\n' + error;
+			this.showDialog(message);
+		},
 
-        async getPublicRooms(search: string) {
-            return await this.client.publicRooms({
-                limit: 10,
-                filter: {
-                    generic_search_term: search,
-                },
-            });
-        },
+		/**
+		 * Wrapper methods for matrix client
+		 */
 
-        async joinRoom(roomId: string, router: any, search: string) {
-            //
-            const response = await this.getPublicRooms(search);
-            console.info(`RESPONSE ---> ${response}`);
-            try {
-                await this.client.joinRoom(roomId);
-                this.updateRooms();
-            } catch (error) {
-                // it returns an unknown type. Only option seems like to typecast to string.
-                // Better to use the exact reason as the condition instead of status code.
-                if (String(error).includes('M_FORBIDDEN')) {
-                    console.info('Is Forbidden');
-                    // User is forbidden but it is because it is secured room he is trying to access.
-                    if (response.chunk[0].room_type === 'ph.messages.restricted') {
-                        router.push({ name: 'secure-room', params: { id: roomId } });
-                    } else {
-                        // If not then there is some other issue. Show the error message.
-                        this.showError(error as string);
-                    }
-                }
-            }
-        },
+		async getPublicRooms(search: string) {
+			return await this.client.publicRooms({
+				limit: 10,
+				filter: {
+					generic_search_term: search,
+				},
+			});
+		},
 
-        newRoom(options: object) {
-            this.client.createRoom(options);
-        },
+		async getAllPublicRooms() {
+			return await this.client.publicRooms({
+				limit: 1000,
+				filter: {
+					generic_search_term: '',
+				},
+			});
+		},
 
-        leaveRoom(roomId: string) {
-            this.client.leave(roomId);
-        },
+		async joinRoom(room_id: string) {
+			await this.client.joinRoom(room_id);
+			this.updateRooms();
+		},
 
-        addMessage(roomId: string, text: string) {
-            const content = {
-                body: text,
-                msgtype: 'm.text',
-            };
-            this.client.sendEvent(roomId, 'm.room.message', content, '');
-        },
+		async invite(room_id: string, user_id: string, reason = undefined) {
+			await this.client.invite(room_id, user_id, reason);
+		},
 
-        addImage(roomId: string, uri: string) {
-            this.client.sendImageMessage(roomId, uri);
-        },
+		async createRoom(options: object) {
+			await this.client.createRoom(options);
+		},
 
-        async changeDisplayName(name: string) {
-            try {
-                this.client.setDisplayName(name);
-            } catch (error) {
-                this.showError(error as string);
-            }
-        },
+		async leaveRoom(roomId: string) {
+			await this.client.leave(roomId);
+		},
 
-        async loadOlderEvents(roomId: string) {
-            const self = this;
-            return new Promise((resolve) => {
-                const room = self.client.getRoom(roomId);
-                if (room != null) {
-                    const firstEvent = room.timeline[0].event;
-                    if (firstEvent !== undefined && firstEvent.type !== 'm.room.create') {
-                        const timelineSet = room.getTimelineSets()[0];
-                        const eventId = firstEvent.event_id;
-                        if (eventId !== undefined) {
-                            self.client
-                                .getEventTimeline(timelineSet, eventId)
-                                .then((eventTimeline: Optional<EventTimeline>) => {
-                                    if (eventTimeline) {
-                                        const settings = useSettings();
-                                        resolve(
-                                            self.client.paginateEventTimeline(eventTimeline, {
-                                                backwards: true,
-                                                limit: settings.pagination,
-                                            })
-                                        );
-                                    } else {
-                                        resolve(false);
-                                    }
-                                })
-                                .catch((error: string) => {
-                                    self.showError(error);
-                                });
-                        }
-                    } else {
-                        resolve(false);
-                    }
-                } else {
-                    resolve(false);
-                }
-            });
-        },
-    },
+		addMessage(roomId: string, text: string) {
+			const rooms = useRooms();
+			const room = rooms.room(roomId);
+			if (room) {
+				if (room.isPrivateRoom()) {
+					// (re)invite other members
+					const notInvitedMembersIds = room.notInvitedMembersIdsOfPrivateRoom();
+					if (notInvitedMembersIds.length > 0) {
+						for (let index = 0; index < notInvitedMembersIds.length; index++) {
+							const memberId = notInvitedMembersIds[index];
+							this.invite(roomId, memberId);
+						}
+					}
+				}
+			}
+			const content = {
+				body: text,
+				msgtype: 'm.text',
+			};
+			this.client.sendEvent(roomId, 'm.room.message', content, '');
+		},
+
+		addImage(roomId: string, uri: string) {
+			this.client.sendImageMessage(roomId, uri);
+		},
+
+		async changeDisplayName(name: string) {
+			try {
+				this.client.setDisplayName(name);
+			} catch (error) {
+				this.showError(error as string);
+			}
+		},
+
+		async getUsers(): Promise<Array<MatrixUser>> {
+			const response = (await this.client.getUsers()) as [];
+			return response;
+		},
+
+		async loadOlderEvents(roomId: string) {
+			const self = this;
+			return new Promise((resolve) => {
+				const room = self.client.getRoom(roomId);
+				if (room != null) {
+					const firstEvent = room.timeline[0].event;
+					if (firstEvent !== undefined && firstEvent.type !== 'm.room.create') {
+						const timelineSet = room.getTimelineSets()[0];
+						const eventId = firstEvent.event_id;
+						if (eventId !== undefined) {
+							self.client
+								.getEventTimeline(timelineSet, eventId)
+								.then((eventTimeline: Optional<EventTimeline>) => {
+									if (eventTimeline) {
+										const settings = useSettings();
+										resolve(
+											self.client.paginateEventTimeline(eventTimeline, {
+												backwards: true,
+												limit: settings.pagination,
+											}),
+										);
+									} else {
+										resolve(false);
+									}
+								})
+								.catch((error: string) => {
+									self.showError(error);
+								});
+						}
+					} else {
+						resolve(false);
+					}
+				} else {
+					resolve(false);
+				}
+			});
+		},
+	},
 });
 
 export { usePubHubs };

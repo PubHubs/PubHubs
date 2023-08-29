@@ -1,35 +1,28 @@
 # Hub Configuration
 
-> These settings are important for Hub Owners
+> We also provide a docker compose file in `/docs/deploy/`. Please note that the docker compose file might be outdated and we advise not to use it rather follow docker steps mentioned in this guide.
 
-Hub Owner will make a contract with Central Platform by providing their information such as Hub Name, Hub Description and Redirection URI by email. This will allow Central Platform to issue a confidential file to the Hub Owner.
+## Prerequisites
+
+### Hosting
+The Hub is based on the [the Synapse server](https://github.com/matrix-org/synapse), which' documentation and community you can refer to for specific requirements. In general, for a small organisation (<64 users, not joining extremely large rooms on other servers), a 2(v)CPU server with 2GB of RAM should be enough to run both the client and the hub. Debian/Ubuntu is recommended, with an up-to-date installation of Docker.
+
+Besides an option for remote access such as SSH, port 80 and 443 need to be accessible from the internet. It is recommended to put a reverse proxy such as nginx, Apache, Caddy, HAProxy or relayd in front of Synapse, and TLS is required unless you are testing the instance from the same machine. For proper testing, you also need (sub)domains for both the client and the hub which point to your server.
+
+### Linking to the Central Platform
+In order to deploy a Hub, the Hub Owner will have to make a contract with the Central Platform by providing their the Hub Name, Hub Description and Redirection URI by email. On agreement, the adminstrator will provide a confidential file with decrpytion key, client id and client password in a secure manner. 
+
+Example information:
+```c++
+Name: 'Organisation Hub'
+Description: 'Deployment testing of PubHubs for Organisation'
+Host URI: hubhost.organisation.com
+Client URI: hubclient.organisation.com
+```
 
 <img src=../../pictures/key-exchange.png alt="drawing" width="3000"/>
 
-In order to register a hub with the central platform. The Hub owner needs to make a contract with the Central Platform. On agreement, the adminstrator will provide a confidential file with decrpytion key, client id and client password in a secure manner via PostGuard.
-
-On receiving the confidential information, the hub owner will need to perform the following tasks for setting up the Hub.
-
--   The `decryption key` is used as an environment variable `HUB_SECRET` when running the container for Hub.
-
--   The client ID and client password are used `client id` and `client password` are used in the homeserver configuration file `homeserver.yaml`. See the snippet below:
-
-```c++
-oidc_providers:
-  - idp_id: pubhubs
-    idp_name: "PubHubs ID provider"
-    discover: true
-    issuer: "https://stable.pubhubs.ihub.ru.nl/"
-    client_id: <update client ID>
-    client_secret: <update client password>
-    scopes: ["openid"]
-    skip_verification: false
-    user_mapping_provider:
-      module: conf.modules.pseudonyms.OidcMappingProvider
-      config:
-```
-
-> A minimum sample file is provided in the `hub/` directory of this documentation
+The confidential information recieved will be used while deploying the containers.
 
 ## Setting up a Hub
 
@@ -47,6 +40,29 @@ oidc_providers:
 docker pull registry.science.ru.nl/ilab/pubhubs_canonical/pubhubs_hub:main
 ```
 
+Now we will need the confidential information recieved for setting up the Hub.
+
+-   The `decryption key` is used as an environment variable `HUB_SECRET` when running the container for Hub.
+
+-   The client ID and client password are used `client id` and `client password` are used in the homeserver configuration file `homeserver.yaml`. A minimum sample file is provided in the `hub/` directory of this documentation. See the snippet below:
+
+```c++
+oidc_providers:
+  - idp_id: pubhubs
+    idp_name: "PubHubs ID provider"
+    discover: true
+    issuer: "https://stable.pubhubs.ihub.ru.nl/"
+    client_id: <update client ID>
+    client_secret: <update client password>
+    scopes: ["openid"]
+    skip_verification: false
+    user_mapping_provider:
+      module: conf.modules.pseudonyms.OidcMappingProvider
+      config:  {
+        libpubhubspath: /usr/lib/libpubhubs.so
+      }
+```
+
 -   Change permission on the `hub/` folder and its subdirectory.
 
 ```shell
@@ -57,9 +73,13 @@ chmod -R 777 hub
 docker run -p 8008:8008 --mount "type=bind,src=<absolute_path>/hub,dst=/data"  -e HUB_SECRET=<decryption_key> -e SYNAPSE_CONFIG_DIR=/data registry.science.ru.nl/ilab/pubhubs_canonical/pubhubs_hub:main
 ```
 
+Please do not publish other ports to prevent matrix federation, which is currently a bit of a mismatch with the PubHubs identity principles.
+
+The hub should now be running at localhost:8008, which you can test from the machine that it runs on. In order to be reachable from the outside, some sort of reverse proxy on port 443 with TLS is needed. 
+
 ## Terms and conditions for the Hub
 
-A `templates` directory can be created specifying the terms and conditions of the Hub. See sample in pubhubs repository `pubhubs_hub/matrix_test_config/templates`.
+A `templates` directory can be created specifying the terms and conditions of the Hub. See sample in pubhubs repository `pubhubs_hub/matrix_test_config/templates`. The template directory can be used for styling the hub. A sample template directory can be found in `pubhubs_hub/matrix_test_config/templates`. Copy this template directory in <absolute_path>/hub (path mounted in docker run). Update the test_hub.log.config file with the one present in the template directory `docs/deploy/test_hub.log.config`.
 
 ## Hub administration
 
@@ -105,4 +125,32 @@ curl --header "Authorization: Bearer <ACCESS TOKEN>" -H "Content-Type: applicati
     -   Update the HUB URL e.g., https://localhost:8008/ for local testing.
 
 -   Login with a normal user (Not as an admin user). Search for secured room (e.g., secureroomtest). You will be prompted with a secured room page. Use Yivi app to disclose your attributes (e.g., baba@baba.com).
-    [Client Instructions &rarr;](../client/README.md)
+    
+## Secured Room Expiry
+
+
+An administrator can also setup an expiry time for a secure room. Default value of expiry is 90 days. 
+The administrator can setup expiry days when creating a secure room. For example, the administrator can set expiry of a room of 10 days as shown in the example below:
+
+
+
+```
+curl --header "Authorization: Bearer <ACCESS TOKEN>" -H "Content-Type: application/json" -X POST -d '{
+        "room_name": "secured_room",
+        "accepted": {
+                "irma-demo.sidn-pbdf.email.domain": {
+                        "accepted_values": [
+                                "gmail.com"
+                        ],
+                        "profile": false
+                }
+        },
+        "user_txt": "usertx",
+        "expiration_time_days": 10,
+        "type": "ph.messages.restricted"
+}' http://127.0.0.1:8008/_synapse/client/secured_rooms
+```
+    
+FOR TESTING PURPOSE: The key expiration_time_days to a small value like `0.002`. This is around 3 minutes. A sufficient time to observe the removal of secured room from the list. 
+    
+  [Client Instructions &rarr;](../client/README.md)

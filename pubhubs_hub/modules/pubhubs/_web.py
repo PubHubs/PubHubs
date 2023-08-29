@@ -7,6 +7,7 @@ from synapse.http.server import DirectServeJsonResource, respond_with_json
 from synapse.types import JsonDict
 from twisted.web.resource import Resource
 
+import time
 from . import YiviRoomJoiner
 from ._constants import SERVER_NOTICES_USER, CLIENT_URL
 from ._secured_rooms_class import RoomAttribute
@@ -24,6 +25,7 @@ class JoinServlet(Resource):
         self.config = config
 
         self.putChild(b"yivi-endpoint", YiviEndpoint(config, module_api, store, joiner))
+        
 
 
 class YiviEndpoint(Resource):
@@ -142,7 +144,7 @@ class YiviResult(DirectServeJsonResource):
                             if room_attribute.profile:
                                 disclosed_to_show[required] = disclosed_value
                             else:
-                                disclosed_to_show[required] = {"": ""}
+                                disclosed_to_show[required] = ""
                         else:
                             return None
                     else:
@@ -170,14 +172,20 @@ class YiviResult(DirectServeJsonResource):
 
         user_id = user.user.to_string()
 
+        
+
         yivi_url = self.config.get("yivi_url", "http://localhost:8089")
         result = await http_client.get_json(f"{yivi_url}/session/{token}/result")
         allowed = await self.check_allowed(result, room_id)
-        if allowed:
-            await self.store.allow(user_id, room_id)
+        if allowed:            
+            await self.store.allow(user_id, room_id, time.time())
             await self.module_api.update_room_membership(user_id, user_id, room_id, "join")
 
-            answer = {"goto": f"{self.config[CLIENT_URL]}#/room/{room_id}"}
+            answer = {
+                    "goto": f"{self.config[CLIENT_URL]}#/room/{room_id}"
+                    
+                     }
+
 
             disclosed = allowed
 
@@ -196,3 +204,6 @@ class YiviResult(DirectServeJsonResource):
             respond_with_json(request, 200, answer)
         else:
             respond_with_json(request, 200, {"not_correct": "unfortunately not allowed in the room"})
+
+
+        

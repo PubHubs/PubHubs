@@ -8,53 +8,69 @@
  *
  */
 
-import { defineStore } from 'pinia'
-import { User } from 'matrix-js-sdk';
+import { defineStore } from 'pinia';
+import { User as MatrixUser } from 'matrix-js-sdk';
 import { MatrixClient } from 'matrix-js-sdk';
+
+/**
+ *  Extending the MatrixUser with some extra PubHubs specific methods :
+ */
+class User extends MatrixUser {
+	get pseudonym(): string {
+		const full = this.userId;
+		return full.split(':')[0].replace('@', '');
+	}
+}
 
 const defaultUser = {} as User;
 
 type State = {
-    user: User
-}
+	user: User;
+	isAdministrator: boolean;
+};
 
 type getProfileInfoResponseType = {
-    avatar_url? : string | undefined,
-    displayname? : string | undefined,
-}
-
+	avatar_url?: string | undefined;
+	displayname?: string | undefined;
+};
 
 const useUser = defineStore('user', {
+	state: (): State => ({
+		user: defaultUser,
+		isAdministrator: false,
+	}),
 
-    state: () : State => ({
-        user : defaultUser
-    }),
+	getters: {
+		isLoggedIn({ user }) {
+			return typeof user.userId == 'string';
+		},
 
-    getters: {
+		isAdmin({ isAdministrator }) {
+			return isAdministrator;
+		},
+	},
 
-        isLoggedIn({user}) {
-            return typeof(user.userId) == 'string';
-        },
+	actions: {
+		setUser(user: User) {
+			this.user = user;
+		},
 
-    },
+		async fetchDisplayName(client: MatrixClient) {
+			const response: getProfileInfoResponseType = await client.getProfileInfo(this.user.userId, 'displayname');
+			if (typeof response.displayname == 'string') {
+				this.user.setDisplayName(response.displayname);
+			}
+		},
 
-    actions: {
+		async fetchIsAdministrator(client: MatrixClient) {
+			try {
+				await client.isSynapseAdministrator();
+				this.isAdministrator = true;
+			} catch (error) {
+				this.isAdministrator = false;
+			}
+		},
+	},
+});
 
-        setUser(user: User) {
-            this.user = user;
-        },
-
-        async fetchDisplayName(client:MatrixClient) {
-
-            const response : getProfileInfoResponseType= await client.getProfileInfo(this.user.userId, 'displayname');
-            if (typeof (response.displayname) == 'string') {
-                this.user.setDisplayName(response.displayname);
-            }
-
-        },
-
-    },
-
-})
-
-export { User, defaultUser, useUser }
+export { User, defaultUser, useUser };

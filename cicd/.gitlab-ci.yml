@@ -32,6 +32,12 @@ stages: # List of stages for jobs, and their order of execution
     - start_test_setup.py
     - cicd/.gitlab-ci.yml
 
+.globalclientchanges: &globalclientchanges
+  changes:
+    - global-client/**/*
+    - hub-client/**/*
+    - cicd/.gitlab-ci.yml
+
 .hubclientchanges: &hubclientchanges
   changes:
     - hub-client/**/*
@@ -39,6 +45,8 @@ stages: # List of stages for jobs, and their order of execution
 
 .hubchanges: &hubchanges
   changes:
+    # NOTE: strictly speaking changes to pubhubs also affect a hub via libpubhubs.so,
+    #       but that happens so seldomly that we better trigger a deploy in those cases manually
     - pubhubs_hub/**/*
     - cicd/.gitlab-ci.yml
 
@@ -75,7 +83,7 @@ rust-unit-test:
   rules: 
     - *rustchanges
     - when: manual
-  image: registry.science.ru.nl/ilab/docker-build/rust-stable:main
+  image: registry.science.ru.nl/ilab/docker-build/pubhubs-rust-stable:main
   script:
     - cp -r global-client/ pubhubs
     - cp -r hub-client/ pubhubs
@@ -84,7 +92,7 @@ rust-unit-test:
 #    (more background:  https://github.com/rust-lang/rust/pull/109044), when JSON output is finalized let's turn reporting
 #    back on.
 #    - env RUST_BACKTRACE=full cargo +stable test --no-fail-fast -- -Z unstable-options --format json | gitlab-report -p test > report.xml
-    - env RUST_BACKTRACE=full cargo +stable test --no-fail-fast
+    - RUST_BACKTRACE=full RUSTFLAGS="-C link-arg=-fuse-ld=lld" RUSTDOCFLAGS="-C link-arg=-fuse-ld=lld" cargo +stable test --no-fail-fast
   artifacts:
     reports:
       junit: pubhubs/report.xml
@@ -117,6 +125,8 @@ build-pubhubs-image:
     # when no relevant changes have been made, don't run automatically, but allow the job to be rin manually
     - when: manual
   needs:
+    - job: globalclient-unit-test
+      optional: true
     - job: rust-unit-test
       optional: true
     - job: rust-cargo-deny
@@ -204,16 +214,13 @@ hub-unit-test: # This job runs in the test stage.
   image: python:latest
   variables:
     PIP_CACHE_DIR: "$CI_PROJECT_DIR/.cache/pip"
-  before_script: #install libpepcli
+  before_script: 
     - python --version # For debugging
     - pip install virtualenv
     - virtualenv venv
     - source venv/bin/activate
     - pip install unittest-xml-reporting
     - apt update && apt install -y lsb-release
-    - sh -c 'printf "deb http://packages.bitpowder.com/debian-%s main core\n" `lsb_release -cs`' | tee /etc/apt/sources.list.d/bitpowder-repo.list
-    - curl -L https://bitpowder.com/packages/linux-packages.gpg | tee /etc/apt/trusted.gpg.d/bitpowder.asc
-    - apt-get update && apt-get install -y pepcli
   script:
     - cd pubhubs_hub
     - pip install --upgrade -r requirements.txt
@@ -246,13 +253,12 @@ build-image-hub:
     - hub-unit-test
   tags:
     - docker
-  image: docker:stable
+  image: docker:latest # docker:stable does not work, see https://gitlab.science.ru.nl/ilab/pubhubs_canonical/-/issues/228
   variables:
     CONTAINER_IMAGE: ${CI_REGISTRY}/${CI_PROJECT_PATH}/pubhubs_hub:${CI_COMMIT_REF_NAME}
   script:
-    - cd pubhubs_hub
     - docker login -u $CI_REGISTRY_USER -p $CI_REGISTRY_PASSWORD $CI_REGISTRY
-    - DOCKER_BUILDKIT=1 docker build -t ${CONTAINER_IMAGE} .
+    - docker build -t ${CONTAINER_IMAGE} -f pubhubs_hub/Dockerfile .
     - docker push ${CONTAINER_IMAGE}
 
 deploy-main-hub:
@@ -293,6 +299,22 @@ deploy-stable-hub:
     - cd pubhubs_hub
     - chmod 600 $ILAB_VM_TRIGGER_UPDATE_KEY
     - ssh -o UserKnownHostsFile=$ILAB_VM_TRIGGER_UPDATE_KNOWN_HOSTS $ILAB_VM_TRIGGER_UPDATE_USER@$ILAB_VM_TRIGGER_UPDATE_HOST_STABLE -i $ILAB_VM_TRIGGER_UPDATE_KEY docker-testhub-matrix-stable
+
+globalclient-unit-test:
+  stage: build
+  rules: 
+    - *globalclientchanges
+    - when: manual
+  tags: [docker]
+  image: node:latest
+  script:
+    - cd global-client
+    - npm ci --cache .npm --prefer-offline
+    - npm run test
+  cache:
+    key: ${CI_COMMIT_REF_SLUG}
+    paths:
+      - .npm/
 
 hubclient-unit-test:
   stage: build

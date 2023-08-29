@@ -10,7 +10,6 @@ For normal use this should automatically be done with the PubHubs deployment and
 
 For Development or Theming see below.
 
-
 # Setup for development or theming
 
 [Node](https://nodejs.org) should be present on your system.
@@ -59,7 +58,6 @@ See [Tailwind Theming](https://tailwindcss.com/docs/theme) for how theming works
 
 To reflect changes you need to restart histoire: `npm run story:dev`. This could change the URL for histoire.
 
-
 ### Components & Tailwind classes
 
 Testing and viewing components can be done within the histoire environment. Changing components should be done in de components code. Changes in the code will reflect immediately in the histoire environment.
@@ -97,7 +95,6 @@ All the tailwind classes inside this directive can be overruled by calling the c
 
 Icons (svg) are all in one TypeScript object (strings) in `./src/assets/icons.ts`. You can add or change sizes and icons there. See the comments in the file.
 
-
 ## Development
 
 First setup a development environment (see above). Then start the development server and open the given URL in the browser. This has Hot Module Replacement for fast UI development:
@@ -133,7 +130,6 @@ docker build -f Dockerfile -t hub-client .
 ```
 docker run -p 8080:8080 hub-client
 ```
-
 
 ## Testing
 

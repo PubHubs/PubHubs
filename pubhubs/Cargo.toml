@@ -4,79 +4,152 @@ version = "0.1.0"
 edition = "2021"
 license-file = "../LICENSE"
 
+[lib]
+crate-type = ["cdylib","rlib"]
+# NOTE: the cdylib generates the libpubhubs.so (on Linux)  that's used by the hub
+
+[[bin]]
+name = "pubhubs"
+required-features = ["bin"]
+
 [features]
+# bin:     what's used by the pubhubs binary
+# abi:     what's needed for the ABI (libpubhubs.so) used by the hub
+# common:  what's used by both bin and abi.
+# old:     what's used by the old pubhubs library (no separate authentication server/transcryptor)
+# oldbin:  what's used by the old pubhubs binary
+default = [
+	"oldbin",
+]
+abi = [
+	"common",
+]
+common = [
+	"dep:base16ct",
+	"dep:base64ct", 
+	"dep:curve25519-dalek", 
+	"dep:rand", 
+]
+bin = [
+	"dep:clap",
+	"dep:anyhow",
+]
+oldbin = [
+	"bin",
+	"old",
+	"dep:actix-files",
+	"dep:env_logger",
+]
 real_credentials = []
+old = [
+ 	"common", 
+	"dep:actix-web", 
+	"dep:aead", 
+	"dep:anyhow", 
+	"dep:async-recursion",
+	"dep:awc",
+	"dep:bytes",
+	"dep:chacha20poly1305", 
+	"dep:chrono", 
+	"dep:ed25519-dalek",
+	"dep:expry",
+	"dep:futures",
+	"dep:generic-array",
+	"dep:hairy",
+	"dep:hmac", 
+	"dep:http",
+	"dep:hyper",
+	"dep:hyper-tls",
+	"dep:jsonwebtoken",
+	"dep:log",
+	"dep:prometheus",
+	"dep:qrcode",
+	"dep:regex",
+	"dep:rmp-serde",
+	"dep:rusqlite",
+	"dep:serde", 
+	"dep:serde_json",
+	"dep:serde_urlencoded",
+	"dep:serde_yaml",
+	"dep:sha2", 
+	"dep:strum_macros",
+	"dep:subtle",
+	"dep:thiserror",
+	"dep:tokio", 
+	"dep:typenum",
+	"dep:url",
+	"dep:uuid",
+]
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 [dependencies]
 # Error handling
 # note:  anyhow is also used by cargo
-thiserror = "1.0"
-anyhow = {version = "1.0", features = ["backtrace"]}
+anyhow = { version = "1.0", features = ["backtrace"], optional = true }
+thiserror = { version="1.0", optional = true }
 
 # serde
-serde = {version = "1.0", features = ["derive"]}
-serde_yaml = "0.9"
-serde_json = "1.0"
-serde_urlencoded = "0.7"
-rmp-serde = "1.1"
+rmp-serde = { version = "1.1", optional = true }
+serde = { version = "1.0", features = ["derive"], optional = true }
+serde_json = { version = "1.0", optional = true }
+serde_urlencoded = { version = "0.7", optional = true }
+serde_yaml = { version = "0.9", optional = true }
 
 # Database interaction
-rusqlite = {version = "0.28.0", features = ["bundled"]}
-rand = "0.8"
-
-# for ed25519_dalek, see https://stackoverflow.com/questions/65562447/the-trait-rand-corecryptorng-is-not-implemented-for-osrng
-#rand_07 = { package = "rand", version = "0.7" }
-
+rand = { version = "0.8", optional = true }
+rusqlite = { version = "0.29", features = ["bundled"], optional = true }
 
 # Yivi interaction
-regex = "1.5"
-qrcode = "0.12"
-chrono = {version="0.4", default_features = false, features = ["clock"]}
+async-recursion = { version = "1.0", optional = true }
+chrono = { version="0.4", default_features = false, features = ["clock"], optional = true }
 # note: we don't use chrono 0.4's default features, because it includes oldtime,
 #       which pulls in time 0.1, which has a vulnerability (viz. RUSTSEC-2020-0071)
-async-recursion = "1.0"
+qrcode = { version = "0.12", optional = true }
+regex = { version = "1.5", optional = true }
 
 # Web dependencies
-tokio = {version = "1.23", features = ["rt", "macros", "rt-multi-thread", "sync", "time"]}
-tokio-test = "0.4"
-hyper = {version= "0.14", features= ["server", "client", "http1", "stream" ]}
-hyper-tls = "0.5"
-url = {version="2.2", features=["serde"]} 
-bytes = "1"
-http = "0.2"
-uuid = {version = "1.1", features = ["v4"]}
-env_logger = "0.10"
-log = "0.4"
-jsonwebtoken = "8.1"  # uses non RustCrypto - perhaps replace?
-actix-web = "4.3"
-actix-files = "0.6"
+actix-files = { version = "0.6", optional = true }
+actix-web = { version = "4.3", optional = true }
+bytes = { version = "1", optional = true }
+env_logger = { version = "0.10", optional = true }
+http = { version = "0.2", optional = true }
+hyper = { version= "0.14", features= ["server", "client", "http1", "stream" ], optional = true }
+hyper-tls = { version = "0.5", optional = true }
+jsonwebtoken = { version = "8.1", optional = true }  # uses non RustCrypto - perhaps replace?
+log = { version = "0.4", optional = true }
+tokio = { version = "1.23", features = ["rt", "macros", "rt-multi-thread", "sync", "time"], optional = true }
+url = { version="2.2", features=["serde"], optional = true }
+uuid = { version = "1.1", features = ["v4"], optional = true }
+
 # Proxying requests to Yivi and connection check
-awc = { version = "3.1", features = ["openssl"] }
+awc = { version = "3.1", features = ["openssl"], optional = true }
 
 # RustCrypto packages
-hmac = "0.12"
-sha2 = "0.10"
-base64ct = {version = "1.6", features = ["alloc"]}
-base16ct = {version = "0.2", features = ["alloc"]} # hex
-chacha20poly1305 = "0.10"
-aead = "0.5"
-generic-array = "0.14"
-typenum = "1.15"
-ed25519 = {version = "2.1", features = ["pkcs8", "alloc", "pem"]}
-ed25519-dalek = "1.0"
-# Constant time operations to prevent timing attacks.
-subtle = "2.4"
+aead = { version = "0.5", optional = true }
+base16ct = { version = "0.2", features = ["alloc", "std"], optional = true } # hex
+base64ct = { version = "1.6", features = ["alloc", "std"], optional = true }
+chacha20poly1305 = { version = "0.10", optional = true }
+curve25519-dalek = { version = "4.0", features = ["rand_core", "digest"], optional = true }
+ed25519-dalek = { version = "2.0", optional = true }
+generic-array = { version = "0.14", optional = true }
+hmac = { version = "0.12", optional = true }
+sha2 = { version = "0.10", optional = true }
+subtle = { version = "2.4", optional = true }
+typenum = { version = "1.15", optional = true }
 
 #metrics
-prometheus = "0.13"
-lazy_static = "1.4"
-strum_macros = "0.24"
-futures = "0.3"
+futures = { version = "0.3", optional = true }
+prometheus = { version = "0.13", optional = true }
+strum_macros = { version = "0.25", optional = true }
 
 #iLab crates
-hairy = "0.1.2"
-expry = "0.1.2"
+# NOTE: Versions 0.2.1 for expry and hairy are available, but are rather non-backwards compatible.
+expry = { version = "0.1", optional = true } 
+hairy = { version = "0.1", optional = true }
+
+# command line argument parser
+clap = { version = "4.3", features = ["derive"], optional = true }
 
 [dev-dependencies]
 tempfile = "3.4"
+tokio-test = "0.4"

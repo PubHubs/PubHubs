@@ -1,5 +1,7 @@
 /** @type {import('tailwindcss').Config} */
 
+const plugin = require('tailwindcss/plugin');
+
 const pubhubsTheme = require('./src/assets/pubhubs-theme.js');
 const safeList = [
     '-mt-1',
@@ -13,6 +15,7 @@ const safeList = [
     'bg-avatar-orange',
     'bg-blue-dark',
     'bg-blue',
+    'bg-gray-lighter',
     'bg-gray-light',
     'bg-gray-middle',
     'bg-gray',
@@ -43,6 +46,7 @@ const safeList = [
     'h-6',
     'h-7',
     'h-8',
+    'h-12',
     'h-screen',
     'inset-0',
     'left-0',
@@ -83,6 +87,8 @@ const safeList = [
     'text-blue-dark',
     'text-center',
     'text-gray',
+    'text-green',
+    'text-green-dark',
     'text-left',
     'text-red',
     'text-sm',
@@ -100,6 +106,7 @@ const safeList = [
     'w-6',
     'w-7',
     'w-8',
+    'w-full',
     'w-screen',
     'z-0',
     'z-10',
@@ -114,5 +121,12 @@ module.exports = {
     ],
     safelist: safeList,
     theme: pubhubsTheme,
-    darkMode: 'class'
+    darkMode: 'class',
+    plugins: [
+        require('@tailwindcss/forms'),
+        plugin(function ({ addVariant }) {
+            addVariant('theme-light', ['html .theme-light &', '.light &']);
+            addVariant('theme-dark', ['html .theme-dark &', '.dark &']);
+        })
+    ]
 }

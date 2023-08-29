@@ -2,114 +2,159 @@
  * This store is used for global and user settings.
  */
 
-import { defineStore } from 'pinia'
-
-import { MessageType,Message,useMessageBox } from '@/store/messagebox';
-
+// import { defineStore } from 'pinia';
+import { MessageType, Message, useMessageBox } from '@/store/messagebox';
+import { fallbackLanguage } from '@/i18n';
 
 enum Theme {
-    System = 'system',
-    Light = 'light',
-    Dark = 'dark',
+	System = 'system',
+	Light = 'light',
+	Dark = 'dark',
 }
+
+type i18nSettings = {
+	locale: any;
+	availableLocales: any;
+};
 
 interface Settings {
+	/**
+	 * The number of events to load on a page in a room.
+	 */
+	pagination: number;
 
-    /**
-     * The number of events to load on a page in a room.
-     */
+	/**
+	 * UI theme: system|dark|light
+	 */
+	theme: Theme;
 
-    pagination: number,
+	/**
+	 * UI Language
+	 */
+	language: string;
 
-    /**
-     * UI theme: system|dark|light
-     */
-
-    theme : Theme,
-
+	_i18n?: i18nSettings;
 }
-
 
 const defaultSettings: Settings = {
-    theme : Theme.Dark,
-    pagination: 50,
-}
+	theme: Theme.System,
+	pagination: 50,
+	language: fallbackLanguage,
+	_i18n: {
+		locale: undefined,
+		availableLocales: undefined,
+	},
+};
 
+const createSettings = (defineStore: any) => {
+	return defineStore('settings', {
+		state: () => {
+			return defaultSettings as Settings;
+		},
 
-const useSettings = defineStore('settings', {
+		getters: {
+			getPagination: (state: Settings) => state.pagination,
 
-    state: () => {
-        return defaultSettings as Settings;
-    },
+			/**
+			 * Get theme set in preferences
+			 */
+			getSetTheme: (state: Settings): Theme => {
+				return state.theme;
+			},
 
-    getters: {
+			/**
+			 * Get theme set in preferences, and if 'system' give the 'light' or 'dark' theme depending on system.
+			 */
+			getActiveTheme: (state: Settings): Theme => {
+				if (state.theme != Theme.System) {
+					return state.theme;
+				}
+				if (window.matchMedia('(prefers-color-scheme: dark)').matches) {
+					return Theme.Dark;
+				}
+				return Theme.Light;
+			},
 
-        getPagination: (state: Settings) => state.pagination,
+			getActiveLanguage: (state: Settings): string => {
+				return state.language;
+			},
 
-        /**
-         * Get theme set in preferences
-         */
-        getSetTheme: (state:Settings) : Theme => {
-            return state.theme;
-        },
+			/**
+			 * Get themes as options (for form selecting).
+			 * If nothing is given the label will be a capitalized version of the theme. If a function is given, the function will be used to generate the label. So you can give the localisation function $t.
+			 */
+			getThemeOptions: () => (themes: Function | undefined) => {
+				const options = Object.values(Theme).map((e) => {
+					if (typeof themes !== 'function') {
+						return {
+							label: e.charAt(0).toUpperCase() + e.slice(1),
+							value: e,
+						};
+					} else {
+						return {
+							label: themes('themes.' + e),
+							value: e,
+						};
+					}
+				});
+				return options;
+			},
 
-        /**
-         * Get theme set in preferences, and if 'system' give the 'light' or 'dark' theme depending on system.
-         */
-        getActiveTheme: (state:Settings) : Theme => {
-            if ( state.theme != Theme.System ) {
-                return state.theme;
-            }
-            if ( window.matchMedia('(prefers-color-scheme: dark)').matches)  {
-                return Theme.Dark;
-            }
-            return Theme.Light;
-        },
+			getLanguageOptions: (state: Settings) => {
+				const options = state._i18n?.availableLocales.map((e: string) => {
+					return {
+						label: e.toUpperCase(),
+						value: e,
+					};
+				});
+				return options;
+			},
+		},
 
-        /**
-         * Get themes as options (for form selecting).
-         * If nothing is given the label will be a capitalized version of the theme. If a function is given, the function will be used to generate the label. So you can give the localisation function $t.
-         */
-        getThemeOptions: () => (themes:Function|undefined) => {
-            const options = Object.values(Theme).map( e => {
-                if ( typeof(themes) !== 'function') {
-                    return {
-                        label: e.charAt(0).toUpperCase()+e.slice(1),
-                        value: e
-                    };
-                }
-                else {
-                    return {
-                        label: themes('themes.'+e),
-                        value: e
-                    };
-                }
-            });
-            return options;
-        },
+		actions: {
+			initI18b(init: any) {
+				// @ts-ignore
+				this._i18n = init;
+				// @ts-ignore
+				this.language = init.locale.value;
+			},
 
-    },
+			setPagination(newPagination: number) {
+				// @ts-ignore
+				this.pagination = newPagination;
+			},
 
-    actions: {
+			setTheme(newTheme: Theme, send: boolean = false) {
+				// @ts-ignore
+				if (this.theme !== newTheme) {
+					// @ts-ignore
+					this.theme = newTheme;
+					if (send) this.sendSettings();
+				}
+			},
 
-        setPagination(newPagination: number) {
-            this.pagination = newPagination;
-        },
+			setLanguage(newLanguage: string, send: boolean = false) {
+				// @ts-ignore
+				if (this.language !== newLanguage && this._i18n?.availableLocales.indexOf(newLanguage) >= 0) {
+					// @ts-ignore
+					this.language = newLanguage;
+					if (send) this.sendSettings();
+				}
+			},
 
-        setTheme(newTheme:Theme) {
-            if (this.theme !== newTheme) {
-                this.theme = newTheme;
-                this.sendTheme();
-            }
-        },
+			sendSettings() {
+				const messagebox = useMessageBox();
+				messagebox.sendMessage(
+					new Message(MessageType.Settings, {
+						// @ts-ignore
+						theme: this.theme as any,
+						// @ts-ignore
+						language: this.language,
+					}),
+				);
+			},
+		},
+	});
+};
 
-        sendTheme() {
-            const messagebox = useMessageBox();
-            messagebox.sendMessage( new Message(MessageType.Settings,this.theme) );
-        },
-
-    },
-
-})
-
-export { Theme, Settings, defaultSettings, useSettings }
+export { Theme, Settings, defaultSettings, createSettings, type i18nSettings };

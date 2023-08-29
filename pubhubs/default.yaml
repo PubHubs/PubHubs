@@ -7,7 +7,7 @@ urls:
   #for_hub: !autodetect
   #for_hub: !same_as_for_browser
   for_yivi_app: !autodetect
-  #for_yivi_app: !manual http://1.2.3.4:1234/
+  # for_yivi_app: !manual http://172.20.10.4:8080/ # DEZE AANPASSEN met HOTSPOT IP adres
   #for_yivi_app: !same_as_for_browser
 
 database_location: dev.db  # if not set, in memory database is used
@@ -15,9 +15,7 @@ database_location: dev.db  # if not set, in memory database is used
 yivi:
   requestor_api_url: http://localhost:8088
 
-pep: {
-  # libpep_location: /path/to/libpepcli
-}
+pep: { }
 
 # Allowed contexts for embedding the login-flow. This will be the PubHubs global client(8080), allowing it to embed
 # itself, in case we need to authenticate for a specific hub and are not (yet) logged in globally.

@@ -15,6 +15,7 @@
 # documentation on how to configure or create custom modules for Synapse.
 #
 modules:
+  - module: conf.modules.pubhubs.DBMigration
   - module: conf.modules.pseudonyms.Pseudonym
 #    Below is the example config for adding attribute based authentication to rooms, room id's will be different depending on your server.
 #    Make sure to enable server_notices system_mxid_localpart (also in homeserver.yaml) as that will be the user making the waiting rooms.
@@ -31,8 +32,6 @@ modules:
         # The global hub client where we need to allow the hubs' terms and conditions to be shown form as an embedded page.
         global_client_url: "http://localhost:8080"
       }
-
-
 
 ## Server ##
 
@@ -641,7 +640,7 @@ retention:
 # purely on this application-layer restriction.  If not specified, the
 # default is to whitelist everything.
 #
-#federation_domain_whitelist:
+federation_domain_whitelist: []
 #  - lon.example.com
 #  - nyc.example.com
 #  - syd.example.com
@@ -1529,7 +1528,8 @@ old_signing_keys:
 #
 #trusted_key_servers:
 #  - server_name: "matrix.org"
-
+# Do not use default, we have no federation and do not need signing keys or a connection to matrix.org at this stage.
+trusted_key_servers: []
 # Uncomment the following to disable the warning that is emitted when the
 # trusted_key_servers include 'matrix.org'. See above.
 #
@@ -1920,7 +1920,9 @@ oidc_providers:
   skip_verification: false
   user_mapping_provider:
     module: conf.modules.pseudonyms.OidcMappingProvider
-    config:
+    config: {
+      libpubhubspath: /usr/lib/libpubhubs.so
+    }
 
 
 # Enable Central Authentication Service (CAS) for registration and login.

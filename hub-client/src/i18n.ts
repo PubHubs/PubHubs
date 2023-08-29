@@ -1,47 +1,67 @@
-import { createI18n } from 'vue-i18n';
+import { I18nOptions, createI18n } from 'vue-i18n';
 
-import {nl} from '@/locales/nl';
-import {en} from '@/locales/en';
+import { nl } from '@/locales/nl';
+import { en } from '@/locales/en';
 
 const supportedLanguages = ['nl', 'en'];
-const fallbackLocale = 'en';
-let setLocale = fallbackLocale;
+const fallbackLanguage = 'en';
 
-const browserLanguage = navigator.language;
-if ( supportedLanguages.indexOf(browserLanguage) >= 0 ) {
-    setLocale = browserLanguage;
-}
+const i18nOptions: I18nOptions = {
+	legacy: false,
+	warnHtmlMessage: false,
+	globalInjection: true,
+	locale: fallbackLanguage,
+	fallbackLocale: fallbackLanguage,
+	messages: {
+		nl: nl,
+		en: en,
+	},
+	datetimeFormats: {
+		nl: {
+			short: {
+				year: 'numeric',
+				month: 'short',
+				day: 'numeric',
+			},
+			long: {
+				year: 'numeric',
+				month: 'long',
+				day: 'numeric',
+				weekday: 'long',
+				hour: 'numeric',
+				minute: 'numeric',
+			},
+		},
+		en: {
+			short: {
+				year: 'numeric',
+				month: 'short',
+				day: 'numeric',
+			},
+			long: {
+				year: 'numeric',
+				month: 'long',
+				day: 'numeric',
+				weekday: 'long',
+				hour: 'numeric',
+				minute: 'numeric',
+			},
+		},
+	},
+};
 
-const i18n = createI18n({
-    legacy: false,
-    warnHtmlMessage: false,
-    globalInjection: true,
-    locale: setLocale,
-    fallbackLocale: fallbackLocale,
-    messages: {
-        nl: nl,
-        en: en,
-    },
-    datetimeFormats: {
-        nl : {
-            short: {
-                year: 'numeric', month: 'short', day: 'numeric'
-            },
-            long: {
-                year: 'numeric', month: 'long', day: 'numeric',
-                weekday: 'long', hour: 'numeric', minute: 'numeric'
-            }
-        },
-        en : {
-            short: {
-                year: 'numeric', month: 'short', day: 'numeric'
-            },
-            long: {
-                year: 'numeric', month: 'long', day: 'numeric',
-                weekday: 'long', hour: 'numeric', minute: 'numeric'
-            }
-        }
-    }
-});
+const setUpi18n = function () {
+	const i18n = createI18n(i18nOptions);
+	setLanguage(i18n, fallbackLanguage);
+	return i18n;
+};
 
-export { i18n, supportedLanguages }
+const setLanguage = function (i18n: any, language: string) {
+	i18n.global.locale.value = language;
+};
+
+const currentLanguage = function (i18n: any) {
+	return i18n.global.locale.value;
+};
+
+export { setUpi18n, setLanguage, fallbackLanguage, currentLanguage, supportedLanguages };

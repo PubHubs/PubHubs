@@ -1,57 +1,56 @@
 <template>
-    <TextInput
-        :placeholder="$t('rooms.search')"
-        :visible="false"
-        @submit="addNewRoom($event)"
-        @changed="findPublicRooms($event)"
-        @cancel="findPublicRooms('')"></TextInput>
-
-    <ul v-if="hasPublicRooms" class="bg-white rounded-lg p-2">
-        <li
-            v-for="room in publicRooms"
-            :key="room.roomId"
-            class="flex flex-row cursor-pointer mb-3"
-            @click="joinPublicRoom(room.room_id, room.name)">
-            <router-link to="/">
-                <span class="bg-green rounded-lg p-2 m-1">
-                    {{ room.name }}
-                </span>
-            </router-link>
-        </li>
-    </ul>
+	<Dialog :buttons="buttonsOk" width="w-3/6" @close="close()">
+		<template #header>
+			{{ $t('rooms.join_room') }}
+		</template>
+		<TextInput :placeholder="$t('rooms.filter')" v-model="filter" class="mb-4 w-full"></TextInput>
+		<ul v-if="rooms.hasPublicRooms">
+			<li v-for="room in filteredPublicRooms" :key="room.room_id" class="group cursor-pointer hover:bg-green p-1 rounded" @click="joinRoom(room)">
+				<Icon :type="rooms.roomIsSecure(room.room_id) ? 'lock' : 'room'" class="mr-4 float-left text-green group-hover:text-black"></Icon>
+				<span :title="room.room_id">{{ room.name }}</span>
+				<Icon type="plus" class="float-right"></Icon>
+			</li>
+		</ul>
+	</Dialog>
 </template>
 
 <script setup lang="ts">
-    import { computed, ref } from 'vue';
-    import { Room } from '@/store/store';
-    import { usePubHubs } from '@/core/pubhubsStore';
-    import { useRouter } from 'vue-router';
+	import { computed, ref } from 'vue';
+	import { PublicRoom, useRooms } from '@/store/store';
+	import { usePubHubs } from '@/core/pubhubsStore';
+	import { useRouter } from 'vue-router';
+	import { buttonsOk } from '@/store/dialog';
 
-    let publicRooms = ref<Room[]>([]);
-    const pubhubs = usePubHubs();
-    const router = useRouter();
-    const hasPublicRooms = computed(() => {
-        return publicRooms.value.length > 0;
-    });
+	const rooms = useRooms();
+	const pubhubs = usePubHubs();
+	const router = useRouter();
+	const emit = defineEmits(['close']);
 
-    async function findPublicRooms(search: string) {
-        if (!search) search = '';
-        publicRooms.value = [];
-        if (search !== '') {
-            const response = await pubhubs.getPublicRooms(search);
-            publicRooms.value = response.chunk as [];
-        }
-    }
+	const filter = ref('');
 
-    function joinPublicRoom(roomId: string, search: string) {
-        publicRooms.value = [];
-        pubhubs.joinRoom(roomId, router, search);
-    }
+	// Filter out rooms that user is allready member off, and filter string
+	const filteredPublicRooms = computed(() => {
+		return rooms.publicRooms.filter((room: PublicRoom) => {
+			if (rooms.roomExists(room.room_id)) {
+				return false;
+			}
+			if (filter.value == '') {
+				return true;
+			}
+			return room.name?.includes(filter.value);
+		});
+	});
 
-    function addNewRoom(name: string) {
-        pubhubs.newRoom({
-            name: name,
-            visibility: 'public',
-        });
-    }
+	async function joinRoom(room: PublicRoom) {
+		if (rooms.roomIsSecure(room.room_id)) {
+			router.push({ name: 'secure-room', params: { id: room.room_id } });
+		} else {
+			await pubhubs.joinRoom(room.room_id);
+		}
+		close();
+	}
+
+	async function close() {
+		emit('close');
+	}
 </script>

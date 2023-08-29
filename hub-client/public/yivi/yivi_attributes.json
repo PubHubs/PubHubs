@@ -1,0 +1,779 @@
+[
+  {
+    "attribute": "pbdf.ivido.login.identifier"
+  },
+  {
+    "attribute": "pbdf.vgz.machtiging.clientnumber"
+  },
+  {
+    "attribute": "pbdf.vgz.machtiging.clientfullname"
+  },
+  {
+    "attribute": "pbdf.vgz.machtiging.mandateid"
+  },
+  {
+    "attribute": "pbdf.pilot-amsterdam.passport.surname"
+  },
+  {
+    "attribute": "pbdf.pilot-amsterdam.passport.firstnames"
+  },
+  {
+    "attribute": "pbdf.pilot-amsterdam.passport.gender"
+  },
+  {
+    "attribute": "pbdf.pilot-amsterdam.passport.dateofbirth"
+  },
+  {
+    "attribute": "pbdf.pilot-amsterdam.passport.over12"
+  },
+  {
+    "attribute": "pbdf.pilot-amsterdam.passport.over16"
+  },
+  {
+    "attribute": "pbdf.pilot-amsterdam.passport.over18"
+  },
+  {
+    "attribute": "pbdf.pilot-amsterdam.passport.over21"
+  },
+  {
+    "attribute": "pbdf.pilot-amsterdam.passport.over65"
+  },
+  {
+    "attribute": "pbdf.pilot-amsterdam.passport.nationality"
+  },
+  {
+    "attribute": "pbdf.pilot-amsterdam.passport.personalnumber"
+  },
+  {
+    "attribute": "pbdf.pilot-amsterdam.passport.assurancelevel"
+  },
+  {
+    "attribute": "pbdf.pilot-amsterdam.passport.documentnumber"
+  },
+  {
+    "attribute": "pbdf.pilot-amsterdam.passport.photo"
+  },
+  {
+    "attribute": "pbdf.pilot-amsterdam.idcard.surname"
+  },
+  {
+    "attribute": "pbdf.pilot-amsterdam.idcard.firstnames"
+  },
+  {
+    "attribute": "pbdf.pilot-amsterdam.idcard.gender"
+  },
+  {
+    "attribute": "pbdf.pilot-amsterdam.idcard.dateofbirth"
+  },
+  {
+    "attribute": "pbdf.pilot-amsterdam.idcard.over12"
+  },
+  {
+    "attribute": "pbdf.pilot-amsterdam.idcard.over16"
+  },
+  {
+    "attribute": "pbdf.pilot-amsterdam.idcard.over18"
+  },
+  {
+    "attribute": "pbdf.pilot-amsterdam.idcard.over21"
+  },
+  {
+    "attribute": "pbdf.pilot-amsterdam.idcard.over65"
+  },
+  {
+    "attribute": "pbdf.pilot-amsterdam.idcard.nationality"
+  },
+  {
+    "attribute": "pbdf.pilot-amsterdam.idcard.personalnumber"
+  },
+  {
+    "attribute": "pbdf.pilot-amsterdam.idcard.assurancelevel"
+  },
+  {
+    "attribute": "pbdf.pilot-amsterdam.idcard.documentnumber"
+  },
+  {
+    "attribute": "pbdf.pilot-amsterdam.idcard.photo"
+  },
+  {
+    "attribute": "pbdf.nuts.agb.agbcode"
+  },
+  {
+    "attribute": "pbdf.chipsoft.bsn.bsn"
+  },
+  {
+    "attribute": "pbdf.chipsoft.bsn.initials"
+  },
+  {
+    "attribute": "pbdf.chipsoft.bsn.firstnames"
+  },
+  {
+    "attribute": "pbdf.chipsoft.bsn.prefix"
+  },
+  {
+    "attribute": "pbdf.chipsoft.bsn.familyname"
+  },
+  {
+    "attribute": "pbdf.chipsoft.bsn.dateofbirth"
+  },
+  {
+    "attribute": "pbdf.chipsoft.testbsn.bsn"
+  },
+  {
+    "attribute": "pbdf.chipsoft.testbsn.initials"
+  },
+  {
+    "attribute": "pbdf.chipsoft.testbsn.firstnames"
+  },
+  {
+    "attribute": "pbdf.chipsoft.testbsn.prefix"
+  },
+  {
+    "attribute": "pbdf.chipsoft.testbsn.familyname"
+  },
+  {
+    "attribute": "pbdf.chipsoft.testbsn.dateofbirth"
+  },
+  {
+    "attribute": "pbdf.surf.surfdrive.eppn"
+  },
+  {
+    "attribute": "pbdf.surf.surfdrive.emailadres"
+  },
+  {
+    "attribute": "pbdf.surf.surfdrive.displayname"
+  },
+  {
+    "attribute": "pbdf.surf.secureid.secureid"
+  },
+  {
+    "attribute": "pbdf.surf.secureid.environment"
+  },
+  {
+    "attribute": "pbdf.PubHubs.pubhubsaccount.email"
+  },
+  {
+    "attribute": "pbdf.PubHubs.pubhubsaccount.mobilenumber"
+  },
+  {
+    "attribute": "pbdf.PubHubs.pubhubsaccount.registrationdate"
+  },
+  {
+    "attribute": "pbdf.sidn-pbdf.irma.pseudonym"
+  },
+  {
+    "attribute": "pbdf.sidn-pbdf.uniqueid.uniqueid"
+  },
+  {
+    "attribute": "pbdf.sidn-pbdf.uniqueid.organization"
+  },
+  {
+    "attribute": "pbdf.sidn-pbdf.mobilenumber.mobilenumber"
+  },
+  {
+    "attribute": "pbdf.sidn-pbdf.email.email"
+  },
+  {
+    "attribute": "pbdf.sidn-pbdf.email.domain"
+  },
+  {
+    "attribute": "pbdf.bzkpilot.address.street"
+  },
+  {
+    "attribute": "pbdf.bzkpilot.address.houseNumber"
+  },
+  {
+    "attribute": "pbdf.bzkpilot.address.zipcode"
+  },
+  {
+    "attribute": "pbdf.bzkpilot.address.city"
+  },
+  {
+    "attribute": "pbdf.bzkpilot.address.municipality"
+  },
+  {
+    "attribute": "pbdf.bzkpilot.personalData.fullname"
+  },
+  {
+    "attribute": "pbdf.bzkpilot.personalData.initials"
+  },
+  {
+    "attribute": "pbdf.bzkpilot.personalData.firstnames"
+  },
+  {
+    "attribute": "pbdf.bzkpilot.personalData.prefix"
+  },
+  {
+    "attribute": "pbdf.bzkpilot.personalData.familyname"
+  },
+  {
+    "attribute": "pbdf.bzkpilot.personalData.gender"
+  },
+  {
+    "attribute": "pbdf.bzkpilot.personalData.dateofbirth"
+  },
+  {
+    "attribute": "pbdf.bzkpilot.personalData.over12"
+  },
+  {
+    "attribute": "pbdf.bzkpilot.personalData.over16"
+  },
+  {
+    "attribute": "pbdf.bzkpilot.personalData.over18"
+  },
+  {
+    "attribute": "pbdf.bzkpilot.personalData.over21"
+  },
+  {
+    "attribute": "pbdf.bzkpilot.personalData.over65"
+  },
+  {
+    "attribute": "pbdf.bzkpilot.personalData.nationality"
+  },
+  {
+    "attribute": "pbdf.bzkpilot.personalData.countryofbirth"
+  },
+  {
+    "attribute": "pbdf.bzkpilot.personalData.bsn"
+  },
+  {
+    "attribute": "pbdf.bzkpilot.personalData.photo"
+  },
+  {
+    "attribute": "pbdf.cis.digitalInsurancePassport.initials"
+  },
+  {
+    "attribute": "pbdf.cis.digitalInsurancePassport.prefix"
+  },
+  {
+    "attribute": "pbdf.cis.digitalInsurancePassport.surname"
+  },
+  {
+    "attribute": "pbdf.cis.digitalInsurancePassport.gender"
+  },
+  {
+    "attribute": "pbdf.cis.digitalInsurancePassport.dateofbirth"
+  },
+  {
+    "attribute": "pbdf.cis.digitalInsurancePassport.countryofbirth"
+  },
+  {
+    "attribute": "pbdf.cis.digitalInsurancePassport.legalInsuranceChecks"
+  },
+  {
+    "attribute": "pbdf.cis.digitalInsurancePassport.assuranceLevel"
+  },
+  {
+    "attribute": "pbdf.gebiedonline.useridentification.logincode"
+  },
+  {
+    "attribute": "pbdf.gebiedonline.livingarea.zipcode"
+  },
+  {
+    "attribute": "pbdf.gebiedonline.livingarea.district"
+  },
+  {
+    "attribute": "pbdf.gebiedonline.livingarea.city"
+  },
+  {
+    "attribute": "pbdf.gebiedonline.workingarea.zipcode"
+  },
+  {
+    "attribute": "pbdf.gebiedonline.workingarea.district"
+  },
+  {
+    "attribute": "pbdf.gebiedonline.workingarea.city"
+  },
+  {
+    "attribute": "pbdf.pbdf.irmatube.type"
+  },
+  {
+    "attribute": "pbdf.pbdf.irmatube.id"
+  },
+  {
+    "attribute": "pbdf.pbdf.irmatube.fullname"
+  },
+  {
+    "attribute": "pbdf.pbdf.mijnirma.email"
+  },
+  {
+    "attribute": "pbdf.pbdf.diploma.firstname"
+  },
+  {
+    "attribute": "pbdf.pbdf.diploma.prefix"
+  },
+  {
+    "attribute": "pbdf.pbdf.diploma.familyname"
+  },
+  {
+    "attribute": "pbdf.pbdf.diploma.dateofbirth"
+  },
+  {
+    "attribute": "pbdf.pbdf.diploma.gender"
+  },
+  {
+    "attribute": "pbdf.pbdf.diploma.education"
+  },
+  {
+    "attribute": "pbdf.pbdf.diploma.degree"
+  },
+  {
+    "attribute": "pbdf.pbdf.diploma.profile"
+  },
+  {
+    "attribute": "pbdf.pbdf.diploma.achieved"
+  },
+  {
+    "attribute": "pbdf.pbdf.diploma.institute"
+  },
+  {
+    "attribute": "pbdf.pbdf.diploma.city"
+  },
+  {
+    "attribute": "pbdf.pbdf.surfnet-2.institute"
+  },
+  {
+    "attribute": "pbdf.pbdf.surfnet-2.type"
+  },
+  {
+    "attribute": "pbdf.pbdf.surfnet-2.id"
+  },
+  {
+    "attribute": "pbdf.pbdf.surfnet-2.fullid"
+  },
+  {
+    "attribute": "pbdf.pbdf.surfnet-2.fullname"
+  },
+  {
+    "attribute": "pbdf.pbdf.surfnet-2.firstname"
+  },
+  {
+    "attribute": "pbdf.pbdf.surfnet-2.familyname"
+  },
+  {
+    "attribute": "pbdf.pbdf.surfnet-2.email"
+  },
+  {
+    "attribute": "pbdf.pbdf.twitter.username"
+  },
+  {
+    "attribute": "pbdf.pbdf.twitter.fullname"
+  },
+  {
+    "attribute": "pbdf.pbdf.twitter.email"
+  },
+  {
+    "attribute": "pbdf.pbdf.twitter.profileurl"
+  },
+  {
+    "attribute": "pbdf.pbdf.surfnet.institute"
+  },
+  {
+    "attribute": "pbdf.pbdf.surfnet.type"
+  },
+  {
+    "attribute": "pbdf.pbdf.surfnet.id"
+  },
+  {
+    "attribute": "pbdf.pbdf.surfnet.fullname"
+  },
+  {
+    "attribute": "pbdf.pbdf.surfnet.firstname"
+  },
+  {
+    "attribute": "pbdf.pbdf.surfnet.familyname"
+  },
+  {
+    "attribute": "pbdf.pbdf.surfnet.email"
+  },
+  {
+    "attribute": "pbdf.pbdf.ideal.fullname"
+  },
+  {
+    "attribute": "pbdf.pbdf.ideal.iban"
+  },
+  {
+    "attribute": "pbdf.pbdf.ideal.bic"
+  },
+  {
+    "attribute": "pbdf.pbdf.linkedin.fullname"
+  },
+  {
+    "attribute": "pbdf.pbdf.linkedin.firstname"
+  },
+  {
+    "attribute": "pbdf.pbdf.linkedin.familyname"
+  },
+  {
+    "attribute": "pbdf.pbdf.linkedin.email"
+  },
+  {
+    "attribute": "pbdf.pbdf.linkedin.profileurl"
+  },
+  {
+    "attribute": "pbdf.pbdf.big.bignumber"
+  },
+  {
+    "attribute": "pbdf.pbdf.big.startdate"
+  },
+  {
+    "attribute": "pbdf.pbdf.big.profession"
+  },
+  {
+    "attribute": "pbdf.pbdf.big.specialism"
+  },
+  {
+    "attribute": "pbdf.pbdf.facebook.fullname"
+  },
+  {
+    "attribute": "pbdf.pbdf.facebook.firstname"
+  },
+  {
+    "attribute": "pbdf.pbdf.facebook.familyname"
+  },
+  {
+    "attribute": "pbdf.pbdf.facebook.email"
+  },
+  {
+    "attribute": "pbdf.pbdf.facebook.dateofbirth"
+  },
+  {
+    "attribute": "pbdf.pbdf.mobilenumber.mobilenumber"
+  },
+  {
+    "attribute": "pbdf.pbdf.ageLimits.over12"
+  },
+  {
+    "attribute": "pbdf.pbdf.ageLimits.over16"
+  },
+  {
+    "attribute": "pbdf.pbdf.ageLimits.over18"
+  },
+  {
+    "attribute": "pbdf.pbdf.ageLimits.over21"
+  },
+  {
+    "attribute": "pbdf.pbdf.ageLimits.over65"
+  },
+  {
+    "attribute": "pbdf.pbdf.idin.initials"
+  },
+  {
+    "attribute": "pbdf.pbdf.idin.familyname"
+  },
+  {
+    "attribute": "pbdf.pbdf.idin.dateofbirth"
+  },
+  {
+    "attribute": "pbdf.pbdf.idin.gender"
+  },
+  {
+    "attribute": "pbdf.pbdf.idin.address"
+  },
+  {
+    "attribute": "pbdf.pbdf.idin.zipcode"
+  },
+  {
+    "attribute": "pbdf.pbdf.idin.city"
+  },
+  {
+    "attribute": "pbdf.pbdf.idin.country"
+  },
+  {
+    "attribute": "pbdf.pbdf.idin.over12"
+  },
+  {
+    "attribute": "pbdf.pbdf.idin.over16"
+  },
+  {
+    "attribute": "pbdf.pbdf.idin.over18"
+  },
+  {
+    "attribute": "pbdf.pbdf.idin.over21"
+  },
+  {
+    "attribute": "pbdf.pbdf.idin.over65"
+  },
+  {
+    "attribute": "pbdf.pbdf.email.email"
+  },
+  {
+    "attribute": "pbdf.pbdf.email.domain"
+  },
+  {
+    "attribute": "pbdf.gemeente.address.street"
+  },
+  {
+    "attribute": "pbdf.gemeente.address.houseNumber"
+  },
+  {
+    "attribute": "pbdf.gemeente.address.zipcode"
+  },
+  {
+    "attribute": "pbdf.gemeente.address.municipality"
+  },
+  {
+    "attribute": "pbdf.gemeente.address.city"
+  },
+  {
+    "attribute": "pbdf.gemeente.personalData.initials"
+  },
+  {
+    "attribute": "pbdf.gemeente.personalData.firstnames"
+  },
+  {
+    "attribute": "pbdf.gemeente.personalData.prefix"
+  },
+  {
+    "attribute": "pbdf.gemeente.personalData.familyname"
+  },
+  {
+    "attribute": "pbdf.gemeente.personalData.fullname"
+  },
+  {
+    "attribute": "pbdf.gemeente.personalData.gender"
+  },
+  {
+    "attribute": "pbdf.gemeente.personalData.nationality"
+  },
+  {
+    "attribute": "pbdf.gemeente.personalData.surname"
+  },
+  {
+    "attribute": "pbdf.gemeente.personalData.dateofbirth"
+  },
+  {
+    "attribute": "pbdf.gemeente.personalData.cityofbirth"
+  },
+  {
+    "attribute": "pbdf.gemeente.personalData.countryofbirth"
+  },
+  {
+    "attribute": "pbdf.gemeente.personalData.over12"
+  },
+  {
+    "attribute": "pbdf.gemeente.personalData.over16"
+  },
+  {
+    "attribute": "pbdf.gemeente.personalData.over18"
+  },
+  {
+    "attribute": "pbdf.gemeente.personalData.over21"
+  },
+  {
+    "attribute": "pbdf.gemeente.personalData.over65"
+  },
+  {
+    "attribute": "pbdf.gemeente.personalData.bsn"
+  },
+  {
+    "attribute": "pbdf.gemeente.personalData.digidlevel"
+  },
+  {
+    "attribute": "pbdf.signicat.kvkTradeRegister.kvkNumber"
+  },
+  {
+    "attribute": "pbdf.signicat.kvkTradeRegister.rsin"
+  },
+  {
+    "attribute": "pbdf.signicat.kvkTradeRegister.name"
+  },
+  {
+    "attribute": "pbdf.signicat.kvkTradeRegister.tradeNames"
+  },
+  {
+    "attribute": "pbdf.signicat.kvkTradeRegister.typeOwner"
+  },
+  {
+    "attribute": "pbdf.signicat.kvkTradeRegister.legalEntity"
+  },
+  {
+    "attribute": "pbdf.signicat.kvkTradeRegister.address"
+  },
+  {
+    "attribute": "pbdf.signicat.kvkTradeRegister.emailAddress"
+  },
+  {
+    "attribute": "pbdf.signicat.kvkTradeRegister.phone"
+  },
+  {
+    "attribute": "pbdf.signicat.kvkTradeRegister.sbiActivity"
+  },
+  {
+    "attribute": "pbdf.signicat.kvkTradeRegister.registrationStart"
+  },
+  {
+    "attribute": "pbdf.signicat.kvkTradeRegister.dateDeregistration"
+  },
+  {
+    "attribute": "pbdf.signicat.kvkTradeRegister.registrationEnd"
+  },
+  {
+    "attribute": "pbdf.signicat.kvkTradeRegister.specialLegalSituation"
+  },
+  {
+    "attribute": "pbdf.signicat.kvkTradeRegister.restrictionInLegalAction"
+  },
+  {
+    "attribute": "pbdf.signicat.kvkTradeRegister.foreignLegalStatus"
+  },
+  {
+    "attribute": "pbdf.signicat.kvkTradeRegister.lastName"
+  },
+  {
+    "attribute": "pbdf.signicat.kvkTradeRegister.prefix"
+  },
+  {
+    "attribute": "pbdf.signicat.kvkTradeRegister.firstNames"
+  },
+  {
+    "attribute": "pbdf.signicat.kvkTradeRegister.dateOfBirth"
+  },
+  {
+    "attribute": "pbdf.signicat.kvkTradeRegister.dateOfDeath"
+  },
+  {
+    "attribute": "pbdf.signicat.kvkTradeRegister.fullname"
+  },
+  {
+    "attribute": "pbdf.signicat.kvkTradeRegister.typeOfficial"
+  },
+  {
+    "attribute": "pbdf.signicat.kvkTradeRegister.position"
+  },
+  {
+    "attribute": "pbdf.signicat.kvkTradeRegister.jobTitle"
+  },
+  {
+    "attribute": "pbdf.signicat.kvkTradeRegister.kindOfAuthorization"
+  },
+  {
+    "attribute": "pbdf.signicat.kvkTradeRegister.restrictionInEurosAuthorization"
+  },
+  {
+    "attribute": "pbdf.signicat.kvkTradeRegister.otherRestrictionAuthorization"
+  },
+  {
+    "attribute": "pbdf.signicat.kvkTradeRegister.isAuthorizedWithOtherPersons"
+  },
+  {
+    "attribute": "pbdf.signicat.kvkTradeRegister.typePowerOfAttorney"
+  },
+  {
+    "attribute": "pbdf.signicat.kvkTradeRegister.restrictioninMoneyPowerOfAttorney"
+  },
+  {
+    "attribute": "pbdf.signicat.kvkTradeRegister.restrictionOnActPowerOfAttorney"
+  },
+  {
+    "attribute": "pbdf.signicat.kvkTradeRegister.hasOtherPowerOfAttorney"
+  },
+  {
+    "attribute": "pbdf.signicat.kvkTradeRegister.descriptionOtherPowerOfAttorney"
+  },
+  {
+    "attribute": "pbdf.signicat.kvkTradeRegister.permissionToChangeTradeRegister"
+  },
+  {
+    "attribute": "pbdf.signicat.kvkTradeRegister.specialLegalSituationOfficial"
+  },
+  {
+    "attribute": "pbdf.signicat.kvkTradeRegister.restrictionInLegalActionOfficial"
+  },
+  {
+    "attribute": "pbdf.signicat.kvkTradeRegister.suspensionStart"
+  },
+  {
+    "attribute": "pbdf.signicat.kvkTradeRegister.suspensionEnd"
+  },
+  {
+    "attribute": "pbdf.signicat.kvkTradeRegister.emancipationOfMinor"
+  },
+  {
+    "attribute": "pbdf.signicat.kvkTradeRegister.hasRestriction"
+  },
+  {
+    "attribute": "pbdf.signicat.kvkTradeRegister.isAuthorized"
+  },
+  {
+    "attribute": "pbdf.signicat.kvkTradeRegister.reason"
+  },
+  {
+    "attribute": "pbdf.signicat.kvkTradeRegister.referenceMoment"
+  },
+  {
+    "attribute": "pbdf.nijmegen.address.street"
+  },
+  {
+    "attribute": "pbdf.nijmegen.address.houseNumber"
+  },
+  {
+    "attribute": "pbdf.nijmegen.address.zipcode"
+  },
+  {
+    "attribute": "pbdf.nijmegen.address.municipality"
+  },
+  {
+    "attribute": "pbdf.nijmegen.address.city"
+  },
+  {
+    "attribute": "pbdf.nijmegen.bsn.bsn"
+  },
+  {
+    "attribute": "pbdf.nijmegen.personalData.initials"
+  },
+  {
+    "attribute": "pbdf.nijmegen.personalData.firstnames"
+  },
+  {
+    "attribute": "pbdf.nijmegen.personalData.prefix"
+  },
+  {
+    "attribute": "pbdf.nijmegen.personalData.familyname"
+  },
+  {
+    "attribute": "pbdf.nijmegen.personalData.surname"
+  },
+  {
+    "attribute": "pbdf.nijmegen.personalData.fullname"
+  },
+  {
+    "attribute": "pbdf.nijmegen.personalData.dateofbirth"
+  },
+  {
+    "attribute": "pbdf.nijmegen.personalData.gender"
+  },
+  {
+    "attribute": "pbdf.nijmegen.personalData.nationality"
+  },
+  {
+    "attribute": "pbdf.nijmegen.travelDocument.kind"
+  },
+  {
+    "attribute": "pbdf.nijmegen.travelDocument.number"
+  },
+  {
+    "attribute": "pbdf.nijmegen.travelDocument.issuancedate"
+  },
+  {
+    "attribute": "pbdf.nijmegen.travelDocument.expirydate"
+  },
+  {
+    "attribute": "pbdf.nijmegen.travelDocument.documentissuer"
+  },
+  {
+    "attribute": "pbdf.nijmegen.ageLimits.over12"
+  },
+  {
+    "attribute": "pbdf.nijmegen.ageLimits.over16"
+  },
+  {
+    "attribute": "pbdf.nijmegen.ageLimits.over18"
+  },
+  {
+    "attribute": "pbdf.nijmegen.ageLimits.over21"
+  },
+  {
+    "attribute": "pbdf.nijmegen.ageLimits.over65"
+  }
+]

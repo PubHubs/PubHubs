@@ -1,35 +1,35 @@
 <template>
-    <img alt="PubHubs" :src="logo" />
+	<img alt="PubHubs" :src="logo" />
 </template>
 
 <script setup lang="ts">
-    import {computed} from 'vue'
-    import { useSettings } from '@/store/settings'
+	import { computed } from 'vue';
+	import { useSettings } from '@/store/store';
 
-    import logoLight from '@/assets/pubhubs-logo.svg';
-    import logoDark from '@/assets/pubhubs-logo-dark.svg';
+	import logoLight from '@/assets/pubhubs-logo.svg';
+	import logoDark from '@/assets/pubhubs-logo-dark.svg';
 
-    const settings = useSettings();
+	const settings = useSettings();
 
-    const props = defineProps({
-        theme: {
-            type: String,
-            default: '',
-            validator(value:string) {
-                return ['light','dark',''].includes(value);
-            }
-        },
-    });
+	const props = defineProps({
+		theme: {
+			type: String,
+			default: '',
+			validator(value: string) {
+				return ['light', 'dark', ''].includes(value);
+			},
+		},
+	});
 
-    const logo = computed(()=>{
-        let theme = props.theme;
-        if (theme=='') {
-            theme = settings.getActiveTheme;
-        }
+	const logo = computed(() => {
+		let theme = props.theme;
+		if (theme == '') {
+			theme = settings.getActiveTheme;
+		}
 
-        if (theme=='dark') {
-            return logoDark;
-        }
-        return logoLight;
-    });
+		if (theme == 'dark') {
+			return logoDark;
+		}
+		return logoLight;
+	});
 </script>

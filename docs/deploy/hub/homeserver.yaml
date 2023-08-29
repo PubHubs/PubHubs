@@ -5,6 +5,7 @@
 
 ## WARNING: modules SHOULD NOT BE CHANGED, except to customize with your client URL ##
 modules:
+  - module: conf.modules.pubhubs.DBMigration
   - module: conf.modules.pseudonyms.Pseudonym
   - module: conf.modules.pubhubs.YiviRoomJoiner
     config:
@@ -20,7 +21,7 @@ modules:
 # Domain of the server.
 # More information can be found in https://matrix-org.github.io/synapse/develop/usage/configuration/config_documentation.html#server_name
 # THIS SHOULD BE CHANGED
-server_name: "testhub.matrix.host"
+server_name: "<testhub.matrix.host>"
 
 # This is the public url for the hub where client gets connected.
 # THIS SHOULD BE CHANGED
@@ -67,7 +68,15 @@ oidc_providers:
     skip_verification: false
     user_mapping_provider:
       module: conf.modules.pseudonyms.OidcMappingProvider
-      config:
+      config:  {
+        libpubhubspath: /usr/lib/libpubhubs.so
+      }
+
+# Whitelist no servers for federation. As it's currently a bad match for PubHubs ideas around identity.
+federation_domain_whitelist: []
+
+# Do not use default, we have no federation and do not need signing keys or a connection to matrix.org at this stage.
+trusted_key_servers: []
 
 # Skips having to check the redirection with user interaction.
 sso:
