@@ -7,6 +7,7 @@ Before merging to stable, please check the following.
       - [ ] Posting a message to a room, and creating a room.
       - [ ] Registering a *new* user, with fresh Yivi credentials.
       - [ ] Posting a message to a room, and creating a room with this new user.
+      - [ ] Sending a private message
       - [ ] Secured room login
       - [ ] Secured room icon changes to shield
       - [ ] Single profile attributes batch should be displayed for secured rooms with profile attribute set to true
@@ -27,6 +28,7 @@ Before merging to stable, please check the following.
      - [ ] Posting an message, and creating a room.
      - [ ] Registering a *new* user, with a fresh email address (if possible).
      - [ ] Posting a message to a room, and creating a room.
+     - [ ] Sending a private message
      - [ ] Logging out and in with this new user.
      - [ ] Secured room login
      - [ ] Secured room icon changes to shield
