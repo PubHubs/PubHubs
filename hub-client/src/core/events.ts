@@ -2,14 +2,13 @@ import { SyncState } from 'matrix-js-sdk/lib/sync';
 import { MatrixClient, MatrixEvent, ClientEvent, Room as MatrixRoom, RoomEvent, RoomMemberEvent, RoomMember } from 'matrix-js-sdk';
 
 import { useSettings, User, useUser, useRooms } from '@/store/store';
+import { usePubHubs } from '@/core/pubhubsStore';
 
 class Events {
 	private client!: MatrixClient;
-	private joinPH!: Function;
 
-	startWithClient(client: MatrixClient, joinPH: Function) {
+	startWithClient(client: MatrixClient) {
 		this.client = client;
-		this.joinPH = joinPH;
 	}
 
 	initEvents() {
@@ -17,14 +16,13 @@ class Events {
 			const self = this;
 			this.client.on(ClientEvent.Sync, (state: SyncState) => {
 				if (state == 'PREPARED') {
-					// this.client.on("event", (event) => {
-					//     console.debug('== EVENT', event.getType());
-					// })
+					// this.client.on('event' as any, (event: any) => {
+					// 	console.debug('== EVENT', event.getType());
+					// });
 					this.client.on(RoomEvent.Name, self.eventRoomName);
 					this.client.on(RoomEvent.Timeline, self.eventRoomTimeline);
 					this.client.on(RoomMemberEvent.Name, self.eventRoomMemberName);
-					this.client.on(RoomMemberEvent.Membership, self.eventRoomMemberMembership(this.client, this.joinPH));
-
+					this.client.on(RoomMemberEvent.Membership, self.eventRoomMemberMembership(this.client));
 					resolve(true);
 				}
 			});
@@ -74,19 +72,20 @@ class Events {
 		}
 	}
 
-	eventRoomMemberMembership(client: MatrixClient, joinPH: Function) {
+	eventRoomMemberMembership(client: MatrixClient) {
 		return function eventRoomMemberMembershipInner(event: MatrixEvent, member: RoomMember) {
-			const rooms = useRooms();
-			console.debug('RoomMember.membership', member.membership, event.getRoomId());
-			if (member.membership == 'leave') {
-				const roomId = event.getRoomId();
-				if (roomId != undefined) {
-					rooms.rooms[roomId].hidden = true;
-				}
-			} else if (member.membership == 'invite') {
-				const me = client.getUserId();
-				if (member.userId == me) {
-					joinPH(member.roomId).then(function () {
+			const me = client.getUserId();
+			console.debug('RoomMember.membership', member.membership, member.userId, me, event.getRoomId());
+			if (me == member.userId) {
+				const rooms = useRooms();
+				if (member.membership == 'leave') {
+					const roomId = event.getRoomId();
+					if (roomId != undefined) {
+						rooms.rooms[roomId].hidden = true;
+					}
+				} else if (member.membership == 'invite') {
+					const pubhubs = usePubHubs();
+					pubhubs.joinRoom(member.roomId).then(function () {
 						console.log('joined DM');
 					});
 				}

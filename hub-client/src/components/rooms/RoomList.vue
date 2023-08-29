@@ -6,7 +6,7 @@
 				<router-link :to="{ name: 'room', params: { id: room.roomId } }" v-slot="{ isActive }">
 					<Badge v-if="room.unreadMessages > 0" class="-ml-1 -mt-1">{{ room.unreadMessages }}</Badge>
 					<MenuItem :roomInfo="room" icon="room" :active="isActive">
-						<PrivateRoomMembersName v-if="room.isPrivateRoom()" :members="room.getMembersDisplaynames()"></PrivateRoomMembersName>
+						<PrivateRoomName v-if="room.isPrivateRoom()" :members="room.getPrivateRoomNameMembers()"></PrivateRoomName>
 						<span v-else>
 							{{ room.name }}
 						</span>
@@ -19,11 +19,13 @@
 
 <script setup lang="ts">
 	import { useI18n } from 'vue-i18n';
+	import { useRouter } from 'vue-router';
 	import { Room, useRooms, useDialog } from '@/store/store';
 	import { usePubHubs } from '@/core/pubhubsStore';
 	import { PubHubsRoomType } from '@/store/rooms';
 
 	const { t } = useI18n();
+	const router = useRouter();
 	const rooms = useRooms();
 	const pubhubs = usePubHubs();
 
@@ -50,9 +52,13 @@
 	}
 
 	async function leaveRoom(roomId: string) {
-		const dialog = useDialog();
-		if (await dialog.okcancel(t('rooms.leave_sure'))) {
-			pubhubs.leaveRoom(roomId);
+		const room = rooms.room(roomId);
+		if (room) {
+			const dialog = useDialog();
+			if (await dialog.okcancel(t('rooms.leave_sure'))) {
+				await router.replace({ name: 'home' });
+				await pubhubs.leaveRoom(roomId);
+			}
 		}
 	}
 </script>
