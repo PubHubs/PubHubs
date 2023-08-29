@@ -6,7 +6,7 @@
 				<div class="pl-3">
 					<H1 class="m-0 text-blue font-bold">{{ $t('rooms.title', [roomName()]) }}</H1>
 					<p class="text-sm leading-4">
-						<PrivateRoomMembersName v-if="currentRoom.isPrivateRoom()" :members="members"></PrivateRoomMembersName>
+						<PrivateRoomName v-if="currentRoom.isPrivateRoom()" :members="members"></PrivateRoomName>
 						<span v-else>
 							{{ getTopic() }}
 						</span>
@@ -40,16 +40,20 @@
 	const members = ref([] as Array<String>);
 
 	onMounted(() => {
-		rooms.changeRoom(route.params.id as string);
-		currentRoom.value = rooms.currentRoom as Room;
-		members.value = currentRoom.value.getMembersDisplaynames();
+		update();
 	});
 
 	watch(route, () => {
+		update();
+	});
+
+	function update() {
 		rooms.changeRoom(route.params.id as string);
 		currentRoom.value = rooms.currentRoom as Room;
-		members.value = currentRoom.value.getMembersDisplaynames();
-	});
+		if (currentRoom.value) {
+			members.value = currentRoom.value.getPrivateRoomNameMembers();
+		}
+	}
 
 	function roomName() {
 		if (currentRoom.value.isPrivateRoom()) {

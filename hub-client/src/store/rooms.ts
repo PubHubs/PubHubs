@@ -8,7 +8,7 @@
  */
 
 import { defineStore } from 'pinia';
-import { Room as MatrixRoom, IPublicRoomsChunkRoom as PublicRoom, MatrixClient } from 'matrix-js-sdk';
+import { Room as MatrixRoom, IPublicRoomsChunkRoom as PublicRoom, MatrixClient, RoomMember } from 'matrix-js-sdk';
 import { Message, MessageType, useMessageBox } from './messagebox';
 import { useRouter } from 'vue-router';
 import { api } from '@/core/api';
@@ -92,10 +92,53 @@ class Room extends MatrixRoom {
 		return this.getType() == PubHubsRoomType.PH_MESSAGES_DM;
 	}
 
-	getMembersDisplaynames(): Array<String> {
+	getPrivateRoomNameMembers(): Array<RoomMember> {
+		const me = this.client.getUserId();
 		const members = this.getMembers();
-		const names = members.map((member) => member.rawDisplayName);
-		return names;
+		const foundMe = members.findIndex((item) => item.userId == me);
+		if (foundMe >= 0) {
+			members.splice(foundMe, 1);
+		}
+		return members;
+	}
+
+	getMembersIds(): Array<string> {
+		let roomMemberIds = [] as Array<string>;
+		// const roomMembers = this.getMembers();
+		const roomMembers = this.getMembersWithMembership('join');
+		roomMemberIds = roomMembers.map((item) => item.userId);
+		roomMemberIds.sort();
+		return roomMemberIds;
+	}
+
+	getMembersIdsFromName(): Array<string> {
+		const roomMemberIds = this.name.split(',');
+		roomMemberIds.sort();
+		return roomMemberIds;
+	}
+
+	getOtherMembersIds(user_id: string): Array<string> {
+		const roomMemberIds = this.getMembersIds();
+		const foundIndex = roomMemberIds.findIndex((member_id) => member_id == user_id);
+		if (foundIndex >= 0) {
+			roomMemberIds.splice(foundIndex, 1);
+			return roomMemberIds;
+		}
+		return roomMemberIds;
+	}
+
+	hasExactMembersInName(memberIds: Array<string>): boolean {
+		const roomMemberIds = this.getMembersIdsFromName();
+		memberIds.sort();
+		return JSON.stringify(memberIds) === JSON.stringify(roomMemberIds);
+	}
+
+	notInvitedMembersIdsOfPrivateRoom(): Array<string> {
+		const currentMemberIds = this.getMembersIds();
+		const nameMemberIds = this.getMembersIdsFromName();
+		const notInvitedMembersIds = nameMemberIds.filter((item) => currentMemberIds.indexOf(item) < 0);
+		notInvitedMembersIds.sort();
+		return notInvitedMembersIds;
 	}
 }
 
@@ -120,6 +163,13 @@ const useRooms = defineStore('rooms', {
 			const rooms: Array<Room> = Object.assign([], this.roomsArray);
 			rooms.sort((a, b) => (a.name > b.name ? 1 : -1));
 			return rooms;
+		},
+
+		privateRooms(): Array<Room> {
+			const rooms: Array<Room> = Object.assign([], this.roomsArray);
+			const privateRooms = rooms.filter((item) => item.getType() == PubHubsRoomType.PH_MESSAGES_DM);
+			// return privateRooms.map((item) => Object.assign({ _type: item.getType(), _members: item.getMembersWithMembership('join') }, item));
+			return privateRooms;
 		},
 
 		hasRooms() {
@@ -171,6 +221,18 @@ const useRooms = defineStore('rooms', {
 				}
 				return true;
 			});
+		},
+
+		privateRoomWithMembersExist() {
+			return (memberIds: Array<string>): boolean | string => {
+				for (let index = 0; index < this.privateRooms.length; index++) {
+					const room = this.privateRooms[index];
+					if (room.hasExactMembersInName(memberIds)) {
+						return room.roomId;
+					}
+				}
+				return false;
+			};
 		},
 
 		hasSecuredRooms(state): boolean {
@@ -268,7 +330,7 @@ const useRooms = defineStore('rooms', {
 		},
 
 		async removeSecuredRoom(room: SecuredRoom) {
-			const deleted_id = await api.apiDELETE(api.apiURLS.securedRooms + "?room_id=" + room.room_id );
+			const deleted_id = await api.apiDELETE(api.apiURLS.securedRooms + '?room_id=' + room.room_id);
 			const sidx = this.securedRooms.findIndex((room) => room.room_id == deleted_id);
 			this.securedRooms.splice(sidx, 1);
 			const pidx = this.publicRooms.findIndex((room) => room.room_id == deleted_id);

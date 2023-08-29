@@ -46,6 +46,7 @@ const en = {
 		search: 'search',
 	},
 	rooms: {
+		me: 'Me',
 		leave_sure: 'Do you really want to leave this room?',
 		new_message: 'Type your message here',
 		private_room: 'Private room',

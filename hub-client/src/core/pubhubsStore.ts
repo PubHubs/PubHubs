@@ -5,7 +5,7 @@ import { User as MatrixUser, MatrixClient, EventTimeline } from 'matrix-js-sdk';
 
 import { Authentication } from '@/core/authentication';
 import { Events } from '@/core/events';
-import { useSettings, User, useUser, useRooms, PublicRoom } from '@/store/store';
+import { useSettings, User, useUser, useRooms } from '@/store/store';
 
 import { api } from '@/core/api';
 
@@ -36,7 +36,7 @@ const usePubHubs = defineStore('pubhubs', {
 				const matrixClient = await this.Auth.login();
 				this.client = matrixClient as MatrixClient;
 				const events = new Events();
-				events.startWithClient(this.client as MatrixClient, this.joinRoom);
+				events.startWithClient(this.client as MatrixClient);
 				await events.initEvents();
 				this.updateRooms();
 				const user = useUser();
@@ -105,25 +105,38 @@ const usePubHubs = defineStore('pubhubs', {
 			});
 		},
 
-		async joinPublicRoom(room: PublicRoom) {
-			await this.client.joinRoom(room.room_id);
+		async joinRoom(room_id: string) {
+			await this.client.joinRoom(room_id);
 			this.updateRooms();
 		},
 
-		async joinRoom(roomId: string) {
-				await this.client.joinRoom(roomId);
-				this.updateRooms();
-			},
+		async invite(room_id: string, user_id: string, reason = undefined) {
+			await this.client.invite(room_id, user_id, reason);
+		},
 
-		async newRoom(options: object) {
+		async createRoom(options: object) {
 			await this.client.createRoom(options);
 		},
 
-		leaveRoom(roomId: string) {
-			this.client.leave(roomId);
+		async leaveRoom(roomId: string) {
+			await this.client.leave(roomId);
 		},
 
 		addMessage(roomId: string, text: string) {
+			const rooms = useRooms();
+			const room = rooms.room(roomId);
+			if (room) {
+				if (room.isPrivateRoom()) {
+					// (re)invite other members
+					const notInvitedMembersIds = room.notInvitedMembersIdsOfPrivateRoom();
+					if (notInvitedMembersIds.length > 0) {
+						for (let index = 0; index < notInvitedMembersIds.length; index++) {
+							const memberId = notInvitedMembersIds[index];
+							this.invite(roomId, memberId);
+						}
+					}
+				}
+			}
 			const content = {
 				body: text,
 				msgtype: 'm.text',

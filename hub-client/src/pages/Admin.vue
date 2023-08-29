@@ -112,7 +112,7 @@
 
 		// Normal room
 		if (!room.secured) {
-			await pubhubs.newRoom({
+			await pubhubs.createRoom({
 				name: room.room_name,
 				visibility: 'public',
 			});
