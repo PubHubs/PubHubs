@@ -48,6 +48,7 @@ Default settings are in the `default.yaml`; for development these initial settin
 - [Node Package Manager](https://docs.npmjs.com/downloading-and-installing-node-js-and-npm)
 - [Docker](https://www.docker.com/)
 - [Sass](https://sass-lang.com/install)
+- [OpenSSL](https://www.openssl.org/)
 
 Several libraries for the client, most important:
 
