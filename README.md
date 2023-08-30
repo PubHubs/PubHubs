@@ -144,3 +144,24 @@ urls:
 ```
 in your configuration file (e.g. `config.yaml`.)
 
+### Testing the PubHubs components
+
+All components have some unit tests they can be run locally.
+
+### Central platform tests
+
+In `pubhubs` run `cargo test`.
+
+### Hub tests
+
+Requires python 3.10+.
+In 'pubhubs_hub' run `python -m xmlrunner discover -p '*_test.py' --output-file report.xml`. This requires installing xmlrunner with `pip install unittest-xml-reporting`.
+To use the latest dependencies for the hub locally too, use `pip install --upgrade -r requirements.txt`.
+
+### Global client tests
+
+In `global-client`  run `npm run test`. To install the dependencies locally use `npm ci` or `npm install`.
+
+### Hub client tests
+
+In `local-client`  run `npm run test`. To install the dependencies locally use `npm ci` or `npm install`.
