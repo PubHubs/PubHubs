@@ -33,6 +33,7 @@ common = [
 bin = [
 	"dep:clap",
 	"dep:anyhow",
+	"dep:thiserror",
 	"dep:url",
 	"dep:serde",
 	"dep:serde_yaml",
@@ -40,6 +41,8 @@ bin = [
 	"dep:env_logger",
 	"dep:tokio", 
 	"dep:actix-web",
+	"dep:ed25519-dalek",
+	"dep:futures-util", # used by actix already
 ]
 oldbin = [
 	"bin",
@@ -145,6 +148,7 @@ typenum = { version = "1.15", optional = true }
 
 #metrics
 futures = { version = "0.3", optional = true }
+futures-util = { version = "0.3", optional = true }
 prometheus = { version = "0.13", optional = true }
 strum_macros = { version = "0.25", optional = true }
 

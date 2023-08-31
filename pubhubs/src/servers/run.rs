@@ -8,7 +8,7 @@ use actix_web::web;
 use anyhow::Result;
 use tokio::sync::mpsc;
 
-use crate::servers::{for_all_servers, App, AppCreator, Server, ShutdownCommand};
+use crate::servers::{for_all_servers, App, AppBase, AppCreator, Server, ShutdownCommand};
 
 /// Runs the PubHubs server(s) from the given configuration.
 ///
@@ -208,8 +208,13 @@ impl<S: Server> ActixServer<S> {
             inner: actix_web::HttpServer::new(move || {
                 let app = app_creator.create(&shutdown_sender);
 
-                actix_web::App::new()
-                    .configure(|sc: &mut web::ServiceConfig| app.configure_actix_app(sc))
+                actix_web::App::new().configure(|sc: &mut web::ServiceConfig| {
+                    // first configure endpoints common to all servers
+                    AppBase::<S>::configure_actix_app(&app, sc);
+
+                    // and then server-specific endpoints
+                    app.configure_actix_app(sc);
+                })
             })
             .bind(bind_to)?
             .run(),

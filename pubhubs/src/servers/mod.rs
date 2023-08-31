@@ -11,5 +11,6 @@ pub use config::Config;
 pub(super) use macros::for_all_servers;
 pub use run::run;
 pub(super) use server::{
-    App, AppBase, AppCreator, AppCreatorBase, Server, ServerBase, ShutdownCommand, ShutdownSender,
+    App, AppBase, AppCreator, AppCreatorBase, BoxModifier, DiscoveryError, Server, ServerBase,
+    ShutdownCommand, ShutdownSender, State,
 };

@@ -1,8 +1,10 @@
 //! What's common between PubHubs servers
 use actix_web::web;
 use anyhow::Result;
+use futures_util::future::LocalBoxFuture;
 use tokio::sync::mpsc;
 
+use std::rc::Weak as WeakRc;
 use std::sync::Arc;
 
 /// Common API to the different PubHubs servers, used by the [crate::servers::run::Runner].
@@ -13,8 +15,11 @@ use std::sync::Arc;
 ///
 /// For efficiency's sake, only the [App] instances are available to each thread,
 /// and are immutable. To change the server's state, all apps must be restarted.
+///
+/// An exception to this no-shared-mutable-state mantra is the discovery or startup phase,
+/// see [State::Discovery].
 pub trait Server: Sized + 'static {
-    type AppT: App;
+    type AppT: App<Self>;
     const NAME: &'static str;
 
     /// Is moved accross threads to create the [App]s.
@@ -65,8 +70,11 @@ pub enum ShutdownCommand<S: Server> {
     ///
     /// Server restarts should be performed sparingly, and may take seconds to minutes (because
     /// actix waits for workers to shutdown gracefully.)
-    ModifyAndRestart(Box<dyn Modifier<S>>),
+    ModifyAndRestart(BoxModifier<S>),
 }
+
+/// Owned dynamically typed [Modifier].
+pub type BoxModifier<S> = Box<dyn Modifier<S>>;
 
 impl<S: Server> std::fmt::Display for ShutdownCommand<S> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> Result<(), std::fmt::Error> {
@@ -80,8 +88,29 @@ impl<S: Server> std::fmt::Display for ShutdownCommand<S> {
 /// What's common between the [actix_web::App]s used by the different PubHubs servers.
 ///
 /// Each [actix_web::App] gets access to an instance of the appropriate implementation of [App].
-pub trait App {
+///
+/// Should be cheaply cloneable, like an `Rc<SomeStruct>`.
+pub trait App<S: Server>: Clone + 'static {
+    /// Allows [App] to add server-specific endpoints.  Non-server specific endpoints are added by
+    /// [AppBase::configure_actix_app].
     fn configure_actix_app(&self, sc: &mut web::ServiceConfig);
+
+    /// Runs the discovery routine for this server.
+    ///
+    /// May panic if the [Server]'s state is not [State::Discovery].
+    fn discover(&self) -> LocalBoxFuture<'_, Result<(), DiscoveryError>>;
+
+    /// Returns the [AppBase] this [App] builds on.
+    fn base(&self) -> &AppBase<S>;
+}
+
+#[derive(thiserror::Error, Debug)]
+pub enum DiscoveryError {
+    #[error("discovery did not succeed yet")]
+    Retryable(#[source] anyhow::Error),
+
+    #[error("fatal error during discovery")]
+    Fatal(#[from] anyhow::Error),
 }
 
 /// What's internally common between PubHubs [Server]s.
@@ -94,7 +123,10 @@ impl ServerBase {
     pub fn new(config: &crate::servers::Config) -> Self {
         Self {
             config: config.clone(),
-            state: State::Discovery(Arc::new(tokio::sync::Mutex::new(false))),
+            state: State::Discovery {
+                task_lock: Arc::new(tokio::sync::Mutex::new(())),
+                shared: Arc::new(tokio::sync::RwLock::new(DiscoveryState::default())),
+            },
         }
     }
 }
@@ -165,7 +197,105 @@ impl<S: Server> AppBase<S> {
     pub fn stop_server(&self) -> bool {
         self.shutdown_server(ShutdownCommand::Exit)
     }
+
+    /// Configures common endpoints
+    pub fn configure_actix_app(app: &S::AppT, sc: &mut web::ServiceConfig) {
+        // Make an actix handler from a method on AppBase
+        macro_rules! app_method (
+            ($method_name:ident) => {
+                AppMethod::new(app, AppBase::<S>::$method_name)
+            }
+        );
+
+        sc.route(
+            "/.phc/discovery/run",
+            web::get().to(app_method!(handle_discovery_run)),
+        );
+    }
+
+    async fn handle_discovery_run(app: S::AppT) -> impl actix_web::Responder {
+        let base = app.base();
+
+        let task_lock = match base.state {
+            State::Discovery { task_lock, shared } => {
+                task_lock
+            }
+            _ => return actix_web::HttpResponse::BadRequest()
+                .reason("not in discovery state")
+                .finish(),
+        }
+
+        let lock_guard = {
+            match task_lock.try_lock() {
+                Ok(lock_guard) => lock_guard,
+                Err(_) => return actix_web::HttpResponse::ServiceUnavailable().reason("discovery already running").finish(),
+            }
+        };
+
+        let result = app.discover().await;
+
+        if result.is_err() {
+            actix_web::HttpResponse::InternalServerError().finish()
+        } else {
+            actix_web::HttpResponse::Ok().finish()
+        }
+    }
 }
+
+/// An [App] together with a method on it.  Used to pass [App]s to [actix_web::Handler]s.
+#[derive(Clone)]
+pub struct AppMethod<App, F> {
+    app: App,
+    f: F,
+}
+
+impl<App: Clone, F> AppMethod<App, F> {
+    fn new(app: &App, f: F) -> Self {
+        AppMethod {
+            app: app.clone(),
+            f,
+        }
+    }
+}
+
+/// Implements [actix_web::Handler] for an [AppMethod] with the given number of arguments.
+///
+/// Based on [actix_web]'s implementation of [actix_web::Handler] for [Fn]s.
+macro_rules! factory_tuple ({ $($param:ident)* } => {
+    impl<Func, Fut, App, $($param,)*> actix_web::Handler<($($param,)*)> for AppMethod<App, Func>
+    where
+        Func:  Fn(App, $($param),*) -> Fut + Clone + 'static,
+        Fut: core::future::Future,
+        App: Clone + 'static,
+    {
+        type Output = Fut::Output;
+        type Future = Fut;
+
+        #[inline]
+        #[allow(non_snake_case)]
+        fn call(&self, ($($param,)*): ($($param,)*)) -> Self::Future {
+            (self.f)(self.app.clone(), $($param,)*)
+        }
+    }
+});
+
+factory_tuple! {}
+factory_tuple! { A }
+factory_tuple! { A B }
+factory_tuple! { A B C }
+factory_tuple! { A B C D }
+factory_tuple! { A B C D E }
+factory_tuple! { A B C D E F }
+factory_tuple! { A B C D E F G }
+factory_tuple! { A B C D E F G H }
+factory_tuple! { A B C D E F G H I }
+factory_tuple! { A B C D E F G H I J }
+factory_tuple! { A B C D E F G H I J K }
+factory_tuple! { A B C D E F G H I J K L }
+factory_tuple! { A B C D E F G H I J K L M }
+factory_tuple! { A B C D E F G H I J K L M N }
+factory_tuple! { A B C D E F G H I J K L M N O }
+factory_tuple! { A B C D E F G H I J K L M N O P }
 
 /// State of discovery of details of the PubHubs constellation.
 ///
@@ -174,15 +304,26 @@ impl<S: Server> AppBase<S> {
 #[derive(Clone)]
 pub enum State {
     /// Waiting for information from other servers.
-    ///
-    /// The lock is taken by the task performing discovery.
-    ///
-    /// If unlocked and false, discovery has not yet started.
-    ///
-    /// If unlocked and  true, discovery is complete, but the actix server has not yet
-    /// been restarted.
-    Discovery(Arc<tokio::sync::Mutex<bool>>),
+    Discovery {
+        /// This lock is taken by the task performing discovery.
+        ///
+        /// If unlocked, either discovery has not started; or it was, but crashed; or discovery
+        /// succeeded, but the actix server has not yet restarted.
+        task_lock: Arc<tokio::sync::Mutex<()>>,
+
+        /// State shared by the discovery task.  Should only be mutated by the task holding the
+        /// `task_lock`.  Any write lock should be held only briefly.
+        shared: Arc<tokio::sync::RwLock<DiscoveryState>>,
+    },
 
     /// Server has completed discovery and is running normally.
     UpAndRunning,
+}
+
+/// Shared mutable state while the [Server] is in the [State::Discovery] phase.
+#[derive(Default)]
+pub struct DiscoveryState {
+    phc_key: Option<ed25519_dalek::VerifyingKey>,
+    transcryptor_key: Option<ed25519_dalek::VerifyingKey>,
+    as_key: Option<ed25519_dalek::VerifyingKey>,
 }

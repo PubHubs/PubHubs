@@ -2,8 +2,9 @@ use std::rc::Rc;
 
 use actix_web::web;
 use anyhow::Result;
+use futures_util::future::LocalBoxFuture;
 
-use crate::servers::{AppBase, AppCreatorBase, ServerBase, ShutdownSender};
+use crate::servers::{AppBase, AppCreatorBase, DiscoveryError, ServerBase, ShutdownSender};
 
 /// Transcryptor
 pub struct Server {
@@ -32,7 +33,7 @@ pub struct App {
     base: AppBase<Server>,
 }
 
-impl crate::servers::App for Rc<App> {
+impl crate::servers::App<Server> for Rc<App> {
     fn configure_actix_app(&self, sc: &mut web::ServiceConfig) {
         let app = self.clone();
 
@@ -59,6 +60,16 @@ impl crate::servers::App for Rc<App> {
                     }
                 }),
             );
+    }
+
+    fn discover(&self) -> LocalBoxFuture<'_, Result<(), DiscoveryError>> {
+        // TODO: implement
+
+        Box::pin(async { Ok(()) })
+    }
+
+    fn base(&self) -> &AppBase<Server> {
+        &self.base
     }
 }
 
