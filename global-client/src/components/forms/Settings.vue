@@ -1,11 +1,11 @@
 <template>
 	<div class="flex flex-col">
 		<div class="flex justify-between mb-2">
-			<label>{{ t('settings.theme') }}</label>
+			<Label>{{ t('settings.theme') }}</Label>
 			<ButtonGroup size="sm" v-model="data.theme.value" :value="data.theme.value" :options="settings.getThemeOptions(t)" @changed="updateData('theme', $event)"></ButtonGroup>
 		</div>
 		<div class="flex justify-between mb-2">
-			<label>{{ t('settings.language') }}</label>
+			<Label>{{ t('settings.language') }}</Label>
 			<ButtonGroup size="sm" v-model="data.language.value" :value="data.language.value" :options="settings.getLanguageOptions" @changed="updateData('language', $event)"></ButtonGroup>
 		</div>
 	</div>
