@@ -14,15 +14,15 @@
 							<Line v-if="global.loggedIn" class="m-2 sm:m-6 mt-8"></Line>
 						</div>
 
-						<div v-if="global.loggedIn">
-							<Dialog v-if="settingsDialog" @close="settingsDialog = false" :title="$t('settings.title')" :buttons="buttonsSubmitCancel">
-								<Settings></Settings>
-							</Dialog>
-							<div class="flex justify-center">
-								<HubIcon type="cog" size="lg" @click="settingsDialog = true"></HubIcon>
-								<HubIcon type="power" size="lg" @click="logout()"></HubIcon>
-							</div>
+						<!-- <div v-if="global.loggedIn"> -->
+						<Dialog v-if="settingsDialog" @close="settingsDialog = false" :title="$t('settings.title')" :buttons="buttonsSubmitCancel">
+							<Settings></Settings>
+						</Dialog>
+						<div class="flex justify-center">
+							<HubIcon type="cog" size="lg" @click="settingsDialog = true"></HubIcon>
+							<HubIcon type="power" size="lg" @click="logout()"></HubIcon>
 						</div>
+						<!-- </div> -->
 
 						<a :href="pubHubsUrl" class="m-2 sm:m-4"><Logo></Logo></a>
 					</Modal>
