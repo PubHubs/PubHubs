@@ -5,7 +5,7 @@
 		</template>
 		<TextInput :placeholder="$t('rooms.filter')" v-model="filter" class="mb-4 w-full"></TextInput>
 		<ul v-if="rooms.hasPublicRooms">
-			<li v-for="room in filteredPublicRooms" :key="room.room_id" class="group cursor-pointer hover:bg-green p-1 rounded" @click="joinPublicRoom(room)">
+			<li v-for="room in filteredPublicRooms" :key="room.room_id" class="group cursor-pointer hover:bg-green p-1 rounded" @click="joinRoom(room)">
 				<Icon :type="rooms.roomIsSecure(room.room_id) ? 'lock' : 'room'" class="mr-4 float-left text-green group-hover:text-black"></Icon>
 				<span :title="room.room_id">{{ room.name }}</span>
 				<Icon type="plus" class="float-right"></Icon>
@@ -41,11 +41,11 @@
 		});
 	});
 
-	async function joinPublicRoom(room: PublicRoom) {
+	async function joinRoom(room: PublicRoom) {
 		if (rooms.roomIsSecure(room.room_id)) {
 			router.push({ name: 'secure-room', params: { id: room.room_id } });
 		} else {
-			await pubhubs.joinPublicRoom(room);
+			await pubhubs.joinRoom(room.room_id);
 		}
 		close();
 	}

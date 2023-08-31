@@ -5,16 +5,16 @@
 # Please keep the pubhubs_hub/Dockerfile.dockerignore up-to-date. 
 
 ### BUILD STAGE:  YIVI
-FROM golang:1.20 AS yivi_build
+FROM golang:1.19 AS yivi_build
 
-RUN git clone https://github.com/privacybydesign/irmago --branch v0.12.6 --depth 1
+RUN git clone https://github.com/privacybydesign/irmago --branch v0.13.2 --depth 1
 
 WORKDIR irmago
 
 RUN GO111MODULE=auto go install ./irma
 
 ### BUILD STAGE:  LIBPUBHUBS 
-FROM rust AS libpubhubs_build
+FROM rust:1.71 AS libpubhubs_build
 
 COPY pubhubs/ wd
 

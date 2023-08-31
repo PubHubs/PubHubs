@@ -359,7 +359,7 @@ class TestAsync(IsolatedAsyncioTestCase):
         api = FakeModuleApi()
         joiner = YiviRoomJoiner(valid_config.copy(), api, FakeStore())
         fake_secured_rooms["some_id"] = SecuredRoom(
-            room_name="",
+            room_name="a",
             accepted={"something": {"profile": True, "accepted_values": ["has a requirement"]}},
             user_txt="",
             type=PubHubsSecuredRoomType.MESSAGES,
@@ -387,7 +387,7 @@ class TestAsync(IsolatedAsyncioTestCase):
         api = FakeModuleApi()
         # Create the secured room
         fake_secured_rooms["some_id"] = SecuredRoom(
-            room_name="",
+            room_name="b",
             accepted={"something": {"profile": True, "accepted_values": ["has a requirement"]}},
             user_txt="",
             type=PubHubsSecuredRoomType.MESSAGES,
@@ -428,7 +428,7 @@ class TestAsync(IsolatedAsyncioTestCase):
 
         # Allowed when no values given
         fake_secured_rooms["some_id"] = SecuredRoom(
-            room_name="",
+            room_name="c",
             accepted={"something": {"profile": True, "accepted_values": []}},
             user_txt="",
             type=PubHubsSecuredRoomType.MESSAGES,
@@ -442,7 +442,7 @@ class TestAsync(IsolatedAsyncioTestCase):
 
         # All required should be met
         fake_secured_rooms["some_id"] = SecuredRoom(
-            room_name="",
+            room_name="d",
             accepted={
                 "something": {"profile": True, "accepted_values": []},
                 "something_else": {"profile": False, "accepted_values": []},
