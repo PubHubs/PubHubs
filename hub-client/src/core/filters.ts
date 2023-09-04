@@ -28,11 +28,10 @@ export default {
 	},
 
 	extractPseudonym(displayName: string) {
-        const regex = /\b\d{3}-[a-z]\d{2}\b/gi;
-        const matches = displayName.match(regex);
-        if (matches && matches.length > 0) {
-            return matches[0]; 
-		}
-        return displayName; 
-    },
+		
+		const pattern = /[a-zA-Z0-9]{3}-[a-zA-Z0-9]{3}/;
+		const result = displayName.match(pattern);
+		return result ? result[0] : null; // result[0] will contain the matched string
+		
+	},
 };
