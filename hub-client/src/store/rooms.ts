@@ -345,8 +345,8 @@ const useRooms = defineStore('rooms', {
 
 			for (const evt of this.rooms[roomId].timeline) {
 				if (evt.getContent().msgtype === 'm.notice') {
-					console.info(">>> Message type to determine profile attribues ==>"+evt.getContent().msgtype);
 					// This notice is specific to secured room, there should be attributes.
+					console.info(">>> Event Information for profile attribues  ==>"+evt.getContent().body);
 					if (evt.getContent().body.includes('attributes') && evt.getContent().body.includes(displayName)) {
 						attribute = filters.extractJSONFromEventString(evt);
 						console.info(">>> Attribute value  ==>"+attribute);
