@@ -26,4 +26,13 @@ export default {
 		const jsonEndIndex = evt.getContent().body.lastIndexOf('}');
 		return evt.getContent().body.substring(jsonStartIndex, jsonEndIndex + 1);
 	},
+
+	extractPseudonym(displayName: string) {
+        const regex = /\b\d{3}-[a-z]\d{2}\b/gi;
+        const matches = displayName.match(regex);
+        if (matches && matches.length > 0) {
+            return matches[0]; 
+		}
+        return displayName; 
+    },
 };
