@@ -29,9 +29,11 @@
 		const profileArray: any = [];
 
 		const displayName = getUserDisplayName(props.user, currentRoom);
+		
+
 
 		const profileInfo = rooms.getBadgeInSecureRoom(currentRoom.roomId, displayName);
-
+		console.info("Profile Information in secured room >>> " + profileInfo);
 		// For handling non-secured room case, where we dont get any information from backend.
 		if (profileInfo.length == 0) {
 			return profileArray;
@@ -47,6 +49,7 @@
 				profileArray.push(jsonObj[key]);
 			}
 		}
+		console.info("Display name >> " + displayName + " with Badge information >>" + profileArray);
 		return profileArray;
 	});
 </script>
