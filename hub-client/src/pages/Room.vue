@@ -2,15 +2,17 @@
 	<HeaderFooter v-if="rooms.currentRoomExists" class="pl-3">
 		<template #header>
 			<div class="flex">
-				<Icon :type="rooms.roomIsSecure(currentRoom.roomId) ? 'lock' : 'room'" class="text-blue mt-2" size="lg"></Icon>
-				<div class="pl-3">
-					<H1 class="m-0 text-blue font-bold">{{ $t('rooms.title', [roomName()]) }}</H1>
-					<p class="text-sm leading-4">
-						<PrivateRoomName v-if="currentRoom.isPrivateRoom()" :members="members"></PrivateRoomName>
-						<span v-else>
-							{{ getTopic() }}
-						</span>
-					</p>
+				<div v-if="currentRoom">
+					<Icon :type="rooms.roomIsSecure(currentRoom.roomId) ? 'lock' : 'room'" class="text-blue mt-2" size="lg"></Icon>
+					<div class="pl-3">
+						<H1 class="m-0 text-blue font-bold">{{ $t('rooms.title', [roomName()]) }}</H1>
+						<p class="text-sm leading-4">
+							<PrivateRoomName v-if="currentRoom.isPrivateRoom()" :members="members"></PrivateRoomName>
+							<span v-else>
+								{{ getTopic() }}
+							</span>
+						</p>
+					</div>
 				</div>
 				<SearchInput class="ml-16 mt-6 flex-auto" @submit="search"></SearchInput>
 			</div>
