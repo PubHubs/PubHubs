@@ -72,6 +72,8 @@ const en = {
 		language: 'Language',
 		language_changed: 'Language changed to `{0}`.',
 		title: 'Settings',
+		notifications: 'Notifications',
+		notifications_allow: 'Allow notifications',
 	},
 	admin: {
 		title: 'Admin',
@@ -95,6 +97,7 @@ const en = {
 	},
 	message: {
 		send: 'Send',
+		notification: 'New message in hub'
 	},
 };
 
