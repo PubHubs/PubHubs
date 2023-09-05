@@ -74,6 +74,8 @@ const nl = {
 		language: 'Taal',
 		language_changed: 'Taal gewijzigd in `{0}`.',
 		title: 'Instellingen',
+		notifications: 'Notificaties',
+		notifications_allow: 'Notificaties toestaan',
 	},
 	admin: {
 		title: 'Admin',
@@ -97,6 +99,7 @@ const nl = {
 	},
 	message: {
 		send: 'Verstuur',
+		notification: 'Nieuw bericht in hub'
 	},
 };
 
