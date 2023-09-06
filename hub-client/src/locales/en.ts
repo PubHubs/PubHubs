@@ -63,6 +63,7 @@ const en = {
 		secure_room_message: 'The secure room requires you to disclose your information to gain access of the room.',
 		secure_room_attribute_info: 'You would need Yivi App to disclose your information',
 		secured_room_error: 'We are sorry, but it seems like you cannot access the room! Please check your information in Yivi App',
+		admin_badge: 'Admin',
 	},
 	settings: {
 		displayname: 'Nickname',
