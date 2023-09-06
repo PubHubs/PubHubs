@@ -1,6 +1,6 @@
 <template>
 	<span v-if="attribute.length > 0" class="mb-4">
-		<span v-for="(value, index) in attribute" :key="value" :class="bgColor(index)" class="text-white font-bold inline-block p-2 mr-2 rounded">
+		<span v-for="(value, index) in attribute" :key="value" :class="value === 'Admin' ? 'bg-red' : bgColor(index)" class="text-white font-bold inline-block p-2 mr-2 rounded">
 			{{ value }}
 		</span>
 	</span>
@@ -11,10 +11,12 @@
 	import { useRooms } from '@/store/store';
 	import { useUserColor } from '@/composables/useUserColor';
 	import { useUserName } from '@/composables/useUserName';
+	import { useI18n } from 'vue-i18n';
 
 	const { getUserDisplayName } = useUserName();
 	const { bgColor } = useUserColor();
 	const rooms = useRooms();
+	const { t } = useI18n();
 
 	const props = defineProps({
 		user: {
@@ -29,15 +31,22 @@
 		const profileArray: any = [];
 
 		const displayName = getUserDisplayName(props.user, currentRoom);
-		
-
 
 		const profileInfo = rooms.getBadgeInSecureRoom(currentRoom.roomId, displayName);
-		console.info("Profile Information in secured room >>> " + profileInfo);
+
 		// For handling non-secured room case, where we dont get any information from backend.
-		if (profileInfo.length == 0) {
+		// For non-secured room, we always return an empty profile information.
+		// We can add a v-if statement in profileattribute component. This check is simple here to add.
+		if (profileInfo.length == 0 && !rooms.roomIsSecure(currentRoom.roomId)) {
 			return profileArray;
 		}
+
+		//Admin badge handling for secured room. We set profileArray to admin.
+		if (profileInfo.length == 0 && rooms.roomIsSecure(currentRoom.roomId)) {
+			profileArray.push(t('rooms.admin_badge'));
+			return profileArray;
+		}
+
 		const profileInfoQouteCorrection = profileInfo.replaceAll("'", '"');
 		const jsonObj = JSON.parse(profileInfoQouteCorrection);
 
@@ -49,7 +58,7 @@
 				profileArray.push(jsonObj[key]);
 			}
 		}
-		console.info("Display name >> " + displayName + " with Badge information >>" + profileArray);
+
 		return profileArray;
 	});
 </script>
