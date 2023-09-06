@@ -70,10 +70,11 @@ class YiviStart(DirectServeJsonResource):
 
         yivi_url = self.config.get("yivi_url", "http://localhost:8089")
         answer = await http_client.post_json_get_json(f"{yivi_url}/session", session_request)
+
         # Make sure the 'ultimate' client uses the proxy used by the module.
         public_yivi_url = self.config.get("public_yivi_url", self.module_api.public_baseurl)
         answer["sessionPtr"]["u"] = (
-            public_yivi_url + "_synapse/client/yiviproxy/" + "/".join(answer["sessionPtr"]["u"].split("/")[3:])
+            public_yivi_url + "_synapse/client/yiviproxy/irma/" + answer["sessionPtr"]["u"]
         )
 
         logger.debug(f"rewrote Yivi url to {answer['sessionPtr']['u']}")

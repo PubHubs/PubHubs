@@ -67,6 +67,7 @@
 	import { FormObjectInputTemplate } from '@/composables/useFormInputEvents';
 	import { useYivi } from '@/store/yivi';
 	import { useI18n } from 'vue-i18n';
+	import { trimSplit } from '@/core/extensions';
 
 	const { t } = useI18n();
 	const pubhubs = usePubHubs();
@@ -128,7 +129,7 @@
 			// @ts-ignore
 			room.accepted.forEach((item: any) => {
 				accepted[item.yivi] = {
-					accepted_values: item.values.trim().split(/\s,\s/) || [],
+					accepted_values: trimSplit(item.values),
 					profile: item.profile,
 				};
 			});

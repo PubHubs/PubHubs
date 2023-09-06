@@ -65,6 +65,7 @@ const nl = {
 		secure_room_message: 'De beveiligde kamer vereist dat u uw gegevens vrijgeeft om toegang te krijgen tot de kamer.',
 		secure_room_attribute_info: 'Je hebt de Yivi-app nodig om je informatie vrij te geven',
 		secured_room_error: 'Het spijt ons, maar het lijkt erop dat u geen toegang heeft tot de kamer! Controleer uw gegevens in de Yivi-app',
+		admin_badge: 'Admin',
 	},
 	settings: {
 		displayname: 'Bijnaam',
@@ -74,6 +75,8 @@ const nl = {
 		language: 'Taal',
 		language_changed: 'Taal gewijzigd in `{0}`.',
 		title: 'Instellingen',
+		notifications: 'Notificaties',
+		notifications_allow: 'Notificaties toestaan',
 	},
 	admin: {
 		title: 'Admin',
@@ -97,6 +100,7 @@ const nl = {
 	},
 	message: {
 		send: 'Verstuur',
+		notification: 'Nieuw bericht in hub'
 	},
 };
 
