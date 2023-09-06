@@ -359,45 +359,54 @@ const useRooms = defineStore('rooms', {
 			const router = useRouter();
 			const pubhubs = usePubHubs();
 
-			const yivi = require('@privacybydesign/yivi-frontend');
-			// @ts-ignore
-			const urlll = _env.HUB_URL + '/_synapse/client/ph';
-			const yiviWeb = yivi.newWeb({
-				debugging: false,
-				element: '#yivi-web-form',
-				language: 'en',
-
-				session: {
-					url: 'yivi-endpoint',
-
-					start: {
-						url: () => {
-							return `${urlll}/yivi-endpoint/start?room_id=${roomId}`;
-						},
-						method: 'GET',
-					},
-					result: {
-						url: (o: any, obj: any) => `${urlll}/yivi-endpoint/result?session_token=${obj.sessionToken}&room_id=${roomId}`,
-						method: 'GET',
-						headers: {
-							Authorization: `Bearer ${authToken}`,
-						},
-					},
-				},
-			});
-
-			yiviWeb
-				.start()
-				.then((result: any) => {
-					if (result.not_correct) {
-						router.push({ name: 'error-page-room', params: { id: roomId } });
-					} else if (result.goto) {
-						pubhubs.updateRooms();
-						router.push({ name: 'room', params: { id: roomId } });
-					}
+			pubhubs
+				.joinRoom(roomId)
+				.then((res) => {
+					console.debug(res);
+					router.push({ name: 'room', params: { id: roomId } });
 				})
-				.catch((error: any) => {
-					console.info(`There is an Error: ${error}`);
+				.catch((err) => {
+					console.debug(err);
+					const yivi = require('@privacybydesign/yivi-frontend');
+					// @ts-ignore
+					const urlll = _env.HUB_URL + '/_synapse/client/ph';
+					const yiviWeb = yivi.newWeb({
+						debugging: false,
+						element: '#yivi-web-form',
+						language: 'en',
+
+						session: {
+							url: 'yivi-endpoint',
+
+							start: {
+								url: () => {
+									return `${urlll}/yivi-endpoint/start?room_id=${roomId}`;
+								},
+								method: 'GET',
+							},
+							result: {
+								url: (o: any, obj: any) => `${urlll}/yivi-endpoint/result?session_token=${obj.sessionToken}&room_id=${roomId}`,
+								method: 'GET',
+								headers: {
+									Authorization: `Bearer ${authToken}`,
+								},
+							},
+						},
+					});
+
+					yiviWeb
+						.start()
+						.then((result: any) => {
+							if (result.not_correct) {
+								router.push({ name: 'error-page-room', params: { id: roomId } });
+							} else if (result.goto) {
+								pubhubs.updateRooms();
+								router.push({ name: 'room', params: { id: roomId } });
+							}
+						})
+						.catch((error: any) => {
+							console.info(`There is an Error: ${error}`);
+						});
 				});
 		},
 	},
