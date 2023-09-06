@@ -340,9 +340,9 @@ const useRooms = defineStore('rooms', {
 
 		// This extracts the notice which is used in secured rooms.
 		// The notice contains the user id and the profile attribute.
-		getBadgeInSecureRoom(roomId: string, displayName: string): string {
+		getBadgeInSecureRoom(roomId: string, cDisplayName: string): string {
 			let attribute = '';
-
+			const displayName = filters.extractPseudonym(cDisplayName);
 			for (const evt of this.rooms[roomId].timeline) {
 				if (evt.getContent().msgtype === 'm.notice') {
 					// This notice is specific to secured room, there should be attributes.

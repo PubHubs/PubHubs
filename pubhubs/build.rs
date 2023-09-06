@@ -12,8 +12,20 @@ mod old {
     use std::path::Path;
     use std::process::Command;
 
+    fn npm_command() -> Command {
+        if cfg!(target_family = "windows") {
+            let mut cmd = Command::new("powershell");
+            cmd.arg("npm");
+            cmd
+        } else if cfg!(target_family = "unix") {
+            Command::new("npm")
+        } else {
+            panic!("unknown target family")
+        }
+    }
+
     pub fn generate_css() {
-        let output_install = Command::new("npm")
+        let output_install = npm_command()
             .args(["install", "--prefix", "static/scss/"])
             .output()
             .expect("Expected to use npm install");
@@ -27,7 +39,7 @@ mod old {
             panic!();
         }
 
-        let output = Command::new("npm")
+        let output = npm_command()
             .args([
                 "run",
                 "--prefix",

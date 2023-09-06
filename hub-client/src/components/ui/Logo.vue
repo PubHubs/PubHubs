@@ -21,13 +21,16 @@
 		},
 	});
 
-	const logo = computed(() => {
+	const setTheme = computed(() => {
 		let theme = props.theme;
 		if (theme == '') {
 			theme = settings.getActiveTheme;
 		}
+		return theme;
+	});
 
-		if (theme == 'dark') {
+	const logo = computed(() => {
+		if (setTheme.value == 'dark') {
 			return logoDark;
 		}
 		return logoLight;

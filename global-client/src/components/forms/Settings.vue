@@ -1,13 +1,17 @@
 <template>
 	<div class="flex flex-col">
 		<div class="flex justify-between mb-2">
-			<label>{{ t('settings.theme') }}</label>
+			<Label>{{ t('settings.theme') }}</Label>
 			<ButtonGroup size="sm" v-model="data.theme.value" :value="data.theme.value" :options="settings.getThemeOptions(t)" @changed="updateData('theme', $event)"></ButtonGroup>
 		</div>
 		<div class="flex justify-between mb-2">
-			<label>{{ t('settings.language') }}</label>
+			<Label>{{ t('settings.language') }}</Label>
 			<ButtonGroup size="sm" v-model="data.language.value" :value="data.language.value" :options="settings.getLanguageOptions" @changed="updateData('language', $event)"></ButtonGroup>
 		</div>
+    <div v-if="noPerm()" class="flex justify-between mb-2">
+      <label>{{ t('settings.notifications') }}</label>
+      <Button @click=askPerm()>{{ t('settings.notifications_allow') }}</Button>
+    </div>
 	</div>
 </template>
 
@@ -23,6 +27,16 @@
 	const { data, setData, updateData, dataIsChanged, changed } = useFormState();
 	const settings = useSettings();
 	const dialog = useDialog();
+
+  function noPerm() {
+    return Notification.permission === 'denied' || Notification.permission === 'default'
+  }
+
+  function askPerm() {
+    Notification.requestPermission().then((result) => {
+      console.debug(result);
+      });
+  }
 
 	setData({
 		theme: { value: settings.getSetTheme as FormDataType },

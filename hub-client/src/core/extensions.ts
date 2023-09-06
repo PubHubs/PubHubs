@@ -7,4 +7,14 @@ const propCompare = (prop: string) => {
 	};
 };
 
-export { propCompare };
+const trimSplit = (list: string, delimiter: string = ',') => {
+	const trimmed = list.replace(/\s/g, '').replace(/,+/g, ',');
+	if (trimmed == '') {
+		return [];
+	}
+	const regex = new RegExp('\\s*' + delimiter + '\\s*');
+	const result = trimmed.split(regex);
+	return result;
+};
+
+export { propCompare, trimSplit };

@@ -37,6 +37,26 @@ def modify_set_clickjacking_protection_headers(original, global_client_url: str)
     return modified
 
 
+def modify_set_cors_headers(original):
+    """
+    This function returns a changed form of `synapse.http.server.set_cors_headers`.
+    This allows the Yivi SSE endpoint to be proxied since it asks for the "Cache-Control" header to be allowed.
+    For this endpoint it's fine to allow this.
+    It is a bit hacky. And we hope it will become configurable in Synapse.
+
+    Args:
+        original: The original allowed cors header function.
+    """
+    def modified(request: Request):
+        original(request)
+        if request.path.endswith(b"/frontend/statusevents"):
+            request.setHeader(
+                b"Access-Control-Allow-Headers",
+                b"X-Requested-With, Content-Type, Authorization, Date, Cache-Control",
+            )
+
+    return modified
+
 class YiviRoomJoiner(object):
     """Main class that has the methods to create waiting rooms with widgets that serve an Yivi QR that allows users to
     join secured rooms based on certain attributes. It's used as a synapse module.
@@ -62,6 +82,7 @@ class YiviRoomJoiner(object):
     def __init__(self, config: dict, api: ModuleApi, store=None):
 
         synapse.http.server.set_clickjacking_protection_headers = modify_set_clickjacking_protection_headers(synapse.http.server.set_clickjacking_protection_headers,config.get(GLOBAL_CLIENT_URL))
+        synapse.http.server.set_cors_headers = modify_set_cors_headers(synapse.http.server.set_cors_headers)
 
         self.config = config
 

@@ -62,6 +62,7 @@ oidc_providers:
         libpubhubspath: /usr/lib/libpubhubs.so
       }
 ```
+- Update the test_hub.log.config file with the one present in the template directory `docs/deploy/test_hub.log.config`.
 
 -   Change permission on the `hub/` folder and its subdirectory.
 
@@ -79,7 +80,7 @@ The hub should now be running at localhost:8008, which you can test from the mac
 
 ## Terms and conditions for the Hub
 
-A `templates` directory can be created specifying the terms and conditions of the Hub. See sample in pubhubs repository `pubhubs_hub/matrix_test_config/templates`. The template directory can be used for styling the hub. A sample template directory can be found in `pubhubs_hub/matrix_test_config/templates`. Copy this template directory in <absolute_path>/hub (path mounted in docker run). Update the test_hub.log.config file with the one present in the template directory `docs/deploy/test_hub.log.config`.
+A `templates` directory can be created specifying the terms and conditions of the Hub. See sample in pubhubs repository `pubhubs_hub/matrix_test_config/templates`. The template directory can be used for styling the hub. A sample template directory can be found in `pubhubs_hub/matrix_test_config/templates`. Copy this template directory in <absolute_path>/hub (path mounted in docker run).
 
 ## Hub administration
 

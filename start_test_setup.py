@@ -10,7 +10,7 @@ import sys
 from shutil import which
 import time
 from datetime import datetime
-
+import re
 # Process dependencies
 from multiprocessing import Process
 import subprocess
@@ -32,6 +32,9 @@ port = "8080"
 
 root_dir = os.getcwd()
 
+
+## DOCKER VERSION TO USE >= 24
+DOCKER_VERSION = 24
 
 ## METHOD SECTION ##
 
@@ -614,6 +617,17 @@ def main_runner(cargo_setup:str, node_arg:str, hubs:int = 1) -> None:
     print(f"\033[92mdocker ps\033[0m")
     subprocess.check_output("docker ps", shell=True)
 
+    docker_version_info = subprocess.run(["docker", "-v"], capture_output=True, text=True)
+    
+    # Getting only the version number of docker you are using.
+    current_version= re.findall(r'\d+', docker_version_info.stdout)[0]
+    print(f"\033[92mDocker version you are using is --- {current_version}\033[0m")
+    
+    if int(current_version) < DOCKER_VERSION:
+        print(f"\x1b[1;33mWARNING: Docker version you are using is old. There will be some issues in running the script\x1b[0m")
+        print(f"\x1b[1;33m The script will terminate..\x1b[0m")
+        exit(-1)
+    
     print(f"\033[92mdocker compose\033[0m")
     subprocess.check_output("docker compose", shell=True)
 
