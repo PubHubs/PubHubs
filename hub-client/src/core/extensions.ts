@@ -17,6 +17,19 @@ const trimSplit = (list: string, delimiter: string = ',') => {
 	return result;
 };
 
+const isEmpty = (v: any) => {
+	if (typeof v == 'boolean') {
+		return !v;
+	}
+	if (typeof v == 'string') {
+		return v == '';
+	}
+	if (typeof v == 'object') {
+		return Object.keys(v).length == 0;
+	}
+	return false;
+};
+
 const createLinks = (text: string) => {
 	const aTag = '<a target="_blank" class="text-green" ';
 	// http://, https://, ftp://
@@ -31,4 +44,4 @@ const createLinks = (text: string) => {
 		.replace(emailAddressPattern, aTag + 'href="mailto:$1">$1</a>');
 };
 
-export { propCompare, trimSplit, createLinks };
+export { propCompare, trimSplit, isEmpty, createLinks };

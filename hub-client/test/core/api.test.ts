@@ -14,10 +14,11 @@ describe('api', () => {
 
 	test('api - apiURLS', () => {
 		// @ts-ignore
-		expect(api.baseURL).toBe('http://test/_synapse/client');
+		expect(api.baseURL).toBe('http://test/_synapse/');
 
-		expect(Object.keys(api.apiURLS).length).toBe(1);
+		expect(Object.keys(api.apiURLS).length).toBe(2);
 		expect(api.apiURLS.securedRooms).toBe('http://test/_synapse/client/secured_rooms');
+		expect(api.apiURLS.deleteRoom).toBe('http://test/_synapse/admin/v2/rooms/');
 	});
 
 	test('api - apiOptions', () => {
@@ -83,7 +84,7 @@ describe('api secured rooms', () => {
 		await expect(api.apiDELETE(api.apiURLS.securedRooms)).rejects.toThrowError('Error');
 		await expect(api.apiDELETE(api.apiURLS.securedRooms + '?room_id=')).rejects.toThrowError('Error');
 		const resp = await api.apiDELETE(api.apiURLS.securedRooms + '?room_id=' + room_id);
-		expect(resp).toBeTypeOf('string');
-		expect(resp).toEqual('ID:' + room_id);
+		expect(resp).toBeTypeOf('object');
+		expect(resp).toEqual({ deleted: 'ID:' + room_id });
 	});
 });
