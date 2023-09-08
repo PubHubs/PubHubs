@@ -4,7 +4,8 @@ use actix_web::web;
 use anyhow::Result;
 use futures_util::future::LocalBoxFuture;
 
-use crate::servers::{AppBase, AppCreatorBase, DiscoveryError, ServerBase, ShutdownSender};
+use crate::servers::api;
+use crate::servers::{AppBase, AppCreatorBase, ServerBase, ShutdownSender};
 
 /// Transcryptor
 pub struct Server {
@@ -12,13 +13,13 @@ pub struct Server {
 }
 
 impl crate::servers::Server for Server {
-    const NAME: &'static str = "Transcryptor";
+    const NAME: crate::servers::Name = crate::servers::Name::Transcryptor;
     type AppT = Rc<App>;
     type AppCreatorT = AppCreator;
 
     fn new(config: &crate::servers::Config) -> Self {
         Self {
-            base: ServerBase::new(config),
+            base: ServerBase::new::<Server>(config),
         }
     }
 
@@ -62,7 +63,7 @@ impl crate::servers::App<Server> for Rc<App> {
             );
     }
 
-    fn discover(&self) -> LocalBoxFuture<'_, Result<(), DiscoveryError>> {
+    fn discover(&self) -> LocalBoxFuture<'_, Result<(), api::ErrorCode>> {
         // TODO: implement
 
         Box::pin(async { Ok(()) })

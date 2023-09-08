@@ -4,7 +4,8 @@ use actix_web::web;
 use anyhow::Result;
 use futures_util::future::LocalBoxFuture;
 
-use crate::servers::{AppBase, AppCreatorBase, BoxModifier, DiscoveryError, ServerBase};
+use crate::servers::api;
+use crate::servers::{AppBase, AppCreatorBase, BoxModifier, ServerBase};
 
 use std::rc::Weak as WeakRc;
 
@@ -14,13 +15,13 @@ pub struct Server {
 }
 
 impl crate::servers::Server for Server {
-    const NAME: &'static str = "PubHubs Central";
+    const NAME: crate::servers::Name = crate::servers::Name::PubHubsCentral;
     type AppT = Rc<App>;
     type AppCreatorT = AppCreator;
 
     fn new(config: &crate::servers::Config) -> Self {
         Server {
-            base: ServerBase::new(config),
+            base: ServerBase::new::<Server>(config),
         }
     }
 
@@ -65,10 +66,12 @@ impl crate::servers::App<Server> for Rc<App> {
             );
     }
 
-    fn discover(&self) -> LocalBoxFuture<'_, Result<(), DiscoveryError>> {
-        // TODO: implement
+    fn discover(&self) -> LocalBoxFuture<'_, Result<(), api::ErrorCode>> {
+        Box::pin(async {
+            tokio::time::sleep(tokio::time::Duration::from_millis(10000)).await;
 
-        Box::pin(async { Ok(()) })
+            Ok(())
+        })
     }
 
     fn base(&self) -> &AppBase<Server> {

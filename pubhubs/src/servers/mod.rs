@@ -1,5 +1,6 @@
 //! New, multi-server setup
 
+mod api;
 mod config;
 mod macros;
 mod phc;
@@ -11,6 +12,6 @@ pub use config::Config;
 pub(super) use macros::for_all_servers;
 pub use run::run;
 pub(super) use server::{
-    App, AppBase, AppCreator, AppCreatorBase, BoxModifier, DiscoveryError, Server, ServerBase,
+    App, AppBase, AppCreator, AppCreatorBase, BoxModifier, Name, Server, ServerBase,
     ShutdownCommand, ShutdownSender, State,
 };

@@ -7,6 +7,31 @@ use tokio::sync::mpsc;
 use std::rc::Weak as WeakRc;
 use std::sync::Arc;
 
+use crate::servers::api;
+
+/// Enumerates the names of the different PubHubs servers
+#[derive(serde::Serialize, serde::Deserialize, Clone, Copy)]
+pub enum Name {
+    #[serde(rename = "phc")]
+    PubHubsCentral,
+
+    #[serde(rename = "transcryptor")]
+    Transcryptor,
+}
+
+impl std::fmt::Display for Name {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> Result<(), std::fmt::Error> {
+        write!(
+            f,
+            "{}",
+            match self {
+                Name::PubHubsCentral => "PubHubs Central",
+                Name::Transcryptor => "Transcryptor",
+            }
+        )
+    }
+}
+
 /// Common API to the different PubHubs servers, used by the [crate::servers::run::Runner].
 ///
 /// A single instance of the appropriate implementation of [Server] is created
@@ -18,9 +43,9 @@ use std::sync::Arc;
 ///
 /// An exception to this no-shared-mutable-state mantra is the discovery or startup phase,
 /// see [State::Discovery].
-pub trait Server: Sized + 'static {
+pub trait Server: Sized + 'static + crate::servers::config::GetServerConfig {
     type AppT: App<Self>;
-    const NAME: &'static str;
+    const NAME: Name;
 
     /// Is moved accross threads to create the [App]s.
     type AppCreatorT: AppCreator<Self>;
@@ -98,35 +123,30 @@ pub trait App<S: Server>: Clone + 'static {
     /// Runs the discovery routine for this server.
     ///
     /// May panic if the [Server]'s state is not [State::Discovery].
-    fn discover(&self) -> LocalBoxFuture<'_, Result<(), DiscoveryError>>;
+    fn discover(&self) -> LocalBoxFuture<'_, Result<(), api::ErrorCode>>;
 
     /// Returns the [AppBase] this [App] builds on.
     fn base(&self) -> &AppBase<S>;
-}
-
-#[derive(thiserror::Error, Debug)]
-pub enum DiscoveryError {
-    #[error("discovery did not succeed yet")]
-    Retryable(#[source] anyhow::Error),
-
-    #[error("fatal error during discovery")]
-    Fatal(#[from] anyhow::Error),
 }
 
 /// What's internally common between PubHubs [Server]s.
 pub struct ServerBase {
     pub config: crate::servers::Config,
     pub state: State,
+    pub self_check_code: String,
 }
 
 impl ServerBase {
-    pub fn new(config: &crate::servers::Config) -> Self {
+    pub fn new<S: Server>(config: &crate::servers::Config) -> Self {
+        let server_config = S::server_config(config);
+
         Self {
             config: config.clone(),
             state: State::Discovery {
                 task_lock: Arc::new(tokio::sync::Mutex::new(())),
                 shared: Arc::new(tokio::sync::RwLock::new(DiscoveryState::default())),
             },
+            self_check_code: server_config.self_check_code(),
         }
     }
 }
@@ -135,12 +155,16 @@ impl ServerBase {
 #[derive(Clone)]
 pub struct AppCreatorBase {
     pub state: State,
+    pub phc_url: url::Url,
+    pub self_check_code: String,
 }
 
 impl AppCreatorBase {
     pub fn new(server_base: &ServerBase) -> Self {
         Self {
             state: server_base.state.clone(),
+            phc_url: server_base.config.phc_url.clone(),
+            self_check_code: server_base.self_check_code.clone(),
         }
     }
 }
@@ -149,6 +173,8 @@ impl AppCreatorBase {
 pub struct AppBase<S: Server> {
     pub state: State,
     pub shutdown_sender: ShutdownSender<S>,
+    pub self_check_code: String,
+    pub phc_url: url::Url,
 }
 
 impl<S: Server> AppBase<S> {
@@ -156,6 +182,8 @@ impl<S: Server> AppBase<S> {
         Self {
             state: creator_base.state.clone(),
             shutdown_sender: shutdown_sender.clone(),
+            phc_url: creator_base.phc_url.clone(),
+            self_check_code: creator_base.self_check_code.clone(),
         }
     }
 
@@ -210,35 +238,53 @@ impl<S: Server> AppBase<S> {
         sc.route(
             "/.phc/discovery/run",
             web::get().to(app_method!(handle_discovery_run)),
+        )
+        .route(
+            "/.phc/discovery/info",
+            web::get().to(app_method!(handle_discovery_info)),
         );
     }
 
-    async fn handle_discovery_run(app: S::AppT) -> impl actix_web::Responder {
+    /// Run the discovery process, and restarts server if necessary.  Returns when
+    /// the discovery process is completed, but before a possible restart.
+    ///
+    /// Takes the discovery `task_lock`.
+    async fn handle_discovery_run(app: S::AppT) -> api::Result<()> {
         let base = app.base();
 
-        let task_lock = match base.state {
-            State::Discovery { task_lock, shared } => {
-                task_lock
-            }
-            _ => return actix_web::HttpResponse::BadRequest()
-                .reason("not in discovery state")
-                .finish(),
-        }
+        let task_lock = match &base.state {
+            State::Discovery { task_lock, shared } => task_lock,
+            _ => return api::err(api::ErrorCode::NoLongerInCorrectState),
+        };
 
         let lock_guard = {
             match task_lock.try_lock() {
                 Ok(lock_guard) => lock_guard,
-                Err(_) => return actix_web::HttpResponse::ServiceUnavailable().reason("discovery already running").finish(),
+                Err(_) => {
+                    return api::err(api::ErrorCode::AlreadyRunning);
+                }
             }
         };
 
         let result = app.discover().await;
 
-        if result.is_err() {
-            actix_web::HttpResponse::InternalServerError().finish()
-        } else {
-            actix_web::HttpResponse::Ok().finish()
+        drop(lock_guard);
+
+        if result.is_ok() {
+            return api::ok(());
         }
+
+        api::err(result.unwrap_err())
+    }
+
+    async fn handle_discovery_info(app: S::AppT) -> api::Result<api::DiscoveryInfo> {
+        let app_base = app.base();
+
+        api::ok(api::DiscoveryInfo {
+            name: S::NAME,
+            self_check_code: app_base.self_check_code.clone(),
+            phc_url: app_base.phc_url.clone(),
+        })
     }
 }
 

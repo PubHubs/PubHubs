@@ -1,9 +1,13 @@
 //! Configuration (files)
-use anyhow::{Context as _, Result};
 use core::fmt::Debug;
 use std::net::SocketAddr;
 use std::path::{Path, PathBuf};
+
+use anyhow::{Context as _, Result};
+use rand::Rng as _;
 use url::Url;
+
+use crate::servers::for_all_servers;
 
 /// Configuration for one, or several, of the PubHubs servers
 #[derive(serde::Deserialize, Debug, Clone)]
@@ -31,8 +35,23 @@ pub struct Config {
 pub struct ServerConfig<ServerSpecific> {
     pub bind_to: SocketAddr,
 
+    /// Random string used by this server to identify itself.  Randomly generated if not set.
+    /// May be set manually when multiple instances of the same server are used.
+    pub self_check_code: Option<String>,
+
     #[serde(flatten)]
     pub extra: ServerSpecific,
+}
+
+impl<Extra> ServerConfig<Extra> {
+    /// Returns [ServerConfig::self_check_code], if set, or generates one.
+    pub fn self_check_code(&self) -> String {
+        rand::rngs::OsRng
+            .sample_iter(&rand::distributions::Alphanumeric)
+            .take(20)
+            .map(char::from)
+            .collect()
+    }
 }
 
 impl Config {
@@ -98,3 +117,23 @@ pub mod transcryptor {
     #[serde(deny_unknown_fields)]
     pub struct ExtraConfig {}
 }
+
+pub trait GetServerConfig {
+    type Extra;
+
+    fn server_config(config: &Config) -> &ServerConfig<Self::Extra>;
+}
+
+macro_rules! implement_get_server_config {
+    ($server:ident) => {
+        impl GetServerConfig for crate::servers::$server::Server {
+            type Extra = crate::servers::config::$server::ExtraConfig;
+
+            fn server_config(config: &Config) -> &ServerConfig<Self::Extra> {
+                &config.$server.as_ref().unwrap()
+            }
+        }
+    };
+}
+
+for_all_servers!(implement_get_server_config);
