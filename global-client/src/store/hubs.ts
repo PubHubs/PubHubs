@@ -1,6 +1,7 @@
 import { defineStore } from 'pinia';
 import { RouteParams } from 'vue-router';
 import { Message, MessageBoxType, MessageType, Theme, useGlobal, useMessageBox, useSettings } from '@/store/store';
+import {setLanguage, setUpi18n} from '@/i18n'
 
 // Single Hub
 class Hub {
@@ -137,6 +138,9 @@ const useHubs = defineStore('hubs', {
 						// Listen to sync unreadmessages
 						messagebox.addCallback(MessageType.UnreadMessages, (message: Message) => {
 							self.hubs[hubId].unreadMessages = message.content as number;
+							if (self.hubs[hubId].unreadMessages > 0) {
+								sendNotification(hubId);
+							}
 						});
 
 						// Listen to modal show/hide
@@ -157,5 +161,18 @@ const useHubs = defineStore('hubs', {
 		},
 	},
 });
+
+function sendNotification(hubId: string) {
+	const img = "/client/img/icons/favicon-32x32.png";
+	const i18n = setUpi18n();
+	const language = useSettings().language;
+	setLanguage(i18n, language);
+	const {t} = i18n.global;
+	new Notification(t('message.notification'), {
+		body: hubId,
+		icon: img,
+		badge: img,
+	});
+}
 
 export { Hub, HubList, useHubs };

@@ -34,7 +34,7 @@ interface SecuredRoom {
 	accepted?: SecuredRoomAttributes | [];
 	user_txt: string;
 	type?: string;
-	secured?: boolean;
+	// secured?: boolean;
 }
 
 /**
@@ -70,6 +70,10 @@ class Room extends MatrixRoom {
 			return true;
 		}
 		return this._ph.hidden;
+	}
+
+	hide() {
+		this._ph.hidden = true;
 	}
 
 	set unreadMessages(unread: number) {
@@ -214,6 +218,12 @@ const useRooms = defineStore('rooms', {
 			return Object.keys(state.publicRooms).length > 0;
 		},
 
+		nonSecuredPublicRooms(state): Array<PublicRoom> {
+			return state.publicRooms.filter((room: PublicRoom) => {
+				return typeof room.room_type == 'undefined' || room.room_type !== PubHubsRoomType.PH_MESSAGES_RESTRICTED;
+			});
+		},
+
 		visiblePublicRooms(state): Array<PublicRoom> {
 			return state.publicRooms.filter((room: PublicRoom) => {
 				if (this.roomExists(room.room_id) && !this.room(room.room_id)?._ph.hidden) {
@@ -329,25 +339,53 @@ const useRooms = defineStore('rooms', {
 			return newRoom;
 		},
 
+		async changeSecuredRoom(room: SecuredRoom) {
+			const response = await api.apiPUT<any>(api.apiURLS.securedRooms, room);
+			const modified_id = response.modified;
+			const pidx = this.securedRooms.findIndex((room) => room.room_id == modified_id);
+			if (pidx >= 0) {
+				this.securedRooms[pidx] = room;
+			}
+			return modified_id;
+		},
+
+		// See https://matrix-org.github.io/synapse/latest/admin_api/rooms.html#version-2-new-version
+		async removePublicRoom(room_id: string) {
+			const body = {
+				block: true,
+				purge: true,
+			};
+			const response = await api.apiDELETE<any>(api.apiURLS.deleteRoom + room_id, body);
+			const deleted_id = response.delete_id;
+			this.room(room_id)?.hide();
+			const pidx = this.publicRooms.findIndex((room) => room.room_id == room_id);
+			this.publicRooms.splice(pidx, 1);
+			return deleted_id;
+		},
+
 		async removeSecuredRoom(room: SecuredRoom) {
-			const deleted_id = await api.apiDELETE(api.apiURLS.securedRooms + '?room_id=' + room.room_id);
+			const response = await api.apiDELETE<any>(api.apiURLS.securedRooms + '?room_id=' + room.room_id);
+			const deleted_id = response.deleted;
 			const sidx = this.securedRooms.findIndex((room) => room.room_id == deleted_id);
 			this.securedRooms.splice(sidx, 1);
 			const pidx = this.publicRooms.findIndex((room) => room.room_id == deleted_id);
 			this.publicRooms.splice(pidx, 1);
+			this.room(deleted_id)?.hide();
 			return deleted_id;
 		},
 
 		// This extracts the notice which is used in secured rooms.
 		// The notice contains the user id and the profile attribute.
-		getBadgeInSecureRoom(roomId: string, displayName: string): string {
+		getBadgeInSecureRoom(roomId: string, cDisplayName: string): string {
 			let attribute = '';
-
+			const displayName = filters.extractPseudonym(cDisplayName);
 			for (const evt of this.rooms[roomId].timeline) {
 				if (evt.getContent().msgtype === 'm.notice') {
 					// This notice is specific to secured room, there should be attributes.
+					console.info('>>> Event Information for profile attribues  ==>' + evt.getContent().body + 'for display name=' + displayName);
 					if (evt.getContent().body.includes('attributes') && evt.getContent().body.includes(displayName)) {
 						attribute = filters.extractJSONFromEventString(evt);
+						console.info('>>> Attribute value  ==>' + attribute);
 						break;
 					}
 				}
@@ -359,45 +397,54 @@ const useRooms = defineStore('rooms', {
 			const router = useRouter();
 			const pubhubs = usePubHubs();
 
-			const yivi = require('@privacybydesign/yivi-frontend');
-			// @ts-ignore
-			const urlll = _env.HUB_URL + '/_synapse/client/ph';
-			const yiviWeb = yivi.newWeb({
-				debugging: false,
-				element: '#yivi-web-form',
-				language: 'en',
-
-				session: {
-					url: 'yivi-endpoint',
-
-					start: {
-						url: () => {
-							return `${urlll}/yivi-endpoint/start?room_id=${roomId}`;
-						},
-						method: 'GET',
-					},
-					result: {
-						url: (o: any, obj: any) => `${urlll}/yivi-endpoint/result?session_token=${obj.sessionToken}&room_id=${roomId}`,
-						method: 'GET',
-						headers: {
-							Authorization: `Bearer ${authToken}`,
-						},
-					},
-				},
-			});
-
-			yiviWeb
-				.start()
-				.then((result: any) => {
-					if (result.not_correct) {
-						router.push({ name: 'error-page-room', params: { id: roomId } });
-					} else if (result.goto) {
-						pubhubs.updateRooms();
-						router.push({ name: 'room', params: { id: roomId } });
-					}
+			pubhubs
+				.joinRoom(roomId)
+				.then((res) => {
+					console.debug(res);
+					router.push({ name: 'room', params: { id: roomId } });
 				})
-				.catch((error: any) => {
-					console.info(`There is an Error: ${error}`);
+				.catch((err) => {
+					console.debug(err);
+					const yivi = require('@privacybydesign/yivi-frontend');
+					// @ts-ignore
+					const urlll = _env.HUB_URL + '/_synapse/client/ph';
+					const yiviWeb = yivi.newWeb({
+						debugging: false,
+						element: '#yivi-web-form',
+						language: 'en',
+
+						session: {
+							url: 'yivi-endpoint',
+
+							start: {
+								url: () => {
+									return `${urlll}/yivi-endpoint/start?room_id=${roomId}`;
+								},
+								method: 'GET',
+							},
+							result: {
+								url: (o: any, obj: any) => `${urlll}/yivi-endpoint/result?session_token=${obj.sessionToken}&room_id=${roomId}`,
+								method: 'GET',
+								headers: {
+									Authorization: `Bearer ${authToken}`,
+								},
+							},
+						},
+					});
+
+					yiviWeb
+						.start()
+						.then((result: any) => {
+							if (result.not_correct) {
+								router.push({ name: 'error-page-room', params: { id: roomId } });
+							} else if (result.goto) {
+								pubhubs.updateRooms();
+								router.push({ name: 'room', params: { id: roomId } });
+							}
+						})
+						.catch((error: any) => {
+							console.info(`There is an Error: ${error}`);
+						});
 				});
 		},
 	},

@@ -24,7 +24,7 @@ export {
 	useHubSettings,
 	PubHubsRoomType,
 	Room,
-	PublicRoom,
+	type PublicRoom,
 	type SecuredRoomAttributes,
 	type SecuredRoom,
 	useRooms,

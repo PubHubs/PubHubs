@@ -11,15 +11,11 @@ interface ApiUrls {
 interface ApiOptions {
 	method: string;
 	body?: string;
-	headers?: Object;
+	headers?: any;
 }
 
 interface AllApiOptions {
 	[index: string]: ApiOptions;
-}
-
-interface ApiDeleteResponse {
-	deleted: string;
 }
 
 class Api {
@@ -33,7 +29,7 @@ class Api {
 		this.baseURL = baseURL;
 		this.apiURLS = urls;
 		for (const key in this.apiURLS) {
-			this.apiURLS[key] = this.baseURL.concat('/', this.apiURLS[key]).replace(/[^:]\/\//g, '/');
+			this.apiURLS[key] = this.baseURL.concat('/', this.apiURLS[key]).replace(/\b\/+?\b/g, '/');
 		}
 		this.options = {
 			GET: {
@@ -66,9 +62,10 @@ class Api {
 
 	async api<T>(url: string, options: ApiOptions = this.options.GET, defaultResponseData: any = undefined): Promise<T> {
 		if (this.accessToken) {
-			options.headers = {
-				Authorization: 'Bearer ' + this.accessToken,
-			};
+			if (!options.headers) {
+				options.headers = {};
+			}
+			options.headers['Authorization'] = 'Bearer ' + this.accessToken;
 		}
 		const response = await fetch(url, options as RequestInit);
 		if (!response.ok) {
@@ -124,13 +121,16 @@ class Api {
 		return this.api<T>(url, options);
 	}
 
-	async apiDELETE(url: string, data?: any): Promise<string> {
+	async apiDELETE<T>(url: string, data?: any): Promise<T> {
 		const options = this.options.DELETE;
 		if (typeof data !== 'undefined') {
 			options.body = JSON.stringify(data);
+			options.headers = {
+				'Content-Type': 'application/json',
+			};
 		}
-		const response = await this.api<ApiDeleteResponse>(url, options);
-		return response.deleted;
+		const response = await this.api<T>(url, options);
+		return response;
 	}
 }
 

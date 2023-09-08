@@ -1,6 +1,6 @@
 <template>
 	<div class="tabs-tab inline-block rounded-t border border-b-0 px-2 py-1 cursor-pointer z-20" :class="activeClass" @click="setActiveTab(tab)">
-		<slot></slot>
+		<slot :active="isActiveTab(tab)"></slot>
 	</div>
 </template>
 

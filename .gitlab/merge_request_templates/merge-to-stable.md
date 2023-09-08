@@ -1,18 +1,22 @@
 Before merging to stable, please check the following.
 
+As a general tip while testing, keep two browser windows open, one for a existing user (it's easiest if this is a hub admin), and an incognito one for a new user that will be registered during testing. This allows seeing messages being send and easier testing.
+
   - [ ] You're merging from main into stable (and not from some feature branch.) 
   - [ ] Check that CI/CD pipeline in main has completed without errors.
   - [ ] Please check that the following works on https://main.pubhubs.ihub.ru.nl/client :
       - [ ] Logging in with your existing account there.
-      - [ ] Posting a message to a room, and creating a room.
+      - [ ] Posting a message to a room.
+      - [ ] Creating a new room as an admin user.
+      - [ ] Creating a new secured room as an admin user.
       - [ ] Registering a *new* user, with fresh Yivi credentials.
       - [ ] Posting a message to a room, and creating a room with this new user.
       - [ ] Sending a private message
       - [ ] Secured room login
       - [ ] Secured room icon changes to shield
-      - [ ] Single profile attributes batch should be displayed for secured rooms with profile attribute set to true
-      - [ ] No batch should be displayed for secured rooms with profile attribute set to false
-      - [ ] No batch in non-secured rooms
+      - [ ] Single profile attributes badge should be displayed for secured rooms with profile attribute set to true
+      - [ ] No badge should be displayed for secured rooms with profile attribute set to false
+      - [ ] No badge in non-secured rooms
       - [ ] Multiple badges for rooms with multiple profile attributes
       - [ ] Change displayname
       - [ ] Change Theme & Language, and see they are stored/fetched after logout/login
@@ -24,17 +28,20 @@ Before merging to stable, please check the following.
   - [ ] Inform the pubhubs team (via Slack) of the merge and possible downtime of https://stable.pubhubs.ihub.ru.nl/client . 
   - [ ] Make the changes and perform the merge.
   - [ ] Check that the following works on https://stable.pubhubs.ihub.ru.nl/client :
+     - [ ] Turn off dev mode in Yivi app. 
      - [ ] Logging in with your existing account.
-     - [ ] Posting an message, and creating a room.
-     - [ ] Registering a *new* user, with a fresh email address (if possible).
+     - [ ] Posting an message.
+     - [ ] Creating a new room as an admin user.
+     - [ ] Creating a new secured room as an admin user.
+     - [ ] Registering a *new* user, with a fresh email address (if possible, tips are if you have a gmail account you can add +<date> before the '@' and add a card for that, if you have a mail domain with a catch-all you can create a new mail address and add a card for that).
      - [ ] Posting a message to a room, and creating a room.
      - [ ] Sending a private message
      - [ ] Logging out and in with this new user.
      - [ ] Secured room login
      - [ ] Secured room icon changes to shield
-     - [ ] Single profile attributes batch should be displayed for secured rooms with profile attribute set to true
-     - [ ] No batch should be displayed for secured rooms with profile attribute set to false
-     - [ ] No batch in non-secured rooms
+     - [ ] Single profile attributes badge should be displayed for secured rooms with profile attribute set to true
+     - [ ] No badge should be displayed for secured rooms with profile attribute set to false
+     - [ ] No badge in non-secured rooms
      - [ ] Multiple badges for rooms with multiple profile attributes 
      - [ ] Anything related specifically to your merge request.
      - [ ] Change displayname

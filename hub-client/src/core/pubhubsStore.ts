@@ -116,6 +116,12 @@ const usePubHubs = defineStore('pubhubs', {
 
 		async createRoom(options: object) {
 			await this.client.createRoom(options);
+			this.updateRooms();
+		},
+
+		async renameRoom(roomId: string, name: string) {
+			await this.client.setRoomName(roomId, name);
+			this.updateRooms();
 		},
 
 		async leaveRoom(roomId: string) {
