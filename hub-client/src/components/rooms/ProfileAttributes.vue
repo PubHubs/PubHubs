@@ -1,6 +1,6 @@
 <template>
 	<span v-if="attribute.length > 0" class="mb-4">
-		<span v-for="(value, index) in attribute" :key="value" :class="value === 'Admin' ? 'bg-red' : bgColor(index)" class="text-white font-bold inline-block p-2 mr-2 rounded">
+		<span v-for="(value, index) in attribute" :key="value" :class="value === $t('rooms.admin_badge') ? 'bg-red' : bgColor(index)" class="text-white font-bold inline-block p-2 mr-2 rounded">
 			{{ value }}
 		</span>
 	</span>
@@ -41,8 +41,7 @@
 			return profileArray;
 		}
 
-		//Admin badge handling for secured room. We set profileArray to admin.
-		if (profileInfo.length == 0 && rooms.roomIsSecure(currentRoom.roomId)) {
+		if (rooms.getRoomCreator(currentRoom?.roomId) == props.user) {
 			profileArray.push(t('rooms.admin_badge'));
 			return profileArray;
 		}
