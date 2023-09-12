@@ -25,8 +25,10 @@ mod old {
     }
 
     pub fn generate_css() {
+        let guard = chdir(&std::path::Path::new("static/scss"));
+
         let output_install = npm_command()
-            .args(["install", "--prefix", "static/scss/"])
+            .args(["install"])
             .output()
             .expect("Expected to use npm install");
         if !output_install.status.success() {
@@ -42,8 +44,6 @@ mod old {
         let output = npm_command()
             .args([
                 "run",
-                "--prefix",
-                "static/scss/",
                 "sass",
                 "--update",
                 "style.scss:../assets/css/style.css",
@@ -56,6 +56,8 @@ mod old {
             println!("cargo:warning={} {}{}", output.status, stdout, stderr);
             panic!();
         }
+
+        drop(guard);
     }
 
     pub fn generate_global_client_folder() {
@@ -70,5 +72,21 @@ mod old {
             println!("cargo:warning={:?}", res.err().unwrap());
             panic!();
         }
+    }
+
+    struct ChangeDirGuard {
+        old_path: std::path::PathBuf,
+    }
+
+    impl Drop for ChangeDirGuard {
+        fn drop(&mut self) {
+            std::env::set_current_dir(&self.old_path).unwrap();
+        }
+    }
+
+    fn chdir(path: &std::path::Path) -> ChangeDirGuard {
+        let cd = std::env::current_dir().unwrap();
+        std::env::set_current_dir(path).unwrap();
+        ChangeDirGuard { old_path: cd }
     }
 }

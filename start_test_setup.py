@@ -7,6 +7,7 @@ __version__ = "1.0"
 # OS-level dependencies
 import os
 import sys
+import platform
 from shutil import which
 import time
 from datetime import datetime
@@ -32,6 +33,8 @@ port = "8080"
 
 root_dir = os.getcwd()
 
+# For some reason...
+NPM = ["powershell", "npm"] if platform.system() == "Windows" else ["npm"]
 
 ## DOCKER VERSION TO USE >= 24
 DOCKER_VERSION = 24
@@ -39,17 +42,17 @@ DOCKER_VERSION = 24
 ## METHOD SECTION ##
 
 #
-def get_homeserver_path(path:str ='/pubhubs_hub/matrix_test_config/') -> str:
+def get_homeserver_path(path:str ='pubhubs_hub/matrix_test_config/') -> str:
     """ Get homeserver file path
 
     Args:
-        path (str, optional): _description_. Defaults to '/pubhubs_hub/matrix_test_config/'.
+        path (str, optional): _description_. Defaults to 'pubhubs_hub/matrix_test_config/'.
 
     Returns:
         path(str): Returns the homeserver file path.
     """
 
-    dir_path = os.path.dirname(root_dir +path)
+    dir_path = os.path.dirname(os.path.join(root_dir, path))
     file_name = "homeserver.yaml"
     return os.path.join(dir_path,file_name)
 
@@ -300,8 +303,8 @@ def get_oidc_id_secret(html_str:str) -> tuple[str]:
         AttributeError: If the client ID or client secret cannot be found in the HTML code.
     """
     import re
-    client_id_pattern = r'OpenID Connect Client ID:</dt>\n\s+<dd>(.*?)</dd>'
-    client_password_pattern = r'OpenID Connect Client Password:</dt>\n\s+<dd>(.*?)</dd>'
+    client_id_pattern = r'OpenID Connect Client ID:</dt>\s*<dd>(.*?)</dd>'
+    client_password_pattern = r'OpenID Connect Client Password:</dt>\s*<dd>(.*?)</dd>'
     client_id = re.search(client_id_pattern, html_str).group(1)
     client_password = re.search(client_password_pattern, html_str).group(1)
     return client_id, client_password
@@ -354,10 +357,11 @@ def docker_run_hub_client(image_name, client_number, container_name, client_port
         None
     """
 
-    docker_command = f""" docker run --name {container_name} -e PORT={client_port}  -e 'BAR_URL=frame-ancestors http://localhost:8080' -e 'HUB_URL=http://localhost:{hub_matrix_port}' -e 'PARENT_URL=http://localhost:8080' -d -p {client_port}:8800 {image_name} """
+    docker_command = f""" docker run --name {container_name} -e PORT={client_port}  -e \"BAR_URL=frame-ancestors http://localhost:8080\" -e \"HUB_URL=http://localhost:{hub_matrix_port}\" -e \"PARENT_URL=http://localhost:8080\" -d -p {client_port}:8800 {image_name} """
     print(f"\033[92m{docker_command}\033[0m")
     subprocess.call(docker_command, shell=True)
     docker_copy_command = f""" docker cp {root_dir}/hub-client/public/img/testlogos/logo{client_number}.svg {container_name}:/usr/var/static/img/logo.svg"""
+    print(f"\033[92m{docker_copy_command}\033[0m")
     subprocess.call(docker_copy_command, shell=True)
 
 def docker_run_hub_server(hub_secret, image_name, container_name, hub_matrix_port, config_dir):
@@ -504,7 +508,7 @@ def remove_container(container_name):
     Returns:
         None
     """
-    cmd = f"docker ps -a --filter 'name={container_name}' --format '{{{{.Names}}}}'"
+    cmd = f"docker ps -a --filter \"name={container_name}\" --format \"{{{{.Names}}}}\""
     container_status, _ = run_command(cmd)
 
     # If the container is running or exists, stop and remove it
@@ -639,7 +643,7 @@ def main_runner(cargo_setup:str, node_arg:str, hubs:int = 1) -> None:
 
     # Run global client first
     os.chdir("global-client")
-    subprocess.run(["npm", "install"], check=True)
+    subprocess.run([*NPM, "install"], check=True)
     global_client_proces = Process(target=os.system, args=("npm run watch",))
     global_client_proces.start()
 
@@ -840,9 +844,9 @@ class TestPubHubsAutomation(unittest.TestCase):
 
     @mock.patch("os.system")
     def test_run_external_command(self, os_system):
-        cargo_arg = "cargo watch --watch-when-idle -x 'run'"
+        cargo_arg = "cargo watch --watch-when-idle -x run"
         run_external_command(cargo_arg)
-        os_system.assert_called_once_with("cargo watch --watch-when-idle -x 'run'")
+        os_system.assert_called_once_with("cargo watch --watch-when-idle -x run")
 
     # HTTP endpoint related unit tests.
     def test_check_server_status(self):
@@ -869,8 +873,8 @@ class TestPubHubsAutomation(unittest.TestCase):
     def test_get_homeserver_path(self):
         # Set up the test
         root_dir = os.path.dirname(os.path.abspath(__file__))
-        default_path = "/pubhubs_hub/matrix_test_config/"
-        expected_file_path = os.path.join(root_dir + default_path, "homeserver.yaml")
+        default_path = "pubhubs_hub/matrix_test_config"
+        expected_file_path = os.path.join(root_dir, default_path, "homeserver.yaml")
 
         # Call the method
         actual_file_path = get_homeserver_path()
@@ -881,8 +885,8 @@ class TestPubHubsAutomation(unittest.TestCase):
     def test_get_homeserver_path_with_custom_path(self):
         # Set up the test
         root_dir = os.path.dirname(os.path.abspath(__file__))
-        custom_path = "/custom_hub/matrix_custom_config/"
-        expected_file_path = os.path.join(root_dir + custom_path, "homeserver.yaml")
+        custom_path = "custom_hub/matrix_custom_config/"
+        expected_file_path = os.path.join(root_dir, os.path.dirname(custom_path), "homeserver.yaml")
 
         # Call the method
         actual_file_path = get_homeserver_path(custom_path)
@@ -898,7 +902,7 @@ class TestPubHubsAutomation(unittest.TestCase):
 
         with patch(f"{__name__}.run_command", run_command_mock):
             remove_container(container_name)
-            run_command_mock.assert_any_call(f"docker ps -a --filter 'name={container_name}' --format '{{{{.Names}}}}'")
+            run_command_mock.assert_any_call(f"docker ps -a --filter \"name={container_name}\" --format \"{{{{.Names}}}}\"")
             run_command_mock.assert_any_call(f"docker stop {container_name}")
             run_command_mock.assert_any_call(f"docker rm {container_name}")
 
@@ -910,7 +914,7 @@ class TestPubHubsAutomation(unittest.TestCase):
 
         with patch(f'{__name__}.run_command', run_command_mock):
             remove_container(container_name)
-            run_command_mock.assert_called_once_with(f"docker ps -a --filter 'name={container_name}' --format '{{{{.Names}}}}'")
+            run_command_mock.assert_called_once_with(f"docker ps -a --filter \"name={container_name}\" --format \"{{{{.Names}}}}\"")
 
 
     def test_update_homeserver_yaml(self):
