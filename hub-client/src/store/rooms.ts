@@ -380,21 +380,23 @@ const useRooms = defineStore('rooms', {
 
 		// This extracts the notice which is used in secured rooms.
 		// The notice contains the user id and the profile attribute.
-		getBadgeInSecureRoom(roomId: string, cDisplayName: string): string {
-			let attribute = '';
-			const displayName = filters.extractPseudonym(cDisplayName);
-			for (const evt of this.rooms[roomId].timeline) {
-				if (evt.getContent().msgtype === 'm.notice') {
-					console.info("Event for notice: " + evt.getContent().body + " for user " + displayName)
-					// This notice is specific to secured room, there should be attributes.
-					if (evt.getContent().body.includes('attributes') && evt.getContent().body.includes(displayName)) {
-						attribute = filters.extractJSONFromEventString(evt);
-						break;
-					}
-				}
-			}
-			return attribute;
-		},
+       getBadgeInSecureRoom(roomId: string, cDisplayName: string): string {
+            let attribute = '';
+
+            const displayName = filters.extractPseudonym(cDisplayName);
+        
+            for (const evt of this.rooms[roomId].getLiveTimeline().getEvents()) {
+                if (evt.getOriginalContent().msgtype === 'm.notice') {
+                    console.info("Event for notice: " + evt.getOriginalContent().body + " for user " + displayName)
+                    // This notice is specific to secured room, there should be attributes.
+                    if (evt.getOriginalContent().body.includes('attributes') && evt.getOriginalContent().body.includes(displayName)) {
+                        attribute = filters.extractJSONFromEventString(evt);
+                        break;
+                    }
+                }
+            }
+            return attribute;
+        },
 
 		yiviSecuredRoomflow(roomId: string, authToken: string) {
 			const router = useRouter();
