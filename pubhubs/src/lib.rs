@@ -29,6 +29,9 @@ pub mod cli;
 #[cfg(feature = "bin")]
 pub mod servers;
 
+#[cfg(feature = "bin")]
+pub mod api;
+
 #[cfg(feature = "common")]
 mod common {
     pub mod elgamal;

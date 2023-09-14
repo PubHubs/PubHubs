@@ -4,13 +4,12 @@ use anyhow::Result;
 use futures_util::future::LocalBoxFuture;
 use tokio::sync::mpsc;
 
-use std::rc::Weak as WeakRc;
 use std::sync::Arc;
 
 use crate::servers::api;
 
 /// Enumerates the names of the different PubHubs servers
-#[derive(serde::Serialize, serde::Deserialize, Clone, Copy)]
+#[derive(serde::Serialize, serde::Deserialize, Clone, Copy, Debug, PartialEq, Eq)]
 pub enum Name {
     #[serde(rename = "phc")]
     PubHubsCentral,
@@ -123,7 +122,10 @@ pub trait App<S: Server>: Clone + 'static {
     /// Runs the discovery routine for this server.
     ///
     /// May panic if the [Server]'s state is not [State::Discovery].
-    fn discover(&self) -> LocalBoxFuture<'_, Result<(), api::ErrorCode>>;
+    fn discover(
+        &self,
+        resp: api::DiscoveryInfoResp,
+    ) -> LocalBoxFuture<'_, Result<(), api::ErrorCode>>;
 
     /// Returns the [AppBase] this [App] builds on.
     fn base(&self) -> &AppBase<S>;
@@ -253,7 +255,10 @@ impl<S: Server> AppBase<S> {
         let base = app.base();
 
         let task_lock = match &base.state {
-            State::Discovery { task_lock, shared } => task_lock,
+            State::Discovery {
+                task_lock,
+                shared: _,
+            } => task_lock,
             _ => return api::err(api::ErrorCode::NoLongerInCorrectState),
         };
 
@@ -266,7 +271,15 @@ impl<S: Server> AppBase<S> {
             }
         };
 
-        let result = app.discover().await;
+        let phc_discovery_info = {
+            let result = Self::discover_phc(app.clone()).await;
+            if result.is_err() {
+                return api::err(result.unwrap_err());
+            }
+            result.unwrap()
+        };
+
+        let result = app.discover(phc_discovery_info).await;
 
         drop(lock_guard);
 
@@ -277,10 +290,56 @@ impl<S: Server> AppBase<S> {
         api::err(result.unwrap_err())
     }
 
-    async fn handle_discovery_info(app: S::AppT) -> api::Result<api::DiscoveryInfo> {
+    async fn discover_phc(app: S::AppT) -> api::Result<api::DiscoveryInfoResp> {
+        let base = app.base();
+
+        let pdi = {
+            let result = api::query::<api::DiscoveryInfo>(&base.phc_url, ()).await;
+
+            if result.is_err() {
+                return api::Result::Err(result.unwrap_err().into_server_error());
+            }
+
+            result.unwrap()
+        };
+
+        if pdi.name != Name::PubHubsCentral {
+            log::error!(
+                "Supposed {} at {} returned name {}",
+                Name::PubHubsCentral,
+                base.phc_url,
+                pdi.name
+            );
+            return api::err(api::ErrorCode::Malconfigured);
+        }
+
+        if pdi.phc_url != base.phc_url {
+            log::error!(
+                "{} at {} thinks they're at {}",
+                Name::PubHubsCentral,
+                base.phc_url,
+                pdi.phc_url
+            );
+            return api::err(api::ErrorCode::Malconfigured);
+        }
+
+        if S::NAME == Name::PubHubsCentral {
+            if pdi.self_check_code != base.self_check_code {
+                log::error!(
+                    "{} at {} is not me! (Different self_check_code.)",
+                    Name::PubHubsCentral,
+                    base.phc_url
+                );
+            }
+        }
+
+        api::ok(pdi)
+    }
+
+    async fn handle_discovery_info(app: S::AppT) -> api::Result<api::DiscoveryInfoResp> {
         let app_base = app.base();
 
-        api::ok(api::DiscoveryInfo {
+        api::ok(api::DiscoveryInfoResp {
             name: S::NAME,
             self_check_code: app_base.self_check_code.clone(),
             phc_url: app_base.phc_url.clone(),

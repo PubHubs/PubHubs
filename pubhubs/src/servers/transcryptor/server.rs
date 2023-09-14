@@ -63,7 +63,10 @@ impl crate::servers::App<Server> for Rc<App> {
             );
     }
 
-    fn discover(&self) -> LocalBoxFuture<'_, Result<(), api::ErrorCode>> {
+    fn discover(
+        &self,
+        _phc_di: api::DiscoveryInfoResp,
+    ) -> LocalBoxFuture<'_, Result<(), api::ErrorCode>> {
         // TODO: implement
 
         Box::pin(async { Ok(()) })

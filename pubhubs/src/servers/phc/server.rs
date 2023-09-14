@@ -5,9 +5,7 @@ use anyhow::Result;
 use futures_util::future::LocalBoxFuture;
 
 use crate::servers::api;
-use crate::servers::{AppBase, AppCreatorBase, BoxModifier, ServerBase};
-
-use std::rc::Weak as WeakRc;
+use crate::servers::{AppBase, AppCreatorBase, ServerBase};
 
 /// PubHubs Central server
 pub struct Server {
@@ -66,9 +64,12 @@ impl crate::servers::App<Server> for Rc<App> {
             );
     }
 
-    fn discover(&self) -> LocalBoxFuture<'_, Result<(), api::ErrorCode>> {
+    fn discover(
+        &self,
+        _phc_di: api::DiscoveryInfoResp,
+    ) -> LocalBoxFuture<'_, Result<(), api::ErrorCode>> {
         Box::pin(async {
-            tokio::time::sleep(tokio::time::Duration::from_millis(10000)).await;
+            tokio::time::sleep(tokio::time::Duration::from_millis(3000)).await;
 
             Ok(())
         })
