@@ -1,8 +1,8 @@
 <template>
 	<div v-if="hubSettings.isVisibleEventType(event.type) && hubSettings.skipNoticeUserEvent(event)" class="flex flex-row space-x-4 mb-8">
-		<Avatar :class="bgColor(userColor)" :user="event.sender"></Avatar>
+		<Avatar :class="bgColor(color(event.sender))" :user="event.sender"></Avatar>
 		<div class="w-full">
-			<H3 :class="textColor(userColor)">
+			<H3 :class="textColor(color(event.sender))">
 				<UserDisplayName :user="event.sender"></UserDisplayName>
 				<EventTime class="ml-2" :timestamp="event.origin_server_ts"> </EventTime>
 			</H3>
@@ -24,12 +24,10 @@
 	const hubSettings = useHubSettings();
 	const { color, textColor, bgColor } = useUserColor();
 
-	const props = defineProps({
+	defineProps({
 		event: {
 			type: Object,
 			required: true,
 		},
 	});
-
-	const userColor = color(props.event.sender);
 </script>
