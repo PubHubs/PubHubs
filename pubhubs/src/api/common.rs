@@ -3,7 +3,7 @@ use serde::{Deserialize, Serialize};
 /// The result of an API-request to a PubHubs server endpoint.
 ///
 /// We have made a new type because we cannot implement [actix_web::Responder]
-/// for the existing [std::result:Result].
+/// for the existing [std::result::Result].
 #[derive(Serialize, Deserialize, Debug)]
 pub enum Result<T> {
     Ok(T),

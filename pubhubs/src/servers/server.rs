@@ -9,10 +9,12 @@ use std::sync::Arc;
 use crate::servers::api;
 
 /// Enumerates the names of the different PubHubs servers
-#[derive(serde::Serialize, serde::Deserialize, Clone, Copy, Debug, PartialEq, Eq)]
+#[derive(
+    serde::Serialize, serde::Deserialize, Clone, Copy, Debug, PartialEq, Eq, Hash, clap::ValueEnum,
+)]
 pub enum Name {
     #[serde(rename = "phc")]
-    PubHubsCentral,
+    PubhubsCentral,
 
     #[serde(rename = "transcryptor")]
     Transcryptor,
@@ -24,7 +26,7 @@ impl std::fmt::Display for Name {
             f,
             "{}",
             match self {
-                Name::PubHubsCentral => "PubHubs Central",
+                Name::PubhubsCentral => "PubHubs Central",
                 Name::Transcryptor => "Transcryptor",
             }
         )
@@ -303,10 +305,10 @@ impl<S: Server> AppBase<S> {
             result.unwrap()
         };
 
-        if pdi.name != Name::PubHubsCentral {
+        if pdi.name != Name::PubhubsCentral {
             log::error!(
                 "Supposed {} at {} returned name {}",
-                Name::PubHubsCentral,
+                Name::PubhubsCentral,
                 base.phc_url,
                 pdi.name
             );
@@ -316,18 +318,18 @@ impl<S: Server> AppBase<S> {
         if pdi.phc_url != base.phc_url {
             log::error!(
                 "{} at {} thinks they're at {}",
-                Name::PubHubsCentral,
+                Name::PubhubsCentral,
                 base.phc_url,
                 pdi.phc_url
             );
             return api::err(api::ErrorCode::Malconfigured);
         }
 
-        if S::NAME == Name::PubHubsCentral {
+        if S::NAME == Name::PubhubsCentral {
             if pdi.self_check_code != base.self_check_code {
                 log::error!(
                     "{} at {} is not me! (Different self_check_code.)",
-                    Name::PubHubsCentral,
+                    Name::PubhubsCentral,
                     base.phc_url
                 );
             }

@@ -2,11 +2,12 @@
 
 mod api;
 mod config;
-mod macros;
-mod phc;
+pub(crate) mod macros;
 mod run;
 mod server;
-mod transcryptor;
+
+pub(crate) mod phc;
+pub(crate) mod transcryptor;
 
 pub use config::Config;
 pub(super) use macros::for_all_servers;

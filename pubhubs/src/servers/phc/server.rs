@@ -13,7 +13,7 @@ pub struct Server {
 }
 
 impl crate::servers::Server for Server {
-    const NAME: crate::servers::Name = crate::servers::Name::PubHubsCentral;
+    const NAME: crate::servers::Name = crate::servers::Name::PubhubsCentral;
     type AppT = Rc<App>;
     type AppCreatorT = AppCreator;
 

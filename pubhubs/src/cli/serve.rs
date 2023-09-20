@@ -1,4 +1,5 @@
 use crate::servers::Config;
+use crate::servers::Server as _;
 use anyhow::Result;
 
 #[derive(clap::Args, Debug)]
@@ -13,6 +14,10 @@ pub struct ServeArgs {
         default_values = ["pubhubs.yaml", "pubhubs.default.yaml"]
     )]
     config_search_paths: Vec<std::path::PathBuf>,
+
+    /// Run not all servers specified in the configuration file, but only these
+    #[arg(name = "only", value_enum, short, long, value_name = "SERVERS")]
+    only: Option<Vec<crate::servers::Name>>,
 }
 
 impl ServeArgs {
@@ -38,9 +43,34 @@ impl ServeArgs {
             );
         };
 
+        let config = self.apply_only(config);
+
         tokio::runtime::Builder::new_multi_thread()
             .enable_all()
             .build()?
             .block_on(crate::servers::run(config))
+    }
+
+    /// Filters servers from config that were not specified to run
+    fn apply_only(&self, mut config: Config) -> Config {
+        if self.only.is_none() {
+            // if no --only was specified, run all servers
+            return config;
+        }
+
+        let only: std::collections::HashSet<&crate::servers::Name> =
+            self.only.as_ref().unwrap().iter().collect();
+
+        macro_rules! remove_server_if_needed {
+            ($server:ident) => {
+                if !only.contains(&crate::servers::$server::Server::NAME) {
+                    config.$server = None;
+                }
+            };
+        }
+
+        crate::servers::for_all_servers!(remove_server_if_needed);
+
+        config
     }
 }
