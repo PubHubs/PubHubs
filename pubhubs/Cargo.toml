@@ -3,6 +3,7 @@ name = "pubhubs"
 version = "0.1.0"
 edition = "2021"
 license-file = "../LICENSE"
+rust-version = "1.72"
 
 [lib]
 crate-type = ["cdylib","rlib"]
