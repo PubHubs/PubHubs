@@ -121,6 +121,9 @@ pub struct DiscoveryInfoResp {
 
     /// URL of the PubHubs Central server this server tries to connect to.
     pub phc_url: url::Url,
+
+    /// Used to sign JWT of this server.
+    pub jwt_key: ed25519_dalek::VerifyingKey,
 }
 
 /// Details on a PubHubs server endpoint
@@ -173,6 +176,11 @@ pub async fn query<EP: EndpointDetails>(
                     }
                     awc::error::ConnectError::Resolver(err) => {
                         log::warn!("resolving {url}: {err}");
+                        ErrorCode::CouldNotConnectYet
+                    }
+                    awc::error::ConnectError::Io(err) => {
+                        // might happen when the port is closed
+                        log::warn!("io error while connecting to {url}: {err}");
                         ErrorCode::CouldNotConnectYet
                     }
                     _ => {

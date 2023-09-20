@@ -836,6 +836,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "60f6d271ca33075c88028be6f04d502853d63a5ece419d269c15315d4fc1cf1d"
 dependencies = [
  "pkcs8",
+ "serde",
  "signature",
 ]
 
@@ -847,6 +848,7 @@ checksum = "7277392b266383ef8396db7fdeb1e77b6c52fed775f5df15bb24f35b72156980"
 dependencies = [
  "curve25519-dalek",
  "ed25519",
+ "rand_core",
  "serde",
  "sha2",
  "zeroize",

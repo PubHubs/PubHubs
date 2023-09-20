@@ -6,7 +6,7 @@ use tokio::sync::mpsc;
 
 use std::sync::Arc;
 
-use crate::servers::api;
+use crate::servers::api::{self, EndpointDetails};
 
 /// Enumerates the names of the different PubHubs servers
 #[derive(
@@ -138,6 +138,7 @@ pub struct ServerBase {
     pub config: crate::servers::Config,
     pub state: State,
     pub self_check_code: String,
+    pub jwt_key: ed25519_dalek::SigningKey,
 }
 
 impl ServerBase {
@@ -151,6 +152,10 @@ impl ServerBase {
                 shared: Arc::new(tokio::sync::RwLock::new(DiscoveryState::default())),
             },
             self_check_code: server_config.self_check_code(),
+            jwt_key: server_config
+                .jwt_key
+                .clone()
+                .unwrap_or_else(|| ed25519_dalek::SigningKey::generate(&mut rand::rngs::OsRng)),
         }
     }
 }
@@ -161,6 +166,7 @@ pub struct AppCreatorBase {
     pub state: State,
     pub phc_url: url::Url,
     pub self_check_code: String,
+    pub jwt_key: ed25519_dalek::SigningKey,
 }
 
 impl AppCreatorBase {
@@ -169,6 +175,7 @@ impl AppCreatorBase {
             state: server_base.state.clone(),
             phc_url: server_base.config.phc_url.clone(),
             self_check_code: server_base.self_check_code.clone(),
+            jwt_key: server_base.jwt_key.clone(),
         }
     }
 }
@@ -179,6 +186,7 @@ pub struct AppBase<S: Server> {
     pub shutdown_sender: ShutdownSender<S>,
     pub self_check_code: String,
     pub phc_url: url::Url,
+    pub jwt_key: ed25519_dalek::SigningKey,
 }
 
 impl<S: Server> AppBase<S> {
@@ -188,6 +196,7 @@ impl<S: Server> AppBase<S> {
             shutdown_sender: shutdown_sender.clone(),
             phc_url: creator_base.phc_url.clone(),
             self_check_code: creator_base.self_check_code.clone(),
+            jwt_key: creator_base.jwt_key.clone(),
         }
     }
 
@@ -244,7 +253,7 @@ impl<S: Server> AppBase<S> {
             web::get().to(app_method!(handle_discovery_run)),
         )
         .route(
-            "/.phc/discovery/info",
+            api::DiscoveryInfo::PATH,
             web::get().to(app_method!(handle_discovery_info)),
         );
     }
@@ -345,6 +354,11 @@ impl<S: Server> AppBase<S> {
             name: S::NAME,
             self_check_code: app_base.self_check_code.clone(),
             phc_url: app_base.phc_url.clone(),
+            // NOTE on efficiency:  the ed25519_dalek::SigningKey contains a precomputed
+            // ed25519_dalek::VerifyingKey, which contains a precomputed compressed (=serialized)
+            // form.  So no expensive cryptographic operations like finite field inversion
+            // or scalar multiplication are performed here.
+            jwt_key: app_base.jwt_key.verifying_key(),
         })
     }
 }
