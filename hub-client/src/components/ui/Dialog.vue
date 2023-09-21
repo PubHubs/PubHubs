@@ -10,12 +10,12 @@
 					<H2 v-if="dialog.properties.title !== ''" class="m-0 text-left">{{ dialog.properties.title }}</H2>
 					<slot name="header"></slot>
 				</div>
-				<Line v-if="hasContent" class="mb-2 z-0"></Line>
+				<Line v-if="hasContent" class="mt-2 mb-2 z-0"></Line>
 				<div v-if="hasContent" class="text-left max-h-96 overflow-auto py-1">
 					<slot></slot>
 					<div v-if="dialog.properties.content !== ''">{{ dialog.properties.content }}</div>
 				</div>
-				<Line class="mb-3 z-0"></Line>
+				<Line class="mt-2 mb-3 z-0"></Line>
 				<div class="flex flex-row-reverse">
 					<div v-for="(button, index) in dialog.properties.buttons" :key="index" class="ml-2">
 						<Button :color="button.color" @click="doAction(button.action)">{{ $t('dialog.' + button.label) }}</Button>

@@ -21,7 +21,7 @@
 		<RoomTimeline class="pt-12 pb-3" :room_id="rooms.currentRoomId"></RoomTimeline>
 
 		<template #footer>
-			<MessageInput @submit="addMessage($event)"></MessageInput>
+			<MessageInput></MessageInput>
 		</template>
 	</HeaderFooter>
 </template>
@@ -31,12 +31,10 @@
 	import { useRoute } from 'vue-router';
 	import { useI18n } from 'vue-i18n';
 	import { Room, useRooms } from '@/store/store';
-	import { usePubHubs } from '@/core/pubhubsStore';
 
 	const route = useRoute();
 	const { t } = useI18n();
 	const rooms = useRooms();
-	const pubhubs = usePubHubs();
 
 	const currentRoom = ref({} as Room);
 	const members = ref([] as Array<String>);
@@ -73,10 +71,6 @@
 			return topicEvent.getContent().topic;
 		}
 		return '';
-	}
-
-	function addMessage(text: string) {
-		pubhubs.addMessage(rooms.currentRoomId, text);
 	}
 
 	function search(term: string) {

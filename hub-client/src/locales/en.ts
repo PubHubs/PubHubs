@@ -104,6 +104,7 @@ const en = {
 	},
 	message: {
 		send: 'Send',
+		in_reply_to: 'In reply to:',
 		notification: 'New message in hub',
 	},
 };
