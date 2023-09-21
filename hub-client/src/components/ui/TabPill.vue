@@ -1,5 +1,5 @@
 <template>
-	<div class="tabs-tab inline-block rounded-t border border-b-0 px-2 py-1 cursor-pointer z-20" :class="activeClass" @click="setActiveTab(tab)">
+	<div class="tabs-tab inline-block rounded-t border border-b-0 px-2 py-1 cursor-pointer z-20 theme-light:border-gray theme-light:text-gray" :class="activeClass" @click="setActiveTab(tab)">
 		<slot :active="isActiveTab(tab)"></slot>
 	</div>
 </template>
@@ -23,7 +23,7 @@
 			c += 'ml-2';
 		}
 		if (isActiveTab(tab.value)) {
-			c += ' bg-white dark:bg-gray-middle';
+			c += ' bg-white dark:bg-transparent';
 		} else {
 			c += ' bg-transparent opacity-50';
 		}

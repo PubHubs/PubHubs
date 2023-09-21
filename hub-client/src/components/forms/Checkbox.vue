@@ -1,7 +1,7 @@
 <template>
 	<input
 		type="checkbox"
-		class="h-6 w-6 mt-1 rounded-md text-green bg-transparent border-1 border-black dark:border-white focus:outline-0 focus:outline-offset-0 focus:ring-0 focus:ring-offset-0 focus:ring-offset-width-0 focus:shadow-0"
+		class="h-6 w-6 mt-1 rounded-md text-green bg-transparent border-1 border-black dark:border-white theme-light:border-gray focus:outline-0 focus:outline-offset-0 focus:ring-0 focus:ring-offset-0 focus:ring-offset-width-0 focus:shadow-0"
 		:value="modelValue"
 		:checked="modelValue"
 		@input="update($event.target.checked)"

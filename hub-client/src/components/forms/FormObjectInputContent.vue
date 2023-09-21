@@ -4,7 +4,7 @@
 			{{ pillTitle(index) }}
 			<Icon v-if="index > 0" type="remove" class="float-right text-red opacity-50 hover:opacity-100 cursor-pointer ml-1" @click.stop="removeItem(index)"></Icon>
 		</TabPill>
-		<div class="float-right h-8 tabs-tab inline-block rounded-t border border-b-0 px-2 py-1 cursor-pointer z-20" @click.stop="addItem()">
+		<div class="float-right h-8 tabs-tab inline-block rounded-t border border-b-0 px-2 py-1 cursor-pointer z-20 theme-light:border-gray" @click.stop="addItem()">
 			<Icon type="plus" class="text-green-dark opacity-70 hover:opacity-100 cursor-pointer" @click.stop="addItem()"></Icon>
 		</div>
 	</TabHeader>

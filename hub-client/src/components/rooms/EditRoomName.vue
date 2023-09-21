@@ -1,8 +1,5 @@
 <template>
-	<Dialog :buttons="buttonsSubmitCancel" width="w-3/6" @close="close($event)">
-		<template #header>
-			{{ $t('admin.edit_name') }}
-		</template>
+	<Dialog :title="$t('admin.edit_name')" :buttons="buttonsSubmitCancel" width="w-3/6" @close="close($event)">
 		<TextInput v-model="newName" class="w-full"></TextInput>
 	</Dialog>
 </template>
