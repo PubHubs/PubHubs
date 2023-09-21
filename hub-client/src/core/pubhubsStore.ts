@@ -1,12 +1,13 @@
 import { defineStore } from 'pinia';
 
 import { Optional } from 'matrix-events-sdk';
-import { User as MatrixUser, MatrixClient, EventTimeline } from 'matrix-js-sdk';
+import { User as MatrixUser, MatrixClient, EventTimeline, ContentHelpers } from 'matrix-js-sdk';
 
 import { Authentication } from '@/core/authentication';
 import { Events } from '@/core/events';
 import { useSettings, User, useUser, useRooms } from '@/store/store';
 
+import { hasHtml, sanitizeHtml } from '@/core/sanitizer';
 import { api } from '@/core/api';
 
 const usePubHubs = defineStore('pubhubs', {
@@ -116,13 +117,35 @@ const usePubHubs = defineStore('pubhubs', {
 
 		async createRoom(options: object) {
 			await this.client.createRoom(options);
+			this.updateRooms();
+		},
+
+		async renameRoom(roomId: string, name: string) {
+			await this.client.setRoomName(roomId, name);
+			this.updateRooms();
 		},
 
 		async leaveRoom(roomId: string) {
 			await this.client.leave(roomId);
 		},
 
-		addMessage(roomId: string, text: string) {
+		_constructMessageContent(text: string) {
+			let content = ContentHelpers.makeTextMessage(text);
+
+			const cleanText = hasHtml(text);
+			if (typeof cleanText == 'string') {
+				const html = sanitizeHtml(text);
+				content = ContentHelpers.makeHtmlMessage(cleanText, html);
+			}
+			return content;
+		},
+
+		/**
+		 * @param roomId
+		 * @param text
+		 * @param inReplyTo Possible event to which the new message replies.
+		 */
+		addMessage(roomId: string, text: string, inReplyTo?: Record<string, any>) {
 			const rooms = useRooms();
 			const room = rooms.room(roomId);
 			if (room) {
@@ -137,10 +160,20 @@ const usePubHubs = defineStore('pubhubs', {
 					}
 				}
 			}
-			const content = {
-				body: text,
-				msgtype: 'm.text',
-			};
+
+			const content = this._constructMessageContent(text);
+
+			// If the message is a reply to another event.
+			if (inReplyTo) {
+				//TODO ignore typescript error for now, fix when adding types for events (issue #280)
+				//@ts-ignore
+				content['m.relates_to'] = { 'm.in_reply_to': { event_id: inReplyTo.id, event_copy: structuredClone(inReplyTo) } };
+
+				// Only copy the 'inReplyTo' event, not a possible event that 'inReplyTo' replies to.
+				//@ts-ignore
+				delete content['m.relates_to']['m.in_reply_to'].event_copy.content['m.relates_to']?.['m.in_reply_to']?.event_copy;
+			}
+
 			this.client.sendEvent(roomId, 'm.room.message', content, '');
 		},
 

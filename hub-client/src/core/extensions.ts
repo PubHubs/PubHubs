@@ -17,4 +17,17 @@ const trimSplit = (list: string, delimiter: string = ',') => {
 	return result;
 };
 
-export { propCompare, trimSplit };
+const isEmpty = (v: any) => {
+	if (typeof v == 'boolean') {
+		return !v;
+	}
+	if (typeof v == 'string') {
+		return v == '';
+	}
+	if (typeof v == 'object') {
+		return Object.keys(v).length == 0;
+	}
+	return false;
+};
+
+export { propCompare, trimSplit, isEmpty };

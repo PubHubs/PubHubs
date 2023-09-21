@@ -49,6 +49,7 @@ const nl = {
 		me: 'Ik',
 		leave_sure: 'Weet je zeker dit gesprek wilt verlaten?',
 		new_message: 'Typ hier je chatbericht',
+		members: 'leden',
 		private_room: 'Privé gesprek',
 		private_members: 'Met {0},{1}',
 		private_rooms: 'Privé gesprekken',
@@ -81,9 +82,14 @@ const nl = {
 	admin: {
 		title: 'Admin',
 		description: 'Maak en verwijder hier (beveiligde) gesprekken',
-		add_room: 'Voeg (beveiligd) gesprek toe',
+		add_room: 'Voeg openbaar gesprek toe',
+		add_secured_room: 'Voeg beveiligd gesprek toe',
 		name: 'Naam van gesprek',
+		edit_name: 'Pas naam van gesprek aan',
+		edit_secured_room: 'Pas beveiligd gesprek aan',
 		added_room: 'Gesprek toegevoegd',
+		no_rooms: 'Geen kamers',
+		remove_room_sure: 'Weet je zeker dat je dit gesprek wilt verwijderen?',
 		secured_room: 'Beveiligde kamer',
 		no_secured_rooms: 'Geen beveiligde kamers',
 		secured_remove_sure: 'Weet je zeker dat je dit beveiligde gesprek wilt verwijderen?',
@@ -100,7 +106,8 @@ const nl = {
 	},
 	message: {
 		send: 'Verstuur',
-		notification: 'Nieuw bericht in hub'
+		in_reply_to: 'Antwoord op:',
+		notification: 'Nieuw bericht in hub',
 	},
 };
 

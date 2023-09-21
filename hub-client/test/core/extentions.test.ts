@@ -1,5 +1,26 @@
 import { describe, expect, test } from 'vitest';
-import { trimSplit } from '@/core/extensions.ts';
+import { trimSplit, isEmpty } from '@/core/extensions.ts';
+
+describe('isEmpty', () => {
+	test('boolean', () => {
+		expect(isEmpty(false)).toBeTypeOf('boolean');
+		expect(isEmpty(false)).toEqual(true);
+		expect(isEmpty(true)).toBeTypeOf('boolean');
+		expect(isEmpty(true)).toEqual(false);
+	});
+	test('string', () => {
+		expect(isEmpty('')).toBeTypeOf('boolean');
+		expect(isEmpty('')).toEqual(true);
+		expect(isEmpty('jahb')).toBeTypeOf('boolean');
+		expect(isEmpty('akdfj')).toEqual(false);
+	});
+	test('Object', () => {
+		expect(isEmpty({})).toBeTypeOf('boolean');
+		expect(isEmpty({})).toEqual(true);
+		expect(isEmpty({ test: 'test' })).toBeTypeOf('boolean');
+		expect(isEmpty({ test: 'test' })).toEqual(false);
+	});
+});
 
 describe('trimSplit', () => {
 	test('empty', () => {

@@ -49,6 +49,7 @@ const en = {
 		me: 'Me',
 		leave_sure: 'Do you really want to leave this room?',
 		new_message: 'Type your message here',
+		members: 'members',
 		private_room: 'Private room',
 		private_members: 'With {0},{1}',
 		private_rooms: 'Private rooms',
@@ -79,9 +80,14 @@ const en = {
 	admin: {
 		title: 'Admin',
 		description: 'Create and delete (secured) rooms',
-		add_room: 'Add a (secured) room',
+		add_room: 'Add a public room',
+		add_secured_room: 'Add a (secured) room',
 		name: 'Room name',
+		edit_name: 'Change room name',
+		edit_secured_room: 'Change secured room',
 		added_room: 'Room added',
+		no_rooms: 'No rooms',
+		remove_room_sure: 'Are you sure to delete this public room?',
 		secured_room: 'Secured room',
 		no_secured_rooms: 'No secured rooms',
 		secured_remove_sure: 'Are you sure to delete this secured room?',
@@ -98,7 +104,8 @@ const en = {
 	},
 	message: {
 		send: 'Send',
-		notification: 'New message in hub'
+		in_reply_to: 'In reply to:',
+		notification: 'New message in hub',
 	},
 };
 
