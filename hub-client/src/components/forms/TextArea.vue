@@ -3,7 +3,7 @@
 		ref="textarea"
 		rows="1"
 		v-tw-class="'pt-1 px-2 pb-2'"
-		class="w-full resize-none rounded-lg border theme-light:text-black dark:bg-transparent dark:text-white dark:border-white theme-light:border-black focus:border-black focus:outline-0 focus:outline-offset-0 focus:ring-0"
+		class="w-full resize-none rounded-lg border theme-light:text-black dark:bg-gray-dark dark:text-white dark:border-white theme-light:border-black focus:border-black focus:outline-0 focus:outline-offset-0 focus:ring-0"
 		:placeholder="placeholder"
 		:title="placeholder"
 		:value="modelValue"
