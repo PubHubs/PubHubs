@@ -8,7 +8,7 @@ use std::marker::PhantomData;
 /// be modified by the [BytesEncoding] `E`.
 ///
 /// We primarily use this to encode keys as hex or base64 strings in JSON instead of arrays.
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct BytesWrapper<T, E> {
     inner: T,
     phantom: PhantomData<E>,
@@ -35,7 +35,7 @@ pub trait BytesEncoding {
 }
 
 /// Hex [BytesEncoding].
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct B16Encoding<
     const ENCODE_LOWER_CASE: bool = { true },
     const DECODE_MIXED_CASE: bool = { true },

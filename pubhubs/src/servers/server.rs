@@ -6,7 +6,10 @@ use tokio::sync::mpsc;
 
 use std::sync::Arc;
 
-use crate::servers::api::{self, EndpointDetails};
+use crate::servers::{
+    api::{self, EndpointDetails},
+    Constellation,
+};
 
 /// Enumerates the names of the different PubHubs servers
 #[derive(
@@ -124,10 +127,7 @@ pub trait App<S: Server>: Clone + 'static {
     /// Runs the discovery routine for this server.
     ///
     /// May panic if the [Server]'s state is not [State::Discovery].
-    fn discover(
-        &self,
-        resp: api::DiscoveryInfoResp,
-    ) -> LocalBoxFuture<'_, Result<(), api::ErrorCode>>;
+    fn discover(&self, resp: api::DiscoveryInfoResp) -> LocalBoxFuture<'_, api::Result<()>>;
 
     /// Returns the [AppBase] this [App] builds on.
     fn base(&self) -> &AppBase<S>;
@@ -359,6 +359,11 @@ impl<S: Server> AppBase<S> {
             // form.  So no expensive cryptographic operations like finite field inversion
             // or scalar multiplication are performed here.
             jwt_key: app_base.jwt_key.verifying_key().into(),
+            state: (&app_base.state).into(),
+            constellation: match &app_base.state {
+                State::UpAndRunning { constellation } => Some(constellation.clone()),
+                State::Discovery { .. } => None,
+            },
         })
     }
 }
@@ -438,7 +443,7 @@ pub enum State {
     },
 
     /// Server has completed discovery and is running normally.
-    UpAndRunning,
+    UpAndRunning { constellation: Constellation },
 }
 
 /// Shared mutable state while the [Server] is in the [State::Discovery] phase.

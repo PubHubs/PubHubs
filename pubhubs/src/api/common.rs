@@ -1,6 +1,7 @@
 use serde::{Deserialize, Serialize};
 
 use crate::common::{fmt_ext, serde_ext};
+use crate::servers::server;
 
 /// The result of an API-request to a PubHubs server endpoint.
 ///
@@ -126,6 +127,29 @@ pub struct DiscoveryInfoResp {
 
     /// Used to sign JWT of this server.
     pub jwt_key: serde_ext::B16<ed25519_dalek::VerifyingKey>,
+
+    /// Discovery state of the server
+    pub state: ServerState,
+
+    /// Details of the other PubHubs servers, according to this server
+    /// None when `state` is [ServerState::Discovery]
+    pub constellation: Option<crate::servers::Constellation>,
+}
+
+/// Discovery state of a server
+#[derive(Serialize, Deserialize, Debug, Clone, Copy)]
+pub enum ServerState {
+    Discovery,
+    UpAndRunning,
+}
+
+impl From<&server::State> for ServerState {
+    fn from(s: &server::State) -> Self {
+        match s {
+            server::State::UpAndRunning { .. } => ServerState::UpAndRunning,
+            server::State::Discovery { .. } => ServerState::Discovery,
+        }
+    }
 }
 
 /// Details on a PubHubs server endpoint

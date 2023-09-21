@@ -110,7 +110,7 @@ pub mod phc {
     #[serde(deny_unknown_fields)]
     pub struct ExtraConfig {
         /// Where can we reach the transcryptor?
-        transcryptor_url: Url,
+        pub transcryptor_url: Url,
     }
 }
 
