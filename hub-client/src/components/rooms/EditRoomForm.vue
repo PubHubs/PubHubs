@@ -1,9 +1,5 @@
 <template>
-	<Dialog :buttons="buttonsSubmitCancel" width="w-3/6" @close="close($event)">
-		<template #header>
-			{{ title }}
-		</template>
-
+	<Dialog :title="title" :buttons="buttonsSubmitCancel" width="w-3/6" @close="close($event)">
 		<form @submit.prevent>
 			<FormLine>
 				<Label>{{ $t('admin.name') }}</Label>
