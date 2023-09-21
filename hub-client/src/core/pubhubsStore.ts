@@ -1,12 +1,13 @@
 import { defineStore } from 'pinia';
 
 import { Optional } from 'matrix-events-sdk';
-import { User as MatrixUser, MatrixClient, EventTimeline } from 'matrix-js-sdk';
+import { User as MatrixUser, MatrixClient, EventTimeline, ContentHelpers } from 'matrix-js-sdk';
 
 import { Authentication } from '@/core/authentication';
 import { Events } from '@/core/events';
 import { useSettings, User, useUser, useRooms } from '@/store/store';
 
+import { hasHtml, sanitizeHtml } from '@/core/sanitizer';
 import { api } from '@/core/api';
 
 const usePubHubs = defineStore('pubhubs', {
@@ -128,6 +129,17 @@ const usePubHubs = defineStore('pubhubs', {
 			await this.client.leave(roomId);
 		},
 
+		_constructMessageContent(text: string) {
+			let content = ContentHelpers.makeTextMessage(text);
+
+			const cleanText = hasHtml(text);
+			if (typeof cleanText == 'string') {
+				const html = sanitizeHtml(text);
+				content = ContentHelpers.makeHtmlMessage(cleanText, html);
+			}
+			return content;
+		},
+
 		addMessage(roomId: string, text: string) {
 			const rooms = useRooms();
 			const room = rooms.room(roomId);
@@ -143,10 +155,8 @@ const usePubHubs = defineStore('pubhubs', {
 					}
 				}
 			}
-			const content = {
-				body: text,
-				msgtype: 'm.text',
-			};
+
+			const content = this._constructMessageContent(text);
 			this.client.sendEvent(roomId, 'm.room.message', content, '');
 		},
 
