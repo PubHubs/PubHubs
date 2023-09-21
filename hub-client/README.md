@@ -18,10 +18,16 @@ For Development or Theming see below.
 npm install
 ```
 
-Set url of the hubs-homeserver in `public/client-config.js`:
+Set url of the hubs-homeserver in `public/client-config.js` or `public/client-config.local.js`:
 
 ```
 "HUB_URL": "https://localhost:8008" // Default for local development together with backend servers.
+```
+
+or for `client-config.local.js`:
+
+```
+_env.HUB_URL = "https://main.testhub-matrix.ihub.ru.nl";
 ```
 
 For developing/theming on the client only, set to:
