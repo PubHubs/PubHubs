@@ -27,14 +27,8 @@
 	import { computed } from 'vue';
 	import { useHubSettings } from '@/store/store';
 	import { useUserColor } from '@/composables/useUserColor';
-<<<<<<< hub-client/src/components/rooms/RoomEvent.vue
-	import H3 from '../elements/H3.vue';
-	import Icon from '../elements/Icon.vue';
 	import { useMessageActions } from '@/store/message-actions';
 	import MessageSnippet from './MessageSnippet.vue';
-import { computed } from 'vue';
-=======
->>>>>>> hub-client/src/components/rooms/RoomEvent.vue
 
 	const hubSettings = useHubSettings();
 	const { color, textColor, bgColor } = useUserColor();
@@ -47,7 +41,6 @@ import { computed } from 'vue';
 		},
 	});
 
-<<<<<<< hub-client/src/components/rooms/RoomEvent.vue
 	const inReplyTo = computed(() => props.event.content?.['m.relates_to']?.['m.in_reply_to']?.event_copy)
 
 	function reply() {
@@ -58,8 +51,8 @@ import { computed } from 'vue';
 	function isReply(event: Record<string, any>): boolean {
 		return event.content?.['m.relates_to']?.['m.in_reply_to']?.event_copy instanceof Object;
 	}
-=======
-	const msgTypeIsText = computed(() => {
+
+    const msgTypeIsText = computed(() => {
 		if (props.event.content.msgtype == 'm.text') {
 			if (typeof props.event.content.format == 'undefined') {
 				return true;
@@ -78,5 +71,4 @@ import { computed } from 'vue';
 		}
 		return false;
 	});
->>>>>>> hub-client/src/components/rooms/RoomEvent.vue
 </script>
