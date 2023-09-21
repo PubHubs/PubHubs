@@ -106,6 +106,7 @@ const nl = {
 	},
 	message: {
 		send: 'Verstuur',
+		in_reply_to: 'Antwoord op:',
 		notification: 'Nieuw bericht in hub',
 	},
 };

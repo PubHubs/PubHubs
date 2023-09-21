@@ -140,7 +140,12 @@ const usePubHubs = defineStore('pubhubs', {
 			return content;
 		},
 
-		addMessage(roomId: string, text: string) {
+		/**
+		 * @param roomId
+		 * @param text
+		 * @param inReplyTo Possible event to which the new message replies.
+		 */
+		addMessage(roomId: string, text: string, inReplyTo?: Record<string, any>) {
 			const rooms = useRooms();
 			const room = rooms.room(roomId);
 			if (room) {
@@ -157,6 +162,18 @@ const usePubHubs = defineStore('pubhubs', {
 			}
 
 			const content = this._constructMessageContent(text);
+
+			// If the message is a reply to another event.
+			if (inReplyTo) {
+				//TODO ignore typescript error for now, fix when adding types for events (issue #280)
+				//@ts-ignore
+				content['m.relates_to'] = { 'm.in_reply_to': { event_id: inReplyTo.id, event_copy: structuredClone(inReplyTo) } };
+
+				// Only copy the 'inReplyTo' event, not a possible event that 'inReplyTo' replies to.
+				//@ts-ignore
+				delete content['m.relates_to']['m.in_reply_to'].event_copy.content['m.relates_to']?.['m.in_reply_to']?.event_copy;
+			}
+
 			this.client.sendEvent(roomId, 'm.room.message', content, '');
 		},
 
