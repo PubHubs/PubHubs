@@ -38,6 +38,7 @@ bin = [
 	"dep:thiserror",
 	"dep:url",
 	"dep:serde",
+	"dep:serde_json",
 	"dep:serde_yaml",
 	"dep:log",
 	"dep:env_logger",

@@ -35,6 +35,8 @@ pub mod api;
 #[cfg(feature = "common")]
 mod common {
     pub mod elgamal;
+    pub mod fmt_ext;
+    pub mod serde_ext;
 }
 
 #[cfg(feature = "common")]

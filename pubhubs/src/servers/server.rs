@@ -358,7 +358,7 @@ impl<S: Server> AppBase<S> {
             // ed25519_dalek::VerifyingKey, which contains a precomputed compressed (=serialized)
             // form.  So no expensive cryptographic operations like finite field inversion
             // or scalar multiplication are performed here.
-            jwt_key: app_base.jwt_key.verifying_key(),
+            jwt_key: app_base.jwt_key.verifying_key().into(),
         })
     }
 }

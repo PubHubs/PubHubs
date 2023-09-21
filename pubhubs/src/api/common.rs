@@ -1,5 +1,7 @@
 use serde::{Deserialize, Serialize};
 
+use crate::common::{fmt_ext, serde_ext};
+
 /// The result of an API-request to a PubHubs server endpoint.
 ///
 /// We have made a new type because we cannot implement [actix_web::Responder]
@@ -123,7 +125,7 @@ pub struct DiscoveryInfoResp {
     pub phc_url: url::Url,
 
     /// Used to sign JWT of this server.
-    pub jwt_key: ed25519_dalek::VerifyingKey,
+    pub jwt_key: serde_ext::B16<ed25519_dalek::VerifyingKey>,
 }
 
 /// Details on a PubHubs server endpoint
@@ -155,7 +157,7 @@ pub async fn query<EP: EndpointDetails>(
         result.unwrap()
     };
 
-    log::debug!("Querying {} {} {:?}", EP::METHOD, &url, &req);
+    log::debug!("Querying {} {} {}", EP::METHOD, &url, fmt_ext::Json(&req));
 
     let mut resp = {
         let result = client
@@ -250,7 +252,12 @@ pub async fn query<EP: EndpointDetails>(
         result.unwrap()
     };
 
-    log::debug!("{} {} returned {:?}", EP::METHOD, &url, &response);
+    log::debug!(
+        "{} {} returned {}",
+        EP::METHOD,
+        &url,
+        fmt_ext::Json(&response)
+    );
 
     response
 }
