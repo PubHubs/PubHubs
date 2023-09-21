@@ -1,7 +1,7 @@
 <template>
 	<div class="bg-gray-light dark:bg-gray-darker flex items-center rounded-md">
 		<p v-if="showInReplyTo" class="ml-1 mr-1 shrink-0">{{ $t('message.in_reply_to') }}</p>
-		<H3 class="mr-2 ml-1 my-0 shrink-0" :class="textColor(userColor)">
+		<H3 class="mr-2 ml-2 my-0 shrink-0" :class="textColor(userColor)">
 			<UserDisplayName :user="event.sender"></UserDisplayName>
 		</H3>
 		<p class="mr-2 truncate">{{ text }}</p>
