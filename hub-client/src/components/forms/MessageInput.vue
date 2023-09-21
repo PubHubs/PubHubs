@@ -1,45 +1,71 @@
 <template>
-	<div class="flex">
-		<div class="relative w-full">
-			<Icon class="absolute left-3 top-2 dark:text-white" type="paperclip" @click="clickedAttachment($event)"></Icon>
-			<input type="file" accept="image/png, image/jpeg, image/svg" class="attach-file" ref="file" @change="submitFile($event)" hidden />
-			<input
-				v-focus
-				class="px-10 py-2 w-full truncate border rounded-lg dark:bg-transparent dark:text-white dark:border-white focus:border-black focus:outline-0 focus:outline-offset-0 focus:ring-0"
-				type="text"
-				v-model="value"
-				:placeholder="$t('rooms.new_message')"
-				:title="$t('rooms.new_message')"
-				@keydown="changed()"
-				@keydown.enter="submit()"
-				@keydown.esc="cancel()"
-				@keyup="checkButtonState()"
-			/>
-			<Icon class="absolute right-3 top-2 dark:text-white" type="emoticon" @click.stop="showEmojiPicker = !showEmojiPicker"></Icon>
+	<div class="flex items-end">
+
+		<div class="w-4/5 bg-gray-lighter dark:bg-gray rounded-xl">
+			<div class="h-10 w-full flex items-center" v-if="messageActions.replyingTo">
+				<p class="ml-4 whitespace-nowrap mr-2">{{ $t('message.in_reply_to') }}</p>
+				<MessageSnippet class="w-[85%]" :event="messageActions.replyingTo"></MessageSnippet>
+				<button class="mr-4 ml-auto" @click="delete messageActions.replyingTo">
+					<Icon type="closingCross" size="sm"></Icon>
+				</button>
+			</div>
+
+			<div class="relative">
+                <Icon class="absolute left-3 top-2 dark:text-white" type="paperclip" @click="clickedAttachment($event)"></Icon>
+                <input type="file" accept="image/png, image/jpeg, image/svg" class="attach-file" ref="file" @change="submitFile($event)" hidden />
+                <TextArea
+                    class="px-10 -mb-2"
+                    v-focus
+                    :placeholder="$t('rooms.new_message')"
+                    :title="$t('rooms.new_message')"
+                    v-model="value"
+                    @changed="
+                        changed();
+                        checkButtonState();
+                    "
+                    @submit="submitMessage()"
+                    @cancel="cancel()"
+                />
+                <Icon class="absolute right-3 top-2 dark:text-white" type="emoticon" @click.stop="showEmojiPicker = !showEmojiPicker"></Icon>
+			</div>
 		</div>
 
-		<Button class="ml-2 flex" :disabled="!buttonEnabled" @click="submit()"><Icon type="talk" size="sm" class="mr-2 mt-1"></Icon>{{ $t('message.send') }}</Button>
+        <div v-if="showEmojiPicker" class="absolute bottom-16 right-8" ref="emojiPicker">
+            <EmojiPicker @emojiSelected="clickedEmoticon" />
+        </div>
 
-		<div v-if="showEmojiPicker" class="absolute bottom-16 right-8" ref="emojiPicker">
-			<EmojiPicker @emojiSelected="clickedEmoticon" />
-		</div>
+		<Button class="h-10 -mb-1 ml-2 mr-2 flex items-center" :disabled="!buttonEnabled" @click="submit()"><Icon type="talk" size="sm" class="mr-px mb-1"></Icon>{{ $t('message.send') }}</Button>
 	</div>
 </template>
 
 <script setup lang="ts">
-	import { ref, onMounted, onUnmounted, nextTick } from 'vue';
+	import { watch, ref, onMounted, onUnmounted, nextTick} from 'vue';
 	import { useFormInputEvents, usedEvents } from '@/composables/useFormInputEvents';
 	import { useRooms } from '@/store/store';
 	import { usePubHubs } from '@/core/pubhubsStore';
+	import { useRoute } from 'vue-router';
+	import { useMessageActions } from '@/store/message-actions';
 
+	const route = useRoute();
 	const rooms = useRooms();
 	const pubhubs = usePubHubs();
+	const messageActions = useMessageActions();
 	const emit = defineEmits(usedEvents);
-	const { value, changed, submit, cancel } = useFormInputEvents(emit);
+	const { value, reset, changed, cancel } = useFormInputEvents(emit);
 
 	const buttonEnabled = ref(false);
 	const showEmojiPicker = ref(false);
 	const emojiPicker = ref<HTMLElement | null>(null); // Add this reference
+
+	watch(route, () => {
+		reset();
+	});
+
+	// Focus on message input if the state of messageActions changes (for example, when replying).
+	const inputElement = ref<HTMLInputElement>();
+	messageActions.$subscribe(() => {
+		inputElement.value?.focus();
+	});
 
 	function checkButtonState() {
 		buttonEnabled.value = false;
@@ -71,6 +97,11 @@
 		}
 	}
 
+	function submitMessage() {
+		pubhubs.addMessage(rooms.currentRoomId, value.value);
+		submit();
+	}
+
 	function submitFile(event: Event) {
 		const target = event.currentTarget as HTMLInputElement;
 		if (target) {
@@ -98,12 +129,27 @@
 				};
 			}
 		}
+		reset();
+	}
+
+	function submit() {
+		if (!value.value || !(typeof value.value == 'string')) return;
+
+		if (messageActions.replyingTo) {
+			pubhubs.addMessage(rooms.currentRoomId, value.value, messageActions.replyingTo);
+			messageActions.replyingTo = undefined;
+		} else {
+			pubhubs.addMessage(rooms.currentRoomId, value.value);
+		}
+
+		value.value = '';
 	}
 
 	onMounted(() => {
 		nextTick(() => {
 			document.addEventListener('click', handleClickOutside);
 		});
+		reset();
 	});
 
 	onUnmounted(() => {

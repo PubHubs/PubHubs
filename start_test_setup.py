@@ -39,6 +39,9 @@ NPM = ["powershell", "npm"] if platform.system() == "Windows" else ["npm"]
 ## DOCKER VERSION TO USE >= 24
 DOCKER_VERSION = 24
 
+## DOCKER VERSION TO USE >= 24
+DOCKER_VERSION = 24
+
 ## METHOD SECTION ##
 
 #

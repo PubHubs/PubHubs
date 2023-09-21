@@ -6,16 +6,16 @@
 		<div v-if="!dialog.properties.modalonly" class="absolute inset-0 h-screen flex z-10" @click="doAction(DialogFalse)">
 			<div class="theme-light m-auto p-4 rounded-lg shadow-xl shadow-black bg-white" :class="centerClass" @click.stop>
 				<div>
-					<Icon v-if="dialog.properties.close" type="close" size="md" class="float-right -mt-1 hover:text-red" @click="doAction(DialogFalse)"></Icon>
+					<Icon v-if="dialog.properties.close" type="close" size="md" class="float-right -mt-1 hover:text-red theme-light:text-gray theme-light:hover:text-red" @click="doAction(DialogFalse)"></Icon>
 					<H2 v-if="dialog.properties.title !== ''" class="m-0 text-left">{{ dialog.properties.title }}</H2>
 					<slot name="header"></slot>
 				</div>
-				<Line v-if="hasContent" class="mb-2 z-0"></Line>
+				<Line v-if="hasContent" class="mt-2 mb-2 z-0"></Line>
 				<div v-if="hasContent" class="text-left max-h-96 overflow-auto py-1">
 					<slot></slot>
 					<div v-if="dialog.properties.content !== ''">{{ dialog.properties.content }}</div>
 				</div>
-				<Line class="mb-3 z-0"></Line>
+				<Line class="mt-2 mb-3 z-0"></Line>
 				<div class="flex flex-row-reverse">
 					<div v-for="(button, index) in dialog.properties.buttons" :key="index" class="ml-2">
 						<Button :color="button.color" @click="doAction(button.action)">{{ $t('dialog.' + button.label) }}</Button>

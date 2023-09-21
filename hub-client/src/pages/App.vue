@@ -20,12 +20,12 @@
 
 					<H2 class="mt-12">{{ $t('menu.rooms') }}</H2>
 					<Icon type="plus" class="cursor-pointer hover:text-green float-right -mt-8" @click="joinRoomDialog = true"></Icon>
-					<Line></Line>
+					<Line class="mt-2 mb-4"></Line>
 					<RoomList></RoomList>
 
 					<H2 class="mt-12">{{ $t('menu.private_rooms') }}</H2>
 					<Icon type="plus" class="cursor-pointer hover:text-green float-right -mt-8" @click="addPrivateRoomDialog = true"></Icon>
-					<Line></Line>
+					<Line class="mt-2 mb-4"></Line>
 					<RoomList :roomType="PubHubsRoomType.PH_MESSAGES_DM"></RoomList>
 
 					<template #footer>
