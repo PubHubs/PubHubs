@@ -1,5 +1,5 @@
 <template>
-	<hr v-tw-class="`${size} border-0 bg-gray theme-light:bg-gray dark:bg-white theme-dark:bg-white`" />
+	<hr v-tw-class="size+' mt-2 mb-4 text-gray theme-light:text-gray dark:text-white theme-dark:text-white'" />
 </template>
 
 <script setup lang="ts">
@@ -7,14 +7,14 @@ import { computed } from 'vue';
 
 
 type Props = {
-	direction: 'Vertical' | 'Horizontal';
+	direction?: 'Vertical' | 'Horizontal';
 	// Given as a tailwind size (For example, h-thickness).
-	thickness: string;
+	thickness?: string;
 }
 
 const props = withDefaults(defineProps<Props>(), {
 	direction: 'Horizontal',
-	thickness: 'px',
+	thickness: '1',
 })
 
 const size = computed(() => {
