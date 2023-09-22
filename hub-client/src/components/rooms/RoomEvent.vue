@@ -38,7 +38,7 @@
 	const rooms = useRooms();
 
 	onMounted(async () => {
-		await rooms.storeRoomNotice('!iDmBDNJjDGPMWliKqR:testhub.matrix.host');
+		await rooms.storeRoomNotice(rooms.currentRoom?.roomId);
 	});
 
 	const props = defineProps({
