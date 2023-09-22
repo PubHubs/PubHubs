@@ -12,7 +12,7 @@
 				</button>
 			</div>
 			<H3>
-				<ProfileAttributes :user="event.sender"></ProfileAttributes>
+				<ProfileAttributes v-if="rooms.roomIsSecure(rooms.currentRoom.roomId)" :user="event.sender"></ProfileAttributes>
 			</H3>
 			<MessageSnippet v-if="isReply(event)" :event="inReplyTo" :showInReplyTo="true"></MessageSnippet>
 			<Message v-if="msgTypeIsText" :message="event.content.body"></Message>
@@ -24,15 +24,18 @@
 </template>
 
 <script setup lang="ts">
-	import { computed } from 'vue';
+	import { computed, onMounted } from 'vue';
 	import { useHubSettings } from '@/store/store';
 	import { useUserColor } from '@/composables/useUserColor';
-	import { useMessageActions } from '@/store/message-actions';
-	import MessageSnippet from './MessageSnippet.vue';
+	import { useRooms } from '@/store/store';
 
 	const hubSettings = useHubSettings();
 	const { color, textColor, bgColor } = useUserColor();
-	const messageActions = useMessageActions();
+	const rooms = useRooms();
+
+	onMounted(async () => {
+		await rooms.storeRoomNotice('!iDmBDNJjDGPMWliKqR:testhub.matrix.host');
+	});
 
 	const props = defineProps({
 		event: {
@@ -41,7 +44,7 @@
 		},
 	});
 
-	const inReplyTo = computed(() => props.event.content?.['m.relates_to']?.['m.in_reply_to']?.event_copy)
+	const inReplyTo = computed(() => props.event.content?.['m.relates_to']?.['m.in_reply_to']?.event_copy);
 
 	function reply() {
 		messageActions.replyingTo = undefined;
@@ -52,7 +55,7 @@
 		return event.content?.['m.relates_to']?.['m.in_reply_to']?.event_copy instanceof Object;
 	}
 
-    const msgTypeIsText = computed(() => {
+	const msgTypeIsText = computed(() => {
 		if (props.event.content.msgtype == 'm.text') {
 			if (typeof props.event.content.format == 'undefined') {
 				return true;

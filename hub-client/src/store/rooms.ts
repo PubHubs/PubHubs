@@ -11,10 +11,10 @@ import { defineStore } from 'pinia';
 import { Room as MatrixRoom, IPublicRoomsChunkRoom as PublicRoom, MatrixClient, RoomMember } from 'matrix-js-sdk';
 import { Message, MessageType, useMessageBox } from './messagebox';
 import { useRouter } from 'vue-router';
-import { api } from '@/core/api';
+import { api_synapse,api_matrix } from '@/core/api';
 import { usePubHubs } from '@/core/pubhubsStore';
 import { propCompare } from '@/core/extensions';
-import filters from '@/core/filters';
+
 
 enum PubHubsRoomType {
 	PH_MESSAGES_RESTRICTED = 'ph.messages.restricted',
@@ -36,6 +36,36 @@ interface SecuredRoom {
 	type?: string;
 	// secured?: boolean;
 }
+
+// Matrix Endpoint for messages in a room.
+interface RoomMessages {
+  chunk: Chunk[]
+  start: string
+  end: string
+}
+
+interface Chunk {
+  type: string
+  room_id: string
+  sender: string
+  content: Content
+  origin_server_ts: number
+  unsigned: Unsigned
+  event_id: string
+  user_id: string
+  age: number
+}
+
+interface Content {
+  body: string
+  msgtype: string
+}
+
+interface Unsigned {
+  age: number
+}
+
+
 
 /**
  *  Extending the MatrixRoom with some extra properties and there methods:
@@ -153,6 +183,7 @@ const useRooms = defineStore('rooms', {
 			rooms: {} as { [index: string]: Room },
 			publicRooms: [] as Array<PublicRoom>,
 			securedRooms: [] as Array<SecuredRoom>,
+			roomNotices: {} as Record<string, string[]>,
 		};
 	},
 
@@ -332,19 +363,30 @@ const useRooms = defineStore('rooms', {
 			return this.rooms[roomId].getCreator();
 		},
 
+		async storeRoomNotice(roomId: string){
+			const encodedObject = encodeURIComponent(JSON.stringify({"types": ["m.room.message"], "senders":["@notices_user:testhub.matrix.host"]})); 
+			const response =  await api_matrix.apiGET<RoomMessages>(api_matrix.apiURLS.rooms + roomId + '/messages?filter=' + encodedObject );
+			for (const chunk of response.chunk){
+				if (!this.roomNotices[roomId]) {
+					this.roomNotices[roomId] = [];
+				}	
+				this.roomNotices[roomId].push(chunk.content.body)
+			}
+		},
+
 		async fetchSecuredRooms() {
-			this.securedRooms = await api.apiGET<Array<SecuredRoom>>(api.apiURLS.securedRooms);
+			this.securedRooms = await api_synapse.apiGET<Array<SecuredRoom>>(api_synapse.apiURLS.securedRooms);
 		},
 
 		async addSecuredRoom(room: SecuredRoom) {
-			const newRoom = await api.apiPOST<SecuredRoom>(api.apiURLS.securedRooms, room);
+			const newRoom = await api_synapse.apiPOST<SecuredRoom>(api_synapse.apiURLS.securedRooms, room);
 			this.securedRooms.push(newRoom);
 			this.fetchPublicRooms(); // Reset PublicRooms, so the new room is indeed recognised as a secured room. TODO: could this be improved without doing a fetch?
 			return newRoom;
 		},
 
 		async changeSecuredRoom(room: SecuredRoom) {
-			const response = await api.apiPUT<any>(api.apiURLS.securedRooms, room);
+			const response = await api_synapse.apiPUT<any>(api_synapse.apiURLS.securedRooms, room);
 			const modified_id = response.modified;
 			const pidx = this.securedRooms.findIndex((room) => room.room_id == modified_id);
 			if (pidx >= 0) {
@@ -359,16 +401,24 @@ const useRooms = defineStore('rooms', {
 				block: true,
 				purge: true,
 			};
-			const response = await api.apiDELETE<any>(api.apiURLS.deleteRoom + room_id, body);
+			
+	
+			// const response_notice = await this.getRoomNotice(room_id)
+			// for (const content of response_notice.chunk){
+			// 	console.info(content.content.body)
+			// }
+			const response = await api_synapse.apiDELETE<any>(api_synapse.apiURLS.deleteRoom + room_id, body);
+			
 			const deleted_id = response.delete_id;
 			this.room(room_id)?.hide();
+			
 			const pidx = this.publicRooms.findIndex((room) => room.room_id == room_id);
 			this.publicRooms.splice(pidx, 1);
 			return deleted_id;
 		},
 
 		async removeSecuredRoom(room: SecuredRoom) {
-			const response = await api.apiDELETE<any>(api.apiURLS.securedRooms + '?room_id=' + room.room_id);
+			const response = await api_synapse.apiDELETE<any>(api_synapse.apiURLS.securedRooms + '?room_id=' + room.room_id);
 			const deleted_id = response.deleted;
 			const sidx = this.securedRooms.findIndex((room) => room.room_id == deleted_id);
 			this.securedRooms.splice(sidx, 1);
@@ -377,26 +427,6 @@ const useRooms = defineStore('rooms', {
 			this.room(deleted_id)?.hide();
 			return deleted_id;
 		},
-
-		// This extracts the notice which is used in secured rooms.
-		// The notice contains the user id and the profile attribute.
-       getBadgeInSecureRoom(roomId: string, cDisplayName: string): string {
-            let attribute = '';
-
-            const displayName = filters.extractPseudonym(cDisplayName);
-        
-            for (const evt of this.rooms[roomId].getLiveTimeline().getEvents()) {
-                if (evt.getOriginalContent().msgtype === 'm.notice') {
-                    console.info("Event for notice: " + evt.getOriginalContent().body + " for user " + displayName)
-                    // This notice is specific to secured room, there should be attributes.
-                    if (evt.getOriginalContent().body.includes('attributes') && evt.getOriginalContent().body.includes(displayName)) {
-                        attribute = filters.extractJSONFromEventString(evt);
-                        break;
-                    }
-                }
-            }
-            return attribute;
-        },
 
 		yiviSecuredRoomflow(roomId: string, authToken: string) {
 			const router = useRouter();

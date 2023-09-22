@@ -12,7 +12,7 @@
 	import { useUserColor } from '@/composables/useUserColor';
 	import { useUserName } from '@/composables/useUserName';
 	import { useI18n } from 'vue-i18n';
-
+	import filters from '@/core/filters';
 	const { getUserDisplayName } = useUserName();
 	const { bgColor } = useUserColor();
 	const rooms = useRooms();
@@ -29,23 +29,24 @@
 	const attribute = computed(() => {
 		const currentRoom = rooms.currentRoom;
 		const profileArray: any = [];
-
-		const displayName = getUserDisplayName(props.user, currentRoom);
-
-		const profileInfo = rooms.getBadgeInSecureRoom(currentRoom.roomId, displayName);
-
-		// For handling non-secured room case, where we dont get any information from backend.
-		// For non-secured room, we always return an empty profile information.
-		// We can add a v-if statement in profileattribute component. This check is simple here to add.
-		if (profileInfo.length == 0 && !rooms.roomIsSecure(currentRoom.roomId)) {
-			return profileArray;
-		}
+		const cDisplayName = getUserDisplayName(props.user, currentRoom);
+		var profileInfo = '';
+		const displayName = filters.extractPseudonym(cDisplayName);
 
 		if (rooms.getRoomCreator(currentRoom?.roomId) == props.user) {
 			profileArray.push(t('rooms.admin_badge'));
 			return profileArray;
 		}
-
+		// Check until the room Notice is available.
+		if (rooms.roomNotices[currentRoom.roomId] != undefined) {
+			const index = rooms.roomNotices[currentRoom.roomId].findIndex((element) => element.includes(displayName));
+			const attributes_in_notice = rooms.roomNotices[currentRoom.roomId][index];
+			profileInfo = filters.extractJSONFromEventString(attributes_in_notice);
+		} else {
+			// Just return empty attribute if room Id is not available in the store.
+			// Since we are using computed we will get the attribue for props.user
+			return profileArray;
+		}
 		const profileInfoQouteCorrection = profileInfo.replaceAll("'", '"');
 		const jsonObj = JSON.parse(profileInfoQouteCorrection);
 
