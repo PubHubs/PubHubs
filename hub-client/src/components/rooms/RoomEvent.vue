@@ -27,10 +27,14 @@
 	import { computed, onMounted } from 'vue';
 	import { useHubSettings } from '@/store/store';
 	import { useUserColor } from '@/composables/useUserColor';
+	import { useMessageActions } from '@/store/message-actions';
+	import MessageSnippet from './MessageSnippet.vue';
 	import { useRooms } from '@/store/store';
 
 	const hubSettings = useHubSettings();
 	const { color, textColor, bgColor } = useUserColor();
+	const messageActions = useMessageActions();
+
 	const rooms = useRooms();
 
 	onMounted(async () => {
