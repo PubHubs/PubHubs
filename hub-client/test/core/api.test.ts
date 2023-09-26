@@ -16,9 +16,10 @@ describe('api_synapse', () => {
 		// @ts-ignore
 		expect(api_synapse.baseURL).toBe('http://test/_synapse/');
 
-		expect(Object.keys(api_synapse.apiURLS).length).toBe(2);
+		expect(Object.keys(api_synapse.apiURLS).length).toBe(3);
 		expect(api_synapse.apiURLS.securedRooms).toBe('http://test/_synapse/client/secured_rooms');
 		expect(api_synapse.apiURLS.deleteRoom).toBe('http://test/_synapse/admin/v2/rooms/');
+		expect(api_synapse.apiURLS.notice).toBe('http://test/_synapse/client/notices');
 	});
 
 	test('api - apiOptions', () => {
