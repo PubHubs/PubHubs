@@ -24,7 +24,7 @@
 					"
 					@submit="submitMessage()"
 					@cancel="cancel()"
-				/>
+				></TextArea>
 				<Icon class="absolute right-3 top-2 dark:text-white" type="emoticon" @click.stop="showEmojiPicker = !showEmojiPicker"></Icon>
 			</div>
 		</div>
@@ -33,7 +33,7 @@
 			<EmojiPicker @emojiSelected="clickedEmoticon" />
 		</div>
 
-		<Button class="h-10 -mb-1 ml-2 mr-2 flex items-center" :disabled="!buttonEnabled" @click="submit()"><Icon type="talk" size="sm" class="mr-px mb-1"></Icon>{{ $t('message.send') }}</Button>
+		<Button class="h-10 -mb-1 ml-2 mr-2 flex items-center" :disabled="!buttonEnabled" @click="submitMessage()"><Icon type="talk" size="sm" class="mr-px mb-1"></Icon>{{ $t('message.send') }}</Button>
 	</div>
 </template>
 
@@ -96,11 +96,6 @@
 		}
 	}
 
-	function submitMessage() {
-		//pubhubs.addMessage(rooms.currentRoomId, value.value);
-		submit();
-	}
-
 	function submitFile(event: Event) {
 		const target = event.currentTarget as HTMLInputElement;
 		if (target) {
@@ -131,7 +126,7 @@
 		reset();
 	}
 
-	function submit() {
+	function submitMessage() {
 		if (!value.value || !(typeof value.value == 'string')) return;
 
 		if (messageActions.replyingTo) {
