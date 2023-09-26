@@ -364,7 +364,8 @@ const useRooms = defineStore('rooms', {
 		},
 
 		async storeRoomNotice(roomId: string){
-			const encodedObject = encodeURIComponent(JSON.stringify({"types": ["m.room.message"], "senders":["@notices_user:testhub.matrix.host"]})); 
+			const hub_notice = await api_synapse.apiGET<string>(api_synapse.apiURLS.notice);
+			const encodedObject = encodeURIComponent(JSON.stringify({"types": ["m.room.message"], "senders":[hub_notice]})); 
 			const response =  await api_matrix.apiGET<RoomMessages>(api_matrix.apiURLS.rooms + roomId + '/messages?filter=' + encodedObject );
 			for (const chunk of response.chunk){
 				if (!this.roomNotices[roomId]) {
