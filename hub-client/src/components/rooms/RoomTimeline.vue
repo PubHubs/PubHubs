@@ -8,10 +8,18 @@
 </template>
 
 <script setup lang="ts">
-	import { ref, onMounted, onBeforeUpdate } from 'vue';
+	import { ref, onMounted, onBeforeUpdate, watch } from 'vue';
 	import { useRooms } from '@/store/store';
-
+	import { useRoute } from 'vue-router';
 	const rooms = useRooms();
+	const route = useRoute();
+	onMounted(async () => {
+		await rooms.storeRoomNotice(rooms.currentRoom?.roomId);
+	});
+
+	watch(route, async () => {
+		await rooms.storeRoomNotice(rooms.currentRoom?.roomId);
+	});
 
 	const props = defineProps({
 		room_id: {

@@ -13,6 +13,7 @@
 	import { useUserName } from '@/composables/useUserName';
 	import { useI18n } from 'vue-i18n';
 	import filters from '@/core/filters';
+
 	const { getUserDisplayName } = useUserName();
 	const { bgColor } = useUserColor();
 	const rooms = useRooms();
@@ -40,7 +41,13 @@
 		// Check until the room Notice is available.
 		if (rooms.roomNotices[currentRoom.roomId] != undefined) {
 			const index = rooms.roomNotices[currentRoom.roomId].findIndex((element) => element.includes(displayName));
+
 			const attributes_in_notice = rooms.roomNotices[currentRoom.roomId][index];
+
+			// Other admin people wont have notice. So we just return for now.
+			if (attributes_in_notice === undefined) {
+				return profileArray;
+			}
 			profileInfo = filters.extractJSONFromEventString(attributes_in_notice);
 		} else {
 			// Just return empty attribute if room Id is not available in the store.
