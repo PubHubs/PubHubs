@@ -1,6 +1,5 @@
 <template>
 	<div class="flex items-end">
-
 		<div class="w-4/5 bg-gray-lighter dark:bg-gray rounded-xl">
 			<div class="h-10 w-full flex items-center" v-if="messageActions.replyingTo">
 				<p class="ml-4 whitespace-nowrap mr-2">{{ $t('message.in_reply_to') }}</p>
@@ -11,35 +10,35 @@
 			</div>
 
 			<div class="relative">
-                <Icon class="absolute left-3 top-2 dark:text-white" type="paperclip" @click="clickedAttachment($event)"></Icon>
-                <input type="file" accept="image/png, image/jpeg, image/svg" class="attach-file" ref="file" @change="submitFile($event)" hidden />
-                <TextArea
-                    class="px-10 -mb-2"
-                    v-focus
-                    :placeholder="$t('rooms.new_message')"
-                    :title="$t('rooms.new_message')"
-                    v-model="value"
-                    @changed="
-                        changed();
-                        checkButtonState();
-                    "
-                    @submit="submitMessage()"
-                    @cancel="cancel()"
-                />
-                <Icon class="absolute right-3 top-2 dark:text-white" type="emoticon" @click.stop="showEmojiPicker = !showEmojiPicker"></Icon>
+				<Icon class="absolute left-3 top-2 dark:text-white" type="paperclip" @click="clickedAttachment($event)"></Icon>
+				<input type="file" accept="image/png, image/jpeg, image/svg" class="attach-file" ref="file" @change="submitFile($event)" hidden />
+				<TextArea
+					class="px-10 -mb-2"
+					v-focus
+					:placeholder="$t('rooms.new_message')"
+					:title="$t('rooms.new_message')"
+					v-model="value"
+					@changed="
+						changed();
+						checkButtonState();
+					"
+					@submit="submitMessage()"
+					@cancel="cancel()"
+				></TextArea>
+				<Icon class="absolute right-3 top-2 dark:text-white" type="emoticon" @click.stop="showEmojiPicker = !showEmojiPicker"></Icon>
 			</div>
 		</div>
 
-        <div v-if="showEmojiPicker" class="absolute bottom-16 right-8" ref="emojiPicker">
-            <EmojiPicker @emojiSelected="clickedEmoticon" />
-        </div>
+		<div v-if="showEmojiPicker" class="absolute bottom-16 right-8" ref="emojiPicker">
+			<EmojiPicker @emojiSelected="clickedEmoticon" />
+		</div>
 
-		<Button class="h-10 -mb-1 ml-2 mr-2 flex items-center" :disabled="!buttonEnabled" @click="submit()"><Icon type="talk" size="sm" class="mr-px mb-1"></Icon>{{ $t('message.send') }}</Button>
+		<Button class="h-10 -mb-1 ml-2 mr-2 flex items-center" :disabled="!buttonEnabled" @click="submitMessage()"><Icon type="talk" size="sm" class="mr-px mb-1"></Icon>{{ $t('message.send') }}</Button>
 	</div>
 </template>
 
 <script setup lang="ts">
-	import { watch, ref, onMounted, onUnmounted, nextTick} from 'vue';
+	import { watch, ref, onMounted, onUnmounted, nextTick } from 'vue';
 	import { useFormInputEvents, usedEvents } from '@/composables/useFormInputEvents';
 	import { useRooms } from '@/store/store';
 	import { usePubHubs } from '@/core/pubhubsStore';
@@ -97,11 +96,6 @@
 		}
 	}
 
-	function submitMessage() {
-		pubhubs.addMessage(rooms.currentRoomId, value.value);
-		submit();
-	}
-
 	function submitFile(event: Event) {
 		const target = event.currentTarget as HTMLInputElement;
 		if (target) {
@@ -132,7 +126,7 @@
 		reset();
 	}
 
-	function submit() {
+	function submitMessage() {
 		if (!value.value || !(typeof value.value == 'string')) return;
 
 		if (messageActions.replyingTo) {

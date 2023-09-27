@@ -1,4 +1,3 @@
-import { MatrixEvent } from 'matrix-js-sdk';
 
 export default {
 	matrixDisplayName(name: string) {
@@ -21,17 +20,18 @@ export default {
 		return url.replace(/\/$/g, '');
 	},
 
-	extractJSONFromEventString(evt: MatrixEvent): string {
-		const jsonStartIndex = evt.getContent().body.indexOf('{');
-		const jsonEndIndex = evt.getContent().body.lastIndexOf('}');
-		return evt.getContent().body.substring(jsonStartIndex, jsonEndIndex + 1);
+	
+	extractJSONFromEventString(name: string ) {
+		const jsonStartIndex = name.indexOf('{');
+		const jsonEndIndex = name.lastIndexOf('}');
+		return name.substring(jsonStartIndex, jsonEndIndex + 1);
 	},
 
 	extractPseudonym(displayName: string) {
 		
 		const pattern = /[a-zA-Z0-9]{3}-[a-zA-Z0-9]{3}/;
 		const result = displayName.match(pattern);
-		return result ? result[0] : null; // result[0] will contain the matched string
+		return result ? result[0] : ""; // result[0] will contain the matched string
 		
 	},
 };
