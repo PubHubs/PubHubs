@@ -77,7 +77,7 @@ impl crate::servers::App<Server> for Rc<App> {
     fn discover(&self, _phc_di: api::DiscoveryInfoResp) -> LocalBoxFuture<'_, api::Result<()>> {
         Box::pin(async {
             let tdi = {
-                let result = api::query::<api::DiscoveryInfo>(&self.transcryptor_url, ()).await;
+                let result = api::query::<api::DiscoveryInfo>(&self.transcryptor_url, &()).await;
 
                 if result.is_err() {
                     return api::Result::Err(result.unwrap_err().into_server_error());

@@ -15,6 +15,10 @@ pub struct ServeArgs {
     )]
     config_search_paths: Vec<std::path::PathBuf>,
 
+    /// Do not immediately start driving the discovery process
+    #[arg(long)]
+    manual_discovery: bool,
+
     /// Run not all servers specified in the configuration file, but only these
     #[arg(name = "only", value_enum, short, long, value_name = "SERVERS")]
     only: Option<Vec<crate::servers::Name>>,

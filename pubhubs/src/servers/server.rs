@@ -249,12 +249,12 @@ impl<S: Server> AppBase<S> {
         );
 
         sc.route(
-            "/.phc/discovery/run",
-            web::get().to(app_method!(handle_discovery_run)),
+            api::DiscoveryRun::PATH,
+            web::method(api::DiscoveryRun::METHOD).to(app_method!(handle_discovery_run)),
         )
         .route(
             api::DiscoveryInfo::PATH,
-            web::get().to(app_method!(handle_discovery_info)),
+            web::method(api::DiscoveryInfo::METHOD).to(app_method!(handle_discovery_info)),
         );
     }
 
@@ -305,7 +305,7 @@ impl<S: Server> AppBase<S> {
         let base = app.base();
 
         let pdi = {
-            let result = api::query::<api::DiscoveryInfo>(&base.phc_url, ()).await;
+            let result = api::query::<api::DiscoveryInfo>(&base.phc_url, &()).await;
 
             if result.is_err() {
                 return api::Result::Err(result.unwrap_err().into_server_error());

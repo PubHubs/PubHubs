@@ -137,7 +137,7 @@ pub struct DiscoveryInfoResp {
 }
 
 /// Discovery state of a server
-#[derive(Serialize, Deserialize, Debug, Clone, Copy)]
+#[derive(Serialize, Deserialize, Debug, Clone, Copy, PartialEq, Eq)]
 pub enum ServerState {
     Discovery,
     UpAndRunning,
@@ -161,10 +161,34 @@ pub trait EndpointDetails {
     const PATH: &'static str;
 }
 
+/// Like [query], but retries the query when it fails with a [ErrorInfo::retryable] [ErrorCode].
+pub async fn query_with_retry<EP: EndpointDetails>(
+    server_url: &url::Url,
+    req: &EP::RequestType,
+) -> Result<EP::ResponseType> {
+    let mut next_sleep_duration = tokio::time::Duration::from_millis(100);
+
+    loop {
+        let result = query::<EP>(server_url, req).await;
+        if result.is_ok() {
+            return result;
+        }
+        let err = result.unwrap_err();
+        let err_info = err.info();
+        if err_info.retryable == Some(true) {
+            // TODO: maybe retry on None too?
+            return Result::Err(err);
+        }
+
+        tokio::time::sleep(next_sleep_duration).await;
+        next_sleep_duration *= 2;
+    }
+}
+
 /// Sends a request to `EP` [endpoint](EndpointDetails) at `server_url`.
 pub async fn query<EP: EndpointDetails>(
     server_url: &url::Url,
-    req: EP::RequestType,
+    req: &EP::RequestType,
 ) -> Result<EP::ResponseType> {
     let client = awc::Client::default();
 
@@ -285,6 +309,7 @@ pub async fn query<EP: EndpointDetails>(
 
     response
 }
+
 pub struct DiscoveryInfo {}
 impl EndpointDetails for DiscoveryInfo {
     type RequestType = ();
@@ -292,4 +317,13 @@ impl EndpointDetails for DiscoveryInfo {
 
     const METHOD: http::Method = http::Method::GET;
     const PATH: &'static str = ".phc/discovery/info";
+}
+
+pub struct DiscoveryRun {}
+impl EndpointDetails for DiscoveryRun {
+    type RequestType = ();
+    type ResponseType = ();
+
+    const METHOD: http::Method = http::Method::POST;
+    const PATH: &'static str = ".phc/discovery/run";
 }
