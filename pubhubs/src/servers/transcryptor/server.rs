@@ -4,8 +4,7 @@ use actix_web::web;
 use anyhow::Result;
 use futures_util::future::LocalBoxFuture;
 
-use crate::servers::api;
-use crate::servers::{AppBase, AppCreatorBase, ServerBase, ShutdownSender};
+use crate::servers::{self, api, discovery, AppBase, AppCreatorBase, ServerBase, ShutdownSender};
 
 /// Transcryptor
 pub struct Server {
@@ -63,10 +62,58 @@ impl crate::servers::App<Server> for Rc<App> {
             );
     }
 
-    fn discover(&self, _phc_di: api::DiscoveryInfoResp) -> LocalBoxFuture<'_, api::Result<()>> {
-        // TODO: implement
+    fn discover(&self, phc_inf: api::DiscoveryInfoResp) -> LocalBoxFuture<'_, api::Result<()>> {
+        Box::pin(async move {
+            if phc_inf.state != api::ServerState::UpAndRunning {
+                return api::err(api::ErrorCode::NotYetReady);
+            }
 
-        Box::pin(async { api::ok(()) })
+            // NOTE: phc_inf has already been (partially) checked
+            let c = phc_inf
+                .constellation
+                .as_ref()
+                .expect("that constellation is not none should already have been checked");
+
+            let tdi = {
+                let result = api::query::<api::DiscoveryInfo>(&c.transcryptor_url, &()).await;
+
+                if result.is_err() {
+                    return api::Result::Err(result.unwrap_err().into_server_error());
+                }
+
+                result.unwrap()
+            };
+
+            let tdi = match (discovery::DiscoveryInfoCheck {
+                name: servers::Name::Transcryptor,
+                phc_url: &self.base.phc_url,
+                self_check_code: Some(&self.base.self_check_code),
+                constellation: Some(c),
+            }
+            .check(tdi, &c.transcryptor_url))
+            {
+                api::Result::Ok(tdi) => tdi,
+                api::Result::Err(ec) => return api::err(ec),
+            };
+
+            let constellation = c.clone();
+
+            let success: bool = self
+                .base
+                .restart_server(|server: &mut Server| -> Result<()> {
+                    server.base.state =
+                        crate::servers::server::State::UpAndRunning { constellation };
+
+                    Ok(())
+                });
+
+            if !success {
+                log::error!("failed to restart server for discovery");
+                return api::err(api::ErrorCode::InternalError);
+            }
+
+            api::ok(())
+        })
     }
 
     fn base(&self) -> &AppBase<Server> {

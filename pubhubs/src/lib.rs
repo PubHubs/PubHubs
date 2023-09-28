@@ -37,6 +37,7 @@ mod common {
     pub mod elgamal;
     pub mod fmt_ext;
     pub mod serde_ext;
+    pub mod task;
 }
 
 #[cfg(feature = "common")]

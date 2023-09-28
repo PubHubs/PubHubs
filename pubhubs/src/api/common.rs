@@ -38,38 +38,53 @@ impl<T> Result<T> {
             _ => false,
         }
     }
+
+    /// Turns retryable errors into `None`, and the [Result] into a [std::result::Result],
+    /// making the output suitable for use with [crate::task::retry].
+    pub fn retryable(self) -> std::result::Result<Option<T>, ErrorCode> {
+        match self {
+            Result::Ok(v) => Ok(Some(v)),
+            Result::Err(ec) => {
+                if ec.info().retryable == Some(true) {
+                    Ok(None)
+                } else {
+                    Err(ec)
+                }
+            }
+        }
+    }
 }
 
 /// List of possible errors.  We use error codes in favour of more descriptive strings,
 /// because error codes can be more easily processed by the calling code,
 /// should change less often, and can be easily translated.
-#[derive(Serialize, Deserialize, Debug)]
+#[derive(Serialize, Deserialize, Debug, thiserror::Error)]
 pub enum ErrorCode {
-    /// Requested process (like discovery) already running
+    #[error("requested process already running")]
     AlreadyRunning,
 
-    /// Server is no longer in the correct state (e.g. discovery for running discovery)
-    /// to process this request
+    #[error("this, or one of the other servers, is not yet ready to process the request")]
+    NotYetReady,
+
+    #[error("server is no longer in the correct state to process this request")]
     NoLongerInCorrectState,
 
-    /// One of the PubHubs servers is incorrectly configured.  See logs for details.
+    #[error("malconfiguration detected")]
     Malconfigured,
 
-    /// Unexpected problem with the client (not the server) doing the request.
+    #[error("unexpected problem with the client (not the server)")]
     InternalClientError,
 
-    /// Client could not connect to the server, but might in the future.
-    /// Also includes IO errors while sending the request or receiving the response.
+    #[error("problem connecting to server of a potentially temporary nature")]
     CouldNotConnectYet,
 
-    /// Client could not connect to the server, and probably won't upon retry
-    /// Includes TLS errors.
+    #[error("problem connecting to server")]
     CouldNotConnect,
 
-    /// Server encountered a problem that's likely of a temporary nature.
+    #[error("server encountered a problem which is likely of a temporary nature")]
     TemporaryFailure,
 
-    /// Server encountered an unexpected internal problem
+    #[error("server encountered an unexpected problem")]
     InternalError,
 }
 use ErrorCode::*;
@@ -91,7 +106,7 @@ impl ErrorCode {
             AlreadyRunning | NoLongerInCorrectState | Malconfigured => ErrorInfo {
                 retryable: Some(false),
             },
-            CouldNotConnectYet | TemporaryFailure => ErrorInfo {
+            CouldNotConnectYet | TemporaryFailure | NotYetReady => ErrorInfo {
                 retryable: Some(true),
             },
             InternalClientError | InternalError | CouldNotConnect => ErrorInfo { retryable: None },
@@ -103,6 +118,7 @@ impl ErrorCode {
     pub fn into_server_error(self) -> ErrorCode {
         match self {
             Malconfigured => Malconfigured,
+            NotYetReady => NotYetReady,
             err => {
                 if err.info().retryable == Some(true) {
                     TemporaryFailure
@@ -166,22 +182,10 @@ pub async fn query_with_retry<EP: EndpointDetails>(
     server_url: &url::Url,
     req: &EP::RequestType,
 ) -> Result<EP::ResponseType> {
-    let mut next_sleep_duration = tokio::time::Duration::from_millis(100);
-
-    loop {
-        let result = query::<EP>(server_url, req).await;
-        if result.is_ok() {
-            return result;
-        }
-        let err = result.unwrap_err();
-        let err_info = err.info();
-        if err_info.retryable == Some(true) {
-            // TODO: maybe retry on None too?
-            return Result::Err(err);
-        }
-
-        tokio::time::sleep(next_sleep_duration).await;
-        next_sleep_duration *= 2;
+    match crate::task::retry(|| async { query::<EP>(server_url, req).await.retryable() }).await {
+        Ok(Some(resp)) => Result::Ok(resp),
+        Ok(None) => Result::Err(ErrorCode::TemporaryFailure),
+        Err(ec) => Result::Err(ec),
     }
 }
 

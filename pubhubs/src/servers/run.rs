@@ -13,7 +13,7 @@ use crate::servers::{for_all_servers, App, AppBase, AppCreator, Server, Shutdown
 /// Runs the PubHubs server(s) from the given configuration.
 ///
 /// Returns if one of the servers crashes.
-pub async fn run(config: crate::servers::Config) -> Result<()> {
+pub async fn run(config: &crate::servers::Config) -> Result<()> {
     let mut joinset = tokio::task::JoinSet::<Result<()>>::new();
 
     macro_rules! run_server {
@@ -30,7 +30,14 @@ pub async fn run(config: crate::servers::Config) -> Result<()> {
 
     // Wait for one of the servers to return, panic or be cancelled.
     // By returning, joinset is dropped and all server tasks are aborted.
-    joinset.join_next().await.expect("no servers to wait on")?
+    let result = joinset.join_next().await.expect("no servers to wait on");
+
+    log::debug!(
+        "one of the servers exited with {:?};  stopping all servers..",
+        result
+    );
+
+    anyhow::bail!("one of the servers exited");
 }
 
 /// Runs a [Server].  Implements [Future].

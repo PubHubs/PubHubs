@@ -1,6 +1,7 @@
 use crate::servers::Config;
 use crate::servers::Server as _;
-use anyhow::Result;
+
+use anyhow::{Context as _, Result};
 
 #[derive(clap::Args, Debug)]
 pub struct ServeArgs {
@@ -52,7 +53,27 @@ impl ServeArgs {
         tokio::runtime::Builder::new_multi_thread()
             .enable_all()
             .build()?
-            .block_on(crate::servers::run(config))
+            .block_on(async {
+                tokio::try_join!(
+                    crate::servers::run(&config),
+                    self.drive_discovery(&config.phc_url),
+                )?;
+
+                log::debug!("done");
+
+                Ok(())
+            })
+    }
+
+    async fn drive_discovery(&self, phc_url: &url::Url) -> Result<()> {
+        if self.manual_discovery {
+            return Ok(());
+        }
+
+        tokio::task::LocalSet::new()
+            .run_until(crate::servers::drive_discovery(phc_url))
+            .await
+            .context("discovery failed")
     }
 
     /// Filters servers from config that were not specified to run

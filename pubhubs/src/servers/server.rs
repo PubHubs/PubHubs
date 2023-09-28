@@ -8,7 +8,7 @@ use std::sync::Arc;
 
 use crate::servers::{
     api::{self, EndpointDetails},
-    Constellation,
+    discovery, Constellation,
 };
 
 /// Enumerates the names of the different PubHubs servers
@@ -314,37 +314,17 @@ impl<S: Server> AppBase<S> {
             result.unwrap()
         };
 
-        if pdi.name != Name::PubhubsCentral {
-            log::error!(
-                "Supposed {} at {} returned name {}",
-                Name::PubhubsCentral,
-                base.phc_url,
-                pdi.name
-            );
-            return api::err(api::ErrorCode::Malconfigured);
+        discovery::DiscoveryInfoCheck {
+            phc_url: &base.phc_url,
+            name: Name::PubhubsCentral,
+            self_check_code: if S::NAME == Name::PubhubsCentral {
+                Some(&base.self_check_code)
+            } else {
+                None
+            },
+            constellation: None,
         }
-
-        if pdi.phc_url != base.phc_url {
-            log::error!(
-                "{} at {} thinks they're at {}",
-                Name::PubhubsCentral,
-                base.phc_url,
-                pdi.phc_url
-            );
-            return api::err(api::ErrorCode::Malconfigured);
-        }
-
-        if S::NAME == Name::PubhubsCentral {
-            if pdi.self_check_code != base.self_check_code {
-                log::error!(
-                    "{} at {} is not me! (Different self_check_code.)",
-                    Name::PubhubsCentral,
-                    base.phc_url
-                );
-            }
-        }
-
-        api::ok(pdi)
+        .check(pdi, &base.phc_url)
     }
 
     async fn handle_discovery_info(app: S::AppT) -> api::Result<api::DiscoveryInfoResp> {
