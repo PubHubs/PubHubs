@@ -1,6 +1,6 @@
 //! Tools for formatting
 
-/// [Display] given type `T` by serializing it to json.
+/// [std::fmt::Display] given type `T` by serializing it to json.
 pub struct Json<T: serde::Serialize>(pub T);
 
 impl<T: serde::Serialize> std::fmt::Display for Json<T> {

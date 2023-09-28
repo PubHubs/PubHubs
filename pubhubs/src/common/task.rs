@@ -34,8 +34,6 @@ impl RetryOptions {
         let mut wait_time: Duration = self.initial_wait_time;
         let backoff_factor = self.backoff_factor;
 
-        drop(self); // we don't want to pass this reference to the future
-
         loop {
             let res = f().await;
 

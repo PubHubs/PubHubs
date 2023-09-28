@@ -149,7 +149,6 @@ impl ServerBase {
             config: config.clone(),
             state: State::Discovery {
                 task_lock: Arc::new(tokio::sync::Mutex::new(())),
-                shared: Arc::new(tokio::sync::RwLock::new(DiscoveryState::default())),
             },
             self_check_code: server_config.self_check_code(),
             jwt_key: server_config
@@ -225,7 +224,7 @@ impl<S: Server> AppBase<S> {
             reason
         );
 
-        return false;
+        false
     }
 
     /// Issues the restart command to the [Server] with the given [Modifier].  See [Self::shutdown_server].
@@ -266,10 +265,7 @@ impl<S: Server> AppBase<S> {
         let base = app.base();
 
         let task_lock = match &base.state {
-            State::Discovery {
-                task_lock,
-                shared: _,
-            } => task_lock,
+            State::Discovery { task_lock } => task_lock,
             _ => return api::err(api::ErrorCode::NoLongerInCorrectState),
         };
 
@@ -341,7 +337,7 @@ impl<S: Server> AppBase<S> {
             jwt_key: app_base.jwt_key.verifying_key().into(),
             state: (&app_base.state).into(),
             constellation: match &app_base.state {
-                State::UpAndRunning { constellation } => Some(constellation.clone()),
+                State::UpAndRunning { constellation } => Some(*constellation.clone()),
                 State::Discovery { .. } => None,
             },
         })
@@ -416,20 +412,8 @@ pub enum State {
         /// If unlocked, either discovery has not started; or it was, but crashed; or discovery
         /// succeeded, but the actix server has not yet restarted.
         task_lock: Arc<tokio::sync::Mutex<()>>,
-
-        /// State shared by the discovery task.  Should only be mutated by the task holding the
-        /// `task_lock`.  Any write lock should be held only briefly.
-        shared: Arc<tokio::sync::RwLock<DiscoveryState>>,
     },
 
     /// Server has completed discovery and is running normally.
-    UpAndRunning { constellation: Constellation },
-}
-
-/// Shared mutable state while the [Server] is in the [State::Discovery] phase.
-#[derive(Default)]
-pub struct DiscoveryState {
-    phc_key: Option<ed25519_dalek::VerifyingKey>,
-    transcryptor_key: Option<ed25519_dalek::VerifyingKey>,
-    as_key: Option<ed25519_dalek::VerifyingKey>,
+    UpAndRunning { constellation: Box<Constellation> },
 }

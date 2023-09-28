@@ -108,12 +108,12 @@ impl crate::servers::App<Server> for Rc<App> {
 
             // TODO: check tdi.constellation?
 
-            let constellation = crate::servers::Constellation {
+            let constellation = Box::new(crate::servers::Constellation {
                 phc_url: self.base.phc_url.clone(),
                 phc_jwt_key: self.base.jwt_key.verifying_key().into(),
                 transcryptor_url: self.transcryptor_url.clone(),
                 transcryptor_jwt_key: tdi.jwt_key,
-            };
+            });
 
             let success: bool = self
                 .base

@@ -84,7 +84,7 @@ impl crate::servers::App<Server> for Rc<App> {
                 result.unwrap()
             };
 
-            let tdi = match (discovery::DiscoveryInfoCheck {
+            let _tdi = match (discovery::DiscoveryInfoCheck {
                 name: servers::Name::Transcryptor,
                 phc_url: &self.base.phc_url,
                 self_check_code: Some(&self.base.self_check_code),
@@ -96,7 +96,7 @@ impl crate::servers::App<Server> for Rc<App> {
                 api::Result::Err(ec) => return api::err(ec),
             };
 
-            let constellation = c.clone();
+            let constellation = Box::new(c.clone());
 
             let success: bool = self
                 .base

@@ -183,12 +183,12 @@ where
 
         // truncate buf to the size used by decode, but first check that slice
         // is indeed a slice into buf starting at index 0
-        assert_eq!((&buf).as_ptr(), slice_ptr);
+        assert_eq!(buf.as_ptr(), slice_ptr);
         buf.truncate(slice_len);
 
         match T::decode(buf) {
             Ok(inner) => Ok(inner.into()),
-            Err(err) => return Err(D::Error::custom(err)),
+            Err(err) => Err(D::Error::custom(err)),
         }
     }
 }

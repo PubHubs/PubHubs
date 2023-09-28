@@ -66,16 +66,14 @@ async fn drive_discovery_of(url: &url::Url) -> anyhow::Result<api::DiscoveryInfo
         // or if PHC's state is still Discovery
         match res.as_ref() {
             Ok(Some(inf)) => {
-                return if inf.state == api::ServerState::Discovery {
+                if inf.state == api::ServerState::Discovery {
                     Ok(None)
                 } else {
                     res
-                };
+                }
             }
-            _ => {
-                return res;
-            }
-        };
+            _ => res,
+        }
     })
     .await?
     .ok_or_else(|| anyhow::anyhow!("timeout waiting for {} to leave discovery state", inf.name))
@@ -117,18 +115,15 @@ impl<'a> DiscoveryInfoCheck<'a> {
             return api::err(api::ErrorCode::Malconfigured);
         }
 
-        match self.self_check_code {
-            Some(scc) => {
-                if inf.self_check_code != scc {
-                    log::error!(
-                        "{} at {} is not me! (Different self_check_code.)",
-                        self.name,
-                        source,
-                    );
-                    return api::err(api::ErrorCode::Malconfigured);
-                }
+        if let Some(scc) = self.self_check_code {
+            if inf.self_check_code != scc {
+                log::error!(
+                    "{} at {} is not me! (Different self_check_code.)",
+                    self.name,
+                    source,
+                );
+                return api::err(api::ErrorCode::Malconfigured);
             }
-            None => {}
         }
 
         if inf.state == api::ServerState::UpAndRunning {
@@ -144,15 +139,13 @@ impl<'a> DiscoveryInfoCheck<'a> {
 
             let c = inf.constellation.as_ref().unwrap();
 
-            if self.constellation.is_some() {
-                if c != self.constellation.unwrap() {
-                    log::error!(
-                        "{} at {} has a different view of the constellation of PubHubs servers",
-                        inf.name,
-                        source,
-                    );
-                    return api::err(api::ErrorCode::Malconfigured);
-                }
+            if self.constellation.is_some() && c != self.constellation.unwrap() {
+                log::error!(
+                    "{} at {} has a different view of the constellation of PubHubs servers",
+                    inf.name,
+                    source,
+                );
+                return api::err(api::ErrorCode::Malconfigured);
             }
         }
 

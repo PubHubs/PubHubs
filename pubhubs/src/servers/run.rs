@@ -100,13 +100,11 @@ impl<S: Server> Runner<S> {
         let pubhubs_server = S::new(global_config);
         let bind_to = server_config.bind_to; // SocketAddr : Copy
 
-        let result = Ok(Runner {
+        Ok(Runner {
             actix_server: ActixServer::new(&pubhubs_server, &bind_to)?,
             pubhubs_server,
             bind_to,
-        });
-
-        result
+        })
     }
 }
 

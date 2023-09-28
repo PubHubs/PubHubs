@@ -33,10 +33,7 @@ impl<T> Result<T> {
     }
 
     pub fn is_ok(&self) -> bool {
-        match self {
-            Result::Ok(_) => true,
-            _ => false,
-        }
+        matches!(self, Result::Ok(_))
     }
 
     /// Turns retryable errors into `None`, and the [Result] into a [std::result::Result],
@@ -96,7 +93,7 @@ pub struct ErrorInfo {
     /// If [false], the request should not be retried without relevant changes.
     ///
     /// If [None], we do not know.
-    retryable: Option<bool>,
+    pub retryable: Option<bool>,
 }
 
 impl ErrorCode {
