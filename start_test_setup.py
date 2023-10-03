@@ -383,10 +383,27 @@ def docker_run_hub_server(hub_secret, image_name, container_name, hub_matrix_por
         None
     """
 
+    # Hack to run the Hub containers in a sort of 'watch mode'.
+    # If in 'watch mode', the container will use the pubhubs_hub/modules directory from your os instead of the container.
+    # Furthermore, the container will only start the yivi server and not the synapse server
+    # The synapse server can than be started and stopped manually by running the start.py file from the container.
+    # The result is that you can make changes in the pubhubs_hub/modules directory,
+    # manually stop and start the synapse server and see the changes withouth running this whole script.
+    # TODO implement this properly (by using parameters instead of environment variables)
+    if (os.getenv('WATCH_MODULES') == '1'):
+        print("WATCH_MODULES enabled, will not start the Hub. Do so manually by running ./start.py from inside the docker container.")
+        mount_modules = f"-v {os.path.abspath(f'modules')}:/conf/modules:ro"
+        dont_start_hub = '-e DONT_START_HUB=1'
+    else:
+        mount_modules = ''
+        dont_start_hub = '-e DONT_START_HUB=0'
+
     docker_command = f"docker run --name {container_name} -d -p {hub_matrix_port}:{hub_matrix_port} -e HUB_SECRET={hub_secret} \
+       {dont_start_hub} \
        -e SYNAPSE_CONFIG_DIR=/data \
        -e AUTHLIB_INSECURE_TRANSPORT=for_testing_only_of_course \
        -v {config_dir}:/data:rw \
+        {mount_modules} \
        --add-host host.docker.internal:host-gateway \
        {image_name}"
     print(f"\033[92m{docker_command}\033[0m")
@@ -625,16 +642,16 @@ def main_runner(cargo_setup:str, node_arg:str, hubs:int = 1) -> None:
     subprocess.check_output("docker ps", shell=True)
 
     docker_version_info = subprocess.run(["docker", "-v"], capture_output=True, text=True)
-    
+
     # Getting only the version number of docker you are using.
     current_version= re.findall(r'\d+', docker_version_info.stdout)[0]
     print(f"\033[92mDocker version you are using is --- {current_version}\033[0m")
-    
+
     if int(current_version) < DOCKER_VERSION:
         print(f"\x1b[1;33mWARNING: Docker version you are using is old. There will be some issues in running the script\x1b[0m")
         print(f"\x1b[1;33m The script will terminate..\x1b[0m")
         exit(-1)
-    
+
     print(f"\033[92mdocker compose\033[0m")
     subprocess.check_output("docker compose", shell=True)
 
