@@ -1,4 +1,4 @@
-use crate::servers::{api, Constellation};
+use crate::servers::{self, api, Constellation};
 use anyhow::ensure;
 
 /// Drives the discovery process of the pubhubs servers until all servers are up and running
@@ -17,12 +17,27 @@ pub async fn drive_discovery(phc_url: &url::Url) -> anyhow::Result<()> {
 
     let c = phc_inf.constellation.as_ref().unwrap();
 
-    let t_inf = drive_discovery_of(&c.transcryptor_url).await?;
+    let other_servers = [
+        servers::Name::Transcryptor,
+        servers::Name::AuthenticationServer,
+    ];
 
-    ensure!(
-        t_inf.constellation == phc_inf.constellation,
-        "Transcryptor has a different view of the PubHubs servers constellation"
-    );
+    let infs = futures_util::future::try_join_all(
+        other_servers
+            .iter()
+            .map(|name: &servers::Name| drive_discovery_of(c.url(*name))),
+    )
+    .await?;
+
+    for i in 0..other_servers.len() {
+        let name = other_servers[i];
+        let inf = &infs[i];
+
+        ensure!(
+            inf.constellation == phc_inf.constellation,
+            "{name} has a different view of the PubHubs servers constellation"
+        );
+    }
 
     log::info!(
         "discovery of all servers completed in {:.1} seconds",

@@ -5,7 +5,7 @@ macro_rules! for_all_servers_helper {
 /// Invokes given macro once for each pubhubs server with the server's identifier as argument.
 macro_rules! for_all_servers {
     ( $x:ident ) => {
-        $crate::servers::macros::for_all_servers_helper! {$x phc transcryptor}
+        $crate::servers::macros::for_all_servers_helper! {$x phc transcryptor auths}
     };
 }
 

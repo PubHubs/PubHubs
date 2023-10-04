@@ -4,13 +4,13 @@ use actix_web::web;
 
 use crate::servers::{AppBase, AppCreatorBase, ServerBase, ShutdownSender};
 
-/// Transcryptor
+/// Authentication server
 pub struct Server {
     base: ServerBase,
 }
 
 impl crate::servers::Server for Server {
-    const NAME: crate::servers::Name = crate::servers::Name::Transcryptor;
+    const NAME: crate::servers::Name = crate::servers::Name::AuthenticationServer;
     type AppT = Rc<App>;
     type AppCreatorT = AppCreator;
 

@@ -50,7 +50,28 @@ impl<T> Result<T> {
             }
         }
     }
+
+    /// When passing along a result from another server to a client, this method is called
+    /// to modify any [ErrorCode]. For details, see  [ErrorCode::into_server_error].
+    pub fn into_server_result(self) -> Self {
+        match self {
+            Result::Ok(v) => Result::Ok(v),
+            Result::Err(ec) => Result::Err(ec.into_server_error()),
+        }
+    }
 }
+
+/// Like `?`, but for [crate::api::Result].
+macro_rules! return_if_ec {
+    ( $x:expr ) => {{
+        let result = $x;
+        if result.is_err() {
+            return $crate::api::Result::Err(result.unwrap_err());
+        }
+        result.unwrap()
+    }};
+}
+pub(crate) use return_if_ec;
 
 /// List of possible errors.  We use error codes in favour of more descriptive strings,
 /// because error codes can be more easily processed by the calling code,

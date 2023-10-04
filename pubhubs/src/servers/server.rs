@@ -21,6 +21,9 @@ pub enum Name {
 
     #[serde(rename = "transcryptor")]
     Transcryptor,
+
+    #[serde(rename = "auths")]
+    AuthenticationServer,
 }
 
 impl std::fmt::Display for Name {
@@ -31,6 +34,7 @@ impl std::fmt::Display for Name {
             match self {
                 Name::PubhubsCentral => "PubHubs Central",
                 Name::Transcryptor => "Transcryptor",
+                Name::AuthenticationServer => "Authentication Server",
             }
         )
     }
@@ -126,15 +130,58 @@ pub trait App<S: Server>: Clone + 'static {
     /// [AppBase::configure_actix_app].
     fn configure_actix_app(&self, sc: &mut web::ServiceConfig);
 
-    /// Runs the discovery routine for this server.
+    /// Runs the discovery routine for this server given [api::DiscoveryInfoResp] already
+    /// obtained from Pubhubs Central.
     ///
     /// May panic if the [Server]'s state is not [State::Discovery].
     ///
-    /// Returns the [Constellation] for the new state.
+    /// The [Constellation] returned will be used for the new state [State::UpAndRunning].
+    ///
+    /// The default implementation does nothing unless PubHubs Central is already up and running.
+    /// If PHC is, the implementation proceeds to contact itself via the URL mentioned in PHC's
+    /// constellation, and check that it reaches itself using the `self_check_code`.
+    ///
+    /// If that all checks out, the default implementation returns the [Constellation] from
+    /// PHC's [api::DiscoveryInfoResp].
     fn discover(
         &self,
-        resp: api::DiscoveryInfoResp,
-    ) -> LocalBoxFuture<'_, api::Result<Constellation>>;
+        phc_inf: api::DiscoveryInfoResp,
+    ) -> LocalBoxFuture<'_, api::Result<Constellation>> {
+        Box::pin(async move {
+            if S::NAME == Name::PubhubsCentral {
+                log::error!("Pubhubs Central should implement discovery itself!");
+                return api::err(api::ErrorCode::InternalError);
+            }
+
+            if phc_inf.state != api::ServerState::UpAndRunning {
+                return api::err(api::ErrorCode::NotYetReady);
+            }
+
+            // NOTE: phc_inf has already been (partially) checked
+            let c = phc_inf
+                .constellation
+                .as_ref()
+                .expect("that constellation is not none should already have been checked");
+
+            let url = c.url(S::NAME);
+
+            let di = api::return_if_ec!(api::query::<api::DiscoveryInfo>(url, &())
+                .await
+                .into_server_result());
+
+            let base = self.base();
+
+            api::return_if_ec!(discovery::DiscoveryInfoCheck {
+                name: S::NAME,
+                phc_url: &base.phc_url,
+                self_check_code: Some(&base.self_check_code),
+                constellation: Some(c),
+            }
+            .check(di, url));
+
+            api::ok(phc_inf.constellation.unwrap())
+        })
+    }
 
     /// Returns the [AppBase] this [App] builds on.
     fn base(&self) -> &AppBase<S>;

@@ -8,6 +8,7 @@ pub(crate) mod macros;
 mod run;
 pub(super) mod server;
 
+pub(crate) mod auths;
 pub(crate) mod phc;
 pub(crate) mod transcryptor;
 
