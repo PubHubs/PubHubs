@@ -4,8 +4,7 @@ use actix_web::web;
 use anyhow::Result;
 use futures_util::future::LocalBoxFuture;
 
-use crate::servers::api;
-use crate::servers::{AppBase, AppCreatorBase, ServerBase};
+use crate::servers::{api, AppBase, AppCreatorBase, Constellation, ServerBase};
 
 /// PubHubs Central server
 pub struct Server {
@@ -36,6 +35,10 @@ impl crate::servers::Server for Server {
                 .transcryptor_url
                 .clone(),
         }
+    }
+
+    fn base_mut(&mut self) -> &mut ServerBase {
+        &mut self.base
     }
 }
 
@@ -74,7 +77,10 @@ impl crate::servers::App<Server> for Rc<App> {
             );
     }
 
-    fn discover(&self, _phc_di: api::DiscoveryInfoResp) -> LocalBoxFuture<'_, api::Result<()>> {
+    fn discover(
+        &self,
+        _phc_di: api::DiscoveryInfoResp,
+    ) -> LocalBoxFuture<'_, api::Result<Constellation>> {
         Box::pin(async {
             let tdi = {
                 let result = api::query::<api::DiscoveryInfo>(&self.transcryptor_url, &()).await;
@@ -86,6 +92,7 @@ impl crate::servers::App<Server> for Rc<App> {
                 result.unwrap()
             };
 
+            // TODO: use DiscoveryInfoCheck
             if tdi.name != crate::servers::Name::Transcryptor {
                 log::error!(
                     "{} claims to be {} instead of {}",
@@ -108,28 +115,12 @@ impl crate::servers::App<Server> for Rc<App> {
 
             // TODO: check tdi.constellation?
 
-            let constellation = Box::new(crate::servers::Constellation {
+            api::ok(crate::servers::Constellation {
                 phc_url: self.base.phc_url.clone(),
                 phc_jwt_key: self.base.jwt_key.verifying_key().into(),
                 transcryptor_url: self.transcryptor_url.clone(),
                 transcryptor_jwt_key: tdi.jwt_key,
-            });
-
-            let success: bool = self
-                .base
-                .restart_server(|server: &mut Server| -> Result<()> {
-                    server.base.state =
-                        crate::servers::server::State::UpAndRunning { constellation };
-
-                    Ok(())
-                });
-
-            if !success {
-                log::error!("failed to restart server for discovery");
-                return api::err(api::ErrorCode::InternalError);
-            }
-
-            api::ok(())
+            })
         })
     }
 

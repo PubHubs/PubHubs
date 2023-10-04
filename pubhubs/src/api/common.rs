@@ -127,7 +127,7 @@ impl ErrorCode {
     }
 }
 
-/// What's returned by the `.phc/discovery/info` endpoint
+/// What's returned by the `.ph/discovery/info` endpoint
 #[derive(Serialize, Deserialize, Debug)]
 pub struct DiscoveryInfoResp {
     pub name: crate::servers::Name,
@@ -317,7 +317,7 @@ impl EndpointDetails for DiscoveryInfo {
     type ResponseType = DiscoveryInfoResp;
 
     const METHOD: http::Method = http::Method::GET;
-    const PATH: &'static str = ".phc/discovery/info";
+    const PATH: &'static str = ".ph/discovery/info";
 }
 
 pub struct DiscoveryRun {}
@@ -326,5 +326,5 @@ impl EndpointDetails for DiscoveryRun {
     type ResponseType = ();
 
     const METHOD: http::Method = http::Method::POST;
-    const PATH: &'static str = ".phc/discovery/run";
+    const PATH: &'static str = ".ph/discovery/run";
 }

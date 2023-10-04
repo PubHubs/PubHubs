@@ -57,6 +57,8 @@ pub trait Server: Sized + 'static + crate::servers::config::GetServerConfig {
     fn new(config: &crate::servers::Config) -> Self;
 
     fn app_creator(&self) -> Self::AppCreatorT;
+
+    fn base_mut(&mut self) -> &mut ServerBase;
 }
 
 /// What's passed to an [App] via [AppCreator] to signal a shutdown command
@@ -127,7 +129,12 @@ pub trait App<S: Server>: Clone + 'static {
     /// Runs the discovery routine for this server.
     ///
     /// May panic if the [Server]'s state is not [State::Discovery].
-    fn discover(&self, resp: api::DiscoveryInfoResp) -> LocalBoxFuture<'_, api::Result<()>>;
+    ///
+    /// Returns the [Constellation] for the new state.
+    fn discover(
+        &self,
+        resp: api::DiscoveryInfoResp,
+    ) -> LocalBoxFuture<'_, api::Result<Constellation>>;
 
     /// Returns the [AppBase] this [App] builds on.
     fn base(&self) -> &AppBase<S>;
@@ -154,7 +161,10 @@ impl ServerBase {
             jwt_key: server_config
                 .jwt_key
                 .clone()
-                .unwrap_or_else(|| ed25519_dalek::SigningKey::generate(&mut rand::rngs::OsRng)),
+                .unwrap_or_else(|| {
+                    ed25519_dalek::SigningKey::generate(&mut rand::rngs::OsRng).into()
+                })
+                .into_inner(),
         }
     }
 }
@@ -290,11 +300,26 @@ impl<S: Server> AppBase<S> {
 
         drop(lock_guard);
 
-        if result.is_ok() {
-            return api::ok(());
+        if result.is_err() {
+            return api::err(result.unwrap_err());
         }
 
-        api::err(result.unwrap_err())
+        let constellation = Box::new(result.unwrap());
+
+        // restart server
+
+        let success: bool = app.base().restart_server(|server: &mut S| -> Result<()> {
+            server.base_mut().state = crate::servers::server::State::UpAndRunning { constellation };
+
+            Ok(())
+        });
+
+        if !success {
+            log::error!("failed to restart server for discovery");
+            return api::err(api::ErrorCode::InternalError);
+        }
+
+        api::ok(())
     }
 
     async fn discover_phc(app: S::AppT) -> api::Result<api::DiscoveryInfoResp> {

@@ -30,6 +30,7 @@ common = [
 	"dep:base64ct", 
 	"dep:curve25519-dalek", 
 	"dep:rand", 
+	"dep:subtle",
 ]
 bin = [
 	"common",
@@ -87,7 +88,6 @@ old = [
 	"dep:serde_yaml",
 	"dep:sha2", 
 	"dep:strum_macros",
-	"dep:subtle",
 	"dep:thiserror",
 	"dep:tokio", 
 	"dep:typenum",

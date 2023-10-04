@@ -4,7 +4,9 @@ use actix_web::web;
 use anyhow::Result;
 use futures_util::future::LocalBoxFuture;
 
-use crate::servers::{self, api, discovery, AppBase, AppCreatorBase, ServerBase, ShutdownSender};
+use crate::servers::{
+    self, api, discovery, AppBase, AppCreatorBase, Constellation, ServerBase, ShutdownSender,
+};
 
 /// Transcryptor
 pub struct Server {
@@ -26,6 +28,10 @@ impl crate::servers::Server for Server {
         AppCreator {
             base: AppCreatorBase::new(&self.base),
         }
+    }
+
+    fn base_mut(&mut self) -> &mut ServerBase {
+        &mut self.base
     }
 }
 
@@ -62,7 +68,10 @@ impl crate::servers::App<Server> for Rc<App> {
             );
     }
 
-    fn discover(&self, phc_inf: api::DiscoveryInfoResp) -> LocalBoxFuture<'_, api::Result<()>> {
+    fn discover(
+        &self,
+        phc_inf: api::DiscoveryInfoResp,
+    ) -> LocalBoxFuture<'_, api::Result<Constellation>> {
         Box::pin(async move {
             if phc_inf.state != api::ServerState::UpAndRunning {
                 return api::err(api::ErrorCode::NotYetReady);
@@ -84,7 +93,7 @@ impl crate::servers::App<Server> for Rc<App> {
                 result.unwrap()
             };
 
-            let _tdi = match (discovery::DiscoveryInfoCheck {
+            let t_inf = match (discovery::DiscoveryInfoCheck {
                 name: servers::Name::Transcryptor,
                 phc_url: &self.base.phc_url,
                 self_check_code: Some(&self.base.self_check_code),
@@ -96,23 +105,7 @@ impl crate::servers::App<Server> for Rc<App> {
                 api::Result::Err(ec) => return api::err(ec),
             };
 
-            let constellation = Box::new(c.clone());
-
-            let success: bool = self
-                .base
-                .restart_server(|server: &mut Server| -> Result<()> {
-                    server.base.state =
-                        crate::servers::server::State::UpAndRunning { constellation };
-
-                    Ok(())
-                });
-
-            if !success {
-                log::error!("failed to restart server for discovery");
-                return api::err(api::ErrorCode::InternalError);
-            }
-
-            api::ok(())
+            api::ok(phc_inf.constellation.unwrap())
         })
     }
 

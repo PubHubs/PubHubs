@@ -23,6 +23,16 @@ impl<T, E> From<T> for BytesWrapper<T, E> {
     }
 }
 
+impl<T, E> BytesWrapper<T, E> {
+    /// Returns the wrapped object.
+    ///
+    /// Note:  We cannot implement `Into<T>` for [BytesWrapper], because it would clash
+    /// with the implementation of `Into<T>` when `T` implements `From<BytesWrapper>`.
+    pub fn into_inner(self) -> T {
+        self.inner
+    }
+}
+
 /// Trait for specifuing the encoding of bytes as strings, like hex or base64.
 pub trait BytesEncoding {
     type Error: std::error::Error;
@@ -91,25 +101,6 @@ impl<T: AsRef<[u8]>> ToBytes for T {
 
     fn encode(&self) -> Result<Cow<'_, [u8]>, Self::Error> {
         Ok(Cow::Borrowed(self.as_ref()))
-    }
-}
-
-/// Trait for object that can be decoded from an owned `&[u8]`.
-pub trait FromBytes: Sized {
-    type Error: std::error::Error;
-
-    fn decode(bytes: Vec<u8>) -> Result<Self, Self::Error>;
-}
-
-impl<T, E> FromBytes for T
-where
-    T: for<'a> TryFrom<&'a [u8], Error = E>,
-    E: std::error::Error,
-{
-    type Error = E;
-
-    fn decode(bytes: Vec<u8>) -> Result<Self, Self::Error> {
-        T::try_from(&bytes)
     }
 }
 
@@ -192,3 +183,76 @@ where
         }
     }
 }
+
+pub mod from_bytes {
+    /// Trait for object that can be decoded from an owned `&[u8]`.
+    pub trait FromBytes: Sized {
+        type Error: std::error::Error;
+
+        fn decode(bytes: Vec<u8>) -> Result<Self, Self::Error>;
+    }
+
+    impl<T, E> FromBytes for T
+    where
+        T: for<'a> TryFrom<&'a [u8], Error = E> + ImplMethod<METHOD = AsRefSliceIM>,
+        E: std::error::Error,
+    {
+        type Error = E;
+
+        fn decode(bytes: Vec<u8>) -> Result<Self, Self::Error> {
+            T::try_from(&bytes)
+        }
+    }
+
+    /// Determines how [FromBytes] should be implemented for this type.
+    pub trait ImplMethod {
+        type METHOD: ImplMethodName;
+    }
+
+    /// The implementors of this trait name the different ways [FromBytes] can be implemented
+    /// automatically.  It's used by the [ImplMethod] trait.
+    pub trait ImplMethodName {}
+
+    /// Indicates [FromBytes] should be implemented via `TryFrom<&[u8]>`.
+    pub struct AsRefSliceIM {}
+    impl ImplMethodName for AsRefSliceIM {}
+
+    #[derive(thiserror::Error, Debug)]
+    pub enum Curve25519DalekScalarFromBytesError {
+        #[error("converting slice to array failed")]
+        SliceToArray,
+
+        #[error("converting array to scalar failed")]
+        FromArray,
+    }
+
+    impl FromBytes for curve25519_dalek::scalar::Scalar {
+        type Error = Curve25519DalekScalarFromBytesError;
+
+        fn decode(bytes: Vec<u8>) -> Result<Self, Self::Error> {
+            let buff: [u8; 32] = bytes
+                .try_into()
+                .ok()
+                .ok_or(Curve25519DalekScalarFromBytesError::SliceToArray)?;
+
+            let scalar: subtle::CtOption<Self> =
+                curve25519_dalek::scalar::Scalar::from_canonical_bytes(buff);
+
+            if scalar.is_none().into() {
+                Err(Curve25519DalekScalarFromBytesError::FromArray)
+            } else {
+                Ok(scalar.unwrap())
+            }
+        }
+    }
+
+    impl ImplMethod for ed25519_dalek::SigningKey {
+        type METHOD = AsRefSliceIM;
+    }
+
+    impl ImplMethod for ed25519_dalek::VerifyingKey {
+        type METHOD = AsRefSliceIM;
+    }
+}
+
+pub use from_bytes::FromBytes;
