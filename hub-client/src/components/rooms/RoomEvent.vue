@@ -14,9 +14,9 @@
 			<H3>
 				<ProfileAttributes v-if="rooms.roomIsSecure(rooms.currentRoom.roomId)" :user="event.sender"></ProfileAttributes>
 			</H3>
-			<MessageSnippet v-if="isReply(event)" :event="inReplyTo" :showInReplyTo="true"></MessageSnippet>
+			<MessageSnippet v-if="inReplyTo" :event="inReplyTo" :showInReplyTo="true"></MessageSnippet>
 			<Message v-if="msgTypeIsText" :message="event.content.body"></Message>
-			<MessageHtml v-if="msgTypeIsHtml" :message="event.content.formatted_body"></MessageHtml>
+			<MessageHtml v-if="msgTypeIsHtml" :message="(event.content as M_HTMLTextMessageEventContent).formatted_body"></MessageHtml>
 			<MessageFile v-if="event.content.msgtype == 'm.file'" :message="event.content"></MessageFile>
 			<MessageImage v-if="event.content.msgtype == 'm.image'" :message="event.content"></MessageImage>
 		</div>
@@ -30,6 +30,7 @@
 	import { useMessageActions } from '@/store/message-actions';
 	import MessageSnippet from './MessageSnippet.vue';
 	import { useRooms } from '@/store/store';
+	import { M_MessageEvent, M_HTMLTextMessageEventContent} from '@/types/events';
 
 	const hubSettings = useHubSettings();
 	const { color, textColor, bgColor } = useUserColor();
@@ -41,22 +42,14 @@
 		await rooms.storeRoomNotice(rooms.currentRoom?.roomId);
 	});
 
-	const props = defineProps({
-		event: {
-			type: Object,
-			required: true,
-		},
-	});
+	const props = defineProps<{event: M_MessageEvent}>();
 
-	const inReplyTo = computed(() => props.event.content?.['m.relates_to']?.['m.in_reply_to']?.event_copy);
+	const inReplyTo = structuredClone(props.event.content['m.relates_to']?.['m.in_reply_to']?.x_event_copy);
+
 
 	function reply() {
 		messageActions.replyingTo = undefined;
 		messageActions.replyingTo = props.event;
-	}
-
-	function isReply(event: Record<string, any>): boolean {
-		return event.content?.['m.relates_to']?.['m.in_reply_to']?.event_copy instanceof Object;
 	}
 
 	const msgTypeIsText = computed(() => {

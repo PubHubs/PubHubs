@@ -5,9 +5,9 @@ import { useSettings, User, useUser, useRooms } from '@/store/store';
 import { usePubHubs } from '@/core/pubhubsStore';
 
 class Events {
-	private client!: MatrixClient;
+	private client: MatrixClient;
 
-	startWithClient(client: MatrixClient) {
+	public constructor(client: MatrixClient) {
 		this.client = client;
 	}
 

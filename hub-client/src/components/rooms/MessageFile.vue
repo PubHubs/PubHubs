@@ -5,10 +5,7 @@
 </template>
 
 <script setup lang="ts">
-	const props = defineProps({
-		message: {
-			type: Object,
-			required: true,
-		},
-	});
+import { M_FileMessageEventContent } from '@/types/events';
+
+	const props = defineProps<{message: M_FileMessageEventContent}>();
 </script>
