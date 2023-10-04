@@ -13,7 +13,7 @@
 				<Icon class="absolute left-3 top-2 dark:text-white" type="paperclip" @click="clickedAttachment($event)"></Icon>
 				<input type="file" accept="image/png, image/jpeg, image/svg" class="attach-file" ref="file" @change="submitFile($event)" hidden />
 				<TextArea
-					class="px-10 -mb-2"
+					class="px-10 -mb-1"
 					v-focus
 					:placeholder="$t('rooms.new_message')"
 					:title="$t('rooms.new_message')"
@@ -33,7 +33,7 @@
 			<EmojiPicker @emojiSelected="clickedEmoticon" />
 		</div>
 
-		<Button class="h-10 -mb-1 ml-2 mr-2 flex items-center" :disabled="!buttonEnabled" @click="submitMessage()"><Icon type="talk" size="sm" class="mr-px mb-1"></Icon>{{ $t('message.send') }}</Button>
+		<Button class="h-10 ml-2 mr-2 flex items-center" :disabled="!buttonEnabled" @click="submitMessage()"><Icon type="talk" size="sm" class="mr-px mb-1"></Icon>{{ $t('message.send') }}</Button>
 	</div>
 </template>
 
