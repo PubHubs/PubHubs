@@ -4,12 +4,8 @@
 
 <script setup lang="ts">
 	import { usePubHubs } from '@/core/pubhubsStore';
+import { M_ImageMessageEventContent } from '@/types/events';
 	const pubhubs = usePubHubs();
 
-	const props = defineProps({
-		message: {
-			type: Object,
-			required: true,
-		},
-	});
+	const props = defineProps<{message: M_ImageMessageEventContent}>();
 </script>
