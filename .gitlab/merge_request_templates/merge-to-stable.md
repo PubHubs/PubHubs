@@ -10,7 +10,7 @@ As a general tip while testing, keep two browser windows open, one for a existin
       - [ ] Creating a new room as an admin user. (PubHubs runs on iLab-main.cs.ru.nl, see ops repository for keys)
       - [ ] Creating a new secured room as an admin user.
       - [ ] Registering a *new* user, with fresh Yivi credentials.
-      - [ ] Posting a message to a room, and creating a room with this new user.
+      - [ ] Posting a message to a room with this new user.
       - [ ] Sending a private message
       - [ ] Secured room login
       - [ ] Secured room icon changes to shield
