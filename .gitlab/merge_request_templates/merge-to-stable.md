@@ -26,7 +26,7 @@ As a general tip while testing, keep two browser windows open, one for a existin
   - [ ] Figure out if the merge also requires any configuration changes. 
   - [ ] Consider if the merge might cause irreversible changes (different database format), and plan for this. (Backups?)
   - [ ] Inform the pubhubs team (via Slack) of the merge and possible downtime of https://stable.pubhubs.ihub.ru.nl/client . 
-  - [ ] Make the changes and perform the merge.
+  - [ ] Make the changes and perform the merge. Make sure all the jobs in the pipeline are kicked off. (Some jobs require manual start)
   - [ ] Check that the following works on https://stable.pubhubs.ihub.ru.nl/client :
      - [ ] Turn off dev mode in Yivi app. 
      - [ ] Logging in with your existing account.
