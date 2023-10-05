@@ -1,15 +1,12 @@
 <template>
-	<img :alt="message.body" :src="pubhubs.getBaseUrl + '/_matrix/media/r0/download/' + message.url.slice(6)" class="max-w-full h-auto" />
+	<img :alt="message.body" :src="formUrlfromMxc(message.url)" class="max-w-full h-auto" />
 </template>
 
 <script setup lang="ts">
-	import { usePubHubs } from '@/core/pubhubsStore';
-	const pubhubs = usePubHubs();
+	import { useMatrixFiles } from '@/composables/useMatrixFiles';
+	import { M_ImageMessageEventContent } from '@/types/events';
 
-	const props = defineProps({
-		message: {
-			type: Object,
-			required: true,
-		},
-	});
+	const { formUrlfromMxc } = useMatrixFiles();
+
+	const props = defineProps<{ message: M_ImageMessageEventContent }>();
 </script>

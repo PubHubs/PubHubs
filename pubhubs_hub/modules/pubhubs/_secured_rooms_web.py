@@ -18,10 +18,15 @@ logger = logging.getLogger(__name__)
 class SecuredRoomsServlet(DirectServeJsonResource):
     """The secured rooms controller containing its basic CRUD functionality."""
 
-    def __init__(self, config: dict, store: YiviRoomJoinStore, api: ModuleApi,
-                 room_creation_handler: RoomCreationHandler,
-                 room_shutdown_handler: RoomShutdownHandler,
-                 server_notices_user: str):
+    def __init__(
+        self,
+        config: dict,
+        store: YiviRoomJoinStore,
+        api: ModuleApi,
+        room_creation_handler: RoomCreationHandler,
+        room_shutdown_handler: RoomShutdownHandler,
+        server_notices_user: str,
+    ):
         super().__init__()
         # self.config = config
         self.store = store
@@ -50,8 +55,9 @@ class SecuredRoomsServlet(DirectServeJsonResource):
                 return
 
             # Adds the room_id
-            await new_room.matrix_create(self.module_api, self.room_creation_handler, user.user.to_string(),
-                                         self.server_notices_user)
+            await new_room.matrix_create(
+                self.module_api, self.room_creation_handler, user.user.to_string(), self.server_notices_user
+            )
             await self.store.create_secured_room(new_room)
             respond_with_json(request, 200, new_room.to_dict(), True)
         except TypeError as e:
@@ -101,7 +107,18 @@ class SecuredRoomsServlet(DirectServeJsonResource):
     async def assert_is_admin(self, request: SynapseRequest) -> Requester:
         user = await self.module_api.get_user_by_req(request)
         if not await self.module_api.is_user_admin(user.user.to_string()):
-            raise LoginError(
-                401, "Not an admin", errcode=Codes.UNAUTHORIZED
-            )
+            raise LoginError(401, "Not an admin", errcode=Codes.UNAUTHORIZED)
         return user
+
+
+class NoticesServlet(DirectServeJsonResource):
+    def __init__(self, server_notices_user: str):
+        super().__init__()
+        # self.config = config
+        self.server_notices_user = server_notices_user
+
+    async def _async_render_GET(self, request: SynapseRequest):
+        """Returns the Hub Notice"""
+        notice = self.server_notices_user
+        respond_with_json(request, 200, notice, True)
+        pass

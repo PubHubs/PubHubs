@@ -67,7 +67,7 @@ const useFormInputEvents = (emit: Function, set: InputType = '') => {
 		options = set;
 	};
 
-	const selectOption = (option: Option) => {
+	const selectOption = (option: any) => {
 		value.value = option.value;
 	};
 
@@ -76,6 +76,9 @@ const useFormInputEvents = (emit: Function, set: InputType = '') => {
 	};
 
 	const update = (set: InputType) => {
+		if (typeof set == 'string') {
+			set = set.replace(/^\n*/g, '');
+		}
 		value.value = set;
 		changed();
 	};
@@ -85,19 +88,23 @@ const useFormInputEvents = (emit: Function, set: InputType = '') => {
 		emit('update:modelValue', value.value);
 	};
 
+	const reset = () => {
+		value.value = '';
+	};
+
 	const submit = () => {
 		if (value.value !== undefined && value.value !== '') {
 			emit('submit', value.value);
 		}
-		value.value = '';
+		reset();
 	};
 
 	const cancel = () => {
-		value.value = '';
+		reset();
 		emit('cancel');
 	};
 
-	return { value, setValue, options, setOptions, selectOption, optionIsSelected, update, changed, submit, cancel };
+	return { value, setValue, options, setOptions, selectOption, optionIsSelected, update, changed, reset, submit, cancel };
 };
 
 export { type InputType, type Option, type Options, FormObjectInputTemplate, FormInputType, useFormInputEvents, usedEvents };

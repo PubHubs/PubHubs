@@ -8,7 +8,8 @@ import { Events } from '@/core/events';
 import { useSettings, User, useUser, useRooms } from '@/store/store';
 
 import { hasHtml, sanitizeHtml } from '@/core/sanitizer';
-import { api } from '@/core/api';
+import { api_synapse, api_matrix } from '@/core/api';
+import { M_MessageEvent, M_TextMessageEventContent } from '@/types/events';
 
 const usePubHubs = defineStore('pubhubs', {
 	state: () => {
@@ -34,10 +35,8 @@ const usePubHubs = defineStore('pubhubs', {
 		async login() {
 			console.log('PubHubs.login');
 			try {
-				const matrixClient = await this.Auth.login();
-				this.client = matrixClient as MatrixClient;
-				const events = new Events();
-				events.startWithClient(this.client as MatrixClient);
+				this.client = (await this.Auth.login()) as MatrixClient;
+				const events = new Events(this.client as MatrixClient);
 				await events.initEvents();
 				this.updateRooms();
 				const user = useUser();
@@ -46,7 +45,8 @@ const usePubHubs = defineStore('pubhubs', {
 					user.setUser(newUser as User);
 					await user.fetchDisplayName(this.client as MatrixClient);
 					await user.fetchIsAdministrator(this.client as MatrixClient);
-					api.setAccessToken(this.Auth.getAccessToken());
+					api_synapse.setAccessToken(this.Auth.getAccessToken());
+					api_matrix.setAccessToken(this.Auth.getAccessToken());
 				}
 			} catch (error) {
 				if (typeof error == 'string' && error.indexOf('M_FORBIDDEN') < 0) {
@@ -129,13 +129,13 @@ const usePubHubs = defineStore('pubhubs', {
 			await this.client.leave(roomId);
 		},
 
-		_constructMessageContent(text: string) {
-			let content = ContentHelpers.makeTextMessage(text);
+		_constructMessageContent(text: string): M_TextMessageEventContent {
+			let content = ContentHelpers.makeTextMessage(text) as M_TextMessageEventContent;
 
 			const cleanText = hasHtml(text);
 			if (typeof cleanText == 'string') {
 				const html = sanitizeHtml(text);
-				content = ContentHelpers.makeHtmlMessage(cleanText, html);
+				content = ContentHelpers.makeHtmlMessage(cleanText, html) as M_TextMessageEventContent;
 			}
 			return content;
 		},
@@ -145,7 +145,7 @@ const usePubHubs = defineStore('pubhubs', {
 		 * @param text
 		 * @param inReplyTo Possible event to which the new message replies.
 		 */
-		addMessage(roomId: string, text: string, inReplyTo?: Record<string, any>) {
+		addMessage(roomId: string, text: string, inReplyTo?: M_MessageEvent) {
 			const rooms = useRooms();
 			const room = rooms.room(roomId);
 			if (room) {
@@ -165,13 +165,9 @@ const usePubHubs = defineStore('pubhubs', {
 
 			// If the message is a reply to another event.
 			if (inReplyTo) {
-				//TODO ignore typescript error for now, fix when adding types for events (issue #280)
-				//@ts-ignore
-				content['m.relates_to'] = { 'm.in_reply_to': { event_id: inReplyTo.id, event_copy: structuredClone(inReplyTo) } };
+				content['m.relates_to'] = { 'm.in_reply_to': { event_id: inReplyTo.event_id, x_event_copy: structuredClone(inReplyTo) } };
 
-				// Only copy the 'inReplyTo' event, not a possible event that 'inReplyTo' replies to.
-				//@ts-ignore
-				delete content['m.relates_to']['m.in_reply_to'].event_copy.content['m.relates_to']?.['m.in_reply_to']?.event_copy;
+				delete content['m.relates_to']?.['m.in_reply_to']?.x_event_copy?.content?.['m.relates_to']?.['m.in_reply_to']?.x_event_copy;
 			}
 
 			this.client.sendEvent(roomId, 'm.room.message', content, '');
@@ -179,6 +175,20 @@ const usePubHubs = defineStore('pubhubs', {
 
 		addImage(roomId: string, uri: string) {
 			this.client.sendImageMessage(roomId, uri);
+		},
+
+		addFile(roomId: string, file: File, uri: string) {
+			const content = {
+				body: file.name,
+				filename: file.name,
+				info: {
+					mimetype: file.type,
+					size: file.size,
+				},
+				msgtype: 'm.file',
+				url: uri,
+			};
+			this.client.sendEvent(roomId, 'm.room.message', content);
 		},
 
 		async changeDisplayName(name: string) {

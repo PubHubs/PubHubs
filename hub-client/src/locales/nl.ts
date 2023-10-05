@@ -67,6 +67,8 @@ const nl = {
 		secure_room_attribute_info: 'Je hebt de Yivi-app nodig om je informatie vrij te geven',
 		secured_room_error: 'Het spijt ons, maar het lijkt erop dat u geen toegang heeft tot de kamer! Controleer uw gegevens in de Yivi-app',
 		admin_badge: 'Admin',
+		upload_error: 'Fout tijdens uploaden',
+		upload_not_allowed: 'Dit type bestand is niet toegestaan.',
 	},
 	settings: {
 		displayname: 'Bijnaam',

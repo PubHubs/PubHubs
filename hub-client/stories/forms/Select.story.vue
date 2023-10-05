@@ -8,9 +8,9 @@
 	import { Options } from '@/composables/useFormInputEvents';
 
 	const options: Options = [
-		{ label: 'Keuze 1', value: 1 },
-		{ label: 'Keuze 2', value: 2 },
-		{ label: 'Keuze 3', value: 3 },
-		{ label: 'Keuze 4', value: 4 },
+		{ label: 'Eerste keuze 1', value: 1 },
+		{ label: 'Tweede keuze 2', value: 2 },
+		{ label: 'Derde keuze 3', value: 3 },
+		{ label: 'Vierde keuze 4', value: 4 },
 	];
 </script>
