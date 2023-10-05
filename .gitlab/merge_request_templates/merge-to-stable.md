@@ -47,7 +47,7 @@ As a general tip while testing, keep two browser windows open, one for a existin
      - [ ] Change displayname.
      - [ ] Change Theme & Language, and see they are stored/fetched after logout/login.
      - [ ] Logging out.
-  - [ ] If there are problems:  fix or revert, if possible.
+  - [ ] If there are serious problems:  fix or revert, if possible.
   - [ ] Merge stable back into main.
   - [ ] Otherwise, celebrate!
 
