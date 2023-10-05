@@ -11,17 +11,17 @@ As a general tip while testing, keep two browser windows open, one for a existin
       - [ ] Creating a new secured room as an admin user.
       - [ ] Registering a *new* user, with fresh Yivi credentials.
       - [ ] Posting a message to a room with this new user.
-      - [ ] Sending a private message
-      - [ ] Secured room login
-      - [ ] Secured room icon changes to shield
-      - [ ] Single profile attributes badge should be displayed for secured rooms with profile attribute set to true
-      - [ ] No badge should be displayed for secured rooms with profile attribute set to false
-      - [ ] No badge in non-secured rooms
-      - [ ] Multiple badges for rooms with multiple profile attributes
-      - [ ] Change displayname
-      - [ ] Change Theme & Language, and see they are stored/fetched after logout/login
+      - [ ] Sending a private message.
+      - [ ] Secured room login.
+      - [ ] Secured room icon changes to shield.
+      - [ ] Single profile attributes badge should be displayed for secured rooms with profile attribute set to true.
+      - [ ] No badge should be displayed for secured rooms with profile attribute set to false.
+      - [ ] No badge in non-secured rooms.
+      - [ ] Multiple badges for rooms with multiple profile attributes.
+      - [ ] Change displayname.
+      - [ ] Change Theme & Language, and see they are stored/fetched after logout/login.
       - [ ] Logging out.
-      - [ ] Logging out and logging in again with your original user
+      - [ ] Logging out and logging in again with your original user.
       - [ ] Anything related specifically to your merge request.
   - [ ] Figure out if the merge also requires any configuration changes. 
   - [ ] Consider if the merge might cause irreversible changes (different database format), and plan for this. (Backups?)
@@ -34,19 +34,19 @@ As a general tip while testing, keep two browser windows open, one for a existin
      - [ ] Creating a new room as an admin user.
      - [ ] Creating a new secured room as an admin user.
      - [ ] Registering a *new* user, with a fresh email address (if possible, tips are if you have a gmail account you can add +<date> before the '@' and add a card for that, if you have a mail domain with a catch-all you can create a new mail address and add a card for that).
-     - [ ] Posting a message to a room, and creating a room.
-     - [ ] Sending a private message
+     - [ ] Posting a message to a room.
+     - [ ] Sending a private message.
      - [ ] Logging out and in with this new user.
-     - [ ] Secured room login
-     - [ ] Secured room icon changes to shield
-     - [ ] Single profile attributes badge should be displayed for secured rooms with profile attribute set to true
-     - [ ] No badge should be displayed for secured rooms with profile attribute set to false
-     - [ ] No badge in non-secured rooms
-     - [ ] Multiple badges for rooms with multiple profile attributes 
+     - [ ] Secured room login.
+     - [ ] Secured room icon changes to shield.
+     - [ ] Single profile attributes badge should be displayed for secured rooms with profile attribute set to true.
+     - [ ] No badge should be displayed for secured rooms with profile attribute set to false.
+     - [ ] No badge in non-secured rooms.
+     - [ ] Multiple badges for rooms with multiple profile attributes .
      - [ ] Anything related specifically to your merge request.
-     - [ ] Change displayname
-     - [ ] Change Theme & Language, and see they are stored/fetched after logout/login
-     - [ ] Logging out
+     - [ ] Change displayname.
+     - [ ] Change Theme & Language, and see they are stored/fetched after logout/login.
+     - [ ] Logging out.
   - [ ] If there are problems:  fix or revert, if possible.
   - [ ] Merge stable back into main.
   - [ ] Otherwise, celebrate!
