@@ -24,7 +24,7 @@ As a general tip while testing, keep two browser windows open, one for a existin
       - [ ] Logging out and logging in again with your original user
       - [ ] Anything related specifically to your merge request.
   - [ ] Figure out if the merge also requires any configuration changes. 
-  - [ ] Consider if the merge might cause irreverible changes (different database format), and plan for this. (Backups?)
+  - [ ] Consider if the merge might cause irreversible changes (different database format), and plan for this. (Backups?)
   - [ ] Inform the pubhubs team (via Slack) of the merge and possible downtime of https://stable.pubhubs.ihub.ru.nl/client . 
   - [ ] Make the changes and perform the merge.
   - [ ] Check that the following works on https://stable.pubhubs.ihub.ru.nl/client :
