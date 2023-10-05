@@ -177,6 +177,20 @@ const usePubHubs = defineStore('pubhubs', {
 			this.client.sendImageMessage(roomId, uri);
 		},
 
+		addFile(roomId: string, file: File, uri: string) {
+			const content = {
+				body: file.name,
+				filename: file.name,
+				info: {
+					mimetype: file.type,
+					size: file.size,
+				},
+				msgtype: 'm.file',
+				url: uri,
+			};
+			this.client.sendEvent(roomId, 'm.room.message', content);
+		},
+
 		async changeDisplayName(name: string) {
 			try {
 				this.client.setDisplayName(name);
