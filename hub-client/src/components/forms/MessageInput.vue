@@ -11,7 +11,7 @@
 
 			<div class="relative">
 				<Icon class="absolute left-3 top-2 dark:text-white" type="paperclip" @click="clickedAttachment($event)"></Icon>
-				<input type="file" accept="image/png, image/jpeg, image/svg" class="attach-file" ref="file" @change="submitFile($event)" hidden />
+				<input type="file" :accept="getTypesAsString(allTypes)" class="attach-file" ref="file" @change="submitFile($event)" hidden />
 				<TextArea
 					class="px-10 -mb-1"
 					v-focus
@@ -40,17 +40,22 @@
 <script setup lang="ts">
 	import { watch, ref, onMounted, onUnmounted, nextTick } from 'vue';
 	import { useFormInputEvents, usedEvents } from '@/composables/useFormInputEvents';
+	import { useMatrixFiles } from '@/composables/useMatrixFiles';
 	import { useRooms } from '@/store/store';
 	import { usePubHubs } from '@/core/pubhubsStore';
 	import { useRoute } from 'vue-router';
 	import { useMessageActions } from '@/store/message-actions';
+	import { useDialog } from '@/store/dialog';
+	import { useI18n } from 'vue-i18n';
 
+	const { t } = useI18n();
 	const route = useRoute();
 	const rooms = useRooms();
 	const pubhubs = usePubHubs();
 	const messageActions = useMessageActions();
 	const emit = defineEmits(usedEvents);
 	const { value, reset, changed, cancel } = useFormInputEvents(emit);
+	const { uploadUrl, allTypes, isImage, isAllowed, getTypesAsString } = useMatrixFiles();
 
 	const buttonEnabled = ref(false);
 	const showEmojiPicker = ref(false);
@@ -100,15 +105,16 @@
 		const target = event.currentTarget as HTMLInputElement;
 		if (target) {
 			const files = target.files;
-			if (files) {
+			if (files && files.length > 0) {
+				const file = files[0] as File;
 				const fileReader = new FileReader();
-				fileReader.readAsArrayBuffer(files[0]);
+				fileReader.readAsArrayBuffer(file);
 
 				const req = new XMLHttpRequest();
 				fileReader.onload = () => {
-					req.open('POST', pubhubs.getBaseUrl + '/_matrix/media/r0/upload', true);
+					req.open('POST', uploadUrl, true);
 					req.setRequestHeader('Authorization', 'Bearer ' + pubhubs.Auth.getAccessToken());
-					req.setRequestHeader('Content-Type', files[0].type);
+					req.setRequestHeader('Content-Type', file.type);
 					req.send(fileReader.result);
 				};
 
@@ -117,7 +123,17 @@
 						if (req.status === 200) {
 							const obj = JSON.parse(req.responseText);
 							const uri = obj.content_uri;
-							pubhubs.addImage(rooms.currentRoomId, uri);
+
+							if (isImage(file.type)) {
+								pubhubs.addImage(rooms.currentRoomId, uri);
+							} else {
+								if (isAllowed(file.type)) {
+									pubhubs.addFile(rooms.currentRoomId, file, uri);
+								} else {
+									const dialog = useDialog();
+									dialog.confirm(t('rooms.upload_error'), t('rooms.upload_not_allowed'));
+								}
+							}
 						}
 					}
 				};

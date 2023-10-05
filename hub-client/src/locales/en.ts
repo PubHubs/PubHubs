@@ -65,6 +65,8 @@ const en = {
 		secure_room_attribute_info: 'You would need Yivi App to disclose your information',
 		secured_room_error: 'We are sorry, but it seems like you cannot access the room! Please check your information in Yivi App',
 		admin_badge: 'Admin',
+		upload_error: 'Error while uploading',
+		upload_not_allowed: 'This file type is not allowed.',
 	},
 	settings: {
 		displayname: 'Nickname',
