@@ -1,7 +1,7 @@
 <template>
 	<div class="flex items-end">
 		<div class="w-4/5 bg-gray-lighter dark:bg-gray rounded-xl">
-			<div class="h-11 w-full flex items-center" v-if="messageActions.replyingTo">
+			<div class="h-10 w-full flex items-center" v-if="messageActions.replyingTo">
 				<p class="ml-4 whitespace-nowrap mr-2">{{ $t('message.in_reply_to') }}</p>
 				<MessageSnippet class="w-[85%]" :event="messageActions.replyingTo"></MessageSnippet>
 				<button class="mr-4 ml-auto" @click="delete messageActions.replyingTo">
@@ -9,53 +9,61 @@
 				</button>
 			</div>
 
-			<div class="h-11 flex">
-				<button><Icon class="my-auto ml-3" type="paperclip" @click="clickedAttachment($event)"></Icon></button>
-				<input type="file" accept="image/png, image/jpeg, image/svg" class="attach-file" ref="file" @change="submitFile($event)" hidden />
-				<Line class="ml-3 mr-1 h-3/5 my-auto" :direction="'Vertical'" :thickness="'[1.5px]'"></Line>
-				<input
-					ref="inputElement"
+			<div class="relative">
+				<Icon class="absolute left-3 top-2 dark:text-white" type="paperclip" @click="clickedAttachment($event)"></Icon>
+				<input type="file" :accept="getTypesAsString(allTypes)" class="attach-file" ref="file" @change="submitFile($event)" hidden />
+				<TextArea
+					class="px-10 -mb-1"
 					v-focus
-					class="w-full truncate border-none bg-transparent focus:ring-0"
-					type="text"
-					v-model="value"
 					:placeholder="$t('rooms.new_message')"
 					:title="$t('rooms.new_message')"
-					@keydown="changed()"
-					@keydown.enter="submit()"
-					@keydown.esc="cancel()"
-					@keyup="checkButtonState()"
-				/>
-				<button class="my-auto mr-3">
-					<Icon type="emoticon" @click.stop="showEmojiPicker = !showEmojiPicker"></Icon>
-				</button>
-				<div v-if="showEmojiPicker" class="absolute bottom-16 right-8" ref="emojiPicker">
-					<EmojiPicker @emojiSelected="clickedEmoticon" />
-				</div>
+					v-model="value"
+					@changed="
+						changed();
+						checkButtonState();
+					"
+					@submit="submitMessage()"
+					@cancel="cancel()"
+				></TextArea>
+				<Icon class="absolute right-3 top-2 dark:text-white" type="emoticon" @click.stop="showEmojiPicker = !showEmojiPicker"></Icon>
 			</div>
 		</div>
 
-		<Button class="h-11 ml-2 mr-2 flex items-center" :disabled="!buttonEnabled" @click="submit()"><Icon type="talk" size="sm" class="mr-px mb-1"></Icon>{{ $t('message.send') }}</Button>
+		<div v-if="showEmojiPicker" class="absolute bottom-16 right-8" ref="emojiPicker">
+			<EmojiPicker @emojiSelected="clickedEmoticon" />
+		</div>
+
+		<Button class="h-10 ml-2 mr-2 flex items-center" :disabled="!buttonEnabled" @click="submitMessage()"><Icon type="talk" size="sm" class="mr-px mb-1"></Icon>{{ $t('message.send') }}</Button>
 	</div>
 </template>
 
 <script setup lang="ts">
-	import { ref, onMounted, onUnmounted, nextTick} from 'vue';
+	import { watch, ref, onMounted, onUnmounted, nextTick } from 'vue';
 	import { useFormInputEvents, usedEvents } from '@/composables/useFormInputEvents';
+	import { useMatrixFiles } from '@/composables/useMatrixFiles';
 	import { useRooms } from '@/store/store';
 	import { usePubHubs } from '@/core/pubhubsStore';
-	import MessageSnippet from '../rooms/MessageSnippet.vue';
+	import { useRoute } from 'vue-router';
 	import { useMessageActions } from '@/store/message-actions';
+	import { useDialog } from '@/store/dialog';
+	import { useI18n } from 'vue-i18n';
 
+	const { t } = useI18n();
+	const route = useRoute();
 	const rooms = useRooms();
 	const pubhubs = usePubHubs();
 	const messageActions = useMessageActions();
 	const emit = defineEmits(usedEvents);
-	const { value, changed, cancel } = useFormInputEvents(emit);
+	const { value, reset, changed, cancel } = useFormInputEvents(emit);
+	const { uploadUrl, allTypes, isImage, isAllowed, getTypesAsString } = useMatrixFiles();
 
 	const buttonEnabled = ref(false);
 	const showEmojiPicker = ref(false);
 	const emojiPicker = ref<HTMLElement | null>(null); // Add this reference
+
+	watch(route, () => {
+		reset();
+	});
 
 	// Focus on message input if the state of messageActions changes (for example, when replying).
 	const inputElement = ref<HTMLInputElement>();
@@ -97,15 +105,16 @@
 		const target = event.currentTarget as HTMLInputElement;
 		if (target) {
 			const files = target.files;
-			if (files) {
+			if (files && files.length > 0) {
+				const file = files[0] as File;
 				const fileReader = new FileReader();
-				fileReader.readAsArrayBuffer(files[0]);
+				fileReader.readAsArrayBuffer(file);
 
 				const req = new XMLHttpRequest();
 				fileReader.onload = () => {
-					req.open('POST', pubhubs.getBaseUrl + '/_matrix/media/r0/upload', true);
+					req.open('POST', uploadUrl, true);
 					req.setRequestHeader('Authorization', 'Bearer ' + pubhubs.Auth.getAccessToken());
-					req.setRequestHeader('Content-Type', files[0].type);
+					req.setRequestHeader('Content-Type', file.type);
 					req.send(fileReader.result);
 				};
 
@@ -114,15 +123,26 @@
 						if (req.status === 200) {
 							const obj = JSON.parse(req.responseText);
 							const uri = obj.content_uri;
-							pubhubs.addImage(rooms.currentRoomId, uri);
+
+							if (isImage(file.type)) {
+								pubhubs.addImage(rooms.currentRoomId, uri);
+							} else {
+								if (isAllowed(file.type)) {
+									pubhubs.addFile(rooms.currentRoomId, file, uri);
+								} else {
+									const dialog = useDialog();
+									dialog.confirm(t('rooms.upload_error'), t('rooms.upload_not_allowed'));
+								}
+							}
 						}
 					}
 				};
 			}
 		}
+		reset();
 	}
 
-	function submit() {
+	function submitMessage() {
 		if (!value.value || !(typeof value.value == 'string')) return;
 
 		if (messageActions.replyingTo) {
@@ -139,6 +159,7 @@
 		nextTick(() => {
 			document.addEventListener('click', handleClickOutside);
 		});
+		reset();
 	});
 
 	onUnmounted(() => {

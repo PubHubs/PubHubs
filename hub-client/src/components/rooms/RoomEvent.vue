@@ -12,11 +12,11 @@
 				</button>
 			</div>
 			<H3>
-				<ProfileAttributes :user="event.sender"></ProfileAttributes>
+				<ProfileAttributes v-if="rooms.roomIsSecure(rooms.currentRoom.roomId)" :user="event.sender"></ProfileAttributes>
 			</H3>
-			<MessageSnippet v-if="isReply(event)" :event="inReplyTo" :showInReplyTo="true"></MessageSnippet>
+			<MessageSnippet v-if="inReplyTo" :event="inReplyTo" :showInReplyTo="true"></MessageSnippet>
 			<Message v-if="msgTypeIsText" :message="event.content.body"></Message>
-			<MessageHtml v-if="msgTypeIsHtml" :message="event.content.formatted_body"></MessageHtml>
+			<MessageHtml v-if="msgTypeIsHtml" :message="(event.content as M_HTMLTextMessageEventContent).formatted_body"></MessageHtml>
 			<MessageFile v-if="event.content.msgtype == 'm.file'" :message="event.content"></MessageFile>
 			<MessageImage v-if="event.content.msgtype == 'm.image'" :message="event.content"></MessageImage>
 		</div>
@@ -24,35 +24,35 @@
 </template>
 
 <script setup lang="ts">
-	import { computed } from 'vue';
+	import { computed, onMounted } from 'vue';
 	import { useHubSettings } from '@/store/store';
 	import { useUserColor } from '@/composables/useUserColor';
 	import { useMessageActions } from '@/store/message-actions';
 	import MessageSnippet from './MessageSnippet.vue';
+	import { useRooms } from '@/store/store';
+	import { M_MessageEvent, M_HTMLTextMessageEventContent} from '@/types/events';
 
 	const hubSettings = useHubSettings();
 	const { color, textColor, bgColor } = useUserColor();
 	const messageActions = useMessageActions();
 
-	const props = defineProps({
-		event: {
-			type: Object,
-			required: true,
-		},
+	const rooms = useRooms();
+
+	onMounted(async () => {
+		await rooms.storeRoomNotice(rooms.currentRoom?.roomId);
 	});
 
-	const inReplyTo = computed(() => props.event.content?.['m.relates_to']?.['m.in_reply_to']?.event_copy)
+	const props = defineProps<{event: M_MessageEvent}>();
+
+	const inReplyTo = structuredClone(props.event.content['m.relates_to']?.['m.in_reply_to']?.x_event_copy);
+
 
 	function reply() {
 		messageActions.replyingTo = undefined;
 		messageActions.replyingTo = props.event;
 	}
 
-	function isReply(event: Record<string, any>): boolean {
-		return event.content?.['m.relates_to']?.['m.in_reply_to']?.event_copy instanceof Object;
-	}
-
-    const msgTypeIsText = computed(() => {
+	const msgTypeIsText = computed(() => {
 		if (props.event.content.msgtype == 'm.text') {
 			if (typeof props.event.content.format == 'undefined') {
 				return true;

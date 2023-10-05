@@ -21,31 +21,22 @@ In the longer term we'd like to move to a more open way of developing, but for n
 
 ## Technical details
 
-There are three main parts to PubHubs:
+Pubhubs consists of the following components:
 
-1. The PubHubs platform itself, for central login and authentication. Hubs will only get pseudonyms but never the central identity.
-2. The hubs, [matrix](https://matrix.org/) homeservers, in the ultimate PubHubs platform these will not be federated so ids are not shared between hubs (in the longer term we'd like to link hubs to be able to share content so maybe some federation will happen).
-3. A client to make sure the user can communicate with hubs. This client is at its core a matrix client with specifics for PubHubs.
+- **Pubhubs Central**: The PubHubs platform itself, for central login and authentication. Hubs will only get pseudonyms of the user but never the central identity.
+- **Global Client**: The client which is used to navigate between Hubs. It uses an ifram to embed different Hubs (hosted on different servers).
+- **Hubs**: Modified [matrix](https://matrix.org/) homeservers, in the PubHubs platform these will not be federated so ids are not shared between hubs (in the longer term we'd like to link hubs to be able to share content so maybe some federation will happen).
+- **Hub clients**: A client which communicates to a Hub, embedded in the Global Client. This client is at its core a matrix client with specifics for PubHubs.
 
-This pubhubs directory contains the platform itself. The directory pubhubs_hub contains the modules we need to make hubs work within PubHubs.
+This pubhubs directory contains the platform itself.The directory pubhubs_hub contains the modules we need to make hubs work within PubHubs.
 
 For the identity oriented functionalities of PubHubs we use [Yivi](https://Yivi.app/). Yivi is also used for logging in to the central platform.
 
-### Building static assets
-
-Static assets for the PubHubs central server, so far just css, are build through build.rs, before launching the server. The build script expects npm (with sass) to be installed.
-
-Assets needed for the client are build with the several build options for the client.
-
-### Running the webserver for (development purpose only)
-
-Default settings are in the `default.yaml`; for development these initial settings should work.  If you make a copy of `default.yaml` and call it `config.yaml`, this configuration is used instead.  To use an entirely different configuration file instead, you can pass its path (relative to the current working directory) via the environmental variable `PUBHUBS_CONFIG`, e.g. `PUBHUBS_CONFIG=my_config.yaml cargo run`. 
-
 ### Project Dependencies
 
-- [Cargo](https://doc.rust-lang.org/cargo/getting-started/installation.html)
+- [Cargo](https://doc.rust-lang.org/cargo/getting-started/installation.html) (package manager for rust)
 - [Cargo Watch](https://github.com/watchexec/cargo-watch)
-- [Node Package Manager](https://docs.npmjs.com/downloading-and-installing-node-js-and-npm)
+- [Node Package Manager (npm)](https://docs.npmjs.com/downloading-and-installing-node-js-and-npm) (package manager for javascript)
 - [Docker](https://www.docker.com/)
 - [Sass](https://sass-lang.com/install)
 - [OpenSSL](https://www.openssl.org/)
@@ -59,28 +50,55 @@ Several libraries for the client, most important:
 - [Vitest](https://vitest.dev)
 - [Histoire](https://histoire.dev)
 
-### Setting up external services
 
-The external services for development are: an Yivi server, a Hub (matrix home server) and a client.
+## Running a development setup
 
-There is a python script that should automate some set-up:
+Default settings are in the `default.yaml`; for development these initial settings should work.  If you make a copy of `default.yaml` and call it `config.yaml`, this configuration is used instead.  To use an entirely different configuration file instead, you can pass its path (relative to the current working directory) via the environmental variable `PUBHUBS_CONFIG`, e.g. `PUBHUBS_CONFIG=my_config.yaml cargo run`. 
 
+### Building static assets
+
+Static assets for the PubHubs Central server, so far just css, are build through build.rs, before launching the server. The build script expects npm (with sass) to be installed.
+
+Assets needed for the client are build with the several build options for the client.
+
+### First time installation
+#### Windows
+For a minimal working setup, make sure you have [Node Package Manager (npm)](https://docs.npmjs.com/downloading-and-installing-node-js-and-npm), [Cargo](https://doc.rust-lang.org/cargo/getting-started/installation.html) and [Docker](https://www.docker.com/) installed.
+
+As mentioned above the rust build script uses sass, install this using npm (globally so that it's accessible from the command line):
 ```shell
-python3 start_test_setup.py run --cargo-disabled --scale <positive value e.g., 1,2,3>
+npm install -g sass
+```
+The rust script also uses openssl. To install openssl, we use vcpkg which you can install following their [installation instructions](https://vcpkg.io/en/getting-started). This results in an executable vcpkg.exe, which you can add to your PATH. Then install openssl:
+```shell
+vcpkg install openssl:x64-windows-static-md
+vcpkg integrate install
+```
+This should work in most cases, but you might need to replace 'x64' by 'arm64'.
+
+### Usage
+
+We will setup docker containers for a Yivi server, a Hub and a Hub Client.
+Pubhubs Central is built and served seperately (by a rust sript) and also serves the Global client.
+
+There is a python script `start_test_setup.py` that should automate some set-up.
+To see available options, run:
+```
+python3 start_test_setup.py
 ```
 
-This will only build containers for Yivi, Hub and Client. Central Platform should be build and run separately with cargo.
+**Recommended usage**:
 
+First we build and run the Pubhubs Central with rust (This will run a server which also serves the Global Client).
 ```shell
-python3 start_test_setup.py run --cargo-enabled <cargo_arguments> --scale <positive value e.g., 1,2,3>
+cd pubhubs
+cargo run
 ```
-
-This will only build containers for Yivi, Hub and Client, This will also build and run Central Platform with cargo. Cargo arguments `<cargo_arguments>` needs to be provided by the user e.g., cargo run or cargo watch.
-
-We've not tested it on Windows, but it should work on linux and mac.
-
-This script will launch three containers:
-
+In a second terminal we setup and run the docker containers (make sure docker is running):
+```shell
+python3 start_test_setup.py exec --cargo-disabled
+```
+This will launch three docker containers:
 1. The hub.
 2. The client.
 3. An Yivi server for revealing personal attributes.

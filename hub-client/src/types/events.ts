@@ -1,0 +1,55 @@
+import { WithRequired } from './utility';
+
+export interface M_MessageEvent<C extends M_MessageEventContent = M_MessageEventContent> {
+	content: C;
+	event_id: string;
+	origin_server_ts: number;
+	room_id: string;
+	sender: string;
+	state_key?: string;
+	type: string;
+	// See matrix specification
+	unsigned?: Record<string, any>;
+}
+
+interface M_BaseMessageEventContent {
+	body: string;
+	msgtype: 'm.text' | 'm.image' | 'm.file';
+	'm.relates_to'?: {
+		'm.in_reply_to'?: {
+			event_id: string;
+			// Custom extension, not in the matrix specification.
+			x_event_copy?: M_MessageEvent;
+		};
+	};
+}
+
+export interface M_TextMessageEventContent extends M_BaseMessageEventContent {
+	msgtype: 'm.text';
+	format?: 'org.matrix.custom.html';
+	formatted_body?: string;
+}
+
+export interface M_ImageMessageEventContent extends M_BaseMessageEventContent {
+	msgtype: 'm.image';
+	info?: ImageInfo;
+	// We don't use encryption, so required
+	url: string;
+}
+
+export interface M_FileMessageEventContent extends M_BaseMessageEventContent {
+	msgtype: 'm.file';
+	file?: EncryptedFile;
+	filename?: string;
+	info?: FileInfo;
+	url?: string;
+}
+
+export type M_HTMLTextMessageEventContent = WithRequired<M_TextMessageEventContent, 'format' | 'formatted_body'>;
+
+export type M_MessageEventContent = M_TextMessageEventContent | M_ImageMessageEventContent | M_FileMessageEventContent;
+
+// To be implemented
+type EncryptedFile = any;
+type ImageInfo = any;
+type FileInfo = any;

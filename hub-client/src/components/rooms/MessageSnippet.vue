@@ -1,7 +1,7 @@
 <template>
 	<div class="bg-gray-light dark:bg-gray-darker flex items-center rounded-md">
 		<p v-if="showInReplyTo" class="ml-1 mr-1 shrink-0">{{ $t('message.in_reply_to') }}</p>
-		<H3 class="mr-2 ml-1 my-0 shrink-0" :class="textColor(userColor)">
+		<H3 class="mr-2 ml-2 my-0 shrink-0" :class="textColor(userColor)">
 			<UserDisplayName :user="event.sender"></UserDisplayName>
 		</H3>
 		<p class="mr-2 truncate">{{ text }}</p>
@@ -10,12 +10,14 @@
 
 <script setup lang="ts">
 	import { useUserColor } from '@/composables/useUserColor';
+import { M_MessageEvent } from '@/types/events';
 	import { computed } from 'vue';
 
 	const { color, textColor } = useUserColor();
 
 	type Props = {
-		event: Record<string, any>;
+		event: M_MessageEvent;
+		// Whether or not to show the text "In reply to:" inside the snippet.
 		showInReplyTo?: boolean;
 	};
 

@@ -4,10 +4,11 @@
 		v-tw-class="'w-full'"
 		class="w-full border px-2 py-1 rounded-lg dark:bg-transparent theme-light:border-black theme-light:text-black dark:text-white dark:border-white focus:border-black focus:outline-0 focus:outline-offset-0 focus:ring-0"
 		@change="changed()"
+		@input="selectOption($event.target)"
 		@keydown.enter="submit()"
 		@keydown.esc="cancel()"
 	>
-		<option v-for="option in options" :key="option.value" :value="option.value" :selected="optionIsSelected(option.value)" @click="selectOption(option)">{{ option.label }}</option>
+		<option v-for="option in options" :key="option.value" :value="option.value" :selected="optionIsSelected(option.value)">{{ option.label }}</option>
 	</select>
 </template>
 
