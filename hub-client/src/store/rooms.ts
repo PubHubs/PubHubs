@@ -33,6 +33,7 @@ interface SecuredRoom {
 	accepted?: SecuredRoomAttributes | [];
 	user_txt: string;
 	type?: string;
+	expiration_time_days?: number;
 	// secured?: boolean;
 }
 
@@ -181,6 +182,7 @@ const useRooms = defineStore('rooms', {
 			publicRooms: [] as Array<PublicRoom>,
 			securedRooms: [] as Array<SecuredRoom>,
 			roomNotices: {} as Record<string, string[]>,
+			securedRoom: {} as SecuredRoom,
 		};
 	},
 
@@ -281,6 +283,8 @@ const useRooms = defineStore('rooms', {
 			return state.securedRooms.sort(propCompare('room_name'));
 		},
 
+		
+
 		totalUnreadMessages() {
 			let total = 0;
 			for (const idx in this.roomsArray) {
@@ -356,6 +360,8 @@ const useRooms = defineStore('rooms', {
 			return false;
 		},
 
+	
+
 		getRoomCreator(roomId: string): string | null {
 			return this.rooms[roomId].getCreator();
 		},
@@ -376,8 +382,16 @@ const useRooms = defineStore('rooms', {
 			}
 		},
 
+		// Needs Admin token
 		async fetchSecuredRooms() {
 			this.securedRooms = await api_synapse.apiGET<Array<SecuredRoom>>(api_synapse.apiURLS.securedRooms);
+		},
+
+		// Non-Admin api for getting information about an individual secured room based on room ID.
+		async getSecuredRoomInfo(roomId: string) {
+			const jsonInString = await api_synapse.apiGET<string>(api_synapse.apiURLS.securedRoom + '?room_id=' + roomId);
+			this.securedRoom = JSON.parse(jsonInString);
+			
 		},
 
 		async addSecuredRoom(room: SecuredRoom) {

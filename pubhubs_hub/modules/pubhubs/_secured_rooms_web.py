@@ -122,3 +122,25 @@ class NoticesServlet(DirectServeJsonResource):
         notice = self.server_notices_user
         respond_with_json(request, 200, notice, True)
         pass
+
+
+# Non-admin requests for getting information about secured rooms based on room Id.
+class SecuredRoomExtraServlet(DirectServeJsonResource):
+    def __init__(self, store: str, module_api: ModuleApi):
+        super().__init__()
+        # self.config = config
+        self.store = store
+        self.module_api = module_api
+
+    async def _async_render_GET(self, request: SynapseRequest):
+        """Returns the Hub Notice"""
+
+        if not request.args.get(b"room_id"):
+            return respond_with_json(request, 400, {})
+
+        room_id = b"".join(request.args.get(b"room_id")).decode()
+
+        allowed_secured_room_info = await self.store.get_secured_room(room_id)
+        response_in_json = json.dumps(allowed_secured_room_info, default=lambda o: o.__dict__)
+        respond_with_json(request, 200, response_in_json, True)
+        pass

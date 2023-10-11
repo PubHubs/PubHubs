@@ -9,7 +9,7 @@ from synapse.module_api.errors import ConfigError
 from twisted.web.server import Request
 
 from ._yivi_proxy import ProxyServlet
-from ._secured_rooms_web import SecuredRoomsServlet, NoticesServlet
+from ._secured_rooms_web import SecuredRoomsServlet, NoticesServlet, SecuredRoomExtraServlet
 from ._store import YiviRoomJoinStore
 from ._web import JoinServlet
 from ._constants import CLIENT_URL, SERVER_NOTICES_USER, GLOBAL_CLIENT_URL, METHOD_POLLING_INTERVAL
@@ -131,6 +131,8 @@ class YiviRoomJoiner(object):
         )
 
         api.register_web_resource("/_synapse/client/notices", NoticesServlet(self.config[SERVER_NOTICES_USER]))
+
+        api.register_web_resource("/_synapse/client/srextra", SecuredRoomExtraServlet(self.store, self.module_api))
 
         api.register_spam_checker_callbacks(user_may_join_room=self.joining)
 
