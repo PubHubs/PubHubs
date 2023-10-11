@@ -15,30 +15,39 @@ use regex::Regex;
 use serde::{Deserialize, Serialize};
 use std::fmt::{Debug, Formatter};
 use std::time::{Duration, SystemTime, UNIX_EPOCH};
+use tokio::sync::oneshot;
 
+use crate::data::DataCommands::{CreateUser, GetUser, GetUserById};
+use crate::data::{no_result, User};
 use tokio::time::sleep;
 
 #[cfg(not(feature = "real_credentials"))]
 pub const MAIL: &str = "irma-demo.sidn-pbdf.email.email";
 #[cfg(not(feature = "real_credentials"))]
 pub const MOBILE_NO: &str = "irma-demo.sidn-pbdf.mobilenumber.mobilenumber";
+
 #[cfg(not(feature = "real_credentials"))]
-pub const PUB_HUBS: &str = "irma-demo.PubHubs.pubhubsaccount";
+pub const PUB_HUBS: &str = "irma-demo.PubHubs.account";
 #[cfg(not(feature = "real_credentials"))]
-pub const PUB_HUBS_MAIL: &str = "irma-demo.PubHubs.pubhubsaccount.email";
+pub const PUB_HUBS_ID: &str = "irma-demo.PubHubs.account.id";
 #[cfg(not(feature = "real_credentials"))]
-pub const PUB_HUBS_PHONE: &str = "irma-demo.PubHubs.pubhubsaccount.mobilenumber";
+pub const PUB_HUBS_DATE: &str = "irma-demo.PubHubs.account.registration_date";
+#[cfg(not(feature = "real_credentials"))]
+pub const PUB_HUBS_SOURCE: &str = "irma-demo.PubHubs.account.registration_source";
 
 #[cfg(feature = "real_credentials")]
 pub const MAIL: &str = "pbdf.sidn-pbdf.email.email";
 #[cfg(feature = "real_credentials")]
 pub const MOBILE_NO: &str = "pbdf.sidn-pbdf.mobilenumber.mobilenumber";
+
 #[cfg(feature = "real_credentials")]
-pub const PUB_HUBS: &str = "pbdf.PubHubs.pubhubsaccount";
+pub const PUB_HUBS: &str = "pbdf.PubHubs.account";
 #[cfg(feature = "real_credentials")]
-pub const PUB_HUBS_MAIL: &str = "pbdf.PubHubs.pubhubsaccount.email";
+pub const PUB_HUBS_ID: &str = "pbdf.PubHubs.account.id";
 #[cfg(feature = "real_credentials")]
-pub const PUB_HUBS_PHONE: &str = "pbdf.PubHubs.pubhubsaccount.mobilenumber";
+pub const PUB_HUBS_DATE: &str = "pbdf.PubHubs.account.registrationDate";
+#[cfg(feature = "real_credentials")]
+pub const PUB_HUBS_SOURCE: &str = "pbdf.PubHubs.account.registrationSource";
 
 #[allow(dead_code)] //This is used in SessionRequest
 #[derive(Debug, Serialize, Deserialize, PartialEq, Eq)]
@@ -53,9 +62,11 @@ pub enum Context {
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct PubhubsAttributes {
-    email: String,
-    mobilenumber: String,
-    registrationdate: String,
+    id: String,
+    registration_source: String,
+    // email: String,
+    // mobilenumber: String,
+    registration_date: String,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -66,7 +77,7 @@ pub struct PubHubsCredential {
 }
 
 impl PubHubsCredential {
-    fn new(mail: &str, phone: &str, registration_date: &str) -> Self {
+    fn new(id: &str, registration_source: &str, registration_date: &str) -> Self {
         //Can use leap year since it rounds down: https://irma.app/docs/session-requests/#issuance-requests
         let year = 60 * 60 * 24 * 366;
         let validity = SystemTime::now() + Duration::from_secs(year);
@@ -75,9 +86,9 @@ impl PubHubsCredential {
             credential: PUB_HUBS.to_string(),
             validity: validity.duration_since(UNIX_EPOCH).unwrap().as_secs(),
             attributes: PubhubsAttributes {
-                email: mail.to_string(),
-                mobilenumber: phone.to_string(),
-                registrationdate: registration_date.to_string(),
+                id: id.to_string(),
+                registration_source: registration_source.to_string(),
+                registration_date: registration_date.to_string(),
             },
         }
     }
@@ -142,8 +153,8 @@ pub async fn login(
     pubhubs_url_for_yivi_app: &str,
 ) -> Result<SessionDataWithImage> {
     let to_disclose = vec![vec![vec![
-        PUB_HUBS_MAIL.to_string(),
-        PUB_HUBS_PHONE.to_string(),
+        PUB_HUBS_ID.to_string(),
+        // PUB_HUBS_PHONE.to_string(),
     ]]];
     let next_session = None;
     disclose(
@@ -316,7 +327,6 @@ impl From<SessionData> for SessionDataWithImage {
         .expect("To turn the json into a QR code.");
         let image = code
             .render()
-            //TODO maybe no dimensions but relative? Check it tomorrow
             .min_dimensions(300, 300)
             .dark_color(svg::Color("#000")) //black
             .light_color(svg::Color("#118DE8")) //white
@@ -340,12 +350,9 @@ impl Debug for SessionDataWithImage {
 }
 
 #[async_recursion]
-pub async fn disclosed_email_and_telephone(
-    yivi_host: &str,
-    token: &str,
-) -> Result<(String, String)> {
+pub async fn disclosed_ph_id(yivi_host: &str, token: &str, context: &Main) -> Result<User> {
     let client = Client::new();
-    let started = std::time::SystemTime::now();
+    let started = SystemTime::now();
     let mut attempt_nr: u32 = 0;
     loop {
         attempt_nr += 1;
@@ -390,18 +397,23 @@ pub async fn disclosed_email_and_telephone(
         match (&result.status, &result.session_type) {
             (Status::DONE, &SessionType::Disclosing) => match result.next_session {
                 None => {
-                    let email = get_first_attribute_raw_value(PUB_HUBS_MAIL, &result)?;
-                    let telephone = get_first_attribute_raw_value(PUB_HUBS_PHONE, &result)?;
-                    return Ok((email, telephone));
+                    // The end of the registration process, we get the disclosed ph id.
+                    let id = get_first_attribute_raw_value(PUB_HUBS_ID, &result)?;
+                    return get_user_by_id(&id, context).await;
                 }
                 Some(new_token) => {
-                    return disclosed_email_and_telephone(yivi_host, &new_token).await
+                    // There is a new sessions, this means mail & phone have been disclosed, now the
+                    // ph account card will be issued and we we need to wait for the end of the chained
+                    // session.
+                    return disclosed_ph_id(yivi_host, &new_token, context).await;
                 }
             },
             (Status::DONE, &SessionType::Issuing) => {
+                // We issued the ph account card and will find the corresponding user that was created
+                // before the user accepted the issued card based on the disclosed mail and mobile number.
                 let email = get_first_attribute_raw_value(MAIL, &result)?;
                 let telephone = get_first_attribute_raw_value(MOBILE_NO, &result)?;
-                return Ok((email, telephone));
+                return get_user(&email, &telephone, context).await;
             }
             (Status::CANCELLED | Status::TIMEOUT, _) => {
                 bail!("Session '{token}' ended");
@@ -414,7 +426,7 @@ pub async fn disclosed_email_and_telephone(
         }
     }
     Err(anyhow!("Did not get Yivi result in {attempt_nr} tries")).http_context(
-        http::StatusCode::INTERNAL_SERVER_ERROR,
+        StatusCode::INTERNAL_SERVER_ERROR,
         Some("We haven't heard back from the Yivi server.  Did you perhaps forget to add your PubHubs card to Yivi?  If so, please register again.".to_owned())
         // NOTE:  this error message is not always appropriate, but this code will be replaced by the authentication server in the future anyhow
     )
@@ -423,7 +435,15 @@ pub async fn disclosed_email_and_telephone(
 pub async fn next_session(req: HttpRequest, context: Data<Main>, jwt_text: String) -> HttpResponse {
     let pubhubs_url_for_yivi_app = &context.url.for_yivi_app.as_str();
     let yivi = &context.yivi;
-    match next_session_priv(req, yivi, pubhubs_url_for_yivi_app, &jwt_text).await {
+    match next_session_priv(
+        req,
+        yivi,
+        pubhubs_url_for_yivi_app,
+        &jwt_text,
+        context.as_ref(),
+    )
+    .await
+    {
         Ok(a) => a,
         Err(_) => empty_result(),
     }
@@ -434,6 +454,7 @@ async fn next_session_priv(
     yivi: &YiviContext,
     pubhubs_url_for_yivi_app: &str,
     jwt_text: &str,
+    context: &Main,
 ) -> Result<HttpResponse> {
     if let Some(ct) = req.headers().get(CONTENT_TYPE) {
         let ct = ct.to_str().unwrap_or("<could not convert to string>");
@@ -477,24 +498,26 @@ async fn next_session_priv(
             Ok(empty_result())
         }
         (_, SessionType::Disclosing) => {
-            match (
-                get_first_attribute_raw_value(PUB_HUBS_MAIL, &result),
-                get_first_attribute_raw_value(PUB_HUBS_PHONE, &result),
-            ) {
+            match get_first_attribute_raw_value(PUB_HUBS_ID, &result) {
                 //the card exists and we can continue
-                (Ok(_mail), Ok(_phone)) => Ok(empty_result()),
+                Ok(_id) => Ok(empty_result()),
                 //no card; need to issue
                 _ => {
                     let email = get_first_attribute_raw_value(MAIL, &result)?;
                     let telephone = get_first_attribute_raw_value(MOBILE_NO, &result)?;
                     let date = Utc::now().format("%Y-%m-%d").to_string();
+
+                    let (id, date) =
+                        get_or_create_user(&email, &telephone, &date, context).await?;
+
+                    let masked_email = mask_email(email);
+                    let masked_telephone = mask_telephone(telephone);
+                    let source = format!("via Yivi app: \n{masked_telephone}\n{masked_email}");
                     let body = serde_json::to_string(&ExtendedSessionRequest {
                         request: SessionRequest {
                             context: Context::Issuance,
                             disclose: None,
-                            credentials: Some(vec![PubHubsCredential::new(
-                                &email, &telephone, &date,
-                            )]),
+                            credentials: Some(vec![PubHubsCredential::new(&id, &source, &date)]),
                         },
                         next_session: Some(NextSession {
                             url: pubhubs_url_for_yivi_app.to_owned() + "yivi-endpoint/",
@@ -511,6 +534,96 @@ async fn next_session_priv(
         }
         _ => Ok(empty_result()),
     }
+}
+
+fn mask_email(email: String) -> String {
+    if email.len() < 3 {
+        return email;
+    }
+
+    let start = 1;
+    // These ifs might seem strange, but demo cards can be any string
+    let end = if email.chars().position(|x| x == '@').unwrap_or(0) > 2 {
+        email.chars().position(|x| x == '@').unwrap() - 1
+    } else {
+        email.len() - 1
+    };
+
+    mask(email, start, end)
+}
+
+fn mask_telephone(telephone: String) -> String {
+    // This size check might seem strange but demo cards have no phone number format restrictions.
+    if telephone.len() < 11 {
+        return telephone;
+    }
+    // real Yivi phone numbers have a structure like +31611****11
+    let start = 6;
+    let end = 10;
+    mask(telephone, start, end)
+}
+
+fn mask(string: String, start: usize, end: usize) -> String {
+    string
+        .chars()
+        .enumerate()
+        .map(|(i, c)| if i >= start && i < end { '*' } else { c })
+        .collect()
+}
+
+async fn get_or_create_user(
+    email: &str,
+    telephone: &str,
+    date: &str,
+    context: &Main,
+) -> Result<(String, String)> {
+    let user = get_user(email, telephone, context).await;
+
+    match user {
+        Ok(user) => Ok((user.external_id, user.registration_date)),
+        Err(e) if no_result(&e) => {
+            let (user_tx, user_rx) = oneshot::channel();
+            context
+                .db_tx
+                .send(CreateUser {
+                    resp: user_tx,
+                    email: email.to_string(),
+                    telephone: telephone.to_string(),
+                    registration_date: date.to_string(),
+                    config: context.pep.clone(),
+                    is_admin: false,
+                })
+                .await?;
+            let user = user_rx.await??;
+            Ok((user.external_id, user.registration_date))
+        }
+        Err(e) => Err(e),
+    }
+}
+
+async fn get_user(email: &str, telephone: &str, context: &Main) -> Result<User> {
+    let (user_tx, user_rx) = oneshot::channel();
+    context
+        .db_tx
+        .send(GetUser {
+            resp: user_tx,
+            email: email.to_string(),
+            telephone: telephone.to_string(),
+        })
+        .await?;
+    user_rx.await?
+}
+
+async fn get_user_by_id(id: &str, context: &Main) -> Result<User> {
+    let (user_tx, user_rx) = oneshot::channel();
+    context
+        .db_tx
+        .send(GetUserById {
+            resp: user_tx,
+            id: id.parse()?,
+        })
+        .await?;
+    user_rx.await?
 }
 
 fn empty_result() -> HttpResponse {
@@ -598,7 +711,6 @@ mod tests {
     use super::*;
     use crate::config::File;
     use actix_web::body::MessageBody;
-    use actix_web::test;
     use actix_web::test::TestRequest;
     use hyper::service::{make_service_fn, service_fn};
     use hyper::{Response, Server};
@@ -608,7 +720,7 @@ mod tests {
 
     #[actix_web::test]
     async fn can_start_session() {
-        start_fake_server(3000).await;
+        start_fake_server(3000, None).await;
         let test_pub_hubs_host = "test_host/";
         let resp = login(
             "http://localhost:3000/test1",
@@ -644,25 +756,31 @@ mod tests {
     }
 
     #[actix_web::test]
-    async fn can_get_disclosed_values() {
-        start_fake_server(3001).await;
-        let resp = disclosed_email_and_telephone("http://localhost:3001/test2", "test_token")
+    async fn can_get_disclosed_values_of_existing_user() {
+        let context = create_test_context_with(|f| f).await.unwrap();
+        let (user_id, _) = get_or_create_user("email", "phone", "date", &context)
             .await
             .unwrap();
-        assert_eq!(resp, (String::from("mail"), String::from("phone")));
+        start_fake_server(3001, Some(user_id)).await;
+        let resp = disclosed_ph_id("http://localhost:3001/test2", "test_token", &context)
+            .await
+            .unwrap();
+        let orig_id = resp.external_id;
+        assert_eq!(*&orig_id.len(), 10);
+        assert!(&orig_id.chars().all(|c| c.is_alphanumeric()));
 
         //Follow next session
-        let resp = disclosed_email_and_telephone("http://localhost:3001/test2", "test_token2")
+        let resp = disclosed_ph_id("http://localhost:3001/test2", "test_token2", &context)
             .await
             .unwrap();
-        assert_eq!(resp, (String::from("mail"), String::from("phone")));
+        assert_eq!(resp.external_id, orig_id);
 
         // sessions ended or bad results
         match (
-            disclosed_email_and_telephone("http://localhost:3001/test2", "test_token3").await,
-            disclosed_email_and_telephone("http://localhost:3001/test2", "test_token4").await,
-            disclosed_email_and_telephone("http://localhost:3001/test2", "test_token5").await,
-            disclosed_email_and_telephone("http://localhost:3001/test2", "test_token6").await,
+            disclosed_ph_id("http://localhost:3001/test2", "test_token3", &context).await,
+            disclosed_ph_id("http://localhost:3001/test2", "test_token4", &context).await,
+            disclosed_ph_id("http://localhost:3001/test2", "test_token5", &context).await,
+            disclosed_ph_id("http://localhost:3001/test2", "test_token6", &context).await,
         ) {
             (Err(e1), Err(e2), Err(e3), Err(e4)) => {
                 assert_eq!(e1.to_string(), "Session 'test_token3' ended");
@@ -684,7 +802,7 @@ mod tests {
         return jsonwebtoken::encode(
             &jsonwebtoken::Header::new(jsonwebtoken::Algorithm::RS256),
             &SignedSessionResultClaims {
-                result: result,
+                result,
                 iat: jsonwebtoken::get_current_timestamp(),
                 exp: jsonwebtoken::get_current_timestamp() + 100,
                 iss: "irmaserver".to_string(),
@@ -798,8 +916,9 @@ mL8ccRpy26VYM7CYRcsoeJMCAwEAAQ==
             next_session: None,
             error: None,
         });
-        let req = test::TestRequest::default().to_http_request();
-        let resp = next_session_priv(req, &fake_yivi_state(), "test_host", &body)
+        let req = TestRequest::default().to_http_request();
+        let context = create_test_context_with(|f| f).await.unwrap();
+        let resp = next_session_priv(req, &fake_yivi_state(), "test_host", &body, &context)
             .await
             .unwrap();
         assert_eq!(resp.status(), StatusCode::NO_CONTENT);
@@ -827,7 +946,8 @@ mL8ccRpy26VYM7CYRcsoeJMCAwEAAQ==
             error: None,
         });
         let req = TestRequest::default().to_http_request();
-        let resp = next_session_priv(req, &fake_yivi_state(), "test_host/", &body)
+        let context = create_test_context_with(|f| f).await.unwrap();
+        let resp = next_session_priv(req, &fake_yivi_state(), "test_host/", &body, &context)
             .await
             .unwrap();
 
@@ -847,25 +967,22 @@ mL8ccRpy26VYM7CYRcsoeJMCAwEAAQ==
         assert_eq!(credentials.len(), 1);
         let credential = credentials.first().unwrap();
         assert_eq!(credential.credential, PUB_HUBS);
-        assert_eq!(credential.attributes.email, "mail");
-        assert_eq!(credential.attributes.mobilenumber, "phone");
+        assert_eq!(*(&credential.attributes.id.len()), 10);
+        assert!(&credential
+            .attributes
+            .id
+            .chars()
+            .all(|c| c.is_alphanumeric()));
     }
 
     #[actix_web::test]
     async fn cannot_extend_session_after_disclose_mail_and_phone_from_pubhubs() {
         let body = sign_fake_session_result(SessionResult {
-            disclosed: Some(vec![vec![
-                Attribute {
-                    raw_value: "mail".to_string(),
-                    status: "".to_string(),
-                    id: PUB_HUBS_MAIL.to_string(),
-                },
-                Attribute {
-                    raw_value: "phone".to_string(),
-                    status: "".to_string(),
-                    id: PUB_HUBS_PHONE.to_string(),
-                },
-            ]]),
+            disclosed: Some(vec![vec![Attribute {
+                raw_value: "mail".to_string(),
+                status: "".to_string(),
+                id: PUB_HUBS_ID.to_string(),
+            }]]),
             status: Status::CONNECTED,
             session_type: SessionType::Disclosing,
             proof_status: None,
@@ -873,7 +990,8 @@ mL8ccRpy26VYM7CYRcsoeJMCAwEAAQ==
             error: None,
         });
         let req = TestRequest::default().to_http_request();
-        let resp = next_session_priv(req, &fake_yivi_state(), "test_host", &body)
+        let context = create_test_context_with(|f| f).await.unwrap();
+        let resp = next_session_priv(req, &fake_yivi_state(), "test_host", &body, &context)
             .await
             .unwrap();
 
@@ -930,7 +1048,35 @@ mL8ccRpy26VYM7CYRcsoeJMCAwEAAQ==
         }
     }
 
-    async fn handle(req: Request<Body>) -> Result<Response<Body>, Infallible> {
+    #[test]
+    fn test_phone_and_email_masking() {
+        let mails = vec![
+            ("a", "a"),
+            ("aaaaaaaaaaaaaaa", "a*************a"),
+            ("@", "@"),
+            ("abc@dddd.dd", "a*c@dddd.dd"),
+            ("😀😀😀😀@😀😀.😀😀", "😀**😀@😀😀.😀😀"),
+        ];
+        for (inp, res) in mails {
+            assert_eq!(mask_email(inp.to_string()), res)
+        }
+
+        let phones = vec![
+            ("a", "a"),
+            ("1234567890", "1234567890"),
+            ("123456789012", "123456****12"),
+            ("😀😁😀😁😀😁😀😁😀😁😀😁", "😀😁😀😁😀😁****😀😁"),
+            ("+31612345678", "+31612****78"),
+        ];
+        for (inp, res) in phones {
+            assert_eq!(mask_telephone(inp.to_string()), res)
+        }
+    }
+
+    async fn handle(
+        req: Request<Body>,
+        user_id: Option<String>,
+    ) -> Result<Response<Body>, Infallible> {
         let endpoint = req.uri().path().to_string();
         let endpoint = endpoint.as_str();
 
@@ -955,10 +1101,7 @@ mL8ccRpy26VYM7CYRcsoeJMCAwEAAQ==
                 assert_eq!(session_request.next_session, None);
                 assert_eq!(
                     session_request.request.disclose.unwrap(),
-                    vec![vec![vec![
-                        PUB_HUBS_MAIL.to_string(),
-                        PUB_HUBS_PHONE.to_string()
-                    ],]]
+                    vec![vec![vec![PUB_HUBS_ID.to_string(),],]]
                 );
                 assert_eq!(session_request.request.context, Context::Disclosure);
 
@@ -982,18 +1125,11 @@ mL8ccRpy26VYM7CYRcsoeJMCAwEAAQ==
                 assert!(body.is_empty());
 
                 let resp_data = &SessionResult {
-                    disclosed: Some(vec![vec![
-                        Attribute {
-                            raw_value: "mail".to_string(),
-                            status: "".to_string(),
-                            id: PUB_HUBS_MAIL.to_string(),
-                        },
-                        Attribute {
-                            raw_value: "phone".to_string(),
-                            status: "".to_string(),
-                            id: PUB_HUBS_PHONE.to_string(),
-                        },
-                    ]]),
+                    disclosed: Some(vec![vec![Attribute {
+                        raw_value: user_id.unwrap_or("1".to_string()),
+                        status: "".to_string(),
+                        id: PUB_HUBS_ID.to_string(),
+                    }]]),
                     status: Status::DONE,
                     session_type: SessionType::Disclosing,
                     proof_status: None,
@@ -1072,7 +1208,7 @@ mL8ccRpy26VYM7CYRcsoeJMCAwEAAQ==
         }
     }
 
-    async fn start_fake_server(port: u16) {
+    async fn start_fake_server(port: u16, user_id: Option<String>) {
         let port_bound = Arc::new(tokio::sync::Notify::new());
 
         {
@@ -1083,7 +1219,8 @@ mL8ccRpy26VYM7CYRcsoeJMCAwEAAQ==
                 let addr = SocketAddr::from(([127, 0, 0, 1], port));
 
                 let make_service = make_service_fn(move |_conn| {
-                    let service = service_fn(move |req| handle(req));
+                    let user_id = user_id.clone();
+                    let service = service_fn(move |req| handle(req, user_id.clone()));
 
                     async move { Ok::<_, Infallible>(service) }
                 });
@@ -1101,9 +1238,7 @@ mL8ccRpy26VYM7CYRcsoeJMCAwEAAQ==
         port_bound.notified().await;
     }
 
-    async fn create_test_context_with(
-        config: impl FnOnce(File) -> File,
-    ) -> anyhow::Result<Arc<Main>> {
+    async fn create_test_context_with(config: impl FnOnce(File) -> File) -> Result<Arc<Main>> {
         Main::create(config(File::for_testing())).await
     }
 }

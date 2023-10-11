@@ -5,6 +5,8 @@ use expry::key_str;
 use expry::{value, DecodedValue};
 
 use prometheus::HistogramVec;
+use rand::distributions::Alphanumeric;
+use rand::Rng;
 use rusqlite::Error::QueryReturnedNoRows;
 use rusqlite::{params, Connection, Row};
 use serde::{Deserialize, Serialize};
@@ -109,7 +111,7 @@ fn migrate_database(db: &mut Connection, do_migrations: DoMigrations) -> Result<
 /// be interpretted as the index of the next migration to be performed.
 ///
 /// Since a blank database starts with `user_version=0`, migration number 0 will be performed first.
-const MIGRATIONS: [&dyn Migration; 10] = [
+const MIGRATIONS: [&dyn Migration; 12] = [
     &"
         -- Commented out, for efficiency,
         --   because it's dropped later on anyhow 
@@ -195,7 +197,9 @@ const MIGRATIONS: [&dyn Migration; 10] = [
     &"ALTER TABLE user ADD bar_state BLOB DEFAULT X'' NOT NULL;",
     &"ALTER TABLE user ADD bar_state_etag TEXT DEFAULT \"e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855\" NOT NULL;",
     &"ALTER TABLE hub RENAME COLUMN redirection_uri TO oidc_redirect_uri;", // #8
-    &("adding client_uri to hub", migration_add_client_uri) // #9
+    &("adding client_uri to hub", migration_add_client_uri), // #9
+    &"ALTER TABLE user ADD registration_date TEXT DEFAULT 'older card' NOT NULL;", //#10
+    &("add external id to user",migration_add_user_external_id)//#11
 ];
 
 /// Adds `client_uri` field to hub, with as initial value the `oidc_redirect_uri` but with path,
@@ -228,6 +232,36 @@ fn migration_add_client_uri(tx: &rusqlite::Transaction) -> Result<()> {
         update_stmt.execute(rusqlite::named_params! { ":id": id, ":uri": uri.to_string()})?;
     }
 
+    Ok(())
+}
+
+fn migration_add_user_external_id(tx: &rusqlite::Transaction) -> Result<()> {
+    tx.execute(
+        "ALTER TABLE user ADD external_id TEXT DEFAULT '' NOT NULL;",
+        [],
+    )?;
+
+    let mut update_stmt =
+        tx.prepare("UPDATE user SET external_id = :external_id WHERE id = :id")?;
+
+    tx.prepare("SELECT id FROM user")?
+        .query_map([], |row| {
+            let id: u32 = row.get(0).expect("Every user should have an id");
+            Ok(id)
+        })?
+        .for_each(|id| {
+            let id = id.expect("An id is mandatory for a user");
+
+            let external_id = generate_external_id();
+            update_stmt
+                .execute(rusqlite::named_params! { ":id": id, ":external_id": external_id})
+                .expect("Expected to finish the migration");
+        });
+
+    tx.execute(
+        "CREATE UNIQUE INDEX idx_user_external_id ON user (external_id);",
+        [],
+    )?;
     Ok(())
 }
 
@@ -266,28 +300,29 @@ pub enum DataCommands {
         resp: oneshot::Sender<Result<User>>,
         email: String,
         telephone: String,
+        registration_date: String,
         config: PepContext,
         is_admin: bool,
     },
     GetUser {
-        resp: oneshot::Sender<Result<Option<User>>>,
+        resp: oneshot::Sender<Result<User>>,
         email: String,
         telephone: String,
     },
     GetUserById {
         resp: oneshot::Sender<Result<User>>,
-        id: u32,
+        id: String,
     },
     GetBarState {
         resp: oneshot::Sender<Result<BarState>>,
-        id: u32,
+        id: String,
     },
     // Updates bar_state to `state` if the current state has etag `old_etag` in which case
     // `Ok(Some(etag))` is returned where `etag` is the new etag.  Otherwise, when `old_etag` is
     // outdated, `Ok(None)` is returned.
     UpdateBarState {
         resp: oneshot::Sender<Result<Option<String>>>,
-        id: u32,
+        id: String,
         old_etag: String,
         state: bytes::Bytes,
     },
@@ -393,11 +428,19 @@ async fn handle_command(
                 resp,
                 email,
                 telephone,
+                registration_date,
                 config,
                 is_admin,
             } => {
-                resp.send(create_user(&manager, &email, &telephone, &config, is_admin))
-                    .expect("To use our channel");
+                resp.send(create_user(
+                    &manager,
+                    &email,
+                    &telephone,
+                    &registration_date,
+                    &config,
+                    is_admin,
+                ))
+                .expect("To use our channel");
             }
             DataCommands::GetUser {
                 resp,
@@ -883,10 +926,11 @@ pub fn update_hub_details(
 
 #[derive(PartialEq, Eq, Serialize)]
 pub struct User {
-    pub id: u32,
+    pub external_id: String,
     pub email: String,
     pub telephone: String,
     pub pseudonym: String,
+    pub registration_date: String,
     pub active: bool,
     pub administrator: bool,
     // NOTE: the 'bar_state*' fields are stored in the BarState struct instead
@@ -901,7 +945,7 @@ pub struct BarState {
 impl Debug for User {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         f.debug_struct("User")
-            .field("id", &self.id)
+            .field("id", &self.external_id)
             .field("active", &self.active)
             .field("administrator", &self.administrator)
             .finish()
@@ -910,7 +954,7 @@ impl Debug for User {
 
 impl<'a> From<&'a User> for DecodedValue<'a> {
     fn from(user: &'a User) -> Self {
-        value!({"id": user.id as i64, "email": user.email, "telephone": user.telephone})
+        value!({"id": user.external_id, "email": user.email, "telephone": user.telephone})
     }
 }
 
@@ -918,50 +962,61 @@ pub fn create_user(
     db: &Connection,
     email: &str,
     telephone: &str,
+    registration_date: &str,
     pep: &PepContext,
     is_admin: bool,
 ) -> Result<User> {
+    let user_id = generate_external_id();
+
     db.execute(
-        "INSERT INTO user (email, telephone, pseudonym, active, administrator)
-        values (?1, ?2, ?3, TRUE, ?4)",
+        "INSERT INTO user (email, telephone, registration_date, pseudonym, active, administrator, external_id)
+        values (?1, ?2, ?3, ?4, TRUE, ?5, ?6)",
         params![
             email,
             telephone,
+            registration_date,
             pep.generate_pseudonym().to_hex(),
-            is_admin
+            is_admin,
+            user_id
         ],
     )?;
-    Ok(get_user(db, email, telephone)?.expect("user to exist after succesful insertion"))
+    get_user(db, email, telephone)
 }
 
-pub fn get_user(db: &Connection, email: &str, telephone: &str) -> Result<Option<User>> {
+fn generate_external_id() -> String {
+    let user_id: String = rand::thread_rng()
+        .sample_iter(&Alphanumeric)
+        .take(10)
+        .map(char::from)
+        .collect();
+    user_id
+}
+
+pub fn get_user(db: &Connection, email: &str, telephone: &str) -> Result<User> {
     match db.query_row(
-        "SELECT id, email, telephone, pseudonym, active, administrator FROM user
+        "SELECT external_id, email, telephone, pseudonym, registration_date, active, administrator FROM user
         WHERE active = TRUE AND email = ?1 AND telephone = ?2",
         [email, telephone],
         map_user,
     ) {
-        Ok(user) => Ok(Some(user)),
-        Err(QueryReturnedNoRows) => Ok(None),
+        Ok(user) => Ok(user),
         Err(err) => bail!(err),
     }
 }
 
-//Will be used later
-#[allow(dead_code)]
-pub fn get_user_by_id(db: &Connection, id: u32) -> Result<User> {
+pub fn get_user_by_id(db: &Connection, id: String) -> Result<User> {
     let result = db.query_row(
-        "SELECT id, email, telephone, pseudonym, active, administrator FROM user
-        WHERE active = TRUE AND id = ?1",
+        "SELECT external_id, email, telephone, pseudonym, registration_date, active, administrator FROM user
+        WHERE active = TRUE AND external_id = ?1",
         [id],
         map_user,
     )?;
     Ok(result)
 }
 
-pub fn get_bar_state(db: &Connection, id: u32) -> Result<BarState> {
+pub fn get_bar_state(db: &Connection, id: String) -> Result<BarState> {
     db.query_row(
-        "SELECT bar_state, bar_state_etag FROM user WHERE active = TRUE and id = ?1",
+        "SELECT bar_state, bar_state_etag FROM user WHERE active = TRUE and external_id = ?1",
         [id],
         map_bar_state,
     )
@@ -970,7 +1025,7 @@ pub fn get_bar_state(db: &Connection, id: u32) -> Result<BarState> {
 
 pub fn update_bar_state(
     db: &Connection,
-    id: u32,
+    id: String,
     old_etag: String,
     state: bytes::Bytes,
 ) -> Result<Option<String>> {
@@ -982,7 +1037,7 @@ pub fn update_bar_state(
     );
 
     match db.execute(
-        "UPDATE user SET bar_state = :bar_state, bar_state_etag = :new_etag WHERE id = :id AND bar_state_etag = :old_etag;",
+        "UPDATE user SET bar_state = :bar_state, bar_state_etag = :new_etag WHERE external_id = :id AND bar_state_etag = :old_etag;",
         rusqlite::named_params! {
             ":bar_state": &*state, // &* = bytes.Bytes -> &[u8]
             ":new_etag": new_etag,
@@ -997,7 +1052,7 @@ pub fn update_bar_state(
 
 pub fn get_all_users(db: &Connection) -> Result<Vec<User>> {
     let mut stmt =
-        db.prepare("SELECT id, email, telephone, pseudonym, active, administrator FROM user WHERE active = TRUE")?;
+        db.prepare("SELECT external_id, email, telephone, pseudonym, registration_date, active, administrator FROM user WHERE active = TRUE")?;
     let result: Result<Vec<User>, rusqlite::Error> = stmt.query_map([], map_user)?.collect();
     Ok(result?)
 }
@@ -1020,25 +1075,21 @@ pub fn update_user(db: &Connection, user: User) -> Result<usize> {
     let result = db.execute(
         "UPDATE user
         SET email = ?1, telephone = ?2, pseudonym = ?3
-        WHERE active = TRUE AND id = ?4",
-        [
-            user.email,
-            user.telephone,
-            user.pseudonym,
-            user.id.to_string(),
-        ],
+        WHERE active = TRUE AND external_id = ?4",
+        [user.email, user.telephone, user.pseudonym, user.external_id],
     )?;
     Ok(result)
 }
 
 fn map_user(row: &Row) -> Result<User, rusqlite::Error> {
     Ok(User {
-        id: row.get(0)?,
+        external_id: row.get(0)?,
         email: row.get(1)?,
         telephone: row.get(2)?,
         pseudonym: row.get(3)?,
-        active: row.get(4)?,
-        administrator: row.get(5)?,
+        registration_date: row.get(4)?,
+        active: row.get(5)?,
+        administrator: row.get(6)?,
     })
 }
 
@@ -1047,6 +1098,10 @@ fn map_bar_state(row: &Row) -> Result<BarState, rusqlite::Error> {
         state: row.get(0)?,
         state_etag: row.get(1)?,
     })
+}
+
+pub fn no_result(e: &anyhow::Error) -> bool {
+    e.root_cause().to_string().as_str() == QueryReturnedNoRows.to_string().as_str()
 }
 
 #[cfg(test)]
@@ -1192,24 +1247,28 @@ mod tests {
         let tel1 = "tel1";
         let config = &PepContext::test_config();
         let mail2 = "mail2";
-        create_user(&pool, mail1, tel1, config, false);
-        let user = get_user(&pool, mail1, tel1).unwrap().unwrap();
+        let date = "today";
+        create_user(&pool, mail1, tel1, date, config, false).unwrap();
+        let user = get_user(&pool, mail1, tel1).unwrap();
         assert!(user.active);
         assert_eq!(user.email, mail1);
         assert_eq!(user.telephone, tel1);
         assert_eq!(user.pseudonym.len(), 192);
-        let not_unique = create_user(&pool, mail1, tel1, config, true);
+        let not_unique = create_user(&pool, mail1, tel1, date, config, true);
         compare_error(
             "UNIQUE constraint failed: user.email, user.telephone",
             not_unique,
         );
 
-        let user2 = get_user(&pool, mail2, tel1).unwrap();
-        assert!(user2.is_none());
+        let user2 = get_user(&pool, mail2, tel1);
+        match user2 {
+            Err(e) if no_result(&e) => assert!(true),
+            _ => assert!(false),
+        }
 
-        create_user(&pool, mail2, tel1, config, false);
-        let user2_really = get_user(&pool, mail2, tel1).unwrap().unwrap();
-        assert_ne!(user2_really.id, user.id);
+        create_user(&pool, mail2, tel1, date, config, false);
+        let user2_really = get_user(&pool, mail2, tel1).unwrap();
+        assert_ne!(user2_really.external_id, user.external_id);
     }
 
     #[test]
@@ -1219,16 +1278,17 @@ mod tests {
         let tel1 = "tel1";
         let config = &PepContext::test_config();
         let mail2 = "mail2";
-        create_user(&pool, mail1, tel1, config, false);
+        let date = "today";
+        create_user(&pool, mail1, tel1, date, config, false);
 
-        create_user(&pool, mail2, tel1, config, false);
-        let user = get_user_by_id(&pool, 1).unwrap();
+        create_user(&pool, mail2, tel1, date, config, false);
+        let user = get_user_by_internal_id(&pool, 1).unwrap();
         assert!(user.active);
         assert_eq!(user.email, mail1);
         assert_eq!(user.telephone, tel1);
         assert_eq!(user.pseudonym.len(), 192);
-        let user2_really = get_user_by_id(&pool, 2).unwrap();
-        assert_ne!(user2_really.id, user.id);
+        let user2_really = get_user_by_internal_id(&pool, 2).unwrap();
+        assert_ne!(user2_really.external_id, user.external_id);
     }
 
     #[test]
@@ -1236,17 +1296,21 @@ mod tests {
         let pool = set_up();
         let mail = "mail1";
         let tel = "tel1";
+        let date = "today";
         let config = &PepContext::test_config();
-        create_user(&pool, mail, tel, config, false);
-        let user = get_user(&pool, mail, tel).unwrap().unwrap();
+        create_user(&pool, mail, tel, date, config, false);
+        let user = get_user(&pool, mail, tel).unwrap();
         assert!(user.active);
 
         delete_user(&pool, mail, tel);
         let user_result = get_user(&pool, mail, tel);
-        assert!(user_result.unwrap().is_none());
+        match user_result {
+            Err(e) if no_result(&e) => assert!(true),
+            _ => assert!(false),
+        }
 
         let user = pool.query_row(
-                "SELECT id, email, telephone, pseudonym, active, administrator FROM user WHERE email = ?1 AND telephone = ?2",
+                "SELECT external_id, email, telephone, pseudonym, registration_date, active, administrator FROM user WHERE email = ?1 AND telephone = ?2",
                 [mail, tel],
                 map_user,
             )
@@ -1259,38 +1323,41 @@ mod tests {
         let pool = set_up();
         let mail = "mail1";
         let tel = "tel1";
+        let date = "today";
         let config = &PepContext::test_config();
-        create_user(&pool, mail, tel, config, false);
-        let user = get_user(&pool, mail, tel).unwrap().unwrap();
+        create_user(&pool, mail, tel, date, config, false);
+        let user = get_user(&pool, mail, tel).unwrap();
         assert!(user.active);
 
         let new_mail = "mail2";
         let new_telephone = "tel2";
         let new_pseudonym = "pseudonym2";
         let updated_user = User {
-            id: user.id,
+            external_id: user.external_id,
             email: new_mail.to_string(),
             telephone: new_telephone.to_string(),
             pseudonym: new_pseudonym.to_string(),
+            registration_date: "today".to_string(),
             active: false,
             administrator: false,
         };
         update_user(&pool, updated_user);
-        let stored_updated_user = get_user(&pool, new_mail, new_telephone).unwrap().unwrap();
+        let stored_updated_user = get_user(&pool, new_mail, new_telephone).unwrap();
         assert_eq!(stored_updated_user.email, new_mail);
         assert_eq!(stored_updated_user.telephone, new_telephone);
         assert_eq!(stored_updated_user.pseudonym, new_pseudonym);
         assert!(stored_updated_user.active);
 
         // Different user
-        create_user(&pool, mail, tel, config, false);
-        let new_id = get_user(&pool, mail, tel).unwrap().unwrap().id;
+        create_user(&pool, mail, tel, date, config, false);
+        let new_id = get_user(&pool, mail, tel).unwrap().external_id;
         // Update with existing telephone and email
         let updated_user_should_fail = User {
-            id: new_id,
+            external_id: new_id,
             email: new_mail.to_string(),
             telephone: new_telephone.to_string(),
             pseudonym: new_pseudonym.to_string(),
+            registration_date: "today".to_string(),
             active: false,
             administrator: false,
         };
@@ -1319,5 +1386,15 @@ mod tests {
 
         let err = result.unwrap_err();
         assert_eq!(msg, err.to_string());
+    }
+
+    fn get_user_by_internal_id(db: &Connection, id: u32) -> Result<User> {
+        let result = db.query_row(
+            "SELECT external_id, email, telephone, pseudonym, registration_date, active, administrator FROM user
+        WHERE active = TRUE AND id = ?1",
+            [id],
+            map_user,
+        )?;
+        Ok(result)
     }
 }

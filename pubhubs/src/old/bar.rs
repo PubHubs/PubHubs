@@ -214,7 +214,7 @@ async fn get_hubs_anyhow(
 fn get_user_id(
     req: &actix_web::HttpRequest,
     context: &actix_web::web::Data<crate::context::Main>,
-) -> Result<u32, actix_web::HttpResponse> {
+) -> Result<String, actix_web::HttpResponse> {
     let user_id = req.user_id_from_cookie(&context.cookie_secret);
 
     if user_id.is_err() {
