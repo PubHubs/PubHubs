@@ -12,6 +12,8 @@ const en = {
 		error: 'Unfortunately an error occured. Please contact opthe developers.\n\n {0}',
 		server: 'Server error',
 		M_LIMIT_EXCEEDED: 'Too much login attempts. Try again in {0} seconds.',
+		not_send_offline: 'Internet connection seems down. This message was not send.',
+		resend: 'Send again',
 	},
 	file: {
 		file: 'File',

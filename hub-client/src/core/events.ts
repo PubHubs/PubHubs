@@ -1,7 +1,7 @@
 import { SyncState } from 'matrix-js-sdk/lib/sync';
 import { MatrixClient, MatrixEvent, ClientEvent, Room as MatrixRoom, RoomEvent, RoomMemberEvent, RoomMember } from 'matrix-js-sdk';
 
-import { useSettings, User, useUser, useRooms } from '@/store/store';
+import { useSettings, User, useConnection, useUser, useRooms } from '@/store/store';
 import { usePubHubs } from '@/core/pubhubsStore';
 
 class Events {
@@ -15,6 +15,19 @@ class Events {
 		return new Promise((resolve) => {
 			const self = this;
 			this.client.on(ClientEvent.Sync, (state: SyncState) => {
+				console.debug('STATE:', state);
+
+				const connection = useConnection();
+				if (state == 'ERROR') {
+					connection.error();
+				}
+				if (state == 'RECONNECTING') {
+					connection.off();
+				}
+				if (state == 'SYNCING') {
+					connection.on();
+				}
+
 				if (state == 'PREPARED') {
 					// this.client.on('event' as any, (event: any) => {
 					// 	console.debug('== EVENT', event.getType());

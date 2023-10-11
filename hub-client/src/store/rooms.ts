@@ -11,10 +11,9 @@ import { defineStore } from 'pinia';
 import { Room as MatrixRoom, IPublicRoomsChunkRoom as PublicRoom, MatrixClient, RoomMember } from 'matrix-js-sdk';
 import { Message, MessageType, useMessageBox } from './messagebox';
 import { useRouter } from 'vue-router';
-import { api_synapse,api_matrix } from '@/core/api';
+import { api_synapse, api_matrix } from '@/core/api';
 import { usePubHubs } from '@/core/pubhubsStore';
 import { propCompare } from '@/core/extensions';
-
 
 enum PubHubsRoomType {
 	PH_MESSAGES_RESTRICTED = 'ph.messages.restricted',
@@ -39,33 +38,31 @@ interface SecuredRoom {
 
 // Matrix Endpoint for messages in a room.
 interface RoomMessages {
-  chunk: Chunk[]
-  start: string
-  end: string
+	chunk: Chunk[];
+	start: string;
+	end: string;
 }
 
 interface Chunk {
-  type: string
-  room_id: string
-  sender: string
-  content: Content
-  origin_server_ts: number
-  unsigned: Unsigned
-  event_id: string
-  user_id: string
-  age: number
+	type: string;
+	room_id: string;
+	sender: string;
+	content: Content;
+	origin_server_ts: number;
+	unsigned: Unsigned;
+	event_id: string;
+	user_id: string;
+	age: number;
 }
 
 interface Content {
-  body: string
-  msgtype: string
+	body: string;
+	msgtype: string;
 }
 
 interface Unsigned {
-  age: number
+	age: number;
 }
-
-
 
 /**
  *  Extending the MatrixRoom with some extra properties and there methods:
@@ -363,15 +360,19 @@ const useRooms = defineStore('rooms', {
 			return this.rooms[roomId].getCreator();
 		},
 
-		async storeRoomNotice(roomId: string){
-			const hub_notice = await api_synapse.apiGET<string>(api_synapse.apiURLS.notice);
-			const encodedObject = encodeURIComponent(JSON.stringify({"types": ["m.room.message"], "senders":[hub_notice]})); 
-			const response =  await api_matrix.apiGET<RoomMessages>(api_matrix.apiURLS.rooms + roomId + '/messages?filter=' + encodedObject );
-			for (const chunk of response.chunk){
-				if (!this.roomNotices[roomId]) {
-					this.roomNotices[roomId] = [];
-				}	
-				this.roomNotices[roomId].push(chunk.content.body)
+		async storeRoomNotice(roomId: string) {
+			try {
+				const hub_notice = await api_synapse.apiGET<string>(api_synapse.apiURLS.notice);
+				const encodedObject = encodeURIComponent(JSON.stringify({ types: ['m.room.message'], senders: [hub_notice] }));
+				const response = await api_matrix.apiGET<RoomMessages>(api_matrix.apiURLS.rooms + roomId + '/messages?filter=' + encodedObject);
+				for (const chunk of response.chunk) {
+					if (!this.roomNotices[roomId]) {
+						this.roomNotices[roomId] = [];
+					}
+					this.roomNotices[roomId].push(chunk.content.body);
+				}
+			} catch (error) {
+				console.log(error);
 			}
 		},
 
@@ -402,17 +403,16 @@ const useRooms = defineStore('rooms', {
 				block: true,
 				purge: true,
 			};
-			
-	
+
 			// const response_notice = await this.getRoomNotice(room_id)
 			// for (const content of response_notice.chunk){
 			// 	console.info(content.content.body)
 			// }
 			const response = await api_synapse.apiDELETE<any>(api_synapse.apiURLS.deleteRoom + room_id, body);
-			
+
 			const deleted_id = response.delete_id;
 			this.room(room_id)?.hide();
-			
+
 			const pidx = this.publicRooms.findIndex((room) => room.room_id == room_id);
 			this.publicRooms.splice(pidx, 1);
 			return deleted_id;
