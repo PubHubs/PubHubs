@@ -10,11 +10,9 @@
 	import { computed } from 'vue';
 	import { useRooms } from '@/store/store';
 	import { useUserColor } from '@/composables/useUserColor';
-	import { useUserName } from '@/composables/useUserName';
 	import { useI18n } from 'vue-i18n';
 	import filters from '@/core/filters';
 
-	const { getUserDisplayName } = useUserName();
 	const { bgColor } = useUserColor();
 	const rooms = useRooms();
 	const { t } = useI18n();
@@ -30,9 +28,7 @@
 	const attribute = computed(() => {
 		const currentRoom = rooms.currentRoom;
 		const profileArray: any = [];
-		const cDisplayName = getUserDisplayName(props.user, currentRoom);
 		var profileInfo = '';
-		const displayName = filters.extractPseudonym(cDisplayName);
 
 		if (rooms.getRoomCreator(currentRoom?.roomId) == props.user) {
 			profileArray.push(t('rooms.admin_badge'));
@@ -40,7 +36,7 @@
 		}
 		// Check until the room Notice is available.
 		if (rooms.roomNotices[currentRoom.roomId] != undefined) {
-			const index = rooms.roomNotices[currentRoom.roomId].findIndex((element) => element.includes(displayName));
+			const index = rooms.roomNotices[currentRoom.roomId].findIndex((element) => element.includes(props.user));
 
 			const attributes_in_notice = rooms.roomNotices[currentRoom.roomId][index];
 
