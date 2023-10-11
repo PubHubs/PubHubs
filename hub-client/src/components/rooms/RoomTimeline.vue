@@ -3,7 +3,9 @@
 		<div class="fixed right-3">
 			<OldEventsLoader v-if="!roomPaginationEnded" :room_id="room_id" @loaded="preventScroll = true"></OldEventsLoader>
 		</div>
-		<RoomEvent v-for="(item, index) in rooms.rooms[room_id].timeline" :key="index" :event="item.event"></RoomEvent>
+		<template v-for="(item, index) in rooms.rooms[room_id].timeline" :key="index">
+			<RoomEvent :event="item.event"></RoomEvent>
+		</template>
 	</div>
 </template>
 
@@ -16,13 +18,13 @@
 
 	onMounted(async () => {
 		if (rooms.currentRoomExists) {
-		await rooms.storeRoomNotice(rooms.currentRoom?.roomId);
+			await rooms.storeRoomNotice(rooms.currentRoom?.roomId);
 		}
 	});
 
 	watch(route, async () => {
 		if (rooms.currentRoomExists) {
-		await rooms.storeRoomNotice(rooms.currentRoom?.roomId);
+			await rooms.storeRoomNotice(rooms.currentRoom?.roomId);
 		}
 	});
 
