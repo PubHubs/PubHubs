@@ -18,7 +18,6 @@ required-features = ["bin"]
 # abi:     what's needed for the ABI (libpubhubs.so) used by the hub
 # common:  what's used by both bin and abi.
 # old:     what's used by the old pubhubs library (no separate authentication server/transcryptor)
-# oldbin:  what's used by the old pubhubs binary
 default = [
 	"old", "bin",
 ]
