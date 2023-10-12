@@ -1172,7 +1172,7 @@ mod tests {
 
     use crate::data::DataCommands::{CreateUser, GetUser};
     use crate::data::HubHandle::Id;
-    use crate::serde_ext::B64;
+    use crate::misc::serde_ext::B64;
     use crate::yivi::{
         Attribute, SessionData, SessionPointer, SessionResult, SessionType,
         SessionType::Disclosing, Status, MAIL, MOBILE_NO, PUB_HUBS_ID,
@@ -1589,7 +1589,7 @@ mod tests {
 
     #[actix_web::test]
     async fn test_no_cookie_hub_login() {
-        let oidc_secret: B64 = b"verysecret".into();
+        let oidc_secret: B64 = b"verysecret".to_vec().into();
         let context = create_test_context_with(|mut f| {
             f.oidc_secret = Some(oidc_secret);
             f
@@ -1635,7 +1635,7 @@ mod tests {
     #[actix_web::test]
     async fn test_cookie_skips_hub_login() {
         let secret = "very secret";
-        let oidc_secret: B64 = b"verysecret".into();
+        let oidc_secret: B64 = b"verysecret".to_vec().into();
         let context = create_test_context_with(|mut f| {
             f.cookie_secret = Some(secret.to_string());
             f.oidc_secret = Some(oidc_secret);

@@ -20,30 +20,41 @@ required-features = ["bin"]
 # old:     what's used by the old pubhubs library (no separate authentication server/transcryptor)
 # oldbin:  what's used by the old pubhubs binary
 default = [
-	"oldbin",
+	"old", "bin",
 ]
 abi = [
 	"common",
 ]
 common = [
 	"dep:base16ct",
-	"dep:base64ct", 
 	"dep:curve25519-dalek", 
 	"dep:rand", 
+	"dep:subtle",
 ]
 bin = [
+	"common",
+	"dep:base64ct", 
 	"dep:clap",
 	"dep:anyhow",
-]
-oldbin = [
-	"bin",
-	"old",
-	"dep:actix-files",
+	"dep:thiserror",
+	"dep:url",
+	"dep:serde",
+	"dep:serde_json",
+	"dep:serde_yaml",
+	"dep:log",
 	"dep:env_logger",
+	"dep:tokio", 
+	"dep:actix-web",
+	"dep:ed25519-dalek",
+	"dep:futures-util", # used by actix already
+	"dep:http",
+	"dep:awc",
 ]
 real_credentials = []
 old = [
+	"dep:actix-files",
  	"common", 
+	"dep:base64ct", 
 	"dep:actix-web", 
 	"dep:aead", 
 	"dep:anyhow", 
@@ -74,7 +85,6 @@ old = [
 	"dep:serde_yaml",
 	"dep:sha2", 
 	"dep:strum_macros",
-	"dep:subtle",
 	"dep:thiserror",
 	"dep:tokio", 
 	"dep:typenum",
@@ -119,7 +129,7 @@ hyper-tls = { version = "0.5", optional = true }
 jsonwebtoken = { version = "8.1", optional = true }  # uses non RustCrypto - perhaps replace?
 log = { version = "0.4", optional = true }
 tokio = { version = "1.23", features = ["rt", "macros", "rt-multi-thread", "sync", "time"], optional = true }
-url = { version="2.2", features=["serde"], optional = true }
+url = { version="2.4", features=["serde"], optional = true }
 uuid = { version = "1.1", features = ["v4"], optional = true }
 
 # Proxying requests to Yivi and connection check
@@ -131,7 +141,7 @@ base16ct = { version = "0.2", features = ["alloc", "std"], optional = true } # h
 base64ct = { version = "1.6", features = ["alloc", "std"], optional = true }
 chacha20poly1305 = { version = "0.10", optional = true }
 curve25519-dalek = { version = "4.0", features = ["rand_core", "digest"], optional = true }
-ed25519-dalek = { version = "2.0", optional = true }
+ed25519-dalek = { version = "2.0", features = ["rand_core", "serde"], optional = true }
 generic-array = { version = "0.14", optional = true }
 hmac = { version = "0.12", optional = true }
 sha2 = { version = "0.10", optional = true }
@@ -140,6 +150,7 @@ typenum = { version = "1.15", optional = true }
 
 #metrics
 futures = { version = "0.3", optional = true }
+futures-util = { version = "0.3", optional = true }
 prometheus = { version = "0.13", optional = true }
 strum_macros = { version = "0.25", optional = true }
 
