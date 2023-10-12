@@ -2,7 +2,7 @@ use crate::context::{Main, Yivi as YiviContext};
 use crate::error::HttpContextExt as _;
 use actix_web::web::Data;
 use actix_web::{HttpRequest, HttpResponse};
-use anyhow::{anyhow, bail, Result};
+use anyhow::{anyhow, bail, Context as _, Result};
 use async_recursion::async_recursion;
 use chrono::Utc;
 
@@ -351,26 +351,34 @@ impl Debug for SessionDataWithImage {
 
 #[async_recursion]
 pub async fn disclosed_ph_id(yivi_host: &str, token: &str, context: &Main) -> Result<User> {
-    let client = Client::new();
     let started = SystemTime::now();
     let mut attempt_nr: u32 = 0;
     loop {
+        let client = Client::new();
+
         attempt_nr += 1;
         log::debug!("waiting for Yivi session with token {token} to finish");
         if started.elapsed()?.as_secs() > 5 * 60 {
             break;
         }
 
+        let uri: String = yivi_host.to_owned() + &format!("/session/{token}/result");
+
         let request = Request::builder()
             .method(Method::GET)
-            .uri(yivi_host.to_owned() + format!("/session/{token}/result").as_str())
+            .uri(&uri)
             .header("content-type", "application/json")
             .body(Body::empty())
             .expect("a request");
 
-        let resp = client.request(request).await?;
+        let resp = client
+            .request(request)
+            .await
+            .with_context(|| format!("requesting {uri}"))?;
         let status = resp.status();
-        let body = body::to_bytes(resp).await?;
+        let body = body::to_bytes(resp)
+            .await
+            .with_context(|| format!("retrieving body for {uri} (status: {status})"))?;
 
         // Start the session
         let slice = body.as_ref();
@@ -420,6 +428,10 @@ pub async fn disclosed_ph_id(yivi_host: &str, token: &str, context: &Main) -> Re
             }
             _ => {
                 // NOTE: we sleep only 2 seconds to prevent registration from feeling too slugish
+                log::debug!(
+                    "session '{token}' has status {:?}; retrying a bit later..",
+                    result.status
+                );
                 sleep(Duration::from_secs(2_u64)).await;
                 continue;
             }
@@ -507,8 +519,7 @@ async fn next_session_priv(
                     let telephone = get_first_attribute_raw_value(MOBILE_NO, &result)?;
                     let date = Utc::now().format("%Y-%m-%d").to_string();
 
-                    let (id, date) =
-                        get_or_create_user(&email, &telephone, &date, context).await?;
+                    let (id, date) = get_or_create_user(&email, &telephone, &date, context).await?;
 
                     let masked_email = mask_email(email);
                     let masked_telephone = mask_telephone(telephone);
