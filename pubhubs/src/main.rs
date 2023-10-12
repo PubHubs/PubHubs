@@ -64,8 +64,9 @@ mod old {
 
     impl Args {
         pub fn run(self) -> Result<(), clap::error::Error> {
-            pubhubs::cli::old::main()
-                .map_err(|err| Cli::command().error(clap::error::ErrorKind::InvalidValue, err))
+            pubhubs::cli::old::main().map_err(|err| {
+                Cli::command().error(clap::error::ErrorKind::InvalidValue, format!("{err:?}"))
+            })
         }
     }
 }

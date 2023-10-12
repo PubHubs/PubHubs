@@ -209,7 +209,11 @@ where
     where
         D: Deserializer<'de>,
     {
-        let s: &'de str = serde::Deserialize::deserialize(d)?;
+        #[derive(Deserialize)]
+        struct CowStr<'a>(#[serde(borrow)] Cow<'a, str>);
+
+        let cow_s: CowStr<'de> = serde::Deserialize::deserialize(d)?;
+        let s = &cow_s.0;
 
         let decoded_len: usize = match E::decoded_len(s) {
             Ok(decoded_len) => decoded_len,
