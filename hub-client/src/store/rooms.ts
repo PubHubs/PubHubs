@@ -283,8 +283,6 @@ const useRooms = defineStore('rooms', {
 			return state.securedRooms.sort(propCompare('room_name'));
 		},
 
-		
-
 		totalUnreadMessages() {
 			let total = 0;
 			for (const idx in this.roomsArray) {
@@ -304,9 +302,9 @@ const useRooms = defineStore('rooms', {
 				if (roomId != '' && this.rooms[roomId]) {
 					this.rooms[roomId].resetUnreadMessages();
 					this.sendUnreadMessageCounter();
-					const messagebox = useMessageBox();
-					messagebox.sendMessage(new Message(MessageType.RoomChange, roomId));
 				}
+				const messagebox = useMessageBox();
+				messagebox.sendMessage(new Message(MessageType.RoomChange, roomId));
 			}
 		},
 
@@ -360,8 +358,6 @@ const useRooms = defineStore('rooms', {
 			return false;
 		},
 
-	
-
 		getRoomCreator(roomId: string): string | null {
 			return this.rooms[roomId].getCreator();
 		},
@@ -391,7 +387,6 @@ const useRooms = defineStore('rooms', {
 		async getSecuredRoomInfo(roomId: string) {
 			const jsonInString = await api_synapse.apiGET<string>(api_synapse.apiURLS.securedRoom + '?room_id=' + roomId);
 			this.securedRoom = JSON.parse(jsonInString);
-			
 		},
 
 		async addSecuredRoom(room: SecuredRoom) {
