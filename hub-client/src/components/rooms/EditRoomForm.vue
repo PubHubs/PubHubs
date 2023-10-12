@@ -93,25 +93,26 @@
 		if (isNewRoom.value) {
 			editRoom.value = { ...emptyNewRoom };
 		} else {
-			editRoom.value = { ...props.room };
+			editRoom.value = { ...(props.room as SecuredRoom) };
+			securedRoomTemplate.value.splice(2, 1); // Profile editing off for existing secured room
 			// Transform for form
-			//@ts-ignore
-			let accepted = editRoom.value.accepted;
-			const acceptedKeys = Object.keys(accepted);
-			let newAccepted = [] as any;
-			acceptedKeys.forEach((key) => {
-				let values = accepted[key].accepted_values;
-				if (typeof values == 'object') {
-					values = values.join(', ');
-				}
-				newAccepted.push({
-					yivi: key,
-					values: values,
-					profile: accepted[key].profile,
+			let accepted = editRoom.value.accepted as any;
+			if (accepted !== undefined) {
+				const acceptedKeys = Object.keys(accepted);
+				let newAccepted = [] as any;
+				acceptedKeys.forEach((key) => {
+					let values = accepted[key].accepted_values;
+					if (typeof values == 'object') {
+						values = values.join(', ');
+					}
+					newAccepted.push({
+						yivi: key,
+						values: values,
+						profile: accepted[key].profile,
+					});
 				});
-			});
-			//@ts-ignore
-			editRoom.value.accepted = newAccepted;
+				editRoom.value.accepted = newAccepted;
+			}
 		}
 
 		setData({

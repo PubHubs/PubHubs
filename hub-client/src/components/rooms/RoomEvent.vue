@@ -1,5 +1,5 @@
 <template>
-	<div v-if="hubSettings.isVisibleEventType(event.type) && hubSettings.skipNoticeUserEvent(event)" class="group flex flex-row space-x-4 mb-8">
+	<div v-if="hubSettings.isVisibleEventType(event.type) && hubSettings.skipNoticeUserEvent(event)" class="group flex flex-row space-x-4 mb-8" :class="{ 'opacity-50': msgIsNotSend }">
 		<Avatar :class="bgColor(color(event.sender))" :user="event.sender"></Avatar>
 		<div class="w-3/5">
 			<div class="flex items-center">
@@ -7,16 +7,22 @@
 					<UserDisplayName :user="event.sender"></UserDisplayName>
 					<EventTime class="ml-2" :timestamp="event.origin_server_ts"> </EventTime>
 				</H3>
-				<button @click="reply" class="ml-2 mb-1 hidden group-hover:block">
+				<button v-if="!msgIsNotSend" @click="reply" class="ml-2 mb-1 hidden group-hover:block">
 					<Icon :type="'reply'" :size="'sm'"></Icon>
 				</button>
+				<template v-if="timerReady">
+					<button v-if="msgIsNotSend && connection.isOn" @click="resend()" class="ml-2 mb-1" :title="$t('errors.resend')">
+						<Icon type="refresh" size="sm" class="text-red"></Icon>
+					</button>
+					<Icon v-if="msgIsNotSend && !connection.isOn" type="lost-connection" size="sm" class="ml-2 mb-1 text-red"></Icon>
+				</template>
 			</div>
 			<H3>
 				<ProfileAttributes v-if="rooms.roomIsSecure(rooms.currentRoom.roomId)" :user="event.sender"></ProfileAttributes>
 			</H3>
-			<MessageSnippet v-if="isReply(event)" :event="inReplyTo" :showInReplyTo="true"></MessageSnippet>
+			<MessageSnippet v-if="inReplyTo" :event="inReplyTo" :showInReplyTo="true"></MessageSnippet>
 			<Message v-if="msgTypeIsText" :message="event.content.body"></Message>
-			<MessageHtml v-if="msgTypeIsHtml" :message="event.content.formatted_body"></MessageHtml>
+			<MessageHtml v-if="msgTypeIsHtml" :message="(event.content as M_HTMLTextMessageEventContent).formatted_body"></MessageHtml>
 			<MessageFile v-if="event.content.msgtype == 'm.file'" :message="event.content"></MessageFile>
 			<MessageImage v-if="event.content.msgtype == 'm.image'" :message="event.content"></MessageImage>
 		</div>
@@ -24,40 +30,40 @@
 </template>
 
 <script setup lang="ts">
-	import { computed, onMounted } from 'vue';
-	import { useHubSettings } from '@/store/store';
+	import { computed, onMounted, ref } from 'vue';
+	import { usePubHubs } from '@/core/pubhubsStore';
+	import { useHubSettings, useConnection } from '@/store/store';
 	import { useUserColor } from '@/composables/useUserColor';
 	import { useMessageActions } from '@/store/message-actions';
 	import MessageSnippet from './MessageSnippet.vue';
 	import { useRooms } from '@/store/store';
+	import { M_MessageEvent, M_HTMLTextMessageEventContent } from '@/types/events';
 
 	const hubSettings = useHubSettings();
+	const connection = useConnection();
 	const { color, textColor, bgColor } = useUserColor();
 	const messageActions = useMessageActions();
 
 	const rooms = useRooms();
 
 	onMounted(async () => {
-		await rooms.storeRoomNotice(rooms.currentRoom?.roomId);
+		if (rooms.currentRoomExists) {
+			await rooms.storeRoomNotice(rooms.currentRoom?.roomId);
+		}
 	});
 
-	const props = defineProps({
-		event: {
-			type: Object,
-			required: true,
-		},
-	});
+	const props = defineProps<{ event: M_MessageEvent }>();
 
-	const inReplyTo = computed(() => props.event.content?.['m.relates_to']?.['m.in_reply_to']?.event_copy);
+	const inReplyTo = structuredClone(props.event.content['m.relates_to']?.['m.in_reply_to']?.x_event_copy);
 
 	function reply() {
 		messageActions.replyingTo = undefined;
 		messageActions.replyingTo = props.event;
 	}
 
-	function isReply(event: Record<string, any>): boolean {
-		return event.content?.['m.relates_to']?.['m.in_reply_to']?.event_copy instanceof Object;
-	}
+	const msgIsNotSend = computed(() => {
+		return props.event.event_id.substring(0, 1) == '~';
+	});
 
 	const msgTypeIsText = computed(() => {
 		if (props.event.content.msgtype == 'm.text') {
@@ -78,4 +84,14 @@
 		}
 		return false;
 	});
+
+	function resend() {
+		const pubhubs = usePubHubs();
+		pubhubs.resendEvent(props.event);
+	}
+
+	const timerReady = ref(false);
+	window.setTimeout(() => {
+		timerReady.value = true;
+	}, 1000);
 </script>

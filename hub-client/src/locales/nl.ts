@@ -12,6 +12,8 @@ const nl = {
 		error: 'Helaas, er is een fout opgetreden. Neem contact op met de developers.\n\n {0}',
 		server: 'Fout van de server',
 		M_LIMIT_EXCEEDED: 'Te veel inlogpogingen achter elkaar. Probeer het over {0} seconden nog eens.',
+		not_send_offline: 'Geen internet connectie. Dit bericht is niet verstuurd.',
+		resend: 'Verzend opnieuw',
 	},
 	file: {
 		file: 'Bestand',
@@ -67,6 +69,8 @@ const nl = {
 		secure_room_attribute_info: 'Je hebt de Yivi-app nodig om je informatie vrij te geven',
 		secured_room_error: 'Het spijt ons, maar het lijkt erop dat u geen toegang heeft tot de kamer! Controleer uw gegevens in de Yivi-app',
 		admin_badge: 'Admin',
+		upload_error: 'Fout tijdens uploaden',
+		upload_not_allowed: 'Dit type bestand is niet toegestaan.',
 	},
 	settings: {
 		displayname: 'Bijnaam',

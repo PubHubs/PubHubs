@@ -40,7 +40,7 @@ macro_rules! secure_cookie_attribute {
 }
 
 /// Creates `PHAccount` session `Cookie` header value
-fn create_session_cookie(user_id: u32, cookie_secret: &str) -> Result<String> {
+fn create_session_cookie(user_id: String, cookie_secret: &str) -> Result<String> {
     let now = Utc::now();
     let created = now.timestamp();
     let until = now
@@ -64,14 +64,14 @@ fn create_session_cookie(user_id: u32, cookie_secret: &str) -> Result<String> {
 }
 
 /// Creates `PHAccount` session `Set-Cookie` header value
-fn create_session_set_cookie(user_id: u32, cookie_secret: &str) -> Result<String> {
+fn create_session_set_cookie(user_id: String, cookie_secret: &str) -> Result<String> {
     let val = create_session_cookie(user_id, cookie_secret)?;
     Ok(format!("{val}; Max-Age={MAX_AGE};{SECURE} Path=/"))
 }
 
 /// Searches cookie string `cookies` for a PHAccount session cookie, and - after validating the
 /// cookie - extracts the `userid` from it.  Returns Ok(None) if no session cookie was found.
-fn user_id_from_cookies(cookies: &str, cookie_secret: &str) -> Result<Option<u32>> {
+fn user_id_from_cookies(cookies: &str, cookie_secret: &str) -> Result<Option<String>> {
     let cookie_start = format!("{}=", COOKIE_NAME);
     let results: Vec<&str> = cookies
         .split(';')
@@ -143,14 +143,14 @@ where
     Self: Sized,
 {
     /// Adds `PHAccount` session cookie to response
-    fn add_session_cookie(self, user_id: u32, cookie_secret: &str) -> Result<Self>;
+    fn add_session_cookie(self, user_id: String, cookie_secret: &str) -> Result<Self>;
 
     /// Removes `PHAccount` session cookie, logging out the user.
     fn remove_session_cookie(self) -> Self;
 }
 
 impl<'a> HttpResponseBuilderExt for &'a mut HttpResponseBuilder {
-    fn add_session_cookie(self, user_id: u32, cookie_secret: &str) -> Result<Self> {
+    fn add_session_cookie(self, user_id: String, cookie_secret: &str) -> Result<Self> {
         let cookie = create_session_set_cookie(user_id, cookie_secret)?;
         Ok(self.insert_header((SET_COOKIE, cookie.as_str())))
     }
@@ -162,7 +162,7 @@ impl<'a> HttpResponseBuilderExt for &'a mut HttpResponseBuilder {
 }
 
 impl HttpResponseBuilderExt for actix_web::test::TestRequest {
-    fn add_session_cookie(self, user_id: u32, cookie_secret: &str) -> Result<Self> {
+    fn add_session_cookie(self, user_id: String, cookie_secret: &str) -> Result<Self> {
         let cookie =
             actix_web::cookie::Cookie::parse(create_session_cookie(user_id, cookie_secret)?)?;
         Ok(self.cookie(cookie))
@@ -176,14 +176,14 @@ impl HttpResponseBuilderExt for actix_web::test::TestRequest {
 pub trait HttpRequestCookieExt {
     /// Verifies `PHAccount` cookie,  and extracts userid from it.  Returns Ok(None)
     /// if there's no `PHAccount` cookie.
-    fn user_id_from_cookie(self, cookie_secret: &str) -> Result<Option<u32>>;
+    fn user_id_from_cookie(self, cookie_secret: &str) -> Result<Option<String>>;
 
     /// Verifies a valid `PHAccount` cookie is present for given `user_id`.
-    fn assert_user_id(self, cookie_secret: &str, user_id: u32) -> Result<()>;
+    fn assert_user_id(self, cookie_secret: &str, user_id: String) -> Result<()>;
 }
 
 impl<'s> HttpRequestCookieExt for &'s HttpRequest {
-    fn user_id_from_cookie(self, cookie_secret: &str) -> Result<Option<u32>> {
+    fn user_id_from_cookie(self, cookie_secret: &str) -> Result<Option<String>> {
         // NOTE: at most one `Cookie` header is set, see
         //   https://www.rfc-editor.org/rfc/rfc6265#section-5.4
         let cookies = self.headers().get("Cookie");
@@ -194,7 +194,7 @@ impl<'s> HttpRequestCookieExt for &'s HttpRequest {
         user_id_from_cookies(cookies.to_str()?, cookie_secret)
     }
 
-    fn assert_user_id(self, cookie_secret: &str, user_id: u32) -> Result<()> {
+    fn assert_user_id(self, cookie_secret: &str, user_id: String) -> Result<()> {
         ensure!(
             self.user_id_from_cookie(cookie_secret)?
                 .ok_or_else(|| anyhow!("no {COOKIE_NAME} cookie"))?
@@ -210,14 +210,15 @@ mod tests {
     use super::*;
     use actix_web::{test, HttpResponse};
     use regex::bytes::Regex;
+    use uuid::Uuid;
 
     #[actix_web::test]
     async fn test_add_cookie_that_can_be_verified() {
-        let user_id = 200;
+        let user_id = Uuid::new_v4().to_string();
         let secret = "really secret";
         let mut resp = HttpResponse::Ok();
 
-        let with_cookie = resp.add_session_cookie(user_id, secret).unwrap();
+        let with_cookie = resp.add_session_cookie(user_id.clone(), secret).unwrap();
 
         let cookie = with_cookie
             .finish()
@@ -252,11 +253,11 @@ mod tests {
 
     #[actix_web::test]
     async fn bad_cookie_not_verified() {
-        let user_id = 200;
+        let user_id = Uuid::new_v4().to_string();
         let secret = "really secret";
         let mut resp = HttpResponse::Ok();
 
-        let with_cookie = resp.add_session_cookie(user_id, secret).unwrap();
+        let with_cookie = resp.add_session_cookie(user_id.clone(), secret).unwrap();
 
         let cookie = with_cookie
             .finish()
@@ -274,7 +275,7 @@ mod tests {
             .cookie(actix_web::cookie::Cookie::parse(cookie).unwrap())
             .to_http_request();
 
-        assert!(req.assert_user_id(other_secret, user_id).is_err());
+        assert!(req.assert_user_id(other_secret, user_id.clone()).is_err());
 
         // set up for expired cookie
         let until = Utc::now()

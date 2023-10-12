@@ -3,7 +3,9 @@
 		<div class="fixed right-3">
 			<OldEventsLoader v-if="!roomPaginationEnded" :room_id="room_id" @loaded="preventScroll = true"></OldEventsLoader>
 		</div>
-		<RoomEvent v-for="item in rooms.rooms[room_id].timeline" :key="item.event.eventId" :event="item.event"></RoomEvent>
+		<template v-for="(item, index) in rooms.rooms[room_id].timeline" :key="index">
+			<RoomEvent :event="item.event"></RoomEvent>
+		</template>
 	</div>
 </template>
 
@@ -13,12 +15,17 @@
 	import { useRoute } from 'vue-router';
 	const rooms = useRooms();
 	const route = useRoute();
+
 	onMounted(async () => {
-		await rooms.storeRoomNotice(rooms.currentRoom?.roomId);
+		if (rooms.currentRoomExists) {
+			await rooms.storeRoomNotice(rooms.currentRoom?.roomId);
+		}
 	});
 
 	watch(route, async () => {
-		await rooms.storeRoomNotice(rooms.currentRoom?.roomId);
+		if (rooms.currentRoomExists) {
+			await rooms.storeRoomNotice(rooms.currentRoom?.roomId);
+		}
 	});
 
 	const props = defineProps({

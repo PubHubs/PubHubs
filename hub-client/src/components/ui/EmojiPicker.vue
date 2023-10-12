@@ -20,7 +20,9 @@
 
 <script setup lang="ts">
 	import { onMounted, ref, computed } from 'vue';
-	import { Emoji, fetchEmojis } from 'emojibase';
+	import { Emoji } from 'emojibase';
+	// Fetching data file for emoji from localized dataset.
+	import data from 'emojibase-data/en/data.json';
 
 	const emojis = ref([] as Emoji[]);
 	const searchQuery = ref('');
@@ -42,10 +44,13 @@
 	];
 
 	onMounted(async () => {
-		const emojiData = await fetchEmojis('en');
-		emojis.value = emojiData.filter((emoji) => {
-			return !emoji.label.includes('regional');
-		});
+		try {
+			emojis.value = data.filter((emoji) => {
+				return !emoji.label.includes('regional');
+			});
+		} catch (error) {
+			console.error('An error occurred while fetching the emojis:', error);
+		}
 	});
 
 	const filterEmojis = computed(() => {

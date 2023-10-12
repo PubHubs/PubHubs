@@ -11,6 +11,7 @@ const api_synapse = new Api(_env.HUB_URL + '/_synapse/', {
 	securedRooms: 'client/secured_rooms',
 	deleteRoom: 'admin/v2/rooms/',
 	notice: 'client/notices',
+	securedRoom: 'client/srextra',
 });
 
 // @ts-ignore

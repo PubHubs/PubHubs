@@ -6,12 +6,7 @@
 	import { computed } from 'vue';
 	import { sanitizeHtml } from '@/core/sanitizer';
 
-	const props = defineProps({
-		message: {
-			type: String,
-			required: true,
-		},
-	});
+	const props = defineProps<{message: string}>();
 
 	/**
 	 *

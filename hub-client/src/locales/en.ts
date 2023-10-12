@@ -12,6 +12,8 @@ const en = {
 		error: 'Unfortunately an error occured. Please contact opthe developers.\n\n {0}',
 		server: 'Server error',
 		M_LIMIT_EXCEEDED: 'Too much login attempts. Try again in {0} seconds.',
+		not_send_offline: 'Internet connection seems down. This message was not send.',
+		resend: 'Send again',
 	},
 	file: {
 		file: 'File',
@@ -65,6 +67,8 @@ const en = {
 		secure_room_attribute_info: 'You would need Yivi App to disclose your information',
 		secured_room_error: 'We are sorry, but it seems like you cannot access the room! Please check your information in Yivi App',
 		admin_badge: 'Admin',
+		upload_error: 'Error while uploading',
+		upload_not_allowed: 'This file type is not allowed.',
 	},
 	settings: {
 		displayname: 'Nickname',

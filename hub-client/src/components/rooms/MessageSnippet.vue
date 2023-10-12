@@ -10,12 +10,14 @@
 
 <script setup lang="ts">
 	import { useUserColor } from '@/composables/useUserColor';
+import { M_MessageEvent } from '@/types/events';
 	import { computed } from 'vue';
 
 	const { color, textColor } = useUserColor();
 
 	type Props = {
-		event: Record<string, any>;
+		event: M_MessageEvent;
+		// Whether or not to show the text "In reply to:" inside the snippet.
 		showInReplyTo?: boolean;
 	};
 

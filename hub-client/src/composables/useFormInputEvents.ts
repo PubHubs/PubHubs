@@ -67,7 +67,7 @@ const useFormInputEvents = (emit: Function, set: InputType = '') => {
 		options = set;
 	};
 
-	const selectOption = (option: Option) => {
+	const selectOption = (option: any) => {
 		value.value = option.value;
 	};
 
