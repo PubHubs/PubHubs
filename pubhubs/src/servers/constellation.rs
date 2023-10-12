@@ -1,6 +1,6 @@
 //! Details on the constellation of PubHubs servers
 
-use crate::common::serde_ext;
+use crate::misc::serde_ext;
 use crate::servers;
 
 /// Public details on the constellation of PubHubs servers.

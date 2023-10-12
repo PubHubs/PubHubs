@@ -98,6 +98,7 @@ impl<S: Server, F: FnOnce(&mut S) -> Result<()> + Send + 'static> Modifier<S> fo
 
 /// Commands an [App] can issue to a [crate::servers::run::Runner] via a [ShutdownSender].
 pub enum ShutdownCommand<S: Server> {
+    #[allow(dead_code)]
     /// Stop the server
     Exit,
 
@@ -291,6 +292,7 @@ impl<S: Server> AppBase<S> {
     }
 
     /// Issues the stop command to the [Server].  See [Self::shutdown_server].
+    #[allow(dead_code)]
     pub fn stop_server(&self) -> bool {
         self.shutdown_server(ShutdownCommand::Exit)
     }

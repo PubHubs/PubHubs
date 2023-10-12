@@ -13,10 +13,10 @@ impl Cli {
     pub fn run(self) -> Result<(), clap::error::Error> {
         match self.command {
             None => {
-                #[cfg(feature = "oldbin")]
+                #[cfg(feature = "old")]
                 return old::Args::default().run();
 
-                #[cfg(not(feature = "oldbin"))]
+                #[cfg(not(feature = "old"))]
                 {
                     Err(Cli::command().error(
                         clap::error::ErrorKind::MissingSubcommand,
@@ -26,7 +26,7 @@ impl Cli {
             }
 
             Some(cmd) => match cmd {
-                #[cfg(feature = "oldbin")]
+                #[cfg(feature = "old")]
                 Commands::Old(old_args) => old_args.run().map_err(|err| {
                     Cli::command()
                         .find_subcommand_mut("old")
@@ -48,14 +48,14 @@ impl Cli {
 #[derive(clap::Subcommand, Debug)]
 enum Commands {
     /// Runs the old pubhubs binary (default)
-    #[cfg(feature = "oldbin")]
+    #[cfg(feature = "old")]
     Old(old::Args),
 
     /// Run one (or multiple) PubHubs servers
     Serve(pubhubs::cli::ServeArgs),
 }
 
-#[cfg(feature = "oldbin")]
+#[cfg(feature = "old")]
 mod old {
     use super::*;
 

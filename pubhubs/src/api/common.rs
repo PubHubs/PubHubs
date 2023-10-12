@@ -1,6 +1,6 @@
 use serde::{Deserialize, Serialize};
 
-use crate::common::{fmt_ext, serde_ext};
+use crate::misc::{fmt_ext, serde_ext};
 use crate::servers::server;
 
 /// The result of an API-request to a PubHubs server endpoint.
@@ -37,7 +37,7 @@ impl<T> Result<T> {
     }
 
     /// Turns retryable errors into `None`, and the [Result] into a [std::result::Result],
-    /// making the output suitable for use with [crate::task::retry].
+    /// making the output suitable for use with [crate::misc::task::retry].
     pub fn retryable(self) -> std::result::Result<Option<T>, ErrorCode> {
         match self {
             Result::Ok(v) => Ok(Some(v)),
@@ -200,7 +200,9 @@ pub async fn query_with_retry<EP: EndpointDetails>(
     server_url: &url::Url,
     req: &EP::RequestType,
 ) -> Result<EP::ResponseType> {
-    match crate::task::retry(|| async { query::<EP>(server_url, req).await.retryable() }).await {
+    match crate::misc::task::retry(|| async { query::<EP>(server_url, req).await.retryable() })
+        .await
+    {
         Ok(Some(resp)) => Result::Ok(resp),
         Ok(None) => Result::Err(ErrorCode::TemporaryFailure),
         Err(ec) => Result::Err(ec),

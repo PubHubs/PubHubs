@@ -7,7 +7,7 @@ use anyhow::{Context as _, Result};
 use rand::Rng as _;
 use url::Url;
 
-use crate::serde_ext;
+use crate::misc::serde_ext;
 use crate::servers::for_all_servers;
 
 /// Configuration for one, or several, of the PubHubs servers

@@ -20,20 +20,20 @@ required-features = ["bin"]
 # old:     what's used by the old pubhubs library (no separate authentication server/transcryptor)
 # oldbin:  what's used by the old pubhubs binary
 default = [
-	"oldbin",
+	"old", "bin",
 ]
 abi = [
 	"common",
 ]
 common = [
 	"dep:base16ct",
-	"dep:base64ct", 
 	"dep:curve25519-dalek", 
 	"dep:rand", 
 	"dep:subtle",
 ]
 bin = [
 	"common",
+	"dep:base64ct", 
 	"dep:clap",
 	"dep:anyhow",
 	"dep:thiserror",
@@ -50,14 +50,11 @@ bin = [
 	"dep:http",
 	"dep:awc",
 ]
-oldbin = [
-	"bin",
-	"old",
-	"dep:actix-files",
-]
 real_credentials = []
 old = [
+	"dep:actix-files",
  	"common", 
+	"dep:base64ct", 
 	"dep:actix-web", 
 	"dep:aead", 
 	"dep:anyhow", 

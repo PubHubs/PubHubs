@@ -6,7 +6,7 @@ use anyhow::{anyhow, bail, ensure, Context, Result};
 use log::{info, warn};
 use serde::{Deserialize, Serialize};
 
-use crate::serde_ext::B64;
+use crate::misc::serde_ext::B64;
 
 #[derive(Serialize, Deserialize)]
 pub struct File {

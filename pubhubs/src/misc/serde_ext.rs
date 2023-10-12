@@ -31,16 +31,30 @@ impl<T, E> BytesWrapper<T, E> {
     pub fn into_inner(self) -> T {
         self.inner
     }
+
+    pub fn new(inner: T) -> Self {
+        inner.into()
+    }
 }
 
 /// Trait for specifuing the encoding of bytes as strings, like hex or base64.
 pub trait BytesEncoding {
     type Error: std::error::Error;
 
+    /// Encodes `src` into `dst`, returning the slice of `dst` that was written.
+    ///
+    /// The caller must ensure that `len(dst) >= encoded_len(src).unwrap()`.
     fn encode<'a>(src: &[u8], dst: &'a mut str) -> Result<&'a str, Self::Error>;
+
+    /// Decodes `src` into `dst`, returning the slice of `dst` that was written.
+    ///
+    /// The caller must ensure that `len(dst) >= decoded_len(src).unwrap()`.
     fn decode<'a>(src: &str, dst: &'a mut [u8]) -> Result<&'a [u8], Self::Error>;
 
+    /// See [Self::encode].
     fn encoded_len(bytes: &[u8]) -> Result<usize, Self::Error>;
+
+    /// See [Self::decode].
     fn decoded_len(bytes: &str) -> Result<usize, Self::Error>;
 }
 
@@ -81,11 +95,51 @@ impl<const ELC: bool, const DMC: bool> BytesEncoding for B16Encoding<ELC, DMC> {
     }
 
     fn encoded_len(bytes: &[u8]) -> Result<usize, Self::Error> {
-        Ok(base16ct::encoded_len(bytes))
+        if bytes.len() >= usize::MAX / 2 {
+            Err(base16ct::Error::InvalidLength)
+        } else {
+            Ok(base16ct::encoded_len(bytes))
+        }
     }
 
     fn decoded_len(bytes: &str) -> Result<usize, Self::Error> {
         base16ct::decoded_len(bytes.as_bytes())
+    }
+}
+
+/// Base64 [BytesEncoding]
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct B64Encoding<Enc: base64ct::Encoding> {
+    phantom: PhantomData<Enc>,
+}
+
+/// Wrapper around `T` implementing (de)serialization using [base64ct::Base64].
+pub type B64<T = Vec<u8>> = BytesWrapper<T, B64Encoding<base64ct::Base64>>;
+
+impl<Enc: base64ct::Encoding> BytesEncoding for B64Encoding<Enc> {
+    type Error = base64ct::Error;
+
+    fn encode<'a>(src: &[u8], dst: &'a mut str) -> Result<&'a str, Self::Error> {
+        // SAFETY: all the base64ct alphabets are valid utf-8
+        Enc::encode(src, unsafe { dst.as_bytes_mut() }).map_err(Into::into)
+    }
+
+    fn decode<'a>(src: &str, dst: &'a mut [u8]) -> Result<&'a [u8], Self::Error> {
+        Enc::decode(src, dst)
+    }
+
+    fn encoded_len(bytes: &[u8]) -> Result<usize, Self::Error> {
+        if bytes.len() >= usize::MAX / 4 {
+            Err(base64ct::Error::InvalidLength)
+        } else {
+            Ok(Enc::encoded_len(bytes))
+        }
+    }
+
+    fn decoded_len(bytes: &str) -> Result<usize, Self::Error> {
+        // NOTE: base64ct provides no `decoded_len` function, so we overestimate
+        // the decoded length as the original length
+        Ok(bytes.len())
     }
 }
 
@@ -251,6 +305,10 @@ pub mod from_bytes {
     }
 
     impl ImplMethod for ed25519_dalek::VerifyingKey {
+        type METHOD = AsRefSliceIM;
+    }
+
+    impl ImplMethod for Vec<u8> {
         type METHOD = AsRefSliceIM;
     }
 }

@@ -1,4 +1,6 @@
+use crate::misc::fmt_ext;
 use crate::servers::{self, api, Constellation};
+
 use anyhow::ensure;
 
 /// Drives the discovery process of the pubhubs servers until all servers are up and running
@@ -56,7 +58,7 @@ async fn drive_discovery_of(url: &url::Url) -> anyhow::Result<api::DiscoveryInfo
             res.is_ok(),
             "could not get discovery info from {}: {}",
             url,
-            crate::fmt_ext::Json(res)
+            fmt_ext::Json(res)
         );
         res.unwrap()
     };
@@ -71,10 +73,10 @@ async fn drive_discovery_of(url: &url::Url) -> anyhow::Result<api::DiscoveryInfo
         "running discovery of {} at {} failed: {}",
         inf.name,
         url,
-        crate::fmt_ext::Json(res.unwrap_err())
+        fmt_ext::Json(res.unwrap_err())
     );
 
-    crate::task::retry(|| async {
+    crate::misc::task::retry(|| async {
         let res = api::query::<api::DiscoveryInfo>(url, &()).await.retryable();
 
         // retry if query returned a retryable error,
@@ -147,7 +149,7 @@ impl<'a> DiscoveryInfoCheck<'a> {
                     "{} at {} returned no constellation although it is in state {}",
                     inf.name,
                     source,
-                    crate::common::fmt_ext::Json(inf.state)
+                    fmt_ext::Json(inf.state)
                 );
                 return api::err(api::ErrorCode::InternalError);
             }

@@ -8,6 +8,9 @@ use std::io::Read;
 use std::path::PathBuf;
 use std::sync::Arc;
 
+#[cfg(feature = "old")]
+use std::ops::Deref as _;
+
 use base64ct::{Base64, Encoding as _};
 use http::header::AUTHORIZATION;
 use prometheus::{CounterVec, HistogramOpts, HistogramVec, Opts, Registry};
@@ -186,8 +189,11 @@ impl Main {
         ))
         .context("loading translations failed")?;
 
-        let oidc_secret =
-            having_debug_default(config.oidc_secret, b"default_oidc_secret", "oidc_secret")?;
+        let oidc_secret = having_debug_default(
+            config.oidc_secret,
+            crate::misc::serde_ext::B64::new(b"default_oidc_secret".to_vec()),
+            "oidc_secret",
+        )?;
 
         let well_known_openid_configuration : bytes::Bytes = serde_json::to_string_pretty(&serde_json::json!({
             "issuer": url.for_hub.as_str(),
@@ -228,7 +234,7 @@ impl Main {
             .into();
 
         Ok(Arc::new_cyclic(|wp: &std::sync::Weak<context::Main>| {
-            let oidc = oidc::new(oidc_handler::Handler::new(wp), oidc_secret);
+            let oidc = oidc::new(oidc_handler::Handler::new(wp), oidc_secret.deref());
 
             Self {
                 url,
