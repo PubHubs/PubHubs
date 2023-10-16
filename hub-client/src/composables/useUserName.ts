@@ -21,4 +21,18 @@ const useUserName = () => {
 	return { getUserDisplayName };
 };
 
-export { useUserName };
+const useUserAvatar = () => {
+	function getUserAvatar(user: string, currentRoom: Room) {
+		const member = currentRoom.getMember(user);
+		if (member != null) {
+			if (member.user != undefined && member.user.avatarUrl != undefined) {
+				return member.user.avatarUrl;
+			}
+		}
+		return '';
+	}
+
+	return { getUserAvatar };
+};
+
+export { useUserName, useUserAvatar };

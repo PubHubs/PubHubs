@@ -75,6 +75,7 @@ const nl = {
 	settings: {
 		displayname: 'Bijnaam',
 		displayname_changed: 'Bijnaam gewijzigd in `{0}`.',
+		avatar_changed: 'Avatar bijgewerkt! ',
 		theme: 'Thema',
 		theme_changed: 'Thema gewijzigd in `{0}`.',
 		language: 'Taal',
