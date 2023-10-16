@@ -50,3 +50,4 @@ docker run -p 8080:8080 --mount "type=bind,src=<absolute_path>/config,dst=/confi
 > For the moment we leverage [PostGuard](https://postguard.nl/) for secure file sharing.
 
 [Hub Instructions &rarr;](../hub/README.md)
+[&larr; Table of Content](../README.md)
