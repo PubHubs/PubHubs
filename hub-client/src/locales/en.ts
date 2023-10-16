@@ -72,6 +72,7 @@ const en = {
 	},
 	settings: {
 		displayname: 'Nickname',
+		avatar_changed: 'Avatar updated!.',
 		displayname_changed: 'Nickname changed to `{0}`.',
 		theme: 'Theme',
 		theme_changed: 'Theme changed to `{0}`.',

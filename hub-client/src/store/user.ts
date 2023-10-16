@@ -62,6 +62,16 @@ const useUser = defineStore('user', {
 			}
 		},
 
+		async fetchAvatarUrl(client: MatrixClient) {
+			const response: getProfileInfoResponseType = await client.getProfileInfo(this.user.userId, 'avatar_url');
+			if (typeof response.avatar_url == 'string') {
+				return response.avatar_url;
+			}
+			return '';
+		},
+
+
+
 		async fetchIsAdministrator(client: MatrixClient) {
 			try {
 				await client.isSynapseAdministrator();
