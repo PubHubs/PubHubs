@@ -11,7 +11,7 @@
 
 			<div class="relative">
 				<Icon class="absolute left-3 top-2 dark:text-white" type="paperclip" @click="clickedAttachment($event)"></Icon>
-				<input type="file" :accept="getTypesAsString(allTypes)" class="attach-file" ref="file" @change="submitFile($event)" hidden />
+				<input type="file" :accept="getTypesAsString(allTypes)" class="attach-file" ref="file" @change="uploadPhoto($event)" hidden />
 				<TextArea
 					class="px-10 -mb-1"
 					v-focus
@@ -45,17 +45,16 @@
 	import { usePubHubs } from '@/core/pubhubsStore';
 	import { useRoute } from 'vue-router';
 	import { useMessageActions } from '@/store/message-actions';
-	import { useDialog } from '@/store/dialog';
-	import { useI18n } from 'vue-i18n';
 
-	const { t } = useI18n();
+	import { photoUpload } from '@/composables/photoUpload';
+
 	const route = useRoute();
 	const rooms = useRooms();
 	const pubhubs = usePubHubs();
 	const messageActions = useMessageActions();
 	const emit = defineEmits(usedEvents);
 	const { value, reset, changed, cancel } = useFormInputEvents(emit);
-	const { uploadUrl, allTypes, isImage, isAllowed, getTypesAsString } = useMatrixFiles();
+	const { allTypes, getTypesAsString } = useMatrixFiles();
 
 	const buttonEnabled = ref(false);
 	const showEmojiPicker = ref(false);
@@ -88,6 +87,15 @@
 		checkButtonState();
 	}
 
+	function uploadPhoto(event: Event) {
+		const url = pubhubs.getBaseUrl + '/_matrix/media/r0/upload';
+		const token = pubhubs.Auth.getAccessToken();
+		photoUpload(url, token, event, (uri) => {
+			pubhubs.addImage(rooms.currentRoomId, uri);
+			reset();
+		});
+	}
+
 	function clickedAttachment(event: UIEvent) {
 		const target = event.currentTarget as HTMLElement;
 		if (target) {
@@ -99,47 +107,6 @@
 				}
 			}
 		}
-	}
-
-	function submitFile(event: Event) {
-		const target = event.currentTarget as HTMLInputElement;
-		if (target) {
-			const files = target.files;
-			if (files && files.length > 0) {
-				const file = files[0] as File;
-				const fileReader = new FileReader();
-				fileReader.readAsArrayBuffer(file);
-
-				const req = new XMLHttpRequest();
-				fileReader.onload = () => {
-					req.open('POST', uploadUrl, true);
-					req.setRequestHeader('Authorization', 'Bearer ' + pubhubs.Auth.getAccessToken());
-					req.setRequestHeader('Content-Type', file.type);
-					req.send(fileReader.result);
-				};
-
-				req.onreadystatechange = function () {
-					if (req.readyState === 4) {
-						if (req.status === 200) {
-							const obj = JSON.parse(req.responseText);
-							const uri = obj.content_uri;
-
-							if (isImage(file.type)) {
-								pubhubs.addImage(rooms.currentRoomId, uri);
-							} else {
-								if (isAllowed(file.type)) {
-									pubhubs.addFile(rooms.currentRoomId, file, uri);
-								} else {
-									const dialog = useDialog();
-									dialog.confirm(t('rooms.upload_error'), t('rooms.upload_not_allowed'));
-								}
-							}
-						}
-					}
-				};
-			}
-		}
-		reset();
 	}
 
 	function submitMessage() {

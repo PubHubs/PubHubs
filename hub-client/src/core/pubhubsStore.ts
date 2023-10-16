@@ -228,6 +228,22 @@ const usePubHubs = defineStore('pubhubs', {
 			}
 		},
 
+		async changeAvatar(uri: string) {
+			try {
+				await this.client.setAvatarUrl(uri);
+			} catch (error) {
+				this.showError(error as string);
+			}
+		},
+
+
+		async getAvatarUrl() {
+			const user = useUser();
+			const url =  await user.fetchAvatarUrl(this.client as MatrixClient);
+			return url;
+		},
+
+
 		async getUsers(): Promise<Array<MatrixUser>> {
 			const response = (await this.client.getUsers()) as [];
 			return response;
