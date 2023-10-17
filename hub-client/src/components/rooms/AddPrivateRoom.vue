@@ -28,7 +28,7 @@
 	onMounted(async () => {
 		users.value = await pubhubs.getUsers();
 		// Remove self from list
-		users.value = users.value.filter((u) => u.userId !== user.user.userId);
+		users.value = users.value.filter((u) => u.userId !== user.user.userId && !u.userId.includes('notices'));
 	});
 
 	async function addNewPrivateRoom(other: any) {
