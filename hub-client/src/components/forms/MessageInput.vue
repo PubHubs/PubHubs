@@ -24,6 +24,7 @@
 					"
 					@submit="submitMessage()"
 					@cancel="cancel()"
+					@keydown.enter.prevent="submitMessage"
 				></TextArea>
 				<Icon class="absolute right-3 top-2 dark:text-white" type="emoticon" @click.stop="showEmojiPicker = !showEmojiPicker"></Icon>
 			</div>
