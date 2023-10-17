@@ -14,15 +14,20 @@
 </template>
 
 <script setup lang="ts">
+	import { onMounted } from 'vue';
+	import { useRouter } from 'vue-router';
 	import { PublicRoom, useRooms } from '@/store/store';
 	import { usePubHubs } from '@/core/pubhubsStore';
-	import { useRouter } from 'vue-router';
 	import { buttonsOk } from '@/store/dialog';
 
 	const rooms = useRooms();
 	const pubhubs = usePubHubs();
 	const router = useRouter();
 	const emit = defineEmits(['close']);
+
+	onMounted(async () => {
+		await rooms.fetchPublicRooms();
+	});
 
 	async function joinRoom(room: PublicRoom) {
 		if (rooms.roomIsSecure(room.room_id)) {
