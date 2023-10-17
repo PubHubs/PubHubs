@@ -33,6 +33,7 @@
 			if (filter.value == '') {
 				return true;
 			}
+
 			return item[props.filterKey]?.includes(filter.value);
 		});
 	});
