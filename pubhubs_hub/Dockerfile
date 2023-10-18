@@ -6,16 +6,16 @@
 
 ### BUILD STAGE:  YIVI
 # bullseye tag since the synapse image is based on bullseye.
-FROM golang:bullseye AS yivi_build
+FROM golang:bookworm AS yivi_build
 
-RUN git clone https://github.com/privacybydesign/irmago --branch v0.13.3 --depth 1
+RUN git clone https://github.com/privacybydesign/irmago --branch v0.14.1 --depth 1
 
 WORKDIR irmago
 
 RUN GO111MODULE=auto go install ./irma
 
 ### BUILD STAGE:  LIBPUBHUBS 
-FROM rust:bullseye AS libpubhubs_build
+FROM rust:bookworm AS libpubhubs_build
 
 COPY pubhubs/ wd
 
@@ -25,7 +25,7 @@ WORKDIR wd
 RUN cargo build --no-default-features --lib --features=abi
 
 ## FINAL CONTAINER STAGE
-FROM matrixdotorg/synapse:v1.92.1
+FROM matrixdotorg/synapse:v1.94.0
 
 COPY --from=yivi_build /go/bin/irma /usr/bin/irma
 COPY --from=libpubhubs_build /wd/target/debug/libpubhubs.so /usr/lib
