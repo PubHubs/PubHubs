@@ -3,6 +3,7 @@ Before merging to stable, please check the following.
 As a general tip while testing, keep two browser windows open, one for a existing user (it's easiest if this is a hub admin), and an incognito one for a new user that will be registered during testing. This allows seeing messages being send and easier testing.
 
   - [ ] You're merging from main into stable (and not from some feature branch.) 
+  - [ ] Review and update the [CHANGELOG](CHANGELOG.md) to reflect the state after the merge into stable.
   - [ ] Check that CI/CD pipeline in main has completed without errors.
   - [ ] Please check that the following works on https://main.pubhubs.ihub.ru.nl/client :
       - [ ] Logging in with your existing account there.
