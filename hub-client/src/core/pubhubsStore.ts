@@ -5,7 +5,7 @@ import { User as MatrixUser, MatrixClient, EventTimeline, ContentHelpers } from 
 
 import { Authentication } from '@/core/authentication';
 import { Events } from '@/core/events';
-import { useSettings, User, useUser, useRooms } from '@/store/store';
+import { useSettings, User, useUser, useRooms, useConnection } from '@/store/store';
 
 import { hasHtml, sanitizeHtml } from '@/core/sanitizer';
 import { api_synapse, api_matrix } from '@/core/api';
@@ -38,6 +38,8 @@ const usePubHubs = defineStore('pubhubs', {
 				this.client = (await this.Auth.login()) as MatrixClient;
 				const events = new Events(this.client as MatrixClient);
 				await events.initEvents();
+				const connection = useConnection();
+				connection.on();
 				this.updateRooms();
 				const user = useUser();
 				const newUser = this.client.getUser(user.user.userId);
@@ -145,7 +147,7 @@ const usePubHubs = defineStore('pubhubs', {
 		 * @param text
 		 * @param inReplyTo Possible event to which the new message replies.
 		 */
-		addMessage(roomId: string, text: string, inReplyTo?: M_MessageEvent) {
+		async addMessage(roomId: string, text: string, inReplyTo?: M_MessageEvent) {
 			const rooms = useRooms();
 			const room = rooms.room(roomId);
 			if (room) {
@@ -170,14 +172,22 @@ const usePubHubs = defineStore('pubhubs', {
 				delete content['m.relates_to']?.['m.in_reply_to']?.x_event_copy?.content?.['m.relates_to']?.['m.in_reply_to']?.x_event_copy;
 			}
 
-			this.client.sendEvent(roomId, 'm.room.message', content, '');
+			try {
+				await this.client.sendEvent(roomId, 'm.room.message', content, '');
+			} catch (error) {
+				console.log(error);
+			}
 		},
 
-		addImage(roomId: string, uri: string) {
-			this.client.sendImageMessage(roomId, uri);
+		async addImage(roomId: string, uri: string) {
+			try {
+				await this.client.sendImageMessage(roomId, uri);
+			} catch (error) {
+				console.log(error);
+			}
 		},
 
-		addFile(roomId: string, file: File, uri: string) {
+		async addFile(roomId: string, file: File, uri: string) {
 			const content = {
 				body: file.name,
 				filename: file.name,
@@ -188,7 +198,26 @@ const usePubHubs = defineStore('pubhubs', {
 				msgtype: 'm.file',
 				url: uri,
 			};
-			this.client.sendEvent(roomId, 'm.room.message', content);
+			try {
+				await this.client.sendEvent(roomId, 'm.room.message', content);
+			} catch (error) {
+				console.log(error);
+			}
+		},
+
+		async resendEvent(event: any) {
+			const roomId = event.room_id;
+			const type = event.type;
+			const content = event.content;
+			try {
+				// Remove orginal event, to prevend double events
+				const rooms = useRooms();
+				rooms.currentRoom?.removeEvent(event.event_id);
+				// Resend
+				await this.client.sendEvent(roomId, type, content);
+			} catch (error) {
+				console.log(error);
+			}
 		},
 
 		async changeDisplayName(name: string) {
@@ -198,6 +227,22 @@ const usePubHubs = defineStore('pubhubs', {
 				this.showError(error as string);
 			}
 		},
+
+		async changeAvatar(uri: string) {
+			try {
+				await this.client.setAvatarUrl(uri);
+			} catch (error) {
+				this.showError(error as string);
+			}
+		},
+
+
+		async getAvatarUrl() {
+			const user = useUser();
+			const url =  await user.fetchAvatarUrl(this.client as MatrixClient);
+			return url;
+		},
+
 
 		async getUsers(): Promise<Array<MatrixUser>> {
 			const response = (await this.client.getUsers()) as [];

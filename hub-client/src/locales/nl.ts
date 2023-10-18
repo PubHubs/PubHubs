@@ -12,6 +12,8 @@ const nl = {
 		error: 'Helaas, er is een fout opgetreden. Neem contact op met de developers.\n\n {0}',
 		server: 'Fout van de server',
 		M_LIMIT_EXCEEDED: 'Te veel inlogpogingen achter elkaar. Probeer het over {0} seconden nog eens.',
+		not_send_offline: 'Geen internet connectie. Dit bericht is niet verstuurd.',
+		resend: 'Verzend opnieuw',
 	},
 	file: {
 		file: 'Bestand',
@@ -73,6 +75,7 @@ const nl = {
 	settings: {
 		displayname: 'Bijnaam',
 		displayname_changed: 'Bijnaam gewijzigd in `{0}`.',
+		avatar_changed: 'Avatar bijgewerkt! ',
 		theme: 'Thema',
 		theme_changed: 'Thema gewijzigd in `{0}`.',
 		language: 'Taal',

@@ -9,7 +9,7 @@ use std::str::FromStr;
 
 use actix_web::web::{self, Data, Form, Path};
 
-use anyhow::{Context, Result};
+use anyhow::{bail, Context, Result};
 use env_logger::Env;
 
 use log::{error, info, warn};
@@ -38,13 +38,13 @@ use crate::{
         policy_cookie::accepted_policy, HttpRequestCookieExt as _, HttpResponseBuilderExt as _,
     },
     data::{
-        DataCommands::{self, AllHubs, CreateHub, CreateUser, GetHub, GetUser, GetUserById},
+        DataCommands::{self, AllHubs, CreateHub, GetHub, GetUserById},
         Hub, HubHandle, Hubid,
     },
     oidc::Oidc as _,
     policy::{full_policy, policy, policy_accept},
     translate::Translations,
-    yivi::{disclosed_email_and_telephone, login, next_session, register, SessionDataWithImage},
+    yivi::{disclosed_ph_id, login, next_session, register, SessionDataWithImage},
     yivi_proxy::{yivi_proxy, yivi_proxy_stream},
 };
 
@@ -516,52 +516,43 @@ async fn yivi_finish_and_redirect_anyhow(
     context: Data<Main>,
     params: actix_web::web::Form<YiviFinishParams>,
 ) -> Result<HttpResponse, anyhow::Error> {
-    let (email, telephone) =
-        disclosed_email_and_telephone(&context.yivi.requestor_api_url, &params.yivi_token).await?;
+    let user = disclosed_ph_id(
+        &context.yivi.requestor_api_url,
+        &params.yivi_token,
+        context.as_ref(),
+    )
+    .await?;
+
+    let id = user.external_id;
 
     // retrieve user
     let user = {
         let (user_tx, user_rx) = oneshot::channel();
         context
             .db_tx
-            .send(GetUser {
+            .send(GetUserById {
                 resp: user_tx,
-                email: email.clone(),
-                telephone: telephone.clone(),
+                id: id.clone(),
             })
-            .await
-            .expect("To use our channel");
+            .await?;
 
         // NB: can't use  Option<>::unwrap_or_else  with async.
-        match user_rx.await.expect("Expected to use our channel")? {
-            Some(user) => user,
-            None => {
-                // register the new user
-                let (user_tx, user_rx) = oneshot::channel();
-
-                context
-                    .db_tx
-                    .send(CreateUser {
-                        resp: user_tx,
-                        email: email.clone(),
-                        telephone: telephone.clone(),
-                        config: context.pep.clone(),
-                        is_admin: context.admins.contains(&email),
-                    })
-                    .await
-                    .expect("To use our channel");
-                user_rx.await.expect("To use our channel")?
-            }
+        match user_rx.await? {
+            Ok(user) => user,
+            _ => bail!("No such user, {id}"),
         }
     };
 
     let mut resp_with_cookie = HttpResponse::Ok();
-    resp_with_cookie.add_session_cookie(user.id, &context.cookie_secret)?;
+    resp_with_cookie.add_session_cookie(user.external_id.clone(), &context.cookie_secret)?;
 
     if params.oidc_auth_request_handle.is_none() {
         // GET-redirect user to the account page
         resp_with_cookie.status(http::StatusCode::SEE_OTHER);
-        resp_with_cookie.insert_header((http::header::LOCATION, format!("/account/{}", user.id)));
+        resp_with_cookie.insert_header((
+            http::header::LOCATION,
+            format!("/account/{}", user.external_id),
+        ));
         return Ok(resp_with_cookie.finish());
     }
 
@@ -669,30 +660,29 @@ async fn get_account(
     let hair = &context.hair;
     let db_tx = &context.db_tx;
     let id = id.into_inner();
-    if req
-        .assert_user_id(cookie_secret, id.parse().unwrap())
-        .is_ok()
-    {
-        if let Ok(id) = u32::from_str(&id) {
-            let (user_tx, user_rx) = oneshot::channel();
-            db_tx
-                .send(GetUserById { resp: user_tx, id })
-                .await
-                .expect("To use our channel");
-            match user_rx.await {
-                Ok(Ok(user)) => {
+    if req.assert_user_id(cookie_secret, id.clone()).is_ok() {
+        let (user_tx, user_rx) = oneshot::channel();
+        db_tx
+            .send(GetUserById {
+                resp: user_tx,
+                id: id.clone(),
+            })
+            .await
+            .expect("To use our channel");
+        match user_rx.await {
+            Ok(Ok(user)) => {
 
-                    let global_client_uri : &str = context.global_client_uri();
+                let global_client_uri : &str = context.global_client_uri();
 
-                    let data = value!({
+                let data = value!({
                         "email": user.email,
                         "telephone": user.telephone,
                         "global_client_uri": global_client_uri,
                         "content": "user",
                     }).to_vec(false);
-                    HttpResponse::Ok().body(hairy_eval_html_translations(hair.to_ref(), data.to_ref(), translations).unwrap())
-                },
-                Ok(Err(error)) =>
+                HttpResponse::Ok().body(hairy_eval_html_translations(hair.to_ref(), data.to_ref(), translations).unwrap())
+            },
+            Ok(Err(error)) =>
                 internal_server_error(
                     "Could not locate user",
                     hair,
@@ -714,19 +704,6 @@ async fn get_account(
                     &req, translations
                 ),
 
-            }
-        } else {
-            internal_server_error(
-                "That's not an account id",
-                hair,
-                format!(
-                    "Someone had a valid cookie for id '{}' but it's not an u32",
-                    id
-                )
-                .as_str(),
-                &req,
-                translations,
-            )
         }
     } else {
         HttpResponse::Found()
@@ -895,14 +872,20 @@ pub async fn handle_oidc_authorize(
 
 async fn get_user_by_id_wrap(
     db_tx: &Sender<DataCommands>,
-    id: u32,
+    id: String,
     req: &HttpRequest,
     context: &Main,
     translations: Translations,
 ) -> Result<User, HttpResponse> {
     let hair = &context.hair;
     let (user_tx, user_rx) = oneshot::channel();
-    let error = match db_tx.send(GetUserById { resp: user_tx, id }).await {
+    let error = match db_tx
+        .send(GetUserById {
+            resp: user_tx,
+            id: id.clone(),
+        })
+        .await
+    {
         Ok(_) => match user_rx.await {
             Ok(Ok(res)) => {
                 return Ok(res);
@@ -1183,13 +1166,16 @@ mod tests {
     use std::collections::HashMap;
     use std::convert::Infallible;
     use std::net::SocketAddr;
-    use std::sync::Arc;
+    use std::ops::DerefMut;
+    use std::sync::mpsc::{channel, Receiver};
+    use std::sync::{Arc, Mutex};
 
+    use crate::data::DataCommands::{CreateUser, GetUser};
     use crate::data::HubHandle::Id;
-    use crate::serde_ext::B64;
+    use crate::misc::serde_ext::B64;
     use crate::yivi::{
         Attribute, SessionData, SessionPointer, SessionResult, SessionType,
-        SessionType::Disclosing, Status, MAIL, MOBILE_NO, PUB_HUBS_MAIL, PUB_HUBS_PHONE,
+        SessionType::Disclosing, Status, MAIL, MOBILE_NO, PUB_HUBS_ID,
     };
     use regex::Regex;
 
@@ -1403,8 +1389,9 @@ mod tests {
         assert!(re.is_match(&body));
     }
 
-    async fn start_fake_server(port: u16) {
+    async fn start_fake_server(port: u16, user_id: Option<Receiver<String>>) {
         let port_bound = std::sync::Arc::new(tokio::sync::Notify::new());
+        let user_id = Arc::new(Mutex::new(user_id));
 
         {
             let port_bound = port_bound.clone();
@@ -1414,7 +1401,8 @@ mod tests {
                 let addr = SocketAddr::from(([127, 0, 0, 1], port));
 
                 let make_service = make_service_fn(move |_conn| {
-                    let service = service_fn(handle_test);
+                    let user_id = user_id.clone();
+                    let service = service_fn(move |req| handle_test(req, user_id.clone()));
 
                     async move { Ok::<_, Infallible>(service) }
                 });
@@ -1440,9 +1428,16 @@ mod tests {
 
     const NEW_TEST_EMAIL: &str = "new_testemail";
 
-    async fn handle_test(req: Request<Body>) -> Result<Response<Body>, Infallible> {
+    async fn handle_test(
+        req: Request<Body>,
+        user_id: Arc<Mutex<Option<Receiver<String>>>>,
+    ) -> Result<Response<Body>, Infallible> {
         let endpoint = req.uri().path().to_string();
         let endpoint = endpoint.as_str();
+        let user_id = match user_id.lock().unwrap().deref_mut() {
+            None => "1".to_string(),
+            Some(rx) => rx.recv().unwrap_or("1".to_string()),
+        };
         match endpoint {
             "/test1/session" => {
                 let resp_data = SessionData {
@@ -1455,51 +1450,32 @@ mod tests {
                 let resp_body = serde_json::to_string(&resp_data).unwrap();
                 Ok(Response::new(Body::from(resp_body)))
             }
-            "/test1/session/token/result" => make_response(
-                TEST_EMAIL,
-                PUB_HUBS_MAIL,
-                TEST_TELEPHONE,
-                PUB_HUBS_PHONE,
-                None,
-            ),
+            "/test1/session/token/result" => make_response(vec![(&user_id, PUB_HUBS_ID)], None),
             "/test2/session/token/result" => make_response(
-                NEW_TEST_EMAIL,
-                MAIL,
-                NEW_TEST_TELEPHONE,
-                MOBILE_NO,
+                vec![(NEW_TEST_EMAIL, MAIL), (NEW_TEST_TELEPHONE, MOBILE_NO)],
                 Some("new_disclose".to_string()),
             ),
-            "/test2/session/new_disclose/result" => make_response(
-                NEW_TEST_EMAIL,
-                PUB_HUBS_MAIL,
-                NEW_TEST_TELEPHONE,
-                PUB_HUBS_PHONE,
-                None,
-            ),
+            "/test2/session/new_disclose/result" => {
+                make_response(vec![(&user_id, PUB_HUBS_ID)], None)
+            }
             _ => panic!("Got a request I can't test"),
         }
     }
 
     fn make_response(
-        mail: &str,
-        mail_type: &str,
-        phone: &str,
-        phone_type: &str,
+        attrs: Vec<(&str, &str)>,
         next_session: Option<String>,
     ) -> Result<Response<Body>, Infallible> {
+        let attrs = attrs
+            .into_iter()
+            .map(|(x, y)| Attribute {
+                raw_value: x.to_string(),
+                status: "".to_string(),
+                id: y.to_string(),
+            })
+            .collect();
         let resp_data = &SessionResult {
-            disclosed: Some(vec![vec![
-                Attribute {
-                    raw_value: mail.to_string(),
-                    status: "".to_string(),
-                    id: mail_type.to_string(),
-                },
-                Attribute {
-                    raw_value: phone.to_string(),
-                    status: "".to_string(),
-                    id: phone_type.to_string(),
-                },
-            ]]),
+            disclosed: Some(vec![attrs]),
             status: Status::DONE,
             session_type: SessionType::Disclosing,
             proof_status: None,
@@ -1519,7 +1495,7 @@ mod tests {
         .await
         .unwrap();
         let request = test::TestRequest::default().to_http_request();
-        start_fake_server(4001).await;
+        start_fake_server(4001, None).await;
 
         let resp = yivi_register(Data::from(context), Translations::NONE, request).await;
 
@@ -1613,7 +1589,7 @@ mod tests {
 
     #[actix_web::test]
     async fn test_no_cookie_hub_login() {
-        let oidc_secret: B64 = b"verysecret".into();
+        let oidc_secret: B64 = b"verysecret".to_vec().into();
         let context = create_test_context_with(|mut f| {
             f.oidc_secret = Some(oidc_secret);
             f
@@ -1659,7 +1635,7 @@ mod tests {
     #[actix_web::test]
     async fn test_cookie_skips_hub_login() {
         let secret = "very secret";
-        let oidc_secret: B64 = b"verysecret".into();
+        let oidc_secret: B64 = b"verysecret".to_vec().into();
         let context = create_test_context_with(|mut f| {
             f.cookie_secret = Some(secret.to_string());
             f.oidc_secret = Some(oidc_secret);
@@ -1719,7 +1695,7 @@ mod tests {
         let email = "email@test.com";
         let user_id = create_user(email, &context).await;
         let request = test::TestRequest::default()
-            .add_session_cookie(user_id, secret)
+            .add_session_cookie(user_id.clone(), secret)
             .unwrap();
 
         let response = get_account(
@@ -1816,7 +1792,7 @@ mod tests {
             app.call(
                 test::TestRequest::get()
                     .uri("/bar/state")
-                    .add_session_cookie(user_id, "not the cookie secret")
+                    .add_session_cookie(user_id.clone(), "not the cookie secret")
                     .unwrap()
                     .to_request(),
             )
@@ -1840,7 +1816,7 @@ mod tests {
             .call(
                 test::TestRequest::get()
                     .uri("/bar/state")
-                    .add_session_cookie(user_id, &context.cookie_secret)
+                    .add_session_cookie(user_id.clone(), &context.cookie_secret)
                     .unwrap()
                     .to_request(),
             )
@@ -1862,7 +1838,7 @@ mod tests {
             .call(
                 test::TestRequest::put()
                     .uri("/bar/state")
-                    .add_session_cookie(user_id, &context.cookie_secret)
+                    .add_session_cookie(user_id.clone(), &context.cookie_secret)
                     .unwrap()
                     .insert_header((CONTENT_TYPE, "application/octet-stream"))
                     .insert_header((
@@ -1889,7 +1865,7 @@ mod tests {
             .call(
                 test::TestRequest::get()
                     .uri("/bar/state")
-                    .add_session_cookie(user_id, &context.cookie_secret)
+                    .add_session_cookie(user_id.clone(), &context.cookie_secret)
                     .unwrap()
                     .to_request(),
             )
@@ -1910,7 +1886,7 @@ mod tests {
             .call(
                 test::TestRequest::put()
                     .uri("/bar/state")
-                    .add_session_cookie(user_id, &context.cookie_secret)
+                    .add_session_cookie(user_id.clone(), &context.cookie_secret)
                     .unwrap()
                     .insert_header((CONTENT_TYPE, "application/octet-stream"))
                     .insert_header((
@@ -1934,7 +1910,7 @@ mod tests {
             .call(
                 test::TestRequest::put()
                     .uri("/bar/state")
-                    .add_session_cookie(user_id, "not the cookie secret")
+                    .add_session_cookie(user_id.clone(), "not the cookie secret")
                     .unwrap()
                     .insert_header((CONTENT_TYPE, "application/octet-stream"))
                     .insert_header((
@@ -1978,7 +1954,7 @@ mod tests {
             .call(
                 test::TestRequest::put()
                     .uri("/bar/state")
-                    .add_session_cookie(user_id, &context.cookie_secret)
+                    .add_session_cookie(user_id.clone(), &context.cookie_secret)
                     .unwrap()
                     .insert_header((CONTENT_TYPE, "application/octet-stream"))
                     .set_payload("new state 2")
@@ -1997,7 +1973,7 @@ mod tests {
             .call(
                 test::TestRequest::put()
                     .uri("/bar/state")
-                    .add_session_cookie(user_id, &context.cookie_secret)
+                    .add_session_cookie(user_id.clone(), &context.cookie_secret)
                     .unwrap()
                     .insert_header((CONTENT_TYPE, "application/json"))
                     .insert_header((
@@ -2020,7 +1996,7 @@ mod tests {
             .call(
                 test::TestRequest::put()
                     .uri("/bar/state")
-                    .add_session_cookie(user_id, &context.cookie_secret)
+                    .add_session_cookie(user_id.clone(), &context.cookie_secret)
                     .unwrap()
                     .insert_header((
                         actix_web::http::header::IF_MATCH,
@@ -2042,7 +2018,7 @@ mod tests {
             .call(
                 test::TestRequest::put()
                     .uri("/bar/state")
-                    .add_session_cookie(user_id, &context.cookie_secret).unwrap()
+                    .add_session_cookie(user_id.clone(), &context.cookie_secret).unwrap()
                     .insert_header((CONTENT_TYPE, "application/octet-stream"))
                     .insert_header((
                         actix_web::http::header::IF_MATCH,
@@ -2064,7 +2040,7 @@ mod tests {
             .call(
                 test::TestRequest::put()
                     .uri("/bar/state")
-                    .add_session_cookie(user_id, &context.cookie_secret)
+                    .add_session_cookie(user_id.clone(), &context.cookie_secret)
                     .unwrap()
                     .insert_header((CONTENT_TYPE, "application/octet-stream"))
                     .insert_header((actix_web::http::header::IF_MATCH, "*"))
@@ -2116,10 +2092,12 @@ mod tests {
         })
         .await
         .unwrap();
-        let _user_id = create_user("testemail", &context).await;
+        let user_id = create_user("testemail", &context).await;
         let _hubid = create_test_hub(&context).await;
         let token = "token".to_owned();
-        start_fake_server(4002).await;
+        let (tx, rx) = channel();
+        start_fake_server(4002, Some(rx)).await;
+        tx.send(user_id.clone());
 
         //existing user account login
         let (req1, mut req1payload) = test::TestRequest::post()
@@ -2140,7 +2118,10 @@ mod tests {
 
         assert_eq!(StatusCode::SEE_OTHER, response.status());
         assert!(response.headers().contains_key(SET_COOKIE));
-        assert_eq!(response.headers().get(LOCATION).unwrap(), "/account/1");
+        assert_eq!(
+            response.headers().get(LOCATION).unwrap(),
+            &format!("/account/{user_id}")
+        );
 
         //existing user hub login
         let client_creds = context
@@ -2181,6 +2162,8 @@ mod tests {
             })
             .to_http_parts();
 
+        //Send the id again for the fake yivi to return again with this id.
+        tx.send(user_id.clone());
         let response = yivi_finish_and_redirect_anyhow(
             Data::from(context.clone()),
             actix_web::web::Form::from_request(&req2, &mut req2payload)
@@ -2194,8 +2177,7 @@ mod tests {
         assert!(response.headers().contains_key(SET_COOKIE));
         // TODO: check that response is a POST-redirect in some way?
 
-        //register account
-        // Discloses new
+        // Discloses new & follow registration flow
         let context = create_test_context_with(|mut f| {
             f.cookie_secret = Some(cookie_secret.to_string());
             f.yivi.requestor_api_url = "http://localhost:4002/test2".to_string();
@@ -2203,6 +2185,21 @@ mod tests {
         })
         .await
         .unwrap();
+
+        //Pretend we are the yiviserver and post to next_session with disclosed mail & phone, to trigger
+        // creating the user.
+        let body = create_yivi_body();
+        let yivi_server_req = TestRequest::post()
+            .set_payload(body.clone())
+            .to_http_request();
+        let resp_y = next_session(yivi_server_req, Data::from(context.clone()), body).await;
+        assert_eq!(resp_y.status(), 200);
+
+        let new_user = get_db_user(context.as_ref(), TEST_EMAIL, TEST_TELEPHONE).await;
+        //One time is unused but still read by fake server.
+        tx.send(new_user.external_id.clone());
+        tx.send(new_user.external_id.clone());
+
         let (req3, mut req3payload) = test::TestRequest::post()
             .set_form(YiviFinishParams {
                 yivi_token: token.clone(),
@@ -2219,12 +2216,36 @@ mod tests {
         .await
         .unwrap();
         assert_eq!(response.status(), StatusCode::SEE_OTHER);
-        // TODO: check location of redirect?
+        assert_eq!(
+            response.headers().get(LOCATION).unwrap().to_str().unwrap(),
+            format!("/account/{}", &new_user.external_id)
+        );
         assert!(response.headers().contains_key(SET_COOKIE));
 
-        get_db_user(&context, NEW_TEST_EMAIL, NEW_TEST_TELEPHONE)
-            .await
-            .expect("new user to have been created");
+        let user = get_db_user(&context, TEST_EMAIL, TEST_TELEPHONE).await;
+        assert_eq!(user.external_id, new_user.external_id);
+    }
+
+    fn create_yivi_body() -> String {
+        sign_fake_session_result(SessionResult {
+            disclosed: Some(vec![vec![
+                Attribute {
+                    raw_value: TEST_EMAIL.to_string(),
+                    status: "".to_string(),
+                    id: MAIL.to_string(),
+                },
+                Attribute {
+                    raw_value: TEST_TELEPHONE.to_string(),
+                    status: "".to_string(),
+                    id: MOBILE_NO.to_string(),
+                },
+            ]]),
+            status: Status::CONNECTED,
+            session_type: SessionType::Disclosing,
+            proof_status: None,
+            next_session: None,
+            error: None,
+        })
     }
 
     #[actix_web::test]
@@ -2378,7 +2399,7 @@ mod tests {
         rx.await.unwrap().unwrap()
     }
 
-    async fn create_user(email: &str, context: &crate::context::Main) -> u32 {
+    async fn create_user(email: &str, context: &crate::context::Main) -> String {
         let (tx, rx) = oneshot::channel();
         context
             .db_tx
@@ -2386,14 +2407,15 @@ mod tests {
                 resp: tx,
                 email: email.to_string(),
                 telephone: "test_telephone".to_string(),
+                registration_date: "today".to_string(),
                 config: context.pep.clone(),
                 is_admin: context.admins.contains(email),
             })
             .await;
-        rx.await.unwrap().unwrap().id
+        rx.await.unwrap().unwrap().external_id
     }
 
-    async fn get_db_user(context: &crate::context::Main, mail: &str, phone: &str) -> Option<User> {
+    async fn get_db_user(context: &crate::context::Main, mail: &str, phone: &str) -> User {
         let (tx, rx) = oneshot::channel();
         context
             .db_tx
@@ -2439,5 +2461,85 @@ mod tests {
     async fn body_to_string(response: HttpResponse) -> String {
         let b: Vec<u8> = response.into_body().try_into_bytes().unwrap().to_vec();
         String::from_utf8(b).unwrap()
+    }
+
+    #[derive(Serialize, Deserialize, Debug)]
+    pub struct FakeSignedSessionResultClaims {
+        exp: u64,    // expiry
+        iat: u64,    // issued at
+        iss: String, // issuer
+        sub: String, // subject
+
+        #[serde(flatten)]
+        result: SessionResult,
+    }
+
+    fn sign_fake_session_result(result: SessionResult) -> String {
+        return jsonwebtoken::encode(
+            &jsonwebtoken::Header::new(jsonwebtoken::Algorithm::RS256),
+            &FakeSignedSessionResultClaims {
+                result,
+                iat: jsonwebtoken::get_current_timestamp(),
+                exp: jsonwebtoken::get_current_timestamp() + 100,
+                iss: "irmaserver".to_string(),
+                sub: "not checked for now".to_string(),
+            },
+            &jsonwebtoken::EncodingKey::from_rsa_pem(
+                r#"-----BEGIN RSA PRIVATE KEY-----
+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
+-----END RSA PRIVATE KEY-----"#
+                    .as_bytes(),
+            )
+            .unwrap(),
+        )
+        .unwrap();
     }
 }

@@ -3,8 +3,8 @@
  */
 
 import { defineStore } from 'pinia';
-
 import { User, defaultUser, useUser } from '@/store/user';
+import { ConnectionState, useConnection } from '@/store/connection';
 import { Theme, defaultSettings, createSettings, type i18nSettings } from '@/store/settings';
 import { useHubSettings } from '@/store/hub-settings';
 import { PubHubsRoomType, Room, PublicRoom, SecuredRoomAttributes, SecuredRoom, useRooms } from '@/store/rooms';
@@ -17,6 +17,8 @@ export {
 	User,
 	defaultUser,
 	useUser,
+	ConnectionState,
+	useConnection,
 	Theme,
 	defaultSettings,
 	useSettings,

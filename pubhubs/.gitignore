@@ -25,3 +25,5 @@ dev.log
 static/assets/client
 global-client/
 hub-client/
+
+config.yaml

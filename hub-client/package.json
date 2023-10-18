@@ -22,6 +22,7 @@
     "autoprefixer": "^10",
     "core-js": "^3.8.3",
     "emojibase": "^6",
+    "emojibase-data": "^15.2.0",
     "loglevel": "^1.8.0",
     "matrix-js-sdk": "^24",
     "octokit": "^3.0.0",

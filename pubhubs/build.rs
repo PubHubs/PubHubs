@@ -1,12 +1,12 @@
 fn main() {
-    #[cfg(feature = "oldbin")]
+    #[cfg(all(feature = "old", feature = "bin"))]
     {
         old::generate_css();
         old::generate_global_client_folder();
     }
 }
 
-#[cfg(feature = "oldbin")]
+#[cfg(all(feature = "old", feature = "bin"))]
 mod old {
     use std::fs::create_dir;
     use std::path::Path;

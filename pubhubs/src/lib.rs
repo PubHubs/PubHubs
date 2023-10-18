@@ -14,7 +14,6 @@ mod old {
     pub mod oidc_handler;
     pub mod policy;
     pub mod pseudonyms;
-    pub mod serde_ext;
     pub mod translate;
     pub mod yivi;
     pub mod yivi_proxy;
@@ -26,12 +25,17 @@ pub use old::*;
 #[cfg(feature = "bin")]
 pub mod cli;
 
+#[cfg(feature = "bin")]
 pub mod servers;
 
+#[cfg(feature = "bin")]
+pub mod api;
+
+#[cfg(any(feature = "bin", feature = "old"))]
+pub mod misc;
+
 #[cfg(feature = "common")]
-mod common {
-    pub mod elgamal;
-}
+mod common;
 
 #[cfg(feature = "common")]
 pub use common::*;

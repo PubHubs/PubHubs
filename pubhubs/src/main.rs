@@ -13,23 +13,33 @@ impl Cli {
     pub fn run(self) -> Result<(), clap::error::Error> {
         match self.command {
             None => {
-                #[cfg(feature = "oldbin")]
+                #[cfg(feature = "old")]
                 return old::Args::default().run();
 
-                #[cfg(not(feature = "oldbin"))]
+                #[cfg(not(feature = "old"))]
                 {
-                    return Err(Cli::command().error(
+                    Err(Cli::command().error(
                         clap::error::ErrorKind::MissingSubcommand,
                         "no command provided",
-                    ));
+                    ))
                 }
             }
 
             Some(cmd) => match cmd {
-                #[cfg(feature = "oldbin")]
-                Commands::Old(old_args) => old_args.run(),
+                #[cfg(feature = "old")]
+                Commands::Old(old_args) => old_args.run().map_err(|err| {
+                    Cli::command()
+                        .find_subcommand_mut("old")
+                        .expect("no 'old' subcommand; was it renamed?")
+                        .error(clap::error::ErrorKind::InvalidValue, format!("{:?}", err))
+                }),
 
-                Commands::Serve(serve_args) => serve_args.run(),
+                Commands::Serve(serve_args) => serve_args.run().map_err(|err| {
+                    Cli::command()
+                        .find_subcommand_mut("serve")
+                        .expect("no 'serve' subcommand; was it renamed?")
+                        .error(clap::error::ErrorKind::InvalidValue, format!("{:?}", err))
+                }),
             },
         }
     }
@@ -38,14 +48,14 @@ impl Cli {
 #[derive(clap::Subcommand, Debug)]
 enum Commands {
     /// Runs the old pubhubs binary (default)
-    #[cfg(feature = "oldbin")]
+    #[cfg(feature = "old")]
     Old(old::Args),
 
     /// Run one (or multiple) PubHubs servers
     Serve(pubhubs::cli::ServeArgs),
 }
 
-#[cfg(feature = "oldbin")]
+#[cfg(feature = "old")]
 mod old {
     use super::*;
 
@@ -54,8 +64,9 @@ mod old {
 
     impl Args {
         pub fn run(self) -> Result<(), clap::error::Error> {
-            pubhubs::cli::old::main()
-                .map_err(|err| Cli::command().error(clap::error::ErrorKind::InvalidValue, err))
+            pubhubs::cli::old::main().map_err(|err| {
+                Cli::command().error(clap::error::ErrorKind::InvalidValue, format!("{err:?}"))
+            })
         }
     }
 }
