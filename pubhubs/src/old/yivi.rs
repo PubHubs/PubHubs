@@ -63,10 +63,34 @@ pub enum Context {
 #[derive(Debug, Serialize, Deserialize)]
 pub struct PubhubsAttributes {
     id: String,
+    // NOTE: someone made the mistake of using snake case for the demo credentials
+    // and camel case for the real credentials
+    #[cfg_attr(feature = "real_credentials", serde(rename = "registrationSource"))]
     registration_source: String,
     // email: String,
     // mobilenumber: String,
+    #[cfg_attr(feature = "real_credentials", serde(rename = "registrationDate"))]
     registration_date: String,
+}
+
+#[cfg(test)]
+#[test]
+fn test_ph_attrs_serialization() {
+    let result: String = serde_json::to_string(&PubhubsAttributes {
+        id: "id".to_string(),
+        registration_date: "date".to_string(),
+        registration_source: "source".to_string(),
+    })
+    .unwrap();
+
+    assert_eq!(
+        result,
+        if cfg!(feature = "real_credentials") {
+            "{\"id\":\"id\",\"registrationSource\":\"source\",\"registrationDate\":\"date\"}"
+        } else {
+            "{\"id\":\"id\",\"registration_source\":\"source\",\"registration_date\":\"date\"}"
+        }
+    );
 }
 
 #[derive(Debug, Serialize, Deserialize)]
