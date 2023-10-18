@@ -125,7 +125,7 @@ env_logger = { version = "0.10", optional = true }
 http = { version = "0.2", optional = true }
 hyper = { version= "0.14", features= ["server", "client", "http1", "stream" ], optional = true }
 hyper-tls = { version = "0.5", optional = true }
-jsonwebtoken = { version = "8.1", optional = true }  # uses non RustCrypto - perhaps replace?
+jsonwebtoken = { version = "9", optional = true }  # uses non RustCrypto - perhaps replace?
 log = { version = "0.4", optional = true }
 tokio = { version = "1.23", features = ["rt", "macros", "rt-multi-thread", "sync", "time"], optional = true }
 url = { version="2.4", features=["serde"], optional = true }
@@ -141,7 +141,7 @@ base64ct = { version = "1.6", features = ["alloc", "std"], optional = true }
 chacha20poly1305 = { version = "0.10", optional = true }
 curve25519-dalek = { version = "4.0", features = ["rand_core", "digest"], optional = true }
 ed25519-dalek = { version = "2.0", features = ["rand_core", "serde"], optional = true }
-generic-array = { version = "0.14", optional = true }
+generic-array = { version = "0", optional = true }
 hmac = { version = "0.12", optional = true }
 sha2 = { version = "0.10", optional = true }
 subtle = { version = "2.4", optional = true }
