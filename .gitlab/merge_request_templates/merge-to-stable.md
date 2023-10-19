@@ -50,7 +50,9 @@ As a general tip while testing, keep two browser windows open, one for a existin
      - [ ] Change Theme & Language, and see they are stored/fetched after logout/login.
      - [ ] Logging out.
   - [ ] Make issues for the problems. If they are serious:  fix or revert, if possible.
-  - [ ] Merge stable back into main.
+  - [ ] Merge stable back into main. To check if main and stable are merged correctly, go to the [repository graph](https://gitlab.science.ru.nl/ilab/pubhubs_canonical/-/network/main?ref_type=heads) and check if main and stable are pointing to the same commit. See the screenshot below.
+
+  ![image](/uploads/478c467465270fe24b4e3ec6ee32cc3b/image.png)
   - [ ] Otherwise, celebrate!
 
      
