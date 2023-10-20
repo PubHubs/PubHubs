@@ -9,7 +9,14 @@ As a general tip while testing, keep two browser windows open, one for a existin
   - [ ] Please check that the following works on https://main.pubhubs.ihub.ru.nl/client :
       - [ ] Logging in with your existing account there.
       - [ ] Posting a message to a room.
-      - [ ] Creating a new room as an admin user. (PubHubs runs on iLab-main.cs.ru.nl, see ops repository for keys)
+      - [ ] Creating a new room as an admin user. 
+      
+        To make yourself a hub admin: 
+         - log into ilab@ilab-main.cs.ru.nl using the [id_ilab](https://gitlab.science.ru.nl/ilab/ops/-/blob/main/ssh/id_ilab?ref_type=heads) key, via yourscienceaccountname@lilo.science.ru.nl, see e.g. https://gitlab.science.ru.nl/ilab/ops/-/blob/main/ssh/config?ref_type=heads)
+          - `cd /data/testhub-matrix-main/data`
+          - `sudo sqlite3 homeserver.db`
+          - `UPDATE users SET admin=1 WHERE name="@XXX-XXX:main.testhub-matrix.ihub.ru.nl";`, where `XXX-XXX` should be replaced by your short pseudonym.
+          - `.quit`, etc.
       - [ ] Creating a new secured room as an admin user.
       - [ ] Registering a *new* user, with fresh Yivi credentials.
       - [ ] Posting a message to a room with this new user.
@@ -33,7 +40,7 @@ As a general tip while testing, keep two browser windows open, one for a existin
      - [ ] Turn off dev mode in Yivi app. 
      - [ ] Logging in with your existing account.
      - [ ] Posting an message.
-     - [ ] Creating a new room as an admin user.
+     - [ ] Creating a new room as an admin user.  
      - [ ] Creating a new secured room as an admin user.
      - [ ] Registering a *new* user, with a fresh email address (if possible, tips are if you have a gmail account you can add +<date> before the '@' and add a card for that, if you have a mail domain with a catch-all you can create a new mail address and add a card for that).
      - [ ] Posting a message to a room.
