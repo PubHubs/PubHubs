@@ -7,9 +7,10 @@
 		<div class="px-4">
 			<form @submit.prevent>
 				<div class="flex flex-col items-center mb-4">
-					<Avatar :class="bgColor(color(user.user.userId))" :img="avatarUrl" class="w-32 h-32 rounded-full"></Avatar>
+					<Avatar :class="bgColor(color(user.user.userId))" :userName="user.user.rawDisplayName" :img="avatarUrl" class="w-32 h-32 rounded-full"></Avatar>
 					<label for="avatar" class="mt-2 font-semibold text-gray-700 cursor-pointer hover:underline"> Change Avatar </label>
-					<input type="file" id="avatar" accept="image/png, image/jpeg, image/svg" class="hidden" ref="file" @change="submitFile($event)" />
+					<input type="file" id="avatar" accept="image/png, image/jpeg, image/svg" class="hidden" ref="file" @change="uploadAvatar($event)" />
+					<Icon type="bin" class="right-0 group-hover:block" @click="removeAvatar"></Icon>
 				</div>
 
 				<div class="flex flex-row mb-4 items-center">
@@ -41,11 +42,13 @@
 	import { photoUpload } from '@/composables/photoUpload';
 	import { usePubHubs } from '@/core/pubhubsStore';
 	import { useUserColor } from '@/composables/useUserColor';
+	import { useMatrixFiles } from '@/composables/useMatrixFiles';
 
 	const user = useUser();
 	const { t } = useI18n();
 	const { data, setData, updateData, dataIsChanged, isValidated, message, setMessage } = useFormState();
 	const pubhubs = usePubHubs();
+	const { imageTypes, uploadUrl, downloadUrl } = useMatrixFiles(pubhubs);
 	const { color, bgColor } = useUserColor();
 
 	const avatarUrl = ref('');
@@ -57,10 +60,10 @@
 		},
 	});
 
-	function submit() {
+	async function submit() {
 		if (isValidated()) {
 			if (dataIsChanged('displayName')) {
-				pubhubs.changeDisplayName(data.displayName.value as string);
+				await pubhubs.changeDisplayName(data.displayName.value as string);
 				setMessage(t('settings.displayname_changed', [data.displayName.value]));
 				updateData('displayName', '');
 			}
@@ -69,17 +72,22 @@
 
 	onMounted(async () => {
 		avatarUrl.value = await pubhubs.getAvatarUrl();
-		avatarUrl.value = pubhubs.getBaseUrl + '/_matrix/media/r0/download/' + avatarUrl.value.slice(6);
+		if (avatarUrl.value !== '') {
+			avatarUrl.value = downloadUrl + avatarUrl.value.slice(6);
+		}
 	});
 
-	async function submitFile(event: Event) {
-		const url = pubhubs.getBaseUrl + '/_matrix/media/r0/upload';
-		const token = pubhubs.Auth.getAccessToken();
-		photoUpload(url, token, event, (uri) => {
-			// Update the avatar URL immediately
-			avatarUrl.value = pubhubs.getBaseUrl + '/_matrix/media/r0/download/' + uri.slice(6);
+	async function uploadAvatar(event: Event) {
+		const accessToken = pubhubs.Auth.getAccessToken();
+
+		photoUpload(accessToken, uploadUrl, imageTypes, event, (uri) => {
+			avatarUrl.value = downloadUrl + uri.slice(6);
 			pubhubs.changeAvatar(uri);
 			setMessage(t('settings.avatar_changed'));
 		});
+	}
+	function removeAvatar() {
+		pubhubs.changeAvatar('');
+		avatarUrl.value = '';
 	}
 </script>

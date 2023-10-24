@@ -1,6 +1,6 @@
 <template>
 	<div v-if="hubSettings.isVisibleEventType(event.type) && hubSettings.skipNoticeUserEvent(event)" class="group flex flex-row space-x-4 mb-8">
-		<Avatar :class="bgColor(color(event.sender))" :user="event.sender" :img="avatar(event.sender) ? pubhubs.getBaseUrl + '/_matrix/media/r0/download/' + avatar(event.sender).slice(6) : ''"></Avatar>
+		<Avatar :class="bgColor(color(event.sender))" :userName="event.sender" :img="avatar(event.sender) ? pubhubs.getBaseUrl + '/_matrix/media/r0/download/' + avatar(event.sender).slice(6) : ''"></Avatar>
 		<div class="w-3/5">
 			<div class="flex items-center">
 				<H3 :class="`${textColor(color(event.sender))} flex items-center mb-0`">
@@ -92,6 +92,7 @@
 		const currentRoom = rooms.currentRoom;
 		return getUserAvatar(user, currentRoom);
 	}
+
 	function resend() {
 		const pubhubs = usePubHubs();
 		pubhubs.resendEvent(props.event);
