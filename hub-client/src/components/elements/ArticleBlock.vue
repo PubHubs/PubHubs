@@ -1,7 +1,6 @@
 <template>
-	<div class="flex flex-col h-44 w-60 grow">
+	<div class="flex flex-col h-44 w-full">
 		<ImagePlaceholder :src="image" class="h-24 rounded-t-md overflow-hidden"></ImagePlaceholder>
-
 		<div class="rounded-b-md bg-white-middle text-black dark:bg-gray dark:text-white">
 			<div class="w-fit flex -mt-6 py-1 px-4 rounded-r-md bg-blue-middle-light">
 				<Icon type="room" size="sm" class="text-black"></Icon>
