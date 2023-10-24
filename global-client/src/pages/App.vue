@@ -1,30 +1,38 @@
 <template>
 	<div :class="settings.getActiveTheme">
-		<div class="w-screen h-screen bg-white text-black dark:bg-gray-darker dark:text-white">
-			<div class="flex">
-				<div id="pubhubs-bar" class="flex-none w-20 sm:w-32 flex flex-col h-screen pt-2">
+		<div class="h-screen text-black dark:bg-gray-darker dark:text-white">
+			<div class="md:hidden w-20 h-20 absolute" @click="menuToggle()">
+				<Icon v-if="globalIsActive" type="returnmenu" size="4xl" class=" fill-[#2F2E2E] stroke-white dark:fill-white dark:stroke-black" viewBox="0,0,84,84" ></Icon>
+				<Icon v-else type="hamburgermenu" size="4xl" class=" dark:fill-[#2F2E2E] dark:stroke-white fill-white stroke-black" viewBox="0,0,84,84"></Icon>
+			</div>
+			<div class="flex h-full">
+				<div id="pubhubs-bar" class="flex-none w-28 sm:w-32 h-screen pt-20 md:pt-2 md:block" :class="{hidden: !globalIsActive}">
 					<Modal :show="global.isModalVisible">
-						<div class="flex-1 text-center">
-							<router-link to="/" v-slot="{ isActive }">
-								<HubIcon type="pubhubs-home" :active="isActive" class="text-blue dark:text-white"></HubIcon>
-							</router-link>
+						<div class="flex flex-col justify-between h-full">
+							<div class="flex-1 text-center">
+								<router-link to="/" v-slot="{ isActive }">
+									<HubIcon type="pubhubs-home" :active="isActive" class="text-blue dark:text-white"></HubIcon>
+								</router-link>
 
-							<Line v-if="global.loggedIn && global.hasPinnedHubs" class="m-2 sm:m-6 mt-8"></Line>
-							<HubMenu></HubMenu>
-							<Line v-if="global.loggedIn" class="m-2 sm:m-6 mt-8"></Line>
+								<Line v-if="global.loggedIn && global.hasPinnedHubs" class="m-2 sm:m-6 mt-8"></Line>
+								<HubMenu></HubMenu>
+								<Line v-if="global.loggedIn" class="m-2 sm:m-6 mt-8"></Line>
+							</div>
+
+							<div class="mx-6">
+								<!-- <div v-if="global.loggedIn"> -->
+								<Dialog v-if="settingsDialog" @close="settingsDialog = false" :title="$t('settings.title')" :buttons="buttonsSubmitCancel">
+									<Settings></Settings>
+								</Dialog>
+								<div class="flex justify-between">
+									<HubIcon type="cog" size="lg" @click="settingsDialog = true"></HubIcon>
+									<HubIcon type="power" size="lg" @click="logout()"></HubIcon>
+								</div>
+								<!-- </div> -->
+								
+								<a :href="pubHubsUrl" class="m-2 sm:m-4"><Logo></Logo></a>
+							</div>
 						</div>
-
-						<!-- <div v-if="global.loggedIn"> -->
-						<Dialog v-if="settingsDialog" @close="settingsDialog = false" :title="$t('settings.title')" :buttons="buttonsSubmitCancel">
-							<Settings></Settings>
-						</Dialog>
-						<div class="flex justify-center">
-							<HubIcon type="cog" size="lg" @click="settingsDialog = true"></HubIcon>
-							<HubIcon type="power" size="lg" @click="logout()"></HubIcon>
-						</div>
-						<!-- </div> -->
-
-						<a :href="pubHubsUrl" class="m-2 sm:m-4"><Logo></Logo></a>
 					</Modal>
 				</div>
 
@@ -40,15 +48,18 @@
 
 <script setup lang="ts">
 	import { onMounted, ref } from 'vue';
-	import { useGlobal, useSettings, Hub, HubList, useHubs, buttonsSubmitCancel, useDialog } from '@/store/store';
+	import { useGlobal, useSettings, Hub, HubList, useHubs, buttonsSubmitCancel, useDialog, useMessageBox, Message, MessageType } from '@/store/store';
 	import { useI18n } from 'vue-i18n';
+
 
 	const global = useGlobal();
 	const settings = useSettings();
+	const messageBox = useMessageBox();
 	const hubs = useHubs();
 	const dialog = useDialog();
 	const settingsDialog = ref(false);
 	const { t, locale, availableLocales } = useI18n();
+	const globalIsActive = ref(false);
 
 	// eslint-disable-next-line
 	const pubHubsUrl = _env.PUBHUBS_URL;
@@ -87,5 +98,11 @@
 		if (await dialog.yesno(t('logout.logout_sure'))) {
 			global.logout();
 		}
+	}
+
+	function menuToggle() {
+		globalIsActive.value = !globalIsActive.value;
+
+		messageBox.sendMessage(new Message(MessageType.mobileHubMenu,globalIsActive.value));
 	}
 </script>

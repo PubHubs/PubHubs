@@ -1,17 +1,17 @@
 <template>
 	<div class="flex flex-col">
-		<div class="flex justify-between mb-2">
+		<div class="flex flex-col md:flex-row justify-between mb-2">
 			<Label>{{ t('settings.theme') }}</Label>
 			<ButtonGroup size="sm" v-model="data.theme.value" :value="data.theme.value" :options="settings.getThemeOptions(t)" @changed="updateData('theme', $event)"></ButtonGroup>
 		</div>
-		<div class="flex justify-between mb-2">
+		<div class="flex flex-col md:flex-row justify-between mb-2">
 			<Label>{{ t('settings.language') }}</Label>
 			<ButtonGroup size="sm" v-model="data.language.value" :value="data.language.value" :options="settings.getLanguageOptions" @changed="updateData('language', $event)"></ButtonGroup>
 		</div>
-    <div v-if="noPerm()" class="flex justify-between mb-2">
-      <label>{{ t('settings.notifications') }}</label>
-      <Button @click=askPerm()>{{ t('settings.notifications_allow') }}</Button>
-    </div>
+		<div v-if="noPerm()" class="flex flex-col md:flex-row justify-between mb-2">
+			<label>{{ t('settings.notifications') }}</label>
+			<Button @click=askPerm()>{{ t('settings.notifications_allow') }}</Button>
+		</div>
 	</div>
 </template>
 

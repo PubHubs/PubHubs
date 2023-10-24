@@ -11,6 +11,7 @@ const useHubSettings = defineStore('hub-settings', {
 			parentUrl: _env.PARENT_URL,
 			isSolo: window.self === window.top,
 			visibleEventTypes: ['m.room.message'],
+			mobileHubMenu: false,
 		};
 	},
 
