@@ -1,5 +1,6 @@
 <template>
-	<TextInput :placeholder="placeholder" v-model="filter" class="mb-4 w-full"></TextInput>
+	<TextInput :placeholder="placeholder" v-model="filter" class="mb-4 w-full" @changed="changed()"></TextInput>
+	<slot name="subtitle"></slot>
 	<ul>
 		<li v-for="(item, index) in filteredItems" :key="index" class="group cursor-pointer hover:bg-green p-1 rounded" @click="clickedItem(item)">
 			<slot name="item" v-bind="{ item }"></slot>
@@ -9,7 +10,9 @@
 
 <script setup lang="ts">
 	import { ref, computed } from 'vue';
-	const emit = defineEmits(['click']);
+	import { FilteredListEvent } from '@/types/components';
+
+	const emit = defineEmits(['click', 'filter']);
 
 	const filter = ref('');
 
@@ -29,14 +32,24 @@
 	});
 
 	const filteredItems = computed(() => {
+		const lcFilter = filter.value.toLowerCase();
 		return props.items.filter((item: any) => {
 			if (filter.value == '') {
 				return true;
 			}
-
-			return item[props.filterKey]?.includes(filter.value);
+			const lcItem = item[props.filterKey]?.toLowerCase();
+			return lcItem.includes(lcFilter);
 		});
 	});
+
+	function changed() {
+		filter.value = filter.value.toLocaleLowerCase();
+		const event: FilteredListEvent = {
+			filter: filter.value,
+			length: filteredItems.value.length,
+		};
+		emit('filter', event);
+	}
 
 	function clickedItem(item: any) {
 		emit('click', item);
