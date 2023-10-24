@@ -55,7 +55,7 @@
 	const messageActions = useMessageActions();
 	const emit = defineEmits(usedEvents);
 	const { value, reset, changed, cancel } = useFormInputEvents(emit);
-	const { allTypes, getTypesAsString } = useMatrixFiles();
+	const { allTypes, getTypesAsString, imageTypes, uploadUrl } = useMatrixFiles(pubhubs);
 
 	const buttonEnabled = ref(false);
 	const showEmojiPicker = ref(false);
@@ -89,9 +89,9 @@
 	}
 
 	function uploadPhoto(event: Event) {
-		const url = pubhubs.getBaseUrl + '/_matrix/media/r0/upload';
-		const token = pubhubs.Auth.getAccessToken();
-		photoUpload(url, token, event, (uri) => {
+		const accessToken = pubhubs.Auth.getAccessToken();
+
+		photoUpload(accessToken, uploadUrl, imageTypes, event, (uri) => {
 			pubhubs.addImage(rooms.currentRoomId, uri);
 			reset();
 		});

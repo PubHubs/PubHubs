@@ -1,7 +1,7 @@
 import { defineStore } from 'pinia';
 
 import { Optional } from 'matrix-events-sdk';
-import { User as MatrixUser, MatrixClient, EventTimeline, ContentHelpers } from 'matrix-js-sdk';
+import { User as MatrixUser, MatrixClient, EventTimeline, ContentHelpers, MatrixError } from 'matrix-js-sdk';
 
 import { Authentication } from '@/core/authentication';
 import { Events } from '@/core/events';
@@ -10,6 +10,7 @@ import { useSettings, User, useUser, useRooms, useConnection } from '@/store/sto
 import { hasHtml, sanitizeHtml } from '@/core/sanitizer';
 import { api_synapse, api_matrix } from '@/core/api';
 import { M_MessageEvent, M_TextMessageEventContent } from '@/types/events';
+
 
 const usePubHubs = defineStore('pubhubs', {
 	state: () => {
@@ -231,8 +232,16 @@ const usePubHubs = defineStore('pubhubs', {
 		async changeAvatar(uri: string) {
 			try {
 				await this.client.setAvatarUrl(uri);
+				//Quickly update the avatar url.
+				await this.client.sendStateEvent("", "m.room.avatar", {uri}, "");
 			} catch (error) {
-				this.showError(error as string);
+				const e = error as MatrixError;
+				// No user ist there on settings. so we ignore the error.
+				if (e.errcode !== 'M_FORBIDDEN'){
+					this.showError(error as string);
+				}
+				
+				
 			}
 		},
 
@@ -240,6 +249,7 @@ const usePubHubs = defineStore('pubhubs', {
 		async getAvatarUrl() {
 			const user = useUser();
 			const url =  await user.fetchAvatarUrl(this.client as MatrixClient);
+			
 			return url;
 		},
 
