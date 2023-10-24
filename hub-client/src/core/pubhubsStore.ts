@@ -245,14 +245,16 @@ const usePubHubs = defineStore('pubhubs', {
 			}
 		},
 
-
 		async getAvatarUrl() {
 			const user = useUser();
 			const url =  await user.fetchAvatarUrl(this.client as MatrixClient);
-			
 			return url;
 		},
 
+		async findUsers(term: string): Promise<Array<any>> {
+			const response = await this.client.searchUserDirectory({ term: term });
+			return response.results;
+		},
 
 		async getUsers(): Promise<Array<MatrixUser>> {
 			const response = (await this.client.getUsers()) as [];

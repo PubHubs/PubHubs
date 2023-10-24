@@ -1,9 +1,9 @@
 <template>
-	<Dialog :buttons="buttonsOk" width="w-3/6" @close="close()">
+	<Dialog :buttons="buttonsCancel" width="w-3/6" @close="close()">
 		<template #header>
 			{{ $t('rooms.private_add') }}
 		</template>
-		<FilteredList :items="users" filterKey="displayName" :placeholder="$t('rooms.private_search_user')" @click="addNewPrivateRoom($event)">
+		<FilteredList :items="usersList" filterKey="displayName" :placeholder="$t('rooms.private_search_user')" @click="addNewPrivateRoom($event)" @filter="filter($event)">
 			<template #item="{ item }">
 				<span :title="item.userId">{{ item.displayName }}</span>
 				<Icon type="plus" class="float-right"></Icon>
@@ -13,11 +13,12 @@
 </template>
 
 <script setup lang="ts">
-	import { ref, onMounted } from 'vue';
+	import { ref, onMounted, computed } from 'vue';
 	import { User as MatrixUser } from 'matrix-js-sdk';
 	import { usePubHubs } from '@/core/pubhubsStore';
 	import { User, useUser, PubHubsRoomType, useRooms } from '@/store/store';
-	import { buttonsOk } from '@/store/dialog';
+	import { buttonsCancel } from '@/store/dialog';
+	import { FilteredListEvent } from '@/types/components';
 
 	const pubhubs = usePubHubs();
 	const user = useUser();
@@ -27,8 +28,20 @@
 
 	onMounted(async () => {
 		users.value = await pubhubs.getUsers();
+	});
+
+	const usersList = computed(() => {
+		let list = users.value as any;
+		list = list.map((user: any) => {
+			return {
+				userId: user.userId,
+				displayName: user.displayName,
+				avatarUrl: user.avatarUrl,
+			};
+		});
 		// Remove self from list
-		users.value = users.value.filter((u) => u.userId !== user.user.userId && !u.userId.includes('notices'));
+		list = list.filter((u: any) => u.userId !== user.user.userId && u.rawDisplayName !== 'notices');
+		return list;
 	});
 
 	async function addNewPrivateRoom(other: any) {
@@ -57,5 +70,22 @@
 
 	async function close() {
 		emit('close');
+	}
+
+	async function filter(event: FilteredListEvent) {
+		if (event.length < 10) {
+			let foundUsers = await pubhubs.findUsers(event.filter);
+			foundUsers = foundUsers.map((user) => {
+				user.userId = user.user_id;
+				user.displayName = user.display_name;
+				user.avatarUrl = user.avatar_url;
+				return user;
+			});
+			// combine and unique
+			users.value = [...users.value, ...foundUsers];
+			users.value = users.value.filter((user, index, arr) => {
+				return arr.findIndex((item) => item.userId == user.userId) == index;
+			});
+		}
 	}
 </script>

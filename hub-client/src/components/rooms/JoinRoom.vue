@@ -1,5 +1,5 @@
 <template>
-	<Dialog :buttons="buttonsOk" width="w-3/6" @close="close()">
+	<Dialog :buttons="buttonsCancel" width="w-3/6" @close="close()">
 		<template #header>
 			{{ $t('rooms.join_room') }}
 		</template>
@@ -18,7 +18,7 @@
 	import { useRouter } from 'vue-router';
 	import { PublicRoom, useRooms } from '@/store/store';
 	import { usePubHubs } from '@/core/pubhubsStore';
-	import { buttonsOk } from '@/store/dialog';
+	import { buttonsCancel } from '@/store/dialog';
 
 	const rooms = useRooms();
 	const pubhubs = usePubHubs();

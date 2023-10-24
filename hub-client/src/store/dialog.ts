@@ -31,6 +31,8 @@ class DialogButton {
 
 const buttonsOk: Array<DialogButton> = [new DialogButton('ok', 'blue', DialogTrue)];
 
+const buttonsCancel: Array<DialogButton> = [new DialogButton('cancel', 'red', DialogFalse)];
+
 const buttonsOkCancel: Array<DialogButton> = [new DialogButton('ok', 'blue', DialogTrue), new DialogButton('cancel', 'red', DialogFalse)];
 
 const buttonsSubmitCancel: Array<DialogButton> = [new DialogButton('submit', 'blue', DialogTrue), new DialogButton('cancel', 'red', DialogFalse)];
@@ -184,4 +186,4 @@ const useDialog = defineStore('dialog', {
 	},
 });
 
-export { buttonsOk, buttonsSubmitCancel, DialogButton, type DialogButtonAction, DialogFalse, DialogTrue, DialogProperties, useDialog };
+export { buttonsOk, buttonsCancel, buttonsSubmitCancel, DialogButton, type DialogButtonAction, DialogFalse, DialogTrue, DialogProperties, useDialog };

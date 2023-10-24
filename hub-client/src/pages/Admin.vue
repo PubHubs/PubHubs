@@ -14,30 +14,30 @@
 				<TabContainer>
 					<TabContent>
 						<p v-if="rooms.nonSecuredPublicRooms.length == 0">{{ $t('admin.no_secured_rooms') }}</p>
-						<ul v-else>
-							<li v-for="room in rooms.nonSecuredPublicRooms" :key="room.room_id" class="group hover:bg-green p-1 rounded">
-								<Icon :type="roomIcon(room)" class="mr-4 float-left text-green group-hover:text-black"></Icon>
-								<span :title="room.room_id">
-									{{ room.name }} <span>[{{ room.num_joined_members }} {{ $t('rooms.members') }}]</span>
+						<FilteredList v-else :items="rooms.nonSecuredPublicRooms" filterKey="name" :placeholder="$t('rooms.filter')">
+							<template #item="{ item }">
+								<Icon :type="roomIcon(item)" class="mr-4 float-left text-green group-hover:text-black"></Icon>
+								<span :title="item.room_id">
+									{{ item.name }} <span>[{{ item.num_joined_members }} {{ $t('rooms.members') }}]</span>
 								</span>
-								<Icon type="remove" class="float-right cursor-pointer hover:text-red" @click="removePublicRoom(room)"></Icon>
-								<Icon type="edit" class="float-right mr-1 cursor-pointer hover:text-white" @click="renamePublicRoom(room)"></Icon>
-							</li>
-						</ul>
+								<Icon type="remove" class="float-right cursor-pointer hover:text-red" @click="removePublicRoom(item)"></Icon>
+								<Icon type="edit" class="float-right mr-1 cursor-pointer hover:text-white" @click="renamePublicRoom(item)"></Icon>
+							</template>
+						</FilteredList>
 					</TabContent>
 
 					<TabContent>
 						<p v-if="!rooms.hasSecuredRooms">{{ $t('admin.no_secured_rooms') }}</p>
-						<ul v-else>
-							<li v-for="room in rooms.sortedSecuredRooms" :key="room.room_id" class="group hover:bg-green p-1 rounded">
+						<FilteredList v-else :items="rooms.sortedSecuredRooms" filterKey="room_name" :placeholder="$t('rooms.filter')">
+							<template #item="{ item }">
 								<Icon type="lock" class="mr-4 float-left text-green group-hover:text-black"></Icon>
-								<span :title="room.room_id">
-									{{ room.room_name }} <span v-if="room.user_txt !== ''">- {{ room.user_txt }}</span>
+								<span :title="item.room_id">
+									{{ item.room_name }} <span v-if="item.user_txt !== ''">- {{ item.user_txt }}</span>
 								</span>
-								<Icon type="remove" class="float-right cursor-pointer hover:text-red" @click="removeSecuredRoom(room)"></Icon>
-								<Icon type="edit" class="float-right mr-1 cursor-pointer hover:text-white" @click="EditSecuredRoom(room)"></Icon>
-							</li>
-						</ul>
+								<Icon type="remove" class="float-right cursor-pointer hover:text-red" @click="removeSecuredRoom(item)"></Icon>
+								<Icon type="edit" class="float-right mr-1 cursor-pointer hover:text-white" @click="EditSecuredRoom(item)"></Icon>
+							</template>
+						</FilteredList>
 					</TabContent>
 				</TabContainer>
 			</Tabs>
