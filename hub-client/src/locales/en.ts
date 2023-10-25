@@ -57,7 +57,7 @@ const en = {
 		private_rooms: 'Private rooms',
 		private_topic: 'A private conversation between',
 		private_add: 'New private conversation',
-		private_search_user: 'Search person',
+		private_search_user: 'Search person, typing could find more users.',
 		rooms: 'Rooms',
 		join_room: 'Join a room',
 		filter: 'Filter rooms',

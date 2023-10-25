@@ -6,8 +6,8 @@
 	import { computed } from 'vue';
 	import { useSettings } from '@/store/store';
 
-	import logoLight from '@/assets/pubhubs-logo.svg';
-	import logoDark from '@/assets/pubhubs-logo-dark.svg';
+	import logoLight from '@/assets/logo.svg';
+	import logoDark from '@/assets/logo-dark.svg';
 
 	const settings = useSettings();
 

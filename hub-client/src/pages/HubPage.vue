@@ -68,7 +68,8 @@
 <script setup lang="ts">
 	/**
 	 *
-	 * This HUB page will be shown if a user is not yet registered or authenticated in PubHubs Central
+	 * This HUB page will be shown if a user is not yet registered or authenticated in PubHubs Central.
+     * And must show at least one button where a user can goto the PubHubs central login page.
 	 *
 	 */
 

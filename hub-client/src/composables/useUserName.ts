@@ -25,7 +25,11 @@ const useUserAvatar = () => {
 	function getUserAvatar(user: string, currentRoom: Room) {
 		const member = currentRoom.getMember(user);
 		if (member != null) {
+			if (member.user != undefined) {
+				console.info("Avatar" + member.user.avatarUrl);
+			}
 			if (member.user != undefined && member.user.avatarUrl != undefined) {
+				
 				return member.user.avatarUrl;
 			}
 		}

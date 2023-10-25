@@ -1,8 +1,8 @@
 <template>
 	<div :class="settings.getActiveTheme">
-		<div v-if="setupReady" class="w-screen h-screen bg-white text-black dark:bg-gray-dark dark:text-white">
-			<div v-if="user.isLoggedIn" class="grid grid-cols-8">
-				<HeaderFooter class="col-span-2">
+		<div v-if="setupReady" class="max-h-screen text-black dark:bg-gray-dark dark:text-white ">
+			<div v-if="user.isLoggedIn" class="md:grid md:grid-cols-8">
+				<HeaderFooter class="md:col-span-2 md:block" :class="{'hidden': !hubSettings.mobileHubMenu}">
 					<template #header>
 						<router-link to="/">
 							<Badge v-if="hubSettings.isSolo && rooms.totalUnreadMessages > 0" class="-ml-2 -mt-2">{{ rooms.totalUnreadMessages }}</Badge>
@@ -40,7 +40,7 @@
 					</template>
 				</HeaderFooter>
 
-				<div class="col-span-6 overflow-auto bg-white dark:bg-gray-middle">
+				<div class="col-span-6 overflow-y-scroll max-h-screen pt-20 md:pt-2 dark:bg-gray-middle" :class="{'hidden': hubSettings.mobileHubMenu}">
 					<router-view></router-view>
 				</div>
 			</div>
@@ -120,6 +120,11 @@
 				pubhubs.updateLoggedInStatusBasedOnGlobalStatus(message.content as string);
 			});
 
+			//Listen to global menu change
+			messagebox.addCallback(MessageType.mobileHubMenu, (message: Message) => {
+				hubSettings.mobileHubMenu = message.content as boolean;
+			});
+
 			// Wait for theme change happened
 			const wait = setInterval(() => {
 				if (messageBoxStarted) {
@@ -133,4 +138,5 @@
 			}, 250);
 		}
 	}
+
 </script>

@@ -70,6 +70,8 @@ enum MessageType {
 	Settings = 'settings', // Sync settings
 	RoomChange = 'roomchange', // Change to a room - makes it possible to reflect the room in the url
 	GlobalLoginTime = 'globallogintime', // Let Hub know if it should log itself out, if its own login predates the global login
+
+	mobileHubMenu = 'mobilehubmenu', // Keeps track of wether to show the mobile global hubbar
 }
 
 /**
@@ -79,7 +81,7 @@ enum MessageType {
  *  - content - can be anything
  */
 
-type MessageContent = string | number | object | Theme;
+type MessageContent = string | number | object | Theme | boolean;
 
 class Message {
 	type: MessageType;

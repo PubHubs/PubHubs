@@ -1,6 +1,6 @@
 # Pubhubs Client
 
-A [PubHubs](https://pubhubs.net/) client. In its core a matrix client with specific PubHubs needs.
+A [PubHubs](https://pubhubs.net/) client is in its core a matrix client with specific PubHubs needs.
 
 Build on top of `matrix-js-sdk` with `TypeScript`, `VueJs3` and `Tailwind`.
 
@@ -11,7 +11,11 @@ The whole client exists of two apps:
 
 # Installing
 
-For normal use this should automatically be done with the PubHubs deployment and install procedure. See `./README.md`.
+For normal use this should automatically be done with the PubHubs deployment and install procedure. See `./deploy/README.md`.
+
+# Branding
+
+See `./hub_branding/README.md`.
 
 # Development
 

@@ -1,8 +1,15 @@
-# When making changes here, make sure they are also in `Dockerfile.branding`
+# Based of `Dockerfile`
 
 FROM node:19-slim as builder
 COPY . .
 RUN npm ci
+
+# Specific (re)branding commands
+COPY ./branding/hub-theme.js ./src/assets/hub-theme.js
+COPY ./branding/logo.svg ./src/assets/logo.svg
+COPY ./branding/logo-dark.svg ./src/assets/logo-dark.svg
+# Branding commands end here
+
 RUN npm run build
 
 FROM nginx:alpine-slim
