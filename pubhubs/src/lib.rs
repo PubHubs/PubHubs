@@ -31,6 +31,9 @@ pub mod servers;
 #[cfg(feature = "bin")]
 pub mod api;
 
+#[cfg(feature = "bin")]
+pub mod hub;
+
 #[cfg(any(feature = "bin", feature = "old"))]
 pub mod misc;
 

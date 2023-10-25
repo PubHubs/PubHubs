@@ -32,6 +32,7 @@ common = [
 ]
 bin = [
 	"common",
+	"dep:regex",
 	"dep:base64ct", 
 	"dep:clap",
 	"dep:anyhow",
@@ -115,7 +116,7 @@ chrono = { version="0.4", default_features = false, features = ["clock"], option
 # note: we don't use chrono 0.4's default features, because it includes oldtime,
 #       which pulls in time 0.1, which has a vulnerability (viz. RUSTSEC-2020-0071)
 qrcode = { version = "0.12", optional = true }
-regex = { version = "1.5", optional = true }
+regex = { version = "1.10", optional = true }
 
 # Web dependencies
 actix-files = { version = "0.6", optional = true }
