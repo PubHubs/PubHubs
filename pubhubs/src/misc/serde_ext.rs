@@ -1,5 +1,9 @@
 //! Tools for (de)serialization
-use serde::{de::Error as _, ser::Error as _, Deserialize, Deserializer, Serialize, Serializer};
+use serde::{
+    de::{Error as _, IntoDeserializer as _},
+    ser::Error as _,
+    Deserialize, Deserializer, Serialize, Serializer,
+};
 
 use std::borrow::Cow;
 use std::marker::PhantomData;
@@ -8,7 +12,7 @@ use std::marker::PhantomData;
 /// be modified by the [BytesEncoding] `E`.
 ///
 /// We primarily use this to encode keys as hex or base64 strings in JSON instead of arrays.
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq, Copy)]
 pub struct BytesWrapper<T, E> {
     inner: T,
     phantom: PhantomData<E>,
@@ -108,13 +112,16 @@ impl<const ELC: bool, const DMC: bool> BytesEncoding for B16Encoding<ELC, DMC> {
 }
 
 /// Base64 [BytesEncoding]
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq, Copy)]
 pub struct B64Encoding<Enc: base64ct::Encoding> {
     phantom: PhantomData<Enc>,
 }
 
 /// Wrapper around `T` implementing (de)serialization using [base64ct::Base64].
 pub type B64<T = Vec<u8>> = BytesWrapper<T, B64Encoding<base64ct::Base64>>;
+
+/// Wrapper around `T` implementing (de)serialization using [base64ct::Base64UrlUnpadded].
+pub type B64UU<T = Vec<u8>> = BytesWrapper<T, B64Encoding<base64ct::Base64UrlUnpadded>>;
 
 impl<Enc: base64ct::Encoding> BytesEncoding for B64Encoding<Enc> {
     type Error = base64ct::Error;
@@ -200,6 +207,28 @@ where
     }
 }
 
+impl<T, E> core::str::FromStr for BytesWrapper<T, E>
+where
+    T: FromBytes,
+    E: BytesEncoding,
+{
+    type Err = serde::de::value::Error;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        Self::deserialize(s.into_deserializer())
+    }
+}
+
+impl<T, E> std::fmt::Display for BytesWrapper<T, E>
+where
+    T: ToBytes,
+    E: BytesEncoding,
+{
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+        Ok(self.serialize(f)?)
+    }
+}
+
 impl<'de, T, E> Deserialize<'de> for BytesWrapper<T, E>
 where
     T: FromBytes,
@@ -210,6 +239,7 @@ where
         D: Deserializer<'de>,
     {
         #[derive(Deserialize)]
+        #[serde(transparent)]
         struct CowStr<'a>(#[serde(borrow)] Cow<'a, str>);
 
         let cow_s: CowStr<'de> = serde::Deserialize::deserialize(d)?;
@@ -313,6 +343,10 @@ pub mod from_bytes {
     }
 
     impl ImplMethod for Vec<u8> {
+        type METHOD = AsRefSliceIM;
+    }
+
+    impl<const N: usize> ImplMethod for [u8; N] {
         type METHOD = AsRefSliceIM;
     }
 }
