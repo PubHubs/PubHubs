@@ -8,3 +8,9 @@
 ## Changes to main, not yet committed to stable
 *Please add a brief description of any changes to be tested and any migrations to be performed here.*
 
+- Mobile styling
+    - [ ] Hamburger menu only appears on smaller screens
+    - [ ] Toggle sidebar using hamburger menu
+    - [ ] Navigate to a room in a hub
+    - [ ] Settings are accessible and readable
+
