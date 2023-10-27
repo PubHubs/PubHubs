@@ -1,6 +1,6 @@
 use crate::hub;
 
-use anyhow::{Context as _, Result};
+use anyhow::Result;
 
 #[derive(clap::Args, Debug)]
 pub struct ToolsArgs {
@@ -9,7 +9,7 @@ pub struct ToolsArgs {
 }
 
 impl ToolsArgs {
-    pub fn run(self, spec: &mut clap::Command) -> Result<()> {
+    pub fn run(self, _spec: &mut clap::Command) -> Result<()> {
         match self.command {
             Commands::GenerateHubid(args) => args.run(),
         }

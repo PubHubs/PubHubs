@@ -13,12 +13,12 @@ use std::marker::PhantomData;
 ///
 /// We primarily use this to encode keys as hex or base64 strings in JSON instead of arrays.
 #[derive(Debug, Clone, PartialEq, Eq, Copy)]
-pub struct BytesWrapper<T, E> {
+pub struct BytesWrapper<T, E, const FBIM: usize, const TBIM: usize> {
     inner: T,
-    phantom: PhantomData<E>,
+    phantom_e: PhantomData<E>,
 }
 
-impl<T, E> From<T> for BytesWrapper<T, E> {
+impl<T, E, const FBIM: usize, const TBIM: usize> From<T> for BytesWrapper<T, E, FBIM, TBIM> {
     fn from(inner: T) -> Self {
         Self {
             inner,
@@ -27,7 +27,7 @@ impl<T, E> From<T> for BytesWrapper<T, E> {
     }
 }
 
-impl<T, E> BytesWrapper<T, E> {
+impl<T, E, const FBIM: usize, const TBIM: usize> BytesWrapper<T, E, FBIM, TBIM> {
     /// Returns the wrapped object.
     ///
     /// Note:  We cannot implement `Into<T>` for [BytesWrapper], because it would clash
@@ -69,8 +69,13 @@ pub struct B16Encoding<
     const DECODE_MIXED_CASE: bool = { true },
 > {}
 
-pub type B16<T, const ENCODE_LOWER_CASE: bool = true, const DECODE_MIXED_CASE: bool = true> =
-    BytesWrapper<T, B16Encoding<ENCODE_LOWER_CASE, DECODE_MIXED_CASE>>;
+pub type B16<
+    T,
+    const FBIM: usize = { from_bytes::DefaultIM },
+    const TBIM: usize = { to_bytes::DefaultIM },
+    const ENCODE_LOWER_CASE: bool = true,
+    const DECODE_MIXED_CASE: bool = true,
+> = BytesWrapper<T, B16Encoding<ENCODE_LOWER_CASE, DECODE_MIXED_CASE>, FBIM, TBIM>;
 
 impl<const ELC: bool, const DMC: bool> BytesEncoding for B16Encoding<ELC, DMC> {
     type Error = base16ct::Error;
@@ -118,10 +123,18 @@ pub struct B64Encoding<Enc: base64ct::Encoding> {
 }
 
 /// Wrapper around `T` implementing (de)serialization using [base64ct::Base64].
-pub type B64<T = Vec<u8>> = BytesWrapper<T, B64Encoding<base64ct::Base64>>;
+pub type B64<
+    T = Vec<u8>,
+    const FBIM: usize = { from_bytes::DefaultIM },
+    const TBIM: usize = { to_bytes::DefaultIM },
+> = BytesWrapper<T, B64Encoding<base64ct::Base64>, FBIM, TBIM>;
 
 /// Wrapper around `T` implementing (de)serialization using [base64ct::Base64UrlUnpadded].
-pub type B64UU<T = Vec<u8>> = BytesWrapper<T, B64Encoding<base64ct::Base64UrlUnpadded>>;
+pub type B64UU<
+    T = Vec<u8>,
+    const FBIM: usize = { from_bytes::DefaultIM },
+    const TBIM: usize = { to_bytes::DefaultIM },
+> = BytesWrapper<T, B64Encoding<base64ct::Base64UrlUnpadded>, FBIM, TBIM>;
 
 impl<Enc: base64ct::Encoding> BytesEncoding for B64Encoding<Enc> {
     type Error = base64ct::Error;
@@ -150,22 +163,9 @@ impl<Enc: base64ct::Encoding> BytesEncoding for B64Encoding<Enc> {
     }
 }
 
-/// Trait for objects that can be encoded as `&[u8]`.
-pub trait ToBytes {
-    type Error: std::error::Error;
-
-    fn encode(&self) -> Result<Cow<'_, [u8]>, Self::Error>;
-}
-
-impl<T: AsRef<[u8]>> ToBytes for T {
-    type Error = std::convert::Infallible;
-
-    fn encode(&self) -> Result<Cow<'_, [u8]>, Self::Error> {
-        Ok(Cow::Borrowed(self.as_ref()))
-    }
-}
-
-impl<T, E> std::ops::Deref for BytesWrapper<T, E> {
+impl<T, E, const FBIM: usize, const TBIM: usize> std::ops::Deref
+    for BytesWrapper<T, E, FBIM, TBIM>
+{
     type Target = T;
 
     fn deref(&self) -> &Self::Target {
@@ -173,15 +173,17 @@ impl<T, E> std::ops::Deref for BytesWrapper<T, E> {
     }
 }
 
-impl<T, E> std::ops::DerefMut for BytesWrapper<T, E> {
+impl<T, E, const FBIM: usize, const TBIM: usize> std::ops::DerefMut
+    for BytesWrapper<T, E, FBIM, TBIM>
+{
     fn deref_mut(&mut self) -> &mut Self::Target {
         &mut self.inner
     }
 }
 
-impl<T, E> Serialize for BytesWrapper<T, E>
+impl<T, E, const FBIM: usize, const TBIM: usize> Serialize for BytesWrapper<T, E, FBIM, TBIM>
 where
-    T: ToBytes,
+    T: ToBytes<TBIM>,
     E: BytesEncoding,
 {
     fn serialize<S: Serializer>(&self, s: S) -> Result<S::Ok, S::Error> {
@@ -207,9 +209,10 @@ where
     }
 }
 
-impl<T, E> core::str::FromStr for BytesWrapper<T, E>
+impl<T, E, const FBIM: usize, const TBIM: usize> core::str::FromStr
+    for BytesWrapper<T, E, FBIM, TBIM>
 where
-    T: FromBytes,
+    T: FromBytes<FBIM>,
     E: BytesEncoding,
 {
     type Err = serde::de::value::Error;
@@ -219,9 +222,10 @@ where
     }
 }
 
-impl<T, E> std::fmt::Display for BytesWrapper<T, E>
+impl<T, E, const FBIM: usize, const TBIM: usize> std::fmt::Display
+    for BytesWrapper<T, E, FBIM, TBIM>
 where
-    T: ToBytes,
+    T: ToBytes<TBIM>,
     E: BytesEncoding,
 {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
@@ -229,9 +233,10 @@ where
     }
 }
 
-impl<'de, T, E> Deserialize<'de> for BytesWrapper<T, E>
+impl<'de, T, E, const FBIM: usize, const TBIM: usize> Deserialize<'de>
+    for BytesWrapper<T, E, FBIM, TBIM>
 where
-    T: FromBytes,
+    T: FromBytes<FBIM>,
     E: BytesEncoding,
 {
     fn deserialize<D>(d: D) -> Result<Self, D::Error>
@@ -274,15 +279,21 @@ where
 
 pub mod from_bytes {
     /// Trait for object that can be decoded from an owned `&[u8]`.
-    pub trait FromBytes: Sized {
+    pub trait FromBytes<const IM: usize>: Sized {
         type Error: std::error::Error;
 
         fn decode(bytes: Vec<u8>) -> Result<Self, Self::Error>;
     }
 
-    impl<T, E> FromBytes for T
+    /// Indicates [FromBytes] should be implemented via `TryFrom<&[u8]>`.
+    pub const TryFromSliceIM: usize = 0;
+    pub const DefaultIM: usize = 0;
+    pub const FromArrayIM: usize = 1;
+    pub const ManualIM: usize = 2;
+
+    impl<T, E> FromBytes<TryFromSliceIM> for T
     where
-        T: for<'a> TryFrom<&'a [u8], Error = E> + ImplMethod<METHOD = AsRefSliceIM>,
+        T: for<'a> TryFrom<&'a [u8], Error = E>,
         E: std::error::Error,
     {
         type Error = E;
@@ -292,63 +303,77 @@ pub mod from_bytes {
         }
     }
 
-    /// Determines how [FromBytes] should be implemented for this type.
-    pub trait ImplMethod {
-        type METHOD: ImplMethodName;
+    impl<T> FromBytes<FromArrayIM> for T
+    where
+        T: From<[u8; 64]>,
+    {
+        type Error = ViaArrayError;
+
+        fn decode(bytes: Vec<u8>) -> Result<Self, Self::Error> {
+            let buff: [u8; 64] = bytes.try_into().ok().ok_or(ViaArrayError::SliceToArray)?;
+
+            Ok(T::from(buff))
+        }
     }
 
-    /// The implementors of this trait name the different ways [FromBytes] can be implemented
-    /// automatically.  It's used by the [ImplMethod] trait.
-    pub trait ImplMethodName {}
-
-    /// Indicates [FromBytes] should be implemented via `TryFrom<&[u8]>`.
-    pub struct AsRefSliceIM {}
-    impl ImplMethodName for AsRefSliceIM {}
-
     #[derive(thiserror::Error, Debug)]
-    pub enum Curve25519DalekScalarFromBytesError {
-        #[error("converting slice to array failed")]
+    pub enum ViaArrayError {
+        #[error("converting slice to array failed - slice has incorrect size")]
         SliceToArray,
 
-        #[error("converting array to scalar failed")]
+        #[error("converting array to object failed")]
         FromArray,
     }
 
-    impl FromBytes for curve25519_dalek::scalar::Scalar {
-        type Error = Curve25519DalekScalarFromBytesError;
+    impl FromBytes<ManualIM> for curve25519_dalek::scalar::Scalar {
+        type Error = ViaArrayError;
 
         fn decode(bytes: Vec<u8>) -> Result<Self, Self::Error> {
-            let buff: [u8; 32] = bytes
-                .try_into()
-                .ok()
-                .ok_or(Curve25519DalekScalarFromBytesError::SliceToArray)?;
+            let buff: [u8; 32] = bytes.try_into().ok().ok_or(ViaArrayError::SliceToArray)?;
 
             let scalar: subtle::CtOption<Self> =
                 curve25519_dalek::scalar::Scalar::from_canonical_bytes(buff);
 
             if scalar.is_none().into() {
-                Err(Curve25519DalekScalarFromBytesError::FromArray)
+                Err(ViaArrayError::FromArray)
             } else {
                 Ok(scalar.unwrap())
             }
         }
     }
-
-    impl ImplMethod for ed25519_dalek::SigningKey {
-        type METHOD = AsRefSliceIM;
-    }
-
-    impl ImplMethod for ed25519_dalek::VerifyingKey {
-        type METHOD = AsRefSliceIM;
-    }
-
-    impl ImplMethod for Vec<u8> {
-        type METHOD = AsRefSliceIM;
-    }
-
-    impl<const N: usize> ImplMethod for [u8; N] {
-        type METHOD = AsRefSliceIM;
-    }
 }
 
 pub use from_bytes::FromBytes;
+
+pub mod to_bytes {
+    use super::*;
+
+    /// Trait for objects that can be encoded as `&[u8]`.
+    pub trait ToBytes<const IM: usize> {
+        type Error: std::error::Error;
+
+        fn encode(&self) -> Result<Cow<'_, [u8]>, Self::Error>;
+    }
+
+    impl<T: AsRef<[u8]>> ToBytes<AsRefSliceIM> for T {
+        type Error = std::convert::Infallible;
+
+        fn encode(&self) -> Result<Cow<'_, [u8]>, Self::Error> {
+            Ok(Cow::Borrowed(self.as_ref()))
+        }
+    }
+
+    pub const AsRefSliceIM: usize = 0;
+    pub const DefaultIM: usize = 0;
+    pub const ManualIM: usize = 1;
+
+    impl ToBytes<ManualIM> for ed25519_dalek::Signature {
+        type Error = core::convert::Infallible;
+
+        fn encode(&self) -> Result<Cow<'_, [u8]>, Self::Error> {
+            self.to_vec().into()
+        }
+    }
+}
+
+pub use to_bytes::ToBytes;

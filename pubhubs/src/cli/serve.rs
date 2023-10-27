@@ -26,7 +26,7 @@ pub struct ServeArgs {
 }
 
 impl ServeArgs {
-    pub fn run(self, spec: &mut clap::Command) -> Result<()> {
+    pub fn run(self, _spec: &mut clap::Command) -> Result<()> {
         env_logger::init();
 
         let config: Config = 'find_config: {

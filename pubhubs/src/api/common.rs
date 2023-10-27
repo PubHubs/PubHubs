@@ -334,6 +334,29 @@ pub async fn query<EP: EndpointDetails>(
     response
 }
 
+/// A signed JSON-encoded message of type `T`
+#[derive(Serialize, Deserialize, Debug)]
+pub struct Signed<T> {
+    signature: serde_ext::B16<
+        ed25519_dalek::Signature,
+        { serde_ext::from_bytes::DefaultIM },
+        { serde_ext::to_bytes::ManualIM },
+    >,
+    signed_content: String,
+    phantom: core::marker::PhantomData<T>,
+}
+
+/// The `signed_content` of a [Signed] message.
+#[derive(Serialize, Deserialize, Debug)]
+pub struct SignedContent<T> {
+    #[serde(rename = "m")]
+    message: T,
+    #[serde(rename = "iat")]
+    issued_at: std::time::Instant,
+    #[serde(rename = "exp")]
+    expires_at: std::time::Instant,
+}
+
 pub struct DiscoveryInfo {}
 impl EndpointDetails for DiscoveryInfo {
     type RequestType = ();

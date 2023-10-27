@@ -2,7 +2,6 @@
 use core::cell::OnceCell;
 use rand::RngCore as _;
 use regex;
-use serde::{Deserialize as _, Serialize as _};
 
 use crate::misc::serde_ext;
 

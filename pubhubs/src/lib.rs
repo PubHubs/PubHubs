@@ -8,7 +8,6 @@ mod old {
     pub mod data;
     pub mod error;
     pub mod hairy_ext;
-    pub mod jwt;
     pub mod middleware;
     pub mod oidc;
     pub mod oidc_handler;
