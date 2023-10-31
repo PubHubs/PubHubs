@@ -6,8 +6,8 @@
 	import { computed } from 'vue';
 	import { useSettings } from '@/store/store';
 
-	import logoLight from '@/assets/logo.svg';
-	import logoDark from '@/assets/logo-dark.svg';
+	const logoLightUrl = '/img/logo.svg';
+	const logoDarkUrl = '/img/logo-dark.svg';
 
 	const settings = useSettings();
 
@@ -30,9 +30,16 @@
 	});
 
 	const logo = computed(() => {
+		let url = logoLightUrl;
 		if (setTheme.value == 'dark') {
-			return logoDark;
+			url = logoDarkUrl;
 		}
-		return logoLight;
+
+		//@ts-ignore
+		if (typeof _env.TIMESTAMP !== 'undefined') {
+			// @ts-ignore
+			url += '?' + _env.TIMESTAMP;
+		}
+		return url;
 	});
 </script>
