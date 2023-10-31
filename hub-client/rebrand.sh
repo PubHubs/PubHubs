@@ -1,13 +1,13 @@
 # This is an example of how rebranding can work
 # ./rebrand.sh testclient0_8801 h
 
-CONTAINER=$1        # Name of the running hub Docker container
-PUBHUBS_BRANDING=$2 # Add p to return to standard branding
+CONTAINER=$1        # Name of the running Docker container of the hub client.
+PUBHUBS_BRANDING=$2 # Add p to return to standard PubHubs branding. Anything else (or nothing) will install the new branding.
 
-BLUE='\x1b[35m'
-NOCOLOR='\033[0m'
+BRANDING_FOLDER='/branding'
+STATICFOLDER='/usr/var/static'
 
-echo "\n\n${BLUE}Rebranding Hub";
+echo "Rebranding Hub";
 echo "==============";
 
 if [ "$PUBHUBS_BRANDING" = "p" ]
@@ -16,29 +16,30 @@ then
 else
     echo "New Hub theme & logo"
 fi
-echo "${NOCOLOR}\n\n"
+echo ""
 
 
 if [ "$PUBHUBS_BRANDING" = "p" ]
 then
-    echo "\n${BLUE}Restore PubHubs theme (logo's and styling)${NOCOLOR}\n"
+    echo "Restore PubHubs theme (logo's and styling)"
     # Original Logo's
-    docker cp ./public/img/pubhubslogos/logo.svg $CONTAINER:/usr/var/static/img/logo.svg
-    docker cp ./public/img/pubhubslogos/logo-dark.svg $CONTAINER:/usr/var/static/img/logo-dark.svg
+    cp $BRANDING_FOLDER/pubhubslogos/logo.svg $STATICFOLDER/img/logo.svg
+    cp $BRANDING_FOLDER/pubhubslogos/logo-dark.svg $STATICFOLDER/img/logo-dark.svg
     # Remove styling
-    docker exec -it $CONTAINER sh -c 'rm /usr/var/static/branding.css'
+    rm $STATICFOLDER/branding.css
 else
-    echo "\n${BLUE}Copy branding (logo's and styling)${NOCOLOR}\n"
+    echo "Copy branding (logo's and styling)"
     # Logo's
-    docker cp ./branding/logo.svg $CONTAINER:/usr/var/static/img/logo.svg
-    docker cp ./branding/logo-dark.svg $CONTAINER:/usr/var/static/img/logo-dark.svg
+    cp $BRANDING_FOLDER/logo.svg $STATICFOLDER/img/logo.svg
+    cp $BRANDING_FOLDER/logo-dark.svg $STATICFOLDER/img/logo-dark.svg
     # Styling
-    docker cp ./branding/branding.css $CONTAINER:/usr/var/static/branding.css
+    cp $BRANDING_FOLDER/branding.css $STATICFOLDER/branding.css
 fi
 
 # Add new timestamp, so logo's will not be cached
 timestamp=$(date +%s)
-echo "\n${BLUE}New timestamp: ${timestamp}\n${NOCOLOR}"
-docker exec -it $CONTAINER sh -c 'timestamp=$(date +%s); sed -E -i".bak" "s/(\"TIMESTAMP\".?:.?\").*\"/\1${timestamp}\"/g" /usr/var/static/client-config.js'
+echo "New timestamp: ${timestamp}"
+sed -E -i".bak" "s/(\"TIMESTAMP\".?:.?\").*\"/\1${timestamp}\"/g" $STATICFOLDER/client-config.js
 
-echo "\n${BLUE}Done!\n=====${NOCOLOR}\n\n";
+echo "Done!"
+echo "=====";
