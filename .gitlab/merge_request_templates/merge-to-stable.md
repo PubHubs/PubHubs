@@ -1,12 +1,12 @@
 Before merging to stable, please check the following.
 
 As a general tip while testing, keep two browser windows open, one for a existing user (it's easiest if this is a hub admin), and an incognito one for a new user that will be registered during testing. This allows seeing messages being send and easier testing.
-
+  - [ ] Check that CI/CD pipeline in main has completed without errors. If the pipeline is blocked, then manually run all the stages to ensure that there is no error. This might take a bit of time therefore, this should be the first step for the merge to stable.
   - [ ] You're merging from main into stable (and not from some feature branch.) 
   - [ ] Review and update the [CHANGELOG](CHANGELOG.md) to reflect the state after the merge into stable.
     - [ ] Scan through all changes in merge request to see if there is any issue.
   - [ ] Update dependencies, see #227
-  - [ ] Check that CI/CD pipeline in main has completed without errors.
+  - [ ] Below proceeding with the folloing steps please check that the pipeline has been successfully completed. 
   - [ ] Please check that the following works on https://main.pubhubs.ihub.ru.nl/client :
       - [ ] Logging in with your existing account there.
       - [ ] Posting a message to a room.
