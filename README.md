@@ -53,7 +53,11 @@ Several libraries for the client, most important:
 
 ## Running a development setup
 
-Default settings are in the `default.yaml`; for development these initial settings should work.  If you make a copy of `default.yaml` and call it `config.yaml`, this configuration is used instead.  To use an entirely different configuration file instead, you can pass its path (relative to the current working directory) via the environmental variable `PUBHUBS_CONFIG`, e.g. `PUBHUBS_CONFIG=my_config.yaml cargo run`. 
+Default settings are in the `default.yaml`; for development these initial settings should work.  If you make a copy of `default.yaml` and call it `config.yaml`, this configuration is used instead.  To use an entirely different configuration file instead, you can pass its path (relative to the current working directory) via the environmental variable `PUBHUBS_CONFIG`, e.g. `PUBHUBS_CONFIG=my_config.yaml cargo run`.
+
+### Rebranding a hub client
+
+A Hub's client can have its own branding. Documentation can be found in `docs/hub_branding`.
 
 ### Building static assets
 
@@ -155,7 +159,7 @@ If nothing else helps, and you have access to a server with a public IP address,
 ssh -R 8080:localhost:8080 username@yourserver.com
 ```
 
-and have the Yivi app contact 1.3.3.7 instead by setting 
+and have the Yivi app contact 1.3.3.7 instead by setting
 ```
 urls:
     # [...]

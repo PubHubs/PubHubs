@@ -1,41 +1,41 @@
 /** @type {import('tailwindcss').Config} */
 
-const hub = require('./hub-theme.js');
+// color vars are set in `src/assets/tailwind.css`, and could be overwritten by `public/branding.css`
 
 const pubhubs = {
     colors: {
         transparent: 'transparent',
         current: 'currentColor',
         white: {
-            DEFAULT: '#FFF',
-            middle: '#E7E3E3',
+            DEFAULT: 'var(--white)',
+            middle: 'var(--white-middle)',
         },
-        black: '#000',
+        black: 'var(--black)',
         gray: {
-            lighter: '#CCC',
-            light: '#AAA',
-            DEFAULT: '#646464',
-            middle: '#464545',
-            dark: '#3D3C3C',
-            darker: '#2F2E2E',
+            lighter: 'var(--gray-lighter)',
+            light: 'var(--gray-light)',
+            DEFAULT: 'var(--gray)',
+            middle: 'var(--gray-middle)',
+            dark: 'var(--gray-dark)',
+            darker: 'var(--gray-darker)',
         },
         blue: {
-            lighter: '#67e8f9',
-            light: '#00ADEE',
-            DEFAULT: '#408BE1',
-            dark: '#001242',
+            lighter: 'var(--blue-lighter)',
+            light: 'var(--blue-light)',
+            DEFAULT: 'var(--blue)',
+            dark: 'var(--blue-dark)',
         },
         green: {
-            lighter: '#00EE98',
-            light: '#7EE6A9',
-            DEFAULT: '#5EC269',
-            dark: '#3EA439',
-            darker: '#1C8217',
+            lighter: 'var(--green-lighter)',
+            light: 'var(--green-light)',
+            DEFAULT: 'var(--green)',
+            dark: 'var(--green-dark)',
+            darker: 'var(--green-darker)',
         },
         red: {
-            light: '#ff3333',
-            DEFAULT: '#ff0000',
-            dark: '#660000',
+            light: 'var(--red-light)',
+            DEFAULT: 'var(--red)',
+            dark: 'var(--red-dark)',
         },
         avatar: {
             // Put keys also in src/composables/useUserColor.ts
@@ -53,13 +53,5 @@ const pubhubs = {
     },
 };
 
-function merge(current, updates) {
-    for (key of Object.keys(updates)) {
-        if (!current.hasOwnProperty(key) || typeof updates[key] !== 'object') current[key] = updates[key];
-        else merge(current[key], updates[key]);
-    }
-    return current;
-}
 
-const theme = merge(pubhubs, hub);
-module.exports = theme;
+module.exports = pubhubs;

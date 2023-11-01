@@ -1,11 +1,7 @@
 import { usePubHubs } from '@/core/pubhubsStore';
 
-
-// Define the type of the pubhubs store
-type PubHubsStore = ReturnType<typeof usePubHubs>;
-
-const useMatrixFiles = (pubhubs: PubHubsStore) => {
-	
+const useMatrixFiles = () => {
+	const pubhubs = usePubHubs();
 	const downloadUrl = pubhubs.getBaseUrl + '/_matrix/media/r0/download/';
 	const uploadUrl = pubhubs.getBaseUrl + '/_matrix/media/r0/upload';
 

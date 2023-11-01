@@ -2,6 +2,36 @@
 @tailwind components;
 @tailwind utilities;
 
+:root {
+    --black: #000;
+
+    --white: #FFF;
+    --white-middle: #E7E3E3;
+
+    --gray-lighter: #CCC;
+    --gray-light: #AAA;
+    --gray: #646464;
+    --gray-middle: #464545;
+    --gray-dark: #3D3C3C;
+    --gray-darker: #2F2E2E;
+
+    --green-lighter: #00EE98;
+    --green-light: #7EE6A9;
+    --green: #5EC269;
+    --green-dark: #3EA439;
+    --green-darker: #1C8217;
+
+    --blue-lighter: #67e8f9;
+    --blue-light: #00ADEE;
+    --blue: #408BE1;
+    --blue-dark: #001242;
+
+    --red-light: #ff3333;
+    --red: #ff0000;
+    --red-dark: #660000;
+}
+
+
 html,
 body,
 #app {
