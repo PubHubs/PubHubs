@@ -755,6 +755,7 @@ dependencies = [
  "platforms",
  "rand_core",
  "rustc_version",
+ "serde",
  "subtle",
  "zeroize",
 ]
@@ -1796,6 +1797,7 @@ dependencies = [
  "rmp-serde",
  "rusqlite",
  "serde",
+ "serde_bytes",
  "serde_json",
  "serde_urlencoded",
  "serde_yaml",
@@ -2095,6 +2097,15 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "8e422a44e74ad4001bdc8eede9a4570ab52f71190e9c076d14369f38b9200537"
 dependencies = [
  "serde_derive",
+]
+
+[[package]]
+name = "serde_bytes"
+version = "0.11.12"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "ab33ec92f677585af6d88c65593ae2375adde54efdbf16d597f2cbc7a6d368ff"
+dependencies = [
+ "serde",
 ]
 
 [[package]]

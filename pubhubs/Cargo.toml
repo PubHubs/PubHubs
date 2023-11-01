@@ -32,6 +32,7 @@ common = [
 ]
 bin = [
 	"common",
+	"dep:serde_bytes",
 	"dep:regex",
 	"dep:base64ct", 
 	"dep:clap",
@@ -102,6 +103,7 @@ thiserror = { version="1.0", optional = true }
 # serde
 rmp-serde = { version = "1.1", optional = true }
 serde = { version = "1.0", features = ["derive"], optional = true }
+serde_bytes = { version = "0.11", optional = true }
 serde_json = { version = "1.0", optional = true }
 serde_urlencoded = { version = "0.7", optional = true }
 serde_yaml = { version = "0.9", optional = true }
@@ -140,7 +142,7 @@ aead = { version = "0.5", optional = true }
 base16ct = { version = "0.2", features = ["alloc", "std"], optional = true } # hex
 base64ct = { version = "1.6", features = ["alloc", "std"], optional = true }
 chacha20poly1305 = { version = "0.10", optional = true }
-curve25519-dalek = { version = "4.0", features = ["rand_core", "digest"], optional = true }
+curve25519-dalek = { version = "4.1", features = ["rand_core", "digest", "serde"], optional = true }
 ed25519-dalek = { version = "2.0", features = ["rand_core", "serde"], optional = true }
 generic-array = { version = "0", optional = true }
 hmac = { version = "0.12", optional = true }

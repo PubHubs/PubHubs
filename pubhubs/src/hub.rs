@@ -128,7 +128,7 @@ impl Into<String> for Name {
 #[derive(Clone, Copy, Debug, Eq, PartialEq, serde::Serialize, serde::Deserialize)]
 #[serde(transparent)]
 pub struct Id {
-    inner: serde_ext::B64UU<[u8; 32]>,
+    inner: serde_ext::B64UU<serde_ext::ByteArray<32>>,
 }
 
 impl Id {
@@ -139,7 +139,7 @@ impl Id {
         rand::rngs::OsRng::fill_bytes(&mut rand::rngs::OsRng, bytes.as_mut_slice());
 
         Id {
-            inner: bytes.into(),
+            inner: serde_ext::ByteArray::<32>::from(bytes).into(),
         }
     }
 }

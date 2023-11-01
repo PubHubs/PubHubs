@@ -7,6 +7,7 @@ use crate::misc::serde_ext;
 /// `.ph/hubs/...` endpoints
 pub mod hub {
     use super::*;
+    /*
     /// Used by a hub to request ticket (see [TocketContent]) from PubHubs Central.
     /// The request must be signed for the `verifying_key` advertised by the hub info endoint
     /// (see crate::api::hub::Info).
@@ -30,5 +31,5 @@ pub mod hub {
     pub struct TicketContent {
         pub name: crate::hub::Name,
         pub verifying_key: serde_ext::B16<ed25519_dalek::VerifyingKey>,
-    }
+    } */
 }

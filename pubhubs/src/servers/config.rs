@@ -120,8 +120,7 @@ pub mod phc {
         /// Where can we reach the authentication server?
         pub auths_url: Url,
 
-        pub master_private_key_part:
-            Option<serde_ext::B16<curve25519_dalek::Scalar, { serde_ext::from_bytes::ManualIM }>>,
+        pub master_private_key_part: Option<serde_ext::B16<curve25519_dalek::Scalar>>,
 
         /// The hubs that are known to us
         pub hubs: Vec<hub::BasicInfo>,
