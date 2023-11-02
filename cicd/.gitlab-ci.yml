@@ -80,7 +80,7 @@ rust-unit-test:
   stage: build
   tags:
     - docker
-  rules: 
+  rules:
     - *rustchanges
     - when: manual
   image: registry.science.ru.nl/ilab/docker-build/pubhubs-rust-stable:main
@@ -104,7 +104,7 @@ rust-unit-test:
 
 rust-cargo-deny:
   stage: build
-  rules: 
+  rules:
     - *rustchanges
     - when: manual
   tags:
@@ -154,7 +154,7 @@ deploy-main-phc:
     - <<: *phc_image_changes
     # when no relevant changes have been made, don't run automatically, but allow the job to be rin manually
     - when: manual
-  needs: 
+  needs:
     - build-pubhubs-image
   environment: $CI_COMMIT_REF_NAME
   tags: [docker]
@@ -176,7 +176,7 @@ deploy-stable-phc:
     - <<: *phc_image_changes
     # when no relevant changes have been made, don't run automatically, but allow the job to be rin manually
     - when: manual
-  needs: 
+  needs:
     - build-pubhubs-image
   environment: $CI_COMMIT_REF_NAME
   tags: [docker]
@@ -214,7 +214,7 @@ hub-unit-test: # This job runs in the test stage.
   image: python:latest
   variables:
     PIP_CACHE_DIR: "$CI_PROJECT_DIR/.cache/pip"
-  before_script: 
+  before_script:
     - python --version # For debugging
     - pip install virtualenv
     - virtualenv venv
@@ -302,7 +302,7 @@ deploy-stable-hub:
 
 globalclient-unit-test:
   stage: build
-  rules: 
+  rules:
     - *globalclientchanges
     - when: manual
   tags: [docker]
@@ -318,7 +318,7 @@ globalclient-unit-test:
 
 hubclient-unit-test:
   stage: build
-  rules: 
+  rules:
     - *hubclientchanges
     - when: manual
   tags: [docker]
@@ -360,7 +360,7 @@ build-hubclient2:
   stage: build-images
   rules:
     # don't run when branch is not main
-    - if:   $CI_COMMIT_BRANCH != "main" 
+    - if:   $CI_COMMIT_BRANCH != "main"
       when: never
     # do run when any relevant files have changed
     - <<: *hubclientchanges
@@ -379,7 +379,7 @@ build-hubclient2:
     - cp ../cicd/temp_testhub/logo.svg public/img/logo.svg
     - cp ../cicd/temp_testhub/logo.svg src/assets/pubhubs-logo.svg
     - cp ../cicd/temp_testhub/logo.svg src/assets/pubhubs-logo-dark.svg
-    - cp ../cicd/temp_testhub/pubhubs-theme.js src/assets/pubhubs-theme.js
+    - cp ../cicd/temp_testhub/branding.css src/assets/branding.css
     - docker login -u $CI_REGISTRY_USER -p $CI_REGISTRY_PASSWORD $CI_REGISTRY
     - DOCKER_BUILDKIT=1 docker build -t ${CONTAINER_IMAGE} .
     - docker push ${CONTAINER_IMAGE}
