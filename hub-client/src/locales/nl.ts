@@ -71,6 +71,14 @@ const nl = {
 		admin_badge: 'Admin',
 		upload_error: 'Fout tijdens uploaden',
 		upload_not_allowed: 'Dit type bestand is niet toegestaan.',
+		latest_news: 'Laatste nieuws',
+		more_news: 'Meer nieuws',
+		more_suggestions: 'Meer suggesties',
+		popular_rooms: 'Populaire gesprekken en discussies',
+		watch: 'Kijk',
+		read: 'Lees',
+		event: 'Evenement',
+		discussion: 'Discussie',
 	},
 	settings: {
 		displayname: 'Bijnaam',
@@ -83,6 +91,7 @@ const nl = {
 		title: 'Instellingen',
 		notifications: 'Notificaties',
 		notifications_allow: 'Notificaties toestaan',
+		change_avatar: 'Avatar aanpassen',
 	},
 	admin: {
 		title: 'Admin',
