@@ -1,0 +1,24 @@
+:root {
+    --gray-lighter: #CCC!important;
+    --gray-light: #FB0!important;
+    --gray: #3D3C3C!important;
+    --gray-middle: #464545!important;
+    --gray-dark: #3D3C3C!important;
+    --gray-darker: #3D3C3C!important;
+
+    --blue-lighter: #FFFF66!important;
+    --blue-light: #FFFF66!important;
+    --blue: #FFFF00!important;
+    --blue-dark: #FFDD00!important;
+
+    --green-lighter: #FFCC33!important;
+    --green-light: #FFCC33!important;
+    --green: #F90!important;
+    --green-dark: #C90!important;
+    --green-darker: #C90!important;
+
+    --red-light: #ff9999;
+    --red: #ff0000;
+    --red-dark: #CC0000;
+
+}
