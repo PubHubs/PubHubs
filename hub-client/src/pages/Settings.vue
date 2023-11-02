@@ -8,7 +8,7 @@
 			<form @submit.prevent>
 				<div class="flex flex-col items-center mb-4">
 					<Avatar :class="bgColor(color(user.user.userId))" :userName="user.user.rawDisplayName" :img="avatarUrl" class="w-32 h-32 rounded-full"></Avatar>
-					<label for="avatar" class="mt-2 font-semibold text-gray-700 cursor-pointer hover:underline"> Change Avatar </label>
+					<label for="avatar" class="mt-2 font-semibold text-gray-700 cursor-pointer hover:underline">{{ $t('settings.change_avatar') }}</label>
 					<input type="file" id="avatar" accept="image/png, image/jpeg, image/svg" class="hidden" ref="file" @change="uploadAvatar($event)" />
 					<Icon type="bin" class="right-0 group-hover:block" @click="removeAvatar"></Icon>
 				</div>
