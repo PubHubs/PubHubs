@@ -1,13 +1,12 @@
 //! Additional endpoints provided by PubHubs Central
-use serde::{Deserialize, Serialize};
-
-use crate::api::*;
-use crate::misc::serde_ext;
+//use serde::{Deserialize, Serialize};
+//use crate::api::*;
+//use crate::misc::serde_ext;
 
 /// `.ph/hubs/...` endpoints
 pub mod hub {
-    use super::*;
     /*
+    use super::*;
     /// Used by a hub to request ticket (see [TocketContent]) from PubHubs Central.
     /// The request must be signed for the `verifying_key` advertised by the hub info endoint
     /// (see crate::api::hub::Info).

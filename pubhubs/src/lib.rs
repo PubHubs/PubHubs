@@ -36,6 +36,9 @@ pub mod hub;
 #[cfg(any(feature = "bin", feature = "old"))]
 pub mod misc;
 
+#[cfg(feature = "old")]
+pub use misc::jwt;
+
 #[cfg(feature = "common")]
 mod common;
 

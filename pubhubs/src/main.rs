@@ -69,13 +69,11 @@ enum Commands {
 
 #[cfg(feature = "old")]
 mod old {
-    use super::*;
-
     #[derive(clap::Args, Debug, Default)]
     pub struct Args {}
 
     impl Args {
-        pub fn run(self, spec: &mut clap::Command) -> anyhow::Result<()> {
+        pub fn run(self, _spec: &mut clap::Command) -> anyhow::Result<()> {
             pubhubs::cli::old::main()
         }
     }

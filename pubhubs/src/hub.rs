@@ -101,7 +101,7 @@ impl core::str::FromStr for Name {
     type Err = HubNameError;
 
     fn from_str(s: &str) -> Result<Name, Self::Err> {
-        if !with_name_regex(|r: &regex::Regex| r.is_match(&s)) {
+        if !with_name_regex(|r: &regex::Regex| r.is_match(s)) {
             return Err(HubNameError());
         }
 
@@ -117,9 +117,9 @@ impl std::fmt::Display for Name {
     }
 }
 
-impl Into<String> for Name {
-    fn into(self) -> String {
-        self.inner
+impl From<Name> for String {
+    fn from(n: Name) -> Self {
+        n.inner
     }
 }
 

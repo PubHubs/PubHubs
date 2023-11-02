@@ -389,7 +389,7 @@ where
     E: BytesEncoding,
 {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        Ok(self.serialize(f)?)
+        self.serialize(f)
     }
 }
 
