@@ -50,6 +50,10 @@ bin = [
 	"dep:futures-util", # used by actix already
 	"dep:http",
 	"dep:awc",
+	"dep:hmac", 
+	"dep:sha2",
+	"dep:typenum",
+	"dep:generic-array",
 ]
 real_credentials = []
 old = [

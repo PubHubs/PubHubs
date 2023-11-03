@@ -4,23 +4,155 @@
 //! fix for this bug in rust's ring crate was not yet stable at
 //! the time of writing:  <https://github.com/briansmith/ring/issues/1299>
 
+use core::marker::PhantomData;
+use std::borrow::Cow;
+use std::fmt;
+
 use base64ct::{Base64UrlUnpadded, Encoding as _};
 use hmac::Mac as _;
+use serde::{
+    de::{DeserializeSeed, Visitor},
+    Deserialize, Deserializer, Serialize, Serializer,
+};
+
+/// Wrapper around [String] to indicate it should be interpretted as a JWT with claims `C`.
+#[derive(Serialize, Deserialize)]
+#[serde(transparent)]
+pub struct JWT<C> {
+    inner: String,
+
+    #[serde(skip)]
+    phantom: PhantomData<C>,
+}
+
+impl<C> From<String> for JWT<C> {
+    fn from(s: String) -> Self {
+        Self {
+            inner: s,
+            phantom: PhantomData,
+        }
+    }
+}
+
+impl<C: Serialize> JWT<C> {
+    /// Creates JWT from `claims` and [SigningKey] `key`.
+    fn create<SK: SigningKey>(claims: &C, key: &SK) -> Result<JWT<C>, Error> {
+        let to_be_signed: String = format!(
+            "{}.{}",
+            Base64UrlUnpadded::encode_string(
+                &serde_json::to_vec(&serde_json::json!({
+                    "alg": SK::ALG,
+                }))
+                .map_err(|err| Error::SerializingHeader(err))?
+            ),
+            &Base64UrlUnpadded::encode_string(
+                &serde_json::to_vec(claims).map_err(|err| Error::SerializingClaims(err))?
+            )
+        );
+        Ok(JWT::<C>::from(format!(
+            "{}.{}",
+            to_be_signed,
+            Base64UrlUnpadded::encode_string(
+                key.sign(to_be_signed.as_bytes())
+                    .map_err(|err| Error::Signing(err))?
+                    .as_ref()
+            )
+        )))
+    }
+}
+
+impl<C> JWT<C> {
+    /// Creates an [Opener]
+    fn open_with(&self) -> Opener<C> {}
+
+    /// Checks the validity of this jwt against the given [VerifyingKey] `key`, and deserializes
+    /// the claims using `seed`.
+    ///
+    /// Since the deserialized claims may borrow from the deserializer the claims are not returned
+    /// directly, but instead are passed to a `consumer` function provided by the caller.  Any
+    /// value returned by the `consumer` function is returned by `open`.
+    fn open<VK: VerifyingKey, D: for<'de> DeserializeSeed<'de, Value = C>, R>(
+        &self,
+        key: &VK,
+        seed: D,
+        consumer: impl FnOnce(C) -> R,
+    ) -> Result<R, Error> {
+        let s = &self.inner;
+
+        let last_dot_pos: usize = s.rfind('.').ok_or(Error::MissingDot)?;
+        let signed: &str = &s[..last_dot_pos];
+        let first_dot_pos: usize = signed.find('.').ok_or(Error::MissingDot)?;
+
+        // check header
+        let header_vec: Vec<u8> = Base64UrlUnpadded::decode_vec(&s[..first_dot_pos])
+            .map_err(|err| Error::InvalidBase64(err))?;
+
+        let header: Header =
+            serde_json::from_slice(&header_vec).map_err(|err| Error::DeserializingHeader(err))?;
+
+        if header.alg != VK::ALG {
+            return Err(Error::UnexpectedAlgorithm {
+                got: header.alg.to_string(),
+                expected: VK::ALG.to_string(),
+            });
+        }
+
+        // check signature
+        let signature: Vec<u8> = Base64UrlUnpadded::decode_vec(&s[last_dot_pos + 1..])
+            .map_err(|err| Error::InvalidBase64(err))?;
+
+        if !key.is_valid_signature(signed.as_bytes(), signature) {
+            return Err(Error::InvalidSignature);
+        }
+
+        // decode claims
+        let claims_vec: Vec<u8> = Base64UrlUnpadded::decode_vec(&s[first_dot_pos + 1..])
+            .map_err(|err| Error::InvalidBase64(err))?;
+
+        let mut d = serde_json::Deserializer::from_slice(&claims_vec);
+
+        let claims = seed
+            .deserialize(&mut d)
+            .map_err(|err| Error::DeserializingClaims(err))?;
+
+        Ok(consumer(claims))
+    }
+}
+
+#[derive(thiserror::Error, Debug)]
+enum Error {
+    #[error("failed to serialize jwt header")]
+    SerializingHeader(#[source] serde_json::Error),
+
+    #[error("invalid jwt header")]
+    DeserializingHeader(#[source] serde_json::Error),
+
+    #[error("failed to serialize jwt claims")]
+    SerializingClaims(#[source] serde_json::Error),
+
+    #[error("invalid jwt claims")]
+    DeserializingClaims(#[source] serde_json::Error),
+
+    #[error("signing jwt failed")]
+    Signing(#[source] anyhow::Error),
+
+    #[error("missing dot (.) in jwt (there should be two dots)")]
+    MissingDot,
+
+    #[error("jwt contains invalid unpadded urlsafe base64")]
+    InvalidBase64(#[source] base64ct::Error),
+
+    #[error("jwt signature is not valid (for this key)")]
+    InvalidSignature,
+
+    #[error("unexpected algorithm; got {got}, but expected {expected}")]
+    UnexpectedAlgorithm { got: String, expected: String },
+}
 
 /// Signs `claims` using `key` yielding a JWT.
-pub fn sign<SK: SigningKey>(claims: &impl serde::Serialize, key: &SK) -> anyhow::Result<String> {
-    let to_be_signed: String = format!(
-        "{}.{}",
-        Base64UrlUnpadded::encode_string(&serde_json::to_vec(&serde_json::json!({
-            "alg": SK::ALG,
-        }))?),
-        &Base64UrlUnpadded::encode_string(&serde_json::to_vec(claims)?)
-    );
-    Ok(format!(
-        "{}.{}",
-        to_be_signed,
-        Base64UrlUnpadded::encode_string(key.sign(to_be_signed.as_bytes())?.as_ref())
-    ))
+#[deprecated(note = "use JWT::create instead")]
+pub fn sign<SK: SigningKey>(claims: &impl Serialize, key: &SK) -> anyhow::Result<String> {
+    Ok(JWT::create(claims, key)?.inner)
 }
 
 /// Gets the number of seconds since the Unix epoch,
@@ -30,6 +162,48 @@ pub fn get_current_timestamp() -> u64 {
         .duration_since(std::time::UNIX_EPOCH)
         .expect("system clock reports a time before the Unix epoch")
         .as_secs()
+}
+
+/// Represents a JWT header.
+#[derive(Serialize, Deserialize, Debug)]
+#[serde(deny_unknown_fields)]
+struct Header<'a> {
+    #[serde(
+        rename = "typ",
+        skip_serializing, // don't include 'typ' when serializing
+        default // so 'typ' is optional
+    )]
+    _typ: HeaderType,
+
+    #[serde(borrow)]
+    alg: Cow<'a, str>,
+    // Add fields here when needed
+}
+
+/// Used to check that the `typ` field of the jwt header equals `JWT` (modulo case).
+#[derive(Default, Debug)]
+struct HeaderType {}
+
+impl<'de> Deserialize<'de> for HeaderType {
+    fn deserialize<D: Deserializer<'de>>(d: D) -> Result<Self, D::Error> {
+        d.deserialize_str(HeaderType {})
+    }
+}
+
+impl<'de> Visitor<'de> for HeaderType {
+    type Value = Self;
+
+    fn expecting(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(f, "the string \"JWT\" as \"typ\"")
+    }
+
+    fn visit_str<E: serde::de::Error>(self, v: &str) -> Result<Self::Value, E> {
+        if "JWT".eq_ignore_ascii_case(v) {
+            return Ok(self);
+        }
+
+        return Err(E::invalid_value(serde::de::Unexpected::Str(v), &self));
+    }
 }
 
 /// Represents a key that can be used to sign a JWT.
@@ -59,7 +233,7 @@ pub trait Key {
 /// Implements signing JWTs using ed25519, See RFC8037.
 ///
 /// ```
-/// use pubhubs::jwt::SigningKey;
+/// use pubhubs::misc::jwt::SigningKey;
 /// use base64ct::{Base64UrlUnpadded, Encoding as _};
 ///
 /// let mut privhex : String = r#"9d 61 b1 9d ef fd 5a 60 ba 84 4a f4 92 ec 2c c4
@@ -119,7 +293,7 @@ pub struct HS256(pub Vec<u8>);
 
 /// Implements signing of JWTs using the sha256-hmac.
 /// ```
-/// use pubhubs::jwt::{HS256, SigningKey};
+/// use pubhubs::misc::jwt::{HS256, SigningKey};
 /// use base64ct::{Base64UrlUnpadded, Encoding as _};
 ///
 /// // Example A.1.1 of RFC 7515
@@ -143,7 +317,7 @@ impl SigningKey for HS256 {
 }
 
 /// ```
-/// use pubhubs::jwt::{HS256, VerifyingKey};
+/// use pubhubs::misc::jwt::{HS256, VerifyingKey};
 /// use base64ct::{Base64UrlUnpadded, Encoding as _};
 ///
 /// // Example A.1.1 of RFC 7515
@@ -161,4 +335,61 @@ impl VerifyingKey for HS256 {
 
 impl Key for HS256 {
     const ALG: &'static str = "HS256";
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_jwt() {
+        let jwt: JWT<()> = serde_json::from_str("\"test\"").unwrap();
+
+        assert_eq!(jwt.inner, "test".to_string());
+    }
+
+    #[test]
+    fn test_header() {
+        // no "alg"
+        assert_eq!(
+            serde_json::from_str::<Header>(r#"{}"#)
+                .unwrap_err()
+                .to_string(),
+            "missing field `alg` at line 1 column 2".to_string()
+        );
+
+        // invalid "typ"s
+        assert_eq!(
+            serde_json::from_str::<Header>(r#"{"typ": "not JWT", "alg": ""}"#)
+                .unwrap_err()
+                .to_string(),
+            "invalid value: string \"not JWT\", expected the string \"JWT\" as \"typ\" at line 1 column 17".to_string()
+        );
+
+        assert_eq!(
+            serde_json::from_str::<Header>(r#"{"typ": 12,"alg":""}"#)
+                .unwrap_err()
+                .to_string(),
+            "invalid type: integer `12`, expected the string \"JWT\" as \"typ\" at line 1 column 10".to_string()
+        );
+
+        // JWT is accepted as "typ", whatever its case
+        assert!(serde_json::from_str::<Header>(r#"{"typ": "jWT","alg":""}"#).is_ok());
+
+        // borrowing of "alg" value
+        let header_a: Header = serde_json::from_str(r#"{"alg":"borrowed"}"#).unwrap();
+        let header_b: Header = serde_json::from_str(r#"{"alg":"owned\u0020"}"#).unwrap();
+
+        assert!(matches!(header_a.alg, Cow::Borrowed(_)));
+        assert!(matches!(header_b.alg, Cow::Owned(_)));
+
+        // unknown field
+        assert_eq!(
+            serde_json::from_str::<Header>(r#"{"alg":"", "unknown_field": ""}"#)
+                .unwrap_err()
+                .to_string(),
+            "unknown field `unknown_field`, expected `typ` or `alg` at line 1 column 26"
+                .to_string()
+        );
+    }
 }
