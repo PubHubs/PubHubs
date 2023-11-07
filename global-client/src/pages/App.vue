@@ -2,11 +2,11 @@
 	<div :class="settings.getActiveTheme">
 		<div class="h-screen text-black dark:bg-gray-darker dark:text-white">
 			<div class="md:hidden w-20 h-20 absolute" @click="menuToggle()">
-				<Icon v-if="globalIsActive" type="returnmenu" size="4xl" class=" fill-[#2F2E2E] stroke-white dark:fill-white dark:stroke-black" viewBox="0,0,84,84" ></Icon>
-				<Icon v-else type="hamburgermenu" size="4xl" class=" dark:fill-[#2F2E2E] dark:stroke-white fill-white stroke-black" viewBox="0,0,84,84"></Icon>
+				<Icon v-if="globalIsActive" type="returnmenu" size="4xl" class="fill-[#2F2E2E] stroke-white dark:fill-white dark:stroke-black" viewBox="0,0,84,84"></Icon>
+				<Icon v-else type="hamburgermenu" size="4xl" class="dark:fill-[#2F2E2E] dark:stroke-white fill-white stroke-black" viewBox="0,0,84,84"></Icon>
 			</div>
 			<div class="flex h-full">
-				<div id="pubhubs-bar" class="flex-none w-28 sm:w-32 h-screen pt-20 md:pt-2 md:block" :class="{hidden: !globalIsActive}">
+				<div id="pubhubs-bar" class="flex-none w-28 sm:w-32 h-screen pt-20 md:pt-2 md:block" :class="{ hidden: !globalIsActive }">
 					<Modal :show="global.isModalVisible">
 						<div class="flex flex-col justify-between h-full">
 							<div class="flex-1 text-center">
@@ -20,16 +20,16 @@
 							</div>
 
 							<div class="mx-6">
-								<!-- <div v-if="global.loggedIn"> -->
-								<Dialog v-if="settingsDialog" @close="settingsDialog = false" :title="$t('settings.title')" :buttons="buttonsSubmitCancel">
-									<Settings></Settings>
-								</Dialog>
-								<div class="flex justify-between">
-									<HubIcon type="cog" size="lg" @click="settingsDialog = true"></HubIcon>
-									<HubIcon type="power" size="lg" @click="logout()"></HubIcon>
+								<div v-if="global.loggedIn">
+									<Dialog v-if="settingsDialog" @close="settingsDialog = false" :title="$t('settings.title')" :buttons="buttonsSubmitCancel">
+										<Settings></Settings>
+									</Dialog>
+									<div class="flex justify-between">
+										<HubIcon type="cog" size="lg" @click="settingsDialog = true"></HubIcon>
+										<HubIcon type="power" size="lg" @click="logout()"></HubIcon>
+									</div>
 								</div>
-								<!-- </div> -->
-								
+
 								<a :href="pubHubsUrl" class="m-2 sm:m-4"><Logo></Logo></a>
 							</div>
 						</div>
@@ -50,7 +50,6 @@
 	import { onMounted, ref } from 'vue';
 	import { useGlobal, useSettings, Hub, HubList, useHubs, buttonsSubmitCancel, useDialog, useMessageBox, Message, MessageType } from '@/store/store';
 	import { useI18n } from 'vue-i18n';
-
 
 	const global = useGlobal();
 	const settings = useSettings();
@@ -103,6 +102,6 @@
 	function menuToggle() {
 		globalIsActive.value = !globalIsActive.value;
 
-		messageBox.sendMessage(new Message(MessageType.mobileHubMenu,globalIsActive.value));
+		messageBox.sendMessage(new Message(MessageType.mobileHubMenu, globalIsActive.value));
 	}
 </script>
