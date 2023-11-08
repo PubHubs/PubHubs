@@ -73,8 +73,11 @@ pub struct B16Encoding<
 > {}
 
 /// Wrapper around `T` implementing (de)serialization using hex-encoding.
-pub type B16<T, const ENCODE_LOWER_CASE: bool = true, const DECODE_MIXED_CASE: bool = true> =
-    BytesWrapper<T, B16Encoding<ENCODE_LOWER_CASE, DECODE_MIXED_CASE>>;
+pub type B16<
+    T = serde_bytes::ByteBuf,
+    const ENCODE_LOWER_CASE: bool = true,
+    const DECODE_MIXED_CASE: bool = true,
+> = BytesWrapper<T, B16Encoding<ENCODE_LOWER_CASE, DECODE_MIXED_CASE>>;
 
 impl<const ELC: bool, const DMC: bool> BytesEncoding for B16Encoding<ELC, DMC> {
     type Error = base16ct::Error;
@@ -122,10 +125,11 @@ pub struct B64Encoding<Enc: base64ct::Encoding> {
 }
 
 /// Wrapper around `T` implementing (de)serialization using [base64ct::Base64].
-pub type B64<T = Vec<u8>> = BytesWrapper<T, B64Encoding<base64ct::Base64>>;
+pub type B64<T = serde_bytes::ByteBuf> = BytesWrapper<T, B64Encoding<base64ct::Base64>>;
 
 /// Wrapper around `T` implementing (de)serialization using [base64ct::Base64UrlUnpadded].
-pub type B64UU<T = Vec<u8>> = BytesWrapper<T, B64Encoding<base64ct::Base64UrlUnpadded>>;
+pub type B64UU<T = serde_bytes::ByteBuf> =
+    BytesWrapper<T, B64Encoding<base64ct::Base64UrlUnpadded>>;
 
 impl<Enc: base64ct::Encoding> BytesEncoding for B64Encoding<Enc> {
     type Error = base64ct::Error;
