@@ -52,6 +52,7 @@ const en = {
 		leave_sure: 'Do you really want to leave this room?',
 		new_message: 'Type your message here',
 		members: 'members',
+		member: 'member',
 		private_room: 'Private room',
 		private_members: 'With {0},{1}',
 		private_rooms: 'Private rooms',
