@@ -12,7 +12,7 @@ use base64ct::{Base64UrlUnpadded, Encoding as _};
 use hmac::Mac as _;
 use serde::{
     de::{DeserializeSeed, Visitor},
-    Deserialize, Deserializer, Serialize, Serializer,
+    Deserialize, Deserializer, Serialize,
 };
 
 /// Wrapper around [String] to indicate it should be interpretted as a JWT with claims `C`.
@@ -23,6 +23,81 @@ pub struct JWT<C> {
 
     #[serde(skip)]
     phantom: PhantomData<C>,
+}
+
+#[allow(dead_code)] // TODO: remove
+pub struct CommonClaims {
+    iat: Option<NumericDate>,
+    nbf: Option<NumericDate>,
+    exp: Option<NumericDate>,
+    iss: Option<String>,
+    sub: Option<String>,
+}
+
+/// Represents the value of the `iat`, `exp`, `nbf` claims.
+///
+/// According to RFC7519, it should be:
+///
+/// "A JSON numeric value representing the number of seconds from
+/// 1970-01-01T00:00:00Z UTC until the specified UTC date/time,
+/// ignoring leap seconds.  This is equivalent to the IEEE Std 1003.1,
+/// 2013 Edition [POSIX.1] definition "Seconds Since the Epoch", in
+/// which each day is accounted for by exactly 86400 seconds, other
+/// than that non-integer values can be represented."
+///
+/// But contrary to this, we will reject negative timestamps with an error,
+/// and silently round down non-negative decimals to the nearest u64.
+#[derive(Serialize, Default, Clone, Eq, PartialEq, Debug)]
+#[serde(transparent)]
+pub struct NumericDate {
+    timestamp: u64,
+}
+
+impl NumericDate {
+    /// Creates a new numeric date from the given `timestamp`, the  number of seconds since the
+    /// unix epoch ignoring leap seconds.
+    fn new(timestamp: u64) -> Self {
+        Self { timestamp }
+    }
+}
+
+impl<'de> Deserialize<'de> for NumericDate {
+    fn deserialize<D: Deserializer<'de>>(d: D) -> Result<Self, D::Error> {
+        d.deserialize_u64(NumericDateVisitor {})
+    }
+}
+
+/// [Visitor] for the implementation of [Deserialize] for [NumericDate].
+struct NumericDateVisitor {}
+
+impl<'de> Visitor<'de> for NumericDateVisitor {
+    type Value = NumericDate;
+
+    fn expecting(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(f, "a non-negative number")
+    }
+
+    fn visit_u64<E: serde::de::Error>(self, v: u64) -> Result<Self::Value, E> {
+        Ok(NumericDate::new(v))
+    }
+
+    fn visit_i64<E: serde::de::Error>(self, v: i64) -> Result<Self::Value, E> {
+        if v < 0 {
+            return Err(E::invalid_value(serde::de::Unexpected::Signed(v), &self));
+        }
+
+        self.visit_u64(v as u64)
+    }
+
+    fn visit_f64<E: serde::de::Error>(self, v: f64) -> Result<Self::Value, E> {
+        if v < 0.0 {
+            return Err(E::invalid_value(serde::de::Unexpected::Float(v), &self));
+        }
+
+        self.visit_u64(v as u64)
+    }
+
+    // NOTE: u/i128 are not supported by serde_json by default
 }
 
 impl<C> From<String> for JWT<C> {
@@ -43,10 +118,10 @@ impl<C: Serialize> JWT<C> {
                 &serde_json::to_vec(&serde_json::json!({
                     "alg": SK::ALG,
                 }))
-                .map_err(|err| Error::SerializingHeader(err))?
+                .map_err(Error::SerializingHeader)?
             ),
             &Base64UrlUnpadded::encode_string(
-                &serde_json::to_vec(claims).map_err(|err| Error::SerializingClaims(err))?
+                &serde_json::to_vec(claims).map_err(Error::SerializingClaims)?
             )
         );
         Ok(JWT::<C>::from(format!(
@@ -54,7 +129,7 @@ impl<C: Serialize> JWT<C> {
             to_be_signed,
             Base64UrlUnpadded::encode_string(
                 key.sign(to_be_signed.as_bytes())
-                    .map_err(|err| Error::Signing(err))?
+                    .map_err(Error::Signing)?
                     .as_ref()
             )
         )))
@@ -62,15 +137,13 @@ impl<C: Serialize> JWT<C> {
 }
 
 impl<C> JWT<C> {
-    /// Creates an [Opener]
-    fn open_with(&self) -> Opener<C> {}
-
     /// Checks the validity of this jwt against the given [VerifyingKey] `key`, and deserializes
     /// the claims using `seed`.
     ///
     /// Since the deserialized claims may borrow from the deserializer the claims are not returned
     /// directly, but instead are passed to a `consumer` function provided by the caller.  Any
     /// value returned by the `consumer` function is returned by `open`.
+    #[allow(dead_code)] // TODO: remove
     fn open<VK: VerifyingKey, D: for<'de> DeserializeSeed<'de, Value = C>, R>(
         &self,
         key: &VK,
@@ -84,11 +157,11 @@ impl<C> JWT<C> {
         let first_dot_pos: usize = signed.find('.').ok_or(Error::MissingDot)?;
 
         // check header
-        let header_vec: Vec<u8> = Base64UrlUnpadded::decode_vec(&s[..first_dot_pos])
-            .map_err(|err| Error::InvalidBase64(err))?;
+        let header_vec: Vec<u8> =
+            Base64UrlUnpadded::decode_vec(&s[..first_dot_pos]).map_err(Error::InvalidBase64)?;
 
         let header: Header =
-            serde_json::from_slice(&header_vec).map_err(|err| Error::DeserializingHeader(err))?;
+            serde_json::from_slice(&header_vec).map_err(Error::DeserializingHeader)?;
 
         if header.alg != VK::ALG {
             return Err(Error::UnexpectedAlgorithm {
@@ -98,27 +171,28 @@ impl<C> JWT<C> {
         }
 
         // check signature
-        let signature: Vec<u8> = Base64UrlUnpadded::decode_vec(&s[last_dot_pos + 1..])
-            .map_err(|err| Error::InvalidBase64(err))?;
+        let signature: Vec<u8> =
+            Base64UrlUnpadded::decode_vec(&s[last_dot_pos + 1..]).map_err(Error::InvalidBase64)?;
 
         if !key.is_valid_signature(signed.as_bytes(), signature) {
             return Err(Error::InvalidSignature);
         }
 
         // decode claims
-        let claims_vec: Vec<u8> = Base64UrlUnpadded::decode_vec(&s[first_dot_pos + 1..])
-            .map_err(|err| Error::InvalidBase64(err))?;
+        let claims_vec: Vec<u8> =
+            Base64UrlUnpadded::decode_vec(&s[first_dot_pos + 1..]).map_err(Error::InvalidBase64)?;
 
         let mut d = serde_json::Deserializer::from_slice(&claims_vec);
 
         let claims = seed
             .deserialize(&mut d)
-            .map_err(|err| Error::DeserializingClaims(err))?;
+            .map_err(Error::DeserializingClaims)?;
 
         Ok(consumer(claims))
     }
 }
 
+#[allow(dead_code)] // TODO: remove
 #[derive(thiserror::Error, Debug)]
 enum Error {
     #[error("failed to serialize jwt header")]
@@ -150,7 +224,7 @@ enum Error {
 }
 
 /// Signs `claims` using `key` yielding a JWT.
-#[deprecated(note = "use JWT::create instead")]
+//#[deprecated(note = "use JWT::create instead")] // TODO: reinstate
 pub fn sign<SK: SigningKey>(claims: &impl Serialize, key: &SK) -> anyhow::Result<String> {
     Ok(JWT::create(claims, key)?.inner)
 }
@@ -390,6 +464,22 @@ mod tests {
                 .to_string(),
             "unknown field `unknown_field`, expected `typ` or `alg` at line 1 column 26"
                 .to_string()
+        );
+    }
+
+    #[test]
+    fn test_numericdate() {
+        assert!(NumericDate::deserialize(serde_json::json!(0u64)).is_ok());
+        assert!(NumericDate::deserialize(serde_json::json!(0f64)).is_ok());
+        assert!(NumericDate::deserialize(serde_json::json!(0f32)).is_ok());
+        assert!(NumericDate::deserialize(serde_json::json!(i64::MIN)).is_err());
+        assert!(NumericDate::deserialize(serde_json::json!(f32::MIN)).is_err());
+        assert!(NumericDate::deserialize(serde_json::json!(f64::MIN)).is_err());
+        assert_eq!(
+            NumericDate::deserialize(serde_json::json!(1.9))
+                .unwrap()
+                .timestamp,
+            1
         );
     }
 }
