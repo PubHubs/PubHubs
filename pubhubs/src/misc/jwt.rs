@@ -11,7 +11,7 @@ use std::fmt;
 use base64ct::{Base64UrlUnpadded, Encoding as _};
 use hmac::Mac as _;
 use serde::{
-    de::{DeserializeSeed, Visitor},
+    de::{DeserializeOwned, Visitor},
     Deserialize, Deserializer, Serialize,
 };
 
@@ -25,13 +25,61 @@ pub struct JWT<C> {
     phantom: PhantomData<C>,
 }
 
-#[allow(dead_code)] // TODO: remove
-pub struct CommonClaims {
-    iat: Option<NumericDate>,
-    nbf: Option<NumericDate>,
-    exp: Option<NumericDate>,
-    iss: Option<String>,
-    sub: Option<String>,
+/// Represents a JWT that has been (partially) verified.
+pub struct OpenedJWT<C> {
+    claims: serde_json::Map<String, serde_json::Value>,
+
+    phantom: PhantomData<C>,
+}
+
+/// Expresses an expectation of a claim from a JWT.
+pub trait Expectation<V> {
+    fn check(self, value: Option<V>) -> Result<(), Error>;
+}
+
+impl<C> OpenedJWT<C> {
+    /// Checks that the claim with `name` meets the given `expectation`, and removes the claim
+    /// from the JWT.
+    pub fn expect_claim<V: DeserializeOwned>(
+        &mut self,
+        name: &'static str,
+        expectation: impl Expectation<V>,
+    ) -> Result<&mut Self, Error> {
+        let value: Option<V> = self
+            .claims
+            .remove(name)
+            .map(V::deserialize)
+            .transpose()
+            .map_err(|err| Error::DeserializingClaim {
+                claim_name: name,
+                source: err,
+            })?;
+
+        expectation.check(value)?;
+
+        Ok(self)
+    }
+}
+
+impl<C: DeserializeOwned> OpenedJWT<C> {
+    /// Deserializes remaining claims into a type `C` and calls the given `visitor` function on it.
+    ///
+    /// We can, in general, not return `C` directly, because `C` might borrow from the
+    /// [Deserializer].
+    ///
+    /// For the caller's convenience, we pass along anything that's returned by the visitor.
+    ///
+    /// Consumes `self` to prevent deserializing to `C` twice.
+    pub fn visit_claims<R>(self, visitor: impl FnOnce(C) -> R) -> Result<R, Error> {
+        let claims: C = C::deserialize(&serde_json::Value::Object(self.claims))
+            .map_err(Error::DeserializingClaims)?;
+
+        Ok(visitor(claims))
+    }
+
+    pub fn into_claims(self) -> Result<C, Error> {
+        self.visit_claims(|c| c)
+    }
 }
 
 /// Represents the value of the `iat`, `exp`, `nbf` claims.
@@ -137,19 +185,9 @@ impl<C: Serialize> JWT<C> {
 }
 
 impl<C> JWT<C> {
-    /// Checks the validity of this jwt against the given [VerifyingKey] `key`, and deserializes
-    /// the claims using `seed`.
-    ///
-    /// Since the deserialized claims may borrow from the deserializer the claims are not returned
-    /// directly, but instead are passed to a `consumer` function provided by the caller.  Any
-    /// value returned by the `consumer` function is returned by `open`.
-    #[allow(dead_code)] // TODO: remove
-    fn open<VK: VerifyingKey, D: for<'de> DeserializeSeed<'de, Value = C>, R>(
-        &self,
-        key: &VK,
-        seed: D,
-        consumer: impl FnOnce(C) -> R,
-    ) -> Result<R, Error> {
+    /// Checks the validity of this jwt against the given [VerifyingKey] `key`, and the JSON syntax
+    /// of the claims.
+    fn open<VK: VerifyingKey>(&self, key: &VK) -> Result<OpenedJWT<C>, Error> {
         let s = &self.inner;
 
         let last_dot_pos: usize = s.rfind('.').ok_or(Error::MissingDot)?;
@@ -184,17 +222,17 @@ impl<C> JWT<C> {
 
         let mut d = serde_json::Deserializer::from_slice(&claims_vec);
 
-        let claims = seed
-            .deserialize(&mut d)
-            .map_err(Error::DeserializingClaims)?;
-
-        Ok(consumer(claims))
+        Ok(OpenedJWT::<C> {
+            claims: serde_json::Map::<String, serde_json::Value>::deserialize(&mut d)
+                .map_err(Error::ClaimsNotJsonMap)?,
+            phantom: PhantomData,
+        })
     }
 }
 
 #[allow(dead_code)] // TODO: remove
 #[derive(thiserror::Error, Debug)]
-enum Error {
+pub enum Error {
     #[error("failed to serialize jwt header")]
     SerializingHeader(#[source] serde_json::Error),
 
@@ -204,8 +242,18 @@ enum Error {
     #[error("failed to serialize jwt claims")]
     SerializingClaims(#[source] serde_json::Error),
 
+    #[error("claims are not a valid json map")]
+    ClaimsNotJsonMap(#[source] serde_json::Error),
+
     #[error("invalid jwt claims")]
     DeserializingClaims(#[source] serde_json::Error),
+
+    #[error("failed to deserialize claim {claim_name}")]
+    DeserializingClaim {
+        claim_name: &'static str,
+        #[source]
+        source: serde_json::Error,
+    },
 
     #[error("signing jwt failed")]
     Signing(#[source] anyhow::Error),
