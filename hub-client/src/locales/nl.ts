@@ -52,6 +52,7 @@ const nl = {
 		leave_sure: 'Weet je zeker dit gesprek wilt verlaten?',
 		new_message: 'Typ hier je chatbericht',
 		members: 'leden',
+		member: 'lid',
 		private_room: 'Privé gesprek',
 		private_members: 'Met {0},{1}',
 		private_rooms: 'Privé gesprekken',
