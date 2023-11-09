@@ -1,3 +1,8 @@
+
+## Changes to main, not yet committed to stable
+*Please add a brief description of any changes to be tested and any migrations to be performed here.*
+- Improvements to the PubHubs yivi registration cards, see !266.
+
 ## 31 Oct 2023
 - #163 Responsive mobile styling.
 
@@ -7,9 +12,6 @@
 - When a message is not sent due to connectivity loss, a retry button is shown, see #293 
 - Avatars were added, see #139 (known issues: #350)
 
-
-## Changes to main, not yet committed to stable
-*Please add a brief description of any changes to be tested and any migrations to be performed here.*
 
 
 
