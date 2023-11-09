@@ -68,6 +68,7 @@ impl Claims {
         self
     }
 
+    /// [Self::check] for `iss` claim.
     pub fn check_iss(
         self,
         expectation: impl FnOnce(Option<String>) -> Result<(), Error>,
@@ -75,6 +76,7 @@ impl Claims {
         self.check("iss", expectation)
     }
 
+    /// [Self::check] for `sub` claim.
     pub fn check_sub(
         self,
         expectation: impl FnOnce(Option<String>) -> Result<(), Error>,
@@ -82,6 +84,8 @@ impl Claims {
         self.check("sub", expectation)
     }
 
+    /// Checks timestamps `iat`, `exp` and `nbf`. When present they should be a valid
+    /// [NumericDate], and the current moment should be between `nbf` and `exp`.
     pub fn default_check_timestamps(self) -> Result<Self, Error> {
         let now = NumericDate::now();
 
@@ -142,8 +146,56 @@ impl Claims {
         Ok(visitor(claims))
     }
 
+    /// Like [Self::visit_custom], but returns `C` (which is not possible when `C` borrows from its
+    /// [Deserializer].)
     pub fn into_custom<C: DeserializeOwned>(self) -> Result<C, Error> {
         self.visit_custom(|c| c)
+    }
+
+    /// Creates new [Claims] from an object that serializes to a json map.
+    pub fn from_custom<C: Serialize>(claims: C) -> Result<Self, Error> {
+        let json_value = serde_json::to_value(claims).map_err(Error::SerializingClaims)?;
+
+        let inner = if let serde_json::Value::Object(inner) = json_value {
+            inner
+        } else {
+            return Err(Error::ClaimsDontSerializeToMap);
+        };
+
+        Ok(Self { inner })
+    }
+
+    /// Adds the named claim with the given value.  Returns an error when a claim with the same
+    /// name was already present.
+    pub fn claim<V: Serialize>(mut self, name: &'static str, value: V) -> Result<Self, Error> {
+        let old_value = self.inner.insert(
+            name.to_string(),
+            serde_json::to_value(value).map_err(|err| Error::SerializingClaim {
+                claim_name: name,
+                source: err,
+            })?,
+        );
+
+        if old_value.is_some() {
+            return Err(Error::ClaimAlreadyPresent(name));
+        }
+
+        Ok(self)
+    }
+
+    /// Adds the `iat` claim using the current timestamp
+    pub fn iat_now(self) -> Result<Self, Error> {
+        self.claim("iat", NumericDate::now())
+    }
+
+    /// Sets `exp` claim such that the jwt is valid for the given `duration`.
+    pub fn exp_after(self, duration: std::time::Duration) -> Result<Self, Error> {
+        self.claim("exp", NumericDate::now() + duration)
+    }
+
+    /// Sets `nbf` to the current timestamp, minus 30 seconds leeway.
+    pub fn nbf(self) -> Result<Self, Error> {
+        self.claim("nbf", NumericDate::now() - 30)
     }
 }
 
@@ -235,6 +287,32 @@ impl<'de> Visitor<'de> for NumericDateVisitor {
     // NOTE: u/i128 are not supported by serde_json by default
 }
 
+impl core::ops::Add<std::time::Duration> for NumericDate {
+    type Output = Self;
+
+    fn add(self, duration: std::time::Duration) -> Self::Output {
+        self + duration.as_secs()
+    }
+}
+
+impl core::ops::Add<u64> for NumericDate {
+    type Output = Self;
+
+    fn add(mut self, secs: u64) -> Self::Output {
+        self.timestamp = secs;
+        self
+    }
+}
+
+impl core::ops::Sub<u64> for NumericDate {
+    type Output = Self;
+
+    fn sub(mut self, secs: u64) -> Self::Output {
+        self.timestamp -= secs;
+        self
+    }
+}
+
 impl From<String> for JWT {
     fn from(s: String) -> Self {
         Self { inner: s }
@@ -322,27 +400,38 @@ pub enum Error {
     #[error("failed to serialize jwt claims")]
     SerializingClaims(#[source] serde_json::Error),
 
+    #[error("failed to serialize claim {claim_name}")]
+    SerializingClaim {
+        claim_name: &'static str,
+        source: serde_json::Error,
+    },
+
+    #[error("claim {0} already present")]
+    ClaimAlreadyPresent(&'static str),
+
     #[error("claims are not a valid json map")]
     ClaimsNotJsonMap(#[source] serde_json::Error),
 
+    #[error("the given custom claims do not serialize to a json map")]
+    ClaimsDontSerializeToMap,
+
     #[error("invalid jwt claims")]
     DeserializingClaims(#[source] serde_json::Error),
+
+    #[error("failed to deserialize claim {claim_name}")]
+    DeserializingClaim {
+        claim_name: &'static str,
+        source: serde_json::Error,
+    },
+
+    #[error("jwt contains unexpected/unhandled claim `{0}`")]
+    UnexpectedClaim(&'static str),
 
     #[error("expired at {when}")]
     Expired { when: NumericDate },
 
     #[error("only valid after {valid_from}")]
     NotYetValid { valid_from: NumericDate },
-
-    #[error("failed to deserialize claim {claim_name}")]
-    DeserializingClaim {
-        claim_name: &'static str,
-        #[source]
-        source: serde_json::Error,
-    },
-
-    #[error("jwt contains unexpected/unhandled claim `{0}`")]
-    UnexpectedClaim(&'static str),
 
     #[error("signing jwt failed")]
     Signing(#[source] anyhow::Error),
