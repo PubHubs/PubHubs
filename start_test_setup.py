@@ -366,6 +366,10 @@ def docker_run_hub_client(image_name, client_number, container_name, client_port
     docker_copy_command = f""" docker cp {root_dir}/hub-client/public/img/testlogos/logo{client_number}.svg {container_name}:/usr/var/static/img/logo.svg"""
     print(f"\033[92m{docker_copy_command}\033[0m")
     subprocess.call(docker_copy_command, shell=True)
+    docker_copy_command = f""" docker cp {root_dir}/hub-client/public/client-config.empty.js {container_name}:/usr/var/static/client-config.local.js"""
+    print(f"\033[92m{docker_copy_command}\033[0m")
+    subprocess.call(docker_copy_command, shell=True)
+
 
 def docker_run_hub_server(hub_secret, image_name, container_name, hub_matrix_port, config_dir):
     """
