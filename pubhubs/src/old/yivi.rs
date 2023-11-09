@@ -558,7 +558,7 @@ async fn next_session_priv(
                         .domain()
                         .is_some_and(|d| d.ends_with("ihub.ru.nl"))
                     {
-                        format!(" for {}", context.url.for_browser)
+                        format!("\nfor: {}", context.url.for_browser)
                     } else {
                         String::default()
                     };
