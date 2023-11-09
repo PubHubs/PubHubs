@@ -1,5 +1,8 @@
-# new-setup default configuration
-
+# PubHubs configuration
+#
+# The default configuration suitable for local development can be found in the "pubhubs.default.yaml" file
+# Please do not change that file yourself, but instead make a copy called "pubhubs.yaml", and modify tbat.
+#
 phc_url: http://localhost:8080
 auths:
   bind_to: "0.0.0.0:6060"
@@ -9,3 +12,18 @@ phc:
   auths_url: http://localhost:6060
   transcryptor_url: http://localhost:7070
   bind_to: "0.0.0.0:8080"
+  hubs:
+    # WARNINGs:
+    # 
+    #  - Never remove a hub name, because that will break links;  only add names.
+    #    The first name is the one that's used by default.  (So, to 'change' a hub's name,
+    #    just add the new name to the front of the list of names.)
+    #
+    #  - Never change the `id` of a hub because the users' pseudonyms are derived from it.
+    - names: [testhub, testhub_alias]
+      description: This is the default testhub for local development
+      info_url: http://localhost:1234
+      # NOTE: To generate a new `id`, use `cargo run tools generate-hubid`
+      id: i9RSgnZ44MMBdcJHX2GqDRNaOt_v63XOMekOmhLHvzg
+
+

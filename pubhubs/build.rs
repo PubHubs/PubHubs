@@ -25,7 +25,7 @@ mod old {
     }
 
     pub fn generate_css() {
-        let guard = chdir(&std::path::Path::new("static/scss"));
+        let guard = chdir(std::path::Path::new("static/scss"));
 
         let output_install = npm_command()
             .args(["install"])
