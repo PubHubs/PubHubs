@@ -7,7 +7,7 @@
 <script setup lang="ts">
 	import { ref } from 'vue';
 	import { usePubHubs } from '@/core/pubhubsStore';
-	import { buttonsSubmitCancel, DialogButtonAction } from '@/store/dialog';
+	import { buttonsSubmitCancel, DialogButtonAction, useDialog } from '@/store/dialog';
 
 	const props = defineProps({
 		room: {
@@ -23,7 +23,13 @@
 	async function close(returnValue: DialogButtonAction) {
 		if (returnValue == 1) {
 			const pubhubs = usePubHubs();
-			await pubhubs.renameRoom(props.room.room_id, newName.value);
+			try {
+				await pubhubs.renameRoom(props.room.room_id, newName.value);
+			} catch (error) {
+				emit('close');
+				const dialog = useDialog();
+				await dialog.confirm('ERROR', error);
+			}
 		}
 		emit('close');
 	}

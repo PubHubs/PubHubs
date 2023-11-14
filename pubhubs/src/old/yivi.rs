@@ -177,8 +177,13 @@ pub async fn login(
     pubhubs_url_for_yivi_app: &str,
 ) -> Result<SessionDataWithImage> {
     let to_disclose = vec![vec![vec![
+        // While we only  use registration pseudonym (PUB_HUBS_ID)  we ask for
+        // the registration source (PUB_HUBS_SOURCE) and date (PUB_HUBS_DATE) too just to make it
+        // easier for the user to pick the correct card. (If we don't ask for registration source
+        // and date, they are not shown to the user upon disclosure.)
+        PUB_HUBS_SOURCE.to_string(),
+        PUB_HUBS_DATE.to_string(),
         PUB_HUBS_ID.to_string(),
-        // PUB_HUBS_PHONE.to_string(),
     ]]];
     let next_session = None;
     disclose(
@@ -545,9 +550,24 @@ async fn next_session_priv(
 
                     let (id, date) = get_or_create_user(&email, &telephone, &date, context).await?;
 
+                    // When not registering for main or stable, note this in the registration
+                    // source.
+                    let odd_source_mention: String = if !context
+                        .url
+                        .for_browser
+                        .domain()
+                        .is_some_and(|d| d.ends_with("ihub.ru.nl"))
+                    {
+                        format!("\nfor: {}", context.url.for_browser)
+                    } else {
+                        String::default()
+                    };
+
                     let masked_email = mask_email(email);
                     let masked_telephone = mask_telephone(telephone);
-                    let source = format!("via Yivi app: \n{masked_telephone}\n{masked_email}");
+                    let source = format!(
+                        "via Yivi app: \n{masked_telephone}\n{masked_email}{odd_source_mention}"
+                    );
                     let body = serde_json::to_string(&ExtendedSessionRequest {
                         request: SessionRequest {
                             context: Context::Issuance,
@@ -1136,7 +1156,11 @@ mL8ccRpy26VYM7CYRcsoeJMCAwEAAQ==
                 assert_eq!(session_request.next_session, None);
                 assert_eq!(
                     session_request.request.disclose.unwrap(),
-                    vec![vec![vec![PUB_HUBS_ID.to_string(),],]]
+                    vec![vec![vec![
+                        PUB_HUBS_SOURCE.to_string(),
+                        PUB_HUBS_DATE.to_string(),
+                        PUB_HUBS_ID.to_string(),
+                    ],]]
                 );
                 assert_eq!(session_request.request.context, Context::Disclosure);
 

@@ -1,7 +1,7 @@
 import { defineStore } from 'pinia';
 import { RouteParams } from 'vue-router';
 import { Message, MessageBoxType, MessageType, Theme, useGlobal, useMessageBox, useSettings } from '@/store/store';
-import {setLanguage, setUpi18n} from '@/i18n'
+import { setLanguage, setUpi18n } from '@/i18n';
 
 // Single Hub
 class Hub {
@@ -104,20 +104,23 @@ const useHubs = defineStore('hubs', {
 						// Start conversation with hub frame and sync latest settings
 						await messagebox.init(MessageBoxType.Parent, this.currentHub.url);
 
-						// Send global login time
-						const global = useGlobal();
+						// Listen to client asking for sync
+						messagebox.addCallback(MessageType.Sync, () => {
+							// Send global login time
+							const global = useGlobal();
 
-						const loginTime = global.loginTime;
-						messagebox.sendMessage(new Message(MessageType.GlobalLoginTime, loginTime));
+							const loginTime = global.loginTime;
+							messagebox.sendMessage(new Message(MessageType.GlobalLoginTime, loginTime));
 
-						// Send current settings
-						const settings = useSettings();
-						settings.sendSettings();
+							// Send current settings
+							const settings = useSettings();
+							settings.sendSettings();
 
-						// Let hub navigate to given room
-						if (roomId !== undefined && roomId !== '') {
-							messagebox.sendMessage(new Message(MessageType.RoomChange, roomId));
-						}
+							// Let hub navigate to given room
+							if (roomId !== undefined && roomId !== '') {
+								messagebox.sendMessage(new Message(MessageType.RoomChange, roomId));
+							}
+						});
 
 						// Listen to room change
 						messagebox.addCallback(MessageType.RoomChange, (message: Message) => {
@@ -163,11 +166,11 @@ const useHubs = defineStore('hubs', {
 });
 
 function sendNotification(hubId: string) {
-	const img = "/client/img/icons/favicon-32x32.png";
+	const img = '/client/img/icons/favicon-32x32.png';
 	const i18n = setUpi18n();
 	const language = useSettings().language;
 	setLanguage(i18n, language);
-	const {t} = i18n.global;
+	const { t } = i18n.global;
 	new Notification(t('message.notification'), {
 		body: hubId,
 		icon: img,

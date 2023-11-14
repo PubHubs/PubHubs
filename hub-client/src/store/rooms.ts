@@ -172,6 +172,28 @@ class Room extends MatrixRoom {
 		notInvitedMembersIds.sort();
 		return notInvitedMembersIds;
 	}
+
+	userIsMember(user_id: string): Boolean {
+		const member = this.getMember(user_id);
+		return member !== null;
+	}
+
+	getPowerLevel(user_id: string): Number | boolean {
+		const member = this.getMember(user_id);
+		if (member) {
+			return member?.powerLevel;
+		}
+		return false;
+	}
+
+	userCanChangeName(user_id: string): Boolean {
+		const member = this.getMember(user_id);
+		if (member) {
+			const sufficient = this.currentState.hasSufficientPowerLevelFor('redact', member?.powerLevel);
+			return sufficient;
+		}
+		return false;
+	}
 }
 
 const useRooms = defineStore('rooms', {

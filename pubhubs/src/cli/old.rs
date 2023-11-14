@@ -1589,7 +1589,7 @@ mod tests {
 
     #[actix_web::test]
     async fn test_no_cookie_hub_login() {
-        let oidc_secret: B64 = b"verysecret".to_vec().into();
+        let oidc_secret: B64 = serde_bytes::ByteBuf::from(b"verysecret".to_vec()).into();
         let context = create_test_context_with(|mut f| {
             f.oidc_secret = Some(oidc_secret);
             f
@@ -1635,7 +1635,7 @@ mod tests {
     #[actix_web::test]
     async fn test_cookie_skips_hub_login() {
         let secret = "very secret";
-        let oidc_secret: B64 = b"verysecret".to_vec().into();
+        let oidc_secret: B64 = serde_bytes::ByteBuf::from(b"verysecret".to_vec()).into();
         let context = create_test_context_with(|mut f| {
             f.cookie_secret = Some(secret.to_string());
             f.oidc_secret = Some(oidc_secret);

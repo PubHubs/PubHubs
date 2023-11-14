@@ -18,10 +18,14 @@
 							<template #item="{ item }">
 								<Icon :type="roomIcon(item)" class="mr-4 float-left text-green group-hover:text-black"></Icon>
 								<span :title="item.room_id">
-									{{ item.name }} <span>[{{ item.num_joined_members }} {{ $t('rooms.members') }}]</span>
+									{{ item.name }}
+									[{{ item.num_joined_members }} {{ $t('rooms.members') }}]
+									<span v-if="rooms.room(item.room_id)?.userIsMember(user.user.userId)">
+										<span class="text-green group-hover:text-white">{{ $t('rooms.member') }} ({{ rooms.room(item.room_id)?.getPowerLevel(user.user.userId) }})</span>
+									</span>
 								</span>
 								<Icon type="remove" class="float-right cursor-pointer hover:text-red" @click="removePublicRoom(item)"></Icon>
-								<Icon type="edit" class="float-right mr-1 cursor-pointer hover:text-white" @click="renamePublicRoom(item)"></Icon>
+								<Icon type="edit" v-if="rooms.room(item.room_id)?.userCanChangeName(user.user.userId)" class="float-right mr-1 cursor-pointer" @click="renamePublicRoom(item)"></Icon>
 							</template>
 						</FilteredList>
 					</TabContent>
@@ -49,10 +53,11 @@
 
 <script setup lang="ts">
 	import { ref, onMounted } from 'vue';
-	import { PubHubsRoomType, PublicRoom, SecuredRoom, useRooms, useDialog } from '@/store/store';
+	import { useUser, PubHubsRoomType, PublicRoom, SecuredRoom, useRooms, useDialog } from '@/store/store';
 	import { useI18n } from 'vue-i18n';
 
 	const { t } = useI18n();
+	const user = useUser();
 	const rooms = useRooms();
 	const editRoomName = ref({} as PublicRoom);
 	const editRoom = ref({} as SecuredRoom | PublicRoom);
