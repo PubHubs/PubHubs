@@ -7,6 +7,7 @@ use anyhow::{Context as _, Result};
 use rand::Rng as _;
 use url::Url;
 
+use crate::hub;
 use crate::misc::serde_ext;
 use crate::servers::for_all_servers;
 
@@ -120,6 +121,9 @@ pub mod phc {
         pub auths_url: Url,
 
         pub master_private_key_part: Option<serde_ext::B16<curve25519_dalek::Scalar>>,
+
+        /// The hubs that are known to us
+        pub hubs: Vec<hub::BasicInfo>,
     }
 }
 

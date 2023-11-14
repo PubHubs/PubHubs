@@ -44,7 +44,9 @@ Open `http://localhost:6006/` in your browser and click away.
 
 # Colors
 
-We have a selection of colors prepared in the file `hub-client/src/assets/pubhubs-theme.js`. This will import the file `hub-client/src/assets/hub-theme.js`, where you can change the colors to your liking. Is is enough to only add the keys of the changed colors.
+We have a selection of colors prepared in the file `hub-client/src/assets/tailwind.css` with the use of CSS variables.
+These CSS variables can be overwritten with the file `hub-client/src/assets/branding.css`. This probably doesn't exists in the `assets` folder. But it should in `hub-client/branding`, so copy this file.
+It is enought to only add the CSS variables of the colors you need to change.
 
 ## How the color system works
 
@@ -66,24 +68,18 @@ Logo's should be in the folder `hub-client/src/assets`. And there are two files 
 - `logo-dark.svg` for the dark theme.
 
 Size should be between 64x64 or 152x64 pixels. Or bigger with the same aspect-ratio.
-Just overwrite these files with your logo's.
+Just overwrite these files with your logo's. The original logo's can be found in the folder `hub-client/branding`.
 
 
-# Rebuild client with your changes
+# Move branding to the (running) hub container
 
-When everything is ready you need to rebuild the `hub-client` on te server. These are the steps:
+When everything is fine locally you need to move the files to the hub-clients docker container:
 
 ## Make sure the branding specific files are in `./branding`
 
-- Copy the logo's to the `./hub-client/branding` folder.
-- Copy `hub-client/src/assets/hub-theme.js` to `./hub-client/branding` folder.
+- Copy the logo's and the `branding.css` file to the `branding` folder on the container, which should be in the root.
+- Within the container run `./rebrand.sh ##CONTAINER_NAME##`. Where ##CONTAINER_NAME## is the name of the container.
 
-## Rebuild the docker image
+## Restore original PubHubs branding
 
-TODO: SETTINGS in `rebrand.sh`, WHERE TO GET THEM??
-
-Running `rebrand.sh` will rebuild the `hub-client` docker container.
-
-- Run `./rebrand.sh`
-
-
+- Within the container run `./rebrand.sh ##CONTAINER_NAME## p`. Where ##CONTAINER_NAME## is the name of the container.

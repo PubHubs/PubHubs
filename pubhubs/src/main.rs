@@ -10,15 +10,33 @@ struct Cli {
 }
 
 impl Cli {
-    pub fn run(self) -> Result<(), clap::error::Error> {
+    pub fn run(self, mut spec: clap::Command) -> Result<(), clap::error::Error> {
+        macro_rules! run_args {
+            ($args:ident,  $name:literal) => {{
+                let subspec = spec.find_subcommand_mut($name).expect(concat!(
+                    "no '",
+                    $name,
+                    "' subcommand; was it renamed?",
+                ));
+
+                $args.run(subspec).map_err(|err| {
+                    subspec.error(clap::error::ErrorKind::InvalidValue, format!("{:?}", err))
+                })
+            }};
+        }
+
         match self.command {
             None => {
                 #[cfg(feature = "old")]
-                return old::Args::default().run();
+                {
+                    let args = old::Args::default();
+
+                    run_args!(args, "old")
+                }
 
                 #[cfg(not(feature = "old"))]
                 {
-                    Err(Cli::command().error(
+                    Err(spec.error(
                         clap::error::ErrorKind::MissingSubcommand,
                         "no command provided",
                     ))
@@ -27,19 +45,10 @@ impl Cli {
 
             Some(cmd) => match cmd {
                 #[cfg(feature = "old")]
-                Commands::Old(old_args) => old_args.run().map_err(|err| {
-                    Cli::command()
-                        .find_subcommand_mut("old")
-                        .expect("no 'old' subcommand; was it renamed?")
-                        .error(clap::error::ErrorKind::InvalidValue, format!("{:?}", err))
-                }),
+                Commands::Old(args) => run_args!(args, "old"),
 
-                Commands::Serve(serve_args) => serve_args.run().map_err(|err| {
-                    Cli::command()
-                        .find_subcommand_mut("serve")
-                        .expect("no 'serve' subcommand; was it renamed?")
-                        .error(clap::error::ErrorKind::InvalidValue, format!("{:?}", err))
-                }),
+                Commands::Serve(args) => run_args!(args, "serve"),
+                Commands::Tools(args) => run_args!(args, "tools"),
             },
         }
     }
@@ -53,26 +62,25 @@ enum Commands {
 
     /// Run one (or multiple) PubHubs servers
     Serve(pubhubs::cli::ServeArgs),
+
+    /// Miscellaneous utilities
+    Tools(pubhubs::cli::ToolsArgs),
 }
 
 #[cfg(feature = "old")]
 mod old {
-    use super::*;
-
     #[derive(clap::Args, Debug, Default)]
     pub struct Args {}
 
     impl Args {
-        pub fn run(self) -> Result<(), clap::error::Error> {
-            pubhubs::cli::old::main().map_err(|err| {
-                Cli::command().error(clap::error::ErrorKind::InvalidValue, format!("{err:?}"))
-            })
+        pub fn run(self, _spec: &mut clap::Command) -> anyhow::Result<()> {
+            pubhubs::cli::old::main()
         }
     }
 }
 
 fn main() {
-    if let Err(err) = Cli::parse().run() {
+    if let Err(err) = Cli::parse().run(Cli::command()) {
         err.exit()
     }
 }

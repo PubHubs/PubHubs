@@ -5,7 +5,6 @@ As a general tip while testing, keep two browser windows open, one for a existin
   - [ ] You're merging from main into stable (and not from some feature branch.) 
   - [ ] Review and update the [CHANGELOG](CHANGELOG.md) to reflect the state after the merge into stable.
     - [ ] Scan through all changes in merge request to see if there is any issue.
-  - [ ] Update dependencies, see #227
   - [ ] Below proceeding with the folloing steps please check that the pipeline has been successfully completed. 
   - [ ] Please check that the following works on https://main.pubhubs.ihub.ru.nl/client :
       - [ ] Logging in with your existing account there.
@@ -32,10 +31,11 @@ As a general tip while testing, keep two browser windows open, one for a existin
       - [ ] Change Theme & Language, and see they are stored/fetched after logout/login.
       - [ ] Logging out.
       - [ ] Logging out and logging in again with your original user.
+      - [ ] Rebrand testhub2 with a new logo and colors. See https://gitlab.science.ru.nl/ilab/pubhubs_canonical/-/blob/main/docs/hub_branding/README.md (NB This involves some work on ilab-main, so first `ssh ilab-main`)
       - [ ] Anything related specifically to your merge request.
   - [ ] Figure out if the merge also requires any configuration changes. 
   - [ ] Consider if the merge might cause irreversible changes (different database format), and plan for this. (Backups?)
-  - [ ] Inform the pubhubs team (via Slack) of the merge and possible downtime of https://stable.pubhubs.ihub.ru.nl/client . 
+  - [ ] Inform the pubhubs team (via Slack and PubHubs stable) of the merge and possible downtime of https://stable.pubhubs.ihub.ru.nl/client . 
   - [ ] Make the changes and perform the merge. Make sure all the jobs in the pipeline are kicked off. (Some jobs require manual start)
   - [ ] Check that the following works on https://stable.pubhubs.ihub.ru.nl/client :
      - [ ] Turn off dev mode in Yivi app. 
@@ -62,7 +62,8 @@ As a general tip while testing, keep two browser windows open, one for a existin
 
   ![image](/uploads/478c467465270fe24b4e3ec6ee32cc3b/image.png)
   - [ ] Otherwise, celebrate!
-
+  - [ ] After celebration, update dependencies on the main branch (not on stable as this might break something), see #227
+  - [ ] Check this list and cleanup items with due date passed, and add due dates to items that are not in active development anymore.
      
   (The `merge-to-stable` merge request template can be edited [here](https://gitlab.science.ru.nl/ilab/pubhubs_canonical/-/edit/main/.gitlab/merge_request_templates/merge-to-stable.md).)
 
