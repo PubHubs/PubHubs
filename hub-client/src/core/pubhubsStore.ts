@@ -129,6 +129,7 @@ const usePubHubs = defineStore('pubhubs', {
 
 		async leaveRoom(roomId: string) {
 			await this.client.leave(roomId);
+			this.updateRooms();
 		},
 
 		_constructMessageContent(text: string): M_TextMessageEventContent {

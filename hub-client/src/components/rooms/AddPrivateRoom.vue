@@ -48,11 +48,21 @@
 		const me = user.user as User;
 		const memberIds = [me.userId, other.userId];
 		const rooms = useRooms();
-		const existingRoomId = rooms.privateRoomWithMembersExist(memberIds);
+		let existingRoomId = rooms.privateRoomWithMembersExist(memberIds);
 
+		console.log('addNewPrivateRoom existing?', existingRoomId);
+
+		// Try joining existing
 		if (existingRoomId !== false) {
-			await pubhubs.joinRoom(existingRoomId as string);
-		} else {
+			try {
+				await pubhubs.joinRoom(existingRoomId as string);
+			} catch (error) {
+				existingRoomId = false;
+			}
+		}
+
+		// If realy not exists, create new
+		if (existingRoomId == false) {
 			await pubhubs.createRoom({
 				name: `${me.userId},${other.userId}`,
 				visibility: 'private',

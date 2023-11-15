@@ -57,7 +57,8 @@
 			const dialog = useDialog();
 			if (await dialog.okcancel(t('rooms.leave_sure'))) {
 				await router.replace({ name: 'home' });
-				await pubhubs.leaveRoom(roomId);
+				const response = await pubhubs.leaveRoom(roomId);
+				console.log('leave', roomId, response);
 			}
 		}
 	}
