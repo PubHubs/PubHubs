@@ -175,7 +175,7 @@ pub struct DiscoveryInfoResp {
     pub phc_url: url::Url,
 
     /// Used to sign JWT of this server.
-    pub jwt_key: bytes_wrapper::B16<ed25519_dalek::VerifyingKey>,
+    pub jwt_key: VerifyingKey,
 
     /// Discovery state of the server
     pub state: ServerState,
@@ -347,6 +347,27 @@ pub async fn query<EP: EndpointDetails>(
     );
 
     response
+}
+
+/// Wrapper around [`ed25519_dalek::VerifyingKey`] enforcing base16 serialization.
+#[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Eq)]
+#[serde(transparent)]
+pub struct VerifyingKey {
+    inner: bytes_wrapper::BytesWrapper<
+        ed25519_dalek::VerifyingKey,
+        bytes_wrapper::ChangeVisitorType<
+            (bytes_wrapper::B16Encoding,),
+            { bytes_wrapper::VisitorType::BorrowedByteArray as isize },
+        >,
+    >,
+}
+
+impl From<ed25519_dalek::VerifyingKey> for VerifyingKey {
+    fn from(inner: ed25519_dalek::VerifyingKey) -> Self {
+        Self {
+            inner: inner.into(),
+        }
+    }
 }
 
 pub struct DiscoveryInfo {}

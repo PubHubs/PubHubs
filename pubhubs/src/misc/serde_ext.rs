@@ -39,7 +39,9 @@ pub mod bytes_wrapper {
         type Encoding = E;
     }
 
-    struct ChangeVisitorType<O, const VT: isize> {
+    /// Changes the [`VisitorType`] of the given [`Options`] to `VT`.
+    #[derive(Clone, Debug, PartialEq, Eq, Copy)]
+    pub struct ChangeVisitorType<O, const VT: isize> {
         phantom_o: PhantomData<O>,
     }
 
