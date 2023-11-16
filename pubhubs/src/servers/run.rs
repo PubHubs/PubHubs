@@ -59,6 +59,7 @@ pub struct Runner<ServerT: Server> {
     pubhubs_server: ServerT,
     actix_server: ActixServer<ServerT>,
     bind_to: SocketAddr,
+    graceful_shutdown: bool,
 }
 
 /// Keeps track of the [State] of an Actix HTTP server
@@ -113,11 +114,13 @@ impl<S: Server> Runner<S> {
     ) -> Result<Self> {
         let pubhubs_server = S::new(global_config);
         let bind_to = server_config.bind_to; // SocketAddr : Copy
+        let graceful_shutdown = server_config.graceful_shutdown;
 
         Ok(Runner {
             actix_server: ActixServer::new(&pubhubs_server, &bind_to)?,
             pubhubs_server,
             bind_to,
+            graceful_shutdown,
         })
     }
 }
@@ -148,7 +151,12 @@ impl<S: Server + Unpin> Future for Runner<S> {
                     Poll::Ready(Some(shutdown_command)) => {
                         self.actix_server.state = State::ShutdownReceived {
                             shutdown_command,
-                            fut: Some(Box::pin(self.actix_server.inner.handle().stop(true))),
+                            fut: Some(Box::pin(
+                                self.actix_server
+                                    .inner
+                                    .handle()
+                                    .stop(self.graceful_shutdown),
+                            )),
                         }
                     }
                     Poll::Pending => { /* ok, continue */ }

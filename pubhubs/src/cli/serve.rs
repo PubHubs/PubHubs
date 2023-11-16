@@ -50,7 +50,7 @@ impl ServeArgs {
 
         let config = self.apply_only(config);
 
-        Ok(tokio::runtime::Builder::new_multi_thread()
+        tokio::runtime::Builder::new_multi_thread()
             .enable_all()
             .build()?
             .block_on(async {
@@ -59,7 +59,7 @@ impl ServeArgs {
                 self.drive_discovery(&config.phc_url).await?;
 
                 Err(set.wait_for_err().await)
-            })?)
+            })
     }
 
     async fn drive_discovery(&self, phc_url: &url::Url) -> Result<()> {

@@ -1,7 +1,6 @@
 //! Details on the constellation of PubHubs servers
 
 use crate::api;
-use crate::misc::serde_ext::bytes_wrapper;
 use crate::servers;
 
 /// Public details on the constellation of PubHubs servers.

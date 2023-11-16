@@ -16,6 +16,6 @@ async fn main_integration_test() {
         .run_until(servers::drive_discovery(&config.phc_url))
         .await
         .unwrap();
-}
 
-async fn run_tests() -> () {}
+    // TODO: simulate hub
+}

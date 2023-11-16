@@ -1202,7 +1202,7 @@ mod tests {
 
     use crate::data::DataCommands::{CreateUser, GetUser};
     use crate::data::HubHandle::Id;
-    use crate::misc::serde_ext::B64;
+    use crate::misc::serde_ext::bytes_wrapper::B64;
     use crate::yivi::{
         Attribute, SessionData, SessionPointer, SessionResult, SessionType,
         SessionType::Disclosing, Status, MAIL, MOBILE_NO, PUB_HUBS_ID,

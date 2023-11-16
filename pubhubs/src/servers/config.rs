@@ -48,8 +48,17 @@ pub struct ServerConfig<ServerSpecific> {
     /// If `None`, one is generated automatically (which is not suitable for production.)
     pub jwt_key: Option<bytes_wrapper::B16<ed25519_dalek::SigningKey>>,
 
+    /// When stopping this server (for example, during discovery) have actix shutdown gracefully.
+    /// Makes discovery much slower; only recommended for production.
+    #[serde(default = "default_graceful_shutdown")]
+    pub graceful_shutdown: bool,
+
     #[serde(flatten)]
     pub extra: ServerSpecific,
+}
+
+fn default_graceful_shutdown() -> bool {
+    true
 }
 
 impl<Extra> ServerConfig<Extra> {
