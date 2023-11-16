@@ -2,7 +2,10 @@
 #
 # The default configuration suitable for local development can be found in the "pubhubs.default.yaml" file
 # Please do not change that file yourself, but instead make a copy called "pubhubs.yaml", and modify tbat.
-#
+# (This prevents you from accidentally committing your local configuration changes to the repository.)
+# 
+# Currently, the integration tests in the `tests` directory also derive their configuration from
+# the "pubhubs.default.yaml" file, but we might change this in the future.
 phc_url: http://localhost:8080
 auths:
   bind_to: "0.0.0.0:6060"

@@ -1,6 +1,6 @@
 use serde::{Deserialize, Serialize};
 
-use crate::misc::{fmt_ext, serde_ext};
+use crate::misc::{fmt_ext, serde_ext::bytes_wrapper};
 use crate::servers::server;
 
 /// The result of an API-request to a PubHubs server endpoint.
@@ -104,6 +104,15 @@ pub enum ErrorCode {
 
     #[error("server encountered an unexpected problem")]
     InternalError,
+
+    #[error("a signature could not be verified")]
+    InvalidSignature,
+
+    #[error("something is wrong with the request")]
+    BadRequest,
+
+    #[error("not (yet) implemented")]
+    NotImplemented,
 }
 use ErrorCode::*;
 
@@ -121,13 +130,19 @@ impl ErrorCode {
     /// Returns additional information about this error code.
     pub fn info(&self) -> ErrorInfo {
         match self {
-            AlreadyRunning | NoLongerInCorrectState | Malconfigured => ErrorInfo {
+            AlreadyRunning
+            | NoLongerInCorrectState
+            | Malconfigured
+            | InvalidSignature
+            | NotImplemented => ErrorInfo {
                 retryable: Some(false),
             },
             CouldNotConnectYet | TemporaryFailure | NotYetReady => ErrorInfo {
                 retryable: Some(true),
             },
-            InternalClientError | InternalError | CouldNotConnect => ErrorInfo { retryable: None },
+            InternalClientError | InternalError | BadRequest | CouldNotConnect => {
+                ErrorInfo { retryable: None }
+            }
         }
     }
 
@@ -160,7 +175,7 @@ pub struct DiscoveryInfoResp {
     pub phc_url: url::Url,
 
     /// Used to sign JWT of this server.
-    pub jwt_key: serde_ext::B16<ed25519_dalek::VerifyingKey>,
+    pub jwt_key: bytes_wrapper::B16<ed25519_dalek::VerifyingKey>,
 
     /// Discovery state of the server
     pub state: ServerState,

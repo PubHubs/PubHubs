@@ -10,34 +10,48 @@ use tokio::sync::mpsc;
 
 use crate::servers::{for_all_servers, App, AppBase, AppCreator, Server, ShutdownCommand};
 
-/// Runs the PubHubs server(s) from the given configuration.
-///
-/// Returns if one of the servers crashes.
-pub async fn run(config: &crate::servers::Config) -> Result<()> {
-    let mut joinset = tokio::task::JoinSet::<Result<()>>::new();
+/// A set of running PubHubs servers.
+pub struct Set {
+    joinset: tokio::task::JoinSet<Result<()>>,
+}
 
-    macro_rules! run_server {
-        ($server:ident) => {
-            if let Some(server_config) = config.$server.as_ref() {
-                joinset.spawn(crate::servers::run::Runner::<
-                    crate::servers::$server::Server,
-                >::new(&config, server_config)?);
-            }
-        };
+impl Set {
+    /// Creates a new set of PubHubs servers from the given config.
+    pub fn new(config: &crate::servers::Config) -> Result<Self> {
+        let mut joinset = tokio::task::JoinSet::<Result<()>>::new();
+
+        macro_rules! run_server {
+            ($server:ident) => {
+                if let Some(server_config) = config.$server.as_ref() {
+                    joinset.spawn(crate::servers::run::Runner::<
+                        crate::servers::$server::Server,
+                    >::new(&config, server_config)?);
+                }
+            };
+        }
+
+        for_all_servers!(run_server);
+
+        Ok(Self { joinset })
     }
 
-    for_all_servers!(run_server);
+    /// Waits for one of the servers to return, panic, or be cancelled.
+    ///
+    /// By consuming the [Setup], all other servers are aborted when [run] returns.
+    pub async fn wait_for_err(mut self) -> anyhow::Error {
+        let result = self
+            .joinset
+            .join_next()
+            .await
+            .expect("no servers to wait on");
 
-    // Wait for one of the servers to return, panic or be cancelled.
-    // By returning, joinset is dropped and all server tasks are aborted.
-    let result = joinset.join_next().await.expect("no servers to wait on");
+        log::debug!(
+            "one of the servers exited with {:?};  stopping all servers..",
+            result
+        );
 
-    log::debug!(
-        "one of the servers exited with {:?};  stopping all servers..",
-        result
-    );
-
-    anyhow::bail!("one of the servers exited");
+        anyhow::anyhow!("one of the servers exited")
+    }
 }
 
 /// Runs a [Server].  Implements [Future].

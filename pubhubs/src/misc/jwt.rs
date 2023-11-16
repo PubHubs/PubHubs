@@ -17,7 +17,7 @@ use serde::{
 use crate::misc::time_ext;
 
 /// Wrapper around [String] to indicate it should be interpretted as a JWT.
-#[derive(Serialize, Deserialize)]
+#[derive(Serialize, Deserialize, Debug)]
 #[serde(transparent)]
 pub struct JWT {
     inner: String,
@@ -321,7 +321,7 @@ impl From<String> for JWT {
 
 impl JWT {
     /// Creates JWT from `claims` and [SigningKey] `key`.
-    fn create<C: Serialize, SK: SigningKey>(claims: &C, key: &SK) -> Result<JWT, Error> {
+    pub fn create<C: Serialize, SK: SigningKey>(claims: &C, key: &SK) -> Result<JWT, Error> {
         let to_be_signed: String = format!(
             "{}.{}",
             Base64UrlUnpadded::encode_string(
@@ -347,7 +347,7 @@ impl JWT {
 
     /// Checks the validity of this jwt against the given [VerifyingKey] `key`, and the JSON syntax
     /// of the claims.  Does not check the validity of the claims itself.
-    fn open<VK: VerifyingKey>(&self, key: &VK) -> Result<Claims, Error> {
+    pub fn open<VK: VerifyingKey>(&self, key: &VK) -> Result<Claims, Error> {
         let s = &self.inner;
 
         let last_dot_pos: usize = s.rfind('.').ok_or(Error::MissingDot)?;

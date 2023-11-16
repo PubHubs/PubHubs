@@ -1,13 +1,12 @@
 //! Additional endpoints provided by PubHubs Central
-//use serde::{Deserialize, Serialize};
-//use crate::api::*;
-//use crate::misc::serde_ext;
+use crate::api::*;
+use crate::misc::serde_ext::bytes_wrapper;
+use serde::{Deserialize, Serialize};
 
 /// `.ph/hubs/...` endpoints
 pub mod hub {
-    /*
     use super::*;
-    /// Used by a hub to request ticket (see [TocketContent]) from PubHubs Central.
+    /// Used by a hub to request a ticket (see [TicketContent]) from PubHubs Central.
     /// The request must be signed for the `verifying_key` advertised by the hub info endoint
     /// (see crate::api::hub::Info).
     pub struct Ticket {}
@@ -29,6 +28,6 @@ pub mod hub {
     #[derive(Serialize, Deserialize, Debug)]
     pub struct TicketContent {
         pub name: crate::hub::Name,
-        pub verifying_key: serde_ext::B16<ed25519_dalek::VerifyingKey>,
-    } */
+        pub verifying_key: bytes_wrapper::B16<ed25519_dalek::VerifyingKey>,
+    }
 }

@@ -50,19 +50,16 @@ impl ServeArgs {
 
         let config = self.apply_only(config);
 
-        tokio::runtime::Builder::new_multi_thread()
+        Ok(tokio::runtime::Builder::new_multi_thread()
             .enable_all()
             .build()?
             .block_on(async {
-                tokio::try_join!(
-                    crate::servers::run(&config),
-                    self.drive_discovery(&config.phc_url),
-                )?;
+                let set = crate::servers::Set::new(&config)?;
 
-                log::debug!("done");
+                self.drive_discovery(&config.phc_url).await?;
 
-                Ok(())
-            })
+                Err(set.wait_for_err().await)
+            })?)
     }
 
     async fn drive_discovery(&self, phc_url: &url::Url) -> Result<()> {

@@ -16,8 +16,8 @@ pub use config::Config;
 pub(super) use constellation::Constellation;
 pub use discovery::drive_discovery;
 pub(super) use macros::for_all_servers;
-pub use run::run;
+pub use run::Set;
 pub(super) use server::{
-    App, AppBase, AppCreator, AppCreatorBase, Name, Server, ServerBase, ShutdownCommand,
+    App, AppBase, AppCreator, AppCreatorBase, AppMethod, Name, Server, ServerBase, ShutdownCommand,
     ShutdownSender,
 };

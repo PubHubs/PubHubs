@@ -3,7 +3,7 @@ use core::cell::OnceCell;
 use rand::RngCore as _;
 use regex;
 
-use crate::misc::serde_ext;
+use crate::misc::serde_ext::{self, bytes_wrapper};
 
 /// Basic details about hub, as provided by PubHubs Central.
 #[derive(serde::Serialize, serde::Deserialize, Debug, Eq, PartialEq, Clone)]
@@ -128,7 +128,7 @@ impl From<Name> for String {
 #[derive(Clone, Copy, Debug, Eq, PartialEq, serde::Serialize, serde::Deserialize)]
 #[serde(transparent)]
 pub struct Id {
-    inner: serde_ext::B64UU<serde_ext::ByteArray<32>>,
+    inner: bytes_wrapper::B64UU<serde_ext::ByteArray<32>>,
 }
 
 impl Id {
@@ -145,7 +145,7 @@ impl Id {
 }
 
 impl core::str::FromStr for Id {
-    type Err = <serde_ext::B64UU<[u8; 32]> as core::str::FromStr>::Err;
+    type Err = <bytes_wrapper::B64UU<[u8; 32]> as core::str::FromStr>::Err;
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         Ok(Id { inner: s.parse()? })

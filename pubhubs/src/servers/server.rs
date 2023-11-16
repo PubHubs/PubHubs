@@ -426,7 +426,7 @@ pub struct AppMethod<App, F> {
 }
 
 impl<App: Clone, F> AppMethod<App, F> {
-    fn new(app: &App, f: F) -> Self {
+    pub fn new(app: &App, f: F) -> Self {
         AppMethod {
             app: app.clone(),
             f,

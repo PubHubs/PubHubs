@@ -4,7 +4,11 @@ use actix_web::web;
 
 use futures_util::future::LocalBoxFuture;
 
-use crate::servers::{self, api, discovery, AppBase, AppCreatorBase, Constellation, ServerBase};
+use crate::servers::{
+    self,
+    api::{self, EndpointDetails as _},
+    discovery, AppBase, AppCreatorBase, AppMethod, Constellation, ServerBase,
+};
 
 /// PubHubs Central server
 pub struct Server {
@@ -44,7 +48,13 @@ pub struct App {
 }
 
 impl crate::servers::App<Server> for Rc<App> {
-    fn configure_actix_app(&self, _sc: &mut web::ServiceConfig) {}
+    fn configure_actix_app(&self, sc: &mut web::ServiceConfig) {
+        sc.route(
+            api::phc::hub::Ticket::PATH,
+            web::method(api::phc::hub::Ticket::METHOD)
+                .to(AppMethod::new(self, App::handle_hub_ticket)),
+        );
+    }
 
     fn discover(
         &self,
@@ -93,6 +103,14 @@ impl App {
             constellation: None,
         }
         .check(tdi, url)
+    }
+}
+
+impl App {
+    async fn handle_hub_ticket(
+        _app: Rc<Self>,
+    ) -> api::Result<api::Signed<api::phc::hub::TicketContent>> {
+        api::err(api::ErrorCode::NotImplemented)
     }
 }
 
