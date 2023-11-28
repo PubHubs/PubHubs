@@ -15,11 +15,13 @@
 <script setup lang="ts">
 	import { ref, onMounted, computed } from 'vue';
 	import { User as MatrixUser } from 'matrix-js-sdk';
+	import { useRouter } from 'vue-router';
 	import { usePubHubs } from '@/core/pubhubsStore';
-	import { User, useUser, PubHubsRoomType, useRooms } from '@/store/store';
+	import { useUser } from '@/store/store';
 	import { buttonsCancel } from '@/store/dialog';
 	import { FilteredListEvent } from '@/types/components';
 
+	const router = useRouter();
 	const pubhubs = usePubHubs();
 	const user = useUser();
 	const emit = defineEmits(['close']);
@@ -45,37 +47,14 @@
 	});
 
 	async function addNewPrivateRoom(other: any) {
-		const me = user.user as User;
-		const memberIds = [me.userId, other.userId];
-		const rooms = useRooms();
-		let existingRoomId = rooms.privateRoomWithMembersExist(memberIds);
-
-		console.log('addNewPrivateRoom existing?', existingRoomId);
-
-		// Try joining existing
-		if (existingRoomId !== false) {
-			try {
-				await pubhubs.joinRoom(existingRoomId as string);
-			} catch (error) {
-				existingRoomId = false;
-			}
+		const room = await pubhubs.createPrivateRoomWith(other);
+		if (room) {
+			const room_id = room.room_id;
+			close();
+			await router.push({ name: 'room', params: { id: room_id } });
+		} else {
+			close();
 		}
-
-		// If realy not exists, create new
-		if (existingRoomId == false) {
-			await pubhubs.createRoom({
-				name: `${me.userId},${other.userId}`,
-				visibility: 'private',
-				invite: [other.userId],
-				is_direct: true,
-				creation_content: { type: PubHubsRoomType.PH_MESSAGES_DM },
-				topic: `PRIVATE: ${me.userId}, ${other.userId}`,
-				history_visibility: 'shared',
-				guest_can_join: false,
-			});
-			// Returns invalid user id - 400, when no such user. So nice
-		}
-		close();
 	}
 
 	async function close() {
