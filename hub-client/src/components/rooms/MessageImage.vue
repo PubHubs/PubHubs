@@ -6,7 +6,6 @@
 	import { useMatrixFiles } from '@/composables/useMatrixFiles';
 	import { usePubHubs } from '@/core/pubhubsStore';
 	import { M_ImageMessageEventContent } from '@/types/events';
-
 	const pubhubs = usePubHubs();
 	const { formUrlfromMxc } = useMatrixFiles(pubhubs);
 

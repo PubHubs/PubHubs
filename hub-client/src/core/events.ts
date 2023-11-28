@@ -27,10 +27,11 @@ class Events {
 				if (state == 'SYNCING') {
 					connection.on();
 				}
-
+				console.debug('STATE:', state);
 				if (state == 'PREPARED') {
+				
 					// this.client.on('event' as any, (event: any) => {
-					// 	console.debug('== EVENT', event.getType());
+					// 	console.debug('== EVENT', event);
 					// });
 					this.client.on(RoomEvent.Name, self.eventRoomName);
 					this.client.on(RoomEvent.Timeline, self.eventRoomTimeline);

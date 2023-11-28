@@ -5,8 +5,7 @@
 <script setup lang="ts">
 	import { computed } from 'vue';
 	import { sanitizeHtml } from '@/core/sanitizer';
-
-	const props = defineProps<{message: string}>();
+	const props = defineProps<{ message: string }>();
 
 	/**
 	 *
@@ -15,6 +14,7 @@
 	 */
 	const parsedMessage = computed(() => {
 		let html = props.message;
+
 		html = sanitizeHtml(html);
 		return html;
 	});
