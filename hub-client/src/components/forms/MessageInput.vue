@@ -11,7 +11,7 @@
 
 			<div class="relative">
 				<Icon class="absolute left-3 top-2 dark:text-white" type="paperclip" @click="clickedAttachment($event)"></Icon>
-				<input type="file" :accept="getTypesAsString(allTypes)" class="attach-file" ref="file" @change="uploadPhoto($event)" hidden />
+				<input type="file" :accept="getTypesAsString(allTypes)" class="attach-file" ref="file" @change="uploadFile($event)" hidden />
 				<TextArea
 					class="px-10 -mb-1"
 					v-focus
@@ -42,12 +42,12 @@
 	import { watch, ref, onMounted, onUnmounted, nextTick } from 'vue';
 	import { useFormInputEvents, usedEvents } from '@/composables/useFormInputEvents';
 	import { useMatrixFiles } from '@/composables/useMatrixFiles';
-	import { useRooms } from '@/store/store';
+	import { useDialog, useRooms } from '@/store/store';
 	import { usePubHubs } from '@/core/pubhubsStore';
 	import { useRoute } from 'vue-router';
 	import { useMessageActions } from '@/store/message-actions';
 
-	import { photoUpload } from '@/composables/photoUpload';
+	import { fileUpload as uploadHandler } from '@/composables/fileUpload';
 
 	const route = useRoute();
 	const rooms = useRooms();
@@ -55,7 +55,7 @@
 	const messageActions = useMessageActions();
 	const emit = defineEmits(usedEvents);
 	const { value, reset, changed, cancel } = useFormInputEvents(emit);
-	const { allTypes, getTypesAsString, imageTypes, uploadUrl } = useMatrixFiles(pubhubs);
+	const { allTypes, getTypesAsString, uploadUrl, imageTypes } = useMatrixFiles(pubhubs);
 
 	const buttonEnabled = ref(false);
 	const showEmojiPicker = ref(false);
@@ -88,11 +88,25 @@
 		checkButtonState();
 	}
 
-	function uploadPhoto(event: Event) {
+	function uploadFile(event: Event) {
 		const accessToken = pubhubs.Auth.getAccessToken();
-
-		photoUpload(accessToken, uploadUrl, imageTypes, event, (uri) => {
-			pubhubs.addImage(rooms.currentRoomId, uri);
+		const target = event.currentTarget as HTMLInputElement;
+		const dialog = useDialog();
+		uploadHandler(accessToken, uploadUrl, allTypes, event, (uri) => {
+			if (target) {
+				const file = target.files && target.files[0];
+				if (file) {
+					dialog.yesno(`Do you want to upload the attachment: ${file.name}?`).then((done) => {
+						if (done) {
+							if (imageTypes.includes(file.type)) {
+								pubhubs.addImage(rooms.currentRoomId, uri);
+							} else {
+								pubhubs.addFile(rooms.currentRoomId, file, uri);
+							}
+						}
+					});
+				}
+			}
 			reset();
 		});
 	}
@@ -140,3 +154,4 @@
 		}
 	}
 </script>
+@/composables/fileUpload

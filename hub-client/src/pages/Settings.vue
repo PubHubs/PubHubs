@@ -46,10 +46,10 @@
 
 <script setup lang="ts">
 	import { ref, onMounted } from 'vue';
-	import { useUser } from '@/store/store';
+	import { useUser, useDialog } from '@/store/store';
 	import { useI18n } from 'vue-i18n';
 	import { useFormState } from '@/composables/useFormState';
-	import { photoUpload } from '@/composables/photoUpload';
+	import { fileUpload } from '@/composables/fileUpload';
 	import { usePubHubs } from '@/core/pubhubsStore';
 	import { useUserColor } from '@/composables/useUserColor';
 	import { useMatrixFiles } from '@/composables/useMatrixFiles';
@@ -88,16 +88,25 @@
 	});
 
 	async function uploadAvatar(event: Event) {
+		const target = event.currentTarget as HTMLInputElement;
+		const file = target.files && target.files[0];
+		const fileName = file && file.name;
+		const dialog = useDialog();
 		const accessToken = pubhubs.Auth.getAccessToken();
 
-		photoUpload(accessToken, uploadUrl, imageTypes, event, (uri) => {
-			avatarUrl.value = downloadUrl + uri.slice(6);
-			pubhubs.changeAvatar(uri);
-			setMessage(t('settings.avatar_changed'));
+		fileUpload(accessToken, uploadUrl, imageTypes, event, (uri) => {
+			dialog.yesno(`Do you want to upload the avatar ${fileName}?`).then((done) => {
+				if (done) {
+					avatarUrl.value = downloadUrl + uri.slice(6);
+					pubhubs.changeAvatar(uri);
+					setMessage(t('settings.avatar_changed'));
+				}
+			});
 		});
 	}
-	function removeAvatar() {
-		pubhubs.changeAvatar('');
+	async function removeAvatar() {
 		avatarUrl.value = '';
+		await pubhubs.changeAvatar(avatarUrl.value);
 	}
 </script>
+@/composables/fileUpload
