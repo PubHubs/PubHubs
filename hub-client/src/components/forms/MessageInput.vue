@@ -5,22 +5,21 @@
 			<!-- Reply -->
 			<div class="h-10 w-full flex items-center" v-if="messageActions.replyingTo">
 				<p class="ml-4 whitespace-nowrap mr-2">{{ $t('message.in_reply_to') }}</p>
-				<MessageSnippet class="w-[85%]" :event="messageActions.replyingTo "></MessageSnippet>
+				<MessageSnippet class="w-[85%]" :event="messageActions.replyingTo"></MessageSnippet>
 				<button class="mr-4 ml-auto" @click="delete messageActions.replyingTo">
 					<Icon type="closingCross" size="sm"></Icon>
 				</button>
 			</div>
 
-			<div v-if="signingMessage" class="absolute bottom-[400px] left-60" id="yivi-web-form">
-
-			</div>
+			<div v-if="signingMessage" class="absolute bottom-[400px] left-60" id="yivi-web-form"></div>
 
 			<div class="relative">
 				<Icon class="absolute left-3 top-2 dark:text-white" type="paperclip" @click="showUploadPicker" :asButton="true"></Icon>
 				<Popover :outside-node="getDocument()" :ignore-click-outside="'openingUploadPicker'" v-if="showingUploadPicker" ref="elPopover" @close="showingUploadPicker = false" class="absolute bottom-14">
-					<UploadPicker @attachment="clickedAttachment" @sign="showSigningMessageMenu()" ></UploadPicker>
+					<UploadPicker @attachment="clickedAttachment" @sign="showSigningMessageMenu()"></UploadPicker>
 				</Popover>
 				<input type="file" :accept="getTypesAsString(allTypes)" class="attach-file" ref="elFileInput" @change="uploadFile($event)" hidden />
+				<Mention :msg="value" @click="mentionUser($event)"></Mention>
 				<TextArea
 					class="px-10 -mb-1"
 					v-focus
@@ -54,7 +53,7 @@
 						<p>Email</p>
 					</div>
 				</div>
-				<Icon type="closingCross" size="sm" :asButton="true" @click="signingMessage=false" class="ml-auto self-start"></Icon>
+				<Icon type="closingCross" size="sm" :asButton="true" @click="signingMessage = false" class="ml-auto self-start"></Icon>
 			</div>
 		</div>
 
@@ -77,7 +76,6 @@
 	import { useRoute } from 'vue-router';
 	import { useMessageActions } from '@/store/message-actions';
 
-	import { photoUpload } from '@/composables/photoUpload';
 	import UploadPicker from '../ui/UploadPicker.vue';
 	import Popover, { CurrentlyOpeningEvent } from '../ui/Popover.vue';
 
@@ -88,6 +86,7 @@
 	const rooms = useRooms();
 	const pubhubs = usePubHubs();
 	const messageActions = useMessageActions();
+
 	const emit = defineEmits(usedEvents);
 	const { value, reset, changed, cancel } = useFormInputEvents(emit);
 	const { allTypes, getTypesAsString, uploadUrl, imageTypes } = useMatrixFiles(pubhubs);
@@ -108,7 +107,7 @@
 			return 'message.sign.send';
 		}
 		return 'message.send';
-	})
+	});
 
 	watch(route, () => {
 		reset();
@@ -129,6 +128,19 @@
 			if (typeof value.value == 'string' && value.value.length > 0) {
 				buttonEnabled.value = true;
 			}
+		}
+	}
+
+	//  To autocomplete the mention user in the message.
+	function mentionUser(user: any) {
+		let message = value.value?.toString();
+		if (message?.lastIndexOf('@') != -1) {
+			const lastPosition = message?.lastIndexOf('@');
+			message = message?.substring(0, lastPosition);
+			value.value = ' ';
+			value.value = message + ' @' + user.rawDisplayName;
+		} else {
+			value.value += ' @' + user.rawDisplayName;
 		}
 	}
 
@@ -169,7 +181,7 @@
 		if (!value.value || !(typeof value.value == 'string')) return;
 
 		if (signingMessage.value) {
-			signMessage(value.value, selectedAttributesSigningMessage.value)
+			signMessage(value.value, selectedAttributesSigningMessage.value);
 		} else if (messageActions.replyingTo) {
 			pubhubs.addMessage(rooms.currentRoomId, value.value, messageActions.replyingTo);
 			messageActions.replyingTo = undefined;
@@ -199,7 +211,6 @@
 	onUnmounted(() => {
 		document.removeEventListener('click', handleClickOutside);
 	});
-
 
 	function showUploadPicker(event: MouseEvent) {
 		// Close the 'replying to' UI

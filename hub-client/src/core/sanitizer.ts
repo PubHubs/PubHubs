@@ -1,4 +1,7 @@
+import { User as MatrixUser } from 'matrix-js-sdk';
 const sanitize: any = require('sanitize-html');
+
+
 
 const createLinks = (text: string) => {
 	const aTag = '<a target="_blank" class="text-green" ';
@@ -112,4 +115,28 @@ const sanitizeHtml = (html: string): string => {
 	return html;
 };
 
-export { createLinks, removeHtml, hasHtml, sanitizeHtml };
+const styleMentionUser = (message: string, userList: Array<MatrixUser>): string => { 
+
+	if (message.includes('@')){
+		for( const user in userList ){
+			if (userList[user].rawDisplayName !== undefined) {
+				const displayName =  userList[user].rawDisplayName?.toString();
+				
+				if (displayName !== undefined){
+					
+					if (message.includes(displayName) || message == displayName){		
+						
+						const tag = '<span class="bg-avatar-lime text-white px-2 py-1 rounded-full">' + '@'+displayName + '</span>';
+						message = message.replaceAll('@'+displayName, tag)	
+	
+	
+	
+					}
+				}	
+			}
+		}
+	}
+	return message
+}
+
+export { createLinks, removeHtml, hasHtml, sanitizeHtml,styleMentionUser as mentionUser };
