@@ -123,6 +123,20 @@ const nl = {
 		send: 'Verstuur',
 		in_reply_to: 'Antwoord op:',
 		notification: 'Nieuw bericht in hub',
+		upload_file: 'Upload bestand',
+		sign: {
+			add_signature: 'Onderteken bericht',
+			heading: 'Een bericht ondertekenen',
+			info: 'Laat zien dat je achter dit bericht staat door het te ondertekenen met jouw gegegevens.',
+			warning: 'Een ondertekend bericht kan worden gedeeld. Zet er geen persoonlijke informatie in en denk aan de medegebruikers in deze kamer.',
+			selected_attributes: 'Met deze informatie onderteken jij je bericht:',
+			send: 'Onderteken & Verstuur',
+		},
+		messageSigned: {
+			heading: 'Ondertekend bericht',
+			info: 'Een verklaring dat ondertekend is met Yivi attributen en gedeeld kan worden buiten de Hub.',
+			verificationStatus: 'Ondertekende berichten zijn nog in ontwikkeling. Ze zijn betrouwbaar, maar worden nog niet cryptographisch geverifieerd.',
+		},
 	},
 };
 

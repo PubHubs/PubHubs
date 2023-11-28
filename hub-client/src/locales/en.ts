@@ -123,6 +123,20 @@ const en = {
 		send: 'Send',
 		in_reply_to: 'In reply to:',
 		notification: 'New message in hub',
+		upload_file: 'Upload file',
+		sign: {
+			add_signature: 'Sign message',
+			heading: 'Signing a message',
+			info: "Go 'on the record' by signing your message with your information.",
+			warning: 'A signed message can be shared. Do not include personal information and consider other users in this room.',
+			selected_attributes: 'Your message will be signed with this information:',
+			send: 'Sign & Send',
+		},
+		messageSigned: {
+			heading: 'Signed message',
+			info: 'A statement that is signed with Yivi attributes and can be shared outside the Hub.',
+			verificationStatus: 'Signed messages are a work in progress. They are trustworthy, but are not yet cryptographically verified.',
+		},
 	},
 };
 

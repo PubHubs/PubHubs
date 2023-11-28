@@ -13,6 +13,8 @@ from ._constants import SERVER_NOTICES_USER, CLIENT_URL
 from ._secured_rooms_class import RoomAttribute
 from ._store import YiviRoomJoinStore
 
+import json
+
 logger = logging.getLogger("synapse.contrib." + __name__)
 
 
@@ -25,7 +27,7 @@ class JoinServlet(Resource):
         self.config = config
 
         self.putChild(b"yivi-endpoint", YiviEndpoint(config, module_api, store, joiner))
-        
+
 
 
 class YiviEndpoint(Resource):
@@ -70,6 +72,34 @@ class YiviStart(DirectServeJsonResource):
 
         yivi_url = self.config.get("yivi_url", "http://localhost:8089")
         answer = await http_client.post_json_get_json(f"{yivi_url}/session", session_request)
+
+        # Make sure the 'ultimate' client uses the proxy used by the module.
+        public_yivi_url = self.config.get("public_yivi_url", self.module_api.public_baseurl)
+        answer["sessionPtr"]["u"] = (
+            public_yivi_url + "_synapse/client/yiviproxy/irma/" + answer["sessionPtr"]["u"]
+        )
+
+        logger.debug(f"rewrote Yivi url to {answer['sessionPtr']['u']}")
+
+        # Now client makes the request
+        request.setHeader(b"Access-Control-Allow-Origin", f"{self.config[CLIENT_URL]}".encode())
+
+        respond_with_json(request, 200, answer)
+
+    # For now, POST requests are just forwarded to the yivi server as a session request.
+    async def _async_render_POST(self, request):
+        http_client = self.module_api.http_client
+        request_body_bytes = request.content.getvalue()
+
+        if request_body_bytes is None:
+            respond_with_json(request, 400, {})
+            return
+
+        # Returns a dict
+        request_body = json.loads(request_body_bytes)
+
+        yivi_url = self.config.get("yivi_url", "http://localhost:8089")
+        answer = await http_client.post_json_get_json(f"{yivi_url}/session", request_body)
 
         # Make sure the 'ultimate' client uses the proxy used by the module.
         public_yivi_url = self.config.get("public_yivi_url", self.module_api.public_baseurl)
@@ -173,18 +203,18 @@ class YiviResult(DirectServeJsonResource):
 
         user_id = user.user.to_string()
 
-        
+
 
         yivi_url = self.config.get("yivi_url", "http://localhost:8089")
         result = await http_client.get_json(f"{yivi_url}/session/{token}/result")
         allowed = await self.check_allowed(result, room_id)
-        if allowed:            
+        if allowed:
             await self.store.allow(user_id, room_id, time.time())
             await self.module_api.update_room_membership(user_id, user_id, room_id, "join")
 
             answer = {
                     "goto": f"{self.config[CLIENT_URL]}#/room/{room_id}"
-                    
+
                      }
 
 
@@ -206,5 +236,17 @@ class YiviResult(DirectServeJsonResource):
         else:
             respond_with_json(request, 200, {"not_correct": "unfortunately not allowed in the room"})
 
+    async def _async_render_POST(self, request: SynapseRequest):
+        http_client = self.module_api.http_client
 
-        
+        #? Why is this necessary?
+        request.setHeader(b"Access-Control-Allow-Origin", f"{self.config[CLIENT_URL]}".encode())
+
+        token = b"".join(request.args.get(b"session_token")).decode()
+
+        yivi_url = self.config.get("yivi_url", "http://localhost:8089")
+        result = await http_client.get_json(f"{yivi_url}/session/{token}/result")
+
+        logger.debug(f"Retrieved yivi result {result}")
+
+        respond_with_json(request, 200, result)

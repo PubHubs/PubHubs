@@ -10,6 +10,7 @@ import { useSettings, User, useUser, useRooms, useConnection } from '@/store/sto
 import { hasHtml, sanitizeHtml } from '@/core/sanitizer';
 import { api_synapse, api_matrix } from '@/core/api';
 import { M_MessageEvent, M_TextMessageEventContent } from '@/types/events';
+import { YiviSigningSessionResult } from '@/lib/signedMessages';
 
 const usePubHubs = defineStore('pubhubs', {
 	state: () => {
@@ -178,6 +179,15 @@ const usePubHubs = defineStore('pubhubs', {
 			} catch (error) {
 				console.log(error);
 			}
+		},
+
+		async addSignedMessage(roomId: string, signedMessage: YiviSigningSessionResult) {
+			const content = {
+				msgtype: 'pubhubs.signed_message',
+				body: 'signed message',
+				signed_message: signedMessage,
+			};
+			await this.client.sendEvent(roomId, 'm.room.message', content);
 		},
 
 		async addImage(roomId: string, uri: string) {
