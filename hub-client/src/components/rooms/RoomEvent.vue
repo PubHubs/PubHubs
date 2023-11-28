@@ -10,6 +10,9 @@
 				<button v-if="!msgIsNotSend" @click="reply" class="ml-2 mb-1 hidden group-hover:block">
 					<Icon :type="'reply'" :size="'sm'"></Icon>
 				</button>
+				<button class="ml-2 mb-1 hidden group-hover:block">
+					<Icon :type="'sign'" :size="'sm'"></Icon>
+				</button>
 				<template v-if="timerReady">
 					<button v-if="msgIsNotSend && connection.isOn" @click="resend()" class="ml-2 mb-1" :title="$t('errors.resend')">
 						<Icon type="refresh" size="sm" class="text-red"></Icon>
@@ -21,7 +24,8 @@
 				<ProfileAttributes v-if="rooms.roomIsSecure(rooms.currentRoom.roomId)" :user="event.sender"></ProfileAttributes>
 			</H3>
 			<MessageSnippet v-if="inReplyTo" :event="inReplyTo" :showInReplyTo="true"></MessageSnippet>
-			<Message v-if="msgTypeIsText" :message="event.content.body"></Message>
+			<Message v-if="msgShowBody" :message="event.content.body"></Message>
+			<MessageSigned v-if="event.content.msgtype == 'pubhubs.signed_message'" :message="event.content.signed_message"></MessageSigned>
 			<MessageHtml v-if="msgTypeIsHtml" :message="(event.content as M_HTMLTextMessageEventContent).formatted_body"></MessageHtml>
 			<MessageFile v-if="event.content.msgtype == 'm.file'" :message="event.content"></MessageFile>
 			<MessageImage v-if="event.content.msgtype == 'm.image'" :message="event.content"></MessageImage>
@@ -44,10 +48,18 @@
 	const connection = useConnection();
 	const { color, textColor, bgColor } = useUserColor();
 	const messageActions = useMessageActions();
+
 	const pubhubs = usePubHubs();
 	const { getUserAvatar } = useUserAvatar();
 
 	const rooms = useRooms();
+
+	const supportedMsgTypes = [
+		'm.text',
+		'm.image',
+		'm.file',
+		'pubhubs.signed_message',
+	];
 
 	onMounted(async () => {
 		if (rooms.currentRoomExists) {
@@ -68,14 +80,9 @@
 		return props.event.event_id.substring(0, 1) == '~';
 	});
 
-	const msgTypeIsText = computed(() => {
-		if (props.event.content.msgtype == 'm.text') {
-			if (typeof props.event.content.format == 'undefined') {
-				return true;
-			}
-		}
-		return false;
-	});
+	const msgShowBody = computed(() => {
+		return !supportedMsgTypes.includes(props.event.content.msgtype) || (props.event.content.msgtype == 'm.text' && !msgTypeIsHtml.value);
+	})
 
 	const msgTypeIsHtml = computed(() => {
 		if (props.event.content.msgtype == 'm.text') {

@@ -14,6 +14,7 @@ import { useRouter } from 'vue-router';
 import { api_synapse, api_matrix } from '@/core/api';
 import { usePubHubs } from '@/core/pubhubsStore';
 import { propCompare } from '@/core/extensions';
+import { YiviSigningSessionResult } from '@/lib/signedMessages';
 
 enum PubHubsRoomType {
 	PH_MESSAGES_RESTRICTED = 'ph.messages.restricted',
@@ -512,6 +513,49 @@ const useRooms = defineStore('rooms', {
 						.catch((error: any) => {
 							console.info(`There is an Error: ${error}`);
 						});
+				});
+		},
+
+		yiviSignMessage(message: string, attributes: string[], roomId: string, authToken: string, onFinish: (result: YiviSigningSessionResult) => unknown) {
+			const yivi = require('@privacybydesign/yivi-frontend');
+			// @ts-ignore
+			const urlll = _env.HUB_URL + '/_synapse/client/ph';
+			const yiviWeb = yivi.newWeb({
+				debugging: false,
+				element: '#yivi-web-form',
+				language: 'en',
+
+				session: {
+					url: 'yivi-endpoint',
+
+					start: {
+						url: () => {
+							return `${urlll}/yivi-endpoint/start?room_id=${roomId}`;
+						},
+						method: 'POST',
+						body: JSON.stringify({
+							'@context': 'https://irma.app/ld/request/signature/v2',
+							disclose: [[attributes]],
+							message: message,
+						}),
+					},
+					result: {
+						url: (o: any, obj: any) => `${urlll}/yivi-endpoint/result?session_token=${obj.sessionToken}`,
+						method: 'POST',
+						headers: {
+							Authorization: `Bearer ${authToken}`,
+						},
+					},
+				},
+			});
+
+			yiviWeb
+				.start()
+				.then((result: YiviSigningSessionResult) => {
+					onFinish(result);
+				})
+				.catch((error: any) => {
+					console.info(`There is an Error: ${error}`);
 				});
 		},
 	},

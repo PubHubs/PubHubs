@@ -1,3 +1,4 @@
+import { SignedMessage } from '@/lib/signedMessages';
 import { WithRequired } from './utility';
 
 export interface M_MessageEvent<C extends M_MessageEventContent = M_MessageEventContent> {
@@ -14,7 +15,7 @@ export interface M_MessageEvent<C extends M_MessageEventContent = M_MessageEvent
 
 interface M_BaseMessageEventContent {
 	body: string;
-	msgtype: 'm.text' | 'm.image' | 'm.file';
+	msgtype: 'm.text' | 'm.image' | 'm.file' | 'pubhubs.signed_message';
 	'm.relates_to'?: {
 		'm.in_reply_to'?: {
 			event_id: string;
@@ -45,9 +46,14 @@ export interface M_FileMessageEventContent extends M_BaseMessageEventContent {
 	url?: string;
 }
 
+export interface M_SignedMessageEventContent extends M_BaseMessageEventContent {
+	msgtype: 'pubhubs.signed_message';
+	signed_message: SignedMessage;
+}
+
 export type M_HTMLTextMessageEventContent = WithRequired<M_TextMessageEventContent, 'format' | 'formatted_body'>;
 
-export type M_MessageEventContent = M_TextMessageEventContent | M_ImageMessageEventContent | M_FileMessageEventContent;
+export type M_MessageEventContent = M_TextMessageEventContent | M_ImageMessageEventContent | M_FileMessageEventContent | M_SignedMessageEventContent;
 
 // To be implemented
 type EncryptedFile = any;
