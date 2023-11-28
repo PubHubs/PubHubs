@@ -41,8 +41,8 @@
 			return false;
 		}
 		if (props.roomType !== '') {
+			const type = props.roomType.substring(1);
 			if (props.roomType.charAt(0) == '!') {
-				const type = props.roomType.substring(1);
 				return room.getType() !== type;
 			} else {
 				return room.getType() == props.roomType;
@@ -56,9 +56,8 @@
 		if (room) {
 			const dialog = useDialog();
 			if (await dialog.okcancel(t('rooms.leave_sure'))) {
+				await pubhubs.leaveRoom(roomId);
 				await router.replace({ name: 'home' });
-				const response = await pubhubs.leaveRoom(roomId);
-				console.log('leave', roomId, response);
 			}
 		}
 	}

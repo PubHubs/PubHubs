@@ -5,7 +5,7 @@ import { User as MatrixUser, MatrixClient, EventTimeline, ContentHelpers, Matrix
 
 import { Authentication } from '@/core/authentication';
 import { Events } from '@/core/events';
-import { useSettings, User, useUser, useRooms, useConnection } from '@/store/store';
+import { useSettings, User, useUser, useRooms, useConnection, PubHubsRoomType } from '@/store/store';
 
 import { hasHtml, sanitizeHtml } from '@/core/sanitizer';
 import { api_synapse, api_matrix } from '@/core/api';
@@ -109,17 +109,58 @@ const usePubHubs = defineStore('pubhubs', {
 		},
 
 		async joinRoom(room_id: string) {
-			await this.client.joinRoom(room_id);
-			this.updateRooms();
+			try {
+				await this.client.joinRoom(room_id);
+				this.updateRooms();
+			} catch (error) {
+				// console.log(error);
+			}
 		},
 
 		async invite(room_id: string, user_id: string, reason = undefined) {
 			await this.client.invite(room_id, user_id, reason);
 		},
 
-		async createRoom(options: object) {
-			await this.client.createRoom(options);
+		async createRoom(options: object): Promise<{ room_id: string }> {
+			const room = await this.client.createRoom(options);
 			this.updateRooms();
+			return room;
+		},
+
+		async createPrivateRoomWith(other: any): Promise<{ room_id: string } | null> {
+			const user = useUser();
+			const me = user.user as User;
+			const memberIds = [me.userId, other.userId];
+			const rooms = useRooms();
+			let existingRoomId = rooms.privateRoomWithMembersExist(memberIds);
+
+			// Try joining existing
+			if (existingRoomId !== false) {
+				try {
+					await this.client.joinRoom(existingRoomId as string);
+					return { room_id: existingRoomId as string };
+				} catch (error) {
+					existingRoomId = false;
+				}
+			}
+
+			// If realy not exists, create new
+			if (existingRoomId == false) {
+				console.log('createRoom', existingRoomId);
+				const room = await this.createRoom({
+					name: `${me.userId},${other.userId}`,
+					visibility: 'private',
+					invite: [other.userId],
+					is_direct: true,
+					creation_content: { type: PubHubsRoomType.PH_MESSAGES_DM },
+					topic: `PRIVATE: ${me.userId}, ${other.userId}`,
+					history_visibility: 'shared',
+					guest_can_join: false,
+				});
+				// Returns invalid user id - 400, when no such user. So nice
+				return room;
+			}
+			return null;
 		},
 
 		async renameRoom(roomId: string, name: string) {
@@ -129,7 +170,9 @@ const usePubHubs = defineStore('pubhubs', {
 
 		async leaveRoom(roomId: string) {
 			await this.client.leave(roomId);
-			this.updateRooms();
+			const rooms = useRooms();
+			rooms.room(roomId)?.hide();
+			// this.updateRooms();
 		},
 
 		_constructMessageContent(text: string): M_TextMessageEventContent {
