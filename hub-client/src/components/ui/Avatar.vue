@@ -51,7 +51,7 @@
 		} else {
 			name = initial;
 		}
-		console.info(`name: ${name}`);
+
 		return name.toUpperCase();
 	});
 </script>
