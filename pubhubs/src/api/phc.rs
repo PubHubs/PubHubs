@@ -1,6 +1,5 @@
 //! Additional endpoints provided by PubHubs Central
 use crate::api::*;
-use crate::misc::serde_ext::bytes_wrapper;
 use serde::{Deserialize, Serialize};
 
 /// `.ph/hubs/...` endpoints
@@ -28,6 +27,6 @@ pub mod hub {
     #[derive(Serialize, Deserialize, Debug)]
     pub struct TicketContent {
         pub name: crate::hub::Name,
-        pub verifying_key: bytes_wrapper::B16<ed25519_dalek::VerifyingKey>,
+        pub verifying_key: VerifyingKey,
     }
 }

@@ -37,7 +37,7 @@ impl Set {
 
     /// Waits for one of the servers to return, panic, or be cancelled.
     ///
-    /// By consuming the [Setup], all other servers are aborted when [run] returns.
+    /// By consuming the [Set], all other servers are aborted when [Set::wait_for_err] returns.
     pub async fn wait_for_err(mut self) -> anyhow::Error {
         let result = self
             .joinset
@@ -112,7 +112,7 @@ impl<S: Server> Runner<S> {
         global_config: &crate::servers::Config,
         server_config: &crate::servers::config::ServerConfig<T>,
     ) -> Result<Self> {
-        let pubhubs_server = S::new(global_config);
+        let pubhubs_server = S::new(global_config)?;
         let bind_to = server_config.bind_to; // SocketAddr : Copy
         let graceful_shutdown = server_config.graceful_shutdown;
 

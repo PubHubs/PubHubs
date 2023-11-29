@@ -2,6 +2,7 @@ use std::rc::Rc;
 
 use actix_web::web;
 
+use crate::api;
 use crate::servers::{AppBase, AppCreatorBase, ServerBase, ShutdownSender};
 
 /// Transcryptor
@@ -14,10 +15,10 @@ impl crate::servers::Server for Server {
     type AppT = Rc<App>;
     type AppCreatorT = AppCreator;
 
-    fn new(config: &crate::servers::Config) -> Self {
-        Self {
+    fn new(config: &crate::servers::Config) -> anyhow::Result<Self> {
+        Ok(Self {
             base: ServerBase::new::<Server>(config),
-        }
+        })
     }
 
     fn app_creator(&self) -> AppCreator {

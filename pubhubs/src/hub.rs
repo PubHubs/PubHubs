@@ -13,18 +13,18 @@ use crate::misc::serde_ext::{self, bytes_wrapper};
 pub struct BasicInfo {
     /// The names for this hub.  The first one is the one that's used by default.
     /// Names may be added, but should not be removed.
-    names: Vec<Name>,
+    pub names: Vec<Name>,
 
     /// Short description for this hub.  This is stored centrally to facilitate searching.
     /// May be changed freely.
-    description: String,
+    pub description: String,
 
     /// Hub info endpoint
     /// May be changed freely.
-    info_url: url::Url,
+    pub info_url: url::Url,
 
     /// Immutable and unique identifier
-    id: Id,
+    pub id: Id,
 }
 
 impl<'de> serde::Deserialize<'de> for BasicInfo {
@@ -125,7 +125,7 @@ impl From<Name> for String {
 
 /// A hub identifier, a random 256-bit number, which is encoded
 /// using unpadded url-safe base64
-#[derive(Clone, Copy, Debug, Eq, PartialEq, serde::Serialize, serde::Deserialize)]
+#[derive(Clone, Copy, Debug, Eq, PartialEq, Hash, serde::Serialize, serde::Deserialize)]
 #[serde(transparent)]
 pub struct Id {
     inner: bytes_wrapper::B64UU<serde_ext::ByteArray<32>>,

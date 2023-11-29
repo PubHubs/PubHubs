@@ -58,7 +58,7 @@ pub trait Server: Sized + 'static + crate::servers::config::GetServerConfig {
     /// Is moved accross threads to create the [App]s.
     type AppCreatorT: AppCreator<Self>;
 
-    fn new(config: &crate::servers::Config) -> Self;
+    fn new(config: &crate::servers::Config) -> anyhow::Result<Self>;
 
     fn app_creator(&self) -> Self::AppCreatorT;
 
@@ -193,7 +193,7 @@ pub struct ServerBase {
     pub config: crate::servers::Config,
     pub state: State,
     pub self_check_code: String,
-    pub jwt_key: ed25519_dalek::SigningKey,
+    pub jwt_key: api::SigningKey,
 }
 
 impl ServerBase {
@@ -209,10 +209,7 @@ impl ServerBase {
             jwt_key: server_config
                 .jwt_key
                 .clone()
-                .unwrap_or_else(|| {
-                    ed25519_dalek::SigningKey::generate(&mut rand::rngs::OsRng).into()
-                })
-                .into_inner(),
+                .unwrap_or_else(api::SigningKey::generate),
         }
     }
 }
@@ -223,7 +220,7 @@ pub struct AppCreatorBase {
     pub state: State,
     pub phc_url: url::Url,
     pub self_check_code: String,
-    pub jwt_key: ed25519_dalek::SigningKey,
+    pub jwt_key: api::SigningKey,
 }
 
 impl AppCreatorBase {
@@ -243,7 +240,7 @@ pub struct AppBase<S: Server> {
     pub shutdown_sender: ShutdownSender<S>,
     pub self_check_code: String,
     pub phc_url: url::Url,
-    pub jwt_key: ed25519_dalek::SigningKey,
+    pub jwt_key: api::SigningKey,
 }
 
 impl<S: Server> AppBase<S> {

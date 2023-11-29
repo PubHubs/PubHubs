@@ -349,24 +349,67 @@ pub async fn query<EP: EndpointDetails>(
     response
 }
 
-/// Wrapper around [`ed25519_dalek::VerifyingKey`] enforcing base16 serialization.
-#[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Eq)]
-#[serde(transparent)]
-pub struct VerifyingKey {
-    inner: bytes_wrapper::BytesWrapper<
-        ed25519_dalek::VerifyingKey,
-        bytes_wrapper::ChangeVisitorType<
-            (bytes_wrapper::B16Encoding,),
-            { bytes_wrapper::VisitorType::BorrowedByteArray as isize },
-        >,
-    >,
+/// Wraps one of the dalek types to enforce hex serialization
+macro_rules! wrap_dalek_type {
+    {$type:ident, $wrapped_type:path, derive( $($derive:tt)* ), $visitor_type:path } => {
+        /// Wrapper around [`$wrapped_type`] enforcing base16 serialization.
+        #[derive(Clone, Debug, Serialize, Deserialize, $( $derive )* )]
+        #[serde(transparent)]
+        pub struct $type {
+            inner: bytes_wrapper::BytesWrapper<
+                $wrapped_type,
+                bytes_wrapper::ChangeVisitorType<
+                    (bytes_wrapper::B16Encoding,),
+                    { $visitor_type as isize },
+                >,
+            >,
+        }
+
+        impl From<$wrapped_type> for $type {
+            fn from(inner: $wrapped_type) -> Self {
+                Self {
+                    inner: inner.into(),
+                }
+            }
+        }
+
+        impl core::ops::Deref for $type {
+            type Target = $wrapped_type;
+
+            fn deref(&self) -> &Self::Target {
+                &self.inner
+            }
+        }
+
+        impl core::ops::DerefMut for $type {
+            fn deref_mut(&mut self) -> &mut Self::Target {
+                &mut self.inner
+            }
+        }
+    }
 }
 
-impl From<ed25519_dalek::VerifyingKey> for VerifyingKey {
-    fn from(inner: ed25519_dalek::VerifyingKey) -> Self {
-        Self {
-            inner: inner.into(),
-        }
+wrap_dalek_type! {
+    VerifyingKey, ed25519_dalek::VerifyingKey,
+    derive(PartialEq, Eq),
+    bytes_wrapper::VisitorType::BorrowedByteArray
+}
+
+wrap_dalek_type! {
+    SigningKey, ed25519_dalek::SigningKey,
+    derive(),
+    bytes_wrapper::VisitorType::BorrowedByteArray
+}
+
+wrap_dalek_type! {
+    Scalar, curve25519_dalek::scalar::Scalar,
+    derive(PartialEq, Eq),
+    bytes_wrapper::VisitorType::ByteSequence
+}
+
+impl SigningKey {
+    pub fn generate() -> Self {
+        ed25519_dalek::SigningKey::generate(&mut rand::rngs::OsRng).into()
     }
 }
 
@@ -386,4 +429,28 @@ impl EndpointDetails for DiscoveryRun {
 
     const METHOD: http::Method = http::Method::POST;
     const PATH: &'static str = ".ph/discovery/run";
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn serde_scalar() {
+        assert_eq!(
+            Scalar::deserialize(
+                serde::de::value::StrDeserializer::<serde::de::value::Error>::new(
+                    &"ff00000000000000000000000000000000000000000000000000000000000000",
+                ),
+            )
+            .unwrap(),
+            curve25519_dalek::scalar::Scalar::from(255u8).into(),
+        );
+
+        let s: Scalar = curve25519_dalek::scalar::Scalar::from(1u8).into();
+        assert_eq!(
+            &serde_json::to_string(&s).unwrap(),
+            "\"0100000000000000000000000000000000000000000000000000000000000000\""
+        );
+    }
 }

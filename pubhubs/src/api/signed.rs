@@ -42,4 +42,11 @@ impl<T> Signed<T> {
 
         Result::Ok(res)
     }
+
+    pub fn open_without_checking_signature(self) -> Result<T>
+    where
+        T: DeserializeOwned,
+    {
+        self.open(&jwt::IgnoreSignature)
+    }
 }

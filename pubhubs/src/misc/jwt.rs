@@ -361,12 +361,7 @@ impl JWT {
         let header: Header =
             serde_json::from_slice(&header_vec).map_err(Error::DeserializingHeader)?;
 
-        if header.alg != VK::ALG {
-            return Err(Error::UnexpectedAlgorithm {
-                got: header.alg.to_string(),
-                expected: VK::ALG.to_string(),
-            });
-        }
+        VK::check_alg(&header.alg)?;
 
         // check signature
         let signature: Vec<u8> =
@@ -446,7 +441,7 @@ pub enum Error {
     InvalidSignature,
 
     #[error("unexpected algorithm; got {got}, but expected {expected}")]
-    UnexpectedAlgorithm { got: String, expected: String },
+    UnexpectedAlgorithm { got: String, expected: &'static str },
 }
 
 /// Signs `claims` using `key` yielding a JWT.
@@ -528,6 +523,39 @@ pub trait VerifyingKey: Key {
 pub trait Key {
     /// value for `alg` in the JWT header
     const ALG: &'static str;
+
+    /// Checks that `alg` equals `Self::ALG`.
+    ///
+    /// This method is overriden by [Hazard_NoKey].
+    fn check_alg(alg: &str) -> Result<(), Error> {
+        if alg == Self::ALG {
+            return Ok(());
+        }
+        Err(Error::UnexpectedAlgorithm {
+            got: alg.to_string(),
+            expected: Self::ALG,
+        })
+    }
+}
+
+/// A [VerifyingKey] that neglects to check the signature and `alg` header.
+///
+/// Useful when the signature on a [JWT] can only be checked later on.
+#[allow(non_camel_case_types)]
+pub struct IgnoreSignature;
+
+impl Key for IgnoreSignature {
+    const ALG: &'static str = "WARNING! This should never appear in the 'alg' field of a JWT.";
+
+    fn check_alg(_alg: &str) -> Result<(), Error> {
+        Ok(())
+    }
+}
+
+impl VerifyingKey for IgnoreSignature {
+    fn is_valid_signature(&self, _message: &[u8], _signature: Vec<u8>) -> bool {
+        true
+    }
 }
 
 /// Implements signing JWTs using ed25519, See RFC8037.

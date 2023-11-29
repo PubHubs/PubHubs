@@ -2,7 +2,6 @@
 use serde::{Deserialize, Serialize};
 
 use crate::api::*;
-use crate::misc::serde_ext::bytes_wrapper;
 
 ///
 pub struct Info {}
@@ -17,5 +16,5 @@ impl EndpointDetails for Info {
 #[derive(Serialize, Deserialize, Debug)]
 pub struct InfoResp {
     /// Key used by the hub to sign requests to the other hubs with
-    pub verifying_key: bytes_wrapper::B16<ed25519_dalek::VerifyingKey>,
+    pub verifying_key: VerifyingKey,
 }

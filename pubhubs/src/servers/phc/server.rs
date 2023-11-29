@@ -1,3 +1,4 @@
+use std::collections::HashMap;
 use std::rc::Rc;
 
 use actix_web::web;
@@ -10,9 +11,12 @@ use crate::servers::{
     discovery, AppBase, AppCreatorBase, AppMethod, Constellation, ServerBase,
 };
 
+use crate::hub;
+
 /// PubHubs Central server
 pub struct Server {
     base: ServerBase,
+    hubs: HashMap<hub::Id, hub::BasicInfo>,
 }
 
 impl crate::servers::Server for Server {
@@ -20,10 +24,22 @@ impl crate::servers::Server for Server {
     type AppT = Rc<App>;
     type AppCreatorT = AppCreator;
 
-    fn new(config: &crate::servers::Config) -> Self {
-        Server {
-            base: ServerBase::new::<Server>(config),
+    fn new(config: &crate::servers::Config) -> anyhow::Result<Self> {
+        let mut hubs: HashMap<hub::Id, hub::BasicInfo> = Default::default();
+
+        for basic_hub_info in config.phc.as_ref().unwrap().extra.hubs.iter() {
+            anyhow::ensure!(
+                hubs.insert(basic_hub_info.id, basic_hub_info.clone())
+                    .is_none(),
+                "detected two hubs with the same id, {}",
+                basic_hub_info.id
+            );
         }
+
+        Ok(Server {
+            base: ServerBase::new::<Server>(config),
+            hubs,
+        })
     }
 
     fn app_creator(&self) -> AppCreator {
@@ -33,6 +49,7 @@ impl crate::servers::Server for Server {
             base: AppCreatorBase::new(&self.base),
             transcryptor_url: xconf.transcryptor_url.clone(),
             auths_url: xconf.auths_url.clone(),
+            hubs: self.hubs.clone(),
         }
     }
 
@@ -45,6 +62,7 @@ pub struct App {
     base: AppBase<Server>,
     transcryptor_url: url::Url,
     auths_url: url::Url,
+    hubs: HashMap<hub::Id, hub::BasicInfo>,
 }
 
 impl crate::servers::App<Server> for Rc<App> {
@@ -104,12 +122,16 @@ impl App {
         }
         .check(tdi, url)
     }
-}
 
-impl App {
     async fn handle_hub_ticket(
-        _app: Rc<Self>,
+        app: Rc<Self>,
+        signed_req: web::Json<api::Signed<api::phc::hub::TicketReq>>,
     ) -> api::Result<api::Signed<api::phc::hub::TicketContent>> {
+        let req = signed_req.into_inner().open_without_checking_signature();
+
+        // MARK
+        // Check the hub exists
+
         api::err(api::ErrorCode::NotImplemented)
     }
 }
@@ -119,6 +141,7 @@ pub struct AppCreator {
     base: AppCreatorBase,
     transcryptor_url: url::Url,
     auths_url: url::Url,
+    hubs: HashMap<hub::Id, hub::BasicInfo>,
 }
 
 impl crate::servers::AppCreator<Server> for AppCreator {
@@ -127,6 +150,7 @@ impl crate::servers::AppCreator<Server> for AppCreator {
             base: AppBase::new(&self.base, shutdown_sender),
             transcryptor_url: self.transcryptor_url.clone(),
             auths_url: self.auths_url.clone(),
+            hubs: self.hubs.clone(),
         })
     }
 }
