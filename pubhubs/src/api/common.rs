@@ -113,6 +113,9 @@ pub enum ErrorCode {
 
     #[error("not (yet) implemented")]
     NotImplemented,
+
+    #[error("unknown hub")]
+    UnknownHub,
 }
 use ErrorCode::*;
 
@@ -134,6 +137,7 @@ impl ErrorCode {
             | NoLongerInCorrectState
             | Malconfigured
             | InvalidSignature
+            | UnknownHub
             | NotImplemented => ErrorInfo {
                 retryable: Some(false),
             },
@@ -211,6 +215,10 @@ pub trait EndpointDetails {
 }
 
 /// Like [query], but retries the query when it fails with a [ErrorInfo::retryable] [ErrorCode].
+///
+/// When `A` queries `B` and `B` queries `C`, the `B` should, in general, not use
+/// [query_with_retry], but let `A` manage retries.  This prevents `A`'s request from hanging
+/// without any explanation.
 pub async fn query_with_retry<EP: EndpointDetails>(
     server_url: &url::Url,
     req: &EP::RequestType,

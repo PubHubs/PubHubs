@@ -28,7 +28,7 @@ phc:
     #  - Never change the `id` of a hub because the users' pseudonyms are derived from it.
     - names: [testhub, testhub_alias]
       description: This is the default testhub for local development
-      info_url: http://localhost:1234
+      info_url: http://localhost:1234/_synapse/client/.ph/info
       # NOTE: To generate a new `id`, use `cargo run tools generate-hubid`
       id: i9RSgnZ44MMBdcJHX2GqDRNaOt_v63XOMekOmhLHvzg
 

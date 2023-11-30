@@ -17,7 +17,7 @@ pub mod hub {
         const PATH: &'static str = ".ph/hubs/ticket";
     }
 
-    #[derive(Serialize, Deserialize, Debug)]
+    #[derive(Serialize, Deserialize, Debug, Clone)]
     pub struct TicketReq {
         pub name: crate::hub::Name,
     }

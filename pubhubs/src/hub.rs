@@ -85,6 +85,14 @@ impl<'de> serde::Deserialize<'de> for Name {
 )]
 pub struct HubNameError();
 
+impl std::ops::Deref for Name {
+    type Target = str;
+
+    fn deref(&self) -> &Self::Target {
+        &self.inner
+    }
+}
+
 impl TryFrom<String> for Name {
     type Error = HubNameError;
 

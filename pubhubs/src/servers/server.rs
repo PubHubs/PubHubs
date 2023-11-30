@@ -294,13 +294,13 @@ pub struct AppBase<S: Server> {
 }
 
 impl<S: Server> AppBase<S> {
-    pub fn new(creator_base: &AppCreatorBase, shutdown_sender: &ShutdownSender<S>) -> Self {
+    pub fn new(creator_base: AppCreatorBase, shutdown_sender: &ShutdownSender<S>) -> Self {
         Self {
-            state: creator_base.state.clone(),
+            state: creator_base.state,
             shutdown_sender: shutdown_sender.clone(),
-            phc_url: creator_base.phc_url.clone(),
-            self_check_code: creator_base.self_check_code.clone(),
-            jwt_key: creator_base.jwt_key.clone(),
+            phc_url: creator_base.phc_url,
+            self_check_code: creator_base.self_check_code,
+            jwt_key: creator_base.jwt_key,
         }
     }
 

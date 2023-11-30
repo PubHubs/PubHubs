@@ -40,7 +40,7 @@ impl crate::servers::AppCreator<Server> for AppCreator {
 
     fn into_app(self, shutdown_sender: &ShutdownSender<Server>) -> Rc<App> {
         Rc::new(App {
-            base: AppBase::new(&self.base, shutdown_sender),
+            base: AppBase::new(self.base, shutdown_sender),
         })
     }
 

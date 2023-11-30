@@ -17,7 +17,7 @@ use serde::{
 use crate::misc::time_ext;
 
 /// Wrapper around [String] to indicate it should be interpretted as a JWT.
-#[derive(Serialize, Deserialize, Debug)]
+#[derive(Serialize, Deserialize, Debug, Clone)]
 #[serde(transparent)]
 pub struct JWT {
     inner: String,
@@ -197,6 +197,11 @@ impl Claims {
     pub fn nbf(self) -> Result<Self, Error> {
         self.claim("nbf", NumericDate::now() - 30)
     }
+
+    /// Signs these claims, returning a [`JWT`].
+    pub fn sign<SK: SigningKey>(&self, sk: &SK) -> Result<JWT, Error> {
+        JWT::create(&self.inner, sk)
+    }
 }
 
 /// Represents the value of the `iat`, `exp`, `nbf` claims.
@@ -321,6 +326,8 @@ impl From<String> for JWT {
 
 impl JWT {
     /// Creates JWT from `claims` and [SigningKey] `key`.
+    ///
+    /// You can also use [`Claims::sign`]
     pub fn create<C: Serialize, SK: SigningKey>(claims: &C, key: &SK) -> Result<JWT, Error> {
         let to_be_signed: String = format!(
             "{}.{}",
@@ -614,6 +621,19 @@ impl SigningKey for ed25519_dalek::SigningKey {
 
 impl Key for ed25519_dalek::SigningKey {
     const ALG: &'static str = "EdDSA";
+}
+
+impl Key for ed25519_dalek::VerifyingKey {
+    const ALG: &'static str = "EdDSA";
+}
+
+impl VerifyingKey for ed25519_dalek::VerifyingKey {
+    fn is_valid_signature(&self, message: &[u8], signature: Vec<u8>) -> bool {
+        if let Ok(signature) = ed25519_dalek::Signature::from_slice(&signature) {
+            return ed25519_dalek::Verifier::verify(self, message, &signature).is_ok();
+        }
+        false
+    }
 }
 
 /// Key for SHA256 based HMAC

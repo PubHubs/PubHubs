@@ -28,6 +28,7 @@ pub struct App {
     transcryptor_url: url::Url,
     auths_url: url::Url,
     hubs: HashMap<hub::Id, hub::BasicInfo>,
+    hub_by_name: HashMap<hub::Name, hub::Id>,
 }
 
 impl crate::servers::App<Server> for Rc<App> {
@@ -92,12 +93,40 @@ impl App {
         app: Rc<Self>,
         signed_req: web::Json<api::Signed<api::phc::hub::TicketReq>>,
     ) -> api::Result<api::Signed<api::phc::hub::TicketContent>> {
-        let req = signed_req.into_inner().open_without_checking_signature();
+        let signed_req = signed_req.into_inner();
 
-        // MARK
-        // Check the hub exists
+        let req = api::return_if_ec!(signed_req.clone().open_without_checking_signature());
 
-        api::err(api::ErrorCode::NotImplemented)
+        let hub = if let Some(hub) = app.hub_by_name(&req.name) {
+            hub
+        } else {
+            return api::err(api::ErrorCode::UnknownHub);
+        };
+
+        let result = api::query::<api::hub::Info>(&hub.info_url, &()).await;
+
+        if result.is_err() {
+            return api::Result::Err(result.unwrap_err().into_server_error());
+        }
+
+        let resp = result.unwrap();
+
+        // check that the request indeed came from the hub
+        api::return_if_ec!(signed_req.open(&*resp.verifying_key));
+
+        // if so, hand out ticket
+        api::Result::Ok(api::return_if_ec!(api::Signed::new(
+            &*app.base.jwt_key,
+            &api::phc::hub::TicketContent {
+                name: req.name,
+                verifying_key: resp.verifying_key,
+            },
+            std::time::Duration::from_secs(3600 * 24) /* = one day */
+        )))
+    }
+
+    fn hub_by_name(&self, name: &hub::Name) -> Option<&hub::BasicInfo> {
+        self.hubs.get(self.hub_by_name.get(name)?)
     }
 }
 
@@ -107,20 +136,23 @@ pub struct AppCreator {
     transcryptor_url: url::Url,
     auths_url: url::Url,
     hubs: HashMap<hub::Id, hub::BasicInfo>,
+    hub_by_name: HashMap<hub::Name, hub::Id>,
 }
 
 impl crate::servers::AppCreator<Server> for AppCreator {
     fn into_app(self, shutdown_sender: &crate::servers::ShutdownSender<Server>) -> Rc<App> {
         Rc::new(App {
-            base: AppBase::new(&self.base, shutdown_sender),
+            base: AppBase::new(self.base, shutdown_sender),
             transcryptor_url: self.transcryptor_url,
             auths_url: self.auths_url,
             hubs: self.hubs,
+            hub_by_name: self.hub_by_name,
         })
     }
 
     fn new(config: &servers::Config) -> anyhow::Result<Self> {
         let mut hubs: HashMap<hub::Id, hub::BasicInfo> = Default::default();
+        let mut hub_by_name: HashMap<hub::Name, hub::Id> = Default::default();
 
         for basic_hub_info in config.phc.as_ref().unwrap().extra.hubs.iter() {
             anyhow::ensure!(
@@ -129,6 +161,16 @@ impl crate::servers::AppCreator<Server> for AppCreator {
                 "detected two hubs with the same id, {}",
                 basic_hub_info.id
             );
+
+            for name in basic_hub_info.names.iter() {
+                anyhow::ensure!(
+                    hub_by_name
+                        .insert(name.clone(), basic_hub_info.id)
+                        .is_none(),
+                    "detected two hubs with the sane name, {}",
+                    name
+                );
+            }
         }
 
         let xconf = &config.phc.as_ref().unwrap().extra;
@@ -138,6 +180,7 @@ impl crate::servers::AppCreator<Server> for AppCreator {
             transcryptor_url: xconf.transcryptor_url.clone(),
             auths_url: xconf.auths_url.clone(),
             hubs,
+            hub_by_name,
         })
     }
 
