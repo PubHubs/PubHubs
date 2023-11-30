@@ -225,7 +225,7 @@ impl<S: Server + Unpin> Future for Runner<S> {
 
 impl<S: Server> ActixServer<S> {
     fn new(pubhubs_server: &S, bind_to: &SocketAddr) -> Result<ActixServer<S>> {
-        let app_creator = pubhubs_server.app_creator();
+        let app_creator: S::AppCreatorT = pubhubs_server.app_creator().clone();
 
         let (shutdown_sender, shutdown_receiver) = mpsc::channel(1);
 
@@ -233,7 +233,7 @@ impl<S: Server> ActixServer<S> {
 
         Ok(ActixServer {
             inner: actix_web::HttpServer::new(move || {
-                let app = app_creator.create(&shutdown_sender);
+                let app: S::AppT = app_creator.clone().into_app(&shutdown_sender);
 
                 actix_web::App::new().configure(|sc: &mut web::ServiceConfig| {
                     // first configure endpoints common to all servers

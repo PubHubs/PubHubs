@@ -2,34 +2,16 @@ use std::rc::Rc;
 
 use actix_web::web;
 
-use crate::api;
-use crate::servers::{AppBase, AppCreatorBase, ServerBase, ShutdownSender};
+use crate::servers::{self, AppBase, AppCreatorBase, ShutdownSender};
 
 /// Transcryptor
-pub struct Server {
-    base: ServerBase,
-}
+pub type Server = servers::ServerImpl<Details>;
 
-impl crate::servers::Server for Server {
-    const NAME: crate::servers::Name = crate::servers::Name::Transcryptor;
+pub struct Details;
+impl servers::Details for Details {
+    const NAME: servers::Name = servers::Name::Transcryptor;
     type AppT = Rc<App>;
     type AppCreatorT = AppCreator;
-
-    fn new(config: &crate::servers::Config) -> anyhow::Result<Self> {
-        Ok(Self {
-            base: ServerBase::new::<Server>(config),
-        })
-    }
-
-    fn app_creator(&self) -> AppCreator {
-        AppCreator {
-            base: AppCreatorBase::new(&self.base),
-        }
-    }
-
-    fn base_mut(&mut self) -> &mut ServerBase {
-        &mut self.base
-    }
 }
 
 pub struct App {
@@ -50,9 +32,23 @@ pub struct AppCreator {
 }
 
 impl crate::servers::AppCreator<Server> for AppCreator {
-    fn create(&self, shutdown_sender: &ShutdownSender<Server>) -> Rc<App> {
+    fn new(config: &servers::Config) -> anyhow::Result<Self> {
+        Ok(Self {
+            base: AppCreatorBase::new::<Server>(&config),
+        })
+    }
+
+    fn into_app(self, shutdown_sender: &ShutdownSender<Server>) -> Rc<App> {
         Rc::new(App {
             base: AppBase::new(&self.base, shutdown_sender),
         })
+    }
+
+    fn base(&self) -> &AppCreatorBase {
+        &self.base
+    }
+
+    fn base_mut(&mut self) -> &mut AppCreatorBase {
+        &mut self.base
     }
 }

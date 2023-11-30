@@ -7,6 +7,7 @@ use tokio::sync::mpsc;
 use std::sync::Arc;
 
 use crate::servers::{
+    self,
     api::{self, EndpointDetails},
     discovery, Constellation,
 };
@@ -42,7 +43,7 @@ impl std::fmt::Display for Name {
 
 /// Common API to the different PubHubs servers, used by the [crate::servers::run::Runner].
 ///
-/// A single instance of the appropriate implementation of [Server] is created
+/// A single instance of the [ServerImpl] implementation of [Server] is created
 /// for each server that's being run, and it's mainly responsible for creating
 /// immutable [App] instances to be sent to the individual threads.
 ///
@@ -51,18 +52,81 @@ impl std::fmt::Display for Name {
 ///
 /// An exception to this no-shared-mutable-state mantra is the discovery or startup phase,
 /// see [State::Discovery].
-pub trait Server: Sized + 'static + crate::servers::config::GetServerConfig {
+pub trait Server: Sized + 'static {
     type AppT: App<Self>;
+
     const NAME: Name;
 
     /// Is moved accross threads to create the [App]s.
     type AppCreatorT: AppCreator<Self>;
 
+    type ExtraConfig;
+
     fn new(config: &crate::servers::Config) -> anyhow::Result<Self>;
 
-    fn app_creator(&self) -> Self::AppCreatorT;
+    fn app_creator(&self) -> &Self::AppCreatorT;
+    fn app_creator_mut(&mut self) -> &mut Self::AppCreatorT;
 
-    fn base_mut(&mut self) -> &mut ServerBase;
+    fn config(&self) -> &crate::servers::Config;
+
+    fn server_config(&self) -> &servers::config::ServerConfig<Self::ExtraConfig> {
+        Self::server_config_from(self.config())
+    }
+
+    fn server_config_from(
+        config: &servers::Config,
+    ) -> &servers::config::ServerConfig<Self::ExtraConfig>;
+}
+
+/// Basic implementation of [Server].
+pub struct ServerImpl<D: Details> {
+    config: servers::Config,
+    app_creator: D::AppCreatorT,
+}
+
+/// Details needed to create a [ServerImpl] type.
+pub trait Details: crate::servers::config::GetServerConfig + 'static {
+    const NAME: Name;
+    type AppCreatorT;
+    type AppT;
+}
+
+impl<D: Details> Server for ServerImpl<D>
+where
+    D::AppT: App<Self>,
+    D::AppCreatorT: AppCreator<Self>,
+{
+    const NAME: Name = D::NAME;
+
+    type AppCreatorT = D::AppCreatorT;
+    type AppT = D::AppT;
+
+    type ExtraConfig = D::Extra;
+
+    fn new(config: &servers::Config) -> anyhow::Result<Self> {
+        Ok(Self {
+            app_creator: Self::AppCreatorT::new(&config)?,
+            config: config.clone(),
+        })
+    }
+
+    fn app_creator(&self) -> &Self::AppCreatorT {
+        &self.app_creator
+    }
+
+    fn app_creator_mut(&mut self) -> &mut Self::AppCreatorT {
+        &mut self.app_creator
+    }
+
+    fn config(&self) -> &servers::Config {
+        &self.config
+    }
+
+    fn server_config_from(
+        config: &servers::Config,
+    ) -> &servers::config::ServerConfig<Self::ExtraConfig> {
+        D::server_config(config)
+    }
 }
 
 /// What's passed to an [App] via [AppCreator] to signal a shutdown command
@@ -70,11 +134,17 @@ pub type ShutdownSender<S> = mpsc::Sender<ShutdownCommand<S>>;
 
 /// What's moved  accross threads by a [Server] to create its [App] instances.
 pub trait AppCreator<ServerT: Server>: Send + Clone + 'static {
+    /// Creates a new instance of this [AppCreator] based on the given configuration.
+    fn new(config: &servers::Config) -> anyhow::Result<Self>;
+
     /// Create an [App] instance.
     ///
     /// The `shutdown_sender` [mpsc::Sender] can be used to restart the server.  It's
     /// up to the implementor to clone it.
-    fn create(&self, shutdown_sender: &ShutdownSender<ServerT>) -> ServerT::AppT;
+    fn into_app(self, shutdown_sender: &ShutdownSender<ServerT>) -> ServerT::AppT;
+
+    fn base(&self) -> &AppCreatorBase;
+    fn base_mut(&mut self) -> &mut AppCreatorBase;
 }
 
 /// What modifies a [Server] when it is restarted via [ShutdownCommand::ModifyAndRestart].
@@ -187,33 +257,6 @@ pub trait App<S: Server>: Clone + 'static {
     /// Returns the [AppBase] this [App] builds on.
     fn base(&self) -> &AppBase<S>;
 }
-
-/// What's internally common between PubHubs [Server]s.
-pub struct ServerBase {
-    pub config: crate::servers::Config,
-    pub state: State,
-    pub self_check_code: String,
-    pub jwt_key: api::SigningKey,
-}
-
-impl ServerBase {
-    pub fn new<S: Server>(config: &crate::servers::Config) -> Self {
-        let server_config = S::server_config(config);
-
-        Self {
-            config: config.clone(),
-            state: State::Discovery {
-                task_lock: Arc::new(tokio::sync::Mutex::new(())),
-            },
-            self_check_code: server_config.self_check_code(),
-            jwt_key: server_config
-                .jwt_key
-                .clone()
-                .unwrap_or_else(api::SigningKey::generate),
-        }
-    }
-}
-
 /// What's internally common between PubHubs [AppCreator]s.
 #[derive(Clone)]
 pub struct AppCreatorBase {
@@ -224,12 +267,19 @@ pub struct AppCreatorBase {
 }
 
 impl AppCreatorBase {
-    pub fn new(server_base: &ServerBase) -> Self {
+    pub fn new<S: Server>(config: &crate::servers::Config) -> Self {
+        let server_config = S::server_config_from(&config);
+
         Self {
-            state: server_base.state.clone(),
-            phc_url: server_base.config.phc_url.clone(),
-            self_check_code: server_base.self_check_code.clone(),
-            jwt_key: server_base.jwt_key.clone(),
+            state: State::Discovery {
+                task_lock: Arc::new(tokio::sync::Mutex::new(())),
+            },
+            self_check_code: server_config.self_check_code(),
+            jwt_key: server_config
+                .jwt_key
+                .clone()
+                .unwrap_or_else(api::SigningKey::generate),
+            phc_url: config.phc_url.clone(),
         }
     }
 }
@@ -355,7 +405,8 @@ impl<S: Server> AppBase<S> {
         // restart server
 
         let success: bool = app.base().restart_server(|server: &mut S| -> Result<()> {
-            server.base_mut().state = crate::servers::server::State::UpAndRunning { constellation };
+            server.app_creator_mut().base_mut().state =
+                crate::servers::server::State::UpAndRunning { constellation };
 
             Ok(())
         });

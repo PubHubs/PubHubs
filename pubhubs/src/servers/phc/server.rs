@@ -8,54 +8,19 @@ use futures_util::future::LocalBoxFuture;
 use crate::servers::{
     self,
     api::{self, EndpointDetails as _},
-    discovery, AppBase, AppCreatorBase, AppMethod, Constellation, ServerBase,
+    discovery, AppBase, AppCreatorBase, AppMethod, Constellation,
 };
 
 use crate::hub;
 
 /// PubHubs Central server
-pub struct Server {
-    base: ServerBase,
-    hubs: HashMap<hub::Id, hub::BasicInfo>,
-}
+pub type Server = servers::ServerImpl<Details>;
 
-impl crate::servers::Server for Server {
-    const NAME: crate::servers::Name = crate::servers::Name::PubhubsCentral;
+pub struct Details;
+impl servers::Details for Details {
+    const NAME: servers::Name = servers::Name::PubhubsCentral;
     type AppT = Rc<App>;
     type AppCreatorT = AppCreator;
-
-    fn new(config: &crate::servers::Config) -> anyhow::Result<Self> {
-        let mut hubs: HashMap<hub::Id, hub::BasicInfo> = Default::default();
-
-        for basic_hub_info in config.phc.as_ref().unwrap().extra.hubs.iter() {
-            anyhow::ensure!(
-                hubs.insert(basic_hub_info.id, basic_hub_info.clone())
-                    .is_none(),
-                "detected two hubs with the same id, {}",
-                basic_hub_info.id
-            );
-        }
-
-        Ok(Server {
-            base: ServerBase::new::<Server>(config),
-            hubs,
-        })
-    }
-
-    fn app_creator(&self) -> AppCreator {
-        let xconf = &self.base.config.phc.as_ref().unwrap().extra;
-
-        AppCreator {
-            base: AppCreatorBase::new(&self.base),
-            transcryptor_url: xconf.transcryptor_url.clone(),
-            auths_url: xconf.auths_url.clone(),
-            hubs: self.hubs.clone(),
-        }
-    }
-
-    fn base_mut(&mut self) -> &mut ServerBase {
-        &mut self.base
-    }
 }
 
 pub struct App {
@@ -145,12 +110,42 @@ pub struct AppCreator {
 }
 
 impl crate::servers::AppCreator<Server> for AppCreator {
-    fn create(&self, shutdown_sender: &crate::servers::ShutdownSender<Server>) -> Rc<App> {
+    fn into_app(self, shutdown_sender: &crate::servers::ShutdownSender<Server>) -> Rc<App> {
         Rc::new(App {
             base: AppBase::new(&self.base, shutdown_sender),
-            transcryptor_url: self.transcryptor_url.clone(),
-            auths_url: self.auths_url.clone(),
-            hubs: self.hubs.clone(),
+            transcryptor_url: self.transcryptor_url,
+            auths_url: self.auths_url,
+            hubs: self.hubs,
         })
+    }
+
+    fn new(config: &servers::Config) -> anyhow::Result<Self> {
+        let mut hubs: HashMap<hub::Id, hub::BasicInfo> = Default::default();
+
+        for basic_hub_info in config.phc.as_ref().unwrap().extra.hubs.iter() {
+            anyhow::ensure!(
+                hubs.insert(basic_hub_info.id, basic_hub_info.clone())
+                    .is_none(),
+                "detected two hubs with the same id, {}",
+                basic_hub_info.id
+            );
+        }
+
+        let xconf = &config.phc.as_ref().unwrap().extra;
+
+        Ok(Self {
+            base: AppCreatorBase::new::<Server>(&config),
+            transcryptor_url: xconf.transcryptor_url.clone(),
+            auths_url: xconf.auths_url.clone(),
+            hubs,
+        })
+    }
+
+    fn base(&self) -> &AppCreatorBase {
+        &self.base
+    }
+
+    fn base_mut(&mut self) -> &mut AppCreatorBase {
+        &mut self.base
     }
 }

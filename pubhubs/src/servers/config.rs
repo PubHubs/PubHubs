@@ -159,7 +159,7 @@ pub trait GetServerConfig {
 
 macro_rules! implement_get_server_config {
     ($server:ident) => {
-        impl GetServerConfig for crate::servers::$server::Server {
+        impl GetServerConfig for crate::servers::$server::Details {
             type Extra = crate::servers::config::$server::ExtraConfig;
 
             fn server_config(config: &Config) -> &ServerConfig<Self::Extra> {

@@ -1,4 +1,4 @@
 //! Server: Authentication Server
 mod server;
 
-pub use server::Server;
+pub use server::{Details, Server};
