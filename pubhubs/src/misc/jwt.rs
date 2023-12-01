@@ -304,7 +304,7 @@ impl core::ops::Add<u64> for NumericDate {
     type Output = Self;
 
     fn add(mut self, secs: u64) -> Self::Output {
-        self.timestamp = secs;
+        self.timestamp += secs;
         self
     }
 }

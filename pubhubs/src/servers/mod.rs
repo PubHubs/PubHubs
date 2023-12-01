@@ -13,7 +13,7 @@ pub(crate) mod phc;
 pub(crate) mod transcryptor;
 
 pub use config::Config;
-pub(super) use constellation::Constellation;
+pub use constellation::Constellation;
 pub use discovery::drive_discovery;
 pub(super) use macros::for_all_servers;
 pub use run::Set;

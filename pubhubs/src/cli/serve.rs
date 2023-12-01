@@ -70,7 +70,9 @@ impl ServeArgs {
         tokio::task::LocalSet::new()
             .run_until(crate::servers::drive_discovery(phc_url))
             .await
-            .context("discovery failed")
+            .context("discovery failed")?;
+
+        Ok(())
     }
 
     /// Filters servers from config that were not specified to run
