@@ -40,7 +40,7 @@
 					</template>
 				</HeaderFooter>
 
-				<div class="col-span-6 overflow-y-scroll max-h-screen pt-20 md:pt-2 dark:bg-gray-middle" :class="{ hidden: hubSettings.mobileHubMenu }">
+				<div class="col-span-6 max-h-screen dark:bg-gray-middle" :class="{ hidden: hubSettings.mobileHubMenu }">
 					<router-view></router-view>
 				</div>
 			</div>

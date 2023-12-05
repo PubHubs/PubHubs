@@ -1,5 +1,5 @@
 <template>
-	<div class="flex flex-col h-full xl:max-w-screen-xl m-auto p-5">
+	<div class="flex flex-col h-full xl:max-w-screen-xl m-auto p-5 overflow-y-scroll">
 		<div class="flex flex-col w-full">
 			<H3>{{ $t('rooms.latest_news') }}</H3>
 			<div class="flex flex-col md:flex-row justify-between gap-4">

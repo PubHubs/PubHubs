@@ -2,7 +2,7 @@
 	<HeaderFooter v-if="rooms.currentRoomExists" class="pl-3">
 		<template #header>
 			<div class="flex">
-				<div v-if="currentRoom">
+				<div v-if="currentRoom" class="flex flex-row">
 					<Icon :type="rooms.roomIsSecure(currentRoom.roomId) ? 'lock' : 'room'" class="text-blue mt-2" size="lg"></Icon>
 					<div class="pl-3">
 						<H1 class="m-0 text-blue font-bold">{{ $t('rooms.title', [roomName()]) }}</H1>
