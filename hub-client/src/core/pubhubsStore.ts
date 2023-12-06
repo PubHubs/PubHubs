@@ -110,12 +110,8 @@ const usePubHubs = defineStore('pubhubs', {
 		},
 
 		async joinRoom(room_id: string) {
-			try {
-				await this.client.joinRoom(room_id);
-				this.updateRooms();
-			} catch (error) {
-				// console.log(error);
-			}
+			await this.client.joinRoom(room_id);
+			this.updateRooms();
 		},
 
 		async invite(room_id: string, user_id: string, reason = undefined) {
@@ -209,23 +205,21 @@ const usePubHubs = defineStore('pubhubs', {
 			}
 
 			const content = this._constructMessageContent(text);
-			
 
-			if (content.body.includes('@')){
+			if (content.body.includes('@')) {
 				const users = await this.getUsers();
-				let mentionedUsersName = [] ;
+				let mentionedUsersName = [];
 				const mentionedUsers = content.body.split('@');
-				mentionedUsersName = users.filter(user => {
-									return mentionedUsers.some(menUser =>
-										user.rawDisplayName != undefined && (menUser.includes(user.rawDisplayName) || menUser === user.rawDisplayName)
-									);
-									}).map(users => users.rawDisplayName)
-									.filter((displayName): displayName is string => displayName !== undefined);
-				
-				
+				mentionedUsersName = users
+					.filter((user) => {
+						return mentionedUsers.some((menUser) => user.rawDisplayName != undefined && (menUser.includes(user.rawDisplayName) || menUser === user.rawDisplayName));
+					})
+					.map((users) => users.rawDisplayName)
+					.filter((displayName): displayName is string => displayName !== undefined);
+
 				// Assuming content is an instance of M_TextMessageEventContent
 				if (!content['m.mentions']) {
-				content['m.mentions'] = {};
+					content['m.mentions'] = {};
 				}
 				content['m.mentions']['room'] = true;
 				content['m.mentions']['user_ids'] = mentionedUsersName;
@@ -233,9 +227,8 @@ const usePubHubs = defineStore('pubhubs', {
 			// If the message is a reply to another event.
 			if (inReplyTo) {
 				content['m.relates_to'] = { 'm.in_reply_to': { event_id: inReplyTo.event_id, x_event_copy: structuredClone(inReplyTo) } };
-				
+
 				delete content['m.relates_to']?.['m.in_reply_to']?.x_event_copy?.content?.['m.relates_to']?.['m.in_reply_to']?.x_event_copy;
-				
 			}
 			try {
 				await this.client.sendEvent(roomId, 'm.room.message', content, '');
