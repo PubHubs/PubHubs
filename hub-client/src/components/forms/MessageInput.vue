@@ -21,6 +21,7 @@
 				<input type="file" :accept="getTypesAsString(allTypes)" class="attach-file" ref="elFileInput" @change="uploadFile($event)" hidden />
 				<Mention :msg="value" @click="mentionUser($event)"></Mention>
 				<TextArea
+					ref="elTextInput"
 					class="px-10 -mb-1"
 					v-focus
 					:placeholder="$t('rooms.new_message')"
@@ -32,8 +33,7 @@
 					"
 					@submit="submitMessage()"
 					@cancel="cancel()"
-					@keydown.enter.prevent="submitMessage"
-				></TextArea>
+					></TextArea>
 				<Icon class="absolute right-3 top-2 dark:text-white" type="emoticon" @click.stop="showEmojiPicker = !showEmojiPicker" :asButton="true"></Icon>
 			</div>
 
@@ -78,6 +78,7 @@
 
 	import UploadPicker from '../ui/UploadPicker.vue';
 	import Popover, { CurrentlyOpeningEvent } from '../ui/Popover.vue';
+	import TextArea from './TextArea.vue';
 
 	import { YiviSigningSessionResult } from '@/lib/signedMessages';
 	import { fileUpload as uploadHandler } from '@/composables/fileUpload';
@@ -99,8 +100,9 @@
 
 	const selectedAttributesSigningMessage = ref<string[]>(['irma-demo.sidn-pbdf.email.domain']);
 
-	const elEmojiPicker = ref<HTMLElement | null>(null); // Add this reference
+	const elEmojiPicker = ref<HTMLElement | null>(null);
 	const elFileInput = ref<HTMLInputElement | null>(null);
+	const elTextInput = ref<InstanceType<typeof TextArea> | null>(null);
 
 	const sendMessageText = computed(() => {
 		if (signingMessage.value) {
@@ -146,6 +148,7 @@
 
 	function clickedEmoticon(emoji: string) {
 		value.value += emoji;
+		elTextInput.value?.$el.focus();
 		checkButtonState();
 	}
 
