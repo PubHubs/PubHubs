@@ -9,13 +9,13 @@
 							<Logo class="absolute h-2/5 bottom-3"></Logo>
 						</router-link>
 					</template>
-
+					
 					<Menu>
 						<router-link to="/" v-slot="{ isActive }">
-							<MenuItem icon="home" :active="isActive">{{ $t('menu.home') }}</MenuItem>
+							<MenuItem icon="home" :active="isActive" @click="toggleMenu.toggleGlobalMenu()">{{ $t('menu.home') }}</MenuItem>
 						</router-link>
-						<MenuItem>{{ $t('menu.calender') }}</MenuItem>
-						<MenuItem>{{ $t('menu.tool') }}</MenuItem>
+						<MenuItem @click="toggleMenu.toggleGlobalMenu()">{{ $t('menu.calender') }}</MenuItem>
+						<MenuItem @click="toggleMenu.toggleGlobalMenu()">{{ $t('menu.tool') }}</MenuItem>
 					</Menu>
 
 					<H2 class="mt-12">{{ $t('menu.rooms') }}</H2>
@@ -64,6 +64,7 @@
 	import { useDialog } from '@/store/dialog';
 	import { usePubHubs } from '@/core/pubhubsStore';
 	import { useI18n } from 'vue-i18n';
+	import { useToggleMenu } from '@/store/toggleGlobalMenu';
 
 	const { locale, availableLocales } = useI18n();
 	const router = useRouter();
@@ -74,6 +75,7 @@
 	const messagebox = useMessageBox();
 	const dialog = useDialog();
 	const pubhubs = usePubHubs();
+	const toggleMenu = useToggleMenu();
 
 	const setupReady = ref(false);
 	const joinRoomDialog = ref(false);
