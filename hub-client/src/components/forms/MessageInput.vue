@@ -1,9 +1,7 @@
 <template>
 	<div class="flex items-end">
-		<!-- Textinput -->
-		<div class="w-4/5 bg-gray-lighter dark:bg-gray rounded-xl">
-			<!-- Reply -->
-			<div class="h-10 w-full flex items-center" v-if="messageActions.replyingTo">
+		<div name="input-container" class="w-4/5 bg-gray-lighter2 dark:bg-gray rounded-xl">
+			<div name="reply-to" class="h-10 w-full flex items-center" v-if="messageActions.replyingTo">
 				<p class="ml-4 whitespace-nowrap mr-2">{{ $t('message.in_reply_to') }}</p>
 				<MessageSnippet class="w-[85%]" :event="messageActions.replyingTo"></MessageSnippet>
 				<button class="mr-4 ml-auto" @click="delete messageActions.replyingTo">
@@ -11,18 +9,12 @@
 				</button>
 			</div>
 
-			<div v-if="signingMessage" class="absolute bottom-[400px] left-60" id="yivi-web-form"></div>
-
-			<div class="relative">
-				<Icon class="absolute left-3 top-2 dark:text-white" type="paperclip" @click="showUploadPicker" :asButton="true"></Icon>
-				<Popover :outside-node="getDocument()" :ignore-click-outside="'openingUploadPicker'" v-if="showingUploadPicker" ref="elPopover" @close="showingUploadPicker = false" class="absolute bottom-14">
-					<UploadPicker @attachment="clickedAttachment" @sign="showSigningMessageMenu()"></UploadPicker>
-				</Popover>
-				<input type="file" :accept="getTypesAsString(allTypes)" class="attach-file" ref="elFileInput" @change="uploadFile($event)" hidden />
-				<Mention :msg="value" @click="mentionUser($event)"></Mention>
+			<div name="input-bar" class="flex items-start px-2 pb-1 min-h-[50px] rounded-2xl dark:bg-gray">
+				<Icon class="m-2 mt-3 dark:text-white" type="paperclip" @click="showUploadPicker" :asButton="true"></Icon>
+				<!-- Overflow-x-hidden prevents firefox from adding an extra row to the textarea for a possible scrollbar -->
 				<TextArea
 					ref="elTextInput"
-					class="px-10 -mb-1"
+					class="px-2 max-h-[300px] overflow-x-hidden border-none bg-transparent theme-light:bg-transparent placeholder:text-gray-dark dark:placeholder:text-gray-lighter"
 					v-focus
 					:placeholder="$t('rooms.new_message')"
 					:title="$t('rooms.new_message')"
@@ -33,12 +25,12 @@
 					"
 					@submit="submitMessage()"
 					@cancel="cancel()"
+					@caretPos= "setCaretPos"
 					></TextArea>
-				<Icon class="absolute right-3 top-2 dark:text-white" type="emoticon" @click.stop="showEmojiPicker = !showEmojiPicker" :asButton="true"></Icon>
+				<Icon class="m-2 mt-3 dark:text-white" type="emoticon" @click.stop="showEmojiPicker = !showEmojiPicker" :asButton="true"></Icon>
 			</div>
 
-			<!-- Sign message -->
-			<div v-if="signingMessage" class="bg-gray-light dark:bg-gray-darker flex items-center rounded-md p-2">
+			<div name="sign-message" v-if="signingMessage" class="bg-gray-light dark:bg-gray-dark flex items-center rounded-md p-2">
 				<Icon type="sign" size="base" class="ml-2 mr-2 self-start mt-1"></Icon>
 				<div class="ml-2 flex flex-col justify-between max-w-3xl">
 					<h3 class="font-bold">{{ $t('message.sign.heading') }}</h3>
@@ -57,14 +49,27 @@
 			</div>
 		</div>
 
+		<!-- Sendbutton -->
+		<Button class="h-[50px] min-w-24 ml-2 mr-2 flex items-center rounded-xl" :disabled="!buttonEnabled" @click="submitMessage()"><Icon type="talk" size="sm" class="mr-px mb-1"></Icon>{{ $t(sendMessageText) }}</Button>
+
+		<!-- Floating menus -->
+		<Mention :msg="value" :top="caretPos.top" :left="caretPos.left" @click="mentionUser($event)"></Mention>
+
+		<Popover v-if="showingUploadPicker" :outside-node="getDocument()" :ignore-click-outside="'openingUploadPicker'" ref="elPopover" @close="showingUploadPicker = false" class="absolute bottom-14">
+			<UploadPicker @attachment="clickedAttachment" @sign="showSigningMessageMenu()"></UploadPicker>
+		</Popover>
+		<!-- todo: move this into UploadPicker? -->
+		<input type="file" :accept="getTypesAsString(allTypes)" class="attach-file" ref="elFileInput" @change="uploadFile($event)" hidden />
+
+		<!-- Yivi signing qr popup -->
+		<div v-if="signingMessage" class="absolute bottom-[400px] left-60" id="yivi-web-form"></div>
+
 		<!-- Emojipicker -->
 		<div v-if="showEmojiPicker" class="absolute bottom-16 right-8" ref="elEmojiPicker">
 			<EmojiPicker @emojiSelected="clickedEmoticon" />
 		</div>
-
-		<!-- Sendbutton -->
-		<Button class="h-10 ml-2 mr-2 flex items-center" :disabled="!buttonEnabled" @click="submitMessage()"><Icon type="talk" size="sm" class="mr-px mb-1"></Icon>{{ $t(sendMessageText) }}</Button>
 	</div>
+
 </template>
 
 <script setup lang="ts">
@@ -97,6 +102,7 @@
 	const showingUploadPicker = ref(false);
 	const signingMessage = ref(false);
 	const showEmojiPicker = ref(false);
+	const caretPos = ref({ top: 0, left: 0 });
 
 	const selectedAttributesSigningMessage = ref<string[]>(['irma-demo.sidn-pbdf.email.domain']);
 
@@ -239,6 +245,10 @@
 
 	function getDocument() {
 		return document;
+	}
+
+	function setCaretPos(pos: { top: number; left: number }) {
+		caretPos.value = pos;
 	}
 
 	function closeMenus() {

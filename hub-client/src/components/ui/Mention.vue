@@ -1,5 +1,5 @@
 <template>
-	<div v-if="visible" class="absolute mt-2 w-96 max-h-48 shadow-lg rounded-lg bottom-8 overflow-x-auto left-0 border-2 border-grey">
+	<div v-if="visible" ref="elContainer" :style="getStyle()" class="fixed mt-2 w-96 max-h-48 shadow-lg rounded-lg overflow-x-auto border-2 border-grey">
 		<ul>
 			<li v-for="(item, index) in filteredUsers" :key="index" class="group cursor-pointer hover:bg-green bg-gray-light p-1 border-b border-gray-light rounded-t-none" @click="clickedItem(item)">
 				<div class="flex items-center space-x-8">
@@ -35,11 +35,19 @@
 	const user = useUser();
 	const users = ref([] as Array<MatrixUser>);
 	const checkEmptyList = ref(false);
-	const props = defineProps({
-		msg: {
-			type: String,
-			default: null,
-		},
+	const elContainer = ref<HTMLElement|null>(null);
+
+	type Props = {
+		msg?: string;
+		left: number;
+		top: number;
+	};
+
+
+	const props = withDefaults(defineProps<Props>(), {
+		msg: undefined,
+		left: 0,
+		top: 0,
 	});
 
 	onMounted(async () => {
@@ -99,5 +107,13 @@
 		emit('click', item);
 		messageDirection.value = 0;
 		visible.value = false; // Close the div when a user is clicked
+	}
+
+	function getStyle() {
+		if (!elContainer.value) return;
+		return {
+			left: `${props.left}px`,
+			top: `${props.top - 40 - elContainer.value.clientHeight}px`
+		};
 	}
 </script>
