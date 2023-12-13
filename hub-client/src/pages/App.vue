@@ -2,7 +2,7 @@
 	<div :class="settings.getActiveTheme">
 		<div v-if="setupReady" class="max-h-screen text-black dark:bg-gray-dark dark:text-white">
 			<div v-if="user.isLoggedIn" class="md:grid md:grid-cols-8">
-				<HeaderFooter class="md:col-span-2 md:flex" :class="{ hidden: !hubSettings.mobileHubMenu }">
+				<HeaderFooter class="md:col-span-2 md:flex theme-light:bg-gray-lighter2" :class="{ hidden: !hubSettings.mobileHubMenu }">
 					<template #header>
 						<router-link to="/">
 							<Badge v-if="hubSettings.isSolo && rooms.totalUnreadMessages > 0" class="-ml-2 -mt-2">{{ rooms.totalUnreadMessages }}</Badge>
