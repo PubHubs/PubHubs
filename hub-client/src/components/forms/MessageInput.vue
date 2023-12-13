@@ -113,6 +113,7 @@
 
 	watch(route, () => {
 		reset();
+		closeMenus();
 	});
 
 	// Focus on message input if the state of messageActions changes (for example, when replying).
@@ -238,6 +239,17 @@
 
 	function getDocument() {
 		return document;
+	}
+
+	function closeMenus() {
+		closeReplyingTo();
+		showingUploadPicker.value = false;
+		showEmojiPicker.value = false;
+		signingMessage.value = false;
+	}
+
+	function closeReplyingTo() {
+		messageActions.replyingTo = undefined;
 	}
 </script>
 @/composables/fileUpload
