@@ -1,6 +1,6 @@
 <template>
 	<div :class="settings.getActiveTheme">
-		<div class="h-screen text-black dark:bg-gray-darker dark:text-white">
+		<div class="h-screen text-black bg-gray-lighter dark:bg-gray-darker dark:text-white">
 			<div class="lg:hidden w-20 h-20 absolute" @click="toggleMenu.toggleMenu()">
 				<Icon v-if="toggleMenu.globalIsActive" type="returnmenu" size="4xl" class="fill-[#2F2E2E] stroke-white dark:fill-white dark:stroke-black" viewBox="0,0,84,84"></Icon>
 				<Icon v-else type="hamburgermenu" size="4xl" class="dark:fill-[#2F2E2E] dark:stroke-white fill-white stroke-black" viewBox="0,0,84,84"></Icon>
@@ -83,8 +83,9 @@
 				global.saveGlobalSettings();
 			});
 		}
-		
+
 		await addHubs();
+		hubs.addHub(new Hub('local', 'http://localhost:8081'))
 
 		//Listen to global menu change
 		messagebox.addCallback(MessageType.mobileHubMenu, () => {
