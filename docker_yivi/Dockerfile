@@ -1,6 +1,6 @@
 FROM golang:bookworm
 
-RUN git clone https://github.com/privacybydesign/irmago --branch v0.14.1 --depth 1
+RUN git clone https://github.com/privacybydesign/irmago --branch v0.15.0 --depth 1
 
 WORKDIR irmago
 
