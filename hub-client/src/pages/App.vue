@@ -9,7 +9,7 @@
 							<Logo class="absolute h-2/5 bottom-3"></Logo>
 						</router-link>
 					</template>
-					
+
 					<Menu>
 						<router-link to="/" v-slot="{ isActive }">
 							<MenuItem icon="home" :active="isActive" @click="toggleMenu.toggleGlobalMenu()">{{ $t('menu.home') }}</MenuItem>
@@ -40,7 +40,7 @@
 					</template>
 				</HeaderFooter>
 
-				<div class="col-span-6 max-h-screen dark:bg-gray-middle" :class="{ hidden: hubSettings.mobileHubMenu }">
+				<div class="col-span-6 max-h-screen bg-white dark:bg-gray-middle" :class="{ hidden: hubSettings.mobileHubMenu }">
 					<router-view></router-view>
 				</div>
 			</div>
