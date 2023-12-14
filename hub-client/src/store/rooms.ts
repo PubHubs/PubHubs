@@ -8,7 +8,7 @@
  */
 
 import { defineStore } from 'pinia';
-import { Room as MatrixRoom, IPublicRoomsChunkRoom as PublicRoom, MatrixClient, RoomMember } from 'matrix-js-sdk';
+import { Room as MatrixRoom, IPublicRoomsChunkRoom as PublicRoom, MatrixClient, RoomMember, MatrixEvent } from 'matrix-js-sdk';
 import { Message, MessageType, useMessageBox } from './messagebox';
 import { useRouter } from 'vue-router';
 import { api_synapse, api_matrix } from '@/core/api';
@@ -80,6 +80,7 @@ interface PubHubsRoomProperties {
 
 class Room extends MatrixRoom {
 	_ph: PubHubsRoomProperties;
+	public userIsScrolling: boolean = false;
 
 	constructor(public readonly roomId: string, public readonly client: MatrixClient, public readonly myUserId: string) {
 		super(roomId, client, myUserId);
@@ -135,6 +136,10 @@ class Room extends MatrixRoom {
 		return members;
 	}
 
+	getMemberNames(): Array<string> {
+		return this.getMembers().map((item) => item.name);
+	}
+
 	getMembersIds(): Array<string> {
 		let roomMemberIds = [] as Array<string>;
 		// const roomMembers = this.getMembers();
@@ -174,7 +179,7 @@ class Room extends MatrixRoom {
 		return notInvitedMembersIds;
 	}
 
-	userIsMember(user_id: string): Boolean {
+	userIsMember(user_id: string): boolean {
 		const member = this.getMember(user_id);
 		return member !== null;
 	}
@@ -187,13 +192,25 @@ class Room extends MatrixRoom {
 		return false;
 	}
 
-	userCanChangeName(user_id: string): Boolean {
+	userCanChangeName(user_id: string): boolean {
 		const member = this.getMember(user_id);
 		if (member) {
 			const sufficient = this.currentState.hasSufficientPowerLevelFor('redact', member?.powerLevel);
 			return sufficient;
 		}
 		return false;
+	}
+
+	userCanSeeNewEvents(): boolean {
+		return this.userIsScrolling;
+	}
+
+	getNewestEventId(): string | undefined {
+		return this.timeline.at(-1)?.getId();
+	}
+
+	static containsUserSentEvent(userId: string, events: MatrixEvent[]) {
+		return events.some((event) => event.getSender() == userId);
 	}
 }
 
@@ -334,6 +351,7 @@ const useRooms = defineStore('rooms', {
 		updateRoomsWithMatrixRooms(rooms: MatrixRoom[]) {
 			this.rooms = {} as { [index: string]: Room }; // reset rooms
 			for (const idx in rooms) {
+				//? What does this check?
 				if (Object.hasOwnProperty.call(rooms, idx) && rooms[idx].getMyMembership() == 'join') {
 					this.addMatrixRoom(rooms[idx]);
 				}
@@ -385,6 +403,7 @@ const useRooms = defineStore('rooms', {
 			return this.rooms[roomId].getCreator();
 		},
 
+		//? Some documentation would be helpful here.
 		async storeRoomNotice(roomId: string) {
 			try {
 				const hub_notice = await api_synapse.apiGET<string>(api_synapse.apiURLS.notice);

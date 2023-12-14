@@ -1,6 +1,8 @@
 import { SignedMessage } from '@/lib/signedMessages';
 import { WithRequired } from './utility';
 
+export type M_EventId = string;
+
 export interface M_MessageEvent<C extends M_MessageEventContent = M_MessageEventContent> {
 	content: C;
 	event_id: string;
@@ -30,10 +32,9 @@ export interface M_TextMessageEventContent extends M_BaseMessageEventContent {
 	format?: 'org.matrix.custom.html';
 	formatted_body?: string;
 	'm.mentions'?: {
-	  room?: boolean;
-      user_ids?: string[]
-  }
-	
+		room?: boolean;
+		user_ids?: string[];
+	};
 }
 
 export interface M_ImageMessageEventContent extends M_BaseMessageEventContent {

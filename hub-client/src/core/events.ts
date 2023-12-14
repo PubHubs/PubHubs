@@ -29,7 +29,6 @@ class Events {
 				}
 				console.debug('STATE:', state);
 				if (state == 'PREPARED') {
-				
 					// this.client.on('event' as any, (event: any) => {
 					// 	console.debug('== EVENT', event);
 					// });
@@ -63,14 +62,17 @@ class Events {
 	eventRoomTimeline(event: MatrixEvent, room: MatrixRoom | undefined, toStartOfTimeline: boolean | undefined, removed: boolean) {
 		const rooms = useRooms();
 		console.debug('Room.timeline', toStartOfTimeline, removed);
-		if (room != undefined) {
-			if (toStartOfTimeline) {
-				rooms.addMatrixRoom(room);
-			} else {
-				rooms.addMatrixRoom(room);
-				if (event.event.type == 'm.room.message' && room.roomId !== rooms.currentRoomId) {
-					rooms.addRoomUnreadMessages(room.roomId);
-				}
+		if (!room) return;
+
+		if (toStartOfTimeline) {
+			rooms.addMatrixRoom(room);
+		} else {
+			rooms.addMatrixRoom(room);
+
+			if (event.event.type != 'm.room.message') return;
+
+			if (room.roomId !== rooms.currentRoomId) {
+				rooms.addRoomUnreadMessages(room.roomId);
 			}
 		}
 	}
