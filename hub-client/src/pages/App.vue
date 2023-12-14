@@ -2,7 +2,7 @@
 	<div :class="settings.getActiveTheme">
 		<div v-if="setupReady" class="max-h-screen text-black dark:bg-gray-dark dark:text-white">
 			<div v-if="user.isLoggedIn" class="md:grid md:grid-cols-8">
-				<HeaderFooter class="md:col-span-2 md:block" :class="{ hidden: !hubSettings.mobileHubMenu }">
+				<HeaderFooter class="md:col-span-2 md:flex theme-light:bg-gray-lighter2" :class="{ hidden: !hubSettings.mobileHubMenu }">
 					<template #header>
 						<router-link to="/">
 							<Badge v-if="hubSettings.isSolo && rooms.totalUnreadMessages > 0" class="-ml-2 -mt-2">{{ rooms.totalUnreadMessages }}</Badge>
@@ -12,10 +12,10 @@
 
 					<Menu>
 						<router-link to="/" v-slot="{ isActive }">
-							<MenuItem icon="home" :active="isActive">{{ $t('menu.home') }}</MenuItem>
+							<MenuItem icon="home" :active="isActive" @click="toggleMenu.toggleGlobalMenu()">{{ $t('menu.home') }}</MenuItem>
 						</router-link>
-						<MenuItem>{{ $t('menu.calender') }}</MenuItem>
-						<MenuItem>{{ $t('menu.tool') }}</MenuItem>
+						<MenuItem @click="toggleMenu.toggleGlobalMenu()">{{ $t('menu.calender') }}</MenuItem>
+						<MenuItem @click="toggleMenu.toggleGlobalMenu()">{{ $t('menu.tool') }}</MenuItem>
 					</Menu>
 
 					<H2 class="mt-12">{{ $t('menu.rooms') }}</H2>
@@ -40,7 +40,7 @@
 					</template>
 				</HeaderFooter>
 
-				<div class="col-span-6 overflow-y-scroll max-h-screen pt-20 md:pt-2 dark:bg-gray-middle" :class="{ hidden: hubSettings.mobileHubMenu }">
+				<div class="col-span-6 max-h-screen bg-white dark:bg-gray-middle" :class="{ hidden: hubSettings.mobileHubMenu }">
 					<router-view></router-view>
 				</div>
 			</div>
@@ -64,6 +64,7 @@
 	import { useDialog } from '@/store/dialog';
 	import { usePubHubs } from '@/core/pubhubsStore';
 	import { useI18n } from 'vue-i18n';
+	import { useToggleMenu } from '@/store/toggleGlobalMenu';
 
 	const { locale, availableLocales } = useI18n();
 	const router = useRouter();
@@ -74,6 +75,7 @@
 	const messagebox = useMessageBox();
 	const dialog = useDialog();
 	const pubhubs = usePubHubs();
+	const toggleMenu = useToggleMenu();
 
 	const setupReady = ref(false);
 	const joinRoomDialog = ref(false);

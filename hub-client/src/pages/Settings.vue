@@ -7,16 +7,26 @@
 		<div class="px-4">
 			<form @submit.prevent>
 				<div class="flex flex-col items-center mb-4">
-					<Avatar :class="bgColor(color(user.user.userId))" :userName="user.user.rawDisplayName" :img="avatarUrl" class="w-32 h-32 rounded-full"></Avatar>
-					<label for="avatar" class="mt-2 font-semibold text-gray-700 cursor-pointer hover:underline">{{ $t('settings.change_avatar') }}</label>
 					<input type="file" id="avatar" accept="image/png, image/jpeg, image/svg" class="hidden" ref="file" @change="uploadAvatar($event)" />
-					<Icon type="bin" class="right-0 group-hover:block" @click="removeAvatar"></Icon>
+
+					<div class="flex items-center">
+						<Avatar :class="bgColor(color(user.user.userId))" :userName="user.user.rawDisplayName" :img="avatarUrl" class="w-32 h-32 rounded-full"></Avatar>
+
+						<div class="flex flex-col ml-2 space-y-4">
+							<!-- Added space-y-1 for vertical spacing -->
+							<label for="avatar" class="font-semibold text-gray-700 cursor-pointer hover:underline">
+								<Icon size="lg" type="edit" class="group-hover:block"></Icon>
+							</label>
+
+							<Icon size="lg" type="bin" class="group-hover:block" @click="removeAvatar"></Icon>
+						</div>
+					</div>
 				</div>
 
 				<div class="flex flex-row mb-4 items-center">
-					<label class="w-2/6 font-semibold text-gray-700">{{ $t('settings.displayname') }}</label>
+					<label class="w-1/6 font-semibold text-gray-700">{{ $t('settings.displayname') }}</label>
 					<TextInput
-						class="w-4/6 p-1 border rounded focus:outline-none focus:border-blue-500"
+						class="w-4/5 p-1 border rounded focus:outline-none focus:border-blue-500"
 						name="displayname"
 						v-model="data.displayName.value"
 						:placeholder="user.user.displayName"
@@ -36,10 +46,10 @@
 
 <script setup lang="ts">
 	import { ref, onMounted } from 'vue';
-	import { useUser } from '@/store/store';
+	import { useUser, useDialog } from '@/store/store';
 	import { useI18n } from 'vue-i18n';
 	import { useFormState } from '@/composables/useFormState';
-	import { photoUpload } from '@/composables/photoUpload';
+	import { fileUpload } from '@/composables/fileUpload';
 	import { usePubHubs } from '@/core/pubhubsStore';
 	import { useUserColor } from '@/composables/useUserColor';
 	import { useMatrixFiles } from '@/composables/useMatrixFiles';
@@ -78,16 +88,25 @@
 	});
 
 	async function uploadAvatar(event: Event) {
+		const target = event.currentTarget as HTMLInputElement;
+		const file = target.files && target.files[0];
+		const fileName = file && file.name;
+		const dialog = useDialog();
 		const accessToken = pubhubs.Auth.getAccessToken();
 
-		photoUpload(accessToken, uploadUrl, imageTypes, event, (uri) => {
-			avatarUrl.value = downloadUrl + uri.slice(6);
-			pubhubs.changeAvatar(uri);
-			setMessage(t('settings.avatar_changed'));
+		fileUpload(accessToken, uploadUrl, imageTypes, event, (uri) => {
+			dialog.yesno(`Do you want to upload the avatar ${fileName}?`).then((done) => {
+				if (done) {
+					avatarUrl.value = downloadUrl + uri.slice(6);
+					pubhubs.changeAvatar(uri);
+					setMessage(t('settings.avatar_changed'));
+				}
+			});
 		});
 	}
-	function removeAvatar() {
-		pubhubs.changeAvatar('');
+	async function removeAvatar() {
 		avatarUrl.value = '';
+		await pubhubs.changeAvatar(avatarUrl.value);
 	}
 </script>
+@/composables/fileUpload

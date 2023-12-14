@@ -2,7 +2,7 @@
 	<HeaderFooter v-if="rooms.currentRoomExists" class="pl-3">
 		<template #header>
 			<div class="flex">
-				<div v-if="currentRoom">
+				<div v-if="currentRoom" class="flex flex-row">
 					<Icon :type="rooms.roomIsSecure(currentRoom.roomId) ? 'lock' : 'room'" class="text-blue mt-2" size="lg"></Icon>
 					<div class="pl-3">
 						<H1 class="m-0 text-blue font-bold">{{ $t('rooms.title', [roomName()]) }}</H1>
@@ -36,8 +36,8 @@
 	const { t } = useI18n();
 	const rooms = useRooms();
 
-	const currentRoom = ref({} as Room);
-	const members = ref([] as Array<String>);
+	const currentRoom = ref<Room | undefined>(undefined);
+	const members = ref<Array<String>>([]);
 
 	onMounted(() => {
 		update();
@@ -49,13 +49,12 @@
 
 	function update() {
 		rooms.changeRoom(route.params.id as string);
-		currentRoom.value = rooms.currentRoom as Room;
-		if (currentRoom.value) {
-			members.value = currentRoom.value.getPrivateRoomNameMembers();
-		}
+		currentRoom.value = rooms.currentRoom;
+		members.value = currentRoom.value?.getMemberNames() || [];
 	}
 
 	function roomName() {
+		if (!currentRoom.value) return '';
 		if (currentRoom.value.isPrivateRoom()) {
 			return t('rooms.private_room', members.value);
 		}
@@ -63,6 +62,7 @@
 	}
 
 	function getTopic() {
+		if (!currentRoom.value) return '';
 		if (currentRoom.value.isPrivateRoom()) {
 			return t('rooms.private_members', members.value);
 		}

@@ -20,9 +20,11 @@
 			<H3>
 				<ProfileAttributes v-if="rooms.roomIsSecure(rooms.currentRoom.roomId)" :user="event.sender"></ProfileAttributes>
 			</H3>
-			<MessageSnippet v-if="inReplyTo" :event="inReplyTo" :showInReplyTo="true"></MessageSnippet>
-			<Message v-if="msgTypeIsText" :message="event.content.body"></Message>
-			<MessageHtml v-if="msgTypeIsHtml" :message="(event.content as M_HTMLTextMessageEventContent).formatted_body"></MessageHtml>
+			<MessageMention v-if="msgTypeIncludesMention" :message="event.content.body" :users="users"></MessageMention>
+			<button><MessageSnippet v-if="inReplyTo" :event="inReplyTo" :showInReplyTo="true" @click="onInReplyToClick"></MessageSnippet></button>
+			<Message v-if="msgShowBody && !msgTypeIncludesMention" :message="event.content.body" :users="users"></Message>
+			<MessageSigned v-if="event.content.msgtype == 'pubhubs.signed_message'" :message="event.content.signed_message"></MessageSigned>
+			<MessageHtml v-if="msgTypeIsHtml && !msgTypeIncludesMention" :message="(event.content as M_HTMLTextMessageEventContent).formatted_body"></MessageHtml>
 			<MessageFile v-if="event.content.msgtype == 'm.file'" :message="event.content"></MessageFile>
 			<MessageImage v-if="event.content.msgtype == 'm.image'" :message="event.content"></MessageImage>
 		</div>
@@ -38,43 +40,54 @@
 	import { useMessageActions } from '@/store/message-actions';
 	import MessageSnippet from './MessageSnippet.vue';
 	import { useRooms } from '@/store/store';
-	import { M_MessageEvent, M_HTMLTextMessageEventContent } from '@/types/events';
+	import { M_MessageEvent, M_HTMLTextMessageEventContent, M_EventId } from '@/types/events';
+	import { User as MatrixUser } from 'matrix-js-sdk';
 
 	const hubSettings = useHubSettings();
 	const connection = useConnection();
 	const { color, textColor, bgColor } = useUserColor();
 	const messageActions = useMessageActions();
+
 	const pubhubs = usePubHubs();
+	const users = ref([] as Array<MatrixUser>);
 	const { getUserAvatar } = useUserAvatar();
 
 	const rooms = useRooms();
 
+	const supportedMsgTypes = ['m.text', 'm.image', 'm.file', 'pubhubs.signed_message'];
+
 	onMounted(async () => {
 		if (rooms.currentRoomExists) {
-			await rooms.storeRoomNotice(rooms.currentRoom?.roomId);
+			await rooms.storeRoomNotice(rooms.currentRoom!.roomId);
 		}
+		users.value = await pubhubs.getUsers();
 	});
 
 	const props = defineProps<{ event: M_MessageEvent }>();
 
 	const inReplyTo = structuredClone(props.event.content['m.relates_to']?.['m.in_reply_to']?.x_event_copy);
 
-	function reply() {
-		messageActions.replyingTo = undefined;
-		messageActions.replyingTo = props.event;
+	//#region Events
+
+	const emit = defineEmits<{
+		(e: 'inReplyToClicked', inReplyToId: M_EventId): void
+	}>();
+
+	function onInReplyToClick() {
+		if (!inReplyTo) return;
+		emit('inReplyToClicked', inReplyTo.event_id);
 	}
+
+	//#endregion
+
+  //#region Computed properties
 
 	const msgIsNotSend = computed(() => {
 		return props.event.event_id.substring(0, 1) == '~';
 	});
 
-	const msgTypeIsText = computed(() => {
-		if (props.event.content.msgtype == 'm.text') {
-			if (typeof props.event.content.format == 'undefined') {
-				return true;
-			}
-		}
-		return false;
+	const msgShowBody = computed(() => {
+		return !supportedMsgTypes.includes(props.event.content.msgtype) || (props.event.content.msgtype == 'm.text' && !msgTypeIsHtml.value);
 	});
 
 	const msgTypeIsHtml = computed(() => {
@@ -87,6 +100,24 @@
 		}
 		return false;
 	});
+
+	const msgTypeIncludesMention = computed(() => {
+		if (props.event.content.msgtype == 'm.text') {
+			if (props.event.content.body.includes('@')) {
+				return true;
+			}
+		}
+		return false;
+	});
+
+	//#endregion
+
+	//#region Methods
+
+	function reply() {
+		messageActions.replyingTo = undefined;
+		messageActions.replyingTo = props.event;
+	}
 
 	function avatar(user) {
 		const currentRoom = rooms.currentRoom;
@@ -102,4 +133,6 @@
 	window.setTimeout(() => {
 		timerReady.value = true;
 	}, 1000);
+
+	//#endregion
 </script>

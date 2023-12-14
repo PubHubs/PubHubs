@@ -14,6 +14,7 @@
 	import filters from '../../core/filters';
 	import { useUserName } from '@/composables/useUserName';
 	const { getUserDisplayName } = useUserName();
+
 	const rooms = useRooms();
 
 	const props = defineProps({
@@ -25,12 +26,16 @@
 			type: String,
 			default: '',
 		},
+		notMention: {
+			type: Boolean,
+			default: true,
+		},
 	});
 
 	const display = computed(() => {
 		let name = '' + props.userName; //props.userName;
 
-		if (rooms.currentRoom) {
+		if (rooms.currentRoom && props.notMention) {
 			const currentRoom = rooms.currentRoom;
 			const roomMemberName = getUserDisplayName(props.userName, currentRoom);
 			name = filters.matrixDisplayName(roomMemberName);
@@ -51,7 +56,7 @@
 		} else {
 			name = initial;
 		}
-		console.info(`name: ${name}`);
+
 		return name.toUpperCase();
 	});
 </script>
