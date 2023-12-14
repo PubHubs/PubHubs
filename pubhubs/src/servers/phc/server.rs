@@ -112,7 +112,12 @@ impl App {
         let resp = result.unwrap();
 
         // check that the request indeed came from the hub
-        api::return_if_ec!(signed_req.open(&*resp.verifying_key));
+        api::return_if_ec!(signed_req.open(&*resp.verifying_key).inspect_err(|ec| {
+            log::warn!(
+                "could not verify authenticity of hub ticket request for hub {}: {ec}",
+                req.name,
+            )
+        }));
 
         // if so, hand out ticket
         api::Result::Ok(api::return_if_ec!(api::Signed::new(
@@ -167,7 +172,7 @@ impl crate::servers::AppCreator<Server> for AppCreator {
                     hub_by_name
                         .insert(name.clone(), basic_hub_info.id)
                         .is_none(),
-                    "detected two hubs with the sane name, {}",
+                    "detected two hubs with the same name, {}",
                     name
                 );
             }
@@ -176,7 +181,7 @@ impl crate::servers::AppCreator<Server> for AppCreator {
         let xconf = &config.phc.as_ref().unwrap().extra;
 
         Ok(Self {
-            base: AppCreatorBase::new::<Server>(&config),
+            base: AppCreatorBase::new::<Server>(config),
             transcryptor_url: xconf.transcryptor_url.clone(),
             auths_url: xconf.auths_url.clone(),
             hubs,

@@ -47,10 +47,6 @@ pub mod bytes_wrapper {
         fn eq(&self, other: &Self) -> bool {
             self.inner.eq(&other.inner)
         }
-
-        fn ne(&self, other: &Self) -> bool {
-            self.inner.ne(&other.inner)
-        }
     }
 
     impl<T: Eq, O> Eq for BytesWrapper<T, O> {}

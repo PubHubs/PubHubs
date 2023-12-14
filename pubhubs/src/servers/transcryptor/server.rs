@@ -34,7 +34,7 @@ pub struct AppCreator {
 impl crate::servers::AppCreator<Server> for AppCreator {
     fn new(config: &servers::Config) -> anyhow::Result<Self> {
         Ok(Self {
-            base: AppCreatorBase::new::<Server>(&config),
+            base: AppCreatorBase::new::<Server>(config),
         })
     }
 

@@ -105,7 +105,7 @@ where
 
     fn new(config: &servers::Config) -> anyhow::Result<Self> {
         Ok(Self {
-            app_creator: Self::AppCreatorT::new(&config)?,
+            app_creator: Self::AppCreatorT::new(config)?,
             config: config.clone(),
         })
     }
@@ -268,7 +268,7 @@ pub struct AppCreatorBase {
 
 impl AppCreatorBase {
     pub fn new<S: Server>(config: &crate::servers::Config) -> Self {
-        let server_config = S::server_config_from(&config);
+        let server_config = S::server_config_from(config);
 
         Self {
             state: State::Discovery {

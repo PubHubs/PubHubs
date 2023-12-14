@@ -36,6 +36,13 @@ impl<T> Result<T> {
         matches!(self, Result::Ok(_))
     }
 
+    pub fn inspect_err(self, f: impl FnOnce(ErrorCode)) -> Self {
+        if let Result::Err(ref ec) = self {
+            f(*ec);
+        }
+        self
+    }
+
     /// Turns retryable errors into `None`, and the [Result] into a [std::result::Result],
     /// making the output suitable for use with [crate::misc::task::retry].
     pub fn retryable(self) -> std::result::Result<Option<T>, ErrorCode> {
@@ -73,10 +80,33 @@ macro_rules! return_if_ec {
 }
 pub(crate) use return_if_ec;
 
+/// Extension trait to add [IntoErrorCode::into_ec] to [std::result::Result].
+pub trait IntoErrorCode {
+    type Ok;
+    type Err;
+
+    /// Turns `self` into an [ErrorCode] result by calling `f` when `self` is an error.
+    ///
+    /// Consider logging the error you're turning into an [ErrorCode].
+    fn into_ec<F: FnOnce(Self::Err) -> ErrorCode>(self, f: F) -> Result<Self::Ok>;
+}
+
+impl<T, E> IntoErrorCode for std::result::Result<T, E> {
+    type Ok = T;
+    type Err = E;
+
+    fn into_ec<F: FnOnce(E) -> ErrorCode>(self, f: F) -> Result<T> {
+        match self {
+            Ok(v) => Result::Ok(v),
+            Err(err) => Result::Err(f(err)),
+        }
+    }
+}
+
 /// List of possible errors.  We use error codes in favour of more descriptive strings,
 /// because error codes can be more easily processed by the calling code,
 /// should change less often, and can be easily translated.
-#[derive(Serialize, Deserialize, Debug, thiserror::Error)]
+#[derive(Clone, Copy, Serialize, Deserialize, Debug, thiserror::Error)]
 pub enum ErrorCode {
     #[error("requested process already running")]
     AlreadyRunning,

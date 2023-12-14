@@ -32,6 +32,7 @@ common = [
 ]
 bin = [
 	"common",
+	"dep:serde_repr",
 	"dep:serde_bytes",
 	"dep:regex",
 	"dep:base64ct", 
@@ -108,6 +109,7 @@ thiserror = { version="1.0", optional = true }
 # serde
 rmp-serde = { version = "1.1", optional = true }
 serde = { version = "1.0", features = ["derive"], optional = true }
+serde_repr = { version = "0.1", optional = true }
 serde_bytes = { version = "0.11", optional = true }
 serde_json = { version = "1.0", optional = true }
 serde_urlencoded = { version = "0.7", optional = true }

@@ -17,6 +17,8 @@ pub mod hub {
         const PATH: &'static str = ".ph/hubs/ticket";
     }
 
+    having_message_code!(TicketReq, PhcHubTicketRequest);
+
     #[derive(Serialize, Deserialize, Debug, Clone)]
     pub struct TicketReq {
         pub name: crate::hub::Name,
@@ -29,4 +31,6 @@ pub mod hub {
         pub name: crate::hub::Name,
         pub verifying_key: VerifyingKey,
     }
+
+    having_message_code!(TicketContent, PhcHubTicket);
 }

@@ -53,6 +53,21 @@ impl Claims {
         Ok(self)
     }
 
+    /// Check that the claim with `name` exists and meets the given `expectation`,
+    /// removing the claim from the set afterwards.  Variation on [Claims::check].
+    pub fn check_present_and<'s, V: Deserialize<'s>>(
+        self,
+        name: &'static str,
+        expectation: impl FnOnce(V) -> Result<(), Error>,
+    ) -> Result<Self, Error> {
+        self.check(name, |v: Option<V>| -> Result<(), Error> {
+            if v.is_none() {
+                return Err(Error::MissingClaim(name));
+            }
+            expectation(v.unwrap())
+        })
+    }
+
     /// Checks that there is no claim with `name`.
     pub fn check_no(self, name: &'static str) -> Result<Self, Error> {
         if self.inner.contains_key(name) {
@@ -428,6 +443,15 @@ pub enum Error {
 
     #[error("jwt contains unexpected/unhandled claim `{0}`")]
     UnexpectedClaim(&'static str),
+
+    #[error("jwt is missing the claim `{0}'")]
+    MissingClaim(&'static str),
+
+    #[error("the claim `{claim_name}` is invalid")]
+    InvalidClaim {
+        claim_name: &'static str,
+        source: anyhow::Error,
+    },
 
     #[error("expired at {when}")]
     Expired { when: NumericDate },
