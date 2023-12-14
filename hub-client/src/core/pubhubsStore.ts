@@ -1,7 +1,6 @@
 import { defineStore } from 'pinia';
 
-import { Optional } from 'matrix-events-sdk';
-import { User as MatrixUser, MatrixClient, EventTimeline, ContentHelpers, MatrixError, IStateEventWithRoomId } from 'matrix-js-sdk';
+import { User as MatrixUser, MatrixClient, ContentHelpers, MatrixError, IStateEventWithRoomId } from 'matrix-js-sdk';
 
 import { Authentication } from '@/core/authentication';
 import { Events } from '@/core/events';
@@ -330,42 +329,46 @@ const usePubHubs = defineStore('pubhubs', {
 			return response;
 		},
 
-		async loadOlderEvents(roomId: string) {
-			const self = this;
-			return new Promise((resolve) => {
-				const room = self.client.getRoom(roomId);
-				if (room != null) {
-					const firstEvent = room.timeline[0].event;
-					if (firstEvent !== undefined && firstEvent.type !== 'm.room.create') {
-						const timelineSet = room.getTimelineSets()[0];
-						const eventId = firstEvent.event_id;
-						if (eventId !== undefined) {
-							self.client
-								.getEventTimeline(timelineSet, eventId)
-								.then((eventTimeline: Optional<EventTimeline>) => {
-									if (eventTimeline) {
-										const settings = useSettings();
-										resolve(
-											self.client.paginateEventTimeline(eventTimeline, {
-												backwards: true,
-												limit: settings.pagination,
-											}),
-										);
-									} else {
-										resolve(false);
-									}
-								})
-								.catch((error: string) => {
-									self.showError(error);
-								});
-						}
-					} else {
-						resolve(false);
-					}
-				} else {
-					resolve(false);
-				}
-			});
+		/**
+		 * Loads older events in a room.
+		 *
+		 * @returns {boolean} true if all events are loaded, false otherwise.
+		 */
+		async loadOlderEvents(roomId: string): Promise<boolean> {
+			const settings = useSettings();
+
+			const room = this.client.getRoom(roomId);
+			const firstEvent = room?.timeline[0];
+
+			// If all messages are loaded, return.
+			if (!firstEvent || firstEvent.getType() === 'm.room.create') return true;
+
+			const timelineSet = room.getTimelineSets()[0];
+			const eventId = firstEvent.getId();
+
+			if (!eventId) throw new Error('Failed to load older events: EventId not found');
+
+			const timeline = await this.client.getEventTimeline(timelineSet, eventId);
+			if (!timeline) throw new Error('Failed to load older events: Timeline not found');
+
+			await this.client.paginateEventTimeline(timeline, { backwards: true, limit: settings.pagination });
+			return false;
+		},
+
+		async loadToMessage(roomId: string, eventId: string) {
+			const room = this.client.getRoom(roomId);
+			if (!room) throw new Error('Failed to load to message: Room not found');
+
+			let eventTimeline = room.getTimelineForEvent(eventId);
+			let i = 0;
+			let allEventsLoaded = false;
+			const searchLimit = 1000;
+
+			while (!eventTimeline && !allEventsLoaded && i < searchLimit) {
+				allEventsLoaded = await this.loadOlderEvents(roomId);
+				eventTimeline = room.getTimelineForEvent(eventId);
+				i++;
+			}
 		},
 	},
 });

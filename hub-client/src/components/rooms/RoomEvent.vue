@@ -10,9 +10,6 @@
 				<button v-if="!msgIsNotSend" @click="reply" class="ml-2 mb-1 hidden group-hover:block">
 					<Icon :type="'reply'" :size="'sm'"></Icon>
 				</button>
-				<button class="ml-2 mb-1 hidden group-hover:block">
-					<Icon :type="'sign'" :size="'sm'"></Icon>
-				</button>
 				<template v-if="timerReady">
 					<button v-if="msgIsNotSend && connection.isOn" @click="resend()" class="ml-2 mb-1" :title="$t('errors.resend')">
 						<Icon type="refresh" size="sm" class="text-red"></Icon>
@@ -24,7 +21,7 @@
 				<ProfileAttributes v-if="rooms.roomIsSecure(rooms.currentRoom.roomId)" :user="event.sender"></ProfileAttributes>
 			</H3>
 			<MessageMention v-if="msgTypeIncludesMention" :message="event.content.body" :users="users"></MessageMention>
-			<MessageSnippet v-if="inReplyTo" :event="inReplyTo" :showInReplyTo="true"></MessageSnippet>
+			<button><MessageSnippet v-if="inReplyTo" :event="inReplyTo" :showInReplyTo="true" @click="onInReplyToClick"></MessageSnippet></button>
 			<Message v-if="msgShowBody && !msgTypeIncludesMention" :message="event.content.body" :users="users"></Message>
 			<MessageSigned v-if="event.content.msgtype == 'pubhubs.signed_message'" :message="event.content.signed_message"></MessageSigned>
 			<MessageHtml v-if="msgTypeIsHtml && !msgTypeIncludesMention" :message="(event.content as M_HTMLTextMessageEventContent).formatted_body"></MessageHtml>
@@ -43,7 +40,7 @@
 	import { useMessageActions } from '@/store/message-actions';
 	import MessageSnippet from './MessageSnippet.vue';
 	import { useRooms } from '@/store/store';
-	import { M_MessageEvent, M_HTMLTextMessageEventContent } from '@/types/events';
+	import { M_MessageEvent, M_HTMLTextMessageEventContent, M_EventId } from '@/types/events';
 	import { User as MatrixUser } from 'matrix-js-sdk';
 
 	const hubSettings = useHubSettings();
@@ -61,7 +58,7 @@
 
 	onMounted(async () => {
 		if (rooms.currentRoomExists) {
-			await rooms.storeRoomNotice(rooms.currentRoom?.roomId);
+			await rooms.storeRoomNotice(rooms.currentRoom!.roomId);
 		}
 		users.value = await pubhubs.getUsers();
 	});
@@ -70,10 +67,20 @@
 
 	const inReplyTo = structuredClone(props.event.content['m.relates_to']?.['m.in_reply_to']?.x_event_copy);
 
-	function reply() {
-		messageActions.replyingTo = undefined;
-		messageActions.replyingTo = props.event;
+	//#region Events
+
+	const emit = defineEmits<{
+		(e: 'inReplyToClicked', inReplyToId: M_EventId): void
+	}>();
+
+	function onInReplyToClick() {
+		if (!inReplyTo) return;
+		emit('inReplyToClicked', inReplyTo.event_id);
 	}
+
+	//#endregion
+
+  //#region Computed properties
 
 	const msgIsNotSend = computed(() => {
 		return props.event.event_id.substring(0, 1) == '~';
@@ -103,6 +110,15 @@
 		return false;
 	});
 
+	//#endregion
+
+	//#region Methods
+
+	function reply() {
+		messageActions.replyingTo = undefined;
+		messageActions.replyingTo = props.event;
+	}
+
 	function avatar(user) {
 		const currentRoom = rooms.currentRoom;
 		return getUserAvatar(user, currentRoom);
@@ -117,4 +133,6 @@
 	window.setTimeout(() => {
 		timerReady.value = true;
 	}, 1000);
+
+	//#endregion
 </script>
