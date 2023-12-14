@@ -6,6 +6,7 @@
 - Improvements to the PubHubs yivi registration cards, see !266.
 - Scrolling functionality in room timeline: !231
 - Styling update for message input: #348
+- Feature: @mention functionality: #311
 
 ## 13 Nov 2023
 - Bug fixes: #393, #381, #317, #373
