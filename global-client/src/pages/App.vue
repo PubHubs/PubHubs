@@ -85,7 +85,7 @@
 		}
 
 		await addHubs();
-		hubs.addHub(new Hub('local', 'http://localhost:8081'))
+		// hubs.addHub(new Hub('local', 'http://localhost:8081'));
 
 		//Listen to global menu change
 		messagebox.addCallback(MessageType.mobileHubMenu, () => {
@@ -105,5 +105,4 @@
 			global.logout();
 		}
 	}
-
 </script>
