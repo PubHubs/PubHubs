@@ -20,7 +20,7 @@ This repository is a mirror of our internal repository where actual development 
 
 In the longer term we'd like to move to a more open way of developing, but for now our repository is tightly linked to our (testing) infrastructure, and we'd like to keep this link for now.
 
-:exclamation: The instructions in this README file is only for deploying PubHubs for development purpose. Please see the [deployment documentation](/docs/deploy/README.md) for deploying your Hub and client. 
+:exclamation: The instructions in this README file is only for deploying PubHubs for development purpose (or local testing). Please see the [deployment documentation](/docs/deploy/README.md) for deploying your Hub and client in your infrastructure.
 
 ## Technical details
 
