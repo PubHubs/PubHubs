@@ -7,7 +7,7 @@ In each such hub, a relevant part of one’s own identity plays a role.
 PubHubs focuses on reliable information, if necessary with digital signatures, and on trusted communication,
 if necessary with guarantees of the identity of participants.
 
-For more information see our [website](https://pubhubs.net/en/).
+**For more information see our** [website](https://pubhubs.net/en/).
 
 ## Current status
 
@@ -20,7 +20,7 @@ This repository is a mirror of our internal repository where actual development 
 
 In the longer term we'd like to move to a more open way of developing, but for now our repository is tightly linked to our (testing) infrastructure, and we'd like to keep this link for now.
 
-:exclamation: The instructions in this README file is only for deploying PubHubs for development purpose. Please see the deployment documentation for deploying your Hub and client. 
+:exclamation: The instructions in this README file is only for deploying PubHubs for development purpose. Please see the [deployment documentation](/docs/deploy/README.md) for deploying your Hub and client. 
 
 ## Technical details
 

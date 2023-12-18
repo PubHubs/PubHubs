@@ -83,3 +83,5 @@ When everything is fine locally you need to move the files to the hub-clients do
 ## Restore original PubHubs branding
 
 - Within the container run `./rebrand.sh ##CONTAINER_NAME## p`. Where ##CONTAINER_NAME## is the name of the container.
+
+[&larr; Table of Content](../README.md)
