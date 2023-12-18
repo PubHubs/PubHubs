@@ -16,8 +16,11 @@ However, we'd still like to show everyone the current status of the code.
 
 ## Contributing
 
-This repository is a mirror of our internal repository where actual development happens. If you want to contribute or report an issue please contact us through: info@pubhubs.net
+This repository is a mirror of our internal repository where actual development happens. If you want to contribute or report an issue. **Please contact us through** [:email:](info@pubhubs.net)
+
 In the longer term we'd like to move to a more open way of developing, but for now our repository is tightly linked to our (testing) infrastructure, and we'd like to keep this link for now.
+
+:exclamation: The instructions in this README file is only for deploying PubHubs for development purpose. Please see the deployment documentation for deploying your Hub and client. 
 
 ## Technical details
 
@@ -31,6 +34,8 @@ Pubhubs consists of the following components:
 This pubhubs directory contains the platform itself.The directory pubhubs_hub contains the modules we need to make hubs work within PubHubs.
 
 For the identity oriented functionalities of PubHubs we use [Yivi](https://Yivi.app/). Yivi is also used for logging in to the central platform.
+
+
 
 ### Project Dependencies
 
