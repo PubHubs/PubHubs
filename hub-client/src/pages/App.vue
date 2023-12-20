@@ -80,7 +80,7 @@
 	const setupReady = ref(false);
 	const joinRoomDialog = ref(false);
 	const addPrivateRoomDialog = ref(false);
-
+	const acknowledgeOnce = ref(true);
 	onMounted(async () => {
 		settings.initI18b({ locale: locale, availableLocales: availableLocales });
 		// set language when changed
@@ -143,4 +143,22 @@
 			}, 2500);
 		}
 	}
+	import { MatrixEvent } from 'matrix-js-sdk';
+
+	// Additional check to make sure that beforeunload is only called once.
+	// An open issue for unload event in mozilla->  https://bugzilla.mozilla.org/show_bug.cgi?id=531199
+
+	window.addEventListener('beforeunload', () => {
+		if (acknowledgeOnce.value) {
+			rooms.roomsArray.forEach(async (room) => {
+				const mEvent: MatrixEvent = rooms.getlastEvent(room.roomId);
+				const sender = mEvent.event.sender!;
+				await pubhubs.sendAcknowledgementReceipt(sender);
+			});
+			// Once done then we dont call eventListener again.
+			// This will be called only when we are closing the browser.
+
+			acknowledgeOnce.value = false;
+		}
+	});
 </script>
