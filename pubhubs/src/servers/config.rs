@@ -47,6 +47,9 @@ pub struct ServerConfig<ServerSpecific> {
     /// If `None`, one is generated automatically (which is not suitable for production.)
     pub jwt_key: Option<api::SigningKey>,
 
+    /// Scalar used for creating shared secrets between servers using Diffie--Hellman key exchange.
+    pub ssp: Option<api::Scalar>,
+
     /// When stopping this server (for example, during discovery) have actix shutdown gracefully.
     /// Makes discovery much slower; only recommended for production.
     #[serde(default = "default_graceful_shutdown")]

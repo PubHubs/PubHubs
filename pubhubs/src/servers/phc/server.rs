@@ -56,10 +56,13 @@ impl crate::servers::App<Server> for Rc<App> {
             api::ok(crate::servers::Constellation {
                 phc_url: self.base.phc_url.clone(),
                 phc_jwt_key: self.base.jwt_key.verifying_key().into(),
+                phc_ssp: self.base.ssp.public.clone(),
                 transcryptor_url: self.transcryptor_url.clone(),
                 transcryptor_jwt_key: tdi.jwt_key,
+                transcryptor_ssp: tdi.ssp,
                 auths_url: self.auths_url.clone(),
                 auths_jwt_key: asdi.jwt_key,
+                auths_ssp: asdi.ssp,
             })
         })
     }

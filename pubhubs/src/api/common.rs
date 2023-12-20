@@ -211,6 +211,9 @@ pub struct DiscoveryInfoResp {
     /// Used to sign JWT of this server.
     pub jwt_key: VerifyingKey,
 
+    /// Used to create shared secrets with this server, using Diffie-Hellman.
+    pub ssp: CurvePoint,
+
     /// Discovery state of the server
     pub state: ServerState,
 
@@ -445,9 +448,21 @@ wrap_dalek_type! {
     bytes_wrapper::VisitorType::ByteSequence
 }
 
+wrap_dalek_type! {
+    CurvePoint, curve25519_dalek::ristretto::CompressedRistretto,
+    derive(PartialEq, Eq),
+    bytes_wrapper::VisitorType::ByteSequence
+}
+
 impl SigningKey {
     pub fn generate() -> Self {
         ed25519_dalek::SigningKey::generate(&mut rand::rngs::OsRng).into()
+    }
+}
+
+impl Scalar {
+    pub fn random() -> Self {
+        curve25519_dalek::scalar::Scalar::random(&mut rand::rngs::OsRng).into()
     }
 }
 

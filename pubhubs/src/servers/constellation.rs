@@ -8,10 +8,13 @@ use crate::servers;
 pub struct Constellation {
     pub transcryptor_jwt_key: api::VerifyingKey,
     pub transcryptor_url: url::Url,
+    pub transcryptor_ssp: api::CurvePoint, // shared secret part
     pub phc_jwt_key: api::VerifyingKey,
     pub phc_url: url::Url,
+    pub phc_ssp: api::CurvePoint,
     pub auths_jwt_key: api::VerifyingKey,
     pub auths_url: url::Url,
+    pub auths_ssp: api::CurvePoint,
 }
 
 impl Constellation {

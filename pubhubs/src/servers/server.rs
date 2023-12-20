@@ -9,7 +9,7 @@ use std::sync::Arc;
 use crate::servers::{
     self,
     api::{self, EndpointDetails},
-    discovery, Constellation,
+    crypto, discovery, Constellation,
 };
 
 /// Enumerates the names of the different PubHubs servers
@@ -264,6 +264,7 @@ pub struct AppCreatorBase {
     pub phc_url: url::Url,
     pub self_check_code: String,
     pub jwt_key: api::SigningKey,
+    pub ssp: crypto::Ssp,
 }
 
 impl AppCreatorBase {
@@ -279,6 +280,11 @@ impl AppCreatorBase {
                 .jwt_key
                 .clone()
                 .unwrap_or_else(api::SigningKey::generate),
+            ssp: server_config
+                .ssp
+                .clone()
+                .unwrap_or_else(api::Scalar::random)
+                .into(),
             phc_url: config.phc_url.clone(),
         }
     }
@@ -291,6 +297,7 @@ pub struct AppBase<S: Server> {
     pub self_check_code: String,
     pub phc_url: url::Url,
     pub jwt_key: api::SigningKey,
+    pub ssp: crypto::Ssp,
 }
 
 impl<S: Server> AppBase<S> {
@@ -301,6 +308,7 @@ impl<S: Server> AppBase<S> {
             phc_url: creator_base.phc_url,
             self_check_code: creator_base.self_check_code,
             jwt_key: creator_base.jwt_key,
+            ssp: creator_base.ssp,
         }
     }
 
@@ -458,6 +466,7 @@ impl<S: Server> AppBase<S> {
             // or scalar multiplication are performed here.
             jwt_key: app_base.jwt_key.verifying_key().into(),
             state: (&app_base.state).into(),
+            ssp: app_base.ssp.public.clone(),
             constellation: match &app_base.state {
                 State::UpAndRunning { constellation } => Some(*constellation.clone()),
                 State::Discovery { .. } => None,

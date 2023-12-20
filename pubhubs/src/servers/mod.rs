@@ -3,6 +3,7 @@
 mod api;
 mod config;
 mod constellation;
+mod crypto;
 mod discovery;
 pub(crate) mod macros;
 mod run;
