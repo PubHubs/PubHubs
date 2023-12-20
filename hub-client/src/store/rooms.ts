@@ -78,19 +78,18 @@ interface Unsigned {
 interface PubHubsRoomProperties {
 	hidden: boolean;
 	unreadMessages: number;
-
+	userIsScrolling: boolean;
 }
 
 class Room extends MatrixRoom {
 	_ph: PubHubsRoomProperties;
-	public userIsScrolling: boolean = false;
 
 	constructor(public readonly roomId: string, public readonly client: MatrixClient, public readonly myUserId: string) {
 		super(roomId, client, myUserId);
 		this._ph = {
 			hidden: false,
 			unreadMessages: 0,
-			
+			userIsScrolling: false,
 		};
 	}
 
@@ -116,6 +115,10 @@ class Room extends MatrixRoom {
 
 	get unreadMessages(): number {
 		return this._ph.unreadMessages;
+	}
+
+	setUserIsScrolling(isScrolling: boolean) {
+		this._ph.userIsScrolling = isScrolling;
 	}
 
 	resetUnreadMessages() {
@@ -203,7 +206,7 @@ class Room extends MatrixRoom {
 	}
 
 	userCanSeeNewEvents(): boolean {
-		return this.userIsScrolling;
+		return this._ph.userIsScrolling;
 	}
 
 	getNewestEventId(): string | undefined {

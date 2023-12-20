@@ -68,7 +68,7 @@
 		if (!(ev.target instanceof HTMLElement)) return;
 		if (!rooms.currentRoom) return;
 
-		rooms.currentRoom.userIsScrolling = isScrolling();
+		rooms.currentRoom.setUserIsScrolling(isScrolling());
 
 		// If scrolled to the top of the screen, load older events.
 		if (ev.target.scrollTop === 0) {
