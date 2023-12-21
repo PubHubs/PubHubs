@@ -6,10 +6,12 @@ use tokio::sync::mpsc;
 
 use std::sync::Arc;
 
+use crate::elgamal;
+
 use crate::servers::{
     self,
     api::{self, EndpointDetails},
-    crypto, discovery, Constellation,
+    discovery, Constellation,
 };
 
 /// Enumerates the names of the different PubHubs servers
@@ -62,6 +64,9 @@ pub trait Server: Sized + 'static {
 
     type ExtraConfig;
 
+    /// Additional state when the server is running
+    type RunningState: Clone;
+
     fn new(config: &crate::servers::Config) -> anyhow::Result<Self>;
 
     fn app_creator(&self) -> &Self::AppCreatorT;
@@ -76,6 +81,8 @@ pub trait Server: Sized + 'static {
     fn server_config_from(
         config: &servers::Config,
     ) -> &servers::config::ServerConfig<Self::ExtraConfig>;
+
+    fn create_running_state(&self, constellation: &Constellation) -> Result<Self::RunningState>;
 }
 
 /// Basic implementation of [Server].
@@ -85,10 +92,16 @@ pub struct ServerImpl<D: Details> {
 }
 
 /// Details needed to create a [ServerImpl] type.
-pub trait Details: crate::servers::config::GetServerConfig + 'static {
+pub trait Details: crate::servers::config::GetServerConfig + 'static + Sized {
     const NAME: Name;
     type AppCreatorT;
     type AppT;
+    type RunningState: Clone;
+
+    fn create_running_state(
+        server: &ServerImpl<Self>,
+        constellation: &Constellation,
+    ) -> Result<Self::RunningState>;
 }
 
 impl<D: Details> Server for ServerImpl<D>
@@ -102,6 +115,7 @@ where
     type AppT = D::AppT;
 
     type ExtraConfig = D::Extra;
+    type RunningState = D::RunningState;
 
     fn new(config: &servers::Config) -> anyhow::Result<Self> {
         Ok(Self {
@@ -127,6 +141,10 @@ where
     ) -> &servers::config::ServerConfig<Self::ExtraConfig> {
         D::server_config(config)
     }
+
+    fn create_running_state(&self, constellation: &Constellation) -> Result<Self::RunningState> {
+        D::create_running_state(&self, &constellation)
+    }
 }
 
 /// What's passed to an [App] via [AppCreator] to signal a shutdown command
@@ -143,8 +161,8 @@ pub trait AppCreator<ServerT: Server>: Send + Clone + 'static {
     /// up to the implementor to clone it.
     fn into_app(self, shutdown_sender: &ShutdownSender<ServerT>) -> ServerT::AppT;
 
-    fn base(&self) -> &AppCreatorBase;
-    fn base_mut(&mut self) -> &mut AppCreatorBase;
+    fn base(&self) -> &AppCreatorBase<ServerT>;
+    fn base_mut(&mut self) -> &mut AppCreatorBase<ServerT>;
 }
 
 /// What modifies a [Server] when it is restarted via [ShutdownCommand::ModifyAndRestart].
@@ -258,17 +276,28 @@ pub trait App<S: Server>: Clone + 'static {
     fn base(&self) -> &AppBase<S>;
 }
 /// What's internally common between PubHubs [AppCreator]s.
-#[derive(Clone)]
-pub struct AppCreatorBase {
-    pub state: State,
+pub struct AppCreatorBase<S: Server> {
+    pub state: State<S::RunningState>,
     pub phc_url: url::Url,
     pub self_check_code: String,
     pub jwt_key: api::SigningKey,
-    pub ssp: crypto::Ssp,
+    pub enc_key: elgamal::PrivateKey,
 }
 
-impl AppCreatorBase {
-    pub fn new<S: Server>(config: &crate::servers::Config) -> Self {
+impl<S: Server> Clone for AppCreatorBase<S> {
+    fn clone(&self) -> Self {
+        Self {
+            state: self.state.clone(),
+            phc_url: self.phc_url.clone(),
+            self_check_code: self.self_check_code.clone(),
+            jwt_key: self.jwt_key.clone(),
+            enc_key: self.enc_key.clone(),
+        }
+    }
+}
+
+impl<S: Server> AppCreatorBase<S> {
+    pub fn new(config: &crate::servers::Config) -> Self {
         let server_config = S::server_config_from(config);
 
         Self {
@@ -280,10 +309,10 @@ impl AppCreatorBase {
                 .jwt_key
                 .clone()
                 .unwrap_or_else(api::SigningKey::generate),
-            ssp: server_config
-                .ssp
+            enc_key: server_config
+                .enc_key
                 .clone()
-                .unwrap_or_else(api::Scalar::random)
+                .unwrap_or_else(|| elgamal::PrivateKey::random())
                 .into(),
             phc_url: config.phc_url.clone(),
         }
@@ -292,23 +321,23 @@ impl AppCreatorBase {
 
 /// What's internally common between PubHubs [App]s.
 pub struct AppBase<S: Server> {
-    pub state: State,
+    pub state: State<S::RunningState>,
     pub shutdown_sender: ShutdownSender<S>,
     pub self_check_code: String,
     pub phc_url: url::Url,
     pub jwt_key: api::SigningKey,
-    pub ssp: crypto::Ssp,
+    pub enc_key: elgamal::PrivateKey,
 }
 
 impl<S: Server> AppBase<S> {
-    pub fn new(creator_base: AppCreatorBase, shutdown_sender: &ShutdownSender<S>) -> Self {
+    pub fn new(creator_base: AppCreatorBase<S>, shutdown_sender: &ShutdownSender<S>) -> Self {
         Self {
             state: creator_base.state,
             shutdown_sender: shutdown_sender.clone(),
             phc_url: creator_base.phc_url,
             self_check_code: creator_base.self_check_code,
             jwt_key: creator_base.jwt_key,
-            ssp: creator_base.ssp,
+            enc_key: creator_base.enc_key,
         }
     }
 
@@ -413,8 +442,13 @@ impl<S: Server> AppBase<S> {
         // restart server
 
         let success: bool = app.base().restart_server(|server: &mut S| -> Result<()> {
+            let extra = server.create_running_state(&constellation)?;
+
             server.app_creator_mut().base_mut().state =
-                crate::servers::server::State::UpAndRunning { constellation };
+                crate::servers::server::State::UpAndRunning {
+                    constellation,
+                    extra,
+                };
 
             Ok(())
         });
@@ -466,9 +500,9 @@ impl<S: Server> AppBase<S> {
             // or scalar multiplication are performed here.
             jwt_key: app_base.jwt_key.verifying_key().into(),
             state: (&app_base.state).into(),
-            ssp: app_base.ssp.public.clone(),
+            enc_key: app_base.enc_key.public_key().clone(),
             constellation: match &app_base.state {
-                State::UpAndRunning { constellation } => Some(*constellation.clone()),
+                State::UpAndRunning { constellation, .. } => Some(*constellation.clone()),
                 State::Discovery { .. } => None,
             },
         })
@@ -535,7 +569,7 @@ factory_tuple! { A B C D E F G H I J K L M N O P }
 /// Will be sent accross threads from [Server] via [AppCreator] to [App].
 /// Cheaply cloneable.
 #[derive(Clone)]
-pub enum State {
+pub enum State<RunningState: Clone> {
     /// Waiting for information from other servers.
     Discovery {
         /// This lock is taken by the task performing discovery.
@@ -546,5 +580,8 @@ pub enum State {
     },
 
     /// Server has completed discovery and is running normally.
-    UpAndRunning { constellation: Box<Constellation> },
+    UpAndRunning {
+        constellation: Box<Constellation>,
+        extra: RunningState,
+    },
 }

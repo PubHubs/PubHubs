@@ -2,7 +2,7 @@ use std::rc::Rc;
 
 use actix_web::web;
 
-use crate::servers::{self, AppBase, AppCreatorBase, ShutdownSender};
+use crate::servers::{self, AppBase, AppCreatorBase, Constellation, ShutdownSender};
 
 /// Transcryptor
 pub type Server = servers::ServerImpl<Details>;
@@ -12,6 +12,14 @@ impl servers::Details for Details {
     const NAME: servers::Name = servers::Name::Transcryptor;
     type AppT = Rc<App>;
     type AppCreatorT = AppCreator;
+    type RunningState = ();
+
+    fn create_running_state(
+        server: &Server,
+        constellation: &Constellation,
+    ) -> anyhow::Result<Self::RunningState> {
+        Ok(())
+    }
 }
 
 pub struct App {
@@ -28,13 +36,13 @@ impl crate::servers::App<Server> for Rc<App> {
 
 #[derive(Clone)]
 pub struct AppCreator {
-    base: AppCreatorBase,
+    base: AppCreatorBase<Server>,
 }
 
 impl crate::servers::AppCreator<Server> for AppCreator {
     fn new(config: &servers::Config) -> anyhow::Result<Self> {
         Ok(Self {
-            base: AppCreatorBase::new::<Server>(config),
+            base: AppCreatorBase::<Server>::new(config),
         })
     }
 
@@ -44,11 +52,11 @@ impl crate::servers::AppCreator<Server> for AppCreator {
         })
     }
 
-    fn base(&self) -> &AppCreatorBase {
+    fn base(&self) -> &AppCreatorBase<Server> {
         &self.base
     }
 
-    fn base_mut(&mut self) -> &mut AppCreatorBase {
+    fn base_mut(&mut self) -> &mut AppCreatorBase<Server> {
         &mut self.base
     }
 }

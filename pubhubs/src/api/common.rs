@@ -1,5 +1,6 @@
 use serde::{Deserialize, Serialize};
 
+use crate::elgamal;
 use crate::misc::{fmt_ext, serde_ext::bytes_wrapper};
 use crate::servers::server;
 
@@ -208,11 +209,12 @@ pub struct DiscoveryInfoResp {
     /// URL of the PubHubs Central server this server tries to connect to.
     pub phc_url: url::Url,
 
-    /// Used to sign JWT of this server.
+    /// Used to sign JWTs from this server.
     pub jwt_key: VerifyingKey,
 
-    /// Used to create shared secrets with this server, using Diffie-Hellman.
-    pub ssp: CurvePoint,
+    /// Used to encrypt messages to this server, and to create shared secrets with this server
+    /// using Diffie-Hellman
+    pub enc_key: elgamal::PublicKey,
 
     /// Discovery state of the server
     pub state: ServerState,
@@ -229,8 +231,8 @@ pub enum ServerState {
     UpAndRunning,
 }
 
-impl From<&server::State> for ServerState {
-    fn from(s: &server::State) -> Self {
+impl<RS: Clone> From<&server::State<RS>> for ServerState {
+    fn from(s: &server::State<RS>) -> Self {
         match s {
             server::State::UpAndRunning { .. } => ServerState::UpAndRunning,
             server::State::Discovery { .. } => ServerState::Discovery,

@@ -817,6 +817,12 @@ impl<const N: usize> From<[u8; N]> for ByteArray<N> {
     }
 }
 
+impl<const N: usize> Into<[u8; N]> for ByteArray<N> {
+    fn into(self) -> [u8; N] {
+        self.inner
+    }
+}
+
 impl<const N: usize> Serialize for ByteArray<N> {
     fn serialize<S: serde::Serializer>(&self, s: S) -> Result<S::Ok, S::Error> {
         s.serialize_bytes(&self.inner)

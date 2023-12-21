@@ -7,8 +7,8 @@ use anyhow::{Context as _, Result};
 use rand::Rng as _;
 use url::Url;
 
-use crate::hub;
 use crate::servers::{api, for_all_servers};
+use crate::{elgamal, hub};
 
 /// Configuration for one, or several, of the PubHubs servers
 #[derive(serde::Deserialize, Debug, Clone)]
@@ -47,8 +47,9 @@ pub struct ServerConfig<ServerSpecific> {
     /// If `None`, one is generated automatically (which is not suitable for production.)
     pub jwt_key: Option<api::SigningKey>,
 
-    /// Scalar used for creating shared secrets between servers using Diffie--Hellman key exchange.
-    pub ssp: Option<api::Scalar>,
+    /// Each server advertises an [`elgamal::PublicKey`] so that shared secrets may be established
+    /// with this server, and also encrypted messages may be sent to it.
+    pub enc_key: Option<elgamal::PrivateKey>,
 
     /// When stopping this server (for example, during discovery) have actix shutdown gracefully.
     /// Makes discovery much slower; only recommended for production.

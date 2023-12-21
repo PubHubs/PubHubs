@@ -21,6 +21,14 @@ impl servers::Details for Details {
     const NAME: servers::Name = servers::Name::PubhubsCentral;
     type AppT = Rc<App>;
     type AppCreatorT = AppCreator;
+    type RunningState = ();
+
+    fn create_running_state(
+        server: &Server,
+        constellation: &Constellation,
+    ) -> anyhow::Result<Self::RunningState> {
+        Ok(())
+    }
 }
 
 pub struct App {
@@ -56,13 +64,13 @@ impl crate::servers::App<Server> for Rc<App> {
             api::ok(crate::servers::Constellation {
                 phc_url: self.base.phc_url.clone(),
                 phc_jwt_key: self.base.jwt_key.verifying_key().into(),
-                phc_ssp: self.base.ssp.public.clone(),
+                phc_enc_key: self.base.enc_key.public_key().clone(),
                 transcryptor_url: self.transcryptor_url.clone(),
                 transcryptor_jwt_key: tdi.jwt_key,
-                transcryptor_ssp: tdi.ssp,
+                transcryptor_enc_key: tdi.enc_key,
                 auths_url: self.auths_url.clone(),
                 auths_jwt_key: asdi.jwt_key,
-                auths_ssp: asdi.ssp,
+                auths_enc_key: asdi.enc_key,
             })
         })
     }
@@ -140,7 +148,7 @@ impl App {
 
 #[derive(Clone)]
 pub struct AppCreator {
-    base: AppCreatorBase,
+    base: AppCreatorBase<Server>,
     transcryptor_url: url::Url,
     auths_url: url::Url,
     hubs: HashMap<hub::Id, hub::BasicInfo>,
@@ -184,7 +192,7 @@ impl crate::servers::AppCreator<Server> for AppCreator {
         let xconf = &config.phc.as_ref().unwrap().extra;
 
         Ok(Self {
-            base: AppCreatorBase::new::<Server>(config),
+            base: AppCreatorBase::<Server>::new(config),
             transcryptor_url: xconf.transcryptor_url.clone(),
             auths_url: xconf.auths_url.clone(),
             hubs,
@@ -192,11 +200,11 @@ impl crate::servers::AppCreator<Server> for AppCreator {
         })
     }
 
-    fn base(&self) -> &AppCreatorBase {
+    fn base(&self) -> &AppCreatorBase<Server> {
         &self.base
     }
 
-    fn base_mut(&mut self) -> &mut AppCreatorBase {
+    fn base_mut(&mut self) -> &mut AppCreatorBase<Server> {
         &mut self.base
     }
 }
