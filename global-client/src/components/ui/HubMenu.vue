@@ -1,7 +1,7 @@
 <template>
 	<div v-if="hubs.currentHubId && !global.existsInPinnedHubs(hubs.currentHubId)">
 		<HubIcon :hub="hubs.currentHub" :active="true" :pinnable="global.loggedIn" @pin="global.addPinnedHub(hubs.currentHub, 0)" @click="toggleMenu.toggleMenu()"></HubIcon>
-		<Line v-if="global.hasPinnedHubs" class="m-2 sm:m-6 mt-8"></Line>
+		<Line v-if="global.hasPinnedHubs" class="m-6 mt-8"></Line>
 	</div>
 	<draggable :list="global.pinnedHubs" :item-key="'hubId'">
 		<template #item="{ element, index }">

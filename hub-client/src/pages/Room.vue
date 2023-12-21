@@ -1,10 +1,10 @@
 <template>
 	<HeaderFooter v-if="rooms.currentRoomExists" class="pl-3">
 		<template #header>
-			<div class="flex">
-				<div v-if="currentRoom" class="flex flex-row">
+			<div class="flex pl-20 md:pl-0">
+				<div v-if="currentRoom" class="flex flex-row gap-x-2">
 					<Icon :type="rooms.roomIsSecure(currentRoom.roomId) ? 'lock' : 'room'" class="text-blue mt-2" size="lg"></Icon>
-					<div class="pl-3">
+					<div class="">
 						<H1 class="m-0 text-blue font-bold">{{ $t('rooms.title', [roomName()]) }}</H1>
 						<p class="text-sm leading-4">
 							<PrivateRoomName v-if="currentRoom.isPrivateRoom()" :members="members"></PrivateRoomName>

@@ -1,5 +1,5 @@
 <template>
-	<span class="text-xs">{{ $d(new Date(timestamp), 'long') }}</span>
+	<span class="text-xs font-normal">{{ $d(new Date(timestamp), 'shorter') }}</span>
 </template>
 
 <script setup lang="ts">

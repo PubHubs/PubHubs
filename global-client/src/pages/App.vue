@@ -1,12 +1,12 @@
 <template>
 	<div :class="settings.getActiveTheme">
-		<div class="h-screen text-black bg-gray-lighter dark:bg-gray-darker dark:text-white">
-			<div class="lg:hidden w-20 h-20 absolute" @click="toggleMenu.toggleMenu()">
+		<div class="h-screen text-black dark:bg-gray-darker dark:text-white">
+			<div class="2md:hidden w-20 h-20 absolute" @click="toggleMenu.toggleMenu()">
 				<Icon v-if="toggleMenu.globalIsActive" type="returnmenu" size="4xl" class="fill-[#2F2E2E] stroke-white dark:fill-white dark:stroke-black" viewBox="0,0,84,84"></Icon>
 				<Icon v-else type="hamburgermenu" size="4xl" class="dark:fill-[#2F2E2E] dark:stroke-white fill-white stroke-black" viewBox="0,0,84,84"></Icon>
 			</div>
 			<div class="flex h-full">
-				<div id="pubhubs-bar" class="flex-none w-28 sm:w-32 h-screen pt-20 lg:pt-2 lg:block" :class="{ hidden: !toggleMenu.globalIsActive }">
+				<div id="pubhubs-bar" class="flex-none w-32 h-screen pt-20 2md:pt-2 2md:block" :class="{ hidden: !toggleMenu.globalIsActive }">
 					<Modal :show="global.isModalVisible">
 						<div class="flex flex-col justify-between h-full">
 							<div class="flex-1 text-center">
@@ -14,9 +14,9 @@
 									<HubIcon type="pubhubs-home" :active="isActive" class="text-blue dark:text-white" @click="toggleMenu.toggleMenu()"></HubIcon>
 								</router-link>
 
-								<Line v-if="global.loggedIn && global.hasPinnedHubs" class="m-2 sm:m-6 mt-8"></Line>
+								<Line v-if="global.loggedIn && global.hasPinnedHubs" class="m-6 mt-8"></Line>
 								<HubMenu></HubMenu>
-								<Line v-if="global.loggedIn" class="m-2 sm:m-6 mt-8"></Line>
+								<Line v-if="global.loggedIn" class="m-6 mt-8"></Line>
 							</div>
 
 							<div class="mx-6">

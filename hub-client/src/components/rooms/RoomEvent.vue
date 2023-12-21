@@ -1,11 +1,12 @@
 <template>
 	<div v-if="hubSettings.isVisibleEventType(event.type) && hubSettings.skipNoticeUserEvent(event)" class="group flex flex-row space-x-4 mb-8">
 		<Avatar :class="bgColor(color(event.sender))" :userName="event.sender" :img="avatar(event.sender) ? pubhubs.getBaseUrl + '/_matrix/media/r0/download/' + avatar(event.sender).slice(6) : ''"></Avatar>
-		<div class="w-3/5">
-			<div class="flex items-center">
-				<H3 :class="`${textColor(color(event.sender))} flex items-center mb-0`">
+		<div class="w-4/5 md:w-3/5">
+			<div class="flex items-center h-4">
+				<H3 class="flex items-center gap-x-2 mb-0">
 					<UserDisplayName :user="event.sender"></UserDisplayName>
-					<EventTime class="ml-2" :timestamp="event.origin_server_ts"> </EventTime>
+					<span class="text-xs font-normal">|</span>
+					<EventTime :timestamp="event.origin_server_ts"> </EventTime>
 				</H3>
 				<button v-if="!msgIsNotSend" @click="reply" class="ml-2 mb-1 hidden group-hover:block">
 					<Icon :type="'reply'" :size="'sm'"></Icon>
@@ -45,7 +46,7 @@
 
 	const hubSettings = useHubSettings();
 	const connection = useConnection();
-	const { color, textColor, bgColor } = useUserColor();
+	const { color, bgColor } = useUserColor();
 	const messageActions = useMessageActions();
 
 	const pubhubs = usePubHubs();

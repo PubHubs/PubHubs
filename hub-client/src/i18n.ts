@@ -18,6 +18,10 @@ const i18nOptions: I18nOptions = {
 	},
 	datetimeFormats: {
 		nl: {
+			shorter: {
+				hour: 'numeric',
+				minute: 'numeric',
+			},
 			short: {
 				year: 'numeric',
 				month: 'short',
@@ -32,7 +36,11 @@ const i18nOptions: I18nOptions = {
 				minute: 'numeric',
 			},
 		},
-		en: {
+		en: {			
+			shorter: {
+				hour: 'numeric',
+				minute: 'numeric',
+			},
 			short: {
 				year: 'numeric',
 				month: 'short',

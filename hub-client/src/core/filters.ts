@@ -28,10 +28,19 @@ export default {
 	},
 
 	extractPseudonym(displayName: string) {
-		
 		const pattern = /[a-zA-Z0-9]{3}-[a-zA-Z0-9]{3}/;
 		const result = displayName.match(pattern);
 		return result ? result[0] : ""; // result[0] will contain the matched string
 		
+	},
+
+	extractDisplayName(name: string ) {
+		const dashIndex = name.indexOf(' - ');
+		let filteredName = name.substring(0, dashIndex + 1);
+
+		if (filteredName.length < 1){
+			filteredName = "Anonymous";
+		}
+		return filteredName;
 	},
 };
