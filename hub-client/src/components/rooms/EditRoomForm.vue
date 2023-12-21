@@ -3,7 +3,7 @@
 		<form @submit.prevent>
 			<FormLine>
 				<Label>{{ $t('admin.name') }}</Label>
-				<TextInput :placeholder="$t('admin.name')" v-model="editRoom.room_name" class="w-5/6" @submit="submitRoom()" @changed="updateData('room_name', $event)"></TextInput>
+				<TextInput :placeholder="$t('admin.name')" v-model="editRoom.room_name" class="w-5/6" @changed="updateData('room_name', $event)"></TextInput>
 			</FormLine>
 			<div v-if="secured">
 				<FormLine class="mb-2">
