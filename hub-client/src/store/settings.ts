@@ -5,7 +5,6 @@
 // import { defineStore } from 'pinia';
 import { MessageType, Message, useMessageBox } from '@/store/messagebox';
 import { fallbackLanguage } from '@/i18n';
-import { defineStore } from 'pinia';
 
 enum Theme {
 	System = 'system',
@@ -37,7 +36,7 @@ interface Settings {
 	_i18n?: i18nSettings;
 
 	featureFlags: {
-		[key: string]: boolean | undefined;
+		signedMessages: boolean;
 	};
 }
 
@@ -54,7 +53,7 @@ const defaultSettings: Settings = {
 	},
 };
 
-const createSettings = () => {
+const createSettings = (defineStore: any) => {
 	return defineStore('settings', {
 		state: () => {
 			return defaultSettings as Settings;
@@ -121,23 +120,30 @@ const createSettings = () => {
 
 		actions: {
 			initI18b(init: any) {
+				// @ts-ignore
 				this._i18n = init;
+				// @ts-ignore
 				this.language = init.locale.value;
 			},
 
 			setPagination(newPagination: number) {
+				// @ts-ignore
 				this.pagination = newPagination;
 			},
 
 			setTheme(newTheme: Theme, send: boolean = false) {
+				// @ts-ignore
 				if (this.theme !== newTheme) {
+					// @ts-ignore
 					this.theme = newTheme;
 					if (send) this.sendSettings();
 				}
 			},
 
 			setLanguage(newLanguage: string, send: boolean = false) {
+				// @ts-ignore
 				if (this.language !== newLanguage && this._i18n?.availableLocales.indexOf(newLanguage) >= 0) {
+					// @ts-ignore
 					this.language = newLanguage;
 					if (send) this.sendSettings();
 				}
@@ -147,7 +153,9 @@ const createSettings = () => {
 				const messagebox = useMessageBox();
 				messagebox.sendMessage(
 					new Message(MessageType.Settings, {
+						// @ts-ignore
 						theme: this.theme as any,
+						// @ts-ignore
 						language: this.language,
 					}),
 				);
@@ -158,8 +166,10 @@ const createSettings = () => {
 			 * Add features in the settins store featureFlags property.
 			 * Defaults to true if the feature is not found.
 			 */
-			isFeatureEnabled(feature: string) {
+			isFeatureEnabled(feature: string): boolean {
+				// @ts-ignore
 				if (this.featureFlags[feature] === undefined) return true;
+				// @ts-ignore
 				return this.featureFlags[feature];
 			},
 		},
