@@ -50,7 +50,7 @@ const defaultSettings: Settings = {
 		availableLocales: undefined,
 	},
 	featureFlags: {
-		signedMessages: false,
+		signedMessages: true,
 	},
 };
 
