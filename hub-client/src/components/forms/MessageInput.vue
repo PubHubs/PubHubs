@@ -14,7 +14,7 @@
 				<!-- Overflow-x-hidden prevents firefox from adding an extra row to the textarea for a possible scrollbar -->
 				<TextArea
 					ref="elTextInput"
-					class="px-2 max-h-[300px] overflow-x-hidden border-none bg-transparent placeholder:text-gray-dark dark:placeholder:text-gray-lighter"
+					class="mt-1 px-2 max-h-[300px] overflow-x-hidden border-none bg-transparent placeholder:text-gray-dark dark:placeholder:text-gray-lighter"
 					v-focus
 					:placeholder="$t('rooms.new_message')"
 					:title="$t('rooms.new_message')"
