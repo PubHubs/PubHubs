@@ -5,6 +5,7 @@
 // import { defineStore } from 'pinia';
 import { MessageType, Message, useMessageBox } from '@/store/messagebox';
 import { fallbackLanguage } from '@/i18n';
+import { defineStore } from 'pinia';
 
 enum Theme {
 	System = 'system',
@@ -34,6 +35,10 @@ interface Settings {
 	language: string;
 
 	_i18n?: i18nSettings;
+
+	featureFlags: {
+		[key: string]: boolean | undefined;
+	};
 }
 
 const defaultSettings: Settings = {
@@ -44,9 +49,12 @@ const defaultSettings: Settings = {
 		locale: undefined,
 		availableLocales: undefined,
 	},
+	featureFlags: {
+		signedMessages: false,
+	},
 };
 
-const createSettings = (defineStore: any) => {
+const createSettings = () => {
 	return defineStore('settings', {
 		state: () => {
 			return defaultSettings as Settings;
@@ -113,30 +121,23 @@ const createSettings = (defineStore: any) => {
 
 		actions: {
 			initI18b(init: any) {
-				// @ts-ignore
 				this._i18n = init;
-				// @ts-ignore
 				this.language = init.locale.value;
 			},
 
 			setPagination(newPagination: number) {
-				// @ts-ignore
 				this.pagination = newPagination;
 			},
 
 			setTheme(newTheme: Theme, send: boolean = false) {
-				// @ts-ignore
 				if (this.theme !== newTheme) {
-					// @ts-ignore
 					this.theme = newTheme;
 					if (send) this.sendSettings();
 				}
 			},
 
 			setLanguage(newLanguage: string, send: boolean = false) {
-				// @ts-ignore
 				if (this.language !== newLanguage && this._i18n?.availableLocales.indexOf(newLanguage) >= 0) {
-					// @ts-ignore
 					this.language = newLanguage;
 					if (send) this.sendSettings();
 				}
@@ -146,12 +147,20 @@ const createSettings = (defineStore: any) => {
 				const messagebox = useMessageBox();
 				messagebox.sendMessage(
 					new Message(MessageType.Settings, {
-						// @ts-ignore
 						theme: this.theme as any,
-						// @ts-ignore
 						language: this.language,
 					}),
 				);
+			},
+
+			/**
+			 * Checks whether a feature is enabled or not, for more control in the transition from development to production.
+			 * Add features in the settins store featureFlags property.
+			 * Defaults to true if the feature is not found.
+			 */
+			isFeatureEnabled(feature: string) {
+				if (this.featureFlags[feature] === undefined) return true;
+				return this.featureFlags[feature];
 			},
 		},
 	});
