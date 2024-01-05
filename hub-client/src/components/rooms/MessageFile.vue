@@ -1,8 +1,9 @@
 <template>
 	<div class="mt-2 rounded-md bg-gray-lighter p-2 flex">
 		<Icon type="paperclip" class="mr-2"></Icon>
-		<a class="text-blue" target="_blank" :href="formUrlfromMxc(message.url)">{{ message.body }}</a>
+		<a class="text-blue" target="_blank" :href="formUrlfromMxc(message.url)">{{ message.filename }}</a>
 	</div>
+	<div class="text-white mt-4">{{ message.body }}</div>
 </template>
 
 <script setup lang="ts">

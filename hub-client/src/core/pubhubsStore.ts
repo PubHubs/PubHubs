@@ -301,17 +301,17 @@ const usePubHubs = defineStore('pubhubs', {
 		
 		},
 
-		async addImage(roomId: string, uri: string) {
+		async addImage(roomId: string, uri: string, fileDesc: string) {
 			try {
-				await this.client.sendImageMessage(roomId, uri);
+				await this.client.sendImageMessage(roomId, uri, undefined, fileDesc);
 			} catch (error) {
 				console.log(error);
 			}
 		},
 
-		async addFile(roomId: string, file: File, uri: string) {
+		async addFile(roomId: string, file: File, uri: string, fileDesc: string) {
 			const content = {
-				body: file.name,
+				body: fileDesc,
 				filename: file.name,
 				info: {
 					mimetype: file.type,
