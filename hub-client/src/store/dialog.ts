@@ -49,8 +49,9 @@ class DialogProperties {
 	modal: Boolean;
 	modalonly: Boolean;
 	close: Boolean;
+	thumbnail_url:string;
 
-	constructor(title = '', content = '', buttons: Array<DialogButton> = [], modal = true, close = true) {
+	constructor(title = '', content = '', buttons: Array<DialogButton> = [], modal = true, close = true, thumbnail_url = '') {
 		this.title = title;
 		this.content = content;
 		if (buttons.length == 0) {
@@ -61,6 +62,7 @@ class DialogProperties {
 		this.modal = modal;
 		this.modalonly = false;
 		this.close = close;
+		this.thumbnail_url = thumbnail_url;
 	}
 }
 
@@ -174,6 +176,11 @@ const useDialog = defineStore('dialog', {
 		 */
 		yesno(title: string, content: string = '') {
 			return this.show(new DialogProperties(title, content, buttonsYesNo));
+		},
+
+		filepreview(title: string, content: string = '', thumbnail_url: string = '', imageOnly: boolean = false) {
+			thumbnail_url = imageOnly ?  thumbnail_url : '' ;
+			return this.show(new DialogProperties(title, content, buttonsYesNo,true, true, thumbnail_url));
 		},
 
 		addCallback(action: DialogButtonAction, callback: Function) {

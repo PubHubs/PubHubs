@@ -25,8 +25,8 @@
 					"
 					@submit="submitMessage()"
 					@cancel="cancel()"
-					@caretPos= "setCaretPos"
-					></TextArea>
+					@caretPos="setCaretPos"
+				></TextArea>
 				<Icon class="m-2 mt-3 dark:text-white" type="emoticon" @click.stop="showEmojiPicker = !showEmojiPicker" :asButton="true"></Icon>
 			</div>
 
@@ -69,7 +69,6 @@
 			<EmojiPicker @emojiSelected="clickedEmoticon" />
 		</div>
 	</div>
-
 </template>
 
 <script setup lang="ts">
@@ -160,6 +159,7 @@
 	}
 
 	function uploadFile(event: Event) {
+		const description = value.value?.toString();
 		const accessToken = pubhubs.Auth.getAccessToken();
 		const target = event.currentTarget as HTMLInputElement;
 		const dialog = useDialog();
@@ -168,19 +168,20 @@
 				const file = target.files && target.files[0];
 				if (file) {
 					const message = imageTypes.includes(file.type) ? 'an image' : 'a file';
-					dialog.yesno(`Do you want to upload ${message}: ${file.name}?`).then((done) => {
+					dialog.filepreview(`Do you want to upload ${message}: ${file.name}?`, description, uri, imageTypes.includes(file.type)).then((done) => {
 						if (done) {
 							if (imageTypes.includes(file.type)) {
-								pubhubs.addImage(rooms.currentRoomId, uri);
+								pubhubs.addImage(rooms.currentRoomId, uri, description);
 							} else {
-								pubhubs.addFile(rooms.currentRoomId, file, uri);
+								pubhubs.addFile(rooms.currentRoomId, file, uri, description);
 							}
+							reset();
+						} else {
+							reset();
 						}
 					});
 				}
 			}
-
-			reset();
 		});
 	}
 
