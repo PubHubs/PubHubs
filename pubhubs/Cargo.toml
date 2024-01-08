@@ -29,6 +29,9 @@ common = [
 	"dep:curve25519-dalek", 
 	"dep:rand", 
 	"dep:subtle",
+	"dep:digest",
+	"dep:typenum",
+	"dep:sha2",
 ]
 bin = [
 	"common",
@@ -52,7 +55,6 @@ bin = [
 	"dep:http",
 	"dep:awc",
 	"dep:hmac", 
-	"dep:sha2",
 	"dep:typenum",
 	"dep:generic-array",
 	"dep:humantime", # used by env_logger already
@@ -90,7 +92,6 @@ old = [
 	"dep:serde_json",
 	"dep:serde_urlencoded",
 	"dep:serde_yaml",
-	"dep:sha2", 
 	"dep:strum_macros",
 	"dep:thiserror",
 	"dep:tokio", 
@@ -156,6 +157,7 @@ hmac = { version = "0.12", optional = true }
 sha2 = { version = "0.10", optional = true }
 subtle = { version = "2.4", optional = true }
 typenum = { version = "1.15", optional = true }
+digest = { version = "0", optional = true }
 
 #metrics
 futures = { version = "0.3", optional = true }

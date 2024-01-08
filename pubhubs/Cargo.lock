@@ -1775,6 +1775,7 @@ dependencies = [
  "chrono",
  "clap",
  "curve25519-dalek",
+ "digest",
  "ed25519-dalek",
  "env_logger",
  "expry",

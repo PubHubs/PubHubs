@@ -8,10 +8,10 @@ use futures_util::future::LocalBoxFuture;
 use crate::servers::{
     self,
     api::{self, EndpointDetails as _},
-    discovery, AppBase, AppCreatorBase, AppMethod, Constellation,
+    discovery, AppBase, AppCreator as _, AppCreatorBase, AppMethod, Constellation, Server as _,
 };
 
-use crate::hub;
+use crate::{elgamal, hub};
 
 /// PubHubs Central server
 pub type Server = servers::ServerImpl<Details>;
@@ -21,13 +21,19 @@ impl servers::Details for Details {
     const NAME: servers::Name = servers::Name::PubhubsCentral;
     type AppT = Rc<App>;
     type AppCreatorT = AppCreator;
-    type RunningState = ();
+    type RunningState = RunningState;
 
     fn create_running_state(
         server: &Server,
         constellation: &Constellation,
     ) -> anyhow::Result<Self::RunningState> {
-        Ok(())
+        let base = server.app_creator().base();
+
+        Ok(RunningState {
+            t_ss: base
+                .enc_key
+                .shared_secret(constellation.transcryptor_enc_key),
+        })
     }
 }
 
@@ -37,6 +43,11 @@ pub struct App {
     auths_url: url::Url,
     hubs: HashMap<hub::Id, hub::BasicInfo>,
     hub_by_name: HashMap<hub::Name, hub::Id>,
+}
+
+#[derive(Clone)]
+pub struct RunningState {
+    t_ss: elgamal::SharedSecret,
 }
 
 impl crate::servers::App<Server> for Rc<App> {
