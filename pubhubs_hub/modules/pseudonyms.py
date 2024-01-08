@@ -91,8 +91,17 @@ class OidcMappingProvider:
         ciphertext_buf.raw = bytes.fromhex(encrypted_local_pseudonym)
         private_key_buf.raw = bytes.fromhex(self._secret)
 
-        if self._libpubhubs.decrypt(ctypes.byref(result_buf), ctypes.byref(ciphertext_buf), ctypes.byref(private_key_buf)) != 1:
-            raise RuntimeError("failed to decrypt user's encrypted local pseudonym")
+        match self._libpubhubs.decrypt(ctypes.byref(result_buf), ctypes.byref(ciphertext_buf), ctypes.byref(private_key_buf)):
+            case 1: # Ok
+                pass
+            case 2: # WrongPublicKey
+                raise RuntimeError("failed to decrypt user's encrypted local pseudonym - encrypted for another public key (not HUB_SECRET)")
+            case 3: # InvalidTriple
+                raise RuntimeError("failed to decrypt user's encrypted local pseudonym - not a valid ElGamal ciphertext")
+            case 4: # InvalidPrivateKey
+                raise RuntimeError("failed to decrypt user's encrypted local pseudonym - invalid HUB_SECRET")
+            case _: 
+                raise RuntimeError("failed to decrypt user's encrypted local pseudonym - unknown error")
 
         decrypted_local_pseudonym = result_buf.raw.hex()
 

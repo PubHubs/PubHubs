@@ -457,24 +457,31 @@ pub mod abi {
         plaintext: *mut u8,
         ciphertext: *const u8,
         private_key: *const u8,
-    ) -> bool {
+    ) -> DecryptResult {
         let pk = match unsafe { PrivateKey::from_ptr(private_key) } {
             Some(pk) => pk,
-            None => return false,
+            None => return DecryptResult::InvalidPrivateKey,
         };
 
         let ct = match unsafe { Triple::from_ptr(ciphertext) } {
             Some(ct) => ct,
-            None => return false,
+            None => return DecryptResult::InvalidTriple,
         };
 
         let pt = match ct.decrypt_and_check_pk(&pk) {
             Some(pt) => pt,
-            None => return false,
+            None => return DecryptResult::WrongPublicKey,
         };
 
-        unsafe { pt.copy_to_ptr(plaintext) }
+        DecryptResult::Ok
+    }
 
-        true
+    /// Result of [decrypt].
+    #[repr(u8)]
+    pub enum DecryptResult {
+        Ok = 1,
+        WrongPublicKey = 2,
+        InvalidTriple = 3,
+        InvalidPrivateKey = 4,
     }
 }
