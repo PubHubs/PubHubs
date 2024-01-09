@@ -94,7 +94,7 @@
 
 	const emit = defineEmits(usedEvents);
 	const { value, reset, changed, cancel } = useFormInputEvents(emit);
-	const { allTypes, getTypesAsString, uploadUrl, imageTypes } = useMatrixFiles(pubhubs);
+	const { allTypes, getTypesAsString, uploadUrl, imageTypes } = useMatrixFiles();
 
 	const elPopover = ref<InstanceType<typeof Popover> | null>(null);
 	const buttonEnabled = ref(false);
