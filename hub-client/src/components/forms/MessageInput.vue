@@ -168,7 +168,7 @@
 				const file = target.files && target.files[0];
 				if (file) {
 					const message = imageTypes.includes(file.type) ? 'an image' : 'a file';
-					dialog.filepreview(`Do you want to upload ${message}: ${file.name}?`, description, uri, imageTypes.includes(file.type)).then((done) => {
+					dialog.yesno(`Do you want to upload ${message}: ${file.name}?`, description).then((done) => {
 						if (done) {
 							if (imageTypes.includes(file.type)) {
 								pubhubs.addImage(rooms.currentRoomId, uri, description);

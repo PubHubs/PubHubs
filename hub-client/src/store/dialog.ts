@@ -178,11 +178,6 @@ const useDialog = defineStore('dialog', {
 			return this.show(new DialogProperties(title, content, buttonsYesNo));
 		},
 
-		filepreview(title: string, content: string = '', thumbnail_url: string = '', imageOnly: boolean = false) {
-			thumbnail_url = imageOnly ?  thumbnail_url : '' ;
-			return this.show(new DialogProperties(title, content, buttonsYesNo,true, true, thumbnail_url));
-		},
-
 		addCallback(action: DialogButtonAction, callback: Function) {
 			this.callbacks[action] = callback;
 		},
