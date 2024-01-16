@@ -57,6 +57,9 @@ pub struct Main {
     pub well_known_jwks_json: bytes::Bytes,
     // NB. We're using bytes::Bytes' instead of Strings, since the former are cheaply cloneable,
     //     and cloning is required for contructing an actix_web::HttpResponse.
+    /// for a hotfix to #459
+    pub use_etag: bool,
+    pub use_last_modified: bool,
 }
 
 #[derive(Clone)]
@@ -259,6 +262,8 @@ impl Main {
                 well_known_openid_configuration,
                 well_known_jwks_json,
                 id_token_key,
+                use_etag: config.use_etag,
+                use_last_modified: config.use_last_modified,
             }
         }))
     }
