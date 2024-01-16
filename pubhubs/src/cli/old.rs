@@ -1048,15 +1048,35 @@ async fn check_connection_once(url: &str, nonce: &str) -> Result<()> {
 
 // cfg: &mut web::ServiceConfig
 fn create_app(cfg: &mut web::ServiceConfig, context: Data<Main>) {
+    let use_etag = context.use_etag;
+    let use_last_modified = context.use_last_modified;
+
     cfg.app_data(context)
-        .service(actix_files::Files::new("/css", "./static/assets/css").use_etag(true))
-        .service(actix_files::Files::new("/fonts", "./static/assets/fonts").use_etag(true))
-        .service(actix_files::Files::new("/images", "./static/assets/images").use_etag(true))
-        .service(actix_files::Files::new("/js", "./static/assets/js").use_etag(true))
+        .service(
+            actix_files::Files::new("/css", "./static/assets/css")
+                .use_etag(use_etag)
+                .use_last_modified(use_last_modified),
+        )
+        .service(
+            actix_files::Files::new("/fonts", "./static/assets/fonts")
+                .use_etag(use_etag)
+                .use_last_modified(use_last_modified),
+        )
+        .service(
+            actix_files::Files::new("/images", "./static/assets/images")
+                .use_etag(use_etag)
+                .use_last_modified(use_last_modified),
+        )
+        .service(
+            actix_files::Files::new("/js", "./static/assets/js")
+                .use_etag(use_etag)
+                .use_last_modified(use_last_modified),
+        )
         .service(
             actix_files::Files::new("/client", "./static/assets/client")
                 .index_file("index.html")
-                .use_etag(true),
+                .use_etag(use_etag)
+                .use_last_modified(use_last_modified),
         )
         // routes below map be prefixed with a language prefix "/nl", "/en", etc., which
         // will be stripped by the translation middleware

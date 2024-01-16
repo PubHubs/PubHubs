@@ -64,6 +64,12 @@ pub struct File {
 
     pub yivi: Yivi,
     pub pep: Pep,
+
+    // for a hotfix to #459
+    #[serde(default = "default_use_etag")]
+    pub use_etag: bool,
+    #[serde(default = "default_use_last_modified")]
+    pub use_last_modified: bool,
 }
 
 fn default_bind_to() -> (String, u16) {
@@ -80,6 +86,12 @@ fn default_assets_directory() -> String {
 }
 fn default_templates_file() -> String {
     "static/templates_hair/hair.html".to_string()
+}
+fn default_use_etag() -> bool {
+    true
+}
+fn default_use_last_modified() -> bool {
+    false
 }
 
 static ENV: &str = "PUBHUBS_CONFIG";
