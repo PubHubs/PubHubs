@@ -1046,38 +1046,47 @@ async fn check_connection_once(url: &str, nonce: &str) -> Result<()> {
     Ok(())
 }
 
+fn config_actix_files(
+    files: actix_files::Files,
+    conf: &crate::config::StaticFiles,
+) -> actix_files::Files {
+    let mut files = files
+        .use_etag(!conf.dont_use_etag)
+        .use_last_modified(conf.use_last_modified)
+        .prefer_utf8(!conf.dont_prefer_utf8);
+
+    if conf.disable_content_disposition {
+        files = files.disable_content_disposition();
+    }
+
+    files
+}
+
 // cfg: &mut web::ServiceConfig
 fn create_app(cfg: &mut web::ServiceConfig, context: Data<Main>) {
-    let use_etag = context.use_etag;
-    let use_last_modified = context.use_last_modified;
+    let static_files_conf = context.static_files_conf.clone();
 
     cfg.app_data(context)
-        .service(
-            actix_files::Files::new("/css", "./static/assets/css")
-                .use_etag(use_etag)
-                .use_last_modified(use_last_modified),
-        )
-        .service(
-            actix_files::Files::new("/fonts", "./static/assets/fonts")
-                .use_etag(use_etag)
-                .use_last_modified(use_last_modified),
-        )
-        .service(
-            actix_files::Files::new("/images", "./static/assets/images")
-                .use_etag(use_etag)
-                .use_last_modified(use_last_modified),
-        )
-        .service(
-            actix_files::Files::new("/js", "./static/assets/js")
-                .use_etag(use_etag)
-                .use_last_modified(use_last_modified),
-        )
-        .service(
-            actix_files::Files::new("/client", "./static/assets/client")
-                .index_file("index.html")
-                .use_etag(use_etag)
-                .use_last_modified(use_last_modified),
-        )
+        .service(config_actix_files(
+            actix_files::Files::new("/css", "./static/assets/css"),
+            &static_files_conf,
+        ))
+        .service(config_actix_files(
+            actix_files::Files::new("/fonts", "./static/assets/fonts"),
+            &static_files_conf,
+        ))
+        .service(config_actix_files(
+            actix_files::Files::new("/images", "./static/assets/images"),
+            &static_files_conf,
+        ))
+        .service(config_actix_files(
+            actix_files::Files::new("/js", "./static/assets/js"),
+            &static_files_conf,
+        ))
+        .service(config_actix_files(
+            actix_files::Files::new("/client", "./static/assets/client").index_file("index.html"),
+            &static_files_conf,
+        ))
         // routes below map be prefixed with a language prefix "/nl", "/en", etc., which
         // will be stripped by the translation middleware
         .service(
