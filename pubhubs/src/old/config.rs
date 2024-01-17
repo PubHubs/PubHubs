@@ -65,11 +65,18 @@ pub struct File {
     pub yivi: Yivi,
     pub pep: Pep,
 
-    // for a hotfix to #459
-    #[serde(default = "default_use_etag")]
-    pub use_etag: bool,
-    #[serde(default = "default_use_last_modified")]
+    #[serde(default)]
+    pub static_files: StaticFiles,
+}
+
+// for a hotfix to #459
+#[derive(Clone, Default, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct StaticFiles {
+    pub dont_use_etag: bool,
     pub use_last_modified: bool,
+    pub dont_prefer_utf8: bool,
+    pub disable_content_disposition: bool,
 }
 
 fn default_bind_to() -> (String, u16) {
@@ -86,12 +93,6 @@ fn default_assets_directory() -> String {
 }
 fn default_templates_file() -> String {
     "static/templates_hair/hair.html".to_string()
-}
-fn default_use_etag() -> bool {
-    true
-}
-fn default_use_last_modified() -> bool {
-    false
 }
 
 static ENV: &str = "PUBHUBS_CONFIG";
