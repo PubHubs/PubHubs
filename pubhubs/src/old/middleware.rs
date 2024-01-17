@@ -168,3 +168,25 @@ pub fn metrics_middleware<
         resp
     }
 }
+
+pub fn hotfix_middleware<
+    B: actix_web::body::MessageBody,
+    S: Service<ServiceRequest, Response = ServiceResponse<B>, Error = actix_web::Error>,
+>(
+    req: ServiceRequest,
+    srv: &S,
+) -> impl Future<Output = Result<ServiceResponse<B>, actix_web::Error>> {
+    let context = context_from_request(&req).clone();
+
+    let fut = srv.call(req);
+
+    async move {
+        let mut resp = fut.await?;
+
+        for header in context.hotfixes.remove_headers.iter() {
+            resp.headers_mut().remove(header);
+        }
+
+        Ok(resp)
+    }
+}

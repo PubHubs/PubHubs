@@ -67,6 +67,9 @@ pub struct File {
 
     #[serde(default)]
     pub static_files: StaticFiles,
+
+    #[serde(default)]
+    pub hotfixes: Hotfixes,
 }
 
 // for a hotfix to #459
@@ -77,6 +80,13 @@ pub struct StaticFiles {
     pub use_last_modified: bool,
     pub dont_prefer_utf8: bool,
     pub disable_content_disposition: bool,
+}
+
+#[derive(Serialize, Deserialize, Default)]
+#[serde(deny_unknown_fields)]
+pub struct Hotfixes {
+    /// remove these headers from all responses
+    pub remove_headers: Vec<String>,
 }
 
 fn default_bind_to() -> (String, u16) {

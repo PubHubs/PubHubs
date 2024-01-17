@@ -931,6 +931,7 @@ pub async fn main() -> Result<()> {
         App::new()
             .configure(move |cfg| create_app(cfg, context))
             .wrap_fn(metrics_middleware)
+            .wrap_fn(middleware::hotfix_middleware)
     })
     .bind(bind_to.clone())?
     .run();

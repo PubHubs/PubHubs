@@ -59,6 +59,7 @@ pub struct Main {
     //     and cloning is required for contructing an actix_web::HttpResponse.
     /// for a hotfix to #459
     pub static_files_conf: config::StaticFiles,
+    pub hotfixes: config::Hotfixes,
 }
 
 #[derive(Clone)]
@@ -262,6 +263,7 @@ impl Main {
                 well_known_jwks_json,
                 id_token_key,
                 static_files_conf: config.static_files,
+                hotfixes: config.hotfixes,
             }
         }))
     }
