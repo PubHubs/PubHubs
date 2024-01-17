@@ -87,6 +87,9 @@ pub struct StaticFiles {
 pub struct Hotfixes {
     /// remove these headers from all responses
     pub remove_headers: Vec<String>,
+
+    /// turn [actix_web::body::MessageBody]s into [bytes::Bytes] before sending them as response
+    pub no_streaming: bool,
 }
 
 fn default_bind_to() -> (String, u16) {

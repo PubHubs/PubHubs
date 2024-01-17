@@ -170,21 +170,35 @@ pub fn metrics_middleware<
 }
 
 pub fn hotfix_middleware<
-    B: actix_web::body::MessageBody,
+    B: actix_web::body::MessageBody + 'static,
     S: Service<ServiceRequest, Response = ServiceResponse<B>, Error = actix_web::Error>,
 >(
     req: ServiceRequest,
     srv: &S,
-) -> impl Future<Output = Result<ServiceResponse<B>, actix_web::Error>> {
+) -> impl Future<Output = Result<ServiceResponse, actix_web::Error>>
+where
+    B::Error: Debug,
+{
     let context = context_from_request(&req).clone();
 
     let fut = srv.call(req);
 
     async move {
-        let mut resp = fut.await?;
+        let mut resp = fut.await?.map_into_boxed_body();
 
         for header in context.hotfixes.remove_headers.iter() {
             resp.headers_mut().remove(header);
+        }
+
+        if context.hotfixes.no_streaming {
+            let (req, http_resp): (actix_web::HttpRequest, actix_web::HttpResponse) =
+                resp.into_parts();
+            let (http_resp, body): (actix_web::HttpResponse<()>, actix_web::body::BoxBody) =
+                http_resp.into_parts();
+
+            let bytes: bytes::Bytes = actix_web::body::to_bytes(body).await?;
+
+            resp = ServiceResponse::new(req, http_resp.set_body(bytes)).map_into_boxed_body();
         }
 
         Ok(resp)
