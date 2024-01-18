@@ -35,14 +35,13 @@
 	const user = useUser();
 	const users = ref([] as Array<MatrixUser>);
 	const checkEmptyList = ref(false);
-	const elContainer = ref<HTMLElement|null>(null);
+	const elContainer = ref<HTMLElement | null>(null);
 
 	type Props = {
 		msg?: string;
 		left: number;
 		top: number;
 	};
-
 
 	const props = withDefaults(defineProps<Props>(), {
 		msg: undefined,
@@ -99,7 +98,7 @@
 	//Preprocess the list of members for any unwanted names e.g., user notice.
 	async function getRoomMembers() {
 		if (rooms.currentRoom != undefined) {
-			users.value = rooms.currentRoom.getPrivateRoomNameMembers();
+			users.value = rooms.currentRoom.getPrivateRoomMembers();
 			users.value = users.value.filter((u) => u.userId !== user.user.userId && u.rawDisplayName != 'notices' && u.membership === 'join');
 		}
 	}
@@ -114,7 +113,7 @@
 		if (!elContainer.value) return;
 		return {
 			left: `${props.left}px`,
-			top: `${props.top - 40 - elContainer.value.clientHeight}px`
+			top: `${props.top - 40 - elContainer.value.clientHeight}px`,
 		};
 	}
 </script>

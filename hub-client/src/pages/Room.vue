@@ -30,14 +30,14 @@
 	import { onMounted, watch, ref } from 'vue';
 	import { useRoute } from 'vue-router';
 	import { useI18n } from 'vue-i18n';
-	import { Room, useRooms } from '@/store/store';
+	import { Room, useRooms, RoomMember } from '@/store/rooms';
 
 	const route = useRoute();
 	const { t } = useI18n();
 	const rooms = useRooms();
 
 	const currentRoom = ref<Room | undefined>(undefined);
-	const members = ref<Array<String>>([]);
+	const members = ref<Array<RoomMember>>([]);
 
 	onMounted(() => {
 		update();
@@ -50,7 +50,7 @@
 	function update() {
 		rooms.changeRoom(route.params.id as string);
 		currentRoom.value = rooms.currentRoom;
-		members.value = currentRoom.value?.getMemberNames() || [];
+		members.value = currentRoom.value?.getPrivateRoomMembers() || [];
 	}
 
 	function roomName() {

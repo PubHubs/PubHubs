@@ -8,7 +8,7 @@
  */
 
 import { defineStore } from 'pinia';
-import { Room as MatrixRoom, IPublicRoomsChunkRoom as PublicRoom, MatrixClient, RoomMember, MatrixEvent} from 'matrix-js-sdk';
+import { Room as MatrixRoom, IPublicRoomsChunkRoom as PublicRoom, MatrixClient, RoomMember, MatrixEvent } from 'matrix-js-sdk';
 import { Message, MessageType, useMessageBox } from './messagebox';
 import { useRouter } from 'vue-router';
 import { api_synapse, api_matrix } from '@/core/api';
@@ -16,7 +16,6 @@ import { usePubHubs } from '@/core/pubhubsStore';
 import { propCompare } from '@/core/extensions';
 import { YiviSigningSessionResult } from '@/lib/signedMessages';
 import { useUser } from './user';
-
 
 enum PubHubsRoomType {
 	PH_MESSAGES_RESTRICTED = 'ph.messages.restricted',
@@ -122,7 +121,6 @@ class Room extends MatrixRoom {
 	}
 
 	resetUnreadMessages() {
-		
 		this.unreadMessages = 0;
 	}
 
@@ -130,7 +128,7 @@ class Room extends MatrixRoom {
 		return this.getType() == PubHubsRoomType.PH_MESSAGES_DM;
 	}
 
-	getPrivateRoomNameMembers(): Array<RoomMember> {
+	getPrivateRoomMembers(): Array<RoomMember> {
 		const me = this.client.getUserId();
 		const members = this.getMembers();
 		const foundMe = members.findIndex((item) => item.userId == me);
@@ -232,7 +230,6 @@ const useRooms = defineStore('rooms', {
 
 	getters: {
 		roomsArray(state): Array<Room> {
-			
 			const values = Object.values(state.rooms);
 			const rooms = values.filter((item) => typeof item?.roomId !== 'undefined');
 			return rooms;
@@ -332,8 +329,7 @@ const useRooms = defineStore('rooms', {
 			let total = 0;
 			for (const idx in this.roomsArray) {
 				const room = this.roomsArray[idx];
-				
-				
+
 				if (!room.hidden) {
 					total += room.unreadMessages;
 				}
@@ -384,15 +380,13 @@ const useRooms = defineStore('rooms', {
 			messagebox.sendMessage(new Message(MessageType.UnreadMessages, this.totalUnreadMessages));
 		},
 
-	// This will give the latest timestamp of the receipt i.e., recent read receipt TS.
+		// This will give the latest timestamp of the receipt i.e., recent read receipt TS.
 		getReceiptForUserId(roomId: string, userId: string) {
-			const mEvents = this.rooms[roomId].timeline
-				.filter((event) => event.event.type === 'm.receipt' && event.event.sender === userId)
-				.map((event) => event.localTimestamp);
+			const mEvents = this.rooms[roomId].timeline.filter((event) => event.event.type === 'm.receipt' && event.event.sender === userId).map((event) => event.localTimestamp);
 
-			const storedTS = localStorage.getItem("receiptTS");
+			const storedTS = localStorage.getItem('receiptTS');
 			const tsData = storedTS ? JSON.parse(storedTS) : null;
-			
+
 			if (tsData && tsData instanceof Array) {
 				// Find the timestamp for the specified roomId
 				const roomTimestamp = tsData.find((data) => data.roomId === roomId)?.timestamp;
@@ -404,12 +398,11 @@ const useRooms = defineStore('rooms', {
 			return Math.max(...mEvents);
 		},
 
+		getLatestEvents(roomId: string) {
+			let localMatrixEvent: MatrixEvent[] = [];
 
-		getLatestEvents (roomId:string){
-			let localMatrixEvent:MatrixEvent [] = [];
-			
 			// Compare the timstamp from last event and check if timestamp of receipt is less than the events of message type.
-			// We don't want to mess up the original timeline by 
+			// We don't want to mess up the original timeline by
 			localMatrixEvent = Object.assign(localMatrixEvent, this.rooms[roomId].timeline);
 
 			// To get the latest timestamp of message - from the bottom to avoid going through all the events.
@@ -419,94 +412,87 @@ const useRooms = defineStore('rooms', {
 
 		// This method can be useful to make decisions based on last event.
 		// For example, who send the message.
-		// Last time of an event. 
-		getlastEvent(roomId: string){
+		// Last time of an event.
+		getlastEvent(roomId: string) {
 			return this.getLatestEvents(roomId)[0];
 		},
 
-		unreadMessageCounter(roomId:string, singleEvent:MatrixEvent):void{
+		unreadMessageCounter(roomId: string, singleEvent: MatrixEvent): void {
 			const user = useUser();
-			const receiptTS = this.getReceiptForUserId(roomId, user.user.userId)
-			
-			if (singleEvent === undefined) {
+			const receiptTS = this.getReceiptForUserId(roomId, user.user.userId);
 
+			if (singleEvent === undefined) {
 				// Always initialize to remove any inaccuracies due to caching before counting unread messages.
 				let messageCounter = 0;
 				this.rooms[roomId].resetUnreadMessages();
-				
+
 				// Counting from the latest message.
 				const reverseTimeLine = this.getLatestEvents(roomId);
 				for (const latestEvent of reverseTimeLine) {
-						if (receiptTS < latestEvent.localTimestamp && latestEvent.event.sender !== user.user.userId) {
-							if(latestEvent.getType() === 'm.room.message'){
-								
-								if(latestEvent.event.content?.['m.mentions'] !== undefined){
-									if(latestEvent.event.content?.['m.mentions'].user_ids !==undefined){
-										if(this.unreadMentionMsgCount(latestEvent)){
-											messageCounter = ++messageCounter;
-										}
+					if (receiptTS < latestEvent.localTimestamp && latestEvent.event.sender !== user.user.userId) {
+						if (latestEvent.getType() === 'm.room.message') {
+							if (latestEvent.event.content?.['m.mentions'] !== undefined) {
+								if (latestEvent.event.content?.['m.mentions'].user_ids !== undefined) {
+									if (this.unreadMentionMsgCount(latestEvent)) {
+										messageCounter = ++messageCounter;
 									}
-									
-								}else{
-									messageCounter = ++messageCounter	
 								}
+							} else {
+								messageCounter = ++messageCounter;
 							}
-						} else if (receiptTS > latestEvent.localTimestamp && latestEvent.event.sender !== user.user.userId)  {
-							this.rooms[roomId]._ph.unreadMessages +=messageCounter;
-							// Send this to the global client
-							this.sendUnreadMessageCounter() 
-							break;
-							
-						}			
+						}
+					} else if (receiptTS > latestEvent.localTimestamp && latestEvent.event.sender !== user.user.userId) {
+						this.rooms[roomId]._ph.unreadMessages += messageCounter;
+						// Send this to the global client
+						this.sendUnreadMessageCounter();
+						break;
+					}
 				}
-			} else {	
-				if (receiptTS < singleEvent.localTimestamp && singleEvent.event.sender !== user.user.userId){
-					if(singleEvent.event.content?.['m.mentions'] !== undefined){
+			} else {
+				if (receiptTS < singleEvent.localTimestamp && singleEvent.event.sender !== user.user.userId) {
+					if (singleEvent.event.content?.['m.mentions'] !== undefined) {
 						// Only if 'this' user is mentioned then count. If other users are mentioned then don't count.
-						if(this.unreadMentionMsgCount(singleEvent)){
-							this.rooms[roomId]._ph.unreadMessages +=1;
+						if (this.unreadMentionMsgCount(singleEvent)) {
+							this.rooms[roomId]._ph.unreadMessages += 1;
 							this.sendUnreadMessageCounter();
-						} 
+						}
 					} else {
 						// If there is no mention for this user, but we have a new message, still count.
-						this.rooms[roomId]._ph.unreadMessages +=1;
-						this.sendUnreadMessageCounter()
+						this.rooms[roomId]._ph.unreadMessages += 1;
+						this.sendUnreadMessageCounter();
 					}
 				}
 			}
 		},
 
-		unreadMentionMsgCount (currentMsgEvent: MatrixEvent) {
-				const user = useUser();
-				
-						let onlyPseudonymInLogUser = '';
-						// It is a string so better to convert it to an array of mentions.
-						// It could be a single string or an array of strings. Hencce we convert it to an array.
-						const userIdsInMention: string[] =  currentMsgEvent.event.content?.['m.mentions'].user_ids.includes(',') ? currentMsgEvent.event.content?.['m.mentions'].user_ids.split(','): [currentMsgEvent.event.content?.['m.mentions'].user_ids];
-						
-						const loggedInUserInMention = user.user.displayName!
-						// XXX: Another check for handling display name with pseudonym issue.
-						// Sometimes display name when changing doesn't update properly. In the meantime, someone might mention the user.
-						if(loggedInUserInMention.startsWith('@')) {
-							// We extract only pesudonym. If display name is not returned.
-							// XXX: Tightly coupled with pseudonym format. 
-							onlyPseudonymInLogUser = loggedInUserInMention.substring(1, 7); 
-							
-						}
-						// Only only if you are mentioned! 
-						for (const element of userIdsInMention) {	
-							
-							
-							if (element[0] !== undefined) {
-								if(loggedInUserInMention === element[0] || element[0].includes(onlyPseudonymInLogUser)){
-									return true;	
-								}
-							}
-							
-							
-						} 
-					
-					return false;
+		unreadMentionMsgCount(currentMsgEvent: MatrixEvent) {
+			const user = useUser();
+
+			let onlyPseudonymInLogUser = '';
+			// It is a string so better to convert it to an array of mentions.
+			// It could be a single string or an array of strings. Hencce we convert it to an array.
+			const userIdsInMention: string[] = currentMsgEvent.event.content?.['m.mentions'].user_ids.includes(',')
+				? currentMsgEvent.event.content?.['m.mentions'].user_ids.split(',')
+				: [currentMsgEvent.event.content?.['m.mentions'].user_ids];
+
+			const loggedInUserInMention = user.user.displayName!;
+			// XXX: Another check for handling display name with pseudonym issue.
+			// Sometimes display name when changing doesn't update properly. In the meantime, someone might mention the user.
+			if (loggedInUserInMention.startsWith('@')) {
+				// We extract only pesudonym. If display name is not returned.
+				// XXX: Tightly coupled with pseudonym format.
+				onlyPseudonymInLogUser = loggedInUserInMention.substring(1, 7);
+			}
+			// Only only if you are mentioned!
+			for (const element of userIdsInMention) {
+				if (element[0] !== undefined) {
+					if (loggedInUserInMention === element[0] || element[0].includes(onlyPseudonymInLogUser)) {
+						return true;
+					}
+				}
+			}
+
+			return false;
 		},
 		async fetchPublicRooms() {
 			const pubhubs = usePubHubs();
@@ -706,4 +692,4 @@ const useRooms = defineStore('rooms', {
 	},
 });
 
-export { PubHubsRoomType, Room, PublicRoom, SecuredRoomAttributes, SecuredRoom, useRooms };
+export { PubHubsRoomType, Room, RoomMember, PublicRoom, SecuredRoomAttributes, SecuredRoom, useRooms };
