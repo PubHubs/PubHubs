@@ -108,9 +108,9 @@ describe('rooms Store', () => {
 			expect(notInvited).toEqual(['E5', 'F6']);
 		});
 
-		test('getPrivateRoomNameMembersIds', () => {
+		test('getPrivateRoomMembersIds', () => {
 			const room = new MockedRoom('bla', PubHubsRoomType.PH_MESSAGES_DM);
-			const name = room.getPrivateRoomNameMembers();
+			const name = room.getPrivateRoomMembers();
 			expect(name).toBeTypeOf('object');
 			expect(name).toHaveLength(3);
 			expect(name[0].userId).toEqual('B2');
