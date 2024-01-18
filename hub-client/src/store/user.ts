@@ -70,8 +70,6 @@ const useUser = defineStore('user', {
 			return '';
 		},
 
-
-
 		async fetchIsAdministrator(client: MatrixClient) {
 			try {
 				await client.isSynapseAdministrator();

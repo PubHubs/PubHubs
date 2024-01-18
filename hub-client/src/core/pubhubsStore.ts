@@ -243,37 +243,38 @@ const usePubHubs = defineStore('pubhubs', {
 			};
 			await this.client.sendEvent(roomId, 'm.room.message', content);
 		},
-		
+
 		// Sends acknowledgement to synapse about the message has been read.
 		// We also store the timestamp in localstorage to avoid any inaccuracy of timestamp comparision.
 		// SEE our algorithm for receipt acknowledgement in room.ts / unreadMessageCounter
 		async sendAcknowledgementReceipt(userId: string) {
-			
 			const receiptTimeStamp = Date.now();
 			const rooms = useRooms();
 			const roomId = rooms.currentRoom?.roomId!;
-			
+
 			// If we already have unread messages in the room and we haven't seen them, then no need to send a receipt.
-			if (rooms.currentRoom?._ph.unreadMessages != 0){ return; }
-			
+			if (rooms.currentRoom?._ph.unreadMessages != 0) {
+				return;
+			}
+
 			const content = {
-				"m.read": {
+				'm.read': {
 					[userId]: {
 						ts: receiptTimeStamp,
 						thread_id: undefined,
-					}
+					},
 				},
-			}
-			
+			};
+
 			// Retrieve existing data from localStorage
-			const storedDataString = localStorage.getItem("receiptTS");
+			const storedDataString = localStorage.getItem('receiptTS');
 			let storedData: { roomId: string; timestamp: number }[] = [];
 
 			if (storedDataString) {
 				try {
 					storedData = JSON.parse(storedDataString);
 				} catch (error) {
-					console.error("Error parsing data from localStorage:", error);
+					console.error('Error parsing data from localStorage:', error);
 				}
 			}
 
@@ -290,14 +291,12 @@ const usePubHubs = defineStore('pubhubs', {
 			}
 
 			// Save the updated data back to localStorage
-			localStorage.setItem("receiptTS", JSON.stringify(storedData));
+			localStorage.setItem('receiptTS', JSON.stringify(storedData));
 			try {
-				await  this.client.sendEvent(roomId, 'm.receipt', content); 
-			} catch (err){
+				await this.client.sendEvent(roomId, 'm.receipt', content);
+			} catch (err) {
 				console.log(err);
 			}
-			
-		
 		},
 
 		async addImage(roomId: string, uri: string, fileDesc: string) {

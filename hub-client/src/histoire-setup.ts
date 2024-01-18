@@ -44,8 +44,8 @@ import TabPill from '@/components/ui/TabPill.vue';
 
 const i18n = setUpi18n();
 const _env = {
-    HUB_URL : '',
-}
+	HUB_URL: '',
+};
 
 export const setupVue3 = defineSetupVue3(({ app, story, variant }) => {
 	app.use(createPinia());

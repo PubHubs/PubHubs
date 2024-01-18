@@ -10,7 +10,7 @@
 		</div>
 		<div v-if="noPerm()" class="flex flex-col md:flex-row justify-between mb-2">
 			<label>{{ t('settings.notifications') }}</label>
-			<Button @click=askPerm()>{{ t('settings.notifications_allow') }}</Button>
+			<Button @click="askPerm()">{{ t('settings.notifications_allow') }}</Button>
 		</div>
 	</div>
 </template>
@@ -28,15 +28,15 @@
 	const settings = useSettings();
 	const dialog = useDialog();
 
-  function noPerm() {
-    return Notification.permission === 'denied' || Notification.permission === 'default'
-  }
+	function noPerm() {
+		return Notification.permission === 'denied' || Notification.permission === 'default';
+	}
 
-  function askPerm() {
-    Notification.requestPermission().then((result) => {
-      console.debug(result);
-      });
-  }
+	function askPerm() {
+		Notification.requestPermission().then((result) => {
+			console.debug(result);
+		});
+	}
 
 	setData({
 		theme: { value: settings.getSetTheme as FormDataType },

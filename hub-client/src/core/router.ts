@@ -18,20 +18,18 @@ const router = createRouter({
 	routes: routes,
 });
 
-
-
-router.beforeEach( (to) => {
+router.beforeEach((to) => {
 	//Add a receipt marker when we change the room.
 	const rooms = useRooms();
 	const pubhubs = usePubHubs();
-	
-    rooms.roomsArray.forEach(async (room) => {
-        if (room.roomId === router.currentRoute.value.params.id) {
-            const mEvent: MatrixEvent = rooms.getlastEvent(room.roomId);
-            const sender = mEvent.event.sender!;
+
+	rooms.roomsArray.forEach(async (room) => {
+		if (room.roomId === router.currentRoute.value.params.id) {
+			const mEvent: MatrixEvent = rooms.getlastEvent(room.roomId);
+			const sender = mEvent.event.sender!;
 			await pubhubs.sendAcknowledgementReceipt(sender);
 		}
-    });	
+	});
 
 	if (to.meta.onlyAdmin) {
 		const { isAdmin } = useUser();

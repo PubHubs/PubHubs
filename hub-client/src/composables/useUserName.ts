@@ -26,7 +26,6 @@ const useUserAvatar = () => {
 		const member = currentRoom.getMember(user);
 		if (member != null) {
 			if (member.user != undefined && member.user.avatarUrl != undefined) {
-				
 				return member.user.avatarUrl;
 			}
 		}

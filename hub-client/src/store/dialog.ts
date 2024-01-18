@@ -49,7 +49,7 @@ class DialogProperties {
 	modal: Boolean;
 	modalonly: Boolean;
 	close: Boolean;
-	thumbnail_url:string;
+	thumbnail_url: string;
 
 	constructor(title = '', content = '', buttons: Array<DialogButton> = [], modal = true, close = true, thumbnail_url = '') {
 		this.title = title;
