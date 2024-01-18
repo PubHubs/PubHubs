@@ -10,7 +10,7 @@
 
 <script setup lang="ts">
 	import { useUserColor } from '@/composables/useUserColor';
-import { M_MessageEvent } from '@/types/events';
+	import { M_MessageEvent } from '@/types/events';
 	import { computed } from 'vue';
 
 	const { color, textColor } = useUserColor();

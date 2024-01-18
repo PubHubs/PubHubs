@@ -2,35 +2,34 @@
 @tailwind components;
 @tailwind utilities;
 
-
 :root {
-    --black: #000;
+	--black: #000;
 
-    --white: #FFF;
-    --white-middle: #E7E3E3;
+	--white: #fff;
+	--white-middle: #e7e3e3;
 
-		--gray-lighter2: #ECECEC;
-    --gray-lighter: #CCC;
-    --gray-light: #AAA;
-    --gray: #686868;
-    --gray-middle: #464545;
-    --gray-dark: #3D3C3C;
-    --gray-darker: #2F2E2E;
+	--gray-lighter2: #ececec;
+	--gray-lighter: #ccc;
+	--gray-light: #aaa;
+	--gray: #686868;
+	--gray-middle: #464545;
+	--gray-dark: #3d3c3c;
+	--gray-darker: #2f2e2e;
 
-    --green-lighter: #00EE98;
-    --green-light: #7EE6A9;
-    --green: #5EC269;
-    --green-dark: #3EA439;
-    --green-darker: #1C8217;
+	--green-lighter: #00ee98;
+	--green-light: #7ee6a9;
+	--green: #5ec269;
+	--green-dark: #3ea439;
+	--green-darker: #1c8217;
 
-    --blue-lighter: #67e8f9;
-    --blue-light: #00ADEE;
-    --blue: #408BE1;
-    --blue-dark: #001242;
+	--blue-lighter: #67e8f9;
+	--blue-light: #00adee;
+	--blue: #408be1;
+	--blue-dark: #001242;
 
-    --red-light: #ff3333;
-    --red: #ff0000;
-    --red-dark: #660000;
+	--red-light: #ff3333;
+	--red: #ff0000;
+	--red-dark: #660000;
 }
 
 html,
@@ -54,8 +53,12 @@ body,
 	font-style: normal;
 	font-weight: normal;
 	src: url('./fonts/worksans-regular.eot');
-	src: url('./fonts/worksans-regular.eot?#iefix') format('embedded-opentype'), url('./fonts/worksans-regular.woff2') format('woff2'), url('./fonts/worksans-regular.woff') format('woff'),
-		url('./fonts/worksans-regular.ttf') format('truetype'), url('./fonts/worksans-regular.svg#work_sansregular') format('svg');
+	src:
+		url('./fonts/worksans-regular.eot?#iefix') format('embedded-opentype'),
+		url('./fonts/worksans-regular.woff2') format('woff2'),
+		url('./fonts/worksans-regular.woff') format('woff'),
+		url('./fonts/worksans-regular.ttf') format('truetype'),
+		url('./fonts/worksans-regular.svg#work_sansregular') format('svg');
 }
 
 @font-face {
@@ -64,8 +67,12 @@ body,
 	font-style: normal;
 	font-weight: normal;
 	src: url('./fonts/worksans-semibold.eot');
-	src: url('./fonts/worksans-semibold.eot?#iefix') format('embedded-opentype'), url('./fonts/worksans-semibold.woff2') format('woff2'), url('./fonts/worksans-semibold.woff') format('woff'),
-		url('./fonts/worksans-semibold.ttf') format('truetype'), url('./fonts/worksans-semibold.svg#work_sanssemibold') format('svg');
+	src:
+		url('./fonts/worksans-semibold.eot?#iefix') format('embedded-opentype'),
+		url('./fonts/worksans-semibold.woff2') format('woff2'),
+		url('./fonts/worksans-semibold.woff') format('woff'),
+		url('./fonts/worksans-semibold.ttf') format('truetype'),
+		url('./fonts/worksans-semibold.svg#work_sanssemibold') format('svg');
 }
 
 @font-face {
@@ -74,6 +81,10 @@ body,
 	font-style: normal;
 	font-weight: 400;
 	src: url('./fonts/Atkinson-Hyperlegible-Regular-102.eot');
-	src: url('./fonts/Atkinson-Hyperlegible-Regular-102.eot?#iefix') format('embedded-opentype'), url('./fonts/Atkinson-Hyperlegible-Regular-102a.woff2') format('woff2'), url('./fonts/Atkinson-Hyperlegible-Regular-102.woff') format('woff'),
-		url('./fonts/Atkinson-Hyperlegible-Regular-102.ttf') format('truetype'), url('./fonts/Atkinson-Hyperlegible-Regular-102.svg#atkinson_hyperlegibleregular') format('svg');
+	src:
+		url('./fonts/Atkinson-Hyperlegible-Regular-102.eot?#iefix') format('embedded-opentype'),
+		url('./fonts/Atkinson-Hyperlegible-Regular-102a.woff2') format('woff2'),
+		url('./fonts/Atkinson-Hyperlegible-Regular-102.woff') format('woff'),
+		url('./fonts/Atkinson-Hyperlegible-Regular-102.ttf') format('truetype'),
+		url('./fonts/Atkinson-Hyperlegible-Regular-102.svg#atkinson_hyperlegibleregular') format('svg');
 }

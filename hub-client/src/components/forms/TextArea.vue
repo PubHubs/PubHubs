@@ -23,7 +23,7 @@
 
 	const MAX_CHARS_PER_LINE = 100;
 
-	const elTextarea: Ref<null|HTMLTextAreaElement> = ref(null);
+	const elTextarea: Ref<null | HTMLTextAreaElement> = ref(null);
 
 	const props = defineProps({
 		placeholder: {
@@ -58,7 +58,7 @@
 		if (!elTextarea.value) return;
 		const text = elTextarea.value.value;
 
-		const numLinesLowerBound = Math.ceil(text.length / MAX_CHARS_PER_LINE)
+		const numLinesLowerBound = Math.ceil(text.length / MAX_CHARS_PER_LINE);
 		const numNewLines = text.split('\n').length;
 		elTextarea.value.rows = Math.max(numLinesLowerBound, numNewLines);
 	}

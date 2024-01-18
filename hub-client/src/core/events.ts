@@ -4,7 +4,6 @@ import { MatrixClient, MatrixEvent, ClientEvent, Room as MatrixRoom, RoomEvent, 
 import { useSettings, User, useConnection, useUser, useRooms } from '@/store/store';
 import { usePubHubs } from '@/core/pubhubsStore';
 
-
 class Events {
 	private client: MatrixClient;
 
@@ -76,10 +75,9 @@ class Events {
 			if (event.event.type != 'm.room.message') return;
 
 			if (room.roomId !== rooms.currentRoomId) {
-				rooms.unreadMessageCounter(room.roomId, event)
+				rooms.unreadMessageCounter(room.roomId, event);
 			}
 		}
-
 	}
 
 	eventRoomMemberName(event: MatrixEvent, member: RoomMember) {
@@ -92,7 +90,7 @@ class Events {
 			}
 		}
 	}
-	
+
 	eventRoomMemberMembership(client: MatrixClient) {
 		return function eventRoomMemberMembershipInner(event: MatrixEvent, member: RoomMember) {
 			const me = client.getUserId();

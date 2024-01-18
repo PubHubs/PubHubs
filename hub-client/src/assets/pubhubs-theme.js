@@ -51,11 +51,12 @@ const pubhubs = {
 	},
 	fontFamily: {
 		sans: ['work_sansregular', 'work_sanssemibold', 'atkinson_hyperlegibleregular'],
-	},extend: {
+	},
+	extend: {
 		screens: {
 			'2md': '896px',
-		}
-	}
+		},
+	},
 };
 
 module.exports = pubhubs;
