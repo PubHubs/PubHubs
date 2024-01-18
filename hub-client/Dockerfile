@@ -1,5 +1,3 @@
-# When making changes here, make sure they are also in `Dockerfile.branding`
-
 FROM node:19-slim as builder
 COPY . .
 RUN npm ci

@@ -100,6 +100,8 @@ const nl = {
 		add_room: 'Voeg openbaar gesprek toe',
 		add_secured_room: 'Voeg beveiligd gesprek toe',
 		name: 'Naam van gesprek',
+		room_type: 'Type gesprek',
+		room_type_placeholder: 'bijvoorbeeld: ph.plugin.xxx',
 		edit_name: 'Pas naam van gesprek aan',
 		edit_secured_room: 'Pas beveiligd gesprek aan',
 		added_room: 'Gesprek toegevoegd',

@@ -42,6 +42,10 @@ const icons: { [key: string]: string } = {
         <line x1="15" y1="9" x2="9" y2="15" />
         <line x1="9" y1="9" x2="15" y2="15" />
         `,
+	'chevron-right': `
+        <path stroke="none" d="M0 0h24v24H0z"/>
+        <polyline points="9 6 15 12 9 18" />
+    `,
 	'chevron-down': `
         <path stroke="none" d="M0 0h24v24H0z" />
         <polyline points="6 9 12 15 18 9" />

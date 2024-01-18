@@ -1,46 +1,61 @@
 <template>
-	<div v-if="hubSettings.isVisibleEventType(event.type) && hubSettings.skipNoticeUserEvent(event)" class="group flex flex-row space-x-4 mb-8">
-		<Avatar :class="bgColor(color(event.sender))" :userName="event.sender" :img="avatar(event.sender) ? pubhubs.getBaseUrl + '/_matrix/media/r0/download/' + avatar(event.sender).slice(6) : ''"></Avatar>
-		<div class="w-4/5 md:w-3/5">
-			<div class="flex items-center h-4">
-				<H3 class="flex items-center gap-x-2 mb-0">
-					<UserDisplayName :user="event.sender"></UserDisplayName>
-					<span class="text-xs font-normal">|</span>
-					<EventTime :timestamp="event.origin_server_ts"> </EventTime>
-				</H3>
-				<button v-if="!msgIsNotSend" @click="reply" class="ml-2 mb-1 hidden group-hover:block">
-					<Icon :type="'reply'" :size="'sm'"></Icon>
-				</button>
-				<template v-if="timerReady">
-					<button v-if="msgIsNotSend && connection.isOn" @click="resend()" class="ml-2 mb-1" :title="$t('errors.resend')">
-						<Icon type="refresh" size="sm" class="text-red"></Icon>
+	<div>
+		<!-- Plugin Event -->
+		<div v-if="event.plugin && event.plugin.plugintype == PluginType.EVENT && event.type == event.plugin.type">
+			<component :is="event.plugin.component" :event="event">{{ event.plugin.component }}</component>
+		</div>
+		<!-- Normal Event -->
+		<div v-if="hubSettings.isVisibleEventType(event.type) && hubSettings.skipNoticeUserEvent(event)" class="group flex flex-row space-x-4 mb-8">
+			<Avatar :class="bgColor(color(event.sender))" :userName="event.sender" :img="avatar(event.sender) ? pubhubs.getBaseUrl + '/_matrix/media/r0/download/' + avatar(event.sender).slice(6) : ''"></Avatar>
+			<div class="w-4/5 md:w-3/5">
+				<div class="flex items-center h-4">
+					<H3 class="flex items-center gap-x-2 mb-0">
+						<UserDisplayName :user="event.sender"></UserDisplayName>
+						<span class="text-xs font-normal">|</span>
+						<EventTime :timestamp="event.origin_server_ts"> </EventTime>
+					</H3>
+					<button v-if="!msgIsNotSend" @click="reply" class="ml-2 mb-1 hidden group-hover:block">
+						<Icon :type="'reply'" :size="'sm'"></Icon>
 					</button>
-					<Icon v-if="msgIsNotSend && !connection.isOn" type="lost-connection" size="sm" class="ml-2 mb-1 text-red"></Icon>
+					<template v-if="timerReady">
+						<button v-if="msgIsNotSend && connection.isOn" @click="resend()" class="ml-2 mb-1" :title="$t('errors.resend')">
+							<Icon type="refresh" size="sm" class="text-red"></Icon>
+						</button>
+						<Icon v-if="msgIsNotSend && !connection.isOn" type="lost-connection" size="sm" class="ml-2 mb-1 text-red"></Icon>
+					</template>
+				</div>
+				<H3>
+					<ProfileAttributes v-if="rooms.roomIsSecure(rooms.currentRoom!.roomId)" :user="event.sender"></ProfileAttributes>
+				</H3>
+
+				<template v-if="event.plugin?.plugintype == PluginType.MESSAGE && event.content.msgtype == event.plugin.type">
+					<!-- Plugin Message -->
+					<component :is="event.plugin.component" :event="event">{{ event.plugin.component }}</component>
+				</template>
+				<template v-else>
+					<MessageMention v-if="msgTypeIncludesMention" :message="event.content.body" :users="users"></MessageMention>
+					<button><MessageSnippet v-if="inReplyTo" :event="inReplyTo" :showInReplyTo="true" @click="onInReplyToClick"></MessageSnippet></button>
+					<Message v-if="msgShowBody && !msgTypeIncludesMention" :message="event.content.body" :users="users"></Message>
+					<MessageSigned v-if="event.content.msgtype == 'pubhubs.signed_message'" :message="event.content.signed_message"></MessageSigned>
+					<MessageHtml v-if="msgTypeIsHtml && !msgTypeIncludesMention" :message="(event.content as M_HTMLTextMessageEventContent).formatted_body"></MessageHtml>
+					<MessageFile v-if="event.content.msgtype == 'm.file'" :message="event.content"></MessageFile>
+					<MessageImage v-if="event.content.msgtype == 'm.image'" :message="event.content"></MessageImage>
 				</template>
 			</div>
-			<H3>
-				<ProfileAttributes v-if="rooms.roomIsSecure(rooms.currentRoom.roomId)" :user="event.sender"></ProfileAttributes>
-			</H3>
-			<MessageMention v-if="msgTypeIncludesMention" :message="event.content.body" :users="users"></MessageMention>
-			<button><MessageSnippet v-if="inReplyTo" :event="inReplyTo" :showInReplyTo="true" @click="onInReplyToClick"></MessageSnippet></button>
-			<Message v-if="msgShowBody && !msgTypeIncludesMention" :message="event.content.body" :users="users"></Message>
-			<MessageSigned v-if="event.content.msgtype == 'pubhubs.signed_message'" :message="event.content.signed_message"></MessageSigned>
-			<MessageHtml v-if="msgTypeIsHtml && !msgTypeIncludesMention" :message="(event.content as M_HTMLTextMessageEventContent).formatted_body"></MessageHtml>
-			<MessageFile v-if="event.content.msgtype == 'm.file'" :message="event.content"></MessageFile>
-			<MessageImage v-if="event.content.msgtype == 'm.image'" :message="event.content"></MessageImage>
 		</div>
 	</div>
 </template>
 
 <script setup lang="ts">
-	import { useUserAvatar } from '@/composables/useUserName';
 	import { computed, onMounted, ref } from 'vue';
+	import { useUserAvatar } from '@/composables/useUserName';
 	import { usePubHubs } from '@/core/pubhubsStore';
 	import { useHubSettings, useConnection } from '@/store/store';
 	import { useUserColor } from '@/composables/useUserColor';
 	import { useMessageActions } from '@/store/message-actions';
 	import MessageSnippet from './MessageSnippet.vue';
 	import { useRooms } from '@/store/store';
+	import { PluginType } from '@/store/plugins';
 	import { M_MessageEvent, M_HTMLTextMessageEventContent, M_EventId } from '@/types/events';
 	import { User as MatrixUser } from 'matrix-js-sdk';
 
@@ -57,6 +72,8 @@
 
 	const supportedMsgTypes = ['m.text', 'm.image', 'm.file', 'pubhubs.signed_message'];
 
+	const props = defineProps<{ event: M_MessageEvent }>();
+
 	onMounted(async () => {
 		if (rooms.currentRoomExists) {
 			await rooms.storeRoomNotice(rooms.currentRoom!.roomId);
@@ -64,14 +81,12 @@
 		users.value = await pubhubs.getUsers();
 	});
 
-	const props = defineProps<{ event: M_MessageEvent }>();
-
 	const inReplyTo = structuredClone(props.event.content['m.relates_to']?.['m.in_reply_to']?.x_event_copy);
 
 	//#region Events
 
 	const emit = defineEmits<{
-		(e: 'inReplyToClicked', inReplyToId: M_EventId): void
+		(e: 'inReplyToClicked', inReplyToId: M_EventId): void;
 	}>();
 
 	function onInReplyToClick() {
@@ -81,7 +96,7 @@
 
 	//#endregion
 
-  //#region Computed properties
+	//#region Computed properties
 
 	const msgIsNotSend = computed(() => {
 		return props.event.event_id.substring(0, 1) == '~';

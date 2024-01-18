@@ -16,12 +16,17 @@
 						<p v-if="rooms.nonSecuredPublicRooms.length == 0">{{ $t('admin.no_secured_rooms') }}</p>
 						<FilteredList v-else :items="rooms.nonSecuredPublicRooms" filterKey="name" :placeholder="$t('rooms.filter')">
 							<template #item="{ item }">
-								<Icon :type="roomIcon(item)" class="mr-4 float-left text-green group-hover:text-black"></Icon>
+								<Icon type="room" class="mr-4 float-left text-green group-hover:text-black"></Icon>
 								<span :title="item.room_id">
 									{{ item.name }}
-									[{{ item.num_joined_members }} {{ $t('rooms.members') }}]
-									<span v-if="rooms.room(item.room_id)?.userIsMember(user.user.userId)">
-										<span class="text-green group-hover:text-white">{{ $t('rooms.member') }} ({{ rooms.room(item.room_id)?.getPowerLevel(user.user.userId) }})</span>
+									<span v-if="item.room_type" class="italic text-gray-light pr-2"> {{ item.room_type }} </span>
+									<span class="text-blue-light">
+										<Icon type="person" size="sm" class="inline-block mb-1"></Icon>x {{ item.num_joined_members }}
+										<span v-if="rooms.room(item.room_id)?.userIsMember(user.user.userId)">
+											<span class="text-green group-hover:text-white">
+												<Icon type="person" size="sm" class="inline-block mb-1"></Icon>
+											</span>
+										</span>
 									</span>
 								</span>
 								<Icon type="remove" class="float-right cursor-pointer hover:text-red" @click="removePublicRoom(item)"></Icon>
@@ -36,7 +41,7 @@
 							<template #item="{ item }">
 								<Icon type="lock" class="mr-4 float-left text-green group-hover:text-black"></Icon>
 								<span :title="item.room_id">
-									{{ item.room_name }} <span v-if="item.user_txt !== ''">- {{ item.user_txt }}</span>
+									{{ item.room_name }} <span v-if="item.user_txt !== ''" class="italic text-gray-light">- {{ item.user_txt }}</span>
 								</span>
 								<Icon type="remove" class="float-right cursor-pointer hover:text-red" @click="removeSecuredRoom(item)"></Icon>
 								<Icon type="edit" class="float-right mr-1 cursor-pointer hover:text-white" @click="EditSecuredRoom(item)"></Icon>
@@ -53,7 +58,7 @@
 
 <script setup lang="ts">
 	import { ref, onMounted } from 'vue';
-	import { useUser, PubHubsRoomType, PublicRoom, SecuredRoom, useRooms, useDialog } from '@/store/store';
+	import { useUser, PublicRoom, SecuredRoom, useRooms, useDialog } from '@/store/store';
 	import { useI18n } from 'vue-i18n';
 
 	const { t } = useI18n();
@@ -68,17 +73,6 @@
 	onMounted(async () => {
 		await rooms.fetchSecuredRooms();
 	});
-
-	function isSecuredRoom(room: PublicRoom) {
-		return typeof room.room_type !== 'undefined' && room.room_type !== PubHubsRoomType.PH_MESSAGES_RESTRICTED;
-	}
-
-	function roomIcon(room: PublicRoom) {
-		if (isSecuredRoom(room)) {
-			return 'lock';
-		}
-		return 'room';
-	}
 
 	function newPublicRoom() {
 		secured.value = false;

@@ -117,7 +117,7 @@ const usePubHubs = defineStore('pubhubs', {
 			await this.client.invite(room_id, user_id, reason);
 		},
 
-		async createRoom(options: object): Promise<{ room_id: string }> {
+		async createRoom(options: any): Promise<{ room_id: string }> {
 			const room = await this.client.createRoom(options);
 			this.updateRooms();
 			return room;
@@ -142,7 +142,6 @@ const usePubHubs = defineStore('pubhubs', {
 
 			// If realy not exists, create new
 			if (existingRoomId == false) {
-				console.log('createRoom', existingRoomId);
 				const room = await this.createRoom({
 					name: `${me.userId},${other.userId}`,
 					visibility: 'private',

@@ -1,7 +1,7 @@
 <template>
 	<div id="room-timeline" ref="elRoomTimeline" class="h-full overflow-y-auto relative" @scroll="onScroll">
-		<template v-for="(item, index) in rooms.rooms[room_id]?.timeline || []" :key="index">
-			<RoomEvent :eventId="item.event.event_id" :name="item.event.event_id" :event="item.event" class="room-event" @on-in-reply-to-click="onInReplyToClick"></RoomEvent>
+		<template v-for="(item, index) in rooms.getRoomTimeLineWithPluginsCheck(room_id)" :key="index">
+			<RoomEvent :event="item.event" class="room-event" @on-in-reply-to-click="onInReplyToClick"></RoomEvent>
 		</template>
 	</div>
 </template>
@@ -26,7 +26,6 @@
 	};
 
 	const props = defineProps<Props>();
-
 
 	onMounted(async () => {
 		if (!rooms.currentRoomExists) return;
@@ -82,7 +81,7 @@
 	}
 
 	function onInReplyToClick(inReplyToId: string) {
-		scrollToEvent(inReplyToId, {position: 'TopCenter', select: 'Highlight'});
+		scrollToEvent(inReplyToId, { position: 'TopCenter', select: 'Highlight' });
 	}
 
 	//#endregion
@@ -91,8 +90,7 @@
 		elRoomTimeline.value?.scrollTo(0, elRoomTimeline.value.scrollHeight);
 	}
 
-
-	async function scrollToEvent(eventId: string, options: {position: 'Top' | 'TopCenter', select?: 'Highlight' | 'Select'} = {position: 'Top'}) {
+	async function scrollToEvent(eventId: string, options: { position: 'Top' | 'TopCenter'; select?: 'Highlight' | 'Select' } = { position: 'Top' }) {
 		if (!elRoomTimeline.value) return;
 
 		await pubhubs.loadToMessage(rooms.currentRoomId, eventId);
@@ -103,7 +101,7 @@
 		// Scroll the event into view depending on the position option.
 		elEvent.scrollIntoView();
 		if (options.position == 'TopCenter') {
-			elRoomTimeline.value.scrollTop -= elRoomTimeline.value.clientHeight * 1 / 3;
+			elRoomTimeline.value.scrollTop -= (elRoomTimeline.value.clientHeight * 1) / 3;
 		}
 
 		// Style the event depending on the select option.
@@ -119,22 +117,19 @@
 		if (!elRoomTimeline.value) return false;
 
 		// isScrolling is true if the user scrolled up 1/3 of the timeline element height from the bottom or more.
-		return elRoomTimeline.value.scrollTop +
-			4/3 * elRoomTimeline.value.clientHeight <
-			elRoomTimeline.value.scrollHeight;
+		return elRoomTimeline.value.scrollTop + (4 / 3) * elRoomTimeline.value.clientHeight < elRoomTimeline.value.scrollHeight;
 	}
 
 	function newEventsExist(): boolean {
 		if (!rooms.currentRoom) return false;
 		return newestEventId !== rooms.currentRoom.timeline.at(-1)?.event.event_id;
 	}
-
 </script>
 
 <style scoped>
 	/* The highlight animation is used when scrolling to an event with the highlight option selected. */
-  .room-event {
-		background: none
+	.room-event {
+		background: none;
 	}
 
 	.room-event.highlighted {
@@ -142,16 +137,14 @@
 	}
 
 	@keyframes highlight {
-  0% {
-    background: none;
-  }
-  70% {
-    background: gray;
-  }
-	100% {
-		background: none;
+		0% {
+			background: none;
+		}
+		70% {
+			background: gray;
+		}
+		100% {
+			background: none;
+		}
 	}
-
-}
-
 </style>

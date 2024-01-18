@@ -8,7 +8,7 @@
  */
 
 import { defineStore } from 'pinia';
-import { Room as MatrixRoom, IPublicRoomsChunkRoom as PublicRoom, MatrixClient, RoomMember, MatrixEvent } from 'matrix-js-sdk';
+import { Room as MatrixRoom, IPublicRoomsChunkRoom as PublicRoom, MatrixClient, RoomMember, IEvent, MatrixEvent } from 'matrix-js-sdk';
 import { Message, MessageType, useMessageBox } from './messagebox';
 import { useRouter } from 'vue-router';
 import { api_synapse, api_matrix } from '@/core/api';
@@ -16,6 +16,7 @@ import { usePubHubs } from '@/core/pubhubsStore';
 import { propCompare } from '@/core/extensions';
 import { YiviSigningSessionResult } from '@/lib/signedMessages';
 import { useUser } from './user';
+import { usePlugins, PluginProperties } from './plugins';
 
 enum PubHubsRoomType {
 	PH_MESSAGES_RESTRICTED = 'ph.messages.restricted',
@@ -65,6 +66,13 @@ interface Content {
 
 interface Unsigned {
 	age: number;
+}
+
+/**
+ *  Extending the Matrix IEvent for plugins
+ */
+interface Event extends IEvent {
+	plugin?: PluginProperties | boolean;
 }
 
 /**
@@ -254,7 +262,10 @@ const useRooms = defineStore('rooms', {
 
 		roomExists: (state) => {
 			return (roomId: string) => {
-				return typeof state.rooms[roomId] == 'undefined' ? false : true;
+				if (roomId) {
+					return typeof state.rooms[roomId] == 'undefined' ? false : true;
+				}
+				return false;
 			};
 		},
 
@@ -264,6 +275,32 @@ const useRooms = defineStore('rooms', {
 					return state.rooms[roomId];
 				}
 				return undefined;
+			};
+		},
+
+		getRoomTimeLineWithPluginsCheck: (state) => {
+			return (roomId: string) => {
+				if (typeof state.rooms[roomId] == 'undefined') return undefined;
+				const room = state.rooms[roomId];
+				const roomType = room.getType();
+				const timeline = room.getLiveTimeline().getEvents();
+				const plugins = usePlugins();
+				const len = timeline.length;
+				for (let idx = 0; idx < len; idx++) {
+					const event = timeline[idx].event as unknown as Event;
+					event.plugin = false;
+					const hasEventPlugin = plugins.hasEventPlugin(event, roomId, roomType);
+					if (hasEventPlugin) {
+						event.plugin = hasEventPlugin;
+					} else {
+						const hasEventMessagePlugin = plugins.hasEventMessagePlugin(event, roomId, roomType);
+						if (hasEventMessagePlugin) {
+							event.plugin = hasEventMessagePlugin;
+						}
+					}
+					timeline[idx].event = event as any;
+				}
+				return timeline;
 			};
 		},
 
@@ -692,4 +729,4 @@ const useRooms = defineStore('rooms', {
 	},
 });
 
-export { PubHubsRoomType, Room, RoomMember, PublicRoom, SecuredRoomAttributes, SecuredRoom, useRooms };
+export { PubHubsRoomType, Event, Room, RoomMember, PublicRoom, SecuredRoomAttributes, SecuredRoom, useRooms };
