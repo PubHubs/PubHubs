@@ -11,11 +11,9 @@
 					</template>
 
 					<Menu>
-						<router-link to="/" v-slot="{ isActive }">
-							<MenuItem icon="home" :active="isActive" @click="toggleMenu.toggleGlobalMenu()">{{ $t('menu.home') }}</MenuItem>
+						<router-link v-for="(item, index) in menu.getMenu" :key="index" :to="item.to" v-slot="{ isActive }">
+							<MenuItem :icon="item.icon" :active="isActive" @click="toggleMenu.toggleGlobalMenu()">{{ $t(item.key) }}</MenuItem>
 						</router-link>
-						<MenuItem @click="toggleMenu.toggleGlobalMenu()">{{ $t('menu.calender') }}</MenuItem>
-						<MenuItem @click="toggleMenu.toggleGlobalMenu()">{{ $t('menu.tool') }}</MenuItem>
 					</Menu>
 
 					<H2 class="mt-12">{{ $t('menu.rooms') }}</H2>
@@ -58,11 +56,13 @@
 </template>
 
 <script setup lang="ts">
-	import { onMounted, ref } from 'vue';
+	import { onMounted, ref, getCurrentInstance } from 'vue';
 	import { RouteParamValue, useRouter } from 'vue-router';
 	import { Message, MessageBoxType, MessageType, Theme, useHubSettings, useMessageBox, PubHubsRoomType, useRooms, useSettings, useUser } from '@/store/store';
 	import { useDialog } from '@/store/dialog';
 	import { usePubHubs } from '@/core/pubhubsStore';
+	import { useMenu } from '@/store/menu';
+	import { usePlugins } from '@/store/plugins';
 	import { useI18n } from 'vue-i18n';
 	import { useToggleMenu } from '@/store/toggleGlobalMenu';
 
@@ -75,12 +75,19 @@
 	const messagebox = useMessageBox();
 	const dialog = useDialog();
 	const pubhubs = usePubHubs();
+	const plugins = usePlugins();
+	const menu = useMenu();
 	const toggleMenu = useToggleMenu();
 
 	const setupReady = ref(false);
 	const joinRoomDialog = ref(false);
 	const addPrivateRoomDialog = ref(false);
 	const acknowledgeOnce = ref(true);
+
+	onMounted(() => {
+		plugins.setPlugins(getCurrentInstance()?.appContext.config.globalProperties._plugins, router);
+	});
+
 	onMounted(async () => {
 		settings.initI18b({ locale: locale, availableLocales: availableLocales });
 		// set language when changed

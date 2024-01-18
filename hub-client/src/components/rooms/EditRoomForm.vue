@@ -5,6 +5,10 @@
 				<Label>{{ $t('admin.name') }}</Label>
 				<TextInput :placeholder="$t('admin.name')" v-model="editRoom.room_name" class="w-5/6" @changed="updateData('room_name', $event)"></TextInput>
 			</FormLine>
+			<FormLine v-if="!secured">
+				<Label>{{ $t('admin.room_type') }}</Label>
+				<TextInput :placeholder="$t('admin.room_type_placeholder')" v-model="editRoom.type" class="w-5/6" @submit="submitRoom()"></TextInput>
+			</FormLine>
 			<div v-if="secured">
 				<FormLine class="mb-2">
 					<Label>{{ $t('admin.secured_description') }}</Label>
@@ -76,6 +80,7 @@
 		room_name: '',
 		accepted: [] as Array<SecuredRoomAttributesObject>,
 		user_txt: '',
+		type: '',
 	} as SecuredRoom;
 
 	const editRoom = ref({} as PublicRoom | SecuredRoom);
@@ -91,9 +96,9 @@
 		securedRoomTemplate.value[0].options = yivi.attributesOptions;
 
 		if (isNewRoom.value) {
-			editRoom.value = { ...emptyNewRoom };
+			editRoom.value = { ...emptyNewRoom } as PublicRoom | SecuredRoom;
 		} else {
-			editRoom.value = { ...(props.room as SecuredRoom) };
+			editRoom.value = { ...(props.room as PublicRoom | SecuredRoom) };
 			securedRoomTemplate.value.splice(2, 1); // Profile editing off for existing secured room
 			// Transform for form
 			let accepted = editRoom.value.accepted as any;
@@ -136,10 +141,14 @@
 		// Normal room
 		if (!props.secured) {
 			// Allways new
-			await pubhubs.createRoom({
+			let newRoomOptions = {
 				name: room.room_name,
 				visibility: 'public',
-			});
+				creation_content: {
+					type: room.type == '' ? undefined : room.type,
+				},
+			};
+			await pubhubs.createRoom(newRoomOptions);
 			editRoom.value = { ...emptyNewRoom };
 		} else {
 			// Secured room

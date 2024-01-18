@@ -1,5 +1,6 @@
 import { SignedMessage } from '@/lib/signedMessages';
 import { WithRequired } from './utility';
+import { PluginProperties } from '@/store/plugins';
 
 export type M_EventId = string;
 
@@ -13,6 +14,7 @@ export interface M_MessageEvent<C extends M_MessageEventContent = M_MessageEvent
 	type: string;
 	// See matrix specification
 	unsigned?: Record<string, any>;
+	plugin?: PluginProperties | boolean;
 }
 
 interface M_BaseMessageEventContent {

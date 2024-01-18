@@ -30,4 +30,31 @@ const isEmpty = (v: any) => {
 	return false;
 };
 
-export { propCompare, trimSplit, isEmpty };
+// Check if given object is an object and not an array.
+const isObject = (item: any): item is Object => {
+	return item && typeof item === 'object' && !Array.isArray(item);
+};
+
+const mergeDeep = (target: any, ...sources: any): any => {
+	if (!sources.length) return target;
+	const source = sources.shift();
+
+	if (isObject(target) && isObject(source)) {
+		for (const key in source) {
+			if (isObject(source[key])) {
+				if (!target[key])
+					Object.assign(target, {
+						[key]: {},
+					});
+				mergeDeep(target[key], source[key]);
+			} else {
+				Object.assign(target, {
+					[key]: source[key],
+				});
+			}
+		}
+	}
+
+	return mergeDeep(target, ...sources);
+};
+export { propCompare, trimSplit, isEmpty, isObject, mergeDeep };

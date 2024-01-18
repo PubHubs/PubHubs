@@ -41,7 +41,7 @@ const en = {
 		private_rooms: '@:rooms.private_rooms',
 		rooms: '@:rooms.rooms',
 		settings: 'Settings',
-		tool: 'Tools',
+		tool: 'Tool',
 	},
 	others: {
 		nop: 'This feature is not implement yet.',
@@ -100,6 +100,8 @@ const en = {
 		add_room: 'Add a public room',
 		add_secured_room: 'Add a (secured) room',
 		name: 'Room name',
+		room_type: 'Room type',
+		room_type_placeholder: 'example: ph.plugin.xxx',
 		edit_name: 'Change room name',
 		edit_secured_room: 'Change secured room',
 		added_room: 'Room added',

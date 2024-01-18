@@ -17,6 +17,11 @@ type i18nSettings = {
 	availableLocales: any;
 };
 
+enum featureFlagType {
+	signedMessages = 'signedMessages',
+	plugins = 'plugins',
+}
+
 interface Settings {
 	/**
 	 * The number of events to load on a page in a room.
@@ -37,6 +42,7 @@ interface Settings {
 
 	featureFlags: {
 		signedMessages: boolean;
+		plugins: boolean;
 	};
 }
 
@@ -50,6 +56,7 @@ const defaultSettings: Settings = {
 	},
 	featureFlags: {
 		signedMessages: true,
+		plugins: true,
 	},
 };
 
@@ -176,4 +183,4 @@ const createSettings = (defineStore: any) => {
 	});
 };
 
-export { Theme, Settings, defaultSettings, createSettings, type i18nSettings };
+export { Theme, Settings, defaultSettings, createSettings, type i18nSettings, featureFlagType };
