@@ -35,4 +35,26 @@ pub mod hub {
     }
 
     having_message_code!(TicketContent, PhcHubTicket);
+
+    /// A [Signed] message together with a [api::phc::Ticket].
+    #[derive(Serialize, Deserialize, Debug)]
+    pub struct TicketSigned<T> {
+        ticket: Ticket,
+        signed: Signed<T>,
+    }
+
+    impl<T> TicketSigned<T> {
+        /// Opens this [TicketSigned], checking the signature on `signed` using the verifying key in
+        /// the provided `ticket`, and checking the `ticket` using `key`.
+        pub fn open(self, key: &ed25519_dalek::VerifyingKey) -> Result<(T, crate::hub::Name)>
+        where
+            T: HavingMessageCode + serde::de::DeserializeOwned,
+        {
+            let ticket_content: TicketContent = return_if_ec!(self.ticket.open(&*key));
+
+            let msg: T = return_if_ec!(self.signed.open(&*ticket_content.verifying_key));
+
+            Result::Ok((msg, ticket_content.name))
+        }
+    }
 }

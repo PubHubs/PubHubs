@@ -155,9 +155,14 @@ impl App {
 
     async fn handle_hub_key(
         app: Rc<Self>,
-        signed_req: web::Json<api::Signed<api::phct::hub::KeyReq>>,
+        signed_req: web::Json<api::phc::hub::TicketSigned<api::phct::hub::KeyReq>>,
     ) -> api::Result<api::Signed<api::phct::hub::KeyResp>> {
-        let signed_req = signed_req.into_inner();
+        let ts_req = signed_req.into_inner();
+
+        let (req, hub_name): (api::phct::hub::KeyReq, hub::Name) =
+            api::return_if_ec!(ts_req.open(&app.base.jwt_key.verifying_key()));
+
+        unimplemented!()
     }
 }
 
