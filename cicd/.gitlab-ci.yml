@@ -125,6 +125,8 @@ build-pubhubs-image:
     # when no relevant changes have been made, don't run automatically, but allow the job to be rin manually
     - when: manual
   needs:
+    - job: globalclient-format-check
+      optional: true
     - job: globalclient-unit-test
       optional: true
     - job: rust-unit-test
@@ -164,7 +166,7 @@ deploy-main-phc:
     - apt update
     - apt install -y openssh-client
     - chmod 600 $ILAB_VM_TRIGGER_UPDATE_KEY
-    - ssh -o UserKnownHostsFile=$ILAB_VM_TRIGGER_UPDATE_KNOWN_HOSTS $ILAB_VM_TRIGGER_UPDATE_USER@$ILAB_VM_TRIGGER_UPDATE_HOST_MAIN -i $ILAB_VM_TRIGGER_UPDATE_KEY docker-pubhubs-main
+    - ssh -o UserKnownHostsFile=$ILAB_VM_TRIGGER_UPDATE_KNOWN_HOSTS $ILAB_VM_TRIGGER_UPDATE_USER@ph.ihub.ru.nl -i $ILAB_VM_TRIGGER_UPDATE_KEY docker-pubhubs-main
 
 deploy-stable-phc:
   stage: deploy
@@ -186,7 +188,7 @@ deploy-stable-phc:
     - apt update
     - apt install -y openssh-client
     - chmod 600 $ILAB_VM_TRIGGER_UPDATE_KEY
-    - ssh -o UserKnownHostsFile=$ILAB_VM_TRIGGER_UPDATE_KNOWN_HOSTS $ILAB_VM_TRIGGER_UPDATE_USER@$ILAB_VM_TRIGGER_UPDATE_HOST_STABLE -i $ILAB_VM_TRIGGER_UPDATE_KEY docker-pubhubs-stable
+    - ssh -o UserKnownHostsFile=$ILAB_VM_TRIGGER_UPDATE_KNOWN_HOSTS $ILAB_VM_TRIGGER_UPDATE_USER@ph.ihub.ru.nl -i $ILAB_VM_TRIGGER_UPDATE_KEY docker-pubhubs-stable
 
 start-test-setup-unit-test:
   stage: build
@@ -279,7 +281,7 @@ deploy-main-hub:
   script:
     - cd pubhubs_hub
     - chmod 600 $ILAB_VM_TRIGGER_UPDATE_KEY
-    - ssh -o UserKnownHostsFile=$ILAB_VM_TRIGGER_UPDATE_KNOWN_HOSTS $ILAB_VM_TRIGGER_UPDATE_USER@$ILAB_VM_TRIGGER_UPDATE_HOST_MAIN -i $ILAB_VM_TRIGGER_UPDATE_KEY docker-testhub-matrix-main
+    - ssh -o UserKnownHostsFile=$ILAB_VM_TRIGGER_UPDATE_KNOWN_HOSTS $ILAB_VM_TRIGGER_UPDATE_USER@ph.ihub.ru.nl -i $ILAB_VM_TRIGGER_UPDATE_KEY docker-testhub-matrix-main
 
 deploy-stable-hub:
   stage: deploy
@@ -298,7 +300,38 @@ deploy-stable-hub:
   script:
     - cd pubhubs_hub
     - chmod 600 $ILAB_VM_TRIGGER_UPDATE_KEY
-    - ssh -o UserKnownHostsFile=$ILAB_VM_TRIGGER_UPDATE_KNOWN_HOSTS $ILAB_VM_TRIGGER_UPDATE_USER@$ILAB_VM_TRIGGER_UPDATE_HOST_STABLE -i $ILAB_VM_TRIGGER_UPDATE_KEY docker-testhub-matrix-stable
+    - ssh -o UserKnownHostsFile=$ILAB_VM_TRIGGER_UPDATE_KNOWN_HOSTS $ILAB_VM_TRIGGER_UPDATE_USER@ph.ihub.ru.nl -i $ILAB_VM_TRIGGER_UPDATE_KEY docker-testhub-matrix-stable
+
+
+globalclient-format-check:
+  stage: build
+  rules:
+    - *globalclientchanges
+    - when: manual
+  tags: [docker]
+  image: node:latest
+  script:
+    - cd global-client
+    - npx prettier ./src --check --ignore-unknown --config ./package.json
+  cache:
+    key: ${CI_COMMIT_REF_SLUG}
+    paths:
+      - .npm/
+
+hubclient-format-check:
+  stage: build
+  rules:
+    - *hubclientchanges
+    - when: manual
+  tags: [docker]
+  image: node:latest
+  script:
+    - cd hub-client
+    - npx prettier ./src --check --ignore-unknown --config ./package.json
+  cache:
+    key: ${CI_COMMIT_REF_SLUG}
+    paths:
+      - .npm/
 
 globalclient-unit-test:
   stage: build
@@ -344,6 +377,7 @@ build-hubclient:
     # when no relevant changes have been made, don't run automatically, but allow the job to be rin manually
     - when: manual
   needs:
+    - hubclient-format-check
     - hubclient-unit-test
   tags:
     - docker
@@ -367,6 +401,7 @@ build-hubclient2:
     # when no relevant changes have been made, don't run automatically, but allow the job to be rin manually
     - when: manual
   needs:
+    - hubclient-format-check
     - hubclient-unit-test
   tags:
     - docker
@@ -404,8 +439,8 @@ deploy-main-hubclient:
   script:
     - cd hub-client
     - chmod 600 $ILAB_VM_TRIGGER_UPDATE_KEY
-    - ssh -o UserKnownHostsFile=$ILAB_VM_TRIGGER_UPDATE_KNOWN_HOSTS $ILAB_VM_TRIGGER_UPDATE_USER@$ILAB_VM_TRIGGER_UPDATE_HOST_MAIN -i $ILAB_VM_TRIGGER_UPDATE_KEY docker-testhub-element-main
-    - ssh -o UserKnownHostsFile=$ILAB_VM_TRIGGER_UPDATE_KNOWN_HOSTS $ILAB_VM_TRIGGER_UPDATE_USER@$ILAB_VM_TRIGGER_UPDATE_HOST_MAIN -i $ILAB_VM_TRIGGER_UPDATE_KEY docker-testhub2-client-main
+    - ssh -o UserKnownHostsFile=$ILAB_VM_TRIGGER_UPDATE_KNOWN_HOSTS $ILAB_VM_TRIGGER_UPDATE_USER@ph.ihub.ru.nl -i $ILAB_VM_TRIGGER_UPDATE_KEY docker-testhub-client-main
+    - ssh -o UserKnownHostsFile=$ILAB_VM_TRIGGER_UPDATE_KNOWN_HOSTS $ILAB_VM_TRIGGER_UPDATE_USER@ph.ihub.ru.nl -i $ILAB_VM_TRIGGER_UPDATE_KEY docker-testhub2-client-main
 
 deploy-stable-client:
   stage: deploy
@@ -424,7 +459,7 @@ deploy-stable-client:
   script:
     - cd hub-client
     - chmod 600 $ILAB_VM_TRIGGER_UPDATE_KEY
-    - ssh -o UserKnownHostsFile=$ILAB_VM_TRIGGER_UPDATE_KNOWN_HOSTS $ILAB_VM_TRIGGER_UPDATE_USER@$ILAB_VM_TRIGGER_UPDATE_HOST_STABLE -i $ILAB_VM_TRIGGER_UPDATE_KEY docker-testhub-element-stable
+    - ssh -o UserKnownHostsFile=$ILAB_VM_TRIGGER_UPDATE_KNOWN_HOSTS $ILAB_VM_TRIGGER_UPDATE_USER@ph.ihub.ru.nl -i $ILAB_VM_TRIGGER_UPDATE_KEY docker-testhub-client-stable
 
 set-blueprints:
   stage: build
