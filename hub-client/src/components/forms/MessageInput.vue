@@ -68,6 +68,9 @@
 		<div v-if="showEmojiPicker" class="absolute bottom-16 right-8" ref="elEmojiPicker">
 			<EmojiPicker @emojiSelected="clickedEmoticon" />
 		</div>
+		<div class="text-black dark:bg-gray-dark dark:text-white">
+			<FileUpload :file="fileInfo" :mxcPath="uri" v-if="fileUploadDialog" @close="fileUploadDialog = false"></FileUpload>
+		</div>
 	</div>
 </template>
 
@@ -75,7 +78,7 @@
 	import { watch, ref, onMounted, onUnmounted, nextTick, computed } from 'vue';
 	import { useFormInputEvents, usedEvents } from '@/composables/useFormInputEvents';
 	import { useMatrixFiles } from '@/composables/useMatrixFiles';
-	import { useDialog, useRooms } from '@/store/store';
+	import { useRooms } from '@/store/store';
 	import { usePubHubs } from '@/core/pubhubsStore';
 	import { useRoute } from 'vue-router';
 	import { useMessageActions } from '@/store/message-actions';
@@ -94,13 +97,17 @@
 
 	const emit = defineEmits(usedEvents);
 	const { value, reset, changed, cancel } = useFormInputEvents(emit);
-	const { allTypes, getTypesAsString, uploadUrl, imageTypes } = useMatrixFiles();
+	const { allTypes, getTypesAsString, uploadUrl } = useMatrixFiles();
 
 	const elPopover = ref<InstanceType<typeof Popover> | null>(null);
 	const buttonEnabled = ref(false);
 	const showingUploadPicker = ref(false);
 	const signingMessage = ref(false);
 	const showEmojiPicker = ref(false);
+	const fileUploadDialog = ref(false);
+	const fileInfo = ref<File>();
+	const uri = ref('');
+
 	const caretPos = ref({ top: 0, left: 0 });
 
 	const selectedAttributesSigningMessage = ref<string[]>(['irma-demo.sidn-pbdf.email.domain']);
@@ -159,27 +166,19 @@
 	}
 
 	function uploadFile(event: Event) {
-		const description = value.value?.toString();
 		const accessToken = pubhubs.Auth.getAccessToken();
 		const target = event.currentTarget as HTMLInputElement;
-		const dialog = useDialog();
-		uploadHandler(accessToken, uploadUrl, allTypes, event, (uri) => {
+		//const dialog = useDialog();
+		uploadHandler(accessToken, uploadUrl, allTypes, event, (url) => {
 			if (target) {
 				const file = target.files && target.files[0];
 				if (file) {
-					const message = imageTypes.includes(file.type) ? 'an image' : 'a file';
-					dialog.yesno(`Do you want to upload ${message}: ${file.name}?`, description).then((done) => {
-						if (done) {
-							if (imageTypes.includes(file.type)) {
-								pubhubs.addImage(rooms.currentRoomId, uri, description);
-							} else {
-								pubhubs.addFile(rooms.currentRoomId, file, uri, description);
-							}
-							reset();
-						} else {
-							reset();
-						}
-					});
+					// Once the file has been selected from the filesystem.
+					// Set props to be passed to the component.
+					fileInfo.value = file;
+					uri.value = url;
+					// display the component.
+					fileUploadDialog.value = true;
 				}
 			}
 		});

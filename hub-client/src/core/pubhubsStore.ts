@@ -299,17 +299,17 @@ const usePubHubs = defineStore('pubhubs', {
 			}
 		},
 
-		async addImage(roomId: string, uri: string, fileDesc: string) {
+		async addImage(roomId: string, uri: string) {
 			try {
-				await this.client.sendImageMessage(roomId, uri, undefined, fileDesc);
+				await this.client.sendImageMessage(roomId, uri, undefined);
 			} catch (error) {
 				console.log(error);
 			}
 		},
 
-		async addFile(roomId: string, file: File, uri: string, fileDesc: string) {
+		async addFile(roomId: string, file: File, uri: string) {
 			const content = {
-				body: fileDesc,
+				body: file.name,
 				filename: file.name,
 				info: {
 					mimetype: file.type,

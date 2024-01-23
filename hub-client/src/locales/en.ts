@@ -17,6 +17,8 @@ const en = {
 	},
 	file: {
 		file: 'File',
+		upload_file: 'Upload File',
+		upload_message: 'Do you want to upload',
 	},
 	forms: {
 		submit: 'Submit',

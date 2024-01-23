@@ -1,6 +1,5 @@
 <template>
 	<img :alt="message.body" :src="formUrlfromMxc(message.url)" class="max-w-full h-auto" />
-	<div class="text-white mt-4">{{ message.body }}</div>
 </template>
 
 <script setup lang="ts">

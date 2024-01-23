@@ -17,6 +17,8 @@ const nl = {
 	},
 	file: {
 		file: 'Bestand',
+		upload_file: 'upload bestand',
+		upload_message: 'Wil je uploaden',
 	},
 	forms: {
 		submit: 'Invoeren',
