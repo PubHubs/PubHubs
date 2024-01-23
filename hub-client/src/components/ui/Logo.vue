@@ -19,6 +19,10 @@
 				return ['light', 'dark', ''].includes(value);
 			},
 		},
+		global: {
+			type: Boolean,
+			default: false,
+		},
 	});
 
 	const setTheme = computed(() => {
@@ -40,6 +44,11 @@
 			// @ts-ignore
 			url += '?' + _env.TIMESTAMP;
 		}
+
+		if (props.global) {
+			url = '/client' + url;
+		}
+
 		return url;
 	});
 </script>

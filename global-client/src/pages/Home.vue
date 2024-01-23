@@ -1,6 +1,6 @@
 <template>
-	<div class="w-2/6 m-4 text-center mx-auto">
-		<Logo class="m-8"></Logo>
+	<div class="w-1/2 md:w-2/6 m-4 text-center mx-auto">
+		<Logo class="m-8" :global="true"></Logo>
 		<p class="text-center" v-html="$t('home.welcome')"></p>
 		<Button v-if="!global.loggedIn" class="mt-8" @click="global.login()">{{ $t('login.global_login') }}</Button>
 	</div>

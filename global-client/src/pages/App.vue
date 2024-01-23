@@ -30,7 +30,7 @@
 									</div>
 								</div>
 
-								<a :href="pubHubsUrl" class="m-2 sm:m-4"><Logo></Logo></a>
+								<a :href="pubHubsUrl" class="m-2 sm:m-4"><Logo :global="true"></Logo></a>
 							</div>
 						</div>
 					</Modal>
