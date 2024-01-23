@@ -11,7 +11,7 @@
 					<slot name="header"></slot>
 				</div>
 				<Line v-if="hasContent" class="mt-2 mb-2 z-0"></Line>
-				<div v-if="hasContent" class="text-left max-h-96 overflow-auto py-1">
+				<div v-if="hasContent" class="text-left min-h-96 overflow-auto py-1">
 					<slot></slot>
 					<div v-if="dialog.properties.content !== ''">{{ dialog.properties.content }}</div>
 				</div>
@@ -79,8 +79,12 @@
 	});
 
 	function doAction(action: DialogButtonAction) {
-		emit('close', action);
-		dialog.close(action);
+		if (action === 0) {
+			emit('close', action);
+			dialog.close(action);
+		} else if (action === 1) {
+			emit('accept', action);
+		}
 	}
 </script>
 

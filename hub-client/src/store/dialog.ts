@@ -49,9 +49,8 @@ class DialogProperties {
 	modal: Boolean;
 	modalonly: Boolean;
 	close: Boolean;
-	thumbnail_url: string;
 
-	constructor(title = '', content = '', buttons: Array<DialogButton> = [], modal = true, close = true, thumbnail_url = '') {
+	constructor(title = '', content = '', buttons: Array<DialogButton> = [], modal = true, close = true) {
 		this.title = title;
 		this.content = content;
 		if (buttons.length == 0) {
@@ -62,7 +61,6 @@ class DialogProperties {
 		this.modal = modal;
 		this.modalonly = false;
 		this.close = close;
-		this.thumbnail_url = thumbnail_url;
 	}
 }
 
@@ -188,4 +186,4 @@ const useDialog = defineStore('dialog', {
 	},
 });
 
-export { buttonsOk, buttonsCancel, buttonsSubmitCancel, DialogButton, type DialogButtonAction, DialogFalse, DialogTrue, DialogProperties, useDialog };
+export { buttonsOk, buttonsCancel, buttonsSubmitCancel, buttonsOkCancel, DialogButton, type DialogButtonAction, DialogFalse, DialogTrue, DialogProperties, useDialog };
