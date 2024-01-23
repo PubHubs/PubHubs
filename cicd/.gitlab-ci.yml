@@ -166,7 +166,7 @@ deploy-main-phc:
     - apt update
     - apt install -y openssh-client
     - chmod 600 $ILAB_VM_TRIGGER_UPDATE_KEY
-    - ssh -o UserKnownHostsFile=$ILAB_VM_TRIGGER_UPDATE_KNOWN_HOSTS $ILAB_VM_TRIGGER_UPDATE_USER@$ph.ihub.ru.nl -i $ILAB_VM_TRIGGER_UPDATE_KEY docker-pubhubs-main
+    - ssh -o UserKnownHostsFile=$ILAB_VM_TRIGGER_UPDATE_KNOWN_HOSTS $ILAB_VM_TRIGGER_UPDATE_USER@ph.ihub.ru.nl -i $ILAB_VM_TRIGGER_UPDATE_KEY docker-pubhubs-main
 
 deploy-stable-phc:
   stage: deploy
@@ -188,7 +188,7 @@ deploy-stable-phc:
     - apt update
     - apt install -y openssh-client
     - chmod 600 $ILAB_VM_TRIGGER_UPDATE_KEY
-    - ssh -o UserKnownHostsFile=$ILAB_VM_TRIGGER_UPDATE_KNOWN_HOSTS $ILAB_VM_TRIGGER_UPDATE_USER@$ph.ihub.ru.nl -i $ILAB_VM_TRIGGER_UPDATE_KEY docker-pubhubs-stable
+    - ssh -o UserKnownHostsFile=$ILAB_VM_TRIGGER_UPDATE_KNOWN_HOSTS $ILAB_VM_TRIGGER_UPDATE_USER@ph.ihub.ru.nl -i $ILAB_VM_TRIGGER_UPDATE_KEY docker-pubhubs-stable
 
 start-test-setup-unit-test:
   stage: build
@@ -281,7 +281,7 @@ deploy-main-hub:
   script:
     - cd pubhubs_hub
     - chmod 600 $ILAB_VM_TRIGGER_UPDATE_KEY
-    - ssh -o UserKnownHostsFile=$ILAB_VM_TRIGGER_UPDATE_KNOWN_HOSTS $ILAB_VM_TRIGGER_UPDATE_USER@$ph.ihub.ru.nl -i $ILAB_VM_TRIGGER_UPDATE_KEY docker-testhub-matrix-main
+    - ssh -o UserKnownHostsFile=$ILAB_VM_TRIGGER_UPDATE_KNOWN_HOSTS $ILAB_VM_TRIGGER_UPDATE_USER@ph.ihub.ru.nl -i $ILAB_VM_TRIGGER_UPDATE_KEY docker-testhub-matrix-main
 
 deploy-stable-hub:
   stage: deploy
@@ -439,8 +439,8 @@ deploy-main-hubclient:
   script:
     - cd hub-client
     - chmod 600 $ILAB_VM_TRIGGER_UPDATE_KEY
-    - ssh -o UserKnownHostsFile=$ILAB_VM_TRIGGER_UPDATE_KNOWN_HOSTS $ILAB_VM_TRIGGER_UPDATE_USER@$ph.ihub.ru.nl -i $ILAB_VM_TRIGGER_UPDATE_KEY docker-testhub-element-main
-    - ssh -o UserKnownHostsFile=$ILAB_VM_TRIGGER_UPDATE_KNOWN_HOSTS $ILAB_VM_TRIGGER_UPDATE_USER@$ph.ihub.ru.nl -i $ILAB_VM_TRIGGER_UPDATE_KEY docker-testhub2-client-main
+    - ssh -o UserKnownHostsFile=$ILAB_VM_TRIGGER_UPDATE_KNOWN_HOSTS $ILAB_VM_TRIGGER_UPDATE_USER@ph.ihub.ru.nl -i $ILAB_VM_TRIGGER_UPDATE_KEY docker-testhub-element-main
+    - ssh -o UserKnownHostsFile=$ILAB_VM_TRIGGER_UPDATE_KNOWN_HOSTS $ILAB_VM_TRIGGER_UPDATE_USER@ph.ihub.ru.nl -i $ILAB_VM_TRIGGER_UPDATE_KEY docker-testhub2-client-main
 
 deploy-stable-client:
   stage: deploy
