@@ -105,6 +105,8 @@ class OidcMappingProvider:
 
         decrypted_local_pseudonym = result_buf.raw.hex()
 
+        assert decrypted_local_pseudonym != "0000000000000000000000000000000000000000000000000000000000000000"
+
         # HACK: For efficiency's sake, we add the decrypted local pseudonym to userinfo,
         # so that it can be used in map_user_attributes below.  This seems to work for now,
         # but might break in the future as it's not clear that mutating userinfo like this is

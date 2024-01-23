@@ -473,6 +473,8 @@ pub mod abi {
             None => return DecryptResult::WrongPublicKey,
         };
 
+        unsafe { pt.copy_to_ptr(plaintext) }
+
         DecryptResult::Ok
     }
 
