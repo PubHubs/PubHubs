@@ -79,12 +79,8 @@
 	});
 
 	function doAction(action: DialogButtonAction) {
-		if (action === 0) {
-			emit('close', action);
-			dialog.close(action);
-		} else if (action === 1) {
-			emit('accept', action);
-		}
+		emit('close', action);
+		dialog.close(action);
 	}
 </script>
 
