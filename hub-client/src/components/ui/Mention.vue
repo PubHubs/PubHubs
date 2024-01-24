@@ -35,14 +35,13 @@
 	const user = useUser();
 	const users = ref([] as Array<MatrixUser>);
 	const checkEmptyList = ref(false);
-	const elContainer = ref<HTMLElement|null>(null);
+	const elContainer = ref<HTMLElement | null>(null);
 
 	type Props = {
 		msg?: string;
 		left: number;
 		top: number;
 	};
-
 
 	const props = withDefaults(defineProps<Props>(), {
 		msg: undefined,
@@ -113,7 +112,7 @@
 		if (!elContainer.value) return;
 		return {
 			left: `${props.left}px`,
-			top: `${props.top - 40 - elContainer.value.clientHeight}px`
+			top: `${props.top - 40 - elContainer.value.clientHeight}px`,
 		};
 	}
 </script>

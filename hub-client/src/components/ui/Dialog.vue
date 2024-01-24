@@ -4,7 +4,7 @@
 	<div class="absolute h-screen w-screen top-0 left-0">
 		<div v-if="dialog.properties.modal" class="absolute inset-0 h-screen z-0 bg-gray-middle opacity-75"></div>
 		<div v-if="!dialog.properties.modalonly" class="absolute inset-0 h-screen flex z-10" @click="doAction(DialogFalse)">
-			<div class="theme-light m-auto p-4 rounded-lg shadow-xl shadow-black bg-white " :class="centerClass" @click.stop>
+			<div class="theme-light m-auto p-4 rounded-lg shadow-xl shadow-black bg-white" :class="centerClass" @click.stop>
 				<div>
 					<Icon v-if="dialog.properties.close" type="close" size="md" class="float-right -mt-1 hover:text-red theme-light:text-gray theme-light:hover:text-red" @click="doAction(DialogFalse)"></Icon>
 					<H2 v-if="dialog.properties.title !== ''" class="m-0 text-left">{{ dialog.properties.title }}</H2>

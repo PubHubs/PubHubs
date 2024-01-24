@@ -38,7 +38,7 @@
 	const emit = defineEmits([...usedEvents, 'caretPos']);
 	const { value, update, changed, submit, cancel } = useFormInputEvents(emit, props.modelValue);
 
-	const textarea: Ref<null|HTMLTextAreaElement> = ref(null);
+	const textarea: Ref<null | HTMLTextAreaElement> = ref(null);
 
 	function getCaretPos() {
 		if (!textarea.value) return;

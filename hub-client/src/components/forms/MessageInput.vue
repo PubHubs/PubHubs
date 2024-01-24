@@ -25,8 +25,8 @@
 					"
 					@submit="submitMessage()"
 					@cancel="cancel()"
-					@caretPos= "setCaretPos"
-					></TextArea>
+					@caretPos="setCaretPos"
+				></TextArea>
 				<Icon class="m-2 mt-3 dark:text-white" type="emoticon" @click.stop="showEmojiPicker = !showEmojiPicker" :asButton="true"></Icon>
 			</div>
 
@@ -69,7 +69,6 @@
 			<EmojiPicker @emojiSelected="clickedEmoticon" />
 		</div>
 	</div>
-
 </template>
 
 <script setup lang="ts">

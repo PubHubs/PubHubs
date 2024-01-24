@@ -69,7 +69,7 @@
 	/**
 	 *
 	 * This HUB page will be shown if a user is not yet registered or authenticated in PubHubs Central.
-     * And must show at least one button where a user can goto the PubHubs central login page.
+	 * And must show at least one button where a user can goto the PubHubs central login page.
 	 *
 	 */
 

@@ -70,7 +70,7 @@
 	//#region Events
 
 	const emit = defineEmits<{
-		(e: 'inReplyToClicked', inReplyToId: M_EventId): void
+		(e: 'inReplyToClicked', inReplyToId: M_EventId): void;
 	}>();
 
 	function onInReplyToClick() {
@@ -80,7 +80,7 @@
 
 	//#endregion
 
-  //#region Computed properties
+	//#region Computed properties
 
 	const msgIsNotSend = computed(() => {
 		return props.event.event_id.substring(0, 1) == '~';
