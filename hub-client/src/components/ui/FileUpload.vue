@@ -6,9 +6,9 @@
 			</div>
 		</template>
 		<div v-if="imageTypes.includes(props.file?.type)" class="flex items-center justify-center">
-			<img :alt="image" :src="formUrlfromMxc(mxcPath)" class="max-w-full h-auto rounded-lg" />
+			<img :alt="image" :src="formUrlfromMxc(mxcPath)" class="max-w-full max-h-96 rounded-lg" />
 		</div>
-		<div class="text-black flex-col">
+		<div class="text-black flex justify-center mt-4">
 			<div class="text-lg text-gray">{{ file.name }} ({{ `${filters.formatBytes(file.size)}` }})</div>
 		</div>
 	</Dialog>
@@ -18,8 +18,8 @@
 	import { useMatrixFiles } from '@/composables/useMatrixFiles';
 	import { usePubHubs } from '@/core/pubhubsStore';
 	import { useRooms } from '@/store/store';
-	import Dialog from './Dialog.vue';
 	import filters from '@/core/filters';
+	import { buttonsOkCancel } from '@/store/dialog';
 	const rooms = useRooms();
 	const pubhubs = usePubHubs();
 
