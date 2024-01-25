@@ -1,5 +1,5 @@
 <template>
-	<div v-if="show" class="absolute h-screen w-20 sm:w-32 z-0 bg-gray-middle opacity-75"></div>
+	<div v-if="show" class="absolute h-screen w-20 sm:w-32 z-10 bg-gray-middle opacity-75 top-0"></div>
 	<slot></slot>
 </template>
 

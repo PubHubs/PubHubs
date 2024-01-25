@@ -36,7 +36,7 @@
 					</Modal>
 				</div>
 
-				<div v-if="hubs.hasHubs" class="flex-1 dark:bg-gray-dark">
+				<div v-if="hubs.hasHubs" class="flex-1 dark:bg-gray-dark overflow-y-auto">
 					<router-view></router-view>
 				</div>
 			</div>
