@@ -6,6 +6,7 @@ import { Authentication } from '@/core/authentication';
 import { Events } from '@/core/events';
 import { useSettings, User, useUser, useRooms, useConnection, PubHubsRoomType } from '@/store/store';
 
+import filters from '@/core/filters';
 import { hasHtml, sanitizeHtml } from '@/core/sanitizer';
 import { api_synapse, api_matrix } from '@/core/api';
 import { M_MessageEvent, M_TextMessageEventContent } from '@/types/events';
@@ -374,8 +375,15 @@ const usePubHubs = defineStore('pubhubs', {
 		},
 
 		async getUsers(): Promise<Array<MatrixUser>> {
-			const response = (await this.client.getUsers()) as [];
-			return response;
+            let users = (await this.client.getUsers()) as Array<MatrixUser>;
+            // Doesn't get all displaynames correct from database, this is a hack to change displayName to only the pseudonym
+            users = users.map((user)=>{
+                if (user.userId == user.displayName) {
+                    user.displayName = filters.extractPseudonym(user.userId);
+                }
+                return user;
+            });
+			return users;
 		},
 
 		async getMembersOfRoom(room_id: string): Promise<{ [userId: string]: IStateEventWithRoomId[] }> {
