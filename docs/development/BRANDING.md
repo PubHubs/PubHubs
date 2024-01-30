@@ -28,7 +28,7 @@ The user can select one of tree themes:
 
 # Local developing branding
 
-See `README.md` for developing the `hub-client` localy.
+See [HubClient developing](./HUBCLIENT_DEVELOPMENT.md) for developing the `hub-client` localy.
 
 ## Testing branding with stories
 
@@ -69,7 +69,6 @@ Logo's should be in the folder `hub-client/src/assets`. And there are two files 
 
 Size should be between 64x64 or 152x64 pixels. Or bigger with the same aspect-ratio.
 Just overwrite these files with your logo's. The original logo's can be found in the folder `hub-client/branding`.
-
 
 # Move branding to the (running) hub container
 

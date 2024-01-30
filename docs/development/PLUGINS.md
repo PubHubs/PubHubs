@@ -64,7 +64,7 @@ In the folder `hub-client/plugins` you will find several example plugins for eve
 ## Local developing
 
 It is best practice to develop and test a plugin locally.
-See `README.md` for developing the `hub-client` locally.
+See [HubClient developing](./HUBCLIENT_DEVELOPMENT.md) for developing the `hub-client` localy.
 
 If you are developing locally, your plugin(s) should be present in the folder `src/plugins`.
 
