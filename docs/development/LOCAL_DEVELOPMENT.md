@@ -1,52 +1,45 @@
-# Running the webserver for (development purpose only)
+# Running a local development setup
 
 Default settings are in the `default.yaml`; for development these initial settings should work.  If you make a copy of `default.yaml` and call it `config.yaml`, this configuration is used instead.  To use an entirely different configuration file instead, you can pass its path (relative to the current working directory) via the environmental variable `PUBHUBS_CONFIG`, e.g. `PUBHUBS_CONFIG=my_config.yaml cargo run`.
 
-# Project Dependencies
+## First time installation
 
-- [Cargo](https://doc.rust-lang.org/cargo/getting-started/installation.html)
-- [Cargo Watch](https://github.com/watchexec/cargo-watch)
-- [Node Package Manager](https://docs.npmjs.com/downloading-and-installing-node-js-and-npm)
-- [Docker](https://www.docker.com/)
-- [Sass](https://sass-lang.com/install)
+For a minimal working setup, make sure you have [Node Package Manager (npm)](https://docs.npmjs.com/downloading-and-installing-node-js-and-npm), [Cargo](https://doc.rust-lang.org/cargo/getting-started/installation.html) and [Docker](https://www.docker.com/) installed.
 
-Several libraries for the client, most important:
-
-- [matrix-js-sdk](https://github.com/matrix-org/matrix-js-sdk)
-- [TypeScript](https://www.typescriptlang.org)
-- [Vue](https://vuejs.org)
-- [Pinia](https://pinia.vuejs.org)
-- [Vitest](https://vitest.dev)
-- [Histoire](https://histoire.dev)
-
-## Building static assets
-
-Static assets for the PubHubs central server, so far just css, are build through build.rs, before launching the server. The build script expects npm (with sass) to be installed.
-
-Assets needed for the client are build with the several build options for the client.
-
-# Setting up external services
-
-The external services for development are: an Yivi server, a Hub (matrix home server) and a client.
-
-There is a python script that should automate some set-up:
-
+The rust build script uses sass, install this using npm (globally so that it's accessible from the command line):
 ```shell
-python3 start_test_setup.py run --cargo-disabled --scale <positive value e.g., 1,2,3>
+npm install -g sass
+```
+The rust script also uses openssl. To install openssl, we use vcpkg which you can install following their [installation instructions](https://vcpkg.io/en/getting-started). This results in an executable vcpkg.exe, which you can add to your PATH. Then install openssl:
+```shell
+vcpkg install openssl:x64-windows-static-md
+vcpkg integrate install
+```
+This should work in most cases, but you might need to replace 'x64' by 'arm64'.
+
+## Usage
+
+We will setup docker containers for a Yivi server, a Hub and a Hub Client.
+Pubhubs Central is built and served seperately (by a rust sript) and also serves the Global client.
+
+There is a python script `start_test_setup.py` that should automate some set-up.
+To see available options, run:
+```
+python3 start_test_setup.py
 ```
 
-This will only build containers for Yivi, Hub and Client. Central Platform should be build and run separately with cargo.
+**Recommended usage**:
 
+First we build and run the Pubhubs Central with rust (This will run a server which also serves the Global Client).
 ```shell
-python3 start_test_setup.py run --cargo-enabled <cargo_arguments> --scale <positive value e.g., 1,2,3>
+cd pubhubs
+cargo run
 ```
-
-This will only build containers for Yivi, Hub and Client, This will also build and run Central Platform with cargo. Cargo arguments `<cargo_arguments>` needs to be provided by the user e.g., cargo run or cargo watch.
-
-We've not tested it on Windows, but it should work on linux and mac.
-
-This script will launch three containers:
-
+In a second terminal we setup and run the docker containers (make sure docker is running):
+```shell
+python3 start_test_setup.py exec --cargo-disabled
+```
+This will launch three docker containers:
 1. The hub.
 2. The client.
 3. An Yivi server for revealing personal attributes.
@@ -68,7 +61,7 @@ level=info msg="checking for updates" scheme=irma-demo type=issuer
 
 The PubHubs javascript client can be found here: http://localhost:8080/client
 
-## Reachable IP address
+#### Reachable IP address
 
 For your local PubHubs instance to be reachable by the Yivi app, your host's IP address must be reachable by your phone (perhaps by having them both on the same Wi-Fi network.) PubHubs will try to guess your IP address using `ifconfig.me` (provided `urls.for_yivi_app` is set to `!autodetect` in the configuration file,) but you can also set `url.for_yivi_app` manually.  For details, see comments in `default.yaml`.
 
@@ -110,4 +103,36 @@ urls:
     for_yivi_app: !manual http://1.3.3.7:8080/
 ```
 in your configuration file (e.g. `config.yaml`.)
+
+### Testing the PubHubs components
+
+All components have some unit tests they can be run locally.
+
+### Central platform tests
+
+In `pubhubs` run `cargo test`.
+
+### Hub tests
+
+Requires python 3.10+.
+In 'pubhubs_hub' run `python -m xmlrunner discover -p '*_test.py' --output-file report.xml`. This requires installing xmlrunner with `pip install unittest-xml-reporting`.
+To use the latest dependencies for the hub locally too, use `pip install --upgrade -r requirements.txt`.
+
+### Global client tests
+
+In `global-client`  run `npm run test`. To install the dependencies locally use `npm ci` or `npm install`.
+
+### Hub client tests
+
+In `local-client`  run `npm run test`. To install the dependencies locally use `npm ci` or `npm install`.
+
+
+## Building static assets
+
+- Static assets for the PubHubs Central server, so far just css, are build through build.rs, before launching the server. The build script expects npm (with sass) to be installed.
+- Assets needed for the client are build with the several build options for the client.
+
+## Rebranding a hub client
+
+A Hub's client can have its own branding. Documentation can be found in `docs/hub_branding`.
 
