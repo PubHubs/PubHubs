@@ -14,7 +14,7 @@
 				<TabContainer>
 					<TabContent>
 						<p v-if="rooms.nonSecuredPublicRooms.length == 0">{{ $t('admin.no_secured_rooms') }}</p>
-						<FilteredList v-else :items="rooms.nonSecuredPublicRooms" filterKey="name" :placeholder="$t('rooms.filter')">
+						<FilteredList v-else :items="rooms.nonSecuredPublicRooms" filterKey="name" sortby="name" :placeholder="$t('rooms.filter')">
 							<template #item="{ item }">
 								<Icon type="room" class="mr-4 float-left text-green group-hover:text-black"></Icon>
 								<span :title="item.room_id">
@@ -37,7 +37,7 @@
 
 					<TabContent>
 						<p v-if="!rooms.hasSecuredRooms">{{ $t('admin.no_secured_rooms') }}</p>
-						<FilteredList v-else :items="rooms.sortedSecuredRooms" filterKey="room_name" :placeholder="$t('rooms.filter')">
+						<FilteredList v-else :items="rooms.sortedSecuredRooms" filterKey="room_name" sortby="room_name" :placeholder="$t('rooms.filter')">
 							<template #item="{ item }">
 								<Icon type="lock" class="mr-4 float-left text-green group-hover:text-black"></Icon>
 								<span :title="item.room_id">
