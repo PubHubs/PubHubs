@@ -197,3 +197,6 @@
    
    This product bundles Atkinson Hyperlegible Font, which is available under a
    "SIL Open Font License 1.1" license. For the files, see hub-client/src/assets/fonts and global-client/src/assets/fonts.
+
+   This product bundles Noto Color Emoji, which is available under a
+   "SIL Open Font License 1.1" license. For the files, see hub-client/src/assets/fonts and global-client/src/assets/fonts.
