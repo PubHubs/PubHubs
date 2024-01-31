@@ -142,6 +142,17 @@ const nl = {
 			verificationStatus: 'Ondertekende berichten zijn nog in ontwikkeling. Ze zijn betrouwbaar, maar worden nog niet cryptographisch geverifieerd.',
 		},
 	},
+	emoji: {
+		clock: 'Alles',
+		smiley: 'Smileys & Mensen',
+		bear: 'Dieren & Natuur',
+		cup: 'Eten & Drinken',
+		basketball: 'Reizen & Plaatsen',
+		house: 'Activiteiten',
+		lightbulb: 'Levensstijl',
+		signs: 'Symbolen',
+		flag: 'Vlaggen',
+	},
 };
 
 export { nl };

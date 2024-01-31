@@ -1,19 +1,25 @@
 <template>
-	<div class="border-2 p-2 rounded max-h-auto max-w-xs bg-white dark:bg-gray-dark">
-		<div class="flex flex-wrap justify-center">
-			<div v-for="(image, index) in imageList" :key="index" class="icons" @click="index == 0 || index == 1 ? selectEmojiByGroup() : selectEmojiByGroup(index)">
-				<Icon v-if="index != 1" :type="image" class="w-[25px] m-[3px]" :class="{ 'border-b-2': selectedGroup === index }"></Icon>
+	<div class="flex flex-col p-4 rounded-2xl w-11/12 h-72 xs:h-80 xs:w-80 bg-gray-lighter2 dark:bg-gray-darker">
+		<input class="dark:text-white rounded w-full h-7 dark:bg-gray-middle placeholder:text-base dark:placeholder:text-white" v-model="searchQuery" type="text" :placeholder="$t('others.search')" />
+		<div class="flex flex-row justify-between my-3 pb-3 border-b border-gray-light">
+			<div
+				v-for="(image, index) in imageList"
+				:key="index"
+				class="justify-center items-center flex hover:border-b-2 first:-mr-2"
+				:class="{ 'border-b-2': selectedGroup === index }"
+				@click="index == 0 || index == 1 ? selectEmojiByGroup() : selectEmojiByGroup(index)"
+			>
+				<Icon v-if="index != 1" :type="image" class="mb-1 stroke-[1%] cursor-pointer fill-black dark:fill-white"></Icon>
 			</div>
-			<input class="m-1 px-1 text-black rounded border-2 w-full bg-gray-200" v-model="searchQuery" type="text" placeholder="Search" />
+		</div>
+		<p>
+			{{ $t('emoji.' + groupLabel()) }}
+		</p>
 
-			<div class="overflow-y-scroll break-words max-h-80 max-w-md">
-				<p>
-					{{ groupLabel() }}
-				</p>
-				<span v-for="emoji in filterEmojis" :key="emoji.hexcode" @click="selectEmoji(emoji)" class="cursor-pointer text-2xl m-1 tracking-[.45em]">
-					{{ emoji.emoji }}
-				</span>
-			</div>
+		<div class="flex flex-wrap gap-3 overflow-y-auto scrollbar-emojipicker emoji-font">
+			<span v-for="emoji in filterEmojis" :key="emoji.hexcode" @click="selectEmoji(emoji)" class="cursor-pointer xs:w-10 xs:h-10 flex items-center justify-center text-xl xs:text-3xl overflow-hidden">
+				{{ emoji.emoji }}
+			</span>
 		</div>
 	</div>
 </template>
@@ -26,21 +32,21 @@
 
 	const emojis = ref([] as Emoji[]);
 	const searchQuery = ref('');
-	const selectedGroup = ref(undefined);
+	const selectedGroup = ref(0);
 	const emit = defineEmits(['emojiSelected']);
 
 	// Update this with new icons.
 	const imageList = [
-		'home',
+		'emoji_clock',
 		'', /// Empty because there are two categories of smileys and we merge them.
-		'close',
-		'plus',
-		'remove',
-		'chevron-down',
-		'chevron-up',
-		'cog',
-		'edit',
-		'circle',
+		'emoji_smiley',
+		'emoji_bear',
+		'emoji_cup',
+		'emoji_house',
+		'emoji_basketball',
+		'emoji_lightbulb',
+		'emoji_signs',
+		'emoji_flag',
 	];
 
 	onMounted(async () => {
@@ -93,16 +99,16 @@
 	function groupLabel() {
 		const labels = [
 			// Concatenate group 0,1,2 in the same group as they are similar in nature.
-			'', //0
+			'clock', //0
 			'', //1
-			'Smileys & People', //2
-			'Animals & Nature', //3
-			'Food & Drink', //4
-			'Travel & Places', //5
-			'Activities', //6
-			'Lifestyle', //7
-			'Symbols', //8
-			'Flag', //9
+			'smiley', //2
+			'bear', //3
+			'cup', //4
+			'house', //5
+			'basketball', //6
+			'lightbulb', //7
+			'signs', //8
+			'flag', //9
 		];
 
 		return labels[selectedGroup.value];

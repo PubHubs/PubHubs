@@ -54,6 +54,7 @@ const pubhubs = {
 	},
 	extend: {
 		screens: {
+			xs: '360px',
 			'2md': '896px',
 		},
 	},

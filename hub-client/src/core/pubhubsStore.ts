@@ -375,14 +375,14 @@ const usePubHubs = defineStore('pubhubs', {
 		},
 
 		async getUsers(): Promise<Array<MatrixUser>> {
-            let users = (await this.client.getUsers()) as Array<MatrixUser>;
-            // Doesn't get all displaynames correct from database, this is a hack to change displayName to only the pseudonym
-            users = users.map((user)=>{
-                if (user.userId == user.displayName) {
-                    user.displayName = filters.extractPseudonym(user.userId);
-                }
-                return user;
-            });
+			let users = (await this.client.getUsers()) as Array<MatrixUser>;
+			// Doesn't get all displaynames correct from database, this is a hack to change displayName to only the pseudonym
+			users = users.map((user) => {
+				if (user.userId == user.displayName) {
+					user.displayName = filters.extractPseudonym(user.userId);
+				}
+				return user;
+			});
 			return users;
 		},
 

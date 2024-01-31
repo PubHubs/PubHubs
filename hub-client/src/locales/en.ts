@@ -142,6 +142,17 @@ const en = {
 			verificationStatus: 'Signed messages are a work in progress. They are trustworthy, but are not yet cryptographically verified.',
 		},
 	},
+	emoji: {
+		clock: 'All',
+		smiley: 'Smileys & People',
+		bear: 'Animals & Nature',
+		cup: 'Food & Drink',
+		basketball: 'Travel & Places',
+		house: 'Activities',
+		lightbulb: 'Lifestyle',
+		signs: 'Symbols',
+		flag: 'Flags',
+	},
 };
 
 export { en };
