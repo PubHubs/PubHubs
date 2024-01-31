@@ -3,7 +3,7 @@
 		<template #header>
 			{{ $t('rooms.private_add') }}
 		</template>
-		<FilteredList :items="usersList" filterKey="displayName" :placeholder="$t('rooms.private_search_user')" @click="addNewPrivateRoom($event)" @filter="filter($event)">
+		<FilteredList :items="usersList" filterKey="displayName" sortby="displayName" :placeholder="$t('rooms.private_search_user')" @click="addNewPrivateRoom($event)" @filter="filter($event)">
 			<template #item="{ item }">
 				<span :title="item.userId">{{ item.displayName }}</span>
 				<Icon type="plus" class="float-right"></Icon>
