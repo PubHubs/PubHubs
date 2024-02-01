@@ -1,6 +1,10 @@
 ## Changes to main, not yet committed to stable
 *Please add a brief description of any changes to be tested and any migrations to be performed here.*
 
+## 1 Feb 2024
+- Styling improvements: #174, #316, #370, #385
+- Migration to new vm: #466
+- First draft of plugin system: #204
 
 ## 14 Dec 2023
 - Improvements to the PubHubs yivi registration cards, see !266.
