@@ -9,27 +9,27 @@ As a general tip while testing, keep two browser windows open, one for a existin
     - [ ] Scan through all changes in merge request to see if there is any issue.
   - [ ] Before proceeding with the folloing steps please check that the pipeline has been successfully completed. 
   - [ ] Please check that the following works on https://main.pubhubs.ihub.ru.nl/client :
-      - [ ] Logging in with your existing account there.
-      - [ ] Posting a message to a room.
-      - [ ] Creating a new room as an admin user. 
-      
+      - [ ] Open two (private) browser windows and:
+        - [ ] Log in with an existing admin user.
+        - [ ] Register a *new* user, with fresh Yivi credentials.
+              
         To make yourself a hub admin: 
-         - log into ilab@ph.ru.nl using the [id_ilab](https://gitlab.science.ru.nl/ilab/ops/-/blob/main/ssh/id_ilab?ref_type=heads) key, via yourscienceaccountname@lilo.science.ru.nl (see also [the wiki](https://gitlab.science.ru.nl/ilab/pubhubs_canonical/-/wikis/Infrastructure))
+          - log into ilab@ph.ru.nl using the [id_ilab](https://gitlab.science.ru.nl/ilab/ops/-/blob/main/ssh/id_ilab?ref_type=heads) key, via yourscienceaccountname@lilo.science.ru.nl (see also [the wiki](https://gitlab.science.ru.nl/ilab/pubhubs_canonical/-/wikis/Infrastructure))
           - `cd /data/testhub-matrix-main/data`
           - `sudo sqlite3 homeserver.db`
           - `UPDATE users SET admin=1 WHERE name="@XXX-XXX:main.testhub-matrix.ihub.ru.nl";`, where `XXX-XXX` should be replaced by your short pseudonym.
           - `.quit`, etc.
-      - [ ] Creating a new secured room as an admin user.
-      - [ ] Registering a *new* user, with fresh Yivi credentials.
-      - [ ] Posting a message to a room with this new user.
-      - [ ] Sending a private message.
-      - [ ] Secured room login.
-      - [ ] Multiple profile attribute badges should be displayed for secured rooms with multiple profile attributes set to true.
-      - [ ] No badge should be displayed for secured rooms with profile attribute set to false.
-      - [ ] No badge in non-secured rooms.
+      - [ ] With the admin user:
+        - [ ] Create a new room
+        - [ ] Create a new secured room with mulitple profile attributes and a non profile attribute.
+          - Make sure to require at least one value, so that one of the users cannot enter the secured room.
+          - Check if the badges are shown properly (in line with which (non-)profile attributes are set).
+      - [ ] With the new user:
+        - [ ] Send a message in the public room.
+        - [ ] Send a message in the secured room.
+        - [ ] Sending a private message.
       - [ ] Change displayname.
       - [ ] Change Theme & Language, and see they are stored/fetched after logout/login.
-      - [ ] Logging out.
       - [ ] Logging out and logging in again with your original user.
       - [ ] Rebrand testhub2 with a new logo and colors. See https://gitlab.science.ru.nl/ilab/pubhubs_canonical/-/blob/main/docs/hub_branding/README.md (NB This involves some work on ilab-main, see https://gitlab.science.ru.nl/ilab/pubhubs_canonical/-/wikis/Current-ops-troubleshooting#changing-the-branding-of-a-running-hub)
       - [ ] Anything related specifically to your merge request.
