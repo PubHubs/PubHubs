@@ -50,12 +50,12 @@
 	});
 
 	onMounted(async () => {
-		await getRoomMembersByRoomType();
+		await getRoomMembers();
 	});
 
 	// Watch for changes in the props.msg to control visibility
 	watch(props, async () => {
-		await getRoomMembersByRoomType();
+		await getRoomMembers();
 		displayBoxVisibility();
 	});
 
@@ -95,10 +95,11 @@
 		return newUserList;
 	}
 
-	async function getRoomMembersByRoomType() {
+	//Preprocess the list of members for any unwanted names e.g., user notice.
+	async function getRoomMembers() {
 		if (rooms.currentRoom != undefined) {
-			users.value = rooms.roomIsSecure(rooms.currentRoom.roomId) ? rooms.currentRoom.getPrivateRoomNameMembers() : await pubhubs.getUsers();
-			users.value = users.value.filter((u) => u.userId !== user.user.userId && u.rawDisplayName != 'notices');
+			users.value = rooms.currentRoom.getPrivateRoomMembers();
+			users.value = users.value.filter((u) => u.userId !== user.user.userId && u.rawDisplayName != 'notices' && u.membership === 'join');
 		}
 	}
 

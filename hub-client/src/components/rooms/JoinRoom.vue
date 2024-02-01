@@ -3,10 +3,10 @@
 		<template #header>
 			{{ $t('rooms.join_room') }}
 		</template>
-		<FilteredList :items="rooms.visiblePublicRooms" :placeholder="$t('rooms.filter')" @click="joinRoom($event)">
+		<FilteredList :items="rooms.visiblePublicRooms" sortby="name" :placeholder="$t('rooms.filter')" @click="joinRoom($event)">
 			<template #item="{ item }">
 				<Icon :type="rooms.roomIsSecure(item.room_id) ? 'lock' : 'room'" class="mr-4 float-left text-green group-hover:text-black"></Icon>
-				<span :title="item.room_id">{{ item.name }}</span>
+				<span :title="item.room_id">{{ item.name }}&nbsp;</span>
 				<Icon type="plus" class="float-right"></Icon>
 			</template>
 		</FilteredList>

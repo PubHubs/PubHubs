@@ -11,11 +11,9 @@
 					</template>
 
 					<Menu>
-						<router-link to="/" v-slot="{ isActive }">
-							<MenuItem icon="home" :active="isActive" @click="toggleMenu.toggleGlobalMenu()">{{ $t('menu.home') }}</MenuItem>
+						<router-link v-for="(item, index) in menu.getMenu" :key="index" :to="item.to" v-slot="{ isActive }">
+							<MenuItem :icon="item.icon" :active="isActive" @click="toggleMenu.toggleGlobalMenu()">{{ $t(item.key) }}</MenuItem>
 						</router-link>
-						<MenuItem @click="toggleMenu.toggleGlobalMenu()">{{ $t('menu.calender') }}</MenuItem>
-						<MenuItem @click="toggleMenu.toggleGlobalMenu()">{{ $t('menu.tool') }}</MenuItem>
 					</Menu>
 
 					<H2 class="mt-12">{{ $t('menu.rooms') }}</H2>
@@ -40,7 +38,7 @@
 					</template>
 				</HeaderFooter>
 
-				<div class="col-span-6 max-h-screen bg-white dark:bg-gray-middle" :class="{ hidden: hubSettings.mobileHubMenu }">
+				<div class="md:col-span-6 md:block max-h-screen dark:bg-gray-middle overflow-y-auto" :class="{ hidden: hubSettings.mobileHubMenu }">
 					<router-view></router-view>
 				</div>
 			</div>
@@ -58,11 +56,13 @@
 </template>
 
 <script setup lang="ts">
-	import { onMounted, ref } from 'vue';
+	import { onMounted, ref, getCurrentInstance } from 'vue';
 	import { RouteParamValue, useRouter } from 'vue-router';
 	import { Message, MessageBoxType, MessageType, Theme, useHubSettings, useMessageBox, PubHubsRoomType, useRooms, useSettings, useUser } from '@/store/store';
 	import { useDialog } from '@/store/dialog';
 	import { usePubHubs } from '@/core/pubhubsStore';
+	import { useMenu } from '@/store/menu';
+	import { usePlugins } from '@/store/plugins';
 	import { useI18n } from 'vue-i18n';
 	import { useToggleMenu } from '@/store/toggleGlobalMenu';
 
@@ -75,11 +75,18 @@
 	const messagebox = useMessageBox();
 	const dialog = useDialog();
 	const pubhubs = usePubHubs();
+	const plugins = usePlugins();
+	const menu = useMenu();
 	const toggleMenu = useToggleMenu();
 
 	const setupReady = ref(false);
 	const joinRoomDialog = ref(false);
 	const addPrivateRoomDialog = ref(false);
+	const acknowledgeOnce = ref(true);
+
+	onMounted(() => {
+		plugins.setPlugins(getCurrentInstance()?.appContext.config.globalProperties._plugins, router);
+	});
 
 	onMounted(async () => {
 		settings.initI18b({ locale: locale, availableLocales: availableLocales });
@@ -143,4 +150,22 @@
 			}, 2500);
 		}
 	}
+	import { MatrixEvent } from 'matrix-js-sdk';
+
+	// Additional check to make sure that beforeunload is only called once.
+	// An open issue for unload event in mozilla->  https://bugzilla.mozilla.org/show_bug.cgi?id=531199
+
+	window.addEventListener('beforeunload', () => {
+		if (acknowledgeOnce.value) {
+			rooms.roomsArray.forEach(async (room) => {
+				const mEvent: MatrixEvent = rooms.getlastEvent(room.roomId);
+				const sender = mEvent.event.sender!;
+				await pubhubs.sendAcknowledgementReceipt(sender);
+			});
+			// Once done then we dont call eventListener again.
+			// This will be called only when we are closing the browser.
+
+			acknowledgeOnce.value = false;
+		}
+	});
 </script>

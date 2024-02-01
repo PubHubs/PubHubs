@@ -17,6 +17,8 @@ const nl = {
 	},
 	file: {
 		file: 'Bestand',
+		upload_file: 'upload bestand',
+		upload_message: 'Wil je uploaden',
 	},
 	forms: {
 		submit: 'Invoeren',
@@ -100,6 +102,8 @@ const nl = {
 		add_room: 'Voeg openbaar gesprek toe',
 		add_secured_room: 'Voeg beveiligd gesprek toe',
 		name: 'Naam van gesprek',
+		room_type: 'Type gesprek',
+		room_type_placeholder: 'bijvoorbeeld: ph.plugin.xxx',
 		edit_name: 'Pas naam van gesprek aan',
 		edit_secured_room: 'Pas beveiligd gesprek aan',
 		added_room: 'Gesprek toegevoegd',
@@ -137,6 +141,17 @@ const nl = {
 			info: 'Een verklaring dat ondertekend is met Yivi attributen en gedeeld kan worden buiten de Hub.',
 			verificationStatus: 'Ondertekende berichten zijn nog in ontwikkeling. Ze zijn betrouwbaar, maar worden nog niet cryptographisch geverifieerd.',
 		},
+	},
+	emoji: {
+		clock: 'Alles',
+		smiley: 'Smileys & Mensen',
+		bear: 'Dieren & Natuur',
+		cup: 'Eten & Drinken',
+		basketball: 'Reizen & Plaatsen',
+		house: 'Activiteiten',
+		lightbulb: 'Levensstijl',
+		signs: 'Symbolen',
+		flag: 'Vlaggen',
 	},
 };
 

@@ -29,7 +29,9 @@ class Events {
 				}
 				console.debug('STATE:', state);
 				if (state == 'PREPARED') {
+					// DEBUGGING purpose - To understand the following events.
 					// this.client.on('event' as any, (event: any) => {
+					// 	console.debug('== EVENT', event.getType());
 					// 	console.debug('== EVENT', event);
 					// });
 					this.client.on(RoomEvent.Name, self.eventRoomName);
@@ -62,6 +64,7 @@ class Events {
 	eventRoomTimeline(event: MatrixEvent, room: MatrixRoom | undefined, toStartOfTimeline: boolean | undefined, removed: boolean) {
 		const rooms = useRooms();
 		console.debug('Room.timeline', toStartOfTimeline, removed);
+
 		if (!room) return;
 
 		if (toStartOfTimeline) {
@@ -72,7 +75,7 @@ class Events {
 			if (event.event.type != 'm.room.message') return;
 
 			if (room.roomId !== rooms.currentRoomId) {
-				rooms.addRoomUnreadMessages(room.roomId);
+				rooms.unreadMessageCounter(room.roomId, event);
 			}
 		}
 	}

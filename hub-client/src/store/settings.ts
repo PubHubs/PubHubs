@@ -17,6 +17,11 @@ type i18nSettings = {
 	availableLocales: any;
 };
 
+enum featureFlagType {
+	signedMessages = 'signedMessages',
+	plugins = 'plugins',
+}
+
 interface Settings {
 	/**
 	 * The number of events to load on a page in a room.
@@ -34,6 +39,11 @@ interface Settings {
 	language: string;
 
 	_i18n?: i18nSettings;
+
+	featureFlags: {
+		signedMessages: boolean;
+		plugins: boolean;
+	};
 }
 
 const defaultSettings: Settings = {
@@ -43,6 +53,10 @@ const defaultSettings: Settings = {
 	_i18n: {
 		locale: undefined,
 		availableLocales: undefined,
+	},
+	featureFlags: {
+		signedMessages: true,
+		plugins: true,
 	},
 };
 
@@ -153,8 +167,20 @@ const createSettings = (defineStore: any) => {
 					}),
 				);
 			},
+
+			/**
+			 * Checks whether a feature is enabled or not, for more control in the transition from development to production.
+			 * Add features in the settins store featureFlags property.
+			 * Defaults to true if the feature is not found.
+			 */
+			isFeatureEnabled(feature: string): boolean {
+				// @ts-ignore
+				if (this.featureFlags[feature] === undefined) return true;
+				// @ts-ignore
+				return this.featureFlags[feature];
+			},
 		},
 	});
 };
 
-export { Theme, Settings, defaultSettings, createSettings, type i18nSettings };
+export { Theme, Settings, defaultSettings, createSettings, type i18nSettings, featureFlagType };

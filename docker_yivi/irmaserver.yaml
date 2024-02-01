@@ -4,6 +4,7 @@ requestors:
     key: "aXJtYV9yZXF1ZXN0b3Jfa2V5"
 no_auth: false
 
+# Note this yivi server is only used in development, so we can safely store the private key inside the repo.
 # openssl genrsa 4096 -out jwt.priv
 # ("openssl rsa -in jwt.priv -pubout -out jwt.pub", for public key.)
 jwt_privkey_file: jwt.priv

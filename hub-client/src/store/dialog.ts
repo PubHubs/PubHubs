@@ -186,4 +186,4 @@ const useDialog = defineStore('dialog', {
 	},
 });
 
-export { buttonsOk, buttonsCancel, buttonsSubmitCancel, DialogButton, type DialogButtonAction, DialogFalse, DialogTrue, DialogProperties, useDialog };
+export { buttonsOk, buttonsCancel, buttonsSubmitCancel, buttonsOkCancel, DialogButton, type DialogButtonAction, DialogFalse, DialogTrue, DialogProperties, useDialog };

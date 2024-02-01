@@ -4,10 +4,8 @@
 
 <script setup lang="ts">
 	import { useMatrixFiles } from '@/composables/useMatrixFiles';
-	import { usePubHubs } from '@/core/pubhubsStore';
 	import { M_ImageMessageEventContent } from '@/types/events';
-	const pubhubs = usePubHubs();
-	const { formUrlfromMxc } = useMatrixFiles(pubhubs);
+	const { formUrlfromMxc } = useMatrixFiles();
 
 	const props = defineProps<{ message: M_ImageMessageEventContent }>();
 </script>

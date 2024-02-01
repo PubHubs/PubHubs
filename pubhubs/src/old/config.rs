@@ -74,7 +74,7 @@ pub struct File {
 
 // for a hotfix to #459
 #[derive(Clone, Default, Serialize, Deserialize)]
-#[serde(deny_unknown_fields)]
+#[serde(deny_unknown_fields, default)]
 pub struct StaticFiles {
     pub dont_use_etag: bool,
     pub use_last_modified: bool,
@@ -83,7 +83,7 @@ pub struct StaticFiles {
 }
 
 #[derive(Serialize, Deserialize, Default)]
-#[serde(deny_unknown_fields)]
+#[serde(deny_unknown_fields, default)]
 pub struct Hotfixes {
     /// remove these headers from all responses
     pub remove_headers: Vec<String>,

@@ -4,10 +4,10 @@
 			<slot name="header"></slot>
 		</div>
 		<Line class="m-4 mb-0"></Line>
-		<div class="flex-1 min-h-0 p-4">
+		<div class="flex-1 min-h-0 p-4 overflow-y-auto">
 			<slot></slot>
 		</div>
-		<div class="pb-3 px-3 z-10">
+		<div class="p-3 z-10">
 			<slot name="footer"></slot>
 		</div>
 	</div>

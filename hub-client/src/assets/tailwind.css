@@ -88,3 +88,30 @@ body,
 		url('./fonts/Atkinson-Hyperlegible-Regular-102.ttf') format('truetype'),
 		url('./fonts/Atkinson-Hyperlegible-Regular-102.svg#atkinson_hyperlegibleregular') format('svg');
 }
+
+@font-face {
+	font-display: swap;
+	font-family: 'notocoloremoji';
+	font-style: normal;
+	font-weight: 400;
+	src: url('./fonts/NotoColorEmoji-Regular.ttf') format('truetype');
+}
+
+@layer components {
+	.emoji-font {
+		font-family: notocoloremoji;
+	}
+
+	.scrollbar-emojipicker {
+		scrollbar-width: auto;
+		scrollbar-color: theme(colors.gray.light) theme(colors.gray.DEFAULT);
+	}
+
+	.scrollbar-emojipicker::-webkit-scrollbar {
+		@apply bg-gray rounded-lg w-3;
+	}
+
+	.scrollbar-emojipicker::-webkit-scrollbar-thumb {
+		@apply bg-gray-light rounded-lg min-h-8;
+	}
+}

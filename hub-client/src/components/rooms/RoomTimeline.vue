@@ -1,7 +1,7 @@
 <template>
 	<div id="room-timeline" ref="elRoomTimeline" class="h-full overflow-y-auto relative" @scroll="onScroll">
-		<template v-for="(item, index) in rooms.rooms[room_id]?.timeline || []" :key="index">
-			<RoomEvent :eventId="item.event.event_id" :name="item.event.event_id" :event="item.event" class="room-event" @on-in-reply-to-click="onInReplyToClick"></RoomEvent>
+		<template v-for="(item, index) in rooms.getRoomTimeLineWithPluginsCheck(room_id)" :key="index">
+			<RoomEvent :event="item.event" class="room-event" @on-in-reply-to-click="onInReplyToClick"></RoomEvent>
 		</template>
 	</div>
 </template>
@@ -67,7 +67,7 @@
 		if (!(ev.target instanceof HTMLElement)) return;
 		if (!rooms.currentRoom) return;
 
-		rooms.currentRoom.userIsScrolling = isScrolling();
+		rooms.currentRoom.setUserIsScrolling(isScrolling());
 
 		// If scrolled to the top of the screen, load older events.
 		if (ev.target.scrollTop === 0) {

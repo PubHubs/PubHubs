@@ -5,8 +5,8 @@
 				<Icon type="unlink" class="cursor-pointer hover:text-red ml-2 float-right hidden group-hover:block" @click="leaveRoom(room.roomId)"></Icon>
 				<router-link :to="{ name: 'room', params: { id: room.roomId } }" v-slot="{ isActive }">
 					<Badge v-if="room.unreadMessages > 0" class="-ml-1 -mt-1">{{ room.unreadMessages }}</Badge>
-					<MenuItem :roomInfo="room" icon="room" :active="isActive">
-						<PrivateRoomName v-if="room.isPrivateRoom()" :members="room.getPrivateRoomNameMembers()"></PrivateRoomName>
+					<MenuItem :roomInfo="room" :icon="roomIcon(room)" :active="isActive">
+						<PrivateRoomName v-if="room.isPrivateRoom()" :members="room.getPrivateRoomMembers()"></PrivateRoomName>
 						<span v-else>
 							{{ room.name }}
 						</span>
@@ -23,12 +23,14 @@
 	import { Room, useRooms, useDialog } from '@/store/store';
 	import { usePubHubs } from '@/core/pubhubsStore';
 	import { PubHubsRoomType } from '@/store/rooms';
+	import { usePlugins, PluginProperties } from '@/store/plugins';
 	import { useToggleMenu } from '@/store/toggleGlobalMenu';
 
 	const { t } = useI18n();
 	const router = useRouter();
 	const rooms = useRooms();
 	const pubhubs = usePubHubs();
+	const plugins = usePlugins();
 	const toggleMenu = useToggleMenu();
 
 	const props = defineProps({
@@ -62,5 +64,14 @@
 				await router.replace({ name: 'home' });
 			}
 		}
+	}
+
+	function roomIcon(room: Room): string {
+		let icon = 'room';
+		const plugin = plugins.hasRoomPlugin(room) as PluginProperties;
+		if (plugin.icon) {
+			icon = plugin.icon;
+		}
+		return icon;
 	}
 </script>

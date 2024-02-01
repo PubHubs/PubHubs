@@ -1,6 +1,7 @@
 import { createRouter, createWebHashHistory } from 'vue-router';
-import { useUser } from '@/store/store';
-
+import { useUser, useRooms } from '@/store/store';
+import { usePubHubs } from '@/core/pubhubsStore';
+import { MatrixEvent } from 'matrix-js-sdk';
 const routes = [
 	{ path: '/', name: 'home', component: () => import('@/pages/HomePage.vue') },
 	{ path: '/hub', name: 'hubpage', component: () => import('@/pages/HubPage.vue') },
@@ -18,6 +19,18 @@ const router = createRouter({
 });
 
 router.beforeEach((to) => {
+	//Add a receipt marker when we change the room.
+	const rooms = useRooms();
+	const pubhubs = usePubHubs();
+
+	rooms.roomsArray.forEach(async (room) => {
+		if (room.roomId === router.currentRoute.value.params.id) {
+			const mEvent: MatrixEvent = rooms.getlastEvent(room.roomId);
+			const sender = mEvent.event.sender!;
+			await pubhubs.sendAcknowledgementReceipt(sender);
+		}
+	});
+
 	if (to.meta.onlyAdmin) {
 		const { isAdmin } = useUser();
 		if (isAdmin) {
