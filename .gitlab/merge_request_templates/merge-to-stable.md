@@ -7,7 +7,7 @@ As a general tip while testing, keep two browser windows open, one for a existin
   - [ ] You're merging from main into stable (and not from some feature branch.) 
   - [ ] Review and update the [CHANGELOG](CHANGELOG.md) to reflect the state after the merge into stable.
     - [ ] Scan through all changes in merge request to see if there is any issue.
-  - [ ] Below proceeding with the folloing steps please check that the pipeline has been successfully completed. 
+  - [ ] Before proceeding with the folloing steps please check that the pipeline has been successfully completed. 
   - [ ] Please check that the following works on https://main.pubhubs.ihub.ru.nl/client :
       - [ ] Logging in with your existing account there.
       - [ ] Posting a message to a room.
