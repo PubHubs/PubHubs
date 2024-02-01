@@ -31,7 +31,7 @@ As a general tip while testing, keep two browser windows open, one for a existin
       - [ ] Change displayname.
       - [ ] Change Theme & Language, and see they are stored/fetched after logout/login.
       - [ ] Logging out and logging in again with your original user.
-      - [ ] Rebrand testhub2 with a new logo and colors. See https://gitlab.science.ru.nl/ilab/pubhubs_canonical/-/blob/main/docs/hub_branding/README.md (NB This involves some work on ilab-main, see https://gitlab.science.ru.nl/ilab/pubhubs_canonical/-/wikis/Current-ops-troubleshooting#changing-the-branding-of-a-running-hub)
+      - [ ] Rebrand testhub2 with a new logo and colors. See https://gitlab.science.ru.nl/ilab/pubhubs_canonical/-/blob/main/docs/development/BRANDING.md (NB This involves some work on ilab-main, see https://gitlab.science.ru.nl/ilab/pubhubs_canonical/-/wikis/Current-ops-troubleshooting#changing-the-branding-of-a-running-hub)
       - [ ] Anything related specifically to your merge request.
   - [ ] Figure out if the merge also requires any configuration changes. 
   - [ ] Consider if the merge might cause irreversible changes (different database format), and plan for this. (Backups?)
