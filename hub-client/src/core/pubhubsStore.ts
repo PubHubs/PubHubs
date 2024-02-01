@@ -9,7 +9,7 @@ import { useSettings, User, useUser, useRooms, useConnection, PubHubsRoomType } 
 import filters from '@/core/filters';
 import { hasHtml, sanitizeHtml } from '@/core/sanitizer';
 import { api_synapse, api_matrix } from '@/core/api';
-import { M_MessageEvent, M_TextMessageEventContent } from '@/types/events';
+import { M_Mentions, M_MessageEvent, M_TextMessageEventContent } from '@/types/events';
 import { YiviSigningSessionResult } from '@/lib/signedMessages';
 
 const usePubHubs = defineStore('pubhubs', {
@@ -171,7 +171,54 @@ const usePubHubs = defineStore('pubhubs', {
 			// this.updateRooms();
 		},
 
-		_constructMessageContent(text: string): M_TextMessageEventContent {
+		/**
+		 * Adds users which are mentioned by '@' in the message to m.mentions field, mutating the content argument.
+		 */
+		async _addUserMentionsToMessageContent(content: M_TextMessageEventContent) {
+			if (content.body.includes('@')) {
+				const users = await this.getUsers();
+				let mentionedUsersName = [];
+				const mentionedUsers = content.body.split('@');
+				mentionedUsersName = users
+					.filter((user) => {
+						return mentionedUsers.some((menUser) => user.rawDisplayName != undefined && (menUser.includes(user.rawDisplayName) || menUser === user.rawDisplayName));
+					})
+					.map((users) => users.rawDisplayName)
+					.filter((displayName): displayName is string => displayName !== undefined);
+
+				content['m.mentions']['user_ids'] = content['m.mentions']['user_ids'].concat(mentionedUsersName);
+			}
+		},
+
+		_createEmptyMentions(): M_Mentions {
+			return {
+				room: false,
+				user_ids: [],
+			};
+		},
+
+		/**
+		 * Mutates the message content appropriately to become a reply to the inReplyTo event.
+		 */
+		_addInReplyToToMessageContent(content: M_TextMessageEventContent, inReplyTo: M_MessageEvent) {
+			content['m.relates_to'] = { 'm.in_reply_to': { event_id: inReplyTo.event_id, x_event_copy: structuredClone(inReplyTo) } };
+
+			// Don't save inReplyTo of inReplyTo event.
+			delete content['m.relates_to']?.['m.in_reply_to']?.x_event_copy?.content?.['m.relates_to']?.['m.in_reply_to']?.x_event_copy;
+
+			// Mention appropriate users
+
+			if (
+				inReplyTo.content.msgtype == 'm.text' &&
+				// For backwards compatibility
+				inReplyTo.content['m.mentions']
+			) {
+				const newUsers = [...inReplyTo.content['m.mentions'].user_ids, inReplyTo.sender];
+				content['m.mentions'].user_ids.concat(newUsers);
+			}
+		},
+
+		async _constructMessageContent(text: string, inReplyTo?: M_MessageEvent): Promise<M_TextMessageEventContent> {
 			let content = ContentHelpers.makeTextMessage(text) as M_TextMessageEventContent;
 
 			const cleanText = hasHtml(text);
@@ -179,6 +226,17 @@ const usePubHubs = defineStore('pubhubs', {
 				const html = sanitizeHtml(text);
 				content = ContentHelpers.makeHtmlMessage(cleanText, html) as M_TextMessageEventContent;
 			}
+
+			// content should have M_TextMessageEventContent type after this step (and not before), but don't know how to change type.
+			content['m.mentions'] = this._createEmptyMentions();
+
+			await this._addUserMentionsToMessageContent(content);
+
+			// If the message is a reply to another event.
+			if (inReplyTo) {
+				this._addInReplyToToMessageContent(content, inReplyTo);
+			}
+
 			return content;
 		},
 
@@ -203,32 +261,9 @@ const usePubHubs = defineStore('pubhubs', {
 				}
 			}
 
-			const content = this._constructMessageContent(text);
+			const content = await this._constructMessageContent(text, inReplyTo);
 
-			if (content.body.includes('@')) {
-				const users = await this.getUsers();
-				let mentionedUsersName = [];
-				const mentionedUsers = content.body.split('@');
-				mentionedUsersName = users
-					.filter((user) => {
-						return mentionedUsers.some((menUser) => user.rawDisplayName != undefined && (menUser.includes(user.rawDisplayName) || menUser === user.rawDisplayName));
-					})
-					.map((users) => users.rawDisplayName)
-					.filter((displayName): displayName is string => displayName !== undefined);
-
-				// Assuming content is an instance of M_TextMessageEventContent
-				if (!content['m.mentions']) {
-					content['m.mentions'] = {};
-				}
-				content['m.mentions']['room'] = true;
-				content['m.mentions']['user_ids'] = mentionedUsersName;
-			}
-			// If the message is a reply to another event.
-			if (inReplyTo) {
-				content['m.relates_to'] = { 'm.in_reply_to': { event_id: inReplyTo.event_id, x_event_copy: structuredClone(inReplyTo) } };
-
-				delete content['m.relates_to']?.['m.in_reply_to']?.x_event_copy?.content?.['m.relates_to']?.['m.in_reply_to']?.x_event_copy;
-			}
+			// ?Are we catching this for a reason?
 			try {
 				await this.client.sendEvent(roomId, 'm.room.message', content, '');
 			} catch (error) {
