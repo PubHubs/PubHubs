@@ -22,9 +22,10 @@ As a general tip while testing, keep two browser windows open, one for a existin
             - `.quit`, etc.
         - [ ] With the admin user:
           - [ ] Create a new room
-          - [ ] Create a new secured room with mulitple profile attributes and a non profile attribute.
+          - [ ] Create one or more new secured room with mulitple profile attributes and a non profile attributes.
             - Make sure to require at least one value, so that one of the users cannot enter the secured room.
             - Check if the badges are shown properly (in line with which (non-)profile attributes are set).
+            - Try to vary a bit in what you do exactly on each merge.
         - [ ] With the new user:
           - [ ] Send a message in the public room.
           - [ ] Send a message in the secured room.
