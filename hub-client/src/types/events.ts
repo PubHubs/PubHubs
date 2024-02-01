@@ -29,14 +29,16 @@ interface M_BaseMessageEventContent {
 	};
 }
 
+export interface M_Mentions {
+	room: boolean;
+	user_ids: string[];
+}
+
 export interface M_TextMessageEventContent extends M_BaseMessageEventContent {
 	msgtype: 'm.text';
 	format?: 'org.matrix.custom.html';
 	formatted_body?: string;
-	'm.mentions'?: {
-		room?: boolean;
-		user_ids?: string[];
-	};
+	'm.mentions': M_Mentions;
 }
 
 export interface M_ImageMessageEventContent extends M_BaseMessageEventContent {

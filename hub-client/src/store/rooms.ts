@@ -491,7 +491,7 @@ const useRooms = defineStore('rooms', {
 				}
 			} else {
 				if (receiptTS < singleEvent.localTimestamp && singleEvent.event.sender !== user.user.userId) {
-					if (singleEvent.event.content?.['m.mentions'] !== undefined) {
+					if (singleEvent.event.content?.['m.mentions']?.['user_ids'] !== undefined && singleEvent.event.content['m.mentions']['user_ids'].length > 0) {
 						// Only if 'this' user is mentioned then count. If other users are mentioned then don't count.
 						if (this.unreadMentionMsgCount(singleEvent)) {
 							this.rooms[roomId]._ph.unreadMessages += 1;
