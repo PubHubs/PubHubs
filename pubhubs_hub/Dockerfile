@@ -8,7 +8,7 @@
 # bullseye tag since the synapse image is based on bullseye.
 FROM golang:bookworm AS yivi_build
 
-RUN git clone https://github.com/privacybydesign/irmago --branch v0.14.1 --depth 1
+RUN git clone https://github.com/privacybydesign/irmago --branch v0.15.1 --depth 1
 
 WORKDIR irmago
 
