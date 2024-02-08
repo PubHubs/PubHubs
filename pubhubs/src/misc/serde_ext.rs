@@ -786,8 +786,8 @@ pub mod bytes_wrapper {
             ed25519_dalek::VerifyingKey::deserialize(d).unwrap(); // works
 
             let d = serde::de::value::BytesDeserializer::<serde::de::value::Error>::new(&bytes);
-            ed25519_dalek::VerifyingKey::deserialize(d).unwrap_err();
-            // This errs, but should start working after
+            ed25519_dalek::VerifyingKey::deserialize(d).unwrap();
+            // This *used to* err, but now works after
             // https://github.com/dalek-cryptography/curve25519-dalek/pull/602 is released.
 
             let d = serde::de::value::SeqDeserializer::<_, serde::de::value::Error>::new(
