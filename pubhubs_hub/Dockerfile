@@ -2,7 +2,7 @@
 #
 #   docker build -f pubhubs_hub/Dockerfile .
 #
-# Please keep the pubhubs_hub/Dockerfile.dockerignore up-to-date. 
+# Please keep the pubhubs_hub/Dockerfile.dockerignore up-to-date.
 
 ### BUILD STAGE:  YIVI
 # bullseye tag since the synapse image is based on bullseye.
@@ -14,7 +14,7 @@ WORKDIR irmago
 
 RUN GO111MODULE=auto go install ./irma
 
-### BUILD STAGE:  LIBPUBHUBS 
+### BUILD STAGE:  LIBPUBHUBS
 FROM rust:bookworm AS libpubhubs_build
 
 COPY pubhubs/ wd
@@ -25,7 +25,7 @@ WORKDIR wd
 RUN cargo build --no-default-features --lib --features=abi
 
 ## FINAL CONTAINER STAGE
-FROM matrixdotorg/synapse:v1.94.0
+FROM ghcr.io/element-hq/synapse:v1.100.0
 
 COPY --from=yivi_build /go/bin/irma /usr/bin/irma
 COPY --from=libpubhubs_build /wd/target/debug/libpubhubs.so /usr/lib
