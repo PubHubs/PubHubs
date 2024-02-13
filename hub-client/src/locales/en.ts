@@ -89,6 +89,7 @@ const en = {
 		displayname_changed: 'Nickname changed to `{0}`.',
 		theme: 'Theme',
 		theme_changed: 'Theme changed to `{0}`.',
+		timeformat: 'Time format',
 		language: 'Language',
 		language_changed: 'Language changed to `{0}`.',
 		title: 'Settings',
@@ -123,6 +124,10 @@ const en = {
 		light: 'Light',
 		system: 'System',
 	},
+	timeformats: {
+		format12: '12 hours',
+		format24: '24 hours',
+	},
 	message: {
 		send: 'Send',
 		in_reply_to: 'In reply to:',
@@ -141,6 +146,10 @@ const en = {
 			info: 'A statement that is signed with Yivi attributes and can be shared outside the Hub.',
 			verificationStatus: 'Signed messages are a work in progress. They are trustworthy, but are not yet cryptographically verified.',
 		},
+	},
+	time: {
+		yesterday: 'yesterday',
+		daysago: '{0} days ago',
 	},
 	emoji: {
 		clock: 'All',

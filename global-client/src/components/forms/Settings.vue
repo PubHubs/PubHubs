@@ -8,6 +8,10 @@
 			<Label>{{ t('settings.language') }}</Label>
 			<ButtonGroup size="sm" v-model="data.language.value" :value="data.language.value" :options="settings.getLanguageOptions" @changed="updateData('language', $event)"></ButtonGroup>
 		</div>
+		<div class="flex flex-col md:flex-row justify-between mb-2">
+			<Label>{{ t('settings.timeformat') }}</Label>
+			<ButtonGroup size="sm" v-model="data.timeformat.value" :value="data.timeformat.value" :options="settings.getTimeFormatOptions(t)" @changed="updateData('timeformat', $event)"></ButtonGroup>
+		</div>
 		<div v-if="noPerm()" class="flex flex-col md:flex-row justify-between mb-2">
 			<label>{{ t('settings.notifications') }}</label>
 			<Button @click="askPerm()">{{ t('settings.notifications_allow') }}</Button>
@@ -41,6 +45,7 @@
 	setData({
 		theme: { value: settings.getSetTheme as FormDataType },
 		language: { value: settings.getActiveLanguage as FormDataType },
+		timeformat: { value: settings.getTimeFormat as FormDataType },
 	});
 
 	onMounted(() => {
@@ -53,6 +58,10 @@
 				}
 				if (dataIsChanged('language')) {
 					settings.setLanguage(data.language.value as string);
+					sendSettings = true;
+				}
+				if (dataIsChanged('timeformat')) {
+					settings.setTimeFormat(data.timeformat.value as string);
 					sendSettings = true;
 				}
 				if (sendSettings) {

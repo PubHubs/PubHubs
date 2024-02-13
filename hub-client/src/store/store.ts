@@ -5,7 +5,7 @@
 import { defineStore } from 'pinia';
 import { User, defaultUser, useUser } from '@/store/user';
 import { ConnectionState, useConnection } from '@/store/connection';
-import { Theme, defaultSettings, createSettings, type i18nSettings, featureFlagType } from '@/store/settings';
+import { Theme, TimeFormat, defaultSettings, createSettings, type i18nSettings, featureFlagType } from '@/store/settings';
 import { useHubSettings } from '@/store/hub-settings';
 import { PubHubsRoomType, Room, Event, PublicRoom, SecuredRoomAttributes, SecuredRoom, useRooms } from '@/store/rooms';
 import { MessageType, Message, MessageBoxType, useMessageBox } from '@/store/messagebox';
@@ -20,6 +20,7 @@ export {
 	ConnectionState,
 	useConnection,
 	Theme,
+	TimeFormat,
 	defaultSettings,
 	useSettings,
 	type i18nSettings,
