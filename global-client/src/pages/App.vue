@@ -59,7 +59,6 @@
 	const settingsDialog = ref(false);
 	const { t, locale, availableLocales } = useI18n();
 	const toggleMenu = useToggleMenu();
-	const messagebox = useMessageBox();
 
 	// eslint-disable-next-line
 	const pubHubsUrl = _env.PUBHUBS_URL;
@@ -83,13 +82,7 @@
 				global.saveGlobalSettings();
 			});
 		}
-
 		await addHubs();
-
-		//Listen to global menu change
-		messagebox.addCallback(MessageType.mobileHubMenu, () => {
-			toggleMenu.toggleMenu();
-		});
 	});
 
 	async function addHubs() {
