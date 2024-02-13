@@ -2,7 +2,7 @@ import { defineStore } from 'pinia';
 import { getCookie } from 'typescript-cookie';
 import { Buffer } from 'buffer';
 
-import { Hub, HubList, Theme, useSettings } from '@/store/store';
+import { Hub, HubList, Theme, TimeFormat, useSettings } from '@/store/store';
 import { api } from '@/core/api';
 
 type PinnedHub = {
@@ -13,12 +13,14 @@ type PinnedHubs = Array<PinnedHub>;
 
 interface GlobalSettings {
 	theme: Theme;
+	timeformat: TimeFormat;
 	language: string;
 	hubs: PinnedHubs;
 }
 
 const defaultGlobalSettings = {
 	theme: 'system', // Theme.System,
+	timeformat: 'format24', // TimeFormat.format24,
 	language: 'en',
 	hubs: [] as PinnedHubs,
 };
@@ -48,6 +50,7 @@ const useGlobal = defineStore('global', {
 			const settings = useSettings();
 			const globalSettings: GlobalSettings = {
 				theme: settings.getActiveTheme,
+				timeformat: settings.getTimeFormat,
 				language: settings.getActiveLanguage,
 				hubs: state.pinnedHubs,
 			};
@@ -85,6 +88,10 @@ const useGlobal = defineStore('global', {
 		setGlobalSettings(data: any) {
 			const settings = useSettings();
 			settings.setTheme(data.theme);
+			if (!data.timeformat || data.timeformat == '') {
+				data.timeformat = TimeFormat.format24;
+			}
+			settings.setTimeFormat(data.timeformat);
 			if (!data.language || data.language == '') {
 				data.language = navigator.language;
 			}

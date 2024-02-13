@@ -89,6 +89,7 @@ const nl = {
 		avatar_changed: 'Avatar bijgewerkt! ',
 		theme: 'Thema',
 		theme_changed: 'Thema gewijzigd in `{0}`.',
+		timeformat: 'Tijd formaat',
 		language: 'Taal',
 		language_changed: 'Taal gewijzigd in `{0}`.',
 		title: 'Instellingen',
@@ -123,6 +124,10 @@ const nl = {
 		light: 'Licht',
 		system: 'Systeem',
 	},
+	timeformats: {
+		format12: '12 uur',
+		format24: '24 uur',
+	},
 	message: {
 		send: 'Verstuur',
 		in_reply_to: 'Antwoord op:',
@@ -141,6 +146,10 @@ const nl = {
 			info: 'Een verklaring dat ondertekend is met Yivi attributen en gedeeld kan worden buiten de Hub.',
 			verificationStatus: 'Ondertekende berichten zijn nog in ontwikkeling. Ze zijn betrouwbaar, maar worden nog niet cryptographisch geverifieerd.',
 		},
+	},
+	time: {
+		yesterday: 'gisteren',
+		daysago: '{0} dagen geleden',
 	},
 	emoji: {
 		clock: 'Alles',
