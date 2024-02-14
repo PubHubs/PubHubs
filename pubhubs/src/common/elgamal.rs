@@ -235,10 +235,16 @@ impl PrivateKey {
         &self.public_key
     }
 
+    /// Computes the [PublicKey] associated with the product of two [PrivateKey]s given only one
+    /// private key.
+    pub fn scale(&self, pk: &PublicKey) -> PublicKey {
+        (self.scalar * pk.point).into()
+    }
+
     /// Creates a Diffie-Hellman-type shared secret between this [`PrivateKey`] and the [`PublicKey`].
     pub fn shared_secret(&self, pk: &PublicKey) -> SharedSecret {
         SharedSecret {
-            inner: (self.scalar * pk.point).to_bytes(),
+            inner: self.scale(pk).to_bytes(),
         }
     }
 }
@@ -482,7 +488,7 @@ mod serde_impls {
     use crate::misc::serde_ext;
     use serde::de::Error as _;
 
-    /// Implements [`serde::Serialize`] and [`serde::Deserialize`] using [`ByteArray`] and hex
+    /// Implements [`serde::Serialize`] and [`serde::Deserialize`] using [`serde_ext::ByteArray`] and hex
     /// encoding
     macro_rules! serde_impl {
         { $type:ident, $n:literal } => {

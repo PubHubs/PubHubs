@@ -404,6 +404,10 @@ impl JWT {
                 .map_err(Error::ClaimsNotJsonMap)?,
         })
     }
+
+    pub fn as_str(&self) -> &str {
+        &self.inner
+    }
 }
 
 #[derive(thiserror::Error, Debug)]
@@ -557,7 +561,7 @@ pub trait Key {
 
     /// Checks that `alg` equals `Self::ALG`.
     ///
-    /// This method is overriden by [Hazard_NoKey].
+    /// This method is overriden by [IgnoreSignature].
     fn check_alg(alg: &str) -> Result<(), Error> {
         if alg == Self::ALG {
             return Ok(());

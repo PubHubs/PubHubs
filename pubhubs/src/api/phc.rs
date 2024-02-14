@@ -17,7 +17,7 @@ pub mod hub {
         const PATH: &'static str = ".ph/hubs/ticket";
     }
 
-    having_message_code!(TicketReq, PhcHubTicketRequest);
+    having_message_code!(TicketReq, PhcHubTicketReq);
 
     #[derive(Serialize, Deserialize, Debug, Clone)]
     pub struct TicketReq {
@@ -36,10 +36,10 @@ pub mod hub {
 
     having_message_code!(TicketContent, PhcHubTicket);
 
-    /// A [Signed] message together with a [api::phc::Ticket].
+    /// A [Signed] message together with a [Ticket].
     #[derive(Serialize, Deserialize, Debug)]
     pub struct TicketSigned<T> {
-        ticket: Ticket,
+        pub ticket: Ticket,
         signed: Signed<T>,
     }
 

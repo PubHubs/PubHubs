@@ -274,6 +274,14 @@ pub trait App<S: Server>: Clone + 'static {
 
     /// Returns the [AppBase] this [App] builds on.
     fn base(&self) -> &AppBase<S>;
+
+    /// Should return the master encryption key part for PHC and the transcryption.
+    fn master_enc_key_part(&self) -> Option<&elgamal::PrivateKey> {
+        if matches!(S::NAME, Name::PubhubsCentral | Name::Transcryptor) {
+            panic!("this default impl should have been  overriden for PHC and T")
+        }
+        None
+    }
 }
 
 /// What's internally common between PubHubs [AppCreator]s.
@@ -489,11 +497,22 @@ impl<S: Server> AppBase<S> {
             jwt_key: app_base.jwt_key.verifying_key().into(),
             state: (&app_base.state).into(),
             enc_key: app_base.enc_key.public_key().clone(),
+            master_enc_key_part: app
+                .master_enc_key_part()
+                .map(|privk| privk.public_key().clone()),
             constellation: match &app_base.state {
                 State::UpAndRunning { constellation, .. } => Some(*constellation.clone()),
                 State::Discovery { .. } => None,
             },
         })
+    }
+
+    /// Returns the server's running state if it is, and otherwise [ErrorCode::NotYetReady].
+    pub(super) fn running_state(&self) -> api::Result<&S::RunningState> {
+        match self.state {
+            State::UpAndRunning { ref extra, .. } => api::Result::Ok(extra),
+            State::Discovery { .. } => api::Result::Err(api::ErrorCode::NotYetReady),
+        }
     }
 }
 

@@ -5,10 +5,13 @@ use actix_web::web;
 
 use futures_util::future::LocalBoxFuture;
 
-use crate::servers::{
-    self,
-    api::{self, EndpointDetails as _},
-    discovery, AppBase, AppCreator as _, AppCreatorBase, Constellation, Server as _,
+use crate::{
+    phcrypto,
+    servers::{
+        self,
+        api::{self, EndpointDetails as _},
+        discovery, AppBase, AppCreator as _, AppCreatorBase, Constellation, Server as _,
+    },
 };
 
 use crate::{elgamal, hub};
@@ -43,6 +46,7 @@ pub struct App {
     auths_url: url::Url,
     hubs: HashMap<hub::Id, hub::BasicInfo>,
     hub_by_name: HashMap<hub::Name, hub::Id>,
+    master_enc_key_part: elgamal::PrivateKey,
 }
 
 #[derive(Clone)]
@@ -70,6 +74,12 @@ impl crate::servers::App<Server> for Rc<App> {
             let asdi = api::return_if_ec!(asdi_res);
 
             api::ok(crate::servers::Constellation {
+                // The public master encryption key is `x_PHC * ( x_T * B )`
+                master_enc_key: phcrypto::combine_master_enc_key_parts(
+                    &tdi.master_enc_key_part
+                        .expect("should already have been checked to be some by discovery_info_of"),
+                    &self.master_enc_key_part,
+                ),
                 phc_url: self.base.phc_url.clone(),
                 phc_jwt_key: self.base.jwt_key.verifying_key().into(),
                 phc_enc_key: self.base.enc_key.public_key().clone(),
@@ -85,6 +95,10 @@ impl crate::servers::App<Server> for Rc<App> {
 
     fn base(&self) -> &AppBase<Server> {
         &self.base
+    }
+
+    fn master_enc_key_part(&self) -> Option<&elgamal::PrivateKey> {
+        Some(&self.master_enc_key_part)
     }
 }
 
@@ -156,13 +170,26 @@ impl App {
     async fn handle_hub_key(
         app: Rc<Self>,
         signed_req: web::Json<api::phc::hub::TicketSigned<api::phct::hub::KeyReq>>,
-    ) -> api::Result<api::Signed<api::phct::hub::KeyResp>> {
+    ) -> api::Result<api::phct::hub::KeyResp> {
+        let running_state: &RunningState = api::return_if_ec!(app.base.running_state());
+
         let ts_req = signed_req.into_inner();
 
-        let (req, hub_name): (api::phct::hub::KeyReq, hub::Name) =
+        let ticket_digest = phcrypto::TicketDigest::new(&ts_req.ticket);
+
+        let (req, _): (api::phct::hub::KeyReq, hub::Name) =
             api::return_if_ec!(ts_req.open(&app.base.jwt_key.verifying_key()));
 
-        unimplemented!()
+        // At this point we can be confident that the ticket is authentic, so we can give the hub
+        // its decryption key based on the provided ticket
+
+        let key_part: curve25519_dalek::Scalar = phcrypto::phc_hub_key_part(
+            ticket_digest,
+            &running_state.t_ss, // shared secret with transcryptor
+            &app.master_enc_key_part,
+        );
+
+        api::ok(api::phct::hub::KeyResp { key_part })
     }
 }
 
@@ -173,6 +200,7 @@ pub struct AppCreator {
     auths_url: url::Url,
     hubs: HashMap<hub::Id, hub::BasicInfo>,
     hub_by_name: HashMap<hub::Name, hub::Id>,
+    master_enc_key_part: elgamal::PrivateKey,
 }
 
 impl crate::servers::AppCreator<Server> for AppCreator {
@@ -183,6 +211,7 @@ impl crate::servers::AppCreator<Server> for AppCreator {
             auths_url: self.auths_url,
             hubs: self.hubs,
             hub_by_name: self.hub_by_name,
+            master_enc_key_part: self.master_enc_key_part,
         })
     }
 
@@ -190,7 +219,9 @@ impl crate::servers::AppCreator<Server> for AppCreator {
         let mut hubs: HashMap<hub::Id, hub::BasicInfo> = Default::default();
         let mut hub_by_name: HashMap<hub::Name, hub::Id> = Default::default();
 
-        for basic_hub_info in config.phc.as_ref().unwrap().extra.hubs.iter() {
+        let xconf = &config.phc.as_ref().unwrap().extra;
+
+        for basic_hub_info in xconf.hubs.iter() {
             anyhow::ensure!(
                 hubs.insert(basic_hub_info.id, basic_hub_info.clone())
                     .is_none(),
@@ -209,7 +240,10 @@ impl crate::servers::AppCreator<Server> for AppCreator {
             }
         }
 
-        let xconf = &config.phc.as_ref().unwrap().extra;
+        let master_enc_key_part: elgamal::PrivateKey = xconf
+            .master_enc_key_part
+            .clone()
+            .unwrap_or_else(|| elgamal::PrivateKey::random());
 
         Ok(Self {
             base: AppCreatorBase::<Server>::new(config),
@@ -217,6 +251,7 @@ impl crate::servers::AppCreator<Server> for AppCreator {
             auths_url: xconf.auths_url.clone(),
             hubs,
             hub_by_name,
+            master_enc_key_part,
         })
     }
 

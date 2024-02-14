@@ -36,6 +36,7 @@ pub struct RunningState {
 
 pub struct App {
     base: AppBase<Server>,
+    master_enc_key_part: elgamal::PrivateKey,
 }
 
 impl crate::servers::App<Server> for Rc<App> {
@@ -44,23 +45,37 @@ impl crate::servers::App<Server> for Rc<App> {
     fn base(&self) -> &AppBase<Server> {
         &self.base
     }
+
+    fn master_enc_key_part(&self) -> Option<&elgamal::PrivateKey> {
+        Some(&self.master_enc_key_part)
+    }
 }
 
 #[derive(Clone)]
 pub struct AppCreator {
     base: AppCreatorBase<Server>,
+    master_enc_key_part: elgamal::PrivateKey,
 }
 
 impl crate::servers::AppCreator<Server> for AppCreator {
     fn new(config: &servers::Config) -> anyhow::Result<Self> {
+        let xconf = &config.transcryptor.as_ref().unwrap().extra;
+
+        let master_enc_key_part: elgamal::PrivateKey = xconf
+            .master_enc_key_part
+            .clone()
+            .unwrap_or_else(|| elgamal::PrivateKey::random());
+
         Ok(Self {
             base: AppCreatorBase::<Server>::new(config),
+            master_enc_key_part,
         })
     }
 
     fn into_app(self, shutdown_sender: &ShutdownSender<Server>) -> Rc<App> {
         Rc::new(App {
             base: AppBase::new(self.base, shutdown_sender),
+            master_enc_key_part: self.master_enc_key_part,
         })
     }
 

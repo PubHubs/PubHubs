@@ -221,6 +221,10 @@ pub struct DiscoveryInfoResp {
     /// Discovery state of the server
     pub state: ServerState,
 
+    /// Master encryption key part, that is, `x_PHC B` or `x_T B` in the notation of the
+    /// whitepaper.  Only set for PHC or the transcryptor.
+    pub master_enc_key_part: Option<elgamal::PublicKey>,
+
     /// Details of the other PubHubs servers, according to this server
     /// None when `state` is [ServerState::Discovery]
     pub constellation: Option<crate::servers::Constellation>,

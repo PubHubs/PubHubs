@@ -132,10 +132,11 @@ pub mod phc {
         /// Where can we reach the authentication server?
         pub auths_url: Url,
 
-        pub master_private_key_part: Option<api::Scalar>,
-
         /// The hubs that are known to us
         pub hubs: Vec<hub::BasicInfo>,
+
+        /// `x_PHC` from the whitepaper; randomly generated if not set
+        pub master_enc_key_part: Option<elgamal::PrivateKey>,
     }
 }
 
@@ -144,7 +145,10 @@ pub mod transcryptor {
 
     #[derive(serde::Deserialize, Debug, Clone)]
     #[serde(deny_unknown_fields)]
-    pub struct ExtraConfig {}
+    pub struct ExtraConfig {
+        /// `x_T` from the whitepaper; randomly generated if not set
+        pub master_enc_key_part: Option<elgamal::PrivateKey>,
+    }
 }
 
 pub mod auths {

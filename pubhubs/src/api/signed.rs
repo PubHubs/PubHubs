@@ -100,6 +100,10 @@ impl<T> Signed<T> {
             phantom: PhantomData,
         })
     }
+
+    pub fn as_str(&self) -> &str {
+        self.inner.as_str()
+    }
 }
 
 /// A number that represents the type of a message.  Every message type that's [Signed] gets such a
@@ -110,10 +114,10 @@ impl<T> Signed<T> {
 pub enum MessageCode {
     // NOTE: you can freely change the names of these variants, but DO NOT CHANGE the code of a
     // message once assigned, as this breaks existing signatures.
-    PhcHubTicketRequest = 1,
+    PhcHubTicketReq = 1,
     PhcHubTicket = 2,
-    PhcHubKeyReq = 3,
-    PhcHubKeyResp = 4,
+    PhcTHubKeyReq = 3,
+    PhcTHubKeyResp = 4,
 }
 
 impl std::fmt::Display for MessageCode {
@@ -147,8 +151,8 @@ mod test {
     #[test]
     fn test_display_message_code() {
         assert_eq!(
-            &format!("{}", MessageCode::PhcHubTicketRequest),
-            "1 (PhcHubTicketRequest)"
+            &format!("{}", MessageCode::PhcHubTicketReq),
+            "1 (PhcHubTicketReq)"
         );
     }
 }

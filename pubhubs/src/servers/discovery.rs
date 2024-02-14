@@ -143,6 +143,16 @@ impl<'a> DiscoveryInfoCheck<'a> {
             }
         }
 
+        if inf.master_enc_key_part.is_some()
+            != matches!(
+                inf.name,
+                servers::Name::PubhubsCentral | servers::Name::Transcryptor
+            )
+        {
+            log::error!("master_enc_key_part must be set by the transcryptor and pubhub central, but no other servers - url: {}", source);
+            return api::err(api::ErrorCode::InternalError);
+        }
+
         if inf.state == api::ServerState::UpAndRunning {
             if inf.constellation.is_none() {
                 log::error!(
