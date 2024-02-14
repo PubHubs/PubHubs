@@ -143,7 +143,7 @@ where
     }
 
     fn create_running_state(&self, constellation: &Constellation) -> Result<Self::RunningState> {
-        D::create_running_state(&self, &constellation)
+        D::create_running_state(self, constellation)
     }
 }
 
@@ -321,8 +321,7 @@ impl<S: Server> AppCreatorBase<S> {
             enc_key: server_config
                 .enc_key
                 .clone()
-                .unwrap_or_else(|| elgamal::PrivateKey::random())
-                .into(),
+                .unwrap_or_else(elgamal::PrivateKey::random),
             phc_url: config.phc_url.clone(),
         }
     }

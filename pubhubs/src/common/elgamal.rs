@@ -532,7 +532,7 @@ impl SharedSecret {
             // we include the length of the domain to prevent collisions between domains with the
             // same prefix
             .chain_update(domain.len().to_ne_bytes())
-            .chain_update(&self.inner)
+            .chain_update(self.inner)
     }
 
     /// Creates a scalar from this shared secret

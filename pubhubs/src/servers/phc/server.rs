@@ -177,7 +177,7 @@ impl App {
 
         let ticket_digest = phcrypto::TicketDigest::new(&ts_req.ticket);
 
-        let (req, _): (api::phct::hub::KeyReq, hub::Name) =
+        let (_, _): (api::phct::hub::KeyReq, hub::Name) =
             api::return_if_ec!(ts_req.open(&app.base.jwt_key.verifying_key()));
 
         // At this point we can be confident that the ticket is authentic, so we can give the hub
@@ -243,7 +243,7 @@ impl crate::servers::AppCreator<Server> for AppCreator {
         let master_enc_key_part: elgamal::PrivateKey = xconf
             .master_enc_key_part
             .clone()
-            .unwrap_or_else(|| elgamal::PrivateKey::random());
+            .unwrap_or_else(elgamal::PrivateKey::random);
 
         Ok(Self {
             base: AppCreatorBase::<Server>::new(config),

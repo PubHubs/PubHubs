@@ -31,6 +31,7 @@ impl servers::Details for Details {
 
 #[derive(Clone)]
 pub struct RunningState {
+    #[allow(dead_code)] // TODO: remove
     phc_ss: elgamal::SharedSecret,
 }
 
@@ -64,7 +65,7 @@ impl crate::servers::AppCreator<Server> for AppCreator {
         let master_enc_key_part: elgamal::PrivateKey = xconf
             .master_enc_key_part
             .clone()
-            .unwrap_or_else(|| elgamal::PrivateKey::random());
+            .unwrap_or_else(elgamal::PrivateKey::random);
 
         Ok(Self {
             base: AppCreatorBase::<Server>::new(config),

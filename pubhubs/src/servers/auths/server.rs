@@ -16,8 +16,8 @@ impl servers::Details for Details {
     type RunningState = ();
 
     fn create_running_state(
-        server: &Server,
-        constellation: &Constellation,
+        _server: &Server,
+        _constellation: &Constellation,
     ) -> anyhow::Result<Self::RunningState> {
         Ok(())
     }

@@ -817,9 +817,9 @@ impl<const N: usize> From<[u8; N]> for ByteArray<N> {
     }
 }
 
-impl<const N: usize> Into<[u8; N]> for ByteArray<N> {
-    fn into(self) -> [u8; N] {
-        self.inner
+impl<const N: usize> From<ByteArray<N>> for [u8; N] {
+    fn from(val: ByteArray<N>) -> Self {
+        val.inner
     }
 }
 

@@ -10,7 +10,7 @@ pub fn combine_master_enc_key_parts(
     public_part: &elgamal::PublicKey,
     private_part: &elgamal::PrivateKey,
 ) -> elgamal::PublicKey {
-    private_part.scale(&public_part)
+    private_part.scale(public_part)
 }
 
 /// Computes the factor of a hub's encryption key returned by PHC from the [api::phc::Ticket] used
@@ -29,8 +29,7 @@ pub fn hub_key_part_blind(
     ticket_digest: TicketDigest,
     shared_secret: &elgamal::SharedSecret,
 ) -> Scalar {
-    let mut hasher = ticket_digest.inner;
-    shared_secret.derive_scalar(hasher, "pubhubs-hub-key-part-blinding")
+    shared_secret.derive_scalar(ticket_digest.inner, "pubhubs-hub-key-part-blinding")
 }
 
 /// Wrapper around a [digest::Digest] that's obtained from a [api::phc::hub::Ticket].
