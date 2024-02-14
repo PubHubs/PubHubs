@@ -275,6 +275,7 @@ pub trait App<S: Server>: Clone + 'static {
     /// Returns the [AppBase] this [App] builds on.
     fn base(&self) -> &AppBase<S>;
 }
+
 /// What's internally common between PubHubs [AppCreator]s.
 pub struct AppCreatorBase<S: Server> {
     pub state: State<S::RunningState>,
@@ -383,21 +384,8 @@ impl<S: Server> AppBase<S> {
 
     /// Configures common endpoints
     pub fn configure_actix_app(app: &S::AppT, sc: &mut web::ServiceConfig) {
-        // Make an actix handler from a method on AppBase
-        macro_rules! app_method (
-            ($method_name:ident) => {
-                AppMethod::new(app, AppBase::<S>::$method_name)
-            }
-        );
-
-        sc.route(
-            api::DiscoveryRun::PATH,
-            web::method(api::DiscoveryRun::METHOD).to(app_method!(handle_discovery_run)),
-        )
-        .route(
-            api::DiscoveryInfo::PATH,
-            web::method(api::DiscoveryInfo::METHOD).to(app_method!(handle_discovery_info)),
-        );
+        api::DiscoveryRun::add_to(app, sc, Self::handle_discovery_run);
+        api::DiscoveryInfo::add_to(app, sc, Self::handle_discovery_info);
     }
 
     /// Run the discovery process, and restarts server if necessary.  Returns when

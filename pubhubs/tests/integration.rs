@@ -42,7 +42,7 @@ async fn main_integration_test() {
     // get a ticket for testhub
     let ticket = tokio::task::LocalSet::new()
         .run_until(async {
-            api::query::<api::phc::hub::Ticket>(
+            api::query::<api::phc::hub::TicketEP>(
                 &config.phc_url,
                 &api::Signed::<api::phc::hub::TicketReq>::new(
                     &*mock_hub.context.sk,

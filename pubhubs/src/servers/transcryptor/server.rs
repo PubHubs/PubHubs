@@ -2,7 +2,10 @@ use std::rc::Rc;
 
 use actix_web::web;
 
-use crate::servers::{self, AppBase, AppCreatorBase, Constellation, ShutdownSender};
+use crate::elgamal;
+use crate::servers::{
+    self, AppBase, AppCreator as _, AppCreatorBase, Constellation, Server as _, ShutdownSender,
+};
 
 /// Transcryptor
 pub type Server = servers::ServerImpl<Details>;
@@ -12,14 +15,23 @@ impl servers::Details for Details {
     const NAME: servers::Name = servers::Name::Transcryptor;
     type AppT = Rc<App>;
     type AppCreatorT = AppCreator;
-    type RunningState = ();
+    type RunningState = RunningState;
 
     fn create_running_state(
         server: &Server,
         constellation: &Constellation,
     ) -> anyhow::Result<Self::RunningState> {
-        Ok(())
+        let base = server.app_creator().base();
+
+        Ok(RunningState {
+            phc_ss: base.enc_key.shared_secret(&constellation.phc_enc_key),
+        })
     }
+}
+
+#[derive(Clone)]
+pub struct RunningState {
+    phc_ss: elgamal::SharedSecret,
 }
 
 pub struct App {

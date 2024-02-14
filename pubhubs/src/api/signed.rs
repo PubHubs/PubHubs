@@ -112,6 +112,8 @@ pub enum MessageCode {
     // message once assigned, as this breaks existing signatures.
     PhcHubTicketRequest = 1,
     PhcHubTicket = 2,
+    PhcHubKeyReq = 3,
+    PhcHubKeyResp = 4,
 }
 
 impl std::fmt::Display for MessageCode {

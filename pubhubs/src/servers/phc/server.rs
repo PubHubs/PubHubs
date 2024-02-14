@@ -8,7 +8,7 @@ use futures_util::future::LocalBoxFuture;
 use crate::servers::{
     self,
     api::{self, EndpointDetails as _},
-    discovery, AppBase, AppCreator as _, AppCreatorBase, AppMethod, Constellation, Server as _,
+    discovery, AppBase, AppCreator as _, AppCreatorBase, Constellation, Server as _,
 };
 
 use crate::{elgamal, hub};
@@ -32,7 +32,7 @@ impl servers::Details for Details {
         Ok(RunningState {
             t_ss: base
                 .enc_key
-                .shared_secret(constellation.transcryptor_enc_key),
+                .shared_secret(&constellation.transcryptor_enc_key),
         })
     }
 }
@@ -52,11 +52,8 @@ pub struct RunningState {
 
 impl crate::servers::App<Server> for Rc<App> {
     fn configure_actix_app(&self, sc: &mut web::ServiceConfig) {
-        sc.route(
-            api::phc::hub::Ticket::PATH,
-            web::method(api::phc::hub::Ticket::METHOD)
-                .to(AppMethod::new(self, App::handle_hub_ticket)),
-        );
+        api::phc::hub::TicketEP::add_to(self, sc, App::handle_hub_ticket);
+        api::phct::hub::Key::add_to(self, sc, App::handle_hub_key);
     }
 
     fn discover(
@@ -154,6 +151,13 @@ impl App {
 
     fn hub_by_name(&self, name: &hub::Name) -> Option<&hub::BasicInfo> {
         self.hubs.get(self.hub_by_name.get(name)?)
+    }
+
+    async fn handle_hub_key(
+        app: Rc<Self>,
+        signed_req: web::Json<api::Signed<api::phct::hub::KeyReq>>,
+    ) -> api::Result<api::Signed<api::phct::hub::KeyResp>> {
+        let signed_req = signed_req.into_inner();
     }
 }
 

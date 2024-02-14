@@ -236,7 +236,7 @@ impl PrivateKey {
     }
 
     /// Creates a Diffie-Hellman-type shared secret between this [`PrivateKey`] and the [`PublicKey`].
-    pub fn shared_secret(&self, pk: PublicKey) -> SharedSecret {
+    pub fn shared_secret(&self, pk: &PublicKey) -> SharedSecret {
         SharedSecret {
             inner: (self.scalar * pk.point).to_bytes(),
         }

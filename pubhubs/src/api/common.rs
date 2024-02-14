@@ -4,6 +4,8 @@ use crate::elgamal;
 use crate::misc::{fmt_ext, serde_ext::bytes_wrapper};
 use crate::servers::server;
 
+use actix_web::web;
+
 /// The result of an API-request to a PubHubs server endpoint.
 ///
 /// We have made a new type because we cannot implement [actix_web::Responder]
@@ -247,6 +249,22 @@ pub trait EndpointDetails {
 
     const METHOD: http::Method;
     const PATH: &'static str;
+
+    /// Helper function to add this endpoint to a [web::ServiceConfig].
+    fn add_to<App: Clone, F, Args: actix_web::FromRequest + 'static>(
+        app: &App,
+        sc: &mut web::ServiceConfig,
+        handler: F,
+    ) where
+        server::AppMethod<App, F>: actix_web::Handler<Args>,
+        <server::AppMethod<App, F> as actix_web::Handler<Args>>::Output:
+            actix_web::Responder + 'static,
+    {
+        sc.route(
+            Self::PATH,
+            web::method(Self::METHOD).to(server::AppMethod::new(app, handler)),
+        );
+    }
 }
 
 /// Like [query], but retries the query when it fails with a [ErrorInfo::retryable] [ErrorCode].
