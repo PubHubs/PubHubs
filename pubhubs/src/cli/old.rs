@@ -544,7 +544,12 @@ async fn yivi_finish_and_redirect_anyhow(
     };
 
     let mut resp_with_cookie = HttpResponse::Ok();
-    resp_with_cookie.add_session_cookie(user.external_id.clone(), &context.cookie_secret)?;
+    resp_with_cookie.add_session_cookies(
+        user.external_id.clone(),
+        &context.cookie_secret,
+        context.hotfixes.no_secure_cookies,
+        context.hotfixes.no_http_only_cookies,
+    )?;
 
     if params.oidc_auth_request_handle.is_none() {
         // GET-redirect user to the account page
@@ -718,7 +723,7 @@ async fn account_login(
     translations: Translations,
 ) -> Result<HttpResponse, TranslatedError> {
     let user_id = req
-        .user_id_from_cookie(&context.cookie_secret)
+        .user_id_from_cookies(&context.cookie_secret)
         .into_translated_error(&req)?;
 
     match user_id {
@@ -746,7 +751,7 @@ async fn account_login(
 async fn account_logout(translations: Translations) -> impl Responder {
     HttpResponse::Found()
         .insert_header((LOCATION, format!("{}/login", translations.prefix())))
-        .remove_session_cookie() // logout
+        .remove_session_cookies() // logout
         .finish()
 }
 
@@ -829,7 +834,9 @@ pub async fn handle_oidc_authorize(
     // inefficient, it prevents code duplication.
     if let Some(id) = req
         .request
-        .user_id_from_cookie(&context.cookie_secret)
+        // NOTE: We must use the `SameSite=None` `PHAccount.CrossSite` cookie here because the user
+        // was sent to this authorization endpoint from another site.
+        .user_id_from_cookies_cross_site(&context.cookie_secret)
         .unwrap()
     {
         let extra = CompleteRequest {

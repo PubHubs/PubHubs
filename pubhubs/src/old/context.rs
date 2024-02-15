@@ -296,7 +296,7 @@ impl Main {
                 .into();
         }
 
-        if let Ok(Some(id)) = req.user_id_from_cookie(&self.cookie_secret) {
+        if let Ok(Some(id)) = req.user_id_from_cookies(&self.cookie_secret) {
             let (tx, rx) = oneshot::channel();
             self.db_tx
                 .send(crate::data::DataCommands::GetUserById { resp: tx, id })
