@@ -257,7 +257,7 @@ impl<'s> HttpRequestCookieExt for &'s HttpRequest {
 
         let cookie = cookie_or_none.unwrap();
 
-        return user_id_from_cookies(cookie, cookie_secret);
+        user_id_from_cookies(cookie, cookie_secret)
     }
 
     fn assert_user_id(self, cookie_secret: &str, user_id: String) -> Result<()> {
@@ -275,7 +275,6 @@ impl<'s> HttpRequestCookieExt for &'s HttpRequest {
 mod tests {
     use super::*;
     use actix_web::{test, HttpResponse};
-    use regex::bytes::Regex;
     use uuid::Uuid;
 
     #[actix_web::test]
@@ -284,33 +283,57 @@ mod tests {
         let secret = "really secret";
         let mut resp = HttpResponse::Ok();
 
-        let with_cookie = resp.add_session_cookie(user_id.clone(), secret).unwrap();
-
-        let cookie = with_cookie
-            .finish()
-            .headers()
-            .get("Set-Cookie")
+        let with_cookie = resp
+            .add_session_cookies(user_id.clone(), secret, false, false)
             .unwrap()
-            .to_str()
-            .unwrap()
-            .to_owned();
+            .finish();
 
-        // Verified with
-        // ```
-        // [profile.test-without-debug]
-        // inherits = "test"
-        // debug-assertions = false
-        // ```
-        // and
-        // `cargo test --profile=test-without-debug test_add_cookie_that_can_be_verified`
-        assert!(cookie.contains(&format!("Max-Age=2592000;{SECURE} Path=/")));
-        let re = Regex::new("PHAccount=[A-Za-z0-9]{12,}={0,2}; ").unwrap();
-        assert!(re.is_match(cookie.as_bytes()));
+        let mut had_phaccount = false;
+        let mut had_phaccount_cross_site = false;
+        let mut had_phaccount_login_timestamp = false;
+
+        let mut phaccount_cookie: Option<actix_web::cookie::Cookie<'_>> = None;
+
+        for cookie in with_cookie.cookies() {
+            match cookie.name() {
+                PHACCOUNT => {
+                    assert!(cookie.max_age().is_some());
+                    assert_eq!(cookie.secure(), Some(true));
+                    assert_eq!(cookie.http_only(), Some(true));
+                    assert_eq!(
+                        cookie.same_site(),
+                        Some(actix_web::cookie::SameSite::Strict)
+                    );
+                    had_phaccount = true;
+                    phaccount_cookie = Some(cookie.clone());
+                }
+                PHACCOUNT_CROSS_SITE => {
+                    assert!(cookie.max_age().is_some());
+                    assert_eq!(cookie.secure(), Some(true));
+                    assert_eq!(cookie.http_only(), Some(true));
+                    assert_eq!(cookie.same_site(), Some(actix_web::cookie::SameSite::None));
+                    had_phaccount_cross_site = true;
+                }
+                PHACCOUNT_LOGIN_TIMESTAMP => {
+                    assert!(cookie.max_age().is_some());
+                    assert_eq!(cookie.secure(), Some(true));
+                    assert_eq!(cookie.http_only(), None); // None implies false
+                    assert_eq!(
+                        cookie.same_site(),
+                        Some(actix_web::cookie::SameSite::Strict)
+                    );
+                    had_phaccount_login_timestamp = true;
+                }
+                _ => panic!("unexpected cookie!"),
+            }
+        }
+
+        assert!(had_phaccount && had_phaccount_cross_site && had_phaccount_login_timestamp);
 
         //set up
         let req = test::TestRequest::get()
             .cookie(actix_web::cookie::Cookie::parse("cookie=value").unwrap())
-            .cookie(actix_web::cookie::Cookie::parse(cookie).unwrap())
+            .cookie(phaccount_cookie.unwrap())
             .cookie(actix_web::cookie::Cookie::parse("other=another").unwrap())
             .to_http_request();
 
@@ -323,7 +346,9 @@ mod tests {
         let secret = "really secret";
         let mut resp = HttpResponse::Ok();
 
-        let with_cookie = resp.add_session_cookie(user_id.clone(), secret).unwrap();
+        let with_cookie = resp
+            .add_session_cookies(user_id.clone(), secret, false, false)
+            .unwrap();
 
         let cookie = with_cookie
             .finish()
@@ -345,7 +370,7 @@ mod tests {
 
         // set up for expired cookie
         let until = Utc::now()
-            .checked_sub_signed(MAX_AGE)
+            .checked_sub_signed(chrono::Duration::seconds(MAX_AGE))
             .expect("Tried to turn a date time into a timestamp")
             .timestamp();
 
@@ -358,7 +383,7 @@ mod tests {
         let signature = result.into_bytes();
 
         let cookie_value = format!(
-            "{COOKIE_NAME}={}",
+            "{PHACCOUNT}={}",
             base64ct::Base64UrlUnpadded::encode_string(
                 format!("{content}.{signature:X}").as_bytes(),
             )
@@ -372,7 +397,7 @@ mod tests {
             req2.assert_user_id(secret, user_id)
                 .unwrap_err()
                 .to_string(),
-            format!("{COOKIE_NAME} cookie expired")
+            format!("{PHACCOUNT} cookie expired")
         );
     }
 }
