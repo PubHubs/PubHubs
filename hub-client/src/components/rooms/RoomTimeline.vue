@@ -1,7 +1,7 @@
 <template>
 	<div id="room-timeline" ref="elRoomTimeline" class="h-full overflow-y-auto relative" @scroll="onScroll">
 		<template v-for="(item, index) in rooms.getRoomTimeLineWithPluginsCheck(room_id)" :key="index">
-			<RoomEvent :event="item.event" class="room-event" @on-in-reply-to-click="onInReplyToClick"></RoomEvent>
+			<RoomEvent :eventId="item.event.event_id" :event="item.event" class="room-event" @in-reply-to-click="onInReplyToClick"></RoomEvent>
 		</template>
 	</div>
 </template>
@@ -130,6 +130,7 @@
 	/* The highlight animation is used when scrolling to an event with the highlight option selected. */
 	.room-event {
 		background: none;
+		border-radius: 15px;
 	}
 
 	.room-event.highlighted {

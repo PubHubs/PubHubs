@@ -34,7 +34,7 @@
 				</template>
 				<template v-else>
 					<MessageMention v-if="msgTypeIncludesMention" :message="event.content.body" :users="users"></MessageMention>
-					<button><MessageSnippet v-if="inReplyTo" :event="inReplyTo" :showInReplyTo="true" @click="onInReplyToClick"></MessageSnippet></button>
+					<button v-if="inReplyTo" @click="onInReplyToClick"><MessageSnippet :event="inReplyTo" :showInReplyTo="true"></MessageSnippet></button>
 					<Message v-if="msgShowBody && !msgTypeIncludesMention" :message="event.content.body" :users="users"></Message>
 					<MessageSigned v-if="event.content.msgtype == 'pubhubs.signed_message'" :message="event.content.signed_message"></MessageSigned>
 					<MessageHtml v-if="msgTypeIsHtml && !msgTypeIncludesMention" :message="(event.content as M_HTMLTextMessageEventContent).formatted_body"></MessageHtml>
@@ -86,12 +86,12 @@
 	//#region Events
 
 	const emit = defineEmits<{
-		(e: 'inReplyToClicked', inReplyToId: M_EventId): void;
+		(e: 'inReplyToClick', inReplyToId: M_EventId): void;
 	}>();
 
 	function onInReplyToClick() {
 		if (!inReplyTo) return;
-		emit('inReplyToClicked', inReplyTo.event_id);
+		emit('inReplyToClick', inReplyTo.event_id);
 	}
 
 	//#endregion
