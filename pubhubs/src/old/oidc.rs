@@ -1729,10 +1729,32 @@ impl<H: Handler> Oidc for OidcImpl<H> {
         if creds.is_err() {
             return http_error!(MalformedClientCredentials);
         }
-        let creds = creds.unwrap();
+        let mut creds = creds.unwrap();
 
-        if !ClientId::check_password(&creds.userid, self.client_password_secret, creds.password) {
-            return http_error!(InvalidClientCredentials);
+        if !ClientId::check_password(&creds.userid, self.client_password_secret, &creds.password) {
+            // In version 100 of Synapse, the client_id and client_secret are incorrectly
+            // urlencoded*, so we check those as well here.  Note that the urlencoded client_secret
+            // is not easier to guess.
+            //
+            // * See https://github.com/element-hq/synapse/issues/16916
+            let dec_userid: Result<Cow<'_, str>, _> = urlencoding::decode(&creds.userid);
+            let dec_password: Result<Cow<'_, str>, _> = urlencoding::decode(&creds.password);
+
+            if dec_userid.is_ok()
+                && dec_password.is_ok()
+                && ClientId::check_password(
+                    dec_userid.as_ref().unwrap(),
+                    self.client_password_secret,
+                    dec_password.as_ref().unwrap(),
+                )
+            {
+                // Okay, not the actual, but the url ecoded userid and password are correct;
+                // let's adjust creds to reflect this.
+                creds.userid = dec_userid.unwrap().to_string();
+                creds.password = dec_password.unwrap().to_string();
+            } else {
+                return http_error!(InvalidClientCredentials);
+            }
         }
 
         let acd = AuthCodeData::from_code(query.code, &self.auth_code_secret, &creds.userid);
