@@ -1,4 +1,13 @@
 ## Changes to main, not yet committed to stable
+- New PHC session cookies to solve a CRSF, see #514.
+
+  If you use your own `config.yaml` for local development, you'll probably want to
+  copy this snippet from `default.yaml`:
+  ```
+  hotfixes:
+    no_secure_cookies: true # browsers should allow secure cookies on insecure localhost, but they don't
+  ```
+
 *Please add a brief description of any changes to be tested and any migrations to be performed here.*
 
 ## 1 Feb 2024

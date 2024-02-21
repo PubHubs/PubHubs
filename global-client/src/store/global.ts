@@ -65,22 +65,19 @@ const useGlobal = defineStore('global', {
 
 	actions: {
 		async checkLoginAndSettings() {
+			this.loggedIn = false;
 			try {
 				const data = await api.api<GlobalSettings | boolean>(api.apiURLS.bar, api.options.GET, defaultGlobalSettings);
-				if (data) {
-					this.setGlobalSettings(data);
-					this.loggedIn = true;
-					if (getCookie('PHAccount')) {
-						const base64Cookie = getCookie('PHAccount') as string; // see docs/API.md
-						this.loginTime = Buffer.from(base64Cookie, 'base64').toString('binary').split('.')[1];
-					}
-					return true;
-				} else {
-					this.loggedIn = false;
+				if (!data) {
 					return false;
 				}
+
+				this.setGlobalSettings(data);
+				this.loginTime = getCookie('PHAccount.LoginTimestamp');
+				this.loggedIn = true;
+				return true;
 			} catch (error) {
-				this.loggedIn = false;
+				console.error("failure getting global settings from server or login timestamp cookie: ", error);
 				return false;
 			}
 		},
