@@ -54,14 +54,11 @@ impl ServeArgs {
             .enable_all()
             .build()?
             .block_on(async {
-                tokio::try_join!(
-                    crate::servers::run(&config),
-                    self.drive_discovery(&config.phc_url),
-                )?;
+                let set = crate::servers::Set::new(&config)?;
 
-                log::debug!("done");
+                self.drive_discovery(&config.phc_url).await?;
 
-                Ok(())
+                Err(set.wait_for_err().await)
             })
     }
 
@@ -73,7 +70,9 @@ impl ServeArgs {
         tokio::task::LocalSet::new()
             .run_until(crate::servers::drive_discovery(phc_url))
             .await
-            .context("discovery failed")
+            .context("discovery failed")?;
+
+        Ok(())
     }
 
     /// Filters servers from config that were not specified to run

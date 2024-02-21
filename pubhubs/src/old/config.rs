@@ -6,7 +6,7 @@ use anyhow::{anyhow, bail, ensure, Context, Result};
 use log::{info, warn};
 use serde::{Deserialize, Serialize};
 
-use crate::misc::serde_ext::B64;
+use crate::misc::serde_ext::bytes_wrapper::B64;
 
 #[derive(Serialize, Deserialize)]
 pub struct File {
@@ -88,8 +88,15 @@ pub struct Hotfixes {
     /// remove these headers from all responses
     pub remove_headers: Vec<String>,
 
-    /// turn [actix_web::body::MessageBody]s into [bytes::Bytes] before sending them as response
+    /// Turn [actix_web::body::MessageBody]s into [bytes::Bytes] before sending them as response
+    /// WARNING: this breaks the Yivi proxy.
     pub no_streaming: bool,
+
+    /// Don't use the `Secure` attribute on cookies
+    pub no_secure_cookies: bool,
+
+    /// Don't use the `HttpOnly` attribute on cookies
+    pub no_http_only_cookies: bool,
 }
 
 fn default_bind_to() -> (String, u16) {

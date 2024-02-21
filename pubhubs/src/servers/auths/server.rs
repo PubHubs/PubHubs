@@ -2,32 +2,24 @@ use std::rc::Rc;
 
 use actix_web::web;
 
-use crate::servers::{AppBase, AppCreatorBase, ServerBase, ShutdownSender};
+use crate::servers::{self, AppBase, AppCreatorBase, Constellation, ShutdownSender};
 
 /// Authentication server
-pub struct Server {
-    base: ServerBase,
-}
+pub type Server = servers::ServerImpl<Details>;
 
-impl crate::servers::Server for Server {
-    const NAME: crate::servers::Name = crate::servers::Name::AuthenticationServer;
+pub struct Details;
+impl servers::Details for Details {
+    const NAME: servers::Name = servers::Name::AuthenticationServer;
+
     type AppT = Rc<App>;
     type AppCreatorT = AppCreator;
+    type RunningState = ();
 
-    fn new(config: &crate::servers::Config) -> Self {
-        Self {
-            base: ServerBase::new::<Server>(config),
-        }
-    }
-
-    fn app_creator(&self) -> AppCreator {
-        AppCreator {
-            base: AppCreatorBase::new(&self.base),
-        }
-    }
-
-    fn base_mut(&mut self) -> &mut ServerBase {
-        &mut self.base
+    fn create_running_state(
+        _server: &Server,
+        _constellation: &Constellation,
+    ) -> anyhow::Result<Self::RunningState> {
+        Ok(())
     }
 }
 
@@ -45,13 +37,27 @@ impl crate::servers::App<Server> for Rc<App> {
 
 #[derive(Clone)]
 pub struct AppCreator {
-    base: AppCreatorBase,
+    base: AppCreatorBase<Server>,
 }
 
 impl crate::servers::AppCreator<Server> for AppCreator {
-    fn create(&self, shutdown_sender: &ShutdownSender<Server>) -> Rc<App> {
-        Rc::new(App {
-            base: AppBase::new(&self.base, shutdown_sender),
+    fn new(config: &servers::Config) -> anyhow::Result<Self> {
+        Ok(Self {
+            base: AppCreatorBase::<Server>::new(config),
         })
+    }
+
+    fn into_app(self, shutdown_sender: &ShutdownSender<Server>) -> Rc<App> {
+        Rc::new(App {
+            base: AppBase::new(self.base, shutdown_sender),
+        })
+    }
+
+    fn base(&self) -> &AppCreatorBase<Server> {
+        &self.base
+    }
+
+    fn base_mut(&mut self) -> &mut AppCreatorBase<Server> {
+        &mut self.base
     }
 }

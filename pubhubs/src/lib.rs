@@ -33,6 +33,9 @@ pub mod api;
 #[cfg(feature = "bin")]
 pub mod hub;
 
+#[cfg(feature = "bin")]
+pub mod phcrypto;
+
 #[cfg(any(feature = "bin", feature = "old"))]
 pub mod misc;
 

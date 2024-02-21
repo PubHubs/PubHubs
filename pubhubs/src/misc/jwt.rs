@@ -4,34 +4,219 @@
 //! fix for this bug in rust's ring crate was not yet stable at
 //! the time of writing:  <https://github.com/briansmith/ring/issues/1299>
 
-use core::marker::PhantomData;
 use std::borrow::Cow;
 use std::fmt;
 
 use base64ct::{Base64UrlUnpadded, Encoding as _};
 use hmac::Mac as _;
 use serde::{
-    de::{DeserializeSeed, Visitor},
+    de::{DeserializeOwned, Visitor},
     Deserialize, Deserializer, Serialize,
 };
 
-/// Wrapper around [String] to indicate it should be interpretted as a JWT with claims `C`.
-#[derive(Serialize, Deserialize)]
-#[serde(transparent)]
-pub struct JWT<C> {
-    inner: String,
+use crate::misc::time_ext;
 
-    #[serde(skip)]
-    phantom: PhantomData<C>,
+/// Wrapper around [String] to indicate it should be interpretted as a JWT.
+#[derive(Serialize, Deserialize, Debug, Clone)]
+#[serde(transparent)]
+pub struct JWT {
+    inner: String,
 }
 
-#[allow(dead_code)] // TODO: remove
-pub struct CommonClaims {
-    iat: Option<NumericDate>,
-    nbf: Option<NumericDate>,
-    exp: Option<NumericDate>,
-    iss: Option<String>,
-    sub: Option<String>,
+/// Represents a set of claims made by a JWT.
+#[derive(Debug, Clone)]
+pub struct Claims {
+    inner: serde_json::Map<String, serde_json::Value>,
+}
+
+impl Claims {
+    /// Checks that the claim with `name` meets the given `expectation`, and removes it from the
+    /// set.  The [Deserializer] is given ownership of the claim's contents, so for `V` you
+    /// probably want to use an owned type like [String] instead of [&str].
+    pub fn check<'s, V: Deserialize<'s>>(
+        mut self,
+        name: &'static str,
+        expectation: impl FnOnce(Option<V>) -> Result<(), Error>,
+    ) -> Result<Self, Error> {
+        let value: Option<V> = self
+            .inner
+            .remove(name)
+            .map(V::deserialize)
+            .transpose()
+            .map_err(|err| Error::DeserializingClaim {
+                claim_name: name,
+                source: err,
+            })?;
+
+        expectation(value)?;
+
+        Ok(self)
+    }
+
+    /// Check that the claim with `name` exists and meets the given `expectation`,
+    /// removing the claim from the set afterwards.  Variation on [Claims::check].
+    pub fn check_present_and<'s, V: Deserialize<'s>>(
+        self,
+        name: &'static str,
+        expectation: impl FnOnce(V) -> Result<(), Error>,
+    ) -> Result<Self, Error> {
+        self.check(name, |v: Option<V>| -> Result<(), Error> {
+            if v.is_none() {
+                return Err(Error::MissingClaim(name));
+            }
+            expectation(v.unwrap())
+        })
+    }
+
+    /// Checks that there is no claim with `name`.
+    pub fn check_no(self, name: &'static str) -> Result<Self, Error> {
+        if self.inner.contains_key(name) {
+            return Err(Error::UnexpectedClaim(name));
+        }
+
+        Ok(self)
+    }
+
+    /// Removes named claim from this set, if present, effectively ignoring it.
+    pub fn ignore(mut self, name: &'static str) -> Self {
+        self.inner.remove(name);
+        self
+    }
+
+    /// [Self::check] for `iss` claim.
+    pub fn check_iss(
+        self,
+        expectation: impl FnOnce(Option<String>) -> Result<(), Error>,
+    ) -> Result<Self, Error> {
+        self.check("iss", expectation)
+    }
+
+    /// [Self::check] for `sub` claim.
+    pub fn check_sub(
+        self,
+        expectation: impl FnOnce(Option<String>) -> Result<(), Error>,
+    ) -> Result<Self, Error> {
+        self.check("sub", expectation)
+    }
+
+    /// Checks timestamps `iat`, `exp` and `nbf`. When present they should be a valid
+    /// [NumericDate], and the current moment should be between `nbf` and `exp`.
+    pub fn default_check_timestamps(self) -> Result<Self, Error> {
+        let now = NumericDate::now();
+
+        self.check("iat", |_iat: Option<NumericDate>| -> Result<(), Error> {
+            // When it is present, iat should be a valid NumericData, but it is otherwise ignored.
+            Ok(())
+        })?
+        .check("exp", |exp: Option<NumericDate>| -> Result<(), Error> {
+            // When `exp` is present, it should not be expired.
+            if let Some(exp) = exp {
+                if exp < now {
+                    return Err(Error::Expired { when: exp });
+                }
+            }
+
+            Ok(())
+        })?
+        .check("nbf", |nbf: Option<NumericDate>| -> Result<(), Error> {
+            // When `nbf` is present, it should be in the past.
+            if let Some(nbf) = nbf {
+                if now < nbf {
+                    return Err(Error::NotYetValid { valid_from: nbf });
+                }
+            }
+
+            Ok(())
+        })
+    }
+
+    /// Checks and removes `iat`, `exp`, and `nbf`, and makes sure
+    /// `sub` and `iss` have already been checked (i.e. are no longer present).
+    pub fn default_check_common_claims(self) -> Result<Self, Error> {
+        self.default_check_timestamps()?
+            .check_no("iss")?
+            .check_no("sub")
+    }
+
+    /// Deserializes remaining, custom, claims into a type `C` and calls the given `visitor` function on it.
+    ///
+    /// Will call [Claims::default_check_common_claims] first, checking `iat`, etc..
+    ///
+    /// We can, in general, not return `C` directly, because `C` might borrow from the
+    /// [Deserializer].
+    ///
+    /// For the caller's convenience, we pass along anything that's returned by the visitor.
+    ///
+    /// Consumes `self` to prevent deserializing to `C` twice.
+    pub fn visit_custom<C: DeserializeOwned, R>(
+        self,
+        visitor: impl FnOnce(C) -> R,
+    ) -> Result<R, Error> {
+        // we check common claims to ensure they are not ignored
+        let self_ = self.default_check_common_claims()?;
+
+        let claims: C = C::deserialize(&serde_json::Value::Object(self_.inner))
+            .map_err(Error::DeserializingClaims)?;
+
+        Ok(visitor(claims))
+    }
+
+    /// Like [Self::visit_custom], but returns `C` (which is not possible when `C` borrows from its
+    /// [Deserializer].)
+    pub fn into_custom<C: DeserializeOwned>(self) -> Result<C, Error> {
+        self.visit_custom(|c| c)
+    }
+
+    /// Creates new [Claims] from an object that serializes to a json map.
+    pub fn from_custom<C: Serialize>(claims: C) -> Result<Self, Error> {
+        let json_value = serde_json::to_value(claims).map_err(Error::SerializingClaims)?;
+
+        let inner = if let serde_json::Value::Object(inner) = json_value {
+            inner
+        } else {
+            return Err(Error::ClaimsDontSerializeToMap);
+        };
+
+        Ok(Self { inner })
+    }
+
+    /// Adds the named claim with the given value.  Returns an error when a claim with the same
+    /// name was already present.
+    pub fn claim<V: Serialize>(mut self, name: &'static str, value: V) -> Result<Self, Error> {
+        let old_value = self.inner.insert(
+            name.to_string(),
+            serde_json::to_value(value).map_err(|err| Error::SerializingClaim {
+                claim_name: name,
+                source: err,
+            })?,
+        );
+
+        if old_value.is_some() {
+            return Err(Error::ClaimAlreadyPresent(name));
+        }
+
+        Ok(self)
+    }
+
+    /// Adds the `iat` claim using the current timestamp
+    pub fn iat_now(self) -> Result<Self, Error> {
+        self.claim("iat", NumericDate::now())
+    }
+
+    /// Sets `exp` claim such that the jwt is valid for the given `duration`.
+    pub fn exp_after(self, duration: std::time::Duration) -> Result<Self, Error> {
+        self.claim("exp", NumericDate::now() + duration)
+    }
+
+    /// Sets `nbf` to the current timestamp, minus 30 seconds leeway.
+    pub fn nbf(self) -> Result<Self, Error> {
+        self.claim("nbf", NumericDate::now() - 30)
+    }
+
+    /// Signs these claims, returning a [`JWT`].
+    pub fn sign<SK: SigningKey>(&self, sk: &SK) -> Result<JWT, Error> {
+        JWT::create(&self.inner, sk)
+    }
 }
 
 /// Represents the value of the `iat`, `exp`, `nbf` claims.
@@ -47,7 +232,7 @@ pub struct CommonClaims {
 ///
 /// But contrary to this, we will reject negative timestamps with an error,
 /// and silently round down non-negative decimals to the nearest u64.
-#[derive(Serialize, Default, Clone, Eq, PartialEq, Debug)]
+#[derive(Serialize, Default, Clone, Copy, Eq, PartialEq, Debug, PartialOrd, Ord)]
 #[serde(transparent)]
 pub struct NumericDate {
     timestamp: u64,
@@ -58,6 +243,28 @@ impl NumericDate {
     /// unix epoch ignoring leap seconds.
     fn new(timestamp: u64) -> Self {
         Self { timestamp }
+    }
+
+    /// Creates a numeric date representing the current moment
+    fn now() -> Self {
+        Self::new(
+            std::time::SystemTime::now()
+                .duration_since(std::time::UNIX_EPOCH)
+                .expect("system clock reports a time before the Unix epoch")
+                .as_secs(),
+        )
+    }
+}
+
+impl From<&NumericDate> for std::time::SystemTime {
+    fn from(nd: &NumericDate) -> Self {
+        std::time::UNIX_EPOCH + std::time::Duration::from_secs(nd.timestamp)
+    }
+}
+
+impl fmt::Display for NumericDate {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(f, "{}", time_ext::format_time(self.into()))
     }
 }
 
@@ -100,18 +307,43 @@ impl<'de> Visitor<'de> for NumericDateVisitor {
     // NOTE: u/i128 are not supported by serde_json by default
 }
 
-impl<C> From<String> for JWT<C> {
-    fn from(s: String) -> Self {
-        Self {
-            inner: s,
-            phantom: PhantomData,
-        }
+impl core::ops::Add<std::time::Duration> for NumericDate {
+    type Output = Self;
+
+    fn add(self, duration: std::time::Duration) -> Self::Output {
+        self + duration.as_secs()
     }
 }
 
-impl<C: Serialize> JWT<C> {
+impl core::ops::Add<u64> for NumericDate {
+    type Output = Self;
+
+    fn add(mut self, secs: u64) -> Self::Output {
+        self.timestamp += secs;
+        self
+    }
+}
+
+impl core::ops::Sub<u64> for NumericDate {
+    type Output = Self;
+
+    fn sub(mut self, secs: u64) -> Self::Output {
+        self.timestamp -= secs;
+        self
+    }
+}
+
+impl From<String> for JWT {
+    fn from(s: String) -> Self {
+        Self { inner: s }
+    }
+}
+
+impl JWT {
     /// Creates JWT from `claims` and [SigningKey] `key`.
-    fn create<SK: SigningKey>(claims: &C, key: &SK) -> Result<JWT<C>, Error> {
+    ///
+    /// You can also use [`Claims::sign`]
+    pub fn create<C: Serialize, SK: SigningKey>(claims: &C, key: &SK) -> Result<JWT, Error> {
         let to_be_signed: String = format!(
             "{}.{}",
             Base64UrlUnpadded::encode_string(
@@ -124,7 +356,7 @@ impl<C: Serialize> JWT<C> {
                 &serde_json::to_vec(claims).map_err(Error::SerializingClaims)?
             )
         );
-        Ok(JWT::<C>::from(format!(
+        Ok(JWT::from(format!(
             "{}.{}",
             to_be_signed,
             Base64UrlUnpadded::encode_string(
@@ -134,22 +366,10 @@ impl<C: Serialize> JWT<C> {
             )
         )))
     }
-}
 
-impl<C> JWT<C> {
-    /// Checks the validity of this jwt against the given [VerifyingKey] `key`, and deserializes
-    /// the claims using `seed`.
-    ///
-    /// Since the deserialized claims may borrow from the deserializer the claims are not returned
-    /// directly, but instead are passed to a `consumer` function provided by the caller.  Any
-    /// value returned by the `consumer` function is returned by `open`.
-    #[allow(dead_code)] // TODO: remove
-    fn open<VK: VerifyingKey, D: for<'de> DeserializeSeed<'de, Value = C>, R>(
-        &self,
-        key: &VK,
-        seed: D,
-        consumer: impl FnOnce(C) -> R,
-    ) -> Result<R, Error> {
+    /// Checks the validity of this jwt against the given [VerifyingKey] `key`, and the JSON syntax
+    /// of the claims.  Does not check the validity of the claims itself.
+    pub fn open<VK: VerifyingKey>(&self, key: &VK) -> Result<Claims, Error> {
         let s = &self.inner;
 
         let last_dot_pos: usize = s.rfind('.').ok_or(Error::MissingDot)?;
@@ -163,12 +383,7 @@ impl<C> JWT<C> {
         let header: Header =
             serde_json::from_slice(&header_vec).map_err(Error::DeserializingHeader)?;
 
-        if header.alg != VK::ALG {
-            return Err(Error::UnexpectedAlgorithm {
-                got: header.alg.to_string(),
-                expected: VK::ALG.to_string(),
-            });
-        }
+        VK::check_alg(&header.alg)?;
 
         // check signature
         let signature: Vec<u8> =
@@ -179,22 +394,24 @@ impl<C> JWT<C> {
         }
 
         // decode claims
-        let claims_vec: Vec<u8> =
-            Base64UrlUnpadded::decode_vec(&s[first_dot_pos + 1..]).map_err(Error::InvalidBase64)?;
+        let claims_vec: Vec<u8> = Base64UrlUnpadded::decode_vec(&signed[first_dot_pos + 1..])
+            .map_err(Error::InvalidBase64)?;
 
         let mut d = serde_json::Deserializer::from_slice(&claims_vec);
 
-        let claims = seed
-            .deserialize(&mut d)
-            .map_err(Error::DeserializingClaims)?;
+        Ok(Claims {
+            inner: serde_json::Map::<String, serde_json::Value>::deserialize(&mut d)
+                .map_err(Error::ClaimsNotJsonMap)?,
+        })
+    }
 
-        Ok(consumer(claims))
+    pub fn as_str(&self) -> &str {
+        &self.inner
     }
 }
 
-#[allow(dead_code)] // TODO: remove
 #[derive(thiserror::Error, Debug)]
-enum Error {
+pub enum Error {
     #[error("failed to serialize jwt header")]
     SerializingHeader(#[source] serde_json::Error),
 
@@ -204,8 +421,47 @@ enum Error {
     #[error("failed to serialize jwt claims")]
     SerializingClaims(#[source] serde_json::Error),
 
+    #[error("failed to serialize claim {claim_name}")]
+    SerializingClaim {
+        claim_name: &'static str,
+        source: serde_json::Error,
+    },
+
+    #[error("claim {0} already present")]
+    ClaimAlreadyPresent(&'static str),
+
+    #[error("claims are not a valid json map")]
+    ClaimsNotJsonMap(#[source] serde_json::Error),
+
+    #[error("the given custom claims do not serialize to a json map")]
+    ClaimsDontSerializeToMap,
+
     #[error("invalid jwt claims")]
     DeserializingClaims(#[source] serde_json::Error),
+
+    #[error("failed to deserialize claim {claim_name}")]
+    DeserializingClaim {
+        claim_name: &'static str,
+        source: serde_json::Error,
+    },
+
+    #[error("jwt contains unexpected/unhandled claim `{0}`")]
+    UnexpectedClaim(&'static str),
+
+    #[error("jwt is missing the claim `{0}'")]
+    MissingClaim(&'static str),
+
+    #[error("the claim `{claim_name}` is invalid")]
+    InvalidClaim {
+        claim_name: &'static str,
+        source: anyhow::Error,
+    },
+
+    #[error("expired at {when}")]
+    Expired { when: NumericDate },
+
+    #[error("only valid after {valid_from}")]
+    NotYetValid { valid_from: NumericDate },
 
     #[error("signing jwt failed")]
     Signing(#[source] anyhow::Error),
@@ -220,7 +476,7 @@ enum Error {
     InvalidSignature,
 
     #[error("unexpected algorithm; got {got}, but expected {expected}")]
-    UnexpectedAlgorithm { got: String, expected: String },
+    UnexpectedAlgorithm { got: String, expected: &'static str },
 }
 
 /// Signs `claims` using `key` yielding a JWT.
@@ -302,6 +558,39 @@ pub trait VerifyingKey: Key {
 pub trait Key {
     /// value for `alg` in the JWT header
     const ALG: &'static str;
+
+    /// Checks that `alg` equals `Self::ALG`.
+    ///
+    /// This method is overriden by [IgnoreSignature].
+    fn check_alg(alg: &str) -> Result<(), Error> {
+        if alg == Self::ALG {
+            return Ok(());
+        }
+        Err(Error::UnexpectedAlgorithm {
+            got: alg.to_string(),
+            expected: Self::ALG,
+        })
+    }
+}
+
+/// A [VerifyingKey] that neglects to check the signature and `alg` header.
+///
+/// Useful when the signature on a [JWT] can only be checked later on.
+#[allow(non_camel_case_types)]
+pub struct IgnoreSignature;
+
+impl Key for IgnoreSignature {
+    const ALG: &'static str = "WARNING! This should never appear in the 'alg' field of a JWT.";
+
+    fn check_alg(_alg: &str) -> Result<(), Error> {
+        Ok(())
+    }
+}
+
+impl VerifyingKey for IgnoreSignature {
+    fn is_valid_signature(&self, _message: &[u8], _signature: Vec<u8>) -> bool {
+        true
+    }
 }
 
 /// Implements signing JWTs using ed25519, See RFC8037.
@@ -362,6 +651,19 @@ impl Key for ed25519_dalek::SigningKey {
     const ALG: &'static str = "EdDSA";
 }
 
+impl Key for ed25519_dalek::VerifyingKey {
+    const ALG: &'static str = "EdDSA";
+}
+
+impl VerifyingKey for ed25519_dalek::VerifyingKey {
+    fn is_valid_signature(&self, message: &[u8], signature: Vec<u8>) -> bool {
+        if let Ok(signature) = ed25519_dalek::Signature::from_slice(&signature) {
+            return ed25519_dalek::Verifier::verify(self, message, &signature).is_ok();
+        }
+        false
+    }
+}
+
 /// Key for SHA256 based HMAC
 pub struct HS256(pub Vec<u8>);
 
@@ -417,9 +719,51 @@ mod tests {
 
     #[test]
     fn test_jwt() {
-        let jwt: JWT<()> = serde_json::from_str("\"test\"").unwrap();
+        let jwt: JWT = serde_json::from_str("\"eyJ0eXAiOiJKV1QiLA0KICJhbGciOiJIUzI1NiJ9.eyJpc3MiOiJqb2UiLA0KICJleHAiOjEzMDA4MTkzODAsDQogImh0dHA6Ly9leGFtcGxlLmNvbS9pc19yb290Ijp0cnVlfQ.dBjftJeZ4CVP-mB92K27uhbUJU1p1r_wW1gFWFOEjXk\"").unwrap();
 
-        assert_eq!(jwt.inner, "test".to_string());
+        let key = HS256(
+            base64ct::Base64UrlUnpadded::decode_vec("AyM1SysPpbyDfgZld3umj1qzKObwVMkoqQ-EstJQLr_T-1qS0gZH75aKtMN3Yj0iPS4hcgUuTwjAzZr1Z9CAow").unwrap(),
+        );
+
+        let claims = jwt.open(&key).unwrap();
+
+        assert!(claims
+            .clone()
+            .into_custom::<serde_json::Value>()
+            .unwrap_err()
+            .to_string()
+            .starts_with("expired at 2011-03-22T18:43:00Z ("));
+
+        assert_eq!(
+            &claims
+                .clone()
+                .ignore("exp")
+                .into_custom::<serde_json::Value>()
+                .unwrap_err()
+                .to_string(),
+            "jwt contains unexpected/unhandled claim `iss`"
+        );
+
+        #[derive(Deserialize, PartialEq, Eq, Debug)]
+        #[serde(deny_unknown_fields)]
+        struct Custom {
+            #[serde(rename = "http://example.com/is_root")]
+            is_root: bool,
+        }
+
+        assert_eq!(
+            claims
+                .clone()
+                .ignore("exp")
+                .check_iss(|iss: Option<String>| -> Result<(), Error> {
+                    assert_eq!(iss, Some("joe".to_string()));
+                    Ok(())
+                })
+                .unwrap()
+                .into_custom::<Custom>()
+                .unwrap(),
+            Custom { is_root: true }
+        );
     }
 
     #[test]
