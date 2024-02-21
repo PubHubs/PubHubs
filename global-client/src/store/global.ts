@@ -73,7 +73,13 @@ const useGlobal = defineStore('global', {
 				}
 
 				this.setGlobalSettings(data);
-				this.loginTime = getCookie('PHAccount.LoginTimestamp');
+				const loginTime = getCookie('PHAccount.LoginTimestamp');
+				if (loginTime) {
+					this.loginTime = loginTime;
+					// For some reason the current unit tests *don't* set a mock
+					// HAccount.LoginTiemstamp cookie, but *do* want this.loginTime
+					// to be a string and this.loggedIn to be true when loginTimestamp is not set.
+				}
 				this.loggedIn = true;
 				return true;
 			} catch (error) {
