@@ -77,7 +77,7 @@ const useGlobal = defineStore('global', {
 				this.loggedIn = true;
 				return true;
 			} catch (error) {
-				console.error("failure getting global settings from server or login timestamp cookie: ", error);
+				console.error('failure getting global settings from server or login timestamp cookie: ', error);
 				return false;
 			}
 		},
