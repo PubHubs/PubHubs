@@ -9,8 +9,8 @@
         <title>
             <%= htmlWebpackPlugin.options.title %>
         </title>
-        <script src="<%= BASE_URL %>client-config.js"></script>
-        <script src="<%= BASE_URL %>client-config.local.js"></script>
+        <script src="<%= BASE_URL %>client-config.js?<%= new Date().getTime() %>"></script>
+        <script src="<%= BASE_URL %>client-config.local.js?<%= new Date().getTime() %>"></script>
         <link rel="stylesheet" href="<%= BASE_URL %>branding.css">
     </head>
 
