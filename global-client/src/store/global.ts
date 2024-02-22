@@ -1,6 +1,5 @@
 import { defineStore } from 'pinia';
 import { getCookie } from 'typescript-cookie';
-import { Buffer } from 'buffer';
 
 import { Hub, HubList, Theme, TimeFormat, useSettings } from '@/store/store';
 import { api } from '@/core/api';
