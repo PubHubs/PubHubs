@@ -550,8 +550,9 @@ def remove_container(container_name):
     cmd = ["docker", "ps", 
            "-a",  
            "--filter", f"name={container_name}",
-           "--format", "{{{{.Names}}}}"]
+           "--format", "{{.Names}}"]
     container_status, _ = run_command(cmd)
+    print(f"docker ps output: {repr(container_status)}")
 
     # If the container is running or exists, stop and remove it
     if container_status == container_name:
@@ -944,7 +945,7 @@ class TestPubHubsAutomation(unittest.TestCase):
 
         with patch(f"{__name__}.run_command", run_command_mock):
             remove_container(container_name)
-            run_command_mock.assert_any_call(["docker", "ps", "-a", "--filter", f"name={container_name}", "--format", "{{{{.Names}}}}"])
+            run_command_mock.assert_any_call(["docker", "ps", "-a", "--filter", f"name={container_name}", "--format", "{{.Names}}"])
             run_command_mock.assert_any_call(["docker", "stop", container_name])
             run_command_mock.assert_any_call(["docker", "rm", container_name])
 
@@ -956,7 +957,7 @@ class TestPubHubsAutomation(unittest.TestCase):
 
         with patch(f'{__name__}.run_command', run_command_mock):
             remove_container(container_name)
-            run_command_mock.assert_called_once_with(["docker", "ps", "-a", "--filter", f"name={container_name}", "--format", "{{{{.Names}}}}"])
+            run_command_mock.assert_called_once_with(["docker", "ps", "-a", "--filter", f"name={container_name}", "--format", "{{.Names}}"])
 
 
     def test_update_homeserver_yaml(self):
