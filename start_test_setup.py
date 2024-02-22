@@ -363,10 +363,10 @@ def docker_run_hub_client(image_name, client_number, container_name, client_port
     docker_command = f""" docker run --name {container_name} -e PORT={client_port}  -e \"BAR_URL=frame-ancestors http://localhost:8080\" -e \"HUB_URL=http://localhost:{hub_matrix_port}\" -e \"PARENT_URL=http://localhost:8080\" -d -p {client_port}:8800 {image_name} """
     print(f"\033[92m{docker_command}\033[0m")
     subprocess.call(docker_command, shell=True)
-    docker_copy_command = f""" docker cp {root_dir}/hub-client/public/img/testlogos/logo{client_number}.svg {container_name}:/usr/var/static/img/logo.svg"""
+    docker_copy_command = [ "docker", "cp", f"{root_dir}/hub-client/public/img/testlogos/logo{client_number}.svg", f"{container_name}:/usr/var/static/img/logo.svg"]
     print(f"\033[92m{docker_copy_command}\033[0m")
     subprocess.call(docker_copy_command, shell=True)
-    docker_copy_command = f""" docker cp {root_dir}/hub-client/public/client-config.empty.js {container_name}:/usr/var/static/client-config.local.js"""
+    docker_copy_command =  ["docker", "cp", f"{root_dir}/hub-client/public/client-config.empty.js", f"{container_name}:/usr/var/static/client-config.local.js"]
     print(f"\033[92m{docker_copy_command}\033[0m")
     subprocess.call(docker_copy_command, shell=True)
 
