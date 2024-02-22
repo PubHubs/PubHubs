@@ -341,9 +341,12 @@ def build_test_hub_image(image_name, dockerfile="Dockerfile"):
         None
     """
 
-    docker_build_command = f"docker build -t {image_name} -f {dockerfile} ."
+    docker_build_command = ["docker", "build",
+                            "-t", image_name,
+                            "-f", dockerfile, 
+                            "."]
     print(f"\033[92m{docker_build_command}\033[0m")
-    if subprocess.call(docker_build_command, shell=True) != 0:
+    if subprocess.call(docker_build_command) != 0:
         raise RuntimeError(f"{docker_build_command} failed")
 
 def docker_run_hub_client(image_name, client_number, container_name, client_port, hub_matrix_port):
@@ -360,15 +363,23 @@ def docker_run_hub_client(image_name, client_number, container_name, client_port
         None
     """
 
-    docker_command = f""" docker run --name {container_name} -e PORT={client_port}  -e \"BAR_URL=frame-ancestors http://localhost:8080\" -e \"HUB_URL=http://localhost:{hub_matrix_port}\" -e \"PARENT_URL=http://localhost:8080\" -d -p {client_port}:8800 {image_name} """
+    docker_command = ["docker", "run",
+                      "--name", container_name,
+                      "-e", f"PORT={client_port}",
+                      "-e", "BAR_URL=frame-ancestors http://localhost:8080",
+                      "-e", f"HUB_URL=http://localhost:{hub_matrix_port}",
+                      "-e", "PARENT_URL=http://localhost:8080",
+                      "-d", 
+                      "-p", f"{client_port}:8800",
+                      image_name]
     print(f"\033[92m{docker_command}\033[0m")
-    subprocess.call(docker_command, shell=True)
+    subprocess.call(docker_command)
     docker_copy_command = [ "docker", "cp", f"{root_dir}/hub-client/public/img/testlogos/logo{client_number}.svg", f"{container_name}:/usr/var/static/img/logo.svg"]
     print(f"\033[92m{docker_copy_command}\033[0m")
-    subprocess.call(docker_copy_command, shell=True)
+    subprocess.call(docker_copy_command)
     docker_copy_command =  ["docker", "cp", f"{root_dir}/hub-client/public/client-config.empty.js", f"{container_name}:/usr/var/static/client-config.local.js"]
     print(f"\033[92m{docker_copy_command}\033[0m")
-    subprocess.call(docker_copy_command, shell=True)
+    subprocess.call(docker_copy_command)
 
 
 def docker_run_hub_server(hub_secret, image_name, container_name, hub_matrix_port, config_dir):
@@ -394,24 +405,28 @@ def docker_run_hub_server(hub_secret, image_name, container_name, hub_matrix_por
     # The result is that you can make changes in the pubhubs_hub/modules directory,
     # manually stop and start the synapse server and see the changes withouth running this whole script.
     # TODO implement this properly (by using parameters instead of environment variables)
+    mount_modules = []
+    dont_start_hub = ["-e", "DONT_START_HUB=0"]
     if (os.getenv('WATCH_MODULES') == '1'):
-        print("WATCH_MODULES enabled, will not start the Hub. Do so manually by running ./start.py from inside the docker container.")
-        mount_modules = f"-v {os.path.abspath(f'modules')}:/conf/modules:ro"
-        dont_start_hub = '-e DONT_START_HUB=1'
-    else:
-        mount_modules = ''
-        dont_start_hub = '-e DONT_START_HUB=0'
+        print("\033[31mWATCH_MODULES enabled, will not start the Hub. Do so manually by running ./start.py from inside the docker container.\033[0m")
+        mount_modules = ["-v", f"{os.path.abspath(f'modules')}:/conf/modules:ro"]
+        dont_start_hub = ["-e", "DONT_START_HUB=1"]
 
-    docker_command = f"docker run --name {container_name} -d -p {hub_matrix_port}:{hub_matrix_port} -e HUB_SECRET={hub_secret} \
-       {dont_start_hub} \
-       -e SYNAPSE_CONFIG_DIR=/data \
-       -e AUTHLIB_INSECURE_TRANSPORT=for_testing_only_of_course \
-       -v {config_dir}:/data:rw \
-        {mount_modules} \
-       --add-host host.docker.internal:host-gateway \
-       {image_name}"
+    docker_command = ["docker",
+                      "run", 
+                      "--name", container_name,
+                      "-d", 
+                      "-p", f"{hub_matrix_port}:{hub_matrix_port}",
+                      "-e", f"HUB_SECRET={hub_secret}",
+                      *dont_start_hub,
+                      "-e", "SYNAPSE_CONFIG_DIR=/data", 
+                      "-e", "AUTHLIB_INSECURE_TRANSPORT=for_testing_only_of_course",
+                      "-v", f"{config_dir}:/data:rw",
+                      *mount_modules,
+                      "--add-host", "host.docker.internal:host-gateway",
+                      image_name]
     print(f"\033[92m{docker_command}\033[0m")
-    subprocess.call(docker_command, shell=True)
+    subprocess.call(docker_command)
 
 def run_docker_compose(env_value=None, args: str = None) -> None:
 
@@ -426,13 +441,13 @@ def run_docker_compose(env_value=None, args: str = None) -> None:
         None
     """
 
-    docker_command = "docker compose up --build -d"
+    docker_command = ["docker", "compose", "up", "--build", "-d"]
 
     if args is not None:
         docker_command += args
 
     print(f"\033[92m{docker_command}\033[0m")
-    subprocess.call(docker_command, shell=True)
+    subprocess.call(docker_command)
 
 
 def update_homeserver_yaml(input_path, output_path, client_id, client_secret,client_port, hub_port):
@@ -510,14 +525,14 @@ def run_command(cmd):
     Run the specified command in a subprocess and capture its stdout and stderr output.
 
     Args:
-        cmd (str): The command to run.
+        cmd (tuple): The command to run.
 
     Returns:
         A tuple containing the stdout and stderr output from the subprocess.
     """
 
     print(f"\033[92m{cmd}\033[0m")
-    result = subprocess.run(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True, shell=True)
+    result = subprocess.run(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
     return result.stdout.strip(), result.stderr.strip()
 
 
@@ -532,7 +547,10 @@ def remove_container(container_name):
     Returns:
         None
     """
-    cmd = f"docker ps -a --filter \"name={container_name}\" --format \"{{{{.Names}}}}\""
+    cmd = ["docker", "ps", 
+           "-a",  
+           "--filter", f"name={container_name}",
+           "--format", "{{{{.Names}}}}"]
     container_status, _ = run_command(cmd)
 
     # If the container is running or exists, stop and remove it
@@ -540,13 +558,13 @@ def remove_container(container_name):
         print(f"Stopping and removing container {container_name}...")
 
         # Stop the container
-        stop_cmd = f"docker stop {container_name}"
+        stop_cmd = ["docker", "stop", container_name]
         _, stop_error = run_command(stop_cmd)
         if stop_error:
             print(f"Error stopping the container: {stop_error}")
         else:
             # Remove the container
-            rm_cmd = f"docker rm {container_name}"
+            rm_cmd = ["docker", "rm", container_name]
             _, rm_error = run_command(rm_cmd)
             if rm_error:
                 print(f"Error removing the container: {rm_error}. Do it Manually!")
@@ -643,7 +661,7 @@ def main_runner(cargo_setup:str, node_arg:str, hubs:int = 1) -> None:
 
     # Additional check for docker and docker compose because they could be installed but not running.
     print(f"\033[92mdocker ps\033[0m")
-    subprocess.check_output("docker ps", shell=True)
+    subprocess.check_output(["docker", "ps"])
 
     docker_version_info = subprocess.run(["docker", "-v"], capture_output=True, text=True)
 
@@ -657,7 +675,7 @@ def main_runner(cargo_setup:str, node_arg:str, hubs:int = 1) -> None:
         exit(-1)
 
     print(f"\033[92mdocker compose\033[0m")
-    subprocess.check_output("docker compose", shell=True)
+    subprocess.check_output(["docker", "compose"])
 
     # Building Yivi
     os.chdir("docker_yivi")
@@ -926,9 +944,9 @@ class TestPubHubsAutomation(unittest.TestCase):
 
         with patch(f"{__name__}.run_command", run_command_mock):
             remove_container(container_name)
-            run_command_mock.assert_any_call(f"docker ps -a --filter \"name={container_name}\" --format \"{{{{.Names}}}}\"")
-            run_command_mock.assert_any_call(f"docker stop {container_name}")
-            run_command_mock.assert_any_call(f"docker rm {container_name}")
+            run_command_mock.assert_any_call(["docker", "ps", "-a", "--filter", f"name={container_name}", "--format", "{{{{.Names}}}}"])
+            run_command_mock.assert_any_call(["docker", "stop", container_name])
+            run_command_mock.assert_any_call(["docker", "rm", container_name])
 
     def test_remove_container_not_running(self):
         container_name = "test_container"
@@ -938,7 +956,7 @@ class TestPubHubsAutomation(unittest.TestCase):
 
         with patch(f'{__name__}.run_command', run_command_mock):
             remove_container(container_name)
-            run_command_mock.assert_called_once_with(f"docker ps -a --filter \"name={container_name}\" --format \"{{{{.Names}}}}\"")
+            run_command_mock.assert_called_once_with(["docker", "ps", "-a", "--filter", f"name={container_name}", "--format", "{{{{.Names}}}}"])
 
 
     def test_update_homeserver_yaml(self):
