@@ -10,7 +10,7 @@ The rust build script uses sass, install this using npm (globally so that it's a
 ```shell
 npm install -g sass
 ```
-The rust script also uses openssl. To install openssl, we use vcpkg which you can install following their [installation instructions](https://vcpkg.io/en/getting-started). This results in an executable vcpkg.exe, which you can add to your PATH. Then install openssl:
+To build pubhubs central, openssl is required. On Windows, we recommend obtaining openssl via vcpkg, which you can install following their [installation instructions](https://vcpkg.io/en/getting-started). This results in an executable vcpkg.exe, which you can add to your PATH. Then install openssl:
 ```shell
 vcpkg install openssl:x64-windows-static-md
 vcpkg integrate install
