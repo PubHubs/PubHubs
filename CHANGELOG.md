@@ -7,6 +7,8 @@
   hotfixes:
     no_secure_cookies: true # browsers should allow secure cookies on insecure localhost, but they don't
   ```
+- Several changes to Synapse `homeserver.yaml` configuration, including a `ConfigChecker` module that
+  will crash synapse to tell you what changes to make.
 
 *Please add a brief description of any changes to be tested and any migrations to be performed here.*
 

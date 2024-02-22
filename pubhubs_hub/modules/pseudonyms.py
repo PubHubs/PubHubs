@@ -10,6 +10,8 @@ import logging
 import subprocess
 import ctypes
 
+import conf.modules.pubhubs as pubhubs
+
 from synapse.types import UserID
 from synapse.module_api import ModuleApi
 from synapse.http.server import DirectServeJsonResource, respond_with_json
@@ -35,6 +37,20 @@ class Pseudonym:
         self.api.register_third_party_rules_callbacks(
             on_profile_update = self.change_displayname,
         )
+
+        # Check whether ConfigChecker module is loaded.
+        # We do this here, because this module is so old it's surely included in any hub's configuration.
+        try:
+            for module_details in api._hs.config.modules.loaded_modules:
+                (module_class, module_config) = module_details
+                if module_class==pubhubs.ConfigChecker:
+                    break
+            else:
+                raise ConfigError("Cannot find ConfigChecker module; please add  '- module: conf.modules.pubhubs.ConfigChecker' to the 'modules:' list in homeserver.yaml")
+        except ConfigError:
+            raise
+        except Exception as e:
+            logger.error(f"failed to check the presence of ConfigChecker: {e}")
 
     #
     # Make sure displayname is pseudonym at registration

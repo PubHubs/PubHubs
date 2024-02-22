@@ -15,6 +15,7 @@
 # documentation on how to configure or create custom modules for Synapse.
 #
 modules:
+  - module: conf.modules.pubhubs.ConfigChecker
   - module: conf.modules.pubhubs.DBMigration
   - module: conf.modules.pseudonyms.Pseudonym
 #    Below is the example config for adding attribute based authentication to rooms, room id's will be different depending on your server.
@@ -445,7 +446,7 @@ limit_remote_rooms:
 # events with profile information that differ from the target's global profile.
 # Defaults to 'true'.
 #
-#allow_per_room_profiles: false
+allow_per_room_profiles: false
 
 # How long to keep redacted events in unredacted form in the database. After
 # this period redacted events get replaced with their redacted form in the DB.
