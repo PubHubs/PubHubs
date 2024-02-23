@@ -19,8 +19,10 @@ logger = logging.getLogger(__name__)
 
 class ConfigChecker:
 
-    def __init__(self, config: dict, api: ModuleApi):
+    def __init__(self, cc_config: dict, api: ModuleApi):
         self.api = api
+        self.cc_config = cc_config
+
         try:
             self.config = api._hs.config
         except:
@@ -40,17 +42,13 @@ class ConfigChecker:
 
         self.try_check(self.check_per_room_profiles_are_disabled, "per room profiles are disabled")
 
-        # TODO:
-        #  look through current sample config  
-        #
-        # macaroon_secret_key != macaroon_key
-        # form_secret != form_secret
-        # block_non_admin_invites?
-        # require_membership_for_aliases?
-        # allow_profile_lookup_over_federation == False
-        # allow_device_name_lookup_over_federation
-        # allow_guest_access == False
-        # signing_key_path?
+        if api.public_baseurl.startswith("https") and not self.cc_config.get("disable_default_secrets_check", False):
+            logger.info("public_baseurl starts with 'https', so we assume this is a production environment\n"
+                        "  NOTE: you can disable this check by setting 'disable_default_secrets_check' to false in 'homeserver.yaml' ")
+            self.try_check(self.check_default_secrets_are_changed, "default secrets are not used")
+
+        self.try_check(self.check_no_profile_lookups_over_federation, "profile lookups over federation are disabled")
+        # block_non_admin_invites? #566
 
 
     def try_check(self, f, what, *args, **kwargs):
@@ -81,5 +79,21 @@ class ConfigChecker:
         if self.config.server.allow_per_room_profiles:
             raise ConfigError("Please set 'allow_per_room_profiles: false' in 'homeserver.yaml'")
 
+    def check_default_secrets_are_changed(self):
+        for key in self.config.key.signing_key:
+            logger.info(bytes(key))
+            if bytes(key) == b'\xee\xe9@\x8c\xd2R\x7ft\x15\x1e\x03#\xc8\xf3[\xb9\x89\x95\x9b\x80\xe6\x06\xbd\n\xb7~"5\x91%v\xac':
+                raise ConfigError("Please do not use the default 'testhub.signing.key'")
+                
+
+        if self.config.key.macaroon_secret_key == b"macaroon_key":
+            raise ConfigError("Please change 'macaroon_secret_key' in 'homeserver.yaml' from the default")
+        if self.config.key.form_secret == "form_secret":
+            raise ConfigError("Please change 'form_secret' in 'homeserver.yaml' from the default")
+
+
+    def check_no_profile_lookups_over_federation(self):
+        if self.config.federation.allow_profile_lookup_over_federation:
+            raise ConfigError("Please set 'allow_profile_lookup_over_federation: false' in 'homeserver.yaml'")
 
             
