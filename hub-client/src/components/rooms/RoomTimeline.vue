@@ -1,5 +1,6 @@
 <template>
 	<div id="room-timeline" ref="elRoomTimeline" class="h-full overflow-y-auto relative" @scroll="onScroll">
+		<div id="room-created-tag" v-if="oldestEventIsLoaded" class="rounded-xl flex items-center justify-center w-60 mx-auto mb-12 border border-solid border-black dark:border-white">{{ $t('rooms.roomCreated') }}</div>
 		<template v-for="(item, index) in rooms.getRoomTimeLineWithPluginsCheck(room_id)" :key="index">
 			<RoomEvent :eventId="item.event.event_id" :event="item.event" class="room-event" @in-reply-to-click="onInReplyToClick"></RoomEvent>
 		</template>
@@ -12,6 +13,7 @@
 	import { useRoute } from 'vue-router';
 	import { usePubHubs } from '@/core/pubhubsStore';
 	import { MatrixEvent } from 'matrix-js-sdk';
+	import { Ref } from 'vue';
 
 	const rooms = useRooms();
 	const user = useUser();
@@ -21,6 +23,8 @@
 	const elRoomTimeline = ref<HTMLElement | null>(null);
 
 	let newestEventId: string | undefined;
+	// todo: move to Room class.
+	let oldestEventIsLoaded: Ref<boolean> = ref(false);
 
 	type Props = {
 		room_id: string;
@@ -78,7 +82,7 @@
 				.getEvents()
 				.find((event) => event.getType() == 'm.room.message');
 			const oldestEventId = oldestEvent?.getId();
-			await pubhubs.loadOlderEvents(rooms.currentRoomId);
+			oldestEventIsLoaded.value = await pubhubs.loadOlderEvents(rooms.currentRoomId);
 			if (oldestEventId) {
 				scrollToEvent(oldestEventId);
 			}
