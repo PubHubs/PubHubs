@@ -82,6 +82,7 @@ const nl = {
 		read: 'Lees',
 		event: 'Evenement',
 		discussion: 'Discussie',
+		roomCreated: 'Room created',
 	},
 	settings: {
 		displayname: 'Bijnaam',
