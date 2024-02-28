@@ -1,7 +1,10 @@
 use serde::{Deserialize, Serialize};
 
-use crate::misc::{fmt_ext, serde_ext};
+use crate::elgamal;
+use crate::misc::{fmt_ext, serde_ext::bytes_wrapper};
 use crate::servers::server;
+
+use actix_web::web;
 
 /// The result of an API-request to a PubHubs server endpoint.
 ///
@@ -34,6 +37,13 @@ impl<T> Result<T> {
 
     pub fn is_ok(&self) -> bool {
         matches!(self, Result::Ok(_))
+    }
+
+    pub fn inspect_err(self, f: impl FnOnce(ErrorCode)) -> Self {
+        if let Result::Err(ref ec) = self {
+            f(*ec);
+        }
+        self
     }
 
     /// Turns retryable errors into `None`, and the [Result] into a [std::result::Result],
@@ -73,10 +83,33 @@ macro_rules! return_if_ec {
 }
 pub(crate) use return_if_ec;
 
+/// Extension trait to add [IntoErrorCode::into_ec] to [std::result::Result].
+pub trait IntoErrorCode {
+    type Ok;
+    type Err;
+
+    /// Turns `self` into an [ErrorCode] result by calling `f` when `self` is an error.
+    ///
+    /// Consider logging the error you're turning into an [ErrorCode].
+    fn into_ec<F: FnOnce(Self::Err) -> ErrorCode>(self, f: F) -> Result<Self::Ok>;
+}
+
+impl<T, E> IntoErrorCode for std::result::Result<T, E> {
+    type Ok = T;
+    type Err = E;
+
+    fn into_ec<F: FnOnce(E) -> ErrorCode>(self, f: F) -> Result<T> {
+        match self {
+            Ok(v) => Result::Ok(v),
+            Err(err) => Result::Err(f(err)),
+        }
+    }
+}
+
 /// List of possible errors.  We use error codes in favour of more descriptive strings,
 /// because error codes can be more easily processed by the calling code,
 /// should change less often, and can be easily translated.
-#[derive(Serialize, Deserialize, Debug, thiserror::Error)]
+#[derive(Clone, Copy, Serialize, Deserialize, Debug, thiserror::Error)]
 pub enum ErrorCode {
     #[error("requested process already running")]
     AlreadyRunning,
@@ -104,6 +137,18 @@ pub enum ErrorCode {
 
     #[error("server encountered an unexpected problem")]
     InternalError,
+
+    #[error("a signature could not be verified")]
+    InvalidSignature,
+
+    #[error("something is wrong with the request")]
+    BadRequest,
+
+    #[error("not (yet) implemented")]
+    NotImplemented,
+
+    #[error("unknown hub")]
+    UnknownHub,
 }
 use ErrorCode::*;
 
@@ -121,13 +166,20 @@ impl ErrorCode {
     /// Returns additional information about this error code.
     pub fn info(&self) -> ErrorInfo {
         match self {
-            AlreadyRunning | NoLongerInCorrectState | Malconfigured => ErrorInfo {
+            AlreadyRunning
+            | NoLongerInCorrectState
+            | Malconfigured
+            | InvalidSignature
+            | UnknownHub
+            | NotImplemented => ErrorInfo {
                 retryable: Some(false),
             },
             CouldNotConnectYet | TemporaryFailure | NotYetReady => ErrorInfo {
                 retryable: Some(true),
             },
-            InternalClientError | InternalError | CouldNotConnect => ErrorInfo { retryable: None },
+            InternalClientError | InternalError | BadRequest | CouldNotConnect => {
+                ErrorInfo { retryable: None }
+            }
         }
     }
 
@@ -159,11 +211,19 @@ pub struct DiscoveryInfoResp {
     /// URL of the PubHubs Central server this server tries to connect to.
     pub phc_url: url::Url,
 
-    /// Used to sign JWT of this server.
-    pub jwt_key: serde_ext::B16<ed25519_dalek::VerifyingKey>,
+    /// Used to sign JWTs from this server.
+    pub jwt_key: VerifyingKey,
+
+    /// Used to encrypt messages to this server, and to create shared secrets with this server
+    /// using Diffie-Hellman
+    pub enc_key: elgamal::PublicKey,
 
     /// Discovery state of the server
     pub state: ServerState,
+
+    /// Master encryption key part, that is, `x_PHC B` or `x_T B` in the notation of the
+    /// whitepaper.  Only set for PHC or the transcryptor.
+    pub master_enc_key_part: Option<elgamal::PublicKey>,
 
     /// Details of the other PubHubs servers, according to this server
     /// None when `state` is [ServerState::Discovery]
@@ -177,8 +237,8 @@ pub enum ServerState {
     UpAndRunning,
 }
 
-impl From<&server::State> for ServerState {
-    fn from(s: &server::State) -> Self {
+impl<RS: Clone> From<&server::State<RS>> for ServerState {
+    fn from(s: &server::State<RS>) -> Self {
         match s {
             server::State::UpAndRunning { .. } => ServerState::UpAndRunning,
             server::State::Discovery { .. } => ServerState::Discovery,
@@ -193,9 +253,29 @@ pub trait EndpointDetails {
 
     const METHOD: http::Method;
     const PATH: &'static str;
+
+    /// Helper function to add this endpoint to a [web::ServiceConfig].
+    fn add_to<App: Clone, F, Args: actix_web::FromRequest + 'static>(
+        app: &App,
+        sc: &mut web::ServiceConfig,
+        handler: F,
+    ) where
+        server::AppMethod<App, F>: actix_web::Handler<Args>,
+        <server::AppMethod<App, F> as actix_web::Handler<Args>>::Output:
+            actix_web::Responder + 'static,
+    {
+        sc.route(
+            Self::PATH,
+            web::method(Self::METHOD).to(server::AppMethod::new(app, handler)),
+        );
+    }
 }
 
 /// Like [query], but retries the query when it fails with a [ErrorInfo::retryable] [ErrorCode].
+///
+/// When `A` queries `B` and `B` queries `C`, the `B` should, in general, not use
+/// [query_with_retry], but let `A` manage retries.  This prevents `A`'s request from hanging
+/// without any explanation.
 pub async fn query_with_retry<EP: EndpointDetails>(
     server_url: &url::Url,
     req: &EP::RequestType,
@@ -334,6 +414,82 @@ pub async fn query<EP: EndpointDetails>(
     response
 }
 
+/// Wraps one of the dalek types to enforce hex serialization
+macro_rules! wrap_dalek_type {
+    {$type:ident, $wrapped_type:path, derive( $($derive:tt)* ), $visitor_type:path } => {
+        /// Wrapper around [`$wrapped_type`] enforcing base16 serialization.
+        #[derive(Clone, Debug, Serialize, Deserialize, $( $derive )* )]
+        #[serde(transparent)]
+        pub struct $type {
+            inner: bytes_wrapper::BytesWrapper<
+                $wrapped_type,
+                bytes_wrapper::ChangeVisitorType<
+                    (bytes_wrapper::B16Encoding,),
+                    { $visitor_type as isize },
+                >,
+            >,
+        }
+
+        impl From<$wrapped_type> for $type {
+            fn from(inner: $wrapped_type) -> Self {
+                Self {
+                    inner: inner.into(),
+                }
+            }
+        }
+
+        impl core::ops::Deref for $type {
+            type Target = $wrapped_type;
+
+            fn deref(&self) -> &Self::Target {
+                &self.inner
+            }
+        }
+
+        impl core::ops::DerefMut for $type {
+            fn deref_mut(&mut self) -> &mut Self::Target {
+                &mut self.inner
+            }
+        }
+    }
+}
+
+wrap_dalek_type! {
+    VerifyingKey, ed25519_dalek::VerifyingKey,
+    derive(PartialEq, Eq),
+    bytes_wrapper::VisitorType::BorrowedByteArray
+}
+
+wrap_dalek_type! {
+    SigningKey, ed25519_dalek::SigningKey,
+    derive(),
+    bytes_wrapper::VisitorType::BorrowedByteArray
+}
+
+wrap_dalek_type! {
+    Scalar, curve25519_dalek::scalar::Scalar,
+    derive(PartialEq, Eq),
+    bytes_wrapper::VisitorType::ByteSequence
+}
+
+wrap_dalek_type! {
+    CurvePoint, curve25519_dalek::ristretto::CompressedRistretto,
+    derive(PartialEq, Eq),
+    bytes_wrapper::VisitorType::ByteSequence
+}
+
+impl SigningKey {
+    pub fn generate() -> Self {
+        ed25519_dalek::SigningKey::generate(&mut rand::rngs::OsRng).into()
+    }
+}
+
+impl Scalar {
+    pub fn random() -> Self {
+        curve25519_dalek::scalar::Scalar::random(&mut rand::rngs::OsRng).into()
+    }
+}
+
 pub struct DiscoveryInfo {}
 impl EndpointDetails for DiscoveryInfo {
     type RequestType = ();
@@ -350,4 +506,28 @@ impl EndpointDetails for DiscoveryRun {
 
     const METHOD: http::Method = http::Method::POST;
     const PATH: &'static str = ".ph/discovery/run";
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn serde_scalar() {
+        assert_eq!(
+            Scalar::deserialize(
+                serde::de::value::StrDeserializer::<serde::de::value::Error>::new(
+                    &"ff00000000000000000000000000000000000000000000000000000000000000",
+                ),
+            )
+            .unwrap(),
+            curve25519_dalek::scalar::Scalar::from(255u8).into(),
+        );
+
+        let s: Scalar = curve25519_dalek::scalar::Scalar::from(1u8).into();
+        assert_eq!(
+            &serde_json::to_string(&s).unwrap(),
+            "\"0100000000000000000000000000000000000000000000000000000000000000\""
+        );
+    }
 }

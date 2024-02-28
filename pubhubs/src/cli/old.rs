@@ -544,7 +544,12 @@ async fn yivi_finish_and_redirect_anyhow(
     };
 
     let mut resp_with_cookie = HttpResponse::Ok();
-    resp_with_cookie.add_session_cookie(user.external_id.clone(), &context.cookie_secret)?;
+    resp_with_cookie.add_session_cookies(
+        user.external_id.clone(),
+        &context.cookie_secret,
+        context.hotfixes.no_secure_cookies,
+        context.hotfixes.no_http_only_cookies,
+    )?;
 
     if params.oidc_auth_request_handle.is_none() {
         // GET-redirect user to the account page
@@ -718,7 +723,7 @@ async fn account_login(
     translations: Translations,
 ) -> Result<HttpResponse, TranslatedError> {
     let user_id = req
-        .user_id_from_cookie(&context.cookie_secret)
+        .user_id_from_cookies(&context.cookie_secret)
         .into_translated_error(&req)?;
 
     match user_id {
@@ -746,7 +751,7 @@ async fn account_login(
 async fn account_logout(translations: Translations) -> impl Responder {
     HttpResponse::Found()
         .insert_header((LOCATION, format!("{}/login", translations.prefix())))
-        .remove_session_cookie() // logout
+        .remove_session_cookies() // logout
         .finish()
 }
 
@@ -829,7 +834,9 @@ pub async fn handle_oidc_authorize(
     // inefficient, it prevents code duplication.
     if let Some(id) = req
         .request
-        .user_id_from_cookie(&context.cookie_secret)
+        // NOTE: We must use the `SameSite=None` `PHAccount.CrossSite` cookie here because the user
+        // was sent to this authorization endpoint from another site.
+        .user_id_from_cookies_cross_site(&context.cookie_secret)
         .unwrap()
     {
         let extra = CompleteRequest {
@@ -1202,7 +1209,7 @@ mod tests {
 
     use crate::data::DataCommands::{CreateUser, GetUser};
     use crate::data::HubHandle::Id;
-    use crate::misc::serde_ext::B64;
+    use crate::misc::serde_ext::bytes_wrapper::B64;
     use crate::yivi::{
         Attribute, SessionData, SessionPointer, SessionResult, SessionType,
         SessionType::Disclosing, Status, MAIL, MOBILE_NO, PUB_HUBS_ID,
@@ -1696,7 +1703,7 @@ mod tests {
         let user = create_user("email", &context).await;
 
         let test_request = test::TestRequest::default()
-            .add_session_cookie(user, secret)
+            .add_session_cookies(user, secret, false, false)
             .unwrap();
         let test_request = test_request.uri(format!("http://smth.example?client_id={oidc_client_id}&response_mode=form_post&response_type=code&redirect_uri={ru}&state=state&nonce=nonce&scope=openid").as_str());
         let (request, mut payload) = test_request.to_http_parts();
@@ -1725,7 +1732,7 @@ mod tests {
         let email = "email@test.com";
         let user_id = create_user(email, &context).await;
         let request = test::TestRequest::default()
-            .add_session_cookie(user_id.clone(), secret)
+            .add_session_cookies(user_id.clone(), secret, false, false)
             .unwrap();
 
         let response = get_account(
@@ -1755,7 +1762,7 @@ mod tests {
         .await;
         let req = test::TestRequest::get()
             .uri("/admin/hubs")
-            .add_session_cookie(user_id, secret)
+            .add_session_cookies(user_id, secret, false, false)
             .unwrap()
             .to_request();
 
@@ -1822,7 +1829,7 @@ mod tests {
             app.call(
                 test::TestRequest::get()
                     .uri("/bar/state")
-                    .add_session_cookie(user_id.clone(), "not the cookie secret")
+                    .add_session_cookies(user_id.clone(), "not the cookie secret", false, false)
                     .unwrap()
                     .to_request(),
             )
@@ -1846,7 +1853,7 @@ mod tests {
             .call(
                 test::TestRequest::get()
                     .uri("/bar/state")
-                    .add_session_cookie(user_id.clone(), &context.cookie_secret)
+                    .add_session_cookies(user_id.clone(), &context.cookie_secret, false, false)
                     .unwrap()
                     .to_request(),
             )
@@ -1868,7 +1875,7 @@ mod tests {
             .call(
                 test::TestRequest::put()
                     .uri("/bar/state")
-                    .add_session_cookie(user_id.clone(), &context.cookie_secret)
+                    .add_session_cookies(user_id.clone(), &context.cookie_secret, false, false)
                     .unwrap()
                     .insert_header((CONTENT_TYPE, "application/octet-stream"))
                     .insert_header((
@@ -1895,7 +1902,7 @@ mod tests {
             .call(
                 test::TestRequest::get()
                     .uri("/bar/state")
-                    .add_session_cookie(user_id.clone(), &context.cookie_secret)
+                    .add_session_cookies(user_id.clone(), &context.cookie_secret, false, false)
                     .unwrap()
                     .to_request(),
             )
@@ -1916,7 +1923,7 @@ mod tests {
             .call(
                 test::TestRequest::put()
                     .uri("/bar/state")
-                    .add_session_cookie(user_id.clone(), &context.cookie_secret)
+                    .add_session_cookies(user_id.clone(), &context.cookie_secret, false, false)
                     .unwrap()
                     .insert_header((CONTENT_TYPE, "application/octet-stream"))
                     .insert_header((
@@ -1940,7 +1947,7 @@ mod tests {
             .call(
                 test::TestRequest::put()
                     .uri("/bar/state")
-                    .add_session_cookie(user_id.clone(), "not the cookie secret")
+                    .add_session_cookies(user_id.clone(), "not the cookie secret", false, false)
                     .unwrap()
                     .insert_header((CONTENT_TYPE, "application/octet-stream"))
                     .insert_header((
@@ -1984,7 +1991,7 @@ mod tests {
             .call(
                 test::TestRequest::put()
                     .uri("/bar/state")
-                    .add_session_cookie(user_id.clone(), &context.cookie_secret)
+                    .add_session_cookies(user_id.clone(), &context.cookie_secret, false, false)
                     .unwrap()
                     .insert_header((CONTENT_TYPE, "application/octet-stream"))
                     .set_payload("new state 2")
@@ -2003,7 +2010,7 @@ mod tests {
             .call(
                 test::TestRequest::put()
                     .uri("/bar/state")
-                    .add_session_cookie(user_id.clone(), &context.cookie_secret)
+                    .add_session_cookies(user_id.clone(), &context.cookie_secret, false, false)
                     .unwrap()
                     .insert_header((CONTENT_TYPE, "application/json"))
                     .insert_header((
@@ -2026,7 +2033,7 @@ mod tests {
             .call(
                 test::TestRequest::put()
                     .uri("/bar/state")
-                    .add_session_cookie(user_id.clone(), &context.cookie_secret)
+                    .add_session_cookies(user_id.clone(), &context.cookie_secret, false, false)
                     .unwrap()
                     .insert_header((
                         actix_web::http::header::IF_MATCH,
@@ -2048,7 +2055,7 @@ mod tests {
             .call(
                 test::TestRequest::put()
                     .uri("/bar/state")
-                    .add_session_cookie(user_id.clone(), &context.cookie_secret).unwrap()
+                    .add_session_cookies(user_id.clone(), &context.cookie_secret, false, false).unwrap()
                     .insert_header((CONTENT_TYPE, "application/octet-stream"))
                     .insert_header((
                         actix_web::http::header::IF_MATCH,
@@ -2070,7 +2077,7 @@ mod tests {
             .call(
                 test::TestRequest::put()
                     .uri("/bar/state")
-                    .add_session_cookie(user_id.clone(), &context.cookie_secret)
+                    .add_session_cookies(user_id.clone(), &context.cookie_secret, false, false)
                     .unwrap()
                     .insert_header((CONTENT_TYPE, "application/octet-stream"))
                     .insert_header((actix_web::http::header::IF_MATCH, "*"))

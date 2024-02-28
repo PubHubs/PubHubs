@@ -2,19 +2,20 @@
 #
 #   docker build -f pubhubs_hub/Dockerfile .
 #
-# Please keep the pubhubs_hub/Dockerfile.dockerignore up-to-date. 
+# Please keep the pubhubs_hub/Dockerfile.dockerignore up-to-date.
 
 ### BUILD STAGE:  YIVI
-# bullseye tag since the synapse image is based on bullseye.
+# Should be the same debian version as the version on which synapse is based.
 FROM golang:bookworm AS yivi_build
 
-RUN git clone https://github.com/privacybydesign/irmago --branch v0.14.1 --depth 1
+RUN git clone https://github.com/privacybydesign/irmago --branch v0.15.1 --depth 1
 
 WORKDIR irmago
 
 RUN GO111MODULE=auto go install ./irma
 
-### BUILD STAGE:  LIBPUBHUBS 
+### BUILD STAGE:  LIBPUBHUBS
+# Should be the same debian version as the version on which synapse is based.
 FROM rust:bookworm AS libpubhubs_build
 
 COPY pubhubs/ wd
@@ -25,7 +26,8 @@ WORKDIR wd
 RUN cargo build --no-default-features --lib --features=abi
 
 ## FINAL CONTAINER STAGE
-FROM matrixdotorg/synapse:v1.94.0
+
+FROM ghcr.io/element-hq/synapse:v1.101.0
 
 COPY --from=yivi_build /go/bin/irma /usr/bin/irma
 COPY --from=libpubhubs_build /wd/target/debug/libpubhubs.so /usr/lib

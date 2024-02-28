@@ -23,3 +23,6 @@ allowed_embedding_contexts: [localhost:8080]
 
 admins:
   - admin@example.com
+
+hotfixes:
+  no_secure_cookies: true # browsers should allow secure cookies on insecure localhost, but they don't

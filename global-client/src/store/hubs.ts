@@ -2,6 +2,7 @@ import { defineStore } from 'pinia';
 import { RouteParams } from 'vue-router';
 import { Message, MessageBoxType, MessageType, Theme, useGlobal, useMessageBox, useSettings } from '@/store/store';
 import { setLanguage, setUpi18n } from '@/i18n';
+import { useToggleMenu } from '@/store/toggleGlobalMenu';
 
 // Single Hub
 class Hub {
@@ -91,7 +92,7 @@ const useHubs = defineStore('hubs', {
 			const hubId = params.id as string;
 			const roomId = params.roomId as string;
 			const self = this;
-
+			const toggleMenu = useToggleMenu();
 			const messagebox = useMessageBox();
 
 			// Only change to a Hub if there is a hubId given
@@ -128,6 +129,11 @@ const useHubs = defineStore('hubs', {
 							// TODO: find a way router can be part of a store that TypeScript swallows.
 							// @ts-ignore
 							this.router.push({ name: 'hub', params: { id: hubId, roomId: roomId } });
+						});
+
+						//Listen to global menu change
+						messagebox.addCallback(MessageType.mobileHubMenu, () => {
+							toggleMenu.toggleMenu();
 						});
 
 						// Listen to sync settings

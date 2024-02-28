@@ -435,7 +435,7 @@ const usePubHubs = defineStore('pubhubs', {
 			const settings = useSettings();
 
 			const room = this.client.getRoom(roomId);
-			const firstEvent = room?.timeline[0];
+			const firstEvent = room?.getLiveTimeline().getEvents()[0];
 
 			// If all messages are loaded, return.
 			if (!firstEvent || firstEvent.getType() === 'm.room.create') return true;

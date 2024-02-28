@@ -6,7 +6,10 @@ use tokio::sync::mpsc;
 
 use std::sync::Arc;
 
+use crate::elgamal;
+
 use crate::servers::{
+    self,
     api::{self, EndpointDetails},
     discovery, Constellation,
 };
@@ -42,7 +45,7 @@ impl std::fmt::Display for Name {
 
 /// Common API to the different PubHubs servers, used by the [crate::servers::run::Runner].
 ///
-/// A single instance of the appropriate implementation of [Server] is created
+/// A single instance of the [ServerImpl] implementation of [Server] is created
 /// for each server that's being run, and it's mainly responsible for creating
 /// immutable [App] instances to be sent to the individual threads.
 ///
@@ -51,18 +54,97 @@ impl std::fmt::Display for Name {
 ///
 /// An exception to this no-shared-mutable-state mantra is the discovery or startup phase,
 /// see [State::Discovery].
-pub trait Server: Sized + 'static + crate::servers::config::GetServerConfig {
+pub trait Server: Sized + 'static {
     type AppT: App<Self>;
+
     const NAME: Name;
 
     /// Is moved accross threads to create the [App]s.
     type AppCreatorT: AppCreator<Self>;
 
-    fn new(config: &crate::servers::Config) -> Self;
+    type ExtraConfig;
 
-    fn app_creator(&self) -> Self::AppCreatorT;
+    /// Additional state when the server is running
+    type RunningState: Clone;
 
-    fn base_mut(&mut self) -> &mut ServerBase;
+    fn new(config: &crate::servers::Config) -> anyhow::Result<Self>;
+
+    fn app_creator(&self) -> &Self::AppCreatorT;
+    fn app_creator_mut(&mut self) -> &mut Self::AppCreatorT;
+
+    fn config(&self) -> &crate::servers::Config;
+
+    fn server_config(&self) -> &servers::config::ServerConfig<Self::ExtraConfig> {
+        Self::server_config_from(self.config())
+    }
+
+    fn server_config_from(
+        config: &servers::Config,
+    ) -> &servers::config::ServerConfig<Self::ExtraConfig>;
+
+    fn create_running_state(&self, constellation: &Constellation) -> Result<Self::RunningState>;
+}
+
+/// Basic implementation of [Server].
+pub struct ServerImpl<D: Details> {
+    config: servers::Config,
+    app_creator: D::AppCreatorT,
+}
+
+/// Details needed to create a [ServerImpl] type.
+pub trait Details: crate::servers::config::GetServerConfig + 'static + Sized {
+    const NAME: Name;
+    type AppCreatorT;
+    type AppT;
+    type RunningState: Clone;
+
+    fn create_running_state(
+        server: &ServerImpl<Self>,
+        constellation: &Constellation,
+    ) -> Result<Self::RunningState>;
+}
+
+impl<D: Details> Server for ServerImpl<D>
+where
+    D::AppT: App<Self>,
+    D::AppCreatorT: AppCreator<Self>,
+{
+    const NAME: Name = D::NAME;
+
+    type AppCreatorT = D::AppCreatorT;
+    type AppT = D::AppT;
+
+    type ExtraConfig = D::Extra;
+    type RunningState = D::RunningState;
+
+    fn new(config: &servers::Config) -> anyhow::Result<Self> {
+        Ok(Self {
+            app_creator: Self::AppCreatorT::new(config)?,
+            config: config.clone(),
+        })
+    }
+
+    fn app_creator(&self) -> &Self::AppCreatorT {
+        &self.app_creator
+    }
+
+    fn app_creator_mut(&mut self) -> &mut Self::AppCreatorT {
+        &mut self.app_creator
+    }
+
+    fn config(&self) -> &servers::Config {
+        &self.config
+    }
+
+    fn server_config_from(
+        config: &servers::Config,
+    ) -> &servers::config::ServerConfig<Self::ExtraConfig> {
+        D::server_config(config)
+    }
+
+    fn create_running_state(&self, constellation: &Constellation) -> Result<Self::RunningState> {
+        D::create_running_state(self, constellation)
+    }
 }
 
 /// What's passed to an [App] via [AppCreator] to signal a shutdown command
@@ -70,11 +152,17 @@ pub type ShutdownSender<S> = mpsc::Sender<ShutdownCommand<S>>;
 
 /// What's moved  accross threads by a [Server] to create its [App] instances.
 pub trait AppCreator<ServerT: Server>: Send + Clone + 'static {
+    /// Creates a new instance of this [AppCreator] based on the given configuration.
+    fn new(config: &servers::Config) -> anyhow::Result<Self>;
+
     /// Create an [App] instance.
     ///
     /// The `shutdown_sender` [mpsc::Sender] can be used to restart the server.  It's
     /// up to the implementor to clone it.
-    fn create(&self, shutdown_sender: &ShutdownSender<ServerT>) -> ServerT::AppT;
+    fn into_app(self, shutdown_sender: &ShutdownSender<ServerT>) -> ServerT::AppT;
+
+    fn base(&self) -> &AppCreatorBase<ServerT>;
+    fn base_mut(&mut self) -> &mut AppCreatorBase<ServerT>;
 }
 
 /// What modifies a [Server] when it is restarted via [ShutdownCommand::ModifyAndRestart].
@@ -186,22 +274,42 @@ pub trait App<S: Server>: Clone + 'static {
 
     /// Returns the [AppBase] this [App] builds on.
     fn base(&self) -> &AppBase<S>;
+
+    /// Should return the master encryption key part for PHC and the transcryption.
+    fn master_enc_key_part(&self) -> Option<&elgamal::PrivateKey> {
+        if matches!(S::NAME, Name::PubhubsCentral | Name::Transcryptor) {
+            panic!("this default impl should have been  overriden for PHC and T")
+        }
+        None
+    }
 }
 
-/// What's internally common between PubHubs [Server]s.
-pub struct ServerBase {
-    pub config: crate::servers::Config,
-    pub state: State,
+/// What's internally common between PubHubs [AppCreator]s.
+pub struct AppCreatorBase<S: Server> {
+    pub state: State<S::RunningState>,
+    pub phc_url: url::Url,
     pub self_check_code: String,
-    pub jwt_key: ed25519_dalek::SigningKey,
+    pub jwt_key: api::SigningKey,
+    pub enc_key: elgamal::PrivateKey,
 }
 
-impl ServerBase {
-    pub fn new<S: Server>(config: &crate::servers::Config) -> Self {
-        let server_config = S::server_config(config);
+impl<S: Server> Clone for AppCreatorBase<S> {
+    fn clone(&self) -> Self {
+        Self {
+            state: self.state.clone(),
+            phc_url: self.phc_url.clone(),
+            self_check_code: self.self_check_code.clone(),
+            jwt_key: self.jwt_key.clone(),
+            enc_key: self.enc_key.clone(),
+        }
+    }
+}
+
+impl<S: Server> AppCreatorBase<S> {
+    pub fn new(config: &crate::servers::Config) -> Self {
+        let server_config = S::server_config_from(config);
 
         Self {
-            config: config.clone(),
             state: State::Discovery {
                 task_lock: Arc::new(tokio::sync::Mutex::new(())),
             },
@@ -209,51 +317,35 @@ impl ServerBase {
             jwt_key: server_config
                 .jwt_key
                 .clone()
-                .unwrap_or_else(|| {
-                    ed25519_dalek::SigningKey::generate(&mut rand::rngs::OsRng).into()
-                })
-                .into_inner(),
-        }
-    }
-}
-
-/// What's internally common between PubHubs [AppCreator]s.
-#[derive(Clone)]
-pub struct AppCreatorBase {
-    pub state: State,
-    pub phc_url: url::Url,
-    pub self_check_code: String,
-    pub jwt_key: ed25519_dalek::SigningKey,
-}
-
-impl AppCreatorBase {
-    pub fn new(server_base: &ServerBase) -> Self {
-        Self {
-            state: server_base.state.clone(),
-            phc_url: server_base.config.phc_url.clone(),
-            self_check_code: server_base.self_check_code.clone(),
-            jwt_key: server_base.jwt_key.clone(),
+                .unwrap_or_else(api::SigningKey::generate),
+            enc_key: server_config
+                .enc_key
+                .clone()
+                .unwrap_or_else(elgamal::PrivateKey::random),
+            phc_url: config.phc_url.clone(),
         }
     }
 }
 
 /// What's internally common between PubHubs [App]s.
 pub struct AppBase<S: Server> {
-    pub state: State,
+    pub state: State<S::RunningState>,
     pub shutdown_sender: ShutdownSender<S>,
     pub self_check_code: String,
     pub phc_url: url::Url,
-    pub jwt_key: ed25519_dalek::SigningKey,
+    pub jwt_key: api::SigningKey,
+    pub enc_key: elgamal::PrivateKey,
 }
 
 impl<S: Server> AppBase<S> {
-    pub fn new(creator_base: &AppCreatorBase, shutdown_sender: &ShutdownSender<S>) -> Self {
+    pub fn new(creator_base: AppCreatorBase<S>, shutdown_sender: &ShutdownSender<S>) -> Self {
         Self {
-            state: creator_base.state.clone(),
+            state: creator_base.state,
             shutdown_sender: shutdown_sender.clone(),
-            phc_url: creator_base.phc_url.clone(),
-            self_check_code: creator_base.self_check_code.clone(),
-            jwt_key: creator_base.jwt_key.clone(),
+            phc_url: creator_base.phc_url,
+            self_check_code: creator_base.self_check_code,
+            jwt_key: creator_base.jwt_key,
+            enc_key: creator_base.enc_key,
         }
     }
 
@@ -299,21 +391,8 @@ impl<S: Server> AppBase<S> {
 
     /// Configures common endpoints
     pub fn configure_actix_app(app: &S::AppT, sc: &mut web::ServiceConfig) {
-        // Make an actix handler from a method on AppBase
-        macro_rules! app_method (
-            ($method_name:ident) => {
-                AppMethod::new(app, AppBase::<S>::$method_name)
-            }
-        );
-
-        sc.route(
-            api::DiscoveryRun::PATH,
-            web::method(api::DiscoveryRun::METHOD).to(app_method!(handle_discovery_run)),
-        )
-        .route(
-            api::DiscoveryInfo::PATH,
-            web::method(api::DiscoveryInfo::METHOD).to(app_method!(handle_discovery_info)),
-        );
+        api::DiscoveryRun::add_to(app, sc, Self::handle_discovery_run);
+        api::DiscoveryInfo::add_to(app, sc, Self::handle_discovery_info);
     }
 
     /// Run the discovery process, and restarts server if necessary.  Returns when
@@ -358,7 +437,13 @@ impl<S: Server> AppBase<S> {
         // restart server
 
         let success: bool = app.base().restart_server(|server: &mut S| -> Result<()> {
-            server.base_mut().state = crate::servers::server::State::UpAndRunning { constellation };
+            let extra = server.create_running_state(&constellation)?;
+
+            server.app_creator_mut().base_mut().state =
+                crate::servers::server::State::UpAndRunning {
+                    constellation,
+                    extra,
+                };
 
             Ok(())
         });
@@ -410,11 +495,23 @@ impl<S: Server> AppBase<S> {
             // or scalar multiplication are performed here.
             jwt_key: app_base.jwt_key.verifying_key().into(),
             state: (&app_base.state).into(),
+            enc_key: app_base.enc_key.public_key().clone(),
+            master_enc_key_part: app
+                .master_enc_key_part()
+                .map(|privk| privk.public_key().clone()),
             constellation: match &app_base.state {
-                State::UpAndRunning { constellation } => Some(*constellation.clone()),
+                State::UpAndRunning { constellation, .. } => Some(*constellation.clone()),
                 State::Discovery { .. } => None,
             },
         })
+    }
+
+    /// Returns the server's running state if it is, and otherwise [ErrorCode::NotYetReady].
+    pub(super) fn running_state(&self) -> api::Result<&S::RunningState> {
+        match self.state {
+            State::UpAndRunning { ref extra, .. } => api::Result::Ok(extra),
+            State::Discovery { .. } => api::Result::Err(api::ErrorCode::NotYetReady),
+        }
     }
 }
 
@@ -426,7 +523,7 @@ pub struct AppMethod<App, F> {
 }
 
 impl<App: Clone, F> AppMethod<App, F> {
-    fn new(app: &App, f: F) -> Self {
+    pub fn new(app: &App, f: F) -> Self {
         AppMethod {
             app: app.clone(),
             f,
@@ -478,7 +575,7 @@ factory_tuple! { A B C D E F G H I J K L M N O P }
 /// Will be sent accross threads from [Server] via [AppCreator] to [App].
 /// Cheaply cloneable.
 #[derive(Clone)]
-pub enum State {
+pub enum State<RunningState: Clone> {
     /// Waiting for information from other servers.
     Discovery {
         /// This lock is taken by the task performing discovery.
@@ -489,5 +586,8 @@ pub enum State {
     },
 
     /// Server has completed discovery and is running normally.
-    UpAndRunning { constellation: Box<Constellation> },
+    UpAndRunning {
+        constellation: Box<Constellation>,
+        extra: RunningState,
+    },
 }

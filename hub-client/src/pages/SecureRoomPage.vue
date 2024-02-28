@@ -24,7 +24,7 @@
 </template>
 
 <script setup lang="ts">
-	import { onMounted } from 'vue';
+	import { onMounted, watch } from 'vue';
 	import { useRooms } from '@/store/store';
 	import { usePubHubs } from '@/core/pubhubsStore';
 	import { useRoute } from 'vue-router';
@@ -34,10 +34,14 @@
 	const pubhubs = usePubHubs();
 	const rooms = useRooms();
 
-	onMounted(async () => {
+	watch(route, update);
+
+	onMounted(update);
+
+	async function update() {
 		const access_token = pubhubs.Auth.getAccessToken();
 		rooms.yiviSecuredRoomflow(route.params.id as string, access_token);
 
 		await rooms.getSecuredRoomInfo(route.params.id as string);
-	});
+	}
 </script>

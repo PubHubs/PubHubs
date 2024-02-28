@@ -239,7 +239,7 @@ impl CustomFuncs for Translations {
             return Err("no custom functions defined except for 'tr'");
         }
 
-        let key = match args.get(0) {
+        let key = match args.first() {
             Some(DecodedValue::String(key)) => {
                 core::str::from_utf8(key).unwrap_or("_________NOT_A_KEY")
             }

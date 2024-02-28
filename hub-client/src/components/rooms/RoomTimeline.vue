@@ -1,7 +1,8 @@
 <template>
 	<div id="room-timeline" ref="elRoomTimeline" class="h-full overflow-y-auto relative" @scroll="onScroll">
+		<div id="room-created-tag" v-if="oldestEventIsLoaded" class="rounded-xl flex items-center justify-center w-60 mx-auto mb-12 border border-solid border-black dark:border-white">{{ $t('rooms.roomCreated') }}</div>
 		<template v-for="(item, index) in rooms.getRoomTimeLineWithPluginsCheck(room_id)" :key="index">
-			<RoomEvent :event="item.event" class="room-event" @on-in-reply-to-click="onInReplyToClick"></RoomEvent>
+			<RoomEvent :eventId="item.event.event_id" :event="item.event" class="room-event" @in-reply-to-click="onInReplyToClick"></RoomEvent>
 		</template>
 	</div>
 </template>
@@ -11,6 +12,8 @@
 	import { Room, useRooms, useUser } from '@/store/store';
 	import { useRoute } from 'vue-router';
 	import { usePubHubs } from '@/core/pubhubsStore';
+	import { MatrixEvent } from 'matrix-js-sdk';
+	import { Ref } from 'vue';
 
 	const rooms = useRooms();
 	const user = useUser();
@@ -20,6 +23,8 @@
 	const elRoomTimeline = ref<HTMLElement | null>(null);
 
 	let newestEventId: string | undefined;
+	// todo: move to Room class.
+	let oldestEventIsLoaded: Ref<boolean> = ref(false);
 
 	type Props = {
 		room_id: string;
@@ -29,15 +34,16 @@
 
 	onMounted(async () => {
 		if (!rooms.currentRoomExists) return;
-		newestEventId = rooms.currentRoom?.timeline.at(-1)?.event.event_id;
+		await loadInitialEvents();
+		scrollToBottom();
+
+		newestEventId = rooms.currentRoom?.getLiveTimeline().getEvents().at(-1)?.event.event_id;
 
 		await rooms.storeRoomNotice(rooms.currentRoom!.roomId);
-
-		scrollToBottom();
 	});
 
 	// Watch for new messages.
-	watch(() => rooms.currentRoom?.timeline.length, onTimelineChange);
+	watch(() => rooms.currentRoom?.getLiveTimeline().getEvents().length, onTimelineChange);
 
 	watch(route, async () => {
 		if (rooms.currentRoomExists) {
@@ -52,7 +58,7 @@
 		if (!rooms.currentRoom) return;
 		if (!newEventsExist()) return;
 
-		const newEvents = rooms.currentRoom.timeline.slice(oldTimelineLength);
+		const newEvents = rooms.currentRoom.getLiveTimeline().getEvents().slice(oldTimelineLength);
 
 		if (!isScrolling() || Room.containsUserSentEvent(user.user.userId, newEvents)) {
 			setTimeout(scrollToBottom, 100);
@@ -71,9 +77,12 @@
 
 		// If scrolled to the top of the screen, load older events.
 		if (ev.target.scrollTop === 0) {
-			const oldestEvent = rooms.rooms[props.room_id].timeline.find((event) => event.getType() == 'm.room.message');
+			const oldestEvent = rooms.rooms[props.room_id]
+				.getLiveTimeline()
+				.getEvents()
+				.find((event) => event.getType() == 'm.room.message');
 			const oldestEventId = oldestEvent?.getId();
-			await pubhubs.loadOlderEvents(rooms.currentRoomId);
+			oldestEventIsLoaded.value = await pubhubs.loadOlderEvents(rooms.currentRoomId);
 			if (oldestEventId) {
 				scrollToEvent(oldestEventId);
 			}
@@ -122,7 +131,27 @@
 
 	function newEventsExist(): boolean {
 		if (!rooms.currentRoom) return false;
-		return newestEventId !== rooms.currentRoom.timeline.at(-1)?.event.event_id;
+		return newestEventId !== rooms.currentRoom.getLiveTimeline().getEvents().at(-1)?.event.event_id;
+	}
+
+	/**
+	 * Sometimes, not enough messages are loaded by matrix-js-sdk because of other types of events (for example, a room rename event) being loaded.
+	 * This function loads around 15 messages if there are that many.
+	 *
+	 */
+	async function loadInitialEvents() {
+		if (!rooms.currentRoom) return;
+
+		const isMessageEvent = (event: MatrixEvent) => event.event.type === 'm.room.message';
+
+		let numLoadedMessages = rooms.currentRoom.getLiveTimeline().getEvents().filter(isMessageEvent).length;
+
+		let allMessagesLoaded = false;
+
+		while (numLoadedMessages < 15 && !allMessagesLoaded) {
+			allMessagesLoaded = await pubhubs.loadOlderEvents(rooms.currentRoomId);
+			numLoadedMessages = rooms.currentRoom.getLiveTimeline().getEvents().filter(isMessageEvent).length;
+		}
 	}
 </script>
 
@@ -130,6 +159,7 @@
 	/* The highlight animation is used when scrolling to an event with the highlight option selected. */
 	.room-event {
 		background: none;
+		border-radius: 15px;
 	}
 
 	.room-event.highlighted {

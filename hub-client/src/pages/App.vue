@@ -58,7 +58,7 @@
 <script setup lang="ts">
 	import { onMounted, ref, getCurrentInstance } from 'vue';
 	import { RouteParamValue, useRouter } from 'vue-router';
-	import { Message, MessageBoxType, MessageType, Theme, useHubSettings, useMessageBox, PubHubsRoomType, useRooms, useSettings, useUser } from '@/store/store';
+	import { Message, MessageBoxType, MessageType, Theme, TimeFormat, useHubSettings, useMessageBox, PubHubsRoomType, useRooms, useSettings, useUser } from '@/store/store';
 	import { useDialog } from '@/store/dialog';
 	import { usePubHubs } from '@/core/pubhubsStore';
 	import { useMenu } from '@/store/menu';
@@ -120,6 +120,7 @@
 			// Listen to sync settings
 			messagebox.addCallback(MessageType.Settings, (message: Message) => {
 				settings.setTheme(message.content.theme as Theme);
+				settings.setTimeFormat(message.content.timeformat as TimeFormat);
 				settings.setLanguage(message.content.language);
 				messageBoxStarted = true;
 			});

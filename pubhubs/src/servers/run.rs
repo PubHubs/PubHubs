@@ -10,34 +10,48 @@ use tokio::sync::mpsc;
 
 use crate::servers::{for_all_servers, App, AppBase, AppCreator, Server, ShutdownCommand};
 
-/// Runs the PubHubs server(s) from the given configuration.
-///
-/// Returns if one of the servers crashes.
-pub async fn run(config: &crate::servers::Config) -> Result<()> {
-    let mut joinset = tokio::task::JoinSet::<Result<()>>::new();
+/// A set of running PubHubs servers.
+pub struct Set {
+    joinset: tokio::task::JoinSet<Result<()>>,
+}
 
-    macro_rules! run_server {
-        ($server:ident) => {
-            if let Some(server_config) = config.$server.as_ref() {
-                joinset.spawn(crate::servers::run::Runner::<
-                    crate::servers::$server::Server,
-                >::new(&config, server_config)?);
-            }
-        };
+impl Set {
+    /// Creates a new set of PubHubs servers from the given config.
+    pub fn new(config: &crate::servers::Config) -> Result<Self> {
+        let mut joinset = tokio::task::JoinSet::<Result<()>>::new();
+
+        macro_rules! run_server {
+            ($server:ident) => {
+                if let Some(server_config) = config.$server.as_ref() {
+                    joinset.spawn(crate::servers::run::Runner::<
+                        crate::servers::$server::Server,
+                    >::new(&config, server_config)?);
+                }
+            };
+        }
+
+        for_all_servers!(run_server);
+
+        Ok(Self { joinset })
     }
 
-    for_all_servers!(run_server);
+    /// Waits for one of the servers to return, panic, or be cancelled.
+    ///
+    /// By consuming the [Set], all other servers are aborted when [Set::wait_for_err] returns.
+    pub async fn wait_for_err(mut self) -> anyhow::Error {
+        let result = self
+            .joinset
+            .join_next()
+            .await
+            .expect("no servers to wait on");
 
-    // Wait for one of the servers to return, panic or be cancelled.
-    // By returning, joinset is dropped and all server tasks are aborted.
-    let result = joinset.join_next().await.expect("no servers to wait on");
+        log::debug!(
+            "one of the servers exited with {:?};  stopping all servers..",
+            result
+        );
 
-    log::debug!(
-        "one of the servers exited with {:?};  stopping all servers..",
-        result
-    );
-
-    anyhow::bail!("one of the servers exited");
+        anyhow::anyhow!("one of the servers exited")
+    }
 }
 
 /// Runs a [Server].  Implements [Future].
@@ -45,6 +59,7 @@ pub struct Runner<ServerT: Server> {
     pubhubs_server: ServerT,
     actix_server: ActixServer<ServerT>,
     bind_to: SocketAddr,
+    graceful_shutdown: bool,
 }
 
 /// Keeps track of the [State] of an Actix HTTP server
@@ -97,13 +112,15 @@ impl<S: Server> Runner<S> {
         global_config: &crate::servers::Config,
         server_config: &crate::servers::config::ServerConfig<T>,
     ) -> Result<Self> {
-        let pubhubs_server = S::new(global_config);
+        let pubhubs_server = S::new(global_config)?;
         let bind_to = server_config.bind_to; // SocketAddr : Copy
+        let graceful_shutdown = server_config.graceful_shutdown;
 
         Ok(Runner {
             actix_server: ActixServer::new(&pubhubs_server, &bind_to)?,
             pubhubs_server,
             bind_to,
+            graceful_shutdown,
         })
     }
 }
@@ -134,7 +151,12 @@ impl<S: Server + Unpin> Future for Runner<S> {
                     Poll::Ready(Some(shutdown_command)) => {
                         self.actix_server.state = State::ShutdownReceived {
                             shutdown_command,
-                            fut: Some(Box::pin(self.actix_server.inner.handle().stop(true))),
+                            fut: Some(Box::pin(
+                                self.actix_server
+                                    .inner
+                                    .handle()
+                                    .stop(self.graceful_shutdown),
+                            )),
                         }
                     }
                     Poll::Pending => { /* ok, continue */ }
@@ -203,7 +225,7 @@ impl<S: Server + Unpin> Future for Runner<S> {
 
 impl<S: Server> ActixServer<S> {
     fn new(pubhubs_server: &S, bind_to: &SocketAddr) -> Result<ActixServer<S>> {
-        let app_creator = pubhubs_server.app_creator();
+        let app_creator: S::AppCreatorT = pubhubs_server.app_creator().clone();
 
         let (shutdown_sender, shutdown_receiver) = mpsc::channel(1);
 
@@ -211,7 +233,7 @@ impl<S: Server> ActixServer<S> {
 
         Ok(ActixServer {
             inner: actix_web::HttpServer::new(move || {
-                let app = app_creator.create(&shutdown_sender);
+                let app: S::AppT = app_creator.clone().into_app(&shutdown_sender);
 
                 actix_web::App::new().configure(|sc: &mut web::ServiceConfig| {
                     // first configure endpoints common to all servers

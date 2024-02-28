@@ -1,5 +1,5 @@
 <template>
-	<div class="flex flex-col h-full xl:max-w-screen-xl m-auto p-5 overflow-y-auto">
+	<div class="flex flex-col h-full md:mt-0 mt-16 xl:max-w-screen-xl m-auto p-5">
 		<div class="flex flex-col w-full">
 			<H3>{{ $t('rooms.latest_news') }}</H3>
 			<div class="flex flex-col md:flex-row justify-between gap-4">
@@ -61,7 +61,7 @@
 				</ArticleBlock>
 			</div>
 		</div>
-		<div class="flex justify-end mt-4">
+		<div class="flex justify-end py-4">
 			<button class="dark:bg-gray-dark rounded-md px-3 tracking-wide">{{ $t('rooms.more_suggestions') }} →</button>
 		</div>
 	</div>
