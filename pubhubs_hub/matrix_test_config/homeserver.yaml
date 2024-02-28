@@ -31,6 +31,9 @@ server_name: "testhub.matrix.host"
 pid_file: /data/homeserver.pid
 public_baseurl: http://localhost:8008
 
+trusted_key_servers: []
+report_stats: false
+
 listeners:
   - port: 8008
     tls: false
