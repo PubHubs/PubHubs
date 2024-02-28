@@ -125,7 +125,7 @@ const usePlugins = defineStore('plugins', {
 		},
 
 		hasEventMessagePlugin: (state) => {
-			return (event: Event, room_id: string | undefined, room_type: string | undefined): PluginProperties | boolean => {
+			return (event: Event, room_id: string | undefined, room_type: string | undefined): PluginProperties | false => {
 				if (!event) return false;
 				const plugin = state.pluginsMessageType.find((plugin) => {
 					if (plugin.type !== event.content.msgtype) return false;

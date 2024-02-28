@@ -8,7 +8,7 @@
  */
 
 import { defineStore } from 'pinia';
-import { Room as MatrixRoom, IPublicRoomsChunkRoom as PublicRoom, MatrixClient, RoomMember, IEvent, MatrixEvent } from 'matrix-js-sdk';
+import { Room as MatrixRoom, IPublicRoomsChunkRoom as PublicRoom, MatrixClient, RoomMember, IEvent, MatrixEvent, EventTimeline } from 'matrix-js-sdk';
 import { Message, MessageType, useMessageBox } from './messagebox';
 import { useRouter } from 'vue-router';
 import { api_synapse, api_matrix } from '@/core/api';
@@ -209,8 +209,8 @@ class Room extends MatrixRoom {
 	userCanChangeName(user_id: string): boolean {
 		const member = this.getMember(user_id);
 		if (member) {
-			const sufficient = this.currentState.hasSufficientPowerLevelFor('redact', member?.powerLevel);
-			return sufficient;
+			const sufficient = this.getLiveTimeline().getState(EventTimeline.FORWARDS)?.hasSufficientPowerLevelFor('redact', member?.powerLevel);
+			return sufficient || false;
 		}
 		return false;
 	}
@@ -220,7 +220,7 @@ class Room extends MatrixRoom {
 	}
 
 	getNewestEventId(): string | undefined {
-		return this.timeline.at(-1)?.getId();
+		return this.getLiveTimeline().getEvents().at(-1)?.getId();
 	}
 
 	static containsUserSentEvent(userId: string, events: MatrixEvent[]) {
@@ -318,7 +318,7 @@ const useRooms = defineStore('rooms', {
 		currentRoomHasEvents(state): Boolean {
 			const currentRoom = this.currentRoom;
 			if (currentRoom) {
-				return state.rooms[state.currentRoomId].timeline.length > 0;
+				return state.rooms[state.currentRoomId].getLiveTimeline().getEvents().length > 0;
 			}
 			return false;
 		},
@@ -423,7 +423,11 @@ const useRooms = defineStore('rooms', {
 
 		// This will give the latest timestamp of the receipt i.e., recent read receipt TS.
 		getReceiptForUserId(roomId: string, userId: string) {
-			const mEvents = this.rooms[roomId].timeline.filter((event) => event.event.type === 'm.receipt' && event.event.sender === userId).map((event) => event.localTimestamp);
+			const mEvents = this.rooms[roomId]
+				.getLiveTimeline()
+				.getEvents()
+				.filter((event) => event.event.type === 'm.receipt' && event.event.sender === userId)
+				.map((event) => event.localTimestamp);
 
 			const storedTS = localStorage.getItem('receiptTS');
 			const tsData = storedTS ? JSON.parse(storedTS) : null;
@@ -444,7 +448,7 @@ const useRooms = defineStore('rooms', {
 
 			// Compare the timstamp from last event and check if timestamp of receipt is less than the events of message type.
 			// We don't want to mess up the original timeline by
-			localMatrixEvent = Object.assign(localMatrixEvent, this.rooms[roomId].timeline);
+			localMatrixEvent = Object.assign(localMatrixEvent, this.rooms[roomId].getLiveTimeline().getEvents());
 
 			// To get the latest timestamp of message - from the bottom to avoid going through all the events.
 			// until the latest receipt timestamp.
