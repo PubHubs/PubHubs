@@ -79,7 +79,7 @@ impl Triple {
     ///
     /// // But if the public key was spoofed, the plaintext is garbled:
     /// let sk2 = PrivateKey::random();
-    /// let pk2 = sk2.public_key();
+    /// let pk2 = sk2.public_key().clone();
     /// let trip = pk.encrypt_with_random(r1, M).spoof_pk(pk2).rerandomize_with_random(r2);
     ///
     /// assert_eq!(trip.clone().decrypt_and_check_pk(&sk2),
@@ -209,10 +209,16 @@ pub fn random_scalar() -> Scalar {
 }
 
 /// Private key - load using [PrivateKey::from_hex] or generate with [PrivateKey::random].
-#[derive(Clone, PartialEq, Eq)]
+///
+/// Caches the associated [`PublicKey`], which means that loading a [`PrivateKey`] involves a base
+/// point multiplication.
+#[derive(Clone, PartialEq, Eq, Debug)]
 pub struct PrivateKey {
     /// underlying scalar
     scalar: Scalar,
+
+    /// associated public key, stored for efficiency
+    public_key: PublicKey,
 }
 
 impl PrivateKey {
@@ -222,28 +228,41 @@ impl PrivateKey {
     }
 
     pub fn random() -> Self {
-        PrivateKey {
-            scalar: random_scalar(),
-        }
+        random_scalar().into()
     }
 
-    pub fn public_key(&self) -> PublicKey {
-        PublicKey {
-            point: &self.scalar * B,
+    pub fn public_key(&self) -> &PublicKey {
+        &self.public_key
+    }
+
+    /// Computes the [PublicKey] associated with the product of two [PrivateKey]s given only one
+    /// private key.
+    pub fn scale(&self, pk: &PublicKey) -> PublicKey {
+        (self.scalar * pk.point).into()
+    }
+
+    /// Creates a Diffie-Hellman-type shared secret between this [`PrivateKey`] and the [`PublicKey`].
+    pub fn shared_secret(&self, pk: &PublicKey) -> SharedSecret {
+        SharedSecret {
+            inner: self.scale(pk).to_bytes(),
         }
     }
 }
 
 impl From<Scalar> for PrivateKey {
     fn from(scalar: Scalar) -> Self {
-        PrivateKey { scalar }
+        PrivateKey {
+            scalar,
+            public_key: (&scalar * B).into(),
+        }
     }
 }
 
 /// Public key - obtained using [PublicKey::from_hex] or [PrivateKey::public_key].
-#[derive(Clone, PartialEq, Eq)]
+#[derive(Clone, PartialEq, Eq, Debug)]
 pub struct PublicKey {
     point: RistrettoPoint,
+    compressed: CompressedRistretto,
 }
 
 impl PublicKey {
@@ -252,9 +271,7 @@ impl PublicKey {
     /// Returns `None` when the hex-encoding is invalid or when the hex-encoding does not encode a
     /// valid Ristretto point.
     pub fn from_hex(hexstr: &str) -> Option<Self> {
-        Some(PublicKey {
-            point: RistrettoPoint::from_hex(hexstr)?,
-        })
+        CompressedRistretto::from_hex(hexstr)?.try_into().ok()
     }
 
     /// Encrypts the given `plaintext` for this public key.
@@ -286,6 +303,26 @@ impl PublicKey {
             ct: random_point(),
             pk: self.point,
         }
+    }
+}
+
+impl From<RistrettoPoint> for PublicKey {
+    fn from(point: RistrettoPoint) -> Self {
+        Self {
+            point,
+            compressed: point.compress(),
+        }
+    }
+}
+
+impl TryFrom<CompressedRistretto> for PublicKey {
+    type Error = ();
+
+    fn try_from(compressed: CompressedRistretto) -> Result<Self, Self::Error> {
+        Ok(Self {
+            point: compressed.decompress().ok_or(())?,
+            compressed,
+        })
     }
 }
 
@@ -384,6 +421,16 @@ impl Encoding<32> for Scalar {
     }
 }
 
+impl Encoding<32> for CompressedRistretto {
+    fn from_bytes(bytes: [u8; 32]) -> Option<CompressedRistretto> {
+        Some(CompressedRistretto(bytes))
+    }
+
+    fn to_bytes(&self) -> [u8; 32] {
+        self.to_bytes()
+    }
+}
+
 impl Encoding<32> for RistrettoPoint {
     fn from_bytes(bytes: [u8; 32]) -> Option<RistrettoPoint> {
         CompressedRistretto(bytes).decompress()
@@ -396,7 +443,7 @@ impl Encoding<32> for RistrettoPoint {
 
 impl Encoding<32> for PrivateKey {
     fn from_bytes(bytes: [u8; 32]) -> Option<PrivateKey> {
-        Scalar::from_bytes(bytes).map(|scalar: Scalar| PrivateKey { scalar })
+        Scalar::from_bytes(bytes).map(PrivateKey::from)
     }
 
     fn to_bytes(&self) -> [u8; 32] {
@@ -406,11 +453,11 @@ impl Encoding<32> for PrivateKey {
 
 impl Encoding<32> for PublicKey {
     fn from_bytes(bytes: [u8; 32]) -> Option<PublicKey> {
-        RistrettoPoint::from_bytes(bytes).map(|point: RistrettoPoint| PublicKey { point })
+        CompressedRistretto::from_bytes(bytes)?.try_into().ok()
     }
 
     fn to_bytes(&self) -> [u8; 32] {
-        self.point.to_bytes()
+        self.compressed.to_bytes()
     }
 }
 
@@ -432,6 +479,68 @@ impl Encoding<96> for Triple {
         self.pk.copy_to_slice(&mut result[64..]).unwrap();
 
         result
+    }
+}
+
+#[cfg(feature = "bin")]
+mod serde_impls {
+    use super::*;
+    use crate::misc::serde_ext;
+    use serde::de::Error as _;
+
+    /// Implements [`serde::Serialize`] and [`serde::Deserialize`] using [`serde_ext::ByteArray`] and hex
+    /// encoding
+    macro_rules! serde_impl {
+        { $type:ident, $n:literal } => {
+
+            impl<'de> serde::Deserialize<'de> for $type {
+                fn deserialize<D: serde::Deserializer<'de>>(d: D) -> Result<Self, D::Error> {
+                    let byte_array : serde_ext::ByteArray<$n>  =
+                        serde_ext::bytes_wrapper::B16::<serde_ext::ByteArray<$n>>::deserialize(d)?.into_inner();
+                    $type::from_bytes(byte_array.into()).ok_or_else(|| D::Error::custom(concat!("invalid ", stringify!($type))))
+                }
+            }
+
+            impl<'de> serde::Serialize for $type {
+                fn serialize<S: serde::Serializer>(&self, s: S) -> Result<S::Ok, S::Error> {
+                    let byte_array = serde_ext::ByteArray::<$n>::from(self.to_bytes());
+                    serde_ext::bytes_wrapper::B16::<serde_ext::ByteArray<$n>>::from(byte_array)
+                        .serialize(s)
+                }
+            }
+        }
+    }
+
+    serde_impl! { PrivateKey, 32 }
+    serde_impl! { PublicKey, 32 }
+}
+
+/// Shared secret created by combining a [`PrivateKey`] with a [`PublicKey`], which, although it is
+/// basically the encoding of a [`RistrettoPoint`], is given a separate interface to limit its
+/// usage.
+#[derive(Clone)]
+pub struct SharedSecret {
+    inner: [u8; 32],
+}
+
+impl SharedSecret {
+    /// Inserts this shared secret in the given digest
+    pub fn update_digest<D: digest::Digest>(&self, d: D, domain: impl AsRef<str>) -> D {
+        let domain = domain.as_ref();
+
+        d.chain_update(domain)
+            // we include the length of the domain to prevent collisions between domains with the
+            // same prefix
+            .chain_update(domain.len().to_ne_bytes())
+            .chain_update(self.inner)
+    }
+
+    /// Creates a scalar from this shared secret
+    pub fn derive_scalar<D>(&self, d: D, domain: impl AsRef<str>) -> Scalar
+    where
+        D: digest::Digest<OutputSize = typenum::U64>,
+    {
+        Scalar::from_hash(self.update_digest(d, domain))
     }
 }
 

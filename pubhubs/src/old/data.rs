@@ -266,6 +266,7 @@ fn migration_add_user_external_id(tx: &rusqlite::Transaction) -> Result<()> {
 }
 
 #[derive(Debug, AsRefStr)]
+#[allow(clippy::large_enum_variant)] // Not worth fixing
 pub enum DataCommands {
     AllHubs {
         resp: oneshot::Sender<Result<Vec<Hub>>>,

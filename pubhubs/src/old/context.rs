@@ -194,7 +194,7 @@ impl Main {
 
         let oidc_secret = having_debug_default(
             config.oidc_secret,
-            crate::misc::serde_ext::B64::new(serde_bytes::ByteBuf::from(
+            crate::misc::serde_ext::bytes_wrapper::B64::new(serde_bytes::ByteBuf::from(
                 b"default_oidc_secret".to_vec(),
             )),
             "oidc_secret",
@@ -296,7 +296,7 @@ impl Main {
                 .into();
         }
 
-        if let Ok(Some(id)) = req.user_id_from_cookie(&self.cookie_secret) {
+        if let Ok(Some(id)) = req.user_id_from_cookies(&self.cookie_secret) {
             let (tx, rx) = oneshot::channel();
             self.db_tx
                 .send(crate::data::DataCommands::GetUserById { resp: tx, id })

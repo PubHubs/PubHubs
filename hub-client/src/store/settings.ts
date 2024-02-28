@@ -6,6 +6,12 @@
 import { MessageType, Message, useMessageBox } from '@/store/messagebox';
 import { fallbackLanguage } from '@/i18n';
 
+enum featureFlagType {
+	signedMessages = 'signedMessages',
+	plugins = 'plugins',
+	dateSplitter = 'dateSplitter',
+}
+
 enum Theme {
 	System = 'system',
 	Light = 'light',
@@ -17,9 +23,9 @@ type i18nSettings = {
 	availableLocales: any;
 };
 
-enum featureFlagType {
-	signedMessages = 'signedMessages',
-	plugins = 'plugins',
+enum TimeFormat {
+	format12 = 'format12',
+	format24 = 'format24',
 }
 
 interface Settings {
@@ -34,6 +40,11 @@ interface Settings {
 	theme: Theme;
 
 	/**
+	 * timeformat: format12|format24 12 hour system or 24 hour system
+	 */
+	timeformat: TimeFormat;
+
+	/**
 	 * UI Language
 	 */
 	language: string;
@@ -43,11 +54,13 @@ interface Settings {
 	featureFlags: {
 		signedMessages: boolean;
 		plugins: boolean;
+		dateSplitter: boolean;
 	};
 }
 
 const defaultSettings: Settings = {
 	theme: Theme.System,
+	timeformat: TimeFormat.format24,
 	pagination: 50,
 	language: fallbackLanguage,
 	_i18n: {
@@ -57,6 +70,7 @@ const defaultSettings: Settings = {
 	featureFlags: {
 		signedMessages: true,
 		plugins: true,
+		dateSplitter: false,
 	},
 };
 
@@ -91,6 +105,24 @@ const createSettings = (defineStore: any) => {
 
 			getActiveLanguage: (state: Settings): string => {
 				return state.language;
+			},
+
+			getTimeFormat: (state: Settings): TimeFormat => {
+				return state.timeformat;
+			},
+
+			/**
+			 * Get timeformats as options (for form selecting).
+			 * The function must be the localisation function $t.
+			 */
+			getTimeFormatOptions: () => (formats: Function) => {
+				const options = Object.values(TimeFormat).map((e) => {
+					return {
+						label: formats('timeformats.' + e),
+						value: e,
+					};
+				});
+				return options;
 			},
 
 			/**
@@ -147,6 +179,11 @@ const createSettings = (defineStore: any) => {
 				}
 			},
 
+			setTimeFormat(format: TimeFormat) {
+				// @ts-ignore
+				this.timeformat = format;
+			},
+
 			setLanguage(newLanguage: string, send: boolean = false) {
 				// @ts-ignore
 				if (this.language !== newLanguage && this._i18n?.availableLocales.indexOf(newLanguage) >= 0) {
@@ -162,6 +199,8 @@ const createSettings = (defineStore: any) => {
 					new Message(MessageType.Settings, {
 						// @ts-ignore
 						theme: this.theme as any,
+						// @ts-ignore
+						timeformat: this.timeformat as any,
 						// @ts-ignore
 						language: this.language,
 					}),
@@ -183,4 +222,4 @@ const createSettings = (defineStore: any) => {
 	});
 };
 
-export { Theme, Settings, defaultSettings, createSettings, type i18nSettings, featureFlagType };
+export { Theme, TimeFormat, Settings, defaultSettings, createSettings, type i18nSettings, featureFlagType };

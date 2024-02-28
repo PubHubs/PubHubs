@@ -1,8 +1,7 @@
 import { defineStore } from 'pinia';
 import { getCookie } from 'typescript-cookie';
-import { Buffer } from 'buffer';
 
-import { Hub, HubList, Theme, useSettings } from '@/store/store';
+import { Hub, HubList, Theme, TimeFormat, useSettings } from '@/store/store';
 import { api } from '@/core/api';
 
 type PinnedHub = {
@@ -13,12 +12,14 @@ type PinnedHubs = Array<PinnedHub>;
 
 interface GlobalSettings {
 	theme: Theme;
+	timeformat: TimeFormat;
 	language: string;
 	hubs: PinnedHubs;
 }
 
 const defaultGlobalSettings = {
 	theme: 'system', // Theme.System,
+	timeformat: 'format24', // TimeFormat.format24,
 	language: 'en',
 	hubs: [] as PinnedHubs,
 };
@@ -48,6 +49,7 @@ const useGlobal = defineStore('global', {
 			const settings = useSettings();
 			const globalSettings: GlobalSettings = {
 				theme: settings.getActiveTheme,
+				timeformat: settings.getTimeFormat,
 				language: settings.getActiveLanguage,
 				hubs: state.pinnedHubs,
 			};
@@ -62,22 +64,25 @@ const useGlobal = defineStore('global', {
 
 	actions: {
 		async checkLoginAndSettings() {
+			this.loggedIn = false;
 			try {
 				const data = await api.api<GlobalSettings | boolean>(api.apiURLS.bar, api.options.GET, defaultGlobalSettings);
-				if (data) {
-					this.setGlobalSettings(data);
-					this.loggedIn = true;
-					if (getCookie('PHAccount')) {
-						const base64Cookie = getCookie('PHAccount') as string; // see docs/API.md
-						this.loginTime = Buffer.from(base64Cookie, 'base64').toString('binary').split('.')[1];
-					}
-					return true;
-				} else {
-					this.loggedIn = false;
+				if (!data) {
 					return false;
 				}
+
+				this.setGlobalSettings(data);
+				const loginTime = getCookie('PHAccount.LoginTimestamp');
+				if (loginTime) {
+					this.loginTime = loginTime;
+					// For some reason the current unit tests *don't* set a mock
+					// HAccount.LoginTiemstamp cookie, but *do* want this.loginTime
+					// to be a string and this.loggedIn to be true when loginTimestamp is not set.
+				}
+				this.loggedIn = true;
+				return true;
 			} catch (error) {
-				this.loggedIn = false;
+				console.error('failure getting global settings from server or login timestamp cookie: ', error);
 				return false;
 			}
 		},
@@ -85,6 +90,10 @@ const useGlobal = defineStore('global', {
 		setGlobalSettings(data: any) {
 			const settings = useSettings();
 			settings.setTheme(data.theme);
+			if (!data.timeformat || data.timeformat == '') {
+				data.timeformat = TimeFormat.format24;
+			}
+			settings.setTimeFormat(data.timeformat);
 			if (!data.language || data.language == '') {
 				data.language = navigator.language;
 			}

@@ -48,7 +48,7 @@
 
 <script setup lang="ts">
 	import { onMounted, ref } from 'vue';
-	import { useGlobal, useSettings, Hub, HubList, useHubs, buttonsSubmitCancel, useDialog, useMessageBox, MessageType } from '@/store/store';
+	import { useGlobal, useSettings, HubList, useHubs, buttonsSubmitCancel, useDialog } from '@/store/store';
 	import { useI18n } from 'vue-i18n';
 	import { useToggleMenu } from '@/store/toggleGlobalMenu';
 
@@ -59,7 +59,6 @@
 	const settingsDialog = ref(false);
 	const { t, locale, availableLocales } = useI18n();
 	const toggleMenu = useToggleMenu();
-	const messagebox = useMessageBox();
 
 	// eslint-disable-next-line
 	const pubHubsUrl = _env.PUBHUBS_URL;
@@ -83,13 +82,7 @@
 				global.saveGlobalSettings();
 			});
 		}
-
 		await addHubs();
-
-		//Listen to global menu change
-		messagebox.addCallback(MessageType.mobileHubMenu, () => {
-			toggleMenu.toggleMenu();
-		});
 	});
 
 	async function addHubs() {

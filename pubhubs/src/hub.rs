@@ -3,7 +3,7 @@ use core::cell::OnceCell;
 use rand::RngCore as _;
 use regex;
 
-use crate::misc::serde_ext;
+use crate::misc::serde_ext::{self, bytes_wrapper};
 
 /// Basic details about hub, as provided by PubHubs Central.
 #[derive(serde::Serialize, serde::Deserialize, Debug, Eq, PartialEq, Clone)]
@@ -13,18 +13,18 @@ use crate::misc::serde_ext;
 pub struct BasicInfo {
     /// The names for this hub.  The first one is the one that's used by default.
     /// Names may be added, but should not be removed.
-    names: Vec<Name>,
+    pub names: Vec<Name>,
 
     /// Short description for this hub.  This is stored centrally to facilitate searching.
     /// May be changed freely.
-    description: String,
+    pub description: String,
 
     /// Hub info endpoint
     /// May be changed freely.
-    info_url: url::Url,
+    pub info_url: url::Url,
 
     /// Immutable and unique identifier
-    id: Id,
+    pub id: Id,
 }
 
 impl<'de> serde::Deserialize<'de> for BasicInfo {
@@ -85,6 +85,14 @@ impl<'de> serde::Deserialize<'de> for Name {
 )]
 pub struct HubNameError();
 
+impl std::ops::Deref for Name {
+    type Target = str;
+
+    fn deref(&self) -> &Self::Target {
+        &self.inner
+    }
+}
+
 impl TryFrom<String> for Name {
     type Error = HubNameError;
 
@@ -125,10 +133,10 @@ impl From<Name> for String {
 
 /// A hub identifier, a random 256-bit number, which is encoded
 /// using unpadded url-safe base64
-#[derive(Clone, Copy, Debug, Eq, PartialEq, serde::Serialize, serde::Deserialize)]
+#[derive(Clone, Copy, Debug, Eq, PartialEq, Hash, serde::Serialize, serde::Deserialize)]
 #[serde(transparent)]
 pub struct Id {
-    inner: serde_ext::B64UU<serde_ext::ByteArray<32>>,
+    inner: bytes_wrapper::B64UU<serde_ext::ByteArray<32>>,
 }
 
 impl Id {
@@ -145,7 +153,7 @@ impl Id {
 }
 
 impl core::str::FromStr for Id {
-    type Err = <serde_ext::B64UU<[u8; 32]> as core::str::FromStr>::Err;
+    type Err = <bytes_wrapper::B64UU<[u8; 32]> as core::str::FromStr>::Err;
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         Ok(Id { inner: s.parse()? })

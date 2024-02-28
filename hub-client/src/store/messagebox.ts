@@ -264,7 +264,7 @@ const useMessageBox = defineStore('messagebox', {
 		 */
 		receivedMessage(message: Message) {
 			if (this.handshake == HandshakeState.Ready) {
-				// console.log('<= ' + this.type + ' RECEIVED', message);
+				// console.log('<= ' + this.type + ' RECEIVED', message, callback);
 				const callback = this.callbacks[message.type];
 				if (callback) {
 					callback(message as Message);

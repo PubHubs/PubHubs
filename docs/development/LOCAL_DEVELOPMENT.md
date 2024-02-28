@@ -2,6 +2,13 @@
 
 Default settings are in the `default.yaml`; for development these initial settings should work.  If you make a copy of `default.yaml` and call it `config.yaml`, this configuration is used instead.  To use an entirely different configuration file instead, you can pass its path (relative to the current working directory) via the environmental variable `PUBHUBS_CONFIG`, e.g. `PUBHUBS_CONFIG=my_config.yaml cargo run`.
 
+**WARNING**: When checking out on a windows machine, don't have git convert the line endings to CRLF. (Otherwise the CR causes trouble in the hub container.) 
+If you have already enabled this git feature, you can disable it with the following command:
+```
+  git config --global core.autocrlf false
+```
+After you have done so, you might need to re-clone the repository.
+
 ## First time installation
 
 For a minimal working setup, make sure you have [Node Package Manager (npm)](https://docs.npmjs.com/downloading-and-installing-node-js-and-npm), [Cargo](https://doc.rust-lang.org/cargo/getting-started/installation.html) and [Docker](https://www.docker.com/) installed.
@@ -10,7 +17,7 @@ The rust build script uses sass, install this using npm (globally so that it's a
 ```shell
 npm install -g sass
 ```
-The rust script also uses openssl. To install openssl, we use vcpkg which you can install following their [installation instructions](https://vcpkg.io/en/getting-started). This results in an executable vcpkg.exe, which you can add to your PATH. Then install openssl:
+To build pubhubs central, openssl is required. On Windows, we recommend obtaining openssl via vcpkg, which you can install following their [installation instructions](https://vcpkg.io/en/getting-started). This results in an executable vcpkg.exe, which you can add to your PATH. Then install openssl:
 ```shell
 vcpkg install openssl:x64-windows-static-md
 vcpkg integrate install
