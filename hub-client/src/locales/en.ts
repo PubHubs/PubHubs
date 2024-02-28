@@ -82,6 +82,7 @@ const en = {
 		read: 'Read',
 		event: 'Event',
 		discussion: 'Discussion',
+		roomCreated: 'Gesprek aangemaakt',
 	},
 	settings: {
 		displayname: 'Nickname',
