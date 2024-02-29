@@ -516,7 +516,12 @@ const useRooms = defineStore('rooms', {
 			let onlyPseudonymInLogUser = '';
 			// It is a string so better to convert it to an array of mentions.
 			// It could be a single string or an array of strings. Hencce we convert it to an array.
-			const userIdsInMention = currentMsgEvent.event.content?.['m.mentions']?.user_ids || [];
+			//@ts-ignore
+			const userIdsInMention: string[] = currentMsgEvent.event.content?.['m.mentions'].user_ids.includes(',')
+				? //@ts-ignore
+					currentMsgEvent.event.content?.['m.mentions'].user_ids.split(',')
+				: //@ts-ignore
+					[currentMsgEvent.event.content?.['m.mentions'].user_ids];
 
 			const loggedInUserInMention = user.user.displayName!;
 			// XXX: Another check for handling display name with pseudonym issue.
