@@ -13,12 +13,10 @@ import { M_Mentions, M_MessageEvent, M_TextMessageEventContent } from '@/types/e
 import { YiviSigningSessionResult } from '@/lib/signedMessages';
 
 const usePubHubs = defineStore('pubhubs', {
-	state: () => {
-		return {
-			Auth: new Authentication(),
-			client: {} as MatrixClient,
-		};
-	},
+	state: () => ({
+		Auth: new Authentication(),
+		client: {} as MatrixClient,
+	}),
 
 	getters: {
 		getBaseUrl(state) {
