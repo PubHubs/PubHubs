@@ -73,12 +73,13 @@ const useGlobal = defineStore('global', {
 
 				this.setGlobalSettings(data);
 				const loginTime = getCookie('PHAccount.LoginTimestamp');
-				if (loginTime) {
-					this.loginTime = loginTime;
-					// For some reason the current unit tests *don't* set a mock
-					// HAccount.LoginTiemstamp cookie, but *do* want this.loginTime
-					// to be a string and this.loggedIn to be true when loginTimestamp is not set.
+				if (!loginTime) {
+					// I don't expect this to happen, as PubHubs central should have added 
+					// the PHAccount.LoginTimestamp when it is missing.
+					console.error("Logged in, but PHAccount.LoginTimestamp cookie not set! Please remove all PHAccount cookies, and log in again.");
+					return false; // Prevents logout-login loop, see #572
 				}
+				this.loginTime = loginTime;
 				this.loggedIn = true;
 				return true;
 			} catch (error) {

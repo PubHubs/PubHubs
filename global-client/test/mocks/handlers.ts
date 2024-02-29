@@ -15,6 +15,7 @@ export const handlers = [
 		if (sessionStorage.getItem('loggedIn')) {
 			return res(
 				ctx.status(200),
+				ctx.cookie('PHAccount.LoginTimestamp', '1'),
 				ctx.json({
 					theme: 'system',
 					language: 'en',
