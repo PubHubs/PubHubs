@@ -74,9 +74,9 @@ const useGlobal = defineStore('global', {
 				this.setGlobalSettings(data);
 				const loginTime = getCookie('PHAccount.LoginTimestamp');
 				if (!loginTime) {
-					// I don't expect this to happen, as PubHubs central should have added 
+					// I don't expect this to happen, as PubHubs central should have added
 					// the PHAccount.LoginTimestamp when it is missing.
-					console.error("Logged in, but PHAccount.LoginTimestamp cookie not set! Please remove all PHAccount cookies, and log in again.");
+					console.error('Logged in, but PHAccount.LoginTimestamp cookie not set! Please remove all PHAccount cookies, and log in again.');
 					return false; // Prevents logout-login loop, see #572
 				}
 				this.loginTime = loginTime;
