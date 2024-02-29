@@ -37,7 +37,6 @@
 	import { useI18n } from 'vue-i18n';
 	import { Room, useRooms, RoomMember } from '@/store/store';
 	import { PluginProperties, usePlugins } from '@/store/plugins';
-	import { EventTimeline } from 'matrix-js-sdk';
 
 	const route = useRoute();
 	const { t } = useI18n();
@@ -76,11 +75,7 @@
 		if (currentRoom.value.isPrivateRoom()) {
 			return t('rooms.private_members', members.value);
 		}
-		const topicEvent = currentRoom.value.getLiveTimeline().getState(EventTimeline.FORWARDS)?.getStateEvents('m.room.topic', '');
-		if (topicEvent) {
-			return topicEvent.getContent().topic;
-		}
-		return '';
+		return rooms.getRoomTopic(currentRoom.value.roomId);
 	}
 
 	function search(term: string) {

@@ -319,11 +319,11 @@ class FakeModuleApi:
 
     async def update_room_membership(self, action_user, user, room, type):
         pass
-    
+
     async def looping_background_call(self, remove_user, polling_interval):
         pass
 
-    
+
 class FakeStore:
     def __init__(self, isAllowed=False):
         self.isAllowed = isAllowed
@@ -359,7 +359,8 @@ class TestAsync(IsolatedAsyncioTestCase):
         api = FakeModuleApi()
         joiner = YiviRoomJoiner(valid_config.copy(), api, FakeStore())
         fake_secured_rooms["some_id"] = SecuredRoom(
-            room_name="a",
+            name="a",
+            topic="a",
             accepted={"something": {"profile": True, "accepted_values": ["has a requirement"]}},
             user_txt="",
             type=PubHubsSecuredRoomType.MESSAGES,
@@ -387,7 +388,8 @@ class TestAsync(IsolatedAsyncioTestCase):
         api = FakeModuleApi()
         # Create the secured room
         fake_secured_rooms["some_id"] = SecuredRoom(
-            room_name="b",
+            name="b",
+            topic="b",
             accepted={"something": {"profile": True, "accepted_values": ["has a requirement"]}},
             user_txt="",
             type=PubHubsSecuredRoomType.MESSAGES,
@@ -428,7 +430,8 @@ class TestAsync(IsolatedAsyncioTestCase):
 
         # Allowed when no values given
         fake_secured_rooms["some_id"] = SecuredRoom(
-            room_name="c",
+            name="c",
+            topic="c",
             accepted={"something": {"profile": True, "accepted_values": []}},
             user_txt="",
             type=PubHubsSecuredRoomType.MESSAGES,
@@ -442,7 +445,8 @@ class TestAsync(IsolatedAsyncioTestCase):
 
         # All required should be met
         fake_secured_rooms["some_id"] = SecuredRoom(
-            room_name="d",
+            name="d",
+            topic="d",
             accepted={
                 "something": {"profile": True, "accepted_values": []},
                 "something_else": {"profile": False, "accepted_values": []},
