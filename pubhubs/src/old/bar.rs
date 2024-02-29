@@ -1,6 +1,7 @@
-use crate::cookie::HttpRequestCookieExt as _;
+use crate::cookie::{HttpRequestCookieExt as _, HttpResponseBuilderExt as _};
 use crate::error::AnyhowExt as _;
 use crate::error::TranslatedError;
+
 use actix_web::http::header::{Header as _, TryIntoHeaderValue as _};
 use anyhow::Result;
 use serde::ser::SerializeMap as _;
@@ -45,13 +46,25 @@ async fn get_state_anyhow(
             .db_tx
             .send(crate::data::DataCommands::GetBarState {
                 resp: bs_tx,
-                id: user_id,
+                id: user_id.clone(),
             })
             .await?;
         bs_rx.await??
     };
 
-    Ok(actix_web::HttpResponse::Ok()
+    let mut resp = actix_web::HttpResponse::Ok();
+
+    // Resets session cookies if some are missing, to prevent #572
+    if !req.has_all_session_cookies() {
+        resp.add_session_cookies(
+            user_id,
+            &context.cookie_secret,
+            context.hotfixes.no_secure_cookies,
+            context.hotfixes.no_http_only_cookies,
+        )?;
+    }
+
+    Ok(resp
         .insert_header(actix_web::http::header::ETag(
             actix_web::http::header::EntityTag::new_strong(bar_state.state_etag),
         ))
