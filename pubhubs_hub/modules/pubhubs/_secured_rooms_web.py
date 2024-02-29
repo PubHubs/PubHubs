@@ -75,7 +75,8 @@ class SecuredRoomsServlet(DirectServeJsonResource):
                     respond_with_json(request, 400, {"errors": f"Can't update room type after creation"}, True)
                     return
 
-                await current_room.update_name(updated_room.room_name, self.module_api, user.user.to_string())
+                await current_room.update_name(updated_room.name, self.module_api, user.user.to_string())
+                await current_room.update_topic(updated_room.topic, self.module_api, user.user.to_string())
                 await self.store.update_secured_room(updated_room)
                 respond_with_json(request, 200, {"modified": f"{updated_room.room_id}"}, True)
             else:
@@ -96,7 +97,8 @@ class SecuredRoomsServlet(DirectServeJsonResource):
 
             current_room = await self.store.get_secured_room(room_id)
             if current_room:
-                await self.room_shutdown_handler.shutdown_room(current_room.room_id, user.user.to_string(), block=True)
+                shutdownParams:ShutdownRoomParams = {'block' : True,'purge' : False,'force_purge' : False,'requester_user_id':user.user.to_string(),'new_room_user_id': None,'new_room_name': None,'message': None}
+                await self.room_shutdown_handler.shutdown_room(current_room.room_id, shutdownParams)
                 await self.store.delete_secured_room(current_room)
                 respond_with_json(request, 200, {"deleted": f"{current_room.room_id}"}, True)
             else:

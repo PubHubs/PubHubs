@@ -8,7 +8,7 @@
  */
 
 import { defineStore } from 'pinia';
-import { Room as MatrixRoom, IPublicRoomsChunkRoom as PublicRoom, MatrixClient, RoomMember, IEvent, MatrixEvent, EventTimeline } from 'matrix-js-sdk';
+import { Room as MatrixRoom, IPublicRoomsChunkRoom, MatrixClient, RoomMember, IEvent, MatrixEvent, EventTimeline } from 'matrix-js-sdk';
 import { Message, MessageType, useMessageBox } from './messagebox';
 import { useRouter } from 'vue-router';
 import { api_synapse, api_matrix } from '@/core/api';
@@ -32,12 +32,21 @@ interface SecuredRoomAttributes {
 
 interface SecuredRoom {
 	room_id?: string; // Will be returned by API
-	room_name: string;
+	name: string;
+	topic?: string;
 	accepted?: SecuredRoomAttributes | [];
-	user_txt: string;
+	user_txt?: string;
 	type?: string;
 	expiration_time_days?: number;
 	// secured?: boolean;
+}
+
+interface PublicRoom extends IPublicRoomsChunkRoom {
+	user_txt?: string;
+}
+
+interface SecuredRoomAPI extends SecuredRoom {
+	room_name?: string;
 }
 
 // Matrix Endpoint for messages in a room.
@@ -206,6 +215,18 @@ class Room extends MatrixRoom {
 		return false;
 	}
 
+	getTopic(): string {
+		const timeline = this.getLiveTimeline();
+		let topic = '';
+		if (timeline != undefined) {
+			const topicEvent = timeline.getState(EventTimeline.FORWARDS)?.getStateEvents('m.room.topic', '');
+			if (topicEvent) {
+				topic = topicEvent.getContent().topic;
+			}
+		}
+		return topic;
+	}
+
 	userCanChangeName(user_id: string): boolean {
 		const member = this.getMember(user_id);
 		if (member) {
@@ -305,6 +326,14 @@ const useRooms = defineStore('rooms', {
 					timeline[idx].event = event as any;
 				}
 				return timeline;
+			};
+		},
+
+		getRoomTopic: (state) => {
+			return (roomId: string) => {
+				if (typeof state.rooms[roomId] == 'undefined') return '';
+				const room = state.rooms[roomId];
+				return room.getTopic();
 			};
 		},
 
@@ -582,7 +611,8 @@ const useRooms = defineStore('rooms', {
 
 		// Needs Admin token
 		async fetchSecuredRooms() {
-			this.securedRooms = await api_synapse.apiGET<Array<SecuredRoom>>(api_synapse.apiURLS.securedRooms);
+			const result = await api_synapse.apiGET<Array<SecuredRoomAPI>>(api_synapse.apiURLS.securedRooms);
+			this.securedRooms = result;
 		},
 
 		// Non-Admin api for getting information about an individual secured room based on room ID.

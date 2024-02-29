@@ -3,7 +3,11 @@
 		<form @submit.prevent>
 			<FormLine>
 				<Label>{{ $t('admin.name') }}</Label>
-				<TextInput :placeholder="$t('admin.name')" v-model="editRoom.room_name" class="w-5/6" @changed="updateData('room_name', $event)"></TextInput>
+				<TextInput :placeholder="$t('admin.name')" v-model="editRoom.name" class="w-5/6" @changed="updateData('name', $event)"></TextInput>
+			</FormLine>
+			<FormLine>
+				<Label>{{ $t('admin.topic') }}</Label>
+				<TextInput :placeholder="$t('admin.topic')" v-model="editRoom.topic" class="w-5/6"></TextInput>
 			</FormLine>
 			<FormLine v-if="!secured">
 				<Label>{{ $t('admin.room_type') }}</Label>
@@ -26,7 +30,7 @@
 <script setup lang="ts">
 	import { onBeforeMount, ref, computed } from 'vue';
 	import { buttonsSubmitCancel, DialogButtonAction } from '@/store/dialog';
-	import { SecuredRoomAttributes, SecuredRoom, useRooms, useDialog, PublicRoom } from '@/store/store';
+	import { SecuredRoomAttributes, SecuredRoom, useRooms, useDialog, PublicRoom, PubHubsRoomType } from '@/store/store';
 	import { useFormState } from '@/composables/useFormState';
 	import { FormObjectInputTemplate } from '@/composables/useFormInputEvents';
 	import { usePubHubs } from '@/core/pubhubsStore';
@@ -52,6 +56,8 @@
 		},
 	});
 
+	//#region Computed properties
+
 	const isNewRoom = computed(() => {
 		return isEmpty(props.room);
 	});
@@ -70,6 +76,8 @@
 		return t('admin.edit_name');
 	});
 
+	//#region types & defaults
+
 	interface SecuredRoomAttributesObject {
 		yivi_attribute: string;
 		accepted_values: Array<string>;
@@ -77,7 +85,8 @@
 	}
 
 	const emptyNewRoom = {
-		room_name: '',
+		name: '',
+		topic: '',
 		accepted: [] as Array<SecuredRoomAttributesObject>,
 		user_txt: '',
 		type: '',
@@ -91,42 +100,55 @@
 		{ key: 'profile', label: t('admin.secured_profile'), type: 'checkbox', default: false },
 	] as Array<FormObjectInputTemplate>);
 
+	//#region mount
+
 	onBeforeMount(async () => {
+		// yivi attributes
 		await yivi.fetchAttributes();
 		securedRoomTemplate.value[0].options = yivi.attributesOptions;
 
 		if (isNewRoom.value) {
+			// New Room
 			editRoom.value = { ...emptyNewRoom } as PublicRoom | SecuredRoom;
 		} else {
+			// Edit room
 			editRoom.value = { ...(props.room as PublicRoom | SecuredRoom) };
-			securedRoomTemplate.value.splice(2, 1); // Profile editing off for existing secured room
+			editRoom.value.topic = rooms.getRoomTopic(props.room.room_id);
+
 			// Transform for form
-			let accepted = editRoom.value.accepted as any;
-			if (accepted !== undefined) {
-				const acceptedKeys = Object.keys(accepted);
-				let newAccepted = [] as any;
-				acceptedKeys.forEach((key) => {
-					let values = accepted[key].accepted_values;
-					if (typeof values == 'object') {
-						values = values.join(', ');
-					}
-					newAccepted.push({
-						yivi: key,
-						values: values,
-						profile: accepted[key].profile,
+			if (props.secured) {
+				// Remove 'profile' for existing secured room (cant be edited after creation)
+				securedRoomTemplate.value.splice(2, 1);
+				let accepted = editRoom.value.accepted;
+				if (accepted !== undefined) {
+					// FormObjectInput needs a different structure of the accepted values, transform them
+					const acceptedKeys = Object.keys(accepted);
+					let newAccepted = [];
+					acceptedKeys.forEach((key) => {
+						let values = accepted[key].accepted_values;
+						if (typeof values == 'object') {
+							values = values.join(', ');
+						}
+						newAccepted.push({
+							yivi: key,
+							values: values,
+							profile: accepted[key].profile,
+						});
 					});
-				});
-				editRoom.value.accepted = newAccepted;
+					editRoom.value.accepted = newAccepted;
+				}
 			}
 		}
 
 		setData({
-			room_name: {
+			name: {
 				value: '',
 				validation: { required: true },
 			},
 		});
 	});
+
+	//#endregion
 
 	async function close(returnValue: DialogButtonAction) {
 		if (returnValue == 1) {
@@ -140,20 +162,30 @@
 
 		// Normal room
 		if (!props.secured) {
-			// Allways new
-			let newRoomOptions = {
-				name: room.room_name,
-				visibility: 'public',
-				creation_content: {
-					type: room.type == '' ? undefined : room.type,
-				},
-			};
-			await pubhubs.createRoom(newRoomOptions);
+			if (isNewRoom.value) {
+				let newRoomOptions = {
+					name: room.name,
+					topic: room.topic,
+					visibility: 'public',
+					creation_content: {
+						type: room.type == '' ? undefined : room.type,
+					},
+				};
+				await pubhubs.createRoom(newRoomOptions);
+			} else {
+				// update name
+				await pubhubs.renameRoom(room.room_id as string, room.name);
+				// update topic
+				await pubhubs.setTopic(room.room_id as string, room.topic as string);
+			}
 			editRoom.value = { ...emptyNewRoom };
-		} else {
-			// Secured room
+		}
+		// Secured room
+		else {
 			// Transform room for API
-			room.type = 'ph.messages.restricted';
+			// room.room_name = room.name;
+			// delete room.name;
+			room.type = PubHubsRoomType.PH_MESSAGES_RESTRICTED;
 			let accepted = {} as SecuredRoomAttributes;
 			// @ts-ignore
 			room.accepted.forEach((item: any) => {

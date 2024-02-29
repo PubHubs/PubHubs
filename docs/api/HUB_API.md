@@ -35,7 +35,8 @@ Create a new secured room. Example request body:
 
 ```json
 {
-	"room_name": "new secured room",
+	"name": "new secured room",
+    "topic":"topic",
 	"accepted": {
 		"pbdf.sidn-pbdf.email.domain": {
 			"accepted_values": [
@@ -50,7 +51,9 @@ Create a new secured room. Example request body:
 }
 ```
 
-`room_name` is the name of the room.
+`name` is the name of the room.
+
+`topic` is a description of the room.
 
 `accepted` is an object where the keys are Yivi attributes and the values are objects themselves with two keys:
 - `accepted_values` is a list of allowed attribute values, if the list is empty all values are allowed.
@@ -78,7 +81,8 @@ Update a room with, for example:
 
 ```json
 {
-    "room_name": "updated name",
+    "name": "updated name",
+    "topic": "updated topic",
 	"accepted": {
 		"pbdf.sidn-pbdf.email.domain": {
 			"accepted_values": [

@@ -15,7 +15,7 @@ class Events {
 		return new Promise((resolve) => {
 			const self = this;
 			this.client.on(ClientEvent.Sync, (state: SyncState) => {
-				console.debug('STATE:', state);
+				// console.debug('STATE:', state);
 
 				const connection = useConnection();
 				if (state == 'ERROR') {
@@ -27,7 +27,6 @@ class Events {
 				if (state == 'SYNCING') {
 					connection.on();
 				}
-				console.debug('STATE:', state);
 				if (state == 'PREPARED') {
 					// DEBUGGING purpose - To understand the following events.
 					// this.client.on('event' as any, (event: any) => {
