@@ -237,6 +237,9 @@ pub trait HttpRequestCookieExt: Sized {
 
     /// Verifies a valid `PHAccount` cookie is present for given `user_id`.
     fn assert_user_id(self, cookie_secret: &str, user_id: String) -> Result<()>;
+
+    /// Checks whether all session cookies are present.  Does not check whether they are valid.
+    fn has_all_session_cookies(&self) -> bool;
 }
 
 impl<'s> HttpRequestCookieExt for &'s HttpRequest {
@@ -268,6 +271,15 @@ impl<'s> HttpRequestCookieExt for &'s HttpRequest {
             "logged in as someone else"
         );
         Ok(())
+    }
+
+    fn has_all_session_cookies(&self) -> bool {
+        for cookie_name in [PHACCOUNT, PHACCOUNT_CROSS_SITE, PHACCOUNT_LOGIN_TIMESTAMP] {
+            if self.cookie(cookie_name).is_none() {
+                return false;
+            }
+        }
+        true
     }
 }
 
