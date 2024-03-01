@@ -77,14 +77,14 @@
 
 		// If scrolled to the top of the screen, load older events.
 		if (ev.target.scrollTop === 0) {
-			const oldestEvent = rooms.rooms[props.room_id]
+			const prevOldestLoadedEventId = rooms.rooms[props.room_id]
 				.getLiveTimeline()
 				.getEvents()
-				.find((event) => event.getType() == 'm.room.message');
-			const oldestEventId = oldestEvent?.getId();
+				.find((event) => event.getType() == 'm.room.message')
+				?.getId();
 			oldestEventIsLoaded.value = await pubhubs.loadOlderEvents(rooms.currentRoomId);
-			if (oldestEventId) {
-				scrollToEvent(oldestEventId);
+			if (prevOldestLoadedEventId && !oldestEventIsLoaded.value) {
+				scrollToEvent(prevOldestLoadedEventId);
 			}
 		}
 	}
