@@ -2,15 +2,66 @@
 @tailwind components;
 @tailwind utilities;
 
+/*
+Global color palette of pubhubs.
+These colors should be the same as the colors in the default hub color palette (see tailwind.css in hub-client).
+*/
 :root {
+	--ph-background: #ffffff;
+	--ph-background-2: #f9f9f9;
+	--ph-background-3: #e2e2e2;
+	--ph-background-4: #d4d4d4;
+	--ph-background-5: #b6b6b6;
+	--ph-background-6: #7e7e7e;
+	--ph-text: #000000;
+	--ph-accent: #00adee;
+	--ph-accent-2: #001242;
+	/* Some of the pubhubs-made icons will have additional accent colors */
+	--ph-accent-icon: #999999;
+}
+
+.dark {
+	--ph-background: #464545;
+	--ph-background-2: #323232;
+	--ph-background-3: #2f2e2e;
+	--ph-background-4: #686868;
+	--ph-background-5: #202020;
+	--ph-background-6: #202020;
+	--ph-text: #ffffff;
+	--ph-accent: #00adee;
+	--ph-accent-2: #4ee9a4;
+	--ph-accent-icon: #d9d9d9;
+}
+
+html,
+body,
+#app {
+	width: 100%;
+	min-width: 100%;
+	height: 100%;
+	min-height: 100%;
+	font-family: 'atkinson_hyperlegibleregular';
+}
+
+*,
+*:focus {
+	outline: none;
+}
+
+:root {
+	/* !The colors below are deprecated. Please use the color palette. See above. */
 	--black: #000;
 
 	--white: #fff;
 	--white-middle: #e7e3e3;
 
+	--lightgray-light: #ececec;
+	--lightgray: #e2e2e2;
+	--lightgray-dark: #d4d4d4;
+
 	--gray-lighter: #ccc;
 	--gray-light: #aaa;
-	--gray: #646464;
+	--gray: #686868;
 	--gray-middle: #464545;
 	--gray-dark: #3d3c3c;
 	--gray-darker: #2f2e2e;
@@ -29,21 +80,6 @@
 	--red-light: #ff3333;
 	--red: #ff0000;
 	--red-dark: #660000;
-}
-
-html,
-body,
-#app {
-	width: 100%;
-	min-width: 100%;
-	height: 100%;
-	min-height: 100%;
-	font-family: 'atkinson_hyperlegibleregular';
-}
-
-*,
-*:focus {
-	outline: none;
 }
 
 @font-face {

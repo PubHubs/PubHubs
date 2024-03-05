@@ -1,6 +1,6 @@
 <template>
 	<div class="flex items-end">
-		<div name="input-container" class="w-4/5 bg-gray-lighter2 dark:bg-gray rounded-xl">
+		<div name="input-container" class="w-4/5 rounded-xl bg-hub-background border border-solid border-black dark:bg-hub-background-4">
 			<!-- Floating -->
 			<div class="relative">
 				<Popover v-if="showPopover" @close="togglePopover" class="absolute bottom-1">
@@ -21,7 +21,7 @@
 				</button>
 			</div>
 
-			<div name="input-bar" class="flex items-start px-2 pb-1 min-h-[50px] rounded-2xl dark:bg-gray">
+			<div name="input-bar" class="flex items-start px-2 pb-1 min-h-[50px] rounded-2xl dark:bg-hub-background-4">
 				<Icon class="m-2 mt-3 dark:text-white" type="paperclip" @click.stop="togglePopover" :asButton="true"></Icon>
 				<!-- Overflow-x-hidden prevents firefox from adding an extra row to the textarea for a possible scrollbar -->
 				<TextArea
@@ -62,7 +62,9 @@
 		</div>
 
 		<!-- Sendbutton -->
-		<Button class="h-[50px] min-w-24 ml-2 mr-2 flex items-center rounded-xl" :disabled="!buttonEnabled" @click="submitMessage()"><Icon type="talk" size="sm" class="mr-px mb-1"></Icon>{{ $t(sendMessageText) }}</Button>
+		<Button class="h-[50px] min-w-24 ml-2 mr-2 flex items-center rounded-xl" :disabled="!buttonEnabled" @click="submitMessage()"
+			><div class="m-auto flex place-content-center"><Icon type="talk" size="sm" class="mr-[2px] mt-px"></Icon>{{ $t(sendMessageText) }}</div></Button
+		>
 
 		<!-- Yivi signing qr popup -->
 		<div v-if="signingMessage" class="absolute bottom-[400px] left-60" id="yivi-web-form"></div>

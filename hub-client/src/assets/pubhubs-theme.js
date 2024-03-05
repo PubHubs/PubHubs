@@ -4,6 +4,40 @@
 
 const pubhubs = {
 	colors: {
+		// Global pubhubs color palette
+		ph: {
+			background: {
+				DEFAULT: 'var(--ph-background)',
+				2: 'var(--ph-background-2)',
+				3: 'var(--ph-background-3)',
+				4: 'var(--ph-background-4)',
+				5: 'var(--ph-background-5)',
+			},
+			text: 'var(--ph-text)',
+			accent: {
+				DEFAULT: 'var(--ph-accent)',
+				2: 'var(--ph-accent-2)',
+				icon: 'var(--ph-accent-icon)',
+			},
+		},
+
+		// Hub color palette default. Can be customised with hub branding.
+		hub: {
+			background: {
+				DEFAULT: 'var(--hub-background)',
+				2: 'var(--hub-background-2)',
+				3: 'var(--hub-background-3)',
+				4: 'var(--hub-background-4)',
+				5: 'var(--hub-background-5)',
+			},
+			text: 'var(--hub-text)',
+			accent: {
+				DEFAULT: 'var(--hub-accent)',
+				2: 'var(--hub-accent-2)',
+				icon: 'var(--hub-accent-icon)',
+			},
+		},
+
 		transparent: 'transparent',
 		current: 'currentColor',
 		white: {
@@ -11,8 +45,12 @@ const pubhubs = {
 			middle: 'var(--white-middle)',
 		},
 		black: 'var(--black)',
+		lightgray: {
+			light: 'var(--lightgray-light)',
+			DEFAULT: 'var(--lightgray)',
+			dark: 'var(--lightgray-dark)',
+		},
 		gray: {
-			lighter2: 'var(--gray-lighter2)',
 			lighter: 'var(--gray-lighter)',
 			light: 'var(--gray-light)',
 			DEFAULT: 'var(--gray)',
