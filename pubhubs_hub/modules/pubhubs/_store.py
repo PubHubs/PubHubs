@@ -316,5 +316,7 @@ class YiviRoomJoinStore:
 def tuple_to_room(room) -> SecuredRoom:
     logger.info(f"Tuple looks like  {room}")
     (room_id, name, topic, accepted, expiration_time_days, user_txt, type) = room
+    if topic is None:
+        topic = ''
     return SecuredRoom(room_id=room_id, name=name, topic=topic, accepted=json.loads(accepted), expiration_time_days=expiration_time_days, user_txt=user_txt, type=type)
 
