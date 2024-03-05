@@ -1,5 +1,5 @@
 <template>
-	<div class="flex flex-col p-4 rounded-2xl w-11/12 h-72 xs:h-80 xs:w-80 bg-gray-lighter2 dark:bg-gray-darker" v-click-outside="close">
+	<div class="flex flex-col p-4 rounded-2xl w-11/12 h-72 xs:h-80 xs:w-80 bg-lightgray-light dark:bg-gray-darker" v-click-outside="close">
 		<input class="dark:text-white rounded w-full h-7 dark:bg-gray-middle placeholder:text-base dark:placeholder:text-white" v-model="searchQuery" type="text" :placeholder="$t('others.search')" />
 		<div class="flex flex-row justify-between my-3 pb-3 border-b border-gray-light">
 			<div
