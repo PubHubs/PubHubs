@@ -1,7 +1,7 @@
 Before merging to stable, please check the following.
 
 As a general tip while testing, keep two browser windows open, one for a existing user (it's easiest if this is a hub admin), and an incognito one for a new user that will be registered during testing. This allows seeing messages being send and easier testing.
-  - [ ] Remind the others to enable/disable feature flags they've written for stable (main and stable may have a different set of flags enabled, enable/disable [here](https://gitlab.science.ru.nl/ilab/pubhubs_canonical/-/blob/main/hub-client/src/store/settings.ts?ref_type=heads)).
+  - [ ] Set feature flags appropriately for stable. See the [feature flags wiki](https://gitlab.science.ru.nl/ilab/pubhubs_canonical/-/wikis/Contributing/Feature-flags) for which flags should be enabled.
   - [ ] Check that CI/CD pipeline in main has completed without errors. If the pipeline is blocked, then manually run all the stages to ensure that there is no error. This might take a bit of time therefore, this should be the first step for the merge to stable.
   - [ ] Notify the others that they do not merge anything into main until the merge to stable is done. (otherwise you will merge changes that may not be deployed to main and therefore not tested by the steps below).
   - [ ] You're merging from main into stable (and not from some feature branch.) 
@@ -40,6 +40,7 @@ As a general tip while testing, keep two browser windows open, one for a existin
   - [ ] Inform the pubhubs team (via Slack and PubHubs stable) of the merge and possible downtime of https://stable.pubhubs.ihub.ru.nl/client . 
   - [ ] Make the changes and perform the merge. Make sure all the jobs in the pipeline are kicked off. (Some jobs require manual start)
   - [ ] While waiting on the pipeline: update dependencies on the main branch (not on stable as this might break something), see #227.
+  - [ ] Reset the [feature flags](https://gitlab.science.ru.nl/ilab/pubhubs_canonical/-/wikis/Contributing/Feature-flags) so the proper flags are enabled for the main branch.
   - [ ] Check that the following works on https://stable.pubhubs.ihub.ru.nl/client :
     - [ ] Turn off dev mode in Yivi app. 
     - [ ] Test basic pubhubs functionality (see above)
