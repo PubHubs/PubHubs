@@ -67,6 +67,10 @@ const defaultSettings: Settings = {
 		locale: undefined,
 		availableLocales: undefined,
 	},
+
+	/**
+	 * Enable/disable feature flags here.
+	 */
 	featureFlags: {
 		signedMessages: true,
 		plugins: true,
