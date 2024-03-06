@@ -11,8 +11,8 @@ import logging
 from synapse.module_api import ModuleApi
 from synapse.module_api.errors import ConfigError
 
-import conf.modules.pubhubs
-import conf.modules.pseudonyms
+from .. import pubhubs
+from .. import pseudonyms
 
 logger = logging.getLogger(__name__)
 
@@ -30,10 +30,10 @@ class ConfigChecker:
             return
 
         for reqm in [
-                conf.modules.pseudonyms.Pseudonym,
-                conf.modules.pubhubs.ConfigChecker, # for completeness sake
-                conf.modules.pubhubs.YiviRoomJoiner,
-                conf.modules.pubhubs.DBMigration]:
+                pseudonyms.Pseudonym,
+                pubhubs.ConfigChecker, # for completeness sake
+                pubhubs.YiviRoomJoiner,
+                pubhubs.DBMigration]:
             self.try_check(self.check_module_present, f"the {reqm.__name__} module is present", reqm)
 
         self.try_check(self.check_password_login_disabled, "password login is disabled")

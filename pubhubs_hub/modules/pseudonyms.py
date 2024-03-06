@@ -10,7 +10,7 @@ import logging
 import subprocess
 import ctypes
 
-import conf.modules.pubhubs as pubhubs
+from . import pubhubs
 
 from synapse.types import UserID
 from synapse.module_api import ModuleApi
