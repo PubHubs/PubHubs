@@ -1,4 +1,5 @@
 ## Changes to main, not yet committed to stable
+
 *Please add a brief description of any changes to be tested and any migrations to be performed here.*
 
 - Several changes to Synapse `homeserver.yaml` configuration, including a `ConfigChecker` module that
