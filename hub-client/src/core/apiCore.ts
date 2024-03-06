@@ -72,9 +72,9 @@ class Api {
 			try {
 				const result = await response.text();
 				const json = JSON.parse(result);
-				if (typeof json.error !== undefined) {
+				if (typeof json.error !== 'undefined') {
 					throw new Error(json.error);
-				} else if (typeof json.errors !== undefined) {
+				} else if (typeof json.errors !== 'undefined') {
 					throw new Error(json.errors);
 				}
 				throw new Error(result);
