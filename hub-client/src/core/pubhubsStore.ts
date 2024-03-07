@@ -10,7 +10,7 @@ import filters from '@/core/filters';
 import { hasHtml, sanitizeHtml } from '@/core/sanitizer';
 import { api_synapse, api_matrix } from '@/core/api';
 import { M_Mentions, M_MessageEvent, M_TextMessageEventContent } from '@/types/events';
-import { YiviSigningSessionResult } from '@/lib/signedMessages';
+import { YiviSigningSessionResult, AskDisclosureMessage } from '@/lib/signedMessages';
 
 const usePubHubs = defineStore('pubhubs', {
 	state: () => ({
@@ -279,6 +279,15 @@ const usePubHubs = defineStore('pubhubs', {
 				msgtype: 'pubhubs.signed_message',
 				body: 'signed message',
 				signed_message: signedMessage,
+			};
+			await this.client.sendEvent(roomId, 'm.room.message', content);
+		},
+
+		async addAskDisclosureMessage(roomId: string, body: string, askDisclosureMessage: AskDisclosureMessage) {
+			const content = {
+				msgtype: 'pubhubs.ask_disclosure_message',
+				body: body,
+				ask_disclosure_message: askDisclosureMessage,
 			};
 			await this.client.sendEvent(roomId, 'm.room.message', content);
 		},

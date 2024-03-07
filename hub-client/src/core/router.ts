@@ -7,6 +7,7 @@ const routes = [
 	{ path: '/hub', name: 'hubpage', component: () => import('@/pages/HubPage.vue') },
 	{ path: '/settings', name: 'settings', component: () => import('@/pages/Settings.vue') },
 	{ path: '/admin', name: 'admin', component: () => import('@/pages/Admin.vue'), meta: { onlyAdmin: true } },
+	{ path: '/ask-disclosure', name: 'ask-disclosure', component: () => import('@/pages/AskDisclosure.vue'), meta: { onlyAdmin: true } },
 	{ path: '/room/:id', name: 'room', component: () => import('@/pages/Room.vue') },
 	{ path: '/secureroom/:id', name: 'secure-room', component: () => import('@/pages/SecureRoomPage.vue') },
 	{ path: '/roomerror/:id', name: 'error-page-room', component: () => import('@/pages/RoomErrorPage.vue') },

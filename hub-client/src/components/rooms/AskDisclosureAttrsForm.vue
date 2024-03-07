@@ -1,0 +1,86 @@
+<template>
+	<Dialog v-if="ask" :title="$t('admin.ask_disclosure_title')" :buttons="buttonsSubmitCancel" width="w-3/6" @close="close($event)">
+		<form @submit.prevent>
+			<FormLine>
+				<Label>{{ $t('admin.ask_disclosure_user_title') }}</Label>
+				<span v-if="ask.user.userId" class="cursor-pointer" @click="onChooseUser">
+					<span>{{ ask.user.userId }}</span>
+					"<span v-if="ask.user.displayName" :title="ask.user.displayName">{{ ask.user.displayName.substring(0, 20) + (ask.user.displayName.length > 20 ? '...' : '') }}</span
+					>"
+					<Icon type="edit" class="float-right"></Icon>
+				</span>
+				<Icon v-else type="plus" class="cursor-pointer float-right" @click="onChooseUser"></Icon>
+			</FormLine>
+			<FormLine class="mb-2">
+				<Label>{{ $t('admin.ask_disclosure_message_title') }}</Label>
+				<TextInput :placeholder="$t('admin.ask_disclosure_message_placeholder')" v-model="ask.message" class="w-5/6"></TextInput>
+			</FormLine>
+			<FormLine>
+				<Label>{{ $t('admin.secured_yivi_attributes') }}</Label>
+				<FormObjectInput :template="securedRoomTemplate" v-model="ask.attributes"></FormObjectInput>
+			</FormLine>
+			<FormLine>
+				<Label>{{ $t('admin.ask_disclosure_where_room_title') }}</Label>
+				<TextInput :placeholder="$t('admin.ask_disclosure_where_room_placeholder')" v-model="ask.where_room" class="flex"></TextInput>
+			</FormLine>
+			<FormLine>
+				<Label>{{ $t('admin.ask_disclosure_where_title') }}</Label>
+				<span v-if="ask.where_room">{{ $t('admin.ask_disclosure_where_public') }}</span>
+				<span v-else>{{ $t('admin.ask_disclosure_where_private') }}</span>
+			</FormLine>
+		</form>
+	</Dialog>
+</template>
+
+<script setup lang="ts">
+	import { onBeforeMount, ref, watch } from 'vue';
+	import { buttonsSubmitCancel, DialogButtonAction } from '@/store/dialog';
+	import { FormObjectInputTemplate } from '@/composables/useFormInputEvents';
+	import { AskDisclosure } from '@/lib/signedMessages';
+	import { useYivi } from '@/store/yivi';
+	import { useI18n } from 'vue-i18n';
+
+	const { t } = useI18n();
+	const yivi = useYivi();
+	const emit = defineEmits(['submit', 'chooseUser', 'close']);
+
+	const ask = ref<AskDisclosure>();
+
+	const props = defineProps<{
+		askDisclosure: AskDisclosure;
+	}>();
+
+	const securedRoomTemplate = ref([
+		{ key: 'yivi', label: t('admin.secured_attribute'), type: 'select', options: [], default: '' },
+		{ key: 'values', label: t('admin.secured_values'), type: 'textarea', default: '' },
+	] as Array<FormObjectInputTemplate>);
+
+	watch(
+		() => ask.value,
+		async (result) => {
+			console.debug(`new: u=${result?.user?.userId}, m=${result?.message}, a=[${result?.attributes?.map((a: any) => a.yivi)}], r=${result?.where_room}`);
+		},
+		{ deep: true },
+	);
+
+	onBeforeMount(async () => {
+		await yivi.fetchAttributes();
+		securedRoomTemplate.value[0].options = yivi.attributesOptions;
+		ask.value = props.askDisclosure;
+	});
+
+	function onChooseUser() {
+		const result = ask.value;
+		console.debug(`AskDisclosureAttrsForm:onChooseUser: u=${result?.user?.userId}, m=${result?.message}, a=[${result?.attributes?.map((a: any) => a.yivi)}]`);
+		emit('chooseUser', result!);
+	}
+
+	async function close(returnValue: DialogButtonAction) {
+		const result = ask.value;
+		console.debug(`AskDisclosureAttrsForm:close(${returnValue}): u=${result?.user?.userId}, m=${result?.message}, a=[${result?.attributes?.map((a: any) => a.yivi)}]`);
+		if (returnValue == 1) {
+			emit('submit', result!);
+		}
+		emit('close');
+	}
+</script>
