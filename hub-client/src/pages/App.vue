@@ -16,6 +16,17 @@
 						</router-link>
 					</Menu>
 
+					<!-- When user is admin, show the moderation tools menu -->
+					<div v-if="disclosureEnabled && user.isAdmin">
+						<H2 class="mt-12">{{ $t('menu.moderation_tools') }}</H2>
+						<Line class="mt-2 mb-4"></Line>
+						<Menu>
+							<router-link :to="{ name: 'ask-disclosure' }" v-slot="{ isActive }">
+								<MenuItem icon="sign" :active="isActive" class="hover:text-red">{{ $t('menu.moderation_tools_disclosure') }}</MenuItem>
+							</router-link>
+						</Menu>
+					</div>
+
 					<H2 class="mt-12">{{ $t('menu.rooms') }}</H2>
 					<Icon type="plus" class="cursor-pointer hover:text-green float-right -mt-8" @click="joinRoomDialog = true"></Icon>
 					<Line class="mt-2 mb-4"></Line>
@@ -50,6 +61,7 @@
 
 		<JoinRoom v-if="joinRoomDialog" @close="joinRoomDialog = false"></JoinRoom>
 		<AddPrivateRoom v-if="addPrivateRoomDialog" @close="addPrivateRoomDialog = false"></AddPrivateRoom>
+		<Disclosure v-if="disclosureEnabled"></Disclosure>
 
 		<Dialog v-if="dialog.visible" @close="dialog.close"></Dialog>
 	</div>
@@ -82,6 +94,7 @@
 	const setupReady = ref(false);
 	const joinRoomDialog = ref(false);
 	const addPrivateRoomDialog = ref(false);
+	const disclosureEnabled = settings.isFeatureEnabled('disclosure');
 	const acknowledgeOnce = ref(true);
 
 	onMounted(() => {

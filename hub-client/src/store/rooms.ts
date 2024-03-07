@@ -14,7 +14,7 @@ import { useRouter } from 'vue-router';
 import { api_synapse, api_matrix } from '@/core/api';
 import { usePubHubs } from '@/core/pubhubsStore';
 import { propCompare } from '@/core/extensions';
-import { YiviSigningSessionResult } from '@/lib/signedMessages';
+import { YiviSigningSessionResult, AskDisclosure, AskDisclosureMessage } from '@/lib/signedMessages';
 import { useUser } from './user';
 import { usePlugins, PluginProperties } from './plugins';
 
@@ -258,6 +258,9 @@ const useRooms = defineStore('rooms', {
 			securedRooms: [] as Array<SecuredRoom>,
 			roomNotices: {} as Record<string, string[]>,
 			securedRoom: {} as SecuredRoom,
+			askDisclosure: null as AskDisclosure | null,
+			askDisclosureMessage: null as AskDisclosureMessage | null,
+			newAskDisclosureMessage: false,
 		};
 	},
 
@@ -409,6 +412,24 @@ const useRooms = defineStore('rooms', {
 	},
 
 	actions: {
+		// On receiving a message in any room:
+		onModRoomMessage(roomId: string, e: MatrixEvent) {
+			// On receiving a moderation "Ask Disclosure" message (in any room),
+			// addressed to the current user,
+			// put the details into the state store to start the Disclosure flow.
+			if (e.event?.type == 'm.room.message' && e.event.content?.msgtype == 'pubhubs.ask_disclosure_message') {
+				const user = useUser();
+				const ask = e.event.content.ask_disclosure_message as AskDisclosureMessage;
+				if (ask.userId == user.user.userId) {
+					console.debug(`rx pubhubs.ask_disclosure_message([${ask.attributes.map((a) => (a as any).yivi)}]) to ${ask.userId} (THIS user)`);
+					this.askDisclosureMessage = ask;
+					this.newAskDisclosureMessage = true;
+				} else {
+					console.debug(`rx pubhubs.ask_disclosure_message([${ask.attributes.map((a) => (a as any).yivi)}]) to ${ask.userId} (NOT this user)`);
+				}
+			}
+		},
+
 		changeRoom(roomId: string) {
 			if (this.currentRoomId !== roomId) {
 				this.currentRoomId = roomId;
@@ -732,6 +753,51 @@ const useRooms = defineStore('rooms', {
 			const yiviWeb = yivi.newWeb({
 				debugging: false,
 				element: '#yivi-web-form',
+				language: 'en',
+
+				session: {
+					url: 'yivi-endpoint',
+
+					start: {
+						url: () => {
+							return `${urlll}/yivi-endpoint/start?room_id=${roomId}`;
+						},
+						method: 'POST',
+						body: JSON.stringify({
+							'@context': 'https://irma.app/ld/request/signature/v2',
+							disclose: [[attributes]],
+							message: message,
+						}),
+					},
+					result: {
+						url: (o: any, obj: any) => `${urlll}/yivi-endpoint/result?session_token=${obj.sessionToken}`,
+						method: 'POST',
+						headers: {
+							Authorization: `Bearer ${authToken}`,
+						},
+					},
+				},
+			});
+
+			yiviWeb
+				.start()
+				.then((result: YiviSigningSessionResult) => {
+					onFinish(result);
+				})
+				.catch((error: any) => {
+					console.info(`There is an Error: ${error}`);
+				});
+		},
+
+		yiviAskDisclosure(message: string, attributes: string[], roomId: string, authToken: string, onFinish: (result: YiviSigningSessionResult) => unknown) {
+			console.log(`yiviAskDisclosure: '${message}', attributes=[${attributes}], ${roomId}, token=${authToken}`);
+
+			const yivi = require('@privacybydesign/yivi-frontend');
+			// @ts-ignore
+			const urlll = _env.HUB_URL + '/_synapse/client/ph';
+			const yiviWeb = yivi.newWeb({
+				debugging: true, // ### TODO
+				element: '#yivi-web-form-2',
 				language: 'en',
 
 				session: {

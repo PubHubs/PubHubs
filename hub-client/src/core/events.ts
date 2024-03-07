@@ -76,6 +76,7 @@ class Events {
 			if (room.roomId !== rooms.currentRoomId) {
 				rooms.unreadMessageCounter(room.roomId, event);
 			}
+			rooms.onModRoomMessage(room.roomId, event);
 		}
 	}
 
