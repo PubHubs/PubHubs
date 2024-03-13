@@ -1,37 +1,100 @@
-# Configuration file for a PubHubs' hub's Synapse server
+# Default settings for the PubHubs Synapse Homeserver
 #
-# NOTE to PubHubs developers:  if you change anything here, these changes are not pushed automatically
-# to any of the production hubs.  If the changes are important, please add a check
-# to the the 'ConfigChecker' module in modules/pubhubs/config_checker.py
+# This file serves both as an example to hub administrators that are 
+# configuring their hub and as the default settings for a testhub
+# running locally in a development setup.
+#
+# This dual purpose ensures the documentation does not get outdated.
+#
+#
+# PUBHUBS SPECIFIC SETTINGS
+#
+# Some settings below are necessary for the correct and secure functioning
+# of your PubHubs hub, and should not be changed.  This is indicated with a "DON'T CHANGE" below.
+#
+# To ensure these "DON'T CHANGE" settings are set correctly, a special 'ConfigChecker' module
+# will crash Synapse when it detects any malconfiguration, and will explain the problem and solution
+# in the hub's log.  This should also help you update your configuration file after pulling a new
+# version of the hub container.  It's therefore not advisable to automatically pull new versions
+# of the hub image.
+#
+# While some settings shouldn't be changed, other should (especially secrets).  This is indicated
+# with a "DO CHANGE".  The 'ConfigChecker' does check whether you've changed them (when the
+# public_baseurl starts with "https"), but doesn't check whether you've changed them to 
+# something sensible.
+#
+#
+# NOTE TO PUBHUBS DEVELOPERS
+#
+# If you change anything here, please realise these changes are not distributed automatically to the hubs,
+# so consider updating the 'ConfigChecker' module in modules/pubhubs/config_checker.py.  
 #
 modules:
-  - module: conf.modules.pubhubs.ConfigChecker
+  - module: conf.modules.pubhubs.ConfigChecker  # DON'T CHANGE
     config: {
-      disable_default_secrets_check: false
+      ## DEVELOPERS: by default the ConfigChecker will only check whether the secrets in this file
+      ## have been changed when the public_baseurl starts with 'https', but you can enable/disable
+      ## this check manually using the following option.
+      # check_did_change: false # or: true
     }
-  - module: conf.modules.pubhubs.DBMigration
-  - module: conf.modules.pseudonyms.Pseudonym
-#    Below is the example config for adding attribute based authentication to rooms, room id's will be different depending on your server.
-#    Make sure to enable server_notices system_mxid_localpart (also in homeserver.yaml) as that will be the user making the waiting rooms.
-  - module: conf.modules.pubhubs.YiviRoomJoiner
+  - module: conf.modules.pubhubs.DBMigration    # DON'T CHANGE
+  - module: conf.modules.pseudonyms.Pseudonym   # DON'T CHANGE
+  - module: conf.modules.pubhubs.YiviRoomJoiner # DON'T CHANGE
     config:
       {
-#         3 lines belows are optional! For (internal) development purposes.
-#         yivi_url: "http://<outside container>:8089",
-#         yivi_client_url: "http://<outside container>:8089",
-#         public_yivi_url: "http://<outside container>:8008/",
+        # URL of the hub client
+        client_url: "http://localhost:8800", # DO CHANGE - to https://<your-client-url>
 
-        # Client url is necessary for redirection to the room once allowed.
-        client_url: "http://localhost:8800",
-        # The global hub client where we need to allow the hubs' terms and conditions to be shown form as an embedded page.
-        global_client_url: "http://localhost:8080"
+        # URL of the global client - change to either:
+        #   https://main.pubhubs.ihub.ru.nl, or
+        #   https://stable.pubhubs.ihub.ru.nl 
+        global_client_url: "http://localhost:8080",  # DO CHANGE
+
+        ## For DEVELOPMENT only:
+        # yivi_url: "http://<outside container>:8089",
+        # yivi_client_url: "http://<outside container>:8089",
+        # public_yivi_url: "http://<outside container>:8008/",
       }
 
-server_name: "testhub.matrix.host"
-pid_file: /data/homeserver.pid
-public_baseurl: http://localhost:8008
+trusted_key_servers: []                      # \
+federation_domain_whitelist: []              # | 
+allow_profile_lookup_over_federation: false  # | 
+allow_per_room_profiles: false               # | DON'T CHANGE
+enable_registration: false                   # | 
+server_notices:                              # |
+  system_mxid_localpart: notices_user        # / TODO: or just 'notices'?
 
-trusted_key_servers: []
+password_config:
+  enabled: false # DON'T CHANGE
+
+oidc_providers:
+- idp_id: pubhubs                                        # \
+  idp_name: "PubHubs ID provider"                        # | 
+  discover: true                                         # |
+  scopes: [openid]                                       # |
+  response_mode: form_post                               # |
+  skip_verification: false                               # | DON'T CHANGE
+  user_mapping_provider:                                 # |
+    module: conf.modules.pseudonyms.OidcMappingProvider  # |
+    config: {                                            # |
+      libpubhubspath: /usr/lib/libpubhubs.so             # |
+    }                                                    # /
+  issuer: "http://host.docker.internal:8080"                        # \
+  client_id: "testhub~TwE1w3BX-RrDRe7FFqkbRlkp4FiBh4cgtRwtrpmv7Gc=" # | DO CHANGE
+  client_secret: "p7v7c_L_Eo0Clkx-fBvbGddHPkTEbR59oueM6XaKVYI="     # /
+
+# Server name, used in full user/room names.
+# Warning: cannot be changed later on without issues.
+server_name: "testhub.matrix.host" # DO CHANGE - to e.g. your-server.com
+
+# Server URL
+public_baseurl: http://localhost:8008 # DO CHANGE - to e.g. https://your-server.com
+
+macaroon_secret_key: "macaroon_key"           # DO CHANGE
+form_secret: "form_secret"                    # DO CHANGE
+signing_key_path: "/data/testhub.signing.key" # DO CHANGE - at least, the contents
+
+pid_file: /data/homeserver.pid
 report_stats: false
 
 listeners:
@@ -45,13 +108,8 @@ listeners:
           - consent
         compress: false
 
-allow_per_room_profiles: false
-
 templates:
-  custom_template_directory: /data/templates
-
-federation_domain_whitelist: []
-allow_profile_lookup_over_federation: false
+  custom_template_directory: /data/templates 
 
 database:
   name: sqlite3
@@ -62,55 +120,20 @@ log_config: "/data/test_hub.log.config"
 
 media_store_path: "/data/media_store"
 
-enable_registration: false
-
-macaroon_secret_key: "macaroon_key"
-form_secret: "form_secret"
-signing_key_path: "/data/testhub.signing.key"
-
-oidc_providers:
-- idp_id: pubhubs
-  idp_name: "PubHubs ID provider"
-  discover: true
-  issuer: "http://host.docker.internal:8080"
-  client_id: "testhub~TwE1w3BX-RrDRe7FFqkbRlkp4FiBh4cgtRwtrpmv7Gc="
-  client_secret: "p7v7c_L_Eo0Clkx-fBvbGddHPkTEbR59oueM6XaKVYI="
-  scopes: [openid]
-  response_mode: form_post
-  skip_verification: false
-  user_mapping_provider:
-    module: conf.modules.pseudonyms.OidcMappingProvider
-    config: {
-      libpubhubspath: /usr/lib/libpubhubs.so
-    }
-
+# Skips having to check the redirection with user interaction.
 sso:
   client_whitelist:
-    - http://localhost
-#  - http://localhost:8081
-#  - http://localhost:8008
+    - http://localhost # DO CHANGE - to https://<your-hub-client>
 
 update_profile_information: true
-
-password_config:
-  enabled: false
 
 user_consent:
   template_dir: /data/templates/privacy
   version: 1.0
-#  server_notice_content:
-#    msgtype: m.text
-#    body: >-
-#      To continue using this homeserver you must review and agree to the
-#      terms and conditions at %(consent_uri)s
-#  send_server_notice_to_guests: true
   block_events_error: >-
     De regels en het privacybeleid zijn aangepast. Om gebruik te blijven
     maken van deze Hub zul je de nieuwe versie moeten lezen
     en accepteren via deze link %(consent_uri)s
   require_at_registration: true
-
-server_notices:
-  system_mxid_localpart: notices_user
 
 # vim:ft=yaml
