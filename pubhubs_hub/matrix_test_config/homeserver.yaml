@@ -32,10 +32,17 @@
 modules:
   - module: conf.modules.pubhubs.ConfigChecker  # DON'T CHANGE
     config: {
-      ## DEVELOPERS: by default the ConfigChecker will only check whether the secrets in this file
-      ## have been changed when the public_baseurl starts with 'https', but you can enable/disable
-      ## this check manually using the following option.
-      # check_did_change: false # or: true
+      ## DEVELOPERS: by default the ConfigChecker will check whether the 'DO CHANGE' fields 
+      ## have been changed when the public_baseurl starts with 'https', and otherwise it will
+      ## check that they *haven't* been changed (to make sure that the check-code is up-to-date
+      ## with the current defaults.)
+      ## 
+      ## HUB ADMINISTRATORS: please only use 'yes_should_be_changed'
+      ##
+      ## You can override this behaviour with the following field.
+      # check_do_change_fields: yes_should_be_changed   # check that 'DO CHANGE' fields have been changed
+      # check_do_change_fields: yes_should_be_unchanged # check that 'DO CHANGE' fields haven't been changed
+      # check_do_change_fields: no                      # don't check 'DO CHANGE' fields at all
     }
   - module: conf.modules.pubhubs.DBMigration    # DON'T CHANGE
   - module: conf.modules.pseudonyms.Pseudonym   # DON'T CHANGE
@@ -56,8 +63,7 @@ modules:
         # public_yivi_url: "http://<outside container>:8008/",
       }
 
-trusted_key_servers: []                      # \
-federation_domain_whitelist: []              # | 
+federation_domain_whitelist: []              # \
 allow_profile_lookup_over_federation: false  # | 
 allow_per_room_profiles: false               # | DON'T CHANGE
 enable_registration: false                   # | 
@@ -72,7 +78,6 @@ oidc_providers:
   idp_name: "PubHubs ID provider"                        # | 
   discover: true                                         # |
   scopes: [openid]                                       # |
-  response_mode: form_post                               # |
   skip_verification: false                               # | DON'T CHANGE
   user_mapping_provider:                                 # |
     module: conf.modules.pseudonyms.OidcMappingProvider  # |
@@ -94,6 +99,7 @@ macaroon_secret_key: "macaroon_key"           # DO CHANGE
 form_secret: "form_secret"                    # DO CHANGE
 signing_key_path: "/data/testhub.signing.key" # DO CHANGE - at least, the contents
 
+trusted_key_servers: []
 pid_file: /data/homeserver.pid
 report_stats: false
 
