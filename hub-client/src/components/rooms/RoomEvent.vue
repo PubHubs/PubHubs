@@ -39,7 +39,7 @@
 				</template>
 				<template v-else>
 					<MessageMention v-if="msgTypeIncludesMention" :message="event.content.body" :users="users"></MessageMention>
-					<button v-if="inReplyTo" @click="onInReplyToClick"><MessageSnippet :event="inReplyTo" :showInReplyTo="true"></MessageSnippet></button>
+					<MessageSnippet v-if="inReplyTo" @click="onInReplyToClick" :event="inReplyTo" :showInReplyTo="true"></MessageSnippet>
 					<Message v-if="msgShowBody && !msgTypeIncludesMention" :message="event.content.body" :users="users"></Message>
 					<MessageSigned v-if="event.content.msgtype == 'pubhubs.signed_message'" :message="event.content.signed_message"></MessageSigned>
 					<MessageHtml v-if="msgTypeIsHtml && !msgTypeIncludesMention" :message="(event.content as M_HTMLTextMessageEventContent).formatted_body"></MessageHtml>
