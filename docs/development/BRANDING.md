@@ -5,10 +5,12 @@
 Hubs can have their own branding. But within the scope of keeping the User Experience of PubHubs on every Hub the same and recognisable to all users.
 
 Which means branding can change:
+
 - Logo's
 - Colors
 
 But not (for example):
+
 - Headers
 - Buttons
 - Other clickable items
@@ -46,19 +48,7 @@ Open `http://localhost:6006/` in your browser and click away.
 
 We have a selection of colors prepared in the file `hub-client/src/assets/tailwind.css` with the use of CSS variables.
 These CSS variables can be overwritten with the file `hub-client/src/assets/branding.css`. This probably doesn't exists in the `assets` folder. But it should in `hub-client/branding`, so copy this file.
-It is enought to only add the CSS variables of the colors you need to change.
-
-## How the color system works
-
-The color object can have one color, or an object with several variants. These are the variants we use:
-
-- lighter
-- light
-- DEFAULT (= the default when you don't add a suffix to the color class)
-- dark
-- darker
-
-NB. There is a gray-middle variant, which is only used for a system gray variant - don't use or add a middle variant to other colors.
+It is enough to only add the CSS variables of the colors you need to change.
 
 # Logo
 

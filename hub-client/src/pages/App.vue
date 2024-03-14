@@ -1,8 +1,8 @@
 <template>
 	<div :class="settings.getActiveTheme">
-		<div v-if="setupReady" class="max-h-screen text-black dark:bg-gray-dark dark:text-white">
+		<div v-if="setupReady" class="max-h-screen text-hub-text">
 			<div v-if="user.isLoggedIn" class="md:grid md:grid-cols-8">
-				<HeaderFooter class="md:col-span-2 md:flex theme-light:bg-gray-lighter2" :class="{ hidden: !hubSettings.mobileHubMenu }">
+				<HeaderFooter class="md:col-span-2 md:flex bg-hub-background" :class="{ hidden: !hubSettings.mobileHubMenu }">
 					<template #header>
 						<router-link to="/">
 							<Badge v-if="hubSettings.isSolo && rooms.totalUnreadMessages > 0" class="-ml-2 -mt-2">{{ rooms.totalUnreadMessages }}</Badge>
@@ -15,6 +15,17 @@
 							<MenuItem :icon="item.icon" :active="isActive" @click="toggleMenu.toggleGlobalMenu()">{{ $t(item.key) }}</MenuItem>
 						</router-link>
 					</Menu>
+
+					<!-- When user is admin, show the moderation tools menu -->
+					<div v-if="disclosureEnabled && user.isAdmin">
+						<H2 class="mt-12">{{ $t('menu.moderation_tools') }}</H2>
+						<Line class="mt-2 mb-4"></Line>
+						<Menu>
+							<router-link :to="{ name: 'ask-disclosure' }" v-slot="{ isActive }">
+								<MenuItem icon="sign" :active="isActive" class="hover:text-red">{{ $t('menu.moderation_tools_disclosure') }}</MenuItem>
+							</router-link>
+						</Menu>
+					</div>
 
 					<H2 class="mt-12">{{ $t('menu.rooms') }}</H2>
 					<Icon type="plus" class="cursor-pointer hover:text-green float-right -mt-8" @click="joinRoomDialog = true"></Icon>
@@ -38,7 +49,7 @@
 					</template>
 				</HeaderFooter>
 
-				<div class="md:col-span-6 md:block max-h-screen dark:bg-gray-middle overflow-y-auto" :class="{ hidden: hubSettings.mobileHubMenu }">
+				<div class="md:col-span-6 md:block max-h-screen bg-hub-background overflow-y-auto" :class="{ hidden: hubSettings.mobileHubMenu }">
 					<router-view></router-view>
 				</div>
 			</div>
@@ -50,6 +61,7 @@
 
 		<JoinRoom v-if="joinRoomDialog" @close="joinRoomDialog = false"></JoinRoom>
 		<AddPrivateRoom v-if="addPrivateRoomDialog" @close="addPrivateRoomDialog = false"></AddPrivateRoom>
+		<Disclosure v-if="disclosureEnabled"></Disclosure>
 
 		<Dialog v-if="dialog.visible" @close="dialog.close"></Dialog>
 	</div>
@@ -82,6 +94,7 @@
 	const setupReady = ref(false);
 	const joinRoomDialog = ref(false);
 	const addPrivateRoomDialog = ref(false);
+	const disclosureEnabled = settings.isFeatureEnabled('disclosure');
 	const acknowledgeOnce = ref(true);
 
 	onMounted(() => {

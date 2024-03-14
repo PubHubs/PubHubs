@@ -14,6 +14,11 @@
 						<span class="text-xs font-normal">|</span>
 						<EventTime :timestamp="event.origin_server_ts"> </EventTime>
 					</H3>
+					<router-link v-if="!msgIsNotSend && user.isAdmin && event.sender != user.user.userId" :to="{ name: 'ask-disclosure', query: { user: event.sender } }">
+						<button :title="$t('menu.moderation_tools_disclosure')" class="ml-2 mb-1 hidden group-hover:block">
+							<Icon :type="'warning'" :size="'sm'"></Icon>
+						</button>
+					</router-link>
 					<button v-if="!msgIsNotSend" @click="reply" class="ml-2 mb-1 hidden group-hover:block">
 						<Icon :type="'reply'" :size="'sm'"></Icon>
 					</button>
@@ -34,7 +39,7 @@
 				</template>
 				<template v-else>
 					<MessageMention v-if="msgTypeIncludesMention" :message="event.content.body" :users="users"></MessageMention>
-					<button v-if="inReplyTo" @click="onInReplyToClick"><MessageSnippet :event="inReplyTo" :showInReplyTo="true"></MessageSnippet></button>
+					<MessageSnippet v-if="inReplyTo" @click="onInReplyToClick" :event="inReplyTo" :showInReplyTo="true"></MessageSnippet>
 					<Message v-if="msgShowBody && !msgTypeIncludesMention" :message="event.content.body" :users="users"></Message>
 					<MessageSigned v-if="event.content.msgtype == 'pubhubs.signed_message'" :message="event.content.signed_message"></MessageSigned>
 					<MessageHtml v-if="msgTypeIsHtml && !msgTypeIncludesMention" :message="(event.content as M_HTMLTextMessageEventContent).formatted_body"></MessageHtml>
@@ -50,7 +55,7 @@
 	import { computed, onMounted, ref } from 'vue';
 	import { useUserAvatar } from '@/composables/useUserName';
 	import { usePubHubs } from '@/core/pubhubsStore';
-	import { useHubSettings, useConnection } from '@/store/store';
+	import { useHubSettings, useConnection, useUser } from '@/store/store';
 	import { useUserColor } from '@/composables/useUserColor';
 	import { useMessageActions } from '@/store/message-actions';
 	import MessageSnippet from './MessageSnippet.vue';
@@ -68,6 +73,7 @@
 	const users = ref([] as Array<MatrixUser>);
 	const { getUserAvatar } = useUserAvatar();
 
+	const user = useUser();
 	const rooms = useRooms();
 
 	const supportedMsgTypes = ['m.text', 'm.image', 'm.file', 'pubhubs.signed_message'];

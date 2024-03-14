@@ -1,11 +1,11 @@
 <template>
-	<div name="outer-container" class="bg-gray-light dark:bg-gray flex rounded-lg p-2">
+	<div name="outer-container" class="bg-hub-background-3 flex rounded-lg p-2">
 		<div name="inner-container" class="p-2 w-full">
 			<div class="flex">
 				<h3 class="font-bold">{{ $t('message.messageSigned.heading') }}</h3>
 				<Icon :type="'closingCross'" :size="'sm'" :asButton="false" @mouseover="showVerificationStatus = true" @mouseout="showVerificationStatus = false" class="ml-1 mt-[3px] text-red"></Icon>
 				<div name="verification-status" class="relative">
-					<div v-if="showVerificationStatus" class="absolute bottom-8 w-32 bg-gray-light dark:bg-gray rounded-md p-2">
+					<div v-if="showVerificationStatus" class="absolute bottom-8 w-32 bg-hub-background-3 rounded-md p-2">
 						<p class="text-xs">{{ $t('message.messageSigned.verificationStatus') }}</p>
 					</div>
 				</div>
@@ -27,7 +27,7 @@
 			<Icon :type="'info'" :size="'sm'" :asButton="false" class="mt-1 mb-1" @mouseover="showInfo = true" @mouseout="showInfo = false"></Icon>
 			<!-- An extra div to ensure the info popup is always positioned the same -->
 			<div class="relative">
-				<div v-if="showInfo" class="absolute bottom-8 w-32 bg-gray-light dark:bg-gray rounded-md p-2">
+				<div v-if="showInfo" class="absolute bottom-8 w-32 bg-hub-background-3 rounded-md p-2">
 					<p class="text-xs">{{ $t('message.messageSigned.info') }}</p>
 				</div>
 			</div>

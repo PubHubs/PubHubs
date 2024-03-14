@@ -3,5 +3,5 @@ import { routes } from '@/core/router.ts';
 
 test('routes', () => {
 	expect(routes).toBeTypeOf('object');
-	expect(Object.keys(routes).length).toBe(8);
+	expect(Object.keys(routes).length).toBe(9);
 });

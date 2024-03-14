@@ -55,7 +55,9 @@ class RoomAttributeEncoder(JSONEncoder):
 
 
 class SecuredRoom:
-    room_name: str
+    name: str
+
+    topic: str
 
     accepted: dict[str, RoomAttribute]
 
@@ -70,15 +72,18 @@ class SecuredRoom:
 
     room_id: Optional[str]  # optional since when creating will be returned  Optional[str]
 
-    def __init__(self, room_name=None, accepted=None, expiration_time_days=DEFAULT_EXPIRATION_TIME_DAYS, user_txt=None,
+    def __init__(self, name=None, topic=None, accepted=None, expiration_time_days=DEFAULT_EXPIRATION_TIME_DAYS, user_txt=None,
                  type=None,
                  room_id=None):
         errors = []
 
-        if not isinstance(room_name, str):
-            errors.append("'room_name' should be a string")
-        if not room_name:
-            errors.append("'room_name' should have a valid name")
+        if not isinstance(name, str):
+            errors.append("'name' should be a string")
+        if not name:
+            errors.append("'name' should have a valid name")
+
+        if not isinstance(topic, str):
+            errors.append("'topic' should be a string")
 
         accepted_error = "'accepted' should be an object with keys of attributes required to join the room, followed " \
                          "by an object with a list of accepted values and a boolean whether they need to show as " \
@@ -113,7 +118,8 @@ class SecuredRoom:
         if len(errors) != 0:
             raise TypeError(". ".join(errors))
 
-        self.room_name = room_name
+        self.name = name
+        self.topic = topic
         self.user_txt = user_txt
         self.room_id = room_id
         # Rationale: convert days to minutes to make it simpler for testing and production.
@@ -126,7 +132,8 @@ class SecuredRoom:
         config = {
             "preset": RoomCreationPreset.PUBLIC_CHAT,
             "creation_content": {"type": f"{self.type.value}"},
-            "name": f"{self.room_name}",
+            "name": f"{self.name}",
+            "topic": f"{self.topic}",
             "visibility": "public",
             # 100 for creator is by default, but we want some power for the server notices user to add profile attribute
             # events to the room.
@@ -143,7 +150,7 @@ class SecuredRoom:
         await module_api.public_room_list_manager.add_room_to_public_room_list(self.room_id)
 
     async def update_name(self, name: str, module_api: ModuleApi, user: str):
-        if self.room_name == name:
+        if self.name == name:
             return
         await module_api.create_and_send_event_into_room(
             {
@@ -153,6 +160,20 @@ class SecuredRoom:
                 "room_id": self.room_id,
                 "state_key": "",
             })
+
+    async def update_topic(self, topic: str, module_api: ModuleApi, user: str):
+        if self.topic == topic:
+            return
+        await module_api.create_and_send_event_into_room(
+            {
+                "content": {"topic": topic},
+                "sender": user,
+                "type": EventTypes.Topic,
+                "room_id": self.room_id,
+                "state_key": "",
+            })
+
+
 
     def to_dict(self):
         dict_to_return = self.__dict__

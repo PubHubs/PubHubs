@@ -10,6 +10,7 @@ enum featureFlagType {
 	signedMessages = 'signedMessages',
 	plugins = 'plugins',
 	dateSplitter = 'dateSplitter',
+	disclosure = 'disclosure',
 }
 
 enum Theme {
@@ -55,6 +56,7 @@ interface Settings {
 		signedMessages: boolean;
 		plugins: boolean;
 		dateSplitter: boolean;
+		disclosure: boolean;
 	};
 }
 
@@ -67,10 +69,22 @@ const defaultSettings: Settings = {
 		locale: undefined,
 		availableLocales: undefined,
 	},
+
+	/**
+	 * Enable/disable feature flags here.
+	 * Please also write down which should be enabled on main and which on stable.
+	 */
 	featureFlags: {
+		// main
 		signedMessages: true,
 		plugins: true,
 		dateSplitter: false,
+		disclosure: true,
+		// stable
+		//signedMessages: true,
+		//plugins: true,
+		//dateSplitter: false,
+		//disclosure: false,
 	},
 };
 
