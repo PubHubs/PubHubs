@@ -11,8 +11,8 @@ import logging
 from synapse.module_api import ModuleApi
 from synapse.module_api.errors import ConfigError
 
-from .. import pubhubs
-from .. import pseudonyms
+import pubhubs
+import pseudonyms
 
 logger = logging.getLogger(__name__)
 

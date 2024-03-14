@@ -10,8 +10,6 @@ import logging
 import subprocess
 import ctypes
 
-from . import pubhubs
-
 from synapse.types import UserID
 from synapse.module_api import ModuleApi
 from synapse.http.server import DirectServeJsonResource, respond_with_json
@@ -43,7 +41,7 @@ class Pseudonym:
         try:
             for module_details in api._hs.config.modules.loaded_modules:
                 (module_class, module_config) = module_details
-                if module_class==pubhubs.ConfigChecker:
+                if module_class.__name__ == "ConfigChecker":
                     break
             else:
                 raise ConfigError("Cannot find ConfigChecker module; please add  '- module: conf.modules.pubhubs.ConfigChecker' to the 'modules:' list in homeserver.yaml")
