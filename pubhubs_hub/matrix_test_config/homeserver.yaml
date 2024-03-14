@@ -30,7 +30,7 @@
 # so consider updating the 'ConfigChecker' module in modules/pubhubs/config_checker.py.  
 #
 modules:
-  - module: conf.modules.pubhubs.ConfigChecker  # DON'T CHANGE
+  - module: conf.modules.config_checker.ConfigChecker  # DON'T CHANGE
     config: {
       ## DEVELOPERS: by default the ConfigChecker will check whether the 'DO CHANGE' fields 
       ## have been changed when the public_baseurl starts with 'https', and otherwise it will

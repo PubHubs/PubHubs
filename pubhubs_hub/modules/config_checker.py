@@ -11,8 +11,8 @@ import logging
 from synapse.module_api import ModuleApi
 from synapse.module_api.errors import ConfigError
 
-import pubhubs
-import pseudonyms
+from . import pubhubs
+from . import pseudonyms
 
 logger = logging.getLogger(__name__)
 
@@ -42,7 +42,7 @@ class ConfigChecker:
         if self.modules:
             for reqm in [
                     pseudonyms.Pseudonym,
-                    pubhubs.ConfigChecker, # for completeness sake
+                    ConfigChecker, # for completeness sake
                     pubhubs.YiviRoomJoiner,
                     pubhubs.DBMigration]:
                 self.try_check(self.check_module_present, f"the {reqm.__name__} module is present", reqm)

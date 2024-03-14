@@ -37,7 +37,6 @@
 	import { useI18n } from 'vue-i18n';
 	import { Room, useRooms, RoomMember } from '@/store/store';
 	import { PluginProperties, usePlugins } from '@/store/plugins';
-	import { EventTimeline } from 'matrix-js-sdk';
 
 	const route = useRoute();
 	const { t } = useI18n();

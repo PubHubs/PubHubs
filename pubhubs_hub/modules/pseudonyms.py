@@ -44,7 +44,7 @@ class Pseudonym:
                 if module_class.__name__ == "ConfigChecker":
                     break
             else:
-                raise ConfigError("Cannot find ConfigChecker module; please add  '- module: conf.modules.pubhubs.ConfigChecker' to the 'modules:' list in homeserver.yaml")
+                raise ConfigError("Cannot find ConfigChecker module; please add  '- module: conf.modules.config_checker.ConfigChecker' to the 'modules:' list in homeserver.yaml")
         except ConfigError:
             raise
         except Exception as e:
