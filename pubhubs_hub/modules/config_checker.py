@@ -198,10 +198,10 @@ class ConfigChecker:
         return not op.client_id.startswith("testhub")
 
     def server_name_changed(self):
-        return self.config.server_name != "testhub.matrix.host"
+        return self.config.server.server_name != "testhub.matrix.host"
 
     def public_baseurl_changed(self):
-        return self.config.public_baseurl != "http://localhost:8008"
+        return self.config.server.public_baseurl != "http://localhost:8008/"
 
     def check_client_is_whitelisted(self):
         client_url = self.modules[pubhubs.YiviRoomJoiner]["client_url"]
