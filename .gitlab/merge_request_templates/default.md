@@ -1,0 +1,1 @@
+**Remember to add your changes to the [changelog](https://gitlab.science.ru.nl/ilab/pubhubs_canonical/-/blob/main/CHANGELOG.md?ref_type=heads)**
