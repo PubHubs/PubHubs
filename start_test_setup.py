@@ -785,6 +785,20 @@ def main_runner(cargo_setup:str, node_arg:str, hubs:int = 1) -> None:
         client_port = client_port + 1
 
     print ("<< Message>>> Development setup is ready to run. Please follow the instructions in the README of the project.")
+
+    if (os.getenv('WATCH_MODULES') != '1'):
+        print("\n"
+              "Tip: if you are working on the Synapse PubHubs modules, use\n"
+              "\n"
+              "  WATCH_MODULES=1 python3 start_test_setup.py exec --cargo-disabled\n"
+              "\n"
+              "to mount the modules as volume.\n")
+    else:
+        print("\n"
+              "Don't forget to start synapse manually (and restart it after any changes to its modules):\n"
+              "\n"
+              "  docker exec -it testhub0_8008  ./start.py\n")
+
     post_processing()
     # process_global_client.join()
     # process_pubhub_server.join()
