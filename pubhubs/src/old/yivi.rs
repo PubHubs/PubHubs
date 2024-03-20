@@ -646,7 +646,7 @@ async fn get_or_create_user(
                     telephone: telephone.to_string(),
                     registration_date: date.to_string(),
                     config: context.pep.clone(),
-                    is_admin: false,
+                    is_admin: context.admins.contains(email),
                 })
                 .await?;
             let user = user_rx.await??;
