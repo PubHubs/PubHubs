@@ -31,12 +31,15 @@ export default {
 		return result ? result[0] : ''; // result[0] will contain the matched string
 	},
 
-	extractDisplayName(name: string) {
+	extractDisplayName(name: string, max_length: number = 20) {
 		const dashIndex = name.indexOf(' - ');
 		let filteredName = name.substring(0, dashIndex + 1);
 
 		if (filteredName.length < 1) {
 			filteredName = 'Anonymous';
+		}
+		if (filteredName.length > max_length) {
+			filteredName = filteredName.substring(0, max_length) + '...';
 		}
 		return filteredName;
 	},

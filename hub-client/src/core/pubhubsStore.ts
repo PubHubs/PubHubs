@@ -80,9 +80,16 @@ const usePubHubs = defineStore('pubhubs', {
 			alert(message);
 		},
 
-		showError(error: string) {
-			const message = 'Unfortanatly an error occured. Please contact the developers.\n\n' + error;
-			this.showDialog(message);
+		showError(error: string | MatrixError) {
+			if (typeof error !== 'string') {
+				if (error.errcode !== 'M_FORBIDDEN') {
+					this.showDialog(error.data.error as string);
+				} else {
+					console.log(error);
+				}
+			} else {
+				this.showDialog('Unfortanatly an error occured. Please contact the developers.\n\n' + error.toString);
+			}
 		},
 
 		/**
@@ -390,9 +397,9 @@ const usePubHubs = defineStore('pubhubs', {
 
 		async changeDisplayName(name: string) {
 			try {
-				this.client.setDisplayName(name);
-			} catch (error) {
-				this.showError(error as string);
+				await this.client.setDisplayName(name);
+			} catch (error: any) {
+				this.showError(error);
 			}
 		},
 
@@ -401,12 +408,8 @@ const usePubHubs = defineStore('pubhubs', {
 				await this.client.setAvatarUrl(uri);
 				//Quickly update the avatar url.
 				await this.client.sendStateEvent('', 'm.room.avatar', { uri }, '');
-			} catch (error) {
-				const e = error as MatrixError;
-				// No user ist there on settings. so we ignore the error.
-				if (e.errcode !== 'M_FORBIDDEN') {
-					this.showError(error as string);
-				}
+			} catch (error: any) {
+				this.showError(error);
 			}
 		},
 

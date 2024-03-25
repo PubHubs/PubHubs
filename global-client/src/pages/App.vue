@@ -21,9 +21,7 @@
 
 							<div class="mx-6">
 								<div v-if="global.loggedIn">
-									<Dialog v-if="settingsDialog" @close="settingsDialog = false" :title="$t('settings.title')" :buttons="buttonsSubmitCancel">
-										<Settings></Settings>
-									</Dialog>
+									<SettingsDialog v-if="settingsDialog" @close="settingsDialog = false"></SettingsDialog>
 									<div class="flex justify-between">
 										<HubIcon type="cog" size="lg" @click="settingsDialog = true"></HubIcon>
 										<HubIcon type="power" size="lg" @click="logout()"></HubIcon>
@@ -48,7 +46,7 @@
 
 <script setup lang="ts">
 	import { onMounted, ref } from 'vue';
-	import { useGlobal, useSettings, HubList, useHubs, buttonsSubmitCancel, useDialog } from '@/store/store';
+	import { useGlobal, useSettings, HubList, useHubs, useDialog } from '@/store/store';
 	import { useI18n } from 'vue-i18n';
 	import { useToggleMenu } from '@/store/toggleGlobalMenu';
 

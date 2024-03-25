@@ -13,12 +13,12 @@
 
 <script setup lang="ts">
 	import { ref } from 'vue';
-	import { DialogButton, DialogButtonAction, DialogTrue, DialogFalse } from '@/store/dialog';
+	import { DialogButton, DialogButtonAction, DialogOk, DialogCancel } from '@/store/dialog';
 	import { useRooms } from '@/store/store';
 
 	const rooms = useRooms();
 	const emit = defineEmits(['close']);
-	const buttonsContinueIgnore: Array<DialogButton> = [new DialogButton('continue', 'blue', DialogTrue), new DialogButton('ignore', 'red', DialogFalse)];
+	const buttonsContinueIgnore: Array<DialogButton> = [new DialogButton('continue', 'blue', DialogOk), new DialogButton('ignore', 'red', DialogCancel)];
 
 	const showDisclosureDialog = ref(false);
 	const showDisclosureYivi = ref(false);

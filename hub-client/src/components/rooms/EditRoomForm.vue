@@ -7,11 +7,11 @@
 			</FormLine>
 			<FormLine>
 				<Label>{{ $t('admin.topic') }}</Label>
-				<TextInput :placeholder="$t('admin.topic')" v-model="editRoom.topic" class="w-5/6"></TextInput>
+				<TextInput :placeholder="$t('admin.topic')" v-model="editRoom.topic" class="w-5/6" @changed="updateData('topic', $event)"></TextInput>
 			</FormLine>
 			<FormLine v-if="!secured">
 				<Label>{{ $t('admin.room_type') }}</Label>
-				<TextInput :placeholder="$t('admin.room_type_placeholder')" v-model="editRoom.type" class="w-5/6" @submit="submitRoom()"></TextInput>
+				<TextInput :placeholder="$t('admin.room_type_placeholder')" v-model="editRoom.type" class="w-5/6" @changed="updateData('type', $event)"></TextInput>
 			</FormLine>
 			<div v-if="secured">
 				<FormLine class="mb-2">
@@ -39,9 +39,10 @@
 	import { isEmpty, trimSplit } from '@/core/extensions';
 
 	const { t } = useI18n();
-	const { setData, updateData } = useFormState();
+	const { setSubmitButton, setData, updateData } = useFormState();
 	const pubhubs = usePubHubs();
 	const rooms = useRooms();
+	const dialog = useDialog();
 	const yivi = useYivi();
 	const emit = defineEmits(['close']);
 
@@ -140,12 +141,24 @@
 			}
 		}
 
+		setSubmitButton(dialog.properties.buttons[0]);
+
 		setData({
 			name: {
-				value: '',
+				value: editRoom.value.name as string,
 				validation: { required: true },
 			},
+			topic: {
+				value: editRoom.value.topic as string,
+			},
 		});
+		if (!props.secured) {
+			setData({
+				type: {
+					value: '',
+				},
+			});
+		}
 	});
 
 	//#endregion
@@ -201,7 +214,6 @@
 					await rooms.addSecuredRoom(room);
 					editRoom.value = { ...emptyNewRoom };
 				} catch (error) {
-					const dialog = useDialog();
 					dialog.confirm('ERROR', error as string);
 				}
 			} else {
@@ -209,7 +221,6 @@
 					await rooms.changeSecuredRoom(room);
 					editRoom.value = { ...emptyNewRoom };
 				} catch (error) {
-					const dialog = useDialog();
 					dialog.confirm('ERROR', error as string);
 				}
 			}
