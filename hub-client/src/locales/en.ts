@@ -46,6 +46,8 @@ const en = {
 		rooms: '@:rooms.rooms',
 		settings: 'Settings',
 		tool: 'Tool',
+		admin_tools: 'Admin tools',
+		admin_tools_rooms: 'Manange rooms',
 		moderation_tools: 'Moderation tools',
 		moderation_tools_disclosure: 'Request disclosure',
 	},
@@ -90,6 +92,7 @@ const en = {
 	},
 	settings: {
 		displayname: 'Nickname',
+		avatar: 'Avatar',
 		avatar_changed: 'Avatar updated!.',
 		displayname_changed: 'Nickname changed to `{0}`.',
 		theme: 'Theme',
@@ -103,8 +106,8 @@ const en = {
 		change_avatar: 'Change Avatar',
 	},
 	admin: {
-		title: 'Admin',
-		description: 'Create and delete (secured) rooms',
+		title: 'Admin tools',
+		description: 'Create, edit, and delete (secured) rooms',
 		add_room: 'Add a public room',
 		add_secured_room: 'Add a (secured) room',
 		name: 'Room name',
@@ -180,6 +183,11 @@ const en = {
 		lightbulb: 'Lifestyle',
 		signs: 'Symbols',
 		flag: 'Flags',
+	},
+	validation: {
+		required: '`{0}` is required.',
+		max_length: '`{0}` is too long, max length is {1} characters.',
+		min_length: '`{0}` is too short, min length is {1} characters.',
 	},
 };
 

@@ -36,6 +36,11 @@ interface Settings {
 	pagination: number;
 
 	/**
+	 * Max length of displayname, Matrix has as default 255, but we like a shorter one.
+	 */
+	displayNameMaxLength: number;
+
+	/**
 	 * UI theme: system|dark|light
 	 */
 	theme: Theme;
@@ -64,6 +69,7 @@ const defaultSettings: Settings = {
 	theme: Theme.System,
 	timeformat: TimeFormat.format24,
 	pagination: 50,
+	displayNameMaxLength: 40,
 	language: fallbackLanguage,
 	_i18n: {
 		locale: undefined,
@@ -96,6 +102,7 @@ const createSettings = (defineStore: any) => {
 
 		getters: {
 			getPagination: (state: Settings) => state.pagination,
+			getDisplayNameMaxLength: (state: Settings) => state.displayNameMaxLength,
 
 			/**
 			 * Get theme set in preferences

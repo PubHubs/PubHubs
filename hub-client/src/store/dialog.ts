@@ -14,30 +14,35 @@ import { setUpi18n } from '../i18n';
  */
 
 type DialogButtonAction = string | number;
-const DialogFalse = 0;
-const DialogTrue = 1;
+const DialogCancel = 0;
+const DialogNo = 0;
+const DialogOk = 1;
+const DialogYes = 1;
+const DialogSubmit = 1;
 
 class DialogButton {
 	label: string;
 	color: string;
+	enabled: boolean;
 	action: DialogButtonAction;
 
-	constructor(label = '', color = '', action = DialogFalse) {
+	constructor(label = '', color = '', action = DialogCancel) {
 		this.label = label;
 		this.color = color;
 		this.action = action;
+		this.enabled = true;
 	}
 }
 
-const buttonsOk: Array<DialogButton> = [new DialogButton('ok', 'blue', DialogTrue)];
+const buttonsOk: Array<DialogButton> = [new DialogButton('ok', 'blue', DialogOk)];
 
-const buttonsCancel: Array<DialogButton> = [new DialogButton('cancel', 'red', DialogFalse)];
+const buttonsCancel: Array<DialogButton> = [new DialogButton('cancel', 'red', DialogCancel)];
 
-const buttonsOkCancel: Array<DialogButton> = [new DialogButton('ok', 'blue', DialogTrue), new DialogButton('cancel', 'red', DialogFalse)];
+const buttonsOkCancel: Array<DialogButton> = [new DialogButton('ok', 'blue', DialogOk), new DialogButton('cancel', 'red', DialogCancel)];
 
-const buttonsSubmitCancel: Array<DialogButton> = [new DialogButton('submit', 'blue', DialogTrue), new DialogButton('cancel', 'red', DialogFalse)];
+const buttonsSubmitCancel: Array<DialogButton> = [new DialogButton('submit', 'blue', DialogSubmit), new DialogButton('cancel', 'red', DialogCancel)];
 
-const buttonsYesNo: Array<DialogButton> = [new DialogButton('yes', 'blue', DialogTrue), new DialogButton('no', 'red', DialogFalse)];
+const buttonsYesNo: Array<DialogButton> = [new DialogButton('yes', 'blue', DialogYes), new DialogButton('no', 'red', DialogNo)];
 
 /**
  * DailogProperties class with all the properties a dialog needs
@@ -92,10 +97,7 @@ const useDialog = defineStore('dialog', {
 		 * @returns Promise with the answer of the pressed button
 		 */
 		show(properties: DialogProperties | null = null) {
-			if (window.self !== window.top) {
-				const messagebox = useMessageBox();
-				messagebox.sendMessage(new Message(MessageType.DialogShowModal));
-			}
+			this.showModal();
 			return new Promise((resolve) => {
 				if (properties === null) {
 					this.properties = new DialogProperties();
@@ -113,10 +115,7 @@ const useDialog = defineStore('dialog', {
 		 * @param returnValue the answer that will be given back
 		 */
 		close(returnValue: DialogButtonAction) {
-			if (window.self !== window.top) {
-				const messagebox = useMessageBox();
-				messagebox.sendMessage(new Message(MessageType.DialogHideModal));
-			}
+			this.hideModal();
 			this.visible = false;
 			const callback = this.callbacks[returnValue];
 			if (callback) {
@@ -127,6 +126,20 @@ const useDialog = defineStore('dialog', {
 			}
 			// reset
 			this.properties = new DialogProperties();
+		},
+
+		showModal() {
+			if (window.self !== window.top) {
+				const messagebox = useMessageBox();
+				messagebox.sendMessage(new Message(MessageType.DialogShowModal));
+			}
+		},
+
+		hideModal() {
+			if (window.self !== window.top) {
+				const messagebox = useMessageBox();
+				messagebox.sendMessage(new Message(MessageType.DialogHideModal));
+			}
 		},
 
 		/**
@@ -141,6 +154,14 @@ const useDialog = defineStore('dialog', {
 			const { t } = i18n.global;
 			const message = t('errors.error', title);
 			return this.show(new DialogProperties(message, content, buttonsOk));
+		},
+
+		disableButton(nr: number) {
+			this.properties.buttons[nr].enabled = false;
+		},
+
+		enableButton(nr: number) {
+			this.properties.buttons[nr].enabled = true;
 		},
 
 		/**
@@ -186,4 +207,4 @@ const useDialog = defineStore('dialog', {
 	},
 });
 
-export { buttonsOk, buttonsCancel, buttonsSubmitCancel, buttonsOkCancel, DialogButton, type DialogButtonAction, DialogFalse, DialogTrue, DialogProperties, useDialog };
+export { buttonsOk, buttonsCancel, buttonsSubmitCancel, buttonsOkCancel, DialogButton, type DialogButtonAction, DialogCancel, DialogOk, DialogYes, DialogNo, DialogSubmit, DialogProperties, useDialog };

@@ -1,2 +1,2 @@
-import { buttonsSubmitCancel, DialogButton, DialogProperties, useDialog, DialogButtonAction, DialogFalse, DialogTrue } from '../../../hub-client/src/store/dialog';
-export { buttonsSubmitCancel, DialogButton, DialogProperties, useDialog, type DialogButtonAction, DialogFalse, DialogTrue };
+import { buttonsSubmitCancel, DialogButton, DialogProperties, useDialog, DialogButtonAction, DialogCancel, DialogOk, DialogYes, DialogNo, DialogSubmit } from '../../../hub-client/src/store/dialog';
+export { buttonsSubmitCancel, DialogButton, DialogProperties, useDialog, type DialogButtonAction, DialogCancel, DialogOk, DialogYes, DialogNo, DialogSubmit };

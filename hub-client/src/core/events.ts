@@ -56,13 +56,13 @@ class Events {
 
 	eventRoomName(room: MatrixRoom) {
 		const rooms = useRooms();
-		console.debug('Room.name', room.name);
+		// console.debug('Room.name', room.name);
 		rooms.addMatrixRoom(room);
 	}
 
-	eventRoomTimeline(event: MatrixEvent, room: MatrixRoom | undefined, toStartOfTimeline: boolean | undefined, removed: boolean) {
+	eventRoomTimeline(event: MatrixEvent, room: MatrixRoom | undefined, toStartOfTimeline: boolean | undefined) {
 		const rooms = useRooms();
-		console.debug('Room.timeline', toStartOfTimeline, removed);
+		// console.debug('Room.timeline', toStartOfTimeline, removed);
 
 		if (!room) return;
 
@@ -82,7 +82,7 @@ class Events {
 
 	eventRoomMemberName(event: MatrixEvent, member: RoomMember) {
 		const user = useUser();
-		console.debug('RoomMember.name', member.user);
+		// console.debug('RoomMember.name', member.user);
 		if (member.user !== undefined && member.user.userId == user.user.userId) {
 			user.setUser(member.user as User);
 			if (member.user.displayName !== undefined) {
@@ -94,7 +94,7 @@ class Events {
 	eventRoomMemberMembership(client: MatrixClient) {
 		return function eventRoomMemberMembershipInner(event: MatrixEvent, member: RoomMember) {
 			const me = client.getUserId();
-			console.debug('RoomMember.membership', member.membership, member.userId, me, event.getRoomId());
+			// console.debug('RoomMember.membership', member.membership, member.userId, me, event.getRoomId());
 			if (me == member.userId) {
 				const rooms = useRooms();
 				if (member.membership == 'leave') {

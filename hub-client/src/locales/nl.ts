@@ -46,6 +46,8 @@ const nl = {
 		rooms: '@:rooms.rooms',
 		settings: 'Instellingen',
 		tool: 'Gereedschap',
+		admin_tools: 'Admin tools',
+		admin_tools_rooms: 'Beheer gesprekken',
 		moderation_tools: 'Moderatietools',
 		moderation_tools_disclosure: 'Vragen informatie vrij te geven',
 	},
@@ -90,6 +92,7 @@ const nl = {
 	},
 	settings: {
 		displayname: 'Bijnaam',
+		avatar: 'Avatar',
 		displayname_changed: 'Bijnaam gewijzigd in `{0}`.',
 		avatar_changed: 'Avatar bijgewerkt! ',
 		theme: 'Thema',
@@ -103,8 +106,8 @@ const nl = {
 		change_avatar: 'Avatar aanpassen',
 	},
 	admin: {
-		title: 'Admin',
-		description: 'Maak en verwijder hier (beveiligde) gesprekken',
+		title: 'Admin beheer',
+		description: 'Aanmaken, aanpassen en verwijderen van (beveiligde) gesprekken',
 		add_room: 'Voeg openbaar gesprek toe',
 		add_secured_room: 'Voeg beveiligd gesprek toe',
 		name: 'Naam van gesprek',
@@ -180,6 +183,11 @@ const nl = {
 		lightbulb: 'Levensstijl',
 		signs: 'Symbolen',
 		flag: 'Vlaggen',
+	},
+	validation: {
+		required: '`{0}` is een verplicht veld.',
+		max_length: '`{0}` is te lang, maximale lengte is {1} karakters.',
+		min_length: '`{0}` is te kort, minimale lengte is {1} karakters.',
 	},
 };
 

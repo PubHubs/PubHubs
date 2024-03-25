@@ -9,7 +9,7 @@
 	import { buttonSizes } from '@/assets/sizes';
 
 	const colorClass: { [key: string]: string } = {
-		disabled: 'bg-hub-background-3 text-gray',
+		disabled: 'bg-hub-background-3 bg-gray-lighter text-gray',
 		white: 'bg-white hover:bg-blue text-black shadow-md cursor-pointer',
 		'gray-light': 'bg-gray-light hover:bg-blue text-white shadow-md cursor-pointer',
 		blue: 'bg-blue hover:bg-blue-dark text-white dark:hover:bg-white dark:hover:text-blue-dark shadow-md cursor-pointer',
