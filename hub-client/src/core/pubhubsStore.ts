@@ -4,7 +4,7 @@ import { User as MatrixUser, MatrixClient, ContentHelpers, MatrixError, IStateEv
 
 import { Authentication } from '@/core/authentication';
 import { Events } from '@/core/events';
-import { useSettings, User, useUser, useRooms, useConnection, PubHubsRoomType, PublicRoom } from '@/store/store';
+import { useSettings, User, useUser, useRooms, useConnection, PubHubsRoomType } from '@/store/store';
 
 import filters from '@/core/filters';
 import { hasHtml, sanitizeHtml } from '@/core/sanitizer';
