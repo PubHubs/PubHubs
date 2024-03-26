@@ -47,7 +47,7 @@ const en = {
 		settings: 'Settings',
 		tool: 'Tool',
 		admin_tools: 'Admin tools',
-		admin_tools_rooms: 'Manange rooms',
+		admin_tools_rooms: 'Manage rooms',
 		moderation_tools: 'Moderation tools',
 		moderation_tools_disclosure: 'Request disclosure',
 	},
