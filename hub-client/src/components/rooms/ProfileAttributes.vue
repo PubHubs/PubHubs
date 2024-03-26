@@ -1,9 +1,10 @@
 <template>
-	<span v-if="attribute.length > 0" class="mb-4">
-		<span v-for="(value, index) in attribute" :key="value" :class="value === $t('rooms.admin_badge') ? 'bg-red' : bgColor(index)" class="text-white font-bold inline-block p-2 mr-2 rounded">
-			{{ value }}
-		</span>
-	</span>
+	<div v-if="attribute.length > 0" class="flex gap-x-1 pt-1">
+		<div v-for="(value, index) in attribute" :key="value" :class="value === $t('rooms.admin_badge') ? 'bg-red' : bgColor(index)" class="text-white text-xs lowercase inline-block px-1 rounded h-4 flex">
+			<Icon type="check" size="xs" class="mr-1" style="margin-top: 1px"></Icon>
+			<span>{{ value }}</span>
+		</div>
+	</div>
 </template>
 
 <script setup lang="ts">
