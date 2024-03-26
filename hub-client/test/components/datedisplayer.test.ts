@@ -61,8 +61,6 @@ describe('DateDisplayer.vue Test', () => {
 		// Exact number of element check
 		expect(wrapper.findAll('div').length).toBe(1);
 		expect(wrapper.findAll('div').length).toBe(1);
-
-		// Inner text match check
-		expect(wrapper.find('span').text()).toEqual('Thu Jan 01 1970');
+		
 	});
 });

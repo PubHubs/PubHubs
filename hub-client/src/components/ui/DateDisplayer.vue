@@ -6,7 +6,9 @@
 
 <script setup lang="ts">
 	import { useTimeFormat } from '@/composables/useTimeFormat';
+	import { useRooms } from '@/store/rooms';
 	const { formattedTimeInformation } = useTimeFormat();
+	const rooms = useRooms();
 
 	const props = defineProps({
 		eventTimeStamp: {
@@ -20,7 +22,12 @@
 	});
 
 	function displayDate(): string {
-		console.info(props.eventTimeStamp);
+		if (!rooms.currentRoom) return '';
+		const roomMessageStatus = rooms.currentRoom
+			.getLiveTimeline()
+			.getEvents()
+			.some((roomEvent) => roomEvent.getType() === 'm.room.message');
+		if (!roomMessageStatus) return '';
 		return formattedTimeInformation(props.eventTimeStamp);
 	}
 </script>
