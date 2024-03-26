@@ -1,5 +1,5 @@
 <template>
-	<p class="mt-2" v-html="parsedMessage"></p>
+	<p v-html="parsedMessage"></p>
 </template>
 
 <script setup lang="ts">
