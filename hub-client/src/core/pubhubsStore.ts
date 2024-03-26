@@ -4,7 +4,7 @@ import { User as MatrixUser, MatrixClient, ContentHelpers, MatrixError, IStateEv
 
 import { Authentication } from '@/core/authentication';
 import { Events } from '@/core/events';
-import { useSettings, User, useUser, useRooms, useConnection, PubHubsRoomType } from '@/store/store';
+import { useSettings, User, useUser, useRooms, useConnection, PubHubsRoomType, PublicRoom } from '@/store/store';
 
 import filters from '@/core/filters';
 import { hasHtml, sanitizeHtml } from '@/core/sanitizer';
@@ -99,12 +99,26 @@ const usePubHubs = defineStore('pubhubs', {
 		},
 
 		async getAllPublicRooms() {
-			return await this.client.publicRooms({
+			let publicRoomsResponse = await this.client.publicRooms({
 				limit: 1000,
 				filter: {
 					generic_search_term: '',
 				},
 			});
+			let public_rooms = publicRoomsResponse.chunk;
+
+			while (publicRoomsResponse.next_batch) {
+				publicRoomsResponse = await this.client.publicRooms({
+					limit: 1000,
+					since: publicRoomsResponse.next_batch,
+					filter: {
+						generic_search_term: '',
+					},
+				});
+				public_rooms = public_rooms.concat(publicRoomsResponse.chunk);
+			}
+
+			return public_rooms;
 		},
 
 		async joinRoom(room_id: string) {

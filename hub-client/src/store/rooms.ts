@@ -594,8 +594,7 @@ const useRooms = defineStore('rooms', {
 		},
 		async fetchPublicRooms() {
 			const pubhubs = usePubHubs();
-			const response = await pubhubs.getAllPublicRooms();
-			const rooms = response.chunk as [];
+			const rooms = await pubhubs.getAllPublicRooms();
 			this.publicRooms = rooms.sort(propCompare('name'));
 		},
 
