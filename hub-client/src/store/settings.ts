@@ -84,7 +84,7 @@ const defaultSettings: Settings = {
 		// main
 		signedMessages: true,
 		plugins: true,
-		dateSplitter: false,
+		dateSplitter: true,
 		disclosure: true,
 		// stable
 		//signedMessages: true,

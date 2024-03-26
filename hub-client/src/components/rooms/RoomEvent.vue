@@ -5,6 +5,7 @@
 			<component :is="event.plugin.component" :event="event">{{ event.plugin.component }}</component>
 		</div>
 		<!-- Normal Event -->
+
 		<div v-if="hubSettings.isVisibleEventType(event.type) && hubSettings.skipNoticeUserEvent(event)" class="group flex flex-row space-x-4 mb-8">
 			<Avatar :class="bgColor(color(event.sender))" :userName="event.sender" :img="avatar(event.sender) ? pubhubs.getBaseUrl + '/_matrix/media/r0/download/' + avatar(event.sender).slice(6) : ''"></Avatar>
 			<div class="w-4/5 md:w-3/5">
@@ -63,7 +64,6 @@
 	import { PluginType } from '@/store/plugins';
 	import { M_MessageEvent, M_HTMLTextMessageEventContent, M_EventId } from '@/types/events';
 	import { User as MatrixUser } from 'matrix-js-sdk';
-
 	const hubSettings = useHubSettings();
 	const connection = useConnection();
 	const { color, bgColor } = useUserColor();
@@ -99,6 +99,9 @@
 		if (!inReplyTo) return;
 		emit('inReplyToClick', inReplyTo.event_id);
 	}
+
+	//call within call
+	// call
 
 	//#endregion
 

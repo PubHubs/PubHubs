@@ -170,7 +170,8 @@ const en = {
 		},
 	},
 	time: {
-		yesterday: 'yesterday',
+		today: 'Today',
+		yesterday: 'Yesterday',
 		daysago: '{0} days ago',
 	},
 	emoji: {

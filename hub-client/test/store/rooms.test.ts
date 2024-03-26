@@ -6,7 +6,10 @@ class MockedRoom extends Room {
 	_mockedType: string;
 	client: any;
 
-	constructor(public readonly roomId: string, type: string = '') {
+	constructor(
+		public readonly roomId: string,
+		type: string = '',
+	) {
 		super(roomId);
 		this._mockedType = type;
 		this.client = {
