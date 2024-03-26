@@ -170,6 +170,7 @@ const nl = {
 		},
 	},
 	time: {
+		today: 'vandaag',
 		yesterday: 'gisteren',
 		daysago: '{0} dagen geleden',
 	},
