@@ -20,6 +20,7 @@
 	});
 
 	function displayDate(): string {
+		console.info(props.eventTimeStamp);
 		return formattedTimeInformation(props.eventTimeStamp);
 	}
 </script>

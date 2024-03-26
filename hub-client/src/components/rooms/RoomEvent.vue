@@ -13,7 +13,9 @@
 					<H3 class="flex items-center gap-x-2 mb-0">
 						<UserDisplayName :user="event.sender"></UserDisplayName>
 						<span class="text-xs font-normal">|</span>
-						<EventTime :timestamp="event.origin_server_ts"> </EventTime>
+						<EventTime :timestamp="event.origin_server_ts" :showDate="false"> </EventTime>
+						<span class="text-xs font-normal">|</span>
+						<EventTime :timestamp="event.origin_server_ts" :showDate="true"> </EventTime>
 					</H3>
 					<router-link v-if="!msgIsNotSend && user.isAdmin && event.sender != user.user.userId" :to="{ name: 'ask-disclosure', query: { user: event.sender } }">
 						<button :title="$t('menu.moderation_tools_disclosure')" class="ml-2 mb-1 hidden group-hover:block">

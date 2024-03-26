@@ -1,7 +1,7 @@
 <template>
 	<div id="room-timeline" ref="elRoomTimeline" class="h-full overflow-y-auto relative" @scroll="onScroll">
 		<div class="fixed right-60 top-24">
-			<DateDisplayer v-if="settings.isFeatureEnabled(featureFlagType.dateSplitter)" :scrollStatus="userHasScrolled" :changeTimeStamp="minTimeStampForTimeLineEvent().timeStamp" :eventTimeStamp="dateInformation"></DateDisplayer>
+			<DateDisplayer v-if="settings.isFeatureEnabled(featureFlagType.dateSplitter)" :scrollStatus="userHasScrolled" :eventTimeStamp="dateInformation.valueOf()"></DateDisplayer>
 		</div>
 		<div id="room-created-tag" v-if="oldestEventIsLoaded" class="rounded-xl flex items-center justify-center w-60 mx-auto mb-12 border border-solid border-black dark:border-white">{{ $t('rooms.roomCreated') }}</div>
 		<template v-for="(item, index) in rooms.getRoomTimeLineWithPluginsCheck(room_id)" :key="index">
@@ -39,7 +39,7 @@
 
 	let timeStampEvent: TimeLineEventTimeStamp[] = [];
 
-	let userHasScrolled: Ref<boolean> = ref(false);
+	let userHasScrolled: Ref<boolean> = ref(true);
 
 	let dateInformation = ref<Number>(0);
 

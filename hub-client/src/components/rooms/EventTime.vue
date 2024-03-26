@@ -4,16 +4,20 @@
 
 <script setup lang="ts">
 	import { useTimeFormat } from '@/composables/useTimeFormat';
-	const { formatTimestamp } = useTimeFormat();
+	const { formatTimestamp, formattedTimeInformation } = useTimeFormat();
 
 	const props = defineProps({
 		timestamp: {
 			type: Number,
 			required: true,
 		},
+		showDate: {
+			type: Boolean,
+			required: true,
+		},
 	});
 
 	function getDateTime() {
-		return formatTimestamp(props.timestamp);
+		return props.showDate ? formattedTimeInformation(props.timestamp) : formatTimestamp(props.timestamp);
 	}
 </script>
