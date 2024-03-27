@@ -1,6 +1,6 @@
 <template>
 	<div class="rounded-full w-12 h-12 flex items-center justify-center">
-		<img v-if="img != ''" :src="img" :class="rooms.currentRoom === undefined ? 'w-32 h-32 rounded-full border-2 border-blue-500' : 'rounded-full w-12 h-12'" />
+		<img v-if="img != ''" :src="img" :class="rooms.currentRoom === undefined ? 'w-32 h-32 rounded-full border-2 border-blue-500' : 'rounded-full w-full h-full'" />
 		<Icon v-else-if="display === '@'" type="person" class="right-0 group-hover:block h-16 w-16"></Icon>
 		<span v-else :class="rooms.currentRoom === undefined ? 'text-center text-5xl' : 'text-center text-2xl'">
 			{{ display }}

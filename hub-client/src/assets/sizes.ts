@@ -1,6 +1,7 @@
 // NB: Set classes also in safeList of tailwind.config.js
 
 const iconSizes: { [key: string]: string } = {
+	xs: 'h-3 w-3',
 	sm: 'h-4 w-4',
 	base: 'h-6 w-6',
 	md: 'h-7 w-7',

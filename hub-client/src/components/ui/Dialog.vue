@@ -3,10 +3,10 @@
 <template>
 	<div class="absolute h-screen w-screen top-0 left-0">
 		<div v-if="dialog.properties.modal" class="absolute inset-0 h-screen z-10 bg-gray-middle opacity-75"></div>
-		<div v-if="!dialog.properties.modalonly" class="absolute inset-0 h-screen flex z-10" @click="doAction(DialogFalse)">
+		<div v-if="!dialog.properties.modalonly" class="absolute inset-0 h-screen flex z-10" @click="doAction(DialogCancel)">
 			<div class="theme-light m-auto p-4 rounded-lg shadow-xl shadow-black bg-white" :class="centerClass" @click.stop>
 				<div>
-					<Icon v-if="dialog.properties.close" type="close" size="md" class="float-right -mt-1 hover:text-red theme-light:text-gray theme-light:hover:text-red" @click="doAction(DialogFalse)"></Icon>
+					<Icon v-if="dialog.properties.close" type="close" size="md" class="float-right -mt-1 hover:text-red theme-light:text-gray theme-light:hover:text-red" @click="doAction(DialogCancel)"></Icon>
 					<H2 v-if="dialog.properties.title !== ''" class="m-0 text-left">{{ dialog.properties.title }}</H2>
 					<slot name="header"></slot>
 				</div>
@@ -18,7 +18,7 @@
 				<Line class="mt-2 mb-3 z-0"></Line>
 				<div class="flex flex-row-reverse">
 					<div v-for="(button, index) in dialog.properties.buttons" :key="index" class="ml-2">
-						<Button :color="button.color" @click="doAction(button.action)">{{ $t('dialog.' + button.label) }}</Button>
+						<Button :color="button.color" @click="doAction(button.action)" :disabled="!button.enabled">{{ $t('dialog.' + button.label) }}</Button>
 					</div>
 				</div>
 			</div>
@@ -27,8 +27,8 @@
 </template>
 
 <script setup lang="ts">
-	import { onMounted, useSlots, computed } from 'vue';
-	import { DialogButton, DialogButtonAction, DialogTrue, DialogFalse, useDialog } from '@/store/dialog';
+	import { onMounted, useSlots, computed, onUnmounted } from 'vue';
+	import { DialogButton, DialogButtonAction, DialogOk, DialogCancel, useDialog } from '@/store/dialog';
 	const emit = defineEmits(['close']);
 	const dialog = useDialog();
 	const slots = useSlots();
@@ -60,6 +60,10 @@
 		},
 	});
 
+	onUnmounted(() => {
+		dialog.hideModal();
+	});
+
 	onMounted(() => {
 		if (props.title !== '') {
 			dialog.properties.title = props.title;
@@ -68,18 +72,20 @@
 			dialog.properties.buttons = props.buttons;
 		}
 
+		dialog.showModal();
 		document.addEventListener('keydown', (e) => {
 			if (e.code == 'Escape') {
-				doAction(DialogFalse);
+				doAction(DialogCancel);
 			}
 			if (e.code == 'Enter') {
-				doAction(DialogTrue);
+				doAction(DialogOk);
 			}
 		});
 	});
 
 	function doAction(action: DialogButtonAction) {
 		emit('close', action);
+		dialog.hideModal();
 		dialog.close(action);
 	}
 </script>

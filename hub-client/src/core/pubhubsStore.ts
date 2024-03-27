@@ -1,6 +1,6 @@
 import { defineStore } from 'pinia';
 
-import { User as MatrixUser, MatrixClient, ContentHelpers, MatrixError, IStateEventWithRoomId } from 'matrix-js-sdk';
+import { User as MatrixUser, MatrixClient, MatrixEvent, ContentHelpers, MatrixError, IStateEventWithRoomId } from 'matrix-js-sdk';
 
 import { Authentication } from '@/core/authentication';
 import { Events } from '@/core/events';
@@ -10,15 +10,14 @@ import filters from '@/core/filters';
 import { hasHtml, sanitizeHtml } from '@/core/sanitizer';
 import { api_synapse, api_matrix } from '@/core/api';
 import { M_Mentions, M_MessageEvent, M_TextMessageEventContent } from '@/types/events';
-import { YiviSigningSessionResult } from '@/lib/signedMessages';
+import { YiviSigningSessionResult, AskDisclosureMessage } from '@/lib/signedMessages';
+import { ReceiptType } from 'matrix-js-sdk/lib/@types/read_receipts';
 
 const usePubHubs = defineStore('pubhubs', {
-	state: () => {
-		return {
-			Auth: new Authentication(),
-			client: {} as MatrixClient,
-		};
-	},
+	state: () => ({
+		Auth: new Authentication(),
+		client: {} as MatrixClient,
+	}),
 
 	getters: {
 		getBaseUrl(state) {
@@ -82,9 +81,16 @@ const usePubHubs = defineStore('pubhubs', {
 			alert(message);
 		},
 
-		showError(error: string) {
-			const message = 'Unfortanatly an error occured. Please contact the developers.\n\n' + error;
-			this.showDialog(message);
+		showError(error: string | MatrixError) {
+			if (typeof error !== 'string') {
+				if (error.errcode !== 'M_FORBIDDEN') {
+					this.showDialog(error.data.error as string);
+				} else {
+					console.log(error);
+				}
+			} else {
+				this.showDialog('Unfortanatly an error occured. Please contact the developers.\n\n' + error.toString);
+			}
 		},
 
 		/**
@@ -101,12 +107,26 @@ const usePubHubs = defineStore('pubhubs', {
 		},
 
 		async getAllPublicRooms() {
-			return await this.client.publicRooms({
+			let publicRoomsResponse = await this.client.publicRooms({
 				limit: 1000,
 				filter: {
 					generic_search_term: '',
 				},
 			});
+			let public_rooms = publicRoomsResponse.chunk;
+
+			while (publicRoomsResponse.next_batch) {
+				publicRoomsResponse = await this.client.publicRooms({
+					limit: 1000,
+					since: publicRoomsResponse.next_batch,
+					filter: {
+						generic_search_term: '',
+					},
+				});
+				public_rooms = public_rooms.concat(publicRoomsResponse.chunk);
+			}
+
+			return public_rooms;
 		},
 
 		async joinRoom(room_id: string) {
@@ -161,6 +181,11 @@ const usePubHubs = defineStore('pubhubs', {
 
 		async renameRoom(roomId: string, name: string) {
 			await this.client.setRoomName(roomId, name);
+			this.updateRooms();
+		},
+
+		async setTopic(roomId: string, topic: string) {
+			await this.client.setRoomTopic(roomId, topic);
 			this.updateRooms();
 		},
 
@@ -280,6 +305,29 @@ const usePubHubs = defineStore('pubhubs', {
 			await this.client.sendEvent(roomId, 'm.room.message', content);
 		},
 
+		async sendReadReceipt(event: MatrixEvent) {
+			if (!event) return;
+			const loggedInUser = useUser();
+			const content = {
+				'm.read': {
+					[loggedInUser.user.userId]: {
+						ts: event.localTimestamp,
+						thread_id: 'main',
+					},
+				},
+			};
+			await this.client.sendReceipt(event, ReceiptType.Read, content);
+		},
+
+		async addAskDisclosureMessage(roomId: string, body: string, askDisclosureMessage: AskDisclosureMessage) {
+			const content = {
+				msgtype: 'pubhubs.ask_disclosure_message',
+				body: body,
+				ask_disclosure_message: askDisclosureMessage,
+			};
+			await this.client.sendEvent(roomId, 'm.room.message', content);
+		},
+
 		// Sends acknowledgement to synapse about the message has been read.
 		// We also store the timestamp in localstorage to avoid any inaccuracy of timestamp comparision.
 		// SEE our algorithm for receipt acknowledgement in room.ts / unreadMessageCounter
@@ -378,9 +426,9 @@ const usePubHubs = defineStore('pubhubs', {
 
 		async changeDisplayName(name: string) {
 			try {
-				this.client.setDisplayName(name);
-			} catch (error) {
-				this.showError(error as string);
+				await this.client.setDisplayName(name);
+			} catch (error: any) {
+				this.showError(error);
 			}
 		},
 
@@ -389,12 +437,8 @@ const usePubHubs = defineStore('pubhubs', {
 				await this.client.setAvatarUrl(uri);
 				//Quickly update the avatar url.
 				await this.client.sendStateEvent('', 'm.room.avatar', { uri }, '');
-			} catch (error) {
-				const e = error as MatrixError;
-				// No user ist there on settings. so we ignore the error.
-				if (e.errcode !== 'M_FORBIDDEN') {
-					this.showError(error as string);
-				}
+			} catch (error: any) {
+				this.showError(error);
 			}
 		},
 

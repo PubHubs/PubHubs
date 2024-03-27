@@ -6,7 +6,7 @@ import { Theme } from '@/store/store';
 /**
  * This store is used to exchange messages from global client (parent frame) to hub client (iframe) and the other way around.
  *
- * Before sending and receiving messages is possible, the messagebox need to be initialised from both sides (parent & hub) which will start a handshake session.
+ * Before sending and receiving messages is possible, the messagebox needs to be initialised from both sides (parent & hub) which will start a handshake session.
  * If this handshake is ready, the init call will give a Promise after which callbacks can be set for each MessageType.
  *
  * In the next timelime the handshake process is shown:
@@ -197,7 +197,7 @@ const useMessageBox = defineStore('messagebox', {
 								resolve(true);
 							}
 
-							// Normal message was received and is of a know message type
+							// Normal message was received and is of a known message type
 							else if (Object.values(MessageType).includes(message.type)) {
 								this.receivedMessage(message);
 								reject();

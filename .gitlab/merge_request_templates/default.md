@@ -1,0 +1,1 @@
+Keep in mind the **[code guidelines](https://gitlab.science.ru.nl/ilab/pubhubs_canonical/-/wikis/Contributing/Code-guidelines)** and  add your changes to the **[changelog](https://gitlab.science.ru.nl/ilab/pubhubs_canonical/-/blob/main/CHANGELOG.md?ref_type=heads)**.

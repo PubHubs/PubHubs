@@ -1,8 +1,13 @@
 <template>
-	<div id="room-timeline" ref="elRoomTimeline" class="h-full overflow-y-auto relative" @scroll="onScroll">
+	<div v-if="rooms.currentRoomExists" id="room-timeline" ref="elRoomTimeline" class="h-full overflow-y-auto relative" @scroll="onScroll">
+		<div class="fixed right-60 top-24">
+			<DateDisplayer v-if="settings.isFeatureEnabled(featureFlagType.dateSplitter)" :scrollStatus="userHasScrolled" :eventTimeStamp="dateInformation.valueOf()"></DateDisplayer>
+		</div>
 		<div id="room-created-tag" v-if="oldestEventIsLoaded" class="rounded-xl flex items-center justify-center w-60 mx-auto mb-12 border border-solid border-black dark:border-white">{{ $t('rooms.roomCreated') }}</div>
 		<template v-for="(item, index) in rooms.getRoomTimeLineWithPluginsCheck(room_id)" :key="index">
-			<RoomEvent :eventId="item.event.event_id" :event="item.event" class="room-event" @in-reply-to-click="onInReplyToClick"></RoomEvent>
+			<div ref="elRoomEvent" :id="item.event.event_id">
+				<RoomEvent :event="item.event" class="room-event" @on-in-reply-to-click="onInReplyToClick"></RoomEvent>
+			</div>
 		</template>
 	</div>
 </template>
@@ -12,7 +17,11 @@
 	import { Room, useRooms, useUser } from '@/store/store';
 	import { useRoute } from 'vue-router';
 	import { usePubHubs } from '@/core/pubhubsStore';
+	import { ElementObserver } from '@/core/elementObserver';
 	import { MatrixEvent } from 'matrix-js-sdk';
+	import DateDisplayer from '../ui/DateDisplayer.vue';
+	import { useSettings, featureFlagType } from '@/store/store';
+	const settings = useSettings();
 	import { Ref } from 'vue';
 
 	const rooms = useRooms();
@@ -22,9 +31,22 @@
 
 	const elRoomTimeline = ref<HTMLElement | null>(null);
 
+	const elRoomEvent = ref<HTMLElement | null>(null);
+
 	let newestEventId: string | undefined;
 	// todo: move to Room class.
 	let oldestEventIsLoaded: Ref<boolean> = ref(false);
+
+	let timeStampEvent: TimeLineEventTimeStamp[] = [];
+
+	let userHasScrolled: Ref<boolean> = ref(true);
+
+	let dateInformation = ref<Number>(0);
+
+	type TimeLineEventTimeStamp = {
+		eventId: string;
+		timeStamp: number;
+	};
 
 	type Props = {
 		room_id: string;
@@ -32,7 +54,29 @@
 
 	const props = defineProps<Props>();
 
+	const DELAY_VALID_M_EVENT_ID = 1000; // 1 second
+
+	const DELAY_POPUP_VIEW_ON_SCREEN = 4000; // 4 seconds
+
+	let elementObserver: ElementObserver | null = null;
+
 	onMounted(async () => {
+		scrollStatus();
+		setInterval(() => {
+			if (userHasScrolled.value) {
+				userHasScrolled.value = false;
+			}
+		}, DELAY_POPUP_VIEW_ON_SCREEN);
+
+		// Instantiate ElementObserver with your target element when the element is fully in the viewport.
+		elementObserver = elRoomEvent.value && new ElementObserver(elRoomEvent.value, { threshold: 1.0 });
+
+		//Observer for read receipts
+		elementObserver?.setUpObserver(handleReadReceiptIntersection);
+
+		//Date Display Interaction callback is based on feature flag
+		settings.isFeatureEnabled(featureFlagType.dateSplitter) && elementObserver?.setUpObserver(handleDateDisplayer);
+
 		if (!rooms.currentRoomExists) return;
 		await loadInitialEvents();
 		scrollToBottom();
@@ -43,16 +87,68 @@
 	});
 
 	// Watch for new messages.
+	watch(
+		() => elRoomEvent.value && elRoomEvent.value.length,
+		() => {
+			settings.isFeatureEnabled(featureFlagType.dateSplitter) && elementObserver?.setUpObserver(handleDateDisplayer);
+			elementObserver?.setUpObserver(handleReadReceiptIntersection);
+		},
+	);
 	watch(() => rooms.currentRoom?.getLiveTimeline().getEvents().length, onTimelineChange);
 
 	watch(route, async () => {
 		if (rooms.currentRoomExists) {
 			await rooms.storeRoomNotice(rooms.currentRoom!.roomId);
-			scrollToBottom();
 		}
 	});
 
+	// Callback for handling visibility of message for acknowledging read receipts.
+	const handleReadReceiptIntersection = (entries: IntersectionObserverEntry[]) => {
+		entries.forEach(async (entry) => {
+			const eventId = entry.target.id;
+			const matrixEvent: MatrixEvent = rooms.currentRoom?.findEventById(eventId);
+
+			// Added a delay of one second to cater matrix to sync actual event ID
+			// Before sync, it generates dummy event ID consisting of txn and room Id.
+			// TODO: periodically checks if valid event Id is generated.
+			setTimeout(async () => {
+				// For each visible message, send a read receipt.
+				if (matrixEvent && matrixEvent.getType() === 'm.room.message') {
+					await pubhubs.sendReadReceipt(matrixEvent);
+				}
+			}, DELAY_VALID_M_EVENT_ID);
+		});
+	};
+
+	// Callback for handling visibility of message for finding the date that would be pop up while scrolling.
+	const handleDateDisplayer = (entries: IntersectionObserverEntry[]) => {
+		timeStampEvent = [];
+		entries.forEach((entry) => {
+			const eventId = entry.target.id;
+			const matrixEvent: MatrixEvent = rooms.currentRoom?.findEventById(eventId);
+			if (matrixEvent.getType() === 'm.room.message') {
+				timeStampEvent.push({ eventId: eventId, timeStamp: matrixEvent.localTimestamp });
+			}
+		});
+		const minTimeStamp = minTimeStampForTimeLineEvent();
+		const firstReadEvent = rooms.currentRoom?.findEventById(minTimeStamp.eventId);
+		if (!firstReadEvent) return;
+		dateInformation.value = firstReadEvent?.localTimestamp;
+	};
+
+	function minTimeStampForTimeLineEvent(): TimeLineEventTimeStamp {
+		// Initialize object with initial values
+		if (timeStampEvent.length < 1) return { eventId: '', timeStamp: -1 };
+
+		// Find the object with minimum timestamp
+		return timeStampEvent.reduce((accumulator, currentValue) => {
+			return accumulator.timeStamp < currentValue.timeStamp ? accumulator : currentValue;
+		});
+	}
+
 	async function onTimelineChange(newTimelineLength?: number, oldTimelineLength?: number) {
+		elementObserver?.setUpObserver(handleReadReceiptIntersection);
+
 		if (!newTimelineLength || !oldTimelineLength) return;
 		if (!elRoomTimeline.value) return;
 		if (!rooms.currentRoom) return;
@@ -77,14 +173,14 @@
 
 		// If scrolled to the top of the screen, load older events.
 		if (ev.target.scrollTop === 0) {
-			const oldestEvent = rooms.rooms[props.room_id]
+			const prevOldestLoadedEventId = rooms.rooms[props.room_id]
 				.getLiveTimeline()
 				.getEvents()
-				.find((event) => event.getType() == 'm.room.message');
-			const oldestEventId = oldestEvent?.getId();
+				.find((event) => event.getType() == 'm.room.message')
+				?.getId();
 			oldestEventIsLoaded.value = await pubhubs.loadOlderEvents(rooms.currentRoomId);
-			if (oldestEventId) {
-				scrollToEvent(oldestEventId);
+			if (prevOldestLoadedEventId && !oldestEventIsLoaded.value) {
+				scrollToEvent(prevOldestLoadedEventId);
 			}
 		}
 	}
@@ -94,9 +190,14 @@
 	}
 
 	//#endregion
-
 	function scrollToBottom() {
 		elRoomTimeline.value?.scrollTo(0, elRoomTimeline.value.scrollHeight);
+	}
+
+	// To detect if scrolling has started.
+	function scrollStatus() {
+		if (!elRoomTimeline.value) return;
+		elRoomTimeline.value.onscroll = () => (userHasScrolled.value = true);
 	}
 
 	async function scrollToEvent(eventId: string, options: { position: 'Top' | 'TopCenter'; select?: 'Highlight' | 'Select' } = { position: 'Top' }) {

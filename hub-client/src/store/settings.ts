@@ -10,6 +10,7 @@ enum featureFlagType {
 	signedMessages = 'signedMessages',
 	plugins = 'plugins',
 	dateSplitter = 'dateSplitter',
+	disclosure = 'disclosure',
 }
 
 enum Theme {
@@ -35,6 +36,11 @@ interface Settings {
 	pagination: number;
 
 	/**
+	 * Max length of displayname, Matrix has as default 255, but we like a shorter one.
+	 */
+	displayNameMaxLength: number;
+
+	/**
 	 * UI theme: system|dark|light
 	 */
 	theme: Theme;
@@ -55,6 +61,7 @@ interface Settings {
 		signedMessages: boolean;
 		plugins: boolean;
 		dateSplitter: boolean;
+		disclosure: boolean;
 	};
 }
 
@@ -62,15 +69,28 @@ const defaultSettings: Settings = {
 	theme: Theme.System,
 	timeformat: TimeFormat.format24,
 	pagination: 50,
+	displayNameMaxLength: 40,
 	language: fallbackLanguage,
 	_i18n: {
 		locale: undefined,
 		availableLocales: undefined,
 	},
+
+	/**
+	 * Enable/disable feature flags here.
+	 * Please also write down which should be enabled on main and which on stable.
+	 */
 	featureFlags: {
+		// main
+		// signedMessages: true,
+		// plugins: true,
+		// dateSplitter: true,
+		// disclosure: true,
+		// stable
 		signedMessages: true,
 		plugins: true,
 		dateSplitter: false,
+		disclosure: false,
 	},
 };
 
@@ -82,6 +102,7 @@ const createSettings = (defineStore: any) => {
 
 		getters: {
 			getPagination: (state: Settings) => state.pagination,
+			getDisplayNameMaxLength: (state: Settings) => state.displayNameMaxLength,
 
 			/**
 			 * Get theme set in preferences

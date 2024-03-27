@@ -1,4 +1,4 @@
-import sdk from 'matrix-js-sdk';
+import * as sdk from 'matrix-js-sdk';
 import { MatrixClient } from 'matrix-js-sdk';
 
 import { User, useUser, useDialog } from '@/store/store';

@@ -31,7 +31,7 @@ class YiviRoomJoinStore:
         self.config = config
         self.module_api = module_api
 
-            
+
     async def create_tables(self):
         """Creates the necessary tables for allowing users access using Yivi.
         """
@@ -48,7 +48,7 @@ class YiviRoomJoinStore:
                 """,
                 (),
             )
- 
+
             txn.execute(
                 """
                 CREATE UNIQUE INDEX IF NOT EXISTS allowed_user_room_idx
@@ -116,8 +116,8 @@ class YiviRoomJoinStore:
         :param room_id: the room
         :param join_time: the room has been joined by the user with expiration time.
         """
-        
-        
+
+
         def allow_txn(
                 txn: LoggingTransaction,
                 user_id_txn: str,
@@ -138,57 +138,57 @@ class YiviRoomJoinStore:
             join_time
         )
 
-    
+
     async def remove_from_room(self):
         def set_expiry_from_user_txn(
                 txn: LoggingTransaction,
-                ): 
-           
+                ):
+
             txn.execute(
                 """
                 UPDATE allowed_to_join_room SET user_expired = 1 WHERE CAST(join_time AS REAL) <= strftime('%s', 'now') - (SELECT expiration_time_days * 24 * 60 * 60 FROM secured_rooms WHERE room_id = allowed_to_join_room.room_id);
                 """,
             )
-            
+
             txn.execute(
                 """
                 SELECT user_id,room_id from allowed_to_join_room WHERE user_expired = 1
                 """,
             )
             return txn.fetchall()
-        
+
         result = await self.module_api.run_db_interaction(
             "set_expiry_from_user_txn",
             set_expiry_from_user_txn,
-            
+
         )
 
         for row in result:
             user_id, room_id =  row
             await self.module_api.update_room_membership(user_id, user_id, room_id, "leave")
-        
-        
+
+
         def remove_user_from_allowed_into_secured_room_txn(
                 txn: LoggingTransaction,
                 ):
-                 
+
             txn.execute(
                 """
                 DELETE from allowed_to_join_room WHERE user_expired = 1;
                 """,
             )
-            
+
         await self.module_api.run_db_interaction(
             "remove_user_from_allowed_into_secured_room",
             remove_user_from_allowed_into_secured_room_txn,
-            
-        )  
-        
-    
+
+        )
+
+
     async def get_room_expiration_time_days(self, room_id=None):
-        
+
         def get_room_expiration_time_days_txn(txn: LoggingTransaction, room_id_txn):
-            
+
             txn.execute(
                     """
                     SELECT expiration_time_days FROM secured_rooms WHERE room_id = ?
@@ -197,21 +197,21 @@ class YiviRoomJoinStore:
                 )
             return txn.fetchone()
 
-        
+
         return await self.module_api.run_db_interaction(
             "get_room_expiration_time_days",
             get_room_expiration_time_days_txn,
             room_id,
         )
-         
+
     async def get_secured_rooms(self) -> Optional[list[SecuredRoom]]:
         """Get all secured rooms"""
 
         def get_secured_rooms_txn(txn: LoggingTransaction):
             txn.execute(
                         """
-                        SELECT sr.room_id, rss.name, accepted, expiration_time_days, user_txt, rss.room_type 
-                        FROM secured_rooms AS sr 
+                        SELECT sr.room_id, rss.name, rss.topic, accepted, expiration_time_days, user_txt, rss.room_type
+                        FROM secured_rooms AS sr
                         INNER JOIN room_stats_state AS rss ON sr.room_id = rss.room_id AND rss.name NOT NULL
                         """)
 
@@ -221,8 +221,8 @@ class YiviRoomJoinStore:
             "get_secured_rooms",
             get_secured_rooms_txn
         )
-        
-        
+
+
         result = map(tuple_to_room, rooms)
 
         return result
@@ -233,10 +233,10 @@ class YiviRoomJoinStore:
         def get_secured_room_txn(txn: LoggingTransaction, id_tx: str):
             txn.execute(
                 """
-                    SELECT sr.room_id, rss.name, accepted,expiration_time_days,user_txt, rss.room_type 
-                    FROM secured_rooms AS sr 
+                    SELECT sr.room_id, rss.name, rss.topic, accepted,expiration_time_days,user_txt, rss.room_type
+                    FROM secured_rooms AS sr
                     INNER JOIN room_stats_state AS rss ON sr.room_id = rss.room_id AND rss.name NOT NULL
-                    WHERE sr.room_id = ? 
+                    WHERE sr.room_id = ?
                     """,
                 [id_tx])
 
@@ -255,7 +255,7 @@ class YiviRoomJoinStore:
 
     async def create_secured_room(self, room: SecuredRoom):
         """Turn database results into a SecuredRoom"""
-                           
+
         def create_secured_room_txn(txn: LoggingTransaction, room_tx: SecuredRoom):
                     txn.execute(
                         """
@@ -263,7 +263,7 @@ class YiviRoomJoinStore:
                             """,
                         (room_tx.room_id, json.dumps(room_tx.accepted, default=RoomAttributeEncoder().default), room_tx.user_txt,room_tx.expiration_time_days )
                     )
-      
+
         await self.module_api.run_db_interaction(
             "create secured room",
             create_secured_room_txn,
@@ -315,6 +315,8 @@ class YiviRoomJoinStore:
 
 def tuple_to_room(room) -> SecuredRoom:
     logger.info(f"Tuple looks like  {room}")
-    (room_id, room_name, accepted, expiration_time_days, user_txt, type) = room
-    return SecuredRoom(room_id=room_id, room_name=room_name, accepted=json.loads(accepted), expiration_time_days=expiration_time_days, user_txt=user_txt, type=type)
+    (room_id, name, topic, accepted, expiration_time_days, user_txt, type) = room
+    if topic is None:
+        topic = ''
+    return SecuredRoom(room_id=room_id, name=name, topic=topic, accepted=json.loads(accepted), expiration_time_days=expiration_time_days, user_txt=user_txt, type=type)
 
