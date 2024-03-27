@@ -1,6 +1,6 @@
 import { defineStore } from 'pinia';
 
-import { User as MatrixUser, MatrixClient, ContentHelpers, MatrixError, IStateEventWithRoomId } from 'matrix-js-sdk';
+import { User as MatrixUser, MatrixClient, MatrixEvent, ContentHelpers, MatrixError, IStateEventWithRoomId } from 'matrix-js-sdk';
 
 import { Authentication } from '@/core/authentication';
 import { Events } from '@/core/events';
@@ -11,6 +11,7 @@ import { hasHtml, sanitizeHtml } from '@/core/sanitizer';
 import { api_synapse, api_matrix } from '@/core/api';
 import { M_Mentions, M_MessageEvent, M_TextMessageEventContent } from '@/types/events';
 import { YiviSigningSessionResult, AskDisclosureMessage } from '@/lib/signedMessages';
+import { ReceiptType } from 'matrix-js-sdk/lib/@types/read_receipts';
 
 const usePubHubs = defineStore('pubhubs', {
 	state: () => ({
@@ -302,6 +303,20 @@ const usePubHubs = defineStore('pubhubs', {
 				signed_message: signedMessage,
 			};
 			await this.client.sendEvent(roomId, 'm.room.message', content);
+		},
+
+		async sendReadReceipt(event: MatrixEvent) {
+			if (!event) return;
+			const loggedInUser = useUser();
+			const content = {
+				'm.read': {
+					[loggedInUser.user.userId]: {
+						ts: event.localTimestamp,
+						thread_id: 'main',
+					},
+				},
+			};
+			await this.client.sendReceipt(event, ReceiptType.Read, content);
 		},
 
 		async addAskDisclosureMessage(roomId: string, body: string, askDisclosureMessage: AskDisclosureMessage) {

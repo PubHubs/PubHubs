@@ -61,6 +61,5 @@ describe('DateDisplayer.vue Test', () => {
 		// Exact number of element check
 		expect(wrapper.findAll('div').length).toBe(1);
 		expect(wrapper.findAll('div').length).toBe(1);
-		
 	});
 });

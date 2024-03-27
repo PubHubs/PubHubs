@@ -54,6 +54,7 @@ const nl = {
 	others: {
 		nop: 'Deze functionaleit is nog niet gerealiseerd.',
 		search: 'zoeken',
+		read_receipt: 'Gelezen door',
 	},
 	rooms: {
 		me: 'Ik',

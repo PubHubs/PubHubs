@@ -54,6 +54,7 @@ const en = {
 	others: {
 		nop: 'This feature is not implement yet.',
 		search: 'search',
+		read_receipt: 'Read by',
 	},
 	rooms: {
 		me: 'Me',
