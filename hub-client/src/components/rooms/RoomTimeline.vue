@@ -54,19 +54,25 @@
 
 	const props = defineProps<Props>();
 
+	const DELAY_VALID_M_EVENT_ID = 1000; // 1 second
+
+	const DELAY_POPUP_VIEW_ON_SCREEN = 4000; // 4 seconds
+
 	let elementObserver: ElementObserver | null = null;
 
 	onMounted(async () => {
 		scrollStatus();
-
 		setInterval(() => {
 			if (userHasScrolled.value) {
 				userHasScrolled.value = false;
 			}
-		}, 2000);
+		}, DELAY_POPUP_VIEW_ON_SCREEN);
 
 		// Instantiate ElementObserver with your target element when the element is fully in the viewport.
 		elementObserver = elRoomEvent.value && new ElementObserver(elRoomEvent.value, { threshold: 1.0 });
+
+		//Observer for read receipts
+		elementObserver?.setUpObserver(handleReadReceiptIntersection);
 
 		//Date Display Interaction callback is based on feature flag
 		settings.isFeatureEnabled(featureFlagType.dateSplitter) && elementObserver?.setUpObserver(handleDateDisplayer);
@@ -85,6 +91,7 @@
 		() => elRoomEvent.value && elRoomEvent.value.length,
 		() => {
 			settings.isFeatureEnabled(featureFlagType.dateSplitter) && elementObserver?.setUpObserver(handleDateDisplayer);
+			elementObserver?.setUpObserver(handleReadReceiptIntersection);
 		},
 	);
 	watch(() => rooms.currentRoom?.getLiveTimeline().getEvents().length, onTimelineChange);
@@ -95,6 +102,25 @@
 		}
 	});
 
+	// Callback for handling visibility of message for acknowledging read receipts.
+	const handleReadReceiptIntersection = (entries: IntersectionObserverEntry[]) => {
+		entries.forEach(async (entry) => {
+			const eventId = entry.target.id;
+			const matrixEvent: MatrixEvent = rooms.currentRoom?.findEventById(eventId);
+
+			// Added a delay of one second to cater matrix to sync actual event ID
+			// Before sync, it generates dummy event ID consisting of txn and room Id.
+			// TODO: periodically checks if valid event Id is generated.
+			setTimeout(async () => {
+				// For each visible message, send a read receipt.
+				if (matrixEvent && matrixEvent.getType() === 'm.room.message') {
+					await pubhubs.sendReadReceipt(matrixEvent);
+				}
+			}, DELAY_VALID_M_EVENT_ID);
+		});
+	};
+
+	// Callback for handling visibility of message for finding the date that would be pop up while scrolling.
 	const handleDateDisplayer = (entries: IntersectionObserverEntry[]) => {
 		timeStampEvent = [];
 		entries.forEach((entry) => {
@@ -121,6 +147,8 @@
 	}
 
 	async function onTimelineChange(newTimelineLength?: number, oldTimelineLength?: number) {
+		elementObserver?.setUpObserver(handleReadReceiptIntersection);
+
 		if (!newTimelineLength || !oldTimelineLength) return;
 		if (!elRoomTimeline.value) return;
 		if (!rooms.currentRoom) return;
@@ -166,6 +194,7 @@
 		elRoomTimeline.value?.scrollTo(0, elRoomTimeline.value.scrollHeight);
 	}
 
+	// To detect if scrolling has started.
 	function scrollStatus() {
 		if (!elRoomTimeline.value) return;
 		elRoomTimeline.value.onscroll = () => (userHasScrolled.value = true);
