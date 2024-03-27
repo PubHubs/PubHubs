@@ -1,7 +1,9 @@
 ## Changes to main, not yet committed to stable
 
 *Please add a brief description of any changes to be tested and any migrations to be performed here.*
+-
 
+## 27 Mar 2024
 - Several changes to Synapse `homeserver.yaml` configuration, including a `ConfigChecker` module that
   will crash synapse to tell you what changes to make.  Please check login, registration, and anything
   related to secure rooms carefully.
