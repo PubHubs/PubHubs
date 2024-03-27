@@ -82,15 +82,15 @@ const defaultSettings: Settings = {
 	 */
 	featureFlags: {
 		// main
+		// signedMessages: true,
+		// plugins: true,
+		// dateSplitter: true,
+		// disclosure: true,
+		// stable
 		signedMessages: true,
 		plugins: true,
-		dateSplitter: true,
-		disclosure: true,
-		// stable
-		//signedMessages: true,
-		//plugins: true,
-		//dateSplitter: false,
-		//disclosure: false,
+		dateSplitter: false,
+		disclosure: false,
 	},
 };
 
