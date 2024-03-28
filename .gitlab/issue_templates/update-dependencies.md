@@ -18,7 +18,7 @@
 For reference, dependencies are in `package.json`.
 
 - [ ] In the `global-client` directory, run `npm update` to install minor version updates (probably non-breaking changes).
-- [ ] Run `npm outdated` to check for major updates (difference between wantend and latest) and change the package.json file to update major versions if wanted (preferably in a seperate commit). **Don't update major versions for now, see #498**
+- [ ] Run `npm outdated` to check for major updates (difference between wantend and latest) and change the package.json file to update major versions if wanted (preferably in a seperate commit). 
 - [ ] To address issues that do not require attention, run: `npm audit fix`
 - [ ] To address issues with breaking changes, check them and solve them if possible.
 
@@ -27,7 +27,7 @@ For reference, dependencies are in `package.json`.
 For reference, dependencies are in `package.json`.
 
 - [ ] In the `hub-client` directory, run `npm update` to install minor version updates (probably non-breaking changes).
-- [ ] Run `npm outdated` to check for major updates (difference between wantend and latest) and change the package.json file to update major versions if wanted (preferably in a seperate commit). **Don't update major versions for now, see #498**
+- [ ] Run `npm outdated` to check for major updates (difference between wantend and latest) and change the package.json file to update major versions if wanted (preferably in a seperate commit).
 - [ ] To address issues that do not require attention, run: `npm audit fix`
 - [ ] To address issues with breaking changes, check them and solve them if possible.
 
