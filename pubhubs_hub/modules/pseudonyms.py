@@ -10,7 +10,7 @@ import logging
 import subprocess
 import ctypes
 
-from synapse.types import UserID
+from synapse.types import UserID, create_requester
 from synapse.module_api import ModuleApi
 from synapse.http.server import DirectServeJsonResource, respond_with_json
 from synapse.http.site import SynapseRequest
@@ -69,10 +69,36 @@ class Pseudonym:
         user_id = UserID.from_string(user_id)
         displayname = suggested_displayname if suggested_displayname is not None else await self.api._store.get_profile_displayname( user_id )
         normalized_displayname = PseudonymHelper.normalised_displayname( suggested_displayname, user_id.localpart )
-        logger.info(f"normalize_displayname {displayname} -> {normalized_displayname}")
-        if normalized_displayname != displayname:
-            await self.api._store.set_profile_displayname( user_id, normalized_displayname )
+        if normalized_displayname == displayname:
+            logger.info(f"normalize_displayname: {displayname} is already OK")
+            return
 
+        for new_displayname in (normalized_displayname, user_id.localpart):
+            if await self.set_displayname(user_id, new_displayname):
+                break
+        else:
+            logger.critical(f"failed to normalize displayname of {user_id}")
+            # Unfortunately, there is no way to prevent Synapse from returning 200 in response
+            # to the display name change request.  Perhaps we could consider making persistent error codes
+            # that can be monitored?
+
+
+    async def set_displayname(self, user_id, new_displayname):
+        logger.info(f"setting display name of {user_id} to {new_displayname} ...")
+        ph = self.api._hs.get_profile_handler()
+        try:
+            await ph.set_displayname(
+                    target_user=user_id, 
+                    requester=create_requester(user_id),
+                    new_displayname=new_displayname, 
+                    by_admin=False,
+                    deactivation=False,
+                    propagate=True,
+                )
+        except Exception as e:
+            logger.error(f"failed to set displayname of {user_id} to {new_displayname}: {e}!")
+            return False
+        return True
 
 
 # Oidc mapping provider for PubHubs that decrypts the encrypted local pseudonym, and
