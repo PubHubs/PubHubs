@@ -184,7 +184,7 @@ const useMessageBox = defineStore('messagebox', {
 
 							// Answer to handshake as parent
 							if (message.isHandShakeStart() && type == MessageBoxType.Parent) {
-								console.log('<= ' + this.type + ' RECEIVED handshake:', this.receiverUrl);
+								// console.log('<= ' + this.type + ' RECEIVED handshake:', this.receiverUrl);
 								this.sendMessage(new Message(MessageType.HandshakeReady));
 								this.handshake = HandshakeState.Ready;
 								resolve(true);
@@ -192,7 +192,7 @@ const useMessageBox = defineStore('messagebox', {
 
 							// Answer to handshake as child
 							else if (message.isHandShakeReady() && type == MessageBoxType.Child) {
-								console.log('=> ' + this.type + ' RECEIVED', HandshakeState.Ready);
+								// console.log('=> ' + this.type + ' RECEIVED', HandshakeState.Ready);
 								this.handshake = HandshakeState.Ready;
 								resolve(true);
 							}
@@ -264,8 +264,8 @@ const useMessageBox = defineStore('messagebox', {
 		 */
 		receivedMessage(message: Message) {
 			if (this.handshake == HandshakeState.Ready) {
-				// console.log('<= ' + this.type + ' RECEIVED', message, callback);
 				const callback = this.callbacks[message.type];
+				// console.log('<= ' + this.type + ' RECEIVED', message, callback);
 				if (callback) {
 					callback(message as Message);
 				}

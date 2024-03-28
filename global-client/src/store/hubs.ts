@@ -1,6 +1,6 @@
 import { defineStore } from 'pinia';
 import { RouteParams } from 'vue-router';
-import { Message, MessageBoxType, MessageType, Theme, useGlobal, useMessageBox, useSettings } from '@/store/store';
+import { Message, MessageBoxType, MessageType, useGlobal, useMessageBox, useSettings } from '@/store/store';
 import { setLanguage, setUpi18n } from '@/i18n';
 import { useToggleMenu } from '@/store/toggleGlobalMenu';
 
@@ -134,14 +134,6 @@ const useHubs = defineStore('hubs', {
 						//Listen to global menu change
 						messagebox.addCallback(MessageType.mobileHubMenu, () => {
 							toggleMenu.toggleMenu();
-						});
-
-						// Listen to sync settings
-						messagebox.addCallback(MessageType.Settings, (message: Message) => {
-							const settings = useSettings();
-							const content = message.content as any;
-							settings.setTheme(content.theme as Theme);
-							settings.setLanguage(content.language);
 						});
 
 						// Listen to sync unreadmessages

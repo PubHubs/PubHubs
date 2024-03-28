@@ -3,7 +3,7 @@
  */
 
 // import { defineStore } from 'pinia';
-import { MessageType, Message, useMessageBox } from '@/store/messagebox';
+import { MessageType, Message, useMessageBox, MessageBoxType } from '@/store/messagebox';
 import { fallbackLanguage } from '@/i18n';
 
 enum featureFlagType {
@@ -216,16 +216,18 @@ const createSettings = (defineStore: any) => {
 
 			sendSettings() {
 				const messagebox = useMessageBox();
-				messagebox.sendMessage(
-					new Message(MessageType.Settings, {
-						// @ts-ignore
-						theme: this.theme as any,
-						// @ts-ignore
-						timeformat: this.timeformat as any,
-						// @ts-ignore
-						language: this.language,
-					}),
-				);
+				if (messagebox.type === MessageBoxType.Parent) {
+					messagebox.sendMessage(
+						new Message(MessageType.Settings, {
+							// @ts-ignore
+							theme: this.theme as any,
+							// @ts-ignore
+							timeformat: this.timeformat as any,
+							// @ts-ignore
+							language: this.language,
+						}),
+					);
+				}
 			},
 
 			/**

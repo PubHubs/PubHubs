@@ -1,4 +1,3 @@
-import { User as MatrixUser } from 'matrix-js-sdk';
 const sanitize: any = require('sanitize-html');
 
 const createLinks = (text: string) => {
@@ -80,8 +79,8 @@ const sanitizeOptions = {
 	],
 	allowedAttributes: {
 		font: ['data-mx-bg-color', 'data-mx-color', 'color'],
-		span: ['data-mx-bg-color', 'data-mx-color', 'data-mx-spoiler'],
-		a: ['name', 'target', 'href', 'rel'],
+		span: ['data-mx-bg-color', 'data-mx-color', 'data-mx-spoiler', 'class'],
+		a: ['name', 'target', 'href', 'rel', 'class'],
 		img: ['width', 'height', 'alt', 'title', 'src'],
 		ol: ['start'],
 		code: ['class'],
@@ -113,22 +112,4 @@ const sanitizeHtml = (html: string): string => {
 	return html;
 };
 
-const styleMentionUser = (message: string, userList: Array<MatrixUser>): string => {
-	if (message.includes('@')) {
-		for (const user in userList) {
-			if (userList[user].rawDisplayName !== undefined) {
-				const displayName = userList[user].rawDisplayName?.toString();
-
-				if (displayName !== undefined) {
-					if (message.includes(displayName) || message == displayName) {
-						const tag = '<span class="bg-avatar-lime text-white px-2 py-1 rounded-full">' + '@' + displayName + '</span>';
-						message = message.replaceAll('@' + displayName, tag);
-					}
-				}
-			}
-		}
-	}
-	return message;
-};
-
-export { createLinks, removeHtml, hasHtml, sanitizeHtml, styleMentionUser as mentionUser };
+export { createLinks, removeHtml, hasHtml, sanitizeHtml };
