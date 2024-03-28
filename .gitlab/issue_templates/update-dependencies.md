@@ -4,7 +4,7 @@
  - [ ] In the `pubhubs` directory, run `cargo update` to install updates that are likely backwards compatible. 
  - [ ] To check for new major releases (that might break the current code), run [`cargo outdated`](https://github.com/kbknapp/cargo-outdated) (which must be installed first.) 
    Adjust `Cargo.toml` accordingly and check if `cargo test` succeeds.  If you encounter errors, try if you can easily fix them; if not, revert and make an issue.
-     - **NOTE:** you may ignore the `cargo outdated` for now;  there are several packages `hyper`, `expry`, `hairy`, used by the old rust code that have major new versions that require quite a rewrite of the old code that is both dangerous and wasteful with the new code coming in. 
+     - **NOTE:** you may ignore the `cargo outdated` for now;  there are several packages `hyper`, `expry`, `hairy`, used by the old rust code that have major new versions that require quite a rewrite of the old code that is both dangerous and wasteful with the new code coming in. (See #438.)
 
 ## Hub
  - [ ] Check the version numbers in the [hub Dockerfile](pubhubs_hub/Dockerfile):
