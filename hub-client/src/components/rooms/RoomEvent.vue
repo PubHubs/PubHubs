@@ -43,11 +43,9 @@
 					<component :is="event.plugin.component" :event="event">{{ event.plugin.component }}</component>
 				</template>
 				<template v-else>
-					<MessageMention v-if="msgTypeIncludesMention" :message="event.content.body" :users="users"></MessageMention>
 					<MessageSnippet v-if="inReplyTo" @click="onInReplyToClick" :event="inReplyTo" :showInReplyTo="true"></MessageSnippet>
-					<Message v-if="msgShowBody && !msgTypeIncludesMention" :message="event.content.body" :users="users"></Message>
+					<Message v-if="event.content.msgtype == 'm.text'" :event="event" :users="users"></Message>
 					<MessageSigned v-if="event.content.msgtype == 'pubhubs.signed_message'" :message="event.content.signed_message"></MessageSigned>
-					<MessageHtml v-if="msgTypeIsHtml && !msgTypeIncludesMention" :message="(event.content as M_HTMLTextMessageEventContent).formatted_body"></MessageHtml>
 					<MessageFile v-if="event.content.msgtype == 'm.file'" :message="event.content"></MessageFile>
 					<MessageImage v-if="event.content.msgtype == 'm.image'" :message="event.content"></MessageImage>
 				</template>
@@ -66,7 +64,7 @@
 	import MessageSnippet from './MessageSnippet.vue';
 	import { useRooms } from '@/store/store';
 	import { PluginType } from '@/store/plugins';
-	import { M_MessageEvent, M_HTMLTextMessageEventContent, M_EventId } from '@/types/events';
+	import { M_MessageEvent, M_EventId } from '@/types/events';
 	import { User as MatrixUser } from 'matrix-js-sdk';
 	const hubSettings = useHubSettings();
 	const connection = useConnection();
@@ -80,8 +78,6 @@
 	const user = useUser();
 	const rooms = useRooms();
 
-	const supportedMsgTypes = ['m.text', 'm.image', 'm.file', 'pubhubs.signed_message'];
-
 	const props = defineProps<{ event: M_MessageEvent }>();
 
 	onMounted(async () => {
@@ -93,55 +89,18 @@
 
 	const inReplyTo = structuredClone(props.event.content['m.relates_to']?.['m.in_reply_to']?.x_event_copy);
 
-	//#region Events
-
 	const emit = defineEmits<{
 		(e: 'inReplyToClick', inReplyToId: M_EventId): void;
 	}>();
-
-	function onInReplyToClick() {
-		if (!inReplyTo) return;
-		emit('inReplyToClick', inReplyTo.event_id);
-	}
-
-	//call within call
-	// call
-
-	//#endregion
-
-	//#region Computed properties
 
 	const msgIsNotSend = computed(() => {
 		return props.event.event_id.substring(0, 1) == '~';
 	});
 
-	const msgShowBody = computed(() => {
-		return !supportedMsgTypes.includes(props.event.content.msgtype) || (props.event.content.msgtype == 'm.text' && !msgTypeIsHtml.value);
-	});
-
-	const msgTypeIsHtml = computed(() => {
-		if (props.event.content.msgtype == 'm.text') {
-			if (typeof props.event.content.format == 'string') {
-				if (props.event.content.format == 'org.matrix.custom.html' && typeof props.event.content.formatted_body == 'string') {
-					return true;
-				}
-			}
-		}
-		return false;
-	});
-
-	const msgTypeIncludesMention = computed(() => {
-		if (props.event.content.msgtype == 'm.text') {
-			if (props.event.content.body.includes('@')) {
-				return true;
-			}
-		}
-		return false;
-	});
-
-	//#endregion
-
-	//#region Methods
+	function onInReplyToClick() {
+		if (!inReplyTo) return;
+		emit('inReplyToClick', inReplyTo.event_id);
+	}
 
 	function reply() {
 		messageActions.replyingTo = undefined;
@@ -158,10 +117,9 @@
 		pubhubs.resendEvent(props.event);
 	}
 
+	// Waits for checking if message is realy send. Otherwise a 'resend' button appears. See also msgIsNotSend computed.
 	const timerReady = ref(false);
 	window.setTimeout(() => {
 		timerReady.value = true;
 	}, 1000);
-
-	//#endregion
 </script>
