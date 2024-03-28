@@ -2,7 +2,7 @@
 	<div :class="settings.getActiveTheme">
 		<div v-if="setupReady" class="max-h-screen text-hub-text">
 			<div v-if="user.isLoggedIn" class="md:grid md:grid-cols-8">
-				<HeaderFooter class="md:col-span-2 md:flex bg-hub-background" :class="{ hidden: !hubSettings.mobileHubMenu }">
+				<HeaderFooter class="md:col-span-2 md:flex bg-hub-background-2" :class="{ hidden: !hubSettings.mobileHubMenu }">
 					<template #header>
 						<div class="flex justify-between">
 							<div class="flex-1">

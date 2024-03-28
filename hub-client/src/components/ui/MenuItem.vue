@@ -1,13 +1,13 @@
 <template>
-	<li class="mb-2 menu-item" :class="activeClass">
-		<Icon v-if="isSecuredRoom()" type="lock" class="mr-4 float-left"></Icon>
-		<Icon v-else class="mr-4 float-left" :type="icon"></Icon>
+	<li class="mb-2 menu-item">
+		<Icon v-if="isSecuredRoom()" type="lock" class="mr-4 float-left text-blue dark:text-green"></Icon>
+		<Icon v-else class="mr-4 float-left text-blue dark:text-green" :type="icon"></Icon>
 		<TruncatedText><slot></slot></TruncatedText>
 	</li>
 </template>
 
 <script setup lang="ts">
-	import { computed, onMounted } from 'vue';
+	import { onMounted } from 'vue';
 	import { Room } from '@/store/rooms';
 	import { useRooms } from '@/store/store';
 
@@ -35,13 +35,6 @@
 			type: [Room, Object],
 			default: Object,
 		},
-	});
-
-	const activeClass = computed(() => {
-		if (props.active) {
-			return 'text-blue hover:text-blue-dark';
-		}
-		return 'text-green hover:text-green-dark';
 	});
 
 	function isSecuredRoom() {
