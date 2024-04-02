@@ -1,6 +1,6 @@
 <template>
 	<Story title="UI/Avatar">
-		<Avatar :class="state.color" :img="state.image" :alt="state.image"></Avatar>
+		<Avatar :class="state.color" :alt="state.image"></Avatar>
 		<template #controls>
 			<HstSelect v-model="state.color" title="Avatar Color" :options="colors" />
 			<HstButtonGroup v-model="state.image" title="Image" :options="images" />
