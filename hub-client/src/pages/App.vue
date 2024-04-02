@@ -128,8 +128,8 @@
 		}
 		await startMessageBox();
 		const avatarUrl = await pubhubs.getAvatarUrl();
-		if (avatarUrl) {
-			avatar.value = downloadUrl + avatar.value.slice(6);
+		if (avatarUrl !== '') {
+			avatar.value = downloadUrl + avatarUrl.slice(6);
 		}
 	});
 
