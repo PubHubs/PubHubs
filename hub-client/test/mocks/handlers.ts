@@ -1,11 +1,10 @@
 import { SecuredRoom } from '@/store/rooms';
-import { rest } from 'msw';
+import { http, HttpResponse } from 'msw';
 
 export const handlers = [
-	rest.get('http://test/_synapse/client/secured_rooms', (req, res, ctx) => {
-		return res(
-			ctx.status(200),
-			ctx.json([
+	http.get('http://test/_synapse/client/secured_rooms', () => {
+		return HttpResponse.json(
+			[
 				{
 					room_name: 'Secured 1',
 					accepted: {
@@ -25,31 +24,34 @@ export const handlers = [
 					user_txt: 'Ipsum',
 					type: 'ph.messages.restricted',
 				},
-			]),
+			],
+			{ status: 200 },
 		);
 	}),
-	rest.post('http://test/_synapse/client/secured_rooms', async (req, res, ctx) => {
-		const body = (await req.json()) as SecuredRoom;
+
+	http.post('http://test/_synapse/client/secured_rooms', async (request) => {
+		const body = (await request.request.json()) as SecuredRoom;
 		if (typeof body.room_name == 'undefined' || body.room_name == '' || typeof body.accepted == 'undefined' || body.accepted == ({} as SecuredRoom) || typeof body.type == 'undefined' || body.type !== 'ph.messages.restricted') {
-			return res(ctx.status(400), ctx.json({ errors: 'wrong params' }));
+			return HttpResponse.json({ errors: 'wrong params' }, { status: 400 });
 		}
-		return res(
-			ctx.status(200),
-			ctx.json({
+		return HttpResponse.json(
+			{
 				room_id: 'ID:' + body.room_name,
 				room_name: body.room_name,
 				accepted: body.accepted,
 				user_txt: body?.user_txt,
 				type: body.type,
-			}),
+			},
+			{ status: 200 },
 		);
 	}),
-	rest.delete(/http:\/\/test\/_synapse\/client\/secured_rooms\/*/, async (req, res, ctx) => {
-		const match = req.url.search.match(/.*room_id=(.*)\b/);
+
+	http.delete(/http:\/\/test\/_synapse\/client\/secured_rooms\/*/, async (request) => {
+		const match = request.request.url.match(/.*room_id=(.*)\b/);
 		if (match !== null && match[1] != undefined) {
 			const room_id = match[1];
-			return res(ctx.status(200), ctx.json({ deleted: 'ID:' + room_id }));
+			return HttpResponse.json({ deleted: 'ID:' + room_id }, { status: 200 });
 		}
-		return res(ctx.status(400), ctx.json({ errors: 'wrong params' }));
+		return HttpResponse.json({ errors: 'wrong params' }, { status: 400 });
 	}),
 ];
