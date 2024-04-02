@@ -12,7 +12,7 @@
 								</router-link>
 							</div>
 							<div class="flex-1 mt-2">
-								<Icon type="cog" @click="settingsDialog = true" class="cursor-pointer float-right"></Icon>
+								<Avatar :userId="user.user.userId" :img="avatar" @click="settingsDialog = true" class="cursor-pointer float-right w-8 h-8 text-md"></Avatar>
 							</div>
 						</div>
 					</template>
@@ -81,6 +81,7 @@
 	import { RouteParamValue, useRouter } from 'vue-router';
 	import { Message, MessageBoxType, MessageType, Theme, TimeFormat, useHubSettings, useMessageBox, PubHubsRoomType, useRooms, useSettings, useUser } from '@/store/store';
 	import { useDialog } from '@/store/dialog';
+	import { useMatrixFiles } from '@/composables/useMatrixFiles';
 	import { usePubHubs } from '@/core/pubhubsStore';
 	import { useMenu } from '@/store/menu';
 	import { usePlugins } from '@/store/plugins';
@@ -96,6 +97,7 @@
 	const messagebox = useMessageBox();
 	const dialog = useDialog();
 	const pubhubs = usePubHubs();
+	const { downloadUrl } = useMatrixFiles(pubhubs);
 	const plugins = usePlugins();
 	const menu = useMenu();
 	const toggleMenu = useToggleMenu();
@@ -106,6 +108,7 @@
 	const addPrivateRoomDialog = ref(false);
 	const disclosureEnabled = settings.isFeatureEnabled('disclosure');
 	const acknowledgeOnce = ref(true);
+	const avatar = ref('');
 
 	onMounted(() => {
 		plugins.setPlugins(getCurrentInstance()?.appContext.config.globalProperties._plugins, router);
@@ -124,6 +127,10 @@
 			setupReady.value = true; // needed if running only the hub-client
 		}
 		await startMessageBox();
+		const avatarUrl = await pubhubs.getAvatarUrl();
+		if (avatarUrl) {
+			avatar.value = downloadUrl + avatar.value.slice(6);
+		}
 	});
 
 	async function startMessageBox() {
@@ -174,7 +181,6 @@
 			}, 2500);
 		}
 	}
-	import { MatrixEvent } from 'matrix-js-sdk';
 
 	// Additional check to make sure that beforeunload is only called once.
 	// An open issue for unload event in mozilla->  https://bugzilla.mozilla.org/show_bug.cgi?id=531199

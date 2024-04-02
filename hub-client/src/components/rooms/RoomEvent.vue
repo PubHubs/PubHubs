@@ -7,7 +7,7 @@
 		<!-- Normal Event -->
 
 		<div v-if="hubSettings.isVisibleEventType(event.type) && hubSettings.skipNoticeUserEvent(event)" class="group flex flex-row space-x-4 mb-8">
-			<Avatar :class="bgColor(color(event.sender))" :userName="event.sender" :img="avatar(event.sender) ? pubhubs.getBaseUrl + '/_matrix/media/r0/download/' + avatar(event.sender).slice(6) : ''"></Avatar>
+			<Avatar :userId="event.sender"></Avatar>
 			<div class="w-4/5 md:w-3/5">
 				<div class="flex items-center">
 					<div class="flex flex-wrap">
@@ -56,10 +56,8 @@
 
 <script setup lang="ts">
 	import { computed, onMounted, ref } from 'vue';
-	import { useUserAvatar } from '@/composables/useUserName';
 	import { usePubHubs } from '@/core/pubhubsStore';
 	import { useHubSettings, useConnection, useUser } from '@/store/store';
-	import { useUserColor } from '@/composables/useUserColor';
 	import { useMessageActions } from '@/store/message-actions';
 	import MessageSnippet from './MessageSnippet.vue';
 	import { useRooms } from '@/store/store';
@@ -68,12 +66,10 @@
 	import { User as MatrixUser } from 'matrix-js-sdk';
 	const hubSettings = useHubSettings();
 	const connection = useConnection();
-	const { color, bgColor } = useUserColor();
 	const messageActions = useMessageActions();
 
 	const pubhubs = usePubHubs();
 	const users = ref([] as Array<MatrixUser>);
-	const { getUserAvatar } = useUserAvatar();
 
 	const user = useUser();
 	const rooms = useRooms();
@@ -107,10 +103,10 @@
 		messageActions.replyingTo = props.event;
 	}
 
-	function avatar(user) {
-		const currentRoom = rooms.currentRoom;
-		return getUserAvatar(user, currentRoom);
-	}
+	// function avatar(user) {
+	// 	const currentRoom = rooms.currentRoom;
+	// 	return getUserAvatar(user, currentRoom);
+	// }
 
 	function resend() {
 		const pubhubs = usePubHubs();

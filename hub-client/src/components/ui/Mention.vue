@@ -3,12 +3,7 @@
 		<ul>
 			<li v-for="(item, index) in filteredUsers" :key="index" class="group cursor-pointer hover:bg-green bg-gray-light p-1 border-b border-gray-light rounded-t-none" @click="clickedItem(item)">
 				<div class="flex items-center space-x-8">
-					<Avatar
-						v-if="item.rawDisplayName != undefined"
-						:class="bgColor(color(item.userId))"
-						:userName="item.rawDisplayName"
-						:img="item.avatarUrl?.slice(6) != undefined ? pubhubs.getBaseUrl + '/_matrix/media/r0/download/' + item.avatarUrl?.slice(6) : ''"
-					></Avatar>
+					<Avatar :userId="item.userId"></Avatar>
 					<div>{{ item.rawDisplayName }}</div>
 				</div>
 			</li>
@@ -18,19 +13,15 @@
 
 <script setup lang="ts">
 	import { ref, computed, watch, onMounted } from 'vue';
-	import { useUserColor } from '@/composables/useUserColor';
 	import { User as MatrixUser } from 'matrix-js-sdk';
-	import { usePubHubs } from '@/core/pubhubsStore';
 	import { useRooms, useUser } from '@/store/store';
 
-	const { color, bgColor } = useUserColor();
 	const emit = defineEmits(['click']);
 
 	const visible = ref(false); // Control the visibility of the user list div
 
 	// Therefore, message Direction keeps track of the simulating backspace.
 	const messageDirection = ref(0);
-	const pubhubs = usePubHubs();
 	const rooms = useRooms();
 	const user = useUser();
 	const users = ref([] as Array<MatrixUser>);
