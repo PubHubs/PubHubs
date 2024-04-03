@@ -109,19 +109,16 @@ const usePubHubs = defineStore('pubhubs', {
 		async getAllPublicRooms() {
 			let publicRoomsResponse = await this.client.publicRooms({
 				limit: 1000,
-				filter: {
-					generic_search_term: '',
-				},
 			});
 			let public_rooms = publicRoomsResponse.chunk;
 
+			// DANGER this while loop turns infinite when the generated public rooms request is a POST request.
+			// this happens when the optional 'options' parameter is supplied to 'this.client.publicRooms'. Then the
+			// pagination doesn't work anymore and hte loop becomes infinite.
 			while (publicRoomsResponse.next_batch) {
 				publicRoomsResponse = await this.client.publicRooms({
 					limit: 1000,
 					since: publicRoomsResponse.next_batch,
-					filter: {
-						generic_search_term: '',
-					},
 				});
 				public_rooms = public_rooms.concat(publicRoomsResponse.chunk);
 			}
