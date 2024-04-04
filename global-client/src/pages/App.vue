@@ -3,7 +3,7 @@
 		<div class="h-screen text-black dark:bg-gray-darker dark:text-white">
 			<div class="2md:hidden w-20 h-20 absolute" @click="toggleMenu.toggleMenu()">
 				<Icon v-if="toggleMenu.globalIsActive" type="returnmenu" size="4xl" class="fill-[#2F2E2E] stroke-white dark:fill-white dark:stroke-black" viewBox="0,0,84,84"></Icon>
-				<Icon v-else type="hamburgermenu" size="4xl" class="dark:fill-[#2F2E2E] dark:stroke-white fill-white stroke-black" viewBox="0,0,84,84"></Icon>
+				<Icon v-if="!toggleMenu.globalIsActive && !global.isModalVisible" type="hamburgermenu" size="4xl" class="dark:fill-[#2F2E2E] dark:stroke-white fill-white stroke-black" viewBox="0,0,84,84"></Icon>
 			</div>
 			<div class="flex h-full">
 				<div id="pubhubs-bar" class="flex-none w-32 bg-ph-background-4 dark:bg-ph-background-5 h-screen pt-20 2md:pt-2 2md:block" :class="{ hidden: !toggleMenu.globalIsActive }">

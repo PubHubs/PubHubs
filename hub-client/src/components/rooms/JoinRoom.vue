@@ -1,13 +1,15 @@
 <template>
-	<Dialog :buttons="buttonsCancel" width="w-3/6" @close="close()">
+	<Dialog :buttons="buttonsCancel" width="lg:w-3/6 md:5/6 xs:w-full" @close="close()">
 		<template #header>
 			{{ $t('rooms.join_room') }}
 		</template>
 		<FilteredList :items="rooms.visiblePublicRooms" sortby="name" :placeholder="$t('rooms.filter')" @click="joinRoom($event)">
 			<template #item="{ item }">
-				<Icon :type="rooms.roomIsSecure(item.room_id) ? 'lock' : 'room'" class="mr-4 float-left text-green group-hover:text-black"></Icon>
-				<span :title="item.room_id">{{ item.name }}&nbsp;</span>
-				<Icon type="plus" class="float-right"></Icon>
+				<div class="flex justify-between">
+					<Icon :type="rooms.roomIsSecure(item.room_id) ? 'lock' : 'room'" class="flex-none mr-4 text-green group-hover:text-black"></Icon>
+					<span :title="item.room_id" class="grow truncate w-100">{{ item.name }}&nbsp;</span>
+					<Icon type="plus" class="flex-none"></Icon>
+				</div>
 			</template>
 		</FilteredList>
 	</Dialog>

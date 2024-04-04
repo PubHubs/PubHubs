@@ -1,12 +1,14 @@
 <template>
-	<Dialog :buttons="buttonsCancel" width="w-3/6" @close="close()">
+	<Dialog :buttons="buttonsCancel" width="lg:w-3/6 md:5/6 xs:w-full" @close="close()">
 		<template #header>
 			{{ $t('rooms.private_add') }}
 		</template>
 		<FilteredList :items="usersList" filterKey="displayName" sortby="displayName" :placeholder="$t('rooms.private_search_user')" @click="addNewPrivateRoom($event)" @filter="filter($event)">
 			<template #item="{ item }">
-				<span :title="item.userId">{{ item.displayName }}</span>
-				<Icon type="plus" class="float-right"></Icon>
+				<div class="flex justify-between">
+					<span :title="item.userId" class="grow truncate w-100">{{ item.displayName }}</span>
+					<Icon type="plus" class="flex-none"></Icon>
+				</div>
 			</template>
 		</FilteredList>
 	</Dialog>
