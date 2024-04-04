@@ -735,8 +735,7 @@ const useRooms = defineStore('rooms', {
 							if (result.not_correct) {
 								router.push({ name: 'error-page-room', params: { id: roomId } });
 							} else if (result.goto) {
-								pubhubs.updateRooms();
-								router.push({ name: 'room', params: { id: roomId } });
+								pubhubs.updateRooms().then(() => router.push({ name: 'room', params: { id: roomId } }));
 							}
 						})
 						.catch((error: any) => {
