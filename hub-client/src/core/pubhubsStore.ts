@@ -6,7 +6,6 @@ import { Authentication } from '@/core/authentication';
 import { Events } from '@/core/events';
 import { useSettings, User, useUser, useRooms, useConnection, PubHubsRoomType } from '@/store/store';
 
-import filters from '@/core/filters';
 import { hasHtml, sanitizeHtml } from '@/core/sanitizer';
 import { api_synapse, api_matrix } from '@/core/api';
 import { M_Mentions, M_MessageEvent, M_TextMessageEventContent } from '@/types/events';
@@ -451,14 +450,15 @@ const usePubHubs = defineStore('pubhubs', {
 		},
 
 		async getUsers(): Promise<Array<MatrixUser>> {
-			let users = (await this.client.getUsers()) as Array<MatrixUser>;
+			const users = (await this.client.getUsers()) as Array<MatrixUser>;
+			// Removed this hack @ 04 april 2024, if all seems well at next merge to stable, this can be removed permanent
 			// Doesn't get all displaynames correct from database, this is a hack to change displayName to only the pseudonym
-			users = users.map((user) => {
-				if (user.userId == user.displayName) {
-					user.displayName = filters.extractPseudonym(user.userId);
-				}
-				return user;
-			});
+			// users = users.map((user) => {
+			// 	if (user.userId === user.displayName) {
+			// 		user.displayName = filters.extractPseudonym(user.userId);
+			// 	}
+			// 	return user;
+			// });
 			return users;
 		},
 

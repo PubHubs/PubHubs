@@ -1,7 +1,6 @@
 #
-# This module does two things:
-#   - decrypt pseudonym from pubhubs server at registration / login
-#   - makes sure that the displayname always ends with pseudonym or is the same as the pseudonym
+# This module decrypts the pseudonym from pubhubs server at registration / login,
+# and selects the localpart for the user's matrix ID based on it
 #
 
 import re
@@ -19,22 +18,9 @@ from synapse.module_api.errors import ConfigError
 
 logger = logging.getLogger(__name__)
 
-
-#
-# Main hook for the module
-#
 class Pseudonym:
-
     def __init__(self, config: dict, api: ModuleApi):
         self.api = api
-
-        # register callbacks when displayname is changed (@registration or by user)
-        self.api.register_account_validity_callbacks(
-            on_user_registration = self.on_user_registration,
-        )
-        self.api.register_third_party_rules_callbacks(
-            on_profile_update = self.change_displayname,
-        )
 
         # Check whether ConfigChecker module is loaded.
         # We do this here, because this module is so old it's surely included in any hub's configuration.
@@ -49,56 +35,6 @@ class Pseudonym:
             raise
         except Exception as e:
             logger.error(f"failed to check the presence of ConfigChecker: {e}")
-
-    #
-    # Make sure displayname is pseudonym at registration
-    #
-    async def on_user_registration( self, user_id : str ):
-        await self.normalize_displayname( user_id )
-
-    #
-    # Make sure pseudonym is added to displayname when user changed displayname
-    #
-    async def change_displayname(self, user_id: str, new_profile: "synapse.module_api.ProfileInfo", by_admin: bool, deactivation: bool):
-        await self.normalize_displayname( user_id, new_profile.display_name )
-
-    #
-    # Normalizes user_id's display_name.  If suggested_displayname is not None, uses that (after normalization.)
-    # 
-    async def normalize_displayname(self, user_id : str, suggested_displayname=None):
-        user_id = UserID.from_string(user_id)
-        displayname = suggested_displayname if suggested_displayname is not None else await self.api._store.get_profile_displayname( user_id )
-        normalized_displayname = PseudonymHelper.normalised_displayname( suggested_displayname, user_id.localpart )
-        if normalized_displayname == displayname:
-            logger.info(f"normalize_displayname: {displayname} is already OK")
-            return
-
-        for new_displayname in (normalized_displayname, user_id.localpart):
-            if await self.set_displayname(user_id, new_displayname):
-                break
-        else:
-            logger.critical(f"failed to normalize displayname of {user_id}")
-            # Unfortunately, there is no way to prevent Synapse from returning 200 in response
-            # to the display name change request.  Perhaps we could consider making persistent error codes
-            # that can be monitored?
-
-
-    async def set_displayname(self, user_id, new_displayname):
-        logger.info(f"setting display name of {user_id} to {new_displayname} ...")
-        ph = self.api._hs.get_profile_handler()
-        try:
-            await ph.set_displayname(
-                    target_user=user_id, 
-                    requester=create_requester(user_id),
-                    new_displayname=new_displayname, 
-                    by_admin=False,
-                    deactivation=False,
-                    propagate=True,
-                )
-        except Exception as e:
-            logger.error(f"failed to set displayname of {user_id} to {new_displayname}: {e}!")
-            return False
-        return True
 
 
 # Oidc mapping provider for PubHubs that decrypts the encrypted local pseudonym, and
@@ -204,25 +140,3 @@ class PseudonymHelper:
         prefix, suffix = local_pseudonym[:prefix_len], local_pseudonym[-prefix_len:]
 
         return f"{ prefix }{ PseudonymHelper.checkdigit(prefix) }-{ PseudonymHelper.checkdigit(suffix) }{ suffix }"
-
-    #
-    # Cleanup localpart/pseudonyms from displayname, and add it again at end of displayname. Or if empty, just the localpart
-    #
-    def normalised_displayname(display_name: str, localpart: str) -> str:
-        if display_name == None or display_name == '' or display_name == localpart:
-            display_name = localpart
-        else:
-            display_name = re.sub(r'\s*-*\s'+localpart, "", display_name)
-            if display_name == '':
-                display_name = localpart
-            else:
-                display_name = display_name + ' - ' + localpart
-        return display_name
-
-
-    #
-    # Get localpart of user
-    #
-    def get_local_username_part(user: str) -> str:
-        localpart = user.split(':')[0].strip('@')
-        return localpart

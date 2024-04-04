@@ -40,7 +40,6 @@
 	import { useUser, useSettings, useDialog, buttonsSubmitCancel, DialogSubmit, DialogButtonAction } from '@/store/store';
 	import { useI18n } from 'vue-i18n';
 	import { useFormState } from '@/composables/useFormState';
-	import filters from '@/core/filters';
 	import { fileUpload } from '@/composables/fileUpload';
 	import { usePubHubs } from '@/core/pubhubsStore';
 	import { useUserColor } from '@/composables/useUserColor';
@@ -74,7 +73,7 @@
 
 	onMounted(async () => {
 		await user.fetchDisplayName(pubhubs.client as MatrixClient);
-		data.displayName.value = filters.extractDisplayName(user.user.displayName as string, settings.getDisplayNameMaxLength);
+		data.displayName.value = user.user.displayName as string;
 
 		const url = await pubhubs.getAvatarUrl();
 		if (url !== '') {
