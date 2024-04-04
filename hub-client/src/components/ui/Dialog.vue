@@ -4,7 +4,7 @@
 	<div class="absolute h-screen w-screen top-0 left-0">
 		<div v-if="dialog.properties.modal" class="absolute inset-0 h-screen z-10 bg-gray-middle opacity-75"></div>
 		<div v-if="!dialog.properties.modalonly" class="absolute inset-0 h-screen flex z-10" @click="doAction(DialogCancel)">
-			<div class="theme-light m-auto p-4 rounded-lg shadow-xl shadow-black bg-white" :class="centerClass" @click.stop>
+			<div class="theme-light m-auto p-4 rounded-lg shadow-xl shadow-black bg-white" :class="width" @click.stop>
 				<div>
 					<Icon v-if="dialog.properties.close" type="close" size="md" class="float-right -mt-1 hover:text-red theme-light:text-gray theme-light:hover:text-red" @click="doAction(DialogCancel)"></Icon>
 					<H2 v-if="dialog.properties.title !== ''" class="m-0 text-left">{{ dialog.properties.title }}</H2>
@@ -37,14 +37,6 @@
 		return slots['default'] || dialog.properties.content !== '';
 	});
 
-	const centerClass = computed(() => {
-		let c = props.width;
-		if (window.self !== window.top) {
-			c += ' adjust-left';
-		}
-		return c;
-	});
-
 	const props = defineProps({
 		title: {
 			type: String,
@@ -52,7 +44,7 @@
 		},
 		width: {
 			type: String,
-			default: 'w-2/3',
+			default: 'w-1/3',
 		},
 		buttons: {
 			type: Array<DialogButton>,
