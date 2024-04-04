@@ -78,7 +78,7 @@ const pubhubs = {
 		},
 		avatar: {
 			// Put keys also in src/composables/useUserColor.ts
-			green: '#61FE8D',
+			green: '#52BC70',
 			purple: '#BF5CD8',
 			yellow: '#E7D63D',
 			red: '#E45959',
