@@ -48,19 +48,6 @@ class TestPseudonymHelper(unittest.TestCase):
                 '012345678901234b-790123456789abcd'
                 ])
 
-    def test_normalised_displayname(self):
-        self.assertEqual(PseudonymHelper.normalised_displayname( None, '01f-6cd'), '01f-6cd')
-        self.assertEqual(PseudonymHelper.normalised_displayname( '', '01f-6cd'), '01f-6cd')
-        self.assertEqual(PseudonymHelper.normalised_displayname( '01f-6cd', '01f-6cd'), '01f-6cd')
-        self.assertEqual(PseudonymHelper.normalised_displayname( ' 01f-6cd', '01f-6cd'), '01f-6cd')
-        self.assertEqual(PseudonymHelper.normalised_displayname( ' - 01f-6cd', '01f-6cd'), '01f-6cd')
-        self.assertEqual(PseudonymHelper.normalised_displayname( '01f-6cd - Test', '01f-6cd'), '01f-6cd - Test - 01f-6cd')
-        self.assertEqual(PseudonymHelper.normalised_displayname( 'Test', '01f-6cd'), 'Test - 01f-6cd')
-        self.assertEqual(PseudonymHelper.normalised_displayname( '01f-6cd - 01f-6cd - 01f-6cd', '01f-6cd'), '01f-6cd - 01f-6cd')
-        self.assertEqual(PseudonymHelper.normalised_displayname( '01f-6cd01f-6cd', '01f-6cd'), '01f-6cd01f-6cd - 01f-6cd')
-
-
-
 
 
 if __name__ == '__main__':

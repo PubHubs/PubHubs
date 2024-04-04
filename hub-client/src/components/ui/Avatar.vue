@@ -11,7 +11,6 @@
 <script setup lang="ts">
 	import { Room, useRooms } from '@/store/rooms';
 	import { computed } from 'vue';
-	import filters from '../../core/filters';
 	import { usePubHubs } from '@/core/pubhubsStore';
 	import { useUserColor } from '@/composables/useUserColor';
 	import { useUserName } from '@/composables/useUserName';
@@ -53,12 +52,11 @@
 	});
 
 	const display = computed(() => {
-		let name = '' + props.userId; //props.userId;
+		let name = '' + props.userId;
 
 		if (rooms.currentRoom && props.notMention) {
 			const currentRoom = rooms.currentRoom;
-			const roomMemberName = getUserDisplayName(props.userId, currentRoom);
-			name = filters.matrixDisplayName(roomMemberName);
+			name = getUserDisplayName(props.userId, currentRoom);
 		}
 		if (!name) {
 			// IT should not happen, but just in case we should be only the lookout if it happens.
