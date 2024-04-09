@@ -11,6 +11,7 @@ enum featureFlagType {
 	plugins = 'plugins',
 	dateSplitter = 'dateSplitter',
 	disclosure = 'disclosure',
+	readReceipt = 'readReceipt',
 }
 
 enum Theme {
@@ -62,6 +63,7 @@ interface Settings {
 		plugins: boolean;
 		dateSplitter: boolean;
 		disclosure: boolean;
+		readReceipt: boolean;
 	};
 }
 
@@ -86,6 +88,7 @@ const defaultSettings: Settings = {
 		plugins: true,
 		dateSplitter: true,
 		disclosure: true,
+		readReceipt : false,
 		// stable
 		// signedMessages: true,
 		// plugins: true,

@@ -72,7 +72,7 @@
 		elementObserver = elRoomEvent.value && new ElementObserver(elRoomEvent.value, { threshold: 1.0 });
 
 		//Observer for read receipts
-		elementObserver?.setUpObserver(handleReadReceiptIntersection);
+		settings.isFeatureEnabled(featureFlagType.readReceipt) && elementObserver?.setUpObserver(handleReadReceiptIntersection);
 
 		//Date Display Interaction callback is based on feature flag
 		settings.isFeatureEnabled(featureFlagType.dateSplitter) && elementObserver?.setUpObserver(handleDateDisplayer);
@@ -91,7 +91,7 @@
 		() => elRoomEvent.value && elRoomEvent.value.length,
 		() => {
 			settings.isFeatureEnabled(featureFlagType.dateSplitter) && elementObserver?.setUpObserver(handleDateDisplayer);
-			elementObserver?.setUpObserver(handleReadReceiptIntersection);
+			settings.isFeatureEnabled(featureFlagType.readReceipt) && elementObserver?.setUpObserver(handleReadReceiptIntersection);
 		},
 	);
 	watch(() => rooms.currentRoom?.getLiveTimeline().getEvents().length, onTimelineChange);

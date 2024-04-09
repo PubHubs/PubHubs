@@ -77,9 +77,6 @@
 	const props = defineProps<{ event: M_MessageEvent }>();
 
 	onMounted(async () => {
-		if (rooms.currentRoomExists) {
-			await rooms.storeRoomNotice(rooms.currentRoom!.roomId);
-		}
 		users.value = await pubhubs.getUsers();
 	});
 
