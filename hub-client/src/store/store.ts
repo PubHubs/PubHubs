@@ -7,7 +7,7 @@ import { User, defaultUser, useUser } from '@/store/user';
 import { ConnectionState, useConnection } from '@/store/connection';
 import { Theme, TimeFormat, defaultSettings, createSettings, type i18nSettings, featureFlagType } from '@/store/settings';
 import { useHubSettings } from '@/store/hub-settings';
-import { PubHubsRoomType, Room, Event, PublicRoom, SecuredRoomAttributes, SecuredRoom, useRooms } from '@/store/rooms';
+import { RoomType, Room, TEvent, TPublicRoom, SecuredRoomAttributes, TSecuredRoom, useRooms } from '@/store/rooms';
 import { MessageType, Message, MessageBoxType, useMessageBox } from '@/store/messagebox';
 import { buttonsSubmitCancel, DialogButton, DialogProperties, useDialog, DialogButtonAction, DialogCancel, DialogOk, DialogYes, DialogNo, DialogSubmit } from '@/store/dialog';
 
@@ -26,12 +26,12 @@ export {
 	type i18nSettings,
 	featureFlagType,
 	useHubSettings,
-	PubHubsRoomType,
+	RoomType,
 	Room,
-	type Event,
-	type PublicRoom,
+	type TEvent,
+	type TPublicRoom,
 	type SecuredRoomAttributes,
-	type SecuredRoom,
+	type TSecuredRoom,
 	useRooms,
 	MessageType,
 	Message,

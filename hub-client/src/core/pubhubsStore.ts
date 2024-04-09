@@ -4,12 +4,12 @@ import { User as MatrixUser, MatrixClient, MatrixEvent, ContentHelpers, MatrixEr
 
 import { Authentication } from '@/core/authentication';
 import { Events } from '@/core/events';
-import { useSettings, User, useUser, useRooms, useConnection, PubHubsRoomType } from '@/store/store';
+import { useSettings, User, useUser, useRooms, useConnection, RoomType, TPublicRoom } from '@/store/store';
 
 import { hasHtml, sanitizeHtml } from '@/core/sanitizer';
 import { api_synapse, api_matrix } from '@/core/api';
-import { M_Mentions, M_MessageEvent, M_TextMessageEventContent } from '@/types/events';
 import { YiviSigningSessionResult, AskDisclosureMessage } from '@/lib/signedMessages';
+import { TMentions, TTextMessageEventContent, TMessageEvent } from '@/model/events/TMessageEvent';
 import { ReceiptType } from 'matrix-js-sdk/lib/@types/read_receipts';
 
 const usePubHubs = defineStore('pubhubs', {
@@ -105,7 +105,7 @@ const usePubHubs = defineStore('pubhubs', {
 			});
 		},
 
-		async getAllPublicRooms() {
+		async getAllPublicRooms(): Promise<TPublicRoom[]> {
 			let publicRoomsResponse = await this.client.publicRooms({
 				limit: 1000,
 			});
@@ -164,7 +164,7 @@ const usePubHubs = defineStore('pubhubs', {
 					visibility: 'private',
 					invite: [other.userId],
 					is_direct: true,
-					creation_content: { type: PubHubsRoomType.PH_MESSAGES_DM },
+					creation_content: { type: RoomType.PH_MESSAGES_DM },
 					topic: `PRIVATE: ${me.userId}, ${other.userId}`,
 					history_visibility: 'shared',
 					guest_can_join: false,
@@ -188,21 +188,21 @@ const usePubHubs = defineStore('pubhubs', {
 		async leaveRoom(roomId: string) {
 			await this.client.leave(roomId);
 			const rooms = useRooms();
-			rooms.room(roomId)?.hide();
+			rooms.room(roomId)?.setHidden(true);
 			// this.updateRooms();
 		},
 
 		/**
 		 * Adds users which are mentioned by '@' in the message to m.mentions field, mutating the content argument.
 		 */
-		async _addUserMentionsToMessageContent(content: M_TextMessageEventContent) {
+		async _addUserMentionsToMessageContent(content: TTextMessageEventContent) {
 			if (content.body.includes('@')) {
 				const users = await this.getUsers();
 				let mentionedUsersName = [];
 				const mentionedUsers = content.body.split('@');
 				mentionedUsersName = users
 					.filter((user) => {
-						return mentionedUsers.some((menUser) => user.rawDisplayName != undefined && (menUser.includes(user.rawDisplayName) || menUser === user.rawDisplayName));
+						return mentionedUsers.some((menUser: any) => user.rawDisplayName != undefined && (menUser.includes(user.rawDisplayName) || menUser === user.rawDisplayName));
 					})
 					.map((users) => users.rawDisplayName)
 					.filter((displayName): displayName is string => displayName !== undefined);
@@ -211,7 +211,7 @@ const usePubHubs = defineStore('pubhubs', {
 			}
 		},
 
-		_createEmptyMentions(): M_Mentions {
+		_createEmptyMentions(): TMentions {
 			return {
 				room: false,
 				user_ids: [],
@@ -221,10 +221,14 @@ const usePubHubs = defineStore('pubhubs', {
 		/**
 		 * Mutates the message content appropriately to become a reply to the inReplyTo event.
 		 */
-		_addInReplyToToMessageContent(content: M_TextMessageEventContent, inReplyTo: M_MessageEvent) {
+		_addInReplyToToMessageContent(content: TTextMessageEventContent, inReplyTo: TMessageEvent) {
+			// todo: fix in new version of replies (issue #313)
+			//@ts-ignore
 			content['m.relates_to'] = { 'm.in_reply_to': { event_id: inReplyTo.event_id, x_event_copy: structuredClone(inReplyTo) } };
 
 			// Don't save inReplyTo of inReplyTo event.
+			// todo: fix in new version of replies (issue #313)
+			//@ts-ignore
 			delete content['m.relates_to']?.['m.in_reply_to']?.x_event_copy?.content?.['m.relates_to']?.['m.in_reply_to']?.x_event_copy;
 
 			// Mention appropriate users
@@ -239,16 +243,16 @@ const usePubHubs = defineStore('pubhubs', {
 			}
 		},
 
-		async _constructMessageContent(text: string, inReplyTo?: M_MessageEvent): Promise<M_TextMessageEventContent> {
-			let content = ContentHelpers.makeTextMessage(text) as M_TextMessageEventContent;
+		async _constructMessageContent(text: string, inReplyTo?: TMessageEvent): Promise<TTextMessageEventContent> {
+			let content = ContentHelpers.makeTextMessage(text) as TTextMessageEventContent;
 
 			const cleanText = hasHtml(text);
 			if (typeof cleanText == 'string') {
 				const html = sanitizeHtml(text);
-				content = ContentHelpers.makeHtmlMessage(cleanText, html) as M_TextMessageEventContent;
+				content = ContentHelpers.makeHtmlMessage(cleanText, html) as TTextMessageEventContent;
 			}
 
-			// content should have M_TextMessageEventContent type after this step (and not before), but don't know how to change type.
+			// content should have TTextMessageEventContent type after this step (and not before), but don't know how to change type.
 			content['m.mentions'] = this._createEmptyMentions();
 
 			await this._addUserMentionsToMessageContent(content);
@@ -266,7 +270,7 @@ const usePubHubs = defineStore('pubhubs', {
 		 * @param text
 		 * @param inReplyTo Possible event to which the new message replies.
 		 */
-		async addMessage(roomId: string, text: string, inReplyTo?: M_MessageEvent) {
+		async addMessage(roomId: string, text: string, inReplyTo?: TMessageEvent) {
 			const rooms = useRooms();
 			const room = rooms.room(roomId);
 			if (room) {
@@ -333,7 +337,7 @@ const usePubHubs = defineStore('pubhubs', {
 			const roomId = rooms.currentRoom?.roomId!;
 
 			// If we already have unread messages in the room and we haven't seen them, then no need to send a receipt.
-			if (rooms.currentRoom?._ph.unreadMessages != 0) {
+			if (rooms.currentRoom?.numUnreadMessages != 0) {
 				return;
 			}
 

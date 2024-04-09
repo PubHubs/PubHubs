@@ -1,6 +1,7 @@
-import { Room, Event, useSettings, featureFlagType } from '@/store/store';
+import { Room, useSettings, featureFlagType } from '@/store/store';
 import { useMenu, MenuItem } from '@/store/menu';
 import { defineStore } from 'pinia';
+import { TEvent } from '@/model/events/TEvent';
 
 //
 // Plugin Types
@@ -104,43 +105,45 @@ const usePlugins = defineStore('plugins', {
 			};
 		},
 
-		hasEventPlugin: (state) => {
-			return (event: Event, room_id: string | undefined, room_type: string | undefined): PluginProperties | boolean => {
-				if (!event) return false;
+		getEventPlugin: (state) => {
+			return (event: Partial<TEvent>, room_id: string | undefined, room_type: string | undefined): PluginProperties | undefined => {
+				if (!event) return;
 				const plugin = state.pluginsEventType.find((plugin) => {
-					if (plugin.type !== event.type) return false;
+					if (plugin.type !== event.type) return;
 					if (typeof plugin.room_id == 'string') {
-						if (plugin.room_id != room_id) return false;
+						if (plugin.room_id != room_id) return;
 					}
 					if (typeof plugin.room_type == 'string') {
-						if (plugin.room_type != room_type) return false;
+						if (plugin.room_type != room_type) return;
 					}
 					return true;
 				});
 				if (plugin) {
 					return plugin as PluginProperties;
 				}
-				return false;
+				return;
 			};
 		},
 
-		hasEventMessagePlugin: (state) => {
-			return (event: Event, room_id: string | undefined, room_type: string | undefined): PluginProperties | false => {
-				if (!event) return false;
+		getEventMessagePlugin: (state) => {
+			return (event: Partial<TEvent>, room_id: string | undefined, room_type: string | undefined): PluginProperties | undefined => {
+				if (event.type !== 'm.room.message') return;
+
 				const plugin = state.pluginsMessageType.find((plugin) => {
-					if (plugin.type !== event.content.msgtype) return false;
+					if (!event.content) return;
+					if (plugin.type !== event.content.msgtype) return;
 					if (typeof plugin.room_id == 'string') {
-						if (plugin.room_id != room_id) return false;
+						if (plugin.room_id != room_id) return;
 					}
 					if (typeof plugin.room_type == 'string') {
-						if (plugin.room_type != room_type) return false;
+						if (plugin.room_type != room_type) return;
 					}
 					return true;
 				});
 				if (plugin) {
 					return plugin as PluginProperties;
 				}
-				return false;
+				return;
 			};
 		},
 	},

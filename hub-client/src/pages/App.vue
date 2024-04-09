@@ -53,7 +53,7 @@
 					<H2 class="mt-12">{{ $t('menu.private_rooms') }}</H2>
 					<Icon type="plus" class="cursor-pointer hover:text-green float-right -mt-8" @click="addPrivateRoomDialog = true"></Icon>
 					<Line class="mt-2 mb-4"></Line>
-					<RoomList :roomType="PubHubsRoomType.PH_MESSAGES_DM"></RoomList>
+					<RoomList :roomType="RoomType.PH_MESSAGES_DM"></RoomList>
 				</HeaderFooter>
 
 				<div class="md:col-span-6 md:block max-h-screen bg-hub-background overflow-y-auto" :class="{ hidden: hubSettings.mobileHubMenu }">
@@ -79,7 +79,7 @@
 <script setup lang="ts">
 	import { onMounted, ref, getCurrentInstance } from 'vue';
 	import { RouteParamValue, useRouter } from 'vue-router';
-	import { Message, MessageBoxType, MessageType, Theme, TimeFormat, useHubSettings, useMessageBox, PubHubsRoomType, useRooms, useSettings, useUser } from '@/store/store';
+	import { Message, MessageBoxType, MessageType, Theme, TimeFormat, useHubSettings, useMessageBox, RoomType, useRooms, useSettings, useUser } from '@/store/store';
 	import { useDialog } from '@/store/dialog';
 	import { useMatrixFiles } from '@/composables/useMatrixFiles';
 	import { usePubHubs } from '@/core/pubhubsStore';
@@ -87,6 +87,7 @@
 	import { usePlugins } from '@/store/plugins';
 	import { useI18n } from 'vue-i18n';
 	import { useToggleMenu } from '@/store/toggleGlobalMenu';
+	import { MatrixEvent } from 'matrix-js-sdk';
 
 	const { locale, availableLocales } = useI18n();
 	const router = useRouter();
@@ -97,7 +98,7 @@
 	const messagebox = useMessageBox();
 	const dialog = useDialog();
 	const pubhubs = usePubHubs();
-	const { downloadUrl } = useMatrixFiles(pubhubs);
+	const { downloadUrl } = useMatrixFiles();
 	const plugins = usePlugins();
 	const menu = useMenu();
 	const toggleMenu = useToggleMenu();
@@ -188,7 +189,7 @@
 	window.addEventListener('beforeunload', () => {
 		if (acknowledgeOnce.value) {
 			rooms.roomsArray.forEach(async (room) => {
-				const mEvent: MatrixEvent = rooms.getlastEvent(room.roomId);
+				const mEvent: MatrixEvent = room.getlastEvent();
 				const sender = mEvent.event.sender!;
 				await pubhubs.sendAcknowledgementReceipt(sender);
 			});

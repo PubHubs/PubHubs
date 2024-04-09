@@ -1,7 +1,7 @@
 import { SyncState } from 'matrix-js-sdk/lib/sync';
 import { MatrixClient, MatrixEvent, ClientEvent, Room as MatrixRoom, RoomEvent, RoomMemberEvent, RoomMember } from 'matrix-js-sdk';
 
-import { useSettings, User, useConnection, useUser, useRooms } from '@/store/store';
+import { useSettings, User, useConnection, useUser, useRooms, Room } from '@/store/store';
 import { usePubHubs } from '@/core/pubhubsStore';
 
 class Events {
@@ -54,29 +54,25 @@ class Events {
 	 * Matrix Events
 	 */
 
-	eventRoomName(room: MatrixRoom) {
+	eventRoomName(matrixRoom: MatrixRoom) {
 		const rooms = useRooms();
 		// console.debug('Room.name', room.name);
-		rooms.addMatrixRoom(room);
+		rooms.addRoom(new Room(matrixRoom));
 	}
 
-	eventRoomTimeline(event: MatrixEvent, room: MatrixRoom | undefined, toStartOfTimeline: boolean | undefined) {
-		const rooms = useRooms();
+	eventRoomTimeline(event: MatrixEvent, matrixRoom: MatrixRoom | undefined, toStartOfTimeline: boolean | undefined) {
 		// console.debug('Room.timeline', toStartOfTimeline, removed);
+		if (!matrixRoom) return;
+		const rooms = useRooms();
+		const phRoom = rooms.addRoom(new Room(matrixRoom));
 
-		if (!room) return;
-
-		if (toStartOfTimeline) {
-			rooms.addMatrixRoom(room);
-		} else {
-			rooms.addMatrixRoom(room);
-
+		if (!toStartOfTimeline) {
 			if (event.event.type != 'm.room.message') return;
 
-			if (room.roomId !== rooms.currentRoomId) {
-				rooms.unreadMessageCounter(room.roomId, event);
+			if (phRoom.roomId !== rooms.currentRoomId) {
+				phRoom.unreadMessageCounter(event);
 			}
-			rooms.onModRoomMessage(room.roomId, event);
+			rooms.onModRoomMessage(event);
 		}
 	}
 
@@ -100,7 +96,7 @@ class Events {
 				if (member.membership == 'leave') {
 					const roomId = event.getRoomId();
 					if (roomId != undefined) {
-						rooms.rooms[roomId].hidden = true;
+						rooms.rooms[roomId].setHidden(true);
 					}
 				} else if (member.membership == 'invite') {
 					const pubhubs = usePubHubs();

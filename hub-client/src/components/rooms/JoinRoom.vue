@@ -18,7 +18,7 @@
 <script setup lang="ts">
 	import { onMounted } from 'vue';
 	import { useRouter } from 'vue-router';
-	import { PublicRoom, useRooms } from '@/store/store';
+	import { TPublicRoom, useRooms } from '@/store/store';
 	import { usePubHubs } from '@/core/pubhubsStore';
 	import { buttonsCancel } from '@/store/dialog';
 
@@ -31,7 +31,7 @@
 		await rooms.fetchPublicRooms();
 	});
 
-	async function joinRoom(room: PublicRoom) {
+	async function joinRoom(room: TPublicRoom) {
 		if (rooms.roomIsSecure(room.room_id)) {
 			router.push({ name: 'secure-room', params: { id: room.room_id } });
 		} else {
