@@ -53,7 +53,7 @@ const nl = {
 	},
 	others: {
 		nop: 'Deze functionaleit is nog niet gerealiseerd.',
-		search: 'zoeken',
+		search: 'Zoeken',
 		read_receipt: 'Gelezen door',
 	},
 	rooms: {
