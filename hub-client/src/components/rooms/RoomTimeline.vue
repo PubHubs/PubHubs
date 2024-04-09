@@ -4,7 +4,7 @@
 			<DateDisplayer v-if="settings.isFeatureEnabled(featureFlagType.dateSplitter)" :scrollStatus="userHasScrolled" :eventTimeStamp="dateInformation.valueOf()"></DateDisplayer>
 		</div>
 		<div id="room-created-tag" v-if="oldestEventIsLoaded" class="rounded-xl flex items-center justify-center w-60 mx-auto mb-12 border border-solid border-black dark:border-white">{{ $t('rooms.roomCreated') }}</div>
-		<template v-for="(item, index) in rooms.getRoomTimeLineWithPluginsCheck(room_id)" :key="index">
+		<template v-for="(item, index) in rooms.room(room_id)?.addPluginsToTimeline()" :key="index">
 			<div ref="elRoomEvent" :id="item.event.event_id">
 				<RoomEvent :event="item.event" class="room-event" @on-in-reply-to-click="onInReplyToClick"></RoomEvent>
 			</div>
@@ -14,7 +14,7 @@
 
 <script setup lang="ts">
 	import { ref, onMounted, watch } from 'vue';
-	import { Room, useRooms, useUser } from '@/store/store';
+	import { useRooms, useUser } from '@/store/store';
 	import { useRoute } from 'vue-router';
 	import { usePubHubs } from '@/core/pubhubsStore';
 	import { ElementObserver } from '@/core/elementObserver';
@@ -34,7 +34,6 @@
 	const elRoomEvent = ref<HTMLElement | null>(null);
 
 	let newestEventId: string | undefined;
-	// todo: move to Room class.
 	let oldestEventIsLoaded: Ref<boolean> = ref(false);
 
 	let timeStampEvent: TimeLineEventTimeStamp[] = [];
@@ -81,7 +80,7 @@
 		await loadInitialEvents();
 		scrollToBottom();
 
-		newestEventId = rooms.currentRoom?.getLiveTimeline().getEvents().at(-1)?.event.event_id;
+		// newestEventId = rooms.currentRoom?.getNewestEventInTimeline()?.event_id;
 
 		await rooms.storeRoomNotice(rooms.currentRoom!.roomId);
 	});
@@ -94,7 +93,7 @@
 			settings.isFeatureEnabled(featureFlagType.readReceipt) && elementObserver?.setUpObserver(handleReadReceiptIntersection);
 		},
 	);
-	watch(() => rooms.currentRoom?.getLiveTimeline().getEvents().length, onTimelineChange);
+	watch(() => rooms.currentRoom?.timelineGetLength(), onTimelineChange);
 
 	watch(route, async () => {
 		if (rooms.currentRoomExists) {
@@ -125,7 +124,7 @@
 		timeStampEvent = [];
 		entries.forEach((entry) => {
 			const eventId = entry.target.id;
-			const matrixEvent: MatrixEvent = rooms.currentRoom?.findEventById(eventId);
+			const matrixEvent = rooms.currentRoom?.findEventById(eventId);
 			if (matrixEvent.getType() === 'm.room.message') {
 				timeStampEvent.push({ eventId: eventId, timeStamp: matrixEvent.localTimestamp });
 			}
@@ -152,15 +151,14 @@
 		if (!newTimelineLength || !oldTimelineLength) return;
 		if (!elRoomTimeline.value) return;
 		if (!rooms.currentRoom) return;
+		// We only want to watch timelinechanges for new events not older events.
 		if (!newEventsExist()) return;
 
-		const newEvents = rooms.currentRoom.getLiveTimeline().getEvents().slice(oldTimelineLength);
-
-		if (!isScrolling() || Room.containsUserSentEvent(user.user.userId, newEvents)) {
+		if (!isScrolling() || rooms.currentRoom.timelineContainsUserSentEvents(user.user.userId, oldTimelineLength)) {
 			setTimeout(scrollToBottom, 100);
 		}
 
-		newestEventId = rooms.currentRoom.getNewestEventId();
+		newestEventId = rooms.currentRoom.timelineGetNewestEvent()?.event_id;
 	}
 
 	//#region Events
@@ -169,15 +167,9 @@
 		if (!(ev.target instanceof HTMLElement)) return;
 		if (!rooms.currentRoom) return;
 
-		rooms.currentRoom.setUserIsScrolling(isScrolling());
-
 		// If scrolled to the top of the screen, load older events.
 		if (ev.target.scrollTop === 0) {
-			const prevOldestLoadedEventId = rooms.rooms[props.room_id]
-				.getLiveTimeline()
-				.getEvents()
-				.find((event) => event.getType() == 'm.room.message')
-				?.getId();
+			const prevOldestLoadedEventId = rooms.currentRoom.timelineGetOldestMessageEventId();
 			oldestEventIsLoaded.value = await pubhubs.loadOlderEvents(rooms.currentRoomId);
 			if (prevOldestLoadedEventId && !oldestEventIsLoaded.value) {
 				scrollToEvent(prevOldestLoadedEventId);
@@ -232,7 +224,7 @@
 
 	function newEventsExist(): boolean {
 		if (!rooms.currentRoom) return false;
-		return newestEventId !== rooms.currentRoom.getLiveTimeline().getEvents().at(-1)?.event.event_id;
+		return newestEventId !== rooms.currentRoom.timelineGetNewestEvent()?.event_id;
 	}
 
 	/**
@@ -243,15 +235,12 @@
 	async function loadInitialEvents() {
 		if (!rooms.currentRoom) return;
 
-		const isMessageEvent = (event: MatrixEvent) => event.event.type === 'm.room.message';
-
-		let numLoadedMessages = rooms.currentRoom.getLiveTimeline().getEvents().filter(isMessageEvent).length;
-
+		let numLoadedMessages = rooms.currentRoom.timelineGetNumMessageEvents();
 		let allMessagesLoaded = false;
 
 		while (numLoadedMessages < 15 && !allMessagesLoaded) {
 			allMessagesLoaded = await pubhubs.loadOlderEvents(rooms.currentRoomId);
-			numLoadedMessages = rooms.currentRoom.getLiveTimeline().getEvents().filter(isMessageEvent).length;
+			numLoadedMessages = rooms.currentRoom.timelineGetNumMessageEvents();
 		}
 	}
 </script>

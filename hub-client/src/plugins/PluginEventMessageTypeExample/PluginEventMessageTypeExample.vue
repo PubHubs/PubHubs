@@ -6,6 +6,6 @@
 </template>
 
 <script setup lang="ts">
-	import { Event } from '@/store/rooms';
-	defineProps<{ event: Event }>();
+	import { TEvent } from '@/store/rooms';
+	defineProps<{ event: TEvent }>();
 </script>

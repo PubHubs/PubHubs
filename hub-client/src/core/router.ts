@@ -25,7 +25,7 @@ router.beforeEach((to) => {
 
 	rooms.roomsArray.forEach(async (room) => {
 		if (room.roomId === router.currentRoute.value.params.id) {
-			const mEvent: MatrixEvent = rooms.getlastEvent(room.roomId);
+			const mEvent: MatrixEvent = room.getlastEvent();
 			const sender = mEvent.event.sender!;
 			await pubhubs.sendAcknowledgementReceipt(sender);
 		}

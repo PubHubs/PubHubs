@@ -3,7 +3,7 @@
 		<ul>
 			<li v-for="(item, index) in filteredUsers" :key="index" class="group cursor-pointer hover:bg-green bg-gray-light p-1 border-b border-gray-light rounded-t-none" @click="clickedItem(item)">
 				<div class="flex items-center space-x-8">
-					<Avatar :userId="item.userId"></Avatar>
+					<Avatar :userId="item.user?.userId"></Avatar>
 					<div>{{ item.rawDisplayName }}</div>
 				</div>
 			</li>
@@ -13,8 +13,8 @@
 
 <script setup lang="ts">
 	import { ref, computed, watch, onMounted } from 'vue';
-	import { User as MatrixUser } from 'matrix-js-sdk';
 	import { useRooms, useUser } from '@/store/store';
+	import { TRoomMember } from '@/model/rooms/TRoomMember';
 
 	const emit = defineEmits(['click']);
 
@@ -24,7 +24,7 @@
 	const messageDirection = ref(0);
 	const rooms = useRooms();
 	const user = useUser();
-	const users = ref([] as Array<MatrixUser>);
+	const users = ref([] as TRoomMember[]);
 	const checkEmptyList = ref(false);
 	const elContainer = ref<HTMLElement | null>(null);
 
@@ -81,7 +81,7 @@
 
 	function filterUsers(query: string) {
 		const searchTerm = query.slice(query.lastIndexOf('@') + 1);
-		const newUserList = users.value.filter((user: MatrixUser) => user.rawDisplayName !== undefined && user.rawDisplayName.toLowerCase().includes(searchTerm.toLowerCase()));
+		const newUserList = users.value.filter((user) => user.rawDisplayName !== undefined && user.rawDisplayName.toLowerCase().includes(searchTerm.toLowerCase()));
 		checkEmptyList.value = newUserList.length < 1 ? true : false;
 		return newUserList;
 	}
@@ -90,7 +90,7 @@
 	async function getRoomMembers() {
 		if (rooms.currentRoom != undefined) {
 			users.value = rooms.currentRoom.getPrivateRoomMembers();
-			users.value = users.value.filter((u) => u.userId !== user.user.userId && u.rawDisplayName != 'notices' && u.membership === 'join');
+			users.value = users.value.filter((u) => u.user?.userId !== user.user.userId && u.rawDisplayName != 'notices' && u.membership === 'join');
 		}
 	}
 
