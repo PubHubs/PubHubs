@@ -53,7 +53,7 @@ const en = {
 	},
 	others: {
 		nop: 'This feature is not implement yet.',
-		search: 'search',
+		search: 'Search',
 		read_receipt: 'Read by',
 	},
 	rooms: {

@@ -4,20 +4,20 @@
 			<div v-if="user.isLoggedIn" class="md:grid md:grid-cols-8">
 				<HeaderFooter class="md:col-span-2 md:flex bg-hub-background-2" :class="{ hidden: !hubSettings.mobileHubMenu }">
 					<template #header>
-						<div class="flex justify-between">
-							<div class="flex-1">
+						<div class="flex justify-between gap-4 items-end border-b h-full py-2 pl-5 mr-8">
+							<div class="flex h-full">
 								<Badge v-if="hubSettings.isSolo && rooms.totalUnreadMessages > 0" class="-ml-2 -mt-2">{{ rooms.totalUnreadMessages }}</Badge>
 								<router-link to="/">
-									<Logo class="absolute h-2/5"></Logo>
+									<Logo class="h-full"></Logo>
 								</router-link>
 							</div>
-							<div class="flex-1 mt-2">
-								<Avatar :userId="user.user.userId" :img="avatar" @click="settingsDialog = true" class="cursor-pointer float-right w-8 h-8 text-md"></Avatar>
+							<div class="">
+								<Avatar :userId="user.user.userId" :img="avatar" @click="settingsDialog = true" class="cursor-pointer w-8 h-8 text-md"></Avatar>
 							</div>
 						</div>
 					</template>
 
-					<Menu>
+					<Menu class="pl-5 py-4">
 						<router-link v-for="(item, index) in menu.getMenu" :key="index" :to="item.to" v-slot="{ isActive }">
 							<MenuItem :icon="item.icon" :active="isActive" @click="toggleMenu.toggleGlobalMenu()">{{ $t(item.key) }}</MenuItem>
 						</router-link>
@@ -45,18 +45,22 @@
 						</Menu>
 					</div>
 
-					<H2 class="mt-12">{{ $t('menu.rooms') }}</H2>
-					<Icon type="plus" class="cursor-pointer hover:text-green float-right -mt-8" @click="joinRoomDialog = true"></Icon>
-					<Line class="mt-2 mb-4"></Line>
-					<RoomList></RoomList>
+					<div class="mr-8">
+						<div class="flex justify-between items-center pl-5 border-b">
+							<H2>{{ $t('menu.rooms') }}</H2>
+							<Icon type="plus" class="cursor-pointer hover:text-green" @click="joinRoomDialog = true"></Icon>
+						</div>
+						<RoomList class="pl-5 py-4"></RoomList>
 
-					<H2 class="mt-12">{{ $t('menu.private_rooms') }}</H2>
-					<Icon type="plus" class="cursor-pointer hover:text-green float-right -mt-8" @click="addPrivateRoomDialog = true"></Icon>
-					<Line class="mt-2 mb-4"></Line>
-					<RoomList :roomType="RoomType.PH_MESSAGES_DM"></RoomList>
+						<div class="flex justify-between items-center pl-5 border-b">
+							<H2 class="">{{ $t('menu.private_rooms') }}</H2>
+							<Icon type="plus" class="cursor-pointer hover:text-green" @click="addPrivateRoomDialog = true"></Icon>
+						</div>
+						<RoomList :roomType="RoomType.PH_MESSAGES_DM" class="pl-5 py-4"></RoomList>
+					</div>
 				</HeaderFooter>
 
-				<div class="md:col-span-6 md:block max-h-screen bg-hub-background overflow-y-auto" :class="{ hidden: hubSettings.mobileHubMenu }">
+				<div class="md:col-span-6 md:block max-h-screen dark:bg-gray-middle overflow-y-auto scrollbar" :class="{ hidden: hubSettings.mobileHubMenu }">
 					<router-view></router-view>
 				</div>
 			</div>

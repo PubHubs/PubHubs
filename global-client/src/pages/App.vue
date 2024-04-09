@@ -46,7 +46,7 @@
 
 <script setup lang="ts">
 	import { onMounted, ref } from 'vue';
-	import { useGlobal, useSettings, HubList, useHubs, useDialog } from '@/store/store';
+	import { useGlobal, useSettings, Hub, HubList, useHubs, useDialog } from '@/store/store';
 	import { useI18n } from 'vue-i18n';
 	import { useToggleMenu } from '@/store/toggleGlobalMenu';
 

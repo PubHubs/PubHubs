@@ -16,7 +16,7 @@
 			{{ $t('emoji.' + groupLabel()) }}
 		</p>
 
-		<div class="flex flex-wrap gap-3 overflow-y-auto scrollbar-emojipicker emoji-font">
+		<div class="flex flex-wrap gap-3 overflow-y-auto scrollbar emoji-font">
 			<span v-for="emoji in filterEmojis" :key="emoji.hexcode" @click="selectEmoji(emoji)" class="cursor-pointer xs:w-10 xs:h-10 flex items-center justify-center text-xl xs:text-3xl overflow-hidden">
 				{{ emoji.emoji }}
 			</span>
