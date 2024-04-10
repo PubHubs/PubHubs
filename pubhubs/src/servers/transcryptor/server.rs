@@ -2,10 +2,12 @@ use std::rc::Rc;
 
 use actix_web::web;
 
-use crate::elgamal;
 use crate::servers::{
-    self, AppBase, AppCreator as _, AppCreatorBase, Constellation, Server as _, ShutdownSender,
+    self,
+    api::{self, EndpointDetails as _},
+    AppBase, AppCreator as _, AppCreatorBase, Constellation, Server as _, ShutdownSender,
 };
+use crate::{elgamal, hub, phcrypto};
 
 /// Transcryptor
 pub type Server = servers::ServerImpl<Details>;
@@ -31,7 +33,6 @@ impl servers::Details for Details {
 
 #[derive(Clone)]
 pub struct RunningState {
-    #[allow(dead_code)] // TODO: remove
     phc_ss: elgamal::SharedSecret,
 }
 
@@ -41,7 +42,9 @@ pub struct App {
 }
 
 impl crate::servers::App<Server> for Rc<App> {
-    fn configure_actix_app(&self, _sc: &mut web::ServiceConfig) {}
+    fn configure_actix_app(&self, sc: &mut web::ServiceConfig) {
+        api::phct::hub::Key::add_to(self, sc, App::handle_hub_key);
+    }
 
     fn base(&self) -> &AppBase<Server> {
         &self.base
@@ -49,6 +52,33 @@ impl crate::servers::App<Server> for Rc<App> {
 
     fn master_enc_key_part(&self) -> Option<&elgamal::PrivateKey> {
         Some(&self.master_enc_key_part)
+    }
+}
+
+impl App {
+    async fn handle_hub_key(
+        app: Rc<Self>,
+        signed_req: web::Json<api::phc::hub::TicketSigned<api::phct::hub::KeyReq>>,
+    ) -> api::Result<api::phct::hub::KeyResp> {
+        let running_state: &RunningState = api::return_if_ec!(app.base.running_state());
+
+        let ts_req = signed_req.into_inner();
+
+        let ticket_digest = phcrypto::TicketDigest::new(&ts_req.ticket);
+
+        let (_, _): (api::phct::hub::KeyReq, hub::Name) =
+            api::return_if_ec!(ts_req.open(&app.base.jwt_key.verifying_key()));
+
+        // At this point we can be confident that the ticket is authentic, so we can give the hub
+        // its decryption key based on the provided ticket
+
+        let key_part: curve25519_dalek::Scalar = phcrypto::t_hub_key_part(
+            ticket_digest,
+            &running_state.phc_ss, // shared secret with pubhubs central
+            &app.master_enc_key_part,
+        );
+
+        api::ok(api::phct::hub::KeyResp { key_part })
     }
 }
 

@@ -24,6 +24,22 @@ pub fn phc_hub_key_part(
     hub_key_part_blind(ticket, shared_secret) * master_enc_key_part.as_scalar()
 }
 
+/// Computes the factor of a hub's encryption key returned by the T from the [api::phc::Ticket] used
+/// by the hub.
+pub fn t_hub_key_part(
+    ticket: TicketDigest,
+    shared_secret: &elgamal::SharedSecret,
+    master_enc_key_part: &elgamal::PrivateKey,
+) -> Scalar {
+    // K^-1 * f_H * x_T
+    hub_key_part_blind(ticket, shared_secret).invert() * master_enc_key_part.as_scalar()
+}
+
+/// Returns the `f_H` for the given hub ticket
+pub fn encryption_factor(ticket: TicketDigest) -> Scalar {
+    // TODO
+}
+
 /// Returns the blind `K` added by PHC to `x_PHC` when a hub requests its hub enc key part.
 pub fn hub_key_part_blind(
     ticket_digest: TicketDigest,
