@@ -25,7 +25,7 @@
 				</div>
 			</template>
 
-			<RoomTimeline class="scrollbar" :room_id="rooms.currentRoomId"></RoomTimeline>
+			<RoomTimeline class="scrollbar" :room_id="rooms.currentRoomId" :key="route.path"></RoomTimeline>
 
 			<template #footer>
 				<MessageInput></MessageInput>
