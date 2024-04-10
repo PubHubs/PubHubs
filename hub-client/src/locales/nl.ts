@@ -72,6 +72,7 @@ const nl = {
 		join_room: 'Wordt lid van een gesprek',
 		add_room: 'Voeg gesprek toe',
 		name: 'Naam van gesprek',
+		name_general_room: 'Algemeen',
 		filter: 'Filter gesprekken',
 		title: '{0}',
 		access_denied: 'Toegang geweigerd',
