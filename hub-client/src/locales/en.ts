@@ -72,6 +72,7 @@ const en = {
 		join_room: 'Join a room',
 		add_room: 'Add a room',
 		name: 'Name of a room',
+		name_general_room: 'General',
 		filter: 'Filter rooms',
 		title: '{0}',
 		access_denied: 'Access Denied',

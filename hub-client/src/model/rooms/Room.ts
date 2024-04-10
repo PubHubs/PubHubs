@@ -5,6 +5,7 @@ import { useUser } from '@/store/user';
 import { useRooms } from '@/store/rooms';
 import { TBaseEvent } from '../events/TBaseEvent';
 import { TRoomMember } from './TRoomMember';
+import { useI18n } from 'vue-i18n';
 
 enum RoomType {
 	SECURED = 'ph.messages.restricted',
@@ -44,7 +45,13 @@ export default class Room {
 	}
 
 	get name(): string {
-		return this.matrixRoom.name;
+		// The general room name is of the form #General:<server_name>.
+		if (this.matrixRoom.name.startsWith('#General:')) {
+			const { t } = useI18n();
+			return t('rooms.name_general_room');
+		} else {
+			return this.matrixRoom.name;
+		}
 	}
 
 	set name(name: string) {
