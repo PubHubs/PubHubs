@@ -1,5 +1,6 @@
 <template>
 	<div v-if="rooms.currentRoomExists" id="room-timeline" ref="elRoomTimeline" class="h-full overflow-y-auto relative" @scroll="onScroll">
+		<InlineSpinner v-if="isLoadingNewEvents" class="fixed top-16"></InlineSpinner>
 		<div class="fixed right-60 top-24">
 			<DateDisplayer v-if="settings.isFeatureEnabled(featureFlagType.dateSplitter)" :scrollStatus="userHasScrolled" :eventTimeStamp="dateInformation.valueOf()"></DateDisplayer>
 		</div>
@@ -22,7 +23,6 @@
 	import DateDisplayer from '../ui/DateDisplayer.vue';
 	import { useSettings, featureFlagType } from '@/store/store';
 	const settings = useSettings();
-	import { Ref } from 'vue';
 
 	const rooms = useRooms();
 	const user = useUser();
@@ -30,16 +30,12 @@
 	const pubhubs = usePubHubs();
 
 	const elRoomTimeline = ref<HTMLElement | null>(null);
-
 	const elRoomEvent = ref<HTMLElement | null>(null);
-
+	const isLoadingNewEvents = ref(false);
 	let newestEventId: string | undefined;
 	let oldestEventIsLoaded: Ref<boolean> = ref(false);
-
 	let timeStampEvent: TimeLineEventTimeStamp[] = [];
-
 	let userHasScrolled: Ref<boolean> = ref(true);
-
 	let dateInformation = ref<Number>(0);
 
 	type TimeLineEventTimeStamp = {
@@ -169,11 +165,13 @@
 
 		// If scrolled to the top of the screen, load older events.
 		if (ev.target.scrollTop === 0) {
+			isLoadingNewEvents.value = true;
 			const prevOldestLoadedEventId = rooms.currentRoom.timelineGetOldestMessageEventId();
 			oldestEventIsLoaded.value = await pubhubs.loadOlderEvents(rooms.currentRoomId);
 			if (prevOldestLoadedEventId && !oldestEventIsLoaded.value) {
 				scrollToEvent(prevOldestLoadedEventId);
 			}
+			isLoadingNewEvents.value = false;
 		}
 	}
 

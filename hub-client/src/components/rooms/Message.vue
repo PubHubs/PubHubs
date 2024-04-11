@@ -1,5 +1,5 @@
 <template>
-	<p v-html="parsedMessage"></p>
+	<p v-html="parsedMessage" class="text-ellipsis overflow-hidden"></p>
 </template>
 
 <script setup lang="ts">
