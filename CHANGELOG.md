@@ -2,6 +2,7 @@
 
 *Please add a brief description of any changes to be tested and any migrations to be performed here.*
 - Removed the normalization of display names (i.e. adding the " - 123-abc" suffix)
+- Added yivi token format check during login and when entering secure rooms (see #510)
 
 ## 27 Mar 2024
 - Several changes to Synapse `homeserver.yaml` configuration, including a `ConfigChecker` module that
