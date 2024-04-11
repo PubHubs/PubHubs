@@ -25,9 +25,9 @@
 
 					<!-- When user is admin, show the admin tools menu -->
 					<div v-if="user.isAdmin">
-						<H2 class="mt-12">{{ $t('menu.admin_tools') }}</H2>
+						<H2 class="pl-5">{{ $t('menu.admin_tools') }}</H2>
 						<Line class="mt-2 mb-4"></Line>
-						<Menu>
+						<Menu class="pl-5">
 							<router-link :to="{ name: 'admin' }" v-slot="{ isActive }">
 								<MenuItem icon="admin" :active="isActive" @click="toggleMenu.toggleGlobalMenu()">{{ $t('menu.admin_tools_rooms') }}</MenuItem>
 							</router-link>
@@ -36,9 +36,9 @@
 
 					<!-- When user is admin, show the moderation tools menu -->
 					<div v-if="disclosureEnabled && user.isAdmin">
-						<H2 class="mt-12">{{ $t('menu.moderation_tools') }}</H2>
+						<H2 class="pl-5">{{ $t('menu.moderation_tools') }}</H2>
 						<Line class="mt-2 mb-4"></Line>
-						<Menu>
+						<Menu class="pl-5">
 							<router-link :to="{ name: 'ask-disclosure' }" v-slot="{ isActive }">
 								<MenuItem icon="sign" :active="isActive" class="hover:text-red">{{ $t('menu.moderation_tools_disclosure') }}</MenuItem>
 							</router-link>
