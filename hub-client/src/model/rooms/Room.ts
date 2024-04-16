@@ -1,4 +1,4 @@
-import { EventTimeline, MatrixEvent, Room as MatrixRoom, ReceiptType } from 'matrix-js-sdk';
+import { EventTimeline, MatrixEvent, Room as MatrixRoom, ReceiptType, EventTimelineSet } from 'matrix-js-sdk';
 import { TEvent } from '../events/TEvent';
 import { usePlugins } from '@/store/plugins';
 import { useUser } from '@/store/user';
@@ -190,6 +190,14 @@ export default class Room {
 	 */
 	public removeEvent(eventId: string): boolean {
 		return this.matrixRoom.removeEvent(eventId);
+	}
+
+	public getTimelineSets(): EventTimelineSet[] {
+		return this.matrixRoom.getTimelineSets();
+	}
+
+	public getTimelineForEvent(eventId: string): EventTimeline | null {
+		return this.matrixRoom.getTimelineForEvent(eventId);
 	}
 
 	public timelineGetEvents(): MatrixEvent[] {

@@ -1,7 +1,7 @@
 import { defineStore } from 'pinia';
 
 import { User as MatrixUser, MatrixClient, MatrixEvent, ContentHelpers, MatrixError, IStateEventWithRoomId } from 'matrix-js-sdk';
-
+import Room from '@/model/rooms/Room';
 import { Authentication } from '@/core/authentication';
 import { Events } from '@/core/events';
 import { useSettings, User, useUser, useRooms, useConnection, RoomType, TPublicRoom } from '@/store/store';
@@ -473,11 +473,10 @@ const usePubHubs = defineStore('pubhubs', {
 		 *
 		 * @returns {boolean} true if all events are loaded, false otherwise.
 		 */
-		async loadOlderEvents(roomId: string): Promise<boolean> {
+		async loadOlderEvents(room: Room): Promise<boolean> {
 			const settings = useSettings();
 
-			const room = this.client.getRoom(roomId);
-			const firstEvent = room?.getLiveTimeline().getEvents()[0];
+			const firstEvent = room.timelineGetEvents()[0];
 
 			// If all messages are loaded, return.
 			if (!firstEvent || firstEvent.getType() === 'm.room.create') return true;
@@ -490,21 +489,24 @@ const usePubHubs = defineStore('pubhubs', {
 			const timeline = await this.client.getEventTimeline(timelineSet, eventId);
 			if (!timeline) throw new Error('Failed to load older events: Timeline not found');
 
+			if (!this.client.getRoom(room.roomId)) {
+				//Sometimes the room is NOT fully initialized on client-side this call forces the client to update its rooms, including this one.
+				//Our Room already exists (with its unready backing MatrixRoom), and we can mostly use it, but not to paginate the timeline.
+				await this.updateRooms();
+			}
+
 			await this.client.paginateEventTimeline(timeline, { backwards: true, limit: settings.pagination });
 			return false;
 		},
 
-		async loadToMessage(roomId: string, eventId: string) {
-			const room = this.client.getRoom(roomId);
-			if (!room) throw new Error('Failed to load to message: Room not found');
-
+		async loadToMessage(room: Room, eventId: string) {
 			let eventTimeline = room.getTimelineForEvent(eventId);
 			let i = 0;
 			let allEventsLoaded = false;
 			const searchLimit = 1000;
 
 			while (!eventTimeline && !allEventsLoaded && i < searchLimit) {
-				allEventsLoaded = await this.loadOlderEvents(roomId);
+				allEventsLoaded = await this.loadOlderEvents(room);
 				eventTimeline = room.getTimelineForEvent(eventId);
 				i++;
 			}

@@ -25,7 +25,7 @@
 				</div>
 			</template>
 
-			<RoomTimeline class="scrollbar" :room_id="rooms.currentRoomId" :key="route.path"></RoomTimeline>
+			<RoomTimeline v-if="rooms.rooms[id!]" class="scrollbar" :room="rooms.rooms[id!]"></RoomTimeline>
 
 			<template #footer>
 				<MessageInput></MessageInput>
@@ -53,6 +53,11 @@
 
 	const members = ref<TRoomMember[]>([]);
 
+	//Passed by the router
+	const props = defineProps({
+		id: String,
+	});
+
 	onMounted(() => {
 		update();
 	});
@@ -62,7 +67,8 @@
 	});
 
 	function update() {
-		rooms.changeRoom(route.params.id as string);
+		//We know the property is there since passed by the router, so we can use '!'
+		rooms.changeRoom(props.id!);
 		if (!rooms.currentRoom) return;
 		members.value = rooms.currentRoom.getPrivateRoomMembers() || [];
 		plugin.value = plugins.hasRoomPlugin(rooms.currentRoom);
