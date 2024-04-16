@@ -8,6 +8,33 @@ describe('PubHubs Store', () => {
 	});
 
 	describe('_constructMessageContent', () => {
+		test('public rooms listing', async () => {
+			//Pretend to be the client.
+			function mockClient(more) {
+				return {
+					publicRooms: (optional) => {
+						const batch = 'batch';
+						if (optional && optional.since && optional.since === batch) {
+							return { chunk: ['2'] };
+						}
+						if (more) {
+							return { chunk: ['1'], next_batch: batch };
+						} else {
+							return { chunk: ['1'] };
+						}
+					},
+				};
+			}
+
+			const pubhubs = usePubHubs() as Partial<any>;
+			pubhubs.client = mockClient(true);
+			let x = await pubhubs.getAllPublicRooms();
+			expect(x).toEqual(['1', '2']);
+			pubhubs.client = mockClient(false);
+			x = await pubhubs.getAllPublicRooms();
+			expect(x).toEqual(['1']);
+		});
+
 		test('plain text', async () => {
 			const pubhubs = usePubHubs();
 			const content = await pubhubs._constructMessageContent('Lorem ipsum dolor sit amet,');
