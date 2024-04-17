@@ -5,18 +5,15 @@ import { useSettings, User, useConnection, useUser, useRooms, Room } from '@/sto
 import { usePubHubs } from '@/core/pubhubsStore';
 
 class Events {
-	private readonly client: MatrixClient;
+	private client: MatrixClient;
 
 	public constructor(client: MatrixClient) {
 		this.client = client;
-		this.client.on(RoomEvent.Name, this.eventRoomName);
-		this.client.on(RoomEvent.Timeline, this.eventRoomTimeline);
-		this.client.on(RoomMemberEvent.Name, this.eventRoomMemberName);
-		this.client.on(RoomMemberEvent.Membership, this.eventRoomMemberMembership(this.client));
 	}
 
 	initEvents() {
 		return new Promise((resolve) => {
+			const self = this;
 			this.client.on(ClientEvent.Sync, (state: SyncState) => {
 				// console.debug('STATE:', state);
 
@@ -36,6 +33,10 @@ class Events {
 					// 	console.debug('== EVENT', event.getType());
 					// 	console.debug('== EVENT', event);
 					// });
+					this.client.on(RoomEvent.Name, self.eventRoomName);
+					this.client.on(RoomEvent.Timeline, self.eventRoomTimeline);
+					this.client.on(RoomMemberEvent.Name, self.eventRoomMemberName);
+					this.client.on(RoomMemberEvent.Membership, self.eventRoomMemberMembership(this.client));
 					resolve(true);
 				}
 			});
