@@ -123,8 +123,11 @@ const usePubHubs = defineStore('pubhubs', {
 		},
 
 		async joinRoom(room_id: string) {
-			await this.client.joinRoom(room_id);
-			this.updateRooms();
+			this.client
+				.joinRoom(room_id)
+				.catch((e) => console.debug(e.toString())) //This sometimes gives an error when the room cannot be
+				// found, maybe it's an old experiment or deleted. Reflects the state so we just show some debug info
+				.then(this.updateRooms);
 		},
 
 		async invite(room_id: string, user_id: string, reason = undefined) {
