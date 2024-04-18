@@ -1,22 +1,22 @@
 <template>
-	<Dialog :title="title" :buttons="buttonsSubmitCancel" width="w-3/6" @close="close($event)">
-		<form @submit.prevent>
+	<Dialog :title="title" :buttons="buttonsSubmitCancel" @close="close($event)">
+		<form @submit.prevent class="flex flex-col gap-4">
 			<FormLine>
 				<Label>{{ $t('admin.name') }}</Label>
-				<TextInput :placeholder="$t('admin.name')" v-model="editRoom.name" class="w-5/6" @changed="updateData('name', $event)"></TextInput>
+				<TextInput :placeholder="$t('admin.name')" v-model="editRoom.name" class="md:w-5/6" @changed="updateData('name', $event)"></TextInput>
 			</FormLine>
 			<FormLine>
 				<Label>{{ $t('admin.topic') }}</Label>
-				<TextInput :placeholder="$t('admin.topic')" v-model="editRoom.topic" class="w-5/6" @changed="updateData('topic', $event)"></TextInput>
+				<TextInput :placeholder="$t('admin.topic')" v-model="editRoom.topic" class="md:w-5/6" @changed="updateData('topic', $event)"></TextInput>
 			</FormLine>
 			<FormLine v-if="!secured">
 				<Label>{{ $t('admin.room_type') }}</Label>
-				<TextInput :placeholder="$t('admin.room_type_placeholder')" v-model="editRoom.type" class="w-5/6" @changed="updateData('type', $event)"></TextInput>
+				<TextInput :placeholder="$t('admin.room_type_placeholder')" v-model="editRoom.type" class="md:w-5/6" @changed="updateData('type', $event)"></TextInput>
 			</FormLine>
 			<div v-if="secured">
 				<FormLine class="mb-2">
 					<Label>{{ $t('admin.secured_description') }}</Label>
-					<TextInput :placeholder="$t('admin.secured_description')" v-model="editRoom.user_txt" class="w-5/6"></TextInput>
+					<TextInput :placeholder="$t('admin.secured_description')" v-model="editRoom.user_txt" class="md:w-5/6"></TextInput>
 				</FormLine>
 				<FormLine>
 					<Label>{{ $t('admin.secured_yivi_attributes') }}</Label>
