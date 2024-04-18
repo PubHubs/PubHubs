@@ -122,6 +122,13 @@ const usePubHubs = defineStore('pubhubs', {
 			return public_rooms;
 		},
 
+		/**
+		 * Uses the client to join a room (a no op when already a member) and updates the rooms in the store. Can throw
+		 * an error.
+		 * @param room_id - a room id
+		 * @throws error - an error when something goes wrong joining the room. For example a forbidden respons or a rate limited
+		 * response
+		 */
 		async joinRoom(room_id: string) {
 			await this.client.joinRoom(room_id);
 			this.updateRooms();
