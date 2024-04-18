@@ -5,15 +5,18 @@ import { useSettings, User, useConnection, useUser, useRooms, Room } from '@/sto
 import { usePubHubs } from '@/core/pubhubsStore';
 
 class Events {
-	private client: MatrixClient;
+	private readonly client: MatrixClient;
 
 	public constructor(client: MatrixClient) {
 		this.client = client;
+		this.client.on(RoomEvent.Name, this.eventRoomName);
+		this.client.on(RoomEvent.Timeline, this.eventRoomTimeline);
+		this.client.on(RoomMemberEvent.Name, this.eventRoomMemberName);
+		this.client.on(RoomMemberEvent.Membership, this.eventRoomMemberMembership(this.client));
 	}
 
 	initEvents() {
 		return new Promise((resolve) => {
-			const self = this;
 			this.client.on(ClientEvent.Sync, (state: SyncState) => {
 				// console.debug('STATE:', state);
 
@@ -33,10 +36,6 @@ class Events {
 					// 	console.debug('== EVENT', event.getType());
 					// 	console.debug('== EVENT', event);
 					// });
-					this.client.on(RoomEvent.Name, self.eventRoomName);
-					this.client.on(RoomEvent.Timeline, self.eventRoomTimeline);
-					this.client.on(RoomMemberEvent.Name, self.eventRoomMemberName);
-					this.client.on(RoomMemberEvent.Membership, self.eventRoomMemberMembership(this.client));
 					resolve(true);
 				}
 			});
@@ -100,9 +99,14 @@ class Events {
 					}
 				} else if (member.membership == 'invite') {
 					const pubhubs = usePubHubs();
-					pubhubs.joinRoom(member.roomId).then(function () {
-						console.log('joined DM');
-					});
+					pubhubs
+						.joinRoom(member.roomId)
+						.catch((e) => console.debug(e.toString()))
+						//This sometimes gives an error when the room cannot be found, maybe it's an old experiment or
+						// deleted. Reflects the state, so we just show some debug info.
+						.then(function () {
+							console.log('joined DM');
+						});
 				}
 			}
 		};
