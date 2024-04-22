@@ -14,7 +14,7 @@
 </template>
 
 <script setup lang="ts">
-	import { onMounted, ref, watch } from 'vue';
+	import { onMounted, ref, watch, computed } from 'vue';
 	import { useRooms, useUser } from '@/store/store';
 	import { usePubHubs } from '@/core/pubhubsStore';
 	import { ElementObserver } from '@/core/elementObserver';
@@ -22,14 +22,16 @@
 	import Room from '@/model/rooms/Room';
 	import DateDisplayer from '../ui/DateDisplayer.vue';
 	import { useSettings, featureFlagType } from '@/store/store';
-	const settings = useSettings();
 
+	const settings = useSettings();
 	const rooms = useRooms();
 	const user = useUser();
 	const pubhubs = usePubHubs();
+
 	const elRoomTimeline = ref<HTMLElement | null>(null);
 	const elRoomEvent = ref<HTMLElement | null>(null);
 	const isLoadingNewEvents = ref(false);
+
 	let newestEventId: string | undefined;
 	let oldestEventIsLoaded: Ref<boolean> = ref(false);
 	let timeStampEvent: TimeLineEventTimeStamp[] = [];
@@ -46,12 +48,13 @@
 	};
 
 	const props = defineProps<Props>();
-	const myTimeLine = ref(rooms.room(props.room.roomId)?.addPluginsToTimeline());
+
+	const myTimeLine = computed(() => {
+		return props.room.getVisibleTimeline();
+	});
 
 	const DELAY_VALID_M_EVENT_ID = 1000; // 1 second
-
 	const DELAY_POPUP_VIEW_ON_SCREEN = 4000; // 4 seconds
-
 	let elementObserver: ElementObserver | null = null;
 
 	async function setupRoom() {
@@ -84,7 +87,6 @@
 	watch(
 		() => props.room.roomId, //This is a getter, so we only watch on roomId changes.
 		async () => {
-			myTimeLine.value = rooms.room(props.room.roomId)?.addPluginsToTimeline();
 			await setupRoom();
 		},
 	);
@@ -233,7 +235,7 @@
 		let numLoadedMessages = props.room.timelineGetNumMessageEvents();
 		let allMessagesLoaded = false;
 
-		while (numLoadedMessages < 15 && !allMessagesLoaded) {
+		while (numLoadedMessages < 150 && !allMessagesLoaded) {
 			allMessagesLoaded = await pubhubs.loadOlderEvents(props.room);
 			numLoadedMessages = props.room.timelineGetNumMessageEvents();
 		}
