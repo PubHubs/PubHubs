@@ -1,19 +1,5 @@
 const sanitize: any = require('sanitize-html');
 
-const createLinks = (text: string) => {
-	const aTag = '<a target="_blank" class="text-green" ';
-	// http://, https://, ftp://
-	const urlPattern = /\b(?:https?|ftp):\/\/[a-z0-9-+&@#/%?=~_|!:,.;]*[a-z0-9-+&@#/%=~_|]/gim;
-	// www. sans http:// or https://
-	const pseudoUrlPattern = /(^|[^/])(www\.[\S]+(\b|$))/gim;
-	// Email addresses
-	const emailAddressPattern = /(([a-zA-Z0-9_\-.]+)@[a-zA-Z_]+?(?:\.[a-zA-Z]{2,6}))+/gim;
-	return text
-		.replace(urlPattern, aTag + 'href="$&">$&</a>')
-		.replace(pseudoUrlPattern, '$1' + aTag + 'href="http://$2">$2</a>')
-		.replace(emailAddressPattern, aTag + 'href="mailto:$1">$1</a>');
-};
-
 const removeHtml = (html: string): string => {
 	const parsedHTML = new DOMParser().parseFromString(html, 'text/html');
 	const text = parsedHTML.body.textContent;
@@ -112,4 +98,4 @@ const sanitizeHtml = (html: string): string => {
 	return html;
 };
 
-export { createLinks, removeHtml, hasHtml, sanitizeHtml };
+export { removeHtml, hasHtml, sanitizeHtml };

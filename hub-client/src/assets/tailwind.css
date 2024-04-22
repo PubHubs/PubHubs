@@ -134,6 +134,13 @@ body,
 }
 
 @layer components {
+	.message-link {
+		@apply text-green;
+	}
+	.message-mention {
+		@apply inline-block bg-avatar-lime text-white px-1 py-0 rounded-md;
+	}
+
 	.emoji-font {
 		font-family: notocoloremoji;
 	}

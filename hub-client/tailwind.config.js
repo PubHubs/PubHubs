@@ -55,6 +55,8 @@ const safeList = [
 	'm-auto',
 	'mb-3',
 	'mb-4',
+	'message-link',
+	'message-mention',
 	'ml-2',
 	'mt-2',
 	'mt-6',

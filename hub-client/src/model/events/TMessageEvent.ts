@@ -12,8 +12,11 @@ export interface TMessageEvent<C extends TMessageEventContent = TMessageEventCon
 	type: 'm.room.message';
 }
 
+// In future Matrix spec some refacturing is needed: https://github.com/matrix-org/matrix-spec-proposals/blob/main/proposals/1767-extensible-events.md
 interface TBaseMessageEventContent {
 	body: string;
+	// Custom body type, which has all the processed body or formatted body content, for use in our components
+	ph_body: string;
 	msgtype: 'm.text' | 'm.image' | 'm.file' | 'pubhubs.signed_message';
 	'm.relates_to'?: {
 		'm.in_reply_to'?: {

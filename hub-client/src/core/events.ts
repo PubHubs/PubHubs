@@ -1,16 +1,18 @@
 import { SyncState } from 'matrix-js-sdk/lib/sync';
 import { MatrixClient, MatrixEvent, ClientEvent, Room as MatrixRoom, RoomEvent, RoomMemberEvent, RoomMember } from 'matrix-js-sdk';
-
+import { TEvent } from '@/model/events/TEvent';
+import { EventTimeLineHandler } from '@/core/eventTimeLineHandler';
 import { useSettings, User, useConnection, useUser, useRooms, Room } from '@/store/store';
 import { usePubHubs } from '@/core/pubhubsStore';
 
 class Events {
 	private readonly client: MatrixClient;
+	private readonly eventTimeHandler = new EventTimeLineHandler();
 
 	public constructor(client: MatrixClient) {
 		this.client = client;
 		this.client.on(RoomEvent.Name, this.eventRoomName);
-		this.client.on(RoomEvent.Timeline, this.eventRoomTimeline);
+		this.client.on(RoomEvent.Timeline, (event: MatrixEvent, matrixRoom: MatrixRoom | undefined, toStartOfTimeline: boolean | undefined) => this.eventRoomTimeline(this.eventTimeHandler, event, matrixRoom, toStartOfTimeline));
 		this.client.on(RoomMemberEvent.Name, this.eventRoomMemberName);
 		this.client.on(RoomMemberEvent.Membership, this.eventRoomMemberMembership(this.client));
 	}
@@ -59,14 +61,22 @@ class Events {
 		rooms.addRoom(new Room(matrixRoom));
 	}
 
-	eventRoomTimeline(event: MatrixEvent, matrixRoom: MatrixRoom | undefined, toStartOfTimeline: boolean | undefined) {
-		// console.debug('Room.timeline', toStartOfTimeline, removed);
+	eventRoomTimeline(eventTimeLineHandler: EventTimeLineHandler, event: MatrixEvent, matrixRoom: MatrixRoom | undefined, toStartOfTimeline: boolean | undefined) {
 		if (!matrixRoom) return;
 		const rooms = useRooms();
 		const phRoom = rooms.addRoom(new Room(matrixRoom));
 
+		// const noticeUser = String(event.event.sender).includes('@notices');
+		// if (noticeUser) {
+		//     console.log('EVENT skipNoticeUserEvent',event.event);
+		// }
+
+		if (event.event.type === 'm.room.message' && event.event.content?.msgtype === 'm.text') {
+			event.event = eventTimeLineHandler.transformEventContent(event.event as Partial<TEvent>);
+		}
+
 		if (!toStartOfTimeline) {
-			if (event.event.type != 'm.room.message') return;
+			if (event.event.type !== 'm.room.message') return;
 
 			if (phRoom.roomId !== rooms.currentRoomId) {
 				phRoom.unreadMessageCounter(event);

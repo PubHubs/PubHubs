@@ -1,6 +1,4 @@
 import { EventTimeline, MatrixEvent, Room as MatrixRoom, ReceiptType, EventTimelineSet } from 'matrix-js-sdk';
-import { TEvent } from '../events/TEvent';
-import { usePlugins } from '@/store/plugins';
 import { useUser } from '@/store/user';
 import { useRooms } from '@/store/rooms';
 import { TBaseEvent } from '../events/TBaseEvent';
@@ -11,6 +9,13 @@ enum RoomType {
 	SECURED = 'ph.messages.restricted',
 	PH_MESSAGES_DM = 'ph.messages.dm',
 }
+
+/** event filters
+ */
+
+const visibleEventTypes = ['m.room.message'];
+const isMessageEvent = (event: MatrixEvent) => event.event.type === 'm.room.message';
+const isVisibleEvent = (event: MatrixEvent) => visibleEventTypes.includes(event.event.type as string);
 
 /**
  * Our model of a room based on matrix rooms with some added functionality.
@@ -213,7 +218,6 @@ export default class Room {
 	}
 
 	public timelineGetNumMessageEvents(): number {
-		const isMessageEvent = (event: MatrixEvent) => event.event.type === 'm.room.message';
 		return this.matrixRoom.getLiveTimeline().getEvents().filter(isMessageEvent).length;
 	}
 
@@ -237,25 +241,8 @@ export default class Room {
 
 	//#endregion
 
-	public addPluginsToTimeline() {
-		const roomType = this.matrixRoom.getType();
-		const timeline = this.matrixRoom.getLiveTimeline().getEvents();
-		const plugins = usePlugins();
-		const len = timeline.length;
-		for (let idx = 0; idx < len; idx++) {
-			const event = timeline[idx].event as Partial<TEvent>;
-			event.plugin = undefined;
-			const eventPlugin = plugins.getEventPlugin(event, this.roomId, roomType);
-			if (eventPlugin) {
-				event.plugin = eventPlugin;
-			} else {
-				const eventMessagePlugin = plugins.getEventMessagePlugin(event, this.roomId, roomType);
-				if (eventMessagePlugin) {
-					event.plugin = eventMessagePlugin;
-				}
-			}
-			timeline[idx].event = event as any;
-		}
+	public getVisibleTimeline() {
+		const timeline = this.matrixRoom.getLiveTimeline().getEvents().filter(isVisibleEvent);
 		return timeline;
 	}
 

@@ -81,6 +81,14 @@ const usePlugins = defineStore('plugins', {
 	},
 
 	getters: {
+		length: (state) => {
+			return state.plugins.length;
+		},
+
+		hasPlugins: (state) => {
+			return state.plugins.length > 0;
+		},
+
 		getPluginItemByName: (state) => {
 			return (name: string) => {
 				const idx = state.plugins.findIndex((plugin: PluginProperties) => plugin.name == name);
@@ -154,7 +162,6 @@ const usePlugins = defineStore('plugins', {
 			if (settings.isFeatureEnabled(featureFlagType.plugins)) {
 				if (plugins) {
 					const menu = useMenu();
-					// this.plugins = plugins;
 					plugins.forEach((plugin: PluginProperties) => {
 						if (plugin.enabled) {
 							this.plugins.push(plugin);

@@ -5,7 +5,7 @@
 			<component :is="event.plugin.component" :event="event">{{ event.plugin.component }}</component>
 		</div>
 		<!-- Normal Event -->
-		<div v-if="hubSettings.isVisibleEventType(event.type) && hubSettings.skipNoticeUserEvent(event)" class="group flex flex-row space-x-4 mb-8">
+		<div v-else class="group flex flex-row space-x-4 mb-8">
 			<Avatar :userId="event.sender"></Avatar>
 			<div class="w-4/5 md:w-3/5">
 				<div class="flex items-center">
@@ -43,7 +43,7 @@
 				</template>
 				<template v-else>
 					<MessageSnippet v-if="inReplyTo" @click="onInReplyToClick" :event="inReplyTo" :showInReplyTo="true"></MessageSnippet>
-					<Message v-if="event.content.msgtype == 'm.text'" :event="event" :users="users"></Message>
+					<Message v-if="event.content.msgtype == 'm.text'" :event="event"></Message>
 					<MessageSigned v-if="event.content.msgtype == 'pubhubs.signed_message'" :message="event.content.signed_message"></MessageSigned>
 					<MessageFile v-if="event.content.msgtype == 'm.file'" :message="event.content"></MessageFile>
 					<MessageImage v-if="event.content.msgtype == 'm.image'" :message="event.content"></MessageImage>
@@ -54,30 +54,22 @@
 </template>
 
 <script setup lang="ts">
-	import { computed, onMounted, ref } from 'vue';
+	import { computed, ref } from 'vue';
 	import { usePubHubs } from '@/core/pubhubsStore';
-	import { useHubSettings, useConnection, useUser } from '@/store/store';
+	import { useConnection, useUser } from '@/store/store';
 	import { useMessageActions } from '@/store/message-actions';
 	import MessageSnippet from './MessageSnippet.vue';
 	import { useRooms } from '@/store/store';
 	import { PluginType } from '@/store/plugins';
 	import { TMessageEvent } from '@/model/model';
-	import { User as MatrixUser } from 'matrix-js-sdk';
-	const hubSettings = useHubSettings();
+
 	const connection = useConnection();
 	const messageActions = useMessageActions();
-
-	const pubhubs = usePubHubs();
-	const users = ref([] as Array<MatrixUser>);
 
 	const user = useUser();
 	const rooms = useRooms();
 
 	const props = defineProps<{ event: TMessageEvent }>();
-
-	onMounted(async () => {
-		users.value = await pubhubs.getUsers();
-	});
 
 	const inReplyTo = structuredClone(props.event.content['m.relates_to']?.['m.in_reply_to']?.x_event_copy);
 
