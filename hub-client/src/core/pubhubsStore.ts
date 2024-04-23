@@ -33,27 +33,32 @@ const usePubHubs = defineStore('pubhubs', {
 
 		async login() {
 			console.log('PubHubs.login');
-			try {
-				this.client = (await this.Auth.login()) as MatrixClient;
-				const events = new Events(this.client as MatrixClient);
-				await events.initEvents();
-				const connection = useConnection();
-				connection.on();
-				this.updateRooms();
-				const user = useUser();
-				const newUser = this.client.getUser(user.user.userId);
-				if (newUser != null) {
-					user.setUser(newUser as User);
-					await user.fetchDisplayName(this.client as MatrixClient);
-					await user.fetchIsAdministrator(this.client as MatrixClient);
-					api_synapse.setAccessToken(this.Auth.getAccessToken());
-					api_matrix.setAccessToken(this.Auth.getAccessToken());
-				}
-			} catch (error) {
-				if (typeof error == 'string' && error.indexOf('M_FORBIDDEN') < 0) {
-					console.debug('ERROR:', error);
-				}
-			}
+			this.Auth.login()
+				.then((x) => {
+					this.client = x as MatrixClient;
+					const events = new Events(this.client as MatrixClient);
+					events.initEvents();
+				})
+				.then(() => {
+					const connection = useConnection();
+					connection.on();
+					const user = useUser();
+					const newUser = this.client.getUser(user.user.userId);
+					if (newUser != null) {
+						user.setUser(newUser as User);
+						user.fetchDisplayName(this.client as MatrixClient)
+							.then(() => user.fetchIsAdministrator(this.client as MatrixClient))
+							.then(() => {
+								api_synapse.setAccessToken(this.Auth.getAccessToken());
+								api_matrix.setAccessToken(this.Auth.getAccessToken());
+							});
+					}
+				})
+				.catch((error) => {
+					if (typeof error == 'string' && error.indexOf('M_FORBIDDEN') < 0) {
+						console.debug('ERROR:', error);
+					}
+				});
 		},
 
 		logout() {
