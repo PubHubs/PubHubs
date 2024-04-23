@@ -1,18 +1,22 @@
 <template>
-	<Menu v-if="rooms.hasRooms">
-		<template v-for="room in rooms.sortedRoomsArray">
-			<div v-if="showRoom(room)" :key="room.roomId" class="group" @click="toggleMenu.toggleGlobalMenu()">
-				<Icon type="unlink" class="cursor-pointer hover:text-red ml-2 float-right hidden group-hover:block" @click="leaveRoom(room.roomId)"></Icon>
-				<router-link :to="{ name: 'room', params: { id: room.roomId } }" v-slot="{ isActive }">
-					<Badge v-if="room.numUnreadMessages > 0" class="-ml-1 -mt-1">{{ room.numUnreadMessages }}</Badge>
-					<MenuItem :roomInfo="room" :icon="roomIcon(room)" :active="isActive">
-						<PrivateRoomName v-if="room.isPrivateRoom()" :members="room.getPrivateRoomMembers()"></PrivateRoomName>
-						<span v-else>
-							{{ room.name }}
-						</span>
-					</MenuItem>
-				</router-link>
-			</div>
+	<Menu>
+		<InlineSpinner v-if="!rooms.hasRooms"></InlineSpinner>
+		<!-- There is always the general room -->
+		<template v-if="rooms.hasRooms">
+			<template v-for="room in rooms.sortedRoomsArray" :key="room.roomId">
+				<div v-if="showRoom(room)" :key="room.roomId" class="group" @click="toggleMenu.toggleGlobalMenu()">
+					<Icon type="unlink" class="cursor-pointer hover:text-red ml-2 float-right hidden group-hover:block" @click="leaveRoom(room.roomId)"></Icon>
+					<router-link :to="{ name: 'room', params: { id: room.roomId } }" v-slot="{ isActive }">
+						<Badge v-if="room.numUnreadMessages > 0" class="-ml-1 -mt-1">{{ room.numUnreadMessages }}</Badge>
+						<MenuItem :roomInfo="room" :icon="roomIcon(room)" :active="isActive">
+							<PrivateRoomName v-if="room.isPrivateRoom()" :members="room.getPrivateRoomMembers()"></PrivateRoomName>
+							<span v-else>
+								{{ room.name }}
+							</span>
+						</MenuItem>
+					</router-link>
+				</div>
+			</template>
 		</template>
 	</Menu>
 </template>
