@@ -68,7 +68,6 @@ describe('EventTimeLineHandler', () => {
 			expect(content.ph_body.indexOf('<script')).toBe(-1); // no scripts
 			expect(content.ph_body.indexOf('<iframe')).toBe(-1); // no iframes
 			expect(content.ph_body.indexOf('<img')).toBe(-1); // no images
-
 		});
 	});
 });

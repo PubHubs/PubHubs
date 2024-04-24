@@ -66,11 +66,6 @@ class Events {
 		const rooms = useRooms();
 		const phRoom = rooms.addRoom(new Room(matrixRoom));
 
-		// const noticeUser = String(event.event.sender).includes('@notices');
-		// if (noticeUser) {
-		//     console.log('EVENT skipNoticeUserEvent',event.event);
-		// }
-
 		if (event.event.type === 'm.room.message' && event.event.content?.msgtype === 'm.text') {
 			event.event = eventTimeLineHandler.transformEventContent(event.event as Partial<TEvent>);
 		}
