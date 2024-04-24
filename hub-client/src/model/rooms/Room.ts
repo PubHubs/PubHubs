@@ -14,8 +14,15 @@ enum RoomType {
  */
 
 const visibleEventTypes = ['m.room.message'];
+const invisibleMessageTypes = ['m.notice']; // looking in event.content.msgtype
 const isMessageEvent = (event: MatrixEvent) => event.event.type === 'm.room.message';
-const isVisibleEvent = (event: MatrixEvent) => visibleEventTypes.includes(event.event.type as string);
+const isVisibleEvent = (event: MatrixEvent) => {
+	if (!visibleEventTypes.includes(event.event.type as string)) return false;
+	if (event.event.content?.msgtype) {
+		if (invisibleMessageTypes.includes(event.event.content?.msgtype)) return false;
+	}
+	return true;
+};
 
 /**
  * Our model of a room based on matrix rooms with some added functionality.

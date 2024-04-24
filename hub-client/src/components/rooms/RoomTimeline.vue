@@ -235,7 +235,7 @@
 		let numLoadedMessages = props.room.timelineGetNumMessageEvents();
 		let allMessagesLoaded = false;
 
-		while (numLoadedMessages < 150 && !allMessagesLoaded) {
+		while (numLoadedMessages < 15 && !allMessagesLoaded) {
 			allMessagesLoaded = await pubhubs.loadOlderEvents(props.room);
 			numLoadedMessages = props.room.timelineGetNumMessageEvents();
 		}
