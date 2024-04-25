@@ -130,12 +130,13 @@
 			await pubhubs.login();
 			router.push({ name: 'home' });
 			setupReady.value = true; // needed if running only the hub-client
+
+			const avatarUrl = await pubhubs.getAvatarUrl();
+			if (avatarUrl !== '') {
+				avatar.value = downloadUrl + avatarUrl.slice(6);
+			}
 		}
 		await startMessageBox();
-		const avatarUrl = await pubhubs.getAvatarUrl();
-		if (avatarUrl !== '') {
-			avatar.value = downloadUrl + avatarUrl.slice(6);
-		}
 	});
 
 	async function startMessageBox() {
