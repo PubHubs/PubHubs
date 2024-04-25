@@ -10,9 +10,12 @@ enum RoomType {
 	PH_MESSAGES_DM = 'ph.messages.dm',
 }
 
-/** event filters
- */
+const BotName = {
+	NOTICE: 'notices',
+	SYSTEM: 'system_bot',
+};
 
+/** event filters */
 const visibleEventTypes = ['m.room.message'];
 const invisibleMessageTypes = ['m.notice']; // looking in event.content.msgtype
 const isMessageEvent = (event: MatrixEvent) => event.event.type === 'm.room.message';
@@ -113,18 +116,13 @@ export default class Room {
 		return this.matrixRoom.getMember(userId);
 	}
 
-	public getPrivateRoomMembers(): TRoomMember[] {
-		const currentUserId = this.matrixRoom.client.getUserId();
-		const members = this.matrixRoom.getMembers();
-		const foundMe = members.findIndex((item) => item.userId == currentUserId);
-		if (foundMe >= 0) {
-			members.splice(foundMe, 1);
-		}
-		return members;
-	}
-
-	public getMemberNames(): Array<string> {
-		return this.matrixRoom.getMembers().map((item) => item.name);
+	/**
+	 * Gets all members of the room except the current user or any bots.
+	 */
+	public getOtherMembers(): TRoomMember[] {
+		const currentUserId = this.matrixRoom.client.getUserId() || '';
+		const members = this.matrixRoom.getMembersWithMembership('join');
+		return members.filter((member) => member.userId !== currentUserId && !Object.values(BotName).includes(currentUserId));
 	}
 
 	public getMembersIds(): Array<string> {
@@ -138,15 +136,6 @@ export default class Room {
 	public getMembersIdsFromName(): Array<string> {
 		const roomMemberIds = this.name.split(',');
 		roomMemberIds.sort();
-		return roomMemberIds;
-	}
-
-	public getOtherMembersIds(user_id: string): Array<string> {
-		const roomMemberIds = this.getMembersIds();
-		const foundIndex = roomMemberIds.findIndex((member_id) => member_id == user_id);
-		if (foundIndex >= 0) {
-			return roomMemberIds.toSpliced(foundIndex, 1);
-		}
 		return roomMemberIds;
 	}
 

@@ -62,7 +62,7 @@
 		const currentUserID = currentUser.user.userId;
 
 		// We need to get private room members list each time because new members can be added.
-		const roomUsers = room.getPrivateRoomMembers();
+		const roomUsers = room.getOtherMembers();
 
 		const readTimestamps: number[] = [];
 

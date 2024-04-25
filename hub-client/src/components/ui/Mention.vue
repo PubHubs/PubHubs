@@ -1,10 +1,10 @@
 <template>
 	<div v-if="visible" ref="elContainer" :style="getStyle()" class="fixed mt-2 w-96 max-h-48 shadow-lg rounded-lg overflow-x-auto border-2 border-grey">
 		<ul>
-			<li v-for="(item, index) in filteredUsers" :key="index" class="group cursor-pointer hover:bg-green bg-gray-light p-1 border-b border-gray-light rounded-t-none" @click="clickedItem(item)">
+			<li v-for="(member, index) in filteredUsers" :key="index" class="group cursor-pointer hover:bg-green bg-gray-light p-1 border-b border-gray-light rounded-t-none" @click="clickedItem(member)">
 				<div class="flex items-center space-x-8">
-					<Avatar :userId="item.user?.userId"></Avatar>
-					<div>{{ item.rawDisplayName }}</div>
+					<Avatar :userId="member.userId"></Avatar>
+					<div>{{ member.rawDisplayName }}</div>
 				</div>
 			</li>
 		</ul>
@@ -13,7 +13,7 @@
 
 <script setup lang="ts">
 	import { ref, computed, watch, onMounted } from 'vue';
-	import { useRooms, useUser } from '@/store/store';
+	import { useRooms } from '@/store/store';
 	import { TRoomMember } from '@/model/rooms/TRoomMember';
 
 	const emit = defineEmits(['click']);
@@ -23,8 +23,7 @@
 	// Therefore, message Direction keeps track of the simulating backspace.
 	const messageDirection = ref(0);
 	const rooms = useRooms();
-	const user = useUser();
-	const users = ref([] as TRoomMember[]);
+	let users = ref([] as TRoomMember[]);
 	const checkEmptyList = ref(false);
 	const elContainer = ref<HTMLElement | null>(null);
 
@@ -40,13 +39,13 @@
 		top: 0,
 	});
 
-	onMounted(async () => {
-		await getRoomMembers();
+	onMounted(() => {
+		users.value = rooms.currentRoom?.getOtherMembers() || [];
 	});
 
 	// Watch for changes in the props.msg to control visibility
-	watch(props, async () => {
-		await getRoomMembers();
+	watch(props, () => {
+		users.value = rooms.currentRoom?.getOtherMembers() || [];
 		displayBoxVisibility();
 	});
 
@@ -84,14 +83,6 @@
 		const newUserList = users.value.filter((user) => user.rawDisplayName !== undefined && user.rawDisplayName.toLowerCase().includes(searchTerm.toLowerCase()));
 		checkEmptyList.value = newUserList.length < 1 ? true : false;
 		return newUserList;
-	}
-
-	//Preprocess the list of members for any unwanted names e.g., user notice.
-	async function getRoomMembers() {
-		if (rooms.currentRoom != undefined) {
-			users.value = rooms.currentRoom.getPrivateRoomMembers();
-			users.value = users.value.filter((u) => u.user?.userId !== user.user.userId && u.rawDisplayName != 'notices' && u.membership === 'join');
-		}
 	}
 
 	function clickedItem(item: any) {

@@ -9,7 +9,7 @@
 					<router-link :to="{ name: 'room', params: { id: room.roomId } }" v-slot="{ isActive }">
 						<Badge v-if="room.numUnreadMessages > 0" class="-ml-1 -mt-1">{{ room.numUnreadMessages }}</Badge>
 						<MenuItem :roomInfo="room" :icon="roomIcon(room)" :active="isActive">
-							<PrivateRoomName v-if="room.isPrivateRoom()" :members="room.getPrivateRoomMembers()"></PrivateRoomName>
+							<PrivateRoomName v-if="room.isPrivateRoom()" :members="room.getOtherMembers()"></PrivateRoomName>
 							<span v-else>
 								{{ room.name }}
 							</span>
