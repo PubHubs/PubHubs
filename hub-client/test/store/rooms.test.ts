@@ -73,16 +73,6 @@ describe('rooms Store', () => {
 			expect(memberIds[1]).toEqual('c3');
 		});
 
-		test('getOtherMembersIds', () => {
-			const room_id = 'c3,a1';
-			const room = new Room(new MockedMatrixRoom(room_id));
-			const memberIds = room.getOtherMembersIds('A1');
-			expect(memberIds).toBeTypeOf('object');
-			expect(memberIds).toHaveLength(3);
-			expect(memberIds[0]).toEqual('B2');
-			expect(memberIds[2]).toEqual('D4');
-		});
-
 		test('hasExactMembersInName', () => {
 			const room_id = 'c3,a1';
 			const members = ['a1', 'c3'];
@@ -116,9 +106,9 @@ describe('rooms Store', () => {
 			expect(notInvited).toEqual(['E5', 'F6']);
 		});
 
-		test('getPrivateRoomMembersIds', () => {
+		test('getOtherMembers', () => {
 			const room = new Room(new MockedMatrixRoom('test_id'));
-			const name = room.getPrivateRoomMembers();
+			const name = room.getOtherMembers();
 			expect(name).toBeTypeOf('object');
 			expect(name).toHaveLength(3);
 			expect(name[0].userId).toEqual('B2');
