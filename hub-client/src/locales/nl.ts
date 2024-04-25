@@ -1,4 +1,12 @@
 const nl = {
+	state: {
+		no_access: 'Je browser geeft geen toegang tot de cookies en lokale opslag van de Hub client. Waarschijnlijk omdat de browser de Hub client aanziet voor een `third-party tracker`. Druk op de knop om toegang te verlenen.',
+		button_request: 'Verleen toegang',
+		initial: 'Controleren of de hub client toegang heeft tot cookies en lokale opslag...',
+		requesting: 'Toegang verlenen...',
+		denied: 'Sorry, de hub client kan helaas niet worden uitgevoerd zonder toegang tot cookies en lokale opslag',
+		woops: 'Oeps, ik had niet verwacht in deze status te zijn.',
+	},
 	dialog: {
 		ok: 'Ok',
 		cancel: 'Annuleer',
