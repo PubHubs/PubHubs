@@ -26,6 +26,9 @@ const en = {
 		submit: 'Submit',
 	},
 	home: {
+		hub_homepage_welcome: 'Welcome to our Hub!',
+		hub_homepage_join: 'Join our Hub',
+		hub_homepage_welcome_auth: 'Welcome to our Hub!',
 		welcome: 'Welcome to <a href="https://pubhubs.net">PubHubs</a>.<br>PubHubs is a community platform based on public values.',
 		highlighted_hubs: 'Highlighted Hubs',
 	},

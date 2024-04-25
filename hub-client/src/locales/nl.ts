@@ -26,6 +26,9 @@ const nl = {
 		submit: 'Invoeren',
 	},
 	home: {
+		hub_homepage_welcome: 'Welkom bij onze Hub!',
+		hub_homepage_join: 'Doe mee met onze Hub',
+		hub_homepage_welcome_auth: 'Welkom bij onze Hub!',
 		welcome: 'Welkom bij <a href="https://pubhubs.net">PubHubs</a>.<br>PubHubs is een community netwerk gebaseerd op publieke waarden.',
 		highlighted_hubs: 'Uitgelichte Hubs',
 	},
