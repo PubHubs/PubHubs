@@ -84,6 +84,7 @@ const en = {
 		add_room: 'Add a room',
 		name: 'Name of a room',
 		name_general_room: 'General',
+		name_feedback_room: 'Feedback',
 		filter: 'Filter rooms',
 		title: '{0}',
 		access_denied: 'Access Denied',

@@ -64,6 +64,9 @@ export default class Room {
 		if (this.matrixRoom.name.startsWith('#General:')) {
 			const { t } = useI18n();
 			return t('rooms.name_general_room');
+		} else if (this.matrixRoom.name.startsWith('#Feedback:')) {
+			const { t } = useI18n();
+			return t('rooms.name_feedback_room');
 		} else {
 			return this.matrixRoom.name;
 		}
