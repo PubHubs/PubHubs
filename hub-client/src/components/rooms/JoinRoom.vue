@@ -1,5 +1,5 @@
 <template>
-	<Dialog :buttons="buttonsCancel" width="lg:w-3/6 md:5/6 xs:w-full" @close="close()">
+	<Dialog :buttons="buttonsCancel" @close="close()">
 		<template #header>
 			{{ $t('rooms.join_room') }}
 		</template>
@@ -18,20 +18,23 @@
 <script setup lang="ts">
 	import { onMounted } from 'vue';
 	import { useRouter } from 'vue-router';
-	import { PublicRoom, useRooms } from '@/store/store';
+	import { TPublicRoom, useRooms } from '@/store/store';
 	import { usePubHubs } from '@/core/pubhubsStore';
 	import { buttonsCancel } from '@/store/dialog';
+	import { useToggleMenu } from '@/store/toggleGlobalMenu';
 
 	const rooms = useRooms();
 	const pubhubs = usePubHubs();
 	const router = useRouter();
 	const emit = defineEmits(['close']);
+	const toggleMenu = useToggleMenu();
 
 	onMounted(async () => {
 		await rooms.fetchPublicRooms();
+		toggleMenu.toggleGlobalMenu();
 	});
 
-	async function joinRoom(room: PublicRoom) {
+	async function joinRoom(room: TPublicRoom) {
 		if (rooms.roomIsSecure(room.room_id)) {
 			router.push({ name: 'secure-room', params: { id: room.room_id } });
 		} else {
@@ -42,5 +45,6 @@
 
 	async function close() {
 		emit('close');
+		toggleMenu.toggleGlobalMenu();
 	}
 </script>

@@ -6,7 +6,7 @@
 				<Icon v-if="!toggleMenu.globalIsActive && !global.isModalVisible" type="hamburgermenu" size="4xl" class="dark:fill-[#2F2E2E] dark:stroke-white fill-white stroke-black" viewBox="0,0,84,84"></Icon>
 			</div>
 			<div class="flex h-full">
-				<div id="pubhubs-bar" class="flex-none w-32 bg-ph-background-4 dark:bg-ph-background-5 h-screen pt-20 2md:pt-2 2md:block" :class="{ hidden: !toggleMenu.globalIsActive }">
+				<div id="pubhubs-bar" class="flex-none w-32 bg-ph-background-3 dark:bg-ph-background-5 h-screen pt-20 2md:pt-2 2md:block" :class="{ hidden: !toggleMenu.globalIsActive }">
 					<Modal :show="global.isModalVisible">
 						<div class="flex flex-col justify-between h-full">
 							<div class="flex-1 text-center">
@@ -46,7 +46,7 @@
 
 <script setup lang="ts">
 	import { onMounted, ref } from 'vue';
-	import { useGlobal, useSettings, HubList, useHubs, useDialog } from '@/store/store';
+	import { useGlobal, useSettings, Hub, HubList, useHubs, useDialog } from '@/store/store';
 	import { useI18n } from 'vue-i18n';
 	import { useToggleMenu } from '@/store/toggleGlobalMenu';
 

@@ -1,5 +1,5 @@
 <template>
-	<Dialog :buttons="buttonsCancel" width="lg:w-3/6 md:5/6 xs:w-full" @close="close()">
+	<Dialog :buttons="buttonsCancel" @close="close()">
 		<template #header>
 			{{ $t('rooms.private_add') }}
 		</template>
@@ -22,16 +22,19 @@
 	import { useUser } from '@/store/store';
 	import { buttonsCancel } from '@/store/dialog';
 	import { FilteredListEvent } from '@/types/components';
+	import { useToggleMenu } from '@/store/toggleGlobalMenu';
 
 	const router = useRouter();
 	const pubhubs = usePubHubs();
 	const user = useUser();
 	const emit = defineEmits(['close']);
+	const toggleMenu = useToggleMenu();
 
 	const users = ref([] as Array<MatrixUser>);
 
 	onMounted(async () => {
 		users.value = await pubhubs.getUsers();
+		toggleMenu.toggleGlobalMenu();
 	});
 
 	const usersList = computed(() => {
@@ -61,6 +64,7 @@
 
 	async function close() {
 		emit('close');
+		toggleMenu.toggleGlobalMenu();
 	}
 
 	async function filter(event: FilteredListEvent) {

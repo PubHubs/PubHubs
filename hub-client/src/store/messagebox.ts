@@ -1,8 +1,6 @@
 import { defineStore } from 'pinia';
 import filters from '@/core/filters';
 
-import { Theme } from '@/store/store';
-
 /**
  * This store is used to exchange messages from global client (parent frame) to hub client (iframe) and the other way around.
  *
@@ -82,7 +80,7 @@ enum MessageType {
  *  - content - can be anything
  */
 
-type MessageContent = string | number | object | Theme | boolean;
+type MessageContent = any;
 
 class Message {
 	type: MessageType;

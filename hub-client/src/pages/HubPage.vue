@@ -1,12 +1,18 @@
 <template>
 	<div class="h-full flex flex-col w-full overflow-hidden">
-		<div class="h-36 overflow-hidden relative">
+		<!-- <div class="h-36 overflow-hidden relative">
 			<div class="bg-white w-20 h-20 rounded-full absolute -ml-5 -mt-5 md:hidden"></div>
 			<H1 class="mt-12 ml-12 absolute text-white">Voorbeeld hubpage</H1>
 			<ImagePlaceholder src="img/imageplaceholder.jpg"></ImagePlaceholder>
+		</div> -->
+
+		<div class="px-9 pt-9 mx-auto w-6/12">
+			<H1 class="w-full text-center">{{ $t('home.hub_homepage_welcome') }}</H1>
+			<Logo></Logo>
+			<Button class="mt-10 text-xs md:text-base" @click="login()">{{ $t('home.hub_homepage_join') }}</Button>
 		</div>
 
-		<div class="px-9 pt-9 max-w-7xl mx-auto">
+		<!-- <div class="px-9 pt-9 max-w-7xl mx-auto">
 			<H2>Over de voorbeeldhub</H2>
 			<div class="flex flex-col md:flex-row md:justify-between md:gap-x-4 md:mb-16">
 				<div class="flex flex-col md:basis-1/3 md:pr-2">
@@ -61,7 +67,7 @@
 					</Pill>
 				</div>
 			</div>
-		</div>
+		</div> -->
 	</div>
 </template>
 

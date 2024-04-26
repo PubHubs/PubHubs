@@ -31,7 +31,7 @@
 		const profileArray: any = [];
 		var profileInfo = '';
 
-		if (rooms.getRoomCreator(currentRoom?.roomId) == props.user) {
+		if (rooms.currentRoom && rooms.currentRoom.getCreator() === props.user) {
 			profileArray.push(t('rooms.admin_badge'));
 			return profileArray;
 		}

@@ -1,7 +1,12 @@
 ## Changes to main, not yet committed to stable
 
 *Please add a brief description of any changes to be tested and any migrations to be performed here.*
+- Refactured a lot for performance issues, pleas check the 'Restricted' room on stable. Does it has errors in the console? (see #634,#590,#636)
 - Removed the normalization of display names (i.e. adding the " - 123-abc" suffix)
+- Added yivi token format check during login and when entering secure rooms (see #510)
+- Changes related to rendering the room timeline (see #454 and #606).
+- Remove limit for getting public rooms to not have missing rooms. Might impact performance with high number of public rooms (#605).
+- Add eventlisteners to the client sooner to accept invitations to private rooms that happened while offline (#640).
 
 ## 27 Mar 2024
 - Several changes to Synapse `homeserver.yaml` configuration, including a `ConfigChecker` module that
@@ -39,7 +44,7 @@
 ## 18 Oct 2023
 - New PubHubs Yivi cards, see #162.  Users will have to re-register with PubHubs Central. If they use the same email address and phone number as before, they'll keep their old account.
 - File upload was tweaked, see #233 (known issues: #347)
-- When a message is not sent due to connectivity loss, a retry button is shown, see #293 
+- When a message is not sent due to connectivity loss, a retry button is shown, see #293
 - Avatars were added, see #139 (known issues: #350)
 
 

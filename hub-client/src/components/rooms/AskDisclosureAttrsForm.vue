@@ -1,5 +1,5 @@
 <template>
-	<Dialog v-if="ask" :title="$t('admin.ask_disclosure_title')" :buttons="buttonsSubmitCancel" width="w-3/6" @close="close($event)">
+	<Dialog v-if="ask" :title="$t('admin.ask_disclosure_title')" :buttons="buttonsSubmitCancel" @close="close($event)">
 		<form @submit.prevent>
 			<FormLine>
 				<Label>{{ $t('admin.ask_disclosure_user_title') }}</Label>

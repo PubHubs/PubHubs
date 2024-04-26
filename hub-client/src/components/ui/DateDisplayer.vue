@@ -22,12 +22,7 @@
 	});
 
 	function displayDate(): string {
-		if (!rooms.currentRoom) return '';
-		const roomMessageStatus = rooms.currentRoom
-			.getLiveTimeline()
-			.getEvents()
-			.some((roomEvent) => roomEvent.getType() === 'm.room.message');
-		if (!roomMessageStatus) return '';
+		if (!rooms.currentRoom?.hasMessages()) return '';
 		return formattedTimeInformation(props.eventTimeStamp);
 	}
 </script>

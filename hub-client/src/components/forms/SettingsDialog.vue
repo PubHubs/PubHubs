@@ -1,14 +1,14 @@
 <template>
-	<Dialog :title="$t('settings.title')" :buttons="buttonsSubmitCancel" width="w-1/3" @close="dialogAction($event)">
+	<Dialog :title="$t('settings.title')" :buttons="buttonsSubmitCancel" @close="dialogAction($event)">
 		<form @submit.prevent>
-			<div class="flex flex-row mb-4">
-				<label class="w-2/6 font-semibold text-gray-700">{{ $t('settings.avatar') }}</label>
+			<div class="flex flex-col items-center md:items-start md:flex-row mb-4">
+				<label class="md:w-2/6 font-semibold text-gray-700">{{ $t('settings.avatar') }}</label>
 				<input type="file" id="avatar" accept="image/png, image/jpeg, image/svg" class="hidden" ref="file" @change="uploadAvatar($event)" />
 
-				<div class="w-4/6 flex justify-between">
+				<div class="md:w-4/6 flex flex-col md:flex-row justify-between">
 					<Avatar :class="bgColor(color(user.user.userId))" :userId="user.user.userId" :img="data.avatarUrl.value" class="w-32 h-32 rounded-full"></Avatar>
 
-					<div class="flex flex-col space-y-4 mt-5 mr-3">
+					<div class="flex justify-center md:justify-normal md:flex-col md:space-y-4 mt-5 md:mr-3">
 						<label for="avatar">
 							<Icon size="lg" type="edit" class="group-hover:block cursor-pointer"></Icon>
 						</label>
@@ -17,10 +17,10 @@
 				</div>
 			</div>
 
-			<div class="flex flex-row mb-4">
+			<div class="flex flex-col md:flex-row mb-4">
 				<label class="w-2/6 font-semibold text-gray-700">{{ $t('settings.displayname') }}</label>
 				<TextInput
-					class="w-4/6 p-1 border rounded focus:outline-none focus:border-blue-500"
+					class="md:w-4/6 p-1 border rounded focus:outline-none focus:border-blue-500"
 					name="displayname"
 					v-model.trim="data.displayName.value"
 					:placeholder="$t('settings.displayname')"

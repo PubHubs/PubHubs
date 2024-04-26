@@ -14,8 +14,13 @@ from ._secured_rooms_class import RoomAttribute
 from ._store import YiviRoomJoinStore
 
 import json
+import re
 
 logger = logging.getLogger("synapse.contrib." + __name__)
+
+# actually, yivi session tokens are always 20 characters long, but
+# let's not assume that in case they change that one day
+yivi_token_regex = re.compile("[a-zA-Z0-9]*")
 
 
 class JoinServlet(Resource):
@@ -199,6 +204,9 @@ class YiviResult(DirectServeJsonResource):
         token = b"".join(request.args.get(b"session_token")).decode()
         room_id = b"".join(request.args.get(b"room_id")).decode()
 
+        if not yivi_token_regex.fullmatch(token):
+            respond_with_json(request, 400, {})
+
         user = await self.module_api.get_user_by_req(request)
 
         user_id = user.user.to_string()
@@ -243,6 +251,9 @@ class YiviResult(DirectServeJsonResource):
         request.setHeader(b"Access-Control-Allow-Origin", f"{self.config[CLIENT_URL]}".encode())
 
         token = b"".join(request.args.get(b"session_token")).decode()
+
+        if not yivi_token_regex.fullmatch(token):
+            respond_with_json(request, 400, {})
 
         yivi_url = self.config.get("yivi_url", "http://localhost:8089")
         result = await http_client.get_json(f"{yivi_url}/session/{token}/result")

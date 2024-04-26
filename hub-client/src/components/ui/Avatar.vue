@@ -20,19 +20,15 @@
 	const rooms = useRooms();
 	const pubhubs = usePubHubs();
 
-	const props = defineProps({
-		userId: {
-			type: String,
-			default: '',
-		},
-		img: {
-			type: String,
-			default: '',
-		},
-		notMention: {
-			type: Boolean,
-			default: true,
-		},
+	type Props = {
+		userId: string;
+		img?: string;
+		notMention?: boolean;
+	};
+
+	const props = withDefaults(defineProps<Props>(), {
+		img: '',
+		notMention: false,
 	});
 
 	const avatar = computed(() => {

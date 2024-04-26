@@ -17,7 +17,7 @@
 	onMounted(() => {
 		if (rooms.hasRooms) {
 			rooms.roomsArray.forEach((room) => {
-				rooms.unreadMessageCounter(room.roomId, undefined);
+				room.unreadMessageCounter(undefined);
 			});
 		}
 	});
@@ -39,11 +39,7 @@
 
 	function isSecuredRoom() {
 		if (props.roomInfo?.roomId !== undefined) {
-			if (rooms.roomIsSecure(props.roomInfo.roomId)) {
-				return true;
-			} else {
-				return false;
-			}
+			return rooms.roomIsSecure(props.roomInfo.roomId);
 		}
 		return false;
 	}
