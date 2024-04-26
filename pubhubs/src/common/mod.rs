@@ -3,3 +3,4 @@
 //! Please keep this as small as possible.
 
 pub mod elgamal;
+pub mod secret;

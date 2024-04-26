@@ -1,6 +1,9 @@
 //! Some of the Pubhubs specific crypto
 
-use crate::{api, elgamal};
+use crate::{
+    api,
+    common::{elgamal, secret::Digestible as _},
+};
 
 use curve25519_dalek::Scalar;
 use digest::Digest as _;
@@ -32,11 +35,14 @@ pub fn t_hub_key_part(
     master_enc_key_part: &elgamal::PrivateKey,
 ) -> Scalar {
     // K^-1 * f_H * x_T
-    hub_key_part_blind(ticket, shared_secret).invert() * master_enc_key_part.as_scalar()
+    hub_key_part_blind(ticket.clone(), shared_secret).invert()
+        * encryption_factor(ticket)
+        * master_enc_key_part.as_scalar()
 }
 
 /// Returns the `f_H` for the given hub ticket
 pub fn encryption_factor(ticket: TicketDigest) -> Scalar {
+    unimplemented! {}
     // TODO
 }
 
@@ -49,6 +55,7 @@ pub fn hub_key_part_blind(
 }
 
 /// Wrapper around a [digest::Digest] that's obtained from a [api::phc::hub::Ticket].
+#[derive(Clone)]
 pub struct TicketDigest {
     inner: sha2::Sha512,
 }

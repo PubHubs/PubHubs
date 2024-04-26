@@ -523,24 +523,9 @@ pub struct SharedSecret {
     inner: [u8; 32],
 }
 
-impl SharedSecret {
-    /// Inserts this shared secret in the given digest
-    pub fn update_digest<D: digest::Digest>(&self, d: D, domain: impl AsRef<str>) -> D {
-        let domain = domain.as_ref();
-
-        d.chain_update(domain)
-            // we include the length of the domain to prevent collisions between domains with the
-            // same prefix
-            .chain_update(domain.len().to_ne_bytes())
-            .chain_update(self.inner)
-    }
-
-    /// Creates a scalar from this shared secret
-    pub fn derive_scalar<D>(&self, d: D, domain: impl AsRef<str>) -> Scalar
-    where
-        D: digest::Digest<OutputSize = typenum::U64>,
-    {
-        Scalar::from_hash(self.update_digest(d, domain))
+impl crate::common::secret::Digestible for SharedSecret {
+    fn as_bytes(&self) -> &[u8] {
+        &self.inner
     }
 }
 
