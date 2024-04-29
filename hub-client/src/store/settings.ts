@@ -86,7 +86,7 @@ const defaultSettings: Settings = {
 		// main
 		signedMessages: true,
 		plugins: true,
-		dateSplitter: true,
+		dateSplitter: false,
 		disclosure: true,
 		readReceipt: false,
 		// stable
