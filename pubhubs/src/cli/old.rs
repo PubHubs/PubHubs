@@ -516,6 +516,16 @@ async fn yivi_finish_and_redirect_anyhow(
     context: Data<Main>,
     params: actix_web::web::Form<YiviFinishParams>,
 ) -> Result<HttpResponse, anyhow::Error> {
+    anyhow::ensure!(
+        params
+            .yivi_token
+            .chars()
+            .all(|c| char::is_ascii_alphanumeric(&c)),
+        // Yivi session tokens are always ascii alphanumeric:
+        // https://github.com/privacybydesign/irmago/blob/0b3390be045b38b904358bceace229a413824b0b/internal/common/common.go#L34
+        "invalid yivi_token - not ascii alphanumeric"
+    );
+
     let user = disclosed_ph_id(
         &context.yivi.requestor_api_url,
         &params.yivi_token,

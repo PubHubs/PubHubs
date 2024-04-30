@@ -1,15 +1,10 @@
 <template>
 	<div v-if="visible" ref="elContainer" :style="getStyle()" class="fixed mt-2 w-96 max-h-48 shadow-lg rounded-lg overflow-x-auto border-2 border-grey">
 		<ul>
-			<li v-for="(item, index) in filteredUsers" :key="index" class="group cursor-pointer hover:bg-green bg-gray-light p-1 border-b border-gray-light rounded-t-none" @click="clickedItem(item)">
+			<li v-for="(member, index) in filteredUsers" :key="index" class="group cursor-pointer hover:bg-green bg-gray-light p-1 border-b border-gray-light rounded-t-none" @click="clickedItem(member)">
 				<div class="flex items-center space-x-8">
-					<Avatar
-						v-if="item.rawDisplayName != undefined"
-						:class="bgColor(color(item.userId))"
-						:userName="item.rawDisplayName"
-						:img="item.avatarUrl?.slice(6) != undefined ? pubhubs.getBaseUrl + '/_matrix/media/r0/download/' + item.avatarUrl?.slice(6) : ''"
-					></Avatar>
-					<div>{{ item.rawDisplayName }}</div>
+					<Avatar :userId="member.userId"></Avatar>
+					<div>{{ member.rawDisplayName }}</div>
 				</div>
 			</li>
 		</ul>
@@ -18,22 +13,17 @@
 
 <script setup lang="ts">
 	import { ref, computed, watch, onMounted } from 'vue';
-	import { useUserColor } from '@/composables/useUserColor';
-	import { User as MatrixUser } from 'matrix-js-sdk';
-	import { usePubHubs } from '@/core/pubhubsStore';
-	import { useRooms, useUser } from '@/store/store';
+	import { useRooms } from '@/store/store';
+	import { TRoomMember } from '@/model/rooms/TRoomMember';
 
-	const { color, bgColor } = useUserColor();
 	const emit = defineEmits(['click']);
 
 	const visible = ref(false); // Control the visibility of the user list div
 
 	// Therefore, message Direction keeps track of the simulating backspace.
 	const messageDirection = ref(0);
-	const pubhubs = usePubHubs();
 	const rooms = useRooms();
-	const user = useUser();
-	const users = ref([] as Array<MatrixUser>);
+	let users = ref([] as TRoomMember[]);
 	const checkEmptyList = ref(false);
 	const elContainer = ref<HTMLElement | null>(null);
 
@@ -49,13 +39,13 @@
 		top: 0,
 	});
 
-	onMounted(async () => {
-		await getRoomMembers();
+	onMounted(() => {
+		users.value = rooms.currentRoom?.getOtherMembers() || [];
 	});
 
 	// Watch for changes in the props.msg to control visibility
-	watch(props, async () => {
-		await getRoomMembers();
+	watch(props, () => {
+		users.value = rooms.currentRoom?.getOtherMembers() || [];
 		displayBoxVisibility();
 	});
 
@@ -90,17 +80,9 @@
 
 	function filterUsers(query: string) {
 		const searchTerm = query.slice(query.lastIndexOf('@') + 1);
-		const newUserList = users.value.filter((user: MatrixUser) => user.rawDisplayName !== undefined && user.rawDisplayName.toLowerCase().includes(searchTerm.toLowerCase()));
+		const newUserList = users.value.filter((user) => user.rawDisplayName !== undefined && user.rawDisplayName.toLowerCase().includes(searchTerm.toLowerCase()));
 		checkEmptyList.value = newUserList.length < 1 ? true : false;
 		return newUserList;
-	}
-
-	//Preprocess the list of members for any unwanted names e.g., user notice.
-	async function getRoomMembers() {
-		if (rooms.currentRoom != undefined) {
-			users.value = rooms.currentRoom.getPrivateRoomMembers();
-			users.value = users.value.filter((u) => u.userId !== user.user.userId && u.rawDisplayName != 'notices' && u.membership === 'join');
-		}
 	}
 
 	function clickedItem(item: any) {

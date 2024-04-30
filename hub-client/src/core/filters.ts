@@ -1,8 +1,9 @@
-export default {
-	matrixDisplayName(name: string) {
-		return name.replace(/^@(.*):.*/g, '$1');
-	},
+// Regex describing the general shape of a shortened pseudonym
+// Does not check the checkdigit, nor the fact that the left and right groups must be equally long.
+// Only matches the whole string (does not search for a pseudonym in a larger string).
+const shortenedPseudonymRegex = /^(?<left>[0-9a-f]{0,15}[0-9a-g])-(?<right>[0-9a-g][0-9a-f]{0,15})$/;
 
+export default {
 	localeDateFromTimestamp(timestamp: number) {
 		const date = new Date(timestamp);
 		const now = new Date();
@@ -19,29 +20,44 @@ export default {
 		return url.replace(/\/$/g, '');
 	},
 
+	maxLengthText(text: string, max: number = 20, ellipsis: string = '...') {
+		if (text.length > max) {
+			return text.substring(0, max) + ellipsis;
+		}
+		return text;
+	},
+
 	extractJSONFromEventString(name: string) {
 		const jsonStartIndex = name.indexOf('{');
 		const jsonEndIndex = name.lastIndexOf('}');
 		return name.substring(jsonStartIndex, jsonEndIndex + 1);
 	},
 
-	extractPseudonym(displayName: string) {
-		const pattern = /[a-zA-Z0-9]{3}-[a-zA-Z0-9]{3}/;
-		const result = displayName.match(pattern);
-		return result ? result[0] : ''; // result[0] will contain the matched string
-	},
-
-	extractDisplayName(name: string, max_length: number = 20) {
-		const dashIndex = name.indexOf(' - ');
-		let filteredName = name.substring(0, dashIndex + 1);
-
-		if (filteredName.length < 1) {
-			filteredName = 'Anonymous';
+	// Extracts shortened pseudonym from matrix id.
+	// Throws an error when the matrix ID is invalid in some way.
+	// Return "!!!-!!!" if the matrix ID is valid, but the localpart is not a shortened pseudonym,
+	// for example, when it's the matrix ID of some "notices" or "system" user.
+	extractPseudonym(matrixUserId: string) {
+		const parts = matrixUserId.split(':', 2);
+		if (parts.length != 2) {
+			throw new Error("matrix ID did not contain ':'");
 		}
-		if (filteredName.length > max_length) {
-			filteredName = filteredName.substring(0, max_length) + '...';
+
+		const [atLocalpart] = parts;
+		if (atLocalpart.length == 0 || atLocalpart[0] != '@') {
+			throw new Error("matrix ID did not start with '@'");
 		}
-		return filteredName;
+
+		const localpart = atLocalpart.slice(1);
+
+		const result: RegExpExecArray | null = shortenedPseudonymRegex.exec(localpart);
+
+		if (!result || result.groups?.left.length != result.groups?.right.length) {
+			console.error(`Matrix ID passed to extractPseudonym did not contain shortened pseudonym: ${matrixUserId}`);
+			return '!!!-!!!';
+		}
+
+		return result[0];
 	},
 
 	formatBytes(bytes: number, decimals: number): string {

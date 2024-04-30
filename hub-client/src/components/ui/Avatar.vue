@@ -1,6 +1,6 @@
 <template>
-	<div class="rounded-full w-12 h-12 flex items-center justify-center">
-		<img v-if="img != ''" :src="img" :class="rooms.currentRoom === undefined ? 'w-32 h-32 rounded-full border-2 border-blue-500' : 'rounded-full w-full h-full'" />
+	<div class="rounded-full w-12 h-12 flex items-center justify-center overflow-hidden" :class="bgColor(color(userId))">
+		<img v-if="image != ''" :src="image" class="rounded-full w-full h-full" />
 		<Icon v-else-if="display === '@'" type="person" class="right-0 group-hover:block h-16 w-16"></Icon>
 		<span v-else :class="rooms.currentRoom === undefined ? 'text-center text-5xl' : 'text-center text-2xl'">
 			{{ display }}
@@ -9,41 +9,55 @@
 </template>
 
 <script setup lang="ts">
-	import { useRooms } from '@/store/rooms';
+	import { Room, useRooms } from '@/store/rooms';
 	import { computed } from 'vue';
-	import filters from '../../core/filters';
+	import { usePubHubs } from '@/core/pubhubsStore';
+	import { useUserColor } from '@/composables/useUserColor';
 	import { useUserName } from '@/composables/useUserName';
+	import { useUserAvatar } from '@/composables/useUserName';
+	const { color, bgColor } = useUserColor();
 	const { getUserDisplayName } = useUserName();
-
 	const rooms = useRooms();
+	const pubhubs = usePubHubs();
 
-	const props = defineProps({
-		userName: {
-			type: String,
-			default: '',
-		},
-		img: {
-			type: String,
-			default: '',
-		},
-		notMention: {
-			type: Boolean,
-			default: true,
-		},
+	type Props = {
+		userId: string;
+		img?: string;
+		notMention?: boolean;
+	};
+
+	const props = withDefaults(defineProps<Props>(), {
+		img: '',
+		notMention: false,
+	});
+
+	const avatar = computed(() => {
+		const currentRoom = rooms.currentRoom;
+		if (currentRoom) {
+			const { getUserAvatar } = useUserAvatar();
+			return getUserAvatar(props.userId, rooms.currentRoom as Room);
+		}
+		return null;
+	});
+
+	const image = computed(() => {
+		if (props.img) {
+			return props.img;
+		}
+		return avatar.value ? pubhubs.getBaseUrl + '/_matrix/media/r0/download/' + avatar.value.slice(6) : '';
 	});
 
 	const display = computed(() => {
-		let name = '' + props.userName; //props.userName;
+		let name = '' + props.userId;
 
 		if (rooms.currentRoom && props.notMention) {
 			const currentRoom = rooms.currentRoom;
-			const roomMemberName = getUserDisplayName(props.userName, currentRoom);
-			name = filters.matrixDisplayName(roomMemberName);
+			name = getUserDisplayName(props.userId, currentRoom);
 		}
 		if (!name) {
 			// IT should not happen, but just in case we should be only the lookout if it happens.
 			// Debugging trace to check this.s
-			console.trace('`name` argument to `getInitialLetter` not supplied');
+			console.trace('`name` argument to `getInitialLetter` not supplied', name, props.userId);
 			return undefined;
 		}
 		if (name.length < 1) {

@@ -4,6 +4,7 @@
  */
 
 import { Room } from '@/store/rooms';
+import filters from '@/core/filters';
 
 const useUserName = () => {
 	function getUserDisplayName(user: string, currentRoom: Room) {
@@ -15,7 +16,7 @@ const useUserName = () => {
 				return member.rawDisplayName;
 			}
 		}
-		return user;
+		return filters.extractPseudonym(user);
 	}
 
 	return { getUserDisplayName };

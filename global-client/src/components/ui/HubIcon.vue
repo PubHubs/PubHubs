@@ -1,5 +1,5 @@
 <template>
-	<div class="block group text-center mb-2 cursor-pointer relative" :class="active ? 'text-green' : 'text-blue'" :title="hub ? hub.hubId : null">
+	<div class="block group text-center mb-2 cursor-pointer relative" :title="hub ? hub.hubId : null">
 		<Badge v-if="hub && hub.unreadMessages > 0" class="sm:ml-6">{{ hub.unreadMessages }}</Badge>
 		<Icon v-if="pinnable" type="plus" class="text-green absolute right-0" @click.prevent="pin"></Icon>
 		<Icon v-if="pinned" type="remove" class="text-red absolute right-0 hidden group-hover:block" @click.prevent="remove"></Icon>

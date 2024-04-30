@@ -39,7 +39,7 @@ As a general tip while testing, keep two browser windows open, one for a existin
   - [ ] Consider if the merge might cause irreversible changes (different database format), and plan for this. (Backups?)
   - [ ] Inform the pubhubs team (via Slack and PubHubs stable) of the merge and possible downtime of https://stable.pubhubs.ihub.ru.nl/client . 
   - [ ] Make the changes and perform the merge. Make sure all the jobs in the pipeline are kicked off. (Some jobs require manual start)
-  - [ ] While waiting on the pipeline: update dependencies on the main branch (not on stable as this might break something), see #227.
+  - [ ] While waiting on the pipeline: [update dependencies on the main branch](https://gitlab.science.ru.nl/ilab/pubhubs_canonical/-/issues/new?issuable_template=update-dependencies&issue[title]=Updating%20dependencies%20on%2020yy-mm-dd) (not on stable as this might break something).
   - [ ] Reset the [feature flags](https://gitlab.science.ru.nl/ilab/pubhubs_canonical/-/blob/main/hub-client/src/store/settings.ts#L75) so the proper flags are enabled for the main branch.
   - [ ] Check that the following works on https://stable.pubhubs.ihub.ru.nl/client :
     - [ ] Turn off dev mode in Yivi app. 

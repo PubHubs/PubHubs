@@ -3,7 +3,7 @@
 </template>
 
 <script setup lang="ts">
-	import { onMounted, watch, computed } from 'vue';
+	import { onMounted, watch, computed, onUnmounted } from 'vue';
 	import { useRoute } from 'vue-router';
 	import { iframeHubId, useHubs, useGlobal } from '@/store/store';
 
@@ -13,6 +13,13 @@
 
 	onMounted(() => {
 		hubs.changeHub(route.params);
+	});
+
+	onUnmounted(() => {
+		hubs.changeHub({
+			id: '',
+			roomId: '',
+		});
 	});
 
 	watch(route, () => {

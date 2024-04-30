@@ -1,5 +1,5 @@
 <template>
-	<div v-if="Object.keys(errors).length > 0" class="rounded-lg bg-red-dark text-white p-2 mt-2">
+	<div v-if="Object.keys(errors).length > 0" class="text-red">
 		<div v-for="(error, index) in errors" :key="index">
 			{{ $t(error.error, [error.field, error.param]) }}
 		</div>

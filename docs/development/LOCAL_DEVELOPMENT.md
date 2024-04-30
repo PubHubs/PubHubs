@@ -143,3 +143,7 @@ In `local-client`  run `npm run test`. To install the dependencies locally use `
 
 A Hub's client can have its own branding. Documentation can be found in `docs/hub_branding`.
 
+# Troubleshooting
+## Outdated `rustc`
+When  `cargo run` complains that `rustc` is outdated, update cargo (using `rustup update` if you installed rust via `rustup`.)
+

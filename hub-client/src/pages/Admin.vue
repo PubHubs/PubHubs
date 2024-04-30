@@ -59,13 +59,13 @@
 
 <script setup lang="ts">
 	import { ref, onMounted } from 'vue';
-	import { useUser, PublicRoom, SecuredRoom, useRooms, useDialog } from '@/store/store';
+	import { useUser, TPublicRoom, TSecuredRoom, useRooms, useDialog } from '@/store/store';
 	import { useI18n } from 'vue-i18n';
 
 	const { t } = useI18n();
 	const user = useUser();
 	const rooms = useRooms();
-	const editRoom = ref({} as SecuredRoom | PublicRoom);
+	const editRoom = ref({} as TSecuredRoom | TPublicRoom);
 	const secured = ref(false);
 	const showEditRoom = ref(false);
 
@@ -83,25 +83,25 @@
 		showEditRoom.value = true;
 	}
 
-	function editPublicRoom(room: PublicRoom) {
+	function editPublicRoom(room: TPublicRoom) {
 		editRoom.value = room;
 		secured.value = false;
 		showEditRoom.value = true;
 	}
 
-	function EditSecuredRoom(room: SecuredRoom) {
+	function EditSecuredRoom(room: TSecuredRoom) {
 		editRoom.value = room;
 		secured.value = true;
 		showEditRoom.value = true;
 	}
 
 	function closeEdit() {
-		editRoom.value = {} as SecuredRoom;
+		editRoom.value = {} as TSecuredRoom;
 		secured.value = false;
 		showEditRoom.value = false;
 	}
 
-	async function removePublicRoom(room: PublicRoom) {
+	async function removePublicRoom(room: TPublicRoom) {
 		const dialog = useDialog();
 		if (await dialog.okcancel(t('admin.remove_room_sure'))) {
 			try {
@@ -112,7 +112,7 @@
 		}
 	}
 
-	async function removeSecuredRoom(room: SecuredRoom) {
+	async function removeSecuredRoom(room: TSecuredRoom) {
 		const dialog = useDialog();
 		if (await dialog.okcancel(t('admin.secured_remove_sure'))) {
 			try {

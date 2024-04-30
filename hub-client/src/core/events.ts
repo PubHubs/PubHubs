@@ -1,19 +1,24 @@
 import { SyncState } from 'matrix-js-sdk/lib/sync';
 import { MatrixClient, MatrixEvent, ClientEvent, Room as MatrixRoom, RoomEvent, RoomMemberEvent, RoomMember } from 'matrix-js-sdk';
-
-import { useSettings, User, useConnection, useUser, useRooms } from '@/store/store';
+import { TEvent } from '@/model/events/TEvent';
+import { EventTimeLineHandler } from '@/core/eventTimeLineHandler';
+import { useSettings, User, useConnection, useUser, useRooms, Room } from '@/store/store';
 import { usePubHubs } from '@/core/pubhubsStore';
 
 class Events {
-	private client: MatrixClient;
+	private readonly client: MatrixClient;
+	private readonly eventTimeHandler = new EventTimeLineHandler();
 
 	public constructor(client: MatrixClient) {
 		this.client = client;
+		this.client.on(RoomEvent.Name, this.eventRoomName);
+		this.client.on(RoomEvent.Timeline, (event: MatrixEvent, matrixRoom: MatrixRoom | undefined, toStartOfTimeline: boolean | undefined) => this.eventRoomTimeline(this.eventTimeHandler, event, matrixRoom, toStartOfTimeline));
+		this.client.on(RoomMemberEvent.Name, this.eventRoomMemberName);
+		this.client.on(RoomMemberEvent.Membership, this.eventRoomMemberMembership(this.client));
 	}
 
 	initEvents() {
 		return new Promise((resolve) => {
-			const self = this;
 			this.client.on(ClientEvent.Sync, (state: SyncState) => {
 				// console.debug('STATE:', state);
 
@@ -33,10 +38,6 @@ class Events {
 					// 	console.debug('== EVENT', event.getType());
 					// 	console.debug('== EVENT', event);
 					// });
-					this.client.on(RoomEvent.Name, self.eventRoomName);
-					this.client.on(RoomEvent.Timeline, self.eventRoomTimeline);
-					this.client.on(RoomMemberEvent.Name, self.eventRoomMemberName);
-					this.client.on(RoomMemberEvent.Membership, self.eventRoomMemberMembership(this.client));
 					resolve(true);
 				}
 			});
@@ -54,29 +55,28 @@ class Events {
 	 * Matrix Events
 	 */
 
-	eventRoomName(room: MatrixRoom) {
+	eventRoomName(matrixRoom: MatrixRoom) {
 		const rooms = useRooms();
 		// console.debug('Room.name', room.name);
-		rooms.addMatrixRoom(room);
+		rooms.addRoom(new Room(matrixRoom));
 	}
 
-	eventRoomTimeline(event: MatrixEvent, room: MatrixRoom | undefined, toStartOfTimeline: boolean | undefined) {
+	eventRoomTimeline(eventTimeLineHandler: EventTimeLineHandler, event: MatrixEvent, matrixRoom: MatrixRoom | undefined, toStartOfTimeline: boolean | undefined) {
+		if (!matrixRoom) return;
 		const rooms = useRooms();
-		// console.debug('Room.timeline', toStartOfTimeline, removed);
+		const phRoom = rooms.addRoom(new Room(matrixRoom));
 
-		if (!room) return;
+		if (event.event.type === 'm.room.message' && event.event.content?.msgtype === 'm.text') {
+			event.event = eventTimeLineHandler.transformEventContent(event.event as Partial<TEvent>);
+		}
 
-		if (toStartOfTimeline) {
-			rooms.addMatrixRoom(room);
-		} else {
-			rooms.addMatrixRoom(room);
+		if (!toStartOfTimeline) {
+			if (event.event.type !== 'm.room.message') return;
 
-			if (event.event.type != 'm.room.message') return;
-
-			if (room.roomId !== rooms.currentRoomId) {
-				rooms.unreadMessageCounter(room.roomId, event);
+			if (phRoom.roomId !== rooms.currentRoomId) {
+				phRoom.unreadMessageCounter(event);
 			}
-			rooms.onModRoomMessage(room.roomId, event);
+			rooms.onModRoomMessage(event);
 		}
 	}
 
@@ -100,13 +100,18 @@ class Events {
 				if (member.membership == 'leave') {
 					const roomId = event.getRoomId();
 					if (roomId != undefined) {
-						rooms.rooms[roomId].hidden = true;
+						rooms.rooms[roomId].setHidden(true);
 					}
 				} else if (member.membership == 'invite') {
 					const pubhubs = usePubHubs();
-					pubhubs.joinRoom(member.roomId).then(function () {
-						console.log('joined DM');
-					});
+					pubhubs
+						.joinRoom(member.roomId)
+						.catch((e) => console.debug(e.toString()))
+						//This sometimes gives an error when the room cannot be found, maybe it's an old experiment or
+						// deleted. Reflects the state, so we just show some debug info.
+						.then(function () {
+							console.log('joined DM');
+						});
 				}
 			}
 		};
