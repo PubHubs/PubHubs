@@ -70,7 +70,11 @@
 		//We know the property is there since passed by the router, so we can use '!'
 		rooms.changeRoom(props.id!);
 		if (!rooms.currentRoom) return;
-		members.value = rooms.currentRoom.getOtherMembers() || [];
+		if (rooms.currentRoom.isPrivateRoom()) {
+			members.value = rooms.currentRoom.getOtherJoinedAndInvitedMembers() || [];
+		} else {
+			members.value = rooms.currentRoom.getOtherJoinedMembers() || [];
+		}
 		plugin.value = plugins.hasRoomPlugin(rooms.currentRoom);
 	}
 

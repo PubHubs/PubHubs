@@ -69,6 +69,7 @@ const nl = {
 	},
 	rooms: {
 		me: 'Ik',
+		just_you: 'Alleen jij',
 		leave_sure: 'Weet je zeker dit gesprek wilt verlaten?',
 		new_message: 'Typ hier je chatbericht',
 		members: 'leden',

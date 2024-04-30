@@ -108,7 +108,7 @@ describe('rooms Store', () => {
 
 		test('getOtherMembers', () => {
 			const room = new Room(new MockedMatrixRoom('test_id'));
-			const name = room.getOtherMembers();
+			const name = room.getOtherJoinedMembers();
 			expect(name).toBeTypeOf('object');
 			expect(name).toHaveLength(3);
 			expect(name[0].userId).toEqual('B2');

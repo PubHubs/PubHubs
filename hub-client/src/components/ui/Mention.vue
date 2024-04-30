@@ -40,12 +40,12 @@
 	});
 
 	onMounted(() => {
-		users.value = rooms.currentRoom?.getOtherMembers() || [];
+		users.value = rooms.currentRoom?.getOtherJoinedMembers() || [];
 	});
 
 	// Watch for changes in the props.msg to control visibility
 	watch(props, () => {
-		users.value = rooms.currentRoom?.getOtherMembers() || [];
+		users.value = rooms.currentRoom?.getOtherJoinedMembers() || [];
 		displayBoxVisibility();
 	});
 
