@@ -2,7 +2,7 @@
 	<div :class="settings.getActiveTheme">
 		<div v-if="setupReady" class="max-h-screen text-hub-text">
 			<div v-if="user.isLoggedIn" class="md:grid md:grid-cols-8">
-				<HeaderFooter class="md:col-span-2 md:flex bg-hub-background-2" :class="{ hidden: !hubSettings.mobileHubMenu }">
+				<HeaderFooter class="md:col-span-2 md:flex gap-4 bg-hub-background-2" :class="{ hidden: !hubSettings.mobileHubMenu }">
 					<template #header>
 						<div class="flex justify-between gap-4 items-end border-b h-full py-2 pl-5 mr-8">
 							<div class="flex h-full">
@@ -11,13 +11,21 @@
 									<Logo class="h-full"></Logo>
 								</router-link>
 							</div>
-							<div class="">
-								<Avatar :userId="user.user.userId" :img="avatar" @click="settingsDialog = true" class="cursor-pointer w-8 h-8 text-md"></Avatar>
+							<div>
+								<Avatar
+									:userId="user.user.userId"
+									:img="avatar"
+									@click="
+										settingsDialog = true;
+										toggleMenu.toggleGlobalMenu();
+									"
+									class="cursor-pointer w-8 h-8 text-md"
+								></Avatar>
 							</div>
 						</div>
 					</template>
 
-					<Menu class="pl-5 py-4">
+					<Menu>
 						<router-link v-for="(item, index) in menu.getMenu" :key="index" :to="item.to" v-slot="{ isActive }">
 							<MenuItem :icon="item.icon" :active="isActive" @click="toggleMenu.toggleGlobalMenu()">{{ $t(item.key) }}</MenuItem>
 						</router-link>
@@ -25,9 +33,10 @@
 
 					<!-- When user is admin, show the admin tools menu -->
 					<div v-if="user.isAdmin">
-						<H2 class="pl-5">{{ $t('menu.admin_tools') }}</H2>
-						<Line class="mt-2 mb-4"></Line>
-						<Menu class="pl-5">
+						<div class="pl-5 border-b mr-8">
+							<H2>{{ $t('menu.admin_tools') }}</H2>
+						</div>
+						<Menu>
 							<router-link :to="{ name: 'admin' }" v-slot="{ isActive }">
 								<MenuItem icon="admin" :active="isActive" @click="toggleMenu.toggleGlobalMenu()">{{ $t('menu.admin_tools_rooms') }}</MenuItem>
 							</router-link>
@@ -36,31 +45,30 @@
 
 					<!-- When user is admin, show the moderation tools menu -->
 					<div v-if="disclosureEnabled && user.isAdmin">
-						<H2 class="pl-5">{{ $t('menu.moderation_tools') }}</H2>
-						<Line class="mt-2 mb-4"></Line>
-						<Menu class="pl-5">
+						<div class="pl-5 border-b mr-8">
+							<H2>{{ $t('menu.moderation_tools') }}</H2>
+						</div>
+						<Menu>
 							<router-link :to="{ name: 'ask-disclosure' }" v-slot="{ isActive }">
-								<MenuItem icon="sign" :active="isActive" class="hover:text-red">{{ $t('menu.moderation_tools_disclosure') }}</MenuItem>
+								<MenuItem icon="sign" :active="isActive">{{ $t('menu.moderation_tools_disclosure') }}</MenuItem>
 							</router-link>
 						</Menu>
 					</div>
 
-					<div class="mr-8">
-						<div class="flex justify-between items-center pl-5 border-b">
-							<H2>{{ $t('menu.rooms') }}</H2>
-							<Icon type="plus" class="cursor-pointer hover:text-green" @click="joinRoomDialog = true"></Icon>
-						</div>
-						<RoomList class="pl-5 py-4"></RoomList>
-
-						<div class="flex justify-between items-center pl-5 border-b">
-							<H2 class="">{{ $t('menu.private_rooms') }}</H2>
-							<Icon type="plus" class="cursor-pointer hover:text-green" @click="addPrivateRoomDialog = true"></Icon>
-						</div>
-						<RoomList :roomType="RoomType.PH_MESSAGES_DM" class="pl-5 py-4"></RoomList>
+					<div class="flex justify-between items-center pl-5 border-b mr-8">
+						<H2>{{ $t('menu.rooms') }}</H2>
+						<Icon type="plus" class="cursor-pointer hover:text-green" @click="joinRoomDialog = true"></Icon>
 					</div>
+					<RoomList></RoomList>
+
+					<div class="flex justify-between items-center pl-5 border-b mr-8">
+						<H2 class="">{{ $t('menu.private_rooms') }}</H2>
+						<Icon type="plus" class="cursor-pointer hover:text-green" @click="addPrivateRoomDialog = true"></Icon>
+					</div>
+					<RoomList :roomType="RoomType.PH_MESSAGES_DM"></RoomList>
 				</HeaderFooter>
 
-				<div class="md:col-span-6 md:block max-h-screen dark:bg-gray-middle overflow-y-auto scrollbar" :class="{ hidden: hubSettings.mobileHubMenu }">
+				<div class="md:col-span-6 md:block max-h-screen overflow-y-auto scrollbar" :class="{ hidden: hubSettings.mobileHubMenu }">
 					<router-view></router-view>
 				</div>
 			</div>

@@ -5,13 +5,13 @@
 			<component :is="event.plugin.component" :event="event">{{ event.plugin.component }}</component>
 		</div>
 		<!-- Normal Event -->
-		<div v-else class="group flex flex-row space-x-4 mb-8">
+		<div v-else class="group flex gap-4 pl-6 pr-3 transition-all duration-150 ease-in-out hover:bg-lightgray-light hover:dark:bg-hub-background-2 py-4">
 			<Avatar :userId="event.sender"></Avatar>
 			<div class="w-4/5 md:w-3/5">
-				<div class="flex items-center">
-					<div class="flex flex-wrap">
-						<div class="flex items-center gap-x-2 mb-0 mr-2 h-6 whitespace-nowrap">
-							<UserDisplayName :user="event.sender"></UserDisplayName>
+				<div class="flex flex-wrap items-center">
+					<div class="relative flex flex-wrap items-center w-full gap-x-2 md:w-fit pr-2 min-h-6">
+						<UserDisplayName :user="event.sender"></UserDisplayName>
+						<div class="flex gap-2 flex-wrap">
 							<span class="text-xs font-normal">|</span>
 							<EventTime :timestamp="event.origin_server_ts" :showDate="false"> </EventTime>
 							<span class="text-xs font-normal">|</span>
@@ -23,15 +23,15 @@
 							</button>
 							<Icon v-if="msgIsNotSend && !connection.isOn" type="lost-connection" size="sm" class="ml-2 mb-1 text-red"></Icon>
 						</template>
-						<RoomEventActionsPopup class="hidden group-hover:block">
+						<RoomEventActionsPopup>
+							<button v-if="!msgIsNotSend" @click="reply" class="p-1 bg-gray-lighter hover:bg-gray-light dark:bg-gray-middle hover:dark:bg-gray-darker rounded-md">
+								<Icon :type="'reply'" :size="'xs'"></Icon>
+							</button>
 							<router-link v-if="!msgIsNotSend && user.isAdmin && event.sender != user.user.userId" :to="{ name: 'ask-disclosure', query: { user: event.sender } }">
-								<button :title="$t('menu.moderation_tools_disclosure')">
-									<Icon :type="'warning'" :size="'sm'"></Icon>
+								<button :title="$t('menu.moderation_tools_disclosure')" class="flex p-1 bg-gray-lighter hover:bg-gray-light dark:bg-gray-middle hover:dark:bg-gray-darker rounded-md">
+									<Icon :type="'warning'" :size="'xs'"></Icon>
 								</button>
 							</router-link>
-							<button v-if="!msgIsNotSend" @click="reply" class="mb-1">
-								<Icon :type="'reply'" :size="'sm'"></Icon>
-							</button>
 						</RoomEventActionsPopup>
 						<ProfileAttributes v-if="rooms.roomIsSecure(rooms.currentRoom!.roomId)" :user="event.sender"></ProfileAttributes>
 					</div>
