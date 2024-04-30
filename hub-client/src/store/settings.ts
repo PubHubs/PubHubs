@@ -84,17 +84,17 @@ const defaultSettings: Settings = {
 	 */
 	featureFlags: {
 		// main
-		// signedMessages: true,
-		// plugins: true,
-		// dateSplitter: false,
-		// disclosure: true,
-		// readReceipt: false,
-		// stable
 		signedMessages: true,
 		plugins: true,
 		dateSplitter: false,
-		disclosure: false,
+		disclosure: true,
 		readReceipt: false,
+		// stable
+		// signedMessages: true,
+		// plugins: true,
+		// dateSplitter: false,
+		// disclosure: false,
+		// readReceipt: false,
 	},
 };
 
