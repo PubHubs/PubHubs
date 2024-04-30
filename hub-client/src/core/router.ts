@@ -7,7 +7,7 @@ const routes = [
 	{ path: '/hub', name: 'hubpage', component: () => import('@/pages/HubPage.vue') },
 	{ path: '/admin', name: 'admin', component: () => import('@/pages/Admin.vue'), meta: { onlyAdmin: true } },
 	{ path: '/ask-disclosure', name: 'ask-disclosure', component: () => import('@/pages/AskDisclosure.vue'), meta: { onlyAdmin: true } },
-	{ path: '/room/:id', name: 'room', component: () => import('@/pages/Room.vue') },
+	{ path: '/room/:id', props: true, name: 'room', component: () => import('@/pages/Room.vue') },
 	{ path: '/secureroom/:id', name: 'secure-room', component: () => import('@/pages/SecureRoomPage.vue') },
 	{ path: '/roomerror/:id', name: 'error-page-room', component: () => import('@/pages/RoomErrorPage.vue') },
 	{ path: '/nop', name: 'nop', component: () => import('@/pages/NotImplemented.vue') },
@@ -25,7 +25,7 @@ router.beforeEach((to) => {
 
 	rooms.roomsArray.forEach(async (room) => {
 		if (room.roomId === router.currentRoute.value.params.id) {
-			const mEvent: MatrixEvent = rooms.getlastEvent(room.roomId);
+			const mEvent: MatrixEvent = room.getlastEvent();
 			const sender = mEvent.event.sender!;
 			await pubhubs.sendAcknowledgementReceipt(sender);
 		}

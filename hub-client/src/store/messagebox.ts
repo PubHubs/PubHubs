@@ -1,8 +1,6 @@
 import { defineStore } from 'pinia';
 import filters from '@/core/filters';
 
-import { Theme } from '@/store/store';
-
 /**
  * This store is used to exchange messages from global client (parent frame) to hub client (iframe) and the other way around.
  *
@@ -82,7 +80,7 @@ enum MessageType {
  *  - content - can be anything
  */
 
-type MessageContent = string | number | object | Theme | boolean;
+type MessageContent = any;
 
 class Message {
 	type: MessageType;
@@ -184,7 +182,7 @@ const useMessageBox = defineStore('messagebox', {
 
 							// Answer to handshake as parent
 							if (message.isHandShakeStart() && type == MessageBoxType.Parent) {
-								console.log('<= ' + this.type + ' RECEIVED handshake:', this.receiverUrl);
+								// console.log('<= ' + this.type + ' RECEIVED handshake:', this.receiverUrl);
 								this.sendMessage(new Message(MessageType.HandshakeReady));
 								this.handshake = HandshakeState.Ready;
 								resolve(true);
@@ -192,7 +190,7 @@ const useMessageBox = defineStore('messagebox', {
 
 							// Answer to handshake as child
 							else if (message.isHandShakeReady() && type == MessageBoxType.Child) {
-								console.log('=> ' + this.type + ' RECEIVED', HandshakeState.Ready);
+								// console.log('=> ' + this.type + ' RECEIVED', HandshakeState.Ready);
 								this.handshake = HandshakeState.Ready;
 								resolve(true);
 							}
@@ -264,8 +262,8 @@ const useMessageBox = defineStore('messagebox', {
 		 */
 		receivedMessage(message: Message) {
 			if (this.handshake == HandshakeState.Ready) {
-				// console.log('<= ' + this.type + ' RECEIVED', message, callback);
 				const callback = this.callbacks[message.type];
+				// console.log('<= ' + this.type + ' RECEIVED', message, callback);
 				if (callback) {
 					callback(message as Message);
 				}

@@ -1,22 +1,22 @@
 <template>
-	<Dialog :title="title" :buttons="buttonsSubmitCancel" width="w-3/6" @close="close($event)">
-		<form @submit.prevent>
+	<Dialog :title="title" :buttons="buttonsSubmitCancel" @close="close($event)">
+		<form @submit.prevent class="flex flex-col gap-4">
 			<FormLine>
 				<Label>{{ $t('admin.name') }}</Label>
-				<TextInput :placeholder="$t('admin.name')" v-model="editRoom.name" class="w-5/6" @changed="updateData('name', $event)"></TextInput>
+				<TextInput :placeholder="$t('admin.name')" v-model="editRoom.name" class="md:w-5/6" @changed="updateData('name', $event)"></TextInput>
 			</FormLine>
 			<FormLine>
 				<Label>{{ $t('admin.topic') }}</Label>
-				<TextInput :placeholder="$t('admin.topic')" v-model="editRoom.topic" class="w-5/6" @changed="updateData('topic', $event)"></TextInput>
+				<TextInput :placeholder="$t('admin.topic')" v-model="editRoom.topic" class="md:w-5/6" @changed="updateData('topic', $event)"></TextInput>
 			</FormLine>
 			<FormLine v-if="!secured">
 				<Label>{{ $t('admin.room_type') }}</Label>
-				<TextInput :placeholder="$t('admin.room_type_placeholder')" v-model="editRoom.type" class="w-5/6" @changed="updateData('type', $event)"></TextInput>
+				<TextInput :placeholder="$t('admin.room_type_placeholder')" v-model="editRoom.type" class="md:w-5/6" @changed="updateData('type', $event)"></TextInput>
 			</FormLine>
 			<div v-if="secured">
 				<FormLine class="mb-2">
 					<Label>{{ $t('admin.secured_description') }}</Label>
-					<TextInput :placeholder="$t('admin.secured_description')" v-model="editRoom.user_txt" class="w-5/6"></TextInput>
+					<TextInput :placeholder="$t('admin.secured_description')" v-model="editRoom.user_txt" class="md:w-5/6"></TextInput>
 				</FormLine>
 				<FormLine>
 					<Label>{{ $t('admin.secured_yivi_attributes') }}</Label>
@@ -30,7 +30,7 @@
 <script setup lang="ts">
 	import { onBeforeMount, ref, computed } from 'vue';
 	import { buttonsSubmitCancel, DialogButtonAction } from '@/store/dialog';
-	import { SecuredRoomAttributes, SecuredRoom, useRooms, useDialog, PublicRoom, PubHubsRoomType } from '@/store/store';
+	import { SecuredRoomAttributes, TSecuredRoom, useRooms, useDialog, TPublicRoom, RoomType } from '@/store/store';
 	import { useFormState } from '@/composables/useFormState';
 	import { FormObjectInputTemplate } from '@/composables/useFormInputEvents';
 	import { usePubHubs } from '@/core/pubhubsStore';
@@ -49,7 +49,7 @@
 	const props = defineProps({
 		room: {
 			type: Object,
-			default: ref({} as unknown as SecuredRoom | PublicRoom),
+			default: ref({} as unknown as TSecuredRoom | TPublicRoom),
 		},
 		secured: {
 			type: Boolean,
@@ -91,9 +91,9 @@
 		accepted: [] as Array<SecuredRoomAttributesObject>,
 		user_txt: '',
 		type: '',
-	} as SecuredRoom;
+	} as TSecuredRoom;
 
-	const editRoom = ref({} as PublicRoom | SecuredRoom);
+	const editRoom = ref({} as TPublicRoom | TSecuredRoom);
 
 	const securedRoomTemplate = ref([
 		{ key: 'yivi', label: t('admin.secured_attribute'), type: 'select', options: [], default: '' },
@@ -110,10 +110,10 @@
 
 		if (isNewRoom.value) {
 			// New Room
-			editRoom.value = { ...emptyNewRoom } as PublicRoom | SecuredRoom;
+			editRoom.value = { ...emptyNewRoom } as TPublicRoom | TSecuredRoom;
 		} else {
 			// Edit room
-			editRoom.value = { ...(props.room as PublicRoom | SecuredRoom) };
+			editRoom.value = { ...(props.room as TPublicRoom | TSecuredRoom) };
 			editRoom.value.topic = rooms.getRoomTopic(props.room.room_id);
 
 			// Transform for form
@@ -171,7 +171,7 @@
 	}
 
 	async function submitRoom() {
-		let room = { ...editRoom.value } as SecuredRoom;
+		let room = { ...editRoom.value } as TSecuredRoom;
 
 		// Normal room
 		if (!props.secured) {
@@ -198,7 +198,7 @@
 			// Transform room for API
 			// room.room_name = room.name;
 			// delete room.name;
-			room.type = PubHubsRoomType.PH_MESSAGES_RESTRICTED;
+			room.type = RoomType.PH_MESSAGES_RESTRICTED;
 			let accepted = {} as SecuredRoomAttributes;
 			// @ts-ignore
 			room.accepted.forEach((item: any) => {

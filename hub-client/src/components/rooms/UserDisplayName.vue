@@ -1,7 +1,7 @@
 <template>
 	<div class="flex flex-row gap-x-2 items-center">
-		<span :class="`${textColor(color(user))} font-semibold text-sm`">{{ filters.extractDisplayName(displayName, settings.getDisplayNameMaxLength) }}</span>
-		<span class="text-xs font-normal">{{ filters.extractPseudonym(displayName) }}</span>
+		<span :class="`${textColor(color(user))} font-semibold text-sm`">{{ filters.maxLengthText(displayName, settings.getDisplayNameMaxLength) }}</span>
+		<span class="text-xs font-normal">{{ filters.extractPseudonym(user) }}</span>
 	</div>
 </template>
 

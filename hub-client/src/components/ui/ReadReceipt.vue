@@ -17,9 +17,8 @@
 
 <script setup lang="ts">
 	import { watchEffect, ref } from 'vue';
-	import { RoomMember, useRooms } from '@/store/rooms';
+	import { useRooms } from '@/store/rooms';
 	import { useUser } from '@/store/user';
-	import { ReceiptType } from 'matrix-js-sdk/lib/@types/read_receipts';
 
 	const currentUser = useUser();
 	const rooms = useRooms();
@@ -63,13 +62,13 @@
 		const currentUserID = currentUser.user.userId;
 
 		// We need to get private room members list each time because new members can be added.
-		const roomUsers: RoomMember[] = room.getPrivateRoomMembers();
+		const roomUsers = room.getOtherMembers();
 
 		const readTimestamps: number[] = [];
 
 		roomUsers.forEach((user) => {
 			if (user.user && user.user.userId !== currentUserID) {
-				const readReceipt = room.getReadReceiptForUserId(user.user.userId, false, ReceiptType.Read);
+				const readReceipt = room.getReadReceiptForUserId(user.user.userId);
 				if (readReceipt) {
 					readTimestamps.push(readReceipt.data.ts);
 				}

@@ -1,12 +1,14 @@
 <template>
-	<Dialog :buttons="buttonsCancel" width="w-3/6" @close="close()">
+	<Dialog :buttons="buttonsCancel" @close="close()">
 		<template #header>
 			{{ $t('rooms.private_add') }}
 		</template>
 		<FilteredList :items="usersList" filterKey="displayName" sortby="displayName" :placeholder="$t('rooms.private_search_user')" @click="addNewPrivateRoom($event)" @filter="filter($event)">
 			<template #item="{ item }">
-				<span :title="item.userId">{{ item.displayName }}</span>
-				<Icon type="plus" class="float-right"></Icon>
+				<div class="flex justify-between">
+					<span :title="item.userId" class="grow truncate w-100">{{ item.displayName }}</span>
+					<Icon type="plus" class="flex-none"></Icon>
+				</div>
 			</template>
 		</FilteredList>
 	</Dialog>
@@ -20,16 +22,19 @@
 	import { useUser } from '@/store/store';
 	import { buttonsCancel } from '@/store/dialog';
 	import { FilteredListEvent } from '@/types/components';
+	import { useToggleMenu } from '@/store/toggleGlobalMenu';
 
 	const router = useRouter();
 	const pubhubs = usePubHubs();
 	const user = useUser();
 	const emit = defineEmits(['close']);
+	const toggleMenu = useToggleMenu();
 
 	const users = ref([] as Array<MatrixUser>);
 
 	onMounted(async () => {
 		users.value = await pubhubs.getUsers();
+		toggleMenu.toggleGlobalMenu();
 	});
 
 	const usersList = computed(() => {
@@ -59,6 +64,7 @@
 
 	async function close() {
 		emit('close');
+		toggleMenu.toggleGlobalMenu();
 	}
 
 	async function filter(event: FilteredListEvent) {

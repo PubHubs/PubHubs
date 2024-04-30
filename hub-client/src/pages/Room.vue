@@ -1,25 +1,31 @@
 <template>
 	<template v-if="rooms.currentRoomExists">
-		<HeaderFooter v-if="plugin == false" class="pl-3">
+		<HeaderFooter v-if="plugin == false" class="pl-6">
 			<template #header>
-				<div class="flex pl-20 md:pl-0">
-					<div v-if="currentRoom" class="flex flex-row gap-x-2">
-						<Icon :type="rooms.roomIsSecure(currentRoom.roomId) ? 'lock' : 'room'" class="text-blue mt-2" size="lg"></Icon>
-						<div class="">
-							<H1 class="m-0 text-blue font-bold">{{ $t('rooms.title', [roomName()]) }}</H1>
-							<p class="text-sm leading-4">
-								<PrivateRoomName v-if="currentRoom.isPrivateRoom()" :members="members"></PrivateRoomName>
-								<span v-else>
-									{{ getTopic() }}
-								</span>
-							</p>
+				<div class="h-full w-full pl-16 md:pl-0">
+					<div class="flex justify-between relative gap-x-2 h-full w-full border-b pb-2 md:pb-4 md:pr-3">
+						<div v-if="rooms.currentRoom" class="flex shrink-0 gap-x-1 md:gap-x-4 items-end md:items-center w-9/12 overflow-hidden">
+							<Icon :type="rooms.currentRoom.isSecuredRoom() ? 'lock' : 'room'" class="text-blue md:mt-2 shrink-0" size="lg"></Icon>
+							<div class="flex flex-col bg-hub-background">
+								<TruncatedText>
+									<H1 class="m-0 text-hub-accent md:text-xl">{{ $t('rooms.title', [roomName()]) }}</H1>
+								</TruncatedText>
+								<TruncatedText>
+									<p class="text-sm leading-4 hidden md:block">
+										<PrivateRoomName v-if="rooms.currentRoom.isPrivateRoom()" :members="members"></PrivateRoomName>
+										<span v-else>
+											{{ getTopic() }}
+										</span>
+									</p>
+								</TruncatedText>
+							</div>
 						</div>
+						<SearchInput @submit="search"></SearchInput>
 					</div>
-					<SearchInput class="ml-16 mt-6 flex-auto" @submit="search"></SearchInput>
 				</div>
 			</template>
 
-			<RoomTimeline class="pt-12 pb-3" :room_id="rooms.currentRoomId"></RoomTimeline>
+			<RoomTimeline v-if="rooms.rooms[id!]" class="scrollbar" :room="rooms.rooms[id!]"></RoomTimeline>
 
 			<template #footer>
 				<MessageInput></MessageInput>
@@ -27,7 +33,7 @@
 		</HeaderFooter>
 
 		<!-- Plugin Room -->
-		<component v-else :is="plugin.component"></component>
+		<component v-if="plugin !== false && plugin !== true" :is="plugin.component"></component>
 	</template>
 </template>
 
@@ -35,8 +41,9 @@
 	import { onMounted, watch, ref } from 'vue';
 	import { useRoute } from 'vue-router';
 	import { useI18n } from 'vue-i18n';
-	import { Room, useRooms, RoomMember } from '@/store/store';
+	import { useRooms } from '@/store/store';
 	import { PluginProperties, usePlugins } from '@/store/plugins';
+	import { TRoomMember } from '@/store/rooms';
 
 	const route = useRoute();
 	const { t } = useI18n();
@@ -44,8 +51,12 @@
 	const plugins = usePlugins();
 	const plugin = ref(false as boolean | PluginProperties);
 
-	const currentRoom = ref<Room | undefined>(undefined);
-	const members = ref<Array<RoomMember>>([]);
+	const members = ref<TRoomMember[]>([]);
+
+	//Passed by the router
+	const props = defineProps({
+		id: String,
+	});
 
 	onMounted(() => {
 		update();
@@ -56,26 +67,27 @@
 	});
 
 	function update() {
-		rooms.changeRoom(route.params.id as string);
-		currentRoom.value = rooms.currentRoom;
-		members.value = currentRoom.value?.getPrivateRoomMembers() || [];
-		plugin.value = plugins.hasRoomPlugin(currentRoom.value as Room);
+		//We know the property is there since passed by the router, so we can use '!'
+		rooms.changeRoom(props.id!);
+		if (!rooms.currentRoom) return;
+		members.value = rooms.currentRoom.getOtherMembers() || [];
+		plugin.value = plugins.hasRoomPlugin(rooms.currentRoom);
 	}
 
 	function roomName() {
-		if (!currentRoom.value) return '';
-		if (currentRoom.value.isPrivateRoom()) {
+		if (!rooms.currentRoom) return '';
+		if (rooms.currentRoom.isPrivateRoom()) {
 			return t('rooms.private_room', members.value);
 		}
-		return currentRoom.value.name;
+		return rooms.currentRoom.name;
 	}
 
 	function getTopic() {
-		if (!currentRoom.value) return '';
-		if (currentRoom.value.isPrivateRoom()) {
+		if (!rooms.currentRoom) return '';
+		if (rooms.currentRoom.isPrivateRoom()) {
 			return t('rooms.private_members', members.value);
 		}
-		return rooms.getRoomTopic(currentRoom.value.roomId);
+		return rooms.currentRoom.getTopic();
 	}
 
 	function search(term: string) {

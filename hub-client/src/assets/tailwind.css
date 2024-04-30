@@ -134,20 +134,19 @@ body,
 }
 
 @layer components {
+	.message-link {
+		@apply text-green;
+	}
+	.message-mention {
+		@apply inline-block bg-avatar-lime text-white px-1 py-0 rounded-md;
+	}
+
 	.emoji-font {
 		font-family: notocoloremoji;
 	}
 
-	.scrollbar-emojipicker {
-		scrollbar-width: auto;
+	.scrollbar {
+		scrollbar-width: thin;
 		scrollbar-color: theme(colors.gray.light) theme(colors.gray.DEFAULT);
-	}
-
-	.scrollbar-emojipicker::-webkit-scrollbar {
-		@apply bg-gray rounded-lg w-3;
-	}
-
-	.scrollbar-emojipicker::-webkit-scrollbar-thumb {
-		@apply bg-gray-light rounded-lg min-h-8;
 	}
 }

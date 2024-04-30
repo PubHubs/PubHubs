@@ -1,36 +1,40 @@
-import { rest } from 'msw';
+import { http, HttpResponse } from 'msw';
 
 export const handlers = [
-	rest.get('http://test/login', (req, res, ctx) => {
+	http.get('http://test/login', () => {
 		sessionStorage.setItem('loggedIn', 'true');
-		return res(ctx.status(200));
+		return new HttpResponse(null, { status: 200 });
 	}),
 
-	rest.get('http://test/logout', (req, res, ctx) => {
+	http.get('http://test/logout', () => {
 		sessionStorage.setItem('loggedIn', 'false');
-		return res(ctx.status(200));
+		return new HttpResponse(null, { status: 200 });
 	}),
 
-	rest.get('http://test/bar/state', (req, res, ctx) => {
+	http.get('http://test/bar/state', () => {
 		if (sessionStorage.getItem('loggedIn')) {
-			return res(
-				ctx.status(200),
-				ctx.cookie('PHAccount.LoginTimestamp', '1'),
-				ctx.json({
+			return HttpResponse.json(
+				{
 					theme: 'system',
 					language: 'en',
 					hubs: [{ hubId: 'TestHub0' }],
-				}),
+				},
+				{
+					headers: {
+						'Set-Cookie': 'PHAccount.LoginTimestamp=1',
+						'X-Custom-Header': 'yes',
+					},
+					status: 200,
+				},
 			);
 		} else {
-			return res(ctx.status(403));
+			return new HttpResponse(null, { status: 403 });
 		}
 	}),
 
-	rest.get('http://test/bar/hubs', (req, res, ctx) => {
-		return res(
-			ctx.status(200),
-			ctx.json([
+	http.get('http://test/bar/hubs', () => {
+		return HttpResponse.json(
+			[
 				{
 					name: 'TestHub0',
 					description: 'Test Hub Zero',
@@ -46,7 +50,8 @@ export const handlers = [
 					description: 'Test Hub Two',
 					client_uri: 'http://hubtest2',
 				},
-			]),
+			],
+			{ status: 200 },
 		);
 	}),
 ];

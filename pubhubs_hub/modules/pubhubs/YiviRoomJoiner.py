@@ -1,7 +1,6 @@
 import logging
 import time
 import synapse
-from synapse.handlers.room import RoomCreationHandler, RoomShutdownHandler
 from synapse.http.server import set_clickjacking_protection_headers
 from synapse.logging.context import run_in_background
 from synapse.module_api import ModuleApi
@@ -108,8 +107,8 @@ class YiviRoomJoiner(object):
             # self.store = YiviRoomJoinStore(api)
         self.module_api = api
         # We need the private fields for account data to set widgets
-        self.room_creation_handler = RoomCreationHandler(api._hs)
-        self.room_shutdown_handler = RoomShutdownHandler(api._hs)
+        self.room_creation_handler = synapse.handlers.room.RoomCreationHandler(api._hs)
+        self.room_shutdown_handler = synapse.handlers.room.RoomShutdownHandler(api._hs)
 
         run_in_background(self.store.create_tables)
 

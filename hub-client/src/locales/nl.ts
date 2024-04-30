@@ -1,4 +1,12 @@
 const nl = {
+	state: {
+		no_access: 'Je browser geeft geen toegang tot de cookies en lokale opslag van de Hub client. Waarschijnlijk omdat de browser de Hub client aanziet voor een `third-party tracker`. Druk op de knop om toegang te verlenen.',
+		button_request: 'Verleen toegang',
+		initial: 'Controleren of de hub client toegang heeft tot cookies en lokale opslag...',
+		requesting: 'Toegang verlenen...',
+		denied: 'Sorry, de hub client kan helaas niet worden uitgevoerd zonder toegang tot cookies en lokale opslag',
+		woops: 'Oeps, ik had niet verwacht in deze status te zijn.',
+	},
 	dialog: {
 		ok: 'Ok',
 		cancel: 'Annuleer',
@@ -26,6 +34,9 @@ const nl = {
 		submit: 'Invoeren',
 	},
 	home: {
+		hub_homepage_welcome: 'Welkom bij onze Hub!',
+		hub_homepage_join: 'Doe mee met onze Hub',
+		hub_homepage_welcome_auth: 'Welkom bij onze Hub!',
 		welcome: 'Welkom bij <a href="https://pubhubs.net">PubHubs</a>.<br>PubHubs is een community netwerk gebaseerd op publieke waarden.',
 		highlighted_hubs: 'Uitgelichte Hubs',
 	},
@@ -53,7 +64,7 @@ const nl = {
 	},
 	others: {
 		nop: 'Deze functionaleit is nog niet gerealiseerd.',
-		search: 'zoeken',
+		search: 'Zoeken',
 		read_receipt: 'Gelezen door',
 	},
 	rooms: {
@@ -72,6 +83,8 @@ const nl = {
 		join_room: 'Wordt lid van een gesprek',
 		add_room: 'Voeg gesprek toe',
 		name: 'Naam van gesprek',
+		name_general_room: 'Algemeen',
+		name_feedback_room: 'Feedback',
 		filter: 'Filter gesprekken',
 		title: '{0}',
 		access_denied: 'Toegang geweigerd',

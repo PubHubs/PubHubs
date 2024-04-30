@@ -1,4 +1,12 @@
 const en = {
+	state: {
+		no_access: 'Your browser prevents the hub client from accessing its cookies and local storage, perhaps mistaking the hub client for a third-party tracker. Please click the button to request access.',
+		button_request: 'Request access',
+		initial: 'Checking whether hub client has access to cookies and local storage...',
+		requesting: 'Requesting access...',
+		denied: 'Sorry, the hub client cannot run without access to local storage',
+		woops: 'Woops, I did not expect to find myself in this state.',
+	},
 	dialog: {
 		ok: 'Ok',
 		cancel: 'Cancel',
@@ -26,6 +34,9 @@ const en = {
 		submit: 'Submit',
 	},
 	home: {
+		hub_homepage_welcome: 'Welcome to our Hub!',
+		hub_homepage_join: 'Join our Hub',
+		hub_homepage_welcome_auth: 'Welcome to our Hub!',
 		welcome: 'Welcome to <a href="https://pubhubs.net">PubHubs</a>.<br>PubHubs is a community platform based on public values.',
 		highlighted_hubs: 'Highlighted Hubs',
 	},
@@ -53,7 +64,7 @@ const en = {
 	},
 	others: {
 		nop: 'This feature is not implement yet.',
-		search: 'search',
+		search: 'Search',
 		read_receipt: 'Read by',
 	},
 	rooms: {
@@ -72,6 +83,8 @@ const en = {
 		join_room: 'Join a room',
 		add_room: 'Add a room',
 		name: 'Name of a room',
+		name_general_room: 'General',
+		name_feedback_room: 'Feedback',
 		filter: 'Filter rooms',
 		title: '{0}',
 		access_denied: 'Access Denied',

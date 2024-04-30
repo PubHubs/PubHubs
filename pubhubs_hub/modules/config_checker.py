@@ -22,12 +22,12 @@ class ConfigChecker:
     def __init__(self, cc_config: dict, api: ModuleApi):
         self.api = api
         self.cc_config = cc_config
-        
+
         # True if DO CHANGE fields should be changed;
         # False if DO CHANGE fields should be unchanged; and
         # None if DO CHANGE fields should not be checked.
         self.do_change = None
-        
+
         self.errs = []
         self.modules = None # set by 'load_modules'
 
@@ -63,24 +63,28 @@ class ConfigChecker:
 
         self.try_check(self.check_oidc_provider, "the oidc provider has been configured correctly")
 
+        self.try_check(self.check_autocreate_auto_join_rooms_is_enabled, "the automatic creation of 'autojoin rooms' has been configured correctly")
+
+        self.try_check(self.check_auto_join_mxid_localpart, "the 'autojoin rooms' creator's username's localpart")
+
         check_do_change_fields = self.cc_config.get("check_do_change_fields", None)
-        
+
         if check_do_change_fields == None:
             if api.public_baseurl.startswith("https"):
                 logger.info("since public_baseurl starts with 'https' we assume that we're dealing with a " +
-                    "production environment, and will check that all DO CHANGE fields have been  changed.\n" + 
+                    "production environment, and will check that all DO CHANGE fields have been  changed.\n" +
                     "  DEVELOPERS: please take a look at the 'check_do_change_fields' field in 'homeserver.yaml' ")
                 self.do_change = True
             else:
                 logger.info("since public_baseurl doesn't start with 'https' we assume that we're dealing with a " +
-                    "development environment, and will check that all DO CHANGE fields have *not* been changed. " + 
+                    "development environment, and will check that all DO CHANGE fields have *not* been changed. " +
                     "This forces you, the developer, to update the check in the config_checker module when you update " +
-                    "the default value of a DO CHANGE field.\n\n" + 
-                    "  NOTE: you can temporarily disable this check by setting " + 
+                    "the default value of a DO CHANGE field.\n\n" +
+                    "  NOTE: you can temporarily disable this check by setting " +
                             "'check_do_change_fields' to 'no' in 'homeserver.yaml'")
                 self.do_change = False
-        else: 
-            DO_CHANGE_MAP = { 
+        else:
+            DO_CHANGE_MAP = {
                    'no' : None,
                    'yes_should_be_changed': True,
                    'yes_should_be_unchanged': False,
@@ -91,7 +95,7 @@ class ConfigChecker:
             else:
                 raise ConfigError(f"'check_do_change_fields' has unexpected value {repr(check_do_change_fields)} - "
                                     + f"it should be one of {tuple(DO_CHANGE_MAP.keys())}")
-            
+
         if self.do_change != None:
             self.try_check_did_change(self.signing_key_changed, "signing key (see 'signing_key_path')")
             self.try_check_did_change(self.macaroon_secret_changed, "'macaroon_secret'")
@@ -101,16 +105,17 @@ class ConfigChecker:
             self.try_check_did_change(self.issuer_changed, "'issuer' under 'oidc_providers'")
             self.try_check_did_change(self.client_id_changed, "'client_id' under 'oidc_providers'")
             # we cannot really tell whether client_secret has been changed from the default due to the
-            # multiple testhubs that may be created under development 
+            # multiple testhubs that may be created under development
             self.try_check_did_change(self.server_name_changed, "'server_name'")
             self.try_check_did_change(self.public_baseurl_changed, "'public_baseurl'")
+            self.try_check_did_change(self.auto_join_rooms_changed, "'auto_join_rooms'")
 
         # TODO:
         # block_non_admin_invites? #566
 
         if self.errs:
-            raise ConfigError("\n\nThere are some problems with the 'homeserver.yaml' configuration from PubHubs' perspective:\n" + 
-                "\n".join([" - " + err for err in self.errs]) + "\n\n") 
+            raise ConfigError("\n\nThere are some problems with the 'homeserver.yaml' configuration from PubHubs' perspective:\n" +
+                "\n".join([" - " + err for err in self.errs]) + "\n\n")
 
 
     def try_check(self, f, what, *args, **kwargs):
@@ -131,9 +136,9 @@ class ConfigChecker:
 
     def check_did_change(self, what, f, *args, **kwargs):
         did_change = f(*args, **kwargs)
-        if did_change == self.do_change: 
+        if did_change == self.do_change:
             return
-        yield f"Please {'do' if self.do_change else 'do not'} change {what} from the default" 
+        yield f"Please {'do' if self.do_change else 'do not'} change {what} from the default"
 
     def load_modules(self):
         self.modules = {}
@@ -150,7 +155,7 @@ class ConfigChecker:
             yield "Regular (non-PubHubs) user registration is enabled - please set 'enable_registration' in 'homeserver.yaml' to false."
 
     def check_password_login_disabled(self):
-        if self.config.auth.password_enabled_for_login or self.config.auth.password_enabled_for_reauth: 
+        if self.config.auth.password_enabled_for_login or self.config.auth.password_enabled_for_reauth:
             yield f"Password login enabled; please disable it by setting 'enabled: false' under 'password_config:' in 'homeserver.yaml'"
 
     def check_federation_is_disabled(self):
@@ -161,12 +166,20 @@ class ConfigChecker:
         if self.config.server.allow_per_room_profiles:
             yield "Please set 'allow_per_room_profiles: false' in 'homeserver.yaml'"
 
+    def check_autocreate_auto_join_rooms_is_enabled(self):
+        if not self.config.registration.auto_join_rooms:
+            yield "The automatic creation of 'autojoin rooms' is disabled - please set 'auto_join_rooms' in 'homeserver.yaml' to true."
+
+    def check_auto_join_mxid_localpart(self):
+        if (not self.config.registration.auto_join_user_id) or (not self.config.registration.auto_join_user_id.startswith('@system_bot:')):
+            yield "The local part of user creating 'autojoin rooms' should not be changed - please set 'auto_join_mxid_localpart' in 'homeserver.yaml' to 'system_bot'."
+
     def signing_key_changed(self):
         for key in self.config.key.signing_key:
             if bytes(key) == b'\xee\xe9@\x8c\xd2R\x7ft\x15\x1e\x03#\xc8\xf3[\xb9\x89\x95\x9b\x80\xe6\x06\xbd\n\xb7~"5\x91%v\xac':
                 return False
         return True
-                
+
     def macaroon_secret_changed(self):
         return self.config.key.macaroon_secret_key != b"macaroon_key"
 
@@ -203,13 +216,29 @@ class ConfigChecker:
     def public_baseurl_changed(self):
         return self.config.server.public_baseurl != "http://localhost:8008/"
 
+    def auto_join_rooms_changed(self):
+        error = "Make sure that the first 'autojoin room' in the 'auto_join_rooms' configuration is of the form '#General:<server_name>'."
+        if len(self.config.registration.auto_join_rooms) == 0:
+            raise ConfigError(error)
+
+        general_room_name = self.config.registration.auto_join_rooms[0]
+
+        split_general_room_name = general_room_name.split(':', 1)
+        localpart = split_general_room_name[0]
+        name_server = split_general_room_name[1]
+
+        if name_server != self.config.server.server_name or localpart != '#General':
+            raise ConfigError(error)
+
+        return general_room_name != "#General:testhub.matrix.host"
+
     def check_client_is_whitelisted(self):
         client_url = self.modules[pubhubs.YiviRoomJoiner]["client_url"]
         # C.f. https://github.com/element-hq/synapse/blob/f4e12ceb1fc2a02b2c3deed4530cea0a601ec4df/synapse/handlers/auth.py#L277
         whitelist = tuple(self.config.sso.sso_client_whitelist)
         if not client_url.startswith(whitelist):
             yield f"Please add your client url ({client_url}) - or a prefix of it - to 'sso -> client_whitelist' ({whitelist})"
-            
+
     def check_server_notices_localpart(self):
         # TODO: development and production currently use different localparts for the notices user.
         # Is this a bug?  I've sent Harm an email to inquire about this.
@@ -227,7 +256,7 @@ class ConfigChecker:
             case 0:
                 yield "No OIDC providers configured - please add  the pubhubs OIDC provider under 'oidc_providers'."
                 return
-            case 1: 
+            case 1:
                 pass # ok
             case _:
                 yield "Please only use the pubhubs OIDC provider under 'oidc_providers'"
@@ -253,5 +282,3 @@ class ConfigChecker:
             yield f"Please set 'user_mapping_provider' -> 'module' to 'conf.modules.pseudonyms.OidcMappingProvider' - current value: {repr(op.user_mapping_provider_class)}"
 
         # op.user_mapping_provider_config is checked by the module itself
-
-

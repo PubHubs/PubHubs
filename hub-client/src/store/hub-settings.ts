@@ -10,24 +10,11 @@ const useHubSettings = defineStore('hub-settings', {
 			// @ts-ignore
 			parentUrl: _env.PARENT_URL,
 			isSolo: window.self === window.top,
-			visibleEventTypes: ['m.room.message'],
 			mobileHubMenu: false,
 		};
 	},
 
-	getters: {
-		getVisibleEventTypes: (state) => state.visibleEventTypes,
-
-		isVisibleEventType: (state) => (type: string) => {
-			return state.visibleEventTypes.includes(type);
-		},
-	},
-
-	actions: {
-		skipNoticeUserEvent(event: Record<string, any>): boolean {
-			return String(event.sender).includes('@notices') ? false : true;
-		},
-	},
+	getters: {},
 });
 
 export { useHubSettings };

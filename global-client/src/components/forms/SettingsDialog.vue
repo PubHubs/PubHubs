@@ -1,19 +1,19 @@
 <template>
-	<Dialog :title="$t('settings.title')" :buttons="buttonsSubmitCancel" width="w-1/3 min-w-20">
-		<div class="flex flex-col">
-			<div class="flex flex-col md:flex-row justify-between mb-2">
+	<Dialog :title="$t('settings.title')" :buttons="buttonsSubmitCancel" width="w-3/5">
+		<div class="flex flex-col gap-2">
+			<div class="flex flex-col md:flex-row justify-between">
 				<Label>{{ t('settings.theme') }}</Label>
 				<ButtonGroup size="sm" v-model="data.theme.value" :value="data.theme.value" :options="settings.getThemeOptions(t)" @changed="updateData('theme', $event)"></ButtonGroup>
 			</div>
-			<div class="flex flex-col md:flex-row justify-between mb-2">
+			<div class="flex flex-col md:flex-row justify-between">
 				<Label>{{ t('settings.language') }}</Label>
 				<ButtonGroup size="sm" v-model="data.language.value" :value="data.language.value" :options="settings.getLanguageOptions" @changed="updateData('language', $event)"></ButtonGroup>
 			</div>
-			<div class="flex flex-col md:flex-row justify-between mb-2">
+			<div class="flex flex-col md:flex-row justify-between">
 				<Label>{{ t('settings.timeformat') }}</Label>
 				<ButtonGroup size="sm" v-model="data.timeformat.value" :value="data.timeformat.value" :options="settings.getTimeFormatOptions(t)" @changed="updateData('timeformat', $event)"></ButtonGroup>
 			</div>
-			<div v-if="noPerm()" class="flex flex-col md:flex-row justify-between mb-2">
+			<div v-if="noPerm()" class="flex flex-col md:flex-row justify-between">
 				<label>{{ t('settings.notifications') }}</label>
 				<Button @click="askPerm()" size="sm">{{ t('settings.notifications_allow') }}</Button>
 			</div>

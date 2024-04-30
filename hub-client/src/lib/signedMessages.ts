@@ -50,7 +50,10 @@ export function getMessage(message: SignedMessage): string {
 }
 
 export function getDisclosedAttributes(message: SignedMessage): DisclosedAttribute[] {
-	return message.disclosed[0] || [];
+	if (message.disclosed) {
+		return message.disclosed[0] || [];
+	}
+	return [];
 }
 
 export const EXAMPLE_SESSION_RESULT = {
