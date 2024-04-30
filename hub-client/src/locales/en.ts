@@ -69,6 +69,7 @@ const en = {
 	},
 	rooms: {
 		me: 'Me',
+		just_you: 'Just you',
 		leave_sure: 'Do you really want to leave this room?',
 		new_message: 'Type your message here',
 		members: 'members',

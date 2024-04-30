@@ -120,12 +120,23 @@ export default class Room {
 	}
 
 	/**
-	 * Gets all members of the room except the current user or any bots.
+	 * Gets all joined members of the room except the current user or any bots.
 	 */
-	public getOtherMembers(): TRoomMember[] {
+	public getOtherJoinedMembers(): TRoomMember[] {
+		return this.getOtherMembers(this.matrixRoom.getMembersWithMembership('join'));
+	}
+
+	/**
+	 * Gets all joined and invited members of the room except the current user or any bots.
+	 */
+	public getOtherJoinedAndInvitedMembers(): TRoomMember[] {
+		return this.getOtherMembers(Array.from(new Set([...this.matrixRoom.getMembersWithMembership('join'), ...this.matrixRoom.getMembersWithMembership('invite')])));
+	}
+
+	private getOtherMembers(baseMembers: TRoomMember[]): TRoomMember[] {
 		const currentUserId = this.matrixRoom.client.getUserId() || '';
-		const members = this.matrixRoom.getMembersWithMembership('join');
-		return members.filter((member) => member.userId !== currentUserId && !Object.values(BotName).includes(currentUserId));
+
+		return baseMembers.filter((member) => member.userId !== currentUserId && !Object.values(BotName).includes(currentUserId));
 	}
 
 	public getMembersIds(): Array<string> {
