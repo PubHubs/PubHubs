@@ -9,10 +9,10 @@ import filters from '@/core/filters';
 const useUserName = () => {
 	function getUserDisplayName(user: string, currentRoom: Room) {
 		const member = currentRoom.getMember(user);
-		if (member != null) {
-			if (member.user != undefined && member.user.displayName != undefined) {
+		if (member !== null) {
+			if (member.user !== undefined && member.user.displayName !== undefined) {
 				return member.user.displayName;
-			} else if (member.rawDisplayName != undefined) {
+			} else if (member.rawDisplayName !== undefined) {
 				return member.rawDisplayName;
 			}
 		}
@@ -25,8 +25,8 @@ const useUserName = () => {
 const useUserAvatar = () => {
 	function getUserAvatar(user: string, currentRoom: Room) {
 		const member = currentRoom.getMember(user);
-		if (member != null) {
-			if (member.user != undefined && member.user.avatarUrl != undefined) {
+		if (member !== null) {
+			if (member.user !== undefined && member.user.avatarUrl !== undefined) {
 				return member.user.avatarUrl;
 			}
 		}
