@@ -2,10 +2,11 @@ use std::rc::Rc;
 
 use actix_web::web;
 
-use crate::servers::{
-    self,
+use crate::{
     api::{self, EndpointDetails as _},
-    AppBase, AppCreator as _, AppCreatorBase, Constellation, Server as _, ShutdownSender,
+    servers::{
+        self, AppBase, AppCreator as _, AppCreatorBase, Constellation, Server as _, ShutdownSender,
+    },
 };
 use crate::{elgamal, hub, phcrypto};
 
@@ -60,14 +61,15 @@ impl App {
         app: Rc<Self>,
         signed_req: web::Json<api::phc::hub::TicketSigned<api::phct::hub::KeyReq>>,
     ) -> api::Result<api::phct::hub::KeyResp> {
-        let running_state: &RunningState = api::return_if_ec!(app.base.running_state());
+        let (running_state, constellation): (&RunningState, &Constellation) =
+            api::return_if_ec!(app.base.running_state());
 
         let ts_req = signed_req.into_inner();
 
         let ticket_digest = phcrypto::TicketDigest::new(&ts_req.ticket);
 
         let (_, _): (api::phct::hub::KeyReq, hub::Name) =
-            api::return_if_ec!(ts_req.open(&app.base.jwt_key.verifying_key()));
+            api::return_if_ec!(ts_req.open(&constellation.phc_jwt_key));
 
         // At this point we can be confident that the ticket is authentic, so we can give the hub
         // its decryption key based on the provided ticket
@@ -75,6 +77,7 @@ impl App {
         let key_part: curve25519_dalek::Scalar = phcrypto::t_hub_key_part(
             ticket_digest,
             &running_state.phc_ss, // shared secret with pubhubs central
+            &app.base.enc_key,
             &app.master_enc_key_part,
         );
 

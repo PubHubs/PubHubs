@@ -523,9 +523,15 @@ pub struct SharedSecret {
     inner: [u8; 32],
 }
 
-impl crate::common::secret::Digestible for SharedSecret {
+impl crate::common::secret::DigestibleSecret for SharedSecret {
     fn as_bytes(&self) -> &[u8] {
         &self.inner
+    }
+}
+
+impl crate::common::secret::DigestibleSecret for PrivateKey {
+    fn as_bytes(&self) -> &[u8] {
+        self.scalar.as_bytes().as_slice()
     }
 }
 

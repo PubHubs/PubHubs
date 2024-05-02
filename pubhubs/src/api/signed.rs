@@ -23,7 +23,11 @@ impl<T> Signed<T> {
         T: DeserializeOwned + HavingMessageCode,
     {
         let claims: jwt::Claims = return_if_ec!(self.inner.open(key).into_ec(|err| {
-            log::info!("could not open signed message: {}", err);
+            log::info!(
+                "could not open signed message (of type {}): {}",
+                std::any::type_name::<T>(),
+                err
+            );
             ErrorCode::InvalidSignature
         }));
 
@@ -47,7 +51,7 @@ impl<T> Signed<T> {
                 },
             )
             .into_ec(|err| {
-                log::info!("could not open signed message: {}", err);
+                log::info!("could not verify signed message's claims: {}", err);
                 ErrorCode::BadRequest
             }));
 

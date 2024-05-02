@@ -56,5 +56,9 @@ pub mod hub {
 
             Result::Ok((msg, ticket_content.name))
         }
+
+        pub fn new(ticket: Ticket, signed: Signed<T>) -> Self {
+            Self { ticket, signed }
+        }
     }
 }

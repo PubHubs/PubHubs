@@ -1,4 +1,4 @@
-//! Types describing the PubHubs json API, and tools to query it
+//! Types describing the PubHubs json API
 mod common;
 pub use common::*;
 mod signed;

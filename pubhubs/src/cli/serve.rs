@@ -68,7 +68,7 @@ impl ServeArgs {
         }
 
         tokio::task::LocalSet::new()
-            .run_until(crate::servers::drive_discovery(phc_url))
+            .run_until(crate::client::drive_discovery(phc_url))
             .await
             .context("discovery failed")?;
 

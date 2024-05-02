@@ -7,8 +7,8 @@ use anyhow::{Context as _, Result};
 use rand::Rng as _;
 use url::Url;
 
-use crate::servers::{api, for_all_servers};
-use crate::{elgamal, hub};
+use crate::servers::for_all_servers;
+use crate::{api, elgamal, hub};
 
 /// Configuration for one, or several, of the PubHubs servers
 #[derive(serde::Deserialize, Debug, Clone)]
@@ -49,6 +49,9 @@ pub struct ServerConfig<ServerSpecific> {
 
     /// Each server advertises an [`elgamal::PublicKey`] so that shared secrets may be established
     /// with this server, and also encrypted messages may be sent to it.
+    ///
+    /// This key is also used to derive non-permanent secrets, like the the transcryptor's
+    /// encryption factor f_H for a hub H.
     pub enc_key: Option<elgamal::PrivateKey>,
 
     /// When stopping this server (for example, during discovery) have actix shutdown gracefully.

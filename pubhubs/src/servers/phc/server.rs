@@ -6,12 +6,9 @@ use actix_web::web;
 use futures_util::future::LocalBoxFuture;
 
 use crate::{
-    phcrypto,
-    servers::{
-        self,
-        api::{self, EndpointDetails as _},
-        discovery, AppBase, AppCreator as _, AppCreatorBase, Constellation, Server as _,
-    },
+    api::{self, EndpointDetails as _},
+    client, phcrypto,
+    servers::{self, AppBase, AppCreator as _, AppCreatorBase, Constellation, Server as _},
 };
 
 use crate::{elgamal, hub};
@@ -113,7 +110,7 @@ impl App {
             .await
             .into_server_result());
 
-        discovery::DiscoveryInfoCheck {
+        client::discovery::DiscoveryInfoCheck {
             phc_url: &self.base.phc_url,
             name,
             self_check_code: None,
@@ -171,7 +168,8 @@ impl App {
         app: Rc<Self>,
         signed_req: web::Json<api::phc::hub::TicketSigned<api::phct::hub::KeyReq>>,
     ) -> api::Result<api::phct::hub::KeyResp> {
-        let running_state: &RunningState = api::return_if_ec!(app.base.running_state());
+        let (running_state, _): (&RunningState, &Constellation) =
+            api::return_if_ec!(app.base.running_state());
 
         let ts_req = signed_req.into_inner();
 

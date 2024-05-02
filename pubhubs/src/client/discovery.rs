@@ -1,5 +1,6 @@
+use crate::api;
 use crate::misc::fmt_ext;
-use crate::servers::{self, api, Constellation};
+use crate::servers::{self, Constellation};
 
 use anyhow::ensure;
 

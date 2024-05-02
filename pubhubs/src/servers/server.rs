@@ -8,11 +8,10 @@ use std::sync::Arc;
 
 use crate::elgamal;
 
-use crate::servers::{
-    self,
-    api::{self, EndpointDetails},
-    discovery, Constellation,
-};
+use crate::client;
+
+use crate::api::{self, EndpointDetails};
+use crate::servers::{self, Constellation};
 
 /// Enumerates the names of the different PubHubs servers
 #[derive(
@@ -260,7 +259,7 @@ pub trait App<S: Server>: Clone + 'static {
 
             let base = self.base();
 
-            api::return_if_ec!(discovery::DiscoveryInfoCheck {
+            api::return_if_ec!(client::discovery::DiscoveryInfoCheck {
                 name: S::NAME,
                 phc_url: &base.phc_url,
                 self_check_code: Some(&base.self_check_code),
@@ -469,7 +468,7 @@ impl<S: Server> AppBase<S> {
             result.unwrap()
         };
 
-        discovery::DiscoveryInfoCheck {
+        client::discovery::DiscoveryInfoCheck {
             phc_url: &base.phc_url,
             name: Name::PubhubsCentral,
             self_check_code: if S::NAME == Name::PubhubsCentral {
@@ -506,10 +505,13 @@ impl<S: Server> AppBase<S> {
         })
     }
 
-    /// Returns the server's running state if it is, and otherwise [ErrorCode::NotYetReady].
-    pub(super) fn running_state(&self) -> api::Result<&S::RunningState> {
+    /// Returns the server's running state if it is, and otherwise [api::ErrorCode::NotYetReady].
+    pub(super) fn running_state(&self) -> api::Result<(&S::RunningState, &Constellation)> {
         match self.state {
-            State::UpAndRunning { ref extra, .. } => api::Result::Ok(extra),
+            State::UpAndRunning {
+                ref extra,
+                ref constellation,
+            } => api::Result::Ok((extra, constellation)),
             State::Discovery { .. } => api::Result::Err(api::ErrorCode::NotYetReady),
         }
     }

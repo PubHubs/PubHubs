@@ -16,11 +16,35 @@ pub enum Result<T> {
     Err(ErrorCode),
 }
 
+/// Creates an [actix_web::Responder] from the given [Serialize] `T`.
+pub fn ok<T>(t: T) -> Result<T>
+where
+    T: Serialize,
+{
+    Result::Ok(t)
+}
+
+/// Creates an [actix_web::Responder] from the given [ErrorCode].
+pub fn err<T: Serialize>(code: ErrorCode) -> Result<T> {
+    Result::<T>::Err(code)
+}
+
+impl<T: Serialize> actix_web::Responder for Result<T> {
+    type Body = actix_web::body::EitherBody<String>;
+
+    fn respond_to(self, req: &actix_web::HttpRequest) -> actix_web::HttpResponse<Self::Body> {
+        // NOTE: `actix_web::web::Json(self).respond_to(req)` does not work here,
+        // because actix_web::web::Json implements `Deref` so the very function we are defining
+        // will shadow the function we want to call.
+        actix_web::Responder::respond_to(actix_web::web::Json(self), req)
+    }
+}
+
 impl<T> Result<T> {
     pub fn unwrap(self) -> T {
         match self {
             Result::Ok(v) => v,
-            Result::Err(_) => panic!("unwrapped non-Ok"),
+            Result::Err(err) => panic!("unwrapped non-Ok: {err:?}: {err}"),
         }
     }
 
@@ -44,6 +68,22 @@ impl<T> Result<T> {
             f(*ec);
         }
         self
+    }
+
+    /// Converts this [api::Result] into a standard [std::result::Result].
+    pub fn into_std(self) -> std::result::Result<T, ErrorCode> {
+        match self {
+            Result::Ok(v) => Ok(v),
+            Result::Err(err) => Err(err),
+        }
+    }
+
+    /// Creates an [api::Result] from a standard [std::result::Result].
+    pub fn from_std(res: std::result::Result<T, ErrorCode>) -> Self {
+        match res {
+            Ok(v) => Result::Ok(v),
+            Err(err) => Result::Err(err),
+        }
     }
 
     /// Turns retryable errors into `None`, and the [Result] into a [std::result::Result],
