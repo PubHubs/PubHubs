@@ -6,7 +6,7 @@
 					<template #header>
 						<div class="flex justify-between gap-4 items-end border-b h-full py-2 pl-5 mr-8">
 							<div class="flex h-full">
-								<Badge v-if="hubSettings.isSolo && rooms.totalUnreadMessages > 0" class="-ml-2 -mt-2">{{ rooms.totalUnreadMessages }}</Badge>
+								<Badge v-if="hubSettings.isSolo && settings.isFeatureEnabled(featureFlagType.notifications) && rooms.totalUnreadMessages > 0" class="-ml-2 -mt-2">{{ rooms.totalUnreadMessages }}</Badge>
 								<router-link to="/">
 									<Logo class="h-full"></Logo>
 								</router-link>
@@ -68,7 +68,7 @@
 					<RoomList :roomType="RoomType.PH_MESSAGES_DM"></RoomList>
 				</HeaderFooter>
 
-				<div class="md:col-span-6 md:block max-h-screen overflow-y-auto scrollbar" :class="{ hidden: hubSettings.mobileHubMenu }">
+				<div class="md:col-span-6 md:block dark:bg-gray-middle max-h-screen overflow-y-auto scrollbar" :class="{ hidden: hubSettings.mobileHubMenu }">
 					<router-view></router-view>
 				</div>
 			</div>
@@ -89,9 +89,9 @@
 </template>
 
 <script setup lang="ts">
-	import { onMounted, ref, getCurrentInstance } from 'vue';
+	import { onMounted, ref, getCurrentInstance, watch } from 'vue';
 	import { RouteParamValue, useRouter } from 'vue-router';
-	import { Message, MessageBoxType, MessageType, Theme, TimeFormat, useHubSettings, useMessageBox, RoomType, useRooms, useSettings, useUser } from '@/store/store';
+	import { Message, MessageBoxType, MessageType, Theme, TimeFormat, useHubSettings, useMessageBox, RoomType, useRooms, useSettings, featureFlagType, useUser } from '@/store/store';
 	import { useDialog } from '@/store/dialog';
 	import { useMatrixFiles } from '@/composables/useMatrixFiles';
 	import { usePubHubs } from '@/core/pubhubsStore';
@@ -99,7 +99,6 @@
 	import { usePlugins } from '@/store/plugins';
 	import { useI18n } from 'vue-i18n';
 	import { useToggleMenu } from '@/store/toggleGlobalMenu';
-	import { MatrixEvent } from 'matrix-js-sdk';
 
 	const { locale, availableLocales } = useI18n();
 	const router = useRouter();
@@ -120,8 +119,14 @@
 	const joinRoomDialog = ref(false);
 	const addPrivateRoomDialog = ref(false);
 	const disclosureEnabled = settings.isFeatureEnabled('disclosure');
-	const acknowledgeOnce = ref(true);
 	const avatar = ref('');
+
+	watch(
+		() => rooms.totalUnreadMessages,
+		() => {
+			rooms.sendUnreadMessageCounter();
+		},
+	);
 
 	onMounted(() => {
 		plugins.setPlugins(getCurrentInstance()?.appContext.config.globalProperties._plugins, router);
@@ -195,21 +200,4 @@
 			}, 2500);
 		}
 	}
-
-	// Additional check to make sure that beforeunload is only called once.
-	// An open issue for unload event in mozilla->  https://bugzilla.mozilla.org/show_bug.cgi?id=531199
-
-	window.addEventListener('beforeunload', () => {
-		if (acknowledgeOnce.value) {
-			rooms.roomsArray.forEach(async (room) => {
-				const mEvent: MatrixEvent = room.getlastEvent();
-				const sender = mEvent.event.sender!;
-				await pubhubs.sendAcknowledgementReceipt(sender);
-			});
-			// Once done then we dont call eventListener again.
-			// This will be called only when we are closing the browser.
-
-			acknowledgeOnce.value = false;
-		}
-	});
 </script>

@@ -11,7 +11,9 @@ enum featureFlagType {
 	plugins = 'plugins',
 	dateSplitter = 'dateSplitter',
 	disclosure = 'disclosure',
-	readReceipt = 'readReceipt',
+	unreadMarkers = 'unreadmarkers',
+	notifications = 'notifications',
+	// readReceipt = 'readReceipt',
 }
 
 enum Theme {
@@ -63,7 +65,8 @@ interface Settings {
 		plugins: boolean;
 		dateSplitter: boolean;
 		disclosure: boolean;
-		readReceipt: boolean;
+		unreadmarkers: boolean;
+		notifications: boolean;
 	};
 }
 
@@ -88,13 +91,15 @@ const defaultSettings: Settings = {
 		plugins: true,
 		dateSplitter: false,
 		disclosure: true,
-		readReceipt: false,
+		unreadmarkers: true,
+		notifications: true,
 		// stable
 		// signedMessages: true,
 		// plugins: true,
 		// dateSplitter: false,
 		// disclosure: false,
-		// readReceipt: false,
+		// unreadmarkers: true,
+		// notifications: true,
 	},
 };
 

@@ -213,7 +213,7 @@ const usePubHubs = defineStore('pubhubs', {
 					.filter((user) => {
 						return mentionedUsers.some((menUser: any) => user.rawDisplayName != undefined && (menUser.includes(user.rawDisplayName) || menUser === user.rawDisplayName));
 					})
-					.map((users) => users.rawDisplayName)
+					.map((users) => users.userId)
 					.filter((displayName): displayName is string => displayName !== undefined);
 
 				content['m.mentions']['user_ids'] = content['m.mentions']['user_ids'].concat(mentionedUsersName);
@@ -328,6 +328,20 @@ const usePubHubs = defineStore('pubhubs', {
 			await this.client.sendReceipt(event, ReceiptType.Read, content);
 		},
 
+		async sendPrivateReceipt(event: MatrixEvent) {
+			if (!event) return;
+			const loggedInUser = useUser();
+			const content = {
+				'm.read.private': {
+					[loggedInUser.user.userId]: {
+						ts: event.localTimestamp,
+						thread_id: 'main',
+					},
+				},
+			};
+			await this.client.sendReceipt(event, ReceiptType.ReadPrivate, content);
+		},
+
 		async addAskDisclosureMessage(roomId: string, body: string, askDisclosureMessage: AskDisclosureMessage) {
 			const content = {
 				msgtype: 'pubhubs.ask_disclosure_message',
@@ -335,61 +349,6 @@ const usePubHubs = defineStore('pubhubs', {
 				ask_disclosure_message: askDisclosureMessage,
 			};
 			await this.client.sendEvent(roomId, 'm.room.message', content);
-		},
-
-		// Sends acknowledgement to synapse about the message has been read.
-		// We also store the timestamp in localstorage to avoid any inaccuracy of timestamp comparision.
-		// SEE our algorithm for receipt acknowledgement in room.ts / unreadMessageCounter
-		async sendAcknowledgementReceipt(userId: string) {
-			const receiptTimeStamp = Date.now();
-			const rooms = useRooms();
-			const roomId = rooms.currentRoom?.roomId!;
-
-			// If we already have unread messages in the room and we haven't seen them, then no need to send a receipt.
-			if (rooms.currentRoom?.numUnreadMessages != 0) {
-				return;
-			}
-
-			const content = {
-				'm.read': {
-					[userId]: {
-						ts: receiptTimeStamp,
-						thread_id: undefined,
-					},
-				},
-			};
-
-			// Retrieve existing data from localStorage
-			const storedDataString = localStorage.getItem('receiptTS');
-			let storedData: { roomId: string; timestamp: number }[] = [];
-
-			if (storedDataString) {
-				try {
-					storedData = JSON.parse(storedDataString);
-				} catch (error) {
-					console.error('Error parsing data from localStorage:', error);
-				}
-			}
-
-			// Find the index of the existing entry based on roomId
-			const existingIndex = storedData.findIndex((data) => data.roomId === roomId);
-
-			if (existingIndex !== -1) {
-				// Update the timestamp of the existing entry
-				storedData[existingIndex].timestamp = receiptTimeStamp;
-			} else {
-				// If no existing entry found, add a new one
-				const roomData = { roomId, timestamp: receiptTimeStamp };
-				storedData.push(roomData);
-			}
-
-			// Save the updated data back to localStorage
-			localStorage.setItem('receiptTS', JSON.stringify(storedData));
-			try {
-				await this.client.sendEvent(roomId, 'm.receipt', content);
-			} catch (err) {
-				console.log(err);
-			}
 		},
 
 		async addImage(roomId: string, uri: string) {

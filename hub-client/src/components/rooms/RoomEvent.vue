@@ -36,7 +36,6 @@
 						<ProfileAttributes v-if="rooms.roomIsSecure(rooms.currentRoom!.roomId)" :user="event.sender"></ProfileAttributes>
 					</div>
 				</div>
-				<ReadReceipt v-if="settings.isFeatureEnabled(featureFlagType.readReceipt)" :timestamp="event.origin_server_ts" :sender="event.sender"></ReadReceipt>
 				<template v-if="event.plugin?.plugintype == PluginType.MESSAGE && event.content.msgtype == event.plugin.type">
 					<!-- Plugin Message -->
 					<component :is="event.plugin.component" :event="event">{{ event.plugin.component }}</component>
@@ -62,9 +61,7 @@
 	import { useRooms } from '@/store/store';
 	import { PluginType } from '@/store/plugins';
 	import { TMessageEvent } from '@/model/model';
-	import { useSettings, featureFlagType } from '@/store/store';
 
-	const settings = useSettings();
 	const connection = useConnection();
 	const messageActions = useMessageActions();
 
@@ -92,11 +89,6 @@
 		messageActions.replyingTo = undefined;
 		messageActions.replyingTo = props.event;
 	}
-
-	// function avatar(user) {
-	// 	const currentRoom = rooms.currentRoom;
-	// 	return getUserAvatar(user, currentRoom);
-	// }
 
 	function resend() {
 		const pubhubs = usePubHubs();
