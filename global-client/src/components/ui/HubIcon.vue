@@ -4,13 +4,11 @@
 		<Icon v-if="pinnable" type="plus" class="text-green absolute right-0" @click.prevent="pin"></Icon>
 		<Icon v-if="pinned" type="remove" class="text-red absolute right-0 hidden group-hover:block" @click.prevent="remove"></Icon>
 		<Icon :type="type" :size="size" class="mx-auto"></Icon>
-		<img v-if="hub" v-show="logoLoaded" @load="imgLoadReady()" :src="hub.url + '/img/logo.svg'" :alt="hub.hubId" class="absolute h-16 w-16 top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2" />
+		<HubLogo v-if="hub" :hub-url="hub.url" :hub-id="hub.hubId" :change-to-dark="false" class="absolute h-14 w-14 top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2"></HubLogo>
 	</div>
 </template>
 
 <script setup lang="ts">
-	import { ref } from 'vue';
-
 	const props = defineProps({
 		type: {
 			type: String,
@@ -39,12 +37,6 @@
 	});
 
 	const emit = defineEmits(['pin', 'remove']);
-
-	const logoLoaded = ref(false);
-
-	function imgLoadReady() {
-		logoLoaded.value = true;
-	}
 
 	function pin() {
 		emit('pin');
