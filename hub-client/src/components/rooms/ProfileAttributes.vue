@@ -1,7 +1,7 @@
 <template>
-	<div v-if="attribute.length > 0" class="flex gap-x-1 pt-1">
-		<div v-for="(value, index) in attribute" :key="value" :class="value === $t('rooms.admin_badge') ? 'bg-red' : bgColor(index)" class="text-white text-xs lowercase inline-block px-1 rounded h-4 flex">
-			<Icon type="check" size="xs" class="mr-1" style="margin-top: 1px"></Icon>
+	<div v-if="attribute.length > 0" class="flex">
+		<div v-for="value in attribute" :key="value" :class="value === $t('rooms.admin_badge') ? 'bg-red' : 'bg-black'" class="text-white text-xs lowercase px-1 rounded h-4 flex gap-1 items-center">
+			<Icon type="check" size="xs"></Icon>
 			<span>{{ value }}</span>
 		</div>
 	</div>
@@ -10,11 +10,9 @@
 <script setup lang="ts">
 	import { computed } from 'vue';
 	import { useRooms } from '@/store/store';
-	import { useUserColor } from '@/composables/useUserColor';
 	import { useI18n } from 'vue-i18n';
 	import filters from '@/core/filters';
 
-	const { bgColor } = useUserColor();
 	const rooms = useRooms();
 	const { t } = useI18n();
 
