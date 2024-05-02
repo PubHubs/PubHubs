@@ -135,10 +135,10 @@ body,
 
 @layer components {
 	.message-link {
-		@apply text-green;
+		@apply text-blue dark:text-green;
 	}
 	.message-mention {
-		@apply inline-block bg-avatar-lime text-white px-1 py-0 rounded-md;
+		@apply inline-block bg-black text-white px-1 rounded-md;
 	}
 
 	.emoji-font {

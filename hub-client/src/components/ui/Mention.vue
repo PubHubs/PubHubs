@@ -1,8 +1,8 @@
 <template>
-	<div v-if="visible" ref="elContainer" :style="getStyle()" class="fixed mt-2 w-96 max-h-48 shadow-lg rounded-lg overflow-x-auto border-2 border-grey">
+	<div v-if="visible" ref="elContainer" :style="getStyle()" class="fixed w-fit max-h-52 shadow-lg rounded-lg overflow-y-auto bg-lightgray-light dark:bg-gray">
 		<ul>
-			<li v-for="(member, index) in filteredUsers" :key="index" class="group cursor-pointer hover:bg-green bg-gray-light p-1 border-b border-gray-light rounded-t-none" @click="clickedItem(member)">
-				<div class="flex items-center space-x-8">
+			<li v-for="(member, index) in filteredUsers" :key="index" class="group cursor-pointer hover:bg-lightgray-dark hover:dark:bg-gray-middle px-4" @click="clickedItem(member)">
+				<div class="flex items-center gap-4 py-2">
 					<Avatar :userId="member.userId"></Avatar>
 					<div>{{ member.rawDisplayName }}</div>
 				</div>
