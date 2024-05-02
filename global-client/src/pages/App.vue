@@ -23,8 +23,8 @@
 								<div v-if="global.loggedIn">
 									<SettingsDialog v-if="settingsDialog" @close="settingsDialog = false"></SettingsDialog>
 									<div class="flex justify-between">
-										<HubIcon type="cog" class="text-dark" size="lg" @click="settingsDialog = true"></HubIcon>
-										<HubIcon type="power" class="text-dark" size="lg" @click="logout()"></HubIcon>
+										<Icon type="cog" class="text-dark" size="lg" @click="settingsDialog = true"></Icon>
+										<Icon type="power" class="text-dark" size="lg" @click="logout()"></Icon>
 									</div>
 								</div>
 
