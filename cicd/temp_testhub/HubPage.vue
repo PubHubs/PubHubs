@@ -1,11 +1,11 @@
 <template>
     <div class="flex flex-row py-11 bg-cover bg-center bg-[url('https://s3-alpha-sig.figma.com/img/5226/6395/88606c64516c0c2db93f6dad946c9c1e?Expires=1682294400&Signature=aybK-1Hkn5Iq3~RIHQrVx4WIhnFg6S4lTkEWlcmm5KFK4mu6jeGzsKluL9CDSXdaQVnlQghC-ksgTDQjkf5xrD2aQpmGwV08irkDN0WYVF2eNPmM~1QM4rj5oSiK2iRg0yls63VKIf0y78sRRfX3C4y3ggyd4aQUOKAqxtyoY6LaM6AFlUdWZoQRtF1NKp66BY6ahFhBJgaY6-I8UX~xekUp0v4RlmlzwwWhSiTzZuEytIUrZE-ffQi8t5Vc3yaITnvI1DkS9HGh2atRmOfVFP276JT4gozXQo4NS93dOucQcOa8tzZ8uwZ7qmWTmrItHTGSGq1CwW00g0IZDK0yzQ__&Key-Pair-Id=APKAQ4GOSFWCVNEHN3O4')]">
-        <H1 class="ml-8"><template></template>VPRO hubpage</H1>
+        <H1 class="ml-8"><template></template>hubpage</H1>
     </div>
 
     <div class="flex">
         <div class="flex justify-center flex-col p-12 w-1/3">
-            <H2 class="">Over de VPRO Hub</H2>
+            <H2 class="">Over de Hub</H2>
             <p class="my-4">
                 Lorem ipsum dolor sit amet, consectetur adipiscing elit. Lectus fermentum diam, mi blandit ornare quam eu dolor.
                 Neque, risus ut eget sit sit neque eu in. Nibh sociis eu sapien augue. Integer proin interdum lacus, ornare quam
@@ -21,7 +21,7 @@
 
         <div class="flex flex-col w-2/3 p-4 justify-center">
             <div class="flex flex-col">
-                <H2 class="ml-8 mb-5 mt-12">Uitgelichte rooms van de VPRO Hub</H2>
+                <H2 class="ml-8 mb-5 mt-12">Uitgelichte rooms van de Hub</H2>
                 <div class="flex justify-around">
                     <ArticleBlock>
                         <template #image>

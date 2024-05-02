@@ -1,5 +1,5 @@
 <template>
-	<div v-if="room" id="room-timeline" ref="elRoomTimeline" class="h-full overflow-y-auto relative" @scroll="onScroll">
+	<div v-if="room" id="room-timeline" ref="elRoomTimeline" class="h-full relative flex flex-col gap-2 overflow-y-scroll" @scroll="onScroll">
 		<InlineSpinner v-if="isLoadingNewEvents" class="fixed top-16"></InlineSpinner>
 		<div class="fixed right-60 top-24">
 			<DateDisplayer v-if="settings.isFeatureEnabled(featureFlagType.dateSplitter)" :scrollStatus="userHasScrolled" :eventTimeStamp="dateInformation.valueOf()"></DateDisplayer>
@@ -103,20 +103,22 @@
 
 	// Callback for handling visibility of message for acknowledging read receipts.
 	const handleReadReceiptIntersection = (entries: IntersectionObserverEntry[]) => {
-		entries.forEach(async (entry) => {
-			const eventId = entry.target.id;
-			const matrixEvent: MatrixEvent = props.room.findEventById(eventId);
+		if (settings.isFeatureEnabled(featureFlagType.readReceipt)) {
+			entries.forEach(async (entry) => {
+				const eventId = entry.target.id;
+				const matrixEvent: MatrixEvent = props.room.findEventById(eventId);
 
-			// Added a delay of one second to cater matrix to sync actual event ID
-			// Before sync, it generates dummy event ID consisting of txn and room Id.
-			// TODO: periodically checks if valid event Id is generated.
-			setTimeout(async () => {
-				// For each visible message, send a read receipt.
-				if (matrixEvent && matrixEvent.getType() === 'm.room.message') {
-					await pubhubs.sendReadReceipt(matrixEvent);
-				}
-			}, DELAY_VALID_M_EVENT_ID);
-		});
+				// Added a delay of one second to cater matrix to sync actual event ID
+				// Before sync, it generates dummy event ID consisting of txn and room Id.
+				// TODO: periodically checks if valid event Id is generated.
+				setTimeout(async () => {
+					// For each visible message, send a read receipt.
+					if (matrixEvent && matrixEvent.getType() === 'm.room.message') {
+						await pubhubs.sendReadReceipt(matrixEvent);
+					}
+				}, DELAY_VALID_M_EVENT_ID);
+			});
+		}
 	};
 
 	// Callback for handling visibility of message for finding the date that would be pop up while scrolling.
@@ -146,7 +148,9 @@
 	}
 
 	async function onTimelineChange(newTimelineLength?: number, oldTimelineLength?: number) {
-		elementObserver?.setUpObserver(handleReadReceiptIntersection);
+		if (settings.isFeatureEnabled(featureFlagType.readReceipt)) {
+			elementObserver?.setUpObserver(handleReadReceiptIntersection);
+		}
 
 		if (!newTimelineLength || !oldTimelineLength) return;
 		if (!elRoomTimeline.value) return;

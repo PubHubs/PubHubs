@@ -50,7 +50,7 @@
 	const display = computed(() => {
 		let name = '' + props.userId;
 
-		if (rooms.currentRoom && props.notMention) {
+		if (rooms.currentRoom && !props.notMention) {
 			const currentRoom = rooms.currentRoom;
 			name = getUserDisplayName(props.userId, currentRoom);
 		}

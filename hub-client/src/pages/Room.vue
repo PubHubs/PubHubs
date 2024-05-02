@@ -1,12 +1,12 @@
 <template>
 	<template v-if="rooms.currentRoomExists">
-		<HeaderFooter v-if="plugin == false" class="pl-6">
+		<HeaderFooter v-if="plugin == false">
 			<template #header>
-				<div class="h-full w-full pl-16 md:pl-0">
+				<div class="h-full pl-20 md:px-6">
 					<div class="flex justify-between relative gap-x-2 h-full w-full border-b pb-2 md:pb-4 md:pr-3">
 						<div v-if="rooms.currentRoom" class="flex shrink-0 gap-x-1 md:gap-x-4 items-end md:items-center w-9/12 overflow-hidden">
 							<Icon :type="rooms.currentRoom.isSecuredRoom() ? 'lock' : 'room'" class="text-blue md:mt-2 shrink-0" size="lg"></Icon>
-							<div class="flex flex-col bg-hub-background">
+							<div class="flex flex-col">
 								<TruncatedText>
 									<H1 class="m-0 text-hub-accent md:text-xl">{{ $t('rooms.title', [roomName()]) }}</H1>
 								</TruncatedText>
@@ -70,7 +70,11 @@
 		//We know the property is there since passed by the router, so we can use '!'
 		rooms.changeRoom(props.id!);
 		if (!rooms.currentRoom) return;
-		members.value = rooms.currentRoom.getOtherMembers() || [];
+		if (rooms.currentRoom.isPrivateRoom()) {
+			members.value = rooms.currentRoom.getOtherJoinedAndInvitedMembers() || [];
+		} else {
+			members.value = rooms.currentRoom.getOtherJoinedMembers() || [];
+		}
 		plugin.value = plugins.hasRoomPlugin(rooms.currentRoom);
 	}
 

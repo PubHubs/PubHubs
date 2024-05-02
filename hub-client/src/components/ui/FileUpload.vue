@@ -1,5 +1,5 @@
 <template>
-	<Dialog :buttons="buttonsOkCancel" width="w-1/3" @close="close($event)">
+	<Dialog :buttons="buttonsOkCancel" @close="close($event)">
 		<template #header>
 			<div class="text-black text-xl">
 				{{ $t('file.upload_file') }}

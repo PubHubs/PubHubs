@@ -1,6 +1,6 @@
 <template>
-	<div class="relative">
-		<div class="absolute bg-gray rounded-md h-6 p-1 flex gap-x-2">
+	<div class="relative hidden group-hover:block group-hover:absolute top-px left-[85%] md:left-full">
+		<div class="flex gap-1">
 			<slot></slot>
 		</div>
 	</div>

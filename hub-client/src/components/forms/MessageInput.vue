@@ -1,14 +1,14 @@
 <template>
-	<div class="flex items-end">
-		<div name="input-container" class="w-4/5 rounded-xl bg-hub-background-4 dark:bg-hub-background-4">
+	<div class="flex gap-2 items-end px-6">
+		<div name="input-container" class="min-w-3/4 w-full relative rounded-xl bg-hub-background-4 dark:bg-hub-background-4">
 			<!-- Floating -->
-			<div class="relative">
-				<Popover v-if="showPopover" @close="togglePopover" class="absolute bottom-1">
+			<div class="">
+				<Popover v-if="showPopover" @close="togglePopover" class="absolute bottom-[105%]">
 					<UploadPicker @click="clickedAttachment"></UploadPicker>
 					<SignedMessageButton @click="showSigningMessageMenu()"></SignedMessageButton>
 				</Popover>
 				<Mention :msg="value" :top="caretPos.top" :left="caretPos.left" @click="mentionUser($event)"></Mention>
-				<div v-if="showEmojiPicker" class="absolute bottom-1 -right-28">
+				<div v-if="showEmojiPicker" class="absolute bottom-[105%] right-0 z-20">
 					<EmojiPicker @emojiSelected="clickedEmoticon" @close="showEmojiPicker = false" />
 				</div>
 			</div>
@@ -22,7 +22,7 @@
 			</div>
 
 			<div name="input-bar" class="flex items-start min-h-[50px] px-2 py-1 gap-x-2 rounded-2xl dark:bg-hub-background-4">
-				<Icon class="dark:text-white self-end mb-2 pr-3 border-r-2 border-r-hub-background-5" type="paperclip" @click.stop="togglePopover" :asButton="true"></Icon>
+				<Icon class="dark:text-white self-end mb-2 pr-3 border-r-2 border-r-gray-light" type="paperclip" @click.stop="togglePopover" :asButton="true"></Icon>
 				<!-- Overflow-x-hidden prevents firefox from adding an extra row to the textarea for a possible scrollbar -->
 				<TextArea
 					ref="elTextInput"
@@ -42,13 +42,13 @@
 				<Icon class="dark:text-white mb-2 self-end" type="emoticon" @click.stop="showEmojiPicker = !showEmojiPicker" :asButton="true"></Icon>
 			</div>
 
-			<div name="sign-message" v-if="signingMessage" class="bg-gray-light dark:bg-gray-dark flex items-center rounded-md p-2">
-				<Icon type="sign" size="base" class="ml-2 mr-2 self-start mt-1"></Icon>
+			<div name="sign-message" v-if="signingMessage" class="m-2 bg-gray-light dark:bg-hub-background flex items-center rounded-md p-2">
+				<Icon type="sign" size="base" class="ml-2 mr-2 self-start mt-1 shrink-0"></Icon>
 				<div class="ml-2 flex flex-col justify-between max-w-3xl">
 					<h3 class="font-bold">{{ $t('message.sign.heading') }}</h3>
 					<p>{{ $t('message.sign.info') }}</p>
 					<div name="warning" class="flex items-center mt-2">
-						<Icon type="warning" size="sm" class="mb-[2px] mr-2 self-start mt-1"></Icon>
+						<Icon type="warning" size="sm" class="mb-[2px] mr-2 self-start mt-1 shrink-0"></Icon>
 						<p class="italic">{{ $t('message.sign.warning') }}</p>
 					</div>
 					<Line class="mb-2"></Line>
@@ -62,12 +62,15 @@
 		</div>
 
 		<!-- Sendbutton -->
-		<Button class="h-[50px] min-w-24 ml-2 flex rounded-xl" :disabled="!buttonEnabled" @click="submitMessage()">
-			<div class="m-auto flex gap-2 text-xl content-center"><Icon type="talk" size="sm" class="self-center -scale-100 rotate-45"></Icon>{{ $t(sendMessageText) }}</div>
+		<Button class="min-h-[50px] flex rounded-xl" :disabled="!buttonEnabled" @click="submitMessage()">
+			<div class="flex gap-2 text-xl items-center">
+				<Icon type="talk" size="sm" class="-scale-100 rotate-45 shrink-0"></Icon>
+				<span class="hidden md:flex">{{ $t(sendMessageText) }}</span>
+			</div>
 		</Button>
 
 		<!-- Yivi signing qr popup -->
-		<div v-if="signingMessage" class="absolute bottom-[400px] left-60" id="yivi-web-form"></div>
+		<div v-if="signingMessage" class="absolute bottom-[10%] md:left-[40%]" id="yivi-web-form"></div>
 
 		<div class="text-black dark:bg-gray-dark dark:text-white">
 			<FileUpload :file="fileInfo" :mxcPath="uri" v-if="fileUploadDialog" @close="fileUploadDialog = false"></FileUpload>
