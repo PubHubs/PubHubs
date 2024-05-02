@@ -7,20 +7,10 @@
 </template>
 
 <script setup lang="ts">
-	import { onMounted } from 'vue';
 	import { Room } from '@/store/rooms';
 	import { useRooms } from '@/store/store';
 
 	const rooms = useRooms();
-
-	// Read all the unread messages in each room  when PubHubs is opened.
-	onMounted(() => {
-		if (rooms.hasRooms) {
-			rooms.roomsArray.forEach((room) => {
-				room.unreadMessageCounter(undefined);
-			});
-		}
-	});
 
 	const props = defineProps({
 		icon: {

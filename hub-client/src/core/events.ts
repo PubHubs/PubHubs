@@ -64,18 +64,14 @@ class Events {
 	eventRoomTimeline(eventTimeLineHandler: EventTimeLineHandler, event: MatrixEvent, matrixRoom: MatrixRoom | undefined, toStartOfTimeline: boolean | undefined) {
 		if (!matrixRoom) return;
 		const rooms = useRooms();
-		const phRoom = rooms.addRoom(new Room(matrixRoom));
+		rooms.addRoom(new Room(matrixRoom));
 
 		if (event.event.type === 'm.room.message' && event.event.content?.msgtype === 'm.text') {
 			event.event = eventTimeLineHandler.transformEventContent(event.event as Partial<TEvent>);
 		}
 
 		if (!toStartOfTimeline) {
-			if (event.event.type !== 'm.room.message') return;
-
-			if (phRoom.roomId !== rooms.currentRoomId) {
-				phRoom.unreadMessageCounter(event);
-			}
+			if (event.event.type != 'm.room.message') return;
 			rooms.onModRoomMessage(event);
 		}
 	}

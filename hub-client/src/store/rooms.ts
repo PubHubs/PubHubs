@@ -1,5 +1,5 @@
 import { defineStore } from 'pinia';
-import { Room as MatrixRoom, MatrixEvent } from 'matrix-js-sdk';
+import { Room as MatrixRoom, MatrixEvent, NotificationCountType } from 'matrix-js-sdk';
 import { Message, MessageType, useMessageBox } from './messagebox';
 import { useRouter } from 'vue-router';
 import { api_synapse, api_matrix } from '@/core/api';
@@ -159,7 +159,7 @@ const useRooms = defineStore('rooms', {
 			let total = 0;
 			this.roomsArray.forEach((room) => {
 				if (!room.isHidden()) {
-					total += room.numUnreadMessages;
+					total += room.getRoomUnreadNotificationCount(NotificationCountType.Total);
 				}
 			});
 			return total;
@@ -188,10 +188,6 @@ const useRooms = defineStore('rooms', {
 		changeRoom(roomId: string) {
 			if (this.currentRoomId !== roomId) {
 				this.currentRoomId = roomId;
-				if (roomId != '' && this.rooms[roomId]) {
-					this.rooms[roomId].resetUnreadMessages();
-					this.sendUnreadMessageCounter();
-				}
 				const messagebox = useMessageBox();
 				messagebox.sendMessage(new Message(MessageType.RoomChange, roomId));
 			}
@@ -217,6 +213,16 @@ const useRooms = defineStore('rooms', {
 		sendUnreadMessageCounter() {
 			const messagebox = useMessageBox();
 			messagebox.sendMessage(new Message(MessageType.UnreadMessages, this.totalUnreadMessages));
+		},
+
+		unreadMessageNotification(): number {
+			if (!this.currentRoom) return 0;
+			return this.currentRoom.getRoomUnreadNotificationCount(NotificationCountType.Total);
+		},
+
+		unreadMentionNotification(): number {
+			if (!this.currentRoom) return 0;
+			return this.currentRoom.getRoomUnreadNotificationCount(NotificationCountType.Highlight);
 		},
 
 		async fetchPublicRooms() {
