@@ -123,7 +123,7 @@
 			if (lastSeenEventId === stillLastSeenEventId) {
 				const lastVisibleEvent = stillLastSeenEventId && props.room.findEventById(stillLastSeenEventId);
 				// When sending a message it can be in your Room but not yet in the timeline since it has to go through Synapse.
-				lastVisibleEvent && lastVisibleEvent.localTimestamp === props.room.findEventById(entries.at(-1)!.target.id!)?.localTimestamp && (await pubhubs.sendPrivateReceipt(lastVisibleEvent));
+				lastVisibleEvent && lastVisibleEvent.localTimestamp >= props.room.findEventById(entries.at(-1)!.target.id!)?.localTimestamp && (await pubhubs.sendPrivateReceipt(lastVisibleEvent));
 			}
 		}, DELAY_RECEIPT_MESSAGE);
 	};
