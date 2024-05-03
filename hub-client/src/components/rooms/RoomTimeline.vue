@@ -160,12 +160,7 @@
 		settings.isFeatureEnabled(featureFlagType.dateSplitter) && elementObserver?.setUpObserver(handleDateDisplayer);
 
 		if (settings.isFeatureEnabled(featureFlagType.notifications)) {
-			let timer = setInterval(function () {
-				if (props.room.timelineGetNewestEvent()?.event_id !== '~') {
-					elementObserver?.setUpObserver(handlePrivateReceipt);
-					clearInterval(timer);
-				}
-			}, 5000);
+			elementObserver?.setUpObserver(handlePrivateReceipt);
 		}
 	}
 
