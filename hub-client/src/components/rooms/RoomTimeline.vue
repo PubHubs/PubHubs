@@ -52,6 +52,8 @@
 
 	const DELAY_RECEIPT_MESSAGE = 4000; // 4 seconds
 
+	const DELAY_WAIT_OBSERVING = 100; // 100 milliseconds interval to periodically check for event Id for new message.
+
 	let elementObserver: ElementObserver | null = null;
 
 	async function setupRoom() {
@@ -100,11 +102,6 @@
 
 	const handlePrivateReceipt = (entries: IntersectionObserverEntry[]) => {
 		if (entries.length < 1) return;
-		if (entries.at(-1)!.target.id.startsWith('~')) {
-			// Don't observe events put in the timeline by matrix-js-sdk, with a placeholder id starting with '~'
-			return;
-		}
-
 		entries.forEach((entry) => {
 			const eventId = entry.target.id;
 			const matrixEvent = props.room.findEventById(eventId);
@@ -117,6 +114,7 @@
 			}
 		});
 		const lastSeenEventId = props.room.getLastVisibleEventId();
+
 		setTimeout(async () => {
 			const stillLastSeenEventId = props.room.getLastVisibleEventId();
 
@@ -160,7 +158,15 @@
 		settings.isFeatureEnabled(featureFlagType.dateSplitter) && elementObserver?.setUpObserver(handleDateDisplayer);
 
 		if (settings.isFeatureEnabled(featureFlagType.notifications)) {
-			elementObserver?.setUpObserver(handlePrivateReceipt);
+			// If the room is empty then no reference to elRoomEvent is present. In that case, ElementObserver needs to be initialized.
+			if (!elementObserver) elementObserver = elRoomEvent.value && new ElementObserver(elRoomEvent.value, { threshold: 0.95 });
+
+			// Wait until stable event Id is available, otherwise start observing.
+			if (newestEventId?.substring(0, 1) === '~') {
+				waitObservingEvent();
+			} else {
+				elementObserver?.setUpObserver(handlePrivateReceipt);
+			}
 		}
 	}
 
@@ -184,6 +190,18 @@
 
 	function onInReplyToClick(inReplyToId: string) {
 		scrollToEvent(inReplyToId, { position: 'TopCenter', select: 'Highlight' });
+	}
+
+	/**
+	 *  Wait for observation if stable event Id is not assigned.
+	 */
+	function waitObservingEvent() {
+		let timer = setInterval(function () {
+			if (props.room.timelineGetNewestEvent()?.event_id?.substring(0, 1) !== '~') {
+				elementObserver?.setUpObserver(handlePrivateReceipt);
+				clearInterval(timer);
+			}
+		}, DELAY_WAIT_OBSERVING);
 	}
 
 	/**
