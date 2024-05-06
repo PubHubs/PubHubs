@@ -19,7 +19,10 @@ const pubhubs = {
 				2: 'var(--ph-accent-2)',
 				icon: 'var(--ph-accent-icon)',
 			},
+			
 		},
+		notification:  'var(--notification)',	
+			
 
 		// Hub color palette default. Can be customised with hub branding.
 		hub: {

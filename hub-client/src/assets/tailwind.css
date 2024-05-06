@@ -19,7 +19,6 @@ todo: use the global color palette as a default. Not trivial because of iframes.
 	--hub-accent-2: #001242;
 	/* Some of the pubhubs-made icons will have additional accent colors */
 	--hub-accent-icon: #999999;
-	--hub-notification: #ff0000;
 }
 
 .dark {
@@ -33,7 +32,6 @@ todo: use the global color palette as a default. Not trivial because of iframes.
 	--hub-accent: #00adee;
 	--hub-accent-2: #4ee9a4;
 	--hub-accent-icon: #d9d9d9;
-	--hub-notification: #ff0000;
 }
 
 html,

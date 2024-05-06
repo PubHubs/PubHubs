@@ -2,7 +2,7 @@
 	<div class="block group text-center mb-2 cursor-pointer relative" :title="hub ? hub.hubId : null">
 		<div v-if="hub && hub.unreadMessages > 0">
 			<span class="absolute flex h-3 w-3 left-8">
-				<span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-red opacity-75"></span>
+				<span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-notification opacity-75"></span>
 				<span class="absolute inline-flex rounded-full h-3 w-3 bg-notification"></span>
 			</span>
 		</div>
