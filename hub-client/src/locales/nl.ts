@@ -106,6 +106,7 @@ const nl = {
 		roomCreated: 'Room created',
 	},
 	settings: {
+		userId: 'UserID',
 		displayname: 'Bijnaam',
 		avatar: 'Avatar',
 		displayname_changed: 'Bijnaam gewijzigd in `{0}`.',
