@@ -35,11 +35,13 @@ const usePubHubs = defineStore('pubhubs', {
 			console.log('PubHubs.login');
 			this.Auth.login()
 				.then((x) => {
+					// console.log('PubHubs.logged in (X)');
 					this.client = x as MatrixClient;
 					const events = new Events(this.client as MatrixClient);
 					events.initEvents();
 				})
 				.then(() => {
+					// console.log('PubHubs.logged in ()');
 					const connection = useConnection();
 					connection.on();
 					const user = useUser();
@@ -74,6 +76,7 @@ const usePubHubs = defineStore('pubhubs', {
 			const rooms = useRooms();
 			const currentRooms = this.client.getRooms();
 			rooms.updateRoomsWithMatrixRooms(currentRooms);
+			rooms.roomsLoaded = true;
 			await rooms.fetchPublicRooms();
 		},
 
