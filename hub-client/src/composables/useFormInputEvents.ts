@@ -72,11 +72,11 @@ const useFormInputEvents = (emit: Function, set: InputType = '') => {
 	};
 
 	const optionIsSelected = (option: Option) => {
-		return JSON.stringify(value.value) == JSON.stringify(option.value);
+		return JSON.stringify(value.value) === JSON.stringify(option.value);
 	};
 
 	const update = (set: InputType) => {
-		if (typeof set == 'string') {
+		if (typeof set === 'string') {
 			set = set.replace(/^\n*/g, '');
 		}
 		value.value = set;

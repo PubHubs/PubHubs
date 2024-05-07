@@ -7,9 +7,9 @@
 				:key="index"
 				class="justify-center items-center flex hover:border-b-2 first:-mr-2"
 				:class="{ 'border-b-2': selectedGroup === index }"
-				@click="index == 0 || index == 1 ? selectEmojiByGroup() : selectEmojiByGroup(index)"
+				@click="index === 0 || index === 1 ? selectEmojiByGroup() : selectEmojiByGroup(index)"
 			>
-				<Icon v-if="index != 1" :type="image" class="mb-1 stroke-[1%] cursor-pointer fill-black dark:fill-white"></Icon>
+				<Icon v-if="index !== 1" :type="image" class="mb-1 stroke-[1%] cursor-pointer fill-black dark:fill-white"></Icon>
 			</div>
 		</div>
 		<p>
@@ -69,11 +69,11 @@
 			// only smileys
 			if (selectedGroup.value === 2) {
 				const onlySmiley = emojis.value.filter((emoji) => {
-					return emoji.group == 1;
+					return emoji.group === 1;
 				});
 				filtered = onlySmiley.concat(filtered);
 				const withAdditionalSmiles = emojis.value.filter((emoji) => {
-					return emoji.group == 0;
+					return emoji.group === 0;
 				});
 				filtered = withAdditionalSmiles.concat(filtered);
 			}

@@ -1,7 +1,7 @@
 <template>
 	<div>
 		<!-- Plugin Event -->
-		<div v-if="event.plugin && event.plugin.plugintype == PluginType.EVENT && event.type == event.plugin.type">
+		<div v-if="event.plugin && event.plugin.plugintype === PluginType.EVENT && event.type === event.plugin.type">
 			<component :is="event.plugin.component" :event="event">{{ event.plugin.component }}</component>
 		</div>
 		<!-- Normal Event -->
@@ -27,7 +27,7 @@
 							<button v-if="!msgIsNotSend" @click="reply" class="p-1 bg-gray-lighter hover:bg-gray-light dark:bg-gray-middle hover:dark:bg-gray-darker rounded-md">
 								<Icon :type="'reply'" :size="'xs'"></Icon>
 							</button>
-							<router-link v-if="!msgIsNotSend && user.isAdmin && event.sender != user.user.userId" :to="{ name: 'ask-disclosure', query: { user: event.sender } }">
+							<router-link v-if="!msgIsNotSend && user.isAdmin && event.sender !== user.user.userId" :to="{ name: 'ask-disclosure', query: { user: event.sender } }">
 								<button :title="$t('menu.moderation_tools_disclosure')" class="flex p-1 bg-gray-lighter hover:bg-gray-light dark:bg-gray-middle hover:dark:bg-gray-darker rounded-md">
 									<Icon :type="'warning'" :size="'xs'"></Icon>
 								</button>
@@ -36,16 +36,16 @@
 						<ProfileAttributes v-if="rooms.roomIsSecure(rooms.currentRoom!.roomId)" :user="event.sender"></ProfileAttributes>
 					</div>
 				</div>
-				<template v-if="event.plugin?.plugintype == PluginType.MESSAGE && event.content.msgtype == event.plugin.type">
+				<template v-if="event.plugin?.plugintype === PluginType.MESSAGE && event.content.msgtype === event.plugin.type">
 					<!-- Plugin Message -->
 					<component :is="event.plugin.component" :event="event">{{ event.plugin.component }}</component>
 				</template>
 				<template v-else>
 					<MessageSnippet v-if="inReplyTo" @click="onInReplyToClick" :event="inReplyTo" :showInReplyTo="true"></MessageSnippet>
-					<Message v-if="event.content.msgtype == 'm.text'" :event="event"></Message>
-					<MessageSigned v-if="event.content.msgtype == 'pubhubs.signed_message'" :message="event.content.signed_message"></MessageSigned>
-					<MessageFile v-if="event.content.msgtype == 'm.file'" :message="event.content"></MessageFile>
-					<MessageImage v-if="event.content.msgtype == 'm.image'" :message="event.content"></MessageImage>
+					<Message v-if="event.content.msgtype === 'm.text'" :event="event"></Message>
+					<MessageSigned v-if="event.content.msgtype === 'pubhubs.signed_message'" :message="event.content.signed_message"></MessageSigned>
+					<MessageFile v-if="event.content.msgtype === 'm.file'" :message="event.content"></MessageFile>
+					<MessageImage v-if="event.content.msgtype === 'm.image'" :message="event.content"></MessageImage>
 				</template>
 			</div>
 		</div>
@@ -77,7 +77,7 @@
 	}>();
 
 	const msgIsNotSend = computed(() => {
-		return props.event.event_id.substring(0, 1) == '~';
+		return props.event.event_id.substring(0, 1) === '~';
 	});
 
 	function onInReplyToClick() {

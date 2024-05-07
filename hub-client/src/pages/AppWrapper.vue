@@ -67,7 +67,7 @@
 	}
 
 	async function onButton() {
-		console.assert(state.value == State.NoAccess);
+		console.assert(state.value === State.NoAccess);
 		state.value = State.RequestingAccess;
 
 		if (await requestStorageAccess()) {

@@ -23,16 +23,16 @@ class Events {
 				// console.debug('STATE:', state);
 
 				const connection = useConnection();
-				if (state == 'ERROR') {
+				if (state === 'ERROR') {
 					connection.error();
 				}
-				if (state == 'RECONNECTING') {
+				if (state === 'RECONNECTING') {
 					connection.off();
 				}
-				if (state == 'SYNCING') {
+				if (state === 'SYNCING') {
 					connection.on();
 				}
-				if (state == 'PREPARED') {
+				if (state === 'PREPARED') {
 					// DEBUGGING purpose - To understand the following events.
 					// this.client.on('event' as any, (event: any) => {
 					// 	console.debug('== EVENT', event.getType());
@@ -68,7 +68,7 @@ class Events {
 		}
 
 		if (!toStartOfTimeline) {
-			if (event.event.type != 'm.room.message') return;
+			if (event.event.type !== 'm.room.message') return;
 			const rooms = useRooms();
 			rooms.onModRoomMessage(event);
 		}
@@ -77,7 +77,7 @@ class Events {
 	eventRoomMemberName(event: MatrixEvent, member: RoomMember) {
 		const user = useUser();
 		// console.debug('RoomMember.name', member.user);
-		if (member.user !== undefined && member.user.userId == user.user.userId) {
+		if (member.user !== undefined && member.user.userId === user.user.userId) {
 			user.setUser(member.user as User);
 			if (member.user.displayName !== undefined) {
 				user.user.setDisplayName(member.user.displayName);
@@ -89,14 +89,14 @@ class Events {
 		return function eventRoomMemberMembershipInner(event: MatrixEvent, member: RoomMember) {
 			const me = client.getUserId();
 			// console.debug('RoomMember.membership', member.membership, member.userId, me, event.getRoomId());
-			if (me == member.userId) {
+			if (me === member.userId) {
 				const rooms = useRooms();
-				if (member.membership == 'leave') {
+				if (member.membership === 'leave') {
 					const roomId = event.getRoomId();
-					if (roomId != undefined) {
+					if (roomId !== undefined) {
 						rooms.rooms[roomId].setHidden(true);
 					}
-				} else if (member.membership == 'invite') {
+				} else if (member.membership === 'invite') {
 					const pubhubs = usePubHubs();
 					pubhubs
 						.joinRoom(member.roomId)

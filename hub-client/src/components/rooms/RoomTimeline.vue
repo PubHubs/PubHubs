@@ -231,12 +231,12 @@
 
 		// Scroll the event into view depending on the position option.
 		elEvent.scrollIntoView();
-		if (options.position == 'TopCenter') {
+		if (options.position === 'TopCenter') {
 			elRoomTimeline.value.scrollTop -= (elRoomTimeline.value.clientHeight * 1) / 3;
 		}
 
 		// Style the event depending on the select option.
-		if (options.select == 'Highlight') {
+		if (options.select === 'Highlight') {
 			elEvent.classList.add('highlighted');
 			window.setTimeout(() => {
 				elEvent.classList.remove('highlighted');

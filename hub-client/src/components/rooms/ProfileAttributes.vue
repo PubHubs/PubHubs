@@ -34,7 +34,7 @@
 			return profileArray;
 		}
 		// Check until the room Notice is available.
-		if (rooms.roomNotices[currentRoom.roomId] != undefined) {
+		if (rooms.roomNotices[currentRoom.roomId] !== undefined) {
 			const index = rooms.roomNotices[currentRoom.roomId].findIndex((element) => element.includes(props.user));
 
 			const attributes_in_notice = rooms.roomNotices[currentRoom.roomId][index];

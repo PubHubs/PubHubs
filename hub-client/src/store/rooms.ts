@@ -72,7 +72,7 @@ const useRooms = defineStore('rooms', {
 
 		privateRooms(): Array<Room> {
 			const rooms: Array<Room> = Object.assign([], this.roomsArray);
-			const privateRooms = rooms.filter((item) => item.getType() == RoomType.PH_MESSAGES_DM);
+			const privateRooms = rooms.filter((item) => item.getType() === RoomType.PH_MESSAGES_DM);
 			// return privateRooms.map((item) => Object.assign({ _type: item.getType(), _members: item.getMembersWithMembership('join') }, item));
 			return privateRooms;
 		},
@@ -84,7 +84,7 @@ const useRooms = defineStore('rooms', {
 		roomExists: (state) => {
 			return (roomId: string) => {
 				if (roomId) {
-					return typeof state.rooms[roomId] == 'undefined' ? false : true;
+					return typeof state.rooms[roomId] === 'undefined' ? false : true;
 				}
 				return false;
 			};
@@ -92,7 +92,7 @@ const useRooms = defineStore('rooms', {
 
 		room: (state) => {
 			return (roomId: string): Room | undefined => {
-				if (typeof state.rooms[roomId] != 'undefined') {
+				if (typeof state.rooms[roomId] !== 'undefined') {
 					return state.rooms[roomId];
 				}
 				return undefined;
@@ -101,7 +101,7 @@ const useRooms = defineStore('rooms', {
 
 		getRoomTopic: (state) => {
 			return (roomId: string) => {
-				if (typeof state.rooms[roomId] == 'undefined') return '';
+				if (typeof state.rooms[roomId] === 'undefined') return '';
 				const room = state.rooms[roomId];
 				return room.getTopic();
 			};
@@ -124,7 +124,7 @@ const useRooms = defineStore('rooms', {
 
 		nonSecuredPublicRooms(state): Array<TPublicRoom> {
 			return state.publicRooms.filter((room: TPublicRoom) => {
-				return typeof room.room_type == 'undefined' || room.room_type !== RoomType.PH_MESSAGES_RESTRICTED;
+				return typeof room.room_type === 'undefined' || room.room_type !== RoomType.PH_MESSAGES_RESTRICTED;
 			});
 		},
 
@@ -174,10 +174,10 @@ const useRooms = defineStore('rooms', {
 			// On receiving a moderation "Ask Disclosure" message (in any room),
 			// addressed to the current user,
 			// put the details into the state store to start the Disclosure flow.
-			if (e.event?.type == 'm.room.message' && e.event.content?.msgtype == 'pubhubs.ask_disclosure_message') {
+			if (e.event?.type === 'm.room.message' && e.event.content?.msgtype === 'pubhubs.ask_disclosure_message') {
 				const user = useUser();
 				const ask = e.event.content.ask_disclosure_message as AskDisclosureMessage;
-				if (ask.userId == user.user.userId) {
+				if (ask.userId === user.user.userId) {
 					console.debug(`rx pubhubs.ask_disclosure_message([${ask.attributes.map((a) => (a as any).yivi)}]) to ${ask.userId} (THIS user)`);
 					this.askDisclosureMessage = ask;
 					this.newAskDisclosureMessage = true;
@@ -242,7 +242,7 @@ const useRooms = defineStore('rooms', {
 		},
 
 		roomIsSecure(roomId: string): boolean {
-			const publicRoom = this.publicRooms.find((room: TPublicRoom) => room.room_id == roomId);
+			const publicRoom = this.publicRooms.find((room: TPublicRoom) => room.room_id === roomId);
 			return publicRoom?.room_type === RoomType.PH_MESSAGES_RESTRICTED;
 		},
 
@@ -285,7 +285,7 @@ const useRooms = defineStore('rooms', {
 		async changeSecuredRoom(room: TSecuredRoom) {
 			const response = await api_synapse.apiPUT<any>(api_synapse.apiURLS.securedRooms, room);
 			const modified_id = response.modified;
-			const pidx = this.securedRooms.findIndex((room) => room.room_id == modified_id);
+			const pidx = this.securedRooms.findIndex((room) => room.room_id === modified_id);
 			if (pidx >= 0) {
 				this.securedRooms[pidx] = room;
 			}
@@ -308,7 +308,7 @@ const useRooms = defineStore('rooms', {
 			const deleted_id = response.delete_id;
 			this.room(room_id)?.setHidden(true);
 
-			const pidx = this.publicRooms.findIndex((room) => room.room_id == room_id);
+			const pidx = this.publicRooms.findIndex((room) => room.room_id === room_id);
 			this.publicRooms.splice(pidx, 1);
 			return deleted_id;
 		},
@@ -316,9 +316,9 @@ const useRooms = defineStore('rooms', {
 		async removeSecuredRoom(room: TSecuredRoom) {
 			const response = await api_synapse.apiDELETE<any>(api_synapse.apiURLS.securedRooms + '?room_id=' + room.room_id);
 			const deleted_id = response.deleted;
-			const sidx = this.securedRooms.findIndex((room) => room.room_id == deleted_id);
+			const sidx = this.securedRooms.findIndex((room) => room.room_id === deleted_id);
 			this.securedRooms.splice(sidx, 1);
-			const pidx = this.publicRooms.findIndex((room) => room.room_id == deleted_id);
+			const pidx = this.publicRooms.findIndex((room) => room.room_id === deleted_id);
 			this.publicRooms.splice(pidx, 1);
 			this.room(deleted_id)?.setHidden(true);
 			return deleted_id;

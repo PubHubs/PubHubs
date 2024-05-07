@@ -8,7 +8,7 @@
 			<router-link :to="{ name: 'hub', params: { id: element.hubId } }" v-slot="{ isActive }">
 				<HubIcon
 					class="text-black"
-					v-if="global.loggedIn || element.hubId == hubs.currentHubId"
+					v-if="global.loggedIn || element.hubId === hubs.currentHubId"
 					:hub="hubs.hub(element.hubId)"
 					:active="isActive"
 					:pinned="true"

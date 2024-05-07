@@ -7,7 +7,7 @@
 		{{ numOfUsersRead > 0 ? $t('others.read_receipt') + ' ' + numOfUsersRead : ' ' }}
 
 		<!-- Icon of single user or two users depending on the number of users -->
-		<Icon v-if="numOfUsersRead == 1" type="single_user" size="sm" class="inline mb-1"> </Icon>
+		<Icon v-if="numOfUsersRead === 1" type="single_user" size="sm" class="inline mb-1"> </Icon>
 		<Icon v-if="numOfUsersRead > 1" type="two_users" size="sm" class="inline mb-1"> </Icon>
 
 		<!-- If many users have read the message then + sign is shown -->

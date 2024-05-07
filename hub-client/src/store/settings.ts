@@ -124,7 +124,7 @@ const createSettings = (defineStore: any) => {
 			 * Get theme set in preferences, and if 'system' give the 'light' or 'dark' theme depending on system.
 			 */
 			getActiveTheme: (state: Settings): Theme => {
-				if (state.theme != Theme.System) {
+				if (state.theme !== Theme.System) {
 					return state.theme;
 				}
 				if (window.matchMedia('(prefers-color-scheme: dark)').matches) {
