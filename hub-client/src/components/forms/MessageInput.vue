@@ -73,7 +73,7 @@
 		<div v-if="signingMessage" class="absolute bottom-[10%] md:left-[40%]" id="yivi-web-form"></div>
 
 		<div class="text-black dark:bg-gray-dark dark:text-white">
-			<FileUpload :file="fileInfo" :mxcPath="uri" v-if="fileUploadDialog" @close="fileUploadDialog = false"></FileUpload>
+			<FileUpload :file="fileInfo" :mxcPath="uri" v-if="fileUploadDialog" @close="closeMenus()"></FileUpload>
 			<!-- todo: move this into UploadPicker? -->
 			<input type="file" :accept="getTypesAsString(allTypes)" class="attach-file" ref="elFileInput" @change="uploadFile($event)" hidden />
 		</div>
@@ -235,10 +235,10 @@
 		showPopover.value = false;
 		showEmojiPicker.value = false;
 		signingMessage.value = false;
+		fileUploadDialog.value = false;
 	}
 
 	function closeReplyingTo() {
 		messageActions.replyingTo = undefined;
 	}
 </script>
-@/composables/fileUpload
