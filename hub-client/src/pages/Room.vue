@@ -1,6 +1,6 @@
 <template>
 	<template v-if="rooms.currentRoomExists">
-		<HeaderFooter v-if="plugin == false">
+		<HeaderFooter v-if="plugin === false">
 			<template #header>
 				<div class="h-full pl-20 md:px-6">
 					<div class="flex justify-between relative gap-x-2 h-full w-full border-b pb-2 md:pb-4 md:pr-3">

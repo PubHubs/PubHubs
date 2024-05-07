@@ -91,7 +91,7 @@ const usePlugins = defineStore('plugins', {
 
 		getPluginItemByName: (state) => {
 			return (name: string) => {
-				const idx = state.plugins.findIndex((plugin: PluginProperties) => plugin.name == name);
+				const idx = state.plugins.findIndex((plugin: PluginProperties) => plugin.name === name);
 				if (idx >= 0) {
 					return state.plugins[idx];
 				}
@@ -118,11 +118,11 @@ const usePlugins = defineStore('plugins', {
 				if (!event) return;
 				const plugin = state.pluginsEventType.find((plugin) => {
 					if (plugin.type !== event.type) return;
-					if (typeof plugin.room_id == 'string') {
-						if (plugin.room_id != room_id) return;
+					if (typeof plugin.room_id === 'string') {
+						if (plugin.room_id !== room_id) return;
 					}
-					if (typeof plugin.room_type == 'string') {
-						if (plugin.room_type != room_type) return;
+					if (typeof plugin.room_type === 'string') {
+						if (plugin.room_type !== room_type) return;
 					}
 					return true;
 				});
@@ -140,11 +140,11 @@ const usePlugins = defineStore('plugins', {
 				const plugin = state.pluginsMessageType.find((plugin) => {
 					if (!event.content) return;
 					if (plugin.type !== event.content.msgtype) return;
-					if (typeof plugin.room_id == 'string') {
-						if (plugin.room_id != room_id) return;
+					if (typeof plugin.room_id === 'string') {
+						if (plugin.room_id !== room_id) return;
 					}
-					if (typeof plugin.room_type == 'string') {
-						if (plugin.room_type != room_type) return;
+					if (typeof plugin.room_type === 'string') {
+						if (plugin.room_type !== room_type) return;
 					}
 					return true;
 				});
@@ -167,22 +167,22 @@ const usePlugins = defineStore('plugins', {
 							this.plugins.push(plugin);
 							switch (plugin.plugintype) {
 								case PluginType.ROOM:
-									if (typeof plugin.id == 'string') {
+									if (typeof plugin.id === 'string') {
 										this.pluginsRoomId[plugin.id] = plugin;
 									}
-									if (typeof plugin.type == 'string') {
+									if (typeof plugin.type === 'string') {
 										this.pluginsRoomType[plugin.type] = plugin;
 									}
 									break;
 
 								case PluginType.EVENT:
-									if (typeof plugin.type == 'string') {
+									if (typeof plugin.type === 'string') {
 										this.pluginsEventType.push(plugin);
 									}
 									break;
 
 								case PluginType.MESSAGE:
-									if (typeof plugin.type == 'string') {
+									if (typeof plugin.type === 'string') {
 										this.pluginsMessageType.push(plugin);
 									}
 									break;

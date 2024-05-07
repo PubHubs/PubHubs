@@ -146,7 +146,7 @@ export default class Room {
 	public getTopic(): string {
 		const timeline = this.matrixRoom.getLiveTimeline();
 		let topic = '';
-		if (timeline != undefined) {
+		if (timeline !== undefined) {
 			const topicEvent = timeline.getState(EventTimeline.FORWARDS)?.getStateEvents('m.room.topic', '');
 			if (topicEvent) {
 				topic = topicEvent.getContent().topic;
@@ -288,7 +288,7 @@ export default class Room {
 		return this.matrixRoom
 			.getLiveTimeline()
 			.getEvents()
-			.find((event) => event.getType() == 'm.room.message')
+			.find((event) => event.getType() === 'm.room.message')
 			?.getId();
 	}
 
@@ -300,7 +300,7 @@ export default class Room {
 	}
 
 	public isPrivateRoom(): boolean {
-		return this.getType() == RoomType.PH_MESSAGES_DM;
+		return this.getType() === RoomType.PH_MESSAGES_DM;
 	}
 
 	public isSecuredRoom(): boolean {

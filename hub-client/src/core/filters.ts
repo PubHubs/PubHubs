@@ -9,7 +9,7 @@ export default {
 		const now = new Date();
 
 		// Today?
-		if (now.getFullYear() == date.getFullYear() && now.getMonth() == date.getMonth() && now.getDate() == date.getDate()) {
+		if (now.getFullYear() === date.getFullYear() && now.getMonth() === date.getMonth() && now.getDate() === date.getDate()) {
 			return date.toLocaleTimeString();
 		}
 
@@ -39,12 +39,12 @@ export default {
 	// for example, when it's the matrix ID of some "notices" or "system" user.
 	extractPseudonym(matrixUserId: string) {
 		const parts = matrixUserId.split(':', 2);
-		if (parts.length != 2) {
+		if (parts.length !== 2) {
 			throw new Error("matrix ID did not contain ':'");
 		}
 
 		const [atLocalpart] = parts;
-		if (atLocalpart.length == 0 || atLocalpart[0] != '@') {
+		if (atLocalpart.length === 0 || atLocalpart[0] !== '@') {
 			throw new Error("matrix ID did not start with '@'");
 		}
 
@@ -52,7 +52,7 @@ export default {
 
 		const result: RegExpExecArray | null = shortenedPseudonymRegex.exec(localpart);
 
-		if (!result || result.groups?.left.length != result.groups?.right.length) {
+		if (!result || result.groups?.left.length !== result.groups?.right.length) {
 			console.error(`Matrix ID passed to extractPseudonym did not contain shortened pseudonym: ${matrixUserId}`);
 			return '!!!-!!!';
 		}
@@ -61,7 +61,7 @@ export default {
 	},
 
 	formatBytes(bytes: number, decimals: number): string {
-		if (bytes == 0) return '0 Bytes';
+		if (bytes === 0) return '0 Bytes';
 		const sizes = ['Bytes', 'KB', 'MB', 'GB', 'TB', 'PB', 'EB', 'ZB', 'YB'],
 			i = Math.floor(Math.log(bytes) / Math.log(1024));
 		return parseFloat((bytes / Math.pow(1024, i)).toFixed(decimals || 2)) + ' ' + sizes[i];

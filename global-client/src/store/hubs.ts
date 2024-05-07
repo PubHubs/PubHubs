@@ -55,13 +55,13 @@ const useHubs = defineStore('hubs', {
 
 		hubExists: (state) => {
 			return (hubId: string) => {
-				return typeof state.hubs[hubId] == 'undefined' ? false : true;
+				return typeof state.hubs[hubId] === 'undefined' ? false : true;
 			};
 		},
 
 		hub: (state) => {
 			return (hubId: string) => {
-				if (typeof state.hubs[hubId] != 'undefined') {
+				if (typeof state.hubs[hubId] !== 'undefined') {
 					return state.hubs[hubId];
 				}
 				return undefined;
@@ -98,7 +98,7 @@ const useHubs = defineStore('hubs', {
 			// Only change to a Hub if there is a hubId given
 			if (typeof hubId !== 'undefined') {
 				// Test if changing to current hub (through url for example)
-				if (hubId !== this.currentHubId || this.currentHubId == '') {
+				if (hubId !== this.currentHubId || this.currentHubId === '') {
 					this.currentHubId = hubId;
 
 					if (this.currentHubExists) {

@@ -62,7 +62,7 @@
 		// Simulating backspace or delete key with messageDirection.
 		// When to
 
-		if (props.msg.length < messageDirection.value && messageDirection.value != 0) {
+		if (props.msg.length < messageDirection.value && messageDirection.value !== 0) {
 			visible.value = false;
 			messageDirection.value = 0;
 		} else if (props.msg.endsWith('@')) {

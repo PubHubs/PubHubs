@@ -79,7 +79,7 @@
 			// combine and unique
 			users.value = [...users.value, ...foundUsers];
 			users.value = users.value.filter((user, index, arr) => {
-				return arr.findIndex((item) => item.userId == user.userId) == index;
+				return arr.findIndex((item) => item.userId === user.userId) === index;
 			});
 		}
 	}

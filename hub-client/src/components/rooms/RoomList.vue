@@ -59,10 +59,10 @@
 		}
 		if (props.roomType !== '') {
 			const type = props.roomType.substring(1);
-			if (props.roomType.charAt(0) == '!') {
+			if (props.roomType.charAt(0) === '!') {
 				return room.getType() !== type;
 			} else {
-				return room.getType() == props.roomType;
+				return room.getType() === props.roomType;
 			}
 		}
 		return true;

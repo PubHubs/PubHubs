@@ -46,7 +46,7 @@ const usePubHubs = defineStore('pubhubs', {
 					connection.on();
 					const user = useUser();
 					const newUser = this.client.getUser(user.user.userId);
-					if (newUser != null) {
+					if (newUser !== null) {
 						user.setUser(newUser as User);
 						user.fetchDisplayName(this.client as MatrixClient)
 							.then(() => user.fetchIsAdministrator(this.client as MatrixClient))
@@ -57,7 +57,7 @@ const usePubHubs = defineStore('pubhubs', {
 					}
 				})
 				.catch((error) => {
-					if (typeof error == 'string' && error.indexOf('M_FORBIDDEN') < 0) {
+					if (typeof error === 'string' && error.indexOf('M_FORBIDDEN') < 0) {
 						console.debug('ERROR:', error);
 					}
 				});
@@ -170,7 +170,7 @@ const usePubHubs = defineStore('pubhubs', {
 			}
 
 			// If realy not exists, create new
-			if (existingRoomId == false) {
+			if (existingRoomId === false) {
 				const room = await this.createRoom({
 					name: `${me.userId},${other.userId}`,
 					visibility: 'private',
@@ -214,7 +214,7 @@ const usePubHubs = defineStore('pubhubs', {
 				const mentionedUsers = content.body.split('@');
 				mentionedUsersName = users
 					.filter((user) => {
-						return mentionedUsers.some((menUser: any) => user.rawDisplayName != undefined && (menUser.includes(user.rawDisplayName) || menUser === user.rawDisplayName));
+						return mentionedUsers.some((menUser: any) => user.rawDisplayName !== undefined && (menUser.includes(user.rawDisplayName) || menUser === user.rawDisplayName));
 					})
 					.map((users) => users.userId)
 					.filter((displayName): displayName is string => displayName !== undefined);
@@ -246,7 +246,7 @@ const usePubHubs = defineStore('pubhubs', {
 			// Mention appropriate users
 
 			if (
-				inReplyTo.content.msgtype == 'm.text' &&
+				inReplyTo.content.msgtype === 'm.text' &&
 				// For backwards compatibility
 				inReplyTo.content['m.mentions']
 			) {
@@ -259,7 +259,7 @@ const usePubHubs = defineStore('pubhubs', {
 			let content = ContentHelpers.makeTextMessage(text) as TTextMessageEventContent;
 
 			const cleanText = hasHtml(text);
-			if (typeof cleanText == 'string') {
+			if (typeof cleanText === 'string') {
 				const html = sanitizeHtml(text);
 				content = ContentHelpers.makeHtmlMessage(cleanText, html) as TTextMessageEventContent;
 			}

@@ -15,7 +15,7 @@ const removeHtml = (html: string): string => {
 
 const hasHtml = (html: string): boolean | string => {
 	const text = removeHtml(html);
-	if (text == html) {
+	if (text === html) {
 		return false;
 	}
 	return text;
@@ -77,8 +77,8 @@ const sanitizeOptions = {
 
 	exclusiveFilter: function (frame: any) {
 		// Only allow images with Matrix URL
-		if (frame.tag == 'img') {
-			if (typeof frame.attribs.src == 'string') {
+		if (frame.tag === 'img') {
+			if (typeof frame.attribs.src === 'string') {
 				if (frame.attribs.src.substring(0, 6) !== 'mxc://') {
 					return true;
 				}

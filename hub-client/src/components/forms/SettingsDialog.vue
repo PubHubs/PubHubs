@@ -34,7 +34,7 @@
 
 		<ValidationErrors :errors="validationErrors"></ValidationErrors>
 
-		<div v-if="message != ''" class="rounded-lg bg-green-dark text-white p-2 mt-2">{{ message }}</div>
+		<div v-if="message !== ''" class="rounded-lg bg-green-dark text-white p-2 mt-2">{{ message }}</div>
 	</Dialog>
 </template>
 

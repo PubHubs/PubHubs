@@ -62,7 +62,7 @@ const i18nOptions: I18nOptions = {
 
 const setUpi18n = function (app?: App) {
 	// Add plugin messages if any
-	if (typeof app != 'undefined') {
+	if (typeof app !== 'undefined') {
 		let pluginMessages = {};
 		app.config.globalProperties._plugins.forEach((plugin: any) => {
 			if (plugin.i18n_messages) {

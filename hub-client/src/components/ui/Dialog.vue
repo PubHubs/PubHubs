@@ -66,10 +66,10 @@
 
 		dialog.showModal();
 		document.addEventListener('keydown', (e) => {
-			if (e.code == 'Escape') {
+			if (e.code === 'Escape') {
 				doAction(DialogCancel);
 			}
-			if (e.code == 'Enter') {
+			if (e.code === 'Enter') {
 				doAction(DialogOk);
 			}
 		});

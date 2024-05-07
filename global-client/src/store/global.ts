@@ -91,11 +91,11 @@ const useGlobal = defineStore('global', {
 		setGlobalSettings(data: any) {
 			const settings = useSettings();
 			settings.setTheme(data.theme);
-			if (!data.timeformat || data.timeformat == '') {
+			if (!data.timeformat || data.timeformat === '') {
 				data.timeformat = TimeFormat.format24;
 			}
 			settings.setTimeFormat(data.timeformat);
-			if (!data.language || data.language == '') {
+			if (!data.language || data.language === '') {
 				data.language = navigator.language;
 			}
 			settings.setLanguage(data.language);
@@ -146,7 +146,7 @@ const useGlobal = defineStore('global', {
 
 		existsInPinnedHubs(hubId: string) {
 			if (!this.pinnedHubs) return false;
-			const found = this.pinnedHubs.find((hub) => hub.hubId == hubId);
+			const found = this.pinnedHubs.find((hub) => hub.hubId === hubId);
 			return found;
 		},
 

@@ -137,10 +137,10 @@
 	function checkButtonState() {
 		buttonEnabled.value = false;
 		if (value.value !== undefined) {
-			if (typeof value.value == 'number') {
+			if (typeof value.value === 'number') {
 				buttonEnabled.value = true;
 			}
-			if (typeof value.value == 'string' && value.value.length > 0) {
+			if (typeof value.value === 'string' && value.value.length > 0) {
 				buttonEnabled.value = true;
 			}
 		}
@@ -149,7 +149,7 @@
 	//  To autocomplete the mention user in the message.
 	function mentionUser(user: any) {
 		let message = value.value?.toString();
-		if (message?.lastIndexOf('@') != -1) {
+		if (message?.lastIndexOf('@') !== -1) {
 			const lastPosition = message?.lastIndexOf('@');
 			message = message?.substring(0, lastPosition);
 			value.value = ' ';
@@ -189,7 +189,7 @@
 	}
 
 	function submitMessage() {
-		if (!value.value || !(typeof value.value == 'string')) return;
+		if (!value.value || !(typeof value.value === 'string')) return;
 
 		if (signingMessage.value) {
 			signMessage(value.value, selectedAttributesSigningMessage.value);

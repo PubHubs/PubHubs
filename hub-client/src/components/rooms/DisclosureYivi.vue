@@ -36,7 +36,7 @@
 	function finishDisclosure(result: YiviSigningSessionResult) {
 		console.debug(`finishDisclosure: type=${result.type}, status=${result.status}, proofStatus=${result.proofStatus}`);
 		console.debug(`finishDisclosure: disclosed=${JSON.stringify(result.disclosed, null, 2)}`);
-		if (result.status == 'DONE' && result.proofStatus == 'VALID') {
+		if (result.status === 'DONE' && result.proofStatus === 'VALID') {
 			for (const i of result.disclosed) {
 				for (const j of i) {
 					console.debug(`  disclosed: ${j.status} ${j.id} ${j.rawvalue}`);
