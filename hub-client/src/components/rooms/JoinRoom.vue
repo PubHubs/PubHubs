@@ -22,10 +22,11 @@
 	import { usePubHubs } from '@/core/pubhubsStore';
 	import { buttonsCancel } from '@/store/dialog';
 	import { useToggleMenu } from '@/store/toggleGlobalMenu';
+	import { RoomRouteName } from '@/model/rooms/TBaseRoom';
 
 	const rooms = useRooms();
-	const pubhubs = usePubHubs();
 	const router = useRouter();
+	const pubhubs = usePubHubs();
 	const emit = defineEmits(['close']);
 	const toggleMenu = useToggleMenu();
 
@@ -36,9 +37,13 @@
 
 	async function joinRoom(room: TPublicRoom) {
 		if (rooms.roomIsSecure(room.room_id)) {
-			router.push({ name: 'secure-room', params: { id: room.room_id } });
+			// First go to secure room page with QR code.
+			// Secure room then initiates Yivi flow which allows user to join the room.
+			router.push({ name: RoomRouteName.SECURED_ROOM_ROUTE, params: { id: room.room_id } });
 		} else {
+			// Public room - Directly join the room and enter the room.
 			await pubhubs.joinRoom(room.room_id);
+			router.push({ name: RoomRouteName.PUBLIC_ROOM_ROUTE, params: { id: room.room_id } });
 		}
 		close();
 	}
