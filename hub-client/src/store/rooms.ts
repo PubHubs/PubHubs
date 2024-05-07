@@ -11,6 +11,7 @@ import Room from '@/model/rooms/Room';
 import { TPublicRoom } from '@/model/rooms/TPublicRoom';
 import { TSecuredRoom } from '@/model/rooms/TSecuredRoom';
 import { RoomType } from '@/model/rooms/TBaseRoom';
+import { RoomRouteName } from '@/model/rooms/TBaseRoom';
 
 // Matrix Endpoint for messages in a room.
 interface RoomMessages {
@@ -331,7 +332,7 @@ const useRooms = defineStore('rooms', {
 				.joinRoom(roomId)
 				.then((res) => {
 					console.debug(res);
-					router.push({ name: 'room', params: { id: roomId } });
+					router.push({ name: RoomRouteName.PUBLIC_ROOM_ROUTE, params: { id: roomId } });
 				})
 				.catch((err) => {
 					console.debug(err);
