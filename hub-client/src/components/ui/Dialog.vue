@@ -1,17 +1,17 @@
 /** * * Global Dialog, uses dialog.ts store. And is globally present in App.vue * */
 
 <template>
-	<div class="absolute h-screen w-screen top-0 left-0">
+	<div class="absolute h-screen w-full top-0 left-0">
 		<div v-if="dialog.properties.modal" class="absolute inset-0 h-screen z-10 bg-gray-middle opacity-75"></div>
 		<div v-if="!dialog.properties.modalonly" class="absolute inset-0 h-screen flex z-10" @click="doAction(DialogCancel)">
-			<div class="theme-light m-auto p-4 rounded-lg shadow-xl shadow-black bg-white flex flex-col justify-between gap-1" :class="width" @click.stop>
+			<div class="theme-light m-auto p-4 rounded-lg shadow-xl shadow-black bg-white flex flex-col justify-between gap-1 h-4/5" :class="width" @click.stop>
 				<div>
 					<Icon v-if="dialog.properties.close" type="close" size="md" class="float-right -mt-1 hover:text-red theme-light:text-gray theme-light:hover:text-red" @click="doAction(DialogCancel)"></Icon>
 					<H2 v-if="dialog.properties.title !== ''" class="m-0 text-left">{{ dialog.properties.title }}</H2>
 					<slot name="header"></slot>
 				</div>
 				<Line v-if="hasContent" class="z-0"></Line>
-				<div v-if="hasContent" class="text-left overflow-y-auto py-1 h-full">
+				<div v-if="hasContent" class="text-left py-1 h-full overflow-y-auto scrollbarp pr-4">
 					<slot></slot>
 					<div v-if="dialog.properties.content !== ''">{{ dialog.properties.content }}</div>
 				</div>
