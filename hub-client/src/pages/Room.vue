@@ -8,7 +8,10 @@
 							<Icon :type="rooms.currentRoom.isSecuredRoom() ? 'lock' : 'room'" class="text-blue md:mt-2 shrink-0" size="lg"></Icon>
 							<div class="flex flex-col">
 								<TruncatedText>
-									<H1 class="m-0 text-hub-accent md:text-xl">{{ $t('rooms.title', [roomName()]) }}</H1>
+									<H1 class="m-0 text-hub-accent md:text-xl">
+										<PrivateRoomName v-if="rooms.currentRoom.isPrivateRoom()" :members="members"></PrivateRoomName>
+										<RoomName v-else :room="rooms.currentRoom"></RoomName>
+									</H1>
 								</TruncatedText>
 								<TruncatedText>
 									<p class="text-sm leading-4 hidden md:block">
@@ -76,14 +79,6 @@
 			members.value = rooms.currentRoom.getOtherJoinedMembers() || [];
 		}
 		plugin.value = plugins.hasRoomPlugin(rooms.currentRoom);
-	}
-
-	function roomName() {
-		if (!rooms.currentRoom) return '';
-		if (rooms.currentRoom.isPrivateRoom()) {
-			return t('rooms.private_room', members.value);
-		}
-		return rooms.currentRoom.name;
 	}
 
 	function getTopic() {

@@ -1,6 +1,6 @@
 <template>
 	<Menu>
-		<InlineSpinner v-if="!rooms.hasRooms"></InlineSpinner>
+		<InlineSpinner v-if="!rooms.roomsLoaded"></InlineSpinner>
 		<!-- There is always the general room -->
 		<template v-if="rooms.hasRooms">
 			<template v-for="room in rooms.sortedRoomsArray" :key="room.roomId">
@@ -18,9 +18,7 @@
 					<router-link :to="{ name: 'room', params: { id: room.roomId } }" v-slot="{ isActive }">
 						<MenuItem :roomInfo="room" :icon="roomIcon(room)" :active="isActive">
 							<PrivateRoomName v-if="room.isPrivateRoom()" :members="room.getOtherJoinedAndInvitedMembers()"></PrivateRoomName>
-							<span v-else>
-								{{ room.name }}
-							</span>
+							<RoomName v-else :room="room"></RoomName>
 						</MenuItem>
 					</router-link>
 				</div>

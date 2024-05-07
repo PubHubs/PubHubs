@@ -57,14 +57,11 @@ class Events {
 
 	eventRoomName(matrixRoom: MatrixRoom) {
 		const rooms = useRooms();
-		// console.debug('Room.name', room.name);
 		rooms.addRoom(new Room(matrixRoom));
 	}
 
 	eventRoomTimeline(eventTimeLineHandler: EventTimeLineHandler, event: MatrixEvent, matrixRoom: MatrixRoom | undefined, toStartOfTimeline: boolean | undefined) {
 		if (!matrixRoom) return;
-		const rooms = useRooms();
-		rooms.addRoom(new Room(matrixRoom));
 
 		if (event.event.type === 'm.room.message' && event.event.content?.msgtype === 'm.text') {
 			event.event = eventTimeLineHandler.transformEventContent(event.event as Partial<TEvent>);
@@ -72,6 +69,7 @@ class Events {
 
 		if (!toStartOfTimeline) {
 			if (event.event.type != 'm.room.message') return;
+			const rooms = useRooms();
 			rooms.onModRoomMessage(event);
 		}
 	}

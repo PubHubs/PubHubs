@@ -44,6 +44,7 @@ const useRooms = defineStore('rooms', {
 	state: () => {
 		return {
 			currentRoomId: '' as string,
+			roomsLoaded: false as boolean,
 			rooms: {} as { [index: string]: Room },
 			publicRooms: [] as Array<TPublicRoom>,
 			securedRooms: [] as Array<TSecuredRoom>,
@@ -75,7 +76,7 @@ const useRooms = defineStore('rooms', {
 			return privateRooms;
 		},
 
-		hasRooms() {
+		hasRooms(): boolean {
 			return this.roomsArray?.length > 0;
 		},
 
@@ -194,8 +195,15 @@ const useRooms = defineStore('rooms', {
 		},
 
 		updateRoomsWithMatrixRooms(rooms: MatrixRoom[]) {
-			this.rooms = {} as { [index: string]: Room }; // reset rooms
-			rooms.filter((room) => room.getMyMembership() === 'join').forEach((matrixRoom) => this.addRoom(new Room(matrixRoom)));
+			this.roomsLoaded = true;
+			const tempRooms = {} as { [index: string]: Room }; // reset rooms
+			rooms
+				.filter((room) => room.getMyMembership() === 'join')
+				.forEach((matrixRoom) => {
+					//@ts-ignore
+					tempRooms[matrixRoom.roomId] = new Room(matrixRoom);
+				});
+			this.rooms = tempRooms;
 		},
 
 		/**
@@ -206,6 +214,7 @@ const useRooms = defineStore('rooms', {
 		addRoom(room: Room): Room {
 			if (!this.roomExists(room.roomId)) {
 				this.rooms[room.roomId] = room;
+				this.roomsLoaded = true;
 			}
 			return this.rooms[room.roomId];
 		},

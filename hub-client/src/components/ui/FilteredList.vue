@@ -18,7 +18,7 @@
 
 	type Props = {
 		items: Array<Record<string, any>>;
-		filterKey: string;
+		filterKey?: string;
 		sortby: string;
 		placeholder: string;
 	};
