@@ -10,11 +10,3 @@ export interface TBaseRoom {
 	user_txt?: string;
 	room_type?: string;
 }
-
-// Room routes
-// room route name is for private / public rooms
-// secure route name is specific to secure room.
-export enum RoomRouteName {
-	SECURED_ROOM_ROUTE = 'secure-room',
-	PUBLIC_ROOM_ROUTE = 'room',
-}
