@@ -55,7 +55,7 @@
 <script setup lang="ts">
 	import { computed, ref } from 'vue';
 	import { usePubHubs } from '@/core/pubhubsStore';
-	import { featureFlagType, RoomType, useConnection, useSettings, useUser } from '@/store/store';
+	import { RoomType, useConnection, useUser } from '@/store/store';
 	import { useMessageActions } from '@/store/message-actions';
 	import MessageSnippet from './MessageSnippet.vue';
 	import { PluginType } from '@/store/plugins';
