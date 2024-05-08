@@ -88,6 +88,7 @@
 	import { usePubHubs } from '@/core/pubhubsStore';
 	import { useRoute } from 'vue-router';
 	import { useMessageActions } from '@/store/message-actions';
+	import filters from '@/core/filters';
 
 	import { YiviSigningSessionResult } from '@/lib/signedMessages';
 	import { fileUpload as uploadHandler } from '@/composables/fileUpload';
@@ -148,14 +149,19 @@
 
 	//  To autocomplete the mention user in the message.
 	function mentionUser(user: any) {
+		let userMention = user.rawDisplayName;
+		// Make sure psuedonym is included if it hasn't
+		if (!filters.extractPseudonymFromString(userMention)) {
+			userMention += ' - ' + filters.extractPseudonym(user.userId);
+		}
 		let message = value.value?.toString();
 		if (message?.lastIndexOf('@') !== -1) {
 			const lastPosition = message?.lastIndexOf('@');
 			message = message?.substring(0, lastPosition);
 			value.value = ' ';
-			value.value = message + ' @' + user.rawDisplayName;
+			value.value = message + ' @' + userMention;
 		} else {
-			value.value += ' @' + user.rawDisplayName;
+			value.value += ' @' + userMention;
 		}
 	}
 
