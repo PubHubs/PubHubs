@@ -16,7 +16,8 @@
 					<Icon type="unlink" class="cursor-pointer invisible hover:text-red ml-2 float-right my-2 mr-8 group-hover:visible" @click="leaveRoom(room.roomId)"></Icon>
 
 					<router-link :to="{ name: 'room', params: { id: room.roomId } }" v-slot="{ isActive }">
-						<MenuItem :roomInfo="room" :icon="roomIcon(room)" :active="isActive">
+						<Badge v-if="room.numUnreadMessages > 0" class="-ml-1 -mt-1">{{ room.numUnreadMessages }}</Badge>
+						<MenuItem :roomInfo="room" :icon="roomIcon(room)" :active="isActive" :key="room.roomId">
 							<PrivateRoomName v-if="room.isPrivateRoom()" :members="room.getOtherJoinedAndInvitedMembers()"></PrivateRoomName>
 							<RoomName v-else :room="room"></RoomName>
 						</MenuItem>

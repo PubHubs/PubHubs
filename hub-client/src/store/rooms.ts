@@ -48,7 +48,7 @@ const useRooms = defineStore('rooms', {
 			rooms: {} as { [index: string]: Room },
 			publicRooms: [] as Array<TPublicRoom>,
 			securedRooms: [] as Array<TSecuredRoom>,
-			roomNotices: {} as Record<string, string[]>,
+			roomNotices: {} as { [room_id: string]: { [user_id: string]: string[] } },
 			securedRoom: {} as TSecuredRoom,
 			askDisclosure: null as AskDisclosure | null,
 			askDisclosureMessage: null as AskDisclosureMessage | null,
@@ -71,8 +71,7 @@ const useRooms = defineStore('rooms', {
 
 		privateRooms(): Array<Room> {
 			const rooms: Array<Room> = Object.assign([], this.roomsArray);
-			const privateRooms = rooms.filter((item) => item.getType() === RoomType.PH_MESSAGES_DM);
-			// return privateRooms.map((item) => Object.assign({ _type: item.getType(), _members: item.getMembersWithMembership('join') }, item));
+			const privateRooms = rooms.filter((item) => item.getType() == RoomType.PH_MESSAGES_DM);
 			return privateRooms;
 		},
 
@@ -249,17 +248,33 @@ const useRooms = defineStore('rooms', {
 		async storeRoomNotice(roomId: string) {
 			try {
 				const hub_notice = await api_synapse.apiGET<string>(api_synapse.apiURLS.notice);
-				const encodedObject = encodeURIComponent(JSON.stringify({ types: ['m.room.message'], senders: [hub_notice] }));
+				const creatingAdminUser = this.currentRoom?.getCreator();
+				if (!this.roomNotices[roomId]) {
+					this.roomNotices[roomId] = {};
+				}
+
+				if (creatingAdminUser) {
+					this.roomNotices[roomId][creatingAdminUser!] = ['rooms.admin_badge'];
+				}
+				const encodedObject = encodeURIComponent(JSON.stringify({ types: ['m.room.message'], senders: [hub_notice], limit: 100000 }));
 				const response = await api_matrix.apiGET<RoomMessages>(api_matrix.apiURLS.rooms + roomId + '/messages?filter=' + encodedObject);
-				for (const chunk of response.chunk) {
-					if (!this.roomNotices[roomId]) {
-						this.roomNotices[roomId] = [];
-					}
-					this.roomNotices[roomId].push(chunk.content.body);
+				for (const message of response.chunk) {
+					const body = message.content.body;
+					this.addProfileNotice(roomId, body);
 				}
 			} catch (error) {
 				console.log(error);
 			}
+		},
+
+		addProfileNotice(roomId: string, body: string) {
+			const user_id = body.split(' ', 1)[0];
+			let attributes: string[] = Object.values(JSON.parse(body.split('joined the room with attributes', 2)[1].trim().replaceAll("'", '"')));
+			attributes = attributes.filter((x) => x !== '');
+			if (!this.roomNotices[roomId]) {
+				this.roomNotices[roomId] = {};
+			}
+			this.roomNotices[roomId][user_id] = attributes;
 		},
 
 		// Needs Admin token
