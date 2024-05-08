@@ -31,10 +31,6 @@
 		if (rooms.roomNotices[props.room_id] && rooms.roomNotices[props.room_id][props.user]) {
 			roomAttributes.value = rooms.roomNotices[props.room_id][props.user];
 		}
-		// Check until the room Notice is available.
-		if (rooms.roomNotices[currentRoom.roomId] !== undefined) {
-			const index = rooms.roomNotices[currentRoom.roomId].findIndex((element) => element.includes(props.user));
-		}
 	}
 
 	update_attributes();

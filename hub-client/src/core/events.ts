@@ -68,6 +68,7 @@ class Events {
 		}
 
 		if (event.event.type === 'm.room.message' && event.event.content?.msgtype === 'm.notice') {
+			const rooms = useRooms();
 			//Messages are only in rooms.
 			rooms.addProfileNotice(event.getRoomId()!, event.getContent().body);
 		}
