@@ -17,6 +17,19 @@ test('extractPseudonym', () => {
 	expect(() => filters.extractPseudonym('something entirely different')).toThrowError(/^matrix ID did not contain ':'$/);
 });
 
+test('extractPseudonymFromString', () => {
+	expect(filters.extractPseudonymFromString('Bla bla 12g-gab')).toBe('12g-gab');
+	expect(filters.extractPseudonymFromString(' Bla bla 123456789012345g-g123456789012345 dfsdf')).toBe('123456789012345g-g123456789012345');
+	expect(filters.extractPseudonymFromString('Dus 123456789012345g-g123456789012345')).toBe('123456789012345g-g123456789012345');
+
+	expect(filters.extractPseudonymFromString('@notices:matrix')).toBeUndefined();
+	expect(filters.extractPseudonymFromString('@system:matrix')).toBeUndefined();
+
+	expect(filters.extractPseudonymFromString('Bla g23-abc bla')).toBeUndefined();
+	expect(filters.extractPseudonymFromString('@123-agc:matrix')).toBeUndefined();
+	expect(filters.extractPseudonymFromString('@123-abcdDus')).toBeUndefined();
+});
+
 test('localeDateFromTimestamp', () => {
 	const timestamp = Date.now();
 	expect(filters.localeDateFromTimestamp(timestamp)).toBeTypeOf('string');
