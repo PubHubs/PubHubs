@@ -11,7 +11,7 @@
 		<H2 class="text-center mb-8">{{ $t('home.highlighted_hubs') }}</H2>
 
 		<div class="grid md:grid-cols-3 grid-cols-1 gap-4">
-			<router-link v-for="hub in hubs.sortedHubsArray" :key="hub.hubId" :to="{ name: 'hub', params: { id: hub.hubId } }">
+			<router-link v-for="hub in hubs.activeHubs()" :key="hub.hubId" :to="{ name: 'hub', params: { id: hub.hubId } }">
 				<HubBlock :hub="hub"></HubBlock>
 			</router-link>
 		</div>

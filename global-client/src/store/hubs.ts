@@ -49,6 +49,12 @@ const useHubs = defineStore('hubs', {
 			return hubs;
 		},
 
+		activeHubs(): HubList {
+			const hubs = this.sortedHubsArray();
+			const nonActiveHubs =  ['Surfhubs', 'GreenHost', 'GroenLinks'];
+			return hubs.filter((hub) => !nonActiveHubs.includes(hub.hubId));
+		},
+
 		hasHubs() {
 			return this.hubsArray.length > 0;
 		},
@@ -159,7 +165,7 @@ const useHubs = defineStore('hubs', {
 				this.currentHubId = '';
 				messagebox.reset();
 			}
-		},
+		}
 	},
 });
 
