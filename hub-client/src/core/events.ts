@@ -67,6 +67,11 @@ class Events {
 			event.event = eventTimeLineHandler.transformEventContent(event.event as Partial<TEvent>);
 		}
 
+		if (event.event.type === 'm.room.message' && event.event.content?.msgtype === 'm.notice') {
+			//Messages are only in rooms.
+			rooms.addProfileNotice(event.getRoomId()!, event.getContent().body);
+		}
+
 		if (!toStartOfTimeline) {
 			if (event.event.type !== 'm.room.message') return;
 			const rooms = useRooms();

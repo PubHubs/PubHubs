@@ -33,7 +33,7 @@
 								</button>
 							</router-link>
 						</RoomEventActionsPopup>
-						<ProfileAttributes v-if="rooms.roomIsSecure(rooms.currentRoom!.roomId)" :user="event.sender"></ProfileAttributes>
+						<ProfileAttributes v-if="props.roomType == RoomType.PH_MESSAGES_RESTRICTED" :user="event.sender" :room_id="event.room_id"></ProfileAttributes>
 					</div>
 				</div>
 				<template v-if="event.plugin?.plugintype === PluginType.MESSAGE && event.content.msgtype === event.plugin.type">
@@ -55,10 +55,9 @@
 <script setup lang="ts">
 	import { computed, ref } from 'vue';
 	import { usePubHubs } from '@/core/pubhubsStore';
-	import { useConnection, useUser } from '@/store/store';
+	import { featureFlagType, RoomType, useConnection, useSettings, useUser } from '@/store/store';
 	import { useMessageActions } from '@/store/message-actions';
 	import MessageSnippet from './MessageSnippet.vue';
-	import { useRooms } from '@/store/store';
 	import { PluginType } from '@/store/plugins';
 	import { TMessageEvent } from '@/model/model';
 
@@ -66,9 +65,8 @@
 	const messageActions = useMessageActions();
 
 	const user = useUser();
-	const rooms = useRooms();
 
-	const props = defineProps<{ event: TMessageEvent }>();
+	const props = defineProps<{ event: TMessageEvent; roomType: RoomType | undefined }>();
 
 	const inReplyTo = structuredClone(props.event.content['m.relates_to']?.['m.in_reply_to']?.x_event_copy);
 
