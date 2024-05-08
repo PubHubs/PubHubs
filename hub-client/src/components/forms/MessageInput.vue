@@ -2,7 +2,7 @@
 	<div class="flex gap-2 items-end px-6">
 		<div name="input-container" class="min-w-3/4 w-full relative rounded-xl bg-hub-background-4 dark:bg-hub-background-4">
 			<!-- Floating -->
-			<div class="">
+			<div>
 				<Popover v-if="showPopover" @close="togglePopover" class="absolute bottom-[105%]">
 					<UploadPicker @click="clickedAttachment"></UploadPicker>
 					<SignedMessageButton @click="showSigningMessageMenu()"></SignedMessageButton>

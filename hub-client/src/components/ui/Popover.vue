@@ -1,5 +1,5 @@
 <template>
-	<div ref="elContainer" class="bg-hub-background-3 dark:bg-gray rounded-md flex flex-col" v-click-outside="close">
+	<div ref="elContainer" class="bg-hub-background-4 dark:bg-hub-background-4 rounded-md flex flex-col" v-click-outside="close">
 		<Icon v-if="showClosingCross" type="closingCross" size="base" :asButton="true" @click="close()" class="self-end mt-2 mr-2"></Icon>
 		<div class="flex items-center">
 			<slot></slot>
