@@ -23,7 +23,7 @@ const icons: { [key: string]: string } = {
         <circle cx="12" cy="12" r="9" fill="currentColor" />
         `,
 	'pubhubs-home': `
-        <circle cx="12" cy="12" r="9" fill="currentColor"/>
+        <circle cx="12" cy="12" r="11" fill="currentColor"/>
         <path d="M4.25306 12.2951L17.0548 0.626046L13.3499 17.5472L0.548216 29.2163L4.25306 12.2951Z" fill="black" stroke="black" stroke-linejoin="round" transform="scale(0.5) translate(15,9)"/>
         <circle cx="12" cy="12" r="1" fill="currentColor"/>
         `,
