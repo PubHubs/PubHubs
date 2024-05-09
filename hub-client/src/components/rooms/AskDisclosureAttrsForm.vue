@@ -78,7 +78,7 @@
 	async function close(returnValue: DialogButtonAction) {
 		const result = ask.value;
 		console.debug(`AskDisclosureAttrsForm:close(${returnValue}): u=${result?.user?.userId}, m=${result?.message}, a=[${result?.attributes?.map((a: any) => a.yivi)}]`);
-		if (returnValue == 1) {
+		if (returnValue === 1) {
 			emit('submit', result!);
 		}
 		emit('close');

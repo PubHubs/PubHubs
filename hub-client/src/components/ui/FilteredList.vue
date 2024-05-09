@@ -18,7 +18,7 @@
 
 	type Props = {
 		items: Array<Record<string, any>>;
-		filterKey: string;
+		filterKey?: string;
 		sortby: string;
 		placeholder: string;
 	};
@@ -33,13 +33,13 @@
 	const filteredItems = computed(() => {
 		const lcFilter = filter.value.toLowerCase();
 		let items = props.items.filter((item: any) => {
-			if (filter.value == '') {
+			if (filter.value === '') {
 				return true;
 			}
 			const lcItem = item[props.filterKey]?.toLowerCase();
 			return lcItem.includes(lcFilter);
 		});
-		if (props.sortby != '') {
+		if (props.sortby !== '') {
 			items = items.toSorted((a: Record<string, any>, b: Record<string, any>) => {
 				return a[props.sortby].toLowerCase().localeCompare(b[props.sortby].toLowerCase());
 			});

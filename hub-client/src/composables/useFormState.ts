@@ -82,7 +82,7 @@ const useFormState = () => {
 			const value = data[key].value;
 
 			// Changed?
-			if (JSON.stringify(originalValue) != JSON.stringify(value)) {
+			if (JSON.stringify(originalValue) !== JSON.stringify(value)) {
 				changed.value = true;
 			}
 
@@ -146,11 +146,11 @@ const useFormState = () => {
 		let isChanged = false;
 		if (key === '') {
 			Object.keys(data).forEach((item) => {
-				isChanged = isChanged || JSON.stringify(data[item].value) != JSON.stringify(originalData[item].value);
+				isChanged = isChanged || JSON.stringify(data[item].value) !== JSON.stringify(originalData[item].value);
 				// console.log('dataIsChanged',item,originalData[item].value,data[item].value,isChanged);
 			});
 		} else {
-			isChanged = JSON.stringify(data[key].value) != JSON.stringify(originalData[key].value);
+			isChanged = JSON.stringify(data[key].value) !== JSON.stringify(originalData[key].value);
 		}
 		// console.log('dataIsChanged',key,originalData[key].value,data[key].value,isChanged);
 		return isChanged;

@@ -31,7 +31,7 @@ export const handlers = [
 
 	http.post('http://test/_synapse/client/secured_rooms', async (request) => {
 		const body = (await request.request.json()) as SecuredRoom;
-		if (typeof body.room_name == 'undefined' || body.room_name == '' || typeof body.accepted == 'undefined' || body.accepted == ({} as SecuredRoom) || typeof body.type == 'undefined' || body.type !== 'ph.messages.restricted') {
+		if (typeof body.room_name === 'undefined' || body.room_name === '' || typeof body.accepted === 'undefined' || body.accepted === ({} as SecuredRoom) || typeof body.type === 'undefined' || body.type !== 'ph.messages.restricted') {
 			return HttpResponse.json({ errors: 'wrong params' }, { status: 400 });
 		}
 		return HttpResponse.json(
@@ -48,7 +48,7 @@ export const handlers = [
 
 	http.delete(/http:\/\/test\/_synapse\/client\/secured_rooms\/*/, async (request) => {
 		const match = request.request.url.match(/.*room_id=(.*)\b/);
-		if (match !== null && match[1] != undefined) {
+		if (match !== null && match[1] !== undefined) {
 			const room_id = match[1];
 			return HttpResponse.json({ deleted: 'ID:' + room_id }, { status: 200 });
 		}

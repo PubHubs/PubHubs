@@ -2,7 +2,7 @@
 	<Dialog :title="$t('settings.title')" :buttons="buttonsSubmitCancel" @close="dialogAction($event)">
 		<form @submit.prevent>
 			<div class="flex flex-col items-center md:items-start md:flex-row mb-4">
-				<label class="md:w-2/6 font-semibold text-gray-700">{{ $t('settings.avatar') }}</label>
+				<label class="md:w-2/6 font-semibold text-gray">{{ $t('settings.avatar') }}</label>
 				<input type="file" id="avatar" accept="image/png, image/jpeg, image/svg" class="hidden" ref="file" @change="uploadAvatar($event)" />
 
 				<div class="md:w-4/6 flex flex-col md:flex-row justify-between">
@@ -16,9 +16,8 @@
 					</div>
 				</div>
 			</div>
-
 			<div class="flex flex-col md:flex-row mb-4">
-				<label class="w-2/6 font-semibold text-gray-700">{{ $t('settings.displayname') }}</label>
+				<label class="w-2/6 font-semibold text-gray">{{ $t('settings.displayname') }}</label>
 				<TextInput
 					class="md:w-4/6 p-1 border rounded focus:outline-none focus:border-blue-500"
 					name="displayname"
@@ -27,11 +26,15 @@
 					@changed="updateData('displayName', $event)"
 				></TextInput>
 			</div>
+			<div class="flex flex-col md:flex-row mb-4">
+				<label class="w-2/6 font-semibold text-gray">{{ $t('settings.userId') }}</label>
+				<div title="Hub specific User ID" class="md:w-4/6 p-1 text-gray-light italic text-lg">{{ user.user.userId }}</div>
+			</div>
 		</form>
 
 		<ValidationErrors :errors="validationErrors"></ValidationErrors>
 
-		<div v-if="message != ''" class="rounded-lg bg-green-dark text-white p-2 mt-2">{{ message }}</div>
+		<div v-if="message !== ''" class="rounded-lg bg-green-dark text-white p-2 mt-2">{{ message }}</div>
 	</Dialog>
 </template>
 

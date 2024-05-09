@@ -13,7 +13,7 @@
 				</TabHeader>
 				<TabContainer>
 					<TabContent>
-						<p v-if="rooms.nonSecuredPublicRooms.length == 0">{{ $t('admin.no_secured_rooms') }}</p>
+						<p v-if="rooms.nonSecuredPublicRooms.length === 0">{{ $t('admin.no_secured_rooms') }}</p>
 						<FilteredList v-else :items="rooms.nonSecuredPublicRooms" filterKey="name" sortby="name" :placeholder="$t('rooms.filter')">
 							<template #item="{ item }">
 								<Icon type="room" class="mr-4 float-left text-green group-hover:text-black"></Icon>

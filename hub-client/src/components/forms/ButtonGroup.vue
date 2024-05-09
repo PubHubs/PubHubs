@@ -41,13 +41,13 @@
 	setOptions(props.options);
 
 	function roundedClass(index: number) {
-		if (index == 0) {
+		if (index === 0) {
 			return 'rounded-r-none';
 		}
 		if (index > 0 && index < props.options.length - 1) {
 			return 'rounded-l-none rounded-r-none';
 		}
-		if (index == props.options.length - 1) {
+		if (index === props.options.length - 1) {
 			return 'rounded-l-none';
 		}
 		return '';

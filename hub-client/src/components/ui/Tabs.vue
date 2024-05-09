@@ -33,7 +33,7 @@
 	};
 
 	const isActiveTab = (tab: number): boolean => {
-		return activeTab.value == tab;
+		return activeTab.value === tab;
 	};
 
 	provide('registerTabHeader', registerTabHeader);

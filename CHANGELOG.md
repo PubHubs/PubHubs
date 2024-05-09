@@ -2,6 +2,9 @@
 
 *Please add a brief description of any changes to be tested and any migrations to be performed here.*
 
+## 9 May 2024
+- Add notifications and mentions in a better way.
+
 ## 30 Apr 2024
 - Refactured a lot for performance issues, pleas check the 'Restricted' room on stable. Does it has errors in the console? (see #634,#590,#636)
 - Removed the normalization of display names (i.e. adding the " - 123-abc" suffix)

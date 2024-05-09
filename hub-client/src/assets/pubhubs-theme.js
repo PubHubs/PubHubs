@@ -21,6 +21,8 @@ const pubhubs = {
 			},
 		},
 
+		notification: 'var(--notification)',
+
 		// Hub color palette default. Can be customised with hub branding.
 		hub: {
 			background: {

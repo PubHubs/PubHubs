@@ -127,7 +127,7 @@
 					let newAccepted = [];
 					acceptedKeys.forEach((key) => {
 						let values = accepted[key].accepted_values;
-						if (typeof values == 'object') {
+						if (typeof values === 'object') {
 							values = values.join(', ');
 						}
 						newAccepted.push({
@@ -164,7 +164,7 @@
 	//#endregion
 
 	async function close(returnValue: DialogButtonAction) {
-		if (returnValue == 1) {
+		if (returnValue === 1) {
 			await submitRoom();
 		}
 		emit('close');
@@ -181,7 +181,7 @@
 					topic: room.topic,
 					visibility: 'public',
 					creation_content: {
-						type: room.type == '' ? undefined : room.type,
+						type: room.type === '' ? undefined : room.type,
 					},
 				};
 				await pubhubs.createRoom(newRoomOptions);

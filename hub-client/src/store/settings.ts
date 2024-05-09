@@ -11,7 +11,9 @@ enum featureFlagType {
 	plugins = 'plugins',
 	dateSplitter = 'dateSplitter',
 	disclosure = 'disclosure',
-	readReceipt = 'readReceipt',
+	unreadMarkers = 'unreadmarkers',
+	notifications = 'notifications',
+	// readReceipt = 'readReceipt',
 }
 
 enum Theme {
@@ -63,7 +65,8 @@ interface Settings {
 		plugins: boolean;
 		dateSplitter: boolean;
 		disclosure: boolean;
-		readReceipt: boolean;
+		unreadmarkers: boolean;
+		notifications: boolean;
 	};
 }
 
@@ -84,17 +87,19 @@ const defaultSettings: Settings = {
 	 */
 	featureFlags: {
 		// main
-		signedMessages: true,
-		plugins: true,
-		dateSplitter: false,
-		disclosure: true,
-		readReceipt: false,
-		// stable
 		// signedMessages: true,
 		// plugins: true,
 		// dateSplitter: false,
-		// disclosure: false,
-		// readReceipt: false,
+		// disclosure: true,
+		// unreadmarkers: true,
+		// notifications: true,
+		// stable
+		signedMessages: true,
+		plugins: true,
+		dateSplitter: false,
+		disclosure: false,
+		unreadmarkers: true,
+		notifications: true,
 	},
 };
 
@@ -119,7 +124,7 @@ const createSettings = (defineStore: any) => {
 			 * Get theme set in preferences, and if 'system' give the 'light' or 'dark' theme depending on system.
 			 */
 			getActiveTheme: (state: Settings): Theme => {
-				if (state.theme != Theme.System) {
+				if (state.theme !== Theme.System) {
 					return state.theme;
 				}
 				if (window.matchMedia('(prefers-color-scheme: dark)').matches) {

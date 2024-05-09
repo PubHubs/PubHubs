@@ -24,8 +24,8 @@
 	import { useToggleMenu } from '@/store/toggleGlobalMenu';
 
 	const rooms = useRooms();
-	const pubhubs = usePubHubs();
 	const router = useRouter();
+	const pubhubs = usePubHubs();
 	const emit = defineEmits(['close']);
 	const toggleMenu = useToggleMenu();
 

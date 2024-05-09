@@ -1,5 +1,5 @@
 <template>
-	<li class="mb-2 menu-item">
+	<li class="menu-item px-5 hover:dark:bg-gray-middle hover:bg-lightgray py-2 transition-all duration-150 ease-in-out">
 		<Icon v-if="isSecuredRoom()" type="lock" class="mr-4 float-left text-blue dark:text-green"></Icon>
 		<Icon v-else class="mr-4 float-left text-blue dark:text-green" :type="icon"></Icon>
 		<TruncatedText><slot></slot></TruncatedText>
@@ -7,20 +7,10 @@
 </template>
 
 <script setup lang="ts">
-	import { onMounted } from 'vue';
 	import { Room } from '@/store/rooms';
 	import { useRooms } from '@/store/store';
 
 	const rooms = useRooms();
-
-	// Read all the unread messages in each room  when PubHubs is opened.
-	onMounted(() => {
-		if (rooms.hasRooms) {
-			rooms.roomsArray.forEach((room) => {
-				room.unreadMessageCounter(undefined);
-			});
-		}
-	});
 
 	const props = defineProps({
 		icon: {

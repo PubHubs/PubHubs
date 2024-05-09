@@ -69,6 +69,7 @@ const en = {
 	},
 	rooms: {
 		me: 'Me',
+		just_you: 'Just you',
 		leave_sure: 'Do you really want to leave this room?',
 		new_message: 'Type your message here',
 		members: 'members',
@@ -106,6 +107,7 @@ const en = {
 	},
 	settings: {
 		displayname: 'Nickname',
+		userId: 'UserID',
 		avatar: 'Avatar',
 		avatar_changed: 'Avatar updated!.',
 		displayname_changed: 'Nickname changed to `{0}`.',

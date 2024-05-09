@@ -1,6 +1,6 @@
 <template>
 	<div class="rounded-full w-12 h-12 flex items-center justify-center overflow-hidden" :class="bgColor(color(userId))">
-		<img v-if="image != ''" :src="image" class="rounded-full w-full h-full" />
+		<img v-if="image !== ''" :src="image" class="rounded-full w-full h-full" />
 		<Icon v-else-if="display === '@'" type="person" class="right-0 group-hover:block h-16 w-16"></Icon>
 		<span v-else :class="rooms.currentRoom === undefined ? 'text-center text-5xl' : 'text-center text-2xl'">
 			{{ display }}
@@ -50,7 +50,7 @@
 	const display = computed(() => {
 		let name = '' + props.userId;
 
-		if (rooms.currentRoom && props.notMention) {
+		if (rooms.currentRoom && !props.notMention) {
 			const currentRoom = rooms.currentRoom;
 			name = getUserDisplayName(props.userId, currentRoom);
 		}
