@@ -10,7 +10,7 @@
 					<Modal :show="global.isModalVisible">
 						<div class="flex flex-col justify-between h-full">
 							<div class="flex-1 text-center">
-								<router-link to="/" v-slot="{ isActive }">
+								<router-link to="/">
 									<Icon type="pubhubs-home" size="3xl" class="text-white mx-auto" @click="toggleMenu.toggleMenu()"></Icon>
 								</router-link>
 
