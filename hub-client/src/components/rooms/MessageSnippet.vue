@@ -1,10 +1,10 @@
 <template>
-	<div class="bg-hub-background-3 flex w-fit px-3 gap-3 items-center rounded-md cursor-pointer">
-		<p v-if="showInReplyTo" class="">{{ $t('message.in_reply_to') }}</p>
-		<H3 class="m-auto" :class="textColor(userColor)">
+	<div class="bg-hub-background-3 flex px-2 gap-3 items-center rounded-md cursor-pointer">
+		<p v-if="showInReplyTo" class="text-nowrap">{{ $t('message.in_reply_to') }}</p>
+		<p :class="textColor(userColor)">
 			<UserDisplayName :user="event.sender"></UserDisplayName>
-		</H3>
-		<p class="truncate">{{ text }}</p>
+		</p>
+		<p class="truncate" :title="text">{{ text }}</p>
 	</div>
 </template>
 
