@@ -57,7 +57,11 @@ class Events {
 
 	eventRoomName(matrixRoom: MatrixRoom) {
 		const rooms = useRooms();
-		rooms.addRoom(new Room(matrixRoom));
+		// Room display name can  be just Empty Room or display name can also be Empty Room followed by peudonym
+		// Therefore, I can't compare it directly with equality, going with 'includes()' function to compare.
+		if (!matrixRoom.name.includes('Empty')) {
+			rooms.addRoom(new Room(matrixRoom));
+		}
 	}
 
 	eventRoomTimeline(eventTimeLineHandler: EventTimeLineHandler, event: MatrixEvent, matrixRoom: MatrixRoom | undefined, toStartOfTimeline: boolean | undefined) {
