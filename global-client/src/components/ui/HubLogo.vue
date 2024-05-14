@@ -1,6 +1,6 @@
 <template>
 	<div>
-		<img v-show="!fallback" :src="hubUrl + logoPath" @load="hideFallback" :alt="'logo of ' + hubId" style="border-radius: 50%" class="m-auto h-full w-full" />
+		<img v-show="!fallback" :src="hubUrl + logoPath" @load="hideFallback" :alt="'logo of ' + hubId" class="m-auto h-full w-full rounded-full" />
 		<Icon v-if="fallback" type="hub_fallback" class="stroke-1 m-auto h-full w-full"></Icon>
 	</div>
 </template>
