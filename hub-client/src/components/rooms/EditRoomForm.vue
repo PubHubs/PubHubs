@@ -97,7 +97,7 @@
 
 	const securedRoomTemplate = ref([
 		{ key: 'yivi', label: t('admin.secured_attribute'), type: 'select', options: [], default: '' },
-		{ key: 'values', label: t('admin.secured_values'), type: 'textarea', default: '' },
+		{ key: 'values', label: t('admin.secured_values'), type: 'textarea', default: '', maxLength: 3000 },
 		{ key: 'profile', label: t('admin.secured_profile'), type: 'checkbox', default: false },
 	] as Array<FormObjectInputTemplate>);
 
