@@ -102,8 +102,17 @@ const useGlobal = defineStore('global', {
 			this.pinnedHubs = data.hubs;
 		},
 
-		login() {
-			window.location.replace(api.apiURLS.login);
+		login(language: string | 'en' | 'nl') {
+			switch (language) {
+				case 'en':
+					window.location.assign(api.apiURLS.loginEn);
+					break;
+				case 'nl':
+					window.location.assign(api.apiURLS.login);
+					break;
+				default:
+					window.location.assign(api.apiURLS.login);
+			}
 		},
 
 		logout() {
