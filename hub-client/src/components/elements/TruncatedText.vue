@@ -25,3 +25,10 @@
 		return '';
 	});
 </script>
+
+<style scoped>
+	p::before {
+		content: '';
+		display: inline-block;
+	}
+</style>
