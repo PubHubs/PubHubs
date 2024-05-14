@@ -43,6 +43,8 @@ interface FormObjectInputTemplate {
 	type: string;
 	options?: Options;
 	default: InputType;
+	// Used for textarea's.
+	maxLength?: number;
 }
 
 enum FormInputType {
