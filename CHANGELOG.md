@@ -1,6 +1,7 @@
 ## Changes to main, not yet committed to stable
 
 *Please add a brief description of any changes to be tested and any migrations to be performed here.*
+- Some changes to styling of displayed hubs in global client. 
 
 ## 9 May 2024
 - Add notifications and mentions in a better way.

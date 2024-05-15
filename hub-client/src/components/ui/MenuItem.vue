@@ -1,5 +1,5 @@
 <template>
-	<li class="menu-item px-5 hover:dark:bg-gray-middle hover:bg-lightgray py-2 transition-all duration-150 ease-in-out">
+	<li class="menu-item pl-5 pr-8 hover:dark:bg-gray-middle hover:bg-lightgray py-2 transition-all duration-150 ease-in-out">
 		<Icon v-if="isSecuredRoom()" type="lock" class="mr-4 float-left text-blue dark:text-green"></Icon>
 		<Icon v-else class="mr-4 float-left text-blue dark:text-green" :type="icon"></Icon>
 		<TruncatedText><slot></slot></TruncatedText>

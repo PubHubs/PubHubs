@@ -2,7 +2,7 @@
 	<div class="w-1/2 md:w-2/6 m-4 text-center mx-auto">
 		<Logo class="my-8 sm:m-8" :global="true"></Logo>
 		<p class="text-center" v-html="$t('home.welcome')"></p>
-		<Button v-if="!global.loggedIn" class="mt-8" @click="global.login()">{{ $t('login.global_login') }}</Button>
+		<Button v-if="!global.loggedIn" class="mt-8" @click="global.login(i18n.locale.value)">{{ $t('login.global_login') }}</Button>
 	</div>
 
 	<div class="w-4/6 mx-auto my-8">
@@ -20,6 +20,8 @@
 
 <script setup lang="ts">
 	import { useGlobal, useHubs } from '@/store/store';
+	import { useI18n } from 'vue-i18n';
 	const global = useGlobal();
 	const hubs = useHubs();
+	const i18n = useI18n();
 </script>

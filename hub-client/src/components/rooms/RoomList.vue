@@ -5,21 +5,18 @@
 		<template v-if="rooms.hasRooms">
 			<template v-for="room in rooms.sortedRoomsArray" :key="room.roomId">
 				<div v-if="showRoom(room)" :key="room.roomId" class="group" @click="toggleMenu.toggleGlobalMenu()">
-					<template v-if="settings.isFeatureEnabled(featureFlagType.notifications)">
-						<UnreadMessageBadge v-if="room.getRoomUnreadNotificationCount(NotificationCountType.Total) > 0" class="ml-2 float-right my-2 mr-12">{{
-							room.getRoomUnreadNotificationCount(NotificationCountType.Total)
-						}}</UnreadMessageBadge>
-						<UnreadMentionBadge v-if="room.getRoomUnreadNotificationCount(NotificationCountType.Highlight) > 0" class="ml-2 float-right my-2 mr-4">{{
-							room.getRoomUnreadNotificationCount(NotificationCountType.Highlight)
-						}}</UnreadMentionBadge>
-					</template>
-					<Icon type="unlink" class="cursor-pointer invisible hover:text-red ml-2 float-right my-2 mr-8 group-hover:visible" @click="leaveRoom(room.roomId)"></Icon>
-
 					<router-link :to="{ name: 'room', params: { id: room.roomId } }" v-slot="{ isActive }">
-						<Badge v-if="room.numUnreadMessages > 0" class="-ml-1 -mt-1">{{ room.numUnreadMessages }}</Badge>
-						<MenuItem :roomInfo="room" :icon="roomIcon(room)" :active="isActive" :key="room.roomId">
+						<MenuItem :roomInfo="room" :icon="roomIcon(room)" :active="isActive" :key="room.roomId" class="relative">
 							<PrivateRoomName v-if="room.isPrivateRoom()" :members="room.getOtherJoinedAndInvitedMembers()"></PrivateRoomName>
 							<RoomName v-else :room="room"></RoomName>
+
+							<div class="absolute top-2 right-14">
+								<Icon type="unlink" class="fixed cursor-pointer invisible hover:text-red group-hover:visible" @click.prevent="leaveRoom(room.roomId)"></Icon>
+								<div v-if="settings.isFeatureEnabled(featureFlagType.notifications)" class="fixed visible group-hover:invisible">
+									<UnreadMessageBadge v-if="room.getRoomUnreadNotificationCount(NotificationCountType.Total) > 0">{{ room.getRoomUnreadNotificationCount(NotificationCountType.Total) }}</UnreadMessageBadge>
+									<UnreadMentionBadge v-if="room.getRoomUnreadNotificationCount(NotificationCountType.Highlight) > 0">{{ room.getRoomUnreadNotificationCount(NotificationCountType.Highlight) }}</UnreadMentionBadge>
+								</div>
+							</div>
 						</MenuItem>
 					</router-link>
 				</div>

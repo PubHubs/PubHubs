@@ -261,6 +261,7 @@
 			allMessagesLoaded = await pubhubs.loadOlderEvents(props.room);
 			numLoadedMessages = props.room.timelineGetNumMessageEvents();
 		}
+		await scrollToLastReadEvent();
 	}
 </script>
 

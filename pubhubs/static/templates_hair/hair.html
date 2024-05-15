@@ -234,7 +234,7 @@
 <div class="container">
     <div class ="row justify-content-md-center">
         <div class="col">
-            {{call page_header with {default: "Mijn PubHubs account", title: "my_ph_account"}}}
+            {{call page_header with {default: "Jouw PubHubs account", title: "my_ph_account"}}}
         </div>
         <div class="col-md-auto">
             <a href="/logout">{{call logout_button}}</a>
@@ -308,10 +308,8 @@
             {{endif}}
             {{if hub_name == ""}}
             <div class="card bg-light m-3 p-4 mb-0">
-                <h3>{{=tr("my_ph_account","Mijn PubHubs account")}}</h3>
-                <p>{{=tr("account_explanation","Op je account pagina kan je je gegevens aanpassen, de instellingen veranderen en kan je een overzicht van de hubs zien")}}.</p>
-                <h3>{{=tr("hub_settings","Instellingen Hubs")}}</h3>
-                <p>{{=tr("sep_hub_explanation","Iedere Hub heeft een eigen instellingen pagina en regels. Als je de instellingen ven een specifieke Hub wilt inzien log dan in en navigeer naar de Hub waarvan je de instellingen wilt veranderen")}}.</p>
+                <h3>{{=tr("my_ph_account","Jouw PubHubs account")}}</h3>
+                <p>{{=tr("account_explanation","PubHubs is een netwerk van Hubs. Met één PubHubs account krijg je automatisch een nieuw Hub account wanneer je lid wordt van een Hub. Voor elk Hub account kun je een andere naam instellen. Dat klinkt misschien verwarrend, maar daar is een goede reden voor: PubHubs kan je niet volgen tussen Hubs, en individuele Hubs kunnen je activiteit buiten hun eigen Hub niet zien. Super privacyvriendelijk!")}}</p>
             </div>
             {{else}}
             <div class="card bg-light m-3 p-4 mb-0">
@@ -416,7 +414,12 @@
 </div>
 <div class="container">
     <div class="card bg-secondary m-3 p-4 mt-0 text-white"><h5>{{=tr("rules","Privacy policy en huisregels")}} {{call spraak}}</h5>
-        {{for highlight in highlights}}
+      <div>
+        <!-- After the login flow you end up on the dutch policy page, so we will hardcode both languages here for now. -->
+        <p>Onze privacy policy en huisregels zijn nog in ontwikkeling.</p>
+        <p>Our privacy policy and house rules are still under development.</p>
+      </div>
+        <!-- {{for highlight in highlights}}
         <div class="row">
             <div class="col-md-auto">
                 {{call spraak with {width: 40, class: "primary-speech"}}}
@@ -425,7 +428,7 @@
                 <p>{{=highlight}}</p>
             </div>
         </div>
-        {{end}}
+        {{end}} -->
         <p><a href="{{=url_prefix}}/full_policy?{{=query:url}}">{{=tr("read_policy","Lees hier de hele policy")}}</a></p>
         {{call policy_accept}}
     </div>
@@ -433,7 +436,10 @@
 {{enddefine}}
 {{define full_policy}}
 <div class="card bg-secondary m-3 p-4 mt-0 text-white"><h5>{{=tr("rules","Privacy policy en huisregels")}} {{call spraak}}</h5>
-    <p>{{=policy}}</p>
+  <!-- After the login flow you end up on the dutch policy page, so we will hardcode both languages here for now. -->
+  <p>Onze privacy policy en huisregels zijn nog in ontwikkeling.</p>
+  <p>Our privacy policy and house rules are still under development.</p>
+  <!-- <p>{{=policy}}</p> -->
     {{call policy_accept}}
 </div>
 {{enddefine}}

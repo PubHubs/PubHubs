@@ -15,8 +15,9 @@ describe('api', () => {
 		// @ts-ignore
 		expect(api.baseURL).toBe('http://test');
 
-		expect(Object.keys(api.apiURLS).length).toBe(4);
+		expect(Object.keys(api.apiURLS).length).toBe(5);
 		expect(api.apiURLS.login).toBe('http://test/login');
+		expect(api.apiURLS.loginEn).toBe('http://test/en/login');
 		expect(api.apiURLS.logout).toBe('http://test/logout');
 		expect(api.apiURLS.bar).toBe('http://test/bar/state');
 		expect(api.apiURLS.hubs).toBe('http://test/bar/hubs');
