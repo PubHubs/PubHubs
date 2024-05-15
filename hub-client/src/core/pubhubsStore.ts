@@ -72,9 +72,9 @@ const usePubHubs = defineStore('pubhubs', {
 		},
 
 		async updateRooms() {
-			console.log('PubHubs.updateRooms');
 			const rooms = useRooms();
 			const currentRooms = this.client.getRooms();
+			console.log('PubHubs.updateRooms');
 			rooms.updateRoomsWithMatrixRooms(currentRooms);
 			rooms.roomsLoaded = true;
 			await rooms.fetchPublicRooms();
@@ -201,7 +201,7 @@ const usePubHubs = defineStore('pubhubs', {
 			await this.client.leave(roomId);
 			const rooms = useRooms();
 			rooms.room(roomId)?.setHidden(true);
-			// this.updateRooms();
+			this.updateRooms();
 		},
 
 		/**
