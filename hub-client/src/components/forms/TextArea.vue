@@ -28,7 +28,7 @@
 	type Props = {
 		placeholder: string;
 		modelValue: string;
-		maxLength: number;
+		maxLength?: number;
 	};
 	const props = withDefaults(defineProps<Props>(), { placeholder: '', maxLength: 1500 });
 
