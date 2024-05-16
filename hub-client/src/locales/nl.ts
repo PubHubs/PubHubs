@@ -85,7 +85,7 @@ const nl = {
 		add_room: 'Voeg gesprek toe',
 		name: 'Naam van gesprek',
 		name_general_room: 'Algemeen',
-		name_feedback_room: 'Feedback',
+		name_feedback_room: 'Je feedback over PubHubs',
 		filter: 'Filter gesprekken',
 		title: '{0}',
 		access_denied: 'Toegang geweigerd',
