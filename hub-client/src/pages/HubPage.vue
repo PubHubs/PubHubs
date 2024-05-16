@@ -8,7 +8,7 @@
 
 		<div class="px-9 pt-9 mx-auto">
 			<H1 class="w-full text-center mb-8">{{ $t('home.hub_homepage_welcome') }}</H1>
-			<Logo class="mx-auto max-w-24"></Logo>
+			<Logo class="mx-auto max-w-24 max-h-20"></Logo>
 			<Button class="mt-10 text-xs md:text-base" @click="login()">{{ $t('home.hub_homepage_join') }}</Button>
 		</div>
 
