@@ -1,8 +1,8 @@
 <template>
 	<div class="flex flex-col h-full md:mt-0 mt-16 xl:max-w-screen-xl m-auto p-5 gap-8">
-		<div class="flex flex-col w-6/12 mt-8 mx-auto">
-			<H1 class="text-center mb-10">{{ $t('home.hub_homepage_welcome_auth') }}</H1>
-			<Logo></Logo>
+		<div class="flex flex-col w-6/12 mt-4 mx-auto">
+			<H1 class="text-center mb-8">{{ $t('home.hub_homepage_welcome_auth') }}</H1>
+			<Logo class="mx-auto max-w-24"></Logo>
 		</div>
 
 		<!-- <div class="flex flex-col w-full">
