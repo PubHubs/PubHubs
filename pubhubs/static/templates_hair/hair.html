@@ -270,12 +270,12 @@
 {{define authenticate defaults {register: false, hub_name: "", oidc_auth_request_handle: null }}}
 <div class="container">
     {{if hub_name == ""}}
-        {{call page_header with {title: "to_my_account",default: "Naar mijn PubHubs account"}}}
+        <!-- {{call page_header with {title: "to_my_account",default: "Naar mijn PubHubs account"}}} -->
     {{else}}
     <header class="bg-primary text-white p-5"><h2 class="bg-primary text-white">{{=tr("login_at","Login bij de")}} {{=hub_name}} Hub {{call spraak}}</h2></header>
     {{endif}}
 </div>
-<div class="container bg-primary">
+<div class="container bg-primary" style="margin-top:72px;">
     <div class="row">
         <div class="col">
             <div class="card bg-secondary h-100 mb-5">
