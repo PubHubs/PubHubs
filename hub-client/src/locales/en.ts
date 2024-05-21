@@ -104,7 +104,7 @@ const en = {
 		read: 'Read',
 		event: 'Event',
 		discussion: 'Discussion',
-		roomCreated: 'Gesprek aangemaakt',
+		roomCreated: 'Room created',
 	},
 	settings: {
 		displayname: 'Displayname',

@@ -1,9 +1,7 @@
 <template>
 	<div v-if="room" id="room-timeline" ref="elRoomTimeline" class="h-full relative flex flex-col gap-2 overflow-y-scroll" @scroll="onScroll">
 		<InlineSpinner v-if="isLoadingNewEvents" class="fixed top-16"></InlineSpinner>
-		<div class="fixed right-60 top-24">
-			<DateDisplayer v-if="settings.isFeatureEnabled(featureFlagType.dateSplitter)" :scrollStatus="userHasScrolled" :eventTimeStamp="dateInformation.valueOf()"></DateDisplayer>
-		</div>
+		<DateDisplayer v-if="settings.isFeatureEnabled(featureFlagType.dateSplitter) && dateInformation !== 0" :scrollStatus="userHasScrolled" :eventTimeStamp="dateInformation.valueOf()"></DateDisplayer>
 		<div id="room-created-tag" v-if="oldestEventIsLoaded" class="rounded-xl flex items-center justify-center w-60 mx-auto mb-12 border border-solid border-black dark:border-white">{{ $t('rooms.roomCreated') }}</div>
 		<template v-for="item in myTimeLine" :key="item.event.event_id">
 			<div ref="elRoomEvent" :id="item.event.event_id">
@@ -62,6 +60,8 @@
 	}
 
 	onMounted(async () => {
+		await setupRoom(); //First time set-up
+
 		await scrollToLastReadEvent();
 
 		if (settings.isFeatureEnabled(featureFlagType.dateSplitter)) {
@@ -79,10 +79,9 @@
 		if (settings.isFeatureEnabled(featureFlagType.notifications)) {
 			elementObserver?.setUpObserver(handlePrivateReceipt);
 		}
+
 		//Date Display Interaction callback is based on feature flag
 		settings.isFeatureEnabled(featureFlagType.dateSplitter) && elementObserver?.setUpObserver(handleDateDisplayer);
-
-		await setupRoom(); //First time set-up
 	});
 
 	watch(
@@ -134,7 +133,7 @@
 			const eventId = entry.target.id;
 			const matrixEvent = props.room.findEventById(eventId);
 			if (matrixEvent && matrixEvent.getType() === 'm.room.message') {
-				if (props.room.getFirstVisibleTimeStamp() < matrixEvent.localTimestamp) {
+				if (props.room.getFirstVisibleTimeStamp() < matrixEvent.localTimestamp || props.room.getFirstVisibleTimeStamp() === 0) {
 					matrixEvent.event.event_id && props.room.setFirstVisibleEventId(matrixEvent.event.event_id);
 					props.room.setFirstVisibleTimeStamp(matrixEvent.localTimestamp);
 				}
@@ -142,7 +141,9 @@
 		});
 		const minTimeStamp = props.room.getFirstVisibleEventId();
 		const firstReadEvent = props.room.findEventById(minTimeStamp);
-		if (!firstReadEvent) return;
+		if (!firstReadEvent || firstReadEvent?.localTimestamp === 0) {
+			return;
+		}
 		dateInformation.value = firstReadEvent?.localTimestamp;
 	};
 
@@ -155,6 +156,7 @@
 		newestEventId = props.room.timelineGetNewestEvent()?.event_id;
 
 		await showMessageFromSender();
+
 		settings.isFeatureEnabled(featureFlagType.dateSplitter) && elementObserver?.setUpObserver(handleDateDisplayer);
 
 		if (settings.isFeatureEnabled(featureFlagType.notifications)) {
@@ -183,9 +185,12 @@
 			oldestEventIsLoaded.value = await pubhubs.loadOlderEvents(props.room);
 			if (prevOldestLoadedEventId && !oldestEventIsLoaded.value) {
 				await scrollToEvent(prevOldestLoadedEventId); //Wait for scrolling to end.
+				// Start observing when old messages are loaded.
+				settings.isFeatureEnabled(featureFlagType.dateSplitter) && elementObserver?.setUpObserver(handleDateDisplayer);
 			}
 			isLoadingNewEvents.value = false;
 		}
+		//Date Display Interaction callback is based on feature flag
 	}
 
 	function onInReplyToClick(inReplyToId: string) {
