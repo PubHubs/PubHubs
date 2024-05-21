@@ -104,7 +104,7 @@ const nl = {
 		read: 'Lees',
 		event: 'Evenement',
 		discussion: 'Discussie',
-		roomCreated: 'Room created',
+		roomCreated: 'Gesprek aangemaakt',
 	},
 	settings: {
 		userId: 'UserID',
@@ -187,8 +187,8 @@ const nl = {
 		},
 	},
 	time: {
-		today: 'vandaag',
-		yesterday: 'gisteren',
+		today: 'Vandaag',
+		yesterday: 'Gisteren',
 		daysago: '{0} dagen geleden',
 	},
 	emoji: {

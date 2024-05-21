@@ -26,7 +26,7 @@ const i18nOptions: I18nOptions = {
 			},
 			short: {
 				year: 'numeric',
-				month: 'short',
+				month: 'long',
 				day: 'numeric',
 			},
 			long: {
@@ -45,7 +45,7 @@ const i18nOptions: I18nOptions = {
 			},
 			short: {
 				year: 'numeric',
-				month: 'short',
+				month: 'long',
 				day: 'numeric',
 			},
 			long: {

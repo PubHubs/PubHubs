@@ -1,6 +1,6 @@
 <template>
-	<div v-if="props.scrollStatus">
-		<span class="fixed top-28 right-1/3 px-2.5 bg-gray-middle text-white-middle dark:bg-gray-lighter dark:text-gray-middle text-center rounded-full animate-[bounce_3s_ease-in-out_infinite]">{{ displayDate() }}</span>
+	<div v-if="props.scrollStatus && displayDate() !== ''" class="fixed top-24 z-50">
+		<span class="fixed right-1/3 px-2.5 bg-gray-middle text-white-middle dark:bg-gray-lighter dark:text-gray-middle text-center rounded-full">{{ displayDate() }}</span>
 	</div>
 </template>
 
