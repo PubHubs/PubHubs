@@ -196,12 +196,10 @@ const useRooms = defineStore('rooms', {
 		updateRoomsWithMatrixRooms(rooms: MatrixRoom[]) {
 			this.roomsLoaded = true;
 			const tempRooms = {} as { [index: string]: Room }; // reset rooms
-			rooms
-				.filter((room) => room.getMyMembership() === 'join')
-				.forEach((matrixRoom) => {
-					//@ts-ignore
-					tempRooms[matrixRoom.roomId] = new Room(matrixRoom);
-				});
+			rooms.forEach((matrixRoom) => {
+				//@ts-ignore
+				tempRooms[matrixRoom.roomId] = new Room(matrixRoom);
+			});
 			this.rooms = tempRooms;
 		},
 

@@ -9,7 +9,6 @@
 						<MenuItem :roomInfo="room" :icon="roomIcon(room)" :active="isActive" :key="room.roomId" class="relative">
 							<PrivateRoomName v-if="room.isPrivateRoom()" :members="room.getOtherJoinedAndInvitedMembers()"></PrivateRoomName>
 							<RoomName v-else :room="room"></RoomName>
-
 							<div class="absolute top-2 right-14">
 								<Icon type="unlink" class="fixed cursor-pointer invisible hover:text-red group-hover:visible" @click.prevent="leaveRoom(room.roomId)"></Icon>
 								<div v-if="settings.isFeatureEnabled(featureFlagType.notifications)" class="fixed visible group-hover:invisible">
@@ -51,10 +50,8 @@
 		},
 	});
 
+	// Either private room or public room based on roomType
 	function showRoom(room: Room): Boolean {
-		if (room.isHidden()) {
-			return false;
-		}
 		if (props.roomType !== '') {
 			const type = props.roomType.substring(1);
 			if (props.roomType.charAt(0) === '!') {
