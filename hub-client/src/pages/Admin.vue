@@ -70,6 +70,7 @@
 	const showEditRoom = ref(false);
 
 	onMounted(async () => {
+		await rooms.fetchPublicRooms();
 		await rooms.fetchSecuredRooms();
 	});
 
