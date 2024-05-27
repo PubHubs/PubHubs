@@ -3,7 +3,7 @@
 		<InlineSpinner v-if="isLoadingNewEvents" class="fixed top-16"></InlineSpinner>
 		<DateDisplayer v-if="settings.isFeatureEnabled(featureFlagType.dateSplitter) && dateInformation !== 0" :scrollStatus="userHasScrolled" :eventTimeStamp="dateInformation.valueOf()"></DateDisplayer>
 		<div id="room-created-tag" v-if="oldestEventIsLoaded" class="rounded-xl flex items-center justify-center w-60 mx-auto mb-12 border border-solid border-black dark:border-white">{{ $t('rooms.roomCreated') }}</div>
-		<template v-for="item in myTimeLine" :key="item.event.event_id">
+		<template v-for="item in roomTimeLine" :key="item.event.event_id">
 			<div ref="elRoomEvent" :id="item.event.event_id">
 				<RoomEvent :room-type="room.getType()" :event="item.event" class="room-event" @on-in-reply-to-click="onInReplyToClick"></RoomEvent>
 				<UnreadMarker v-if="settings.isFeatureEnabled(featureFlagType.unreadMarkers)" :currentEventId="item.event.event_id" :currentUserId="user.user.userId"></UnreadMarker>
@@ -42,7 +42,7 @@
 
 	const props = defineProps<Props>();
 
-	const myTimeLine = computed(() => {
+	const roomTimeLine = computed(() => {
 		return props.room.getVisibleTimeline();
 	});
 

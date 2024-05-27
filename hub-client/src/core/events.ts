@@ -57,10 +57,17 @@ class Events {
 
 	eventRoomName(matrixRoom: MatrixRoom) {
 		const rooms = useRooms();
+		const pubhubs = usePubHubs();
 		// Room display name can  be just Empty Room or display name can also be Empty Room followed by peudonym
 		// Therefore, I can't compare it directly with equality, going with 'includes()' function to compare.
+
 		if (!matrixRoom.name.includes('Empty')) {
-			rooms.addRoom(new Room(matrixRoom));
+			// Check joined Room so that the PH client store is in sync with matrix for joined rooms.
+			pubhubs.client.getJoinedRooms().then((joinedRooms) => {
+				if (joinedRooms.joined_rooms.indexOf(matrixRoom.roomId) !== -1) {
+					rooms.addRoom(new Room(matrixRoom));
+				}
+			});
 		}
 	}
 
