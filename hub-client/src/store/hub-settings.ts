@@ -9,6 +9,8 @@ const useHubSettings = defineStore('hub-settings', {
 		return {
 			// @ts-ignore
 			parentUrl: _env.PARENT_URL,
+			// @ts-ignore
+			hubUrl: _env.HUB_URL,
 			isSolo: window.self === window.top,
 			mobileHubMenu: false,
 		};
