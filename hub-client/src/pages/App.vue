@@ -31,17 +31,17 @@
 						</router-link>
 					</Menu>
 
-					<!-- When user is admin, show the admin tools menu -->
-					<div v-if="user.isAdmin">
-						<div class="pl-5 border-b mr-8">
-							<H2>{{ $t('menu.admin_tools') }}</H2>
-						</div>
-						<Menu>
-							<router-link :to="{ name: 'admin' }" v-slot="{ isActive }">
-								<MenuItem icon="admin" :active="isActive" @click="toggleMenu.toggleGlobalMenu()">{{ $t('menu.admin_tools_rooms') }}</MenuItem>
-							</router-link>
-						</Menu>
+					<div class="flex justify-between items-center pl-5 border-b mr-8">
+						<H2>{{ $t('menu.rooms') }}</H2>
 					</div>
+					<RoomList></RoomList>
+					<DiscoverRooms></DiscoverRooms>
+
+					<div class="flex justify-between items-center pl-5 border-b mr-8">
+						<H2 class="">{{ $t('menu.private_rooms') }}</H2>
+					</div>
+					<RoomList :roomType="RoomType.PH_MESSAGES_DM"></RoomList>
+					<DiscoverUsers></DiscoverUsers>
 
 					<!-- When user is admin, show the moderation tools menu -->
 					<div v-if="disclosureEnabled && user.isAdmin">
@@ -55,17 +55,17 @@
 						</Menu>
 					</div>
 
-					<div class="flex justify-between items-center pl-5 border-b mr-8">
-						<H2>{{ $t('menu.rooms') }}</H2>
-						<Icon type="plus" class="cursor-pointer hover:text-green" @click="joinRoomDialog = true"></Icon>
+					<!-- When user is admin, show the admin tools menu -->
+					<div v-if="user.isAdmin">
+						<div class="pl-5 border-b mr-8">
+							<H2>{{ $t('menu.admin_tools') }}</H2>
+						</div>
+						<Menu>
+							<router-link :to="{ name: 'admin' }" v-slot="{ isActive }">
+								<MenuItem icon="admin" :active="isActive" @click="toggleMenu.toggleGlobalMenu()">{{ $t('menu.admin_tools_rooms') }}</MenuItem>
+							</router-link>
+						</Menu>
 					</div>
-					<RoomList></RoomList>
-
-					<div class="flex justify-between items-center pl-5 border-b mr-8">
-						<H2 class="">{{ $t('menu.private_rooms') }}</H2>
-						<Icon type="plus" class="cursor-pointer hover:text-green" @click="addPrivateRoomDialog = true"></Icon>
-					</div>
-					<RoomList :roomType="RoomType.PH_MESSAGES_DM"></RoomList>
 				</HeaderFooter>
 
 				<div class="md:col-span-6 md:block dark:bg-gray-middle max-h-screen overflow-y-auto scrollbar" :class="{ hidden: hubSettings.mobileHubMenu }">
@@ -78,7 +78,6 @@
 			</div>
 		</div>
 
-		<JoinRoom v-if="joinRoomDialog" @close="joinRoomDialog = false"></JoinRoom>
 		<AddPrivateRoom v-if="addPrivateRoomDialog" @close="addPrivateRoomDialog = false"></AddPrivateRoom>
 		<Disclosure v-if="disclosureEnabled"></Disclosure>
 
@@ -116,8 +115,6 @@
 	const settingsDialog = ref(false);
 
 	const setupReady = ref(false);
-	const joinRoomDialog = ref(false);
-	const addPrivateRoomDialog = ref(false);
 	const disclosureEnabled = settings.isFeatureEnabled('disclosure');
 	const avatar = ref('');
 

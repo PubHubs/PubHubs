@@ -1,9 +1,17 @@
 <template>
-	<Dialog :buttons="buttonsCancel" @close="close()">
-		<template #header>
-			{{ $t('rooms.private_add') }}
-		</template>
-		<FilteredList :items="usersList" filterKey="displayName" sortby="displayName" :placeholder="$t('rooms.private_search_user')" @click="addNewPrivateRoom($event)" @filter="filter($event)">
+	<div class="pl-6 pr-8 relative">
+		<Icon type="compass" class="absolute -ml-2 bg-white dark:bg-gray-dark"></Icon>
+		<FilteredList
+			:items="usersList"
+			filterKey="displayName"
+			sortby="displayName"
+			:placeholder="$t('rooms.private_search_user')"
+			@click="addNewPrivateRoom($event)"
+			@filter="filter($event)"
+			:inputClass="'pl-6'"
+			:listClass="'-mt-[17px] border rounded-md shadow-md'"
+			:showCompleteList="false"
+		>
 			<template #item="{ item }">
 				<div class="flex justify-between">
 					<span :title="item.userId" class="grow truncate w-100">{{ item.displayName }}</span>
@@ -11,7 +19,7 @@
 				</div>
 			</template>
 		</FilteredList>
-	</Dialog>
+	</div>
 </template>
 
 <script setup lang="ts">
@@ -20,21 +28,17 @@
 	import { useRouter } from 'vue-router';
 	import { usePubHubs } from '@/core/pubhubsStore';
 	import { useUser } from '@/store/store';
-	import { buttonsCancel } from '@/store/dialog';
 	import { FilteredListEvent } from '@/types/components';
-	import { useToggleMenu } from '@/store/toggleGlobalMenu';
 
 	const router = useRouter();
 	const pubhubs = usePubHubs();
 	const user = useUser();
 	const emit = defineEmits(['close']);
-	const toggleMenu = useToggleMenu();
 
 	const users = ref([] as Array<MatrixUser>);
 
 	onMounted(async () => {
 		users.value = await pubhubs.getUsers();
-		toggleMenu.toggleGlobalMenu();
 	});
 
 	const usersList = computed(() => {
@@ -64,7 +68,6 @@
 
 	async function close() {
 		emit('close');
-		toggleMenu.toggleGlobalMenu();
 	}
 
 	async function filter(event: FilteredListEvent) {

@@ -59,7 +59,7 @@ describe('DateDisplayer.vue Test', () => {
 	// 	// Existence of html elements in component check
 	// 	await flushPromises();
 	// 	expect(wrapper.vm.scrollStatus).toEqual(true);
-		
+
 	// 	expect(wrapper.find('div').exists()).toBeTruthy();
 	// 	expect(wrapper.find('span').exists()).toBeTruthy();
 

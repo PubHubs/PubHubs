@@ -79,7 +79,7 @@ const nl = {
 		private_rooms: 'Privé gesprekken',
 		private_topic: 'Een privégesprek tussen',
 		private_add: 'Nieuw privégesprek',
-		private_search_user: 'Zoek persoon, typen kan meer resultaten geven.',
+		private_search_user: 'Zoek persoon',
 		rooms: 'Gesprekken',
 		join_room: 'Wordt lid van een gesprek',
 		add_room: 'Voeg gesprek toe',
@@ -105,6 +105,7 @@ const nl = {
 		event: 'Evenement',
 		discussion: 'Discussie',
 		roomCreated: 'Gesprek aangemaakt',
+		discover: 'Ontdek gesprekken',
 	},
 	settings: {
 		userId: 'UserID',
