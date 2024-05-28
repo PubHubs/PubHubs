@@ -1,5 +1,5 @@
 <template>
-	<Dialog :title="title" :buttons="buttonsSubmitCancel" @close="close($event)">
+	<Dialog :title="title" :buttons="buttonsSubmitCancel" @close="close($event)" width="w-full max-w-[960px]">
 		<form @submit.prevent class="flex flex-col gap-4">
 			<FormLine>
 				<Label>{{ $t('admin.name') }}</Label>
@@ -96,7 +96,7 @@
 	const editRoom = ref({} as TPublicRoom | TSecuredRoom);
 
 	const securedRoomTemplate = ref([
-		{ key: 'yivi', label: t('admin.secured_attribute'), type: 'select', options: [], default: '' },
+		{ key: 'yivi', label: t('admin.secured_attribute'), type: 'autocomplete', options: [], default: '' },
 		{ key: 'values', label: t('admin.secured_values'), type: 'textarea', default: '', maxLength: 3000 },
 		{ key: 'profile', label: t('admin.secured_profile'), type: 'checkbox', default: false },
 	] as Array<FormObjectInputTemplate>);

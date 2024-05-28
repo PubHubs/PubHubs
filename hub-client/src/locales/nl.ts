@@ -66,6 +66,7 @@ const nl = {
 		nop: 'Deze functionaleit is nog niet gerealiseerd.',
 		search: 'Zoeken',
 		read_receipt: 'Gelezen door',
+		typing: 'Start typen...',
 	},
 	rooms: {
 		me: 'Ik',

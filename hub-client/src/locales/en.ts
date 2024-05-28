@@ -66,6 +66,7 @@ const en = {
 		nop: 'This feature is not implement yet.',
 		search: 'Search',
 		read_receipt: 'Read by',
+		typing: 'Start typing...',
 	},
 	rooms: {
 		me: 'Me',
