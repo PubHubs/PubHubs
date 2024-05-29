@@ -17,6 +17,7 @@ deploy-main-hubclient:
   script:
     - cd hub-client
     - chmod 600 $ILAB_VM_TRIGGER_UPDATE_KEY
+    - echo "hello"
     - echo $ILAB_VM_TRIGGER_UPDATE_KNONWN_HOSTS
     - cat $ILAB_VM_TRIGGER_UPDATE_KNONWN_HOSTS
     - ssh ph.ihub.ru.nl
