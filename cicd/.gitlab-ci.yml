@@ -20,4 +20,4 @@ deploy-main-hubclient:
     - echo "hello"
     - echo $ILAB_VM_TRIGGER_UPDATE_KNOWN_HOSTS
     - cat $ILAB_VM_TRIGGER_UPDATE_KNOWN_HOSTS
-    - ssh -v -o UserKnownHostsFile=$ILAB_VM_TRIGGER_UPDATE_KNOWN_HOSTS $ILAB_VM_TRIGGER_UPDATE_USER@ph.ihub.ru.nl -i $ILAB_VM_TRIGGER_UPDATE_KEY docker-testhub-client-main
+    - ssh -vv -o UserKnownHostsFile=$ILAB_VM_TRIGGER_UPDATE_KNOWN_HOSTS $ILAB_VM_TRIGGER_UPDATE_USER@ph.ihub.ru.nl -i $ILAB_VM_TRIGGER_UPDATE_KEY docker-testhub-client-main
