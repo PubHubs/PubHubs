@@ -13,6 +13,11 @@ const useToggleMenu = defineStore('toggleMenu', {
 			this.globalIsActive = !this.globalIsActive;
 			messageBox.sendMessage(new Message(MessageType.mobileHubMenu, this.globalIsActive));
 		},
+		showMenu() {
+			const messageBox = useMessageBox();
+			this.globalIsActive = true;
+			messageBox.sendMessage(new Message(MessageType.mobileHubMenu, this.globalIsActive));
+		},
 	},
 });
 
