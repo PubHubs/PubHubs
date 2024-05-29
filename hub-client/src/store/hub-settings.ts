@@ -12,7 +12,7 @@ const useHubSettings = defineStore('hub-settings', {
 			// @ts-ignore
 			hubUrl: _env.HUB_URL,
 			isSolo: window.self === window.top,
-			mobileHubMenu: false,
+			mobileHubMenu: true,
 		};
 	},
 
