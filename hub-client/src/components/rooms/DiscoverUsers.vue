@@ -1,6 +1,6 @@
 <template>
 	<div class="pl-6 pr-8 relative">
-		<Icon type="compass" class="absolute -ml-2 bg-white dark:bg-gray-dark"></Icon>
+		<Icon type="compass" class="absolute -ml-2 bg-white dark:bg-hub-background-2"></Icon>
 		<FilteredList
 			:items="usersList"
 			filterKey="displayName"

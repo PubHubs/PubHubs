@@ -1,6 +1,6 @@
 <template>
 	<div class="pl-6 pr-8 relative">
-		<Icon type="compass" class="absolute -ml-2 bg-white dark:bg-gray-dark"></Icon>
+		<Icon type="compass" class="absolute -ml-2 bg-white dark:bg-hub-background-2"></Icon>
 		<FilteredList :items="rooms.visiblePublicRooms" sortby="name" :placeholder="$t('rooms.discover')" :inputClass="'pl-6'" :listClass="'-mt-[17px] border rounded-md shadow-md'" :showCompleteList="false" @click="joinRoom($event)">
 			<template #item="{ item }">
 				<div class="flex justify-between">
