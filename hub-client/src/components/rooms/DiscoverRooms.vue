@@ -1,5 +1,5 @@
 <template>
-	<div class="pl-6 pr-8 relative" @focusin="focus(true)" @focusout="focus(false)" @keydown.esc="focus(false)">
+	<div class="pl-6 pr-8 relative" @focusin="focus(true)" @click="focus(true)" @keydown.esc="focus(false)" @mouseleave="focus(false)">
 		<Icon type="compass" class="absolute -ml-2 bg-white dark:bg-hub-background-2"></Icon>
 		<FilteredList :items="rooms.visiblePublicRooms" sortby="name" :placeholder="$t('rooms.discover')" :inputClass="'pl-6'" :listClass="'-mt-[17px] border rounded-md shadow-md'" :showCompleteList="showList" @click="joinRoom($event)">
 			<template #item="{ item }">
@@ -43,6 +43,7 @@
 	}
 
 	async function close() {
+		focus(false);
 		emit('close');
 	}
 </script>
