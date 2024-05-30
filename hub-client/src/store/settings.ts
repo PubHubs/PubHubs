@@ -87,19 +87,19 @@ const defaultSettings: Settings = {
 	 */
 	featureFlags: {
 		// main
-		signedMessages: true,
-		plugins: true,
-		dateSplitter: true,
-		disclosure: true,
-		unreadmarkers: true,
-		notifications: true,
-		// stable
 		// signedMessages: true,
 		// plugins: true,
 		// dateSplitter: true,
-		// disclosure: false,
+		// disclosure: true,
 		// unreadmarkers: true,
 		// notifications: true,
+		// stable
+		signedMessages: true,
+		plugins: true,
+		dateSplitter: true,
+		disclosure: false,
+		unreadmarkers: true,
+		notifications: true,
 	},
 };
 
