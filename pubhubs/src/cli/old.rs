@@ -566,7 +566,7 @@ async fn yivi_finish_and_redirect_anyhow(
         resp_with_cookie.status(http::StatusCode::SEE_OTHER);
         resp_with_cookie.insert_header((
             http::header::LOCATION,
-            format!("/account/{}", user.external_id),
+            format!("/client"),
         ));
         return Ok(resp_with_cookie.finish());
     }
@@ -2167,7 +2167,7 @@ mod tests {
         assert!(response.headers().contains_key(SET_COOKIE));
         assert_eq!(
             response.headers().get(LOCATION).unwrap(),
-            &format!("/account/{user_id}")
+            &format!("/client")
         );
 
         //existing user hub login
@@ -2265,7 +2265,7 @@ mod tests {
         assert_eq!(response.status(), StatusCode::SEE_OTHER);
         assert_eq!(
             response.headers().get(LOCATION).unwrap().to_str().unwrap(),
-            format!("/account/{}", &new_user.external_id)
+            format!("/client")
         );
         assert!(response.headers().contains_key(SET_COOKIE));
 
