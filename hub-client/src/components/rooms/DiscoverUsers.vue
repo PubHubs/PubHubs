@@ -1,5 +1,5 @@
 <template>
-	<div class="pl-6 pr-8 relative">
+	<div class="pl-6 pr-8 relative" @focusin="focus(true)" @focusout="focus(false)" @keydown.esc="focus(false)">
 		<Icon type="compass" class="absolute -ml-2 bg-white dark:bg-hub-background-2"></Icon>
 		<FilteredList
 			:items="usersList"
@@ -10,7 +10,7 @@
 			@filter="filter($event)"
 			:inputClass="'pl-6'"
 			:listClass="'-mt-[17px] border rounded-md shadow-md'"
-			:showCompleteList="false"
+			:showCompleteList="showList"
 		>
 			<template #item="{ item }">
 				<div class="flex justify-between">
@@ -34,12 +34,17 @@
 	const pubhubs = usePubHubs();
 	const user = useUser();
 	const emit = defineEmits(['close']);
+	const showList = ref(false);
 
 	const users = ref([] as Array<MatrixUser>);
 
 	onMounted(async () => {
 		users.value = await pubhubs.getUsers();
 	});
+
+	function focus(focus: boolean) {
+		showList.value = focus;
+	}
 
 	const usersList = computed(() => {
 		let list = users.value as any;
