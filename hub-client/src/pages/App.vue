@@ -15,6 +15,7 @@
 								<Avatar
 									:userId="user.user.userId"
 									:img="avatar"
+									:icon="true"
 									@click="
 										settingsDialog = true;
 										toggleMenu.toggleGlobalMenu();

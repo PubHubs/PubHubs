@@ -1,7 +1,7 @@
 <template>
 	<div class="rounded-full w-12 h-12 flex items-center justify-center overflow-hidden" :class="bgColor(color(userId))">
 		<img v-if="image !== ''" :src="image" class="rounded-full w-full h-full" />
-		<Icon v-else-if="display === '@'" type="person" class="right-0 group-hover:block h-16 w-16"></Icon>
+		<Icon v-else-if="icon || display === '@'" type="person" class="right-0 group-hover:block h-16 w-16"></Icon>
 		<span v-else :class="rooms.currentRoom === undefined ? 'text-center text-5xl' : 'text-center text-2xl'">
 			{{ display }}
 		</span>
@@ -24,11 +24,13 @@
 		userId: string;
 		img?: string;
 		notMention?: boolean;
+		icon?: boolean;
 	};
 
 	const props = withDefaults(defineProps<Props>(), {
 		img: '',
 		notMention: false,
+		icon: false,
 	});
 
 	const avatar = computed(() => {
@@ -58,10 +60,10 @@
 			// IT should not happen, but just in case we should be only the lookout if it happens.
 			// Debugging trace to check this.s
 			console.trace('`name` argument to `getInitialLetter` not supplied', name, props.userId);
-			return undefined;
+			return '@';
 		}
 		if (name.length < 1) {
-			return undefined;
+			return '@';
 		}
 
 		const initial = name[0];
