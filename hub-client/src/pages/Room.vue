@@ -10,7 +10,10 @@
 								<TruncatedText>
 									<H1 class="m-0 text-hub-accent md:text-xl">
 										<PrivateRoomName v-if="rooms.currentRoom.isPrivateRoom()" :members="members"></PrivateRoomName>
-										<RoomName v-else :room="rooms.currentRoom"></RoomName>
+										<template v-else>
+											{{ $t('rooms.room') }}
+											<RoomName :room="rooms.currentRoom"></RoomName>
+										</template>
 									</H1>
 								</TruncatedText>
 								<TruncatedText>
