@@ -1,55 +1,79 @@
-<!DOCTYPE html>
-<html lang="nl">
-
-<head>
-    <meta charset="UTF-8">
+<!doctype html>
+<html lang="nl" data-bs-theme="light">
+  <head>
+    <meta charset="UTF-8" />
     <title>Regels en privacybeleid</title>
-    <meta name="viewport" content="width=device-width, user-scalable=no">
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.0.2/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-EVSTQN3/azprG1Anm3QDgpJLIm9Nao0Yz1ztcQTwFspd3yD65VohhpuuCOmLASjC" crossorigin="anonymous">
-</head>
-
-<body class="d-flex justify-content-center">
+    <meta name="viewport" content="width=device-width, user-scalable=no" />
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-QWTKZyjpPEjISv5WaRU9OFeRpok6YctnYmDr5pNlyT2bRjXh0JMhjY6hW+ALEwIH" crossorigin="anonymous">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible&display=swap" rel="stylesheet">
+  </head>
+  <body class="d-flex justify-content-center" style="font-family: 'Atkinson Hyperlegible', sans-serif;">
     {% if not public_version %}
-    <form method="post" class="mt-3" action="{{my_url}}" id="consent_form">
-        <div class="bg-light p-5 mt-5 border rounded">
-            <header class="lead">
-                <h1>Uw Test Hub account staat klaar</h1>
-                <p>Stem in met de huisregels en het privacybeleid om door te gaan.</p>
-            </header>
-            <main>
-                <p>Samengevat:</p>
-                <ul>
-                    <li>
-                        Respecteer elkaar en elkaars privacy
-                    </li>
-                    <li>
-                        We kennen je onder een pseudoniem en bewaren wat gegevens over je
-                    </li>
-                    <li>
-                        Nog wat meer
-                    </li>
-                </ul>
-
-                <a href="{{ terms_url }}" target="_blank" rel="noopener">Lees hier de volledige versie</a>.
-
-                <p>
-                    <input id="accepted_version" class="form-check-input" type="checkbox" name="accepted_version" value="{{ consent_version }}" required>
-                    <label class="form-check-label" for="accepted_version">Ik accepteer deze regels </label>
-                </p>
-                <input type="submit" class="btn btn-primary" value="Ga door" />
-            </main>
-        </div>
-    </form>
-    {% else %}
-    <div class="bg-light p-5 mt-5 border rounded">
-        <header class="lead">
-            <h1>Helaas alleen als u bent ingelogd kunt u akkoord gaan met de voorwaarden.</h1>
+    <form method="post" class="mt-" action="{{my_url}}" id="consent_form">
+      <div class="p-5 mt-5 border rounded">
+        <header class="lead" >
+          <h1>Uw Test Hub account staat klaar</h1>
+          <p>Stem in met de huisregels en het privacybeleid om door te gaan.</p>
         </header>
         <main>
-            <a href="{{ terms_url }}" target="_blank" rel="noopener">Lees hier de volledige versie</a>.
+          <p>Samengevat:</p>
+          <ul>
+            <li>Respecteer elkaar en elkaars privacy</li>
+            <li>
+              We kennen je onder een pseudoniem en bewaren wat gegevens over je
+            </li>
+            <li>Nog wat meer</li>
+          </ul>
+
+          <a href="{{ terms_url }}" target="_blank" rel="noopener"
+            >Lees hier de volledige versie</a
+          >.
+
+          <p>
+            <input
+              id="accepted_version"
+              class="form-check-input"
+              type="checkbox"
+              name="accepted_version"
+              value="{{ consent_version }}"
+              required
+            />
+            <label class="form-check-label" for="accepted_version"
+              >Ik accepteer deze regels
+            </label>
+          </p>
+          <input type="submit" class="btn btn-primary" value="Ga door" />
         </main>
+      </div>
+    </form>
+    {% else %}
+    <div class="p-5 mt-5 border rounded">
+      <header class="lead">
+        <h1>
+          Helaas alleen als u bent ingelogd kunt u akkoord gaan met de
+          voorwaarden.
+        </h1>
+      </header>
+      <main>
+        <a href="{{ terms_url }}" target="_blank" rel="noopener"
+          >Lees hier de volledige versie</a
+        >.
+      </main>
     </div>
     {% endif %}
-</body>
-
+  </body>
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js" integrity="sha384-YvpcrYf0tY3lHB60NNkmXc5s9fDVZLESaAA55NDzOxhy9GkcIdslK1eN7N6jIeHz" crossorigin="anonymous"></script>
+  <script type="text/javascript"> 
+  var htmlElement = document.documentElement;
+  const darkThemeMq = window.matchMedia("(prefers-color-scheme: dark)");
+  // Already set theme.
+  darkThemeMq.matches ? htmlElement.setAttribute('data-bs-theme', 'dark') : htmlElement.setAttribute('data-bs-theme', 'light');
+  // When changing the theme
+  darkThemeMq.addEventListener('change',({ matches }) => {
+    matches ?  htmlElement.setAttribute('data-bs-theme', 'dark') : htmlElement.setAttribute('data-bs-theme', 'light');
+  })
+  
+  </script>
 </html>
