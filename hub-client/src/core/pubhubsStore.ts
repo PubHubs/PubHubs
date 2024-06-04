@@ -484,12 +484,6 @@ const usePubHubs = defineStore('pubhubs', {
 				i++;
 			}
 		},
-
-		async hasUserJoinedHub(): Promise<Object>{
-			const loggedInUser = useUser();
-			const resp = await api_synapse.apiPOST<Object>(api_synapse.apiURLS.joinHub, { user: loggedInUser.user.userId });
-			return resp;
-		}
 	},
 });
 

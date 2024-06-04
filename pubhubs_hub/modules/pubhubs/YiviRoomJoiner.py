@@ -8,7 +8,6 @@ from synapse.module_api.errors import ConfigError
 from twisted.web.server import Request
 
 from ._yivi_proxy import ProxyServlet
-from ._hub import HubJoiner
 from ._secured_rooms_web import SecuredRoomsServlet, NoticesServlet, SecuredRoomExtraServlet
 from ._store import YiviRoomJoinStore
 from ._web import JoinServlet
@@ -129,8 +128,6 @@ class YiviRoomJoiner(object):
                 self.config[SERVER_NOTICES_USER],
             ),
         )
-
-        api.register_web_resource("/_synapse/client/hubjoined", HubJoiner(self.store, self.module_api))
 
         api.register_web_resource("/_synapse/client/notices", NoticesServlet(self.config[SERVER_NOTICES_USER]))
 
