@@ -17,7 +17,6 @@ if (typeof _env !== 'undefined') {
 // @ts-ignore
 const api_synapse = new Api(BASE_URL + '/_synapse/', {
 	securedRooms: 'client/secured_rooms',
-	joinHub: 'client/hubjoined',
 	deleteRoom: 'admin/v2/rooms/',
 	notice: 'client/notices',
 	securedRoom: 'client/srextra',

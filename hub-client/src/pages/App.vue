@@ -2,8 +2,7 @@
 	<div :class="settings.getActiveTheme">
 		<div v-if="setupReady" class="max-h-screen text-hub-text">
 			<div v-if="user.isLoggedIn" class="md:grid md:grid-cols-8">
-				<Welcome v-if="welcomeScreen" @close="welcomeScreen = false"></Welcome>
-				<HeaderFooter class="md:col-span-2 md:flex gap-4 bg-hub-background-2 z-0" :class="{ hidden: !hubSettings.mobileHubMenu }">
+				<HeaderFooter class="md:col-span-2 md:flex gap-4 bg-hub-background-2" :class="{ hidden: !hubSettings.mobileHubMenu }">
 					<template #header>
 						<div class="flex justify-between gap-4 items-end border-b h-full py-2 pl-5 mr-8">
 							<div class="flex h-full">
@@ -114,7 +113,7 @@
 	const menu = useMenu();
 	const toggleMenu = useToggleMenu();
 	const settingsDialog = ref(false);
-	const welcomeScreen = ref(true);
+
 	const setupReady = ref(false);
 	const disclosureEnabled = settings.isFeatureEnabled('disclosure');
 	const avatar = ref('');
