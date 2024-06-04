@@ -16,16 +16,7 @@
 			:placeholder="$t('others.typing')"
 		/>
 		<ul v-if="result.length > 1" class="w-full border border-black px-2 py-1 rounded-lg absolute z-50 bg-white shadow-md">
-			<li
-				v-for="(item, index) in result"
-				:key="index"
-				@click="
-					selectItem(item);
-					update(item[label]);
-				"
-				class="cursor-pointer text-black"
-				:class="{ 'bg-lightgray': cursor === index }"
-			>
+			<li v-for="(item, index) in result" :key="index" @click="click(item)" class="cursor-pointer text-black" :class="{ 'bg-lightgray': cursor === index }">
 				{{ item[label] }}
 			</li>
 		</ul>
@@ -33,8 +24,8 @@
 </template>
 
 <script setup lang="ts">
-	import { computed, PropType } from 'vue';
-	import { Options, useFormInputEvents, usedEvents } from '@/composables/useFormInputEvents';
+	import { onMounted, computed, PropType } from 'vue';
+	import { InputType, Options, useFormInputEvents, usedEvents } from '@/composables/useFormInputEvents';
 	import { useKeyStrokes } from '@/composables/useKeyStrokes';
 
 	type Props = {
@@ -52,8 +43,9 @@
 	const { value: search, setValue, update } = useFormInputEvents(emit);
 	const { setItems, cursor, cursorDown, cursorUp, reset, selectItem, selectItemByEnter } = useKeyStrokes();
 
-	//@ts-ignore
-	setValue(props.value[props.label]);
+	onMounted(() => {
+		setValue(props.value as InputType);
+	});
 
 	const result = computed(() => {
 		if (search.value === '' || search.value === undefined) {
@@ -76,9 +68,17 @@
 
 	const enter = () => {
 		const item = selectItemByEnter();
+		select(item);
+	};
+
+	const select = (item: any) => {
 		selectItem(item);
-		search.value = item[props.label];
-		update(item);
-		search.value = item[props.label];
+		setValue(item[props.label]);
+		update(item[props.label]);
+	};
+
+	const click = (item: any) => {
+		setValue(item[props.label]);
+		update(item[props.label]);
 	};
 </script>
