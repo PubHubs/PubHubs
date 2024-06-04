@@ -26,8 +26,8 @@
 	const elTextarea: Ref<null | HTMLTextAreaElement> = ref(null);
 
 	type Props = {
-		placeholder: string;
 		modelValue: string;
+		placeholder?: string;
 		maxLength?: number;
 	};
 	const props = withDefaults(defineProps<Props>(), { placeholder: '', maxLength: 1500 });

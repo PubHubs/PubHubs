@@ -89,14 +89,14 @@ const defaultSettings: Settings = {
 		// main
 		// signedMessages: true,
 		// plugins: true,
-		// dateSplitter: false,
+		// dateSplitter: true,
 		// disclosure: true,
 		// unreadmarkers: true,
 		// notifications: true,
 		// stable
 		signedMessages: true,
 		plugins: true,
-		dateSplitter: false,
+		dateSplitter: true,
 		disclosure: false,
 		unreadmarkers: true,
 		notifications: true,

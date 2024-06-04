@@ -22,7 +22,7 @@ import { en } from './locales/en';
 //
 const plugin: MenuPluginProperties = {
 	// Name, just for reference
-	enabled: true,
+	enabled: false,
 	name: 'menu-example',
 
 	// The type of the plugin, in this case 'menu'

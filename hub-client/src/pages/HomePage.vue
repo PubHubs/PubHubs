@@ -1,111 +1,61 @@
 <template>
 	<div class="flex flex-col h-full md:mt-0 mt-16 xl:max-w-screen-xl m-auto p-5 gap-8">
-		<div class="flex flex-col w-6/12 mt-4 mx-auto">
-			<H1 class="text-center mb-8">{{ $t('home.hub_homepage_welcome_auth') }}</H1>
+		<div class="flex flex-col w-6/12 mt-20 mx-auto">
+			<H1 v-if="!isTryOutHub()" class="text-center mb-8">{{ $t('home.hub_homepage_welcome_auth') }}</H1>
+			<H1 v-else class="text-center mb-8">Welkom bij de TryOutHub</H1>
 			<Logo class="mx-auto max-w-24 max-h-20"></Logo>
+
+			<div v-if="isTryOutHub()" class="mt-20">
+				<p class="mb-6">
+					Hier kun je als organisatie een eigen Room krijgen om PubHubs zelf uit te proberen. Stel je organisatie heet ABC met webadres abc.nl. Dan kun je hier een eigen gesloten Room krijgen met naam ABC, binnen de TryOutHub.
+					Alleen mensen die kunnen laten zien (via de Yivi app) dat ze een e-mailadres hebben van de vorm ...@abc.nl kunnen in deze Room ABC. Zo kunnen alleen eigen mensen van de room gebruik maken.
+				</p>
+				<p class="mb-6">Heb je interesse? Neem contact op via: <a style="all: revert" href="mailto:contact@pubhubs.nl">contact@pubhubs.nl</a></p>
+				<p class="mb-6">
+					Het PubHubs team aan de Radboud Universiteit wil per Room een contactpersoon en aanspreekpunt (van organisatie ABC) die zichzelf bekend maakt (o.a. met mobiele nummer) en verantwoordelijkheid op zich neemt voor de inhoud
+					en de toon van de gesprekken in de room ABC. Bij signalen van misbruik zal het PubHubs team de Room verwijderen.
+				</p>
+				<p class="mb-6">
+					Binnen TryOutHub is er een Feedback Room waar iedereen in kan. Daar kunnen aanvullende vragen gesteld worden. Ook kunnen daar suggesties voor verbetering van PubHubs gegeven worden. Zulke feedback wordt gewaardeerd.
+				</p>
+				<p class="mb-6">
+					De gegevens van de Room ABC zullen verwerkt worden op computers van de Radboud Universiteit. Gebruik de eigen experimentele Room dus niet voor vertrouwelijke informatie. Er worden geen garanties gegeven over de
+					beschikbaarheid. Het gaat hier om een experimentele opzet, bedoeld om mensen en organisaties een beeld te geven van de stand van zaken en ontwikkeling van PubHubs. De Radboud Universiteit is hierbij op geen enkele manier
+					aansprakelijk.
+				</p>
+				<p class="mb-6">
+					Organisaties kunnen ook een stap verder gaan en een eigen Hub opzetten binnen PubHubs, met daarin meerdere Rooms. Dan vindt alle gegevensverwerking locaal plaats, op eigen systemen. Interesse? Neem dan ook contact op.
+				</p>
+			</div>
+
+			<Button v-if="!showPubHubsCentralLoginButton && !isTryOutHub()" class="mt-10 text-xs md:text-base" @click="login()">{{ $t('home.hub_homepage_join') }}</Button>
+			<Button v-if="!showPubHubsCentralLoginButton && isTryOutHub()" class="mt-10 text-xs md:text-base" @click="login()">Doe mee met de TryOutHub </Button>
 		</div>
-
-		<!-- <div class="flex flex-col w-full">
-			<H3>{{ $t('rooms.latest_news') }}</H3>
-			<div class="flex flex-col md:flex-row justify-between gap-4">
-				<ArticleBlock>
-					<template #header>Relevante video titel</template>
-					<template #category>{{ $t('rooms.watch') }}</template>
-					<template #content>Video | 20-12-2022</template>
-				</ArticleBlock>
-				<ArticleBlock>
-					<template #header>Artikel over iets leuks</template>
-					<template #category>{{ $t('rooms.read') }}</template>
-					<template #content>Artikel - 28 November</template>
-				</ArticleBlock>
-				<ArticleBlock>
-					<template #header>Voorbeeld hub meetup 2022</template>
-					<template #category>{{ $t('rooms.event') }}</template>
-					<template #content>9 december, Goffertpark Nijmegen</template>
-				</ArticleBlock>
-			</div>
-			<div class="flex justify-end mt-4">
-				<button class="dark:bg-gray-dark rounded-md px-3 tracking-wide">{{ $t('rooms.more_news') }} →</button>
-			</div>
-		</div> -->
-
-		<!-- <div class="flex flex-col w-full">
-			<H3>{{ $t('rooms.latest_news') }}</H3>
-			<div class="flex flex-col md:flex-row justify-between gap-4">
-				<ArticleBlock>
-					<template #header>Relevante video titel</template>
-					<template #category>{{ $t('rooms.watch') }}</template>
-					<template #content>Video | 20-12-2022</template>
-				</ArticleBlock>
-				<ArticleBlock>
-					<template #header>Artikel over iets leuks</template>
-					<template #category>{{ $t('rooms.read') }}</template>
-					<template #content>Artikel - 28 November</template>
-				</ArticleBlock>
-				<ArticleBlock>
-					<template #header>Voorbeeld hub meetup 2022</template>
-					<template #category>{{ $t('rooms.event') }}</template>
-					<template #content>9 december, Goffertpark Nijmegen</template>
-				</ArticleBlock>
-			</div>
-			<div class="flex justify-end mt-4">
-				<button class="dark:bg-gray-dark rounded-md px-3 tracking-wide">{{ $t('rooms.more_news') }} →</button>
-			</div>
-		</div> -->
-
-		<!-- <div class="relative right-1/2 md:right-0 focus-within:right-4 md:focus-within:right-0 transition-all duration-200 p-6 md:p-0 w-full mx-auto">
-			<SearchInput></SearchInput>
-		</div> -->
-
-		<!-- <div>
-			<H3>{{ $t('rooms.popular_rooms') }}</H3>
-			<div class="flex flex-col gap-4">
-				<div class="flex flex-col md:flex-row justify-between gap-4">
-					<ArticleBlock>
-						<template #header>Smartphones en jonge kinderen</template>
-						<template #category>{{ $t('rooms.discussion') }}</template>
-						<template #content>20-12-2022</template>
-					</ArticleBlock>
-					<ArticleBlock>
-						<template #header>Voorbeeld discussie</template>
-						<template #category>{{ $t('rooms.discussion') }}</template>
-						<template #content>20-12-2022</template>
-					</ArticleBlock>
-					<ArticleBlock>
-						<template #header>Voorbeeld room</template>
-						<template #category>{{ $t('rooms.discussion') }}</template>
-						<template #content>20-12-2022</template>
-					</ArticleBlock>
-				</div>
-				<div class="flex flex-col md:flex-row justify-between gap-4">
-					<ArticleBlock>
-						<template #header>Smartphones en jonge kinderen</template>
-						<template #category>{{ $t('rooms.discussion') }}</template>
-						<template #content>20-12-2022</template>
-					</ArticleBlock>
-					<ArticleBlock>
-						<template #header>Voorbeeld discussie</template>
-						<template #category>{{ $t('rooms.discussion') }}</template>
-						<template #content>20-12-2022</template>
-					</ArticleBlock>
-					<ArticleBlock>
-						<template #header>Voorbeeld room</template>
-						<template #category>{{ $t('rooms.discussion') }}</template>
-						<template #content>20-12-2022</template>
-					</ArticleBlock>
-				</div>
-			</div>
-			<div class="flex justify-end py-4">
-				<button class="dark:bg-gray-dark rounded-md px-3 tracking-wide">{{ $t('rooms.more_suggestions') }} →</button>
-			</div>
-		</div> -->
 	</div>
 </template>
 
 <script setup lang="ts">
+	import { usePubHubs } from '@/core/pubhubsStore';
+	import { useHubSettings } from '@/store/store';
+	const pubhubs = usePubHubs();
+	const hubSettings = useHubSettings();
+
+	type Props = {
+		/** This page can be shown to users that are not yet logged in to PubHubs Central. */
+		showPubHubsCentralLoginButton: boolean;
+	};
+
+	const props = defineProps<Props>();
+
 	/**
-	 *
-	 * This HOME page will be shown if a user is authenticated in PubHubs Central.
-	 *
+	 * A hack to show a different homepage for the TryOutHub
+	 * We ar still thinking about how to improve hub onboarding.
 	 */
+	function isTryOutHub(): boolean {
+		return hubSettings.hubUrl === 'https://stable.tryouthub-matrix.pubhubs.net';
+	}
+
+	function login() {
+		pubhubs.centralLogin();
+	}
 </script>
