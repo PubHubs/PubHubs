@@ -16,7 +16,7 @@
 				<TextArea class="theme-light:bg-white" v-if="type.type === 'textarea'" :modelValue="item[type.key]" :maxLength="type.maxLength" @input="update(index, type.key, $event.target.value)"></TextArea>
 				<Checkbox v-if="type.type === 'checkbox'" :value="item[type.key]" @input="update(index, type.key, $event.target.checked)"></Checkbox>
 				<Select v-if="type.type === 'select'" :value="item[type.key]" :options="type.options" @input="update(index, type.key, $event.target.value)"></Select>
-				<AutoComplete v-if="type.type === 'autocomplete'" :value="item[type.key]" :options="type.options" @update="update(index, type.key, $event)"></AutoComplete>
+				<AutoComplete v-if="type.type === 'autocomplete'" :value="item[type.key]" :options="type.options" @input="update(index, type.key, $event.target.value)" @changed="update(index, type.key, $event)"></AutoComplete>
 			</FormLine>
 		</TabContent>
 	</TabContainer>
