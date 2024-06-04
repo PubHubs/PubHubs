@@ -122,6 +122,7 @@ class NoticesServlet(DirectServeJsonResource):
     async def _async_render_GET(self, request: SynapseRequest):
         """Returns the Hub Notice"""
         notice = self.server_notices_user
+        logger.info(f" Getting notice {notice}...")
         respond_with_json(request, 200, notice, True)
         pass
 

@@ -18,9 +18,10 @@ TOKEN_DURATION = 24 * 60 * 60
 def _generate_token() -> (str, int):
     now = int(time.time())
     token = f"{now}".join(secrets.choice(string.ascii_letters)
-                          for _ in range(22))
+    for _ in range(22))
     token_expiration = now + TOKEN_DURATION
     return token, token_expiration
+
 
 
 class YiviRoomJoinStore:
@@ -72,6 +73,23 @@ class YiviRoomJoinStore:
                 """
                 CREATE UNIQUE INDEX IF NOT EXISTS secured_rooms_id_idx
                     ON secured_rooms(room_id)
+                """,
+                (),
+            )
+            
+            txn.execute(
+                    """
+                    CREATE TABLE IF NOT EXISTS joined_hub(
+                        user_id TEXT NOT NULL
+                    )
+                    """,
+                    (),
+                )
+
+            txn.execute(
+                """
+                CREATE UNIQUE INDEX IF NOT EXISTS joined_hub_idx
+                    ON joined_hub(user_id)
                 """,
                 (),
             )
@@ -311,6 +329,55 @@ class YiviRoomJoinStore:
             delete_secured_room_txn,
             room,
         )
+        
+    async def hub_join(self, user_id: str):
+            """
+            Puts the user Id  in the table.
+            """
+            
+            
+            def hub_join_txn(
+                txn: LoggingTransaction,
+                user_id_txn: str):
+                
+                txn.execute(
+                        """
+                            INSERT INTO joined_hub(user_id) VALUES (?)
+                            """,
+                        (user_id_txn,)
+                    )
+            
+            await self.module_api.run_db_interaction(
+                    "joined_hub",
+                    hub_join_txn,
+                    user_id,
+        )
+
+    async def has_joined(self, user_id: str) -> bool:
+            """Check whether a user is allowed to join a room.
+
+            :param user_id: The user that wants to join the room
+            :param room_id: The room the user wants to join
+            :return: a boolean indicating whether the user is allowed
+            """
+
+            def has_joined_txn(
+                    txn: LoggingTransaction,
+                    user_id_txn: str):
+                txn.execute(
+                    """
+                    SELECT * FROM joined_hub WHERE user_id = ?
+                    """,
+                    (user_id_txn,),
+                )
+                row = txn.fetchone()
+                return row is not None
+
+            return await self.module_api.run_db_interaction(
+                "has_join_hub_select",
+                has_joined_txn,
+                user_id,
+            )
 
 
 def tuple_to_room(room) -> SecuredRoom:
