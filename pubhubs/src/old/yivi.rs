@@ -556,7 +556,7 @@ async fn next_session_priv(
                         .url
                         .for_browser
                         .domain()
-                        .is_some_and(|d| d.ends_with("ihub.ru.nl"))
+                        .is_some_and(|d| d.ends_with("pubhubs.ihub.ru.nl") || d.ends_with("pubhubs.net"))
                     {
                         format!("\nfor: {}", context.url.for_browser)
                     } else {
