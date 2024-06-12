@@ -51,8 +51,8 @@ const usePubHubs = defineStore('pubhubs', {
 						user.fetchDisplayName(this.client as MatrixClient)
 							.then(() => user.fetchIsAdministrator(this.client as MatrixClient))
 							.then(() => {
-								api_synapse.setAccessToken(this.Auth.getAccessToken());
-								api_matrix.setAccessToken(this.Auth.getAccessToken());
+								api_synapse.setAccessToken(this.Auth.getAccessToken()!); //Since user isn't null, we expect there to be an access token.
+								api_matrix.setAccessToken(this.Auth.getAccessToken()!);
 							});
 					}
 				})
@@ -65,10 +65,6 @@ const usePubHubs = defineStore('pubhubs', {
 
 		logout() {
 			this.Auth.logout();
-		},
-
-		updateLoggedInStatusBasedOnGlobalStatus(globalLoginTime: string) {
-			this.Auth.updateLoggedInStatusBasedOnGlobalStatus(globalLoginTime);
 		},
 
 		async updateRooms() {
@@ -115,6 +111,9 @@ const usePubHubs = defineStore('pubhubs', {
 		},
 
 		async getAllPublicRooms(): Promise<TPublicRoom[]> {
+			if (!this.client.publicRooms) {
+				return [];
+			}
 			let publicRoomsResponse = await this.client.publicRooms();
 			let public_rooms = publicRoomsResponse.chunk;
 
@@ -424,6 +423,9 @@ const usePubHubs = defineStore('pubhubs', {
 		},
 
 		async getUsers(): Promise<Array<MatrixUser>> {
+			if (!this.client.getUsers) {
+				return [];
+			}
 			const users = (await this.client.getUsers()) as Array<MatrixUser>;
 			// Removed this hack @ 04 april 2024, if all seems well at next merge to stable, this can be removed permanent
 			// Doesn't get all displaynames correct from database, this is a hack to change displayName to only the pseudonym

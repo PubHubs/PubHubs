@@ -1,7 +1,7 @@
 import * as sdk from 'matrix-js-sdk';
-import { MatrixClient } from 'matrix-js-sdk';
+import { MatrixClient, ICreateClientOpts } from 'matrix-js-sdk';
 
-import { User, useUser, useDialog } from '@/store/store';
+import { User, useUser, useDialog, useMessageBox, Message, MessageType } from '@/store/store';
 
 type loginResponse = {
 	access_token: string;
@@ -12,6 +12,7 @@ class Authentication {
 	private user = useUser();
 
 	private loginToken: string;
+	private localDevelopmentAccessToken: string = '';
 	private baseUrl: string;
 	private clientUrl: string;
 	private client!: MatrixClient;
@@ -24,7 +25,7 @@ class Authentication {
 	}
 
 	/**
-	 * Store & Fetch locally saved access_token
+	 * Set user based on access token and send token to global client for storage.
 	 */
 
 	private _storeAuth(response: loginResponse) {
@@ -34,33 +35,46 @@ class Authentication {
 			userId: response.user_id,
 			loginTime: String(Date.now()),
 		};
+		this.localDevelopmentAccessToken = auth.accessToken;
 		this.user.setUser(new User(auth.userId));
-		localStorage.setItem('pubhub', JSON.stringify(auth));
+		useMessageBox().sendMessage(new Message(MessageType.AddAccessToken, JSON.stringify({ token: response.access_token, userId: response.user_id })));
 	}
 
 	private _fetchAuth() {
-		let auth = null;
-		const stored = localStorage.getItem('pubhub');
-		if (stored) {
-			auth = JSON.parse(stored);
-			if (auth) {
-				this.user.setUser(new User(auth.userId));
+		const auth: ICreateClientOpts = { baseUrl: this.baseUrl };
+		const query = new URLSearchParams(window.location.search).get('accessToken');
+		if (query) {
+			const access = JSON.parse(query);
+			const accessToken = access.token;
+			const userId = access.userId;
+			if (accessToken) {
+				auth.accessToken = accessToken;
+				auth.userId = userId;
+				this.user.setUser(new User(auth.userId!));
 			}
 		}
 		return auth;
 	}
 
 	private _clearAuth() {
-		localStorage.removeItem('pubhub');
+		useMessageBox().sendMessage(new Message(MessageType.RemoveAccessToken));
 	}
 
-	public getAccessToken(): string {
+	public getAccessToken(): string | null {
 		const auth = this._fetchAuth();
-		return auth.accessToken;
+		if (auth.accessToken) {
+			return auth.accessToken;
+		}
+		if (this.localDevelopmentAccessToken) {
+			return this.localDevelopmentAccessToken;
+		}
+
+		return null;
 	}
 
 	/**
-	 * Login is handled by global PupHubs server via a SSO redirect
+	 * Login is handled by global PubHubs server via a SSO redirect. This function should only be used when running the hub client outside of the
+	 * global client.
 	 */
 
 	public redirectToPubHubsLogin() {
@@ -80,7 +94,6 @@ class Authentication {
 		this.user = useUser();
 		return new Promise((resolve, reject) => {
 			// First check if we have an accesstoken stored
-
 			const auth = this._fetchAuth();
 			if (auth !== null && auth.baseUrl === this.baseUrl) {
 				// Start client with token
@@ -145,19 +158,6 @@ class Authentication {
 				}
 			}
 		});
-	}
-
-	public updateLoggedInStatusBasedOnGlobalStatus(globalLoginTime: string) {
-		const pubhub = localStorage.getItem('pubhub');
-
-		if (pubhub) {
-			const loginTime = JSON.parse(pubhub).loginTime;
-			// Either we get no global time (empty string), so we know it's not logged in, or we get a global login time (in milliseconds), and we check if it's
-			// before ours (in micro seconds).
-			if (!globalLoginTime || parseInt(globalLoginTime) * 1000 > parseInt(loginTime)) {
-				this.logout();
-			}
-		}
 	}
 
 	logout() {

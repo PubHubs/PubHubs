@@ -4,6 +4,7 @@
 
 ## 30 May 2024
 - Some changes to styling of displayed hubs in global client. 
+- Moved synapse login from hub client to global client. Since access to local storage is not always reliable in an iframe. It looks to get even more restricted in the future. 
 
 ## 9 May 2024
 - Add notifications and mentions in a better way.

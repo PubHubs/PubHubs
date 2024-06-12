@@ -1,6 +1,5 @@
 const en = {
 	state: {
-		no_access: 'Your browser prevents the hub client from accessing its cookies and local storage, perhaps mistaking the hub client for a third-party tracker. Please click the button to request access.',
 		button_request: 'Request access',
 		initial: 'Checking whether hub client has access to cookies and local storage...',
 		requesting: 'Requesting access...',

@@ -171,11 +171,6 @@
 				messageBoxStarted = true;
 			});
 
-			//Listen to log in time
-			messagebox.addCallback(MessageType.GlobalLoginTime, (message: Message) => {
-				pubhubs.updateLoggedInStatusBasedOnGlobalStatus(message.content as string);
-			});
-
 			//Listen to global menu change
 			messagebox.addCallback(MessageType.mobileHubMenu, (message: Message) => {
 				hubSettings.mobileHubMenu = message.content as boolean;

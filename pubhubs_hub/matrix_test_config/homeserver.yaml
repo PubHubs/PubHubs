@@ -42,7 +42,7 @@ modules:
       ## You can override this behaviour with the following field.
       # check_do_change_fields: yes_should_be_changed   # check that 'DO CHANGE' fields have been changed
       # check_do_change_fields: yes_should_be_unchanged # check that 'DO CHANGE' fields haven't been changed
-      # check_do_change_fields: no                      # don't check 'DO CHANGE' fields at all
+      # check_do_change_fields: 'no'                    # don't check 'DO CHANGE' fields at all
     }
   - module: conf.modules.pubhubs.DBMigration    # DON'T CHANGE
   - module: conf.modules.pseudonyms.Pseudonym   # DON'T CHANGE

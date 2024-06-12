@@ -20,10 +20,9 @@ const MAX_AGE: i64 = 60 * 60 * 24 * 30;
 
 const PHACCOUNT: &str = "PHAccount";
 const PHACCOUNT_CROSS_SITE: &str = "PHAccount.CrossSite";
-const PHACCOUNT_LOGIN_TIMESTAMP: &str = "PHAccount.LoginTimestamp";
 
 /// Creates `PHAccount(.CrossSite)` session `Cookie` header content
-fn session_cookie_content(user_id: String, cookie_secret: &str) -> Result<(String, String)> {
+fn session_cookie_content(user_id: String, cookie_secret: &str) -> Result<String> {
     let now = Utc::now();
     let created = now.timestamp();
     let until = now
@@ -42,17 +41,17 @@ fn session_cookie_content(user_id: String, cookie_secret: &str) -> Result<(Strin
     let cookie_value = Base64UrlUnpadded::encode_string(
         &format!("{}.{:X}", content, signature.into_bytes()).into_bytes(),
     );
-    Ok((cookie_value, created.to_string()))
+    Ok(cookie_value)
 }
 
-/// Creates `PHAccount`, `PHAccount.CrossSite` and `PHAccount.LoginTimestamp` cookies.
+/// Creates `PHAccount` and `PHAccount.CrossSite` cookies.
 fn create_session_cookies(
     user_id: String,
     cookie_secret: &str,
     no_secure: bool,
     no_http_only: bool,
-) -> Result<[actix_web::cookie::Cookie<'static>; 3]> {
-    let (session_cookie_value, login_timestamp_value) =
+) -> Result<[actix_web::cookie::Cookie<'static>; 2]> {
+    let session_cookie_value =
         session_cookie_content(user_id, cookie_secret)?;
 
     let finish_cookie =
@@ -75,20 +74,14 @@ fn create_session_cookies(
                 // won't cut it)
                 .http_only(!no_http_only),
         ),
-        finish_cookie(
-            actix_web::cookie::Cookie::build(PHACCOUNT_LOGIN_TIMESTAMP, login_timestamp_value)
-                .same_site(actix_web::cookie::SameSite::Strict)
-                .http_only(false), // used by global client javascript, so cannot be http only
-        ),
     ])
 }
 
 /// Creates `PHAccount`, `PHAccount.CrossSite` and `PHAccount.LoginTimestamp` *removal* cookies.
-fn create_session_removal_cookies() -> [actix_web::cookie::Cookie<'static>; 3] {
+fn create_session_removal_cookies() -> [actix_web::cookie::Cookie<'static>; 2] {
     let mut cookies = [
         actix_web::cookie::Cookie::new(PHACCOUNT, ""),
         actix_web::cookie::Cookie::new(PHACCOUNT_CROSS_SITE, ""),
-        actix_web::cookie::Cookie::new(PHACCOUNT_LOGIN_TIMESTAMP, ""),
     ];
     for cookie in &mut cookies {
         cookie.make_removal();
@@ -274,7 +267,7 @@ impl<'s> HttpRequestCookieExt for &'s HttpRequest {
     }
 
     fn has_all_session_cookies(&self) -> bool {
-        for cookie_name in [PHACCOUNT, PHACCOUNT_CROSS_SITE, PHACCOUNT_LOGIN_TIMESTAMP] {
+        for cookie_name in [PHACCOUNT, PHACCOUNT_CROSS_SITE] {
             if self.cookie(cookie_name).is_none() {
                 return false;
             }
@@ -302,8 +295,6 @@ mod tests {
 
         let mut had_phaccount = false;
         let mut had_phaccount_cross_site = false;
-        let mut had_phaccount_login_timestamp = false;
-
         let mut phaccount_cookie: Option<actix_web::cookie::Cookie<'_>> = None;
 
         for cookie in with_cookie.cookies() {
@@ -326,21 +317,11 @@ mod tests {
                     assert_eq!(cookie.same_site(), Some(actix_web::cookie::SameSite::None));
                     had_phaccount_cross_site = true;
                 }
-                PHACCOUNT_LOGIN_TIMESTAMP => {
-                    assert!(cookie.max_age().is_some());
-                    assert_eq!(cookie.secure(), Some(true));
-                    assert_eq!(cookie.http_only(), None); // None implies false
-                    assert_eq!(
-                        cookie.same_site(),
-                        Some(actix_web::cookie::SameSite::Strict)
-                    );
-                    had_phaccount_login_timestamp = true;
-                }
                 _ => panic!("unexpected cookie!"),
             }
         }
 
-        assert!(had_phaccount && had_phaccount_cross_site && had_phaccount_login_timestamp);
+        assert!(had_phaccount && had_phaccount_cross_site);
 
         //set up
         let req = test::TestRequest::get()
