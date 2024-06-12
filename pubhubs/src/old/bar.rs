@@ -199,6 +199,7 @@ async fn get_hubs_anyhow(
             map.serialize_entry("name", &hub.name)?;
             map.serialize_entry("description", &hub.description)?;
             map.serialize_entry("client_uri", &hub.client_uri)?;
+            map.serialize_entry("server_uri", &hub.oidc_redirect_uri.replace("_synapse/client/oidc/callback",""))?;
             map.end()
         }
     }

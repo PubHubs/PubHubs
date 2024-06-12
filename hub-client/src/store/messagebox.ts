@@ -68,8 +68,8 @@ enum MessageType {
 	UnreadMessages = 'unreadmessages', // Sync total of unread messages for a hub
 	Settings = 'settings', // Sync settings
 	RoomChange = 'roomchange', // Change to a room - makes it possible to reflect the room in the url
-	GlobalLoginTime = 'globallogintime', // Let Hub know if it should log itself out, if its own login predates the global login
-
+	AddAccessToken = 'addAccessToken', // Hub frame sends a access token for the global client to store in it's localstorage.
+	RemoveAccessToken = 'removeAccessToken', // Hub frame sends a message to remove its' access to token to the global client.
 	mobileHubMenu = 'mobilehubmenu', // Keeps track of wether to show the mobile global hubbar
 }
 

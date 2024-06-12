@@ -39,9 +39,6 @@ Returns `200 Ok` with an `application/json` body consisting of an array of objec
 Pubhubs Central uses three cookies to keep track of sessions.  These cookies are always set together and deleted together.  We use three cookies—and not just one—because for different purposes we need different `HttpOnly` and `SameSite` settings. See the [`Set-Cookie` documentation](https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Set-Cookie) for details on `HttpOnly` and `SameSite`.
  - `PHAccount` is the default cookie for authentication towards PubHubs Central, it is `Secure`, `SameSite=Strict` and `HttpOnly`.
  - `PHAccount.CrossSite` is used during the hub login flow where the end-user is temporarily redirected from the hub to PHC to be authenticated, and where because of this redirect the `PHAccount` (being `SameSite=Strict`) is not available.  The `PHAccount.CrossSite` cookie is `Secure`, `SameSite=None` and `HttpOnly`.  (It cannot be `SameSite=Lax` because the login flow happens within an `iframe`.)
- - `PHAccount.LoginTimestamp` is used by the global client to inform the hub clients when the current user was logged in;  with this information the hub client can decide to end the current session with Synapse, which might be from another user that was previously logged in.  This cookie is `Secure`, `SameSite=Strict` and *not* `HttpOnly`. The latter because it needs to be accessed by the global client.
-
-The `PHAccount.LoginTimestamp` is just a timestamp (number of seconds since 1970 in UTC) of the creation of the three `PHAccount*` cookies, written in decimal notation.
 
 The `PHAccount` and `PHAccount.CrossSite` cookies have the following format.
 ```
