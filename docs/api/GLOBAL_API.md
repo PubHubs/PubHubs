@@ -3,7 +3,7 @@ This file describes some of the HTTP end-points used by PubHubs central.
 # Bar endpoints
 The following endpoints are to be used by the bar.
 
-**Authentication** Since the bar will via an iframe be served by PubHubs Central, we can for authentication of the bar rely on the cookie set by PubHubs Central after the end-user logs in. (*NB:* the `GET /bar/hubs` requires no authentication of the user.)
+**Authentication** The bar (which if for now integrated in the global client) relies for authentication on the cookies set by PubHubs Central after the end-user logs in. (*NB:* the `GET /bar/hubs` requires no authentication of the user.)
 
 ## Bar state
 To allow the hub-selection-bar to have the same appearance accross different devices, we allow the bar to store and retrieve some state from PubHubs Central, using the [Fetch API](https://developer.mozilla.org/en-US/docs/Web/API/Fetch_API).  Currently, this will probably be a JSON-file, but in the future, we might want to consider encrypting this, so that PubHubs Central cannot inspect it.  (The problem here is how to move the user's encryption key between devices.)  Anyway, to PubHubs Central, this 'bar state' is some opaque `application/octet-stream`.
@@ -36,9 +36,9 @@ Returns `200 Ok` with an `application/json` body consisting of an array of objec
  - `client_uri`, the Hub's client location, to be loaded in an iframe of the global client.
 
 # PubHubs session cookies
-Pubhubs Central uses three cookies to keep track of sessions.  These cookies are always set together and deleted together.  We use three cookies—and not just one—because for different purposes we need different `HttpOnly` and `SameSite` settings. See the [`Set-Cookie` documentation](https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Set-Cookie) for details on `HttpOnly` and `SameSite`.
+Pubhubs Central uses ~three~ two cookies to keep track of sessions.  These cookies are always set together and deleted together.  We use two cookies—and not just one—because for different purposes we need different `SameSite` settings. See the [`Set-Cookie` documentation](https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Set-Cookie) for details on  `SameSite` (and `HttpOnly`).
  - `PHAccount` is the default cookie for authentication towards PubHubs Central, it is `Secure`, `SameSite=Strict` and `HttpOnly`.
- - `PHAccount.CrossSite` is used during the hub login flow where the end-user is temporarily redirected from the hub to PHC to be authenticated, and where because of this redirect the `PHAccount` (being `SameSite=Strict`) is not available.  The `PHAccount.CrossSite` cookie is `Secure`, `SameSite=None` and `HttpOnly`.  (It cannot be `SameSite=Lax` because the login flow happens within an `iframe`.)
+ - `PHAccount.CrossSite` is used during the hub login flow where the end-user is temporarily redirected from the hub to PHC to be authenticated, and where because of this redirect the `PHAccount` (being `SameSite=Strict`) is not available.  The `PHAccount.CrossSite` cookie is `Secure`, `SameSite=None` and `HttpOnly`.  (It is not `SameSite=Lax` because historically the login flow happens within an `iframe`, but currently is toplevel.)
 
 The `PHAccount` and `PHAccount.CrossSite` cookies have the following format.
 ```
