@@ -11,9 +11,7 @@
 	const hubs = useHubs();
 	const global = useGlobal();
 
-	onMounted(() => {
-		hubs.changeHub(route.params).then(() => handleHubAuth());
-	});
+	onMounted(onRouteChange);
 
 	onUnmounted(() => {
 		hubs.changeHub({
@@ -22,18 +20,23 @@
 		});
 	});
 
-	watch(route, () => {
-		hubs.changeHub(route.params).then(() => handleHubAuth());
-	});
+	watch(route, onRouteChange);
 
 	const hubUrl = ref('');
 
-	function handleHubAuth() {
-		const hubName = hubs.currentHub!.hubId;
+	async function onRouteChange() {
+		handleHubAuth(route.params.id as string);
+		await hubs.changeHub(route.params);
+	}
+
+	function handleHubAuth(id: string) {
+		const hub = hubs.hub(id)!;
+		const hubName = hub?.hubId!;
 		const state = hubloggedinstatus(hubName, new URLSearchParams(window.location.search));
+
 		switch (state.kind) {
 			case Status.GlobalNotLoggedIn:
-				hubUrl.value = hubs.currentHub.url + '#/hub/';
+				hubUrl.value = hub.url + '#/hub/';
 				break;
 			case Status.HubNotLoggedIn:
 				{
@@ -44,11 +47,11 @@
 				}
 				break;
 			case Status.LoginToken:
-				hubUrl.value = hubs.currentHub.url + '?loginToken=' + state.token;
+				hubUrl.value = hub.url + '?loginToken=' + state.token;
 				window.history.replaceState('', '', '/client/#' + window.location.hash.substring(1));
 				break;
 			case Status.AccessToken:
-				hubUrl.value = hubs.currentHub.url + '?accessToken=' + state.token;
+				hubUrl.value = hub.url + '?accessToken=' + state.token;
 				break;
 		}
 	}
