@@ -23,6 +23,7 @@ const nl = {
 		M_LIMIT_EXCEEDED: 'Te veel inlogpogingen achter elkaar. Probeer het over {0} seconden nog eens.',
 		not_send_offline: 'Geen internet connectie. Dit bericht is niet verstuurd.',
 		resend: 'Verzend opnieuw',
+		file_upload: 'Bestandsformaat niet ondersteund',
 	},
 	file: {
 		file: 'Bestand',

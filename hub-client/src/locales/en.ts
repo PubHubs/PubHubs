@@ -23,6 +23,7 @@ const en = {
 		M_LIMIT_EXCEEDED: 'Too much login attempts. Try again in {0} seconds.',
 		not_send_offline: 'Internet connection seems down. This message was not send.',
 		resend: 'Send again',
+		file_upload: 'File format not supported',
 	},
 	file: {
 		file: 'File',
