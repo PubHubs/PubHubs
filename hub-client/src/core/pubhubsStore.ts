@@ -53,6 +53,9 @@ const usePubHubs = defineStore('pubhubs', {
 							.then(() => {
 								api_synapse.setAccessToken(this.Auth.getAccessToken()!); //Since user isn't null, we expect there to be an access token.
 								api_matrix.setAccessToken(this.Auth.getAccessToken()!);
+							})
+							.then(() => {
+								this.updateRooms();
 							});
 					}
 				})
