@@ -37,7 +37,7 @@ const en = {
 		hub_homepage_welcome: 'Welcome to this Hub!',
 		hub_homepage_join: 'Join this Hub',
 		hub_homepage_welcome_auth: 'Welcome to this Hub!',
-		welcome: 'Welcome to <a href="https://pubhubs.net">PubHubs</a>.<br>PubHubs is a community platform based on public values.',
+		welcome: 'Welcome',
 		highlighted_hubs: 'Highlighted Hubs',
 		// Boven highlighted Hubs, iets afstand
 		highlighted_hubs_info: 'PubHubs consist of seperate Hubs, where local conversations happen, under a central login. These Hubs are run by seperate, participating organisations.',

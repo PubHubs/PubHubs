@@ -37,7 +37,7 @@ const nl = {
 		hub_homepage_welcome: 'Welkom bij deze Hub!',
 		hub_homepage_join: 'Doe mee met deze Hub',
 		hub_homepage_welcome_auth: 'Welkom bij deze Hub!',
-		welcome: 'Welkom bij <a href="https://pubhubs.net">PubHubs</a>.<br>PubHubs is een community netwerk gebaseerd op publieke waarden.',
+		welcome: 'Welkom',
 		highlighted_hubs: 'Uitgelichte Hubs',
 	},
 	login: {
