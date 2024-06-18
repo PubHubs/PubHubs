@@ -64,7 +64,9 @@ const nl = {
 	},
 	others: {
 		nop: 'Deze functionaleit is nog niet gerealiseerd.',
-		search: 'Zoeken in deze kamer',
+		search: 'Zoeken',
+		search_room: 'Zoek in dit gesprek',
+		search_nothing_found: 'Niets gevonden',
 		read_receipt: 'Gelezen door',
 		typing: 'Start typen...',
 	},

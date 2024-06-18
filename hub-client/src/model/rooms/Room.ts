@@ -292,6 +292,30 @@ export default class Room {
 			?.getId();
 	}
 
+	public timelineGetNewestMessageEventId(): string | undefined {
+		// we have to check all timelines to get the newest event
+		const timelineSets = this.getTimelineSets();
+		let newestEventId: string | undefined = undefined;
+		let eventDate: Date | null = null;
+		timelineSets.forEach((timelineSet) => {
+			timelineSet.getTimelines().forEach((timeline) => {
+				timeline.getEvents().forEach((event) => {
+					const currentEventDate = event.getDate();
+					if (event.getType() === 'm.room.message' && currentEventDate != null) {
+						if (!eventDate) {
+							eventDate = currentEventDate;
+							newestEventId = event.getId();
+						}
+						if (currentEventDate > eventDate) {
+							newestEventId = event.getId();
+						}
+					}
+				});
+			});
+		});
+		return newestEventId;
+	}
+
 	//#endregion
 
 	public getVisibleTimeline() {

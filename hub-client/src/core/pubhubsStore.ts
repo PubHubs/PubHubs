@@ -1,6 +1,6 @@
 import { defineStore } from 'pinia';
 
-import { User as MatrixUser, MatrixClient, MatrixEvent, ContentHelpers, MatrixError, IStateEventWithRoomId } from 'matrix-js-sdk';
+import { User as MatrixUser, MatrixClient, MatrixEvent, ContentHelpers, MatrixError, IStateEventWithRoomId, EventTimeline } from 'matrix-js-sdk';
 import Room from '@/model/rooms/Room';
 import { Authentication } from '@/core/authentication';
 import { Events } from '@/core/events';
@@ -11,6 +11,7 @@ import { api_synapse, api_matrix } from '@/core/api';
 import { YiviSigningSessionResult, AskDisclosureMessage } from '@/lib/signedMessages';
 import { TMentions, TTextMessageEventContent, TMessageEvent } from '@/model/events/TMessageEvent';
 import { ReceiptType } from 'matrix-js-sdk/lib/@types/read_receipts';
+import { TSearchParameters, TSearchResult } from '@/model/model';
 
 const usePubHubs = defineStore('pubhubs', {
 	state: () => ({
@@ -447,13 +448,44 @@ const usePubHubs = defineStore('pubhubs', {
 		},
 
 		/**
+		 * Performs search on content of given room
+		 *
+		 * @returns list of results as TSearchResult
+		 */
+		async searchRoomEvents(term: string, searchParameters: TSearchParameters) {
+			if (!term || !term.length) return [];
+
+			const response = await this.client.searchRoomEvents({ term: term, filter: { rooms: [searchParameters.roomId] } });
+			return response.results.map(
+				(result) =>
+					({
+						rank: result.rank,
+						event_id: result.context.ourEvent.event.event_id!,
+						event_type: result.context.ourEvent.event.type,
+						event_body: result.context.ourEvent.event.content?.body,
+						event_sender: result.context.ourEvent.event.sender,
+					}) as TSearchResult,
+			);
+		},
+
+		/**
+		 *
+		 * Paginates given timeline
+		 *
+		 * @param timeline
+		 * @returns paginated event timeline
+		 */
+		async paginateEventTimeline(timeline: EventTimeline) {
+			const settings = useSettings();
+			return await this.client.paginateEventTimeline(timeline, { backwards: true, limit: settings.pagination });
+		},
+
+		/**
 		 * Loads older events in a room.
 		 *
 		 * @returns {boolean} true if all events are loaded, false otherwise.
 		 */
 		async loadOlderEvents(room: Room): Promise<boolean> {
-			const settings = useSettings();
-
 			const firstEvent = room.timelineGetEvents()[0];
 
 			// If all messages are loaded, return.
@@ -465,6 +497,7 @@ const usePubHubs = defineStore('pubhubs', {
 			if (!eventId) throw new Error('Failed to load older events: EventId not found');
 
 			const timeline = await this.client.getEventTimeline(timelineSet, eventId);
+
 			if (!timeline) throw new Error('Failed to load older events: Timeline not found');
 
 			if (!this.client.getRoom(room.roomId)) {
@@ -473,20 +506,45 @@ const usePubHubs = defineStore('pubhubs', {
 				await this.updateRooms();
 			}
 
-			await this.client.paginateEventTimeline(timeline, { backwards: true, limit: settings.pagination });
+			return false;
+		},
+
+		/**
+		 * Loads newer events in a room.
+		 *
+		 * @returns {boolean} true if all events are loaded, false otherwise.
+		 */
+		async loadNewerEvents(room: Room): Promise<boolean> {
+			const timelineEvents = room.timelineGetEvents();
+			const lastEvent = timelineEvents[timelineEvents.length - 1];
+
+			const newestEventId = room.timelineGetNewestMessageEventId();
+
+			// If all messages are loaded, return.
+			if (!lastEvent || lastEvent.getId() == newestEventId) return true;
+
+			const timelineSet = room.getTimelineSets()[0];
+			const eventId = lastEvent.getId();
+
+			if (!eventId) throw new Error('Failed to load newer events: EventId not found');
+
+			const timeline = await this.client.getEventTimeline(timelineSet, eventId);
+
+			if (!timeline) throw new Error('Failed to newer events: Timeline not found');
+
+			if (!this.client.getRoom(room.roomId)) {
+				//Sometimes the room is NOT fully initialized on client-side this call forces the client to update its rooms, including this one.
+				//Our Room already exists (with its unready backing MatrixRoom), and we can mostly use it, but not to paginate the timeline.
+				await this.updateRooms();
+			}
+
 			return false;
 		},
 
 		async loadToMessage(room: Room, eventId: string) {
-			let eventTimeline = room.getTimelineForEvent(eventId);
-			let i = 0;
-			let allEventsLoaded = false;
-			const searchLimit = 1000;
-
-			while (!eventTimeline && !allEventsLoaded && i < searchLimit) {
-				allEventsLoaded = await this.loadOlderEvents(room);
-				eventTimeline = room.getTimelineForEvent(eventId);
-				i++;
+			const timeline = await this.client.getEventTimeline(room.getTimelineSets()[0], eventId);
+			if (timeline) {
+				await this.paginateEventTimeline(timeline);
 			}
 		},
 	},
