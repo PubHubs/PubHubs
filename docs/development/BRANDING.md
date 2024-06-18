@@ -32,18 +32,6 @@ The user can select one of tree themes:
 
 See [HubClient developing](./HUBCLIENT_DEVELOPMENT.md) for developing the `hub-client` localy.
 
-## Testing branding with stories
-
-The first step in testing the branding of the hub is done with stories of [Histoire](https://histoire.dev/). Here you can see how the colors interact, how the logo looks in the dark and light theme and how components look like with your colors.
-
-Starting the histoire environment can be done from the `hub-client` folder with the following command:
-
-```
-npm run story:dev
-```
-
-Open `http://localhost:6006/` in your browser and click away.
-
 # Colors
 
 We have a selection of colors prepared in the file `hub-client/src/assets/tailwind.css` with the use of CSS variables.
