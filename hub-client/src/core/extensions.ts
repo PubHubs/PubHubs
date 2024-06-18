@@ -57,4 +57,12 @@ const mergeDeep = (target: any, ...sources: any): any => {
 
 	return mergeDeep(target, ...sources);
 };
-export { propCompare, trimSplit, isEmpty, isObject, mergeDeep };
+
+const filterAlphanumeric = (text: string) => {
+	// Regex pattern for non-alphanumeric characters
+	const pattern = /[^a-zA-Z0-9\s]/g;
+
+	return text.replace(pattern, '');
+};
+
+export { propCompare, trimSplit, isEmpty, isObject, mergeDeep, filterAlphanumeric };

@@ -36,11 +36,13 @@
 	let oldestEventIsLoaded: Ref<boolean> = ref(false);
 	let userHasScrolled: Ref<boolean> = ref(true);
 	let dateInformation = ref<Number>(0);
+
 	type Props = {
 		room: Room;
+		scrollToEventId: string;
 	};
-
 	const props = defineProps<Props>();
+	const emit = defineEmits(['scrolledToEventId']);
 
 	const roomTimeLine = computed(() => {
 		return props.room.getVisibleTimeline();
@@ -61,9 +63,6 @@
 
 	onMounted(async () => {
 		await setupRoom(); //First time set-up
-
-		await scrollToLastReadEvent();
-
 		if (settings.isFeatureEnabled(featureFlagType.dateSplitter)) {
 			userHasScrolled.value = true;
 			setInterval(() => {
@@ -88,7 +87,6 @@
 		() => props.room.roomId, //This is a getter, so we only watch on roomId changes.
 		async () => {
 			await setupRoom();
-			await scrollToLastReadEvent();
 			if (settings.isFeatureEnabled(featureFlagType.notifications)) {
 				elementObserver?.setUpObserver(handlePrivateReceipt);
 			}
@@ -98,6 +96,9 @@
 
 	// Watch for new messages.
 	watch(() => props.room.timelineGetLength(), onTimelineChange);
+
+	// Watch for currently visible eventId
+	watch(() => props.scrollToEventId, onScrollToEventId);
 
 	const handlePrivateReceipt = (entries: IntersectionObserverEntry[]) => {
 		if (entries.length < 1) return;
@@ -172,6 +173,13 @@
 		}
 	}
 
+	// eslint-disable-next-line @typescript-eslint/no-unused-vars
+	async function onScrollToEventId(newEventId?: string, oldEventId?: string) {
+		if (!newEventId) return;
+		scrollToEvent(newEventId, { position: 'TopCenter', select: 'Highlight' });
+		emit('scrolledToEventId');
+	}
+
 	//#region Events
 
 	async function onScroll(ev: Event) {
@@ -186,6 +194,18 @@
 			if (prevOldestLoadedEventId && !oldestEventIsLoaded.value) {
 				await scrollToEvent(prevOldestLoadedEventId); //Wait for scrolling to end.
 				// Start observing when old messages are loaded.
+				settings.isFeatureEnabled(featureFlagType.dateSplitter) && elementObserver?.setUpObserver(handleDateDisplayer);
+			}
+			isLoadingNewEvents.value = false;
+		}
+		// If scrolled to the bottom of the screen, load newer events
+		if (Math.abs(ev.target.scrollHeight - ev.target.clientHeight - ev.target.scrollTop) <= 1) {
+			// load newer events into timeline
+			isLoadingNewEvents.value = true;
+			const prevNewestLoadedEventId = props.room.timelineGetNewestMessageEventId();
+			const newestEventIsLoaded = await pubhubs.loadNewerEvents(props.room);
+			if (prevNewestLoadedEventId && !newestEventIsLoaded) {
+				await scrollToEvent(prevNewestLoadedEventId);
 				settings.isFeatureEnabled(featureFlagType.dateSplitter) && elementObserver?.setUpObserver(handleDateDisplayer);
 			}
 			isLoadingNewEvents.value = false;
@@ -219,6 +239,7 @@
 	}
 
 	//#endregion
+
 	async function scrollToLastReadEvent() {
 		const wrappedReceipt = props.room.getReadReceiptForUserId(user.user.userId, false, ReceiptType.ReadPrivate);
 		if (!wrappedReceipt) return;
@@ -235,16 +256,20 @@
 		if (!elEvent) return;
 
 		// Scroll the event into view depending on the position option.
-		elEvent.scrollIntoView();
 		if (options.position === 'TopCenter') {
-			elRoomTimeline.value.scrollTop -= (elRoomTimeline.value.clientHeight * 1) / 3;
+			elEvent.scrollIntoView({ block: 'center' });
+		} else {
+			elEvent.scrollIntoView({ block: 'start' });
 		}
 
 		// Style the event depending on the select option.
 		if (options.select === 'Highlight') {
 			elEvent.classList.add('highlighted');
 			window.setTimeout(() => {
-				elEvent.classList.remove('highlighted');
+				elEvent.classList.add('unhighlighted');
+				window.setTimeout(() => {
+					elEvent.classList.remove('highlighted');
+				}, 500);
 			}, 2000);
 		}
 	}
@@ -259,13 +284,6 @@
 	 *
 	 */
 	async function loadInitialEvents() {
-		let numLoadedMessages = props.room.timelineGetNumMessageEvents();
-		let allMessagesLoaded = false;
-
-		while (numLoadedMessages < 15 && !allMessagesLoaded) {
-			allMessagesLoaded = await pubhubs.loadOlderEvents(props.room);
-			numLoadedMessages = props.room.timelineGetNumMessageEvents();
-		}
 		await scrollToLastReadEvent();
 	}
 </script>

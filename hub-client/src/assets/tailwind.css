@@ -134,6 +134,14 @@ body,
 }
 
 @layer components {
+	.highlighted {
+		@apply transition bg-gray-lighter dark:bg-gray duration-500 ease-out;
+	}
+
+	.unhighlighted {
+		@apply transition duration-500 ease-out;
+	}
+
 	.message-link {
 		@apply text-blue dark:text-green;
 	}

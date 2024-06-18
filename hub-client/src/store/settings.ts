@@ -73,7 +73,7 @@ interface Settings {
 const defaultSettings: Settings = {
 	theme: Theme.System,
 	timeformat: TimeFormat.format24,
-	pagination: 50,
+	pagination: 150,
 	displayNameMaxLength: 40,
 	language: fallbackLanguage,
 	_i18n: {

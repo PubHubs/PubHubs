@@ -26,12 +26,12 @@
 								</TruncatedText>
 							</div>
 						</div>
-						<SearchInput @submit="search"></SearchInput>
+						<SearchInput :search-parameters="searchParameters" @scroll-to-event-id="onScrollToEventId"></SearchInput>
 					</div>
 				</div>
 			</template>
 
-			<RoomTimeline v-if="rooms.rooms[id!]" class="scrollbar" :room="rooms.rooms[id!]"></RoomTimeline>
+			<RoomTimeline v-if="rooms.rooms[id!]" class="scrollbar" :room="rooms.rooms[id!]" :scroll-to-event-id="scrollToEventId" @scrolled-to-event-id="scrollToEventId = ''"></RoomTimeline>
 
 			<template #footer>
 				<MessageInput></MessageInput>
@@ -50,6 +50,7 @@
 	import { useRooms } from '@/store/store';
 	import { PluginProperties, usePlugins } from '@/store/plugins';
 	import { TRoomMember } from '@/store/rooms';
+	import { TSearchParameters } from '@/model/model';
 
 	const route = useRoute();
 	const { t } = useI18n();
@@ -58,6 +59,9 @@
 	const plugin = ref(false as boolean | PluginProperties);
 
 	const members = ref<TRoomMember[]>([]);
+
+	const searchParameters = ref<TSearchParameters>([]);
+	const scrollToEventId = ref<string>('');
 
 	//Passed by the router
 	const props = defineProps({
@@ -82,6 +86,8 @@
 			members.value = rooms.currentRoom.getOtherJoinedMembers() || [];
 		}
 		plugin.value = plugins.hasRoomPlugin(rooms.currentRoom);
+
+		searchParameters.value.roomId = props.id!;
 	}
 
 	function getTopic() {
@@ -92,7 +98,7 @@
 		return rooms.currentRoom.getTopic();
 	}
 
-	function search(term: string) {
-		alert(t('others.nop') + '[' + term + ']');
+	async function onScrollToEventId(ev: any) {
+		scrollToEventId.value = ev.eventId;
 	}
 </script>

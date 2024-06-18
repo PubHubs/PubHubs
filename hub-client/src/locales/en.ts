@@ -66,7 +66,9 @@ const en = {
 	},
 	others: {
 		nop: 'This feature is not implement yet.',
-		search: 'Search in this room',
+		search: 'Search',
+		search_room: 'Search this room',
+		search_nothing_found: 'Nothing found',
 		read_receipt: 'Read by',
 		typing: 'Start typing...',
 	},
