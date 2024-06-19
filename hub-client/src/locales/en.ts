@@ -174,6 +174,21 @@ const en = {
 		format12: '12 hours',
 		format24: '24 hours',
 	},
+
+	onboarding: {
+		info_first_time: 'This is your first visit. It is nice that you are here.',
+		info_abt_pseudonym: 'This Hub has given you a random name (pseudonym)',
+		info_issue_identity: 'This name hides your identity for privacy reasons. But it is not very convenient for others in the Hub. Therefore, You can choose a nickname yourself that others in the Hub will see',
+		info_abt_nickname_use: 'Please note that other participants may also use self-chosen nicknames that need not be their real names.',
+		info_abt_choose_later: 'You can also choose a nickname later, or change it again.',
+		info_abt_yivi_room: 'For certain rooms in this Hub, you may be asked to reveal (part of) your identity, via the Yivi app. This gives participants in those rooms certainty about each other.',
+		info_misbehave: 'When you misbhehave, you may ultimately be banned from this Hub.',
+		continue: 'Continue',
+		success_msg: 'You can explore the rooms and chat with the community!',
+		later: "You haven't set your Hub nickname, which you can do later!",
+		update: 'Nickname updated',
+	},
+
 	message: {
 		send: 'Send',
 		in_reply_to: 'In reply to:',
