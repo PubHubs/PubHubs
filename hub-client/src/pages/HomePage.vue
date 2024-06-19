@@ -4,7 +4,6 @@
 			<H1 v-if="!isTryOutHub()" class="text-center mb-8">{{ $t('home.hub_homepage_welcome_auth') }}</H1>
 			<H1 v-else class="text-center mb-8">Welkom bij de TryOutHub</H1>
 			<Logo class="mx-auto max-w-24 max-h-20"></Logo>
-
 			<div v-if="isTryOutHub()" class="mt-20">
 				<p class="mb-6">
 					Hier kun je als organisatie een eigen Room krijgen om PubHubs zelf uit te proberen. Stel je organisatie heet ABC met webadres abc.nl. Dan kun je hier een eigen gesloten Room krijgen met naam ABC, binnen de TryOutHub.
@@ -36,9 +35,22 @@
 
 <script setup lang="ts">
 	import { usePubHubs } from '@/core/pubhubsStore';
-	import { useHubSettings } from '@/store/store';
+	import { useUser, useHubSettings } from '@/store/store';
+	import { onMounted } from 'vue';
+	import { useRouter } from 'vue-router';
 	const pubhubs = usePubHubs();
+	const router = useRouter();
 	const hubSettings = useHubSettings();
+
+	onMounted(async () => {
+		// User has joined the for the first time. redirect to onboarding / welcome page.
+		// After this welcome page , user is redirected to the normal flow - It could be either
+		// This check is because if v-if in App for user loggin is not true.
+		const user = useUser();
+		if (!user.isLoggedIn) return;
+		const joinResponse = await pubhubs.hasUserJoinedHubFirstTime();
+		if (joinResponse.first_time_joined) router.push({ name: 'welcome' });
+	});
 
 	type Props = {
 		/** This page can be shown to users that are not yet logged in to PubHubs Central. */

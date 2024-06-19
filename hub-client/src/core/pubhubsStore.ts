@@ -547,6 +547,12 @@ const usePubHubs = defineStore('pubhubs', {
 				await this.paginateEventTimeline(timeline);
 			}
 		},
+
+		async hasUserJoinedHubFirstTime(): Promise<Object> {
+			const loggedInUser = useUser();
+			const resp = await api_synapse.apiPOST<Object>(api_synapse.apiURLS.joinHub, { user: loggedInUser.user.userId });
+			return resp;
+		},
 	},
 });
 
