@@ -1,2 +1,0 @@
-This is a **theme overview issue**.
-Its goal is to provide a place for general discussion that does not directly fit inside the issues (which should have a clearly defined goal). For example, discussion and documentation of the bigger picture design (possibly non-technical). 
