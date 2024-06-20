@@ -27,9 +27,9 @@ In the longer term we'd like to move to a more open way of developing, but for n
 Pubhubs consists of the following components:
 
 - **Pubhubs Central**: The PubHubs platform itself, for central login and authentication. Hubs will only get pseudonyms of the user but never the central identity. PubHubs Central is written in Rust.
-- **Global Client**: The client which is used to navigate between Hubs. It uses an iframe to embed different Hubs (hosted on different servers). The Global Client is  written in TypeScript with Vue.
-- **Hubs**: Modified [matrix](https://matrix.org/) homeservers, in the PubHubs platform these will not be federated so ids are not shared between hubs (in the longer term we'd like to link hubs to be able to share content so maybe some federation will happen). Written in Python. The hub server also uses a Yivi server for secured rooms etc.
-- **Hub clients**: A client which communicates to a Hub, embedded in the Global Client. This client is at its core a matrix client with specifics for PubHubs.  The Hub Client is  written in TypeScript with Vue.
+- **Global Client**: The client which is used to navigate between Hubs. It uses an iframe to embed different Hubs (hosted on different servers). The Global Client is written in TypeScript with Vue.
+- **Hub servers**: Modified [matrix](https://matrix.org/) homeservers, in the PubHubs platform these will not be federated so ids are not shared between hubs (in the longer term we'd like to link hubs to be able to share content so maybe some federation will happen). The hub server is based on the matrix server [Synapse](https://matrix-org.github.io/synapse/latest/welcome_and_overview.html) and extended with custom PubHubs modules written in python. The hub server also uses a Yivi server for secured rooms etc.
+- **Hub clients**: A client which communicates to a Hub, embedded in the Global Client. This client is at its core a matrix client with specifics for PubHubs like secured rooms (where you can restrict access using Yivi (see below) attributes e.g. an 18+ room). The Hub Client is written in TypeScript with Vue.
 
 For the identity oriented functionalities of PubHubs we use [Yivi](https://Yivi.app/). Yivi is also used for logging in to the central platform.
 
@@ -61,7 +61,6 @@ Several libraries for the clients, most important:
 - [Pinia](https://pinia.vuejs.org)
 - [Vitest](https://vitest.dev)
 - [Histoire](https://histoire.dev)
-
 
 ## Further Documention
 

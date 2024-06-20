@@ -1,29 +1,27 @@
 # Client settings
 
-> These instructions for pubhubs client assumes that you have already received the token to fetch the container of client. This practice of authentication for fetching PubHub container and client running on port 8800 will change in the future.
+> These are instructions to setup and run the Hub client. We assume that you already have the Hub server up and running. And, as such, that you have received some confidential information from PubHubs Central which you need here. See [Hub server instructions](../hub/README.md).
 
-- If not done for the hub already, login with the token received in a confidential file
+- If not done for the Hub already, login with the access token received in a confidential file
 
 ```shell
-docker login registry.science.ru.nl -u <username> -p <token>
+docker login registry.science.ru.nl -u <hub_name> -p <access token>
 ```
 
 - Fetch the client container
 
 ```shell
-docker pull registry.science.ru.nl/ilab/pubhubs_canonical/pubhubs_client:main
+docker pull registry.science.ru.nl/ilab/pubhubs_canonical/pubhubs_client:stable
 ```
 
 - Run the client
 
 ```shell
 
-docker run --env 'BAR_URL=frame-ancestors https://<central_platform_url>;' --env 'HUB_URL=https://<hub_url>' --env 'PARENT_URL=https://<central_platform_url>'  -p 8800:8800 registry.science.ru.nl/ilab/pubhubs_canonical/pubhubs_client:main
+docker run --env 'BAR_URL=frame-ancestors https://app.pubhubs.net;' --env 'HUB_URL=https://<hub_server_url>' --env 'PARENT_URL=https://app.pubhubs.net'  -p 8800:8800 registry.science.ru.nl/ilab/pubhubs_canonical/pubhubs_client:stable
 ```
 
-`<central_platform_url>` is the url of the global client since the client needs to be embedded in it.
-
-`<hub_url>` is the url of the associated hub of the client.
+`<hub_server_url>` is the url of the associated Hub server, which you provided when setting up the Hub server.
 
 The client should now be running at localhost:8800, which you can test from the machine that it runs on. In order to be reachable from the outside, some sort of reverse proxy on port 443 with TLS is needed.
 
