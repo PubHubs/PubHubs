@@ -2,6 +2,8 @@
 
 *Please add a brief description of any changes to be tested and any migrations to be performed here.*
 
+- Added global client to sso whitelist in synapse default config. The config checker will crash Hubs that do not have this setting.
+
 ## 30 May 2024
 - Some changes to styling of displayed hubs in global client. 
 - Moved synapse login from hub client to global client. Since access to local storage is not always reliable in an iframe. It looks to get even more restricted in the future. 

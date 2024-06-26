@@ -1,6 +1,6 @@
 # Default settings for the PubHubs Synapse Homeserver
 #
-# This file serves both as an example to hub administrators that are 
+# This file serves both as an example to hub administrators that are
 # configuring their hub and as the default settings for a testhub
 # running locally in a development setup.
 #
@@ -20,23 +20,23 @@
 #
 # While some settings shouldn't be changed, others should (especially secrets).  This is indicated
 # with a "DO CHANGE".  The 'ConfigChecker' does check whether you've changed them (when the
-# public_baseurl starts with "https"), but doesn't check whether you've changed them to 
+# public_baseurl starts with "https"), but doesn't check whether you've changed them to
 # something sensible.
 #
 #
 # NOTE TO PUBHUBS DEVELOPERS
 #
 # If you change anything here, please realise these changes are not distributed automatically to the hubs,
-# so consider updating the 'ConfigChecker' module in modules/pubhubs/config_checker.py.  
+# so consider updating the 'ConfigChecker' module in modules/pubhubs/config_checker.py.
 #
 modules:
   - module: conf.modules.config_checker.ConfigChecker  # DON'T CHANGE
     config: {
-      ## DEVELOPERS: by default the ConfigChecker will check whether the 'DO CHANGE' fields 
+      ## DEVELOPERS: by default the ConfigChecker will check whether the 'DO CHANGE' fields
       ## have been changed when the public_baseurl starts with 'https', and otherwise it will
       ## check that they *haven't* been changed (to make sure that the check-code is up-to-date
       ## with the current defaults.)
-      ## 
+      ##
       ## HUB ADMINISTRATORS: please only use 'yes_should_be_changed'
       ##
       ## You can override this behaviour with the following field.
@@ -53,7 +53,7 @@ modules:
         client_url: "http://localhost:8800", # DO CHANGE - to https://<your-hub-client-domain-name>
 
         # URL of the global client - change to either:
-        #   https://app.pubhubs.net 
+        #   https://app.pubhubs.net
         #   https://main.pubhubs.ihub.ru.nl for PubHubs developers
         global_client_url: "http://localhost:8080",  # DO CHANGE
 
@@ -64,9 +64,9 @@ modules:
       }
 
 federation_domain_whitelist: []              # \
-allow_profile_lookup_over_federation: false  # | 
+allow_profile_lookup_over_federation: false  # |
 allow_per_room_profiles: false               # | DON'T CHANGE
-enable_registration: false                   # | 
+enable_registration: false                   # |
 server_notices:                              # |
   system_mxid_localpart: notices_user        # / TODO: or just 'notices'?
 
@@ -75,7 +75,7 @@ password_config:
 
 oidc_providers:
 - idp_id: pubhubs                                        # \
-  idp_name: "PubHubs ID provider"                        # | 
+  idp_name: "PubHubs ID provider"                        # |
   discover: true                                         # |
   scopes: [openid]                                       # |
   skip_verification: false                               # | DON'T CHANGE
@@ -115,7 +115,7 @@ listeners:
         compress: false
 
 templates:
-  custom_template_directory: /data/templates 
+  custom_template_directory: /data/templates
 
 database:
   name: sqlite3
@@ -129,6 +129,8 @@ media_store_path: "/data/media_store"
 # Skips having to check the redirection with user interaction.
 sso:
   client_whitelist:
+    - https://main.pubhubs.ihub.ru.nl # For PubHubs development
+    - https://app.pubhubs.net
     - http://localhost # DO CHANGE - to https://<your-hub-client-domain-name>
 
 update_profile_information: true
