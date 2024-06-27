@@ -1,5 +1,5 @@
 <template>
-	<div v-if="roomAttributes.length > 0" class="flex gap-x-1 pt-1">
+	<div v-if="roomAttributes.length > 0" class="flex gap-x-1">
 		<div v-for="value in roomAttributes" :key="value" :class="value === 'rooms.admin_badge' ? 'bg-red' : 'bg-black'" class="text-white text-xs lowercase px-1 rounded h-4 flex gap-1 items-center">
 			<Icon type="check" size="xs" class="mr-1" style="margin-top: 1px"></Icon>
 			<span v-if="value === 'rooms.admin_badge'">{{ $t(value) }}</span>
