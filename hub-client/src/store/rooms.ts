@@ -254,8 +254,10 @@ const useRooms = defineStore('rooms', {
 				if (creatingAdminUser) {
 					this.roomNotices[roomId][creatingAdminUser!] = ['rooms.admin_badge'];
 				}
-				const encodedObject = encodeURIComponent(JSON.stringify({ types: ['m.room.message'], senders: [hub_notice], limit: 100000 }));
-				const response = await api_matrix.apiGET<RoomMessages>(api_matrix.apiURLS.rooms + roomId + '/messages?filter=' + encodedObject);
+				const limit = 100000;
+				const encodedObject = encodeURIComponent(JSON.stringify({ types: ['m.room.message'], senders: [hub_notice], limit: limit }));
+				// The limit is in two places, it used to work in just the filter, but not anymore. It's also an option in the query string.
+				const response = await api_matrix.apiGET<RoomMessages>(api_matrix.apiURLS.rooms + roomId + `/messages?limit=${limit}&filter=` + encodedObject);
 				for (const message of response.chunk) {
 					const body = message.content.body;
 					this.addProfileNotice(roomId, body);
