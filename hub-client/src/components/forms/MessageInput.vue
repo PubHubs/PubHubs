@@ -1,5 +1,5 @@
 <template>
-	<div class="flex gap-2 items-end px-6">
+	<div class="flex gap-2 items-end pl-3 sm:px-6">
 		<div name="input-container" class="min-w-3/4 w-[90%] relative rounded-xl bg-hub-background-4 dark:bg-hub-background-4">
 			<!-- Floating -->
 			<div>
@@ -8,7 +8,7 @@
 					<SignedMessageButton @click="showSigningMessageMenu()"></SignedMessageButton>
 				</Popover>
 				<Mention :msg="value" :top="caretPos.top" :left="caretPos.left" @click="mentionUser($event)"></Mention>
-				<div v-if="showEmojiPicker" class="absolute bottom-[105%] right-0 z-20">
+				<div name="emoji-picker" v-if="showEmojiPicker" class="absolute bottom-[105%] sm:right-0 z-20">
 					<EmojiPicker @emojiSelected="clickedEmoticon" @close="showEmojiPicker = false" />
 				</div>
 			</div>

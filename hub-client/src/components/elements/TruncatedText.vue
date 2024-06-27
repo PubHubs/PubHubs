@@ -28,7 +28,7 @@
 
 <style scoped>
 	p::before {
-		content: '';
+		content: normal;
 		display: inline-block;
 	}
 </style>

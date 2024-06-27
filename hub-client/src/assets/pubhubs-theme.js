@@ -95,6 +95,7 @@ const pubhubs = {
 	extend: {
 		screens: {
 			xs: '360px',
+			sm: '460px',
 			'2md': '896px',
 		},
 	},

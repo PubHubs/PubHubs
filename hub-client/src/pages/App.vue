@@ -1,7 +1,7 @@
 <template>
 	<div :class="settings.getActiveTheme">
 		<div v-if="setupReady" class="max-h-screen text-hub-text">
-			<div v-if="user.isLoggedIn" class="md:grid md:grid-cols-8">
+			<div v-if="user.isLoggedIn" class="md:grid grid-cols-8">
 				<HeaderFooter class="md:col-span-2 md:flex gap-4 bg-hub-background-2" :class="{ hidden: !hubSettings.mobileHubMenu }">
 					<template #header>
 						<div class="flex justify-between gap-4 items-end border-b h-full py-2 pl-5 mr-8">
@@ -32,23 +32,17 @@
 						</router-link>
 					</Menu>
 
-					<div class="flex justify-between items-center pl-5 border-b mr-8">
-						<H2>{{ $t('menu.rooms') }}</H2>
-					</div>
+					<H2 class="pl-5 border-b mr-8">{{ $t('menu.rooms') }}</H2>
 					<RoomList></RoomList>
 					<DiscoverRooms></DiscoverRooms>
 
-					<div class="flex justify-between items-center pl-5 border-b mr-8">
-						<H2 class="">{{ $t('menu.private_rooms') }}</H2>
-					</div>
+					<H2 class="pl-5 border-b mr-8">{{ $t('menu.private_rooms') }}</H2>
 					<RoomList :roomType="RoomType.PH_MESSAGES_DM"></RoomList>
 					<DiscoverUsers></DiscoverUsers>
 
 					<!-- When user is admin, show the moderation tools menu -->
 					<div v-if="disclosureEnabled && user.isAdmin">
-						<div class="pl-5 border-b mr-8">
-							<H2>{{ $t('menu.moderation_tools') }}</H2>
-						</div>
+						<H2 class="pl-5 border-b mr-8">{{ $t('menu.moderation_tools') }}</H2>
 						<Menu>
 							<router-link :to="{ name: 'ask-disclosure' }" v-slot="{ isActive }">
 								<MenuItem icon="sign" :active="isActive">{{ $t('menu.moderation_tools_disclosure') }}</MenuItem>
@@ -58,9 +52,7 @@
 
 					<!-- When user is admin, show the admin tools menu -->
 					<div v-if="user.isAdmin">
-						<div class="pl-5 border-b mr-8">
-							<H2>{{ $t('menu.admin_tools') }}</H2>
-						</div>
+						<H2 class="pl-5 border-b mr-8">{{ $t('menu.admin_tools') }}</H2>
 						<Menu>
 							<router-link :to="{ name: 'admin' }" v-slot="{ isActive }">
 								<MenuItem icon="admin" :active="isActive" @click="toggleMenu.toggleGlobalMenu()">{{ $t('menu.admin_tools_rooms') }}</MenuItem>
