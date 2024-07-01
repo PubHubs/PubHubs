@@ -9,7 +9,7 @@
 					Hier kun je als organisatie een eigen Room krijgen om PubHubs zelf uit te proberen. Stel je organisatie heet ABC met webadres abc.nl. Dan kun je hier een eigen gesloten Room krijgen met naam ABC, binnen de TryOutHub.
 					Alleen mensen die kunnen laten zien (via de Yivi app) dat ze een e-mailadres hebben van de vorm ...@abc.nl kunnen in deze Room ABC. Zo kunnen alleen eigen mensen van de room gebruik maken.
 				</p>
-				<p class="mb-6">Heb je interesse? Neem contact op via: <a style="all: revert" href="mailto:contact@pubhubs.nl">contact@pubhubs.nl</a></p>
+				<p class="mb-6">Heb je interesse? Neem contact op via: <a style="all: revert" href="mailto:contact@pubhubs.net">contact@pubhubs.net</a></p>
 				<p class="mb-6">
 					Het PubHubs team aan de Radboud Universiteit wil per Room een contactpersoon en aanspreekpunt (van organisatie ABC) die zichzelf bekend maakt (o.a. met mobiele nummer) en verantwoordelijkheid op zich neemt voor de inhoud
 					en de toon van de gesprekken in de room ABC. Bij signalen van misbruik zal het PubHubs team de Room verwijderen.
