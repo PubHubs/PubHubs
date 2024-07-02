@@ -155,6 +155,6 @@ body,
 
 	.scrollbar {
 		scrollbar-width: thin;
-		scrollbar-color: theme(colors.gray.light) theme(colors.gray.DEFAULT);
+		scrollbar-color: theme(colors.hub.background.5) theme(colors.hub.background.4);
 	}
 }
