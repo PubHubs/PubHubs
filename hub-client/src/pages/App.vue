@@ -160,6 +160,11 @@
 				settings.setTheme(message.content.theme as Theme);
 				settings.setTimeFormat(message.content.timeformat as TimeFormat);
 				settings.setLanguage(message.content.language);
+
+                // REFACTOR NEEDED: https://gitlab.science.ru.nl/ilab/pubhubs_canonical/-/issues/783
+				if (!settings.mobileHubMenu && !messageBoxStarted && hubSettings.mobileHubMenu) {
+					messagebox.sendMessage(new Message(MessageType.mobileHubMenu, hubSettings.mobileHubMenu));
+				}
 				messageBoxStarted = true;
 			});
 

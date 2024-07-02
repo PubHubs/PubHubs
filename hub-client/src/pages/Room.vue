@@ -47,16 +47,18 @@
 	import { onMounted, watch, ref } from 'vue';
 	import { useRoute } from 'vue-router';
 	import { useI18n } from 'vue-i18n';
-	import { useRooms } from '@/store/store';
+	import { useHubSettings, useRooms } from '@/store/store';
 	import { PluginProperties, usePlugins } from '@/store/plugins';
 	import { TRoomMember } from '@/store/rooms';
 	import { TSearchParameters } from '@/model/model';
+	import { useToggleMenu } from '@/store/toggleGlobalMenu';
 
 	const route = useRoute();
 	const { t } = useI18n();
 	const rooms = useRooms();
 	const plugins = usePlugins();
 	const plugin = ref(false as boolean | PluginProperties);
+	const toggleMenu = useToggleMenu();
 
 	const members = ref<TRoomMember[]>([]);
 
@@ -77,6 +79,11 @@
 	});
 
 	function update() {
+		// REFACTOR NEEDED: https://gitlab.science.ru.nl/ilab/pubhubs_canonical/-/issues/783
+		if (useHubSettings().mobileHubMenu) {
+			toggleMenu.toggleGlobalMenu();
+		}
+
 		//We know the property is there since passed by the router, so we can use '!'
 		rooms.changeRoom(props.id!);
 		if (!rooms.currentRoom) return;
