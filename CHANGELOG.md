@@ -2,6 +2,7 @@
 
 *Please add a brief description of any changes to be tested and any migrations to be performed here.*
 
+## 7 July 2024
 - Added global client to sso whitelist in synapse default config. The config checker will crash Hubs that do not have this setting.
 
 ## 30 May 2024
