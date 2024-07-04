@@ -27,7 +27,7 @@
 
 	const setTheme = computed(() => {
 		let theme = props.theme;
-		if (theme == '') {
+		if (theme === '') {
 			theme = settings.getActiveTheme;
 		}
 		return theme;
@@ -35,7 +35,7 @@
 
 	const logo = computed(() => {
 		let url = logoLightUrl;
-		if (setTheme.value == 'dark') {
+		if (setTheme.value === 'dark') {
 			url = logoDarkUrl;
 		}
 

@@ -1,7 +1,6 @@
 import { defineStore } from 'pinia';
-import { getCookie } from 'typescript-cookie';
 
-import { Hub, HubList, Theme, TimeFormat, useSettings } from '@/store/store';
+import { Hub, HubList, Theme, TimeFormat, useHubs, useSettings } from '@/store/store';
 import { api } from '@/core/api';
 
 type PinnedHub = {
@@ -27,6 +26,7 @@ const defaultGlobalSettings = {
 interface hubResponseItem {
 	name: string;
 	client_uri: string;
+	server_uri: string;
 	description: string;
 }
 
@@ -36,7 +36,6 @@ const useGlobal = defineStore('global', {
 			loggedIn: false,
 			modalVisible: false,
 			pinnedHubs: [] as PinnedHubs,
-			loginTime: '',
 		};
 	},
 
@@ -72,18 +71,10 @@ const useGlobal = defineStore('global', {
 				}
 
 				this.setGlobalSettings(data);
-				const loginTime = getCookie('PHAccount.LoginTimestamp');
-				if (!loginTime) {
-					// I don't expect this to happen, as PubHubs central should have added
-					// the PHAccount.LoginTimestamp when it is missing.
-					console.error('Logged in, but PHAccount.LoginTimestamp cookie not set! Please remove all PHAccount cookies, and log in again.');
-					return false; // Prevents logout-login loop, see #572
-				}
-				this.loginTime = loginTime;
 				this.loggedIn = true;
 				return true;
 			} catch (error) {
-				console.error('failure getting global settings from server or login timestamp cookie: ', error);
+				console.error('failure getting global settings from server: ', error);
 				return false;
 			}
 		},
@@ -91,23 +82,35 @@ const useGlobal = defineStore('global', {
 		setGlobalSettings(data: any) {
 			const settings = useSettings();
 			settings.setTheme(data.theme);
-			if (!data.timeformat || data.timeformat == '') {
+			if (!data.timeformat || data.timeformat === '') {
 				data.timeformat = TimeFormat.format24;
 			}
 			settings.setTimeFormat(data.timeformat);
-			if (!data.language || data.language == '') {
+			if (!data.language || data.language === '') {
 				data.language = navigator.language;
 			}
 			settings.setLanguage(data.language);
 			this.pinnedHubs = data.hubs;
 		},
 
-		login() {
-			window.location.replace(api.apiURLS.login);
+		login(language: string | 'en' | 'nl') {
+			switch (language) {
+				case 'en':
+					window.location.assign(api.apiURLS.loginEn);
+					break;
+				case 'nl':
+					window.location.assign(api.apiURLS.login);
+					break;
+				default:
+					window.location.assign(api.apiURLS.login);
+			}
 		},
 
 		logout() {
+			// This will work now, since we redirect away with the 'window.location.refresh' but if we didn't need to make components reactive to the 'loggedIn' state.
 			this.loggedIn = false;
+			// This does not actually invalidate the previously stored access tokens. We should call logout on the hubs in the future.
+			localStorage.clear();
 			window.location.replace(api.apiURLS.logout);
 		},
 
@@ -139,14 +142,14 @@ const useGlobal = defineStore('global', {
 			const data = await api.apiGET<Array<hubResponseItem>>(api.apiURLS.hubs, []);
 			const hubs = [] as HubList;
 			data.forEach((item: hubResponseItem) => {
-				hubs.push(new Hub(item.name, item.client_uri, item.description));
+				hubs.push(new Hub(item.name, item.client_uri, item.server_uri, item.description));
 			});
 			return hubs;
 		},
 
 		existsInPinnedHubs(hubId: string) {
 			if (!this.pinnedHubs) return false;
-			const found = this.pinnedHubs.find((hub) => hub.hubId == hubId);
+			const found = this.pinnedHubs.find((hub) => hub.hubId === hubId);
 			return found;
 		},
 

@@ -1,14 +1,14 @@
 <template>
-	<div class="flex gap-2 items-end px-6">
-		<div name="input-container" class="min-w-3/4 w-full relative rounded-xl bg-hub-background-4 dark:bg-hub-background-4">
+	<div class="flex gap-2 items-end pl-3 sm:px-6">
+		<div name="input-container" class="min-w-3/4 w-[90%] relative rounded-xl bg-hub-background-4 dark:bg-hub-background-4">
 			<!-- Floating -->
-			<div class="">
+			<div>
 				<Popover v-if="showPopover" @close="togglePopover" class="absolute bottom-[105%]">
 					<UploadPicker @click="clickedAttachment"></UploadPicker>
 					<SignedMessageButton @click="showSigningMessageMenu()"></SignedMessageButton>
 				</Popover>
 				<Mention :msg="value" :top="caretPos.top" :left="caretPos.left" @click="mentionUser($event)"></Mention>
-				<div v-if="showEmojiPicker" class="absolute bottom-[105%] right-0 z-20">
+				<div name="emoji-picker" v-if="showEmojiPicker" class="absolute bottom-[105%] sm:right-0 z-20">
 					<EmojiPicker @emojiSelected="clickedEmoticon" @close="showEmojiPicker = false" />
 				</div>
 			</div>
@@ -73,7 +73,7 @@
 		<div v-if="signingMessage" class="absolute bottom-[10%] md:left-[40%]" id="yivi-web-form"></div>
 
 		<div class="text-black dark:bg-gray-dark dark:text-white">
-			<FileUpload :file="fileInfo" :mxcPath="uri" v-if="fileUploadDialog" @close="fileUploadDialog = false"></FileUpload>
+			<FileUpload :file="fileInfo" :mxcPath="uri" v-if="fileUploadDialog" @close="closeMenus()"></FileUpload>
 			<!-- todo: move this into UploadPicker? -->
 			<input type="file" :accept="getTypesAsString(allTypes)" class="attach-file" ref="elFileInput" @change="uploadFile($event)" hidden />
 		</div>
@@ -88,10 +88,13 @@
 	import { usePubHubs } from '@/core/pubhubsStore';
 	import { useRoute } from 'vue-router';
 	import { useMessageActions } from '@/store/message-actions';
+	import filters from '@/core/filters';
+	import { useI18n } from 'vue-i18n';
 
 	import { YiviSigningSessionResult } from '@/lib/signedMessages';
 	import { fileUpload as uploadHandler } from '@/composables/fileUpload';
 
+	const { t } = useI18n();
 	const route = useRoute();
 	const rooms = useRooms();
 	const pubhubs = usePubHubs();
@@ -137,10 +140,10 @@
 	function checkButtonState() {
 		buttonEnabled.value = false;
 		if (value.value !== undefined) {
-			if (typeof value.value == 'number') {
+			if (typeof value.value === 'number') {
 				buttonEnabled.value = true;
 			}
-			if (typeof value.value == 'string' && value.value.length > 0) {
+			if (typeof value.value === 'string' && value.value.length > 0) {
 				buttonEnabled.value = true;
 			}
 		}
@@ -148,14 +151,19 @@
 
 	//  To autocomplete the mention user in the message.
 	function mentionUser(user: any) {
+		let userMention = user.rawDisplayName;
+		// Make sure psuedonym is included if it hasn't
+		if (!filters.extractPseudonymFromString(userMention)) {
+			userMention += ' - ' + filters.extractPseudonym(user.userId);
+		}
 		let message = value.value?.toString();
-		if (message?.lastIndexOf('@') != -1) {
+		if (message?.lastIndexOf('@') !== -1) {
 			const lastPosition = message?.lastIndexOf('@');
 			message = message?.substring(0, lastPosition);
 			value.value = ' ';
-			value.value = message + ' @' + user.rawDisplayName;
+			value.value = message + ' @' + userMention;
 		} else {
-			value.value += ' @' + user.rawDisplayName;
+			value.value += ' @' + userMention;
 		}
 	}
 
@@ -168,8 +176,8 @@
 	function uploadFile(event: Event) {
 		const accessToken = pubhubs.Auth.getAccessToken();
 		const target = event.currentTarget as HTMLInputElement;
-		//const dialog = useDialog();
-		uploadHandler(accessToken, uploadUrl, allTypes, event, (url) => {
+		const errorMsg = t('errors.file_upload');
+		uploadHandler(errorMsg, accessToken, uploadUrl, allTypes, event, (url) => {
 			if (target) {
 				const file = target.files && target.files[0];
 				if (file) {
@@ -179,6 +187,9 @@
 					uri.value = url;
 					// display the component.
 					fileUploadDialog.value = true;
+					// Inspiration from  https://dev.to/schirrel/vue-and-input-file-clear-file-or-select-same-file-24do
+					const inputElement = elFileInput.value;
+					if (inputElement) inputElement.value = '';
 				}
 			}
 		});
@@ -189,7 +200,7 @@
 	}
 
 	function submitMessage() {
-		if (!value.value || !(typeof value.value == 'string')) return;
+		if (!value.value || !(typeof value.value === 'string')) return;
 
 		if (signingMessage.value) {
 			signMessage(value.value, selectedAttributesSigningMessage.value);
@@ -235,10 +246,11 @@
 		showPopover.value = false;
 		showEmojiPicker.value = false;
 		signingMessage.value = false;
+		fileUploadDialog.value = false;
+		elFileInput.value = null;
 	}
 
 	function closeReplyingTo() {
 		messageActions.replyingTo = undefined;
 	}
 </script>
-@/composables/fileUpload

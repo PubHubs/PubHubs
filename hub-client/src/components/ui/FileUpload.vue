@@ -30,7 +30,7 @@
 	const props = defineProps<{ file: Record<string, any>; mxcPath: string }>();
 
 	async function close(action: number = 0) {
-		if (action == 1) {
+		if (action === 1) {
 			submit();
 		} else {
 			emit('close');

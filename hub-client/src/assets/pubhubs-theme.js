@@ -21,6 +21,8 @@ const pubhubs = {
 			},
 		},
 
+		notification: 'var(--notification)',
+
 		// Hub color palette default. Can be customised with hub branding.
 		hub: {
 			background: {
@@ -93,6 +95,7 @@ const pubhubs = {
 	extend: {
 		screens: {
 			xs: '360px',
+			sm: '460px',
 			'2md': '896px',
 		},
 	},

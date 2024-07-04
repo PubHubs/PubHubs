@@ -1,12 +1,12 @@
 <template>
 	<div :class="settings.getActiveTheme">
 		<div v-if="setupReady" class="max-h-screen text-hub-text">
-			<div v-if="user.isLoggedIn" class="md:grid md:grid-cols-8">
+			<div v-if="user.isLoggedIn" class="md:grid grid-cols-8">
 				<HeaderFooter class="md:col-span-2 md:flex gap-4 bg-hub-background-2" :class="{ hidden: !hubSettings.mobileHubMenu }">
 					<template #header>
 						<div class="flex justify-between gap-4 items-end border-b h-full py-2 pl-5 mr-8">
 							<div class="flex h-full">
-								<Badge v-if="hubSettings.isSolo && rooms.totalUnreadMessages > 0" class="-ml-2 -mt-2">{{ rooms.totalUnreadMessages }}</Badge>
+								<Badge v-if="hubSettings.isSolo && settings.isFeatureEnabled(featureFlagType.notifications) && rooms.totalUnreadMessages > 0" class="-ml-2 -mt-2">{{ rooms.totalUnreadMessages }}</Badge>
 								<router-link to="/">
 									<Logo class="h-full"></Logo>
 								</router-link>
@@ -15,6 +15,7 @@
 								<Avatar
 									:userId="user.user.userId"
 									:img="avatar"
+									:icon="true"
 									@click="
 										settingsDialog = true;
 										toggleMenu.toggleGlobalMenu();
@@ -31,23 +32,17 @@
 						</router-link>
 					</Menu>
 
-					<!-- When user is admin, show the admin tools menu -->
-					<div v-if="user.isAdmin">
-						<div class="pl-5 border-b mr-8">
-							<H2>{{ $t('menu.admin_tools') }}</H2>
-						</div>
-						<Menu>
-							<router-link :to="{ name: 'admin' }" v-slot="{ isActive }">
-								<MenuItem icon="admin" :active="isActive" @click="toggleMenu.toggleGlobalMenu()">{{ $t('menu.admin_tools_rooms') }}</MenuItem>
-							</router-link>
-						</Menu>
-					</div>
+					<H2 class="pl-5 border-b mr-8">{{ $t('menu.rooms') }}</H2>
+					<RoomList></RoomList>
+					<DiscoverRooms></DiscoverRooms>
+
+					<H2 class="pl-5 border-b mr-8">{{ $t('menu.private_rooms') }}</H2>
+					<RoomList :roomType="RoomType.PH_MESSAGES_DM"></RoomList>
+					<DiscoverUsers></DiscoverUsers>
 
 					<!-- When user is admin, show the moderation tools menu -->
 					<div v-if="disclosureEnabled && user.isAdmin">
-						<div class="pl-5 border-b mr-8">
-							<H2>{{ $t('menu.moderation_tools') }}</H2>
-						</div>
+						<H2 class="pl-5 border-b mr-8">{{ $t('menu.moderation_tools') }}</H2>
 						<Menu>
 							<router-link :to="{ name: 'ask-disclosure' }" v-slot="{ isActive }">
 								<MenuItem icon="sign" :active="isActive">{{ $t('menu.moderation_tools_disclosure') }}</MenuItem>
@@ -55,20 +50,18 @@
 						</Menu>
 					</div>
 
-					<div class="flex justify-between items-center pl-5 border-b mr-8">
-						<H2>{{ $t('menu.rooms') }}</H2>
-						<Icon type="plus" class="cursor-pointer hover:text-green" @click="joinRoomDialog = true"></Icon>
+					<!-- When user is admin, show the admin tools menu -->
+					<div v-if="user.isAdmin">
+						<H2 class="pl-5 border-b mr-8">{{ $t('menu.admin_tools') }}</H2>
+						<Menu>
+							<router-link :to="{ name: 'admin' }" v-slot="{ isActive }">
+								<MenuItem icon="admin" :active="isActive" @click="toggleMenu.toggleGlobalMenu()">{{ $t('menu.admin_tools_rooms') }}</MenuItem>
+							</router-link>
+						</Menu>
 					</div>
-					<RoomList></RoomList>
-
-					<div class="flex justify-between items-center pl-5 border-b mr-8">
-						<H2 class="">{{ $t('menu.private_rooms') }}</H2>
-						<Icon type="plus" class="cursor-pointer hover:text-green" @click="addPrivateRoomDialog = true"></Icon>
-					</div>
-					<RoomList :roomType="RoomType.PH_MESSAGES_DM"></RoomList>
 				</HeaderFooter>
 
-				<div class="md:col-span-6 md:block max-h-screen overflow-y-auto scrollbar" :class="{ hidden: hubSettings.mobileHubMenu }">
+				<div class="md:col-span-6 md:block dark:bg-gray-middle max-h-screen overflow-y-auto scrollbar" :class="{ hidden: hubSettings.mobileHubMenu }">
 					<router-view></router-view>
 				</div>
 			</div>
@@ -78,8 +71,6 @@
 			</div>
 		</div>
 
-		<JoinRoom v-if="joinRoomDialog" @close="joinRoomDialog = false"></JoinRoom>
-		<AddPrivateRoom v-if="addPrivateRoomDialog" @close="addPrivateRoomDialog = false"></AddPrivateRoom>
 		<Disclosure v-if="disclosureEnabled"></Disclosure>
 
 		<SettingsDialog v-if="settingsDialog" @close="settingsDialog = false"></SettingsDialog>
@@ -89,9 +80,9 @@
 </template>
 
 <script setup lang="ts">
-	import { onMounted, ref, getCurrentInstance } from 'vue';
+	import { onMounted, ref, getCurrentInstance, watch } from 'vue';
 	import { RouteParamValue, useRouter } from 'vue-router';
-	import { Message, MessageBoxType, MessageType, Theme, TimeFormat, useHubSettings, useMessageBox, RoomType, useRooms, useSettings, useUser } from '@/store/store';
+	import { Message, MessageBoxType, MessageType, Theme, TimeFormat, useHubSettings, useMessageBox, RoomType, useRooms, useSettings, featureFlagType, useUser } from '@/store/store';
 	import { useDialog } from '@/store/dialog';
 	import { useMatrixFiles } from '@/composables/useMatrixFiles';
 	import { usePubHubs } from '@/core/pubhubsStore';
@@ -99,7 +90,6 @@
 	import { usePlugins } from '@/store/plugins';
 	import { useI18n } from 'vue-i18n';
 	import { useToggleMenu } from '@/store/toggleGlobalMenu';
-	import { MatrixEvent } from 'matrix-js-sdk';
 
 	const { locale, availableLocales } = useI18n();
 	const router = useRouter();
@@ -117,11 +107,15 @@
 	const settingsDialog = ref(false);
 
 	const setupReady = ref(false);
-	const joinRoomDialog = ref(false);
-	const addPrivateRoomDialog = ref(false);
 	const disclosureEnabled = settings.isFeatureEnabled('disclosure');
-	const acknowledgeOnce = ref(true);
 	const avatar = ref('');
+
+	watch(
+		() => rooms.totalUnreadMessages,
+		() => {
+			rooms.sendUnreadMessageCounter();
+		},
+	);
 
 	onMounted(() => {
 		plugins.setPlugins(getCurrentInstance()?.appContext.config.globalProperties._plugins, router);
@@ -166,12 +160,12 @@
 				settings.setTheme(message.content.theme as Theme);
 				settings.setTimeFormat(message.content.timeformat as TimeFormat);
 				settings.setLanguage(message.content.language);
-				messageBoxStarted = true;
-			});
 
-			//Listen to log in time
-			messagebox.addCallback(MessageType.GlobalLoginTime, (message: Message) => {
-				pubhubs.updateLoggedInStatusBasedOnGlobalStatus(message.content as string);
+				// REFACTOR NEEDED: https://gitlab.science.ru.nl/ilab/pubhubs_canonical/-/issues/783
+				if (!settings.mobileHubMenu && !messageBoxStarted && hubSettings.mobileHubMenu) {
+					messagebox.sendMessage(new Message(MessageType.mobileHubMenu, hubSettings.mobileHubMenu));
+				}
+				messageBoxStarted = true;
 			});
 
 			//Listen to global menu change
@@ -195,21 +189,4 @@
 			}, 2500);
 		}
 	}
-
-	// Additional check to make sure that beforeunload is only called once.
-	// An open issue for unload event in mozilla->  https://bugzilla.mozilla.org/show_bug.cgi?id=531199
-
-	window.addEventListener('beforeunload', () => {
-		if (acknowledgeOnce.value) {
-			rooms.roomsArray.forEach(async (room) => {
-				const mEvent: MatrixEvent = room.getlastEvent();
-				const sender = mEvent.event.sender!;
-				await pubhubs.sendAcknowledgementReceipt(sender);
-			});
-			// Once done then we dont call eventListener again.
-			// This will be called only when we are closing the browser.
-
-			acknowledgeOnce.value = false;
-		}
-	});
 </script>

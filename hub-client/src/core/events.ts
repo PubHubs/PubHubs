@@ -23,16 +23,16 @@ class Events {
 				// console.debug('STATE:', state);
 
 				const connection = useConnection();
-				if (state == 'ERROR') {
+				if (state === 'ERROR') {
 					connection.error();
 				}
-				if (state == 'RECONNECTING') {
+				if (state === 'RECONNECTING') {
 					connection.off();
 				}
-				if (state == 'SYNCING') {
+				if (state === 'SYNCING') {
 					connection.on();
 				}
-				if (state == 'PREPARED') {
+				if (state === 'PREPARED') {
 					// DEBUGGING purpose - To understand the following events.
 					// this.client.on('event' as any, (event: any) => {
 					// 	console.debug('== EVENT', event.getType());
@@ -57,25 +57,36 @@ class Events {
 
 	eventRoomName(matrixRoom: MatrixRoom) {
 		const rooms = useRooms();
-		// console.debug('Room.name', room.name);
-		rooms.addRoom(new Room(matrixRoom));
+		const pubhubs = usePubHubs();
+		// Room display name can  be just Empty Room or display name can also be Empty Room followed by peudonym
+		// Therefore, I can't compare it directly with equality, going with 'includes()' function to compare.
+
+		if (!matrixRoom.name.includes('Empty')) {
+			// Check joined Room so that the PH client store is in sync with matrix for joined rooms.
+			pubhubs.client.getJoinedRooms().then((joinedRooms) => {
+				if (joinedRooms.joined_rooms.indexOf(matrixRoom.roomId) !== -1) {
+					rooms.addRoom(new Room(matrixRoom));
+				}
+			});
+		}
 	}
 
 	eventRoomTimeline(eventTimeLineHandler: EventTimeLineHandler, event: MatrixEvent, matrixRoom: MatrixRoom | undefined, toStartOfTimeline: boolean | undefined) {
 		if (!matrixRoom) return;
-		const rooms = useRooms();
-		const phRoom = rooms.addRoom(new Room(matrixRoom));
 
 		if (event.event.type === 'm.room.message' && event.event.content?.msgtype === 'm.text') {
 			event.event = eventTimeLineHandler.transformEventContent(event.event as Partial<TEvent>);
 		}
 
+		if (event.event.type === 'm.room.message' && event.event.content?.msgtype === 'm.notice') {
+			const rooms = useRooms();
+			//Messages are only in rooms.
+			rooms.addProfileNotice(event.getRoomId()!, event.getContent().body);
+		}
+
 		if (!toStartOfTimeline) {
 			if (event.event.type !== 'm.room.message') return;
-
-			if (phRoom.roomId !== rooms.currentRoomId) {
-				phRoom.unreadMessageCounter(event);
-			}
+			const rooms = useRooms();
 			rooms.onModRoomMessage(event);
 		}
 	}
@@ -83,7 +94,7 @@ class Events {
 	eventRoomMemberName(event: MatrixEvent, member: RoomMember) {
 		const user = useUser();
 		// console.debug('RoomMember.name', member.user);
-		if (member.user !== undefined && member.user.userId == user.user.userId) {
+		if (member.user !== undefined && member.user.userId === user.user.userId) {
 			user.setUser(member.user as User);
 			if (member.user.displayName !== undefined) {
 				user.user.setDisplayName(member.user.displayName);
@@ -95,14 +106,14 @@ class Events {
 		return function eventRoomMemberMembershipInner(event: MatrixEvent, member: RoomMember) {
 			const me = client.getUserId();
 			// console.debug('RoomMember.membership', member.membership, member.userId, me, event.getRoomId());
-			if (me == member.userId) {
+			if (me === member.userId) {
 				const rooms = useRooms();
-				if (member.membership == 'leave') {
+				if (member.membership === 'leave') {
 					const roomId = event.getRoomId();
-					if (roomId != undefined) {
+					if (roomId !== undefined) {
 						rooms.rooms[roomId].setHidden(true);
 					}
-				} else if (member.membership == 'invite') {
+				} else if (member.membership === 'invite') {
 					const pubhubs = usePubHubs();
 					pubhubs
 						.joinRoom(member.roomId)

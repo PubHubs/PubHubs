@@ -1,12 +1,2 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<svg width="400px" height="400px" viewBox="0 0 400 400" version="1.1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
-    <!-- Generator: Sketch 52.6 (67491) - http://www.bohemiancoding.com/sketch -->
-    <title>LOGO</title>
-    <desc>Created with Sketch.</desc>
-    <g id="Page-1" stroke="none" stroke-width="1" fill="none" fill-rule="evenodd">
-        <path id="Line" d="M288.15427,139.641612 L46.9678557,319.024008 C42.5363186,322.319963 36.271948,321.399393 32.9759924,316.967856 C29.6800367,312.536319 30.6006073,306.271948 35.0321443,302.975992 L276.218558,123.593597 L254.855851,94.8706299 C252.811135,92.121431 253.38223,88.2351946 256.131429,86.1904779 C256.904218,85.615716 257.800214,85.2287729 258.748459,85.060292 L359.571475,67.1464076 C362.944858,66.5470365 366.165412,68.7958178 366.764783,72.1692011 C366.999601,73.4908014 366.799434,74.8529124 366.194328,76.0510831 L320.031625,167.457827 C318.487092,170.516156 314.755735,171.74333 311.697406,170.198797 C310.837721,169.764635 310.090927,169.136278 309.516165,168.363489 L288.15427,139.641612 Z" fill="#F5A623" fill-rule="nonzero"></path>
-        <text id="Logo" font-family="Helvetica-Bold, Helvetica" font-size="150" font-weight="bold" fill="#8B572A">
-            <tspan x="16.7480469" y="256">Logo</tspan>
-        </text>
-    </g>
-</svg>
+<svg version="1.1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" viewBox="0 0 24 24" stroke-width="1" stroke="white" fill="none" stroke-linecap="round" stroke-linejoin="round">  <path stroke="none" d="M0 0h24v24H0z"/>  <circle cx="9" cy="7" r="4" />  <path d="M3 21v-2a4 4 0 0 1 4 -4h4a4 4 0 0 1 4 4v2" />  <path d="M16 3.13a4 4 0 0 1 0 7.75" />  <path d="M21 21v-2a4 4 0 0 0 -3 -3.85" /></svg>

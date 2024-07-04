@@ -38,7 +38,6 @@ describe('Global', () => {
 			expect(settings.theme).toEqual('system');
 			expect(settings.language).toEqual('en');
 			expect(global.pinnedHubs).toHaveLength(0);
-			expect(global.loginTime).toEqual('');
 		});
 		test('logged in', async () => {
 			const global = useGlobal();
@@ -53,7 +52,6 @@ describe('Global', () => {
 			expect(settings.language).toBeTypeOf('string');
 			expect(settings.language).toHaveLength(2);
 			expect(global.pinnedHubs).toHaveLength(1);
-			expect(global.loginTime).toBeTypeOf('string');
 		});
 	});
 

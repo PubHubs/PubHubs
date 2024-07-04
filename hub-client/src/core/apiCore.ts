@@ -83,7 +83,7 @@ class Api {
 			}
 		}
 		this.fetchEtagFromHeaders(response.headers);
-		if (response.status == 204) {
+		if (response.status === 204) {
 			return true as T;
 		}
 		// Test if JSON response

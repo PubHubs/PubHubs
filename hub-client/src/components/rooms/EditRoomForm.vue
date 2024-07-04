@@ -1,5 +1,5 @@
 <template>
-	<Dialog :title="title" :buttons="buttonsSubmitCancel" @close="close($event)">
+	<Dialog :title="title" :buttons="buttonsSubmitCancel" @close="close($event)" width="w-full max-w-[960px]">
 		<form @submit.prevent class="flex flex-col gap-4">
 			<FormLine>
 				<Label>{{ $t('admin.name') }}</Label>
@@ -96,8 +96,8 @@
 	const editRoom = ref({} as TPublicRoom | TSecuredRoom);
 
 	const securedRoomTemplate = ref([
-		{ key: 'yivi', label: t('admin.secured_attribute'), type: 'select', options: [], default: '' },
-		{ key: 'values', label: t('admin.secured_values'), type: 'textarea', default: '' },
+		{ key: 'yivi', label: t('admin.secured_attribute'), type: 'autocomplete', options: [], default: '' },
+		{ key: 'values', label: t('admin.secured_values'), type: 'textarea', default: '', maxLength: 3000 },
 		{ key: 'profile', label: t('admin.secured_profile'), type: 'checkbox', default: false },
 	] as Array<FormObjectInputTemplate>);
 
@@ -127,7 +127,7 @@
 					let newAccepted = [];
 					acceptedKeys.forEach((key) => {
 						let values = accepted[key].accepted_values;
-						if (typeof values == 'object') {
+						if (typeof values === 'object') {
 							values = values.join(', ');
 						}
 						newAccepted.push({
@@ -164,7 +164,7 @@
 	//#endregion
 
 	async function close(returnValue: DialogButtonAction) {
-		if (returnValue == 1) {
+		if (returnValue === 1) {
 			await submitRoom();
 		}
 		emit('close');
@@ -181,7 +181,7 @@
 					topic: room.topic,
 					visibility: 'public',
 					creation_content: {
-						type: room.type == '' ? undefined : room.type,
+						type: room.type === '' ? undefined : room.type,
 					},
 				};
 				await pubhubs.createRoom(newRoomOptions);

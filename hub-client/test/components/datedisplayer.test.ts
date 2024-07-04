@@ -1,11 +1,27 @@
 import DateDisplayer from '@/components/ui/DateDisplayer.vue';
-import { describe, expect, beforeEach, afterEach, test } from 'vitest';
+import { describe, expect, beforeEach, afterEach, test, vi } from 'vitest';
 import { shallowMount, flushPromises } from '@vue/test-utils';
 import { createI18n } from 'vue-i18n';
 import { nl } from '@/locales/nl';
 import { en } from '@/locales/en';
 
 import { setActivePinia, createPinia } from 'pinia';
+
+// Mocking dependencies and Mock useTimeFormat composable
+vi.mock('@/composables/useTimeFormat', () => ({
+	useTimeFormat: () => ({
+		formattedTimeInformation: vi.fn(() => 'Mocked Date'),
+	}),
+}));
+
+// Mock useRooms composable
+vi.mock('@/store/rooms', () => ({
+	useRooms: () => ({
+		currentRoom: {
+			hasMessages: vi.fn(() => true),
+		},
+	}),
+}));
 
 describe('DateDisplayer.vue Test', () => {
 	// Test variables
@@ -53,12 +69,15 @@ describe('DateDisplayer.vue Test', () => {
 		expect(wrapper.vm.scrollStatus).toEqual(false);
 	});
 
-	test('test html rendering on Date Displayer component', async () => {
-		// Existence of html elements in component check
+	//TODO: This needs to be updated to cater the update in the component.
+
+	test('displayDate controls element visibility', async () => {
+		// Check if the date is displayed correctly
+		wrapper.find('div');
 		expect(wrapper.find('div').exists()).toBeTruthy();
 		expect(wrapper.find('span').exists()).toBeTruthy();
 
-		// Exact number of element check
+		// Exact number of elements
 		expect(wrapper.findAll('div').length).toBe(1);
 		expect(wrapper.findAll('div').length).toBe(1);
 	});

@@ -9,7 +9,7 @@
 
 	const slots = useSlots();
 	const slotText = computed(() => {
-		if (typeof slots.default != 'undefined') {
+		if (typeof slots.default !== 'undefined') {
 			let text = '';
 			let children: VNodeNormalizedChildren = slots.default()[0].children;
 			// Traverse children tree so this could be used inside a slot of another component
@@ -25,3 +25,10 @@
 		return '';
 	});
 </script>
+
+<style scoped>
+	p::before {
+		content: normal;
+		display: inline-block;
+	}
+</style>

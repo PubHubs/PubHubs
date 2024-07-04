@@ -1,10 +1,10 @@
 import { createRouter, createWebHashHistory } from 'vue-router';
-import { useUser, useRooms } from '@/store/store';
-import { usePubHubs } from '@/core/pubhubsStore';
-import { MatrixEvent } from 'matrix-js-sdk';
+import { useUser } from '@/store/store';
+
 const routes = [
-	{ path: '/', name: 'home', component: () => import('@/pages/HomePage.vue') },
-	{ path: '/hub', name: 'hubpage', component: () => import('@/pages/HubPage.vue') },
+	{ path: '/', name: 'home', component: () => import('@/pages/HomePage.vue'), props: { showPubHubsCentralLoginButton: true } },
+	{ path: '/', name: 'welcome', component: () => import('@/pages/Welcome.vue') },
+	{ path: '/hub', name: 'hubpage', component: () => import('@/pages/HomePage.vue'), props: { showPubHubsCentralLoginButton: false } },
 	{ path: '/admin', name: 'admin', component: () => import('@/pages/Admin.vue'), meta: { onlyAdmin: true } },
 	{ path: '/ask-disclosure', name: 'ask-disclosure', component: () => import('@/pages/AskDisclosure.vue'), meta: { onlyAdmin: true } },
 	{ path: '/room/:id', props: true, name: 'room', component: () => import('@/pages/Room.vue') },
@@ -19,18 +19,6 @@ const router = createRouter({
 });
 
 router.beforeEach((to) => {
-	//Add a receipt marker when we change the room.
-	const rooms = useRooms();
-	const pubhubs = usePubHubs();
-
-	rooms.roomsArray.forEach(async (room) => {
-		if (room.roomId === router.currentRoute.value.params.id) {
-			const mEvent: MatrixEvent = room.getlastEvent();
-			const sender = mEvent.event.sender!;
-			await pubhubs.sendAcknowledgementReceipt(sender);
-		}
-	});
-
 	if (to.meta.onlyAdmin) {
 		const { isAdmin } = useUser();
 		if (isAdmin) {

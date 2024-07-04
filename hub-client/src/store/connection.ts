@@ -15,7 +15,7 @@ const useConnection = defineStore('connection', {
 
 	getters: {
 		isOn: (state): boolean => {
-			return state.internet == ConnectionState.On;
+			return state.internet === ConnectionState.On;
 		},
 	},
 

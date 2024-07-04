@@ -1,6 +1,6 @@
 import { defineStore } from 'pinia';
 
-import { User as MatrixUser, MatrixClient, MatrixEvent, ContentHelpers, MatrixError, IStateEventWithRoomId } from 'matrix-js-sdk';
+import { User as MatrixUser, MatrixClient, MatrixEvent, ContentHelpers, MatrixError, IStateEventWithRoomId, EventTimeline } from 'matrix-js-sdk';
 import Room from '@/model/rooms/Room';
 import { Authentication } from '@/core/authentication';
 import { Events } from '@/core/events';
@@ -11,6 +11,7 @@ import { api_synapse, api_matrix } from '@/core/api';
 import { YiviSigningSessionResult, AskDisclosureMessage } from '@/lib/signedMessages';
 import { TMentions, TTextMessageEventContent, TMessageEvent } from '@/model/events/TMessageEvent';
 import { ReceiptType } from 'matrix-js-sdk/lib/@types/read_receipts';
+import { TSearchParameters, TSearchResult } from '@/model/model';
 
 const usePubHubs = defineStore('pubhubs', {
 	state: () => ({
@@ -35,27 +36,32 @@ const usePubHubs = defineStore('pubhubs', {
 			console.log('PubHubs.login');
 			this.Auth.login()
 				.then((x) => {
+					// console.log('PubHubs.logged in (X)');
 					this.client = x as MatrixClient;
 					const events = new Events(this.client as MatrixClient);
 					events.initEvents();
 				})
 				.then(() => {
+					// console.log('PubHubs.logged in ()');
 					const connection = useConnection();
 					connection.on();
 					const user = useUser();
 					const newUser = this.client.getUser(user.user.userId);
-					if (newUser != null) {
+					if (newUser !== null) {
 						user.setUser(newUser as User);
 						user.fetchDisplayName(this.client as MatrixClient)
 							.then(() => user.fetchIsAdministrator(this.client as MatrixClient))
 							.then(() => {
-								api_synapse.setAccessToken(this.Auth.getAccessToken());
-								api_matrix.setAccessToken(this.Auth.getAccessToken());
+								api_synapse.setAccessToken(this.Auth.getAccessToken()!); //Since user isn't null, we expect there to be an access token.
+								api_matrix.setAccessToken(this.Auth.getAccessToken()!);
+							})
+							.then(() => {
+								this.updateRooms();
 							});
 					}
 				})
 				.catch((error) => {
-					if (typeof error == 'string' && error.indexOf('M_FORBIDDEN') < 0) {
+					if (typeof error === 'string' && error.indexOf('M_FORBIDDEN') < 0) {
 						console.debug('ERROR:', error);
 					}
 				});
@@ -65,15 +71,13 @@ const usePubHubs = defineStore('pubhubs', {
 			this.Auth.logout();
 		},
 
-		updateLoggedInStatusBasedOnGlobalStatus(globalLoginTime: string) {
-			this.Auth.updateLoggedInStatusBasedOnGlobalStatus(globalLoginTime);
-		},
-
 		async updateRooms() {
-			console.log('PubHubs.updateRooms');
 			const rooms = useRooms();
-			const currentRooms = this.client.getRooms();
+			const joinedRooms = (await this.client.getJoinedRooms()).joined_rooms;
+			const currentRooms = this.client.getRooms().filter((room) => joinedRooms.indexOf(room.roomId) !== -1);
+			console.log('PubHubs.updateRooms');
 			rooms.updateRoomsWithMatrixRooms(currentRooms);
+			rooms.roomsLoaded = true;
 			await rooms.fetchPublicRooms();
 		},
 
@@ -111,6 +115,9 @@ const usePubHubs = defineStore('pubhubs', {
 		},
 
 		async getAllPublicRooms(): Promise<TPublicRoom[]> {
+			if (!this.client.publicRooms) {
+				return [];
+			}
 			let publicRoomsResponse = await this.client.publicRooms();
 			let public_rooms = publicRoomsResponse.chunk;
 
@@ -167,7 +174,7 @@ const usePubHubs = defineStore('pubhubs', {
 			}
 
 			// If realy not exists, create new
-			if (existingRoomId == false) {
+			if (existingRoomId === false) {
 				const room = await this.createRoom({
 					name: `${me.userId},${other.userId}`,
 					visibility: 'private',
@@ -196,9 +203,7 @@ const usePubHubs = defineStore('pubhubs', {
 
 		async leaveRoom(roomId: string) {
 			await this.client.leave(roomId);
-			const rooms = useRooms();
-			rooms.room(roomId)?.setHidden(true);
-			// this.updateRooms();
+			this.updateRooms();
 		},
 
 		/**
@@ -211,9 +216,9 @@ const usePubHubs = defineStore('pubhubs', {
 				const mentionedUsers = content.body.split('@');
 				mentionedUsersName = users
 					.filter((user) => {
-						return mentionedUsers.some((menUser: any) => user.rawDisplayName != undefined && (menUser.includes(user.rawDisplayName) || menUser === user.rawDisplayName));
+						return mentionedUsers.some((menUser: any) => user.rawDisplayName !== undefined && (menUser.includes(user.rawDisplayName) || menUser === user.rawDisplayName));
 					})
-					.map((users) => users.rawDisplayName)
+					.map((users) => users.userId)
 					.filter((displayName): displayName is string => displayName !== undefined);
 
 				content['m.mentions']['user_ids'] = content['m.mentions']['user_ids'].concat(mentionedUsersName);
@@ -243,7 +248,7 @@ const usePubHubs = defineStore('pubhubs', {
 			// Mention appropriate users
 
 			if (
-				inReplyTo.content.msgtype == 'm.text' &&
+				inReplyTo.content.msgtype === 'm.text' &&
 				// For backwards compatibility
 				inReplyTo.content['m.mentions']
 			) {
@@ -256,7 +261,7 @@ const usePubHubs = defineStore('pubhubs', {
 			let content = ContentHelpers.makeTextMessage(text) as TTextMessageEventContent;
 
 			const cleanText = hasHtml(text);
-			if (typeof cleanText == 'string') {
+			if (typeof cleanText === 'string') {
 				const html = sanitizeHtml(text);
 				content = ContentHelpers.makeHtmlMessage(cleanText, html) as TTextMessageEventContent;
 			}
@@ -328,6 +333,20 @@ const usePubHubs = defineStore('pubhubs', {
 			await this.client.sendReceipt(event, ReceiptType.Read, content);
 		},
 
+		async sendPrivateReceipt(event: MatrixEvent) {
+			if (!event) return;
+			const loggedInUser = useUser();
+			const content = {
+				'm.read.private': {
+					[loggedInUser.user.userId]: {
+						ts: event.localTimestamp,
+						thread_id: 'main',
+					},
+				},
+			};
+			await this.client.sendReceipt(event, ReceiptType.ReadPrivate, content);
+		},
+
 		async addAskDisclosureMessage(roomId: string, body: string, askDisclosureMessage: AskDisclosureMessage) {
 			const content = {
 				msgtype: 'pubhubs.ask_disclosure_message',
@@ -335,61 +354,6 @@ const usePubHubs = defineStore('pubhubs', {
 				ask_disclosure_message: askDisclosureMessage,
 			};
 			await this.client.sendEvent(roomId, 'm.room.message', content);
-		},
-
-		// Sends acknowledgement to synapse about the message has been read.
-		// We also store the timestamp in localstorage to avoid any inaccuracy of timestamp comparision.
-		// SEE our algorithm for receipt acknowledgement in room.ts / unreadMessageCounter
-		async sendAcknowledgementReceipt(userId: string) {
-			const receiptTimeStamp = Date.now();
-			const rooms = useRooms();
-			const roomId = rooms.currentRoom?.roomId!;
-
-			// If we already have unread messages in the room and we haven't seen them, then no need to send a receipt.
-			if (rooms.currentRoom?.numUnreadMessages != 0) {
-				return;
-			}
-
-			const content = {
-				'm.read': {
-					[userId]: {
-						ts: receiptTimeStamp,
-						thread_id: undefined,
-					},
-				},
-			};
-
-			// Retrieve existing data from localStorage
-			const storedDataString = localStorage.getItem('receiptTS');
-			let storedData: { roomId: string; timestamp: number }[] = [];
-
-			if (storedDataString) {
-				try {
-					storedData = JSON.parse(storedDataString);
-				} catch (error) {
-					console.error('Error parsing data from localStorage:', error);
-				}
-			}
-
-			// Find the index of the existing entry based on roomId
-			const existingIndex = storedData.findIndex((data) => data.roomId === roomId);
-
-			if (existingIndex !== -1) {
-				// Update the timestamp of the existing entry
-				storedData[existingIndex].timestamp = receiptTimeStamp;
-			} else {
-				// If no existing entry found, add a new one
-				const roomData = { roomId, timestamp: receiptTimeStamp };
-				storedData.push(roomData);
-			}
-
-			// Save the updated data back to localStorage
-			localStorage.setItem('receiptTS', JSON.stringify(storedData));
-			try {
-				await this.client.sendEvent(roomId, 'm.receipt', content);
-			} catch (err) {
-				console.log(err);
-			}
 		},
 
 		async addImage(roomId: string, uri: string) {
@@ -463,6 +427,9 @@ const usePubHubs = defineStore('pubhubs', {
 		},
 
 		async getUsers(): Promise<Array<MatrixUser>> {
+			if (!this.client.getUsers) {
+				return [];
+			}
 			const users = (await this.client.getUsers()) as Array<MatrixUser>;
 			// Removed this hack @ 04 april 2024, if all seems well at next merge to stable, this can be removed permanent
 			// Doesn't get all displaynames correct from database, this is a hack to change displayName to only the pseudonym
@@ -481,13 +448,44 @@ const usePubHubs = defineStore('pubhubs', {
 		},
 
 		/**
+		 * Performs search on content of given room
+		 *
+		 * @returns list of results as TSearchResult
+		 */
+		async searchRoomEvents(term: string, searchParameters: TSearchParameters) {
+			if (!term || !term.length) return [];
+
+			const response = await this.client.searchRoomEvents({ term: term, filter: { rooms: [searchParameters.roomId] } });
+			return response.results.map(
+				(result) =>
+					({
+						rank: result.rank,
+						event_id: result.context.ourEvent.event.event_id!,
+						event_type: result.context.ourEvent.event.type,
+						event_body: result.context.ourEvent.event.content?.body,
+						event_sender: result.context.ourEvent.event.sender,
+					}) as TSearchResult,
+			);
+		},
+
+		/**
+		 *
+		 * Paginates given timeline
+		 *
+		 * @param timeline
+		 * @returns paginated event timeline
+		 */
+		async paginateEventTimeline(timeline: EventTimeline) {
+			const settings = useSettings();
+			return await this.client.paginateEventTimeline(timeline, { backwards: true, limit: settings.pagination });
+		},
+
+		/**
 		 * Loads older events in a room.
 		 *
 		 * @returns {boolean} true if all events are loaded, false otherwise.
 		 */
 		async loadOlderEvents(room: Room): Promise<boolean> {
-			const settings = useSettings();
-
 			const firstEvent = room.timelineGetEvents()[0];
 
 			// If all messages are loaded, return.
@@ -499,6 +497,7 @@ const usePubHubs = defineStore('pubhubs', {
 			if (!eventId) throw new Error('Failed to load older events: EventId not found');
 
 			const timeline = await this.client.getEventTimeline(timelineSet, eventId);
+
 			if (!timeline) throw new Error('Failed to load older events: Timeline not found');
 
 			if (!this.client.getRoom(room.roomId)) {
@@ -507,21 +506,52 @@ const usePubHubs = defineStore('pubhubs', {
 				await this.updateRooms();
 			}
 
-			await this.client.paginateEventTimeline(timeline, { backwards: true, limit: settings.pagination });
+			return false;
+		},
+
+		/**
+		 * Loads newer events in a room.
+		 *
+		 * @returns {boolean} true if all events are loaded, false otherwise.
+		 */
+		async loadNewerEvents(room: Room): Promise<boolean> {
+			const timelineEvents = room.timelineGetEvents();
+			const lastEvent = timelineEvents[timelineEvents.length - 1];
+
+			const newestEventId = room.timelineGetNewestMessageEventId();
+
+			// If all messages are loaded, return.
+			if (!lastEvent || lastEvent.getId() == newestEventId) return true;
+
+			const timelineSet = room.getTimelineSets()[0];
+			const eventId = lastEvent.getId();
+
+			if (!eventId) throw new Error('Failed to load newer events: EventId not found');
+
+			const timeline = await this.client.getEventTimeline(timelineSet, eventId);
+
+			if (!timeline) throw new Error('Failed to newer events: Timeline not found');
+
+			if (!this.client.getRoom(room.roomId)) {
+				//Sometimes the room is NOT fully initialized on client-side this call forces the client to update its rooms, including this one.
+				//Our Room already exists (with its unready backing MatrixRoom), and we can mostly use it, but not to paginate the timeline.
+				await this.updateRooms();
+			}
+
 			return false;
 		},
 
 		async loadToMessage(room: Room, eventId: string) {
-			let eventTimeline = room.getTimelineForEvent(eventId);
-			let i = 0;
-			let allEventsLoaded = false;
-			const searchLimit = 1000;
-
-			while (!eventTimeline && !allEventsLoaded && i < searchLimit) {
-				allEventsLoaded = await this.loadOlderEvents(room);
-				eventTimeline = room.getTimelineForEvent(eventId);
-				i++;
+			const timeline = await this.client.getEventTimeline(room.getTimelineSets()[0], eventId);
+			if (timeline) {
+				await this.paginateEventTimeline(timeline);
 			}
+		},
+
+		async hasUserJoinedHubFirstTime(): Promise<Object> {
+			const loggedInUser = useUser();
+			const resp = await api_synapse.apiPOST<Object>(api_synapse.apiURLS.joinHub, { user: loggedInUser.user.userId });
+			return resp;
 		},
 	},
 });

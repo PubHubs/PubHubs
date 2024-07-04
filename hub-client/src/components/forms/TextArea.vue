@@ -4,7 +4,7 @@
 		rows="1"
 		v-tw-class="'p-2'"
 		class="w-full resize-none rounded-lg border dark:text-white dark:border-white theme-light:text-gray-dark theme-light:border-black focus:border-black focus:outline-0 focus:outline-offset-0 focus:ring-0"
-		maxlength="1500"
+		:maxlength="maxLength"
 		:placeholder="placeholder"
 		:title="placeholder"
 		:value="modelValue"
@@ -25,15 +25,12 @@
 
 	const elTextarea: Ref<null | HTMLTextAreaElement> = ref(null);
 
-	const props = defineProps({
-		placeholder: {
-			type: String,
-			default: '',
-		},
-		modelValue: {
-			type: String,
-		},
-	});
+	type Props = {
+		modelValue: string;
+		placeholder?: string;
+		maxLength?: number;
+	};
+	const props = withDefaults(defineProps<Props>(), { placeholder: '', maxLength: 1500 });
 
 	const emit = defineEmits([...usedEvents, 'caretPos']);
 	const { update, changed, submit, cancel } = useFormInputEvents(emit, props.modelValue);

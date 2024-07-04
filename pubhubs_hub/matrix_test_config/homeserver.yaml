@@ -1,6 +1,6 @@
 # Default settings for the PubHubs Synapse Homeserver
 #
-# This file serves both as an example to hub administrators that are 
+# This file serves both as an example to hub administrators that are
 # configuring their hub and as the default settings for a testhub
 # running locally in a development setup.
 #
@@ -18,31 +18,31 @@
 # version of the hub container.  It's therefore not advisable to automatically pull new versions
 # of the hub image.
 #
-# While some settings shouldn't be changed, other should (especially secrets).  This is indicated
+# While some settings shouldn't be changed, others should (especially secrets).  This is indicated
 # with a "DO CHANGE".  The 'ConfigChecker' does check whether you've changed them (when the
-# public_baseurl starts with "https"), but doesn't check whether you've changed them to 
+# public_baseurl starts with "https"), but doesn't check whether you've changed them to
 # something sensible.
 #
 #
 # NOTE TO PUBHUBS DEVELOPERS
 #
 # If you change anything here, please realise these changes are not distributed automatically to the hubs,
-# so consider updating the 'ConfigChecker' module in modules/pubhubs/config_checker.py.  
+# so consider updating the 'ConfigChecker' module in modules/pubhubs/config_checker.py.
 #
 modules:
   - module: conf.modules.config_checker.ConfigChecker  # DON'T CHANGE
     config: {
-      ## DEVELOPERS: by default the ConfigChecker will check whether the 'DO CHANGE' fields 
+      ## DEVELOPERS: by default the ConfigChecker will check whether the 'DO CHANGE' fields
       ## have been changed when the public_baseurl starts with 'https', and otherwise it will
       ## check that they *haven't* been changed (to make sure that the check-code is up-to-date
       ## with the current defaults.)
-      ## 
+      ##
       ## HUB ADMINISTRATORS: please only use 'yes_should_be_changed'
       ##
       ## You can override this behaviour with the following field.
       # check_do_change_fields: yes_should_be_changed   # check that 'DO CHANGE' fields have been changed
       # check_do_change_fields: yes_should_be_unchanged # check that 'DO CHANGE' fields haven't been changed
-      # check_do_change_fields: no                      # don't check 'DO CHANGE' fields at all
+      # check_do_change_fields: 'no'                    # don't check 'DO CHANGE' fields at all
     }
   - module: conf.modules.pubhubs.DBMigration    # DON'T CHANGE
   - module: conf.modules.pseudonyms.Pseudonym   # DON'T CHANGE
@@ -50,11 +50,11 @@ modules:
     config:
       {
         # URL of the hub client
-        client_url: "http://localhost:8800", # DO CHANGE - to https://<your-client-url>
+        client_url: "http://localhost:8800", # DO CHANGE - to https://<your-hub-client-domain-name>
 
         # URL of the global client - change to either:
-        #   https://main.pubhubs.ihub.ru.nl, or
-        #   https://stable.pubhubs.ihub.ru.nl 
+        #   https://app.pubhubs.net
+        #   https://main.pubhubs.ihub.ru.nl for PubHubs developers
         global_client_url: "http://localhost:8080",  # DO CHANGE
 
         ## For DEVELOPMENT only:
@@ -64,9 +64,9 @@ modules:
       }
 
 federation_domain_whitelist: []              # \
-allow_profile_lookup_over_federation: false  # | 
+allow_profile_lookup_over_federation: false  # |
 allow_per_room_profiles: false               # | DON'T CHANGE
-enable_registration: false                   # | 
+enable_registration: false                   # |
 server_notices:                              # |
   system_mxid_localpart: notices_user        # / TODO: or just 'notices'?
 
@@ -75,7 +75,7 @@ password_config:
 
 oidc_providers:
 - idp_id: pubhubs                                        # \
-  idp_name: "PubHubs ID provider"                        # | 
+  idp_name: "PubHubs ID provider"                        # |
   discover: true                                         # |
   scopes: [openid]                                       # |
   skip_verification: false                               # | DON'T CHANGE
@@ -84,20 +84,20 @@ oidc_providers:
     config: {                                            # |
       libpubhubspath: /usr/lib/libpubhubs.so             # |
     }                                                    # /
-  issuer: "http://host.docker.internal:8080"                        # \
-  client_id: "testhub~TwE1w3BX-RrDRe7FFqkbRlkp4FiBh4cgtRwtrpmv7Gc=" # | DO CHANGE
-  client_secret: "p7v7c_L_Eo0Clkx-fBvbGddHPkTEbR59oueM6XaKVYI="     # /
+  issuer: "http://host.docker.internal:8080"                        # \           - to https://app.pubhubs.net
+  client_id: "testhub~TwE1w3BX-RrDRe7FFqkbRlkp4FiBh4cgtRwtrpmv7Gc=" # | DO CHANGE - to the client id you received from PubHubs Central
+  client_secret: "p7v7c_L_Eo0Clkx-fBvbGddHPkTEbR59oueM6XaKVYI="     # /           - to the client secret you received from PubHubs Central
 
 # Server name, used in full user/room names.
 # Warning: cannot be changed later on without issues.
-server_name: "testhub.matrix.host" # DO CHANGE - to e.g. your-server.com
+server_name: "testhub.matrix.host" # DO CHANGE - to your Hub server domain name
 
 # Server URL
-public_baseurl: http://localhost:8008 # DO CHANGE - to e.g. https://your-server.com
+public_baseurl: http://localhost:8008 # DO CHANGE - to your Hub server url (the Hub server url with https:// in front)
 
-macaroon_secret_key: "macaroon_key"           # DO CHANGE
-form_secret: "form_secret"                    # DO CHANGE
-signing_key_path: "/data/testhub.signing.key" # DO CHANGE - at least, the contents
+macaroon_secret_key: "macaroon_key"           # DO CHANGE - to e.g. a 32 letter generated password
+form_secret: "form_secret"                    # DO CHANGE - to e.g. a 32 letter generated password
+signing_key_path: "/data/testhub.signing.key" # DO CHANGE - remove this to auto-generate a signing key
 
 trusted_key_servers: []
 pid_file: /data/homeserver.pid
@@ -115,21 +115,23 @@ listeners:
         compress: false
 
 templates:
-  custom_template_directory: /data/templates 
+  custom_template_directory: /data/templates
 
 database:
   name: sqlite3
   args:
     database: /data/homeserver.db
 
-log_config: "/data/test_hub.log.config"
+log_config: "/data/test_hub.log.config" # Change to /data/log.config
 
 media_store_path: "/data/media_store"
 
 # Skips having to check the redirection with user interaction.
 sso:
   client_whitelist:
-    - http://localhost # DO CHANGE - to https://<your-hub-client>
+    - https://main.pubhubs.ihub.ru.nl # For PubHubs development
+    - https://app.pubhubs.net
+    - http://localhost # DO CHANGE - to https://<your-hub-client-domain-name>
 
 update_profile_information: true
 
@@ -145,7 +147,7 @@ user_consent:
 
 auto_join_rooms:
   # Every hub has one public 'General' room, which every user automatically joins.
-  - "#General:testhub.matrix.host"    # DO CHANGE to #General:<server_name>
+  - "#General:testhub.matrix.host"    # DO CHANGE to #General:<server_name(see above)>
 autocreate_auto_join_rooms: true      # DON'T CHANGE
 auto_join_mxid_localpart: system_bot  # DON'T CHANGE
 # vim:ft=yaml

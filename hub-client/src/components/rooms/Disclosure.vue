@@ -36,7 +36,7 @@
 	// On close, reset 'newAskDisclosureMessage' so it's possible to receive another request later.
 	function closeDialog(returnValue: DialogButtonAction) {
 		showDisclosureDialog.value = false;
-		if (returnValue == 1) {
+		if (returnValue === 1) {
 			showDisclosureYivi.value = true;
 		}
 		emit('close');

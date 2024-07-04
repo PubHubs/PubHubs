@@ -1,5 +1,6 @@
 import { setActivePinia, createPinia } from 'pinia';
 import { describe, beforeEach, expect, test } from 'vitest';
+import { NotificationCountType } from 'matrix-js-sdk';
 import Room from '@/model/rooms/Room';
 import { RoomType } from '@/model/model';
 import { useRooms } from '@/store/rooms';
@@ -37,6 +38,11 @@ class MockedMatrixRoom {
 
 	public getType() {
 		return this.type;
+	}
+
+	public getRoomUnreadNotificationCount(type: NotificationCountType) {
+		if (NotificationCountType && NotificationCountType.Highlight) return 1;
+		if (NotificationCountType && NotificationCountType.Total) return 1;
 	}
 }
 
@@ -130,7 +136,7 @@ describe('rooms Store', () => {
 			expect(Object.keys(rooms.rooms).length).toEqual(1);
 			expect(rooms.rooms['test'].isHidden()).toEqual(false);
 			expect(rooms.rooms['test']).toMatchObject(testRoom);
-			rooms.rooms['test'].numUnreadMessages = 10;
+			rooms.rooms['test'].numUnreadMessages = 1;
 		});
 
 		test('roomsArray', () => {
@@ -190,13 +196,8 @@ describe('rooms Store', () => {
 			rooms.addRoom(new Room(new MockedMatrixRoom('test')));
 			rooms.addRoom(new Room(new MockedMatrixRoom('test2')));
 
-			// todo function doesn't exist anymore, add alternative?
-			// rooms.rooms['test'].addUnreadMessages(2);
-			// expect(rooms.rooms['test'].unreadMessages).toEqual(2);
-			// expect(rooms.totalUnreadMessages).toEqual(2);
-			// rooms.rooms['test2'].addUnreadMessages(3);
-			// expect(rooms.rooms['test2'].unreadMessages).toEqual(3);
-			// expect(rooms.totalUnreadMessages).toEqual(5);
+			expect(rooms.rooms['test'].getRoomUnreadNotificationCount(NotificationCountType.Highlight)).toEqual(1);
+			expect(rooms.rooms['test'].getRoomUnreadNotificationCount(NotificationCountType.Total)).toEqual(1);
 		});
 
 		test('PublicRooms', () => {

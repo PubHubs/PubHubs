@@ -32,7 +32,11 @@ const useMatrixFiles = () => {
 	}
 
 	function formUrlfromMxc(mxc: string) {
-		return downloadUrl + mxc.slice(6);
+		if (mxc.indexOf('mxc:/') !== 0) {
+			return '';
+		}
+		const url = new URL(downloadUrl + mxc.slice(6)).toString();
+		return url;
 	}
 
 	function isImage(type: string) {

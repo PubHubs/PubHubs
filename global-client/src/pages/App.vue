@@ -1,17 +1,17 @@
 <template>
 	<div :class="settings.getActiveTheme">
 		<div class="h-screen text-black dark:bg-gray-darker dark:text-white">
-			<div class="2md:hidden w-20 h-20 absolute" @click="toggleMenu.toggleMenu()">
-				<Icon v-if="toggleMenu.globalIsActive" type="returnmenu" size="4xl" class="fill-[#2F2E2E] stroke-white dark:fill-white dark:stroke-black" viewBox="0,0,84,84"></Icon>
-				<Icon v-if="!toggleMenu.globalIsActive && !global.isModalVisible" type="hamburgermenu" size="4xl" class="dark:fill-[#2F2E2E] dark:stroke-white fill-white stroke-black" viewBox="0,0,84,84"></Icon>
+			<div class="2md:hidden w-16 h-16 absolute -mt-1 dark:text-black text-white" @click="toggleMenu.toggleMenu()">
+				<Icon v-if="toggleMenu.globalIsActive" type="returnmenu" size="2xl" viewBox="0,0,69,63" class="stroke-0 fill-gray-dark dark:fill-white"></Icon>
+				<Icon v-if="!toggleMenu.globalIsActive && !global.isModalVisible" type="hamburgermenu" size="2xl" viewBox="0,0,69,63" class="stroke-0 fill-gray-dark dark:fill-white"></Icon>
 			</div>
 			<div class="flex h-full">
 				<div id="pubhubs-bar" class="flex-none w-32 bg-ph-background-3 dark:bg-ph-background-5 h-screen pt-20 2md:pt-2 2md:block" :class="{ hidden: !toggleMenu.globalIsActive }">
 					<Modal :show="global.isModalVisible">
 						<div class="flex flex-col justify-between h-full">
 							<div class="flex-1 text-center">
-								<router-link to="/" v-slot="{ isActive }">
-									<HubIcon type="pubhubs-home" :active="isActive" class="text-white" @click="toggleMenu.toggleMenu()"></HubIcon>
+								<router-link to="/">
+									<Icon type="pubhubs-home" size="3xl" class="text-white mx-auto" @click="toggleMenu.toggleMenu()"></Icon>
 								</router-link>
 
 								<Line v-if="global.loggedIn && global.hasPinnedHubs" class="m-6 mt-8"></Line>
@@ -23,8 +23,8 @@
 								<div v-if="global.loggedIn">
 									<SettingsDialog v-if="settingsDialog" @close="settingsDialog = false"></SettingsDialog>
 									<div class="flex justify-between">
-										<HubIcon type="cog" class="text-dark" size="lg" @click="settingsDialog = true"></HubIcon>
-										<HubIcon type="power" class="text-dark" size="lg" @click="logout()"></HubIcon>
+										<Icon type="cog" class="text-dark" size="lg" @click="settingsDialog = true"></Icon>
+										<Icon type="power" class="text-dark" size="lg" @click="logout()"></Icon>
 									</div>
 								</div>
 

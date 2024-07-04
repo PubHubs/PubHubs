@@ -24,7 +24,7 @@ const pseudoUrlPattern = /(^|[^/])(www\.[\S]+(\b|$))/gim; // www. sans http:// o
 const emailAddressPattern = /(([a-zA-Z0-9_\-.]+)@[a-zA-Z_]+?(?:\.[a-zA-Z]{2,6}))+/gim; // Email addresses
 
 // Regex for replacing mentions (pseudonym with 2*3-6 digits, in theory the pseudonym could go up to 2*14 digits, but 6 should be good enough for this purpose)
-const mentionsPattern = /(@[^@]*\s{1}-\s{1}([0-9a-f]{3}?-[0-9a-f]{3}?|[0-9a-f]{4}?-[0-9a-f]{4}?|[0-9a-f]{5}?-[0-9a-f]{5}?|[0-9a-f]{6}?-[0-9a-f]{6}?))/g;
+const mentionsPattern = /(@([^@]*\s)?([0-9a-f]{3}?-[0-9a-f]{3}?|[0-9a-f]{4}?-[0-9a-f]{4}?|[0-9a-f]{5}?-[0-9a-f]{5}?|[0-9a-f]{6}?-[0-9a-f]{6}?))/g;
 
 class EventTimeLineHandler {
 	// Core method that will call all others

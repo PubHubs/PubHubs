@@ -14,7 +14,7 @@ const focus = {
 const twClass = {
 	mounted: (el: HTMLElement, binding: DirectiveBinding, vnode: VNode) => {
 		let classes = '';
-		if (vnode.props !== null && typeof vnode.props.class == 'string') {
+		if (vnode.props !== null && typeof vnode.props.class === 'string') {
 			classes = twMerge(binding.value, vnode.props.class);
 		} else {
 			classes = binding.value;

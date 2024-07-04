@@ -1,6 +1,6 @@
 <template>
 	<template v-if="rooms.currentRoomExists">
-		<HeaderFooter v-if="plugin == false">
+		<HeaderFooter v-if="plugin === false">
 			<template #header>
 				<div class="h-full pl-20 md:px-6">
 					<div class="flex justify-between relative gap-x-2 h-full w-full border-b pb-2 md:pb-4 md:pr-3">
@@ -8,7 +8,13 @@
 							<Icon :type="rooms.currentRoom.isSecuredRoom() ? 'lock' : 'room'" class="text-blue md:mt-2 shrink-0" size="lg"></Icon>
 							<div class="flex flex-col">
 								<TruncatedText>
-									<H1 class="m-0 text-hub-accent md:text-xl">{{ $t('rooms.title', [roomName()]) }}</H1>
+									<H1 class="m-0 text-hub-accent md:text-xl">
+										<PrivateRoomName v-if="rooms.currentRoom.isPrivateRoom()" :members="members"></PrivateRoomName>
+										<template v-else>
+											{{ $t('rooms.room') }}
+											<RoomName :room="rooms.currentRoom"></RoomName>
+										</template>
+									</H1>
 								</TruncatedText>
 								<TruncatedText>
 									<p class="text-sm leading-4 hidden md:block">
@@ -20,12 +26,12 @@
 								</TruncatedText>
 							</div>
 						</div>
-						<SearchInput @submit="search"></SearchInput>
+						<SearchInput :search-parameters="searchParameters" @scroll-to-event-id="onScrollToEventId"></SearchInput>
 					</div>
 				</div>
 			</template>
 
-			<RoomTimeline v-if="rooms.rooms[id!]" class="scrollbar" :room="rooms.rooms[id!]"></RoomTimeline>
+			<RoomTimeline v-if="rooms.rooms[id!]" class="scrollbar" :room="rooms.rooms[id!]" :scroll-to-event-id="scrollToEventId" @scrolled-to-event-id="scrollToEventId = ''"></RoomTimeline>
 
 			<template #footer>
 				<MessageInput></MessageInput>
@@ -41,17 +47,23 @@
 	import { onMounted, watch, ref } from 'vue';
 	import { useRoute } from 'vue-router';
 	import { useI18n } from 'vue-i18n';
-	import { useRooms } from '@/store/store';
+	import { useHubSettings, useRooms } from '@/store/store';
 	import { PluginProperties, usePlugins } from '@/store/plugins';
 	import { TRoomMember } from '@/store/rooms';
+	import { TSearchParameters } from '@/model/model';
+	import { useToggleMenu } from '@/store/toggleGlobalMenu';
 
 	const route = useRoute();
 	const { t } = useI18n();
 	const rooms = useRooms();
 	const plugins = usePlugins();
 	const plugin = ref(false as boolean | PluginProperties);
+	const toggleMenu = useToggleMenu();
 
 	const members = ref<TRoomMember[]>([]);
+
+	const searchParameters = ref<TSearchParameters>([]);
+	const scrollToEventId = ref<string>('');
 
 	//Passed by the router
 	const props = defineProps({
@@ -67,6 +79,11 @@
 	});
 
 	function update() {
+		// REFACTOR NEEDED: https://gitlab.science.ru.nl/ilab/pubhubs_canonical/-/issues/783
+		if (useHubSettings().mobileHubMenu) {
+			toggleMenu.toggleGlobalMenu();
+		}
+
 		//We know the property is there since passed by the router, so we can use '!'
 		rooms.changeRoom(props.id!);
 		if (!rooms.currentRoom) return;
@@ -76,14 +93,8 @@
 			members.value = rooms.currentRoom.getOtherJoinedMembers() || [];
 		}
 		plugin.value = plugins.hasRoomPlugin(rooms.currentRoom);
-	}
 
-	function roomName() {
-		if (!rooms.currentRoom) return '';
-		if (rooms.currentRoom.isPrivateRoom()) {
-			return t('rooms.private_room', members.value);
-		}
-		return rooms.currentRoom.name;
+		searchParameters.value.roomId = props.id!;
 	}
 
 	function getTopic() {
@@ -94,7 +105,7 @@
 		return rooms.currentRoom.getTopic();
 	}
 
-	function search(term: string) {
-		alert(t('others.nop') + '[' + term + ']');
+	async function onScrollToEventId(ev: any) {
+		scrollToEventId.value = ev.eventId;
 	}
 </script>

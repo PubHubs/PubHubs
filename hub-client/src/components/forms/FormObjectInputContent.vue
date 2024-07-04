@@ -12,10 +12,11 @@
 		<TabContent v-for="(item, index) in list" :key="index">
 			<FormLine v-for="(type, ti) in template" :key="ti">
 				<Label>{{ type.label }}</Label>
-				<TextInput v-if="type.type == 'text'" :placeholder="(index + 1).toString()" :value="item[type.key]" @input="update(index, type.key, $event.target.value)"></TextInput>
-				<TextArea class="theme-light:bg-white" v-if="type.type == 'textarea'" :value="item[type.key]" @input="update(index, type.key, $event.target.value)"></TextArea>
-				<Checkbox v-if="type.type == 'checkbox'" :value="item[type.key]" @input="update(index, type.key, $event.target.checked)"></Checkbox>
-				<Select v-if="type.type == 'select'" :value="item[type.key]" :options="type.options" @input="update(index, type.key, $event.target.value)"></Select>
+				<TextInput v-if="type.type === 'text'" :placeholder="(index + 1).toString()" :value="item[type.key]" @input="update(index, type.key, $event.target.value)"></TextInput>
+				<TextArea class="theme-light:bg-white" v-if="type.type === 'textarea'" :modelValue="item[type.key]" :maxLength="type.maxLength" @input="update(index, type.key, $event.target.value)"></TextArea>
+				<Checkbox v-if="type.type === 'checkbox'" :value="item[type.key]" @input="update(index, type.key, $event.target.checked)"></Checkbox>
+				<Select v-if="type.type === 'select'" :value="item[type.key]" :options="type.options" @input="update(index, type.key, $event.target.value)"></Select>
+				<AutoComplete v-if="type.type === 'autocomplete'" :value="item[type.key]" :options="type.options" @input="update(index, type.key, $event.target.value)" @changed="update(index, type.key, $event)"></AutoComplete>
 			</FormLine>
 		</TabContent>
 	</TabContainer>
@@ -47,7 +48,7 @@
 	});
 
 	const list = ref(props.modelValue);
-	if (list.value.length == 0) {
+	if (list.value.length === 0) {
 		list.value.push({ ...defaultItem });
 	}
 
