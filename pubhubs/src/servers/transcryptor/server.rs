@@ -18,22 +18,22 @@ impl servers::Details for Details {
     const NAME: servers::Name = servers::Name::Transcryptor;
     type AppT = Rc<App>;
     type AppCreatorT = AppCreator;
-    type RunningState = RunningState;
+    type ExtraRunningState = ExtraRunningState;
 
     fn create_running_state(
         server: &Server,
         constellation: &Constellation,
-    ) -> anyhow::Result<Self::RunningState> {
+    ) -> anyhow::Result<Self::ExtraRunningState> {
         let base = server.app_creator().base();
 
-        Ok(RunningState {
+        Ok(ExtraRunningState {
             phc_ss: base.enc_key.shared_secret(&constellation.phc_enc_key),
         })
     }
 }
 
 #[derive(Clone)]
-pub struct RunningState {
+pub struct ExtraRunningState {
     phc_ss: elgamal::SharedSecret,
 }
 
@@ -61,7 +61,7 @@ impl App {
         app: Rc<Self>,
         signed_req: web::Json<api::phc::hub::TicketSigned<api::phct::hub::KeyReq>>,
     ) -> api::Result<api::phct::hub::KeyResp> {
-        let (running_state, constellation): (&RunningState, &Constellation) =
+        let (running_state, constellation): (&ExtraRunningState, &Constellation) =
             api::return_if_ec!(app.base.running_state());
 
         let ts_req = signed_req.into_inner();

@@ -13,7 +13,7 @@ impl servers::Details for Details {
 
     type AppT = Rc<App>;
     type AppCreatorT = AppCreator;
-    type RunningState = ();
+    type ExtraRunningState = ();
 
     fn create_running_state(
         _server: &Server,

@@ -21,7 +21,7 @@ impl servers::Details for Details {
     const NAME: servers::Name = servers::Name::PubhubsCentral;
     type AppT = Rc<App>;
     type AppCreatorT = AppCreator;
-    type RunningState = RunningState;
+    type ExtraRunningState = RunningState;
 
     fn create_running_state(
         server: &Server,
