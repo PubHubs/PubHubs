@@ -16,7 +16,7 @@
 			<div name="reply-to" class="h-10 w-full flex items-center" v-if="messageActions.replyingTo">
 				<p class="ml-4 whitespace-nowrap mr-2">{{ $t('message.in_reply_to') }}</p>
 				<MessageSnippet class="w-[85%]" :event="messageActions.replyingTo"></MessageSnippet>
-				<button class="mr-4 ml-auto" @click="delete messageActions.replyingTo">
+				<button class="mr-4 ml-auto" @click="messageActions.replyingTo = undefined">
 					<Icon type="closingCross" size="sm"></Icon>
 				</button>
 			</div>
@@ -119,6 +119,7 @@
 	const elFileInput = ref<HTMLInputElement | null>(null);
 	const elTextInput = ref<InstanceType<typeof TextArea> | null>(null);
 
+
 	const sendMessageText = computed(() => {
 		if (signingMessage.value) {
 			return 'message.sign.send';
@@ -132,9 +133,8 @@
 	});
 
 	// Focus on message input if the state of messageActions changes (for example, when replying).
-	const inputElement = ref<HTMLInputElement>();
 	messageActions.$subscribe(() => {
-		inputElement.value?.focus();
+		elTextInput.value?.$el.focus();
 	});
 
 	function checkButtonState() {
