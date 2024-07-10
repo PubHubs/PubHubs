@@ -2,7 +2,7 @@
 	<div class="flex justify-center items-center h-screen dark:text-white">
 		<div class="grid grid-cols-2 gap-10 max-w-4xl mx-auto p-10">
 			<div class="flex flex-col justify-center gap-4">
-				<p class="text-2xl font-semibold">{{ $t('rooms.secure_room_message_heading') }}</p>
+				<p class="text-2xl font-semibold">{{ $t('rooms.secure_room_message_heading') + ' ' + rooms.securedRoom.name}}</p>
 				<p class="text-lg">{{ $t('rooms.secure_room_message') }}</p>
 				<p v-if="rooms.securedRoom.user_txt" class="text-lg">{{ $t('rooms.secure_room_enter_info') }}</p>
 				<p class="text-lg font-semibold pl-4">{{ rooms.securedRoom.user_txt }}</p>
