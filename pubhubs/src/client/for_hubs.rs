@@ -3,7 +3,6 @@
 use crate::api;
 use crate::api::phc::hub::{Ticket, TicketSigned};
 use crate::common::elgamal;
-use crate::hub;
 use crate::servers::Constellation;
 
 use curve25519_dalek::scalar::Scalar;

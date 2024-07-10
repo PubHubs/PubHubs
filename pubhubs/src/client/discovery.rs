@@ -64,7 +64,7 @@ async fn drive_discovery_of(url: &url::Url) -> anyhow::Result<api::DiscoveryInfo
         res.unwrap()
     };
 
-    if inf.state != api::ServerState::Discovery {
+    if inf.constellation.is_some() {
         return Ok(inf);
     }
 
@@ -84,7 +84,7 @@ async fn drive_discovery_of(url: &url::Url) -> anyhow::Result<api::DiscoveryInfo
         // or if PHC's state is still Discovery
         match res.as_ref() {
             Ok(Some(inf)) => {
-                if inf.state == api::ServerState::Discovery {
+                if inf.constellation.is_none() {
                     Ok(None)
                 } else {
                     res
@@ -154,17 +154,7 @@ impl<'a> DiscoveryInfoCheck<'a> {
             return api::err(api::ErrorCode::InternalError);
         }
 
-        if inf.state == api::ServerState::UpAndRunning {
-            if inf.constellation.is_none() {
-                log::error!(
-                    "{} at {} returned no constellation although it is in state {}",
-                    inf.name,
-                    source,
-                    fmt_ext::Json(inf.state)
-                );
-                return api::err(api::ErrorCode::InternalError);
-            }
-
+        if inf.constellation.is_some() {
             let c = inf.constellation.as_ref().unwrap();
 
             if self.constellation.is_some() && c != self.constellation.unwrap() {

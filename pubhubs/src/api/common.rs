@@ -115,6 +115,7 @@ impl<T> Result<T> {
 macro_rules! return_if_ec {
     ( $x:expr ) => {{
         let result = $x;
+        #[allow(clippy::unnecessary_unwrap)] // clippy's suggestion won't work with api::Result
         if result.is_err() {
             return $crate::api::Result::Err(result.unwrap_err());
         }
@@ -258,32 +259,13 @@ pub struct DiscoveryInfoResp {
     /// using Diffie-Hellman
     pub enc_key: elgamal::PublicKey,
 
-    /// Discovery state of the server
-    pub state: ServerState,
-
     /// Master encryption key part, that is, `x_PHC B` or `x_T B` in the notation of the
     /// whitepaper.  Only set for PHC or the transcryptor.
     pub master_enc_key_part: Option<elgamal::PublicKey>,
 
     /// Details of the other PubHubs servers, according to this server
-    /// None when `state` is [ServerState::Discovery]
+    /// `None` when discovery has not been completed.
     pub constellation: Option<crate::servers::Constellation>,
-}
-
-/// Discovery state of a server
-#[derive(Serialize, Deserialize, Debug, Clone, Copy, PartialEq, Eq)]
-pub enum ServerState {
-    Discovery,
-    UpAndRunning,
-}
-
-impl<RS: Clone> From<&server::State<RS>> for ServerState {
-    fn from(s: &server::State<RS>) -> Self {
-        match s {
-            server::State::UpAndRunning { .. } => ServerState::UpAndRunning,
-            server::State::Discovery { .. } => ServerState::Discovery,
-        }
-    }
 }
 
 /// Details on a PubHubs server endpoint
@@ -542,10 +524,18 @@ impl EndpointDetails for DiscoveryInfo {
 pub struct DiscoveryRun {}
 impl EndpointDetails for DiscoveryRun {
     type RequestType = ();
-    type ResponseType = ();
+    type ResponseType = DiscoveryRunResp;
 
     const METHOD: http::Method = http::Method::POST;
     const PATH: &'static str = ".ph/discovery/run";
+}
+
+/// Result of the `.ph/discovery/run` endpoint
+#[derive(Serialize, Deserialize, Debug)]
+pub enum DiscoveryRunResp {
+    AlreadyUpToDate,
+    AlreadyRestarting,
+    UpdatedAndNowRestarting,
 }
 
 #[cfg(test)]

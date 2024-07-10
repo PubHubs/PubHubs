@@ -64,7 +64,7 @@ pub trait Server: Sized + 'static {
     type ExtraConfig;
 
     /// Additional state when the server is running
-    type ExtraRunningState: Clone;
+    type ExtraRunningState: Clone + core::fmt::Debug;
 
     fn new(config: &crate::servers::Config) -> anyhow::Result<Self>;
 
@@ -98,7 +98,7 @@ pub trait Details: crate::servers::config::GetServerConfig + 'static + Sized {
     const NAME: Name;
     type AppCreatorT;
     type AppT;
-    type ExtraRunningState: Clone;
+    type ExtraRunningState: Clone + core::fmt::Debug;
 
     fn create_running_state(
         server: &ServerImpl<Self>,
@@ -155,7 +155,7 @@ where
 /// What's passed to an [App] via [AppCreator] to signal a shutdown command
 pub type ShutdownSender<S> = mpsc::Sender<ShutdownCommand<S>>;
 
-/// What's moved  accross threads by a [Server] to create its [App] instances.
+/// What's cloned and moved accross threads by a [Server] to create its [App] instances.
 pub trait AppCreator<ServerT: Server>: Send + Clone + 'static {
     /// Creates a new instance of this [AppCreator] based on the given configuration.
     fn new(config: &servers::Config) -> anyhow::Result<Self>;
@@ -229,9 +229,8 @@ pub trait App<S: Server>: Clone + 'static {
     ///
     /// May panic if the [Server]'s state is not [State::Discovery].
     ///
-    /// The [Constellation] returned will be used for the new state [State::UpAndRunning].
-    ///
     /// The default implementation does nothing unless PubHubs Central is already up and running.
+    ///
     /// If PHC is, the implementation proceeds to contact itself via the URL mentioned in PHC's
     /// constellation, and check that it reaches itself using the `self_check_code`.
     ///
@@ -243,12 +242,11 @@ pub trait App<S: Server>: Clone + 'static {
     ) -> LocalBoxFuture<'_, api::Result<Constellation>> {
         Box::pin(async move {
             if S::NAME == Name::PubhubsCentral {
-                log::error!("Pubhubs Central should implement discovery itself!");
+                log::error!(
+                    "{} should implement discovery itself!",
+                    Name::PubhubsCentral
+                );
                 return api::err(api::ErrorCode::InternalError);
-            }
-
-            if phc_inf.state != api::ServerState::UpAndRunning {
-                return api::err(api::ErrorCode::NotYetReady);
             }
 
             // NOTE: phc_inf has already been (partially) checked
@@ -259,6 +257,7 @@ pub trait App<S: Server>: Clone + 'static {
 
             let url = c.url(S::NAME);
 
+            // obtain DiscoveryInfo from oneself
             let di = api::return_if_ec!(api::query::<api::DiscoveryInfo>(url, &())
                 .await
                 .into_server_result());
@@ -269,7 +268,9 @@ pub trait App<S: Server>: Clone + 'static {
                 name: S::NAME,
                 phc_url: &base.phc_url,
                 self_check_code: Some(&base.self_check_code),
-                constellation: Some(c),
+                constellation: None,
+                // NOTE: we're not checking whether our own constellation is up-to-date,
+                // because it likely is not - why would we run discovery otherwise?
             }
             .check(di, url));
 
@@ -289,81 +290,151 @@ pub trait App<S: Server>: Clone + 'static {
     }
 }
 
-struct DiscoveryHandler {
+/// Encapsulates the handling of running discovery
+struct DiscoveryLimiter {
     /// Lock that makes sure only one discovery task is running at the same time.
     ///
     /// The protected value is true when restart due to a changed constellation is imminent.
-    lock: Arc<tokio::syn::RwLock<bool>>,
+    restart_imminent_lock: Arc<tokio::sync::RwLock<bool>>,
 
-    /// Set when contents of lock was observed to be true - prevents having to
-    cached_restart_imminent: bool,
+    /// Set when contents of `restart_imminent_lock` lock was observed to be true,
+    /// reducing the load on this lock.
+    restart_imminent_cached: std::cell::OnceCell<()>,
 }
 
-impl DiscoveryHandler {
+impl Clone for DiscoveryLimiter {
+    fn clone(&self) -> Self {
+        Self {
+            restart_imminent_lock: self.restart_imminent_lock.clone(),
+            // The DiscoveryLimiter is never cloned as part of an `AppBase`.
+            restart_imminent_cached: std::cell::OnceCell::<()>::new(),
+        }
+    }
+}
+
+impl DiscoveryLimiter {
     fn new() -> Self {
-        Arc::new(tokio::syn::RwLock::new(false))
+        DiscoveryLimiter {
+            restart_imminent_lock: Arc::new(tokio::sync::RwLock::new(false)),
+            restart_imminent_cached: std::cell::OnceCell::<()>::new(),
+        }
     }
 
-    fn handle_discovery<A: App>(&self, app: A) -> api::Result<()> {
-        if self.lock.read().await {
-            return api::ok(());
-        }
+    async fn handle_run_discovery<S: Server>(
+        &self,
+        app: S::AppT,
+    ) -> api::Result<api::DiscoveryRunResp> {
+        let mut restart_imminent_guard = match self.obtain_lock().await {
+            Some(guard) => guard,
+            None => return api::ok(api::DiscoveryRunResp::AlreadyRestarting),
+        };
 
-        let restart_imminent = self.lock.write().await;
-
-        if *restart_imminent {
-            // while we re-obtained the lock, discovery has completed
-            return api::ok(());
-        }
-
+        // Obtain discovery info from PHC, and perform some basis checks.
+        // Should not return an error when our constellation is out of sync.
         let phc_discovery_info = {
-            let result = Self::discover_phc(app.clone()).await;
+            let result = AppBase::<S>::discover_phc(app.clone()).await;
             if result.is_err() {
                 return api::err(result.unwrap_err());
             }
             result.unwrap()
         };
 
-        let result = app.discover(phc_discovery_info).await;
+        if app.base().running_state.is_some() {
+            let rs = app.base().running_state.as_ref().unwrap();
 
-        drop(lock_guard); // TODO: move?
+            if phc_discovery_info.constellation.is_none() {
+                // PubHubs Central is not yet ready - make the caller retry
+                log::warn!(
+                    "Discovery of {} is run while {} is not yet ready",
+                    S::NAME,
+                    Name::PubhubsCentral,
+                );
+                return api::err(api::ErrorCode::NotYetReady);
+            }
 
-        if result.is_err() {
-            return api::err(result.unwrap_err());
+            if phc_discovery_info.constellation.is_some()
+                && *phc_discovery_info.constellation.as_ref().unwrap() == *rs.constellation
+            {
+                return api::ok(api::DiscoveryRunResp::AlreadyUpToDate);
+            }
         }
 
-        let constellation = Box::new(result.unwrap());
+        log::info!(
+            "Constellation of {} is out of date - running discovery..",
+            S::NAME,
+        );
 
-        // restart server
+        let constellation = api::return_if_ec!(app.discover(phc_discovery_info).await);
+
+        // modify server, and restart (to modify all Apps)
 
         let success: bool = app.base().restart_server(|server: &mut S| -> Result<()> {
             let extra = server.create_running_state(&constellation)?;
 
-            server.app_creator_mut().base_mut().state =
-                crate::servers::server::State::UpAndRunning {
-                    constellation,
-                    extra,
-                };
+            server.app_creator_mut().base_mut().running_state = Some(RunningState {
+                constellation: Box::new(constellation),
+                extra,
+            });
 
             Ok(())
         });
 
         if !success {
-            log::error!("failed to restart server for discovery");
+            log::error!("failed to initiate restart of {} for discovery", S::NAME);
             return api::err(api::ErrorCode::InternalError);
         }
 
-        api::ok(())
+        *restart_imminent_guard = true;
+        let _ = self.restart_imminent_cached.set(());
+
+        api::ok(api::DiscoveryRunResp::UpdatedAndNowRestarting)
+    }
+
+    /// Obtains write lock to `self.restart_imminent_lock` when restart is not imminent.
+    async fn obtain_lock(&self) -> Option<tokio::sync::RwLockWriteGuard<'_, bool>> {
+        if self.restart_imminent_cached.get().is_some() {
+            return None;
+        }
+
+        if *self.restart_imminent_lock.read().await {
+            let _ = self.restart_imminent_cached.set(());
+            return None;
+        }
+
+        let restart_imminent_guard = self.restart_imminent_lock.write().await;
+
+        if *restart_imminent_guard {
+            // while we re-obtained the lock, discovery has completed
+            let _ = self.restart_imminent_cached.set(());
+            return None;
+        }
+
+        Some(restart_imminent_guard)
     }
 }
 
 /// What's internally common between PubHubs [AppCreator]s.
 pub struct AppCreatorBase<S: Server> {
-    pub discovery_limiter: DiscoveryLimiter,
+    discovery_limiter: DiscoveryLimiter,
+    pub running_state: Option<RunningState<S::ExtraRunningState>>,
     pub phc_url: url::Url,
     pub self_check_code: String,
     pub jwt_key: api::SigningKey,
     pub enc_key: elgamal::PrivateKey,
+}
+
+// need to implement this manually, because we do not want `Server` to implement `Clone`
+impl<S: Server> Clone for AppCreatorBase<S> {
+    fn clone(&self) -> Self {
+        Self {
+            discovery_limiter: self.discovery_limiter.clone(),
+            running_state: self.running_state.clone(),
+            phc_url: self.phc_url.clone(),
+            self_check_code: self.self_check_code.clone(),
+            jwt_key: self.jwt_key.clone(),
+            enc_key: self.enc_key.clone(),
+        }
+    }
 }
 
 impl<S: Server> AppCreatorBase<S> {
@@ -371,6 +442,8 @@ impl<S: Server> AppCreatorBase<S> {
         let server_config = S::server_config_from(config);
 
         Self {
+            discovery_limiter: DiscoveryLimiter::new(),
+            running_state: None,
             self_check_code: server_config.self_check_code(),
             jwt_key: server_config
                 .jwt_key
@@ -386,8 +459,11 @@ impl<S: Server> AppCreatorBase<S> {
 }
 
 /// What's internally common between PubHubs [App]s.
+///
+/// Should *NOT* be cloned.
 pub struct AppBase<S: Server> {
-    pub running_state: RunningState<S::ExtraRunningState>,
+    discovery_limiter: DiscoveryLimiter,
+    pub running_state: Option<RunningState<S::ExtraRunningState>>,
     pub shutdown_sender: ShutdownSender<S>,
     pub self_check_code: String,
     pub phc_url: url::Url,
@@ -398,12 +474,23 @@ pub struct AppBase<S: Server> {
 impl<S: Server> AppBase<S> {
     pub fn new(creator_base: AppCreatorBase<S>, shutdown_sender: &ShutdownSender<S>) -> Self {
         Self {
-            state: creator_base.state,
+            discovery_limiter: creator_base.discovery_limiter,
+            running_state: creator_base.running_state,
             shutdown_sender: shutdown_sender.clone(),
             phc_url: creator_base.phc_url,
             self_check_code: creator_base.self_check_code,
             jwt_key: creator_base.jwt_key,
             enc_key: creator_base.enc_key,
+        }
+    }
+
+    pub fn running_state(&self) -> Result<&RunningState<S::ExtraRunningState>, api::ErrorCode> {
+        match self.running_state {
+            Some(ref rs) => Ok(rs),
+            None => {
+                log::error!("tried to get runnng state while not running");
+                Err(api::ErrorCode::InternalError)
+            }
         }
     }
 
@@ -455,8 +542,11 @@ impl<S: Server> AppBase<S> {
 
     /// Run the discovery process, and restarts server if necessary.  Returns when
     /// the discovery process is completed, but before a possible restart.
-    async fn handle_discovery_run(app: S::AppT) -> api::Result<()> {
-        app.base().discovery_handler.handle_discovery(app)
+    async fn handle_discovery_run(app: S::AppT) -> api::Result<api::DiscoveryRunResp> {
+        app.base()
+            .discovery_limiter
+            .handle_run_discovery::<S>(app.clone())
+            .await
     }
 
     async fn discover_phc(app: S::AppT) -> api::Result<api::DiscoveryInfoResp> {
@@ -481,6 +571,9 @@ impl<S: Server> AppBase<S> {
                 None
             },
             constellation: None,
+            // NOTE: don't check whether our constellation coincides with PHC's constellation here,
+            // because if they're not the same that will cause an error to be returned, while
+            // we want to initiate a restart instead.
         }
         .check(pdi, &base.phc_url)
     }
@@ -497,27 +590,15 @@ impl<S: Server> AppBase<S> {
             // form.  So no expensive cryptographic operations like finite field inversion
             // or scalar multiplication are performed here.
             jwt_key: app_base.jwt_key.verifying_key().into(),
-            state: (&app_base.state).into(),
             enc_key: app_base.enc_key.public_key().clone(),
             master_enc_key_part: app
                 .master_enc_key_part()
                 .map(|privk| privk.public_key().clone()),
-            constellation: match &app_base.state {
-                State::UpAndRunning { constellation, .. } => Some(*constellation.clone()),
-                State::Discovery { .. } => None,
-            },
+            constellation: app_base
+                .running_state
+                .as_ref()
+                .map(|rs| (*rs.constellation).clone()),
         })
-    }
-
-    /// Returns the server's running state if it is, and otherwise [api::ErrorCode::NotYetReady].
-    pub(super) fn running_state(&self) -> api::Result<(&S::ExtraRunningState, &Constellation)> {
-        match self.state {
-            State::UpAndRunning {
-                ref extra,
-                ref constellation,
-            } => api::Result::Ok((extra, constellation)),
-            State::Discovery { .. } => api::Result::Err(api::ErrorCode::NotYetReady),
-        }
     }
 }
 
@@ -577,8 +658,8 @@ factory_tuple! { A B C D E F G H I J K L M N O }
 factory_tuple! { A B C D E F G H I J K L M N O P }
 
 /// Additional state when discovery has been completed
-#[derive(Clone)]
-pub struct RunningState<Extra: Clone> {
-    constellation: Box<Constellation>,
-    extra: Extra,
+#[derive(Clone, Debug)]
+pub struct RunningState<Extra: Clone + core::fmt::Debug> {
+    pub constellation: Box<Constellation>,
+    pub extra: Extra,
 }

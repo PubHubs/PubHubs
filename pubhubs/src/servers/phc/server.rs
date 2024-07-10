@@ -26,7 +26,7 @@ impl servers::Details for Details {
     fn create_running_state(
         server: &Server,
         constellation: &Constellation,
-    ) -> anyhow::Result<Self::RunningState> {
+    ) -> anyhow::Result<Self::ExtraRunningState> {
         let base = server.app_creator().base();
 
         Ok(RunningState {
@@ -46,7 +46,7 @@ pub struct App {
     master_enc_key_part: elgamal::PrivateKey,
 }
 
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub struct RunningState {
     t_ss: elgamal::SharedSecret,
 }
@@ -168,8 +168,7 @@ impl App {
         app: Rc<Self>,
         signed_req: web::Json<api::phc::hub::TicketSigned<api::phct::hub::KeyReq>>,
     ) -> api::Result<api::phct::hub::KeyResp> {
-        let (running_state, _): (&RunningState, &Constellation) =
-            api::return_if_ec!(app.base.running_state());
+        let running_state = &api::return_if_ec!(app.base.running_state()).extra;
 
         let ts_req = signed_req.into_inner();
 

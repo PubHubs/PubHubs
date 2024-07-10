@@ -18,7 +18,7 @@ impl servers::Details for Details {
     fn create_running_state(
         _server: &Server,
         _constellation: &Constellation,
-    ) -> anyhow::Result<Self::RunningState> {
+    ) -> anyhow::Result<Self::ExtraRunningState> {
         Ok(())
     }
 }

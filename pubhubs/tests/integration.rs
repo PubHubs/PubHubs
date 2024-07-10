@@ -62,7 +62,7 @@ async fn main_integration_test() {
     ticket.clone().open(&*constellation.phc_jwt_key).unwrap();
 
     // request hub encryption key
-    let ek = tokio::task::LocalSet::new()
+    let _ek = tokio::task::LocalSet::new()
         .run_until(client::for_hubs::get_hub_enc_key(
             client::for_hubs::HubContext {
                 ticket: &ticket,
