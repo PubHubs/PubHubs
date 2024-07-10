@@ -95,7 +95,7 @@ const en = {
 		filter: 'Filter rooms',
 		title: '{0}',
 		access_denied: 'Access Denied',
-		secure_room_message_heading: 'Before you can enter...',
+		secure_room_message_heading: 'Before you can enter room',
 		secure_room_message: 'You need to show some more data from your Yivi app.',
 		secure_room_enter_info: 'Please show the following:',
 		secured_room_error: 'We are sorry, but it seems like you cannot access the room! Please check you gave the correct data with the Yivi App.',
