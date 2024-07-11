@@ -1,11 +1,11 @@
 import { defineStore } from 'pinia';
 
-import { User as MatrixUser, MatrixClient, Room as MatrixRoom, MatrixEvent, ContentHelpers, MatrixError, IStateEventWithRoomId, EventTimeline } from 'matrix-js-sdk';
+import { User as MatrixUser, MatrixClient, MatrixEvent, ContentHelpers, MatrixError, IStateEventWithRoomId, EventTimeline } from 'matrix-js-sdk';
 import Room from '@/model/rooms/Room';
 import { Authentication } from '@/core/authentication';
 import { Events } from '@/core/events';
 import { useSettings, User, useUser, useRooms, useConnection, RoomType, TPublicRoom } from '@/store/store';
-import { createNewPrivateRoomName, refreshPrivateRoomName, updatePrivateRoomName, fetchMemberIdsFromPrivateRoomName } from '@/core/privateRoomNames';
+
 import { hasHtml, sanitizeHtml } from '@/core/sanitizer';
 import { api_synapse, api_matrix } from '@/core/api';
 import { YiviSigningSessionResult, AskDisclosureMessage } from '@/lib/signedMessages';
@@ -130,12 +130,8 @@ const usePubHubs = defineStore('pubhubs', {
 				});
 				public_rooms = public_rooms.concat(publicRoomsResponse.chunk);
 			}
-			return public_rooms;
-		},
 
-		async getAllRooms(): Promise<Array<MatrixRoom>> {
-			const rooms = await this.client.getRooms();
-			return rooms;
+			return public_rooms;
 		},
 
 		/**
@@ -160,43 +156,27 @@ const usePubHubs = defineStore('pubhubs', {
 			return room;
 		},
 
-		getPrivateRoomWithMembers(memberIds: Array<string>, rooms: Array<any>): boolean | string {
-			for (let index = rooms.length - 1; index >= 0; index--) {
-				const room = rooms[index] as Room;
-				const roomMemberIds = fetchMemberIdsFromPrivateRoomName(room.name);
-				roomMemberIds.sort();
-				const found = JSON.stringify(memberIds.sort()) === JSON.stringify(roomMemberIds);
-				if (found) {
-					return room.roomId;
-				}
-			}
-			return false;
-		},
-
 		async createPrivateRoomWith(other: any): Promise<{ room_id: string } | null> {
 			const user = useUser();
 			const me = user.user as User;
 			const memberIds = [me.userId, other.userId];
-			const allRooms = await this.getAllRooms();
-			const existingRoomId = this.getPrivateRoomWithMembers(memberIds, allRooms);
+			const rooms = useRooms();
+			let existingRoomId = rooms.privateRoomWithMembersExist(memberIds);
 
-			// Try joining existing by renaming
-			if (existingRoomId !== false && typeof existingRoomId === 'string') {
-				const rooms = useRooms();
-				let name = rooms.room(existingRoomId)?.name;
-				if (name) {
-					// unHide room for me
-					name = updatePrivateRoomName(name, me, false);
-					this.renameRoom(existingRoomId, name);
+			// Try joining existing
+			if (existingRoomId !== false) {
+				try {
+					await this.client.joinRoom(existingRoomId as string);
+					return { room_id: existingRoomId as string };
+				} catch (error) {
+					existingRoomId = false;
 				}
 			}
 
 			// If realy not exists, create new
 			if (existingRoomId === false) {
-				const privateRoomName = createNewPrivateRoomName([me, other]);
 				const room = await this.createRoom({
-					preset: 'trusted_private_chat',
-					name: privateRoomName,
+					name: `${me.userId},${other.userId}`,
 					visibility: 'private',
 					invite: [other.userId],
 					is_direct: true,
@@ -223,15 +203,6 @@ const usePubHubs = defineStore('pubhubs', {
 
 		async leaveRoom(roomId: string) {
 			await this.client.leave(roomId);
-			this.updateRooms();
-		},
-
-		async setPrivateRoomHiddenStateForUser(room: Room, hide: boolean) {
-			let name = room.name;
-			const user = useUser();
-			const me = user.user as User;
-			name = updatePrivateRoomName(name, me, hide);
-			await this.client.setRoomName(room.roomId, name);
 			this.updateRooms();
 		},
 
@@ -318,10 +289,14 @@ const usePubHubs = defineStore('pubhubs', {
 			const room = rooms.room(roomId);
 			if (room) {
 				if (room.isPrivateRoom()) {
-					// (re)invite other members -> REFACTURE TO MAKE ROOM VISIBLE FOR ALL MEMBERS
-					let name = room.name;
-					name = refreshPrivateRoomName(name);
-					await this.renameRoom(room.roomId, name);
+					// (re)invite other members
+					const notInvitedMembersIds = room.notInvitedMembersIdsOfPrivateRoom();
+					if (notInvitedMembersIds.length > 0) {
+						for (let index = 0; index < notInvitedMembersIds.length; index++) {
+							const memberId = notInvitedMembersIds[index];
+							this.invite(roomId, memberId);
+						}
+					}
 				}
 			}
 

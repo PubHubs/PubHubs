@@ -1,15 +1,14 @@
 <template>
 	<span v-for="(member, index) in members" :key="index">
 		<span v-if="index > 0"> &bull; </span>
-		{{ member.name }}
+		{{ member }}
 	</span>
 </template>
 
 <script setup lang="ts">
-	import { RoomMember } from 'matrix-js-sdk';
 	defineProps({
 		members: {
-			type: Array<RoomMember>,
+			type: Array,
 			required: true,
 		},
 	});
