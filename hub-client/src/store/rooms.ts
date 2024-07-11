@@ -40,6 +40,20 @@ interface Unsigned {
 	age: number;
 }
 
+function validSecuredRoomAttributes(room: TSecuredRoom): boolean {
+	if (!room.accepted) {
+		return false;
+	}
+	for (const index in room.accepted) {
+		// Check if 'accepted_values' exists and is not empty
+		if (!room.accepted[index].accepted_values || room.accepted[index].accepted_values.length <= 0) {
+			// index has no accepted_value: attribute is invalid
+			return false;
+		}
+	}
+	return true;
+}
+
 const useRooms = defineStore('rooms', {
 	state: () => {
 		return {
@@ -290,13 +304,19 @@ const useRooms = defineStore('rooms', {
 		},
 
 		async addSecuredRoom(room: TSecuredRoom) {
+			if (!validSecuredRoomAttributes(room)) {
+				throw new Error('errors.no_valid_attribute');
+			}
 			const newRoom = await api_synapse.apiPOST<TSecuredRoom>(api_synapse.apiURLS.securedRooms, room);
 			this.securedRooms.push(newRoom);
 			this.fetchPublicRooms(); // Reset PublicRooms, so the new room is indeed recognised as a secured room. TODO: could this be improved without doing a fetch?
-			return newRoom;
+			return { result: newRoom };
 		},
 
 		async changeSecuredRoom(room: TSecuredRoom) {
+			if (!validSecuredRoomAttributes(room)) {
+				throw new Error('errors.no_valid_attribute');
+			}
 			const response = await api_synapse.apiPUT<any>(api_synapse.apiURLS.securedRooms, room);
 			const modified_id = response.modified;
 			const pidx = this.securedRooms.findIndex((room) => room.room_id === modified_id);

@@ -20,8 +20,11 @@
 				</FormLine>
 				<FormLine>
 					<Label>{{ $t('admin.secured_yivi_attributes') }}</Label>
-					<FormObjectInput v-if="editRoom.accepted" :template="securedRoomTemplate" v-model="editRoom.accepted"></FormObjectInput>
+					<FormObjectInput v-if="editRoom.accepted" :template="securedRoomTemplate" :canAdd="isNewRoom" :canRemove="isNewRoom" v-model="editRoom.accepted"></FormObjectInput>
 				</FormLine>
+			</div>
+			<div v-if="errorMessage">
+				<Label>{{ errorMessage }}</Label>
 			</div>
 		</form>
 	</Dialog>
@@ -56,6 +59,11 @@
 			default: false,
 		},
 	});
+
+	let errorMessage = ref<string | undefined>(undefined);
+
+	// used to check if no attribute values have been deleted after editing
+	let previousAccepted: SecuredRoomAttributes;
 
 	//#region Computed properties
 
@@ -96,7 +104,7 @@
 	const editRoom = ref({} as TPublicRoom | TSecuredRoom);
 
 	const securedRoomTemplate = ref([
-		{ key: 'yivi', label: t('admin.secured_attribute'), type: 'autocomplete', options: [], default: '' },
+		{ key: 'yivi', label: t('admin.secured_attribute'), type: 'autocomplete', options: [], default: '', disabled: !isNewRoom.value },
 		{ key: 'values', label: t('admin.secured_values'), type: 'textarea', default: '', maxLength: 3000 },
 		{ key: 'profile', label: t('admin.secured_profile'), type: 'checkbox', default: false },
 	] as Array<FormObjectInputTemplate>);
@@ -120,6 +128,7 @@
 			if (props.secured) {
 				// Remove 'profile' for existing secured room (cant be edited after creation)
 				securedRoomTemplate.value.splice(2, 1);
+				previousAccepted = editRoom.value.accepted;
 				let accepted = editRoom.value.accepted;
 				if (accepted !== undefined) {
 					// FormObjectInput needs a different structure of the accepted values, transform them
@@ -164,13 +173,12 @@
 	//#endregion
 
 	async function close(returnValue: DialogButtonAction) {
-		if (returnValue === 1) {
-			await submitRoom();
+		if (returnValue === 0 || (returnValue === 1 && (await submitRoom()))) {
+			emit('close');
 		}
-		emit('close');
 	}
 
-	async function submitRoom() {
+	async function submitRoom(): Promise<Boolean> {
 		let room = { ...editRoom.value } as TSecuredRoom;
 
 		// Normal room
@@ -208,22 +216,64 @@
 				};
 			});
 			room.accepted = accepted;
-
 			if (isNewRoom.value) {
 				try {
 					await rooms.addSecuredRoom(room);
 					editRoom.value = { ...emptyNewRoom };
 				} catch (error) {
-					dialog.confirm('ERROR', error as string);
+					errorMessage.value = t((error as Error).message);
+					return false;
 				}
 			} else {
-				try {
-					await rooms.changeSecuredRoom(room);
-					editRoom.value = { ...emptyNewRoom };
-				} catch (error) {
-					dialog.confirm('ERROR', error as string);
+				// check for each item in previousAccepted whether it still exists in room.accepted
+				if (!AllAttributeValuesPresent(previousAccepted, room.accepted)) {
+					errorMessage.value = t('errors.do_not_remove_attributes');
+					return false;
+				} else {
+					try {
+						await rooms.changeSecuredRoom(room);
+						editRoom.value = { ...emptyNewRoom };
+					} catch (error) {
+						errorMessage.value = t((error as Error).message);
+						return false;
+					}
 				}
 			}
 		}
+		return true;
+	}
+
+	/**
+	 * When changing the required attributes of a secured room, users without these attributes are not removed. They can still enter.
+	 * For the moment this is solved by not allowing the values to change. This function checks if all the previous attributevalues
+	 * are strill present after edit
+	 */
+	function AllAttributeValuesPresent(previousAccepted: SecuredRoomAttributes | [], accepted: SecuredRoomAttributes | []): boolean {
+		// previous there were no values
+		if (Array.isArray(previousAccepted)) {
+			return true;
+		}
+
+		// previous has values, but new has not
+		if (Array.isArray(accepted)) {
+			return false;
+		}
+
+		// For each key check if any value has been removed
+		for (const key in previousAccepted) {
+			if (!accepted[key]) {
+				// key not present anymore
+				return false;
+			}
+			for (const value of previousAccepted[key].accepted_values) {
+				if (!accepted[key].accepted_values.includes(value)) {
+					// a value has been removed
+					return false;
+				}
+			}
+		}
+
+		// no values have been removed
+		return true;
 	}
 </script>

@@ -1,7 +1,7 @@
 <template>
 	<div class="w-full">
 		<Tabs>
-			<FormObjectInputContent :template="template" v-model="value"> </FormObjectInputContent>
+			<FormObjectInputContent :template="template" :canAdd="props.canAdd" :canRemove="props.canRemove" v-model="value"> </FormObjectInputContent>
 		</Tabs>
 	</div>
 </template>
@@ -20,6 +20,16 @@
 		modelValue: {
 			type: Array<any>,
 			required: true,
+		},
+		canAdd: {
+			type: Boolean,
+			required: false,
+			default: true,
+		},
+		canRemove: {
+			type: Boolean,
+			required: false,
+			default: true,
 		},
 	});
 

@@ -24,6 +24,8 @@ const nl = {
 		not_send_offline: 'Geen internet connectie. Dit bericht is niet verstuurd.',
 		resend: 'Verzend opnieuw',
 		file_upload: 'Bestandsformaat niet ondersteund',
+		no_valid_attribute: 'Een beveilgde kamer moet attributen hebben',
+		do_not_remove_attributes: 'Attributen mogen niet uit een beveiligde kamer verwijderd worden',
 	},
 	file: {
 		file: 'Bestand',

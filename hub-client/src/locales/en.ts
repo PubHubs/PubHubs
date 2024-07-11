@@ -24,6 +24,8 @@ const en = {
 		not_send_offline: 'Internet connection seems down. This message was not send.',
 		resend: 'Send again',
 		file_upload: 'File format not supported',
+		no_valid_attribute: 'A secured room needs to have attributes',
+		do_not_remove_attributes: 'Attributes may not be removed from a secured room',
 	},
 	file: {
 		file: 'File',
