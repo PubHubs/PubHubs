@@ -119,7 +119,6 @@
 	const elFileInput = ref<HTMLInputElement | null>(null);
 	const elTextInput = ref<InstanceType<typeof TextArea> | null>(null);
 
-
 	const sendMessageText = computed(() => {
 		if (signingMessage.value) {
 			return 'message.sign.send';
