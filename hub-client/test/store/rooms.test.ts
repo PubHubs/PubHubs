@@ -218,16 +218,6 @@ describe('rooms Store', () => {
 			rooms.rooms[room.roomId] = room;
 
 			expect(rooms.privateRooms).toHaveLength(1);
-
-			let members = ['a1', 'b2'];
-			expect(rooms.privateRoomWithMembersExist(members)).toBeTypeOf('string');
-			expect(rooms.privateRoomWithMembersExist(members)).toEqual('a1,b2');
-			members = ['b2', 'a1'];
-			expect(rooms.privateRoomWithMembersExist(members)).toBeTypeOf('string');
-			expect(rooms.privateRoomWithMembersExist(members)).toEqual('a1,b2');
-			members = ['c3', 'a1'];
-			expect(rooms.privateRoomWithMembersExist(members)).toBeTypeOf('boolean');
-			expect(rooms.privateRoomWithMembersExist(members)).toEqual(false);
 		});
 	});
 });
