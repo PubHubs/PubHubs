@@ -43,6 +43,7 @@ interface FormObjectInputTemplate {
 	type: string;
 	options?: Options;
 	default: InputType;
+	disabled: Boolean;
 	// Used for textarea's.
 	maxLength?: number;
 }

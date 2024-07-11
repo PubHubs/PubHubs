@@ -14,6 +14,7 @@
 			v-model="search"
 			class="w-full border px-2 py-1 rounded-lg dark:bg-transparent theme-light:border-black theme-light:text-black dark:text-white dark:border-white focus:border-black focus:outline-0 focus:outline-offset-0 focus:ring-0"
 			:placeholder="$t('others.typing')"
+			:disabled="disabled === true"
 		/>
 		<ul v-if="result.length > 1" class="w-full border border-black px-2 py-1 rounded-lg absolute z-50 bg-white shadow-md">
 			<li v-for="(item, index) in result" :key="index" @click="click(item)" class="cursor-pointer text-black" :class="{ 'bg-lightgray': cursor === index }">
@@ -32,11 +33,13 @@
 		options: PropType<Options>;
 		value: string | Object;
 		label?: string;
+		disabled: Boolean;
 	};
 
 	const props = withDefaults(defineProps<Props>(), {
 		value: undefined,
 		label: 'label',
+		disabled: undefined,
 	});
 
 	const emit = defineEmits(usedEvents);

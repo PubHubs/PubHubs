@@ -6,6 +6,7 @@
 		:placeholder="placeholder"
 		:title="placeholder"
 		:value="modelValue"
+		:disabled="props.disabled"
 		@input="update($event.target.value)"
 		@keyup="changed()"
 		@keydown.enter="submit()"
@@ -23,6 +24,10 @@
 		},
 		modelValue: {
 			type: String,
+		},
+		disabled: {
+			type: Boolean,
+			default: false,
 		},
 	});
 
