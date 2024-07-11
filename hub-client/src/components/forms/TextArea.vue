@@ -30,9 +30,9 @@
 		modelValue: string;
 		placeholder?: string;
 		maxLength?: number;
-		disabled: Boolean;
+		disabled?: boolean;
 	};
-	const props = withDefaults(defineProps<Props>(), { placeholder: '', maxLength: 1500, disabled: undefined });
+	const props = withDefaults(defineProps<Props>(), { placeholder: '', maxLength: 1500, disabled: false });
 
 	const emit = defineEmits([...usedEvents, 'caretPos']);
 	const { update, changed, submit, cancel } = useFormInputEvents(emit, props.modelValue);
