@@ -31,14 +31,14 @@
 <script setup lang="ts">
 	import { useI18n } from 'vue-i18n';
 	import { useRouter } from 'vue-router';
-	import { Room, useRooms, useDialog, RoomType, useUser } from '@/store/store';
+	import { Room, useRooms, useDialog } from '@/store/store';
 	import { usePubHubs } from '@/core/pubhubsStore';
+	import { RoomType } from '@/store/rooms';
 	import { usePlugins, PluginProperties } from '@/store/plugins';
 	import { useToggleMenu } from '@/store/toggleGlobalMenu';
 	import { NotificationCountType } from 'matrix-js-sdk';
 	import { useSettings, featureFlagType } from '@/store/store';
-	import { isVisiblePrivateRoom } from '@/core/privateRoomNames';
-
+	import TruncatedText from '../elements/TruncatedText.vue';
 	const settings = useSettings();
 
 	const { t } = useI18n();
@@ -55,24 +55,14 @@
 		},
 	});
 
-	// Either private room or public room based on roomType given as prop (private or normal)
-	// Needs a bit of refacturing, not so clear now.
+	// Either private room or public room based on roomType
 	function showRoom(room: Room): Boolean {
-		// if no specific type is set, allways show this room
 		if (props.roomType !== '') {
 			const type = props.roomType.substring(1);
-			// If not (given room type), just show
 			if (props.roomType.charAt(0) === '!') {
 				return room.getType() !== type;
 			} else {
-				const roomType = room.getType();
-				if (roomType === RoomType.PH_MESSAGES_DM) {
-					// Check if private room is visible for this user BUSY
-					const user = useUser();
-					return isVisiblePrivateRoom(room.name, user.user);
-				} else {
-					return room.getType() === props.roomType;
-				}
+				return room.getType() === props.roomType;
 			}
 		}
 		return true;
@@ -82,16 +72,9 @@
 		const room = rooms.room(roomId);
 		if (room) {
 			const dialog = useDialog();
-			if (room.isPrivateRoom()) {
-				if (await dialog.okcancel(t('rooms.hide_sure'))) {
-					await pubhubs.setPrivateRoomHiddenStateForUser(room, true);
-					await router.replace({ name: 'home' });
-				}
-			} else {
-				if (await dialog.okcancel(t('rooms.leave_sure'))) {
-					await pubhubs.leaveRoom(roomId);
-					await router.replace({ name: 'home' });
-				}
+			if (await dialog.okcancel(t('rooms.leave_sure'))) {
+				await pubhubs.leaveRoom(roomId);
+				await router.replace({ name: 'home' });
 			}
 		}
 	}
