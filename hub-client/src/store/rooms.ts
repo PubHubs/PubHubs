@@ -146,18 +146,6 @@ const useRooms = defineStore('rooms', {
 			});
 		},
 
-		privateRoomWithMembersExist() {
-			return (memberIds: Array<string>): boolean | string => {
-				for (let index = 0; index < this.privateRooms.length; index++) {
-					const room = this.privateRooms[index];
-					if (room.hasExactMembersInName(memberIds)) {
-						return room.roomId;
-					}
-				}
-				return false;
-			};
-		},
-
 		hasSecuredRooms(state): boolean {
 			return Object.keys(state.securedRooms).length > 0;
 		},
