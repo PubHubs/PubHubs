@@ -1,5 +1,6 @@
 import enum
 import json
+import string
 from json import JSONEncoder
 from typing import Optional
 import logging
@@ -26,12 +27,26 @@ def is_list_of_strings(attributes):
 def accepted_value_is_empty(attributes):
     return '' in attributes
 
+# when index (yivi key) contains email or domain: rewrite values to lowercase
+def attributesToLower(index, attributes):
+    if index and isinstance(attributes, list):
+        # check if index contains émail' or 'domain'
+        if "email" in index or "domain" in index:
+            # if so: put all accepted values of the attributes to lowercase
+            for i in range(len(attributes)):
+                attributes[i] = attributes[i].lower()
+    return attributes
+
 
 class RoomAttribute:
     accepted_values: list[str]
     profile: bool
 
-    def __init__(self, accepted_values=None, profile=None):
+    # Constructor: also takes care of validation of data
+    # In the client attributes consist of an string-array of indexes (yivi-keys) on which each are a string-array of values
+    # these attributes are seperately passed into this constructor as index with accepted_values
+    # for instance: index='pbdf.sidn-pbdf.email.email', accepted_values='name@ru.nl, name2@cs.ru.nl'
+    def __init__(self, index=None, accepted_values=None, profile=None):
         if not isinstance(profile, bool):
             raise TypeError("'profile' should be a boolean")
 
@@ -40,9 +55,12 @@ class RoomAttribute:
 
         if accepted_value_is_empty(accepted_values):
             raise TypeError("'accepted_values' should consist of at least one attribute")
-
+        
+        
         self.profile = profile
-        self.accepted_values = accepted_values
+
+        # check attributes for correct case
+        self.accepted_values = attributesToLower(index, accepted_values)
 
 
 class RoomAttributeEncoder(JSONEncoder):
@@ -93,7 +111,7 @@ class SecuredRoom:
             errors.append(accepted_error)
         else:
             try:
-                self.accepted = dict(map(lambda kv: (kv[0], RoomAttribute(**kv[1])), accepted.items()))
+                self.accepted = dict(map(lambda kv: (kv[0], RoomAttribute(**kv[1], index=kv[0])), accepted.items()))
             except TypeError as e:
                 errors.append(str(e))
 
