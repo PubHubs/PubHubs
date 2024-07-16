@@ -43,10 +43,12 @@ interface Unsigned {
 function validSecuredRoomAttributes(room: TSecuredRoom): boolean {
 	// Note that it is allowed to have no attribute values for an attribute type.
 	// So that that the attribute is required but all values are allowed.
-
 	if (!room.accepted) {
 		return false;
 	}
+
+	const hasEmptyAttributeType = Object.keys(room.accepted).some((key) => key === '');
+	if (hasEmptyAttributeType) return false;
 
 	return true;
 }
