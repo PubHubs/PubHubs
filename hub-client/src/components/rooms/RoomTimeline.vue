@@ -9,8 +9,8 @@
 				<UnreadMarker v-if="settings.isFeatureEnabled(featureFlagType.unreadMarkers)" :currentEventId="item.event.event_id" :currentUserId="user.user.userId"></UnreadMarker>
 			</div>
 		</template>
-		<InRoomNotifyMarker v-if="settings.isFeatureEnabled(featureFlagType.unreadMarkers)"></InRoomNotifyMarker>
 	</div>
+	<InRoomNotifyMarker v-if="settings.isFeatureEnabled(featureFlagType.unreadMarkers)"></InRoomNotifyMarker>
 </template>
 
 <script setup lang="ts">
