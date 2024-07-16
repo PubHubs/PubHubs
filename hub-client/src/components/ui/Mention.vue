@@ -1,5 +1,5 @@
 <template>
-	<div v-if="visible" ref="elContainer" :style="getStyle()" class="fixed w-fit max-h-52 shadow-lg rounded-lg overflow-y-auto bg-lightgray-light dark:bg-gray">
+	<div v-if="visible" ref="elContainer" :style="getStyle()" class="fixed w-fit max-h-52 shadow-lg rounded-lg overflow-y-auto scrollbar bg-lightgray-light dark:bg-gray">
 		<ul>
 			<li v-for="(member, index) in filteredUsers" :key="index" class="group cursor-pointer hover:bg-lightgray-dark hover:dark:bg-gray-middle px-4" @click="clickedItem(member)">
 				<div class="flex items-center gap-4 py-2">
