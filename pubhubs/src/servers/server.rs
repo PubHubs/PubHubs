@@ -421,6 +421,7 @@ pub struct AppCreatorBase<S: Server> {
     pub self_check_code: String,
     pub jwt_key: api::SigningKey,
     pub enc_key: elgamal::PrivateKey,
+    pub admin_key: api::VerifyingKey,
 }
 
 // need to implement this manually, because we do not want `Server` to implement `Clone`
@@ -433,6 +434,7 @@ impl<S: Server> Clone for AppCreatorBase<S> {
             self_check_code: self.self_check_code.clone(),
             jwt_key: self.jwt_key.clone(),
             enc_key: self.enc_key.clone(),
+            admin_key: self.admin_key.clone(),
         }
     }
 }
@@ -444,16 +446,23 @@ impl<S: Server> AppCreatorBase<S> {
         Self {
             discovery_limiter: DiscoveryLimiter::new(),
             running_state: None,
-            self_check_code: server_config.self_check_code(),
+            self_check_code: server_config
+                .self_check_code
+                .clone()
+                .expect("self_check_code was not set nor generated"),
             jwt_key: server_config
                 .jwt_key
                 .clone()
-                .unwrap_or_else(api::SigningKey::generate),
+                .expect("jwt_key was not set nor generated"),
             enc_key: server_config
                 .enc_key
                 .clone()
-                .unwrap_or_else(elgamal::PrivateKey::random),
+                .expect("enc_key was not set nor generated"),
             phc_url: config.phc_url.clone(),
+            admin_key: config
+                .admin_key
+                .clone()
+                .expect("admin_key was not set nor generated"),
         }
     }
 }
@@ -469,6 +478,7 @@ pub struct AppBase<S: Server> {
     pub phc_url: url::Url,
     pub jwt_key: api::SigningKey,
     pub enc_key: elgamal::PrivateKey,
+    pub admin_key: api::VerifyingKey,
 }
 
 impl<S: Server> AppBase<S> {
@@ -481,6 +491,7 @@ impl<S: Server> AppBase<S> {
             self_check_code: creator_base.self_check_code,
             jwt_key: creator_base.jwt_key,
             enc_key: creator_base.enc_key,
+            admin_key: creator_base.admin_key,
         }
     }
 
@@ -538,6 +549,35 @@ impl<S: Server> AppBase<S> {
     pub fn configure_actix_app(app: &S::AppT, sc: &mut web::ServiceConfig) {
         api::DiscoveryRun::add_to(app, sc, Self::handle_discovery_run);
         api::DiscoveryInfo::add_to(app, sc, Self::handle_discovery_info);
+
+        api::admin::PostConfig::add_to(app, sc, Self::handle_admin_post_config);
+    }
+
+    /// Changes server config, and restarts server
+    async fn handle_admin_post_config(
+        app: S::AppT,
+        signed_req: web::Json<api::Signed<api::admin::PostConfigReq>>,
+    ) -> api::Result<()> {
+        let signed_req = signed_req.into_inner();
+
+        let base = app.base();
+
+        api::return_if_ec!(signed_req.open(&*base.admin_key));
+
+        let success: bool = base.restart_server(|server: &mut S| -> Result<()> {
+            // MARK
+
+            let extra = server.create_running_state(&constellation)?;
+
+            server.app_creator_mut().base_mut().running_state = Some(RunningState {
+                constellation: Box::new(constellation),
+                extra,
+            });
+
+            Ok(())
+        });
+
+        todo! {}
     }
 
     /// Run the discovery process, and restarts server if necessary.  Returns when

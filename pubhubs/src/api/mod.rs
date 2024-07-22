@@ -3,6 +3,7 @@ mod common;
 pub use common::*;
 mod signed;
 pub use signed::*;
+pub mod admin;
 pub mod hub;
 pub mod phc;
 pub mod phct;

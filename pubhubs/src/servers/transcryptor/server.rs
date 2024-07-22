@@ -97,7 +97,7 @@ impl crate::servers::AppCreator<Server> for AppCreator {
         let master_enc_key_part: elgamal::PrivateKey = xconf
             .master_enc_key_part
             .clone()
-            .unwrap_or_else(elgamal::PrivateKey::random);
+            .expect("master_enc_key_part was not generated");
 
         Ok(Self {
             base: AppCreatorBase::<Server>::new(config),

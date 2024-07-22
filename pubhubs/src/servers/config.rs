@@ -23,6 +23,10 @@ pub struct Config {
     #[serde(default)]
     pub wd: PathBuf,
 
+    /// Key used by admin to sign requests for the admin endpoints.
+    /// If `None`, one is generated automatically and the private key is  printed to the log.
+    pub admin_key: Option<api::VerifyingKey>,
+
     /// Configuration to run PubHubs Central
     pub phc: Option<ServerConfig<phc::ExtraConfig>>,
 
@@ -55,7 +59,8 @@ pub struct ServerConfig<ServerSpecific> {
     pub enc_key: Option<elgamal::PrivateKey>,
 
     /// When stopping this server (for example, during discovery) have actix shutdown gracefully.
-    /// Makes discovery much slower; only recommended for production.
+    /// Makes discovery much slower; only recommended for production.  Defaults to false when
+    /// debug_assertions are true.
     #[serde(default = "default_graceful_shutdown")]
     pub graceful_shutdown: bool,
 
@@ -64,18 +69,7 @@ pub struct ServerConfig<ServerSpecific> {
 }
 
 fn default_graceful_shutdown() -> bool {
-    true
-}
-
-impl<Extra> ServerConfig<Extra> {
-    /// Returns [ServerConfig::self_check_code], if set, or generates one.
-    pub fn self_check_code(&self) -> String {
-        rand::rngs::OsRng
-            .sample_iter(&rand::distributions::Alphanumeric)
-            .take(20)
-            .map(char::from)
-            .collect()
-    }
+    !cfg!(debug_assertions)
 }
 
 impl Config {
@@ -119,6 +113,8 @@ impl Config {
             res.wd.display()
         );
 
+        res.generate_randoms()?;
+
         Ok(Some(res))
     }
 }
@@ -160,6 +156,82 @@ pub mod auths {
     #[derive(serde::Deserialize, Debug, Clone)]
     #[serde(deny_unknown_fields)]
     pub struct ExtraConfig {}
+}
+
+/// Trait to generate the random values in [Config] where needed
+trait GenerateRandoms {
+    fn generate_randoms(&mut self) -> anyhow::Result<()>;
+}
+
+impl GenerateRandoms for Config {
+    fn generate_randoms(&mut self) -> anyhow::Result<()> {
+        self.admin_key.get_or_insert_with(|| {
+            let sk = api::SigningKey::generate();
+
+            log::info!(
+                "admin key: {}",
+                serde_json::to_string(&sk)
+                    .expect("unexpected error during serialization of admin key")
+            );
+
+            sk.verifying_key().into()
+        });
+
+        macro_rules! gen_randoms {
+            ($server:ident) => {
+                if let Some(ref mut server) = self.$server {
+                    server.generate_randoms()?;
+                }
+            };
+        }
+
+        for_all_servers!(gen_randoms);
+
+        Ok(())
+    }
+}
+
+impl<Extra: GenerateRandoms> GenerateRandoms for ServerConfig<Extra> {
+    fn generate_randoms(&mut self) -> anyhow::Result<()> {
+        self.self_check_code.get_or_insert_with(|| {
+            rand::rngs::OsRng
+                .sample_iter(&rand::distributions::Alphanumeric)
+                .take(20)
+                .map(char::from)
+                .collect()
+        });
+
+        self.jwt_key.get_or_insert_with(api::SigningKey::generate);
+        self.enc_key.get_or_insert_with(elgamal::PrivateKey::random);
+
+        self.extra.generate_randoms()?;
+
+        Ok(())
+    }
+}
+
+impl GenerateRandoms for transcryptor::ExtraConfig {
+    fn generate_randoms(&mut self) -> anyhow::Result<()> {
+        self.master_enc_key_part
+            .get_or_insert_with(elgamal::PrivateKey::random);
+
+        Ok(())
+    }
+}
+
+impl GenerateRandoms for phc::ExtraConfig {
+    fn generate_randoms(&mut self) -> anyhow::Result<()> {
+        self.master_enc_key_part
+            .get_or_insert_with(elgamal::PrivateKey::random);
+
+        Ok(())
+    }
+}
+
+impl GenerateRandoms for auths::ExtraConfig {
+    fn generate_randoms(&mut self) -> anyhow::Result<()> {
+        Ok(())
+    }
 }
 
 pub trait GetServerConfig {

@@ -122,6 +122,7 @@ pub enum MessageCode {
     PhcHubTicket = 2,
     PhcTHubKeyReq = 3,
     PhcTHubKeyResp = 4,
+    AdminPostConfigReq = 5,
 }
 
 impl std::fmt::Display for MessageCode {
