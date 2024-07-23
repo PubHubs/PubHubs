@@ -11,7 +11,7 @@ use crate::servers::for_all_servers;
 use crate::{api, elgamal, hub};
 
 /// Configuration for one, or several, of the PubHubs servers
-#[derive(serde::Deserialize, Debug, Clone)]
+#[derive(serde::Deserialize, serde::Serialize, Debug, Clone)]
 #[serde(deny_unknown_fields)]
 pub struct Config {
     /// URL of the PubHubs Central server.
@@ -38,7 +38,7 @@ pub struct Config {
 }
 
 /// Configuration for one server
-#[derive(serde::Deserialize, Debug, Clone)]
+#[derive(serde::Deserialize, serde::Serialize, Debug, Clone)]
 #[serde(deny_unknown_fields)]
 pub struct ServerConfig<ServerSpecific> {
     pub bind_to: SocketAddr,
@@ -122,7 +122,7 @@ impl Config {
 pub mod phc {
     use super::*;
 
-    #[derive(serde::Deserialize, Debug, Clone)]
+    #[derive(serde::Deserialize, serde::Serialize, Debug, Clone)]
     #[serde(deny_unknown_fields)]
     pub struct ExtraConfig {
         /// Where can we reach the transcryptor?
@@ -142,7 +142,7 @@ pub mod phc {
 pub mod transcryptor {
     use super::*;
 
-    #[derive(serde::Deserialize, Debug, Clone)]
+    #[derive(serde::Deserialize, serde::Serialize, Debug, Clone)]
     #[serde(deny_unknown_fields)]
     pub struct ExtraConfig {
         /// `x_T` from the whitepaper; randomly generated if not set
@@ -153,7 +153,7 @@ pub mod transcryptor {
 pub mod auths {
     use super::*;
 
-    #[derive(serde::Deserialize, Debug, Clone)]
+    #[derive(serde::Deserialize, serde::Serialize, Debug, Clone)]
     #[serde(deny_unknown_fields)]
     pub struct ExtraConfig {}
 }

@@ -9,8 +9,8 @@ use crate::elgamal;
 
 use crate::client;
 
-use crate::api::{self, EndpointDetails};
-use crate::servers::{self, Constellation, Handle};
+use crate::api::{self, EndpointDetails, IntoErrorCode as _};
+use crate::servers::{self, Config, Constellation, Handle};
 
 /// Enumerates the names of the different PubHubs servers
 #[derive(
@@ -71,6 +71,7 @@ pub trait Server: Sized + 'static {
     fn app_creator_mut(&mut self) -> &mut Self::AppCreatorT;
 
     fn config(&self) -> &crate::servers::Config;
+    fn config_mut(&mut self) -> &mut crate::servers::Config;
 
     fn server_config(&self) -> &servers::config::ServerConfig<Self::ExtraConfig> {
         Self::server_config_from(self.config())
@@ -135,6 +136,9 @@ where
 
     fn config(&self) -> &servers::Config {
         &self.config
+    }
+    fn config_mut(&mut self) -> &mut servers::Config {
+        &mut self.config
     }
 
     fn server_config_from(
@@ -582,9 +586,71 @@ impl<S: Server> AppBase<S> {
 
         let base = app.base();
 
-        api::return_if_ec!(signed_req.open(&*base.admin_key));
+        let req = api::return_if_ec!(signed_req.open(&*base.admin_key));
 
-        todo! {}
+        // Before restarting the server, check that the modification would work,
+        // so we can return an error to the requestor.  Once we issue a modification command
+        // the present connection is severed, and so no error can be returned.
+
+        let config = api::return_if_ec!(base
+            .handle
+            .inspect(
+                "admin's retrieval of current configuration",
+                |server: &S| -> Config { server.config().clone() }
+            )
+            .await
+            .into_ec(|err| {
+                log::error!(
+                    "{}: failed to retrieve configuration from server: {}",
+                    S::NAME,
+                    err
+                );
+                api::ErrorCode::InternalError
+            }));
+
+        let mut json_config: serde_json::Value = api::return_if_ec!(serde_json::to_value(config)
+            .into_ec(|err| {
+                log::error!("{}: failed to serialize config: {}", S::NAME, err);
+                api::ErrorCode::InternalError
+            }));
+
+        let to_be_modified: &mut serde_json::Value =
+            api::return_if_ec!(json_config.pointer_mut(&req.pointer).into_ec(|_| {
+                log::warn!(
+                    "{}: admin wanted to modify {} of configuration file, but that points nowhere",
+                    S::NAME,
+                    req.pointer,
+                );
+                api::ErrorCode::BadRequest
+            }));
+
+        to_be_modified.clone_from(&req.new_value);
+
+        let new_config: Config = api::return_if_ec!(serde_json::from_value(json_config).into_ec(|err| {
+            log::warn!(
+                "{}: admin wanted to change {} to {}, but the new configuration did not deserialize: {}",
+                S::NAME, req.pointer, req.new_value, err
+                );
+            api::ErrorCode::BadRequest
+        }));
+
+        // All is well - let's restart the server with the new configuration
+        api::return_if_ec!(base
+            .handle
+            .modify(
+                "admin update of current in-memory configuration",
+                |server: &mut S| {
+                    *server.config_mut() = new_config;
+                    true // restart
+                }
+            )
+            .await
+            .into_ec(|err| {
+                log::error!("{}: failed to enqueue modification: {}", S::NAME, err);
+                api::ErrorCode::InternalError
+            }));
+
+        api::ok(())
     }
 
     /// Run the discovery process, and restarts server if necessary.  Returns when

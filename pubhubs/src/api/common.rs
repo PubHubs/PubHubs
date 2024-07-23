@@ -147,6 +147,18 @@ impl<T, E> IntoErrorCode for std::result::Result<T, E> {
     }
 }
 
+impl<T> IntoErrorCode for Option<T> {
+    type Ok = T;
+    type Err = ();
+
+    fn into_ec<F: FnOnce(()) -> ErrorCode>(self, f: F) -> Result<T> {
+        match self {
+            Some(v) => Result::Ok(v),
+            None => Result::Err(f(())),
+        }
+    }
+}
+
 /// List of possible errors.  We use error codes in favour of more descriptive strings,
 /// because error codes can be more easily processed by the calling code,
 /// should change less often, and can be easily translated.

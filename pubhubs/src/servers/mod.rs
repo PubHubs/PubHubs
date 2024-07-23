@@ -13,7 +13,8 @@ pub(crate) mod transcryptor;
 pub use config::Config;
 pub use constellation::Constellation;
 pub(super) use macros::for_all_servers;
-pub(super) use run::{Handle, Set};
+pub(super) use run::Handle;
+pub use run::Set;
 pub(super) use server::{
     App, AppBase, AppCreator, AppCreatorBase, Command, Details, Name, Server, ServerImpl,
 };

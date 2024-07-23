@@ -42,6 +42,15 @@ impl<'de> serde::Deserialize<'de> for BasicInfo {
     }
 }
 
+impl serde::Serialize for BasicInfo {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: serde::Serializer,
+    {
+        Self::serialize(self, serializer)
+    }
+}
+
 /// The regex pattern for a hub name
 pub const NAME_REGEX: &str = r"^[a-z0-9_]+$";
 

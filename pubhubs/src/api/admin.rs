@@ -17,9 +17,9 @@ impl EndpointDetails for PostConfig {
 #[derive(Serialize, Deserialize, Debug)]
 pub struct PostConfigReq {
     /// JSON Pointer (see RFC6901) to the part of the configuration that is to be changed
-    pointer: String,
+    pub pointer: String,
 
-    new_value: serde_json::Value,
+    pub new_value: serde_json::Value,
 }
 
 having_message_code!(PostConfigReq, AdminPostConfigReq);
