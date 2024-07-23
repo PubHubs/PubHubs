@@ -1,14 +1,11 @@
 //! Running PubHubs [Server]s
-use core::future::Future;
-use core::pin::Pin;
-use core::task::{Context, Poll};
 use std::net::SocketAddr;
 
 use actix_web::web;
-use anyhow::Result;
+use anyhow::{bail, Context as _, Result};
 use tokio::sync::mpsc;
 
-use crate::servers::{for_all_servers, App, AppBase, AppCreator, Server, ShutdownCommand};
+use crate::servers::{for_all_servers, App, AppBase, AppCreator, Command, Server};
 
 /// A set of running PubHubs servers.
 pub struct Set {
@@ -23,9 +20,13 @@ impl Set {
         macro_rules! run_server {
             ($server:ident) => {
                 if let Some(server_config) = config.$server.as_ref() {
-                    joinset.spawn(crate::servers::run::Runner::<
-                        crate::servers::$server::Server,
-                    >::new(&config, server_config)?);
+                    joinset.spawn(
+                        crate::servers::run::Runner::<crate::servers::$server::Server>::new(
+                            &config,
+                            server_config,
+                        )?
+                        .run(),
+                    );
                 }
             };
         }
@@ -54,56 +55,107 @@ impl Set {
     }
 }
 
-/// Runs a [Server].  Implements [Future].
+/// Runs a [Server].
 pub struct Runner<ServerT: Server> {
     pubhubs_server: ServerT,
-    actix_server: ActixServer<ServerT>,
     bind_to: SocketAddr,
     graceful_shutdown: bool,
 }
 
-/// Keeps track of the [State] of an Actix HTTP server
-struct ActixServer<ServerT: Server> {
-    /// The actual actix TCP server
-    inner: actix_web::dev::Server,
+/// The handles to control an [actix_web::dev::Server] running a pubhubs [Server].
+struct ActixHandles<S: Server> {
+    /// Handle to the actual actix TCP server.  The [actix_web::dev::Server] is owned
+    /// by the task driving it.
+    server_handle: actix_web::dev::ServerHandle,
 
-    state: State<ServerT>,
+    /// Handle to the task driving the actix TCP server
+    join_handle: tokio::task::JoinHandle<Result<(), std::io::Error>>,
+
+    /// Receives commands from the [App]s
+    receiver: mpsc::Receiver<Command<S>>,
 }
 
-/// State of the server as far as the [Runner] is concerned.  [Server]s may have more internal
-/// state.
-enum State<S: Server> {
-    /// Waiting for shutdown command, or actix to stop
-    Running {
-        /// Receiver used by [App]s to signal this [Runner] to either stop or restart
-        /// the actix server.  During a restart, the [Server] (and thus the resulting [App]s too)
-        /// may be modified.
-        shutdown_receiver: mpsc::Receiver<ShutdownCommand<S>>,
-    },
-
-    /// Shutdown command received; just waiting for actix to stop
-    ShutdownReceived {
-        /// What to do after the actix TCP server stops.
-        shutdown_command: ShutdownCommand<S>,
-
-        /// The future that drives the halting of actix, [None] if already complete
-        fut: Option<Pin<Box<dyn Future<Output = ()> + Send>>>,
-    },
-
-    Exited,
-}
-
-impl<S: Server> std::fmt::Display for State<S> {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> Result<(), std::fmt::Error> {
-        match self {
-            State::Running { .. } => write!(f, "running"),
-            State::ShutdownReceived {
-                shutdown_command, ..
-            } => {
-                write!(f, "received {} command", shutdown_command)
+impl<S: Server> ActixHandles<S> {
+    /// Drives the actix server until a [Command] is received - which is returned
+    async fn run_until_command(&mut self) -> anyhow::Result<Command<S>> {
+        tokio::select! {
+            res = &mut self.join_handle => {
+                res.with_context(|| format!("{}'s task joined unexpectedly", S::NAME))?
+                    .with_context(|| format!("{}'s http server crashed", S::NAME))?;
+                bail!("{} stopped unexpectedly", S::NAME);
+            },
+            command_maybe = self.receiver.recv() => {
+                if let Some(command) = command_maybe {
+                    #[allow(clippy::needless_return)]
+                    // Clippy wants "Ok(command)", but that's not easy to read here
+                    // (Maybe clippy is not aware of the tokio::select! macro?)
+                    return Ok(command);
+                } else {
+                    bail!("{}'s command receiver is unexpectedly closed", S::NAME);
+                }
             }
-            State::Exited => write!(f, "exited"),
+        };
+    }
+}
+
+/// Handle to a [Server] passed to [App]s.
+pub struct Handle<S: Server> {
+    sender: mpsc::Sender<Command<S>>,
+}
+
+// We cannot use "derive(Clone)", because Server is not Clone.
+impl<S: Server> Clone for Handle<S> {
+    fn clone(&self) -> Self {
+        Handle {
+            sender: self.sender.clone(),
         }
+    }
+}
+
+impl<S: Server> Handle<S> {
+    /// Issues command to [Runner].  Waits for the command to be enqueued,
+    /// but does not wait for the command to be completed.
+    pub async fn issue_command(&self, command: Command<S>) -> Result<()> {
+        let result = self.sender.send(command).await;
+
+        if let Err(send_error) = result {
+            bail!("{}: failed to send command {}", S::NAME, send_error.0);
+        };
+
+        Ok(())
+    }
+
+    pub async fn modify(
+        &self,
+        display: impl std::fmt::Display + Send + 'static,
+        modifier: impl FnOnce(&mut S) -> bool + Send + 'static,
+    ) -> Result<()> {
+        self.issue_command(Command::Modify(Box::new((modifier, display))))
+            .await
+    }
+
+    pub async fn inspect<T: Send + 'static>(
+        &self,
+        display: impl std::fmt::Display + Send + 'static,
+        inspector: impl FnOnce(&S) -> T + Send + 'static,
+    ) -> Result<T> {
+        let (sender, receiver) = tokio::sync::oneshot::channel::<T>();
+
+        self.issue_command(Command::Inspect(Box::new((
+            |server: &S| {
+                if sender.send(inspector(server)).is_err() {
+                    log::warn!(
+                    "{}: could not return result of inspection because receiver was already closed",
+                    S::NAME
+                );
+                    // Might happen when the server is restarted ungracefully - so don't panic here.
+                }
+            },
+            display,
+        ))))
+        .await?;
+
+        Ok(receiver.await?)
     }
 }
 
@@ -117,136 +169,83 @@ impl<S: Server> Runner<S> {
         let graceful_shutdown = server_config.graceful_shutdown;
 
         Ok(Runner {
-            actix_server: ActixServer::new(&pubhubs_server, &bind_to)?,
             pubhubs_server,
             bind_to,
             graceful_shutdown,
         })
     }
-}
 
-impl<S: Server + Unpin> Future for Runner<S> {
-    // NOTE: We rely on the fact that all fields of Runner, and thus Runner itself, is Unpin.
-    // When one of the fields of Runner becomes !Unpin, we should add 'structural pinning' and
-    // corresponding 'projections' for those; see the module level documentation of [std::pin].
-    //
-    // To ensure safety, it might be best to use a crate to provide these projections for us.
-    // The futures crate seems to use the pin-project-lite crate.
-    type Output = Result<()>;
-
-    fn poll(mut self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Self::Output> {
-        // The main task is to drive the self.actix_server.inner future, but we must also
-        // check if there's a shutdown command (when we're in the Running state)
-        // and make sure the stopping of actix server is driven (when we're in the ShutdownReceived
-        // state.)
-        log::debug!(
-            "{} is being polled in state {} - this should happen only occasionally",
-            S::NAME,
-            self.actix_server.state
-        );
-        match &mut self.actix_server.state {
-            State::Running { shutdown_receiver } => {
-                match shutdown_receiver.poll_recv(cx) {
-                    Poll::Ready(None) => panic!("shutdown channel should never be closed"),
-                    Poll::Ready(Some(shutdown_command)) => {
-                        self.actix_server.state = State::ShutdownReceived {
-                            shutdown_command,
-                            fut: Some(Box::pin(
-                                self.actix_server
-                                    .inner
-                                    .handle()
-                                    .stop(self.graceful_shutdown),
-                            )),
-                        }
-                    }
-                    Poll::Pending => { /* ok, continue */ }
-                }
-            }
-
-            State::ShutdownReceived { ref mut fut, .. } => {
-                if let Some(some_fut) = fut {
-                    match Pin::new(some_fut).poll(cx) {
-                        Poll::Ready(()) => {
-                            *fut = None;
-                        }
-                        Poll::Pending => { /* ok, continue */ }
-                    }
-                }
-            }
-
-            State::Exited => panic!("ready already returned from this future"),
-        }
-
-        loop {
-            let result: std::io::Result<()> =
-                std::task::ready!(Pin::new(&mut self.actix_server.inner).poll(cx));
-
-            // Actix server stopped.  What we do next depends on the state, but the default
-            // is to exit.
-            let state = std::mem::replace(&mut self.actix_server.state, State::Exited);
-
-            match state {
-                State::Running { .. }
-                | State::ShutdownReceived {
-                    shutdown_command: ShutdownCommand::Exit,
-                    ..
-                } => {
-                    log::info!("stopping {}", S::NAME);
-                    return Poll::Ready(result.map_err(Into::into));
-                }
-
-                State::ShutdownReceived {
-                    shutdown_command: ShutdownCommand::ModifyAndRestart(modifier),
-                    ..
-                } => {
-                    log::info!("attempting to restart {}", S::NAME);
-
-                    if result.is_err() {
-                        return Poll::Ready(result.map_err(Into::into));
-                    }
-
-                    let result = modifier.modify(&mut self.pubhubs_server);
-
-                    if result.is_err() {
-                        return Poll::Ready(result.map_err(Into::into));
-                    }
-
-                    // modification succeeded, so recreate actix server
-                    self.actix_server = ActixServer::new(&self.pubhubs_server, &self.bind_to)?;
-
-                    // now loop, so that the actix_server.inner and receiver are polled
-                }
-
-                State::Exited => panic!("should already have panicked in the previous match"),
-            }
-        }
-    }
-}
-
-impl<S: Server> ActixServer<S> {
-    fn new(pubhubs_server: &S, bind_to: &SocketAddr) -> Result<ActixServer<S>> {
+    fn create_actix_server(
+        &self,
+        pubhubs_server: &S,
+        bind_to: &SocketAddr,
+    ) -> Result<ActixHandles<S>> {
         let app_creator: S::AppCreatorT = pubhubs_server.app_creator().clone();
 
-        let (shutdown_sender, shutdown_receiver) = mpsc::channel(1);
+        let (sender, receiver) = mpsc::channel(1);
+
+        let handle = Handle::<S> { sender };
 
         log::info!("{}: binding actix server to {}", S::NAME, bind_to);
 
-        Ok(ActixServer {
-            inner: actix_web::HttpServer::new(move || {
-                let app: S::AppT = app_creator.clone().into_app(&shutdown_sender);
+        let actual_actix_server: actix_web::dev::Server = actix_web::HttpServer::new(move || {
+            let app: S::AppT = app_creator.clone().into_app(&handle);
 
-                actix_web::App::new().configure(|sc: &mut web::ServiceConfig| {
-                    // first configure endpoints common to all servers
-                    AppBase::<S>::configure_actix_app(&app, sc);
+            actix_web::App::new().configure(|sc: &mut web::ServiceConfig| {
+                // first configure endpoints common to all servers
+                AppBase::<S>::configure_actix_app(&app, sc);
 
-                    // and then server-specific endpoints
-                    app.configure_actix_app(sc);
-                })
+                // and then server-specific endpoints
+                app.configure_actix_app(sc);
             })
-            .bind(bind_to)?
-            .run(),
-
-            state: State::Running { shutdown_receiver },
         })
+        .bind(bind_to)?
+        .run();
+
+        let server_handle = actual_actix_server.handle().clone();
+        let join_handle = tokio::task::spawn(actual_actix_server);
+
+        Ok(ActixHandles {
+            server_handle,
+            join_handle,
+            receiver,
+        })
+    }
+
+    pub async fn run(mut self) -> Result<()> {
+        loop {
+            let modifier = self.run_until_modifier().await?;
+
+            log::info!("{}: applying modification {}", S::NAME, modifier);
+
+            if !modifier.modify(&mut self.pubhubs_server) {
+                log::info!("{} exited", S::NAME);
+                return Ok(());
+            } else {
+                log::info!("{}: restarting...", S::NAME)
+            }
+        }
+    }
+
+    pub async fn run_until_modifier(
+        &mut self,
+    ) -> Result<crate::servers::server::BoxModifier<S>, anyhow::Error> {
+        let mut handles = self.create_actix_server(&self.pubhubs_server, &self.bind_to)?;
+
+        loop {
+            match handles.run_until_command().await? {
+                Command::Modify(modifier) => {
+                    log::debug!("Stopping {} for modification {}...", S::NAME, modifier);
+
+                    handles.server_handle.stop(self.graceful_shutdown).await;
+
+                    return Ok::<_, anyhow::Error>(modifier);
+                }
+                Command::Inspect(inspector) => {
+                    log::debug!("{}: applying inspection {}", S::NAME, inspector);
+                    inspector.inspect(&self.pubhubs_server);
+                }
+            }
+        }
     }
 }

@@ -2,7 +2,7 @@ use std::rc::Rc;
 
 use actix_web::web;
 
-use crate::servers::{self, AppBase, AppCreatorBase, Constellation, ShutdownSender};
+use crate::servers::{self, AppBase, AppCreatorBase, Constellation, Handle};
 
 /// Authentication server
 pub type Server = servers::ServerImpl<Details>;
@@ -47,9 +47,9 @@ impl crate::servers::AppCreator<Server> for AppCreator {
         })
     }
 
-    fn into_app(self, shutdown_sender: &ShutdownSender<Server>) -> Rc<App> {
+    fn into_app(self, handle: &Handle<Server>) -> Rc<App> {
         Rc::new(App {
-            base: AppBase::new(self.base, shutdown_sender),
+            base: AppBase::new(self.base, handle),
         })
     }
 

@@ -552,16 +552,14 @@ async fn next_session_priv(
 
                     // When not registering for main or stable, note this in the registration
                     // source.
-                    let odd_source_mention: String = if !context
-                        .url
-                        .for_browser
-                        .domain()
-                        .is_some_and(|d| d.ends_with("pubhubs.ihub.ru.nl") || d.ends_with("pubhubs.net"))
-                    {
-                        format!("\nfor: {}", context.url.for_browser)
-                    } else {
-                        String::default()
-                    };
+                    let odd_source_mention: String =
+                        if !context.url.for_browser.domain().is_some_and(|d| {
+                            d.ends_with("pubhubs.ihub.ru.nl") || d.ends_with("pubhubs.net")
+                        }) {
+                            format!("\nfor: {}", context.url.for_browser)
+                        } else {
+                            String::default()
+                        };
 
                     let masked_email = mask_email(email);
                     let masked_telephone = mask_telephone(telephone);

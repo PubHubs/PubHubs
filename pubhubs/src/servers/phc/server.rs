@@ -8,7 +8,7 @@ use futures_util::future::LocalBoxFuture;
 use crate::{
     api::{self, EndpointDetails as _},
     client, phcrypto,
-    servers::{self, AppBase, AppCreator as _, AppCreatorBase, Constellation, Server as _},
+    servers::{self, AppBase, AppCreator as _, AppCreatorBase, Constellation, Handle, Server as _},
 };
 
 use crate::{elgamal, hub};
@@ -201,9 +201,9 @@ pub struct AppCreator {
 }
 
 impl crate::servers::AppCreator<Server> for AppCreator {
-    fn into_app(self, shutdown_sender: &crate::servers::ShutdownSender<Server>) -> Rc<App> {
+    fn into_app(self, handle: &Handle<Server>) -> Rc<App> {
         Rc::new(App {
-            base: AppBase::new(self.base, shutdown_sender),
+            base: AppBase::new(self.base, handle),
             transcryptor_url: self.transcryptor_url,
             auths_url: self.auths_url,
             hubs: self.hubs,

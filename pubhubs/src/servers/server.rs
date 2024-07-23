@@ -2,7 +2,6 @@
 use actix_web::web;
 use anyhow::Result;
 use futures_util::future::LocalBoxFuture;
-use tokio::sync::mpsc;
 
 use std::sync::Arc;
 
@@ -11,7 +10,7 @@ use crate::elgamal;
 use crate::client;
 
 use crate::api::{self, EndpointDetails};
-use crate::servers::{self, Constellation};
+use crate::servers::{self, Constellation, Handle};
 
 /// Enumerates the names of the different PubHubs servers
 #[derive(
@@ -51,8 +50,8 @@ impl std::fmt::Display for Name {
 /// For efficiency's sake, only the [App] instances are available to each thread,
 /// and are immutable. To change the server's state, all apps must be restarted.
 ///
-/// An exception to this no-shared-mutable-state mantra is the discovery or startup phase,
-/// see [State::Discovery].
+/// An exception to this no-shared-mutable-state is the synchronization present in
+/// [DiscoveryLimiter].
 pub trait Server: Sized + 'static {
     type AppT: App<Self>;
 
@@ -152,9 +151,6 @@ where
     }
 }
 
-/// What's passed to an [App] via [AppCreator] to signal a shutdown command
-pub type ShutdownSender<S> = mpsc::Sender<ShutdownCommand<S>>;
-
 /// What's cloned and moved accross threads by a [Server] to create its [App] instances.
 pub trait AppCreator<ServerT: Server>: Send + Clone + 'static {
     /// Creates a new instance of this [AppCreator] based on the given configuration.
@@ -162,54 +158,99 @@ pub trait AppCreator<ServerT: Server>: Send + Clone + 'static {
 
     /// Create an [App] instance.
     ///
-    /// The `shutdown_sender` [mpsc::Sender] can be used to restart the server.  It's
+    /// The `handle` [Handle] can be used to restart the server.  It's
     /// up to the implementor to clone it.
-    fn into_app(self, shutdown_sender: &ShutdownSender<ServerT>) -> ServerT::AppT;
+    fn into_app(self, handle: &Handle<ServerT>) -> ServerT::AppT;
 
     fn base(&self) -> &AppCreatorBase<ServerT>;
     fn base_mut(&mut self) -> &mut AppCreatorBase<ServerT>;
 }
 
-/// What modifies a [Server] when it is restarted via [ShutdownCommand::ModifyAndRestart].
+/// What modifies a [Server] via [Command::Modify].
 ///
 /// It is [Send] and `'static` because it's moved accross threads, from an [App] to the task
 /// running the [Server].
 ///
-/// We do not use a trait like `(FnOnce(&mut ServerT) -> Result<()>) + Send + 'static`,
+/// We do not use a trait like `(FnOnce(&mut ServerT)) + Send + 'static`,
 /// because it can not (yet) be implemented by users.
 pub trait Modifier<ServerT: Server>: Send + 'static {
-    /// Performs the modification to the [Server].  If an error is returned, the server is not
-    /// restarted, but exits.
-    fn modify(self: Box<Self>, server: &mut ServerT) -> Result<()>;
+    /// Stops server, perform modification, and, if true is returned, restarts server.
+    fn modify(self: Box<Self>, server: &mut ServerT) -> bool;
+
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> Result<(), std::fmt::Error>;
 }
 
-impl<S: Server, F: FnOnce(&mut S) -> Result<()> + Send + 'static> Modifier<S> for F {
-    fn modify(self: Box<Self>, server: &mut S) -> Result<()> {
-        self(server)
+impl<
+        S: Server,
+        F: FnOnce(&mut S) -> bool + Send + 'static,
+        D: std::fmt::Display + Send + 'static,
+    > Modifier<S> for (F, D)
+{
+    fn modify(self: Box<Self>, server: &mut S) -> bool {
+        self.0(server)
     }
-}
 
-/// Commands an [App] can issue to a [crate::servers::run::Runner] via a [ShutdownSender].
-pub enum ShutdownCommand<S: Server> {
-    #[allow(dead_code)]
-    /// Stop the server
-    Exit,
-
-    /// Stop the server, apply the enclosed modification, and, if it succeeded, restart the server.
-    ///
-    /// Server restarts should be performed sparingly, and may take seconds to minutes (because
-    /// actix waits for workers to shutdown gracefully.)
-    ModifyAndRestart(BoxModifier<S>),
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> Result<(), std::fmt::Error> {
+        self.1.fmt(f)
+    }
 }
 
 /// Owned dynamically typed [Modifier].
 pub type BoxModifier<S> = Box<dyn Modifier<S>>;
 
-impl<S: Server> std::fmt::Display for ShutdownCommand<S> {
+impl<S: Server> std::fmt::Display for BoxModifier<S> {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> Result<(), std::fmt::Error> {
+        Modifier::fmt(&**self, f)
+    }
+}
+
+/// What inspects a server via [Command::Inspect].
+pub trait Inspector<ServerT: Server>: Send + 'static {
+    /// Calls this function with server as argument
+    fn inspect(self: Box<Self>, server: &ServerT);
+
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> Result<(), std::fmt::Error>;
+}
+
+impl<S: Server, F: FnOnce(&S) + Send + 'static, D: std::fmt::Display + Send + 'static> Inspector<S>
+    for (F, D)
+{
+    fn inspect(self: Box<Self>, server: &S) {
+        self.0(server)
+    }
+
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> Result<(), std::fmt::Error> {
+        self.1.fmt(f)
+    }
+}
+
+/// Owned dynamically typed [Inspector].
+pub type BoxInspector<S> = Box<dyn Inspector<S>>;
+
+impl<S: Server> std::fmt::Display for BoxInspector<S> {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> Result<(), std::fmt::Error> {
+        Inspector::fmt(&**self, f)
+    }
+}
+
+/// Commands an [App] can issue to a [crate::servers::run::Runner].
+pub enum Command<S: Server> {
+    /// Stop the server, apply the enclosed modification, and, depending on the result restart
+    /// the server.
+    ///
+    /// Server restarts should be performed sparingly, and may take seconds to minutes (because
+    /// actix waits for workers to shutdown gracefully.)
+    Modify(BoxModifier<S>),
+
+    /// Calls the enclosed function on the server
+    Inspect(BoxInspector<S>),
+}
+
+impl<S: Server> std::fmt::Display for Command<S> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> Result<(), std::fmt::Error> {
         match self {
-            ShutdownCommand::Exit => write!(f, "exit"),
-            ShutdownCommand::ModifyAndRestart(..) => write!(f, "restart"),
+            Command::Inspect(inspector) => write!(f, "inspector {}", inspector),
+            Command::Modify(modifier) => write!(f, "modifier {}", modifier),
         }
     }
 }
@@ -226,8 +267,6 @@ pub trait App<S: Server>: Clone + 'static {
 
     /// Runs the discovery routine for this server given [api::DiscoveryInfoResp] already
     /// obtained from Pubhubs Central.
-    ///
-    /// May panic if the [Server]'s state is not [State::Discovery].
     ///
     /// The default implementation does nothing unless PubHubs Central is already up and running.
     ///
@@ -368,19 +407,40 @@ impl DiscoveryLimiter {
 
         // modify server, and restart (to modify all Apps)
 
-        let success: bool = app.base().restart_server(|server: &mut S| -> Result<()> {
-            let extra = server.create_running_state(&constellation)?;
+        let result = app
+            .base()
+            .handle
+            .modify(
+                "updated constellation after discovery",
+                |server: &mut S| -> bool {
+                    let extra = match server.create_running_state(&constellation) {
+                        Ok(extra) => extra,
+                        Err(err) => {
+                            log::error!(
+                                "Error while restarting {} after discovery: {}",
+                                S::NAME,
+                                err
+                            );
+                            return false;
+                        }
+                    };
 
-            server.app_creator_mut().base_mut().running_state = Some(RunningState {
-                constellation: Box::new(constellation),
-                extra,
-            });
+                    server.app_creator_mut().base_mut().running_state = Some(RunningState {
+                        constellation: Box::new(constellation),
+                        extra,
+                    });
 
-            Ok(())
-        });
+                    true
+                },
+            )
+            .await;
 
-        if !success {
-            log::error!("failed to initiate restart of {} for discovery", S::NAME);
+        if let Err(err) = result {
+            log::error!(
+                "failed to initiate restart of {} for discovery: {}",
+                S::NAME,
+                err
+            );
             return api::err(api::ErrorCode::InternalError);
         }
 
@@ -473,7 +533,7 @@ impl<S: Server> AppCreatorBase<S> {
 pub struct AppBase<S: Server> {
     discovery_limiter: DiscoveryLimiter,
     pub running_state: Option<RunningState<S::ExtraRunningState>>,
-    pub shutdown_sender: ShutdownSender<S>,
+    pub handle: Handle<S>,
     pub self_check_code: String,
     pub phc_url: url::Url,
     pub jwt_key: api::SigningKey,
@@ -482,11 +542,11 @@ pub struct AppBase<S: Server> {
 }
 
 impl<S: Server> AppBase<S> {
-    pub fn new(creator_base: AppCreatorBase<S>, shutdown_sender: &ShutdownSender<S>) -> Self {
+    pub fn new(creator_base: AppCreatorBase<S>, handle: &Handle<S>) -> Self {
         Self {
             discovery_limiter: creator_base.discovery_limiter,
             running_state: creator_base.running_state,
-            shutdown_sender: shutdown_sender.clone(),
+            handle: handle.clone(),
             phc_url: creator_base.phc_url,
             self_check_code: creator_base.self_check_code,
             jwt_key: creator_base.jwt_key,
@@ -503,46 +563,6 @@ impl<S: Server> AppBase<S> {
                 Err(api::ErrorCode::InternalError)
             }
         }
-    }
-
-    /// Issues ShutdownCommand to server.  Does not wait for the command to complete
-    ///
-    /// Might fail if the server is already down, or someone else issued a [ShutdownCommand]
-    /// already.
-    pub fn shutdown_server(&self, command: ShutdownCommand<S>) -> bool {
-        let result = self.shutdown_sender.try_send(command);
-
-        if result.is_ok() {
-            return true;
-        }
-
-        let (command, reason) = match result.unwrap_err() {
-            tokio::sync::mpsc::error::TrySendError::Full(cmd) => {
-                (cmd, "another shutdown command has already been issued")
-            }
-            tokio::sync::mpsc::error::TrySendError::Closed(cmd) => (cmd, "already offline"),
-        };
-
-        log::warn!(
-            "failed to issue {} command to {}: {}",
-            command,
-            S::NAME,
-            reason
-        );
-
-        false
-    }
-
-    /// Issues the restart command to the [Server] with the given [Modifier].  See [Self::shutdown_server].
-    /// for more details.
-    pub fn restart_server(&self, modifier: impl Modifier<S>) -> bool {
-        self.shutdown_server(ShutdownCommand::ModifyAndRestart(Box::new(modifier)))
-    }
-
-    /// Issues the stop command to the [Server].  See [Self::shutdown_server].
-    #[allow(dead_code)]
-    pub fn stop_server(&self) -> bool {
-        self.shutdown_server(ShutdownCommand::Exit)
     }
 
     /// Configures common endpoints
@@ -563,19 +583,6 @@ impl<S: Server> AppBase<S> {
         let base = app.base();
 
         api::return_if_ec!(signed_req.open(&*base.admin_key));
-
-        let success: bool = base.restart_server(|server: &mut S| -> Result<()> {
-            // MARK
-
-            let extra = server.create_running_state(&constellation)?;
-
-            server.app_creator_mut().base_mut().running_state = Some(RunningState {
-                constellation: Box::new(constellation),
-                extra,
-            });
-
-            Ok(())
-        });
 
         todo! {}
     }

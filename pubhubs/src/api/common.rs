@@ -70,7 +70,7 @@ impl<T> Result<T> {
         self
     }
 
-    /// Converts this [api::Result] into a standard [std::result::Result].
+    /// Converts this [crate::api::Result] into a standard [std::result::Result].
     pub fn into_std(self) -> std::result::Result<T, ErrorCode> {
         match self {
             Result::Ok(v) => Ok(v),
@@ -78,7 +78,7 @@ impl<T> Result<T> {
         }
     }
 
-    /// Creates an [api::Result] from a standard [std::result::Result].
+    /// Creates an [crate::api::Result] from a standard [std::result::Result].
     pub fn from_std(res: std::result::Result<T, ErrorCode>) -> Self {
         match res {
             Ok(v) => Result::Ok(v),

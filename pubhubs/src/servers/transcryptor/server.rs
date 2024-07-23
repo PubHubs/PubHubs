@@ -4,9 +4,7 @@ use actix_web::web;
 
 use crate::{
     api::{self, EndpointDetails as _},
-    servers::{
-        self, AppBase, AppCreator as _, AppCreatorBase, Constellation, Server as _, ShutdownSender,
-    },
+    servers::{self, AppBase, AppCreator as _, AppCreatorBase, Constellation, Handle, Server as _},
 };
 use crate::{elgamal, hub, phcrypto};
 
@@ -105,9 +103,9 @@ impl crate::servers::AppCreator<Server> for AppCreator {
         })
     }
 
-    fn into_app(self, shutdown_sender: &ShutdownSender<Server>) -> Rc<App> {
+    fn into_app(self, handle: &Handle<Server>) -> Rc<App> {
         Rc::new(App {
-            base: AppBase::new(self.base, shutdown_sender),
+            base: AppBase::new(self.base, handle),
             master_enc_key_part: self.master_enc_key_part,
         })
     }
