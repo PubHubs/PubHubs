@@ -1,9 +1,9 @@
-import { setActivePinia, createPinia } from 'pinia';
-import { describe, beforeEach, expect, test } from 'vitest';
-import { NotificationCountType } from 'matrix-js-sdk';
-import Room from '@/model/rooms/Room';
 import { RoomType } from '@/model/model';
+import Room from '@/model/rooms/Room';
 import { useRooms } from '@/store/rooms';
+import { NotificationCountType } from 'matrix-js-sdk';
+import { createPinia, setActivePinia } from 'pinia';
+import { beforeEach, describe, expect, test } from 'vitest';
 
 /**
  * The Room class uses Matrix's Room class internally.
