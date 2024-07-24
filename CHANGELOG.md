@@ -1,6 +1,8 @@
 ## Changes to main, not yet committed to stable
 
 *Please add a brief description of any changes to be tested and any migrations to be performed here.*
+
+## 24 July 2024
 - Changed contained data of PHC Yivi QRs, so they can be scanned with camera and Yivi app.
 
 ## 7 July 2024
