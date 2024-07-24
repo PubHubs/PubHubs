@@ -19,7 +19,8 @@ const BotName = {
 	SYSTEM: 'system_bot',
 };
 
-const PAGINATION_LIMIT = 50;
+// Set high to make sure there is enough m.room.message events loaded
+const PAGINATION_LIMIT = 250;
 
 /** event filters */
 const visibleEventTypes = ['m.room.message'];
