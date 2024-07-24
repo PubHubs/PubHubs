@@ -3,8 +3,8 @@
  */
 
 // import { defineStore } from 'pinia';
-import { MessageType, Message, useMessageBox, MessageBoxType } from '@/store/messagebox';
 import { fallbackLanguage } from '@/i18n';
+import { Message, MessageBoxType, MessageType, useMessageBox } from '@/store/messagebox';
 
 enum featureFlagType {
 	signedMessages = 'signedMessages',
@@ -254,4 +254,4 @@ const createSettings = (defineStore: any) => {
 	});
 };
 
-export { Theme, TimeFormat, Settings, defaultSettings, createSettings, type i18nSettings, featureFlagType };
+export { createSettings, defaultSettings, featureFlagType, Settings, Theme, TimeFormat, type i18nSettings };

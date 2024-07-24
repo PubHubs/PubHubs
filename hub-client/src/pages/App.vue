@@ -50,15 +50,17 @@
 						</Menu>
 					</div>
 
-					<!-- When user is admin, show the admin tools menu -->
-					<div v-if="user.isAdmin">
-						<H2 class="pl-5 border-b mr-8">{{ $t('menu.admin_tools') }}</H2>
-						<Menu>
-							<router-link :to="{ name: 'admin' }" v-slot="{ isActive }">
-								<MenuItem icon="admin" :active="isActive" @click="toggleMenu.toggleGlobalMenu()">{{ $t('menu.admin_tools_rooms') }}</MenuItem>
-							</router-link>
-						</Menu>
-					</div>
+					<template #footer>
+						<!-- When user is admin, show the admin tools menu -->
+						<div v-if="user.isAdmin">
+							<H2 class="pl-5 border-b mr-8">{{ $t('menu.admin_tools') }}</H2>
+							<Menu>
+								<router-link :to="{ name: 'admin' }" v-slot="{ isActive }">
+									<MenuItem icon="admin" :active="isActive" @click="toggleMenu.toggleGlobalMenu()">{{ $t('menu.admin_tools_rooms') }}</MenuItem>
+								</router-link>
+							</Menu>
+						</div>
+					</template>
 				</HeaderFooter>
 
 				<div class="md:col-span-6 md:block dark:bg-gray-middle max-h-screen overflow-y-auto scrollbar" :class="{ hidden: hubSettings.mobileHubMenu }">

@@ -2,9 +2,9 @@
 	<TabHeader>
 		<TabPill v-for="(item, index) in list" :key="index" class="h-8">
 			{{ pillTitle(index) }}
-			<Icon v-if="index > 0" type="remove" class="float-right text-red opacity-50 hover:opacity-100 cursor-pointer ml-1" @click.stop="removeItem(index)"></Icon>
+			<Icon v-if="props.canRemove && index > 0" type="remove" class="float-right text-red opacity-50 hover:opacity-100 cursor-pointer ml-1" @click.stop="removeItem(index)"></Icon>
 		</TabPill>
-		<div class="float-right h-8 tabs-tab inline-block rounded-t border border-b-0 px-2 py-1 cursor-pointer z-20 theme-light:border-gray" @click.stop="addItem()">
+		<div v-if="props.canAdd" class="float-right h-8 tabs-tab inline-block rounded-t border border-b-0 px-2 py-1 cursor-pointer z-20 theme-light:border-gray" @click.stop="addItem()">
 			<Icon type="plus" class="text-green-dark opacity-70 hover:opacity-100 cursor-pointer" @click.stop="addItem()"></Icon>
 		</div>
 	</TabHeader>
@@ -12,11 +12,12 @@
 		<TabContent v-for="(item, index) in list" :key="index">
 			<FormLine v-for="(type, ti) in template" :key="ti">
 				<Label>{{ type.label }}</Label>
-				<TextInput v-if="type.type === 'text'" :placeholder="(index + 1).toString()" :value="item[type.key]" @input="update(index, type.key, $event.target.value)"></TextInput>
-				<TextArea class="theme-light:bg-white" v-if="type.type === 'textarea'" :modelValue="item[type.key]" :maxLength="type.maxLength" @input="update(index, type.key, $event.target.value)"></TextArea>
-				<Checkbox v-if="type.type === 'checkbox'" :value="item[type.key]" @input="update(index, type.key, $event.target.checked)"></Checkbox>
-				<Select v-if="type.type === 'select'" :value="item[type.key]" :options="type.options" @input="update(index, type.key, $event.target.value)"></Select>
-				<AutoComplete v-if="type.type === 'autocomplete'" :value="item[type.key]" :options="type.options" @input="update(index, type.key, $event.target.value)" @changed="update(index, type.key, $event)"></AutoComplete>
+				<TextInput v-if="type.type === 'text'" :placeholder="(index + 1).toString()" :value="item[type.key]" :disabled="type.disabled" @input="update(index, type.key, $event.target.value)"></TextInput>
+				<TextArea class="theme-light:bg-white" v-if="type.type === 'textarea'" :modelValue="item[type.key]" :disabled="type.disabled" :maxLength="type.maxLength" @input="update(index, type.key, $event.target.value)"></TextArea>
+				<Checkbox v-if="type.type === 'checkbox'" :value="item[type.key]" :disabled="type.disabled" @input="update(index, type.key, $event.target.checked)"></Checkbox>
+				<Select v-if="type.type === 'select'" :value="item[type.key]" :options="type.options" :disabled="type.disabled" @input="update(index, type.key, $event.target.value)"></Select>
+				<AutoComplete v-if="type.type === 'autocomplete'" :value="item[type.key]" :options="type.options" :disabled="type.disabled" @input="update(index, type.key, $event.target.value)" @changed="update(index, type.key, $event)">
+				</AutoComplete>
 			</FormLine>
 		</TabContent>
 	</TabContainer>
@@ -40,6 +41,16 @@
 			type: Array<any>,
 			required: true,
 		},
+		canAdd: {
+			type: Boolean,
+			required: false,
+			default: true,
+		},
+		canRemove: {
+			type: Boolean,
+			required: false,
+			default: true,
+		},
 	});
 
 	let defaultItem = {} as any;
@@ -53,8 +64,10 @@
 	}
 
 	function addItem() {
-		list.value.push({ ...defaultItem });
-		setActiveTab(list.value.length);
+		if (props.canAdd) {
+			list.value.push({ ...defaultItem });
+			setActiveTab(list.value.length);
+		}
 	}
 
 	function removeItem(index: number) {
