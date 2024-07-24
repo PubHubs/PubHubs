@@ -8,3 +8,4 @@ export { TPublicRoom } from './rooms/TPublicRoom';
 export { TRoomMember } from './rooms/TRoomMember';
 export { TSecuredRoom } from './rooms/TSecuredRoom';
 export { TUser } from './users/TUser';
+export { TSearchParameters, TSearchResult } from './search/TSearch';

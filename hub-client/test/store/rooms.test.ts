@@ -1,9 +1,9 @@
-import { setActivePinia, createPinia } from 'pinia';
-import { describe, beforeEach, expect, test } from 'vitest';
-import { NotificationCountType } from 'matrix-js-sdk';
-import Room from '@/model/rooms/Room';
 import { RoomType } from '@/model/model';
+import Room from '@/model/rooms/Room';
 import { useRooms } from '@/store/rooms';
+import { NotificationCountType } from 'matrix-js-sdk';
+import { createPinia, setActivePinia } from 'pinia';
+import { beforeEach, describe, expect, test } from 'vitest';
 
 /**
  * The Room class uses Matrix's Room class internally.
@@ -218,16 +218,6 @@ describe('rooms Store', () => {
 			rooms.rooms[room.roomId] = room;
 
 			expect(rooms.privateRooms).toHaveLength(1);
-
-			let members = ['a1', 'b2'];
-			expect(rooms.privateRoomWithMembersExist(members)).toBeTypeOf('string');
-			expect(rooms.privateRoomWithMembersExist(members)).toEqual('a1,b2');
-			members = ['b2', 'a1'];
-			expect(rooms.privateRoomWithMembersExist(members)).toBeTypeOf('string');
-			expect(rooms.privateRoomWithMembersExist(members)).toEqual('a1,b2');
-			members = ['c3', 'a1'];
-			expect(rooms.privateRoomWithMembersExist(members)).toBeTypeOf('boolean');
-			expect(rooms.privateRoomWithMembersExist(members)).toEqual(false);
 		});
 	});
 });

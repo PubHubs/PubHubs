@@ -8,6 +8,7 @@
 		:placeholder="placeholder"
 		:title="placeholder"
 		:value="modelValue"
+		:disabled="disabled === true"
 		@input="update($event.target?.value)"
 		@keyup="onKeyUp"
 		@keydown.enter.exact="submit()"
@@ -29,8 +30,9 @@
 		modelValue: string;
 		placeholder?: string;
 		maxLength?: number;
+		disabled?: boolean;
 	};
-	const props = withDefaults(defineProps<Props>(), { placeholder: '', maxLength: 1500 });
+	const props = withDefaults(defineProps<Props>(), { placeholder: '', maxLength: 1500, disabled: false });
 
 	const emit = defineEmits([...usedEvents, 'caretPos']);
 	const { update, changed, submit, cancel } = useFormInputEvents(emit, props.modelValue);

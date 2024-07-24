@@ -1,7 +1,10 @@
-import { CachedReceipt, ReceiptType, WrappedReceipt } from 'matrix-js-sdk/lib/@types/read_receipts';
-import { EventTimeline, MatrixEvent, Room as MatrixRoom, EventTimelineSet, NotificationCountType } from 'matrix-js-sdk';
-import { useUser } from '@/store/user';
+import { usePubHubs } from '@/core/pubhubsStore';
+import { log } from '@/dev/Logger';
+import { SMI } from '@/dev/StatusMessage';
 import { useRooms } from '@/store/rooms';
+import { useUser } from '@/store/user';
+import { EventTimeline, EventTimelineSet, MatrixEvent, Room as MatrixRoom, NotificationCountType } from 'matrix-js-sdk';
+import { CachedReceipt, ReceiptType, WrappedReceipt } from 'matrix-js-sdk/lib/@types/read_receipts';
 import { TBaseEvent } from '../events/TBaseEvent';
 import { TRoomMember } from './TRoomMember';
 // import { useI18n } from 'vue-i18n';
@@ -15,6 +18,9 @@ const BotName = {
 	NOTICE: 'notices',
 	SYSTEM: 'system_bot',
 };
+
+// Set high to make sure there is enough m.room.message events loaded
+const PAGINATION_LIMIT = 250;
 
 /** event filters */
 const visibleEventTypes = ['m.room.message'];
@@ -52,6 +58,7 @@ export default class Room {
 
 	private userStore;
 	private roomsStore;
+	private pubhubsStore;
 
 	constructor(matrixRoom: MatrixRoom) {
 		this.matrixRoom = matrixRoom;
@@ -67,6 +74,7 @@ export default class Room {
 
 		this.userStore = useUser();
 		this.roomsStore = useRooms();
+		this.pubhubsStore = usePubHubs();
 	}
 
 	//#region getters and setters
@@ -225,6 +233,11 @@ export default class Room {
 	//#endregion
 
 	//#region events
+	/**
+	 * For now, we only support a single timeline: the live timeline of the unfiltered timelineSet of this room (returned by getLiveTimeline()).
+	 *
+	 */
+
 	public hasEvents(): boolean {
 		return this.matrixRoom.getLiveTimeline().getEvents().length > 0;
 	}
@@ -250,7 +263,7 @@ export default class Room {
 		return this.matrixRoom.removeEvent(eventId);
 	}
 
-	public getTimelineSets(): EventTimelineSet[] {
+	private getTimelineSets(): EventTimelineSet[] {
 		return this.matrixRoom.getTimelineSets();
 	}
 
@@ -285,11 +298,71 @@ export default class Room {
 	}
 
 	public timelineGetOldestMessageEventId(): string | undefined {
-		return this.matrixRoom
-			.getLiveTimeline()
-			.getEvents()
+		return this.timelineGetEvents()
 			.find((event) => event.getType() === 'm.room.message')
 			?.getId();
+	}
+
+	public timelineGetNewestMessageEventId(): string | undefined {
+		// we have to check all timelines to get the newest event
+		const timelineSets = this.getTimelineSets();
+		let newestEventId: string | undefined = undefined;
+		let eventDate: Date | null = null;
+		timelineSets.forEach((timelineSet) => {
+			timelineSet.getTimelines().forEach((timeline) => {
+				timeline.getEvents().forEach((event) => {
+					const currentEventDate = event.getDate();
+					if (event.getType() === 'm.room.message' && currentEventDate != null) {
+						if (!eventDate) {
+							eventDate = currentEventDate;
+							newestEventId = event.getId();
+						}
+						if (currentEventDate > eventDate) {
+							newestEventId = event.getId();
+						}
+					}
+				});
+			});
+		});
+		return newestEventId;
+	}
+
+	/**
+	 *
+	 * @returns Promise which resolves to a boolean: false if there are no events and we reached the beginning of the timeline; else true.
+	 */
+	public async loadOlderEvents(options: { limit?: number } = {}): Promise<boolean> {
+		log(SMI.ROOM_TIMELINE_TRACE, `Loading older events...`, { roomId: this.roomId, options });
+
+		const mergedOptions = { backwards: true, limit: PAGINATION_LIMIT, ...options };
+
+		const liveTimeline = this.matrixRoom.getLiveTimeline();
+		const firstEvent = liveTimeline.getEvents()[0];
+
+		// If all messages are loaded, return.
+		if (!firstEvent || firstEvent.getType() === 'm.room.create') return false;
+
+		return this.matrixRoom.client.paginateEventTimeline(liveTimeline, mergedOptions);
+	}
+
+	public async loadToEvent(eventId: string) {
+		log(SMI.ROOM_TIMELINE_TRACE, `Loading to event ${eventId}...`, { roomId: this.roomId, eventId });
+
+		let i = 0;
+		let allEventsLoaded = false;
+		const searchLimit = 10;
+
+		const eventFound = () => {
+			return this.timelineGetEvents().some((event) => event.getId() === eventId);
+		};
+
+		while (!allEventsLoaded && i < searchLimit) {
+			if (eventFound()) return;
+			allEventsLoaded = !(await this.loadOlderEvents({ limit: 5000 }));
+			i++;
+		}
+
+		throw new Error('Could not find event within the search limit.');
 	}
 
 	//#endregion

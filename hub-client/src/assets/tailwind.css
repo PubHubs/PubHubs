@@ -134,6 +134,14 @@ body,
 }
 
 @layer components {
+	.highlighted {
+		@apply transition bg-gray-lighter dark:bg-gray duration-500 ease-out;
+	}
+
+	.unhighlighted {
+		@apply transition duration-500 ease-out;
+	}
+
 	.message-link {
 		@apply text-blue dark:text-green;
 	}
@@ -147,6 +155,6 @@ body,
 
 	.scrollbar {
 		scrollbar-width: thin;
-		scrollbar-color: theme(colors.gray.light) theme(colors.gray.DEFAULT);
+		scrollbar-color: theme(colors.hub.background.5) theme(colors.hub.background.4);
 	}
 }

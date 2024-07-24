@@ -28,7 +28,7 @@ describe('InRoomNotifyMarker.vue Test', () => {
 		wrapper.vm.totalUnreadCount = 1;
 		wrapper.vm.totalMentionCount = 1;
 		await flushPromises();
-		expect(wrapper.findAll('div').length).toBe(4);
+		expect(wrapper.findAll('div').length).toBe(5);
 		expect(wrapper.findAll('icon').length).toBe(2);
 	});
 	test('test total message count', async () => {

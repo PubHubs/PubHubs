@@ -1,6 +1,6 @@
 <template>
-	<div class="flex gap-2 items-end px-6">
-		<div name="input-container" class="min-w-3/4 w-full relative rounded-xl bg-hub-background-4 dark:bg-hub-background-4">
+	<div class="flex gap-2 items-end pl-3 sm:px-6">
+		<div name="input-container" class="min-w-3/4 w-[90%] relative rounded-xl bg-hub-background-4 dark:bg-hub-background-4">
 			<!-- Floating -->
 			<div>
 				<Popover v-if="showPopover" @close="togglePopover" class="absolute bottom-[105%]">
@@ -8,7 +8,7 @@
 					<SignedMessageButton @click="showSigningMessageMenu()"></SignedMessageButton>
 				</Popover>
 				<Mention :msg="value" :top="caretPos.top" :left="caretPos.left" @click="mentionUser($event)"></Mention>
-				<div v-if="showEmojiPicker" class="absolute bottom-[105%] right-0 z-20">
+				<div name="emoji-picker" v-if="showEmojiPicker" class="absolute bottom-[105%] sm:right-0 z-20">
 					<EmojiPicker @emojiSelected="clickedEmoticon" @close="showEmojiPicker = false" />
 				</div>
 			</div>
@@ -16,7 +16,7 @@
 			<div name="reply-to" class="h-10 w-full flex items-center" v-if="messageActions.replyingTo">
 				<p class="ml-4 whitespace-nowrap mr-2">{{ $t('message.in_reply_to') }}</p>
 				<MessageSnippet class="w-[85%]" :event="messageActions.replyingTo"></MessageSnippet>
-				<button class="mr-4 ml-auto" @click="delete messageActions.replyingTo">
+				<button class="mr-4 ml-auto" @click="messageActions.replyingTo = undefined">
 					<Icon type="closingCross" size="sm"></Icon>
 				</button>
 			</div>
@@ -89,10 +89,12 @@
 	import { useRoute } from 'vue-router';
 	import { useMessageActions } from '@/store/message-actions';
 	import filters from '@/core/filters';
+	import { useI18n } from 'vue-i18n';
 
 	import { YiviSigningSessionResult } from '@/lib/signedMessages';
 	import { fileUpload as uploadHandler } from '@/composables/fileUpload';
 
+	const { t } = useI18n();
 	const route = useRoute();
 	const rooms = useRooms();
 	const pubhubs = usePubHubs();
@@ -130,9 +132,8 @@
 	});
 
 	// Focus on message input if the state of messageActions changes (for example, when replying).
-	const inputElement = ref<HTMLInputElement>();
 	messageActions.$subscribe(() => {
-		inputElement.value?.focus();
+		elTextInput.value?.$el.focus();
 	});
 
 	function checkButtonState() {
@@ -174,8 +175,8 @@
 	function uploadFile(event: Event) {
 		const accessToken = pubhubs.Auth.getAccessToken();
 		const target = event.currentTarget as HTMLInputElement;
-		//const dialog = useDialog();
-		uploadHandler(accessToken, uploadUrl, allTypes, event, (url) => {
+		const errorMsg = t('errors.file_upload');
+		uploadHandler(errorMsg, accessToken, uploadUrl, allTypes, event, (url) => {
 			if (target) {
 				const file = target.files && target.files[0];
 				if (file) {
@@ -185,15 +186,16 @@
 					uri.value = url;
 					// display the component.
 					fileUploadDialog.value = true;
+					// Inspiration from  https://dev.to/schirrel/vue-and-input-file-clear-file-or-select-same-file-24do
+					const inputElement = elFileInput.value;
+					if (inputElement) inputElement.value = '';
 				}
 			}
 		});
 	}
 
-	function clickedAttachment(event: Event) {
-		if (event instanceof MouseEvent || event instanceof KeyboardEvent) {
-			elFileInput.value?.click();
-		}
+	function clickedAttachment() {
+		elFileInput.value?.click();
 	}
 
 	function submitMessage() {
@@ -244,6 +246,7 @@
 		showEmojiPicker.value = false;
 		signingMessage.value = false;
 		fileUploadDialog.value = false;
+		elFileInput.value = null;
 	}
 
 	function closeReplyingTo() {

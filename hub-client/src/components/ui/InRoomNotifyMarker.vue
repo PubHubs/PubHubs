@@ -1,12 +1,14 @@
 <template>
-	<div v-if="totalUnreadCount && totalUnreadCount > 0" class="fixed bg-gray-darker theme-light:bg-gray-lighter bottom-48 right-24 border-2 border-white rounded-full w-12 p-3">
-		<Icon type="message"></Icon>
-		<div class="text-center total">{{ totalUnreadCount }}</div>
-	</div>
+	<div v-if="(totalUnreadCount && totalUnreadCount > 0) || (totalMentionCount && totalMentionCount > 0)" class="flex gap-4 p-2 rounded-l-xl rounded-t-none w-fit absolute top-0 right-0 bg-gray-darker theme-light:bg-gray-lighter">
+		<div v-if="totalUnreadCount && totalUnreadCount > 0" class="flex gap-1">
+			<Icon type="message"></Icon>
+			<div class="total">{{ totalUnreadCount }}</div>
+		</div>
 
-	<div v-if="totalMentionCount && totalMentionCount > 0" class="fixed bg-gray-darker theme-light:bg-gray-lighter bottom-28 right-24 border-2 rounded-full w-12 p-3">
-		<Icon type="mention"></Icon>
-		<div class="text-center mention">{{ totalMentionCount }}</div>
+		<div v-if="totalMentionCount && totalMentionCount > 0" class="flex gap-1">
+			<Icon type="mention"></Icon>
+			<div class="mention">{{ totalMentionCount }}</div>
+		</div>
 	</div>
 </template>
 

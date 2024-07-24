@@ -20,10 +20,6 @@ export const handlers = [
 					hubs: [{ hubId: 'TestHub0' }],
 				},
 				{
-					headers: {
-						'Set-Cookie': 'PHAccount.LoginTimestamp=1',
-						'X-Custom-Header': 'yes',
-					},
 					status: 200,
 				},
 			);

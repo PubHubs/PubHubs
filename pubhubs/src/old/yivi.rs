@@ -12,6 +12,7 @@ use log::error;
 use qrcode::render::svg;
 use qrcode::QrCode;
 use regex::Regex;
+use url::form_urlencoded;
 use serde::{Deserialize, Serialize};
 use std::fmt::{Debug, Formatter};
 use std::time::{Duration, SystemTime, UNIX_EPOCH};
@@ -349,9 +350,12 @@ pub struct SessionDataWithImage {
 
 impl From<SessionData> for SessionDataWithImage {
     fn from(session: SessionData) -> Self {
+
+        let url_safe_json_pointer: String = form_urlencoded::byte_serialize(serde_json::to_string(&session.session_ptr)
+        .expect("To be able to serialize the session").as_bytes()).collect(); 
+
         let code = QrCode::new(
-            serde_json::to_string(&session.session_ptr)
-                .expect("To be able to serialize the session"),
+            format!("https://irma.app/-/session#{url_safe_json_pointer}"),
         )
         .expect("To turn the json into a QR code.");
         let image = code
@@ -556,7 +560,7 @@ async fn next_session_priv(
                         .url
                         .for_browser
                         .domain()
-                        .is_some_and(|d| d.ends_with("ihub.ru.nl"))
+                        .is_some_and(|d| d.ends_with("pubhubs.ihub.ru.nl") || d.ends_with("pubhubs.net"))
                     {
                         format!("\nfor: {}", context.url.for_browser)
                     } else {

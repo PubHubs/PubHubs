@@ -1,6 +1,5 @@
 const en = {
 	state: {
-		no_access: 'Your browser prevents the hub client from accessing its cookies and local storage, perhaps mistaking the hub client for a third-party tracker. Please click the button to request access.',
 		button_request: 'Request access',
 		initial: 'Checking whether hub client has access to cookies and local storage...',
 		requesting: 'Requesting access...',
@@ -24,6 +23,9 @@ const en = {
 		M_LIMIT_EXCEEDED: 'Too much login attempts. Try again in {0} seconds.',
 		not_send_offline: 'Internet connection seems down. This message was not send.',
 		resend: 'Send again',
+		file_upload: 'File format not supported',
+		no_valid_attribute: 'A secured room needs to have attributes',
+		do_not_remove_attributes: 'Attributes may not be removed from a secured room',
 	},
 	file: {
 		file: 'File',
@@ -37,7 +39,7 @@ const en = {
 		hub_homepage_welcome: 'Welcome to this Hub!',
 		hub_homepage_join: 'Join this Hub',
 		hub_homepage_welcome_auth: 'Welcome to this Hub!',
-		welcome: 'Welcome to <a href="https://pubhubs.net">PubHubs</a>.<br>PubHubs is a community platform based on public values.',
+		welcome: 'Welcome',
 		highlighted_hubs: 'Highlighted Hubs',
 		// Boven highlighted Hubs, iets afstand
 		highlighted_hubs_info: 'PubHubs consist of seperate Hubs, where local conversations happen, under a central login. These Hubs are run by seperate, participating organisations.',
@@ -66,7 +68,9 @@ const en = {
 	},
 	others: {
 		nop: 'This feature is not implement yet.',
-		search: 'Search in this room',
+		search: 'Search',
+		search_room: 'Search this room',
+		search_nothing_found: 'Nothing found',
 		read_receipt: 'Read by',
 		typing: 'Start typing...',
 	},
@@ -75,11 +79,12 @@ const en = {
 		me: 'Me',
 		just_you: 'Just you',
 		leave_sure: 'Do you really want to leave this room?',
+		hide_sure: 'Do you really want to hide this private room?',
 		new_message: 'Type your message here',
 		members: 'members',
 		member: 'member',
 		private_room: 'One on one room',
-		private_members: 'With {0},{1}',
+		private_members: 'With ',
 		private_rooms: 'One on one rooms',
 		private_topic: 'A conversation between',
 		private_add: 'New conversation',
@@ -93,7 +98,7 @@ const en = {
 		filter: 'Filter rooms',
 		title: '{0}',
 		access_denied: 'Access Denied',
-		secure_room_message_heading: 'Before you can enter...',
+		secure_room_message_heading: 'Before you can enter room',
 		secure_room_message: 'You need to show some more data from your Yivi app.',
 		secure_room_enter_info: 'Please show the following:',
 		secured_room_error: 'We are sorry, but it seems like you cannot access the room! Please check you gave the correct data with the Yivi App.',
@@ -172,6 +177,21 @@ const en = {
 		format12: '12 hours',
 		format24: '24 hours',
 	},
+
+	onboarding: {
+		info_first_time: 'This is your first visit. It is nice that you are here.',
+		info_abt_pseudonym: 'This Hub has given you a random name (pseudonym)',
+		info_issue_identity: 'This name hides your identity for privacy reasons. But it is not very convenient for others in the Hub. Therefore, You can choose a nickname yourself that others in the Hub will see',
+		info_abt_nickname_use: 'Please note that other participants may also use self-chosen nicknames that need not be their real names.',
+		info_abt_choose_later: 'You can also choose a nickname later, or change it again.',
+		info_abt_yivi_room: 'For certain rooms in this Hub, you may be asked to reveal (part of) your identity, via the Yivi app. This gives participants in those rooms certainty about each other.',
+		info_misbehave: 'When you misbhehave, you may ultimately be banned from this Hub.',
+		continue: 'Continue',
+		success_msg: 'You can explore the rooms and chat with the community!',
+		later: "You haven't set your Hub nickname, which you can do later!",
+		update: 'Nickname updated',
+	},
+
 	message: {
 		send: 'Send',
 		in_reply_to: 'In reply to:',

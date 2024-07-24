@@ -1,7 +1,7 @@
 import { useDialog } from '@/store/dialog';
 
 // Better to pass pubhubs object to useMatrixFiles.
-const fileUpload = (accessToken: string, uploadUrl: string, fileTypeToCheck: string[], event: Event, callback: (uri: string) => void) => {
+const fileUpload = (errorMsg: string, accessToken: string, uploadUrl: string, fileTypeToCheck: string[], event: Event, callback: (uri: string) => void) => {
 	const target = event.currentTarget as HTMLInputElement;
 	if (target) {
 		const files = target.files;
@@ -29,7 +29,9 @@ const fileUpload = (accessToken: string, uploadUrl: string, fileTypeToCheck: str
 				};
 			} else {
 				const dialog = useDialog();
-				dialog.confirm('File format is not supported. Supported formats are PNG, JPEG, GIF and SVG');
+
+				// TODO: texts needs to be checked by Bart
+				dialog.confirm(errorMsg);
 			}
 		}
 	}

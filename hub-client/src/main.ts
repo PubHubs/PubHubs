@@ -9,13 +9,13 @@ import { registerPlugins, registerPluginComponents } from '@/registerPlugins.js'
 
 import { router } from '@/core/router';
 import { focus, twClass, clickOutside } from '@/core/directives';
-import AppWrapper from '@/pages/AppWrapper.vue';
+import App from '@/pages/App.vue';
 
 import { ReplaceConsole } from '@/console';
 ReplaceConsole();
 
 const pinia = createPinia();
-const app = createApp(AppWrapper);
+const app = createApp(App);
 
 registerComponents(app);
 registerPlugins(app);

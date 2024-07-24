@@ -3,8 +3,8 @@
  */
 
 // import { defineStore } from 'pinia';
-import { MessageType, Message, useMessageBox, MessageBoxType } from '@/store/messagebox';
 import { fallbackLanguage } from '@/i18n';
+import { Message, MessageBoxType, MessageType, useMessageBox } from '@/store/messagebox';
 
 enum featureFlagType {
 	signedMessages = 'signedMessages',
@@ -73,7 +73,7 @@ interface Settings {
 const defaultSettings: Settings = {
 	theme: Theme.System,
 	timeformat: TimeFormat.format24,
-	pagination: 50,
+	pagination: 150,
 	displayNameMaxLength: 40,
 	language: fallbackLanguage,
 	_i18n: {
@@ -254,4 +254,4 @@ const createSettings = (defineStore: any) => {
 	});
 };
 
-export { Theme, TimeFormat, Settings, defaultSettings, createSettings, type i18nSettings, featureFlagType };
+export { createSettings, defaultSettings, featureFlagType, Settings, Theme, TimeFormat, type i18nSettings };

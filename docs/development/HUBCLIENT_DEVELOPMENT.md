@@ -46,19 +46,6 @@ npm run serve
 
 ### Theming and UI
 
-#### Starting the histoire environment
-
-We use [histoire](https://histoire.dev) to showcase all the components and there stories.
-
-Start the histoire environment:
-
-```
-npm run story:dev
-```
-
-And open the histoire environment with the given URL (defaults to: http://localhost:6006/).
-
-
 #### Components & Tailwind classes
 
 Testing and viewing components can be done within the histoire environment. Changing components should be done in de components code. Changes in the code will reflect immediately in the histoire environment.

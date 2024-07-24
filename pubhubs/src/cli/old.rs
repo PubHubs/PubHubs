@@ -1819,6 +1819,7 @@ mod tests {
                 "name": "hub1",
                 "description": "test_description",
                 "client_uri": "/client",
+                "server_uri": "https://somehub/test_redirect",
             }])
         );
     }

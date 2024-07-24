@@ -8,13 +8,15 @@ import { useToggleMenu } from '@/store/toggleGlobalMenu';
 class Hub {
 	readonly hubId: string;
 	readonly url: string;
+	readonly serverUrl: string;
 	description: string;
 	logo: string;
 	unreadMessages: number;
 
-	constructor(hubId: string, url: string, description?: string) {
+	constructor(hubId: string, url: string, serverUrl: string, description?: string) {
 		this.hubId = hubId;
 		this.url = url;
+		this.serverUrl = serverUrl;
 		if (typeof description !== 'undefined') {
 			this.description = description;
 		} else {
@@ -81,11 +83,17 @@ const useHubs = defineStore('hubs', {
 		currentHubExists(state): boolean {
 			return this.hubExists(state.currentHubId);
 		},
+
+		serverUrl(state): (hubId: string) => string | undefined {
+			return (hubId: string) => {
+				return state.hubs[hubId].serverUrl;
+			};
+		},
 	},
 
 	actions: {
 		addHub(hub: Hub) {
-			this.hubs[hub.hubId] = Object.assign(new Hub(hub.hubId, hub.url), hub);
+			this.hubs[hub.hubId] = Object.assign(new Hub(hub.hubId, hub.url, hub.serverUrl), hub);
 		},
 
 		addHubs(hubs: HubList) {
@@ -113,12 +121,6 @@ const useHubs = defineStore('hubs', {
 
 						// Listen to client asking for sync
 						messagebox.addCallback(MessageType.Sync, () => {
-							// Send global login time
-							const global = useGlobal();
-
-							const loginTime = global.loginTime;
-							messagebox.sendMessage(new Message(MessageType.GlobalLoginTime, loginTime));
-
 							// Send current settings
 							const settings = useSettings();
 							settings.sendSettings();
@@ -158,6 +160,17 @@ const useHubs = defineStore('hubs', {
 						messagebox.addCallback(MessageType.DialogHideModal, () => {
 							const global = useGlobal();
 							global.hideModal();
+						});
+
+						// Store and remove access tokens when send from the hub client
+						messagebox.addCallback(MessageType.AddAccessToken, (accessTokenMessage: Message) => {
+							localStorage.setItem(hubId + 'accessToken', accessTokenMessage.content as string);
+						});
+						messagebox.addCallback(MessageType.RemoveAccessToken, () => {
+							localStorage.removeItem(hubId + 'accessToken');
+							// So far this message is not yet used but the hub clients.
+							// This will happen if the client says it's unhappy with its' token so refresh the page to reflect current state.
+							location.reload();
 						});
 					}
 				}

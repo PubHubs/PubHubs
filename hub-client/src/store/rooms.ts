@@ -1,16 +1,16 @@
-import { defineStore } from 'pinia';
-import { Room as MatrixRoom, MatrixEvent, NotificationCountType } from 'matrix-js-sdk';
-import { Message, MessageType, useMessageBox } from './messagebox';
-import { useRouter } from 'vue-router';
-import { api_synapse, api_matrix } from '@/core/api';
-import { usePubHubs } from '@/core/pubhubsStore';
+import { api_matrix, api_synapse } from '@/core/api';
 import { propCompare } from '@/core/extensions';
-import { YiviSigningSessionResult, AskDisclosure, AskDisclosureMessage } from '@/lib/signedMessages';
-import { useUser } from './user';
+import { usePubHubs } from '@/core/pubhubsStore';
+import { AskDisclosure, AskDisclosureMessage, YiviSigningSessionResult } from '@/lib/signedMessages';
 import Room from '@/model/rooms/Room';
+import { RoomType } from '@/model/rooms/TBaseRoom';
 import { TPublicRoom } from '@/model/rooms/TPublicRoom';
 import { TSecuredRoom } from '@/model/rooms/TSecuredRoom';
-import { RoomType } from '@/model/rooms/TBaseRoom';
+import { MatrixEvent, Room as MatrixRoom, NotificationCountType } from 'matrix-js-sdk';
+import { defineStore } from 'pinia';
+import { useRouter } from 'vue-router';
+import { Message, MessageType, useMessageBox } from './messagebox';
+import { useUser } from './user';
 
 // Matrix Endpoint for messages in a room.
 interface RoomMessages {
@@ -38,6 +38,19 @@ interface Content {
 
 interface Unsigned {
 	age: number;
+}
+
+function validSecuredRoomAttributes(room: TSecuredRoom): boolean {
+	// Note that it is allowed to have no attribute values for an attribute type.
+	// So that that the attribute is required but all values are allowed.
+	if (!room.accepted) {
+		return false;
+	}
+
+	const hasEmptyAttributeType = Object.keys(room.accepted).some((key) => key === '');
+	if (hasEmptyAttributeType) return false;
+
+	return true;
 }
 
 const useRooms = defineStore('rooms', {
@@ -133,18 +146,6 @@ const useRooms = defineStore('rooms', {
 				}
 				return true;
 			});
-		},
-
-		privateRoomWithMembersExist() {
-			return (memberIds: Array<string>): boolean | string => {
-				for (let index = 0; index < this.privateRooms.length; index++) {
-					const room = this.privateRooms[index];
-					if (room.hasExactMembersInName(memberIds)) {
-						return room.roomId;
-					}
-				}
-				return false;
-			};
 		},
 
 		hasSecuredRooms(state): boolean {
@@ -254,8 +255,10 @@ const useRooms = defineStore('rooms', {
 				if (creatingAdminUser) {
 					this.roomNotices[roomId][creatingAdminUser!] = ['rooms.admin_badge'];
 				}
-				const encodedObject = encodeURIComponent(JSON.stringify({ types: ['m.room.message'], senders: [hub_notice], limit: 100000 }));
-				const response = await api_matrix.apiGET<RoomMessages>(api_matrix.apiURLS.rooms + roomId + '/messages?filter=' + encodedObject);
+				const limit = 100000;
+				const encodedObject = encodeURIComponent(JSON.stringify({ types: ['m.room.message'], senders: [hub_notice], limit: limit }));
+				// The limit is in two places, it used to work in just the filter, but not anymore. It's also an option in the query string.
+				const response = await api_matrix.apiGET<RoomMessages>(api_matrix.apiURLS.rooms + roomId + `/messages?limit=${limit}&filter=` + encodedObject);
 				for (const message of response.chunk) {
 					const body = message.content.body;
 					this.addProfileNotice(roomId, body);
@@ -288,13 +291,19 @@ const useRooms = defineStore('rooms', {
 		},
 
 		async addSecuredRoom(room: TSecuredRoom) {
+			if (!validSecuredRoomAttributes(room)) {
+				throw new Error('errors.no_valid_attribute');
+			}
 			const newRoom = await api_synapse.apiPOST<TSecuredRoom>(api_synapse.apiURLS.securedRooms, room);
 			this.securedRooms.push(newRoom);
 			this.fetchPublicRooms(); // Reset PublicRooms, so the new room is indeed recognised as a secured room. TODO: could this be improved without doing a fetch?
-			return newRoom;
+			return { result: newRoom };
 		},
 
 		async changeSecuredRoom(room: TSecuredRoom) {
+			if (!validSecuredRoomAttributes(room)) {
+				throw new Error('errors.no_valid_attribute');
+			}
 			const response = await api_synapse.apiPUT<any>(api_synapse.apiURLS.securedRooms, room);
 			const modified_id = response.modified;
 			const pidx = this.securedRooms.findIndex((room) => room.room_id === modified_id);
@@ -480,9 +489,9 @@ const useRooms = defineStore('rooms', {
 	},
 });
 
-export { useRooms, RoomType, Room };
 export { type TEvent } from '@/model/events/TEvent';
 export { type TPublicRoom } from '@/model/rooms/TPublicRoom';
+export { type TRoomMember } from '@/model/rooms/TRoomMember';
 export { type SecuredRoomAttributes, type TSecuredRoom } from '@/model/rooms/TSecuredRoom';
 export { type TUser } from '@/model/users/TUser';
-export { type TRoomMember } from '@/model/rooms/TRoomMember';
+export { Room, RoomType, useRooms };
