@@ -27,7 +27,7 @@ RUN cargo build --no-default-features --lib --features=abi
 
 ## FINAL CONTAINER STAGE
 
-FROM ghcr.io/element-hq/synapse:v1.105.1
+FROM ghcr.io/element-hq/synapse:v1.111.0
 
 COPY --from=yivi_build /go/bin/irma /usr/bin/irma
 COPY --from=libpubhubs_build /wd/target/debug/libpubhubs.so /usr/lib
