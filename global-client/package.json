@@ -44,7 +44,7 @@
 		"@vue/cli-plugin-typescript": "~5.0.0",
 		"@vue/cli-service": "~5.0.0",
 		"@vue/eslint-config-typescript": "^13",
-		"eslint": "^9",
+		"eslint": "^8",
 		"eslint-plugin-vue": "^9",
 		"jsdoc": "^4.0.2",
 		"jsdom": "^24",
