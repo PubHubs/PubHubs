@@ -71,7 +71,6 @@ pub trait Server: Sized + 'static {
     fn app_creator_mut(&mut self) -> &mut Self::AppCreatorT;
 
     fn config(&self) -> &crate::servers::Config;
-    fn config_mut(&mut self) -> &mut crate::servers::Config;
 
     fn server_config(&self) -> &servers::config::ServerConfig<Self::ExtraConfig> {
         Self::server_config_from(self.config())
@@ -136,9 +135,6 @@ where
 
     fn config(&self) -> &servers::Config {
         &self.config
-    }
-    fn config_mut(&mut self) -> &mut servers::Config {
-        &mut self.config
     }
 
     fn server_config_from(
@@ -636,19 +632,27 @@ impl<S: Server> AppBase<S> {
 
         // All is well - let's restart the server with the new configuration
         api::return_if_ec!(base
-            .handle
-            .modify(
-                "admin update of current in-memory configuration",
-                |server: &mut S| {
-                    *server.config_mut() = new_config;
-                    true // restart
+        .handle
+        .modify(
+            "admin update of current in-memory configuration",
+            move |server: &mut S| {
+                let new_server_maybe = S::new(&new_config);
+
+                if let Err(err) = new_server_maybe {
+                    log::error!("Could not create new {} with changed configuration: {}. Restarting old server.", S::NAME, err);
+                    return true; // restart
                 }
-            )
-            .await
-            .into_ec(|err| {
-                log::error!("{}: failed to enqueue modification: {}", S::NAME, err);
-                api::ErrorCode::InternalError
-            }));
+
+                *server = new_server_maybe.unwrap();
+
+                true // restart
+            }
+        )
+        .await
+        .into_ec(|err| {
+            log::error!("{}: failed to enqueue modification: {}", S::NAME, err);
+            api::ErrorCode::InternalError
+        }));
 
         api::ok(())
     }

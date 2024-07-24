@@ -73,7 +73,7 @@ fn default_graceful_shutdown() -> bool {
 }
 
 impl Config {
-    /// Loads [Config] from `path`.  
+    /// Loads [Config] from `path` and generates random values.
     ///
     /// Returns [None] if there's no file there.
     pub fn load_from_path(path: &Path) -> Result<Option<Self>> {
