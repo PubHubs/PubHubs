@@ -25,6 +25,7 @@ For reference, dependencies are in `package.json`.
 - [ ] In the `global-client` directory, run `npm update` to install minor version updates (probably non-breaking changes).
 - [ ] Run `npm outdated` to check for major updates (difference between wantend and latest) and change the package.json file to update major versions if wanted. 
 - [ ] To address issues that do not require attention, run: `npm audit fix`
+  - (2024-jul) This gives a warning about @vue/cli-service@3.3.1. You can ignore this as running npm audit fix --force breaks more things.
 - [ ] To address issues with breaking changes, check them and solve them if possible.
 
 ## Hub Client
@@ -35,6 +36,7 @@ For reference, dependencies are in `package.json`.
 - [ ] Run `npm outdated` to check for major updates (difference between wantend and latest) and change the package.json file to update major versions if wanted.
   - **NOTE** For now, don't update matrix-js-sdk, see #654.
 - [ ] To address issues that do not require attention, run: `npm audit fix`
+  - (2024-jul) This gives a warning about @vue/cli-service@3.3.1. You can ignore this as running npm audit fix --force breaks more things.
 - [ ] To address issues with breaking changes, check them and solve them if possible.
 
 ## Yivi docker
