@@ -22,7 +22,6 @@
 		"emojibase-data": "^15.2.0",
 		"loglevel": "^1.8.0",
 		"matrix-js-sdk": "^31",
-		"octokit": "^4",
 		"pinia": "^2.0.26",
 		"postcss": "^8.4.33",
 		"register-service-worker": "^1.7.2",
