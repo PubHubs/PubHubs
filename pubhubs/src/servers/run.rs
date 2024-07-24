@@ -19,11 +19,10 @@ impl Set {
 
         macro_rules! run_server {
             ($server:ident) => {
-                if let Some(server_config) = config.$server.as_ref() {
+                if config.$server.is_some() {
                     joinset.spawn(
                         crate::servers::run::Runner::<crate::servers::$server::Server>::new(
                             &config,
-                            server_config,
                         )?
                         .run(),
                     );
@@ -58,8 +57,6 @@ impl Set {
 /// Runs a [Server].
 pub struct Runner<ServerT: Server> {
     pubhubs_server: ServerT,
-    bind_to: SocketAddr,
-    graceful_shutdown: bool,
 }
 
 /// The handles to control an [actix_web::dev::Server] running a pubhubs [Server].
@@ -160,19 +157,18 @@ impl<S: Server> Handle<S> {
 }
 
 impl<S: Server> Runner<S> {
-    pub fn new<T>(
-        global_config: &crate::servers::Config,
-        server_config: &crate::servers::config::ServerConfig<T>,
-    ) -> Result<Self> {
+    pub fn new(global_config: &crate::servers::Config) -> Result<Self> {
         let pubhubs_server = S::new(global_config)?;
-        let bind_to = server_config.bind_to; // SocketAddr : Copy
-        let graceful_shutdown = server_config.graceful_shutdown;
 
-        Ok(Runner {
-            pubhubs_server,
-            bind_to,
-            graceful_shutdown,
-        })
+        Ok(Runner { pubhubs_server })
+    }
+
+    pub fn bind_to(&self) -> SocketAddr {
+        self.pubhubs_server.server_config().bind_to
+    }
+
+    pub fn graceful_shutdown(&self) -> bool {
+        self.pubhubs_server.server_config().graceful_shutdown
     }
 
     fn create_actix_server(
@@ -230,14 +226,14 @@ impl<S: Server> Runner<S> {
     pub async fn run_until_modifier(
         &mut self,
     ) -> Result<crate::servers::server::BoxModifier<S>, anyhow::Error> {
-        let mut handles = self.create_actix_server(&self.pubhubs_server, &self.bind_to)?;
+        let mut handles = self.create_actix_server(&self.pubhubs_server, &self.bind_to())?;
 
         loop {
             match handles.run_until_command().await? {
                 Command::Modify(modifier) => {
                     log::debug!("Stopping {} for modification {}...", S::NAME, modifier);
 
-                    handles.server_handle.stop(self.graceful_shutdown).await;
+                    handles.server_handle.stop(self.graceful_shutdown()).await;
 
                     return Ok::<_, anyhow::Error>(modifier);
                 }
