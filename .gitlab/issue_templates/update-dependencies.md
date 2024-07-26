@@ -26,6 +26,7 @@ For reference, dependencies are in `package.json`.
 - [ ] Run `npm outdated` to check for major updates (difference between wantend and latest) and change the package.json file to update major versions if wanted. 
 - [ ] To address issues that do not require attention, run: `npm audit fix`
   - (2024-jul) This gives a warning about @vue/cli-service@3.3.1. You can ignore this as running npm audit fix --force breaks more things.
+  - (2024-jul) updating 'msw' to 2.3.3 breaks the tests when its ran on gitlab. If it's not fixed in 2024-oct, make an issue at msw repo.
 - [ ] To address issues with breaking changes, check them and solve them if possible.
 
 ## Hub Client
@@ -37,6 +38,7 @@ For reference, dependencies are in `package.json`.
   - **NOTE** For now, don't update matrix-js-sdk, see #654.
 - [ ] To address issues that do not require attention, run: `npm audit fix`
   - (2024-jul) This gives a warning about @vue/cli-service@3.3.1. You can ignore this as running npm audit fix --force breaks more things.
+  - (2024-jul) updating 'msw' to 2.3.3 breaks the tests when its ran on gitlab. If it's not fixed in 2024-oct, make an issue at msw repo.
 - [ ] To address issues with breaking changes, check them and solve them if possible.
 
 ## Yivi docker
