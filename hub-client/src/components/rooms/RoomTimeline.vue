@@ -23,7 +23,6 @@
 	import { SMI } from '@/dev/StatusMessage';
 	import Room from '@/model/rooms/Room';
 	import { featureFlagType, useSettings } from '@/store/store';
-	import { ReceiptType } from 'matrix-js-sdk/lib/@types/read_receipts';
 	import DateDisplayer from '../ui/DateDisplayer.vue';
 	const settings = useSettings();
 
@@ -61,6 +60,8 @@
 	async function setupRoomTimeline() {
 		log(SMI.ROOM_TIMELINE_TRACE, `setupRoomTimeline...`, { roomId: props.room.roomId });
 
+		await loadInitialEvents();
+
 		await rooms.storeRoomNotice(props.room.roomId);
 
 		if (settings.isFeatureEnabled(featureFlagType.dateSplitter)) {
@@ -82,7 +83,7 @@
 		//Date Display Interaction callback is based on feature flag
 		settings.isFeatureEnabled(featureFlagType.dateSplitter) && elementObserver?.setUpObserver(handleDateDisplayer);
 
-		await scrollToLastReadEvent();
+		scrollToBottom();
 
 		log(SMI.ROOM_TIMELINE_TRACE, `setupRoomTimeline done`);
 	}
@@ -253,12 +254,13 @@
 
 	//#endregion
 
-	async function scrollToLastReadEvent() {
-		const wrappedReceipt = props.room.getReadReceiptForUserId(user.user.userId, false, ReceiptType.ReadPrivate);
-		if (!wrappedReceipt) return;
-		const lastReadEventId = wrappedReceipt?.eventId;
-		await scrollToEvent(lastReadEventId);
-	}
+	// Removed this for now as lastReadEventId might be an invisible event (to which you cannot scroll). This might have been causing issues.
+	// async function scrollToLastReadEvent() {
+	// 	const wrappedReceipt = props.room.getReadReceiptForUserId(user.user.userId, false, ReceiptType.ReadPrivate);
+	// 	if (!wrappedReceipt) return;
+	// 	const lastReadEventId = wrappedReceipt?.eventId;
+	// 	if (lastReadEventId) await scrollToEvent(lastReadEventId);
+	// }
 
 	async function scrollToEvent(eventId: string, options: { position: 'start' | 'center' | 'end'; select?: 'Highlight' | 'Select' } = { position: 'start' }) {
 		log(SMI.ROOM_TIMELINE_TRACE, `scroll to event: ${eventId}`, { eventId });
@@ -292,6 +294,29 @@
 
 			doScroll(elEvent);
 		}
+	}
+
+	function scrollToBottom() {
+		elRoomTimeline.value?.scrollTo(0, elRoomTimeline.value.scrollHeight);
+	}
+
+	/**
+	 * Sometimes, not enough messages are loaded by matrix-js-sdk because of other types of events (for example, a room rename event) being loaded.
+	 * This function loads around 15 messages if there are that many.
+	 *
+	 */
+	async function loadInitialEvents() {
+		log(SMI.ROOM_TIMELINE_TRACE, `loadInitialEvents...`, { roomId: props.room.roomId });
+
+		let numLoadedMessages = props.room.timelineGetNumMessageEvents();
+		let allMessagesLoaded = false;
+
+		while (numLoadedMessages < 15 && !allMessagesLoaded) {
+			allMessagesLoaded = !(await props.room.loadOlderEvents());
+			numLoadedMessages = props.room.timelineGetNumMessageEvents();
+		}
+
+		log(SMI.ROOM_TIMELINE_TRACE, `loadInitialEvents done`, { numLoadedMessages });
 	}
 
 	function newEventsExist(): boolean {
