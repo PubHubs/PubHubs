@@ -1,4 +1,5 @@
 //! Miscellaneous
+pub mod crypto;
 pub mod fmt_ext;
 pub mod jwt;
 pub mod serde_ext;

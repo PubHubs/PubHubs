@@ -174,7 +174,7 @@ pub trait AppCreator<ServerT: Server>: Send + Clone + 'static {
 /// We do not use a trait like `(FnOnce(&mut ServerT)) + Send + 'static`,
 /// because it can not (yet) be implemented by users.
 pub trait Modifier<ServerT: Server>: Send + 'static {
-    /// Stops server, perform modification, and, if true is returned, restarts server.
+    /// Stops server, perform modification, and restarts server if true was returned.
     fn modify(self: Box<Self>, server: &mut ServerT) -> bool;
 
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> Result<(), std::fmt::Error>;
@@ -570,13 +570,13 @@ impl<S: Server> AppBase<S> {
         api::DiscoveryRun::add_to(app, sc, Self::handle_discovery_run);
         api::DiscoveryInfo::add_to(app, sc, Self::handle_discovery_info);
 
-        api::admin::PostConfig::add_to(app, sc, Self::handle_admin_post_config);
+        api::admin::UpdateConfig::add_to(app, sc, Self::handle_admin_post_config);
     }
 
     /// Changes server config, and restarts server
     async fn handle_admin_post_config(
         app: S::AppT,
-        signed_req: web::Json<api::Signed<api::admin::PostConfigReq>>,
+        signed_req: web::Json<api::Signed<api::admin::UpdateConfigReq>>,
     ) -> api::Result<()> {
         let signed_req = signed_req.into_inner();
 

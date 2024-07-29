@@ -11,9 +11,13 @@ async fn main_integration_test() {
     env_logger::init();
 
     // Load configuration
-    let config = servers::Config::load_from_path(std::path::Path::new(CONFIG_FILE_PATH))
+    let mut config = servers::Config::load_from_path(std::path::Path::new(CONFIG_FILE_PATH))
         .unwrap()
         .unwrap();
+
+    // Change randomly generated admin key to something we know
+    let admin_sk = api::SigningKey::generate();
+    config.admin_key = Some(admin_sk.verifying_key().into());
 
     let _set = servers::Set::new(&config);
 

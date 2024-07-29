@@ -60,24 +60,24 @@ pub struct Runner<ServerT: Server> {
 }
 
 /// The handles to control an [actix_web::dev::Server] running a pubhubs [Server].
-struct ActixHandles<S: Server> {
+struct Handles<S: Server> {
     /// Handle to the actual actix TCP server.  The [actix_web::dev::Server] is owned
     /// by the task driving it.
-    server_handle: actix_web::dev::ServerHandle,
+    actix_server_handle: actix_web::dev::ServerHandle,
 
     /// Handle to the task driving the actix TCP server
-    join_handle: tokio::task::JoinHandle<Result<(), std::io::Error>>,
+    actix_join_handle: tokio::task::JoinHandle<Result<(), std::io::Error>>,
 
     /// Receives commands from the [App]s
     receiver: mpsc::Receiver<Command<S>>,
 }
 
-impl<S: Server> ActixHandles<S> {
+impl<S: Server> Handles<S> {
     /// Drives the actix server until a [Command] is received - which is returned
     async fn run_until_command(&mut self) -> anyhow::Result<Command<S>> {
         tokio::select! {
-            res = &mut self.join_handle => {
-                res.with_context(|| format!("{}'s task joined unexpectedly", S::NAME))?
+            res = &mut self.actix_join_handle => {
+                res.with_context(|| format!("{}'s actix task joined unexpectedly", S::NAME))?
                     .with_context(|| format!("{}'s http server crashed", S::NAME))?;
                 bail!("{} stopped unexpectedly", S::NAME);
             },
@@ -171,11 +171,7 @@ impl<S: Server> Runner<S> {
         self.pubhubs_server.server_config().graceful_shutdown
     }
 
-    fn create_actix_server(
-        &self,
-        pubhubs_server: &S,
-        bind_to: &SocketAddr,
-    ) -> Result<ActixHandles<S>> {
+    fn create_actix_server(&self, pubhubs_server: &S, bind_to: &SocketAddr) -> Result<Handles<S>> {
         let app_creator: S::AppCreatorT = pubhubs_server.app_creator().clone();
 
         let (sender, receiver) = mpsc::channel(1);
@@ -198,12 +194,12 @@ impl<S: Server> Runner<S> {
         .bind(bind_to)?
         .run();
 
-        let server_handle = actual_actix_server.handle().clone();
-        let join_handle = tokio::task::spawn(actual_actix_server);
+        let actix_server_handle = actual_actix_server.handle().clone();
+        let actix_join_handle = tokio::task::spawn(actual_actix_server);
 
-        Ok(ActixHandles {
-            server_handle,
-            join_handle,
+        Ok(Handles {
+            actix_server_handle,
+            actix_join_handle,
             receiver,
         })
     }
@@ -214,12 +210,9 @@ impl<S: Server> Runner<S> {
 
             log::info!("{}: applying modification {}", S::NAME, modifier);
 
-            if !modifier.modify(&mut self.pubhubs_server) {
-                log::info!("{} exited", S::NAME);
-                return Ok(());
-            } else {
-                log::info!("{}: restarting...", S::NAME)
-            }
+            modifier.modify(&mut self.pubhubs_server);
+
+            log::info!("{}: restarting...", S::NAME);
         }
     }
 
@@ -233,7 +226,10 @@ impl<S: Server> Runner<S> {
                 Command::Modify(modifier) => {
                     log::debug!("Stopping {} for modification {}...", S::NAME, modifier);
 
-                    handles.server_handle.stop(self.graceful_shutdown()).await;
+                    handles
+                        .actix_server_handle
+                        .stop(self.graceful_shutdown())
+                        .await;
 
                     return Ok::<_, anyhow::Error>(modifier);
                 }

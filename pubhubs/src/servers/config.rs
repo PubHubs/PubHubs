@@ -4,7 +4,6 @@ use std::net::SocketAddr;
 use std::path::{Path, PathBuf};
 
 use anyhow::{Context as _, Result};
-use rand::Rng as _;
 use url::Url;
 
 use crate::servers::for_all_servers;
@@ -193,13 +192,8 @@ impl GenerateRandoms for Config {
 
 impl<Extra: GenerateRandoms> GenerateRandoms for ServerConfig<Extra> {
     fn generate_randoms(&mut self) -> anyhow::Result<()> {
-        self.self_check_code.get_or_insert_with(|| {
-            rand::rngs::OsRng
-                .sample_iter(&rand::distributions::Alphanumeric)
-                .take(20)
-                .map(char::from)
-                .collect()
-        });
+        self.self_check_code
+            .get_or_insert_with(crate::misc::crypto::random_alphanumeric);
 
         self.jwt_key.get_or_insert_with(api::SigningKey::generate);
         self.enc_key.get_or_insert_with(elgamal::PrivateKey::random);
