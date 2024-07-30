@@ -10,7 +10,7 @@ import { TMentions, TMessageEvent, TTextMessageEventContent } from '@/model/even
 import { TSearchParameters, TSearchResult } from '@/model/model';
 import Room from '@/model/rooms/Room';
 import { RoomType, TPublicRoom, useConnection, User, useRooms, useUser } from '@/store/store';
-import { ContentHelpers, MatrixClient, MatrixError, MatrixEvent, Room as MatrixRoom, User as MatrixUser } from 'matrix-js-sdk';
+import { ContentHelpers, EventType, MatrixClient, MatrixError, MatrixEvent, Room as MatrixRoom, User as MatrixUser, MsgType } from 'matrix-js-sdk';
 import { ReceiptType } from 'matrix-js-sdk/lib/@types/read_receipts';
 
 const usePubHubs = defineStore('pubhubs', {
@@ -327,12 +327,9 @@ const usePubHubs = defineStore('pubhubs', {
 
 			const content = await this._constructMessageContent(text, inReplyTo);
 
-			// ?Are we catching this for a reason?
-			try {
-				await this.client.sendEvent(roomId, 'm.room.message', content, '');
-			} catch (error) {
-				console.log(error);
-			}
+			// @ts-ignore
+			// todo: fix this (issue #808)
+			await this.client.sendMessage(roomId, content);
 		},
 
 		async addSignedMessage(roomId: string, signedMessage: YiviSigningSessionResult) {
@@ -341,7 +338,10 @@ const usePubHubs = defineStore('pubhubs', {
 				body: 'signed message',
 				signed_message: signedMessage,
 			};
-			await this.client.sendEvent(roomId, 'm.room.message', content);
+
+			// @ts-ignore
+			// todo: fix this (issue #808)
+			await this.client.sendMessage(roomId, content);
 		},
 
 		async sendReadReceipt(event: MatrixEvent) {
@@ -377,8 +377,15 @@ const usePubHubs = defineStore('pubhubs', {
 				msgtype: 'pubhubs.ask_disclosure_message',
 				body: body,
 				ask_disclosure_message: askDisclosureMessage,
+
+				// satisfy the sdk's type checking
+				'm.new_content': undefined,
+				'm.relates_to': undefined,
 			};
-			await this.client.sendEvent(roomId, 'm.room.message', content);
+
+			// @ts-ignore
+			// todo: fix this (issue #808)
+			await this.client.sendMessage(roomId, content);
 		},
 
 		async addImage(roomId: string, uri: string) {
@@ -397,11 +404,17 @@ const usePubHubs = defineStore('pubhubs', {
 					mimetype: file.type,
 					size: file.size,
 				},
-				msgtype: 'm.file',
+				msgtype: MsgType.File,
 				url: uri,
+
+				// satisfy the sdk's type checking
+				'm.new_content': undefined,
+				'm.relates_to': undefined,
 			};
 			try {
-				await this.client.sendEvent(roomId, 'm.room.message', content);
+				// @ts-ignore
+				// todo: fix this (issue #808)
+				await this.client.sendMessage(roomId, content);
 			} catch (error) {
 				console.log(error);
 			}
@@ -430,11 +443,11 @@ const usePubHubs = defineStore('pubhubs', {
 			}
 		},
 
-		async changeAvatar(uri: string) {
+		async changeAvatar(url: string) {
 			try {
-				await this.client.setAvatarUrl(uri);
+				await this.client.setAvatarUrl(url);
 				//Quickly update the avatar url.
-				await this.client.sendStateEvent('', 'm.room.avatar', { uri }, '');
+				await this.client.sendStateEvent('', EventType.RoomAvatar, { url }, '');
 			} catch (error: any) {
 				this.showError(error);
 			}
