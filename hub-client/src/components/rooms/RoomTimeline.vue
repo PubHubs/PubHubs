@@ -306,7 +306,7 @@
 	 *
 	 */
 	async function loadInitialEvents() {
-		log(SMI.ROOM_TIMELINE_TRACE, `loadInitialEvents...`, { roomId: props.room.roomId });
+		log(SMI.ROOM_TIMELINE_TRACE, `loadInitialEvents...`, { roomId: props.room.roomId, roomTimeLine: roomTimeLine.value.map((e) => e.event) });
 
 		let numLoadedMessages = props.room.timelineGetNumMessageEvents();
 		let allMessagesLoaded = false;
@@ -316,7 +316,7 @@
 			numLoadedMessages = props.room.timelineGetNumMessageEvents();
 		}
 
-		log(SMI.ROOM_TIMELINE_TRACE, `loadInitialEvents done`, { numLoadedMessages });
+		log(SMI.ROOM_TIMELINE_TRACE, `loadInitialEvents done`, { numLoadedMessages, roomTimeLine: roomTimeLine.value.map((e) => e.event) });
 	}
 
 	function newEventsExist(): boolean {
