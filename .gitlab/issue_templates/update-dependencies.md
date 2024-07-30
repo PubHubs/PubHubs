@@ -1,4 +1,8 @@
 # Updating dependencies
+
+Please make seperate commits for every step with descriptive commit messages. So that if an update breaks something, we can revert the commit.  For major updates, also make a seperate commit for every dependency.
+Also make sure to not squash the commits so we can search for them later.
+
 ## PubHubs central
 ### Rust
  - [ ] In the `pubhubs` directory, run `cargo update` to install updates that are likely backwards compatible. 
@@ -19,8 +23,10 @@
 For reference, dependencies are in `package.json`.
 
 - [ ] In the `global-client` directory, run `npm update` to install minor version updates (probably non-breaking changes).
-- [ ] Run `npm outdated` to check for major updates (difference between wantend and latest) and change the package.json file to update major versions if wanted (preferably in a seperate commit). 
+- [ ] Run `npm outdated` to check for major updates (difference between wantend and latest) and change the package.json file to update major versions if wanted. 
 - [ ] To address issues that do not require attention, run: `npm audit fix`
+  - (2024-jul) This gives a warning about @vue/cli-service@3.3.1. You can ignore this as running npm audit fix --force breaks more things.
+  - (2024-jul) updating 'msw' to 2.3.3 breaks the tests when its ran on gitlab. If it's not fixed in 2024-oct, make an issue at msw repo.
 - [ ] To address issues with breaking changes, check them and solve them if possible.
 
 ## Hub Client
@@ -28,8 +34,11 @@ For reference, dependencies are in `package.json`.
 For reference, dependencies are in `package.json`.
 
 - [ ] In the `hub-client` directory, run `npm update` to install minor version updates (probably non-breaking changes).
-- [ ] Run `npm outdated` to check for major updates (difference between wantend and latest) and change the package.json file to update major versions if wanted (preferably in a seperate commit).
+- [ ] Run `npm outdated` to check for major updates (difference between wantend and latest) and change the package.json file to update major versions if wanted.
+  - **NOTE** For now, don't update matrix-js-sdk, see #654.
 - [ ] To address issues that do not require attention, run: `npm audit fix`
+  - (2024-jul) This gives a warning about @vue/cli-service@3.3.1. You can ignore this as running npm audit fix --force breaks more things.
+  - (2024-jul) updating 'msw' to 2.3.3 breaks the tests when its ran on gitlab. If it's not fixed in 2024-oct, make an issue at msw repo.
 - [ ] To address issues with breaking changes, check them and solve them if possible.
 
 ## Yivi docker
@@ -38,3 +47,4 @@ For reference, dependencies are in `package.json`.
    - [ ] `git clone https://github.com/privacybydesign/irmago --branch vXXXX` Please check that you've selected the same version as in the [hub Dockerfile](pubhubs_hub/Dockerfile).
 
   (The `merge-to-stable` merge request template can be edited [here](https://gitlab.science.ru.nl/ilab/pubhubs_canonical/-/edit/main/.gitlab/merge_request_templates/update-dependencies.md).)
+
