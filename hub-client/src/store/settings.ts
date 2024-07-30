@@ -90,7 +90,7 @@ const defaultSettings: Settings = {
 		signedMessages: true,
 		plugins: true,
 		dateSplitter: true,
-		disclosure: true,
+		disclosure: false,
 		unreadmarkers: true,
 		notifications: true,
 		// stable
