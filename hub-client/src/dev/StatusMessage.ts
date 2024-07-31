@@ -9,6 +9,7 @@
  */
 export enum SMI {
 	ROOM_TIMELINE_TRACE = 'ROOM_TIMELINE_TRACE',
+	ROOM_TRACE = 'ROOM_TRACE',
 }
 
 export enum StatusMessageLevel {
