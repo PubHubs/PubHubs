@@ -40,7 +40,7 @@ As a general tip while testing, keep two browser windows open, one for a existin
   - [ ] Inform the pubhubs team (via Slack and PubHubs stable) of the merge and possible downtime of https://stable.pubhubs.ihub.ru.nl/client . 
   - [ ] Make the changes and perform the merge. Make sure all the jobs in the pipeline are kicked off. (Some jobs require manual start)
   - [ ] While waiting on the pipeline: update dependencies on the main branch in a merge request created from [this issue](https://gitlab.science.ru.nl/ilab/pubhubs_canonical/-/issues/new?issuable_template=update-dependencies&issue[title]=Updating%20dependencies%20on%2020yy-mm-dd) (not on stable as this might break something).
-  - [ ] When the pipeline finishes, restart tryouthub and ruhub (see #788 for instructions) and rebrand all running hub clients (see #769 for instructions).
+  - [ ] When the pipeline finishes, rebrand all running hub clients (see #769 for instructions).
   - [ ] Check that the following works on https://stable.pubhubs.ihub.ru.nl/client :
     - [ ] Turn off dev mode in Yivi app. 
     - [ ] Test basic pubhubs functionality (see above)
