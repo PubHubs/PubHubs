@@ -371,9 +371,9 @@ export default class Room {
 
 	public getVisibleTimeline() {
 		const unfilteredTimeline = this.matrixRoom.getLiveTimeline().getEvents();
-		this.logger.log(SMI.ROOM_TRACE, `Room.getVisibleTimeline unfiltered`, { roomId: this.roomId, unfilteredTimeline });
+		this.logger.log(SMI.ROOM_TRACE, `Room.getVisibleTimeline unfiltered`, { roomId: this.roomId, unfilteredTimeline: unfilteredTimeline.map((e) => e.event) });
 		const timeline = unfilteredTimeline.filter(isVisibleEvent);
-		this.logger.log(SMI.ROOM_TRACE, `Room.getVisibleTimeline`, { roomId: this.roomId, timeline });
+		this.logger.log(SMI.ROOM_TRACE, `Room.getVisibleTimeline`, { roomId: this.roomId, timeline: timeline.map((e) => e.event) });
 		return timeline;
 	}
 
