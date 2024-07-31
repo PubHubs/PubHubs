@@ -19,7 +19,7 @@
 	import { useRooms, useUser } from '@/store/store';
 	import { computed, onMounted, ref, watch } from 'vue';
 
-	import { log } from '@/dev/Logger';
+	import { LOGGER } from '@/dev/Logger';
 	import { SMI } from '@/dev/StatusMessage';
 	import Room from '@/model/rooms/Room';
 	import { featureFlagType, useSettings } from '@/store/store';
@@ -58,7 +58,7 @@
 	let elementObserver: ElementObserver | null = null;
 
 	async function setupRoomTimeline() {
-		log(SMI.ROOM_TIMELINE_TRACE, `setupRoomTimeline...`, { roomId: props.room.roomId });
+		LOGGER.log(SMI.ROOM_TIMELINE_TRACE, `setupRoomTimeline...`, { roomId: props.room.roomId });
 
 		await loadInitialEvents();
 
@@ -85,11 +85,11 @@
 
 		scrollToBottom();
 
-		log(SMI.ROOM_TIMELINE_TRACE, `setupRoomTimeline done`);
+		LOGGER.log(SMI.ROOM_TIMELINE_TRACE, `setupRoomTimeline done`);
 	}
 
 	onMounted(() => {
-		log(SMI.ROOM_TIMELINE_TRACE, `onMounted RoomTimeline`, { roomId: props.room.roomId });
+		LOGGER.log(SMI.ROOM_TIMELINE_TRACE, `onMounted RoomTimeline`, { roomId: props.room.roomId });
 
 		setupRoomTimeline();
 	});
@@ -97,7 +97,7 @@
 	watch(
 		() => props.room.roomId,
 		() => {
-			log(SMI.ROOM_TIMELINE_TRACE, `Room changed to room: ${props.room.roomId}`, { roomId: props.room.roomId });
+			LOGGER.log(SMI.ROOM_TIMELINE_TRACE, `Room changed to room: ${props.room.roomId}`, { roomId: props.room.roomId });
 
 			setupRoomTimeline();
 		},
@@ -163,7 +163,7 @@
 		if (!rooms.currentRoom) return;
 		if (!newEventsExist()) return;
 
-		log(SMI.ROOM_TIMELINE_TRACE, `onTimelineChange`, { newTimelineLength, oldTimelineLength });
+		LOGGER.log(SMI.ROOM_TIMELINE_TRACE, `onTimelineChange`, { newTimelineLength, oldTimelineLength });
 
 		newestEventId = props.room.timelineGetNewestEvent()?.event_id;
 
@@ -183,7 +183,7 @@
 			}
 		}
 
-		log(SMI.ROOM_TIMELINE_TRACE, `onTimelineChange ended`);
+		LOGGER.log(SMI.ROOM_TIMELINE_TRACE, `onTimelineChange ended`);
 	}
 
 	// eslint-disable-next-line @typescript-eslint/no-unused-vars
@@ -263,7 +263,7 @@
 	// }
 
 	async function scrollToEvent(eventId: string, options: { position: 'start' | 'center' | 'end'; select?: 'Highlight' | 'Select' } = { position: 'start' }) {
-		log(SMI.ROOM_TIMELINE_TRACE, `scroll to event: ${eventId}`, { eventId });
+		LOGGER.log(SMI.ROOM_TIMELINE_TRACE, `scroll to event: ${eventId}`, { eventId });
 
 		if (!elRoomTimeline.value) throw new Error('elRoomTimeline not defined, RoomTimeline not mounted?');
 
@@ -306,7 +306,7 @@
 	 *
 	 */
 	async function loadInitialEvents() {
-		log(SMI.ROOM_TIMELINE_TRACE, `loadInitialEvents...`, { roomId: props.room.roomId, roomTimeLine: roomTimeLine.value.map((e) => e.event) });
+		LOGGER.log(SMI.ROOM_TIMELINE_TRACE, `loadInitialEvents...`, { roomId: props.room.roomId, roomTimeLine: roomTimeLine.value.map((e) => e.event) });
 
 		let numLoadedMessages = props.room.timelineGetNumMessageEvents();
 		let allMessagesLoaded = false;
@@ -316,7 +316,7 @@
 			numLoadedMessages = props.room.timelineGetNumMessageEvents();
 		}
 
-		log(SMI.ROOM_TIMELINE_TRACE, `loadInitialEvents done`, { numLoadedMessages, roomTimeLine: roomTimeLine.value.map((e) => e.event) });
+		LOGGER.log(SMI.ROOM_TIMELINE_TRACE, `loadInitialEvents done`, { numLoadedMessages, roomTimeLine: roomTimeLine.value.map((e) => e.event) });
 	}
 
 	function newEventsExist(): boolean {
