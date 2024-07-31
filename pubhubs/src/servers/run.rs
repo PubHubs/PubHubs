@@ -1,5 +1,6 @@
 //! Running PubHubs [Server]s
 use std::net::SocketAddr;
+use std::rc::Rc;
 
 use actix_web::web;
 use anyhow::{bail, Context as _, Result};
@@ -15,17 +16,20 @@ pub struct Set {
 impl Set {
     /// Creates a new set of PubHubs servers from the given config.
     pub fn new(config: &crate::servers::Config) -> Result<Self> {
+        let rt_handle: tokio::runtime::Handle = tokio::runtime::Handle::current();
         let mut joinset = tokio::task::JoinSet::<Result<()>>::new();
 
         macro_rules! run_server {
             ($server:ident) => {
                 if config.$server.is_some() {
-                    joinset.spawn(
-                        crate::servers::run::Runner::<crate::servers::$server::Server>::new(
-                            &config,
-                        )?
-                        .run(),
-                    );
+                    let config = config.clone();
+                    let rt_handle = rt_handle.clone();
+
+                    // We use spawn_blocking instead of spawn, because we want a separate thread
+                    // for each server to run on
+                    joinset.spawn_blocking(|| -> Result<()> {
+                        Self::run_server::<crate::servers::$server::Server>(config, rt_handle)
+                    });
                 }
             };
         }
@@ -33,6 +37,22 @@ impl Set {
         for_all_servers!(run_server);
 
         Ok(Self { joinset })
+    }
+
+    fn run_server<S: Server>(
+        config: crate::servers::Config,
+        rt_handle: tokio::runtime::Handle,
+    ) -> Result<()> {
+        let localset = tokio::task::LocalSet::new();
+        let fut = localset.run_until(crate::servers::run::Runner::<S>::new(&config)?.run());
+
+        let result = rt_handle.block_on(fut);
+
+        rt_handle.block_on(localset);
+
+        log::debug!("{} stopped with {:?}", S::NAME, result);
+
+        result
     }
 
     /// Waits for one of the servers to return, panic, or be cancelled.
@@ -56,7 +76,7 @@ impl Set {
 
 /// Runs a [Server].
 pub struct Runner<ServerT: Server> {
-    pubhubs_server: ServerT,
+    pubhubs_server: Rc<ServerT>,
 }
 
 /// The handles to control an [actix_web::dev::Server] running a pubhubs [Server].
@@ -68,8 +88,17 @@ struct Handles<S: Server> {
     /// Handle to the task driving the actix TCP server
     actix_join_handle: tokio::task::JoinHandle<Result<(), std::io::Error>>,
 
+    /// Handle to the task running (discovery for) the PubHubs server.
+    ph_join_handle: tokio::task::JoinHandle<Result<Option<crate::servers::server::BoxModifier<S>>>>,
+
+    /// To order `ph_join_handle` to shutdown.  [None] when used.
+    ph_shutdown_sender: tokio::sync::oneshot::Sender<()>,
+
     /// Receives commands from the [App]s
-    receiver: mpsc::Receiver<Command<S>>,
+    command_receiver: mpsc::Receiver<Command<S>>,
+
+    /// To check whether [Handles::shutdown] was called before being dropped
+    drop_bomb: crate::misc::drop_ext::Bomb,
 }
 
 impl<S: Server> Handles<S> {
@@ -81,7 +110,7 @@ impl<S: Server> Handles<S> {
                     .with_context(|| format!("{}'s http server crashed", S::NAME))?;
                 bail!("{} stopped unexpectedly", S::NAME);
             },
-            command_maybe = self.receiver.recv() => {
+            command_maybe = self.command_receiver.recv() => {
                 if let Some(command) = command_maybe {
                     #[allow(clippy::needless_return)]
                     // Clippy wants "Ok(command)", but that's not easy to read here
@@ -90,8 +119,49 @@ impl<S: Server> Handles<S> {
                 } else {
                     bail!("{}'s command receiver is unexpectedly closed", S::NAME);
                 }
+            },
+            res = &mut self.ph_join_handle => {
+                let modifier : crate::servers::server::BoxModifier<S> =
+                res.with_context(|| format!("{}'s pubhubs task joined unexpectedly", S::NAME))?
+                    .with_context(|| format!("{}'s pubhubs task crashed", S::NAME))?
+                    .with_context(|| format!("{}'s pubhubs task stopped without being asked to", S::NAME))?;
+
+                return Ok(Command::Modify(modifier));
             }
         };
+    }
+
+    /// Consumes this [Handles] shutting down the actix server and pubhubs tasks.
+    async fn shutdown(self, graceful_actix_shutdown: bool) -> anyhow::Result<()> {
+        self.ph_shutdown_sender.send(());
+
+        // NOTE: this is a noop if the actix server is already stopped
+        self.actix_server_handle.stop(graceful_actix_shutdown).await;
+
+        let maybe_modifier = self
+            .ph_join_handle
+            .await
+            .with_context(|| {
+                format!(
+                    "{}'s pubhubs task did not join gracefully after being asked to stop",
+                    S::NAME
+                )
+            })?
+            .with_context(|| {
+                format!(
+                    "{}'s pubhubs task crashed after being asked to stop",
+                    S::NAME
+                )
+            })?;
+
+        if let Some(ph_modifier) = maybe_modifier {
+            log::error!("Woops! {}'s pubhubs task's modifier {} was ignored, because another modifier was first",
+                            S::NAME, ph_modifier);
+        }
+
+        self.drop_bomb.diffuse();
+
+        Ok(())
     }
 }
 
@@ -158,7 +228,7 @@ impl<S: Server> Handle<S> {
 
 impl<S: Server> Runner<S> {
     pub fn new(global_config: &crate::servers::Config) -> Result<Self> {
-        let pubhubs_server = S::new(global_config)?;
+        let pubhubs_server = Rc::new(S::new(global_config)?);
 
         Ok(Runner { pubhubs_server })
     }
@@ -171,14 +241,21 @@ impl<S: Server> Runner<S> {
         self.pubhubs_server.server_config().graceful_shutdown
     }
 
-    fn create_actix_server(&self, pubhubs_server: &S, bind_to: &SocketAddr) -> Result<Handles<S>> {
-        let app_creator: S::AppCreatorT = pubhubs_server.app_creator().clone();
+    fn create_actix_server(&self, bind_to: &SocketAddr) -> Result<Handles<S>> {
+        let app_creator: S::AppCreatorT = self.pubhubs_server.app_creator().clone();
 
-        let (sender, receiver) = mpsc::channel(1);
+        let (command_sender, command_receiver) = mpsc::channel(1);
 
-        let handle = Handle::<S> { sender };
+        let handle = Handle::<S> {
+            sender: command_sender,
+        };
 
-        log::info!("{}: binding actix server to {}", S::NAME, bind_to);
+        log::info!(
+            "{}:  binding actix server to {}, running on {:?}",
+            S::NAME,
+            bind_to,
+            std::thread::current().id()
+        );
 
         let actual_actix_server: actix_web::dev::Server = actix_web::HttpServer::new(move || {
             let app: S::AppT = app_creator.clone().into_app(&handle);
@@ -194,13 +271,27 @@ impl<S: Server> Runner<S> {
         .bind(bind_to)?
         .run();
 
+        // start actix server
         let actix_server_handle = actual_actix_server.handle().clone();
         let actix_join_handle = tokio::task::spawn(actual_actix_server);
+
+        // start PH server task (doing discovery)
+        let (ph_shutdown_sender, ph_shutdown_receiver) = tokio::sync::oneshot::channel();
+        let ph_join_handle = tokio::task::spawn_local(
+            self.pubhubs_server
+                .clone()
+                .run_until_modifier(ph_shutdown_receiver),
+        );
 
         Ok(Handles {
             actix_server_handle,
             actix_join_handle,
-            receiver,
+            command_receiver,
+            ph_join_handle,
+            ph_shutdown_sender,
+            drop_bomb: crate::misc::drop_ext::Bomb::new(|| {
+                format!("Part of {} was not shut down properly", S::NAME)
+            }),
         })
     }
 
@@ -208,9 +299,12 @@ impl<S: Server> Runner<S> {
         loop {
             let modifier = self.run_until_modifier().await?;
 
+            let pubhubs_server_mutref: &mut S =
+                Rc::get_mut(&mut self.pubhubs_server).expect("pubhubs_server is still borrowed");
+
             log::info!("{}: applying modification {}", S::NAME, modifier);
 
-            modifier.modify(&mut self.pubhubs_server);
+            modifier.modify(pubhubs_server_mutref);
 
             log::info!("{}: restarting...", S::NAME);
         }
@@ -219,17 +313,23 @@ impl<S: Server> Runner<S> {
     pub async fn run_until_modifier(
         &mut self,
     ) -> Result<crate::servers::server::BoxModifier<S>, anyhow::Error> {
-        let mut handles = self.create_actix_server(&self.pubhubs_server, &self.bind_to())?;
+        let mut handles = self.create_actix_server(&self.bind_to())?;
 
+        let result = self.run_until_modifier_inner(&mut handles).await;
+
+        handles.shutdown(self.graceful_shutdown()).await?;
+
+        result
+    }
+
+    async fn run_until_modifier_inner(
+        &mut self,
+        handles: &mut Handles<S>,
+    ) -> Result<crate::servers::server::BoxModifier<S>, anyhow::Error> {
         loop {
             match handles.run_until_command().await? {
                 Command::Modify(modifier) => {
                     log::debug!("Stopping {} for modification {}...", S::NAME, modifier);
-
-                    handles
-                        .actix_server_handle
-                        .stop(self.graceful_shutdown())
-                        .await;
 
                     return Ok::<_, anyhow::Error>(modifier);
                 }

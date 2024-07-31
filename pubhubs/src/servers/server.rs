@@ -3,6 +3,7 @@ use actix_web::web;
 use anyhow::Result;
 use futures_util::future::LocalBoxFuture;
 
+use std::rc::Rc;
 use std::sync::Arc;
 
 use crate::elgamal;
@@ -84,6 +85,24 @@ pub trait Server: Sized + 'static {
         &self,
         constellation: &Constellation,
     ) -> Result<Self::ExtraRunningState>;
+
+    /// This function is called when the server is started to run disovery.
+    /// It is only passed a shared (and thus immutable) reference to itself to prevent any modifications
+    /// going unnoticed by [App] instances.
+    ///
+    /// It can be ordered to stop via the `shutdown_receiver`, in which case
+    /// it should return Ok(None).
+    ///
+    /// If can also return on its own to modify itself via the returned [BoxModifier].
+    ///
+    /// If it returns an error, the whole binary crashes.
+    ///
+    /// Before this function's future finishes, it should relinquish all references to `self`.
+    /// Otherwise the modification following it will panic.
+    async fn run_until_modifier(
+        self: Rc<Self>,
+        shutdown_receiver: tokio::sync::oneshot::Receiver<()>,
+    ) -> anyhow::Result<Option<BoxModifier<Self>>>;
 }
 
 /// Basic implementation of [Server].
@@ -148,6 +167,17 @@ where
         constellation: &Constellation,
     ) -> Result<Self::ExtraRunningState> {
         D::create_running_state(self, constellation)
+    }
+
+    async fn run_until_modifier(
+        self: Rc<Self>,
+        shutdown_receiver: tokio::sync::oneshot::Receiver<()>,
+    ) -> anyhow::Result<Option<crate::servers::server::BoxModifier<Self>>> {
+        if shutdown_receiver.await.is_err() {
+            log::error!("shutdown sender for {} dropped early", Self::NAME)
+        }
+
+        Ok(None)
     }
 }
 
