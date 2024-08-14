@@ -9,7 +9,7 @@
 		<Icon v-if="pinnable" type="plus" class="text-green opacity-60 hover:opacity-100 absolute right-0" @click.prevent="pin"></Icon>
 		<Icon v-if="pinned" type="remove" class="text-red absolute right-0 hidden opacity-60 hover:opacity-100 group-hover:block" @click.prevent="remove"></Icon>
 		<!-- <Icon :type="type" :size="size" class="text-white mx-auto"></Icon> -->
-		<HubLogo v-if="hub" :hub-url="hub.url" :hub-id="hub.hubId" :change-to-dark="false" class="h-20 w-20 mx-auto"></HubLogo>
+		<HubLogo v-if="hub" :hub-url="hub.url" :hub-id="hub.hubId" :change-to-dark="true" class="h-20 w-20 mx-auto"></HubLogo>
 	</div>
 </template>
 
