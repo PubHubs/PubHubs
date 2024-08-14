@@ -24,7 +24,7 @@
 				</div>
 			</template>
 
-			<RoomTimeline v-if="rooms.rooms[id!]" class="scrollbar" :room="rooms.rooms[id!]" :scroll-to-event-id="scrollToEventId" @scrolled-to-event-id="scrollToEventId = ''"></RoomTimeline>
+			<RoomTimeline v-if="rooms.rooms[id]" class="scrollbar" :room="rooms.rooms[id]" :scroll-to-event-id="scrollToEventId" @scrolled-to-event-id="scrollToEventId = ''"></RoomTimeline>
 
 			<template #footer>
 				<MessageInput></MessageInput>
@@ -50,13 +50,13 @@
 	const plugin = ref(false as boolean | PluginProperties);
 	const toggleMenu = useToggleMenu();
 
-	const searchParameters = ref<TSearchParameters>([]);
-	const scrollToEventId = ref<string>('');
-
 	//Passed by the router
 	const props = defineProps({
-		id: String,
+		id: { type: String, required: true },
 	});
+
+	const searchParameters = ref<TSearchParameters>({ roomId: props.id, term: '' });
+	const scrollToEventId = ref<string>('');
 
 	onMounted(() => {
 		update();
@@ -72,11 +72,9 @@
 			toggleMenu.toggleGlobalMenu();
 		}
 
-		//We know the property is there since passed by the router, so we can use '!'
-		rooms.changeRoom(props.id!);
+		rooms.changeRoom(props.id);
 		if (!rooms.currentRoom) return;
 		plugin.value = plugins.hasRoomPlugin(rooms.currentRoom);
-		searchParameters.value.roomId = props.id!;
 	}
 
 	async function onScrollToEventId(ev: any) {
