@@ -12,6 +12,7 @@ All test done with complete PubHubs system. (PHC, minimal two Hubs, Global & Hub
 ## Test functionility
 
 - [ ] Test the (new) functionality or solved bug.
+- [ ] Pretend you are a normal user (are you? ;-), and play around if everything works as expected.
 
 ## Test if something is broken
 
