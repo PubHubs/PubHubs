@@ -1,1 +1,39 @@
-Keep in mind the **[code guidelines](https://gitlab.science.ru.nl/ilab/pubhubs_canonical/-/wikis/Contributing/Code-guidelines)** and  add your changes to the **[changelog](https://gitlab.science.ru.nl/ilab/pubhubs_canonical/-/blob/main/CHANGELOG.md?ref_type=heads)**.
+# Coding steps
+
+- [ ] Followed coding guidelines
+- [ ] Added to changelog
+
+# Review Steps:
+
+# Tests
+
+All test done with complete PubHubs system. (PHC, minimal two Hubs, Global & Hub clients).
+
+## Test functionility
+
+- [ ] Test the (new) functionality or solved bug.
+
+## Test if something is broken
+
+- [ ] Test basic functionality:
+  - [ ] Login
+  - [ ] Switch Hubs
+  - [ ] Switch Rooms
+  - [ ] Post message
+  - [ ] Start private room
+  - [ ] Post private message
+  - [ ] Search in a room
+
+## Test UI
+
+- [ ] Test if everything looks as supposed to:
+  - [ ] Light theme
+    - [ ] PubHubs home
+    - [ ] Hubpage home
+    - [ ] Room
+    - [ ] Posting message
+  - [ ] Dark theme
+    - [ ] PubHubs home
+    - [ ] Hubpage home
+    - [ ] Room
+    - [ ] Posting message
