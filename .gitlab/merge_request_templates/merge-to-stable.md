@@ -21,16 +21,19 @@ As a general tip while testing, keep two browser windows open, one for a existin
             - `UPDATE users SET admin=1 WHERE name="@XXX-XXX:main.testhub-matrix.ihub.ru.nl";`, where `XXX-XXX` should be replaced by your short pseudonym.
             - `.quit`, etc.
         - [ ] With the admin user:
+          - [ ] Go to an existing room with many messages, scroll around, post a message. Make sure you see everything that should be there.
+          - [ ] Use the search functionality
           - [ ] Create a new room
           - [ ] Create one or more new secured room with mulitple profile attributes and a non profile attributes.
             - Make sure to require at least one value, so that one of the users cannot enter the secured room.
             - Check if the badges are shown properly (in line with which (non-)profile attributes are set).
             - Try to vary a bit in what you do exactly on each merge.
+          - [ ] In general act like a regular PubHubs user and try and see if everything works as expected.
         - [ ] With the new user:
           - [ ] Send a message in the public room.
           - [ ] Send a message in the secured room.
           - [ ] Sending a private message.
-        - [ ] Change displayname.
+        - [ ] Change displayname and avatar (make sure other users see this change).
         - [ ] Change Theme & Language, and see they are stored/fetched after logout/login.
         - [ ] Logging out and logging in again with your original user.
       - [ ] If anything has changed to branding: Rebrand testhub2 with a new logo and colors. See https://gitlab.science.ru.nl/ilab/pubhubs_canonical/-/blob/main/docs/development/BRANDING.md (NB This involves some work on ilab-main, see https://gitlab.science.ru.nl/ilab/pubhubs_canonical/-/wikis/Current-ops-troubleshooting#changing-the-branding-of-a-running-hub)
