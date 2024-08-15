@@ -103,7 +103,7 @@
 		if (!eventbody || !searchterm) return '';
 
 		var words = filterAlphanumeric(eventbody)?.toLowerCase().split(' ');
-		var searchWords = filterAlphanumeric(searchterm)?.toLowerCase().split(' ');
+		var searchWords = filterAlphanumeric(searchterm.trim())?.toLowerCase().split(' ');
 
 		if (!words || !searchWords) return '';
 

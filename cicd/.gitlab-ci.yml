@@ -414,8 +414,9 @@ build-hubclient2:
   script:
     - cd hub-client
     - cp ../cicd/temp_testhub/logo.svg public/img/logo.svg
+    - cp ../cicd/temp_testhub/logo-dark.svg public/img/logo-dark.svg
     - cp ../cicd/temp_testhub/logo.svg src/assets/pubhubs-logo.svg
-    - cp ../cicd/temp_testhub/logo.svg src/assets/pubhubs-logo-dark.svg
+    - cp ../cicd/temp_testhub/logo-dark.svg src/assets/pubhubs-logo-dark.svg
     - cp ../cicd/temp_testhub/branding.css src/assets/branding.css
     - docker login -u $CI_REGISTRY_USER -p $CI_REGISTRY_PASSWORD $CI_REGISTRY
     - DOCKER_BUILDKIT=1 docker build -t ${CONTAINER_IMAGE} .

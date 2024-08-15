@@ -110,7 +110,7 @@ class Events {
 				const rooms = useRooms();
 				if (member.membership === 'leave') {
 					const roomId = event.getRoomId();
-					if (roomId !== undefined) {
+					if (roomId !== undefined && rooms.rooms[roomId]) {
 						rooms.rooms[roomId].setHidden(true);
 					}
 				} else if (member.membership === 'invite') {
