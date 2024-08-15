@@ -38,11 +38,8 @@
 	let userHasScrolled = ref<boolean>(true);
 	let dateInformation = ref<number>(0);
 
-	type Props = {
-		room: Room;
-		scrollToEventId: string;
-	};
-	const props = defineProps<Props>();
+	const props = defineProps({ room: { type: Room, required: true }, scrollToEventId: String });
+
 	const emit = defineEmits(['scrolledToEventId']);
 
 	const roomTimeLine = computed(() => {
