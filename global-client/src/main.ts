@@ -1,34 +1,37 @@
 /* eslint-disable */
-import { createApp, markRaw } from 'vue';
-import { createPinia } from 'pinia';
-import { createRouter, createWebHashHistory } from 'vue-router';
-import '@/registerServiceWorker';
 import '@/assets/tailwind.css';
-import { setUpi18n } from '@/i18n';
-import { routes } from '@/core/routes';
 import { focus, twClass } from '@/core/directives';
+import { routes } from '@/core/routes';
+import { setUpi18n } from '@/i18n';
+import '@/registerServiceWorker';
+import { createPinia } from 'pinia';
+import { createApp, markRaw } from 'vue';
+import { createRouter, createWebHashHistory } from 'vue-router';
 
 // Local components
 import App from '@/pages/App.vue';
 import { registerComponents } from '@/registerComponents.js';
 
 // Components from hub-client
-import P from '@/../../hub-client/src/components/elements/P.vue';
+import Badge from '@/../../hub-client/src/components/elements/Badge.vue';
+import Button from '@/../../hub-client/src/components/elements/Button.vue';
 import H1 from '@/../../hub-client/src/components/elements/H1.vue';
 import H2 from '@/../../hub-client/src/components/elements/H2.vue';
 import H3 from '@/../../hub-client/src/components/elements/H3.vue';
 import Icon from '@/../../hub-client/src/components/elements/Icon.vue';
 import Line from '@/../../hub-client/src/components/elements/Line.vue';
-import Label from '@/../../hub-client/src/components/forms/Label.vue';
-import Badge from '@/../../hub-client/src/components/elements/Badge.vue';
-import Button from '@/../../hub-client/src/components/elements/Button.vue';
+import P from '@/../../hub-client/src/components/elements/P.vue';
 import TruncatedText from '@/../../hub-client/src/components/elements/TruncatedText.vue';
 import ButtonGroup from '@/../../hub-client/src/components/forms/ButtonGroup.vue';
-import Logo from '@/../../hub-client/src/components/ui/Logo.vue';
+import Label from '@/../../hub-client/src/components/forms/Label.vue';
 import Dialog from '@/../../hub-client/src/components/ui/Dialog.vue';
+import Logo from '@/../../hub-client/src/components/ui/Logo.vue';
 
 import { ReplaceConsole } from '@/../../hub-client/src/console';
+import { Logger } from '@/../../hub-client/src/dev/Logger';
 ReplaceConsole();
+
+const LOGGER = new Logger('GC');
 
 const i18n = setUpi18n();
 
@@ -67,3 +70,5 @@ app.directive('focus', focus);
 app.directive('tw-class', twClass as any);
 
 app.mount('#app');
+
+export { LOGGER };

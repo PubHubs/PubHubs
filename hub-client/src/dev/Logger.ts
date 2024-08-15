@@ -1,13 +1,30 @@
 import { SMI } from './StatusMessage';
 
-class Logger {
+/**
+ * A first draft for more extensive logging.
+ */
+export class Logger {
+	private name: string;
+
+	public constructor(name: string) {
+		this.name = name;
+	}
+
+	/**
+	 *
+	 * @param statusMessageId
+	 * @param message a short message that will be shown in the logs for quick understanding
+	 * @param params any relevant parameters from the context of where the log is called
+	 */
 	public log(statusMessageId: SMI, message: string, params?: Record<string, any>) {
-		console.groupCollapsed(`[${statusMessageId}] ${message}`);
-		console.log('params: ', params);
-		console.groupCollapsed('stack trace');
-		console.trace();
-		console.groupEnd();
-		console.groupEnd();
+		if (this.shouldPrint(statusMessageId)) {
+			console.groupCollapsed(`[${this.name} ${statusMessageId}] ${message}`);
+			console.log('params: ', params);
+			console.groupCollapsed('stack trace');
+			console.trace();
+			console.groupEnd();
+			console.groupEnd();
+		}
 	}
 
 	/**
@@ -19,5 +36,6 @@ class Logger {
 	}
 }
 
-const LOGGER = new Logger();
+// Hub client logger
+const LOGGER = new Logger('HC');
 export { LOGGER };

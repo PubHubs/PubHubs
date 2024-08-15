@@ -3,6 +3,7 @@
  */
 
 // import { defineStore } from 'pinia';
+
 import { fallbackLanguage } from '@/i18n';
 import { Message, MessageBoxType, MessageType, useMessageBox } from '@/store/messagebox';
 
@@ -55,6 +56,7 @@ interface Settings {
 
 	/**
 	 * UI Language
+	 * Should have type 'Language', but for some reason the build gives an error when trying to import it from @/i18n.
 	 */
 	language: string;
 
