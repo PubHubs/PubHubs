@@ -29,9 +29,9 @@ As a general tip while testing, keep two browser windows open, one for a existin
             - Check if the badges are shown properly (in line with which (non-)profile attributes are set).
             - Try to vary a bit in what you do exactly on each merge.
           - [ ] In general act like a regular PubHubs user and try and see if everything works as expected.
-        - [ ] With the new user:
+        - [ ] With the new user (not an admin!):
           - [ ] Send a message in the public room.
-          - [ ] Send a message in the secured room.
+          - [ ] Send a message in the secured room (if you are admin, you can allways enter a secured room, so important to test this with a normal user).
           - [ ] Sending a private message.
         - [ ] Change displayname and avatar (make sure other users see this change).
         - [ ] Change Theme & Language, and see they are stored/fetched after logout/login.
