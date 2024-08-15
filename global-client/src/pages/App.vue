@@ -45,10 +45,12 @@
 </template>
 
 <script setup lang="ts">
-	import { onMounted, ref } from 'vue';
-	import { useGlobal, useSettings, Hub, HubList, useHubs, useDialog } from '@/store/store';
-	import { useI18n } from 'vue-i18n';
-	import { useToggleMenu } from '@/store/toggleGlobalMenu';
+	import { LOGGER } from '@/main';
+import { HubList, useDialog, useGlobal, useHubs, useSettings } from '@/store/store';
+import { useToggleMenu } from '@/store/toggleGlobalMenu';
+import { onMounted, ref } from 'vue';
+import { useI18n } from 'vue-i18n';
+import { SMI } from '../../../hub-client/src/dev/StatusMessage';
 
 	const global = useGlobal();
 	const settings = useSettings();
@@ -62,11 +64,15 @@
 	const pubHubsUrl = _env.PUBHUBS_URL;
 
 	onMounted(async () => {
-		console.clear();
+		LOGGER.log(SMI.STARTUP_TRACE, 'App.vue onMounted...');
+
 		settings.initI18b({ locale: locale, availableLocales: availableLocales });
 		dialog.asGlobal();
 
 		if (await global.checkLoginAndSettings()) {
+			// Change active language to the user's preferred language
+			locale.value = settings.getActiveLanguage;
+
 			// set language when changed
 			settings.$subscribe(() => {
 				locale.value = settings.getActiveLanguage;
@@ -81,6 +87,8 @@
 			});
 		}
 		await addHubs();
+
+		LOGGER.log(SMI.STARTUP_TRACE, 'App.vue onMounted done', { language: settings.getActiveLanguage});
 	});
 
 	async function addHubs() {

@@ -1,7 +1,9 @@
 import { defineStore } from 'pinia';
 
-import { Hub, HubList, Theme, TimeFormat, useHubs, useSettings } from '@/store/store';
 import { api } from '@/core/api';
+import { LOGGER } from '@/main';
+import { Hub, HubList, Theme, TimeFormat, useSettings } from '@/store/store';
+import { SMI } from '../../../hub-client/src/dev/StatusMessage';
 
 type PinnedHub = {
 	hubId: string;
@@ -36,6 +38,8 @@ const useGlobal = defineStore('global', {
 			loggedIn: false,
 			modalVisible: false,
 			pinnedHubs: [] as PinnedHubs,
+
+			logger: LOGGER,
 		};
 	},
 
@@ -62,6 +66,11 @@ const useGlobal = defineStore('global', {
 	},
 
 	actions: {
+
+		/**
+		 *
+		 * @returns a promise that resolves to true if the user is logged in and the settings are loaded, false otherwise
+		 */
 		async checkLoginAndSettings() {
 			this.loggedIn = false;
 			try {
@@ -80,6 +89,7 @@ const useGlobal = defineStore('global', {
 		},
 
 		setGlobalSettings(data: any) {
+			this.logger.log(SMI.STARTUP_TRACE, 'setGlobalSettings', data);
 			const settings = useSettings();
 			settings.setTheme(data.theme);
 			if (!data.timeformat || data.timeformat === '') {

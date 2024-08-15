@@ -82,16 +82,18 @@
 </template>
 
 <script setup lang="ts">
-	import { onMounted, ref, getCurrentInstance, watch } from 'vue';
-	import { RouteParamValue, useRouter } from 'vue-router';
-	import { Message, MessageBoxType, MessageType, Theme, TimeFormat, useHubSettings, useMessageBox, RoomType, useRooms, useSettings, featureFlagType, useUser } from '@/store/store';
-	import { useDialog } from '@/store/dialog';
 	import { useMatrixFiles } from '@/composables/useMatrixFiles';
 	import { usePubHubs } from '@/core/pubhubsStore';
+	import { LOGGER } from '@/dev/Logger';
+	import { SMI } from '@/dev/StatusMessage';
+	import { useDialog } from '@/store/dialog';
 	import { useMenu } from '@/store/menu';
 	import { usePlugins } from '@/store/plugins';
-	import { useI18n } from 'vue-i18n';
+	import { featureFlagType, Message, MessageBoxType, MessageType, RoomType, Theme, TimeFormat, useHubSettings, useMessageBox, useRooms, useSettings, useUser } from '@/store/store';
 	import { useToggleMenu } from '@/store/toggleGlobalMenu';
+	import { getCurrentInstance, onMounted, ref, watch } from 'vue';
+	import { useI18n } from 'vue-i18n';
+	import { RouteParamValue, useRouter } from 'vue-router';
 
 	const { locale, availableLocales } = useI18n();
 	const router = useRouter();
@@ -124,6 +126,8 @@
 	});
 
 	onMounted(async () => {
+		LOGGER.log(SMI.STARTUP_TRACE, 'App.vue onMounted');
+
 		settings.initI18b({ locale: locale, availableLocales: availableLocales });
 		// set language when changed
 		settings.$subscribe(() => {
@@ -141,6 +145,8 @@
 			}
 		}
 		await startMessageBox();
+
+		LOGGER.log(SMI.STARTUP_TRACE, 'App.vue onMounted done');
 	});
 
 	async function startMessageBox() {
