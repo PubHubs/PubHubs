@@ -343,7 +343,7 @@ def build_test_hub_image(image_name, dockerfile="Dockerfile"):
 
     docker_build_command = ["docker", "build",
                             "-t", image_name,
-                            "-f", dockerfile, 
+                            "-f", dockerfile,
                             "."]
     print(f"\033[92m{docker_build_command}\033[0m")
     if subprocess.call(docker_build_command) != 0:
@@ -369,12 +369,15 @@ def docker_run_hub_client(image_name, client_number, container_name, client_port
                       "-e", "BAR_URL=frame-ancestors http://localhost:8080",
                       "-e", f"HUB_URL=http://localhost:{hub_matrix_port}",
                       "-e", "PARENT_URL=http://localhost:8080",
-                      "-d", 
+                      "-d",
                       "-p", f"{client_port}:8800",
                       image_name]
     print(f"\033[92m{docker_command}\033[0m")
     subprocess.call(docker_command)
     docker_copy_command = [ "docker", "cp", f"{root_dir}/hub-client/public/img/testlogos/logo{client_number}.svg", f"{container_name}:/usr/var/static/img/logo.svg"]
+    print(f"\033[92m{docker_copy_command}\033[0m")
+    subprocess.call(docker_copy_command)
+    docker_copy_command = [ "docker", "cp", f"{root_dir}/hub-client/public/img/testlogos/logo{client_number}.svg", f"{container_name}:/usr/var/static/img/logo-dark.svg"]
     print(f"\033[92m{docker_copy_command}\033[0m")
     subprocess.call(docker_copy_command)
     docker_copy_command =  ["docker", "cp", f"{root_dir}/hub-client/public/client-config.empty.js", f"{container_name}:/usr/var/static/client-config.local.js"]
@@ -413,13 +416,13 @@ def docker_run_hub_server(hub_secret, image_name, container_name, hub_matrix_por
         dont_start_hub = ["-e", "DONT_START_HUB=1"]
 
     docker_command = ["docker",
-                      "run", 
+                      "run",
                       "--name", container_name,
-                      "-d", 
+                      "-d",
                       "-p", f"{hub_matrix_port}:{hub_matrix_port}",
                       "-e", f"HUB_SECRET={hub_secret}",
                       *dont_start_hub,
-                      "-e", "SYNAPSE_CONFIG_DIR=/data", 
+                      "-e", "SYNAPSE_CONFIG_DIR=/data",
                       "-e", "AUTHLIB_INSECURE_TRANSPORT=for_testing_only_of_course",
                       "-v", f"{config_dir}:/data:rw",
                       *mount_modules,
@@ -547,8 +550,8 @@ def remove_container(container_name):
     Returns:
         None
     """
-    cmd = ["docker", "ps", 
-           "-a",  
+    cmd = ["docker", "ps",
+           "-a",
            "--filter", f"name={container_name}",
            "--format", "{{.Names}}"]
     container_status, _ = run_command(cmd)
