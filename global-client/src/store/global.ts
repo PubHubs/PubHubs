@@ -1,9 +1,11 @@
 import { defineStore } from 'pinia';
 
 import { api } from '@/core/api';
-import { LOGGER } from '@/main';
 import { Hub, HubList, Theme, TimeFormat, useSettings } from '@/store/store';
 import { SMI } from '../../../hub-client/src/dev/StatusMessage';
+import { Logger } from '@/../../hub-client/src/dev/Logger';
+
+const LOGGER = new Logger('GC');
 
 type PinnedHub = {
 	hubId: string;
@@ -66,7 +68,6 @@ const useGlobal = defineStore('global', {
 	},
 
 	actions: {
-
 		/**
 		 *
 		 * @returns a promise that resolves to true if the user is logged in and the settings are loaded, false otherwise
