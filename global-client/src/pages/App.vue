@@ -45,12 +45,14 @@
 </template>
 
 <script setup lang="ts">
-	import { LOGGER } from '@/main';
-import { HubList, useDialog, useGlobal, useHubs, useSettings } from '@/store/store';
-import { useToggleMenu } from '@/store/toggleGlobalMenu';
-import { onMounted, ref } from 'vue';
-import { useI18n } from 'vue-i18n';
-import { SMI } from '../../../hub-client/src/dev/StatusMessage';
+	import { HubList, useDialog, useGlobal, useHubs, useSettings } from '@/store/store';
+	import { useToggleMenu } from '@/store/toggleGlobalMenu';
+	import { onMounted, ref } from 'vue';
+	import { useI18n } from 'vue-i18n';
+	import { SMI } from '../../../hub-client/src/dev/StatusMessage';
+	import { Logger } from '@/../../hub-client/src/dev/Logger';
+
+	const LOGGER = new Logger('GC');
 
 	const global = useGlobal();
 	const settings = useSettings();
@@ -88,7 +90,7 @@ import { SMI } from '../../../hub-client/src/dev/StatusMessage';
 		}
 		await addHubs();
 
-		LOGGER.log(SMI.STARTUP_TRACE, 'App.vue onMounted done', { language: settings.getActiveLanguage});
+		LOGGER.log(SMI.STARTUP_TRACE, 'App.vue onMounted done', { language: settings.getActiveLanguage });
 	});
 
 	async function addHubs() {
