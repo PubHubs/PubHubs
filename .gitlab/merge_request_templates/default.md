@@ -1,13 +1,14 @@
 # Coding steps
 
 - [ ] Followed coding guidelines
-- [ ] Added to changelog
+- [ ] Added to changelog if a new feature
 
 # Review Steps:
 
 # Tests
 
 All test done with complete PubHubs system. (PHC, minimal two Hubs, Global & Hub clients).
+Let console open to see if there are bugs, warnings etc.
 
 ## Test functionility
 
