@@ -24,7 +24,7 @@
 				</div>
 			</template>
 
-			<RoomTimeline v-if="rooms.rooms[id]" class="scrollbar" :room="rooms.rooms[id]" :scroll-to-event-id="scrollToEventId" @scrolled-to-event-id="scrollToEventId = ''"></RoomTimeline>
+			<RoomTimeline v-if="rooms.rooms[id]" :room="rooms.rooms[id]" :scroll-to-event-id="scrollToEventId" @scrolled-to-event-id="scrollToEventId = ''"></RoomTimeline>
 
 			<template #footer>
 				<MessageInput></MessageInput>
