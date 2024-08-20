@@ -387,6 +387,10 @@ const usePubHubs = defineStore('pubhubs', {
 
 		async sendPrivateReceipt(event: MatrixEvent) {
 			if (!event) return;
+			const rooms = useRooms();
+			if (event.getRoomId() && rooms.roomsSeen[event.getRoomId()!] && rooms.roomsSeen[event.getRoomId()!] >= event.localTimestamp ) {
+				return;
+			}
 			const loggedInUser = useUser();
 			const content = {
 				'm.read.private': {
@@ -396,6 +400,7 @@ const usePubHubs = defineStore('pubhubs', {
 					},
 				},
 			};
+			rooms.roomsSeen[event.getRoomId()!] = event.localTimestamp;
 			await this.client.sendReceipt(event, ReceiptType.ReadPrivate, content);
 		},
 

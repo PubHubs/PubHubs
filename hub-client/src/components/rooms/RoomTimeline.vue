@@ -304,6 +304,7 @@
 	 */
 	async function loadInitialEvents() {
 		LOGGER.log(SMI.ROOM_TIMELINE_TRACE, `loadInitialEvents...`, { roomId: props.room.roomId, roomTimeLine: roomTimeLine.value.map((e) => e.event) });
+		oldestEventIsLoaded.value = false;
 
 		let numLoadedMessages = props.room.timelineGetNumMessageEvents();
 		let allMessagesLoaded = false;
@@ -311,6 +312,9 @@
 		while (numLoadedMessages < 15 && !allMessagesLoaded) {
 			allMessagesLoaded = !(await props.room.loadOlderEvents());
 			numLoadedMessages = props.room.timelineGetNumMessageEvents();
+		}
+		if (allMessagesLoaded) {
+			oldestEventIsLoaded.value = true;
 		}
 
 		LOGGER.log(SMI.ROOM_TIMELINE_TRACE, `loadInitialEvents done`, { numLoadedMessages, roomTimeLine: roomTimeLine.value.map((e) => e.event) });
