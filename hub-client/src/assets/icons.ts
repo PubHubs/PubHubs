@@ -311,11 +311,15 @@ const icons: { [key: string]: string } = {
         <svg class="h-32 w-32 text-gray-700"  width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">  <path stroke="none" d="M0 0h24v24H0z"/>  <path d="M21 14l-3 -3h-7a1 1 0 0 1 -1 -1v-6a1 1 0 0 1 1 -1h9a1 1 0 0 1 1 1v10" />  <path d="M14 15v2a1 1 0 0 1 -1 1h-7l-3 3v-10a1 1 0 0 1 1 -1h2" /></svg>`,
 	mention: `
         <svg class="h-32 w-32 text-gray-700"  fill="none" viewBox="0 0 24 24" stroke="currentColor">
-  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 12a4 4 0 10-8 0 4 4 0 008 0zm0 0v1.5a2.5 2.5 0 005 0V12a9 9 0 10-9 9m4.5-1.206a8.959 8.959 0 01-4.5 1.207"/>
-</svg>`,
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 12a4 4 0 10-8 0 4 4 0 008 0zm0 0v1.5a2.5 2.5 0 005 0V12a9 9 0 10-9 9m4.5-1.206a8.959 8.959 0 01-4.5 1.207"/>
+        </svg>`,
 	hub_fallback: `
-  <path stroke-linecap="round" stroke-linejoin="round" d="M11.412 15.655 9.75 21.75l3.745-4.012M9.257 13.5H3.75l2.659-2.849m2.048-2.194L14.25 2.25 12 10.5h8.25l-4.707 5.043M8.457 8.457 3 3m5.457 5.457 7.086 7.086m0 0L21 21" />
-`,
+    <path stroke-linecap="round" stroke-linejoin="round" d="M11.412 15.655 9.75 21.75l3.745-4.012M9.257 13.5H3.75l2.659-2.849m2.048-2.194L14.25 2.25 12 10.5h8.25l-4.707 5.043M8.457 8.457 3 3m5.457 5.457 7.086 7.086m0 0L21 21" />
+    `,
+	speech_bubble: `
+    <svg viewBox="0 0 65 62" fill="none" xmlns="http://www.w3.org/2000/svg">
+    <path d="M0.0711282 28.8731C-1.07931 45.9441 11.6006 60.7508 28.382 61.9211C37.3855 62.5571 45.7637 59.1226 51.741 53.1948L64.9961 54.0598L57.3181 45.7151C59.3439 41.9498 60.5944 37.6757 60.9195 33.1217C62.045 16.0508 49.3651 1.24403 32.5836 0.0737391C15.8022 -1.09655 1.24658 11.8021 0.0961336 28.8731H0.0711282Z" fill="white"/>
+    </svg>`,
 };
 
 export { icons, iconSizes as sizes };
