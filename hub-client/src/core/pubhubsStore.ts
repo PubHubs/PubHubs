@@ -388,7 +388,7 @@ const usePubHubs = defineStore('pubhubs', {
 		async sendPrivateReceipt(event: MatrixEvent) {
 			if (!event) return;
 			const rooms = useRooms();
-			if (event.getRoomId() && rooms.roomsSeen[event.getRoomId()!] && rooms.roomsSeen[event.getRoomId()!] >= event.localTimestamp ) {
+			if (event.getRoomId() && rooms.roomsSeen[event.getRoomId()!] && rooms.roomsSeen[event.getRoomId()!] >= event.localTimestamp) {
 				return;
 			}
 			const loggedInUser = useUser();
