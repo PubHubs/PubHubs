@@ -17,6 +17,8 @@ const usePubHubs = defineStore('pubhubs', {
 	state: () => ({
 		Auth: new Authentication(),
 		client: {} as MatrixClient,
+		publicRooms: [] as TPublicRoom[],
+		lastPublicCheck: 0,
 	}),
 
 	getters: {
@@ -71,10 +73,19 @@ const usePubHubs = defineStore('pubhubs', {
 			this.Auth.logout();
 		},
 
+		// Will check with the homeserver for changes in joined rooms and update the local situation to reflect that.
 		async updateRooms() {
 			const rooms = useRooms();
-			const joinedRooms = (await this.client.getJoinedRooms()).joined_rooms;
-			const currentRooms = this.client.getRooms().filter((room) => joinedRooms.indexOf(room.roomId) !== -1);
+			let knownRooms = this.client.getRooms(); // Just checks the clients store.
+			const joinedRooms = (await this.client.getJoinedRooms()).joined_rooms; //Actually makes an HTTP request to the Hub server.
+			if (knownRooms.length != joinedRooms.length) {
+				//The client store gets rooms by joining them, if we don't know any rooms let's join the joined rooms client-side.
+				for (const room_id of joinedRooms) {
+					await this.client.joinRoom(room_id);
+				}
+				knownRooms = this.client.getRooms();
+			}
+			const currentRooms = knownRooms.filter((room) => joinedRooms.indexOf(room.roomId) !== -1);
 			console.log('PubHubs.updateRooms');
 			rooms.updateRoomsWithMatrixRooms(currentRooms);
 			rooms.roomsLoaded = true;
@@ -145,6 +156,11 @@ const usePubHubs = defineStore('pubhubs', {
 			if (!this.client.publicRooms) {
 				return [];
 			}
+			if (Date.now() < this.lastPublicCheck + 4_000) {
+				//Only check again after 4 seconds.
+				return this.publicRooms;
+			}
+
 			let publicRoomsResponse = await this.client.publicRooms();
 			let public_rooms = publicRoomsResponse.chunk;
 
@@ -157,6 +173,8 @@ const usePubHubs = defineStore('pubhubs', {
 				});
 				public_rooms = public_rooms.concat(publicRoomsResponse.chunk);
 			}
+			this.lastPublicCheck = Date.now();
+			this.publicRooms = public_rooms;
 			return public_rooms;
 		},
 
@@ -173,7 +191,8 @@ const usePubHubs = defineStore('pubhubs', {
 		 * response
 		 */
 		async joinRoom(room_id: string) {
-			await this.client.joinRoom(room_id);
+			const room = await this.client.joinRoom(room_id);
+			this.client.store.storeRoom(room); //Let the client store the room exists. It will do it itself but in its own time. We want to go fast.
 			this.updateRooms();
 		},
 

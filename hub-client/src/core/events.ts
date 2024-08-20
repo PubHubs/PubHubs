@@ -2,7 +2,7 @@ import { SyncState } from 'matrix-js-sdk/lib/sync';
 import { MatrixClient, MatrixEvent, ClientEvent, Room as MatrixRoom, RoomEvent, RoomMemberEvent, RoomMember } from 'matrix-js-sdk';
 import { TEvent } from '@/model/events/TEvent';
 import { EventTimeLineHandler } from '@/core/eventTimeLineHandler';
-import { useSettings, User, useConnection, useUser, useRooms, Room } from '@/store/store';
+import { useSettings, User, useConnection, useUser, useRooms } from '@/store/store';
 import { usePubHubs } from '@/core/pubhubsStore';
 
 class Events {
@@ -11,7 +11,6 @@ class Events {
 
 	public constructor(client: MatrixClient) {
 		this.client = client;
-		this.client.on(RoomEvent.Name, this.eventRoomName);
 		this.client.on(RoomEvent.Timeline, (event: MatrixEvent, matrixRoom: MatrixRoom | undefined, toStartOfTimeline: boolean | undefined) => this.eventRoomTimeline(this.eventTimeHandler, event, matrixRoom, toStartOfTimeline));
 		this.client.on(RoomMemberEvent.Name, this.eventRoomMemberName);
 		this.client.on(RoomMemberEvent.Membership, this.eventRoomMemberMembership(this.client));
@@ -54,22 +53,6 @@ class Events {
 	/**
 	 * Matrix Events
 	 */
-
-	eventRoomName(matrixRoom: MatrixRoom) {
-		const rooms = useRooms();
-		const pubhubs = usePubHubs();
-		// Room display name can  be just Empty Room or display name can also be Empty Room followed by peudonym
-		// Therefore, I can't compare it directly with equality, going with 'includes()' function to compare.
-
-		if (!matrixRoom.name.includes('Empty')) {
-			// Check joined Room so that the PH client store is in sync with matrix for joined rooms.
-			pubhubs.client.getJoinedRooms().then((joinedRooms) => {
-				if (joinedRooms.joined_rooms.indexOf(matrixRoom.roomId) !== -1) {
-					rooms.addRoom(new Room(matrixRoom));
-				}
-			});
-		}
-	}
 
 	eventRoomTimeline(eventTimeLineHandler: EventTimeLineHandler, event: MatrixEvent, matrixRoom: MatrixRoom | undefined, toStartOfTimeline: boolean | undefined) {
 		if (!matrixRoom) return;
