@@ -59,6 +59,7 @@ const useRooms = defineStore('rooms', {
 			currentRoomId: '' as string,
 			roomsLoaded: false as boolean,
 			rooms: {} as { [index: string]: Room },
+			roomsSeen: {} as { [index: string]: number },
 			publicRooms: [] as Array<TPublicRoom>,
 			securedRooms: [] as Array<TSecuredRoom>,
 			roomNotices: {} as { [room_id: string]: { [user_id: string]: string[] } },

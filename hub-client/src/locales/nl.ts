@@ -111,7 +111,7 @@ const nl = {
 		read: 'Lees',
 		event: 'Evenement',
 		discussion: 'Discussie',
-		roomCreated: 'kamer aangemaakt',
+		roomCreated: 'Kamer aangemaakt',
 		discover: 'Ontdek kamers',
 	},
 	settings: {
