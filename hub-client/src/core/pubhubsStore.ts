@@ -114,7 +114,34 @@ const usePubHubs = defineStore('pubhubs', {
 			});
 		},
 
+		// wrapping API call to publicRooms, so it does not get called again when in progress.
+		// Both login and DiscoverRooms called this method which in some cases lead to slowing the process.
+		// Now we make sure the API is called just once, returning the result to all possible callers.
 		async getAllPublicRooms(): Promise<TPublicRoom[]> {
+			let publicRoomsLoading = null;
+
+			// if promise already running: return promise
+			if (publicRoomsLoading) {
+				return publicRoomsLoading;
+			}
+
+			// create promise
+			publicRoomsLoading = new Promise<TPublicRoom[]>((resolve, reject) => {
+				try {
+					resolve(this.performGetAllPublicRooms());
+				} catch (error) {
+					reject(error);
+				} finally {
+					publicRoomsLoading = null;
+				}
+			});
+
+			// return promise
+			return publicRoomsLoading;
+		},
+
+		// actual performing of publicRooms API call
+		async performGetAllPublicRooms(): Promise<TPublicRoom[]> {
 			if (!this.client.publicRooms) {
 				return [];
 			}
