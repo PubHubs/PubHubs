@@ -2,28 +2,26 @@
 	<Menu>
 		<InlineSpinner v-if="!rooms.roomsLoaded"></InlineSpinner>
 		<!-- There is always the general room -->
-		<template v-if="rooms.hasRooms">
-			<template v-for="room in rooms.sortedRoomsArray" :key="room.roomId">
-				<div v-if="showRoom(room)" :key="room.roomId" class="group" @click="toggleMenu.toggleGlobalMenu()">
-					<router-link :to="{ name: 'room', params: { id: room.roomId } }" v-slot="{ isActive }">
-						<MenuItem :roomInfo="room" :icon="roomIcon(room)" :active="isActive" :key="room.roomId">
-							<div class="flex justify-between gap-4 w-full">
-								<TruncatedText>
-									<PrivateRoomName v-if="room.isPrivateRoom()" :members="room.getOtherJoinedAndInvitedMembers()"></PrivateRoomName>
-									<RoomName v-else :room="room"></RoomName>
-								</TruncatedText>
-								<div class="flex gap-2">
-									<div class="flex gap-2 group-hover:opacity-0 opacity-100 transition-all duration-200 ease-in-out" v-if="settings.isFeatureEnabled(featureFlagType.notifications)">
-										<UnreadMessageBadge v-if="room.getRoomUnreadNotificationCount(NotificationCountType.Total) > 0">{{ room.getRoomUnreadNotificationCount(NotificationCountType.Total) }}</UnreadMessageBadge>
-										<UnreadMentionBadge v-if="room.getRoomUnreadNotificationCount(NotificationCountType.Highlight) > 0">{{ room.getRoomUnreadNotificationCount(NotificationCountType.Highlight) }}</UnreadMentionBadge>
-									</div>
-									<Icon type="unlink" class="cursor-pointer hover:text-red group-hover:opacity-100 opacity-0 transition-all duration-200 ease-in-out" @click.prevent="leaveRoom(room.roomId)"></Icon>
+		<template v-for="room in rooms.sortedRoomsArray" :key="room.roomId">
+			<div v-if="showRoom(room)" :key="room.roomId" class="group" @click="toggleMenu.toggleGlobalMenu()">
+				<router-link :to="{ name: 'room', params: { id: room.roomId } }" v-slot="{ isActive }">
+					<MenuItem :roomInfo="room" :icon="roomIcon(room)" :active="isActive" :key="room.roomId">
+						<div class="flex justify-between gap-4 w-full">
+							<TruncatedText>
+								<PrivateRoomName v-if="room.isPrivateRoom()" :members="room.getOtherJoinedAndInvitedMembers()"></PrivateRoomName>
+								<RoomName v-else :room="room"></RoomName>
+							</TruncatedText>
+							<div class="flex gap-2">
+								<div class="flex gap-2 group-hover:opacity-0 opacity-100 transition-all duration-200 ease-in-out" v-if="settings.isFeatureEnabled(featureFlagType.notifications)">
+									<UnreadMessageBadge v-if="room.getRoomUnreadNotificationCount(NotificationCountType.Total) > 0">{{ room.getRoomUnreadNotificationCount(NotificationCountType.Total) }}</UnreadMessageBadge>
+									<UnreadMentionBadge v-if="room.getRoomUnreadNotificationCount(NotificationCountType.Highlight) > 0">{{ room.getRoomUnreadNotificationCount(NotificationCountType.Highlight) }}</UnreadMentionBadge>
 								</div>
+								<Icon type="unlink" class="cursor-pointer hover:text-red group-hover:opacity-100 opacity-0 transition-all duration-200 ease-in-out" @click.prevent="leaveRoom(room.roomId)"></Icon>
 							</div>
-						</MenuItem>
-					</router-link>
-				</div>
-			</template>
+						</div>
+					</MenuItem>
+				</router-link>
+			</div>
 		</template>
 	</Menu>
 </template>
