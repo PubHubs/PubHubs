@@ -295,7 +295,7 @@ const useRooms = defineStore('rooms', {
 			this.securedRooms.push(newRoom);
 			this.fetchPublicRooms(); // Reset PublicRooms, so the new room is indeed recognised as a secured room. TODO: could this be improved without doing a fetch?
 			const pubhubs = usePubHubs();
-			pubhubs.updateRooms();
+			pubhubs.joinRoom(newRoom.room_id);
 			return { result: newRoom };
 		},
 
