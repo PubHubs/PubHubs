@@ -1,10 +1,8 @@
 <template>
 	<li class="menu-item pl-5 pr-8 flex gap-2 items-center hover:dark:bg-gray-middle hover:bg-lightgray py-2 transition-all duration-150 ease-in-out">
-		<router-link :to="to">
-			<Icon v-if="isSecuredRoom()" type="lock" class="shrink-0 text-blue dark:text-green"></Icon>
-			<Icon v-else class="shrink-0 text-blue dark:text-green" :type="icon"></Icon>
-			<TruncatedText class="w-full flex"><slot></slot></TruncatedText>
-		</router-link>
+		<Icon v-if="isSecuredRoom()" type="lock" class="shrink-0 text-blue dark:text-green"></Icon>
+		<Icon v-else class="shrink-0 text-blue dark:text-green" :type="icon"></Icon>
+		<TruncatedText class="w-full flex"><slot></slot></TruncatedText>
 	</li>
 </template>
 
@@ -15,17 +13,14 @@
 	const rooms = useRooms();
 
 	const props = defineProps({
-		to: {
-			type: String,
-		},
 		icon: {
 			type: String,
 			default: 'circle',
 		},
-		// active: {
-		// 	type: Boolean,
-		// 	default: false,
-		// },
+		active: {
+			type: Boolean,
+			default: false,
+		},
 		roomInfo: {
 			type: [Room, Object],
 			default: Object,

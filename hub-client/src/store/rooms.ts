@@ -294,8 +294,6 @@ const useRooms = defineStore('rooms', {
 			const newRoom = await api_synapse.apiPOST<TSecuredRoom>(api_synapse.apiURLS.securedRooms, room);
 			this.securedRooms.push(newRoom);
 			this.fetchPublicRooms(); // Reset PublicRooms, so the new room is indeed recognised as a secured room. TODO: could this be improved without doing a fetch?
-			const pubhubs = usePubHubs();
-			pubhubs.updateRooms();
 			return { result: newRoom };
 		},
 
