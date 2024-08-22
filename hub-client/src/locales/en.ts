@@ -139,6 +139,8 @@ const en = {
 		add_secured_room: 'Add a (secured) room',
 		name: 'Room name',
 		topic: 'Description',
+		public_rooms: 'Public Rooms',
+		secured_rooms: 'Secured Rooms',
 		room_type: 'Room type',
 		room_type_placeholder: 'example: ph.plugin.xxx',
 		edit_name: 'Change room name',
