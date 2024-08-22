@@ -137,6 +137,8 @@ const nl = {
 		add_secured_room: 'Voeg beveiligd kamer toe',
 		name: 'Naam van kamer',
 		topic: 'Omschrijving',
+		public_rooms: 'Publieke Kamers',
+		secured_rooms: 'Beveiligde Kamers',
 		room_type: 'Type kamer',
 		room_type_placeholder: 'bijvoorbeeld: ph.plugin.xxx',
 		edit_name: 'Pas naam van kamer aan',
