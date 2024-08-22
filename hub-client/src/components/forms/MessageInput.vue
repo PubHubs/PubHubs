@@ -3,12 +3,12 @@
 		<div name="input-container" class="min-w-3/4 w-[90%] relative rounded-xl bg-hub-background-4 dark:bg-hub-background-4">
 			<!-- Floating -->
 			<div>
-				<Popover v-if="showPopover" @close="togglePopover" class="absolute bottom-[105%]">
+				<Popover v-if="showPopover" @close="togglePopover" class="absolute bottom-[115%]">
 					<UploadPicker @click="clickedAttachment"></UploadPicker>
 					<SignedMessageButton @click="showSigningMessageMenu()"></SignedMessageButton>
 				</Popover>
 				<Mention :msg="value" :top="caretPos.top" :left="caretPos.left" @click="mentionUser($event)"></Mention>
-				<div name="emoji-picker" v-if="showEmojiPicker" class="absolute bottom-[105%] sm:right-0 z-20">
+				<div name="emoji-picker" v-if="showEmojiPicker" class="absolute bottom-[115%] sm:right-0 z-20">
 					<EmojiPicker @emojiSelected="clickedEmoticon" @close="showEmojiPicker = false" />
 				</div>
 			</div>
