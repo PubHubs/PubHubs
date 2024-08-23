@@ -1,6 +1,6 @@
 <template>
 	<div :class="settings.getActiveTheme">
-		<div class="h-screen text-black dark:bg-gray-darker dark:text-white">
+		<div class="h-dvh lg:h-screen text-black dark:bg-gray-darker dark:text-white">
 			<div class="2md:hidden w-16 h-16 absolute -mt-1 dark:text-black text-white" @click="toggleMenu.toggleMenu()">
 				<Icon v-if="toggleMenu.globalIsActive" type="returnmenu" size="2xl" viewBox="0,0,69,63" class="stroke-0 fill-gray-dark dark:fill-white"></Icon>
 				<Icon v-if="!toggleMenu.globalIsActive && !global.isModalVisible" type="hamburgermenu" size="2xl" viewBox="0,0,69,63" class="stroke-0 fill-gray-dark dark:fill-white"></Icon>
