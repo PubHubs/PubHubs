@@ -10,6 +10,8 @@
 All test done with complete PubHubs system. (PHC, minimal two Hubs, Global & Hub clients).
 Let console open to see if there are bugs, warnings etc.
 
+Also good practice: Do the tests on several screensizes (desktop, tablet, phone).
+
 ## Test functionility
 
 - [ ] Test the (new) functionality or solved bug.
