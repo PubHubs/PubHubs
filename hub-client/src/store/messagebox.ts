@@ -66,6 +66,7 @@ enum MessageType {
 
 	Sync = 'sync', // CHILD asks for syncing settings etc.
 	UnreadMessages = 'unreadmessages', // Sync total of unread messages for a hub
+	HubInformation = 'hubinformation', // Sync hub information (name) with hub client.
 	Settings = 'settings', // Sync settings
 	RoomChange = 'roomchange', // Change to a room - makes it possible to reflect the room in the url
 	AddAccessToken = 'addAccessToken', // Hub frame sends a access token for the global client to store in it's localstorage.

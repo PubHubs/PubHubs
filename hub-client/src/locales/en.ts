@@ -36,9 +36,9 @@ const en = {
 		submit: 'Submit',
 	},
 	home: {
-		hub_homepage_welcome: 'Welcome to this Hub!',
+		hub_homepage_welcome: 'Welcome to the {0}-hub!',
 		hub_homepage_join: 'Join this Hub',
-		hub_homepage_welcome_auth: 'Welcome to this Hub!',
+		hub_homepage_welcome_auth: 'Welcome to the {0}-hub.',
 		welcome: 'Welcome',
 		highlighted_hubs: 'Highlighted Hubs',
 		// Boven highlighted Hubs, iets afstand
