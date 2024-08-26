@@ -5,10 +5,11 @@
 				<HeaderFooter class="md:col-span-2 md:flex gap-4 bg-hub-background-2" :class="{ hidden: !hubSettings.mobileHubMenu }">
 					<template #header>
 						<div class="flex justify-between gap-4 items-end border-b h-full py-2 pl-5 mr-8">
-							<div class="flex h-full">
+							<div class="flex">
 								<Badge v-if="hubSettings.isSolo && settings.isFeatureEnabled(featureFlagType.notifications) && rooms.totalUnreadMessages > 0" class="-ml-2 -mt-2">{{ rooms.totalUnreadMessages }}</Badge>
-								<router-link to="/">
-									<Logo class="h-full"></Logo>
+								<router-link to="/" class="flex">
+									<Logo class="inline-block h-12"></Logo>
+									<TruncatedText class="mt-6">{{ settings.hub.name }}</TruncatedText>
 								</router-link>
 							</div>
 							<div>
@@ -89,7 +90,7 @@
 	import { useDialog } from '@/store/dialog';
 	import { useMenu } from '@/store/menu';
 	import { usePlugins } from '@/store/plugins';
-	import { featureFlagType, Message, MessageBoxType, MessageType, RoomType, Theme, TimeFormat, useHubSettings, useMessageBox, useRooms, useSettings, useUser } from '@/store/store';
+	import { HubInformation, featureFlagType, Message, MessageBoxType, MessageType, RoomType, Theme, TimeFormat, useHubSettings, useMessageBox, useRooms, useSettings, useUser } from '@/store/store';
 	import { useToggleMenu } from '@/store/toggleGlobalMenu';
 	import { getCurrentInstance, onMounted, ref, watch } from 'vue';
 	import { useI18n } from 'vue-i18n';
@@ -154,6 +155,11 @@
 
 		if (!hubSettings.isSolo) {
 			await messagebox.init(MessageBoxType.Child, hubSettings.parentUrl);
+
+			// Ask for Hub name etc.
+			messagebox.addCallback(MessageType.HubInformation, (message: Message) => {
+				settings.hub = message.content as HubInformation;
+			});
 
 			// Listen to roomchange
 			messagebox.addCallback(MessageType.RoomChange, (message: Message) => {

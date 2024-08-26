@@ -1,6 +1,6 @@
 <template>
 	<div class="flex flex-col w-6/12 mt-20 mx-auto text-center gap-2">
-		<H2 class="mb-4">{{ t('home.hub_homepage_welcome') }}</H2>
+		<H2 class="mb-4">{{ t('home.hub_homepage_welcome', [settings.hub.name]) }}</H2>
 		<Logo class="mx-auto max-w-24 max-h-20"></Logo>
 		<P class="mb-2">{{ t('onboarding.info_first_time') }}</P>
 		<P class="mb-2">{{ t('onboarding.info_abt_pseudonym') }}</P>
@@ -29,7 +29,7 @@
 </template>
 
 <script setup lang="ts">
-	import { useUser } from '@/store/store';
+	import { useUser, useSettings } from '@/store/store';
 	import { usePubHubs } from '@/core/pubhubsStore';
 	import { ref } from 'vue';
 
@@ -37,6 +37,7 @@
 	const { t } = useI18n();
 	const pubhubs = usePubHubs();
 	const user = useUser();
+	const settings = useSettings();
 
 	let submitted = ref(false);
 	let laterSubmit = ref(false);

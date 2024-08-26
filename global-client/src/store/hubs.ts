@@ -125,6 +125,9 @@ const useHubs = defineStore('hubs', {
 							const settings = useSettings();
 							settings.sendSettings();
 
+							// Send hub information
+							messagebox.sendMessage(new Message(MessageType.HubInformation, { name: hubId }));
+
 							// Let hub navigate to given room
 							if (roomId !== undefined && roomId !== '') {
 								messagebox.sendMessage(new Message(MessageType.RoomChange, roomId));

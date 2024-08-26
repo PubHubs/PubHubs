@@ -36,9 +36,9 @@ const nl = {
 		submit: 'Invoeren',
 	},
 	home: {
-		hub_homepage_welcome: 'Welkom bij deze Hub!',
+		hub_homepage_welcome: 'Welkom bij de {0}-hub!',
 		hub_homepage_join: 'Doe mee met deze Hub',
-		hub_homepage_welcome_auth: 'Welkom bij deze Hub!',
+		hub_homepage_welcome_auth: 'Welkom bij de {0}-hub.',
 		welcome: 'Welkom',
 		highlighted_hubs: 'Uitgelichte Hubs',
 	},
