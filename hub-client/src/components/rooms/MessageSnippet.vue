@@ -1,6 +1,8 @@
 <template>
 	<div class="bg-hub-background-3 flex px-2 gap-3 items-center rounded-md cursor-pointer">
-		<p v-if="showInReplyTo" class="text-nowrap">{{ $t('message.in_reply_to') }}</p>
+		<p v-if="showInReplyTo" class="text-nowrap">
+			{{ $t('message.in_reply_to') }}
+		</p>
 		<p :class="textColor(userColor)">
 			<UserDisplayName :user="event.sender"></UserDisplayName>
 		</p>

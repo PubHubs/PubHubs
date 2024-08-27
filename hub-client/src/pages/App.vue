@@ -28,9 +28,9 @@
 					</template>
 
 					<Menu>
-						<router-link v-for="(item, index) in menu.getMenu" :key="index" :to="item.to" v-slot="{ isActive }">
-							<MenuItem :icon="item.icon" :active="isActive" @click="toggleMenu.toggleGlobalMenu()">{{ $t(item.key) }}</MenuItem>
-						</router-link>
+						<template v-for="(item, index) in menu.getMenu" :key="index">
+							<MenuItem :to="item.to" :icon="item.icon" @click="toggleMenu.toggleGlobalMenu()">{{ $t(item.key) }}</MenuItem>
+						</template>
 					</Menu>
 
 					<H2 class="pl-5 border-b mr-8">{{ $t('menu.rooms') }}</H2>
@@ -45,9 +45,7 @@
 					<div v-if="disclosureEnabled && user.isAdmin">
 						<H2 class="pl-5 border-b mr-8">{{ $t('menu.moderation_tools') }}</H2>
 						<Menu>
-							<router-link :to="{ name: 'ask-disclosure' }" v-slot="{ isActive }">
-								<MenuItem icon="sign" :active="isActive">{{ $t('menu.moderation_tools_disclosure') }}</MenuItem>
-							</router-link>
+							<MenuItem :to="{ name: 'ask-disclosure' }" icon="sign">{{ $t('menu.moderation_tools_disclosure') }}</MenuItem>
 						</Menu>
 					</div>
 
@@ -56,9 +54,7 @@
 						<div v-if="user.isAdmin">
 							<H2 class="pl-5 border-b mr-8">{{ $t('menu.admin_tools') }}</H2>
 							<Menu>
-								<router-link :to="{ name: 'admin' }" v-slot="{ isActive }">
-									<MenuItem icon="admin" :active="isActive" @click="toggleMenu.toggleGlobalMenu()">{{ $t('menu.admin_tools_rooms') }}</MenuItem>
-								</router-link>
+								<MenuItem :to="{ name: 'admin' }" icon="admin" @click="toggleMenu.toggleGlobalMenu()">{{ $t('menu.admin_tools_rooms') }}</MenuItem>
 							</Menu>
 						</div>
 					</template>

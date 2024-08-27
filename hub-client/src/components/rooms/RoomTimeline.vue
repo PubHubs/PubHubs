@@ -1,8 +1,8 @@
 <template>
-	<div v-if="room" name="room-timeline" ref="elRoomTimeline" class="h-full relative flex flex-col gap-2 overflow-y-scroll" @scroll="onScroll">
+	<div v-if="room" ref="elRoomTimeline" class="h-full relative flex flex-col gap-2 overflow-y-scroll" @scroll="onScroll">
 		<InlineSpinner v-if="isLoadingNewEvents" class="fixed top-16"></InlineSpinner>
 		<DateDisplayer v-if="settings.isFeatureEnabled(featureFlagType.dateSplitter) && dateInformation !== 0" :scrollStatus="userHasScrolled" :eventTimeStamp="dateInformation.valueOf()"></DateDisplayer>
-		<div name="room-created-tag" v-if="oldestEventIsLoaded" class="rounded-xl flex items-center justify-center w-60 mx-auto mb-12 border border-solid border-black dark:border-white">{{ $t('rooms.roomCreated') }}</div>
+		<div v-if="oldestEventIsLoaded" class="rounded-xl flex items-center justify-center w-60 mx-auto mb-12 border border-solid border-black dark:border-white">{{ $t('rooms.roomCreated') }}</div>
 		<template v-for="item in roomTimeLine" :key="item.event.event_id">
 			<div ref="elRoomEvent" :id="item.event.event_id">
 				<RoomEvent :room-type="room.getType()" :event="item.event" class="room-event" @in-reply-to-click="onInReplyToClick"></RoomEvent>
