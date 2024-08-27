@@ -1,5 +1,5 @@
 <template>
-	<div :class="buttonClass" class="block font-semibold rounded-lg focus:outline-none focus:ring-2 focus:ring-opacity-75 text-center">
+	<div :class="buttonClass" class="block font-semibold rounded-lg focus:outline-none focus:ring-2 focus:ring-opacity-75 text-center" @click="click($event)">
 		<slot></slot>
 	</div>
 </template>
@@ -9,7 +9,7 @@
 	import { buttonSizes } from '@/assets/sizes';
 
 	const colorClass: { [key: string]: string } = {
-		disabled: 'bg-hub-background-3 bg-gray-lighter text-gray-lighter',
+		disabled: 'bg-gray-light text-gray-lighter',
 		white: 'bg-white hover:bg-blue text-black shadow-md cursor-pointer',
 		'gray-light': 'bg-gray-light hover:bg-blue text-white shadow-md cursor-pointer',
 		blue: 'bg-blue hover:bg-blue-dark text-white dark:hover:bg-white dark:hover:text-blue-dark shadow-md cursor-pointer',
@@ -41,4 +41,10 @@
 		}
 		return c;
 	});
+
+	function click(event: Event) {
+		if (props.disabled) {
+			event.stopImmediatePropagation();
+		}
+	}
 </script>
