@@ -1,7 +1,7 @@
 <template>
-	<p class="truncate" :title="slotText">
+	<span class="truncate w-full inline-block" :title="slotText">
 		<slot></slot>
-	</p>
+	</span>
 </template>
 
 <script setup lang="ts">

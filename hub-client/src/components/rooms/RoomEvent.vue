@@ -27,10 +27,13 @@
 							<button v-if="!msgIsNotSend" @click="reply" class="p-1 bg-gray-lighter hover:bg-gray-light dark:bg-gray-middle hover:dark:bg-gray-darker rounded-md">
 								<Icon :type="'reply'" :size="'xs'"></Icon>
 							</button>
-							<router-link v-if="!msgIsNotSend && user.isAdmin && event.sender !== user.user.userId" :to="{ name: 'ask-disclosure', query: { user: event.sender } }">
-								<button :title="$t('menu.moderation_tools_disclosure')" class="flex p-1 bg-gray-lighter hover:bg-gray-light dark:bg-gray-middle hover:dark:bg-gray-darker rounded-md">
-									<Icon :type="'warning'" :size="'xs'"></Icon>
-								</button>
+							<router-link
+								v-if="(!msgIsNotSend && user.isAdmin && event.sender !== user.user.userId) || true"
+								:to="{ name: 'ask-disclosure', query: { user: event.sender } }"
+								class="flex p-1 bg-gray-lighter hover:bg-gray-light dark:bg-gray-middle hover:dark:bg-gray-darker rounded-md"
+								:title="$t('menu.moderation_tools_disclosure')"
+							>
+								<Icon :type="'warning'" :size="'xs'"></Icon>
 							</router-link>
 						</RoomEventActionsPopup>
 						<ProfileAttributes v-if="props.roomType == RoomType.PH_MESSAGES_RESTRICTED" :user="event.sender" :room_id="event.room_id"></ProfileAttributes>
