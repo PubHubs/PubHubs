@@ -97,7 +97,7 @@ struct Handles<S: Server> {
     /// Receives commands from the [App]s
     command_receiver: mpsc::Receiver<Command<S>>,
 
-    /// To check whether [Handles::shutdown] was called before being dropped
+    /// To check whether [Handles::shutdown] was completed before being dropped
     drop_bomb: crate::misc::drop_ext::Bomb,
 }
 
@@ -106,9 +106,13 @@ impl<S: Server> Handles<S> {
     async fn run_until_command(&mut self) -> anyhow::Result<Command<S>> {
         tokio::select! {
             res = &mut self.actix_join_handle => {
-                res.with_context(|| format!("{}'s actix task joined unexpectedly", S::NAME))?
+                res.inspect_err(|err| log::error!("{}'s actix task joined unexpectedly: {}", S::NAME, err) )
+                    .with_context(|| format!("{}'s actix task joined unexpectedly", S::NAME))?
+                    .inspect_err(|err| log::error!("{}'s http server crashed: {}", S::NAME, err) )
                     .with_context(|| format!("{}'s http server crashed", S::NAME))?;
-                bail!("{} stopped unexpectedly", S::NAME);
+
+                log::error!("{}'s actix server stopped unexpectedly", S::NAME);
+                bail!("{}'s actix server stopped unexpectedly", S::NAME);
             },
             command_maybe = self.command_receiver.recv() => {
                 if let Some(command) = command_maybe {
@@ -116,9 +120,10 @@ impl<S: Server> Handles<S> {
                     // Clippy wants "Ok(command)", but that's not easy to read here
                     // (Maybe clippy is not aware of the tokio::select! macro?)
                     return Ok(command);
-                } else {
-                    bail!("{}'s command receiver is unexpectedly closed", S::NAME);
                 }
+
+                log::error!("{}'s command receiver is unexpectedly closed", S::NAME);
+                bail!("{}'s command receiver is unexpectedly closed", S::NAME);
             },
             res = &mut self.ph_join_handle => {
                 let modifier : crate::servers::server::BoxModifier<S> =
@@ -133,6 +138,8 @@ impl<S: Server> Handles<S> {
 
     /// Consumes this [Handles] shutting down the actix server and pubhubs tasks.
     async fn shutdown(self, graceful_actix_shutdown: bool) -> anyhow::Result<()> {
+        log::debug!("Shut down of {} started", S::NAME);
+
         self.ph_shutdown_sender.send(());
 
         // NOTE: this is a noop if the actix server is already stopped
@@ -160,6 +167,8 @@ impl<S: Server> Handles<S> {
         }
 
         self.drop_bomb.diffuse();
+
+        log::debug!("Shut down of {} completed", S::NAME);
 
         Ok(())
     }
@@ -315,7 +324,7 @@ impl<S: Server> Runner<S> {
     ) -> Result<crate::servers::server::BoxModifier<S>, anyhow::Error> {
         let mut handles = self.create_actix_server(&self.bind_to())?;
 
-        let result = self.run_until_modifier_inner(&mut handles).await;
+        let result = Self::run_until_modifier_inner(&mut handles, &self.pubhubs_server).await;
 
         handles.shutdown(self.graceful_shutdown()).await?;
 
@@ -323,8 +332,8 @@ impl<S: Server> Runner<S> {
     }
 
     async fn run_until_modifier_inner(
-        &mut self,
         handles: &mut Handles<S>,
+        pubhubs_server: &S,
     ) -> Result<crate::servers::server::BoxModifier<S>, anyhow::Error> {
         loop {
             match handles.run_until_command().await? {
@@ -335,7 +344,7 @@ impl<S: Server> Runner<S> {
                 }
                 Command::Inspect(inspector) => {
                     log::debug!("{}: applying inspection {}", S::NAME, inspector);
-                    inspector.inspect(&self.pubhubs_server);
+                    inspector.inspect(pubhubs_server);
                 }
             }
         }
