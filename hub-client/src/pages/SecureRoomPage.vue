@@ -1,5 +1,5 @@
 <template>
-	<div class="flex justify-center items-center h-screen dark:text-white">
+	<div class="flex justify-center items-center h-full dark:text-white">
 		<div class="grid grid-cols-2 gap-10 max-w-4xl mx-auto p-10">
 			<div class="flex flex-col justify-center gap-4">
 				<p class="text-2xl font-semibold">{{ $t('rooms.secure_room_message_heading') + ' ' + rooms.securedRoom.name }}</p>

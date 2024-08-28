@@ -1,7 +1,7 @@
 <template>
-	<div :class="settings.getActiveTheme">
-		<div v-if="setupReady" class="max-h-screen text-hub-text">
-			<div v-if="user.isLoggedIn" class="md:grid grid-cols-8">
+	<div :class="settings.getActiveTheme" class="h-full">
+		<div v-if="setupReady" class="h-full text-hub-text">
+			<div v-if="user.isLoggedIn" class="md:grid grid-cols-8 h-full">
 				<HeaderFooter class="md:col-span-2 md:flex gap-4 bg-hub-background-2" :class="{ hidden: !hubSettings.mobileHubMenu }">
 					<template #header>
 						<div class="flex justify-between gap-4 items-end border-b h-full py-2 pl-5 mr-8">
@@ -60,7 +60,7 @@
 					</template>
 				</HeaderFooter>
 
-				<div class="md:col-span-6 md:block dark:bg-gray-middle max-h-screen overflow-y-auto scrollbar" :class="{ hidden: hubSettings.mobileHubMenu }">
+				<div class="md:col-span-6 md:block dark:bg-gray-middle h-full overflow-y-auto scrollbar" :class="{ hidden: hubSettings.mobileHubMenu }">
 					<router-view></router-view>
 				</div>
 			</div>
