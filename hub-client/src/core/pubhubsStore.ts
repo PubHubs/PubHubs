@@ -83,7 +83,7 @@ const usePubHubs = defineStore('pubhubs', {
 			for (const room_id of joinedRooms) {
 				await this.client.joinRoom(room_id);
 			}
-			let knownRooms = this.client.getRooms();
+			const knownRooms = this.client.getRooms();
 
 			const currentRooms = knownRooms.filter((room) => joinedRooms.indexOf(room.roomId) !== -1);
 			console.log('PubHubs.updateRooms');
