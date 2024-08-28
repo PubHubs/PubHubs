@@ -6,7 +6,7 @@
 				<input type="file" id="avatar" accept="image/png, image/jpeg, image/svg" class="hidden" ref="file" @change="uploadAvatar($event)" />
 
 				<div class="md:w-4/6 flex flex-col md:flex-row justify-between">
-					<Avatar :class="bgColor(color(user.user.userId))" :fromHubSettings="true" :icon="true" :userId="user.user.userId" :img="data.avatarUrl.value" class="w-32 h-32 rounded-full"></Avatar>
+					<Avatar :class="bgColor(color(user.user.userId))" :userId="user.user.userId" :img="data.avatarUrl.value" class="w-32 h-32 rounded-full"></Avatar>
 
 					<div class="flex justify-center md:justify-normal md:flex-col md:space-y-4 mt-5 md:mr-3">
 						<label for="avatar">
@@ -103,27 +103,20 @@
 			updateData('displayName', '');
 		}
 		if (dataIsChanged('avatarUrl')) {
-			user.userAvatarUrl = data.avatarUrl.tmp;
-			await pubhubs.changeAvatar(user.userAvatarUrl);
+			await pubhubs.changeAvatar(data.avatarUrl.tmp);
 		}
 	}
 
 	async function uploadAvatar(event: Event) {
 		const accessToken = pubhubs.Auth.getAccessToken();
-		const errorMsg = t('errors.file_upload');
-		await fileUpload(errorMsg, accessToken, uploadUrl, imageTypes, event, (uri) => {
-			// Update the user store for avatar url to overcome synapse slow updates in user profile.
+		await fileUpload(accessToken, uploadUrl, imageTypes, event, (uri) => {
 			data.avatarUrl.tmp = uri;
-			// Update the form data i.e., there is a change and submit button is enabled.
 			updateData('avatarUrl', downloadUrl + uri.slice(6));
 		});
 	}
 
 	async function removeAvatar() {
-		// Update the user store for avatar url to overcome synapse slow updates in user profile.
-		user.userAvatarUrl = '';
-
-		// Update the form data i.e., there is a change and submit button is enabled.
+		data.avatarUrl.tmp = '';
 		updateData('avatarUrl', '');
 	}
 </script>
