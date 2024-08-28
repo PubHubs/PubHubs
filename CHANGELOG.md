@@ -2,6 +2,14 @@
 
 *Please add a brief description of any changes to be tested and any migrations to be performed here.*
 
+## 28 August 2024
+
+  _nothing in particular_
+
+## 15 August 2024
+
+  _nothing in particular_
+  
 ## 24 July 2024
 - app.pubhubs.net and main.pubhubs.ihub.ru.nl added to 'sso -> client_whitelist' in default homeserver.yaml and config_checker
 - Changed contained data of PHC Yivi QRs, so they can be scanned with camera and Yivi app.
