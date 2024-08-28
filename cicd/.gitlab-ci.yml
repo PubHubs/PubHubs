@@ -314,6 +314,7 @@ globalclient-format-check:
   script:
     - cd global-client
     - npx prettier ./src --check --ignore-unknown --config ./package.json
+    - echo "see https://gitlab.science.ru.nl/ilab/pubhubs_canonical/-/wikis/Contributing/(re)format-client-code"
   cache:
     key: ${CI_COMMIT_REF_SLUG}
     paths:
