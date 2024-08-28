@@ -76,15 +76,15 @@ const usePubHubs = defineStore('pubhubs', {
 		// Will check with the homeserver for changes in joined rooms and update the local situation to reflect that.
 		async updateRooms() {
 			const rooms = useRooms();
-			let knownRooms = this.client.getRooms(); // Just checks the clients store.
+			
 			const joinedRooms = (await this.client.getJoinedRooms()).joined_rooms; //Actually makes an HTTP request to the Hub server.
-			if (knownRooms.length != joinedRooms.length) {
-				//The client store gets rooms by joining them, if we don't know any rooms let's join the joined rooms client-side.
-				for (const room_id of joinedRooms) {
-					await this.client.joinRoom(room_id);
-				}
-				knownRooms = this.client.getRooms();
+			
+			// Make sure the metrix js SDK client is aware of all the rooms the user has joined
+			for (const room_id of joinedRooms) {
+				await this.client.joinRoom(room_id);
 			}
+			let knownRooms = this.client.getRooms();
+			
 			const currentRooms = knownRooms.filter((room) => joinedRooms.indexOf(room.roomId) !== -1);
 			console.log('PubHubs.updateRooms');
 			rooms.updateRoomsWithMatrixRooms(currentRooms);
