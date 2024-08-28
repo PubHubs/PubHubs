@@ -6,7 +6,7 @@
 		</div>
 		<!-- Normal Event -->
 		<div v-else class="group flex gap-4 pl-6 pr-3 transition-all duration-150 ease-in-out hover:bg-lightgray-light hover:dark:bg-hub-background-2 py-4">
-			<Avatar :userId="event.sender"></Avatar>
+			<Avatar :userId="event.sender" :img="user.avatarUrlOfUser ? pubhubs.getBaseUrl + '/_matrix/media/r0/download/' + user.avatarUrlOfUser.slice(6) : ''" :icon="true" :notMention="false" :fromHubSettings="false"></Avatar>
 			<div class="w-4/5 xl:w-3/5">
 				<div class="flex flex-wrap items-center">
 					<div class="relative flex flex-wrap items-center w-full gap-x-2 md:w-fit pr-2 min-h-6">
@@ -68,6 +68,7 @@
 	const messageActions = useMessageActions();
 
 	const user = useUser();
+	const pubhubs = usePubHubs();
 
 	const props = defineProps<{ event: TMessageEvent; roomType: RoomType | undefined }>();
 
