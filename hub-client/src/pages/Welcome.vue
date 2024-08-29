@@ -45,7 +45,7 @@
 	// Initialize to user Id - because we are asking user to set it later. We keep a check on displayName update based on userId.
 	let displayName = user.user.userId;
 
-	function updateData(name) {
+	function updateData(name: string) {
 		displayName = name;
 	}
 

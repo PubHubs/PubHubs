@@ -35,13 +35,14 @@
 
 <script setup lang="ts">
 	import { usePubHubs } from '@/core/pubhubsStore';
-	import { useUser, useHubSettings, useSettings } from '@/store/store';
+	import { useUser, useHubSettings, useSettings, useRooms } from '@/store/store';
 	import { onMounted } from 'vue';
 	import { useRouter } from 'vue-router';
 	const pubhubs = usePubHubs();
 	const router = useRouter();
 	const hubSettings = useHubSettings();
 	const settings = useSettings();
+	const rooms = useRooms();
 
 	onMounted(async () => {
 		// User has joined the for the first time. redirect to onboarding / welcome page.
@@ -51,6 +52,9 @@
 		if (!user.isLoggedIn) return;
 		const joinResponse = await pubhubs.hasUserJoinedHubFirstTime();
 		if (joinResponse.first_time_joined) router.push({ name: 'welcome' });
+
+		// Propagate to url in global client
+		rooms.changeRoom('');
 	});
 
 	type Props = {

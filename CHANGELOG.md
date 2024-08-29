@@ -1,6 +1,7 @@
 ## Changes to main, not yet committed to stable
 
 *Please add a brief description of any changes to be tested and any migrations to be performed here.*
+- Changed syncing of showing or hiding the bar between hub an global client. Also streamlined the message box start-up together with it. Changed it so the homepage of a hub does not keep the room id in the url fragment if it was there.
 
 ## 28 August 2024
 
