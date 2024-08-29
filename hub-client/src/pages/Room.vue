@@ -74,6 +74,7 @@
 
 		rooms.changeRoom(props.id);
 		if (!rooms.currentRoom) return;
+		searchParameters.value.roomId = rooms.currentRoom.roomId;
 		plugin.value = plugins.hasRoomPlugin(rooms.currentRoom);
 	}
 
