@@ -16,7 +16,7 @@
 
 <script setup lang="ts">
 	import { onMounted, watch } from 'vue';
-	import { useRooms } from '@/store/store';
+	import { useMessageBox, useRooms, Message, MessageType } from '@/store/store';
 	import { usePubHubs } from '@/core/pubhubsStore';
 	import { useRoute } from 'vue-router';
 
@@ -24,12 +24,14 @@
 
 	const pubhubs = usePubHubs();
 	const rooms = useRooms();
+	const messageBox = useMessageBox();
 
 	watch(route, update);
 
 	onMounted(update);
 
 	async function update() {
+		messageBox.sendMessage(new Message(MessageType.RoomChange, ''));
 		const access_token = pubhubs.Auth.getAccessToken();
 		rooms.yiviSecuredRoomflow(route.params.id as string, access_token);
 

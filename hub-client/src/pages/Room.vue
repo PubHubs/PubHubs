@@ -42,13 +42,12 @@
 	import { useRooms, useHubSettings } from '@/store/store';
 	import { PluginProperties, usePlugins } from '@/store/plugins';
 	import { TSearchParameters } from '@/model/model';
-	import { useToggleMenu } from '@/store/toggleGlobalMenu';
 
 	const route = useRoute();
 	const rooms = useRooms();
 	const plugins = usePlugins();
 	const plugin = ref(false as boolean | PluginProperties);
-	const toggleMenu = useToggleMenu();
+	const hubSettings = useHubSettings();
 
 	//Passed by the router
 	const props = defineProps({
@@ -67,11 +66,7 @@
 	});
 
 	function update() {
-		// REFACTOR NEEDED: https://gitlab.science.ru.nl/ilab/pubhubs_canonical/-/issues/783
-		if (useHubSettings().mobileHubMenu) {
-			toggleMenu.toggleGlobalMenu();
-		}
-
+		hubSettings.hideBar();
 		rooms.changeRoom(props.id);
 		if (!rooms.currentRoom) return;
 		searchParameters.value.roomId = rooms.currentRoom.roomId;

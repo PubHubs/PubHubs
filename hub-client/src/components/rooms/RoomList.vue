@@ -3,7 +3,7 @@
 	<Menu>
 		<template v-for="room in rooms.sortedRoomsArray" :key="room.roomId">
 			<template v-if="showRoom(room)">
-				<MenuItem :to="{ name: 'room', params: { id: room.roomId } }" :roomInfo="room" :icon="roomIcon(room)" :key="room.roomId" class="group inline-block w-full" @click="toggleMenu.toggleGlobalMenu()">
+				<MenuItem :to="{ name: 'room', params: { id: room.roomId } }" :roomInfo="room" :icon="roomIcon(room)" :key="room.roomId" @click="hubSettings.hideBar()" class="group inline-block w-full">
 					<span class="flex gap-2 w-full justify-between">
 						<TruncatedText>
 							<PrivateRoomName v-if="room.isPrivateRoom()" :members="room.getOtherJoinedAndInvitedMembers()"></PrivateRoomName>
@@ -24,22 +24,21 @@
 <script setup lang="ts">
 	import { useI18n } from 'vue-i18n';
 	import { useRouter } from 'vue-router';
-	import { Room, useRooms, useDialog, RoomType, useUser } from '@/store/store';
+	import { Room, useRooms, useDialog, RoomType, useUser, useHubSettings } from '@/store/store';
 	import { usePubHubs } from '@/core/pubhubsStore';
 	import { usePlugins, PluginProperties } from '@/store/plugins';
-	import { useToggleMenu } from '@/store/toggleGlobalMenu';
 	import { NotificationCountType } from 'matrix-js-sdk';
 	import { useSettings, featureFlagType } from '@/store/store';
 	import { isVisiblePrivateRoom } from '@/core/privateRoomNames';
 
 	const settings = useSettings();
+	const hubSettings = useHubSettings();
 
 	const { t } = useI18n();
 	const router = useRouter();
 	const rooms = useRooms();
 	const pubhubs = usePubHubs();
 	const plugins = usePlugins();
-	const toggleMenu = useToggleMenu();
 
 	const props = defineProps({
 		roomType: {

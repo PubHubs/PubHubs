@@ -1,7 +1,7 @@
 <template>
 	<div :class="settings.getActiveTheme" class="h-full">
 		<div class="h-full text-black dark:bg-gray-darker dark:text-white">
-			<div class="2md:hidden w-16 h-16 absolute -mt-1 dark:text-black text-white" @click="toggleMenu.toggleMenu()">
+			<div class="2md:hidden w-16 h-16 absolute -mt-1 dark:text-black text-white" @click="toggleMenu.toggleMenuAndSendToHub()">
 				<Icon v-if="toggleMenu.globalIsActive" type="returnmenu" size="2xl" viewBox="0,0,69,63" class="stroke-0 fill-gray-dark dark:fill-white"></Icon>
 				<Icon v-if="!toggleMenu.globalIsActive && !global.isModalVisible" type="hamburgermenu" size="2xl" viewBox="0,0,69,63" class="stroke-0 fill-gray-dark dark:fill-white"></Icon>
 			</div>
@@ -11,7 +11,7 @@
 						<div class="flex flex-col justify-between h-full">
 							<div class="flex-1 text-center w-fit mx-auto">
 								<router-link to="/">
-									<Icon type="pubhubs-home" size="3xl" class="text-white mx-auto" @click="toggleMenu.toggleMenu()"></Icon>
+									<Icon type="pubhubs-home" size="3xl" class="text-white mx-auto" @click="toggleMenu.hideMenuAndSendToHub()"></Icon>
 								</router-link>
 
 								<Line v-if="global.loggedIn && global.hasPinnedHubs" class="m-6 mt-8"></Line>
