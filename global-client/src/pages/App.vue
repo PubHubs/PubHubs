@@ -1,15 +1,15 @@
 <template>
-	<div :class="settings.getActiveTheme">
-		<div class="h-screen text-black dark:bg-gray-darker dark:text-white">
+	<div :class="settings.getActiveTheme" class="h-full">
+		<div class="h-full text-black dark:bg-gray-darker dark:text-white">
 			<div class="2md:hidden w-16 h-16 absolute -mt-1 dark:text-black text-white" @click="toggleMenu.toggleMenu()">
 				<Icon v-if="toggleMenu.globalIsActive" type="returnmenu" size="2xl" viewBox="0,0,69,63" class="stroke-0 fill-gray-dark dark:fill-white"></Icon>
 				<Icon v-if="!toggleMenu.globalIsActive && !global.isModalVisible" type="hamburgermenu" size="2xl" viewBox="0,0,69,63" class="stroke-0 fill-gray-dark dark:fill-white"></Icon>
 			</div>
 			<div class="flex h-full">
-				<div id="pubhubs-bar" class="flex-none w-32 bg-ph-background-3 dark:bg-ph-background-5 h-screen pt-20 2md:pt-2 2md:block" :class="{ hidden: !toggleMenu.globalIsActive }">
+				<div id="pubhubs-bar" class="flex-none w-32 bg-ph-background-3 dark:bg-ph-background-5 h-full pt-20 2md:pt-2 2md:block" :class="{ hidden: !toggleMenu.globalIsActive }">
 					<Modal :show="global.isModalVisible">
 						<div class="flex flex-col justify-between h-full">
-							<div class="flex-1 text-center">
+							<div class="flex-1 text-center w-fit mx-auto">
 								<router-link to="/">
 									<Icon type="pubhubs-home" size="3xl" class="text-white mx-auto" @click="toggleMenu.toggleMenu()"></Icon>
 								</router-link>
@@ -34,7 +34,7 @@
 					</Modal>
 				</div>
 
-				<div v-if="hubs.hasHubs" class="flex-1 dark:bg-gray-dark overflow-y-auto">
+				<div v-if="hubs.hasHubs" class="flex-1 dark:bg-gray-dark overflow-y-auto scrollbar">
 					<router-view></router-view>
 				</div>
 			</div>
@@ -45,10 +45,14 @@
 </template>
 
 <script setup lang="ts">
-	import { onMounted, ref } from 'vue';
-	import { useGlobal, useSettings, Hub, HubList, useHubs, useDialog } from '@/store/store';
-	import { useI18n } from 'vue-i18n';
+	import { HubList, useDialog, useGlobal, useHubs, useSettings } from '@/store/store';
 	import { useToggleMenu } from '@/store/toggleGlobalMenu';
+	import { onMounted, ref } from 'vue';
+	import { useI18n } from 'vue-i18n';
+	import { SMI } from '../../../hub-client/src/dev/StatusMessage';
+	import { Logger } from '@/../../hub-client/src/dev/Logger';
+
+	const LOGGER = new Logger('GC');
 
 	const global = useGlobal();
 	const settings = useSettings();
@@ -62,11 +66,15 @@
 	const pubHubsUrl = _env.PUBHUBS_URL;
 
 	onMounted(async () => {
-		console.clear();
+		LOGGER.log(SMI.STARTUP_TRACE, 'App.vue onMounted...');
+
 		settings.initI18b({ locale: locale, availableLocales: availableLocales });
 		dialog.asGlobal();
 
 		if (await global.checkLoginAndSettings()) {
+			// Change active language to the user's preferred language
+			locale.value = settings.getActiveLanguage;
+
 			// set language when changed
 			settings.$subscribe(() => {
 				locale.value = settings.getActiveLanguage;
@@ -81,6 +89,8 @@
 			});
 		}
 		await addHubs();
+
+		LOGGER.log(SMI.STARTUP_TRACE, 'App.vue onMounted done', { language: settings.getActiveLanguage });
 	});
 
 	async function addHubs() {

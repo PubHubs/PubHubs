@@ -6,14 +6,14 @@
 					<div class="flex justify-between relative gap-x-2 h-full w-full md:pr-3">
 						<div v-if="rooms.currentRoom" class="flex shrink-0 gap-x-1 md:gap-x-4 items-center w-9/12 overflow-hidden">
 							<Icon :type="rooms.currentRoom.isSecuredRoom() ? 'lock' : 'room'" class="text-blue shrink-0" size="lg"></Icon>
-							<div class="flex flex-col">
-								<TruncatedText>
-									<H1 class="text-hub-accent">
+							<div class="flex flex-col w-9/12">
+								<H1 class="text-hub-accent">
+									<TruncatedText>
 										{{ $t('rooms.room') }}
 										<PrivateRoomName v-if="rooms.currentRoom.isPrivateRoom()" :members="rooms.currentRoom.getOtherJoinedAndInvitedMembers()"></PrivateRoomName>
 										<RoomName v-else :room="rooms.currentRoom"></RoomName>
-									</H1>
-								</TruncatedText>
+									</TruncatedText>
+								</H1>
 								<TruncatedText class="hidden md:inline">
 									<RoomTopic :room="rooms.currentRoom"></RoomTopic>
 								</TruncatedText>
@@ -24,7 +24,7 @@
 				</div>
 			</template>
 
-			<RoomTimeline v-if="rooms.rooms[id]" class="scrollbar" :room="rooms.rooms[id]" :scroll-to-event-id="scrollToEventId" @scrolled-to-event-id="scrollToEventId = ''"></RoomTimeline>
+			<RoomTimeline v-if="rooms.rooms[id]" :room="rooms.rooms[id]" :scroll-to-event-id="scrollToEventId" @scrolled-to-event-id="scrollToEventId = ''"></RoomTimeline>
 
 			<template #footer>
 				<MessageInput></MessageInput>
@@ -74,6 +74,7 @@
 
 		rooms.changeRoom(props.id);
 		if (!rooms.currentRoom) return;
+		searchParameters.value.roomId = rooms.currentRoom.roomId;
 		plugin.value = plugins.hasRoomPlugin(rooms.currentRoom);
 	}
 

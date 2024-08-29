@@ -17,6 +17,8 @@ const usePubHubs = defineStore('pubhubs', {
 	state: () => ({
 		Auth: new Authentication(),
 		client: {} as MatrixClient,
+		publicRooms: [] as TPublicRoom[],
+		lastPublicCheck: 0,
 	}),
 
 	getters: {
@@ -71,10 +73,19 @@ const usePubHubs = defineStore('pubhubs', {
 			this.Auth.logout();
 		},
 
+		// Will check with the homeserver for changes in joined rooms and update the local situation to reflect that.
 		async updateRooms() {
 			const rooms = useRooms();
-			const joinedRooms = (await this.client.getJoinedRooms()).joined_rooms;
-			const currentRooms = this.client.getRooms().filter((room) => joinedRooms.indexOf(room.roomId) !== -1);
+
+			const joinedRooms = (await this.client.getJoinedRooms()).joined_rooms; //Actually makes an HTTP request to the Hub server.
+
+			// Make sure the metrix js SDK client is aware of all the rooms the user has joined
+			for (const room_id of joinedRooms) {
+				await this.client.joinRoom(room_id);
+			}
+			const knownRooms = this.client.getRooms();
+
+			const currentRooms = knownRooms.filter((room) => joinedRooms.indexOf(room.roomId) !== -1);
 			console.log('PubHubs.updateRooms');
 			rooms.updateRoomsWithMatrixRooms(currentRooms);
 			rooms.roomsLoaded = true;
@@ -114,10 +125,42 @@ const usePubHubs = defineStore('pubhubs', {
 			});
 		},
 
+		// wrapping API call to publicRooms, so it does not get called again when in progress.
+		// Both login and DiscoverRooms called this method which in some cases lead to slowing the process.
+		// Now we make sure the API is called just once, returning the result to all possible callers.
 		async getAllPublicRooms(): Promise<TPublicRoom[]> {
+			let publicRoomsLoading = null;
+
+			// if promise already running: return promise
+			if (publicRoomsLoading) {
+				return publicRoomsLoading;
+			}
+
+			// create promise
+			publicRoomsLoading = new Promise<TPublicRoom[]>((resolve, reject) => {
+				try {
+					resolve(this.performGetAllPublicRooms());
+				} catch (error) {
+					reject(error);
+				} finally {
+					publicRoomsLoading = null;
+				}
+			});
+
+			// return promise
+			return publicRoomsLoading;
+		},
+
+		// actual performing of publicRooms API call
+		async performGetAllPublicRooms(): Promise<TPublicRoom[]> {
 			if (!this.client.publicRooms) {
 				return [];
 			}
+			if (Date.now() < this.lastPublicCheck + 4_000) {
+				//Only check again after 4 seconds.
+				return this.publicRooms;
+			}
+
 			let publicRoomsResponse = await this.client.publicRooms();
 			let public_rooms = publicRoomsResponse.chunk;
 
@@ -130,6 +173,8 @@ const usePubHubs = defineStore('pubhubs', {
 				});
 				public_rooms = public_rooms.concat(publicRoomsResponse.chunk);
 			}
+			this.lastPublicCheck = Date.now();
+			this.publicRooms = public_rooms;
 			return public_rooms;
 		},
 
@@ -146,7 +191,8 @@ const usePubHubs = defineStore('pubhubs', {
 		 * response
 		 */
 		async joinRoom(room_id: string) {
-			await this.client.joinRoom(room_id);
+			const room = await this.client.joinRoom(room_id);
+			this.client.store.storeRoom(room); //Let the client store the room exists. It will do it itself but in its own time. We want to go fast.
 			this.updateRooms();
 		},
 
@@ -360,6 +406,10 @@ const usePubHubs = defineStore('pubhubs', {
 
 		async sendPrivateReceipt(event: MatrixEvent) {
 			if (!event) return;
+			const rooms = useRooms();
+			if (event.getRoomId() && rooms.roomsSeen[event.getRoomId()!] && rooms.roomsSeen[event.getRoomId()!] >= event.localTimestamp) {
+				return;
+			}
 			const loggedInUser = useUser();
 			const content = {
 				'm.read.private': {
@@ -369,6 +419,7 @@ const usePubHubs = defineStore('pubhubs', {
 					},
 				},
 			};
+			rooms.roomsSeen[event.getRoomId()!] = event.localTimestamp;
 			await this.client.sendReceipt(event, ReceiptType.ReadPrivate, content);
 		},
 

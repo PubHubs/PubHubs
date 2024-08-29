@@ -1,6 +1,10 @@
 Before merging to stable, please check the following.
 
-As a general tip while testing, keep two browser windows open, one for a existing user (it's easiest if this is a hub admin), and an incognito one for a new user that will be registered during testing. This allows seeing messages being send and easier testing.
+General tips:
+
+- While testing, keep two browser windows open, one for a existing user (it's easiest if this is a hub admin), and an incognito one for a new user that will be registered during testing. This allows seeing messages being send and easier testing.
+- If you do the merge together with a collegua, one of you should do the tests on an mobile phone and the other on a desktop.
+
   - [ ] Set feature flags appropriately for stable. In the [settings store](https://gitlab.science.ru.nl/ilab/pubhubs_canonical/-/blob/main/hub-client/src/store/settings.ts#L75) you will find the hub-client's default settings in an object called 'defaultSettings'. Set the feature flags in there by commenting out the features flags for main and uncommenting the flags for stable. After the merge you will change them back. 
   - [ ] Check that CI/CD pipeline in main has completed without errors. If the pipeline is blocked, then manually run all the stages to ensure that there is no error. This might take a bit of time therefore, this should be the first step for the merge to stable.
   - [ ] Notify the others that they do not merge anything into main until the merge to stable is done. (otherwise you will merge changes that may not be deployed to main and therefore not tested by the steps below).
@@ -29,9 +33,9 @@ As a general tip while testing, keep two browser windows open, one for a existin
             - Check if the badges are shown properly (in line with which (non-)profile attributes are set).
             - Try to vary a bit in what you do exactly on each merge.
           - [ ] In general act like a regular PubHubs user and try and see if everything works as expected.
-        - [ ] With the new user:
+        - [ ] With the new user (not an admin!):
           - [ ] Send a message in the public room.
-          - [ ] Send a message in the secured room.
+          - [ ] Send a message in the secured room (if you are admin, you can allways enter a secured room, so important to test this with a normal user).
           - [ ] Sending a private message.
         - [ ] Change displayname and avatar (make sure other users see this change).
         - [ ] Change Theme & Language, and see they are stored/fetched after logout/login.

@@ -1,14 +1,15 @@
 <template>
-	<div :class="settings.getActiveTheme">
-		<div v-if="setupReady" class="max-h-screen text-hub-text">
-			<div v-if="user.isLoggedIn" class="md:grid grid-cols-8">
+	<div :class="settings.getActiveTheme" class="h-full">
+		<div v-if="setupReady" class="h-full text-hub-text">
+			<div v-if="user.isLoggedIn" class="md:grid grid-cols-8 h-full">
 				<HeaderFooter class="md:col-span-2 md:flex gap-4 bg-hub-background-2" :class="{ hidden: !hubSettings.mobileHubMenu }">
 					<template #header>
 						<div class="flex justify-between gap-4 items-end border-b h-full py-2 pl-5 mr-8">
-							<div class="flex h-full">
+							<div class="flex">
 								<Badge v-if="hubSettings.isSolo && settings.isFeatureEnabled(featureFlagType.notifications) && rooms.totalUnreadMessages > 0" class="-ml-2 -mt-2">{{ rooms.totalUnreadMessages }}</Badge>
-								<router-link to="/">
-									<Logo class="h-full"></Logo>
+								<router-link to="/" class="flex">
+									<Logo class="inline-block h-12"></Logo>
+									<TruncatedText class="mt-6">{{ settings.hub.name }}</TruncatedText>
 								</router-link>
 							</div>
 							<div>
@@ -27,9 +28,9 @@
 					</template>
 
 					<Menu>
-						<router-link v-for="(item, index) in menu.getMenu" :key="index" :to="item.to" v-slot="{ isActive }">
-							<MenuItem :icon="item.icon" :active="isActive" @click="toggleMenu.toggleGlobalMenu()">{{ $t(item.key) }}</MenuItem>
-						</router-link>
+						<template v-for="(item, index) in menu.getMenu" :key="index">
+							<MenuItem :to="item.to" :icon="item.icon" @click="toggleMenu.toggleGlobalMenu()">{{ $t(item.key) }}</MenuItem>
+						</template>
 					</Menu>
 
 					<H2 class="pl-5 border-b mr-8">{{ $t('menu.rooms') }}</H2>
@@ -44,9 +45,7 @@
 					<div v-if="disclosureEnabled && user.isAdmin">
 						<H2 class="pl-5 border-b mr-8">{{ $t('menu.moderation_tools') }}</H2>
 						<Menu>
-							<router-link :to="{ name: 'ask-disclosure' }" v-slot="{ isActive }">
-								<MenuItem icon="sign" :active="isActive">{{ $t('menu.moderation_tools_disclosure') }}</MenuItem>
-							</router-link>
+							<MenuItem :to="{ name: 'ask-disclosure' }" icon="sign">{{ $t('menu.moderation_tools_disclosure') }}</MenuItem>
 						</Menu>
 					</div>
 
@@ -55,15 +54,13 @@
 						<div v-if="user.isAdmin">
 							<H2 class="pl-5 border-b mr-8">{{ $t('menu.admin_tools') }}</H2>
 							<Menu>
-								<router-link :to="{ name: 'admin' }" v-slot="{ isActive }">
-									<MenuItem icon="admin" :active="isActive" @click="toggleMenu.toggleGlobalMenu()">{{ $t('menu.admin_tools_rooms') }}</MenuItem>
-								</router-link>
+								<MenuItem :to="{ name: 'admin' }" icon="admin" @click="toggleMenu.toggleGlobalMenu()">{{ $t('menu.admin_tools_rooms') }}</MenuItem>
 							</Menu>
 						</div>
 					</template>
 				</HeaderFooter>
 
-				<div class="md:col-span-6 md:block dark:bg-gray-middle max-h-screen overflow-y-auto scrollbar" :class="{ hidden: hubSettings.mobileHubMenu }">
+				<div class="md:col-span-6 md:block dark:bg-gray-middle h-full overflow-y-auto scrollbar" :class="{ hidden: hubSettings.mobileHubMenu }">
 					<router-view></router-view>
 				</div>
 			</div>
@@ -82,16 +79,18 @@
 </template>
 
 <script setup lang="ts">
-	import { onMounted, ref, getCurrentInstance, watch } from 'vue';
-	import { RouteParamValue, useRouter } from 'vue-router';
-	import { Message, MessageBoxType, MessageType, Theme, TimeFormat, useHubSettings, useMessageBox, RoomType, useRooms, useSettings, featureFlagType, useUser } from '@/store/store';
-	import { useDialog } from '@/store/dialog';
 	import { useMatrixFiles } from '@/composables/useMatrixFiles';
 	import { usePubHubs } from '@/core/pubhubsStore';
+	import { LOGGER } from '@/dev/Logger';
+	import { SMI } from '@/dev/StatusMessage';
+	import { useDialog } from '@/store/dialog';
 	import { useMenu } from '@/store/menu';
 	import { usePlugins } from '@/store/plugins';
-	import { useI18n } from 'vue-i18n';
+	import { HubInformation, featureFlagType, Message, MessageBoxType, MessageType, RoomType, Theme, TimeFormat, useHubSettings, useMessageBox, useRooms, useSettings, useUser } from '@/store/store';
 	import { useToggleMenu } from '@/store/toggleGlobalMenu';
+	import { getCurrentInstance, onMounted, ref, watch } from 'vue';
+	import { useI18n } from 'vue-i18n';
+	import { RouteParamValue, useRouter } from 'vue-router';
 
 	const { locale, availableLocales } = useI18n();
 	const router = useRouter();
@@ -124,6 +123,8 @@
 	});
 
 	onMounted(async () => {
+		LOGGER.log(SMI.STARTUP_TRACE, 'App.vue onMounted');
+
 		settings.initI18b({ locale: locale, availableLocales: availableLocales });
 		// set language when changed
 		settings.$subscribe(() => {
@@ -141,6 +142,8 @@
 			}
 		}
 		await startMessageBox();
+
+		LOGGER.log(SMI.STARTUP_TRACE, 'App.vue onMounted done');
 	});
 
 	async function startMessageBox() {
@@ -148,6 +151,11 @@
 
 		if (!hubSettings.isSolo) {
 			await messagebox.init(MessageBoxType.Child, hubSettings.parentUrl);
+
+			// Ask for Hub name etc.
+			messagebox.addCallback(MessageType.HubInformation, (message: Message) => {
+				settings.hub = message.content as HubInformation;
+			});
 
 			// Listen to roomchange
 			messagebox.addCallback(MessageType.RoomChange, (message: Message) => {

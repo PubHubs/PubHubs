@@ -1,8 +1,8 @@
 <template>
-	<div class="flex flex-row gap-x-2 items-center text-nowrap">
+	<span class="flex flex-row gap-x-2 items-center text-nowrap">
 		<span :class="`${textColor(color(user))} font-semibold text-sm`">{{ filters.maxLengthText(displayName, settings.getDisplayNameMaxLength) }}</span>
 		<span class="text-xs font-normal">{{ filters.extractPseudonym(user) }}</span>
-	</div>
+	</span>
 </template>
 
 <script setup lang="ts">

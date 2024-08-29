@@ -3,8 +3,13 @@
  */
 
 // import { defineStore } from 'pinia';
+
 import { fallbackLanguage } from '@/i18n';
 import { Message, MessageBoxType, MessageType, useMessageBox } from '@/store/messagebox';
+
+type HubInformation = {
+	name: string;
+};
 
 enum featureFlagType {
 	signedMessages = 'signedMessages',
@@ -33,6 +38,8 @@ enum TimeFormat {
 }
 
 interface Settings {
+	hub: HubInformation;
+
 	/**
 	 * The number of events to load on a page in a room.
 	 */
@@ -55,6 +62,7 @@ interface Settings {
 
 	/**
 	 * UI Language
+	 * Should have type 'Language', but for some reason the build gives an error when trying to import it from @/i18n.
 	 */
 	language: string;
 
@@ -71,6 +79,9 @@ interface Settings {
 }
 
 const defaultSettings: Settings = {
+	hub: {
+		name: 'PubHubs',
+	},
 	theme: Theme.System,
 	timeformat: TimeFormat.format24,
 	pagination: 150,
@@ -254,4 +265,4 @@ const createSettings = (defineStore: any) => {
 	});
 };
 
-export { createSettings, defaultSettings, featureFlagType, Settings, Theme, TimeFormat, type i18nSettings };
+export { createSettings, defaultSettings, featureFlagType, Settings, Theme, TimeFormat, type HubInformation, type i18nSettings };
