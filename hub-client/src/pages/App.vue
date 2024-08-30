@@ -15,7 +15,8 @@
 							<div>
 								<Avatar
 									:userId="user.user.userId"
-									:img="user.avatarUrlOfUser ? pubhubs.getBaseUrl + '/_matrix/media/r0/download/' + user.avatarUrlOfUser.slice(6) : ''"
+									:img="avatar"
+									:icon="true"
 									@click="
 										settingsDialog = true;
 										hubSettings.hideBar();
@@ -78,6 +79,7 @@
 </template>
 
 <script setup lang="ts">
+	import { useMatrixFiles } from '@/composables/useMatrixFiles';
 	import { usePubHubs } from '@/core/pubhubsStore';
 	import { LOGGER } from '@/dev/Logger';
 	import { SMI } from '@/dev/StatusMessage';
@@ -98,12 +100,14 @@
 	const messagebox = useMessageBox();
 	const dialog = useDialog();
 	const pubhubs = usePubHubs();
+	const { downloadUrl } = useMatrixFiles();
 	const plugins = usePlugins();
 	const menu = useMenu();
 	const settingsDialog = ref(false);
 
 	const setupReady = ref(false);
 	const disclosureEnabled = settings.isFeatureEnabled('disclosure');
+	const avatar = ref('');
 
 	watch(
 		() => rooms.totalUnreadMessages,
@@ -127,8 +131,13 @@
 
 		if (window.location.hash !== '#/hub/') {
 			await pubhubs.login();
-			setupReady.value = true; // needed if running only the hub-client
 			router.push({ name: 'home' });
+			setupReady.value = true; // needed if running only the hub-client
+
+			const avatarUrl = await pubhubs.getAvatarUrl();
+			if (avatarUrl !== '') {
+				avatar.value = downloadUrl + avatarUrl.slice(6);
+			}
 		}
 		await startMessageBox();
 
