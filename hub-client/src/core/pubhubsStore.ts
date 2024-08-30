@@ -10,7 +10,7 @@ import { TMentions, TMessageEvent, TTextMessageEventContent } from '@/model/even
 import { TSearchParameters, TSearchResult } from '@/model/model';
 import Room from '@/model/rooms/Room';
 import { RoomType, TPublicRoom, useConnection, User, useRooms, useUser } from '@/store/store';
-import { ContentHelpers, EventType, MatrixClient, MatrixError, MatrixEvent, Room as MatrixRoom, User as MatrixUser, MsgType } from 'matrix-js-sdk';
+import { ContentHelpers, MatrixClient, MatrixError, MatrixEvent, Room as MatrixRoom, User as MatrixUser, MsgType } from 'matrix-js-sdk';
 import { ReceiptType } from 'matrix-js-sdk/lib/@types/read_receipts';
 
 const usePubHubs = defineStore('pubhubs', {
@@ -35,31 +35,28 @@ const usePubHubs = defineStore('pubhubs', {
 		},
 
 		async login() {
-			console.log('PubHubs.login');
+			console.log('START PubHubs.login');
 			this.Auth.login()
 				.then((x) => {
-					// console.log('PubHubs.logged in (X)');
+					console.log('PubHubs.logged in (X) - started client');
 					this.client = x as MatrixClient;
 					const events = new Events(this.client as MatrixClient);
 					events.initEvents();
 				})
-				.then(() => {
-					// console.log('PubHubs.logged in ()');
+				.then(async () => {
+					console.log('PubHubs.logged in ()');
 					const connection = useConnection();
 					connection.on();
 					const user = useUser();
 					const newUser = this.client.getUser(user.user.userId);
 					if (newUser !== null) {
 						user.setUser(newUser as User);
-						user.fetchDisplayName(this.client as MatrixClient)
-							.then(() => user.fetchIsAdministrator(this.client as MatrixClient))
-							.then(() => {
-								api_synapse.setAccessToken(this.Auth.getAccessToken()!); //Since user isn't null, we expect there to be an access token.
-								api_matrix.setAccessToken(this.Auth.getAccessToken()!);
-							})
-							.then(() => {
-								this.updateRooms();
-							});
+						api_synapse.setAccessToken(this.Auth.getAccessToken()!); //Since user isn't null, we expect there to be an access token.
+						api_matrix.setAccessToken(this.Auth.getAccessToken()!);
+						await user.fetchDisplayName(this.client as MatrixClient);
+						user.userAvatarUrl = await user.fetchAvatarUrl(this.client as MatrixClient);
+						user.fetchIsAdministrator(this.client as MatrixClient);
+						this.updateRooms();
 					}
 				})
 				.catch((error) => {
@@ -497,8 +494,6 @@ const usePubHubs = defineStore('pubhubs', {
 		async changeAvatar(url: string) {
 			try {
 				await this.client.setAvatarUrl(url);
-				//Quickly update the avatar url.
-				await this.client.sendStateEvent('', EventType.RoomAvatar, { url }, '');
 			} catch (error: any) {
 				this.showError(error);
 			}
