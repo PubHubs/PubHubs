@@ -73,7 +73,7 @@
 		<div v-if="signingMessage" class="absolute bottom-[10%] md:left-[40%]" id="yivi-web-form"></div>
 
 		<div class="text-black dark:bg-gray-dark dark:text-white">
-			<FileUploadDialog :file="fileInfo" :mxcPath="uri" v-if="fileUploadDialog" @close="closeMenus()"></FileUploadDialog>
+			<FileUpload :file="fileInfo" :mxcPath="uri" v-if="fileUploadDialog" @close="closeMenus()"></FileUpload>
 			<!-- todo: move this into UploadPicker? -->
 			<input type="file" :accept="getTypesAsString(allTypes)" class="attach-file" ref="elFileInput" @change="uploadFile($event)" hidden />
 		</div>
@@ -92,7 +92,7 @@
 	import { useI18n } from 'vue-i18n';
 
 	import { YiviSigningSessionResult } from '@/lib/signedMessages';
-	import { fileUpload } from '@/composables/fileUpload';
+	import { fileUpload as uploadHandler } from '@/composables/fileUpload';
 
 	const { t } = useI18n();
 	const route = useRoute();
@@ -176,7 +176,7 @@
 		const accessToken = pubhubs.Auth.getAccessToken();
 		const target = event.currentTarget as HTMLInputElement;
 		const errorMsg = t('errors.file_upload');
-		fileUpload(errorMsg, accessToken, uploadUrl, allTypes, event, (url) => {
+		uploadHandler(errorMsg, accessToken, uploadUrl, allTypes, event, (url) => {
 			if (target) {
 				const file = target.files && target.files[0];
 				if (file) {

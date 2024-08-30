@@ -26,8 +26,6 @@ const defaultUser = {} as User;
 
 type State = {
 	user: User;
-	// To overcome synapse slow update to avatar url
-	userAvatarUrl: string;
 	isAdministrator: boolean;
 };
 
@@ -39,17 +37,12 @@ type getProfileInfoResponseType = {
 const useUser = defineStore('user', {
 	state: (): State => ({
 		user: defaultUser,
-		userAvatarUrl: '',
 		isAdministrator: false,
 	}),
 
 	getters: {
 		isLoggedIn({ user }) {
 			return typeof user.userId === 'string';
-		},
-
-		avatarUrlOfUser({ userAvatarUrl }) {
-			return userAvatarUrl;
 		},
 
 		isAdmin({ isAdministrator }) {
@@ -77,7 +70,6 @@ const useUser = defineStore('user', {
 			if (client.getProfileInfo) {
 				const response: getProfileInfoResponseType = await client.getProfileInfo(this.user.userId, 'avatar_url');
 				if (typeof response.avatar_url === 'string') {
-					this.user.setAvatarUrl(response.avatar_url);
 					return response.avatar_url;
 				}
 			}
