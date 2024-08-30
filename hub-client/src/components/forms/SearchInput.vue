@@ -1,7 +1,8 @@
 <template>
+	<!-- Desktop search component -->
 	<div class="hidden md:flex items-center relative" v-click-outside="reset">
 		<input
-			class="w-full md:pr-8 py-1 border-none rounded-md bg-gray-lighter placeholder:text-black dark:bg-gray-darker dark:text-white dark:placeholder:text-gray-light focus:border-black focus:outline-0 focus:outline-offset-0 focus:ring-0"
+			class="w-full min-w-48 md:pr-8 py-1 border-none rounded-md bg-gray-lighter placeholder:text-black dark:bg-gray-darker dark:text-white dark:placeholder:text-gray-light focus:border-black focus:outline-0 focus:outline-offset-0 focus:ring-0"
 			type="text"
 			v-model="value"
 			:placeholder="$t('others.search_room')"
@@ -17,40 +18,48 @@
 			"
 		/>
 		<Icon class="-ml-6 search-icon dark:text-gray-light -scale-100 -rotate-90" type="search" size="sm" @click="submit()"></Icon>
-		<div v-if="searched" class="absolute w-full bg-gray-lighter dark:bg-gray-darker top-full rounded-md overflow-hidden">
-			<template v-if="searchResults && searchResults.length > 0">
-				<div v-for="item in searchResults" :key="item.event_id" class="group">
-					<a href="#" @click.prevent="onScrollToEventId(item.event_id)">
-						<div class="flex gap-2 group-hover:bg-gray-light group-hover:dark:bg-gray p-2">
-							<Avatar :userId="item.event_sender" class="flex-none h-6 w-6"></Avatar>
-							<TruncatedText>{{ item.event_body }}</TruncatedText>
-						</div>
-					</a>
-				</div>
-			</template>
-			<template v-else>
-				<p v-if="value !== ''" class="p-2">{{ $t('others.search_nothing_found') }}</p>
-			</template>
-		</div>
 	</div>
 
-	<!-- Mobile version of the input field will be shwon instead of the above one on smaller screens. -->
+	<!-- Mobile search component. -->
 	<div class="md:hidden h-full w-full flex justify-end items-end absolute pr-2 bottom-2">
-		<div class="flex gap-4 w-[35px] rounded-md focus-within:w-full focus-within:bg-hub-background-4 focus-within:dark:bg-hub-background-3 transition-all duration-200 justify-end relative items-center max-w-full overflow-hidden">
+		<div class="flex gap-4 w-[35px] rounded-md focus-within:w-full focus-within:bg-hub-background-4 focus-within:dark:bg-hub-background-3 transition-all duration-200 justify-end relative items-center max-w-full">
 			<input
 				class="h-10 flex-1 w-full placeholder:text-black dark:text-white dark:placeholder:text-gray-light bg-transparent border-none focus:outline-0 focus:outline-offset-0 focus:ring-0"
 				type="text"
 				v-model="value"
-				:placeholder="$t('others.search')"
-				:title="$t('others.search')"
-				@keydown="changed()"
-				@keydown.enter="submit()"
-				@keydown.esc="cancel()"
+				:placeholder="$t('others.search_room')"
+				:title="$t('others.search_room')"
+				@keydown="
+					changed();
+					reset();
+				"
+				@keydown.enter="search()"
+				@keydown.esc="
+					cancel();
+					reset();
+				"
 			/>
 			<button class="dark:text-gray-lighter px-1 rounded-full bg-hub-background-4 dark:bg-gray-darker flex justify-center items-center aspect-[1]">
 				<Icon class="search-icon -scale-100 -rotate-90 px-1" type="search" size="md"></Icon>
 			</button>
 		</div>
+	</div>
+
+    <!-- Search results -->
+	<div v-if="searched" class="absolute right-2 md:right-0 top-16 md:top-20 w-full max-w-80 bg-gray-lighter dark:bg-gray-darker rounded-b-md max-h-[500%] overflow-y-auto scrollbar">
+		<template v-if="searchResults && searchResults.length > 0">
+			<div v-for="item in searchResults" :key="item.event_id" class="group">
+				<a href="#" @click.prevent="onScrollToEventId(item.event_id)">
+					<div class="flex gap-2 group-hover:bg-gray-light group-hover:dark:bg-gray p-2">
+						<Avatar :userId="item.event_sender" class="flex-none h-6 w-6"></Avatar>
+						<TruncatedText>{{ item.event_body }}</TruncatedText>
+					</div>
+				</a>
+			</div>
+		</template>
+		<template v-else>
+			<p v-if="value !== ''" class="p-2">{{ $t('others.search_nothing_found') }}</p>
+		</template>
 	</div>
 </template>
 
