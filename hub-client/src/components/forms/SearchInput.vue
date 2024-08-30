@@ -1,5 +1,6 @@
 <template>
 	<!-- Desktop search component -->
+	<!-- Desktop search component -->
 	<div class="hidden md:flex items-center relative" v-click-outside="reset">
 		<input
 			class="w-full min-w-48 md:pr-8 py-1 border-none rounded-md bg-gray-lighter placeholder:text-black dark:bg-gray-darker dark:text-white dark:placeholder:text-gray-light focus:border-black focus:outline-0 focus:outline-offset-0 focus:ring-0"
@@ -45,7 +46,7 @@
 		</div>
 	</div>
 
-    <!-- Search results -->
+	<!-- Search results -->
 	<div v-if="searched" class="absolute right-2 md:right-0 top-16 md:top-20 w-full max-w-80 bg-gray-lighter dark:bg-gray-darker rounded-b-md max-h-[500%] overflow-y-auto scrollbar">
 		<template v-if="searchResults && searchResults.length > 0">
 			<div v-for="item in searchResults" :key="item.event_id" class="group">
