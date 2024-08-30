@@ -103,20 +103,27 @@
 			updateData('displayName', '');
 		}
 		if (dataIsChanged('avatarUrl')) {
-			await pubhubs.changeAvatar(data.avatarUrl.tmp);
+			user.userAvatarUrl = data.avatarUrl.tmp;
+			await pubhubs.changeAvatar(user.userAvatarUrl);
 		}
 	}
 
 	async function uploadAvatar(event: Event) {
 		const accessToken = pubhubs.Auth.getAccessToken();
-		await fileUpload(accessToken, uploadUrl, imageTypes, event, (uri) => {
+		const errorMsg = t('errors.file_upload');
+		await fileUpload(errorMsg, accessToken, uploadUrl, imageTypes, event, (uri) => {
+			// Update the user store for avatar url to overcome synapse slow updates in user profile.
 			data.avatarUrl.tmp = uri;
+			// Update the form data i.e., there is a change and submit button is enabled.
 			updateData('avatarUrl', downloadUrl + uri.slice(6));
 		});
 	}
 
 	async function removeAvatar() {
+		// Update the user store for avatar url to overcome synapse slow updates in user profile.
 		data.avatarUrl.tmp = '';
+
+		// Update the form data i.e., there is a change and submit button is enabled.
 		updateData('avatarUrl', '');
 	}
 </script>
