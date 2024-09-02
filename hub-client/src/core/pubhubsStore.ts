@@ -13,13 +13,18 @@ import { RoomType, TPublicRoom, useConnection, User, useRooms, useUser } from '@
 import { ContentHelpers, MatrixClient, MatrixError, MatrixEvent, Room as MatrixRoom, User as MatrixUser, MsgType } from 'matrix-js-sdk';
 import { ReceiptType } from 'matrix-js-sdk/lib/@types/read_receipts';
 
+
+let publicRoomsLoading: Promise<any> | null = null; // outside of defineStore to guarantee lifetime, not accessible outside this module
+
 const usePubHubs = defineStore('pubhubs', {
+
 	state: () => ({
 		Auth: new Authentication(),
 		client: {} as MatrixClient,
 		publicRooms: [] as TPublicRoom[],
 		lastPublicCheck: 0,
 	}),
+
 
 	getters: {
 		getBaseUrl(state) {
@@ -126,8 +131,6 @@ const usePubHubs = defineStore('pubhubs', {
 		// Both login and DiscoverRooms called this method which in some cases lead to slowing the process.
 		// Now we make sure the API is called just once, returning the result to all possible callers.
 		async getAllPublicRooms(): Promise<TPublicRoom[]> {
-			let publicRoomsLoading = null;
-
 			// if promise already running: return promise
 			if (publicRoomsLoading) {
 				return publicRoomsLoading;
