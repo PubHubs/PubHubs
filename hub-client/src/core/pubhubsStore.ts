@@ -13,18 +13,15 @@ import { RoomType, TPublicRoom, useConnection, User, useRooms, useUser } from '@
 import { ContentHelpers, MatrixClient, MatrixError, MatrixEvent, Room as MatrixRoom, User as MatrixUser, MsgType } from 'matrix-js-sdk';
 import { ReceiptType } from 'matrix-js-sdk/lib/@types/read_receipts';
 
-
 let publicRoomsLoading: Promise<any> | null = null; // outside of defineStore to guarantee lifetime, not accessible outside this module
 
 const usePubHubs = defineStore('pubhubs', {
-
 	state: () => ({
 		Auth: new Authentication(),
 		client: {} as MatrixClient,
 		publicRooms: [] as TPublicRoom[],
 		lastPublicCheck: 0,
 	}),
-
 
 	getters: {
 		getBaseUrl(state) {
@@ -142,9 +139,10 @@ const usePubHubs = defineStore('pubhubs', {
 					resolve(this.performGetAllPublicRooms());
 				} catch (error) {
 					reject(error);
-				} finally {
-					publicRoomsLoading = null;
 				}
+			}).then((x) => {
+				publicRoomsLoading = null;
+				return x;
 			});
 
 			// return promise
@@ -156,7 +154,7 @@ const usePubHubs = defineStore('pubhubs', {
 			if (!this.client.publicRooms) {
 				return [];
 			}
-			if (Date.now() < this.lastPublicCheck + 4_000) {
+			if (Date.now() < this.lastPublicCheck + 2_500) {
 				//Only check again after 4 seconds.
 				return this.publicRooms;
 			}
