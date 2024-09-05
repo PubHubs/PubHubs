@@ -11,7 +11,7 @@ General tips:
   - [ ] You're merging from main into stable (and not from some feature branch.) 
   - [ ] Review and update the [CHANGELOG](CHANGELOG.md) to reflect the state after the merge into stable.
     - [ ] Scan through all changes in merge request to see if there is any issue.
-    - [ ] Set the new version number in the [CHANGELOG](CHANGELOG.md) and also in ([how to decide which version](https://gitlab.science.ru.nl/ilab/pubhubs_canonical/-/wikis/Tech-Information/Versioning)):
+    - [ ] Set the new version number  ([how to decide which version](https://gitlab.science.ru.nl/ilab/pubhubs_canonical/-/wikis/Tech-Information/Versioning)) in the [CHANGELOG](CHANGELOG.md) and also in:
       - [ ] https://gitlab.science.ru.nl/ilab/pubhubs_canonical/-/blob/main/pubhubs/Cargo.toml
       - [ ] https://gitlab.science.ru.nl/ilab/pubhubs_canonical/-/blob/main/hub-client/package.json
       - [ ] https://gitlab.science.ru.nl/ilab/pubhubs_canonical/-/blob/main/global-client/package.json
