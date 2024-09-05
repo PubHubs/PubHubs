@@ -62,17 +62,6 @@ const useUser = defineStore('user', {
 			this.user = user;
 		},
 
-		async fetchDisplayName(client: MatrixClient) {
-			if (client.getProfileInfo) {
-				const response: getProfileInfoResponseType = await client.getProfileInfo(this.user.userId, 'displayname');
-				if (typeof response.displayname === 'string') {
-					this.user.setDisplayName(response.displayname);
-					return response.displayname;
-				}
-			}
-			return '';
-		},
-
 		async fetchAvatarUrl(client: MatrixClient) {
 			if (client.getProfileInfo) {
 				const response: getProfileInfoResponseType = await client.getProfileInfo(this.user.userId, 'avatar_url');
