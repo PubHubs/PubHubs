@@ -11,6 +11,10 @@ General tips:
   - [ ] You're merging from main into stable (and not from some feature branch.) 
   - [ ] Review and update the [CHANGELOG](CHANGELOG.md) to reflect the state after the merge into stable.
     - [ ] Scan through all changes in merge request to see if there is any issue.
+    - [ ] Set the new version number in the [CHANGELOG](CHANGELOG.md) and also in ([how to decide which version](https://gitlab.science.ru.nl/ilab/pubhubs_canonical/-/wikis/Tech-Information/Versioning)):
+      - [ ] https://gitlab.science.ru.nl/ilab/pubhubs_canonical/-/blob/main/pubhubs/Cargo.toml
+      - [ ] https://gitlab.science.ru.nl/ilab/pubhubs_canonical/-/blob/main/hub-client/package.json
+      - [ ] https://gitlab.science.ru.nl/ilab/pubhubs_canonical/-/blob/main/global-client/package.json
   - [ ] Before proceeding with the folloing steps please check that the pipeline has been successfully completed. 
   - [ ] Please check that the following works on https://main.pubhubs.ihub.ru.nl/client :
       - [ ] Test basic pubhubs functionality
@@ -54,12 +58,13 @@ General tips:
       - Note for registering a *new* user, with a fresh email address: If possible, tips are if you have a gmail account you can add +<date> before the '@' and add a card for that, if you have a mail domain with a catch-all you can create a new mail address and add a card for that.
     - [ ] Anything related specifically to your merge request.
   - [ ] Make issues for the problems. If they are serious:  fix or revert, if possible.
+  - [ ] Tag the merge commit with the latest version number.
   - [ ] Merge stable back into main. Do this on your machine, not via a gitlab merge request (which will make an extra commit leading to out-of-sync main and stable). To check if main and stable are merged correctly, go to the [repository graph](https://gitlab.science.ru.nl/ilab/pubhubs_canonical/-/network/main?ref_type=heads) and check if main and stable are pointing to the same commit. See the screenshot below. (If you already merged the updated dependencies to main, main will be ahead of stable)
 
   ![image](/uploads/478c467465270fe24b4e3ec6ee32cc3b/image.png)
   - [ ] Reset the [feature flags](https://gitlab.science.ru.nl/ilab/pubhubs_canonical/-/blob/main/hub-client/src/store/settings.ts#L75) so the proper flags are enabled for the main branch.
   - [ ] Check this list and cleanup items with due date passed, and add due dates to items that are not in active development anymore.
-     
+       
   (The `merge-to-stable` merge request template can be edited [here](https://gitlab.science.ru.nl/ilab/pubhubs_canonical/-/edit/main/.gitlab/merge_request_templates/merge-to-stable.md).)
   - [ ] Celebrate!
   
