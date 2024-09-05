@@ -44,7 +44,7 @@
 					<component :is="event.plugin.component" :event="event">{{ event.plugin.component }}</component>
 				</template>
 				<template v-else>
-					<MessageSnippet v-if="inReplyTo" @click="onInReplyToClick" :event="inReplyTo" :showInReplyTo="true"></MessageSnippet>
+					<MessageSnippet v-if="inReplyTo" @click="onInReplyToClick" :event="inReplyTo" :showInReplyTo="true" :room="room"></MessageSnippet>
 					<Message v-if="event.content.msgtype === 'm.text'" :event="event"></Message>
 					<MessageSigned v-if="event.content.msgtype === 'pubhubs.signed_message'" :message="event.content.signed_message"></MessageSigned>
 					<MessageFile v-if="event.content.msgtype === 'm.file'" :message="event.content"></MessageFile>
