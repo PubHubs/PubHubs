@@ -15,7 +15,7 @@
 
 			<div class="h-10 w-full flex items-center" v-if="messageActions.replyingTo">
 				<p class="ml-4 whitespace-nowrap mr-2">{{ $t('message.in_reply_to') }}</p>
-				<MessageSnippet class="w-[85%]" :event="messageActions.replyingTo"></MessageSnippet>
+				<MessageSnippet class="w-[85%]" :event="messageActions.replyingTo" :room="room"></MessageSnippet>
 				<button class="mr-4 ml-auto" @click="messageActions.replyingTo = undefined">
 					<Icon type="closingCross" size="sm"></Icon>
 				</button>
@@ -90,6 +90,7 @@
 	import { useMessageActions } from '@/store/message-actions';
 	import filters from '@/core/filters';
 	import { useI18n } from 'vue-i18n';
+	import Room from '@/model/rooms/Room';
 
 	import { YiviSigningSessionResult } from '@/lib/signedMessages';
 	import { fileUpload } from '@/composables/fileUpload';
@@ -100,6 +101,7 @@
 	const pubhubs = usePubHubs();
 	const messageActions = useMessageActions();
 
+	const props = defineProps({ room: Room });
 	const emit = defineEmits(usedEvents);
 	const { value, reset, changed, cancel } = useFormInputEvents(emit);
 	const { allTypes, getTypesAsString, uploadUrl } = useMatrixFiles();
