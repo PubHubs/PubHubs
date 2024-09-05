@@ -55,7 +55,6 @@ const usePubHubs = defineStore('pubhubs', {
 						user.setUser(newUser as User);
 						api_synapse.setAccessToken(this.Auth.getAccessToken()!); //Since user isn't null, we expect there to be an access token.
 						api_matrix.setAccessToken(this.Auth.getAccessToken()!);
-						await user.fetchDisplayName(this.client as MatrixClient);
 						user.userAvatarUrl = await user.fetchAvatarUrl(this.client as MatrixClient);
 						user.fetchIsAdministrator(this.client as MatrixClient);
 						this.updateRooms();
