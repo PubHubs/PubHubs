@@ -225,6 +225,19 @@ impl<
     }
 }
 
+/// [Modifier] that stops the server
+pub struct Exiter;
+
+impl<S: Server> Modifier<S> for Exiter {
+    fn modify(self: Box<Self>, _server: &mut S) -> bool {
+        false
+    }
+
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> Result<(), std::fmt::Error> {
+        f.write_str("exiter")
+    }
+}
+
 /// Owned dynamically typed [Modifier].
 pub type BoxModifier<S> = Box<dyn Modifier<S>>;
 
@@ -274,6 +287,9 @@ pub enum Command<S: Server> {
 
     /// Calls the enclosed function on the server
     Inspect(BoxInspector<S>),
+
+    /// Stops the server
+    Exit,
 }
 
 impl<S: Server> std::fmt::Display for Command<S> {
@@ -281,6 +297,7 @@ impl<S: Server> std::fmt::Display for Command<S> {
         match self {
             Command::Inspect(inspector) => write!(f, "inspector {}", inspector),
             Command::Modify(modifier) => write!(f, "modifier {}", modifier),
+            Command::Exit => write!(f, "exit"),
         }
     }
 }

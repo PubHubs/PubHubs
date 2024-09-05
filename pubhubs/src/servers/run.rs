@@ -4,6 +4,7 @@ use std::rc::Rc;
 
 use actix_web::web;
 use anyhow::{bail, Context as _, Result};
+use core::convert::Infallible;
 use tokio::sync::mpsc;
 
 use crate::servers::{for_all_servers, App, AppBase, AppCreator, Command, Server};
@@ -11,6 +12,10 @@ use crate::servers::{for_all_servers, App, AppBase, AppCreator, Command, Server}
 /// A set of running PubHubs servers.
 pub struct Set {
     joinset: tokio::task::JoinSet<Result<()>>,
+
+    /// `shutdown_sender` closes when `Set` is dropped of which the servers are notified
+    /// by the Receivers they get.
+    shutdown_sender: tokio::sync::broadcast::Sender<Infallible>,
 }
 
 impl Set {
@@ -19,16 +24,23 @@ impl Set {
         let rt_handle: tokio::runtime::Handle = tokio::runtime::Handle::current();
         let mut joinset = tokio::task::JoinSet::<Result<()>>::new();
 
+        let (shutdown_sender, _) = tokio::sync::broadcast::channel(1); // NB capacity of 0 is not allowed
+
         macro_rules! run_server {
             ($server:ident) => {
                 if config.$server.is_some() {
                     let config = config.clone();
                     let rt_handle = rt_handle.clone();
+                    let shutdown_receiver = shutdown_sender.subscribe();
 
                     // We use spawn_blocking instead of spawn, because we want a separate thread
                     // for each server to run on
                     joinset.spawn_blocking(|| -> Result<()> {
-                        Self::run_server::<crate::servers::$server::Server>(config, rt_handle)
+                        Self::run_server::<crate::servers::$server::Server>(
+                            config,
+                            rt_handle,
+                            shutdown_receiver,
+                        )
                     });
                 }
             };
@@ -36,15 +48,23 @@ impl Set {
 
         for_all_servers!(run_server);
 
-        Ok(Self { joinset })
+        Ok(Self {
+            joinset,
+            shutdown_sender,
+        })
     }
 
+    // Creates a server from the given `config` and run it ont the given tokio runtime.
+    //
+    // Abort when the `shutdown_receiver` channel is closed.
     fn run_server<S: Server>(
         config: crate::servers::Config,
         rt_handle: tokio::runtime::Handle,
+        shutdown_receiver: tokio::sync::broadcast::Receiver<Infallible>,
     ) -> Result<()> {
         let localset = tokio::task::LocalSet::new();
-        let fut = localset.run_until(crate::servers::run::Runner::<S>::new(&config)?.run());
+        let fut = localset
+            .run_until(crate::servers::run::Runner::<S>::new(&config, shutdown_receiver)?.run());
 
         let result = rt_handle.block_on(fut);
 
@@ -77,6 +97,7 @@ impl Set {
 /// Runs a [Server].
 pub struct Runner<ServerT: Server> {
     pubhubs_server: Rc<ServerT>,
+    shutdown_receiver: tokio::sync::broadcast::Receiver<Infallible>,
 }
 
 /// The handles to control an [actix_web::dev::Server] running a pubhubs [Server].
@@ -103,17 +124,10 @@ struct Handles<S: Server> {
 
 impl<S: Server> Handles<S> {
     /// Drives the actix server until a [Command] is received - which is returned
-    async fn run_until_command(&mut self) -> anyhow::Result<Command<S>> {
+    async fn run_until_command(&mut self, runner: &mut Runner<S>) -> anyhow::Result<Command<S>> {
         tokio::select! {
-            res = &mut self.actix_join_handle => {
-                res.inspect_err(|err| log::error!("{}'s actix task joined unexpectedly: {}", S::NAME, err) )
-                    .with_context(|| format!("{}'s actix task joined unexpectedly", S::NAME))?
-                    .inspect_err(|err| log::error!("{}'s http server crashed: {}", S::NAME, err) )
-                    .with_context(|| format!("{}'s http server crashed", S::NAME))?;
 
-                log::error!("{}'s actix server stopped unexpectedly", S::NAME);
-                bail!("{}'s actix server stopped unexpectedly", S::NAME);
-            },
+            // received command from running pubhubs/actix server
             command_maybe = self.command_receiver.recv() => {
                 if let Some(command) = command_maybe {
                     #[allow(clippy::needless_return)]
@@ -125,6 +139,8 @@ impl<S: Server> Handles<S> {
                 log::error!("{}'s command receiver is unexpectedly closed", S::NAME);
                 bail!("{}'s command receiver is unexpectedly closed", S::NAME);
             },
+
+            // pubhubs server exited, returning a modification request
             res = &mut self.ph_join_handle => {
                 let modifier : crate::servers::server::BoxModifier<S> =
                 res.with_context(|| format!("{}'s pubhubs task joined unexpectedly", S::NAME))?
@@ -132,7 +148,30 @@ impl<S: Server> Handles<S> {
                     .with_context(|| format!("{}'s pubhubs task stopped without being asked to", S::NAME))?;
 
                 return Ok(Command::Modify(modifier));
-            }
+            },
+
+            // the thread running this server wants us to quit
+            Err(err) = runner.shutdown_receiver.recv() => {
+                match err {
+                    tokio::sync::broadcast::error::RecvError::Lagged(_) => {
+                        panic!("got impossible `Lagged` error from shutdown sender");
+                    },
+                    tokio::sync::broadcast::error::RecvError::Closed => {
+                        return Ok(Command::Exit);
+                    },
+                }
+            },
+
+            // the actix serer exited unexpectedly
+            res = &mut self.actix_join_handle => {
+                res.inspect_err(|err| log::error!("{}'s actix task joined unexpectedly: {}", S::NAME, err) )
+                    .with_context(|| format!("{}'s actix task joined unexpectedly", S::NAME))?
+                    .inspect_err(|err| log::error!("{}'s http server crashed: {}", S::NAME, err) )
+                    .with_context(|| format!("{}'s http server crashed", S::NAME))?;
+
+                log::error!("{}'s actix server stopped unexpectedly", S::NAME);
+                bail!("{}'s actix server stopped unexpectedly", S::NAME);
+            },
         };
     }
 
@@ -140,7 +179,12 @@ impl<S: Server> Handles<S> {
     async fn shutdown(self, graceful_actix_shutdown: bool) -> anyhow::Result<()> {
         log::debug!("Shut down of {} started", S::NAME);
 
-        self.ph_shutdown_sender.send(());
+        if self.ph_shutdown_sender.send(()).is_err() {
+            bail!(
+                "failed to notify {server_name} of shutdown",
+                server_name = S::NAME
+            );
+        }
 
         // NOTE: this is a noop if the actix server is already stopped
         self.actix_server_handle.stop(graceful_actix_shutdown).await;
@@ -236,10 +280,16 @@ impl<S: Server> Handle<S> {
 }
 
 impl<S: Server> Runner<S> {
-    pub fn new(global_config: &crate::servers::Config) -> Result<Self> {
+    pub fn new(
+        global_config: &crate::servers::Config,
+        shutdown_receiver: tokio::sync::broadcast::Receiver<Infallible>,
+    ) -> Result<Self> {
         let pubhubs_server = Rc::new(S::new(global_config)?);
 
-        Ok(Runner { pubhubs_server })
+        Ok(Runner {
+            pubhubs_server,
+            shutdown_receiver,
+        })
     }
 
     pub fn bind_to(&self) -> SocketAddr {
@@ -311,9 +361,14 @@ impl<S: Server> Runner<S> {
             let pubhubs_server_mutref: &mut S =
                 Rc::get_mut(&mut self.pubhubs_server).expect("pubhubs_server is still borrowed");
 
-            log::info!("{}: applying modification {}", S::NAME, modifier);
+            let modifier_fmt = format!("{}", modifier); // so modifier can be consumed
 
-            modifier.modify(pubhubs_server_mutref);
+            log::info!("{}: applying modification {}", S::NAME, modifier_fmt);
+
+            if !modifier.modify(pubhubs_server_mutref) {
+                log::info!("{}: exiting upon request of {}", S::NAME, modifier_fmt);
+                return Ok(());
+            }
 
             log::info!("{}: restarting...", S::NAME);
         }
@@ -324,7 +379,7 @@ impl<S: Server> Runner<S> {
     ) -> Result<crate::servers::server::BoxModifier<S>, anyhow::Error> {
         let mut handles = self.create_actix_server(&self.bind_to())?;
 
-        let result = Self::run_until_modifier_inner(&mut handles, &self.pubhubs_server).await;
+        let result = Self::run_until_modifier_inner(&mut handles, self).await;
 
         handles.shutdown(self.graceful_shutdown()).await?;
 
@@ -333,10 +388,10 @@ impl<S: Server> Runner<S> {
 
     async fn run_until_modifier_inner(
         handles: &mut Handles<S>,
-        pubhubs_server: &S,
+        runner: &mut Runner<S>,
     ) -> Result<crate::servers::server::BoxModifier<S>, anyhow::Error> {
         loop {
-            match handles.run_until_command().await? {
+            match handles.run_until_command(runner).await? {
                 Command::Modify(modifier) => {
                     log::debug!("Stopping {} for modification {}...", S::NAME, modifier);
 
@@ -344,7 +399,12 @@ impl<S: Server> Runner<S> {
                 }
                 Command::Inspect(inspector) => {
                     log::debug!("{}: applying inspection {}", S::NAME, inspector);
-                    inspector.inspect(pubhubs_server);
+                    inspector.inspect(&*runner.pubhubs_server);
+                }
+                Command::Exit => {
+                    log::debug!("Stopping {}, as requested", S::NAME);
+
+                    return Ok::<_, anyhow::Error>(Box::new(crate::servers::server::Exiter));
                 }
             }
         }
