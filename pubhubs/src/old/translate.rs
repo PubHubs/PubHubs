@@ -119,7 +119,7 @@ impl AllTranslations {
     pub fn for_lang(&self, lang: impl AsRef<str>) -> Translations {
         self.map
             .get(lang.as_ref())
-            .map(Clone::clone)
+            .cloned()
             .unwrap_or(Translations::NONE)
     }
 
@@ -270,7 +270,7 @@ impl actix_web::FromRequest for Translations {
         std::future::ready(Ok(req
             .extensions()
             .get::<Translations>()
-            .map(Clone::clone)
+            .cloned()
             .unwrap_or(Translations::NONE)))
     }
 }

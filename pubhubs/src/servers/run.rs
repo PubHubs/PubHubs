@@ -211,6 +211,8 @@ impl<S: Server> Handles<S> {
                     .with_context(|| format!("{}'s pubhubs task crashed", S::NAME))?
                     .with_context(|| format!("{}'s pubhubs task stopped without being asked to", S::NAME))?;
 
+
+                #[allow(clippy::needless_return)] // "return" makes the code more readable here
                 return Ok(Command::Modify(modifier));
             },
 
@@ -221,6 +223,7 @@ impl<S: Server> Handles<S> {
                         panic!("got impossible `Lagged` error from shutdown sender");
                     },
                     tokio::sync::broadcast::error::RecvError::Closed => {
+                        #[allow(clippy::needless_return)] // "return" is more readable here
                         return Ok(Command::Exit);
                     },
                 }

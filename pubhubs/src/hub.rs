@@ -56,7 +56,7 @@ pub const NAME_REGEX: &str = r"^[a-z0-9_]+$";
 
 thread_local! {
     /// Thread local compiled version of [NAME_REGEX]
-    static NAME_REGEX_TLK: OnceCell<regex::Regex> = OnceCell::new();
+    static NAME_REGEX_TLK: OnceCell<regex::Regex> = const { OnceCell::new() };
 }
 
 /// Runs `f` with as argument a reference to a compiled [NAME_REGEX]
