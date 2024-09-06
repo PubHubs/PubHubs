@@ -19,7 +19,7 @@ async fn main_integration_test() {
     let admin_sk = api::SigningKey::generate();
     config.admin_key = Some(admin_sk.verifying_key().into());
 
-    let set = servers::Set::new(&config).unwrap();
+    let (set, _) = servers::Set::new(&config).unwrap();
 
     // Run discovery
     let constellation: servers::Constellation = tokio::task::LocalSet::new()

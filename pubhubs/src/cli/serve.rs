@@ -54,7 +54,16 @@ impl ServeArgs {
             .enable_all()
             .build()?
             .block_on(async {
-                let set = crate::servers::Set::new(&config)?;
+                let (set, shutdown_sender) = crate::servers::Set::new(&config)?;
+
+                tokio::spawn(async move {
+                    tokio::signal::ctrl_c().await;
+                    log::info!("ctrl+c received; shutting down server(s)");
+                    drop(shutdown_sender);
+                    tokio::signal::ctrl_c().await;
+                    log::warn!("second ctrl+c received; aborting process...");
+                    std::process::abort();
+                });
 
                 self.drive_discovery(&config.phc_url).await?;
 

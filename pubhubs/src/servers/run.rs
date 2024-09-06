@@ -13,9 +13,13 @@ use crate::servers::{for_all_servers, App, AppBase, AppCreator, Command, Server}
 pub struct Set {
     joinset: tokio::task::JoinSet<Result<()>>,
 
-    /// `shutdown_sender` closes when `Set` is dropped of which the servers are notified
-    /// by the Receivers they get.
+    /// Via `shutdown_sender` [Set] broadcasts the instruction to shutdown to all servers
+    /// running in the `jointset`.  It does so not by `send`ing a message, but by dropping
+    /// the `shutdown_sender`.
     shutdown_sender: Option<tokio::sync::broadcast::Sender<Infallible>>,
+
+    /// Via `shutdown_receiver`, the [Set] received the instruction to close.
+    shutdown_receiver: tokio::sync::oneshot::Receiver<Infallible>,
 }
 
 impl Drop for Set {
@@ -28,7 +32,12 @@ impl Drop for Set {
 
 impl Set {
     /// Creates a new set of PubHubs servers from the given config.
-    pub fn new(config: &crate::servers::Config) -> Result<Self> {
+    ///
+    /// Returns not only the [Set] instance, but also a [tokio::sync::oneshot::Sender<Infallible>]
+    /// that can be dropped to signal the [Set] should shutdown.
+    pub fn new(
+        config: &crate::servers::Config,
+    ) -> Result<(Self, tokio::sync::oneshot::Sender<Infallible>)> {
         let rt_handle: tokio::runtime::Handle = tokio::runtime::Handle::current();
         let mut joinset = tokio::task::JoinSet::<Result<()>>::new();
 
@@ -56,10 +65,17 @@ impl Set {
 
         for_all_servers!(run_server);
 
-        Ok(Self {
-            joinset,
-            shutdown_sender: Some(shutdown_sender),
-        })
+        let (external_shutdown_sender, external_shutdown_receiver) =
+            tokio::sync::oneshot::channel();
+
+        Ok((
+            Self {
+                joinset,
+                shutdown_sender: Some(shutdown_sender),
+                shutdown_receiver: external_shutdown_receiver,
+            },
+            external_shutdown_sender,
+        ))
     }
 
     // Creates a server from the given `config` and run it ont the given tokio runtime.
@@ -87,23 +103,31 @@ impl Set {
     /// If that happens, the other servers are directed to shutdown as well.
     /// Returns the number of servers that did *not* shutdown cleanly
     pub async fn wait(mut self) -> usize {
-        let result = self
-            .joinset
-            .join_next()
-            .await
-            .expect("no servers to wait on");
+        let err_count: usize = tokio::select! {
+            // either one of the servers exists
+            result_maybe = self
+                .joinset
+                .join_next() => {
+                    let result = result_maybe.expect("no servers to wait on");
+                    log::debug!(
+                        "one of the servers exited with {:?};  stopping all servers..",
+                        result
+                    );
+                    if matches!(result, Err(_) | Ok(Err(_))) {
+                        1
+                    } else {
+                        0
+                    }
+                },
 
-        log::debug!(
-            "one of the servers exited with {:?};  stopping all servers..",
-            result
-        );
-
-        self.shutdown().await
-            + if matches!(result, Err(_) | Ok(Err(_))) {
-                1
-            } else {
-                0
+            // or we get the command to shut down from higher up
+            result = &mut self.shutdown_receiver => {
+                result.expect_err("received Infallible");
+                log::debug!("shutdown requested");0
             }
+        };
+
+        self.shutdown().await + err_count
     }
 
     /// Requests shutdown of all servers, and wait for it to complete.
@@ -367,6 +391,7 @@ impl<S: Server> Runner<S> {
                 app.configure_actix_app(sc);
             })
         })
+        .disable_signals() // we handle signals ourselves
         .bind(bind_to)?
         .run();
 
@@ -406,7 +431,11 @@ impl<S: Server> Runner<S> {
             log::info!("{}: applying modification {}", S::NAME, modifier_fmt);
 
             if !modifier.modify(pubhubs_server_mutref) {
-                log::info!("{}: exiting upon request of {}", S::NAME, modifier_fmt);
+                log::info!(
+                    "{}: not restarting upon request of {}",
+                    S::NAME,
+                    modifier_fmt
+                );
                 return Ok(());
             }
 
