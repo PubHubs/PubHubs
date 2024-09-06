@@ -58,7 +58,12 @@ impl ServeArgs {
 
                 self.drive_discovery(&config.phc_url).await?;
 
-                Err(set.wait_for_err().await)
+                let err_count = set.wait().await;
+                if err_count > 0 {
+                    anyhow::bail!("{} servers did not shutdown cleanly", err_count);
+                }
+
+                Ok(())
             })
     }
 

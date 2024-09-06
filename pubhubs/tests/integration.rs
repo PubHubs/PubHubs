@@ -19,7 +19,7 @@ async fn main_integration_test() {
     let admin_sk = api::SigningKey::generate();
     config.admin_key = Some(admin_sk.verifying_key().into());
 
-    let _set = servers::Set::new(&config);
+    let set = servers::Set::new(&config).unwrap();
 
     // Run discovery
     let constellation: servers::Constellation = tokio::task::LocalSet::new()
@@ -77,6 +77,8 @@ async fn main_integration_test() {
         ))
         .await
         .unwrap();
+
+    assert_eq!(set.shutdown().await, 0, "not all servers exited cleanly");
 }
 
 /// Simulates a hub.

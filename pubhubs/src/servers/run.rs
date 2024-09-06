@@ -15,7 +15,15 @@ pub struct Set {
 
     /// `shutdown_sender` closes when `Set` is dropped of which the servers are notified
     /// by the Receivers they get.
-    shutdown_sender: tokio::sync::broadcast::Sender<Infallible>,
+    shutdown_sender: Option<tokio::sync::broadcast::Sender<Infallible>>,
+}
+
+impl Drop for Set {
+    fn drop(&mut self) {
+        if self.shutdown_sender.is_some() {
+            log::error!("the completion of all pubhubs servers was not awaited - please consume Set using wait() or shutdown()")
+        }
+    }
 }
 
 impl Set {
@@ -50,7 +58,7 @@ impl Set {
 
         Ok(Self {
             joinset,
-            shutdown_sender,
+            shutdown_sender: Some(shutdown_sender),
         })
     }
 
@@ -76,9 +84,9 @@ impl Set {
     }
 
     /// Waits for one of the servers to return, panic, or be cancelled.
-    ///
-    /// By consuming the [Set], all other servers are aborted when [Set::wait_for_err] returns.
-    pub async fn wait_for_err(mut self) -> anyhow::Error {
+    /// If that happens, the other servers are directed to shutdown as well.
+    /// Returns the number of servers that did *not* shutdown cleanly
+    pub async fn wait(mut self) -> usize {
         let result = self
             .joinset
             .join_next()
@@ -90,7 +98,39 @@ impl Set {
             result
         );
 
-        anyhow::anyhow!("one of the servers exited")
+        self.shutdown().await
+            + if matches!(result, Err(_) | Ok(Err(_))) {
+                1
+            } else {
+                0
+            }
+    }
+
+    /// Requests shutdown of all servers, and wait for it to complete.
+    /// Returns the number of servers that did *not* shutdown cleanly.
+    pub async fn shutdown(mut self) -> usize {
+        assert!(
+            self.shutdown_sender.is_some(),
+            "only signal_shutdown should take shutdown_sender"
+        );
+
+        // This causes the shutdown_receivers at the different servers to be closed,
+        // which in turn should cause those servers' threads to join.
+        drop(self.shutdown_sender.take());
+
+        let mut err_count = 0usize;
+
+        while let Some(result) = self.joinset.join_next().await {
+            err_count += if matches!(result, Err(_) | Ok(Err(_))) {
+                1
+            } else {
+                0
+            };
+        }
+
+        // join_next returned None, which means the JoinSet is empty
+
+        err_count
     }
 }
 
