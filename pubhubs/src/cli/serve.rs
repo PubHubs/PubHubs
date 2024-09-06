@@ -57,10 +57,14 @@ impl ServeArgs {
                 let (set, shutdown_sender) = crate::servers::Set::new(&config)?;
 
                 tokio::spawn(async move {
-                    tokio::signal::ctrl_c().await;
+                    tokio::signal::ctrl_c()
+                        .await
+                        .expect("failed to await ctrl+c");
                     log::info!("ctrl+c received; shutting down server(s)");
                     drop(shutdown_sender);
-                    tokio::signal::ctrl_c().await;
+                    tokio::signal::ctrl_c()
+                        .await
+                        .expect("failed to await ctrl+c");
                     log::warn!("second ctrl+c received; aborting process...");
                     std::process::abort();
                 });

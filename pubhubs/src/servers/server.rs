@@ -99,6 +99,7 @@ pub trait Server: Sized + 'static {
     ///
     /// Before this function's future finishes, it should relinquish all references to `self`.
     /// Otherwise the modification following it will panic.
+    #[allow(async_fn_in_trait)] // <- we do not need our future to be Send
     async fn run_until_modifier(
         self: Rc<Self>,
         shutdown_receiver: tokio::sync::oneshot::Receiver<()>,
