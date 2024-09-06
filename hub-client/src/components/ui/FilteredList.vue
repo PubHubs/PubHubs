@@ -51,7 +51,10 @@
 					return true;
 				}
 				const lcItem = item[props.filterKey]?.toLowerCase();
-				return lcItem.includes(lcFilter);
+				if (lcItem) {
+					return lcItem.includes(lcFilter);
+				}
+				return false;
 			});
 			if (props.sortby !== '') {
 				items = items.toSorted((a: Record<string, any>, b: Record<string, any>) => {

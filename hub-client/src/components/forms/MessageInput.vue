@@ -1,27 +1,27 @@
 <template>
 	<div class="flex gap-2 items-end pl-3 sm:px-6">
-		<div name="input-container" class="min-w-3/4 w-[90%] relative rounded-xl bg-hub-background-4 dark:bg-hub-background-4">
+		<div class="min-w-3/4 w-[90%] relative rounded-xl bg-hub-background-4 dark:bg-hub-background-4">
 			<!-- Floating -->
 			<div>
-				<Popover v-if="showPopover" @close="togglePopover" class="absolute bottom-[105%]">
+				<Popover v-if="showPopover" @close="togglePopover" class="absolute bottom-[115%]">
 					<UploadPicker @click="clickedAttachment"></UploadPicker>
 					<SignedMessageButton @click="showSigningMessageMenu()"></SignedMessageButton>
 				</Popover>
 				<Mention :msg="value" :top="caretPos.top" :left="caretPos.left" @click="mentionUser($event)"></Mention>
-				<div name="emoji-picker" v-if="showEmojiPicker" class="absolute bottom-[105%] sm:right-0 z-20">
+				<div v-if="showEmojiPicker" class="absolute bottom-[115%] sm:right-0 z-20">
 					<EmojiPicker @emojiSelected="clickedEmoticon" @close="showEmojiPicker = false" />
 				</div>
 			</div>
 
-			<div name="reply-to" class="h-10 w-full flex items-center" v-if="messageActions.replyingTo">
+			<div class="h-10 w-full flex items-center" v-if="messageActions.replyingTo">
 				<p class="ml-4 whitespace-nowrap mr-2">{{ $t('message.in_reply_to') }}</p>
-				<MessageSnippet class="w-[85%]" :event="messageActions.replyingTo"></MessageSnippet>
+				<MessageSnippet class="w-[85%]" :event="messageActions.replyingTo" :room="room"></MessageSnippet>
 				<button class="mr-4 ml-auto" @click="messageActions.replyingTo = undefined">
 					<Icon type="closingCross" size="sm"></Icon>
 				</button>
 			</div>
 
-			<div name="input-bar" class="flex items-start min-h-[50px] px-2 py-1 gap-x-2 rounded-2xl dark:bg-hub-background-4">
+			<div class="flex items-start min-h-[50px] px-2 py-1 gap-x-2 rounded-2xl dark:bg-hub-background-4">
 				<Icon class="dark:text-white self-end mb-2 pr-3 border-r-2 border-r-gray-light" type="paperclip" @click.stop="togglePopover" :asButton="true"></Icon>
 				<!-- Overflow-x-hidden prevents firefox from adding an extra row to the textarea for a possible scrollbar -->
 				<TextArea
@@ -42,12 +42,12 @@
 				<Icon class="dark:text-white mb-2 self-end" type="emoticon" @click.stop="showEmojiPicker = !showEmojiPicker" :asButton="true"></Icon>
 			</div>
 
-			<div name="sign-message" v-if="signingMessage" class="m-2 bg-gray-light dark:bg-hub-background flex items-center rounded-md p-2">
+			<div v-if="signingMessage" class="m-2 bg-gray-light dark:bg-hub-background flex items-center rounded-md p-2">
 				<Icon type="sign" size="base" class="ml-2 mr-2 self-start mt-1 shrink-0"></Icon>
 				<div class="ml-2 flex flex-col justify-between max-w-3xl">
 					<h3 class="font-bold">{{ $t('message.sign.heading') }}</h3>
 					<p>{{ $t('message.sign.info') }}</p>
-					<div name="warning" class="flex items-center mt-2">
+					<div class="flex items-center mt-2">
 						<Icon type="warning" size="sm" class="mb-[2px] mr-2 self-start mt-1 shrink-0"></Icon>
 						<p class="italic">{{ $t('message.sign.warning') }}</p>
 					</div>
@@ -73,7 +73,7 @@
 		<div v-if="signingMessage" class="absolute bottom-[10%] md:left-[40%]" id="yivi-web-form"></div>
 
 		<div class="text-black dark:bg-gray-dark dark:text-white">
-			<FileUpload :file="fileInfo" :mxcPath="uri" v-if="fileUploadDialog" @close="closeMenus()"></FileUpload>
+			<FileUploadDialog :file="fileInfo" :mxcPath="uri" v-if="fileUploadDialog" @close="closeMenus()"></FileUploadDialog>
 			<!-- todo: move this into UploadPicker? -->
 			<input type="file" :accept="getTypesAsString(allTypes)" class="attach-file" ref="elFileInput" @change="uploadFile($event)" hidden />
 		</div>
@@ -90,9 +90,10 @@
 	import { useMessageActions } from '@/store/message-actions';
 	import filters from '@/core/filters';
 	import { useI18n } from 'vue-i18n';
+	import Room from '@/model/rooms/Room';
 
 	import { YiviSigningSessionResult } from '@/lib/signedMessages';
-	import { fileUpload as uploadHandler } from '@/composables/fileUpload';
+	import { fileUpload } from '@/composables/fileUpload';
 
 	const { t } = useI18n();
 	const route = useRoute();
@@ -100,6 +101,7 @@
 	const pubhubs = usePubHubs();
 	const messageActions = useMessageActions();
 
+	const props = defineProps({ room: Room });
 	const emit = defineEmits(usedEvents);
 	const { value, reset, changed, cancel } = useFormInputEvents(emit);
 	const { allTypes, getTypesAsString, uploadUrl } = useMatrixFiles();
@@ -176,7 +178,7 @@
 		const accessToken = pubhubs.Auth.getAccessToken();
 		const target = event.currentTarget as HTMLInputElement;
 		const errorMsg = t('errors.file_upload');
-		uploadHandler(errorMsg, accessToken, uploadUrl, allTypes, event, (url) => {
+		fileUpload(errorMsg, accessToken, uploadUrl, allTypes, event, (url) => {
 			if (target) {
 				const file = target.files && target.files[0];
 				if (file) {

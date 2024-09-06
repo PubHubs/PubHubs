@@ -119,11 +119,17 @@ const useHubs = defineStore('hubs', {
 						// Start conversation with hub frame and sync latest settings
 						await messagebox.init(MessageBoxType.Parent, this.currentHub.url);
 
+						//Show bar both client and global-side so we always enter a hub with them and we start in the same state of the bar. Hub rooms should close the bar themselves.
+						toggleMenu.showMenuAndSendToHub();
+
 						// Listen to client asking for sync
 						messagebox.addCallback(MessageType.Sync, () => {
 							// Send current settings
 							const settings = useSettings();
 							settings.sendSettings();
+
+							// Send hub information
+							messagebox.sendMessage(new Message(MessageType.HubInformation, { name: hubId }));
 
 							// Let hub navigate to given room
 							if (roomId !== undefined && roomId !== '') {
@@ -139,9 +145,13 @@ const useHubs = defineStore('hubs', {
 							this.router.push({ name: 'hub', params: { id: hubId, roomId: roomId } });
 						});
 
-						//Listen to global menu change
-						messagebox.addCallback(MessageType.mobileHubMenu, () => {
-							toggleMenu.toggleMenu();
+						//Listen to global menu change and don't resend own state.
+						messagebox.addCallback(MessageType.BarHide, () => {
+							toggleMenu.globalIsActive = false;
+						});
+
+						messagebox.addCallback(MessageType.BarShow, () => {
+							toggleMenu.globalIsActive = true;
 						});
 
 						// Listen to sync unreadmessages

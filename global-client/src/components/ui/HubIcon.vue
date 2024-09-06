@@ -1,15 +1,15 @@
 <template>
-	<div class="block group text-center p-2 m-2 cursor-pointer relative" :title="hub ? hub.hubId : null">
+	<div class="z-0 block group text-center w-24 h-24 p-2 m-2 cursor-pointer relative overflow-hidden" :title="hub ? hub.hubId : null">
 		<div v-if="hub && hub.unreadMessages > 0">
-			<span class="absolute flex h-3 w-3 left-7">
+			<span class="absolute flex h-3 w-3 left-5">
 				<span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-notification opacity-75"></span>
 				<span class="absolute inline-flex rounded-full h-3 w-3 bg-notification"></span>
 			</span>
 		</div>
-		<Icon v-if="pinnable" type="plus" class="text-green opacity-60 hover:opacity-100 absolute right-0" @click.prevent="pin"></Icon>
-		<Icon v-if="pinned" type="remove" class="text-red absolute right-0 hidden opacity-60 hover:opacity-100 group-hover:block" @click.prevent="remove"></Icon>
-		<!-- <Icon :type="type" :size="size" class="text-white mx-auto"></Icon> -->
-		<HubLogo v-if="hub" :hub-url="hub.url" :hub-id="hub.hubId" :change-to-dark="false" class="h-20 w-20 mx-auto"></HubLogo>
+		<Icon v-if="pinnable" type="plus" class="fill-green opacity-60 hover:opacity-100 absolute right-0 top-0" @click.prevent="pin"></Icon>
+		<Icon v-if="pinned" type="remove" class="fill-red-light absolute right-0 top-0 hidden opacity-60 hover:opacity-100 group-hover:block" @click.prevent="remove"></Icon>
+		<HubLogo v-if="hub" :hub-url="hub.url" :hub-id="hub.hubId" :change-to-dark="false" class="h-20 w-20 mx-auto rounded-full"></HubLogo>
+		<Icon type="speech_bubble" :size="'4xl'" class="absolute top-0 left-[3px] m-auto -z-10 stroke-none opacity-0 group-hover:opacity-60" :class="{ 'opacity-100': active }"></Icon>
 	</div>
 </template>
 

@@ -1,6 +1,6 @@
 [package]
 name = "pubhubs"
-version = "0.1.0"
+version = "0.5.0"
 edition = "2021"
 license-file = "../LICENSE"
 rust-version = "1.72"
@@ -26,8 +26,8 @@ abi = [
 ]
 common = [
 	"dep:base16ct",
-	"dep:curve25519-dalek", 
-	"dep:rand", 
+	"dep:curve25519-dalek",
+	"dep:rand",
 	"dep:subtle",
 	"dep:digest",
 	"dep:typenum",
@@ -38,7 +38,7 @@ bin = [
 	"dep:serde_repr",
 	"dep:serde_bytes",
 	"dep:regex",
-	"dep:base64ct", 
+	"dep:base64ct",
 	"dep:clap",
 	"dep:anyhow",
 	"dep:thiserror",
@@ -48,13 +48,13 @@ bin = [
 	"dep:serde_yaml",
 	"dep:log",
 	"dep:env_logger",
-	"dep:tokio", 
+	"dep:tokio",
 	"dep:actix-web",
 	"dep:ed25519-dalek",
 	"dep:futures-util", # used by actix already
 	"dep:http",
 	"dep:awc",
-	"dep:hmac", 
+	"dep:hmac",
 	"dep:typenum",
 	"dep:generic-array",
 	"dep:humantime", # used by env_logger already
@@ -62,22 +62,22 @@ bin = [
 real_credentials = []
 old = [
 	"dep:actix-files",
- 	"common", 
-	"dep:base64ct", 
-	"dep:actix-web", 
-	"dep:aead", 
-	"dep:anyhow", 
+ 	"common",
+	"dep:base64ct",
+	"dep:actix-web",
+	"dep:aead",
+	"dep:anyhow",
 	"dep:async-recursion",
 	"dep:awc",
 	"dep:bytes",
-	"dep:chacha20poly1305", 
-	"dep:chrono", 
+	"dep:chacha20poly1305",
+	"dep:chrono",
 	"dep:ed25519-dalek",
 	"dep:expry",
 	"dep:futures",
 	"dep:generic-array",
 	"dep:hairy",
-	"dep:hmac", 
+	"dep:hmac",
 	"dep:http",
 	"dep:hyper",
 	"dep:hyper-tls",
@@ -88,13 +88,13 @@ old = [
 	"dep:regex",
 	"dep:rmp-serde",
 	"dep:rusqlite",
-	"dep:serde", 
+	"dep:serde",
 	"dep:serde_json",
 	"dep:serde_urlencoded",
 	"dep:serde_yaml",
 	"dep:strum_macros",
 	"dep:thiserror",
-	"dep:tokio", 
+	"dep:tokio",
 	"dep:typenum",
 	"dep:url",
 	"dep:uuid",
@@ -170,13 +170,13 @@ strum_macros = { version = "0.25", optional = true }
 
 #iLab crates
 # NOTE: Versions 0.2.1 for expry and hairy are available, but are rather non-backwards compatible.
-expry = { version = "0.1", optional = true } 
+expry = { version = "0.1", optional = true }
 hairy = { version = "0.1", optional = true }
 
 # command line argument parser
 clap = { version = "4.3", features = ["derive"], optional = true }
 
-humantime = { version="2", optional=true } 
+humantime = { version="2", optional=true }
 
 [dev-dependencies]
 tempfile = "3.4"

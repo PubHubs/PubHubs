@@ -1,14 +1,26 @@
 ## Changes to main, not yet committed to stable
 
 *Please add a brief description of any changes to be tested and any migrations to be performed here.*
+- Changed syncing of showing or hiding the bar between hub an global client. Also streamlined the message box start-up together with it. Changed it so the homepage of a hub does not keep the room id in the url fragment if it was there.
+
+## 28 August 2024 - v0.5.0
+
+  _nothing in particular_
+
+## 15 August 2024
+
+  _nothing in particular_
+
+## 24 July 2024
+- app.pubhubs.net and main.pubhubs.ihub.ru.nl added to 'sso -> client_whitelist' in default homeserver.yaml and config_checker
 - Changed contained data of PHC Yivi QRs, so they can be scanned with camera and Yivi app.
 
 ## 7 July 2024
 - Added global client to sso whitelist in synapse default config. The config checker will crash Hubs that do not have this setting.
 
 ## 30 May 2024
-- Some changes to styling of displayed hubs in global client. 
-- Moved synapse login from hub client to global client. Since access to local storage is not always reliable in an iframe. It looks to get even more restricted in the future. 
+- Some changes to styling of displayed hubs in global client.
+- Moved synapse login from hub client to global client. Since access to local storage is not always reliable in an iframe. It looks to get even more restricted in the future.
 
 ## 9 May 2024
 - Add notifications and mentions in a better way.

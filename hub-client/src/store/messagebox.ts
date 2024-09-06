@@ -1,5 +1,6 @@
 import { defineStore } from 'pinia';
 import filters from '@/core/filters';
+import { Theme, useSettings, TimeFormat } from '@/store/store';
 
 /**
  * This store is used to exchange messages from global client (parent frame) to hub client (iframe) and the other way around.
@@ -55,22 +56,20 @@ enum MessageBoxType {
 /**
  * Message types
  */
-const handShakePrefix = 'handshake';
 const modalPrefix = 'dialog-modal';
 enum MessageType {
-	HandshakeStart = handShakePrefix + '-start', // Start the handshake
-	HandshakeReady = handShakePrefix + '-ready', // Handshake is ready
-
-	DialogShowModal = modalPrefix + '-show', // Show modal over bar
+	DialogShowModal = modalPrefix + '-show', // Show modal over bar,
 	DialogHideModal = modalPrefix + '-hide', // Hide modal over bar
 
 	Sync = 'sync', // CHILD asks for syncing settings etc.
 	UnreadMessages = 'unreadmessages', // Sync total of unread messages for a hub
+	HubInformation = 'hubinformation', // Sync hub information (name) with hub client.
 	Settings = 'settings', // Sync settings
 	RoomChange = 'roomchange', // Change to a room - makes it possible to reflect the room in the url
 	AddAccessToken = 'addAccessToken', // Hub frame sends a access token for the global client to store in it's localstorage.
 	RemoveAccessToken = 'removeAccessToken', // Hub frame sends a message to remove its' access to token to the global client.
-	mobileHubMenu = 'mobilehubmenu', // Keeps track of wether to show the mobile global hubbar
+	BarShow = 'visibilityBar-show', // Show side bar, mostly relevant for mobile where it can be hidden.
+	BarHide = 'visibilityBar-hide',
 }
 
 /**
@@ -88,27 +87,7 @@ class Message {
 
 	constructor(type: MessageType, content: MessageContent = '') {
 		this.type = type;
-		if (this.isHandShakeMessage()) {
-			this.content = type;
-		} else {
-			this.content = content;
-		}
-	}
-
-	isHandShakeStart() {
-		return this.type === MessageType.HandshakeStart;
-	}
-
-	isHandShakeReady() {
-		return this.type === MessageType.HandshakeReady;
-	}
-
-	isHandShakeMessage() {
-		const type = this.type;
-		if (typeof type === 'string') {
-			return type.substring(0, handShakePrefix.length) === handShakePrefix;
-		}
-		return false;
+		this.content = content;
 	}
 }
 
@@ -169,7 +148,7 @@ const useMessageBox = defineStore('messagebox', {
 
 				// If Child: start handshake with parent
 				if (this.inIframe && this.type === MessageBoxType.Child) {
-					this.sendMessage(new Message(MessageType.HandshakeStart));
+					this.sendMessage(new Message(MessageType.Sync));
 					this.handshake = HandshakeState.Started;
 				}
 
@@ -180,17 +159,39 @@ const useMessageBox = defineStore('messagebox', {
 						if (filters.removeBackSlash(event.origin) === filters.removeBackSlash(this.receiverUrl)) {
 							const message = new Message(event.data.type, event.data.content);
 
+							const settings = useSettings();
 							// Answer to handshake as parent
-							if (message.isHandShakeStart() && type === MessageBoxType.Parent) {
+							if (message.type == MessageType.Sync && type === MessageBoxType.Parent) {
 								// console.log('<= ' + this.type + ' RECEIVED handshake:', this.receiverUrl);
-								this.sendMessage(new Message(MessageType.HandshakeReady));
+								this.sendMessage(
+									new Message(MessageType.Settings, {
+										// @ts-ignore
+										theme: settings.theme as any,
+										// @ts-ignore
+										timeformat: settings.timeformat as any,
+										// @ts-ignore
+										language: settings.language,
+									}),
+								);
+
+								const lastPartOfFragment = window.location.hash.substring(1).split('/').at(-1);
+								const roomId = lastPartOfFragment && lastPartOfFragment.startsWith('!') && lastPartOfFragment.includes(':') ? lastPartOfFragment : '';
+
+								if (roomId) {
+									this.sendMessage(new Message(MessageType.RoomChange, roomId));
+								}
+
 								this.handshake = HandshakeState.Ready;
 								resolve(true);
 							}
 
 							// Answer to handshake as child
-							else if (message.isHandShakeReady() && type === MessageBoxType.Child) {
+							else if (message.type == MessageType.Settings && type === MessageBoxType.Child) {
 								// console.log('=> ' + this.type + ' RECEIVED', HandshakeState.Ready);
+
+								settings.setTheme(message.content.theme as Theme);
+								settings.setTimeFormat(message.content.timeformat as TimeFormat);
+								settings.setLanguage(message.content.language);
 								this.handshake = HandshakeState.Ready;
 								resolve(true);
 							}

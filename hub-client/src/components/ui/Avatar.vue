@@ -1,36 +1,35 @@
 <template>
 	<div class="rounded-full w-12 h-12 flex items-center justify-center overflow-hidden" :class="bgColor(color(userId))">
+		<!-- If image is passed as props then render the image on Avatar-->
 		<img v-if="image !== ''" :src="image" class="rounded-full w-full h-full" />
-		<Icon v-else-if="icon || display === '@'" type="person" class="right-0 group-hover:block h-16 w-16"></Icon>
-		<span v-else :class="rooms.currentRoom === undefined ? 'text-center text-5xl' : 'text-center text-2xl'">
-			{{ display }}
-		</span>
+		<!-- Otherwise  show  icon -->
+		<Icon v-else type="person" class="right-0 group-hover:block h-16 w-16"></Icon>
 	</div>
 </template>
 
 <script setup lang="ts">
 	import { Room, useRooms } from '@/store/rooms';
 	import { computed } from 'vue';
+	import { useUser } from '@/store/store';
 	import { usePubHubs } from '@/core/pubhubsStore';
 	import { useUserColor } from '@/composables/useUserColor';
-	import { useUserName } from '@/composables/useUserName';
 	import { useUserAvatar } from '@/composables/useUserName';
 	const { color, bgColor } = useUserColor();
-	const { getUserDisplayName } = useUserName();
 	const rooms = useRooms();
 	const pubhubs = usePubHubs();
+
+	/* Props 
+		userId: It is used to set the avatar for the current user
+		img: It is used when the avatar is changed from hub settings.
+	*/
 
 	type Props = {
 		userId: string;
 		img?: string;
-		notMention?: boolean;
-		icon?: boolean;
 	};
 
 	const props = withDefaults(defineProps<Props>(), {
 		img: '',
-		notMention: false,
-		icon: false,
 	});
 
 	const avatar = computed(() => {
@@ -42,37 +41,21 @@
 		return null;
 	});
 
+	// Any update in image triggers the computed property
 	const image = computed(() => {
-		if (props.img) {
+		const user = useUser();
+		const isCurrentUser = user.user.userId === props.userId;
+		const hasCustomImage = props.img !== undefined && props.img !== '';
+
+		if (isCurrentUser && hasCustomImage) {
 			return props.img;
 		}
+
+		if (isCurrentUser && !hasCustomImage) {
+			return '';
+		}
+
+		// Fetch all avatar
 		return avatar.value ? pubhubs.getBaseUrl + '/_matrix/media/r0/download/' + avatar.value.slice(6) : '';
-	});
-
-	const display = computed(() => {
-		let name = '' + props.userId;
-
-		if (rooms.currentRoom && !props.notMention) {
-			const currentRoom = rooms.currentRoom;
-			name = getUserDisplayName(props.userId, currentRoom);
-		}
-		if (!name) {
-			// IT should not happen, but just in case we should be only the lookout if it happens.
-			// Debugging trace to check this.s
-			console.trace('`name` argument to `getInitialLetter` not supplied', name, props.userId);
-			return '@';
-		}
-		if (name.length < 1) {
-			return '@';
-		}
-
-		const initial = name[0];
-		if ((initial === '@' || initial === '#' || initial === '+') && name[1]) {
-			name = '@';
-		} else {
-			name = initial;
-		}
-
-		return name.toUpperCase();
 	});
 </script>

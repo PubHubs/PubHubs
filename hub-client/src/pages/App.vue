@@ -1,24 +1,24 @@
 <template>
-	<div :class="settings.getActiveTheme">
-		<div v-if="setupReady" class="max-h-screen text-hub-text">
-			<div v-if="user.isLoggedIn" class="md:grid grid-cols-8">
+	<div :class="settings.getActiveTheme" class="h-full">
+		<div v-if="setupReady" class="h-full text-hub-text">
+			<div v-if="user.isLoggedIn" class="md:grid grid-cols-8 h-full">
 				<HeaderFooter class="md:col-span-2 md:flex gap-4 bg-hub-background-2" :class="{ hidden: !hubSettings.mobileHubMenu }">
 					<template #header>
 						<div class="flex justify-between gap-4 items-end border-b h-full py-2 pl-5 mr-8">
-							<div class="flex h-full">
+							<div class="flex">
 								<Badge v-if="hubSettings.isSolo && settings.isFeatureEnabled(featureFlagType.notifications) && rooms.totalUnreadMessages > 0" class="-ml-2 -mt-2">{{ rooms.totalUnreadMessages }}</Badge>
-								<router-link to="/">
-									<Logo class="h-full"></Logo>
+								<router-link to="/" class="flex">
+									<Logo class="inline-block h-12"></Logo>
+									<TruncatedText class="mt-6">{{ settings.hub.name }}</TruncatedText>
 								</router-link>
 							</div>
 							<div>
 								<Avatar
 									:userId="user.user.userId"
-									:img="avatar"
-									:icon="true"
+									:img="user.avatarUrlOfUser ? pubhubs.getBaseUrl + '/_matrix/media/r0/download/' + user.avatarUrlOfUser.slice(6) : ''"
 									@click="
 										settingsDialog = true;
-										toggleMenu.toggleGlobalMenu();
+										hubSettings.hideBar();
 									"
 									class="cursor-pointer w-8 h-8 text-md"
 								></Avatar>
@@ -27,9 +27,9 @@
 					</template>
 
 					<Menu>
-						<router-link v-for="(item, index) in menu.getMenu" :key="index" :to="item.to" v-slot="{ isActive }">
-							<MenuItem :icon="item.icon" :active="isActive" @click="toggleMenu.toggleGlobalMenu()">{{ $t(item.key) }}</MenuItem>
-						</router-link>
+						<template v-for="(item, index) in menu.getMenu" :key="index">
+							<MenuItem :to="item.to" :icon="item.icon" @click="hubSettings.hideBar()">{{ $t(item.key) }}</MenuItem>
+						</template>
 					</Menu>
 
 					<H2 class="pl-5 border-b mr-8">{{ $t('menu.rooms') }}</H2>
@@ -44,9 +44,7 @@
 					<div v-if="disclosureEnabled && user.isAdmin">
 						<H2 class="pl-5 border-b mr-8">{{ $t('menu.moderation_tools') }}</H2>
 						<Menu>
-							<router-link :to="{ name: 'ask-disclosure' }" v-slot="{ isActive }">
-								<MenuItem icon="sign" :active="isActive">{{ $t('menu.moderation_tools_disclosure') }}</MenuItem>
-							</router-link>
+							<MenuItem :to="{ name: 'ask-disclosure' }" icon="sign">{{ $t('menu.moderation_tools_disclosure') }}</MenuItem>
 						</Menu>
 					</div>
 
@@ -55,15 +53,13 @@
 						<div v-if="user.isAdmin">
 							<H2 class="pl-5 border-b mr-8">{{ $t('menu.admin_tools') }}</H2>
 							<Menu>
-								<router-link :to="{ name: 'admin' }" v-slot="{ isActive }">
-									<MenuItem icon="admin" :active="isActive" @click="toggleMenu.toggleGlobalMenu()">{{ $t('menu.admin_tools_rooms') }}</MenuItem>
-								</router-link>
+								<MenuItem :to="{ name: 'admin' }" icon="admin">{{ $t('menu.admin_tools_rooms') }}</MenuItem>
 							</Menu>
 						</div>
 					</template>
 				</HeaderFooter>
 
-				<div class="md:col-span-6 md:block dark:bg-gray-middle max-h-screen overflow-y-auto scrollbar" :class="{ hidden: hubSettings.mobileHubMenu }">
+				<div class="md:col-span-6 md:block dark:bg-gray-middle h-full overflow-y-auto scrollbar" :class="{ hidden: hubSettings.mobileHubMenu }">
 					<router-view></router-view>
 				</div>
 			</div>
@@ -82,16 +78,16 @@
 </template>
 
 <script setup lang="ts">
-	import { onMounted, ref, getCurrentInstance, watch } from 'vue';
-	import { RouteParamValue, useRouter } from 'vue-router';
-	import { Message, MessageBoxType, MessageType, Theme, TimeFormat, useHubSettings, useMessageBox, RoomType, useRooms, useSettings, featureFlagType, useUser } from '@/store/store';
-	import { useDialog } from '@/store/dialog';
-	import { useMatrixFiles } from '@/composables/useMatrixFiles';
 	import { usePubHubs } from '@/core/pubhubsStore';
+	import { LOGGER } from '@/dev/Logger';
+	import { SMI } from '@/dev/StatusMessage';
+	import { useDialog } from '@/store/dialog';
 	import { useMenu } from '@/store/menu';
 	import { usePlugins } from '@/store/plugins';
+	import { HubInformation, featureFlagType, Message, MessageBoxType, MessageType, RoomType, Theme, TimeFormat, useHubSettings, useMessageBox, useRooms, useSettings, useUser } from '@/store/store';
+	import { getCurrentInstance, onMounted, ref, watch } from 'vue';
 	import { useI18n } from 'vue-i18n';
-	import { useToggleMenu } from '@/store/toggleGlobalMenu';
+	import { RouteParamValue, useRouter } from 'vue-router';
 
 	const { locale, availableLocales } = useI18n();
 	const router = useRouter();
@@ -102,15 +98,12 @@
 	const messagebox = useMessageBox();
 	const dialog = useDialog();
 	const pubhubs = usePubHubs();
-	const { downloadUrl } = useMatrixFiles();
 	const plugins = usePlugins();
 	const menu = useMenu();
-	const toggleMenu = useToggleMenu();
 	const settingsDialog = ref(false);
 
 	const setupReady = ref(false);
 	const disclosureEnabled = settings.isFeatureEnabled('disclosure');
-	const avatar = ref('');
 
 	watch(
 		() => rooms.totalUnreadMessages,
@@ -124,6 +117,8 @@
 	});
 
 	onMounted(async () => {
+		LOGGER.log(SMI.STARTUP_TRACE, 'App.vue onMounted');
+
 		settings.initI18b({ locale: locale, availableLocales: availableLocales });
 		// set language when changed
 		settings.$subscribe(() => {
@@ -132,15 +127,12 @@
 
 		if (window.location.hash !== '#/hub/') {
 			await pubhubs.login();
-			router.push({ name: 'home' });
 			setupReady.value = true; // needed if running only the hub-client
-
-			const avatarUrl = await pubhubs.getAvatarUrl();
-			if (avatarUrl !== '') {
-				avatar.value = downloadUrl + avatarUrl.slice(6);
-			}
+			router.push({ name: 'home' });
 		}
 		await startMessageBox();
+
+		LOGGER.log(SMI.STARTUP_TRACE, 'App.vue onMounted done');
 	});
 
 	async function startMessageBox() {
@@ -148,6 +140,11 @@
 
 		if (!hubSettings.isSolo) {
 			await messagebox.init(MessageBoxType.Child, hubSettings.parentUrl);
+
+			// Ask for Hub name etc.
+			messagebox.addCallback(MessageType.HubInformation, (message: Message) => {
+				settings.hub = message.content as HubInformation;
+			});
 
 			// Listen to roomchange
 			messagebox.addCallback(MessageType.RoomChange, (message: Message) => {
@@ -163,20 +160,17 @@
 				settings.setTimeFormat(message.content.timeformat as TimeFormat);
 				settings.setLanguage(message.content.language);
 
-				// REFACTOR NEEDED: https://gitlab.science.ru.nl/ilab/pubhubs_canonical/-/issues/783
-				if (!settings.mobileHubMenu && !messageBoxStarted && hubSettings.mobileHubMenu) {
-					messagebox.sendMessage(new Message(MessageType.mobileHubMenu, hubSettings.mobileHubMenu));
-				}
 				messageBoxStarted = true;
 			});
 
 			//Listen to global menu change
-			messagebox.addCallback(MessageType.mobileHubMenu, (message: Message) => {
-				hubSettings.mobileHubMenu = message.content as boolean;
+			messagebox.addCallback(MessageType.BarHide, () => {
+				hubSettings.mobileHubMenu = false;
 			});
 
-			// Ask for syncing
-			messagebox.sendMessage(new Message(MessageType.Sync));
+			messagebox.addCallback(MessageType.BarShow, () => {
+				hubSettings.mobileHubMenu = true;
+			});
 
 			// Wait for theme change happened
 			const wait = setInterval(() => {

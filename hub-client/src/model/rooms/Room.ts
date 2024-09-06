@@ -1,5 +1,5 @@
 import { usePubHubs } from '@/core/pubhubsStore';
-import { log } from '@/dev/Logger';
+import { LOGGER } from '@/dev/Logger';
 import { SMI } from '@/dev/StatusMessage';
 import { useRooms } from '@/store/rooms';
 import { useUser } from '@/store/user';
@@ -19,7 +19,8 @@ const BotName = {
 	SYSTEM: 'system_bot',
 };
 
-const PAGINATION_LIMIT = 50;
+// Set high to make sure there is enough m.room.message events loaded
+const PAGINATION_LIMIT = 250;
 
 /** event filters */
 const visibleEventTypes = ['m.room.message'];
@@ -58,6 +59,8 @@ export default class Room {
 	private userStore;
 	private roomsStore;
 	private pubhubsStore;
+
+	logger = LOGGER;
 
 	constructor(matrixRoom: MatrixRoom) {
 		this.matrixRoom = matrixRoom;
@@ -331,7 +334,7 @@ export default class Room {
 	 * @returns Promise which resolves to a boolean: false if there are no events and we reached the beginning of the timeline; else true.
 	 */
 	public async loadOlderEvents(options: { limit?: number } = {}): Promise<boolean> {
-		log(SMI.ROOM_TIMELINE_TRACE, `Loading older events...`, { roomId: this.roomId, options });
+		this.logger.log(SMI.ROOM_TRACE, `Loading older events...`, { roomId: this.roomId, options });
 
 		const mergedOptions = { backwards: true, limit: PAGINATION_LIMIT, ...options };
 
@@ -345,7 +348,7 @@ export default class Room {
 	}
 
 	public async loadToEvent(eventId: string) {
-		log(SMI.ROOM_TIMELINE_TRACE, `Loading to event ${eventId}...`, { roomId: this.roomId, eventId });
+		this.logger.log(SMI.ROOM_TRACE, `Loading to event ${eventId}...`, { roomId: this.roomId, eventId });
 
 		let i = 0;
 		let allEventsLoaded = false;
@@ -367,7 +370,10 @@ export default class Room {
 	//#endregion
 
 	public getVisibleTimeline() {
-		const timeline = this.matrixRoom.getLiveTimeline().getEvents().filter(isVisibleEvent);
+		const unfilteredTimeline = this.matrixRoom.getLiveTimeline().getEvents();
+		this.logger.log(SMI.ROOM_TRACE, `Room.getVisibleTimeline unfiltered`, { roomId: this.roomId, unfilteredTimeline: unfilteredTimeline.map((e) => e.event) });
+		const timeline = unfilteredTimeline.filter(isVisibleEvent);
+		this.logger.log(SMI.ROOM_TRACE, `Room.getVisibleTimeline`, { roomId: this.roomId, timeline: timeline.map((e) => e.event) });
 		return timeline;
 	}
 

@@ -1,11 +1,11 @@
 <template>
-	<div v-if="room" name="room-timeline" ref="elRoomTimeline" class="h-full relative flex flex-col gap-2 overflow-y-scroll" @scroll="onScroll">
+	<div v-if="room" ref="elRoomTimeline" class="h-full relative flex flex-col gap-2 overflow-y-auto scrollbar" @scroll="onScroll">
 		<InlineSpinner v-if="isLoadingNewEvents" class="fixed top-16"></InlineSpinner>
 		<DateDisplayer v-if="settings.isFeatureEnabled(featureFlagType.dateSplitter) && dateInformation !== 0" :scrollStatus="userHasScrolled" :eventTimeStamp="dateInformation.valueOf()"></DateDisplayer>
-		<div name="room-created-tag" v-if="oldestEventIsLoaded" class="rounded-xl flex items-center justify-center w-60 mx-auto mb-12 border border-solid border-black dark:border-white">{{ $t('rooms.roomCreated') }}</div>
+		<div v-if="oldestEventIsLoaded" class="rounded-xl flex items-center justify-center w-60 mx-auto mb-12 border border-solid border-black dark:border-white">{{ $t('rooms.roomCreated') }}</div>
 		<template v-for="item in roomTimeLine" :key="item.event.event_id">
 			<div ref="elRoomEvent" :id="item.event.event_id">
-				<RoomEvent :room-type="room.getType()" :event="item.event" class="room-event" @in-reply-to-click="onInReplyToClick"></RoomEvent>
+				<RoomEvent :room="room" :event="item.event" class="room-event" @in-reply-to-click="onInReplyToClick"></RoomEvent>
 				<UnreadMarker v-if="settings.isFeatureEnabled(featureFlagType.unreadMarkers)" :currentEventId="item.event.event_id" :currentUserId="user.user.userId"></UnreadMarker>
 			</div>
 		</template>
@@ -19,11 +19,10 @@
 	import { useRooms, useUser } from '@/store/store';
 	import { computed, onMounted, ref, watch } from 'vue';
 
-	import { log } from '@/dev/Logger';
+	import { LOGGER } from '@/dev/Logger';
 	import { SMI } from '@/dev/StatusMessage';
 	import Room from '@/model/rooms/Room';
 	import { featureFlagType, useSettings } from '@/store/store';
-	import { ReceiptType } from 'matrix-js-sdk/lib/@types/read_receipts';
 	import DateDisplayer from '../ui/DateDisplayer.vue';
 	const settings = useSettings();
 
@@ -39,11 +38,8 @@
 	let userHasScrolled = ref<boolean>(true);
 	let dateInformation = ref<number>(0);
 
-	type Props = {
-		room: Room;
-		scrollToEventId: string;
-	};
-	const props = defineProps<Props>();
+	const props = defineProps({ room: { type: Room, required: true }, scrollToEventId: String });
+
 	const emit = defineEmits(['scrolledToEventId']);
 
 	const roomTimeLine = computed(() => {
@@ -59,10 +55,11 @@
 	let elementObserver: ElementObserver | null = null;
 
 	async function setupRoomTimeline() {
-		log(SMI.ROOM_TIMELINE_TRACE, `setupRoomTimeline...`, { roomId: props.room.roomId });
+		LOGGER.log(SMI.ROOM_TIMELINE_TRACE, `setupRoomTimeline...`, { roomId: props.room.roomId });
+
+		await loadInitialEvents();
 
 		await rooms.storeRoomNotice(props.room.roomId);
-
 		if (settings.isFeatureEnabled(featureFlagType.dateSplitter)) {
 			userHasScrolled.value = true;
 			setInterval(() => {
@@ -82,13 +79,13 @@
 		//Date Display Interaction callback is based on feature flag
 		settings.isFeatureEnabled(featureFlagType.dateSplitter) && elementObserver?.setUpObserver(handleDateDisplayer);
 
-		await scrollToLastReadEvent();
+		scrollToBottom();
 
-		log(SMI.ROOM_TIMELINE_TRACE, `setupRoomTimeline done`);
+		LOGGER.log(SMI.ROOM_TIMELINE_TRACE, `setupRoomTimeline done`);
 	}
 
 	onMounted(() => {
-		log(SMI.ROOM_TIMELINE_TRACE, `onMounted RoomTimeline`, { roomId: props.room.roomId });
+		LOGGER.log(SMI.ROOM_TIMELINE_TRACE, `onMounted RoomTimeline`, { roomId: props.room.roomId });
 
 		setupRoomTimeline();
 	});
@@ -96,7 +93,7 @@
 	watch(
 		() => props.room.roomId,
 		() => {
-			log(SMI.ROOM_TIMELINE_TRACE, `Room changed to room: ${props.room.roomId}`, { roomId: props.room.roomId });
+			LOGGER.log(SMI.ROOM_TIMELINE_TRACE, `Room changed to room: ${props.room.roomId}`, { roomId: props.room.roomId });
 
 			setupRoomTimeline();
 		},
@@ -162,7 +159,7 @@
 		if (!rooms.currentRoom) return;
 		if (!newEventsExist()) return;
 
-		log(SMI.ROOM_TIMELINE_TRACE, `onTimelineChange`, { newTimelineLength, oldTimelineLength });
+		LOGGER.log(SMI.ROOM_TIMELINE_TRACE, `onTimelineChange`, { newTimelineLength, oldTimelineLength });
 
 		newestEventId = props.room.timelineGetNewestEvent()?.event_id;
 
@@ -182,7 +179,7 @@
 			}
 		}
 
-		log(SMI.ROOM_TIMELINE_TRACE, `onTimelineChange ended`);
+		LOGGER.log(SMI.ROOM_TIMELINE_TRACE, `onTimelineChange ended`);
 	}
 
 	// eslint-disable-next-line @typescript-eslint/no-unused-vars
@@ -253,15 +250,16 @@
 
 	//#endregion
 
-	async function scrollToLastReadEvent() {
-		const wrappedReceipt = props.room.getReadReceiptForUserId(user.user.userId, false, ReceiptType.ReadPrivate);
-		if (!wrappedReceipt) return;
-		const lastReadEventId = wrappedReceipt?.eventId;
-		await scrollToEvent(lastReadEventId);
-	}
+	// Removed this for now as lastReadEventId might be an invisible event (to which you cannot scroll). This might have been causing issues.
+	// async function scrollToLastReadEvent() {
+	// 	const wrappedReceipt = props.room.getReadReceiptForUserId(user.user.userId, false, ReceiptType.ReadPrivate);
+	// 	if (!wrappedReceipt) return;
+	// 	const lastReadEventId = wrappedReceipt?.eventId;
+	// 	if (lastReadEventId) await scrollToEvent(lastReadEventId);
+	// }
 
 	async function scrollToEvent(eventId: string, options: { position: 'start' | 'center' | 'end'; select?: 'Highlight' | 'Select' } = { position: 'start' }) {
-		log(SMI.ROOM_TIMELINE_TRACE, `scroll to event: ${eventId}`, { eventId });
+		LOGGER.log(SMI.ROOM_TIMELINE_TRACE, `scroll to event: ${eventId}`, { eventId });
 
 		if (!elRoomTimeline.value) throw new Error('elRoomTimeline not defined, RoomTimeline not mounted?');
 
@@ -292,6 +290,33 @@
 
 			doScroll(elEvent);
 		}
+	}
+
+	function scrollToBottom() {
+		elRoomTimeline.value?.scrollTo(0, elRoomTimeline.value.scrollHeight);
+	}
+
+	/**
+	 * Sometimes, not enough messages are loaded by matrix-js-sdk because of other types of events (for example, a room rename event) being loaded.
+	 * This function loads around 15 messages if there are that many.
+	 *
+	 */
+	async function loadInitialEvents() {
+		LOGGER.log(SMI.ROOM_TIMELINE_TRACE, `loadInitialEvents...`, { roomId: props.room.roomId, roomTimeLine: roomTimeLine.value.map((e) => e.event) });
+		oldestEventIsLoaded.value = false;
+
+		let numLoadedMessages = props.room.timelineGetNumMessageEvents();
+		let allMessagesLoaded = false;
+
+		while (numLoadedMessages < 15 && !allMessagesLoaded) {
+			allMessagesLoaded = !(await props.room.loadOlderEvents());
+			numLoadedMessages = props.room.timelineGetNumMessageEvents();
+		}
+		if (allMessagesLoaded) {
+			oldestEventIsLoaded.value = true;
+		}
+
+		LOGGER.log(SMI.ROOM_TIMELINE_TRACE, `loadInitialEvents done`, { numLoadedMessages, roomTimeLine: roomTimeLine.value.map((e) => e.event) });
 	}
 
 	function newEventsExist(): boolean {

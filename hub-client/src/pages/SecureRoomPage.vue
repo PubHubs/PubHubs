@@ -1,5 +1,5 @@
 <template>
-	<div class="flex justify-center items-center h-screen dark:text-white">
+	<div class="flex justify-center items-center h-full dark:text-white">
 		<div class="grid grid-cols-2 gap-10 max-w-4xl mx-auto p-10">
 			<div class="flex flex-col justify-center gap-4">
 				<p class="text-2xl font-semibold">{{ $t('rooms.secure_room_message_heading') + ' ' + rooms.securedRoom.name }}</p>
@@ -16,7 +16,7 @@
 
 <script setup lang="ts">
 	import { onMounted, watch } from 'vue';
-	import { useRooms } from '@/store/store';
+	import { useMessageBox, useRooms, Message, MessageType } from '@/store/store';
 	import { usePubHubs } from '@/core/pubhubsStore';
 	import { useRoute } from 'vue-router';
 
@@ -24,12 +24,14 @@
 
 	const pubhubs = usePubHubs();
 	const rooms = useRooms();
+	const messageBox = useMessageBox();
 
 	watch(route, update);
 
 	onMounted(update);
 
 	async function update() {
+		messageBox.sendMessage(new Message(MessageType.RoomChange, ''));
 		const access_token = pubhubs.Auth.getAccessToken();
 		rooms.yiviSecuredRoomflow(route.params.id as string, access_token);
 

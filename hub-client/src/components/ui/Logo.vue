@@ -1,5 +1,5 @@
 <template>
-	<img alt="PubHubs" :src="logo" />
+	<img :alt="name" :src="logo" />
 </template>
 
 <script setup lang="ts">
@@ -23,6 +23,10 @@
 			type: Boolean,
 			default: false,
 		},
+		alt: {
+			type: String,
+			default: '',
+		},
 	});
 
 	const setTheme = computed(() => {
@@ -31,6 +35,13 @@
 			theme = settings.getActiveTheme;
 		}
 		return theme;
+	});
+
+	const name = computed(() => {
+		if (props.alt === '') {
+			return settings.hub.name;
+		}
+		return props.alt;
 	});
 
 	const logo = computed(() => {

@@ -59,6 +59,7 @@ const useRooms = defineStore('rooms', {
 			currentRoomId: '' as string,
 			roomsLoaded: false as boolean,
 			rooms: {} as { [index: string]: Room },
+			roomsSeen: {} as { [index: string]: number },
 			publicRooms: [] as Array<TPublicRoom>,
 			securedRooms: [] as Array<TSecuredRoom>,
 			roomNotices: {} as { [room_id: string]: { [user_id: string]: string[] } },
@@ -245,26 +246,22 @@ const useRooms = defineStore('rooms', {
 
 		//? Some documentation would be helpful here.
 		async storeRoomNotice(roomId: string) {
-			try {
-				const hub_notice = await api_synapse.apiGET<string>(api_synapse.apiURLS.notice);
-				const creatingAdminUser = this.currentRoom?.getCreator();
-				if (!this.roomNotices[roomId]) {
-					this.roomNotices[roomId] = {};
-				}
+			const hub_notice = await api_synapse.apiGET<string>(api_synapse.apiURLS.notice);
+			const creatingAdminUser = this.currentRoom?.getCreator();
+			if (!this.roomNotices[roomId]) {
+				this.roomNotices[roomId] = {};
+			}
 
-				if (creatingAdminUser) {
-					this.roomNotices[roomId][creatingAdminUser!] = ['rooms.admin_badge'];
-				}
-				const limit = 100000;
-				const encodedObject = encodeURIComponent(JSON.stringify({ types: ['m.room.message'], senders: [hub_notice], limit: limit }));
-				// The limit is in two places, it used to work in just the filter, but not anymore. It's also an option in the query string.
-				const response = await api_matrix.apiGET<RoomMessages>(api_matrix.apiURLS.rooms + roomId + `/messages?limit=${limit}&filter=` + encodedObject);
-				for (const message of response.chunk) {
-					const body = message.content.body;
-					this.addProfileNotice(roomId, body);
-				}
-			} catch (error) {
-				console.log(error);
+			if (creatingAdminUser) {
+				this.roomNotices[roomId][creatingAdminUser!] = ['rooms.admin_badge'];
+			}
+			const limit = 100000;
+			const encodedObject = encodeURIComponent(JSON.stringify({ types: ['m.room.message'], senders: [hub_notice], limit: limit }));
+			// The limit is in two places, it used to work in just the filter, but not anymore. It's also an option in the query string.
+			const response = await api_matrix.apiGET<RoomMessages>(api_matrix.apiURLS.rooms + roomId + `/messages?limit=${limit}&filter=` + encodedObject);
+			for (const message of response.chunk) {
+				const body = message.content.body;
+				this.addProfileNotice(roomId, body);
 			}
 		},
 
@@ -297,6 +294,8 @@ const useRooms = defineStore('rooms', {
 			const newRoom = await api_synapse.apiPOST<TSecuredRoom>(api_synapse.apiURLS.securedRooms, room);
 			this.securedRooms.push(newRoom);
 			this.fetchPublicRooms(); // Reset PublicRooms, so the new room is indeed recognised as a secured room. TODO: could this be improved without doing a fetch?
+			const pubhubs = usePubHubs();
+			pubhubs.joinRoom(newRoom.room_id);
 			return { result: newRoom };
 		},
 

@@ -1,18 +1,20 @@
-import { setActivePinia, createPinia, defineStore } from 'pinia';
+import { setActivePinia, createPinia } from 'pinia';
 import { describe, expect, test, afterAll, afterEach, beforeAll, beforeEach } from 'vitest';
 import { server } from '../mocks/server';
-import { useGlobal, PinnedHub, PinnedHubs } from '@/store/global';
-
-import { createSettings } from '@/store/settings';
+import { useGlobal, PinnedHubs } from '@/store/global';
+import { useSettings } from '@/store/settings';
 import { api } from '@/core/api';
 
 beforeAll(() => server.listen({ onUnhandledRequest: 'error' }));
 afterAll(() => server.close());
 afterEach(() => server.resetHandlers());
 
+let pinia;
+
 describe('Global', () => {
 	beforeEach(() => {
-		setActivePinia(createPinia());
+		pinia = createPinia();
+		setActivePinia(pinia);
 	});
 
 	describe('core', () => {
@@ -32,8 +34,7 @@ describe('Global', () => {
 			const resp = await global.checkLoginAndSettings();
 			expect(resp).toEqual(false);
 
-			const store = createSettings(defineStore);
-			const settings = store();
+			const settings = useSettings(pinia);
 
 			expect(settings.theme).toEqual('system');
 			expect(settings.language).toEqual('en');
@@ -41,8 +42,7 @@ describe('Global', () => {
 		});
 		test('logged in', async () => {
 			const global = useGlobal();
-			const store = createSettings(defineStore);
-			const settings = store();
+			const settings = useSettings(pinia);
 
 			await api.api(api.apiURLS.login);
 			const resp = await global.checkLoginAndSettings();

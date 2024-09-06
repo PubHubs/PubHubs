@@ -10,13 +10,17 @@ import { TMentions, TMessageEvent, TTextMessageEventContent } from '@/model/even
 import { TSearchParameters, TSearchResult } from '@/model/model';
 import Room from '@/model/rooms/Room';
 import { RoomType, TPublicRoom, useConnection, User, useRooms, useUser } from '@/store/store';
-import { ContentHelpers, MatrixClient, MatrixError, MatrixEvent, Room as MatrixRoom, User as MatrixUser } from 'matrix-js-sdk';
+import { ContentHelpers, MatrixClient, MatrixError, MatrixEvent, Room as MatrixRoom, User as MatrixUser, MsgType } from 'matrix-js-sdk';
 import { ReceiptType } from 'matrix-js-sdk/lib/@types/read_receipts';
+
+let publicRoomsLoading: Promise<any> | null = null; // outside of defineStore to guarantee lifetime, not accessible outside this module
 
 const usePubHubs = defineStore('pubhubs', {
 	state: () => ({
 		Auth: new Authentication(),
 		client: {} as MatrixClient,
+		publicRooms: [] as TPublicRoom[],
+		lastPublicCheck: 0,
 	}),
 
 	getters: {
@@ -33,31 +37,27 @@ const usePubHubs = defineStore('pubhubs', {
 		},
 
 		async login() {
-			console.log('PubHubs.login');
+			console.log('START PubHubs.login');
 			this.Auth.login()
 				.then((x) => {
-					// console.log('PubHubs.logged in (X)');
+					console.log('PubHubs.logged in (X) - started client');
 					this.client = x as MatrixClient;
 					const events = new Events(this.client as MatrixClient);
 					events.initEvents();
 				})
-				.then(() => {
-					// console.log('PubHubs.logged in ()');
+				.then(async () => {
+					console.log('PubHubs.logged in ()');
 					const connection = useConnection();
 					connection.on();
 					const user = useUser();
 					const newUser = this.client.getUser(user.user.userId);
 					if (newUser !== null) {
 						user.setUser(newUser as User);
-						user.fetchDisplayName(this.client as MatrixClient)
-							.then(() => user.fetchIsAdministrator(this.client as MatrixClient))
-							.then(() => {
-								api_synapse.setAccessToken(this.Auth.getAccessToken()!); //Since user isn't null, we expect there to be an access token.
-								api_matrix.setAccessToken(this.Auth.getAccessToken()!);
-							})
-							.then(() => {
-								this.updateRooms();
-							});
+						api_synapse.setAccessToken(this.Auth.getAccessToken()!); //Since user isn't null, we expect there to be an access token.
+						api_matrix.setAccessToken(this.Auth.getAccessToken()!);
+						user.userAvatarUrl = await user.fetchAvatarUrl(this.client as MatrixClient);
+						user.fetchIsAdministrator(this.client as MatrixClient);
+						this.updateRooms();
 					}
 				})
 				.catch((error) => {
@@ -71,10 +71,19 @@ const usePubHubs = defineStore('pubhubs', {
 			this.Auth.logout();
 		},
 
+		// Will check with the homeserver for changes in joined rooms and update the local situation to reflect that.
 		async updateRooms() {
 			const rooms = useRooms();
-			const joinedRooms = (await this.client.getJoinedRooms()).joined_rooms;
-			const currentRooms = this.client.getRooms().filter((room) => joinedRooms.indexOf(room.roomId) !== -1);
+
+			const joinedRooms = (await this.client.getJoinedRooms()).joined_rooms; //Actually makes an HTTP request to the Hub server.
+
+			// Make sure the metrix js SDK client is aware of all the rooms the user has joined
+			for (const room_id of joinedRooms) {
+				await this.client.joinRoom(room_id);
+			}
+			const knownRooms = this.client.getRooms();
+
+			const currentRooms = knownRooms.filter((room) => joinedRooms.indexOf(room.roomId) !== -1);
 			console.log('PubHubs.updateRooms');
 			rooms.updateRoomsWithMatrixRooms(currentRooms);
 			rooms.roomsLoaded = true;
@@ -114,10 +123,41 @@ const usePubHubs = defineStore('pubhubs', {
 			});
 		},
 
+		// wrapping API call to publicRooms, so it does not get called again when in progress.
+		// Both login and DiscoverRooms called this method which in some cases lead to slowing the process.
+		// Now we make sure the API is called just once, returning the result to all possible callers.
 		async getAllPublicRooms(): Promise<TPublicRoom[]> {
+			// if promise already running: return promise
+			if (publicRoomsLoading) {
+				return publicRoomsLoading;
+			}
+
+			// create promise
+			publicRoomsLoading = new Promise<TPublicRoom[]>((resolve, reject) => {
+				try {
+					resolve(this.performGetAllPublicRooms());
+				} catch (error) {
+					reject(error);
+				}
+			}).then((x) => {
+				publicRoomsLoading = null;
+				return x;
+			});
+
+			// return promise
+			return publicRoomsLoading;
+		},
+
+		// actual performing of publicRooms API call
+		async performGetAllPublicRooms(): Promise<TPublicRoom[]> {
 			if (!this.client.publicRooms) {
 				return [];
 			}
+			if (Date.now() < this.lastPublicCheck + 2_500) {
+				//Only check again after 4 seconds.
+				return this.publicRooms;
+			}
+
 			let publicRoomsResponse = await this.client.publicRooms();
 			let public_rooms = publicRoomsResponse.chunk;
 
@@ -130,6 +170,8 @@ const usePubHubs = defineStore('pubhubs', {
 				});
 				public_rooms = public_rooms.concat(publicRoomsResponse.chunk);
 			}
+			this.lastPublicCheck = Date.now();
+			this.publicRooms = public_rooms;
 			return public_rooms;
 		},
 
@@ -146,7 +188,8 @@ const usePubHubs = defineStore('pubhubs', {
 		 * response
 		 */
 		async joinRoom(room_id: string) {
-			await this.client.joinRoom(room_id);
+			const room = await this.client.joinRoom(room_id);
+			this.client.store.storeRoom(room); //Let the client store the room exists. It will do it itself but in its own time. We want to go fast.
 			this.updateRooms();
 		},
 
@@ -327,12 +370,9 @@ const usePubHubs = defineStore('pubhubs', {
 
 			const content = await this._constructMessageContent(text, inReplyTo);
 
-			// ?Are we catching this for a reason?
-			try {
-				await this.client.sendEvent(roomId, 'm.room.message', content, '');
-			} catch (error) {
-				console.log(error);
-			}
+			// @ts-ignore
+			// todo: fix this (issue #808)
+			await this.client.sendMessage(roomId, content);
 		},
 
 		async addSignedMessage(roomId: string, signedMessage: YiviSigningSessionResult) {
@@ -341,7 +381,10 @@ const usePubHubs = defineStore('pubhubs', {
 				body: 'signed message',
 				signed_message: signedMessage,
 			};
-			await this.client.sendEvent(roomId, 'm.room.message', content);
+
+			// @ts-ignore
+			// todo: fix this (issue #808)
+			await this.client.sendMessage(roomId, content);
 		},
 
 		async sendReadReceipt(event: MatrixEvent) {
@@ -360,6 +403,10 @@ const usePubHubs = defineStore('pubhubs', {
 
 		async sendPrivateReceipt(event: MatrixEvent) {
 			if (!event) return;
+			const rooms = useRooms();
+			if (event.getRoomId() && rooms.roomsSeen[event.getRoomId()!] && rooms.roomsSeen[event.getRoomId()!] >= event.localTimestamp) {
+				return;
+			}
 			const loggedInUser = useUser();
 			const content = {
 				'm.read.private': {
@@ -369,6 +416,7 @@ const usePubHubs = defineStore('pubhubs', {
 					},
 				},
 			};
+			rooms.roomsSeen[event.getRoomId()!] = event.localTimestamp;
 			await this.client.sendReceipt(event, ReceiptType.ReadPrivate, content);
 		},
 
@@ -377,8 +425,15 @@ const usePubHubs = defineStore('pubhubs', {
 				msgtype: 'pubhubs.ask_disclosure_message',
 				body: body,
 				ask_disclosure_message: askDisclosureMessage,
+
+				// satisfy the sdk's type checking
+				'm.new_content': undefined,
+				'm.relates_to': undefined,
 			};
-			await this.client.sendEvent(roomId, 'm.room.message', content);
+
+			// @ts-ignore
+			// todo: fix this (issue #808)
+			await this.client.sendMessage(roomId, content);
 		},
 
 		async addImage(roomId: string, uri: string) {
@@ -397,11 +452,17 @@ const usePubHubs = defineStore('pubhubs', {
 					mimetype: file.type,
 					size: file.size,
 				},
-				msgtype: 'm.file',
+				msgtype: MsgType.File,
 				url: uri,
+
+				// satisfy the sdk's type checking
+				'm.new_content': undefined,
+				'm.relates_to': undefined,
 			};
 			try {
-				await this.client.sendEvent(roomId, 'm.room.message', content);
+				// @ts-ignore
+				// todo: fix this (issue #808)
+				await this.client.sendMessage(roomId, content);
 			} catch (error) {
 				console.log(error);
 			}
@@ -430,11 +491,9 @@ const usePubHubs = defineStore('pubhubs', {
 			}
 		},
 
-		async changeAvatar(uri: string) {
+		async changeAvatar(url: string) {
 			try {
-				await this.client.setAvatarUrl(uri);
-				//Quickly update the avatar url.
-				await this.client.sendStateEvent('', 'm.room.avatar', { uri }, '');
+				await this.client.setAvatarUrl(url);
 			} catch (error: any) {
 				this.showError(error);
 			}

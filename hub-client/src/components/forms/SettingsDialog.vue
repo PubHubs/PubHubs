@@ -42,12 +42,11 @@
 	import { onMounted } from 'vue';
 	import { useUser, useSettings, useDialog, buttonsSubmitCancel, DialogSubmit, DialogButtonAction } from '@/store/store';
 	import { useI18n } from 'vue-i18n';
-	import { useFormState } from '@/composables/useFormState';
+	import { FormDataType, useFormState } from '@/composables/useFormState';
 	import { fileUpload } from '@/composables/fileUpload';
 	import { usePubHubs } from '@/core/pubhubsStore';
 	import { useUserColor } from '@/composables/useUserColor';
 	import { useMatrixFiles } from '@/composables/useMatrixFiles';
-	import { MatrixClient } from 'matrix-js-sdk';
 
 	const { t } = useI18n();
 	const user = useUser();
@@ -75,9 +74,7 @@
 	});
 
 	onMounted(async () => {
-		await user.fetchDisplayName(pubhubs.client as MatrixClient);
-		data.displayName.value = user.user.displayName as string;
-
+		data.displayName.value = user.user.displayName as FormDataType;
 		const url = await pubhubs.getAvatarUrl();
 		if (url !== '') {
 			setData({
@@ -103,20 +100,29 @@
 			updateData('displayName', '');
 		}
 		if (dataIsChanged('avatarUrl')) {
-			await pubhubs.changeAvatar(data.avatarUrl.tmp);
+			user.userAvatarUrl = data.avatarUrl.tmp;
+			await pubhubs.changeAvatar(user.userAvatarUrl);
 		}
 	}
 
+	// Display name and Avatar related functions
+
 	async function uploadAvatar(event: Event) {
 		const accessToken = pubhubs.Auth.getAccessToken();
-		await fileUpload(accessToken, uploadUrl, imageTypes, event, (uri) => {
+		const errorMsg = t('errors.file_upload');
+		await fileUpload(errorMsg, accessToken, uploadUrl, imageTypes, event, (uri) => {
+			// Update the user store for avatar url to overcome synapse slow updates in user profile.
 			data.avatarUrl.tmp = uri;
+			// Update the form data i.e., there is a change and submit button is enabled.
 			updateData('avatarUrl', downloadUrl + uri.slice(6));
 		});
 	}
 
 	async function removeAvatar() {
+		// Update the user store for avatar url to overcome synapse slow updates in user profile.
 		data.avatarUrl.tmp = '';
+
+		// Update the form data i.e., there is a change and submit button is enabled.
 		updateData('avatarUrl', '');
 	}
 </script>
