@@ -71,6 +71,7 @@ const nl = {
 		search_nothing_found: 'Niets gevonden',
 		read_receipt: 'Gelezen door',
 		typing: 'Start typen...',
+		load_more_results: 'Laad meer resultaten',
 	},
 	rooms: {
 		room: 'Kamer:',
