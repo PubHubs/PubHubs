@@ -28,6 +28,9 @@ pub mod cli;
 pub mod servers;
 
 #[cfg(feature = "bin")]
+pub mod client;
+
+#[cfg(feature = "bin")]
 pub mod api;
 
 #[cfg(feature = "bin")]
@@ -46,7 +49,7 @@ pub use misc::jwt;
 mod common;
 
 #[cfg(feature = "common")]
-pub use common::*;
+pub use common::elgamal; // For backwards compatibility with the old pubhubs
 
 // only symbols in the root are exported
 #[cfg(feature = "abi")]

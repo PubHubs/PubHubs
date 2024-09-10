@@ -2,6 +2,7 @@
 /matrix_test_config/*.db
 /modules/__pycache__
 /matrix_test_config/media_store
+venv
 
 __pycache__/
 

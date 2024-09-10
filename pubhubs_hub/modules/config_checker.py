@@ -148,7 +148,7 @@ class ConfigChecker:
 
     def check_module_present(self, module):
         if module not in self.modules:
-            yield f"Missing module {module}; please add '- module: {module}' to the 'modules:' list in 'homeserver.yaml'"
+            yield f"Missing module {module.__name__}; please add '- module: {module.__module__}.{module.__name__}' to the 'modules:' list in 'homeserver.yaml'"
 
     def check_registration_is_disabled(self):
         if self.config.registration.enable_registration:

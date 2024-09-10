@@ -4,14 +4,13 @@ use std::net::SocketAddr;
 use std::path::{Path, PathBuf};
 
 use anyhow::{Context as _, Result};
-use rand::Rng as _;
 use url::Url;
 
-use crate::servers::{api, for_all_servers};
-use crate::{elgamal, hub};
+use crate::servers::for_all_servers;
+use crate::{api, elgamal, hub};
 
 /// Configuration for one, or several, of the PubHubs servers
-#[derive(serde::Deserialize, Debug, Clone)]
+#[derive(serde::Deserialize, serde::Serialize, Debug, Clone)]
 #[serde(deny_unknown_fields)]
 pub struct Config {
     /// URL of the PubHubs Central server.
@@ -22,6 +21,10 @@ pub struct Config {
     /// Path with respect to which relative paths are interpretted.
     #[serde(default)]
     pub wd: PathBuf,
+
+    /// Key used by admin to sign requests for the admin endpoints.
+    /// If `None`, one is generated automatically and the private key is  printed to the log.
+    pub admin_key: Option<api::VerifyingKey>,
 
     /// Configuration to run PubHubs Central
     pub phc: Option<ServerConfig<phc::ExtraConfig>>,
@@ -34,7 +37,7 @@ pub struct Config {
 }
 
 /// Configuration for one server
-#[derive(serde::Deserialize, Debug, Clone)]
+#[derive(serde::Deserialize, serde::Serialize, Debug, Clone)]
 #[serde(deny_unknown_fields)]
 pub struct ServerConfig<ServerSpecific> {
     pub bind_to: SocketAddr,
@@ -49,10 +52,14 @@ pub struct ServerConfig<ServerSpecific> {
 
     /// Each server advertises an [`elgamal::PublicKey`] so that shared secrets may be established
     /// with this server, and also encrypted messages may be sent to it.
+    ///
+    /// This key is also used to derive non-permanent secrets, like the the transcryptor's
+    /// encryption factor f_H for a hub H.
     pub enc_key: Option<elgamal::PrivateKey>,
 
     /// When stopping this server (for example, during discovery) have actix shutdown gracefully.
-    /// Makes discovery much slower; only recommended for production.
+    /// Makes discovery much slower; only recommended for production.  Defaults to false when
+    /// debug_assertions are true.
     #[serde(default = "default_graceful_shutdown")]
     pub graceful_shutdown: bool,
 
@@ -61,22 +68,11 @@ pub struct ServerConfig<ServerSpecific> {
 }
 
 fn default_graceful_shutdown() -> bool {
-    true
-}
-
-impl<Extra> ServerConfig<Extra> {
-    /// Returns [ServerConfig::self_check_code], if set, or generates one.
-    pub fn self_check_code(&self) -> String {
-        rand::rngs::OsRng
-            .sample_iter(&rand::distributions::Alphanumeric)
-            .take(20)
-            .map(char::from)
-            .collect()
-    }
+    !cfg!(debug_assertions)
 }
 
 impl Config {
-    /// Loads [Config] from `path`.  
+    /// Loads [Config] from `path` and generates random values.
     ///
     /// Returns [None] if there's no file there.
     pub fn load_from_path(path: &Path) -> Result<Option<Self>> {
@@ -116,6 +112,8 @@ impl Config {
             res.wd.display()
         );
 
+        res.generate_randoms()?;
+
         Ok(Some(res))
     }
 }
@@ -123,7 +121,7 @@ impl Config {
 pub mod phc {
     use super::*;
 
-    #[derive(serde::Deserialize, Debug, Clone)]
+    #[derive(serde::Deserialize, serde::Serialize, Debug, Clone)]
     #[serde(deny_unknown_fields)]
     pub struct ExtraConfig {
         /// Where can we reach the transcryptor?
@@ -143,7 +141,7 @@ pub mod phc {
 pub mod transcryptor {
     use super::*;
 
-    #[derive(serde::Deserialize, Debug, Clone)]
+    #[derive(serde::Deserialize, serde::Serialize, Debug, Clone)]
     #[serde(deny_unknown_fields)]
     pub struct ExtraConfig {
         /// `x_T` from the whitepaper; randomly generated if not set
@@ -154,9 +152,80 @@ pub mod transcryptor {
 pub mod auths {
     use super::*;
 
-    #[derive(serde::Deserialize, Debug, Clone)]
+    #[derive(serde::Deserialize, serde::Serialize, Debug, Clone)]
     #[serde(deny_unknown_fields)]
     pub struct ExtraConfig {}
+}
+
+/// Trait to generate the random values in [Config] where needed
+trait GenerateRandoms {
+    fn generate_randoms(&mut self) -> anyhow::Result<()>;
+}
+
+impl GenerateRandoms for Config {
+    fn generate_randoms(&mut self) -> anyhow::Result<()> {
+        self.admin_key.get_or_insert_with(|| {
+            let sk = api::SigningKey::generate();
+
+            log::info!(
+                "admin key: {}",
+                serde_json::to_string(&sk)
+                    .expect("unexpected error during serialization of admin key")
+            );
+
+            sk.verifying_key().into()
+        });
+
+        macro_rules! gen_randoms {
+            ($server:ident) => {
+                if let Some(ref mut server) = self.$server {
+                    server.generate_randoms()?;
+                }
+            };
+        }
+
+        for_all_servers!(gen_randoms);
+
+        Ok(())
+    }
+}
+
+impl<Extra: GenerateRandoms> GenerateRandoms for ServerConfig<Extra> {
+    fn generate_randoms(&mut self) -> anyhow::Result<()> {
+        self.self_check_code
+            .get_or_insert_with(crate::misc::crypto::random_alphanumeric);
+
+        self.jwt_key.get_or_insert_with(api::SigningKey::generate);
+        self.enc_key.get_or_insert_with(elgamal::PrivateKey::random);
+
+        self.extra.generate_randoms()?;
+
+        Ok(())
+    }
+}
+
+impl GenerateRandoms for transcryptor::ExtraConfig {
+    fn generate_randoms(&mut self) -> anyhow::Result<()> {
+        self.master_enc_key_part
+            .get_or_insert_with(elgamal::PrivateKey::random);
+
+        Ok(())
+    }
+}
+
+impl GenerateRandoms for phc::ExtraConfig {
+    fn generate_randoms(&mut self) -> anyhow::Result<()> {
+        self.master_enc_key_part
+            .get_or_insert_with(elgamal::PrivateKey::random);
+
+        Ok(())
+    }
+}
+
+impl GenerateRandoms for auths::ExtraConfig {
+    fn generate_randoms(&mut self) -> anyhow::Result<()> {
+        Ok(())
+    }
 }
 
 pub trait GetServerConfig {

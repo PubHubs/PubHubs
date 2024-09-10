@@ -182,7 +182,7 @@ where
                 request
                     .extensions()
                     .get::<Translations>()
-                    .map(Clone::clone)
+                    .cloned()
                     .unwrap_or(Translations::NONE),
                 http_context.status_code,
                 http_context.public_message,

@@ -54,11 +54,29 @@ impl ServeArgs {
             .enable_all()
             .build()?
             .block_on(async {
-                let set = crate::servers::Set::new(&config)?;
+                let (set, shutdown_sender) = crate::servers::Set::new(&config)?;
+
+                tokio::spawn(async move {
+                    tokio::signal::ctrl_c()
+                        .await
+                        .expect("failed to await ctrl+c");
+                    log::info!("ctrl+c received; shutting down server(s)");
+                    drop(shutdown_sender);
+                    tokio::signal::ctrl_c()
+                        .await
+                        .expect("failed to await ctrl+c");
+                    log::warn!("second ctrl+c received; aborting process...");
+                    std::process::abort();
+                });
 
                 self.drive_discovery(&config.phc_url).await?;
 
-                Err(set.wait_for_err().await)
+                let err_count = set.wait().await;
+                if err_count > 0 {
+                    anyhow::bail!("{} servers did not shutdown cleanly", err_count);
+                }
+
+                Ok(())
             })
     }
 
@@ -68,7 +86,7 @@ impl ServeArgs {
         }
 
         tokio::task::LocalSet::new()
-            .run_until(crate::servers::drive_discovery(phc_url))
+            .run_until(crate::client::drive_discovery(phc_url))
             .await
             .context("discovery failed")?;
 

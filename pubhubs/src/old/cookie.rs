@@ -51,8 +51,7 @@ fn create_session_cookies(
     no_secure: bool,
     no_http_only: bool,
 ) -> Result<[actix_web::cookie::Cookie<'static>; 2]> {
-    let session_cookie_value =
-        session_cookie_content(user_id, cookie_secret)?;
+    let session_cookie_value = session_cookie_content(user_id, cookie_secret)?;
 
     let finish_cookie =
         |cb: actix_web::cookie::CookieBuilder<'static>| -> actix_web::cookie::Cookie {
