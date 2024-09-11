@@ -9,6 +9,7 @@ Also make sure to not squash the commits so we can search for them later.
  - [ ] To check for new major releases (that might break the current code), run [`cargo outdated`](https://github.com/kbknapp/cargo-outdated) (which must be installed first.) 
    Adjust `Cargo.toml` accordingly and check if `cargo test` succeeds.  If you encounter errors, try if you can easily fix them; if not, revert and make an issue.
      - **NOTE:** you may ignore the `cargo outdated` for now;  there are several packages `hyper`, `expry`, `hairy`, used by the old rust code that have major new versions that require quite a rewrite of the old code that is both dangerous and wasteful with the new code coming in. (See #438.)
+     - 2024-sept:  `cargo outdated` fails with the error "the package `pubhubs` depends on `env_logger`, with features: `anstream` but `env_logger` does not have these features."
 
 ## Hub
  - [ ] Check the version numbers in the [hub Dockerfile](pubhubs_hub/Dockerfile):
