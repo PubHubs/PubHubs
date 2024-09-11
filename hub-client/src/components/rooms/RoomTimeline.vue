@@ -5,7 +5,7 @@
 		<div v-if="oldestEventIsLoaded" class="rounded-xl flex items-center justify-center w-60 mx-auto mb-12 border border-solid border-black dark:border-white">{{ $t('rooms.roomCreated') }}</div>
 		<template v-for="item in roomTimeLine" :key="item.event.event_id">
 			<div ref="elRoomEvent" :id="item.event.event_id">
-				<RoomEvent :room-type="room.getType()" :event="item.event" class="room-event" @in-reply-to-click="onInReplyToClick"></RoomEvent>
+				<RoomEvent :room="room" :event="item.event" class="room-event" @in-reply-to-click="onInReplyToClick"></RoomEvent>
 				<UnreadMarker v-if="settings.isFeatureEnabled(featureFlagType.unreadMarkers)" :currentEventId="item.event.event_id" :currentUserId="user.user.userId"></UnreadMarker>
 			</div>
 		</template>
@@ -60,7 +60,6 @@
 		await loadInitialEvents();
 
 		await rooms.storeRoomNotice(props.room.roomId);
-
 		if (settings.isFeatureEnabled(featureFlagType.dateSplitter)) {
 			userHasScrolled.value = true;
 			setInterval(() => {

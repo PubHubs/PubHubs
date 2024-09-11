@@ -3,7 +3,7 @@ use serde::{Deserialize, Serialize};
 
 use crate::api::*;
 
-///
+/// Basic information advertised by the hub
 pub struct Info {}
 impl EndpointDetails for Info {
     type RequestType = ();

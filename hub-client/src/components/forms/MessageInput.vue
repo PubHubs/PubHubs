@@ -15,7 +15,7 @@
 
 			<div class="h-10 w-full flex items-center" v-if="messageActions.replyingTo">
 				<p class="ml-4 whitespace-nowrap mr-2">{{ $t('message.in_reply_to') }}</p>
-				<MessageSnippet class="w-[85%]" :event="messageActions.replyingTo"></MessageSnippet>
+				<MessageSnippet class="w-[85%]" :event="messageActions.replyingTo" :room="room"></MessageSnippet>
 				<button class="mr-4 ml-auto" @click="messageActions.replyingTo = undefined">
 					<Icon type="closingCross" size="sm"></Icon>
 				</button>
@@ -73,7 +73,7 @@
 		<div v-if="signingMessage" class="absolute bottom-[10%] md:left-[40%]" id="yivi-web-form"></div>
 
 		<div class="text-black dark:bg-gray-dark dark:text-white">
-			<FileUpload :file="fileInfo" :mxcPath="uri" v-if="fileUploadDialog" @close="closeMenus()"></FileUpload>
+			<FileUploadDialog :file="fileInfo" :mxcPath="uri" v-if="fileUploadDialog" @close="closeMenus()"></FileUploadDialog>
 			<!-- todo: move this into UploadPicker? -->
 			<input type="file" :accept="getTypesAsString(allTypes)" class="attach-file" ref="elFileInput" @change="uploadFile($event)" hidden />
 		</div>
@@ -90,9 +90,10 @@
 	import { useMessageActions } from '@/store/message-actions';
 	import filters from '@/core/filters';
 	import { useI18n } from 'vue-i18n';
+	import Room from '@/model/rooms/Room';
 
 	import { YiviSigningSessionResult } from '@/lib/signedMessages';
-	import { fileUpload as uploadHandler } from '@/composables/fileUpload';
+	import { fileUpload } from '@/composables/fileUpload';
 
 	const { t } = useI18n();
 	const route = useRoute();
@@ -100,6 +101,7 @@
 	const pubhubs = usePubHubs();
 	const messageActions = useMessageActions();
 
+	const props = defineProps({ room: Room });
 	const emit = defineEmits(usedEvents);
 	const { value, reset, changed, cancel } = useFormInputEvents(emit);
 	const { allTypes, getTypesAsString, uploadUrl } = useMatrixFiles();
@@ -176,7 +178,7 @@
 		const accessToken = pubhubs.Auth.getAccessToken();
 		const target = event.currentTarget as HTMLInputElement;
 		const errorMsg = t('errors.file_upload');
-		uploadHandler(errorMsg, accessToken, uploadUrl, allTypes, event, (url) => {
+		fileUpload(errorMsg, accessToken, uploadUrl, allTypes, event, (url) => {
 			if (target) {
 				const file = target.files && target.files[0];
 				if (file) {

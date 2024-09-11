@@ -171,13 +171,21 @@ impl Claims {
     pub fn from_custom<C: Serialize>(claims: C) -> Result<Self, Error> {
         let json_value = serde_json::to_value(claims).map_err(Error::SerializingClaims)?;
 
-        let inner = if let serde_json::Value::Object(inner) = json_value {
-            inner
-        } else {
-            return Err(Error::ClaimsDontSerializeToMap);
-        };
-
-        Ok(Self { inner })
+        Ok(Self {
+            inner: match json_value {
+                serde_json::Value::Object(inner) => inner,
+                serde_json::Value::Null => {
+                    return Err(Error::ClaimsDontSerializeToMapButNull {
+                        claims_type: std::any::type_name::<C>(),
+                    })
+                }
+                _ => {
+                    return Err(Error::ClaimsDontSerializeToMap {
+                        claims_type: std::any::type_name::<C>(),
+                    })
+                }
+            },
+        })
     }
 
     /// Adds the named claim with the given value.  Returns an error when a claim with the same
@@ -390,7 +398,9 @@ impl JWT {
             Base64UrlUnpadded::decode_vec(&s[last_dot_pos + 1..]).map_err(Error::InvalidBase64)?;
 
         if !key.is_valid_signature(signed.as_bytes(), signature) {
-            return Err(Error::InvalidSignature);
+            return Err(Error::InvalidSignature {
+                key: key.describe(),
+            });
         }
 
         // decode claims
@@ -433,8 +443,13 @@ pub enum Error {
     #[error("claims are not a valid json map")]
     ClaimsNotJsonMap(#[source] serde_json::Error),
 
-    #[error("the given custom claims do not serialize to a json map")]
-    ClaimsDontSerializeToMap,
+    #[error("the given custom claims (of type {claims_type}) do not serialize to a json map")]
+    ClaimsDontSerializeToMap { claims_type: &'static str },
+
+    #[error(
+        "the given custom claims (of type {claims_type}) do not serialize to a json map, but to null. Hint: 'type Unit;' -> 'type Unit {{}}'"
+    )]
+    ClaimsDontSerializeToMapButNull { claims_type: &'static str },
 
     #[error("invalid jwt claims")]
     DeserializingClaims(#[source] serde_json::Error),
@@ -472,8 +487,8 @@ pub enum Error {
     #[error("jwt contains invalid unpadded urlsafe base64")]
     InvalidBase64(#[source] base64ct::Error),
 
-    #[error("jwt signature is not valid (for this key)")]
-    InvalidSignature,
+    #[error("jwt signature is not valid (for this key, {key})")]
+    InvalidSignature { key: String },
 
     #[error("unexpected algorithm; got {got}, but expected {expected}")]
     UnexpectedAlgorithm { got: String, expected: &'static str },
@@ -552,6 +567,9 @@ pub trait SigningKey: Key {
 pub trait VerifyingKey: Key {
     /// Verifies signature.
     fn is_valid_signature(&self, message: &[u8], signature: Vec<u8>) -> bool;
+
+    /// Describe the key for use in errors
+    fn describe(&self) -> String;
 }
 
 /// What [SigningKey] and [VerifyingKey] have in common.
@@ -590,6 +608,10 @@ impl Key for IgnoreSignature {
 impl VerifyingKey for IgnoreSignature {
     fn is_valid_signature(&self, _message: &[u8], _signature: Vec<u8>) -> bool {
         true
+    }
+
+    fn describe(&self) -> String {
+        "n/a".into()
     }
 }
 
@@ -662,6 +684,10 @@ impl VerifyingKey for ed25519_dalek::VerifyingKey {
         }
         false
     }
+
+    fn describe(&self) -> String {
+        base16ct::lower::encode_string(self.as_bytes().as_slice())
+    }
 }
 
 /// Key for SHA256 based HMAC
@@ -706,6 +732,10 @@ impl VerifyingKey for HS256 {
             .expect("expect a sha256 mac to accept a key of any size");
         mac.update(message);
         mac.verify_slice(&signature).is_ok()
+    }
+
+    fn describe(&self) -> String {
+        base16ct::lower::encode_string(&self.0)
     }
 }
 

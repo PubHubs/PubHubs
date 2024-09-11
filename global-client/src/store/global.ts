@@ -5,8 +5,6 @@ import { Hub, HubList, Theme, TimeFormat, useSettings } from '@/store/store';
 import { SMI } from '../../../hub-client/src/dev/StatusMessage';
 import { Logger } from '@/../../hub-client/src/dev/Logger';
 
-const LOGGER = new Logger('GC');
-
 type PinnedHub = {
 	hubId: string;
 };
@@ -41,7 +39,7 @@ const useGlobal = defineStore('global', {
 			modalVisible: false,
 			pinnedHubs: [] as PinnedHubs,
 
-			logger: LOGGER,
+			logger: new Logger('GC'),
 		};
 	},
 

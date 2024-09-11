@@ -7,11 +7,13 @@ import { createNewPrivateRoomName, fetchMemberIdsFromPrivateRoomName, refreshPri
 import { hasHtml, sanitizeHtml } from '@/core/sanitizer';
 import { AskDisclosureMessage, YiviSigningSessionResult } from '@/lib/signedMessages';
 import { TMentions, TMessageEvent, TTextMessageEventContent } from '@/model/events/TMessageEvent';
-import { TSearchParameters, TSearchResult } from '@/model/model';
+import { TSearchParameters } from '@/model/model';
 import Room from '@/model/rooms/Room';
 import { RoomType, TPublicRoom, useConnection, User, useRooms, useUser } from '@/store/store';
-import { ContentHelpers, EventType, MatrixClient, MatrixError, MatrixEvent, Room as MatrixRoom, User as MatrixUser, MsgType } from 'matrix-js-sdk';
+import { ContentHelpers, ISearchResults, MatrixClient, MatrixError, MatrixEvent, Room as MatrixRoom, User as MatrixUser, MsgType } from 'matrix-js-sdk';
 import { ReceiptType } from 'matrix-js-sdk/lib/@types/read_receipts';
+
+let publicRoomsLoading: Promise<any> | null = null; // outside of defineStore to guarantee lifetime, not accessible outside this module
 
 const usePubHubs = defineStore('pubhubs', {
 	state: () => ({
@@ -35,31 +37,27 @@ const usePubHubs = defineStore('pubhubs', {
 		},
 
 		async login() {
-			console.log('PubHubs.login');
+			console.log('START PubHubs.login');
 			this.Auth.login()
 				.then((x) => {
-					// console.log('PubHubs.logged in (X)');
+					console.log('PubHubs.logged in (X) - started client');
 					this.client = x as MatrixClient;
 					const events = new Events(this.client as MatrixClient);
 					events.initEvents();
 				})
-				.then(() => {
-					// console.log('PubHubs.logged in ()');
+				.then(async () => {
+					console.log('PubHubs.logged in ()');
 					const connection = useConnection();
 					connection.on();
 					const user = useUser();
 					const newUser = this.client.getUser(user.user.userId);
 					if (newUser !== null) {
 						user.setUser(newUser as User);
-						user.fetchDisplayName(this.client as MatrixClient)
-							.then(() => user.fetchIsAdministrator(this.client as MatrixClient))
-							.then(() => {
-								api_synapse.setAccessToken(this.Auth.getAccessToken()!); //Since user isn't null, we expect there to be an access token.
-								api_matrix.setAccessToken(this.Auth.getAccessToken()!);
-							})
-							.then(() => {
-								this.updateRooms();
-							});
+						api_synapse.setAccessToken(this.Auth.getAccessToken()!); //Since user isn't null, we expect there to be an access token.
+						api_matrix.setAccessToken(this.Auth.getAccessToken()!);
+						user.userAvatarUrl = await user.fetchAvatarUrl(this.client as MatrixClient);
+						user.fetchIsAdministrator(this.client as MatrixClient);
+						this.updateRooms();
 					}
 				})
 				.catch((error) => {
@@ -129,8 +127,6 @@ const usePubHubs = defineStore('pubhubs', {
 		// Both login and DiscoverRooms called this method which in some cases lead to slowing the process.
 		// Now we make sure the API is called just once, returning the result to all possible callers.
 		async getAllPublicRooms(): Promise<TPublicRoom[]> {
-			let publicRoomsLoading = null;
-
 			// if promise already running: return promise
 			if (publicRoomsLoading) {
 				return publicRoomsLoading;
@@ -142,9 +138,10 @@ const usePubHubs = defineStore('pubhubs', {
 					resolve(this.performGetAllPublicRooms());
 				} catch (error) {
 					reject(error);
-				} finally {
-					publicRoomsLoading = null;
 				}
+			}).then((x) => {
+				publicRoomsLoading = null;
+				return x;
 			});
 
 			// return promise
@@ -156,7 +153,7 @@ const usePubHubs = defineStore('pubhubs', {
 			if (!this.client.publicRooms) {
 				return [];
 			}
-			if (Date.now() < this.lastPublicCheck + 4_000) {
+			if (Date.now() < this.lastPublicCheck + 2_500) {
 				//Only check again after 4 seconds.
 				return this.publicRooms;
 			}
@@ -497,8 +494,6 @@ const usePubHubs = defineStore('pubhubs', {
 		async changeAvatar(url: string) {
 			try {
 				await this.client.setAvatarUrl(url);
-				//Quickly update the avatar url.
-				await this.client.sendStateEvent('', EventType.RoomAvatar, { url }, '');
 			} catch (error: any) {
 				this.showError(error);
 			}
@@ -534,22 +529,30 @@ const usePubHubs = defineStore('pubhubs', {
 		/**
 		 * Performs search on content of given room
 		 *
-		 * @returns list of results as TSearchResult
+		 * @returns the promise of searchRoomEvents or an empty promise (when no term is given)
 		 */
-		async searchRoomEvents(term: string, searchParameters: TSearchParameters) {
-			if (!term || !term.length) return [];
+		async searchRoomEvents(term: string, searchParameters: TSearchParameters): Promise<ISearchResults> {
+			if (!term || !term.length) {
+				const emptySearchResult: ISearchResults = {
+					results: [],
+					highlights: [],
+				};
+				return emptySearchResult;
+			}
 
-			const response = await this.client.searchRoomEvents({ term: term, filter: { rooms: [searchParameters.roomId] } });
-			return response.results.map(
-				(result) =>
-					({
-						rank: result.rank,
-						event_id: result.context.ourEvent.event.event_id!,
-						event_type: result.context.ourEvent.event.type,
-						event_body: result.context.ourEvent.event.content?.body,
-						event_sender: result.context.ourEvent.event.sender,
-					}) as TSearchResult,
-			);
+			return await this.client.searchRoomEvents({ term: term, filter: { rooms: [searchParameters.roomId] } });
+		},
+
+		/**
+		 * Performs pagination on current searchResponse
+		 *
+		 * @returns the promise of searchRoomEvents or an empty promise (when no term is given)
+		 */
+		async backPaginateRoomEventsSearch(searchResponse: ISearchResults) {
+			if (searchResponse?.next_batch) {
+				return this.client.backPaginateRoomEventsSearch(searchResponse);
+			}
+			return searchResponse;
 		},
 
 		async hasUserJoinedHubFirstTime(): Promise<Object> {

@@ -6,12 +6,9 @@ use actix_web::web;
 use futures_util::future::LocalBoxFuture;
 
 use crate::{
-    phcrypto,
-    servers::{
-        self,
-        api::{self, EndpointDetails as _},
-        discovery, AppBase, AppCreator as _, AppCreatorBase, Constellation, Server as _,
-    },
+    api::{self, EndpointDetails as _},
+    client, phcrypto,
+    servers::{self, AppBase, AppCreator as _, AppCreatorBase, Constellation, Handle, Server as _},
 };
 
 use crate::{elgamal, hub};
@@ -24,12 +21,12 @@ impl servers::Details for Details {
     const NAME: servers::Name = servers::Name::PubhubsCentral;
     type AppT = Rc<App>;
     type AppCreatorT = AppCreator;
-    type RunningState = RunningState;
+    type ExtraRunningState = RunningState;
 
     fn create_running_state(
         server: &Server,
         constellation: &Constellation,
-    ) -> anyhow::Result<Self::RunningState> {
+    ) -> anyhow::Result<Self::ExtraRunningState> {
         let base = server.app_creator().base();
 
         Ok(RunningState {
@@ -49,7 +46,7 @@ pub struct App {
     master_enc_key_part: elgamal::PrivateKey,
 }
 
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub struct RunningState {
     t_ss: elgamal::SharedSecret,
 }
@@ -113,7 +110,7 @@ impl App {
             .await
             .into_server_result());
 
-        discovery::DiscoveryInfoCheck {
+        client::discovery::DiscoveryInfoCheck {
             phc_url: &self.base.phc_url,
             name,
             self_check_code: None,
@@ -171,7 +168,7 @@ impl App {
         app: Rc<Self>,
         signed_req: web::Json<api::phc::hub::TicketSigned<api::phct::hub::KeyReq>>,
     ) -> api::Result<api::phct::hub::KeyResp> {
-        let running_state: &RunningState = api::return_if_ec!(app.base.running_state());
+        let running_state = &api::return_if_ec!(app.base.running_state()).extra;
 
         let ts_req = signed_req.into_inner();
 
@@ -204,9 +201,9 @@ pub struct AppCreator {
 }
 
 impl crate::servers::AppCreator<Server> for AppCreator {
-    fn into_app(self, shutdown_sender: &crate::servers::ShutdownSender<Server>) -> Rc<App> {
+    fn into_app(self, handle: &Handle<Server>) -> Rc<App> {
         Rc::new(App {
-            base: AppBase::new(self.base, shutdown_sender),
+            base: AppBase::new(self.base, handle),
             transcryptor_url: self.transcryptor_url,
             auths_url: self.auths_url,
             hubs: self.hubs,
@@ -243,7 +240,7 @@ impl crate::servers::AppCreator<Server> for AppCreator {
         let master_enc_key_part: elgamal::PrivateKey = xconf
             .master_enc_key_part
             .clone()
-            .unwrap_or_else(elgamal::PrivateKey::random);
+            .expect("master_enc_key_part not generated");
 
         Ok(Self {
             base: AppCreatorBase::<Server>::new(config),

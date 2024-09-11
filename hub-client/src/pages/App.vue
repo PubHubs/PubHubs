@@ -15,11 +15,10 @@
 							<div>
 								<Avatar
 									:userId="user.user.userId"
-									:img="avatar"
-									:icon="true"
+									:img="user.avatarUrlOfUser ? pubhubs.getBaseUrl + '/_matrix/media/r0/download/' + user.avatarUrlOfUser.slice(6) : ''"
 									@click="
 										settingsDialog = true;
-										toggleMenu.toggleGlobalMenu();
+										hubSettings.hideBar();
 									"
 									class="cursor-pointer w-8 h-8 text-md"
 								></Avatar>
@@ -29,7 +28,7 @@
 
 					<Menu>
 						<template v-for="(item, index) in menu.getMenu" :key="index">
-							<MenuItem :to="item.to" :icon="item.icon" @click="toggleMenu.toggleGlobalMenu()">{{ $t(item.key) }}</MenuItem>
+							<MenuItem :to="item.to" :icon="item.icon" @click="hubSettings.hideBar()">{{ $t(item.key) }}</MenuItem>
 						</template>
 					</Menu>
 
@@ -54,7 +53,7 @@
 						<div v-if="user.isAdmin">
 							<H2 class="pl-5 border-b mr-8">{{ $t('menu.admin_tools') }}</H2>
 							<Menu>
-								<MenuItem :to="{ name: 'admin' }" icon="admin" @click="toggleMenu.toggleGlobalMenu()">{{ $t('menu.admin_tools_rooms') }}</MenuItem>
+								<MenuItem :to="{ name: 'admin' }" icon="admin">{{ $t('menu.admin_tools_rooms') }}</MenuItem>
 							</Menu>
 						</div>
 					</template>
@@ -79,7 +78,6 @@
 </template>
 
 <script setup lang="ts">
-	import { useMatrixFiles } from '@/composables/useMatrixFiles';
 	import { usePubHubs } from '@/core/pubhubsStore';
 	import { LOGGER } from '@/dev/Logger';
 	import { SMI } from '@/dev/StatusMessage';
@@ -87,7 +85,6 @@
 	import { useMenu } from '@/store/menu';
 	import { usePlugins } from '@/store/plugins';
 	import { HubInformation, featureFlagType, Message, MessageBoxType, MessageType, RoomType, Theme, TimeFormat, useHubSettings, useMessageBox, useRooms, useSettings, useUser } from '@/store/store';
-	import { useToggleMenu } from '@/store/toggleGlobalMenu';
 	import { getCurrentInstance, onMounted, ref, watch } from 'vue';
 	import { useI18n } from 'vue-i18n';
 	import { RouteParamValue, useRouter } from 'vue-router';
@@ -101,15 +98,12 @@
 	const messagebox = useMessageBox();
 	const dialog = useDialog();
 	const pubhubs = usePubHubs();
-	const { downloadUrl } = useMatrixFiles();
 	const plugins = usePlugins();
 	const menu = useMenu();
-	const toggleMenu = useToggleMenu();
 	const settingsDialog = ref(false);
 
 	const setupReady = ref(false);
 	const disclosureEnabled = settings.isFeatureEnabled('disclosure');
-	const avatar = ref('');
 
 	watch(
 		() => rooms.totalUnreadMessages,
@@ -133,13 +127,8 @@
 
 		if (window.location.hash !== '#/hub/') {
 			await pubhubs.login();
-			router.push({ name: 'home' });
 			setupReady.value = true; // needed if running only the hub-client
-
-			const avatarUrl = await pubhubs.getAvatarUrl();
-			if (avatarUrl !== '') {
-				avatar.value = downloadUrl + avatarUrl.slice(6);
-			}
+			router.push({ name: 'home' });
 		}
 		await startMessageBox();
 
@@ -171,20 +160,17 @@
 				settings.setTimeFormat(message.content.timeformat as TimeFormat);
 				settings.setLanguage(message.content.language);
 
-				// REFACTOR NEEDED: https://gitlab.science.ru.nl/ilab/pubhubs_canonical/-/issues/783
-				if (!settings.mobileHubMenu && !messageBoxStarted && hubSettings.mobileHubMenu) {
-					messagebox.sendMessage(new Message(MessageType.mobileHubMenu, hubSettings.mobileHubMenu));
-				}
 				messageBoxStarted = true;
 			});
 
 			//Listen to global menu change
-			messagebox.addCallback(MessageType.mobileHubMenu, (message: Message) => {
-				hubSettings.mobileHubMenu = message.content as boolean;
+			messagebox.addCallback(MessageType.BarHide, () => {
+				hubSettings.mobileHubMenu = false;
 			});
 
-			// Ask for syncing
-			messagebox.sendMessage(new Message(MessageType.Sync));
+			messagebox.addCallback(MessageType.BarShow, () => {
+				hubSettings.mobileHubMenu = true;
+			});
 
 			// Wait for theme change happened
 			const wait = setInterval(() => {

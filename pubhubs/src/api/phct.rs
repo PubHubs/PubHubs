@@ -19,7 +19,7 @@ pub mod hub {
 
     // NOTE: we use an empty [`KeyReq`] instead of [`()`] just to be able to add a `MessageCode`.
     #[derive(Serialize, Deserialize, Debug, Clone)]
-    pub struct KeyReq;
+    pub struct KeyReq {}
 
     having_message_code!(KeyReq, PhcTHubKeyReq);
 

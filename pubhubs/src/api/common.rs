@@ -1,6 +1,5 @@
 use serde::{Deserialize, Serialize};
 
-use crate::elgamal;
 use crate::misc::{fmt_ext, serde_ext::bytes_wrapper};
 use crate::servers::server;
 
@@ -16,11 +15,35 @@ pub enum Result<T> {
     Err(ErrorCode),
 }
 
+/// Creates an [actix_web::Responder] from the given [Serialize] `T`.
+pub fn ok<T>(t: T) -> Result<T>
+where
+    T: Serialize,
+{
+    Result::Ok(t)
+}
+
+/// Creates an [actix_web::Responder] from the given [ErrorCode].
+pub fn err<T: Serialize>(code: ErrorCode) -> Result<T> {
+    Result::<T>::Err(code)
+}
+
+impl<T: Serialize> actix_web::Responder for Result<T> {
+    type Body = actix_web::body::EitherBody<String>;
+
+    fn respond_to(self, req: &actix_web::HttpRequest) -> actix_web::HttpResponse<Self::Body> {
+        // NOTE: `actix_web::web::Json(self).respond_to(req)` does not work here,
+        // because actix_web::web::Json implements `Deref` so the very function we are defining
+        // will shadow the function we want to call.
+        actix_web::Responder::respond_to(actix_web::web::Json(self), req)
+    }
+}
+
 impl<T> Result<T> {
     pub fn unwrap(self) -> T {
         match self {
             Result::Ok(v) => v,
-            Result::Err(_) => panic!("unwrapped non-Ok"),
+            Result::Err(err) => panic!("unwrapped non-Ok: {err:?}: {err}"),
         }
     }
 
@@ -44,6 +67,22 @@ impl<T> Result<T> {
             f(*ec);
         }
         self
+    }
+
+    /// Converts this [crate::api::Result] into a standard [std::result::Result].
+    pub fn into_std(self) -> std::result::Result<T, ErrorCode> {
+        match self {
+            Result::Ok(v) => Ok(v),
+            Result::Err(err) => Err(err),
+        }
+    }
+
+    /// Creates an [crate::api::Result] from a standard [std::result::Result].
+    pub fn from_std(res: std::result::Result<T, ErrorCode>) -> Self {
+        match res {
+            Ok(v) => Result::Ok(v),
+            Err(err) => Result::Err(err),
+        }
     }
 
     /// Turns retryable errors into `None`, and the [Result] into a [std::result::Result],
@@ -75,6 +114,7 @@ impl<T> Result<T> {
 macro_rules! return_if_ec {
     ( $x:expr ) => {{
         let result = $x;
+        #[allow(clippy::unnecessary_unwrap)] // clippy's suggestion won't work with api::Result
         if result.is_err() {
             return $crate::api::Result::Err(result.unwrap_err());
         }
@@ -102,6 +142,18 @@ impl<T, E> IntoErrorCode for std::result::Result<T, E> {
         match self {
             Ok(v) => Result::Ok(v),
             Err(err) => Result::Err(f(err)),
+        }
+    }
+}
+
+impl<T> IntoErrorCode for Option<T> {
+    type Ok = T;
+    type Err = ();
+
+    fn into_ec<F: FnOnce(()) -> ErrorCode>(self, f: F) -> Result<T> {
+        match self {
+            Some(v) => Result::Ok(v),
+            None => Result::Err(f(())),
         }
     }
 }
@@ -196,52 +248,6 @@ impl ErrorCode {
                     InternalError
                 }
             }
-        }
-    }
-}
-
-/// What's returned by the `.ph/discovery/info` endpoint
-#[derive(Serialize, Deserialize, Debug)]
-pub struct DiscoveryInfoResp {
-    pub name: crate::servers::Name,
-
-    /// Random string used by a server to check that it has contact with itself.
-    pub self_check_code: String,
-
-    /// URL of the PubHubs Central server this server tries to connect to.
-    pub phc_url: url::Url,
-
-    /// Used to sign JWTs from this server.
-    pub jwt_key: VerifyingKey,
-
-    /// Used to encrypt messages to this server, and to create shared secrets with this server
-    /// using Diffie-Hellman
-    pub enc_key: elgamal::PublicKey,
-
-    /// Discovery state of the server
-    pub state: ServerState,
-
-    /// Master encryption key part, that is, `x_PHC B` or `x_T B` in the notation of the
-    /// whitepaper.  Only set for PHC or the transcryptor.
-    pub master_enc_key_part: Option<elgamal::PublicKey>,
-
-    /// Details of the other PubHubs servers, according to this server
-    /// None when `state` is [ServerState::Discovery]
-    pub constellation: Option<crate::servers::Constellation>,
-}
-
-/// Discovery state of a server
-#[derive(Serialize, Deserialize, Debug, Clone, Copy, PartialEq, Eq)]
-pub enum ServerState {
-    Discovery,
-    UpAndRunning,
-}
-
-impl<RS: Clone> From<&server::State<RS>> for ServerState {
-    fn from(s: &server::State<RS>) -> Self {
-        match s {
-            server::State::UpAndRunning { .. } => ServerState::UpAndRunning,
-            server::State::Discovery { .. } => ServerState::Discovery,
         }
     }
 }
@@ -488,24 +494,6 @@ impl Scalar {
     pub fn random() -> Self {
         curve25519_dalek::scalar::Scalar::random(&mut rand::rngs::OsRng).into()
     }
-}
-
-pub struct DiscoveryInfo {}
-impl EndpointDetails for DiscoveryInfo {
-    type RequestType = ();
-    type ResponseType = DiscoveryInfoResp;
-
-    const METHOD: http::Method = http::Method::GET;
-    const PATH: &'static str = ".ph/discovery/info";
-}
-
-pub struct DiscoveryRun {}
-impl EndpointDetails for DiscoveryRun {
-    type RequestType = ();
-    type ResponseType = ();
-
-    const METHOD: http::Method = http::Method::POST;
-    const PATH: &'static str = ".ph/discovery/run";
 }
 
 #[cfg(test)]

@@ -42,12 +42,21 @@ impl<'de> serde::Deserialize<'de> for BasicInfo {
     }
 }
 
+impl serde::Serialize for BasicInfo {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: serde::Serializer,
+    {
+        Self::serialize(self, serializer)
+    }
+}
+
 /// The regex pattern for a hub name
 pub const NAME_REGEX: &str = r"^[a-z0-9_]+$";
 
 thread_local! {
     /// Thread local compiled version of [NAME_REGEX]
-    static NAME_REGEX_TLK: OnceCell<regex::Regex> = OnceCell::new();
+    static NAME_REGEX_TLK: OnceCell<regex::Regex> = const { OnceCell::new() };
 }
 
 /// Runs `f` with as argument a reference to a compiled [NAME_REGEX]

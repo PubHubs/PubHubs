@@ -1,6 +1,6 @@
 <template>
 	<div class="flex flex-col h-full overflow-hidden">
-		<div class="h-16 md:h-20 pt-2 md:pt-4 z-10 relative">
+		<div class="h-16 md:h-20 z-10 relative">
 			<slot name="header"></slot>
 		</div>
 		<div class="flex-1 py-1 relative overflow-y-auto scrollbar">

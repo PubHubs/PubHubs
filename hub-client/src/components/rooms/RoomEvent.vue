@@ -6,11 +6,11 @@
 		</div>
 		<!-- Normal Event -->
 		<div v-else class="group flex gap-4 pl-6 pr-3 transition-all duration-150 ease-in-out hover:bg-lightgray-light hover:dark:bg-hub-background-2 py-4">
-			<Avatar :userId="event.sender"></Avatar>
+			<Avatar :userId="event.sender" :img="user.avatarUrlOfUser ? pubhubs.getBaseUrl + '/_matrix/media/r0/download/' + user.avatarUrlOfUser.slice(6) : ''"></Avatar>
 			<div class="w-4/5 xl:w-3/5">
 				<div class="flex flex-wrap items-center">
 					<div class="relative flex flex-wrap items-center w-full gap-x-2 md:w-fit pr-2 min-h-6">
-						<UserDisplayName :user="event.sender"></UserDisplayName>
+						<UserDisplayName :user="event.sender" :room="room"></UserDisplayName>
 						<div class="flex gap-2 flex-wrap">
 							<span class="text-xs font-normal">|</span>
 							<EventTime :timestamp="event.origin_server_ts" :showDate="false"> </EventTime>
@@ -36,7 +36,7 @@
 								<Icon :type="'warning'" :size="'xs'"></Icon>
 							</router-link>
 						</RoomEventActionsPopup>
-						<ProfileAttributes v-if="props.roomType == RoomType.PH_MESSAGES_RESTRICTED" :user="event.sender" :room_id="event.room_id"></ProfileAttributes>
+						<ProfileAttributes v-if="props.room.getType() == RoomType.PH_MESSAGES_RESTRICTED" :user="event.sender" :room_id="event.room_id"></ProfileAttributes>
 					</div>
 				</div>
 				<template v-if="event.plugin?.plugintype === PluginType.MESSAGE && event.content.msgtype === event.plugin.type">
@@ -44,7 +44,7 @@
 					<component :is="event.plugin.component" :event="event">{{ event.plugin.component }}</component>
 				</template>
 				<template v-else>
-					<MessageSnippet v-if="inReplyTo" @click="onInReplyToClick" :event="inReplyTo" :showInReplyTo="true"></MessageSnippet>
+					<MessageSnippet v-if="inReplyTo" @click="onInReplyToClick" :event="inReplyTo" :showInReplyTo="true" :room="room"></MessageSnippet>
 					<Message v-if="event.content.msgtype === 'm.text'" :event="event"></Message>
 					<MessageSigned v-if="event.content.msgtype === 'pubhubs.signed_message'" :message="event.content.signed_message"></MessageSigned>
 					<MessageFile v-if="event.content.msgtype === 'm.file'" :message="event.content"></MessageFile>
@@ -63,13 +63,15 @@
 	import MessageSnippet from './MessageSnippet.vue';
 	import { PluginType } from '@/store/plugins';
 	import { TMessageEvent } from '@/model/model';
+	import Room from '@/model/rooms/Room';
 
 	const connection = useConnection();
 	const messageActions = useMessageActions();
 
 	const user = useUser();
+	const pubhubs = usePubHubs();
 
-	const props = defineProps<{ event: TMessageEvent; roomType: RoomType | undefined }>();
+	const props = defineProps<{ event: TMessageEvent; room: Room }>();
 
 	const inReplyTo = structuredClone(props.event.content['m.relates_to']?.['m.in_reply_to']?.x_event_copy);
 

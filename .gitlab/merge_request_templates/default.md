@@ -1,7 +1,7 @@
 # Coding steps
 
-- [ ] Followed coding guidelines
-- [ ] Added to changelog if a new feature
+- [ ] Followed [coding guidelines](https://gitlab.science.ru.nl/ilab/pubhubs_canonical/-/wikis/Contributing/Code-guidelines)
+- [ ] Added to [changelog](https://gitlab.science.ru.nl/ilab/pubhubs_canonical/-/blob/main/CHANGELOG.md) if a new feature
 
 # Review Steps:
 
