@@ -73,6 +73,7 @@ const en = {
 		search_nothing_found: 'Nothing found',
 		read_receipt: 'Read by',
 		typing: 'Start typing...',
+		load_more_results: 'Load more results',
 	},
 	rooms: {
 		room: 'Room:',

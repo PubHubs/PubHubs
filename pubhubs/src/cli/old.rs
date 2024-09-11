@@ -564,10 +564,7 @@ async fn yivi_finish_and_redirect_anyhow(
     if params.oidc_auth_request_handle.is_none() {
         // GET-redirect user to the account page
         resp_with_cookie.status(http::StatusCode::SEE_OTHER);
-        resp_with_cookie.insert_header((
-            http::header::LOCATION,
-            format!("/client"),
-        ));
+        resp_with_cookie.insert_header((http::header::LOCATION, "/client".to_string()));
         return Ok(resp_with_cookie.finish());
     }
 

@@ -4,7 +4,7 @@
 			{{ $t('message.in_reply_to') }}
 		</p>
 		<p :class="textColor(userColor)">
-			<UserDisplayName :user="event.sender"></UserDisplayName>
+			<UserDisplayName :user="event.sender" :room="room"></UserDisplayName>
 		</p>
 		<p class="truncate" :title="text">{{ text }}</p>
 	</div>
@@ -14,6 +14,7 @@
 	import { useUserColor } from '@/composables/useUserColor';
 	import { M_MessageEvent } from '@/types/events';
 	import { computed } from 'vue';
+	import Room from '@/model/rooms/Room';
 
 	const { color, textColor } = useUserColor();
 
@@ -21,6 +22,7 @@
 		event: M_MessageEvent;
 		// Whether or not to show the text "In reply to:" inside the snippet.
 		showInReplyTo?: boolean;
+		room: Room;
 	};
 
 	const props = withDefaults(defineProps<Props>(), {

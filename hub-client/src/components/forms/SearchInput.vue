@@ -49,7 +49,7 @@
 	<!-- Search results -->
 	<div v-if="searched" class="absolute right-2 md:right-0 top-16 md:top-20 w-full max-w-80 bg-gray-lighter dark:bg-gray-darker rounded-b-md max-h-[500%] overflow-y-auto scrollbar">
 		<template v-if="searchResults && searchResults.length > 0">
-			<div v-for="item in searchResults" :key="item.event_id" class="group">
+			<div v-for="item in searchResultsToShow" :key="item.event_id" class="group">
 				<a href="#" @click.prevent="onScrollToEventId(item.event_id)">
 					<div class="flex gap-2 group-hover:bg-gray-light group-hover:dark:bg-gray p-2">
 						<Avatar :userId="item.event_sender" class="flex-none h-6 w-6"></Avatar>
@@ -61,17 +61,26 @@
 		<template v-else>
 			<p v-if="value !== ''" class="p-2">{{ $t('others.search_nothing_found') }}</p>
 		</template>
+		<!-- Show load more results text if necessary -->
+		<template v-if="searchResults && searchResults.length > 0 && searchResponse && searchResponse.count && searchResponse.count > searchResults.length">
+			<a href="#" @click.prevent="loadMoreSearchResults()">
+				<div class="flex gap-2 group-hover:bg-gray-light group-hover:dark:bg-gray p-2">
+					{{ $t('others.load_more_results') }}
+				</div>
+			</a>
+		</template>
 	</div>
 </template>
 
 <script setup lang="ts">
 	import { useFormInputEvents, usedEvents } from '@/composables/useFormInputEvents';
 	import { TSearchParameters, TSearchResult } from '@/model/model';
-	import { PropType, ref } from 'vue';
+	import { PropType, ref, computed } from 'vue';
 	import { usePubHubs } from '@/core/pubhubsStore';
 	import { useRooms } from '@/store/store';
 	import { filterAlphanumeric } from '@/core/extensions';
 	import TruncatedText from '../elements/TruncatedText.vue';
+	import { ISearchResults, SearchResult } from 'matrix-js-sdk';
 
 	const pubhubs = usePubHubs();
 	const rooms = useRooms();
@@ -83,18 +92,38 @@
 
 	const searchResults = ref<TSearchResult[]>([]);
 	const searched = ref(false);
+	let searchResponse: ISearchResults | undefined = undefined;
 
 	const emit = defineEmits([...usedEvents, 'scrollToEventId']);
 	const { value, changed, submit, cancel } = useFormInputEvents(emit);
+
+	// searchresults shown in list. When the text 'more results' is shown the last result is omitted to keep it in view
+	const searchResultsToShow = computed(() => {
+		if (searchResults.value && searchResults.value.length > 0 && searchResponse && searchResponse.count && searchResponse.count > searchResults.value.length) {
+			return searchResults.value.slice(0, -1); // Return all items except the last one
+		}
+		return searchResults.value; // Return all items
+	});
 
 	async function search() {
 		searchResults.value = [];
 		searched.value = true;
 		if (!value.value) return;
-		searchResults.value = await pubhubs.searchRoomEvents(value.value as string, props.searchParameters);
-		searchResults.value.forEach((element) => {
-			element.event_body = formatSearchResult(element.event_body, value.value as string, 5);
-		});
+
+		searchResponse = await pubhubs.searchRoomEvents(value.value as string, props.searchParameters);
+		if (searchResponse && searchResponse.results.length > 0) {
+			searchResults.value = mapSearchResult(searchResponse.results);
+		}
+	}
+
+	async function loadMoreSearchResults() {
+		if (searchResponse && searchResponse.next_batch) {
+			while (searchResponse.next_batch) {
+				searchResponse = await pubhubs.backPaginateRoomEventsSearch(searchResponse);
+			}
+			searchResults.value = mapSearchResult(searchResponse.results);
+		}
+		searched.value = true;
 	}
 
 	function reset() {
@@ -107,6 +136,26 @@
 			emit('scrollToEventId', { eventId: eventId });
 			// reset();
 		}
+	}
+
+	function mapSearchResult(results: SearchResult[]): TSearchResult[] {
+		if (!results || results.length == 0) {
+			return [];
+		}
+		let mappedResults = results.map(
+			(result) =>
+				({
+					rank: result.rank,
+					event_id: result.context.ourEvent.event.event_id!,
+					event_type: result.context.ourEvent.event.type,
+					event_body: result.context.ourEvent.event.content?.body,
+					event_sender: result.context.ourEvent.event.sender,
+				}) as TSearchResult,
+		);
+		mappedResults.forEach((element) => {
+			element.event_body = formatSearchResult(element.event_body, value.value as string, 5);
+		});
+		return mappedResults;
 	}
 
 	function formatSearchResult(eventbody: string, searchterm: string, numberOfWords: number): string {

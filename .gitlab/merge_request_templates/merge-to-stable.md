@@ -6,11 +6,15 @@ General tips:
 - If you do the merge together with a collegua, one of you should do the tests on an mobile phone and the other on a desktop.
 
   - [ ] Set feature flags appropriately for stable. In the [settings store](https://gitlab.science.ru.nl/ilab/pubhubs_canonical/-/blob/main/hub-client/src/store/settings.ts#L75) you will find the hub-client's default settings in an object called 'defaultSettings'. Set the feature flags in there by commenting out the features flags for main and uncommenting the flags for stable. After the merge you will change them back. 
-  - [ ] Check that CI/CD pipeline in main has completed without errors. If the pipeline is blocked, then manually run all the stages to ensure that there is no error. This might take a bit of time therefore, this should be the first step for the merge to stable.
+  - [ ] Check that CI/CD pipeline in main has completed without errors. This might take a bit of time therefore, this should be the first step for the merge to stable.
   - [ ] Notify the others that they do not merge anything into main until the merge to stable is done. (otherwise you will merge changes that may not be deployed to main and therefore not tested by the steps below).
   - [ ] You're merging from main into stable (and not from some feature branch.) 
   - [ ] Review and update the [CHANGELOG](CHANGELOG.md) to reflect the state after the merge into stable.
     - [ ] Scan through all changes in merge request to see if there is any issue.
+    - [ ] Set the new version number  ([how to decide which version](https://gitlab.science.ru.nl/ilab/pubhubs_canonical/-/wikis/Tech-Information/Versioning)) in the [CHANGELOG](CHANGELOG.md) and also in:
+      - [ ] https://gitlab.science.ru.nl/ilab/pubhubs_canonical/-/blob/main/pubhubs/Cargo.toml
+      - [ ] https://gitlab.science.ru.nl/ilab/pubhubs_canonical/-/blob/main/hub-client/package.json
+      - [ ] https://gitlab.science.ru.nl/ilab/pubhubs_canonical/-/blob/main/global-client/package.json
   - [ ] Before proceeding with the folloing steps please check that the pipeline has been successfully completed. 
   - [ ] Please check that the following works on https://main.pubhubs.ihub.ru.nl/client :
       - [ ] Test basic pubhubs functionality
@@ -42,10 +46,11 @@ General tips:
         - [ ] Logging out and logging in again with your original user.
       - [ ] If anything has changed to branding: Rebrand testhub2 with a new logo and colors. See https://gitlab.science.ru.nl/ilab/pubhubs_canonical/-/blob/main/docs/development/BRANDING.md (NB This involves some work on ilab-main, see https://gitlab.science.ru.nl/ilab/pubhubs_canonical/-/wikis/Current-ops-troubleshooting#changing-the-branding-of-a-running-hub)
       - [ ] Anything related specifically to your merge request.
+  - [ ] Given all the issues found, decide whether it's prudent to continue the merge.  (That is, are the bugs bearable.) Consider consulting with other colleagues.
   - [ ] Figure out if the merge also requires any configuration changes. 
   - [ ] Consider if the merge might cause irreversible changes (different database format), and plan for this. (Backups?)
   - [ ] Inform the pubhubs team (via Slack and PubHubs stable) of the merge and possible downtime of https://stable.pubhubs.ihub.ru.nl/client . 
-  - [ ] Make the changes and perform the merge. Make sure all the jobs in the pipeline are kicked off. (Some jobs require manual start)
+  - [ ] Make the changes and perform the merge.
   - [ ] While waiting on the pipeline: update dependencies on the main branch in a merge request created from [this issue](https://gitlab.science.ru.nl/ilab/pubhubs_canonical/-/issues/new?issuable_template=update-dependencies&issue[title]=Updating%20dependencies%20on%2020yy-mm-dd) (not on stable as this might break something).
   - [ ] When the pipeline finishes, rebrand all running hub clients (see #769 for instructions).
   - [ ] Check that the following works on https://stable.pubhubs.ihub.ru.nl/client :
@@ -54,12 +59,13 @@ General tips:
       - Note for registering a *new* user, with a fresh email address: If possible, tips are if you have a gmail account you can add +<date> before the '@' and add a card for that, if you have a mail domain with a catch-all you can create a new mail address and add a card for that.
     - [ ] Anything related specifically to your merge request.
   - [ ] Make issues for the problems. If they are serious:  fix or revert, if possible.
+  - [ ] Tag the merge commit with the latest version number.
   - [ ] Merge stable back into main. Do this on your machine, not via a gitlab merge request (which will make an extra commit leading to out-of-sync main and stable). To check if main and stable are merged correctly, go to the [repository graph](https://gitlab.science.ru.nl/ilab/pubhubs_canonical/-/network/main?ref_type=heads) and check if main and stable are pointing to the same commit. See the screenshot below. (If you already merged the updated dependencies to main, main will be ahead of stable)
 
   ![image](/uploads/478c467465270fe24b4e3ec6ee32cc3b/image.png)
   - [ ] Reset the [feature flags](https://gitlab.science.ru.nl/ilab/pubhubs_canonical/-/blob/main/hub-client/src/store/settings.ts#L75) so the proper flags are enabled for the main branch.
   - [ ] Check this list and cleanup items with due date passed, and add due dates to items that are not in active development anymore.
-     
+       
   (The `merge-to-stable` merge request template can be edited [here](https://gitlab.science.ru.nl/ilab/pubhubs_canonical/-/edit/main/.gitlab/merge_request_templates/merge-to-stable.md).)
   - [ ] Celebrate!
   

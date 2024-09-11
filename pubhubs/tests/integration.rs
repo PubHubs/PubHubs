@@ -1,7 +1,7 @@
 // integration test, testing all aspects of the rust code
 
 use actix_web::web;
-use pubhubs::{api, hub, servers};
+use pubhubs::{api, client, hub, servers};
 use std::{sync::Arc, time::Duration};
 
 const CONFIG_FILE_PATH: &'static str = "pubhubs.default.yaml";
@@ -11,15 +11,19 @@ async fn main_integration_test() {
     env_logger::init();
 
     // Load configuration
-    let config = servers::Config::load_from_path(std::path::Path::new(CONFIG_FILE_PATH))
+    let mut config = servers::Config::load_from_path(std::path::Path::new(CONFIG_FILE_PATH))
         .unwrap()
         .unwrap();
 
-    let _set = servers::Set::new(&config);
+    // Change randomly generated admin key to something we know
+    let admin_sk = api::SigningKey::generate();
+    config.admin_key = Some(admin_sk.verifying_key().into());
+
+    let (set, _) = servers::Set::new(&config).unwrap();
 
     // Run discovery
     let constellation: servers::Constellation = tokio::task::LocalSet::new()
-        .run_until(servers::drive_discovery(&config.phc_url))
+        .run_until(client::drive_discovery(&config.phc_url))
         .await
         .unwrap();
 
@@ -59,7 +63,22 @@ async fn main_integration_test() {
         .await;
 
     // check that the ticket is valid
-    ticket.open(&*constellation.phc_jwt_key).unwrap();
+    ticket.clone().open(&*constellation.phc_jwt_key).unwrap();
+
+    // request hub encryption key
+    let _ek = tokio::task::LocalSet::new()
+        .run_until(client::for_hubs::get_hub_enc_key(
+            client::for_hubs::HubContext {
+                ticket: &ticket,
+                signing_key: &mock_hub.context.sk,
+                constellation: &constellation,
+                timeout: Duration::from_secs(10),
+            },
+        ))
+        .await
+        .unwrap();
+
+    assert_eq!(set.shutdown().await, 0, "not all servers exited cleanly");
 }
 
 /// Simulates a hub.
