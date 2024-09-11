@@ -25,6 +25,7 @@ For reference, dependencies are in `package.json`.
 - [ ] In the `global-client` directory, run `npm update` to install minor version updates (probably non-breaking changes).
 - [ ] Run `npm outdated` to check for major updates (difference between wantend and latest) and change the package.json file to update major versions if wanted. 
   - 2024-sept: laura:  could not update `eslint` related packages
+  - 2024-sept: `vuedraggable`'s latest, `2.24.3`, seems off, as the current is `4.1.0`; not updated.
 - [ ] To address issues that do not require attention, run: `npm audit fix`
   - (2024-jul) This gives a warning about @vue/cli-service@3.3.1. You can ignore this as running npm audit fix --force breaks more things.
   - (2024-jul) updating 'msw' to 2.3.3 breaks the tests when its ran on gitlab. If it's not fixed in 2024-oct, make an issue at msw repo.
