@@ -6,7 +6,7 @@ General tips:
 - If you do the merge together with a collegua, one of you should do the tests on an mobile phone and the other on a desktop.
 
   - [ ] Set feature flags appropriately for stable. In the [settings store](https://gitlab.science.ru.nl/ilab/pubhubs_canonical/-/blob/main/hub-client/src/store/settings.ts#L75) you will find the hub-client's default settings in an object called 'defaultSettings'. Set the feature flags in there by commenting out the features flags for main and uncommenting the flags for stable. After the merge you will change them back. 
-  - [ ] Check that CI/CD pipeline in main has completed without errors. If the pipeline is blocked, then manually run all the stages to ensure that there is no error. This might take a bit of time therefore, this should be the first step for the merge to stable.
+  - [ ] Check that CI/CD pipeline in main has completed without errors. This might take a bit of time therefore, this should be the first step for the merge to stable.
   - [ ] Notify the others that they do not merge anything into main until the merge to stable is done. (otherwise you will merge changes that may not be deployed to main and therefore not tested by the steps below).
   - [ ] You're merging from main into stable (and not from some feature branch.) 
   - [ ] Review and update the [CHANGELOG](CHANGELOG.md) to reflect the state after the merge into stable.
@@ -46,10 +46,11 @@ General tips:
         - [ ] Logging out and logging in again with your original user.
       - [ ] If anything has changed to branding: Rebrand testhub2 with a new logo and colors. See https://gitlab.science.ru.nl/ilab/pubhubs_canonical/-/blob/main/docs/development/BRANDING.md (NB This involves some work on ilab-main, see https://gitlab.science.ru.nl/ilab/pubhubs_canonical/-/wikis/Current-ops-troubleshooting#changing-the-branding-of-a-running-hub)
       - [ ] Anything related specifically to your merge request.
+  - [ ] Given all the issues found, decide whether it's prudent to continue the merge.  (That is, are the bugs bearable.) Consider consulting with other colleagues.
   - [ ] Figure out if the merge also requires any configuration changes. 
   - [ ] Consider if the merge might cause irreversible changes (different database format), and plan for this. (Backups?)
   - [ ] Inform the pubhubs team (via Slack and PubHubs stable) of the merge and possible downtime of https://stable.pubhubs.ihub.ru.nl/client . 
-  - [ ] Make the changes and perform the merge. Make sure all the jobs in the pipeline are kicked off. (Some jobs require manual start)
+  - [ ] Make the changes and perform the merge.
   - [ ] While waiting on the pipeline: update dependencies on the main branch in a merge request created from [this issue](https://gitlab.science.ru.nl/ilab/pubhubs_canonical/-/issues/new?issuable_template=update-dependencies&issue[title]=Updating%20dependencies%20on%2020yy-mm-dd) (not on stable as this might break something).
   - [ ] When the pipeline finishes, rebrand all running hub clients (see #769 for instructions).
   - [ ] Check that the following works on https://stable.pubhubs.ihub.ru.nl/client :
