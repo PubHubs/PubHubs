@@ -12,35 +12,46 @@ describe('User Display Name.vue Test', () => {
 	// SETUP - run before to each unit test
 	beforeEach(() => {
 		setActivePinia(createPinia());
-	 });
+	});
 	test('test member is null', async () => {
 		// Wait until the DOM updates
-		(wrapper = shallowMount(UserDisplayName, {
-				propsData: {
-					user: '@123-abc:matrix',
-					room: {
-						getMember: (user) => null
-					}
+		wrapper = shallowMount(UserDisplayName, {
+			propsData: {
+				user: '@123-abc:matrix',
+				room: {
+					getMember: (user) => null,
 				},
-			}));
+			},
+		});
 
 		await flushPromises();
-        expect(wrapper.find(nameSelector).exists()).toEqual(false);
+		expect(wrapper.find(nameSelector).exists()).toEqual(false);
 	});
 
 	test('test member display name is correct', async () => {
-		let room =  { getMember: (user) => {return {rawDisplayName : 'user'}}};
-			(wrapper = shallowMount(UserDisplayName, {
-				propsData: {
-					user: '@123-abc:matrix',
-					room: room,
-				},
-			}));
-		
+		let room = {
+			getMember: (user) => {
+				return { rawDisplayName: 'user' };
+			},
+		};
+		wrapper = shallowMount(UserDisplayName, {
+			propsData: {
+				user: '@123-abc:matrix',
+				room: room,
+			},
+		});
+
 		// Wait until the DOM updates
 		await flushPromises();
-        expect(wrapper.find(nameSelector).text()).toEqual('user');
-		await wrapper.setProps({user: '@123-abc:matrix', room: {getMember: (user) => {return {rawDisplayName : 'user2'}}}}); 
+		expect(wrapper.find(nameSelector).text()).toEqual('user');
+		await wrapper.setProps({
+			user: '@123-abc:matrix',
+			room: {
+				getMember: (user) => {
+					return { rawDisplayName: 'user2' };
+				},
+			},
+		});
 		expect(wrapper.find(nameSelector).text()).toEqual('user2');
 	});
 });

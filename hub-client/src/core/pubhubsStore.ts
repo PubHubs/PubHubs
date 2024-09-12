@@ -12,6 +12,9 @@ import Room from '@/model/rooms/Room';
 import { RoomType, TPublicRoom, useConnection, User, useRooms, useUser } from '@/store/store';
 import { ContentHelpers, ISearchResults, MatrixClient, MatrixError, MatrixEvent, Room as MatrixRoom, User as MatrixUser, MsgType } from 'matrix-js-sdk';
 import { ReceiptType } from 'matrix-js-sdk/lib/@types/read_receipts';
+import { router } from './router';
+import { Logger } from '@/dev/Logger';
+import { SMI } from '@/dev/StatusMessage';
 
 let publicRoomsLoading: Promise<any> | null = null; // outside of defineStore to guarantee lifetime, not accessible outside this module
 
@@ -21,6 +24,7 @@ const usePubHubs = defineStore('pubhubs', {
 		client: {} as MatrixClient,
 		publicRooms: [] as TPublicRoom[],
 		lastPublicCheck: 0,
+		logger: new Logger('pubhubs store'),
 	}),
 
 	getters: {
@@ -37,16 +41,16 @@ const usePubHubs = defineStore('pubhubs', {
 		},
 
 		async login() {
-			console.log('START PubHubs.login');
+			this.logger.log(SMI.STARTUP_TRACE, 'START PubHubs.login');
 			this.Auth.login()
 				.then((x) => {
-					console.log('PubHubs.logged in (X) - started client');
+					this.logger.log(SMI.STARTUP_TRACE, 'PubHubs.logged in (X) - started client');
 					this.client = x as MatrixClient;
 					const events = new Events(this.client as MatrixClient);
 					events.initEvents();
 				})
 				.then(async () => {
-					console.log('PubHubs.logged in ()');
+					this.logger.log(SMI.STARTUP_TRACE, 'PubHubs.logged in ()');
 					const connection = useConnection();
 					connection.on();
 					const user = useUser();
@@ -61,9 +65,8 @@ const usePubHubs = defineStore('pubhubs', {
 					}
 				})
 				.catch((error) => {
-					if (typeof error === 'string' && error.indexOf('M_FORBIDDEN') < 0) {
-						console.debug('ERROR:', error);
-					}
+					this.logger.log(SMI.STARTUP_TRACE, 'Something went wrong while creating a matrix-js client instance or logging in', error);
+					router.push({ name: 'error-page' });
 				});
 		},
 
@@ -76,17 +79,20 @@ const usePubHubs = defineStore('pubhubs', {
 			const rooms = useRooms();
 
 			const joinedRooms = (await this.client.getJoinedRooms()).joined_rooms; //Actually makes an HTTP request to the Hub server.
-
+			let knownRooms = this.client.getRooms();
 			// Make sure the metrix js SDK client is aware of all the rooms the user has joined
 			for (const room_id of joinedRooms) {
-				await this.client.joinRoom(room_id);
+				if (!knownRooms.find((kr) => kr.roomId === room_id)) {
+					const room = await this.client.joinRoom(room_id);
+					this.client.store.storeRoom(room);
+				}
 			}
-			const knownRooms = this.client.getRooms();
+
+			knownRooms = this.client.getRooms();
 
 			const currentRooms = knownRooms.filter((room) => joinedRooms.indexOf(room.roomId) !== -1);
-			console.log('PubHubs.updateRooms');
+			this.logger.log(SMI.STORE_TRACE, 'PubHubs.updateRooms');
 			rooms.updateRoomsWithMatrixRooms(currentRooms);
-			rooms.roomsLoaded = true;
 			await rooms.fetchPublicRooms();
 		},
 
@@ -103,7 +109,7 @@ const usePubHubs = defineStore('pubhubs', {
 				if (error.errcode !== 'M_FORBIDDEN') {
 					this.showDialog(error.data.error as string);
 				} else {
-					console.log(error);
+					this.logger.log(SMI.STORE_TRACE, 'showing error dialog', error);
 				}
 			} else {
 				this.showDialog('Unfortanatly an error occured. Please contact the developers.\n\n' + error.toString);
@@ -188,8 +194,7 @@ const usePubHubs = defineStore('pubhubs', {
 		 * response
 		 */
 		async joinRoom(room_id: string) {
-			const room = await this.client.joinRoom(room_id);
-			this.client.store.storeRoom(room); //Let the client store the room exists. It will do it itself but in its own time. We want to go fast.
+			await this.client.joinRoom(room_id);
 			this.updateRooms();
 		},
 
@@ -440,7 +445,7 @@ const usePubHubs = defineStore('pubhubs', {
 			try {
 				await this.client.sendImageMessage(roomId, uri, undefined);
 			} catch (error) {
-				console.log(error);
+				this.logger.log(SMI.STORE_TRACE, 'swallowing add image error', { error });
 			}
 		},
 
@@ -464,7 +469,7 @@ const usePubHubs = defineStore('pubhubs', {
 				// todo: fix this (issue #808)
 				await this.client.sendMessage(roomId, content);
 			} catch (error) {
-				console.log(error);
+				this.logger.log(SMI.STORE_TRACE, 'swallowing add file error', { error });
 			}
 		},
 
@@ -479,7 +484,7 @@ const usePubHubs = defineStore('pubhubs', {
 				// Resend
 				await this.client.sendEvent(roomId, type, content);
 			} catch (error) {
-				console.log(error);
+				this.logger.log(SMI.STORE_TRACE, 'swallowing resend event error', { error });
 			}
 		},
 

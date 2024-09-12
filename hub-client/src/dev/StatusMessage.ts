@@ -11,6 +11,7 @@ export enum SMI {
 	ROOM_TIMELINE_TRACE = 'ROOM_TIMELINE_TRACE',
 	ROOM_TRACE = 'ROOM_TRACE',
 	STARTUP_TRACE = 'STARTUP_TRACE',
+	STORE_TRACE = 'STORE_TRACE',
 }
 
 export enum StatusMessageLevel {
