@@ -127,18 +127,6 @@ describe('rooms Store', () => {
 			expect(rooms).toBeTypeOf('object');
 		});
 
-		test('addRoom', () => {
-			const rooms = useRooms();
-			expect(Object.keys(rooms.rooms).length).toEqual(0);
-
-			const testRoom = new Room(new MockedMatrixRoom('test'));
-			rooms.addRoom(testRoom);
-			expect(Object.keys(rooms.rooms).length).toEqual(1);
-			expect(rooms.rooms['test'].isHidden()).toEqual(false);
-			expect(rooms.rooms['test']).toMatchObject(testRoom);
-			rooms.rooms['test'].numUnreadMessages = 1;
-		});
-
 		test('roomsArray', () => {
 			const rooms = useRooms();
 			expect(rooms.roomsArray).toBeTypeOf('object');
@@ -147,9 +135,7 @@ describe('rooms Store', () => {
 
 		test('sortedRoomsArray', () => {
 			const rooms = useRooms();
-			rooms.addRoom(new Room(new MockedMatrixRoom('Btest')));
-			rooms.addRoom(new Room(new MockedMatrixRoom('Atest')));
-			rooms.addRoom(new Room(new MockedMatrixRoom('Ctest')));
+			rooms.updateRoomsWithMatrixRooms([new Room(new MockedMatrixRoom('Btest')), new Room(new MockedMatrixRoom('Atest')), new Room(new MockedMatrixRoom('Ctest'))]);
 			expect(rooms.sortedRoomsArray).toBeTypeOf('object');
 			expect(rooms.sortedRoomsArray.length).toBeTypeOf('number');
 			expect(rooms.sortedRoomsArray.length).toEqual(rooms.roomsArray.length);
@@ -159,27 +145,27 @@ describe('rooms Store', () => {
 		test('hasRooms', () => {
 			const rooms = useRooms();
 			expect(rooms.hasRooms).toEqual(false);
-			rooms.addRoom(new Room(new MockedMatrixRoom('test')));
+			rooms.updateRoomsWithMatrixRooms([new Room(new MockedMatrixRoom('test'))]);
 			expect(rooms.hasRooms).toEqual(true);
 		});
 
 		test('roomExists', () => {
 			const rooms = useRooms();
 			expect(rooms.roomExists('test')).toEqual(false);
-			rooms.addRoom(new Room(new MockedMatrixRoom('test')));
+			rooms.updateRoomsWithMatrixRooms([new Room(new MockedMatrixRoom('test'))]);
 			expect(rooms.roomExists('test')).toEqual(true);
 		});
 
 		test('room', () => {
 			const rooms = useRooms();
-			rooms.addRoom(new Room(new MockedMatrixRoom('test')));
+			rooms.updateRoomsWithMatrixRooms([new Room(new MockedMatrixRoom('test'))]);
 			expect(rooms.room('test')).toBeTypeOf('object');
 		});
 
 		test('isHiddenRoom', () => {
 			const rooms = useRooms();
 
-			rooms.addRoom(new Room(new MockedMatrixRoom('test')));
+			rooms.updateRoomsWithMatrixRooms([new Room(new MockedMatrixRoom('test'))]);
 			expect(rooms.rooms['test'].hidden).toEqual(false);
 
 			rooms.rooms['test'].hidden = true;
@@ -193,8 +179,7 @@ describe('rooms Store', () => {
 			const rooms = useRooms();
 			expect(rooms.totalUnreadMessages).toEqual(0);
 
-			rooms.addRoom(new Room(new MockedMatrixRoom('test')));
-			rooms.addRoom(new Room(new MockedMatrixRoom('test2')));
+			rooms.updateRoomsWithMatrixRooms([new Room(new MockedMatrixRoom('test')), new Room(new MockedMatrixRoom('test2'))]);
 
 			expect(rooms.rooms['test'].getRoomUnreadNotificationCount(NotificationCountType.Highlight)).toEqual(1);
 			expect(rooms.rooms['test'].getRoomUnreadNotificationCount(NotificationCountType.Total)).toEqual(1);

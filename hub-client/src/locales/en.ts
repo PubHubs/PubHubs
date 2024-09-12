@@ -16,9 +16,11 @@ const en = {
 		ignore: 'Ignore',
 		continue: 'Continue',
 		title_sure: 'Are you sure?',
+		go_back: 'Go back',
 	},
 	errors: {
-		error: 'Unfortunately an error occured. Please contact opthe developers.\n\n {0}',
+		oops: 'Oops!',
+		error: 'Unfortunately an error occured. Please contact the developers.\n\n {0}',
 		server: 'Server error',
 		M_LIMIT_EXCEEDED: 'Too much login attempts. Try again in {0} seconds.',
 		not_send_offline: 'Internet connection seems down. This message was not send.',
@@ -26,6 +28,7 @@ const en = {
 		file_upload: 'File format not supported',
 		no_valid_attribute: 'A secured room needs to have attributes',
 		do_not_remove_attributes: 'Attributes may not be removed from a secured room',
+		cant_find_room: 'This room is not available at the moment',
 	},
 	file: {
 		file: 'File',
