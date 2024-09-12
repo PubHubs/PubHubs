@@ -54,6 +54,7 @@ General tips:
   - [ ] While waiting on the pipeline: update dependencies on the main branch in a merge request created from [this issue](https://gitlab.science.ru.nl/ilab/pubhubs_canonical/-/issues/new?issuable_template=update-dependencies&issue[title]=Updating%20dependencies%20on%2020yy-mm-dd) (not on stable as this might break something).
   - [ ] When the pipeline finishes, rebrand all running hub clients (see #769 for instructions).
   - [ ] Check that the following works on https://stable.pubhubs.ihub.ru.nl/client :
+    - [ ] Use a private window or clear your browser caches to check if rebranding succeeded.
     - [ ] Turn off dev mode in Yivi app. 
     - [ ] Test basic pubhubs functionality (see above)
       - Note for registering a *new* user, with a fresh email address: If possible, tips are if you have a gmail account you can add +<date> before the '@' and add a card for that, if you have a mail domain with a catch-all you can create a new mail address and add a card for that.
