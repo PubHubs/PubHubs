@@ -10,6 +10,7 @@ const routes = [
 	{ path: '/room/:id', props: true, name: 'room', component: () => import('@/pages/Room.vue'), meta: { hideBar: true } },
 	{ path: '/secureroom/:id', name: 'secure-room', component: () => import('@/pages/SecureRoomPage.vue'), meta: { hideBar: true } },
 	{ path: '/roomerror/:id', name: 'error-page-room', component: () => import('@/pages/RoomErrorPage.vue'), meta: { hideBar: true } },
+	{ path: '/error/', name: 'error-page', component: () => import('@/pages/ErrorPage.vue'), props: (route: any) => ({ errorKey: route.query?.errorKey ? route.query?.errorKey : 'errors.error' }), meta: { hideBar: true } },
 	{ path: '/nop', name: 'nop', component: () => import('@/pages/NotImplemented.vue') },
 ];
 

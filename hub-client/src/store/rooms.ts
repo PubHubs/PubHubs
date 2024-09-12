@@ -196,26 +196,13 @@ const useRooms = defineStore('rooms', {
 		},
 
 		updateRoomsWithMatrixRooms(rooms: MatrixRoom[]) {
-			this.roomsLoaded = true;
 			const tempRooms = {} as { [index: string]: Room }; // reset rooms
 			rooms.forEach((matrixRoom) => {
 				//@ts-ignore
 				tempRooms[matrixRoom.roomId] = new Room(matrixRoom);
 			});
 			this.rooms = tempRooms;
-		},
-
-		/**
-		 * Wraps the matrixRoom with our own Room class and adds it to the store.
-		 *
-		 * @returns the added room
-		 */
-		addRoom(room: Room): Room {
-			if (!this.roomExists(room.roomId)) {
-				this.rooms[room.roomId] = room;
-				this.roomsLoaded = true;
-			}
-			return this.rooms[room.roomId];
+			this.roomsLoaded = true;
 		},
 
 		sendUnreadMessageCounter() {

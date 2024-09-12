@@ -16,8 +16,10 @@ const nl = {
 		ignore: 'Negeren',
 		continue: 'Verder',
 		title_sure: 'Weet je het zeker?',
+		go_back: 'Ga terug',
 	},
 	errors: {
+		oops: 'Oeps!',
 		error: 'Helaas, er is een fout opgetreden. Neem contact op met de developers.\n\n {0}',
 		server: 'Fout van de server',
 		M_LIMIT_EXCEEDED: 'Te veel inlogpogingen achter elkaar. Probeer het over {0} seconden nog eens.',
@@ -26,6 +28,7 @@ const nl = {
 		file_upload: 'Bestandsformaat niet ondersteund',
 		no_valid_attribute: 'Een beveilgde kamer moet attributen hebben',
 		do_not_remove_attributes: 'Attributen mogen niet uit een beveiligde kamer verwijderd worden',
+		cant_find_room: 'Deze kamer is op het moment niet beschikbaar',
 	},
 	file: {
 		file: 'Bestand',
