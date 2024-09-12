@@ -24,4 +24,7 @@ module.exports = defineConfig({
 	},
 	transpileDependencies: true,
 	publicPath: '/client',
+	pwa: {
+		themeColor: '#686868',
+	},
 });
