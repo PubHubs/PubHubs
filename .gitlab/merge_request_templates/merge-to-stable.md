@@ -68,5 +68,21 @@ General tips:
        
   (The `merge-to-stable` merge request template can be edited [here](https://gitlab.science.ru.nl/ilab/pubhubs_canonical/-/edit/main/.gitlab/merge_request_templates/merge-to-stable.md).)
   - [ ] Celebrate!
+
+- If Omar Javed is not available, email [external hubs](https://gitlab.science.ru.nl/ilab/pubhubs_canonical/-/wikis/Tech-Information/External-Hub-Deployment) to pull the latest updates with the following email:
+
+> Dear XYZ,
+> 
+> I hope this email finds you well.
+> 
+> I am writing this email to inform you that our latest update is now available. We kindly ask you to pull the update to ensure that you have access to the recent features and bug fixes.
+> Please do not hesitate to reach out to us if you encounter any issue during the update process.
+> 
+> Regards,
+>
+> PubHubs Team
+
+
+
   
 
