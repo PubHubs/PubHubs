@@ -97,6 +97,23 @@ async fn drive_discovery_of(url: &url::Url) -> anyhow::Result<api::DiscoveryInfo
     .ok_or_else(|| anyhow::anyhow!("timeout waiting for {} to leave discovery state", inf.name))
 }
 
+/// Retrieves [Constellation] from PHC, waiting for it to be set.
+pub async fn get_constellation(url: &url::Url) -> anyhow::Result<Constellation> {
+    crate::misc::task::retry(|| async {
+        // Retry calling DiscoveryInfo endpoint while it returns a retryable error or some
+        // DiscoveryInfoResp with None constellation until constellation is Some.
+        (match api::query::<api::DiscoveryInfo>(url, &())
+            .await
+            .retryable()/* <- turns retryable error Err(err) into Ok(None) */?
+        {
+            Some(inf) => Ok(inf.constellation),
+            None => Ok(None),
+        }) as anyhow::Result<Option<Constellation>>
+    })
+    .await?
+    .ok_or_else(|| anyhow::anyhow!("timeout waiting for PHC to publish constellation"))
+}
+
 /// Specifies what to check about  a [api::DiscoveryInfoResp]
 pub struct DiscoveryInfoCheck<'a> {
     pub phc_url: &'a url::Url,

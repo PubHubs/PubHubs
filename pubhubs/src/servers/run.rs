@@ -176,8 +176,8 @@ struct Handles<S: Server> {
     /// Handle to the task running (discovery for) the PubHubs server.
     ph_join_handle: tokio::task::JoinHandle<Result<Option<crate::servers::server::BoxModifier<S>>>>,
 
-    /// To order `ph_join_handle` to shutdown.  [None] when used.
-    ph_shutdown_sender: tokio::sync::oneshot::Sender<()>,
+    /// Dropped to order `ph_join_handle` to shutdown.  [None] when used.
+    ph_shutdown_sender: Option<tokio::sync::oneshot::Sender<Infallible>>,
 
     /// Receives commands from the [App]s
     command_receiver: mpsc::Receiver<Command<S>>,
@@ -243,15 +243,15 @@ impl<S: Server> Handles<S> {
     }
 
     /// Consumes this [Handles] shutting down the actix server and pubhubs tasks.
-    async fn shutdown(self, graceful_actix_shutdown: bool) -> anyhow::Result<()> {
+    async fn shutdown(mut self, graceful_actix_shutdown: bool) -> anyhow::Result<()> {
         log::debug!("Shut down of {} started", S::NAME);
 
-        if self.ph_shutdown_sender.send(()).is_err() {
-            bail!(
-                "failed to notify {server_name} of shutdown",
-                server_name = S::NAME
-            );
-        }
+        anyhow::ensure!(
+            self.ph_shutdown_sender.is_some(),
+            "shutdown of ph task already ordered"
+        );
+
+        drop(self.ph_shutdown_sender.take());
 
         // NOTE: this is a noop if the actix server is already stopped
         self.actix_server_handle.stop(graceful_actix_shutdown).await;
@@ -415,7 +415,7 @@ impl<S: Server> Runner<S> {
             actix_join_handle,
             command_receiver,
             ph_join_handle,
-            ph_shutdown_sender,
+            ph_shutdown_sender: Some(ph_shutdown_sender),
             drop_bomb: crate::misc::drop_ext::Bomb::new(|| {
                 format!("Part of {} was not shut down properly", S::NAME)
             }),

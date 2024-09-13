@@ -3,6 +3,7 @@ use actix_web::web;
 use anyhow::Result;
 use futures_util::future::LocalBoxFuture;
 
+use core::convert::Infallible;
 use std::rc::Rc;
 use std::sync::Arc;
 
@@ -102,7 +103,7 @@ pub trait Server: Sized + 'static {
     #[allow(async_fn_in_trait)] // <- we do not need our future to be Send
     async fn run_until_modifier(
         self: Rc<Self>,
-        shutdown_receiver: tokio::sync::oneshot::Receiver<()>,
+        shutdown_receiver: tokio::sync::oneshot::Receiver<Infallible>,
     ) -> anyhow::Result<Option<BoxModifier<Self>>>;
 }
 
@@ -172,11 +173,18 @@ where
 
     async fn run_until_modifier(
         self: Rc<Self>,
-        shutdown_receiver: tokio::sync::oneshot::Receiver<()>,
+        shutdown_receiver: tokio::sync::oneshot::Receiver<Infallible>,
     ) -> anyhow::Result<Option<crate::servers::server::BoxModifier<Self>>> {
-        if shutdown_receiver.await.is_err() {
-            log::error!("shutdown sender for {} dropped early", Self::NAME)
+        shutdown_receiver
+            .await
+            .expect_err("got instance of Infallible");
+
+        // Retrieve constellation if we don't have one already
+        if self.app_creator.base().running_state.is_none() {
+            // TODO
         }
+
+        // TODO: run discovery
 
         Ok(None)
     }
@@ -416,7 +424,8 @@ impl DiscoveryLimiter {
             None => return api::ok(api::DiscoveryRunResp::AlreadyRestarting),
         };
 
-        // Obtain discovery info from PHC, and perform some basis checks.
+        // Obtain discovery info from PHC (even when we are PHC ourselves, for perhaps
+        // the phc_url is misconfigured) and perform some basis checks.
         // Should not return an error when our constellation is out of sync.
         let phc_discovery_info = {
             let result = AppBase::<S>::discover_phc(app.clone()).await;
@@ -426,8 +435,10 @@ impl DiscoveryLimiter {
             result.unwrap()
         };
 
-        if app.base().running_state.is_some() {
-            let rs = app.base().running_state.as_ref().unwrap();
+        let rs_maybe = app.base().running_state.as_ref();
+
+        if rs_maybe.is_some() {
+            let rs = rs_maybe.unwrap();
 
             if phc_discovery_info.constellation.is_none() {
                 // PubHubs Central is not yet ready - make the caller retry
@@ -447,8 +458,13 @@ impl DiscoveryLimiter {
         }
 
         log::info!(
-            "Constellation of {} is out of date - running discovery..",
+            "Constellation of {} is {} - running discovery..",
             S::NAME,
+            if rs_maybe.is_some() {
+                "out of date"
+            } else {
+                "not yet set"
+            }
         );
 
         let constellation = api::return_if_ec!(app.discover(phc_discovery_info).await);
@@ -469,7 +485,7 @@ impl DiscoveryLimiter {
                                 S::NAME,
                                 err
                             );
-                            return false;
+                            return false; // do not restart
                         }
                     };
 
@@ -478,7 +494,7 @@ impl DiscoveryLimiter {
                         extra,
                     });
 
-                    true
+                    true // yes, restart
                 },
             )
             .await;
