@@ -383,8 +383,11 @@ impl<S: Server> Runner<S> {
             std::thread::current().id()
         );
 
+        let app_creator2 = app_creator.clone();
+        let handle2 = handle.clone();
+
         let actual_actix_server: actix_web::dev::Server = actix_web::HttpServer::new(move || {
-            let app: S::AppT = app_creator.clone().into_app(&handle);
+            let app: S::AppT = app_creator2.clone().into_app(&handle2);
 
             actix_web::App::new().configure(|sc: &mut web::ServiceConfig| {
                 // first configure endpoints common to all servers
@@ -407,7 +410,7 @@ impl<S: Server> Runner<S> {
         let ph_join_handle = tokio::task::spawn_local(
             self.pubhubs_server
                 .clone()
-                .run_until_modifier(ph_shutdown_receiver),
+                .run_until_modifier(ph_shutdown_receiver, app_creator.into_app(&handle)),
         );
 
         Ok(Handles {

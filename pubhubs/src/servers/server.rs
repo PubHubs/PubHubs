@@ -11,7 +11,7 @@ use crate::elgamal;
 
 use crate::client;
 
-use crate::api::{self, EndpointDetails, IntoErrorCode as _};
+use crate::api::{self, DiscoveryRunResp, EndpointDetails, IntoErrorCode as _};
 use crate::servers::{self, Config, Constellation, Handle};
 
 /// Enumerates the names of the different PubHubs servers
@@ -88,6 +88,7 @@ pub trait Server: Sized + 'static {
     ) -> Result<Self::ExtraRunningState>;
 
     /// This function is called when the server is started to run disovery.
+    ///
     /// It is only passed a shared (and thus immutable) reference to itself to prevent any modifications
     /// going unnoticed by [App] instances.
     ///
@@ -100,10 +101,15 @@ pub trait Server: Sized + 'static {
     ///
     /// Before this function's future finishes, it should relinquish all references to `self`.
     /// Otherwise the modification following it will panic.
+    ///
+    /// It is given its own [App] instance.
+    ///
+    /// TODO: remove returning BoxModifier since that can be achieved via App instance?
     #[allow(async_fn_in_trait)] // <- we do not need our future to be Send
     async fn run_until_modifier(
         self: Rc<Self>,
         shutdown_receiver: tokio::sync::oneshot::Receiver<Infallible>,
+        app: Self::AppT,
     ) -> anyhow::Result<Option<BoxModifier<Self>>>;
 }
 
@@ -174,19 +180,54 @@ where
     async fn run_until_modifier(
         self: Rc<Self>,
         shutdown_receiver: tokio::sync::oneshot::Receiver<Infallible>,
+        app: Self::AppT,
     ) -> anyhow::Result<Option<crate::servers::server::BoxModifier<Self>>> {
-        shutdown_receiver
-            .await
-            .expect_err("got instance of Infallible");
+        tokio::select! {
+            res = shutdown_receiver => {
+               res.expect_err("got instance of Infallible");
+               return Ok(None);
+            }
 
-        // Retrieve constellation if we don't have one already
-        if self.app_creator.base().running_state.is_none() {
-            // TODO
+            res = self.run_discovery_if_needed_and_wait_forever(app) => {
+                return Err(res.expect_err("got instance of Infallible"));
+            }
+        }
+    }
+}
+
+impl<D: Details> ServerImpl<D>
+where
+    D::AppT: App<Self>,
+    D::AppCreatorT: AppCreator<Self>,
+{
+    async fn run_discovery_if_needed_and_wait_forever(
+        self: Rc<Self>,
+        app: D::AppT,
+    ) -> anyhow::Result<Infallible> {
+        self.run_discovery_if_needed(app).await?;
+
+        std::future::pending::<Infallible>().await; // wait forever
+        unreachable!();
+    }
+
+    async fn run_discovery_if_needed(self: Rc<Self>, app: D::AppT) -> anyhow::Result<()> {
+        // check if we need to run discovery
+        if self.app_creator.base().running_state.is_some() {
+            // constellation already set, no immediate need for discovery
+            return Ok(());
         }
 
-        // TODO: run discovery
-
-        Ok(None)
+        crate::misc::task::retry(|| async {
+            (match
+                AppBase::<Self>::handle_discovery_run(app.clone()).await.retryable()/* <- turns retryable error Err(err) into Ok(None) */?
+            {
+                Some(DiscoveryRunResp::AlreadyRestarting | DiscoveryRunResp::UpdatedAndNowRestarting) => Ok(Some(())),
+                Some(DiscoveryRunResp::AlreadyUpToDate) => anyhow::bail!("did not expect {server_name} to already be up-to-date", server_name = D::NAME),
+                None => Ok(None),
+            }) as anyhow::Result<Option<()>>
+        })
+        .await?
+        .ok_or_else(|| anyhow::anyhow!("timeout waiting for discovery of {server_name}", server_name = D::NAME))
     }
 }
 
@@ -435,20 +476,20 @@ impl DiscoveryLimiter {
             result.unwrap()
         };
 
+        if phc_discovery_info.constellation.is_none() && S::NAME != Name::PubhubsCentral {
+            // PubHubs Central is not yet ready - make the caller retry
+            log::warn!(
+                "Discovery of {} is run while {} is not yet ready",
+                S::NAME,
+                Name::PubhubsCentral,
+            );
+            return api::err(api::ErrorCode::NotYetReady);
+        }
+
         let rs_maybe = app.base().running_state.as_ref();
 
         if rs_maybe.is_some() {
             let rs = rs_maybe.unwrap();
-
-            if phc_discovery_info.constellation.is_none() {
-                // PubHubs Central is not yet ready - make the caller retry
-                log::warn!(
-                    "Discovery of {} is run while {} is not yet ready",
-                    S::NAME,
-                    Name::PubhubsCentral,
-                );
-                return api::err(api::ErrorCode::NotYetReady);
-            }
 
             if phc_discovery_info.constellation.is_some()
                 && *phc_discovery_info.constellation.as_ref().unwrap() == *rs.constellation
@@ -776,7 +817,7 @@ impl<S: Server> AppBase<S> {
                 .master_enc_key_part()
                 .map(|privk| privk.public_key().clone()),
             constellation: app_base
-                .running_state
+                .hrunning_state
                 .as_ref()
                 .map(|rs| (*rs.constellation).clone()),
         })
