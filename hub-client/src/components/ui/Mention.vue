@@ -3,7 +3,7 @@
 		<ul>
 			<li v-for="(member, index) in filteredUsers" :key="index" class="group cursor-pointer hover:bg-lightgray-dark hover:dark:bg-gray-middle px-4" @click="clickedItem(member)">
 				<div class="flex items-center gap-4 py-2">
-					<Avatar :userId="member.userId"></Avatar>
+					<Avatar :userId="member.userId" :room="room"></Avatar>
 					<div>{{ member.rawDisplayName }}</div>
 				</div>
 			</li>
@@ -15,6 +15,7 @@
 	import { ref, computed, watch, onMounted } from 'vue';
 	import { useRooms } from '@/store/store';
 	import { TRoomMember } from '@/model/rooms/TRoomMember';
+	import Room from '@/model/rooms/Room';
 
 	const emit = defineEmits(['click']);
 
@@ -31,12 +32,14 @@
 		msg?: string;
 		left: number;
 		top: number;
+		room: Room;
 	};
 
 	const props = withDefaults(defineProps<Props>(), {
 		msg: undefined,
 		left: 0,
 		top: 0,
+		room: undefined,
 	});
 
 	onMounted(() => {

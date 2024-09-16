@@ -7,7 +7,7 @@
 					<UploadPicker @click="clickedAttachment"></UploadPicker>
 					<SignedMessageButton @click="showSigningMessageMenu()"></SignedMessageButton>
 				</Popover>
-				<Mention :msg="value" :top="caretPos.top" :left="caretPos.left" @click="mentionUser($event)"></Mention>
+				<Mention :msg="value" :top="caretPos.top" :left="caretPos.left" :room="room" @click="mentionUser($event)"></Mention>
 				<div v-if="showEmojiPicker" class="absolute bottom-[115%] sm:right-0 z-20">
 					<EmojiPicker @emojiSelected="clickedEmoticon" @close="showEmojiPicker = false" />
 				</div>

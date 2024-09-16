@@ -52,7 +52,7 @@
 			<div v-for="item in searchResultsToShow" :key="item.event_id" class="group">
 				<a href="#" @click.prevent="onScrollToEventId(item.event_id)">
 					<div class="flex gap-2 group-hover:bg-gray-light group-hover:dark:bg-gray p-2">
-						<Avatar :userId="item.event_sender" class="flex-none h-6 w-6"></Avatar>
+						<Avatar :userId="item.event_sender" :room="room" class="flex-none h-6 w-6"></Avatar>
 						<TruncatedText>{{ item.event_body }}</TruncatedText>
 					</div>
 				</a>
@@ -81,6 +81,7 @@
 	import { filterAlphanumeric } from '@/core/extensions';
 	import TruncatedText from '../elements/TruncatedText.vue';
 	import { ISearchResults, SearchResult } from 'matrix-js-sdk';
+	import Room from '@/model/rooms/Room';
 
 	const pubhubs = usePubHubs();
 	const rooms = useRooms();
@@ -88,6 +89,7 @@
 	//Passed by the parentcomponent
 	const props = defineProps({
 		searchParameters: { type: Object as PropType<TSearchParameters>, required: true },
+		room: Room,
 	});
 
 	const searchResults = ref<TSearchResult[]>([]);

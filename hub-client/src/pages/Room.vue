@@ -19,7 +19,7 @@
 								</TruncatedText>
 							</div>
 						</div>
-						<SearchInput :search-parameters="searchParameters" @scroll-to-event-id="onScrollToEventId"></SearchInput>
+						<SearchInput :search-parameters="searchParameters" @scroll-to-event-id="onScrollToEventId" :room="rooms.currentRoom"></SearchInput>
 					</div>
 				</div>
 			</template>
