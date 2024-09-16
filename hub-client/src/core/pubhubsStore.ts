@@ -55,12 +55,14 @@ const usePubHubs = defineStore('pubhubs', {
 					connection.on();
 					const user = useUser();
 					const newUser = this.client.getUser(user.user.userId);
+
 					if (newUser !== null) {
 						user.setUser(newUser as User);
 						api_synapse.setAccessToken(this.Auth.getAccessToken()!); //Since user isn't null, we expect there to be an access token.
 						api_matrix.setAccessToken(this.Auth.getAccessToken()!);
-						user.userAvatarUrl = await user.fetchAvatarUrl(this.client as MatrixClient);
 						user.fetchIsAdministrator(this.client as MatrixClient);
+						const avatarUrl = await this.client.getProfileInfo(newUser.userId, 'avatar_url');
+						if (avatarUrl.avatar_url !== undefined) user.avatarUrl = avatarUrl.avatar_url;
 						this.updateRooms();
 					}
 				})
@@ -502,12 +504,6 @@ const usePubHubs = defineStore('pubhubs', {
 			} catch (error: any) {
 				this.showError(error);
 			}
-		},
-
-		async getAvatarUrl() {
-			const user = useUser();
-			const url = await user.fetchAvatarUrl(this.client as MatrixClient);
-			return url;
 		},
 
 		async findUsers(term: string): Promise<Array<any>> {

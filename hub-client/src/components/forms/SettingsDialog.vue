@@ -54,7 +54,7 @@
 	const dialog = useDialog();
 	const { data, setSubmitButton, setData, updateData, dataIsChanged, message, setMessage, validationErrors } = useFormState();
 	const pubhubs = usePubHubs();
-	const { imageTypes, uploadUrl, downloadUrl } = useMatrixFiles(pubhubs);
+	const { imageTypes, uploadUrl } = useMatrixFiles();
 	const { color, bgColor } = useUserColor();
 
 	setData({
@@ -65,6 +65,7 @@
 		},
 		avatarUrl: {
 			value: '',
+			// To keep the original mxc.
 			tmp: '',
 		},
 	});
@@ -73,13 +74,13 @@
 		setSubmitButton(dialog.properties.buttons[0]);
 	});
 
-	onMounted(async () => {
+	onMounted(() => {
 		data.displayName.value = user.user.displayName as FormDataType;
-		const url = await pubhubs.getAvatarUrl();
-		if (url !== '') {
+		data.avatarUrl.value = user.avatarUrl as FormDataType;
+		if (data.avatarUrl.value !== undefined) {
 			setData({
 				avatarUrl: {
-					value: downloadUrl + url.slice(6),
+					value: data.avatarUrl.value as string,
 					tmp: '',
 				},
 			});
@@ -100,29 +101,31 @@
 			updateData('displayName', '');
 		}
 		if (dataIsChanged('avatarUrl')) {
-			user.userAvatarUrl = data.avatarUrl.tmp;
-			await pubhubs.changeAvatar(user.userAvatarUrl);
+			const newAvatarUrl = data.avatarUrl.value as string;
+			user.avatarUrl = newAvatarUrl;
+			await pubhubs.changeAvatar(data.avatarUrl.tmp);
 		}
 	}
 
-	// Display name and Avatar related functions
-
+	// Avatar related functions
 	async function uploadAvatar(event: Event) {
 		const accessToken = pubhubs.Auth.getAccessToken();
-		const errorMsg = t('errors.file_upload');
-		await fileUpload(errorMsg, accessToken, uploadUrl, imageTypes, event, (uri) => {
-			// Update the user store for avatar url to overcome synapse slow updates in user profile.
-			data.avatarUrl.tmp = uri;
-			// Update the form data i.e., there is a change and submit button is enabled.
-			updateData('avatarUrl', downloadUrl + uri.slice(6));
-		});
+		if (accessToken) {
+			const errorMsg = t('errors.file_upload');
+			await fileUpload(errorMsg, accessToken, uploadUrl, imageTypes, event, (uri) => {
+				// Update the user store for avatar url to overcome synapse slow updates in user profile.
+				data.avatarUrl.tmp = uri;
+				data.avatarUrl.value = uri;
+				// Update the form data i.e., there is a change and submit button is enabled.
+				updateData('avatarUrl', uri);
+			});
+		} else {
+			console.error('Access Token is invalid for File upload.');
+		}
 	}
 
 	async function removeAvatar() {
-		// Update the user store for avatar url to overcome synapse slow updates in user profile.
-		data.avatarUrl.tmp = '';
-
-		// Update the form data i.e., there is a change and submit button is enabled.
+		data.avatarUrl.value = '';
 		updateData('avatarUrl', '');
 	}
 </script>
