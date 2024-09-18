@@ -1,3 +1,29 @@
+//
+// https://dev.to/devsmitra/maximizing-performance-how-to-memoize-async-functions-in-javascript-4on8
+//
+// COMMENTS FOR IMPROVEMENT, see: https://gitlab.science.ru.nl/ilab/pubhubs_canonical/-/merge_requests/574
+//
+const memoize = (fn: any) => {
+	const cache = new Map();
+	return (arg: any) => {
+		if (!cache.has(arg)) {
+			const val = fn(arg);
+			if (val instanceof Promise) {
+				cache.set(
+					arg,
+					val.catch((reason) => {
+						cache.delete(arg);
+						throw reason;
+					}),
+				);
+			} else {
+				cache.set(arg, val);
+			}
+		}
+		return cache.get(arg);
+	};
+};
+
 const propCompare = (prop: string) => {
 	return (a: any, b: any) => {
 		if (a[prop] && b[prop]) {
@@ -64,4 +90,4 @@ const filterAlphanumeric = (text: string): string => {
 	return text.replace(pattern, '');
 };
 
-export { propCompare, trimSplit, isEmpty, isObject, mergeDeep, filterAlphanumeric };
+export { memoize, propCompare, trimSplit, isEmpty, isObject, mergeDeep, filterAlphanumeric };
