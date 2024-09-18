@@ -11,6 +11,7 @@ import { defineStore } from 'pinia';
 import { useRouter } from 'vue-router';
 import { Message, MessageType, useMessageBox } from './messagebox';
 import { useUser } from './user';
+import { useSettings } from './settings';
 
 // Matrix Endpoint for messages in a room.
 interface RoomMessages {
@@ -334,6 +335,7 @@ const useRooms = defineStore('rooms', {
 		yiviSecuredRoomflow(roomId: string, authToken: string) {
 			const router = useRouter();
 			const pubhubs = usePubHubs();
+			const settings = useSettings();
 
 			pubhubs
 				.joinRoom(roomId)
@@ -349,7 +351,7 @@ const useRooms = defineStore('rooms', {
 					const yiviWeb = yivi.newWeb({
 						debugging: false,
 						element: '#yivi-web-form',
-						language: 'en',
+						language: settings.getActiveLanguage,
 
 						session: {
 							url: 'yivi-endpoint',
@@ -386,13 +388,15 @@ const useRooms = defineStore('rooms', {
 		},
 
 		yiviSignMessage(message: string, attributes: string[], roomId: string, authToken: string, onFinish: (result: YiviSigningSessionResult) => unknown) {
+			const settings = useSettings();
+
 			const yivi = require('@privacybydesign/yivi-frontend');
 			// @ts-ignore
 			const urlll = _env.HUB_URL + '/_synapse/client/ph';
 			const yiviWeb = yivi.newWeb({
 				debugging: false,
 				element: '#yivi-web-form',
-				language: 'en',
+				language: settings.getActiveLanguage,
 
 				session: {
 					url: 'yivi-endpoint',
@@ -431,13 +435,15 @@ const useRooms = defineStore('rooms', {
 		yiviAskDisclosure(message: string, attributes: string[], roomId: string, authToken: string, onFinish: (result: YiviSigningSessionResult) => unknown) {
 			console.log(`yiviAskDisclosure: '${message}', attributes=[${attributes}], ${roomId}, token=${authToken}`);
 
+			const settings = useSettings();
+
 			const yivi = require('@privacybydesign/yivi-frontend');
 			// @ts-ignore
 			const urlll = _env.HUB_URL + '/_synapse/client/ph';
 			const yiviWeb = yivi.newWeb({
 				debugging: true, // ### TODO
 				element: '#yivi-web-form-2',
-				language: 'en',
+				language: settings.getActiveLanguage,
 
 				session: {
 					url: 'yivi-endpoint',
