@@ -59,8 +59,8 @@
 
 	setData({
 		displayName: {
-			value: '',
-			validation: { required: true, min_length: 2, max_length: settings.getDisplayNameMaxLength },
+			value: user.user.displayName as string,
+			validation: { required: true, max_length: settings.getDisplayNameMaxLength, allow_empty_number: false, allow_empty_object: false, allow_empty_text: true },
 			show_validation: { required: false, max_length: true },
 		},
 		avatarUrl: {
@@ -94,11 +94,12 @@
 	}
 
 	async function submit() {
+		// This check enables empty values to be submitted since dataIsChanged() method can't handle empty values conditional cal.
 		if (dataIsChanged('displayName')) {
 			const newDisplayName = data.displayName.value as string;
 			await pubhubs.changeDisplayName(newDisplayName);
 			setMessage(t('settings.displayname_changed', [newDisplayName]));
-			updateData('displayName', '');
+			updateData('displayName', newDisplayName);
 		}
 		if (dataIsChanged('avatarUrl')) {
 			const newAvatarUrl = data.avatarUrl.value as string;
