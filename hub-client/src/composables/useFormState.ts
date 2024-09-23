@@ -7,6 +7,10 @@ type FormValidation = {
 	required?: boolean;
 	max_length?: number;
 	min_length?: number;
+	// Mandatory checks for allowing empty values
+	allow_empty_text: boolean;
+	allow_empty_number: boolean;
+	allow_empty_object: boolean;
 };
 
 type ShowValidationMessage = {
@@ -62,6 +66,7 @@ const useFormState = () => {
 	const setData = (set: FormData) => {
 		changed.value = false;
 		validated.value = false;
+
 		Object.keys(set).forEach((key) => {
 			originalData[key] = { ...set[key] };
 			data[key] = { ...set[key] };
@@ -91,7 +96,11 @@ const useFormState = () => {
 				// required
 				if (isValidated) {
 					if (data[key].validation?.required) {
-						if ((typeof value === 'object' && value === null) || (typeof value === 'string' && value === '') || (typeof value === 'number' && (value === null || value === undefined))) {
+						if (
+							(!data[key].validation?.allow_empty_object && typeof value === 'object' && value === null) ||
+							(!data[key].validation?.allow_empty_text && typeof value === 'string' && value === '') ||
+							(!data[key].validation?.allow_empty_number && typeof value === 'number' && (value === null || value === undefined))
+						) {
 							isValidated = false;
 							if (data[key].show_validation === undefined || data[key].show_validation?.required) {
 								validationErrors.value[key] = { error: 'validation.required', field: key };
@@ -147,12 +156,10 @@ const useFormState = () => {
 		if (key === '') {
 			Object.keys(data).forEach((item) => {
 				isChanged = isChanged || JSON.stringify(data[item].value) !== JSON.stringify(originalData[item].value);
-				// console.log('dataIsChanged',item,originalData[item].value,data[item].value,isChanged);
 			});
 		} else {
 			isChanged = JSON.stringify(data[key].value) !== JSON.stringify(originalData[key].value);
 		}
-		// console.log('dataIsChanged',key,originalData[key].value,data[key].value,isChanged);
 		return isChanged;
 	};
 

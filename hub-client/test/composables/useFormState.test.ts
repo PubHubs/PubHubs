@@ -81,6 +81,7 @@ describe('useFormState', () => {
 		expect(validationErrors.value).not.toHaveProperty('aNumber');
 
 		// max_length
+
 		updateData('aString', '');
 		expect(isValidated()).toEqual(false);
 		expect(validationErrors.value).toHaveProperty('aString');
@@ -115,11 +116,13 @@ describe('useFormState', () => {
 		expect(validationErrors.value).toHaveProperty('aString');
 		expect(validationErrors.value.aString).toHaveProperty('error');
 		expect(validationErrors.value.aString.error).toEqual('validation.required');
+
 		updateData('aString', '1');
 		expect(isValidated()).toEqual(false);
 		expect(validationErrors.value).toHaveProperty('aString');
 		expect(validationErrors.value.aString).toHaveProperty('error');
 		expect(validationErrors.value.aString.error).toEqual('validation.min_length');
+
 		updateData('aString', '12');
 		expect(isValidated()).toEqual(true);
 		expect(validationErrors.value).not.toHaveProperty('aString');
