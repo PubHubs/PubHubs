@@ -1,12 +1,12 @@
 <template>
 	<div>
-		<TextInput v-if="!listTop" :placeholder="placeholder" v-model="filter" class="mb-4 w-full" :class="inputClass" @changed="changed()"></TextInput>
+		<TextInput v-if="!listTop" :placeholder="placeholder" v-model="filter" class="mb-4 w-full" :class="inputClass" @input="changed()"></TextInput>
 		<ul v-if="filteredItems.length > 0" :class="listClass">
 			<li v-for="(item, index) in filteredItems" :key="index" class="group block cursor-pointer hover:dark:bg-gray-middle hover:bg-lightgray p-1 rounded" @click="clickedItem(item)">
 				<slot name="item" v-bind="{ item }"></slot>
 			</li>
 		</ul>
-		<TextInput v-if="listTop" :placeholder="placeholder" v-model="filter" class="mt-4 w-full" :class="inputClass" @changed="changed()"></TextInput>
+		<TextInput v-if="listTop" :placeholder="placeholder" v-model="filter" class="mt-4 w-full" :class="inputClass" @input="changed()"></TextInput>
 	</div>
 </template>
 
@@ -20,7 +20,7 @@
 
 	type Props = {
 		items: Array<Record<string, any>>;
-		filterKey?: string;
+		filterKey?: string[];
 		minLength?: number;
 		listTop?: boolean;
 		showCompleteList?: boolean;
@@ -32,7 +32,7 @@
 
 	const props = withDefaults(defineProps<Props>(), {
 		items: () => [],
-		filterKey: 'name',
+		filterKey: () => ['name'],
 		sortby: '',
 		placeholder: 'Filter',
 		inputClass: '',
@@ -50,9 +50,9 @@
 				if (filter.value === '') {
 					return true;
 				}
-				const lcItem = item[props.filterKey]?.toLowerCase();
-				if (lcItem) {
-					return lcItem.includes(lcFilter);
+				for (const filterKey of props.filterKey) {
+					const lcItem = item[filterKey]?.toLowerCase();
+					if (lcItem && lcItem.includes(lcFilter)) return true;
 				}
 				return false;
 			});
