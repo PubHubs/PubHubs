@@ -185,10 +185,12 @@ where
         tokio::select! {
             res = shutdown_receiver => {
                res.expect_err("got instance of Infallible");
+               #[allow(clippy::needless_return)] // It's more clear this way
                return Ok(None);
             }
 
             res = self.run_discovery_if_needed_and_wait_forever(app) => {
+               #[allow(clippy::needless_return)] // It's more clear this way
                 return Err(res.expect_err("got instance of Infallible"));
             }
         }
@@ -817,7 +819,7 @@ impl<S: Server> AppBase<S> {
                 .master_enc_key_part()
                 .map(|privk| privk.public_key().clone()),
             constellation: app_base
-                .hrunning_state
+                .running_state
                 .as_ref()
                 .map(|rs| (*rs.constellation).clone()),
         })
