@@ -1,5 +1,7 @@
 ## Changes to main, not yet committed to stable
 - Avatar update issue: other users can also see the update when an Avatar is updated by the user.
+- Adds version prometheus metric and '\_synapse/client/.ph/info' endpoint via a new 'Core' module.
+  WARNING: this requires an update of the hub's homeserver.yaml 
 
 
 *Please add a brief description of any changes to be tested and any migrations to be performed here.*
