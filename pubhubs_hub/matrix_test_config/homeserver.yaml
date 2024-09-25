@@ -44,6 +44,7 @@ modules:
       # check_do_change_fields: yes_should_be_unchanged # check that 'DO CHANGE' fields haven't been changed
       # check_do_change_fields: 'no'                    # don't check 'DO CHANGE' fields at all
     }
+  - module: conf.modules.pubhubs.Core           # DON'T CHANGE
   - module: conf.modules.pubhubs.DBMigration    # DON'T CHANGE
   - module: conf.modules.pseudonyms.Pseudonym   # DON'T CHANGE
   - module: conf.modules.pubhubs.YiviRoomJoiner # DON'T CHANGE
