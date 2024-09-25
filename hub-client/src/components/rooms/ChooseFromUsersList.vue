@@ -5,7 +5,7 @@
 		<template #header>
 			{{ header }}
 		</template>
-		<FilteredList :items="usersList" filterKey="displayName" :placeholder="$t('rooms.private_search_user')" @click="onUser($event)" @filter="filter($event)">
+		<FilteredList :items="usersList" :filterKey="['displayName']" :placeholder="$t('rooms.private_search_user')" @click="onUser($event)" @filter="filter($event)">
 			<template #item="{ item }">
 				<div class="flex justify-between">
 					<span :title="item.userId" class="grow truncate w-100">{{ item.displayName }}</span>

@@ -8,9 +8,9 @@
 		:value="modelValue"
 		:disabled="props.disabled"
 		@input="update($event.target.value)"
-		@keyup="changed()"
 		@keydown.enter="submit()"
 		@keydown.esc="cancel()"
+		data-test="textinput"
 	/>
 </template>
 
@@ -32,5 +32,5 @@
 	});
 
 	const emit = defineEmits(usedEvents);
-	const { update, changed, submit, cancel } = useFormInputEvents(emit, props.modelValue);
+	const { update, submit, cancel } = useFormInputEvents(emit, props.modelValue);
 </script>

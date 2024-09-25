@@ -55,12 +55,14 @@ const usePubHubs = defineStore('pubhubs', {
 					connection.on();
 					const user = useUser();
 					const newUser = this.client.getUser(user.user.userId);
+
 					if (newUser !== null) {
 						user.setUser(newUser as User);
 						api_synapse.setAccessToken(this.Auth.getAccessToken()!); //Since user isn't null, we expect there to be an access token.
 						api_matrix.setAccessToken(this.Auth.getAccessToken()!);
-						user.userAvatarUrl = await user.fetchAvatarUrl(this.client as MatrixClient);
 						user.fetchIsAdministrator(this.client as MatrixClient);
+						const avatarUrl = await this.client.getProfileInfo(newUser.userId, 'avatar_url');
+						if (avatarUrl.avatar_url !== undefined) user.avatarUrl = avatarUrl.avatar_url;
 						this.updateRooms();
 					}
 				})
@@ -260,8 +262,9 @@ const usePubHubs = defineStore('pubhubs', {
 		},
 
 		async renameRoom(roomId: string, name: string) {
-			await this.client.setRoomName(roomId, name);
+			const response = await this.client.setRoomName(roomId, name);
 			this.updateRooms();
+			return response;
 		},
 
 		async setTopic(roomId: string, topic: string) {
@@ -356,7 +359,8 @@ const usePubHubs = defineStore('pubhubs', {
 			return content;
 		},
 
-		/**
+		/** Send a message containing `text` in room with `roomId`, optionally replying to the message event `inReplyTo`.
+		 * If the room is a private room (a one-on-one conversation), then a check will be made to make sure the room is visible for both users.
 		 * @param roomId
 		 * @param text
 		 * @param inReplyTo Possible event to which the new message replies.
@@ -364,20 +368,20 @@ const usePubHubs = defineStore('pubhubs', {
 		async addMessage(roomId: string, text: string, inReplyTo?: TMessageEvent) {
 			const rooms = useRooms();
 			const room = rooms.room(roomId);
-			if (room) {
-				if (room.isPrivateRoom()) {
-					// (re)invite other members -> REFACTURE TO MAKE ROOM VISIBLE FOR ALL MEMBERS
-					let name = room.name;
-					name = refreshPrivateRoomName(name);
-					await this.renameRoom(room.roomId, name);
-				}
-			}
-
 			const content = await this._constructMessageContent(text, inReplyTo);
 
 			// @ts-ignore
 			// todo: fix this (issue #808)
 			await this.client.sendMessage(roomId, content);
+
+			// make room visible for all members if private room
+			if (room && room.isPrivateRoom()) {
+				const originalName = room.name;
+				const newName = refreshPrivateRoomName(originalName);
+				if (originalName !== newName) {
+					await this.renameRoom(room.roomId, newName);
+				}
+			}
 		},
 
 		async addSignedMessage(roomId: string, signedMessage: YiviSigningSessionResult) {
@@ -502,12 +506,6 @@ const usePubHubs = defineStore('pubhubs', {
 			} catch (error: any) {
 				this.showError(error);
 			}
-		},
-
-		async getAvatarUrl() {
-			const user = useUser();
-			const url = await user.fetchAvatarUrl(this.client as MatrixClient);
-			return url;
 		},
 
 		async findUsers(term: string): Promise<Array<any>> {

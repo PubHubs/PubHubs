@@ -15,7 +15,7 @@
 							<div>
 								<Avatar
 									:userId="user.user.userId"
-									:img="user.avatarUrlOfUser ? pubhubs.getBaseUrl + '/_matrix/media/r0/download/' + user.avatarUrlOfUser.slice(6) : ''"
+									:img="avatar"
 									@click="
 										settingsDialog = true;
 										hubSettings.hideBar();
@@ -101,7 +101,7 @@
 	const plugins = usePlugins();
 	const menu = useMenu();
 	const settingsDialog = ref(false);
-
+	const avatar = ref();
 	const setupReady = ref(false);
 	const disclosureEnabled = settings.isFeatureEnabled('disclosure');
 
@@ -109,6 +109,13 @@
 		() => rooms.totalUnreadMessages,
 		() => {
 			rooms.sendUnreadMessageCounter();
+		},
+	);
+
+	watch(
+		() => user.avatarUrl,
+		() => {
+			avatar.value = user.avatarUrl;
 		},
 	);
 
