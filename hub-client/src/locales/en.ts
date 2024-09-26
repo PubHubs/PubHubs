@@ -47,6 +47,55 @@ const en = {
 		// Boven highlighted Hubs, iets afstand
 		highlighted_hubs_info: 'PubHubs consist of seperate Hubs, where local conversations happen, under a central login. These Hubs are run by seperate, participating organisations.',
 	},
+	register: {
+		register: 'Register',
+		register_with: 'Register with',
+		welcome: 'Welcome, join Pubhubs!',
+		use_yivi: 'To register, you will use the Yivi app\n(and for logging in as well, by the way).',
+		start_registration: 'You start registering here, in 3 steps.',
+		overview_step1: "Download the Yivi app — if you don't already have it",
+		overview_step2: 'Add your data to the Yivi app',
+		overview_step3: 'Scan the QR code with the Yivi app',
+		yivi_downloaded: 'Do you already have the Yivi app?',
+		yivi_no: "No \xa0\xa0I don't have the Yivi app",
+		yivi_yes: 'Yes \xa0\xa0I have the Yivi app',
+		skip_step1: 'Skip step 1',
+		step: 'Step {0}',
+		step_go_to: 'Go to step {0}',
+		step_previous: 'Back to the previous step',
+		install_yivi: 'Install the Yivi app.',
+		yivi_what: 'What is Yivi?',
+		yivi_short_description: 'An app that allows you to easily and securely prove who you are.',
+		yivi_download: 'Download the Yivi app using one of the black buttons and follow the instructions in the app.',
+		yivi_installed: 'I have installed the Yivi app now',
+		more: 'Want to know more?',
+		yivi_workings: 'How does Yivi work?',
+		yivi_workings_answer:
+			'Yivi is an app for your digital identity. You can use Yivi to share personal data about yourself, such as your name, address, age, phone number and email address. You share only the data that is necessary in a particular situation. You can use Yivi to log into several websites and make yourself known there.\n\nTo use Yivi, you first have to add data about yourself in the app. It is explained in the app how to do this. For more information, see the website {hyperlink}. To use Yivi for PubHubs, you have to add an email address and phone number in the app.',
+		yivi_why: 'Why Yivi for PubHubs?',
+		yivi_why_answer:
+			'Within PubHubs, Yivi is used for two things. {reasons} Yivi, like PubHubs, is privacy-friendly and open about how it works, via open-source software. Yivi is a separate app used by PubHubs, but not part of PubHubs. Yivi is also used on other websites for logging in.',
+		yivi_why_central_login: 'For central login. You then share your email address and your mobile number. Those data are only known at the central login and not in the different Hubs you visit. Your data is not shared with others.',
+		yivi_why_room_login:
+			'To log in to some Rooms, where more information is requested about the participants. This may happen, for example, in a Room for people in your neighborhood, where you must first prove what your zip code is to get in. You may also have to prove that your email address is on a list for a particular Room before you can get in.',
+		yivi_link: 'https://yivi.app/en/',
+		data_request: 'PubHubs asks for an email address and mobile number, just for registration.',
+		data_add: 'Add your email address and mobile number in the Yivi app.',
+		data_add_how: 'How do I add this data?',
+		data_add_how_answer:
+			'There is a button in the Yivi app that allows you to collect personal information and save it in the app. For PubHubs, you need to add an email address and a mobile number in your Yivi app. You can add multiple email addresses and phone numbers. You can then choose which one you wish to use to sign in to PubHubs.\n\nThis way, if you like, you can have two different accounts for PubHubs: a private account, with your private email and mobile number, and one for work, with your work email and number.',
+		data_why: 'Why does PubHubs need my email and number?',
+		data_why_answer:
+			'PubHubs uses the combination of your email and mobile number to recognize you. This data is not used to contact you. If you have a new phone, you will need to sign up with PubHubs again. In that case, when signing up, use your email address and mobile number that you used to log in previously. Then PubHubs will recognize you and you can continue your previous conversations.',
+		data_added: 'I have now added this data',
+		data_share: 'Share your email and mobile number in the app',
+		add_registration: 'Add your PubHubs registration in the app',
+		rewards: {
+			good_job: 'Good job!',
+			almost_done: "Great, you're almost done!",
+			hooray: 'Hooray! {0} You are registered and logged in to PubHubs.\nYou will be redirected to an overview of Hubs automatically. Have fun!',
+		},
+	},
 	login: {
 		login: 'Login',
 		global_login: 'Login to PubHubs',
@@ -183,7 +232,6 @@ const en = {
 		format12: '12 hours',
 		format24: '24 hours',
 	},
-
 	onboarding: {
 		info_first_time: 'This is your first visit. It is nice that you are here.',
 		info_abt_pseudonym: 'This Hub has given you a random name (pseudonym)',
@@ -197,7 +245,6 @@ const en = {
 		later: "You haven't set your Hub nickname, which you can do later!",
 		update: 'Nickname updated',
 	},
-
 	message: {
 		send: 'Send',
 		in_reply_to: 'In reply to:',

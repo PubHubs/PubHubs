@@ -2,7 +2,19 @@
 	<div class="w-1/2 md:w-2/6 m-4 text-center mx-auto">
 		<Logo class="my-8 sm:m-8" :global="true"></Logo>
 		<p class="text-center" v-html="$t('home.welcome')"></p>
-		<Button v-if="!global.loggedIn" class="mt-8" @click="global.login(i18n.locale.value)">{{ $t('login.global_login') }}</Button>
+		<div v-if="!global.loggedIn" class="flex flex-col items-center mt-8" v-click-outside="closeYivi">
+			<Button class="w-full md:px-12" @click="loadYivi">{{ $t('login.global_login') }}</Button>
+			<div
+				v-show="show"
+				id="yivi-login"
+				class="relative top-6 !mb-6 w-[255px] after:absolute after:left-[50%] after:-top-[1.2em] after:border-[1.25em] after:border-transparent after:border-b-white after:border-t-0 after:border-r-0 after:drop-shadow-[0px_-5px_16px_rgb(0,0,0,0.15)]"
+			>
+				<!-- Yivi content -->
+			</div>
+		</div>
+		<router-link v-if="!global.loggedIn" to="/register">
+			<Button :color="'blue'" class="mt-8" @click="false">{{ $t('register.register_with') }} PubHubs</Button>
+		</router-link>
 	</div>
 
 	<div class="w-4/6 mx-auto my-8">
@@ -16,12 +28,30 @@
 			</router-link>
 		</div>
 	</div>
+	<form v-if="show" method="POST" action="/yivi-endpoint/finish-and-redirect">
+		<input type="hidden" name="yivi_token" :value="yivi_token" />
+	</form>
 </template>
 
 <script setup lang="ts">
 	import { useGlobal, useHubs } from '@/store/store';
-	import { useI18n } from 'vue-i18n';
+	import { ref } from 'vue';
+	import { yivi } from '@/assets/yivi';
+
 	const global = useGlobal();
 	const hubs = useHubs();
-	const i18n = useI18n();
+
+	const show = ref<Boolean>(false);
+	const yivi_token = ref<string>('');
+
+	function loadYivi() {
+		show.value = !show.value;
+		yivi(false, yivi_token);
+	}
+
+	function closeYivi() {
+		show.value = false;
+	}
+
+	window.addEventListener('pageshow', () => (show.value = false));
 </script>

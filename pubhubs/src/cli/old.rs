@@ -757,7 +757,7 @@ async fn account_login(
 
 async fn account_logout(translations: Translations) -> impl Responder {
     HttpResponse::Found()
-        .insert_header((LOCATION, format!("{}/login", translations.prefix())))
+        .insert_header((LOCATION, format!("{}/client#/", translations.prefix())))
         .remove_session_cookies() // logout
         .finish()
 }
