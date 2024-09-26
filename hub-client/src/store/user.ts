@@ -26,30 +26,20 @@ const defaultUser = {} as User;
 
 type State = {
 	user: User;
-	// To overcome synapse slow update to avatar url
-	userAvatarUrl: string;
+	avatarUrl: string;
 	isAdministrator: boolean;
-};
-
-type getProfileInfoResponseType = {
-	avatar_url?: string | undefined;
-	displayname?: string | undefined;
 };
 
 const useUser = defineStore('user', {
 	state: (): State => ({
 		user: defaultUser,
-		userAvatarUrl: '',
+		avatarUrl: '',
 		isAdministrator: false,
 	}),
 
 	getters: {
 		isLoggedIn({ user }) {
 			return typeof user.userId === 'string';
-		},
-
-		avatarUrlOfUser({ userAvatarUrl }) {
-			return userAvatarUrl;
 		},
 
 		isAdmin({ isAdministrator }) {
@@ -60,17 +50,6 @@ const useUser = defineStore('user', {
 	actions: {
 		setUser(user: User) {
 			this.user = user;
-		},
-
-		async fetchAvatarUrl(client: MatrixClient) {
-			if (client.getProfileInfo) {
-				const response: getProfileInfoResponseType = await client.getProfileInfo(this.user.userId, 'avatar_url');
-				if (typeof response.avatar_url === 'string') {
-					this.user.setAvatarUrl(response.avatar_url);
-					return response.avatar_url;
-				}
-			}
-			return '';
 		},
 
 		async fetchIsAdministrator(client: MatrixClient) {

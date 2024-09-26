@@ -126,6 +126,13 @@ log_config: "/data/test_hub.log.config" # Change to /data/log.config
 
 media_store_path: "/data/media_store"
 
+# Allow finding all users, by other users in the hub even if they don't share rooms.
+user_directory:
+    enabled: true
+    search_all_users: true
+    prefer_local_users: true
+    show_locked_users: false
+
 # Skips having to check the redirection with user interaction.
 sso:
   client_whitelist:

@@ -19,15 +19,15 @@
 								</TruncatedText>
 							</div>
 						</div>
-						<SearchInput :search-parameters="searchParameters" @scroll-to-event-id="onScrollToEventId"></SearchInput>
+						<SearchInput :search-parameters="searchParameters" @scroll-to-event-id="onScrollToEventId" :room="rooms.currentRoom"></SearchInput>
 					</div>
 				</div>
 			</template>
 
-			<RoomTimeline v-if="rooms.rooms[id]" :room="rooms.rooms[id]" :scroll-to-event-id="scrollToEventId" @scrolled-to-event-id="scrollToEventId = ''"></RoomTimeline>
+			<RoomTimeline v-if="room" :room="room" :scroll-to-event-id="scrollToEventId" @scrolled-to-event-id="scrollToEventId = ''"></RoomTimeline>
 
 			<template #footer>
-				<MessageInput v-if="rooms.rooms[id]" :room="rooms.rooms[id]"></MessageInput>
+				<MessageInput v-if="room" :room="room"></MessageInput>
 			</template>
 		</HeaderFooter>
 
@@ -37,14 +37,15 @@
 </template>
 
 <script setup lang="ts">
-	import { onMounted, watch, ref } from 'vue';
-	import { useRoute } from 'vue-router';
+	import { onMounted, watch, ref, computed } from 'vue';
+	import { useRoute, useRouter } from 'vue-router';
 	import { useRooms, useHubSettings } from '@/store/store';
 	import { PluginProperties, usePlugins } from '@/store/plugins';
 	import { TSearchParameters } from '@/model/model';
 
 	const route = useRoute();
 	const rooms = useRooms();
+	const router = useRouter();
 	const plugins = usePlugins();
 	const plugin = ref(false as boolean | PluginProperties);
 	const hubSettings = useHubSettings();
@@ -56,6 +57,16 @@
 
 	const searchParameters = ref<TSearchParameters>({ roomId: props.id, term: '' });
 	const scrollToEventId = ref<string>('');
+
+	const room = computed(() => {
+		let r = rooms.rooms[props.id];
+		if (!r) {
+			// I want the side effect that should be avoided according to the lint rule.
+			// eslint-disable-next-line
+			router.push({ name: 'error-page', query: { errorKey: 'errors.cant_find_room' } });
+		}
+		return r;
+	});
 
 	onMounted(() => {
 		update();

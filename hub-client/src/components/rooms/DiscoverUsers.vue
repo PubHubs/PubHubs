@@ -3,8 +3,8 @@
 		<Icon type="compass" class="absolute -ml-2 bg-white dark:bg-hub-background-2"></Icon>
 		<FilteredList
 			:items="usersList"
-			filterKey="displayName"
-			sortby="displayName"
+			:filterKey="['localPart', 'displayName']"
+			sortby="localPart"
 			:placeholder="$t('rooms.private_search_user')"
 			@click="addNewPrivateRoom($event)"
 			@filter="filter($event)"
@@ -13,8 +13,9 @@
 			:showCompleteList="showList"
 		>
 			<template #item="{ item }">
-				<div class="flex justify-between">
-					<span :title="item.userId" class="grow truncate w-100">{{ item.displayName }}</span>
+				<div class="flex justify-between items-center gap-2">
+					<span data-testid="user-id" class="text-xs font-normal text-nowrap">{{ item.localPart }}</span>
+					<span v-if="item.displayName" data-testid="display-name" :class="`${textColor(color(item.userId))} font-semibold text-sm truncate`">{{ filters.maxLengthText(item.displayName, settings.getDisplayNameMaxLength) }}</span>
 					<Icon type="plus" class="flex-none"></Icon>
 				</div>
 			</template>
@@ -29,7 +30,12 @@
 	import { usePubHubs } from '@/core/pubhubsStore';
 	import { useUser } from '@/store/store';
 	import { FilteredListEvent } from '@/types/components';
+	import filters from '@/core/filters';
+	import { useUserColor } from '@/composables/useUserColor';
+	import { useSettings } from '@/store/store';
 
+	const { color, textColor } = useUserColor();
+	const settings = useSettings();
 	const router = useRouter();
 	const pubhubs = usePubHubs();
 	const user = useUser();
@@ -51,8 +57,8 @@
 		list = list.map((user: any) => {
 			return {
 				userId: user.userId,
+				localPart: localPart(user.userId),
 				displayName: user.displayName,
-				avatarUrl: user.avatarUrl,
 			};
 		});
 		// Remove self from list
@@ -77,19 +83,28 @@
 	}
 
 	async function filter(event: FilteredListEvent) {
-		if (event.length < 10) {
-			let foundUsers = await pubhubs.findUsers(event.filter);
-			foundUsers = foundUsers.map((user) => {
+		let foundUsers = await pubhubs.findUsers(event.filter);
+		users.value = foundUsers
+			.map((user) => {
 				user.userId = user.user_id;
+				user.localPart = localPart(user.user_id);
 				user.displayName = user.display_name;
-				user.avatarUrl = user.avatar_url;
 				return user;
-			});
-			// combine and unique
-			users.value = [...users.value, ...foundUsers];
-			users.value = users.value.filter((user, index, arr) => {
-				return arr.findIndex((item) => item.userId === user.userId) === index;
-			});
+			})
+			// The matrix search functionality only looks at starting "bits" of usernames and display names. So the hub url parts are always found. When we abstract this stuff away
+			// from users we still want some consistancy so we make sure here we only show search results that match the beginning of search terms.
+			// A weird edge case are display names that start with '@' or characters like emoticons. The synapse search does not return these.
+			// There are issues around user search open for a while on synapse side: https://github.com/matrix-org/synapse/issues/7588, https://github.com/matrix-org/synapse/issues/7590, https://github.com/matrix-org/synapse/issues/13807
+			// Linking to the archived repo so can see the comments, last comment is the migration to the new element-hq github repo. As of 24/9/2024 these issues are still open there.
+			.filter((u) => u.localPart.toLowerCase().startsWith(event.filter) || u.displayName.toLowerCase().startsWith(event.filter));
+	}
+
+	function localPart(userId: string): string {
+		if (userId.startsWith('@') && userId.indexOf(':')) {
+			return userId.substring(1, userId.indexOf(':'));
 		}
+
+		//What we do in the error handling
+		return '!!!-!!!';
 	}
 </script>

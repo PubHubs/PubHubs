@@ -53,7 +53,7 @@ const useHubs = defineStore('hubs', {
 
 		activeHubs(): HubList {
 			const hubs = this.sortedHubsArray;
-			const nonActiveHubs = ['Surfhubs', 'GreenHost', 'GroenLinks'];
+			const nonActiveHubs = ['Surfhubs', 'GreenHost', 'GroenLinks', 'Waag'];
 			return hubs.filter((hub) => !nonActiveHubs.includes(hub.hubId));
 		},
 

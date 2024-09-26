@@ -1,5 +1,7 @@
 const { defineConfig } = require('@vue/cli-service');
+const NodePolyfillPlugin = require('node-polyfill-webpack-plugin');
 const path = require('path');
+const webpack = require('webpack');
 module.exports = defineConfig({
 	configureWebpack: {
 		devtool: 'source-map',
@@ -8,6 +10,13 @@ module.exports = defineConfig({
 				crypto: false,
 			},
 		},
+		plugins: [
+			new webpack.ProvidePlugin({
+				process: 'process/browser',
+			}),
+			// Needed to be able to use the yivi client
+			new NodePolyfillPlugin(),
+		]
 	},
 	chainWebpack(config) {
 		config.resolve.symlinks(false);
@@ -24,4 +33,7 @@ module.exports = defineConfig({
 	},
 	transpileDependencies: true,
 	publicPath: '/client',
+	pwa: {
+		themeColor: '#686868',
+	},
 });

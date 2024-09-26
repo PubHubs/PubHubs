@@ -24,6 +24,7 @@ const safeList = [
     'block',
     'border',
     'border-0',
+	'border-2',
     'border-white',
     'cursor-pointer',
     'flex-row-reverse',
@@ -67,6 +68,7 @@ const safeList = [
     'px-4',
     'px-6',
     'px-10',
+	'px-12',
     'py-1',
     'py-2',
     'py-3',
@@ -118,15 +120,15 @@ const safeList = [
 ];
 
 module.exports = {
-    content: ['./public/**/*.html', './src/assets/*.js', './src/**/*.vue', './stories/**/*.vue'],
-    safelist: safeList,
-    theme: pubhubsTheme,
-    darkMode: 'class',
-    plugins: [
-        require('@tailwindcss/forms'),
-        plugin(function ({ addVariant }) {
-            addVariant('theme-light', ['html .theme-light &', '.light &']);
-            addVariant('theme-dark', ['html .theme-dark &', '.dark &']);
-        }),
-    ],
+	content: ['./public/**/*.html', './src/assets/*.js', './src/**/*.vue', './stories/**/*.vue'],
+	safelist: safeList,
+	theme: pubhubsTheme,
+	darkMode: 'class',
+	plugins: [
+		require('@tailwindcss/forms'),
+		plugin(function ({ addVariant }) {
+			addVariant('theme-light', ['html .theme-light &', '.light &']);
+			addVariant('theme-dark', ['html .theme-dark &', '.dark &']);
+		}),
+	],
 };

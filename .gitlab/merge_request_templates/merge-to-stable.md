@@ -46,13 +46,15 @@ General tips:
         - [ ] Logging out and logging in again with your original user.
       - [ ] If anything has changed to branding: Rebrand testhub2 with a new logo and colors. See https://gitlab.science.ru.nl/ilab/pubhubs_canonical/-/blob/main/docs/development/BRANDING.md (NB This involves some work on ilab-main, see https://gitlab.science.ru.nl/ilab/pubhubs_canonical/-/wikis/Current-ops-troubleshooting#changing-the-branding-of-a-running-hub)
       - [ ] Anything related specifically to your merge request.
+  - [ ] Given all the issues found, decide whether it's prudent to continue the merge.  (That is, are the bugs bearable.) Consider consulting with other colleagues.
   - [ ] Figure out if the merge also requires any configuration changes. 
   - [ ] Consider if the merge might cause irreversible changes (different database format), and plan for this. (Backups?)
   - [ ] Inform the pubhubs team (via Slack and PubHubs stable) of the merge and possible downtime of https://stable.pubhubs.ihub.ru.nl/client . 
-  - [ ] Make the changes and perform the merge. Make sure all the jobs in the pipeline are kicked off. (Some jobs require manual start)
+  - [ ] Make the changes and perform the merge.
   - [ ] While waiting on the pipeline: update dependencies on the main branch in a merge request created from [this issue](https://gitlab.science.ru.nl/ilab/pubhubs_canonical/-/issues/new?issuable_template=update-dependencies&issue[title]=Updating%20dependencies%20on%2020yy-mm-dd) (not on stable as this might break something).
   - [ ] When the pipeline finishes, rebrand all running hub clients (see #769 for instructions).
   - [ ] Check that the following works on https://stable.pubhubs.ihub.ru.nl/client :
+    - [ ] Use a private window or clear your browser caches to check if rebranding succeeded.
     - [ ] Turn off dev mode in Yivi app. 
     - [ ] Test basic pubhubs functionality (see above)
       - Note for registering a *new* user, with a fresh email address: If possible, tips are if you have a gmail account you can add +<date> before the '@' and add a card for that, if you have a mail domain with a catch-all you can create a new mail address and add a card for that.
@@ -67,5 +69,21 @@ General tips:
        
   (The `merge-to-stable` merge request template can be edited [here](https://gitlab.science.ru.nl/ilab/pubhubs_canonical/-/edit/main/.gitlab/merge_request_templates/merge-to-stable.md).)
   - [ ] Celebrate!
+
+- If Omar Javed is not available, email [external hubs](https://gitlab.science.ru.nl/ilab/pubhubs_canonical/-/wikis/Tech-Information/External-Hub-Deployment) to pull the latest updates with the following email:
+
+> Dear XYZ,
+> 
+> I hope this email finds you well.
+> 
+> I am writing this email to inform you that our latest update is now available. We kindly ask you to pull the update to ensure that you have access to the recent features and bug fixes.
+> Please do not hesitate to reach out to us if you encounter any issue during the update process.
+> 
+> Regards,
+>
+> PubHubs Team
+
+
+
   
 

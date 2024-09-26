@@ -5,3 +5,4 @@
 pubhubs_hub/report.xml
 client-config.local.js
 .vscode
+.python-version

@@ -155,7 +155,7 @@
 		setData({
 			name: {
 				value: editRoom.value.name as string,
-				validation: { required: true },
+				validation: { required: true, allow_empty_number: false, allow_empty_object: false, allow_empty_text: false },
 			},
 			topic: {
 				value: editRoom.value.topic as string,

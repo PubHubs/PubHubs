@@ -34,7 +34,7 @@ describe('PubHubs Store', () => {
 			pubhubs.client = mockClient(false);
 			x = await pubhubs.getAllPublicRooms();
 			expect(x).toEqual(['1', '2']);
-			const delay = ms => new Promise(res => setTimeout(res, ms));
+			const delay = (ms) => new Promise((res) => setTimeout(res, ms));
 			await delay(2500);
 			pubhubs.client = mockClient(false);
 			x = await pubhubs.getAllPublicRooms();

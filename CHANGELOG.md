@@ -2,6 +2,11 @@
 
 *Please add a brief description of any changes to be tested and any migrations to be performed here.*
 
+## 26 September 2024 - v0.5.1
+- Avatar update issue: other users can also see the update when an Avatar is updated by the user.
+- Search for private messages issue: users can be found by searching either their pseudonym or their username.
+- Changed the registration flow: added a wizard to guide users through the registration process.
+
 ## 11 September 2024 - v0.5.0
 - Changed syncing of showing or hiding the bar between hub an global client. Also streamlined the message box start-up together with it. Changed it so the homepage of a hub does not keep the room id in the url fragment if it was there.
 - Changed the search results: when there are more results than the ten initially in the list, a text 'Load more results...' is shown to load 10 more results
