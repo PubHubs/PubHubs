@@ -22,8 +22,13 @@ async fn main_integration_test() {
     let (set, _) = servers::Set::new(&config).unwrap();
 
     // Run discovery
+    /*let constellation: servers::Constellation = tokio::task::LocalSet::new()
+    .run_until(client::drive_discovery(&config.phc_url))
+    .await
+    .unwrap();*/
+
     let constellation: servers::Constellation = tokio::task::LocalSet::new()
-        .run_until(client::drive_discovery(&config.phc_url))
+        .run_until(client::get_constellation(&config.phc_url))
         .await
         .unwrap();
 

@@ -2,5 +2,6 @@
 
 pub mod discovery;
 pub use discovery::drive_discovery;
+pub use discovery::get_constellation;
 
 pub mod for_hubs;

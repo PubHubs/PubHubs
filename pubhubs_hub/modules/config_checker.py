@@ -43,6 +43,7 @@ class ConfigChecker:
             for reqm in [
                     pseudonyms.Pseudonym,
                     ConfigChecker, # for completeness sake
+                    pubhubs.Core,
                     pubhubs.YiviRoomJoiner,
                     pubhubs.DBMigration]:
                 self.try_check(self.check_module_present, f"the {reqm.__name__} module is present", reqm)
