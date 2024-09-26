@@ -1,6 +1,6 @@
 /* eslint-disable */
 import '@/assets/tailwind.css';
-import { focus, twClass } from '@/core/directives';
+import { focus, twClass, clickOutside } from '@/core/directives';
 import { routes } from '@/core/routes';
 import { setUpi18n } from '@/i18n';
 import '@/registerServiceWorker';
@@ -26,6 +26,7 @@ import ButtonGroup from '@/../../hub-client/src/components/forms/ButtonGroup.vue
 import Label from '@/../../hub-client/src/components/forms/Label.vue';
 import Dialog from '@/../../hub-client/src/components/ui/Dialog.vue';
 import Logo from '@/../../hub-client/src/components/ui/Logo.vue';
+import Checkbox from '@/../../hub-client/src/components/forms/Checkbox.vue';
 
 import { ReplaceConsole } from '@/../../hub-client/src/console';
 import { Logger } from '@/../../hub-client/src/dev/Logger';
@@ -62,12 +63,14 @@ app.component('TruncatedText', TruncatedText);
 app.component('ButtonGroup', ButtonGroup);
 app.component('Logo', Logo);
 app.component('Dialog', Dialog);
+app.component('Checkbox', Checkbox);
 
 app.use(router);
 app.use(pinia);
 app.use(i18n as any);
 app.directive('focus', focus);
 app.directive('tw-class', twClass as any);
+app.directive('click-outside', clickOutside);
 
 app.mount('#app');
 
