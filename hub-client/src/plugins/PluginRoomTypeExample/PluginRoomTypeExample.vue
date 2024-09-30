@@ -9,7 +9,7 @@
 			</div>
 		</template>
 
-		<Json :json="rooms.currentRoom?.timelineGetEvents()"></Json>
+		<Json :json="rooms.currentRoom?.getLiveTimelineEvents()"></Json>
 	</HeaderFooter>
 </template>
 

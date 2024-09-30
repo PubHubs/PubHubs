@@ -118,7 +118,6 @@ class Authentication {
 						this.loginToken = loginTokenParam;
 					}
 				}
-
 				//  Redirect to PubHubs login if we realy don't have a token
 				if (this.loginToken === '') {
 					this.redirectToPubHubsLogin();
