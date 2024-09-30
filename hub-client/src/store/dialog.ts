@@ -13,7 +13,7 @@ import { setUpi18n } from '../i18n';
  * - action (return value)
  */
 
-type DialogButtonAction = string | number;
+type DialogButtonAction = number;
 const DialogCancel = 0;
 const DialogNo = 0;
 const DialogOk = 1;

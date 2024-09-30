@@ -1,7 +1,15 @@
 /** * * Global Dialog, uses dialog.ts store. And is globally present in App.vue * */
 
 <template>
-	<div class="absolute h-full w-full top-0 left-0">
+	<div
+		@keydown.esc="doAction(DialogCancel)"
+		@keydown.enter="
+			if (dialog.properties.buttons.some((b) => b.action == 1 && b.enabled)) {
+				doAction(DialogOk);
+			}
+		"
+		class="absolute h-full w-full top-0 left-0"
+	>
 		<div v-if="dialog.properties.modal" class="absolute inset-0 h-full z-10 bg-gray-middle opacity-75"></div>
 		<div v-if="!dialog.properties.modalonly" class="absolute inset-0 h-full flex z-10 py-2" @click="doAction(DialogCancel)">
 			<div class="theme-light m-auto max-h-full p-4 rounded-lg shadow-xl shadow-black bg-white flex flex-col justify-between gap-1" :class="width" @click.stop>
@@ -65,14 +73,6 @@
 		}
 
 		dialog.showModal();
-		document.addEventListener('keydown', (e) => {
-			if (e.code === 'Escape') {
-				doAction(DialogCancel);
-			}
-			if (e.code === 'Enter') {
-				doAction(DialogOk);
-			}
-		});
 	});
 
 	function doAction(action: DialogButtonAction) {
