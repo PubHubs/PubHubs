@@ -51,7 +51,7 @@ const useGlobal = defineStore('global', {
 		getGlobalSettings(state): GlobalSettings {
 			const settings = useSettings();
 			const globalSettings: GlobalSettings = {
-				theme: settings.getActiveTheme,
+				theme: settings.theme,
 				timeformat: settings.getTimeFormat,
 				language: settings.getActiveLanguage,
 				hubs: state.pinnedHubs,
@@ -123,7 +123,7 @@ const useGlobal = defineStore('global', {
 			window.location.replace(api.apiURLS.logout);
 		},
 
-		// Will be called after each change in state (subscribed in App.vue)
+		// Will be called after each relevant change in state (watched in App.vue)
 		async saveGlobalSettings() {
 			if (this.loggedIn) {
 				await api.apiPUT<any>(api.apiURLS.bar, this.getGlobalSettings, true);
