@@ -20,7 +20,7 @@
 <script setup lang="ts">
 	import { HubList, useDialog, useGlobal, useHubs, useSettings } from '@/store/store';
 	import { useToggleMenu } from '@/store/toggleGlobalMenu';
-	import { onMounted } from 'vue';
+	import { onMounted, watchEffect } from 'vue';
 	import { useI18n } from 'vue-i18n';
 	import { SMI } from '../../../hub-client/src/dev/StatusMessage';
 	import { Logger } from '@/../../hub-client/src/dev/Logger';
@@ -49,13 +49,8 @@
 		});
 
 		if (await global.checkLoginAndSettings()) {
-			// save settings when changed
-			global.$subscribe(() => {
-				global.saveGlobalSettings();
-			});
-			settings.$subscribe(() => {
-				global.saveGlobalSettings();
-			});
+			// Watch for saved state changes and save to backend.
+			watchEffect(() => global.saveGlobalSettings());
 		}
 		await addHubs();
 
