@@ -4,7 +4,9 @@
 
 - Adds version prometheus metric and '\_synapse/client/.ph/info' endpoint via a new 'Core' module.
   WARNING: this requires an update of the hub's homeserver.yaml 
-
+- Updated icons global and hubclient
+- Added a new page where you can browse and search specific rooms. 
+- Hubs (in the global bar) show the amount of unread messages
 
 ## 26 September 2024 - v0.5.1
 - Avatar update issue: other users can also see the update when an Avatar is updated by the user.
