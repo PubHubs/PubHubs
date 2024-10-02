@@ -5,6 +5,9 @@
 
 # Review Steps:
 
+Before merging to main, check when the merge from main to stable is planned.
+If a longer testing time on main for this merge is requested, it is better to merge after the merge to stable is done.
+
 # Tests
 
 All test done with complete PubHubs system. (PHC, minimal two Hubs, Global & Hub clients).
