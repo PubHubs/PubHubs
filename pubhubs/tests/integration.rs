@@ -131,5 +131,8 @@ impl MockHub {
 
 async fn handle_info_url(context: web::Data<Arc<MockHubContext>>) -> impl actix_web::Responder {
     let vk: api::VerifyingKey = context.sk.verifying_key().into();
-    return web::Json(api::Result::Ok(api::hub::InfoResp { verifying_key: vk }));
+    return web::Json(api::Result::Ok(api::hub::InfoResp {
+        verifying_key: vk,
+        hub_version: "n/a".to_owned(),
+    }));
 }

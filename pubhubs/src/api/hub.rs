@@ -17,4 +17,7 @@ impl EndpointDetails for Info {
 pub struct InfoResp {
     /// Key used by the hub to sign requests to the other hubs with
     pub verifying_key: VerifyingKey,
+
+    /// String describing the hub version, likely the result of `git describe --tags`
+    pub hub_version: String,
 }
