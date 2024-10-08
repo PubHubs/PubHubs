@@ -1,7 +1,7 @@
 <template>
 	<li class="menu-item pl-5 pr-8 hover:dark:bg-gray-middle hover:bg-lightgray py-2 transition-all duration-150 ease-in-out">
 		<router-link :to="to" class="flex gap-2">
-			<Icon v-if="isSecuredRoom()" type="lock" class="shrink-0 text-blue dark:text-green"></Icon>
+			<Icon v-if="isSecuredRoom()" type="shield" class="shrink-0"></Icon>
 			<Icon v-else class="shrink-0 text-blue dark:text-green" :type="icon"></Icon>
 			<TruncatedText class="w-full"><slot></slot></TruncatedText>
 		</router-link>

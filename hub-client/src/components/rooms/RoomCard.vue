@@ -1,12 +1,14 @@
 <template>
-	<div class="flex flex-col h-44 w-full">
-		<ImagePlaceholder :src="image" class="rounded-t-md overflow-hidden"></ImagePlaceholder>
-		<div class="rounded-b-md bg-white-middle text-hub-text dark:bg-gray">
-			<div class="w-fit flex -mt-6 py-1 px-4 rounded-r-md bg-blue-light">
+	<div class="flex flex-col h-44 max-w-80 min-w-44 overflow-hidden rounded-md">
+		<div class="h-1/2">
+			<ImagePlaceholder :src="image"></ImagePlaceholder>
+		</div>
+		<div class="relative flex text-hub-text bg-hub-background-3">
+			<div class="w-fit flex absolute -top-4 py-1 px-4 rounded-r-md bg-hub-accent">
 				<Icon type="speech_bubbles" size="sm" class="text-black"></Icon>
 				<p class="pl-2 text-white"><slot name="category"></slot></p>
 			</div>
-			<div class="flex flex-col px-4 pb-1 mt-1">
+			<div class="flex flex-col p-4">
 				<H3 class="font-semibold text-base"><slot name="header"></slot></H3>
 				<div class="flex flex-row justify-between gap-x-8 pb-1">
 					<p class="font-normal text-xs"><slot name="content"></slot></p>
