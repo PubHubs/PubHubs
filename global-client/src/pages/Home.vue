@@ -1,6 +1,6 @@
 <template>
 	<div class="w-1/2 md:w-2/6 m-4 text-center mx-auto">
-		<Logo class="my-8 sm:m-8" :global="true"></Logo>
+		<Logo class="my-8" :global="true"></Logo>
 		<p class="text-center" v-html="$t('home.welcome')"></p>
 		<div v-if="!global.loggedIn" class="flex flex-col items-center mt-8" v-click-outside="closeYivi">
 			<Button class="w-full md:px-12" @click="loadYivi">{{ $t('login.global_login') }}</Button>
@@ -22,7 +22,7 @@
 
 		<H2 class="text-center mb-8">{{ $t('home.highlighted_hubs') }}</H2>
 
-		<div class="grid md:grid-cols-3 grid-cols-1 gap-4">
+		<div class="grid md:grid-cols-3 gap-8">
 			<router-link v-for="hub in hubs.activeHubs" :key="hub.hubId" :to="{ name: 'hub', params: { id: hub.hubId } }">
 				<HubBlock :hub="hub"></HubBlock>
 			</router-link>

@@ -34,21 +34,26 @@
 
 					<H2 class="pl-5 border-b mr-8">{{ $t('menu.rooms') }}</H2>
 					<RoomList></RoomList>
-					<DiscoverRooms></DiscoverRooms>
+					<RouterLink :to="'/discoverRooms'">
+						<Button class="mx-auto py-1 my-2 w-5/6" :color="'gray'">
+							<Icon type="compass" class="absolute left-0 top-0 -ml-1 -mt-2"></Icon>
+							<span class="font-normal">{{ $t('rooms.discover') }}</span>
+						</Button>
+					</RouterLink>
 
 					<H2 class="pl-5 border-b mr-8">{{ $t('menu.private_rooms') }}</H2>
 					<RoomList :roomType="RoomType.PH_MESSAGES_DM"></RoomList>
 					<DiscoverUsers></DiscoverUsers>
 
-					<!-- When user is admin, show the moderation tools menu -->
-					<div v-if="disclosureEnabled && user.isAdmin">
-						<H2 class="pl-5 border-b mr-8">{{ $t('menu.moderation_tools') }}</H2>
-						<Menu>
-							<MenuItem :to="{ name: 'ask-disclosure' }" icon="sign">{{ $t('menu.moderation_tools_disclosure') }}</MenuItem>
-						</Menu>
-					</div>
-
 					<template #footer>
+						<!-- When user is admin, show the moderation tools menu -->
+						<div v-if="disclosureEnabled && user.isAdmin">
+							<H2 class="pl-5 border-b mr-8">{{ $t('menu.moderation_tools') }}</H2>
+							<Menu>
+								<MenuItem :to="{ name: 'ask-disclosure' }" icon="sign">{{ $t('menu.moderation_tools_disclosure') }}</MenuItem>
+							</Menu>
+						</div>
+
 						<!-- When user is admin, show the admin tools menu -->
 						<div v-if="user.isAdmin">
 							<H2 class="pl-5 border-b mr-8">{{ $t('menu.admin_tools') }}</H2>
