@@ -356,9 +356,9 @@ const icons: { [key: string]: string } = {
         </svg>
         `,
 	message: `
-        <svg class="h-32 w-32 text-gray-700"  width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">  
-        <path stroke="none" d="M0 0h24v24H0z"/>  
-        <path d="M21 14l-3 -3h-7a1 1 0 0 1 -1 -1v-6a1 1 0 0 1 1 -1h9a1 1 0 0 1 1 1v10" />  
+        <svg class="h-32 w-32 text-gray-700"  width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+        <path stroke="none" d="M0 0h24v24H0z"/>
+        <path d="M21 14l-3 -3h-7a1 1 0 0 1 -1 -1v-6a1 1 0 0 1 1 -1h9a1 1 0 0 1 1 1v10" />
         <path d="M14 15v2a1 1 0 0 1 -1 1h-7l-3 3v-10a1 1 0 0 1 1 -1h2" />
         </svg>`,
 	mention: `
@@ -380,6 +380,10 @@ const icons: { [key: string]: string } = {
         <rect x="20" y="13" width="1" height="13" rx="0.5" transform="rotate(90 20 13)" fill="white"/>
         </svg>
     `,
+	speech_bubble: `
+    <svg viewBox="0 0 65 62" fill="none" xmlns="http://www.w3.org/2000/svg">
+    <path d="M0.0711282 28.8731C-1.07931 45.9441 11.6006 60.7508 28.382 61.9211C37.3855 62.5571 45.7637 59.1226 51.741 53.1948L64.9961 54.0598L57.3181 45.7151C59.3439 41.9498 60.5944 37.6757 60.9195 33.1217C62.045 16.0508 49.3651 1.24403 32.5836 0.0737391C15.8022 -1.09655 1.24658 11.8021 0.0961336 28.8731H0.0711282Z" fill="white"/>
+    </svg>`,
 	information: `
         <svg fill="currentColor" viewBox="0 0 488.9 488.9">
         <path d="M239.15,0c31.9,0,57.7,25.8,57.7,57.7s-25.8,57.7-57.7,57.7s-57.7-25.8-57.7-57.7S207.25,0,239.15,0z M291.65,151.6h-1.5 h-92.8h-3.4c-19,0-34.3,15.4-34.3,34.3l0,0c0,19,15.4,34.3,34.3,34.3h3.4v200h-37.7v68.7h169.6v-68.7h-37.5V151.6H291.65z"/>
