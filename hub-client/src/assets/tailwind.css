@@ -23,7 +23,7 @@ todo: use the global color palette as a default. Not trivial because of iframes.
 	--hub-accent-icon-3: #000000;
 	--hub-accent-icon-4: #686868;
 	--hub-accent-icon-5: #b6b6b6;
-	--notification: #ff0000;
+	--notification: #118de8;
 }
 
 .dark {
@@ -42,6 +42,7 @@ todo: use the global color palette as a default. Not trivial because of iframes.
 	--hub-accent-icon-4: #d9d9d9;
 	--hub-accent-icon-5: #b6b6b6;
 	--notification: #ff0000;
+	--notification: #118de8;
 }
 
 html,
