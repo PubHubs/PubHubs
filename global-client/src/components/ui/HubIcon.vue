@@ -1,12 +1,10 @@
 <template>
 	<div class="z-0 block group text-center w-24 h-24 p-2 m-2 cursor-pointer relative overflow-hidden" :title="hub ? hub.hubId : null">
-		<div v-if="hub && hub.unreadMessages > 0">
-			<span class="absolute flex h-3 w-3 left-5">
-				<span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-notification opacity-75"></span>
-				<span class="absolute inline-flex rounded-full h-3 w-3 bg-notification"></span>
-			</span>
+		<div v-if="hub && hub.unreadMessages > 0" class="absolute top-0 right-0 group-hover:hidden">
+			<Badge class="text-xxs" color="ph" v-if="hub.unreadMessages > 99">99+</Badge>
+			<Badge color="ph" v-else>{{ hub.unreadMessages }}</Badge>
 		</div>
-		<Icon v-if="pinnable" type="plus" class="fill-green opacity-60 hover:opacity-100 absolute right-0 top-0" @click.prevent="pin"></Icon>
+		<Icon v-if="pinnable" type="plus" class="fill-green absolute right-0 top-0 hidden opacity-60 hover:opacity-100 group-hover:block" @click.prevent="pin"></Icon>
 		<Icon v-if="pinned" type="remove" class="fill-red-light absolute right-0 top-0 hidden opacity-60 hover:opacity-100 group-hover:block" @click.prevent="remove"></Icon>
 		<HubLogo v-if="hub" :hub-url="hub.url" :hub-id="hub.hubId" :change-to-dark="false" class="h-20 w-20 mx-auto rounded-full"></HubLogo>
 		<Icon type="hub_bubble" :size="'4xl'" class="absolute top-0 left-[3px] m-auto -z-10 stroke-none opacity-0 group-hover:opacity-60" :class="{ 'opacity-100': active }"></Icon>
@@ -14,6 +12,8 @@
 </template>
 
 <script setup lang="ts">
+	import Badge from '../../../../hub-client/src/components/elements/Badge.vue';
+
 	const props = defineProps({
 		type: {
 			type: String,
