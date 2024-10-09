@@ -20,7 +20,7 @@
 
 <script setup lang="ts">
 	import { useGlobal, useHubs } from '@/store/store';
-import { useToggleMenu } from '@/store/toggleGlobalMenu';
+	import { useToggleMenu } from '@/store/toggleGlobalMenu';
 
 	const global = useGlobal();
 	const hubs = useHubs();
