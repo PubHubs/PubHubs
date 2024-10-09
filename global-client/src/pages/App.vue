@@ -7,7 +7,7 @@
 			</div>
 			<div class="flex h-full">
 				<GlobalBar v-if="!($route.name === 'onboarding')"></GlobalBar>
-				<div v-if="hubs.hasHubs" class="flex-1 dark:bg-gray-dark overflow-y-auto scrollbar">
+				<div v-if="hubs.hasHubs" class="flex-1 dark:bg-gray-dark scrollbar">
 					<router-view></router-view>
 				</div>
 			</div>
