@@ -380,6 +380,10 @@ const icons: { [key: string]: string } = {
         <rect x="20" y="13" width="1" height="13" rx="0.5" transform="rotate(90 20 13)" fill="white"/>
         </svg>
     `,
+	information: `
+        <svg fill="currentColor" viewBox="0 0 488.9 488.9">
+        <path d="M239.15,0c31.9,0,57.7,25.8,57.7,57.7s-25.8,57.7-57.7,57.7s-57.7-25.8-57.7-57.7S207.25,0,239.15,0z M291.65,151.6h-1.5 h-92.8h-3.4c-19,0-34.3,15.4-34.3,34.3l0,0c0,19,15.4,34.3,34.3,34.3h3.4v200h-37.7v68.7h169.6v-68.7h-37.5V151.6H291.65z"/>
+        </svg>`,
 };
 
 export { icons, iconSizes as sizes };

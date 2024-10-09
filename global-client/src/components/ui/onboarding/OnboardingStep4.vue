@@ -21,16 +21,16 @@
 				{{ $t('register.data_added') }}
 			</label>
 			<Button class="w-fit my-4" :disabled="!checked" @click="$emit('next')">{{ $t('register.step_go_to', [3]) }} &#x27F6;</Button>
-			<a href="javascript:void(0)" class="text-sm underline underline-offset-4 mt-4 mb-8" @click="$emit('back')">&#x27F5; {{ $t('register.step_previous') }}</a>
+			<a href="javascript:void(0)" class="text-sm underline underline-offset-4 mt-4" @click="$emit('back')">&#x27F5; {{ $t('register.step_previous') }}</a>
 		</template>
 		<template #column2>
 			<div class="hidden lg:flex justify-center">
 				<div class="w-3/4">
-					<img src="../../assets/mascot-attributes.svg" alt="PubHubs mascot with attributes" />
+					<img src="../../../assets/mascot-attributes.svg" alt="PubHubs mascot with attributes" />
 				</div>
 			</div>
 			<div class="lg:hidden -mt-8">
-				<img class="relative left-1/2 md:left-3/4 -mb-8 w-40" src="../../assets/mascot-yivi-app-small.svg" />
+				<img class="relative left-1/2 md:left-3/4 -mb-20 w-40 pb-4" src="../../../assets/mascot-yivi-app-small.svg" />
 			</div>
 		</template>
 	</OnboardingTemplate>

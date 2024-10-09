@@ -37,7 +37,7 @@
 					</template>
 				</i18n-t>
 			</Foldout>
-			<a href="javascript:void(0)" class="text-sm underline underline-offset-4 mt-6 mb-8" @click="$emit('back')">&#x27F5; {{ $t('register.step_previous') }}</a>
+			<a href="javascript:void(0)" class="text-sm underline underline-offset-4 mt-6" @click="$emit('back')">&#x27F5; {{ $t('register.step_previous') }}</a>
 		</template>
 		<template #column2>
 			<div class="hidden lg:flex items-start lg:justify-center">
@@ -46,16 +46,16 @@
 				>
 					<div class="flex my-4 justify-center">
 						<H1 class="text-xl xl:text-2xl !text-black mr-2">Download</H1>
-						<img class="h-[1.75rem]" src="../../assets/yivi-logo.svg" alt="Yivi" />
+						<img class="h-[1.75rem]" src="../../../assets/yivi-logo.svg" alt="Yivi" />
 					</div>
 					<DownloadLinks class="justify-center"></DownloadLinks>
 				</div>
 				<div class="relative right-16 -mr-16 top-56 mb-56 flex min-w-60">
-					<img src="../../assets/mascot-yivi-app-small.svg" alt="PubHubs mascot with Yivi app" />
+					<img src="../../../assets/mascot-yivi-app-small.svg" alt="PubHubs mascot with Yivi app" />
 				</div>
 			</div>
 			<div class="lg:hidden -mt-8">
-				<img class="relative left-1/2 md:left-3/4 -mb-12 w-40 pb-4" src="../../assets/mascot-yivi-app-small.svg" />
+				<img class="relative left-1/2 md:left-3/4 -mb-20 w-40 pb-4" src="../../../assets/mascot-yivi-app-small.svg" />
 			</div>
 		</template>
 	</OnboardingTemplate>

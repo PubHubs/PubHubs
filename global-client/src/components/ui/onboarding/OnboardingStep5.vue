@@ -26,13 +26,13 @@
 						<!-- Yivi content -->
 					</div>
 					<div class="relative right-4 hidden lg:flex w-64">
-						<img src="../../assets/mascot-attributes-small.svg" alt="PubHubs mascot with attributes" />
+						<img src="../../../assets/mascot-attributes-small.svg" alt="PubHubs mascot with attributes" />
 					</div>
 				</div>
 				<a href="javascript:void(0)" class="flex lg:hidden text-sm underline underline-offset-4" @click="$emit('back')">&#x27F5; {{ $t('register.step_previous') }}</a>
 			</div>
 			<div class="lg:hidden">
-				<img class="relative left-1/2 md:left-3/4 -mb-16 w-40" src="../../assets/mascot-yivi-app-small.svg" />
+				<img class="relative left-1/2 md:left-3/4 -mb-28 w-40 pb-4" src="../../../assets/mascot-yivi-app-small.svg" />
 			</div>
 			<form method="POST" action="/yivi-endpoint/finish-and-redirect">
 				<input type="hidden" name="yivi_token" :value="yivi_token" />
@@ -43,7 +43,7 @@
 
 <script setup lang="ts">
 	import { onMounted, ref } from 'vue';
-	import { yivi } from '@/assets/yivi';
+	import { yivi } from '@/yivi';
 
 	const yivi_token = ref<string>('');
 

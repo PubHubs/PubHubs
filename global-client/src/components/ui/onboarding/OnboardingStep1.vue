@@ -2,7 +2,7 @@
 	<OnboardingTemplate>
 		<template #column1>
 			<div class="flex place-self-center w-11/12 sm:w-3/4 lg:w-full">
-				<img src="../../assets/mascot-welcome.svg" alt="PubHubs mascot" />
+				<img src="../../../assets/mascot-welcome.svg" alt="PubHubs mascot" />
 			</div>
 		</template>
 		<template #column2>
