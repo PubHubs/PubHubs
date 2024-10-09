@@ -1,5 +1,5 @@
 <template>
-	<div class="flex flex-row justify-between items-center my-4 mx-6 md:m-12">
+	<div class="flex flex-row justify-between items-center my-4 mx-6 md:m-9">
 		<router-link to="/">
 			<Logo class="h-4 md:h-8" :global="true"></Logo>
 		</router-link>
@@ -10,7 +10,7 @@
 			</div>
 		</div>
 	</div>
-	<component class="mb-12 text-lg" :is="`OnboardingStep${props.onboardingStep}`" @next="next(1)" @skip="next(2)" @back="back"> </component>
+	<component class="text-lg" :is="`OnboardingStep${props.onboardingStep}`" @next="next(1)" @skip="next(2)" @back="back"> </component>
 </template>
 
 <script setup lang="ts">

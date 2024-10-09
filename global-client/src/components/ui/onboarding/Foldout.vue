@@ -1,7 +1,9 @@
 <template>
 	<details class="group">
-		<summary class="flex relative my-2 pr-10 list-none items-start after:absolute after:right-5 after:mt-1 after:ml-2 after:border-r-2 after:border-b-2 after:p-1 after:rotate-45 group-open:after:-rotate-135 group-open:after:mt-2">
-			<div class="bg-blue text-white w-6 h-6 shrink-0 flex justify-center rounded-full mr-2">&#x2139;</div>
+		<summary class="flex relative my-2 pr-6 list-none items-start after:absolute after:right-1 after:mt-1 after:ml-2 after:border-r-2 after:border-b-2 after:p-1 after:rotate-45 group-open:after:-rotate-135 group-open:after:mt-2">
+			<div class="bg-blue text-white w-6 h-6 shrink-0 flex justify-center items-center rounded-full mr-2">
+				<Icon type="information" size="xs"></Icon>
+			</div>
 			{{ props.question }}
 		</summary>
 		<p class="mb-2 whitespace-pre-line">
