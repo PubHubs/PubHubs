@@ -1,3 +1,9 @@
+<!-- 
+ TODO 
+ This is temporarily changed so attributes can be changed after entering (but not removed)
+ Because of the fact that a FormObjectInput does not handle the submit button correctly yet the button is always enabled (by removing setSubmitButton(dialog.properties.buttons[0]);)
+ -->
+
 <template>
 	<Dialog :title="title" :buttons="buttonsSubmitCancel" @close="close($event)" width="w-full max-w-[960px]">
 		<form @submit.prevent class="flex flex-col gap-4">
@@ -20,7 +26,7 @@
 				</FormLine>
 				<FormLine>
 					<Label>{{ $t('admin.secured_yivi_attributes') }}</Label>
-					<FormObjectInput v-if="editRoom.accepted" :template="securedRoomTemplate" :canAdd="isNewRoom" :canRemove="isNewRoom" v-model="editRoom.accepted"></FormObjectInput>
+					<FormObjectInput v-if="editRoom.accepted" :template="securedRoomTemplate" :canAdd="isNewRoom" :canRemove="isNewRoom" v-model="(editRoom as TSecuredRoom).accepted"> </FormObjectInput>
 				</FormLine>
 			</div>
 			<div v-if="errorMessage">
@@ -33,7 +39,7 @@
 <script setup lang="ts">
 	import { onBeforeMount, ref, computed } from 'vue';
 	import { buttonsSubmitCancel, DialogButtonAction } from '@/store/dialog';
-	import { SecuredRoomAttributes, TSecuredRoom, useRooms, useDialog, TPublicRoom, RoomType } from '@/store/store';
+	import { SecuredRoomAttributes, TSecuredRoom, useRooms, TPublicRoom, RoomType } from '@/store/store';
 	import { useFormState } from '@/composables/useFormState';
 	import { FormObjectInputTemplate } from '@/composables/useFormInputEvents';
 	import { usePubHubs } from '@/core/pubhubsStore';
@@ -42,10 +48,10 @@
 	import { isEmpty, trimSplit } from '@/core/extensions';
 
 	const { t } = useI18n();
-	const { setSubmitButton, setData, updateData } = useFormState();
+	const { setData, updateData } = useFormState();
 	const pubhubs = usePubHubs();
 	const rooms = useRooms();
-	const dialog = useDialog();
+	//const dialog = useDialog();
 	const yivi = useYivi();
 	const emit = defineEmits(['close']);
 
@@ -150,7 +156,7 @@
 			}
 		}
 
-		setSubmitButton(dialog.properties.buttons[0]);
+		//setSubmitButton(dialog.properties.buttons[0]);
 
 		setData({
 			name: {
