@@ -1,6 +1,5 @@
 <template>
 	<!-- Desktop search component -->
-	<!-- Desktop search component -->
 	<div class="hidden md:flex items-center relative" v-click-outside="reset">
 		<input
 			class="w-full min-w-48 md:pr-8 py-1 border-none rounded-md bg-gray-lighter placeholder:text-black dark:bg-gray-darker dark:text-white dark:placeholder:text-gray-light focus:border-black focus:outline-0 focus:outline-offset-0 focus:ring-0"
@@ -18,7 +17,7 @@
 				reset();
 			"
 		/>
-		<Icon class="-ml-6 search-icon dark:text-gray-light -scale-100 -rotate-90" type="search" size="sm" @click="submit()"></Icon>
+		<Icon class="-ml-6 search-icon dark:text-gray-light" type="search" size="sm" @click="submit()"></Icon>
 	</div>
 
 	<!-- Mobile search component. -->
@@ -41,7 +40,7 @@
 				"
 			/>
 			<button class="dark:text-gray-lighter px-1 rounded-full bg-hub-background-4 dark:bg-gray-darker flex justify-center items-center aspect-[1]">
-				<Icon class="search-icon -scale-100 -rotate-90 px-1" type="search" size="md"></Icon>
+				<Icon class="search-icon px-1" type="search" size="md"></Icon>
 			</button>
 		</div>
 	</div>
@@ -88,7 +87,10 @@
 
 	//Passed by the parentcomponent
 	const props = defineProps({
-		searchParameters: { type: Object as PropType<TSearchParameters>, required: true },
+		searchParameters: {
+			type: Object as PropType<TSearchParameters>,
+			required: true,
+		},
 		room: Room,
 	});
 

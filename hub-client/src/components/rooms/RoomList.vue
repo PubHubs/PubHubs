@@ -13,7 +13,7 @@
 							<UnreadMessageBadge v-if="room.getRoomUnreadNotificationCount(NotificationCountType.Total) > 0">{{ room.getRoomUnreadNotificationCount(NotificationCountType.Total) }}</UnreadMessageBadge>
 							<UnreadMentionBadge v-if="room.getRoomUnreadNotificationCount(NotificationCountType.Highlight) > 0">{{ room.getRoomUnreadNotificationCount(NotificationCountType.Highlight) }}</UnreadMentionBadge>
 						</span>
-						<Icon type="unlink" class="cursor-pointer hover:text-red group-hover:inline-block hidden transition-all duration-200 ease-in-out" @click.prevent="leaveRoom(room.roomId)"></Icon>
+						<Icon type="unlink" class="cursor-pointer hover:text-red-light stroke-2 group-hover:inline-block hidden transition-all duration-200 ease-in-out" @click.prevent="leaveRoom(room.roomId)"></Icon>
 					</span>
 				</MenuItem>
 			</template>
@@ -89,7 +89,7 @@
 	}
 
 	function roomIcon(room: Room): string {
-		let icon = 'room';
+		let icon = 'speech_bubbles';
 		const plugin = plugins.hasRoomPlugin(room) as PluginProperties;
 		if (plugin.icon) {
 			icon = plugin.icon;

@@ -18,6 +18,10 @@ These colors should be the same as the colors in the default hub color palette (
 	--ph-accent-2: #001242;
 	/* Some of the pubhubs-made icons will have additional accent colors */
 	--ph-accent-icon: #999999;
+	--ph-accent-icon-2: #118de8;
+	--ph-accent-icon-3: #000000;
+	--ph-accent-icon-4: #686868;
+	--ph-accent-icon-5: #b6b6b6;
 	--notification: #ff0000;
 }
 
@@ -32,6 +36,10 @@ These colors should be the same as the colors in the default hub color palette (
 	--ph-accent: #00adee;
 	--ph-accent-2: #4ee9a4;
 	--ph-accent-icon: #d9d9d9;
+	--ph-accent-icon-2: #4ee9a4;
+	--ph-accent-icon-3: #ffffff;
+	--ph-accent-icon-4: #d9d9d9;
+	--ph-accent-icon-5: #b6b6b6;
 	--notification: #ff0000;
 }
 

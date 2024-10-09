@@ -4,7 +4,7 @@
 		<FilteredList :items="rooms.visiblePublicRooms" sortby="name" :placeholder="$t('rooms.discover')" :inputClass="'pl-6'" :listClass="'-mt-[17px] border rounded-md shadow-md'" :showCompleteList="showList" @click="joinRoom($event)">
 			<template #item="{ item }">
 				<div class="flex justify-between">
-					<Icon :type="rooms.roomIsSecure(item.room_id) ? 'lock' : 'room'" class="flex-none mr-4 text-blue group-hover:text-black"></Icon>
+					<Icon :type="rooms.roomIsSecure(item.room_id) ? 'shield' : 'speech_bubbles'" class="flex-none mr-4 text-blue group-hover:text-black"></Icon>
 					<span :title="item.room_id" class="grow truncate w-100">{{ item.name }}&nbsp;</span>
 					<Icon type="plus" class="flex-none"></Icon>
 				</div>

@@ -17,7 +17,11 @@ const pubhubs = {
 			accent: {
 				DEFAULT: 'var(--ph-accent)',
 				2: 'var(--ph-accent-2)',
-				icon: 'var(--ph-accent-icon)',
+				icon: {
+					DEFAULT: 'var(--ph-accent-icon)',
+					2: 'var(--ph-accent-icon-2)',
+					3: 'var(--ph-accent-icon-3)',
+				},
 			},
 		},
 
@@ -36,7 +40,11 @@ const pubhubs = {
 			accent: {
 				DEFAULT: 'var(--hub-accent)',
 				2: 'var(--hub-accent-2)',
-				icon: 'var(--hub-accent-icon)',
+				icon: {
+					DEFAULT: 'var(--hub-accent-icon)',
+					2: 'var(--hub-accent-icon-2)',
+					3: 'var(--hub-accent-icon-3)',
+				},
 			},
 		},
 

@@ -233,6 +233,8 @@
 			if (prevNewestLoadedEventId && !newestEventLoaded.value) {
 				await props.room.paginate(EventTimeline.FORWARDS);
 				await scrollToEvent(prevNewestLoadedEventId, { position: 'end' });
+				// Observe newer messages when timeline loads new messages.
+				settings.isFeatureEnabled(featureFlagType.dateSplitter) && elementObserver?.setUpObserver(handleDateDisplayer);
 			}
 			isLoadingNewEvents.value = false;
 		}

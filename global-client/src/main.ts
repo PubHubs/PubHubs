@@ -1,6 +1,6 @@
 /* eslint-disable */
 import '@/assets/tailwind.css';
-import { focus, twClass, clickOutside } from '@/core/directives';
+import { focus, twClass } from '@/core/directives';
 import { routes } from '@/core/routes';
 import { setUpi18n } from '@/i18n';
 import '@/registerServiceWorker';
@@ -39,6 +39,14 @@ const i18n = setUpi18n();
 const router = createRouter({
 	history: createWebHashHistory(),
 	routes: routes,
+	scrollBehavior(to, _from, savedPosition) {
+		// Always scroll to the top of the page when the user is in the onboarding flow
+		if (savedPosition && to.name != 'onboarding') {
+			return savedPosition;
+		} else {
+			return { top: 0 };
+		}
+	},
 	sensitive: true,
 });
 
@@ -70,7 +78,6 @@ app.use(pinia);
 app.use(i18n as any);
 app.directive('focus', focus);
 app.directive('tw-class', twClass as any);
-app.directive('click-outside', clickOutside);
 
 app.mount('#app');
 
