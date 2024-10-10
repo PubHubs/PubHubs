@@ -1,13 +1,17 @@
 //! Running PubHubs [Server]s
 use std::net::SocketAddr;
 use std::rc::Rc;
+use std::sync::Arc;
 
 use actix_web::web;
 use anyhow::{bail, Context as _, Result};
 use core::convert::Infallible;
 use tokio::sync::mpsc;
 
-use crate::servers::{for_all_servers, App, AppBase, AppCreator, Command, Server};
+use crate::api;
+use crate::servers::{
+    for_all_servers, server::RunningState, App, AppBase, AppCreator, Command, Name, Server,
+};
 
 /// A set of running PubHubs servers.
 pub struct Set {
@@ -285,9 +289,209 @@ impl<S: Server> Handles<S> {
     }
 }
 
+/// Encapsulates the handling of running just one discovery process per server
+struct DiscoveryLimiter {
+    /// Lock that makes sure only one discovery task is running at the same time.
+    ///
+    /// The protected value is true when restart due to a changed constellation is imminent.
+    restart_imminent_lock: Arc<tokio::sync::RwLock<bool>>,
+
+    /// Set when contents of `restart_imminent_lock` lock was observed to be true,
+    /// reducing the load on this lock.
+    restart_imminent_cached: std::cell::OnceCell<()>,
+}
+
+impl Clone for DiscoveryLimiter {
+    fn clone(&self) -> Self {
+        Self {
+            restart_imminent_lock: self.restart_imminent_lock.clone(),
+            // The DiscoveryLimiter is never cloned as part of an `AppBase`.
+            restart_imminent_cached: std::cell::OnceCell::<()>::new(),
+        }
+    }
+}
+
+impl DiscoveryLimiter {
+    fn new() -> Self {
+        DiscoveryLimiter {
+            restart_imminent_lock: Arc::new(tokio::sync::RwLock::new(false)),
+            restart_imminent_cached: std::cell::OnceCell::<()>::new(),
+        }
+    }
+
+    /// This functions contains the discovery logic that's shared between servers.
+    ///
+    /// Discovery can be invoked for two reasons:  
+    ///
+    ///  1. This server has just been restarted and is not aware of the current constellation.
+    ///     Perhaps part of our configuration has changed that makes the current constellation
+    ///     obsolete.
+    ///
+    ///  2. The `.ph/discovery/run` endpoint was triggered.  This should happen when another
+    ///     server detects that our constellation is out-of-date, but since the `.ph/discovery/run`
+    ///     endpoint is unprotected, anyone can invoke it at any time.
+    ///
+    ///     The non-PHC servers check during their discovery whether the constellation PHC advertises
+    ///     is up-to-date with respect to their own configuration.  If it isn't, the non-PHC server
+    ///     triggers PHC to run discovery.
+    ///     
+    ///     PHC checks during its discovery (after it obtained recent details from each of the
+    ///     other servers) whether the constellations of the other servers are up-to-date,
+    ///     and will trigger their discovery routine when these aren't.
+    ///
+    ///
+    /// Thus the procedure for discovery is as follows.
+    ///
+    ///
+    /// Non-PHC:
+    ///   
+    ///  1. Obtain constellation from PHC.  Return if it coincides with the constellation that we already
+    ///     got - if we already got one.
+    ///  2. Check the constellation against our own configuration.  If it's up-to-date, restart
+    ///     this server but with the new constellation.
+    ///  3. Invoke discovery on PHC, and return a retryable error - effectively go back to step 1.
+    ///
+    ///
+    /// PHC:
+    ///
+    ///  1. Obtain discovery info from ourselves - i.e. check whether `phc_url` is configured
+    ///     correctly.
+    ///  2. Retrieve discovery info from the other servers and construct a constellation from it.
+    ///  3. If the constellation has changed, restart to update it.
+    ///  4. Invoke disovery on those servers that have no or outdated constellations,
+    ///     and return a retryable error - effectively go back to step 1.
+    ///
+    ///
+    async fn request_discovery<S: Server>(
+        &self,
+        app: S::AppT,
+    ) -> api::Result<api::DiscoveryRunResp> {
+        log::debug!(
+            "{server_name}: discovery is requested",
+            server_name = S::NAME
+        );
+
+        let mut restart_imminent_guard = match self.obtain_lock().await {
+            Some(guard) => guard,
+            None => {
+                log::debug!(
+                    "{server_name}: discovery aborted because the server is already restarting",
+                    server_name = S::NAME
+                );
+                return api::ok(api::DiscoveryRunResp::Restarting);
+            }
+        };
+
+        // Obtain discovery info from PHC (even when we are PHC ourselves, for perhaps
+        // the phc_url is misconfigured) and perform some basis checks.
+        // Should not return an error when our constellation is out of sync.
+        let phc_discovery_info = {
+            let result = AppBase::<S>::discover_phc(app.clone()).await;
+            if result.is_err() {
+                return api::err(result.unwrap_err());
+            }
+            result.unwrap()
+        };
+
+        if phc_discovery_info.constellation.is_none() && S::NAME != Name::PubhubsCentral {
+            // PubHubs Central is not yet ready - make the caller retry
+            log::info!(
+                "Discovery of {} is run but {} has no constellation yet",
+                S::NAME,
+                Name::PubhubsCentral,
+            );
+            return api::err(api::ErrorCode::NotYetReady);
+        }
+
+        let new_constellation_maybe = api::return_if_ec!(app.discover(phc_discovery_info).await);
+        if new_constellation_maybe.is_none() {
+            return api::ok(api::DiscoveryRunResp::UpToDate);
+        }
+
+        let new_constellation = new_constellation_maybe.unwrap();
+
+        // modify server, and restart (to modify all Apps)
+
+        let result = app
+            .base()
+            .handle
+            .modify(
+                "updated constellation after discovery",
+                |server: &mut S| -> bool {
+                    let extra = match server.create_running_state(&new_constellation) {
+                        Ok(extra) => extra,
+                        Err(err) => {
+                            log::error!(
+                                "Error while restarting {} after discovery: {}",
+                                S::NAME,
+                                err
+                            );
+                            return false; // do not restart
+                        }
+                    };
+
+                    server.app_creator_mut().base_mut().running_state = Some(RunningState {
+                        constellation: Box::new(new_constellation),
+                        extra,
+                    });
+
+                    true // yes, restart
+                },
+            )
+            .await;
+
+        if let Err(err) = result {
+            log::error!(
+                "failed to initiate restart of {} for discovery: {}",
+                S::NAME,
+                err
+            );
+            return api::err(api::ErrorCode::InternalError);
+        }
+
+        log::trace!(
+            "{server_name}: registering imminent restart",
+            server_name = S::NAME
+        );
+        *restart_imminent_guard = true;
+        let _ = self.restart_imminent_cached.set(());
+
+        api::ok(api::DiscoveryRunResp::Restarting)
+    }
+
+    /// Obtains write lock to `self.restart_imminent_lock` when restart is not imminent.
+    async fn obtain_lock(&self) -> Option<tokio::sync::RwLockWriteGuard<'_, bool>> {
+        if self.restart_imminent_cached.get().is_some() {
+            log::trace!("restart imminent: cached");
+            return None;
+        }
+
+        if *self.restart_imminent_lock.read().await {
+            log::trace!("restart imminent: discovered after obtaining read lock");
+            let _ = self.restart_imminent_cached.set(());
+            return None;
+        }
+
+        let restart_imminent_guard = self.restart_imminent_lock.write().await;
+
+        if *restart_imminent_guard {
+            // while we re-obtained the lock, discovery has completed
+            log::trace!("restart imminent: discovered after obtaining write lock");
+            let _ = self.restart_imminent_cached.set(());
+            return None;
+        }
+
+        Some(restart_imminent_guard)
+    }
+}
+
 /// Handle to a [Server] passed to [App]s.
+///
+/// Used to issue commands to the server.  Since discovery is requested a often a separate struct
+/// is used to deal with discovery requests.
 pub struct Handle<S: Server> {
     sender: mpsc::Sender<Command<S>>,
+    discovery_limiter: DiscoveryLimiter,
 }
 
 // We cannot use "derive(Clone)", because Server is not Clone.
@@ -295,6 +499,7 @@ impl<S: Server> Clone for Handle<S> {
     fn clone(&self) -> Self {
         Handle {
             sender: self.sender.clone(),
+            discovery_limiter: self.discovery_limiter.clone(),
         }
     }
 }
@@ -344,6 +549,10 @@ impl<S: Server> Handle<S> {
 
         Ok(receiver.await?)
     }
+
+    pub async fn request_discovery(&self, app: S::AppT) -> api::Result<api::DiscoveryRunResp> {
+        self.discovery_limiter.request_discovery::<S>(app).await
+    }
 }
 
 impl<S: Server> Runner<S> {
@@ -374,6 +583,7 @@ impl<S: Server> Runner<S> {
 
         let handle = Handle::<S> {
             sender: command_sender,
+            discovery_limiter: DiscoveryLimiter::new(),
         };
 
         log::info!(

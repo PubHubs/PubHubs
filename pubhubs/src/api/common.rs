@@ -296,13 +296,15 @@ pub async fn query_with_retry<EP: EndpointDetails>(
 }
 
 /// Sends a request to `EP` [endpoint](EndpointDetails) at `server_url`.
-pub async fn query<EP: EndpointDetails>(
+///
+/// NOTE: not `async fn` so that we can specify that the resulting future is `'static`,
+/// and so does not borrow `server_url` or `req`.
+pub fn query<EP: EndpointDetails>(
     server_url: &url::Url,
     req: &EP::RequestType,
-) -> Result<EP::ResponseType> {
-    let client = awc::Client::default();
-
-    let url = {
+) -> impl std::future::Future<Output = Result<EP::ResponseType>> + 'static {
+    // endpoint url
+    let ep_url = {
         let result = server_url.join(EP::PATH);
         if result.is_err() {
             log::error!(
@@ -310,18 +312,35 @@ pub async fn query<EP: EndpointDetails>(
                 EP::PATH,
                 result.unwrap_err()
             );
-            return Result::Err(ErrorCode::Malconfigured);
+            return futures::future::Either::Left(
+                async move { Result::Err(ErrorCode::Malconfigured) },
+            );
         }
         result.unwrap()
     };
 
-    log::debug!("Querying {} {} {}", EP::METHOD, &url, fmt_ext::Json(&req));
+    log::debug!(
+        "Querying {} {} {}",
+        EP::METHOD,
+        &ep_url,
+        fmt_ext::Json(&req)
+    );
 
+    let client = awc::Client::default();
+
+    let client_req = client
+        .request(EP::METHOD, ep_url.to_string())
+        .send_json(&req);
+
+    futures::future::Either::Right(async { query_inner::<EP>(ep_url, client_req).await })
+}
+
+async fn query_inner<EP: EndpointDetails>(
+    url: url::Url,
+    req: awc::SendClientRequest,
+) -> Result<EP::ResponseType> {
     let mut resp = {
-        let result = client
-            .request(EP::METHOD, url.to_string())
-            .send_json(&req)
-            .await;
+        let result = req.await;
 
         if result.is_err() {
             return Result::Err(match result.unwrap_err() {
