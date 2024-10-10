@@ -1,7 +1,7 @@
 use crate::servers::Config;
 use crate::servers::Server as _;
 
-use anyhow::{Context as _, Result};
+use anyhow::Result;
 
 #[derive(clap::Args, Debug)]
 pub struct ServeArgs {
@@ -15,10 +15,6 @@ pub struct ServeArgs {
         default_values = ["pubhubs.yaml", "pubhubs.default.yaml"]
     )]
     config_search_paths: Vec<std::path::PathBuf>,
-
-    /// Do not immediately start driving the discovery process
-    #[arg(long)]
-    manual_discovery: bool,
 
     /// Run not all servers specified in the configuration file, but only these
     #[arg(name = "only", value_enum, short, long, value_name = "SERVERS")]
@@ -69,8 +65,6 @@ impl ServeArgs {
                     std::process::abort();
                 });
 
-                self.drive_discovery(&config.phc_url).await?;
-
                 let err_count = set.wait().await;
                 if err_count > 0 {
                     anyhow::bail!("{} servers did not shutdown cleanly", err_count);
@@ -78,19 +72,6 @@ impl ServeArgs {
 
                 Ok(())
             })
-    }
-
-    async fn drive_discovery(&self, phc_url: &url::Url) -> Result<()> {
-        if self.manual_discovery {
-            return Ok(());
-        }
-
-        tokio::task::LocalSet::new()
-            .run_until(crate::client::drive_discovery(phc_url))
-            .await
-            .context("discovery failed")?;
-
-        Ok(())
     }
 
     /// Filters servers from config that were not specified to run

@@ -147,7 +147,7 @@ impl crate::servers::App<Server> for Rc<App> {
                 }
             }
 
-            return api::ok(None);
+            api::ok(None)
         })
     }
 

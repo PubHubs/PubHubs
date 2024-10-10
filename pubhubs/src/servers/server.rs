@@ -5,7 +5,6 @@ use futures_util::future::LocalBoxFuture;
 
 use core::convert::Infallible;
 use std::rc::Rc;
-use std::sync::Arc;
 
 use crate::elgamal;
 
@@ -390,7 +389,7 @@ pub trait App<S: Server>: Clone + 'static {
             );
 
             if let Some(rs) = self.base().running_state.as_ref() {
-                if !self.check_constellation(&phc_inf.constellation.as_ref().unwrap()) {
+                if !self.check_constellation(phc_inf.constellation.as_ref().unwrap()) {
                     log::warn!(
                         "{server_name}: {phc}'s constellation seems to be out-of-date - requesting rediscovery",
                         server_name = S::NAME,
