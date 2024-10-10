@@ -22,7 +22,7 @@ General tips:
           To make yourself a hub admin: 
             - log into ilab@ph.ru.nl using the [id_ilab](https://gitlab.science.ru.nl/ilab/ops/-/blob/main/ssh/id_ilab?ref_type=heads) key, via yourscienceaccountname@lilo.science.ru.nl (see also [the wiki](https://gitlab.science.ru.nl/ilab/pubhubs_canonical/-/wikis/Infrastructure))
             - `cd /data/testhub-matrix-main/data`
-            - `sudo sqlite3 homeserver.db`
+            - `sudo sqlite3 homeserver.db` (could be that you need to install sqlite3 first, it will say how to)
             - `UPDATE users SET admin=1 WHERE name="@XXX-XXX:main.testhub-matrix.ihub.ru.nl";`, where `XXX-XXX` should be replaced by your short pseudonym.
             - `.quit`, etc.
         - [ ] With the admin user:
