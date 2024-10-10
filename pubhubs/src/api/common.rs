@@ -362,6 +362,11 @@ async fn query_inner<EP: EndpointDetails>(
                         log::warn!("io error while connecting to {url}: {err}");
                         ErrorCode::CouldNotConnectYet
                     }
+                    awc::error::ConnectError::Disconnected => {
+                        // might happen when the contacted server shuts down
+                        log::warn!("server disconnected while querying {url}");
+                        ErrorCode::CouldNotConnectYet
+                    }
                     _ => {
                         log::error!("error connecting to {url}: {err}");
                         ErrorCode::CouldNotConnect

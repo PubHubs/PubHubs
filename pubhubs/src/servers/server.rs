@@ -568,7 +568,7 @@ impl<S: Server> AppBase<S> {
     async fn handle_admin_post_config(
         app: S::AppT,
         signed_req: web::Json<api::Signed<api::admin::UpdateConfigReq>>,
-    ) -> api::Result<()> {
+    ) -> api::Result<api::admin::UpdateConfigResp> {
         let signed_req = signed_req.into_inner();
 
         let base = app.base();
@@ -586,13 +586,9 @@ impl<S: Server> AppBase<S> {
                 |server: &S| -> Config { server.config().clone() }
             )
             .await
-            .into_ec(|err| {
-                log::error!(
-                    "{}: failed to retrieve configuration from server: {}",
-                    S::NAME,
-                    err
-                );
-                api::ErrorCode::InternalError
+            .into_ec(|_| {
+                log::warn!("{}: failed to retrieve configuration from server", S::NAME,);
+                api::ErrorCode::NotYetReady // probably the server is restarting
             }));
 
         let mut json_config: serde_json::Value = api::return_if_ec!(serde_json::to_value(config)
@@ -627,6 +623,10 @@ impl<S: Server> AppBase<S> {
         .modify(
             "admin update of current in-memory configuration",
             move |server: &mut S| {
+
+                //log::trace!("old config: {}", serde_json::to_string(server.config()).unwrap());
+                //log::trace!("new config: {}", serde_json::to_string(&new_config).unwrap());
+
                 let new_server_maybe = S::new(&new_config);
 
                 if let Err(err) = new_server_maybe {
@@ -640,12 +640,12 @@ impl<S: Server> AppBase<S> {
             }
         )
         .await
-        .into_ec(|err| {
-            log::error!("{}: failed to enqueue modification: {}", S::NAME, err);
-            api::ErrorCode::InternalError
+        .into_ec(|_| {
+            log::warn!("{}: failed to enqueue modification", S::NAME);
+            api::ErrorCode::NotYetReady
         }));
 
-        api::ok(())
+        api::ok(api::admin::UpdateConfigResp {})
     }
 
     /// Run the discovery process, and restarts server if necessary.  Returns when

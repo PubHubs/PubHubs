@@ -1,7 +1,7 @@
 // integration test, testing all aspects of the rust code
 
 use actix_web::web;
-use pubhubs::{api, client, hub, servers};
+use pubhubs::{api, client, elgamal, hub, servers};
 use std::{sync::Arc, time::Duration};
 
 const CONFIG_FILE_PATH: &'static str = "pubhubs.default.yaml";
@@ -20,6 +20,49 @@ async fn main_integration_test() {
     config.admin_key = Some(admin_sk.verifying_key().into());
 
     let (set, _) = servers::Set::new(&config).unwrap();
+
+    let constellation: servers::Constellation = tokio::task::LocalSet::new()
+        .run_until(client::get_constellation(&config.phc_url))
+        .await
+        .unwrap();
+
+    // To test discovery, change transcryptor's encryption key
+    let t_enc_key_sk = elgamal::PrivateKey::random();
+
+    tokio::task::LocalSet::new()
+        .run_until(async {
+            api::query_with_retry::<api::admin::UpdateConfig>(
+                &constellation.transcryptor_url,
+                &api::Signed::<api::admin::UpdateConfigReq>::new(
+                    &*admin_sk,
+                    &api::admin::UpdateConfigReq {
+                        pointer: "/transcryptor/enc_key".to_owned(),
+                        new_value: serde_json::to_value(&t_enc_key_sk).unwrap(),
+                    },
+                    Duration::from_secs(10),
+                )
+                .unwrap(),
+            )
+            .await
+            .unwrap();
+
+            // wait for transcryptor's enc_key to be updated
+            pubhubs::misc::task::retry(|| async {
+                api::query::<api::DiscoveryInfo>(&constellation.transcryptor_url, &())
+                    .await
+                    .retryable()
+                    .map(|res_maybe| {
+                        if let Some(ref t_inf) = res_maybe {
+                            if &t_inf.enc_key != t_enc_key_sk.public_key() {
+                                return None;
+                            }
+                        }
+
+                        res_maybe
+                    })
+            });
+        })
+        .await;
 
     let constellation: servers::Constellation = tokio::task::LocalSet::new()
         .run_until(client::get_constellation(&config.phc_url))
@@ -45,7 +88,7 @@ async fn main_integration_test() {
     // get a ticket for testhub
     let ticket = tokio::task::LocalSet::new()
         .run_until(async {
-            api::query::<api::phc::hub::TicketEP>(
+            api::query_with_retry::<api::phc::hub::TicketEP>(
                 &config.phc_url,
                 &api::Signed::<api::phc::hub::TicketReq>::new(
                     &*mock_hub.context.sk,

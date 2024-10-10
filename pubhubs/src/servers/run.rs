@@ -440,13 +440,9 @@ impl DiscoveryLimiter {
             )
             .await;
 
-        if let Err(err) = result {
-            log::error!(
-                "failed to initiate restart of {} for discovery: {}",
-                S::NAME,
-                err
-            );
-            return api::err(api::ErrorCode::InternalError);
+        if let Err(()) = result {
+            log::warn!("failed to initiate restart of {} for discovery, probably because the server is already shutting down", S::NAME,);
+            return api::err(api::ErrorCode::NotYetReady);
         }
 
         log::trace!(
@@ -507,11 +503,18 @@ impl<S: Server> Clone for Handle<S> {
 impl<S: Server> Handle<S> {
     /// Issues command to [Runner].  Waits for the command to be enqueued,
     /// but does not wait for the command to be completed.
-    pub async fn issue_command(&self, command: Command<S>) -> Result<()> {
+    ///
+    /// Returns
+    pub async fn issue_command(&self, command: Command<S>) -> Result<(), ()> {
         let result = self.sender.send(command).await;
 
         if let Err(send_error) = result {
-            bail!("{}: failed to send command {}", S::NAME, send_error.0);
+            log::warn!(
+                "{server_name}: since the command receiver is closed (probably because the server is shutting down/restarting) we could not issue the command {cmd:?}",
+                server_name=S::NAME,
+                cmd=send_error.0.to_string(),
+            );
+            return Err(());
         };
 
         Ok(())
@@ -521,25 +524,29 @@ impl<S: Server> Handle<S> {
         &self,
         display: impl std::fmt::Display + Send + 'static,
         modifier: impl FnOnce(&mut S) -> bool + Send + 'static,
-    ) -> Result<()> {
+    ) -> Result<(), ()> {
         self.issue_command(Command::Modify(Box::new((modifier, display))))
             .await
     }
 
+    /// Executes `inspector` on the server instance, returning its result.
+    ///
+    /// Returns Err(()) when the command or its result could not be sent, probably because the
+    /// server was shutting down.
     pub async fn inspect<T: Send + 'static>(
         &self,
         display: impl std::fmt::Display + Send + 'static,
         inspector: impl FnOnce(&S) -> T + Send + 'static,
-    ) -> Result<T> {
+    ) -> Result<T, ()> {
         let (sender, receiver) = tokio::sync::oneshot::channel::<T>();
 
         self.issue_command(Command::Inspect(Box::new((
             |server: &S| {
                 if sender.send(inspector(server)).is_err() {
                     log::warn!(
-                    "{}: could not return result of inspection because receiver was already closed",
-                    S::NAME
-                );
+                        "{}: could not return result of inspection because receiver was already closed",
+                        S::NAME
+                    );
                     // Might happen when the server is restarted ungracefully - so don't panic here.
                 }
             },
@@ -547,7 +554,13 @@ impl<S: Server> Handle<S> {
         ))))
         .await?;
 
-        Ok(receiver.await?)
+        Ok(receiver.await.map_err(|_| {
+            log::warn!(
+                "{server_name}: could receive result of inspector",
+                server_name = S::NAME,
+            );
+            ()
+        })?)
     }
 
     pub async fn request_discovery(&self, app: S::AppT) -> api::Result<api::DiscoveryRunResp> {
@@ -644,11 +657,11 @@ impl<S: Server> Runner<S> {
 
             let modifier_fmt = format!("{}", modifier); // so modifier can be consumed
 
-            log::info!("{}: applying modification {}", S::NAME, modifier_fmt);
+            log::info!("{}: applying modification {:?}", S::NAME, modifier_fmt);
 
             if !modifier.modify(pubhubs_server_mutref) {
                 log::info!(
-                    "{}: not restarting upon request of {}",
+                    "{}: not restarting upon request of {:?}",
                     S::NAME,
                     modifier_fmt
                 );

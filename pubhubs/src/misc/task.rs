@@ -49,6 +49,8 @@ impl RetryOptions {
 
             retries_left -= 1;
 
+            log::trace!("retrying after {wait_time:?}", wait_time = wait_time);
+
             tokio::time::sleep(wait_time).await;
             wait_time = wait_time.mul_f32(backoff_factor);
         }
