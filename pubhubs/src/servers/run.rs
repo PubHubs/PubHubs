@@ -184,7 +184,7 @@ struct Handles<S: Server> {
     ph_shutdown_sender: Option<tokio::sync::oneshot::Sender<Infallible>>,
 
     /// Receives commands from the [App]s
-    command_receiver: mpsc::Receiver<Command<S>>,
+    command_receiver: mpsc::Receiver<CommandRequest<S>>,
 
     /// To check whether [Handles::shutdown] was completed before being dropped
     drop_bomb: crate::misc::drop_ext::Bomb,
@@ -196,12 +196,13 @@ impl<S: Server> Handles<S> {
         tokio::select! {
 
             // received command from running pubhubs/actix server
-            command_maybe = self.command_receiver.recv() => {
-                if let Some(command) = command_maybe {
+            command_request_maybe = self.command_receiver.recv() => {
+                if let Some(command_request) = command_request_maybe {
+
                     #[allow(clippy::needless_return)]
                     // Clippy wants "Ok(command)", but that's not easy to read here
                     // (Maybe clippy is not aware of the tokio::select! macro?)
-                    return Ok(command);
+                    return Ok(command_request.accept());
                 }
 
                 log::error!("{}'s command receiver is unexpectedly closed", S::NAME);
@@ -486,8 +487,24 @@ impl DiscoveryLimiter {
 /// Used to issue commands to the server.  Since discovery is requested a often a separate struct
 /// is used to deal with discovery requests.
 pub struct Handle<S: Server> {
-    sender: mpsc::Sender<Command<S>>,
+    sender: mpsc::Sender<CommandRequest<S>>,
     discovery_limiter: DiscoveryLimiter,
+}
+
+struct CommandRequest<S: Server> {
+    /// The actual command
+    command: Command<S>,
+    /// A way for the [Server] to inform the [App] that the command is about to be executed,
+    /// by dropping this `feedback_sender`.
+    feedback_sender: tokio::sync::oneshot::Sender<Infallible>,
+}
+
+impl<S: Server> CommandRequest<S> {
+    /// Let's the issuer of the command know that the command is to be fulfilled
+    fn accept(self) -> Command<S> {
+        drop(self.feedback_sender);
+        self.command
+    }
 }
 
 // We cannot use "derive(Clone)", because Server is not Clone.
@@ -501,21 +518,37 @@ impl<S: Server> Clone for Handle<S> {
 }
 
 impl<S: Server> Handle<S> {
-    /// Issues command to [Runner].  Waits for the command to be enqueued,
+    /// Issues command to [Runner].  Waits for the command to be next in line,
     /// but does not wait for the command to be completed.
     ///
-    /// Returns
+    /// May return `Err(())` when another command shutdown the server before this
+    /// command could be executed.
+    ///
+    /// When `Ok(())` is returned, this means the command is guaranteed to be executed momentarily.
     pub async fn issue_command(&self, command: Command<S>) -> Result<(), ()> {
-        let result = self.sender.send(command).await;
+        let (feedback_sender, feedback_receiver) = tokio::sync::oneshot::channel();
+
+        let result = self
+            .sender
+            .send(CommandRequest {
+                command,
+                feedback_sender,
+            })
+            .await;
 
         if let Err(send_error) = result {
             log::warn!(
                 "{server_name}: since the command receiver is closed (probably because the server is shutting down/restarting) we could not issue the command {cmd:?}",
                 server_name=S::NAME,
-                cmd=send_error.0.to_string(),
+                cmd=send_error.0.command.to_string(),
             );
             return Err(());
         };
+
+        // wait for the command to be the next in line
+        feedback_receiver
+            .await
+            .expect_err("got instance of Infallible!");
 
         Ok(())
     }
@@ -691,12 +724,20 @@ impl<S: Server> Runner<S> {
         loop {
             match handles.run_until_command(runner).await? {
                 Command::Modify(modifier) => {
-                    log::debug!("Stopping {} for modification {}...", S::NAME, modifier);
+                    log::debug!(
+                        "Stopping {} for modification {:?}...",
+                        S::NAME,
+                        modifier.to_string()
+                    );
 
                     return Ok::<_, anyhow::Error>(modifier);
                 }
                 Command::Inspect(inspector) => {
-                    log::debug!("{}: applying inspection {}", S::NAME, inspector);
+                    log::debug!(
+                        "{}: applying inspection {:?}",
+                        S::NAME,
+                        inspector.to_string()
+                    );
                     inspector.inspect(&*runner.pubhubs_server);
                 }
                 Command::Exit => {
