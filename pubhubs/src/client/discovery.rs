@@ -1,7 +1,7 @@
 use crate::api;
 use crate::servers::{self, Constellation};
 
-/// Retrieves [Constellation] from PHC, waiting for it to be set.
+/// Retrieves [Constellation] from specified, waiting for it to be set.
 pub async fn get_constellation(url: &url::Url) -> anyhow::Result<Constellation> {
     crate::misc::task::retry(|| async {
         // Retry calling DiscoveryInfo endpoint while it returns a retryable error or some
@@ -15,7 +15,38 @@ pub async fn get_constellation(url: &url::Url) -> anyhow::Result<Constellation> 
         }) as anyhow::Result<Option<Constellation>>
     })
     .await?
-    .ok_or_else(|| anyhow::anyhow!("timeout waiting for PHC to publish constellation"))
+    .ok_or_else(|| {
+        anyhow::anyhow!(
+            "timeout waiting for {url} to publish constellation",
+            url = url
+        )
+    })
+}
+
+/// Requests discovery of PubHubs and wait until it's finished.
+///
+/// After this function returns succesfully the servers agree on the current constellation,
+/// and this constellation is up-to-date with the info advertised by the servers, provided,
+/// at least, that there was no change to one of the servers in the meantime.
+pub async fn await_discovery(phc_url: &url::Url) -> anyhow::Result<()> {
+    crate::misc::task::retry(|| async {
+        (match api::query::<api::DiscoveryRun>(phc_url, &())
+            .await
+            .retryable()?
+        {
+            Some(api::DiscoveryRunResp::UpToDate) => Ok(Some(())), // ok -> done
+            Some(api::DiscoveryRunResp::Restarting) => Ok(None),   // restarting -> retry
+            None => Ok(None),                                      // retryable error -> retry
+        }) as anyhow::Result<Option<()>>
+    })
+    .await?
+    .ok_or_else(|| {
+        anyhow::anyhow!(
+            "timeout waiting for PHC at {phc_url} to finish discovery",
+            phc_url = phc_url
+        )
+    })?;
+    Ok(())
 }
 
 /// Specifies what to check about  a [api::DiscoveryInfoResp]

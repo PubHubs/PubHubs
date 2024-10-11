@@ -18,9 +18,9 @@ pub struct RetryOptions {
 impl Default for RetryOptions {
     fn default() -> Self {
         Self {
-            initial_wait_time: Duration::from_millis(100),
+            initial_wait_time: Duration::from_millis(10),
             backoff_factor: 2f32,
-            max_retries: None,
+            max_retries: None, // Some(10), TODO: some?
         }
     }
 }
