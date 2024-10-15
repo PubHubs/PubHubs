@@ -16,7 +16,7 @@ module.exports = defineConfig({
 			}),
 			// Needed to be able to use the yivi client
 			new NodePolyfillPlugin(),
-		]
+		],
 	},
 	chainWebpack(config) {
 		config.resolve.symlinks(false);
