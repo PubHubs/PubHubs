@@ -10,12 +10,13 @@
 				<SearchRoomsInput @update-search-term="updateSearchTerm" />
 			</div>
 		</div>
-		<div class="flex-auto flex flex-col justify-center gap-16 bg-hub-background p-16 max-w-screen-lg">
+		<div class="flex-auto flex flex-col justify-center gap-16 bg-hub-background p-16 max-w-screen-lg mx-auto">
 			<!-- TODO: Finer filtering and featuring rooms -->
 
-			<div v-if="filteredRooms.length > 0" class="grid lg:grid-cols-2 gap-5 gap-x-16 justify-center">
+			<div v-if="filteredRooms.length > 0" class="grid lg:grid-cols-2 w-full gap-5 gap-x-16 justify-center">
 				<RoomPill v-for="room in filteredRooms" :key="room.room_id" :room="room" :roomIsSecure="rooms.roomIsSecure(room.room_id)"></RoomPill>
 			</div>
+			<H2 v-else-if="roomFilter.length > 0" class="mx-auto">{{ t('rooms.no_match') }}</H2>
 			<H2 v-else class="mx-auto">{{ t('rooms.unavailable') }}</H2>
 		</div>
 	</div>
