@@ -122,20 +122,17 @@ const useHubs = defineStore('hubs', {
 						//Show bar both client and global-side so we always enter a hub with them and we start in the same state of the bar. Hub rooms should close the bar themselves.
 						toggleMenu.showMenuAndSendToHub();
 
-						// Listen to client asking for sync
-						messagebox.addCallback(MessageType.Sync, () => {
-							// Send current settings
-							const settings = useSettings();
-							settings.sendSettings();
+						// Send current settings
+						const settings = useSettings();
+						settings.sendSettings();
 
-							// Send hub information
-							messagebox.sendMessage(new Message(MessageType.HubInformation, { name: hubId }));
+						// Send hub information
+						messagebox.sendMessage(new Message(MessageType.HubInformation, { name: hubId }));
 
-							// Let hub navigate to given room
-							if (roomId !== undefined && roomId !== '') {
-								messagebox.sendMessage(new Message(MessageType.RoomChange, roomId));
-							}
-						});
+						// Let hub navigate to given room
+						if (roomId !== undefined && roomId !== '') {
+							messagebox.sendMessage(new Message(MessageType.RoomChange, roomId));
+						}
 
 						// Listen to room change
 						messagebox.addCallback(MessageType.RoomChange, (message: Message) => {
