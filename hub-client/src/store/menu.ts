@@ -14,6 +14,7 @@ const useMenu = defineStore('menu', {
 	state: () => {
 		return {
 			menu: defaultMenu as MenuItems,
+			activeMenuItemId: '' as String,
 		};
 	},
 
@@ -32,6 +33,10 @@ const useMenu = defineStore('menu', {
 		addMenuItemWithRoute(item: MenuItem, route: any, router: any) {
 			router.addRoute(route);
 			this.addMenuItem(item);
+		},
+
+		setActiveMenuItem(id: String) {
+			this.activeMenuItemId = id;
 		},
 	},
 });
