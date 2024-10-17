@@ -109,6 +109,9 @@ const pubhubs = {
 		rotate: {
 			135: '135deg',
 		},
+		fontSize: {
+			xxs: '10px',
+		},
 	},
 };
 

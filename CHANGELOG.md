@@ -2,6 +2,9 @@
 
 *Please add a brief description of any changes to be tested and any migrations to be performed here.*
 
+## 17 October 2024 - v1.0.0
+
+- Internal improvements to the room timeline
 - Adds version prometheus metric and '\_synapse/client/.ph/info' endpoint via a new 'Core' module.
   WARNING: this requires an update of the hub's homeserver.yaml 
 - Updated icons global and hubclient

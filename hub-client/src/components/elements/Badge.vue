@@ -1,7 +1,19 @@
 <template>
-	<div class="relative">
-		<div class="bg-red text-white absolute rounded-full text-center w-5 h-5 p-0 text-sm">
-			<span class="inline-block"><slot></slot></span>
-		</div>
+	<div :class="colorClass[props.color]" class="flex relative items-center justify-center overflow-hidden rounded-full w-7 h-7 text-sm font-bold">
+		<slot></slot>
 	</div>
 </template>
+
+<script setup lang="ts">
+	const colorClass: { [key: string]: string } = {
+		ph: 'bg-notification text-white',
+		hub: 'bg-notification text-white',
+	};
+
+	const props = defineProps({
+		color: {
+			type: String,
+			default: 'hub',
+		},
+	});
+</script>
