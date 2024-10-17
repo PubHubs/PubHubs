@@ -33,8 +33,9 @@ async fn main_integration_test_local(config: servers::Config, admin_sk: api::Sig
     let constellation: servers::Constellation =
         client::get_constellation(&config.phc_url).await.unwrap();
 
-    // To test discovery, change transcryptor's encryption key
+    // To test discovery, change transcryptor's and phc's encryption key
     let t_enc_key_sk = elgamal::PrivateKey::random();
+    let phc_enc_key_sk = elgamal::PrivateKey::random();
 
     api::query_with_retry::<api::admin::UpdateConfig>(
         &constellation.transcryptor_url,
@@ -59,6 +60,45 @@ async fn main_integration_test_local(config: servers::Config, admin_sk: api::Sig
             .map(|res_maybe| {
                 if let Some(ref t_inf) = res_maybe {
                     if &t_inf.enc_key != t_enc_key_sk.public_key() {
+                        return None;
+                    }
+                }
+
+                res_maybe
+            })
+    })
+    .await
+    .unwrap()
+    .unwrap();
+
+    // now await PHC to finish discovery
+    client::await_discovery(&config.phc_url).await.unwrap();
+
+    // update PHC's key
+
+    api::query_with_retry::<api::admin::UpdateConfig>(
+        &constellation.phc_url,
+        &api::Signed::<api::admin::UpdateConfigReq>::new(
+            &*admin_sk,
+            &api::admin::UpdateConfigReq {
+                pointer: "/phc/enc_key".to_owned(),
+                new_value: serde_json::to_value(&phc_enc_key_sk).unwrap(),
+            },
+            Duration::from_secs(10),
+        )
+        .unwrap(),
+    )
+    .await
+    .unwrap();
+
+    // wait for phc's enc_key to be updated
+    pubhubs::misc::task::retry(|| async {
+        api::query::<api::DiscoveryInfo>(&constellation.phc_url, &())
+            .await
+            .retryable()
+            .map(|res_maybe| {
+                if let Some(ref phc_inf) = res_maybe {
+                    if &phc_inf.enc_key != phc_enc_key_sk.public_key() {
                         return None;
                     }
                 }

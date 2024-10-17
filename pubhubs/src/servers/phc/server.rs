@@ -108,6 +108,11 @@ impl crate::servers::App<Server> for Rc<App> {
             if let Some(c) = tdi.constellation {
                 if c != new_constellation {
                     // transcryptor's constellation is out of date; invoke discovery
+                    log::info!(
+                        "{phc}: {t}'s constellation is out of date - invoking its discovery..",
+                        phc = servers::Name::PubhubsCentral,
+                        t = servers::Name::Transcryptor
+                    );
                     let url = self.transcryptor_url.clone();
                     js.spawn_local(api::query::<api::DiscoveryRun>(&url, &()));
                 }
@@ -116,6 +121,11 @@ impl crate::servers::App<Server> for Rc<App> {
             if let Some(c) = asdi.constellation {
                 if c != new_constellation {
                     // authentication server's constellation is out of date; invoke discovery
+                    log::info!(
+                        "{phc}: {auths}'s constellation is out of date - invoking its discovery..",
+                        phc = servers::Name::PubhubsCentral,
+                        auths = servers::Name::AuthenticationServer
+                    );
                     let url = self.auths_url.clone();
                     js.spawn_local(api::query::<api::DiscoveryRun>(&url, &()));
                 }
