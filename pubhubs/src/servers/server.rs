@@ -562,6 +562,18 @@ impl<S: Server> AppBase<S> {
         api::DiscoveryInfo::add_to(app, sc, Self::handle_discovery_info);
 
         api::admin::UpdateConfig::add_to(app, sc, Self::handle_admin_post_config);
+        api::admin::Info::add_to(app, sc, Self::handle_admin_info);
+    }
+
+    /// Checks the signature on the given request that should be signed with the admin key.
+    fn open_admin_req<T: api::HavingMessageCode + serde::de::DeserializeOwned>(
+        &self,
+        signed_req: api::Signed<T>,
+    ) -> api::Result<T> {
+        signed_req.open(&*self.admin_key).map_err(|err| match err {
+            api::ErrorCode::InvalidSignature => api::ErrorCode::InvalidAdminKey,
+            err => err,
+        })
     }
 
     /// Changes server config, and restarts server
@@ -573,7 +585,7 @@ impl<S: Server> AppBase<S> {
 
         let base = app.base();
 
-        let req = api::return_if_ec!(signed_req.open(&*base.admin_key));
+        let req = api::return_if_ec!(base.open_admin_req(signed_req));
 
         // Before restarting the server, check that the modification would work,
         // so we can return an error to the requestor.  Once we issue a modification command
@@ -624,9 +636,6 @@ impl<S: Server> AppBase<S> {
             "admin update of current in-memory configuration",
             move |server: &mut S| {
 
-                //log::trace!("old config: {}", serde_json::to_string(server.config()).unwrap());
-                //log::trace!("new config: {}", serde_json::to_string(&new_config).unwrap());
-
                 let new_server_maybe = S::new(&new_config);
 
                 if let Err(err) = new_server_maybe {
@@ -646,6 +655,32 @@ impl<S: Server> AppBase<S> {
         }));
 
         api::ok(api::admin::UpdateConfigResp {})
+    }
+
+    /// Retrieve non-public information about the server
+    async fn handle_admin_info(
+        app: S::AppT,
+        signed_req: web::Json<api::Signed<api::admin::InfoReq>>,
+    ) -> api::Result<api::admin::InfoResp> {
+        let signed_req = signed_req.into_inner();
+
+        let base = app.base();
+
+        let _req = api::return_if_ec!(base.open_admin_req(signed_req));
+
+        let config = api::return_if_ec!(base
+            .handle
+            .inspect(
+                "admin's retrieval of current configuration",
+                |server: &S| -> Config { server.config().clone() }
+            )
+            .await
+            .into_ec(|_| {
+                log::warn!("{}: failed to retrieve configuration from server", S::NAME,);
+                api::ErrorCode::NotYetReady // probably the server is restarting
+            }));
+
+        api::ok(api::admin::InfoResp { config })
     }
 
     /// Run the discovery process, and restarts server if necessary.  Returns when

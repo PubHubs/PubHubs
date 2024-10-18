@@ -10,6 +10,8 @@ use crate::servers::for_all_servers;
 use crate::{api, elgamal, hub};
 
 /// Configuration for one, or several, of the PubHubs servers
+///
+/// Also used for the `pubhubs admin` cli command.  In that case only `phc_url` needs to be set.
 #[derive(serde::Deserialize, serde::Serialize, Debug, Clone)]
 #[serde(deny_unknown_fields)]
 pub struct Config {

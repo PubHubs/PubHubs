@@ -1,5 +1,8 @@
 //! [Clap](clap) structs for command line argument parsing
 
+mod common;
+use common::*;
+
 #[cfg(feature = "old")]
 pub mod old;
 

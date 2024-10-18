@@ -1,4 +1,4 @@
-use serde::{Deserialize, Serialize};
+use serde::{de::IntoDeserializer as _, Deserialize, Serialize};
 
 use crate::misc::{fmt_ext, serde_ext::bytes_wrapper};
 use crate::servers::server;
@@ -103,9 +103,13 @@ impl<T> Result<T> {
     /// When passing along a result from another server to a client, this method is called
     /// to modify any [ErrorCode]. For details, see  [ErrorCode::into_server_error].
     pub fn into_server_result(self) -> Self {
+        self.map_err(ErrorCode::into_server_error)
+    }
+
+    pub fn map_err(self, f: impl FnOnce(ErrorCode) -> ErrorCode) -> Self {
         match self {
             Result::Ok(v) => Result::Ok(v),
-            Result::Err(ec) => Result::Err(ec.into_server_error()),
+            Result::Err(ec) => Result::Err(f(ec)),
         }
     }
 }
@@ -193,6 +197,9 @@ pub enum ErrorCode {
     #[error("a signature could not be verified")]
     InvalidSignature,
 
+    #[error("invalid admin key")]
+    InvalidAdminKey,
+
     #[error("something is wrong with the request")]
     BadRequest,
 
@@ -222,6 +229,7 @@ impl ErrorCode {
             | NoLongerInCorrectState
             | Malconfigured
             | InvalidSignature
+            | InvalidAdminKey
             | UnknownHub
             | NotImplemented => ErrorInfo {
                 retryable: Some(false),
@@ -421,6 +429,20 @@ async fn query_inner<EP: EndpointDetails>(
         result.unwrap()
     };
 
+    // check statuscode
+    let status = resp.status();
+    if !status.is_success() {
+        log::warn!(
+            "request to {method} {url} was not succesfull: {status}",
+            method = EP::METHOD
+        );
+
+        return Result::Err(match status {
+            // Maybe some status codes warrant a retry
+            _ => ErrorCode::BadRequest,
+        });
+    }
+
     let response: Result<EP::ResponseType> = {
         let result = resp.json().await;
         if result.is_err() {
@@ -465,6 +487,15 @@ macro_rules! wrap_dalek_type {
                 Self {
                     inner: inner.into(),
                 }
+            }
+        }
+
+        // We implement [FromStr] so that this type can be used as a command-line argument with [clap].
+        impl std::str::FromStr for $type {
+            type Err = serde::de::value::Error;
+
+            fn from_str(s : &str) -> std::result::Result<Self, Self::Err> {
+                Self::deserialize(s.into_deserializer())
             }
         }
 
