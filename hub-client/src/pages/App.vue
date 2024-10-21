@@ -7,10 +7,10 @@
 						<div class="flex justify-between gap-4 items-end border-b h-full py-2 pl-5 mr-8">
 							<div class="flex">
 								<Badge v-if="hubSettings.isSolo && settings.isFeatureEnabled(featureFlagType.notifications) && rooms.totalUnreadMessages > 0" class="-ml-2 -mt-2">{{ rooms.totalUnreadMessages }}</Badge>
-								<router-link to="/" class="flex">
+								<span @click="router.push('/')" class="flex cursor-pointer">
 									<Logo class="inline-block h-12"></Logo>
 									<TruncatedText class="mt-6">{{ settings.hub.name }}</TruncatedText>
-								</router-link>
+								</span>
 							</div>
 							<div>
 								<Avatar
@@ -34,12 +34,10 @@
 
 					<H2 class="pl-5 border-b mr-8">{{ $t('menu.rooms') }}</H2>
 					<RoomList></RoomList>
-					<RouterLink :to="'/discoverRooms'">
-						<Button class="mx-auto py-1 my-2 w-5/6" :color="'gray'">
-							<Icon type="compass" class="absolute left-0 top-0 -ml-1 -mt-2"></Icon>
-							<span class="font-normal">{{ $t('rooms.discover') }}</span>
-						</Button>
-					</RouterLink>
+					<Button @click="router.push('/discoverRooms')" class="mx-auto py-1 my-2 w-5/6" :color="'gray'">
+						<Icon type="compass" class="absolute left-0 top-0 -ml-1 -mt-2"></Icon>
+						<span class="font-normal">{{ $t('rooms.discover') }}</span>
+					</Button>
 
 					<H2 class="pl-5 border-b mr-8">{{ $t('menu.private_rooms') }}</H2>
 					<RoomList :roomType="RoomType.PH_MESSAGES_DM"></RoomList>
