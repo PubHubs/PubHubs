@@ -14,8 +14,8 @@
 							</div>
 							<div>
 								<Avatar
-									:userId="user.user.userId"
-									:img="avatar"
+									:userId="user.userId"
+									:img="user.avatarUrl"
 									@click="
 										settingsDialog = true;
 										hubSettings.hideBar();
@@ -104,7 +104,6 @@
 	const plugins = usePlugins();
 	const menu = useMenu();
 	const settingsDialog = ref(false);
-	const avatar = ref();
 	const setupReady = ref(false);
 	const disclosureEnabled = settings.isFeatureEnabled('disclosure');
 
@@ -112,13 +111,6 @@
 		() => rooms.totalUnreadMessages,
 		() => {
 			rooms.sendUnreadMessageCounter();
-		},
-	);
-
-	watch(
-		() => user.avatarUrl,
-		() => {
-			avatar.value = user.avatarUrl;
 		},
 	);
 
