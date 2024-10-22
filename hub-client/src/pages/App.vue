@@ -87,7 +87,7 @@
 	import { useDialog } from '@/store/dialog';
 	import { useMenu } from '@/store/menu';
 	import { usePlugins } from '@/store/plugins';
-	import { HubInformation, featureFlagType, Message, MessageBoxType, MessageType, RoomType, Theme, TimeFormat, useHubSettings, useMessageBox, useRooms, useSettings, useUser } from '@/store/store';
+	import { HubInformation, featureFlagType, Message, MessageBoxType, MessageType, RoomType, useHubSettings, useMessageBox, useRooms, useSettings, useUser } from '@/store/store';
 	import { getCurrentInstance, onMounted, ref, watch } from 'vue';
 	import { useI18n } from 'vue-i18n';
 	import { RouteParamValue, useRouter } from 'vue-router';
@@ -140,14 +140,16 @@
 			setupReady.value = true; // needed if running only the hub-client
 			router.push({ name: 'home' });
 		}
+		if (!user.isLoggedIn) {
+			// only needed when loggedIn (then there are user settings to setup)
+			setupReady.value = true;
+		}
 		await startMessageBox();
 
 		LOGGER.log(SMI.STARTUP_TRACE, 'App.vue onMounted done');
 	});
 
 	async function startMessageBox() {
-		let messageBoxStarted = false;
-
 		if (!hubSettings.isSolo) {
 			await messagebox.init(MessageBoxType.Child, hubSettings.parentUrl);
 
@@ -164,15 +166,6 @@
 				}
 			});
 
-			// Listen to sync settings
-			messagebox.addCallback(MessageType.Settings, (message: Message) => {
-				settings.setTheme(message.content.theme as Theme);
-				settings.setTimeFormat(message.content.timeformat as TimeFormat);
-				settings.setLanguage(message.content.language);
-
-				messageBoxStarted = true;
-			});
-
 			//Listen to global menu change
 			messagebox.addCallback(MessageType.BarHide, () => {
 				hubSettings.mobileHubMenu = false;
@@ -183,16 +176,17 @@
 			});
 
 			// Wait for theme change happened
-			const wait = setInterval(() => {
-				if (messageBoxStarted) {
-					setupReady.value = true;
-					clearInterval(wait);
-				}
-			}, 250);
-			setTimeout(() => {
-				clearInterval(wait);
-				setupReady.value = true;
-			}, 2500);
+			// const wait = setInterval(() => {
+			// 	console.log('Waiting...', messageBoxStarted);
+			// 	if (messageBoxStarted) {
+			// 		setupReady.value = true;
+			// 		clearInterval(wait);
+			// 	}
+			// }, 250);
+			// setTimeout(() => {
+			// 	clearInterval(wait);
+			// 	setupReady.value = true;
+			// }, 2500);
 		}
 	}
 </script>
