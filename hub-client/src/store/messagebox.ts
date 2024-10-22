@@ -174,12 +174,13 @@ const useMessageBox = defineStore('messagebox', {
 									}),
 								);
 
-								const lastPartOfFragment = window.location.hash.substring(1).split('/').at(-1);
-								const roomId = lastPartOfFragment && lastPartOfFragment.startsWith('!') && lastPartOfFragment.includes(':') ? lastPartOfFragment : '';
+								// was added in #783, but removed again in #941 after found out that this overwrites the roomid when copying URL's in the browser
+								//const lastPartOfFragment = window.location.hash.substring(1).split('/').at(-1);
+								//const roomId = lastPartOfFragment && lastPartOfFragment.startsWith('!') && lastPartOfFragment.includes(':') ? lastPartOfFragment : '';
 
-								if (roomId) {
-									this.sendMessage(new Message(MessageType.RoomChange, roomId));
-								}
+								// if (roomId) {
+								// 	this.sendMessage(new Message(MessageType.RoomChange, roomId));
+								// }
 
 								this.handshake = HandshakeState.Ready;
 								resolve(true);
