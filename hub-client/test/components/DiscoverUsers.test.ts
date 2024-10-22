@@ -1,7 +1,6 @@
 import DiscoverUsers from '../../src/components/rooms/DiscoverUsers.vue';
 import FilteredList from '../../src/components/ui/FilteredList.vue';
 import TextInput from '../../src/components/forms/TextInput.vue';
-import { useUser } from '../../src/store/user';
 import { usePubHubs } from '../../src/core/pubhubsStore';
 import { describe, expect, beforeEach, test, afterEach } from 'vitest';
 import { mount, flushPromises } from '@vue/test-utils';
@@ -24,8 +23,6 @@ describe('DiscoverUsers.vue Test', () => {
 				},
 			},
 		});
-		const user = useUser();
-		user.setClient({getUser: (userId) => {return {userId: userId}}});
 
 		pubhubs = usePubHubs();
 	});

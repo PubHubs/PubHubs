@@ -42,33 +42,34 @@ const usePubHubs = defineStore('pubhubs', {
 
 		async login() {
 			this.logger.log(SMI.STARTUP_TRACE, 'START PubHubs.login');
-			try {
-				const x = await this.Auth.login();
+			this.Auth.login()
+				.then((x) => {
+					this.logger.log(SMI.STARTUP_TRACE, 'PubHubs.logged in (X) - started client');
+					this.client = x as MatrixClient;
+					const events = new Events(this.client as MatrixClient);
+					events.initEvents();
+				})
+				.then(async () => {
+					this.logger.log(SMI.STARTUP_TRACE, 'PubHubs.logged in ()');
+					const connection = useConnection();
+					connection.on();
+					const user = useUser();
+					const newUser = this.client.getUser(user.user.userId);
 
-				this.logger.log(SMI.STARTUP_TRACE, 'PubHubs.logged in (X) - started client');
-				this.client = x as MatrixClient;
-				const user = useUser();
-				user.setClient(x as MatrixClient);
-				const events = new Events(this.client as MatrixClient);
-				await events.initEvents();
-
-				this.logger.log(SMI.STARTUP_TRACE, 'PubHubs.logged in ()');
-				const connection = useConnection();
-				connection.on();
-				const newUser = user.user;
-
-				if (newUser !== null) {
-					api_synapse.setAccessToken(this.Auth.getAccessToken()!); //Since user isn't null, we expect there to be an access token.
-					api_matrix.setAccessToken(this.Auth.getAccessToken()!);
-					user.fetchIsAdministrator(this.client as MatrixClient);
-					const avatarUrl = await this.client.getProfileInfo(newUser.userId, 'avatar_url');
-					if (avatarUrl.avatar_url !== undefined) user.avatarUrl = avatarUrl.avatar_url;
-					await this.updateRooms();
-				}
-			} catch (error: any) {
-				this.logger.log(SMI.STARTUP_TRACE, 'Something went wrong while creating a matrix-js client instance or logging in', error);
-				router.push({ name: 'error-page' });
-			}
+					if (newUser !== null) {
+						user.setUser(newUser as User);
+						api_synapse.setAccessToken(this.Auth.getAccessToken()!); //Since user isn't null, we expect there to be an access token.
+						api_matrix.setAccessToken(this.Auth.getAccessToken()!);
+						user.fetchIsAdministrator(this.client as MatrixClient);
+						const avatarUrl = await this.client.getProfileInfo(newUser.userId, 'avatar_url');
+						if (avatarUrl.avatar_url !== undefined) user.avatarUrl = avatarUrl.avatar_url;
+						this.updateRooms();
+					}
+				})
+				.catch((error) => {
+					this.logger.log(SMI.STARTUP_TRACE, 'Something went wrong while creating a matrix-js client instance or logging in', error);
+					router.push({ name: 'error-page' });
+				});
 		},
 
 		logout() {
@@ -400,7 +401,7 @@ const usePubHubs = defineStore('pubhubs', {
 			const loggedInUser = useUser();
 			const content = {
 				'm.read': {
-					[loggedInUser.userId!]: {
+					[loggedInUser.user.userId]: {
 						ts: event.localTimestamp,
 						thread_id: 'main',
 					},
@@ -418,7 +419,7 @@ const usePubHubs = defineStore('pubhubs', {
 			const loggedInUser = useUser();
 			const content = {
 				'm.read.private': {
-					[loggedInUser.userId!]: {
+					[loggedInUser.user.userId]: {
 						ts: event.localTimestamp,
 						thread_id: 'main',
 					},
@@ -559,7 +560,7 @@ const usePubHubs = defineStore('pubhubs', {
 
 		async hasUserJoinedHubFirstTime(): Promise<Object> {
 			const loggedInUser = useUser();
-			const resp = await api_synapse.apiPOST<Object>(api_synapse.apiURLS.joinHub, { user: loggedInUser.userId! });
+			const resp = await api_synapse.apiPOST<Object>(api_synapse.apiURLS.joinHub, { user: loggedInUser.user.userId });
 			return resp;
 		},
 	},

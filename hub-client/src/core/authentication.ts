@@ -1,7 +1,7 @@
 import * as sdk from 'matrix-js-sdk';
 import { MatrixClient, ICreateClientOpts } from 'matrix-js-sdk';
 
-import { useUser, useDialog, useMessageBox, Message, MessageType } from '@/store/store';
+import { User, useUser, useDialog, useMessageBox, Message, MessageType } from '@/store/store';
 
 type loginResponse = {
 	access_token: string;
@@ -36,7 +36,7 @@ class Authentication {
 			loginTime: String(Date.now()),
 		};
 		this.localDevelopmentAccessToken = auth.accessToken;
-		this.user.setUserId(auth.userId);
+		this.user.setUser(new User(auth.userId));
 		useMessageBox().sendMessage(new Message(MessageType.AddAccessToken, JSON.stringify({ token: response.access_token, userId: response.user_id })));
 	}
 
@@ -47,10 +47,10 @@ class Authentication {
 			const access = JSON.parse(query);
 			const accessToken = access.token;
 			const userId = access.userId;
-			if (accessToken && userId) {
+			if (accessToken) {
 				auth.accessToken = accessToken;
 				auth.userId = userId;
-				this.user.setUserId(auth.userId!);
+				this.user.setUser(new User(auth.userId!));
 			}
 		}
 		return auth;

@@ -2,7 +2,7 @@ import { SyncState } from 'matrix-js-sdk/lib/sync';
 import { MatrixClient, MatrixEvent, ClientEvent, Room as MatrixRoom, RoomEvent, RoomMemberEvent, RoomMember } from 'matrix-js-sdk';
 import { TEvent } from '@/model/events/TEvent';
 import { EventTimeLineHandler } from '@/core/eventTimeLineHandler';
-import { useSettings, useConnection, useRooms } from '@/store/store';
+import { useSettings, User, useConnection, useUser, useRooms } from '@/store/store';
 import { usePubHubs } from '@/core/pubhubsStore';
 
 class Events {
@@ -12,6 +12,7 @@ class Events {
 	public constructor(client: MatrixClient) {
 		this.client = client;
 		this.client.on(RoomEvent.Timeline, (event: MatrixEvent, matrixRoom: MatrixRoom | undefined, toStartOfTimeline: boolean | undefined) => this.eventRoomTimeline(this.eventTimeHandler, event, matrixRoom, toStartOfTimeline));
+		this.client.on(RoomMemberEvent.Name, this.eventRoomMemberName);
 		this.client.on(RoomMemberEvent.Membership, this.eventRoomMemberMembership(this.client));
 	}
 
@@ -70,6 +71,17 @@ class Events {
 			if (event.event.type !== 'm.room.message') return;
 			const rooms = useRooms();
 			rooms.onModRoomMessage(event);
+		}
+	}
+
+	eventRoomMemberName(event: MatrixEvent, member: RoomMember) {
+		const user = useUser();
+		// console.debug('RoomMember.name', member.user);
+		if (member.user !== undefined && member.user.userId === user.user.userId) {
+			user.setUser(member.user as User);
+			if (member.user.displayName !== undefined) {
+				user.user.setDisplayName(member.user.displayName);
+			}
 		}
 	}
 
