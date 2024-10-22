@@ -108,6 +108,7 @@ const useHubs = defineStore('hubs', {
 			const self = this;
 			const toggleMenu = useToggleMenu();
 			const messagebox = useMessageBox();
+			const global = useGlobal();
 
 			// Only change to a Hub if there is a hubId given
 			if (typeof hubId !== 'undefined') {
@@ -129,8 +130,8 @@ const useHubs = defineStore('hubs', {
 						// Send hub information
 						messagebox.sendMessage(new Message(MessageType.HubInformation, { name: hubId }));
 
-						// Let hub navigate to given room
-						if (roomId !== undefined && roomId !== '') {
+						// Let hub navigate to given room (if loggedIn)
+						if (global.loggedIn && roomId !== undefined && roomId !== '') {
 							messagebox.sendMessage(new Message(MessageType.RoomChange, roomId));
 						}
 
@@ -161,11 +162,9 @@ const useHubs = defineStore('hubs', {
 
 						// Listen to modal show/hide
 						messagebox.addCallback(MessageType.DialogShowModal, () => {
-							const global = useGlobal();
 							global.showModal();
 						});
 						messagebox.addCallback(MessageType.DialogHideModal, () => {
-							const global = useGlobal();
 							global.hideModal();
 						});
 
