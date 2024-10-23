@@ -114,7 +114,7 @@
 		//Date Display Interaction callback is based on feature flag
 		settings.isFeatureEnabled(featureFlagType.dateSplitter) && elementObserver?.setUpObserver(handleDateDisplayer);
 
-		LOGGER.log(SMI.ROOM_TIMELINE_TRACE, `setupRoomTimeline done`);
+		LOGGER.log(SMI.ROOM_TIMELINE_TRACE, `setupRoomTimeline done `, roomTimeLine);
 	}
 
 	const handlePrivateReceipt = (entries: IntersectionObserverEntry[]) => {
@@ -194,7 +194,7 @@
 			}
 		}
 
-		LOGGER.log(SMI.ROOM_TIMELINE_TRACE, `onTimelineChange ended`);
+		LOGGER.log(SMI.ROOM_TIMELINE_TRACE, `onTimelineChange ended `, roomTimeLine);
 	}
 
 	// eslint-disable-next-line @typescript-eslint/no-unused-vars
