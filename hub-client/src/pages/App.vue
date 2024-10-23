@@ -135,7 +135,9 @@
 			locale.value = settings.getActiveLanguage;
 		});
 
-		if (window.location.hash !== '#/hub/') {
+		// check if hash doesn't start with hub,
+		// then it is running only the hub-client, so we need to do some checks
+		if (!window.location.hash.startsWith('#/hub/')) {
 			await pubhubs.login();
 			setupReady.value = true; // needed if running only the hub-client
 			router.push({ name: 'home' });
