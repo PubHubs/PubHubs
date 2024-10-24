@@ -17,7 +17,9 @@
 				reset();
 			"
 		/>
-		<Icon class="-ml-6 search-icon dark:text-gray-light" type="search" size="sm" @click="submit()"></Icon>
+		<span class="cursor-pointer">
+			<Icon class="-ml-6 search-icon dark:text-gray-light" type="search" size="sm" @click="search()"></Icon>
+		</span>
 	</div>
 
 	<!-- Mobile search component. -->
@@ -39,7 +41,7 @@
 					reset();
 				"
 			/>
-			<button class="dark:text-gray-lighter px-1 rounded-full bg-hub-background-4 dark:bg-gray-darker flex justify-center items-center aspect-[1]">
+			<button class="dark:text-gray-lighter px-1 rounded-full bg-hub-background-4 dark:bg-gray-darker flex justify-center items-center aspect-[1] cursor-pointer" @click.stop="search()">
 				<Icon class="search-icon px-1" type="search" size="md"></Icon>
 			</button>
 		</div>
@@ -99,7 +101,7 @@
 	let searchResponse: ISearchResults | undefined = undefined;
 
 	const emit = defineEmits([...usedEvents, 'scrollToEventId']);
-	const { value, changed, submit, cancel } = useFormInputEvents(emit);
+	const { value, changed, cancel } = useFormInputEvents(emit);
 
 	// searchresults shown in list. When the text 'more results' is shown the last result is omitted to keep it in view
 	const searchResultsToShow = computed(() => {
