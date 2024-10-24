@@ -7,10 +7,10 @@
 						<div class="flex justify-between gap-4 items-end border-b h-full py-2 pl-5 mr-8">
 							<div class="flex">
 								<Badge v-if="hubSettings.isSolo && settings.isFeatureEnabled(featureFlagType.notifications) && rooms.totalUnreadMessages > 0" class="-ml-2 -mt-2">{{ rooms.totalUnreadMessages }}</Badge>
-								<router-link to="/" class="flex">
+								<span @click="router.push('/')" class="flex cursor-pointer">
 									<Logo class="inline-block h-12"></Logo>
 									<TruncatedText class="mt-6">{{ settings.hub.name }}</TruncatedText>
-								</router-link>
+								</span>
 							</div>
 							<div>
 								<Avatar
@@ -34,12 +34,10 @@
 
 					<H2 class="pl-5 border-b mr-8">{{ $t('menu.rooms') }}</H2>
 					<RoomList></RoomList>
-					<RouterLink :to="'/discoverRooms'">
-						<Button class="mx-auto py-1 my-2 w-5/6" :color="'gray'">
-							<Icon type="compass" class="absolute left-0 top-0 -ml-1 -mt-2"></Icon>
-							<span class="font-normal">{{ $t('rooms.discover') }}</span>
-						</Button>
-					</RouterLink>
+					<Button @click="router.push('/discoverRooms')" class="mx-auto py-1 my-2 w-5/6" :color="'gray'">
+						<Icon type="compass" class="absolute left-0 top-0 -ml-1 -mt-2"></Icon>
+						<span class="font-normal">{{ $t('rooms.discover') }}</span>
+					</Button>
 
 					<H2 class="pl-5 border-b mr-8">{{ $t('menu.private_rooms') }}</H2>
 					<RoomList :roomType="RoomType.PH_MESSAGES_DM"></RoomList>
@@ -89,7 +87,7 @@
 	import { useDialog } from '@/store/dialog';
 	import { useMenu } from '@/store/menu';
 	import { usePlugins } from '@/store/plugins';
-	import { HubInformation, featureFlagType, Message, MessageBoxType, MessageType, RoomType, Theme, TimeFormat, useHubSettings, useMessageBox, useRooms, useSettings, useUser } from '@/store/store';
+	import { HubInformation, featureFlagType, Message, MessageBoxType, MessageType, RoomType, useHubSettings, useMessageBox, useRooms, useSettings, useUser } from '@/store/store';
 	import { getCurrentInstance, onMounted, ref, watch } from 'vue';
 	import { useI18n } from 'vue-i18n';
 	import { RouteParamValue, useRouter } from 'vue-router';
@@ -137,10 +135,16 @@
 			locale.value = settings.getActiveLanguage;
 		});
 
-		if (window.location.hash !== '#/hub/') {
+		// check if hash doesn't start with hub,
+		// then it is running only the hub-client, so we need to do some checks
+		if (!window.location.hash.startsWith('#/hub/')) {
 			await pubhubs.login();
 			setupReady.value = true; // needed if running only the hub-client
 			router.push({ name: 'home' });
+		}
+		if (!user.isLoggedIn) {
+			// only needed when loggedIn (then there are user settings to setup)
+			setupReady.value = true;
 		}
 		await startMessageBox();
 
@@ -148,8 +152,6 @@
 	});
 
 	async function startMessageBox() {
-		let messageBoxStarted = false;
-
 		if (!hubSettings.isSolo) {
 			await messagebox.init(MessageBoxType.Child, hubSettings.parentUrl);
 
@@ -166,15 +168,6 @@
 				}
 			});
 
-			// Listen to sync settings
-			messagebox.addCallback(MessageType.Settings, (message: Message) => {
-				settings.setTheme(message.content.theme as Theme);
-				settings.setTimeFormat(message.content.timeformat as TimeFormat);
-				settings.setLanguage(message.content.language);
-
-				messageBoxStarted = true;
-			});
-
 			//Listen to global menu change
 			messagebox.addCallback(MessageType.BarHide, () => {
 				hubSettings.mobileHubMenu = false;
@@ -185,16 +178,17 @@
 			});
 
 			// Wait for theme change happened
-			const wait = setInterval(() => {
-				if (messageBoxStarted) {
-					setupReady.value = true;
-					clearInterval(wait);
-				}
-			}, 250);
-			setTimeout(() => {
-				clearInterval(wait);
-				setupReady.value = true;
-			}, 2500);
+			// const wait = setInterval(() => {
+			// 	console.log('Waiting...', messageBoxStarted);
+			// 	if (messageBoxStarted) {
+			// 		setupReady.value = true;
+			// 		clearInterval(wait);
+			// 	}
+			// }, 250);
+			// setTimeout(() => {
+			// 	clearInterval(wait);
+			// 	setupReady.value = true;
+			// }, 2500);
 		}
 	}
 </script>

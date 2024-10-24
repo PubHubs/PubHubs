@@ -36,7 +36,7 @@ const usePubHubs = defineStore('pubhubs', {
 	actions: {
 		centralLogin() {
 			// @ts-ignore
-			const centralLoginUrl = _env.PARENT_URL + '/login';
+			const centralLoginUrl = _env.PARENT_URL + '/client';
 			window.top?.location.replace(centralLoginUrl);
 		},
 

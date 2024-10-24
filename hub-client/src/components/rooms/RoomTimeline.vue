@@ -5,10 +5,12 @@
 		<div v-if="oldestEventIsLoaded" class="rounded-xl flex items-center justify-center w-60 mx-auto mb-12 border border-solid border-black dark:border-white">
 			{{ $t('rooms.roomCreated') }}
 		</div>
-		<template v-for="item in roomTimeLine" :key="item.event.event_id">
-			<div ref="elRoomEvent" :id="item.event.event_id">
-				<RoomEvent :room="room" :event="item.event" class="room-event" @in-reply-to-click="onInReplyToClick"> </RoomEvent>
-				<UnreadMarker v-if="settings.isFeatureEnabled(featureFlagType.unreadMarkers)" :currentEventId="item.event.event_id" :currentUserId="user.user.userId"></UnreadMarker>
+		<template v-if="roomTimeLine.length > 0">
+			<div v-for="item in roomTimeLine" :key="item.event.event_id">
+				<div ref="elRoomEvent" :id="item.event.event_id">
+					<RoomEvent :room="room" :event="item.event" class="room-event" @in-reply-to-click="onInReplyToClick"> </RoomEvent>
+					<UnreadMarker v-if="settings.isFeatureEnabled(featureFlagType.unreadMarkers)" :currentEventId="item.event.event_id" :currentUserId="user.user.userId"></UnreadMarker>
+				</div>
 			</div>
 		</template>
 	</div>
@@ -19,8 +21,8 @@
 	import { ElementObserver } from '@/core/elementObserver';
 	import { usePubHubs } from '@/core/pubhubsStore';
 	import { useRooms, useUser } from '@/store/store';
-	import { computed, onMounted, ref, watch } from 'vue';
 	import { EventTimeline } from 'matrix-js-sdk';
+	import { computed, onMounted, ref, watch } from 'vue';
 
 	import { LOGGER } from '@/dev/Logger';
 	import { SMI } from '@/dev/StatusMessage';
@@ -67,7 +69,7 @@
 	});
 
 	watch(
-		() => props.room.roomId,
+		() => props.room,
 		() => {
 			LOGGER.log(SMI.ROOM_TIMELINE_TRACE, `Room changed to room: ${props.room.roomId}`, { roomId: props.room.roomId });
 
@@ -114,7 +116,7 @@
 		//Date Display Interaction callback is based on feature flag
 		settings.isFeatureEnabled(featureFlagType.dateSplitter) && elementObserver?.setUpObserver(handleDateDisplayer);
 
-		LOGGER.log(SMI.ROOM_TIMELINE_TRACE, `setupRoomTimeline done`);
+		LOGGER.log(SMI.ROOM_TIMELINE_TRACE, `setupRoomTimeline done `, roomTimeLine);
 	}
 
 	const handlePrivateReceipt = (entries: IntersectionObserverEntry[]) => {
@@ -194,7 +196,7 @@
 			}
 		}
 
-		LOGGER.log(SMI.ROOM_TIMELINE_TRACE, `onTimelineChange ended`);
+		LOGGER.log(SMI.ROOM_TIMELINE_TRACE, `onTimelineChange ended `, roomTimeLine.value);
 	}
 
 	// eslint-disable-next-line @typescript-eslint/no-unused-vars

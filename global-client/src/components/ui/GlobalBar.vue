@@ -1,5 +1,5 @@
 <template>
-	<div id="pubhubs-bar" class="flex-none w-32 bg-ph-background-3 dark:bg-ph-background-5 h-full pt-20 2md:pt-2 2md:block" :class="{ hidden: !toggleMenu.globalIsActive }">
+	<div id="pubhubs-bar" class="flex-none w-32 bg-ph-background-3 dark:bg-ph-background-5 h-full pt-20 2md:pt-2 2md:block scrollbar" :class="{ hidden: !toggleMenu.globalIsActive }">
 		<Modal :show="global.isModalVisible">
 			<div class="flex flex-col justify-between h-full">
 				<div class="flex-1 text-center w-fit mx-auto">

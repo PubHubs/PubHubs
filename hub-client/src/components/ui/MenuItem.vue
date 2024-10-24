@@ -1,23 +1,28 @@
 <template>
 	<li
 		:class="{ 'dark:bg-gray-middle bg-lightgray': isActive }"
-		@click="menu.setActiveMenuItem(props.roomInfo?.roomId)"
+		@click="
+			click();
+			menu.setActiveMenuItem(props.roomInfo?.roomId);
+		"
 		class="menu-item h-11 pl-5 pr-8 hover:dark:bg-gray-middle hover:bg-lightgray py-2 transition-all duration-150 ease-in-out"
 	>
-		<router-link :to="to" class="flex gap-2 items-center">
+		<span class="flex gap-2 items-center cursor-pointer">
 			<Icon v-if="isSecuredRoom()" type="shield" class="shrink-0"></Icon>
 			<Icon v-else class="shrink-0 text-blue dark:text-green" :type="icon"></Icon>
 			<TruncatedText class="w-full"><slot></slot></TruncatedText>
-		</router-link>
+		</span>
 	</li>
 </template>
 
 <script setup lang="ts">
+	import { useRouter } from 'vue-router';
 	import { useMenu } from '@/store/menu';
 	import { Room } from '@/store/rooms';
 	import { useRooms } from '@/store/store';
 	import { computed } from 'vue';
 
+	const router = useRouter();
 	const rooms = useRooms();
 	const menu = useMenu();
 
@@ -49,5 +54,9 @@
 			return rooms.roomIsSecure(props.roomInfo.roomId);
 		}
 		return false;
+	}
+
+	function click() {
+		router.push(props.to);
 	}
 </script>
