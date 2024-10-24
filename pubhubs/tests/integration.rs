@@ -17,7 +17,20 @@ async fn main_integration_test() {
 
     // Change randomly generated admin key to something we know
     let admin_sk = api::SigningKey::generate();
-    config.admin_key = Some(admin_sk.verifying_key().into());
+    let admin_pk = Some(admin_sk.verifying_key().into());
+
+    macro_rules! set_admin_key {
+        ($server:ident) => {
+            config
+                .$server
+                .as_mut()
+                .unwrap()
+                .admin_key
+                .clone_from(&admin_pk);
+        };
+    }
+
+    servers::for_all_servers!(set_admin_key);
 
     let (set, _) = servers::Set::new(&config).unwrap();
 

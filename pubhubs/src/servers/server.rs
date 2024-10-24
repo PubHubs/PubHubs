@@ -512,7 +512,7 @@ impl<S: Server> AppCreatorBase<S> {
                 .clone()
                 .expect("enc_key was not set nor generated"),
             phc_url: config.phc_url.clone(),
-            admin_key: config
+            admin_key: server_config
                 .admin_key
                 .clone()
                 .expect("admin_key was not set nor generated"),

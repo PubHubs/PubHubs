@@ -50,7 +50,7 @@ impl Set {
         macro_rules! run_server {
             ($server:ident) => {
                 if config.$server.is_some() {
-                    let config = config.clone();
+                    let config = config.prepare_for(crate::servers::$server::Server::NAME)?;
                     let rt_handle = rt_handle.clone();
                     let shutdown_receiver = shutdown_sender.subscribe();
 
@@ -587,13 +587,12 @@ impl<S: Server> Handle<S> {
         ))))
         .await?;
 
-        Ok(receiver.await.map_err(|_| {
+        receiver.await.map_err(|_| {
             log::warn!(
                 "{server_name}: could receive result of inspector",
                 server_name = S::NAME,
             );
-            ()
-        })?)
+        })
     }
 
     pub async fn request_discovery(&self, app: S::AppT) -> api::Result<api::DiscoveryRunResp> {

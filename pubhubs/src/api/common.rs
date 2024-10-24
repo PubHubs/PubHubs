@@ -437,6 +437,7 @@ async fn query_inner<EP: EndpointDetails>(
             method = EP::METHOD
         );
 
+        #[expect(clippy::match_single_binding)]
         return Result::Err(match status {
             // Maybe some status codes warrant a retry
             _ => ErrorCode::BadRequest,
