@@ -5,10 +5,12 @@
 		<div v-if="oldestEventIsLoaded" class="rounded-xl flex items-center justify-center w-60 mx-auto mb-12 border border-solid border-black dark:border-white">
 			{{ $t('rooms.roomCreated') }}
 		</div>
-		<template v-for="item in roomTimeLine" :key="item.event.event_id">
-			<div ref="elRoomEvent" :id="item.event.event_id">
-				<RoomEvent :room="room" :event="item.event" class="room-event" @in-reply-to-click="onInReplyToClick"> </RoomEvent>
-				<UnreadMarker v-if="settings.isFeatureEnabled(featureFlagType.unreadMarkers)" :currentEventId="item.event.event_id" :currentUserId="user.user.userId"></UnreadMarker>
+		<template v-if="roomTimeLine.length > 0">
+			<div v-for="item in roomTimeLine" :key="item.event.event_id">
+				<div ref="elRoomEvent" :id="item.event.event_id">
+					<RoomEvent :room="room" :event="item.event" class="room-event" @in-reply-to-click="onInReplyToClick"> </RoomEvent>
+					<UnreadMarker v-if="settings.isFeatureEnabled(featureFlagType.unreadMarkers)" :currentEventId="item.event.event_id" :currentUserId="user.user.userId"></UnreadMarker>
+				</div>
 			</div>
 		</template>
 	</div>
@@ -194,7 +196,7 @@
 			}
 		}
 
-		LOGGER.log(SMI.ROOM_TIMELINE_TRACE, `onTimelineChange ended `, roomTimeLine);
+		LOGGER.log(SMI.ROOM_TIMELINE_TRACE, `onTimelineChange ended `, roomTimeLine.value);
 	}
 
 	// eslint-disable-next-line @typescript-eslint/no-unused-vars
