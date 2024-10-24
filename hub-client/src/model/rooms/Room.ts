@@ -43,8 +43,6 @@ export default class Room {
 
 	private pubhubsStore;
 
-	public test: number;
-
 	logger = LOGGER;
 
 	constructor(matrixRoom: MatrixRoom) {
@@ -61,9 +59,6 @@ export default class Room {
 		this.lastVisibleTimeStamp = 0;
 
 		this.pubhubsStore = usePubHubs();
-
-		this.test = 0;
-		LOGGER.log(SMI.ROOM_TRACE, `TEST ${this.test}`);
 
 		this.timelineWindow = new RoomTimelineWindow(this.matrixRoom, this.pubhubsStore.client as MatrixClient);
 	}
@@ -122,8 +117,6 @@ export default class Room {
 	}
 
 	public getLastVisibleEventId(): string {
-		console.log(`lastVisibleEventId, incrementing test from ${this.test} to ${this.test + 1}`);
-		this.test++;
 		return this.lastVisibleEventId;
 	}
 
