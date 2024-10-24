@@ -21,8 +21,8 @@
 	import { ElementObserver } from '@/core/elementObserver';
 	import { usePubHubs } from '@/core/pubhubsStore';
 	import { useRooms, useUser } from '@/store/store';
-	import { computed, onMounted, ref, watch } from 'vue';
 	import { EventTimeline } from 'matrix-js-sdk';
+	import { computed, onMounted, ref, watch } from 'vue';
 
 	import { LOGGER } from '@/dev/Logger';
 	import { SMI } from '@/dev/StatusMessage';
@@ -69,7 +69,7 @@
 	});
 
 	watch(
-		() => props.room.roomId,
+		() => props.room,
 		() => {
 			LOGGER.log(SMI.ROOM_TIMELINE_TRACE, `Room changed to room: ${props.room.roomId}`, { roomId: props.room.roomId });
 
