@@ -7,7 +7,10 @@ use anyhow::{Context as _, Result};
 use url::Url;
 
 use crate::servers::for_all_servers;
-use crate::{api, elgamal, hub};
+use crate::{
+    api::{self},
+    elgamal, hub,
+};
 
 /// Configuration for one, or several, of the PubHubs servers
 ///
@@ -117,6 +120,32 @@ impl Config {
         res.generate_randoms()?;
 
         Ok(Some(res))
+    }
+
+    /// Creates a new [Config] from the current one by updating a specific part
+    pub fn json_updated(&self, pointer: &str, new_value: serde_json::Value) -> Result<Self> {
+        let mut json_config: serde_json::Value =
+            serde_json::to_value(self).context("failed to serialize config")?;
+
+        let to_be_modified: &mut serde_json::Value =
+            json_config.pointer_mut(pointer).with_context(|| {
+                format!(
+                    "wanted to modify {} of the configuration file, but that points nowhere",
+                    pointer
+                )
+            })?;
+
+        to_be_modified.clone_from(&new_value);
+
+        let new_config: Config = serde_json::from_value(json_config).with_context(|| {
+            format!(
+                "wanted to change {} of the configuration file to {}, but the new configuration did not deserialize",
+                pointer,
+                new_value,
+            )
+        })?;
+
+        Ok(new_config)
     }
 }
 

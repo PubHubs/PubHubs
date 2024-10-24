@@ -1,4 +1,4 @@
-use anyhow::Result;
+use anyhow::{Context, Result};
 
 use crate::api;
 use crate::cli;
@@ -31,6 +31,7 @@ impl AdminArgs {
                 config,
                 server: self.server,
                 admin_key: self.admin_key,
+                url: tokio::sync::OnceCell::const_new(),
             }),
         }
     }
@@ -40,6 +41,45 @@ struct AdminContext {
     config: Config,
     server: servers::Name,
     admin_key: api::SigningKey,
+    url: tokio::sync::OnceCell<url::Url>,
+}
+
+impl AdminContext {
+    async fn retrieve_config(&self) -> anyhow::Result<Config> {
+        let resp = api::query_with_retry::<api::admin::Info>(
+            self.get_url().await?,
+            &api::Signed::<api::admin::InfoReq>::new(
+                &*self.admin_key,
+                &api::admin::InfoReq {},
+                std::time::Duration::from_secs(10),
+            )
+            .unwrap(),
+        )
+        .await
+        .into_std()?;
+
+        Ok(resp.config)
+    }
+
+    async fn get_url(&self) -> Result<&url::Url> {
+        self.url
+            .get_or_try_init(|| async {
+                if self.server == servers::Name::PubhubsCentral {
+                    return Ok(self.config.phc_url.clone());
+                }
+
+                log::info!(
+                    "retrieving constellation from {phc_url} to get url of {server_name}",
+                    phc_url = self.config.phc_url,
+                    server_name = self.server
+                );
+
+                let constellation = client::get_constellation(&self.config.phc_url).await?;
+
+                Ok(constellation.url(self.server).clone())
+            })
+            .await
+    }
 }
 
 #[derive(clap::Subcommand, Debug)]
@@ -64,25 +104,7 @@ impl ConfigArgs {
     }
 
     async fn run_async(self, ctx: AdminContext) -> Result<()> {
-        let url = self.get_url(&ctx).await?;
-
-        self.command.unwrap_or_default().run(url, ctx).await
-    }
-
-    async fn get_url(&self, ctx: &AdminContext) -> Result<url::Url> {
-        if ctx.server == servers::Name::PubhubsCentral {
-            return Ok(ctx.config.phc_url.clone());
-        }
-
-        log::info!(
-            "retrieving constellation from {phc_url} to get url of {server_name}",
-            phc_url = ctx.config.phc_url,
-            server_name = ctx.server
-        );
-
-        let constellation = client::get_constellation(&ctx.config.phc_url).await?;
-
-        Ok(constellation.url(ctx.server).clone())
+        self.command.unwrap_or_default().run(ctx).await
     }
 }
 
@@ -100,10 +122,10 @@ enum ConfigCommands {
 }
 
 impl ConfigCommands {
-    async fn run(self, url: url::Url, ctx: AdminContext) -> Result<()> {
+    async fn run(self, ctx: AdminContext) -> Result<()> {
         match self {
-            ConfigCommands::Get(args) => args.run(url, ctx).await,
-            ConfigCommands::Update(args) => args.run(url, ctx).await,
+            ConfigCommands::Get(args) => args.run(ctx).await,
+            ConfigCommands::Update(args) => args.run(ctx).await,
         }
     }
 }
@@ -126,14 +148,20 @@ pub struct ConfigUpdateArgs {
 }
 
 impl ConfigUpdateArgs {
-    async fn run(self, url: url::Url, ctx: AdminContext) -> Result<()> {
+    async fn run(self, ctx: AdminContext) -> Result<()> {
+        let config = ctx.retrieve_config().await?;
+
+        log::info!("Checking the configuration change locally...");
+        config.json_updated(&self.pointer, self.new_value.clone())?;
+
+        log::info!("Sending configuration change to {}...", ctx.server);
         api::query_with_retry::<api::admin::UpdateConfig>(
-            &url,
+            ctx.get_url().await?,
             &api::Signed::<api::admin::UpdateConfigReq>::new(
                 &*ctx.admin_key,
                 &api::admin::UpdateConfigReq {
-                    pointer: self.pointer,
-                    new_value: self.new_value,
+                    pointer: self.pointer.clone(),
+                    new_value: self.new_value.clone(),
                 },
                 std::time::Duration::from_secs(10),
             )
@@ -141,6 +169,35 @@ impl ConfigUpdateArgs {
         )
         .await
         .into_std()?;
+
+        log::info!("Waiting for the configuration change to take effect...");
+        crate::misc::task::retry::<(), anyhow::Error, _>(|| async {
+            let new_config: Config = ctx.retrieve_config().await?;
+            let json_new_config = serde_json::to_value(new_config)?;
+
+            let current_value = json_new_config.pointer(&self.pointer).ok_or_else(|| {
+                anyhow::anyhow!(
+                "indexing configuration using pointer failed although it worked just a moment ago!"
+            )
+            })?;
+
+            if *current_value == self.new_value {
+                Ok(Some(()))
+            } else {
+                log::info!(
+                    "{}'s configuration at {} is still {} and not yet {}",
+                    ctx.server,
+                    &self.pointer,
+                    current_value,
+                    self.new_value
+                );
+                Ok(None)
+            }
+        })
+        .await?
+        .ok_or_else(|| anyhow::anyhow!("timed out"))?;
+
+        log::info!("configuration update applied and verified");
 
         Ok(())
     }
@@ -150,22 +207,12 @@ impl ConfigUpdateArgs {
 pub struct ConfigGetArgs {}
 
 impl ConfigGetArgs {
-    async fn run(self, url: url::Url, ctx: AdminContext) -> Result<()> {
-        let resp = api::query_with_retry::<api::admin::Info>(
-            &url,
-            &api::Signed::<api::admin::InfoReq>::new(
-                &*ctx.admin_key,
-                &api::admin::InfoReq {},
-                std::time::Duration::from_secs(10),
-            )
-            .unwrap(),
-        )
-        .await
-        .into_std()?;
+    async fn run(self, ctx: AdminContext) -> Result<()> {
+        let config = ctx.retrieve_config().await?;
 
         let stdout = std::io::stdout().lock();
 
-        serde_json::to_writer_pretty(stdout, &resp.config)?;
+        serde_json::to_writer_pretty(stdout, &config)?;
 
         Ok(())
     }

@@ -603,31 +603,17 @@ impl<S: Server> AppBase<S> {
                 api::ErrorCode::NotYetReady // probably the server is restarting
             }));
 
-        let mut json_config: serde_json::Value = api::return_if_ec!(serde_json::to_value(config)
+        let new_config: Config = api::return_if_ec!(config
+            .json_updated(&req.pointer, req.new_value.clone())
             .into_ec(|err| {
-                log::error!("{}: failed to serialize config: {}", S::NAME, err);
-                api::ErrorCode::InternalError
-            }));
-
-        let to_be_modified: &mut serde_json::Value =
-            api::return_if_ec!(json_config.pointer_mut(&req.pointer).into_ec(|_| {
                 log::warn!(
-                    "{}: admin wanted to modify {} of configuration file, but that points nowhere",
+                    "{}: failed to modify configuration at {} to {}: {err}",
                     S::NAME,
                     req.pointer,
+                    req.new_value
                 );
                 api::ErrorCode::BadRequest
             }));
-
-        to_be_modified.clone_from(&req.new_value);
-
-        let new_config: Config = api::return_if_ec!(serde_json::from_value(json_config).into_ec(|err| {
-            log::warn!(
-                "{}: admin wanted to change {} to {}, but the new configuration did not deserialize: {}",
-                S::NAME, req.pointer, req.new_value, err
-                );
-            api::ErrorCode::BadRequest
-        }));
 
         // All is well - let's restart the server with the new configuration
         api::return_if_ec!(base
