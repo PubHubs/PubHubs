@@ -1,11 +1,11 @@
 import { usePubHubs } from '@/core/pubhubsStore';
 import { LOGGER } from '@/dev/Logger';
-import { EventTimeline, EventTimelineSet, MatrixClient, MatrixEvent, Room as MatrixRoom, NotificationCountType, Direction } from 'matrix-js-sdk';
+import { SMI } from '@/dev/StatusMessage';
+import { RoomTimelineWindow } from '@/model/timeline/RoomTimelineWindow';
+import { Direction, EventTimeline, EventTimelineSet, MatrixClient, MatrixEvent, Room as MatrixRoom, NotificationCountType } from 'matrix-js-sdk';
 import { CachedReceipt, ReceiptType, WrappedReceipt } from 'matrix-js-sdk/lib/@types/read_receipts';
 import { TBaseEvent } from '../events/TBaseEvent';
 import { TRoomMember } from './TRoomMember';
-import { RoomTimelineWindow } from '@/model/timeline/RoomTimelineWindow';
-import { SMI } from '@/dev/StatusMessage';
 
 enum RoomType {
 	SECURED = 'ph.messages.restricted',
@@ -43,6 +43,8 @@ export default class Room {
 
 	private pubhubsStore;
 
+	public test: number;
+
 	logger = LOGGER;
 
 	constructor(matrixRoom: MatrixRoom) {
@@ -59,6 +61,9 @@ export default class Room {
 		this.lastVisibleTimeStamp = 0;
 
 		this.pubhubsStore = usePubHubs();
+
+		this.test = 0;
+		LOGGER.log(SMI.ROOM_TRACE, `TEST ${this.test}`);
 
 		this.timelineWindow = new RoomTimelineWindow(this.matrixRoom, this.pubhubsStore.client as MatrixClient);
 	}
@@ -117,6 +122,8 @@ export default class Room {
 	}
 
 	public getLastVisibleEventId(): string {
+		console.log(`lastVisibleEventId, incrementing test from ${this.test} to ${this.test + 1}`);
+		this.test++;
 		return this.lastVisibleEventId;
 	}
 
