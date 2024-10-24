@@ -42,6 +42,8 @@
 	import { useRooms, useHubSettings } from '@/store/store';
 	import { PluginProperties, usePlugins } from '@/store/plugins';
 	import { TSearchParameters } from '@/model/model';
+	import { LOGGER } from '@/dev/Logger';
+	import { SMI } from '@/dev/StatusMessage';
 
 	const route = useRoute();
 	const rooms = useRooms();
@@ -70,6 +72,7 @@
 
 	onMounted(() => {
 		update();
+		LOGGER.log(SMI.ROOM_TRACE, `Room mounted `);
 	});
 
 	watch(route, () => {

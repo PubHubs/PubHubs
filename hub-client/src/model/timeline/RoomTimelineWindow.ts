@@ -31,19 +31,28 @@ class RoomTimelineWindow {
 
 	logger = LOGGER;
 
-	// Initialisation of a timeline window
-	public async initTimelineWindow(matrixRoom: MatrixRoom, client: MatrixClient) {
-		LOGGER.log(SMI.ROOM_TIMELINEWINDOW_TRACE, `initTimelineWindow...`, { roomId: matrixRoom.roomId });
+	constructor(matrixRoom: MatrixRoom, client: MatrixClient) {
+		LOGGER.log(SMI.ROOM_TIMELINEWINDOW_TRACE, `TimelineWindow constructor `, { roomId: matrixRoom.roomId });
 		const filter = new Filter(undefined);
 		filter.setDefinition(this.timelineSetFilter);
 		const filteredTimelineSet = matrixRoom.getOrCreateFilteredTimelineSet(filter);
 
 		this.timelineWindow = new TimelineWindow(client, filteredTimelineSet);
-		this.loadToEvent(undefined);
+	}
+
+	// Initialisation of a timeline window
+	public async initTimelineWindow(matrixRoom: MatrixRoom) {
+		LOGGER.log(SMI.ROOM_TIMELINEWINDOW_TRACE, `initTimelineWindow...`, { roomId: matrixRoom.roomId });
+		// const filter = new Filter(undefined);
+		// filter.setDefinition(this.timelineSetFilter);
+		// const filteredTimelineSet = matrixRoom.getOrCreateFilteredTimelineSet(filter);
+
+		// this.timelineWindow = new TimelineWindow(client, filteredTimelineSet);
+		await this.loadToEvent(undefined);
 
 		// loadToEvent when given undefined as parameter goes to the Livetimeline which is unfiltered so afterwards
 		// we need to check if we have enough filtered results already and when necessary load some more
-		if (this.timelineWindow.getEvents().length < PAGE_SIZE && this.timelineWindow.canPaginate(EventTimeline.BACKWARDS)) {
+		if (this.timelineWindow && this.timelineWindow.getEvents().length < PAGE_SIZE && this.timelineWindow.canPaginate(EventTimeline.BACKWARDS)) {
 			const currentEvents = this.timelineWindow.getEvents();
 			const lastEvent = currentEvents.length > 0 ? currentEvents[currentEvents.length - 1] : undefined;
 			await this.paginate(EventTimeline.BACKWARDS);
@@ -64,8 +73,9 @@ class RoomTimelineWindow {
 	}
 
 	// the filtered timeline contains all messages, so they need some filtering added that can not be done on the server
-	public getTimeline() {
-		return this.timelineWindow?.getEvents()?.filter((event) => this.isVisibleEvent(event.event));
+	public getTimeline(): MatrixEvent[] {
+		LOGGER.log(SMI.ROOM_TIMELINEWINDOW_TRACE, `RoomtimelineWindow gettimeline `, { getEvents: this.timelineWindow?.getEvents() });
+		return this.timelineWindow?.getEvents()?.filter((event) => this.isVisibleEvent(event.event)) || [];
 	}
 
 	public isOldestMessageLoaded(): boolean {

@@ -5,6 +5,7 @@ import { CachedReceipt, ReceiptType, WrappedReceipt } from 'matrix-js-sdk/lib/@t
 import { TBaseEvent } from '../events/TBaseEvent';
 import { TRoomMember } from './TRoomMember';
 import { RoomTimelineWindow } from '@/model/timeline/RoomTimelineWindow';
+import { SMI } from '@/dev/StatusMessage';
 
 enum RoomType {
 	SECURED = 'ph.messages.restricted',
@@ -30,7 +31,7 @@ export default class Room {
 	public numUnreadMessages: number;
 
 	// timelinewindow of currently shown events
-	private timelineWindow: RoomTimelineWindow = new RoomTimelineWindow();
+	private timelineWindow: RoomTimelineWindow;
 
 	// Keep track of first visible message on screen with eventId and its timestamp.
 	// This is used for observing (or detecting) first and last visible message on viewport.
@@ -45,6 +46,8 @@ export default class Room {
 	logger = LOGGER;
 
 	constructor(matrixRoom: MatrixRoom) {
+		LOGGER.log(SMI.ROOM_TRACE, `Roomclass Constructor `, { roomId: matrixRoom.roomId });
+
 		this.matrixRoom = matrixRoom;
 		this.hidden = false;
 		this.numUnreadMessages = 0;
@@ -56,6 +59,8 @@ export default class Room {
 		this.lastVisibleTimeStamp = 0;
 
 		this.pubhubsStore = usePubHubs();
+
+		this.timelineWindow = new RoomTimelineWindow(this.matrixRoom, this.pubhubsStore.client as MatrixClient);
 	}
 
 	public isPrivateRoom(): boolean {
@@ -304,10 +309,11 @@ export default class Room {
 
 	// initiate and load to newest message by creating a filtered timelineset
 	public async loadInitialEvents() {
-		await this.timelineWindow.initTimelineWindow(this.matrixRoom, this.pubhubsStore.client as MatrixClient);
+		await this.timelineWindow.initTimelineWindow(this.matrixRoom);
 	}
 
-	public getTimeline() {
+	public getTimeline(): MatrixEvent[] {
+		LOGGER.log(SMI.ROOM_TRACE, `Room gettimeline `, { getTimeline: this.timelineWindow?.getTimeline() });
 		return this.timelineWindow?.getTimeline();
 	}
 
