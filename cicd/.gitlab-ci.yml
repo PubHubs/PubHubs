@@ -132,7 +132,7 @@ start-test-setup-unit-test:
     - if: $CI_COMMIT_BRANCH == "stable"
   tags:
     - docker
-  image: python:latest
+  image: python:3.11
   script:
     - pip install virtualenv
     - virtualenv venv
@@ -147,7 +147,7 @@ hub-unit-test: # This job runs in the test stage.
     - if: $CI_COMMIT_BRANCH == "stable"
   tags:
     - docker
-  image: python:latest
+  image: python:3.11   # Python 3.11 version is used to fix the issue of failing test because synapse version 1.115.0 has issues with new twisted version.
   before_script:
     - python --version # For debugging
     - pip install virtualenv
