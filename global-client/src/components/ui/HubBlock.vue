@@ -1,6 +1,8 @@
 <template>
-	<div v-if="hub" class="bg-ph-background-3 dark:bg-ph-background-5 hover:bg-blue p-4 rounded-md relative text-center overflow-hidden cursor-pointer">
-		<H3>{{ hub.hubId }}</H3>
+	<div v-if="hub" class="bg-ph-background-3 dark:bg-ph-background-5 hover:bg-blue p-4 rounded-md relative text-center cursor-pointer w-full overflow-hidden">
+		<H3
+			><TruncatedText>{{ hub.hubId }}</TruncatedText></H3
+		>
 		<HubLogo :hub-id="hub.hubId" :hub-url="hub.url" :change-to-dark="true" class="h-16 w-16 mx-auto"></HubLogo>
 		<TruncatedText>{{ description }}</TruncatedText>
 	</div>
