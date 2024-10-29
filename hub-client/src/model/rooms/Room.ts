@@ -355,5 +355,18 @@ export default class Room {
 			?.getId();
 	}
 
+	public inRedactedMessageIds(eventId: string): boolean {
+		return this.timelineWindow.getRedactedEventIds().includes(eventId);
+	}
+
+	public addToRedactedEventIds(eventId: string): void {
+		this.timelineWindow.getRedactedEventIds().push(eventId);
+	}
+
+	public removeRedactedEventId(eventId: string): void {
+		const index = this.timelineWindow.getRedactedEventIds().indexOf(eventId);
+		this.timelineWindow.getRedactedEventIds().splice(index, 1);
+	}
+
 	// #endregion
 }

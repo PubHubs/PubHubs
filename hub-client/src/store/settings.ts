@@ -16,6 +16,7 @@ enum featureFlagType {
 	disclosure = 'disclosure',
 	unreadMarkers = 'unreadmarkers',
 	notifications = 'notifications',
+	deleteMessages = 'deleteMessages',
 	// readReceipt = 'readReceipt',
 }
 
@@ -73,6 +74,7 @@ interface Settings {
 		disclosure: boolean;
 		unreadmarkers: boolean;
 		notifications: boolean;
+		deleteMessages: boolean;
 	};
 }
 
@@ -102,6 +104,7 @@ const defaultSettings: Settings = {
 		disclosure: false,
 		unreadmarkers: true,
 		notifications: true,
+		deleteMessages: true,
 		// stable
 		// signedMessages: true,
 		// plugins: true,
@@ -109,6 +112,7 @@ const defaultSettings: Settings = {
 		// disclosure: false,
 		// unreadmarkers: true,
 		// notifications: true,
+		// deleteMessages: false,
 	},
 };
 

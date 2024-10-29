@@ -13,9 +13,16 @@
 				</div>
 			</div>
 
-			<div class="h-10 w-full flex items-center" v-if="messageActions.replyingTo">
+			<div class="h-10 w-full flex items-center" v-if="inReplyTo">
 				<p class="ml-4 whitespace-nowrap mr-2">{{ $t('message.in_reply_to') }}</p>
-				<MessageSnippet class="w-[85%]" :event="messageActions.replyingTo" :room="room"></MessageSnippet>
+				<Suspense>
+					<MessageSnippet class="w-[85%]" :eventId="messageActions.replyingTo" :room="room"></MessageSnippet>
+					<template #fallback>
+						<div class="bg-hub-background-3 flex px-2 gap-3 items-center rounded-md">
+							<p>{{ $t('state.loading_message') }}</p>
+						</div>
+					</template>
+				</Suspense>
 				<button class="mr-4 ml-auto" @click="messageActions.replyingTo = undefined">
 					<Icon type="closingCross" size="sm"></Icon>
 				</button>
@@ -94,6 +101,8 @@
 
 	import { YiviSigningSessionResult } from '@/lib/signedMessages';
 	import { fileUpload } from '@/composables/fileUpload';
+	import { TMessageEvent } from '@/model/model';
+	import TextArea from './TextArea.vue';
 
 	const { t } = useI18n();
 	const route = useRoute();
@@ -120,6 +129,7 @@
 
 	const elFileInput = ref<HTMLInputElement | null>(null);
 	const elTextInput = ref<InstanceType<typeof TextArea> | null>(null);
+	const inReplyTo = ref<TMessageEvent | undefined>(undefined);
 
 	const sendMessageText = computed(() => {
 		if (signingMessage.value) {
@@ -134,7 +144,8 @@
 	});
 
 	// Focus on message input if the state of messageActions changes (for example, when replying).
-	messageActions.$subscribe(() => {
+	messageActions.$subscribe(async () => {
+		inReplyTo.value = messageActions.replyingTo ? ((await pubhubs.getEvent(rooms.currentRoomId, messageActions.replyingTo)) as TMessageEvent) : undefined;
 		elTextInput.value?.$el.focus();
 	});
 
@@ -178,22 +189,23 @@
 		const accessToken = pubhubs.Auth.getAccessToken();
 		const target = event.currentTarget as HTMLInputElement;
 		const errorMsg = t('errors.file_upload');
-		fileUpload(errorMsg, accessToken, uploadUrl, allTypes, event, (url) => {
-			if (target) {
-				const file = target.files && target.files[0];
-				if (file) {
-					// Once the file has been selected from the filesystem.
-					// Set props to be passed to the component.
-					fileInfo.value = file;
-					uri.value = url;
-					// display the component.
-					fileUploadDialog.value = true;
-					// Inspiration from  https://dev.to/schirrel/vue-and-input-file-clear-file-or-select-same-file-24do
-					const inputElement = elFileInput.value;
-					if (inputElement) inputElement.value = '';
+		accessToken &&
+			fileUpload(errorMsg, accessToken, uploadUrl, allTypes, event, (url) => {
+				if (target) {
+					const file = target.files && target.files[0];
+					if (file) {
+						// Once the file has been selected from the filesystem.
+						// Set props to be passed to the component.
+						fileInfo.value = file;
+						uri.value = url;
+						// display the component.
+						fileUploadDialog.value = true;
+						// Inspiration from  https://dev.to/schirrel/vue-and-input-file-clear-file-or-select-same-file-24do
+						const inputElement = elFileInput.value;
+						if (inputElement) inputElement.value = '';
+					}
 				}
-			}
-		});
+			});
 	}
 
 	function clickedAttachment() {
@@ -205,8 +217,8 @@
 
 		if (signingMessage.value) {
 			signMessage(value.value, selectedAttributesSigningMessage.value);
-		} else if (messageActions.replyingTo) {
-			pubhubs.addMessage(rooms.currentRoomId, value.value, messageActions.replyingTo);
+		} else if (messageActions.replyingTo && inReplyTo.value) {
+			pubhubs.addMessage(rooms.currentRoomId, value.value, inReplyTo.value);
 			messageActions.replyingTo = undefined;
 		} else {
 			pubhubs.addMessage(rooms.currentRoomId, value.value);
@@ -216,7 +228,8 @@
 	}
 
 	function signMessage(message: string, attributes: string[]) {
-		rooms.yiviSignMessage(message, attributes, rooms.currentRoomId, pubhubs.Auth.getAccessToken(), finishedSigningMessage);
+		const accessToken = pubhubs.Auth.getAccessToken();
+		accessToken && rooms.yiviSignMessage(message, attributes, rooms.currentRoomId, accessToken, finishedSigningMessage);
 	}
 
 	function finishedSigningMessage(result: YiviSigningSessionResult) {

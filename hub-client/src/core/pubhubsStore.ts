@@ -188,6 +188,16 @@ const usePubHubs = defineStore('pubhubs', {
 		},
 
 		/**
+		 * @param roomId
+		 * @param eventId
+		 * @returns a single event based on roomId/eventId
+		 */
+		async getEvent(roomId: string, eventId: string) {
+			const response = await this.client.fetchRoomEvent(roomId, eventId);
+			return response;
+		},
+
+		/**
 		 * Uses the client to join a room (a no op when already a member) and updates the rooms in the store. Can throw
 		 * an error.
 		 * @param room_id - a room id
@@ -315,14 +325,7 @@ const usePubHubs = defineStore('pubhubs', {
 		 * Mutates the message content appropriately to become a reply to the inReplyTo event.
 		 */
 		_addInReplyToToMessageContent(content: TTextMessageEventContent, inReplyTo: TMessageEvent) {
-			// todo: fix in new version of replies (issue #313)
-			//@ts-ignore
-			content['m.relates_to'] = { 'm.in_reply_to': { event_id: inReplyTo.event_id, x_event_copy: structuredClone(inReplyTo) } };
-
-			// Don't save inReplyTo of inReplyTo event.
-			// todo: fix in new version of replies (issue #313)
-			//@ts-ignore
-			delete content['m.relates_to']?.['m.in_reply_to']?.x_event_copy?.content?.['m.relates_to']?.['m.in_reply_to']?.x_event_copy;
+			content['m.relates_to'] = { 'm.in_reply_to': { event_id: inReplyTo.event_id } };
 
 			// Mention appropriate users
 
@@ -393,6 +396,14 @@ const usePubHubs = defineStore('pubhubs', {
 			// @ts-ignore
 			// todo: fix this (issue #808)
 			await this.client.sendMessage(roomId, content);
+		},
+
+		/**
+		 * @param roomId
+		 * @param eventId
+		 */
+		async deleteMessage(roomId: string, eventId: string) {
+			await this.client.redactEvent(roomId, eventId);
 		},
 
 		async sendReadReceipt(event: MatrixEvent) {

@@ -8,7 +8,7 @@ import { Theme, TimeFormat, defaultSettings, useSettings, type i18nSettings, fea
 import { useHubSettings } from '@/store/hub-settings';
 import { RoomType, Room, TEvent, TPublicRoom, SecuredRoomAttributes, TSecuredRoom, useRooms } from '@/store/rooms';
 import { MessageType, Message, MessageBoxType, useMessageBox } from '@/store/messagebox';
-import { buttonsSubmitCancel, DialogButton, DialogProperties, useDialog, DialogButtonAction, DialogCancel, DialogOk, DialogYes, DialogNo, DialogSubmit } from '@/store/dialog';
+import { buttonsSubmitCancel, buttonsYesNo, DialogButton, DialogProperties, useDialog, DialogButtonAction, DialogCancel, DialogOk, DialogYes, DialogNo, DialogSubmit } from '@/store/dialog';
 
 export {
 	User,
@@ -35,6 +35,7 @@ export {
 	MessageBoxType,
 	useMessageBox,
 	buttonsSubmitCancel,
+	buttonsYesNo,
 	DialogButton,
 	DialogProperties,
 	useDialog,
