@@ -25,21 +25,28 @@ class User extends MatrixUser {
 const defaultUser = {} as User;
 
 type State = {
-	user: User;
 	avatarUrl: string;
 	isAdministrator: boolean;
+	client: MatrixClient;
+	userId: string | null;
 };
 
 const useUser = defineStore('user', {
 	state: (): State => ({
-		user: defaultUser,
 		avatarUrl: '',
 		isAdministrator: false,
+		client: {} as MatrixClient,
+		userId: null,
 	}),
 
 	getters: {
-		isLoggedIn({ user }) {
-			return typeof user.userId === 'string';
+		user({ userId, client }) {
+			const clientUser = client.getUser(userId!);
+			return clientUser ?? defaultUser;
+		},
+
+		isLoggedIn({ userId }) {
+			return typeof userId === 'string';
 		},
 
 		isAdmin({ isAdministrator }) {
@@ -48,8 +55,12 @@ const useUser = defineStore('user', {
 	},
 
 	actions: {
-		setUser(user: User) {
-			this.user = user;
+		setUserId(userId: string) {
+			this.userId = userId;
+		},
+
+		setClient(client: MatrixClient) {
+			this.client = client;
 		},
 
 		async fetchIsAdministrator(client: MatrixClient) {
