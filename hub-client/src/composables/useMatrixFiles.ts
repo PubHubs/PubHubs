@@ -4,6 +4,7 @@ const useMatrixFiles = () => {
 	const pubhubs = usePubHubs();
 	const downloadUrl = pubhubs.getBaseUrl + '/_matrix/media/r0/download/';
 	const uploadUrl = pubhubs.getBaseUrl + '/_matrix/media/r0/upload';
+	const deleteUrl = pubhubs.getBaseUrl + '/_synapse/admin/v1/media/';
 
 	const imageTypes = ['image/png', 'image/jpeg', 'image/gif', 'image/svg'];
 	const mediaTypes = ['audio/wave', 'audio/wav', 'audio/x-wav', 'audio/x-pn-wav', 'audio/webm', 'video/webm', 'audio/ogg', 'video/ogg', 'application/ogg'];
@@ -39,6 +40,14 @@ const useMatrixFiles = () => {
 		return url;
 	}
 
+	function deleteMediaUrlfromMxc(mxc: string) {
+		if (mxc.indexOf('mxc:/') !== 0) {
+			return '';
+		}
+		const url = new URL(deleteUrl + mxc.slice(6)).toString();
+		return url;
+	}
+
 	function isImage(type: string) {
 		return imageTypes.indexOf(type) >= 0;
 	}
@@ -47,7 +56,7 @@ const useMatrixFiles = () => {
 		return allTypes.indexOf(type) >= 0;
 	}
 
-	return { downloadUrl, uploadUrl, formUrlfromMxc, imageTypes, mediaTypes, fileTypes, allTypes, getTypesAsString, isImage, isAllowed };
+	return { downloadUrl, uploadUrl, formUrlfromMxc, deleteMediaUrlfromMxc, imageTypes, mediaTypes, fileTypes, allTypes, getTypesAsString, isImage, isAllowed };
 };
 
 export { useMatrixFiles };

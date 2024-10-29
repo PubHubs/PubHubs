@@ -8,12 +8,13 @@
 		<template v-if="roomTimeLine.length > 0">
 			<div v-for="item in roomTimeLine" :key="item.event.event_id">
 				<div ref="elRoomEvent" :id="item.event.event_id">
-					<RoomEvent :room="room" :event="item.event" class="room-event" @in-reply-to-click="onInReplyToClick"> </RoomEvent>
+					<RoomEvent :room="room" :event="item.event" class="room-event" @in-reply-to-click="onInReplyToClick" @delete-message="confirmDeleteMessage"></RoomEvent>
 					<UnreadMarker v-if="settings.isFeatureEnabled(featureFlagType.unreadMarkers)" :currentEventId="item.event.event_id" :currentUserId="user.user.userId"></UnreadMarker>
 				</div>
 			</div>
 		</template>
 	</div>
+	<DeleteMessageDialog v-if="showConfirmDelMsgDialog" :event="eventToBeDeleted" :room="rooms.currentRoom" @close="showConfirmDelMsgDialog = false" @yes="deleteMessage"></DeleteMessageDialog>
 	<InRoomNotifyMarker v-if="settings.isFeatureEnabled(featureFlagType.unreadMarkers)"></InRoomNotifyMarker>
 </template>
 
@@ -21,6 +22,7 @@
 	import { ElementObserver } from '@/core/elementObserver';
 	import { usePubHubs } from '@/core/pubhubsStore';
 	import { useRooms, useUser } from '@/store/store';
+	import { useMatrixFiles } from '@/composables/useMatrixFiles';
 	import { EventTimeline } from 'matrix-js-sdk';
 	import { computed, onMounted, ref, watch } from 'vue';
 
@@ -29,14 +31,18 @@
 	import Room from '@/model/rooms/Room';
 	import { featureFlagType, useSettings } from '@/store/store';
 	import DateDisplayer from '../ui/DateDisplayer.vue';
+	import { TMessageEvent } from '@/model/model';
 
 	const settings = useSettings();
 	const rooms = useRooms();
 	const user = useUser();
 	const pubhubs = usePubHubs();
+	const { deleteMediaUrlfromMxc } = useMatrixFiles();
 	const elRoomTimeline = ref<HTMLElement | null>(null);
 	const elRoomEvent = ref<HTMLElement | null>(null);
 	const isLoadingNewEvents = ref(false);
+	const showConfirmDelMsgDialog = ref(false);
+	const eventToBeDeleted = ref<TMessageEvent>();
 
 	const DELAY_POPUP_VIEW_ON_SCREEN = 4000; // 4 seconds
 	const DELAY_RECEIPT_MESSAGE = 4000; // 4 seconds
@@ -247,6 +253,27 @@
 		scrollToEvent(inReplyToId, { position: 'center', select: 'Highlight' });
 	}
 
+	function confirmDeleteMessage(event: TMessageEvent) {
+		showConfirmDelMsgDialog.value = true;
+		eventToBeDeleted.value = event;
+	}
+
+	async function deleteMessage() {
+		if (eventToBeDeleted.value) {
+			const messageType = eventToBeDeleted.value.content.msgtype;
+			// If the message that will be deleted contains a file or image, delete this media from the server as well
+			if ((messageType === 'm.file' || messageType === 'm.image') && eventToBeDeleted.value.content.url) {
+				const accessToken = pubhubs.Auth.getAccessToken();
+				const req = new XMLHttpRequest();
+				req.open('DELETE', deleteMediaUrlfromMxc(eventToBeDeleted.value.content.url));
+				req.setRequestHeader('Authorization', 'Bearer ' + accessToken);
+				req.send();
+			}
+			pubhubs.deleteMessage(rooms.currentRoomId, eventToBeDeleted.value.event_id);
+			LOGGER.log(SMI.ROOM_TIMELINE_TRACE, `Deleted message with id ${eventToBeDeleted.value.event_id}`, { eventToBeDeleted });
+		}
+	}
+
 	/**
 	 *  Wait for observation if stable event Id is not assigned.
 	 */
@@ -276,6 +303,8 @@
 			if (messageSendByUser && newestEvent?.event_id) {
 				await scrollToEvent(newestEvent.event_id);
 			}
+		} else if (newestEvent && newestEvent.type === 'm.room.redaction') {
+			props.room.addToRedactedEventIds(newestEvent.redacts!);
 		}
 	}
 

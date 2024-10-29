@@ -11,6 +11,7 @@ export type TBaseEvent = {
 	event_id: string;
 	origin_server_ts: number;
 	room_id: string;
+	redacts?: string;
 	sender: string;
 	state_key?: string;
 	type: string;

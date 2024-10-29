@@ -123,6 +123,7 @@ const safeList = [
 	'w-screen',
 	'z-0',
 	'z-10',
+	'z-20',
 ];
 
 module.exports = {

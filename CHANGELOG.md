@@ -1,6 +1,7 @@
 ## Changes to main, not yet committed to stable
 
 *Please add a brief description of any changes to be tested and any migrations to be performed here.*
+- Added the option for users to delete their messages. This feature is behind a feature flag, which will be disabled on stable.
 
 ## 17 October 2024 - v1.0.0
 
