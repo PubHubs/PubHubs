@@ -97,6 +97,9 @@ pub struct Hotfixes {
 
     /// Don't use the `HttpOnly` attribute on cookies
     pub no_http_only_cookies: bool,
+
+    /// When true, show legacy static pages for login/registration/etc, see issue #953
+    pub legacy_static_pages: bool,
 }
 
 fn default_bind_to() -> (String, u16) {
