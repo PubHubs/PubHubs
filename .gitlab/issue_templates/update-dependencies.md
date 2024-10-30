@@ -19,6 +19,8 @@ Also make sure to not squash the commits so we can search for them later.
    - [ ] `git clone https://github.com/privacybydesign/irmago --branch vXXXX` see [yivi releases](https://github.com/privacybydesign/irmago/releases)
    - [ ] `FROM golang:<debian_version>` The [debian_version](https://www.debian.org/releases/stable/) should be the same for both golang and rust and the same as the version on which the synapse image is based. This is to prevent errors like to avoid errors like "OSError: /lib/x86_64-linux-gnu/libc.so.6: version `GLIBC_2.33' not found (required by /usr/lib/libpubhubs.so)".
    - [ ] `FROM rust:<debian_version> AS libpubhubs_build`
+  - [ ] Version number of twisted library in requirements file and python version in CI/CD pipeline script is fixed see #!654. This needs to be updated when the new version of matrix synapse is used. 
+
 
 
 ## Global Client
