@@ -31,14 +31,14 @@
 							<button v-if="!msgIsNotSend && !redactedMessage" @click="reply" class="p-1 bg-gray-lighter hover:bg-gray-light dark:bg-gray-middle hover:dark:bg-gray-darker rounded-md">
 								<Icon :type="'reply'" :size="'xs'"></Icon>
 							</button>
-							<router-link
-								v-if="(!msgIsNotSend && user.isAdmin && event.sender !== user.user.userId) || true"
-								:to="{ name: 'ask-disclosure', query: { user: event.sender } }"
+							<button
+								v-if="!msgIsNotSend && user.isAdmin && event.sender !== user.user.userId"
+								@click="router.push({ name: 'ask-disclosure', query: { user: event.sender } })"
 								class="flex p-1 bg-gray-lighter hover:bg-gray-light dark:bg-gray-middle hover:dark:bg-gray-darker rounded-md"
 								:title="$t('menu.moderation_tools_disclosure')"
 							>
 								<Icon :type="'warning'" :size="'xs'"></Icon>
-							</router-link>
+							</button>
 							<button
 								v-if="settings.isFeatureEnabled(featureFlagType.deleteMessages) && !msgIsNotSend && event.sender === user.user.userId && !redactedMessage"
 								@click="onDeleteMessage(event)"
@@ -78,6 +78,7 @@
 
 <script setup lang="ts">
 	import { computed, ref } from 'vue';
+	import { router } from '@/core/router';
 	import { usePubHubs } from '@/core/pubhubsStore';
 	import { featureFlagType, RoomType, useConnection, useSettings, useUser } from '@/store/store';
 	import { useMessageActions } from '@/store/message-actions';
