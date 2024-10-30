@@ -12,11 +12,9 @@
 		disabled: 'bg-gray-light text-gray-lighter shadow-none cursor-not-allowed',
 		white: 'bg-white hover:bg-blue text-black ',
 		gray: 'bg-gray-dark hover:bg-black dark:bg-black hover:dark:bg-gray-dark text-white',
-		'gray-light': 'bg-gray-light hover:bg-red text-white ',
+		'gray-light': 'bg-gray-light hover:bg-red text-white ', // Needed for ButtonGroup
 		blue: 'bg-blue hover:bg-blue-dark text-white dark:hover:bg-white dark:hover:text-blue-dark',
-		green: 'bg-green hover:bg-green-dark text-white',
 		red: 'bg-red hover:bg-red-dark text-white',
-		redder: 'bg-red-dark hover:bg-red text-white',
 		black: 'bg-black hover:bg-gray-dark text-white shadow-md cursor-pointer',
 	};
 
