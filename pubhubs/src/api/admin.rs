@@ -19,6 +19,8 @@ impl EndpointDetails for UpdateConfig {
 #[derive(Serialize, Deserialize, Debug)]
 pub struct UpdateConfigReq {
     /// JSON Pointer (see RFC6901) to the part of the configuration that is to be changed
+    ///
+    /// Example: "/transcryptor/enc_key"
     pub pointer: String,
 
     pub new_value: serde_json::Value,

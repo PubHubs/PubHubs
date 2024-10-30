@@ -49,6 +49,7 @@ impl Cli {
 
                 Commands::Serve(args) => run_args!(args, "serve"),
                 Commands::Tools(args) => run_args!(args, "tools"),
+                Commands::Admin(args) => run_args!(args, "admin"),
             },
         }
     }
@@ -65,6 +66,9 @@ enum Commands {
 
     /// Miscellaneous utilities
     Tools(pubhubs::cli::ToolsArgs),
+
+    /// Administer a running server
+    Admin(pubhubs::cli::AdminArgs),
 }
 
 #[cfg(feature = "old")]

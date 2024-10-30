@@ -11,6 +11,9 @@ pub struct RetryOptions {
     /// Increase the wait time by this factor each time `Ok(None)` is returned.
     pub backoff_factor: f32,
 
+    /// Don't wait longer than this
+    pub max_wait_time: Duration,
+
     /// Try `max_retries+1` number of times to get a non-`Ok(None)` answer.
     pub max_retries: Option<usize>,
 }
@@ -18,9 +21,10 @@ pub struct RetryOptions {
 impl Default for RetryOptions {
     fn default() -> Self {
         Self {
-            initial_wait_time: Duration::from_millis(100),
+            initial_wait_time: Duration::from_millis(10),
             backoff_factor: 2f32,
-            max_retries: None,
+            max_wait_time: Duration::from_millis(5_000),
+            max_retries: None, // Some(10), TODO: some?
         }
     }
 }
@@ -49,8 +53,11 @@ impl RetryOptions {
 
             retries_left -= 1;
 
+            log::trace!("retrying after {wait_time:.1?}", wait_time = wait_time);
+
             tokio::time::sleep(wait_time).await;
-            wait_time = wait_time.mul_f32(backoff_factor);
+
+            wait_time = std::cmp::min(wait_time.mul_f32(backoff_factor), self.max_wait_time)
         }
     }
 }

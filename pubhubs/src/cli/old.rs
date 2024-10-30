@@ -1077,9 +1077,23 @@ fn config_actix_files(
     files
 }
 
+/// Extension trait to be able to conditionally call actix's `.route(...)`.
+trait ApplyWhenExt: Sized {
+    fn apply_when(self, condition: bool, f: impl FnOnce(Self) -> Self) -> Self {
+        if condition {
+            f(self)
+        } else {
+            self
+        }
+    }
+}
+
+impl<T> ApplyWhenExt for actix_web::Scope<T> {}
+
 // cfg: &mut web::ServiceConfig
 fn create_app(cfg: &mut web::ServiceConfig, context: Data<Main>) {
     let static_files_conf = context.static_files_conf.clone();
+    let legacy_static_pages: bool = context.hotfixes.legacy_static_pages;
 
     cfg.app_data(context)
         .service(config_actix_files(
@@ -1134,10 +1148,13 @@ fn create_app(cfg: &mut web::ServiceConfig, context: Data<Main>) {
         .service(
             web::scope("")
                 .wrap_fn(middleware::translate)
-                .route("/", web::get().to(index))
-                .route("/policy", web::get().to(policy))
-                .route("/full_policy", web::get().to(full_policy))
-                .route("/policy_accept", web::get().to(policy_accept))
+                .apply_when(legacy_static_pages, |scope| {
+                    scope
+                        .route("/", web::get().to(index))
+                        .route("/policy", web::get().to(policy))
+                        .route("/full_policy", web::get().to(full_policy))
+                        .route("/policy_accept", web::get().to(policy_accept))
+                })
                 .service(
                     web::scope("admin")
                         .wrap(middleware::Auth {})
@@ -1180,10 +1197,13 @@ fn create_app(cfg: &mut web::ServiceConfig, context: Data<Main>) {
                         .route("/state", web::put().to(crate::bar::put_state))
                         .route("/hubs", web::get().to(crate::bar::get_hubs)),
                 )
-                .route("/register", web::get().to(register_account))
-                .route("/register", web::post().to(register_account))
-                .route("/account/{id}", web::get().to(get_account))
-                .route("/login", web::get().to(account_login))
+                .apply_when(legacy_static_pages, |scope| {
+                    scope
+                        .route("/register", web::get().to(register_account))
+                        .route("/register", web::post().to(register_account))
+                        .route("/account/{id}", web::get().to(get_account))
+                        .route("/login", web::get().to(account_login))
+                })
                 .route("/logout", web::get().to(account_logout))
                 .default_service(web::route().to(not_found))
                 .configure(|cfg| {

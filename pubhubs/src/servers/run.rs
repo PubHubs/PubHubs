@@ -1,13 +1,17 @@
 //! Running PubHubs [Server]s
 use std::net::SocketAddr;
 use std::rc::Rc;
+use std::sync::Arc;
 
 use actix_web::web;
 use anyhow::{bail, Context as _, Result};
 use core::convert::Infallible;
 use tokio::sync::mpsc;
 
-use crate::servers::{for_all_servers, App, AppBase, AppCreator, Command, Server};
+use crate::api;
+use crate::servers::{
+    for_all_servers, server::RunningState, App, AppBase, AppCreator, Command, Name, Server,
+};
 
 /// A set of running PubHubs servers.
 pub struct Set {
@@ -46,7 +50,7 @@ impl Set {
         macro_rules! run_server {
             ($server:ident) => {
                 if config.$server.is_some() {
-                    let config = config.clone();
+                    let config = config.prepare_for(crate::servers::$server::Server::NAME)?;
                     let rt_handle = rt_handle.clone();
                     let shutdown_receiver = shutdown_sender.subscribe();
 
@@ -180,7 +184,7 @@ struct Handles<S: Server> {
     ph_shutdown_sender: Option<tokio::sync::oneshot::Sender<Infallible>>,
 
     /// Receives commands from the [App]s
-    command_receiver: mpsc::Receiver<Command<S>>,
+    command_receiver: mpsc::Receiver<CommandRequest<S>>,
 
     /// To check whether [Handles::shutdown] was completed before being dropped
     drop_bomb: crate::misc::drop_ext::Bomb,
@@ -192,12 +196,13 @@ impl<S: Server> Handles<S> {
         tokio::select! {
 
             // received command from running pubhubs/actix server
-            command_maybe = self.command_receiver.recv() => {
-                if let Some(command) = command_maybe {
+            command_request_maybe = self.command_receiver.recv() => {
+                if let Some(command_request) = command_request_maybe {
+
                     #[allow(clippy::needless_return)]
                     // Clippy wants "Ok(command)", but that's not easy to read here
                     // (Maybe clippy is not aware of the tokio::select! macro?)
-                    return Ok(command);
+                    return Ok(command_request.accept());
                 }
 
                 log::error!("{}'s command receiver is unexpectedly closed", S::NAME);
@@ -285,9 +290,221 @@ impl<S: Server> Handles<S> {
     }
 }
 
+/// Encapsulates the handling of running just one discovery process per server
+struct DiscoveryLimiter {
+    /// Lock that makes sure only one discovery task is running at the same time.
+    ///
+    /// The protected value is true when restart due to a changed constellation is imminent.
+    restart_imminent_lock: Arc<tokio::sync::RwLock<bool>>,
+
+    /// Set when contents of `restart_imminent_lock` lock was observed to be true,
+    /// reducing the load on this lock.
+    restart_imminent_cached: std::cell::OnceCell<()>,
+}
+
+impl Clone for DiscoveryLimiter {
+    fn clone(&self) -> Self {
+        Self {
+            restart_imminent_lock: self.restart_imminent_lock.clone(),
+            // The DiscoveryLimiter is never cloned as part of an `AppBase`.
+            restart_imminent_cached: std::cell::OnceCell::<()>::new(),
+        }
+    }
+}
+
+impl DiscoveryLimiter {
+    fn new() -> Self {
+        DiscoveryLimiter {
+            restart_imminent_lock: Arc::new(tokio::sync::RwLock::new(false)),
+            restart_imminent_cached: std::cell::OnceCell::<()>::new(),
+        }
+    }
+
+    /// This functions contains the discovery logic that's shared between servers.
+    ///
+    /// Discovery can be invoked for two reasons:  
+    ///
+    ///  1. This server has just been restarted and is not aware of the current constellation.
+    ///     Perhaps part of our configuration has changed that makes the current constellation
+    ///     obsolete.
+    ///
+    ///  2. The `.ph/discovery/run` endpoint was triggered.  This should happen when another
+    ///     server detects that our constellation is out-of-date, but since the `.ph/discovery/run`
+    ///     endpoint is unprotected, anyone can invoke it at any time.
+    ///
+    ///     The non-PHC servers check during their discovery whether the constellation PHC advertises
+    ///     is up-to-date with respect to their own configuration.  If it isn't, the non-PHC server
+    ///     triggers PHC to run discovery.
+    ///     
+    ///     PHC checks during its discovery (after it obtained recent details from each of the
+    ///     other servers) whether the constellations of the other servers are up-to-date,
+    ///     and will trigger their discovery routine when these aren't.
+    ///
+    ///
+    /// Thus the procedure for discovery is as follows.
+    ///
+    ///
+    /// Non-PHC:
+    ///   
+    ///  1. Obtain constellation from PHC.  Return if it coincides with the constellation that we already
+    ///     got - if we already got one.
+    ///  2. Check the constellation against our own configuration.  If it's up-to-date, restart
+    ///     this server but with the new constellation.
+    ///  3. Invoke discovery on PHC, and return a retryable error - effectively go back to step 1.
+    ///
+    ///
+    /// PHC:
+    ///
+    ///  1. Obtain discovery info from ourselves - i.e. check whether `phc_url` is configured
+    ///     correctly.
+    ///  2. Retrieve discovery info from the other servers and construct a constellation from it.
+    ///  3. If the constellation has changed, restart to update it.
+    ///  4. Invoke disovery on those servers that have no or outdated constellations,
+    ///     and return a retryable error - effectively go back to step 1.
+    ///
+    ///
+    async fn request_discovery<S: Server>(
+        &self,
+        app: S::AppT,
+    ) -> api::Result<api::DiscoveryRunResp> {
+        log::debug!(
+            "{server_name}: discovery is requested",
+            server_name = S::NAME
+        );
+
+        let mut restart_imminent_guard = match self.obtain_lock().await {
+            Some(guard) => guard,
+            None => {
+                log::debug!(
+                    "{server_name}: discovery aborted because the server is already restarting",
+                    server_name = S::NAME
+                );
+                return api::ok(api::DiscoveryRunResp::Restarting);
+            }
+        };
+
+        // Obtain discovery info from PHC (even when we are PHC ourselves, for perhaps
+        // the phc_url is misconfigured) and perform some basis checks.
+        // Should not return an error when our constellation is out of sync.
+        let phc_discovery_info = {
+            let result = AppBase::<S>::discover_phc(app.clone()).await;
+            if result.is_err() {
+                return api::err(result.unwrap_err());
+            }
+            result.unwrap()
+        };
+
+        if phc_discovery_info.constellation.is_none() && S::NAME != Name::PubhubsCentral {
+            // PubHubs Central is not yet ready - make the caller retry
+            log::info!(
+                "Discovery of {} is run but {} has no constellation yet",
+                S::NAME,
+                Name::PubhubsCentral,
+            );
+            return api::err(api::ErrorCode::NotYetReady);
+        }
+
+        let new_constellation_maybe = api::return_if_ec!(app.discover(phc_discovery_info).await);
+        if new_constellation_maybe.is_none() {
+            return api::ok(api::DiscoveryRunResp::UpToDate);
+        }
+
+        let new_constellation = new_constellation_maybe.unwrap();
+
+        // modify server, and restart (to modify all Apps)
+
+        let result = app
+            .base()
+            .handle
+            .modify(
+                "updated constellation after discovery",
+                |server: &mut S| -> bool {
+                    let extra = match server.create_running_state(&new_constellation) {
+                        Ok(extra) => extra,
+                        Err(err) => {
+                            log::error!(
+                                "Error while restarting {} after discovery: {}",
+                                S::NAME,
+                                err
+                            );
+                            return false; // do not restart
+                        }
+                    };
+
+                    server.app_creator_mut().base_mut().running_state = Some(RunningState {
+                        constellation: Box::new(new_constellation),
+                        extra,
+                    });
+
+                    true // yes, restart
+                },
+            )
+            .await;
+
+        if let Err(()) = result {
+            log::warn!("failed to initiate restart of {} for discovery, probably because the server is already shutting down", S::NAME,);
+            return api::err(api::ErrorCode::NotYetReady);
+        }
+
+        log::trace!(
+            "{server_name}: registering imminent restart",
+            server_name = S::NAME
+        );
+        *restart_imminent_guard = true;
+        let _ = self.restart_imminent_cached.set(());
+
+        api::ok(api::DiscoveryRunResp::Restarting)
+    }
+
+    /// Obtains write lock to `self.restart_imminent_lock` when restart is not imminent.
+    async fn obtain_lock(&self) -> Option<tokio::sync::RwLockWriteGuard<'_, bool>> {
+        if self.restart_imminent_cached.get().is_some() {
+            log::trace!("restart imminent: cached");
+            return None;
+        }
+
+        if *self.restart_imminent_lock.read().await {
+            log::trace!("restart imminent: discovered after obtaining read lock");
+            let _ = self.restart_imminent_cached.set(());
+            return None;
+        }
+
+        let restart_imminent_guard = self.restart_imminent_lock.write().await;
+
+        if *restart_imminent_guard {
+            // while we re-obtained the lock, discovery has completed
+            log::trace!("restart imminent: discovered after obtaining write lock");
+            let _ = self.restart_imminent_cached.set(());
+            return None;
+        }
+
+        Some(restart_imminent_guard)
+    }
+}
+
 /// Handle to a [Server] passed to [App]s.
+///
+/// Used to issue commands to the server.  Since discovery is requested a often a separate struct
+/// is used to deal with discovery requests.
 pub struct Handle<S: Server> {
-    sender: mpsc::Sender<Command<S>>,
+    sender: mpsc::Sender<CommandRequest<S>>,
+    discovery_limiter: DiscoveryLimiter,
+}
+
+struct CommandRequest<S: Server> {
+    /// The actual command
+    command: Command<S>,
+    /// A way for the [Server] to inform the [App] that the command is about to be executed,
+    /// by dropping this `feedback_sender`.
+    feedback_sender: tokio::sync::oneshot::Sender<Infallible>,
+}
+
+impl<S: Server> CommandRequest<S> {
+    /// Let's the issuer of the command know that the command is to be fulfilled
+    fn accept(self) -> Command<S> {
+        drop(self.feedback_sender);
+        self.command
+    }
 }
 
 // We cannot use "derive(Clone)", because Server is not Clone.
@@ -295,19 +512,43 @@ impl<S: Server> Clone for Handle<S> {
     fn clone(&self) -> Self {
         Handle {
             sender: self.sender.clone(),
+            discovery_limiter: self.discovery_limiter.clone(),
         }
     }
 }
 
 impl<S: Server> Handle<S> {
-    /// Issues command to [Runner].  Waits for the command to be enqueued,
+    /// Issues command to [Runner].  Waits for the command to be next in line,
     /// but does not wait for the command to be completed.
-    pub async fn issue_command(&self, command: Command<S>) -> Result<()> {
-        let result = self.sender.send(command).await;
+    ///
+    /// May return `Err(())` when another command shutdown the server before this
+    /// command could be executed.
+    ///
+    /// When `Ok(())` is returned, this means the command is guaranteed to be executed momentarily.
+    pub async fn issue_command(&self, command: Command<S>) -> Result<(), ()> {
+        let (feedback_sender, feedback_receiver) = tokio::sync::oneshot::channel();
+
+        let result = self
+            .sender
+            .send(CommandRequest {
+                command,
+                feedback_sender,
+            })
+            .await;
 
         if let Err(send_error) = result {
-            bail!("{}: failed to send command {}", S::NAME, send_error.0);
+            log::warn!(
+                "{server_name}: since the command receiver is closed (probably because the server is shutting down/restarting) we could not issue the command {cmd:?}",
+                server_name=S::NAME,
+                cmd=send_error.0.command.to_string(),
+            );
+            return Err(());
         };
+
+        // wait for the command to be the next in line
+        feedback_receiver
+            .await
+            .expect_err("got instance of Infallible!");
 
         Ok(())
     }
@@ -316,25 +557,29 @@ impl<S: Server> Handle<S> {
         &self,
         display: impl std::fmt::Display + Send + 'static,
         modifier: impl FnOnce(&mut S) -> bool + Send + 'static,
-    ) -> Result<()> {
+    ) -> Result<(), ()> {
         self.issue_command(Command::Modify(Box::new((modifier, display))))
             .await
     }
 
+    /// Executes `inspector` on the server instance, returning its result.
+    ///
+    /// Returns Err(()) when the command or its result could not be sent, probably because the
+    /// server was shutting down.
     pub async fn inspect<T: Send + 'static>(
         &self,
         display: impl std::fmt::Display + Send + 'static,
         inspector: impl FnOnce(&S) -> T + Send + 'static,
-    ) -> Result<T> {
+    ) -> Result<T, ()> {
         let (sender, receiver) = tokio::sync::oneshot::channel::<T>();
 
         self.issue_command(Command::Inspect(Box::new((
             |server: &S| {
                 if sender.send(inspector(server)).is_err() {
                     log::warn!(
-                    "{}: could not return result of inspection because receiver was already closed",
-                    S::NAME
-                );
+                        "{}: could not return result of inspection because receiver was already closed",
+                        S::NAME
+                    );
                     // Might happen when the server is restarted ungracefully - so don't panic here.
                 }
             },
@@ -342,7 +587,16 @@ impl<S: Server> Handle<S> {
         ))))
         .await?;
 
-        Ok(receiver.await?)
+        receiver.await.map_err(|_| {
+            log::warn!(
+                "{server_name}: could receive result of inspector",
+                server_name = S::NAME,
+            );
+        })
+    }
+
+    pub async fn request_discovery(&self, app: S::AppT) -> api::Result<api::DiscoveryRunResp> {
+        self.discovery_limiter.request_discovery::<S>(app).await
     }
 }
 
@@ -374,6 +628,7 @@ impl<S: Server> Runner<S> {
 
         let handle = Handle::<S> {
             sender: command_sender,
+            discovery_limiter: DiscoveryLimiter::new(),
         };
 
         log::info!(
@@ -434,11 +689,11 @@ impl<S: Server> Runner<S> {
 
             let modifier_fmt = format!("{}", modifier); // so modifier can be consumed
 
-            log::info!("{}: applying modification {}", S::NAME, modifier_fmt);
+            log::info!("{}: applying modification {:?}", S::NAME, modifier_fmt);
 
             if !modifier.modify(pubhubs_server_mutref) {
                 log::info!(
-                    "{}: not restarting upon request of {}",
+                    "{}: not restarting upon request of {:?}",
                     S::NAME,
                     modifier_fmt
                 );
@@ -468,12 +723,20 @@ impl<S: Server> Runner<S> {
         loop {
             match handles.run_until_command(runner).await? {
                 Command::Modify(modifier) => {
-                    log::debug!("Stopping {} for modification {}...", S::NAME, modifier);
+                    log::debug!(
+                        "Stopping {} for modification {:?}...",
+                        S::NAME,
+                        modifier.to_string()
+                    );
 
                     return Ok::<_, anyhow::Error>(modifier);
                 }
                 Command::Inspect(inspector) => {
-                    log::debug!("{}: applying inspection {}", S::NAME, inspector);
+                    log::debug!(
+                        "{}: applying inspection {:?}",
+                        S::NAME,
+                        inspector.to_string()
+                    );
                     inspector.inspect(&*runner.pubhubs_server);
                 }
                 Command::Exit => {

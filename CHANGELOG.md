@@ -2,6 +2,8 @@
 
 *Please add a brief description of any changes to be tested and any migrations to be performed here.*
 - Added the option for users to delete their messages. This feature is behind a feature flag, which will be disabled on stable.
+- Removes some legacy static pages from Pubhubs Central.
+  (These legacy pages can be re-enabled by setting `hotfixes` -> `legacy_static_pages` to true in PHC's configuration.)
 
 ## 17 October 2024 - v1.0.0
 

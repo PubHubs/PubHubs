@@ -45,6 +45,31 @@ impl crate::servers::App<Server> for Rc<App> {
         api::phct::hub::Key::add_to(self, sc, App::handle_hub_key);
     }
 
+    fn check_constellation(&self, constellation: &Constellation) -> bool {
+        // Dear maintainer: this destructuring is intentional, making sure that this `check_constellation` function
+        // is updated when new fields are added to the constellation
+        let Constellation {
+            // These fields we must check:
+            transcryptor_jwt_key: jwt_key,
+            transcryptor_enc_key: enc_key,
+            transcryptor_master_enc_key_part: master_enc_key_part,
+
+            // These fields we don't care about:
+            transcryptor_url: _,
+            auths_enc_key: _,
+            auths_jwt_key: _,
+            auths_url: _,
+            phc_jwt_key: _,
+            phc_enc_key: _,
+            phc_url: _,
+            master_enc_key: _,
+        } = constellation;
+
+        enc_key == self.base.enc_key.public_key()
+            && **jwt_key == self.base.jwt_key.verifying_key()
+            && master_enc_key_part == self.master_enc_key_part.public_key()
+    }
+
     fn base(&self) -> &AppBase<Server> {
         &self.base
     }

@@ -52,6 +52,7 @@ bin = [
 	"dep:actix-web",
 	"dep:ed25519-dalek",
 	"dep:futures-util", # used by actix already
+	"dep:futures",
 	"dep:http",
 	"dep:awc",
 	"dep:hmac",

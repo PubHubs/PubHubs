@@ -1,4 +1,4 @@
-use serde::{Deserialize, Serialize};
+use serde::{de::IntoDeserializer as _, Deserialize, Serialize};
 
 use crate::misc::{fmt_ext, serde_ext::bytes_wrapper};
 use crate::servers::server;
@@ -103,9 +103,13 @@ impl<T> Result<T> {
     /// When passing along a result from another server to a client, this method is called
     /// to modify any [ErrorCode]. For details, see  [ErrorCode::into_server_error].
     pub fn into_server_result(self) -> Self {
+        self.map_err(ErrorCode::into_server_error)
+    }
+
+    pub fn map_err(self, f: impl FnOnce(ErrorCode) -> ErrorCode) -> Self {
         match self {
             Result::Ok(v) => Result::Ok(v),
-            Result::Err(ec) => Result::Err(ec.into_server_error()),
+            Result::Err(ec) => Result::Err(f(ec)),
         }
     }
 }
@@ -193,6 +197,9 @@ pub enum ErrorCode {
     #[error("a signature could not be verified")]
     InvalidSignature,
 
+    #[error("invalid admin key")]
+    InvalidAdminKey,
+
     #[error("something is wrong with the request")]
     BadRequest,
 
@@ -222,6 +229,7 @@ impl ErrorCode {
             | NoLongerInCorrectState
             | Malconfigured
             | InvalidSignature
+            | InvalidAdminKey
             | UnknownHub
             | NotImplemented => ErrorInfo {
                 retryable: Some(false),
@@ -296,13 +304,15 @@ pub async fn query_with_retry<EP: EndpointDetails>(
 }
 
 /// Sends a request to `EP` [endpoint](EndpointDetails) at `server_url`.
-pub async fn query<EP: EndpointDetails>(
+///
+/// NOTE: not `async fn` so that we can specify that the resulting future is `'static`,
+/// and so does not borrow `server_url` or `req`.
+pub fn query<EP: EndpointDetails>(
     server_url: &url::Url,
     req: &EP::RequestType,
-) -> Result<EP::ResponseType> {
-    let client = awc::Client::default();
-
-    let url = {
+) -> impl std::future::Future<Output = Result<EP::ResponseType>> + 'static {
+    // endpoint url
+    let ep_url = {
         let result = server_url.join(EP::PATH);
         if result.is_err() {
             log::error!(
@@ -310,18 +320,35 @@ pub async fn query<EP: EndpointDetails>(
                 EP::PATH,
                 result.unwrap_err()
             );
-            return Result::Err(ErrorCode::Malconfigured);
+            return futures::future::Either::Left(
+                async move { Result::Err(ErrorCode::Malconfigured) },
+            );
         }
         result.unwrap()
     };
 
-    log::debug!("Querying {} {} {}", EP::METHOD, &url, fmt_ext::Json(&req));
+    log::debug!(
+        "Querying {} {} {}",
+        EP::METHOD,
+        &ep_url,
+        fmt_ext::Json(&req)
+    );
 
+    let client = awc::Client::default();
+
+    let client_req = client
+        .request(EP::METHOD, ep_url.to_string())
+        .send_json(&req);
+
+    futures::future::Either::Right(async { query_inner::<EP>(ep_url, client_req).await })
+}
+
+async fn query_inner<EP: EndpointDetails>(
+    url: url::Url,
+    req: awc::SendClientRequest,
+) -> Result<EP::ResponseType> {
     let mut resp = {
-        let result = client
-            .request(EP::METHOD, url.to_string())
-            .send_json(&req)
-            .await;
+        let result = req.await;
 
         if result.is_err() {
             return Result::Err(match result.unwrap_err() {
@@ -341,6 +368,11 @@ pub async fn query<EP: EndpointDetails>(
                     awc::error::ConnectError::Io(err) => {
                         // might happen when the port is closed
                         log::warn!("io error while connecting to {url}: {err}");
+                        ErrorCode::CouldNotConnectYet
+                    }
+                    awc::error::ConnectError::Disconnected => {
+                        // might happen when the contacted server shuts down
+                        log::warn!("server disconnected while querying {url}");
                         ErrorCode::CouldNotConnectYet
                     }
                     _ => {
@@ -397,6 +429,21 @@ pub async fn query<EP: EndpointDetails>(
         result.unwrap()
     };
 
+    // check statuscode
+    let status = resp.status();
+    if !status.is_success() {
+        log::warn!(
+            "request to {method} {url} was not succesfull: {status}",
+            method = EP::METHOD
+        );
+
+        #[expect(clippy::match_single_binding)]
+        return Result::Err(match status {
+            // Maybe some status codes warrant a retry
+            _ => ErrorCode::BadRequest,
+        });
+    }
+
     let response: Result<EP::ResponseType> = {
         let result = resp.json().await;
         if result.is_err() {
@@ -441,6 +488,15 @@ macro_rules! wrap_dalek_type {
                 Self {
                     inner: inner.into(),
                 }
+            }
+        }
+
+        // We implement [FromStr] so that this type can be used as a command-line argument with [clap].
+        impl std::str::FromStr for $type {
+            type Err = serde::de::value::Error;
+
+            fn from_str(s : &str) -> std::result::Result<Self, Self::Err> {
+                Self::deserialize(s.into_deserializer())
             }
         }
 

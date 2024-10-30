@@ -716,12 +716,13 @@ def main_runner(cargo_setup:str, node_arg:str, hubs:int = 1) -> None:
     url = server + ":" + port
 
     while True:
-        response = check_server_status(url)
+        response = check_server_status(url + "/_connection_check")
         if "status" in response:
             if response["status"] == 200:
                 break
         # This delay is for server to start, but in any case, we are constantly checking the status of the server
         time.sleep(5)
+        print(f"waiting for {url} to return status code 200...")
 
 
     # Build the test hub images

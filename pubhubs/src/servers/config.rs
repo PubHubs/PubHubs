@@ -6,10 +6,15 @@ use std::path::{Path, PathBuf};
 use anyhow::{Context as _, Result};
 use url::Url;
 
-use crate::servers::for_all_servers;
-use crate::{api, elgamal, hub};
+use crate::servers::{for_all_servers, server::Server as _};
+use crate::{
+    api::{self},
+    elgamal, hub,
+};
 
 /// Configuration for one, or several, of the PubHubs servers
+///
+/// Also used for the `pubhubs admin` cli command.  In that case only `phc_url` needs to be set.
 #[derive(serde::Deserialize, serde::Serialize, Debug, Clone)]
 #[serde(deny_unknown_fields)]
 pub struct Config {
@@ -21,10 +26,6 @@ pub struct Config {
     /// Path with respect to which relative paths are interpretted.
     #[serde(default)]
     pub wd: PathBuf,
-
-    /// Key used by admin to sign requests for the admin endpoints.
-    /// If `None`, one is generated automatically and the private key is  printed to the log.
-    pub admin_key: Option<api::VerifyingKey>,
 
     /// Configuration to run PubHubs Central
     pub phc: Option<ServerConfig<phc::ExtraConfig>>,
@@ -62,6 +63,10 @@ pub struct ServerConfig<ServerSpecific> {
     /// debug_assertions are true.
     #[serde(default = "default_graceful_shutdown")]
     pub graceful_shutdown: bool,
+
+    /// Key used by admin to sign requests for the admin endpoints.
+    /// If `None`, one is generated automatically and the private key is  printed to the log.
+    pub admin_key: Option<api::VerifyingKey>,
 
     #[serde(flatten)]
     pub extra: ServerSpecific,
@@ -112,9 +117,69 @@ impl Config {
             res.wd.display()
         );
 
-        res.generate_randoms()?;
-
         Ok(Some(res))
+    }
+
+    /// Clones this configuration and strips out everything that's not needed to run
+    /// the specified server.  Also generated any random values not yet set.
+    pub fn prepare_for(&self, server: crate::servers::Name) -> Result<Self> {
+        // destruct to make sure we consider every field of Config
+        let Self {
+            ref phc_url,
+            ref wd,
+            phc: _,
+            transcryptor: _,
+            auths: _,
+        } = self;
+
+        let mut config: Config = Config {
+            phc_url: phc_url.clone(),
+            wd: wd.clone(),
+            phc: None,
+            transcryptor: None,
+            auths: None,
+        };
+
+        macro_rules! clone_only_server {
+            ($server:ident) => {
+                if crate::servers::$server::Server::NAME == server {
+                    assert!(self.$server.is_some());
+                    config.$server.clone_from(&self.$server);
+                }
+            };
+        }
+
+        for_all_servers!(clone_only_server);
+
+        config.generate_randoms()?;
+
+        Ok(config)
+    }
+
+    /// Creates a new [Config] from the current one by updating a specific part
+    pub fn json_updated(&self, pointer: &str, new_value: serde_json::Value) -> Result<Self> {
+        let mut json_config: serde_json::Value =
+            serde_json::to_value(self).context("failed to serialize config")?;
+
+        let to_be_modified: &mut serde_json::Value =
+            json_config.pointer_mut(pointer).with_context(|| {
+                format!(
+                    "wanted to modify {} of the configuration file, but that points nowhere",
+                    pointer
+                )
+            })?;
+
+        to_be_modified.clone_from(&new_value);
+
+        let new_config: Config = serde_json::from_value(json_config).with_context(|| {
+            format!(
+                "wanted to change {} of the configuration file to {}, but the new configuration did not deserialize",
+                pointer,
+                new_value,
+            )
+        })?;
+
+        Ok(new_config)
     }
 }
 
@@ -164,18 +229,6 @@ trait GenerateRandoms {
 
 impl GenerateRandoms for Config {
     fn generate_randoms(&mut self) -> anyhow::Result<()> {
-        self.admin_key.get_or_insert_with(|| {
-            let sk = api::SigningKey::generate();
-
-            log::info!(
-                "admin key: {}",
-                serde_json::to_string(&sk)
-                    .expect("unexpected error during serialization of admin key")
-            );
-
-            sk.verifying_key().into()
-        });
-
         macro_rules! gen_randoms {
             ($server:ident) => {
                 if let Some(ref mut server) = self.$server {
@@ -190,13 +243,26 @@ impl GenerateRandoms for Config {
     }
 }
 
-impl<Extra: GenerateRandoms> GenerateRandoms for ServerConfig<Extra> {
+impl<Extra: GenerateRandoms + GetServerType> GenerateRandoms for ServerConfig<Extra> {
     fn generate_randoms(&mut self) -> anyhow::Result<()> {
         self.self_check_code
             .get_or_insert_with(crate::misc::crypto::random_alphanumeric);
 
         self.jwt_key.get_or_insert_with(api::SigningKey::generate);
         self.enc_key.get_or_insert_with(elgamal::PrivateKey::random);
+
+        self.admin_key.get_or_insert_with(|| {
+            let sk = api::SigningKey::generate();
+
+            log::info!(
+                "{} admin key: {}",
+                Extra::ServerT::NAME,
+                serde_json::to_string(&sk)
+                    .expect("unexpected error during serialization of admin key")
+            );
+
+            sk.verifying_key().into()
+        });
 
         self.extra.generate_randoms()?;
 
@@ -228,6 +294,7 @@ impl GenerateRandoms for auths::ExtraConfig {
     }
 }
 
+/// Used to implement the `server_config` method on `crate::servers::<SERVER>::Details`.
 pub trait GetServerConfig {
     type Extra;
 
@@ -247,3 +314,18 @@ macro_rules! implement_get_server_config {
 }
 
 for_all_servers!(implement_get_server_config);
+
+/// Used to implement the `ServerT` associated type of `<SERVER>::ExtraConfig`.
+trait GetServerType {
+    type ServerT: crate::servers::Server;
+}
+
+macro_rules! implement_server_type {
+    ($server:ident) => {
+        impl GetServerType for $server::ExtraConfig {
+            type ServerT = crate::servers::$server::Server;
+        }
+    };
+}
+
+for_all_servers!(implement_server_type);

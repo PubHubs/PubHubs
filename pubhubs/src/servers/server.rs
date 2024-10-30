@@ -5,7 +5,6 @@ use futures_util::future::LocalBoxFuture;
 
 use core::convert::Infallible;
 use std::rc::Rc;
-use std::sync::Arc;
 
 use crate::elgamal;
 
@@ -189,7 +188,7 @@ where
                return Ok(None);
             }
 
-            res = self.run_discovery_if_needed_and_wait_forever(app) => {
+            res = self.run_discovery_and_then_wait_forever(app) => {
                #[allow(clippy::needless_return)] // It's more clear this way
                 return Err(res.expect_err("got instance of Infallible"));
             }
@@ -202,29 +201,22 @@ where
     D::AppT: App<Self>,
     D::AppCreatorT: AppCreator<Self>,
 {
-    async fn run_discovery_if_needed_and_wait_forever(
+    async fn run_discovery_and_then_wait_forever(
         self: Rc<Self>,
         app: D::AppT,
     ) -> anyhow::Result<Infallible> {
-        self.run_discovery_if_needed(app).await?;
+        self.run_discovery(app).await?;
 
         std::future::pending::<Infallible>().await; // wait forever
         unreachable!();
     }
 
-    async fn run_discovery_if_needed(self: Rc<Self>, app: D::AppT) -> anyhow::Result<()> {
-        // check if we need to run discovery
-        if self.app_creator.base().running_state.is_some() {
-            // constellation already set, no immediate need for discovery
-            return Ok(());
-        }
-
+    async fn run_discovery(self: Rc<Self>, app: D::AppT) -> anyhow::Result<()> {
         crate::misc::task::retry(|| async {
             (match
                 AppBase::<Self>::handle_discovery_run(app.clone()).await.retryable()/* <- turns retryable error Err(err) into Ok(None) */?
             {
-                Some(DiscoveryRunResp::AlreadyRestarting | DiscoveryRunResp::UpdatedAndNowRestarting) => Ok(Some(())),
-                Some(DiscoveryRunResp::AlreadyUpToDate) => anyhow::bail!("did not expect {server_name} to already be up-to-date", server_name = D::NAME),
+                Some(DiscoveryRunResp::Restarting | DiscoveryRunResp::UpToDate) => Ok(Some(())),
                 None => Ok(None),
             }) as anyhow::Result<Option<()>>
         })
@@ -364,20 +356,24 @@ pub trait App<S: Server>: Clone + 'static {
     /// [AppBase::configure_actix_app].
     fn configure_actix_app(&self, sc: &mut web::ServiceConfig);
 
+    /// Checks whether the given constellation properly reflects this server's configuration.
+    fn check_constellation(&self, constellation: &Constellation) -> bool;
+
     /// Runs the discovery routine for this server given [api::DiscoveryInfoResp] already
-    /// obtained from Pubhubs Central.
+    /// obtained from Pubhubs Central.  If the server is not PHC itself, the [Constellation]
+    /// in this [api::DiscoveryInfoResp] must be set.
     ///
-    /// The default implementation does nothing unless PubHubs Central is already up and running.
+    /// This function return some constellation if the constellation of this server needs to be updated.
     ///
-    /// If PHC is, the implementation proceeds to contact itself via the URL mentioned in PHC's
-    /// constellation, and check that it reaches itself using the `self_check_code`.
-    ///
-    /// If that all checks out, the default implementation returns the [Constellation] from
-    /// PHC's [api::DiscoveryInfoResp].
+    /// Returns None if everything checks out.  If one of the other servers is not up-to-date
+    /// according to this server, discovery of that server is invoked and
+    /// [api::ErrorCode::NotYetReady] is returned.
     fn discover(
         &self,
         phc_inf: api::DiscoveryInfoResp,
-    ) -> LocalBoxFuture<'_, api::Result<Constellation>> {
+    ) -> LocalBoxFuture<'_, api::Result<Option<Constellation>>> {
+        log::debug!("{server_name}: running disovery", server_name = S::NAME);
+
         Box::pin(async move {
             if S::NAME == Name::PubhubsCentral {
                 log::error!(
@@ -386,6 +382,51 @@ pub trait App<S: Server>: Clone + 'static {
                 );
                 return api::err(api::ErrorCode::InternalError);
             }
+
+            assert!(
+                phc_inf.constellation.is_some(),
+                "this `discover` method should only be run when phc_inf.constellation is some"
+            );
+
+            if let Some(rs) = self.base().running_state.as_ref() {
+                if !self.check_constellation(phc_inf.constellation.as_ref().unwrap()) {
+                    log::warn!(
+                        "{server_name}: {phc}'s constellation seems to be out-of-date - requesting rediscovery",
+                        server_name = S::NAME,
+                        phc = Name::PubhubsCentral
+                    );
+                    // PHC's discovery is out of date; invoke discovery and return
+                    api::return_if_ec!(api::query::<api::DiscoveryRun>(&phc_inf.phc_url, &())
+                        .await
+                        .into_server_result());
+                    return api::err(api::ErrorCode::NotYetReady);
+                }
+
+                log::trace!(
+                    "{server_name}: {phc}'s constellation looks alright! ",
+                    server_name = S::NAME,
+                    phc = Name::PubhubsCentral
+                );
+
+                if *phc_inf.constellation.as_ref().unwrap() == *rs.constellation {
+                    log::trace!(
+                        "{server_name}: my constellation is up-to-date!",
+                        server_name = S::NAME,
+                    );
+
+                    return api::ok(None);
+                }
+            }
+
+            log::info!(
+                "{}: my constellation is {}",
+                S::NAME,
+                if self.base().running_state.is_some() {
+                    "out of date"
+                } else {
+                    "not yet set"
+                }
+            );
 
             // NOTE: phc_inf has already been (partially) checked
             let c = phc_inf
@@ -412,7 +453,7 @@ pub trait App<S: Server>: Clone + 'static {
             }
             .check(di, url));
 
-            api::ok(phc_inf.constellation.unwrap())
+            api::ok(Some(phc_inf.constellation.unwrap()))
         })
     }
 
@@ -428,161 +469,8 @@ pub trait App<S: Server>: Clone + 'static {
     }
 }
 
-/// Encapsulates the handling of running discovery
-struct DiscoveryLimiter {
-    /// Lock that makes sure only one discovery task is running at the same time.
-    ///
-    /// The protected value is true when restart due to a changed constellation is imminent.
-    restart_imminent_lock: Arc<tokio::sync::RwLock<bool>>,
-
-    /// Set when contents of `restart_imminent_lock` lock was observed to be true,
-    /// reducing the load on this lock.
-    restart_imminent_cached: std::cell::OnceCell<()>,
-}
-
-impl Clone for DiscoveryLimiter {
-    fn clone(&self) -> Self {
-        Self {
-            restart_imminent_lock: self.restart_imminent_lock.clone(),
-            // The DiscoveryLimiter is never cloned as part of an `AppBase`.
-            restart_imminent_cached: std::cell::OnceCell::<()>::new(),
-        }
-    }
-}
-
-impl DiscoveryLimiter {
-    fn new() -> Self {
-        DiscoveryLimiter {
-            restart_imminent_lock: Arc::new(tokio::sync::RwLock::new(false)),
-            restart_imminent_cached: std::cell::OnceCell::<()>::new(),
-        }
-    }
-
-    async fn handle_run_discovery<S: Server>(
-        &self,
-        app: S::AppT,
-    ) -> api::Result<api::DiscoveryRunResp> {
-        let mut restart_imminent_guard = match self.obtain_lock().await {
-            Some(guard) => guard,
-            None => return api::ok(api::DiscoveryRunResp::AlreadyRestarting),
-        };
-
-        // Obtain discovery info from PHC (even when we are PHC ourselves, for perhaps
-        // the phc_url is misconfigured) and perform some basis checks.
-        // Should not return an error when our constellation is out of sync.
-        let phc_discovery_info = {
-            let result = AppBase::<S>::discover_phc(app.clone()).await;
-            if result.is_err() {
-                return api::err(result.unwrap_err());
-            }
-            result.unwrap()
-        };
-
-        if phc_discovery_info.constellation.is_none() && S::NAME != Name::PubhubsCentral {
-            // PubHubs Central is not yet ready - make the caller retry
-            log::warn!(
-                "Discovery of {} is run while {} is not yet ready",
-                S::NAME,
-                Name::PubhubsCentral,
-            );
-            return api::err(api::ErrorCode::NotYetReady);
-        }
-
-        let rs_maybe = app.base().running_state.as_ref();
-
-        if rs_maybe.is_some() {
-            let rs = rs_maybe.unwrap();
-
-            if phc_discovery_info.constellation.is_some()
-                && *phc_discovery_info.constellation.as_ref().unwrap() == *rs.constellation
-            {
-                return api::ok(api::DiscoveryRunResp::AlreadyUpToDate);
-            }
-        }
-
-        log::info!(
-            "Constellation of {} is {} - running discovery..",
-            S::NAME,
-            if rs_maybe.is_some() {
-                "out of date"
-            } else {
-                "not yet set"
-            }
-        );
-
-        let constellation = api::return_if_ec!(app.discover(phc_discovery_info).await);
-
-        // modify server, and restart (to modify all Apps)
-
-        let result = app
-            .base()
-            .handle
-            .modify(
-                "updated constellation after discovery",
-                |server: &mut S| -> bool {
-                    let extra = match server.create_running_state(&constellation) {
-                        Ok(extra) => extra,
-                        Err(err) => {
-                            log::error!(
-                                "Error while restarting {} after discovery: {}",
-                                S::NAME,
-                                err
-                            );
-                            return false; // do not restart
-                        }
-                    };
-
-                    server.app_creator_mut().base_mut().running_state = Some(RunningState {
-                        constellation: Box::new(constellation),
-                        extra,
-                    });
-
-                    true // yes, restart
-                },
-            )
-            .await;
-
-        if let Err(err) = result {
-            log::error!(
-                "failed to initiate restart of {} for discovery: {}",
-                S::NAME,
-                err
-            );
-            return api::err(api::ErrorCode::InternalError);
-        }
-
-        *restart_imminent_guard = true;
-        let _ = self.restart_imminent_cached.set(());
-
-        api::ok(api::DiscoveryRunResp::UpdatedAndNowRestarting)
-    }
-
-    /// Obtains write lock to `self.restart_imminent_lock` when restart is not imminent.
-    async fn obtain_lock(&self) -> Option<tokio::sync::RwLockWriteGuard<'_, bool>> {
-        if self.restart_imminent_cached.get().is_some() {
-            return None;
-        }
-
-        if *self.restart_imminent_lock.read().await {
-            let _ = self.restart_imminent_cached.set(());
-            return None;
-        }
-
-        let restart_imminent_guard = self.restart_imminent_lock.write().await;
-
-        if *restart_imminent_guard {
-            // while we re-obtained the lock, discovery has completed
-            let _ = self.restart_imminent_cached.set(());
-            return None;
-        }
-
-        Some(restart_imminent_guard)
-    }
-}
-
 /// What's internally common between PubHubs [AppCreator]s.
 pub struct AppCreatorBase<S: Server> {
-    discovery_limiter: DiscoveryLimiter,
     pub running_state: Option<RunningState<S::ExtraRunningState>>,
     pub phc_url: url::Url,
     pub self_check_code: String,
@@ -595,7 +483,6 @@ pub struct AppCreatorBase<S: Server> {
 impl<S: Server> Clone for AppCreatorBase<S> {
     fn clone(&self) -> Self {
         Self {
-            discovery_limiter: self.discovery_limiter.clone(),
             running_state: self.running_state.clone(),
             phc_url: self.phc_url.clone(),
             self_check_code: self.self_check_code.clone(),
@@ -611,7 +498,6 @@ impl<S: Server> AppCreatorBase<S> {
         let server_config = S::server_config_from(config);
 
         Self {
-            discovery_limiter: DiscoveryLimiter::new(),
             running_state: None,
             self_check_code: server_config
                 .self_check_code
@@ -626,7 +512,7 @@ impl<S: Server> AppCreatorBase<S> {
                 .clone()
                 .expect("enc_key was not set nor generated"),
             phc_url: config.phc_url.clone(),
-            admin_key: config
+            admin_key: server_config
                 .admin_key
                 .clone()
                 .expect("admin_key was not set nor generated"),
@@ -638,7 +524,6 @@ impl<S: Server> AppCreatorBase<S> {
 ///
 /// Should *NOT* be cloned.
 pub struct AppBase<S: Server> {
-    discovery_limiter: DiscoveryLimiter,
     pub running_state: Option<RunningState<S::ExtraRunningState>>,
     pub handle: Handle<S>,
     pub self_check_code: String,
@@ -651,7 +536,6 @@ pub struct AppBase<S: Server> {
 impl<S: Server> AppBase<S> {
     pub fn new(creator_base: AppCreatorBase<S>, handle: &Handle<S>) -> Self {
         Self {
-            discovery_limiter: creator_base.discovery_limiter,
             running_state: creator_base.running_state,
             handle: handle.clone(),
             phc_url: creator_base.phc_url,
@@ -678,18 +562,30 @@ impl<S: Server> AppBase<S> {
         api::DiscoveryInfo::add_to(app, sc, Self::handle_discovery_info);
 
         api::admin::UpdateConfig::add_to(app, sc, Self::handle_admin_post_config);
+        api::admin::Info::add_to(app, sc, Self::handle_admin_info);
+    }
+
+    /// Checks the signature on the given request that should be signed with the admin key.
+    fn open_admin_req<T: api::HavingMessageCode + serde::de::DeserializeOwned>(
+        &self,
+        signed_req: api::Signed<T>,
+    ) -> api::Result<T> {
+        signed_req.open(&*self.admin_key).map_err(|err| match err {
+            api::ErrorCode::InvalidSignature => api::ErrorCode::InvalidAdminKey,
+            err => err,
+        })
     }
 
     /// Changes server config, and restarts server
     async fn handle_admin_post_config(
         app: S::AppT,
         signed_req: web::Json<api::Signed<api::admin::UpdateConfigReq>>,
-    ) -> api::Result<()> {
+    ) -> api::Result<api::admin::UpdateConfigResp> {
         let signed_req = signed_req.into_inner();
 
         let base = app.base();
 
-        let req = api::return_if_ec!(signed_req.open(&*base.admin_key));
+        let req = api::return_if_ec!(base.open_admin_req(signed_req));
 
         // Before restarting the server, check that the modification would work,
         // so we can return an error to the requestor.  Once we issue a modification command
@@ -702,40 +598,22 @@ impl<S: Server> AppBase<S> {
                 |server: &S| -> Config { server.config().clone() }
             )
             .await
-            .into_ec(|err| {
-                log::error!(
-                    "{}: failed to retrieve configuration from server: {}",
-                    S::NAME,
-                    err
-                );
-                api::ErrorCode::InternalError
+            .into_ec(|_| {
+                log::warn!("{}: failed to retrieve configuration from server", S::NAME,);
+                api::ErrorCode::NotYetReady // probably the server is restarting
             }));
 
-        let mut json_config: serde_json::Value = api::return_if_ec!(serde_json::to_value(config)
+        let new_config: Config = api::return_if_ec!(config
+            .json_updated(&req.pointer, req.new_value.clone())
             .into_ec(|err| {
-                log::error!("{}: failed to serialize config: {}", S::NAME, err);
-                api::ErrorCode::InternalError
-            }));
-
-        let to_be_modified: &mut serde_json::Value =
-            api::return_if_ec!(json_config.pointer_mut(&req.pointer).into_ec(|_| {
                 log::warn!(
-                    "{}: admin wanted to modify {} of configuration file, but that points nowhere",
+                    "{}: failed to modify configuration at {} to {}: {err}",
                     S::NAME,
                     req.pointer,
+                    req.new_value
                 );
                 api::ErrorCode::BadRequest
             }));
-
-        to_be_modified.clone_from(&req.new_value);
-
-        let new_config: Config = api::return_if_ec!(serde_json::from_value(json_config).into_ec(|err| {
-            log::warn!(
-                "{}: admin wanted to change {} to {}, but the new configuration did not deserialize: {}",
-                S::NAME, req.pointer, req.new_value, err
-                );
-            api::ErrorCode::BadRequest
-        }));
 
         // All is well - let's restart the server with the new configuration
         api::return_if_ec!(base
@@ -743,6 +621,7 @@ impl<S: Server> AppBase<S> {
         .modify(
             "admin update of current in-memory configuration",
             move |server: &mut S| {
+
                 let new_server_maybe = S::new(&new_config);
 
                 if let Err(err) = new_server_maybe {
@@ -756,24 +635,47 @@ impl<S: Server> AppBase<S> {
             }
         )
         .await
-        .into_ec(|err| {
-            log::error!("{}: failed to enqueue modification: {}", S::NAME, err);
-            api::ErrorCode::InternalError
+        .into_ec(|_| {
+            log::warn!("{}: failed to enqueue modification", S::NAME);
+            api::ErrorCode::NotYetReady
         }));
 
-        api::ok(())
+        api::ok(api::admin::UpdateConfigResp {})
+    }
+
+    /// Retrieve non-public information about the server
+    async fn handle_admin_info(
+        app: S::AppT,
+        signed_req: web::Json<api::Signed<api::admin::InfoReq>>,
+    ) -> api::Result<api::admin::InfoResp> {
+        let signed_req = signed_req.into_inner();
+
+        let base = app.base();
+
+        let _req = api::return_if_ec!(base.open_admin_req(signed_req));
+
+        let config = api::return_if_ec!(base
+            .handle
+            .inspect(
+                "admin's retrieval of current configuration",
+                |server: &S| -> Config { server.config().clone() }
+            )
+            .await
+            .into_ec(|_| {
+                log::warn!("{}: failed to retrieve configuration from server", S::NAME,);
+                api::ErrorCode::NotYetReady // probably the server is restarting
+            }));
+
+        api::ok(api::admin::InfoResp { config })
     }
 
     /// Run the discovery process, and restarts server if necessary.  Returns when
     /// the discovery process is completed, but before a possible restart.
     async fn handle_discovery_run(app: S::AppT) -> api::Result<api::DiscoveryRunResp> {
-        app.base()
-            .discovery_limiter
-            .handle_run_discovery::<S>(app.clone())
-            .await
+        app.base().handle.request_discovery(app.clone()).await
     }
 
-    async fn discover_phc(app: S::AppT) -> api::Result<api::DiscoveryInfoResp> {
+    pub(super) async fn discover_phc(app: S::AppT) -> api::Result<api::DiscoveryInfoResp> {
         let base = app.base();
 
         let pdi = {
