@@ -178,7 +178,7 @@ const useRooms = defineStore('rooms', {
 			if (e.event?.type === 'm.room.message' && e.event.content?.msgtype === 'pubhubs.ask_disclosure_message') {
 				const user = useUser();
 				const ask = e.event.content.ask_disclosure_message as AskDisclosureMessage;
-				if (ask.userId === user.user.userId) {
+				if (ask.userId === user.userId!) {
 					console.debug(`rx pubhubs.ask_disclosure_message([${ask.attributes.map((a) => (a as any).yivi)}]) to ${ask.userId} (THIS user)`);
 					this.askDisclosureMessage = ask;
 					this.newAskDisclosureMessage = true;

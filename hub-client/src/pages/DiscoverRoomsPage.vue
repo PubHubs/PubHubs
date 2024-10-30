@@ -26,7 +26,7 @@
 	import ImagePlaceholder from '@/components/elements/ImagePlaceholder.vue';
 	import SearchRoomsInput from '@/components/forms/SearchRoomsInput.vue';
 	import { useRooms } from '@/store/store';
-	import { computed, ref } from 'vue';
+	import { computed, ref, onMounted } from 'vue';
 	import { useI18n } from 'vue-i18n';
 
 	const rooms = useRooms();
@@ -40,6 +40,10 @@
 			return visibleRooms.filter((room) => room.name?.toLocaleLowerCase().includes(roomFilter.value) || room.topic?.toLocaleLowerCase().includes(roomFilter.value));
 		}
 		return visibleRooms;
+	});
+
+	onMounted(async () => {
+		rooms.fetchPublicRooms();
 	});
 
 	function updateSearchTerm(searchTerm: string) {

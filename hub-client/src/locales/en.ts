@@ -5,6 +5,7 @@ const en = {
 		requesting: 'Requesting access...',
 		denied: 'Sorry, the hub client cannot run without access to local storage',
 		woops: 'Woops, I did not expect to find myself in this state.',
+		loading_message: 'Loading message...',
 	},
 	dialog: {
 		ok: 'Ok',
@@ -117,6 +118,7 @@ const en = {
 		admin_tools_rooms: 'Manage rooms',
 		moderation_tools: 'Moderation tools',
 		moderation_tools_disclosure: 'Request disclosure',
+		delete_message: 'Delete message',
 	},
 	others: {
 		nop: 'This feature is not implement yet.',
@@ -266,6 +268,12 @@ const en = {
 			heading: 'Signed message',
 			info: 'A statement that is signed with Yivi attributes and can be shared outside the Hub.',
 			verificationStatus: 'Signed messages are a work in progress. They are trustworthy, but are not yet cryptographically verified.',
+		},
+		delete: {
+			cannot_undo: 'You cannot undo this.',
+			heading: 'Permanently delete message?',
+			original_message_deleted: 'Original message deleted',
+			message_deleted: 'Deleted message',
 		},
 	},
 	time: {

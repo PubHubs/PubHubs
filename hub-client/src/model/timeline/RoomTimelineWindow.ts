@@ -17,6 +17,7 @@ const PAGE_SIZE = 96;
 
 class RoomTimelineWindow {
 	private timelineWindow: TimelineWindow | undefined;
+	private redactedEventIds: string[] = [];
 
 	/* event filters: which events are to be shown in the timelineWindow */
 	private visibleEventTypes = ['m.room.message'];
@@ -24,7 +25,7 @@ class RoomTimelineWindow {
 	private timelineSetFilter = {
 		room: {
 			timeline: {
-				types: ['m.room.message'],
+				types: ['m.room.message', 'm.room.redaction'],
 			},
 		},
 	};
@@ -76,6 +77,10 @@ class RoomTimelineWindow {
 	public getTimeline(): MatrixEvent[] {
 		LOGGER.log(SMI.ROOM_TIMELINEWINDOW_TRACE, `RoomtimelineWindow gettimeline `, { getEvents: this.timelineWindow?.getEvents() });
 		return this.timelineWindow?.getEvents()?.filter((event) => this.isVisibleEvent(event.event)) || [];
+	}
+
+	public getRedactedEventIds() {
+		return this.redactedEventIds;
 	}
 
 	public isOldestMessageLoaded(): boolean {

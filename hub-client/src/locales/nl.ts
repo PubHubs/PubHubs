@@ -5,6 +5,7 @@ const nl = {
 		requesting: 'Toegang verlenen...',
 		denied: 'Sorry, de hub client kan helaas niet worden uitgevoerd zonder toegang tot cookies en lokale opslag',
 		woops: 'Oeps, ik had niet verwacht in deze status te zijn.',
+		loading_message: 'Bericht laden...',
 	},
 	dialog: {
 		ok: 'Ok',
@@ -116,6 +117,7 @@ const nl = {
 		admin_tools_rooms: 'Beheer kamers',
 		moderation_tools: 'Moderatietools',
 		moderation_tools_disclosure: 'Vragen informatie vrij te geven',
+		delete_message: 'Verwijder bericht',
 	},
 	others: {
 		nop: 'Deze functionaleit is nog niet gerealiseerd.',
@@ -265,6 +267,12 @@ const nl = {
 			heading: 'Ondertekend bericht',
 			info: 'Een verklaring dat ondertekend is met Yivi attributen en gedeeld kan worden buiten de Hub.',
 			verificationStatus: 'Ondertekende berichten zijn nog in ontwikkeling. Ze zijn betrouwbaar, maar worden nog niet cryptographisch geverifieerd.',
+		},
+		delete: {
+			cannot_undo: 'Je kan dit niet terugdraaien.',
+			heading: 'Bericht voor altijd verwijderen?',
+			original_message_deleted: 'Oorspronkelijk bericht verwijderd',
+			message_deleted: 'Verwijderd bericht',
 		},
 	},
 	time: {

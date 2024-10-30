@@ -19,6 +19,7 @@ describe('User Store', () => {
 	beforeEach(() => {
 		setActivePinia(createPinia());
 		user = useUser();
+		user.setClient({ getUser: (userId) => (userId === 'test' ? { userId: userId } : undefined) });
 	});
 
 	describe('user', () => {
@@ -26,15 +27,15 @@ describe('User Store', () => {
 			expect(user.user).toBeTypeOf('object');
 		});
 
-		test('setUser', () => {
-			user.setUser({ userId: 'test' });
+		test('setUserId', () => {
+			user.setUserId('test');
 			expect(user.user).toHaveProperty('userId');
 			expect(user.user.userId).toEqual('test');
 		});
 
 		test('isLoggedIn', () => {
 			expect(user.isLoggedIn).toEqual(false);
-			user.setUser({ userId: 'test' });
+			user.setUserId('test');
 			expect(user.isLoggedIn).toEqual(true);
 		});
 
