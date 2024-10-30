@@ -12,7 +12,7 @@
 		<P class="mb-2">{{ t('onboarding.info_abt_nickname_use') }}</P>
 		<P class="mb-4">{{ t('onboarding.info_abt_yivi_room') }}</P>
 		<P class="text-sm mb-2">{{ t('onboarding.info_misbehave') }}</P>
-		<Button v-if="!submitted" color="green" class="mx-24" @click="submitAndClose">{{ t('onboarding.continue') }}</Button>
+		<Button v-if="!submitted" class="mx-24" @click="submitAndClose">{{ t('onboarding.continue') }}</Button>
 		<div v-if="submitted">
 			<P class="text-green text-2xl mb-0">{{ t('onboarding.update') }}!</P>
 		</div>
