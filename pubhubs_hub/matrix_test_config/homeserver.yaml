@@ -152,6 +152,17 @@ user_consent:
     en accepteren via deze link %(consent_uri)s
   require_at_registration: true
 
+# Less login attempt restrictions
+rc_login:
+  address:
+    per_second: 1000
+    burst_count: 1000
+  account:
+    per_second: 1000
+    burst_count: 1000
+  failed_attempts:
+    per_second: 1000
+    burst_count: 1000
 
 auto_join_rooms:
   # Every hub has one public 'General' room, which every user automatically joins.
