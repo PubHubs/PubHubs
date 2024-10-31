@@ -110,7 +110,7 @@ impl ConfigArgs {
 
 #[derive(clap::Subcommand, Debug)]
 enum ConfigCommands {
-    /// Retrieves the current config used by the server. [default]
+    /// Retrieves the current config used by the server - the default command.
     Get(ConfigGetArgs),
 
     /// Temporarily updates part of the server configuration.
