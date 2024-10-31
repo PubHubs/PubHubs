@@ -153,10 +153,16 @@
 			});
 
 			// Listen to roomchange
-			messagebox.addCallback(MessageType.RoomChange, (message: Message) => {
+			messagebox.addCallback(MessageType.RoomChange, async (message: Message) => {
 				const roomId = message.content as RouteParamValue;
 				if (rooms.currentRoomId !== roomId) {
-					router.push({ name: 'room', params: { id: roomId } });
+					rooms.currentRoomId = roomId;
+					await rooms.getSecuredRoomInfo(roomId);
+					if (rooms.securedRoom && rooms.securedRoom !== null) {
+						router.push({ name: 'secure-room', params: { id: roomId } });
+					} else {
+						router.push({ name: 'room', params: { id: roomId } });
+					}
 				}
 			});
 

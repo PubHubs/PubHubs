@@ -39,11 +39,12 @@
 <script setup lang="ts">
 	import { onMounted, watch, ref, computed } from 'vue';
 	import { useRoute, useRouter } from 'vue-router';
-	import { useRooms, useHubSettings } from '@/store/store';
+	import { useRooms, useHubSettings, useUser } from '@/store/store';
 	import { PluginProperties, usePlugins } from '@/store/plugins';
 	import { TSearchParameters } from '@/model/model';
 	import { LOGGER } from '@/dev/Logger';
 	import { SMI } from '@/dev/StatusMessage';
+	import { usePubHubs } from '@/core/pubhubsStore';
 
 	const route = useRoute();
 	const rooms = useRooms();
@@ -51,6 +52,8 @@
 	const plugins = usePlugins();
 	const plugin = ref(false as boolean | PluginProperties);
 	const hubSettings = useHubSettings();
+	const user = useUser();
+	const pubhubs = usePubHubs();
 
 	//Passed by the router
 	const props = defineProps({
@@ -79,9 +82,16 @@
 		update();
 	});
 
-	function update() {
+	async function update() {
 		hubSettings.hideBar();
 		rooms.changeRoom(props.id);
+
+		const userIsMemberOfRoom = await pubhubs.isUserRoomMember(user.user.userId, props.id);
+		if (!userIsMemberOfRoom) {
+			// if not a member: try to join, otherwise go to the hubpage
+			pubhubs.joinRoom(props.id).catch(() => router.push({ name: 'hubpage' }));
+		}
+
 		if (!rooms.currentRoom) return;
 		searchParameters.value.roomId = rooms.currentRoom.roomId;
 		plugin.value = plugins.hasRoomPlugin(rooms.currentRoom);
