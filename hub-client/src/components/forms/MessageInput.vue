@@ -5,11 +5,11 @@
 			<div>
 				<Popover v-if="showPopover" @close="togglePopover" class="absolute bottom-[115%]">
 					<UploadPicker @click="clickedAttachment"></UploadPicker>
-					<SignedMessageButton @click="showSigningMessageMenu()"></SignedMessageButton>
+					<SignedMessageButton v-if="!signingMessage" @click.stop="toggleSigningMessage(true)"> </SignedMessageButton>
 				</Popover>
-				<Mention :msg="value" :top="caretPos.top" :left="caretPos.left" :room="room" @click="mentionUser($event)"></Mention>
+				<Mention v-if="showMention" :msg="value" :top="caretPos.top" :left="caretPos.left" :room="room" @click="mentionUser($event)"></Mention>
 				<div v-if="showEmojiPicker" class="absolute bottom-[115%] sm:right-0 z-20">
-					<EmojiPicker @emojiSelected="clickedEmoticon" @close="showEmojiPicker = false" />
+					<EmojiPicker @emojiSelected="clickedEmoticon" @close="toggleEmojiPicker" />
 				</div>
 			</div>
 
@@ -46,7 +46,7 @@
 					@cancel="cancel()"
 					@caretPos="setCaretPos"
 				></TextArea>
-				<Icon class="dark:text-white mb-2 self-end" type="emoticon" @click.stop="showEmojiPicker = !showEmojiPicker" :asButton="true"></Icon>
+				<Icon class="dark:text-white mb-2 self-end" type="emoticon" @click.stop="toggleEmojiPicker" :asButton="true"></Icon>
 			</div>
 
 			<div v-if="signingMessage" class="m-2 bg-gray-light dark:bg-hub-background flex items-center rounded-md p-2">
@@ -64,12 +64,12 @@
 						<p>Email</p>
 					</div>
 				</div>
-				<Icon type="closingCross" size="sm" :asButton="true" @click="signingMessage = false" class="ml-auto self-start"></Icon>
+				<Icon type="closingCross" size="sm" :asButton="true" @click.stop="toggleSigningMessage(false)" class="ml-auto self-start"></Icon>
 			</div>
 		</div>
 
 		<!-- Sendbutton -->
-		<Button class="min-h-[50px] flex rounded-xl" :disabled="!buttonEnabled" @click="submitMessage()">
+		<Button class="min-h-[50px] flex rounded-xl" :disabled="!buttonEnabled" @click="submitMessage">
 			<div class="flex gap-2 text-xl items-center">
 				<Icon type="talk" size="sm" class="-scale-100 rotate-45 shrink-0"></Icon>
 				<span class="hidden md:flex">{{ $t(sendMessageText) }}</span>
@@ -80,28 +80,28 @@
 		<div v-if="signingMessage" class="absolute bottom-[10%] md:left-[40%]" id="yivi-web-form"></div>
 
 		<div class="text-black dark:bg-gray-dark dark:text-white">
-			<FileUploadDialog :file="fileInfo" :mxcPath="uri" v-if="fileUploadDialog" @close="closeMenus()"></FileUploadDialog>
+			<FileUploadDialog :file="fileInfo" :mxcPath="uri" v-if="showFileUploadDialog" @close="showFileUploadDialog = false"> </FileUploadDialog>
 			<!-- todo: move this into UploadPicker? -->
-			<input type="file" :accept="getTypesAsString(allTypes)" class="attach-file" ref="elFileInput" @change="uploadFile($event)" hidden />
+			<input type="file" :accept="getTypesAsString(allTypes)" class="attach-file" ref="elFileInput" @change="uploadFile($event)" @cancel="fileUploading = false" hidden />
 		</div>
 	</div>
 </template>
 
 <script setup lang="ts">
-	import { watch, ref, onMounted, computed } from 'vue';
+	import { watch, ref, onMounted, computed, onUnmounted } from 'vue';
 	import { useFormInputEvents, usedEvents } from '@/composables/useFormInputEvents';
 	import { useMatrixFiles } from '@/composables/useMatrixFiles';
 	import { useRooms } from '@/store/store';
 	import { usePubHubs } from '@/core/pubhubsStore';
 	import { useRoute } from 'vue-router';
 	import { useMessageActions } from '@/store/message-actions';
-	import filters from '@/core/filters';
 	import { useI18n } from 'vue-i18n';
-	import Room from '@/model/rooms/Room';
-
 	import { YiviSigningSessionResult } from '@/lib/signedMessages';
 	import { fileUpload } from '@/composables/fileUpload';
 	import { TMessageEvent } from '@/model/model';
+
+	import filters from '@/core/filters';
+	import Room from '@/model/rooms/Room';
 	import TextArea from './TextArea.vue';
 
 	const { t } = useI18n();
@@ -115,13 +115,15 @@
 	const { value, reset, changed, cancel } = useFormInputEvents(emit);
 	const { allTypes, getTypesAsString, uploadUrl } = useMatrixFiles();
 
-	const buttonEnabled = ref(false);
-	const showPopover = ref(false);
-	const signingMessage = ref(false);
-	const showEmojiPicker = ref(false);
-	const fileUploadDialog = ref(false);
+	const buttonEnabled = ref<boolean>(false);
+	const showPopover = ref<boolean>(false);
+	const signingMessage = ref<boolean>(false);
+	const showEmojiPicker = ref<boolean>(false);
+	const showMention = ref<boolean>(true); // Mentions may always be shown, except when another popup is shown
+	const showFileUploadDialog = ref<boolean>(false);
+	const fileUploading = ref<boolean>(false); // to hide other dialogs while in the file upload process
 	const fileInfo = ref<File>();
-	const uri = ref('');
+	const uri = ref<string>('');
 
 	const caretPos = ref({ top: 0, left: 0 });
 
@@ -140,7 +142,16 @@
 
 	watch(route, () => {
 		reset();
-		closeMenus();
+		toggleMenus(undefined);
+	});
+
+	onMounted(() => {
+		window.addEventListener('keydown', handleKeydown);
+		reset();
+	});
+
+	onUnmounted(() => {
+		window.removeEventListener('keydown', handleKeydown);
 	});
 
 	// Focus on message input if the state of messageActions changes (for example, when replying).
@@ -149,79 +160,108 @@
 		elTextInput.value?.$el.focus();
 	});
 
-	function checkButtonState() {
-		buttonEnabled.value = false;
-		if (value.value !== undefined) {
-			if (typeof value.value === 'number') {
-				buttonEnabled.value = true;
-			}
-			if (typeof value.value === 'string' && value.value.length > 0) {
-				buttonEnabled.value = true;
-			}
-		}
-	}
-
-	//  To autocomplete the mention user in the message.
-	function mentionUser(user: any) {
-		let userMention = user.rawDisplayName;
-		// Make sure psuedonym is included if it hasn't
-		if (!filters.extractPseudonymFromString(userMention)) {
-			userMention += ' - ' + filters.extractPseudonym(user.userId);
-		}
-		let message = value.value?.toString();
-		if (message?.lastIndexOf('@') !== -1) {
-			const lastPosition = message?.lastIndexOf('@');
-			message = message?.substring(0, lastPosition);
-			value.value = ' ';
-			value.value = message + ' @' + userMention;
-		} else {
-			value.value += ' @' + userMention;
-		}
-	}
-
 	function clickedEmoticon(emoji: string) {
 		value.value += emoji;
 		elTextInput.value?.$el.focus();
 		checkButtonState();
 	}
 
+	function handleKeydown(event: KeyboardEvent) {
+		toggleMenus(undefined);
+		if (event.key === 'Escape') {
+			signingMessage.value = false;
+			showMention.value = false;
+		}
+	}
+
+	function togglePopover() {
+		closeReplyingTo();
+		toggleMenus(showPopover);
+	}
+
+	function toggleEmojiPicker() {
+		toggleMenus(showEmojiPicker);
+	}
+
+	function toggleSigningMessage(newValue: boolean) {
+		signingMessage.value = newValue;
+		setCaretPos({ top: 0, left: caretPos.value.left });
+		toggleMenus(undefined);
+	}
+
+	function isValidMessage(): boolean {
+		// TextAreas always return strings, so the message is valid to send if it is a string with a length > 0
+		return typeof value.value === 'string' && value.value.trim().length > 0;
+	}
+
+	function checkButtonState() {
+		buttonEnabled.value = isValidMessage();
+	}
+
 	function uploadFile(event: Event) {
+		// display the component.
 		const accessToken = pubhubs.Auth.getAccessToken();
+		// TODO errorhandling
+		if (!accessToken) {
+			return;
+		}
 		const target = event.currentTarget as HTMLInputElement;
 		const errorMsg = t('errors.file_upload');
-		accessToken &&
-			fileUpload(errorMsg, accessToken, uploadUrl, allTypes, event, (url) => {
-				if (target) {
-					const file = target.files && target.files[0];
-					if (file) {
-						// Once the file has been selected from the filesystem.
-						// Set props to be passed to the component.
-						fileInfo.value = file;
-						uri.value = url;
-						// display the component.
-						fileUploadDialog.value = true;
-						// Inspiration from  https://dev.to/schirrel/vue-and-input-file-clear-file-or-select-same-file-24do
-						const inputElement = elFileInput.value;
-						if (inputElement) inputElement.value = '';
-					}
+		fileUpload(errorMsg, accessToken, uploadUrl, allTypes, event, (url) => {
+			if (target) {
+				const file = target.files && target.files[0];
+				if (file) {
+					// Once the file has been selected from the filesystem.
+					// Set props to be passed to the component.
+					fileInfo.value = file;
+					uri.value = url;
+					// display the component.
+					showFileUploadDialog.value = true;
+					// Inspiration from  https://dev.to/schirrel/vue-and-input-file-clear-file-or-select-same-file-24do
+					const inputElement = elFileInput.value;
+					if (inputElement) inputElement.value = '';
 				}
-			});
+			}
+			fileUploading.value = false;
+		});
 	}
 
 	function clickedAttachment() {
+		fileUploading.value = true;
 		elFileInput.value?.click();
 	}
 
+	//  To autocomplete the mention user in the message.
+	function mentionUser(user: any) {
+		let userMention = user.rawDisplayName;
+
+		// Make sure pseudonym is included if it hasn't
+		if (!filters.extractPseudonymFromString(userMention)) {
+			userMention += ' - ' + filters.extractPseudonym(user.userId);
+		}
+
+		let message = value.value?.toString();
+		if (message?.lastIndexOf('@') !== -1) {
+			const lastPosition = message?.lastIndexOf('@');
+			message = message?.substring(0, lastPosition);
+			value.value = message + ' @' + userMention;
+		} else {
+			value.value += ' @' + userMention;
+		}
+	}
+
 	function submitMessage() {
-		if (!value.value || !(typeof value.value === 'string')) return;
+		if (!isValidMessage()) {
+			return;
+		} // This makes sure value.value is not undefined
 
 		if (signingMessage.value) {
-			signMessage(value.value, selectedAttributesSigningMessage.value);
+			signMessage(value.value!.toString(), selectedAttributesSigningMessage.value);
 		} else if (messageActions.replyingTo && inReplyTo.value) {
-			pubhubs.addMessage(rooms.currentRoomId, value.value, inReplyTo.value);
+			pubhubs.addMessage(rooms.currentRoomId, value.value!.toString(), inReplyTo.value);
 			messageActions.replyingTo = undefined;
 		} else {
-			pubhubs.addMessage(rooms.currentRoomId, value.value);
+			pubhubs.addMessage(rooms.currentRoomId, value.value!.toString());
 		}
 
 		value.value = '';
@@ -237,30 +277,17 @@
 		signingMessage.value = false;
 	}
 
-	onMounted(() => {
-		reset();
-	});
-
-	function togglePopover() {
-		messageActions.replyingTo = undefined;
-		showPopover.value = !showPopover.value;
-	}
-
-	function showSigningMessageMenu() {
-		showPopover.value = false;
-		signingMessage.value = true;
-	}
-
 	function setCaretPos(pos: { top: number; left: number }) {
 		caretPos.value = pos;
 	}
 
-	function closeMenus() {
-		closeReplyingTo();
-		showPopover.value = false;
-		showEmojiPicker.value = false;
-		signingMessage.value = false;
-		fileUploadDialog.value = false;
+	// display of menus is dependant of each other.
+	// so we pass the boolean that controls the visibility of a dialog and we toggle that boolean
+	// the other dialogs are hidden
+	function toggleMenus(from: object | undefined) {
+		showPopover.value = Object.is(from, showPopover) ? !showPopover.value : false;
+		showEmojiPicker.value = Object.is(from, showEmojiPicker) ? !showEmojiPicker.value : false;
+		showMention.value = Object.is(from, showMention) ? true : !fileUploading.value && !showPopover.value && !showEmojiPicker.value; // either true (from focus) or dependent of other popups
 		elFileInput.value = null;
 	}
 

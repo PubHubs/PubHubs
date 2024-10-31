@@ -103,7 +103,6 @@ const useFormInputEvents = (emit: Function, set: InputType = '') => {
 	};
 
 	const cancel = () => {
-		reset();
 		emit('cancel');
 	};
 
