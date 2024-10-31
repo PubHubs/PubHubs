@@ -25,7 +25,11 @@ describe('DiscoverUsers.vue Test', () => {
 			},
 		});
 		const user = useUser();
-		user.setClient({getUser: (userId) => {return {userId: userId}}});
+		user.setClient({
+			getUser: (userId) => {
+				return { userId: userId };
+			},
+		});
 
 		pubhubs = usePubHubs();
 	});

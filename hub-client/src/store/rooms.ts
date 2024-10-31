@@ -199,9 +199,14 @@ const useRooms = defineStore('rooms', {
 		updateRoomsWithMatrixRooms(rooms: MatrixRoom[]) {
 			const tempRooms = {} as { [index: string]: Room }; // reset rooms
 			rooms.forEach((matrixRoom) => {
-				//@ts-ignore
-				tempRooms[matrixRoom.roomId] = new Room(matrixRoom);
+				// Check if room already exists else add room
+				if (this.rooms[matrixRoom.roomId]) {
+					tempRooms[matrixRoom.roomId] = this.rooms[matrixRoom.roomId];
+				} else {
+					tempRooms[matrixRoom.roomId] = new Room(matrixRoom);
+				}
 			});
+
 			this.rooms = tempRooms;
 			this.roomsLoaded = true;
 		},

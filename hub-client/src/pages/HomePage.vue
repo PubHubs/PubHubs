@@ -49,10 +49,10 @@
 		// This check is because if v-if in App for user loggin is not true.
 		const user = useUser();
 		if (!user.isLoggedIn) return;
-		const joinResponse = await pubhubs.hasUserJoinedHubFirstTime();
+		const joinResponse = (await pubhubs.hasUserJoinedHubFirstTime()) as { first_time_joined?: boolean };
 		if (joinResponse.first_time_joined) router.push({ name: 'welcome' });
 
-		// was added in #783, but removed again in #941 after found out that this overwrites the roomid when copying URL's in the browser
+		// was added in #783, but removed again in #941 (removed to beforeEach of router)
 		// Propagate to url in global client
 		//rooms.changeRoom('');
 	});

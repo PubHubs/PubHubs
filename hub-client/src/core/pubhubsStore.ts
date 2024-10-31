@@ -121,6 +121,17 @@ const usePubHubs = defineStore('pubhubs', {
 		 * Wrapper methods for matrix client
 		 */
 
+		// Is the given user a member of the given room?
+		async isUserRoomMember(user_id: string, room_id: string): Promise<boolean> {
+			try {
+				const joinedMembers = await this.client.getJoinedRoomMembers(room_id);
+				return joinedMembers.joined[user_id] !== undefined;
+			} catch {
+				// can give error when user is no member and room previews are disabled
+				return false;
+			}
+		},
+
 		async getPublicRooms(search: string) {
 			return await this.client.publicRooms({
 				limit: 10,
