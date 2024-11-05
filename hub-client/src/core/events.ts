@@ -1,9 +1,11 @@
-import { SyncState } from 'matrix-js-sdk/lib/sync';
-import { MatrixClient, MatrixEvent, ClientEvent, Room as MatrixRoom, RoomEvent, RoomMemberEvent, RoomMember } from 'matrix-js-sdk';
-import { TEvent } from '@/model/events/TEvent';
 import { EventTimeLineHandler } from '@/core/eventTimeLineHandler';
-import { useSettings, useConnection, useRooms } from '@/store/store';
 import { usePubHubs } from '@/core/pubhubsStore';
+import { TEvent } from '@/model/events/TEvent';
+import { useConnection } from '@/store/connection';
+import { useSettings } from '@/store/settings';
+import { useRooms } from '@/store/store';
+import { ClientEvent, MatrixClient, MatrixEvent, Room as MatrixRoom, RoomEvent, RoomMember, RoomMemberEvent } from 'matrix-js-sdk';
+import { SyncState } from 'matrix-js-sdk/lib/sync';
 
 class Events {
 	private readonly client: MatrixClient;
