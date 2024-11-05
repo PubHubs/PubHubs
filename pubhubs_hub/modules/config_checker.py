@@ -239,8 +239,8 @@ class ConfigChecker:
         whitelist: tuple[str] = tuple(self.config.sso.sso_client_whitelist)
         if not client_url.startswith(whitelist):
             yield f"Please add your client url ({client_url}) - or a prefix of it - to 'sso -> client_whitelist' ({whitelist})"
-        if not 'https://app.pubhubs.net' in whitelist or not 'https://main.pubhubs.ihub.ru.nl' in whitelist:
-            yield "Please add 'https://app.pubhubs.net' and 'https://main.pubhubs.ihub.ru.nl' to 'sso -> client_whitelist'"
+        if not 'https://app.pubhubs.net' in whitelist:
+            yield "Please add 'https://app.pubhubs.net' to 'sso -> client_whitelist'"
 
     def check_server_notices_localpart(self):
         # TODO: development and production currently use different localparts for the notices user.
