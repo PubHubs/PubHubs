@@ -1,12 +1,12 @@
-import { MatrixClient, MatrixEvent, Room as MatrixRoom, Direction, EventTimeline, TimelineWindow, Filter } from 'matrix-js-sdk';
 import { LOGGER } from '@/dev/Logger';
 import { SMI } from '@/dev/StatusMessage';
-import { TBaseEvent } from '../model';
+import { Direction, EventTimeline, Filter, MatrixClient, MatrixEvent, Room as MatrixRoom, TimelineWindow } from 'matrix-js-sdk';
+import { TBaseEvent } from '../events/TBaseEvent';
 
 const PAGE_SIZE = 96;
 
 /*
-	The Matrix SDK keeps its events in EventTimelines that are coupled in EventTimelineSets. 
+	The Matrix SDK keeps its events in EventTimelines that are coupled in EventTimelineSets.
 	There is one special EventTimeline which is the LiveTimeline that keeps track of all the new events that take place inside the room.
 	To give a chronological overview of the events you would have to jump across timelines and timelinesets to find all neighbouring events.
 

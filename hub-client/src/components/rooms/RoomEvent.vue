@@ -40,7 +40,7 @@
 								<Icon :type="'warning'" :size="'xs'"></Icon>
 							</button>
 							<button
-								v-if="settings.isFeatureEnabled(featureFlagType.deleteMessages) && !msgIsNotSend && event.sender === user.user.userId && !redactedMessage"
+								v-if="settings.isFeatureEnabled(FeatureFlag.deleteMessages) && !msgIsNotSend && event.sender === user.user.userId && !redactedMessage"
 								@click="onDeleteMessage(event)"
 								class="p-1 bg-gray-lighter dark:bg-gray-middle hover:bg-red hover:text-white dark:hover:bg-red dark:hover:text-white rounded-md"
 								:title="$t('menu.delete_message')"
@@ -79,11 +79,14 @@
 <script setup lang="ts">
 	import { usePubHubs } from '@/core/pubhubsStore';
 	import { router } from '@/core/router';
-	import { TMessageEvent } from '@/model/model';
+	import { TMessageEvent } from '@/model/events/TMessageEvent';
 	import Room from '@/model/rooms/Room';
+	import { useConnection } from '@/store/connection';
 	import { useMessageActions } from '@/store/message-actions';
 	import { PluginType } from '@/store/plugins';
-	import { featureFlagType, RoomType, useConnection, useSettings, useUser } from '@/store/store';
+	import { RoomType } from '@/store/rooms';
+	import { FeatureFlag, useSettings } from '@/store/settings';
+	import { useUser } from '@/store/user';
 	import { computed, ref } from 'vue';
 	import MessageSnippet from './MessageSnippet.vue';
 

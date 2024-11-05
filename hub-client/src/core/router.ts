@@ -1,6 +1,7 @@
-import { createRouter, createWebHashHistory } from 'vue-router';
-import { useUser, useHubSettings } from '@/store/store';
 import { Message, MessageType, useMessageBox } from '@/store/messagebox';
+import { useHubSettings } from '@/store/store';
+import { useUser } from '@/store/user';
+import { createRouter, createWebHashHistory } from 'vue-router';
 
 const routes = [
 	{ path: '/', name: 'home', component: () => import('@/pages/HomePage.vue'), props: { showPubHubsCentralLoginButton: true } },
@@ -45,4 +46,4 @@ router.beforeEach((to) => {
 	return true;
 });
 
-export { routes, router };
+export { router, routes };

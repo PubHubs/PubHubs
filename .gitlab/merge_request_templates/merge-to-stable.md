@@ -5,7 +5,6 @@ General tips:
 - While testing, keep two browser windows open, one for a existing user (it's easiest if this is a hub admin), and an incognito one for a new user that will be registered during testing. This allows seeing messages being send and easier testing.
 - If you do the merge together with a collegua, one of you should do the tests on an mobile phone and the other on a desktop.
 
-  - [ ] Set feature flags appropriately for stable. In the [settings store](https://gitlab.science.ru.nl/ilab/pubhubs_canonical/-/blob/main/hub-client/src/store/settings.ts#L75) you will find the hub-client's default settings in an object called 'defaultSettings'. Set the feature flags in there by commenting out the features flags for main and uncommenting the flags for stable. After the merge you will change them back. 
   - [ ] Check that CI/CD pipeline in main has completed without errors. This might take a bit of time therefore, this should be the first step for the merge to stable.
   - [ ] Notify the others that they do not merge anything into main until the merge to stable is done. (otherwise you will merge changes that may not be deployed to main and therefore not tested by the steps below).
   - [ ] You're merging from main into stable (and not from some feature branch.) 
@@ -64,7 +63,6 @@ General tips:
 
   ![image](/uploads/478c467465270fe24b4e3ec6ee32cc3b/image.png)
   - [ ] Merge the branch with the updated dependencies to main. We do this now because otherwise the main and stable will not point to the same commit as shown in the repository graph.
-  - [ ] Reset the [feature flags](https://gitlab.science.ru.nl/ilab/pubhubs_canonical/-/blob/main/hub-client/src/store/settings.ts#L75) so the proper flags are enabled for the main branch.
   - [ ] Check this list and cleanup items with due date passed, and add due dates to items that are not in active development anymore.
        
   (The `merge-to-stable` merge request template can be edited [here](https://gitlab.science.ru.nl/ilab/pubhubs_canonical/-/edit/main/.gitlab/merge_request_templates/merge-to-stable.md).)

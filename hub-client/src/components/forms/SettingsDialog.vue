@@ -39,14 +39,16 @@
 </template>
 
 <script setup lang="ts">
-	import { onMounted } from 'vue';
-	import { useUser, useSettings, useDialog, buttonsSubmitCancel, DialogSubmit, DialogButtonAction } from '@/store/store';
-	import { useI18n } from 'vue-i18n';
-	import { FormDataType, useFormState } from '@/composables/useFormState';
 	import { fileUpload } from '@/composables/fileUpload';
-	import { usePubHubs } from '@/core/pubhubsStore';
-	import { useUserColor } from '@/composables/useUserColor';
+	import { FormDataType, useFormState } from '@/composables/useFormState';
 	import { useMatrixFiles } from '@/composables/useMatrixFiles';
+	import { useUserColor } from '@/composables/useUserColor';
+	import { usePubHubs } from '@/core/pubhubsStore';
+	import { useSettings } from '@/store/settings';
+	import { buttonsSubmitCancel, DialogButtonAction, DialogSubmit, useDialog } from '@/store/store';
+	import { useUser } from '@/store/user';
+	import { onMounted } from 'vue';
+	import { useI18n } from 'vue-i18n';
 
 	const { t } = useI18n();
 	const user = useUser();

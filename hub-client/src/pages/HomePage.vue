@@ -35,7 +35,9 @@
 
 <script setup lang="ts">
 	import { usePubHubs } from '@/core/pubhubsStore';
-	import { useUser, useHubSettings, useSettings } from '@/store/store';
+	import { useHubSettings } from '@/store/hub-settings';
+	import { useSettings } from '@/store/settings';
+	import { useUser } from '@/store/user';
 	import { onMounted } from 'vue';
 	import { useRouter } from 'vue-router';
 	const pubhubs = usePubHubs();

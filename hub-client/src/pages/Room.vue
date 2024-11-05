@@ -37,14 +37,16 @@
 </template>
 
 <script setup lang="ts">
-	import { onMounted, watch, ref, computed } from 'vue';
-	import { useRoute, useRouter } from 'vue-router';
-	import { useRooms, useHubSettings, useUser } from '@/store/store';
-	import { PluginProperties, usePlugins } from '@/store/plugins';
-	import { TSearchParameters } from '@/model/model';
+	import { usePubHubs } from '@/core/pubhubsStore';
 	import { LOGGER } from '@/dev/Logger';
 	import { SMI } from '@/dev/StatusMessage';
-	import { usePubHubs } from '@/core/pubhubsStore';
+	import { TSearchParameters } from '@/model/search/TSearch';
+	import { useHubSettings } from '@/store/hub-settings';
+	import { PluginProperties, usePlugins } from '@/store/plugins';
+	import { useRooms } from '@/store/rooms';
+	import { useUser } from '@/store/user';
+	import { computed, onMounted, ref, watch } from 'vue';
+	import { useRoute, useRouter } from 'vue-router';
 
 	const route = useRoute();
 	const rooms = useRooms();

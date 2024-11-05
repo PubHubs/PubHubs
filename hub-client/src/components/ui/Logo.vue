@@ -3,8 +3,8 @@
 </template>
 
 <script setup lang="ts">
+	import { useSettings } from '@/store/settings';
 	import { computed } from 'vue';
-	import { useSettings } from '@/store/store';
 
 	const logoLightUrl = '/img/logo.svg';
 	const logoDarkUrl = '/img/logo-dark.svg';

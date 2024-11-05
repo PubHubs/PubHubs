@@ -1,6 +1,6 @@
-import { defineStore } from 'pinia';
 import filters from '@/core/filters';
-import { Theme, useSettings, TimeFormat } from '@/store/store';
+import { defineStore } from 'pinia';
+import { Theme, TimeFormat, useSettings } from './settings';
 
 /**
  * This store is used to exchange messages from global client (parent frame) to hub client (iframe) and the other way around.
@@ -285,4 +285,4 @@ const useMessageBox = defineStore('messagebox', {
 	},
 });
 
-export { iframeHubId, MessageType, Message, MessageBoxType, useMessageBox };
+export { iframeHubId, Message, MessageBoxType, MessageType, useMessageBox };

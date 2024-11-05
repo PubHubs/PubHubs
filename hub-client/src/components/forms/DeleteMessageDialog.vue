@@ -13,7 +13,7 @@
 
 <script setup lang="ts">
 	import Room from '@/pages/Room.vue';
-	import { buttonsYesNo, DialogButtonAction } from '@/store/store';
+	import { buttonsYesNo, DialogButtonAction } from '@/store/dialog';
 
 	const emit = defineEmits(['yes', 'close']);
 

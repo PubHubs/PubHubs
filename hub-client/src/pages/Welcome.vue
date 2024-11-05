@@ -29,8 +29,9 @@
 </template>
 
 <script setup lang="ts">
-	import { useUser, useSettings } from '@/store/store';
 	import { usePubHubs } from '@/core/pubhubsStore';
+	import { useSettings } from '@/store/settings';
+	import { useUser } from '@/store/user';
 	import { ref } from 'vue';
 
 	import { useI18n } from 'vue-i18n';
