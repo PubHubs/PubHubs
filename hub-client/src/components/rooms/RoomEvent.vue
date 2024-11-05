@@ -69,7 +69,7 @@
 					<!-- Temporary fix to set the background color of the signed message in the dialog to delete a message -->
 					<MessageSigned :class="{ '!bg-[#e2e2e2]': deleteMessageDialog }" v-if="event.content.msgtype === 'pubhubs.signed_message' && !redactedMessage" :message="event.content.signed_message"></MessageSigned>
 					<MessageFile v-if="event.content.msgtype === 'm.file' && !redactedMessage" :message="event.content"></MessageFile>
-					<MessageImage v-if="event.content.msgtype === 'm.image' && !redactedMessage" :message="event.content"></MessageImage>
+					<MessageImage v-if="event.content.msgtype === 'm.image' && !redactedMessage" :message="event.content" class="w-[20rem] max-h-[25rem]"></MessageImage>
 				</template>
 			</div>
 		</div>
@@ -77,14 +77,15 @@
 </template>
 
 <script setup lang="ts">
-	import { computed, ref } from 'vue';
-	import { router } from '@/core/router';
 	import { usePubHubs } from '@/core/pubhubsStore';
-	import { featureFlagType, RoomType, useConnection, useSettings, useUser } from '@/store/store';
-	import { useMessageActions } from '@/store/message-actions';
-	import { PluginType } from '@/store/plugins';
+	import { router } from '@/core/router';
 	import { TMessageEvent } from '@/model/model';
 	import Room from '@/model/rooms/Room';
+	import { useMessageActions } from '@/store/message-actions';
+	import { PluginType } from '@/store/plugins';
+	import { featureFlagType, RoomType, useConnection, useSettings, useUser } from '@/store/store';
+	import { computed, ref } from 'vue';
+	import MessageSnippet from './MessageSnippet.vue';
 
 	const connection = useConnection();
 	const messageActions = useMessageActions();

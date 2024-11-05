@@ -1,11 +1,19 @@
 <template>
-	<img :alt="message.body" :src="formUrlfromMxc(message.url)" class="max-w-full h-auto" />
+	<img v-bind="$attrs" :alt="message.body" :src="formUrlfromMxc(message.url)" class="object-contain cursor-pointer" @click.stop="showFullImage = true" />
+	<Popover v-if="showFullImage" @close="showFullImage = false" class="w-[100vw] h-[100vh] top-0 left-0 fixed z-50 flex" :show-closing-cross="true">
+		<img :alt="message.body" :src="formUrlfromMxc(message.url)" class="h-4/5 w-4/5 m-auto object-contain" />
+	</Popover>
 </template>
 
 <script setup lang="ts">
 	import { useMatrixFiles } from '@/composables/useMatrixFiles';
-	import { M_ImageMessageEventContent } from '@/types/events';
+	import { TImageMessageEventContent } from '@/model/events/TMessageEvent';
+	import { ref } from 'vue';
+	import Popover from '../ui/Popover.vue';
+
 	const { formUrlfromMxc } = useMatrixFiles();
 
-	const props = defineProps<{ message: M_ImageMessageEventContent }>();
+	const showFullImage = ref(false);
+
+	const props = defineProps<{ message: TImageMessageEventContent }>();
 </script>
