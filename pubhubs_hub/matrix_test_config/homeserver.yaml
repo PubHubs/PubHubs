@@ -86,15 +86,15 @@ oidc_providers:
       libpubhubspath: /usr/lib/libpubhubs.so             # |
     }                                                    # /
   issuer: "http://host.docker.internal:8080"                        # \           - to https://app.pubhubs.net
-  client_id: "testhub~TwE1w3BX-RrDRe7FFqkbRlkp4FiBh4cgtRwtrpmv7Gc=" # | DO CHANGE - to the client id you received from PubHubs Central
-  client_secret: "p7v7c_L_Eo0Clkx-fBvbGddHPkTEbR59oueM6XaKVYI="     # /           - to the client secret you received from PubHubs Central
+  client_id: "testhub~TwE1w3BX-RrDRe7FFqkbRlkp4FiBh4cgtRwtrpmv7Gc=" # | DO CHANGE - to the OpenId Connect client id you received from PubHubs Central
+  client_secret: "p7v7c_L_Eo0Clkx-fBvbGddHPkTEbR59oueM6XaKVYI="     # /           - to the OpenId Connect client secret you received from PubHubs Central
 
 # Server name, used in full user/room names.
 # Warning: cannot be changed later on without issues.
 server_name: "testhub.matrix.host" # DO CHANGE - to your Hub server domain name
 
 # Server URL
-public_baseurl: http://localhost:8008 # DO CHANGE - to your Hub server url (the Hub server url with https:// in front)
+public_baseurl: http://localhost:8008 # DO CHANGE - to https://<hub-server-domain>
 
 macaroon_secret_key: "macaroon_key"           # DO CHANGE - to e.g. a 32 letter generated password
 form_secret: "form_secret"                    # DO CHANGE - to e.g. a 32 letter generated password
@@ -137,7 +137,6 @@ user_directory:
 # Skips having to check the redirection with user interaction.
 sso:
   client_whitelist:
-    - https://main.pubhubs.ihub.ru.nl # For PubHubs development
     - https://app.pubhubs.net
     - http://localhost # DO CHANGE - to https://<your-hub-client-domain-name>
 
@@ -166,7 +165,7 @@ rc_login:
 
 auto_join_rooms:
   # Every hub has one public 'General' room, which every user automatically joins.
-  - "#General:testhub.matrix.host"    # DO CHANGE to #General:<server_name(see above)>
+  - "#General:testhub.matrix.host"    # DO CHANGE to #General:<server_name> (<server_name> as configured above)
 autocreate_auto_join_rooms: true      # DON'T CHANGE
 auto_join_mxid_localpart: system_bot  # DON'T CHANGE
 # vim:ft=yaml

@@ -16,10 +16,15 @@ Besides an option for remote access such as SSH, port 80 and 443 need to be acce
 
 To be able to join the PubHubs network, you will need to provide the following information about your future Hub (by email):
 
-- Hub name - we will sometimes write `<hub_name>`, this is the Hub name in lowercase_snake_case
-- Hub description - a short text describing your hub. Users will see this in the Hub overview page underneath the Hub name.
-- Hub server domain name - should be of the form `<hub_name>.ph.<your domain>`.
-- Hub client domain name - should be of the form `<hub_name>-client.ph.<your domain>`.
+- _Hub name_ - the name that will be displayed in PubHubs.
+- _Hub description_ - a short text describing your hub. This will be displayed with the Hub name on the PubHubs homepage.
+- _Hub server domain_ - the domain where your Hub server will be hosted, any valid domain is accepted, but please note:
+  - Choose a user friendly domain name, as it will sometimes be visible to the user. Inside the Yivi app for example, when entering a secured room.
+  - It is recommended that the _Hub server domain_ is different than the _Hub client domain_. This is because they both expose http endpoints.
+  - For security reasons, it is recommended that the _Hub server domain_ is not a subdomain of the _Hub client domain_ and vice versa. This is to prevent the sharing of cookies and local storage between the Hub server and the Hub client.
+- _Hub client domain_ - the domain where the Hub client will be hosted, any valid domain is accepted, but please note:
+  - The _Hub client domain_ will not be visible to the user. The Hub client is served through an iframe in PubHubs, so the user will only see the PubHubs url in the address bar.
+  - For security reasons, it is recommended that the _Hub client domain_ is not a subdomain of the _Hub server domain_ and vice versa. This is to prevent the sharing of cookies and local storage between the Hub server and the Hub client.  
 
 On agreement, PubHubs Central will provide the following information in a secure manner. Please note that this information is confidential must be kept secret.
 
@@ -32,8 +37,8 @@ Example information
 
 Name: 'The Library'
 Description: 'Find help for the digital world at The Library'
-Host URI: the_library.ph.librarywebsite.com
-Client URI: the_library-client.ph.librarywebsite.com
+Host URI: hub.librarywebsite.com
+Client URI: hub-client.librarywebsite.com
 ```
 
 <img src=../../pictures/key-exchange.png alt="drawing" width="3000"/>
@@ -43,11 +48,11 @@ Below are instructions for the actual setup and deployment of the Hub server. Yo
 
 The Hub server will be a docker container that runs on your server. You will first need to get the docker image from us.
 ```
-docker login registry.science.ru.nl -u <hub_name> -p <access token>
+docker login registry.science.ru.nl -u <requiredbutnotused> -p <access token>
 docker pull registry.science.ru.nl/ilab/pubhubs_canonical/pubhubs_hub:stable
 ```
 Data such as configuration data and the database are persistent, they will be mounted inside the docker container. Create a directory `hub_dir` on the server that will run the docker containers. We will add some initial configuration to this directory.
-- Copy the PubHubs default configuration for the synapse server from `pubhubs_hub/matrix_test_config/homeserver.yaml` to `hub_dir`. You will need to make changes to this file. See the file for further instructions.
+- Copy the PubHubs default configuration for the synapse server from `pubhubs_hub/matrix_test_config/homeserver.yaml` to `hub_dir`. You will need to make changes to this file. See the file for further instructions. Make sure you change all the _DO CHANGE_ fields and change http to https where appropriate.
 - Also from the `pubhubs_hub/matrix_test_config/` directory, copy over the `templates` folder and the `test_hub.log.config` file to `hub_dir`. Rename `test_hub.log.config` to `log.config`.
 - The synapse server needs access to the mounted `hub_dir` folder with a user and group with id `991`. Run `chown -R 991:991 hub_dir`.
 
