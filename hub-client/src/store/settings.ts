@@ -1,24 +1,14 @@
 /**
  * This store is used for global and user settings.
  */
-import { defineStore } from 'pinia';
 import { fallbackLanguage } from '@/i18n';
 import { Message, MessageBoxType, MessageType, useMessageBox } from '@/store/messagebox';
+import { defineStore } from 'pinia';
+import { CONFIG } from '../dev/Config';
 
 type HubInformation = {
 	name: string;
 };
-
-enum featureFlagType {
-	signedMessages = 'signedMessages',
-	plugins = 'plugins',
-	dateSplitter = 'dateSplitter',
-	disclosure = 'disclosure',
-	unreadMarkers = 'unreadmarkers',
-	notifications = 'notifications',
-	deleteMessages = 'deleteMessages',
-	// readReceipt = 'readReceipt',
-}
 
 enum Theme {
 	System = 'system',
@@ -35,6 +25,18 @@ enum TimeFormat {
 	format12 = 'format12',
 	format24 = 'format24',
 }
+
+enum FeatureFlag {
+	signedMessages = 'signedMessages',
+	plugins = 'plugins',
+	dateSplitter = 'dateSplitter',
+	disclosure = 'disclosure',
+	unreadMarkers = 'unreadmarkers',
+	notifications = 'notifications',
+	deleteMessages = 'deleteMessages',
+}
+
+type FeatureFlags = { [key in FeatureFlag]: boolean };
 
 interface Settings {
 	hub: HubInformation;
@@ -68,13 +70,8 @@ interface Settings {
 	_i18n?: i18nSettings;
 
 	featureFlags: {
-		signedMessages: boolean;
-		plugins: boolean;
-		dateSplitter: boolean;
-		disclosure: boolean;
-		unreadmarkers: boolean;
-		notifications: boolean;
-		deleteMessages: boolean;
+		main: FeatureFlags;
+		stable: FeatureFlags;
 	};
 }
 
@@ -97,22 +94,24 @@ const defaultSettings: Settings = {
 	 * Please also write down which should be enabled on main and which on stable.
 	 */
 	featureFlags: {
-		// main
-		signedMessages: true,
-		plugins: true,
-		dateSplitter: true,
-		disclosure: false,
-		unreadmarkers: true,
-		notifications: true,
-		deleteMessages: true,
-		// stable
-		// signedMessages: true,
-		// plugins: true,
-		// dateSplitter: true,
-		// disclosure: false,
-		// unreadmarkers: true,
-		// notifications: true,
-		// deleteMessages: false,
+		main: {
+			signedMessages: true,
+			plugins: true,
+			dateSplitter: true,
+			disclosure: false,
+			unreadmarkers: true,
+			notifications: true,
+			deleteMessages: true,
+		},
+		stable: {
+			signedMessages: true,
+			plugins: true,
+			dateSplitter: true,
+			disclosure: false,
+			unreadmarkers: true,
+			notifications: true,
+			deleteMessages: false,
+		},
 	},
 };
 
@@ -254,15 +253,17 @@ const useSettings = defineStore('settings', {
 		/**
 		 * Checks whether a feature is enabled or not, for more control in the transition from development to production.
 		 * Add features in the settins store featureFlags property.
-		 * Defaults to true if the feature is not found.
 		 */
-		isFeatureEnabled(feature: string): boolean {
-			// @ts-ignore
-			if (this.featureFlags[feature] === undefined) return true;
-			// @ts-ignore
-			return this.featureFlags[feature];
+		isFeatureEnabled(feature: FeatureFlag): boolean {
+			switch (CONFIG.getProductionMode()) {
+				case 'development':
+					return this.featureFlags.main[feature];
+				case 'production':
+				default:
+					return this.featureFlags.stable[feature];
+			}
 		},
 	},
 });
 
-export { useSettings, defaultSettings, featureFlagType, Settings, Theme, TimeFormat, type HubInformation, type i18nSettings };
+export { defaultSettings, FeatureFlag, Settings, Theme, TimeFormat, useSettings, type HubInformation, type i18nSettings };

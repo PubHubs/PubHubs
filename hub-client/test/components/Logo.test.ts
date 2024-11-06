@@ -1,8 +1,8 @@
-import { describe, expect, test, beforeEach, afterEach, vi } from 'vitest';
-import { flushPromises, mount } from '@vue/test-utils';
-import { createTestingPinia } from '@pinia/testing';
-import { useSettings } from '@/store/store';
 import Logo from '@/components/ui/Logo.vue';
+import { useSettings } from '@/store/settings';
+import { createTestingPinia } from '@pinia/testing';
+import { flushPromises, mount } from '@vue/test-utils';
+import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest';
 
 describe('Logo.vue Test', () => {
 	let wrapper;

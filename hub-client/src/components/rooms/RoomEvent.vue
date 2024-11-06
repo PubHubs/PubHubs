@@ -40,7 +40,7 @@
 								<Icon :type="'warning'" :size="'xs'"></Icon>
 							</button>
 							<button
-								v-if="settings.isFeatureEnabled(featureFlagType.deleteMessages) && !msgIsNotSend && event.sender === user.user.userId && !redactedMessage"
+								v-if="settings.isFeatureEnabled(FeatureFlag.deleteMessages) && !msgIsNotSend && event.sender === user.user.userId && !redactedMessage"
 								@click="onDeleteMessage(event)"
 								class="p-1 bg-gray-lighter dark:bg-gray-middle hover:bg-red hover:text-white dark:hover:bg-red dark:hover:text-white rounded-md"
 								:title="$t('menu.delete_message')"
@@ -69,7 +69,7 @@
 					<!-- Temporary fix to set the background color of the signed message in the dialog to delete a message -->
 					<MessageSigned :class="{ '!bg-[#e2e2e2]': deleteMessageDialog }" v-if="event.content.msgtype === 'pubhubs.signed_message' && !redactedMessage" :message="event.content.signed_message"></MessageSigned>
 					<MessageFile v-if="event.content.msgtype === 'm.file' && !redactedMessage" :message="event.content"></MessageFile>
-					<MessageImage v-if="event.content.msgtype === 'm.image' && !redactedMessage" :message="event.content"></MessageImage>
+					<MessageImage v-if="event.content.msgtype === 'm.image' && !redactedMessage" :message="event.content" class="w-[20rem] max-h-[25rem]"></MessageImage>
 				</template>
 			</div>
 		</div>
@@ -77,14 +77,18 @@
 </template>
 
 <script setup lang="ts">
-	import { computed, ref } from 'vue';
-	import { router } from '@/core/router';
 	import { usePubHubs } from '@/core/pubhubsStore';
-	import { featureFlagType, RoomType, useConnection, useSettings, useUser } from '@/store/store';
+	import { router } from '@/core/router';
+	import { TMessageEvent } from '@/model/events/TMessageEvent';
+	import Room from '@/model/rooms/Room';
+	import { useConnection } from '@/store/connection';
 	import { useMessageActions } from '@/store/message-actions';
 	import { PluginType } from '@/store/plugins';
-	import { TMessageEvent } from '@/model/model';
-	import Room from '@/model/rooms/Room';
+	import { RoomType } from '@/store/rooms';
+	import { FeatureFlag, useSettings } from '@/store/settings';
+	import { useUser } from '@/store/user';
+	import { computed, ref } from 'vue';
+	import MessageSnippet from './MessageSnippet.vue';
 
 	const connection = useConnection();
 	const messageActions = useMessageActions();

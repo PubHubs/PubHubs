@@ -6,7 +6,7 @@
 					<template #header>
 						<div class="flex justify-between gap-4 items-end border-b h-full py-2 pl-5 mr-8">
 							<div class="flex">
-								<Badge v-if="hubSettings.isSolo && settings.isFeatureEnabled(featureFlagType.notifications) && rooms.totalUnreadMessages > 0" class="-ml-2 -mt-2">{{ rooms.totalUnreadMessages }}</Badge>
+								<Badge v-if="hubSettings.isSolo && settings.isFeatureEnabled(FeatureFlag.notifications) && rooms.totalUnreadMessages > 0" class="-ml-2 -mt-2">{{ rooms.totalUnreadMessages }}</Badge>
 								<span @click="router.push('/')" class="flex cursor-pointer">
 									<Logo class="inline-block h-12"></Logo>
 									<TruncatedText class="mt-6">{{ settings.hub.name }}</TruncatedText>
@@ -86,8 +86,12 @@
 	import { SMI } from '@/dev/StatusMessage';
 	import { useDialog } from '@/store/dialog';
 	import { useMenu } from '@/store/menu';
+	import { MessageType } from '@/store/messagebox';
 	import { usePlugins } from '@/store/plugins';
-	import { HubInformation, featureFlagType, Message, MessageBoxType, MessageType, RoomType, useHubSettings, useMessageBox, useRooms, useSettings, useUser } from '@/store/store';
+	import { RoomType } from '@/store/rooms';
+	import { FeatureFlag, HubInformation, useSettings } from '@/store/settings';
+	import { Message, MessageBoxType, useHubSettings, useMessageBox, useRooms } from '@/store/store';
+	import { useUser } from '@/store/user';
 	import { getCurrentInstance, onMounted, ref, watch } from 'vue';
 	import { useI18n } from 'vue-i18n';
 	import { RouteParamValue, useRouter } from 'vue-router';
@@ -105,7 +109,7 @@
 	const menu = useMenu();
 	const settingsDialog = ref(false);
 	const setupReady = ref(false);
-	const disclosureEnabled = settings.isFeatureEnabled('disclosure');
+	const disclosureEnabled = settings.isFeatureEnabled(FeatureFlag.disclosure);
 
 	watch(
 		() => rooms.totalUnreadMessages,
@@ -153,10 +157,16 @@
 			});
 
 			// Listen to roomchange
-			messagebox.addCallback(MessageType.RoomChange, (message: Message) => {
+			messagebox.addCallback(MessageType.RoomChange, async (message: Message) => {
 				const roomId = message.content as RouteParamValue;
 				if (rooms.currentRoomId !== roomId) {
-					router.push({ name: 'room', params: { id: roomId } });
+					rooms.currentRoomId = roomId;
+					await rooms.getSecuredRoomInfo(roomId);
+					if (rooms.securedRoom && rooms.securedRoom !== null) {
+						router.push({ name: 'secure-room', params: { id: roomId } });
+					} else {
+						router.push({ name: 'room', params: { id: roomId } });
+					}
 				}
 			});
 

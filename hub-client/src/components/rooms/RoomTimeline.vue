@@ -1,7 +1,7 @@
 <template>
 	<div v-if="room" ref="elRoomTimeline" class="h-full relative flex flex-col gap-2 overflow-y-auto scrollbar" @scroll="onScroll">
 		<InlineSpinner v-if="isLoadingNewEvents" class="fixed top-16"></InlineSpinner>
-		<DateDisplayer v-if="settings.isFeatureEnabled(featureFlagType.dateSplitter) && dateInformation !== 0" :scrollStatus="userHasScrolled" :eventTimeStamp="dateInformation.valueOf()"></DateDisplayer>
+		<DateDisplayer v-if="settings.isFeatureEnabled(FeatureFlag.dateSplitter) && dateInformation !== 0" :scrollStatus="userHasScrolled" :eventTimeStamp="dateInformation.valueOf()"></DateDisplayer>
 		<div v-if="oldestEventIsLoaded" class="rounded-xl flex items-center justify-center w-60 mx-auto mb-12 border border-solid border-black dark:border-white">
 			{{ $t('rooms.roomCreated') }}
 		</div>
@@ -9,29 +9,31 @@
 			<div v-for="item in roomTimeLine" :key="item.event.event_id">
 				<div ref="elRoomEvent" :id="item.event.event_id">
 					<RoomEvent :room="room" :event="item.event" class="room-event" @in-reply-to-click="onInReplyToClick" @delete-message="confirmDeleteMessage"></RoomEvent>
-					<UnreadMarker v-if="settings.isFeatureEnabled(featureFlagType.unreadMarkers)" :currentEventId="item.event.event_id" :currentUserId="user.user.userId"></UnreadMarker>
+					<UnreadMarker v-if="settings.isFeatureEnabled(FeatureFlag.unreadMarkers)" :currentEventId="item.event.event_id" :currentUserId="user.user.userId"></UnreadMarker>
 				</div>
 			</div>
 		</template>
 	</div>
 	<DeleteMessageDialog v-if="showConfirmDelMsgDialog" :event="eventToBeDeleted" :room="rooms.currentRoom" @close="showConfirmDelMsgDialog = false" @yes="deleteMessage"></DeleteMessageDialog>
-	<InRoomNotifyMarker v-if="settings.isFeatureEnabled(featureFlagType.unreadMarkers)"></InRoomNotifyMarker>
+	<InRoomNotifyMarker v-if="settings.isFeatureEnabled(FeatureFlag.unreadMarkers)"></InRoomNotifyMarker>
 </template>
 
 <script setup lang="ts">
+	import { useMatrixFiles } from '@/composables/useMatrixFiles';
 	import { ElementObserver } from '@/core/elementObserver';
 	import { usePubHubs } from '@/core/pubhubsStore';
-	import { useRooms, useUser } from '@/store/store';
-	import { useMatrixFiles } from '@/composables/useMatrixFiles';
+	import { useRooms } from '@/store/store';
 	import { EventTimeline } from 'matrix-js-sdk';
 	import { computed, onMounted, ref, watch } from 'vue';
 
 	import { LOGGER } from '@/dev/Logger';
 	import { SMI } from '@/dev/StatusMessage';
+	import { TMessageEvent } from '@/model/events/TMessageEvent';
 	import Room from '@/model/rooms/Room';
-	import { featureFlagType, useSettings } from '@/store/store';
+	import { FeatureFlag, useSettings } from '@/store/settings';
+	import { useUser } from '@/store/user';
 	import DateDisplayer from '../ui/DateDisplayer.vue';
-	import { TMessageEvent } from '@/model/model';
+	import RoomEvent from './RoomEvent.vue';
 
 	const settings = useSettings();
 	const rooms = useRooms();
@@ -104,7 +106,7 @@
 			scrollToEvent(newestEventId, { position: 'end' });
 		}
 
-		if (settings.isFeatureEnabled(featureFlagType.dateSplitter)) {
+		if (settings.isFeatureEnabled(FeatureFlag.dateSplitter)) {
 			userHasScrolled.value = true;
 			setInterval(() => {
 				if (userHasScrolled.value) {
@@ -115,12 +117,12 @@
 		// Instantiate ElementObserver with your target element when the element is fully in the viewport.
 		// Default value of 1 for threshold does not work on safari.
 		elementObserver = elRoomEvent.value && new ElementObserver(elRoomEvent.value, { threshold: 0.95 });
-		if (settings.isFeatureEnabled(featureFlagType.notifications)) {
+		if (settings.isFeatureEnabled(FeatureFlag.notifications)) {
 			elementObserver?.setUpObserver(handlePrivateReceipt);
 		}
 
 		//Date Display Interaction callback is based on feature flag
-		settings.isFeatureEnabled(featureFlagType.dateSplitter) && elementObserver?.setUpObserver(handleDateDisplayer);
+		settings.isFeatureEnabled(FeatureFlag.dateSplitter) && elementObserver?.setUpObserver(handleDateDisplayer);
 
 		LOGGER.log(SMI.ROOM_TIMELINE_TRACE, `setupRoomTimeline done `, roomTimeLine);
 	}
@@ -187,9 +189,9 @@
 			let newestEventId = props.room.getLiveTimelineNewestEvent()?.event_id;
 			await updateTimeLineWindow(); // update timeline and (optionally) the scrollbar
 
-			settings.isFeatureEnabled(featureFlagType.dateSplitter) && elementObserver?.setUpObserver(handleDateDisplayer);
+			settings.isFeatureEnabled(FeatureFlag.dateSplitter) && elementObserver?.setUpObserver(handleDateDisplayer);
 
-			if (settings.isFeatureEnabled(featureFlagType.notifications)) {
+			if (settings.isFeatureEnabled(FeatureFlag.notifications)) {
 				// If the room is empty then no reference to elRoomEvent is present. In that case, ElementObserver needs to be initialized.
 				if (!elementObserver) elementObserver = elRoomEvent.value && new ElementObserver(elRoomEvent.value, { threshold: 0.95 });
 
@@ -228,7 +230,7 @@
 				await props.room.paginate(EventTimeline.BACKWARDS);
 				await scrollToEvent(prevOldestLoadedEventId);
 				// Start observing when old messages are loaded.
-				settings.isFeatureEnabled(featureFlagType.dateSplitter) && elementObserver?.setUpObserver(handleDateDisplayer);
+				settings.isFeatureEnabled(FeatureFlag.dateSplitter) && elementObserver?.setUpObserver(handleDateDisplayer);
 			}
 			isLoadingNewEvents.value = false;
 		}
@@ -242,7 +244,7 @@
 				await props.room.paginate(EventTimeline.FORWARDS);
 				await scrollToEvent(prevNewestLoadedEventId, { position: 'end' });
 				// Observe newer messages when timeline loads new messages.
-				settings.isFeatureEnabled(featureFlagType.dateSplitter) && elementObserver?.setUpObserver(handleDateDisplayer);
+				settings.isFeatureEnabled(FeatureFlag.dateSplitter) && elementObserver?.setUpObserver(handleDateDisplayer);
 			}
 			isLoadingNewEvents.value = false;
 		}

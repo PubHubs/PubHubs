@@ -1,9 +1,13 @@
 ## Changes to main, not yet committed to stable
 
 *Please add a brief description of any changes to be tested and any migrations to be performed here.*
+- 
+
+## 6 November 2024 - v1.0.1
 - Added the option for users to delete their messages. This feature is behind a feature flag, which will be disabled on stable.
 - Removes some legacy static pages from Pubhubs Central.
   (These legacy pages can be re-enabled by setting `hotfixes` -> `legacy_static_pages` to true in PHC's configuration.)
+- Changed the feature flag system in the frontend, so we don't need to change any code for the merge to stable.
 
 ## 17 October 2024 - v1.0.0
 

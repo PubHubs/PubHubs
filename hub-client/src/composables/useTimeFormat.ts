@@ -1,4 +1,4 @@
-import { useSettings, TimeFormat } from '@/store/store';
+import { TimeFormat, useSettings } from '@/store/settings';
 import { useI18n } from 'vue-i18n';
 
 const useTimeFormat = () => {

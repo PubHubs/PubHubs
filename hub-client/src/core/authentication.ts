@@ -1,7 +1,9 @@
 import * as sdk from 'matrix-js-sdk';
-import { MatrixClient, ICreateClientOpts } from 'matrix-js-sdk';
+import { ICreateClientOpts, MatrixClient } from 'matrix-js-sdk';
 
-import { useUser, useDialog, useMessageBox, Message, MessageType } from '@/store/store';
+import { MessageType } from '@/store/messagebox';
+import { Message, useDialog, useMessageBox } from '@/store/store';
+import { useUser } from '@/store/user';
 
 type loginResponse = {
 	access_token: string;

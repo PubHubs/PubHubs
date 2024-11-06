@@ -5,16 +5,19 @@ import { Authentication } from '@/core/authentication';
 import { Events } from '@/core/events';
 import { createNewPrivateRoomName, fetchMemberIdsFromPrivateRoomName, refreshPrivateRoomName, updatePrivateRoomName } from '@/core/privateRoomNames';
 import { hasHtml, sanitizeHtml } from '@/core/sanitizer';
+import { Logger } from '@/dev/Logger';
+import { SMI } from '@/dev/StatusMessage';
 import { AskDisclosureMessage, YiviSigningSessionResult } from '@/lib/signedMessages';
 import { TMentions, TMessageEvent, TTextMessageEventContent } from '@/model/events/TMessageEvent';
-import { TSearchParameters } from '@/model/model';
 import Room from '@/model/rooms/Room';
-import { RoomType, TPublicRoom, useConnection, User, useRooms, useUser } from '@/store/store';
+import { TSearchParameters } from '@/model/search/TSearch';
+import { useConnection } from '@/store/connection';
+import { RoomType } from '@/store/rooms';
+import { TPublicRoom, useRooms } from '@/store/store';
+import { User, useUser } from '@/store/user';
 import { ContentHelpers, ISearchResults, MatrixClient, MatrixError, MatrixEvent, Room as MatrixRoom, User as MatrixUser, MsgType } from 'matrix-js-sdk';
 import { ReceiptType } from 'matrix-js-sdk/lib/@types/read_receipts';
 import { router } from './router';
-import { Logger } from '@/dev/Logger';
-import { SMI } from '@/dev/StatusMessage';
 
 let publicRoomsLoading: Promise<any> | null = null; // outside of defineStore to guarantee lifetime, not accessible outside this module
 
@@ -120,6 +123,17 @@ const usePubHubs = defineStore('pubhubs', {
 		/**
 		 * Wrapper methods for matrix client
 		 */
+
+		// Is the given user a member of the given room?
+		async isUserRoomMember(user_id: string, room_id: string): Promise<boolean> {
+			try {
+				const joinedMembers = await this.client.getJoinedRoomMembers(room_id);
+				return joinedMembers.joined[user_id] !== undefined;
+			} catch {
+				// can give error when user is no member and room previews are disabled
+				return false;
+			}
+		},
 
 		async getPublicRooms(search: string) {
 			return await this.client.publicRooms({

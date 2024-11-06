@@ -25,6 +25,9 @@
 	const hubUrl = ref('');
 
 	async function onRouteChange() {
+		if (!hubs.hubExists(route.params.id as string)) {
+			await hubs.changeHub({ id: '', roomId: '' });
+		}
 		handleHubAuth(route.params.id as string);
 		await hubs.changeHub(route.params);
 	}

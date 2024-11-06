@@ -4,8 +4,10 @@
 			<!-- Floating -->
 			<div>
 				<Popover v-if="showPopover" @close="togglePopover" class="absolute bottom-[115%]">
-					<UploadPicker @click="clickedAttachment"></UploadPicker>
-					<SignedMessageButton v-if="!signingMessage" @click.stop="toggleSigningMessage(true)"> </SignedMessageButton>
+					<div class="flex items-center">
+						<UploadPicker @click="clickedAttachment"></UploadPicker>
+						<SignedMessageButton v-if="!signingMessage" @click.stop="toggleSigningMessage(true)"> </SignedMessageButton>
+					</div>
 				</Popover>
 				<Mention v-if="showMention" :msg="value" :top="caretPos.top" :left="caretPos.left" :room="room" @click="mentionUser($event)"></Mention>
 				<div v-if="showEmojiPicker" class="absolute bottom-[115%] sm:right-0 z-20">
@@ -88,20 +90,22 @@
 </template>
 
 <script setup lang="ts">
-	import { watch, ref, onMounted, computed, onUnmounted } from 'vue';
 	import { useFormInputEvents, usedEvents } from '@/composables/useFormInputEvents';
 	import { useMatrixFiles } from '@/composables/useMatrixFiles';
-	import { useRooms } from '@/store/store';
-	import { usePubHubs } from '@/core/pubhubsStore';
-	import { useRoute } from 'vue-router';
-	import { useMessageActions } from '@/store/message-actions';
-	import { useI18n } from 'vue-i18n';
-	import { YiviSigningSessionResult } from '@/lib/signedMessages';
-	import { fileUpload } from '@/composables/fileUpload';
-	import { TMessageEvent } from '@/model/model';
-
 	import filters from '@/core/filters';
+	import { usePubHubs } from '@/core/pubhubsStore';
 	import Room from '@/model/rooms/Room';
+	import { useMessageActions } from '@/store/message-actions';
+	import { useRooms } from '@/store/store';
+	import { computed, onMounted, onUnmounted, ref, watch } from 'vue';
+	import { useI18n } from 'vue-i18n';
+	import { useRoute } from 'vue-router';
+
+	import Popover from '../ui/Popover.vue';
+
+	import { fileUpload } from '@/composables/fileUpload';
+	import { YiviSigningSessionResult } from '@/lib/signedMessages';
+	import { TMessageEvent } from '@/model/model';
 	import TextArea from './TextArea.vue';
 
 	const { t } = useI18n();

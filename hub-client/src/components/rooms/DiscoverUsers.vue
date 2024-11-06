@@ -24,15 +24,15 @@
 </template>
 
 <script setup lang="ts">
-	import { ref, onMounted, computed } from 'vue';
-	import { User as MatrixUser } from 'matrix-js-sdk';
-	import { useRouter } from 'vue-router';
-	import { usePubHubs } from '@/core/pubhubsStore';
-	import { useUser } from '@/store/store';
-	import { FilteredListEvent } from '@/types/components';
-	import filters from '@/core/filters';
 	import { useUserColor } from '@/composables/useUserColor';
-	import { useSettings } from '@/store/store';
+	import filters from '@/core/filters';
+	import { usePubHubs } from '@/core/pubhubsStore';
+	import { useSettings } from '@/store/settings';
+	import { useUser } from '@/store/user';
+	import { FilteredListEvent } from '@/types/components';
+	import { User as MatrixUser } from 'matrix-js-sdk';
+	import { computed, onMounted, ref } from 'vue';
+	import { useRouter } from 'vue-router';
 
 	const { color, textColor } = useUserColor();
 	const settings = useSettings();

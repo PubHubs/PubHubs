@@ -9,7 +9,7 @@
 	>
 		<span class="flex gap-2 items-center cursor-pointer">
 			<Icon v-if="isSecuredRoom()" type="shield" class="shrink-0"></Icon>
-			<Icon v-else class="shrink-0 text-blue dark:text-green" :type="icon"></Icon>
+			<Icon v-else class="shrink-0 text-blue dark:text-white" :type="icon"></Icon>
 			<TruncatedText class="w-full"><slot></slot></TruncatedText>
 		</span>
 	</li>
