@@ -6,8 +6,8 @@
 </template>
 
 <script setup lang="ts">
-	import { useSettings } from '@/store/store';
+	import { FeatureFlag, useSettings } from '@/store/settings';
 
 	const settings = useSettings();
-	const signedMessagesEnabled = settings.isFeatureEnabled('signedMessages');
+	const signedMessagesEnabled = settings.isFeatureEnabled(FeatureFlag.signedMessages);
 </script>

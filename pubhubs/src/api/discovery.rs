@@ -51,7 +51,9 @@ pub struct DiscoveryInfoResp {
 /// Result of the `.ph/discovery/run` endpoint
 #[derive(Serialize, Deserialize, Debug)]
 pub enum DiscoveryRunResp {
-    AlreadyUpToDate,
-    AlreadyRestarting,
-    UpdatedAndNowRestarting,
+    /// Everything checks out at our side
+    UpToDate,
+    /// Changes were made and we're restarting now. It'd probably be good to check our discovery
+    /// info again in a moment.
+    Restarting,
 }

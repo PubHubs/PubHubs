@@ -39,8 +39,18 @@ NPM = ["powershell", "npm"] if platform.system() == "Windows" else ["npm"]
 ## DOCKER VERSION TO USE >= 24
 DOCKER_VERSION = 24
 
-## DOCKER VERSION TO USE >= 24
-DOCKER_VERSION = 24
+def get_version_string():
+    # losely based on https://github.com/matrix-org/matrix-python-common/blob/4084b21af839c50f775447d02ca4f1854e2e6191
+    #                                   /src/matrix_common/versionstring.py#L74
+    try:
+        result = subprocess.check_output(['git', 'describe', '--tags'], stderr=subprocess.DEVNULL)
+    except (subprocess.CalledProcessError, FileNotFoundError) as e:
+        print(f"\x1b[1;33mWARNING: could not obtain hub version\x1b[0m")
+        print(e)
+        return "n/a to start_test_setup.py"
+    return result.strip().decode("ascii")
+
+HUB_VERSION = get_version_string()
 
 ## METHOD SECTION ##
 
@@ -344,6 +354,7 @@ def build_test_hub_image(image_name, dockerfile="Dockerfile"):
     docker_build_command = ["docker", "build",
                             "-t", image_name,
                             "-f", dockerfile,
+                            "--build-arg", "HUB_VERSION=" + HUB_VERSION,
                             "."]
     print(f"\033[92m{docker_build_command}\033[0m")
     if subprocess.call(docker_build_command) != 0:
@@ -705,12 +716,13 @@ def main_runner(cargo_setup:str, node_arg:str, hubs:int = 1) -> None:
     url = server + ":" + port
 
     while True:
-        response = check_server_status(url)
+        response = check_server_status(url + "/_connection_check")
         if "status" in response:
             if response["status"] == 200:
                 break
         # This delay is for server to start, but in any case, we are constantly checking the status of the server
         time.sleep(5)
+        print(f"waiting for {url} to return status code 200...")
 
 
     # Build the test hub images

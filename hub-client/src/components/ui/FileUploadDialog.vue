@@ -1,5 +1,5 @@
 <template>
-	<Dialog :buttons="buttonsOkCancel" @close="close($event)">
+	<Dialog :buttons="buttonsOkCancel" @close="close($event)" v-click-outside="close">
 		<template #header>
 			<div class="text-black text-xl">
 				{{ $t('file.upload_file') }}
@@ -9,7 +9,7 @@
 			<img :src="formUrlfromMxc(mxcPath)" class="max-w-full max-h-96 rounded-lg" />
 		</div>
 		<div class="text-black flex justify-center mt-4">
-			<div class="text-lg text-gray">{{ file.name }} ({{ `${filters.formatBytes(file.size)}` }})</div>
+			<div class="text-lg text-gray">{{ file.name }} ({{ `${filters.formatBytes(file.size, 2)}` }})</div>
 		</div>
 	</Dialog>
 </template>
@@ -41,7 +41,7 @@
 		if (imageTypes.includes(props.file?.type)) {
 			pubhubs.addImage(rooms.currentRoomId, props.mxcPath);
 		} else {
-			pubhubs.addFile(rooms.currentRoomId, props.file, props.mxcPath);
+			pubhubs.addFile(rooms.currentRoomId, props.file as File, props.mxcPath);
 		}
 		close();
 	}

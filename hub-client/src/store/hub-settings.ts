@@ -2,8 +2,9 @@
  * This store has some specific settings only needed for the hub-client
  */
 
+import { Message, useMessageBox } from '@/store/store';
 import { defineStore } from 'pinia';
-import { Message, MessageType, useMessageBox } from '@/store/store';
+import { MessageType } from './messagebox';
 
 const useHubSettings = defineStore('hub-settings', {
 	state: () => {

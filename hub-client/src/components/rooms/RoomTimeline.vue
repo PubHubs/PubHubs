@@ -1,88 +1,74 @@
 <template>
 	<div v-if="room" ref="elRoomTimeline" class="h-full relative flex flex-col gap-2 overflow-y-auto scrollbar" @scroll="onScroll">
 		<InlineSpinner v-if="isLoadingNewEvents" class="fixed top-16"></InlineSpinner>
-		<DateDisplayer v-if="settings.isFeatureEnabled(featureFlagType.dateSplitter) && dateInformation !== 0" :scrollStatus="userHasScrolled" :eventTimeStamp="dateInformation.valueOf()"></DateDisplayer>
-		<div v-if="oldestEventIsLoaded" class="rounded-xl flex items-center justify-center w-60 mx-auto mb-12 border border-solid border-black dark:border-white">{{ $t('rooms.roomCreated') }}</div>
-		<template v-for="item in roomTimeLine" :key="item.event.event_id">
-			<div ref="elRoomEvent" :id="item.event.event_id">
-				<RoomEvent :room="room" :event="item.event" class="room-event" @in-reply-to-click="onInReplyToClick"></RoomEvent>
-				<UnreadMarker v-if="settings.isFeatureEnabled(featureFlagType.unreadMarkers)" :currentEventId="item.event.event_id" :currentUserId="user.user.userId"></UnreadMarker>
+		<DateDisplayer v-if="settings.isFeatureEnabled(FeatureFlag.dateSplitter) && dateInformation !== 0" :scrollStatus="userHasScrolled" :eventTimeStamp="dateInformation.valueOf()"></DateDisplayer>
+		<div v-if="oldestEventIsLoaded" class="rounded-xl flex items-center justify-center w-60 mx-auto mb-12 border border-solid border-black dark:border-white">
+			{{ $t('rooms.roomCreated') }}
+		</div>
+		<template v-if="roomTimeLine.length > 0">
+			<div v-for="item in roomTimeLine" :key="item.event.event_id">
+				<div ref="elRoomEvent" :id="item.event.event_id">
+					<RoomEvent :room="room" :event="item.event" class="room-event" @in-reply-to-click="onInReplyToClick" @delete-message="confirmDeleteMessage"></RoomEvent>
+					<UnreadMarker v-if="settings.isFeatureEnabled(FeatureFlag.unreadMarkers)" :currentEventId="item.event.event_id" :currentUserId="user.user.userId"></UnreadMarker>
+				</div>
 			</div>
 		</template>
 	</div>
-	<InRoomNotifyMarker v-if="settings.isFeatureEnabled(featureFlagType.unreadMarkers)"></InRoomNotifyMarker>
+	<DeleteMessageDialog v-if="showConfirmDelMsgDialog" :event="eventToBeDeleted" :room="rooms.currentRoom" @close="showConfirmDelMsgDialog = false" @yes="deleteMessage"></DeleteMessageDialog>
+	<InRoomNotifyMarker v-if="settings.isFeatureEnabled(FeatureFlag.unreadMarkers)"></InRoomNotifyMarker>
 </template>
 
 <script setup lang="ts">
+	import { useMatrixFiles } from '@/composables/useMatrixFiles';
 	import { ElementObserver } from '@/core/elementObserver';
 	import { usePubHubs } from '@/core/pubhubsStore';
-	import { useRooms, useUser } from '@/store/store';
+	import { useRooms } from '@/store/store';
+	import { EventTimeline } from 'matrix-js-sdk';
 	import { computed, onMounted, ref, watch } from 'vue';
 
 	import { LOGGER } from '@/dev/Logger';
 	import { SMI } from '@/dev/StatusMessage';
+	import { TMessageEvent } from '@/model/events/TMessageEvent';
 	import Room from '@/model/rooms/Room';
-	import { featureFlagType, useSettings } from '@/store/store';
+	import { FeatureFlag, useSettings } from '@/store/settings';
+	import { useUser } from '@/store/user';
 	import DateDisplayer from '../ui/DateDisplayer.vue';
-	const settings = useSettings();
+	import RoomEvent from './RoomEvent.vue';
 
+	const settings = useSettings();
 	const rooms = useRooms();
 	const user = useUser();
 	const pubhubs = usePubHubs();
+	const { deleteMediaUrlfromMxc } = useMatrixFiles();
 	const elRoomTimeline = ref<HTMLElement | null>(null);
 	const elRoomEvent = ref<HTMLElement | null>(null);
 	const isLoadingNewEvents = ref(false);
-	let newestEventId: string | undefined;
+	const showConfirmDelMsgDialog = ref(false);
+	const eventToBeDeleted = ref<TMessageEvent>();
 
-	let oldestEventIsLoaded = ref<boolean>(false);
+	const DELAY_POPUP_VIEW_ON_SCREEN = 4000; // 4 seconds
+	const DELAY_RECEIPT_MESSAGE = 4000; // 4 seconds
+	const DELAY_WAIT_OBSERVING = 100; // 100 milliseconds interval to periodically check for event Id for new message.
+
 	let userHasScrolled = ref<boolean>(true);
 	let dateInformation = ref<number>(0);
+	let elementObserver: ElementObserver | null = null;
+	let initialLoading: boolean = false;
 
 	const props = defineProps({ room: { type: Room, required: true }, scrollToEventId: String });
-
 	const emit = defineEmits(['scrolledToEventId']);
 
 	const roomTimeLine = computed(() => {
-		return props.room.getVisibleTimeline();
+		return props.room.getTimeline();
 	});
 
-	const DELAY_POPUP_VIEW_ON_SCREEN = 4000; // 4 seconds
+	const oldestEventIsLoaded = computed(() => {
+		return props.room.isOldestMessageLoaded();
+	});
 
-	const DELAY_RECEIPT_MESSAGE = 4000; // 4 seconds
-
-	const DELAY_WAIT_OBSERVING = 100; // 100 milliseconds interval to periodically check for event Id for new message.
-
-	let elementObserver: ElementObserver | null = null;
-
-	async function setupRoomTimeline() {
-		LOGGER.log(SMI.ROOM_TIMELINE_TRACE, `setupRoomTimeline...`, { roomId: props.room.roomId });
-
-		await loadInitialEvents();
-
-		await rooms.storeRoomNotice(props.room.roomId);
-		if (settings.isFeatureEnabled(featureFlagType.dateSplitter)) {
-			userHasScrolled.value = true;
-			setInterval(() => {
-				if (userHasScrolled.value) {
-					userHasScrolled.value = false;
-				}
-			}, DELAY_POPUP_VIEW_ON_SCREEN);
-		}
-
-		// Instantiate ElementObserver with your target element when the element is fully in the viewport.
-		// Default value of 1 for threshold does not work on safari.
-		elementObserver = elRoomEvent.value && new ElementObserver(elRoomEvent.value, { threshold: 0.95 });
-		if (settings.isFeatureEnabled(featureFlagType.notifications)) {
-			elementObserver?.setUpObserver(handlePrivateReceipt);
-		}
-
-		//Date Display Interaction callback is based on feature flag
-		settings.isFeatureEnabled(featureFlagType.dateSplitter) && elementObserver?.setUpObserver(handleDateDisplayer);
-
-		scrollToBottom();
-
-		LOGGER.log(SMI.ROOM_TIMELINE_TRACE, `setupRoomTimeline done`);
-	}
+	const newestEventLoaded = computed(() => {
+		return props.room.isNewestMessageLoaded();
+	});
 
 	onMounted(() => {
 		LOGGER.log(SMI.ROOM_TIMELINE_TRACE, `onMounted RoomTimeline`, { roomId: props.room.roomId });
@@ -91,7 +77,7 @@
 	});
 
 	watch(
-		() => props.room.roomId,
+		() => props.room,
 		() => {
 			LOGGER.log(SMI.ROOM_TIMELINE_TRACE, `Room changed to room: ${props.room.roomId}`, { roomId: props.room.roomId });
 
@@ -100,10 +86,46 @@
 	);
 
 	// Watch for new messages.
-	watch(() => props.room.timelineGetLength(), onTimelineChange);
+	watch(() => props.room.getLivetimelineLength(), onTimelineChange);
 
 	// Watch for currently visible eventId
 	watch(() => props.scrollToEventId, onScrollToEventId);
+
+	async function setupRoomTimeline() {
+		LOGGER.log(SMI.ROOM_TIMELINE_TRACE, `setupRoomTimeline...`, { roomId: props.room.roomId });
+
+		initialLoading = true;
+		await props.room.loadInitialEvents();
+		initialLoading = false;
+
+		// NB order is important here: perform scrollToEvent to last event only after storeRoomNotice has finished,
+		// otherwise it will scroll to another event
+		await rooms.storeRoomNotice(props.room.roomId);
+		const newestEventId = props.room.getTimelineNewestMessageEventId();
+		if (newestEventId) {
+			scrollToEvent(newestEventId, { position: 'end' });
+		}
+
+		if (settings.isFeatureEnabled(FeatureFlag.dateSplitter)) {
+			userHasScrolled.value = true;
+			setInterval(() => {
+				if (userHasScrolled.value) {
+					userHasScrolled.value = false;
+				}
+			}, DELAY_POPUP_VIEW_ON_SCREEN);
+		}
+		// Instantiate ElementObserver with your target element when the element is fully in the viewport.
+		// Default value of 1 for threshold does not work on safari.
+		elementObserver = elRoomEvent.value && new ElementObserver(elRoomEvent.value, { threshold: 0.95 });
+		if (settings.isFeatureEnabled(FeatureFlag.notifications)) {
+			elementObserver?.setUpObserver(handlePrivateReceipt);
+		}
+
+		//Date Display Interaction callback is based on feature flag
+		settings.isFeatureEnabled(FeatureFlag.dateSplitter) && elementObserver?.setUpObserver(handleDateDisplayer);
+
+		LOGGER.log(SMI.ROOM_TIMELINE_TRACE, `setupRoomTimeline done `, roomTimeLine);
+	}
 
 	const handlePrivateReceipt = (entries: IntersectionObserverEntry[]) => {
 		if (entries.length < 1) return;
@@ -126,7 +148,9 @@
 			if (lastSeenEventId === stillLastSeenEventId) {
 				const lastVisibleEvent = stillLastSeenEventId && props.room.findEventById(stillLastSeenEventId);
 				// When sending a message it can be in your Room but not yet in the timeline since it has to go through Synapse.
-				lastVisibleEvent && lastVisibleEvent.localTimestamp >= props.room.findEventById(entries.at(-1)!.target.id!)?.localTimestamp && (await pubhubs.sendPrivateReceipt(lastVisibleEvent));
+				if (lastVisibleEvent && lastVisibleEvent.localTimestamp >= (props.room.findEventById(entries.at(-1)!.target.id!)?.localTimestamp ?? lastVisibleEvent.localTimestamp)) {
+					await pubhubs.sendPrivateReceipt(lastVisibleEvent);
+				}
 			}
 		}, DELAY_RECEIPT_MESSAGE);
 	};
@@ -157,29 +181,30 @@
 		if (!newTimelineLength || !oldTimelineLength) return;
 		if (!elRoomTimeline.value) return;
 		if (!rooms.currentRoom) return;
-		if (!newEventsExist()) return;
+		if (props.room.isNewestMessageLoaded()) return;
 
 		LOGGER.log(SMI.ROOM_TIMELINE_TRACE, `onTimelineChange`, { newTimelineLength, oldTimelineLength });
 
-		newestEventId = props.room.timelineGetNewestEvent()?.event_id;
+		if (!initialLoading) {
+			let newestEventId = props.room.getLiveTimelineNewestEvent()?.event_id;
+			await updateTimeLineWindow(); // update timeline and (optionally) the scrollbar
 
-		await showMessageFromSender();
+			settings.isFeatureEnabled(FeatureFlag.dateSplitter) && elementObserver?.setUpObserver(handleDateDisplayer);
 
-		settings.isFeatureEnabled(featureFlagType.dateSplitter) && elementObserver?.setUpObserver(handleDateDisplayer);
+			if (settings.isFeatureEnabled(FeatureFlag.notifications)) {
+				// If the room is empty then no reference to elRoomEvent is present. In that case, ElementObserver needs to be initialized.
+				if (!elementObserver) elementObserver = elRoomEvent.value && new ElementObserver(elRoomEvent.value, { threshold: 0.95 });
 
-		if (settings.isFeatureEnabled(featureFlagType.notifications)) {
-			// If the room is empty then no reference to elRoomEvent is present. In that case, ElementObserver needs to be initialized.
-			if (!elementObserver) elementObserver = elRoomEvent.value && new ElementObserver(elRoomEvent.value, { threshold: 0.95 });
-
-			// Wait until stable event Id is available, otherwise start observing.
-			if (newestEventId?.substring(0, 1) === '~') {
-				waitObservingEvent();
-			} else {
-				elementObserver?.setUpObserver(handlePrivateReceipt);
+				// Wait until stable event Id is available, otherwise start observing.
+				if (newestEventId?.substring(0, 1) === '~') {
+					waitObservingEvent();
+				} else {
+					elementObserver?.setUpObserver(handlePrivateReceipt);
+				}
 			}
 		}
 
-		LOGGER.log(SMI.ROOM_TIMELINE_TRACE, `onTimelineChange ended`);
+		LOGGER.log(SMI.ROOM_TIMELINE_TRACE, `onTimelineChange ended `, roomTimeLine.value);
 	}
 
 	// eslint-disable-next-line @typescript-eslint/no-unused-vars
@@ -195,31 +220,34 @@
 		if (!(ev.target instanceof HTMLElement)) return;
 
 		userHasScrolled.value = true;
+
 		// If scrolled to the top of the screen, load older events.
 		if (ev.target.scrollTop === 0) {
 			isLoadingNewEvents.value = true;
-			const prevOldestLoadedEventId = props.room.timelineGetOldestMessageEventId();
-			oldestEventIsLoaded.value = !(await props.room.loadOlderEvents());
+
+			const prevOldestLoadedEventId = props.room.getTimelineOldestMessageEventId();
 			if (prevOldestLoadedEventId && !oldestEventIsLoaded.value) {
-				await scrollToEvent(prevOldestLoadedEventId); //Wait for scrolling to end.
+				await props.room.paginate(EventTimeline.BACKWARDS);
+				await scrollToEvent(prevOldestLoadedEventId);
 				// Start observing when old messages are loaded.
-				settings.isFeatureEnabled(featureFlagType.dateSplitter) && elementObserver?.setUpObserver(handleDateDisplayer);
+				settings.isFeatureEnabled(FeatureFlag.dateSplitter) && elementObserver?.setUpObserver(handleDateDisplayer);
 			}
 			isLoadingNewEvents.value = false;
 		}
 
-		// If scrolled to the bottom of the screen, load newer events
-		// if (Math.abs(ev.target.scrollHeight - ev.target.clientHeight - ev.target.scrollTop) <= 0.1) {
-		// 	// load newer events into timeline
-		// 	isLoadingNewEvents.value = true;
-		// 	const prevNewestLoadedEventId = props.room.timelineGetNewestMessageEventId();
-		// 	const newestEventIsLoaded = await props.room.loadNewerEvents();
-		// 	if (prevNewestLoadedEventId && !newestEventIsLoaded) {
-		// 		await scrollToEvent(prevNewestLoadedEventId);
-		// 		settings.isFeatureEnabled(featureFlagType.dateSplitter) && elementObserver?.setUpObserver(handleDateDisplayer);
-		// 	}
-		// 	isLoadingNewEvents.value = false;
-		// }
+		// If scrolled to the bottom of the screen, load newer events if available
+		if (Math.abs(ev.target.scrollHeight - ev.target.clientHeight - ev.target.scrollTop) <= 1) {
+			isLoadingNewEvents.value = true;
+
+			const prevNewestLoadedEventId = props.room.getTimelineNewestMessageEventId();
+			if (prevNewestLoadedEventId && !newestEventLoaded.value) {
+				await props.room.paginate(EventTimeline.FORWARDS);
+				await scrollToEvent(prevNewestLoadedEventId, { position: 'end' });
+				// Observe newer messages when timeline loads new messages.
+				settings.isFeatureEnabled(FeatureFlag.dateSplitter) && elementObserver?.setUpObserver(handleDateDisplayer);
+			}
+			isLoadingNewEvents.value = false;
+		}
 		//Date Display Interaction callback is based on feature flag
 	}
 
@@ -227,36 +255,62 @@
 		scrollToEvent(inReplyToId, { position: 'center', select: 'Highlight' });
 	}
 
+	function confirmDeleteMessage(event: TMessageEvent) {
+		showConfirmDelMsgDialog.value = true;
+		eventToBeDeleted.value = event;
+	}
+
+	async function deleteMessage() {
+		if (eventToBeDeleted.value) {
+			const messageType = eventToBeDeleted.value.content.msgtype;
+			// If the message that will be deleted contains a file or image, delete this media from the server as well
+			if ((messageType === 'm.file' || messageType === 'm.image') && eventToBeDeleted.value.content.url) {
+				const accessToken = pubhubs.Auth.getAccessToken();
+				const req = new XMLHttpRequest();
+				req.open('DELETE', deleteMediaUrlfromMxc(eventToBeDeleted.value.content.url));
+				req.setRequestHeader('Authorization', 'Bearer ' + accessToken);
+				req.send();
+			}
+			pubhubs.deleteMessage(rooms.currentRoomId, eventToBeDeleted.value.event_id);
+			LOGGER.log(SMI.ROOM_TIMELINE_TRACE, `Deleted message with id ${eventToBeDeleted.value.event_id}`, { eventToBeDeleted });
+		}
+	}
+
 	/**
 	 *  Wait for observation if stable event Id is not assigned.
 	 */
 	function waitObservingEvent() {
 		let timer = setInterval(function () {
-			if (props.room.timelineGetNewestEvent()?.event_id?.substring(0, 1) !== '~') {
+			if (props.room.getLiveTimelineNewestEvent()?.event_id?.substring(0, 1) !== '~') {
 				elementObserver?.setUpObserver(handlePrivateReceipt);
 				clearInterval(timer);
 			}
 		}, DELAY_WAIT_OBSERVING);
 	}
 
-	/**
-	 * When a user posts a message we want to scroll down to that message.
-	 */
-	async function showMessageFromSender() {
-		const lastEvent = props.room.getVisibleTimeline().at(-1);
-		let lastEventId = lastEvent?.event.event_id;
-		if (lastEvent?.event.sender === user.user.userId && lastEventId) await scrollToEvent(lastEventId);
+	// Update the timelineWindow from timelinechanges
+	async function updateTimeLineWindow() {
+		const currentLastEventId = props.room.getTimelineNewestMessageEventId(); // newest visible event
+		const inView = currentLastEventId ? elRoomTimeline.value?.querySelector(`[id="${currentLastEventId}"]`) : undefined;
+
+		const newestEvent = props.room.getLiveTimelineNewestEvent(); // newest live event
+		if (newestEvent && props.room.isVisibleEvent(newestEvent)) {
+			// Make sure the new event is in the timeline when the user is the sender and/or the previous newest event was visible
+			const messageSendByUser = newestEvent?.event_id && newestEvent?.sender === user.user.userId;
+			if (inView || messageSendByUser) {
+				props.room.paginate(EventTimeline.FORWARDS); // loads active timelinewindow to newest event
+			}
+
+			// When the new event is send by the user: scroll to the message
+			if (messageSendByUser && newestEvent?.event_id) {
+				await scrollToEvent(newestEvent.event_id);
+			}
+		} else if (newestEvent && newestEvent.type === 'm.room.redaction') {
+			props.room.addToRedactedEventIds(newestEvent.redacts!);
+		}
 	}
 
 	//#endregion
-
-	// Removed this for now as lastReadEventId might be an invisible event (to which you cannot scroll). This might have been causing issues.
-	// async function scrollToLastReadEvent() {
-	// 	const wrappedReceipt = props.room.getReadReceiptForUserId(user.user.userId, false, ReceiptType.ReadPrivate);
-	// 	if (!wrappedReceipt) return;
-	// 	const lastReadEventId = wrappedReceipt?.eventId;
-	// 	if (lastReadEventId) await scrollToEvent(lastReadEventId);
-	// }
 
 	async function scrollToEvent(eventId: string, options: { position: 'start' | 'center' | 'end'; select?: 'Highlight' | 'Select' } = { position: 'start' }) {
 		LOGGER.log(SMI.ROOM_TIMELINE_TRACE, `scroll to event: ${eventId}`, { eventId });
@@ -291,37 +345,6 @@
 			doScroll(elEvent);
 		}
 	}
-
-	function scrollToBottom() {
-		elRoomTimeline.value?.scrollTo(0, elRoomTimeline.value.scrollHeight);
-	}
-
-	/**
-	 * Sometimes, not enough messages are loaded by matrix-js-sdk because of other types of events (for example, a room rename event) being loaded.
-	 * This function loads around 15 messages if there are that many.
-	 *
-	 */
-	async function loadInitialEvents() {
-		LOGGER.log(SMI.ROOM_TIMELINE_TRACE, `loadInitialEvents...`, { roomId: props.room.roomId, roomTimeLine: roomTimeLine.value.map((e) => e.event) });
-		oldestEventIsLoaded.value = false;
-
-		let numLoadedMessages = props.room.timelineGetNumMessageEvents();
-		let allMessagesLoaded = false;
-
-		while (numLoadedMessages < 15 && !allMessagesLoaded) {
-			allMessagesLoaded = !(await props.room.loadOlderEvents());
-			numLoadedMessages = props.room.timelineGetNumMessageEvents();
-		}
-		if (allMessagesLoaded) {
-			oldestEventIsLoaded.value = true;
-		}
-
-		LOGGER.log(SMI.ROOM_TIMELINE_TRACE, `loadInitialEvents done`, { numLoadedMessages, roomTimeLine: roomTimeLine.value.map((e) => e.event) });
-	}
-
-	function newEventsExist(): boolean {
-		return newestEventId !== props.room.timelineGetNewestEvent()?.event_id;
-	}
 </script>
 
 <style scoped>
@@ -339,9 +362,11 @@
 		0% {
 			background: none;
 		}
+
 		70% {
 			background: gray;
 		}
+
 		100% {
 			background: none;
 		}

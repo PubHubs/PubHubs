@@ -89,7 +89,7 @@
 		return filtered;
 	});
 
-	function selectEmojiByGroup(group: Number = 0) {
+	function selectEmojiByGroup(group: number = 0) {
 		selectedGroup.value = group;
 	}
 

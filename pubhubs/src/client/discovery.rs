@@ -1,100 +1,52 @@
 use crate::api;
-use crate::misc::fmt_ext;
 use crate::servers::{self, Constellation};
 
-use anyhow::ensure;
-
-/// Drives the discovery process of the pubhubs servers until all servers are up and running
-/// or an error is encountered.  Returns the resulting [Constellation].
-///
-/// Must be run from within a [tokio::task::LocalSet].
-pub async fn drive_discovery(phc_url: &url::Url) -> anyhow::Result<Constellation> {
-    let now = std::time::Instant::now();
-
-    let phc_inf = drive_discovery_of(phc_url).await?;
-
-    ensure!(
-        phc_inf.constellation.is_some(),
-        "PHC returned empty constellation"
-    );
-
-    let c = phc_inf.constellation.as_ref().unwrap();
-
-    let other_servers = [
-        servers::Name::Transcryptor,
-        servers::Name::AuthenticationServer,
-    ];
-
-    let infs = futures_util::future::try_join_all(
-        other_servers
-            .iter()
-            .map(|name: &servers::Name| drive_discovery_of(c.url(*name))),
-    )
-    .await?;
-
-    for i in 0..other_servers.len() {
-        let name = other_servers[i];
-        let inf = &infs[i];
-
-        ensure!(
-            inf.constellation == phc_inf.constellation,
-            "{name} has a different view of the PubHubs servers constellation"
-        );
-    }
-
-    log::info!(
-        "discovery of all servers completed in {:.1} seconds",
-        now.elapsed().as_secs_f32()
-    );
-
-    Ok(phc_inf.constellation.unwrap())
-}
-
-/// Drive discovery of the server at the given url, returns the
-/// [api::DiscoveryInfoResp] returned by the server when discovery has been completed.
-async fn drive_discovery_of(url: &url::Url) -> anyhow::Result<api::DiscoveryInfoResp> {
-    let inf = {
-        let res = api::query::<api::DiscoveryInfo>(url, &()).await;
-        ensure!(
-            res.is_ok(),
-            "could not get discovery info from {}: {}",
-            url,
-            fmt_ext::Json(res)
-        );
-        res.unwrap()
-    };
-
-    if inf.constellation.is_some() {
-        return Ok(inf);
-    }
-
-    let res = api::query_with_retry::<api::DiscoveryRun>(url, &()).await;
-    ensure!(
-        res.is_ok(),
-        "running discovery of {} at {} failed: {}",
-        inf.name,
-        url,
-        fmt_ext::Json(res.unwrap_err())
-    );
-
+/// Retrieves [Constellation] from specified, waiting for it to be set.
+pub async fn get_constellation(url: &url::Url) -> anyhow::Result<Constellation> {
     crate::misc::task::retry(|| async {
-        let res = api::query::<api::DiscoveryInfo>(url, &()).await.retryable();
-
-        // retry if query returned a retryable error,
-        // or if PHC's state is still Discovery
-        match res.as_ref() {
-            Ok(Some(inf)) => {
-                if inf.constellation.is_none() {
-                    Ok(None)
-                } else {
-                    res
-                }
-            }
-            _ => res,
-        }
+        // Retry calling DiscoveryInfo endpoint while it returns a retryable error or some
+        // DiscoveryInfoResp with None constellation until constellation is Some.
+        (match api::query::<api::DiscoveryInfo>(url, &())
+            .await
+            .retryable()/* <- turns retryable error Err(err) into Ok(None) */?
+        {
+            Some(inf) => Ok(inf.constellation),
+            None => Ok(None),
+        }) as anyhow::Result<Option<Constellation>>
     })
     .await?
-    .ok_or_else(|| anyhow::anyhow!("timeout waiting for {} to leave discovery state", inf.name))
+    .ok_or_else(|| {
+        anyhow::anyhow!(
+            "timeout waiting for {url} to publish constellation",
+            url = url
+        )
+    })
+}
+
+/// Requests discovery of PubHubs and wait until it's finished.
+///
+/// After this function returns succesfully the servers agree on the current constellation,
+/// and this constellation is up-to-date with the info advertised by the servers, provided,
+/// at least, that there was no change to one of the servers in the meantime.
+pub async fn await_discovery(phc_url: &url::Url) -> anyhow::Result<()> {
+    crate::misc::task::retry(|| async {
+        (match api::query::<api::DiscoveryRun>(phc_url, &())
+            .await
+            .retryable()?
+        {
+            Some(api::DiscoveryRunResp::UpToDate) => Ok(Some(())), // ok -> done
+            Some(api::DiscoveryRunResp::Restarting) => Ok(None),   // restarting -> retry
+            None => Ok(None),                                      // retryable error -> retry
+        }) as anyhow::Result<Option<()>>
+    })
+    .await?
+    .ok_or_else(|| {
+        anyhow::anyhow!(
+            "timeout waiting for PHC at {phc_url} to finish discovery",
+            phc_url = phc_url
+        )
+    })?;
+    Ok(())
 }
 
 /// Specifies what to check about  a [api::DiscoveryInfoResp]

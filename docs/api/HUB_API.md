@@ -2,6 +2,20 @@
 
 Here you will find api calls to the hub's server that are not standard Matrix Api calls, but specific for PubHubs clients.
 
+## General
+
+### Endpoints
+
+#### `GET _synapse/client/.ph/info`
+
+Unauthenticated (on purpose). Rerturns basic info about the hub, currenly only the hub version, e.g.:
+```json
+{"hub_version": "v0.5.1-34-g1f07cbb7"}
+```
+Will be used more extensively by the upcoming multi-server setup.
+
+ - `hub_version`:  what `git describe --tags` returned when the hub's docker image was built
+
 ## Secured rooms
 
 ### Goal of YiviRoomJoiner module
@@ -138,3 +152,4 @@ Allow the front end session to check the session status.
 - /_synapse/client/ph/yivi-endpoint
 - /_synapse/client/yiviproxy
 - /_synapse/client/secured_rooms
+

@@ -9,7 +9,7 @@
 		:title="placeholder"
 		:value="modelValue"
 		:disabled="disabled === true"
-		@input="update($event.target?.value)"
+		@input="update(($event.target as HTMLTextAreaElement).value)"
 		@keyup="onKeyUp"
 		@keydown.enter.exact="submit()"
 		@keydown.esc="cancel()"

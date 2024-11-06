@@ -1,9 +1,9 @@
 <template>
 	<div class="flex flex-col h-44 w-full">
-		<ImagePlaceholder :src="image" class="h-24 rounded-t-md overflow-hidden"></ImagePlaceholder>
-		<div class="rounded-b-md bg-white-middle text-black dark:bg-gray dark:text-white">
+		<ImagePlaceholder :src="image" class="rounded-t-md overflow-hidden"></ImagePlaceholder>
+		<div class="rounded-b-md bg-white-middle text-hub-text dark:bg-gray">
 			<div class="w-fit flex -mt-6 py-1 px-4 rounded-r-md bg-blue-light">
-				<Icon type="room" size="sm" class="text-black"></Icon>
+				<Icon type="speech_bubbles" size="sm" class="text-black"></Icon>
 				<p class="pl-2 text-white"><slot name="category"></slot></p>
 			</div>
 			<div class="flex flex-col px-4 pb-1 mt-1">

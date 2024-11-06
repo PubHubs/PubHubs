@@ -1,13 +1,11 @@
 import { usePubHubs } from '@/core/pubhubsStore';
 import { LOGGER } from '@/dev/Logger';
 import { SMI } from '@/dev/StatusMessage';
-import { useRooms } from '@/store/rooms';
-import { useUser } from '@/store/user';
-import { EventTimeline, EventTimelineSet, MatrixEvent, Room as MatrixRoom, NotificationCountType } from 'matrix-js-sdk';
+import { RoomTimelineWindow } from '@/model/timeline/RoomTimelineWindow';
+import { Direction, EventTimeline, EventTimelineSet, MatrixClient, MatrixEvent, Room as MatrixRoom, NotificationCountType } from 'matrix-js-sdk';
 import { CachedReceipt, ReceiptType, WrappedReceipt } from 'matrix-js-sdk/lib/@types/read_receipts';
 import { TBaseEvent } from '../events/TBaseEvent';
 import { TRoomMember } from './TRoomMember';
-// import { useI18n } from 'vue-i18n';
 
 enum RoomType {
 	SECURED = 'ph.messages.restricted',
@@ -17,21 +15,6 @@ enum RoomType {
 const BotName = {
 	NOTICE: 'notices',
 	SYSTEM: 'system_bot',
-};
-
-// Set high to make sure there is enough m.room.message events loaded
-const PAGINATION_LIMIT = 250;
-
-/** event filters */
-const visibleEventTypes = ['m.room.message'];
-const invisibleMessageTypes = ['m.notice']; // looking in event.content.msgtype
-const isMessageEvent = (event: MatrixEvent) => event.event.type === 'm.room.message';
-const isVisibleEvent = (event: MatrixEvent) => {
-	if (!visibleEventTypes.includes(event.event.type as string)) return false;
-	if (event.event.content?.msgtype) {
-		if (invisibleMessageTypes.includes(event.event.content?.msgtype)) return false;
-	}
-	return true;
 };
 
 /**
@@ -46,7 +29,9 @@ export default class Room {
 	private hidden: boolean;
 
 	public numUnreadMessages: number;
-	public oldestEventIsLoaded: boolean;
+
+	// timelinewindow of currently shown events
+	private timelineWindow: RoomTimelineWindow;
 
 	// Keep track of first visible message on screen with eventId and its timestamp.
 	// This is used for observing (or detecting) first and last visible message on viewport.
@@ -56,17 +41,16 @@ export default class Room {
 	private lastVisibleTimeStamp: number;
 	private lastVisibleEventId: string;
 
-	private userStore;
-	private roomsStore;
 	private pubhubsStore;
 
 	logger = LOGGER;
 
 	constructor(matrixRoom: MatrixRoom) {
+		LOGGER.log(SMI.ROOM_TRACE, `Roomclass Constructor `, { roomId: matrixRoom.roomId });
+
 		this.matrixRoom = matrixRoom;
 		this.hidden = false;
 		this.numUnreadMessages = 0;
-		this.oldestEventIsLoaded = false;
 
 		this.firstVisibleEventId = '';
 		this.firstVisibleTimeStamp = 0;
@@ -74,12 +58,20 @@ export default class Room {
 		this.lastVisibleEventId = '';
 		this.lastVisibleTimeStamp = 0;
 
-		this.userStore = useUser();
-		this.roomsStore = useRooms();
 		this.pubhubsStore = usePubHubs();
+
+		this.timelineWindow = new RoomTimelineWindow(this.matrixRoom, this.pubhubsStore.client as MatrixClient);
 	}
 
-	//#region getters and setters
+	public isPrivateRoom(): boolean {
+		return this.getType() === RoomType.PH_MESSAGES_DM;
+	}
+
+	public isSecuredRoom(): boolean {
+		return this.getType() === RoomType.SECURED;
+	}
+
+	// #region getters and setters
 	get roomId(): string {
 		return this.matrixRoom.roomId;
 	}
@@ -165,9 +157,9 @@ export default class Room {
 		return topic;
 	}
 
-	//#endregion
+	// #endregion
 
-	//#region members
+	// #region members
 	public getMember(userId: string) {
 		return this.matrixRoom.getMember(userId);
 	}
@@ -232,13 +224,9 @@ export default class Room {
 		}
 		return false;
 	}
-	//#endregion
+	// #endregion
 
-	//#region events
-	/**
-	 * For now, we only support a single timeline: the live timeline of the unfiltered timelineSet of this room (returned by getLiveTimeline()).
-	 *
-	 */
+	// #region events
 
 	public hasEvents(): boolean {
 		return this.matrixRoom.getLiveTimeline().getEvents().length > 0;
@@ -251,10 +239,6 @@ export default class Room {
 			.some((roomEvent) => roomEvent.getType() === 'm.room.message');
 	}
 
-	public findEventById(eventId: string): MatrixEvent | undefined {
-		return this.matrixRoom.findEventById(eventId);
-	}
-
 	/**
 	 * Removes a single event from this room.
 	 *
@@ -265,125 +249,7 @@ export default class Room {
 		return this.matrixRoom.removeEvent(eventId);
 	}
 
-	private getTimelineSets(): EventTimelineSet[] {
-		return this.matrixRoom.getTimelineSets();
-	}
-
-	public getTimelineForEvent(eventId: string): EventTimeline | null {
-		return this.matrixRoom.getTimelineForEvent(eventId);
-	}
-
-	public timelineGetEvents(): MatrixEvent[] {
-		return this.matrixRoom.getLiveTimeline().getEvents();
-	}
-
-	public timelineGetNewestEvent(): Partial<TBaseEvent> | undefined {
-		return this.matrixRoom.getLiveTimeline().getEvents().at(-1)?.event;
-	}
-
-	public timelineGetLength(): number {
-		return this.matrixRoom.getLiveTimeline().getEvents().length;
-	}
-
-	public timelineGetNumMessageEvents(): number {
-		return this.matrixRoom.getLiveTimeline().getEvents().filter(isMessageEvent).length;
-	}
-
-	/**
-	 * Checks whether the timeline contains any events sent by the user.
-	 * @param userId
-	 * @param since If specified, the index in the timeline array to start checking.
-	 */
-	public timelineContainsUserSentEvents(userId: string, since?: number): boolean {
-		const events = this.matrixRoom.getLiveTimeline().getEvents().slice(since);
-		return events.some((event) => event.getSender() === userId);
-	}
-
-	public timelineGetOldestMessageEventId(): string | undefined {
-		return this.timelineGetEvents()
-			.find((event) => event.getType() === 'm.room.message')
-			?.getId();
-	}
-
-	public timelineGetNewestMessageEventId(): string | undefined {
-		// we have to check all timelines to get the newest event
-		const timelineSets = this.getTimelineSets();
-		let newestEventId: string | undefined = undefined;
-		let eventDate: Date | null = null;
-		timelineSets.forEach((timelineSet) => {
-			timelineSet.getTimelines().forEach((timeline) => {
-				timeline.getEvents().forEach((event) => {
-					const currentEventDate = event.getDate();
-					if (event.getType() === 'm.room.message' && currentEventDate != null) {
-						if (!eventDate) {
-							eventDate = currentEventDate;
-							newestEventId = event.getId();
-						}
-						if (currentEventDate > eventDate) {
-							newestEventId = event.getId();
-						}
-					}
-				});
-			});
-		});
-		return newestEventId;
-	}
-
-	/**
-	 *
-	 * @returns Promise which resolves to a boolean: false if there are no events and we reached the beginning of the timeline; else true.
-	 */
-	public async loadOlderEvents(options: { limit?: number } = {}): Promise<boolean> {
-		this.logger.log(SMI.ROOM_TRACE, `Loading older events...`, { roomId: this.roomId, options });
-
-		const mergedOptions = { backwards: true, limit: PAGINATION_LIMIT, ...options };
-
-		const liveTimeline = this.matrixRoom.getLiveTimeline();
-		const firstEvent = liveTimeline.getEvents()[0];
-
-		// If all messages are loaded, return.
-		if (!firstEvent || firstEvent.getType() === 'm.room.create') return false;
-
-		return this.matrixRoom.client.paginateEventTimeline(liveTimeline, mergedOptions);
-	}
-
-	public async loadToEvent(eventId: string) {
-		this.logger.log(SMI.ROOM_TRACE, `Loading to event ${eventId}...`, { roomId: this.roomId, eventId });
-
-		let i = 0;
-		let allEventsLoaded = false;
-		const searchLimit = 10;
-
-		const eventFound = () => {
-			return this.timelineGetEvents().some((event) => event.getId() === eventId);
-		};
-
-		while (!allEventsLoaded && i < searchLimit) {
-			if (eventFound()) return;
-			allEventsLoaded = !(await this.loadOlderEvents({ limit: 5000 }));
-			i++;
-		}
-
-		throw new Error('Could not find event within the search limit.');
-	}
-
-	//#endregion
-
-	public getVisibleTimeline() {
-		const unfilteredTimeline = this.matrixRoom.getLiveTimeline().getEvents();
-		this.logger.log(SMI.ROOM_TRACE, `Room.getVisibleTimeline unfiltered`, { roomId: this.roomId, unfilteredTimeline: unfilteredTimeline.map((e) => e.event) });
-		const timeline = unfilteredTimeline.filter(isVisibleEvent);
-		this.logger.log(SMI.ROOM_TRACE, `Room.getVisibleTimeline`, { roomId: this.roomId, timeline: timeline.map((e) => e.event) });
-		return timeline;
-	}
-
-	public isPrivateRoom(): boolean {
-		return this.getType() === RoomType.PH_MESSAGES_DM;
-	}
-
-	public isSecuredRoom(): boolean {
-		return this.getType() === RoomType.SECURED;
-	}
+	// #endregion
 
 	//#region notification functions
 
@@ -412,4 +278,95 @@ export default class Room {
 	}
 
 	//#endregion
+
+	// #region Timeline
+
+	// Everything that happens on the live timeline, for tracking new messages
+	// The liveTimeline contains all events and reflects the current state
+
+	public getUnfilteredTimelineSet(): EventTimelineSet {
+		return this.matrixRoom.getUnfilteredTimelineSet();
+	}
+
+	public getLiveTimelineEvents(): MatrixEvent[] {
+		return this.matrixRoom.getLiveTimeline().getEvents();
+	}
+
+	public getLiveTimelineNewestEvent(): Partial<TBaseEvent> | undefined {
+		return this.matrixRoom.getLiveTimeline().getEvents().at(-1)?.event;
+	}
+
+	public getLivetimelineLength(): number {
+		return this.matrixRoom.getLiveTimeline().getEvents().length;
+	}
+
+	// #endregion
+
+	// #region TimelineWindow
+
+	// The TimelineWindow that controls the visible part of the timeline
+	// this is filtered to show only messages and gets updated by a watch on the liveTimeline
+
+	// initiate and load to newest message by creating a filtered timelineset
+	public async loadInitialEvents() {
+		await this.timelineWindow.initTimelineWindow(this.matrixRoom);
+	}
+
+	public getTimeline(): MatrixEvent[] {
+		LOGGER.log(SMI.ROOM_TRACE, `Room gettimeline `, { getTimeline: this.timelineWindow?.getTimeline() });
+		return this.timelineWindow?.getTimeline();
+	}
+
+	public async loadToEvent(eventId: string | undefined) {
+		await this.timelineWindow?.loadToEvent(eventId);
+	}
+
+	public findEventById(eventId: string): MatrixEvent | undefined {
+		return this.timelineWindow?.findEventById(eventId);
+	}
+
+	public async paginate(direction: Direction) {
+		await this.timelineWindow.paginate(direction);
+	}
+
+	public isOldestMessageLoaded(): boolean {
+		return this.timelineWindow.isOldestMessageLoaded();
+	}
+
+	public isNewestMessageLoaded(): boolean {
+		return this.timelineWindow?.isNewestMessageLoaded();
+	}
+
+	public isVisibleEvent(event: Partial<TBaseEvent>): boolean {
+		return this.timelineWindow.isVisibleEvent(event);
+	}
+
+	public getTimelineOldestMessageEventId(): string | undefined {
+		const timeline = this.getTimeline();
+		return timeline?.find((event: MatrixEvent) => event.getType() === 'm.room.message')?.getId();
+	}
+
+	public getTimelineNewestMessageEventId(): string | undefined {
+		const timeline = this.getTimeline();
+		return timeline
+			?.slice()
+			.reverse()
+			?.find((event: MatrixEvent) => event.getType() === 'm.room.message')
+			?.getId();
+	}
+
+	public inRedactedMessageIds(eventId: string): boolean {
+		return this.timelineWindow.getRedactedEventIds().includes(eventId);
+	}
+
+	public addToRedactedEventIds(eventId: string): void {
+		this.timelineWindow.getRedactedEventIds().push(eventId);
+	}
+
+	public removeRedactedEventId(eventId: string): void {
+		const index = this.timelineWindow.getRedactedEventIds().indexOf(eventId);
+		this.timelineWindow.getRedactedEventIds().splice(index, 1);
+	}
+
+	// #endregion
 }

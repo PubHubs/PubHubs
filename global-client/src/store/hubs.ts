@@ -34,6 +34,7 @@ const useHubs = defineStore('hubs', {
 	state: () => {
 		return {
 			currentHubId: '' as string,
+			currentRoomId: '' as string,
 			hubs: {} as { [index: string]: Hub },
 		};
 	},
@@ -108,85 +109,93 @@ const useHubs = defineStore('hubs', {
 			const self = this;
 			const toggleMenu = useToggleMenu();
 			const messagebox = useMessageBox();
+			const global = useGlobal();
 
-			// Only change to a Hub if there is a hubId given
-			if (typeof hubId !== 'undefined') {
-				// Test if changing to current hub (through url for example)
-				if (hubId !== this.currentHubId || this.currentHubId === '') {
-					this.currentHubId = hubId;
+			const previousHubId = this.currentHubId;
+			this.currentHubId = hubId;
 
-					if (this.currentHubExists) {
-						// Start conversation with hub frame and sync latest settings
-						await messagebox.init(MessageBoxType.Parent, this.currentHub.url);
-
-						//Show bar both client and global-side so we always enter a hub with them and we start in the same state of the bar. Hub rooms should close the bar themselves.
-						toggleMenu.showMenuAndSendToHub();
-
-						// Listen to client asking for sync
-						messagebox.addCallback(MessageType.Sync, () => {
-							// Send current settings
-							const settings = useSettings();
-							settings.sendSettings();
-
-							// Send hub information
-							messagebox.sendMessage(new Message(MessageType.HubInformation, { name: hubId }));
-
-							// Let hub navigate to given room
-							if (roomId !== undefined && roomId !== '') {
-								messagebox.sendMessage(new Message(MessageType.RoomChange, roomId));
-							}
-						});
-
-						// Listen to room change
-						messagebox.addCallback(MessageType.RoomChange, (message: Message) => {
-							const roomId = message.content;
-							// TODO: find a way router can be part of a store that TypeScript swallows.
-							// @ts-ignore
-							this.router.push({ name: 'hub', params: { id: hubId, roomId: roomId } });
-						});
-
-						//Listen to global menu change and don't resend own state.
-						messagebox.addCallback(MessageType.BarHide, () => {
-							toggleMenu.globalIsActive = false;
-						});
-
-						messagebox.addCallback(MessageType.BarShow, () => {
-							toggleMenu.globalIsActive = true;
-						});
-
-						// Listen to sync unreadmessages
-						messagebox.addCallback(MessageType.UnreadMessages, (message: Message) => {
-							self.hubs[hubId].unreadMessages = message.content as number;
-							if (self.hubs[hubId].unreadMessages > 0) {
-								sendNotification(hubId);
-							}
-						});
-
-						// Listen to modal show/hide
-						messagebox.addCallback(MessageType.DialogShowModal, () => {
-							const global = useGlobal();
-							global.showModal();
-						});
-						messagebox.addCallback(MessageType.DialogHideModal, () => {
-							const global = useGlobal();
-							global.hideModal();
-						});
-
-						// Store and remove access tokens when send from the hub client
-						messagebox.addCallback(MessageType.AddAccessToken, (accessTokenMessage: Message) => {
-							localStorage.setItem(hubId + 'accessToken', accessTokenMessage.content as string);
-						});
-						messagebox.addCallback(MessageType.RemoveAccessToken, () => {
-							localStorage.removeItem(hubId + 'accessToken');
-							// So far this message is not yet used but the hub clients.
-							// This will happen if the client says it's unhappy with its' token so refresh the page to reflect current state.
-							location.reload();
-						});
-					}
-				}
-			} else {
+			// Only change to a Hub if there is a hubId given of a valid hub, otherwise return
+			if (typeof hubId === 'undefined' || !this.currentHubExists) {
 				this.currentHubId = '';
 				messagebox.reset();
+				// TODO: find a way router can be part of a store that TypeScript swallows.
+				// @ts-ignore
+				this.router.push({ name: 'home' });
+				return;
+			}
+
+			// if the hub has not changed: check if the room has changed and if necessary sent message
+			if (previousHubId === this.currentHubId) {
+				// Let hub navigate to given room (if loggedIn)
+				if (global.loggedIn && roomId !== undefined && roomId !== '' && roomId != this.currentRoomId) {
+					this.currentRoomId = roomId;
+					messagebox.sendMessage(new Message(MessageType.RoomChange, roomId));
+				}
+			} else {
+				//The hub has changed: set it up
+
+				// Start conversation with hub frame and sync latest settings
+				await messagebox.init(MessageBoxType.Parent, this.currentHub.url);
+
+				//Show bar both client and global-side so we always enter a hub with them and we start in the same state of the bar. Hub rooms should close the bar themselves.
+				toggleMenu.showMenuAndSendToHub();
+
+				// Send current settings
+				const settings = useSettings();
+				settings.sendSettings();
+
+				// Send hub information
+				messagebox.sendMessage(new Message(MessageType.HubInformation, { name: hubId }));
+
+				// Let hub navigate to given room (if loggedIn)
+				if (global.loggedIn && roomId !== undefined && roomId !== '') {
+					messagebox.sendMessage(new Message(MessageType.RoomChange, roomId));
+				}
+
+				// Listen to room change: only change url without reloading
+				// Because this is the callback that sets the URL from the iFrame
+				messagebox.addCallback(MessageType.RoomChange, (message: Message) => {
+					const roomId = message.content;
+					const currentUrl = window.location.href;
+					const [baseUrl] = currentUrl.split('#');
+					window.history.pushState(null, '', `${baseUrl}#/hub/${hubId}/${roomId}`);
+				});
+
+				//Listen to global menu change and don't resend own state.
+				messagebox.addCallback(MessageType.BarHide, () => {
+					toggleMenu.globalIsActive = false;
+				});
+
+				messagebox.addCallback(MessageType.BarShow, () => {
+					toggleMenu.globalIsActive = true;
+				});
+
+				// Listen to sync unreadmessages
+				messagebox.addCallback(MessageType.UnreadMessages, (message: Message) => {
+					self.hubs[hubId].unreadMessages = message.content as number;
+					if (self.hubs[hubId].unreadMessages > 0) {
+						sendNotification(hubId);
+					}
+				});
+
+				// Listen to modal show/hide
+				messagebox.addCallback(MessageType.DialogShowModal, () => {
+					global.showModal();
+				});
+				messagebox.addCallback(MessageType.DialogHideModal, () => {
+					global.hideModal();
+				});
+
+				// Store and remove access tokens when send from the hub client
+				messagebox.addCallback(MessageType.AddAccessToken, (accessTokenMessage: Message) => {
+					localStorage.setItem(hubId + 'accessToken', accessTokenMessage.content as string);
+				});
+				messagebox.addCallback(MessageType.RemoveAccessToken, () => {
+					localStorage.removeItem(hubId + 'accessToken');
+					// So far this message is not yet used but the hub clients.
+					// This will happen if the client says it's unhappy with its' token so refresh the page to reflect current state.
+					location.reload();
+				});
 			}
 		},
 	},

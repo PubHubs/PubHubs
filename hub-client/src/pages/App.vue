@@ -6,16 +6,16 @@
 					<template #header>
 						<div class="flex justify-between gap-4 items-end border-b h-full py-2 pl-5 mr-8">
 							<div class="flex">
-								<Badge v-if="hubSettings.isSolo && settings.isFeatureEnabled(featureFlagType.notifications) && rooms.totalUnreadMessages > 0" class="-ml-2 -mt-2">{{ rooms.totalUnreadMessages }}</Badge>
-								<router-link to="/" class="flex">
+								<Badge v-if="hubSettings.isSolo && settings.isFeatureEnabled(FeatureFlag.notifications) && rooms.totalUnreadMessages > 0" class="-ml-2 -mt-2">{{ rooms.totalUnreadMessages }}</Badge>
+								<span @click="router.push('/')" class="flex cursor-pointer">
 									<Logo class="inline-block h-12"></Logo>
 									<TruncatedText class="mt-6">{{ settings.hub.name }}</TruncatedText>
-								</router-link>
+								</span>
 							</div>
 							<div>
 								<Avatar
-									:userId="user.user.userId"
-									:img="avatar"
+									:userId="user.userId"
+									:img="user.avatarUrl"
 									@click="
 										settingsDialog = true;
 										hubSettings.hideBar();
@@ -34,21 +34,24 @@
 
 					<H2 class="pl-5 border-b mr-8">{{ $t('menu.rooms') }}</H2>
 					<RoomList></RoomList>
-					<DiscoverRooms></DiscoverRooms>
+					<Button @click="router.push('/discoverRooms')" class="mx-auto py-1 my-2 w-5/6" :color="'gray'">
+						<Icon type="compass" class="absolute left-0 top-0 -ml-1 -mt-2"></Icon>
+						<span class="font-normal">{{ $t('rooms.discover') }}</span>
+					</Button>
 
 					<H2 class="pl-5 border-b mr-8">{{ $t('menu.private_rooms') }}</H2>
 					<RoomList :roomType="RoomType.PH_MESSAGES_DM"></RoomList>
 					<DiscoverUsers></DiscoverUsers>
 
-					<!-- When user is admin, show the moderation tools menu -->
-					<div v-if="disclosureEnabled && user.isAdmin">
-						<H2 class="pl-5 border-b mr-8">{{ $t('menu.moderation_tools') }}</H2>
-						<Menu>
-							<MenuItem :to="{ name: 'ask-disclosure' }" icon="sign">{{ $t('menu.moderation_tools_disclosure') }}</MenuItem>
-						</Menu>
-					</div>
-
 					<template #footer>
+						<!-- When user is admin, show the moderation tools menu -->
+						<div v-if="disclosureEnabled && user.isAdmin">
+							<H2 class="pl-5 border-b mr-8">{{ $t('menu.moderation_tools') }}</H2>
+							<Menu>
+								<MenuItem :to="{ name: 'ask-disclosure' }" icon="sign">{{ $t('menu.moderation_tools_disclosure') }}</MenuItem>
+							</Menu>
+						</div>
+
 						<!-- When user is admin, show the admin tools menu -->
 						<div v-if="user.isAdmin">
 							<H2 class="pl-5 border-b mr-8">{{ $t('menu.admin_tools') }}</H2>
@@ -83,8 +86,12 @@
 	import { SMI } from '@/dev/StatusMessage';
 	import { useDialog } from '@/store/dialog';
 	import { useMenu } from '@/store/menu';
+	import { MessageType } from '@/store/messagebox';
 	import { usePlugins } from '@/store/plugins';
-	import { HubInformation, featureFlagType, Message, MessageBoxType, MessageType, RoomType, Theme, TimeFormat, useHubSettings, useMessageBox, useRooms, useSettings, useUser } from '@/store/store';
+	import { RoomType } from '@/store/rooms';
+	import { FeatureFlag, HubInformation, useSettings } from '@/store/settings';
+	import { Message, MessageBoxType, useHubSettings, useMessageBox, useRooms } from '@/store/store';
+	import { useUser } from '@/store/user';
 	import { getCurrentInstance, onMounted, ref, watch } from 'vue';
 	import { useI18n } from 'vue-i18n';
 	import { RouteParamValue, useRouter } from 'vue-router';
@@ -101,21 +108,13 @@
 	const plugins = usePlugins();
 	const menu = useMenu();
 	const settingsDialog = ref(false);
-	const avatar = ref();
 	const setupReady = ref(false);
-	const disclosureEnabled = settings.isFeatureEnabled('disclosure');
+	const disclosureEnabled = settings.isFeatureEnabled(FeatureFlag.disclosure);
 
 	watch(
 		() => rooms.totalUnreadMessages,
 		() => {
 			rooms.sendUnreadMessageCounter();
-		},
-	);
-
-	watch(
-		() => user.avatarUrl,
-		() => {
-			avatar.value = user.avatarUrl;
 		},
 	);
 
@@ -132,10 +131,16 @@
 			locale.value = settings.getActiveLanguage;
 		});
 
-		if (window.location.hash !== '#/hub/') {
+		// check if hash doesn't start with hub,
+		// then it is running only the hub-client, so we need to do some checks
+		if (!window.location.hash.startsWith('#/hub/')) {
 			await pubhubs.login();
 			setupReady.value = true; // needed if running only the hub-client
 			router.push({ name: 'home' });
+		}
+		if (!user.isLoggedIn) {
+			// only needed when loggedIn (then there are user settings to setup)
+			setupReady.value = true;
 		}
 		await startMessageBox();
 
@@ -143,8 +148,6 @@
 	});
 
 	async function startMessageBox() {
-		let messageBoxStarted = false;
-
 		if (!hubSettings.isSolo) {
 			await messagebox.init(MessageBoxType.Child, hubSettings.parentUrl);
 
@@ -154,20 +157,17 @@
 			});
 
 			// Listen to roomchange
-			messagebox.addCallback(MessageType.RoomChange, (message: Message) => {
+			messagebox.addCallback(MessageType.RoomChange, async (message: Message) => {
 				const roomId = message.content as RouteParamValue;
 				if (rooms.currentRoomId !== roomId) {
-					router.push({ name: 'room', params: { id: roomId } });
+					rooms.currentRoomId = roomId;
+					await rooms.getSecuredRoomInfo(roomId);
+					if (rooms.securedRoom && rooms.securedRoom !== null) {
+						router.push({ name: 'secure-room', params: { id: roomId } });
+					} else {
+						router.push({ name: 'room', params: { id: roomId } });
+					}
 				}
-			});
-
-			// Listen to sync settings
-			messagebox.addCallback(MessageType.Settings, (message: Message) => {
-				settings.setTheme(message.content.theme as Theme);
-				settings.setTimeFormat(message.content.timeformat as TimeFormat);
-				settings.setLanguage(message.content.language);
-
-				messageBoxStarted = true;
 			});
 
 			//Listen to global menu change
@@ -180,16 +180,17 @@
 			});
 
 			// Wait for theme change happened
-			const wait = setInterval(() => {
-				if (messageBoxStarted) {
-					setupReady.value = true;
-					clearInterval(wait);
-				}
-			}, 250);
-			setTimeout(() => {
-				clearInterval(wait);
-				setupReady.value = true;
-			}, 2500);
+			// const wait = setInterval(() => {
+			// 	console.log('Waiting...', messageBoxStarted);
+			// 	if (messageBoxStarted) {
+			// 		setupReady.value = true;
+			// 		clearInterval(wait);
+			// 	}
+			// }, 250);
+			// setTimeout(() => {
+			// 	clearInterval(wait);
+			// 	setupReady.value = true;
+			// }, 2500);
 		}
 	}
 </script>

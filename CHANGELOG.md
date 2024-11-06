@@ -1,6 +1,22 @@
 ## Changes to main, not yet committed to stable
 
 *Please add a brief description of any changes to be tested and any migrations to be performed here.*
+- 
+
+## 6 November 2024 - v1.0.1
+- Added the option for users to delete their messages. This feature is behind a feature flag, which will be disabled on stable.
+- Removes some legacy static pages from Pubhubs Central.
+  (These legacy pages can be re-enabled by setting `hotfixes` -> `legacy_static_pages` to true in PHC's configuration.)
+- Changed the feature flag system in the frontend, so we don't need to change any code for the merge to stable.
+
+## 17 October 2024 - v1.0.0
+
+- Internal improvements to the room timeline
+- Adds version prometheus metric and '\_synapse/client/.ph/info' endpoint via a new 'Core' module.
+  WARNING: this requires an update of the hub's homeserver.yaml 
+- Updated icons global and hubclient
+- Added a new page where you can browse and search specific rooms. 
+- Hubs (in the global bar) show the amount of unread messages
 
 ## 26 September 2024 - v0.5.1
 - Avatar update issue: other users can also see the update when an Avatar is updated by the user.

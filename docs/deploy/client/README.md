@@ -5,7 +5,7 @@
 - If not done for the Hub already, login with the access token received in a confidential file
 
 ```shell
-docker login registry.science.ru.nl -u <hub_name> -p <access token>
+docker login registry.science.ru.nl -u <requiredbutnotused> -p <access token>
 ```
 
 - Fetch the client container
@@ -18,10 +18,10 @@ docker pull registry.science.ru.nl/ilab/pubhubs_canonical/pubhubs_client:stable
 
 ```shell
 
-docker run --env 'BAR_URL=frame-ancestors https://app.pubhubs.net;' --env 'HUB_URL=https://<hub_server_url>' --env 'PARENT_URL=https://app.pubhubs.net'  -p 8800:8800 registry.science.ru.nl/ilab/pubhubs_canonical/pubhubs_client:stable
+docker run --env 'BAR_URL=frame-ancestors https://app.pubhubs.net;' --env 'HUB_URL=https://<Hub server domain>' --env 'PARENT_URL=https://app.pubhubs.net'  -p 8800:8800 registry.science.ru.nl/ilab/pubhubs_canonical/pubhubs_client:stable
 ```
 
-`<hub_server_url>` is the url of the associated Hub server, which you provided when setting up the Hub server.
+`<Hub server domain>` is the domain of the associated Hub server, which you provided when setting up the Hub server (for example: `hub.librarywebsite.com`).
 
 The client should now be running at localhost:8800, which you can test from the machine that it runs on. In order to be reachable from the outside, some sort of reverse proxy on port 443 with TLS is needed.
 

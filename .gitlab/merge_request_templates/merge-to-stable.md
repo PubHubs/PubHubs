@@ -5,16 +5,12 @@ General tips:
 - While testing, keep two browser windows open, one for a existing user (it's easiest if this is a hub admin), and an incognito one for a new user that will be registered during testing. This allows seeing messages being send and easier testing.
 - If you do the merge together with a collegua, one of you should do the tests on an mobile phone and the other on a desktop.
 
-  - [ ] Set feature flags appropriately for stable. In the [settings store](https://gitlab.science.ru.nl/ilab/pubhubs_canonical/-/blob/main/hub-client/src/store/settings.ts#L75) you will find the hub-client's default settings in an object called 'defaultSettings'. Set the feature flags in there by commenting out the features flags for main and uncommenting the flags for stable. After the merge you will change them back. 
   - [ ] Check that CI/CD pipeline in main has completed without errors. This might take a bit of time therefore, this should be the first step for the merge to stable.
   - [ ] Notify the others that they do not merge anything into main until the merge to stable is done. (otherwise you will merge changes that may not be deployed to main and therefore not tested by the steps below).
   - [ ] You're merging from main into stable (and not from some feature branch.) 
   - [ ] Review and update the [CHANGELOG](CHANGELOG.md) to reflect the state after the merge into stable.
     - [ ] Scan through all changes in merge request to see if there is any issue.
-    - [ ] Set the new version number  ([how to decide which version](https://gitlab.science.ru.nl/ilab/pubhubs_canonical/-/wikis/Tech-Information/Versioning)) in the [CHANGELOG](CHANGELOG.md) and also in:
-      - [ ] https://gitlab.science.ru.nl/ilab/pubhubs_canonical/-/blob/main/pubhubs/Cargo.toml
-      - [ ] https://gitlab.science.ru.nl/ilab/pubhubs_canonical/-/blob/main/hub-client/package.json
-      - [ ] https://gitlab.science.ru.nl/ilab/pubhubs_canonical/-/blob/main/global-client/package.json
+    - [ ] Set the new version number  ([how to decide which version](https://gitlab.science.ru.nl/ilab/pubhubs_canonical/-/wikis/Tech-Information/Versioning)) in the [CHANGELOG](CHANGELOG.md).
   - [ ] Before proceeding with the folloing steps please check that the pipeline has been successfully completed. 
   - [ ] Please check that the following works on https://main.pubhubs.ihub.ru.nl/client :
       - [ ] Test basic pubhubs functionality
@@ -25,7 +21,7 @@ General tips:
           To make yourself a hub admin: 
             - log into ilab@ph.ru.nl using the [id_ilab](https://gitlab.science.ru.nl/ilab/ops/-/blob/main/ssh/id_ilab?ref_type=heads) key, via yourscienceaccountname@lilo.science.ru.nl (see also [the wiki](https://gitlab.science.ru.nl/ilab/pubhubs_canonical/-/wikis/Infrastructure))
             - `cd /data/testhub-matrix-main/data`
-            - `sudo sqlite3 homeserver.db`
+            - `sudo sqlite3 homeserver.db` (could be that you need to install sqlite3 first, it will say how to)
             - `UPDATE users SET admin=1 WHERE name="@XXX-XXX:main.testhub-matrix.ihub.ru.nl";`, where `XXX-XXX` should be replaced by your short pseudonym.
             - `.quit`, etc.
         - [ ] With the admin user:
@@ -51,7 +47,7 @@ General tips:
   - [ ] Consider if the merge might cause irreversible changes (different database format), and plan for this. (Backups?)
   - [ ] Inform the pubhubs team (via Slack and PubHubs stable) of the merge and possible downtime of https://stable.pubhubs.ihub.ru.nl/client . 
   - [ ] Make the changes and perform the merge.
-  - [ ] While waiting on the pipeline: update dependencies on the main branch in a merge request created from [this issue](https://gitlab.science.ru.nl/ilab/pubhubs_canonical/-/issues/new?issuable_template=update-dependencies&issue[title]=Updating%20dependencies%20on%2020yy-mm-dd) (not on stable as this might break something).
+  - [ ] While waiting on the pipeline: update dependencies on the main branch in a merge request created from [this issue](https://gitlab.science.ru.nl/ilab/pubhubs_canonical/-/issues/new?issuable_template=update-dependencies&issue[title]=Updating%20dependencies%20on%2020yy-mm-dd). Please wait with merging this, see instruction below.
   - [ ] When the pipeline finishes, rebrand all running hub clients (see #769 for instructions).
   - [ ] Check that the following works on https://stable.pubhubs.ihub.ru.nl/client :
     - [ ] Use a private window or clear your browser caches to check if rebranding succeeded.
@@ -61,10 +57,12 @@ General tips:
     - [ ] Anything related specifically to your merge request.
   - [ ] Make issues for the problems. If they are serious:  fix or revert, if possible.
   - [ ] Tag the merge commit with the latest version number.
+    - Do this by going to Tags -> new tag
+    - Put vx.y.z and select the stable branch in 'Create from'
   - [ ] Merge stable back into main. Do this on your machine, not via a gitlab merge request (which will make an extra commit leading to out-of-sync main and stable). To check if main and stable are merged correctly, go to the [repository graph](https://gitlab.science.ru.nl/ilab/pubhubs_canonical/-/network/main?ref_type=heads) and check if main and stable are pointing to the same commit. See the screenshot below. (If you already merged the updated dependencies to main, main will be ahead of stable)
 
   ![image](/uploads/478c467465270fe24b4e3ec6ee32cc3b/image.png)
-  - [ ] Reset the [feature flags](https://gitlab.science.ru.nl/ilab/pubhubs_canonical/-/blob/main/hub-client/src/store/settings.ts#L75) so the proper flags are enabled for the main branch.
+  - [ ] Merge the branch with the updated dependencies to main. We do this now because otherwise the main and stable will not point to the same commit as shown in the repository graph.
   - [ ] Check this list and cleanup items with due date passed, and add due dates to items that are not in active development anymore.
        
   (The `merge-to-stable` merge request template can be edited [here](https://gitlab.science.ru.nl/ilab/pubhubs_canonical/-/edit/main/.gitlab/merge_request_templates/merge-to-stable.md).)

@@ -1,5 +1,7 @@
+import { Message, MessageType, useMessageBox } from '@/store/messagebox';
+import { useHubSettings } from '@/store/store';
+import { useUser } from '@/store/user';
 import { createRouter, createWebHashHistory } from 'vue-router';
-import { useUser, useHubSettings } from '@/store/store';
 
 const routes = [
 	{ path: '/', name: 'home', component: () => import('@/pages/HomePage.vue'), props: { showPubHubsCentralLoginButton: true } },
@@ -10,6 +12,7 @@ const routes = [
 	{ path: '/room/:id', props: true, name: 'room', component: () => import('@/pages/Room.vue'), meta: { hideBar: true } },
 	{ path: '/secureroom/:id', name: 'secure-room', component: () => import('@/pages/SecureRoomPage.vue'), meta: { hideBar: true } },
 	{ path: '/roomerror/:id', name: 'error-page-room', component: () => import('@/pages/RoomErrorPage.vue'), meta: { hideBar: true } },
+	{ path: '/discoverrooms', name: 'discover-rooms', component: () => import('@/pages/DiscoverRoomsPage.vue'), meta: { hideBar: true } },
 	{ path: '/error/', name: 'error-page', component: () => import('@/pages/ErrorPage.vue'), props: (route: any) => ({ errorKey: route.query?.errorKey ? route.query?.errorKey : 'errors.error' }), meta: { hideBar: true } },
 	{ path: '/nop', name: 'nop', component: () => import('@/pages/NotImplemented.vue') },
 ];
@@ -20,6 +23,13 @@ const router = createRouter({
 });
 
 router.beforeEach((to) => {
+	// since hub-client runs in an iFrame the URL is not updated on router.push.
+	// here we check which route is chosen and if necessary change the URL by sending the appopriate message to the global client
+	const messagebox = useMessageBox();
+	if (to.name !== 'room' && to.name !== 'secure-room' && to.name !== 'error-page-room') {
+		messagebox.sendMessage(new Message(MessageType.RoomChange, ''));
+	}
+
 	const hubSettings = useHubSettings();
 	if (to.meta.hideBar) {
 		hubSettings.hideBar();
@@ -36,4 +46,4 @@ router.beforeEach((to) => {
 	return true;
 });
 
-export { routes, router };
+export { router, routes };

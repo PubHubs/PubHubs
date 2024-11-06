@@ -13,7 +13,7 @@ import { setUpi18n } from '../i18n';
  * - action (return value)
  */
 
-type DialogButtonAction = string | number;
+type DialogButtonAction = number;
 const DialogCancel = 0;
 const DialogNo = 0;
 const DialogOk = 1;
@@ -207,4 +207,4 @@ const useDialog = defineStore('dialog', {
 	},
 });
 
-export { buttonsOk, buttonsCancel, buttonsSubmitCancel, buttonsOkCancel, DialogButton, type DialogButtonAction, DialogCancel, DialogOk, DialogYes, DialogNo, DialogSubmit, DialogProperties, useDialog };
+export { buttonsOk, buttonsCancel, buttonsSubmitCancel, buttonsOkCancel, buttonsYesNo, DialogButton, type DialogButtonAction, DialogCancel, DialogOk, DialogYes, DialogNo, DialogSubmit, DialogProperties, useDialog };

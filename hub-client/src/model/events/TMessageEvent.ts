@@ -21,8 +21,6 @@ interface TBaseMessageEventContent {
 	'm.relates_to'?: {
 		'm.in_reply_to'?: {
 			event_id: string;
-			// Custom extension, not in the matrix specification.
-			x_event_copy?: TMessageEvent;
 		};
 	};
 }

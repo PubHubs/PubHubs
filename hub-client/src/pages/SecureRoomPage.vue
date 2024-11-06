@@ -15,9 +15,10 @@
 </template>
 
 <script setup lang="ts">
-	import { onMounted, watch } from 'vue';
-	import { useMessageBox, useRooms, Message, MessageType } from '@/store/store';
 	import { usePubHubs } from '@/core/pubhubsStore';
+	import { MessageType } from '@/store/messagebox';
+	import { Message, useMessageBox, useRooms } from '@/store/store';
+	import { onMounted, watch } from 'vue';
 	import { useRoute } from 'vue-router';
 
 	const route = useRoute();

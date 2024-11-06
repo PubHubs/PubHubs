@@ -1,5 +1,5 @@
-<!-- 
- TODO 
+<!--
+ TODO
  This is temporarily changed so attributes can be changed after entering (but not removed)
  Because of the fact that a FormObjectInput does not handle the submit button correctly yet the button is always enabled (by removing setSubmitButton(dialog.properties.buttons[0]);)
  -->
@@ -37,15 +37,16 @@
 </template>
 
 <script setup lang="ts">
-	import { onBeforeMount, ref, computed } from 'vue';
-	import { buttonsSubmitCancel, DialogButtonAction } from '@/store/dialog';
-	import { SecuredRoomAttributes, TSecuredRoom, useRooms, TPublicRoom, RoomType } from '@/store/store';
-	import { useFormState } from '@/composables/useFormState';
 	import { FormObjectInputTemplate } from '@/composables/useFormInputEvents';
-	import { usePubHubs } from '@/core/pubhubsStore';
-	import { useYivi } from '@/store/yivi';
-	import { useI18n } from 'vue-i18n';
+	import { useFormState } from '@/composables/useFormState';
 	import { isEmpty, trimSplit } from '@/core/extensions';
+	import { usePubHubs } from '@/core/pubhubsStore';
+	import { buttonsSubmitCancel, DialogButtonAction } from '@/store/dialog';
+	import { RoomType } from '@/store/rooms';
+	import { SecuredRoomAttributes, TPublicRoom, TSecuredRoom, useRooms } from '@/store/store';
+	import { useYivi } from '@/store/yivi';
+	import { computed, onBeforeMount, ref } from 'vue';
+	import { useI18n } from 'vue-i18n';
 
 	const { t } = useI18n();
 	const { setData, updateData } = useFormState();

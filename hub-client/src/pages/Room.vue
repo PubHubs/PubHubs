@@ -5,9 +5,9 @@
 				<div class="h-full pl-20 md:px-6 border-b">
 					<div class="flex justify-between relative gap-x-2 h-full w-full">
 						<div v-if="rooms.currentRoom" class="flex shrink-0 gap-x-1 md:gap-x-4 items-center w-[75%] md:w-[60%] overflow-hidden">
-							<Icon :type="rooms.currentRoom.isSecuredRoom() ? 'lock' : 'room'" class="text-blue shrink-0" size="lg"></Icon>
+							<Icon :type="rooms.currentRoom.isSecuredRoom() ? 'shield' : 'speech_bubbles'" class="shrink-0" size="lg"></Icon>
 							<div class="flex flex-col">
-								<H1 class="flex text-hub-accent">
+								<H1 class="flex">
 									<TruncatedText>
 										{{ $t('rooms.room') }}
 										<PrivateRoomName v-if="rooms.currentRoom.isPrivateRoom()" :members="rooms.currentRoom.getOtherJoinedAndInvitedMembers()"></PrivateRoomName>
@@ -37,11 +37,16 @@
 </template>
 
 <script setup lang="ts">
-	import { onMounted, watch, ref, computed } from 'vue';
-	import { useRoute, useRouter } from 'vue-router';
-	import { useRooms, useHubSettings } from '@/store/store';
+	import { usePubHubs } from '@/core/pubhubsStore';
+	import { LOGGER } from '@/dev/Logger';
+	import { SMI } from '@/dev/StatusMessage';
+	import { TSearchParameters } from '@/model/search/TSearch';
+	import { useHubSettings } from '@/store/hub-settings';
 	import { PluginProperties, usePlugins } from '@/store/plugins';
-	import { TSearchParameters } from '@/model/model';
+	import { useRooms } from '@/store/rooms';
+	import { useUser } from '@/store/user';
+	import { computed, onMounted, ref, watch } from 'vue';
+	import { useRoute, useRouter } from 'vue-router';
 
 	const route = useRoute();
 	const rooms = useRooms();
@@ -49,6 +54,8 @@
 	const plugins = usePlugins();
 	const plugin = ref(false as boolean | PluginProperties);
 	const hubSettings = useHubSettings();
+	const user = useUser();
+	const pubhubs = usePubHubs();
 
 	//Passed by the router
 	const props = defineProps({
@@ -70,15 +77,23 @@
 
 	onMounted(() => {
 		update();
+		LOGGER.log(SMI.ROOM_TRACE, `Room mounted `);
 	});
 
 	watch(route, () => {
 		update();
 	});
 
-	function update() {
+	async function update() {
 		hubSettings.hideBar();
 		rooms.changeRoom(props.id);
+
+		const userIsMemberOfRoom = await pubhubs.isUserRoomMember(user.user.userId, props.id);
+		if (!userIsMemberOfRoom) {
+			// if not a member: try to join, otherwise go to the hubpage
+			pubhubs.joinRoom(props.id).catch(() => router.push({ name: 'hubpage' }));
+		}
+
 		if (!rooms.currentRoom) return;
 		searchParameters.value.roomId = rooms.currentRoom.roomId;
 		plugin.value = plugins.hasRoomPlugin(rooms.currentRoom);

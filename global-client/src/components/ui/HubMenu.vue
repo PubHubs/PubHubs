@@ -1,6 +1,6 @@
 <template>
 	<div v-if="hubs.currentHubId && !global.existsInPinnedHubs(hubs.currentHubId)">
-		<HubIcon class="text-black" :hub="hubs.currentHub" :active="true" :pinnable="global.loggedIn" @pin="global.addPinnedHub(hubs.currentHub, 0)" @click="toggleMenu.hideMenuAndSendToHub()"></HubIcon>
+		<HubIcon class="text-ph-text" :hub="hubs.currentHub" :active="true" :pinnable="global.loggedIn" @pin="global.addPinnedHub(hubs.currentHub, 0)" @click="toggleMenu.hideMenuAndSendToHub()"></HubIcon>
 		<Line v-if="global.hasPinnedHubs" class="m-6 mt-8"></Line>
 	</div>
 	<div v-for="(element, index) in global.pinnedHubs" :key="element.hubId">

@@ -57,10 +57,14 @@ impl crate::servers::App<Server> for Rc<App> {
         api::phct::hub::Key::add_to(self, sc, App::handle_hub_key);
     }
 
+    fn check_constellation(&self, _constellation: &Constellation) -> bool {
+        panic!("PHC creates the constellation; it has no need to check it")
+    }
+
     fn discover(
         &self,
         _phc_di: api::DiscoveryInfoResp,
-    ) -> LocalBoxFuture<'_, api::Result<Constellation>> {
+    ) -> LocalBoxFuture<'_, api::Result<Option<Constellation>>> {
         Box::pin(async {
             let (tdi_res, asdi_res) = tokio::join!(
                 self.discovery_info_of(servers::Name::Transcryptor, &self.transcryptor_url),
@@ -70,13 +74,16 @@ impl crate::servers::App<Server> for Rc<App> {
             let tdi = api::return_if_ec!(tdi_res);
             let asdi = api::return_if_ec!(asdi_res);
 
-            api::ok(crate::servers::Constellation {
+            let transcryptor_master_enc_key_part = tdi
+                .master_enc_key_part
+                .expect("should already have been checked to be some by discovery_info_of");
+            let new_constellation = crate::servers::Constellation {
                 // The public master encryption key is `x_PHC * ( x_T * B )`
                 master_enc_key: phcrypto::combine_master_enc_key_parts(
-                    &tdi.master_enc_key_part
-                        .expect("should already have been checked to be some by discovery_info_of"),
+                    &transcryptor_master_enc_key_part,
                     &self.master_enc_key_part,
                 ),
+                transcryptor_master_enc_key_part,
                 phc_url: self.base.phc_url.clone(),
                 phc_jwt_key: self.base.jwt_key.verifying_key().into(),
                 phc_enc_key: self.base.enc_key.public_key().clone(),
@@ -86,7 +93,71 @@ impl crate::servers::App<Server> for Rc<App> {
                 auths_url: self.auths_url.clone(),
                 auths_jwt_key: asdi.jwt_key,
                 auths_enc_key: asdi.enc_key,
-            })
+            };
+
+            if self.base().running_state.is_none()
+                || *self.base().running_state.as_ref().unwrap().constellation != new_constellation
+            {
+                return api::ok(Some(new_constellation));
+            }
+
+            // Check whether the other servers' constellations are up-to-date
+
+            let mut js = tokio::task::JoinSet::new();
+
+            if let Some(c) = tdi.constellation {
+                if c != new_constellation {
+                    // transcryptor's constellation is out of date; invoke discovery
+                    log::info!(
+                        "{phc}: {t}'s constellation is out of date - invoking its discovery..",
+                        phc = servers::Name::PubhubsCentral,
+                        t = servers::Name::Transcryptor
+                    );
+                    let url = self.transcryptor_url.clone();
+                    js.spawn_local(api::query::<api::DiscoveryRun>(&url, &()));
+                }
+            }
+
+            if let Some(c) = asdi.constellation {
+                if c != new_constellation {
+                    // authentication server's constellation is out of date; invoke discovery
+                    log::info!(
+                        "{phc}: {auths}'s constellation is out of date - invoking its discovery..",
+                        phc = servers::Name::PubhubsCentral,
+                        auths = servers::Name::AuthenticationServer
+                    );
+                    let url = self.auths_url.clone();
+                    js.spawn_local(api::query::<api::DiscoveryRun>(&url, &()));
+                }
+            }
+
+            let result_maybe = js.join_next().await;
+
+            // Whatever the result, we don't want to abort the discovery prematurely
+            js.detach_all();
+
+            match result_maybe {
+                // joinset was empty;  servers were already up to date
+                None => {
+                    return api::ok(None);
+                }
+                // a task ended irregularly (panicked, joined,...)
+                Some(Err(join_err)) => {
+                    log::error!("discovery run task joined unexpectedly: {}", join_err);
+                    return api::err(api::ErrorCode::InternalError);
+                }
+                // we got a result from one of the tasks..
+                Some(Ok(res)) => {
+                    if res.retryable().is_ok() {
+                        // the discovery task was completed succesfully, or made some progress,
+                        // or we got a retryable error.
+                        // In all these cases the caller should try again.
+                        return api::err(api::ErrorCode::NotYetReady);
+                    }
+                }
+            }
+
+            api::ok(None)
         })
     }
 

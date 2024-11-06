@@ -17,12 +17,12 @@
 </template>
 
 <script setup lang="ts">
-	import { ref, onMounted, computed } from 'vue';
-	import { User as MatrixUser } from 'matrix-js-sdk';
 	import { usePubHubs } from '@/core/pubhubsStore';
-	import { useUser } from '@/store/store';
 	import { buttonsCancel } from '@/store/dialog';
+	import { useUser } from '@/store/user';
 	import { FilteredListEvent } from '@/types/components';
+	import { User as MatrixUser } from 'matrix-js-sdk';
+	import { computed, onMounted, ref } from 'vue';
 
 	const pubhubs = usePubHubs();
 	const user = useUser();

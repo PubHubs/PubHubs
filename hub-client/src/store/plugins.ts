@@ -1,7 +1,8 @@
-import { Room, useSettings, featureFlagType } from '@/store/store';
-import { useMenu, MenuItem } from '@/store/menu';
-import { defineStore } from 'pinia';
 import { TEvent } from '@/model/events/TEvent';
+import { MenuItem, useMenu } from '@/store/menu';
+import { defineStore } from 'pinia';
+import { Room } from './rooms';
+import { FeatureFlag, useSettings } from './settings';
 
 //
 // Plugin Types
@@ -159,7 +160,7 @@ const usePlugins = defineStore('plugins', {
 	actions: {
 		setPlugins(plugins: any, router: any) {
 			const settings = useSettings();
-			if (settings.isFeatureEnabled(featureFlagType.plugins)) {
+			if (settings.isFeatureEnabled(FeatureFlag.plugins)) {
 				if (plugins) {
 					const menu = useMenu();
 					plugins.forEach((plugin: PluginProperties) => {
@@ -214,4 +215,4 @@ const usePlugins = defineStore('plugins', {
 	},
 });
 
-export { MenuPluginProperties, RoomIdPluginProperties, TypePluginProperties, PluginProperties, PluginType, usePlugins };
+export { MenuPluginProperties, PluginProperties, PluginType, RoomIdPluginProperties, TypePluginProperties, usePlugins };

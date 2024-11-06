@@ -1,7 +1,7 @@
 <template>
 	<HeaderFooter>
 		<template #header>
-			<div class="pl-20 md:pl-4">
+			<div class="pl-20 md:p-4">
 				<H1>{{ $t('admin.title') }}</H1>
 				<p class="text-sm">{{ $t('admin.description') }}</p>
 			</div>
@@ -18,7 +18,7 @@
 						<template #item="{ item }">
 							<div class="flex gap-8 w-full overflow-hidden justify-between" :title="item.room_id">
 								<div class="flex w-full overflow-hidden gap-4 items-center">
-									<Icon type="room" class="shrink-0 text-green group-hover:text-black"></Icon>
+									<Icon type="speech_bubbles" class="shrink-0 text-green group-hover:text-black"></Icon>
 									<p class="truncate">{{ item.name }}</p>
 									<p class="truncate hidden md:inline italic text-gray-light pr-1">{{ rooms.getRoomTopic(item.room_id) }}</p>
 									<span v-if="item.room_type" class="italic text-gray-light">- {{ item.room_type }} </span>
@@ -35,8 +35,8 @@
 										</span>
 									</div>
 									<div class="flex gap-1 items-center">
-										<Icon type="remove" class="cursor-pointer hover:text-red" @click="removePublicRoom(item)"></Icon>
-										<Icon type="edit" v-if="rooms.room(item.room_id)?.userCanChangeName(user.user.userId)" class="cursor-pointer" @click="editPublicRoom(item)"></Icon>
+										<Icon type="remove" class="hover:fill-red" @click="removePublicRoom(item)"></Icon>
+										<Icon type="edit" class="hover:stroke-hub-accent" v-if="rooms.room(item.room_id)?.userCanChangeName(user.user.userId)" @click="editPublicRoom(item)"></Icon>
 									</div>
 								</div>
 							</div>
@@ -50,7 +50,7 @@
 						<template #item="{ item }">
 							<div class="flex gap-8 w-full overflow-hidden justify-between" :title="item.room_id">
 								<div class="flex w-full overflow-hidden gap-4 items-center">
-									<Icon type="lock" class="shrink-0 text-green group-hover:text-black"></Icon>
+									<Icon type="shield" class="shrink-0 text-green group-hover:text-black"></Icon>
 									<p class="truncate">{{ item.name }}</p>
 									<p class="truncate hidden md:inline italic text-gray-light pr-1">{{ rooms.getRoomTopic(item.room_id) }}</p>
 									<span v-if="item.user_txt !== ''" class="truncate hidden md:inline italic text-gray-light"> [{{ item.user_txt }}]</span>
@@ -79,8 +79,10 @@
 </template>
 
 <script setup lang="ts">
-	import { ref, onMounted } from 'vue';
-	import { useUser, TPublicRoom, TSecuredRoom, useRooms, useDialog } from '@/store/store';
+	import { useDialog } from '@/store/dialog';
+	import { TPublicRoom, TSecuredRoom, useRooms } from '@/store/rooms';
+	import { useUser } from '@/store/user';
+	import { onMounted, ref } from 'vue';
 	import { useI18n } from 'vue-i18n';
 
 	const { t } = useI18n();

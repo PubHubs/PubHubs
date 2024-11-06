@@ -1,5 +1,5 @@
 <template>
-	<div :class="buttonClass" class="block font-semibold rounded-lg focus:outline-none focus:ring-2 focus:ring-opacity-75 text-center" @click="click($event)">
+	<div :class="buttonClass" class="block relative font-semibold rounded-lg text-center transition-all duration-150 ease-in-out shadow-md cursor-pointer" @click="click($event)">
 		<slot></slot>
 	</div>
 </template>
@@ -9,12 +9,12 @@
 	import { buttonSizes } from '@/assets/sizes';
 
 	const colorClass: { [key: string]: string } = {
-		disabled: 'bg-gray-light text-white',
-		white: 'bg-white hover:bg-blue text-black shadow-md cursor-pointer',
-		'gray-light': 'bg-gray-light hover:bg-blue text-white shadow-md cursor-pointer',
-		blue: 'bg-blue hover:bg-blue-dark text-white dark:hover:bg-white dark:hover:text-blue-dark shadow-md cursor-pointer',
-		green: 'bg-green hover:bg-green-dark text-white shadow-md cursor-pointer',
-		red: 'bg-red hover:bg-red-dark text-white shadow-md cursor-pointer',
+		disabled: 'bg-gray-light text-gray-lighter shadow-none cursor-not-allowed',
+		white: 'bg-white hover:bg-blue text-black ',
+		gray: 'bg-gray-dark hover:bg-black dark:bg-black hover:dark:bg-gray-dark text-white',
+		'gray-light': 'bg-gray-light hover:bg-red text-white ', // Needed for ButtonGroup
+		blue: 'bg-blue hover:bg-blue-dark text-white dark:hover:bg-white dark:hover:text-blue-dark',
+		red: 'bg-red hover:bg-red-dark text-white',
 		black: 'bg-black hover:bg-gray-dark text-white shadow-md cursor-pointer',
 	};
 

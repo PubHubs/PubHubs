@@ -2,7 +2,7 @@
 
 mod config;
 mod constellation;
-pub(crate) mod macros;
+pub mod macros;
 mod run;
 pub(super) mod server;
 
@@ -12,7 +12,7 @@ pub(crate) mod transcryptor;
 
 pub use config::Config;
 pub use constellation::Constellation;
-pub(super) use macros::for_all_servers;
+pub use macros::for_all_servers;
 pub(super) use run::Handle;
 pub use run::Set;
 pub(super) use server::{

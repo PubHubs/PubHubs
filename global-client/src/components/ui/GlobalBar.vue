@@ -1,5 +1,5 @@
 <template>
-	<div id="pubhubs-bar" class="flex-none w-32 bg-ph-background-3 dark:bg-ph-background-5 h-full pt-20 2md:pt-2 2md:block" :class="{ hidden: !toggleMenu.globalIsActive }">
+	<div id="pubhubs-bar" class="flex-none w-32 bg-ph-background-3 dark:bg-ph-background-5 h-full pt-20 2md:pt-2 2md:block scrollbar" :class="{ hidden: !toggleMenu.globalIsActive }">
 		<Modal :show="global.isModalVisible">
 			<div class="flex flex-col justify-between h-full">
 				<div class="flex-1 text-center w-fit mx-auto">
@@ -16,12 +16,12 @@
 					<div v-if="global.loggedIn">
 						<SettingsDialog v-if="settingsDialog" @close="settingsDialog = false"></SettingsDialog>
 						<div class="flex justify-between">
-							<Icon type="cog" class="text-dark" size="lg" @click="settingsDialog = true"></Icon>
-							<Icon type="power" class="text-dark" size="lg" @click="logout()"></Icon>
+							<Icon type="cog" class="text-dark hover:cursor-pointer" size="lg" @click="settingsDialog = true"></Icon>
+							<Icon type="power" class="text-dark hover:cursor-pointer" size="lg" @click="logout()"></Icon>
 						</div>
 					</div>
 
-					<a :href="pubHubsUrl" class="m-2 sm:m-4">
+					<a :href="pubHubsUrl" class="m-2">
 						<Logo :global="true"></Logo>
 					</a>
 				</div>

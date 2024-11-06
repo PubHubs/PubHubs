@@ -1,13 +1,16 @@
 <template>
-	<div class="bg-gradient-to-t from-blue-lighter via-avatar-blue to-blue">
-		<img :src="src" v-show="ready" @load="imgLoadReady()" class="w-full" />
-	</div>
+	<img :src="source" v-show="ready" @load="imgLoadReady()" class="object-cover object-center w-full h-full" />
 </template>
 
 <script setup>
 	import { ref } from 'vue';
 
-	const props = defineProps(['src']);
+	const props = defineProps({
+		source: {
+			type: String,
+			default: 'img/imageplaceholder.jpg',
+		},
+	});
 	const ready = ref(false);
 
 	function imgLoadReady() {

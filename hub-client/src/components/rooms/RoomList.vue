@@ -4,16 +4,18 @@
 		<template v-for="room in rooms.sortedRoomsArray" :key="room.roomId">
 			<template v-if="showRoom(room)">
 				<MenuItem :to="{ name: 'room', params: { id: room.roomId } }" :roomInfo="room" :icon="roomIcon(room)" :key="room.roomId" @click="hubSettings.hideBar()" class="group inline-block w-full">
-					<span class="flex gap-2 w-full justify-between">
+					<span class="flex gap-2 w-full justify-between items-center">
 						<TruncatedText>
 							<PrivateRoomName v-if="room.isPrivateRoom()" :members="room.getOtherJoinedAndInvitedMembers()"></PrivateRoomName>
 							<RoomName v-else :room="room"></RoomName>
 						</TruncatedText>
-						<span class="flex gap-2 group-hover:hidden transition-all duration-200 ease-in-out" v-if="settings.isFeatureEnabled(featureFlagType.notifications)">
-							<UnreadMessageBadge v-if="room.getRoomUnreadNotificationCount(NotificationCountType.Total) > 0">{{ room.getRoomUnreadNotificationCount(NotificationCountType.Total) }}</UnreadMessageBadge>
-							<UnreadMentionBadge v-if="room.getRoomUnreadNotificationCount(NotificationCountType.Highlight) > 0">{{ room.getRoomUnreadNotificationCount(NotificationCountType.Highlight) }}</UnreadMentionBadge>
+						<span class="flex gap-2 group-hover:hidden transition-all duration-200 ease-in-out" v-if="settings.isFeatureEnabled(FeatureFlag.notifications)">
+							<Badge class="text-xxs" color="hub" v-if="room.getRoomUnreadNotificationCount(NotificationCountType.Total) > 99">99+</Badge>
+							<Badge v-else-if="room.getRoomUnreadNotificationCount(NotificationCountType.Total) > 0" color="hub">{{ room.getRoomUnreadNotificationCount(NotificationCountType.Total) }}</Badge>
+
+							<Badge color="hub" v-if="room.getRoomUnreadNotificationCount(NotificationCountType.Highlight) > 0"><Icon type="mention" size="sm" class="shrink-0"></Icon></Badge>
 						</span>
-						<Icon type="unlink" class="cursor-pointer hover:text-red group-hover:inline-block hidden transition-all duration-200 ease-in-out" @click.prevent="leaveRoom(room.roomId)"></Icon>
+						<Icon type="unlink" class="cursor-pointer hover:text-red-light stroke-2 group-hover:inline-block hidden transition-all duration-200 ease-in-out" @click.prevent="leaveRoom(room.roomId)"></Icon>
 					</span>
 				</MenuItem>
 			</template>
@@ -22,14 +24,16 @@
 </template>
 
 <script setup lang="ts">
+	import { isVisiblePrivateRoom } from '@/core/privateRoomNames';
+	import { usePubHubs } from '@/core/pubhubsStore';
+	import { PluginProperties, usePlugins } from '@/store/plugins';
+	import { RoomType } from '@/store/rooms';
+	import { FeatureFlag, useSettings } from '@/store/settings';
+	import { useDialog, useHubSettings, useRooms } from '@/store/store';
+	import { useUser } from '@/store/user';
+	import { NotificationCountType, Room } from 'matrix-js-sdk';
 	import { useI18n } from 'vue-i18n';
 	import { useRouter } from 'vue-router';
-	import { Room, useRooms, useDialog, RoomType, useUser, useHubSettings } from '@/store/store';
-	import { usePubHubs } from '@/core/pubhubsStore';
-	import { usePlugins, PluginProperties } from '@/store/plugins';
-	import { NotificationCountType } from 'matrix-js-sdk';
-	import { useSettings, featureFlagType } from '@/store/store';
-	import { isVisiblePrivateRoom } from '@/core/privateRoomNames';
 
 	const settings = useSettings();
 	const hubSettings = useHubSettings();
@@ -89,7 +93,7 @@
 	}
 
 	function roomIcon(room: Room): string {
-		let icon = 'room';
+		let icon = 'speech_bubbles';
 		const plugin = plugins.hasRoomPlugin(room) as PluginProperties;
 		if (plugin.icon) {
 			icon = plugin.icon;
