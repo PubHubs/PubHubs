@@ -32,7 +32,7 @@
 								<Icon :type="'reply'" :size="'xs'"></Icon>
 							</button>
 							<button
-								v-if="!msgIsNotSend && user.isAdmin && event.sender !== user.user.userId"
+								v-if="!msgIsNotSend && user.isAdmin && event.sender !== user.user.userId && settings.isFeatureEnabled(FeatureFlag.disclosure)"
 								@click="router.push({ name: 'ask-disclosure', query: { user: event.sender } })"
 								class="flex p-1 bg-gray-lighter hover:bg-gray-light dark:bg-gray-middle hover:dark:bg-gray-darker rounded-md"
 								:title="$t('menu.moderation_tools_disclosure')"
