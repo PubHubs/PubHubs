@@ -92,6 +92,7 @@ impl<T> Result<T> {
             Result::Ok(v) => Ok(Some(v)),
             Result::Err(ec) => {
                 if ec.info().retryable == Some(true) {
+                    log::trace!("ignoring retryable error: {ec}");
                     Ok(None)
                 } else {
                     Err(ec)
@@ -337,6 +338,9 @@ pub fn query<EP: EndpointDetails>(
         fmt_ext::Json(&req)
     );
 
+    //let client = awc::Client::builder()
+    //    .timeout(core::time::Duration::from_millis(15))
+    //    .finish();  // <- For reproducing Aron's timeout
     let client = awc::Client::default();
 
     let client_req = client
