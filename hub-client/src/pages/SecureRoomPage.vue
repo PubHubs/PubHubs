@@ -1,24 +1,45 @@
 <template>
-	<div class="flex justify-center items-center h-full dark:text-white">
-		<div class="grid grid-cols-2 gap-10 max-w-4xl mx-auto p-10">
-			<div class="flex flex-col justify-center gap-4">
-				<p class="text-2xl font-semibold">{{ $t('rooms.secure_room_message_heading') + ' ' + rooms.securedRoom.name }}</p>
-				<p class="text-lg">{{ $t('rooms.secure_room_message') }}</p>
-				<p v-if="rooms.securedRoom.user_txt" class="text-lg">{{ $t('rooms.secure_room_enter_info') }}</p>
-				<p class="text-lg font-semibold pl-4">{{ rooms.securedRoom.user_txt }}</p>
+	<HeaderFooter>
+		<template #header>
+			<div class="h-full pl-20 md:px-6 border-b">
+				<div class="flex justify-between relative gap-x-2 h-full w-full">
+					<div class="flex shrink-0 gap-x-1 md:gap-x-4 items-center w-[75%] md:w-[60%] overflow-hidden">
+						<Icon type="shield" class="shrink-0" size="lg"></Icon>
+						<div class="flex flex-col">
+							<H1 v-if="rooms.securedRoom.name" class="flex">
+								<TruncatedText :title="rooms.securedRoom.name">
+									{{ rooms.securedRoom.name }}
+								</TruncatedText>
+							</H1>
+						</div>
+					</div>
+				</div>
 			</div>
-			<div id="yivi-web-form" class="bg-gray-800 p-10 rounded">
-				<!-- Content for the right column -->
+		</template>
+
+		<div class="flex h-full dark:text-white">
+			<div class="grid md:grid-cols-2 gap-10 max-w-4xl p-10">
+				<div v-if="rooms.securedRoom.name" class="flex flex-col gap-4">
+					<p class="text-2xl font-semibold line-clamp-4" :title="rooms.securedRoom.name">{{ $t('rooms.secure_room_message_heading') + ' `' + rooms.securedRoom.name + '`' }}</p>
+					<p class="text-lg">{{ $t('rooms.secure_room_message') }}</p>
+					<p v-if="rooms.securedRoom.user_txt" class="text-lg">{{ $t('rooms.secure_room_enter_info') }}</p>
+					<p class="line-clamp-6 text-lg font-semibold" :title="rooms.securedRoom.user_txt">{{ rooms.securedRoom.user_txt }}</p>
+				</div>
+				<div id="yivi-web-form" class="bg-gray-800 md:p-10 rounded">
+					<!-- Content for the right column -->
+				</div>
 			</div>
 		</div>
-	</div>
+
+		<template #footer> </template>
+	</HeaderFooter>
 </template>
 
 <script setup lang="ts">
+	import { onMounted, watch } from 'vue';
 	import { usePubHubs } from '@/core/pubhubsStore';
 	import { MessageType } from '@/store/messagebox';
 	import { Message, useMessageBox, useRooms } from '@/store/store';
-	import { onMounted, watch } from 'vue';
 	import { useRoute } from 'vue-router';
 
 	const route = useRoute();
