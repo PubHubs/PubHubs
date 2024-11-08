@@ -22,3 +22,9 @@
 		question: { type: String },
 	});
 </script>
+
+<style scoped>
+	details summary::-webkit-details-marker {
+		display: none;
+	}
+</style>

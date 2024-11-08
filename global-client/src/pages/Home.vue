@@ -5,7 +5,7 @@
 		<div v-if="!global.loggedIn" class="flex flex-col items-center mt-8">
 			<Button class="w-full md:px-12" @click="loadYivi">{{ $t('login.global_login') }}</Button>
 			<div v-show="show" class="relative">
-				<Icon type="close" class="absolute right-2 top-8 z-10 cursor-pointer" @click="closeYivi"></Icon>
+				<Icon type="close" class="absolute right-2 top-8 z-10 cursor-pointer dark:text-black" @click="closeYivi"></Icon>
 				<div
 					id="yivi-login"
 					class="relative top-6 !mb-6 w-[255px] after:absolute after:left-[50%] after:-top-[1.2em] after:border-[1.25em] after:border-transparent after:border-b-white after:border-t-0 after:border-r-0 after:drop-shadow-[0px_-5px_16px_rgb(0,0,0,0.15)]"
