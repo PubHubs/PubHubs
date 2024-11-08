@@ -11,6 +11,7 @@
 		</div>
 	</div>
 	<component class="text-lg" :is="`OnboardingStep${props.onboardingStep}`" @next="next(1)" @skip="next(2)" @back="back"> </component>
+	<div class="lg:hidden w-full h-12 bg-gray-dark"></div>
 </template>
 
 <script setup lang="ts">
