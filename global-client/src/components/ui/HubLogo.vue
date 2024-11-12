@@ -1,7 +1,7 @@
 <template>
-	<div>
-		<img v-show="!fallback" :src="hubUrl + logoPath" @load="hideFallback" :alt="'logo of ' + hubId" class="m-auto h-full w-full rounded-full" />
-		<Icon v-if="fallback" type="hub_fallback" class="h-full w-full"></Icon>
+	<div class="h-full w-full flex justify-center items-center">
+		<img v-show="!fallback" :src="hubUrl + logoPath" @load="hideFallback" :alt="'logo of ' + hubId" />
+		<Icon v-if="fallback" type="hub_fallback"></Icon>
 	</div>
 </template>
 

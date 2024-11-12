@@ -2,27 +2,23 @@
 	<div :class="settings.getActiveTheme" class="h-full">
 		<div v-if="setupReady" class="h-full text-hub-text">
 			<div v-if="user.isLoggedIn" class="md:grid grid-cols-8 h-full">
-				<HeaderFooter class="md:col-span-2 md:flex gap-4 bg-hub-background-2" :class="{ hidden: !hubSettings.mobileHubMenu }">
+				<HeaderFooter class="md:col-span-2 md:flex bg-hub-background-2" :class="{ hidden: !hubSettings.mobileHubMenu }">
 					<template #header>
-						<div class="flex justify-between gap-4 items-end border-b h-full py-2 pl-5 mr-8">
-							<div class="flex">
-								<Badge v-if="hubSettings.isSolo && settings.isFeatureEnabled(FeatureFlag.notifications) && rooms.totalUnreadMessages > 0" class="-ml-2 -mt-2">{{ rooms.totalUnreadMessages }}</Badge>
-								<span @click="router.push('/')" class="flex cursor-pointer">
-									<Logo class="inline-block h-12"></Logo>
-									<TruncatedText class="mt-6">{{ settings.hub.name }}</TruncatedText>
-								</span>
-							</div>
-							<div>
-								<Avatar
-									:userId="user.userId"
-									:img="user.avatarUrl"
-									@click="
-										settingsDialog = true;
-										hubSettings.hideBar();
-									"
-									class="cursor-pointer w-8 h-8 text-md"
-								></Avatar>
-							</div>
+						<div class="flex justify-between gap-4 items-end h-full py-2 pl-5 pr-8 bg-hub-background-3">
+							<Badge v-if="hubSettings.isSolo && settings.isFeatureEnabled(FeatureFlag.notifications) && rooms.totalUnreadMessages > 0" class="-ml-4 -mt-2 w-8 flex-none">{{ rooms.totalUnreadMessages }}</Badge>
+							<Logo class="inline-block h-12" @click="router.push('/')" :title="settings.hub.name"></Logo>
+							<span class="mt-6 truncate" @click="router.push('/')" :title="settings.hub.name">
+								{{ settings.hub.name }}
+							</span>
+							<Avatar
+								class="cursor-pointer w-8 h-8 text-md"
+								:userId="user.userId"
+								:img="user.avatarUrl"
+								@click="
+									settingsDialog = true;
+									hubSettings.hideBar();
+								"
+							></Avatar>
 						</div>
 					</template>
 

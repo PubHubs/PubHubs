@@ -13,6 +13,8 @@ const en = {
 		close: 'Close',
 		yes: 'Yes',
 		no: 'No',
+		hub_unpin_title: 'Unpinning hub',
+		hub_unpin_context: 'Do you want to unpin this hub?',
 		submit: 'Submit',
 		ignore: 'Ignore',
 		continue: 'Continue',
@@ -296,6 +298,9 @@ const en = {
 		required: '`{0}` is required.',
 		max_length: '`{0}` is too long, max length is {1} characters.',
 		min_length: '`{0}` is too short, min length is {1} characters.',
+	},
+	bubble: {
+		organize: 'Organize your hubs by dragging them.',
 	},
 };
 
