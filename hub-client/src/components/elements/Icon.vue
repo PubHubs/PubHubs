@@ -1,8 +1,10 @@
 <template>
-	<button v-if="asButton">
-		<svg viewBox="0 0 24 24" fill="transparent" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" :class="sizes[size]" v-html="icons[type]"></svg>
-	</button>
-	<svg v-else viewBox="0 0 24 24" fill="transparent" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" :class="sizes[size]" v-html="icons[type]"></svg>
+	<div class="w-fit shrink-0">
+		<button v-if="asButton">
+			<svg viewBox="0 0 24 24" fill="transparent" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" :class="sizes[size]" v-html="icons[type]"></svg>
+		</button>
+		<svg v-else viewBox="0 0 24 24" fill="transparent" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" :class="sizes[size]" v-html="icons[type]"></svg>
+	</div>
 </template>
 
 <script setup lang="ts">
