@@ -13,42 +13,50 @@
 			<Avatar :userId="event.sender" :room="room"></Avatar>
 			<div :class="{ 'w-5/6': deleteMessageDialog, 'w-4/5 xl:w-3/5': !deleteMessageDialog }">
 				<div class="flex flex-wrap items-center">
-					<div class="relative flex flex-wrap items-center w-full gap-x-2 md:w-fit pr-2 min-h-6">
-						<UserDisplayName :user="event.sender" :room="room"></UserDisplayName>
-						<div class="flex gap-2 flex-wrap">
-							<span class="text-xs font-normal">|</span>
-							<EventTime :timestamp="event.origin_server_ts" :showDate="false"> </EventTime>
-							<span class="text-xs font-normal">|</span>
-							<EventTime :timestamp="event.origin_server_ts" :showDate="true"> </EventTime>
+					<div class="relative flex items-start w-full gap-x-1 min-h-6">
+						<div class="flex-grow flex flex-wrap items-start">
+							<span class="inline-block" style="margin-top: -2px">
+								<UserDisplayName :user="event.sender" :room="room"></UserDisplayName>
+							</span>
+							<span class="inline-block mx-1" style="margin-top: 1px">
+								<span class="flex gap-x-1">
+									<span class="text-xs font-normal">|</span>
+									<EventTime :timestamp="event.origin_server_ts" :showDate="false"> </EventTime>
+									<span class="text-xs font-normal">|</span>
+									<EventTime :timestamp="event.origin_server_ts" :showDate="true"> </EventTime>
+								</span>
+							</span>
+							<ProfileAttributes class="inline-block" v-if="props.room.getType() == RoomType.PH_MESSAGES_RESTRICTED" :user="event.sender" :room_id="event.room_id"></ProfileAttributes>
 						</div>
-						<template v-if="timerReady && !deleteMessageDialog">
-							<button v-if="msgIsNotSend && connection.isOn" @click="resend()" class="ml-2 mb-1" :title="$t('errors.resend')">
-								<Icon type="refresh" size="sm" class="text-red"></Icon>
-							</button>
-							<Icon v-if="msgIsNotSend && !connection.isOn" type="lost-connection" size="sm" class="ml-2 mb-1 text-red"></Icon>
-						</template>
-						<RoomEventActionsPopup v-if="!deleteMessageDialog">
-							<button v-if="!msgIsNotSend && !redactedMessage" @click="reply" class="p-1 bg-gray-lighter hover:bg-gray-light dark:bg-gray-middle hover:dark:bg-gray-darker rounded-md">
-								<Icon :type="'reply'" :size="'xs'"></Icon>
-							</button>
-							<button
-								v-if="!msgIsNotSend && user.isAdmin && event.sender !== user.user.userId && settings.isFeatureEnabled(FeatureFlag.disclosure)"
-								@click="router.push({ name: 'ask-disclosure', query: { user: event.sender } })"
-								class="flex p-1 bg-gray-lighter hover:bg-gray-light dark:bg-gray-middle hover:dark:bg-gray-darker rounded-md"
-								:title="$t('menu.moderation_tools_disclosure')"
-							>
-								<Icon :type="'warning'" :size="'xs'"></Icon>
-							</button>
-							<button
-								v-if="settings.isFeatureEnabled(FeatureFlag.deleteMessages) && !msgIsNotSend && event.sender === user.user.userId && !redactedMessage"
-								@click="onDeleteMessage(event)"
-								class="p-1 bg-gray-lighter dark:bg-gray-middle hover:bg-red hover:text-white dark:hover:bg-red dark:hover:text-white rounded-md"
-								:title="$t('menu.delete_message')"
-							>
-								<Icon :type="'bin'" :size="'xs'"></Icon>
-							</button>
-						</RoomEventActionsPopup>
-						<ProfileAttributes v-if="props.room.getType() == RoomType.PH_MESSAGES_RESTRICTED" :user="event.sender" :room_id="event.room_id"></ProfileAttributes>
+						<div>
+							<template v-if="timerReady && !deleteMessageDialog">
+								<button v-if="msgIsNotSend && connection.isOn" @click="resend()" class="ml-2 mb-1" :title="$t('errors.resend')">
+									<Icon type="refresh" size="sm" class="text-red"></Icon>
+								</button>
+								<Icon v-if="msgIsNotSend && !connection.isOn" type="lost-connection" size="sm" class="ml-2 mb-1 text-red"></Icon>
+							</template>
+							<RoomEventActionsPopup v-if="!deleteMessageDialog">
+								<button v-if="!msgIsNotSend && !redactedMessage" @click="reply" class="p-1 bg-hub-background-4 hover:bg-hub-accent rounded-md">
+									<Icon :type="'reply'" :size="'xs'"></Icon>
+								</button>
+								<button
+									v-if="!msgIsNotSend && user.isAdmin && event.sender !== user.user.userId && settings.isFeatureEnabled(FeatureFlag.disclosure)"
+									@click="router.push({ name: 'ask-disclosure', query: { user: event.sender } })"
+									class="flex p-1 bg-hub-background-4 hover:bg-hub-accent rounded-md"
+									:title="$t('menu.moderation_tools_disclosure')"
+								>
+									<Icon :type="'warning'" :size="'xs'"></Icon>
+								</button>
+								<button
+									v-if="settings.isFeatureEnabled(FeatureFlag.deleteMessages) && !msgIsNotSend && event.sender === user.user.userId && !redactedMessage"
+									@click="onDeleteMessage(event)"
+									class="p-1 bg-hub-background-4 hover:bg-red rounded-md"
+									:title="$t('menu.delete_message')"
+								>
+									<Icon :type="'bin'" :size="'xs'"></Icon>
+								</button>
+							</RoomEventActionsPopup>
+						</div>
 					</div>
 				</div>
 				<template v-if="event.plugin?.plugintype === PluginType.MESSAGE && event.content.msgtype === event.plugin.type">
