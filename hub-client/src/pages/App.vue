@@ -78,7 +78,7 @@
 
 <script setup lang="ts">
 	import { usePubHubs } from '@/core/pubhubsStore';
-	import { LOGGER } from '@/dev/Logger';
+	import { LOGGER } from '@/foundation/Logger';
 	import { SMI } from '@/dev/StatusMessage';
 	import { useDialog } from '@/store/dialog';
 	import { useMenu } from '@/store/menu';
@@ -119,7 +119,7 @@
 	});
 
 	onMounted(async () => {
-		LOGGER.log(SMI.STARTUP_TRACE, 'App.vue onMounted');
+		LOGGER.trace(SMI.STARTUP_TRACE, 'App.vue onMounted');
 
 		settings.initI18b({ locale: locale, availableLocales: availableLocales });
 		// set language when changed
@@ -140,7 +140,7 @@
 		}
 		await startMessageBox();
 
-		LOGGER.log(SMI.STARTUP_TRACE, 'App.vue onMounted done');
+		LOGGER.trace(SMI.STARTUP_TRACE, 'App.vue onMounted done');
 	});
 
 	async function startMessageBox() {

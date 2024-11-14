@@ -4,7 +4,7 @@
 import { fallbackLanguage } from '@/i18n';
 import { Message, MessageBoxType, MessageType, useMessageBox } from '@/store/messagebox';
 import { defineStore } from 'pinia';
-import { CONFIG } from '../dev/Config';
+import { CONFIG } from '../foundation/Config';
 
 type HubInformation = {
 	name: string;
@@ -255,8 +255,10 @@ const useSettings = defineStore('settings', {
 		 * Add features in the settins store featureFlags property.
 		 */
 		isFeatureEnabled(feature: FeatureFlag): boolean {
-			switch (CONFIG.getProductionMode()) {
+			switch (CONFIG.productionMode) {
 				case 'development':
+					return this.featureFlags.main[feature];
+				case 'local development':
 					return this.featureFlags.main[feature];
 				case 'production':
 				default:

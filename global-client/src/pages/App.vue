@@ -20,10 +20,11 @@
 	import { onMounted, watchEffect } from 'vue';
 	import { useI18n } from 'vue-i18n';
 	import { SMI } from '../../../hub-client/src/dev/StatusMessage';
-	import { Logger } from '@/../../hub-client/src/dev/Logger';
+	import { Logger } from '@/../../hub-client/src/foundation/Logger';
 	import MobileMenu from '@/components/ui/MobileMenu.vue';
+	import { CONFIG } from '../../../hub-client/src/foundation/Config';
 
-	const LOGGER = new Logger('GC');
+	const LOGGER = new Logger('GC', CONFIG);
 
 	const global = useGlobal();
 	const settings = useSettings();
