@@ -38,7 +38,7 @@
 
 <script setup lang="ts">
 	import { usePubHubs } from '@/core/pubhubsStore';
-	import { LOGGER } from '@/dev/Logger';
+	import { LOGGER } from '@/foundation/Logger';
 	import { SMI } from '@/dev/StatusMessage';
 	import { TSearchParameters } from '@/model/search/TSearch';
 	import { useHubSettings } from '@/store/hub-settings';

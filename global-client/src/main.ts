@@ -29,10 +29,11 @@ import Logo from '@/../../hub-client/src/components/ui/Logo.vue';
 import Checkbox from '@/../../hub-client/src/components/forms/Checkbox.vue';
 
 import { ReplaceConsole } from '@/../../hub-client/src/console';
-import { Logger } from '@/../../hub-client/src/dev/Logger';
+import { Logger } from '@/../../hub-client/src/foundation/Logger';
+import { CONFIG } from '../../hub-client/src/foundation/Config';
 ReplaceConsole();
 
-const LOGGER = new Logger('GC');
+const LOGGER = new Logger('GC', CONFIG);
 
 const i18n = setUpi18n();
 

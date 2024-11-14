@@ -5,7 +5,7 @@ import { Authentication } from '@/core/authentication';
 import { Events } from '@/core/events';
 import { createNewPrivateRoomName, fetchMemberIdsFromPrivateRoomName, refreshPrivateRoomName, updatePrivateRoomName } from '@/core/privateRoomNames';
 import { hasHtml, sanitizeHtml } from '@/core/sanitizer';
-import { Logger } from '@/dev/Logger';
+import { LOGGER } from '@/foundation/Logger';
 import { SMI } from '@/dev/StatusMessage';
 import { AskDisclosureMessage, YiviSigningSessionResult } from '@/lib/signedMessages';
 import { TMentions, TMessageEvent, TTextMessageEventContent } from '@/model/events/TMessageEvent';
@@ -21,13 +21,14 @@ import { router } from './router';
 
 let publicRoomsLoading: Promise<any> | null = null; // outside of defineStore to guarantee lifetime, not accessible outside this module
 
+const logger = LOGGER;
+
 const usePubHubs = defineStore('pubhubs', {
 	state: () => ({
 		Auth: new Authentication(),
 		client: {} as MatrixClient,
 		publicRooms: [] as TPublicRoom[],
 		lastPublicCheck: 0,
-		logger: new Logger('pubhubs store'),
 	}),
 
 	getters: {
@@ -44,18 +45,18 @@ const usePubHubs = defineStore('pubhubs', {
 		},
 
 		async login() {
-			this.logger.log(SMI.STARTUP_TRACE, 'START PubHubs.login');
+			logger.trace(SMI.STARTUP_TRACE, 'START PubHubs.login');
 			try {
 				const x = await this.Auth.login();
 
-				this.logger.log(SMI.STARTUP_TRACE, 'PubHubs.logged in (X) - started client');
+				logger.trace(SMI.STARTUP_TRACE, 'PubHubs.logged in (X) - started client');
 				this.client = x as MatrixClient;
 				const user = useUser();
 				user.setClient(x as MatrixClient);
 				const events = new Events(this.client as MatrixClient);
 				await events.initEvents();
 
-				this.logger.log(SMI.STARTUP_TRACE, 'PubHubs.logged in ()');
+				logger.trace(SMI.STARTUP_TRACE, 'PubHubs.logged in ()');
 				const connection = useConnection();
 				connection.on();
 				const newUser = user.user;
@@ -69,7 +70,7 @@ const usePubHubs = defineStore('pubhubs', {
 					await this.updateRooms();
 				}
 			} catch (error: any) {
-				this.logger.log(SMI.STARTUP_TRACE, 'Something went wrong while creating a matrix-js client instance or logging in', error);
+				logger.trace(SMI.STARTUP_TRACE, 'Something went wrong while creating a matrix-js client instance or logging in', { error });
 				router.push({ name: 'error-page' });
 			}
 		},
@@ -95,7 +96,7 @@ const usePubHubs = defineStore('pubhubs', {
 			knownRooms = this.client.getRooms();
 
 			const currentRooms = knownRooms.filter((room) => joinedRooms.indexOf(room.roomId) !== -1);
-			this.logger.log(SMI.STORE_TRACE, 'PubHubs.updateRooms');
+			logger.trace(SMI.STORE_TRACE, 'PubHubs.updateRooms');
 			rooms.updateRoomsWithMatrixRooms(currentRooms);
 			await rooms.fetchPublicRooms();
 		},
@@ -113,7 +114,7 @@ const usePubHubs = defineStore('pubhubs', {
 				if (error.errcode !== 'M_FORBIDDEN') {
 					this.showDialog(error.data.error as string);
 				} else {
-					this.logger.log(SMI.STORE_TRACE, 'showing error dialog', error);
+					logger.trace(SMI.STORE_TRACE, 'showing error dialog', { error });
 				}
 			} else {
 				this.showDialog('Unfortanatly an error occured. Please contact the developers.\n\n' + error.toString);
@@ -473,7 +474,7 @@ const usePubHubs = defineStore('pubhubs', {
 			try {
 				await this.client.sendImageMessage(roomId, uri, undefined);
 			} catch (error) {
-				this.logger.log(SMI.STORE_TRACE, 'swallowing add image error', { error });
+				logger.trace(SMI.STORE_TRACE, 'swallowing add image error', { error });
 			}
 		},
 
@@ -497,7 +498,7 @@ const usePubHubs = defineStore('pubhubs', {
 				// todo: fix this (issue #808)
 				await this.client.sendMessage(roomId, content);
 			} catch (error) {
-				this.logger.log(SMI.STORE_TRACE, 'swallowing add file error', { error });
+				logger.trace(SMI.STORE_TRACE, 'swallowing add file error', { error });
 			}
 		},
 
@@ -512,7 +513,7 @@ const usePubHubs = defineStore('pubhubs', {
 				// Resend
 				await this.client.sendEvent(roomId, type, content);
 			} catch (error) {
-				this.logger.log(SMI.STORE_TRACE, 'swallowing resend event error', { error });
+				logger.trace(SMI.STORE_TRACE, 'swallowing resend event error', { error });
 			}
 		},
 
