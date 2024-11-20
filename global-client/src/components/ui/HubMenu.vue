@@ -9,7 +9,7 @@
 							<Icon type="triangle" size="xs"></Icon>
 							<Icon class="rotate-180" type="triangle" size="xs"></Icon>
 						</div>
-						<router-link :to="{ name: 'hub', params: { id: element.hubId } }" v-slot="{ isActive }">
+						<router-link class="bg-[#765090]" :to="{ name: 'hub', params: { id: element.hubId } }" v-slot="{ isActive }">
 							<HubIcon
 								class="text-ph-text border"
 								v-if="global.loggedIn || element.hubId === hubs.currentHubId"
