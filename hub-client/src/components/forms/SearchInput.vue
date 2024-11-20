@@ -41,7 +41,7 @@
 					reset();
 				"
 			/>
-			<button class="dark:text-gray-lighter px-1 rounded-full bg-hub-background-4 dark:bg-gray-darker flex justify-center items-center aspect-[1] cursor-pointer" @click.stop="search()">
+			<button class="px-1 rounded-md flex justify-center items-center cursor-pointer" @click.stop="search()">
 				<Icon class="search-icon px-1" type="search" size="md"></Icon>
 			</button>
 		</div>

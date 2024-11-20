@@ -1,7 +1,9 @@
 ## Changes to main, not yet committed to stable
 
 *Please add a brief description of any changes to be tested and any migrations to be performed here.*
-- 
+- Changed the discover room page: Also show rooms user is member of. Shows an arrow to enter these rooms. After joining a room an arrow will be shown for entering this room.
+- Improvements to logging system. Main and stable should show 'trace' logs while only 'info' logs (and higher) should show when running locally.
+- Feature flags are now configured for main and stable. The features are enabled/disabled automatically when running on main or on stable.
 
 ## 6 November 2024 - v1.0.1
 - Added the option for users to delete their messages. This feature is behind a feature flag, which will be disabled on stable.
@@ -13,9 +15,9 @@
 
 - Internal improvements to the room timeline
 - Adds version prometheus metric and '\_synapse/client/.ph/info' endpoint via a new 'Core' module.
-  WARNING: this requires an update of the hub's homeserver.yaml 
+  WARNING: this requires an update of the hub's homeserver.yaml
 - Updated icons global and hubclient
-- Added a new page where you can browse and search specific rooms. 
+- Added a new page where you can browse and search specific rooms.
 - Hubs (in the global bar) show the amount of unread messages
 
 ## 26 September 2024 - v0.5.1

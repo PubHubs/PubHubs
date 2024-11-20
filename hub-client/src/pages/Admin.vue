@@ -19,7 +19,7 @@
 							<div class="flex gap-8 w-full overflow-hidden justify-between" :title="item.room_id">
 								<div class="flex w-full overflow-hidden gap-4 items-center">
 									<Icon type="speech_bubbles" class="shrink-0 text-green group-hover:text-black"></Icon>
-									<p class="truncate">{{ item.name }}</p>
+									<p class="truncate min-w-20">{{ item.name }}</p>
 									<p class="truncate hidden md:inline italic text-gray-light pr-1">{{ rooms.getRoomTopic(item.room_id) }}</p>
 									<span v-if="item.room_type" class="italic text-gray-light">- {{ item.room_type }} </span>
 								</div>
@@ -51,7 +51,7 @@
 							<div class="flex gap-8 w-full overflow-hidden justify-between" :title="item.room_id">
 								<div class="flex w-full overflow-hidden gap-4 items-center">
 									<Icon type="shield" class="shrink-0 text-green group-hover:text-black"></Icon>
-									<p class="truncate">{{ item.name }}</p>
+									<p class="truncate min-w-20">{{ item.name }}</p>
 									<p class="truncate hidden md:inline italic text-gray-light pr-1">{{ rooms.getRoomTopic(item.room_id) }}</p>
 									<span v-if="item.user_txt !== ''" class="truncate hidden md:inline italic text-gray-light"> [{{ item.user_txt }}]</span>
 								</div>

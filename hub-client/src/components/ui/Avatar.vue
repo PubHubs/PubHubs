@@ -1,9 +1,9 @@
 <template>
-	<div class="rounded-full w-12 h-full aspect-square flex items-center justify-center overflow-hidden" :class="bgColor(color(userId))">
+	<div class="rounded-full w-12 h-12 aspect-square flex items-center justify-center overflow-hidden" :class="bgColor(color(userId))">
 		<!-- If image is passed as props then render the image on Avatar-->
 		<img v-if="image !== ''" data-testid="avatar" :src="image" class="rounded-full w-full h-full" />
 		<!-- Otherwise  show  icon -->
-		<Icon v-else type="person" class="right-0 group-hover:block h-16 w-16"></Icon>
+		<Icon v-else size="lg" type="person"></Icon>
 	</div>
 </template>
 

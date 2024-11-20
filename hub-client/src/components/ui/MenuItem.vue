@@ -7,11 +7,11 @@
 		"
 		class="menu-item h-11 pl-5 pr-8 hover:dark:bg-gray-middle hover:bg-lightgray py-2 transition-all duration-150 ease-in-out"
 	>
-		<span class="flex gap-2 items-center cursor-pointer">
-			<Icon v-if="isSecuredRoom()" type="shield" class="shrink-0"></Icon>
-			<Icon v-else class="shrink-0 text-blue dark:text-white" :type="icon"></Icon>
+		<router-link :to="to" class="flex gap-2 items-center">
+			<Icon v-if="isSecuredRoom()" type="shield"></Icon>
+			<Icon v-else class="text-blue dark:text-white" :type="icon"></Icon>
 			<TruncatedText class="w-full"><slot></slot></TruncatedText>
-		</span>
+		</router-link>
 	</li>
 </template>
 

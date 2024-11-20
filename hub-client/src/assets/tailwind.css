@@ -7,6 +7,7 @@ This is the 'default branding' of a hub.
 These colors should be the same as the global color palette (--ph-...), see tailwind.css in global client)
 todo: use the global color palette as a default. Not trivial because of iframes.
 */
+
 :root {
 	--hub-background: #ffffff;
 	--hub-background-2: #f9f9f9;
@@ -32,7 +33,7 @@ todo: use the global color palette as a default. Not trivial because of iframes.
 	--hub-background-3: #2f2e2e;
 	--hub-background-4: #686868;
 	--hub-background-5: #202020;
-	--hub-background-6: #202020;
+	--hub-background-6: #3d3c3c;
 	--hub-text: #ffffff;
 	--hub-accent: #00adee;
 	--hub-accent-2: #4ee9a4;

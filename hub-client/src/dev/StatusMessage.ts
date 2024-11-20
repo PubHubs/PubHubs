@@ -1,7 +1,12 @@
 /**
  * This is a first draft for a 'status message'.
  * It could be used for logging, debugging, and error handling.
+ *
+ * The idea is that we can add more structure to errors and logs in the future.
+ * For example, when we're debugging the roomtimeline, we might filter out the Status Messages with related SMI's.
  */
+
+import { LogLevel } from './types';
 
 /**
  * Status Message Id (SMI)
@@ -15,18 +20,8 @@ export enum SMI {
 	STORE_TRACE = 'STORE_TRACE',
 }
 
-export enum StatusMessageLevel {
-	DEBUG = '1',
-	INFO = '2',
-	NOTICE = '3',
-	WARNING = '4',
-	ERROR = '5',
-	ALERT = '6',
-	CRITICAL = '7',
-}
-
 // A StatusMessage instance could later have parameters and a stack trace passed to it.
 export type TStatusMessageDefinition = {
 	id: SMI;
-	level: StatusMessageLevel;
+	level: LogLevel;
 };

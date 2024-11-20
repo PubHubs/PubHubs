@@ -3,7 +3,8 @@ import { defineStore } from 'pinia';
 import { api } from '@/core/api';
 import { Hub, HubList, Theme, TimeFormat, useSettings } from '@/store/store';
 import { SMI } from '../../../hub-client/src/dev/StatusMessage';
-import { Logger } from '@/../../hub-client/src/dev/Logger';
+import { Logger } from '@/../../hub-client/src/foundation/Logger';
+import { CONFIG } from '../../../hub-client/src/foundation/Config';
 
 type PinnedHub = {
 	hubId: string;
@@ -39,7 +40,7 @@ const useGlobal = defineStore('global', {
 			modalVisible: false,
 			pinnedHubs: [] as PinnedHubs,
 
-			logger: new Logger('GC'),
+			logger: new Logger('GC', CONFIG),
 		};
 	},
 
