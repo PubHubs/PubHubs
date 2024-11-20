@@ -2,7 +2,7 @@
 	<div v-if="room" ref="elRoomTimeline" class="h-full relative flex flex-col gap-2 overflow-y-auto scrollbar" @scroll="onScroll">
 		<InlineSpinner v-if="isLoadingNewEvents" class="fixed top-16"></InlineSpinner>
 		<DateDisplayer v-if="settings.isFeatureEnabled(FeatureFlag.dateSplitter) && dateInformation !== 0" :scrollStatus="userHasScrolled" :eventTimeStamp="dateInformation.valueOf()"></DateDisplayer>
-		<div v-if="oldestEventIsLoaded" class="rounded-xl flex items-center justify-center w-60 mx-auto mb-12 border border-solid border-black dark:border-white">
+		<div v-if="oldestEventIsLoaded" class="rounded-xl flex items-center justify-center w-60 mx-auto mt-4 mb-12 border border-solid border-black dark:border-white">
 			{{ $t('rooms.roomCreated') }}
 		</div>
 		<template v-if="roomTimeLine.length > 0">
@@ -26,7 +26,7 @@
 	import { EventTimeline } from 'matrix-js-sdk';
 	import { computed, onMounted, ref, watch } from 'vue';
 
-	import { LOGGER } from '@/dev/Logger';
+	import { LOGGER } from '@/foundation/Logger';
 	import { SMI } from '@/dev/StatusMessage';
 	import { TMessageEvent } from '@/model/events/TMessageEvent';
 	import Room from '@/model/rooms/Room';

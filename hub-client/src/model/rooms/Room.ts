@@ -1,5 +1,5 @@
 import { usePubHubs } from '@/core/pubhubsStore';
-import { LOGGER } from '@/dev/Logger';
+import { LOGGER } from '@/foundation/Logger';
 import { SMI } from '@/dev/StatusMessage';
 import { RoomTimelineWindow } from '@/model/timeline/RoomTimelineWindow';
 import { Direction, EventTimeline, EventTimelineSet, MatrixClient, MatrixEvent, Room as MatrixRoom, NotificationCountType } from 'matrix-js-sdk';
@@ -46,7 +46,7 @@ export default class Room {
 	logger = LOGGER;
 
 	constructor(matrixRoom: MatrixRoom) {
-		LOGGER.log(SMI.ROOM_TRACE, `Roomclass Constructor `, { roomId: matrixRoom.roomId });
+		LOGGER.trace(SMI.ROOM_TRACE, `Roomclass Constructor `, { roomId: matrixRoom.roomId });
 
 		this.matrixRoom = matrixRoom;
 		this.hidden = false;
@@ -313,7 +313,7 @@ export default class Room {
 	}
 
 	public getTimeline(): MatrixEvent[] {
-		LOGGER.log(SMI.ROOM_TRACE, `Room gettimeline `, { getTimeline: this.timelineWindow?.getTimeline() });
+		LOGGER.trace(SMI.ROOM_TRACE, `Room gettimeline `, { getTimeline: this.timelineWindow?.getTimeline() });
 		return this.timelineWindow?.getTimeline();
 	}
 

@@ -143,7 +143,7 @@ const useRooms = defineStore('rooms', {
 
 		visiblePublicRooms(state): Array<TPublicRoom> {
 			return state.publicRooms.filter((room: TPublicRoom) => {
-				if (this.roomExists(room.room_id) && !this.room(room.room_id)?.isHidden()) {
+				if (this.room(room.room_id)?.isHidden()) {
 					return false;
 				}
 				return true;
@@ -230,6 +230,13 @@ const useRooms = defineStore('rooms', {
 			const pubhubs = usePubHubs();
 			const rooms = await pubhubs.getAllPublicRooms();
 			this.publicRooms = rooms.sort(propCompare('name'));
+		},
+
+		memberOfPublicRoom(roomId: string): boolean {
+			const publicRoom = this.publicRooms.find((room: TPublicRoom) => room.room_id === roomId);
+			if (!publicRoom) return false;
+			const foundIndex = this.roomsArray.findIndex((room) => room.roomId === publicRoom?.room_id);
+			return foundIndex >= 0;
 		},
 
 		roomIsSecure(roomId: string): boolean {

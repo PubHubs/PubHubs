@@ -124,6 +124,11 @@ const useHubs = defineStore('hubs', {
 				return;
 			}
 
+			// If Hub is not pinned yet (first time) -> Add it to the pinned Hubs
+			if (!global.existsInPinnedHubs(this.currentHubId)) {
+				global.addPinnedHub(this.currentHub, 0);
+			}
+
 			// if the hub has not changed: check if the room has changed and if necessary sent message
 			if (previousHubId === this.currentHubId) {
 				// Let hub navigate to given room (if loggedIn)
