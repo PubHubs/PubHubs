@@ -1,7 +1,7 @@
 <template>
 	<HeaderFooter>
 		<template #header>
-			<div class="h-full pl-20 md:px-6 border-b">
+			<div class="h-full pl-20 md:px-6">
 				<div class="flex justify-between relative gap-x-2 h-full w-full">
 					<div class="flex shrink-0 gap-x-1 md:gap-x-4 items-center w-[75%] md:w-[60%] overflow-hidden">
 						<Icon type="shield" class="shrink-0" size="lg"></Icon>
