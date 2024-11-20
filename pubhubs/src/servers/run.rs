@@ -1,5 +1,6 @@
 //! Running PubHubs [Server]s
 use std::net::SocketAddr;
+use std::num::NonZero;
 use std::rc::Rc;
 use std::sync::Arc;
 
@@ -47,6 +48,36 @@ impl Set {
 
         let (shutdown_sender, _) = tokio::sync::broadcast::channel(1); // NB capacity of 0 is not allowed
 
+        // count the number of servers
+        let server_count: usize = {
+            let mut counter: usize = 0;
+
+            macro_rules! count_server {
+                ($server:ident) => {
+                    if config.$server.is_some() {
+                        counter += 1;
+                    }
+                };
+            }
+
+            for_all_servers!(count_server);
+
+            counter
+        };
+
+        // don't use one thread per code for each server - this speeds up testing
+        let worker_count: Option<NonZero<usize>> =
+            std::thread::available_parallelism()
+                .ok()
+                .map(|parallelism: NonZero<usize>| {
+                    if server_count == 0 {
+                        return NonZero::<usize>::new(1).unwrap();
+                    }
+
+                    NonZero::<usize>::try_from(parallelism.get() / server_count)
+                        .unwrap_or(NonZero::<usize>::new(1).unwrap()) // more servers than cores
+                });
+
         macro_rules! run_server {
             ($server:ident) => {
                 if config.$server.is_some() {
@@ -56,11 +87,12 @@ impl Set {
 
                     // We use spawn_blocking instead of spawn, because we want a separate thread
                     // for each server to run on
-                    joinset.spawn_blocking(|| -> Result<()> {
+                    joinset.spawn_blocking(move || -> Result<()> {
                         Self::run_server::<crate::servers::$server::Server>(
                             config,
                             rt_handle,
                             shutdown_receiver,
+                            worker_count,
                         )
                     });
                 }
@@ -89,10 +121,12 @@ impl Set {
         config: crate::servers::Config,
         rt_handle: tokio::runtime::Handle,
         shutdown_receiver: tokio::sync::broadcast::Receiver<Infallible>,
+        worker_count: Option<NonZero<usize>>,
     ) -> Result<()> {
         let localset = tokio::task::LocalSet::new();
-        let fut = localset
-            .run_until(crate::servers::run::Runner::<S>::new(&config, shutdown_receiver)?.run());
+        let fut = localset.run_until(
+            crate::servers::run::Runner::<S>::new(&config, shutdown_receiver, worker_count)?.run(),
+        );
 
         let result = rt_handle.block_on(fut);
 
@@ -166,6 +200,7 @@ impl Set {
 pub struct Runner<ServerT: Server> {
     pubhubs_server: Rc<ServerT>,
     shutdown_receiver: tokio::sync::broadcast::Receiver<Infallible>,
+    worker_count: Option<NonZero<usize>>,
 }
 
 /// The handles to control an [actix_web::dev::Server] running a pubhubs [Server].
@@ -604,12 +639,14 @@ impl<S: Server> Runner<S> {
     pub fn new(
         global_config: &crate::servers::Config,
         shutdown_receiver: tokio::sync::broadcast::Receiver<Infallible>,
+        worker_count: Option<NonZero<usize>>,
     ) -> Result<Self> {
         let pubhubs_server = Rc::new(S::new(global_config)?);
 
         Ok(Runner {
             pubhubs_server,
             shutdown_receiver,
+            worker_count,
         })
     }
 
@@ -641,20 +678,29 @@ impl<S: Server> Runner<S> {
         let app_creator2 = app_creator.clone();
         let handle2 = handle.clone();
 
-        let actual_actix_server: actix_web::dev::Server = actix_web::HttpServer::new(move || {
-            let app: S::AppT = app_creator2.clone().into_app(&handle2);
+        let actual_actix_server: actix_web::dev::Server = {
+            // Build actix server
+            let mut builder: actix_web::HttpServer<_, _, _, _> =
+                actix_web::HttpServer::new(move || {
+                    let app: S::AppT = app_creator2.clone().into_app(&handle2);
 
-            actix_web::App::new().configure(|sc: &mut web::ServiceConfig| {
-                // first configure endpoints common to all servers
-                AppBase::<S>::configure_actix_app(&app, sc);
+                    actix_web::App::new().configure(|sc: &mut web::ServiceConfig| {
+                        // first configure endpoints common to all servers
+                        AppBase::<S>::configure_actix_app(&app, sc);
 
-                // and then server-specific endpoints
-                app.configure_actix_app(sc);
-            })
-        })
-        .disable_signals() // we handle signals ourselves
-        .bind(bind_to)?
-        .run();
+                        // and then server-specific endpoints
+                        app.configure_actix_app(sc);
+                    })
+                })
+                .disable_signals() // we handle signals ourselves
+                .bind(bind_to)?;
+
+            if let Some(worker_count) = self.worker_count {
+                builder = builder.workers(worker_count.get());
+            }
+
+            builder.run()
+        };
 
         // start actix server
         let actix_server_handle = actual_actix_server.handle().clone();
