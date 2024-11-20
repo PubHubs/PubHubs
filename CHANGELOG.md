@@ -2,6 +2,8 @@
 
 *Please add a brief description of any changes to be tested and any migrations to be performed here.*
 - Changed the discover room page: Also show rooms user is member of. Shows an arrow to enter these rooms. After joining a room an arrow will be shown for entering this room.
+- Improvements to logging system. Main and stable should show 'trace' logs while only 'info' logs (and higher) should show when running locally.
+- Feature flags are now configured for main and stable. The features are enabled/disabled automatically when running on main or on stable.
 
 ## 6 November 2024 - v1.0.1
 - Added the option for users to delete their messages. This feature is behind a feature flag, which will be disabled on stable.
