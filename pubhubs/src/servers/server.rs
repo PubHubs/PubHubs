@@ -396,7 +396,10 @@ pub trait App<S: Server>: Clone + 'static {
                         phc = Name::PubhubsCentral
                     );
                     // PHC's discovery is out of date; invoke discovery and return
-                    api::return_if_ec!(api::query::<api::DiscoveryRun>(&phc_inf.phc_url, &())
+                    api::return_if_ec!(self
+                        .base()
+                        .client
+                        .query::<api::DiscoveryRun>(&phc_inf.phc_url, &())
                         .await
                         .into_server_result());
                     return api::err(api::ErrorCode::NotYetReady);
@@ -437,7 +440,10 @@ pub trait App<S: Server>: Clone + 'static {
             let url = c.url(S::NAME);
 
             // obtain DiscoveryInfo from oneself
-            let di = api::return_if_ec!(api::query::<api::DiscoveryInfo>(url, &())
+            let di = api::return_if_ec!(self
+                .base()
+                .client
+                .query::<api::DiscoveryInfo>(url, &())
                 .await
                 .into_server_result());
 
@@ -531,6 +537,7 @@ pub struct AppBase<S: Server> {
     pub jwt_key: api::SigningKey,
     pub enc_key: elgamal::PrivateKey,
     pub admin_key: api::VerifyingKey,
+    pub client: client::Client,
 }
 
 impl<S: Server> AppBase<S> {
@@ -543,6 +550,9 @@ impl<S: Server> AppBase<S> {
             jwt_key: creator_base.jwt_key,
             enc_key: creator_base.enc_key,
             admin_key: creator_base.admin_key,
+            client: client::Client::builder()
+                .agent(client::Agent::Server(S::NAME))
+                .finish(),
         }
     }
 
@@ -679,7 +689,10 @@ impl<S: Server> AppBase<S> {
         let base = app.base();
 
         let pdi = {
-            let result = api::query::<api::DiscoveryInfo>(&base.phc_url, &()).await;
+            let result = base
+                .client
+                .query::<api::DiscoveryInfo>(&base.phc_url, &())
+                .await;
 
             if result.is_err() {
                 return api::Result::Err(result.unwrap_err().into_server_error());

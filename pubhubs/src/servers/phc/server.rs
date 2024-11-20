@@ -114,7 +114,7 @@ impl crate::servers::App<Server> for Rc<App> {
                         t = servers::Name::Transcryptor
                     );
                     let url = self.transcryptor_url.clone();
-                    js.spawn_local(api::query::<api::DiscoveryRun>(&url, &()));
+                    js.spawn_local(self.base().client.query::<api::DiscoveryRun>(&url, &()));
                 }
             }
 
@@ -127,7 +127,7 @@ impl crate::servers::App<Server> for Rc<App> {
                         auths = servers::Name::AuthenticationServer
                     );
                     let url = self.auths_url.clone();
-                    js.spawn_local(api::query::<api::DiscoveryRun>(&url, &()));
+                    js.spawn_local(self.base().client.query::<api::DiscoveryRun>(&url, &()));
                 }
             }
 
@@ -177,7 +177,10 @@ impl App {
         name: servers::Name,
         url: &url::Url,
     ) -> api::Result<api::DiscoveryInfoResp> {
-        let tdi = api::return_if_ec!(api::query::<api::DiscoveryInfo>(url, &())
+        let tdi = api::return_if_ec!(self
+            .base
+            .client
+            .query::<api::DiscoveryInfo>(url, &())
             .await
             .into_server_result());
 
@@ -204,7 +207,11 @@ impl App {
             return api::err(api::ErrorCode::UnknownHub);
         };
 
-        let result = api::query::<api::hub::Info>(&hub.info_url, &()).await;
+        let result = app
+            .base
+            .client
+            .query::<api::hub::Info>(&hub.info_url, &())
+            .await;
 
         if result.is_err() {
             return api::Result::Err(result.unwrap_err().into_server_error());
