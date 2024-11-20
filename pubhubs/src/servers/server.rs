@@ -52,7 +52,7 @@ impl std::fmt::Display for Name {
 /// and are immutable. To change the server's state, all apps must be restarted.
 ///
 /// An exception to this no-shared-mutable-state is the synchronization present in
-/// [DiscoveryLimiter].
+/// `crate::servers::run::DiscoveryLimiter` (private item).
 pub trait Server: Sized + 'static {
     type AppT: App<Self>;
 

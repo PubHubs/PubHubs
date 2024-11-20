@@ -1,6 +1,6 @@
 //! The pubhubs backend servers
 
-mod config;
+pub mod config;
 mod constellation;
 pub mod macros;
 mod run;
