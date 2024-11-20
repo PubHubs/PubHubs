@@ -13,6 +13,8 @@ const nl = {
 		close: 'Sluiten',
 		yes: 'Ja',
 		no: 'Nee',
+		hub_unpin_title: 'Hub losmaken',
+		hub_unpin_context: 'Wil je deze Hub losmaken?',
 		submit: 'Invoeren',
 		ignore: 'Negeren',
 		continue: 'Verder',
@@ -295,6 +297,9 @@ const nl = {
 		required: '`{0}` is een verplicht veld.',
 		max_length: '`{0}` is te lang, maximale lengte is {1} karakters.',
 		min_length: '`{0}` is te kort, minimale lengte is {1} karakters.',
+	},
+	bubble: {
+		organize: 'Organiseer je hubs door ze te slepen.',
 	},
 };
 

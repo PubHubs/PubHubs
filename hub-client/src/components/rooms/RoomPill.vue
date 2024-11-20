@@ -11,15 +11,16 @@
 				</div>
 			</div>
 			<div class="grid gap-2 items-center">
-				<Icon type="join_room" size="lg" class="hover:cursor-pointer hover:opacity-80" @click="joinRoom()"></Icon>
+				<Icon v-if="memberOfRoom" type="arrow-right" size="lg" class="hover:cursor-pointer hover:opacity-80 z-0" @click="goToRoom()"></Icon>
+				<Icon v-if="!memberOfRoom" type="join_room" size="lg" class="hover:cursor-pointer hover:opacity-80" @click="joinRoom()"></Icon>
 			</div>
 		</div>
 	</div>
 </template>
 
 <script setup lang="ts">
-	import { router } from '@/core/router';
 	import { ref } from 'vue';
+	import { router } from '@/core/router';
 	import { usePubHubs } from '@/core/pubhubsStore';
 	import { useI18n } from 'vue-i18n';
 
@@ -32,6 +33,7 @@
 	const props = defineProps({
 		room: Object,
 		roomIsSecure: Boolean,
+		memberOfRoom: Boolean,
 	});
 
 	function expandPillToggle() {
@@ -46,8 +48,12 @@
 				joinedARoom.value = true;
 				setTimeout(() => {
 					pubhubs.joinRoom(props.room?.room_id);
-				}, 3000);
+				}, 1000);
 			}
 		}
+	}
+
+	function goToRoom() {
+		router.push({ name: 'room', params: { id: props.room.room_id } });
 	}
 </script>

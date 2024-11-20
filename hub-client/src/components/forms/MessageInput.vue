@@ -1,5 +1,5 @@
 <template>
-	<div class="flex gap-2 items-end pl-3 sm:px-6">
+	<div class="flex gap-2 items-end pb-3 -mt-2 pl-3 sm:px-6">
 		<div class="min-w-3/4 w-[90%] relative rounded-xl bg-hub-background-4 dark:bg-hub-background-4">
 			<!-- Floating -->
 			<div>
@@ -31,7 +31,7 @@
 			</div>
 
 			<div class="flex items-start min-h-[50px] px-2 py-1 gap-x-2 rounded-2xl dark:bg-hub-background-4">
-				<Icon class="dark:text-white self-end mb-2 pr-3 border-r-2 border-r-gray-light" type="paperclip" @click.stop="togglePopover" :asButton="true"></Icon>
+				<Icon class="dark:text-white self-end mb-1 pr-3 border-r-2 border-r-gray-light" type="paperclip" @click.stop="togglePopover" :asButton="true"></Icon>
 				<!-- Overflow-x-hidden prevents firefox from adding an extra row to the textarea for a possible scrollbar -->
 				<TextArea
 					ref="elTextInput"
@@ -48,7 +48,7 @@
 					@cancel="cancel()"
 					@caretPos="setCaretPos"
 				></TextArea>
-				<Icon class="dark:text-white mb-2 self-end" type="emoticon" @click.stop="toggleEmojiPicker" :asButton="true"></Icon>
+				<Icon class="dark:text-white mb-1 self-end" type="emoticon" @click.stop="toggleEmojiPicker" :asButton="true"></Icon>
 			</div>
 
 			<div v-if="signingMessage" class="m-2 bg-gray-light dark:bg-hub-background flex items-center rounded-md p-2">
