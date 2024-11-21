@@ -8,9 +8,9 @@
  *
  */
 
+import { usePubHubs } from '@/core/pubhubsStore';
+import { MatrixClient, User as MatrixUser } from 'matrix-js-sdk';
 import { defineStore } from 'pinia';
-import { User as MatrixUser } from 'matrix-js-sdk';
-import { MatrixClient } from 'matrix-js-sdk';
 
 /**
  *  Extending the MatrixUser with some extra PubHubs specific methods :
@@ -25,7 +25,8 @@ class User extends MatrixUser {
 const defaultUser = {} as User;
 
 type State = {
-	avatarUrl: string;
+	_avatarMxcUrl: string | undefined;
+	_avatarUrl: string | undefined | null;
 	isAdministrator: boolean;
 	client: MatrixClient;
 	userId: string | null;
@@ -33,7 +34,8 @@ type State = {
 
 const useUser = defineStore('user', {
 	state: (): State => ({
-		avatarUrl: '',
+		_avatarMxcUrl: undefined,
+		_avatarUrl: undefined,
 		isAdministrator: false,
 		client: {} as MatrixClient,
 		userId: null,
@@ -51,6 +53,10 @@ const useUser = defineStore('user', {
 
 		isAdmin({ isAdministrator }) {
 			return isAdministrator;
+		},
+
+		avatarUrl({ _avatarUrl }) {
+			return _avatarUrl;
 		},
 	},
 
@@ -71,7 +77,33 @@ const useUser = defineStore('user', {
 				this.isAdministrator = false;
 			}
 		},
+
+		/**
+		 *
+		 * @param sync if set to true, the avatar will be changed in the backend as well
+		 */
+		setAvatarMxcUrl(avatarUrl: string, sync = false) {
+			if (sync) {
+				this.client.setAvatarUrl(avatarUrl);
+			}
+
+			this._avatarMxcUrl = avatarUrl;
+
+			this.updateAvatarUrl();
+		},
+
+		async updateAvatarUrl(): Promise<void> {
+			if (!this._avatarMxcUrl) {
+				this._avatarUrl = this._avatarMxcUrl;
+			} else {
+				const pubhubs = usePubHubs();
+
+				this._avatarUrl = await pubhubs.getAuthorizedMediaUrl(this._avatarMxcUrl);
+			}
+		},
 	},
 });
 
-export { User, defaultUser, useUser };
+type CurrentUser = ReturnType<typeof useUser>;
+
+export { CurrentUser, defaultUser, User, useUser };
