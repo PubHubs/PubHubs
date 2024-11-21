@@ -2,10 +2,11 @@ import { usePubHubs } from '@/core/pubhubsStore';
 import { LOGGER } from '@/foundation/Logger';
 import { SMI } from '@/dev/StatusMessage';
 import { RoomTimelineWindow } from '@/model/timeline/RoomTimelineWindow';
-import { Direction, EventTimeline, EventTimelineSet, MatrixClient, MatrixEvent, Room as MatrixRoom, NotificationCountType } from 'matrix-js-sdk';
+import { Direction, EventTimeline, EventTimelineSet, MatrixClient, MatrixEvent, Room as MatrixRoom, NotificationCountType, RoomMember as MatrixRoomMember } from 'matrix-js-sdk';
 import { CachedReceipt, ReceiptType, WrappedReceipt } from 'matrix-js-sdk/lib/@types/read_receipts';
 import { TBaseEvent } from '../events/TBaseEvent';
 import { TRoomMember } from './TRoomMember';
+import RoomMember from './RoomMember';
 
 enum RoomType {
 	SECURED = 'ph.messages.restricted',
@@ -42,6 +43,8 @@ export default class Room {
 	private lastVisibleEventId: string;
 
 	private pubhubsStore;
+
+	private roomMembers: Map<string, RoomMember> = new Map();
 
 	logger = LOGGER;
 
@@ -160,8 +163,24 @@ export default class Room {
 	// #endregion
 
 	// #region members
-	public getMember(userId: string) {
-		return this.matrixRoom.getMember(userId);
+
+	/**
+	 * @param getPHRoomMember Set to true to update to using the PubHubs RoomMember class instead of matrix-js-sdk RoomMember class.
+	 */
+	public getMember(userId: string): MatrixRoomMember | null;
+	public getMember(userId: string, getPHRoomMember: true): RoomMember | null;
+	public getMember(userId: string, getPHRoomMember = false): MatrixRoomMember | RoomMember | null {
+		if (!getPHRoomMember) return this.matrixRoom.getMember(userId);
+
+		const member = this.roomMembers.get(userId);
+		if (member) return member;
+
+		const matrixRoomMember = this.matrixRoom.getMember(userId);
+		if (!matrixRoomMember) return null;
+
+		const roomMember = new RoomMember(matrixRoomMember);
+		this.roomMembers.set(userId, roomMember);
+		return roomMember;
 	}
 
 	/**
