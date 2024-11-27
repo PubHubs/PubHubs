@@ -11,13 +11,12 @@
 								{{ settings.hub.name }}
 							</span>
 							<Avatar
-								class="cursor-pointer w-8 h-8 text-md"
-								:userId="user.userId"
-								:img="user.avatarUrl"
+								:user="user"
 								@click="
 									settingsDialog = true;
 									hubSettings.hideBar();
 								"
+								class="cursor-pointer w-8 h-8 text-md"
 							></Avatar>
 						</div>
 					</template>
@@ -91,6 +90,8 @@
 	import { getCurrentInstance, onMounted, ref, watch } from 'vue';
 	import { useI18n } from 'vue-i18n';
 	import { RouteParamValue, useRouter } from 'vue-router';
+
+	import Avatar from '@/components/ui/Avatar.vue';
 
 	const { locale, availableLocales } = useI18n();
 	const router = useRouter();

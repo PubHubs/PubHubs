@@ -18,6 +18,8 @@ import { User, useUser } from '@/store/user';
 import { ContentHelpers, ISearchResults, MatrixClient, MatrixError, MatrixEvent, Room as MatrixRoom, User as MatrixUser, MsgType } from 'matrix-js-sdk';
 import { ReceiptType } from 'matrix-js-sdk/lib/@types/read_receipts';
 import { router } from './router';
+import { useMatrixFiles } from '@/composables/useMatrixFiles';
+import { FeatureFlag, useSettings } from '@/store/settings';
 
 let publicRoomsLoading: Promise<any> | null = null; // outside of defineStore to guarantee lifetime, not accessible outside this module
 
@@ -66,7 +68,7 @@ const usePubHubs = defineStore('pubhubs', {
 					api_matrix.setAccessToken(this.Auth.getAccessToken()!);
 					user.fetchIsAdministrator(this.client as MatrixClient);
 					const avatarUrl = await this.client.getProfileInfo(newUser.userId, 'avatar_url');
-					if (avatarUrl.avatar_url !== undefined) user.avatarUrl = avatarUrl.avatar_url;
+					if (avatarUrl.avatar_url !== undefined) user.setAvatarMxcUrl(avatarUrl.avatar_url);
 					await this.updateRooms();
 				}
 			} catch (error: any) {
@@ -525,14 +527,6 @@ const usePubHubs = defineStore('pubhubs', {
 			}
 		},
 
-		async changeAvatar(url: string) {
-			try {
-				await this.client.setAvatarUrl(url);
-			} catch (error: any) {
-				this.showError(error);
-			}
-		},
-
 		async findUsers(term: string): Promise<Array<any>> {
 			const response = await this.client.searchUserDirectory({ term: term });
 			return response.results;
@@ -588,7 +582,50 @@ const usePubHubs = defineStore('pubhubs', {
 			const resp = await api_synapse.apiPOST<Object>(api_synapse.apiURLS.joinHub, { user: loggedInUser.userId! });
 			return resp;
 		},
+
+		/**
+		 * Makes an authenticated request to get the media and returns a local URL to the retrieved file (which does not need authorization).
+		 * This is useful for usage in <img> tags, where you cannot send an access token.
+		 *
+		 * Note: A better approach might be to use service workers to add the access token.
+		 */
+		async getAuthorizedMediaUrl(matrixUrl: string): Promise<string | null> {
+			const matrixFileStore = useMatrixFiles();
+			const settingsStore = useSettings();
+			const url = matrixFileStore.formUrlfromMxc(matrixUrl, settingsStore.isFeatureEnabled(FeatureFlag.authenticatedMedia));
+
+			const accessToken = this.Auth.getAccessToken();
+
+			if (!accessToken) {
+				console.error('Access token is missing');
+				return null;
+			}
+
+			const options = {
+				headers: {
+					Authorization: 'Bearer ' + accessToken,
+				},
+				method: 'GET',
+			};
+
+			try {
+				const response = await fetch(url, options);
+
+				const blob = await response.blob();
+
+				if (blob) {
+					const fileURL = window.URL.createObjectURL(blob);
+					return fileURL;
+				}
+				return null;
+			} catch (error) {
+				console.error('Error downloading the file: ', error);
+				return null;
+			}
+		},
 	},
 });
+
+export type PubHubsStore = ReturnType<typeof usePubHubs>;
 
 export { usePubHubs };

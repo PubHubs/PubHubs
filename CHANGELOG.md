@@ -1,6 +1,8 @@
 ## Changes to main, not yet committed to stable
 
 *Please add a brief description of any changes to be tested and any migrations to be performed here.*
+
+## 20 November 2024 - v1.0.2
 - Changed the discover room page: Also show rooms user is member of. Shows an arrow to enter these rooms. After joining a room an arrow will be shown for entering this room.
 - Changed behaviour of global bar and pinning Hubs: When entering a Hub that is not pinned, it wil automatically be pinned to the top.
 - Improvements to logging system. Main and stable should show 'trace' logs while only 'info' logs (and higher) should show when running locally.

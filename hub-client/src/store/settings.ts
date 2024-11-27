@@ -34,6 +34,8 @@ enum FeatureFlag {
 	unreadMarkers = 'unreadmarkers',
 	notifications = 'notifications',
 	deleteMessages = 'deleteMessages',
+	// Implemented with issue #984
+	authenticatedMedia = 'authenticatedMedia',
 }
 
 type FeatureFlags = { [key in FeatureFlag]: boolean };
@@ -102,6 +104,7 @@ const defaultSettings: Settings = {
 			unreadmarkers: true,
 			notifications: true,
 			deleteMessages: true,
+			authenticatedMedia: true,
 		},
 		stable: {
 			signedMessages: true,
@@ -111,6 +114,7 @@ const defaultSettings: Settings = {
 			unreadmarkers: true,
 			notifications: true,
 			deleteMessages: false,
+			authenticatedMedia: false,
 		},
 	},
 };

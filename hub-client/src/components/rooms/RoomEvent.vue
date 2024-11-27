@@ -10,7 +10,7 @@
 			class="group flex gap-4 pl-6 pr-3 py-4"
 			:class="{ 'transition-all duration-150 ease-in-out hover:bg-lightgray-light hover:dark:bg-hub-background-2': !deleteMessageDialog, 'mx-4 shadow-[0_0_5px_0_rgba(0,0,0,0.3)] rounded': props.deleteMessageDialog }"
 		>
-			<Avatar :userId="event.sender" :room="room"></Avatar>
+			<Avatar :user="roomMember"></Avatar>
 			<div :class="{ 'w-5/6': deleteMessageDialog, 'w-4/5 xl:w-3/5': !deleteMessageDialog }">
 				<div class="flex flex-wrap items-center">
 					<div class="relative flex items-start w-full gap-x-1 min-h-6">
@@ -96,16 +96,35 @@
 	import { FeatureFlag, useSettings } from '@/store/settings';
 	import { useUser } from '@/store/user';
 	import { computed, ref } from 'vue';
-	import MessageSnippet from './MessageSnippet.vue';
 
+	// Components
+	import MessageSnippet from './MessageSnippet.vue';
+	import Message from './Message.vue';
+	import MessageFile from './MessageFile.vue';
+	import MessageImage from './MessageImage.vue';
+	import MessageSigned from './MessageSigned.vue';
+	import RoomEventActionsPopup from './RoomEventActionsPopup.vue';
+	import Avatar from '../ui/Avatar.vue';
+	import EventTime from './EventTime.vue';
+	import ProfileAttributes from './ProfileAttributes.vue';
+	import UserDisplayName from './UserDisplayName.vue';
+	import Icon from '../elements/Icon.vue';
+
+	// Stores
 	const connection = useConnection();
 	const messageActions = useMessageActions();
-
 	const user = useUser();
-
 	const settings = useSettings();
 
-	const props = withDefaults(defineProps<{ event: TMessageEvent; room: Room; deleteMessageDialog?: boolean }>(), { deleteMessageDialog: false });
+	type Props = {
+		event: TMessageEvent;
+		room: Room;
+		deleteMessageDialog?: boolean;
+	};
+	const props = withDefaults(defineProps<Props>(), { deleteMessageDialog: false });
+
+	const roomMember = props.room.getMember(props.event.sender, true);
+	if (!roomMember) throw new Error('Sender of event not found while trying to display event.');
 
 	const inReplyToId = props.event.content['m.relates_to']?.['m.in_reply_to']?.event_id;
 
