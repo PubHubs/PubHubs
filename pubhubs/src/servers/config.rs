@@ -68,6 +68,9 @@ pub struct ServerConfig<ServerSpecific> {
     /// If `None`, one is generated automatically and the private key is  printed to the log.
     pub admin_key: Option<api::VerifyingKey>,
 
+    /// If the server needs an object store, use this one.
+    pub object_store: Option<ObjectStoreConfig>,
+
     #[serde(flatten)]
     pub extra: ServerSpecific,
 }
@@ -180,6 +183,20 @@ impl Config {
 
         Ok(new_config)
     }
+}
+
+#[derive(serde::Deserialize, serde::Serialize, Debug, Clone)]
+pub struct ObjectStoreConfig {
+    /// E.g. "memory:///", or file:///some/path
+    ///
+    /// For a complete list, see:
+    ///
+    ///   https://docs.rs/object_store/latest/object_store/enum.ObjectStoreScheme.html
+    pub url: Url,
+
+    /// Additional options passed to the builder of the object store.
+    #[serde(default)]
+    pub options: std::collections::HashMap<String, String>,
 }
 
 pub mod phc {

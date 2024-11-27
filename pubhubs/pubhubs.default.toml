@@ -21,14 +21,17 @@ auths_url = 'http://localhost:6060'
 transcryptor_url = 'http://localhost:7070'
 bind_to = '0.0.0.0:8080'
 
-[[phc.hubs]]
+[phc.object_store]
+url = "memory:///"
+
 # WARNINGs:
 # 
-#  - Never remove a hub name, because that will break links;  only add names.
-#    The first name is the one that's used by default.  (So, to 'change' a hub's name,
-#    just add the new name to the front of the list of names.)
+#  - Never remove a hub handle, because that will break links;  only add handles.
+#    The first handle is the one that's used by default.  (So, to 'change' a hub's handle,,
+#    just add the new handle to the front of the list of handles.)
 #
 #  - Never change the `id` of a hub because the users' pseudonyms are derived from it.
+[[phc.hubs]]
 handles = ['testhub', 'testhub_alias']
 name = "Testhub"
 description = '''This is the default testhub for local development'''
