@@ -90,7 +90,7 @@ impl App {
 
         let ticket_digest = phcrypto::TicketDigest::new(&ts_req.ticket);
 
-        let (_, _): (api::phct::hub::KeyReq, hub::Name) =
+        let (_, _): (api::phct::hub::KeyReq, hub::Handle) =
             api::return_if_ec!(ts_req.open(&running_state.constellation.phc_jwt_key));
 
         // At this point we can be confident that the ticket is authentic, so we can give the hub

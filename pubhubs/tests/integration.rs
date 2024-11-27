@@ -144,7 +144,7 @@ async fn main_integration_test_local(config: servers::Config, admin_sk: api::Sig
         .extra
         .hubs
         .iter()
-        .find(|h: &&hub::BasicInfo| &*h.names[0] == "testhub")
+        .find(|h: &&hub::BasicInfo| &*h.handles[0] == "testhub")
         .expect("could not find 'testhub' hub");
 
     let mock_hub = MockHub::new(testhub.clone());
@@ -159,7 +159,7 @@ async fn main_integration_test_local(config: servers::Config, admin_sk: api::Sig
             &api::Signed::<api::phc::hub::TicketReq>::new(
                 &*mock_hub.context.sk,
                 &api::phc::hub::TicketReq {
-                    name: "testhub".parse().unwrap(),
+                    handle: "testhub".parse().unwrap(),
                 },
                 Duration::from_secs(10),
             )

@@ -1,11 +1,13 @@
 # PubHubs configuration
 #
 # The default configuration suitable for local development can be found in the "pubhubs.default.toml" file
-# Please do not change that file yourself, but instead make a copy called "pubhubs.toml", and modify tbat.
+# Please do not change that file yourself, but instead make a copy called "pubhubs.toml", and modify that.
 # (This prevents you from accidentally committing your local configuration changes to the repository.)
 # 
 # Currently, the integration tests in the `tests` directory also derive their configuration from
 # the "pubhubs.default.toml" file, but we might change this in the future.
+#
+# For a quick explanation of the TOML file format, see see https://toml.io
 phc_url = 'http://localhost:8080'
 
 [auths]
@@ -27,7 +29,8 @@ bind_to = '0.0.0.0:8080'
 #    just add the new name to the front of the list of names.)
 #
 #  - Never change the `id` of a hub because the users' pseudonyms are derived from it.
-names = ['testhub', 'testhub_alias']
+handles = ['testhub', 'testhub_alias']
+name = "Testhub"
 description = '''This is the default testhub for local development'''
 info_url = 'http://localhost:1234/_synapse/client/.ph/info'
 # NOTE: To generate a new `id`, use `cargo run tools generate-hubid`

@@ -8,12 +8,16 @@ use crate::misc::serde_ext::{self, bytes_wrapper};
 /// Basic details about hub, as provided by PubHubs Central.
 #[derive(serde::Serialize, serde::Deserialize, Debug, Eq, PartialEq, Clone)]
 #[serde(remote = "Self")]
-// We use serde(remote... to check the invariant names.len()>0, see
+// We use serde(remote... to check the invariant handles.len()>0, see
 //   https://github.com/serde-rs/serde/issues/1220
 pub struct BasicInfo {
-    /// The names for this hub.  The first one is the one that's used by default.
-    /// Names may be added, but should not be removed.
-    pub names: Vec<Name>,
+    /// The handles for this hub, using in URLs and other places to be understood by both human and
+    /// machine. The first one is the one that's used by default.
+    /// **WARNING:**  Handles may be added, but should not be removed.
+    pub handles: Vec<Handle>,
+
+    /// Human-readable short name for this hub
+    pub name: String,
 
     /// Short description for this hub.  This is stored centrally to facilitate searching.
     /// May be changed freely.
@@ -33,9 +37,9 @@ impl<'de> serde::Deserialize<'de> for BasicInfo {
         D: serde::Deserializer<'de>,
     {
         let unchecked = Self::deserialize(deserializer)?;
-        if unchecked.names.is_empty() {
+        if unchecked.handles.is_empty() {
             return Err(serde::de::Error::custom(
-                "a hub must have at least one name",
+                "a hub must have at least one handle",
             ));
         }
         Ok(unchecked)
@@ -51,35 +55,35 @@ impl serde::Serialize for BasicInfo {
     }
 }
 
-/// The regex pattern for a hub name
-pub const NAME_REGEX: &str = r"^[a-z0-9_]+$";
+/// The regex pattern for a hub handle
+pub const HANDLE_REGEX: &str = r"^[a-z0-9_]+$";
 
 thread_local! {
-    /// Thread local compiled version of [NAME_REGEX]
-    static NAME_REGEX_TLK: OnceCell<regex::Regex> = const { OnceCell::new() };
+    /// Thread local compiled version of [HANDLE_REGEX]
+    static HANDLE_REGEX_TLK: OnceCell<regex::Regex> = const { OnceCell::new() };
 }
 
-/// Runs `f` with as argument a reference to a compiled [NAME_REGEX]
+/// Runs `f` with as argument a reference to a compiled [HANDLE_REGEX]
 /// that is cached thread locally.
-pub fn with_name_regex<R>(f: impl FnOnce(&regex::Regex) -> R) -> R {
-    NAME_REGEX_TLK.with(|oc: &OnceCell<regex::Regex>| {
-        f(oc.get_or_init(|| regex::Regex::new(NAME_REGEX).unwrap()))
+pub fn with_handle_regex<R>(f: impl FnOnce(&regex::Regex) -> R) -> R {
+    HANDLE_REGEX_TLK.with(|oc: &OnceCell<regex::Regex>| {
+        f(oc.get_or_init(|| regex::Regex::new(HANDLE_REGEX).unwrap()))
     })
 }
 
-/// A hub name - a string that matches [NAME_REGEX]
+/// A hub handle - a string that matches [HANDLE_REGEX]
 #[derive(Clone, PartialEq, Eq, Hash, Debug)]
-pub struct Name {
+pub struct Handle {
     inner: String,
 }
 
-impl serde::Serialize for Name {
+impl serde::Serialize for Handle {
     fn serialize<S: serde::Serializer>(&self, s: S) -> Result<S::Ok, S::Error> {
         s.collect_str(self)
     }
 }
 
-impl<'de> serde::Deserialize<'de> for Name {
+impl<'de> serde::Deserialize<'de> for Handle {
     fn deserialize<D: serde::Deserializer<'de>>(d: D) -> Result<Self, D::Error> {
         String::deserialize(d)?
             .parse()
@@ -87,14 +91,14 @@ impl<'de> serde::Deserialize<'de> for Name {
     }
 }
 
-/// When a hub name does not match [NAME_REGEX].
+/// When a hub handle does not match [HANDLE_REGEX].
 #[derive(thiserror::Error, Debug)]
 #[error(
-    "a hub name must be a non-empty string of lower-case alphanumeric characters and underscore"
+    "a hub handle must be a non-empty string of lower-case alphanumeric characters and underscore"
 )]
-pub struct HubNameError();
+pub struct HubHandleError();
 
-impl std::ops::Deref for Name {
+impl std::ops::Deref for Handle {
     type Target = str;
 
     fn deref(&self) -> &Self::Target {
@@ -102,40 +106,40 @@ impl std::ops::Deref for Name {
     }
 }
 
-impl TryFrom<String> for Name {
-    type Error = HubNameError;
+impl TryFrom<String> for Handle {
+    type Error = HubHandleError;
 
     fn try_from(s: String) -> Result<Self, Self::Error> {
-        if !with_name_regex(|r: &regex::Regex| r.is_match(&s)) {
-            return Err(HubNameError());
+        if !with_handle_regex(|r: &regex::Regex| r.is_match(&s)) {
+            return Err(HubHandleError());
         }
 
-        Ok(Name { inner: s })
+        Ok(Handle { inner: s })
     }
 }
 
-impl core::str::FromStr for Name {
-    type Err = HubNameError;
+impl core::str::FromStr for Handle {
+    type Err = HubHandleError;
 
-    fn from_str(s: &str) -> Result<Name, Self::Err> {
-        if !with_name_regex(|r: &regex::Regex| r.is_match(s)) {
-            return Err(HubNameError());
+    fn from_str(s: &str) -> Result<Handle, Self::Err> {
+        if !with_handle_regex(|r: &regex::Regex| r.is_match(s)) {
+            return Err(HubHandleError());
         }
 
-        Ok(Name {
+        Ok(Handle {
             inner: s.to_string(),
         })
     }
 }
 
-impl std::fmt::Display for Name {
+impl std::fmt::Display for Handle {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         write!(f, "{}", self.inner)
     }
 }
 
-impl From<Name> for String {
-    fn from(n: Name) -> Self {
+impl From<Handle> for String {
+    fn from(n: Handle) -> Self {
         n.inner
     }
 }
@@ -180,33 +184,34 @@ mod tests {
     use super::*;
 
     #[test]
-    fn test_hub_name() {
-        assert!(Name::try_from("no_Capical".to_string()).is_err());
-        assert!(Name::try_from("no space".to_string()).is_err());
-        assert!(Name::try_from("no_ümlaut".to_string()).is_err());
-        assert!(Name::try_from("this_is_fine".to_string()).is_ok());
-        assert!(Name::try_from("th1s_t00".to_string()).is_ok());
-        assert!(Name::try_from("".to_string()).is_err());
+    fn test_hub_handle() {
+        assert!(Handle::try_from("no_Capical".to_string()).is_err());
+        assert!(Handle::try_from("no space".to_string()).is_err());
+        assert!(Handle::try_from("no_ümlaut".to_string()).is_err());
+        assert!(Handle::try_from("this_is_fine".to_string()).is_ok());
+        assert!(Handle::try_from("th1s_t00".to_string()).is_ok());
+        assert!(Handle::try_from("".to_string()).is_err());
     }
 
     #[test]
     fn basic_info_serde() {
         assert_eq!(
             serde_json::from_str::<BasicInfo>(
-                r#"{"names": [], "info_url": "https://example.com", "description": "some hub",
+                r#"{"handles": [], "name": "Hub 1", "info_url": "https://example.com", "description": "some hub",
                 "id": "bLAPDnkcYj8S5hZ8NuH9OFTWKzypLqSakexoRvlZ_aA"}"#,
             )
             .unwrap_err()
             .to_string(),
-            "a hub must have at least one name"
+            "a hub must have at least one handle",
         );
         assert_eq!(
             serde_json::from_str::<BasicInfo>(
-                r#"{"names": ["hub_1"], "info_url": "https://example.com", "description": "some hub", "id": "bLAPDnkcYj8S5hZ8NuH9OFTWKzypLqSakexoRvlZ_aA"}"#,
+                r#"{"handles": ["hub_1"], "name": "Hub 1", "info_url": "https://example.com", "description": "some hub", "id": "bLAPDnkcYj8S5hZ8NuH9OFTWKzypLqSakexoRvlZ_aA"}"#,
             )
             .unwrap(),
             BasicInfo{
-                names: vec!["hub_1".parse().unwrap()],
+                handles: vec!["hub_1".parse().unwrap()],
+                name: "Hub 1".to_string(),
                 info_url: "https://example.com".parse().unwrap(),
                 description: "some hub".to_string(),
                 id: "bLAPDnkcYj8S5hZ8NuH9OFTWKzypLqSakexoRvlZ_aA".parse().unwrap(),

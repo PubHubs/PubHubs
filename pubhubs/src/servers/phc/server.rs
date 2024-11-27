@@ -42,7 +42,7 @@ pub struct App {
     transcryptor_url: url::Url,
     auths_url: url::Url,
     hubs: HashMap<hub::Id, hub::BasicInfo>,
-    hub_by_name: HashMap<hub::Name, hub::Id>,
+    hub_by_handle: HashMap<hub::Handle, hub::Id>,
     master_enc_key_part: elgamal::PrivateKey,
 }
 
@@ -201,7 +201,7 @@ impl App {
 
         let req = api::return_if_ec!(signed_req.clone().open_without_checking_signature());
 
-        let hub = if let Some(hub) = app.hub_by_name(&req.name) {
+        let hub = if let Some(hub) = app.hub_by_handle(&req.handle) {
             hub
         } else {
             return api::err(api::ErrorCode::UnknownHub);
@@ -223,7 +223,7 @@ impl App {
         api::return_if_ec!(signed_req.open(&*resp.verifying_key).inspect_err(|ec| {
             log::warn!(
                 "could not verify authenticity of hub ticket request for hub {}: {ec}",
-                req.name,
+                req.handle,
             )
         }));
 
@@ -231,15 +231,15 @@ impl App {
         api::Result::Ok(api::return_if_ec!(api::Signed::new(
             &*app.base.jwt_key,
             &api::phc::hub::TicketContent {
-                name: req.name,
+                handle: req.handle,
                 verifying_key: resp.verifying_key,
             },
             std::time::Duration::from_secs(3600 * 24) /* = one day */
         )))
     }
 
-    fn hub_by_name(&self, name: &hub::Name) -> Option<&hub::BasicInfo> {
-        self.hubs.get(self.hub_by_name.get(name)?)
+    fn hub_by_handle(&self, handle: &hub::Handle) -> Option<&hub::BasicInfo> {
+        self.hubs.get(self.hub_by_handle.get(handle)?)
     }
 
     async fn handle_hub_key(
@@ -252,7 +252,7 @@ impl App {
 
         let ticket_digest = phcrypto::TicketDigest::new(&ts_req.ticket);
 
-        let (_, _): (api::phct::hub::KeyReq, hub::Name) =
+        let (_, _): (api::phct::hub::KeyReq, hub::Handle) =
             api::return_if_ec!(ts_req.open(&app.base.jwt_key.verifying_key()));
 
         // At this point we can be confident that the ticket is authentic, so we can give the hub
@@ -274,7 +274,7 @@ pub struct AppCreator {
     transcryptor_url: url::Url,
     auths_url: url::Url,
     hubs: HashMap<hub::Id, hub::BasicInfo>,
-    hub_by_name: HashMap<hub::Name, hub::Id>,
+    hub_by_handle: HashMap<hub::Handle, hub::Id>,
     master_enc_key_part: elgamal::PrivateKey,
 }
 
@@ -285,14 +285,14 @@ impl crate::servers::AppCreator<Server> for AppCreator {
             transcryptor_url: self.transcryptor_url,
             auths_url: self.auths_url,
             hubs: self.hubs,
-            hub_by_name: self.hub_by_name,
+            hub_by_handle: self.hub_by_handle,
             master_enc_key_part: self.master_enc_key_part,
         })
     }
 
     fn new(config: &servers::Config) -> anyhow::Result<Self> {
         let mut hubs: HashMap<hub::Id, hub::BasicInfo> = Default::default();
-        let mut hub_by_name: HashMap<hub::Name, hub::Id> = Default::default();
+        let mut hub_by_handle: HashMap<hub::Handle, hub::Id> = Default::default();
 
         let xconf = &config.phc.as_ref().unwrap().extra;
 
@@ -304,13 +304,13 @@ impl crate::servers::AppCreator<Server> for AppCreator {
                 basic_hub_info.id
             );
 
-            for name in basic_hub_info.names.iter() {
+            for handle in basic_hub_info.handles.iter() {
                 anyhow::ensure!(
-                    hub_by_name
-                        .insert(name.clone(), basic_hub_info.id)
+                    hub_by_handle
+                        .insert(handle.clone(), basic_hub_info.id)
                         .is_none(),
-                    "detected two hubs with the same name, {}",
-                    name
+                    "detected two hubs with the same handle, {}",
+                    handle
                 );
             }
         }
@@ -325,7 +325,7 @@ impl crate::servers::AppCreator<Server> for AppCreator {
             transcryptor_url: xconf.transcryptor_url.clone(),
             auths_url: xconf.auths_url.clone(),
             hubs,
-            hub_by_name,
+            hub_by_handle,
             master_enc_key_part,
         })
     }
