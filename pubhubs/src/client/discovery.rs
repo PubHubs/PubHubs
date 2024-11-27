@@ -1,7 +1,7 @@
 use crate::api;
-use crate::servers::{self, Constellation};
+use crate::servers::{self, server::Server as _, Constellation};
 
-/// Retrieves [Constellation] from specified, waiting for it to be set.
+/// Retrieves [Constellation] from specified url, waiting for it to be set.
 pub async fn get_constellation(url: &url::Url) -> anyhow::Result<Constellation> {
     crate::misc::task::retry(|| async {
         // Retry calling DiscoveryInfo endpoint while it returns a retryable error or some
@@ -23,30 +23,56 @@ pub async fn get_constellation(url: &url::Url) -> anyhow::Result<Constellation> 
     })
 }
 
-/// Requests discovery of PubHubs and wait until it's finished.
-///
-/// After this function returns succesfully the servers agree on the current constellation,
-/// and this constellation is up-to-date with the info advertised by the servers, provided,
-/// at least, that there was no change to one of the servers in the meantime.
-pub async fn await_discovery(phc_url: &url::Url) -> anyhow::Result<()> {
-    crate::misc::task::retry(|| async {
-        (match api::query::<api::DiscoveryRun>(phc_url, &())
-            .await
-            .retryable()?
-        {
-            Some(api::DiscoveryRunResp::UpToDate) => Ok(Some(())), // ok -> done
-            Some(api::DiscoveryRunResp::Restarting) => Ok(None),   // restarting -> retry
-            None => Ok(None),                                      // retryable error -> retry
-        }) as anyhow::Result<Option<()>>
-    })
-    .await?
-    .ok_or_else(|| {
-        anyhow::anyhow!(
-            "timeout waiting for PHC at {phc_url} to finish discovery",
-            phc_url = phc_url
-        )
-    })?;
-    Ok(())
+/// Retrieves [Constellation] from all servers, and checks they coincide; returns `None` when
+/// there's a disagreement.
+pub async fn try_get_stable_constellation(
+    phc_url: &url::Url,
+) -> api::Result<Option<Constellation>> {
+    log::debug!("trying to get stable constellation");
+    let phc_inf = api::return_if_ec!(api::query::<api::DiscoveryInfo>(phc_url, &()).await);
+    if phc_inf.constellation.is_none() {
+        log::debug!(
+            "{phc}'s constellation not yet set",
+            phc = servers::Name::PubhubsCentral
+        );
+        return api::ok(None);
+    }
+    let constellation = phc_inf.constellation.unwrap();
+
+    let mut js = tokio::task::JoinSet::new();
+
+    macro_rules! get_constellation_from_server {
+        ($server:ident) => {
+            let server_name = crate::servers::$server::Server::NAME;
+            if server_name != servers::Name::PubhubsCentral {
+                let url = constellation.url(server_name);
+                js.spawn_local(api::query::<api::DiscoveryInfo>(url, &()));
+            }
+        };
+    }
+
+    crate::for_all_servers!(get_constellation_from_server);
+
+    'lp: loop {
+        match js.join_next().await {
+            None => break 'lp,
+            Some(Ok(inf_res)) => {
+                let inf = api::return_if_ec!(inf_res);
+
+                if inf.constellation.is_none() || inf.constellation.unwrap() != constellation {
+                    log::debug!("constellations not yet in sync");
+                    return api::ok(None);
+                }
+            }
+            Some(Err(join_err)) => {
+                log::warn!("unexpected join error getting constellation from server: {join_err}");
+                return api::err(api::ErrorCode::InternalClientError);
+            }
+        }
+    }
+
+    log::info!("obtained stable constellation");
+    api::ok(Some(constellation))
 }
 
 /// Specifies what to check about  a [api::DiscoveryInfoResp]

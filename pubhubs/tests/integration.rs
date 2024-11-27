@@ -67,28 +67,28 @@ async fn main_integration_test_local(config: servers::Config, admin_sk: api::Sig
 
     // wait for transcryptor's enc_key to be updated
     pubhubs::misc::task::retry(|| async {
-        api::query::<api::DiscoveryInfo>(&constellation.transcryptor_url, &())
+        client::try_get_stable_constellation(&constellation.phc_url)
             .await
             .retryable()
-            .map(|res_maybe| {
-                if let Some(ref t_inf) = res_maybe {
-                    if &t_inf.enc_key != t_enc_key_sk.public_key() {
+            .map(Option::flatten) // Now Result<Option<Constellation>>
+            .map(|constellation_maybe| {
+                if let Some(ref constellation) = constellation_maybe {
+                    if &constellation.transcryptor_enc_key != t_enc_key_sk.public_key() {
+                        log::debug!(
+                            "stable constellation has old transcryptor encryption key still"
+                        );
                         return None;
                     }
                 }
 
-                res_maybe
+                constellation_maybe
             })
     })
     .await
     .unwrap()
     .unwrap();
 
-    // now await PHC to finish discovery
-    client::await_discovery(&config.phc_url).await.unwrap();
-
     // update PHC's key
-
     api::query_with_retry::<api::admin::UpdateConfig>(
         &constellation.phc_url,
         &api::Signed::<api::admin::UpdateConfigReq>::new(
@@ -106,25 +106,24 @@ async fn main_integration_test_local(config: servers::Config, admin_sk: api::Sig
 
     // wait for phc's enc_key to be updated
     pubhubs::misc::task::retry(|| async {
-        api::query::<api::DiscoveryInfo>(&constellation.phc_url, &())
+        client::try_get_stable_constellation(&constellation.phc_url)
             .await
             .retryable()
-            .map(|res_maybe| {
-                if let Some(ref phc_inf) = res_maybe {
-                    if &phc_inf.enc_key != phc_enc_key_sk.public_key() {
+            .map(Option::flatten) // Now Result<Option<Constellation>>
+            .map(|constellation_maybe| {
+                if let Some(ref constellation) = constellation_maybe {
+                    if &constellation.phc_enc_key != phc_enc_key_sk.public_key() {
+                        log::debug!("stable constellation has old phc encryption key still");
                         return None;
                     }
                 }
 
-                res_maybe
+                constellation_maybe
             })
     })
     .await
     .unwrap()
     .unwrap();
-
-    // now await PHC to finish discovery
-    client::await_discovery(&config.phc_url).await.unwrap();
 
     let constellation: servers::Constellation =
         client::get_constellation(&config.phc_url).await.unwrap();

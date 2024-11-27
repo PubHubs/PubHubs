@@ -1197,6 +1197,17 @@ fn create_app(cfg: &mut web::ServiceConfig, context: Data<Main>) {
                         .route("/state", web::put().to(crate::bar::put_state))
                         .route("/hubs", web::get().to(crate::bar::get_hubs)),
                 )
+                .apply_when(!legacy_static_pages, |scope| {
+                    // redirect the old Yivi issue_url:
+                    //      "/register?yivi_info"   to   "/client#/register?yivi_info"
+                    scope.service(
+                        web::scope("register")
+                            .guard(actix_web::guard::fn_guard(|gc| {
+                                gc.head().uri.query() == Some("yivi_info")
+                            }))
+                            .service(web::redirect("", "/client#/register?yivi_info")),
+                    )
+                })
                 .apply_when(legacy_static_pages, |scope| {
                     scope
                         .route("/register", web::get().to(register_account))
