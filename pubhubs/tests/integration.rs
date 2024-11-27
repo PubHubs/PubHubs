@@ -4,7 +4,7 @@ use actix_web::web;
 use pubhubs::{api, client, elgamal, hub, servers};
 use std::{sync::Arc, time::Duration};
 
-const CONFIG_FILE_PATH: &'static str = "pubhubs.default.yaml";
+const CONFIG_FILE_PATH: &'static str = "pubhubs.default.toml";
 
 #[tokio::test]
 async fn main_integration_test() {

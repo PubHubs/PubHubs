@@ -1,12 +1,9 @@
 <template>
 	<div class="flex flex-col justify-between gap-2 min-h-full">
 		<div class="grid gap-2 p-2 pt-4">
-			<div v-if="hubs.currentHubId && !global.existsInPinnedHubs(hubs.currentHubId)" class="w-full">
-				<HubIcon class="text-ph-text mx-auto" :hub="hubs.currentHub" :active="true" :pinnable="global.loggedIn" @pin="global.addPinnedHub(hubs.currentHub, 0)" @click="toggleMenu.hideMenuAndSendToHub()"></HubIcon>
-			</div>
 			<draggable @start="backupPinnedHubs = global.pinnedHubs.slice()" @end="hoverOverHubremoval = false" :list="global.pinnedHubs" :item-key="'hubId'" handle=".handle" class="grid gap-2 list-group" group="hubs">
 				<template #item="{ element }">
-					<div class="flex gap-2 justify-center handle">
+					<div class="flex gap-2 justify-center" :class="{ handle: hubOrderingIsActive }">
 						<!-- Draggable button indicators when needed -->
 						<div class="hover:cursor-pointer flex flex-col gap-2 my-auto" :class="{ hidden: !hubOrderingIsActive }">
 							<Icon type="triangle" size="xs"></Icon>

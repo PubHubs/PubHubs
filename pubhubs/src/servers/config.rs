@@ -81,8 +81,9 @@ impl Config {
     ///
     /// Returns [None] if there's no file there.
     pub fn load_from_path(path: &Path) -> Result<Option<Self>> {
-        let file = match std::fs::File::open(path) {
-            Ok(file) => file,
+        // NOTE: the toml crate does not have a `from_reader` like `serde_json` does
+        let mut res: Self = toml::from_str(&match std::fs::read_to_string(path) {
+            Ok(contents) => contents,
             Err(e) => match e.kind() {
                 std::io::ErrorKind::NotFound => return Ok(None),
                 _ => {
@@ -90,10 +91,8 @@ impl Config {
                         .with_context(|| format!("could not open config file {}", path.display()))
                 }
             },
-        };
-
-        let mut res: Self = serde_yaml::from_reader(file)
-            .with_context(|| format!("could not parse config file {}", path.display()))?;
+        })
+        .with_context(|| format!("could not parse config file {}", path.display()))?;
 
         if res.wd.as_os_str().is_empty() {
             res.wd = path

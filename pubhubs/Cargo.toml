@@ -45,7 +45,7 @@ bin = [
 	"dep:url",
 	"dep:serde",
 	"dep:serde_json",
-	"dep:serde_yaml",
+	"dep:toml",
 	"dep:log",
 	"dep:env_logger",
 	"dep:tokio",
@@ -59,6 +59,7 @@ bin = [
 	"dep:typenum",
 	"dep:generic-array",
 	"dep:humantime", # used by env_logger already
+	"dep:object_store",
 ]
 real_credentials = []
 old = [
@@ -117,12 +118,15 @@ serde_bytes = { version = "0.11", optional = true }
 serde_json = { version = "1.0", optional = true }
 serde_urlencoded = { version = "0.7", optional = true }
 serde_yaml = { version = "0.9", optional = true }
+toml = { version = "0.8", optional = true }
 
 urlencoding = { version = "2.1", optional = true }
 
 # Database interaction
 rand = { version = "0.8", optional = true }
 rusqlite = { version = "0.32", features = ["bundled"], optional = true }
+# note: object_store is used by crates.io
+object_store = { version = "0.11", optional = true } 
 
 # Yivi interaction
 async-recursion = { version = "1.1", optional = true }
@@ -180,5 +184,5 @@ clap = { version = "4.5", features = ["derive"], optional = true }
 humantime = { version="2", optional=true }
 
 [dev-dependencies]
-tempfile = "3.13"
+tempfile = "3.14"
 tokio-test = "0.4"

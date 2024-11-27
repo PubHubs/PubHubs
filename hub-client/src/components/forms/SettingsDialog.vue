@@ -6,7 +6,7 @@
 				<input type="file" id="avatar" accept="image/png, image/jpeg, image/svg" class="hidden" ref="file" @change="uploadAvatar($event)" />
 
 				<div class="md:w-4/6 flex flex-col md:flex-row justify-between">
-					<Avatar :class="bgColor(color(user.user.userId))" :userId="user.user.userId" :img="data.avatarUrl.value" class="w-32 h-32 rounded-full"></Avatar>
+					<Avatar :user="user" :overrideAvatarUrl="avatarUrl" class="w-32 h-32 rounded-full"></Avatar>
 
 					<div class="flex justify-center md:justify-normal md:flex-col md:space-y-4 mt-5 md:mr-3">
 						<label for="avatar">
@@ -21,9 +21,9 @@
 				<TextInput
 					class="md:w-4/6 p-1 border rounded focus:outline-none focus:border-blue-500"
 					name="displayname"
-					v-model.trim="data.displayName.value"
+					v-model.trim="formState.data.displayName.value"
 					:placeholder="$t('settings.displayname')"
-					@changed="updateData('displayName', $event)"
+					@changed="formState.updateData('displayName', $event)"
 				></TextInput>
 			</div>
 			<div class="flex flex-col md:flex-row mb-4">
@@ -32,9 +32,9 @@
 			</div>
 		</form>
 
-		<ValidationErrors :errors="validationErrors"></ValidationErrors>
+		<ValidationErrors :errors="formState.validationErrors.value"></ValidationErrors>
 
-		<div v-if="message !== ''" class="rounded-lg bg-green-dark text-white p-2 mt-2">{{ message }}</div>
+		<div v-if="formState.message.value !== ''" class="rounded-lg bg-green-dark text-white p-2 mt-2">{{ formState.message }}</div>
 	</Dialog>
 </template>
 
@@ -42,51 +42,47 @@
 	import { fileUpload } from '@/composables/fileUpload';
 	import { FormDataType, useFormState } from '@/composables/useFormState';
 	import { useMatrixFiles } from '@/composables/useMatrixFiles';
-	import { useUserColor } from '@/composables/useUserColor';
 	import { usePubHubs } from '@/core/pubhubsStore';
 	import { useSettings } from '@/store/settings';
 	import { buttonsSubmitCancel, DialogButtonAction, DialogSubmit, useDialog } from '@/store/store';
 	import { useUser } from '@/store/user';
-	import { onMounted } from 'vue';
+	import { onMounted, ref, watch } from 'vue';
 	import { useI18n } from 'vue-i18n';
+
+	// Components
+	import Dialog from '../ui/Dialog.vue';
+	import Avatar from '../ui/Avatar.vue';
+	import Icon from '../elements/Icon.vue';
+	import TextInput from './TextInput.vue';
+	import ValidationErrors from './ValidationErrors.vue';
 
 	const { t } = useI18n();
 	const user = useUser();
 	const settings = useSettings();
 	const dialog = useDialog();
-	const { data, setSubmitButton, setData, updateData, dataIsChanged, message, setMessage, validationErrors } = useFormState();
+	const formState = useFormState();
 	const pubhubs = usePubHubs();
 	const { imageTypes, uploadUrl } = useMatrixFiles();
-	const { color, bgColor } = useUserColor();
 
-	setData({
+	let avatarMxcUrl = ref<string | undefined>(undefined);
+	let avatarUrl = ref<string | undefined>(undefined);
+
+	watch(avatarMxcUrl, updateAvatarUrl);
+
+	formState.setData({
 		displayName: {
 			value: user.user.displayName as string,
 			validation: { required: true, max_length: settings.getDisplayNameMaxLength, allow_empty_number: false, allow_empty_object: false, allow_empty_text: true },
 			show_validation: { required: false, max_length: true },
 		},
-		avatarUrl: {
-			value: '',
-			// To keep the original mxc.
-			tmp: '',
-		},
 	});
 
 	onMounted(() => {
-		setSubmitButton(dialog.properties.buttons[0]);
+		formState.setSubmitButton(getSubmitButton());
 	});
 
 	onMounted(() => {
-		data.displayName.value = user.user.displayName as FormDataType;
-		data.avatarUrl.value = user.avatarUrl as FormDataType;
-		if (data.avatarUrl.value !== undefined) {
-			setData({
-				avatarUrl: {
-					value: data.avatarUrl.value as string,
-					tmp: '',
-				},
-			});
-		}
+		formState.data.displayName.value = user.user.displayName as FormDataType;
 	});
 
 	function dialogAction(action: DialogButtonAction) {
@@ -95,19 +91,35 @@
 		}
 	}
 
+	function getSubmitButton() {
+		return dialog.properties.buttons[0];
+	}
+
 	async function submit() {
 		// This check enables empty values to be submitted since dataIsChanged() method can't handle empty values conditional cal.
-		if (dataIsChanged('displayName')) {
-			const newDisplayName = data.displayName.value as string;
+		if (formState.dataIsChanged('displayName')) {
+			const newDisplayName = formState.data.displayName.value as string;
 			await pubhubs.changeDisplayName(newDisplayName);
-			setMessage(t('settings.displayname_changed', [newDisplayName]));
-			updateData('displayName', newDisplayName);
+			formState.setMessage(t('settings.displayname_changed', [newDisplayName]));
+			formState.updateData('displayName', newDisplayName);
 		}
-		if (dataIsChanged('avatarUrl')) {
-			const newAvatarUrl = data.avatarUrl.value as string;
-			user.avatarUrl = newAvatarUrl;
-			await pubhubs.changeAvatar(data.avatarUrl.tmp);
+
+		if (avatarMxcUrl.value !== undefined) {
+			user.setAvatarMxcUrl(avatarMxcUrl.value, true);
 		}
+	}
+
+	async function updateAvatarUrl(): Promise<void> {
+		if (!avatarMxcUrl.value) {
+			avatarUrl.value = avatarMxcUrl.value;
+			return;
+		}
+
+		const url = await pubhubs.getAuthorizedMediaUrl(avatarMxcUrl.value);
+		if (url === null) throw new Error('Could not get authorized media URL');
+
+		avatarUrl.value = url;
+		return;
 	}
 
 	// Avatar related functions
@@ -115,12 +127,9 @@
 		const accessToken = pubhubs.Auth.getAccessToken();
 		if (accessToken) {
 			const errorMsg = t('errors.file_upload');
-			await fileUpload(errorMsg, accessToken, uploadUrl, imageTypes, event, (uri) => {
-				// Update the user store for avatar url to overcome synapse slow updates in user profile.
-				data.avatarUrl.tmp = uri;
-				data.avatarUrl.value = uri;
-				// Update the form data i.e., there is a change and submit button is enabled.
-				updateData('avatarUrl', uri);
+			await fileUpload(errorMsg, accessToken, uploadUrl, imageTypes, event, (mxUrl) => {
+				avatarMxcUrl.value = mxUrl;
+				getSubmitButton().enabled = true;
 			});
 		} else {
 			console.error('Access Token is invalid for File upload.');
@@ -128,7 +137,7 @@
 	}
 
 	async function removeAvatar() {
-		data.avatarUrl.value = '';
-		updateData('avatarUrl', '');
+		avatarMxcUrl.value = '';
+		getSubmitButton().enabled = true;
 	}
 </script>

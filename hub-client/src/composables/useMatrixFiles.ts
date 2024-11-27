@@ -32,11 +32,17 @@ const useMatrixFiles = () => {
 		return types.join(',');
 	}
 
-	function formUrlfromMxc(mxc: string) {
+	function formUrlfromMxc(mxc: string, useAuthenticatedMediaEndpoint = false) {
 		if (mxc.indexOf('mxc:/') !== 0) {
 			return '';
 		}
-		const url = new URL(downloadUrl + mxc.slice(6)).toString();
+
+		let downloadEndpoint = downloadUrl;
+		if (useAuthenticatedMediaEndpoint) {
+			downloadEndpoint = `${pubhubs.getBaseUrl}/_matrix/client/v1/media/download/`;
+		}
+
+		const url = new URL(downloadEndpoint + mxc.slice(6)).toString();
 		return url;
 	}
 
@@ -58,5 +64,7 @@ const useMatrixFiles = () => {
 
 	return { downloadUrl, uploadUrl, formUrlfromMxc, deleteMediaUrlfromMxc, imageTypes, mediaTypes, fileTypes, allTypes, getTypesAsString, isImage, isAllowed };
 };
+
+export type MatrixFilesStore = ReturnType<typeof useMatrixFiles>;
 
 export { useMatrixFiles };

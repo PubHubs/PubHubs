@@ -6,7 +6,7 @@
 </template>
 
 <script setup lang="ts">
-	import { TMessageEvent } from '@/model/model';
+	import { TMessageEvent } from '@/model/events/TMessageEvent';
 	import { computed } from 'vue';
 	import { useI18n } from 'vue-i18n';
 
