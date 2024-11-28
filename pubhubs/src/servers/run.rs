@@ -522,7 +522,10 @@ impl DiscoveryLimiter {
 /// Used to issue commands to the server.  Since discovery is requested a often a separate struct
 /// is used to deal with discovery requests.
 pub struct Handle<S: Server> {
+    /// To send commands to the server
     sender: mpsc::Sender<CommandRequest<S>>,
+
+    /// To coordinate the handling of discovery requests
     discovery_limiter: DiscoveryLimiter,
 }
 

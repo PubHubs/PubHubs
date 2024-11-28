@@ -37,6 +37,15 @@ pub mod api;
 pub mod hub;
 
 #[cfg(feature = "bin")]
+pub mod handle;
+
+#[cfg(feature = "bin")]
+pub mod id;
+
+#[cfg(feature = "bin")]
+pub mod attr;
+
+#[cfg(feature = "bin")]
 pub mod phcrypto;
 
 #[cfg(any(feature = "bin", feature = "old"))]

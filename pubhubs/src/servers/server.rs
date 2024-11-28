@@ -1,6 +1,6 @@
 //! What's common between PubHubs servers
 use actix_web::web;
-use anyhow::Result;
+use anyhow::{Context as _, Result};
 use futures_util::future::LocalBoxFuture;
 
 use core::convert::Infallible;
@@ -49,10 +49,10 @@ impl std::fmt::Display for Name {
 /// immutable [App] instances to be sent to the individual threads.
 ///
 /// For efficiency's sake, only the [App] instances are available to each thread,
-/// and are immutable. To change the server's state, all apps must be restarted.
+/// and are mostly immutable. To change the server's state, generally all apps must be restarted.
 ///
-/// An exception to this no-shared-mutable-state is the synchronization present in
-/// `crate::servers::run::DiscoveryLimiter` (private item).
+/// An exception to this no-shared-mutable-state is the shared state in [Handle], for example the
+/// `crate::servers::run::DiscoveryLimiter` and the object store.
 pub trait Server: Sized + 'static {
     type AppT: App<Self>;
 
@@ -65,6 +65,9 @@ pub trait Server: Sized + 'static {
 
     /// Additional state when the server is running
     type ExtraRunningState: Clone + core::fmt::Debug;
+
+    /// Type of this server's object store, usually an [`object_store::ObjectStore`], or [`()`].
+    type ObjectStoreT: Sync;
 
     fn new(config: &crate::servers::Config) -> anyhow::Result<Self>;
 
@@ -124,6 +127,7 @@ pub trait Details: crate::servers::config::GetServerConfig + 'static + Sized {
     type AppCreatorT;
     type AppT;
     type ExtraRunningState: Clone + core::fmt::Debug;
+    type ObjectStoreT;
 
     fn create_running_state(
         server: &ServerImpl<Self>,
@@ -135,6 +139,7 @@ impl<D: Details> Server for ServerImpl<D>
 where
     D::AppT: App<Self>,
     D::AppCreatorT: AppCreator<Self>,
+    D::ObjectStoreT: Sync,
 {
     const NAME: Name = D::NAME;
 
@@ -143,6 +148,8 @@ where
 
     type ExtraConfig = D::Extra;
     type ExtraRunningState = D::ExtraRunningState;
+
+    type ObjectStoreT = D::ObjectStoreT;
 
     fn new(config: &servers::Config) -> anyhow::Result<Self> {
         Ok(Self {
@@ -200,6 +207,7 @@ impl<D: Details> ServerImpl<D>
 where
     D::AppT: App<Self>,
     D::AppCreatorT: AppCreator<Self>,
+    D::ObjectStoreT: Sync,
 {
     async fn run_discovery_and_then_wait_forever(
         self: Rc<Self>,
@@ -483,6 +491,7 @@ pub struct AppCreatorBase<S: Server> {
     pub jwt_key: api::SigningKey,
     pub enc_key: elgamal::PrivateKey,
     pub admin_key: api::VerifyingKey,
+    pub shared: SharedState<S>,
 }
 
 // need to implement this manually, because we do not want `Server` to implement `Clone`
@@ -495,15 +504,20 @@ impl<S: Server> Clone for AppCreatorBase<S> {
             jwt_key: self.jwt_key.clone(),
             enc_key: self.enc_key.clone(),
             admin_key: self.admin_key.clone(),
+            shared: self.shared.clone(),
         }
     }
 }
 
-impl<S: Server> AppCreatorBase<S> {
-    pub fn new(config: &crate::servers::Config) -> Self {
+impl<S: Server> AppCreatorBase<S>
+where
+    S::ObjectStoreT: for<'a> TryFrom<&'a Option<servers::config::ObjectStoreConfig>, Error = anyhow::Error>
+        + Sync,
+{
+    pub fn new(config: &crate::servers::Config) -> anyhow::Result<Self> {
         let server_config = S::server_config_from(config);
 
-        Self {
+        Ok(Self {
             running_state: None,
             self_check_code: server_config
                 .self_check_code
@@ -522,7 +536,11 @@ impl<S: Server> AppCreatorBase<S> {
                 .admin_key
                 .clone()
                 .expect("admin_key was not set nor generated"),
-        }
+            shared: SharedState::new(SharedStateInner {
+                object_store: TryFrom::try_from(&server_config.object_store)
+                    .with_context(|| format!("Creating object store for {}", S::NAME))?,
+            }),
+        })
     }
 }
 
@@ -537,6 +555,7 @@ pub struct AppBase<S: Server> {
     pub jwt_key: api::SigningKey,
     pub enc_key: elgamal::PrivateKey,
     pub admin_key: api::VerifyingKey,
+    pub shared: SharedState<S>,
     pub client: client::Client,
 }
 
@@ -550,6 +569,7 @@ impl<S: Server> AppBase<S> {
             jwt_key: creator_base.jwt_key,
             enc_key: creator_base.enc_key,
             admin_key: creator_base.admin_key,
+            shared: creator_base.shared,
             client: client::Client::builder()
                 .agent(client::Agent::Server(S::NAME))
                 .finish(),
@@ -801,4 +821,37 @@ factory_tuple! { A B C D E F G H I J K L M N O P }
 pub struct RunningState<Extra: Clone + core::fmt::Debug> {
     pub constellation: Box<Constellation>,
     pub extra: Extra,
+}
+
+/// Shared state between [App]s.  Use sparingly!
+pub struct SharedState<S: Server> {
+    inner: std::sync::Arc<SharedStateInner<S>>,
+}
+
+impl<S: Server> Clone for SharedState<S> {
+    fn clone(&self) -> Self {
+        Self {
+            inner: self.inner.clone(),
+        }
+    }
+}
+
+impl<S: Server> std::ops::Deref for SharedState<S> {
+    type Target = SharedStateInner<S>;
+
+    fn deref(&self) -> &Self::Target {
+        &self.inner
+    }
+}
+
+impl<S: Server> SharedState<S> {
+    fn new(inner: SharedStateInner<S>) -> Self {
+        Self {
+            inner: std::sync::Arc::new(inner),
+        }
+    }
+}
+
+pub struct SharedStateInner<S: Server> {
+    object_store: S::ObjectStoreT,
 }

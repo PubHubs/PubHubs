@@ -13,6 +13,7 @@ phc_url = 'http://localhost:8080'
 [auths]
 bind_to = '0.0.0.0:6060'
 
+
 [transcryptor]
 bind_to = '0.0.0.0:7070'
 
@@ -36,7 +37,7 @@ handles = ['testhub', 'testhub_alias']
 name = "Testhub"
 description = '''This is the default testhub for local development'''
 info_url = 'http://localhost:1234/_synapse/client/.ph/info'
-# NOTE: To generate a new `id`, use `cargo run tools generate-hubid`
+# NOTE: To generate a new `id`, use `cargo run tools generate-id`
 id = 'i9RSgnZ44MMBdcJHX2GqDRNaOt_v63XOMekOmhLHvzg'
 
 

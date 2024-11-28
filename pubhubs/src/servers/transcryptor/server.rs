@@ -6,7 +6,7 @@ use crate::{
     api::{self, EndpointDetails as _},
     servers::{self, AppBase, AppCreator as _, AppCreatorBase, Constellation, Handle, Server as _},
 };
-use crate::{elgamal, hub, phcrypto};
+use crate::{elgamal, handle, phcrypto};
 
 /// Transcryptor
 pub type Server = servers::ServerImpl<Details>;
@@ -17,6 +17,7 @@ impl servers::Details for Details {
     type AppT = Rc<App>;
     type AppCreatorT = AppCreator;
     type ExtraRunningState = ExtraRunningState;
+    type ObjectStoreT = servers::object_store::UseNone;
 
     fn create_running_state(
         server: &Server,
@@ -90,7 +91,7 @@ impl App {
 
         let ticket_digest = phcrypto::TicketDigest::new(&ts_req.ticket);
 
-        let (_, _): (api::phct::hub::KeyReq, hub::Handle) =
+        let (_, _): (api::phct::hub::KeyReq, handle::Handle) =
             api::return_if_ec!(ts_req.open(&running_state.constellation.phc_jwt_key));
 
         // At this point we can be confident that the ticket is authentic, so we can give the hub
@@ -123,7 +124,7 @@ impl crate::servers::AppCreator<Server> for AppCreator {
             .expect("master_enc_key_part was not generated");
 
         Ok(Self {
-            base: AppCreatorBase::<Server>::new(config),
+            base: AppCreatorBase::<Server>::new(config)?,
             master_enc_key_part,
         })
     }

@@ -9,7 +9,7 @@ use url::Url;
 use crate::servers::{for_all_servers, server::Server as _};
 use crate::{
     api::{self},
-    elgamal, hub,
+    attr, elgamal, hub,
 };
 
 /// Configuration for one, or several, of the PubHubs servers
@@ -199,6 +199,15 @@ pub struct ObjectStoreConfig {
     pub options: std::collections::HashMap<String, String>,
 }
 
+impl Default for ObjectStoreConfig {
+    fn default() -> Self {
+        Self {
+            url: "memory:///".try_into().unwrap(),
+            options: Default::default(),
+        }
+    }
+}
+
 pub mod phc {
     use super::*;
 
@@ -235,7 +244,10 @@ pub mod auths {
 
     #[derive(serde::Deserialize, serde::Serialize, Debug, Clone)]
     #[serde(deny_unknown_fields)]
-    pub struct ExtraConfig {}
+    pub struct ExtraConfig {
+        #[serde(default)]
+        pub attribute_types: Vec<attr::Type>,
+    }
 }
 
 /// Trait to generate the random values in [Config] where needed

@@ -7,7 +7,7 @@ use futures_util::future::LocalBoxFuture;
 
 use crate::{
     api::{self, EndpointDetails as _},
-    client, phcrypto,
+    client, handle, id, phcrypto,
     servers::{self, AppBase, AppCreator as _, AppCreatorBase, Constellation, Handle, Server as _},
 };
 
@@ -22,6 +22,7 @@ impl servers::Details for Details {
     type AppT = Rc<App>;
     type AppCreatorT = AppCreator;
     type ExtraRunningState = RunningState;
+    type ObjectStoreT = servers::object_store::DefaultObjectStore;
 
     fn create_running_state(
         server: &Server,
@@ -41,8 +42,8 @@ pub struct App {
     base: AppBase<Server>,
     transcryptor_url: url::Url,
     auths_url: url::Url,
-    hubs: HashMap<hub::Id, hub::BasicInfo>,
-    hub_by_handle: HashMap<hub::Handle, hub::Id>,
+    hubs: HashMap<id::Id, hub::BasicInfo>,
+    hub_by_handle: HashMap<handle::Handle, id::Id>,
     master_enc_key_part: elgamal::PrivateKey,
 }
 
@@ -238,7 +239,7 @@ impl App {
         )))
     }
 
-    fn hub_by_handle(&self, handle: &hub::Handle) -> Option<&hub::BasicInfo> {
+    fn hub_by_handle(&self, handle: &handle::Handle) -> Option<&hub::BasicInfo> {
         self.hubs.get(self.hub_by_handle.get(handle)?)
     }
 
@@ -252,7 +253,7 @@ impl App {
 
         let ticket_digest = phcrypto::TicketDigest::new(&ts_req.ticket);
 
-        let (_, _): (api::phct::hub::KeyReq, hub::Handle) =
+        let (_, _): (api::phct::hub::KeyReq, handle::Handle) =
             api::return_if_ec!(ts_req.open(&app.base.jwt_key.verifying_key()));
 
         // At this point we can be confident that the ticket is authentic, so we can give the hub
@@ -273,8 +274,8 @@ pub struct AppCreator {
     base: AppCreatorBase<Server>,
     transcryptor_url: url::Url,
     auths_url: url::Url,
-    hubs: HashMap<hub::Id, hub::BasicInfo>,
-    hub_by_handle: HashMap<hub::Handle, hub::Id>,
+    hubs: HashMap<id::Id, hub::BasicInfo>,
+    hub_by_handle: HashMap<handle::Handle, id::Id>,
     master_enc_key_part: elgamal::PrivateKey,
 }
 
@@ -291,8 +292,8 @@ impl crate::servers::AppCreator<Server> for AppCreator {
     }
 
     fn new(config: &servers::Config) -> anyhow::Result<Self> {
-        let mut hubs: HashMap<hub::Id, hub::BasicInfo> = Default::default();
-        let mut hub_by_handle: HashMap<hub::Handle, hub::Id> = Default::default();
+        let mut hubs: HashMap<id::Id, hub::BasicInfo> = Default::default();
+        let mut hub_by_handle: HashMap<handle::Handle, id::Id> = Default::default();
 
         let xconf = &config.phc.as_ref().unwrap().extra;
 
@@ -321,7 +322,7 @@ impl crate::servers::AppCreator<Server> for AppCreator {
             .expect("master_enc_key_part not generated");
 
         Ok(Self {
-            base: AppCreatorBase::<Server>::new(config),
+            base: AppCreatorBase::<Server>::new(config)?,
             transcryptor_url: xconf.transcryptor_url.clone(),
             auths_url: xconf.auths_url.clone(),
             hubs,

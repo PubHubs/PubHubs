@@ -3,6 +3,7 @@
 pub mod config;
 mod constellation;
 pub mod macros;
+mod object_store;
 mod run;
 pub(super) mod server;
 

@@ -14,6 +14,7 @@ impl servers::Details for Details {
     type AppT = Rc<App>;
     type AppCreatorT = AppCreator;
     type ExtraRunningState = ();
+    type ObjectStoreT = servers::object_store::UseNone;
 
     fn create_running_state(
         _server: &Server,
@@ -66,7 +67,7 @@ pub struct AppCreator {
 impl crate::servers::AppCreator<Server> for AppCreator {
     fn new(config: &servers::Config) -> anyhow::Result<Self> {
         Ok(Self {
-            base: AppCreatorBase::<Server>::new(config),
+            base: AppCreatorBase::<Server>::new(config)?,
         })
     }
 
