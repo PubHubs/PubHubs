@@ -16,6 +16,17 @@ impl Id {
 
         rand::rngs::OsRng::fill_bytes(&mut rand::rngs::OsRng, bytes.as_mut_slice());
 
+        bytes.into()
+    }
+
+    /// Returns byte slice to underlying `[u8; 32]`.
+    pub fn as_slice(&self) -> &[u8] {
+        self.inner.as_slice()
+    }
+}
+
+impl From<[u8; 32]> for Id {
+    fn from(bytes: [u8; 32]) -> Self {
         Id {
             inner: serde_ext::ByteArray::<32>::from(bytes).into(),
         }

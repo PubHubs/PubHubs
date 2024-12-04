@@ -811,6 +811,14 @@ pub struct ByteArray<const N: usize> {
     inner: [u8; N],
 }
 
+impl<const N: usize> std::ops::Deref for ByteArray<N> {
+    type Target = [u8; N];
+
+    fn deref(&self) -> &Self::Target {
+        &self.inner
+    }
+}
+
 impl<const N: usize> From<[u8; N]> for ByteArray<N> {
     fn from(inner: [u8; N]) -> Self {
         Self { inner }

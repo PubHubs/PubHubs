@@ -1,7 +1,10 @@
 //! Attributes, for identifying (and/or banning) end-users
 
+use crate::common::secret;
 use crate::handle::Handles;
 use crate::id::Id;
+
+use digest::Digest as _;
 
 #[derive(serde::Deserialize, serde::Serialize, Debug, Clone)]
 pub struct Type {
@@ -50,9 +53,20 @@ pub struct Attr {
 }
 
 impl Attr {
-    /// Derives an identifier for this attribute from [`Attr.value`] and [`Attr.attr_type`].
-    fn id(&self) -> Id {
-        /// TODO: should also take a secret to that the ID does not reveal private information
-        todo! {}
+    /// Derives an identifier for this attribute from [`Attr.value`] and [`Attr.attr_type`],
+    /// and the given digestible secret.
+    fn id(&self, secret: impl secret::DigestibleSecret) -> Id {
+        let bytes: [u8; 32] = secret
+            .derive_bytes(
+                sha2::Sha256::new()
+                    .chain_update(self.attr_type.as_slice())
+                    .chain_update(secret::encode_usize(self.value.len()))
+                    .chain_update(self.value.as_bytes()),
+                "pubhubs-attr-id",
+            )
+            .try_into()
+            .expect("sha256 did not yield 32 bytes");
+
+        bytes.into()
     }
 }
