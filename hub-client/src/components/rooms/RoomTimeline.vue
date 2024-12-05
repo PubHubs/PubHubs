@@ -264,7 +264,8 @@
 		if (eventToBeDeleted.value) {
 			const messageType = eventToBeDeleted.value.content.msgtype;
 			// If the message that will be deleted contains a file or image, delete this media from the server as well
-			if ((messageType === 'm.file' || messageType === 'm.image') && eventToBeDeleted.value.content.url) {
+			// This is only possible if the user that wants to delete the message is an administrator (issue #1009)
+			if ((messageType === 'm.file' || messageType === 'm.image') && eventToBeDeleted.value.content.url && user.isAdmin) {
 				const accessToken = pubhubs.Auth.getAccessToken();
 				const req = new XMLHttpRequest();
 				req.open('DELETE', deleteMediaUrlfromMxc(eventToBeDeleted.value.content.url));

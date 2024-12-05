@@ -273,6 +273,8 @@ const nl = {
 		delete: {
 			cannot_undo: 'Je kan dit niet terugdraaien.',
 			heading: 'Bericht voor altijd verwijderen?',
+			beware: 'Let op!',
+			file_not_deleted: 'Je bericht is na het verwijderen niet meer zichtbaar voor anderen, maar het bestand kan nog steeds gedownload worden door gebruikers die de link hebben opgeslagen.',
 			original_message_deleted: 'Oorspronkelijk bericht verwijderd',
 			message_deleted: 'Verwijderd bericht',
 		},
