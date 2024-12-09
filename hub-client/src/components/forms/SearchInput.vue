@@ -53,7 +53,7 @@
 			<div v-for="item in searchResultsToShow" :key="item.event_id" class="group">
 				<a href="#" @click.prevent="onScrollToEventId(item.event_id)">
 					<div class="flex gap-2 group-hover:bg-gray-light group-hover:dark:bg-gray p-2">
-						<Avatar :userId="item.event_sender" :room="room" class="flex-none h-6 w-6"></Avatar>
+						<Avatar :user="room?.getMember(item.event_sender, true)" class="flex-none h-6 w-6"></Avatar>
 						<TruncatedText>{{ item.event_body }}</TruncatedText>
 					</div>
 				</a>
@@ -75,14 +75,16 @@
 
 <script setup lang="ts">
 	import { useFormInputEvents, usedEvents } from '@/composables/useFormInputEvents';
-	import { TSearchParameters, TSearchResult } from '@/model/model';
-	import { PropType, ref, computed } from 'vue';
-	import { usePubHubs } from '@/core/pubhubsStore';
-	import { useRooms } from '@/store/store';
 	import { filterAlphanumeric } from '@/core/extensions';
-	import TruncatedText from '../elements/TruncatedText.vue';
-	import { ISearchResults, SearchResult } from 'matrix-js-sdk';
+	import { usePubHubs } from '@/core/pubhubsStore';
+	import { TSearchParameters, TSearchResult } from '@/model/model';
 	import Room from '@/model/rooms/Room';
+	import { useRooms } from '@/store/store';
+	import { ISearchResults, SearchResult } from 'matrix-js-sdk';
+	import { PropType, computed, ref } from 'vue';
+	import TruncatedText from '../elements/TruncatedText.vue';
+
+	import Avatar from '../ui/Avatar.vue';
 
 	const pubhubs = usePubHubs();
 	const rooms = useRooms();

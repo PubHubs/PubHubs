@@ -111,6 +111,9 @@ urls:
 ```
 in your configuration file (e.g. `config.yaml`.)
 
+### Developing the Hub and using Yivi
+If you are developing a component of the Hub (client) that uses Yivi, you will notice the normal qr-code flow will not work. If your phone gives an error, this is probably because your phone will try to redirect to localhost, which is where your pc is serving the Hub but your phone doesn't serve anything on localhost. To fix this, look for the commented out `public_yivi_url` field in `homeserver.yaml`. Uncomment this and change it, filling in the ip-address of your pc.
+
 ### Testing the PubHubs components
 
 All components have some unit tests they can be run locally.

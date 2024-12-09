@@ -2,7 +2,7 @@ use std::collections::HashSet;
 use std::path::PathBuf;
 use std::str::FromStr;
 
-use anyhow::{anyhow, bail, ensure, Context, Result};
+use anyhow::{anyhow, bail, ensure, Context as _, Result};
 use log::{info, warn};
 use serde::{Deserialize, Serialize};
 
@@ -333,8 +333,8 @@ impl Urls {
         // the awc crate has no multi-thread support, see
         //   https://github.com/actix/actix-web/issues/2679#issuecomment-1059141565
         // so we execute awc on a single thread..
-        Ok(Some(url::Url::parse(
-            &tokio::task::LocalSet::new()
+        Ok(Some(
+            tokio::task::LocalSet::new()
                 .run_until(async move {
                     // get ip address..
                     let client = awc::Client::default();
@@ -354,12 +354,23 @@ impl Urls {
                     let bytes = resp.body().await?;
                     let result = String::from_utf8(bytes.to_vec())?;
 
-                    info!("your ip address is {}", result);
+                    let ipa: core::net::IpAddr = result
+                        .parse()
+                        .context("parsing IP address returned by ifconfig.me")?;
 
-                    Ok(format!("http://{}:{}/", result, file.bind_to.1))
+                    info!("your ip address is {}", ipa);
+
+                    let mut url: url::Url = "http://example.com".parse().unwrap();
+
+                    url.set_ip_host(ipa)
+                        .map_err(|_: ()| anyhow!("failed to put ip address in URL"))?;
+                    url.set_port(Some(file.bind_to.1))
+                        .map_err(|_: ()| anyhow!("failed to put port in URL"))?;
+
+                    Ok(url)
                 })
                 .await?,
-        )?))
+        ))
     }
 }
 

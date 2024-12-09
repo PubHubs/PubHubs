@@ -214,7 +214,7 @@ pub trait HttpRequestCookieExt: Sized {
         self.user_id_from_cookies_maybe_cross_site(cookie_secret, false)
     }
 
-    /// Like [user_id_from_cookie], but allows you to use the `SameSite=None`
+    /// Like [Self::user_id_from_cookies], but allows you to use the `SameSite=None`
     /// `PHAccount.CrossSite` cookie.  Be careful not to create a CSRF vulnerability!
     fn user_id_from_cookies_maybe_cross_site(
         self,
@@ -222,7 +222,7 @@ pub trait HttpRequestCookieExt: Sized {
         allow_cross_site: bool,
     ) -> Result<Option<String>>;
 
-    /// See [user_id_from_cookie_maybe_cross_site].  Beware CSRF!
+    /// See [Self::user_id_from_cookies_maybe_cross_site].  Beware CSRF!
     fn user_id_from_cookies_cross_site(self, cookie_secret: &str) -> Result<Option<String>> {
         self.user_id_from_cookies_maybe_cross_site(cookie_secret, true)
     }
