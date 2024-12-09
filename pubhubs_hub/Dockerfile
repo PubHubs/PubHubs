@@ -27,7 +27,7 @@ RUN cargo build --no-default-features --lib --features=abi
 
 ## FINAL CONTAINER STAGE
 
-FROM ghcr.io/element-hq/synapse:v1.115.0
+FROM ghcr.io/element-hq/synapse:v1.120.0
 
 
 COPY --from=yivi_build /go/bin/irma /usr/bin/irma
