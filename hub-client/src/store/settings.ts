@@ -113,7 +113,7 @@ const defaultSettings: Settings = {
 			disclosure: false,
 			unreadmarkers: true,
 			notifications: true,
-			deleteMessages: false,
+			deleteMessages: true,
 			authenticatedMedia: false,
 		},
 	},
