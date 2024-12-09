@@ -169,3 +169,5 @@ auto_join_rooms:
 autocreate_auto_join_rooms: true      # DON'T CHANGE
 auto_join_mxid_localpart: system_bot  # DON'T CHANGE
 # vim:ft=yaml
+
+enable_authenticated_media: false
