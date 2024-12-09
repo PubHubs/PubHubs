@@ -6,7 +6,7 @@ use serde::{Deserialize, Serialize};
 /// The configuration file remains unchanged, so when the binary restarts, the changes
 /// are lost.  This endpoint is used for testing, and can also be useful for debugging.
 ///
-/// The request is verified using the [crate::servers::Config::admin_key].
+/// The request is verified using the [crate::servers::config::ServerConfig::admin_key].
 pub struct UpdateConfig {}
 impl EndpointDetails for UpdateConfig {
     type RequestType = Signed<UpdateConfigReq>;
@@ -31,9 +31,9 @@ pub struct UpdateConfigResp {}
 
 having_message_code!(UpdateConfigReq, AdminUpdateConfigReq);
 
-/// Retrieves sensitive details (like the [Config]) from this server.
+/// Retrieves sensitive details (like the [crate::servers::Config]) from this server.
 ///
-/// The request is verified using the [crate::servers::Config::admin_key].
+/// The request is verified using the [crate::servers::config::ServerConfig::admin_key].
 ///
 /// NB Cannot be a GET request because the request needs to be signed.
 pub struct Info {}

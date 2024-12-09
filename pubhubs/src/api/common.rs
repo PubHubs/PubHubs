@@ -92,6 +92,7 @@ impl<T> Result<T> {
             Result::Ok(v) => Ok(Some(v)),
             Result::Err(ec) => {
                 if ec.info().retryable == Some(true) {
+                    log::trace!("ignoring retryable error: {ec}");
                     Ok(None)
                 } else {
                     Err(ec)
@@ -182,6 +183,9 @@ pub enum ErrorCode {
     #[error("unexpected problem with the client (not the server)")]
     InternalClientError,
 
+    #[error("severed connection to server; action may or may not have succeeded")]
+    SeveredConnection,
+
     #[error("problem connecting to server of a potentially temporary nature")]
     CouldNotConnectYet,
 
@@ -234,7 +238,7 @@ impl ErrorCode {
             | NotImplemented => ErrorInfo {
                 retryable: Some(false),
             },
-            CouldNotConnectYet | TemporaryFailure | NotYetReady => ErrorInfo {
+            CouldNotConnectYet | TemporaryFailure | NotYetReady | SeveredConnection => ErrorInfo {
                 retryable: Some(true),
             },
             InternalClientError | InternalError | BadRequest | CouldNotConnect => {
@@ -334,6 +338,9 @@ pub fn query<EP: EndpointDetails>(
         fmt_ext::Json(&req)
     );
 
+    //let client = awc::Client::builder()
+    //    .timeout(core::time::Duration::from_millis(15))
+    //    .finish();  // <- For reproducing Aron's timeout
     let client = awc::Client::default();
 
     let client_req = client
@@ -388,10 +395,41 @@ async fn query_inner<EP: EndpointDetails>(
                     );
                     ErrorCode::CouldNotConnectYet
                 }
-                awc::error::SendRequestError::Response(err) => {
-                    log::error!("problem parsing response from {} {url}: {err}", EP::METHOD,);
-                    ErrorCode::InternalClientError
-                }
+                awc::error::SendRequestError::Response(err) => match err {
+                    actix_web::error::ParseError::Timeout => {
+                        log::warn!(
+                            "getting response to request to {} {url} timed out",
+                            EP::METHOD
+                        );
+                        ErrorCode::SeveredConnection
+                    }
+                    actix_web::error::ParseError::Io(io_err) => {
+                        // this sometimes happens when the request causes the server to exit
+                        log::warn!(
+                            "error getting response to request to {} {url}: {io_err}",
+                            EP::METHOD
+                        );
+                        ErrorCode::SeveredConnection
+                    }
+                    actix_web::error::ParseError::Method
+                    | actix_web::error::ParseError::Uri(_)
+                    | actix_web::error::ParseError::Version
+                    | actix_web::error::ParseError::Header
+                    | actix_web::error::ParseError::TooLarge
+                    | actix_web::error::ParseError::Incomplete
+                    | actix_web::error::ParseError::Status
+                    | actix_web::error::ParseError::Utf8(_) => {
+                        log::error!("problem parsing response from {} {url}: {err}", EP::METHOD,);
+                        ErrorCode::InternalClientError
+                    }
+                    err => {
+                        log::error!(
+                            "unexpected error type while parsing response to request to {} {url}: {err}",
+                            EP::METHOD
+                        );
+                        ErrorCode::InternalClientError
+                    }
+                },
                 awc::error::SendRequestError::Http(err) => {
                     log::error!("HTTP error with request {} {url}: {err}", EP::METHOD,);
                     ErrorCode::InternalClientError
@@ -420,7 +458,10 @@ async fn query_inner<EP: EndpointDetails>(
                     ErrorCode::InternalClientError
                 }
                 err => {
-                    log::error!("unexpected error of unexpected type: {err}",);
+                    log::error!(
+                        "unexpected error type while sending request to {} {url}: {err}",
+                        EP::METHOD
+                    );
                     ErrorCode::InternalClientError
                 }
             });

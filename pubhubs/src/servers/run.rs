@@ -37,7 +37,7 @@ impl Drop for Set {
 impl Set {
     /// Creates a new set of PubHubs servers from the given config.
     ///
-    /// Returns not only the [Set] instance, but also a [tokio::sync::oneshot::Sender<Infallible>]
+    /// Returns not only the [Set] instance, but also a [`tokio::sync::oneshot::Sender<Infallible>`]
     /// that can be dropped to signal the [Set] should shutdown.
     pub fn new(
         config: &crate::servers::Config,

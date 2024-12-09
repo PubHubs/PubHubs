@@ -274,6 +274,8 @@ const en = {
 		delete: {
 			cannot_undo: 'You cannot undo this.',
 			heading: 'Permanently delete message?',
+			beware: 'Beware!',
+			file_not_deleted: 'Your message is no longer visible to others after deletion, but the file can still be downloaded by users who saved the link.',
 			original_message_deleted: 'Original message deleted',
 			message_deleted: 'Deleted message',
 		},

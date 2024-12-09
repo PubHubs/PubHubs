@@ -13,7 +13,7 @@ Also make sure to not squash the commits so we can search for them later.
 
 ## Hub
  - [ ] Check the version numbers in the [hub Dockerfile](pubhubs_hub/Dockerfile):
-   - [ ] update synapse **skip this step until authenticated media is implemented #937**:
+   - [ ] update synapse **In version 1.120, authenticated media (see #937) will be enforced. Our client is not ready for that, but we can disable authenticated media in the configuration for now, see the [upgrade notes](https://element-hq.github.io/synapse/v1.120/upgrade.html#authenticated-media-is-now-enforced-by-default)**:
      - [ ] `FROM ghcr.io/element-hq/synapse:vXXXX` see [synapse releases](https://github.com/element-hq/synapse/releases)
      - [ ] `matrix-synapse==XXXX` in [python dependencies file](pubhubs_hub/requirements.txt) should be same version as synapse in dockerfile. 
    - [ ] `git clone https://github.com/privacybydesign/irmago --branch vXXXX` see [yivi releases](https://github.com/privacybydesign/irmago/releases)

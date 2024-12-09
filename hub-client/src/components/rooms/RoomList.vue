@@ -1,6 +1,6 @@
 <template>
 	<InlineSpinner v-if="!rooms.roomsLoaded" class="ml-4"></InlineSpinner>
-	<Menu>
+	<Menu v-else>
 		<template v-for="room in rooms.sortedRoomsArray" :key="room.roomId">
 			<template v-if="showRoom(room)">
 				<MenuItem :to="{ name: 'room', params: { id: room.roomId } }" :roomInfo="room" :icon="roomIcon(room)" :key="room.roomId" @click="hubSettings.hideBar()" class="group inline-block w-full">
@@ -54,20 +54,21 @@
 	// Either private room or public room based on roomType given as prop (private or normal)
 	// Needs a bit of refacturing, not so clear now.
 	function showRoom(room: Room): Boolean {
+		const roomType = room.getType();
+
 		// if no specific type is set, allways show this room
 		if (props.roomType !== '') {
 			const type = props.roomType.substring(1);
 			// If not (given room type), just show
 			if (props.roomType.charAt(0) === '!') {
-				return room.getType() !== type;
+				return roomType !== type;
 			} else {
-				const roomType = room.getType();
 				if (roomType === RoomType.PH_MESSAGES_DM) {
 					// Check if private room is visible for this user BUSY
 					const user = useUser();
 					return isVisiblePrivateRoom(room.name, user.user);
 				} else {
-					return room.getType() === props.roomType;
+					return roomType === props.roomType;
 				}
 			}
 		}

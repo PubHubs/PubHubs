@@ -130,7 +130,7 @@ chrono = { version="0.4", default-features = false, features = ["clock"], option
 # note: we don't use chrono 0.4's default features, because it includes oldtime,
 #       which pulls in time 0.1, which has a vulnerability (viz. RUSTSEC-2020-0071)
 qrcode = { version = "0.14", optional = true }
-regex = { version = "1.10", optional = true }
+regex = { version = "1.11", optional = true }
 
 # Web dependencies
 actix-files = { version = "0.6", optional = true }
@@ -142,9 +142,9 @@ hyper = { version= "0.14", features= ["server", "client", "http1", "stream" ], o
 hyper-tls = { version = "0.5", optional = true }
 jsonwebtoken = { version = "9", optional = true }  # uses non RustCrypto - perhaps replace?
 log = { version = "0.4", optional = true }
-tokio = { version = "1.40", features = ["rt", "macros", "rt-multi-thread", "sync", "time"], optional = true }
+tokio = { version = "1.41", features = ["rt", "macros", "rt-multi-thread", "sync", "time"], optional = true }
 url = { version="2.5", features=["serde"], optional = true }
-uuid = { version = "1.10", features = ["v4"], optional = true }
+uuid = { version = "1.11", features = ["v4"], optional = true }
 
 # Proxying requests to Yivi and connection check
 awc = { version = "3.5", features = ["openssl"], optional = true }
@@ -180,5 +180,5 @@ clap = { version = "4.5", features = ["derive"], optional = true }
 humantime = { version="2", optional=true }
 
 [dev-dependencies]
-tempfile = "3.12"
+tempfile = "3.13"
 tokio-test = "0.4"
