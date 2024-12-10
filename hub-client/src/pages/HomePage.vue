@@ -40,6 +40,11 @@
 	import { useUser } from '@/store/user';
 	import { onMounted } from 'vue';
 	import { useRouter } from 'vue-router';
+
+	// Components
+	import H1 from '../components/elements/H1.vue';
+	import Logo from '../components/ui/Logo.vue';
+
 	const pubhubs = usePubHubs();
 	const router = useRouter();
 	const hubSettings = useHubSettings();

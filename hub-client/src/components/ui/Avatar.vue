@@ -11,6 +11,9 @@
 	import { CurrentUser, useUser } from '@/store/user';
 	import { computed } from 'vue';
 
+	//Components
+	import Icon from '../elements/Icon.vue';
+
 	const { color, bgColor } = useUserColor();
 
 	const currentUser = useUser();
