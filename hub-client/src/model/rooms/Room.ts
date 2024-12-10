@@ -63,7 +63,7 @@ export default class Room {
 
 		this.pubhubsStore = usePubHubs();
 
-		this.timelineWindow = new RoomTimelineWindow(this.matrixRoom, this.pubhubsStore.client as MatrixClient);
+		this.timelineWindow = new RoomTimelineWindow(this.matrixRoom);
 	}
 
 	public isPrivateRoom(): boolean {
@@ -328,7 +328,7 @@ export default class Room {
 
 	// initiate and load to newest message by creating a filtered timelineset
 	public async loadInitialEvents() {
-		await this.timelineWindow.initTimelineWindow(this.matrixRoom);
+		await this.timelineWindow.initTimelineWindow(this.matrixRoom, this.pubhubsStore.client as MatrixClient);
 	}
 
 	public getTimeline(): MatrixEvent[] {

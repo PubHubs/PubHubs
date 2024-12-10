@@ -163,7 +163,10 @@ const useHubs = defineStore('hubs', {
 					const roomId = message.content;
 					const currentUrl = window.location.href;
 					const [baseUrl] = currentUrl.split('#');
-					window.history.pushState(null, '', `${baseUrl}#/hub/${hubId}/${roomId}`);
+
+					// preserve the current history state
+					const currentState = history.state || {};
+					window.history.pushState({ ...currentState, roomId }, '', `${baseUrl}#/hub/${hubId}/${roomId}`);
 				});
 
 				//Listen to global menu change and don't resend own state.
