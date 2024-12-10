@@ -8,6 +8,7 @@
  *
  */
 
+import { api_synapse } from '@/core/api';
 import { usePubHubs } from '@/core/pubhubsStore';
 import { MatrixClient, User as MatrixUser } from 'matrix-js-sdk';
 import { defineStore } from 'pinia';
@@ -28,6 +29,7 @@ type State = {
 	_avatarMxcUrl: string | undefined;
 	_avatarUrl: string | undefined | null;
 	isAdministrator: boolean;
+	needsOnboarding: boolean;
 	client: MatrixClient;
 	userId: string | null;
 };
@@ -37,6 +39,7 @@ const useUser = defineStore('user', {
 		_avatarMxcUrl: undefined,
 		_avatarUrl: undefined,
 		isAdministrator: false,
+		needsOnboarding: false,
 		client: {} as MatrixClient,
 		userId: null,
 	}),
@@ -76,6 +79,12 @@ const useUser = defineStore('user', {
 			} catch (error) {
 				this.isAdministrator = false;
 			}
+		},
+
+		async fetchUserFirstTimeLoggedIn(): Promise<boolean> {
+			const resp = await api_synapse.apiPOST<any>(api_synapse.apiURLS.joinHub, { user: this.userId! });
+			this.needsOnboarding = resp.first_time_joined;
+			return this.needsOnboarding;
 		},
 
 		/**

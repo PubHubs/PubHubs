@@ -40,7 +40,7 @@ const usePubHubs = defineStore('pubhubs', {
 	},
 
 	actions: {
-		centralLogin() {
+		centralLoginPage() {
 			// @ts-ignore
 			const centralLoginUrl = _env.PARENT_URL + '/client';
 			window.top?.location.replace(centralLoginUrl);
@@ -72,6 +72,7 @@ const usePubHubs = defineStore('pubhubs', {
 					api_synapse.setAccessToken(this.Auth.getAccessToken()!); //Since user isn't null, we expect there to be an access token.
 					api_matrix.setAccessToken(this.Auth.getAccessToken()!);
 					user.fetchIsAdministrator(this.client as MatrixClient);
+					user.fetchUserFirstTimeLoggedIn();
 
 					const avatarUrl = await this.client.getProfileInfo(newUser.userId, 'avatar_url');
 					if (avatarUrl.avatar_url !== undefined) user.setAvatarMxcUrl(avatarUrl.avatar_url);
@@ -594,12 +595,6 @@ const usePubHubs = defineStore('pubhubs', {
 				return this.client.backPaginateRoomEventsSearch(searchResponse);
 			}
 			return searchResponse;
-		},
-
-		async hasUserJoinedHubFirstTime(): Promise<Object> {
-			const loggedInUser = useUser();
-			const resp = await api_synapse.apiPOST<Object>(api_synapse.apiURLS.joinHub, { user: loggedInUser.userId! });
-			return resp;
 		},
 
 		/**
