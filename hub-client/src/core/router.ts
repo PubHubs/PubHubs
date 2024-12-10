@@ -5,7 +5,7 @@ import { createRouter, createWebHashHistory } from 'vue-router';
 
 const routes = [
 	{ path: '/', name: 'home', component: () => import('@/pages/HomePage.vue'), props: { showPubHubsCentralLoginButton: true } },
-	{ path: '/', name: 'welcome', component: () => import('@/pages/Welcome.vue'), meta: { hideBar: true } },
+	{ path: '/onboarding', name: 'onboarding', component: () => import('@/pages/Onboarding.vue'), meta: { hideBar: true } },
 	{ path: '/hub', name: 'hubpage', component: () => import('@/pages/HomePage.vue'), props: { showPubHubsCentralLoginButton: false } },
 	{ path: '/admin', name: 'admin', component: () => import('@/pages/Admin.vue'), meta: { onlyAdmin: true, hideBar: true } },
 	{ path: '/ask-disclosure', name: 'ask-disclosure', component: () => import('@/pages/AskDisclosure.vue'), meta: { onlyAdmin: true } },
@@ -43,6 +43,7 @@ router.beforeEach((to) => {
 		console.log('ONLY FOR ADMINS', isAdmin);
 		return false;
 	}
+
 	return true;
 });
 
