@@ -32,23 +32,27 @@ class RoomTimelineWindow {
 
 	logger = LOGGER;
 
-	constructor(matrixRoom: MatrixRoom, client: MatrixClient) {
+	constructor(matrixRoom: MatrixRoom) {
 		LOGGER.trace(SMI.ROOM_TIMELINEWINDOW_TRACE, `TimelineWindow constructor `, { roomId: matrixRoom.roomId });
-		const filter = new Filter(undefined);
-		filter.setDefinition(this.timelineSetFilter);
-		const filteredTimelineSet = matrixRoom.getOrCreateFilteredTimelineSet(filter);
-
-		this.timelineWindow = new TimelineWindow(client, filteredTimelineSet);
-	}
-
-	// Initialisation of a timeline window
-	public async initTimelineWindow(matrixRoom: MatrixRoom) {
-		LOGGER.trace(SMI.ROOM_TIMELINEWINDOW_TRACE, `initTimelineWindow...`, { roomId: matrixRoom.roomId });
+		/* To init? */
 		// const filter = new Filter(undefined);
 		// filter.setDefinition(this.timelineSetFilter);
 		// const filteredTimelineSet = matrixRoom.getOrCreateFilteredTimelineSet(filter);
 
 		// this.timelineWindow = new TimelineWindow(client, filteredTimelineSet);
+		/* */
+	}
+
+	// Initialisation of a timeline window
+	public async initTimelineWindow(matrixRoom: MatrixRoom, client: MatrixClient) {
+		LOGGER.trace(SMI.ROOM_TIMELINEWINDOW_TRACE, `initTimelineWindow...`, { roomId: matrixRoom.roomId });
+		/* to constructor? */
+		const filter = new Filter(undefined);
+		filter.setDefinition(this.timelineSetFilter);
+		const filteredTimelineSet = matrixRoom.getOrCreateFilteredTimelineSet(filter);
+
+		this.timelineWindow = new TimelineWindow(client, filteredTimelineSet);
+		/* */
 		await this.loadToEvent(undefined);
 
 		// loadToEvent when given undefined as parameter goes to the Livetimeline which is unfiltered so afterwards

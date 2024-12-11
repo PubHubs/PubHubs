@@ -2,6 +2,14 @@
 
 *Please add a brief description of any changes to be tested and any migrations to be performed here.*
 
+## 9 December 2024 - v1.0.3
+- #992, Enter an emoticon is solved.
+- #994, Login does not fail anymore when running full local development setup with hub-client in watch-mode.
+- #995, It is possible again to change the hub from the global bar on mobile.
+- #997, Hub logo fits in its container.
+- #1007, Deleting a file/image will give a message that the file is not deleted from the server but not visible anymore to all users.
+- #1010, PHC's autodetect does work on ip6 addresses.
+
 ## 20 November 2024 - v1.0.2
 - Changed the discover room page: Also show rooms user is member of. Shows an arrow to enter these rooms. After joining a room an arrow will be shown for entering this room.
 - Changed behaviour of global bar and pinning Hubs: When entering a Hub that is not pinned, it wil automatically be pinned to the top.

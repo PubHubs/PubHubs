@@ -40,7 +40,7 @@ const usePubHubs = defineStore('pubhubs', {
 	},
 
 	actions: {
-		centralLogin() {
+		centralLoginPage() {
 			// @ts-ignore
 			const centralLoginUrl = _env.PARENT_URL + '/client';
 			window.top?.location.replace(centralLoginUrl);
@@ -55,8 +55,13 @@ const usePubHubs = defineStore('pubhubs', {
 				this.client = x as MatrixClient;
 				const user = useUser();
 				user.setClient(x as MatrixClient);
+
 				const events = new Events(this.client as MatrixClient);
-				await events.initEvents();
+				events.initEvents();
+				// 2024 12 03 The await is removed, because of slow loading testhub
+				// After the next merge to stable, in case this gives no problems,
+				// the old code and comments can be removed
+				// await events.initEvents();
 
 				logger.trace(SMI.STARTUP_TRACE, 'PubHubs.logged in ()');
 				const connection = useConnection();
@@ -67,9 +72,24 @@ const usePubHubs = defineStore('pubhubs', {
 					api_synapse.setAccessToken(this.Auth.getAccessToken()!); //Since user isn't null, we expect there to be an access token.
 					api_matrix.setAccessToken(this.Auth.getAccessToken()!);
 					user.fetchIsAdministrator(this.client as MatrixClient);
+					user.fetchUserFirstTimeLoggedIn();
+
 					const avatarUrl = await this.client.getProfileInfo(newUser.userId, 'avatar_url');
 					if (avatarUrl.avatar_url !== undefined) user.setAvatarMxcUrl(avatarUrl.avatar_url);
-					await this.updateRooms();
+					// Perhaps in the future change this to asynchronous so there is no waiting for this.
+					// But then the Avatar needs to be displayed only when it is fetched, to prohibit flashing
+					// like this:
+					// this.client.getProfileInfo(newUser.userId, 'avatar_url').then((avatarUrl) => {
+					// 	if (avatarUrl.avatar_url !== undefined) {
+					// 		user.setAvatarMxcUrl(avatarUrl.avatar_url);
+					// 	}
+					// });
+
+					this.updateRooms();
+					// 2024 12 03 The await is removed, because of slow loading testhub
+					// After the next merge to stable, in case this gives no problems,
+					// the old code and comments can be removed
+					//await this.updateRooms();
 				}
 			} catch (error: any) {
 				logger.trace(SMI.STARTUP_TRACE, 'Something went wrong while creating a matrix-js client instance or logging in', { error });
@@ -575,12 +595,6 @@ const usePubHubs = defineStore('pubhubs', {
 				return this.client.backPaginateRoomEventsSearch(searchResponse);
 			}
 			return searchResponse;
-		},
-
-		async hasUserJoinedHubFirstTime(): Promise<Object> {
-			const loggedInUser = useUser();
-			const resp = await api_synapse.apiPOST<Object>(api_synapse.apiURLS.joinHub, { user: loggedInUser.userId! });
-			return resp;
 		},
 
 		/**

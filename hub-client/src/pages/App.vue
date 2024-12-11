@@ -131,10 +131,22 @@
 		// check if hash doesn't start with hub,
 		// then it is running only the hub-client, so we need to do some checks
 		if (!window.location.hash.startsWith('#/hub/')) {
-			await pubhubs.login();
-			setupReady.value = true; // needed if running only the hub-client
-			router.push({ name: 'home' });
+			pubhubs.login().then(() => (setupReady.value = true));
+			// Needs onboarding?
+			if (user.needsOnboarding) {
+				router.push({ name: 'onboarding' });
+			} else {
+				router.push({ name: 'home' });
+			}
+			// 2024 12 03 The await is removed, because of slow loading testhub
+			// After the next merge to stable, in case this gives no problems,
+			// the old code and comments can be removed
+			// If all works well: setupReady can also be removed, since it does have no function anymmore
+			// await pubhubs.login();
+			// setupReady.value = true; // needed if running only the hub-client
+			// router.push({ name: 'home' });
 		}
+
 		if (!user.isLoggedIn) {
 			// only needed when loggedIn (then there are user settings to setup)
 			setupReady.value = true;
@@ -175,19 +187,6 @@
 			messagebox.addCallback(MessageType.BarShow, () => {
 				hubSettings.mobileHubMenu = true;
 			});
-
-			// Wait for theme change happened
-			// const wait = setInterval(() => {
-			// 	console.log('Waiting...', messageBoxStarted);
-			// 	if (messageBoxStarted) {
-			// 		setupReady.value = true;
-			// 		clearInterval(wait);
-			// 	}
-			// }, 250);
-			// setTimeout(() => {
-			// 	clearInterval(wait);
-			// 	setupReady.value = true;
-			// }, 2500);
 		}
 	}
 </script>
