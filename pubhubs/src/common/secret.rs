@@ -38,6 +38,9 @@ pub trait DigestibleSecret {
 }
 
 /// Encodes an usize in a platform independent manner, as `u64` using big-endian byte order.
-pub fn encode_usize(size: usize) -> [u8; 8] {
+pub const fn encode_usize(size: usize) -> [u8; 8] {
+    if size_of::<usize>() > 8 {
+        panic!("can not (yet) deal with usize of size > 8")
+    }
     (size as u64).to_be_bytes()
 }
