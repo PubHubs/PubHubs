@@ -3,7 +3,7 @@
 		<p v-if="showInReplyTo" class="text-nowrap">
 			{{ $t('message.in_reply_to') }}
 		</p>
-		<p :class="textColor(userColor)" class="truncate">
+		<p :class="textColor(userColor)">
 			<UserDisplayName :user="event.sender" :room="room"></UserDisplayName>
 		</p>
 		<p class="truncate flex items-center gap-1" :class="{ 'theme-light:text-gray-middle dark:text-gray-lighter': redactedMessage }" :title="snippetText">
