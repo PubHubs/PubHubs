@@ -1,5 +1,5 @@
 <template>
-	<div class="flex flex-col h-full md:mt-0 mt-16 xl:max-w-screen-xl m-auto p-5 gap-8">
+	<div class="flex flex-col h-full xl:max-w-screen-xl m-auto p-5 gap-8">
 		<div class="flex flex-col w-6/12 mt-20 mx-auto">
 			<H1 v-if="!isTryOutHub()" class="text-center mb-8">{{ $t('home.hub_homepage_welcome_auth', [settings.hub.name]) }}</H1>
 			<H1 v-else class="text-center mb-8">Welkom bij de TryOutHub</H1>

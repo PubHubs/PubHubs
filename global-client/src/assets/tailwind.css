@@ -133,3 +133,10 @@ body,
 		url('./fonts/Atkinson-Hyperlegible-Regular-102.ttf') format('truetype'),
 		url('./fonts/Atkinson-Hyperlegible-Regular-102.svg#atkinson_hyperlegibleregular') format('svg');
 }
+
+@layer components {
+	.scrollbar {
+		scrollbar-width: thin;
+		scrollbar-color: theme(colors.ph.background.5) theme(colors.ph.background.4);
+	}
+}

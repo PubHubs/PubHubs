@@ -23,7 +23,7 @@
 	</div>
 
 	<!-- Mobile search component. -->
-	<div class="md:hidden h-full w-full flex justify-end items-end absolute pr-2 bottom-2">
+	<div class="md:hidden h-full w-full flex justify-end items-center absolute pr-2">
 		<div class="flex gap-4 w-[35px] rounded-md focus-within:w-full focus-within:bg-hub-background-4 focus-within:dark:bg-hub-background-3 transition-all duration-200 justify-end relative items-center max-w-full">
 			<input
 				class="h-10 flex-1 w-full placeholder:text-black dark:text-white dark:placeholder:text-gray-light bg-transparent border-none focus:outline-0 focus:outline-offset-0 focus:ring-0"

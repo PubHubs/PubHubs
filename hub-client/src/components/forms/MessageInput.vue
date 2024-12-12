@@ -1,5 +1,5 @@
 <template>
-	<div class="flex gap-2 items-end pb-3 -mt-2 pl-3 sm:px-6">
+	<div class="flex gap-2 items-end pb-3 pl-3 sm:px-6">
 		<div class="min-w-3/4 w-[90%] relative rounded-xl bg-hub-background-4 dark:bg-hub-background-4">
 			<!-- Floating -->
 			<div>

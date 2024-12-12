@@ -9,7 +9,7 @@
 						</div>
 					</router-link>
 				</div>
-				<div class="flex-1 w-full mx-auto overflow-y-auto">
+				<div class="flex-1 h-full w-full mx-auto overflow-hidden">
 					<HubMenu :hubOrderingIsActive="hubOrdering"></HubMenu>
 				</div>
 

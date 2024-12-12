@@ -1,26 +1,27 @@
 <template>
 	<template v-if="rooms.currentRoomExists">
-		<HeaderFooter v-if="plugin === false">
+		<HeaderFooter v-if="plugin === false" :headerSize="'sm'" :headerMobilePadding="true">
 			<template #header>
-				<div class="h-full pl-20 md:px-6 bg-hub-background-2">
-					<div class="flex justify-between relative gap-x-2 h-full w-full">
-						<div v-if="rooms.currentRoom" class="flex shrink-0 gap-x-1 md:gap-x-4 items-center w-[75%] md:w-[60%] overflow-hidden">
-							<Icon :type="rooms.currentRoom.isSecuredRoom() ? 'shield' : 'speech_bubbles'" class="shrink-0" size="lg"></Icon>
-							<div class="flex flex-col">
-								<H1 class="flex">
-									<TruncatedText>
-										{{ $t('rooms.room') }}
-										<PrivateRoomName v-if="rooms.currentRoom.isPrivateRoom()" :members="rooms.currentRoom.getOtherJoinedAndInvitedMembers()"></PrivateRoomName>
-										<RoomName v-else :room="rooms.currentRoom"></RoomName>
-									</TruncatedText>
-								</H1>
-								<TruncatedText class="hidden md:inline">
-									<RoomTopic :room="rooms.currentRoom"></RoomTopic>
+				<div class="hidden md:flex items-center gap-4">
+					<span class="text-xxs uppercase font-bold">{{ $t('rooms.room') }}</span>
+					<hr class="grow" />
+				</div>
+				<div class="flex h-full justify-between relative gap-x-2">
+					<div v-if="rooms.currentRoom" class="flex shrink-0 gap-x-1 md:gap-x-4 items-center w-[75%] md:w-[60%] overflow-hidden">
+						<Icon :type="rooms.currentRoom.isSecuredRoom() ? 'shield' : 'speech_bubbles'" size="lg"></Icon>
+						<div class="flex flex-col">
+							<H1 class="flex">
+								<TruncatedText>
+									<PrivateRoomName v-if="rooms.currentRoom.isPrivateRoom()" :members="rooms.currentRoom.getOtherJoinedAndInvitedMembers()"></PrivateRoomName>
+									<RoomName v-else :room="rooms.currentRoom"></RoomName>
 								</TruncatedText>
-							</div>
+							</H1>
+							<TruncatedText class="hidden md:inline">
+								<RoomTopic :room="rooms.currentRoom"></RoomTopic>
+							</TruncatedText>
 						</div>
-						<SearchInput :search-parameters="searchParameters" @scroll-to-event-id="onScrollToEventId" :room="rooms.currentRoom"></SearchInput>
 					</div>
+					<SearchInput :search-parameters="searchParameters" @scroll-to-event-id="onScrollToEventId" :room="rooms.currentRoom"></SearchInput>
 				</div>
 			</template>
 

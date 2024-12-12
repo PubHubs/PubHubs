@@ -1,5 +1,5 @@
 <template>
-	<img :alt="name" :src="logo" />
+	<img :alt="name" :src="logo" class="rounded-xl" />
 </template>
 
 <script setup lang="ts">

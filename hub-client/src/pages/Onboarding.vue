@@ -1,31 +1,43 @@
 <template>
-	<div class="flex flex-col w-6/12 mt-20 mx-auto text-center gap-2">
-		<H2 class="mb-4">{{ t('home.hub_homepage_welcome', [settings.hub.name]) }}</H2>
-		<Logo class="mx-auto max-w-24 max-h-20"></Logo>
-		<P class="mb-2">{{ t('onboarding.info_first_time') }}</P>
-		<P class="mb-2">{{ t('onboarding.info_abt_pseudonym') }}</P>
-		<P class="text-green text-2xl mb-0">{{ pseudonym }}</P>
-		<P class="mb-2">{{ t('onboarding.info_issue_identity') }}</P>
+	<HeaderFooter :headerSize="'sm'">
+		<template #header> </template>
+		<div class="flex flex-col p-8 max-w-lg mx-auto gap-4">
+			<div>
+				<H2>{{ t('home.hub_homepage_welcome', [settings.hub.name]) }}</H2>
+				<Logo class="max-w-24 max-h-20"></Logo>
+			</div>
+			<div>
+				<P>{{ t('onboarding.info_first_time') }}</P>
+				<P>{{ t('onboarding.info_abt_pseudonym') }}</P>
+			</div>
 
-		<TextInput v-if="!submitted" class="p-2 border rounded focus:outline-none focus:border-blue text-center mb-2" placeholder="example: PubHubs" @changed="updateData($event)"></TextInput>
-		<P class="text-sm mb-2">{{ t('onboarding.info_abt_choose_later') }}</P>
-		<P class="mb-2">{{ t('onboarding.info_abt_nickname_use') }}</P>
-		<P class="mb-4">{{ t('onboarding.info_abt_yivi_room') }}</P>
-		<P class="text-sm mb-2">{{ t('onboarding.info_misbehave') }}</P>
-		<Button v-if="!submitted" class="mx-24" @click="submitAndClose">{{ t('onboarding.continue') }}</Button>
-		<div v-if="submitted">
-			<P class="text-green text-2xl mb-0">{{ t('onboarding.update') }}!</P>
+			<P class="text-green text-2xl">{{ pseudonym }}</P>
+			<P>{{ t('onboarding.info_issue_identity') }}</P>
+
+			<div>
+				<TextInput v-if="!submitted" class="p-2 border rounded focus:outline-none focus:border-blue mb-2" :placeholder="t('onboarding.nickname_placeholder')" @changed="updateData($event)"></TextInput>
+				<P class="text-sm">{{ t('onboarding.info_abt_choose_later') }}</P>
+			</div>
+
+			<div class="flex flex-col gap-2">
+				<P>{{ t('onboarding.info_abt_nickname_use') }}</P>
+				<P>{{ t('onboarding.info_abt_yivi_room') }}</P>
+				<P class="text-sm">{{ t('onboarding.info_misbehave') }}</P>
+			</div>
+			<div v-if="submitted">
+				<P class="text-green text-2xl">{{ t('onboarding.update') }}!</P>
+			</div>
+			<Button v-else class="w-fit px-2" @click="submitAndClose">{{ t('onboarding.continue') }}</Button>
+			<div v-if="submitted" class="flex flex-row justify-center space-x-4">
+				<Icon type="tick"></Icon>
+				<P>{{ t('onboarding.success_msg') }}</P>
+			</div>
+			<div v-if="laterSubmit">
+				<P>{{ t('onboarding.later') }}</P>
+				<P>{{ t('onboarding.success_msg') }}</P>
+			</div>
 		</div>
-	</div>
-
-	<div v-if="submitted" class="mt-2 w-6/12 mx-auto text-center flex flex-row justify-center space-x-4">
-		<Icon type="tick"></Icon>
-		<P>{{ t('onboarding.success_msg') }}</P>
-	</div>
-	<div v-if="laterSubmit" class="mt-2 mx-auto text-center">
-		<P>{{ t('onboarding.later') }}</P>
-		<P>{{ t('onboarding.success_msg') }}</P>
-	</div>
+	</HeaderFooter>
 </template>
 
 <script setup lang="ts">
