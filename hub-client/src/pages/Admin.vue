@@ -1,12 +1,10 @@
 <template>
-	<HeaderFooter>
+	<HeaderFooter :headerSize="'sm'" :headerMobilePadding="true">
 		<template #header>
-			<div class="pl-20 md:p-4">
-				<H1>{{ $t('admin.title') }}</H1>
-				<p class="text-sm">{{ $t('admin.description') }}</p>
-			</div>
+			<H1>{{ $t('admin.title') }}</H1>
+			<p class="text-sm">{{ $t('admin.description') }}</p>
 		</template>
-		<Tabs class="px-3">
+		<Tabs class="p-3">
 			<TabHeader>
 				<TabPill v-slot="slotProps">{{ $t('admin.public_rooms') }}<Icon v-if="slotProps.active" class="float-right hover:text-green ml-2" type="plus" @click="newPublicRoom()"></Icon></TabPill>
 				<TabPill v-slot="slotProps">{{ $t('admin.secured_rooms') }}<Icon v-if="slotProps.active" class="float-right hover:text-green ml-2" type="plus" @click="newSecuredRoom()"></Icon></TabPill>

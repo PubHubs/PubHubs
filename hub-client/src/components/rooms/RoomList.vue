@@ -12,9 +12,9 @@
 						<span class="flex gap-2 group-hover:hidden transition-all duration-200 ease-in-out" v-if="settings.isFeatureEnabled(FeatureFlag.notifications)">
 							<Badge class="text-xxs" color="hub" v-if="room.getRoomUnreadNotificationCount(NotificationCountType.Total) > 99">99+</Badge>
 							<Badge v-else-if="room.getRoomUnreadNotificationCount(NotificationCountType.Total) > 0" color="hub">{{ room.getRoomUnreadNotificationCount(NotificationCountType.Total) }}</Badge>
-
 							<Badge color="hub" v-if="room.getRoomUnreadNotificationCount(NotificationCountType.Highlight) > 0"><Icon type="mention" size="sm" class="shrink-0"></Icon></Badge>
 						</span>
+
 						<Icon type="unlink" class="cursor-pointer hover:text-red-light stroke-2 group-hover:inline-block hidden transition-all duration-200 ease-in-out" @click.prevent="leaveRoom(room.roomId)"></Icon>
 					</span>
 				</MenuItem>

@@ -1,13 +1,13 @@
 <template>
-	<!-- HubLogo with unreadmessages marker -->
-	<div :class="{ 'bg-white': active && !hubOrderingIsActive }" class="z-0 p-2 block group text-center w-14 h-14 cursor-pointer relative rounded-xl transition-all ease-in-out" :title="hub ? hub.hubId : null">
+	<div :class="{ 'border-4 border-white bg-white': active && !hubOrderingIsActive }" class="z-0 relative rounded-xl block group text-center w-14 h-14 cursor-pointer transition-all ease-in-out" :title="hub ? hub.hubId : null">
+		<div :class="{ 'border-t-4 border-r-4 border-white bg-white': active && !hubOrderingIsActive }" class="absolute -right-2 -z-10 top-1/3 rotate-45 w-4 h-4"></div>
 		<div v-if="hub && hub.unreadMessages > 0 && !hubOrderingIsActive" class="z-10 absolute -right-1 -top-1 group-hover:hidden">
 			<Badge class="text-xxs" color="ph" v-if="hub.unreadMessages > 99">99+</Badge>
 			<Badge color="ph" v-else>{{ hub.unreadMessages }}</Badge>
 		</div>
 
-		<Icon v-if="pinnable" type="pin" class="-rotate-45 text-ph-accent-icon-2 absolute -left-2 -top-2 hidden opacity-20 hover:opacity-100 group-hover:block" @click.prevent="pin"></Icon>
-		<HubLogo v-if="hub" :hub-url="hub.url" :hub-id="hub.hubId" :change-to-dark="false" class="rounded-md"></HubLogo>
+		<Icon v-if="pinnable" type="pin" class="-rotate-45 text-ph-accent-icon-2 absolute -left-2 -top-2 md:hidden md:opacity-20 hover:opacity-100 group-hover:block" @click.prevent="pin"></Icon>
+		<HubLogo v-if="hub" :hub-url="hub.url" :hub-id="hub.hubId" :change-to-dark="false"></HubLogo>
 	</div>
 </template>
 

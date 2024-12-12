@@ -109,6 +109,7 @@ const nl = {
 	menu: {
 		calender: 'Kalender',
 		home: 'Home',
+		discover: 'Ontdek kamers',
 		logout: 'Uitloggen',
 		name: 'Hier komt een naam',
 		private_rooms: '@:rooms.private_rooms',
@@ -131,7 +132,7 @@ const nl = {
 		load_more_results: 'Laad meer resultaten',
 	},
 	rooms: {
-		room: 'Kamer:',
+		room: 'Kamer',
 		me: 'Ik',
 		just_you: 'Alleen jij',
 		join_sure: 'Wil je deelnemen aan deze kamer?',
@@ -251,6 +252,7 @@ const nl = {
 		success_msg: 'Je kunt de kamers verkennen en chatten met de community!',
 		later: 'U heeft uw Hub-bijnaam nog niet ingesteld, wat u later kunt doen!',
 		update: 'bijnaam bijgewerkt',
+		nickname_placeholder: 'Type hier je bijnaam ...',
 	},
 	message: {
 		send: 'Verstuur',

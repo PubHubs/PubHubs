@@ -110,6 +110,7 @@ const en = {
 	menu: {
 		calender: 'Calender',
 		home: 'Home',
+		discover: 'Discover rooms',
 		logout: 'Logout',
 		name: 'Here will be a name',
 		private_rooms: '@:rooms.private_rooms',
@@ -132,7 +133,7 @@ const en = {
 		load_more_results: 'Load more results',
 	},
 	rooms: {
-		room: 'Room:',
+		room: 'Room',
 		me: 'Me',
 		just_you: 'Just you',
 		join_sure: 'Do you wish to join this room?',
@@ -252,6 +253,7 @@ const en = {
 		success_msg: 'You can explore the rooms and chat with the community!',
 		later: "You haven't set your Hub nickname, which you can do later!",
 		update: 'Nickname updated',
+		nickname_placeholder: 'Type here your nickname ...',
 	},
 	message: {
 		send: 'Send',
