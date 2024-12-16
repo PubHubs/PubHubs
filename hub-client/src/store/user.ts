@@ -28,6 +28,7 @@ const defaultUser = {} as User;
 type State = {
 	_avatarMxcUrl: string | undefined;
 	_avatarUrl: string | undefined | null;
+	_displayName: string | undefined | null;
 	isAdministrator: boolean;
 	needsOnboarding: boolean;
 	client: MatrixClient;
@@ -38,6 +39,7 @@ const useUser = defineStore('user', {
 	state: (): State => ({
 		_avatarMxcUrl: undefined,
 		_avatarUrl: undefined,
+		_displayName: undefined,
 		isAdministrator: false,
 		needsOnboarding: false,
 		client: {} as MatrixClient,
@@ -46,8 +48,12 @@ const useUser = defineStore('user', {
 
 	getters: {
 		user({ userId, client }) {
-			const clientUser = client.getUser(userId!);
-			return clientUser ?? defaultUser;
+			try {
+				const clientUser = client.getUser(userId!);
+				return clientUser ?? defaultUser;
+			} catch (error) {
+				return defaultUser;
+			}
 		},
 
 		isLoggedIn({ userId }) {
@@ -61,11 +67,20 @@ const useUser = defineStore('user', {
 		avatarUrl({ _avatarUrl }) {
 			return _avatarUrl;
 		},
+
+		displayName({ _displayName }) {
+			return _displayName;
+		},
 	},
 
 	actions: {
 		setUserId(userId: string) {
 			this.userId = userId;
+		},
+
+		setProfile(profile: any) {
+			if (profile.avatar_url !== undefined) this.setAvatarMxcUrl(profile.avatar_url);
+			if (profile.displayname !== undefined) this.setDisplayName(profile.displayname);
 		},
 
 		setClient(client: MatrixClient) {
@@ -85,6 +100,10 @@ const useUser = defineStore('user', {
 			const resp = await api_synapse.apiPOST<any>(api_synapse.apiURLS.joinHub, { user: this.userId! });
 			this.needsOnboarding = resp.first_time_joined;
 			return this.needsOnboarding;
+		},
+
+		setDisplayName(name: string | undefined | null) {
+			this._displayName = name;
 		},
 
 		/**

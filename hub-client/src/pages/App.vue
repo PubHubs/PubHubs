@@ -30,8 +30,7 @@
 								<div class="flex items-center gap-2">
 									<Avatar :user="user" :img="user.avatarUrl"></Avatar>
 									<div class="flex flex-col h-fit">
-										<!-- TODO: Username is not getting updated properly -->
-										<p class="font-bold leading-tight">{{ user.user.displayName }}</p>
+										<p class="font-bold leading-tight">{{ user.displayName }}</p>
 										<p class="leading-tight">{{ filters.extractPseudonym(user.userId) }}</p>
 									</div>
 								</div>

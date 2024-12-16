@@ -74,8 +74,8 @@ const usePubHubs = defineStore('pubhubs', {
 					user.fetchIsAdministrator(this.client as MatrixClient);
 					user.fetchUserFirstTimeLoggedIn();
 
-					const avatarUrl = await this.client.getProfileInfo(newUser.userId, 'avatar_url');
-					if (avatarUrl.avatar_url !== undefined) user.setAvatarMxcUrl(avatarUrl.avatar_url);
+					const profile = await this.client.getProfileInfo(newUser.userId);
+					user.setProfile(profile);
 					// Perhaps in the future change this to asynchronous so there is no waiting for this.
 					// But then the Avatar needs to be displayed only when it is fetched, to prohibit flashing
 					// like this:
@@ -133,7 +133,7 @@ const usePubHubs = defineStore('pubhubs', {
 
 		showError(error: string | MatrixError) {
 			if (typeof error !== 'string') {
-				if (error.errcode !== 'M_FORBIDDEN') {
+				if (error.errcode !== 'M_FORBIDDEN' && error.data) {
 					this.showDialog(error.data.error as string);
 				} else {
 					logger.trace(SMI.STORE_TRACE, 'showing error dialog', { error });
@@ -540,10 +540,16 @@ const usePubHubs = defineStore('pubhubs', {
 		},
 
 		async changeDisplayName(name: string) {
+			const user = useUser();
+			const restoreUserName = user.displayName;
+			// First set in the UX for fast response there
+			user.setDisplayName(name);
 			try {
 				await this.client.setDisplayName(name);
 			} catch (error: any) {
 				this.showError(error);
+				// Set to old username if error
+				user.setDisplayName(restoreUserName);
 			}
 		},
 
