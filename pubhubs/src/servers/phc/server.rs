@@ -323,8 +323,8 @@ impl crate::servers::AppCreator<Server> for AppCreator {
 
         Ok(Self {
             base: AppCreatorBase::<Server>::new(config)?,
-            transcryptor_url: xconf.transcryptor_url.clone(),
-            auths_url: xconf.auths_url.clone(),
+            transcryptor_url: xconf.transcryptor_url.as_ref().clone(),
+            auths_url: xconf.auths_url.as_ref().clone(),
             hubs,
             hub_by_handle,
             master_enc_key_part,

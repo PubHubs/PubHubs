@@ -531,7 +531,7 @@ where
                 .enc_key
                 .clone()
                 .expect("enc_key was not set nor generated"),
-            phc_url: config.phc_url.clone(),
+            phc_url: config.phc_url.as_ref().clone(),
             admin_key: server_config
                 .admin_key
                 .clone()

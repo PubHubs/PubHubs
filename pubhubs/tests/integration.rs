@@ -32,13 +32,19 @@ async fn main_integration_test() {
 
     servers::for_all_servers!(set_admin_key);
 
-    let (set, _) = servers::Set::new(&config).unwrap();
+    let (set, shutdown_sender) = servers::Set::new(&config).unwrap();
 
-    tokio::task::LocalSet::new()
-        .run_until(main_integration_test_local(config, admin_sk))
-        .await;
-
-    assert_eq!(set.shutdown().await, 0, "not all servers exited cleanly");
+    tokio::join!(
+        async {
+            tokio::task::LocalSet::new()
+                .run_until(main_integration_test_local(config, admin_sk))
+                .await;
+            drop(shutdown_sender); // causes the servers to stop
+        },
+        async {
+            assert_eq!(set.wait().await, 0, "not all servers exited cleanly");
+        }
+    );
 }
 
 /// The part of [main_integration_test] that's run on one thread.
@@ -47,8 +53,10 @@ async fn main_integration_test_local(config: servers::Config, admin_sk: api::Sig
         .agent(client::Agent::IntegrationTest)
         .finish();
 
-    let constellation: servers::Constellation =
-        client.get_constellation(&config.phc_url).await.unwrap();
+    let constellation: servers::Constellation = client
+        .get_constellation(&config.phc_url.as_ref())
+        .await
+        .unwrap();
 
     // To test discovery, change transcryptor's and phc's encryption key
     let t_enc_key_sk = elgamal::PrivateKey::random();
@@ -133,8 +141,10 @@ async fn main_integration_test_local(config: servers::Config, admin_sk: api::Sig
     .unwrap()
     .unwrap();
 
-    let constellation: servers::Constellation =
-        client.get_constellation(&config.phc_url).await.unwrap();
+    let constellation: servers::Constellation = client
+        .get_constellation(&config.phc_url.as_ref())
+        .await
+        .unwrap();
 
     // Run mock test hub
     let testhub = config
@@ -155,7 +165,7 @@ async fn main_integration_test_local(config: servers::Config, admin_sk: api::Sig
     // get a ticket for testhub
     let ticket = client
         .query_with_retry::<api::phc::hub::TicketEP>(
-            &config.phc_url,
+            &config.phc_url.as_ref(),
             &api::Signed::<api::phc::hub::TicketReq>::new(
                 &*mock_hub.context.sk,
                 &api::phc::hub::TicketReq {

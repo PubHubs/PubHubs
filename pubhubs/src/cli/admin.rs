@@ -69,16 +69,19 @@ impl AdminContext {
         self.url
             .get_or_try_init(|| async {
                 if self.server == servers::Name::PubhubsCentral {
-                    return Ok(self.config.phc_url.clone());
+                    return Ok(self.config.phc_url.as_ref().clone());
                 }
 
                 log::info!(
                     "retrieving constellation from {phc_url} to get url of {server_name}",
-                    phc_url = self.config.phc_url,
+                    phc_url = self.config.phc_url.as_ref(),
                     server_name = self.server
                 );
 
-                let constellation = self.client.get_constellation(&self.config.phc_url).await?;
+                let constellation = self
+                    .client
+                    .get_constellation(&self.config.phc_url.as_ref())
+                    .await?;
 
                 Ok(constellation.url(self.server).clone())
             })

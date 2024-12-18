@@ -12,6 +12,8 @@ use crate::{
     attr, elgamal, hub,
 };
 
+use super::host_aliases::{HostAliases, UrlPwa};
+
 /// Configuration for one, or several, of the PubHubs servers
 ///
 /// Also used for the `pubhubs admin` cli command.  In that case only `phc_url` needs to be set.
@@ -21,7 +23,14 @@ pub struct Config {
     /// URL of the PubHubs Central server.
     ///
     /// Any information on the other servers that can be stored at PHC is stored at PHC.
-    pub phc_url: Url,
+    pub phc_url: UrlPwa,
+
+    /// Specify abbreviations for an IP address that are only valid in this configuration file.
+    ///
+    /// Any [UrlPwa] that contains one of the aliases as host name exactly (so no subdomain)
+    /// will be modified to have as host name the associated IP address.
+    #[serde(default)]
+    pub host_aliases: HostAliases,
 
     /// Path with respect to which relative paths are interpretted.
     #[serde(default)]
@@ -119,6 +128,9 @@ impl Config {
             res.wd.display()
         );
 
+        res.host_aliases.resolve_all()?;
+        res.host_aliases.dealias(&mut res.phc_url);
+
         Ok(Some(res))
     }
 
@@ -127,6 +139,7 @@ impl Config {
     pub fn prepare_for(&self, server: crate::servers::Name) -> Result<Self> {
         // destruct to make sure we consider every field of Config
         let Self {
+            ref host_aliases,
             ref phc_url,
             ref wd,
             phc: _,
@@ -135,6 +148,7 @@ impl Config {
         } = self;
 
         let mut config: Config = Config {
+            host_aliases: host_aliases.clone(),
             phc_url: phc_url.clone(),
             wd: wd.clone(),
             phc: None,
@@ -153,7 +167,9 @@ impl Config {
 
         for_all_servers!(clone_only_server);
 
-        config.generate_randoms()?;
+        let pcc = PCC::new(actix_web::dev::Extensions::new());
+
+        config.prepare(pcc)?;
 
         Ok(config)
     }
@@ -192,7 +208,7 @@ pub struct ObjectStoreConfig {
     /// For a complete list, see:
     ///
     ///   https://docs.rs/object_store/latest/object_store/enum.ObjectStoreScheme.html
-    pub url: Url,
+    pub url: UrlPwa,
 
     /// Additional options passed to the builder of the object store.
     #[serde(default)]
@@ -202,7 +218,7 @@ pub struct ObjectStoreConfig {
 impl Default for ObjectStoreConfig {
     fn default() -> Self {
         Self {
-            url: "memory:///".try_into().unwrap(),
+            url: From::<Url>::from("memory:///".try_into().unwrap()),
             options: Default::default(),
         }
     }
@@ -215,10 +231,10 @@ pub mod phc {
     #[serde(deny_unknown_fields)]
     pub struct ExtraConfig {
         /// Where can we reach the transcryptor?
-        pub transcryptor_url: Url,
+        pub transcryptor_url: UrlPwa,
 
         /// Where can we reach the authentication server?
-        pub auths_url: Url,
+        pub auths_url: UrlPwa,
 
         /// The hubs that are known to us
         pub hubs: Vec<hub::BasicInfo>,
@@ -250,29 +266,46 @@ pub mod auths {
     }
 }
 
-/// Trait to generate the random values in [Config] where needed
-trait GenerateRandoms {
-    fn generate_randoms(&mut self) -> anyhow::Result<()>;
+/// Trait to prepare [`Config`] for use by initializing random values,
+/// and replacing aliases in [`UrlPwa`]s.
+trait PrepareConfig<C> {
+    fn prepare(&mut self, context: C) -> anyhow::Result<()>;
 }
 
-impl GenerateRandoms for Config {
-    fn generate_randoms(&mut self) -> anyhow::Result<()> {
-        macro_rules! gen_randoms {
+type PCC = std::rc::Rc<actix_web::dev::Extensions>;
+
+impl PrepareConfig<PCC> for Config {
+    fn prepare(&mut self, mut c: PCC) -> anyhow::Result<()> {
+        // temporarily move `host_aliases` into PCC
+        PCC::get_mut(&mut c)
+            .unwrap()
+            .insert(std::mem::take(&mut self.host_aliases));
+
+        macro_rules! prep {
             ($server:ident) => {
                 if let Some(ref mut server) = self.$server {
-                    server.generate_randoms()?;
+                    server.prepare(c.clone())?;
                 }
             };
         }
 
-        for_all_servers!(gen_randoms);
+        for_all_servers!(prep);
+
+        // move `host_aliases` back to self
+        std::mem::replace(
+            &mut self.host_aliases,
+            PCC::get_mut(&mut c)
+                .unwrap()
+                .remove::<HostAliases>()
+                .unwrap(),
+        );
 
         Ok(())
     }
 }
 
-impl<Extra: GenerateRandoms + GetServerType> GenerateRandoms for ServerConfig<Extra> {
-    fn generate_randoms(&mut self) -> anyhow::Result<()> {
+impl<Extra: PrepareConfig<PCC> + GetServerType> PrepareConfig<PCC> for ServerConfig<Extra> {
+    fn prepare(&mut self, c: PCC) -> anyhow::Result<()> {
         self.self_check_code
             .get_or_insert_with(crate::misc::crypto::random_alphanumeric);
 
@@ -292,14 +325,20 @@ impl<Extra: GenerateRandoms + GetServerType> GenerateRandoms for ServerConfig<Ex
             sk.verifying_key().into()
         });
 
-        self.extra.generate_randoms()?;
+        if let Some(&mut ref mut osc) = &mut self.object_store.as_mut() {
+            c.get::<HostAliases>()
+                .expect("host aliases were not passed along")
+                .dealias(&mut osc.url);
+        }
+
+        self.extra.prepare(c)?;
 
         Ok(())
     }
 }
 
-impl GenerateRandoms for transcryptor::ExtraConfig {
-    fn generate_randoms(&mut self) -> anyhow::Result<()> {
+impl PrepareConfig<PCC> for transcryptor::ExtraConfig {
+    fn prepare(&mut self, _c: PCC) -> anyhow::Result<()> {
         self.master_enc_key_part
             .get_or_insert_with(elgamal::PrivateKey::random);
 
@@ -307,17 +346,22 @@ impl GenerateRandoms for transcryptor::ExtraConfig {
     }
 }
 
-impl GenerateRandoms for phc::ExtraConfig {
-    fn generate_randoms(&mut self) -> anyhow::Result<()> {
+impl PrepareConfig<PCC> for phc::ExtraConfig {
+    fn prepare(&mut self, c: PCC) -> anyhow::Result<()> {
         self.master_enc_key_part
             .get_or_insert_with(elgamal::PrivateKey::random);
+
+        let ha: &HostAliases = c.get::<HostAliases>().unwrap();
+
+        ha.dealias(&mut self.transcryptor_url);
+        ha.dealias(&mut self.auths_url);
 
         Ok(())
     }
 }
 
-impl GenerateRandoms for auths::ExtraConfig {
-    fn generate_randoms(&mut self) -> anyhow::Result<()> {
+impl PrepareConfig<PCC> for auths::ExtraConfig {
+    fn prepare(&mut self, _c: PCC) -> anyhow::Result<()> {
         Ok(())
     }
 }

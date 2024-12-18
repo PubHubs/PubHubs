@@ -32,8 +32,8 @@ impl<'a> TryFrom<&'a Option<ObjectStoreConfig>> for DefaultObjectStore {
             Some(c) => Cow::<'a, ObjectStoreConfig>::Borrowed(c),
         };
 
-        let (os, path) =
-            object_store::parse_url_opts(&c.url, c.options.iter()).with_context(|| {
+        let (os, path) = object_store::parse_url_opts(&c.url.as_ref(), c.options.iter())
+            .with_context(|| {
                 format!(
                     "creating object store from url {} and options {}",
                     c.url,

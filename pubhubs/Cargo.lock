@@ -1451,6 +1451,7 @@ checksum = "62f822373a4fe84d4bb149bf54e584a7f4abec90e072ed49cda0edea5b95471f"
 dependencies = [
  "equivalent",
  "hashbrown 0.15.2",
+ "serde",
 ]
 
 [[package]]
@@ -1939,6 +1940,7 @@ dependencies = [
  "humantime",
  "hyper",
  "hyper-tls",
+ "indexmap",
  "jsonwebtoken",
  "log",
  "object_store",

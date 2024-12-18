@@ -10,11 +10,18 @@ use digest::Digest as _;
 pub struct Type {
     /// Immutable
     id: Id,
+
     /// For referring to this attribute type from code - only add handles; don't remove them
     handles: Handles,
+
+    /// Whether [`Attr`]ibutes of this type can used to ban users.  Users must provide such a
+    /// bannable attribute.
     bannable: bool,
+
+    /// Whether [`Attr`]ibutes of this type can be used to identify a users.
     identifying: bool,
 
+    /// Details on how  users can obtain this attribute, e.g. via Yivi.
     source: AttrSource,
 }
 
@@ -28,16 +35,17 @@ pub enum AttrSource {
 
 #[derive(serde::Deserialize, serde::Serialize, Debug, Clone)]
 pub struct Attr {
+    /// Refers to the this attribute's [`attr::Type`] via the type's `[Id]`.
     attr_type: Id,
 
     /// The user, if any, that this attribute can identify.
     ///
-    /// Only identifies the user if the user lists this attribute among its id_attributes.
+    /// Only identifies the user if the user lists this attribute among its [`Id::id_attributes`].
     ///
     /// Once set, this should never be unset.  This prevents impersonation of a user when
     /// they remove their id.
     #[serde(default)]
-    identifies_user: Option<Id>,
+    may_identify_user: Option<Id>,
 
     /// The users that provided this attribute as bannable attribute.
     /// If this attribute gets banned, so will they.
@@ -48,7 +56,7 @@ pub struct Attr {
     #[serde(default)]
     banned: bool,
 
-    /// Actual value of this attribute.
+    /// Actual value of this attribute, in a format that is [`attr::Type`] dependent.
     value: String,
 }
 

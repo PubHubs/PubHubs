@@ -16,10 +16,49 @@ use crate::servers::{
 
 /// A set of running PubHubs servers.
 pub struct Set {
+    /// Handle to the task waiting on [SetInner::wait].
+    wait_jh: tokio::task::JoinHandle<usize>,
+}
+
+impl Set {
+    /// Creates a new set of PubHubs servers from the given config.
+    /// To signal shutdown of these senders, drop the returned `sender`.
+    pub fn new(
+        config: &crate::servers::Config,
+    ) -> Result<(Self, tokio::sync::oneshot::Sender<Infallible>)> {
+        let (inner, shutdown_sender) = SetInner::new(config)?;
+
+        let wait_jh = tokio::task::spawn(inner.wait());
+
+        return Ok((Self { wait_jh }, shutdown_sender));
+    }
+
+    /// Waits for one of the servers to return, panic, or be cancelled.
+    /// If that happens, the other servers are directed to shutdown as well.
+    ///
+    /// Returns the number of servers that did *not* shutdown cleanly.
+    ///
+    /// Panics when the tokio runtime is shut down.
+    pub async fn wait(self) -> usize {
+        match self.wait_jh.await {
+            Ok(nr) => nr,
+            Err(join_error) => {
+                panic!(
+                    "task waiting on servers to exit was cancelled or panicked: {}",
+                    join_error
+                );
+            }
+        }
+    }
+}
+
+/// A set of running PubHubs servers.
+struct SetInner {
+    /// The servers' tasks
     joinset: tokio::task::JoinSet<Result<()>>,
 
     /// Via `shutdown_sender` [Set] broadcasts the instruction to shutdown to all servers
-    /// running in the `jointset`.  It does so not by `send`ing a message, but by dropping
+    /// running in the `joinset`.  It does so not by `send`ing a message, but by dropping
     /// the `shutdown_sender`.
     shutdown_sender: Option<tokio::sync::broadcast::Sender<Infallible>>,
 
@@ -27,19 +66,19 @@ pub struct Set {
     shutdown_receiver: tokio::sync::oneshot::Receiver<Infallible>,
 }
 
-impl Drop for Set {
+impl Drop for SetInner {
     fn drop(&mut self) {
         if self.shutdown_sender.is_some() {
-            log::error!("the completion of all pubhubs servers was not awaited - please consume Set using wait() or shutdown()")
+            log::error!("the completion of all pubhubs servers was not awaited - please consume SetInner using wait() or shutdown()")
         }
     }
 }
 
-impl Set {
+impl SetInner {
     /// Creates a new set of PubHubs servers from the given config.
     ///
-    /// Returns not only the [Set] instance, but also a [`tokio::sync::oneshot::Sender<Infallible>`]
-    /// that can be dropped to signal the [Set] should shutdown.
+    /// Returns not only the [SetInner] instance, but also a [`tokio::sync::oneshot::Sender<Infallible>`]
+    /// that can be dropped to signal the [SetInner] should shutdown.
     pub fn new(
         config: &crate::servers::Config,
     ) -> Result<(Self, tokio::sync::oneshot::Sender<Infallible>)> {
@@ -124,6 +163,7 @@ impl Set {
         worker_count: Option<NonZero<usize>>,
     ) -> Result<()> {
         let localset = tokio::task::LocalSet::new();
+
         let fut = localset.run_until(
             crate::servers::run::Runner::<S>::new(&config, shutdown_receiver, worker_count)?.run(),
         );
@@ -139,19 +179,26 @@ impl Set {
 
     /// Waits for one of the servers to return, panic, or be cancelled.
     /// If that happens, the other servers are directed to shutdown as well.
+    ///
+    /// If this function is not called, servers can fail silently.
+    ///
     /// Returns the number of servers that did *not* shutdown cleanly
     pub async fn wait(mut self) -> usize {
+        log::trace!("waiting for one of the servers to exit...");
         let err_count: usize = tokio::select! {
-            // either one of the servers exists
+            // either one of the servers exits
             result_maybe = self
                 .joinset
                 .join_next() => {
                     let result = result_maybe.expect("no servers to wait on");
-                    log::debug!(
+                    let is_err : bool =  matches!(result, Err(_) | Ok(Err(_)));
+
+                    log::log!( if is_err { log::Level::Error } else { log::Level::Debug },
                         "one of the servers exited with {:?};  stopping all servers..",
                         result
                     );
-                    if matches!(result, Err(_) | Ok(Err(_))) {
+
+                    if is_err {
                         1
                     } else {
                         0
@@ -161,7 +208,7 @@ impl Set {
             // or we get the command to shut down from higher up
             result = &mut self.shutdown_receiver => {
                 result.expect_err("received Infallible");
-                log::debug!("shutdown requested");0
+                log::debug!("shutdown requested"); 0
             }
         };
 
@@ -196,8 +243,8 @@ impl Set {
     }
 }
 
-/// Runs a [Server].
-pub struct Runner<ServerT: Server> {
+/// Runs a [Server]
+struct Runner<ServerT: Server> {
     pubhubs_server: Rc<ServerT>,
     shutdown_receiver: tokio::sync::broadcast::Receiver<Infallible>,
     worker_count: Option<NonZero<usize>>,
@@ -644,7 +691,11 @@ impl<S: Server> Runner<S> {
         shutdown_receiver: tokio::sync::broadcast::Receiver<Infallible>,
         worker_count: Option<NonZero<usize>>,
     ) -> Result<Self> {
+        log::trace!("{}: creating runner...", S::NAME);
+
         let pubhubs_server = Rc::new(S::new(global_config)?);
+
+        log::trace!("{}: created runner", S::NAME);
 
         Ok(Runner {
             pubhubs_server,
