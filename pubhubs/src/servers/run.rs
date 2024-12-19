@@ -162,6 +162,8 @@ impl SetInner {
         shutdown_receiver: tokio::sync::broadcast::Receiver<Infallible>,
         worker_count: Option<NonZero<usize>>,
     ) -> Result<()> {
+        assert!(config.preparation_state == crate::servers::config::PreparationState::Complete);
+
         let localset = tokio::task::LocalSet::new();
 
         let fut = localset.run_until(

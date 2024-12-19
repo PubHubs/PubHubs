@@ -25,6 +25,9 @@ pub struct Config {
     /// Any information on the other servers that can be stored at PHC is stored at PHC.
     pub phc_url: UrlPwa,
 
+    #[serde(skip)]
+    pub(crate) preparation_state: PreparationState,
+
     /// Specify abbreviations for an IP address that are only valid in this configuration file.
     ///
     /// Any [UrlPwa] that contains one of the aliases as host name exactly (so no subdomain)
@@ -44,6 +47,20 @@ pub struct Config {
 
     /// Configuration to run the Authentication Server
     pub auths: Option<ServerConfig<auths::ExtraConfig>>,
+}
+
+/// Represents the level of preparation of a [Config] instance.
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq)]
+pub(crate) enum PreparationState {
+    /// State after loading config file from disk.
+    #[default]
+    Unprepared,
+
+    /// [Config::preliminary_prep] has been called.
+    Preliminary,
+
+    /// [Config] is completely prepared after [PrepareConfig::prepare] has been called on it.
+    Complete,
 }
 
 /// Configuration for one server
@@ -128,20 +145,40 @@ impl Config {
             res.wd.display()
         );
 
-        res.host_aliases.resolve_all()?;
-        res.host_aliases.dealias(&mut res.phc_url);
+        res.preliminary_prep()?;
 
         Ok(Some(res))
+    }
+
+    pub fn preliminary_prep(&mut self) -> Result<()> {
+        anyhow::ensure!(
+            self.preparation_state == PreparationState::Unprepared,
+            "configuration already (partially) prepared: {:?}",
+            self.preparation_state
+        );
+
+        self.host_aliases.resolve_all()?;
+        self.host_aliases.dealias(&mut self.phc_url);
+
+        self.preparation_state = PreparationState::Preliminary;
+
+        Ok(())
     }
 
     /// Clones this configuration and strips out everything that's not needed to run
     /// the specified server.  Also generated any random values not yet set.
     pub fn prepare_for(&self, server: crate::servers::Name) -> Result<Self> {
+        anyhow::ensure!(
+            self.preparation_state == PreparationState::Preliminary,
+            "configuration not in the correct preparation state"
+        );
+
         // destruct to make sure we consider every field of Config
         let Self {
             ref host_aliases,
             ref phc_url,
             ref wd,
+            preparation_state,
             phc: _,
             transcryptor: _,
             auths: _,
@@ -151,6 +188,7 @@ impl Config {
             host_aliases: host_aliases.clone(),
             phc_url: phc_url.clone(),
             wd: wd.clone(),
+            preparation_state: preparation_state.clone(),
             phc: None,
             transcryptor: None,
             auths: None,
@@ -167,11 +205,16 @@ impl Config {
 
         for_all_servers!(clone_only_server);
 
-        let pcc = PCC::new(actix_web::dev::Extensions::new());
-
-        config.prepare(pcc)?;
+        config.prepare()?;
 
         Ok(config)
+    }
+
+    /// Prepares [Config] to be run; used by [Config::prepare_for].
+    pub fn prepare(&mut self) -> anyhow::Result<()> {
+        let pcc = PCC::new(actix_web::dev::Extensions::new());
+
+        PrepareConfig::prepare(self, pcc)
     }
 
     /// Creates a new [Config] from the current one by updating a specific part
@@ -276,6 +319,11 @@ type PCC = std::rc::Rc<actix_web::dev::Extensions>;
 
 impl PrepareConfig<PCC> for Config {
     fn prepare(&mut self, mut c: PCC) -> anyhow::Result<()> {
+        anyhow::ensure!(
+            self.preparation_state == PreparationState::Preliminary,
+            "configuration not properly prepared"
+        );
+
         // temporarily move `host_aliases` into PCC
         PCC::get_mut(&mut c)
             .unwrap()
@@ -299,6 +347,8 @@ impl PrepareConfig<PCC> for Config {
                 .remove::<HostAliases>()
                 .unwrap(),
         );
+
+        self.preparation_state = PreparationState::Complete;
 
         Ok(())
     }

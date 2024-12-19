@@ -515,6 +515,11 @@ where
         + Sync,
 {
     pub fn new(config: &crate::servers::Config) -> anyhow::Result<Self> {
+        assert_eq!(
+            config.preparation_state,
+            crate::servers::config::PreparationState::Complete
+        );
+
         let server_config = S::server_config_from(config);
 
         Ok(Self {
@@ -633,7 +638,7 @@ impl<S: Server> AppBase<S> {
                 api::ErrorCode::NotYetReady // probably the server is restarting
             }));
 
-        let new_config: Config = api::return_if_ec!(config
+        let mut new_config: Config = api::return_if_ec!(config
             .json_updated(&req.pointer, req.new_value.clone())
             .into_ec(|err| {
                 log::warn!(
@@ -644,6 +649,24 @@ impl<S: Server> AppBase<S> {
                 );
                 api::ErrorCode::BadRequest
             }));
+
+        drop(config);
+
+        // reprepare config...
+        api::return_if_ec!(new_config.preliminary_prep().into_ec(|err| {
+            log::warn!(
+                "{}: failed to reprepare (preliminary step) modified configuration: {err}",
+                S::NAME
+            );
+            api::ErrorCode::BadRequest
+        }));
+        api::return_if_ec!(new_config.prepare().into_ec(|err| {
+            log::warn!(
+                "{}: failed to reprepare modified configuration: {err}",
+                S::NAME
+            );
+            api::ErrorCode::BadRequest
+        }));
 
         // All is well - let's restart the server with the new configuration
         api::return_if_ec!(base
