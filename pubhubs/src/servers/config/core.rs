@@ -188,7 +188,7 @@ impl Config {
             host_aliases: host_aliases.clone(),
             phc_url: phc_url.clone(),
             wd: wd.clone(),
-            preparation_state: preparation_state.clone(),
+            preparation_state: *preparation_state,
             phc: None,
             transcryptor: None,
             auths: None,
@@ -212,7 +212,7 @@ impl Config {
 
     /// Prepares [Config] to be run; used by [Config::prepare_for].
     pub fn prepare(&mut self) -> anyhow::Result<()> {
-        let pcc = PCC::new(actix_web::dev::Extensions::new());
+        let pcc = Pcc::new(actix_web::dev::Extensions::new());
 
         PrepareConfig::prepare(self, pcc)
     }
@@ -250,7 +250,7 @@ pub struct ObjectStoreConfig {
     ///
     /// For a complete list, see:
     ///
-    ///   https://docs.rs/object_store/latest/object_store/enum.ObjectStoreScheme.html
+    ///   <https://docs.rs/object_store/latest/object_store/enum.ObjectStoreScheme.html>
     pub url: UrlPwa,
 
     /// Additional options passed to the builder of the object store.
@@ -315,17 +315,17 @@ trait PrepareConfig<C> {
     fn prepare(&mut self, context: C) -> anyhow::Result<()>;
 }
 
-type PCC = std::rc::Rc<actix_web::dev::Extensions>;
+type Pcc = std::rc::Rc<actix_web::dev::Extensions>;
 
-impl PrepareConfig<PCC> for Config {
-    fn prepare(&mut self, mut c: PCC) -> anyhow::Result<()> {
+impl PrepareConfig<Pcc> for Config {
+    fn prepare(&mut self, mut c: Pcc) -> anyhow::Result<()> {
         anyhow::ensure!(
             self.preparation_state == PreparationState::Preliminary,
             "configuration not properly prepared"
         );
 
-        // temporarily move `host_aliases` into PCC
-        PCC::get_mut(&mut c)
+        // temporarily move `host_aliases` into Pcc
+        Pcc::get_mut(&mut c)
             .unwrap()
             .insert(std::mem::take(&mut self.host_aliases));
 
@@ -339,14 +339,14 @@ impl PrepareConfig<PCC> for Config {
 
         for_all_servers!(prep);
 
-        // move `host_aliases` back to self
-        std::mem::replace(
+        // move `host_aliases` back to self, drop the substitute
+        drop(std::mem::replace(
             &mut self.host_aliases,
-            PCC::get_mut(&mut c)
+            Pcc::get_mut(&mut c)
                 .unwrap()
                 .remove::<HostAliases>()
                 .unwrap(),
-        );
+        ));
 
         self.preparation_state = PreparationState::Complete;
 
@@ -354,8 +354,8 @@ impl PrepareConfig<PCC> for Config {
     }
 }
 
-impl<Extra: PrepareConfig<PCC> + GetServerType> PrepareConfig<PCC> for ServerConfig<Extra> {
-    fn prepare(&mut self, c: PCC) -> anyhow::Result<()> {
+impl<Extra: PrepareConfig<Pcc> + GetServerType> PrepareConfig<Pcc> for ServerConfig<Extra> {
+    fn prepare(&mut self, c: Pcc) -> anyhow::Result<()> {
         self.self_check_code
             .get_or_insert_with(crate::misc::crypto::random_alphanumeric);
 
@@ -387,8 +387,8 @@ impl<Extra: PrepareConfig<PCC> + GetServerType> PrepareConfig<PCC> for ServerCon
     }
 }
 
-impl PrepareConfig<PCC> for transcryptor::ExtraConfig {
-    fn prepare(&mut self, _c: PCC) -> anyhow::Result<()> {
+impl PrepareConfig<Pcc> for transcryptor::ExtraConfig {
+    fn prepare(&mut self, _c: Pcc) -> anyhow::Result<()> {
         self.master_enc_key_part
             .get_or_insert_with(elgamal::PrivateKey::random);
 
@@ -396,8 +396,8 @@ impl PrepareConfig<PCC> for transcryptor::ExtraConfig {
     }
 }
 
-impl PrepareConfig<PCC> for phc::ExtraConfig {
-    fn prepare(&mut self, c: PCC) -> anyhow::Result<()> {
+impl PrepareConfig<Pcc> for phc::ExtraConfig {
+    fn prepare(&mut self, c: Pcc) -> anyhow::Result<()> {
         self.master_enc_key_part
             .get_or_insert_with(elgamal::PrivateKey::random);
 
@@ -410,8 +410,8 @@ impl PrepareConfig<PCC> for phc::ExtraConfig {
     }
 }
 
-impl PrepareConfig<PCC> for auths::ExtraConfig {
-    fn prepare(&mut self, _c: PCC) -> anyhow::Result<()> {
+impl PrepareConfig<Pcc> for auths::ExtraConfig {
+    fn prepare(&mut self, _c: Pcc) -> anyhow::Result<()> {
         Ok(())
     }
 }

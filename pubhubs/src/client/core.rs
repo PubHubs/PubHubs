@@ -68,10 +68,10 @@ impl Client {
         Builder::default()
     }
 
-    /// Like [query], but retries the query when it fails with a [ErrorInfo::retryable] [ErrorCode].
+    /// Like [Client::query], but retries the query when it fails with a [crate::api::ErrorInfo::retryable] [ErrorCode].
     ///
     /// When `A` queries `B` and `B` queries `C`, the `B` should, in general, not use
-    /// [query_with_retry], but let `A` manage retries.  This prevents `A`'s request from hanging
+    /// [Client::query_with_retry], but let `A` manage retries.  This prevents `A`'s request from hanging
     /// without any explanation.
     pub async fn query_with_retry<EP: EndpointDetails + 'static>(
         &self,

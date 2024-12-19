@@ -19,6 +19,7 @@ impl<'a> TryFrom<&'a Option<ObjectStoreConfig>> for UseNone {
 }
 
 /// The default object store we use.
+#[expect(dead_code)]
 pub struct DefaultObjectStore(Box<object_store::DynObjectStore>);
 
 impl<'a> TryFrom<&'a Option<ObjectStoreConfig>> for DefaultObjectStore {
@@ -32,7 +33,7 @@ impl<'a> TryFrom<&'a Option<ObjectStoreConfig>> for DefaultObjectStore {
             Some(c) => Cow::<'a, ObjectStoreConfig>::Borrowed(c),
         };
 
-        let (os, path) = object_store::parse_url_opts(&c.url.as_ref(), c.options.iter())
+        let (os, path) = object_store::parse_url_opts(c.url.as_ref(), c.options.iter())
             .with_context(|| {
                 format!(
                     "creating object store from url {} and options {}",

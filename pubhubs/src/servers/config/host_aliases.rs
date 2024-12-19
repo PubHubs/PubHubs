@@ -1,10 +1,11 @@
-use std::net::IpAddr;
+use std::net::{IpAddr, Ipv4Addr, Ipv6Addr, SocketAddr, ToSocketAddrs as _};
 use url::Url;
 
 use indexmap::{IndexMap, IndexSet};
 
 /// A value that can be resolved to an [`IpAddr`].
 #[derive(serde::Serialize, serde::Deserialize, Debug, Clone)]
+#[serde(rename_all = "snake_case")]
 pub enum HostAlias {
     /// Literally, this [`IpAddr`].
     Ip(IpAddr),
@@ -32,7 +33,7 @@ pub struct HostAliases {
     inner: IndexMap<String, HostAlias>,
 }
 
-/// A [`Url`] that perhaps has as host name one of the aliases defined in [`config::host_aliases`].
+/// A [`Url`] that perhaps has as host name one of the aliases defined in [`super::Config::host_aliases`].
 #[derive(Debug, Clone)]
 pub enum UrlPwa {
     /// The host name of the [`Url`] might contain an alias.
@@ -68,7 +69,7 @@ impl HostAliases {
                     url::Host::Ipv6(ip) => ip.into(),
                     url::Host::Domain(hostname) => {
                         if let Some(ha) = self.inner.get(hostname) {
-                            ha.as_ip().unwrap().clone()
+                            *ha.as_ip().unwrap()
                         } else {
                             break 'dealias; // host not an alias
                         }
@@ -107,7 +108,7 @@ impl<'a> Resolver<'a> {
     }
 
     fn resolve_all(mut self) -> anyhow::Result<()> {
-        while self.todo.len() > 0 {
+        while !self.todo.is_empty() {
             let hai: usize = *self.todo.iter().next().unwrap();
             self.resolve_new_one(hai)?;
         }
@@ -119,7 +120,7 @@ impl<'a> Resolver<'a> {
 
         self.deps_stack = indexmap::indexset![hai];
 
-        while self.deps_stack.len() > 0 {
+        while !self.deps_stack.is_empty() {
             self.deps_stack_step()?;
         }
 
@@ -130,7 +131,7 @@ impl<'a> Resolver<'a> {
         let latest_ha: usize = *self.deps_stack.last().unwrap();
 
         if let Err(depi) = self.try_resolve_ha(latest_ha)? {
-            let already_a_dep: bool = self.deps_stack.insert(depi);
+            let already_a_dep: bool = !self.deps_stack.insert(depi);
             anyhow::ensure!(
                 !already_a_dep,
                 "cyclic dependency involving host alias {}",
@@ -142,7 +143,7 @@ impl<'a> Resolver<'a> {
         assert_eq!(self.deps_stack.pop().unwrap(), latest_ha);
         self.todo.remove(&latest_ha);
 
-        return Ok(());
+        Ok(())
     }
 
     /// Tries to resolve the named host alias.  If this host alias
@@ -192,7 +193,7 @@ impl<'a> Resolver<'a> {
                         return Err(idx);
                     }
 
-                    ha.as_ip().unwrap().clone()
+                    *ha.as_ip().unwrap()
                 }
                 url::Host::Ipv4(ip) => ip.into(),
                 url::Host::Ipv6(ip) => ip.into(),
@@ -208,9 +209,71 @@ impl<'a> Resolver<'a> {
 
 /// Determines which [`IpAddr`] is used to contact the given address encoded in a [`Url`] with as
 /// scheme either `tcp` or `udp`.  The _port_ of the url must be specified, but the _fragment_,
-/// _query_, _username_ and _password_ cannot be set.
+/// _query_, _username_ and _password_ cannot be set, and _path_ must be trivial.
 fn source_ip_for(url: &Url) -> anyhow::Result<IpAddr> {
-    todo! {}
+    anyhow::ensure!(
+        url.fragment().is_none(),
+        "this url cannot contain fragment (i.e. '#')"
+    );
+    anyhow::ensure!(
+        url.query().is_none(),
+        "this url cannot contain query (i.e. '?')",
+    );
+    anyhow::ensure!(url.password().is_none(), "this url cannot contain password",);
+    anyhow::ensure!(url.username() == "", "this url cannot contain username",);
+    anyhow::ensure!(
+        matches!(url.path(), "" | "/"),
+        "this url must have a trivial path",
+    );
+
+    let port: u16 = url
+        .port()
+        .ok_or_else(|| anyhow::anyhow!("this url must contain a port number"))?;
+
+    let sas: Vec<SocketAddr> = match url.host() {
+        None => anyhow::bail!("this url must contain a host"),
+        Some(url::Host::Ipv4(ip)) => (ip, port).to_socket_addrs()?.collect(),
+        Some(url::Host::Ipv6(ip)) => (ip, port).to_socket_addrs()?.collect(),
+        Some(url::Host::Domain(domain)) => (domain, port).to_socket_addrs()?.collect(),
+    };
+
+    for sa in sas {
+        match source_ip_for_sa(sa, url.scheme()) {
+            Ok(ip) => return Ok(ip),
+            Err(err) => {
+                log::warn!(
+                    "failed to get source ip address for contacting port {port} of {:?}: {err}",
+                    url.host()
+                );
+            }
+        }
+    }
+
+    anyhow::bail!(
+        "could not obtain a source ip address for any of the ip addresses associated to {:?}",
+        url.host()
+    );
+}
+
+fn source_ip_for_sa(sa: SocketAddr, scheme: &str) -> anyhow::Result<IpAddr> {
+    let unspecified_ip: IpAddr = if sa.is_ipv4() {
+        Ipv4Addr::UNSPECIFIED.into()
+    } else {
+        Ipv6Addr::UNSPECIFIED.into()
+    };
+
+    match scheme {
+        "udp" => {
+            let sock = std::net::UdpSocket::bind((unspecified_ip, 0))?;
+            sock.connect(sa)?;
+            Ok(sock.local_addr()?.ip())
+        }
+        "tcp" => {
+            let stream = std::net::TcpStream::connect(sa)?;
+            Ok(stream.local_addr()?.ip())
+        }
+        _ => anyhow::bail!("invalid url scheme '{}'; must be 'tcp' or 'udp'", scheme),
+    }
 }
 
 impl UrlPwa {
@@ -249,8 +312,53 @@ impl<'de> serde::Deserialize<'de> for UrlPwa {
 impl AsRef<Url> for UrlPwa {
     fn as_ref(&self) -> &url::Url {
         if let UrlPwa::WithoutAlias(ref url) = self {
-            return &url;
+            return url;
         }
         panic!("internal error: url {self} is used, but it might still have a 'host alias'");
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn host_aliases() {
+        let mut has: HostAliases = toml::from_str(
+            r#"
+        [localhost2]
+        source_ip_for = "udp://localhost:1234"
+
+        [localhost]
+        ip = "127.0.0.1"
+
+        [localhost3] 
+        source_ip_for = "udp://localhost2:1234"
+
+        [localhost4]
+        source_ip_for = "udp://[::1]:3"
+
+        "#,
+        )
+        .unwrap();
+
+        has.resolve_all().unwrap();
+
+        let mut url =
+            UrlPwa::PerhapsWithAlias(Url::parse("https://localhost3:1234/dsa?asd#pwa").unwrap());
+
+        has.dealias(&mut url);
+
+        assert_eq!(
+            url.as_ref().to_string(),
+            "https://127.0.0.1:1234/dsa?asd#pwa"
+        );
+
+        let mut url =
+            UrlPwa::PerhapsWithAlias(Url::parse("https://localhost4:1234/dsa?asd#pwa").unwrap());
+
+        has.dealias(&mut url);
+
+        assert_eq!(url.as_ref().to_string(), "https://[::1]:1234/dsa?asd#pwa");
     }
 }

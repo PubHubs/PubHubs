@@ -560,6 +560,7 @@ pub struct AppBase<S: Server> {
     pub jwt_key: api::SigningKey,
     pub enc_key: elgamal::PrivateKey,
     pub admin_key: api::VerifyingKey,
+    #[expect(dead_code)] // shared is not yet used
     pub shared: SharedState<S>,
     pub client: client::Client,
 }
@@ -876,5 +877,6 @@ impl<S: Server> SharedState<S> {
 }
 
 pub struct SharedStateInner<S: Server> {
+    #[expect(dead_code)]
     object_store: S::ObjectStoreT,
 }

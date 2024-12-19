@@ -63,6 +63,7 @@ pub struct Attr {
 impl Attr {
     /// Derives an identifier for this attribute from [`Attr.value`] and [`Attr.attr_type`],
     /// and the given digestible secret.
+    #[expect(dead_code)]
     fn id(&self, secret: impl secret::DigestibleSecret) -> Id {
         let bytes: [u8; 32] = secret
             .derive_bytes(

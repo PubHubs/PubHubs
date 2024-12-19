@@ -80,7 +80,7 @@ impl AdminContext {
 
                 let constellation = self
                     .client
-                    .get_constellation(&self.config.phc_url.as_ref())
+                    .get_constellation(self.config.phc_url.as_ref())
                     .await?;
 
                 Ok(constellation.url(self.server).clone())

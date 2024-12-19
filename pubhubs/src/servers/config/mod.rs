@@ -1,4 +1,4 @@
-pub mod config;
-pub use config::*;
+pub mod core;
+pub use core::*;
 
 pub mod host_aliases;

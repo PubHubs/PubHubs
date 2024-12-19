@@ -30,7 +30,7 @@ impl Set {
 
         let wait_jh = tokio::task::spawn(inner.wait());
 
-        return Ok((Self { wait_jh }, shutdown_sender));
+        Ok((Self { wait_jh }, shutdown_sender))
     }
 
     /// Waits for one of the servers to return, panic, or be cancelled.
