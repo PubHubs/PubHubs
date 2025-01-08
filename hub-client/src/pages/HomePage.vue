@@ -34,13 +34,14 @@
 </template>
 
 <script setup lang="ts">
-	import { usePubHubs } from '@/core/pubhubsStore';
-	import { useHubSettings } from '@/store/hub-settings';
-	import { useSettings } from '@/store/settings';
-
 	// Components
 	import H1 from '../components/elements/H1.vue';
 	import Logo from '../components/ui/Logo.vue';
+	import Button from '@/components/elements/Button.vue';
+
+	import { usePubHubs } from '@/core/pubhubsStore';
+	import { useHubSettings } from '@/store/hub-settings';
+	import { useSettings } from '@/store/settings';
 
 	const pubhubs = usePubHubs();
 	const hubSettings = useHubSettings();

@@ -90,6 +90,19 @@
 </template>
 
 <script setup lang="ts">
+	// Components
+	import Popover from '../ui/Popover.vue';
+	import TextArea from './TextArea.vue';
+	import Button from '../elements/Button.vue';
+	import Icon from '../elements/Icon.vue';
+	import EmojiPicker from '../ui/EmojiPicker.vue';
+	import Mention from '../ui/Mention.vue';
+	import UploadPicker from '../ui/UploadPicker.vue';
+	import SignedMessageButton from '../ui/SignedMessageButton.vue';
+	import Line from '../elements/Line.vue';
+	import FileUploadDialog from '../ui/FileUploadDialog.vue';
+	import MessageSnippet from '../rooms/MessageSnippet.vue';
+
 	import { useFormInputEvents, usedEvents } from '@/composables/useFormInputEvents';
 	import { useMatrixFiles } from '@/composables/useMatrixFiles';
 	import filters from '@/core/filters';
@@ -100,13 +113,9 @@
 	import { computed, onMounted, onUnmounted, ref, watch } from 'vue';
 	import { useI18n } from 'vue-i18n';
 	import { useRoute } from 'vue-router';
-
-	import Popover from '../ui/Popover.vue';
-
 	import { fileUpload } from '@/composables/fileUpload';
 	import { YiviSigningSessionResult } from '@/lib/signedMessages';
 	import { TMessageEvent } from '@/model/events/TMessageEvent';
-	import TextArea from './TextArea.vue';
 
 	const { t } = useI18n();
 	const route = useRoute();

@@ -14,6 +14,10 @@
 </template>
 
 <script setup lang="ts">
+	// Components
+	import UserDisplayName from './UserDisplayName.vue';
+	import Icon from '../elements/Icon.vue';
+
 	import { useUserColor } from '@/composables/useUserColor';
 	import { computed } from 'vue';
 	import Room from '@/model/rooms/Room';

@@ -38,6 +38,18 @@
 </template>
 
 <script setup lang="ts">
+	// Components
+	import HeaderFooter from '@/components/ui/HeaderFooter.vue';
+	import Icon from '@/components/elements/Icon.vue';
+	import H1 from '@/components/elements/H1.vue';
+	import TruncatedText from '@/components/elements/TruncatedText.vue';
+	import RoomName from '@/components/rooms/RoomName.vue';
+	import RoomTopic from '@/components/rooms/RoomTopic.vue';
+	import SearchInput from '@/components/forms/SearchInput.vue';
+	import RoomTimeline from '@/components/rooms/RoomTimeline.vue';
+	import MessageInput from '@/components/forms/MessageInput.vue';
+	import PrivateRoomName from '@/components/rooms/PrivateRoomName.vue';
+
 	import { usePubHubs } from '@/core/pubhubsStore';
 	import { LOGGER } from '@/foundation/Logger';
 	import { SMI } from '@/dev/StatusMessage';

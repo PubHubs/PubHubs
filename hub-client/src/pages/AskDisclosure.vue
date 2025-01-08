@@ -5,6 +5,10 @@
 </template>
 
 <script setup lang="ts">
+	// Components
+	import AskDisclosureAttrsForm from '@/components/rooms/AskDisclosureAttrsForm.vue';
+	import ChooseFromUsersList from '@/components/rooms/ChooseFromUsersList.vue';
+
 	import { ref, onBeforeMount } from 'vue';
 	import { useRooms } from '@/store/store';
 	import { DisclosureAttribute, AskDisclosure } from '@/lib/signedMessages';

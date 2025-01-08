@@ -24,6 +24,16 @@
 </template>
 
 <script setup lang="ts">
+	// Components
+	import InlineSpinner from '../ui/InlineSpinner.vue';
+	import Menu from '../ui/Menu.vue';
+	import MenuItem from '../ui/MenuItem.vue';
+	import TruncatedText from '../elements/TruncatedText.vue';
+	import PrivateRoomName from './PrivateRoomName.vue';
+	import RoomName from './RoomName.vue';
+	import Badge from '../elements/Badge.vue';
+	import Icon from '../elements/Icon.vue';
+
 	import { isVisiblePrivateRoom } from '@/core/privateRoomNames';
 	import { usePubHubs } from '@/core/pubhubsStore';
 	import { PluginProperties, usePlugins } from '@/store/plugins';

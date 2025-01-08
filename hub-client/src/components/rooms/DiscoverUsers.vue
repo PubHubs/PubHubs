@@ -24,6 +24,10 @@
 </template>
 
 <script setup lang="ts">
+	// Components
+	import FilteredList from '../ui/FilteredList.vue';
+	import Icon from '../elements/Icon.vue';
+
 	import { useUserColor } from '@/composables/useUserColor';
 	import filters from '@/core/filters';
 	import { usePubHubs } from '@/core/pubhubsStore';

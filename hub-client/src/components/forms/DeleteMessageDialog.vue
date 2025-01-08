@@ -15,6 +15,9 @@
 </template>
 
 <script setup lang="ts">
+	// Components
+	import Dialog from '../ui/Dialog.vue';
+
 	import Room from '@/pages/Room.vue';
 	import { buttonsYesNo, DialogButtonAction } from '@/store/dialog';
 	import { useUser } from '@/store/user';

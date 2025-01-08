@@ -7,6 +7,10 @@
 </template>
 
 <script setup lang="ts">
+	// Components
+	import Tabs from '../ui/Tabs.vue';
+	import FormObjectInputContent from './FormObjectInputContent.vue';
+
 	import { ref } from 'vue';
 	import { FormObjectInputTemplate } from '@/composables/useFormInputEvents';
 

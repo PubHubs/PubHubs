@@ -17,6 +17,11 @@
 </template>
 
 <script setup lang="ts">
+	// Components
+	import Dialog from '../ui/Dialog.vue';
+	import FilteredList from '../ui/FilteredList.vue';
+	import Icon from '../elements/Icon.vue';
+
 	import { usePubHubs } from '@/core/pubhubsStore';
 	import { buttonsCancel } from '@/store/dialog';
 	import { useUser } from '@/store/user';

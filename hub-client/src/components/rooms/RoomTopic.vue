@@ -7,6 +7,9 @@
 </template>
 
 <script setup lang="ts">
+	// Components
+	import PrivateRoomMembersList from './PrivateRoomMembersList.vue';
+
 	import Room from '@/model/rooms/Room';
 	const props = defineProps({
 		room: {

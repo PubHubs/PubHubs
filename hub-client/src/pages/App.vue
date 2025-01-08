@@ -100,6 +100,21 @@
 </template>
 
 <script setup lang="ts">
+	// Components
+	import Avatar from '@/components/ui/Avatar.vue';
+	import MenuItem from '@/components/ui/MenuItem.vue';
+	import HeaderFooter from '@/components/ui/HeaderFooter.vue';
+	import Menu from '@/components/ui/Menu.vue';
+	import Icon from '@/components/elements/Icon.vue';
+	import RoomList from '@/components/rooms/RoomList.vue';
+	import Disclosure from '@/components/rooms/Disclosure.vue';
+	import SettingsDialog from '@/components/forms/SettingsDialog.vue';
+	import Dialog from '@/components/ui/Dialog.vue';
+	import H2 from '@/components/elements/H2.vue';
+	import Badge from '@/components/elements/Badge.vue';
+	import DiscoverUsers from '@/components/rooms/DiscoverUsers.vue';
+	import H1 from '@/components/elements/H1.vue';
+
 	import { usePubHubs } from '@/core/pubhubsStore';
 	import { LOGGER } from '@/foundation/Logger';
 	import { SMI } from '@/dev/StatusMessage';
@@ -114,9 +129,6 @@
 	import { getCurrentInstance, onMounted, ref, watch } from 'vue';
 	import { useI18n } from 'vue-i18n';
 	import { RouteParamValue, useRouter } from 'vue-router';
-
-	import Avatar from '@/components/ui/Avatar.vue';
-	import MenuItem from '@/components/ui/MenuItem.vue';
 
 	const { locale, availableLocales } = useI18n();
 	const router = useRouter();
