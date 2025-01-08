@@ -89,7 +89,7 @@ const useGlobal = defineStore('global', {
 		},
 
 		setGlobalSettings(data: any) {
-			this.logger.log(SMI.STARTUP_TRACE, 'setGlobalSettings', data);
+			this.logger.log(SMI.STARTUP, 'setGlobalSettings', data);
 			const settings = useSettings();
 			settings.setTheme(data.theme);
 			if (!data.timeformat || data.timeformat === '') {

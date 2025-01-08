@@ -33,7 +33,7 @@
 	const { locale, availableLocales } = useI18n();
 
 	onMounted(async () => {
-		LOGGER.log(SMI.STARTUP_TRACE, 'App.vue onMounted...');
+		LOGGER.log(SMI.STARTUP, 'App.vue onMounted...');
 
 		settings.initI18b({ locale: locale, availableLocales: availableLocales });
 		dialog.asGlobal();
@@ -52,7 +52,7 @@
 		}
 		await addHubs();
 
-		LOGGER.log(SMI.STARTUP_TRACE, 'App.vue onMounted done', { language: settings.getActiveLanguage });
+		LOGGER.log(SMI.STARTUP, 'App.vue onMounted done', { language: settings.getActiveLanguage });
 	});
 
 	async function addHubs() {
