@@ -30,7 +30,7 @@
 
 	function startDisclosure(message: string, attributes: string[]) {
 		console.debug(`startDisclosure: m=${message}, a=[${attributes}]`);
-		rooms.yiviAskDisclosure(message, attributes, rooms.currentRoomId, pubhubs.Auth.getAccessToken(), finishDisclosure);
+		rooms.yiviAskDisclosure(message, attributes, rooms.currentRoomId, finishDisclosure);
 	}
 
 	function finishDisclosure(result: YiviSigningSessionResult) {

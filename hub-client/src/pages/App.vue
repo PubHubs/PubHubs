@@ -31,7 +31,7 @@
 									<Avatar :user="user" :img="user.avatarUrl"></Avatar>
 									<div class="flex flex-col h-fit">
 										<p class="font-bold leading-tight">{{ user.displayName }}</p>
-										<p class="leading-tight">{{ filters.extractPseudonym(user.userId) }}</p>
+										<p class="leading-tight">{{ user.pseudonym ?? '' }}</p>
 									</div>
 								</div>
 								<Icon type="pencil" size="sm" class="p-2 rounded-md stroke-0"></Icon>
@@ -117,7 +117,6 @@
 
 	import Avatar from '@/components/ui/Avatar.vue';
 	import MenuItem from '@/components/ui/MenuItem.vue';
-	import filters from '@/core/filters';
 
 	const { locale, availableLocales } = useI18n();
 	const router = useRouter();
@@ -146,7 +145,7 @@
 	});
 
 	onMounted(async () => {
-		LOGGER.trace(SMI.STARTUP_TRACE, 'App.vue onMounted');
+		LOGGER.trace(SMI.STARTUP, 'App.vue onMounted');
 
 		settings.initI18b({ locale: locale, availableLocales: availableLocales });
 		// set language when changed
@@ -179,7 +178,7 @@
 		}
 		await startMessageBox();
 
-		LOGGER.trace(SMI.STARTUP_TRACE, 'App.vue onMounted done');
+		LOGGER.trace(SMI.STARTUP, 'App.vue onMounted done');
 	});
 
 	async function startMessageBox() {

@@ -22,7 +22,7 @@
  *
  */
 
-import { ref, PropType } from 'vue';
+import { ref } from 'vue';
 
 type InputType = string | number | boolean | undefined;
 
@@ -33,7 +33,7 @@ interface Option {
 	value: OptionType;
 }
 
-type Options = Array<PropType<Option>>;
+type Options = Array<Option>;
 
 // Types for FormObjectInput
 

@@ -21,7 +21,7 @@ const useTimeFormat = () => {
 		return timeString;
 	}
 
-	function formatTimestamp(timestamp: number, format: TimeFormat | undefined) {
+	function formatTimestamp(timestamp: number, format?: TimeFormat) {
 		const date = new Date(timestamp);
 		return formatDate(date, format);
 	}

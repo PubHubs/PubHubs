@@ -77,7 +77,6 @@
 	import { useFormInputEvents, usedEvents } from '@/composables/useFormInputEvents';
 	import { filterAlphanumeric } from '@/core/extensions';
 	import { usePubHubs } from '@/core/pubhubsStore';
-	import { TSearchParameters, TSearchResult } from '@/model/model';
 	import Room from '@/model/rooms/Room';
 	import { useRooms } from '@/store/store';
 	import { ISearchResults, SearchResult } from 'matrix-js-sdk';
@@ -85,6 +84,7 @@
 	import TruncatedText from '../elements/TruncatedText.vue';
 
 	import Avatar from '../ui/Avatar.vue';
+	import { TSearchParameters, TSearchResult } from '@/model/search/TSearch';
 
 	const pubhubs = usePubHubs();
 	const rooms = useRooms();

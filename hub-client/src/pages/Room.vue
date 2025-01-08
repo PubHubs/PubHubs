@@ -78,7 +78,7 @@
 
 	onMounted(() => {
 		update();
-		LOGGER.log(SMI.ROOM_TRACE, `Room mounted `);
+		LOGGER.log(SMI.ROOM, `Room mounted `);
 	});
 
 	watch(route, () => {
