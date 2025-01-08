@@ -37,7 +37,8 @@ General tips:
           - [ ] Send a message in the public room.
           - [ ] Send a message in the secured room (if you are admin, you can allways enter a secured room, so important to test this with a normal user).
           - [ ] Sending a private message.
-        - [ ] Change displayname and avatar (make sure other users see this change).
+          - [ ] Leave one of the secured rooms. And re-enter that room.
+        - [ ] Change displayname and avatar.
         - [ ] Change Theme & Language, and see they are stored/fetched after logout/login.
         - [ ] Logging out and logging in again with your original user.
       - [ ] If anything has changed to branding: Rebrand testhub2 with a new logo and colors. See https://gitlab.science.ru.nl/ilab/pubhubs_canonical/-/blob/main/docs/development/BRANDING.md (NB This involves some work on ilab-main, see https://gitlab.science.ru.nl/ilab/pubhubs_canonical/-/wikis/Current-ops-troubleshooting#changing-the-branding-of-a-running-hub)
@@ -68,7 +69,7 @@ General tips:
   (The `merge-to-stable` merge request template can be edited [here](https://gitlab.science.ru.nl/ilab/pubhubs_canonical/-/edit/main/.gitlab/merge_request_templates/merge-to-stable.md).)
   - [ ] Celebrate!
 
-- If Omar Javed is not available, email [external hubs](https://gitlab.science.ru.nl/ilab/pubhubs_canonical/-/wikis/Tech-Information/External-Hub-Deployment) to pull the latest updates with the following email:
+- If Frans Lammers is not available, email [external hubs](https://gitlab.science.ru.nl/ilab/pubhubs_canonical/-/wikis/Tech-Information/External-Hub-Deployment) to pull the latest updates with the following email:
 
 > Dear XYZ,
 > 
@@ -80,8 +81,3 @@ General tips:
 > Regards,
 >
 > PubHubs Team
-
-
-
-  
-
