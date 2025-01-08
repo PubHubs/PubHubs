@@ -19,6 +19,10 @@
 </template>
 
 <script setup lang="ts">
+	// Components
+	import Icon from '../elements/Icon.vue';
+	import H3 from '../elements/H3.vue';
+
 	import { ref } from 'vue';
 	import { router } from '@/core/router';
 	import { usePubHubs } from '@/core/pubhubsStore';

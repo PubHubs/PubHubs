@@ -77,6 +77,18 @@
 </template>
 
 <script setup lang="ts">
+	// Components
+	import HeaderFooter from '@/components/ui/HeaderFooter.vue';
+	import Tabs from '@/components/ui/Tabs.vue';
+	import TabHeader from '@/components/ui/TabHeader.vue';
+	import TabPill from '@/components/ui/TabPill.vue';
+	import TabContainer from '@/components/ui/TabContainer.vue';
+	import TabContent from '@/components/ui/TabContent.vue';
+	import FilteredList from '@/components/ui/FilteredList.vue';
+	import Icon from '@/components/elements/Icon.vue';
+	import EditRoomForm from '@/components/rooms/EditRoomForm.vue';
+	import H1 from '@/components/elements/H1.vue';
+
 	import { useDialog } from '@/store/dialog';
 	import { TPublicRoom, TSecuredRoom, useRooms } from '@/store/rooms';
 	import { useUser } from '@/store/user';

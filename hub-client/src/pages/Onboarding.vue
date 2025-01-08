@@ -41,12 +41,21 @@
 </template>
 
 <script setup lang="ts">
+	// Components
+	import HeaderFooter from '@/components/ui/HeaderFooter.vue';
+	import Logo from '@/components/ui/Logo.vue';
+	import TextInput from '@/components/forms/TextInput.vue';
+	import Button from '@/components/elements/Button.vue';
+	import Icon from '@/components/elements/Icon.vue';
+	import P from '@/components/elements/P.vue';
+	import H2 from '@/components/elements/H2.vue';
+
 	import { usePubHubs } from '@/core/pubhubsStore';
 	import { useSettings } from '@/store/settings';
 	import { useUser } from '@/store/user';
 	import { ref } from 'vue';
-
 	import { useI18n } from 'vue-i18n';
+
 	const { t } = useI18n();
 	const pubhubs = usePubHubs();
 	const user = useUser();

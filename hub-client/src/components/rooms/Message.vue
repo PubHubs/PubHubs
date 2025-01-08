@@ -6,6 +6,9 @@
 </template>
 
 <script setup lang="ts">
+	// Components
+	import Icon from '../elements/Icon.vue';
+
 	import { TMessageEvent } from '@/model/events/TMessageEvent';
 	import { computed } from 'vue';
 	import { useI18n } from 'vue-i18n';

@@ -85,18 +85,6 @@
 </template>
 
 <script setup lang="ts">
-	import { usePubHubs } from '@/core/pubhubsStore';
-	import { router } from '@/core/router';
-	import { TMessageEvent } from '@/model/events/TMessageEvent';
-	import Room from '@/model/rooms/Room';
-	import { useConnection } from '@/store/connection';
-	import { useMessageActions } from '@/store/message-actions';
-	import { PluginType } from '@/store/plugins';
-	import { RoomType } from '@/store/rooms';
-	import { FeatureFlag, useSettings } from '@/store/settings';
-	import { useUser } from '@/store/user';
-	import { computed, ref } from 'vue';
-
 	// Components
 	import MessageSnippet from './MessageSnippet.vue';
 	import Message from './Message.vue';
@@ -109,6 +97,18 @@
 	import ProfileAttributes from './ProfileAttributes.vue';
 	import UserDisplayName from './UserDisplayName.vue';
 	import Icon from '../elements/Icon.vue';
+
+	import { usePubHubs } from '@/core/pubhubsStore';
+	import { router } from '@/core/router';
+	import { TMessageEvent } from '@/model/events/TMessageEvent';
+	import Room from '@/model/rooms/Room';
+	import { useConnection } from '@/store/connection';
+	import { useMessageActions } from '@/store/message-actions';
+	import { PluginType } from '@/store/plugins';
+	import { RoomType } from '@/store/rooms';
+	import { FeatureFlag, useSettings } from '@/store/settings';
+	import { useUser } from '@/store/user';
+	import { computed, ref } from 'vue';
 
 	// Stores
 	const connection = useConnection();

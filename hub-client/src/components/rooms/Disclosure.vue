@@ -12,6 +12,10 @@
 </template>
 
 <script setup lang="ts">
+	// Components
+	import Dialog from '../ui/Dialog.vue';
+	import DisclosureYivi from './DisclosureYivi.vue';
+
 	import { ref } from 'vue';
 	import { DialogButton, DialogButtonAction, DialogOk, DialogCancel } from '@/store/dialog';
 	import { useRooms } from '@/store/store';

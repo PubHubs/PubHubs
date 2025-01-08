@@ -74,6 +74,10 @@
 </template>
 
 <script setup lang="ts">
+	// Components
+	import Avatar from '../ui/Avatar.vue';
+	import Icon from '../elements/Icon.vue';
+
 	import { useFormInputEvents, usedEvents } from '@/composables/useFormInputEvents';
 	import { filterAlphanumeric } from '@/core/extensions';
 	import { usePubHubs } from '@/core/pubhubsStore';
@@ -82,8 +86,6 @@
 	import { ISearchResults, SearchResult } from 'matrix-js-sdk';
 	import { PropType, computed, ref } from 'vue';
 	import TruncatedText from '../elements/TruncatedText.vue';
-
-	import Avatar from '../ui/Avatar.vue';
 	import { TSearchParameters, TSearchResult } from '@/model/search/TSearch';
 
 	const pubhubs = usePubHubs();

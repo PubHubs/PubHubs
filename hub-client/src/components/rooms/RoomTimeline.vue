@@ -19,6 +19,14 @@
 </template>
 
 <script setup lang="ts">
+	// Components
+	import DateDisplayer from '../ui/DateDisplayer.vue';
+	import DeleteMessageDialog from '../forms/DeleteMessageDialog.vue';
+	import InlineSpinner from '../ui/InlineSpinner.vue';
+	import RoomEvent from './RoomEvent.vue';
+	import UnreadMarker from '../ui/UnreadMarker.vue';
+	import InRoomNotifyMarker from '../ui/InRoomNotifyMarker.vue';
+
 	import { useMatrixFiles } from '@/composables/useMatrixFiles';
 	import { ElementObserver } from '@/core/elementObserver';
 	import { usePubHubs } from '@/core/pubhubsStore';
@@ -32,14 +40,6 @@
 	import Room from '@/model/rooms/Room';
 	import { FeatureFlag, useSettings } from '@/store/settings';
 	import { useUser } from '@/store/user';
-
-	// Components
-	import DateDisplayer from '../ui/DateDisplayer.vue';
-	import RoomEvent from './RoomEvent.vue';
-	import InlineSpinner from '../ui/InlineSpinner.vue';
-	import UnreadMarker from '../ui/UnreadMarker.vue';
-	import DeleteMessageDialog from '../forms/DeleteMessageDialog.vue';
-	import InRoomNotifyMarker from '../ui/InRoomNotifyMarker.vue';
 
 	const settings = useSettings();
 	const rooms = useRooms();

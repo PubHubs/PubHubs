@@ -9,10 +9,11 @@
 </template>
 
 <script setup lang="ts">
+	// Components
+	import Icon from '../elements/Icon.vue';
+
 	import { useRooms } from '@/store/store';
 	import { ref, watch } from 'vue';
-
-	import Icon from '../elements/Icon.vue';
 
 	const rooms = useRooms();
 

@@ -24,18 +24,18 @@
 </template>
 
 <script setup lang="ts">
-	import { useRooms } from '@/store/store';
-	import { computed, ref, onMounted } from 'vue';
-	import { useI18n } from 'vue-i18n';
-
 	// Components
 	import ImagePlaceholder from '@/components/elements/ImagePlaceholder.vue';
 	import SearchRoomsInput from '@/components/forms/SearchRoomsInput.vue';
 	import HeaderFooter from '@/components/ui/HeaderFooter.vue';
 	import RoomPill from '@/components/rooms/RoomPill.vue';
+	import H2 from '@/components/elements/H2.vue';
 	import Icon from '@/components/elements/Icon.vue';
 	import H1 from '@/components/elements/H1.vue';
-	import H2 from '@/components/elements/H2.vue';
+
+	import { useRooms } from '@/store/store';
+	import { computed, ref, onMounted } from 'vue';
+	import { useI18n } from 'vue-i18n';
 
 	const rooms = useRooms();
 	const roomFilter = ref('');

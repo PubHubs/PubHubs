@@ -16,6 +16,9 @@
 </template>
 
 <script setup lang="ts">
+	// Components
+	import Button from '../elements/Button.vue';
+
 	import { PropType } from 'vue';
 	import { Options, useFormInputEvents, usedEvents } from '@/composables/useFormInputEvents';
 

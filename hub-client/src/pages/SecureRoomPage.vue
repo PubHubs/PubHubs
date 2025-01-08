@@ -26,6 +26,12 @@
 </template>
 
 <script setup lang="ts">
+	// Components
+	import HeaderFooter from '@/components/ui/HeaderFooter.vue';
+	import Icon from '@/components/elements/Icon.vue';
+	import H1 from '@/components/elements/H1.vue';
+	import TruncatedText from '@/components/elements/TruncatedText.vue';
+
 	import { onMounted, watch } from 'vue';
 	import { MessageType } from '@/store/messagebox';
 	import { Message, useMessageBox, useRooms } from '@/store/store';
