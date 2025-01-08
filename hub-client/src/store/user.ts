@@ -9,7 +9,10 @@
  */
 
 import { api_synapse } from '@/core/api';
+import filters from '@/core/filters';
 import { usePubHubs } from '@/core/pubhubsStore';
+import { SMI } from '@/dev/StatusMessage';
+import { LOGGER } from '@/foundation/Logger';
 import { MatrixClient, User as MatrixUser } from 'matrix-js-sdk';
 import { defineStore } from 'pinia';
 
@@ -34,6 +37,8 @@ type State = {
 	client: MatrixClient;
 	userId: string | null;
 };
+
+const logger = LOGGER;
 
 const useUser = defineStore('user', {
 	state: (): State => ({
@@ -70,6 +75,15 @@ const useUser = defineStore('user', {
 
 		displayName({ _displayName }) {
 			return _displayName;
+		},
+
+		pseudonym({ userId }): string {
+			if (!userId) {
+				logger.warn(SMI.USER, 'Missing userId when getting pseudonym, showing pseudonym as "xxx-xxx"');
+				return 'xxx-xxx';
+			}
+
+			return filters.extractPseudonym(userId);
 		},
 	},
 

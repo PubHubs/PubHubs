@@ -27,14 +27,12 @@
 
 <script setup lang="ts">
 	import { onMounted, watch } from 'vue';
-	import { usePubHubs } from '@/core/pubhubsStore';
 	import { MessageType } from '@/store/messagebox';
 	import { Message, useMessageBox, useRooms } from '@/store/store';
 	import { useRoute } from 'vue-router';
 
 	const route = useRoute();
 
-	const pubhubs = usePubHubs();
 	const rooms = useRooms();
 	const messageBox = useMessageBox();
 
@@ -44,8 +42,7 @@
 
 	async function update() {
 		messageBox.sendMessage(new Message(MessageType.RoomChange, ''));
-		const access_token = pubhubs.Auth.getAccessToken();
-		rooms.yiviSecuredRoomflow(route.params.id as string, access_token);
+		rooms.yiviSecuredRoomflow(route.params.id as string);
 
 		await rooms.getSecuredRoomInfo(route.params.id as string);
 	}

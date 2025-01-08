@@ -31,7 +31,8 @@
 	import { FeatureFlag, useSettings } from '@/store/settings';
 	import { useDialog, useHubSettings, useRooms } from '@/store/store';
 	import { useUser } from '@/store/user';
-	import { NotificationCountType, Room } from 'matrix-js-sdk';
+	import { NotificationCountType } from 'matrix-js-sdk';
+	import { Room } from '@/store/rooms';
 	import { useI18n } from 'vue-i18n';
 	import { useRouter } from 'vue-router';
 

@@ -33,7 +33,7 @@ class RoomTimelineWindow {
 	logger = LOGGER;
 
 	constructor(matrixRoom: MatrixRoom) {
-		LOGGER.trace(SMI.ROOM_TIMELINEWINDOW_TRACE, `TimelineWindow constructor `, { roomId: matrixRoom.roomId });
+		LOGGER.trace(SMI.ROOM_TIMELINEWINDOW, `TimelineWindow constructor `, { roomId: matrixRoom.roomId });
 		/* To init? */
 		// const filter = new Filter(undefined);
 		// filter.setDefinition(this.timelineSetFilter);
@@ -45,7 +45,7 @@ class RoomTimelineWindow {
 
 	// Initialisation of a timeline window
 	public async initTimelineWindow(matrixRoom: MatrixRoom, client: MatrixClient) {
-		LOGGER.trace(SMI.ROOM_TIMELINEWINDOW_TRACE, `initTimelineWindow...`, { roomId: matrixRoom.roomId });
+		LOGGER.trace(SMI.ROOM_TIMELINEWINDOW, `initTimelineWindow...`, { roomId: matrixRoom.roomId });
 		/* to constructor? */
 		const filter = new Filter(undefined);
 		filter.setDefinition(this.timelineSetFilter);
@@ -64,7 +64,7 @@ class RoomTimelineWindow {
 			await this.loadToEvent(lastEvent?.event.event_id);
 		}
 
-		LOGGER.trace(SMI.ROOM_TIMELINEWINDOW_TRACE, `initTimelineWindow done`, { roomId: matrixRoom.roomId, timeline: this.getTimeline() });
+		LOGGER.trace(SMI.ROOM_TIMELINEWINDOW, `initTimelineWindow done`, { roomId: matrixRoom.roomId, timeline: this.getTimeline() });
 	}
 
 	// filtering happens in two stages: serverside by the filter on the timelineset and clientside on the type of message
@@ -79,7 +79,7 @@ class RoomTimelineWindow {
 
 	// the filtered timeline contains all messages, so they need some filtering added that can not be done on the server
 	public getTimeline(): MatrixEvent[] {
-		LOGGER.trace(SMI.ROOM_TIMELINEWINDOW_TRACE, `RoomtimelineWindow gettimeline `, { getEvents: this.timelineWindow?.getEvents() });
+		LOGGER.trace(SMI.ROOM_TIMELINEWINDOW, `RoomtimelineWindow gettimeline `, { getEvents: this.timelineWindow?.getEvents() });
 		return this.timelineWindow?.getEvents()?.filter((event) => this.isVisibleEvent(event.event)) || [];
 	}
 
@@ -123,14 +123,14 @@ class RoomTimelineWindow {
 	}
 
 	public async loadToEvent(eventId: string | undefined) {
-		this.logger.trace(SMI.ROOM_TIMELINEWINDOW_TRACE, `Loading to event ${eventId}...`, { eventId });
+		this.logger.trace(SMI.ROOM_TIMELINEWINDOW, `Loading to event ${eventId}...`, { eventId });
 		if (this.timelineWindow) {
 			await this.timelineWindow.load(eventId, PAGE_SIZE);
 		}
 	}
 
 	public findEventById(eventId: string | undefined): MatrixEvent | undefined {
-		this.logger.trace(SMI.ROOM_TIMELINEWINDOW_TRACE, `find by eventId ${eventId}...`, { eventId });
+		this.logger.trace(SMI.ROOM_TIMELINEWINDOW, `find by eventId ${eventId}...`, { eventId });
 		return this.timelineWindow?.getEvents()?.find((x) => x.event.event_id === eventId);
 	}
 }

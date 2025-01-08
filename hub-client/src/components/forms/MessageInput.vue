@@ -105,7 +105,7 @@
 
 	import { fileUpload } from '@/composables/fileUpload';
 	import { YiviSigningSessionResult } from '@/lib/signedMessages';
-	import { TMessageEvent } from '@/model/model';
+	import { TMessageEvent } from '@/model/events/TMessageEvent';
 	import TextArea from './TextArea.vue';
 
 	const { t } = useI18n();
@@ -272,8 +272,7 @@
 	}
 
 	function signMessage(message: string, attributes: string[]) {
-		const accessToken = pubhubs.Auth.getAccessToken();
-		accessToken && rooms.yiviSignMessage(message, attributes, rooms.currentRoomId, accessToken, finishedSigningMessage);
+		rooms.yiviSignMessage(message, attributes, rooms.currentRoomId, finishedSigningMessage);
 	}
 
 	function finishedSigningMessage(result: YiviSigningSessionResult) {

@@ -12,20 +12,18 @@
 	import { useRooms } from '@/store/store';
 	import { ref, watch } from 'vue';
 
+	import Icon from '../elements/Icon.vue';
+
 	const rooms = useRooms();
 
-	const props = defineProps({
-		user: {
-			type: String,
-			required: true,
-		},
-		room_id: {
-			type: String,
-			required: true,
-		},
-	});
+	interface Props {
+		user: string;
+		room_id: string;
+	}
 
-	const roomAttributes: Ref<String[]> = ref([]);
+	const props = defineProps<Props>();
+
+	const roomAttributes = ref<string[]>([]);
 
 	function update_attributes() {
 		if (rooms.roomNotices[props.room_id] && rooms.roomNotices[props.room_id][props.user]) {

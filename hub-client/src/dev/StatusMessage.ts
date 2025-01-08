@@ -13,11 +13,12 @@ import { LogLevel } from './types';
  * Shortened for readability in usage of log function.
  */
 export enum SMI {
-	ROOM_TIMELINE_TRACE = 'ROOM_TIMELINE_TRACE',
-	ROOM_TIMELINEWINDOW_TRACE = 'ROOM_TIMELINEWINDOW_TRACE',
-	ROOM_TRACE = 'ROOM_TRACE',
-	STARTUP_TRACE = 'STARTUP_TRACE',
-	STORE_TRACE = 'STORE_TRACE',
+	ROOM_TIMELINE = 'ROOM_TIMELINE_TRACE',
+	ROOM_TIMELINEWINDOW = 'ROOM_TIMELINEWINDOW_TRACE',
+	ROOM = 'ROOM_TRACE',
+	STARTUP = 'STARTUP_TRACE',
+	STORE = 'STORE_TRACE',
+	USER = 'USER',
 }
 
 // A StatusMessage instance could later have parameters and a stack trace passed to it.

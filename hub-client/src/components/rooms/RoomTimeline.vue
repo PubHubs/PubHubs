@@ -32,8 +32,14 @@
 	import Room from '@/model/rooms/Room';
 	import { FeatureFlag, useSettings } from '@/store/settings';
 	import { useUser } from '@/store/user';
+
+	// Components
 	import DateDisplayer from '../ui/DateDisplayer.vue';
 	import RoomEvent from './RoomEvent.vue';
+	import InlineSpinner from '../ui/InlineSpinner.vue';
+	import UnreadMarker from '../ui/UnreadMarker.vue';
+	import DeleteMessageDialog from '../forms/DeleteMessageDialog.vue';
+	import InRoomNotifyMarker from '../ui/InRoomNotifyMarker.vue';
 
 	const settings = useSettings();
 	const rooms = useRooms();
@@ -71,7 +77,7 @@
 	});
 
 	onMounted(() => {
-		LOGGER.log(SMI.ROOM_TIMELINE_TRACE, `onMounted RoomTimeline`, { roomId: props.room.roomId });
+		LOGGER.log(SMI.ROOM_TIMELINE, `onMounted RoomTimeline`, { roomId: props.room.roomId });
 
 		setupRoomTimeline();
 	});
@@ -79,7 +85,7 @@
 	watch(
 		() => props.room,
 		() => {
-			LOGGER.log(SMI.ROOM_TIMELINE_TRACE, `Room changed to room: ${props.room.roomId}`, { roomId: props.room.roomId });
+			LOGGER.log(SMI.ROOM_TIMELINE, `Room changed to room: ${props.room.roomId}`, { roomId: props.room.roomId });
 
 			setupRoomTimeline();
 		},
@@ -92,7 +98,7 @@
 	watch(() => props.scrollToEventId, onScrollToEventId);
 
 	async function setupRoomTimeline() {
-		LOGGER.log(SMI.ROOM_TIMELINE_TRACE, `setupRoomTimeline...`, { roomId: props.room.roomId });
+		LOGGER.log(SMI.ROOM_TIMELINE, `setupRoomTimeline...`, { roomId: props.room.roomId });
 
 		initialLoading = true;
 		await props.room.loadInitialEvents();
@@ -124,7 +130,7 @@
 		//Date Display Interaction callback is based on feature flag
 		settings.isFeatureEnabled(FeatureFlag.dateSplitter) && elementObserver?.setUpObserver(handleDateDisplayer);
 
-		LOGGER.log(SMI.ROOM_TIMELINE_TRACE, `setupRoomTimeline done `, roomTimeLine);
+		LOGGER.log(SMI.ROOM_TIMELINE, `setupRoomTimeline done `, roomTimeLine);
 	}
 
 	const handlePrivateReceipt = (entries: IntersectionObserverEntry[]) => {
@@ -183,7 +189,7 @@
 		if (!rooms.currentRoom) return;
 		if (props.room.isNewestMessageLoaded()) return;
 
-		LOGGER.log(SMI.ROOM_TIMELINE_TRACE, `onTimelineChange`, { newTimelineLength, oldTimelineLength });
+		LOGGER.log(SMI.ROOM_TIMELINE, `onTimelineChange`, { newTimelineLength, oldTimelineLength });
 
 		if (!initialLoading) {
 			let newestEventId = props.room.getLiveTimelineNewestEvent()?.event_id;
@@ -204,7 +210,7 @@
 			}
 		}
 
-		LOGGER.log(SMI.ROOM_TIMELINE_TRACE, `onTimelineChange ended `, roomTimeLine.value);
+		LOGGER.log(SMI.ROOM_TIMELINE, `onTimelineChange ended `, roomTimeLine.value);
 	}
 
 	// eslint-disable-next-line @typescript-eslint/no-unused-vars
@@ -273,7 +279,7 @@
 				req.send();
 			}
 			pubhubs.deleteMessage(rooms.currentRoomId, eventToBeDeleted.value.event_id);
-			LOGGER.log(SMI.ROOM_TIMELINE_TRACE, `Deleted message with id ${eventToBeDeleted.value.event_id}`, { eventToBeDeleted });
+			LOGGER.log(SMI.ROOM_TIMELINE, `Deleted message with id ${eventToBeDeleted.value.event_id}`, { eventToBeDeleted });
 		}
 	}
 
@@ -314,7 +320,7 @@
 	//#endregion
 
 	async function scrollToEvent(eventId: string, options: { position: 'start' | 'center' | 'end'; select?: 'Highlight' | 'Select' } = { position: 'start' }) {
-		LOGGER.log(SMI.ROOM_TIMELINE_TRACE, `scroll to event: ${eventId}`, { eventId });
+		LOGGER.log(SMI.ROOM_TIMELINE, `scroll to event: ${eventId}`, { eventId });
 
 		if (!elRoomTimeline.value) throw new Error('elRoomTimeline not defined, RoomTimeline not mounted?');
 
