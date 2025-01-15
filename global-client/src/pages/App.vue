@@ -1,5 +1,5 @@
 <template>
-	<div :class="settings.getActiveTheme" class="h-full">
+	<div :class="settings.getActiveTheme" class="h-full min-w-[320px]">
 		<div class="h-full text-black dark:bg-gray-darker dark:text-white">
 			<MobileMenu></MobileMenu>
 

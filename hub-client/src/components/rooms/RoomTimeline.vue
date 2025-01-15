@@ -1,5 +1,5 @@
 <template>
-	<div v-if="room" ref="elRoomTimeline" class="h-full relative flex flex-col gap-2 overflow-y-auto scrollbar" @scroll="onScroll">
+	<div v-if="room" ref="elRoomTimeline" class="h-full pb-4 relative flex flex-col gap-2 overflow-y-auto scrollbar" @scroll="onScroll">
 		<InlineSpinner v-if="isLoadingNewEvents" class="fixed top-16"></InlineSpinner>
 		<DateDisplayer v-if="settings.isFeatureEnabled(FeatureFlag.dateSplitter) && dateInformation !== 0" :scrollStatus="userHasScrolled" :eventTimeStamp="dateInformation.valueOf()"></DateDisplayer>
 		<div v-if="oldestEventIsLoaded" class="rounded-xl flex items-center justify-center w-60 mx-auto mt-4 mb-12 border border-solid border-black dark:border-white">

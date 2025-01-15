@@ -1,86 +1,89 @@
 <template>
-	<div class="flex gap-2 items-end pb-3 pl-3 sm:px-6">
-		<div class="min-w-3/4 w-[90%] relative rounded-xl bg-hub-background-4 dark:bg-hub-background-4">
-			<!-- Floating -->
-			<div>
-				<Popover v-if="showPopover" @close="togglePopover" class="absolute bottom-[115%]">
-					<div class="flex items-center">
-						<UploadPicker @click="clickedAttachment"></UploadPicker>
-						<SignedMessageButton v-if="!signingMessage" @click.stop="toggleSigningMessage(true)"> </SignedMessageButton>
-					</div>
-				</Popover>
-				<Mention v-if="showMention" :msg="value" :top="caretPos.top" :left="caretPos.left" :room="room" @click="mentionUser($event)"></Mention>
-				<div v-if="showEmojiPicker" class="absolute bottom-[115%] sm:right-0 z-20">
-					<EmojiPicker @emojiSelected="clickedEmoticon" @close="toggleEmojiPicker" />
+	<div class="-mt-2 pb-3 px-3 md:px-6 w-full">
+		<!-- Floating -->
+		<div class="relative">
+			<Popover v-if="showPopover" @close="togglePopover" class="absolute bottom-2">
+				<div class="flex items-center">
+					<UploadPicker @click="clickedAttachment"></UploadPicker>
+					<SignedMessageButton v-if="!signingMessage" @click.stop="toggleSigningMessage(true)"> </SignedMessageButton>
 				</div>
-			</div>
-
-			<div class="h-10 w-full flex items-center" v-if="inReplyTo">
-				<p class="ml-4 whitespace-nowrap mr-2">{{ $t('message.in_reply_to') }}</p>
-				<Suspense>
-					<MessageSnippet class="w-[85%]" :eventId="messageActions.replyingTo" :room="room"></MessageSnippet>
-					<template #fallback>
-						<div class="bg-hub-background-3 flex px-2 gap-3 items-center rounded-md">
-							<p>{{ $t('state.loading_message') }}</p>
-						</div>
-					</template>
-				</Suspense>
-				<button class="mr-4 ml-auto" @click="messageActions.replyingTo = undefined">
-					<Icon type="closingCross" size="sm"></Icon>
-				</button>
-			</div>
-
-			<div class="flex items-start min-h-[50px] px-2 py-1 gap-x-2 rounded-2xl dark:bg-hub-background-4">
-				<Icon class="dark:text-white self-end mb-1 pr-3 border-r-2 border-r-gray-light" type="paperclip" @click.stop="togglePopover" :asButton="true"></Icon>
-				<!-- Overflow-x-hidden prevents firefox from adding an extra row to the textarea for a possible scrollbar -->
-				<TextArea
-					ref="elTextInput"
-					class="max-h-[300px] overflow-x-hidden border-none self-end bg-transparent placeholder:text-gray-dark dark:placeholder:text-gray-lighter"
-					v-focus
-					:placeholder="$t('rooms.new_message')"
-					:title="$t('rooms.new_message')"
-					v-model="value"
-					@changed="
-						changed();
-						checkButtonState();
-					"
-					@submit="submitMessage()"
-					@cancel="cancel()"
-					@caretPos="setCaretPos"
-				></TextArea>
-				<Icon class="dark:text-white mb-1 self-end" type="emoticon" @click.stop="toggleEmojiPicker" :asButton="true"></Icon>
-			</div>
-
-			<div v-if="signingMessage" class="m-2 bg-gray-light dark:bg-hub-background flex items-center rounded-md p-2">
-				<Icon type="sign" size="base" class="ml-2 mr-2 self-start mt-1 shrink-0"></Icon>
-				<div class="ml-2 flex flex-col justify-between max-w-3xl">
-					<h3 class="font-bold">{{ $t('message.sign.heading') }}</h3>
-					<p>{{ $t('message.sign.info') }}</p>
-					<div class="flex items-center mt-2">
-						<Icon type="warning" size="sm" class="mb-[2px] mr-2 self-start mt-1 shrink-0"></Icon>
-						<p class="italic">{{ $t('message.sign.warning') }}</p>
-					</div>
-					<Line class="mb-2"></Line>
-					<p>{{ $t('message.sign.selected_attributes') }}</p>
-					<div class="bg-black rounded-full w-20 flex justify-center mt-1 text-white">
-						<p>Email</p>
-					</div>
-				</div>
-				<Icon type="closingCross" size="sm" :asButton="true" @click.stop="toggleSigningMessage(false)" class="ml-auto self-start"></Icon>
+			</Popover>
+			<Mention v-if="showMention" :msg="value" :top="caretPos.top" :left="caretPos.left" :room="room" @click="mentionUser($event)"></Mention>
+			<div v-if="showEmojiPicker" class="absolute bottom-2 right-0 xs:right-4 md:right-32 z-20">
+				<EmojiPicker @emojiSelected="clickedEmoticon" @close="toggleEmojiPicker" />
 			</div>
 		</div>
 
-		<!-- Sendbutton -->
-		<Button class="min-h-[50px] flex rounded-xl" :disabled="!buttonEnabled" @click="submitMessage">
-			<div class="flex gap-2 text-xl items-center">
-				<Icon type="talk" size="sm" class="-scale-100 rotate-45 shrink-0"></Icon>
-				<span class="hidden md:flex">{{ $t(sendMessageText) }}</span>
+		<div class="flex items-end justify-between gap-2">
+			<div class="w-full overflow-hidden rounded-xl bg-hub-background-4 dark:bg-hub-background-4">
+				<div class="h-10 flex gap-2 px-2 items-center justify-between" v-if="inReplyTo">
+					<div class="flex gap-2 w-fit overflow-hidden">
+						<p class="text-nowrap">{{ $t('message.in_reply_to') }}</p>
+						<Suspense>
+							<MessageSnippet :eventId="messageActions.replyingTo" :room="room"></MessageSnippet>
+							<template #fallback>
+								<div class="bg-hub-background-3 flex px-2 gap-3 items-center rounded-md">
+									<p>{{ $t('state.loading_message') }}</p>
+								</div>
+							</template>
+						</Suspense>
+					</div>
+					<button @click="messageActions.replyingTo = undefined">
+						<Icon type="closingCross" size="sm"></Icon>
+					</button>
+				</div>
+
+				<div class="flex items-end min-h-[50px] px-2 py-1 gap-x-2 rounded-2xl dark:bg-hub-background-4">
+					<Icon class="dark:text-white mb-2 pr-3 border-r-2 border-r-gray-light" type="paperclip" @click.stop="togglePopover" :asButton="true"></Icon>
+					<!-- Overflow-x-hidden prevents firefox from adding an extra row to the textarea for a possible scrollbar -->
+					<TextArea
+						ref="elTextInput"
+						class="max-h-40 md:max-h-[300px] overflow-x-hidden border-none bg-transparent placeholder:text-gray-dark dark:placeholder:text-gray-lighter"
+						v-focus
+						:placeholder="$t('rooms.new_message')"
+						:title="$t('rooms.new_message')"
+						v-model="value"
+						@changed="
+							changed();
+							checkButtonState();
+						"
+						@submit="submitMessage()"
+						@cancel="cancel()"
+						@caretPos="setCaretPos"
+					></TextArea>
+					<Icon class="dark:text-white mb-2" type="emoticon" @click.stop="toggleEmojiPicker" :asButton="true"></Icon>
+				</div>
+
+				<div v-if="signingMessage" class="m-2 bg-gray-light dark:bg-hub-background flex items-center rounded-md p-2">
+					<Icon type="sign" size="base" class="ml-2 mr-2 self-start mt-1 shrink-0"></Icon>
+					<div class="ml-2 flex flex-col justify-between max-w-3xl">
+						<h3 class="font-bold">{{ $t('message.sign.heading') }}</h3>
+						<p>{{ $t('message.sign.info') }}</p>
+						<div class="flex items-center mt-2">
+							<Icon type="warning" size="sm" class="mb-[2px] mr-2 self-start mt-1 shrink-0"></Icon>
+							<p class="italic">{{ $t('message.sign.warning') }}</p>
+						</div>
+						<Line class="mb-2"></Line>
+						<p>{{ $t('message.sign.selected_attributes') }}</p>
+						<div class="bg-black rounded-full w-20 flex justify-center mt-1 text-white">
+							<p>Email</p>
+						</div>
+					</div>
+					<Icon type="closingCross" size="sm" :asButton="true" @click.stop="toggleSigningMessage(false)" class="ml-auto self-start"></Icon>
+				</div>
 			</div>
-		</Button>
 
-		<!-- Yivi signing qr popup -->
-		<div v-if="signingMessage" class="absolute bottom-[10%] md:left-[40%]" id="yivi-web-form"></div>
+			<!-- Sendbutton -->
+			<Button class="min-h-[50px] h-fit flex rounded-xl" :disabled="!buttonEnabled" @click="submitMessage">
+				<div class="flex gap-2 text-xl items-center">
+					<Icon type="talk" size="sm" class="-scale-100 rotate-45 shrink-0"></Icon>
+					<span class="hidden md:flex">{{ $t(sendMessageText) }}</span>
+				</div>
+			</Button>
 
+			<!-- Yivi signing qr popup -->
+			<div v-if="signingMessage" class="absolute bottom-[10%] md:left-[40%]" id="yivi-web-form"></div>
+		</div>
 		<div class="text-black dark:bg-gray-dark dark:text-white">
 			<FileUploadDialog :file="fileInfo" :mxcPath="uri" v-if="showFileUploadDialog" @close="showFileUploadDialog = false"> </FileUploadDialog>
 			<!-- todo: move this into UploadPicker? -->
