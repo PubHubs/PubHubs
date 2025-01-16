@@ -14,7 +14,7 @@ stages: # List of stages for jobs, and their order of execution
 rust-clippy:
   stage: build
   tags:
-    - docker
+    - arch
   image: registry.science.ru.nl/ilab/docker-build/rust-nightly:main
   script:
     - cd pubhubs
@@ -33,7 +33,7 @@ rust-clippy:
 rust-unit-test:
   stage: build
   tags:
-    - docker
+    - arch
   rules:
     - if: $CI_PIPELINE_SOURCE == "merge_request_event"
     - if: $CI_COMMIT_BRANCH == "main"
@@ -60,7 +60,7 @@ rust-cargo-deny:
     - if: $CI_COMMIT_BRANCH == "main"
     - if: $CI_COMMIT_BRANCH == "stable"
   tags:
-    - docker
+    - arch
   image: registry.science.ru.nl/ilab/docker-build/rust-stable:main
   script:
     - cd pubhubs
@@ -83,7 +83,7 @@ build-pubhubs-image:
     - job: rust-clippy
       optional: true
   tags:
-    - docker
+    - arch
   image: docker:stable
   variables:
     CONTAINER_IMAGE: ${CI_REGISTRY}/${CI_PROJECT_PATH}/pubhubs:${CI_COMMIT_REF_NAME}
@@ -99,7 +99,7 @@ deploy-main-phc:
   needs:
     - build-pubhubs-image
   environment: $CI_COMMIT_REF_NAME
-  tags: [docker]
+  tags: [arch]
   image: ubuntu:rolling
   script:
     - cd pubhubs
@@ -115,7 +115,7 @@ deploy-stable-phc:
   needs:
     - build-pubhubs-image
   environment: $CI_COMMIT_REF_NAME
-  tags: [docker]
+  tags: [arch]
   image: ubuntu:rolling
   script:
     - cd pubhubs
@@ -131,7 +131,7 @@ start-test-setup-unit-test:
     - if: $CI_COMMIT_BRANCH == "main"
     - if: $CI_COMMIT_BRANCH == "stable"
   tags:
-    - docker
+    - arch
   image: python:latest
   script:
     - pip install virtualenv
@@ -146,7 +146,7 @@ hub-unit-test: # This job runs in the test stage.
     - if: $CI_COMMIT_BRANCH == "main"
     - if: $CI_COMMIT_BRANCH == "stable"
   tags:
-    - docker
+    - arch
   image: python:latest   # Python 3.11 version is used to fix the issue of failing test because synapse version 1.115.0 has issues with new twisted version.
   before_script:
     - python --version # For debugging
@@ -172,7 +172,7 @@ build-image-hub:
   needs:
     - hub-unit-test
   tags:
-    - docker
+    - arch
   image: docker:latest # docker:stable does not work, see https://gitlab.science.ru.nl/ilab/pubhubs_canonical/-/issues/228
   variables:
     CONTAINER_IMAGE: ${CI_REGISTRY}/${CI_PROJECT_PATH}/pubhubs_hub:${CI_COMMIT_REF_NAME}
@@ -192,7 +192,7 @@ deploy-main-hub:
   needs: &mainhubdeployneeds
     - build-image-hub
   environment: $CI_COMMIT_REF_NAME
-  tags: [docker]
+  tags: [arch]
   image: registry.science.ru.nl/ilab/docker-build/ubuntu-iso:main
   script:
     - cd pubhubs_hub
@@ -205,7 +205,7 @@ deploy-stable-hub:
     - if: $CI_COMMIT_BRANCH == "stable"
   needs: *mainhubdeployneeds
   environment: $CI_COMMIT_REF_NAME
-  tags: [docker]
+  tags: [arch]
   image: registry.science.ru.nl/ilab/docker-build/ubuntu-iso:main
   script:
     - cd pubhubs_hub
@@ -221,7 +221,7 @@ globalclient-format-check:
     - if: $CI_PIPELINE_SOURCE == "merge_request_event"
     - if: $CI_COMMIT_BRANCH == "main"
     - if: $CI_COMMIT_BRANCH == "stable"
-  tags: [docker]
+  tags: [arch]
   image: node:latest
   script:
     - cd global-client
@@ -234,7 +234,7 @@ hubclient-format-check:
     - if: $CI_PIPELINE_SOURCE == "merge_request_event"
     - if: $CI_COMMIT_BRANCH == "main"
     - if: $CI_COMMIT_BRANCH == "stable"
-  tags: [docker]
+  tags: [arch]
   image: node:latest
   script:
     - cd hub-client
@@ -246,7 +246,7 @@ globalclient-unit-test:
     - if: $CI_PIPELINE_SOURCE == "merge_request_event"
     - if: $CI_COMMIT_BRANCH == "main"
     - if: $CI_COMMIT_BRANCH == "stable"
-  tags: [docker]
+  tags: [arch]
   image: node:latest
   script:
     - cd hub-client
@@ -261,7 +261,7 @@ hubclient-unit-test:
     - if: $CI_PIPELINE_SOURCE == "merge_request_event"
     - if: $CI_COMMIT_BRANCH == "main"
     - if: $CI_COMMIT_BRANCH == "stable"
-  tags: [docker]
+  tags: [arch]
   image: node:latest
   before_script:
     - cd hub-client
@@ -278,7 +278,7 @@ build-hubclient:
     - hubclient-format-check
     - hubclient-unit-test
   tags:
-    - docker
+    - arch
   image: docker:stable
   variables:
     CONTAINER_IMAGE: ${CI_REGISTRY}/${CI_PROJECT_PATH}/pubhubs_client:${CI_COMMIT_REF_NAME}
@@ -297,7 +297,7 @@ build-hubclient2:
     - hubclient-format-check
     - hubclient-unit-test
   tags:
-    - docker
+    - arch
   image: docker:stable
   variables:
     CONTAINER_IMAGE: ${CI_REGISTRY}/${CI_PROJECT_PATH}/pubhubs_client2:${CI_COMMIT_REF_NAME}
@@ -321,7 +321,7 @@ deploy-main-hubclient:
     - job: build-hubclient2
       optional: true
   environment: $CI_COMMIT_REF_NAME
-  tags: [docker]
+  tags: [arch]
   image: registry.science.ru.nl/ilab/docker-build/ubuntu-iso:main
   script:
     - cd hub-client
@@ -335,7 +335,7 @@ deploy-stable-client:
     - if: $CI_COMMIT_BRANCH == "stable"
   needs: *deployhubclientneeds
   environment: $CI_COMMIT_REF_NAME
-  tags: [docker]
+  tags: [arch]
   image: registry.science.ru.nl/ilab/docker-build/ubuntu-iso:main
   script:
     - cd hub-client
@@ -351,7 +351,7 @@ set-blueprints:
     - if: $CI_PIPELINE_SOURCE == "merge_request_event"
     - if: $CI_COMMIT_BRANCH == "main"
     - if: $CI_COMMIT_BRANCH == "stable"
-  tags: [docker]
+  tags: [arch]
   image: registry.gitlab.com/islandoftex/images/texlive:latest
   script:
     - cd docs/blueprints

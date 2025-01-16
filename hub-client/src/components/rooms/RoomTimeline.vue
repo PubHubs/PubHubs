@@ -1,18 +1,22 @@
 <template>
-	<div v-if="room" ref="elRoomTimeline" class="h-full pb-4 relative flex flex-col gap-2 overflow-y-auto scrollbar" @scroll="onScroll">
-		<InlineSpinner v-if="isLoadingNewEvents" class="fixed top-16"></InlineSpinner>
-		<DateDisplayer v-if="settings.isFeatureEnabled(FeatureFlag.dateSplitter) && dateInformation !== 0" :scrollStatus="userHasScrolled" :eventTimeStamp="dateInformation.valueOf()"></DateDisplayer>
-		<div v-if="oldestEventIsLoaded" class="rounded-xl flex items-center justify-center w-60 mx-auto mt-4 mb-12 border border-solid border-black dark:border-white">
-			{{ $t('rooms.roomCreated') }}
+	<div class="h-full flex flex-col">
+		<div>
+			<InlineSpinner v-if="isLoadingNewEvents" class="w-full absolute flex justify-center"></InlineSpinner>
+			<DateDisplayer v-if="settings.isFeatureEnabled(FeatureFlag.dateSplitter) && dateInformation !== 0" :scrollStatus="userHasScrolled" :eventTimeStamp="dateInformation.valueOf()"></DateDisplayer>
 		</div>
-		<template v-if="roomTimeLine.length > 0">
-			<div v-for="item in roomTimeLine" :key="item.event.event_id">
-				<div ref="elRoomEvent" :id="item.event.event_id">
-					<RoomEvent :room="room" :event="item.event" class="room-event" @in-reply-to-click="onInReplyToClick" @delete-message="confirmDeleteMessage"></RoomEvent>
-					<UnreadMarker v-if="settings.isFeatureEnabled(FeatureFlag.unreadMarkers)" :currentEventId="item.event.event_id" :currentUserId="user.user.userId"></UnreadMarker>
-				</div>
+		<div v-if="room" ref="elRoomTimeline" class="relative pb-4 flex flex-1 flex-col gap-2 overflow-y-auto" @scroll="onScroll">
+			<div v-if="oldestEventIsLoaded" class="rounded-xl flex items-center justify-center w-60 mx-auto my-4 border border-black dark:border-white">
+				{{ $t('rooms.roomCreated') }}
 			</div>
-		</template>
+			<template v-if="roomTimeLine.length > 0">
+				<div v-for="item in roomTimeLine" :key="item.event.event_id">
+					<div ref="elRoomEvent" :id="item.event.event_id">
+						<RoomEvent :room="room" :event="item.event" class="room-event" @in-reply-to-click="onInReplyToClick" @delete-message="confirmDeleteMessage"></RoomEvent>
+						<UnreadMarker v-if="settings.isFeatureEnabled(FeatureFlag.unreadMarkers)" :currentEventId="item.event.event_id" :currentUserId="user.user.userId"></UnreadMarker>
+					</div>
+				</div>
+			</template>
+		</div>
 	</div>
 	<DeleteMessageDialog v-if="showConfirmDelMsgDialog" :event="eventToBeDeleted" :room="rooms.currentRoom" @close="showConfirmDelMsgDialog = false" @yes="deleteMessage"></DeleteMessageDialog>
 	<InRoomNotifyMarker v-if="settings.isFeatureEnabled(FeatureFlag.unreadMarkers)"></InRoomNotifyMarker>
