@@ -25,12 +25,12 @@
 									settingsDialog = true;
 									hubSettings.hideBar();
 								"
-								class="flex items-center justify-between p-2 cursor-pointer rounded-lg text-hub-text bg-hub-background-3"
+								class="flex items-center justify-between p-2 overflow-hidden cursor-pointer rounded-lg text-hub-text bg-hub-background-3"
 							>
-								<div class="flex items-center gap-2">
+								<div class="flex items-center gap-2 w-full truncate">
 									<Avatar :user="user" :img="user.avatarUrl"></Avatar>
-									<div class="flex flex-col h-fit">
-										<p class="font-bold leading-tight">{{ user.displayName }}</p>
+									<div class="flex flex-col h-fit w-full overflow-hidden">
+										<p class="font-bold leading-tight truncate">{{ user.displayName }}</p>
 										<p class="leading-tight">{{ user.pseudonym ?? '' }}</p>
 									</div>
 								</div>

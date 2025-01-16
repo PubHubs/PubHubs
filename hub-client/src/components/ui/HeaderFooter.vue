@@ -3,7 +3,7 @@
 		<div :class="headerClass" class="flex flex-col flex-1 justify-center z-10 relative">
 			<slot name="header"></slot>
 		</div>
-		<div class="flex-1 overflow-y-auto scrollbar">
+		<div class="flex-1 overflow-y-auto scrollbar relative">
 			<slot></slot>
 		</div>
 		<div class="z-10">
