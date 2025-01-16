@@ -83,7 +83,7 @@ build-pubhubs-image:
     - job: rust-clippy
       optional: true
   tags:
-    - arch
+    - docker
   image: docker:stable
   variables:
     CONTAINER_IMAGE: ${CI_REGISTRY}/${CI_PROJECT_PATH}/pubhubs:${CI_COMMIT_REF_NAME}
@@ -100,7 +100,7 @@ deploy-main-phc:
   needs:
     - build-pubhubs-image
   environment: $CI_COMMIT_REF_NAME
-  tags: [arch]
+  tags: [docker]
   image: ubuntu:rolling
   script:
     - cd pubhubs
@@ -116,7 +116,7 @@ deploy-stable-phc:
   needs:
     - build-pubhubs-image
   environment: $CI_COMMIT_REF_NAME
-  tags: [arch]
+  tags: [docker]
   image: ubuntu:rolling
   script:
     - cd pubhubs
@@ -173,12 +173,11 @@ build-image-hub:
   needs:
     - hub-unit-test
   tags:
-    - arch
+    - docker
   image: docker:latest # docker:stable does not work, see https://gitlab.science.ru.nl/ilab/pubhubs_canonical/-/issues/228
   variables:
     CONTAINER_IMAGE: ${CI_REGISTRY}/${CI_PROJECT_PATH}/pubhubs_hub:${CI_COMMIT_REF_NAME}
   script:
-    - unset DOCKER_HOST
     - docker login -u $CI_REGISTRY_USER -p $CI_REGISTRY_PASSWORD $CI_REGISTRY
     # We want to describe our commit using the latest tag.  However, gitlab runners use a shallow clone of our repo,
     # which might not contain the latest tag, in which case `git describe --tags` fails.  In that case we fetch 
@@ -194,7 +193,7 @@ deploy-main-hub:
   needs: &mainhubdeployneeds
     - build-image-hub
   environment: $CI_COMMIT_REF_NAME
-  tags: [arch]
+  tags: [docker]
   image: registry.science.ru.nl/ilab/docker-build/ubuntu-iso:main
   script:
     - cd pubhubs_hub
@@ -207,7 +206,7 @@ deploy-stable-hub:
     - if: $CI_COMMIT_BRANCH == "stable"
   needs: *mainhubdeployneeds
   environment: $CI_COMMIT_REF_NAME
-  tags: [arch]
+  tags: [docker]
   image: registry.science.ru.nl/ilab/docker-build/ubuntu-iso:main
   script:
     - cd pubhubs_hub
@@ -280,13 +279,12 @@ build-hubclient:
     - hubclient-format-check
     - hubclient-unit-test
   tags:
-    - arch
+    - docker
   image: docker:stable
   variables:
     CONTAINER_IMAGE: ${CI_REGISTRY}/${CI_PROJECT_PATH}/pubhubs_client:${CI_COMMIT_REF_NAME}
   script:
     - cd hub-client
-    - unset DOCKER_HOST
     - docker login -u $CI_REGISTRY_USER -p $CI_REGISTRY_PASSWORD $CI_REGISTRY
     - DOCKER_BUILDKIT=1 docker build -t ${CONTAINER_IMAGE} .
     - docker push ${CONTAINER_IMAGE}
@@ -300,7 +298,7 @@ build-hubclient2:
     - hubclient-format-check
     - hubclient-unit-test
   tags:
-    - arch
+    - docker
   image: docker:stable
   variables:
     CONTAINER_IMAGE: ${CI_REGISTRY}/${CI_PROJECT_PATH}/pubhubs_client2:${CI_COMMIT_REF_NAME}
@@ -311,7 +309,6 @@ build-hubclient2:
     - cp ../cicd/temp_testhub/logo.svg src/assets/pubhubs-logo.svg
     - cp ../cicd/temp_testhub/logo-dark.svg src/assets/pubhubs-logo-dark.svg
     - cp ../cicd/temp_testhub/branding.css src/assets/branding.css
-    - unset DOCKER_HOST
     - docker login -u $CI_REGISTRY_USER -p $CI_REGISTRY_PASSWORD $CI_REGISTRY
     - DOCKER_BUILDKIT=1 docker build -t ${CONTAINER_IMAGE} .
     - docker push ${CONTAINER_IMAGE}
@@ -325,7 +322,7 @@ deploy-main-hubclient:
     - job: build-hubclient2
       optional: true
   environment: $CI_COMMIT_REF_NAME
-  tags: [arch]
+  tags: [docker]
   image: registry.science.ru.nl/ilab/docker-build/ubuntu-iso:main
   script:
     - cd hub-client
@@ -339,7 +336,7 @@ deploy-stable-client:
     - if: $CI_COMMIT_BRANCH == "stable"
   needs: *deployhubclientneeds
   environment: $CI_COMMIT_REF_NAME
-  tags: [arch]
+  tags: [docker]
   image: registry.science.ru.nl/ilab/docker-build/ubuntu-iso:main
   script:
     - cd hub-client
@@ -355,7 +352,7 @@ set-blueprints:
     - if: $CI_PIPELINE_SOURCE == "merge_request_event"
     - if: $CI_COMMIT_BRANCH == "main"
     - if: $CI_COMMIT_BRANCH == "stable"
-  tags: [arch]
+  tags: [docker]
   image: registry.gitlab.com/islandoftex/images/texlive:latest
   script:
     - cd docs/blueprints
