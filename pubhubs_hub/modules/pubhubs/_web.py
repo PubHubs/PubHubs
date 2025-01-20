@@ -8,7 +8,6 @@ from synapse.types import JsonDict
 from twisted.web.resource import Resource
 
 import time
-from . import YiviRoomJoiner
 from ._constants import SERVER_NOTICES_USER, CLIENT_URL
 from ._secured_rooms_class import RoomAttribute
 from ._store import YiviRoomJoinStore
@@ -26,24 +25,24 @@ yivi_token_regex = re.compile("[a-zA-Z0-9]*")
 class JoinServlet(Resource):
     """Main servlet to handle the disclosed attributes."""
 
-    def __init__(self, config: dict, module_api: ModuleApi, store: YiviRoomJoinStore, joiner: YiviRoomJoiner):
+    def __init__(self, config: dict, module_api: ModuleApi, store: YiviRoomJoinStore):
         super().__init__()
         self.module_api = module_api
         self.config = config
 
-        self.putChild(b"yivi-endpoint", YiviEndpoint(config, module_api, store, joiner))
+        self.putChild(b"yivi-endpoint", YiviEndpoint(config, module_api, store))
 
 
 
 class YiviEndpoint(Resource):
     """Servlet that bundles the Yivi endpoints for the javascript client to communicate with."""
 
-    def __init__(self, config: dict, module_api: ModuleApi, store: YiviRoomJoinStore, joiner: YiviRoomJoiner):
+    def __init__(self, config: dict, module_api: ModuleApi, store: YiviRoomJoinStore):
         super().__init__()
         self.module_api = module_api
         self.config = config
         self.putChild(b"start", YiviStart(config, module_api, store))
-        self.putChild(b"result", YiviResult(config, module_api, store, joiner))
+        self.putChild(b"result", YiviResult(config, module_api, store))
 
 
 class YiviStart(DirectServeJsonResource):
@@ -127,12 +126,11 @@ class YiviResult(DirectServeJsonResource):
      If so will return the url of the room the waiting room was for.
     """
 
-    def __init__(self, config: dict, module_api: ModuleApi, store: YiviRoomJoinStore, yivi_room_joiner: YiviRoomJoiner):
+    def __init__(self, config: dict, module_api: ModuleApi, store: YiviRoomJoinStore):
         super().__init__()
         self.module_api = module_api
         self.config = config
         self.store = store
-        self.yivi_room_joiner = yivi_room_joiner
 
     async def check_allowed(self, result: dict, room_id: str) -> Optional[JsonDict]:
         """Check whether the Yivi result fits the entry requirements of the room.

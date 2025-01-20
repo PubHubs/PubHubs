@@ -47,7 +47,7 @@ modules:
   - module: conf.modules.pubhubs.Core           # DON'T CHANGE
   - module: conf.modules.pubhubs.DBMigration    # DON'T CHANGE
   - module: conf.modules.pseudonyms.Pseudonym   # DON'T CHANGE
-  - module: conf.modules.pubhubs.YiviRoomJoiner # DON'T CHANGE
+  - module: conf.modules.pubhubs.HubClientApi # DON'T CHANGE
     config:
       {
         # URL of the hub client

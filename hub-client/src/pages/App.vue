@@ -2,83 +2,62 @@
 	<div :class="settings.getActiveTheme" class="h-full">
 		<div v-if="setupReady" class="h-full text-hub-text">
 			<div v-if="user.isLoggedIn" class="md:grid grid-cols-8 h-full">
-				<HeaderFooter class="md:col-span-2 md:flex bg-hub-background-2" :class="{ hidden: !hubSettings.mobileHubMenu }" :headerBgColor="'bg-hub-background-3'">
+				<HeaderFooter class="md:col-span-2 md:flex bg-hub-background-2" :class="{ hidden: !hubSettings.mobileHubMenu }">
 					<template #header>
-						<div class="flex items-center gap-4">
-							<span class="text-xxs uppercase font-bold">hub</span>
-							<hr class="grow" />
-						</div>
-						<div class="flex h-full py-2 justify-between">
+						<div class="flex justify-between gap-4 items-center h-full py-2 pt-4 pl-5 pr-8 bg-hub-background-3">
 							<Badge v-if="hubSettings.isSolo && settings.isFeatureEnabled(FeatureFlag.notifications) && rooms.totalUnreadMessages > 0" class="-ml-4 -mt-2 w-8 flex-none">{{ rooms.totalUnreadMessages }}</Badge>
-							<div class="flex flex-1 justify-between items-center">
-								<H1 class="line-clamp-1" @click="router.push('/')" :title="settings.hub.name">{{ settings.hub.name }}</H1>
-								<!-- TODO: Hiding this settings wheel as there is no functionality to it yet. -->
-								<Icon type="cog" size="sm" class="p-2 rounded-md bg-hub-background-2 hidden"></Icon>
-							</div>
-						</div>
-					</template>
-
-					<div class="flex-1 flex-col p-4">
-						<section>
-							<div
+							<h2 class="font-bold text-lg truncate cursor-pointer" @click="router.push('/')" :title="hubSettings.hubName">
+								{{ hubSettings.hubName }}
+							</h2>
+							<Avatar
+								:user="user"
 								@click="
 									settingsDialog = true;
 									hubSettings.hideBar();
 								"
-								class="flex items-center justify-between p-2 overflow-hidden cursor-pointer rounded-lg text-hub-text bg-hub-background-3"
-							>
-								<div class="flex items-center gap-2 w-full truncate">
-									<Avatar :user="user" :img="user.avatarUrl"></Avatar>
-									<div class="flex flex-col h-fit w-full overflow-hidden">
-										<p class="font-bold leading-tight truncate">{{ user.displayName }}</p>
-										<p class="leading-tight">{{ user.pseudonym ?? '' }}</p>
-									</div>
-								</div>
-								<Icon type="pencil" size="sm" class="p-2 rounded-md stroke-0"></Icon>
-							</div>
+								class="cursor-pointer w-8 h-8 text-md"
+							></Avatar>
+						</div>
+					</template>
+
+					<Menu>
+						<template v-for="(item, index) in menu.getMenu" :key="index">
+							<MenuItem :to="item.to" :icon="item.icon" @click="hubSettings.hideBar()">{{ $t(item.key) }}</MenuItem>
+						</template>
+					</Menu>
+
+					<H2 class="pl-5 border-b mr-8">{{ $t('menu.rooms') }}</H2>
+					<RoomList></RoomList>
+					<Button @click="router.push('/discoverRooms')" class="mx-auto py-1 my-2 w-5/6" :color="'gray'">
+						<Icon type="compass" class="absolute left-0 top-0 -ml-1 -mt-2"></Icon>
+						<span class="font-normal">{{ $t('rooms.discover') }}</span>
+					</Button>
+
+					<H2 class="pl-5 border-b mr-8">{{ $t('menu.private_rooms') }}</H2>
+					<RoomList :roomType="RoomType.PH_MESSAGES_DM"></RoomList>
+					<DiscoverUsers></DiscoverUsers>
+
+					<template #footer>
+						<!-- When user is admin, show the moderation tools menu -->
+						<div v-if="disclosureEnabled && user.isAdmin">
+							<H2 class="pl-5 border-b mr-8">{{ $t('menu.moderation_tools') }}</H2>
 							<Menu>
-								<template v-for="(item, index) in menu.getMenu" :key="index">
-									<MenuItem :to="item.to" :icon="item.icon" @click="hubSettings.hideBar()">{{ $t(item.key) }}</MenuItem>
-								</template>
+								<MenuItem :to="{ name: 'ask-disclosure' }" icon="sign">{{ $t('menu.moderation_tools_disclosure') }}</MenuItem>
 							</Menu>
-						</section>
+						</div>
 
-						<section class="flex flex-col gap-2">
-							<div class="flex items-center justify-between p-2 rounded-lg bg-hub-background-4">
-								<H2>{{ $t('menu.rooms') }}</H2>
-								<div class="flex gap-2 items-center">
-									<router-link :to="{ name: 'discover-rooms' }">
-										<Icon type="compass" size="md"></Icon>
-									</router-link>
-									<!-- TODO: Add functionality to the 3-dots icon. This serves as a hidden placeholder now. -->
-									<Icon class="stroke-0 hidden" type="dots" size="sm"></Icon>
-								</div>
-							</div>
-							<RoomList></RoomList>
-						</section>
+						<!-- When user is admin, show the admin tools menu -->
+						<div v-if="user.isAdmin">
+							<H2 class="pl-5 border-b mr-8">{{ $t('menu.admin_tools') }}</H2>
+							<Menu>
+								<MenuItem :to="{ name: 'admin' }" icon="admin">{{ $t('menu.admin_tools_rooms') }}</MenuItem>
+							</Menu>
 
-						<section>
-							<H2 class="">{{ $t('menu.private_rooms') }}</H2>
-							<RoomList :roomType="RoomType.PH_MESSAGES_DM"></RoomList>
-							<DiscoverUsers></DiscoverUsers>
-						</section>
-					</div>
-
-					<!-- When user is admin, show the moderation tools menu -->
-					<section v-if="disclosureEnabled && user.isAdmin" class="p-4">
-						<H2>{{ $t('menu.moderation_tools') }}</H2>
-						<Menu>
-							<MenuItem :to="{ name: 'ask-disclosure' }" icon="sign">{{ $t('menu.moderation_tools_disclosure') }}</MenuItem>
-						</Menu>
-					</section>
-
-					<!-- When user is admin, show the admin tools menu -->
-					<section v-if="user.isAdmin" class="p-4">
-						<H2>{{ $t('menu.admin_tools') }}</H2>
-						<Menu>
-							<MenuItem :to="{ name: 'admin' }" icon="admin">{{ $t('menu.admin_tools_rooms') }}</MenuItem>
-						</Menu>
-					</section>
+							<Menu v-if="settings.isFeatureEnabled(FeatureFlag.hubSettings)">
+								<MenuItem :to="{ name: 'hub-settings' }" icon="cog">{{ $t('menu.admin_tools_hub_settings') }}</MenuItem>
+							</Menu>
+						</div>
+					</template>
 				</HeaderFooter>
 
 				<div class="md:col-span-6 md:block dark:bg-gray-middle h-full overflow-y-auto scrollbar" :class="{ hidden: hubSettings.mobileHubMenu }">
@@ -100,21 +79,6 @@
 </template>
 
 <script setup lang="ts">
-	// Components
-	import Avatar from '@/components/ui/Avatar.vue';
-	import MenuItem from '@/components/ui/MenuItem.vue';
-	import HeaderFooter from '@/components/ui/HeaderFooter.vue';
-	import Menu from '@/components/ui/Menu.vue';
-	import Icon from '@/components/elements/Icon.vue';
-	import RoomList from '@/components/rooms/RoomList.vue';
-	import Disclosure from '@/components/rooms/Disclosure.vue';
-	import SettingsDialog from '@/components/forms/SettingsDialog.vue';
-	import Dialog from '@/components/ui/Dialog.vue';
-	import H2 from '@/components/elements/H2.vue';
-	import Badge from '@/components/elements/Badge.vue';
-	import DiscoverUsers from '@/components/rooms/DiscoverUsers.vue';
-	import H1 from '@/components/elements/H1.vue';
-
 	import { usePubHubs } from '@/core/pubhubsStore';
 	import { LOGGER } from '@/foundation/Logger';
 	import { SMI } from '@/dev/StatusMessage';
@@ -123,12 +87,28 @@
 	import { MessageType } from '@/store/messagebox';
 	import { usePlugins } from '@/store/plugins';
 	import { RoomType } from '@/store/rooms';
-	import { FeatureFlag, HubInformation, useSettings } from '@/store/settings';
+	import { FeatureFlag, useSettings } from '@/store/settings';
 	import { Message, MessageBoxType, useHubSettings, useMessageBox, useRooms } from '@/store/store';
 	import { useUser } from '@/store/user';
 	import { getCurrentInstance, onMounted, ref, watch } from 'vue';
 	import { useI18n } from 'vue-i18n';
 	import { RouteParamValue, useRouter } from 'vue-router';
+
+	// Components
+	import Disclosure from '@/components/rooms/Disclosure.vue';
+	import SettingsDialog from '@/components/forms/SettingsDialog.vue';
+	import Dialog from '@/components/ui/Dialog.vue';
+	import HeaderFooter from '@/components/ui/HeaderFooter.vue';
+	import Menu from '@/components/ui/Menu.vue';
+	import MenuItem from '@/components/ui/MenuItem.vue';
+	import RoomList from '@/components/rooms/RoomList.vue';
+	import DiscoverUsers from '@/components/rooms/DiscoverUsers.vue';
+	import Badge from '@/components/elements/Badge.vue';
+	import Button from '@/components/elements/Button.vue';
+	import Icon from '@/components/elements/Icon.vue';
+	import H2 from '@/components/elements/H2.vue';
+	import Avatar from '@/components/ui/Avatar.vue';
+	import { HubInformation } from '@/store/hub-settings';
 
 	const { locale, availableLocales } = useI18n();
 	const router = useRouter();
@@ -157,7 +137,7 @@
 	});
 
 	onMounted(async () => {
-		LOGGER.trace(SMI.STARTUP, 'App.vue onMounted');
+		LOGGER.trace(SMI.STARTUP_TRACE, 'App.vue onMounted');
 
 		settings.initI18b({ locale: locale, availableLocales: availableLocales });
 		// set language when changed
@@ -190,7 +170,7 @@
 		}
 		await startMessageBox();
 
-		LOGGER.trace(SMI.STARTUP, 'App.vue onMounted done');
+		LOGGER.trace(SMI.STARTUP_TRACE, 'App.vue onMounted done');
 	});
 
 	async function startMessageBox() {
@@ -199,7 +179,7 @@
 
 			// Ask for Hub name etc.
 			messagebox.addCallback(MessageType.HubInformation, (message: Message) => {
-				settings.hub = message.content as HubInformation;
+				hubSettings.initHubInformation(message.content as HubInformation);
 			});
 
 			// Listen to roomchange

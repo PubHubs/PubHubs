@@ -1,65 +1,21 @@
 <template>
-	<img :alt="name" :src="logo" class="rounded-xl" />
+	<img alt="PubHubs logo" :src="logoUrl" />
 </template>
 
 <script setup lang="ts">
-	import { useSettings } from '@/store/settings';
+	import { Theme, useSettings } from '@/store/settings';
 	import { computed } from 'vue';
 
-	const logoLightUrl = '/img/logo.svg';
-	const logoDarkUrl = '/img/logo-dark.svg';
+	const logoLightUrl = '/client/img/logo.svg';
+	const logoDarkUrl = '/client/img/logo-dark.svg';
 
 	const settings = useSettings();
 
-	const props = defineProps({
-		theme: {
-			type: String,
-			default: '',
-			validator(value: string) {
-				return ['light', 'dark', ''].includes(value);
-			},
-		},
-		global: {
-			type: Boolean,
-			default: false,
-		},
-		alt: {
-			type: String,
-			default: '',
-		},
-	});
-
-	const setTheme = computed(() => {
-		let theme = props.theme;
-		if (theme === '') {
-			theme = settings.getActiveTheme;
+	const logoUrl = computed(() => {
+		if (settings.getActiveTheme === Theme.Dark) {
+			return logoDarkUrl;
+		} else {
+			return logoLightUrl;
 		}
-		return theme;
-	});
-
-	const name = computed(() => {
-		if (props.alt === '') {
-			return settings.hub.name;
-		}
-		return props.alt;
-	});
-
-	const logo = computed(() => {
-		let url = logoLightUrl;
-		if (setTheme.value === 'dark') {
-			url = logoDarkUrl;
-		}
-
-		//@ts-ignore
-		if (typeof _env.TIMESTAMP !== 'undefined') {
-			// @ts-ignore
-			url += '?' + _env.TIMESTAMP;
-		}
-
-		if (props.global) {
-			url = '/client' + url;
-		}
-
-		return url;
 	});
 </script>
