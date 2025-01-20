@@ -10,15 +10,15 @@
 							<Icon class="rotate-180" type="triangle" size="xs"></Icon>
 						</div>
 						<router-link :to="{ name: 'hub', params: { id: element.hubId } }" v-slot="{ isActive }">
-							<HubIcon
-								class="text-ph-text"
-								v-if="global.loggedIn || element.hubId === hubs.currentHubId"
+							<HubMenuHubIcon
+								class="text-ph-text border"
+								v-if="(hubs.hub(element.hubId) && global.loggedIn) || element.hubId === hubs.currentHubId"
 								:hub="hubs.hub(element.hubId)"
 								:active="isActive"
 								:pinned="true"
 								:hubOrderingIsActive="hubOrderingIsActive"
 								@click="sendToHub"
-							></HubIcon>
+							></HubMenuHubIcon>
 						</router-link>
 					</div>
 				</template>
@@ -43,6 +43,9 @@
 	import { useToggleMenu } from '@/store/toggleGlobalMenu';
 	import { ref } from 'vue';
 	import { useI18n } from 'vue-i18n';
+
+	// Components
+	import HubMenuHubIcon from './HubMenuHubIcon.vue';
 
 	const global = useGlobal();
 	const hubs = useHubs();

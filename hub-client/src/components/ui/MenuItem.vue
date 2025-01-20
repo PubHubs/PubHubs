@@ -9,7 +9,7 @@
 	>
 		<router-link :to="to" class="flex gap-2 items-center">
 			<Icon v-if="isSecuredRoom()" type="shield"></Icon>
-			<Icon v-else class="text-blue dark:text-white" :type="icon"></Icon>
+			<Icon v-else class="dark:text-white" :type="icon"></Icon>
 			<TruncatedText class="w-full"><slot></slot></TruncatedText>
 		</router-link>
 	</li>

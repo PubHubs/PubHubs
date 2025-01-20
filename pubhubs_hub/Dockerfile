@@ -41,6 +41,8 @@ ENV HUB_SECRET change_me
 COPY pubhubs_hub/matrix_test_config/templates /conf/templates
 COPY pubhubs_hub/modules /conf/modules
 
+COPY pubhubs_hub/assets /non-persistent-data/assets
+
 # Store hub version in '/hub_version'
 ARG HUB_VERSION="n/a build time"
 RUN echo $HUB_VERSION > 'hub_version'

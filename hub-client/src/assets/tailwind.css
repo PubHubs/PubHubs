@@ -16,6 +16,7 @@ todo: use the global color palette as a default. Not trivial because of iframes.
 	--hub-background-5: #b6b6b6;
 	--hub-background-6: #7e7e7e;
 	--hub-text: #000000;
+	--hub-text-variant: #686868;
 	--hub-accent: #00adee;
 	--hub-accent-2: #001242;
 	/* Some of the pubhubs-made icons will have additional accent colors */
@@ -35,6 +36,7 @@ todo: use the global color palette as a default. Not trivial because of iframes.
 	--hub-background-5: #202020;
 	--hub-background-6: #3d3c3c;
 	--hub-text: #ffffff;
+	--hub-text-variant: #b6b6b6;
 	--hub-accent: #00adee;
 	--hub-accent-2: #4ee9a4;
 	--hub-accent-icon: #d9d9d9;

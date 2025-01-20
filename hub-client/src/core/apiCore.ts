@@ -132,6 +132,24 @@ class Api {
 		const response = await this.api<T>(url, options);
 		return response;
 	}
+
+	public async uploadFile(url: string, blob: Blob): Promise<void> {
+		const requestBody = new FormData();
+		requestBody.append('blob', blob);
+		requestBody.append('blobType', blob.type);
+
+		const response = await fetch(url, {
+			method: 'POST',
+			body: requestBody,
+			headers: {
+				Authorization: `Bearer ${this.accessToken}`,
+			},
+		});
+
+		if (!response.ok) {
+			throw new Error('Failed to upload file');
+		}
+	}
 }
 
 export { Api };
