@@ -1,6 +1,6 @@
 <template>
 	<div class="w-1/2 md:w-2/6 m-4 text-center mx-auto">
-		<Logo class="my-8" :global="true"></Logo>
+		<Logo class="my-8"></Logo>
 		<p class="text-center" v-html="$t('home.welcome')"></p>
 		<div v-if="!global.loggedIn" class="flex flex-col items-center mt-8">
 			<Button class="w-full md:px-12" @click="loadYivi">{{ $t('login.global_login') }}</Button>

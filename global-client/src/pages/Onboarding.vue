@@ -1,7 +1,7 @@
 <template>
 	<div class="flex flex-row justify-between items-center my-4 mx-6 md:m-9">
 		<router-link to="/">
-			<Logo class="h-4 md:h-8" :global="true"></Logo>
+			<Logo class="h-4 md:h-8"></Logo>
 		</router-link>
 		<div class="flex flex-row items-center gap-2 md:gap-8">
 			<div class="grid grid-cols-2 divide-x-2 divide-black auto-rows-min items-center">

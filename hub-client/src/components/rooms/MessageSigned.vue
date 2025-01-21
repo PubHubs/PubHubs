@@ -38,6 +38,9 @@
 </template>
 
 <script setup lang="ts">
+	// Components
+	import Icon from '../elements/Icon.vue';
+
 	import { SignedMessage, getDisclosedAttributes, getMessage } from '@/lib/signedMessages';
 	import { ref } from 'vue';
 

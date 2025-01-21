@@ -20,6 +20,11 @@
 </template>
 
 <script setup lang="ts">
+	// Components
+	import ImagePlaceholder from '../elements/ImagePlaceholder.vue';
+	import Icon from '../elements/Icon.vue';
+	import H3 from '../elements/H3.vue';
+
 	const props = defineProps({
 		image: {
 			type: String,

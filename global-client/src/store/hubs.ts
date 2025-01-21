@@ -1,8 +1,9 @@
-import { defineStore } from 'pinia';
+import { defineStore, Pinia } from 'pinia';
 import { RouteParams } from 'vue-router';
 import { Message, MessageBoxType, MessageType, useGlobal, useMessageBox, useSettings } from '@/store/store';
 import { setLanguage, setUpi18n } from '@/i18n';
 import { useToggleMenu } from '@/store/toggleGlobalMenu';
+import { FeatureFlag, SettingsStore } from '../../../hub-client/src/store/settings';
 
 // Single Hub
 class Hub {
@@ -13,7 +14,9 @@ class Hub {
 	logo: string;
 	unreadMessages: number;
 
-	constructor(hubId: string, url: string, serverUrl: string, description?: string) {
+	private settingsStore: SettingsStore;
+
+	constructor(hubId: string, url: string, serverUrl: string, description?: string, pinia?: Pinia) {
 		this.hubId = hubId;
 		this.url = url;
 		this.serverUrl = serverUrl;
@@ -24,6 +27,33 @@ class Hub {
 		}
 		this.logo = '';
 		this.unreadMessages = 0;
+
+		if (pinia) {
+			// Needed in testing
+			this.settingsStore = useSettings(pinia);
+		} else {
+			this.settingsStore = useSettings();
+		}
+	}
+
+	public get name(): string {
+		return this.hubId;
+	}
+
+	public get iconUrlLight(): string {
+		if (this.settingsStore.isFeatureEnabled(FeatureFlag.hubSettings)) {
+			return `${this.serverUrl}_synapse/client/hub/icon`;
+		} else {
+			return `${this.url}/img/logo.svg`;
+		}
+	}
+
+	public get iconUrlDark(): string {
+		if (this.settingsStore.isFeatureEnabled(FeatureFlag.hubSettings)) {
+			return `${this.serverUrl}_synapse/client/hub/icon/dark`;
+		} else {
+			return `${this.url}/img/logo-dark.svg`;
+		}
 	}
 }
 
@@ -77,7 +107,7 @@ const useHubs = defineStore('hubs', {
 			};
 		},
 
-		currentHub(state): Hub {
+		currentHub(state): Hub | undefined {
 			return state.hubs[state.currentHubId];
 		},
 
@@ -126,6 +156,7 @@ const useHubs = defineStore('hubs', {
 
 			// If Hub is not pinned yet (first time) -> Add it to the pinned Hubs
 			if (!global.existsInPinnedHubs(this.currentHubId)) {
+				if (!this.currentHub) throw new Error('Current hub is not initialized');
 				global.addPinnedHub(this.currentHub, 0);
 			}
 
@@ -139,6 +170,7 @@ const useHubs = defineStore('hubs', {
 			} else {
 				//The hub has changed: set it up
 
+				if (!this.currentHub) throw new Error('Current hub is not initialized');
 				// Start conversation with hub frame and sync latest settings
 				await messagebox.init(MessageBoxType.Parent, this.currentHub.url);
 
@@ -163,7 +195,10 @@ const useHubs = defineStore('hubs', {
 					const roomId = message.content;
 					const currentUrl = window.location.href;
 					const [baseUrl] = currentUrl.split('#');
-					window.history.pushState(null, '', `${baseUrl}#/hub/${hubId}/${roomId}`);
+
+					// preserve the current history state
+					const currentState = history.state || {};
+					window.history.pushState({ ...currentState, roomId }, '', `${baseUrl}#/hub/${hubId}/${roomId}`);
 				});
 
 				//Listen to global menu change and don't resend own state.

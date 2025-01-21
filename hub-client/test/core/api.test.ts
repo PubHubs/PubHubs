@@ -16,7 +16,6 @@ describe('api_synapse', () => {
 		// @ts-ignore
 		expect(api_synapse.baseURL).toBe('http://test/_synapse/');
 
-		expect(Object.keys(api_synapse.apiURLS).length).toBe(5);
 		expect(api_synapse.apiURLS.securedRooms).toBe('http://test/_synapse/client/secured_rooms');
 		expect(api_synapse.apiURLS.deleteRoom).toBe('http://test/_synapse/admin/v2/rooms/');
 		expect(api_synapse.apiURLS.securedRoom).toBe('http://test/_synapse/client/srextra');

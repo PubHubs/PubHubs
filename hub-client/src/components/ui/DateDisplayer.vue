@@ -1,6 +1,6 @@
 <template>
-	<div v-if="props.scrollStatus && displayDate() !== ''" class="fixed top-24 z-50">
-		<span class="fixed right-1/3 px-2.5 bg-gray-middle text-white-middle dark:bg-gray-lighter dark:text-gray-middle text-center rounded-full">{{ displayDate() }}</span>
+	<div v-if="props.scrollStatus && displayDate() !== ''" class="absolute top-4 flex justify-center w-full z-50">
+		<span class="px-2.5 bg-gray-middle text-white-middle dark:bg-gray-lighter dark:text-gray-middle text-center rounded-full">{{ displayDate() }}</span>
 	</div>
 </template>
 

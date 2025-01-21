@@ -6,10 +6,6 @@ import { Message, MessageBoxType, MessageType, useMessageBox } from '@/store/mes
 import { defineStore } from 'pinia';
 import { CONFIG } from '../foundation/Config';
 
-type HubInformation = {
-	name: string;
-};
-
 enum Theme {
 	System = 'system',
 	Light = 'light',
@@ -34,6 +30,7 @@ enum FeatureFlag {
 	unreadMarkers = 'unreadmarkers',
 	notifications = 'notifications',
 	deleteMessages = 'deleteMessages',
+	hubSettings = 'hubSettings',
 	// Implemented with issue #984
 	authenticatedMedia = 'authenticatedMedia',
 }
@@ -41,8 +38,6 @@ enum FeatureFlag {
 type FeatureFlags = { [key in FeatureFlag]: boolean };
 
 interface Settings {
-	hub: HubInformation;
-
 	/**
 	 * The number of events to load on a page in a room.
 	 */
@@ -78,9 +73,6 @@ interface Settings {
 }
 
 const defaultSettings: Settings = {
-	hub: {
-		name: 'PubHubs',
-	},
 	theme: Theme.System,
 	timeformat: TimeFormat.format24,
 	pagination: 150,
@@ -104,6 +96,7 @@ const defaultSettings: Settings = {
 			unreadmarkers: true,
 			notifications: true,
 			deleteMessages: true,
+			hubSettings: true,
 			authenticatedMedia: true,
 		},
 		stable: {
@@ -114,6 +107,7 @@ const defaultSettings: Settings = {
 			unreadmarkers: true,
 			notifications: true,
 			deleteMessages: true,
+			hubSettings: false,
 			authenticatedMedia: false,
 		},
 	},
@@ -138,7 +132,7 @@ const useSettings = defineStore('settings', {
 		/**
 		 * Get theme set in preferences, and if 'system' give the 'light' or 'dark' theme depending on system.
 		 */
-		getActiveTheme: (state: Settings): Theme => {
+		getActiveTheme: (state: Settings): Theme.Light | Theme.Dark => {
 			if (state.theme !== Theme.System) {
 				return state.theme;
 			}
@@ -192,7 +186,7 @@ const useSettings = defineStore('settings', {
 		},
 
 		getLanguageOptions: (state: Settings) => {
-			const options = state._i18n?.availableLocales.map((e: string) => {
+			const options = state._i18n?.availableLocales?.map((e: string) => {
 				return {
 					label: e.toUpperCase(),
 					value: e,
@@ -272,4 +266,6 @@ const useSettings = defineStore('settings', {
 	},
 });
 
-export { defaultSettings, FeatureFlag, Settings, Theme, TimeFormat, useSettings, type HubInformation, type i18nSettings };
+type SettingsStore = ReturnType<typeof useSettings>;
+
+export { defaultSettings, FeatureFlag, Settings, Theme, TimeFormat, useSettings, type i18nSettings, SettingsStore };

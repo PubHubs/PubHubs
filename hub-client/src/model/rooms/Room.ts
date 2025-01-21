@@ -3,7 +3,7 @@ import { LOGGER } from '@/foundation/Logger';
 import { SMI } from '@/dev/StatusMessage';
 import { RoomTimelineWindow } from '@/model/timeline/RoomTimelineWindow';
 import { Direction, EventTimeline, EventTimelineSet, MatrixClient, MatrixEvent, Room as MatrixRoom, NotificationCountType, RoomMember as MatrixRoomMember } from 'matrix-js-sdk';
-import { CachedReceipt, ReceiptType, WrappedReceipt } from 'matrix-js-sdk/lib/@types/read_receipts';
+import { CachedReceipt, WrappedReceipt } from 'matrix-js-sdk/lib/@types/read_receipts';
 import { TBaseEvent } from '../events/TBaseEvent';
 import { TRoomMember } from './TRoomMember';
 import RoomMember from './RoomMember';
@@ -49,7 +49,7 @@ export default class Room {
 	logger = LOGGER;
 
 	constructor(matrixRoom: MatrixRoom) {
-		LOGGER.trace(SMI.ROOM_TRACE, `Roomclass Constructor `, { roomId: matrixRoom.roomId });
+		LOGGER.trace(SMI.ROOM, `Roomclass Constructor `, { roomId: matrixRoom.roomId });
 
 		this.matrixRoom = matrixRoom;
 		this.hidden = false;
@@ -63,7 +63,7 @@ export default class Room {
 
 		this.pubhubsStore = usePubHubs();
 
-		this.timelineWindow = new RoomTimelineWindow(this.matrixRoom, this.pubhubsStore.client as MatrixClient);
+		this.timelineWindow = new RoomTimelineWindow(this.matrixRoom);
 	}
 
 	public isPrivateRoom(): boolean {
@@ -280,8 +280,8 @@ export default class Room {
 		return this.matrixRoom.getReceiptsForEvent(event);
 	}
 
-	public getReadReceiptForUserId(userId: string, ignoreSynthesized: boolean, receiptType: ReceiptType): WrappedReceipt | null {
-		return this.matrixRoom.getReadReceiptForUserId(userId, ignoreSynthesized, receiptType);
+	public getReadReceiptForUserId(userId: string): WrappedReceipt | null {
+		return this.matrixRoom.getReadReceiptForUserId(userId);
 	}
 
 	public getEventReadUpTo(userId: string, ignoreSynthesized?: boolean) {
@@ -328,11 +328,11 @@ export default class Room {
 
 	// initiate and load to newest message by creating a filtered timelineset
 	public async loadInitialEvents() {
-		await this.timelineWindow.initTimelineWindow(this.matrixRoom);
+		await this.timelineWindow.initTimelineWindow(this.matrixRoom, this.pubhubsStore.client as MatrixClient);
 	}
 
 	public getTimeline(): MatrixEvent[] {
-		LOGGER.trace(SMI.ROOM_TRACE, `Room gettimeline `, { getTimeline: this.timelineWindow?.getTimeline() });
+		LOGGER.trace(SMI.ROOM, `Room gettimeline `, { getTimeline: this.timelineWindow?.getTimeline() });
 		return this.timelineWindow?.getTimeline();
 	}
 

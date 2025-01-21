@@ -1,12 +1,10 @@
 <template>
-	<HeaderFooter>
+	<HeaderFooter :headerSize="'sm'" :headerMobilePadding="true">
 		<template #header>
-			<div class="pl-20 md:p-4">
-				<H1>{{ $t('admin.title') }}</H1>
-				<p class="text-sm">{{ $t('admin.description') }}</p>
-			</div>
+			<H1>{{ $t('admin.title') }}</H1>
+			<p class="text-sm">{{ $t('admin.description') }}</p>
 		</template>
-		<Tabs class="px-3">
+		<Tabs class="p-3">
 			<TabHeader>
 				<TabPill v-slot="slotProps">{{ $t('admin.public_rooms') }}<Icon v-if="slotProps.active" class="float-right hover:text-green ml-2" type="plus" @click="newPublicRoom()"></Icon></TabPill>
 				<TabPill v-slot="slotProps">{{ $t('admin.secured_rooms') }}<Icon v-if="slotProps.active" class="float-right hover:text-green ml-2" type="plus" @click="newSecuredRoom()"></Icon></TabPill>
@@ -79,6 +77,18 @@
 </template>
 
 <script setup lang="ts">
+	// Components
+	import HeaderFooter from '@/components/ui/HeaderFooter.vue';
+	import Tabs from '@/components/ui/Tabs.vue';
+	import TabHeader from '@/components/ui/TabHeader.vue';
+	import TabPill from '@/components/ui/TabPill.vue';
+	import TabContainer from '@/components/ui/TabContainer.vue';
+	import TabContent from '@/components/ui/TabContent.vue';
+	import FilteredList from '@/components/ui/FilteredList.vue';
+	import Icon from '@/components/elements/Icon.vue';
+	import EditRoomForm from '@/components/rooms/EditRoomForm.vue';
+	import H1 from '@/components/elements/H1.vue';
+
 	import { useDialog } from '@/store/dialog';
 	import { TPublicRoom, TSecuredRoom, useRooms } from '@/store/rooms';
 	import { useUser } from '@/store/user';

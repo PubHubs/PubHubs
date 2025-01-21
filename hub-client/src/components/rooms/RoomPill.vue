@@ -6,7 +6,7 @@
 				<Icon :type="roomIsSecure ? 'shield' : 'speech_bubbles'" class="shrink-0"></Icon>
 				<div class="grid">
 					<H3 class="font-semibold overflow-hidden m-0 line-clamp-1 z-0" :class="{ 'line-clamp-3': expanded && !joinedARoom }">{{ room?.name }}</H3>
-					<p v-if="joinedARoom === false" class="text-xs line-clamp-1 italic" :class="{ 'line-clamp-3': expanded }">{{ room?.topic }}</p>
+					<p v-if="joinedARoom === false" class="text-xs line-clamp-1 italic" :class="{ 'line-clamp-3': expanded }">{{ room.topic }}</p>
 					<p v-else class="text-base z-0">{{ t('rooms.joined') }}</p>
 				</div>
 			</div>
@@ -19,10 +19,15 @@
 </template>
 
 <script setup lang="ts">
+	// Components
+	import Icon from '../elements/Icon.vue';
+	import H3 from '../elements/H3.vue';
+
 	import { ref } from 'vue';
 	import { router } from '@/core/router';
 	import { usePubHubs } from '@/core/pubhubsStore';
 	import { useI18n } from 'vue-i18n';
+	import { TPublicRoom } from '@/store/rooms';
 
 	const pubhubs = usePubHubs();
 	const { t } = useI18n();
@@ -30,26 +35,26 @@
 	const expanded = ref(false);
 	const joinedARoom = ref(false);
 
-	const props = defineProps({
-		room: Object,
-		roomIsSecure: Boolean,
-		memberOfRoom: Boolean,
-	});
+	type Props = {
+		room: TPublicRoom;
+		roomIsSecure: boolean;
+		memberOfRoom: boolean;
+	};
+
+	const props = defineProps<Props>();
 
 	function expandPillToggle() {
 		expanded.value = !expanded.value;
 	}
 
 	async function joinRoom() {
-		if (props.room?.room_id) {
-			if (props.roomIsSecure === true) {
-				router.push({ name: 'secure-room', params: { id: props.room.room_id } });
-			} else {
-				joinedARoom.value = true;
-				setTimeout(() => {
-					pubhubs.joinRoom(props.room?.room_id);
-				}, 1000);
-			}
+		if (props.roomIsSecure) {
+			router.push({ name: 'secure-room', params: { id: props.room.room_id } });
+		} else {
+			joinedARoom.value = true;
+			setTimeout(() => {
+				pubhubs.joinRoom(props.room.room_id);
+			}, 1000);
 		}
 	}
 

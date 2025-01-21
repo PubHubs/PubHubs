@@ -1,24 +1,24 @@
 <template>
-	<div class="flex flex-col justify-between gap-2 min-h-full">
-		<div class="grid gap-2 p-2 pt-4">
-			<draggable @start="backupPinnedHubs = global.pinnedHubs.slice()" @end="hoverOverHubremoval = false" :list="global.pinnedHubs" :item-key="'hubId'" handle=".handle" class="grid gap-2 list-group" group="hubs">
+	<div class="flex flex-col gap-2 h-full">
+		<div class="grid flex-1 gap-2 pt-4 overflow-y-auto scrollbar">
+			<draggable @start="backupPinnedHubs = global.pinnedHubs.slice()" @end="hoverOverHubremoval = false" :list="global.pinnedHubs" :item-key="'hubId'" handle=".handle" class="flex flex-col gap-2 list-group" group="hubs">
 				<template #item="{ element }">
-					<div class="flex gap-2 justify-center" :class="{ handle: hubOrderingIsActive }">
-						<!-- Draggable button indicators when needed -->
+					<div class="flex gap-1 justify-center" :class="{ handle: hubOrderingIsActive }">
+						<!-- When hub ordering is active, these buttons will be visible as an indicator -->
 						<div class="hover:cursor-pointer flex flex-col gap-2 my-auto" :class="{ hidden: !hubOrderingIsActive }">
 							<Icon type="triangle" size="xs"></Icon>
 							<Icon class="rotate-180" type="triangle" size="xs"></Icon>
 						</div>
 						<router-link :to="{ name: 'hub', params: { id: element.hubId } }" v-slot="{ isActive }">
-							<HubIcon
+							<HubMenuHubIcon
 								class="text-ph-text border"
-								v-if="global.loggedIn || element.hubId === hubs.currentHubId"
+								v-if="(hubs.hub(element.hubId) && global.loggedIn) || element.hubId === hubs.currentHubId"
 								:hub="hubs.hub(element.hubId)"
 								:active="isActive"
 								:pinned="true"
 								:hubOrderingIsActive="hubOrderingIsActive"
 								@click="sendToHub"
-							></HubIcon>
+							></HubMenuHubIcon>
 						</router-link>
 					</div>
 				</template>
@@ -43,6 +43,9 @@
 	import { useToggleMenu } from '@/store/toggleGlobalMenu';
 	import { ref } from 'vue';
 	import { useI18n } from 'vue-i18n';
+
+	// Components
+	import HubMenuHubIcon from './HubMenuHubIcon.vue';
 
 	const global = useGlobal();
 	const hubs = useHubs();

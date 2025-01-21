@@ -344,10 +344,13 @@ const useRooms = defineStore('rooms', {
 			return deleted_id;
 		},
 
-		yiviSecuredRoomflow(roomId: string, authToken: string) {
+		yiviSecuredRoomflow(roomId: string) {
 			const router = useRouter();
 			const pubhubs = usePubHubs();
 			const settings = useSettings();
+
+			const accessToken = pubhubs.Auth.getAccessToken();
+			if (!accessToken) throw new Error('Access token missing.');
 
 			pubhubs
 				.joinRoom(roomId)
@@ -378,7 +381,7 @@ const useRooms = defineStore('rooms', {
 								url: (o: any, obj: any) => `${urlll}/yivi-endpoint/result?session_token=${obj.sessionToken}&room_id=${roomId}`,
 								method: 'GET',
 								headers: {
-									Authorization: `Bearer ${authToken}`,
+									Authorization: `Bearer ${accessToken}`,
 								},
 							},
 						},
@@ -399,8 +402,12 @@ const useRooms = defineStore('rooms', {
 				});
 		},
 
-		yiviSignMessage(message: string, attributes: string[], roomId: string, authToken: string, onFinish: (result: YiviSigningSessionResult) => unknown) {
+		yiviSignMessage(message: string, attributes: string[], roomId: string, onFinish: (result: YiviSigningSessionResult) => unknown) {
 			const settings = useSettings();
+			const pubhubsStore = usePubHubs();
+
+			const accessToken = pubhubsStore.Auth.getAccessToken();
+			if (!accessToken) throw new Error('Access token missing.');
 
 			const yivi = require('@privacybydesign/yivi-frontend');
 			// @ts-ignore
@@ -428,7 +435,7 @@ const useRooms = defineStore('rooms', {
 						url: (o: any, obj: any) => `${urlll}/yivi-endpoint/result?session_token=${obj.sessionToken}`,
 						method: 'POST',
 						headers: {
-							Authorization: `Bearer ${authToken}`,
+							Authorization: `Bearer ${accessToken}`,
 						},
 					},
 				},
@@ -444,10 +451,14 @@ const useRooms = defineStore('rooms', {
 				});
 		},
 
-		yiviAskDisclosure(message: string, attributes: string[], roomId: string, authToken: string, onFinish: (result: YiviSigningSessionResult) => unknown) {
-			console.log(`yiviAskDisclosure: '${message}', attributes=[${attributes}], ${roomId}, token=${authToken}`);
+		yiviAskDisclosure(message: string, attributes: string[], roomId: string, onFinish: (result: YiviSigningSessionResult) => unknown) {
+			console.log(`yiviAskDisclosure: '${message}', attributes=[${attributes}], ${roomId}`);
 
 			const settings = useSettings();
+			const pubhubsStore = usePubHubs();
+
+			const accessToken = pubhubsStore.Auth.getAccessToken();
+			if (!accessToken) throw new Error('Access token missing.');
 
 			const yivi = require('@privacybydesign/yivi-frontend');
 			// @ts-ignore
@@ -475,7 +486,7 @@ const useRooms = defineStore('rooms', {
 						url: (o: any, obj: any) => `${urlll}/yivi-endpoint/result?session_token=${obj.sessionToken}`,
 						method: 'POST',
 						headers: {
-							Authorization: `Bearer ${authToken}`,
+							Authorization: `Bearer ${accessToken}`,
 						},
 					},
 				},

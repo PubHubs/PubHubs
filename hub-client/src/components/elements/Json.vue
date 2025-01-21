@@ -6,6 +6,9 @@
 </template>
 
 <script setup lang="ts">
+	// Components
+	import Icon from './Icon.vue';
+
 	import { ref } from 'vue';
 
 	defineProps({

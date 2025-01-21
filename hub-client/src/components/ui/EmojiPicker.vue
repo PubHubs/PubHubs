@@ -1,22 +1,16 @@
 <template>
-	<div class="flex flex-col p-4 rounded-2xl h-80 w-[18rem] xs:w-80 bg-lightgray-light dark:bg-gray-darker" v-click-outside="close">
+	<div class="flex flex-col p-4 rounded-2xl h-80 w-full max-w-80 bg-lightgray-light dark:bg-gray-darker" v-click-outside="close">
 		<input class="dark:text-white rounded w-full h-7 dark:bg-gray-middle placeholder:text-base dark:placeholder:text-white" v-model="searchQuery" type="text" :placeholder="$t('others.search')" @keydown.stop="preventClose()" />
-		<div class="flex flex-row justify-between my-3 pb-3 border-b border-gray-light">
-			<div
-				v-for="(image, index) in imageList"
-				:key="index"
-				class="justify-center items-center flex hover:border-b-2 first:-mr-2"
-				:class="{ 'border-b-2': selectedGroup === index }"
-				@click="index === 0 || index === 1 ? selectEmojiByGroup() : selectEmojiByGroup(index)"
-			>
-				<Icon v-if="index !== 1" :type="image" class="w-6 mb-1 stroke-none cursor-pointer fill-black dark:fill-white"></Icon>
-			</div>
+		<div class="flex flex-row gap-2 py-3 border-b border-gray-light">
+			<template v-for="(image, index) in imageList" :key="index">
+				<Icon :class="{ 'border-b-2': selectedGroup === index }" @click="index === 0 || index === 1 ? selectEmojiByGroup() : selectEmojiByGroup(index)" v-if="index !== 1" :type="image" class="w-6 pb-1 cursor-pointer"></Icon>
+			</template>
 		</div>
 		<p>
 			{{ $t('emoji.' + groupLabel()) }}
 		</p>
 
-		<div class="flex flex-wrap gap-3 overflow-y-auto scrollbar emoji-font">
+		<div class="flex flex-wrap gap-2 pr-2 overflow-y-auto scrollbar emoji-font">
 			<span v-for="emoji in filterEmojis" :key="emoji.hexcode" @click="selectEmoji(emoji)" class="cursor-pointer flex items-center justify-center text-xl overflow-hidden">
 				{{ emoji.emoji }}
 			</span>
@@ -27,9 +21,15 @@
 <script setup lang="ts">
 	import { onMounted, ref, computed } from 'vue';
 
+	import { useSettings } from '@/store/settings';
+
 	import { Emoji } from 'emojibase';
+
+	const settings = useSettings();
+	const language = settings.getActiveLanguage;
+
 	// Fetching data file for emoji from localized dataset.
-	import data from 'emojibase-data/en/data.json';
+	const data = require(`emojibase-data/${language}/data.json`);
 
 	const emojis = ref([] as Emoji[]);
 	const searchQuery = ref('');
@@ -52,7 +52,7 @@
 
 	onMounted(async () => {
 		try {
-			emojis.value = data.filter((emoji) => {
+			emojis.value = data.filter((emoji: Emoji) => {
 				return !emoji.label.includes('regional');
 			});
 		} catch (error) {

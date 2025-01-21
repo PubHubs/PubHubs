@@ -9,7 +9,7 @@
 						</div>
 					</router-link>
 				</div>
-				<div class="flex-1 w-full mx-auto overflow-y-auto">
+				<div class="flex-1 h-full w-full mx-auto overflow-hidden">
 					<HubMenu :hubOrderingIsActive="hubOrdering"></HubMenu>
 				</div>
 
@@ -35,7 +35,7 @@
 						</div>
 					</div>
 					<a :href="pubHubsUrl">
-						<Logo class="px-1" :global="true"></Logo>
+						<Logo class="px-1"></Logo>
 					</a>
 				</div>
 			</div>
@@ -48,7 +48,10 @@
 	import { useToggleMenu } from '@/store/toggleGlobalMenu';
 	import { ref } from 'vue';
 	import { useI18n } from 'vue-i18n';
+
+	// Components
 	import DialogBubble from '../../../../hub-client/src/components/ui/DialogBubble.vue';
+	import Logo from '../../../../hub-client/src/components/ui/Logo.vue';
 
 	const dialog = useDialog();
 	const settingsDialog = ref(false);

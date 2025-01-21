@@ -1,6 +1,6 @@
 <template>
-	<div class="h-full w-full flex justify-center items-center">
-		<img class="h-full w-full" v-show="!fallback" :src="hubUrl + logoPath" @load="hideFallback" :alt="'logo of ' + hubId" />
+	<div class="h-full w-full rounded-md overflow-hidden flex justify-center items-center">
+		<img class="h-full w-full object-cover" v-show="!fallback" :src="hubUrl + logoPath" @load="hideFallback" :alt="'logo of ' + hubId" />
 		<Icon v-if="fallback" type="hub_fallback"></Icon>
 	</div>
 </template>

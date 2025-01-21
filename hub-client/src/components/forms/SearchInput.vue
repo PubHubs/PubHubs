@@ -23,7 +23,7 @@
 	</div>
 
 	<!-- Mobile search component. -->
-	<div class="md:hidden h-full w-full flex justify-end items-end absolute pr-2 bottom-2">
+	<div class="md:hidden h-full w-full flex justify-end items-center absolute pr-2">
 		<div class="flex gap-4 w-[35px] rounded-md focus-within:w-full focus-within:bg-hub-background-4 focus-within:dark:bg-hub-background-3 transition-all duration-200 justify-end relative items-center max-w-full">
 			<input
 				class="h-10 flex-1 w-full placeholder:text-black dark:text-white dark:placeholder:text-gray-light bg-transparent border-none focus:outline-0 focus:outline-offset-0 focus:ring-0"
@@ -74,17 +74,19 @@
 </template>
 
 <script setup lang="ts">
+	// Components
+	import Avatar from '../ui/Avatar.vue';
+	import Icon from '../elements/Icon.vue';
+
 	import { useFormInputEvents, usedEvents } from '@/composables/useFormInputEvents';
 	import { filterAlphanumeric } from '@/core/extensions';
 	import { usePubHubs } from '@/core/pubhubsStore';
-	import { TSearchParameters, TSearchResult } from '@/model/model';
 	import Room from '@/model/rooms/Room';
 	import { useRooms } from '@/store/store';
 	import { ISearchResults, SearchResult } from 'matrix-js-sdk';
 	import { PropType, computed, ref } from 'vue';
 	import TruncatedText from '../elements/TruncatedText.vue';
-
-	import Avatar from '../ui/Avatar.vue';
+	import { TSearchParameters, TSearchResult } from '@/model/search/TSearch';
 
 	const pubhubs = usePubHubs();
 	const rooms = useRooms();

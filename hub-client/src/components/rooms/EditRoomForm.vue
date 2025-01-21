@@ -37,6 +37,13 @@
 </template>
 
 <script setup lang="ts">
+	// Components
+	import Dialog from '../ui/Dialog.vue';
+	import FormLine from '../forms/FormLine.vue';
+	import TextInput from '../forms/TextInput.vue';
+	import Label from '../forms/Label.vue';
+	import FormObjectInput from '../forms/FormObjectInput.vue';
+
 	import { FormObjectInputTemplate } from '@/composables/useFormInputEvents';
 	import { useFormState } from '@/composables/useFormState';
 	import { isEmpty, trimSplit } from '@/core/extensions';

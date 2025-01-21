@@ -1,11 +1,11 @@
 <template>
-	<div :class="settings.getActiveTheme" class="h-full">
+	<div :class="settings.getActiveTheme" class="h-full min-w-[320px]">
 		<div class="h-full text-black dark:bg-gray-darker dark:text-white">
 			<MobileMenu></MobileMenu>
 
 			<div class="flex h-full">
 				<GlobalBar v-if="!($route.name === 'onboarding')"></GlobalBar>
-				<div v-if="hubs.hasHubs" class="flex-1 dark:bg-gray-dark" :class="{ 'overflow-y-auto': $route.name !== 'onboarding' }">
+				<div v-if="hubs.hasHubs" class="flex-1 dark:bg-gray-dark scrollbar" :class="{ 'overflow-y-auto': $route.name !== 'onboarding' }">
 					<router-view></router-view>
 				</div>
 			</div>
@@ -33,7 +33,7 @@
 	const { locale, availableLocales } = useI18n();
 
 	onMounted(async () => {
-		LOGGER.log(SMI.STARTUP_TRACE, 'App.vue onMounted...');
+		LOGGER.log(SMI.STARTUP, 'App.vue onMounted...');
 
 		settings.initI18b({ locale: locale, availableLocales: availableLocales });
 		dialog.asGlobal();
@@ -52,7 +52,7 @@
 		}
 		await addHubs();
 
-		LOGGER.log(SMI.STARTUP_TRACE, 'App.vue onMounted done', { language: settings.getActiveLanguage });
+		LOGGER.log(SMI.STARTUP, 'App.vue onMounted done', { language: settings.getActiveLanguage });
 	});
 
 	async function addHubs() {

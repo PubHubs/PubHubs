@@ -44,7 +44,7 @@ class ConfigChecker:
                     pseudonyms.Pseudonym,
                     ConfigChecker, # for completeness sake
                     pubhubs.Core,
-                    pubhubs.YiviRoomJoiner,
+                    pubhubs.HubClientApi,
                     pubhubs.DBMigration]:
                 self.try_check(self.check_module_present, f"the {reqm.__name__} module is present", reqm)
 
@@ -101,8 +101,8 @@ class ConfigChecker:
             self.try_check_did_change(self.signing_key_changed, "signing key (see 'signing_key_path')")
             self.try_check_did_change(self.macaroon_secret_changed, "'macaroon_secret'")
             self.try_check_did_change(self.form_secret_changed, "'form_secret'")
-            self.try_check_did_change(self.client_url_changed, "'client_url' in the 'YiviRoomJoiner' module configuration")
-            self.try_check_did_change(self.global_client_url_changed, "'global_client_url' in the 'YiviRoomJoiner' module configuration")
+            self.try_check_did_change(self.client_url_changed, "'client_url' in the 'HubClientApi' module configuration")
+            self.try_check_did_change(self.global_client_url_changed, "'global_client_url' in the 'HubClientApi' module configuration")
             self.try_check_did_change(self.issuer_changed, "'issuer' under 'oidc_providers'")
             self.try_check_did_change(self.client_id_changed, "'client_id' under 'oidc_providers'")
             # we cannot really tell whether client_secret has been changed from the default due to the
@@ -192,15 +192,15 @@ class ConfigChecker:
             yield "Please set 'allow_profile_lookup_over_federation: false' in 'homeserver.yaml'"
 
     def client_url_changed(self):
-        client_url = self.modules[pubhubs.YiviRoomJoiner].get("client_url", None)
+        client_url = self.modules[pubhubs.HubClientApi].get("client_url", None)
         if client_url == None:
-            raise ConfigError("Please set 'client_url' in the configuration of the 'YiviRoomJoiner' module")
+            raise ConfigError("Please set 'client_url' in the configuration of the 'HubClientApi' module")
         return not client_url.startswith("http://localhost")
 
     def global_client_url_changed(self):
-        global_client_url = self.modules[pubhubs.YiviRoomJoiner].get("global_client_url", None)
+        global_client_url = self.modules[pubhubs.HubClientApi].get("global_client_url", None)
         if global_client_url == None:
-            raise ConfigError("Please set 'global_client_url' in the configuration of the 'YiviRoomJoiner' module")
+            raise ConfigError("Please set 'global_client_url' in the configuration of the 'HubClientApi' module")
         return global_client_url != "http://localhost:8080"
 
     def issuer_changed(self):
@@ -234,7 +234,7 @@ class ConfigChecker:
         return general_room_name != "#General:testhub.matrix.host"
 
     def check_client_is_whitelisted(self):
-        client_url: str = self.modules[pubhubs.YiviRoomJoiner]["client_url"]
+        client_url: str = self.modules[pubhubs.HubClientApi]["client_url"]
         # C.f. https://github.com/element-hq/synapse/blob/f4e12ceb1fc2a02b2c3deed4530cea0a601ec4df/synapse/handlers/auth.py#L277
         whitelist: tuple[str] = tuple(self.config.sso.sso_client_whitelist)
         if not client_url.startswith(whitelist):
