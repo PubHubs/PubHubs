@@ -141,6 +141,8 @@ def print_status(dep_dict: dict) -> None:
     for key in dep_dict:
         print("{:30s}{}".format(key, dep_dict[key]))
 
+def print_in_green(text: str) -> None:
+    print(f"\033[92m{text}\033[0m")
 
 def check_server_status(uri) -> dict:
 
@@ -507,32 +509,6 @@ def update_homeserver_yaml(input_path, output_path, client_id, client_secret,cli
         f.writelines(lines)
 
 
-def initialization():
-    """
-    Initializes the setup for the script such as creting backup files and modifying some files.
-
-    Args:
-        None
-
-    Returns:
-        None
-    """
-    pass  # currently nothing needed
-
-
-def post_processing():
-    """
-    Resets the state of the project i.e., removes any modified files and restors back to original files.
-
-    Args:
-        None
-
-    Returns:
-        None
-    """
-    pass  # currently nothing needed
-
-
 def run_command(cmd):
 
     """
@@ -656,8 +632,6 @@ def main():
 # Starting point for building pubhub testing infrastructure
 def main_runner(cargo_setup:str, node_arg:str, hubs:int = 1) -> None:
 
-    initialization()
-
     # Starting port in series for matrix server (hub) and client
     matrix_port = 8008
     client_port = 8801
@@ -699,6 +673,7 @@ def main_runner(cargo_setup:str, node_arg:str, hubs:int = 1) -> None:
 
 
     # Run global client first
+    print_in_green("Run `npm run watch` for global client...")
     os.chdir("global-client")
     subprocess.run([*NPM, "install"], check=True)
     global_client_proces = Process(target=os.system, args=("npm run watch",))
@@ -813,11 +788,6 @@ def main_runner(cargo_setup:str, node_arg:str, hubs:int = 1) -> None:
               "Don't forget to start synapse manually (and restart it after any changes to its modules):\n"
               "\n"
               "  docker exec -it testhub0_8008  ./start.py\n")
-
-    post_processing()
-    # process_global_client.join()
-    # process_pubhub_server.join()
-
 
 
 ## TEST SECTION ##

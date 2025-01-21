@@ -1,7 +1,7 @@
 <template>
 	<div class="flex flex-col w-6/12 mt-20 mx-auto text-center gap-2">
-		<H2 class="mb-4">{{ t('home.hub_homepage_welcome', [settings.hub.name]) }}</H2>
-		<Logo class="mx-auto max-w-24 max-h-20"></Logo>
+		<H2 v-if="hubName" class="mb-4">{{ `${t('home.hub_homepage_welcome')} ${hubName}` }}</H2>
+		<HubIcon v-if="hubName" :hub-name="hubName" :icon-url="hubSettings.iconUrlLight" :icon-url-dark="hubSettings.iconUrlDark" class="mx-auto max-w-24 max-h-20"></HubIcon>
 		<P class="mb-2">{{ t('onboarding.info_first_time') }}</P>
 		<P class="mb-2">{{ t('onboarding.info_abt_pseudonym') }}</P>
 		<P class="text-green text-2xl mb-0">{{ pseudonym }}</P>
@@ -29,16 +29,18 @@
 </template>
 
 <script setup lang="ts">
+	import HubIcon from '@/components/shared-with-global-client/HubIcon.vue';
 	import { usePubHubs } from '@/core/pubhubsStore';
-	import { useSettings } from '@/store/settings';
+	import { useHubSettings } from '@/store/hub-settings';
 	import { useUser } from '@/store/user';
 	import { ref } from 'vue';
-
 	import { useI18n } from 'vue-i18n';
+
 	const { t } = useI18n();
 	const pubhubs = usePubHubs();
 	const user = useUser();
-	const settings = useSettings();
+	const hubSettings = useHubSettings();
+	const hubName = ref(hubSettings.hubName);
 
 	let submitted = ref(false);
 	let laterSubmit = ref(false);

@@ -27,7 +27,7 @@ RUN cargo build --no-default-features --lib --features=abi
 
 ## FINAL CONTAINER STAGE
 
-FROM ghcr.io/element-hq/synapse:v1.115.0
+FROM ghcr.io/element-hq/synapse:v1.120.0
 
 
 COPY --from=yivi_build /go/bin/irma /usr/bin/irma
@@ -40,6 +40,8 @@ ENV HUB_SECRET change_me
 # Use the modules and templates that are PubHubs specific. To use the modules make sure the configuration in homeserver.yaml points  to the /conf/modules. See the example config.
 COPY pubhubs_hub/matrix_test_config/templates /conf/templates
 COPY pubhubs_hub/modules /conf/modules
+
+COPY pubhubs_hub/assets /non-persistent-data/assets
 
 # Store hub version in '/hub_version'
 ARG HUB_VERSION="n/a build time"

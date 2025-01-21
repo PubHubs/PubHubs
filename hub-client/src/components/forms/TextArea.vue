@@ -1,8 +1,8 @@
 <template>
 	<textarea
 		ref="elTextarea"
-		rows="1"
 		v-tw-class="'p-2'"
+		rows="1"
 		class="w-full resize-none rounded-lg border dark:text-white dark:border-white theme-light:text-gray-dark theme-light:border-black focus:border-black focus:outline-0 focus:outline-offset-0 focus:ring-0"
 		:maxlength="maxLength"
 		:placeholder="placeholder"
@@ -22,8 +22,6 @@
 	import { getCaretPos as domGetCaretPos } from '@/lib/domUtility';
 	import { Ref } from 'vue';
 
-	const MAX_CHARS_PER_LINE = 100;
-
 	const elTextarea: Ref<null | HTMLTextAreaElement> = ref(null);
 
 	type Props = {
@@ -40,7 +38,7 @@
 	function onKeyUp() {
 		changed();
 		emit('caretPos', getCaretPos());
-		calcSize();
+		resize();
 	}
 
 	function getCaretPos() {
@@ -49,16 +47,12 @@
 	}
 
 	/**
-	 * Calculates and sets the number of rows (height) of the textarea based on number of characters and newline characters.
-	 * Html textarea elements don't automatically resize to fit their content and using other elements might lead to accessibility issues.
-	 * todo future: Use the caret position instead of number of characters to resize differently depending on size of the textarea.
+	 * Resizing the textarea accordingly to its content.
+	 * The 'auto' height minimizes the textarea before it increases it again.
 	 */
-	function calcSize() {
+	function resize() {
 		if (!elTextarea.value) return;
-		const text = elTextarea.value.value;
-
-		const numLinesLowerBound = Math.ceil(text.length / MAX_CHARS_PER_LINE);
-		const numNewLines = text.split('\n').length;
-		elTextarea.value.rows = Math.max(numLinesLowerBound, numNewLines);
+		elTextarea.value.style.height = 'auto';
+		elTextarea.value.style.height = elTextarea.value.scrollHeight + 'px';
 	}
 </script>

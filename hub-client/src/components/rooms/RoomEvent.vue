@@ -7,12 +7,12 @@
 		<!-- Normal Event -->
 		<div
 			v-else
-			class="group flex gap-4 pl-6 pr-3 py-4"
+			class="group flex gap-4 px-3 md:px-6 py-4"
 			:class="{ 'transition-all duration-150 ease-in-out hover:bg-lightgray-light hover:dark:bg-hub-background-2': !deleteMessageDialog, 'mx-4 shadow-[0_0_5px_0_rgba(0,0,0,0.3)] rounded': props.deleteMessageDialog }"
 		>
 			<Avatar :user="roomMember"></Avatar>
 			<div :class="{ 'w-5/6': deleteMessageDialog, 'w-4/5 xl:w-3/5': !deleteMessageDialog }">
-				<div class="flex flex-wrap items-center">
+				<div class="flex flex-wrap items-center overflow-hidden text-wrap break-all">
 					<div class="relative flex items-start w-full gap-x-1 min-h-6">
 						<div class="flex-grow flex flex-wrap items-start">
 							<span class="inline-block" style="margin-top: -2px">
@@ -85,18 +85,6 @@
 </template>
 
 <script setup lang="ts">
-	import { usePubHubs } from '@/core/pubhubsStore';
-	import { router } from '@/core/router';
-	import { TMessageEvent } from '@/model/events/TMessageEvent';
-	import Room from '@/model/rooms/Room';
-	import { useConnection } from '@/store/connection';
-	import { useMessageActions } from '@/store/message-actions';
-	import { PluginType } from '@/store/plugins';
-	import { RoomType } from '@/store/rooms';
-	import { FeatureFlag, useSettings } from '@/store/settings';
-	import { useUser } from '@/store/user';
-	import { computed, ref } from 'vue';
-
 	// Components
 	import MessageSnippet from './MessageSnippet.vue';
 	import Message from './Message.vue';
@@ -109,6 +97,18 @@
 	import ProfileAttributes from './ProfileAttributes.vue';
 	import UserDisplayName from './UserDisplayName.vue';
 	import Icon from '../elements/Icon.vue';
+
+	import { usePubHubs } from '@/core/pubhubsStore';
+	import { router } from '@/core/router';
+	import { TMessageEvent } from '@/model/events/TMessageEvent';
+	import Room from '@/model/rooms/Room';
+	import { useConnection } from '@/store/connection';
+	import { useMessageActions } from '@/store/message-actions';
+	import { PluginType } from '@/store/plugins';
+	import { RoomType } from '@/store/rooms';
+	import { FeatureFlag, useSettings } from '@/store/settings';
+	import { useUser } from '@/store/user';
+	import { computed, ref } from 'vue';
 
 	// Stores
 	const connection = useConnection();

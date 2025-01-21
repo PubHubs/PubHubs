@@ -47,7 +47,7 @@ modules:
   - module: conf.modules.pubhubs.Core           # DON'T CHANGE
   - module: conf.modules.pubhubs.DBMigration    # DON'T CHANGE
   - module: conf.modules.pseudonyms.Pseudonym   # DON'T CHANGE
-  - module: conf.modules.pubhubs.YiviRoomJoiner # DON'T CHANGE
+  - module: conf.modules.pubhubs.HubClientApi # DON'T CHANGE
     config:
       {
         # URL of the hub client
@@ -169,3 +169,5 @@ auto_join_rooms:
 autocreate_auto_join_rooms: true      # DON'T CHANGE
 auto_join_mxid_localpart: system_bot  # DON'T CHANGE
 # vim:ft=yaml
+
+enable_authenticated_media: false

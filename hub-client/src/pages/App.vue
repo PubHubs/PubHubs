@@ -4,12 +4,11 @@
 			<div v-if="user.isLoggedIn" class="md:grid grid-cols-8 h-full">
 				<HeaderFooter class="md:col-span-2 md:flex bg-hub-background-2" :class="{ hidden: !hubSettings.mobileHubMenu }">
 					<template #header>
-						<div class="flex justify-between gap-4 items-end h-full py-2 pl-5 pr-8 bg-hub-background-3">
+						<div class="flex justify-between gap-4 items-center h-full py-2 pt-4 pl-5 pr-8 bg-hub-background-3">
 							<Badge v-if="hubSettings.isSolo && settings.isFeatureEnabled(FeatureFlag.notifications) && rooms.totalUnreadMessages > 0" class="-ml-4 -mt-2 w-8 flex-none">{{ rooms.totalUnreadMessages }}</Badge>
-							<Logo class="inline-block h-12" @click="router.push('/')" :title="settings.hub.name"></Logo>
-							<span class="mt-6 truncate" @click="router.push('/')" :title="settings.hub.name">
-								{{ settings.hub.name }}
-							</span>
+							<h2 class="font-bold text-lg truncate cursor-pointer" @click="router.push('/')" :title="hubSettings.hubName">
+								{{ hubSettings.hubName }}
+							</h2>
 							<Avatar
 								:user="user"
 								@click="
@@ -53,6 +52,10 @@
 							<Menu>
 								<MenuItem :to="{ name: 'admin' }" icon="admin">{{ $t('menu.admin_tools_rooms') }}</MenuItem>
 							</Menu>
+
+							<Menu v-if="settings.isFeatureEnabled(FeatureFlag.hubSettings)">
+								<MenuItem :to="{ name: 'hub-settings' }" icon="cog">{{ $t('menu.admin_tools_hub_settings') }}</MenuItem>
+							</Menu>
 						</div>
 					</template>
 				</HeaderFooter>
@@ -84,14 +87,28 @@
 	import { MessageType } from '@/store/messagebox';
 	import { usePlugins } from '@/store/plugins';
 	import { RoomType } from '@/store/rooms';
-	import { FeatureFlag, HubInformation, useSettings } from '@/store/settings';
+	import { FeatureFlag, useSettings } from '@/store/settings';
 	import { Message, MessageBoxType, useHubSettings, useMessageBox, useRooms } from '@/store/store';
 	import { useUser } from '@/store/user';
 	import { getCurrentInstance, onMounted, ref, watch } from 'vue';
 	import { useI18n } from 'vue-i18n';
 	import { RouteParamValue, useRouter } from 'vue-router';
 
+	// Components
+	import Disclosure from '@/components/rooms/Disclosure.vue';
+	import SettingsDialog from '@/components/forms/SettingsDialog.vue';
+	import Dialog from '@/components/ui/Dialog.vue';
+	import HeaderFooter from '@/components/ui/HeaderFooter.vue';
+	import Menu from '@/components/ui/Menu.vue';
+	import MenuItem from '@/components/ui/MenuItem.vue';
+	import RoomList from '@/components/rooms/RoomList.vue';
+	import DiscoverUsers from '@/components/rooms/DiscoverUsers.vue';
+	import Badge from '@/components/elements/Badge.vue';
+	import Button from '@/components/elements/Button.vue';
+	import Icon from '@/components/elements/Icon.vue';
+	import H2 from '@/components/elements/H2.vue';
 	import Avatar from '@/components/ui/Avatar.vue';
+	import { HubInformation } from '@/store/hub-settings';
 
 	const { locale, availableLocales } = useI18n();
 	const router = useRouter();
@@ -131,10 +148,22 @@
 		// check if hash doesn't start with hub,
 		// then it is running only the hub-client, so we need to do some checks
 		if (!window.location.hash.startsWith('#/hub/')) {
-			await pubhubs.login();
-			setupReady.value = true; // needed if running only the hub-client
-			router.push({ name: 'home' });
+			pubhubs.login().then(() => (setupReady.value = true));
+			// Needs onboarding?
+			if (user.needsOnboarding) {
+				router.push({ name: 'onboarding' });
+			} else {
+				router.push({ name: 'home' });
+			}
+			// 2024 12 03 The await is removed, because of slow loading testhub
+			// After the next merge to stable, in case this gives no problems,
+			// the old code and comments can be removed
+			// If all works well: setupReady can also be removed, since it does have no function anymmore
+			// await pubhubs.login();
+			// setupReady.value = true; // needed if running only the hub-client
+			// router.push({ name: 'home' });
 		}
+
 		if (!user.isLoggedIn) {
 			// only needed when loggedIn (then there are user settings to setup)
 			setupReady.value = true;
@@ -150,7 +179,7 @@
 
 			// Ask for Hub name etc.
 			messagebox.addCallback(MessageType.HubInformation, (message: Message) => {
-				settings.hub = message.content as HubInformation;
+				hubSettings.initHubInformation(message.content as HubInformation);
 			});
 
 			// Listen to roomchange
@@ -175,19 +204,6 @@
 			messagebox.addCallback(MessageType.BarShow, () => {
 				hubSettings.mobileHubMenu = true;
 			});
-
-			// Wait for theme change happened
-			// const wait = setInterval(() => {
-			// 	console.log('Waiting...', messageBoxStarted);
-			// 	if (messageBoxStarted) {
-			// 		setupReady.value = true;
-			// 		clearInterval(wait);
-			// 	}
-			// }, 250);
-			// setTimeout(() => {
-			// 	clearInterval(wait);
-			// 	setupReady.value = true;
-			// }, 2500);
 		}
 	}
 </script>

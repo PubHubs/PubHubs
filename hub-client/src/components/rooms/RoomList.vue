@@ -12,9 +12,9 @@
 						<span class="flex gap-2 group-hover:hidden transition-all duration-200 ease-in-out" v-if="settings.isFeatureEnabled(FeatureFlag.notifications)">
 							<Badge class="text-xxs" color="hub" v-if="room.getRoomUnreadNotificationCount(NotificationCountType.Total) > 99">99+</Badge>
 							<Badge v-else-if="room.getRoomUnreadNotificationCount(NotificationCountType.Total) > 0" color="hub">{{ room.getRoomUnreadNotificationCount(NotificationCountType.Total) }}</Badge>
-
 							<Badge color="hub" v-if="room.getRoomUnreadNotificationCount(NotificationCountType.Highlight) > 0"><Icon type="mention" size="sm" class="shrink-0"></Icon></Badge>
 						</span>
+
 						<Icon type="unlink" class="cursor-pointer hover:text-red-light stroke-2 group-hover:inline-block hidden transition-all duration-200 ease-in-out" @click.prevent="leaveRoom(room.roomId)"></Icon>
 					</span>
 				</MenuItem>
@@ -24,6 +24,16 @@
 </template>
 
 <script setup lang="ts">
+	// Components
+	import InlineSpinner from '../ui/InlineSpinner.vue';
+	import Menu from '../ui/Menu.vue';
+	import MenuItem from '../ui/MenuItem.vue';
+	import TruncatedText from '../elements/TruncatedText.vue';
+	import PrivateRoomName from './PrivateRoomName.vue';
+	import RoomName from './RoomName.vue';
+	import Badge from '../elements/Badge.vue';
+	import Icon from '../elements/Icon.vue';
+
 	import { isVisiblePrivateRoom } from '@/core/privateRoomNames';
 	import { usePubHubs } from '@/core/pubhubsStore';
 	import { PluginProperties, usePlugins } from '@/store/plugins';
@@ -31,7 +41,8 @@
 	import { FeatureFlag, useSettings } from '@/store/settings';
 	import { useDialog, useHubSettings, useRooms } from '@/store/store';
 	import { useUser } from '@/store/user';
-	import { NotificationCountType, Room } from 'matrix-js-sdk';
+	import { NotificationCountType } from 'matrix-js-sdk';
+	import { Room } from '@/store/rooms';
 	import { useI18n } from 'vue-i18n';
 	import { useRouter } from 'vue-router';
 

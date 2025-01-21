@@ -19,4 +19,9 @@ const buttonSizes: { [key: string]: string } = {
 	lg: 'py-3 px-6',
 };
 
-export { iconSizes, buttonSizes };
+const headerSizes: { [key: string]: string } = {
+	sm: 'max-h-16 md:max-h-24',
+	base: 'max-h-24',
+};
+
+export { iconSizes, buttonSizes, headerSizes };

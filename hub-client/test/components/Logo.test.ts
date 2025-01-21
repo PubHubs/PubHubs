@@ -27,7 +27,7 @@ describe('Logo.vue Test', () => {
 	});
 
 	test('theme update of logo handled', async () => {
-		expect(wrapper.find('img').attributes().src).toBe('/img/logo.svg');
+		expect(wrapper.find('img').attributes().src).toBe('/client/img/logo.svg');
 
 		settings.$patch({
 			theme: 'dark',
@@ -35,6 +35,6 @@ describe('Logo.vue Test', () => {
 
 		await flushPromises();
 
-		expect(wrapper.find('img').attributes().src).toBe('/img/logo-dark.svg');
+		expect(wrapper.find('img').attributes().src).toBe('/client/img/logo-dark.svg');
 	});
 });

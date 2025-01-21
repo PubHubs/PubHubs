@@ -8,7 +8,11 @@
  *
  */
 
+import { api_synapse } from '@/core/api';
+import filters from '@/core/filters';
 import { usePubHubs } from '@/core/pubhubsStore';
+import { SMI } from '@/dev/StatusMessage';
+import { LOGGER } from '@/foundation/Logger';
 import { MatrixClient, User as MatrixUser } from 'matrix-js-sdk';
 import { defineStore } from 'pinia';
 
@@ -27,24 +31,34 @@ const defaultUser = {} as User;
 type State = {
 	_avatarMxcUrl: string | undefined;
 	_avatarUrl: string | undefined | null;
+	_displayName: string | undefined | null;
 	isAdministrator: boolean;
+	needsOnboarding: boolean;
 	client: MatrixClient;
 	userId: string | null;
 };
+
+const logger = LOGGER;
 
 const useUser = defineStore('user', {
 	state: (): State => ({
 		_avatarMxcUrl: undefined,
 		_avatarUrl: undefined,
+		_displayName: undefined,
 		isAdministrator: false,
+		needsOnboarding: false,
 		client: {} as MatrixClient,
 		userId: null,
 	}),
 
 	getters: {
 		user({ userId, client }) {
-			const clientUser = client.getUser(userId!);
-			return clientUser ?? defaultUser;
+			try {
+				const clientUser = client.getUser(userId!);
+				return clientUser ?? defaultUser;
+			} catch (error) {
+				return defaultUser;
+			}
 		},
 
 		isLoggedIn({ userId }) {
@@ -58,11 +72,29 @@ const useUser = defineStore('user', {
 		avatarUrl({ _avatarUrl }) {
 			return _avatarUrl;
 		},
+
+		displayName({ _displayName }) {
+			return _displayName;
+		},
+
+		pseudonym({ userId }): string {
+			if (!userId) {
+				logger.warn(SMI.USER, 'Missing userId when getting pseudonym, showing pseudonym as "xxx-xxx"');
+				return 'xxx-xxx';
+			}
+
+			return filters.extractPseudonym(userId);
+		},
 	},
 
 	actions: {
 		setUserId(userId: string) {
 			this.userId = userId;
+		},
+
+		setProfile(profile: any) {
+			if (profile.avatar_url !== undefined) this.setAvatarMxcUrl(profile.avatar_url);
+			if (profile.displayname !== undefined) this.setDisplayName(profile.displayname);
 		},
 
 		setClient(client: MatrixClient) {
@@ -76,6 +108,16 @@ const useUser = defineStore('user', {
 			} catch (error) {
 				this.isAdministrator = false;
 			}
+		},
+
+		async fetchUserFirstTimeLoggedIn(): Promise<boolean> {
+			const resp = await api_synapse.apiPOST<any>(api_synapse.apiURLS.joinHub, { user: this.userId! });
+			this.needsOnboarding = resp.first_time_joined;
+			return this.needsOnboarding;
+		},
+
+		setDisplayName(name: string | undefined | null) {
+			this._displayName = name;
 		},
 
 		/**

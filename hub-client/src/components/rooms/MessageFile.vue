@@ -1,15 +1,15 @@
 <template>
-	<div class="mt-2 rounded-md bg-hub-background-3 p-2 flex">
+	<div v-if="url" class="mt-2 rounded-md bg-hub-background-3 p-2 flex">
 		<Icon type="paperclip" class="mr-2"></Icon>
-		<a class="text-blue" target="_blank" :href="formUrlfromMxc(message.url)">{{ message.filename }}</a>
+		<a class="text-blue" target="_blank" :href="url">{{ message.filename }}</a>
 	</div>
 </template>
 
 <script setup lang="ts">
-	import { useMatrixFiles } from '@/composables/useMatrixFiles';
-	import { M_FileMessageEventContent } from '@/types/events';
+	// Components
+	import Icon from '../elements/Icon.vue';
 
-	const { formUrlfromMxc } = useMatrixFiles();
+	import { TFileMessageEventContent } from '@/model/events/TMessageEvent';
 
-	const props = defineProps<{ message: M_FileMessageEventContent }>();
+	defineProps<{ message: TFileMessageEventContent }>();
 </script>

@@ -109,6 +109,7 @@ const nl = {
 	menu: {
 		calender: 'Kalender',
 		home: 'Home',
+		discover: 'Ontdek kamers',
 		logout: 'Uitloggen',
 		name: 'Hier komt een naam',
 		private_rooms: '@:rooms.private_rooms',
@@ -117,6 +118,7 @@ const nl = {
 		tool: 'Gereedschap',
 		admin_tools: 'Admin tools',
 		admin_tools_rooms: 'Beheer kamers',
+		admin_tools_hub_settings: 'Hub instellingen',
 		moderation_tools: 'Moderatietools',
 		moderation_tools_disclosure: 'Vragen informatie vrij te geven',
 		delete_message: 'Verwijder bericht',
@@ -131,7 +133,7 @@ const nl = {
 		load_more_results: 'Laad meer resultaten',
 	},
 	rooms: {
-		room: 'Kamer:',
+		room: 'Kamer',
 		me: 'Ik',
 		just_you: 'Alleen jij',
 		join_sure: 'Wil je deelnemen aan deze kamer?',
@@ -192,6 +194,16 @@ const nl = {
 		notifications_allow: 'Notificaties toestaan',
 		change_avatar: 'Avatar aanpassen',
 	},
+	hub_settings: {
+		heading: 'Hub instellingen',
+		icon_heading: 'Hub icoon',
+		icon_description: 'Een publieke afbeelding voor deze Hub.',
+		save: 'Opslaan',
+		settings_saved: 'Veranderingen opgeslagen (ververs de pagina om ze te zien).',
+		error_saving_icon: 'Kon het icoon niet opslaan. Probeer het later opnieuw.',
+		file_format_not_allowed: 'Bestandsformaat niet toegestaan. Gebruik .png, .jpeg of .jpg bestanden.',
+		file_too_large: 'Bestand te groot. Gebruik een kleiner bestand.',
+	},
 	admin: {
 		title: 'Admin beheer',
 		description: 'Aanmaken, aanpassen en verwijderen van (beveiligde) kamers',
@@ -251,6 +263,7 @@ const nl = {
 		success_msg: 'Je kunt de kamers verkennen en chatten met de community!',
 		later: 'U heeft uw Hub-bijnaam nog niet ingesteld, wat u later kunt doen!',
 		update: 'bijnaam bijgewerkt',
+		nickname_placeholder: 'Type hier je bijnaam ...',
 	},
 	message: {
 		send: 'Verstuur',

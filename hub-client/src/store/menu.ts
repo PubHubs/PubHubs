@@ -8,7 +8,10 @@ type MenuItem = {
 
 type MenuItems = Array<MenuItem>;
 
-const defaultMenu: MenuItems = [{ key: 'menu.home', icon: 'home', to: { name: 'home' } }];
+const defaultMenu: MenuItems = [
+	{ key: 'menu.home', icon: 'home', to: { name: 'home' } },
+	{ key: 'menu.discover', icon: 'compass', to: { name: 'discover-rooms' } },
+];
 
 const useMenu = defineStore('menu', {
 	state: () => {

@@ -1,24 +1,36 @@
 <template>
-	<div v-if="room" ref="elRoomTimeline" class="h-full relative flex flex-col gap-2 overflow-y-auto scrollbar" @scroll="onScroll">
-		<InlineSpinner v-if="isLoadingNewEvents" class="fixed top-16"></InlineSpinner>
-		<DateDisplayer v-if="settings.isFeatureEnabled(FeatureFlag.dateSplitter) && dateInformation !== 0" :scrollStatus="userHasScrolled" :eventTimeStamp="dateInformation.valueOf()"></DateDisplayer>
-		<div v-if="oldestEventIsLoaded" class="rounded-xl flex items-center justify-center w-60 mx-auto mt-4 mb-12 border border-solid border-black dark:border-white">
-			{{ $t('rooms.roomCreated') }}
+	<div class="h-full flex flex-col">
+		<div>
+			<InlineSpinner v-if="isLoadingNewEvents" class="w-full absolute flex justify-center"></InlineSpinner>
+			<DateDisplayer v-if="settings.isFeatureEnabled(FeatureFlag.dateSplitter) && dateInformation !== 0" :scrollStatus="userHasScrolled" :eventTimeStamp="dateInformation.valueOf()"></DateDisplayer>
 		</div>
-		<template v-if="roomTimeLine.length > 0">
-			<div v-for="item in roomTimeLine" :key="item.event.event_id">
-				<div ref="elRoomEvent" :id="item.event.event_id">
-					<RoomEvent :room="room" :event="item.event" class="room-event" @in-reply-to-click="onInReplyToClick" @delete-message="confirmDeleteMessage"></RoomEvent>
-					<UnreadMarker v-if="settings.isFeatureEnabled(FeatureFlag.unreadMarkers)" :currentEventId="item.event.event_id" :currentUserId="user.user.userId"></UnreadMarker>
-				</div>
+		<div v-if="room" ref="elRoomTimeline" class="relative pb-4 flex flex-1 flex-col gap-2 overflow-y-auto" @scroll="onScroll">
+			<div v-if="oldestEventIsLoaded" class="rounded-xl flex items-center justify-center w-60 mx-auto my-4 border border-black dark:border-white">
+				{{ $t('rooms.roomCreated') }}
 			</div>
-		</template>
+			<template v-if="roomTimeLine.length > 0">
+				<div v-for="item in roomTimeLine" :key="item.event.event_id">
+					<div ref="elRoomEvent" :id="item.event.event_id">
+						<RoomEvent :room="room" :event="item.event" class="room-event" @in-reply-to-click="onInReplyToClick" @delete-message="confirmDeleteMessage"></RoomEvent>
+						<UnreadMarker v-if="settings.isFeatureEnabled(FeatureFlag.unreadMarkers)" :currentEventId="item.event.event_id" :currentUserId="user.user.userId"></UnreadMarker>
+					</div>
+				</div>
+			</template>
+		</div>
 	</div>
 	<DeleteMessageDialog v-if="showConfirmDelMsgDialog" :event="eventToBeDeleted" :room="rooms.currentRoom" @close="showConfirmDelMsgDialog = false" @yes="deleteMessage"></DeleteMessageDialog>
 	<InRoomNotifyMarker v-if="settings.isFeatureEnabled(FeatureFlag.unreadMarkers)"></InRoomNotifyMarker>
 </template>
 
 <script setup lang="ts">
+	// Components
+	import DateDisplayer from '../ui/DateDisplayer.vue';
+	import DeleteMessageDialog from '../forms/DeleteMessageDialog.vue';
+	import InlineSpinner from '../ui/InlineSpinner.vue';
+	import RoomEvent from './RoomEvent.vue';
+	import UnreadMarker from '../ui/UnreadMarker.vue';
+	import InRoomNotifyMarker from '../ui/InRoomNotifyMarker.vue';
+
 	import { useMatrixFiles } from '@/composables/useMatrixFiles';
 	import { ElementObserver } from '@/core/elementObserver';
 	import { usePubHubs } from '@/core/pubhubsStore';
@@ -32,8 +44,6 @@
 	import Room from '@/model/rooms/Room';
 	import { FeatureFlag, useSettings } from '@/store/settings';
 	import { useUser } from '@/store/user';
-	import DateDisplayer from '../ui/DateDisplayer.vue';
-	import RoomEvent from './RoomEvent.vue';
 
 	const settings = useSettings();
 	const rooms = useRooms();
@@ -71,7 +81,7 @@
 	});
 
 	onMounted(() => {
-		LOGGER.log(SMI.ROOM_TIMELINE_TRACE, `onMounted RoomTimeline`, { roomId: props.room.roomId });
+		LOGGER.log(SMI.ROOM_TIMELINE, `onMounted RoomTimeline`, { roomId: props.room.roomId });
 
 		setupRoomTimeline();
 	});
@@ -79,7 +89,7 @@
 	watch(
 		() => props.room,
 		() => {
-			LOGGER.log(SMI.ROOM_TIMELINE_TRACE, `Room changed to room: ${props.room.roomId}`, { roomId: props.room.roomId });
+			LOGGER.log(SMI.ROOM_TIMELINE, `Room changed to room: ${props.room.roomId}`, { roomId: props.room.roomId });
 
 			setupRoomTimeline();
 		},
@@ -92,7 +102,7 @@
 	watch(() => props.scrollToEventId, onScrollToEventId);
 
 	async function setupRoomTimeline() {
-		LOGGER.log(SMI.ROOM_TIMELINE_TRACE, `setupRoomTimeline...`, { roomId: props.room.roomId });
+		LOGGER.log(SMI.ROOM_TIMELINE, `setupRoomTimeline...`, { roomId: props.room.roomId });
 
 		initialLoading = true;
 		await props.room.loadInitialEvents();
@@ -124,7 +134,7 @@
 		//Date Display Interaction callback is based on feature flag
 		settings.isFeatureEnabled(FeatureFlag.dateSplitter) && elementObserver?.setUpObserver(handleDateDisplayer);
 
-		LOGGER.log(SMI.ROOM_TIMELINE_TRACE, `setupRoomTimeline done `, roomTimeLine);
+		LOGGER.log(SMI.ROOM_TIMELINE, `setupRoomTimeline done `, roomTimeLine);
 	}
 
 	const handlePrivateReceipt = (entries: IntersectionObserverEntry[]) => {
@@ -183,7 +193,7 @@
 		if (!rooms.currentRoom) return;
 		if (props.room.isNewestMessageLoaded()) return;
 
-		LOGGER.log(SMI.ROOM_TIMELINE_TRACE, `onTimelineChange`, { newTimelineLength, oldTimelineLength });
+		LOGGER.log(SMI.ROOM_TIMELINE, `onTimelineChange`, { newTimelineLength, oldTimelineLength });
 
 		if (!initialLoading) {
 			let newestEventId = props.room.getLiveTimelineNewestEvent()?.event_id;
@@ -204,7 +214,7 @@
 			}
 		}
 
-		LOGGER.log(SMI.ROOM_TIMELINE_TRACE, `onTimelineChange ended `, roomTimeLine.value);
+		LOGGER.log(SMI.ROOM_TIMELINE, `onTimelineChange ended `, roomTimeLine.value);
 	}
 
 	// eslint-disable-next-line @typescript-eslint/no-unused-vars
@@ -273,7 +283,7 @@
 				req.send();
 			}
 			pubhubs.deleteMessage(rooms.currentRoomId, eventToBeDeleted.value.event_id);
-			LOGGER.log(SMI.ROOM_TIMELINE_TRACE, `Deleted message with id ${eventToBeDeleted.value.event_id}`, { eventToBeDeleted });
+			LOGGER.log(SMI.ROOM_TIMELINE, `Deleted message with id ${eventToBeDeleted.value.event_id}`, { eventToBeDeleted });
 		}
 	}
 
@@ -314,7 +324,7 @@
 	//#endregion
 
 	async function scrollToEvent(eventId: string, options: { position: 'start' | 'center' | 'end'; select?: 'Highlight' | 'Select' } = { position: 'start' }) {
-		LOGGER.log(SMI.ROOM_TIMELINE_TRACE, `scroll to event: ${eventId}`, { eventId });
+		LOGGER.log(SMI.ROOM_TIMELINE, `scroll to event: ${eventId}`, { eventId });
 
 		if (!elRoomTimeline.value) throw new Error('elRoomTimeline not defined, RoomTimeline not mounted?');
 

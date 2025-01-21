@@ -8,3 +8,10 @@
 		<p>{{ $t('plugin-example.page.text') }}</p>
 	</HeaderFooter>
 </template>
+
+<script setup lang="ts">
+	// Components
+	import HeaderFooter from '@/components/ui/HeaderFooter.vue';
+	import H1 from '@/components/elements/H1.vue';
+	import H2 from '@/components/elements/H2.vue';
+</script>
