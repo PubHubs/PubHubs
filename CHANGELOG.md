@@ -3,6 +3,11 @@
 *Please add a brief description of any changes to be tested and any migrations to be performed here.*
 - Synapse was updated and authenticated media is now enforced by default (see [here](https://element-hq.github.io/synapse/v1.120/upgrade.html#authenticated-media-is-now-enforced-by-default)). We don't support it yet so we disabled it in the Hub configuration. When merging to stable, the new configuration should be added to all running hubs. See also #1025.
 
+## 21 January 2025 - v1.0.4
+- Styling issues fixed #598 #980 #1030 #1017
+- New feature - Admin can upload Hub icon #866
+-  Bug fixes #982 #1029
+
 ## 9 December 2024 - v1.0.3
 - #992, Enter an emoticon is solved.
 - #994, Login does not fail anymore when running full local development setup with hub-client in watch-mode.
