@@ -14,7 +14,7 @@
 			</div>
 		</div>
 
-		<div class="flex items-end justify-between gap-2">
+		<div class="flex items-end justify-between gap-2 max-h-12 md:max-h-52">
 			<div class="w-full overflow-hidden rounded-xl bg-hub-background-4 dark:bg-hub-background-4">
 				<div class="h-10 flex gap-2 px-2 items-center justify-between" v-if="inReplyTo">
 					<div class="flex gap-2 w-fit overflow-hidden">
@@ -38,7 +38,7 @@
 					<!-- Overflow-x-hidden prevents firefox from adding an extra row to the textarea for a possible scrollbar -->
 					<TextArea
 						ref="elTextInput"
-						class="max-h-40 md:max-h-[300px] overflow-x-hidden border-none bg-transparent placeholder:text-gray-dark dark:placeholder:text-gray-lighter"
+						class="max-h-40 md:max-h-60 overflow-x-hidden border-none bg-transparent placeholder:text-gray-dark dark:placeholder:text-gray-lighter"
 						v-focus
 						:placeholder="$t('rooms.new_message')"
 						:title="$t('rooms.new_message')"
@@ -54,8 +54,8 @@
 					<Icon class="dark:text-white mb-2" type="emoticon" @click.stop="toggleEmojiPicker" :asButton="true"></Icon>
 				</div>
 
-				<div v-if="signingMessage" class="m-2 bg-gray-light dark:bg-hub-background flex items-center rounded-md p-2">
-					<Icon type="sign" size="base" class="ml-2 mr-2 self-start mt-1 shrink-0"></Icon>
+				<div v-if="signingMessage" class="bg-gray-light dark:bg-hub-background flex items-center rounded-md p-2">
+					<Icon type="sign" size="base" class="self-start mt-1"></Icon>
 					<div class="ml-2 flex flex-col justify-between max-w-3xl">
 						<h3 class="font-bold">{{ $t('message.sign.heading') }}</h3>
 						<p>{{ $t('message.sign.info') }}</p>
