@@ -11,7 +11,6 @@ mod old {
     pub mod middleware;
     pub mod oidc;
     pub mod oidc_handler;
-    pub mod policy;
     pub mod pseudonyms;
     pub mod translate;
     pub mod yivi;

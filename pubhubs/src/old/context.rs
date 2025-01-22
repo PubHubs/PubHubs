@@ -138,13 +138,6 @@ impl Main {
 
         let path_interpreter = config.path_interpreter();
 
-        crate::policy::initialize_latest_policy(
-            &db_tx,
-            config.interpret_path(&config.policy_directory),
-        )
-        .await
-        .context("setting up the policy failed")?;
-
         let url: Urls = config
             .determine_urls()
             .await
