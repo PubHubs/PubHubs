@@ -41,6 +41,7 @@ pub struct File {
     #[serde(default)]
     pub database_location: Option<String>,
 
+    /// Legacy - no longer used
     #[serde(default = "default_policy_directory")]
     pub policy_directory: String,
 
