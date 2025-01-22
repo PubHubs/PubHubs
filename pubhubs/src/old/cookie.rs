@@ -1,9 +1,4 @@
 //! Creation and verification of cookies
-//!
-//! PubHubs Central uses four cookies at the moment:  
-//!   1. three session cookies, which are the primary concern of this module, and
-//!   2. a secondary 'policy' cookie to remember that a user accepted PHC's policy, see
-//!       the [policy_cookie] module.
 use crate::error::HttpContextExt as _;
 use actix_web::{HttpRequest, HttpResponseBuilder};
 use anyhow::{anyhow, bail, ensure, Context as _, Result};
@@ -391,24 +386,5 @@ mod tests {
                 .to_string(),
             format!("{PHACCOUNT} cookie expired")
         );
-    }
-}
-
-pub mod policy_cookie {
-    use actix_web::{HttpRequest, HttpResponseBuilder};
-
-    const ACCEPTED_POLICY: &str = "AcceptedPolicy";
-
-    pub fn add_accepted_policy_session_cookie(resp: &mut HttpResponseBuilder) {
-        resp.cookie(
-            actix_web::cookie::Cookie::build(ACCEPTED_POLICY, "1")
-                .path("/")
-                .finish(),
-        );
-    }
-
-    pub fn accepted_policy(req: &HttpRequest) -> bool {
-        req.cookie(ACCEPTED_POLICY)
-            .is_some_and(|c| c.value() == "1")
     }
 }

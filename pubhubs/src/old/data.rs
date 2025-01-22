@@ -16,7 +16,7 @@ use std::fmt::{Debug, Formatter};
 use std::path::Path;
 use std::str::FromStr;
 use strum_macros::AsRefStr;
-use tokio::sync::mpsc::{Receiver, Sender};
+use tokio::sync::mpsc::Receiver;
 use tokio::sync::oneshot;
 use uuid::Uuid;
 
@@ -327,15 +327,6 @@ pub enum DataCommands {
         old_etag: String,
         state: bytes::Bytes,
     },
-    CreatePolicy {
-        resp: oneshot::Sender<Result<Policy>>,
-        content: String,
-        highlights: Vec<String>,
-        version: u32,
-    },
-    GetLatestPolicy {
-        resp: oneshot::Sender<Result<Option<Policy>>>,
-    },
     // #[cfg(test)] // does not work for the binary
     Terminate {},
 }
@@ -367,7 +358,7 @@ pub fn make_in_memory_database_manager(
 
 async fn handle_command(
     mut rx: Receiver<DataCommands>,
-    mut manager: Connection,
+    manager: Connection,
     database_req_histogram: HistogramVec,
 ) {
     while let Some(cmd) = rx.recv().await {
@@ -465,22 +456,6 @@ async fn handle_command(
             } => resp
                 .send(update_bar_state(&manager, id, old_etag, state))
                 .expect("Trying to use the data channel"),
-            DataCommands::CreatePolicy {
-                resp,
-                content,
-                highlights,
-                version,
-            } => resp
-                .send(create_new_policy(
-                    &mut manager,
-                    &content,
-                    highlights,
-                    version,
-                ))
-                .expect("Expected to use the data channel"),
-            DataCommands::GetLatestPolicy { resp } => resp
-                .send(get_latest_policy(&manager))
-                .expect("Expected to use the data channel"),
             //#[cfg(test)]
             DataCommands::Terminate {} => break,
         }
@@ -508,101 +483,6 @@ pub fn get_connection_memory(do_migrations: DoMigrations) -> Result<Connection> 
     let mut manager = Connection::open_in_memory()?;
     migrate_database(&mut manager, do_migrations)?;
     Ok(manager)
-}
-
-#[derive(Debug)]
-pub struct Policy {
-    pub id: u32,
-    pub content: String,
-    pub version: u32,
-    pub highlights: Vec<String>,
-}
-
-pub fn create_new_policy(
-    db: &mut Connection,
-    content: &str,
-    highlights: Vec<String>,
-    version: u32,
-) -> Result<Policy> {
-    let tx = db.transaction()?;
-    tx.execute(
-        "INSERT INTO policy (version, content) VALUES (?1, ?2)",
-        [version.to_string(), content.to_string()],
-    )?;
-    for highlight in highlights {
-        tx.execute("INSERT INTO policy_highlights (policy, content) VALUES ((SELECT id FROM policy WHERE version = ?2), ?1)", [highlight, version.to_string()])?;
-    }
-    tx.commit()?;
-
-    Ok(get_latest_policy(db)?
-        .expect("Expected to have just inserted a policy so there to be a latest version"))
-}
-
-impl Policy {
-    pub async fn new(
-        content: String,
-        highlights: Vec<String>,
-        db: &Sender<DataCommands>,
-        version: u32,
-    ) -> Self {
-        let (tx, rx) = oneshot::channel();
-        db.send(DataCommands::CreatePolicy {
-            resp: tx,
-            content,
-            highlights,
-            version,
-        })
-        .await
-        .expect("Expected to be able to create the latest policy");
-        rx.await
-            .expect("Expected to create a policy")
-            .expect("Expected to make the latest policy")
-    }
-
-    pub fn empty() -> Self {
-        Policy {
-            id: 0,
-            content: "".to_string(),
-            version: 0,
-            highlights: vec![],
-        }
-    }
-}
-
-pub fn get_latest_policy(db: &Connection) -> Result<Option<Policy>> {
-    let result = match db.query_row(
-        "SELECT id, content, version FROM policy
-        WHERE version = (select MAX(version) from policy)",
-        [],
-        map_policy,
-    ) {
-        Ok(policy) => Ok(policy),
-        Err(QueryReturnedNoRows) => return Ok(None),
-        Err(err) => Err(err),
-    };
-
-    let mut result = result?;
-
-    let mut stmt = db.prepare("SELECT content from policy_highlights WHERE policy = ?")?;
-    let highlights = stmt.query_map([result.id], |row| row.get(0))?;
-
-    let mut hl = Vec::new();
-    for highlight in highlights {
-        hl.push(highlight?);
-    }
-
-    result.highlights = hl;
-
-    Ok(Some(result))
-}
-
-fn map_policy(row: &Row) -> Result<Policy, rusqlite::Error> {
-    Ok(Policy {
-        id: row.get(0)?,
-        content: row.get(1)?,
-        version: row.get(2)?,
-        highlights: vec![],
-    })
 }
 
 #[derive(PartialEq, Eq, Serialize, Clone)]
