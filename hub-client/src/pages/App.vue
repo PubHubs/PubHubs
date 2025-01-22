@@ -78,6 +78,10 @@
 						<Menu>
 							<MenuItem :to="{ name: 'admin' }" icon="admin">{{ $t('menu.admin_tools_rooms') }}</MenuItem>
 						</Menu>
+
+						<Menu v-if="settings.isFeatureEnabled(FeatureFlag.hubSettings)">
+							<MenuItem :to="{ name: 'hub-settings' }" icon="cog">{{ $t('menu.admin_tools_hub_settings') }}</MenuItem>
+						</Menu>
 					</section>
 				</HeaderFooter>
 
