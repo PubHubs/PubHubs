@@ -96,7 +96,7 @@ const defaultSettings: Settings = {
 			unreadmarkers: true,
 			notifications: true,
 			deleteMessages: true,
-			hubSettings: true,
+			hubSettings: false,
 			authenticatedMedia: true,
 		},
 		stable: {

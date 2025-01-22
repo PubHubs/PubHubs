@@ -11,7 +11,7 @@
 						<div class="flex h-full py-2 justify-between">
 							<Badge v-if="hubSettings.isSolo && settings.isFeatureEnabled(FeatureFlag.notifications) && rooms.totalUnreadMessages > 0" class="-ml-4 -mt-2 w-8 flex-none">{{ rooms.totalUnreadMessages }}</Badge>
 							<div class="flex flex-1 justify-between items-center">
-								<H1 v-if="settings.hub" class="line-clamp-1" @click="router.push('/')" :title="settings.hub.name">{{ settings.hub.name }}</H1>
+								<H1 class="line-clamp-1" @click="router.push('/')" :title="settings.hub.name">{{ settings.hub.name }}</H1>
 								<!-- TODO: Hiding this settings wheel as there is no functionality to it yet. -->
 								<Icon type="cog" size="sm" class="p-2 rounded-md bg-hub-background-2 hidden"></Icon>
 							</div>
