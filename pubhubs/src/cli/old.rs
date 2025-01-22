@@ -1483,7 +1483,7 @@ mod tests {
         )
         .await;
 
-        create_hub("hub1", &context).await;
+        let hub_id = create_hub("hub1", &context).await;
 
         // OK when GETting /bar/hubs
         let resp = app
@@ -1497,9 +1497,11 @@ mod tests {
         );
         let result: serde_json::Value =
             serde_json::from_slice(&actix_web::test::read_body(resp).await).unwrap();
+
         assert_eq!(
             result,
             serde_json::json!([{
+                "id": hub_id.to_string(),
                 "name": "hub1",
                 "description": "test_description",
                 "client_uri": "/client",
