@@ -5,7 +5,7 @@
 
 ## 21 January 2025 - v1.0.4
 - Styling issues fixed #598 #980 #1030 #1017
-- New feature - Admin can upload Hub icon #866
+- New feature - Admin can upload Hub icon #866 (It is behind the feature flag on stable.)
 -  Bug fixes #982 #1029
 
 ## 9 December 2024 - v1.0.3
