@@ -53,6 +53,7 @@ For reference, dependencies are in `package.json`.
  - [ ] Check the version numbers in the [yivi Dockerfile](docker_yivi/Dockerfile)
    - [ ] `FROM golang:XXX`
    - [ ] `git clone https://github.com/privacybydesign/irmago --branch vXXXX` Please check that you've selected the same version as in the [hub Dockerfile](pubhubs_hub/Dockerfile).
+ - [ ] Also check the version number in https://gitlab.science.ru.nl/ilab/docker-build/-/blob/main/.gitlab-ci.yml: `docker build -t ${CONTAINER_IMAGE} https://github.com/privacybydesign/irmago.git#vXXX`
 
   (The `merge-to-stable` merge request template can be edited [here](https://gitlab.science.ru.nl/ilab/pubhubs_canonical/-/edit/main/.gitlab/issue_templates/update-dependencies.md).)
 
