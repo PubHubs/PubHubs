@@ -22,6 +22,24 @@ module.exports = defineConfig({
 			return definitions;
 		});
 	},
+	pages: {
+		index: {
+			// entry for the page
+			entry: 'src/main.ts',
+			// the source template
+      		template: 'public/index.html',
+      		// output as dist/index.html
+      		filename: 'index.html',
+		},
+		miniclient: {
+			// entry for the page
+			entry: 'src/miniclient.ts',
+			// the source template
+      		template: 'public/index.html',
+      		// output as dist/index.html
+      		filename: 'miniclient.html',
+		},
+	},
 	transpileDependencies: true,
 	publicPath: '/',
 });
