@@ -124,13 +124,15 @@ const nl = {
 		delete_message: 'Verwijder bericht',
 	},
 	others: {
-		nop: 'Deze functionaleit is nog niet gerealiseerd.',
+		nop: 'Deze functionaliteit is nog niet gerealiseerd.',
 		search: 'Zoeken',
 		search_room: 'Zoek in dit gesprek',
 		search_nothing_found: 'Niets gevonden',
 		read_receipt: 'Gelezen door',
 		typing: 'Start typen...',
 		load_more_results: 'Laad meer resultaten',
+		help: 'Hulp nodig?',
+		work_in_progress: 'Hier wordt aan gewerkt.',
 	},
 	rooms: {
 		room: 'Kamer',
