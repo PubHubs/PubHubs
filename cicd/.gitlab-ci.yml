@@ -14,7 +14,7 @@ stages: # List of stages for jobs, and their order of execution
 rust-clippy:
   stage: build
   tags:
-    - arch
+    - docker
   image: registry.science.ru.nl/ilab/docker-build/rust-nightly:main
   script:
     - cd pubhubs
@@ -33,7 +33,7 @@ rust-clippy:
 rust-unit-test:
   stage: build
   tags:
-    - arch
+    - docker
   rules:
     - if: $CI_PIPELINE_SOURCE == "merge_request_event"
     - if: $CI_COMMIT_BRANCH == "main"
@@ -60,7 +60,7 @@ rust-cargo-deny:
     - if: $CI_COMMIT_BRANCH == "main"
     - if: $CI_COMMIT_BRANCH == "stable"
   tags:
-    - arch
+    - docker
   image: registry.science.ru.nl/ilab/docker-build/rust-stable:main
   script:
     - cd pubhubs
@@ -132,7 +132,7 @@ start-test-setup-unit-test:
     - if: $CI_COMMIT_BRANCH == "main"
     - if: $CI_COMMIT_BRANCH == "stable"
   tags:
-    - arch
+    - docker
   image: python:latest
   script:
     - pip install virtualenv
@@ -147,7 +147,7 @@ hub-unit-test: # This job runs in the test stage.
     - if: $CI_COMMIT_BRANCH == "main"
     - if: $CI_COMMIT_BRANCH == "stable"
   tags:
-    - arch
+    - docker
   image: python:latest   # Python 3.11 version is used to fix the issue of failing test because synapse version 1.115.0 has issues with new twisted version.
   before_script:
     - python --version # For debugging
@@ -222,7 +222,7 @@ globalclient-format-check:
     - if: $CI_PIPELINE_SOURCE == "merge_request_event"
     - if: $CI_COMMIT_BRANCH == "main"
     - if: $CI_COMMIT_BRANCH == "stable"
-  tags: [arch]
+  tags: [docker]
   image: node:latest
   script:
     - cd global-client
@@ -235,7 +235,7 @@ hubclient-format-check:
     - if: $CI_PIPELINE_SOURCE == "merge_request_event"
     - if: $CI_COMMIT_BRANCH == "main"
     - if: $CI_COMMIT_BRANCH == "stable"
-  tags: [arch]
+  tags: [docker]
   image: node:latest
   script:
     - cd hub-client
@@ -247,7 +247,7 @@ globalclient-unit-test:
     - if: $CI_PIPELINE_SOURCE == "merge_request_event"
     - if: $CI_COMMIT_BRANCH == "main"
     - if: $CI_COMMIT_BRANCH == "stable"
-  tags: [arch]
+  tags: [docker]
   image: node:latest
   script:
     - cd hub-client
@@ -262,7 +262,7 @@ hubclient-unit-test:
     - if: $CI_PIPELINE_SOURCE == "merge_request_event"
     - if: $CI_COMMIT_BRANCH == "main"
     - if: $CI_COMMIT_BRANCH == "stable"
-  tags: [arch]
+  tags: [docker]
   image: node:latest
   before_script:
     - cd hub-client
