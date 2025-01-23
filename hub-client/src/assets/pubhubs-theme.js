@@ -36,7 +36,10 @@ const pubhubs = {
 				4: 'var(--hub-background-4)',
 				5: 'var(--hub-background-5)',
 			},
-			text: 'var(--hub-text)',
+			text: {
+				DEFAULT: 'var(--hub-text)',
+				variant: 'var(--hub-text-variant)',
+			},
 			accent: {
 				DEFAULT: 'var(--hub-accent)',
 				2: 'var(--hub-accent-2)',

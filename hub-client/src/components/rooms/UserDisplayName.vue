@@ -1,6 +1,6 @@
 <template>
 	<span class="flex flex-row gap-x-2 items-start" :title="displayName">
-		<span v-if="displayName" data-testid="display-name" :class="`${textColor(color(user))} text-nowrap font-semibold text-sm`">{{ filters.maxLengthText(displayName, settings.getDisplayNameMaxLength) }}</span>
+		<span v-if="displayName" data-testid="display-name" :class="`${textColor(color(user))} font-semibold text-sm`">{{ filters.maxLengthText(displayName, settings.getDisplayNameMaxLength) }}</span>
 		<span class="text-xs text-nowrap font-normal" style="margin-top: 3px">{{ filters.extractPseudonym(user) }}</span>
 	</span>
 </template>

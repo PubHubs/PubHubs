@@ -47,11 +47,11 @@ const usePubHubs = defineStore('pubhubs', {
 		},
 
 		async login() {
-			logger.trace(SMI.STARTUP_TRACE, 'START PubHubs.login');
+			logger.trace(SMI.STARTUP, 'START PubHubs.login');
 			try {
 				const x = await this.Auth.login();
 
-				logger.trace(SMI.STARTUP_TRACE, 'PubHubs.logged in (X) - started client');
+				logger.trace(SMI.STARTUP, 'PubHubs.logged in (X) - started client');
 				this.client = x as MatrixClient;
 				const user = useUser();
 				user.setClient(x as MatrixClient);
@@ -63,7 +63,7 @@ const usePubHubs = defineStore('pubhubs', {
 				// the old code and comments can be removed
 				// await events.initEvents();
 
-				logger.trace(SMI.STARTUP_TRACE, 'PubHubs.logged in ()');
+				logger.trace(SMI.STARTUP, 'PubHubs.logged in ()');
 				const connection = useConnection();
 				connection.on();
 				const newUser = user.user;
@@ -74,8 +74,8 @@ const usePubHubs = defineStore('pubhubs', {
 					user.fetchIsAdministrator(this.client as MatrixClient);
 					user.fetchUserFirstTimeLoggedIn();
 
-					const avatarUrl = await this.client.getProfileInfo(newUser.userId, 'avatar_url');
-					if (avatarUrl.avatar_url !== undefined) user.setAvatarMxcUrl(avatarUrl.avatar_url);
+					const profile = await this.client.getProfileInfo(newUser.userId);
+					user.setProfile(profile);
 					// Perhaps in the future change this to asynchronous so there is no waiting for this.
 					// But then the Avatar needs to be displayed only when it is fetched, to prohibit flashing
 					// like this:
@@ -92,7 +92,7 @@ const usePubHubs = defineStore('pubhubs', {
 					//await this.updateRooms();
 				}
 			} catch (error: any) {
-				logger.trace(SMI.STARTUP_TRACE, 'Something went wrong while creating a matrix-js client instance or logging in', { error });
+				logger.trace(SMI.STARTUP, 'Something went wrong while creating a matrix-js client instance or logging in', { error });
 				router.push({ name: 'error-page' });
 			}
 		},
@@ -118,7 +118,7 @@ const usePubHubs = defineStore('pubhubs', {
 			knownRooms = this.client.getRooms();
 
 			const currentRooms = knownRooms.filter((room) => joinedRooms.indexOf(room.roomId) !== -1);
-			logger.trace(SMI.STORE_TRACE, 'PubHubs.updateRooms');
+			logger.trace(SMI.STORE, 'PubHubs.updateRooms');
 			rooms.updateRoomsWithMatrixRooms(currentRooms);
 			await rooms.fetchPublicRooms();
 		},
@@ -133,10 +133,10 @@ const usePubHubs = defineStore('pubhubs', {
 
 		showError(error: string | MatrixError) {
 			if (typeof error !== 'string') {
-				if (error.errcode !== 'M_FORBIDDEN') {
+				if (error.errcode !== 'M_FORBIDDEN' && error.data) {
 					this.showDialog(error.data.error as string);
 				} else {
-					logger.trace(SMI.STORE_TRACE, 'showing error dialog', { error });
+					logger.trace(SMI.STORE, 'showing error dialog', { error });
 				}
 			} else {
 				this.showDialog('Unfortanatly an error occured. Please contact the developers.\n\n' + error.toString);
@@ -496,7 +496,7 @@ const usePubHubs = defineStore('pubhubs', {
 			try {
 				await this.client.sendImageMessage(roomId, uri, undefined);
 			} catch (error) {
-				logger.trace(SMI.STORE_TRACE, 'swallowing add image error', { error });
+				logger.trace(SMI.STORE, 'swallowing add image error', { error });
 			}
 		},
 
@@ -520,7 +520,7 @@ const usePubHubs = defineStore('pubhubs', {
 				// todo: fix this (issue #808)
 				await this.client.sendMessage(roomId, content);
 			} catch (error) {
-				logger.trace(SMI.STORE_TRACE, 'swallowing add file error', { error });
+				logger.trace(SMI.STORE, 'swallowing add file error', { error });
 			}
 		},
 
@@ -535,15 +535,21 @@ const usePubHubs = defineStore('pubhubs', {
 				// Resend
 				await this.client.sendEvent(roomId, type, content);
 			} catch (error) {
-				logger.trace(SMI.STORE_TRACE, 'swallowing resend event error', { error });
+				logger.trace(SMI.STORE, 'swallowing resend event error', { error });
 			}
 		},
 
 		async changeDisplayName(name: string) {
+			const user = useUser();
+			const restoreUserName = user.displayName;
+			// First set in the UX for fast response there
+			user.setDisplayName(name);
 			try {
 				await this.client.setDisplayName(name);
 			} catch (error: any) {
 				this.showError(error);
+				// Set to old username if error
+				user.setDisplayName(restoreUserName);
 			}
 		},
 

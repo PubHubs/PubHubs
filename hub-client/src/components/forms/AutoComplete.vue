@@ -18,27 +18,25 @@
 		/>
 		<ul v-if="result.length > 1" class="w-full border border-black px-2 py-1 rounded-lg absolute z-50 bg-white shadow-md">
 			<li v-for="(item, index) in result" :key="index" @click="click(item)" class="cursor-pointer text-black" :class="{ 'bg-lightgray': cursor === index }">
-				{{ item[label] }}
+				{{ item.label }}
 			</li>
 		</ul>
 	</div>
 </template>
 
 <script setup lang="ts">
-	import { onMounted, computed, PropType } from 'vue';
+	import { onMounted, computed } from 'vue';
 	import { InputType, Options, useFormInputEvents, usedEvents } from '@/composables/useFormInputEvents';
 	import { useKeyStrokes } from '@/composables/useKeyStrokes';
 
 	type Props = {
-		options: PropType<Options>;
+		options: Options;
 		value: string | Object;
-		label?: string;
 		disabled: Boolean;
 	};
 
 	const props = withDefaults(defineProps<Props>(), {
 		value: undefined,
-		label: 'label',
 		disabled: undefined,
 	});
 
@@ -59,8 +57,8 @@
 		let matches = 0;
 
 		const result = props.options.filter((item) => {
-			//@ts-ignore
-			if (item[props.label].toLowerCase().includes(search.value.toLowerCase()) && matches < 10) {
+			const searchValue = search.value?.toString() || '';
+			if (item.label.toLowerCase().includes(searchValue.toLowerCase()) && matches < 10) {
 				matches++;
 				return item;
 			}
@@ -76,12 +74,12 @@
 
 	const select = (item: any) => {
 		selectItem(item);
-		setValue(item[props.label]);
-		update(item[props.label]);
+		setValue(item.label);
+		update(item.label);
 	};
 
 	const click = (item: any) => {
-		setValue(item[props.label]);
-		update(item[props.label]);
+		setValue(item.label);
+		update(item.label);
 	};
 </script>

@@ -1,9 +1,9 @@
 <template>
-	<div class="flex flex-col h-full md:mt-0 mt-16 xl:max-w-screen-xl m-auto p-5 gap-8">
+	<div class="flex flex-col h-full xl:max-w-screen-xl m-auto p-5 gap-8">
 		<div class="flex flex-col w-6/12 mt-20 mx-auto">
-			<H1 v-if="!isTryOutHub()" class="text-center mb-8">{{ $t('home.hub_homepage_welcome_auth', [settings.hub.name]) }}</H1>
+			<H1 v-if="!isTryOutHub() && hubSettings.hubName" class="text-center mb-8">{{ $t('home.hub_homepage_welcome_auth', [hubSettings.hubName]) }}</H1>
 			<H1 v-else class="text-center mb-8">Welkom bij de TryOutHub</H1>
-			<Logo class="mx-auto max-w-24 max-h-20"></Logo>
+			<HubIcon v-if="hubSettings.hubName" :hub-name="hubSettings.hubName" :icon-url="hubSettings.iconUrlLight" :icon-url-dark="hubSettings.iconUrlDark" class="mx-auto max-w-24 max-h-20"></HubIcon>
 			<div v-if="isTryOutHub()" class="mt-20">
 				<p class="mb-6">
 					Hier kun je als organisatie een eigen Room krijgen om PubHubs zelf uit te proberen. Stel je organisatie heet ABC met webadres abc.nl. Dan kun je hier een eigen gesloten Room krijgen met naam ABC, binnen de TryOutHub.
@@ -34,17 +34,15 @@
 </template>
 
 <script setup lang="ts">
+	import HubIcon from '@/components/shared-with-global-client/HubIcon.vue';
 	import { usePubHubs } from '@/core/pubhubsStore';
 	import { useHubSettings } from '@/store/hub-settings';
-	import { useSettings } from '@/store/settings';
 
 	// Components
 	import H1 from '../components/elements/H1.vue';
-	import Logo from '../components/ui/Logo.vue';
 
 	const pubhubs = usePubHubs();
 	const hubSettings = useHubSettings();
-	const settings = useSettings();
 
 	type Props = {
 		/** This page can be shown to users that are not yet logged in to PubHubs Central. */

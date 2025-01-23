@@ -33,6 +33,14 @@
 </template>
 
 <script setup lang="ts">
+	// Components
+	import Dialog from '../ui/Dialog.vue';
+	import FormLine from '../forms/FormLine.vue';
+	import Label from '../forms/Label.vue';
+	import TextInput from '../forms/TextInput.vue';
+	import FormObjectInput from '../forms/FormObjectInput.vue';
+	import Icon from '../elements/Icon.vue';
+
 	import { onBeforeMount, ref, watch } from 'vue';
 	import { buttonsSubmitCancel, DialogButtonAction } from '@/store/dialog';
 	import { FormObjectInputTemplate } from '@/composables/useFormInputEvents';

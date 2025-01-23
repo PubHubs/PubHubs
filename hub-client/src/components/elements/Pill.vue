@@ -7,3 +7,8 @@
 		</div>
 	</div>
 </template>
+
+<script setup lang="ts">
+	// Components
+	import H3 from './H3.vue';
+</script>

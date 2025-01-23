@@ -24,6 +24,20 @@
 </template>
 
 <script setup lang="ts">
+	// Components
+	import TabHeader from '../ui/TabHeader.vue';
+	import TabPill from '../ui/TabPill.vue';
+	import Icon from '../elements/Icon.vue';
+	import TabContainer from '../ui/TabContainer.vue';
+	import TabContent from '../ui/TabContent.vue';
+	import FormLine from './FormLine.vue';
+	import Label from './Label.vue';
+	import TextInput from './TextInput.vue';
+	import TextArea from './TextArea.vue';
+	import Checkbox from './Checkbox.vue';
+	import Select from './Select.vue';
+	import AutoComplete from './AutoComplete.vue';
+
 	import { ref, inject } from 'vue';
 	import { InputType, FormObjectInputTemplate } from '@/composables/useFormInputEvents';
 

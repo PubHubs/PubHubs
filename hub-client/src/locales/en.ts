@@ -110,6 +110,7 @@ const en = {
 	menu: {
 		calender: 'Calender',
 		home: 'Home',
+		discover: 'Discover rooms',
 		logout: 'Logout',
 		name: 'Here will be a name',
 		private_rooms: '@:rooms.private_rooms',
@@ -118,6 +119,7 @@ const en = {
 		tool: 'Tool',
 		admin_tools: 'Admin tools',
 		admin_tools_rooms: 'Manage rooms',
+		admin_tools_hub_settings: 'Hub settings',
 		moderation_tools: 'Moderation tools',
 		moderation_tools_disclosure: 'Request disclosure',
 		delete_message: 'Delete message',
@@ -132,7 +134,7 @@ const en = {
 		load_more_results: 'Load more results',
 	},
 	rooms: {
-		room: 'Room:',
+		room: 'Room',
 		me: 'Me',
 		just_you: 'Just you',
 		join_sure: 'Do you wish to join this room?',
@@ -193,6 +195,16 @@ const en = {
 		notifications_allow: 'Allow notifications',
 		change_avatar: 'Change Avatar',
 	},
+	hub_settings: {
+		heading: 'Hub settings',
+		icon_heading: 'Hub icon',
+		icon_description: 'A public image for this Hub.',
+		save: 'Save changes',
+		settings_saved: 'Changes saved (may need page refresh to see changes)',
+		error_saving_icon: 'Could not save icon. Please try again later.',
+		file_format_not_allowed: 'Image format not allowed. Please use .png, .jpeg or .jpg files.',
+		file_too_large: 'Image too large. Please pick a smaller image.',
+	},
 	admin: {
 		title: 'Admin tools',
 		description: 'Create, edit, and delete (secured) rooms',
@@ -252,6 +264,7 @@ const en = {
 		success_msg: 'You can explore the rooms and chat with the community!',
 		later: "You haven't set your Hub nickname, which you can do later!",
 		update: 'Nickname updated',
+		nickname_placeholder: 'Type here your nickname ...',
 	},
 	message: {
 		send: 'Send',

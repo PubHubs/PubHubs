@@ -29,7 +29,7 @@
 	}
 </script>
 
-<style>
+<style scoped>
 	.triangle {
 		position: absolute;
 		bottom: -0.5rem;

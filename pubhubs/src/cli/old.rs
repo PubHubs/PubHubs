@@ -3,8 +3,6 @@ use actix_web::{App, HttpRequest, HttpResponse, HttpResponseBuilder, HttpServer,
 
 use std::fmt::{Debug, Formatter};
 
-use std::fs::read_to_string;
-
 use std::str::FromStr;
 
 use actix_web::web::{self, Data, Form, Path};
@@ -34,15 +32,12 @@ use crate::middleware::{metrics_auth, metrics_middleware};
 use crate::oidc::http::actix_support::CompleteRequest;
 use crate::oidc::AuthenticAuthRequestHandle;
 use crate::{
-    cookie::{
-        policy_cookie::accepted_policy, HttpRequestCookieExt as _, HttpResponseBuilderExt as _,
-    },
+    cookie::{HttpRequestCookieExt as _, HttpResponseBuilderExt as _},
     data::{
         DataCommands::{self, AllHubs, CreateHub, GetHub, GetUserById},
         Hub, HubHandle, Hubid,
     },
     oidc::Oidc as _,
-    policy::{full_policy, policy, policy_accept},
     translate::Translations,
     yivi::{disclosed_ph_id, login, next_session, register, SessionDataWithImage},
     yivi_proxy::{yivi_proxy, yivi_proxy_stream},
@@ -76,11 +71,6 @@ struct HubFormUpdate {
     description: String,
     oidc_redirect_uri: String,
     client_uri: String,
-}
-
-async fn index(req: HttpRequest) -> Result<HttpResponse, TranslatedError> {
-    Ok(HttpResponse::Ok()
-        .body(read_to_string("static/templates_hair/front.html").into_translated_error(&req)?))
 }
 
 async fn get_hubs<'a>(
@@ -662,150 +652,11 @@ async fn oidc_response_from_oidc_handle(
         })
 }
 
-async fn get_account(
-    req: HttpRequest,
-    id: Path<String>,
-    context: Data<Main>,
-    translations: Translations,
-) -> HttpResponse {
-    let cookie_secret = &context.cookie_secret;
-    let hair = &context.hair;
-    let db_tx = &context.db_tx;
-    let id = id.into_inner();
-    if req.assert_user_id(cookie_secret, id.clone()).is_ok() {
-        let (user_tx, user_rx) = oneshot::channel();
-        db_tx
-            .send(GetUserById {
-                resp: user_tx,
-                id: id.clone(),
-            })
-            .await
-            .expect("To use our channel");
-        match user_rx.await {
-            Ok(Ok(user)) => {
-
-                let global_client_uri : &str = context.global_client_uri();
-
-                let data = value!({
-                        "email": user.email,
-                        "telephone": user.telephone,
-                        "global_client_uri": global_client_uri,
-                        "content": "user",
-                    }).to_vec(false);
-                HttpResponse::Ok().body(hairy_eval_html_translations(hair.to_ref(), data.to_ref(), translations).unwrap())
-            },
-            Ok(Err(error)) =>
-                internal_server_error(
-                    "Could not locate user",
-                    hair,
-                    &format!(
-                        "Someone tried to get an account page with a valid cookie with id: '{}' and got this error {:?}",
-                        id, error,
-                    ),
-                    &req,
-                    translations
-                ),
-                Err(error) =>
-                internal_server_error(
-                    "Could not locate user",
-                    hair,
-                    &format!(
-                        "Someone tried to get an account page with a valid cookie with id: '{}' and got this error {:?}",
-                        id, error,
-                    ),
-                    &req, translations
-                ),
-
-        }
-    } else {
-        HttpResponse::Found()
-            .insert_header((LOCATION, format!("{}/login", translations.prefix())))
-            .finish()
-    }
-}
-
-async fn account_login(
-    req: HttpRequest,
-    context: Data<Main>,
-    translations: Translations,
-) -> Result<HttpResponse, TranslatedError> {
-    let user_id = req
-        .user_id_from_cookies(&context.cookie_secret)
-        .into_translated_error(&req)?;
-
-    match user_id {
-        None => {
-            let prefix = translations.prefix().to_string();
-            let data = value!( {
-                "content": "authenticate",
-                "url_prefix": prefix
-            })
-            .to_vec(false);
-            Ok(HttpResponse::Ok().body(
-                hairy_eval_html_translations(context.hair.to_ref(), data.to_ref(), translations)
-                    .expect("To render a template"),
-            ))
-        }
-        Some(id) => Ok(HttpResponse::Found()
-            .insert_header((
-                LOCATION,
-                format!("{}/account/{}", translations.prefix(), id),
-            ))
-            .finish()),
-    }
-}
-
 async fn account_logout(translations: Translations) -> impl Responder {
     HttpResponse::Found()
         .insert_header((LOCATION, format!("{}/client#/", translations.prefix())))
         .remove_session_cookies() // logout
         .finish()
-}
-
-#[derive(Deserialize, Serialize)]
-struct RegisterParams {
-    oidc_handle: String,
-    hub_name: String,
-}
-
-async fn register_account(
-    req: HttpRequest,
-    context: Data<Main>,
-    params: Option<Form<RegisterParams>>,
-    translations: Translations,
-) -> HttpResponse {
-    if !accepted_policy(&req) {
-        let resp = HttpResponse::Found()
-            .insert_header((
-                LOCATION,
-                format!(
-                    "{}/policy?{}",
-                    translations.prefix(),
-                    req.uri().query().unwrap_or("")
-                ),
-            ))
-            .finish();
-        return resp;
-    }
-
-    let (oidc_handle, hub_name) = params.map_or_else(Default::default, |params| {
-        (params.oidc_handle.clone(), params.hub_name.clone())
-    });
-
-    let prefix = translations.prefix().to_string();
-    let data = value!( {
-        "register": true,
-        "oidc_auth_request_handle": oidc_handle,
-        "hub_name": hub_name,
-        "content": "authenticate",
-        "url_prefix": prefix
-    })
-    .to_vec(false);
-
-    HttpResponse::Ok().body(
-        hairy_eval_html_translations(context.hair.to_ref(), data.to_ref(), translations)
-            .expect("To render a template"),
-    )
 }
 
 async fn not_found() -> impl Responder {
@@ -1077,23 +928,9 @@ fn config_actix_files(
     files
 }
 
-/// Extension trait to be able to conditionally call actix's `.route(...)`.
-trait ApplyWhenExt: Sized {
-    fn apply_when(self, condition: bool, f: impl FnOnce(Self) -> Self) -> Self {
-        if condition {
-            f(self)
-        } else {
-            self
-        }
-    }
-}
-
-impl<T> ApplyWhenExt for actix_web::Scope<T> {}
-
 // cfg: &mut web::ServiceConfig
 fn create_app(cfg: &mut web::ServiceConfig, context: Data<Main>) {
     let static_files_conf = context.static_files_conf.clone();
-    let legacy_static_pages: bool = context.hotfixes.legacy_static_pages;
 
     cfg.app_data(context)
         .service(config_actix_files(
@@ -1148,13 +985,6 @@ fn create_app(cfg: &mut web::ServiceConfig, context: Data<Main>) {
         .service(
             web::scope("")
                 .wrap_fn(middleware::translate)
-                .apply_when(legacy_static_pages, |scope| {
-                    scope
-                        .route("/", web::get().to(index))
-                        .route("/policy", web::get().to(policy))
-                        .route("/full_policy", web::get().to(full_policy))
-                        .route("/policy_accept", web::get().to(policy_accept))
-                })
                 .service(
                     web::scope("admin")
                         .wrap(middleware::Auth {})
@@ -1197,24 +1027,6 @@ fn create_app(cfg: &mut web::ServiceConfig, context: Data<Main>) {
                         .route("/state", web::put().to(crate::bar::put_state))
                         .route("/hubs", web::get().to(crate::bar::get_hubs)),
                 )
-                .apply_when(!legacy_static_pages, |scope| {
-                    // redirect the old Yivi issue_url:
-                    //      "/register?yivi_info"   to   "/client#/register?yivi_info"
-                    scope.service(
-                        web::scope("register")
-                            .guard(actix_web::guard::fn_guard(|gc| {
-                                gc.head().uri.query() == Some("yivi_info")
-                            }))
-                            .service(web::redirect("", "/client#/register?yivi_info")),
-                    )
-                })
-                .apply_when(legacy_static_pages, |scope| {
-                    scope
-                        .route("/register", web::get().to(register_account))
-                        .route("/register", web::post().to(register_account))
-                        .route("/account/{id}", web::get().to(get_account))
-                        .route("/login", web::get().to(account_login))
-                })
                 .route("/logout", web::get().to(account_logout))
                 .default_service(web::route().to(not_found))
                 .configure(|cfg| {
@@ -1227,7 +1039,7 @@ fn create_app(cfg: &mut web::ServiceConfig, context: Data<Main>) {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::data::{Policy, User};
+    use crate::data::User;
     use actix_web::body::MessageBody;
     use actix_web::dev::Service;
     use actix_web::http::StatusCode;
@@ -1235,10 +1047,8 @@ mod tests {
     use actix_web::test::TestRequest;
     use actix_web::FromRequest as _;
     use http::header::{AUTHORIZATION, SET_COOKIE};
-    use hyper::header::COOKIE;
     use hyper::service::{make_service_fn, service_fn};
     use hyper::{Body, Request, Response, Server};
-    use std::collections::HashMap;
     use std::convert::Infallible;
     use std::net::SocketAddr;
     use std::ops::DerefMut;
@@ -1253,20 +1063,6 @@ mod tests {
         SessionType::Disclosing, Status, MAIL, MOBILE_NO, PUB_HUBS_ID,
     };
     use regex::Regex;
-
-    #[actix_web::test]
-    async fn test_index() {
-        let response = index(test::TestRequest::default().to_http_request())
-            .await
-            .unwrap();
-        assert_eq!(response.status(), StatusCode::OK);
-
-        let body =
-            String::from_utf8(response.into_body().try_into_bytes().unwrap().to_vec()).unwrap();
-
-        let re = Regex::new(r"Pubhubs gaat van start</h2>").unwrap();
-        assert!(re.is_match(&body));
-    }
 
     #[actix_web::test]
     async fn test_hubs_ok() {
@@ -1582,87 +1378,6 @@ mod tests {
     }
 
     #[actix_web::test]
-    async fn test_register_account_redirects_if_policy_not_accepted() {
-        let context = create_test_context().await.unwrap();
-        let request = test::TestRequest::default().to_http_request();
-        let response =
-            register_account(request, Data::from(context), None, Translations::NONE).await;
-
-        assert_eq!(response.status(), StatusCode::FOUND);
-        assert_eq!(
-            response
-                .headers()
-                .get("Location")
-                .unwrap()
-                .to_str()
-                .unwrap(),
-            "/policy?"
-        );
-    }
-
-    #[actix_web::test]
-    async fn test_register_account() {
-        let context = create_test_context().await.unwrap();
-        let request = test::TestRequest::default()
-            .insert_header((COOKIE, "AcceptedPolicy=1"))
-            .to_http_request();
-
-        let response =
-            register_account(request, Data::from(context), None, Translations::NONE).await;
-
-        let body = body_to_string(response).await;
-
-        assert!(body.contains("let oidc_handle = "));
-        assert!(body.contains("let register = true"));
-        assert!(body.contains("let url_prefix = \"\""));
-        assert!(body.contains("yiviLogin(url_prefix, register, oidc_handle);"));
-    }
-
-    // TODO: add test for register_account with RegisterParams not None
-
-    #[actix_web::test]
-    async fn test_account_login() {
-        let context = create_test_context().await.unwrap();
-        let request = test::TestRequest::default().to_http_request();
-        let response = account_login(request, Data::from(context), Translations::NONE)
-            .await
-            .unwrap();
-
-        let body = body_to_string(response).await;
-        //To negate element style that places \n or \r in different OS
-        let regex_specialch = Regex::new(r"[\n\r]").unwrap();
-        let body = regex_specialch.replace_all(&body, "");
-        assert!(body.contains("let oidc_handle = null"));
-        assert!(body.contains("let register = false"));
-        assert!(body.contains("let url_prefix = \"\""));
-        assert!(body.contains("yiviLogin(url_prefix, register, oidc_handle);"));
-        let re = Regex::new(r#"<button.+Registreren.+button>"#).unwrap();
-        assert!(re.is_match(&body));
-
-        let context = create_test_context().await.unwrap();
-        let request = test::TestRequest::default().to_http_request();
-        let response = account_login(
-            request,
-            Data::from(context),
-            Translations::new("en".to_string(), HashMap::new()),
-        )
-        .await
-        .unwrap();
-
-        let body = body_to_string(response).await;
-        // To negate styles because block elements from html
-        let regex_specialch = Regex::new(r"[\n\r]").unwrap();
-        let body = regex_specialch.replace_all(&body, "");
-        println!("{}", body);
-        assert!(body.contains("let oidc_handle = null"));
-        assert!(body.contains("let register = false"));
-        assert!(body.contains("let url_prefix = \"/en\""));
-        assert!(body.contains("yiviLogin(url_prefix, register, oidc_handle);"));
-        let re = Regex::new(r#"<button.+Registreren.+button>"#).unwrap();
-        assert!(re.is_match(&body));
-    }
-
-    #[actix_web::test]
     async fn test_no_cookie_hub_login() {
         let oidc_secret: B64 = serde_bytes::ByteBuf::from(b"verysecret".to_vec()).into();
         let context = create_test_context_with(|mut f| {
@@ -1756,65 +1471,6 @@ mod tests {
         let body = body_to_string(response).await;
         assert!(&body.contains("<title>Form redirection...</title>"));
         assert!(!&body.contains("error"));
-    }
-
-    #[actix_web::test]
-    async fn test_get_account() {
-        let secret = "very secret";
-        let context = create_test_context_with(|mut f| {
-            f.cookie_secret = Some(secret.to_string());
-            f
-        })
-        .await
-        .unwrap();
-        let email = "email@test.com";
-        let user_id = create_user(email, &context).await;
-        let request = test::TestRequest::default()
-            .add_session_cookies(user_id.clone(), secret, false, false)
-            .unwrap();
-
-        let response = get_account(
-            request.to_http_request(),
-            user_id.to_string().into(),
-            Data::from(context),
-            Translations::NONE,
-        )
-        .await;
-
-        assert_eq!(response.status(), StatusCode::OK);
-        let body = body_to_string(response).await;
-        assert!(body.contains(format!("<p>{}</p>", email).as_str()));
-        assert!(body.contains(" <p>test_telephone</p>"));
-    }
-
-    #[actix_web::test]
-    async fn test_no_access_to_admin() {
-        let context = create_test_context().await.unwrap();
-        let email = "email@test.com";
-        let user_id = create_user(email, &context).await;
-        let secret = "very secret";
-
-        let app = test::init_service(
-            App::new().configure(move |cfg| create_app(cfg, Data::from(context))),
-        )
-        .await;
-        let req = test::TestRequest::get()
-            .uri("/admin/hubs")
-            .add_session_cookies(user_id, secret, false, false)
-            .unwrap()
-            .to_request();
-
-        let response = app.call(req).await;
-        match response {
-            Ok(_) => {
-                assert!(false)
-            }
-            Err(forbidden) => {
-                let resp = forbidden.error_response();
-                assert_eq!(resp.status(), StatusCode::FORBIDDEN);
-                assert_eq!(body_to_string(resp).await, "Forbidden");
-            }
-        }
     }
 
     #[actix_web::test]
@@ -2133,31 +1789,6 @@ mod tests {
     }
 
     #[actix_web::test]
-    async fn test_get_account_only_authorized() {
-        let context = create_test_context().await.unwrap();
-        let user_id = create_user("email", &context).await.to_string();
-        let request = test::TestRequest::get()
-            .insert_header((COOKIE, "no"))
-            .to_http_request();
-        let response = get_account(
-            request,
-            user_id.into(),
-            Data::from(context),
-            Translations::NONE,
-        )
-        .await;
-
-        assert_eq!(response.status(), StatusCode::FOUND);
-        let location = response
-            .headers()
-            .get("Location")
-            .unwrap()
-            .to_str()
-            .unwrap();
-        assert_eq!("/login", location);
-    }
-
-    #[actix_web::test]
     async fn test_yivi_finish_and_redirect() {
         let cookie_secret = "very_secret";
 
@@ -2322,68 +1953,6 @@ mod tests {
             next_session: None,
             error: None,
         })
-    }
-
-    #[actix_web::test]
-    async fn test_policy() {
-        let context = create_test_context().await.unwrap();
-        let highlights = ["highlight1".to_string(), "highlight2".to_string()];
-        let full_policy = "full_policy";
-
-        Policy::new(
-            full_policy.to_string(),
-            highlights.to_vec(),
-            &context.db_tx,
-            1000,
-        )
-        .await;
-
-        let req = TestRequest::default().to_http_request();
-        let response = policy(req, Data::from(context), Translations::NONE).await;
-
-        let body = body_to_string(response).await;
-        for highlight in highlights {
-            assert!(body.contains(&highlight));
-        }
-    }
-
-    #[actix_web::test]
-    async fn test_full_policy() {
-        let context = create_test_context().await.unwrap();
-        let highlights = ["highlight1".to_string(), "highlight2".to_string()];
-        let full_policy = "full_policy";
-
-        Policy::new(
-            full_policy.to_string(),
-            highlights.to_vec(),
-            &context.db_tx,
-            1000,
-        )
-        .await;
-
-        let req = TestRequest::default().to_http_request();
-        let response = policy(req, Data::from(context), Translations::NONE).await;
-
-        let body = body_to_string(response).await;
-        assert!(body.contains(full_policy));
-    }
-
-    #[actix_web::test]
-    async fn test_policy_accept() {
-        let query = "smt=a&smthelse=b";
-        let response = policy_accept(
-            Translations::NONE,
-            Some(actix_web::web::Query(query.to_owned())),
-        )
-        .await;
-        assert_eq!(response.status(), StatusCode::FOUND);
-        let location = response
-            .headers()
-            .get("Location")
-            .unwrap()
-            .to_str()
-            .unwrap();
-        assert!(location.ends_with(query))
     }
 
     #[actix_web::test]

@@ -1,5 +1,5 @@
 <template>
-	<p class="light:text-gray dark:text-white theme-dark:text-white theme-light:text-gray">
+	<p class="text-hub-text">
 		<slot></slot>
 	</p>
 </template>

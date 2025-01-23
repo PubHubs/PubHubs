@@ -1,7 +1,6 @@
 <template>
 	<!-- Temporary fix to set all text in the dialog to black until the dialog changes theme -->
 	<Dialog class="text-black" :title="$t('message.delete.heading')" :buttons="buttonsYesNo" @close="close($event)" width="max-w-full lg:max-w-[40%] min-w-[92.5%] lg:min-w-[22.5%]">
-		<p class="mb-4 whitespace-pre-line">{{ $t('message.delete.cannot_undo') }}</p>
 		<div v-if="!user.isAdmin && (event.content.msgtype === 'm.file' || event.content.msgtype === 'm.image')">
 			<p class="font-bold">{{ $t('message.delete.beware') }}</p>
 			<p class="font-bold mb-4">{{ $t('message.delete.file_not_deleted') }}</p>
@@ -16,6 +15,9 @@
 </template>
 
 <script setup lang="ts">
+	// Components
+	import Dialog from '../ui/Dialog.vue';
+
 	import Room from '@/pages/Room.vue';
 	import { buttonsYesNo, DialogButtonAction } from '@/store/dialog';
 	import { useUser } from '@/store/user';

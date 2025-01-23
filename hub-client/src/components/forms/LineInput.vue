@@ -22,6 +22,10 @@
 </template>
 
 <script setup lang="ts">
+	// Components
+	import TextInput from './TextInput.vue';
+	import Icon from '../elements/Icon.vue';
+
 	import { ref } from 'vue';
 	import { useFormInputEvents, usedEvents } from '@/composables/useFormInputEvents';
 

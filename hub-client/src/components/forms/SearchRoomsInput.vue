@@ -14,7 +14,11 @@
 </template>
 
 <script setup lang="ts">
+	// Components
+	import Icon from '../elements/Icon.vue';
+
 	import { ref } from 'vue';
+
 	const emit = defineEmits(['update-search-term']);
 	const inputValue = ref('');
 

@@ -6,10 +6,12 @@
 </template>
 
 <script setup lang="ts">
+	// Components
+	import Popover from '../ui/Popover.vue';
+
 	import { useMatrixFiles } from '@/composables/useMatrixFiles';
 	import { TImageMessageEventContent } from '@/model/events/TMessageEvent';
 	import { ref } from 'vue';
-	import Popover from '../ui/Popover.vue';
 
 	const { formUrlfromMxc } = useMatrixFiles();
 

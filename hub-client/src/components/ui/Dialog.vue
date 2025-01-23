@@ -14,8 +14,8 @@
 		<div v-if="!dialog.properties.modalonly" class="absolute inset-0 h-full flex z-20 py-2" @click="doAction(DialogCancel)">
 			<div class="theme-light m-auto max-h-full p-4 rounded-lg shadow-xl shadow-black bg-white flex flex-col justify-between gap-1" :class="width" @click.stop>
 				<div>
-					<Icon v-if="dialog.properties.close" type="close" size="md" class="float-right -mt-1 hover:text-red theme-light:text-gray theme-light:hover:text-red" @click="doAction(DialogCancel)"></Icon>
-					<H2 v-if="dialog.properties.title !== ''" class="m-0 text-left">{{ dialog.properties.title }}</H2>
+					<Icon v-if="dialog.properties.close" type="close" size="md" class="float-right -mt-1 hover:opacity-75" @click="doAction(DialogCancel)"></Icon>
+					<H2 v-if="dialog.properties.title !== ''" class="m-0 text-left text-black">{{ dialog.properties.title }}</H2>
 					<slot name="header"></slot>
 				</div>
 				<Line v-if="hasContent" class="z-0"></Line>
@@ -25,7 +25,7 @@
 				</div>
 				<Line class="z-0"></Line>
 				<div class="flex flex-row-reverse gap-2 justify-between">
-					<div v-for="(button, index) in dialog.properties.buttons" :key="index" class="">
+					<div v-for="(button, index) in dialog.properties.buttons" :key="index">
 						<Button :color="button.color" @click="doAction(button.action)" :disabled="!button.enabled">{{ $t('dialog.' + button.label) }}</Button>
 					</div>
 				</div>

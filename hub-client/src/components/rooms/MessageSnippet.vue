@@ -1,5 +1,5 @@
 <template>
-	<div class="bg-hub-background-3 flex px-2 gap-3 items-center rounded-md cursor-pointer">
+	<div class="bg-hub-background-3 flex px-2 gap-3 items-center rounded-md cursor-pointer truncate break-words">
 		<p v-if="showInReplyTo" class="text-nowrap">
 			{{ $t('message.in_reply_to') }}
 		</p>
@@ -14,6 +14,10 @@
 </template>
 
 <script setup lang="ts">
+	// Components
+	import UserDisplayName from './UserDisplayName.vue';
+	import Icon from '../elements/Icon.vue';
+
 	import { useUserColor } from '@/composables/useUserColor';
 	import { computed } from 'vue';
 	import Room from '@/model/rooms/Room';

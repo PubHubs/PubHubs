@@ -11,6 +11,9 @@
 </template>
 
 <script setup lang="ts">
+	// Components
+	import Button from '@/components/elements/Button.vue';
+
 	const props = defineProps({
 		errorKey: { type: String, required: true },
 	});

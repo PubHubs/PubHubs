@@ -1,6 +1,6 @@
 <template>
-	<div class="rounded-full w-12 h-12 aspect-square flex items-center justify-center overflow-hidden" :class="avatarColor">
-		<img v-if="imageUrl" data-testid="avatar" :src="imageUrl" class="rounded-full w-full h-full" />
+	<div class="rounded-full w-12 h-12 shrink-0 aspect-square flex items-center justify-center overflow-hidden" :class="avatarColor">
+		<img v-if="imageUrl" data-testid="avatar" :src="imageUrl" class="w-full h-full" />
 		<Icon v-else size="lg" type="person"></Icon>
 	</div>
 </template>
