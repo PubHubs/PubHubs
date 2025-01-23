@@ -6,6 +6,7 @@ _Please add a brief description of any changes to be tested and any migrations t
 - The unread message counter for hubs (in the global bar) now also updates upon receiving a new message when the user does not have the hub open. This feature is behind a feature flag, which will be disabled on stable.
 - Removed legacy static pages and some of the underlying code, see #1035.
 
+
 ## 21 January 2025 - v1.0.4
 
 - Styling issues fixed #598 #980 #1030 #1017
