@@ -34,7 +34,7 @@
 
 <script setup lang="ts">
 	import Icon from '@/components/elements/Icon.vue';
-	import HubIcon from '@/components/shared-with-global-client/HubIcon.vue';
+	import HubIcon from '@/components/ui/HubIcon.vue';
 	import HeaderFooter from '@/components/ui/HeaderFooter.vue';
 	import { SMI } from '@/dev/StatusMessage';
 	import { LOGGER } from '@/foundation/Logger';

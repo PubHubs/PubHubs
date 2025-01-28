@@ -204,7 +204,7 @@ const en = {
 		save: 'Save changes',
 		settings_saved: 'Changes saved (may need page refresh to see changes)',
 		error_saving_icon: 'Could not save icon. Please try again later.',
-		file_format_not_allowed: 'Image format not allowed. Please use .png, .jpeg or .jpg files.',
+		file_format_not_allowed: 'Image format not allowed. Please use .png, .jpeg, .jpg or svg files.',
 		file_too_large: 'Image too large. Please pick a smaller image.',
 	},
 	admin: {

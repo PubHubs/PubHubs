@@ -165,12 +165,14 @@ class HubClientApi(object):
         if self._is_test:
             return media_dir_path
 
-        if not os.path.exists(media_dir_path):
-            os.mkdir(media_dir_path)
-            # Setting permission directly via os.mkdir does not work (this can happen sometimes as per the python docs)
-            # Without execute permission, opening the file in write mode with python failed.
-            os.chmod(media_dir_path, 0o770)
-            logger.info(f"Created media directory: '{media_dir_path}'")
+        try:
+            if not os.path.exists(media_dir_path):
+                os.mkdir(media_dir_path)
+                os.chmod(media_dir_path, 0o770)
+                logger.info(f"Created media directory: '{media_dir_path}'")
+        except Exception as e:
+                logger.error(f"Failed to create media directory '{media_dir_path}': {e}")
+            
         return media_dir_path
 
     # Deprecated: use HubClientApiConfig class instead
