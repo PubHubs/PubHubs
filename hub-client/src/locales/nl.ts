@@ -203,7 +203,7 @@ const nl = {
 		save: 'Opslaan',
 		settings_saved: 'Veranderingen opgeslagen (ververs de pagina om ze te zien).',
 		error_saving_icon: 'Kon het icoon niet opslaan. Probeer het later opnieuw.',
-		file_format_not_allowed: 'Bestandsformaat niet toegestaan. Gebruik .png, .jpeg of .jpg bestanden.',
+		file_format_not_allowed: 'Bestandsformaat niet toegestaan. Gebruik .png, .jpeg, .jpg or svg bestanden.',
 		file_too_large: 'Bestand te groot. Gebruik een kleiner bestand.',
 	},
 	admin: {

@@ -17,7 +17,7 @@
 <script setup lang="ts">
 	import { Hub } from '@/store/hubs';
 	import Badge from '../../../../hub-client/src/components/elements/Badge.vue';
-	import HubIcon from '../../../../hub-client/src/components/shared-with-global-client/HubIcon.vue';
+	import HubIcon from '../../../../hub-client/src/components/ui/HubIcon.vue';
 
 	import { ref } from 'vue';
 	import { useMessageBox } from '@/store/messagebox';
