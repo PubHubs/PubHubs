@@ -74,6 +74,6 @@
 	}
 
 	function showHelp() {
-		dialog.okcancel('Help?', 'Rescue in progress');
+		dialog.okcancel(t('others.help'), t('others.work_in_progress'));
 	}
 </script>

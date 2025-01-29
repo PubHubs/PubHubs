@@ -11,7 +11,7 @@
 <script setup lang="ts">
 	import { computed } from 'vue';
 	import { Hub } from '@/store/store';
-	import HubIcon from '../../../../hub-client/src/components/shared-with-global-client/HubIcon.vue';
+	import HubIcon from '../../../../hub-client/src/components/ui/HubIcon.vue';
 
 	const props = defineProps<{ hub: Hub }>();
 

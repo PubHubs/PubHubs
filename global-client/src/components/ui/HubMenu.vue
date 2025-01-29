@@ -14,6 +14,7 @@
 								class="text-ph-text border"
 								v-if="(hubs.hub(element.hubId) && global.loggedIn) || element.hubId === hubs.currentHubId"
 								:hub="hubs.hub(element.hubId)"
+								:hubId="element.hubId"
 								:active="isActive"
 								:pinned="true"
 								:hubOrderingIsActive="hubOrderingIsActive"

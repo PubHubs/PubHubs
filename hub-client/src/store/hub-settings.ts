@@ -22,7 +22,7 @@ type HubSettingsState = {
 	_iconUrlDark: string;
 };
 
-export const ALLOWED_HUB_ICON_TYPES = ['image/png', 'image/jpeg', 'image/jpg'];
+export const ALLOWED_HUB_ICON_TYPES = ['image/png', 'image/jpeg', 'image/jpg', 'image/svg+xml'];
 export const MAX_HUB_ICON_SIZE = 5000000; // ~5MB
 
 const useHubSettings = defineStore('hub-settings', {
