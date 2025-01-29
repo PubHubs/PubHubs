@@ -3,6 +3,10 @@ use std::rc::Rc;
 use actix_web::web;
 
 use crate::servers::{self, AppBase, AppCreatorBase, Constellation, Handle};
+use crate::{
+    api::{self, EndpointDetails as _},
+    handle,
+};
 
 /// Authentication server
 pub type Server = servers::ServerImpl<Details>;
@@ -28,8 +32,27 @@ pub struct App {
     base: AppBase<Server>,
 }
 
+impl App {
+    async fn handle_auth_start(
+        app: Rc<Self>,
+        req: web::Json<api::auths::AuthStartReq>,
+    ) -> api::Result<api::auths::AuthStartResp> {
+        todo! {}
+    }
+
+    async fn handle_auth_complete(
+        app: Rc<Self>,
+        req: web::Json<api::auths::AuthCompleteReq>,
+    ) -> api::Result<api::auths::AuthCompleteResp> {
+        todo! {}
+    }
+}
+
 impl crate::servers::App<Server> for Rc<App> {
-    fn configure_actix_app(&self, _sc: &mut web::ServiceConfig) {}
+    fn configure_actix_app(&self, sc: &mut web::ServiceConfig) {
+        api::auths::AuthStartEP::add_to(self, sc, App::handle_auth_start);
+        api::auths::AuthCompleteEP::add_to(self, sc, App::handle_auth_complete);
+    }
 
     fn check_constellation(&self, constellation: &Constellation) -> bool {
         // Dear maintainer: this destructuring is intentional, making sure that this `check_constellation` function
