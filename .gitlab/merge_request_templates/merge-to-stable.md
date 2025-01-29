@@ -37,6 +37,7 @@ General tips:
           - [ ] Send a message in the public room.
           - [ ] Send a message in the secured room (if you are admin, you can allways enter a secured room, so important to test this with a normal user).
           - [ ] Sending a private message.
+          - [ ] Send a message with an image file and a message with another file (ie PDF or txt or docx).
           - [ ] Leave one of the secured rooms. And re-enter that room.
         - [ ] Change displayname and avatar.
         - [ ] Change Theme & Language, and see they are stored/fetched after logout/login.
