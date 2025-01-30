@@ -10,6 +10,6 @@ const routes = [
 			onboardingStep: route.params.onboardingStep == '' ? undefined : parseInt(route.params.onboardingStep),
 		}),
 	},
-	{ path: '/hub/:id/:roomId?', name: 'hub', component: Hub },
+	{ path: '/hub/:name/:roomId?', name: 'hub', component: Hub },
 ];
 export { routes };

@@ -15,7 +15,7 @@
 
 	onUnmounted(() => {
 		hubs.changeHub({
-			id: '',
+			name: '',
 			roomId: '',
 		});
 	});
@@ -25,17 +25,18 @@
 	const hubUrl = ref('');
 
 	async function onRouteChange() {
-		if (!hubs.hubExists(route.params.id as string)) {
+		const hubId = hubs.hubId(route.params.name as string);
+		if (!hubs.hubExists(hubId)) {
 			await hubs.changeHub({ id: '', roomId: '' });
 		}
-		handleHubAuth(route.params.id as string);
+		handleHubAuth(hubId);
 		await hubs.changeHub(route.params);
 	}
 
 	function handleHubAuth(id: string) {
 		const hub = hubs.hub(id)!;
-		const hubName = hub?.hubId!;
-		const state = hubloggedinstatus(hubName, new URLSearchParams(window.location.search));
+		const hubId = hub?.hubId!;
+		const state = hubloggedinstatus(hubId, new URLSearchParams(window.location.search));
 
 		switch (state.kind) {
 			case Status.GlobalNotLoggedIn:
@@ -43,7 +44,7 @@
 				break;
 			case Status.HubNotLoggedIn:
 				{
-					const hubServer = hubs.serverUrl(hubName);
+					const hubServer = hubs.serverUrl(hubId);
 					// @ts-ignore
 					const redirect = _env.PUBHUBS_URL + '/client%23' + window.location.hash.substring(1);
 					window.location.assign(hubServer + '_matrix/client/v3/login/sso/redirect?redirectUrl=' + redirect);
@@ -92,7 +93,7 @@
 		}
 
 		const logintoken = urlparams.get('loginToken');
-		const accesstoken = localStorage.getItem(hubid + 'accessToken');
+		const accesstoken = global.getAccessToken(hubid);
 
 		if (logintoken && !accesstoken) {
 			return {

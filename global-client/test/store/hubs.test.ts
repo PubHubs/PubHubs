@@ -20,10 +20,10 @@ describe('hubs Store', () => {
 			const hubs = useHubs(pinia);
 			expect(Object.keys(hubs.hubs).length).toEqual(0);
 
-			const testHub = new Hub('test', 'www.test.test', 'serverurl', 'description', pinia)
+			const testHub = new Hub('test-Id', 'test', 'www.test.test', 'serverurl', 'description', pinia);
 			hubs.addHub(testHub);
 			expect(Object.keys(hubs.hubs).length).toEqual(1);
-			expect(hubs.hubs['test']).toMatchObject(testHub);
+			expect(hubs.hubs['test-Id']).toMatchObject(testHub);
 		});
 
 		test('hubsArray', () => {
@@ -34,9 +34,9 @@ describe('hubs Store', () => {
 
 		test('sortedHubsArray', () => {
 			const hubs = useHubs(pinia);
-			hubs.addHub(new Hub('Btest', 'url', 'serverurl', 'description', pinia));
-			hubs.addHub(new Hub('Atest', 'url', 'serverurl', 'description', pinia));
-			hubs.addHub(new Hub('Ctest', 'url', 'serverurl', 'description', pinia));
+			hubs.addHub(new Hub('Btest-Id', 'Btest', 'url', 'serverurl', 'description', pinia));
+			hubs.addHub(new Hub('Atest-Id', 'Atest', 'url', 'serverurl', 'description', pinia));
+			hubs.addHub(new Hub('Ctest-Id', 'Ctest', 'url', 'serverurl', 'description', pinia));
 			expect(hubs.sortedHubsArray).toBeTypeOf('object');
 			expect(hubs.sortedHubsArray.length).toBeTypeOf('number');
 			expect(hubs.sortedHubsArray.length).toEqual(hubs.hubsArray.length);
@@ -46,21 +46,21 @@ describe('hubs Store', () => {
 		test('hasHubs', () => {
 			const hubs = useHubs(pinia);
 			expect(hubs.hasHubs).toEqual(false);
-			hubs.addHub(new Hub('test','url', 'serverurl', 'description', pinia) );
+			hubs.addHub(new Hub('test-Id', 'test', 'url', 'serverurl', 'description', pinia));
 			expect(hubs.hasHubs).toEqual(true);
 		});
 
 		test('hubExists', () => {
 			const hubs = useHubs(pinia);
 			expect(hubs.hubExists('test')).toEqual(false);
-			hubs.addHub(new Hub('test', 'url', 'serverurl', 'description', pinia));
-			expect(hubs.hubExists('test')).toEqual(true);
+			hubs.addHub(new Hub('test-Id', 'test', 'url', 'serverurl', 'description', pinia));
+			expect(hubs.hubExists('test-Id')).toEqual(true);
 		});
 
 		test('hub', () => {
 			const hubs = useHubs(pinia);
-			hubs.addHub(new Hub('test', 'url', 'serverurl', 'description', pinia));
-			expect(hubs.hub('test')).toBeTypeOf('object');
+			hubs.addHub(new Hub('test-Id', 'test', 'url', 'serverurl', 'description', pinia));
+			expect(hubs.hub('test-Id')).toBeTypeOf('object');
 		});
 	});
 });
