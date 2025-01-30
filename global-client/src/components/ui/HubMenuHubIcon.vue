@@ -5,7 +5,7 @@
 			<Badge class="text-xxs" color="ph" v-if="hub.unreadMessages > 99">99+</Badge>
 			<Badge color="ph" v-else>{{ hub.unreadMessages }}</Badge>
 		</div>
-		<div v-if="hub && !hubOrderingIsActive && accessToken && settings.isFeatureEnabled(FeatureFlag.unreadCounter)" class="z-10 absolute -right-1 -top-1">
+		<div v-show="hub && !hubOrderingIsActive && accessToken && settings.isFeatureEnabled(FeatureFlag.unreadCounter)" class="z-10 absolute -right-1 -top-1">
 			<iframe :src="hub.url + '/miniclient.html?accessToken=' + accessToken" class="w-7 h-7"></iframe>
 		</div>
 
@@ -20,9 +20,11 @@
 	import HubIcon from '../../../../hub-client/src/components/ui/HubIcon.vue';
 
 	import { ref } from 'vue';
+	import { useGlobal } from '@/store/global';
 	import { useMessageBox } from '@/store/messagebox';
 	import { useSettings, FeatureFlag } from '@/store/settings';
 
+	const global = useGlobal();
 	const messagebox = useMessageBox();
 	const settings = useSettings();
 
@@ -48,7 +50,7 @@
 		hubOrderingIsActive: false,
 	});
 
-	const accessToken = ref<string | null>(localStorage.getItem(props.hubId + 'accessToken'));
+	const accessToken = ref<string | null>(global.getAccessToken(props.hubId));
 
 	// When a user opens the hub for the first time on a device or in a browser, the accessToken is
 	// only stored after the receivedMessage action with a message of type addAccessToken from
@@ -56,7 +58,7 @@
 	messagebox.$onAction(({ name, args, after }) => {
 		if (name === 'receivedMessage' && args[0].type === 'addAccessToken') {
 			after(() => {
-				accessToken.value = localStorage.getItem(props.hubId + 'accessToken');
+				accessToken.value = global.getAccessToken(props.hubId);
 			});
 		}
 	});
