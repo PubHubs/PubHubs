@@ -42,6 +42,9 @@ pub mod handle;
 pub mod id;
 
 #[cfg(feature = "bin")]
+pub mod map;
+
+#[cfg(feature = "bin")]
 pub mod attr;
 
 #[cfg(feature = "bin")]

@@ -1,6 +1,6 @@
 //! Information about hubs
 
-use crate::handle::Handles;
+use crate::handle::{Handle, Handles};
 use crate::id::Id;
 
 /// Basic details about hub, as provided by PubHubs Central.
@@ -24,6 +24,16 @@ pub struct BasicInfo {
 
     /// Immutable and unique identifier
     pub id: Id,
+}
+
+impl crate::map::Handled for BasicInfo {
+    fn handles(&self) -> &[Handle] {
+        &self.handles
+    }
+
+    fn id(&self) -> &Id {
+        &self.id
+    }
 }
 
 #[cfg(test)]

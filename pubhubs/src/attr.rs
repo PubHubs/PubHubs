@@ -38,24 +38,6 @@ pub struct Attr {
     /// Refers to the this attribute's [`attr::Type`] via the type's `[Id]`.
     attr_type: Id,
 
-    /// The user, if any, that this attribute can identify.
-    ///
-    /// Only identifies the user if the user lists this attribute among its [`Id::id_attributes`].
-    ///
-    /// Once set, this should never be unset.  This prevents impersonation of a user when
-    /// they remove their id.
-    #[serde(default)]
-    may_identify_user: Option<Id>,
-
-    /// The users that provided this attribute as bannable attribute.
-    /// If this attribute gets banned, so will they.
-    #[serde(default)]
-    bans_users: Vec<Id>,
-
-    /// Whether this attribute has been banned.
-    #[serde(default)]
-    banned: bool,
-
     /// Actual value of this attribute, in a format that is [`attr::Type`] dependent.
     value: String,
 }
@@ -78,4 +60,28 @@ impl Attr {
 
         bytes.into()
     }
+}
+
+/// State of an [Attr] according to pubhubs central.
+#[derive(serde::Deserialize, serde::Serialize, Debug, Clone)]
+pub struct AttrState {
+    attr: Id,
+
+    /// Whether this attribute has been banned.
+    #[serde(default)]
+    banned: bool,
+
+    /// The user, if any, that this attribute can identify.
+    ///
+    /// Only identifies the user if the user lists this attribute among its [`Id::id_attributes`].
+    ///
+    /// Once set, this should never be unset.  This prevents impersonation of a user when
+    /// they remove their id.
+    #[serde(default)]
+    may_identify_user: Option<Id>,
+
+    /// The users that provided this attribute as bannable attribute.
+    /// If this attribute gets banned, so will they.
+    #[serde(default)]
+    bans_users: Vec<Id>,
 }

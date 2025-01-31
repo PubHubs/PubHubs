@@ -42,8 +42,7 @@ pub struct App {
     base: AppBase<Server>,
     transcryptor_url: url::Url,
     auths_url: url::Url,
-    hubs: HashMap<id::Id, hub::BasicInfo>,
-    hub_by_handle: HashMap<handle::Handle, id::Id>,
+    hubs: crate::map::Map<hub::BasicInfo>,
     master_enc_key_part: elgamal::PrivateKey,
 }
 
@@ -202,7 +201,7 @@ impl App {
 
         let req = api::return_if_ec!(signed_req.clone().open_without_checking_signature());
 
-        let hub = if let Some(hub) = app.hub_by_handle(&req.handle) {
+        let hub = if let Some(hub) = app.hubs.get(&req.handle) {
             hub
         } else {
             return api::err(api::ErrorCode::UnknownHub);
@@ -239,10 +238,6 @@ impl App {
         )))
     }
 
-    fn hub_by_handle(&self, handle: &handle::Handle) -> Option<&hub::BasicInfo> {
-        self.hubs.get(self.hub_by_handle.get(handle)?)
-    }
-
     async fn handle_hub_key(
         app: Rc<Self>,
         signed_req: web::Json<api::phc::hub::TicketSigned<api::phct::hub::KeyReq>>,
@@ -274,8 +269,7 @@ pub struct AppCreator {
     base: AppCreatorBase<Server>,
     transcryptor_url: url::Url,
     auths_url: url::Url,
-    hubs: HashMap<id::Id, hub::BasicInfo>,
-    hub_by_handle: HashMap<handle::Handle, id::Id>,
+    hubs: crate::map::Map<hub::BasicInfo>,
     master_enc_key_part: elgamal::PrivateKey,
 }
 
@@ -286,33 +280,18 @@ impl crate::servers::AppCreator<Server> for AppCreator {
             transcryptor_url: self.transcryptor_url,
             auths_url: self.auths_url,
             hubs: self.hubs,
-            hub_by_handle: self.hub_by_handle,
             master_enc_key_part: self.master_enc_key_part,
         })
     }
 
     fn new(config: &servers::Config) -> anyhow::Result<Self> {
-        let mut hubs: HashMap<id::Id, hub::BasicInfo> = Default::default();
-        let mut hub_by_handle: HashMap<handle::Handle, id::Id> = Default::default();
+        let mut hubs: crate::map::Map<hub::BasicInfo> = Default::default();
 
         let xconf = &config.phc.as_ref().unwrap().extra;
 
         for basic_hub_info in xconf.hubs.iter() {
-            anyhow::ensure!(
-                hubs.insert(basic_hub_info.id, basic_hub_info.clone())
-                    .is_none(),
-                "detected two hubs with the same id, {}",
-                basic_hub_info.id
-            );
-
-            for handle in basic_hub_info.handles.iter() {
-                anyhow::ensure!(
-                    hub_by_handle
-                        .insert(handle.clone(), basic_hub_info.id)
-                        .is_none(),
-                    "detected two hubs with the same handle, {}",
-                    handle
-                );
+            if let Some(hub_or_id) = hubs.insert_new(basic_hub_info.clone()) {
+                anyhow::bail!("two hubs are known as {hub_or_id}");
             }
         }
 
@@ -326,7 +305,6 @@ impl crate::servers::AppCreator<Server> for AppCreator {
             transcryptor_url: xconf.transcryptor_url.as_ref().clone(),
             auths_url: xconf.auths_url.as_ref().clone(),
             hubs,
-            hub_by_handle,
             master_enc_key_part,
         })
     }
