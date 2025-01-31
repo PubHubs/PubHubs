@@ -8,6 +8,8 @@ import { CONFIG } from '../../../hub-client/src/foundation/Config';
 
 type PinnedHub = {
 	hubId: string;
+	hubName: string;
+	accessToken?: string;
 };
 
 type PinnedHubs = Array<PinnedHub>;
@@ -27,6 +29,7 @@ const defaultGlobalSettings = {
 };
 
 interface hubResponseItem {
+	id: string;
 	name: string;
 	client_uri: string;
 	server_uri: string;
@@ -79,7 +82,13 @@ const useGlobal = defineStore('global', {
 					return false;
 				}
 
-				this.setGlobalSettings(data);
+				await this.setGlobalSettings(data);
+
+				// Remove any accessTokens that are left in localStorage
+				Object.keys(localStorage)
+					.filter((key) => key.endsWith('accessToken'))
+					.forEach((key) => localStorage.removeItem(key));
+
 				this.loggedIn = true;
 				return true;
 			} catch (error) {
@@ -88,7 +97,7 @@ const useGlobal = defineStore('global', {
 			}
 		},
 
-		setGlobalSettings(data: any) {
+		async setGlobalSettings(data: any) {
 			this.logger.log(SMI.STARTUP, 'setGlobalSettings', data);
 			const settings = useSettings();
 			settings.setTheme(data.theme);
@@ -100,6 +109,33 @@ const useGlobal = defineStore('global', {
 				data.language = navigator.language;
 			}
 			settings.setLanguage(data.language);
+
+			const hubs = await api.apiGET<Array<hubResponseItem>>(api.apiURLS.hubs, []);
+			const hubNames = hubs.map((hub) => hub.name);
+			data.hubs.forEach((hub: PinnedHub, index: number, array: PinnedHubs) => {
+				// For backwards compatibility, a check is performed to see if the hubName is stored as the hubId (which was the case before fixing issue #1051).
+				// If this is the case, the hubId corresponding to the hub with hubName is looked up and the hubName is overwritten by this hubId.
+				if (hubNames.includes(hub.hubId)) {
+					const hubId = hubs.find((hubRespItem) => hubRespItem.name === hub.hubId)?.id;
+					// For backwards compatibility, check if the accessToken is stored in localStorage.
+					// If this is the case, add the accessToken to the pinnedHubs and remove it from localStorage.
+					const accessToken = localStorage.getItem(hub.hubId + 'accessToken');
+					if (hubId && accessToken) {
+						array[index] = { hubId: hubId, hubName: hub.hubId, accessToken: accessToken };
+						localStorage.removeItem(hub.hubId + 'accessToken');
+					} else if (hubId) {
+						array[index] = { hubId: hubId, hubName: hub.hubId };
+					} else {
+						// If the hub with this hubName cannot be found, remove it from the pinnedHubs.
+						this.removePinnedHub(index);
+					}
+				}
+				// Check if the hubName has changed since the last update of /bar/state.
+				const hubName = hubs.find((hubRespItem) => hubRespItem.id === hub.hubId)?.name;
+				if (hubName !== undefined) {
+					hub.hubName = hubName;
+				}
+			});
 			this.pinnedHubs = data.hubs;
 		},
 
@@ -136,7 +172,7 @@ const useGlobal = defineStore('global', {
 				this.pinnedHubs = [] as PinnedHubs;
 			}
 			// make sure the hub is flattend, we only need the hubId
-			hub = { hubId: hub.hubId };
+			hub = { hubId: hub.hubId, hubName: hub.hubName };
 			if (order < 0 || order > this.pinnedHubs.length) {
 				this.pinnedHubs.push(hub);
 			} else {
@@ -148,11 +184,21 @@ const useGlobal = defineStore('global', {
 			this.pinnedHubs.splice(order, 1);
 		},
 
+		addAccessToken(hubId: string, accessToken: string) {
+			const index = this.pinnedHubs.findIndex((hub) => hub.hubId === hubId);
+			this.pinnedHubs[index].accessToken = accessToken;
+		},
+
+		removeAccessToken(hubId: string) {
+			const index = this.pinnedHubs.findIndex((hub) => hub.hubId === hubId);
+			this.pinnedHubs[index].accessToken = undefined;
+		},
+
 		async getHubs() {
 			const data = await api.apiGET<Array<hubResponseItem>>(api.apiURLS.hubs, []);
 			const hubs = [] as HubList;
 			data.forEach((item: hubResponseItem) => {
-				hubs.push(new Hub(item.name, item.client_uri, item.server_uri, item.description));
+				hubs.push(new Hub(item.id, item.name, item.client_uri, item.server_uri, item.description));
 			});
 			return hubs;
 		},
@@ -161,6 +207,14 @@ const useGlobal = defineStore('global', {
 			if (!this.pinnedHubs) return false;
 			const found = this.pinnedHubs.find((hub) => hub.hubId === hubId);
 			return found;
+		},
+
+		getAccessToken(hubId: string) {
+			const accessToken = this.pinnedHubs.find((hub) => hub.hubId === hubId)?.accessToken;
+			if (accessToken === undefined) {
+				return null;
+			}
+			return accessToken;
 		},
 
 		showModal() {

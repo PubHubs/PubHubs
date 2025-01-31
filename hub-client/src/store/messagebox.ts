@@ -66,8 +66,8 @@ enum MessageType {
 	HubInformation = 'hubinformation', // Sync hub information (name) with hub client.
 	Settings = 'settings', // Sync settings
 	RoomChange = 'roomchange', // Change to a room - makes it possible to reflect the room in the url
-	AddAccessToken = 'addAccessToken', // Hub frame sends a access token for the global client to store in it's localstorage.
-	RemoveAccessToken = 'removeAccessToken', // Hub frame sends a message to remove its' access to token to the global client.
+	AddAccessToken = 'addAccessToken', // Hub frame sends a access token for the global client to store in it's /bar/state.
+	RemoveAccessToken = 'removeAccessToken', // Hub frame sends a message to remove its' access token to the global client.
 	BarShow = 'visibilityBar-show', // Show side bar, mostly relevant for mobile where it can be hidden.
 	BarHide = 'visibilityBar-hide',
 }

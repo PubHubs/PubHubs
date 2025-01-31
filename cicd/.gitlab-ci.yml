@@ -328,7 +328,6 @@ deploy-main-hubclient:
     - cd hub-client
     - chmod 600 $ILAB_VM_TRIGGER_UPDATE_KEY
     - ssh -o UserKnownHostsFile=$ILAB_VM_TRIGGER_UPDATE_KNOWN_HOSTS $ILAB_VM_TRIGGER_UPDATE_USER@ph.ihub.ru.nl -i $ILAB_VM_TRIGGER_UPDATE_KEY docker-testhub-client-main
-    - ssh -o UserKnownHostsFile=$ILAB_VM_TRIGGER_UPDATE_KNOWN_HOSTS $ILAB_VM_TRIGGER_UPDATE_USER@ph.ihub.ru.nl -i $ILAB_VM_TRIGGER_UPDATE_KEY docker-testhub2-client-main
 
 deploy-stable-client:
   stage: deploy

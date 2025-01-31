@@ -3,16 +3,16 @@
 		<div class="grid flex-1 gap-2 pt-4 overflow-y-auto scrollbar">
 			<draggable @start="backupPinnedHubs = global.pinnedHubs.slice()" @end="hoverOverHubremoval = false" :list="global.pinnedHubs" :item-key="'hubId'" handle=".handle" class="flex flex-col gap-2 list-group" group="hubs">
 				<template #item="{ element }">
-					<div class="flex gap-1 justify-center" :class="{ handle: hubOrderingIsActive }">
+					<div v-if="hubs.hub(element.hubId)" class="flex gap-1 justify-center" :class="{ handle: hubOrderingIsActive }">
 						<!-- When hub ordering is active, these buttons will be visible as an indicator -->
 						<div class="hover:cursor-pointer flex flex-col gap-2 my-auto" :class="{ hidden: !hubOrderingIsActive }">
 							<Icon type="triangle" size="xs"></Icon>
 							<Icon class="rotate-180" type="triangle" size="xs"></Icon>
 						</div>
-						<router-link :to="{ name: 'hub', params: { id: element.hubId } }" v-slot="{ isActive }">
+						<router-link :to="{ name: 'hub', params: { name: element.hubName } }" v-slot="{ isActive }">
 							<HubMenuHubIcon
 								class="text-ph-text border"
-								v-if="(hubs.hub(element.hubId) && global.loggedIn) || element.hubId === hubs.currentHubId"
+								v-if="global.loggedIn || element.hubId === hubs.currentHubId"
 								:hub="hubs.hub(element.hubId)"
 								:hubId="element.hubId"
 								:active="isActive"
@@ -29,7 +29,7 @@
 			<div class="absolute grid justify-center items-center h-full w-full">
 				<Icon type="unpin" size="xl" :class="[hoverOverHubremoval ? 'text-red' : 'text-ph-accent-icon']"></Icon>
 			</div>
-			<draggable group="hubs" @dragover="hoverOverHubremoval = true" @dragleave="hoverOverHubremoval = false" :list="[]" @change="confirmationHubRemoval" tag="ul" class="list-group h-full opacity-0">
+			<draggable group="hubs" @dragover="hoverOverHubremoval = true" @dragleave="hoverOverHubremoval = false" :list="[]" @change="confirmationHubRemoval" :item-key="'unpin'" tag="ul" class="list-group h-full opacity-0">
 				<template #item="{ element: trash }">
 					<li>{{ trash }}</li>
 				</template>

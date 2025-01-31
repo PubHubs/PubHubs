@@ -1,8 +1,8 @@
 <template>
 	<div v-if="hub" class="flex flex-col gap-1 text-center justify-between bg-ph-background-3 dark:bg-ph-background-5 hover:bg-blue h-36 p-4 rounded-md relative cursor-pointer w-full overflow-hidden">
-		<H3 class="m-0"
-			><TruncatedText>{{ hub.hubId }}</TruncatedText></H3
-		>
+		<H3 class="m-0">
+			<TruncatedText>{{ hub.hubName }}</TruncatedText>
+		</H3>
 		<HubIcon :icon-url="hub.iconUrlLight" :icon-url-dark="hub.iconUrlDark" :hub-name="hub.name" class="max-h-16 max-w-16 mx-auto"></HubIcon>
 		<TruncatedText>{{ description }}</TruncatedText>
 	</div>
