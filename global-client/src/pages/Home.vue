@@ -78,7 +78,7 @@
 		if (canEnterHub) {
 			router.push({ name: 'hub', params: { name: hub.name } });
 		} else {
-			dialog.confirm(hub.name, t('hubs.under_construction'));
+			await dialog.confirm(hub.name, t('hubs.under_construction'));
 		}
 	}
 
