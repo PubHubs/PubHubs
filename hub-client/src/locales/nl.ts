@@ -134,6 +134,9 @@ const nl = {
 		help: 'Hulp nodig?',
 		work_in_progress: 'Hier wordt aan gewerkt.',
 	},
+	hubs: {
+		under_construction: 'Deze hub is in onderhoud',
+	},
 	rooms: {
 		room: 'Kamer',
 		me: 'Ik',
