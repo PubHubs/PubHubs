@@ -25,9 +25,9 @@
 		<H2 class="text-center mb-8">{{ $t('home.highlighted_hubs') }}</H2>
 
 		<div class="grid md:grid-cols-3 gap-8">
-			<router-link v-for="hub in hubs.activeHubs" :key="hub.hubId" :to="{ name: 'hub', params: { name: hub.name } }" class="overflow-hidden">
+			<button v-for="hub in hubs.activeHubs" :key="hub.hubId" @click="enterHub(hub)" class="overflow-hidden">
 				<HubBlock :hub="hub"></HubBlock>
-			</router-link>
+			</button>
 		</div>
 	</div>
 	<form v-if="show" method="POST" action="/yivi-endpoint/finish-and-redirect">
@@ -39,9 +39,16 @@
 	import { useGlobal, useHubs } from '@/store/store';
 	import { ref } from 'vue';
 	import { yivi } from '@/yivi';
+	import { Hub } from '@/store/store';
+	import { useRouter } from 'vue-router';
+	import { useDialog } from '@/store/store';
+	import { useI18n } from 'vue-i18n';
 
+	const { t } = useI18n();
 	const global = useGlobal();
 	const hubs = useHubs();
+	const router = useRouter();
+	const dialog = useDialog();
 
 	const show = ref<Boolean>(false);
 	const yivi_token = ref<string>('');
@@ -53,6 +60,26 @@
 
 	function closeYivi() {
 		show.value = false;
+	}
+
+	async function enterHub(hub: Hub) {
+		let canEnterHub = false;
+		try {
+			// entering only the hub would generate a CORS-error.
+			// Since we only need to know if the hub is running, we can send a no-cors.
+			// The response will be empty, but the type 'opaque' will indicate the url is up and running
+			const response = await fetch(hub.url, { mode: 'no-cors' });
+			if (response.type === 'opaque') {
+				canEnterHub = true;
+			}
+		} catch {
+			// intentionally left empty
+		}
+		if (canEnterHub) {
+			router.push({ name: 'hub', params: { name: hub.name } });
+		} else {
+			dialog.confirm(hub.name, t('hubs.under_construction'));
+		}
 	}
 
 	window.addEventListener('pageshow', () => (show.value = false));
