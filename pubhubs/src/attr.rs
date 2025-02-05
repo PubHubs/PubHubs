@@ -1,7 +1,7 @@
 //! Attributes, for identifying (and/or banning) end-users
 
 use crate::common::secret;
-use crate::handle::Handles;
+use crate::handle::{Handle, Handles};
 use crate::id::Id;
 
 use digest::Digest as _;
@@ -9,28 +9,52 @@ use digest::Digest as _;
 #[derive(serde::Deserialize, serde::Serialize, Debug, Clone)]
 pub struct Type {
     /// Immutable
-    id: Id,
+    pub id: Id,
 
     /// For referring to this attribute type from code - only add handles; don't remove them
-    handles: Handles,
+    pub handles: Handles,
 
     /// Whether [`Attr`]ibutes of this type can used to ban users.  Users must provide such a
     /// bannable attribute.
-    bannable: bool,
+    pub bannable: bool,
 
     /// Whether [`Attr`]ibutes of this type can be used to identify a users.
-    identifying: bool,
+    pub identifying: bool,
 
-    /// Details on how  users can obtain this attribute, e.g. via Yivi.
-    source: AttrSource,
+    /// Details needed to obtain this attribute from its source
+    pub source_details: SourceDetails,
 }
 
+/// Instructions on how to obtain an [`Attr`]ibute of a particular [`Type`].
 #[derive(serde::Deserialize, serde::Serialize, Debug, Clone)]
-pub enum AttrSource {
+pub enum SourceDetails {
     Yivi {
         credential_id: String,
         attr_ids: Vec<String>,
     },
+}
+
+impl SourceDetails {
+    pub fn source(&self) -> Source {
+        match &self {
+            SourceDetails::Yivi { .. } => Source::Yivi,
+        }
+    }
+}
+
+#[derive(serde::Deserialize, serde::Serialize, Debug, Clone, Copy, PartialEq, Eq)]
+pub enum Source {
+    Yivi,
+}
+
+impl crate::map::Handled for Type {
+    fn handles(&self) -> &[Handle] {
+        &self.handles
+    }
+
+    fn id(&self) -> &Id {
+        &self.id
+    }
 }
 
 #[derive(serde::Deserialize, serde::Serialize, Debug, Clone)]

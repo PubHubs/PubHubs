@@ -212,6 +212,9 @@ pub enum ErrorCode {
 
     #[error("unknown hub")]
     UnknownHub,
+
+    #[error("unknown attribute type")]
+    UnknownAttributeType,
 }
 use ErrorCode::*;
 
@@ -235,6 +238,7 @@ impl ErrorCode {
             | InvalidSignature
             | InvalidAdminKey
             | UnknownHub
+            | UnknownAttributeType
             | NotImplemented => ErrorInfo {
                 retryable: Some(false),
             },

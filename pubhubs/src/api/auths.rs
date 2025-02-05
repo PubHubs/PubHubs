@@ -3,7 +3,6 @@ use crate::api::*;
 
 use serde::{Deserialize, Serialize};
 
-/// Starts the process of obtaining attributes from the authentication server.
 pub struct AuthStartEP {}
 impl EndpointDetails for AuthStartEP {
     type RequestType = AuthStartReq;
@@ -13,17 +12,23 @@ impl EndpointDetails for AuthStartEP {
     const PATH: &'static str = ".ph/auth/start";
 }
 
+/// Starts the process of obtaining attributes from the authentication server.
+///
+/// Results in `ErrorCode::BadRequest` if `attr_types` or if requested attribute types
+/// have mixed sources.
+///
+/// Results in `ErrorCode::UnknownAttributeType` if one of the attribute types is not known.
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct AuthStartReq {
     /// List of requested attributes
-    attr_types: Vec<crate::handle::Handle>,
+    pub attr_types: Vec<crate::handle::Handle>,
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct AuthStartResp {
     /// Task for the global client to satisfy the authentication server.
     /// Depends on the requested attribute types
-    task: AuthTask,
+    pub task: AuthTask,
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
@@ -50,8 +55,8 @@ impl EndpointDetails for AuthCompleteEP {
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct AuthCompleteReq {
-    attr_types: Vec<crate::handle::Handle>,
-    proof: AuthProof,
+    pub attr_types: Vec<crate::handle::Handle>,
+    pub proof: AuthProof,
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]

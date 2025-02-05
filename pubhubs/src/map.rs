@@ -1,6 +1,7 @@
 use crate::handle::Handle;
 use crate::id::Id;
 
+/// Objects that have a unique [`Id`], and at least one [`Handle`].
 pub trait Handled {
     fn handles(&self) -> &[Handle];
     fn id(&self) -> &Id;
@@ -17,10 +18,20 @@ pub trait AsHandleOrId {
 impl AsHandleOrId for Handle {
     fn match_case<T>(
         &self,
-        case_id: impl FnOnce(&Id) -> T,
+        _case_id: impl FnOnce(&Id) -> T,
         case_handle: impl FnOnce(&Handle) -> T,
     ) -> T {
         case_handle(self)
+    }
+}
+
+impl AsHandleOrId for Id {
+    fn match_case<T>(
+        &self,
+        case_id: impl FnOnce(&Id) -> T,
+        _case_handle: impl FnOnce(&Handle) -> T,
+    ) -> T {
+        case_id(self)
     }
 }
 
@@ -43,6 +54,7 @@ impl<T: Handled> Map<T> {
 
     /// Inserts `value` into [`Map`] unless its `id` or one of its `handle`s is already
     /// present in the map.  In that case the `id` or one of the conflicting handles is returned.
+    #[must_use]
     pub fn insert_new(&mut self, value: T) -> Option<HandleOrId> {
         let id: Id = *value.id();
 

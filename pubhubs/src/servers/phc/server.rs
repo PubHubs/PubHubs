@@ -1,4 +1,3 @@
-use std::collections::HashMap;
 use std::rc::Rc;
 
 use actix_web::web;
@@ -7,7 +6,7 @@ use futures_util::future::LocalBoxFuture;
 
 use crate::{
     api::{self, EndpointDetails as _},
-    client, handle, id, phcrypto,
+    client, handle, phcrypto,
     servers::{self, AppBase, AppCreator as _, AppCreatorBase, Constellation, Handle, Server as _},
 };
 

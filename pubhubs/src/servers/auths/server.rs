@@ -5,7 +5,7 @@ use actix_web::web;
 use crate::servers::{self, AppBase, AppCreatorBase, Constellation, Handle};
 use crate::{
     api::{self, EndpointDetails as _},
-    handle,
+    attr, handle, map,
 };
 
 /// Authentication server
@@ -30,12 +30,48 @@ impl servers::Details for Details {
 
 pub struct App {
     base: AppBase<Server>,
+    attribute_types: map::Map<attr::Type>,
 }
 
 impl App {
     async fn handle_auth_start(
         app: Rc<Self>,
         req: web::Json<api::auths::AuthStartReq>,
+    ) -> api::Result<api::auths::AuthStartResp> {
+        let mut source: Option<attr::Source> = None;
+        let mut attr_types = Vec::<attr::Type>::with_capacity(req.attr_types.len());
+
+        if req.attr_types.len() == 0 {
+            log::debug!("got authentication start request without any attribute types");
+            return api::err(api::ErrorCode::BadRequest);
+        }
+
+        for attr_type_handle in req.attr_types.iter() {
+            if let Some(attr_type) = app.attribute_types.get(attr_type_handle) {
+                attr_types.push(attr_type.clone());
+            } else {
+                log::debug!("got authentication start request with unknown attribute type handle: {attr_type_handle}");
+                return api::err(api::ErrorCode::UnknownAttributeType);
+            }
+        }
+
+        let source = attr_types[0].source_details.source();
+
+        for attr_type in attr_types.iter() {
+            if source != attr_type.source_details.source() {
+                log::debug!("got authentication start request with mixed sources");
+                return api::err(api::ErrorCode::BadRequest);
+            }
+        }
+
+        match source {
+            attr::Source::Yivi => Self::handle_auth_start_yivi(app, attr_types).await,
+        }
+    }
+
+    async fn handle_auth_start_yivi(
+        app: Rc<Self>,
+        attr_types: Vec<attr::Type>,
     ) -> api::Result<api::auths::AuthStartResp> {
         todo! {}
     }
@@ -85,18 +121,31 @@ impl crate::servers::App<Server> for Rc<App> {
 #[derive(Clone)]
 pub struct AppCreator {
     base: AppCreatorBase<Server>,
+    attribute_types: map::Map<attr::Type>,
 }
 
 impl crate::servers::AppCreator<Server> for AppCreator {
     fn new(config: &servers::Config) -> anyhow::Result<Self> {
+        let xconf = &config.auths.as_ref().unwrap().extra;
+
+        let mut attribute_types: crate::map::Map<attr::Type> = Default::default();
+
+        for attr_type in xconf.attribute_types.iter() {
+            if let Some(handle_or_id) = attribute_types.insert_new(attr_type.clone()) {
+                anyhow::bail!("two attribute types are known as {handle_or_id}");
+            }
+        }
+
         Ok(Self {
             base: AppCreatorBase::<Server>::new(config)?,
+            attribute_types,
         })
     }
 
     fn into_app(self, handle: &Handle<Server>) -> Rc<App> {
         Rc::new(App {
             base: AppBase::new(self.base, handle),
+            attribute_types: self.attribute_types,
         })
     }
 
