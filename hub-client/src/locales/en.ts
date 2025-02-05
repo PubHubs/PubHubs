@@ -135,6 +135,9 @@ const en = {
 		help: 'Need help?',
 		work_in_progress: 'This is a work in progress.',
 	},
+	hubs: {
+		under_construction: 'This hub is under construction',
+	},
 	rooms: {
 		room: 'Room',
 		me: 'Me',
