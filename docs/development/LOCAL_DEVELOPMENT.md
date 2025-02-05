@@ -13,6 +13,8 @@ After you have done so, you might need to re-clone the repository.
 
 For a minimal working setup, make sure you have [Node Package Manager (npm)](https://docs.npmjs.com/downloading-and-installing-node-js-and-npm), [Cargo](https://doc.rust-lang.org/cargo/getting-started/installation.html) and [Docker](https://www.docker.com/) installed.
 
+If you are using NixOS, you can use the provided [Nix flake](https://nixos-and-flakes.thiscute.world/development/dev-environments) to enter a development shell with the required dependencies (except for Docker, which must already be installed on your system). This may also work on other Linux distributions using the Nix package manager. Alternatively, you can manually install the required dependencies.
+
 The rust build script uses sass, install this using npm (globally so that it's accessible from the command line):
 ```shell
 npm install -g sass
