@@ -17,7 +17,7 @@ export const handlers = [
 				{
 					theme: 'system',
 					language: 'en',
-					hubs: [{ hubId: 'TestHub0' }],
+					hubs: [{ hubId: 'TestHub0-Id', hubName: 'Testhub0' }],
 				},
 				{
 					status: 200,
