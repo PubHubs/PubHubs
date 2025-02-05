@@ -110,24 +110,57 @@ const useGlobal = defineStore('global', {
 			}
 			settings.setLanguage(data.language);
 
+			const checkHubData = data.hubs.reduce(
+				(result: { updatedPinnedHubs: string[]; oldPinnedHubs: PinnedHubs }, hub: PinnedHub) => {
+					if (hub.hubName !== undefined) {
+						// If a hubName is present, the hub data is already in the updated formate.
+						result.updatedPinnedHubs.push(hub.hubName);
+					} else {
+						result.oldPinnedHubs.push(hub);
+					}
+					return result;
+				},
+				{ updatedPinnedHubs: [], oldPinnedHubs: [] },
+			);
+
+			// If there are hubs in the old format (with the hubName stored as hubId), update the pinned hubs data to contain both the hubId and hubName.
+			if (checkHubData.oldPinnedHubs.length > 0) {
+				data.hubs = await this.updatePinnedHubs(data.hubs, checkHubData.updatedPinnedHubs);
+			} else {
+				// Check if the hubName has changed since the last update of /bar/state.
+				const hubs = await api.apiGET<Array<hubResponseItem>>(api.apiURLS.hubs, []);
+				data.hubs.forEach((hub: PinnedHub) => {
+					const hubName = hubs.find((hubRespItem) => hubRespItem.id === hub.hubId)?.name;
+					if (hubName !== undefined) {
+						hub.hubName = hubName;
+					}
+				});
+			}
+			this.pinnedHubs = data.hubs;
+		},
+
+		async updatePinnedHubs(pinnedHubsData: PinnedHubs, upToDatePinnedHubNames: string[]) {
 			const hubs = await api.apiGET<Array<hubResponseItem>>(api.apiURLS.hubs, []);
 			const hubNames = hubs.map((hub) => hub.name);
-			data.hubs.forEach((hub: PinnedHub, index: number, array: PinnedHubs) => {
-				// For backwards compatibility, a check is performed to see if the hubName is stored as the hubId (which was the case before fixing issue #1051).
+			for (let i = pinnedHubsData.length - 1; i >= 0; i--) {
+				const hub = pinnedHubsData[i];
+				// A check is performed to see if the hubName is stored as the hubId (which was the case before fixing issue #1051).
 				// If this is the case, the hubId corresponding to the hub with hubName is looked up and the hubName is overwritten by this hubId.
-				if (hubNames.includes(hub.hubId)) {
+				if (hubNames.includes(hub.hubId) && upToDatePinnedHubNames.includes(hub.hubId)) {
+					pinnedHubsData.splice(i, 1);
+				} else if (hubNames.includes(hub.hubId)) {
 					const hubId = hubs.find((hubRespItem) => hubRespItem.name === hub.hubId)?.id;
-					// For backwards compatibility, check if the accessToken is stored in localStorage.
+					// Check if the accessToken is stored in localStorage.
 					// If this is the case, add the accessToken to the pinnedHubs and remove it from localStorage.
 					const accessToken = localStorage.getItem(hub.hubId + 'accessToken');
 					if (hubId && accessToken) {
-						array[index] = { hubId: hubId, hubName: hub.hubId, accessToken: accessToken };
+						pinnedHubsData[i] = { hubId: hubId, hubName: hub.hubId, accessToken: accessToken };
 						localStorage.removeItem(hub.hubId + 'accessToken');
 					} else if (hubId) {
-						array[index] = { hubId: hubId, hubName: hub.hubId };
+						pinnedHubsData[i] = { hubId: hubId, hubName: hub.hubId };
 					} else {
 						// If the hub with this hubName cannot be found, remove it from the pinnedHubs.
-						this.removePinnedHub(index);
+						pinnedHubsData.splice(i, 1);
 					}
 				}
 				// Check if the hubName has changed since the last update of /bar/state.
@@ -135,8 +168,8 @@ const useGlobal = defineStore('global', {
 				if (hubName !== undefined) {
 					hub.hubName = hubName;
 				}
-			});
-			this.pinnedHubs = data.hubs;
+			}
+			return pinnedHubsData;
 		},
 
 		login(language: string | 'en' | 'nl') {

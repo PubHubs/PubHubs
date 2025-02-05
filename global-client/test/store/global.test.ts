@@ -75,16 +75,26 @@ describe('Global', () => {
 			const resp = await global.checkLoginAndSettings();
 			expect(resp).toEqual(true);
 			expect(global.pinnedHubs).toBeTypeOf('object');
-			expect(global.pinnedHubs).toEqual([{ hubId: 'TestHub0' }]);
+			expect(global.pinnedHubs).toEqual([{ hubId: 'TestHub0-Id', hubName: 'Testhub0' }]);
 
-			global.addPinnedHub({ hubId: 'TestHub1' });
-			expect(global.pinnedHubs).toEqual([{ hubId: 'TestHub0' }, { hubId: 'TestHub1' }]);
-			global.addPinnedHub({ hubId: 'TestHub2', description: 'Lorem ipsum dolor sit amet.' }, 1);
-			expect(global.pinnedHubs).toEqual([{ hubId: 'TestHub0' }, { hubId: 'TestHub2' }, { hubId: 'TestHub1' }]);
+			global.addPinnedHub({ hubId: 'TestHub1-Id', hubName: 'Testhub1' });
+			expect(global.pinnedHubs).toEqual([
+				{ hubId: 'TestHub0-Id', hubName: 'Testhub0' },
+				{ hubId: 'TestHub1-Id', hubName: 'Testhub1' },
+			]);
+			global.addPinnedHub({ hubId: 'TestHub2-Id', hubName: 'Testhub2', description: 'Lorem ipsum dolor sit amet.' }, 1);
+			expect(global.pinnedHubs).toEqual([
+				{ hubId: 'TestHub0-Id', hubName: 'Testhub0' },
+				{ hubId: 'TestHub2-Id', hubName: 'Testhub2' },
+				{ hubId: 'TestHub1-Id', hubName: 'Testhub1' },
+			]);
 			global.removePinnedHub(1);
-			expect(global.pinnedHubs).toEqual([{ hubId: 'TestHub0' }, { hubId: 'TestHub1' }]);
+			expect(global.pinnedHubs).toEqual([
+				{ hubId: 'TestHub0-Id', hubName: 'Testhub0' },
+				{ hubId: 'TestHub1-Id', hubName: 'Testhub1' },
+			]);
 			global.removePinnedHub(0);
-			expect(global.pinnedHubs).toEqual([{ hubId: 'TestHub1' }]);
+			expect(global.pinnedHubs).toEqual([{ hubId: 'TestHub1-Id', hubName: 'Testhub1' }]);
 		});
 	});
 });
