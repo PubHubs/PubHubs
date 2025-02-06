@@ -41,6 +41,7 @@ For reference, dependencies are in `package.json`.
 
 For reference, dependencies are in `package.json`.
 
+- [ ] Check the version number in the [`Dockerfile`](hub-client/Dockerfile): `FROM XX-slim`.  (You can find a list of tags [here](https://hub.docker.com/_/node/tags?name=slim).)
 - [ ] In the `hub-client` directory, run `npm update` to install minor version updates (probably non-breaking changes).
 - [ ] Run `npm outdated` to check for major updates (difference between wantend and latest) and change the package.json file to update major versions if wanted.
   - **NOTE** For now, don't update matrix-js-sdk, see #654 and #862.
