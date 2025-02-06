@@ -33,6 +33,7 @@ enum FeatureFlag {
 	hubSettings = 'hubSettings',
 	// Implemented with issue #984
 	authenticatedMedia = 'authenticatedMedia',
+	unreadCounter = 'unreadCounter',
 }
 
 type FeatureFlags = { [key in FeatureFlag]: boolean };
@@ -98,6 +99,7 @@ const defaultSettings: Settings = {
 			deleteMessages: true,
 			hubSettings: true,
 			authenticatedMedia: true,
+			unreadCounter: true,
 		},
 		stable: {
 			signedMessages: true,
@@ -109,6 +111,7 @@ const defaultSettings: Settings = {
 			deleteMessages: true,
 			hubSettings: false,
 			authenticatedMedia: false,
+			unreadCounter: false,
 		},
 	},
 };

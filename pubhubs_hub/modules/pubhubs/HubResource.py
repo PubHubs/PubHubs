@@ -8,7 +8,7 @@ from .HubClientApiConfig import HubClientApiConfig
 
 logger = logging.getLogger("synapse.contrib." + __name__)
 
-ALLOWED_HUB_ICON_TYPES = ["image/png", "image/jpeg", "image/jpg"]
+ALLOWED_HUB_ICON_TYPES = ["image/png", "image/jpeg", "image/jpg", "image/svg+xml"]
 
 class HubResource(DirectServeJsonResource):
 	"""
@@ -53,6 +53,17 @@ class HubIconResource(DirectServeJsonResource):
 			self._respond_with_default_icon(request)
 			return
 
+  		# File extension is not used because it seems like the idea is to always have one hub_icon image file.
+		# Not having file extension makes it easly to override the previous hub_icon file. 
+		with open(path, 'rb') as fd:
+			content = fd.read(100)  # Read the first 100 bytes to check if content is svg.
+			fd.seek(0)  # Reset file pointer to the beginning for later reading
+
+			# Check if the content starts with XML declaration or a root element
+			if content.startswith(b'<?xml') or b'<svg' in content:  # Check for SVG
+				request.setHeader(b"Content-Type", b"image/svg+xml")
+	
+		# Read the file from the beginning and send it as a request
 		with open(path, 'rb') as fd:
 			request.write(fd.read())
 		request.finish()
@@ -66,6 +77,7 @@ class HubIconResource(DirectServeJsonResource):
 			if request.args[b'blobType'][0].decode() not in ALLOWED_HUB_ICON_TYPES:
 				respond_with_json(request, 400, {"message": "File type not allowed."})
 				return
+
 
 		with open(self._get_icon_path(), 'wb') as fd:
 				fd.write(request.args[b'blob'][0])

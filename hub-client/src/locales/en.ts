@@ -125,13 +125,18 @@ const en = {
 		delete_message: 'Delete message',
 	},
 	others: {
-		nop: 'This feature is not implement yet.',
+		nop: 'This feature is not implemented yet.',
 		search: 'Search',
 		search_room: 'Search this room',
 		search_nothing_found: 'Nothing found',
 		read_receipt: 'Read by',
 		typing: 'Start typing...',
 		load_more_results: 'Load more results',
+		help: 'Need help?',
+		work_in_progress: 'This is a work in progress.',
+	},
+	hubs: {
+		under_construction: 'This hub is under construction',
 	},
 	rooms: {
 		room: 'Room',
@@ -202,7 +207,7 @@ const en = {
 		save: 'Save changes',
 		settings_saved: 'Changes saved (may need page refresh to see changes)',
 		error_saving_icon: 'Could not save icon. Please try again later.',
-		file_format_not_allowed: 'Image format not allowed. Please use .png, .jpeg or .jpg files.',
+		file_format_not_allowed: 'Image format not allowed. Please use .png, .jpeg, .jpg or svg files.',
 		file_too_large: 'Image too large. Please pick a smaller image.',
 	},
 	admin: {

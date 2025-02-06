@@ -1,4 +1,4 @@
-FROM node:19-slim as builder
+FROM node:23-slim as builder
 COPY . .
 RUN npm ci
 RUN npm run build

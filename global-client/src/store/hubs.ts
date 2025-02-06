@@ -8,6 +8,7 @@ import { FeatureFlag, SettingsStore } from '../../../hub-client/src/store/settin
 // Single Hub
 class Hub {
 	readonly hubId: string;
+	readonly hubName: string;
 	readonly url: string;
 	readonly serverUrl: string;
 	description: string;
@@ -16,8 +17,9 @@ class Hub {
 
 	private settingsStore: SettingsStore;
 
-	constructor(hubId: string, url: string, serverUrl: string, description?: string, pinia?: Pinia) {
+	constructor(hubId: string, hubName: string, url: string, serverUrl: string, description?: string, pinia?: Pinia) {
 		this.hubId = hubId;
+		this.hubName = hubName;
 		this.url = url;
 		this.serverUrl = serverUrl;
 		if (typeof description !== 'undefined') {
@@ -37,7 +39,7 @@ class Hub {
 	}
 
 	public get name(): string {
-		return this.hubId;
+		return this.hubName;
 	}
 
 	public get iconUrlLight(): string {
@@ -85,11 +87,18 @@ const useHubs = defineStore('hubs', {
 		activeHubs(): HubList {
 			const hubs = this.sortedHubsArray;
 			const nonActiveHubs = ['Surfhubs', 'GreenHost', 'GroenLinks', 'Waag'];
-			return hubs.filter((hub) => !nonActiveHubs.includes(hub.hubId));
+			return hubs.filter((hub) => !nonActiveHubs.includes(hub.hubName));
 		},
 
 		hasHubs() {
 			return this.hubsArray.length > 0;
+		},
+
+		hubId: (state) => {
+			return (hubName: string) => {
+				const values = Object.values(state.hubs);
+				return values.find((hub) => hub.hubName === hubName)!.hubId;
+			};
 		},
 
 		hubExists: (state) => {
@@ -124,7 +133,7 @@ const useHubs = defineStore('hubs', {
 
 	actions: {
 		addHub(hub: Hub) {
-			this.hubs[hub.hubId] = Object.assign(new Hub(hub.hubId, hub.url, hub.serverUrl), hub);
+			this.hubs[hub.hubId] = Object.assign(new Hub(hub.hubId, hub.hubName, hub.url, hub.serverUrl), hub);
 		},
 
 		addHubs(hubs: HubList) {
@@ -134,7 +143,8 @@ const useHubs = defineStore('hubs', {
 		},
 
 		async changeHub(params: RouteParams) {
-			const hubId = params.id as string;
+			const hubName = params.name as string;
+			const hubId = hubName === '' ? '' : this.hubId(hubName);
 			const roomId = params.roomId as string;
 			const self = this;
 			const toggleMenu = useToggleMenu();
@@ -182,7 +192,7 @@ const useHubs = defineStore('hubs', {
 				settings.sendSettings();
 
 				// Send hub information
-				messagebox.sendMessage(new Message(MessageType.HubInformation, { name: hubId }));
+				messagebox.sendMessage(new Message(MessageType.HubInformation, { name: this.hub(hubId)!.hubName }));
 
 				// Let hub navigate to given room (if loggedIn)
 				if (global.loggedIn && roomId !== undefined && roomId !== '') {
@@ -198,7 +208,7 @@ const useHubs = defineStore('hubs', {
 
 					// preserve the current history state
 					const currentState = history.state || {};
-					window.history.pushState({ ...currentState, roomId }, '', `${baseUrl}#/hub/${hubId}/${roomId}`);
+					window.history.pushState({ ...currentState, roomId }, '', `${baseUrl}#/hub/${hubName}/${roomId}`);
 				});
 
 				//Listen to global menu change and don't resend own state.
@@ -228,10 +238,10 @@ const useHubs = defineStore('hubs', {
 
 				// Store and remove access tokens when send from the hub client
 				messagebox.addCallback(MessageType.AddAccessToken, (accessTokenMessage: Message) => {
-					localStorage.setItem(hubId + 'accessToken', accessTokenMessage.content as string);
+					global.addAccessToken(this.currentHubId, accessTokenMessage.content as string);
 				});
 				messagebox.addCallback(MessageType.RemoveAccessToken, () => {
-					localStorage.removeItem(hubId + 'accessToken');
+					global.removeAccessToken(this.currentHubId);
 					// So far this message is not yet used but the hub clients.
 					// This will happen if the client says it's unhappy with its' token so refresh the page to reflect current state.
 					location.reload();

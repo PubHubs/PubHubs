@@ -34,7 +34,7 @@
 </template>
 
 <script setup lang="ts">
-	import HubIcon from '@/components/shared-with-global-client/HubIcon.vue';
+	import HubIcon from '@/components/ui/HubIcon.vue';
 	import { usePubHubs } from '@/core/pubhubsStore';
 	import { useHubSettings } from '@/store/hub-settings';
 
