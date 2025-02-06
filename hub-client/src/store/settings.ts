@@ -111,7 +111,7 @@ const defaultSettings: Settings = {
 			deleteMessages: true,
 			hubSettings: false,
 			authenticatedMedia: false,
-			unreadCounter: false,
+			unreadCounter: true,
 		},
 	},
 };
