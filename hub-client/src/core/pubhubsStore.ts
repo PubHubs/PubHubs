@@ -18,8 +18,6 @@ import { User, useUser } from '@/store/user';
 import { ContentHelpers, ISearchResults, MatrixClient, MatrixError, MatrixEvent, Room as MatrixRoom, User as MatrixUser, MsgType } from 'matrix-js-sdk';
 import { ReceiptType } from 'matrix-js-sdk/lib/@types/read_receipts';
 import { router } from './router';
-import { useMatrixFiles } from '@/composables/useMatrixFiles';
-import { FeatureFlag, useSettings } from '@/store/settings';
 
 let publicRoomsLoading: Promise<any> | null = null; // outside of defineStore to guarantee lifetime, not accessible outside this module
 
@@ -609,11 +607,7 @@ const usePubHubs = defineStore('pubhubs', {
 		 *
 		 * Note: A better approach might be to use service workers to add the access token.
 		 */
-		async getAuthorizedMediaUrl(matrixUrl: string): Promise<string | null> {
-			const matrixFileStore = useMatrixFiles();
-			const settingsStore = useSettings();
-			const url = matrixFileStore.formUrlfromMxc(matrixUrl, settingsStore.isFeatureEnabled(FeatureFlag.authenticatedMedia));
-
+		async getAuthorizedMediaUrl(url: string): Promise<string | null> {
 			const accessToken = this.Auth.getAccessToken();
 
 			if (!accessToken) {

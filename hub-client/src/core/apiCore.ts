@@ -133,21 +133,25 @@ class Api {
 		return response;
 	}
 
-	public async uploadFile(url: string, blob: Blob): Promise<void> {
-		const requestBody = new FormData();
-		requestBody.append('blob', blob);
-		requestBody.append('blobType', blob.type);
+	public async uploadImage(url: string, blob: Blob): Promise<void> {
+		// Validate supported image types
+		const supportedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/svg+xml'];
+		if (!supportedTypes.includes(blob.type)) {
+			throw new Error(`Unsupported file type: ${blob.type}`);
+		}
 
 		const response = await fetch(url, {
 			method: 'POST',
-			body: requestBody,
 			headers: {
+				'Content-Type': blob.type, // Dynamically set based on the Blob's type
 				Authorization: `Bearer ${this.accessToken}`,
 			},
+			body: blob, // Send the raw Blob directly
 		});
 
 		if (!response.ok) {
-			throw new Error('Failed to upload file');
+			const errorText = await response.text();
+			throw new Error(`Failed to upload file: ${errorText}`);
 		}
 	}
 }
