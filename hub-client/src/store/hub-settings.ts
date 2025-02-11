@@ -121,7 +121,7 @@ const useHubSettings = defineStore('hub-settings', {
 		},
 
 		async setIcon(image: File) {
-			await api_synapse.uploadFile(api_synapse.apiURLS.hubIcon, image);
+			await api_synapse.uploadImage(api_synapse.apiURLS.hubIcon, image);
 		},
 
 		async deleteIcon() {

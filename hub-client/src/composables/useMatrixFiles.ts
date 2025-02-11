@@ -62,7 +62,18 @@ const useMatrixFiles = () => {
 		return allTypes.indexOf(type) >= 0;
 	}
 
-	return { downloadUrl, uploadUrl, formUrlfromMxc, deleteMediaUrlfromMxc, imageTypes, mediaTypes, fileTypes, allTypes, getTypesAsString, isImage, isAllowed };
+	async function useAuthorizedMediaUrl(url: string, useAuthenticatedMediaURL = false): Promise<string> {
+		const matrixURL = formUrlfromMxc(url, useAuthenticatedMediaURL);
+
+		// For legacy unauthenticated media url
+		if (!useAuthenticatedMediaURL) return matrixURL;
+		// For Authenticated media
+		const fetchedAuthorizedUrl = await pubhubs.getAuthorizedMediaUrl(matrixURL);
+		if (fetchedAuthorizedUrl === null) throw new Error('Could not get authorized media URL');
+		return fetchedAuthorizedUrl;
+	}
+
+	return { downloadUrl, uploadUrl, formUrlfromMxc, deleteMediaUrlfromMxc, imageTypes, mediaTypes, fileTypes, allTypes, getTypesAsString, isImage, isAllowed, useAuthorizedMediaUrl };
 };
 
 export type MatrixFilesStore = ReturnType<typeof useMatrixFiles>;

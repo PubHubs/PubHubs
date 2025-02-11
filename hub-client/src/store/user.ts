@@ -8,13 +8,14 @@
  *
  */
 
+import { useMatrixFiles } from '@/composables/useMatrixFiles';
 import { api_synapse } from '@/core/api';
 import filters from '@/core/filters';
-import { usePubHubs } from '@/core/pubhubsStore';
 import { SMI } from '@/dev/StatusMessage';
 import { LOGGER } from '@/foundation/Logger';
 import { MatrixClient, User as MatrixUser } from 'matrix-js-sdk';
 import { defineStore } from 'pinia';
+import { FeatureFlag, useSettings } from './settings';
 
 /**
  *  Extending the MatrixUser with some extra PubHubs specific methods :
@@ -138,9 +139,10 @@ const useUser = defineStore('user', {
 			if (!this._avatarMxcUrl) {
 				this._avatarUrl = this._avatarMxcUrl;
 			} else {
-				const pubhubs = usePubHubs();
+				const matrixfiles = useMatrixFiles();
+				const settingsStore = useSettings();
 
-				this._avatarUrl = await pubhubs.getAuthorizedMediaUrl(this._avatarMxcUrl);
+				this._avatarUrl = await matrixfiles.useAuthorizedMediaUrl(this._avatarMxcUrl, settingsStore.isFeatureEnabled(FeatureFlag.authenticatedMedia));
 			}
 		},
 	},

@@ -109,17 +109,8 @@
 		}
 	}
 
-	async function updateAvatarUrl(): Promise<void> {
-		if (!avatarMxcUrl.value) {
-			avatarUrl.value = avatarMxcUrl.value;
-			return;
-		}
-
-		const url = await pubhubs.getAuthorizedMediaUrl(avatarMxcUrl.value);
-		if (url === null) throw new Error('Could not get authorized media URL');
-
-		avatarUrl.value = url;
-		return;
+	function updateAvatarUrl(): void {
+		avatarUrl.value = avatarMxcUrl.value;
 	}
 
 	// Avatar related functions

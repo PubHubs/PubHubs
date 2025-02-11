@@ -68,22 +68,28 @@ class HubIconResource(DirectServeJsonResource):
 			request.write(fd.read())
 		request.finish()
 
+
+
 	async def _async_render_POST(self, request: SynapseRequest) -> bytes:
 		if not await self._user_is_admin(request):
 			respond_with_json(request, 403, {"message": "Only Hub admins can upload a Hub icon."})
+			return  #  Important: stop execution after responding
 
-		# We only do a little validation and security checks since we trust the hub admin (but the hub admin might be fooled).
-		if b'blobType' in request.args:
-			if request.args[b'blobType'][0].decode() not in ALLOWED_HUB_ICON_TYPES:
-				respond_with_json(request, 400, {"message": "File type not allowed."})
-				return
+		content_type = request.getHeader("Content-Type")
+		if content_type not in ALLOWED_HUB_ICON_TYPES:
+			respond_with_json(request, 400, {"message": "File type not allowed."})
+			return
 
+		# Read the raw binary data from the request body
+		icon_data = request.content.read()
 
+		# Save the icon file
 		with open(self._get_icon_path(), 'wb') as fd:
-				fd.write(request.args[b'blob'][0])
+			fd.write(icon_data)
 
 		request.setHeader(b"Access-Control-Allow-Origin", self._module_config.hub_client_url.encode())
 		respond_with_json(request, 200, {"message": "Hub icon uploaded."})
+
 
 	async def _async_render_DELETE(self, request: SynapseRequest) -> bytes:
 		if not await self._user_is_admin(request):

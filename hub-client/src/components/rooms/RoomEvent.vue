@@ -77,7 +77,7 @@
 					<!-- Temporary fix to set the background color of the signed message in the dialog to delete a message -->
 					<MessageSigned :class="{ '!bg-[#e2e2e2]': deleteMessageDialog }" v-if="event.content.msgtype === 'pubhubs.signed_message' && !redactedMessage" :message="event.content.signed_message"></MessageSigned>
 					<MessageFile v-if="event.content.msgtype === 'm.file' && !redactedMessage" :message="event.content"></MessageFile>
-					<MessageImage v-if="event.content.msgtype === 'm.image' && !redactedMessage" :message="event.content" class="w-[20rem] max-h-[25rem]"></MessageImage>
+					<MessageImage v-if="event.content.msgtype === 'm.image' && !redactedMessage" :message="event.content"></MessageImage>
 				</template>
 			</div>
 		</div>
