@@ -6,7 +6,7 @@
 			</div>
 		</template>
 		<div v-if="imageTypes.includes(props.file?.type)" class="flex items-center justify-center">
-			<img :src="authMediaURL" class="max-w-full max-h-96 rounded-lg" />
+			<img :src="blobURL" class="max-w-full max-h-96 rounded-lg" />
 		</div>
 		<div class="text-black flex justify-center mt-4">
 			<div class="text-lg text-gray">{{ file.name }} ({{ `${filters.formatBytes(file.size, 2)}` }})</div>
@@ -20,24 +20,18 @@
 	import { useRooms } from '@/store/store';
 	import filters from '@/core/filters';
 	import { buttonsOkCancel } from '@/store/dialog';
-	import { FeatureFlag, useSettings } from '@/store/settings';
+	import { fileUpload } from '@/composables/fileUpload';
+	import { useI18n } from 'vue-i18n';
+	const { allTypes, uploadUrl } = useMatrixFiles();
+	const { t } = useI18n();
 
-	import { ref, onMounted } from 'vue';
 	const rooms = useRooms();
 	const pubhubs = usePubHubs();
-	const settings = useSettings();
-
-	const matrixFiles = useMatrixFiles();
-	const authMediaURL = ref<string | undefined>(undefined);
 
 	const { imageTypes } = useMatrixFiles();
 	const emit = defineEmits(['close']);
 
-	const props = defineProps<{ file: Record<string, any>; mxcPath: string }>();
-
-	onMounted(async () => {
-		authMediaURL.value = await matrixFiles.useAuthorizedMediaUrl(props.mxcPath, settings.isFeatureEnabled(FeatureFlag.authenticatedMedia));
-	});
+	const props = defineProps<{ file: File; blobURL: string }>();
 
 	async function close(action: number = 0) {
 		if (action === 1) {
@@ -48,11 +42,29 @@
 	}
 
 	async function submit() {
-		if (imageTypes.includes(props.file?.type)) {
-			pubhubs.addImage(rooms.currentRoomId, props.mxcPath);
-		} else {
-			pubhubs.addFile(rooms.currentRoomId, props.file as File, props.mxcPath);
+		// display the component
+		const accessToken = pubhubs.Auth.getAccessToken();
+		// TODO errorhandling
+		if (!accessToken) {
+			return;
 		}
-		close();
+
+		const errorMsg = t('errors.file_upload');
+
+		const syntheticEvent = {
+			currentTarget: {
+				files: [props.file],
+			} as HTMLInputElement,
+		} as Event;
+
+		fileUpload(errorMsg, accessToken, uploadUrl, allTypes, syntheticEvent, (url) => {
+			if (imageTypes.includes(props.file?.type)) {
+				pubhubs.addImage(rooms.currentRoomId, url);
+			} else {
+				pubhubs.addFile(rooms.currentRoomId, props.file as File, url);
+			}
+			URL.revokeObjectURL(props.blobURL);
+			emit('close');
+		});
 	}
 </script>
