@@ -85,7 +85,16 @@
 			<div v-if="signingMessage" class="absolute bottom-[10%] md:left-[40%]" id="yivi-web-form"></div>
 		</div>
 		<div class="text-black dark:bg-gray-dark dark:text-white">
-			<FileUploadDialog :file="fileInfo" :mxcPath="uri" v-if="showFileUploadDialog" @close="showFileUploadDialog = false"> </FileUploadDialog>
+			<FileUploadDialog
+				:file="fileInfo"
+				:blobURL="uri"
+				v-if="showFileUploadDialog"
+				@close="
+					showFileUploadDialog = false;
+					fileUploading = false;
+				"
+			>
+			</FileUploadDialog>
 			<!-- todo: move this into UploadPicker? -->
 			<input type="file" :accept="getTypesAsString(allTypes)" class="attach-file" ref="elFileInput" @change="uploadFile($event)" @cancel="fileUploading = false" hidden />
 		</div>
@@ -110,26 +119,21 @@
 	import { useMatrixFiles } from '@/composables/useMatrixFiles';
 	import filters from '@/core/filters';
 	import { usePubHubs } from '@/core/pubhubsStore';
-	import Room from '@/model/rooms/Room';
 	import { useMessageActions } from '@/store/message-actions';
 	import { useRooms } from '@/store/store';
 	import { computed, onMounted, onUnmounted, ref, watch } from 'vue';
-	import { useI18n } from 'vue-i18n';
 	import { useRoute } from 'vue-router';
-	import { fileUpload } from '@/composables/fileUpload';
 	import { YiviSigningSessionResult } from '@/lib/signedMessages';
 	import { TMessageEvent } from '@/model/events/TMessageEvent';
 
-	const { t } = useI18n();
 	const route = useRoute();
 	const rooms = useRooms();
 	const pubhubs = usePubHubs();
 	const messageActions = useMessageActions();
 
-	const props = defineProps({ room: Room });
 	const emit = defineEmits(usedEvents);
 	const { value, reset, changed, cancel } = useFormInputEvents(emit);
-	const { allTypes, getTypesAsString, uploadUrl } = useMatrixFiles();
+	const { allTypes, getTypesAsString } = useMatrixFiles();
 
 	const buttonEnabled = ref<boolean>(false);
 	const showPopover = ref<boolean>(false);
@@ -215,31 +219,19 @@
 	}
 
 	function uploadFile(event: Event) {
-		// display the component.
-		const accessToken = pubhubs.Auth.getAccessToken();
-		// TODO errorhandling
-		if (!accessToken) {
-			return;
-		}
 		const target = event.currentTarget as HTMLInputElement;
-		const errorMsg = t('errors.file_upload');
-		fileUpload(errorMsg, accessToken, uploadUrl, allTypes, event, (url) => {
-			if (target) {
-				const file = target.files && target.files[0];
-				if (file) {
-					// Once the file has been selected from the filesystem.
-					// Set props to be passed to the component.
-					fileInfo.value = file;
-					uri.value = url;
-					// display the component.
-					showFileUploadDialog.value = true;
-					// Inspiration from  https://dev.to/schirrel/vue-and-input-file-clear-file-or-select-same-file-24do
-					const inputElement = elFileInput.value;
-					if (inputElement) inputElement.value = '';
-				}
-			}
-			fileUploading.value = false;
-		});
+		const file = target.files && target.files[0];
+		if (file) {
+			// Once the file has been selected from the filesystem.
+			// Set props to be passed to the component.
+			fileInfo.value = file;
+			uri.value = URL.createObjectURL(file);
+			// display the component.
+			showFileUploadDialog.value = true;
+			// Inspiration from  https://dev.to/schirrel/vue-and-input-file-clear-file-or-select-same-file-24do
+			const inputElement = elFileInput.value;
+			if (inputElement) inputElement.value = '';
+		}
 	}
 
 	function clickedAttachment() {
