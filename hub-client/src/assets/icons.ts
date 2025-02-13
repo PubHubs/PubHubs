@@ -404,6 +404,14 @@ const icons: { [key: string]: string } = {
         <path fill="currentColor" fill-rule="evenodd" clip-rule="evenodd" d="M0.371094 11.1288C0.371094 10.9239 0.537182 10.7578 0.742062 10.7578L10.3872 10.7578C10.5921 10.7578 10.7582 10.9239 10.7582 11.1288C10.7582 11.3337 10.5921 11.4997 10.3872 11.4997L0.742061 11.4997C0.537182 11.4997 0.371094 11.3337 0.371094 11.1288Z" />
         </svg>
         `,
+	lock: `<svg width="17" height="23" viewBox="0 0 17 23" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <rect y="7.51758" width="16.2963" height="15.4815" rx="1" fill="#001242"/>
+        <circle cx="8.14916" cy="14.0378" r="1.62963" fill="white"/>
+        <rect x="7.33398" y="14.8516" width="1.62963" height="4.07407" rx="0.638889" fill="white"/>
+        <path d="M2.85156 7.51852C2.85156 5.07407 3.5849 1 8.14786 1C12.7108 1 13.4439 5.07407 13.4439 7.51852" stroke="#001242" stroke-width="2"/>
+        </svg>`,
+	slash: `<svg class="h-10 w-10 text-gray-500"  viewBox="0 0 24 24"  fill="none"  stroke="currentColor"  stroke-width="2"  stroke-linecap="round"  stroke-linejoin="round">  <circle cx="12" cy="12" r="10" />  <line x1="4.93" y1="4.93" x2="19.07" y2="19.07" /></svg>`,
+	help: `<svg class="h-10 w-10 text-gray-500"  width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">  <path stroke="none" d="M0 0h24v24H0z"/>  <circle cx="12" cy="12" r="9" />  <line x1="12" y1="17" x2="12" y2="17.01" />  <path d="M12 13.5a1.5 1.5 0 0 1 1 -1.5a2.6 2.6 0 1 0 -3 -4" /></svg>`,
 };
 
 export { icons, iconSizes as sizes };
