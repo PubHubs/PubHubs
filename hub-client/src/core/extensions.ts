@@ -87,7 +87,7 @@ const mergeDeep = (target: any, ...sources: any): any => {
 const filterAlphanumeric = (text: string): string => {
 	// Regex pattern for non-alphanumeric characters
 	const pattern = /[^a-zA-Z0-9\s]/g;
-	return text.replace(pattern, '');
+	return text.replace(pattern, ' ').trim();
 };
 
 export { memoize, propCompare, trimSplit, isEmpty, isObject, mergeDeep, filterAlphanumeric };

@@ -49,7 +49,7 @@
 
 	<!-- Search results -->
 	<div v-if="searched" class="absolute right-2 md:right-0 top-16 md:top-20 w-full max-w-80 bg-gray-lighter dark:bg-gray-darker rounded-b-md max-h-[500%] overflow-y-auto scrollbar">
-		<template v-if="searchResults && searchResults.length > 0">
+		<template v-if="searchResultsToShow && searchResultsToShow.length > 0">
 			<div v-for="item in searchResultsToShow" :key="item.event_id" class="group">
 				<a href="#" @click.prevent="onScrollToEventId(item.event_id)">
 					<div class="flex gap-2 group-hover:bg-gray-light group-hover:dark:bg-gray p-2">
@@ -59,16 +59,12 @@
 				</a>
 			</div>
 		</template>
+		<template v-else-if="isSearching">
+			<InlineSpinner class="float-left mr-2"></InlineSpinner>
+			<p>{{ $t('others.searching') }}</p>
+		</template>
 		<template v-else>
 			<p v-if="value !== ''" class="p-2">{{ $t('others.search_nothing_found') }}</p>
-		</template>
-		<!-- Show load more results text if necessary -->
-		<template v-if="searchResults && searchResults.length > 0 && searchResponse && searchResponse.count && searchResponse.count > searchResults.length">
-			<a href="#" @click.prevent="loadMoreSearchResults()">
-				<div class="flex gap-2 group-hover:bg-gray-light group-hover:dark:bg-gray p-2">
-					{{ $t('others.load_more_results') }}
-				</div>
-			</a>
 		</template>
 	</div>
 </template>
@@ -77,6 +73,7 @@
 	// Components
 	import Avatar from '../ui/Avatar.vue';
 	import Icon from '../elements/Icon.vue';
+	import InlineSpinner from '../ui/InlineSpinner.vue';
 
 	import { useFormInputEvents, usedEvents } from '@/composables/useFormInputEvents';
 	import { filterAlphanumeric } from '@/core/extensions';
@@ -102,6 +99,7 @@
 
 	const searchResults = ref<TSearchResult[]>([]);
 	const searched = ref(false);
+	const isSearching = ref(false);
 	let searchResponse: ISearchResults | undefined = undefined;
 
 	const emit = defineEmits([...usedEvents, 'scrollToEventId']);
@@ -109,31 +107,33 @@
 
 	// searchresults shown in list. When the text 'more results' is shown the last result is omitted to keep it in view
 	const searchResultsToShow = computed(() => {
-		if (searchResults.value && searchResults.value.length > 0 && searchResponse && searchResponse.count && searchResponse.count > searchResults.value.length) {
-			return searchResults.value.slice(0, -1); // Return all items except the last one
-		}
-		return searchResults.value; // Return all items
+		// Only results that do not have an empty event_body should be shown
+		const filteredSearchResults = searchResults.value.filter((result) => result.event_body !== '');
+		return filteredSearchResults; // Return all items
 	});
 
 	async function search() {
 		searchResults.value = [];
 		searched.value = true;
+		isSearching.value = true;
 		if (!value.value) return;
 
-		searchResponse = await pubhubs.searchRoomEvents(value.value as string, props.searchParameters);
-		if (searchResponse && searchResponse.results.length > 0) {
-			searchResults.value = mapSearchResult(searchResponse.results);
+		try {
+			searchResponse = await pubhubs.searchRoomEvents(value.value as string, props.searchParameters);
+		} catch (err) {
+			isSearching.value = false;
+			console.error('An error occurred while searching the room: ', err);
 		}
-	}
 
-	async function loadMoreSearchResults() {
 		if (searchResponse && searchResponse.next_batch) {
 			while (searchResponse.next_batch) {
 				searchResponse = await pubhubs.backPaginateRoomEventsSearch(searchResponse);
 			}
+		}
+		if (searchResponse && searchResponse.results.length > 0) {
 			searchResults.value = mapSearchResult(searchResponse.results);
 		}
-		searched.value = true;
+		isSearching.value = false;
 	}
 
 	function reset() {
@@ -171,8 +171,8 @@
 	function formatSearchResult(eventbody: string, searchterm: string, numberOfWords: number): string {
 		if (!eventbody || !searchterm) return '';
 
-		var words = filterAlphanumeric(eventbody)?.toLowerCase().split(' ');
-		var searchWords = filterAlphanumeric(searchterm.trim())?.toLowerCase().split(' ');
+		var words = filterAlphanumeric(eventbody)?.toLowerCase().split(/\s+/);
+		var searchWords = filterAlphanumeric(searchterm.trim())?.toLowerCase().split(/\s+/);
 
 		if (!words || !searchWords) return '';
 
@@ -202,7 +202,7 @@
 		}
 
 		var start = Math.max(0, index - numberOfWords);
-		var end = Math.min(words.length, index + searchWords.length + numberOfWords);
+		var end = Math.min(eventbody.split(' ').length, index + searchWords.length + numberOfWords);
 
 		return eventbody.split(' ').slice(start, end).join(' ');
 	}

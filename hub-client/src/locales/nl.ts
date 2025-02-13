@@ -127,6 +127,7 @@ const nl = {
 		nop: 'Deze functionaliteit is nog niet gerealiseerd.',
 		search: 'Zoeken',
 		search_room: 'Zoek in dit gesprek',
+		searching: 'Bezig met zoeken...',
 		search_nothing_found: 'Niets gevonden',
 		read_receipt: 'Gelezen door',
 		typing: 'Start typen...',
