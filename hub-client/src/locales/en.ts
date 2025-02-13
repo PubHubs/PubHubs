@@ -128,6 +128,7 @@ const en = {
 		nop: 'This feature is not implemented yet.',
 		search: 'Search',
 		search_room: 'Search this room',
+		searching: 'Searching...',
 		search_nothing_found: 'Nothing found',
 		read_receipt: 'Read by',
 		typing: 'Start typing...',

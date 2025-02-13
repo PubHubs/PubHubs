@@ -2,9 +2,9 @@
 
 _Please add a brief description of any changes to be tested and any migrations to be performed here._
 
-- Synapse was updated and authenticated media is now enforced by default (see [here](https://element-hq.github.io/synapse/v1.120/upgrade.html#authenticated-media-is-now-enforced-by-default)). We don't support it yet so we disabled it in the Hub configuration. When merging to stable, the new configuration should be added to all running hubs. See also #1025. 
+- Synapse was updated and authenticated media is now enforced by default (see [here](https://element-hq.github.io/synapse/v1.120/upgrade.html#authenticated-media-is-now-enforced-by-default)). We don't support it yet so we disabled it in the Hub configuration. When merging to stable, the new configuration should be added to all running hubs. See also #1025.
 - Authenticated media setting in hub configuration can be set to true when merging to stable because PubHubs now supports authenticated media.
-
+- Bug fix: Searching messages within a room no longer returns empty results.
 
 ## 6 February 2025 - v1.0.5
 
@@ -12,7 +12,6 @@ _Please add a brief description of any changes to be tested and any migrations t
 - Hub admins can now change the hub icon from the hub settings dialog.
 - Removed legacy static pages and some of the underlying code, see #1035.
 - Hubs are now identified by their hubId in /bar/state and hub access tokens are stored in /bar/state.
-
 
 ## 21 January 2025 - v1.0.4
 
