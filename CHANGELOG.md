@@ -1,10 +1,18 @@
 ## Changes to main, not yet committed to stable
 
-_Please add a brief description of any changes to be tested and any migrations to be performed here._
+_Please add a brief description of any changes and any migrations to be performed here. And use these prefixes before the description:_
 
-- Synapse was updated and authenticated media is now enforced by default (see [here](https://element-hq.github.io/synapse/v1.120/upgrade.html#authenticated-media-is-now-enforced-by-default)). We don't support it yet so we disabled it in the Hub configuration. When merging to stable, the new configuration should be added to all running hubs. See also #1025.
-- Authenticated media setting in hub configuration can be set to true when merging to stable because PubHubs now supports authenticated media.
-- Bug fix: Searching messages within a room no longer returns empty results.
+[BUG] - If the change is a bugfix (from own branche)
+[FIX] - If it is a small bug (typo or styling) that is done directly on main or stable
+[NEW] - If it is a new feature
+[UPDATE] - Updated dependencies
+[MIGRATE] - If it is/has a change to a database. Describe the way the migrate is done.
+[BREAKING] - If it is a breaking change that needs changes done on the deployment/installation/settings.
+Use the [MIGRATE] and [BREAKING] prefixes together with another one if that makes more sense.
+
+- [UPDATE] Synapse was updated and authenticated media is now enforced by default (see [here](https://element-hq.github.io/synapse/v1.120/upgrade.html#authenticated-media-is-now-enforced-by-default)). We don't support it yet so we disabled it in the Hub configuration. When merging to stable, the new configuration should be added to all running hubs.
+- [NEW] Authenticated media setting in hub configuration can be set to true when merging to stable because PubHubs now supports authenticated media.
+- [BUG] Searching messages within a room no longer returns empty results.
 
 ## 6 February 2025 - v1.0.5
 
