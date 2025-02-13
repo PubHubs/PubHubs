@@ -1,8 +1,8 @@
 <template>
 	<!-- Desktop search component -->
-	<div class="hidden md:flex items-center relative" v-click-outside="reset">
+	<div class="relative hidden items-center md:flex" v-click-outside="reset">
 		<input
-			class="w-full min-w-48 md:pr-8 py-1 border-none rounded-md bg-gray-lighter placeholder:text-black dark:bg-gray-darker dark:text-white dark:placeholder:text-gray-light focus:border-black focus:outline-0 focus:outline-offset-0 focus:ring-0"
+			class="w-full min-w-48 rounded-md border-none bg-gray-lighter py-1 placeholder:text-black focus:border-black focus:outline-0 focus:outline-offset-0 focus:ring-0 dark:bg-gray-darker dark:text-white dark:placeholder:text-gray-light md:pr-8"
 			type="text"
 			v-model="value"
 			:placeholder="$t('others.search_room')"
@@ -18,15 +18,15 @@
 			"
 		/>
 		<span class="cursor-pointer">
-			<Icon class="-ml-6 search-icon dark:text-gray-light" type="search" size="sm" @click="search()"></Icon>
+			<Icon class="search-icon -ml-6 dark:text-gray-light" type="search" size="sm" @click="search()"></Icon>
 		</span>
 	</div>
 
 	<!-- Mobile search component. -->
-	<div class="md:hidden h-full w-full flex justify-end items-center absolute pr-2">
-		<div class="flex gap-4 w-[35px] rounded-md focus-within:w-full focus-within:bg-hub-background-4 focus-within:dark:bg-hub-background-3 transition-all duration-200 justify-end relative items-center max-w-full">
+	<div class="absolute flex h-full w-full items-center justify-end pr-2 md:hidden">
+		<div class="relative flex w-[35px] max-w-full items-center justify-end gap-4 rounded-md transition-all duration-200 focus-within:w-full focus-within:bg-hub-background-4 focus-within:dark:bg-hub-background-3">
 			<input
-				class="h-10 flex-1 w-full placeholder:text-black dark:text-white dark:placeholder:text-gray-light bg-transparent border-none focus:outline-0 focus:outline-offset-0 focus:ring-0"
+				class="h-10 w-full flex-1 border-none bg-transparent placeholder:text-black focus:outline-0 focus:outline-offset-0 focus:ring-0 dark:text-white dark:placeholder:text-gray-light"
 				type="text"
 				v-model="value"
 				:placeholder="$t('others.search_room')"
@@ -41,19 +41,19 @@
 					reset();
 				"
 			/>
-			<button class="px-1 rounded-md flex justify-center items-center cursor-pointer" @click.stop="search()">
+			<button class="flex cursor-pointer items-center justify-center rounded-md px-1" @click.stop="search()">
 				<Icon class="search-icon px-1" type="search" size="md"></Icon>
 			</button>
 		</div>
 	</div>
 
 	<!-- Search results -->
-	<div v-if="searched" class="absolute right-2 md:right-0 top-16 md:top-20 w-full max-w-80 bg-gray-lighter dark:bg-gray-darker rounded-b-md max-h-[500%] overflow-y-auto scrollbar">
+	<div v-if="searched" class="scrollbar absolute right-2 top-16 max-h-[500%] w-full max-w-80 overflow-y-auto rounded-b-md bg-gray-lighter dark:bg-gray-darker md:right-0 md:top-20">
 		<template v-if="searchResultsToShow && searchResultsToShow.length > 0">
 			<div v-for="item in searchResultsToShow" :key="item.event_id" class="group">
 				<a href="#" @click.prevent="onScrollToEventId(item.event_id)">
-					<div class="flex gap-2 group-hover:bg-gray-light group-hover:dark:bg-gray p-2">
-						<Avatar :user="room?.getMember(item.event_sender, true)" class="flex-none h-6 w-6"></Avatar>
+					<div class="flex gap-2 p-2 group-hover:bg-gray-light group-hover:dark:bg-gray">
+						<Avatar :user="room?.getMember(item.event_sender, true)" class="h-6 w-6 flex-none"></Avatar>
 						<TruncatedText>{{ item.event_body }}</TruncatedText>
 					</div>
 				</a>
@@ -65,6 +65,14 @@
 		</template>
 		<template v-else>
 			<p v-if="value !== ''" class="p-2">{{ $t('others.search_nothing_found') }}</p>
+		</template>
+		<!-- Show load more results text if necessary -->
+		<template v-if="searchResults && searchResults.length > 0 && searchResponse && searchResponse.count && searchResponse.count > searchResults.length">
+			<a href="#" @click.prevent="loadMoreSearchResults()">
+				<div class="flex gap-2 p-2 group-hover:bg-gray-light group-hover:dark:bg-gray">
+					{{ $t('others.load_more_results') }}
+				</div>
+			</a>
 		</template>
 	</div>
 </template>

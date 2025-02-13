@@ -5,7 +5,7 @@
 				type="radio"
 				v-model="inputValue"
 				:value="option.value"
-				class="focus:outline-0 focus:outline-offset-0 focus:ring-0 focus:ring-offset-0 focus:ring-offset-width-0 focus:shadow-0"
+				class="focus:ring-offset-width-0 focus:shadow-0 focus:outline-0 focus:outline-offset-0 focus:ring-0 focus:ring-offset-0"
 				@change="
 					selectOption(option);
 					changed();

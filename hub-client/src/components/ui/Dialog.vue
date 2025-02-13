@@ -8,23 +8,23 @@
 				doAction(DialogOk);
 			}
 		"
-		class="absolute h-full w-full top-0 left-0"
+		class="absolute left-0 top-0 h-full w-full"
 	>
-		<div v-if="dialog.properties.modal" class="absolute inset-0 h-full z-20 bg-gray-middle opacity-75"></div>
-		<div v-if="!dialog.properties.modalonly" class="absolute inset-0 h-full flex z-20 py-2" @click="doAction(DialogCancel)">
-			<div class="theme-light m-auto max-h-full p-4 rounded-lg shadow-xl shadow-black bg-white flex flex-col justify-between gap-1" :class="width" @click.stop>
+		<div v-if="dialog.properties.modal" class="absolute inset-0 z-20 h-full bg-gray-middle opacity-75"></div>
+		<div v-if="!dialog.properties.modalonly" class="absolute inset-0 z-20 flex h-full py-2" @click="doAction(DialogCancel)">
+			<div class="theme-light m-auto flex max-h-full flex-col justify-between gap-1 rounded-lg bg-white p-4 shadow-xl shadow-black" :class="width" @click.stop>
 				<div>
 					<Icon v-if="dialog.properties.close" type="close" size="md" class="float-right -mt-1 hover:opacity-75" @click="doAction(DialogCancel)"></Icon>
 					<H2 v-if="dialog.properties.title !== ''" class="m-0 text-left text-black">{{ dialog.properties.title }}</H2>
 					<slot name="header"></slot>
 				</div>
 				<Line v-if="hasContent" class="z-0"></Line>
-				<div v-if="hasContent" class="text-left py-1 h-full overflow-y-auto scrollbar pr-4">
+				<div v-if="hasContent" class="scrollbar h-full overflow-y-auto py-1 pr-4 text-left">
 					<slot></slot>
 					<div v-if="dialog.properties.content !== ''">{{ dialog.properties.content }}</div>
 				</div>
 				<Line class="z-0"></Line>
-				<div class="flex flex-row-reverse gap-2 justify-between">
+				<div class="flex flex-row-reverse justify-between gap-2">
 					<div v-for="(button, index) in dialog.properties.buttons" :key="index">
 						<Button :color="button.color" @click="doAction(button.action)" :disabled="!button.enabled">{{ $t('dialog.' + button.label) }}</Button>
 					</div>

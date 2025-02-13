@@ -1,5 +1,5 @@
 <template>
-	<div class="-mt-2 pb-3 px-3 md:px-6 w-full">
+	<div class="-mt-2 w-full px-3 pb-3 md:px-6">
 		<!-- Floating -->
 		<div class="relative">
 			<Popover v-if="showPopover" @close="togglePopover" class="absolute bottom-2">
@@ -9,20 +9,20 @@
 				</div>
 			</Popover>
 			<Mention v-if="showMention" :msg="value" :top="caretPos.top" :left="caretPos.left" :room="room" @click="mentionUser($event)"></Mention>
-			<div v-if="showEmojiPicker" class="absolute bottom-2 right-0 xs:right-4 md:right-32 z-20">
+			<div v-if="showEmojiPicker" class="absolute bottom-2 right-0 z-20 xs:right-4 md:right-32">
 				<EmojiPicker @emojiSelected="clickedEmoticon" @close="toggleEmojiPicker" />
 			</div>
 		</div>
 
-		<div class="flex items-end justify-between gap-2 max-h-12 md:max-h-52">
+		<div class="flex max-h-12 items-end justify-between gap-2 md:max-h-52">
 			<div class="w-full overflow-hidden rounded-xl bg-hub-background-4 dark:bg-hub-background-4">
-				<div class="h-10 flex gap-2 px-2 items-center justify-between" v-if="inReplyTo">
-					<div class="flex gap-2 w-fit overflow-hidden">
+				<div class="flex h-10 items-center justify-between gap-2 px-2" v-if="inReplyTo">
+					<div class="flex w-fit gap-2 overflow-hidden">
 						<p class="text-nowrap">{{ $t('message.in_reply_to') }}</p>
 						<Suspense>
 							<MessageSnippet :eventId="messageActions.replyingTo" :room="room"></MessageSnippet>
 							<template #fallback>
-								<div class="bg-hub-background-3 flex px-2 gap-3 items-center rounded-md">
+								<div class="flex items-center gap-3 rounded-md bg-hub-background-3 px-2">
 									<p>{{ $t('state.loading_message') }}</p>
 								</div>
 							</template>
@@ -33,12 +33,12 @@
 					</button>
 				</div>
 
-				<div class="flex items-end min-h-[50px] px-2 py-1 gap-x-2 rounded-2xl dark:bg-hub-background-4">
-					<Icon class="dark:text-white mb-2 pr-3 border-r-2 border-r-gray-light" type="paperclip" @click.stop="togglePopover" :asButton="true"></Icon>
+				<div class="flex min-h-[50px] items-end gap-x-2 rounded-2xl px-2 py-1 dark:bg-hub-background-4">
+					<Icon class="mb-2 border-r-2 border-r-gray-light pr-3 dark:text-white" type="paperclip" @click.stop="togglePopover" :asButton="true"></Icon>
 					<!-- Overflow-x-hidden prevents firefox from adding an extra row to the textarea for a possible scrollbar -->
 					<TextArea
 						ref="elTextInput"
-						class="max-h-40 md:max-h-60 overflow-x-hidden border-none bg-transparent placeholder:text-gray-dark dark:placeholder:text-gray-lighter"
+						class="max-h-40 overflow-x-hidden border-none bg-transparent placeholder:text-gray-dark dark:placeholder:text-gray-lighter md:max-h-60"
 						v-focus
 						:placeholder="$t('rooms.new_message')"
 						:title="$t('rooms.new_message')"
@@ -51,21 +51,21 @@
 						@cancel="cancel()"
 						@caretPos="setCaretPos"
 					></TextArea>
-					<Icon class="dark:text-white mb-2" type="emoticon" @click.stop="toggleEmojiPicker" :asButton="true"></Icon>
+					<Icon class="mb-2 dark:text-white" type="emoticon" @click.stop="toggleEmojiPicker" :asButton="true"></Icon>
 				</div>
 
-				<div v-if="signingMessage" class="bg-gray-light dark:bg-hub-background flex items-center rounded-md p-2">
-					<Icon type="sign" size="base" class="self-start mt-1"></Icon>
-					<div class="ml-2 flex flex-col justify-between max-w-3xl">
+				<div v-if="signingMessage" class="flex items-center rounded-md bg-gray-light p-2 dark:bg-hub-background">
+					<Icon type="sign" size="base" class="mt-1 self-start"></Icon>
+					<div class="ml-2 flex max-w-3xl flex-col justify-between">
 						<h3 class="font-bold">{{ $t('message.sign.heading') }}</h3>
 						<p>{{ $t('message.sign.info') }}</p>
-						<div class="flex items-center mt-2">
-							<Icon type="warning" size="sm" class="mb-[2px] mr-2 self-start mt-1 shrink-0"></Icon>
+						<div class="mt-2 flex items-center">
+							<Icon type="warning" size="sm" class="mb-[2px] mr-2 mt-1 shrink-0 self-start"></Icon>
 							<p class="italic">{{ $t('message.sign.warning') }}</p>
 						</div>
 						<Line class="mb-2"></Line>
 						<p>{{ $t('message.sign.selected_attributes') }}</p>
-						<div class="bg-black rounded-full w-20 flex justify-center mt-1 text-white">
+						<div class="mt-1 flex w-20 justify-center rounded-full bg-black text-white">
 							<p>Email</p>
 						</div>
 					</div>
@@ -74,9 +74,9 @@
 			</div>
 
 			<!-- Sendbutton -->
-			<Button class="min-h-[50px] h-fit flex rounded-xl" :disabled="!buttonEnabled" @click="submitMessage">
-				<div class="flex gap-2 text-xl items-center">
-					<Icon type="talk" size="sm" class="-scale-100 rotate-45 shrink-0"></Icon>
+			<Button class="flex h-fit min-h-[50px] rounded-xl" :disabled="!buttonEnabled" @click="submitMessage">
+				<div class="flex items-center gap-2 text-xl">
+					<Icon type="talk" size="sm" class="shrink-0 rotate-45 -scale-100"></Icon>
 					<span class="hidden md:flex">{{ $t(sendMessageText) }}</span>
 				</div>
 			</Button>

@@ -1,9 +1,9 @@
 <template>
-	<div v-if="hub" class="flex flex-col gap-1 text-center justify-between bg-ph-background-3 dark:bg-ph-background-5 hover:bg-blue h-36 p-4 rounded-md relative cursor-pointer w-full overflow-hidden">
+	<div v-if="hub" class="relative flex h-36 w-full cursor-pointer flex-col justify-between gap-1 overflow-hidden rounded-md bg-ph-background-3 p-4 text-center hover:bg-blue dark:bg-ph-background-5">
 		<H3 class="m-0">
 			<TruncatedText>{{ hub.hubName }}</TruncatedText>
 		</H3>
-		<HubIcon :icon-url="hub.iconUrlLight" :icon-url-dark="hub.iconUrlDark" :hub-name="hub.name" class="max-h-16 max-w-16 mx-auto"></HubIcon>
+		<HubIcon :icon-url="hub.iconUrlLight" :icon-url-dark="hub.iconUrlDark" :hub-name="hub.name" class="mx-auto max-h-16 max-w-16"></HubIcon>
 		<TruncatedText>{{ description }}</TruncatedText>
 	</div>
 </template>

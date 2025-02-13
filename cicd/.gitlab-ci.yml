@@ -225,7 +225,10 @@ globalclient-format-check:
   tags: [docker]
   image: node:latest
   script:
-    - cd global-client
+    - cd hub-client
+    - npm ci
+    - cd ../global-client
+    - npm ci
     - npx prettier ./src --check --ignore-unknown --config ./package.json
     - echo "see https://gitlab.science.ru.nl/ilab/pubhubs_canonical/-/wikis/Contributing/(re)format-client-code"
 
@@ -239,6 +242,7 @@ hubclient-format-check:
   image: node:latest
   script:
     - cd hub-client
+    - npm ci
     - npx prettier ./src --check --ignore-unknown --config ./package.json
 
 globalclient-unit-test:

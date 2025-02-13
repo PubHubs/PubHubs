@@ -1,28 +1,28 @@
 <template>
-	<div class="flex flex-col w-6/12 mt-20 mx-auto text-center gap-2">
+	<div class="mx-auto mt-20 flex w-6/12 flex-col gap-2 text-center">
 		<H2 v-if="hubName" class="mb-4">{{ `${t('home.hub_homepage_welcome')} ${hubName}` }}</H2>
-		<HubIcon v-if="hubName" :hub-name="hubName" :icon-url="hubSettings.iconUrlLight" :icon-url-dark="hubSettings.iconUrlDark" class="mx-auto max-w-24 max-h-20"></HubIcon>
+		<HubIcon v-if="hubName" :hub-name="hubName" :icon-url="hubSettings.iconUrlLight" :icon-url-dark="hubSettings.iconUrlDark" class="mx-auto max-h-20 max-w-24"></HubIcon>
 		<P class="mb-2">{{ t('onboarding.info_first_time') }}</P>
 		<P class="mb-2">{{ t('onboarding.info_abt_pseudonym') }}</P>
-		<P class="text-green text-2xl mb-0">{{ pseudonym }}</P>
+		<P class="mb-0 text-2xl text-green">{{ pseudonym }}</P>
 		<P class="mb-2">{{ t('onboarding.info_issue_identity') }}</P>
 
-		<TextInput v-if="!submitted" class="p-2 border rounded focus:outline-none focus:border-blue text-center mb-2" placeholder="example: PubHubs" @changed="updateData($event)"></TextInput>
-		<P class="text-sm mb-2">{{ t('onboarding.info_abt_choose_later') }}</P>
+		<TextInput v-if="!submitted" class="mb-2 rounded border p-2 text-center focus:border-blue focus:outline-none" placeholder="example: PubHubs" @changed="updateData($event)"></TextInput>
+		<P class="mb-2 text-sm">{{ t('onboarding.info_abt_choose_later') }}</P>
 		<P class="mb-2">{{ t('onboarding.info_abt_nickname_use') }}</P>
 		<P class="mb-4">{{ t('onboarding.info_abt_yivi_room') }}</P>
-		<P class="text-sm mb-2">{{ t('onboarding.info_misbehave') }}</P>
+		<P class="mb-2 text-sm">{{ t('onboarding.info_misbehave') }}</P>
 		<Button v-if="!submitted" class="mx-24" @click="submitAndClose">{{ t('onboarding.continue') }}</Button>
 		<div v-if="submitted">
-			<P class="text-green text-2xl mb-0">{{ t('onboarding.update') }}!</P>
+			<P class="mb-0 text-2xl text-green">{{ t('onboarding.update') }}!</P>
 		</div>
 	</div>
 
-	<div v-if="submitted" class="mt-2 w-6/12 mx-auto text-center flex flex-row justify-center space-x-4">
+	<div v-if="submitted" class="mx-auto mt-2 flex w-6/12 flex-row justify-center space-x-4 text-center">
 		<Icon type="tick"></Icon>
 		<P>{{ t('onboarding.success_msg') }}</P>
 	</div>
-	<div v-if="laterSubmit" class="mt-2 mx-auto text-center">
+	<div v-if="laterSubmit" class="mx-auto mt-2 text-center">
 		<P>{{ t('onboarding.later') }}</P>
 		<P>{{ t('onboarding.success_msg') }}</P>
 	</div>

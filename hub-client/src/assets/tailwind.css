@@ -149,7 +149,7 @@ body,
 
 @layer components {
 	.highlighted {
-		@apply transition bg-gray-lighter dark:bg-gray duration-500 ease-out;
+		@apply bg-gray-lighter transition duration-500 ease-out dark:bg-gray;
 	}
 
 	.unhighlighted {
@@ -160,7 +160,7 @@ body,
 		@apply text-blue dark:text-green;
 	}
 	.message-mention {
-		@apply inline-block bg-black text-white px-1 rounded-md;
+		@apply inline-block rounded-md bg-black px-1 text-white;
 	}
 
 	.emoji-font {

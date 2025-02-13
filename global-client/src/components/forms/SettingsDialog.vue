@@ -1,19 +1,19 @@
 <template>
 	<Dialog :title="$t('settings.title')" :buttons="buttonsSubmitCancel" width="w-3/5">
 		<div class="flex flex-col gap-2">
-			<div class="flex flex-col md:flex-row justify-between">
+			<div class="flex flex-col justify-between md:flex-row">
 				<Label>{{ t('settings.theme') }}</Label>
 				<ButtonGroup size="sm" v-model="data.theme.value" :value="data.theme.value" :options="settings.getThemeOptions(t)" @changed="updateData('theme', $event)"></ButtonGroup>
 			</div>
-			<div class="flex flex-col md:flex-row justify-between">
+			<div class="flex flex-col justify-between md:flex-row">
 				<Label>{{ t('settings.language') }}</Label>
 				<ButtonGroup size="sm" v-model="data.language.value" :value="data.language.value" :options="settings.getLanguageOptions" @changed="updateData('language', $event)"></ButtonGroup>
 			</div>
-			<div class="flex flex-col md:flex-row justify-between">
+			<div class="flex flex-col justify-between md:flex-row">
 				<Label>{{ t('settings.timeformat') }}</Label>
 				<ButtonGroup size="sm" v-model="data.timeformat.value" :value="data.timeformat.value" :options="settings.getTimeFormatOptions(t)" @changed="updateData('timeformat', $event)"></ButtonGroup>
 			</div>
-			<div v-if="noPerm()" class="flex flex-col md:flex-row justify-between">
+			<div v-if="noPerm()" class="flex flex-col justify-between md:flex-row">
 				<label>{{ t('settings.notifications') }}</label>
 				<Button @click="askPerm()" size="sm">{{ t('settings.notifications_allow') }}</Button>
 			</div>

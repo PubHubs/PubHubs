@@ -1,7 +1,7 @@
 <template>
 	<HeaderFooter v-if="rooms.currentRoomExists" class="pl-3">
 		<template #header>
-			<H1 class="m-0 text-blue font-bold">{{ rooms.currentRoom?.name }}</H1>
+			<H1 class="m-0 font-bold text-blue">{{ rooms.currentRoom?.name }}</H1>
 			<p class="text-sm leading-4">Example of room Type plugin. [ Type: {{ rooms.currentRoom?.getType() }}]</p>
 		</template>
 

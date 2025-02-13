@@ -1,5 +1,5 @@
 <template>
-	<span class="truncate w-full block" :title="slotText">
+	<span class="block w-full truncate" :title="slotText">
 		<slot></slot>
 	</span>
 </template>

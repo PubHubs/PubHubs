@@ -2,10 +2,10 @@
 	<TabHeader>
 		<TabPill v-for="(item, index) in list" :key="index" class="h-8">
 			{{ pillTitle(index) }}
-			<Icon v-if="props.canRemove && index > 0" type="remove" class="float-right text-red opacity-50 hover:opacity-100 cursor-pointer ml-1" @click.stop="removeItem(index)"></Icon>
+			<Icon v-if="props.canRemove && index > 0" type="remove" class="float-right ml-1 cursor-pointer text-red opacity-50 hover:opacity-100" @click.stop="removeItem(index)"></Icon>
 		</TabPill>
-		<div v-if="props.canAdd" class="float-right h-8 tabs-tab inline-block rounded-t border border-b-0 px-2 py-1 cursor-pointer z-20 theme-light:border-gray" @click.stop="addItem()">
-			<Icon type="plus" class="text-green-dark opacity-70 hover:opacity-100 cursor-pointer" @click.stop="addItem()"></Icon>
+		<div v-if="props.canAdd" class="tabs-tab z-20 float-right inline-block h-8 cursor-pointer rounded-t border border-b-0 px-2 py-1 theme-light:border-gray" @click.stop="addItem()">
+			<Icon type="plus" class="cursor-pointer text-green-dark opacity-70 hover:opacity-100" @click.stop="addItem()"></Icon>
 		</div>
 	</TabHeader>
 	<TabContainer>

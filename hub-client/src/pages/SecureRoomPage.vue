@@ -11,9 +11,9 @@
 			</div>
 		</template>
 
-		<div class="flex flex-col pt-10 gap-4 max-w-screen-sm mx-auto">
+		<div class="mx-auto flex max-w-screen-sm flex-col gap-4 pt-10">
 			<div v-if="rooms.securedRoom.name" class="flex flex-col gap-4">
-				<p class="text-2xl font-semibold line-clamp-4" :title="rooms.securedRoom.name">{{ $t('rooms.secure_room_message_heading') + ' `' + rooms.securedRoom.name + '`' }}</p>
+				<p class="line-clamp-4 text-2xl font-semibold" :title="rooms.securedRoom.name">{{ $t('rooms.secure_room_message_heading') + ' `' + rooms.securedRoom.name + '`' }}</p>
 				<p class="text-lg">{{ $t('rooms.secure_room_message') }}</p>
 				<p v-if="rooms.securedRoom.user_txt" class="text-lg">{{ $t('rooms.secure_room_enter_info') }}</p>
 				<p class="line-clamp-6 text-lg font-semibold" :title="rooms.securedRoom.user_txt">{{ rooms.securedRoom.user_txt }}</p>

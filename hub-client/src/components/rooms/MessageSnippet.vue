@@ -1,12 +1,12 @@
 <template>
-	<div class="bg-hub-background-3 flex px-2 gap-3 items-center rounded-md cursor-pointer truncate break-words">
+	<div class="flex cursor-pointer items-center gap-3 truncate break-words rounded-md bg-hub-background-3 px-2">
 		<p v-if="showInReplyTo" class="text-nowrap">
 			{{ $t('message.in_reply_to') }}
 		</p>
 		<p :class="textColor(userColor)">
 			<UserDisplayName :user="event.sender" :room="room"></UserDisplayName>
 		</p>
-		<p class="truncate flex items-center gap-1" :class="{ 'theme-light:text-gray-middle dark:text-gray-lighter': redactedMessage }" :title="snippetText">
+		<p class="flex items-center gap-1 truncate" :class="{ 'theme-light:text-gray-middle dark:text-gray-lighter': redactedMessage }" :title="snippetText">
 			<Icon v-if="redactedMessage" :type="'bin'" :size="'sm'"></Icon>
 			<span class="truncate">{{ snippetText }}</span>
 		</p>
