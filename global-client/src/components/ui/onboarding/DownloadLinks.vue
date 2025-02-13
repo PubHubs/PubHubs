@@ -1,6 +1,6 @@
 <template>
 	<div class="flex flex-wrap gap-4">
-		<a href="https://apps.apple.com/nl/app/irma-authenticatie/id1294092994" target="_blank" class="w-[125px] md:w-[150px] bg-black p-[10px] rounded">
+		<a href="https://apps.apple.com/nl/app/irma-authenticatie/id1294092994" target="_blank" class="w-[125px] rounded bg-black p-[10px] md:w-[150px]">
 			<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 450 110">
 				<desc>Button to download Yivi from the App Store</desc>
 				<path
@@ -10,7 +10,7 @@
 			</svg>
 		</a>
 
-		<a href="https://play.google.com/store/apps/details?id=org.irmacard.cardemu" target="_blank" class="w-[125px] md:w-[150px] bg-black p-[10px] rounded">
+		<a href="https://play.google.com/store/apps/details?id=org.irmacard.cardemu" target="_blank" class="w-[125px] rounded bg-black p-[10px] md:w-[150px]">
 			<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 450 110">
 				<desc>Button to download Yivi from Google Play</desc>
 				<path
@@ -30,7 +30,7 @@
 			</svg>
 		</a>
 
-		<a href="https://f-droid.org/en/packages/org.irmacard.cardemu/" target="_blank" class="w-[125px] md:w-[150px] bg-black p-[10px] rounded">
+		<a href="https://f-droid.org/en/packages/org.irmacard.cardemu/" target="_blank" class="w-[125px] rounded bg-black p-[10px] md:w-[150px]">
 			<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 450 110">
 				<desc>Button to download Yivi from F-Droid</desc>
 				<path

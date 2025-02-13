@@ -1,17 +1,17 @@
 <template>
-	<div class="flex flex-col p-4 rounded-2xl h-80 w-full max-w-80 bg-lightgray-light dark:bg-gray-darker" v-click-outside="close">
-		<input class="dark:text-white rounded w-full h-7 dark:bg-gray-middle placeholder:text-base dark:placeholder:text-white" v-model="searchQuery" type="text" :placeholder="$t('others.search')" @keydown.stop="preventClose()" />
-		<div class="flex flex-row gap-2 py-3 border-b border-gray-light">
+	<div class="flex h-80 w-full max-w-80 flex-col rounded-2xl bg-lightgray-light p-4 dark:bg-gray-darker" v-click-outside="close">
+		<input class="h-7 w-full rounded placeholder:text-base dark:bg-gray-middle dark:text-white dark:placeholder:text-white" v-model="searchQuery" type="text" :placeholder="$t('others.search')" @keydown.stop="preventClose()" />
+		<div class="flex flex-row gap-2 border-b border-gray-light py-3">
 			<template v-for="(image, index) in imageList" :key="index">
-				<Icon :class="{ 'border-b-2': selectedGroup === index }" @click="index === 0 || index === 1 ? selectEmojiByGroup() : selectEmojiByGroup(index)" v-if="index !== 1" :type="image" class="w-6 pb-1 cursor-pointer"></Icon>
+				<Icon :class="{ 'border-b-2': selectedGroup === index }" @click="index === 0 || index === 1 ? selectEmojiByGroup() : selectEmojiByGroup(index)" v-if="index !== 1" :type="image" class="w-6 cursor-pointer pb-1"></Icon>
 			</template>
 		</div>
 		<p>
 			{{ $t('emoji.' + groupLabel()) }}
 		</p>
 
-		<div class="flex flex-wrap gap-2 pr-2 overflow-y-auto scrollbar emoji-font">
-			<span v-for="emoji in filterEmojis" :key="emoji.hexcode" @click="selectEmoji(emoji)" class="cursor-pointer flex items-center justify-center text-xl overflow-hidden">
+		<div class="scrollbar emoji-font flex flex-wrap gap-2 overflow-y-auto pr-2">
+			<span v-for="emoji in filterEmojis" :key="emoji.hexcode" @click="selectEmoji(emoji)" class="flex cursor-pointer items-center justify-center overflow-hidden text-xl">
 				{{ emoji.emoji }}
 			</span>
 		</div>

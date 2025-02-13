@@ -9,7 +9,7 @@
 					>"
 					<Icon type="edit" class="float-right"></Icon>
 				</span>
-				<Icon v-else type="plus" class="cursor-pointer float-right" @click="onChooseUser"></Icon>
+				<Icon v-else type="plus" class="float-right cursor-pointer" @click="onChooseUser"></Icon>
 			</FormLine>
 			<FormLine class="mb-2">
 				<Label>{{ $t('admin.ask_disclosure_message_title') }}</Label>

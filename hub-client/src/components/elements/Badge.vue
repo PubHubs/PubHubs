@@ -1,5 +1,5 @@
 <template>
-	<div :class="colorClass[props.color]" class="flex relative items-center justify-center overflow-hidden rounded-full w-7 h-7 text-sm font-bold">
+	<div :class="colorClass[props.color]" class="relative flex h-7 w-7 items-center justify-center overflow-hidden rounded-full text-sm font-bold">
 		<slot></slot>
 	</div>
 </template>

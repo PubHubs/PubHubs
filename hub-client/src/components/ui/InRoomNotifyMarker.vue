@@ -1,5 +1,5 @@
 <template>
-	<div v-if="(totalUnreadCount && totalUnreadCount > 0) || (totalMentionCount && totalMentionCount > 0)" class="flex gap-4 p-2 rounded-l-xl rounded-t-none w-fit absolute top-0 right-0 bg-gray-darker theme-light:bg-gray-lighter">
+	<div v-if="(totalUnreadCount && totalUnreadCount > 0) || (totalMentionCount && totalMentionCount > 0)" class="absolute right-0 top-0 flex w-fit gap-4 rounded-l-xl rounded-t-none bg-gray-darker p-2 theme-light:bg-gray-lighter">
 		<div v-if="totalUnreadCount && totalUnreadCount > 0" class="flex gap-1">
 			<Icon type="message"></Icon>
 			<div class="total">{{ totalUnreadCount }}</div>

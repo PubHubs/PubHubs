@@ -6,24 +6,24 @@
 		</template>
 		<Tabs class="p-3">
 			<TabHeader>
-				<TabPill v-slot="slotProps">{{ $t('admin.public_rooms') }}<Icon v-if="slotProps.active" class="float-right hover:text-green ml-2" type="plus" @click="newPublicRoom()"></Icon></TabPill>
-				<TabPill v-slot="slotProps">{{ $t('admin.secured_rooms') }}<Icon v-if="slotProps.active" class="float-right hover:text-green ml-2" type="plus" @click="newSecuredRoom()"></Icon></TabPill>
+				<TabPill v-slot="slotProps">{{ $t('admin.public_rooms') }}<Icon v-if="slotProps.active" class="float-right ml-2 hover:text-green" type="plus" @click="newPublicRoom()"></Icon></TabPill>
+				<TabPill v-slot="slotProps">{{ $t('admin.secured_rooms') }}<Icon v-if="slotProps.active" class="float-right ml-2 hover:text-green" type="plus" @click="newSecuredRoom()"></Icon></TabPill>
 			</TabHeader>
 			<TabContainer>
 				<TabContent>
 					<p v-if="rooms.nonSecuredPublicRooms.length === 0">{{ $t('admin.no_secured_rooms') }}</p>
 					<FilteredList v-else :items="rooms.nonSecuredPublicRooms" :filterKey="['name']" sortby="name" :placeholder="$t('rooms.filter')">
 						<template #item="{ item }">
-							<div class="flex gap-8 w-full overflow-hidden justify-between" :title="item.room_id">
-								<div class="flex w-full overflow-hidden gap-4 items-center">
+							<div class="flex w-full justify-between gap-8 overflow-hidden" :title="item.room_id">
+								<div class="flex w-full items-center gap-4 overflow-hidden">
 									<Icon type="speech_bubbles" class="shrink-0 text-green group-hover:text-black"></Icon>
-									<p class="truncate min-w-20">{{ item.name }}</p>
-									<p class="truncate hidden md:inline italic text-gray-light pr-1">{{ rooms.getRoomTopic(item.room_id) }}</p>
+									<p class="min-w-20 truncate">{{ item.name }}</p>
+									<p class="hidden truncate pr-1 italic text-gray-light md:inline">{{ rooms.getRoomTopic(item.room_id) }}</p>
 									<span v-if="item.room_type" class="italic text-gray-light">- {{ item.room_type }} </span>
 								</div>
 								<div class="flex w-fit gap-4">
-									<div class="flex gap-2 items-center">
-										<span class="text-blue-light flex items-center">
+									<div class="flex items-center gap-2">
+										<span class="flex items-center text-blue-light">
 											<Icon type="person" size="sm" class="shrink-0"></Icon>
 											<p>x</p>
 											<p>{{ item.num_joined_members }}</p>
@@ -32,7 +32,7 @@
 											<Icon type="person" size="sm" class="shrink-0"></Icon>
 										</span>
 									</div>
-									<div class="flex gap-1 items-center">
+									<div class="flex items-center gap-1">
 										<Icon type="remove" class="hover:fill-red" @click="removePublicRoom(item)"></Icon>
 										<Icon type="edit" class="hover:stroke-hub-accent" v-if="rooms.room(item.room_id)?.userCanChangeName(user.user.userId)" @click="editPublicRoom(item)"></Icon>
 									</div>
@@ -46,20 +46,20 @@
 					<p v-if="!rooms.hasSecuredRooms">{{ $t('admin.no_secured_rooms') }}</p>
 					<FilteredList v-else :items="rooms.sortedSecuredRooms" :filterKey="['name']" sortby="name" :placeholder="$t('rooms.filter')">
 						<template #item="{ item }">
-							<div class="flex gap-8 w-full overflow-hidden justify-between" :title="item.room_id">
-								<div class="flex w-full overflow-hidden gap-4 items-center">
+							<div class="flex w-full justify-between gap-8 overflow-hidden" :title="item.room_id">
+								<div class="flex w-full items-center gap-4 overflow-hidden">
 									<Icon type="shield" class="shrink-0 text-green group-hover:text-black"></Icon>
-									<p class="truncate min-w-20">{{ item.name }}</p>
-									<p class="truncate hidden md:inline italic text-gray-light pr-1">{{ rooms.getRoomTopic(item.room_id) }}</p>
-									<span v-if="item.user_txt !== ''" class="truncate hidden md:inline italic text-gray-light"> [{{ item.user_txt }}]</span>
+									<p class="min-w-20 truncate">{{ item.name }}</p>
+									<p class="hidden truncate pr-1 italic text-gray-light md:inline">{{ rooms.getRoomTopic(item.room_id) }}</p>
+									<span v-if="item.user_txt !== ''" class="hidden truncate italic text-gray-light md:inline"> [{{ item.user_txt }}]</span>
 								</div>
 								<div class="flex w-fit gap-4">
-									<div class="flex gap-2 items-center">
+									<div class="flex items-center gap-2">
 										<span v-if="rooms.room(item.room_id)?.userIsMember(user.user.userId)" class="text-green group-hover:text-white">
 											<Icon type="person" size="sm" class="shrink-0"></Icon>
 										</span>
 									</div>
-									<div class="flex gap-1 items-center">
+									<div class="flex items-center gap-1">
 										<Icon type="remove" class="cursor-pointer hover:text-red" @click="removeSecuredRoom(item)"></Icon>
 										<Icon type="edit" class="cursor-pointer hover:text-white" @click="EditSecuredRoom(item)"></Icon>
 									</div>

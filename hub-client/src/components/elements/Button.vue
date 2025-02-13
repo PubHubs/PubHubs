@@ -1,5 +1,5 @@
 <template>
-	<div :class="buttonClass" class="block relative font-semibold rounded-lg text-center transition-all duration-150 ease-in-out shadow-md cursor-pointer" @click="click($event)">
+	<div :class="buttonClass" class="relative block cursor-pointer rounded-lg text-center font-semibold shadow-md transition-all duration-150 ease-in-out" @click="click($event)">
 		<slot></slot>
 	</div>
 </template>

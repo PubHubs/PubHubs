@@ -15,7 +15,7 @@
 					resetVisibility();
 				"
 			></TextInput>
-			<Icon type="plus" size="lg" class="cursor-pointer m-2" @click="submit()"></Icon>
+			<Icon type="plus" size="lg" class="m-2 cursor-pointer" @click="submit()"></Icon>
 		</div>
 		<Icon v-else type="plus" class="cursor-pointer" @click="showForm()"></Icon>
 	</div>

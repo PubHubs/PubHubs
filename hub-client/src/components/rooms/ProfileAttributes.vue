@@ -1,7 +1,7 @@
 <template>
 	<span v-if="roomAttributes.length > 0" class="flex gap-x-1">
-		<span v-for="value in roomAttributes" :key="value" :class="value === 'rooms.admin_badge' ? 'bg-red' : 'bg-black'" class="text-white text-xs lowercase px-1 rounded h-4 flex gap-1 items-center">
-			<Icon type="check" class="mt-3 -mr-3"></Icon>
+		<span v-for="value in roomAttributes" :key="value" :class="value === 'rooms.admin_badge' ? 'bg-red' : 'bg-black'" class="flex h-4 items-center gap-1 rounded px-1 text-xs lowercase text-white">
+			<Icon type="check" class="-mr-3 mt-3"></Icon>
 			<span v-if="value === 'rooms.admin_badge'">{{ $t(value) }}</span>
 			<span v-else>{{ value }}</span>
 		</span>

@@ -1,9 +1,9 @@
 <template>
 	<HeaderFooter>
 		<template #header>
-			<ImagePlaceholder class="absolute top-0 left-0 opacity-50"></ImagePlaceholder>
-			<div class="grid gap-2 absolute left-1/2 -translate-x-1/2 bottom-0 translate-y-1/3 w-3/4">
-				<span class="flex gap-2 items-center mx-auto md:m-0 w-fit">
+			<ImagePlaceholder class="absolute left-0 top-0 opacity-50"></ImagePlaceholder>
+			<div class="absolute bottom-0 left-1/2 grid w-3/4 -translate-x-1/2 translate-y-1/3 gap-2">
+				<span class="mx-auto flex w-fit items-center gap-2 md:m-0">
 					<Icon type="compass" size="sm"></Icon>
 					<H1 class="theme-light:text-black">{{ $t('rooms.discover') }}</H1>
 				</span>
@@ -11,10 +11,10 @@
 			</div>
 		</template>
 
-		<div class="flex-auto flex flex-col justify-center gap-16 bg-hub-background p-16 max-w-screen-lg mx-auto">
+		<div class="mx-auto flex max-w-screen-lg flex-auto flex-col justify-center gap-16 bg-hub-background p-16">
 			<!-- TODO: Finer filtering and featuring rooms -->
 
-			<div v-if="filteredRooms.length > 0" class="grid lg:grid-cols-2 w-full gap-5 gap-x-16 justify-center">
+			<div v-if="filteredRooms.length > 0" class="grid w-full justify-center gap-5 gap-x-16 lg:grid-cols-2">
 				<RoomPill v-for="room in filteredRooms" :key="room.room_id" :room="room" :roomIsSecure="rooms.roomIsSecure(room.room_id)" :memberOfRoom="rooms.memberOfPublicRoom(room.room_id)"></RoomPill>
 			</div>
 			<H2 v-else-if="roomFilter.length > 0" class="mx-auto">{{ t('rooms.no_match') }}</H2>

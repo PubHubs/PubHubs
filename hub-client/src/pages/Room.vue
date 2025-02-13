@@ -2,12 +2,12 @@
 	<template v-if="rooms.currentRoomExists">
 		<HeaderFooter v-if="plugin === false" :headerSize="'sm'" :headerMobilePadding="true">
 			<template #header>
-				<div class="hidden md:flex items-center gap-4">
-					<span class="text-xxs uppercase font-bold">{{ $t('rooms.room') }}</span>
+				<div class="hidden items-center gap-4 md:flex">
+					<span class="text-xxs font-bold uppercase">{{ $t('rooms.room') }}</span>
 					<hr class="grow" />
 				</div>
-				<div class="flex h-full justify-between relative gap-x-2">
-					<div v-if="rooms.currentRoom" class="flex shrink-0 gap-x-1 md:gap-x-4 items-center w-[75%] md:w-[60%] overflow-hidden">
+				<div class="relative flex h-full justify-between gap-x-2">
+					<div v-if="rooms.currentRoom" class="flex w-[75%] shrink-0 items-center gap-x-1 overflow-hidden md:w-[60%] md:gap-x-4">
 						<Icon :type="rooms.currentRoom.isSecuredRoom() ? 'shield' : 'speech_bubbles'" size="lg"></Icon>
 						<div class="flex flex-col">
 							<H1 class="flex">
