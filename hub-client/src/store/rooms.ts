@@ -8,10 +8,10 @@ import { TPublicRoom } from '@/model/rooms/TPublicRoom';
 import { TSecuredRoom } from '@/model/rooms/TSecuredRoom';
 import { MatrixEvent, Room as MatrixRoom, NotificationCountType } from 'matrix-js-sdk';
 import { defineStore } from 'pinia';
-import { useRouter } from 'vue-router';
 import { Message, MessageType, useMessageBox } from './messagebox';
 import { useUser } from './user';
 import { useSettings } from './settings';
+import { SecuredRoomAttributeResult } from '@/dev/types';
 
 // Matrix Endpoint for messages in a room.
 interface RoomMessages {
@@ -344,61 +344,58 @@ const useRooms = defineStore('rooms', {
 			return deleted_id;
 		},
 
-		yiviSecuredRoomflow(roomId: string) {
-			const router = useRouter();
+		yiviSecuredRoomflow(roomId: string, onFinish: (result: SecuredRoomAttributeResult) => unknown) {
+			//
+
+			require('../assets/yivi.min.css');
+			//
+			const yiviCore = require('@privacybydesign/yivi-core');
+			//
+			const yiviWeb = require('@privacybydesign/yivi-web');
+			//
+			const yiviClient = require('@privacybydesign/yivi-client');
+
 			const pubhubs = usePubHubs();
 			const settings = useSettings();
 
 			const accessToken = pubhubs.Auth.getAccessToken();
 			if (!accessToken) throw new Error('Access token missing.');
 
-			pubhubs
-				.joinRoom(roomId)
-				.then((res) => {
-					console.debug(res);
-					router.push({ name: 'room', params: { id: roomId } });
-				})
-				.catch((err) => {
-					console.debug(err);
-					const yivi = require('@privacybydesign/yivi-frontend');
-					// @ts-ignore
-					const urlll = _env.HUB_URL + '/_synapse/client/ph';
-					const yiviWeb = yivi.newWeb({
-						debugging: false,
-						element: '#yivi-web-form',
-						language: settings.getActiveLanguage,
+			// @ts-ignore
+			const urlll = _env.HUB_URL + '/_synapse/client/ph';
+			const yivi = new yiviCore({
+				debugging: false,
+				element: '#yivi-login',
+				language: settings.getActiveLanguage,
 
-						session: {
-							url: 'yivi-endpoint',
+				session: {
+					url: 'yivi-endpoint',
 
-							start: {
-								url: () => {
-									return `${urlll}/yivi-endpoint/start?room_id=${roomId}`;
-								},
-								method: 'GET',
-							},
-							result: {
-								url: (o: any, obj: any) => `${urlll}/yivi-endpoint/result?session_token=${obj.sessionToken}&room_id=${roomId}`,
-								method: 'GET',
-								headers: {
-									Authorization: `Bearer ${accessToken}`,
-								},
-							},
+					start: {
+						url: () => {
+							return `${urlll}/yivi-endpoint/start?room_id=${roomId}`;
 						},
-					});
+						method: 'GET',
+					},
+					result: {
+						url: (o: any, obj: any) => `${urlll}/yivi-endpoint/result?session_token=${obj.sessionToken}&room_id=${roomId}`,
+						method: 'GET',
+						headers: {
+							Authorization: `Bearer ${accessToken}`,
+						},
+					},
+				},
+			});
 
-					yiviWeb
-						.start()
-						.then((result: any) => {
-							if (result.not_correct) {
-								router.push({ name: 'error-page-room', params: { id: roomId } });
-							} else if (result.goto) {
-								pubhubs.updateRooms().then(() => router.push({ name: 'room', params: { id: roomId } }));
-							}
-						})
-						.catch((error: any) => {
-							console.info(`There is an Error: ${error}`);
-						});
+			yivi.use(yiviWeb);
+			yivi.use(yiviClient);
+
+			yivi.start()
+				.then((result: SecuredRoomAttributeResult) => {
+					onFinish(result);
+				})
+				.catch((error: any) => {
+					console.info(`There is an Error: ${error}`);
 				});
 		},
 

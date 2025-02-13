@@ -15,7 +15,15 @@
 			<!-- TODO: Finer filtering and featuring rooms -->
 
 			<div v-if="filteredRooms.length > 0" class="grid w-full justify-center gap-5 gap-x-16 lg:grid-cols-2">
-				<RoomPill v-for="room in filteredRooms" :key="room.room_id" :room="room" :roomIsSecure="rooms.roomIsSecure(room.room_id)" :memberOfRoom="rooms.memberOfPublicRoom(room.room_id)"></RoomPill>
+				<RoomPill
+					v-for="room in filteredRooms"
+					:key="room.room_id"
+					:room="room"
+					:roomIsSecure="rooms.roomIsSecure(room.room_id)"
+					:memberOfRoom="rooms.memberOfPublicRoom(room.room_id)"
+					:securedRoomLoginFlow="currentRoomId === room.room_id"
+					@toggle-secured-room="setCurrentRoomId(room.room_id)"
+				></RoomPill>
 			</div>
 			<H2 v-else-if="roomFilter.length > 0" class="mx-auto">{{ t('rooms.no_match') }}</H2>
 			<H2 v-else class="mx-auto">{{ t('rooms.unavailable') }}</H2>
@@ -37,6 +45,8 @@
 	import { computed, ref, onMounted } from 'vue';
 	import { useI18n } from 'vue-i18n';
 
+	const currentRoomId = ref<string | null>(null);
+
 	const rooms = useRooms();
 	const roomFilter = ref('');
 	const { t } = useI18n();
@@ -56,5 +66,9 @@
 
 	function updateSearchTerm(searchTerm: string) {
 		roomFilter.value = searchTerm.trim().toLowerCase();
+	}
+
+	function setCurrentRoomId(roomId: string) {
+		currentRoomId.value = roomId;
 	}
 </script>
