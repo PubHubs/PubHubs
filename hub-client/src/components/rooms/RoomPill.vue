@@ -13,8 +13,8 @@
 				</div>
 			</div>
 			<div class="grid items-center gap-2">
-				<Icon v-if="memberOfRoom" type="arrow-right" size="lg" class="z-0 min-w-[4rem] hover:cursor-pointer hover:opacity-80" @click="goToRoom()"></Icon>
-				<Icon v-if="!memberOfRoom" type="join_room" size="lg" class="hover:cursor-pointer hover:opacity-80" @click="joinRoom()"></Icon>
+				<Icon v-if="memberOfRoom" type="arrow-right" size="lg" class="min-w-[4rem] hover:cursor-pointer" @click="goToRoom()"></Icon>
+				<Icon v-if="!memberOfRoom" type="join_room" size="lg" class="hover:cursor-pointer" @click="joinRoom()"></Icon>
 			</div>
 		</div>
 	</div>
@@ -34,7 +34,7 @@
 
 	const pubhubs = usePubHubs();
 	const { t } = useI18n();
-
+	t;
 	const expanded = ref(false);
 	const joinedARoom = ref(false);
 	const panelOpen = ref(true);
@@ -51,7 +51,10 @@
 	const emit = defineEmits(['toggle-secured-room']);
 
 	function expandPillToggle() {
-		expanded.value = !expanded.value;
+		//In case of secured room, don't expand
+		if (!(props.securedRoomLoginFlow && panelOpen)) {
+			expanded.value = !expanded.value;
+		}
 	}
 
 	async function joinRoom() {
