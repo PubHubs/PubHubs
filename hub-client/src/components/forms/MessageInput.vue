@@ -144,6 +144,7 @@
 	const fileUploading = ref<boolean>(false); // to hide other dialogs while in the file upload process
 	const fileInfo = ref<File>();
 	const uri = ref<string>('');
+	import Room from '@/model/rooms/Room';
 
 	const caretPos = ref({ top: 0, left: 0 });
 
@@ -152,6 +153,7 @@
 	const elFileInput = ref<HTMLInputElement | null>(null);
 	const elTextInput = ref<InstanceType<typeof TextArea> | null>(null);
 	const inReplyTo = ref<TMessageEvent | undefined>(undefined);
+	defineProps<{ room: Room }>();
 
 	const sendMessageText = computed(() => {
 		if (signingMessage.value) {
