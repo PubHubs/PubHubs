@@ -12,7 +12,7 @@
 					<Icon type="lock" size="md"></Icon>
 					<p class="ml-2 text-left text-sm dark:text-black">{{ t('rooms.secure_room_message') }}</p>
 				</div>
-				<p class="text-md text-gray dark:text-gray-middle" :title="rooms.securedRoom.user_txt">{{ rooms.securedRoom.user_txt }}</p>
+				<p class="text-md max-h-24 w-full overflow-y-auto text-gray dark:text-gray-middle" :title="rooms.securedRoom.user_txt">{{ rooms.securedRoom.user_txt }}</p>
 				<Button @click="showQR()" size="sm">{{ t('rooms.display_qr') }}</Button>
 			</div>
 			<QRCode v-if="loginFlow" :securedRoomId="securedRoomId" @error="loginError"></QRCode>
