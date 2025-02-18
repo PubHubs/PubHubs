@@ -5,7 +5,7 @@
 			click();
 			menu.setActiveMenuItem(props.roomInfo?.roomId);
 		"
-		class="menu-item h-11 rounded-lg py-2 pl-5 transition-all duration-150 ease-in-out hover:bg-lightgray hover:dark:bg-gray-middle"
+		class="menu-item h-11 rounded-lg py-2 pl-5 pr-2 transition-all duration-150 ease-in-out hover:bg-lightgray hover:dark:bg-gray-middle"
 	>
 		<router-link :to="to" class="flex items-center gap-2">
 			<Icon v-if="isSecuredRoom()" type="shield"></Icon>
