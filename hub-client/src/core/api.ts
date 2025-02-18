@@ -15,11 +15,20 @@ if (typeof _env !== 'undefined') {
 }
 
 const api_synapse = new Api(BASE_URL + '/_synapse/', {
+	// client APIs
 	securedRooms: 'client/secured_rooms',
 	joinHub: 'client/hubjoined',
-	deleteRoom: 'admin/v2/rooms/',
 	notice: 'client/notices',
 	securedRoom: 'client/srextra',
+
+	// user admin API
+	usersAPIV1: 'admin/v1/users/',
+	usersAPIV2: 'admin/v2/users/',
+	usersAPIV3: 'admin/v3/users/',
+
+	// user room
+	roomsAPIV1: 'admin/v1/rooms/',
+	roomsAPIV2: 'admin/v2/rooms/',
 	hub: 'client/hub',
 	hubLogo: 'client/hublogo',
 	hubIcon: 'client/hub/icon',
@@ -30,6 +39,7 @@ const api_synapse = new Api(BASE_URL + '/_synapse/', {
 
 const api_matrix = new Api(BASE_URL + '/_matrix', {
 	rooms: 'client/v3/rooms/',
+	join: 'client/v3/join/',
 });
 
 export { api_matrix, api_synapse };

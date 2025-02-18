@@ -8,6 +8,7 @@
 <script setup lang="ts">
 	import { useUserColor } from '@/composables/useUserColor';
 	import RoomMember from '@/model/rooms/RoomMember';
+	import { User as MatrixUser } from 'matrix-js-sdk';
 	import { CurrentUser, useUser } from '@/store/user';
 	import { useMatrixFiles } from '@/composables/useMatrixFiles';
 	import { computed, watch, onMounted, ref } from 'vue';
@@ -24,7 +25,7 @@
 	const currentUser = useUser();
 
 	type Props = {
-		user: RoomMember | CurrentUser | null | undefined;
+		user: RoomMember | CurrentUser | MatrixUser | null | undefined;
 		overrideAvatarUrl?: string | undefined;
 	};
 
