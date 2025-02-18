@@ -8,12 +8,14 @@ from synapse.http.servlet import parse_json_object_from_request, parse_string
 from synapse.http.site import SynapseRequest
 from synapse.module_api import ModuleApi
 from synapse.types import Requester
+from synapse.api.constants import EventTypes
 
 from ._secured_rooms_class import SecuredRoom
 from ._store import YiviRoomJoinStore
 
 logger = logging.getLogger(__name__)
 
+MODERATOR_POWER_LEVEL = 50
 
 class SecuredRoomsServlet(DirectServeJsonResource):
     """The secured rooms controller containing its basic CRUD functionality."""
@@ -37,16 +39,26 @@ class SecuredRoomsServlet(DirectServeJsonResource):
 
     async def _async_render_GET(self, request: SynapseRequest):
         """List all secured rooms."""
-        await self.assert_is_admin(request)
+        user = await self.module_api.get_user_by_req(request)
+        is_mod = await self.assert_is_moderator( request, user)
+        if is_mod:
+            room_id = self.get_room_id_from_request(request)
+            room = await self.store.get_secured_room(room_id)
+            respond_with_json(request, 200, room.to_dict(), True)
+            return
+    
+        # Admin check
+        await self.assert_is_admin(user)    
         rooms = await self.store.get_secured_rooms()
         rooms = [room.to_dict() for room in rooms]
         respond_with_json(request, 200, rooms, True)
-        pass
+        return 
 
     async def _async_render_POST(self, request: SynapseRequest):
+        
         """Create a new secured room"""
-        user = await self.assert_is_admin(request)
-
+        user = await self.module_api.get_user_by_req(request)
+                
         try:
             request_body = parse_json_object_from_request(request)
             new_room = SecuredRoom(**request_body)
@@ -65,10 +77,19 @@ class SecuredRoomsServlet(DirectServeJsonResource):
 
     async def _async_render_PUT(self, request: SynapseRequest):
         """Update a secured room with the newly send options, will match on the room_id"""
-        user = await self.assert_is_admin(request)
+        user = await self.module_api.get_user_by_req(request)
+        
+        # Put request contains a body with the updated room options
+        request_body = parse_json_object_from_request(request)
+        updated_room = SecuredRoom(**request_body)
+        # First check whether the user is a moderator
+        is_mod = await self.assert_is_moderator( request, user, updated_room.room_id)
+
+        # If the user is not a moderator, then check whether the user is an admin
+        if not is_mod:
+            await self.assert_is_admin(user)
         try:
-            request_body = parse_json_object_from_request(request)
-            updated_room = SecuredRoom(**request_body)
+            
             current_room = await self.store.get_secured_room(updated_room.room_id)
             if current_room:
                 if current_room.type.value != updated_room.type.value:
@@ -87,7 +108,8 @@ class SecuredRoomsServlet(DirectServeJsonResource):
     # Will shut down the room as well.
     async def _async_render_DELETE(self, request: SynapseRequest):
         """Delete a secured room"""
-        user = await self.assert_is_admin(request)
+        user = await self.module_api.get_user_by_req(request)
+        await self.assert_is_admin(user)
         try:
             room_id = parse_string(request, "room_id")
 
@@ -106,11 +128,51 @@ class SecuredRoomsServlet(DirectServeJsonResource):
         except TypeError as e:
             respond_with_json(request, 400, {"errors": f"{str(e)}"}, True)
 
-    async def assert_is_admin(self, request: SynapseRequest) -> Requester:
-        user = await self.module_api.get_user_by_req(request)
+    async def assert_is_admin(self, user) -> Requester:
         if not await self.module_api.is_user_admin(user.user.to_string()):
             raise LoginError(401, "Not an admin", errcode=Codes.UNAUTHORIZED)
         return user
+
+    async def assert_is_moderator(self, request: SynapseRequest, user, room_id = None) -> bool:
+        # Initialize with default power level
+        user_power_level = 0;
+
+        # If room Id is not provided, then get it from the request
+        if room_id == None:
+            room_id = self.get_room_id_from_request(request)
+      
+        if room_id:
+            roomEvent = await self.module_api.get_room_state(room_id, [(EventTypes.PowerLevels, "")])
+            power_levels_event = roomEvent.get(('m.room.power_levels', ''))
+            if power_levels_event:
+                    power_levels = power_levels_event.content             
+                    user_id = user.user;
+                    user_power_level = self.get_user_power_level(user_id, power_levels)
+    
+        return user_power_level == MODERATOR_POWER_LEVEL;
+    
+    def get_room_id_from_request(self,request):
+        if isinstance(request, dict):  # Test case scenario where request is a dict
+            room_id_bytes = request.get(b'room_id', [None])[0]
+        else:  # Normal case where request has 'args' attribute
+            room_id_bytes = request.args.get(b'room_id', [None])[0]
+    
+        if room_id_bytes:
+            return room_id_bytes.decode('utf-8')
+    
+        return None      
+                
+    def get_user_power_level(self, user_id, power_levels_dict):
+        logger.info(f"Power levels dict: {power_levels_dict}")
+        # Extract users and users_default from the dictionary
+        user_id_str = user_id.to_string()
+        users = power_levels_dict.get('users')
+        logger.info(f"Users in dictionary: {users}")
+        if user_id_str in users:
+            return users[user_id_str]
+        # Return the user's power level if they exist, otherwise return the default
+        return 0
+
 
 
 class NoticesServlet(DirectServeJsonResource):

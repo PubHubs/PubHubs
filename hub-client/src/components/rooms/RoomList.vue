@@ -90,18 +90,26 @@
 		const room = rooms.room(roomId);
 		if (room) {
 			const dialog = useDialog();
+			const leaveMsg = await leaveMessageContext(roomId);
 			if (room.isPrivateRoom()) {
 				if (await dialog.okcancel(t('rooms.hide_sure'))) {
 					await pubhubs.setPrivateRoomHiddenStateForUser(room, true);
 					await router.replace({ name: 'home' });
 				}
 			} else {
-				if (await dialog.okcancel(t('rooms.leave_sure'))) {
+				// Message should changed based on who (admin) is leaving the room and under which condition.
+				// e.g., Admin leaves the room and he is the only member or when admin leaves the room which makes the room without adminstrator.
+				if (await dialog.okcancel(t(leaveMsg))) {
 					await pubhubs.leaveRoom(roomId);
 					await router.replace({ name: 'home' });
 				}
 			}
 		}
+	}
+	// To display specific message based on the admin room status.
+	async function leaveMessageContext(roomId: string): Promise<string> {
+		const isSingleAdmin = await pubhubs.isSingleAdministration(roomId);
+		return isSingleAdmin ? 'rooms.leave_admin' : 'rooms.leave_sure';
 	}
 
 	function roomIcon(room: Room): string {

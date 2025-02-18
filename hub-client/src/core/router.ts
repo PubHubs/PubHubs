@@ -8,6 +8,7 @@ const routes = [
 	{ path: '/onboarding', name: 'onboarding', component: () => import('@/pages/Onboarding.vue'), meta: { hideBar: true } },
 	{ path: '/hub', name: 'hubpage', component: () => import('@/pages/HomePage.vue'), props: { showPubHubsCentralLoginButton: false } },
 	{ path: '/admin', name: 'admin', component: () => import('@/pages/Admin.vue'), meta: { onlyAdmin: true, hideBar: true } },
+	{ path: '/manageusers', name: 'manageusers', component: () => import('@/pages/ManageUsers.vue'), meta: { onlyAdmin: true, hideBar: true } },
 	{ path: '/hub-settings', name: 'hub-settings', component: () => import('@/pages/HubSettings.vue'), meta: { onlyAdmin: false, hideBar: true } },
 	{ path: '/ask-disclosure', name: 'ask-disclosure', component: () => import('@/pages/AskDisclosure.vue'), meta: { onlyAdmin: true } },
 	{ path: '/room/:id', props: true, name: 'room', component: () => import('@/pages/Room.vue'), meta: { hideBar: true } },
@@ -35,8 +36,9 @@ router.beforeEach((to) => {
 	}
 
 	if (to.meta.onlyAdmin) {
-		const { isAdmin } = useUser();
-		if (isAdmin) {
+		const { isAdmin, administrator } = useUser();
+		// There should be a valid admin object created when administrator flag is true.
+		if (isAdmin && administrator) {
 			return true;
 		}
 		console.log('ONLY FOR ADMINS', isAdmin);

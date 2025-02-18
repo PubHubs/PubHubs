@@ -15,6 +15,7 @@ import { SMI } from '@/dev/StatusMessage';
 import { LOGGER } from '@/foundation/Logger';
 import { MatrixClient, User as MatrixUser } from 'matrix-js-sdk';
 import { defineStore } from 'pinia';
+import { Administrator } from '@/hubmanagement/models/admin';
 import { FeatureFlag, useSettings } from './settings';
 
 /**
@@ -30,6 +31,8 @@ class User extends MatrixUser {
 const defaultUser = {} as User;
 
 type State = {
+	avatarUrl: string;
+	administrator: Administrator | null;
 	_avatarMxcUrl: string | undefined;
 	_avatarUrl: string | undefined | null;
 	_displayName: string | undefined | null;
@@ -43,6 +46,8 @@ const logger = LOGGER;
 
 const useUser = defineStore('user', {
 	state: (): State => ({
+		avatarUrl: '',
+		administrator: null,
 		_avatarMxcUrl: undefined,
 		_avatarUrl: undefined,
 		_displayName: undefined,
@@ -105,6 +110,7 @@ const useUser = defineStore('user', {
 		async fetchIsAdministrator(client: MatrixClient) {
 			try {
 				await client.isSynapseAdministrator();
+				this.administrator = new Administrator();
 				this.isAdministrator = true;
 			} catch (error) {
 				this.isAdministrator = false;

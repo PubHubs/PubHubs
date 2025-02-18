@@ -323,7 +323,7 @@ const useRooms = defineStore('rooms', {
 			// for (const content of response_notice.chunk){
 			// 	console.info(content.content.body)
 			// }
-			const response = await api_synapse.apiDELETE<any>(api_synapse.apiURLS.deleteRoom + room_id, body);
+			const response = await api_synapse.apiDELETE<any>(api_synapse.apiURLS.roomsAPIV2 + room_id, body);
 
 			const deleted_id = response.delete_id;
 			this.room(room_id)?.setHidden(true);
@@ -497,6 +497,20 @@ const useRooms = defineStore('rooms', {
 				.catch((error: any) => {
 					console.info(`There is an Error: ${error}`);
 				});
+		},
+
+		// Get specific TPublic or TSecured Room - The structure of the room is different from MatrixRoom.
+		async getTPublicOrTSecuredRoom(roomId: string) {
+			const isSecuredRoom = this.roomIsSecure(roomId);
+			if (isSecuredRoom) {
+				// Fetch secured Room
+				await this.getSecuredRoomInfo(roomId);
+				// Set the current Secured Room
+				return this.securedRoom;
+			} else {
+				// We need to get information from TPublicRoom instead of room.
+				return this.publicRooms.find((room) => room.room_id == this.currentRoomId)!;
+			}
 		},
 	},
 });

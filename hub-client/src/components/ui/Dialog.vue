@@ -11,7 +11,7 @@
 		class="absolute left-0 top-0 h-full w-full"
 	>
 		<div v-if="dialog.properties.modal" class="absolute inset-0 z-20 h-full bg-gray-middle opacity-75"></div>
-		<div v-if="!dialog.properties.modalonly" class="absolute inset-0 z-20 flex h-full py-2" @click="doAction(DialogCancel)">
+		<div v-if="!dialog.properties.modalonly" class="absolute inset-0 z-30 flex h-full py-2" @click="doAction(DialogCancel)">
 			<div class="theme-light m-auto flex max-h-full flex-col justify-between gap-1 rounded-lg bg-white p-4 shadow-xl shadow-black" :class="width" @click.stop>
 				<div>
 					<Icon v-if="dialog.properties.close" type="close" size="md" class="float-right -mt-1 hover:opacity-75" @click="doAction(DialogCancel)"></Icon>

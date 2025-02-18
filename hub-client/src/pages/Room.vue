@@ -20,6 +20,14 @@
 								<RoomTopic :room="rooms.currentRoom"></RoomTopic>
 							</TruncatedText>
 						</div>
+						<!-- Only show cog wheel in mobile view -->
+						<Icon v-if="room.getUserPowerLevel(user.user.userId) === 50" type="cog" class="z-10 cursor-pointer md:hidden md:text-black" @click="moderatorCanEdit()"></Icon>
+					</div>
+					<!--Only show Editing icon for Moderator but not for administrator-->
+					<div class="hidden items-center md:flex" v-if="room.getUserPowerLevel(user.user.userId) === 50">
+						<div class="rounded-md border-2 border-gray-light bg-gray-light px-2 py-2 transition-colors hover:border-gray-middle hover:bg-gray-middle">
+							<Icon type="cog" class="cursor-pointer text-white" @click="moderatorCanEdit()"></Icon>
+						</div>
 					</div>
 					<SearchInput :search-parameters="searchParameters" @scroll-to-event-id="onScrollToEventId" :room="rooms.currentRoom"></SearchInput>
 				</div>
@@ -29,6 +37,7 @@
 
 			<template #footer>
 				<MessageInput v-if="room" :room="room"></MessageInput>
+				<EditRoomForm v-if="showEditRoom" :room="currentRoomToEdit" :secured="secured" @close="closeEdit()"></EditRoomForm>
 			</template>
 		</HeaderFooter>
 
@@ -58,16 +67,21 @@
 	import { PluginProperties, usePlugins } from '@/store/plugins';
 	import { useRooms } from '@/store/rooms';
 	import { useUser } from '@/store/user';
+	import { TPublicRoom, TSecuredRoom } from '@/store/store';
 	import { computed, onMounted, ref, watch } from 'vue';
 	import { useRoute, useRouter } from 'vue-router';
 
 	const route = useRoute();
 	const rooms = useRooms();
+	const user = useUser();
 	const router = useRouter();
 	const plugins = usePlugins();
 	const plugin = ref(false as boolean | PluginProperties);
 	const hubSettings = useHubSettings();
-	const user = useUser();
+	const currentRoomToEdit = ref<TSecuredRoom | TPublicRoom | null>(null);
+	const showEditRoom = ref(false);
+	const secured = ref(false);
+
 	const pubhubs = usePubHubs();
 
 	//Passed by the router
@@ -114,5 +128,17 @@
 
 	async function onScrollToEventId(ev: any) {
 		scrollToEventId.value = ev.eventId;
+	}
+
+	async function moderatorCanEdit() {
+		currentRoomToEdit.value = await rooms.getTPublicOrTSecuredRoom(props.id);
+		const isSecuredRoom = rooms.roomIsSecure(props.id);
+		if (isSecuredRoom) secured.value = true;
+		showEditRoom.value = true;
+	}
+
+	function closeEdit() {
+		showEditRoom.value = false;
+		secured.value = false;
 	}
 </script>

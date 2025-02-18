@@ -50,7 +50,9 @@
 	import { usePubHubs } from '@/core/pubhubsStore';
 	import { buttonsSubmitCancel, DialogButtonAction } from '@/store/dialog';
 	import { RoomType } from '@/store/rooms';
-	import { SecuredRoomAttributes, TPublicRoom, TSecuredRoom, useRooms } from '@/store/store';
+	import { SecuredRoomAttributes, TSecuredRoom, useRooms } from '@/store/store';
+	import Room from '@/model/rooms/Room';
+
 	import { useYivi } from '@/store/yivi';
 	import { computed, onBeforeMount, ref } from 'vue';
 	import { useI18n } from 'vue-i18n';
@@ -59,6 +61,7 @@
 	const { setData, updateData } = useFormState();
 	const pubhubs = usePubHubs();
 	const rooms = useRooms();
+
 	//const dialog = useDialog();
 	const yivi = useYivi();
 	const emit = defineEmits(['close']);
@@ -66,7 +69,7 @@
 	const props = defineProps({
 		room: {
 			type: Object,
-			default: ref({} as unknown as TSecuredRoom | TPublicRoom),
+			default: ref({} as unknown as TSecuredRoom | Room),
 		},
 		secured: {
 			type: Boolean,
@@ -115,7 +118,7 @@
 		type: '',
 	} as TSecuredRoom;
 
-	const editRoom = ref({} as TPublicRoom | TSecuredRoom);
+	const editRoom = ref({} as Room | TSecuredRoom);
 
 	const securedRoomTemplate = ref([
 		{ key: 'yivi', label: t('admin.secured_attribute'), type: 'autocomplete', options: [], default: '', disabled: !isNewRoom.value },
@@ -124,7 +127,6 @@
 	] as Array<FormObjectInputTemplate>);
 
 	//#region mount
-
 	onBeforeMount(async () => {
 		// yivi attributes
 		await yivi.fetchAttributes();
@@ -132,12 +134,12 @@
 
 		if (isNewRoom.value) {
 			// New Room
-			editRoom.value = { ...emptyNewRoom } as TPublicRoom | TSecuredRoom;
+			editRoom.value = { ...emptyNewRoom } as Room | TSecuredRoom;
 		} else {
 			// Edit room
-			editRoom.value = { ...(props.room as TPublicRoom | TSecuredRoom) };
-			editRoom.value.topic = rooms.getRoomTopic(props.room.room_id);
 
+			editRoom.value = { ...(props.room as Room | TSecuredRoom) };
+			editRoom.value.topic = rooms.getRoomTopic(props.room.room_id);
 			// Transform for form
 			if (props.secured) {
 				// Remove 'profile' for existing secured room (cant be edited after creation)
@@ -193,9 +195,8 @@
 	}
 
 	async function submitRoom(): Promise<Boolean> {
-		let room = { ...editRoom.value } as TSecuredRoom;
-
 		// Normal room
+		let room = { ...editRoom.value } as TSecuredRoom;
 		if (!props.secured) {
 			if (isNewRoom.value) {
 				let newRoomOptions = {
@@ -203,20 +204,21 @@
 					topic: room.topic,
 					visibility: 'public',
 					creation_content: {
-						type: room.type === '' ? undefined : room.type,
+						type: room.topic === '' ? undefined : room.topic,
 					},
 				};
 				await pubhubs.createRoom(newRoomOptions);
 			} else {
-				// update name
-				await pubhubs.renameRoom(room.room_id as string, room.name);
+				await pubhubs.renameRoom(props.room.room_id, editRoom.value.name!);
+
 				// update topic
-				await pubhubs.setTopic(room.room_id as string, room.topic as string);
+				await pubhubs.setTopic(props.room.room_id as string, editRoom.value.topic!);
 			}
 			editRoom.value = { ...emptyNewRoom };
 		}
 		// Secured room
 		else {
+			let room = { ...editRoom.value } as TSecuredRoom;
 			// Transform room for API
 			// room.room_name = room.name;
 			// delete room.name;

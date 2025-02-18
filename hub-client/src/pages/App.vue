@@ -77,6 +77,7 @@
 						<H2>{{ $t('menu.admin_tools') }}</H2>
 						<Menu>
 							<MenuItem :to="{ name: 'admin' }" icon="admin">{{ $t('menu.admin_tools_rooms') }}</MenuItem>
+							<MenuItem :to="{ name: 'manageusers' }" icon="admin">{{ $t('menu.admin_tools_users') }}</MenuItem>
 						</Menu>
 
 						<Menu v-if="settings.isFeatureEnabled(FeatureFlag.hubSettings)">
