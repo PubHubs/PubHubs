@@ -66,14 +66,6 @@
 		<template v-else>
 			<p v-if="value !== ''" class="p-2">{{ $t('others.search_nothing_found') }}</p>
 		</template>
-		<!-- Show load more results text if necessary -->
-		<template v-if="searchResults && searchResults.length > 0 && searchResponse && searchResponse.count && searchResponse.count > searchResults.length">
-			<a href="#" @click.prevent="loadMoreSearchResults()">
-				<div class="flex gap-2 p-2 group-hover:bg-gray-light group-hover:dark:bg-gray">
-					{{ $t('others.load_more_results') }}
-				</div>
-			</a>
-		</template>
 	</div>
 </template>
 
@@ -124,7 +116,10 @@
 		searchResults.value = [];
 		searched.value = true;
 		isSearching.value = true;
-		if (!value.value) return;
+		if (!value.value) {
+			isSearching.value = false;
+			return;
+		}
 
 		try {
 			searchResponse = await pubhubs.searchRoomEvents(value.value as string, props.searchParameters);
