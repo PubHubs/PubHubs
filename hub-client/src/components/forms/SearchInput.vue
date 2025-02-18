@@ -139,16 +139,6 @@
 		isSearching.value = false;
 	}
 
-	async function loadMoreSearchResults() {
-		if (searchResponse && searchResponse.next_batch) {
-			while (searchResponse.next_batch) {
-				searchResponse = await pubhubs.backPaginateRoomEventsSearch(searchResponse);
-			}
-			searchResults.value = mapSearchResult(searchResponse.results);
-		}
-		searched.value = true;
-	}
-
 	function reset() {
 		searchResults.value = [];
 		searched.value = false;
