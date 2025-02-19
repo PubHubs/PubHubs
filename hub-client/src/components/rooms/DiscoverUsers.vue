@@ -1,5 +1,5 @@
 <template>
-	<div class="pl-6 pr-8 relative" @focusin="focus(true)" @click="focus(true)" @keydown.esc="focus(false)" @mouseleave="focus(false)">
+	<div class="relative pl-6 pr-8" @focusin="focus(true)" @click="focus(true)" @keydown.esc="focus(false)" @mouseleave="focus(false)">
 		<Icon type="compass" class="absolute -ml-2 bg-white dark:bg-hub-background-2"></Icon>
 		<FilteredList
 			:items="usersList"
@@ -13,9 +13,9 @@
 			:showCompleteList="showList"
 		>
 			<template #item="{ item }">
-				<div class="flex justify-between items-center gap-2">
-					<span data-testid="user-id" class="text-xs font-normal text-nowrap">{{ item.localPart }}</span>
-					<span v-if="item.displayName" data-testid="display-name" :class="`${textColor(color(item.userId))} font-semibold text-sm truncate`">{{ filters.maxLengthText(item.displayName, settings.getDisplayNameMaxLength) }}</span>
+				<div class="flex items-center justify-between gap-2">
+					<span data-testid="user-id" class="text-nowrap text-xs font-normal">{{ item.localPart }}</span>
+					<span v-if="item.displayName" data-testid="display-name" :class="`${textColor(color(item.userId))} truncate text-sm font-semibold`">{{ filters.maxLengthText(item.displayName, settings.getDisplayNameMaxLength) }}</span>
 					<Icon type="plus" class="flex-none"></Icon>
 				</div>
 			</template>

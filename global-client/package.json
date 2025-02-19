@@ -14,10 +14,10 @@
 		"coverage": "vitest run --coverage"
 	},
 	"dependencies": {
-		"@vue/test-utils": "^2.2.3",
-		"@privacybydesign/yivi-web": "^0",
-		"@privacybydesign/yivi-core": "^0",
 		"@privacybydesign/yivi-client": "^0",
+		"@privacybydesign/yivi-core": "^0",
+		"@privacybydesign/yivi-web": "^0",
+		"@vue/test-utils": "^2.2.3",
 		"autoprefixer": "^10",
 		"core-js": "^3.8.3",
 		"pinia": "^2.0.26",
@@ -53,7 +53,8 @@
 		"jsdom": "^26",
 		"msw": "2.3.2",
 		"node-polyfill-webpack-plugin": "^4.0.0",
-		"prettier": "^3",
+		"prettier": "^3.5.0",
+		"prettier-plugin-tailwindcss": "^0.6.11",
 		"typescript": "^5.0.2",
 		"vue-cli-plugin-tailwind": "~3.0.0",
 		"vue-eslint-parser": "^9"
@@ -101,7 +102,10 @@
 		"vueIndentScriptAndStyle": true,
 		"endOfLine": "lf",
 		"embeddedLanguageFormatting": "auto",
-		"singleAttributePerLine": false
+		"singleAttributePerLine": false,
+		"plugins": [
+			"prettier-plugin-tailwindcss"
+		]
 	},
 	"browserslist": [
 		"> 1%",

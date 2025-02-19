@@ -1,7 +1,7 @@
 <template>
-	<div class="flex items-center relative">
+	<div class="relative flex items-center">
 		<input
-			class="w-full min-w-48 md:pr-8 py-2 text-hub-text bg-hub-background-3 placeholder:text-gray border-none rounded-md focus:ring-0"
+			class="w-full min-w-48 rounded-md border-none bg-hub-background-3 py-2 text-hub-text placeholder:text-gray focus:ring-0 md:pr-8"
 			type="search"
 			v-model="inputValue"
 			:placeholder="$t('others.search')"

@@ -1,19 +1,19 @@
 <template>
 	<div :class="settings.getActiveTheme" class="h-full">
 		<div v-if="setupReady" class="h-full text-hub-text">
-			<div v-if="user.isLoggedIn" class="md:grid grid-cols-8 h-full">
-				<HeaderFooter class="md:col-span-2 md:flex bg-hub-background-2" :class="{ hidden: !hubSettings.mobileHubMenu }" :headerBgColor="'bg-hub-background-3'">
+			<div v-if="user.isLoggedIn" class="h-full grid-cols-8 md:grid">
+				<HeaderFooter class="bg-hub-background-2 md:col-span-2 md:flex" :class="{ hidden: !hubSettings.mobileHubMenu }" :headerBgColor="'bg-hub-background-3'">
 					<template #header>
 						<div class="flex items-center gap-4">
-							<span class="text-xxs uppercase font-bold">hub</span>
+							<span class="text-xxs font-bold uppercase">hub</span>
 							<hr class="grow" />
 						</div>
-						<div class="flex h-full py-2 justify-between">
+						<div class="flex h-full justify-between py-2">
 							<Badge v-if="hubSettings.isSolo && settings.isFeatureEnabled(FeatureFlag.notifications) && rooms.totalUnreadMessages > 0" class="-ml-4 -mt-2 w-8 flex-none">{{ rooms.totalUnreadMessages }}</Badge>
-							<div class="flex flex-1 justify-between items-center">
+							<div class="flex flex-1 items-center justify-between">
 								<H1 class="line-clamp-1" @click="router.push('/')" :title="hubSettings.hubName">{{ hubSettings.hubName }}</H1>
 								<!-- TODO: Hiding this settings wheel as there is no functionality to it yet. -->
-								<Icon type="cog" size="sm" class="p-2 rounded-md bg-hub-background-2 hidden"></Icon>
+								<Icon type="cog" size="sm" class="hidden rounded-md bg-hub-background-2 p-2"></Icon>
 							</div>
 						</div>
 					</template>
@@ -25,16 +25,16 @@
 									settingsDialog = true;
 									hubSettings.hideBar();
 								"
-								class="flex items-center justify-between p-2 overflow-hidden cursor-pointer rounded-lg text-hub-text bg-hub-background-3"
+								class="flex cursor-pointer items-center justify-between overflow-hidden rounded-lg bg-hub-background-3 p-2 text-hub-text"
 							>
-								<div class="flex items-center gap-2 w-full truncate">
+								<div class="flex w-full items-center gap-2 truncate">
 									<Avatar :user="user" :img="user.avatarUrl"></Avatar>
-									<div class="flex flex-col h-fit w-full overflow-hidden">
-										<p class="font-bold leading-tight truncate">{{ user.displayName }}</p>
+									<div class="flex h-fit w-full flex-col overflow-hidden">
+										<p class="truncate font-bold leading-tight">{{ user.displayName }}</p>
 										<p class="leading-tight">{{ user.pseudonym ?? '' }}</p>
 									</div>
 								</div>
-								<Icon type="pencil" size="sm" class="p-2 rounded-md stroke-0"></Icon>
+								<Icon type="pencil" size="sm" class="rounded-md stroke-0 p-2"></Icon>
 							</div>
 							<Menu>
 								<template v-for="(item, index) in menu.getMenu" :key="index">
@@ -44,14 +44,14 @@
 						</section>
 
 						<section class="flex flex-col gap-2">
-							<div class="flex items-center justify-between p-2 rounded-lg bg-hub-background-4">
+							<div class="flex items-center justify-between rounded-lg bg-hub-background-4 p-2">
 								<H2>{{ $t('menu.rooms') }}</H2>
-								<div class="flex gap-2 items-center">
+								<div class="flex items-center gap-2">
 									<router-link :to="{ name: 'discover-rooms' }">
 										<Icon type="compass" size="md"></Icon>
 									</router-link>
 									<!-- TODO: Add functionality to the 3-dots icon. This serves as a hidden placeholder now. -->
-									<Icon class="stroke-0 hidden" type="dots" size="sm"></Icon>
+									<Icon class="hidden stroke-0" type="dots" size="sm"></Icon>
 								</div>
 							</div>
 							<RoomList></RoomList>
@@ -77,6 +77,7 @@
 						<H2>{{ $t('menu.admin_tools') }}</H2>
 						<Menu>
 							<MenuItem :to="{ name: 'admin' }" icon="admin">{{ $t('menu.admin_tools_rooms') }}</MenuItem>
+							<MenuItem :to="{ name: 'manageusers' }" icon="admin">{{ $t('menu.admin_tools_users') }}</MenuItem>
 						</Menu>
 
 						<Menu v-if="settings.isFeatureEnabled(FeatureFlag.hubSettings)">
@@ -85,7 +86,7 @@
 					</section>
 				</HeaderFooter>
 
-				<div class="md:col-span-6 md:block dark:bg-gray-middle h-full overflow-y-auto scrollbar" :class="{ hidden: hubSettings.mobileHubMenu }">
+				<div class="scrollbar h-full overflow-y-auto dark:bg-gray-middle md:col-span-6 md:block" :class="{ hidden: hubSettings.mobileHubMenu }">
 					<router-view></router-view>
 				</div>
 			</div>

@@ -29,6 +29,7 @@ For reference, dependencies are in `package.json`.
 
 - [ ] In the `global-client` directory, run `npm update` to install minor version updates (probably non-breaking changes).
 - [ ] Run `npm outdated` to check for major updates (difference between wantend and latest) and change the package.json file to update major versions if wanted. 
+  - **NOTE** Don't update tailwind-merge and tailwindcss until #1073 has been fixed.
   - 2024-nov: Mo:  could not update `eslint` related packages
   - 2024-sept: laura:  could not update `eslint` related packages
   - 2024-sept: `vuedraggable`'s latest, `2.24.3`, seems off, as the current is `4.1.0`; not updated.
@@ -46,6 +47,7 @@ For reference, dependencies are in `package.json`.
 - [ ] Run `npm outdated` to check for major updates (difference between wantend and latest) and change the package.json file to update major versions if wanted.
   - **NOTE** For now, don't update matrix-js-sdk, see #654 and #862.
   - **NOTE** Don't update msw until #978 has been fixed.
+  - **NOTE** Don't update tailwind-merge and tailwindcss until #1073 has been fixed.
 - [ ] To address issues that do not require attention, run: `npm audit fix`
   - (2024-jul) This gives a warning about @vue/cli-service@3.3.1. You can ignore this as running npm audit fix --force breaks more things.
 - [ ] To address issues with breaking changes, check them and solve them if possible.

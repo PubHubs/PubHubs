@@ -1,5 +1,5 @@
 <template>
-	<img :src="source" v-show="ready" @load="imgLoadReady()" class="object-cover object-center w-full h-full" />
+	<img :src="source" v-show="ready" @load="imgLoadReady()" class="h-full w-full object-cover object-center" />
 </template>
 
 <script setup>

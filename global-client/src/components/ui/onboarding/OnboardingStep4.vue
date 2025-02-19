@@ -7,7 +7,7 @@
 				<b>{{ $t('register.step', [2]) }}</b>
 				&nbsp; {{ $t('register.overview_step2') }}.
 			</p>
-			<p class="mt-4 mb-2">{{ $t('register.rewards.good_job') }}</p>
+			<p class="mb-2 mt-4">{{ $t('register.rewards.good_job') }}</p>
 			<p class="my-2">{{ $t('register.data_request') }}</p>
 			<p class="my-2">{{ $t('register.data_add') }}</p>
 			<Foldout :question="`${$t('register.data_add_how')}`">
@@ -16,21 +16,21 @@
 			<Foldout :question="`${$t('register.data_why')}`">
 				{{ $t('register.data_why_answer') }}
 			</Foldout>
-			<label for="attributesAdded" class="flex mt-6 font-bold">
-				<Checkbox id="attributesAdded" class="h-[16px] w-[16px] mt-1 sm:mt-0.5 mr-2" v-model="checked" :color="'blue'"> </Checkbox>
+			<label for="attributesAdded" class="mt-6 flex font-bold">
+				<Checkbox id="attributesAdded" class="mr-2 mt-1 h-[16px] w-[16px] sm:mt-0.5" v-model="checked" :color="'blue'"> </Checkbox>
 				{{ $t('register.data_added') }}
 			</label>
-			<Button class="w-fit my-4" :disabled="!checked" @click="$emit('next')">{{ $t('register.step_go_to', [3]) }} &#x27F6;</Button>
-			<a href="javascript:void(0)" class="text-sm underline underline-offset-4 mt-4" @click="$emit('back')">&#x27F5; {{ $t('register.step_previous') }}</a>
+			<Button class="my-4 w-fit" :disabled="!checked" @click="$emit('next')">{{ $t('register.step_go_to', [3]) }} &#x27F6;</Button>
+			<a href="javascript:void(0)" class="mt-4 text-sm underline underline-offset-4" @click="$emit('back')">&#x27F5; {{ $t('register.step_previous') }}</a>
 		</template>
 		<template #column2>
-			<div class="hidden lg:flex justify-center">
+			<div class="hidden justify-center lg:flex">
 				<div class="w-3/4">
 					<img src="../../../assets/mascot-attributes.svg" alt="PubHubs mascot with attributes" />
 				</div>
 			</div>
-			<div class="lg:hidden -mt-8">
-				<img class="relative left-1/2 md:left-3/4 -mb-20 w-40 pb-4" src="../../../assets/mascot-yivi-app-small.svg" />
+			<div class="-mt-8 lg:hidden">
+				<img class="relative left-1/2 -mb-20 w-40 pb-4 md:left-3/4" src="../../../assets/mascot-yivi-app-small.svg" />
 			</div>
 		</template>
 	</OnboardingTemplate>

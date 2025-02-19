@@ -3,7 +3,7 @@
 		ref="elTextarea"
 		v-tw-class="'p-2'"
 		rows="1"
-		class="w-full resize-none rounded-lg border dark:text-white dark:border-white theme-light:text-gray-dark theme-light:border-black focus:border-black focus:outline-0 focus:outline-offset-0 focus:ring-0"
+		class="w-full resize-none rounded-lg border focus:border-black focus:outline-0 focus:outline-offset-0 focus:ring-0 theme-light:border-black theme-light:text-gray-dark dark:border-white dark:text-white"
 		:maxlength="maxLength"
 		:placeholder="placeholder"
 		:title="placeholder"

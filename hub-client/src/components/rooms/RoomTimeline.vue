@@ -1,11 +1,11 @@
 <template>
-	<div class="h-full flex flex-col">
+	<div class="flex h-full flex-col">
 		<div>
-			<InlineSpinner v-if="isLoadingNewEvents" class="w-full absolute flex justify-center"></InlineSpinner>
+			<InlineSpinner v-if="isLoadingNewEvents" class="absolute flex w-full justify-center"></InlineSpinner>
 			<DateDisplayer v-if="settings.isFeatureEnabled(FeatureFlag.dateSplitter) && dateInformation !== 0" :scrollStatus="userHasScrolled" :eventTimeStamp="dateInformation.valueOf()"></DateDisplayer>
 		</div>
-		<div v-if="room" ref="elRoomTimeline" class="relative pb-4 flex flex-1 flex-col gap-2 overflow-y-auto" @scroll="onScroll">
-			<div v-if="oldestEventIsLoaded" class="rounded-xl flex items-center justify-center w-60 mx-auto my-4 border border-black dark:border-white">
+		<div v-if="room" ref="elRoomTimeline" class="relative flex flex-1 flex-col gap-2 overflow-y-auto pb-4" @scroll="onScroll">
+			<div v-if="oldestEventIsLoaded" class="mx-auto my-4 flex w-60 items-center justify-center rounded-xl border border-black dark:border-white">
 				{{ $t('rooms.roomCreated') }}
 			</div>
 			<template v-if="roomTimeLine.length > 0">

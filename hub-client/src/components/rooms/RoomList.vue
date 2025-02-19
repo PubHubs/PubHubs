@@ -4,18 +4,18 @@
 		<template v-for="room in rooms.sortedRoomsArray" :key="room.roomId">
 			<template v-if="showRoom(room)">
 				<MenuItem :to="{ name: 'room', params: { id: room.roomId } }" :roomInfo="room" :icon="roomIcon(room)" :key="room.roomId" @click="hubSettings.hideBar()" class="group inline-block w-full">
-					<span class="flex gap-2 w-full justify-between items-center">
+					<span class="flex w-full items-center justify-between gap-2">
 						<TruncatedText>
 							<PrivateRoomName v-if="room.isPrivateRoom()" :members="room.getOtherJoinedAndInvitedMembers()"></PrivateRoomName>
 							<RoomName v-else :room="room"></RoomName>
 						</TruncatedText>
-						<span class="flex gap-2 group-hover:hidden transition-all duration-200 ease-in-out" v-if="settings.isFeatureEnabled(FeatureFlag.notifications)">
+						<span class="flex gap-2 transition-all duration-200 ease-in-out group-hover:hidden" v-if="settings.isFeatureEnabled(FeatureFlag.notifications)">
 							<Badge class="text-xxs" color="hub" v-if="room.getRoomUnreadNotificationCount(NotificationCountType.Total) > 99">99+</Badge>
 							<Badge v-else-if="room.getRoomUnreadNotificationCount(NotificationCountType.Total) > 0" color="hub">{{ room.getRoomUnreadNotificationCount(NotificationCountType.Total) }}</Badge>
 							<Badge color="hub" v-if="room.getRoomUnreadNotificationCount(NotificationCountType.Highlight) > 0"><Icon type="mention" size="sm" class="shrink-0"></Icon></Badge>
 						</span>
 
-						<Icon type="unlink" class="cursor-pointer hover:text-red-light stroke-2 group-hover:inline-block hidden transition-all duration-200 ease-in-out" @click.prevent="leaveRoom(room.roomId)"></Icon>
+						<Icon type="unlink" class="hidden cursor-pointer stroke-2 transition-all duration-200 ease-in-out hover:text-red-light group-hover:inline-block" @click.prevent="leaveRoom(room.roomId)"></Icon>
 					</span>
 				</MenuItem>
 			</template>
@@ -90,18 +90,26 @@
 		const room = rooms.room(roomId);
 		if (room) {
 			const dialog = useDialog();
+			const leaveMsg = await leaveMessageContext(roomId);
 			if (room.isPrivateRoom()) {
 				if (await dialog.okcancel(t('rooms.hide_sure'))) {
 					await pubhubs.setPrivateRoomHiddenStateForUser(room, true);
 					await router.replace({ name: 'home' });
 				}
 			} else {
-				if (await dialog.okcancel(t('rooms.leave_sure'))) {
+				// Message should changed based on who (admin) is leaving the room and under which condition.
+				// e.g., Admin leaves the room and he is the only member or when admin leaves the room which makes the room without adminstrator.
+				if (await dialog.okcancel(t(leaveMsg))) {
 					await pubhubs.leaveRoom(roomId);
 					await router.replace({ name: 'home' });
 				}
 			}
 		}
+	}
+	// To display specific message based on the admin room status.
+	async function leaveMessageContext(roomId: string): Promise<string> {
+		const isSingleAdmin = await pubhubs.isSingleAdministration(roomId);
+		return isSingleAdmin ? 'rooms.leave_admin' : 'rooms.leave_sure';
 	}
 
 	function roomIcon(room: Room): string {

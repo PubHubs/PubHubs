@@ -15,11 +15,10 @@ import { useConnection } from '@/store/connection';
 import { RoomType } from '@/store/rooms';
 import { TPublicRoom, useRooms } from '@/store/store';
 import { User, useUser } from '@/store/user';
-import { ContentHelpers, ISearchResults, MatrixClient, MatrixError, MatrixEvent, Room as MatrixRoom, User as MatrixUser, MsgType } from 'matrix-js-sdk';
+import { ContentHelpers, EventType, ISearchResults, ISendEventResponse, MatrixClient, MatrixError, MatrixEvent, Room as MatrixRoom, User as MatrixUser, MsgType } from 'matrix-js-sdk';
 import { ReceiptType } from 'matrix-js-sdk/lib/@types/read_receipts';
 import { router } from './router';
-import { useMatrixFiles } from '@/composables/useMatrixFiles';
-import { FeatureFlag, useSettings } from '@/store/settings';
+import { RoomPowerLevelsEventContent } from 'matrix-js-sdk/lib/@types/state_events';
 
 let publicRoomsLoading: Promise<any> | null = null; // outside of defineStore to guarantee lifetime, not accessible outside this module
 
@@ -36,6 +35,11 @@ const usePubHubs = defineStore('pubhubs', {
 	getters: {
 		getBaseUrl(state) {
 			return state.Auth.getBaseUrl();
+		},
+
+		// To get user Id for any user - this can be useful for getting user Id for admin when working with admin
+		getUserId(state) {
+			return state.client.getUserId();
 		},
 	},
 
@@ -156,6 +160,29 @@ const usePubHubs = defineStore('pubhubs', {
 				// can give error when user is no member and room previews are disabled
 				return false;
 			}
+		},
+
+		// If the admin is only room admin and there are other normal users in the room.
+		async isSingleAdministration(room_id: string) {
+			const user = useUser();
+			const rooms = useRooms();
+
+			if (!user.isAdministrator) return false;
+
+			const joinedMembers = await this.client.getJoinedRoomMembers(room_id);
+			// Check power level to see if there are users with PL of 100
+			const powerLevelContext = await this.getPoweLevelEventContent(room_id);
+
+			// If the current user (i.e., admin) is not in powerlevel - the admin is not 'room' admin.
+			if (powerLevelContext.users![user.user.userId] === undefined) return false;
+			const usersPL100 = Object.keys(powerLevelContext.users!);
+
+			// Check membership of users with PL100.
+			const membershipAdmins = usersPL100.map((userId) => rooms.currentRoom?.getMember(userId)?.membership === 'join');
+			const onlyOneAdminInRoom = membershipAdmins.filter(Boolean).length === 1;
+			// If there is only one admin who has joined the room and if he leaves then room will be without administration.
+			if (onlyOneAdminInRoom && Object.keys(joinedMembers.joined).length > 1) return true;
+			return false;
 		},
 
 		async getPublicRooms(search: string) {
@@ -609,11 +636,7 @@ const usePubHubs = defineStore('pubhubs', {
 		 *
 		 * Note: A better approach might be to use service workers to add the access token.
 		 */
-		async getAuthorizedMediaUrl(matrixUrl: string): Promise<string | null> {
-			const matrixFileStore = useMatrixFiles();
-			const settingsStore = useSettings();
-			const url = matrixFileStore.formUrlfromMxc(matrixUrl, settingsStore.isFeatureEnabled(FeatureFlag.authenticatedMedia));
-
+		async getAuthorizedMediaUrl(url: string): Promise<string | null> {
 			const accessToken = this.Auth.getAccessToken();
 
 			if (!accessToken) {
@@ -642,6 +665,23 @@ const usePubHubs = defineStore('pubhubs', {
 				console.error('Error downloading the file: ', error);
 				return null;
 			}
+		},
+
+		/**
+		 *
+		 * @returns Returns the room PowerLevel Event Content
+		 */
+		async getPoweLevelEventContent(roomId: string): Promise<RoomPowerLevelsEventContent> {
+			return await this.client.getStateEvent(roomId, 'm.room.power_levels', '');
+		},
+
+		/**
+		 * @param roomId  Id of the room
+		 * @param newPls level event content which consists of user object that contains the userId and power level.
+		 * @returns Sets the power level for the user.
+		 */
+		async setPowerLevelEventContent(roomId: string, newPls: RoomPowerLevelsEventContent): Promise<ISendEventResponse> {
+			return await this.client.sendStateEvent(roomId, EventType.RoomPowerLevels, newPls, '');
 		},
 	},
 });

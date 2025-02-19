@@ -1,29 +1,34 @@
 <template>
-	<HeaderFooter :headerSize="'sm'" :headerMobilePadding="true">
+	<AdminMembers v-if="showPastMemberPanel" :roomId="currentRoomId" @close="closeForm()"> </AdminMembers>
+	<HeaderFooter>
 		<template #header>
-			<H1>{{ $t('admin.title') }}</H1>
-			<p class="text-sm">{{ $t('admin.description') }}</p>
+			<div class="pl-20 md:p-4">
+				<H1>{{ $t('menu.admin_tools_rooms') }}</H1>
+				<p class="text-sm">{{ $t('admin.manage_room_description') }}</p>
+			</div>
 		</template>
-		<Tabs class="p-3">
+
+		<Tabs class="px-3">
 			<TabHeader>
-				<TabPill v-slot="slotProps">{{ $t('admin.public_rooms') }}<Icon v-if="slotProps.active" class="float-right hover:text-green ml-2" type="plus" @click="newPublicRoom()"></Icon></TabPill>
-				<TabPill v-slot="slotProps">{{ $t('admin.secured_rooms') }}<Icon v-if="slotProps.active" class="float-right hover:text-green ml-2" type="plus" @click="newSecuredRoom()"></Icon></TabPill>
+				<TabPill v-slot="slotProps">{{ $t('admin.public_rooms') }}<Icon v-if="slotProps.active" class="float-right ml-2 hover:text-green" type="plus" @click="newPublicRoom()"></Icon></TabPill>
+				<TabPill v-slot="slotProps">{{ $t('admin.secured_rooms') }}<Icon v-if="slotProps.active" class="float-right ml-2 hover:text-green" type="plus" @click="newSecuredRoom()"></Icon></TabPill>
 			</TabHeader>
 			<TabContainer>
 				<TabContent>
 					<p v-if="rooms.nonSecuredPublicRooms.length === 0">{{ $t('admin.no_secured_rooms') }}</p>
 					<FilteredList v-else :items="rooms.nonSecuredPublicRooms" :filterKey="['name']" sortby="name" :placeholder="$t('rooms.filter')">
 						<template #item="{ item }">
-							<div class="flex gap-8 w-full overflow-hidden justify-between" :title="item.room_id">
-								<div class="flex w-full overflow-hidden gap-4 items-center">
+							<div class="flex w-full justify-between gap-8 overflow-hidden" :title="item.room_id">
+								<div class="flex w-full items-center gap-4 overflow-hidden">
 									<Icon type="speech_bubbles" class="shrink-0 text-green group-hover:text-black"></Icon>
-									<p class="truncate min-w-20">{{ item.name }}</p>
-									<p class="truncate hidden md:inline italic text-gray-light pr-1">{{ rooms.getRoomTopic(item.room_id) }}</p>
+									<p class="min-w-20 truncate">{{ item.name }}</p>
+									<p class="hidden truncate pr-1 italic text-gray-light md:inline">{{ rooms.getRoomTopic(item.room_id) }}</p>
 									<span v-if="item.room_type" class="italic text-gray-light">- {{ item.room_type }} </span>
 								</div>
 								<div class="flex w-fit gap-4">
-									<div class="flex gap-2 items-center">
-										<span class="text-blue-light flex items-center">
+									<div class="flex items-center gap-2">
+										<span v-if="isUserRoomAdmin(user.user.userId, item.room_id)" class="relative items-center rounded-md bg-avatar-red px-1 text-sm font-medium text-white">Administrator</span>
+										<span class="flex items-center text-blue-light">
 											<Icon type="person" size="sm" class="shrink-0"></Icon>
 											<p>x</p>
 											<p>{{ item.num_joined_members }}</p>
@@ -32,9 +37,10 @@
 											<Icon type="person" size="sm" class="shrink-0"></Icon>
 										</span>
 									</div>
-									<div class="flex gap-1 items-center">
+									<div class="flex items-center gap-1">
 										<Icon type="remove" class="hover:fill-red" @click="removePublicRoom(item)"></Icon>
 										<Icon type="edit" class="hover:stroke-hub-accent" v-if="rooms.room(item.room_id)?.userCanChangeName(user.user.userId)" @click="editPublicRoom(item)"></Icon>
+										<Icon v-else type="promote" class="cursor-pointer hover:text-white" @click="makeRoomAdmin(item.room_id, user.user.userId)"></Icon>
 									</div>
 								</div>
 							</div>
@@ -46,22 +52,24 @@
 					<p v-if="!rooms.hasSecuredRooms">{{ $t('admin.no_secured_rooms') }}</p>
 					<FilteredList v-else :items="rooms.sortedSecuredRooms" :filterKey="['name']" sortby="name" :placeholder="$t('rooms.filter')">
 						<template #item="{ item }">
-							<div class="flex gap-8 w-full overflow-hidden justify-between" :title="item.room_id">
-								<div class="flex w-full overflow-hidden gap-4 items-center">
+							<div class="flex w-full justify-between gap-8 overflow-hidden" :title="item.room_id">
+								<div class="flex w-full items-center gap-4 overflow-hidden">
 									<Icon type="shield" class="shrink-0 text-green group-hover:text-black"></Icon>
-									<p class="truncate min-w-20">{{ item.name }}</p>
-									<p class="truncate hidden md:inline italic text-gray-light pr-1">{{ rooms.getRoomTopic(item.room_id) }}</p>
-									<span v-if="item.user_txt !== ''" class="truncate hidden md:inline italic text-gray-light"> [{{ item.user_txt }}]</span>
+									<p class="min-w-20 truncate">{{ item.name }}</p>
+									<p class="hidden truncate pr-1 italic text-gray-light md:inline">{{ rooms.getRoomTopic(item.room_id) }}</p>
+									<span v-if="item.user_txt !== ''" class="hidden truncate italic text-gray-light md:inline"> [{{ item.user_txt }}]</span>
 								</div>
 								<div class="flex w-fit gap-4">
-									<div class="flex gap-2 items-center">
+									<div class="flex items-center gap-2">
+										<span v-if="isUserRoomAdmin(user.user.userId, item.room_id)" class="relative items-center rounded-md bg-avatar-red px-1 text-sm font-medium text-white">Administrator</span>
 										<span v-if="rooms.room(item.room_id)?.userIsMember(user.user.userId)" class="text-green group-hover:text-white">
 											<Icon type="person" size="sm" class="shrink-0"></Icon>
 										</span>
 									</div>
-									<div class="flex gap-1 items-center">
-										<Icon type="remove" class="cursor-pointer hover:text-red" @click="removeSecuredRoom(item)"></Icon>
-										<Icon type="edit" class="cursor-pointer hover:text-white" @click="EditSecuredRoom(item)"></Icon>
+									<div class="flex items-center gap-1">
+										<Icon type="remove" class="cursor-pointer hover:text-red" v-if="rooms.room(item.room_id)?.userCanChangeName(user.user.userId)" @click="removeSecuredRoom(item)"></Icon>
+										<Icon type="edit" class="hover:stroke-hub-accent" v-if="rooms.room(item.room_id)?.userCanChangeName(user.user.userId)" @click="EditSecuredRoom(item)"></Icon>
+										<Icon type="promote" class="cursor-pointer hover:text-white" @click="makeRoomAdmin(item.room_id, user.user.userId)"></Icon>
 									</div>
 								</div>
 							</div>
@@ -70,6 +78,7 @@
 				</TabContent>
 			</TabContainer>
 		</Tabs>
+
 		<template #footer>
 			<EditRoomForm v-if="showEditRoom" :room="editRoom" :secured="secured" @close="closeEdit()"></EditRoomForm>
 		</template>
@@ -77,6 +86,9 @@
 </template>
 
 <script setup lang="ts">
+	import { usePubHubs } from '@/core/pubhubsStore';
+	import { APIService } from '@/hubmanagement/services/apiService';
+	import { ManagementUtils } from '@/hubmanagement/utility/managementutils';
 	// Components
 	import HeaderFooter from '@/components/ui/HeaderFooter.vue';
 	import Tabs from '@/components/ui/Tabs.vue';
@@ -94,13 +106,14 @@
 	import { useUser } from '@/store/user';
 	import { onMounted, ref } from 'vue';
 	import { useI18n } from 'vue-i18n';
-
 	const { t } = useI18n();
 	const user = useUser();
 	const rooms = useRooms();
 	const editRoom = ref({} as TSecuredRoom | TPublicRoom);
 	const secured = ref(false);
 	const showEditRoom = ref(false);
+	const showPastMemberPanel = ref(false);
+	const currentRoomId = ref('');
 
 	onMounted(async () => {
 		await rooms.fetchPublicRooms();
@@ -155,5 +168,35 @@
 				dialog.confirm('ERROR', error as string);
 			}
 		}
+	}
+
+	function isUserRoomAdmin(userId: string, roomId: string): boolean {
+		return rooms.room(roomId)?.getUserPowerLevel(userId) == 100 || false;
+	}
+
+	async function makeRoomAdmin(roomId: string, userId: string): Promise<void | Error> {
+		const dialog = useDialog();
+		const pubhubs = usePubHubs();
+		const okCancelStatus = await dialog.okcancel(t('admin.make_admin'));
+		// If the user presses cancel, then don't proceed!
+		if (!okCancelStatus) return;
+		try {
+			await APIService.makeRoomAdmin(roomId, userId);
+		} catch (error: any) {
+			const isMember = await ManagementUtils.roomCreatorIsMember(roomId);
+			// Creator is not a member of the room, so we show past admin to join.
+			if (!isMember) {
+				showPastMemberPanel.value = true;
+				currentRoomId.value = roomId;
+			} else {
+				// if creator is a member, but error was thrown, then some other issue has occured.
+				throw error;
+			}
+		}
+		await pubhubs.joinRoom(roomId);
+	}
+
+	function closeForm() {
+		showPastMemberPanel.value = false;
 	}
 </script>

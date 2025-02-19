@@ -1,13 +1,13 @@
 <template>
 	<li
-		:class="{ 'dark:bg-gray-middle bg-lightgray': isActive }"
+		:class="{ 'bg-lightgray dark:bg-gray-middle': isActive }"
 		@click="
 			click();
 			menu.setActiveMenuItem(props.roomInfo?.roomId);
 		"
-		class="menu-item h-11 pl-5 rounded-lg hover:dark:bg-gray-middle hover:bg-lightgray py-2 transition-all duration-150 ease-in-out"
+		class="menu-item h-11 rounded-lg py-2 pl-5 pr-2 transition-all duration-150 ease-in-out hover:bg-lightgray hover:dark:bg-gray-middle"
 	>
-		<router-link :to="to" class="flex gap-2 items-center">
+		<router-link :to="to" class="flex items-center gap-2">
 			<Icon v-if="isSecuredRoom()" type="shield"></Icon>
 			<Icon v-else class="dark:text-white" :type="icon"></Icon>
 			<TruncatedText class="w-full"><slot></slot></TruncatedText>

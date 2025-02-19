@@ -237,12 +237,14 @@ export default class Room {
 
 	public userCanChangeName(user_id: string): boolean {
 		const member = this.matrixRoom.getMember(user_id);
+
 		if (member) {
 			const sufficient = this.matrixRoom.getLiveTimeline().getState(EventTimeline.FORWARDS)?.hasSufficientPowerLevelFor('redact', member?.powerLevel);
 			return sufficient || false;
 		}
 		return false;
 	}
+
 	// #endregion
 
 	// #region events
@@ -372,6 +374,20 @@ export default class Room {
 			.reverse()
 			?.find((event: MatrixEvent) => event.getType() === 'm.room.message')
 			?.getId();
+	}
+
+	public getUserPowerLevel(userId: string): number {
+		const timeline = this.matrixRoom.getLiveTimeline();
+		if (timeline !== undefined) {
+			const powerLevelsEvent = timeline.getState(EventTimeline.FORWARDS)?.getStateEvents('m.room.power_levels', '');
+			// If there is no power level then we return a -1 - An arbitrary number that is not a power level.
+			// This should indicate that there is no power level event in the room hence an issue from synapse side.
+			if (!powerLevelsEvent) return -1;
+			const powerLevels = powerLevelsEvent.getContent();
+
+			return powerLevels.users[userId];
+		}
+		return 0;
 	}
 
 	public inRedactedMessageIds(eventId: string): boolean {

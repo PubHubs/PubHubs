@@ -1,40 +1,40 @@
 <template>
 	<Dialog :title="$t('settings.title')" :buttons="buttonsSubmitCancel" @close="dialogAction($event)">
 		<form @submit.prevent>
-			<div class="flex flex-col items-center md:items-start md:flex-row mb-4">
-				<label class="md:w-2/6 font-semibold text-gray">{{ $t('settings.avatar') }}</label>
+			<div class="mb-4 flex flex-col items-center md:flex-row md:items-start">
+				<label class="font-semibold text-gray md:w-2/6">{{ $t('settings.avatar') }}</label>
 				<input type="file" id="avatar" accept="image/png, image/jpeg, image/svg" class="hidden" ref="file" @change="uploadAvatar($event)" />
 
-				<div class="md:w-4/6 flex flex-col md:flex-row justify-between">
-					<Avatar :user="user" :overrideAvatarUrl="avatarUrl" class="w-32 h-32 rounded-full"></Avatar>
+				<div class="flex flex-col justify-between md:w-4/6 md:flex-row">
+					<Avatar :user="user" :overrideAvatarUrl="avatarUrl" class="h-32 w-32 rounded-full"></Avatar>
 
-					<div class="flex justify-center md:justify-normal md:flex-col md:space-y-4 mt-5 md:mr-3">
+					<div class="mt-5 flex justify-center md:mr-3 md:flex-col md:justify-normal md:space-y-4">
 						<label for="avatar">
-							<Icon size="lg" type="edit" class="group-hover:block cursor-pointer"></Icon>
+							<Icon size="lg" type="edit" class="cursor-pointer group-hover:block"></Icon>
 						</label>
-						<Icon size="lg" type="bin" class="group-hover:block cursor-pointer" @click="removeAvatar"></Icon>
+						<Icon size="lg" type="bin" class="cursor-pointer group-hover:block" @click="removeAvatar"></Icon>
 					</div>
 				</div>
 			</div>
-			<div class="flex flex-col md:flex-row mb-4">
+			<div class="mb-4 flex flex-col md:flex-row">
 				<label class="w-2/6 font-semibold text-gray">{{ $t('settings.displayname') }}</label>
 				<TextInput
-					class="md:w-4/6 p-1 border rounded focus:outline-none focus:border-blue-500"
+					class="focus:border-blue-500 rounded border p-1 focus:outline-none md:w-4/6"
 					name="displayname"
 					v-model.trim="formState.data.displayName.value"
 					:placeholder="$t('settings.displayname')"
 					@changed="formState.updateData('displayName', $event)"
 				></TextInput>
 			</div>
-			<div class="flex flex-col md:flex-row mb-4">
+			<div class="mb-4 flex flex-col md:flex-row">
 				<label class="w-2/6 font-semibold text-gray">{{ $t('settings.userId') }}</label>
-				<div title="Hub specific User ID" class="md:w-4/6 p-1 text-gray-light italic text-lg">{{ user.user.userId }}</div>
+				<div title="Hub specific User ID" class="p-1 text-lg italic text-gray-light md:w-4/6">{{ user.user.userId }}</div>
 			</div>
 		</form>
 
 		<ValidationErrors :errors="formState.validationErrors.value"></ValidationErrors>
 
-		<div v-if="formState.message.value !== ''" class="rounded-lg bg-green-dark text-white p-2 mt-2">{{ formState.message }}</div>
+		<div v-if="formState.message.value !== ''" class="mt-2 rounded-lg bg-green-dark p-2 text-white">{{ formState.message }}</div>
 	</Dialog>
 </template>
 
@@ -109,17 +109,8 @@
 		}
 	}
 
-	async function updateAvatarUrl(): Promise<void> {
-		if (!avatarMxcUrl.value) {
-			avatarUrl.value = avatarMxcUrl.value;
-			return;
-		}
-
-		const url = await pubhubs.getAuthorizedMediaUrl(avatarMxcUrl.value);
-		if (url === null) throw new Error('Could not get authorized media URL');
-
-		avatarUrl.value = url;
-		return;
+	function updateAvatarUrl(): void {
+		avatarUrl.value = avatarMxcUrl.value;
 	}
 
 	// Avatar related functions

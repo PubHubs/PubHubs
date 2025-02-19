@@ -374,15 +374,25 @@ const icons: { [key: string]: string } = {
         </svg>
     `,
 	speech_bubble: `
-    <svg viewBox="0 0 65 62" fill="none" xmlns="http://www.w3.org/2000/svg">
-    <path d="M0.0711282 28.8731C-1.07931 45.9441 11.6006 60.7508 28.382 61.9211C37.3855 62.5571 45.7637 59.1226 51.741 53.1948L64.9961 54.0598L57.3181 45.7151C59.3439 41.9498 60.5944 37.6757 60.9195 33.1217C62.045 16.0508 49.3651 1.24403 32.5836 0.0737391C15.8022 -1.09655 1.24658 11.8021 0.0961336 28.8731H0.0711282Z" fill="white"/>
-    </svg>
-    `,
+        <svg viewBox="0 0 65 62" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <path d="M0.0711282 28.8731C-1.07931 45.9441 11.6006 60.7508 28.382 61.9211C37.3855 62.5571 45.7637 59.1226 51.741 53.1948L64.9961 54.0598L57.3181 45.7151C59.3439 41.9498 60.5944 37.6757 60.9195 33.1217C62.045 16.0508 49.3651 1.24403 32.5836 0.0737391C15.8022 -1.09655 1.24658 11.8021 0.0961336 28.8731H0.0711282Z" fill="white"/>
+        </svg>`,
 	information: `
         <svg fill="currentColor" viewBox="0 0 488.9 488.9">
         <path d="M239.15,0c31.9,0,57.7,25.8,57.7,57.7s-25.8,57.7-57.7,57.7s-57.7-25.8-57.7-57.7S207.25,0,239.15,0z M291.65,151.6h-1.5 h-92.8h-3.4c-19,0-34.3,15.4-34.3,34.3l0,0c0,19,15.4,34.3,34.3,34.3h3.4v200h-37.7v68.7h169.6v-68.7h-37.5V151.6H291.65z"/>
         </svg>
-        `,
+    `,
+	promote: `
+        <svg class="h-8 w-8 text-gray-500"  fill="none" viewBox="0 0 24 24" stroke="currentColor">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 11l3-3m0 0l3 3m-3-3v8m0-13a9 9 0 110 18 9 9 0 010-18z"/>
+        </svg>
+   `,
+	exclamation: `
+        <svg class="h-8 w-8 text-gray-500"  fill="none" viewBox="0 0 24 24" stroke="currentColor">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+        </svg>
+  `,
+
 	pin: `
         <svg viewBox="0 0 60 68" fill="none" xmlns="http://www.w3.org/2000/svg">
         <path fill="currentColor" fill-rule="evenodd" clip-rule="evenodd" d="M55.2097 15.5162L31.8396 2.02351L33.9958 6.38443L33.998 6.38568L20.1589 30.3557C14.8414 29.801 10.2023 31.4068 8.09699 35.0533L39.6466 53.2685C41.9399 49.2964 40.633 43.9315 36.791 39.3277L50.3571 15.8304L50.3552 15.8293L55.2097 15.5162ZM22.1168 43.1488L25.6223 45.1727L18.876 56.8577L15.3705 54.8338L22.1168 43.1488ZM15.7758 58.1851L15.3724 54.8362L18.8779 56.8601L15.7758 58.1851Z"/>
@@ -404,6 +414,14 @@ const icons: { [key: string]: string } = {
         <path fill="currentColor" fill-rule="evenodd" clip-rule="evenodd" d="M0.371094 11.1288C0.371094 10.9239 0.537182 10.7578 0.742062 10.7578L10.3872 10.7578C10.5921 10.7578 10.7582 10.9239 10.7582 11.1288C10.7582 11.3337 10.5921 11.4997 10.3872 11.4997L0.742061 11.4997C0.537182 11.4997 0.371094 11.3337 0.371094 11.1288Z" />
         </svg>
         `,
+	lock: `<svg width="17" height="23" viewBox="0 0 17 23" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <rect y="7.51758" width="16.2963" height="15.4815" rx="1" fill="#001242"/>
+        <circle cx="8.14916" cy="14.0378" r="1.62963" fill="white"/>
+        <rect x="7.33398" y="14.8516" width="1.62963" height="4.07407" rx="0.638889" fill="white"/>
+        <path d="M2.85156 7.51852C2.85156 5.07407 3.5849 1 8.14786 1C12.7108 1 13.4439 5.07407 13.4439 7.51852" stroke="#001242" stroke-width="2"/>
+        </svg>`,
+	slash: `<svg class="h-10 w-10 text-gray-500"  viewBox="0 0 24 24"  fill="none"  stroke="currentColor"  stroke-width="2"  stroke-linecap="round"  stroke-linejoin="round">  <circle cx="12" cy="12" r="10" />  <line x1="4.93" y1="4.93" x2="19.07" y2="19.07" /></svg>`,
+	help: `<svg class="h-10 w-10 text-gray-500"  width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">  <path stroke="none" d="M0 0h24v24H0z"/>  <circle cx="12" cy="12" r="9" />  <line x1="12" y1="17" x2="12" y2="17.01" />  <path d="M12 13.5a1.5 1.5 0 0 1 1 -1.5a2.6 2.6 0 1 0 -3 -4" /></svg>`,
 };
 
 export { icons, iconSizes as sizes };

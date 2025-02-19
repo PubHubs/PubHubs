@@ -1,9 +1,9 @@
 <template>
-	<div class="flex flex-col h-full overflow-hidden">
-		<div :class="headerClass" class="flex flex-col flex-1 justify-center z-10 relative">
+	<div class="flex h-full flex-col overflow-hidden">
+		<div :class="headerClass" class="relative z-10 flex flex-1 flex-col justify-center">
 			<slot name="header"></slot>
 		</div>
-		<div class="flex-1 overflow-y-auto scrollbar relative">
+		<div class="scrollbar relative flex-1 overflow-y-auto">
 			<slot></slot>
 		</div>
 		<div class="z-10">

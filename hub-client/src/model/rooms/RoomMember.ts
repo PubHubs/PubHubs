@@ -1,4 +1,6 @@
+import { useMatrixFiles } from '@/composables/useMatrixFiles';
 import { PubHubsStore, usePubHubs } from '@/core/pubhubsStore';
+import { FeatureFlag, useSettings } from '@/store/settings';
 import { RoomMember as MatrixRoomMember } from 'matrix-js-sdk';
 
 export default class RoomMember {
@@ -29,14 +31,22 @@ export default class RoomMember {
 	//#endregion
 
 	private async updateAvatarUrl(): Promise<void> {
+		const matrixFiles = useMatrixFiles();
+		const settings = useSettings();
 		const avatarMxcUrl = this.matrixRoomMember.getMxcAvatarUrl();
+
 		if (!avatarMxcUrl) {
 			this._avatarUrl = null;
 			return;
 		}
 
-		const avatarUrl = await this.pubhubsStore.getAuthorizedMediaUrl(avatarMxcUrl);
-		if (!avatarUrl) throw new Error('Failed to get authenticated avatar URL while avatar URL is defined.');
+		const useAuthMedia = settings.isFeatureEnabled(FeatureFlag.authenticatedMedia);
+		const url = matrixFiles.formUrlfromMxc(avatarMxcUrl, useAuthMedia);
+		const avatarUrl = useAuthMedia ? await this.pubhubsStore.getAuthorizedMediaUrl(url) : url;
+
+		if (!avatarUrl) {
+			throw new Error('Failed to retrieve avatar URL.');
+		}
 
 		this._avatarUrl = avatarUrl;
 	}

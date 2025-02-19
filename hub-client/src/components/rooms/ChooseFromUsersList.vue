@@ -8,7 +8,7 @@
 		<FilteredList :items="usersList" :filterKey="['displayName']" :placeholder="$t('rooms.private_search_user')" @click="onUser($event)" @filter="filter($event)">
 			<template #item="{ item }">
 				<div class="flex justify-between">
-					<span :title="item.userId" class="grow truncate w-100">{{ item.displayName }}</span>
+					<span :title="item.userId" class="w-100 grow truncate">{{ item.displayName }}</span>
 					<Icon type="plus" class="flex-none"></Icon>
 				</div>
 			</template>

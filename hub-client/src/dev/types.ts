@@ -7,3 +7,8 @@ export enum LogLevel {
 	// Used as a default value that always logs
 	Silent = 50,
 }
+
+export type SecuredRoomAttributeResult = {
+	goto: string;
+	not_correct: string;
+};

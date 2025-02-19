@@ -8,13 +8,15 @@
  *
  */
 
+import { useMatrixFiles } from '@/composables/useMatrixFiles';
 import { api_synapse } from '@/core/api';
 import filters from '@/core/filters';
-import { usePubHubs } from '@/core/pubhubsStore';
 import { SMI } from '@/dev/StatusMessage';
 import { LOGGER } from '@/foundation/Logger';
 import { MatrixClient, User as MatrixUser } from 'matrix-js-sdk';
 import { defineStore } from 'pinia';
+import { Administrator } from '@/hubmanagement/models/admin';
+import { FeatureFlag, useSettings } from './settings';
 
 /**
  *  Extending the MatrixUser with some extra PubHubs specific methods :
@@ -29,6 +31,8 @@ class User extends MatrixUser {
 const defaultUser = {} as User;
 
 type State = {
+	avatarUrl: string;
+	administrator: Administrator | null;
 	_avatarMxcUrl: string | undefined;
 	_avatarUrl: string | undefined | null;
 	_displayName: string | undefined | null;
@@ -42,6 +46,8 @@ const logger = LOGGER;
 
 const useUser = defineStore('user', {
 	state: (): State => ({
+		avatarUrl: '',
+		administrator: null,
 		_avatarMxcUrl: undefined,
 		_avatarUrl: undefined,
 		_displayName: undefined,
@@ -104,6 +110,7 @@ const useUser = defineStore('user', {
 		async fetchIsAdministrator(client: MatrixClient) {
 			try {
 				await client.isSynapseAdministrator();
+				this.administrator = new Administrator();
 				this.isAdministrator = true;
 			} catch (error) {
 				this.isAdministrator = false;
@@ -138,9 +145,10 @@ const useUser = defineStore('user', {
 			if (!this._avatarMxcUrl) {
 				this._avatarUrl = this._avatarMxcUrl;
 			} else {
-				const pubhubs = usePubHubs();
+				const matrixfiles = useMatrixFiles();
+				const settingsStore = useSettings();
 
-				this._avatarUrl = await pubhubs.getAuthorizedMediaUrl(this._avatarMxcUrl);
+				this._avatarUrl = await matrixfiles.useAuthorizedMediaUrl(this._avatarMxcUrl, settingsStore.isFeatureEnabled(FeatureFlag.authenticatedMedia));
 			}
 		},
 	},

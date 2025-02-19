@@ -1,5 +1,5 @@
 <template>
-	<span class="truncate w-full block" :title="slotText">
+	<span class="block w-full truncate" :title="slotText">
 		<slot></slot>
 	</span>
 </template>
@@ -15,7 +15,7 @@
 			// Traverse children tree so this could be used inside a slot of another component
 			if (Array.isArray(children)) {
 				children.forEach((child) => {
-					if (isVNode(child) && child !== null) {
+					if (isVNode(child) && child !== null && typeof child.children === 'string') {
 						text = child.children as string;
 					}
 				});
