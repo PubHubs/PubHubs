@@ -1,17 +1,15 @@
 ## Changes to main, not yet committed to stable
 
 _Please add a brief description of any changes and any migrations to be performed here. And use these prefixes before the description:_
+ * _[BUG] - If the change is a bugfix (from own branch)_
+ * _[FIX] - If it is a small bug (typo or styling) that is done directly on main or stable_
+ * _[NEW] - If it is a new feature_
+ * _[UPDATE] - Updated dependencies_
+ * _[MIGRATE] - If it is/has a change to a database. Describe the way the migrate is done._
+ * _[BREAKING] - If it is a breaking change that needs changes done on the deployment/installation/settings_
+ * _(Use the [MIGRATE] and [BREAKING] prefixes together with another one if that makes more sense.)_
 
-[BUG] - If the change is a bugfix (from own branch)
-[FIX] - If it is a small bug (typo or styling) that is done directly on main or stable
-[NEW] - If it is a new feature
-[UPDATE] - Updated dependencies
-[MIGRATE] - If it is/has a change to a database. Describe the way the migrate is done.
-[BREAKING] - If it is a breaking change that needs changes done on the deployment/installation/settings.
-
-Use the [MIGRATE] and [BREAKING] prefixes together with another one if that makes more sense.
-
-- [UPDATE] Synapse was updated and authenticated media is now enforced by default (see [here](https://element-hq.github.io/synapse/v1.120/upgrade.html#authenticated-media-is-now-enforced-by-default)). When merging to stable, the new configuration should be added to all running hubs. (Specifically: the `enable_authenticated_media` option should be set to true, or be removed; and the [`authenticatedMedia`](https://gitlab.science.ru.nl/ilab/pubhubs_canonical/-/blob/c8173d69afec601e79fffa9e96c4c86e63e808d7/hub-client/src/store/settings.ts#L113) feature flag should be set to true.)
+- [UPDATE] Synapse was updated and authenticated media is now enforced by default (see [here](https://element-hq.github.io/synapse/v1.120/upgrade.html#authenticated-media-is-now-enforced-by-default)).  The [`authenticatedMedia`](https://gitlab.science.ru.nl/ilab/pubhubs_canonical/-/blob/c8173d69afec601e79fffa9e96c4c86e63e808d7/hub-client/src/store/settings.ts#L113) feature flag should be set to true. After pulling the new image, hub administrators should set or remove the `enable_authenticated_media` option in `homeserver.yaml`, but not doing immediately is not expected to cause direct issues.)
 - [NEW] Authenticated media setting in hub configuration can be set to true when merging to stable because Hub client now supports authenticated media.
 - [BUG] Searching messages within a room no longer returns empty results.
 - [BUG] Right padding of menu-items was off, weird tooltips when hovering over room in menuitem.
