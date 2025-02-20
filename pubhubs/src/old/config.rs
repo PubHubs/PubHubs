@@ -337,7 +337,7 @@ impl Urls {
                     // get ip address..
                     let client = awc::Client::default();
                     let mut resp = client
-                        .get("http://ifconfig.me")
+                        .get("http://ifconfig.me/ip")
                         .send()
                         .await
                         .map_err(|e| anyhow!(e.to_string() /* e is not Send */))?;
@@ -354,6 +354,9 @@ impl Urls {
 
                     let ipa: core::net::IpAddr = result
                         .parse()
+                        .inspect_err(|_| {
+                            log::warn!("The IP address that could not be parsed is: {result}");
+                        })
                         .context("parsing IP address returned by ifconfig.me")?;
 
                     info!("your ip address is {}", ipa);
