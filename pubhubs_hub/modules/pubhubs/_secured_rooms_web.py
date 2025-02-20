@@ -58,6 +58,7 @@ class SecuredRoomsServlet(DirectServeJsonResource):
         
         """Create a new secured room"""
         user = await self.module_api.get_user_by_req(request)
+        await self.assert_is_admin(user)
                 
         try:
             request_body = parse_json_object_from_request(request)

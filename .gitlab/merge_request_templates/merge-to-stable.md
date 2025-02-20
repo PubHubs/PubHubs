@@ -3,7 +3,7 @@ Before merging to stable, please check the following.
 General tips:
 
 - While testing, keep two browser windows open, one for a existing user (it's easiest if this is a hub admin), and an incognito one for a new user that will be registered during testing. This allows seeing messages being send and easier testing.
-- If you do the merge together with a collegua, one of you should do the tests on an mobile phone and the other on a desktop.
+- If you do the merge together with a collegue, one of you should do the tests on an mobile phone and the other on a desktop.
 
   - [ ] Check that CI/CD pipeline in main has completed without errors. This might take a bit of time therefore, this should be the first step for the merge to stable.
   - [ ] Notify the others that they do not merge anything into main until the merge to stable is done. (otherwise you will merge changes that may not be deployed to main and therefore not tested by the steps below).
@@ -67,7 +67,7 @@ General tips:
   (The `merge-to-stable` merge request template can be edited [here](https://gitlab.science.ru.nl/ilab/pubhubs_canonical/-/edit/main/.gitlab/merge_request_templates/merge-to-stable.md).)
   - [ ] Celebrate!
 
-- If Frans Lammers is not available, email [external hubs](https://gitlab.science.ru.nl/ilab/pubhubs_canonical/-/wikis/Tech-Information/External-Hub-Deployment) to pull the latest updates with the following email:
+- If Frans Lammers is not available, email [external hubs](https://gitlab.science.ru.nl/ilab/pubhubs_canonical/-/wikis/Tech-Information/External-Hub-Deployment) or [TryOut Rooms/Hubs](https://gitlab.science.ru.nl/ilab/pubhubs_canonical/-/wikis/Externals/TryOutHub-Rooms) to pull the latest updates with the following email:
 
 > Dear XYZ,
 > 
