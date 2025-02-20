@@ -308,7 +308,8 @@ pub mod auths {
         #[serde(default)]
         pub attribute_types: Vec<attr::Type>,
 
-        pub yivi: YiviConfig,
+        /// Yivi configuration.  If `None`, yivi is not supported.
+        pub yivi: Option<YiviConfig>,
     }
 
     #[derive(serde::Deserialize, serde::Serialize, Debug, Clone)]
@@ -316,9 +317,9 @@ pub mod auths {
     pub struct YiviConfig {
         /// Where can the Yivi server trusted by the authentication server be reached
         /// by the hub client for starting disclosure requests?
-        requestor_url: UrlPwa,
+        pub requestor_url: UrlPwa,
 
-        requestor_creds: yivi::RequestorCredentials,
+        pub requestor_creds: yivi::RequestorCredentials,
     }
 }
 

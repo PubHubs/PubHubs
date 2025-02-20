@@ -21,8 +21,14 @@ pub struct Type {
     /// Whether [`Attr`]ibutes of this type can be used to identify a users.
     pub identifying: bool,
 
-    /// Details needed to obtain this attribute from its source
-    pub source_details: SourceDetails,
+    /// The different ways this attribute can be obtained
+    pub sources: Vec<SourceDetails>,
+}
+
+impl std::fmt::Display for Type {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{}", self.handles.preferred())
+    }
 }
 
 /// Instructions on how to obtain an [`Attr`]ibute of a particular [`Type`].

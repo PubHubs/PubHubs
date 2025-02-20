@@ -96,6 +96,12 @@ pub struct Handles {
     inner: Vec<Handle>,
 }
 
+impl Handles {
+    pub fn preferred(&self) -> &Handle {
+        &self.inner[0]
+    }
+}
+
 impl std::ops::Deref for Handles {
     type Target = [Handle];
 

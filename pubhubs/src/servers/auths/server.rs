@@ -31,8 +31,13 @@ impl servers::Details for Details {
 pub struct App {
     base: AppBase<Server>,
     attribute_types: map::Map<attr::Type>,
-    yivi_requestor_url: url::Url,
-    yivi_requestor_creds: servers::yivi::RequestorCredentials,
+    yivi: Option<YiviCtx>,
+}
+
+#[derive(Debug, Clone)]
+pub struct YiviCtx {
+    requestor_url: url::Url,
+    requestor_creds: servers::yivi::RequestorCredentials,
 }
 
 impl App {
@@ -40,13 +45,7 @@ impl App {
         app: Rc<Self>,
         req: web::Json<api::auths::AuthStartReq>,
     ) -> api::Result<api::auths::AuthStartResp> {
-        let mut source: Option<attr::Source> = None;
         let mut attr_types = Vec::<attr::Type>::with_capacity(req.attr_types.len());
-
-        if req.attr_types.len() == 0 {
-            log::debug!("got authentication start request without any attribute types");
-            return api::err(api::ErrorCode::BadRequest);
-        }
 
         for attr_type_handle in req.attr_types.iter() {
             if let Some(attr_type) = app.attribute_types.get(attr_type_handle) {
@@ -57,16 +56,7 @@ impl App {
             }
         }
 
-        let source = attr_types[0].source_details.source();
-
-        for attr_type in attr_types.iter() {
-            if source != attr_type.source_details.source() {
-                log::debug!("got authentication start request with mixed sources");
-                return api::err(api::ErrorCode::BadRequest);
-            }
-        }
-
-        match source {
+        match req.source {
             attr::Source::Yivi => Self::handle_auth_start_yivi(app, attr_types).await,
         }
     }
@@ -75,23 +65,41 @@ impl App {
         app: Rc<Self>,
         attr_types: Vec<attr::Type>,
     ) -> api::Result<api::auths::AuthStartResp> {
-        let cdc: servers::yivi::AttributeConDisCon = Default::default(); // empty
+        let yivi = api::return_if_ec!(app.yivi.as_ref().ok_or(api::ErrorCode::YiviNotConfigured));
+
+        // Create ConDisCon for our attributes
+        let mut cdc: servers::yivi::AttributeConDisCon = Default::default(); // empty
 
         for attr_ty in attr_types.iter() {
-            match attr_ty.source_details {
-                attr::SourceDetails::Yivi {
-                    cdc
-                }
+            let mut dc: Vec<Vec<servers::yivi::AttributeRequest>> = Default::default();
+
+            for source in attr_ty.sources.iter() {
+                let yivi_attr_type_id: String = match source {
+                    attr::SourceDetails::Yivi { yivi_attr_type_id } => yivi_attr_type_id.clone(),
+                    #[expect(unreachable_patterns)]
+                    _ => continue,
+                };
+
+                dc.push(vec![servers::yivi::AttributeRequest {
+                    ty: yivi_attr_type_id,
+                }]);
             }
+
+            if dc.len() == 0 {
+                log::debug!("got yivi authentication start request for {attr_ty}, but yivi is not supported for this attribute type");
+                return api::err(api::ErrorCode::MissingAttributeSource);
+            }
+
+            cdc.push(dc);
         }
 
         let disclosure_request_jwt: String =
-            servers::yivi::SessionRequest::disclosure(cdc).sign(app.yivi_requestor_creds);
+            servers::yivi::SessionRequest::disclosure(cdc).sign(&yivi.requestor_creds);
 
-        Ok(api::auths::AuthStartResp {
+        api::ok(api::auths::AuthStartResp {
             task: api::auths::AuthTask::Yivi {
                 disclosure_request_jwt,
-                yivi_requestor_url: app.yivi_requestor_url.clone(),
+                yivi_requestor_url: yivi.requestor_url.clone(),
             },
         })
     }
@@ -142,8 +150,7 @@ impl crate::servers::App<Server> for Rc<App> {
 pub struct AppCreator {
     base: AppCreatorBase<Server>,
     attribute_types: map::Map<attr::Type>,
-    yivi_requestor_url: url::Url,
-    yivi_requestor_creds: servers::yivi::RequestorCredentials,
+    yivi: Option<YiviCtx>,
 }
 
 impl crate::servers::AppCreator<Server> for AppCreator {
@@ -158,11 +165,15 @@ impl crate::servers::AppCreator<Server> for AppCreator {
             }
         }
 
+        let yivi: Option<YiviCtx> = xconf.yivi.as_ref().map(|cfg| YiviCtx {
+            requestor_url: cfg.requestor_url.as_ref().clone(),
+            requestor_creds: cfg.requestor_creds.clone(),
+        });
+
         Ok(Self {
             base: AppCreatorBase::<Server>::new(config)?,
             attribute_types,
-            yivi_requestor_url: xconf.yivi.requestor_url.as_ref().clone(),
-            yivi_requestor_creds: xconf.yivi.requestor_creds.clone(),
+            yivi,
         })
     }
 
@@ -170,8 +181,7 @@ impl crate::servers::AppCreator<Server> for AppCreator {
         Rc::new(App {
             base: AppBase::new(self.base, handle),
             attribute_types: self.attribute_types,
-            yivi_requestor_url: self.yivi_requestor_url,
-            yivi_requestor_creds: self.yivi_requestor_creds,
+            yivi: self.yivi,
         })
     }
 

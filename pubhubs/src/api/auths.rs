@@ -22,6 +22,9 @@ impl EndpointDetails for AuthStartEP {
 pub struct AuthStartReq {
     /// List of requested attributes
     pub attr_types: Vec<crate::handle::Handle>,
+
+    /// Which source to use (e.g. yivi)
+    pub source: crate::attr::Source,
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]

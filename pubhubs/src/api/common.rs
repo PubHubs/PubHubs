@@ -215,6 +215,12 @@ pub enum ErrorCode {
 
     #[error("unknown attribute type")]
     UnknownAttributeType,
+
+    #[error("attribute of this type cannot be obtained from this source")]
+    MissingAttributeSource,
+
+    #[error("yivi is not configured for this authentication server")]
+    YiviNotConfigured,
 }
 use ErrorCode::*;
 
@@ -239,6 +245,8 @@ impl ErrorCode {
             | InvalidAdminKey
             | UnknownHub
             | UnknownAttributeType
+            | MissingAttributeSource
+            | YiviNotConfigured
             | NotImplemented => ErrorInfo {
                 retryable: Some(false),
             },
