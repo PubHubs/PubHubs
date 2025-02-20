@@ -29,8 +29,8 @@ pub struct Type {
 #[derive(serde::Deserialize, serde::Serialize, Debug, Clone)]
 pub enum SourceDetails {
     Yivi {
-        credential_id: String,
-        attr_ids: Vec<String>,
+        /// The yivi attribute type identifier
+        yivi_attr_type_id: String,
     },
 }
 

@@ -31,6 +31,8 @@ impl servers::Details for Details {
 pub struct App {
     base: AppBase<Server>,
     attribute_types: map::Map<attr::Type>,
+    yivi_requestor_url: url::Url,
+    yivi_requestor_creds: servers::yivi::RequestorCredentials,
 }
 
 impl App {
@@ -73,7 +75,25 @@ impl App {
         app: Rc<Self>,
         attr_types: Vec<attr::Type>,
     ) -> api::Result<api::auths::AuthStartResp> {
-        todo! {}
+        let cdc: servers::yivi::AttributeConDisCon = Default::default(); // empty
+
+        for attr_ty in attr_types.iter() {
+            match attr_ty.source_details {
+                attr::SourceDetails::Yivi {
+                    cdc
+                }
+            }
+        }
+
+        let disclosure_request_jwt: String =
+            servers::yivi::SessionRequest::disclosure(cdc).sign(app.yivi_requestor_creds);
+
+        Ok(api::auths::AuthStartResp {
+            task: api::auths::AuthTask::Yivi {
+                disclosure_request_jwt,
+                yivi_requestor_url: app.yivi_requestor_url.clone(),
+            },
+        })
     }
 
     async fn handle_auth_complete(
@@ -122,6 +142,8 @@ impl crate::servers::App<Server> for Rc<App> {
 pub struct AppCreator {
     base: AppCreatorBase<Server>,
     attribute_types: map::Map<attr::Type>,
+    yivi_requestor_url: url::Url,
+    yivi_requestor_creds: servers::yivi::RequestorCredentials,
 }
 
 impl crate::servers::AppCreator<Server> for AppCreator {
@@ -139,6 +161,8 @@ impl crate::servers::AppCreator<Server> for AppCreator {
         Ok(Self {
             base: AppCreatorBase::<Server>::new(config)?,
             attribute_types,
+            yivi_requestor_url: xconf.yivi.requestor_url.as_ref().clone(),
+            yivi_requestor_creds: xconf.yivi.requestor_creds.clone(),
         })
     }
 
@@ -146,6 +170,8 @@ impl crate::servers::AppCreator<Server> for AppCreator {
         Rc::new(App {
             base: AppBase::new(self.base, handle),
             attribute_types: self.attribute_types,
+            yivi_requestor_url: self.yivi_requestor_url,
+            yivi_requestor_creds: self.yivi_requestor_creds,
         })
     }
 

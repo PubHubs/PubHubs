@@ -10,6 +10,7 @@ use crate::servers::{for_all_servers, server::Server as _};
 use crate::{
     api::{self},
     attr, elgamal, hub,
+    servers::yivi,
 };
 
 use super::host_aliases::{HostAliases, UrlPwa};
@@ -306,6 +307,18 @@ pub mod auths {
     pub struct ExtraConfig {
         #[serde(default)]
         pub attribute_types: Vec<attr::Type>,
+
+        pub yivi: YiviConfig,
+    }
+
+    #[derive(serde::Deserialize, serde::Serialize, Debug, Clone)]
+    #[serde(deny_unknown_fields)]
+    pub struct YiviConfig {
+        /// Where can the Yivi server trusted by the authentication server be reached
+        /// by the hub client for starting disclosure requests?
+        requestor_url: UrlPwa,
+
+        requestor_creds: yivi::RequestorCredentials,
     }
 }
 
