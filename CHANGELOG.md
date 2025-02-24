@@ -9,7 +9,10 @@ _Please add a brief description of any changes and any migrations to be performe
  * _[BREAKING] - If it is a breaking change that needs changes done on the deployment/installation/settings_
  * _(Use the [MIGRATE] and [BREAKING] prefixes together with another one if that makes more sense.)_
 
-- [UPDATE] Synapse was updated and authenticated media is now enforced by default (see [here](https://element-hq.github.io/synapse/v1.120/upgrade.html#authenticated-media-is-now-enforced-by-default)).  The [`authenticatedMedia`](https://gitlab.science.ru.nl/ilab/pubhubs_canonical/-/blob/c8173d69afec601e79fffa9e96c4c86e63e808d7/hub-client/src/store/settings.ts#L113) feature flag should be set to true. After pulling the new image, hub administrators should set or remove the `enable_authenticated_media` option in `homeserver.yaml`, but not doing immediately is not expected to cause direct issues.)
+Use the [MIGRATE] and [BREAKING] prefixes together with another one if that makes more sense.
+
+- [UPDATE] Synapse was updated and authenticated media is now enforced by default (see [here](https://element-hq.github.io/synapse/v1.120/upgrade.html#authenticated-media-is-now-enforced-by-default)). When merging to stable, the new configuration should be added to all running hubs.
+- [UPDATE] Code for automatic creation of 'General room' is removed from config (including config check). When merging to stable this config should be removed from 'homeserver.yaml'.
 - [NEW] Authenticated media setting in hub configuration can be set to true when merging to stable because Hub client now supports authenticated media.
 - [BUG] Searching messages within a room no longer returns empty results.
 - [BUG] Right padding of menu-items was off, weird tooltips when hovering over room in menuitem.
