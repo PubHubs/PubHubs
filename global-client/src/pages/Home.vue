@@ -39,7 +39,7 @@
 	import { useGlobal, useHubs } from '@/logic/store/store';
 	import { ref } from 'vue';
 	import { yivi } from '@/yivi';
-	import { Hub } from '@/logic/store/store';
+	import { Hub } from '@/model/Hubs';
 	import { useRouter } from 'vue-router';
 	import { useDialog } from '@/logic/store/store';
 	import { useI18n } from 'vue-i18n';

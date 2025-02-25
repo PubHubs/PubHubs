@@ -168,7 +168,7 @@ const useHubs = defineStore('hubs', {
 				messagebox.addCallback(MessageType.UnreadMessages, (message: Message) => {
 					self.hubs[hubId].unreadMessages = message.content as number;
 					if (self.hubs[hubId].unreadMessages > 0) {
-						sendNotification(hubId);
+						sendNotification(self.hubs[hubId].hubName);
 					}
 				});
 
@@ -195,14 +195,14 @@ const useHubs = defineStore('hubs', {
 	},
 });
 
-function sendNotification(hubId: string) {
+function sendNotification(hubName: string) {
 	const img = '/client/img/icons/favicon-32x32.png';
 	const i18n = setUpi18n();
 	const language = useSettings().language;
 	setLanguage(i18n, language);
 	const { t } = i18n.global;
 	new Notification(t('message.notification'), {
-		body: hubId,
+		body: hubName,
 		icon: img,
 		badge: img,
 	});

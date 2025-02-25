@@ -206,7 +206,6 @@ const en = {
 		language_changed: 'Language changed to `{0}`.',
 		title: 'Settings',
 		notifications: 'Notifications',
-		notifications_allow: 'Allow notifications',
 		change_avatar: 'Change Avatar',
 	},
 	hub_settings: {
@@ -287,6 +286,14 @@ const en = {
 	timeformats: {
 		format12: '12 hours',
 		format24: '24 hours',
+	},
+	notifications: {
+		allow: 'On',
+		deny: 'Off',
+		notSupported: 'This browser does not support notifications.',
+		promptAllow: 'You have blocked notifications in your browser. You will need to open your browser preferences to change that.',
+		promptReset: 'To stop getting notifications, you need to withdraw your permission in the browser preferences.',
+		info: "Click Allow in your browser's pop-up to enable notifications.",
 	},
 	onboarding: {
 		info_first_time: 'This is your first visit. It is nice that you are here.',

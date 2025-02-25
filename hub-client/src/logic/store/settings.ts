@@ -12,14 +12,16 @@ enum Theme {
 	Dark = 'dark',
 }
 
-type i18nSettings = {
-	locale: any;
-	availableLocales: any;
-};
+type i18nSettings = { locale: any; availableLocales: any };
 
 enum TimeFormat {
 	format12 = 'format12',
 	format24 = 'format24',
+}
+
+enum NotificationsPermission {
+	Allow = 'allow',
+	Deny = 'deny',
 }
 
 enum FeatureFlag {
@@ -60,6 +62,11 @@ interface Settings {
 	timeformat: TimeFormat;
 
 	/**
+	 * notificationsPermission: allow|deny
+	 */
+	notificationsPermission: NotificationsPermission;
+
+	/**
 	 * UI Language
 	 * Should have type 'Language', but for some reason the build gives an error when trying to import it from @/i18n.
 	 */
@@ -67,10 +74,7 @@ interface Settings {
 
 	_i18n?: i18nSettings;
 
-	featureFlags: {
-		main: FeatureFlags;
-		stable: FeatureFlags;
-	};
+	featureFlags: { main: FeatureFlags; stable: FeatureFlags };
 }
 
 const defaultSettings: Settings = {
@@ -79,10 +83,9 @@ const defaultSettings: Settings = {
 	pagination: 150,
 	displayNameMaxLength: 40,
 	language: fallbackLanguage,
-	_i18n: {
-		locale: undefined,
-		availableLocales: undefined,
-	},
+	_i18n: { locale: undefined, availableLocales: undefined },
+	// First check if the Notifications API is supported.
+	notificationsPermission: 'Notification' in window ? (Notification.permission === 'denied' || Notification.permission === 'default' ? NotificationsPermission.Deny : NotificationsPermission.Allow) : NotificationsPermission.Deny,
 
 	/**
 	 * Enable/disable feature flags here.
@@ -153,16 +156,17 @@ const useSettings = defineStore('settings', {
 			return state.timeformat;
 		},
 
+		getNotificationsPermission: (state: Settings): NotificationsPermission => {
+			return state.notificationsPermission;
+		},
+
 		/**
 		 * Get timeformats as options (for form selecting).
 		 * The function must be the localisation function $t.
 		 */
 		getTimeFormatOptions: () => (formats: Function) => {
 			const options = Object.values(TimeFormat).map((e) => {
-				return {
-					label: formats('timeformats.' + e),
-					value: e,
-				};
+				return { label: formats('timeformats.' + e), value: e };
 			});
 			return options;
 		},
@@ -174,15 +178,9 @@ const useSettings = defineStore('settings', {
 		getThemeOptions: () => (themes: Function | undefined) => {
 			const options = Object.values(Theme).map((e) => {
 				if (typeof themes !== 'function') {
-					return {
-						label: e.charAt(0).toUpperCase() + e.slice(1),
-						value: e,
-					};
+					return { label: e.charAt(0).toUpperCase() + e.slice(1), value: e };
 				} else {
-					return {
-						label: themes('themes.' + e),
-						value: e,
-					};
+					return { label: themes('themes.' + e), value: e };
 				}
 			});
 			return options;
@@ -190,10 +188,18 @@ const useSettings = defineStore('settings', {
 
 		getLanguageOptions: (state: Settings) => {
 			const options = state._i18n?.availableLocales?.map((e: string) => {
-				return {
-					label: e.toUpperCase(),
-					value: e,
-				};
+				return { label: e.toUpperCase(), value: e };
+			});
+			return options;
+		},
+
+		getNotificationOptions: () => (notifications: Function | undefined) => {
+			const options = Object.values(NotificationsPermission).map((e) => {
+				if (typeof notifications !== 'function') {
+					return { label: e.charAt(0).toUpperCase() + e.slice(1), value: e };
+				} else {
+					return { label: notifications('notifications.' + e), value: e };
+				}
 			});
 			return options;
 		},
@@ -224,6 +230,10 @@ const useSettings = defineStore('settings', {
 		setTimeFormat(format: TimeFormat) {
 			// @ts-ignore
 			this.timeformat = format;
+		},
+
+		setNotificationPermission(perm: NotificationsPermission) {
+			this.notificationsPermission = perm;
 		},
 
 		setLanguage(newLanguage: string, send: boolean = false) {
@@ -271,4 +281,4 @@ const useSettings = defineStore('settings', {
 
 type SettingsStore = ReturnType<typeof useSettings>;
 
-export { defaultSettings, FeatureFlag, Settings, Theme, TimeFormat, useSettings, type i18nSettings, SettingsStore };
+export { defaultSettings, FeatureFlag, Settings, Theme, TimeFormat, NotificationsPermission, useSettings, type i18nSettings, SettingsStore };
