@@ -105,17 +105,17 @@
 </template>
 
 <script setup lang="ts">
-	import { usePubHubs } from '@/core/pubhubsStore';
-	import { LOGGER } from '@/foundation/Logger';
-	import { SMI } from '@/dev/StatusMessage';
-	import { useDialog } from '@/store/dialog';
-	import { useMenu } from '@/store/menu';
-	import { MessageType } from '@/store/messagebox';
-	import { usePlugins } from '@/store/plugins';
-	import { RoomType } from '@/store/rooms';
-	import { FeatureFlag, useSettings } from '@/store/settings';
-	import { Message, MessageBoxType, useHubSettings, useMessageBox, useRooms } from '@/store/store';
-	import { useUser } from '@/store/user';
+	import { usePubHubs } from '@/logic/core/pubhubsStore';
+	import { LOGGER } from '@/logic/foundation/Logger';
+	import { SMI } from '@/logic/foundation/StatusMessage';
+	import { useDialog } from '@/logic/store/dialog';
+	import { useMenu } from '@/logic/store/menu';
+	import { MessageType } from '@/logic/store/messagebox';
+	import { usePlugins } from '@/logic/store/plugins';
+	import { RoomType } from '@/logic/store/rooms';
+	import { FeatureFlag, useSettings } from '@/logic/store/settings';
+	import { Message, MessageBoxType, useHubSettings, useMessageBox, useRooms } from '@/logic/store/store';
+	import { useUser } from '@/logic/store/user';
 	import { getCurrentInstance, onMounted, ref, watch } from 'vue';
 	import { useI18n } from 'vue-i18n';
 	import { RouteParamValue, useRouter } from 'vue-router';
@@ -133,7 +133,7 @@
 	import Icon from '@/components/elements/Icon.vue';
 	import H2 from '@/components/elements/H2.vue';
 	import Avatar from '@/components/ui/Avatar.vue';
-	import { HubInformation } from '@/store/hub-settings';
+	import { HubInformation } from '@/logic/store/hub-settings';
 
 	const { locale, availableLocales } = useI18n();
 	const router = useRouter();

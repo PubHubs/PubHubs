@@ -39,7 +39,7 @@
 	import AutoComplete from './AutoComplete.vue';
 
 	import { ref, inject } from 'vue';
-	import { InputType, FormObjectInputTemplate } from '@/composables/useFormInputEvents';
+	import { InputType, FormObjectInputTemplate } from '@/logic/composables/useFormInputEvents';
 
 	const setActiveTab = inject('setActiveTab') as Function;
 	const removeTab = inject('removeTab') as Function;

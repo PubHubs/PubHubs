@@ -10,6 +10,6 @@
 	import H3 from '@/components/elements/H3.vue';
 	import Json from '@/components/elements/Json.vue';
 
-	import { TEvent } from '@/store/rooms';
+	import { TEvent } from '@/logic/store/rooms';
 	defineProps<{ event: TEvent }>();
 </script>

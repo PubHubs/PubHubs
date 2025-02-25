@@ -12,7 +12,7 @@
 </template>
 
 <script setup lang="ts">
-	import { useFormInputEvents, usedEvents } from '@/composables/useFormInputEvents';
+	import { useFormInputEvents, usedEvents } from '@/logic/composables/useFormInputEvents';
 	import { computed } from 'vue';
 
 	const props = defineProps({

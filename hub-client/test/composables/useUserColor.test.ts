@@ -1,6 +1,6 @@
 import { describe, expect, test, vi } from 'vitest';
 
-import { useUserColor, textColors } from '@/composables/useUserColor';
+import { useUserColor, textColors } from '@/logic/composables/useUserColor';
 const { color } = useUserColor();
 
 describe('useUserColor', () => {

@@ -6,10 +6,10 @@
 </template>
 
 <script setup lang="ts">
-	import { SecuredRoomAttributeResult } from '@/dev/types';
+	import { SecuredRoomAttributeResult } from '@/logic/foundation/statusTypes';
 	import { useRouter } from 'vue-router';
-	import { useRooms } from '@/store/rooms';
-	import { usePubHubs } from '@/core/pubhubsStore';
+	import { useRooms } from '@/logic/store/rooms';
+	import { usePubHubs } from '@/logic/core/pubhubsStore';
 	import { onMounted } from 'vue';
 
 	const props = defineProps<{ securedRoomId: string }>();

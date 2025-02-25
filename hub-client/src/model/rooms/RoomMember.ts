@@ -1,6 +1,6 @@
-import { useMatrixFiles } from '@/composables/useMatrixFiles';
-import { PubHubsStore, usePubHubs } from '@/core/pubhubsStore';
-import { FeatureFlag, useSettings } from '@/store/settings';
+import { useMatrixFiles } from '@/logic/composables/useMatrixFiles';
+import { PubHubsStore, usePubHubs } from '@/logic/core/pubhubsStore';
+import { FeatureFlag, useSettings } from '@/logic/store/settings';
 import { RoomMember as MatrixRoomMember } from 'matrix-js-sdk';
 
 export default class RoomMember {

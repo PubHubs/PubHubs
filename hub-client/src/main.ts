@@ -7,8 +7,8 @@ import { setUpi18n } from '@/i18n';
 import { registerComponents } from '@/registerComponents.js';
 import { registerPlugins, registerPluginComponents } from '@/registerPlugins.js';
 
-import { router } from '@/core/router';
-import { focus, twClass, clickOutside } from '@/core/directives';
+import { router } from '@/logic/core/router';
+import { focus, twClass, clickOutside } from '@/logic/core/directives';
 import App from '@/pages/App.vue';
 
 import { ReplaceConsole } from '@/console';

@@ -17,9 +17,9 @@
 
 <script setup lang="ts">
 	import { useRouter } from 'vue-router';
-	import { useMenu } from '@/store/menu';
-	import { Room } from '@/store/rooms';
-	import { useRooms } from '@/store/store';
+	import { useMenu } from '@/logic/store/menu';
+	import { Room } from '@/logic/store/rooms';
+	import { useRooms } from '@/logic/store/store';
 	import { computed } from 'vue';
 
 	const router = useRouter();

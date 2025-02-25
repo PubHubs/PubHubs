@@ -1,6 +1,6 @@
 import { App } from 'vue';
 import { I18nOptions, createI18n } from 'vue-i18n';
-import { mergeDeep } from './core/extensions';
+import { mergeDeep } from './logic/core/extensions';
 
 import { en } from '@/locales/en';
 import { nl } from '@/locales/nl';

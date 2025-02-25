@@ -6,12 +6,12 @@
 </template>
 
 <script setup lang="ts">
-	import { useUserColor } from '@/composables/useUserColor';
-	import filters from '@/core/filters';
+	import { useUserColor } from '@/logic/composables/useUserColor';
+	import filters from '@/logic/core/filters';
 	import { computed } from 'vue';
 
 	import Room from '@/model/rooms/Room';
-	import { useSettings } from '@/store/settings';
+	import { useSettings } from '@/logic/store/settings';
 	const { color, textColor } = useUserColor();
 
 	const settings = useSettings();

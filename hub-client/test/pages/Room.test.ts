@@ -1,7 +1,7 @@
 import { describe, expect, test } from 'vitest';
 // import { flushPromises, mount } from '@vue/test-utils';
 // import { createTestingPinia } from '@pinia/testing';
-// import { routes } from '@/core/router.ts';
+// import { routes } from '@/logic/core/router.ts';
 // import Room from '@/pages/Room.vue';
 // import { createRouter, createWebHistory } from 'vue-router';
 

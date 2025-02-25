@@ -28,12 +28,12 @@
 	import FilteredList from '../ui/FilteredList.vue';
 	import Icon from '../elements/Icon.vue';
 
-	import { useUserColor } from '@/composables/useUserColor';
-	import filters from '@/core/filters';
-	import { usePubHubs } from '@/core/pubhubsStore';
-	import { useSettings } from '@/store/settings';
-	import { useUser } from '@/store/user';
-	import { FilteredListEvent } from '@/types/components';
+	import { useUserColor } from '@/logic/composables/useUserColor';
+	import filters from '@/logic/core/filters';
+	import { usePubHubs } from '@/logic/core/pubhubsStore';
+	import { useSettings } from '@/logic/store/settings';
+	import { useUser } from '@/logic/store/user';
+	import { FilteredListEvent } from '@/model/components/components';
 	import { User as MatrixUser } from 'matrix-js-sdk';
 	import { computed, onMounted, ref } from 'vue';
 	import { useRouter } from 'vue-router';

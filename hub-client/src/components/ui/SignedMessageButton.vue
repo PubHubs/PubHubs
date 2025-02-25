@@ -6,7 +6,7 @@
 </template>
 
 <script setup lang="ts">
-	import { FeatureFlag, useSettings } from '@/store/settings';
+	import { FeatureFlag, useSettings } from '@/logic/store/settings';
 
 	const settings = useSettings();
 	const signedMessagesEnabled = settings.isFeatureEnabled(FeatureFlag.signedMessages);

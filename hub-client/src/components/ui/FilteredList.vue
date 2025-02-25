@@ -12,7 +12,7 @@
 
 <script setup lang="ts">
 	import { ref, computed } from 'vue';
-	import { FilteredListEvent } from '@/types/components';
+	import { FilteredListEvent } from '@/model/components/FilteredListEvent';
 
 	const emit = defineEmits(['click', 'filter']);
 

@@ -8,8 +8,8 @@
 </template>
 
 <script setup lang="ts">
-	import { useGlobal } from '@/store/global';
-	import { useToggleMenu } from '@/store/toggleGlobalMenu';
+	import { useGlobal } from '@/logic/store/global';
+	import { useToggleMenu } from '@/logic/store/toggleGlobalMenu';
 	import { computed } from 'vue';
 
 	const toggleMenu = useToggleMenu();

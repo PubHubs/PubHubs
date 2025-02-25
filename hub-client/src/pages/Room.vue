@@ -59,14 +59,14 @@
 	import MessageInput from '@/components/forms/MessageInput.vue';
 	import PrivateRoomName from '@/components/rooms/PrivateRoomName.vue';
 
-	import { usePubHubs } from '@/core/pubhubsStore';
-	import { LOGGER } from '@/foundation/Logger';
-	import { SMI } from '@/dev/StatusMessage';
+	import { usePubHubs } from '@/logic/core/pubhubsStore';
+	import { LOGGER } from '@/logic/foundation/Logger';
+	import { SMI } from '@/logic/foundation/StatusMessage';
 	import { TSearchParameters } from '@/model/search/TSearch';
-	import { useHubSettings } from '@/store/hub-settings';
-	import { PluginProperties, usePlugins } from '@/store/plugins';
-	import { useRooms } from '@/store/rooms';
-	import { useUser } from '@/store/user';
+	import { useHubSettings } from '@/logic/store/hub-settings';
+	import { PluginProperties, usePlugins } from '@/logic/store/plugins';
+	import { useRooms } from '@/logic/store/rooms';
+	import { useUser } from '@/logic/store/user';
 	import { TPublicRoom, TSecuredRoom } from '@/store/store';
 	import { computed, onMounted, ref, watch } from 'vue';
 	import { useRoute, useRouter } from 'vue-router';

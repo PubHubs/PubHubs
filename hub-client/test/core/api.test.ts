@@ -1,7 +1,7 @@
 import { describe, expect, test, afterAll, afterEach, beforeAll } from 'vitest';
 import { server } from '../mocks/server';
-import { SecuredRoom } from '@/store/rooms';
-import { api_synapse } from '@/core/api';
+import { SecuredRoom } from '@/logic/store/rooms';
+import { api_synapse } from '@/logic/core/api';
 
 beforeAll(() => server.listen({ onUnhandledRequest: 'error' }));
 afterAll(() => server.close());

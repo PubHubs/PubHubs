@@ -36,9 +36,9 @@
 	import Icon from '@/components/elements/Icon.vue';
 	import HubIcon from '@/components/ui/HubIcon.vue';
 	import HeaderFooter from '@/components/ui/HeaderFooter.vue';
-	import { SMI } from '@/dev/StatusMessage';
-	import { LOGGER } from '@/foundation/Logger';
-	import { ALLOWED_HUB_ICON_TYPES, MAX_HUB_ICON_SIZE, useHubSettings } from '@/store/hub-settings';
+	import { SMI } from '@/logic/foundation/StatusMessage';
+	import { LOGGER } from '@/logic/foundation/Logger';
+	import { ALLOWED_HUB_ICON_TYPES, MAX_HUB_ICON_SIZE, useHubSettings } from '@/logic/store/hub-settings';
 	import { computed, ref, useTemplateRef } from 'vue';
 	import { useI18n } from 'vue-i18n';
 

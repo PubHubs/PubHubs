@@ -7,7 +7,7 @@
  * - PluginEventMessageTypeExample.vue - the component used
  */
 
-import { TypePluginProperties, PluginType } from '@/store/plugins';
+import { TypePluginProperties, PluginType } from '@/logic/store/plugins';
 
 const plugin: TypePluginProperties = {
 	enabled: false,

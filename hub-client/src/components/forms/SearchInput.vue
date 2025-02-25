@@ -75,11 +75,11 @@
 	import Icon from '../elements/Icon.vue';
 	import InlineSpinner from '../ui/InlineSpinner.vue';
 
-	import { useFormInputEvents, usedEvents } from '@/composables/useFormInputEvents';
-	import { filterAlphanumeric } from '@/core/extensions';
-	import { usePubHubs } from '@/core/pubhubsStore';
+	import { useFormInputEvents, usedEvents } from '@/logic/composables/useFormInputEvents';
+	import { filterAlphanumeric } from '@/logic/core/extensions';
+	import { usePubHubs } from '@/logic/core/pubhubsStore';
 	import Room from '@/model/rooms/Room';
-	import { useRooms } from '@/store/store';
+	import { useRooms } from '@/logic/store/store';
 	import { ISearchResults, SearchResult } from 'matrix-js-sdk';
 	import { PropType, computed, ref } from 'vue';
 	import TruncatedText from '../elements/TruncatedText.vue';

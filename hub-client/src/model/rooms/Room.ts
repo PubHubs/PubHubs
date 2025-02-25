@@ -1,6 +1,6 @@
-import { usePubHubs } from '@/core/pubhubsStore';
-import { LOGGER } from '@/foundation/Logger';
-import { SMI } from '@/dev/StatusMessage';
+import { usePubHubs } from '@/logic/core/pubhubsStore';
+import { LOGGER } from '@/logic/foundation/Logger';
+import { SMI } from '@/logic/foundation/StatusMessage';
 import { RoomTimelineWindow } from '@/model/timeline/RoomTimelineWindow';
 import { Direction, EventTimeline, EventTimelineSet, MatrixClient, MatrixEvent, Room as MatrixRoom, NotificationCountType, RoomMember as MatrixRoomMember } from 'matrix-js-sdk';
 import { CachedReceipt, WrappedReceipt } from 'matrix-js-sdk/lib/@types/read_receipts';

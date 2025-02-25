@@ -33,8 +33,8 @@
 	import TruncatedText from '@/components/elements/TruncatedText.vue';
 
 	import { onMounted, watch } from 'vue';
-	import { MessageType } from '@/store/messagebox';
-	import { Message, useMessageBox, useRooms } from '@/store/store';
+	import { MessageType } from '@/logic/store/messagebox';
+	import { Message, useMessageBox, useRooms } from '@/logic/store/store';
 	import { useRoute } from 'vue-router';
 
 	const route = useRoute();

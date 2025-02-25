@@ -20,7 +20,7 @@
 	import Button from '../elements/Button.vue';
 
 	import { PropType } from 'vue';
-	import { Options, useFormInputEvents, usedEvents } from '@/composables/useFormInputEvents';
+	import { Options, useFormInputEvents, usedEvents } from '@/logic/composables/useFormInputEvents';
 
 	const props = defineProps({
 		options: {

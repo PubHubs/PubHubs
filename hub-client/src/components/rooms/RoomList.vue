@@ -34,15 +34,15 @@
 	import Badge from '../elements/Badge.vue';
 	import Icon from '../elements/Icon.vue';
 
-	import { isVisiblePrivateRoom } from '@/core/privateRoomNames';
-	import { usePubHubs } from '@/core/pubhubsStore';
-	import { PluginProperties, usePlugins } from '@/store/plugins';
-	import { RoomType } from '@/store/rooms';
-	import { FeatureFlag, useSettings } from '@/store/settings';
-	import { useDialog, useHubSettings, useRooms } from '@/store/store';
-	import { useUser } from '@/store/user';
+	import { isVisiblePrivateRoom } from '@/logic/core/privateRoomNames';
+	import { usePubHubs } from '@/logic/core/pubhubsStore';
+	import { PluginProperties, usePlugins } from '@/logic/store/plugins';
+	import { RoomType } from '@/logic/store/rooms';
+	import { FeatureFlag, useSettings } from '@/logic/store/settings';
+	import { useDialog, useHubSettings, useRooms } from '@/logic/store/store';
+	import { useUser } from '@/logic/store/user';
 	import { NotificationCountType } from 'matrix-js-sdk';
-	import { Room } from '@/store/rooms';
+	import { Room } from '@/logic/store/rooms';
 	import { useI18n } from 'vue-i18n';
 	import { useRouter } from 'vue-router';
 

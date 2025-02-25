@@ -5,7 +5,7 @@
 <script setup lang="ts">
 	import { onMounted, watch, ref, onUnmounted } from 'vue';
 	import { useRoute } from 'vue-router';
-	import { iframeHubId, useHubs, useGlobal } from '@/store/store';
+	import { iframeHubId, useHubs, useGlobal } from '@/logic/store/store';
 
 	const route = useRoute();
 	const hubs = useHubs();

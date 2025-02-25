@@ -41,7 +41,7 @@
 	// Components
 	import Icon from '../elements/Icon.vue';
 
-	import { SignedMessage, getDisclosedAttributes, getMessage } from '@/lib/signedMessages';
+	import { SignedMessage, getDisclosedAttributes, getMessage } from '@/model/components/signedMessages';
 	import { ref } from 'vue';
 
 	type Props = {

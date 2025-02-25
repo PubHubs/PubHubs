@@ -3,7 +3,7 @@
 </template>
 
 <script setup lang="ts">
-	import { Theme, useSettings } from '@/store/settings';
+	import { Theme, useSettings } from '@/logic/store/settings';
 	import { computed } from 'vue';
 
 	const logoLightUrl = '/client/img/logo.svg';

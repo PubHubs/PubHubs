@@ -26,8 +26,8 @@
 
 <script setup lang="ts">
 	import { onMounted, computed } from 'vue';
-	import { InputType, Options, useFormInputEvents, usedEvents } from '@/composables/useFormInputEvents';
-	import { useKeyStrokes } from '@/composables/useKeyStrokes';
+	import { InputType, Options, useFormInputEvents, usedEvents } from '@/logic/composables/useFormInputEvents';
+	import { useKeyStrokes } from '@/logic/composables/useKeyStrokes';
 
 	type Props = {
 		options: Options;

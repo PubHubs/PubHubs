@@ -1,6 +1,6 @@
 import { describe, expect, test, vi } from 'vitest';
 
-import { useFormState } from '@/composables/useFormState';
+import { useFormState } from '@/logic/composables/useFormState';
 const { data, setData, updateData, dataIsChanged, isChanged, isValidated, message, validationErrors, setMessage } = useFormState();
 
 describe('useFormState', () => {

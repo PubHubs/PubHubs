@@ -7,8 +7,8 @@
 
 <script setup lang="ts">
 	import { TFileMessageEventContent } from '@/model/events/TMessageEvent';
-	import { useMatrixFiles } from '@/composables/useMatrixFiles';
-	import { FeatureFlag, useSettings } from '@/store/settings';
+	import { useMatrixFiles } from '@/logic/composables/useMatrixFiles';
+	import { FeatureFlag, useSettings } from '@/logic/store/settings';
 	import { onMounted, ref } from 'vue';
 
 	const settings = useSettings();

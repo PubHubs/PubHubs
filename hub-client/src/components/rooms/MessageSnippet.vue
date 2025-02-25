@@ -18,11 +18,11 @@
 	import UserDisplayName from './UserDisplayName.vue';
 	import Icon from '../elements/Icon.vue';
 
-	import { useUserColor } from '@/composables/useUserColor';
+	import { useUserColor } from '@/logic/composables/useUserColor';
 	import { computed } from 'vue';
 	import Room from '@/model/rooms/Room';
 	import { useI18n } from 'vue-i18n';
-	import { usePubHubs } from '@/core/pubhubsStore';
+	import { usePubHubs } from '@/logic/core/pubhubsStore';
 
 	const { color, textColor } = useUserColor();
 	const pubhubs = usePubHubs();

@@ -19,6 +19,6 @@
 	import H1 from '@/components/elements/H1.vue';
 	import Json from '@/components/elements/Json.vue';
 
-	import { useRooms } from '@/store/store';
+	import { useRooms } from '@/logic/store/store';
 	const rooms = useRooms();
 </script>

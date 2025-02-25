@@ -14,7 +14,7 @@
 
 <script setup lang="ts">
 	import { ref } from 'vue';
-	import { useRooms } from '@/store/store';
+	import { useRooms } from '@/logic/store/store';
 	import { watchEffect } from 'vue';
 	const rooms = useRooms();
 

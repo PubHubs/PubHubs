@@ -1,5 +1,5 @@
 import Dialog from '../../src/components/ui/Dialog.vue';
-import { DialogButton } from '../../src/store/dialog';
+import { DialogButton } from '../../src/logic/store/dialog';
 import { describe, expect, beforeEach, test, afterEach } from 'vitest';
 import { flushPromises, shallowMount } from '@vue/test-utils';
 import { createTestingPinia } from '@pinia/testing';

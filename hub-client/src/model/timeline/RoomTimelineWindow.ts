@@ -1,5 +1,5 @@
-import { LOGGER } from '@/foundation/Logger';
-import { SMI } from '@/dev/StatusMessage';
+import { LOGGER } from '@/logic/foundation/Logger';
+import { SMI } from '@/logic/foundation/StatusMessage';
 import { Direction, EventTimeline, Filter, MatrixClient, MatrixEvent, Room as MatrixRoom, TimelineWindow } from 'matrix-js-sdk';
 import { TBaseEvent } from '../events/TBaseEvent';
 
