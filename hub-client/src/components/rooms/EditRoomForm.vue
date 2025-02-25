@@ -128,9 +128,11 @@
 
 	//#region mount
 	onBeforeMount(async () => {
-		// yivi attributes
-		await yivi.fetchAttributes();
+		//Fetch the attrbiute objects
 		securedRoomTemplate.value[0].options = yivi.attributesOptions;
+		securedRoomTemplate.value[0].options.forEach((option) => {
+			option.label = t(option.label);
+		});
 
 		if (isNewRoom.value) {
 			// New Room
@@ -149,14 +151,16 @@
 				if (accepted !== undefined) {
 					// FormObjectInput needs a different structure of the accepted values, transform them
 					const acceptedKeys = Object.keys(accepted);
-					let newAccepted = [];
+					let newAccepted: Object[] = [];
 					acceptedKeys.forEach((key) => {
+						// Translate the yivi key value to a description/label value for display
+						const foundAttribute = securedRoomTemplate.value[0].options?.find((attribute) => key === attribute.value);
 						let values = accepted[key].accepted_values;
 						if (typeof values === 'object') {
 							values = values.join(', ');
 						}
 						newAccepted.push({
-							yivi: key,
+							yivi: foundAttribute ? foundAttribute.label : key,
 							values: values,
 							profile: accepted[key].profile,
 						});
@@ -232,6 +236,16 @@
 				};
 			});
 			room.accepted = accepted;
+			// Translate the keys from the description/label value back to the yivi attribute value
+			const acceptedKeys = Object.keys(accepted);
+			acceptedKeys.forEach((key) => {
+				const foundAttribute = securedRoomTemplate.value[0].options?.find((attribute) => key === attribute.label);
+				const propertyDescriptor = Object.getOwnPropertyDescriptor(room.accepted, key);
+				if (room.accepted && foundAttribute && propertyDescriptor) {
+					Object.defineProperty(room.accepted, foundAttribute.value, propertyDescriptor);
+					delete room.accepted[key];
+				}
+			});
 			if (isNewRoom.value) {
 				try {
 					await rooms.addSecuredRoom(room);
@@ -258,7 +272,6 @@
 		}
 		return true;
 	}
-
 	/**
 	 * When changing the required attributes of a secured room, users without these attributes are not removed. They can still enter.
 	 * For the moment this is solved by not allowing the values to change. This function checks if all the previous attributevalues

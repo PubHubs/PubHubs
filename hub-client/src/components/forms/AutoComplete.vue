@@ -16,7 +16,7 @@
 			:placeholder="$t('others.typing')"
 			:disabled="disabled === true"
 		/>
-		<ul v-if="result.length > 1" class="absolute z-50 w-full rounded-lg border border-black bg-white px-2 py-1 shadow-md">
+		<ul v-if="result.length > 0" class="absolute z-50 w-full rounded-lg border border-black bg-white px-2 py-1 shadow-md">
 			<li v-for="(item, index) in result" :key="index" @click="click(item)" class="cursor-pointer text-black" :class="{ 'bg-lightgray': cursor === index }">
 				{{ item.label }}
 			</li>
@@ -49,7 +49,7 @@
 	});
 
 	const result = computed(() => {
-		if (search.value === '' || search.value === undefined) {
+		if (search.value === '' || search.value === undefined || props.options.find((attribute) => search.value?.toString().toLowerCase() === attribute.label.toLowerCase())) {
 			setItems([]);
 			return [];
 		}
@@ -58,7 +58,7 @@
 
 		const result = props.options.filter((item) => {
 			const searchValue = search.value?.toString() || '';
-			if (item.label.toLowerCase().includes(searchValue.toLowerCase()) && matches < 10) {
+			if (item.label.toLowerCase().includes(searchValue.toLowerCase()) && matches < 10 && item.label.toLowerCase() !== searchValue.toLowerCase()) {
 				matches++;
 				return item;
 			}

@@ -11,6 +11,7 @@ _Please add a brief description of any changes and any migrations to be performe
 
 Use the [MIGRATE] and [BREAKING] prefixes together with another one if that makes more sense.
 
+- [NEW] Attributes are now read from a curated list in the yivi.ts file, in the dropdown menu attribute descriptions are shown instead of the attribute value.
 - [UPDATE] Synapse was updated and authenticated media is now enforced by default (see [here](https://element-hq.github.io/synapse/v1.120/upgrade.html#authenticated-media-is-now-enforced-by-default)). When merging to stable, the new configuration should be added to all running hubs.
 - [UPDATE] Code for automatic creation of 'General room' is removed from config (including config check). When merging to stable this config should be removed from 'homeserver.yaml'.
 - [NEW] Authenticated media setting in hub configuration can be set to true when merging to stable because Hub client now supports authenticated media.

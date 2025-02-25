@@ -355,6 +355,32 @@ const nl = {
 	bubble: {
 		organize: 'Organiseer je hubs door ze te slepen.',
 	},
+	attribute: {
+		email: 'email',
+		emaildomain: 'email domein',
+		street: 'straat',
+		housenumber: 'huis nummer',
+		zipcode: 'postcode',
+		city: 'stad',
+		municipality: 'gemeente',
+		fullname: 'volledige naam',
+		firstname: 'voornaam',
+		familyname: 'achternaam',
+		dateofbirth: 'geboortedatum',
+		phonenumber: 'telefoonnummer',
+		over12: 'ouder dan 12',
+		over16: 'ouder dan 16',
+		over18: 'ouder dan 18',
+		over21: 'ouder dan 21',
+		over65: 'ouder dan 65',
+		surfinstitute: 'surf instituut',
+		surftype: 'surf type',
+		surfid: 'surf id',
+		surffullname: 'surf volledige naam',
+		surffirstname: 'surf voornaam',
+		surffamilyname: 'surf achternaam',
+		surfemail: 'surf email',
+	},
 };
 
 export { nl };
