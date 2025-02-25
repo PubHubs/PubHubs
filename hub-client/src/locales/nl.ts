@@ -206,7 +206,6 @@ const nl = {
 		language_changed: 'Taal gewijzigd in `{0}`.',
 		title: 'Instellingen',
 		notifications: 'Notificaties',
-		notifications_allow: 'Notificaties toestaan',
 		change_avatar: 'Avatar aanpassen',
 	},
 	hub_settings: {
@@ -289,6 +288,14 @@ const nl = {
 	timeformats: {
 		format12: '12 uur',
 		format24: '24 uur',
+	},
+	notifications: {
+		allow: 'Aan',
+		deny: 'Uit',
+		notSupported: 'Deze browser ondersteunt geen notificaties.',
+		promptAllow: 'Je hebt notificaties in de browser geblokkeerd. Je moet je browservoorkeuren openen om dat te veranderen.',
+		promptReset: 'Om geen notificaties meer te krijgen, moet je je toestemming intrekken in de browservoorkeuren.',
+		info: 'Klik op Toestaan in het pop-upvenster van je browser om meldingen in te schakelen.',
 	},
 	onboarding: {
 		info_first_time: 'Dit is uw eerste bezoek. Het is leuk dat je er bent.',

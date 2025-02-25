@@ -11,6 +11,7 @@ _Please add a brief description of any changes and any migrations to be performe
 
 Use the [MIGRATE] and [BREAKING] prefixes together with another one if that makes more sense.
 
+- [NEW] The settings dialog now includes an option to turn notifications on or off.
 - [Update] Files are now uploaded to matrix synaps after clicking submit in the upload forms.
 - [NEW] Attributes are now read from a curated list in the yivi.ts file, in the dropdown menu attribute descriptions are shown instead of the attribute value.
 - [NEW] Restructured folders of clients.

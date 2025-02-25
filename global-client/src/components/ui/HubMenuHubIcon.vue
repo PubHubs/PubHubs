@@ -15,7 +15,7 @@
 </template>
 
 <script setup lang="ts">
-	import { Hub } from '@/logic/store/hubs';
+	import { Hub } from '@/model/Hubs';
 	import Badge from '../../../../hub-client/src/components/elements/Badge.vue';
 	import HubIcon from '../../../../hub-client/src/components/ui/HubIcon.vue';
 
