@@ -36,7 +36,7 @@
 
 <script setup lang="ts">
 	import { onMounted, useSlots, computed, onUnmounted } from 'vue';
-	import { DialogButton, DialogButtonAction, DialogOk, DialogCancel, useDialog } from '@/store/dialog';
+	import { DialogButton, DialogButtonAction, DialogOk, DialogCancel, useDialog } from '@/logic/store/dialog';
 	const emit = defineEmits(['close']);
 	const dialog = useDialog();
 	const slots = useSlots();

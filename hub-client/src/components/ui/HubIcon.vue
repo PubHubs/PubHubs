@@ -6,7 +6,7 @@
 </template>
 
 <script setup lang="ts">
-	import { Theme, useSettings } from '@/store/settings';
+	import { Theme, useSettings } from '@/logic/store/settings';
 	import { computed, onMounted, ref } from 'vue';
 
 	const settings = useSettings();

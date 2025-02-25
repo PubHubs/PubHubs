@@ -18,10 +18,11 @@
 
 <script setup lang="ts">
 	import { ref } from 'vue';
-	import { useFormInputEvents, usedEvents } from '@/composables/useFormInputEvents';
-	import { getCaretPos as domGetCaretPos } from '@/lib/domUtility';
+	import { useFormInputEvents, usedEvents } from '@/logic/composables/useFormInputEvents';
+	import { useGetCaretPos } from '@/logic/composables/useGetCaretPos';
 	import { Ref } from 'vue';
 
+	const { getCaretPos } = useGetCaretPos();
 	const elTextarea: Ref<null | HTMLTextAreaElement> = ref(null);
 
 	type Props = {
@@ -37,13 +38,13 @@
 
 	function onKeyUp() {
 		changed();
-		emit('caretPos', getCaretPos());
+		emit('caretPos', caretPos());
 		resize();
 	}
 
-	function getCaretPos() {
+	function caretPos() {
 		if (!elTextarea.value) return;
-		return domGetCaretPos(elTextarea.value);
+		return getCaretPos(elTextarea.value);
 	}
 
 	/**

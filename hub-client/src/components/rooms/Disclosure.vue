@@ -17,8 +17,8 @@
 	import DisclosureYivi from './DisclosureYivi.vue';
 
 	import { ref } from 'vue';
-	import { DialogButton, DialogButtonAction, DialogOk, DialogCancel } from '@/store/dialog';
-	import { useRooms } from '@/store/store';
+	import { DialogButton, DialogButtonAction, DialogOk, DialogCancel } from '@/logic/store/dialog';
+	import { useRooms } from '@/logic/store/store';
 
 	const rooms = useRooms();
 	const emit = defineEmits(['close']);

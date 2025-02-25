@@ -26,10 +26,10 @@
 	import H3 from '../elements/H3.vue';
 
 	import { ref } from 'vue';
-	import { router } from '@/core/router';
-	import { usePubHubs } from '@/core/pubhubsStore';
+	import { router } from '@/logic/core/router';
+	import { usePubHubs } from '@/logic/core/pubhubsStore';
 	import { useI18n } from 'vue-i18n';
-	import { TPublicRoom } from '@/store/rooms';
+	import { TPublicRoom } from '@/logic/store/rooms';
 	import SecuredRoomLogin from '../ui/SecuredRoomLogin.vue';
 
 	const pubhubs = usePubHubs();

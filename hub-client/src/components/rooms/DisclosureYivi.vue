@@ -6,9 +6,9 @@
 <script setup lang="ts">
 	import { onMounted } from 'vue';
 	import { useI18n } from 'vue-i18n';
-	import { usePubHubs } from '@/core/pubhubsStore';
-	import { useRooms } from '@/store/store';
-	import { DisclosureAttribute, AskDisclosureMessage, YiviSigningSessionResult } from '@/lib/signedMessages';
+	import { usePubHubs } from '@/logic/core/pubhubsStore';
+	import { useRooms } from '@/logic/store/store';
+	import { DisclosureAttribute, AskDisclosureMessage, YiviSigningSessionResult } from '@/model/components/signedMessages';
 
 	const { t } = useI18n();
 	const pubhubs = usePubHubs();

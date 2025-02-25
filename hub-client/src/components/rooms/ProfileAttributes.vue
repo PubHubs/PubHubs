@@ -12,7 +12,7 @@
 	// Components
 	import Icon from '../elements/Icon.vue';
 
-	import { useRooms } from '@/store/store';
+	import { useRooms } from '@/logic/store/store';
 	import { ref, watch } from 'vue';
 
 	const rooms = useRooms();

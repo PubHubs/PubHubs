@@ -1,9 +1,9 @@
 import { setActivePinia, createPinia } from 'pinia';
 import { describe, beforeEach, expect, test } from 'vitest';
-import { EventTimeLineHandler } from '@/core/eventTimeLineHandler';
-import { TEvent } from '@/core/model/event/TEvent';
-import { TTextMessageEventContent } from '@/core/model/events/TMessageEvent';
-// import { usePlugins, MenuPluginProperties,RoomIdPluginProperties,TypePluginProperties, PluginType } from '@/store/plugins';
+import { EventTimeLineHandler } from '@/logic/core/eventTimeLineHandler';
+import { TEvent } from '@/logic/core/model/event/TEvent';
+import { TTextMessageEventContent } from '@/logic/core/model/events/TMessageEvent';
+// import { usePlugins, MenuPluginProperties,RoomIdPluginProperties,TypePluginProperties, PluginType } from '@/logic/store/plugins';
 
 const TestEvent = {
 	type: 'm.room.message',

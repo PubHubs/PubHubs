@@ -36,12 +36,12 @@
 </template>
 
 <script setup lang="ts">
-	import { useGlobal, useHubs } from '@/store/store';
+	import { useGlobal, useHubs } from '@/logic/store/store';
 	import { ref } from 'vue';
 	import { yivi } from '@/yivi';
-	import { Hub } from '@/store/store';
+	import { Hub } from '@/logic/store/store';
 	import { useRouter } from 'vue-router';
-	import { useDialog } from '@/store/store';
+	import { useDialog } from '@/logic/store/store';
 	import { useI18n } from 'vue-i18n';
 
 	const { t } = useI18n();

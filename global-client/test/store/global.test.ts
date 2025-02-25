@@ -1,9 +1,9 @@
 import { setActivePinia, createPinia } from 'pinia';
 import { describe, expect, test, afterAll, afterEach, beforeAll, beforeEach } from 'vitest';
 import { server } from '../mocks/server';
-import { useGlobal, PinnedHubs } from '@/store/global';
-import { useSettings } from '@/store/settings';
-import { api } from '@/core/api';
+import { useGlobal, PinnedHubs } from '@/logic/store/global';
+import { useSettings } from '@/logic/store/settings';
+import { api } from '@/logic/core/api';
 
 beforeAll(() => server.listen({ onUnhandledRequest: 'error' }));
 afterAll(() => server.close());

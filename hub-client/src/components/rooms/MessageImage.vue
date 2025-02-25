@@ -9,10 +9,10 @@
 	// Components
 	import Popover from '../ui/Popover.vue';
 
-	import { useMatrixFiles } from '@/composables/useMatrixFiles';
+	import { useMatrixFiles } from '@/logic/composables/useMatrixFiles';
 	import { TImageMessageEventContent } from '@/model/events/TMessageEvent';
 	import { ref, onMounted } from 'vue';
-	import { FeatureFlag, useSettings } from '@/store/settings';
+	import { FeatureFlag, useSettings } from '@/logic/store/settings';
 
 	const matrixFiles = useMatrixFiles();
 	const settings = useSettings();

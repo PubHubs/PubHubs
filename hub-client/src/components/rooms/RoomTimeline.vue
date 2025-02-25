@@ -31,19 +31,19 @@
 	import UnreadMarker from '../ui/UnreadMarker.vue';
 	import InRoomNotifyMarker from '../ui/InRoomNotifyMarker.vue';
 
-	import { useMatrixFiles } from '@/composables/useMatrixFiles';
-	import { ElementObserver } from '@/core/elementObserver';
-	import { usePubHubs } from '@/core/pubhubsStore';
-	import { useRooms } from '@/store/store';
+	import { useMatrixFiles } from '@/logic/composables/useMatrixFiles';
+	import { ElementObserver } from '@/logic/core/elementObserver';
+	import { usePubHubs } from '@/logic/core/pubhubsStore';
+	import { useRooms } from '@/logic/store/store';
 	import { EventTimeline } from 'matrix-js-sdk';
 	import { computed, onMounted, ref, watch } from 'vue';
 
-	import { LOGGER } from '@/foundation/Logger';
-	import { SMI } from '@/dev/StatusMessage';
+	import { LOGGER } from '@/logic/foundation/Logger';
+	import { SMI } from '@/logic/foundation/StatusMessage';
 	import { TMessageEvent } from '@/model/events/TMessageEvent';
 	import Room from '@/model/rooms/Room';
-	import { FeatureFlag, useSettings } from '@/store/settings';
-	import { useUser } from '@/store/user';
+	import { FeatureFlag, useSettings } from '@/logic/store/settings';
+	import { useUser } from '@/logic/store/user';
 
 	const settings = useSettings();
 	const rooms = useRooms();

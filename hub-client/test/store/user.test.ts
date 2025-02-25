@@ -1,6 +1,6 @@
 import { setActivePinia, createPinia } from 'pinia';
 import { describe, beforeEach, assert, expect, test } from 'vitest';
-import { useUser } from '@/store/user';
+import { useUser } from '@/logic/store/user';
 
 const client = {
 	isSynapseAdministrator: () => {

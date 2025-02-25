@@ -23,9 +23,9 @@
 
 <script setup lang="ts">
 	import { onMounted } from 'vue';
-	import { useSettings, Theme } from '@/store/store';
-	import { useFormState, FormDataType } from '@/composables/useFormState';
-	import { useDialog, buttonsSubmitCancel, DialogOk } from '@/store/store';
+	import { useSettings, Theme } from '@/logic/store/store';
+	import { useFormState, FormDataType } from '@/logic/composables/useFormState';
+	import { useDialog, buttonsSubmitCancel, DialogOk } from '@/logic/store/store';
 
 	import { useI18n } from 'vue-i18n';
 	const { t } = useI18n();

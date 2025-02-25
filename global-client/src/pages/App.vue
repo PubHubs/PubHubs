@@ -16,13 +16,14 @@
 </template>
 
 <script setup lang="ts">
-	import { HubList, useDialog, useGlobal, useHubs, useSettings } from '@/store/store';
+	import { useDialog, useGlobal, useHubs, useSettings } from '@/logic/store/store';
+	import { HubList } from '@/model/Hubs';
 	import { onMounted, watchEffect } from 'vue';
 	import { useI18n } from 'vue-i18n';
-	import { SMI } from '../../../hub-client/src/dev/StatusMessage';
-	import { Logger } from '@/../../hub-client/src/foundation/Logger';
+	import { SMI } from '../../../hub-client/src/logic/foundation/StatusMessage';
+	import { Logger } from '../../../hub-client/src/logic/foundation/Logger';
 	import MobileMenu from '@/components/ui/MobileMenu.vue';
-	import { CONFIG } from '../../../hub-client/src/foundation/Config';
+	import { CONFIG } from '../../../hub-client/src/logic/foundation/Config';
 
 	const LOGGER = new Logger('GC', CONFIG);
 

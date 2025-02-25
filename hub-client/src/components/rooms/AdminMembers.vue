@@ -36,27 +36,18 @@
 	</div>
 </template>
 <script setup lang="ts">
-	import { APIService } from '@/hubmanagement/services/apiService';
+	import Avatar from '../ui/Avatar.vue';
 
 	import { onMounted, watch, ref } from 'vue';
-
-	import { UserAccount } from '@/hubmanagement/types/userAccount';
-
-	import { AccessToken } from '@/hubmanagement/types/authType';
-
-	import { useDialog } from '@/store/dialog';
-
-	import { usePubHubs } from '@/core/pubhubsStore';
-
+	import { APIService } from '@/logic/core/apiHubManagement';
+	import { UserAccount } from '@/model/hubmanagement/types/userAccount';
+	import { AccessToken } from '@/model/hubmanagement/types/authType';
+	import { ManagementUtils } from '@/model/hubmanagement/utility/managementutils';
+	import { useDialog } from '@/logic/store/dialog';
+	import { usePubHubs } from '@/logic/core/pubhubsStore';
 	import { useI18n } from 'vue-i18n';
-
-	import { useUser } from '@/store/user';
-
+	import { useUser } from '@/logic/store/user';
 	import { User as MatrixUser } from 'matrix-js-sdk';
-
-	import { ManagementUtils } from '@/hubmanagement/utility/managementutils';
-
-	import Avatar from '../ui/Avatar.vue';
 
 	const { t } = useI18n();
 

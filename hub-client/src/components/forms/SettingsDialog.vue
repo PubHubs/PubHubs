@@ -39,13 +39,13 @@
 </template>
 
 <script setup lang="ts">
-	import { fileUpload } from '@/composables/fileUpload';
-	import { FormDataType, useFormState } from '@/composables/useFormState';
-	import { useMatrixFiles } from '@/composables/useMatrixFiles';
-	import { usePubHubs } from '@/core/pubhubsStore';
-	import { useSettings } from '@/store/settings';
-	import { buttonsSubmitCancel, DialogButtonAction, DialogSubmit, useDialog } from '@/store/store';
-	import { useUser } from '@/store/user';
+	import { fileUpload } from '@/logic/composables/fileUpload';
+	import { FormDataType, useFormState } from '@/logic/composables/useFormState';
+	import { useMatrixFiles } from '@/logic/composables/useMatrixFiles';
+	import { usePubHubs } from '@/logic/core/pubhubsStore';
+	import { useSettings } from '@/logic/store/settings';
+	import { buttonsSubmitCancel, DialogButtonAction, DialogSubmit, useDialog } from '@/logic/store/store';
+	import { useUser } from '@/logic/store/user';
 	import { onMounted, ref, watch } from 'vue';
 	import { useI18n } from 'vue-i18n';
 

@@ -3,7 +3,7 @@
 </template>
 
 <script setup lang="ts">
-	import { useTimeFormat } from '@/composables/useTimeFormat';
+	import { useTimeFormat } from '@/logic/composables/useTimeFormat';
 	const { formatTimestamp, formattedTimeInformation } = useTimeFormat();
 
 	const props = defineProps({

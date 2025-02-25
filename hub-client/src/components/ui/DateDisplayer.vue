@@ -5,8 +5,8 @@
 </template>
 
 <script setup lang="ts">
-	import { useTimeFormat } from '@/composables/useTimeFormat';
-	import { useRooms } from '@/store/rooms';
+	import { useTimeFormat } from '@/logic/composables/useTimeFormat';
+	import { useRooms } from '@/logic/store/rooms';
 	const { formattedTimeInformation } = useTimeFormat();
 	const rooms = useRooms();
 

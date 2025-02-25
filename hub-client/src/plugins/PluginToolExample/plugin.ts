@@ -8,7 +8,7 @@
  *
  */
 
-import { MenuPluginProperties, PluginType } from '@/store/plugins';
+import { MenuPluginProperties, PluginType } from '@/logic/store/plugins';
 
 // As this is a menu item, we need a translation for the name in the menu
 // In this case we just create them here

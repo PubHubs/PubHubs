@@ -7,7 +7,7 @@
 
 <script setup lang="ts">
 	import { computed } from 'vue';
-	import { useRooms } from '@/store/store';
+	import { useRooms } from '@/logic/store/store';
 
 	const rooms = useRooms();
 

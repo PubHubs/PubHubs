@@ -115,15 +115,15 @@
 	import FileUploadDialog from '../ui/FileUploadDialog.vue';
 	import MessageSnippet from '../rooms/MessageSnippet.vue';
 
-	import { useFormInputEvents, usedEvents } from '@/composables/useFormInputEvents';
-	import { useMatrixFiles } from '@/composables/useMatrixFiles';
-	import filters from '@/core/filters';
-	import { usePubHubs } from '@/core/pubhubsStore';
-	import { useMessageActions } from '@/store/message-actions';
-	import { useRooms } from '@/store/store';
+	import { useFormInputEvents, usedEvents } from '@/logic/composables/useFormInputEvents';
+	import { useMatrixFiles } from '@/logic/composables/useMatrixFiles';
+	import filters from '@/logic/core/filters';
+	import { usePubHubs } from '@/logic/core/pubhubsStore';
+	import { useMessageActions } from '@/logic/store/message-actions';
+	import { useRooms } from '@/logic/store/store';
 	import { computed, onMounted, onUnmounted, ref, watch } from 'vue';
 	import { useRoute } from 'vue-router';
-	import { YiviSigningSessionResult } from '@/lib/signedMessages';
+	import { YiviSigningSessionResult } from '@/model/components/signedMessages';
 	import { TMessageEvent } from '@/model/events/TMessageEvent';
 
 	const route = useRoute();

@@ -8,14 +8,14 @@ import { en } from '@/locales/en';
 import { setActivePinia, createPinia } from 'pinia';
 
 // Mocking dependencies and Mock useTimeFormat composable
-vi.mock('@/composables/useTimeFormat', () => ({
+vi.mock('@/logic/composables/useTimeFormat', () => ({
 	useTimeFormat: () => ({
 		formattedTimeInformation: vi.fn(() => 'Mocked Date'),
 	}),
 }));
 
 // Mock useRooms composable
-vi.mock('@/store/rooms', () => ({
+vi.mock('@/logic/store/rooms', () => ({
 	useRooms: () => ({
 		currentRoom: {
 			hasMessages: vi.fn(() => true),

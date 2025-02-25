@@ -44,16 +44,16 @@
 	import Label from '../forms/Label.vue';
 	import FormObjectInput from '../forms/FormObjectInput.vue';
 
-	import { FormObjectInputTemplate } from '@/composables/useFormInputEvents';
-	import { useFormState } from '@/composables/useFormState';
-	import { isEmpty, trimSplit } from '@/core/extensions';
-	import { usePubHubs } from '@/core/pubhubsStore';
-	import { buttonsSubmitCancel, DialogButtonAction } from '@/store/dialog';
-	import { RoomType } from '@/store/rooms';
-	import { SecuredRoomAttributes, TSecuredRoom, useRooms } from '@/store/store';
+	import { FormObjectInputTemplate } from '@/logic/composables/useFormInputEvents';
+	import { useFormState } from '@/logic/composables/useFormState';
+	import { isEmpty, trimSplit } from '@/logic/core/extensions';
+	import { usePubHubs } from '@/logic/core/pubhubsStore';
+	import { buttonsSubmitCancel, DialogButtonAction } from '@/logic/store/dialog';
+	import { RoomType } from '@/logic/store/rooms';
+	import { SecuredRoomAttributes, TSecuredRoom, useRooms } from '@/logic/store/store';
 	import Room from '@/model/rooms/Room';
 
-	import { useYivi } from '@/store/yivi';
+	import { useYivi } from '@/logic/store/yivi';
 	import { computed, onBeforeMount, ref } from 'vue';
 	import { useI18n } from 'vue-i18n';
 

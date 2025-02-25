@@ -1,5 +1,5 @@
-import { SignedMessage } from '@/lib/signedMessages';
-import { WithRequired } from '../../types/utility';
+import { SignedMessage } from '@/model/components/signedMessages';
+import { WithRequired } from '../utility/utility';
 import { TBaseEvent } from './TBaseEvent';
 
 /**

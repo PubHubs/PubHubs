@@ -1,7 +1,7 @@
 /* eslint-disable */
 import '@/assets/tailwind.css';
-import { focus, twClass } from '@/core/directives';
-import { routes } from '@/core/routes';
+import { focus, twClass } from '@/logic/core/directives';
+import { routes } from '@/logic/core/routes';
 import { setUpi18n } from '@/i18n';
 import '@/registerServiceWorker';
 import { createPinia } from 'pinia';
@@ -29,8 +29,8 @@ import Logo from '@/../../hub-client/src/components/ui/Logo.vue';
 import Checkbox from '@/../../hub-client/src/components/forms/Checkbox.vue';
 
 import { ReplaceConsole } from '@/../../hub-client/src/console';
-import { Logger } from '@/../../hub-client/src/foundation/Logger';
-import { CONFIG } from '../../hub-client/src/foundation/Config';
+import { Logger } from '@/../../hub-client/src/logic/foundation/Logger';
+import { CONFIG } from '../../hub-client/src/logic/foundation/Config';
 ReplaceConsole();
 
 const LOGGER = new Logger('GC', CONFIG);

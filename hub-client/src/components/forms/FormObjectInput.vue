@@ -12,7 +12,7 @@
 	import FormObjectInputContent from './FormObjectInputContent.vue';
 
 	import { ref } from 'vue';
-	import { FormObjectInputTemplate } from '@/composables/useFormInputEvents';
+	import { FormObjectInputTemplate } from '@/logic/composables/useFormInputEvents';
 
 	// const emit = defineEmits(['input']);
 

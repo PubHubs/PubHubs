@@ -1,5 +1,5 @@
 import { expect, test } from 'vitest';
-import filters from '@/core/filters';
+import filters from '@/logic/core/filters';
 
 test('extractPseudonym', () => {
 	expect(filters.extractPseudonym('@12g-gab:matrix')).toBe('12g-gab');
