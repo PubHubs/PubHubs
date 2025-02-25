@@ -1,5 +1,5 @@
 <template>
-	<div class="flex cursor-pointer items-center gap-3 truncate break-words rounded-md bg-hub-background-3 px-2">
+	<div class="flex cursor-pointer items-center gap-3 truncate break-words rounded-md bg-hub-background-4 px-2">
 		<p v-if="showInReplyTo" class="text-nowrap">
 			{{ $t('message.in_reply_to') }}
 		</p>
