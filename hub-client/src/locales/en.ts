@@ -353,6 +353,32 @@ const en = {
 	bubble: {
 		organize: 'Organize your hubs by dragging them.',
 	},
+	attribute: {
+		email: 'email',
+		emaildomain: 'email domain',
+		street: 'street',
+		housenumber: 'house number',
+		zipcode: 'zipcode',
+		city: 'city',
+		municipality: 'municipality',
+		fullname: 'fullname',
+		firstname: 'first name',
+		familyname: 'family name',
+		dateofbirth: 'date of birth',
+		phonenumber: 'phone number',
+		over12: 'older than 12',
+		over16: 'older than 16',
+		over18: 'older than 18',
+		over21: 'older than 21',
+		over65: 'older than 65',
+		surfinstitute: 'surf institute',
+		surftype: 'surf type',
+		surfid: 'surf id',
+		surffullname: 'surf fullname',
+		surffirstname: 'surf firstname',
+		surffamilyname: 'surf lastnamem',
+		surfemail: 'surf email',
+	},
 };
 
 export { en };
