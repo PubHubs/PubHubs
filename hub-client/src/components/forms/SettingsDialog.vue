@@ -3,10 +3,11 @@
 		<form @submit.prevent>
 			<div class="mb-4 flex flex-col items-center md:flex-row md:items-start">
 				<label class="font-semibold text-gray md:w-2/6">{{ $t('settings.avatar') }}</label>
-				<input type="file" id="avatar" accept="image/png, image/jpeg, image/svg" class="hidden" ref="file" @change="uploadAvatar($event)" />
+				<input type="file" id="avatar" accept="image/png, image/jpeg, image/svg" class="hidden" ref="file" @change="chooseAvatar($event)" />
 
 				<div class="flex flex-col justify-between md:w-4/6 md:flex-row">
-					<Avatar :user="user" :overrideAvatarUrl="avatarUrl" class="h-32 w-32 rounded-full"></Avatar>
+					<img :src="blobUrl" class="h-32 w-32 rounded-full" v-if="blobUrl" />
+					<Avatar :img="blobUrl" class="h-32 w-32 rounded-full" v-else> </Avatar>
 
 					<div class="mt-5 flex justify-center md:mr-3 md:flex-col md:justify-normal md:space-y-4">
 						<label for="avatar">
@@ -46,12 +47,11 @@
 	import { useSettings } from '@/logic/store/settings';
 	import { buttonsSubmitCancel, DialogButtonAction, DialogSubmit, useDialog } from '@/logic/store/store';
 	import { useUser } from '@/logic/store/user';
-	import { onMounted, ref, watch } from 'vue';
+	import { onMounted, ref } from 'vue';
 	import { useI18n } from 'vue-i18n';
 
 	// Components
 	import Dialog from '../ui/Dialog.vue';
-	import Avatar from '../ui/Avatar.vue';
 	import Icon from '../elements/Icon.vue';
 	import TextInput from './TextInput.vue';
 	import ValidationErrors from './ValidationErrors.vue';
@@ -63,11 +63,10 @@
 	const formState = useFormState();
 	const pubhubs = usePubHubs();
 	const { imageTypes, uploadUrl } = useMatrixFiles();
+	const fileInfo = ref<File>();
 
 	let avatarMxcUrl = ref<string | undefined>(undefined);
-	let avatarUrl = ref<string | undefined>(undefined);
-
-	watch(avatarMxcUrl, updateAvatarUrl);
+	let blobUrl = ref<string | undefined>(undefined);
 
 	formState.setData({
 		displayName: {
@@ -79,10 +78,8 @@
 
 	onMounted(() => {
 		formState.setSubmitButton(getSubmitButton());
-	});
-
-	onMounted(() => {
 		formState.data.displayName.value = user.user.displayName as FormDataType;
+		blobUrl.value = user.avatarUrl;
 	});
 
 	function dialogAction(action: DialogButtonAction) {
@@ -103,24 +100,41 @@
 			formState.setMessage(t('settings.displayname_changed', [newDisplayName]));
 			formState.updateData('displayName', newDisplayName);
 		}
-
+		if (fileInfo.value) {
+			await uploadAvatar();
+		}
 		if (avatarMxcUrl.value !== undefined) {
 			user.setAvatarMxcUrl(avatarMxcUrl.value, true);
 		}
+		if (blobUrl.value) {
+			URL.revokeObjectURL(blobUrl.value);
+		}
 	}
 
-	function updateAvatarUrl(): void {
-		avatarUrl.value = avatarMxcUrl.value;
+	async function chooseAvatar(event: Event) {
+		getSubmitButton().enabled = true;
+		const target = event.currentTarget as HTMLInputElement;
+		const file = target.files && target.files[0];
+		if (file) {
+			fileInfo.value = file;
+			blobUrl.value = URL.createObjectURL(file);
+		}
 	}
-
 	// Avatar related functions
-	async function uploadAvatar(event: Event) {
+	async function uploadAvatar() {
 		const accessToken = pubhubs.Auth.getAccessToken();
+		const syntheticEvent = {
+			currentTarget: {
+				files: [fileInfo.value],
+			},
+		} as unknown as Event;
 		if (accessToken) {
 			const errorMsg = t('errors.file_upload');
-			await fileUpload(errorMsg, accessToken, uploadUrl, imageTypes, event, (mxUrl) => {
+			fileUpload(errorMsg, accessToken, uploadUrl, imageTypes, syntheticEvent, (mxUrl) => {
 				avatarMxcUrl.value = mxUrl;
-				getSubmitButton().enabled = true;
+				if (avatarMxcUrl.value !== undefined) {
+					user.setAvatarMxcUrl(avatarMxcUrl.value, true);
+				}
 			});
 		} else {
 			console.error('Access Token is invalid for File upload.');
@@ -129,6 +143,10 @@
 
 	async function removeAvatar() {
 		avatarMxcUrl.value = '';
+		if (blobUrl.value) {
+			URL.revokeObjectURL(blobUrl.value);
+		}
+		blobUrl.value = undefined;
 		getSubmitButton().enabled = true;
 	}
 </script>

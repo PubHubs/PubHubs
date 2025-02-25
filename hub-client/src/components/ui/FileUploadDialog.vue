@@ -54,8 +54,8 @@
 		const syntheticEvent = {
 			currentTarget: {
 				files: [props.file],
-			} as HTMLInputElement,
-		} as Event;
+			},
+		} as unknown as Event;
 
 		fileUpload(errorMsg, accessToken, uploadUrl, allTypes, syntheticEvent, (url) => {
 			if (imageTypes.includes(props.file?.type)) {

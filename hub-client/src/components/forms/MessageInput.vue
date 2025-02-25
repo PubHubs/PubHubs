@@ -126,7 +126,7 @@
 	import { usePubHubs } from '@/logic/core/pubhubsStore';
 	import { useMessageActions } from '@/logic/store/message-actions';
 	import { useRooms } from '@/logic/store/store';
-	import { computed, onMounted, onUnmounted, ref, watch } from 'vue';
+	import { onMounted, onUnmounted, ref, watch } from 'vue';
 	import { useRoute } from 'vue-router';
 	import { YiviSigningSessionResult } from '@/model/components/signedMessages';
 	import { TMessageEvent } from '@/model/events/TMessageEvent';
