@@ -27,6 +27,7 @@ Use the [MIGRATE] and [BREAKING] prefixes together with another one if that make
 - Hub admins can now change the hub icon from the hub settings dialog.
 - Removed legacy static pages and some of the underlying code, see #1035.
 - Hubs are now identified by their hubId in /bar/state and hub access tokens are stored in /bar/state.
+- Update input bar design & make hotfixes for the button opacity and placeholder text
 
 ## 21 January 2025 - v1.0.4
 

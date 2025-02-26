@@ -151,7 +151,7 @@ const nl = {
 		leave_admin: 'Waarschuwing: U bent alleen beheerder. Het verlaten van de kamer heeft geen beheer tot gevolg.',
 		leave_only_admin: 'Waarschuwing: U bent de maker van de kamer en het enige lid van de kamer. Als u weggaat, wordt de kamer verwijderd.',
 		hide_sure: 'Weet je zeker dat je dit privé gesprek onzichtbaar wilt maken?',
-		new_message: 'Typ hier je chatbericht',
+		new_message: 'Bericht',
 		members: 'leden',
 		member: 'lid',
 		private_room: 'Één op één gesprek',
