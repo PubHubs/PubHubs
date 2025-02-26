@@ -20,6 +20,7 @@ Use the [MIGRATE] and [BREAKING] prefixes together with another one if that make
 - [NEW] Authenticated media setting in hub configuration can be set to true when merging to stable because Hub client now supports authenticated media.
 - [BUG] Searching messages within a room no longer returns empty results.
 - [BUG] Right padding of menu-items was off, weird tooltips when hovering over room in menuitem.
+- [BUG] Dialog modal on Safari browser did not cover whole screen
 
 ## 6 February 2025 - v1.0.5
 

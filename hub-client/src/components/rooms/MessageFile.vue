@@ -1,7 +1,7 @@
 <template>
-	<div v-if="authMediaUrl" class="mt-2 flex rounded-md bg-hub-background-3 p-2">
+	<div v-if="authMediaUrl" class="mt-2 flex overflow-x-hidden rounded-md bg-hub-background-3 p-2">
 		<Icon type="paperclip" class="mr-2"></Icon>
-		<a class="text-blue" target="_blank" :href="authMediaUrl">{{ message.filename }}</a>
+		<a class="truncate text-blue" target="_blank" :href="authMediaUrl">{{ message.filename }}</a>
 	</div>
 </template>
 

@@ -8,7 +8,7 @@
 				doAction(DialogOk);
 			}
 		"
-		class="absolute left-0 top-0 h-full w-full"
+		class="fixed left-0 top-0 z-20 h-full w-full"
 	>
 		<div v-if="dialog.properties.modal" class="absolute inset-0 z-20 h-full bg-gray-middle opacity-75"></div>
 		<div v-if="!dialog.properties.modalonly" class="absolute inset-0 z-20 flex h-full py-2" @click="doAction(DialogCancel)">
