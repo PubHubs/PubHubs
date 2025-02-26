@@ -59,11 +59,11 @@
 					<!-- Sendbutton -->
 					<Button
 						class="flex aspect-square h-7 w-7 items-center justify-center !rounded-full bg-hub-background-4 !p-0"
-						:class="!buttonEnabled && 'opacity-25 hover:cursor-default'"
+						:class="!buttonEnabled && 'opacity-50 hover:cursor-default'"
 						:disabled="!buttonEnabled"
 						@click="submitMessage"
 					>
-						<Icon type="send" size="sm" class="shrink-0"></Icon>
+						<Icon type="send" size="sm" class="shrink-0 text-hub-text-variant"></Icon>
 					</Button>
 				</div>
 
