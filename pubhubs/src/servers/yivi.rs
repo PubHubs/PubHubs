@@ -96,6 +96,7 @@ pub struct RequestorCredentials {
 #[derive(serde::Deserialize, serde::Serialize, Debug, Clone)]
 #[serde(deny_unknown_fields)]
 pub enum RequestorKey {
+    #[serde(rename = "hs256")]
     HS256(jwt::HS256),
     // We do not use the `Token` or `RS256` Yivi `auth_method`s,
     // see: https://docs.yivi.app/irma-server#requestor-authentication

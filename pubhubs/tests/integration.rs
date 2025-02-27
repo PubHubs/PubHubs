@@ -6,6 +6,12 @@ use std::{sync::Arc, time::Duration};
 
 const CONFIG_FILE_PATH: &'static str = "pubhubs.default.toml";
 
+/// Integration test of the APIs provided by the different PubHubs core servers.
+///  
+///  - Does not test any client browser app
+///  - Does not run against any actual hubs.  Instead a mock hub is used.
+///  - Does not use any Yivi server.  Instead the result of the Yivi server is simulated.
+///
 #[tokio::test]
 async fn main_integration_test() {
     env_logger::init();
@@ -31,6 +37,19 @@ async fn main_integration_test() {
     }
 
     servers::for_all_servers!(set_admin_key);
+
+    // Generate temporary yivi requestor credentials.
+    // (We're not contacting an actual Yivi server in this test.)
+    config.auths.as_mut().unwrap().extra.yivi = toml::from_str(
+        r#"
+        requestor_url = "http://192.0.2.0"  # will not be used - placeholder ip address from RFC5737
+        
+        [requestor_creds]
+        name = "ph_auths"
+        key.hs256 = "c2VjcmV0""#,
+    )
+    .inspect_err(|err| log::error!("{}", err))
+    .unwrap();
 
     let (set, shutdown_sender) = servers::Set::new(&config).unwrap();
 
@@ -182,7 +201,7 @@ async fn main_integration_test_local(config: servers::Config, admin_sk: api::Sig
     ticket.clone().open(&*constellation.phc_jwt_key).unwrap();
 
     // request hub encryption key
-    let _ek = client
+    let _hek = client
         .get_hub_enc_key(client::for_hubs::HubContext {
             ticket: &ticket,
             signing_key: &mock_hub.context.sk,

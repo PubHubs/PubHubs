@@ -314,7 +314,7 @@ impl AsRef<Url> for UrlPwa {
         if let UrlPwa::WithoutAlias(ref url) = self {
             return url;
         }
-        panic!("internal error: url {self} is used, but it might still have a 'host alias'");
+        panic!("internal error: url {self} is used but might still contain a host alias.  it should have been dealiased during configuration processing.");
     }
 }
 

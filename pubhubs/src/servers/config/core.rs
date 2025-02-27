@@ -425,7 +425,13 @@ impl PrepareConfig<Pcc> for phc::ExtraConfig {
 }
 
 impl PrepareConfig<Pcc> for auths::ExtraConfig {
-    fn prepare(&mut self, _c: Pcc) -> anyhow::Result<()> {
+    fn prepare(&mut self, c: Pcc) -> anyhow::Result<()> {
+        let ha: &HostAliases = c.get::<HostAliases>().unwrap();
+
+        for yivi_cfg in self.yivi.iter_mut() {
+            ha.dealias(&mut yivi_cfg.requestor_url);
+        }
+
         Ok(())
     }
 }
