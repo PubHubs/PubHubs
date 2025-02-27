@@ -34,7 +34,7 @@
 	import QRCode from './SecuredRoomQR.vue';
 
 	import { useI18n } from 'vue-i18n';
-	import { useRooms } from '@/store/rooms';
+	import { useRooms } from '@/logic/store/rooms';
 
 	const rooms = useRooms();
 

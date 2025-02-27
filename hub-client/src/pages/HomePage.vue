@@ -35,8 +35,8 @@
 
 <script setup lang="ts">
 	import HubIcon from '@/components/ui/HubIcon.vue';
-	import { usePubHubs } from '@/core/pubhubsStore';
-	import { useHubSettings } from '@/store/hub-settings';
+	import { usePubHubs } from '@/logic/core/pubhubsStore';
+	import { useHubSettings } from '@/logic/store/hub-settings';
 
 	// Components
 	import H1 from '../components/elements/H1.vue';

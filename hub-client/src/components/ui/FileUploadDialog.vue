@@ -15,12 +15,12 @@
 </template>
 
 <script setup lang="ts">
-	import { useMatrixFiles } from '@/composables/useMatrixFiles';
-	import { usePubHubs } from '@/core/pubhubsStore';
-	import { useRooms } from '@/store/store';
-	import filters from '@/core/filters';
-	import { buttonsOkCancel } from '@/store/dialog';
-	import { fileUpload } from '@/composables/fileUpload';
+	import { useMatrixFiles } from '@/logic/composables/useMatrixFiles';
+	import { usePubHubs } from '@/logic/core/pubhubsStore';
+	import { useRooms } from '@/logic/store/store';
+	import filters from '@/logic/core/filters';
+	import { buttonsOkCancel } from '@/logic/store/dialog';
+	import { fileUpload } from '@/logic/composables/fileUpload';
 	import { useI18n } from 'vue-i18n';
 	const { allTypes, uploadUrl } = useMatrixFiles();
 	const { t } = useI18n();
@@ -54,8 +54,8 @@
 		const syntheticEvent = {
 			currentTarget: {
 				files: [props.file],
-			} as HTMLInputElement,
-		} as Event;
+			},
+		} as unknown as Event;
 
 		fileUpload(errorMsg, accessToken, uploadUrl, allTypes, syntheticEvent, (url) => {
 			if (imageTypes.includes(props.file?.type)) {

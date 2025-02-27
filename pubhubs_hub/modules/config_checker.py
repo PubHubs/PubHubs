@@ -64,10 +64,6 @@ class ConfigChecker:
 
         self.try_check(self.check_oidc_provider, "the oidc provider has been configured correctly")
 
-        self.try_check(self.check_autocreate_auto_join_rooms_is_enabled, "the automatic creation of 'autojoin rooms' has been configured correctly")
-
-        self.try_check(self.check_auto_join_mxid_localpart, "the 'autojoin rooms' creator's username's localpart")
-
         check_do_change_fields = self.cc_config.get("check_do_change_fields", None)
 
         if check_do_change_fields == None:
@@ -109,7 +105,6 @@ class ConfigChecker:
             # multiple testhubs that may be created under development
             self.try_check_did_change(self.server_name_changed, "'server_name'")
             self.try_check_did_change(self.public_baseurl_changed, "'public_baseurl'")
-            self.try_check_did_change(self.auto_join_rooms_changed, "'auto_join_rooms'")
 
         # TODO:
         # block_non_admin_invites? #566
@@ -117,7 +112,6 @@ class ConfigChecker:
         if self.errs:
             raise ConfigError("\n\nThere are some problems with the 'homeserver.yaml' configuration from PubHubs' perspective:\n" +
                 "\n".join([" - " + err for err in self.errs]) + "\n\n")
-
 
     def try_check(self, f, what, *args, **kwargs):
         logger.info(f"checked that {what}...")
@@ -167,13 +161,6 @@ class ConfigChecker:
         if self.config.server.allow_per_room_profiles:
             yield "Please set 'allow_per_room_profiles: false' in 'homeserver.yaml'"
 
-    def check_autocreate_auto_join_rooms_is_enabled(self):
-        if not self.config.registration.auto_join_rooms:
-            yield "The automatic creation of 'autojoin rooms' is disabled - please set 'auto_join_rooms' in 'homeserver.yaml' to true."
-
-    def check_auto_join_mxid_localpart(self):
-        if (not self.config.registration.auto_join_user_id) or (not self.config.registration.auto_join_user_id.startswith('@system_bot:')):
-            yield "The local part of user creating 'autojoin rooms' should not be changed - please set 'auto_join_mxid_localpart' in 'homeserver.yaml' to 'system_bot'."
 
     def signing_key_changed(self):
         for key in self.config.key.signing_key:
@@ -217,21 +204,6 @@ class ConfigChecker:
     def public_baseurl_changed(self):
         return self.config.server.public_baseurl != "http://localhost:8008/"
 
-    def auto_join_rooms_changed(self):
-        error = "Make sure that the first 'autojoin room' in the 'auto_join_rooms' configuration is of the form '#General:<server_name>'."
-        if len(self.config.registration.auto_join_rooms) == 0:
-            raise ConfigError(error)
-
-        general_room_name = self.config.registration.auto_join_rooms[0]
-
-        split_general_room_name = general_room_name.split(':', 1)
-        localpart = split_general_room_name[0]
-        name_server = split_general_room_name[1]
-
-        if name_server != self.config.server.server_name or localpart != '#General':
-            raise ConfigError(error)
-
-        return general_room_name != "#General:testhub.matrix.host"
 
     def check_client_is_whitelisted(self):
         client_url: str = self.modules[pubhubs.HubClientApi]["client_url"]

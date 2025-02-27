@@ -6,8 +6,8 @@
 <script setup lang="ts">
 	import Badge from '@/components/elements/Badge.vue';
 
-	import { usePubHubs } from '@/core/pubhubsStore';
-	import { useRooms } from '@/store/rooms';
+	import { usePubHubs } from '@/logic/core/pubhubsStore';
+	import { useRooms } from '@/logic/store/rooms';
 	import { ref, watch } from 'vue';
 
 	const pubhubs = usePubHubs();

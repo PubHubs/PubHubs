@@ -10,11 +10,11 @@
 	import ChooseFromUsersList from '@/components/rooms/ChooseFromUsersList.vue';
 
 	import { ref, onBeforeMount } from 'vue';
-	import { useRooms } from '@/store/store';
-	import { DisclosureAttribute, AskDisclosure } from '@/lib/signedMessages';
+	import { useRooms } from '@/logic/store/store';
+	import { DisclosureAttribute, AskDisclosure } from '@/model/components/signedMessages';
 	import { User as MatrixUser } from 'matrix-js-sdk';
-	import { usePubHubs } from '@/core/pubhubsStore';
-	import { AskDisclosureMessage } from '@/lib/signedMessages';
+	import { usePubHubs } from '@/logic/core/pubhubsStore';
+	import { AskDisclosureMessage } from '@/model/components/signedMessages';
 	import { useI18n } from 'vue-i18n';
 	import { useRoute } from 'vue-router';
 

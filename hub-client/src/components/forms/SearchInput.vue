@@ -48,7 +48,7 @@
 	</div>
 
 	<!-- Search results -->
-	<div v-if="searched" class="scrollbar absolute right-2 top-16 max-h-[500%] w-full max-w-80 overflow-y-auto rounded-b-md bg-gray-lighter dark:bg-gray-darker md:right-0 md:top-20">
+	<div v-if="searched" class="scrollbar absolute right-2 top-16 z-10 max-h-[500%] w-full max-w-80 overflow-y-auto rounded-b-md bg-gray-lighter dark:bg-gray-darker md:right-0 md:top-20">
 		<template v-if="searchResultsToShow && searchResultsToShow.length > 0">
 			<div v-for="item in searchResultsToShow" :key="item.event_id" class="group">
 				<a href="#" @click.prevent="onScrollToEventId(item.event_id)">
@@ -75,11 +75,11 @@
 	import Icon from '../elements/Icon.vue';
 	import InlineSpinner from '../ui/InlineSpinner.vue';
 
-	import { useFormInputEvents, usedEvents } from '@/composables/useFormInputEvents';
-	import { filterAlphanumeric } from '@/core/extensions';
-	import { usePubHubs } from '@/core/pubhubsStore';
+	import { useFormInputEvents, usedEvents } from '@/logic/composables/useFormInputEvents';
+	import { filterAlphanumeric } from '@/logic/core/extensions';
+	import { usePubHubs } from '@/logic/core/pubhubsStore';
 	import Room from '@/model/rooms/Room';
-	import { useRooms } from '@/store/store';
+	import { useRooms } from '@/logic/store/store';
 	import { ISearchResults, SearchResult } from 'matrix-js-sdk';
 	import { PropType, computed, ref } from 'vue';
 	import TruncatedText from '../elements/TruncatedText.vue';

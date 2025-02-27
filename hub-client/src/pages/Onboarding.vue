@@ -30,9 +30,9 @@
 
 <script setup lang="ts">
 	import HubIcon from '@/components/ui/HubIcon.vue';
-	import { usePubHubs } from '@/core/pubhubsStore';
-	import { useHubSettings } from '@/store/hub-settings';
-	import { useUser } from '@/store/user';
+	import { usePubHubs } from '@/logic/core/pubhubsStore';
+	import { useHubSettings } from '@/logic/store/hub-settings';
+	import { useUser } from '@/logic/store/user';
 	import { ref } from 'vue';
 	import { useI18n } from 'vue-i18n';
 

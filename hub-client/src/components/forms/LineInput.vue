@@ -27,7 +27,7 @@
 	import Icon from '../elements/Icon.vue';
 
 	import { ref } from 'vue';
-	import { useFormInputEvents, usedEvents } from '@/composables/useFormInputEvents';
+	import { useFormInputEvents, usedEvents } from '@/logic/composables/useFormInputEvents';
 
 	const props = defineProps({
 		placeholder: {

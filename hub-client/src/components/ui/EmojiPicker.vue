@@ -21,7 +21,7 @@
 <script setup lang="ts">
 	import { onMounted, ref, computed } from 'vue';
 
-	import { useSettings } from '@/store/settings';
+	import { useSettings } from '@/logic/store/settings';
 
 	import { Emoji } from 'emojibase';
 

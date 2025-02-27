@@ -41,15 +41,12 @@
 </template>
 
 <script setup lang="ts">
-	import { onMounted, ref } from 'vue';
-
-	import { TUserAccount } from '@/model/users/TUser';
-
 	import Avatar from '@/components/ui/Avatar.vue';
 
-	import { useUser } from '@/store/user';
-
-	import { ManagementUtils } from '@/hubmanagement/utility/managementutils';
+	import { onMounted, ref } from 'vue';
+	import { TUserAccount } from '@/model/users/TUser';
+	import { useUser } from '@/logic/store/user';
+	import { ManagementUtils } from '@/model/hubmanagement/utility/managementutils';
 
 	import { useI18n } from 'vue-i18n';
 

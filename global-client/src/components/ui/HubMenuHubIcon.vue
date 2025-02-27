@@ -15,14 +15,14 @@
 </template>
 
 <script setup lang="ts">
-	import { Hub } from '@/store/hubs';
+	import { Hub } from '@/model/Hubs';
 	import Badge from '../../../../hub-client/src/components/elements/Badge.vue';
 	import HubIcon from '../../../../hub-client/src/components/ui/HubIcon.vue';
 
 	import { ref } from 'vue';
-	import { useGlobal } from '@/store/global';
-	import { useMessageBox } from '@/store/messagebox';
-	import { useSettings, FeatureFlag } from '@/store/settings';
+	import { useGlobal } from '@/logic/store/global';
+	import { useMessageBox } from '@/logic/store/messagebox';
+	import { useSettings, FeatureFlag } from '@/logic/store/settings';
 
 	const global = useGlobal();
 	const messagebox = useMessageBox();

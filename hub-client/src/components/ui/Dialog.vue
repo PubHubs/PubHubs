@@ -8,13 +8,13 @@
 				doAction(DialogOk);
 			}
 		"
-		class="absolute left-0 top-0 h-full w-full"
+		class="fixed left-0 top-0 z-20 h-full w-full"
 	>
 		<div v-if="dialog.properties.modal" class="absolute inset-0 z-20 h-full bg-gray-middle opacity-75"></div>
 		<div v-if="!dialog.properties.modalonly" class="absolute inset-0 z-20 flex h-full py-2" @click="doAction(DialogCancel)">
 			<div class="theme-light m-auto flex max-h-full flex-col justify-between gap-1 rounded-lg bg-white p-4 shadow-xl shadow-black" :class="width" @click.stop>
 				<div>
-					<Icon v-if="dialog.properties.close" type="close" size="md" class="float-right -mt-1 hover:opacity-75" @click="doAction(DialogCancel)"></Icon>
+					<Icon v-if="dialog.properties.close" type="close" size="md" class="float-right -mt-1 cursor-pointer hover:opacity-75 dark:text-black" @click="doAction(DialogCancel)"></Icon>
 					<H2 v-if="dialog.properties.title !== ''" class="m-0 text-left text-black">{{ dialog.properties.title }}</H2>
 					<slot name="header"></slot>
 				</div>
@@ -36,7 +36,7 @@
 
 <script setup lang="ts">
 	import { onMounted, useSlots, computed, onUnmounted } from 'vue';
-	import { DialogButton, DialogButtonAction, DialogOk, DialogCancel, useDialog } from '@/store/dialog';
+	import { DialogButton, DialogButtonAction, DialogOk, DialogCancel, useDialog } from '@/logic/store/dialog';
 	const emit = defineEmits(['close']);
 	const dialog = useDialog();
 	const slots = useSlots();

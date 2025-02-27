@@ -1,6 +1,6 @@
 import { setActivePinia, createPinia } from 'pinia';
 import { describe, beforeEach, expect, test, vi } from 'vitest';
-import { Message, MessageType, MessageBoxType, useMessageBox } from '@/store/messagebox';
+import { Message, MessageType, MessageBoxType, useMessageBox } from '@/logic/store/messagebox';
 
 const messages = [];
 const mockTarget = () => {

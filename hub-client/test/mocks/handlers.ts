@@ -1,4 +1,4 @@
-import { SecuredRoom } from '@/store/rooms';
+import { SecuredRoom } from '@/logic/store/rooms';
 import { http, HttpResponse } from 'msw';
 
 export const handlers = [

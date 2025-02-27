@@ -6,16 +6,16 @@
 </template>
 
 <script setup lang="ts">
-	import { useUserColor } from '@/composables/useUserColor';
+	import { useUserColor } from '@/logic/composables/useUserColor';
 	import RoomMember from '@/model/rooms/RoomMember';
 	import { User as MatrixUser } from 'matrix-js-sdk';
-	import { CurrentUser, useUser } from '@/store/user';
-	import { useMatrixFiles } from '@/composables/useMatrixFiles';
+	import { CurrentUser, useUser } from '@/logic/store/user';
+	import { useMatrixFiles } from '@/logic/composables/useMatrixFiles';
 	import { computed, watch, onMounted, ref } from 'vue';
 
 	//Components
 	import Icon from '../elements/Icon.vue';
-	import { FeatureFlag, useSettings } from '@/store/settings';
+	import { FeatureFlag, useSettings } from '@/logic/store/settings';
 
 	const { color, bgColor } = useUserColor();
 

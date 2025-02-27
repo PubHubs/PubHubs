@@ -41,7 +41,7 @@
 	import Icon from '@/components/elements/Icon.vue';
 	import H1 from '@/components/elements/H1.vue';
 
-	import { useRooms } from '@/store/store';
+	import { useRooms } from '@/logic/store/store';
 	import { computed, ref, onMounted } from 'vue';
 	import { useI18n } from 'vue-i18n';
 

@@ -1,6 +1,6 @@
 export { yivi };
 
-import { useSettings } from '@/store/store';
+import { useSettings } from '@/logic/store/store';
 
 function yivi(register: boolean, yivi_token: { value: string }) {
 	const settings = useSettings();

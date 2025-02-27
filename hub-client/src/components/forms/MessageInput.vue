@@ -15,14 +15,15 @@
 		</div>
 
 		<div class="flex max-h-12 items-end justify-between gap-2 md:max-h-52">
-			<div class="w-full overflow-hidden rounded-xl bg-hub-background-4 dark:bg-hub-background-4">
+			<div class="w-full overflow-hidden rounded-xl bg-hub-background-2">
+				<!-- In reply to -->
 				<div class="flex h-10 items-center justify-between gap-2 px-2" v-if="inReplyTo">
 					<div class="flex w-fit gap-2 overflow-hidden">
 						<p class="text-nowrap">{{ $t('message.in_reply_to') }}</p>
 						<Suspense>
 							<MessageSnippet :eventId="messageActions.replyingTo" :room="room"></MessageSnippet>
 							<template #fallback>
-								<div class="flex items-center gap-3 rounded-md bg-hub-background-3 px-2">
+								<div class="flex items-center gap-3 rounded-md px-2">
 									<p>{{ $t('state.loading_message') }}</p>
 								</div>
 							</template>
@@ -33,8 +34,8 @@
 					</button>
 				</div>
 
-				<div class="flex min-h-[50px] items-end gap-x-2 rounded-2xl px-2 py-1 dark:bg-hub-background-4">
-					<Icon class="mb-2 border-r-2 border-r-gray-light pr-3 dark:text-white" type="paperclip" @click.stop="togglePopover" :asButton="true"></Icon>
+				<div class="flex min-h-[50px] items-center gap-x-4 rounded-2xl px-4 py-2">
+					<Icon class="dark:text-white" type="paperclip" size="md" @click.stop="togglePopover" :asButton="true"></Icon>
 					<!-- Overflow-x-hidden prevents firefox from adding an extra row to the textarea for a possible scrollbar -->
 					<TextArea
 						ref="elTextInput"
@@ -51,10 +52,22 @@
 						@cancel="cancel()"
 						@caretPos="setCaretPos"
 					></TextArea>
-					<Icon class="mb-2 dark:text-white" type="emoticon" @click.stop="toggleEmojiPicker" :asButton="true"></Icon>
+
+					<!-- Emoji picker -->
+					<Icon class="dark:text-white" type="emoticon" size="md" @click.stop="toggleEmojiPicker" :asButton="true"></Icon>
+
+					<!-- Sendbutton -->
+					<Button
+						class="flex aspect-square h-7 w-7 items-center justify-center !rounded-full bg-hub-background-4 !p-0"
+						:class="!buttonEnabled && 'opacity-50 hover:cursor-default'"
+						:disabled="!buttonEnabled"
+						@click="submitMessage"
+					>
+						<Icon type="send" size="sm" class="shrink-0 text-hub-text-variant"></Icon>
+					</Button>
 				</div>
 
-				<div v-if="signingMessage" class="flex items-center rounded-md bg-gray-light p-2 dark:bg-hub-background">
+				<div v-if="signingMessage" class="m-4 mt-0 flex items-center rounded-md bg-hub-background-4 p-2">
 					<Icon type="sign" size="base" class="mt-1 self-start"></Icon>
 					<div class="ml-2 flex max-w-3xl flex-col justify-between">
 						<h3 class="font-bold">{{ $t('message.sign.heading') }}</h3>
@@ -72,14 +85,6 @@
 					<Icon type="closingCross" size="sm" :asButton="true" @click.stop="toggleSigningMessage(false)" class="ml-auto self-start"></Icon>
 				</div>
 			</div>
-
-			<!-- Sendbutton -->
-			<Button class="flex h-fit min-h-[50px] rounded-xl" :disabled="!buttonEnabled" @click="submitMessage">
-				<div class="flex items-center gap-2 text-xl">
-					<Icon type="talk" size="sm" class="shrink-0 rotate-45 -scale-100"></Icon>
-					<span class="hidden md:flex">{{ $t(sendMessageText) }}</span>
-				</div>
-			</Button>
 
 			<!-- Yivi signing qr popup -->
 			<div v-if="signingMessage" class="absolute bottom-[10%] md:left-[40%]" id="yivi-web-form"></div>
@@ -115,15 +120,15 @@
 	import FileUploadDialog from '../ui/FileUploadDialog.vue';
 	import MessageSnippet from '../rooms/MessageSnippet.vue';
 
-	import { useFormInputEvents, usedEvents } from '@/composables/useFormInputEvents';
-	import { useMatrixFiles } from '@/composables/useMatrixFiles';
-	import filters from '@/core/filters';
-	import { usePubHubs } from '@/core/pubhubsStore';
-	import { useMessageActions } from '@/store/message-actions';
-	import { useRooms } from '@/store/store';
-	import { computed, onMounted, onUnmounted, ref, watch } from 'vue';
+	import { useFormInputEvents, usedEvents } from '@/logic/composables/useFormInputEvents';
+	import { useMatrixFiles } from '@/logic/composables/useMatrixFiles';
+	import filters from '@/logic/core/filters';
+	import { usePubHubs } from '@/logic/core/pubhubsStore';
+	import { useMessageActions } from '@/logic/store/message-actions';
+	import { useRooms } from '@/logic/store/store';
+	import { onMounted, onUnmounted, ref, watch } from 'vue';
 	import { useRoute } from 'vue-router';
-	import { YiviSigningSessionResult } from '@/lib/signedMessages';
+	import { YiviSigningSessionResult } from '@/model/components/signedMessages';
 	import { TMessageEvent } from '@/model/events/TMessageEvent';
 
 	const route = useRoute();
@@ -154,13 +159,6 @@
 	const elTextInput = ref<InstanceType<typeof TextArea> | null>(null);
 	const inReplyTo = ref<TMessageEvent | undefined>(undefined);
 	defineProps<{ room: Room }>();
-
-	const sendMessageText = computed(() => {
-		if (signingMessage.value) {
-			return 'message.sign.send';
-		}
-		return 'message.send';
-	});
 
 	watch(route, () => {
 		reset();

@@ -98,16 +98,16 @@
 	import UserDisplayName from './UserDisplayName.vue';
 	import Icon from '../elements/Icon.vue';
 
-	import { usePubHubs } from '@/core/pubhubsStore';
-	import { router } from '@/core/router';
+	import { usePubHubs } from '@/logic/core/pubhubsStore';
+	import { router } from '@/logic/core/router';
 	import { TMessageEvent } from '@/model/events/TMessageEvent';
 	import Room from '@/model/rooms/Room';
-	import { useConnection } from '@/store/connection';
-	import { useMessageActions } from '@/store/message-actions';
-	import { PluginType } from '@/store/plugins';
-	import { RoomType } from '@/store/rooms';
-	import { FeatureFlag, useSettings } from '@/store/settings';
-	import { useUser } from '@/store/user';
+	import { useConnection } from '@/logic/store/connection';
+	import { useMessageActions } from '@/logic/store/message-actions';
+	import { PluginType } from '@/logic/store/plugins';
+	import { RoomType } from '@/logic/store/rooms';
+	import { FeatureFlag, useSettings } from '@/logic/store/settings';
+	import { useUser } from '@/logic/store/user';
 	import { computed, ref } from 'vue';
 
 	// Stores

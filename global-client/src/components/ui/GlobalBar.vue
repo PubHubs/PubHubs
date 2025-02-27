@@ -44,8 +44,8 @@
 </template>
 
 <script setup lang="ts">
-	import { useDialog, useGlobal } from '@/store/store';
-	import { useToggleMenu } from '@/store/toggleGlobalMenu';
+	import { useDialog, useGlobal } from '@/logic/store/store';
+	import { useToggleMenu } from '@/logic/store/toggleGlobalMenu';
 	import { ref } from 'vue';
 	import { useI18n } from 'vue-i18n';
 

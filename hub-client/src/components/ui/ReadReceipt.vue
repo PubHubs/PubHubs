@@ -17,8 +17,8 @@
 
 <script setup lang="ts">
 	import { watchEffect, ref } from 'vue';
-	import { useRooms } from '@/store/rooms';
-	import { useUser } from '@/store/user';
+	import { useRooms } from '@/logic/store/rooms';
+	import { useUser } from '@/logic/store/user';
 
 	const currentUser = useUser();
 	const rooms = useRooms();

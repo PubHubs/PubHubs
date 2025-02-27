@@ -1,5 +1,5 @@
 import Logo from '@/components/ui/Logo.vue';
-import { useSettings } from '@/store/settings';
+import { useSettings } from '@/logic/store/settings';
 import { createTestingPinia } from '@pinia/testing';
 import { flushPromises, mount } from '@vue/test-utils';
 import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest';

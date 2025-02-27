@@ -1,4 +1,4 @@
-import { PluginProperties } from '@/store/plugins';
+import { PluginProperties } from '@/logic/store/plugins';
 import { Unsigned } from './types';
 
 /**

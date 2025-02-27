@@ -40,8 +40,8 @@
 
 <script setup lang="ts">
 	import draggable from 'vuedraggable';
-	import { PinnedHubs, useDialog, useGlobal, useHubs } from '@/store/store';
-	import { useToggleMenu } from '@/store/toggleGlobalMenu';
+	import { PinnedHubs, useDialog, useGlobal, useHubs } from '@/logic/store/store';
+	import { useToggleMenu } from '@/logic/store/toggleGlobalMenu';
 	import { ref } from 'vue';
 	import { useI18n } from 'vue-i18n';
 

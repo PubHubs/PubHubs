@@ -86,9 +86,9 @@
 </template>
 
 <script setup lang="ts">
-	import { usePubHubs } from '@/core/pubhubsStore';
-	import { APIService } from '@/hubmanagement/services/apiService';
-	import { ManagementUtils } from '@/hubmanagement/utility/managementutils';
+	import { usePubHubs } from '@/logic/core/pubhubsStore';
+	import { APIService } from '@/logic/core/apiHubManagement';
+	import { ManagementUtils } from '@/model/hubmanagement/utility/managementutils';
 	// Components
 	import HeaderFooter from '@/components/ui/HeaderFooter.vue';
 	import Tabs from '@/components/ui/Tabs.vue';
@@ -101,9 +101,9 @@
 	import EditRoomForm from '@/components/rooms/EditRoomForm.vue';
 	import H1 from '@/components/elements/H1.vue';
 
-	import { useDialog } from '@/store/dialog';
-	import { TPublicRoom, TSecuredRoom, useRooms } from '@/store/rooms';
-	import { useUser } from '@/store/user';
+	import { useDialog } from '@/logic/store/dialog';
+	import { TPublicRoom, TSecuredRoom, useRooms } from '@/logic/store/rooms';
+	import { useUser } from '@/logic/store/user';
 	import { onMounted, ref } from 'vue';
 	import { useI18n } from 'vue-i18n';
 	const { t } = useI18n();

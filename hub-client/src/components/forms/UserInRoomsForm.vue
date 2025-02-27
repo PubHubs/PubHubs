@@ -62,24 +62,15 @@
 	 */
 
 	import { onMounted, watch, ref } from 'vue';
-
 	import { useI18n } from 'vue-i18n';
-
-	import { useUser } from '@/store/user';
-
-	import { useDialog } from '@/store/dialog';
-
-	import { usePubHubs } from '@/core/pubhubsStore';
-
+	import { useUser } from '@/logic/store/user';
+	import { useDialog } from '@/logic/store/dialog';
+	import { usePubHubs } from '@/logic/core/pubhubsStore';
 	import { TUserJoinedRooms } from '@/model/users/TUser';
-
 	import { TUserRole } from '@/model/users/TUser';
-
-	import { UserRoomPermission } from '@/hubmanagement/types/roomPerm';
-
-	import { APIService } from '@/hubmanagement/services/apiService';
-
-	import { Administrator } from '@/hubmanagement/models/admin';
+	import { APIService } from '@/logic/core/apiHubManagement';
+	import { UserRoomPermission } from '@/model/hubmanagement/types/roomPerm';
+	import { Administrator } from '@/model/hubmanagement/models/admin';
 
 	const { t } = useI18n();
 

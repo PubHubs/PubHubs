@@ -19,8 +19,8 @@
 	import Dialog from '../ui/Dialog.vue';
 
 	import Room from '@/pages/Room.vue';
-	import { buttonsYesNo, DialogButtonAction } from '@/store/dialog';
-	import { useUser } from '@/store/user';
+	import { buttonsYesNo, DialogButtonAction } from '@/logic/store/dialog';
+	import { useUser } from '@/logic/store/user';
 
 	const user = useUser();
 

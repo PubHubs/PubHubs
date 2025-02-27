@@ -9,10 +9,18 @@ _Please add a brief description of any changes and any migrations to be performe
  * _[BREAKING] - If it is a breaking change that needs changes done on the deployment/installation/settings_
  * _(Use the [MIGRATE] and [BREAKING] prefixes together with another one if that makes more sense.)_
 
-- [UPDATE] Synapse was updated and authenticated media is now enforced by default (see [here](https://element-hq.github.io/synapse/v1.120/upgrade.html#authenticated-media-is-now-enforced-by-default)).  The [`authenticatedMedia`](https://gitlab.science.ru.nl/ilab/pubhubs_canonical/-/blob/c8173d69afec601e79fffa9e96c4c86e63e808d7/hub-client/src/store/settings.ts#L113) feature flag should be set to true. After pulling the new image, hub administrators should set or remove the `enable_authenticated_media` option in `homeserver.yaml`, but not doing immediately is not expected to cause direct issues.)
+Use the [MIGRATE] and [BREAKING] prefixes together with another one if that makes more sense.
+
+- [NEW] The settings dialog now includes an option to turn notifications on or off.
+- [Update] Files are now uploaded to matrix synaps after clicking submit in the upload forms.
+- [NEW] Attributes are now read from a curated list in the yivi.ts file, in the dropdown menu attribute descriptions are shown instead of the attribute value.
+- [NEW] Restructured folders of clients.
+- [UPDATE] Synapse was updated and authenticated media is now enforced by default (see [here](https://element-hq.github.io/synapse/v1.120/upgrade.html#authenticated-media-is-now-enforced-by-default)). When merging to stable, the new configuration should be added to all running hubs.
+- [UPDATE] Code for automatic creation of 'General room' is removed from config (including config check). When merging to stable this config should be removed from 'homeserver.yaml'.
 - [NEW] Authenticated media setting in hub configuration can be set to true when merging to stable because Hub client now supports authenticated media.
 - [BUG] Searching messages within a room no longer returns empty results.
 - [BUG] Right padding of menu-items was off, weird tooltips when hovering over room in menuitem.
+- [BUG] Dialog modal on Safari browser did not cover whole screen
 
 ## 6 February 2025 - v1.0.5
 
@@ -20,6 +28,7 @@ _Please add a brief description of any changes and any migrations to be performe
 - Hub admins can now change the hub icon from the hub settings dialog.
 - Removed legacy static pages and some of the underlying code, see #1035.
 - Hubs are now identified by their hubId in /bar/state and hub access tokens are stored in /bar/state.
+- Update input bar design & make hotfixes for the button opacity and placeholder text
 
 ## 21 January 2025 - v1.0.4
 

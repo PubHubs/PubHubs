@@ -14,7 +14,7 @@
 <script setup lang="ts">
 	import Room from '@/model/rooms/Room';
 	import { TRoomMember } from '@/model/rooms/TRoomMember';
-	import { useRooms } from '@/store/store';
+	import { useRooms } from '@/logic/store/store';
 	import { computed, onMounted, ref, watch } from 'vue';
 
 	import Avatar from './Avatar.vue';

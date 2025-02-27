@@ -19,8 +19,8 @@
 	// Components
 	import Button from '../elements/Button.vue';
 
-	import { PropType } from 'vue';
-	import { Options, useFormInputEvents, usedEvents } from '@/composables/useFormInputEvents';
+	import { PropType, watch } from 'vue';
+	import { Options, useFormInputEvents, usedEvents } from '@/logic/composables/useFormInputEvents';
 
 	const props = defineProps({
 		options: {
@@ -28,7 +28,7 @@
 			required: true,
 		},
 		value: {
-			type: [Number, String],
+			type: [Number, String, Boolean],
 			default: '',
 		},
 		size: {
@@ -36,6 +36,13 @@
 			default: 'base',
 		},
 	});
+
+	watch(
+		() => props.value,
+		() => {
+			setValue(props.value);
+		},
+	);
 
 	const emit = defineEmits(usedEvents);
 	const { setValue, setOptions, selectOption, optionIsSelected, changed } = useFormInputEvents(emit);

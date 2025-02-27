@@ -22,10 +22,10 @@
 	import FilteredList from '../ui/FilteredList.vue';
 	import Icon from '../elements/Icon.vue';
 
-	import { usePubHubs } from '@/core/pubhubsStore';
-	import { buttonsCancel } from '@/store/dialog';
-	import { useUser } from '@/store/user';
-	import { FilteredListEvent } from '@/types/components';
+	import { usePubHubs } from '@/logic/core/pubhubsStore';
+	import { buttonsCancel } from '@/logic/store/dialog';
+	import { useUser } from '@/logic/store/user';
+	import { FilteredListEvent } from '@/model/components/components';
 	import { User as MatrixUser } from 'matrix-js-sdk';
 	import { computed, onMounted, ref } from 'vue';
 

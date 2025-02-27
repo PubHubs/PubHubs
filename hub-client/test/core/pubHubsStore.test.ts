@@ -1,6 +1,6 @@
 import { setActivePinia, createPinia } from 'pinia';
 import { describe, beforeEach, expect, test } from 'vitest';
-import { usePubHubs } from '@/core/pubhubsStore.ts';
+import { usePubHubs } from '@/logic/core/pubhubsStore';
 
 describe('PubHubs Store', () => {
 	beforeEach(() => {

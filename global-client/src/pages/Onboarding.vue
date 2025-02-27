@@ -15,7 +15,7 @@
 </template>
 
 <script setup lang="ts">
-	import { useSettings } from '@/store/settings';
+	import { useSettings } from '@/logic/store/settings';
 	import { useRouter } from 'vue-router';
 
 	const settings = useSettings();

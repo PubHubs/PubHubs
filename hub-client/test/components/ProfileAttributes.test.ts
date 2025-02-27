@@ -1,7 +1,7 @@
 import { describe, expect, test, beforeEach, afterEach } from 'vitest';
 import { flushPromises, mount } from '@vue/test-utils';
 import { createTestingPinia } from '@pinia/testing';
-import { useRooms } from '@/store/store';
+import { useRooms } from '@/logic/store/store';
 import ProfileAttributes from '@/components/rooms/ProfileAttributes.vue';
 import { createI18n } from 'vue-i18n';
 import { nl } from '../../src/locales/nl';

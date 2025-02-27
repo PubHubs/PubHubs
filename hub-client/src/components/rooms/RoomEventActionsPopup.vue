@@ -7,6 +7,6 @@
 </template>
 
 <script setup lang="ts">
-	import device from '@/core/device';
+	import device from '@/logic/core/device';
 	const isTouchDevice = device.isTouchDevice();
 </script>

@@ -1,5 +1,5 @@
 import { describe, expect, test } from 'vitest';
-import { removeHtml, sanitizeHtml } from '@/core/sanitizer.ts';
+import { removeHtml, sanitizeHtml } from '@/logic/core/sanitizer.ts';
 
 describe('removeHTML', () => {
 	test('remove HTML', () => {

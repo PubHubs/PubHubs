@@ -1,5 +1,5 @@
 import { describe, expect, test } from 'vitest';
-import { trimSplit, isEmpty } from '@/core/extensions.ts';
+import { trimSplit, isEmpty } from '@/logic/core/extensions.ts';
 
 describe('isEmpty', () => {
 	test('boolean', () => {

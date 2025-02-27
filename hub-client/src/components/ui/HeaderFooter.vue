@@ -1,12 +1,12 @@
 <template>
-	<div class="flex h-full flex-col overflow-hidden">
-		<div :class="headerClass" class="relative z-10 flex flex-1 flex-col justify-center">
+	<div class="z-10 flex h-full flex-col overflow-hidden">
+		<div :class="headerClass" class="relative flex flex-1 flex-col justify-center">
 			<slot name="header"></slot>
 		</div>
 		<div class="scrollbar relative flex-1 overflow-y-auto">
 			<slot></slot>
 		</div>
-		<div class="z-10">
+		<div>
 			<slot name="footer"></slot>
 		</div>
 	</div>
