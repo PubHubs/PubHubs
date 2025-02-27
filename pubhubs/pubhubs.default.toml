@@ -13,6 +13,36 @@ phc_url = 'http://localhost:8080'
 [auths]
 bind_to = '0.0.0.0:6060'
 
+[[auths.attribute_types]]
+handles = ['email']
+id = "Fr7Gsfh73AU9k9N4eR9vDBINhMOImXm-Qqfkz0RxjwI"
+name = "Email address"
+bannable = false
+identifying = true
+sources = [
+	{ yivi.attr_type_id = "irma-demo.sidn-pbdf.email.email" },
+]
+
+[[auths.attribute_types]]
+handles = ['phone']
+id = "9_SvEx8xN_vJAHIsqNxZ1zlhTpkz1toLn1G_WxTL2gY"
+name = "Phone number"
+bannable = true
+identifying = false
+sources = [
+	{ yivi.attr_type_id = "irma-demo.sidn-pbdf.mobilenumber.mobilenumber" },
+]
+
+[[auths.attribute_types]]
+handles = ['ph_card']
+id = "QCGdNnTHNS69lyMUKt9UM_lrstmP-ZpRr53XaCR5rHI"
+name = "PubHubs card"
+bannable = false
+identifying = true
+sources = [
+	{ yivi.attr_type_id = "pbdf.PubHubs.account.id" },
+]
+
 [transcryptor]
 bind_to = '0.0.0.0:7070'
 
@@ -27,7 +57,7 @@ url = "memory:///"
 # WARNINGs:
 # 
 #  - Never remove a hub handle, because that will break links;  only add handles.
-#    The first handle is the one that's used by default.  (So, to 'change' a hub's handle,,
+#    The first handle is the one that's used by default.  (So, to 'change' a hub's handle,
 #    just add the new handle to the front of the list of handles.)
 #
 #  - Never change the `id` of a hub because the users' pseudonyms are derived from it.

@@ -23,13 +23,24 @@ pub struct JWT {
     inner: String,
 }
 
+impl Into<String> for JWT {
+    fn into(self: Self) -> String {
+        self.inner
+    }
+}
+
 /// Represents a set of claims made by a JWT.
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Default, serde::Serialize)]
+#[serde(transparent)]
 pub struct Claims {
     inner: serde_json::Map<String, serde_json::Value>,
 }
 
 impl Claims {
+    pub fn new() -> Self {
+        Default::default()
+    }
+
     /// Checks that the claim with `name` meets the given `expectation`, and removes it from the
     /// set.  The [Deserializer] is given ownership of the claim's contents, so for `V` you
     /// probably want to use an owned type like [String] instead of [&str].
@@ -691,6 +702,7 @@ impl VerifyingKey for ed25519_dalek::VerifyingKey {
 }
 
 /// Key for SHA256 based HMAC
+#[derive(serde::Serialize, serde::Deserialize, Clone, Debug)]
 pub struct HS256(pub Vec<u8>);
 
 /// Implements signing of JWTs using the sha256-hmac.

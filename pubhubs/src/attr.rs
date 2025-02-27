@@ -14,7 +14,7 @@ pub struct Type {
     /// For referring to this attribute type from code - only add handles; don't remove them
     pub handles: Handles,
 
-    /// Whether [`Attr`]ibutes of this type can used to ban users.  Users must provide such a
+    /// Whether [`Attr`]ibutes of this type can be used to ban users.  Users must provide such a
     /// bannable attribute.
     pub bannable: bool,
 
@@ -33,10 +33,11 @@ impl std::fmt::Display for Type {
 
 /// Instructions on how to obtain an [`Attr`]ibute of a particular [`Type`].
 #[derive(serde::Deserialize, serde::Serialize, Debug, Clone)]
+#[serde(rename_all = "snake_case")]
 pub enum SourceDetails {
     Yivi {
         /// The yivi attribute type identifier
-        yivi_attr_type_id: String,
+        attr_type_id: String,
     },
 }
 

@@ -36,9 +36,9 @@ pub struct AuthStartResp {
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub enum AuthTask {
-    /// Have the end-user disclose to the sepcified yivi server.
+    /// Have the end-user disclose to the specified yivi server.
     /// The authentication server only creates the signed (disclosure) session request,
-    /// but it's up to the global client to send the send it to the yivi server.
+    /// but it's up to the global client to send it to the yivi server.
     Yivi {
         disclosure_request_jwt: String,
         yivi_requestor_url: url::Url,

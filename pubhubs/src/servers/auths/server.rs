@@ -4,8 +4,8 @@ use actix_web::web;
 
 use crate::servers::{self, AppBase, AppCreatorBase, Constellation, Handle};
 use crate::{
-    api::{self, EndpointDetails as _},
-    attr, handle, map,
+    api::{self, EndpointDetails as _, IntoErrorCode as _},
+    attr, handle, jwt, map,
 };
 
 /// Authentication server
@@ -41,6 +41,12 @@ pub struct YiviCtx {
 }
 
 impl App {
+    fn get_yivi(&self) -> Result<&YiviCtx, api::ErrorCode> {
+        self.yivi.as_ref().ok_or(api::ErrorCode::YiviNotConfigured)
+    }
+}
+
+impl App {
     async fn handle_auth_start(
         app: Rc<Self>,
         req: web::Json<api::auths::AuthStartReq>,
@@ -65,7 +71,7 @@ impl App {
         app: Rc<Self>,
         attr_types: Vec<attr::Type>,
     ) -> api::Result<api::auths::AuthStartResp> {
-        let yivi = api::return_if_ec!(app.yivi.as_ref().ok_or(api::ErrorCode::YiviNotConfigured));
+        let yivi = api::return_if_ec!(app.get_yivi());
 
         // Create ConDisCon for our attributes
         let mut cdc: servers::yivi::AttributeConDisCon = Default::default(); // empty
@@ -74,15 +80,13 @@ impl App {
             let mut dc: Vec<Vec<servers::yivi::AttributeRequest>> = Default::default();
 
             for source in attr_ty.sources.iter() {
-                let yivi_attr_type_id: String = match source {
-                    attr::SourceDetails::Yivi { yivi_attr_type_id } => yivi_attr_type_id.clone(),
+                let attr_type_id: String = match source {
+                    attr::SourceDetails::Yivi { attr_type_id } => attr_type_id.clone(),
                     #[expect(unreachable_patterns)]
                     _ => continue,
                 };
 
-                dc.push(vec![servers::yivi::AttributeRequest {
-                    ty: yivi_attr_type_id,
-                }]);
+                dc.push(vec![servers::yivi::AttributeRequest { ty: attr_type_id }]);
             }
 
             if dc.len() == 0 {
@@ -94,7 +98,14 @@ impl App {
         }
 
         let disclosure_request_jwt: String =
-            servers::yivi::SessionRequest::disclosure(cdc).sign(&yivi.requestor_creds);
+            api::return_if_ec!(servers::yivi::SessionRequest::disclosure(cdc)
+                .sign(&yivi.requestor_creds)
+                .into_ec(|err| {
+                    log::error!("failed to create signed disclosure request: {err}");
+
+                    api::ErrorCode::InternalError
+                }))
+            .into();
 
         api::ok(api::auths::AuthStartResp {
             task: api::auths::AuthTask::Yivi {
