@@ -21,6 +21,7 @@ Use the [MIGRATE] and [BREAKING] prefixes together with another one if that make
 - [BUG] Searching messages within a room no longer returns empty results.
 - [BUG] Right padding of menu-items was off, weird tooltips when hovering over room in menuitem.
 - [BUG] Dialog modal on Safari browser did not cover whole screen
+- [NEW] Adds redirect from https://main.pubhubs.ihub.ru.nl/ to https://main.pubhubs.ihub.ru.nl/client
 
 ## 6 February 2025 - v1.0.5
 
