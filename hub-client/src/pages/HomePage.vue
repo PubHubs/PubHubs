@@ -27,6 +27,10 @@
 				</p>
 			</div>
 
+			<Button @click="gotoDiscoverRooms()" color="gray-light" class="flex justify-center gap-2"
+				><Icon type="compass"></Icon><span>{{ $t('menu.discover') }}</span></Button
+			>
+
 			<Button v-if="!showPubHubsCentralLoginButton && !isTryOutHub()" class="mt-10 text-xs md:text-base" @click="goToLoginPage()">{{ $t('home.hub_homepage_join') }}</Button>
 			<Button v-if="!showPubHubsCentralLoginButton && isTryOutHub()" class="mt-10 text-xs md:text-base" @click="goToLoginPage()">Doe mee met de TryOutHub </Button>
 		</div>
@@ -34,12 +38,13 @@
 </template>
 
 <script setup lang="ts">
-	import HubIcon from '@/components/ui/HubIcon.vue';
+	import { router } from '@/logic/core/router';
 	import { usePubHubs } from '@/logic/core/pubhubsStore';
 	import { useHubSettings } from '@/logic/store/hub-settings';
 
 	// Components
 	import H1 from '../components/elements/H1.vue';
+	import HubIcon from '@/components/ui/HubIcon.vue';
 
 	const pubhubs = usePubHubs();
 	const hubSettings = useHubSettings();
@@ -61,5 +66,9 @@
 
 	function goToLoginPage() {
 		pubhubs.centralLoginPage();
+	}
+
+	function gotoDiscoverRooms() {
+		router.push({ name: 'discover-rooms' });
 	}
 </script>

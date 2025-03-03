@@ -3,6 +3,7 @@
 _Please add a brief description of any changes and any migrations to be performed here. And use these prefixes before the description:_
  * _[BUG] - If the change is a bugfix (from own branch)_
  * _[FIX] - If it is a small bug (typo or styling) that is done directly on main or stable_
+ * _[TYPO] - If a translation/typo in the UI has been changed or implemented_
  * _[NEW] - If it is a new feature_
  * _[UPDATE] - Updated dependencies_
  * _[MIGRATE] - If it is/has a change to a database. Describe the way the migrate is done._
@@ -11,6 +12,9 @@ _Please add a brief description of any changes and any migrations to be performe
 
 Use the [MIGRATE] and [BREAKING] prefixes together with another one if that makes more sense.
 
+- [BUG] Small styling issue solved where hub descriptions will be cut off on bottom.
+- [TYPO] 'Unread Messages' was not translated in dutch.
+- [NEW] Added 'Discover Rooms' button on HubHomepage.
 - [NEW] The settings dialog now includes an option to turn notifications on or off.
 - [UPDATE] Files are now uploaded to matrix synaps after clicking submit in the upload forms.
 - [NEW] Attributes are now read from a curated list in the yivi.ts file, in the dropdown menu attribute descriptions are shown instead of the attribute value.
