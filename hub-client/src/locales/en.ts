@@ -197,6 +197,7 @@ const en = {
 		discussion: 'Discussion',
 		roomCreated: 'Room created',
 		discover: 'Discover rooms',
+		unread_messages: 'Unread Messages',
 	},
 	settings: {
 		displayname: 'Nickname',

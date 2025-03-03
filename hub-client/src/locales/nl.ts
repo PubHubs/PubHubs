@@ -197,6 +197,7 @@ const nl = {
 		discussion: 'Discussie',
 		roomCreated: 'Kamer aangemaakt',
 		discover: 'Ontdek kamers',
+		unread_messages: 'Ongelezen berichten',
 	},
 	settings: {
 		userId: 'UserID',
