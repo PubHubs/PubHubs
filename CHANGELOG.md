@@ -12,6 +12,7 @@ _Please add a brief description of any changes and any migrations to be performe
 
 Use the [MIGRATE] and [BREAKING] prefixes together with another one if that makes more sense.
 
+- [FIX] Styling fix where Search on DiscoverRoomPage was partly hidden in Header
 - [BUG] Small styling issue solved where hub descriptions will be cut off on bottom.
 - [TYPO] 'Unread Messages' was not translated in dutch.
 - [NEW] Added 'Discover Rooms' button on HubHomepage.
