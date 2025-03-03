@@ -12,16 +12,17 @@ _Please add a brief description of any changes and any migrations to be performe
 Use the [MIGRATE] and [BREAKING] prefixes together with another one if that makes more sense.
 
 - [NEW] The settings dialog now includes an option to turn notifications on or off.
-- [Update] Files are now uploaded to matrix synaps after clicking submit in the upload forms.
+- [UPDATE] Files are now uploaded to matrix synaps after clicking submit in the upload forms.
 - [NEW] Attributes are now read from a curated list in the yivi.ts file, in the dropdown menu attribute descriptions are shown instead of the attribute value.
 - [NEW] Restructured folders of clients.
 - [UPDATE] Synapse was updated and authenticated media is now enforced by default (see [here](https://element-hq.github.io/synapse/v1.120/upgrade.html#authenticated-media-is-now-enforced-by-default)). When merging to stable, the new configuration should be added to all running hubs.
 - [UPDATE] Code for automatic creation of 'General room' is removed from config (including config check). When merging to stable this config should be removed from 'homeserver.yaml'.
 - [NEW] Authenticated media setting in hub configuration can be set to true when merging to stable because Hub client now supports authenticated media.
+- [NEW] Adds redirect from https://main.pubhubs.ihub.ru.nl/ to https://main.pubhubs.ihub.ru.nl/client
 - [BUG] Searching messages within a room no longer returns empty results.
 - [BUG] Right padding of menu-items was off, weird tooltips when hovering over room in menuitem.
 - [BUG] Dialog modal on Safari browser did not cover whole screen
-- [NEW] Adds redirect from https://main.pubhubs.ihub.ru.nl/ to https://main.pubhubs.ihub.ru.nl/client
+- [BUG] Styling of Hub Icon was wrong
 
 ## 6 February 2025 - v1.0.5
 
