@@ -1,5 +1,5 @@
 <template>
-	<div class="flex h-full w-full items-center justify-center">
+	<div class="flex h-full w-full items-center justify-center overflow-hidden rounded-md bg-ph-background-4">
 		<img v-show="imageLoaded" :src="url" @load="imageLoaded = true" :alt="`Icon of Hub ${hubNameForImgAlt ?? ''}`" class="h-full w-full object-contain" />
 		<Icon v-if="fallback && !imageLoaded" type="hub_fallback"></Icon>
 	</div>

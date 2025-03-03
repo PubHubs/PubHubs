@@ -11,7 +11,7 @@
 						</div>
 						<router-link :to="{ name: 'hub', params: { name: element.hubName } }" v-slot="{ isActive }">
 							<HubMenuHubIcon
-								class="border text-ph-text"
+								class="text-ph-text"
 								v-if="global.loggedIn || element.hubId === hubs.currentHubId"
 								:hub="hubs.hub(element.hubId)"
 								:hubId="element.hubId"
