@@ -108,6 +108,7 @@ const pubhubs = {
 			xs: '360px',
 			sm: '460px',
 			'2md': '896px',
+			'3xl': '1920px',
 		},
 		rotate: {
 			135: '135deg',
