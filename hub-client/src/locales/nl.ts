@@ -238,7 +238,7 @@ const nl = {
 		room_type: 'Type kamer',
 		room_type_placeholder: 'bijvoorbeeld: ph.plugin.xxx',
 		edit_name: 'Pas naam van kamer aan',
-		edit_secured_room: 'Pas beveiligd kamer aan',
+		edit_secured_room: 'Pas beveiligde kamer aan',
 		added_room: 'kamer toegevoegd',
 		no_rooms: 'Geen kamers',
 		remove_room_sure: 'Weet je zeker dat je dit kamer wilt verwijderen?',

@@ -1,5 +1,5 @@
 <template>
-	<div class="-mt-2 w-full px-3 pb-3 md:px-6">
+	<div class="w-full px-3 pb-3 md:px-6">
 		<!-- Floating -->
 		<div class="relative">
 			<Popover v-if="showPopover" @close="togglePopover" class="absolute bottom-2">
@@ -14,7 +14,7 @@
 			</div>
 		</div>
 
-		<div class="flex max-h-12 items-end justify-between gap-2 md:max-h-52">
+		<div class="flex items-end justify-between gap-2">
 			<div class="w-full overflow-hidden rounded-xl bg-hub-background-2">
 				<!-- In reply to -->
 				<div class="flex h-10 items-center justify-between gap-2 px-2" v-if="inReplyTo">
