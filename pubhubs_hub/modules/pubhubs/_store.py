@@ -141,12 +141,34 @@ class YiviRoomJoinStore:
                 user_id_txn: str,
                 room_id_txn: str,
                 join_time_txn: str):
+            # Check if the user is already allowed to join the room
             txn.execute(
                 """
-                INSERT INTO allowed_to_join_room (user_id, room_id, join_time) VALUES (?, ?, ?)
+                SELECT 1 FROM allowed_to_join_room WHERE user_id = ? AND room_id = ?
                 """,
-                (user_id_txn, room_id_txn, join_time_txn),
+                (user_id_txn, room_id_txn),
             )
+            row = txn.fetchone()
+
+            if row:
+                # User is already allowed, update the join_time
+                txn.execute(
+                    """
+                    UPDATE allowed_to_join_room
+                    SET join_time = ?, user_expired = 0
+                    WHERE user_id = ? AND room_id = ?
+                    """,
+                    (join_time_txn, user_id_txn, room_id_txn),
+                )
+            else:
+                # Insert a new record if the user is not already allowed
+                txn.execute(
+                    """
+                    INSERT INTO allowed_to_join_room (user_id, room_id, join_time)
+                    VALUES (?, ?, ?)
+                    """,
+                    (user_id_txn, room_id_txn, join_time_txn),
+                )
 
         await self.module_api.run_db_interaction(
             "allowed_to_join_room_insert",
