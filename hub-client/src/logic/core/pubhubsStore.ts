@@ -78,8 +78,13 @@ const usePubHubs = defineStore('pubhubs', {
 					user.fetchIsAdministrator(this.client as MatrixClient);
 					user.fetchUserFirstTimeLoggedIn();
 
-					const profile = await this.client.getProfileInfo(newUser.userId);
-					user.setProfile(profile);
+					try {
+						const profile = await this.client.getProfileInfo(newUser.userId);
+						user.setProfile(profile);
+					} catch (error) {
+						logger.trace(SMI.STARTUP, 'There is no profile information (avatar or displayname) for this user.', { error });
+					}
+
 					// Perhaps in the future change this to asynchronous so there is no waiting for this.
 					// But then the Avatar needs to be displayed only when it is fetched, to prohibit flashing
 					// like this:
