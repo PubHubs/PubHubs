@@ -7,7 +7,8 @@
 
 				<div class="flex flex-col justify-between md:w-4/6 md:flex-row">
 					<img :src="blobUrl" class="h-32 w-32 rounded-full" v-if="blobUrl" />
-					<Avatar :img="blobUrl" class="h-32 w-32 rounded-full" v-else> </Avatar>
+					<Avatar :user="user.user" override-avatar-url="" class="h-32 w-32 rounded-full" v-else-if="avatarRemoved"> </Avatar>
+					<Avatar :user="user.user" :override-avatar-url="blobUrl" class="h-32 w-32 rounded-full" v-else> </Avatar>
 
 					<div class="mt-5 flex justify-center md:mr-3 md:flex-col md:justify-normal md:space-y-4">
 						<label for="avatar">
@@ -51,6 +52,7 @@
 	import { useI18n } from 'vue-i18n';
 
 	// Components
+	import Avatar from '../ui/Avatar.vue';
 	import Dialog from '../ui/Dialog.vue';
 	import Icon from '../elements/Icon.vue';
 	import TextInput from './TextInput.vue';
@@ -64,6 +66,7 @@
 	const pubhubs = usePubHubs();
 	const { imageTypes, uploadUrl } = useMatrixFiles();
 	const fileInfo = ref<File>();
+	const avatarRemoved = ref<boolean>(false);
 
 	let avatarMxcUrl = ref<string | undefined>(undefined);
 	let blobUrl = ref<string | undefined>(undefined);
@@ -80,6 +83,7 @@
 		formState.setSubmitButton(getSubmitButton());
 		formState.data.displayName.value = user.user.displayName as FormDataType;
 		blobUrl.value = user.avatarUrl;
+		avatarRemoved.value = false;
 	});
 
 	function dialogAction(action: DialogButtonAction) {
@@ -147,6 +151,8 @@
 			URL.revokeObjectURL(blobUrl.value);
 		}
 		blobUrl.value = undefined;
+		fileInfo.value = undefined;
+		avatarRemoved.value = true;
 		getSubmitButton().enabled = true;
 	}
 </script>

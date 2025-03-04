@@ -1,6 +1,7 @@
 ## Changes to main, not yet committed to stable
 
 _Please add a brief description of any changes and any migrations to be performed here. And use these prefixes before the description:_
+
  * _[BUG] - If the change is a bugfix (from own branch)_
  * _[FIX] - If it is a small bug (typo or styling) that is done directly on main or stable_
  * _[TYPO] - If a translation/typo in the UI has been changed or implemented_
@@ -30,6 +31,7 @@ Use the [MIGRATE] and [BREAKING] prefixes together with another one if that make
 - [BUG] Styling of Hub Icon was wrong
 - [NEW] Updated the design for the discover hub & login page
 - [NEW] Update input bar design & make hotfixes for the button opacity and placeholder text
+- [BUG] The hub's welcome page no longer displays an error page when a user has set neither their display name nor avatar.
 
 ## 6 February 2025 - v1.0.5
 
