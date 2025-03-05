@@ -59,7 +59,7 @@
 					<div class="work_sanssemibold text-2xl">{{ $t('home.discover_hubs') }}</div>
 				</div>
 				<div class="rounded-xl bg-ph-background-4 px-8 py-8 md:px-12">
-					<div v-if="filteredHubs.length > 0" class="grid w-full gap-8 md:grid-cols-2 xl:grid-cols-3 3xl:grid-cols-4">
+					<div v-if="filteredHubs.length > 0" class="grid w-full gap-8 md:grid-cols-2 3xl:grid-cols-3">
 						<div v-for="hub in filteredHubs" v-bind:key="hub.hubId">
 							<HubBlock :hub="hub" />
 						</div>
