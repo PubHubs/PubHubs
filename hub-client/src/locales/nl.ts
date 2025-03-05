@@ -49,6 +49,9 @@ const nl = {
 		hub_homepage_welcome_auth: 'Welkom bij de {0}-hub.',
 		welcome: 'Welkom',
 		highlighted_hubs: 'Uitgelichte Hubs',
+		welcome_at: 'Welkom bij',
+		discover_hubs: 'Ontdek Hubs',
+		hub_card_about: 'Over',
 	},
 	register: {
 		register: 'Registreren',
@@ -130,6 +133,8 @@ const nl = {
 	others: {
 		nop: 'Deze functionaliteit is nog niet gerealiseerd.',
 		search: 'Zoeken',
+		search_hubs: 'Zoek naar Hubs',
+		search_hubs_not_found: 'Geen Hubs gevonden',
 		search_room: 'Zoek in dit gesprek',
 		searching: 'Bezig met zoeken...',
 		search_nothing_found: 'Niets gevonden',
@@ -192,6 +197,7 @@ const nl = {
 		discussion: 'Discussie',
 		roomCreated: 'Kamer aangemaakt',
 		discover: 'Ontdek kamers',
+		unread_messages: 'Ongelezen berichten',
 	},
 	settings: {
 		userId: 'UserID',
@@ -232,7 +238,7 @@ const nl = {
 		room_type: 'Type kamer',
 		room_type_placeholder: 'bijvoorbeeld: ph.plugin.xxx',
 		edit_name: 'Pas naam van kamer aan',
-		edit_secured_room: 'Pas beveiligd kamer aan',
+		edit_secured_room: 'Pas beveiligde kamer aan',
 		added_room: 'kamer toegevoegd',
 		no_rooms: 'Geen kamers',
 		remove_room_sure: 'Weet je zeker dat je dit kamer wilt verwijderen?',

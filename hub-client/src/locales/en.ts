@@ -51,6 +51,9 @@ const en = {
 		highlighted_hubs: 'Highlighted Hubs',
 		// Boven highlighted Hubs, iets afstand
 		highlighted_hubs_info: 'PubHubs consist of seperate Hubs, where local conversations happen, under a central login. These Hubs are run by seperate, participating organisations.',
+		welcome_at: 'Welcome at',
+		discover_hubs: 'Discover Hubs',
+		hub_card_about: 'About',
 	},
 	register: {
 		register: 'Register',
@@ -130,6 +133,8 @@ const en = {
 	others: {
 		nop: 'This feature is not implemented yet.',
 		search: 'Search',
+		search_hubs: 'Search Hubs',
+		search_hubs_not_found: 'No Hubs where found',
 		search_room: 'Search this room',
 		searching: 'Searching...',
 		search_nothing_found: 'Nothing found',
@@ -192,6 +197,7 @@ const en = {
 		discussion: 'Discussion',
 		roomCreated: 'Room created',
 		discover: 'Discover rooms',
+		unread_messages: 'Unread Messages',
 	},
 	settings: {
 		displayname: 'Nickname',
