@@ -1,7 +1,7 @@
 import { describe, expect, test, afterAll, afterEach, beforeAll } from 'vitest';
 import { server } from '../mocks/server';
-import { SecuredRoom } from '@/store/rooms';
-import { api_synapse } from '@/core/api';
+import { SecuredRoom } from '@/logic/store/rooms';
+import { api_synapse } from '@/logic/core/api';
 
 beforeAll(() => server.listen({ onUnhandledRequest: 'error' }));
 afterAll(() => server.close());
@@ -17,10 +17,13 @@ describe('api_synapse', () => {
 		expect(api_synapse.baseURL).toBe('http://test/_synapse/');
 
 		expect(api_synapse.apiURLS.securedRooms).toBe('http://test/_synapse/client/secured_rooms');
-		expect(api_synapse.apiURLS.deleteRoom).toBe('http://test/_synapse/admin/v2/rooms/');
+		expect(api_synapse.apiURLS.roomsAPIV2).toBe('http://test/_synapse/admin/v2/rooms/');
+		expect(api_synapse.apiURLS.usersAPIV1).toBe('http://test/_synapse/admin/v1/users/');
 		expect(api_synapse.apiURLS.securedRoom).toBe('http://test/_synapse/client/srextra');
 		expect(api_synapse.apiURLS.notice).toBe('http://test/_synapse/client/notices');
 		expect(api_synapse.apiURLS.joinHub).toBe('http://test/_synapse/client/hubjoined');
+		expect(api_synapse.apiURLS.usersAPIV3).toBe('http://test/_synapse/admin/v3/users/');
+		expect(api_synapse.apiURLS.roomsAPIV1).toBe('http://test/_synapse/admin/v1/rooms/');
 	});
 
 	test('api - apiOptions', () => {

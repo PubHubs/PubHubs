@@ -12,11 +12,11 @@
 		<input
 			type="text"
 			v-model="search"
-			class="w-full border px-2 py-1 rounded-lg dark:bg-transparent theme-light:border-black theme-light:text-black dark:text-white dark:border-white focus:border-black focus:outline-0 focus:outline-offset-0 focus:ring-0"
+			class="w-full rounded-lg border px-2 py-1 focus:border-black focus:outline-0 focus:outline-offset-0 focus:ring-0 theme-light:border-black theme-light:text-black dark:border-white dark:bg-transparent dark:text-white"
 			:placeholder="$t('others.typing')"
 			:disabled="disabled === true"
 		/>
-		<ul v-if="result.length > 1" class="w-full border border-black px-2 py-1 rounded-lg absolute z-50 bg-white shadow-md">
+		<ul v-if="result.length > 0" class="absolute z-50 w-full rounded-lg border border-black bg-white px-2 py-1 shadow-md">
 			<li v-for="(item, index) in result" :key="index" @click="click(item)" class="cursor-pointer text-black" :class="{ 'bg-lightgray': cursor === index }">
 				{{ item.label }}
 			</li>
@@ -26,8 +26,8 @@
 
 <script setup lang="ts">
 	import { onMounted, computed } from 'vue';
-	import { InputType, Options, useFormInputEvents, usedEvents } from '@/composables/useFormInputEvents';
-	import { useKeyStrokes } from '@/composables/useKeyStrokes';
+	import { InputType, Options, useFormInputEvents, usedEvents } from '@/logic/composables/useFormInputEvents';
+	import { useKeyStrokes } from '@/logic/composables/useKeyStrokes';
 
 	type Props = {
 		options: Options;
@@ -49,7 +49,7 @@
 	});
 
 	const result = computed(() => {
-		if (search.value === '' || search.value === undefined) {
+		if (search.value === '' || search.value === undefined || props.options.find((attribute) => search.value?.toString().toLowerCase() === attribute.label.toLowerCase())) {
 			setItems([]);
 			return [];
 		}
@@ -58,7 +58,7 @@
 
 		const result = props.options.filter((item) => {
 			const searchValue = search.value?.toString() || '';
-			if (item.label.toLowerCase().includes(searchValue.toLowerCase()) && matches < 10) {
+			if (item.label.toLowerCase().includes(searchValue.toLowerCase()) && matches < 10 && item.label.toLowerCase() !== searchValue.toLowerCase()) {
 				matches++;
 				return item;
 			}

@@ -3,7 +3,7 @@
 		ref="elTextarea"
 		v-tw-class="'p-2'"
 		rows="1"
-		class="w-full resize-none rounded-lg border dark:text-white dark:border-white theme-light:text-gray-dark theme-light:border-black focus:border-black focus:outline-0 focus:outline-offset-0 focus:ring-0"
+		class="w-full resize-none rounded-lg border focus:border-black focus:outline-0 focus:outline-offset-0 focus:ring-0 theme-light:border-black theme-light:text-gray-dark dark:border-white dark:text-white"
 		:maxlength="maxLength"
 		:placeholder="placeholder"
 		:title="placeholder"
@@ -18,10 +18,11 @@
 
 <script setup lang="ts">
 	import { ref } from 'vue';
-	import { useFormInputEvents, usedEvents } from '@/composables/useFormInputEvents';
-	import { getCaretPos as domGetCaretPos } from '@/lib/domUtility';
+	import { useFormInputEvents, usedEvents } from '@/logic/composables/useFormInputEvents';
+	import { useGetCaretPos } from '@/logic/composables/useGetCaretPos';
 	import { Ref } from 'vue';
 
+	const { getCaretPos } = useGetCaretPos();
 	const elTextarea: Ref<null | HTMLTextAreaElement> = ref(null);
 
 	type Props = {
@@ -37,13 +38,13 @@
 
 	function onKeyUp() {
 		changed();
-		emit('caretPos', getCaretPos());
+		emit('caretPos', caretPos());
 		resize();
 	}
 
-	function getCaretPos() {
+	function caretPos() {
 		if (!elTextarea.value) return;
-		return domGetCaretPos(elTextarea.value);
+		return getCaretPos(elTextarea.value);
 	}
 
 	/**

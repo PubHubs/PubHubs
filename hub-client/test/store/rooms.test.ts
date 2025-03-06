@@ -1,5 +1,5 @@
 import Room from '@/model/rooms/Room';
-import { RoomType, useRooms } from '@/store/rooms';
+import { RoomType, useRooms } from '@/logic/store/rooms';
 import { EventTimelineSet, Filter, NotificationCountType } from 'matrix-js-sdk';
 import { createPinia, setActivePinia } from 'pinia';
 import { beforeEach, describe, expect, test } from 'vitest';

@@ -1,29 +1,21 @@
 <template>
-	<div v-if="url" class="mt-2 rounded-md bg-hub-background-3 p-2 flex">
+	<div v-if="authMediaUrl" class="mt-2 flex overflow-x-hidden rounded-md bg-hub-background-3 p-2">
 		<Icon type="paperclip" class="mr-2"></Icon>
-		<a class="text-blue" target="_blank" :href="url">{{ message.filename }}</a>
+		<a class="truncate text-blue" target="_blank" :href="authMediaUrl">{{ message.filename }}</a>
 	</div>
 </template>
 
 <script setup lang="ts">
-	import { useMatrixFiles } from '@/composables/useMatrixFiles';
-	import { SMI } from '@/dev/StatusMessage';
-	import { LOGGER } from '@/foundation/Logger';
 	import { TFileMessageEventContent } from '@/model/events/TMessageEvent';
+	import { useMatrixFiles } from '@/logic/composables/useMatrixFiles';
+	import { FeatureFlag, useSettings } from '@/logic/store/settings';
+	import { onMounted, ref } from 'vue';
 
-	const { formUrlfromMxc } = useMatrixFiles();
-
-	const logger = LOGGER;
+	const settings = useSettings();
+	const matrixFiles = useMatrixFiles();
+	const authMediaUrl = ref<string | undefined>(undefined);
 
 	const props = defineProps<{ message: TFileMessageEventContent }>();
 
-	const url = getUrl();
-	if (!url) {
-		logger.error(SMI.ROOM_TIMELINEWINDOW, 'Url is missing in file message', props.message);
-	}
-
-	function getUrl() {
-		if (!props.message.url) return undefined;
-		return formUrlfromMxc(props.message.url);
-	}
+	onMounted(async () => (authMediaUrl.value = props.message.url ? await matrixFiles.useAuthorizedMediaUrl(props.message.url, settings.isFeatureEnabled(FeatureFlag.authenticatedMedia)) : undefined));
 </script>

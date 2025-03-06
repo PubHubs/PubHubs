@@ -9,7 +9,7 @@
 					>"
 					<Icon type="edit" class="float-right"></Icon>
 				</span>
-				<Icon v-else type="plus" class="cursor-pointer float-right" @click="onChooseUser"></Icon>
+				<Icon v-else type="plus" class="float-right cursor-pointer" @click="onChooseUser"></Icon>
 			</FormLine>
 			<FormLine class="mb-2">
 				<Label>{{ $t('admin.ask_disclosure_message_title') }}</Label>
@@ -42,10 +42,10 @@
 	import Icon from '../elements/Icon.vue';
 
 	import { onBeforeMount, ref, watch } from 'vue';
-	import { buttonsSubmitCancel, DialogButtonAction } from '@/store/dialog';
-	import { FormObjectInputTemplate } from '@/composables/useFormInputEvents';
-	import { AskDisclosure } from '@/lib/signedMessages';
-	import { useYivi } from '@/store/yivi';
+	import { buttonsSubmitCancel, DialogButtonAction } from '@/logic/store/dialog';
+	import { FormObjectInputTemplate } from '@/logic/composables/useFormInputEvents';
+	import { AskDisclosure } from '@/model/components/signedMessages';
+	import { useYivi } from '@/logic/store/yivi';
 	import { useI18n } from 'vue-i18n';
 
 	const { t } = useI18n();

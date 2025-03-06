@@ -1,14 +1,14 @@
 <template>
-	<span v-if="numOfUsersRead > 0" class="dark:text-white text-xs font-medium px-2.5 py-1.5 -m-2.5">
+	<span v-if="numOfUsersRead > 0" class="-m-2.5 px-2.5 py-1.5 text-xs font-medium dark:text-white">
 		<!-- Tick icon  -->
-		<Icon type="filled_tick" size="sm" class="inline mb-1"></Icon>
+		<Icon type="filled_tick" size="sm" class="mb-1 inline"></Icon>
 
 		<!-- Shows the text eg., Read by followed by a number  -->
 		{{ numOfUsersRead > 0 ? $t('others.read_receipt') + ' ' + numOfUsersRead : ' ' }}
 
 		<!-- Icon of single user or two users depending on the number of users -->
-		<Icon v-if="numOfUsersRead === 1" type="single_user" size="sm" class="inline mb-1"> </Icon>
-		<Icon v-if="numOfUsersRead > 1" type="two_users" size="sm" class="inline mb-1"> </Icon>
+		<Icon v-if="numOfUsersRead === 1" type="single_user" size="sm" class="mb-1 inline"> </Icon>
+		<Icon v-if="numOfUsersRead > 1" type="two_users" size="sm" class="mb-1 inline"> </Icon>
 
 		<!-- If many users have read the message then + sign is shown -->
 		{{ numOfUsersRead > 2 ? '+' : '' }}
@@ -17,8 +17,8 @@
 
 <script setup lang="ts">
 	import { watchEffect, ref } from 'vue';
-	import { useRooms } from '@/store/rooms';
-	import { useUser } from '@/store/user';
+	import { useRooms } from '@/logic/store/rooms';
+	import { useUser } from '@/logic/store/user';
 
 	const currentUser = useUser();
 	const rooms = useRooms();

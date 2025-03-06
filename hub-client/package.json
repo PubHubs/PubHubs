@@ -14,18 +14,23 @@
 		"coverage": "vitest run --coverage"
 	},
 	"dependencies": {
+		"@privacybydesign/yivi-client": "^0",
+		"@privacybydesign/yivi-core": "^0",
 		"@privacybydesign/yivi-frontend": "^0.1.2",
+		"@privacybydesign/yivi-web": "^0",
 		"@vue/test-utils": "^2.2.3",
 		"autoprefixer": "^10",
 		"core-js": "^3.8.3",
 		"emojibase": "^16",
 		"emojibase-data": "^16",
+		"https-browserify": "^1.0.0",
 		"loglevel": "^1.8.0",
-		"matrix-js-sdk": "=34.3.1",
+		"matrix-js-sdk": "=36.1.0",
 		"pinia": "^2.0.26",
 		"postcss": "^8.4.33",
 		"register-service-worker": "^1.7.2",
 		"sanitize-html": "^2.11.0",
+		"stream-http": "^3.2.0",
 		"tailwind-merge": "^2",
 		"tailwindcss": "^3",
 		"util": "^0.12.5",
@@ -51,12 +56,15 @@
 		"eslint-plugin-vue": "^9",
 		"jsdom": "^26",
 		"msw": "2.3.2",
-		"prettier": "^3",
+		"node-polyfill-webpack-plugin": "^4.0.0",
+		"prettier": "^3.5.0",
 		"prettier-eslint": "^16.3.0",
+		"prettier-plugin-tailwindcss": "^0.6.11",
 		"typescript": "^5.0.2",
 		"vitest": "^3",
 		"vue-cli-plugin-tailwind": "~3.0.0",
-		"vue-eslint-parser": "^9"
+		"vue-eslint-parser": "^9",
+		"webpack": "^5.97.1"
 	},
 	"eslintConfig": {
 		"root": true,
@@ -101,7 +109,19 @@
 		"vueIndentScriptAndStyle": true,
 		"endOfLine": "lf",
 		"embeddedLanguageFormatting": "auto",
-		"singleAttributePerLine": false
+		"singleAttributePerLine": false,
+		"plugins": [
+			"prettier-plugin-tailwindcss"
+		]
+	},
+	"browser": {
+		"http": false,
+		"https": false,
+		"net": false,
+		"path": false,
+		"stream": false,
+		"tls": false,
+		"fs": false
 	},
 	"browserslist": [
 		"> 1%",

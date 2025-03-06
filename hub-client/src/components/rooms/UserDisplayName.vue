@@ -1,17 +1,17 @@
 <template>
-	<span class="flex flex-row gap-x-2 items-start" :title="displayName">
-		<span v-if="displayName" data-testid="display-name" :class="`${textColor(color(user))} font-semibold text-sm`">{{ filters.maxLengthText(displayName, settings.getDisplayNameMaxLength) }}</span>
-		<span class="text-xs text-nowrap font-normal" style="margin-top: 3px">{{ filters.extractPseudonym(user) }}</span>
+	<span class="flex flex-row items-start gap-x-2" :title="displayName">
+		<span v-if="displayName" data-testid="display-name" :class="`${textColor(color(user))} text-sm font-semibold`">{{ filters.maxLengthText(displayName, settings.getDisplayNameMaxLength) }}</span>
+		<span class="text-nowrap text-xs font-normal" style="margin-top: 3px">{{ filters.extractPseudonym(user) }}</span>
 	</span>
 </template>
 
 <script setup lang="ts">
-	import { useUserColor } from '@/composables/useUserColor';
-	import filters from '@/core/filters';
+	import { useUserColor } from '@/logic/composables/useUserColor';
+	import filters from '@/logic/core/filters';
 	import { computed } from 'vue';
 
 	import Room from '@/model/rooms/Room';
-	import { useSettings } from '@/store/settings';
+	import { useSettings } from '@/logic/store/settings';
 	const { color, textColor } = useUserColor();
 
 	const settings = useSettings();

@@ -7,18 +7,18 @@
 		<!-- Normal Event -->
 		<div
 			v-else
-			class="group flex gap-4 px-3 md:px-6 py-4"
-			:class="{ 'transition-all duration-150 ease-in-out hover:bg-lightgray-light hover:dark:bg-hub-background-2': !deleteMessageDialog, 'mx-4 shadow-[0_0_5px_0_rgba(0,0,0,0.3)] rounded': props.deleteMessageDialog }"
+			class="group flex gap-4 px-3 py-4 md:px-6"
+			:class="{ 'transition-all duration-150 ease-in-out hover:bg-lightgray-light hover:dark:bg-hub-background-2': !deleteMessageDialog, 'mx-4 rounded shadow-[0_0_5px_0_rgba(0,0,0,0.3)]': props.deleteMessageDialog }"
 		>
 			<Avatar :user="roomMember"></Avatar>
 			<div :class="{ 'w-5/6': deleteMessageDialog, 'w-4/5 xl:w-3/5': !deleteMessageDialog }">
 				<div class="flex flex-wrap items-center overflow-hidden text-wrap break-all">
-					<div class="relative flex items-start w-full gap-x-1 min-h-6">
-						<div class="flex-grow flex flex-wrap items-start">
+					<div class="relative flex min-h-6 w-full items-start gap-x-1">
+						<div class="flex flex-grow flex-wrap items-start">
 							<span class="inline-block" style="margin-top: -2px">
 								<UserDisplayName :user="event.sender" :room="room"></UserDisplayName>
 							</span>
-							<span class="inline-block mx-1" style="margin-top: 1px">
+							<span class="mx-1 inline-block" style="margin-top: 1px">
 								<span class="flex gap-x-1">
 									<span class="text-xs font-normal">|</span>
 									<EventTime :timestamp="event.origin_server_ts" :showDate="false"> </EventTime>
@@ -30,19 +30,19 @@
 						</div>
 						<div>
 							<template v-if="timerReady && !deleteMessageDialog">
-								<button v-if="msgIsNotSend && connection.isOn" @click="resend()" class="ml-2 mb-1" :title="$t('errors.resend')">
+								<button v-if="msgIsNotSend && connection.isOn" @click="resend()" class="mb-1 ml-2" :title="$t('errors.resend')">
 									<Icon type="refresh" size="sm" class="text-red"></Icon>
 								</button>
-								<Icon v-if="msgIsNotSend && !connection.isOn" type="lost-connection" size="sm" class="ml-2 mb-1 text-red"></Icon>
+								<Icon v-if="msgIsNotSend && !connection.isOn" type="lost-connection" size="sm" class="mb-1 ml-2 text-red"></Icon>
 							</template>
 							<RoomEventActionsPopup v-if="!deleteMessageDialog">
-								<button v-if="!msgIsNotSend && !redactedMessage" @click="reply" class="p-1 bg-hub-background-4 hover:bg-hub-accent rounded-md">
+								<button v-if="!msgIsNotSend && !redactedMessage" @click="reply" class="rounded-md bg-hub-background-4 p-1 hover:bg-hub-accent">
 									<Icon :type="'reply'" :size="'xs'"></Icon>
 								</button>
 								<button
 									v-if="!msgIsNotSend && user.isAdmin && event.sender !== user.user.userId && settings.isFeatureEnabled(FeatureFlag.disclosure)"
 									@click="router.push({ name: 'ask-disclosure', query: { user: event.sender } })"
-									class="flex p-1 bg-hub-background-4 hover:bg-hub-accent rounded-md"
+									class="flex rounded-md bg-hub-background-4 p-1 hover:bg-hub-accent"
 									:title="$t('menu.moderation_tools_disclosure')"
 								>
 									<Icon :type="'warning'" :size="'xs'"></Icon>
@@ -50,7 +50,7 @@
 								<button
 									v-if="settings.isFeatureEnabled(FeatureFlag.deleteMessages) && !msgIsNotSend && event.sender === user.user.userId && !redactedMessage"
 									@click="onDeleteMessage(event)"
-									class="p-1 bg-hub-background-4 hover:bg-red rounded-md"
+									class="rounded-md bg-hub-background-4 p-1 hover:bg-red"
 									:title="$t('menu.delete_message')"
 								>
 									<Icon :type="'bin'" :size="'xs'"></Icon>
@@ -68,7 +68,7 @@
 						<!-- Temporary fix to set the background color of the MessageSnippet in the dialog to delete a message -->
 						<MessageSnippet :class="{ '!bg-[#e2e2e2]': deleteMessageDialog }" v-if="inReplyToId && !redactedMessage" @click="onInReplyToClick" :eventId="inReplyToId" :showInReplyTo="true" :room="room"></MessageSnippet>
 						<template #fallback>
-							<div class="bg-hub-background-3 flex px-2 gap-3 items-center rounded-md">
+							<div class="flex items-center gap-3 rounded-md bg-hub-background-3 px-2">
 								<p>{{ $t('state.loading_message') }}</p>
 							</div>
 						</template>
@@ -77,7 +77,7 @@
 					<!-- Temporary fix to set the background color of the signed message in the dialog to delete a message -->
 					<MessageSigned :class="{ '!bg-[#e2e2e2]': deleteMessageDialog }" v-if="event.content.msgtype === 'pubhubs.signed_message' && !redactedMessage" :message="event.content.signed_message"></MessageSigned>
 					<MessageFile v-if="event.content.msgtype === 'm.file' && !redactedMessage" :message="event.content"></MessageFile>
-					<MessageImage v-if="event.content.msgtype === 'm.image' && !redactedMessage" :message="event.content" class="w-[20rem] max-h-[25rem]"></MessageImage>
+					<MessageImage v-if="event.content.msgtype === 'm.image' && !redactedMessage" :message="event.content"></MessageImage>
 				</template>
 			</div>
 		</div>
@@ -98,16 +98,16 @@
 	import UserDisplayName from './UserDisplayName.vue';
 	import Icon from '../elements/Icon.vue';
 
-	import { usePubHubs } from '@/core/pubhubsStore';
-	import { router } from '@/core/router';
+	import { usePubHubs } from '@/logic/core/pubhubsStore';
+	import { router } from '@/logic/core/router';
 	import { TMessageEvent } from '@/model/events/TMessageEvent';
 	import Room from '@/model/rooms/Room';
-	import { useConnection } from '@/store/connection';
-	import { useMessageActions } from '@/store/message-actions';
-	import { PluginType } from '@/store/plugins';
-	import { RoomType } from '@/store/rooms';
-	import { FeatureFlag, useSettings } from '@/store/settings';
-	import { useUser } from '@/store/user';
+	import { useConnection } from '@/logic/store/connection';
+	import { useMessageActions } from '@/logic/store/message-actions';
+	import { PluginType } from '@/logic/store/plugins';
+	import { RoomType } from '@/logic/store/rooms';
+	import { FeatureFlag, useSettings } from '@/logic/store/settings';
+	import { useUser } from '@/logic/store/user';
 	import { computed, ref } from 'vue';
 
 	// Stores

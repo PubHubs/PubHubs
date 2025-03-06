@@ -1,6 +1,6 @@
 <template>
-	<div class="w-fit h-fit shrink-0">
-		<button v-if="asButton" class="flex justify-center items-center">
+	<div class="h-fit w-fit shrink-0">
+		<button v-if="asButton" class="flex items-center justify-center">
 			<svg viewBox="0 0 24 24" fill="transparent" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" :class="sizes[size]" v-html="icons[type]"></svg>
 		</button>
 		<svg v-else viewBox="0 0 24 24" fill="transparent" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" :class="sizes[size]" v-html="icons[type]"></svg>

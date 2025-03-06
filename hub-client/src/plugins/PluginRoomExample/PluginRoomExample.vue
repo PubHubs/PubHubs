@@ -3,7 +3,7 @@
 		<template #header>
 			<div class="flex">
 				<div>
-					<H1 class="m-0 text-blue font-bold">{{ rooms.currentRoom?.name }}</H1>
+					<H1 class="m-0 font-bold text-blue">{{ rooms.currentRoom?.name }}</H1>
 					<p class="text-sm leading-4">Example of room plugin by id. [ roomId: {{ rooms.currentRoom?.roomId }} ]</p>
 				</div>
 			</div>
@@ -19,6 +19,6 @@
 	import H1 from '@/components/elements/H1.vue';
 	import Json from '@/components/elements/Json.vue';
 
-	import { useRooms } from '@/store/store';
+	import { useRooms } from '@/logic/store/store';
 	const rooms = useRooms();
 </script>

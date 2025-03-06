@@ -933,6 +933,7 @@ fn create_app(cfg: &mut web::ServiceConfig, context: Data<Main>) {
     let static_files_conf = context.static_files_conf.clone();
 
     cfg.app_data(context)
+        .service(web::redirect("/", "/client"))
         .service(config_actix_files(
             actix_files::Files::new("/css", "./static/assets/css"),
             &static_files_conf,

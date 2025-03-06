@@ -1,8 +1,8 @@
 <template>
-	<div class="flex justify-center items-center h-full dark:text-white p-10">
+	<div class="flex h-full items-center justify-center p-10 dark:text-white">
 		<div class="text-center">
-			<h1 class="text-6xl font-bold mb-8">{{ $t('oops') }}</h1>
-			<h2 class="text-2xl font-semibold mb-4">{{ $t(errorKey) }}</h2>
+			<h1 class="mb-8 text-6xl font-bold">{{ $t('errors.oops') }}</h1>
+			<h2 class="mb-4 text-2xl font-semibold">{{ $t(errorKey) }}</h2>
 			<router-link :to="{ name: 'home' }"
 				><Button>{{ $t('dialog.go_back') }}</Button></router-link
 			>

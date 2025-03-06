@@ -1,11 +1,11 @@
 <template>
-	<iframe v-if="hubs.currentHubExists" :src="hubUrl" class="w-full h-full" name="hub" :id="iframeHubId"></iframe>
+	<iframe v-if="hubs.currentHubExists" :src="hubUrl" class="h-full w-full" name="hub" :id="iframeHubId"></iframe>
 </template>
 
 <script setup lang="ts">
 	import { onMounted, watch, ref, onUnmounted } from 'vue';
 	import { useRoute } from 'vue-router';
-	import { iframeHubId, useHubs, useGlobal } from '@/store/store';
+	import { iframeHubId, useHubs, useGlobal } from '@/logic/store/store';
 
 	const route = useRoute();
 	const hubs = useHubs();

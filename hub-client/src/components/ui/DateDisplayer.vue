@@ -1,12 +1,12 @@
 <template>
-	<div v-if="props.scrollStatus && displayDate() !== ''" class="absolute top-4 flex justify-center w-full z-50">
-		<span class="px-2.5 bg-gray-middle text-white-middle dark:bg-gray-lighter dark:text-gray-middle text-center rounded-full">{{ displayDate() }}</span>
+	<div v-if="props.scrollStatus && displayDate() !== ''" class="absolute top-4 z-50 flex w-full justify-center">
+		<span class="rounded-full bg-gray-middle px-2.5 text-center text-white-middle dark:bg-gray-lighter dark:text-gray-middle">{{ displayDate() }}</span>
 	</div>
 </template>
 
 <script setup lang="ts">
-	import { useTimeFormat } from '@/composables/useTimeFormat';
-	import { useRooms } from '@/store/rooms';
+	import { useTimeFormat } from '@/logic/composables/useTimeFormat';
+	import { useRooms } from '@/logic/store/rooms';
 	const { formattedTimeInformation } = useTimeFormat();
 	const rooms = useRooms();
 

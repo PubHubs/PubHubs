@@ -1,19 +1,19 @@
 <template>
 	<HeaderFooter>
 		<template #header>
-			<h1 class="ml-16 text-xl font-semibold mt-9">{{ $t('hub_settings.heading') }}</h1>
+			<h1 class="ml-16 mt-9 text-xl font-semibold">{{ $t('hub_settings.heading') }}</h1>
 		</template>
 
-		<form @submit.prevent class="px-4 py-4 md:py-10 md:px-16 h-full flex flex-col max-w-screen-2xl">
-			<div class="flex-col mb-4">
+		<form @submit.prevent class="flex h-full max-w-screen-2xl flex-col px-4 py-4 md:px-16 md:py-10">
+			<div class="mb-4 flex-col">
 				<h3 class="text-lg font-semibold">{{ $t('hub_settings.icon_heading') }}</h3>
 				<p>{{ $t('hub_settings.icon_description') }}</p>
 			</div>
 
-			<div class="flex mb-2 items-center h-14">
+			<div class="mb-2 flex h-14 items-center">
 				<input ref="elFileInput" type="file" name="logo" class="hidden" @change="onFileChange" />
 
-				<div class="p-2 w-14 h-14 rounded-xl border mr-2">
+				<div class="mr-2 h-14 w-14 rounded-xl border p-2">
 					<HubIcon :icon-url="iconUrl" :icon-url-dark="iconUrl" />
 				</div>
 
@@ -26,7 +26,7 @@
 
 			<div class="mt-auto flex items-center">
 				<p v-if="settingsSaved" class="text-hub-text-variant">{{ $t('hub_settings.settings_saved') }}</p>
-				<button @click="saveChanges()" :disabled="!settingsChanged" class="ml-auto bg-hub-background-5 disabled:text-hub-text-variant px-5 py-[1px] rounded-md font-semibold">{{ $t('hub_settings.save') }}</button>
+				<button @click="saveChanges()" :disabled="!settingsChanged" class="ml-auto rounded-md bg-hub-background-5 px-5 py-[1px] font-semibold disabled:text-hub-text-variant">{{ $t('hub_settings.save') }}</button>
 			</div>
 		</form>
 	</HeaderFooter>
@@ -36,9 +36,9 @@
 	import Icon from '@/components/elements/Icon.vue';
 	import HubIcon from '@/components/ui/HubIcon.vue';
 	import HeaderFooter from '@/components/ui/HeaderFooter.vue';
-	import { SMI } from '@/dev/StatusMessage';
-	import { LOGGER } from '@/foundation/Logger';
-	import { ALLOWED_HUB_ICON_TYPES, MAX_HUB_ICON_SIZE, useHubSettings } from '@/store/hub-settings';
+	import { SMI } from '@/logic/foundation/StatusMessage';
+	import { LOGGER } from '@/logic/foundation/Logger';
+	import { ALLOWED_HUB_ICON_TYPES, MAX_HUB_ICON_SIZE, useHubSettings } from '@/logic/store/hub-settings';
 	import { computed, ref, useTemplateRef } from 'vue';
 	import { useI18n } from 'vue-i18n';
 

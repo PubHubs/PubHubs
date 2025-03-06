@@ -1,4 +1,4 @@
-import { useSettings } from '@/store/settings';
+import { useSettings } from '@/logic/store/settings';
 import { createPinia, setActivePinia } from 'pinia';
 import { beforeEach, describe, expect, test } from 'vitest';
 

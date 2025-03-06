@@ -1,6 +1,6 @@
 import { setActivePinia, createPinia } from 'pinia';
 import { describe, beforeEach, expect, test } from 'vitest';
-import { usePlugins, MenuPluginProperties, RoomIdPluginProperties, TypePluginProperties, PluginType } from '@/store/plugins';
+import { usePlugins, MenuPluginProperties, RoomIdPluginProperties, TypePluginProperties, PluginType } from '@/logic/store/plugins';
 
 class MockedRouter {
 	//@ts-nocheck

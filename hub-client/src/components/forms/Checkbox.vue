@@ -1,7 +1,7 @@
 <template>
 	<input
 		type="checkbox"
-		class="h-6 w-6 mt-1 rounded-md bg-transparent border-1 border-black dark:border-white theme-light:border-gray focus:outline-0 focus:outline-offset-0 focus:ring-0 focus:ring-offset-0 focus:ring-offset-width-0 focus:shadow-0"
+		class="border-1 focus:ring-offset-width-0 focus:shadow-0 mt-1 h-6 w-6 rounded-md border-black bg-transparent focus:outline-0 focus:outline-offset-0 focus:ring-0 focus:ring-offset-0 theme-light:border-gray dark:border-white"
 		:class="colorClass"
 		:value="modelValue"
 		:checked="modelValue"
@@ -12,7 +12,7 @@
 </template>
 
 <script setup lang="ts">
-	import { useFormInputEvents, usedEvents } from '@/composables/useFormInputEvents';
+	import { useFormInputEvents, usedEvents } from '@/logic/composables/useFormInputEvents';
 	import { computed } from 'vue';
 
 	const props = defineProps({

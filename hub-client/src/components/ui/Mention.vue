@@ -1,7 +1,7 @@
 <template>
-	<div v-if="isVisible" ref="elContainer" :style="getStyle()" class="fixed w-fit max-h-52 shadow-lg rounded-lg overflow-y-auto scrollbar bg-lightgray-light dark:bg-gray">
+	<div v-if="isVisible" ref="elContainer" :style="getStyle()" class="scrollbar fixed max-h-52 w-fit overflow-y-auto rounded-lg bg-lightgray-light shadow-lg dark:bg-gray">
 		<ul>
-			<li v-for="(member, index) in filteredUsers" :key="index" class="group cursor-pointer hover:bg-lightgray-dark hover:dark:bg-gray-middle px-4" @click.stop="clickedItem(member)">
+			<li v-for="(member, index) in filteredUsers" :key="index" class="group cursor-pointer px-4 hover:bg-lightgray-dark hover:dark:bg-gray-middle" @click.stop="clickedItem(member)">
 				<div class="flex items-center gap-4 py-2">
 					<Avatar :user="room.getMember(member.userId, true)"></Avatar>
 					<div>{{ member.rawDisplayName }}</div>
@@ -14,7 +14,7 @@
 <script setup lang="ts">
 	import Room from '@/model/rooms/Room';
 	import { TRoomMember } from '@/model/rooms/TRoomMember';
-	import { useRooms } from '@/store/store';
+	import { useRooms } from '@/logic/store/store';
 	import { computed, onMounted, ref, watch } from 'vue';
 
 	import Avatar from './Avatar.vue';

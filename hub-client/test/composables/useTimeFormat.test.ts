@@ -1,8 +1,8 @@
 import { describe, expect, test, vi } from 'vitest';
 
 import { createPinia, setActivePinia } from 'pinia';
-import { TimeFormat } from '@/store/settings';
-import { useTimeFormat } from '../../src/composables/useTimeFormat';
+import { TimeFormat } from '@/logic/store/settings';
+import { useTimeFormat } from '../../src/logic/composables/useTimeFormat';
 const { formatDate, formatTimestamp } = useTimeFormat();
 
 describe('useTimeFormat', () => {

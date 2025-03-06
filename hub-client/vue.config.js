@@ -1,4 +1,6 @@
 const { defineConfig } = require('@vue/cli-service');
+const NodePolyfillPlugin = require('node-polyfill-webpack-plugin');
+const webpack = require('webpack');
 const path = require('path');
 module.exports = defineConfig({
 	configureWebpack: {
@@ -8,6 +10,13 @@ module.exports = defineConfig({
 				crypto: false,
 			},
 		},
+		plugins: [
+			new webpack.ProvidePlugin({
+				process: 'process/browser',
+			}),
+			// Needed to be able to use the yivi client
+			new NodePolyfillPlugin(),
+		],
 	},
 	chainWebpack(config) {
 		config.resolve.symlinks(false);
@@ -27,17 +36,17 @@ module.exports = defineConfig({
 			// entry for the page
 			entry: 'src/main.ts',
 			// the source template
-      		template: 'public/index.html',
-      		// output as dist/index.html
-      		filename: 'index.html',
+			template: 'public/index.html',
+			// output as dist/index.html
+			filename: 'index.html',
 		},
 		miniclient: {
 			// entry for the page
 			entry: 'src/miniclient.ts',
 			// the source template
-      		template: 'public/index.html',
-      		// output as dist/index.html
-      		filename: 'miniclient.html',
+			template: 'public/index.html',
+			// output as dist/index.html
+			filename: 'miniclient.html',
 		},
 	},
 	transpileDependencies: true,

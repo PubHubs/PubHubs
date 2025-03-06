@@ -1,17 +1,46 @@
 <template>
-	<div v-if="hub" class="flex flex-col gap-1 text-center justify-between bg-ph-background-3 dark:bg-ph-background-5 hover:bg-blue h-36 p-4 rounded-md relative cursor-pointer w-full overflow-hidden">
-		<H3 class="m-0">
-			<TruncatedText>{{ hub.hubName }}</TruncatedText>
-		</H3>
-		<HubIcon :icon-url="hub.iconUrlLight" :icon-url-dark="hub.iconUrlDark" :hub-name="hub.name" class="max-h-16 max-w-16 mx-auto"></HubIcon>
-		<TruncatedText>{{ description }}</TruncatedText>
+	<div v-if="hub" class="relative flex h-60 w-full flex-col overflow-hidden rounded-xl bg-ph-background shadow-sm">
+		<div class="h-24 w-full">
+			<ImagePlaceholder source="/client/img/imageplaceholder.jpg" />
+		</div>
+		<div class="flex h-min items-start gap-4 px-4 py-2">
+			<div class="-mt-8 aspect-square h-14 w-14 overflow-clip rounded-xl border-2 border-ph-background-5 bg-ph-background-4">
+				<HubIcon :icon-url="hub.iconUrlLight" :icon-url-dark="hub.iconUrlDark" :hub-name="hub.name" />
+			</div>
+			<div class="flex h-full w-full max-w-full flex-col justify-center gap-2 overflow-hidden pb-2 pt-1 text-left">
+				<div>
+					<H2 class="m-0">
+						<TruncatedText>{{ hub.hubName }}</TruncatedText>
+					</H2>
+				</div>
+				<div class="h-16">
+					<TruncatedText class="text-xs font-bold uppercase">{{ $t('home.hub_card_about') }}</TruncatedText>
+					<p class="line-clamp-2 max-w-[calc(100%_-_2em)] hyphens-auto break-words" :lang="currentLanguage">{{ description }}</p>
+				</div>
+			</div>
+		</div>
+		<Button class="!absolute bottom-4 right-4 flex aspect-square w-min items-center justify-center rounded-md !p-1">
+			<Icon type="arrow-right" size="sm" @click="enterHub(hub)"></Icon>
+		</Button>
 	</div>
 </template>
 
 <script setup lang="ts">
 	import { computed } from 'vue';
-	import { Hub } from '@/store/store';
+	import { useI18n } from 'vue-i18n';
+	import { useRouter } from 'vue-router';
+
+	import { useDialog } from '@/logic/store/store';
+	import { Hub } from '@/model/Hubs';
 	import HubIcon from '../../../../hub-client/src/components/ui/HubIcon.vue';
+	import Button from '../../../../hub-client/src/components/elements/Button.vue';
+	import ImagePlaceholder from '../../../../hub-client/src/components/elements/ImagePlaceholder.vue';
+
+	const router = useRouter();
+	const dialog = useDialog();
+
+	const { t, locale } = useI18n();
+	const currentLanguage = locale.value;
 
 	const props = defineProps<{ hub: Hub }>();
 
@@ -21,4 +50,24 @@
 		}
 		return props.hub.hubId;
 	});
+
+	async function enterHub(hub: Hub) {
+		let canEnterHub = false;
+		try {
+			// entering only the hub would generate a CORS-error.
+			// Since we only need to know if the hub is running, we can send a no-cors.
+			// The response will be empty, but the type 'opaque' will indicate the url is up and running
+			const response = await fetch(hub.url, { mode: 'no-cors' });
+			if (response.type === 'opaque') {
+				canEnterHub = true;
+			}
+		} catch {
+			// intentionally left empty
+		}
+		if (canEnterHub) {
+			router.push({ name: 'hub', params: { name: hub.name } });
+		} else {
+			await dialog.confirm(hub.name, t('hubs.under_construction'));
+		}
+	}
 </script>

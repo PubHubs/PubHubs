@@ -1,8 +1,8 @@
 <template>
 	<div>
 		<TextInput v-if="!listTop" :placeholder="placeholder" v-model="filter" class="mb-4 w-full" :class="inputClass" @input="changed()"></TextInput>
-		<ul v-if="filteredItems.length > 0" :class="listClass">
-			<li v-for="(item, index) in filteredItems" :key="index" class="group block cursor-pointer hover:dark:bg-gray-dark hover:bg-lightgray p-1 rounded" @click="clickedItem(item)">
+		<ul v-if="filteredItems.length > 0" :class="listClass + ' max-h-screen overflow-y-scroll'">
+			<li v-for="(item, index) in filteredItems" :key="index" class="group block cursor-pointer rounded p-1 hover:bg-lightgray hover:dark:bg-gray-dark" @click="clickedItem(item)">
 				<slot name="item" v-bind="{ item }"></slot>
 			</li>
 		</ul>
@@ -12,7 +12,7 @@
 
 <script setup lang="ts">
 	import { ref, computed } from 'vue';
-	import { FilteredListEvent } from '@/types/components';
+	import { FilteredListEvent } from '@/model/components/FilteredListEvent';
 
 	const emit = defineEmits(['click', 'filter']);
 

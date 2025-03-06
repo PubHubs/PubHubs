@@ -1,33 +1,37 @@
 <template>
 	<Dialog :buttons="buttonsOkCancel" @close="close($event)" v-click-outside="close">
 		<template #header>
-			<div class="text-black text-xl">
+			<div class="text-xl text-black">
 				{{ $t('file.upload_file') }}
 			</div>
 		</template>
 		<div v-if="imageTypes.includes(props.file?.type)" class="flex items-center justify-center">
-			<img :src="formUrlfromMxc(mxcPath)" class="max-w-full max-h-96 rounded-lg" />
+			<img :src="blobURL" class="max-h-96 max-w-full rounded-lg" />
 		</div>
-		<div class="text-black flex justify-center mt-4">
+		<div class="mt-4 flex justify-center text-black">
 			<div class="text-lg text-gray">{{ file.name }} ({{ `${filters.formatBytes(file.size, 2)}` }})</div>
 		</div>
 	</Dialog>
 </template>
 
 <script setup lang="ts">
-	import { useMatrixFiles } from '@/composables/useMatrixFiles';
-	import { usePubHubs } from '@/core/pubhubsStore';
-	import { useRooms } from '@/store/store';
-	import filters from '@/core/filters';
-	import { buttonsOkCancel } from '@/store/dialog';
+	import { useMatrixFiles } from '@/logic/composables/useMatrixFiles';
+	import { usePubHubs } from '@/logic/core/pubhubsStore';
+	import { useRooms } from '@/logic/store/store';
+	import filters from '@/logic/core/filters';
+	import { buttonsOkCancel } from '@/logic/store/dialog';
+	import { fileUpload } from '@/logic/composables/fileUpload';
+	import { useI18n } from 'vue-i18n';
+	const { allTypes, uploadUrl } = useMatrixFiles();
+	const { t } = useI18n();
 
 	const rooms = useRooms();
 	const pubhubs = usePubHubs();
 
-	const { imageTypes, formUrlfromMxc } = useMatrixFiles();
+	const { imageTypes } = useMatrixFiles();
 	const emit = defineEmits(['close']);
 
-	const props = defineProps<{ file: Record<string, any>; mxcPath: string }>();
+	const props = defineProps<{ file: File; blobURL: string }>();
 
 	async function close(action: number = 0) {
 		if (action === 1) {
@@ -38,11 +42,29 @@
 	}
 
 	async function submit() {
-		if (imageTypes.includes(props.file?.type)) {
-			pubhubs.addImage(rooms.currentRoomId, props.mxcPath);
-		} else {
-			pubhubs.addFile(rooms.currentRoomId, props.file as File, props.mxcPath);
+		// display the component
+		const accessToken = pubhubs.Auth.getAccessToken();
+		// TODO errorhandling
+		if (!accessToken) {
+			return;
 		}
-		close();
+
+		const errorMsg = t('errors.file_upload');
+
+		const syntheticEvent = {
+			currentTarget: {
+				files: [props.file],
+			},
+		} as unknown as Event;
+
+		fileUpload(errorMsg, accessToken, uploadUrl, allTypes, syntheticEvent, (url) => {
+			if (imageTypes.includes(props.file?.type)) {
+				pubhubs.addImage(rooms.currentRoomId, url);
+			} else {
+				pubhubs.addFile(rooms.currentRoomId, props.file as File, url);
+			}
+			URL.revokeObjectURL(props.blobURL);
+			emit('close');
+		});
 	}
 </script>

@@ -1,11 +1,11 @@
 <template>
-	<div class="h-full flex flex-col">
+	<div class="flex h-full flex-col">
 		<div>
-			<InlineSpinner v-if="isLoadingNewEvents" class="w-full absolute flex justify-center"></InlineSpinner>
+			<InlineSpinner v-if="isLoadingNewEvents" class="absolute flex w-full justify-center"></InlineSpinner>
 			<DateDisplayer v-if="settings.isFeatureEnabled(FeatureFlag.dateSplitter) && dateInformation !== 0" :scrollStatus="userHasScrolled" :eventTimeStamp="dateInformation.valueOf()"></DateDisplayer>
 		</div>
-		<div v-if="room" ref="elRoomTimeline" class="relative pb-4 flex flex-1 flex-col gap-2 overflow-y-auto" @scroll="onScroll">
-			<div v-if="oldestEventIsLoaded" class="rounded-xl flex items-center justify-center w-60 mx-auto my-4 border border-black dark:border-white">
+		<div v-if="room" ref="elRoomTimeline" class="relative flex flex-1 flex-col gap-2 overflow-y-auto pb-4" @scroll="onScroll">
+			<div v-if="oldestEventIsLoaded" class="mx-auto my-4 flex w-60 items-center justify-center rounded-xl border border-black dark:border-white">
 				{{ $t('rooms.roomCreated') }}
 			</div>
 			<template v-if="roomTimeLine.length > 0">
@@ -31,19 +31,19 @@
 	import UnreadMarker from '../ui/UnreadMarker.vue';
 	import InRoomNotifyMarker from '../ui/InRoomNotifyMarker.vue';
 
-	import { useMatrixFiles } from '@/composables/useMatrixFiles';
-	import { ElementObserver } from '@/core/elementObserver';
-	import { usePubHubs } from '@/core/pubhubsStore';
-	import { useRooms } from '@/store/store';
+	import { useMatrixFiles } from '@/logic/composables/useMatrixFiles';
+	import { ElementObserver } from '@/logic/core/elementObserver';
+	import { usePubHubs } from '@/logic/core/pubhubsStore';
+	import { useRooms } from '@/logic/store/store';
 	import { EventTimeline } from 'matrix-js-sdk';
 	import { computed, onMounted, ref, watch } from 'vue';
 
-	import { LOGGER } from '@/foundation/Logger';
-	import { SMI } from '@/dev/StatusMessage';
+	import { LOGGER } from '@/logic/foundation/Logger';
+	import { SMI } from '@/logic/foundation/StatusMessage';
 	import { TMessageEvent } from '@/model/events/TMessageEvent';
 	import Room from '@/model/rooms/Room';
-	import { FeatureFlag, useSettings } from '@/store/settings';
-	import { useUser } from '@/store/user';
+	import { FeatureFlag, useSettings } from '@/logic/store/settings';
+	import { useUser } from '@/logic/store/user';
 
 	const settings = useSettings();
 	const rooms = useRooms();

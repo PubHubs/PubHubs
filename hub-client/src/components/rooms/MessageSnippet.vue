@@ -1,12 +1,12 @@
 <template>
-	<div class="bg-hub-background-3 flex px-2 gap-3 items-center rounded-md cursor-pointer truncate break-words">
+	<div class="flex cursor-pointer items-center gap-3 truncate break-words rounded-md bg-hub-background-4 px-2">
 		<p v-if="showInReplyTo" class="text-nowrap">
 			{{ $t('message.in_reply_to') }}
 		</p>
 		<p :class="textColor(userColor)">
 			<UserDisplayName :user="event.sender" :room="room"></UserDisplayName>
 		</p>
-		<p class="truncate flex items-center gap-1" :class="{ 'theme-light:text-gray-middle dark:text-gray-lighter': redactedMessage }" :title="snippetText">
+		<p class="flex items-center gap-1 truncate" :class="{ 'theme-light:text-gray-middle dark:text-gray-lighter': redactedMessage }" :title="snippetText">
 			<Icon v-if="redactedMessage" :type="'bin'" :size="'sm'"></Icon>
 			<span class="truncate">{{ snippetText }}</span>
 		</p>
@@ -18,11 +18,11 @@
 	import UserDisplayName from './UserDisplayName.vue';
 	import Icon from '../elements/Icon.vue';
 
-	import { useUserColor } from '@/composables/useUserColor';
+	import { useUserColor } from '@/logic/composables/useUserColor';
 	import { computed } from 'vue';
 	import Room from '@/model/rooms/Room';
 	import { useI18n } from 'vue-i18n';
-	import { usePubHubs } from '@/core/pubhubsStore';
+	import { usePubHubs } from '@/logic/core/pubhubsStore';
 
 	const { color, textColor } = useUserColor();
 	const pubhubs = usePubHubs();

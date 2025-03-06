@@ -3,7 +3,7 @@
 	<Dialog class="text-black" :title="$t('message.delete.heading')" :buttons="buttonsYesNo" @close="close($event)" width="max-w-full lg:max-w-[40%] min-w-[92.5%] lg:min-w-[22.5%]">
 		<div v-if="!user.isAdmin && (event.content.msgtype === 'm.file' || event.content.msgtype === 'm.image')">
 			<p class="font-bold">{{ $t('message.delete.beware') }}</p>
-			<p class="font-bold mb-4">{{ $t('message.delete.file_not_deleted') }}</p>
+			<p class="mb-4 font-bold">{{ $t('message.delete.file_not_deleted') }}</p>
 		</div>
 		<Suspense>
 			<RoomEvent class="w-fit" :event="event" :room="room" :deleteMessageDialog="true"></RoomEvent>
@@ -19,8 +19,8 @@
 	import Dialog from '../ui/Dialog.vue';
 
 	import Room from '@/pages/Room.vue';
-	import { buttonsYesNo, DialogButtonAction } from '@/store/dialog';
-	import { useUser } from '@/store/user';
+	import { buttonsYesNo, DialogButtonAction } from '@/logic/store/dialog';
+	import { useUser } from '@/logic/store/user';
 
 	const user = useUser();
 

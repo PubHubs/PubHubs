@@ -1,9 +1,9 @@
 <template>
-	<div class="flex flex-col h-full xl:max-w-screen-xl m-auto p-5 gap-8">
-		<div class="flex flex-col w-6/12 mt-20 mx-auto">
-			<H1 v-if="!isTryOutHub() && hubSettings.hubName" class="text-center mb-8">{{ $t('home.hub_homepage_welcome_auth', [hubSettings.hubName]) }}</H1>
-			<H1 v-else class="text-center mb-8">Welkom bij de TryOutHub</H1>
-			<HubIcon v-if="hubSettings.hubName" :hub-name="hubSettings.hubName" :icon-url="hubSettings.iconUrlLight" :icon-url-dark="hubSettings.iconUrlDark" class="mx-auto max-w-24 max-h-20"></HubIcon>
+	<div class="m-auto flex h-full flex-col gap-8 p-5 xl:max-w-screen-xl">
+		<div class="mx-auto mt-20 flex w-6/12 flex-col">
+			<H1 v-if="!isTryOutHub() && hubSettings.hubName" class="mb-8 text-center">{{ $t('home.hub_homepage_welcome_auth', [hubSettings.hubName]) }}</H1>
+			<H1 v-else class="mb-8 text-center">Welkom bij de TryOutHub</H1>
+			<HubIcon v-if="hubSettings.hubName" :hub-name="hubSettings.hubName" :icon-url="hubSettings.iconUrlLight" :icon-url-dark="hubSettings.iconUrlDark" class="mx-auto max-h-20 max-w-24"></HubIcon>
 			<div v-if="isTryOutHub()" class="mt-20">
 				<p class="mb-6">
 					Hier kun je als organisatie een eigen Room krijgen om PubHubs zelf uit te proberen. Stel je organisatie heet ABC met webadres abc.nl. Dan kun je hier een eigen gesloten Room krijgen met naam ABC, binnen de TryOutHub.
@@ -27,6 +27,10 @@
 				</p>
 			</div>
 
+			<Button @click="gotoDiscoverRooms()" color="gray-light" class="flex justify-center gap-2"
+				><Icon type="compass"></Icon><span>{{ $t('menu.discover') }}</span></Button
+			>
+
 			<Button v-if="!showPubHubsCentralLoginButton && !isTryOutHub()" class="mt-10 text-xs md:text-base" @click="goToLoginPage()">{{ $t('home.hub_homepage_join') }}</Button>
 			<Button v-if="!showPubHubsCentralLoginButton && isTryOutHub()" class="mt-10 text-xs md:text-base" @click="goToLoginPage()">Doe mee met de TryOutHub </Button>
 		</div>
@@ -34,12 +38,13 @@
 </template>
 
 <script setup lang="ts">
-	import HubIcon from '@/components/ui/HubIcon.vue';
-	import { usePubHubs } from '@/core/pubhubsStore';
-	import { useHubSettings } from '@/store/hub-settings';
+	import { router } from '@/logic/core/router';
+	import { usePubHubs } from '@/logic/core/pubhubsStore';
+	import { useHubSettings } from '@/logic/store/hub-settings';
 
 	// Components
 	import H1 from '../components/elements/H1.vue';
+	import HubIcon from '@/components/ui/HubIcon.vue';
 
 	const pubhubs = usePubHubs();
 	const hubSettings = useHubSettings();
@@ -61,5 +66,9 @@
 
 	function goToLoginPage() {
 		pubhubs.centralLoginPage();
+	}
+
+	function gotoDiscoverRooms() {
+		router.push({ name: 'discover-rooms' });
 	}
 </script>

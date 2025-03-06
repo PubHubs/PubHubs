@@ -1,11 +1,11 @@
 export { yivi };
 
-import { useSettings } from '@/store/store';
+import { useSettings } from '@/logic/store/store';
 
 function yivi(register: boolean, yivi_token: { value: string }) {
 	const settings = useSettings();
 	// Include the custom css for the yivi web element
-	require('./assets/yivi.min.css');
+	require('../../hub-client/src/assets/yivi.min.css');
 
 	const yiviCore = require('@privacybydesign/yivi-core');
 	const yiviWeb = require('@privacybydesign/yivi-web');

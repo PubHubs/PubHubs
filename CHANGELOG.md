@@ -1,9 +1,42 @@
 ## Changes to main, not yet committed to stable
 
-_Please add a brief description of any changes to be tested and any migrations to be performed here._
+_Please add a brief description of any changes and any migrations to be performed here. And use these prefixes before the description:_
 
-- Synapse was updated and authenticated media is now enforced by default (see [here](https://element-hq.github.io/synapse/v1.120/upgrade.html#authenticated-media-is-now-enforced-by-default)). We don't support it yet so we disabled it in the Hub configuration. When merging to stable, the new configuration should be added to all running hubs. See also #1025.
+ * _[BUG] - If the change is a bugfix (from own branch)_
+ * _[FIX] - If it is a small bug (typo or styling) that is done directly on main or stable_
+ * _[TYPO] - If a translation/typo in the UI has been changed or implemented_
+ * _[NEW] - If it is a new feature_
+ * _[UPDATE] - Updated dependencies_
+ * _[MIGRATE] - If it is/has a change to a database. Describe the way the migrate is done._
+ * _[BREAKING] - If it is a breaking change that needs changes done on the deployment/installation/settings_
+ * _(Use the [MIGRATE] and [BREAKING] prefixes together with another one if that makes more sense.)_
 
+Use the [MIGRATE] and [BREAKING] prefixes together with another one if that makes more sense.
+
+## 6 March 2025 - v1.1.0
+
+- [FIX] Styling fix where Search on DiscoverRoomPage was partly hidden in Header
+- [BUG] Small styling issue solved where hub descriptions will be cut off on bottom.
+- [TYPO] 'Unread Messages' was not translated in dutch.
+- [NEW] Added 'Discover Rooms' button on HubHomepage.
+- [NEW] The settings dialog now includes an option to turn notifications on or off.
+- [UPDATE] Files are now uploaded to matrix synaps after clicking submit in the upload forms.
+- [NEW] Attributes are now read from a curated list in the yivi.ts file, in the dropdown menu attribute descriptions are shown instead of the attribute value.
+- [NEW] Restructured folders of clients.
+- [UPDATE] Synapse was updated and authenticated media is now enforced by default (see [here](https://element-hq.github.io/synapse/v1.120/upgrade.html#authenticated-media-is-now-enforced-by-default)). When merging to stable, the new configuration should be added to all running hubs.
+- [UPDATE] Code for automatic creation of 'General room' is removed from config (including config check). When merging to stable this config should be removed from 'homeserver.yaml'.
+- [NEW] Authenticated media setting in hub configuration can be set to true when merging to stable because Hub client now supports authenticated media.
+- [NEW] Adds redirect from https://main.pubhubs.ihub.ru.nl/ to https://main.pubhubs.ihub.ru.nl/client
+- [BUG] Searching messages within a room no longer returns empty results.
+- [BUG] Right padding of menu-items was off, weird tooltips when hovering over room in menuitem.
+- [BUG] Dialog modal on Safari browser did not cover whole screen
+- [BUG] Styling of Hub Icon was wrong
+- [NEW] Updated the design for the discover hub & login page
+- [NEW] Update input bar design & make hotfixes for the button opacity and placeholder text
+- [BUG] The hub's welcome page no longer displays an error page when a user has set neither their display name nor avatar.
+- [BUG] When scrolling in a room, message no longer partly overlap the message input bar.
+- [BUG] The date badge (showing the date of the oldest message in view when scrolling up or the date of the most recent message in view when scrolling down) is centered again and does not cause a horizontal scrollbar to appear.
+- [NOTE TO MERGERS] Changed yivi server on pubhubs VM used by stable and main in anticipation of the new server setup.  Changes should be backwards compatible, but if there's trouble with registration/login, this might be the cause.  -Bram
 
 ## 6 February 2025 - v1.0.5
 
@@ -11,7 +44,6 @@ _Please add a brief description of any changes to be tested and any migrations t
 - Hub admins can now change the hub icon from the hub settings dialog.
 - Removed legacy static pages and some of the underlying code, see #1035.
 - Hubs are now identified by their hubId in /bar/state and hub access tokens are stored in /bar/state.
-
 
 ## 21 January 2025 - v1.0.4
 

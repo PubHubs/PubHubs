@@ -1,21 +1,21 @@
 <template>
-	<div class="flex flex-row justify-between items-center my-4 mx-6 md:m-9">
+	<div class="mx-6 my-4 flex flex-row items-center justify-between md:m-9">
 		<router-link to="/">
 			<Logo class="h-4 md:h-8"></Logo>
 		</router-link>
 		<div class="flex flex-row items-center gap-2 md:gap-8">
-			<div class="grid grid-cols-2 divide-x-2 divide-black auto-rows-min items-center">
-				<p class="px-2 font-bold md:text-xl cursor-pointer hover:text-gray" @click="changeLanguage('nl')">NL</p>
-				<p class="px-2 font-bold md:text-xl cursor-pointer hover:text-gray" @click="changeLanguage('en')">EN</p>
+			<div class="grid auto-rows-min grid-cols-2 items-center divide-x-2 divide-black">
+				<p class="cursor-pointer px-2 font-bold hover:text-gray md:text-xl" @click="changeLanguage('nl')">NL</p>
+				<p class="cursor-pointer px-2 font-bold hover:text-gray md:text-xl" @click="changeLanguage('en')">EN</p>
 			</div>
 		</div>
 	</div>
 	<component class="text-lg" :is="`OnboardingStep${props.onboardingStep}`" @next="next(1)" @skip="next(2)" @back="back"> </component>
-	<div class="lg:hidden w-full h-12 bg-gray-dark"></div>
+	<div class="h-12 w-full bg-gray-dark lg:hidden"></div>
 </template>
 
 <script setup lang="ts">
-	import { useSettings } from '@/store/settings';
+	import { useSettings } from '@/logic/store/settings';
 	import { useRouter } from 'vue-router';
 
 	const settings = useSettings();

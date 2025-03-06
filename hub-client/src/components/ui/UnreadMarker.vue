@@ -1,13 +1,13 @@
 <template>
 	<div v-if="unreadMarker" class="text-center">
-		<div class="inline-block bg-blue-light text-white text-sm font-medium text-center px-3.5 py-1.5 rounded-full m-auto">Unread Messages</div>
-		<div class="bg-blue-light h-[1px] -mt-4"></div>
+		<div class="m-auto inline-block rounded-full bg-blue-light px-3.5 py-1.5 text-center text-sm font-medium text-white">{{ $t('rooms.unread_messages') }}</div>
+		<div class="-mt-4 h-[1px] bg-blue-light"></div>
 	</div>
 </template>
 
 <script setup lang="ts">
 	import { computed } from 'vue';
-	import { useRooms } from '@/store/store';
+	import { useRooms } from '@/logic/store/store';
 
 	const rooms = useRooms();
 

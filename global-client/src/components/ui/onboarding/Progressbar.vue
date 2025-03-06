@@ -1,6 +1,6 @@
 <template>
-	<ul class="flex gap-4 mb-6">
-		<li class="text-white w-6 h-6 shrink-0 flex font-bold justify-center rounded-full" :class="dynamicClass(i)" v-for="i in props.totalSteps" :key="i">
+	<ul class="mb-6 flex gap-4">
+		<li class="flex h-6 w-6 shrink-0 justify-center rounded-full font-bold text-white" :class="dynamicClass(i)" v-for="i in props.totalSteps" :key="i">
 			{{ i < props.currentStep ? '&#10003;' : `${i}` }}
 		</li>
 	</ul>

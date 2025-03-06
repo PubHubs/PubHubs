@@ -1,5 +1,5 @@
 <template>
-	<div :class="buttonClass" class="block relative font-semibold rounded-lg text-center transition-all duration-150 ease-in-out shadow-md cursor-pointer" @click="click($event)">
+	<div :class="buttonClass" class="relative block cursor-pointer rounded-lg text-center font-semibold shadow-md transition-all duration-150 ease-in-out" @click="click($event)">
 		<slot></slot>
 	</div>
 </template>
@@ -12,7 +12,7 @@
 		disabled: 'bg-gray-light text-gray-lighter shadow-none cursor-not-allowed',
 		white: 'bg-white hover:bg-blue text-black ',
 		gray: 'bg-gray-dark hover:bg-black dark:bg-black hover:dark:bg-gray-dark text-white',
-		'gray-light': 'bg-gray-light hover:bg-red text-white ', // Needed for ButtonGroup
+		'gray-light': 'bg-gray-light text-white hover:bg-gray', // Needed for ButtonGroup
 		blue: 'bg-blue hover:bg-blue-dark text-white dark:hover:bg-white dark:hover:text-blue-dark',
 		red: 'bg-red hover:bg-red-dark text-white',
 		black: 'bg-black hover:bg-gray-dark text-white shadow-md cursor-pointer',

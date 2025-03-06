@@ -44,14 +44,16 @@
 	import Label from '../forms/Label.vue';
 	import FormObjectInput from '../forms/FormObjectInput.vue';
 
-	import { FormObjectInputTemplate } from '@/composables/useFormInputEvents';
-	import { useFormState } from '@/composables/useFormState';
-	import { isEmpty, trimSplit } from '@/core/extensions';
-	import { usePubHubs } from '@/core/pubhubsStore';
-	import { buttonsSubmitCancel, DialogButtonAction } from '@/store/dialog';
-	import { RoomType } from '@/store/rooms';
-	import { SecuredRoomAttributes, TPublicRoom, TSecuredRoom, useRooms } from '@/store/store';
-	import { useYivi } from '@/store/yivi';
+	import { FormObjectInputTemplate } from '@/logic/composables/useFormInputEvents';
+	import { useFormState } from '@/logic/composables/useFormState';
+	import { isEmpty, trimSplit } from '@/logic/core/extensions';
+	import { usePubHubs } from '@/logic/core/pubhubsStore';
+	import { buttonsSubmitCancel, DialogButtonAction } from '@/logic/store/dialog';
+	import { RoomType } from '@/logic/store/rooms';
+	import { SecuredRoomAttributes, TSecuredRoom, useRooms } from '@/logic/store/store';
+	import Room from '@/model/rooms/Room';
+
+	import { useYivi } from '@/logic/store/yivi';
 	import { computed, onBeforeMount, ref } from 'vue';
 	import { useI18n } from 'vue-i18n';
 
@@ -59,6 +61,7 @@
 	const { setData, updateData } = useFormState();
 	const pubhubs = usePubHubs();
 	const rooms = useRooms();
+
 	//const dialog = useDialog();
 	const yivi = useYivi();
 	const emit = defineEmits(['close']);
@@ -66,7 +69,7 @@
 	const props = defineProps({
 		room: {
 			type: Object,
-			default: ref({} as unknown as TSecuredRoom | TPublicRoom),
+			default: ref({} as unknown as TSecuredRoom | Room),
 		},
 		secured: {
 			type: Boolean,
@@ -115,7 +118,7 @@
 		type: '',
 	} as TSecuredRoom;
 
-	const editRoom = ref({} as TPublicRoom | TSecuredRoom);
+	const editRoom = ref({} as Room | TSecuredRoom);
 
 	const securedRoomTemplate = ref([
 		{ key: 'yivi', label: t('admin.secured_attribute'), type: 'autocomplete', options: [], default: '', disabled: !isNewRoom.value },
@@ -124,20 +127,21 @@
 	] as Array<FormObjectInputTemplate>);
 
 	//#region mount
-
 	onBeforeMount(async () => {
-		// yivi attributes
-		await yivi.fetchAttributes();
+		//Fetch the attrbiute objects
 		securedRoomTemplate.value[0].options = yivi.attributesOptions;
+		securedRoomTemplate.value[0].options.forEach((option) => {
+			option.label = t(option.label);
+		});
 
 		if (isNewRoom.value) {
 			// New Room
-			editRoom.value = { ...emptyNewRoom } as TPublicRoom | TSecuredRoom;
+			editRoom.value = { ...emptyNewRoom } as Room | TSecuredRoom;
 		} else {
 			// Edit room
-			editRoom.value = { ...(props.room as TPublicRoom | TSecuredRoom) };
-			editRoom.value.topic = rooms.getRoomTopic(props.room.room_id);
 
+			editRoom.value = { ...(props.room as Room | TSecuredRoom) };
+			editRoom.value.topic = rooms.getRoomTopic(props.room.room_id);
 			// Transform for form
 			if (props.secured) {
 				// Remove 'profile' for existing secured room (cant be edited after creation)
@@ -147,14 +151,16 @@
 				if (accepted !== undefined) {
 					// FormObjectInput needs a different structure of the accepted values, transform them
 					const acceptedKeys = Object.keys(accepted);
-					let newAccepted = [];
+					let newAccepted: Object[] = [];
 					acceptedKeys.forEach((key) => {
+						// Translate the yivi key value to a description/label value for display
+						const foundAttribute = securedRoomTemplate.value[0].options?.find((attribute) => key === attribute.value);
 						let values = accepted[key].accepted_values;
 						if (typeof values === 'object') {
 							values = values.join(', ');
 						}
 						newAccepted.push({
-							yivi: key,
+							yivi: foundAttribute ? foundAttribute.label : key,
 							values: values,
 							profile: accepted[key].profile,
 						});
@@ -193,9 +199,8 @@
 	}
 
 	async function submitRoom(): Promise<Boolean> {
-		let room = { ...editRoom.value } as TSecuredRoom;
-
 		// Normal room
+		let room = { ...editRoom.value } as TSecuredRoom;
 		if (!props.secured) {
 			if (isNewRoom.value) {
 				let newRoomOptions = {
@@ -203,20 +208,21 @@
 					topic: room.topic,
 					visibility: 'public',
 					creation_content: {
-						type: room.type === '' ? undefined : room.type,
+						type: room.topic === '' ? undefined : room.topic,
 					},
 				};
 				await pubhubs.createRoom(newRoomOptions);
 			} else {
-				// update name
-				await pubhubs.renameRoom(room.room_id as string, room.name);
+				await pubhubs.renameRoom(props.room.room_id, editRoom.value.name!);
+
 				// update topic
-				await pubhubs.setTopic(room.room_id as string, room.topic as string);
+				await pubhubs.setTopic(props.room.room_id as string, editRoom.value.topic!);
 			}
 			editRoom.value = { ...emptyNewRoom };
 		}
 		// Secured room
 		else {
+			let room = { ...editRoom.value } as TSecuredRoom;
 			// Transform room for API
 			// room.room_name = room.name;
 			// delete room.name;
@@ -230,6 +236,16 @@
 				};
 			});
 			room.accepted = accepted;
+			// Translate the keys from the description/label value back to the yivi attribute value
+			const acceptedKeys = Object.keys(accepted);
+			acceptedKeys.forEach((key) => {
+				const foundAttribute = securedRoomTemplate.value[0].options?.find((attribute) => key === attribute.label);
+				const propertyDescriptor = Object.getOwnPropertyDescriptor(room.accepted, key);
+				if (room.accepted && foundAttribute && propertyDescriptor) {
+					Object.defineProperty(room.accepted, foundAttribute.value, propertyDescriptor);
+					delete room.accepted[key];
+				}
+			});
 			if (isNewRoom.value) {
 				try {
 					await rooms.addSecuredRoom(room);
@@ -256,7 +272,6 @@
 		}
 		return true;
 	}
-
 	/**
 	 * When changing the required attributes of a secured room, users without these attributes are not removed. They can still enter.
 	 * For the moment this is solved by not allowing the values to change. This function checks if all the previous attributevalues
