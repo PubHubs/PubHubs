@@ -1,7 +1,7 @@
 // integration test, testing all aspects of the rust code
 
 use actix_web::web;
-use pubhubs::{api, client, elgamal, hub, servers};
+use pubhubs::{api, attr, client, elgamal, hub, misc::jwt, servers};
 use std::{sync::Arc, time::Duration};
 
 const CONFIG_FILE_PATH: &'static str = "pubhubs.default.toml";
@@ -46,7 +46,7 @@ async fn main_integration_test() {
         
         [requestor_creds]
         name = "ph_auths"
-        key.hs256 = "c2VjcmV0""#,
+        key.hs256 = "c2VjcmV0""#, // Python: base64.b64encode(b"secret")
     )
     .inspect_err(|err| log::error!("{}", err))
     .unwrap();
@@ -210,6 +210,36 @@ async fn main_integration_test_local(config: servers::Config, admin_sk: api::Sig
         })
         .await
         .unwrap();
+
+    // request authentication as end-user
+    let asr = client
+        .query_with_retry::<api::auths::AuthStartEP>(
+            &constellation.auths_url,
+            &api::auths::AuthStartReq {
+                source: attr::Source::Yivi,
+                attr_types: vec!["email".parse().unwrap(), "phone".parse().unwrap()],
+            },
+        )
+        .await
+        .unwrap();
+
+    let jwt: jwt::JWT = match asr.task {
+        api::auths::AuthTask::Yivi {
+            disclosure_request,
+            yivi_requestor_url,
+        } => {
+            assert_eq!(
+                yivi_requestor_url.to_string(),
+                "http://192.0.2.0/".to_string()
+            );
+            disclosure_request
+        }
+        _ => panic!("expected Yivi task"),
+    };
+
+    print!("{:?}", jwt);
+
+    let _: jwt::Claims = jwt.open(&jwt::HS256("secret".into())).unwrap();
 }
 
 /// Simulates a hub.

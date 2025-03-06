@@ -5,7 +5,8 @@ use actix_web::web;
 use crate::servers::{self, AppBase, AppCreatorBase, Constellation, Handle};
 use crate::{
     api::{self, EndpointDetails as _, IntoErrorCode as _},
-    attr, handle, jwt, map,
+    attr, handle, map,
+    misc::jwt,
 };
 
 /// Authentication server
@@ -97,19 +98,18 @@ impl App {
             cdc.push(dc);
         }
 
-        let disclosure_request_jwt: String =
+        let disclosure_request: jwt::JWT =
             api::return_if_ec!(servers::yivi::SessionRequest::disclosure(cdc)
                 .sign(&yivi.requestor_creds)
                 .into_ec(|err| {
                     log::error!("failed to create signed disclosure request: {err}");
 
                     api::ErrorCode::InternalError
-                }))
-            .into();
+                }));
 
         api::ok(api::auths::AuthStartResp {
             task: api::auths::AuthTask::Yivi {
-                disclosure_request_jwt,
+                disclosure_request,
                 yivi_requestor_url: yivi.requestor_url.clone(),
             },
         })

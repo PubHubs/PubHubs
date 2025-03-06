@@ -2,7 +2,7 @@
 use anyhow::Context as _;
 use serde;
 
-use crate::misc::jwt;
+use crate::misc::{jwt, serde_ext};
 
 /// A session request send by a requestor to a yivi server
 #[derive(serde::Serialize, serde::Deserialize, Debug, Clone)]
@@ -97,7 +97,7 @@ pub struct RequestorCredentials {
 #[serde(deny_unknown_fields)]
 pub enum RequestorKey {
     #[serde(rename = "hs256")]
-    HS256(jwt::HS256),
+    HS256(serde_ext::bytes_wrapper::B64<jwt::HS256>),
     // We do not use the `Token` or `RS256` Yivi `auth_method`s,
     // see: https://docs.yivi.app/irma-server#requestor-authentication
 }
@@ -109,7 +109,7 @@ impl RequestorKey {
     /// supports multiple algorithms.
     fn sign<C: serde::Serialize>(&self, claims: &C) -> Result<jwt::JWT, jwt::Error> {
         match self {
-            RequestorKey::HS256(ref key) => jwt::JWT::create(claims, key),
+            RequestorKey::HS256(ref key) => jwt::JWT::create(claims, &**key),
         }
     }
 }

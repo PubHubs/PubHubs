@@ -23,12 +23,6 @@ pub struct JWT {
     inner: String,
 }
 
-impl Into<String> for JWT {
-    fn into(self: Self) -> String {
-        self.inner
-    }
-}
-
 /// Represents a set of claims made by a JWT.
 #[derive(Debug, Clone, Default, serde::Serialize)]
 #[serde(transparent)]
@@ -703,6 +697,7 @@ impl VerifyingKey for ed25519_dalek::VerifyingKey {
 
 /// Key for SHA256 based HMAC
 #[derive(serde::Serialize, serde::Deserialize, Clone, Debug)]
+#[serde(transparent)]
 pub struct HS256(#[serde(with = "serde_bytes")] pub Vec<u8>);
 
 /// Implements signing of JWTs using the sha256-hmac.

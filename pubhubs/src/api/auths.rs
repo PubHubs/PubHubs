@@ -1,5 +1,6 @@
 //! Additional endpoints provided by the authentication server
 use crate::api::*;
+use crate::misc::jwt;
 
 use serde::{Deserialize, Serialize};
 
@@ -20,11 +21,11 @@ impl EndpointDetails for AuthStartEP {
 /// Results in `ErrorCode::UnknownAttributeType` if one of the attribute types is not known.
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct AuthStartReq {
-    /// List of requested attributes
-    pub attr_types: Vec<crate::handle::Handle>,
-
     /// Which source to use (e.g. yivi)
     pub source: crate::attr::Source,
+
+    /// List of requested attributes
+    pub attr_types: Vec<crate::handle::Handle>,
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
@@ -40,7 +41,7 @@ pub enum AuthTask {
     /// The authentication server only creates the signed (disclosure) session request,
     /// but it's up to the global client to send it to the yivi server.
     Yivi {
-        disclosure_request_jwt: String,
+        disclosure_request: jwt::JWT,
         yivi_requestor_url: url::Url,
     },
 }
@@ -64,7 +65,7 @@ pub struct AuthCompleteReq {
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub enum AuthProof {
-    Yivi { disclosure_response_jwt: String },
+    Yivi { disclosure: jwt::JWT },
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
