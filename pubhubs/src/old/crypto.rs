@@ -13,7 +13,7 @@ pub fn seal<T: serde::Serialize>(
     key: &chacha20poly1305::Key,
     aad: impl AsRef<[u8]>,
 ) -> anyhow::Result<String> {
-    let plaintext = rmp_serde::to_vec(obj).context("serializing")?;
+    let plaintext = serde_json::to_vec(obj).context("serializing")?;
 
     let nonce = XChaCha20Poly1305::generate_nonce(&mut aead::OsRng);
     let ciphertext = XChaCha20Poly1305::new(key)
@@ -59,7 +59,7 @@ pub fn unseal<T: serde::de::DeserializeOwned>(
         )
         .map_err(|_| crate::error::OPAQUE)?;
 
-    rmp_serde::from_slice(&plaintext).map_err(|_| crate::error::OPAQUE)
+    serde_json::from_slice(&plaintext).map_err(|_| crate::error::OPAQUE)
 }
 
 /// Trait to extract the length from a GenericArray
