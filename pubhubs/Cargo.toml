@@ -58,7 +58,7 @@ bin = [
 	"dep:hmac",
 	"dep:typenum",
 	"dep:generic-array",
-	"dep:humantime", # used by env_logger already
+	"dep:jiff",
 ]
 real_credentials = []
 old = [
@@ -177,7 +177,7 @@ hairy = { version = "0.1", optional = true }
 # command line argument parser
 clap = { version = "4.5", features = ["derive"], optional = true }
 
-humantime = { version="2", optional=true }
+jiff = { version = "0.2", optional = true }
 
 [dev-dependencies]
 tempfile = "3.13"
