@@ -81,5 +81,3 @@ General tips:
 
 (The `merge-to-stable` merge request template can be edited [here](https://gitlab.science.ru.nl/ilab/pubhubs_canonical/-/edit/main/.gitlab/merge_request_templates/merge-to-stable.md).)
   - [ ] Celebrate!
-
-- 
