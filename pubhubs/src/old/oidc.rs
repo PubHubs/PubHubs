@@ -828,7 +828,11 @@ pub mod http {
         }
 
         impl<'r, Body: hyper::body::HttpBody + Unpin> Request for CompleteRequest<'r, Body> {
-            type Body<'b> = &'b [u8] where Self:'b,Body:'b;
+            type Body<'b>
+                = &'b [u8]
+            where
+                Self: 'b,
+                Body: 'b;
 
             fn method(&self) -> Method {
                 self.underlying.method().into()

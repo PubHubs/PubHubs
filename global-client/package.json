@@ -20,7 +20,7 @@
 		"@vue/test-utils": "^2.2.3",
 		"autoprefixer": "^10",
 		"core-js": "^3.8.3",
-		"pinia": "^2.0.26",
+		"pinia": "^3",
 		"postcss": "^8.4",
 		"register-service-worker": "^1.7.2",
 		"tailwind-merge": "^2",

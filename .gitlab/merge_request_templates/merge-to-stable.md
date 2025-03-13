@@ -64,10 +64,9 @@ General tips:
   - [ ] Merge the branch with the updated dependencies to main. We do this now because otherwise the main and stable will not point to the same commit as shown in the repository graph.
   - [ ] Check this list and cleanup items with due date passed, and add due dates to items that are not in active development anymore.
        
-  (The `merge-to-stable` merge request template can be edited [here](https://gitlab.science.ru.nl/ilab/pubhubs_canonical/-/edit/main/.gitlab/merge_request_templates/merge-to-stable.md).)
-  - [ ] Celebrate!
-
-- If Frans Lammers is not available, email [external hubs](https://gitlab.science.ru.nl/ilab/pubhubs_canonical/-/wikis/Tech-Information/External-Hub-Deployment) or [TryOut Rooms/Hubs](https://gitlab.science.ru.nl/ilab/pubhubs_canonical/-/wikis/Externals/TryOutHub-Rooms) to pull the latest updates with the following email:
+  
+  
+  - [ ] If Frans Lammers is not available, email [external hubs](https://gitlab.science.ru.nl/ilab/pubhubs_canonical/-/wikis/Tech-Information/External-Hub-Deployment) to pull the latest updates with the following email:
 
 > Dear XYZ,
 > 
@@ -79,3 +78,6 @@ General tips:
 > Regards,
 >
 > PubHubs Team
+
+(The `merge-to-stable` merge request template can be edited [here](https://gitlab.science.ru.nl/ilab/pubhubs_canonical/-/edit/main/.gitlab/merge_request_templates/merge-to-stable.md).)
+  - [ ] Celebrate!
