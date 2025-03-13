@@ -1022,6 +1022,7 @@ fn create_app(cfg: &mut web::ServiceConfig, context: Data<Main>) {
                 )
                 .service(
                     web::scope("bar")
+                        .wrap(actix_web::middleware::Logger::default().exclude("/bar/state"))
                         // get and put the state of the side bar used to switch
                         // between hubs
                         .route("/state", web::get().to(crate::bar::get_state))
