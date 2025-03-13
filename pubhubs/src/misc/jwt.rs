@@ -254,12 +254,12 @@ pub struct NumericDate {
 impl NumericDate {
     /// Creates a new numeric date from the given `timestamp`, the  number of seconds since the
     /// unix epoch ignoring leap seconds.
-    fn new(timestamp: u64) -> Self {
+    pub fn new(timestamp: u64) -> Self {
         Self { timestamp }
     }
 
     /// Creates a numeric date representing the current moment
-    fn now() -> Self {
+    pub fn now() -> Self {
         Self::new(
             std::time::SystemTime::now()
                 .duration_since(std::time::UNIX_EPOCH)

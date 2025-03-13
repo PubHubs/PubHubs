@@ -65,7 +65,11 @@ pub struct AuthCompleteReq {
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub enum AuthProof {
-    Yivi { disclosure: jwt::JWT },
+    Yivi {
+        /// The JWT returned by the yivi server's `/session/(...)/result-jwt` after completing a session
+        /// with [`AuthTask::Yivi::disclosure_request`].
+        disclosure: jwt::JWT,
+    },
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]

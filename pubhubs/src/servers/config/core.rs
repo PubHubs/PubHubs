@@ -319,7 +319,7 @@ pub mod auths {
         /// by the hub client for starting disclosure requests?
         pub requestor_url: UrlPwa,
 
-        pub requestor_creds: yivi::RequestorCredentials,
+        pub requestor_creds: yivi::Credentials,
     }
 }
 

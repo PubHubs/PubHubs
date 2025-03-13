@@ -38,7 +38,7 @@ pub struct App {
 #[derive(Debug, Clone)]
 pub struct YiviCtx {
     requestor_url: url::Url,
-    requestor_creds: servers::yivi::RequestorCredentials,
+    requestor_creds: servers::yivi::Credentials,
 }
 
 impl App {
