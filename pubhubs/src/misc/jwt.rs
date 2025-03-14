@@ -696,7 +696,7 @@ impl VerifyingKey for ed25519_dalek::VerifyingKey {
 }
 
 /// Key for SHA256 based HMAC
-#[derive(serde::Serialize, serde::Deserialize, Clone, Debug)]
+#[derive(serde::Serialize, serde::Deserialize, Clone, Debug, Eq, PartialEq)]
 #[serde(transparent)]
 pub struct HS256(#[serde(with = "serde_bytes")] pub Vec<u8>);
 

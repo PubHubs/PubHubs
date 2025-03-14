@@ -3,6 +3,7 @@
 use crate::common::secret;
 use crate::handle::{Handle, Handles};
 use crate::id::Id;
+use crate::servers::yivi;
 
 use digest::Digest as _;
 
@@ -37,7 +38,7 @@ impl std::fmt::Display for Type {
 pub enum SourceDetails {
     Yivi {
         /// The yivi attribute type identifier
-        attr_type_id: String,
+        attr_type_id: yivi::AttributeTypeIdentifier,
     },
 }
 
@@ -66,10 +67,10 @@ impl crate::map::Handled for Type {
 
 #[derive(serde::Deserialize, serde::Serialize, Debug, Clone)]
 pub struct Attr {
-    /// Refers to the this attribute's [`attr::Type`] via the type's `[Id]`.
+    /// Refers to the this attribute's [`Type`] via the type's `[Id]`.
     attr_type: Id,
 
-    /// Actual value of this attribute, in a format that is [`attr::Type`] dependent.
+    /// Actual value of this attribute, in a format that is [`Type`] dependent.
     value: String,
 }
 
@@ -104,7 +105,7 @@ pub struct AttrState {
 
     /// The user, if any, that this attribute can identify.
     ///
-    /// Only identifies the user if the user lists this attribute among its [`Id::id_attributes`].
+    /// Only identifies the user if the user lists this attribute among its identifying attributes.
     ///
     /// Once set, this should never be unset.  This prevents impersonation of a user when
     /// they remove their id.

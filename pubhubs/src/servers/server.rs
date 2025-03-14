@@ -42,7 +42,7 @@ impl std::fmt::Display for Name {
     }
 }
 
-/// Common API to the different PubHubs servers, used by the [crate::servers::run::Runner].
+/// Common API to the different PubHubs servers.
 ///
 /// A single instance of the [ServerImpl] implementation of [Server] is created
 /// for each server that's being run, and it's mainly responsible for creating
@@ -52,8 +52,8 @@ impl std::fmt::Display for Name {
 /// and are mostly immutable. To change the server's state, generally all apps must be restarted.
 ///
 /// An exception to this no-shared-mutable-state is the shared state in [Handle], for example the
-/// `crate::servers::run::DiscoveryLimiter` and the object store.
-pub trait Server: Sized + 'static {
+/// `crate::servers::run::DiscoveryLimiter` and the object store
+pub(crate) trait Server: Sized + 'static {
     type AppT: App<Self>;
 
     const NAME: Name;
@@ -328,8 +328,8 @@ impl<S: Server> std::fmt::Display for BoxInspector<S> {
     }
 }
 
-/// Commands an [App] can issue to a [crate::servers::run::Runner].
-pub enum Command<S: Server> {
+/// Commands an [App] can issue to its runner.
+pub(crate) enum Command<S: Server> {
     /// Stop the server, apply the enclosed modification, and, depending on the result restart
     /// the server.
     ///

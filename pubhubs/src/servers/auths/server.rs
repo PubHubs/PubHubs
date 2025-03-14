@@ -2,10 +2,10 @@ use std::rc::Rc;
 
 use actix_web::web;
 
-use crate::servers::{self, AppBase, AppCreatorBase, Constellation, Handle};
+use crate::servers::{self, yivi, AppBase, AppCreatorBase, Constellation, Handle};
 use crate::{
     api::{self, EndpointDetails as _, IntoErrorCode as _},
-    attr, handle, map,
+    attr, map,
     misc::jwt,
 };
 
@@ -81,7 +81,7 @@ impl App {
             let mut dc: Vec<Vec<servers::yivi::AttributeRequest>> = Default::default();
 
             for source in attr_ty.sources.iter() {
-                let attr_type_id: String = match source {
+                let attr_type_id: yivi::AttributeTypeIdentifier = match source {
                     attr::SourceDetails::Yivi { attr_type_id } => attr_type_id.clone(),
                     #[expect(unreachable_patterns)]
                     _ => continue,

@@ -1,16 +1,18 @@
 //! Tools for dealing with yivi.
+use std::cell::OnceCell;
+
 use anyhow::Context as _;
-use serde::{self, Serialize as _};
+use serde::{self, de::Error as _, Deserialize as _, Serialize as _};
 
 use crate::misc::{jwt, serde_ext};
 
-/// A session request send by a requestor to a yivi server
-#[derive(serde::Serialize, serde::Deserialize, Debug, Clone)]
+/// A session request sent by a requestor to a yivi server
+#[derive(serde::Serialize, serde::Deserialize, Debug, Clone, PartialEq, Eq)]
 pub struct SessionRequest {
     #[serde(rename = "@context")]
     context: LdContext,
 
-    /// See: https://pkg.go.dev/github.com/privacybydesign/irmago#DisclosureRequest
+    /// <https://pkg.go.dev/github.com/privacybydesign/irmago#DisclosureRequest>
     disclose: Option<AttributeConDisCon>,
 }
 
@@ -24,9 +26,9 @@ impl SessionRequest {
 
     /// Signs this session request using the provided requestor credentials.
     ///
-    /// Documentation: https://docs.yivi.app/session-requests/#jwts-signed-session-requests
+    /// Documentation: <https://docs.yivi.app/session-requests/#jwts-signed-session-requests>
     /// Reference code for disclosure request:
-    ///     https://github.com/privacybydesign/irmago/blob/d389b4559e007a0fcb4e78d1f6e073c1ad57bc13/requests.go#L957
+    ///     <https://github.com/privacybydesign/irmago/blob/d389b4559e007a0fcb4e78d1f6e073c1ad57bc13/requests.go#L957>
     pub fn sign(self, creds: &Credentials) -> anyhow::Result<jwt::JWT> {
         Ok(creds
             .key
@@ -42,13 +44,51 @@ impl SessionRequest {
         // NOTE: the jwt library irmago uses adds a `"typ": "JWT"` to the header,
         // but its presence is not checked, so we omit it.
     }
+
+    /// Mocks a valid [`SessionResult`] to this [`SessionRequest`] disclosing
+    /// the values specified by the `df` function.
+    ///
+    /// Only simple disclosure requests not involving any 'discon's are currently supported.
+    ///
+    /// # Panics
+    ///  - If `self` is not a disclosure request, or is missing the `disclosure` field.
+    ///  - If one of the 'discon's is empty, or not a singleton.
+    pub fn mock_disclosure_response(
+        &self,
+        df: impl Fn(&AttributeTypeIdentifier) -> String,
+    ) -> SessionResult {
+        assert_eq!(self.context, LdContext::Disclosure);
+
+        let disclosed: Vec<Vec<DisclosedAttribute>> = self
+            .disclose
+            .as_ref()
+            .expect("missing `disclose` field in disclosure session request")
+            .iter()
+            .map(|dc: &Vec<Vec<AttributeRequest>>| {
+                assert_eq!(dc.len(), 1, "'discon's not supported by this mock function");
+
+                let con_req: &Vec<AttributeRequest> = &dc[0];
+
+                let con_resp: Vec<DisclosedAttribute> = con_req
+                    .iter()
+                    .map(|ar: &AttributeRequest| {
+                        DisclosedAttribute::mock(df(&ar.ty), ar.ty.clone())
+                    })
+                    .collect();
+
+                con_resp
+            })
+            .collect();
+
+        SessionResult::mock_disclosure(disclosed)
+    }
 }
 
 /// Some JSON linked data contexts <http://json-ld.org> used by yivi, primarily to identify a
-/// session's type.  Not to be confused with [`LdContext`].
+/// session's type.  Not to be confused with [`SessionType`].
 ///
 /// <https://github.com/privacybydesign/irmago/blob/b1c38f4f2c9da3d3f39b5c21a330bcbd04143f41/requests.go#L21>
-#[derive(serde::Serialize, serde::Deserialize, Debug, Clone)]
+#[derive(serde::Serialize, serde::Deserialize, Debug, Clone, PartialEq, Eq)]
 pub enum LdContext {
     #[serde(rename = "https://irma.app/ld/request/disclosure/v2")]
     Disclosure,
@@ -80,24 +120,26 @@ impl LdContext {
     }
 }
 
-/// See: https://pkg.go.dev/github.com/privacybydesign/irmago#AttributeConDisCon
+/// <https://pkg.go.dev/github.com/privacybydesign/irmago#AttributeConDisCon>
 pub type AttributeConDisCon = Vec<Vec<Vec<AttributeRequest>>>;
 
-/// See: https://pkg.go.dev/github.com/privacybydesign/irmago#AttributeRequest
-#[derive(serde::Serialize, serde::Deserialize, Debug, Clone)]
+/// <https://pkg.go.dev/github.com/privacybydesign/irmago#AttributeRequest>
+#[derive(serde::Serialize, serde::Deserialize, Debug, Clone, PartialEq, Eq)]
 pub struct AttributeRequest {
     #[serde(rename = "type")] // 'type' is a keyword
-    pub ty: String,
+    pub ty: AttributeTypeIdentifier,
 }
 
-#[derive(serde::Deserialize, serde::Serialize, Debug, Clone)]
+/// Credentials (name and key) for a requestor (or yivi server).
+#[derive(serde::Serialize, serde::Deserialize, Debug, Clone, PartialEq, Eq)]
 #[serde(deny_unknown_fields)]
 pub struct Credentials {
     pub name: String,
     pub key: SigningKey,
 }
 
-#[derive(serde::Deserialize, serde::Serialize, Debug, Clone)]
+/// Private key used by a requestor or yivi server to sign their JWTs.
+#[derive(serde::Serialize, serde::Deserialize, Debug, Clone, PartialEq, Eq)]
 #[serde(deny_unknown_fields)]
 pub enum SigningKey {
     #[serde(rename = "hs256")]
@@ -109,7 +151,7 @@ pub enum SigningKey {
 impl SigningKey {
     /// Sign the given claims using this requestor key.
     ///
-    /// Note that [`SigningKey`] cannot implement [`jwt::Key`] because [`Key`]
+    /// Note that [`SigningKey`] cannot implement [`jwt::Key`] because [`SigningKey`]
     /// supports multiple algorithms.
     fn sign<C: serde::Serialize>(&self, claims: &C) -> Result<jwt::JWT, jwt::Error> {
         match self {
@@ -121,7 +163,7 @@ impl SigningKey {
 /// Result of a Yivi session
 ///
 /// <https://github.com/privacybydesign/irmago/blob/b1c38f4f2c9da3d3f39b5c21a330bcbd04143f41/server/api.go#L37>
-#[derive(serde::Serialize, serde::Deserialize, Debug)]
+#[derive(serde::Serialize, serde::Deserialize, Debug, Clone, PartialEq, Eq)]
 pub struct SessionResult {
     pub token: RequestorToken,
     pub status: Status,
@@ -145,7 +187,7 @@ impl SessionResult {
     /// Creates a mock session result containing the specified disclosed attributes
     fn mock_disclosure(disclosed: Vec<Vec<DisclosedAttribute>>) -> SessionResult {
         SessionResult {
-            token: "MockToken".to_string(),
+            token: "1234567890abcdefghij".parse().unwrap(),
             status: Status::Done,
             session_type: SessionType::Disclosing,
             proof_status: Some(ProofStatus::Valid),
@@ -181,14 +223,14 @@ impl SessionResult {
 /// Disclosure of a single attribute
 ///
 /// <https://github.com/privacybydesign/irmago/blob/b1c38f4f2c9da3d3f39b5c21a330bcbd04143f41/verify.go#L36>
-#[derive(serde::Serialize, serde::Deserialize, Debug)]
+#[derive(serde::Serialize, serde::Deserialize, Debug, Clone, PartialEq, Eq)]
 pub struct DisclosedAttribute {
     #[serde(rename = "rawvalue")]
     pub raw_value: String,
 
     // NB: The field "value" (containing translations of the attribute) we don't use
     /// The type of the disclosed attibute
-    pub id: String,
+    pub id: AttributeTypeIdentifier,
 
     pub status: AttributeProofStatus,
 
@@ -203,7 +245,7 @@ pub struct DisclosedAttribute {
 }
 
 impl DisclosedAttribute {
-    fn mock(raw_value: String, id: String) -> Self {
+    fn mock(raw_value: String, id: AttributeTypeIdentifier) -> Self {
         Self {
             raw_value,
             id,
@@ -218,12 +260,128 @@ impl DisclosedAttribute {
 /// Identifier for a yivi session used in requestor endpoints
 ///
 /// <https://github.com/privacybydesign/irmago/blob/b1c38f4f2c9da3d3f39b5c21a330bcbd04143f41/messages.go#L179>
-pub type RequestorToken = String;
+#[derive(serde::Serialize, serde::Deserialize, Clone, Debug, Eq, PartialEq)]
+#[serde(transparent)]
+pub struct RequestorToken {
+    #[serde(deserialize_with = "RequestorToken::deserialize_inner")]
+    inner: String,
+}
+
+/// The regex pattern for a [`RequestorToken`]
+///
+/// <https://github.com/privacybydesign/irmago/blob/b1c38f4f2c9da3d3f39b5c21a330bcbd04143f41/internal/common/common.go#L39>
+const REQUESTOR_TOKEN_REGEX: &str = r"^[a-z0-9A-Z]{20}$";
+
+thread_local! {
+    /// Thread local compiled version of [`REQUESTOR_TOKEN_REGEX`]
+    static REQUESTOR_TOKEN_REGEX_TLK: OnceCell<regex::Regex> = const { OnceCell::new() };
+}
+
+/// Runs `f` with as argument a reference to a compiled [REQUESTOR_TOKEN_REGEX]
+/// that is cached thread locally.
+fn with_requestor_token_regex<R>(f: impl FnOnce(&regex::Regex) -> R) -> R {
+    REQUESTOR_TOKEN_REGEX_TLK.with(|oc: &OnceCell<regex::Regex>| {
+        f(oc.get_or_init(|| regex::Regex::new(REQUESTOR_TOKEN_REGEX).unwrap()))
+    })
+}
+
+impl RequestorToken {
+    fn deserialize_inner<'de, D>(d: D) -> Result<String, D::Error>
+    where
+        D: serde::de::Deserializer<'de>,
+    {
+        let inner: String = String::deserialize(d)?;
+
+        Self::validate_inner(&inner).map_err(D::Error::custom)?;
+
+        Ok(inner)
+    }
+
+    /// <https://github.com/privacybydesign/irmago/blob/b1c38f4f2c9da3d3f39b5c21a330bcbd04143f41/internal/common/common.go#L39>
+    fn validate_inner(inner: &str) -> anyhow::Result<()> {
+        if !with_requestor_token_regex(|r: &regex::Regex| r.is_match(inner)) {
+            anyhow::bail!(
+                "invalid yivi requestor token: did not match regex {}",
+                REQUESTOR_TOKEN_REGEX
+            );
+        }
+        Ok(())
+    }
+}
+
+impl std::str::FromStr for RequestorToken {
+    type Err = anyhow::Error;
+
+    fn from_str(inner: &str) -> Result<Self, Self::Err> {
+        Self::validate_inner(inner)?;
+        Ok(Self {
+            inner: inner.to_string(),
+        })
+    }
+}
+
+/// Identifier for a yivi attribute type, to us a string with three dots ('.').
+///
+/// <https://github.com/privacybydesign/irmago/blob/b1c38f4f2c9da3d3f39b5c21a330bcbd04143f41/identifiers.go#L60>
+///
+/// # Identifying credentials
+/// Yivi also permits attribute type identifiers with two dots, which refer to credentials, see
+/// for example:
+///
+/// <https://github.com/privacybydesign/irmago/blob/b1c38f4f2c9da3d3f39b5c21a330bcbd04143f41/requests.go#L382>
+///
+/// We don't.
+#[derive(serde::Serialize, serde::Deserialize, Clone, Debug, Eq, PartialEq)]
+#[serde(transparent)]
+pub struct AttributeTypeIdentifier {
+    #[serde(deserialize_with = "AttributeTypeIdentifier::deserialize_inner")]
+    inner: String,
+}
+
+impl AttributeTypeIdentifier {
+    fn deserialize_inner<'de, D>(d: D) -> Result<String, D::Error>
+    where
+        D: serde::de::Deserializer<'de>,
+    {
+        let inner: String = String::deserialize(d)?;
+
+        Self::validate_inner(&inner).map_err(D::Error::custom)?;
+
+        Ok(inner)
+    }
+
+    /// Checks that the given string contains three dots ('.').
+    fn validate_inner(inner: &str) -> anyhow::Result<()> {
+        let dot_count: usize = inner.chars().filter(|c: &char| *c == '.').count();
+
+        if dot_count == 2 {
+            anyhow::bail!("we do not support yivi attribute identifiers with two dots");
+        }
+
+        anyhow::ensure!(
+            dot_count == 3,
+            "invalid yivi attribute type identifier: does not contain three dots"
+        );
+
+        Ok(())
+    }
+}
+
+impl std::str::FromStr for AttributeTypeIdentifier {
+    type Err = anyhow::Error;
+
+    fn from_str(inner: &str) -> Result<Self, Self::Err> {
+        Self::validate_inner(inner)?;
+        Ok(Self {
+            inner: inner.to_string(),
+        })
+    }
+}
 
 /// Error type that may be part of a session result
 ///
 /// <https://github.com/privacybydesign/irmago/blob/b1c38f4f2c9da3d3f39b5c21a330bcbd04143f41/messages.go#L119>
-#[derive(serde::Serialize, serde::Deserialize, Debug, PartialEq, Eq)]
+#[derive(serde::Serialize, serde::Deserialize, Debug, PartialEq, Eq, Clone)]
 pub struct RemoteError {
     pub status: Option<u64>,
     pub error: Option<String>,
@@ -235,7 +393,7 @@ pub struct RemoteError {
 /// Proof status of an entire session
 ///
 /// <https://github.com/privacybydesign/irmago/blob/b1c38f4f2c9da3d3f39b5c21a330bcbd04143f41/verify.go#L23>
-#[derive(serde::Serialize, serde::Deserialize, Debug, PartialEq, Eq)]
+#[derive(serde::Serialize, serde::Deserialize, Debug, PartialEq, Eq, Clone, Copy)]
 #[serde(rename_all_fields = "SCREAMING_SNAKE_CASE")]
 pub enum ProofStatus {
     Valid,
@@ -249,7 +407,7 @@ pub enum ProofStatus {
 /// Status of a yivi session
 ///
 /// <https://github.com/privacybydesign/irmago/blob/b1c38f4f2c9da3d3f39b5c21a330bcbd04143f41/messages.go#L216>
-#[derive(serde::Serialize, serde::Deserialize, Debug, PartialEq, Eq)]
+#[derive(serde::Serialize, serde::Deserialize, Debug, PartialEq, Eq, Clone, Copy)]
 #[serde(rename_all_fields = "SCREAMING_SNAKE_CASE")]
 pub enum Status {
     Done,
@@ -263,7 +421,7 @@ pub enum Status {
 /// Proof status of a single yivi attribute
 ///
 /// <https://github.com/privacybydesign/irmago/blob/b1c38f4f2c9da3d3f39b5c21a330bcbd04143f41/verify.go#L30>
-#[derive(serde::Serialize, serde::Deserialize, Debug, PartialEq, Eq)]
+#[derive(serde::Serialize, serde::Deserialize, Debug, PartialEq, Eq, Clone, Copy)]
 #[serde(rename_all_fields = "SCREAMING_SNAKE_CASE")]
 pub enum AttributeProofStatus {
     Present,
@@ -274,7 +432,7 @@ pub enum AttributeProofStatus {
 /// Session type
 ///
 /// <https://github.com/privacybydesign/irmago/blob/b1c38f4f2c9da3d3f39b5c21a330bcbd04143f41/messages.go#L227>
-#[derive(serde::Serialize, serde::Deserialize, Debug, PartialEq, Eq)]
+#[derive(serde::Serialize, serde::Deserialize, Debug, PartialEq, Eq, Clone, Copy)]
 #[serde(rename_all = "lowercase")]
 pub enum SessionType {
     Disclosing,
@@ -288,5 +446,26 @@ pub enum SessionType {
 impl std::fmt::Display for SessionType {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         self.serialize(f)
+    }
+}
+
+#[cfg(test)]
+mod test {
+    use super::*;
+    use std::str::FromStr as _;
+
+    #[test]
+    fn requestor_token() {
+        let r1: RequestorToken = "1234567890abcdefghij".parse().unwrap();
+        let r2: RequestorToken = serde_json::from_str("\"1234567890abcdefghij\"").unwrap();
+        assert_eq!(r1, r2);
+
+        assert!(RequestorToken::from_str("1234567890 abcdefghij").is_err());
+    }
+
+    #[test]
+    fn attribute_type_identifier() {
+        serde_json::from_str::<AttributeTypeIdentifier>("\"a.b.c.d\"").unwrap();
+        assert!(serde_json::from_str::<AttributeTypeIdentifier>("\"a.b.c\"").is_err());
     }
 }
