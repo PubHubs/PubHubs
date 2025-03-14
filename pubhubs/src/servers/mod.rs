@@ -6,7 +6,7 @@ pub mod macros;
 mod object_store;
 mod run;
 pub(super) mod server;
-pub(crate) mod yivi;
+pub mod yivi;
 
 pub(crate) mod auths;
 pub(crate) mod phc;

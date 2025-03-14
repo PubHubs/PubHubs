@@ -4,7 +4,7 @@
 //! fix for this bug in rust's ring crate was not yet stable at
 //! the time of writing:  <https://github.com/briansmith/ring/issues/1299>
 
-use std::borrow::Cow;
+use std::borrow::{Borrow as _, Cow};
 use std::fmt;
 
 use base64ct::{Base64UrlUnpadded, Encoding as _};
@@ -41,7 +41,7 @@ impl Claims {
     pub fn check<'s, V: Deserialize<'s>>(
         mut self,
         name: &'static str,
-        expectation: impl FnOnce(Option<V>) -> Result<(), Error>,
+        expectation: impl FnOnce(&'static str, Option<V>) -> Result<(), Error>,
     ) -> Result<Self, Error> {
         let value: Option<V> = self
             .inner
@@ -53,7 +53,7 @@ impl Claims {
                 source: err,
             })?;
 
-        expectation(value)?;
+        expectation(name, value)?;
 
         Ok(self)
     }
@@ -63,14 +63,17 @@ impl Claims {
     pub fn check_present_and<'s, V: Deserialize<'s>>(
         self,
         name: &'static str,
-        expectation: impl FnOnce(V) -> Result<(), Error>,
+        expectation: impl FnOnce(&'static str, V) -> Result<(), Error>,
     ) -> Result<Self, Error> {
-        self.check(name, |v: Option<V>| -> Result<(), Error> {
-            if v.is_none() {
-                return Err(Error::MissingClaim(name));
-            }
-            expectation(v.unwrap())
-        })
+        self.check(
+            name,
+            |claim_name: &'static str, v: Option<V>| -> Result<(), Error> {
+                if v.is_none() {
+                    return Err(Error::MissingClaim(claim_name));
+                }
+                expectation(name, v.unwrap())
+            },
+        )
     }
 
     /// Checks that there is no claim with `name`.
@@ -91,7 +94,7 @@ impl Claims {
     /// [Self::check] for `iss` claim.
     pub fn check_iss(
         self,
-        expectation: impl FnOnce(Option<String>) -> Result<(), Error>,
+        expectation: impl FnOnce(&'static str, Option<String>) -> Result<(), Error>,
     ) -> Result<Self, Error> {
         self.check("iss", expectation)
     }
@@ -99,7 +102,7 @@ impl Claims {
     /// [Self::check] for `sub` claim.
     pub fn check_sub(
         self,
-        expectation: impl FnOnce(Option<String>) -> Result<(), Error>,
+        expectation: impl FnOnce(&'static str, Option<String>) -> Result<(), Error>,
     ) -> Result<Self, Error> {
         self.check("sub", expectation)
     }
@@ -109,30 +112,39 @@ impl Claims {
     pub fn default_check_timestamps(self) -> Result<Self, Error> {
         let now = NumericDate::now();
 
-        self.check("iat", |_iat: Option<NumericDate>| -> Result<(), Error> {
-            // When it is present, iat should be a valid NumericData, but it is otherwise ignored.
-            Ok(())
-        })?
-        .check("exp", |exp: Option<NumericDate>| -> Result<(), Error> {
-            // When `exp` is present, it should not be expired.
-            if let Some(exp) = exp {
-                if exp < now {
-                    return Err(Error::Expired { when: exp });
+        self.check(
+            "iat",
+            |_claim_name: &'static str, _iat: Option<NumericDate>| -> Result<(), Error> {
+                // When it is present, iat should be a valid NumericData, but it is otherwise ignored.
+                Ok(())
+            },
+        )?
+        .check(
+            "exp",
+            |_claim_name: &'static str, exp: Option<NumericDate>| -> Result<(), Error> {
+                // When `exp` is present, it should not be expired.
+                if let Some(exp) = exp {
+                    if exp < now {
+                        return Err(Error::Expired { when: exp });
+                    }
                 }
-            }
 
-            Ok(())
-        })?
-        .check("nbf", |nbf: Option<NumericDate>| -> Result<(), Error> {
-            // When `nbf` is present, it should be in the past.
-            if let Some(nbf) = nbf {
-                if now < nbf {
-                    return Err(Error::NotYetValid { valid_from: nbf });
+                Ok(())
+            },
+        )?
+        .check(
+            "nbf",
+            |_claim_name: &'static str, nbf: Option<NumericDate>| -> Result<(), Error> {
+                // When `nbf` is present, it should be in the past.
+                if let Some(nbf) = nbf {
+                    if now < nbf {
+                        return Err(Error::NotYetValid { valid_from: nbf });
+                    }
                 }
-            }
 
-            Ok(())
-        })
+                Ok(())
+            },
+        )
     }
 
     /// Checks and removes `iat`, `exp`, and `nbf`, and makes sure
@@ -160,8 +172,23 @@ impl Claims {
         // we check common claims to ensure they are not ignored
         let self_ = self.default_check_common_claims()?;
 
-        let claims: C = C::deserialize(&serde_json::Value::Object(self_.inner))
-            .map_err(Error::DeserializingClaims)?;
+        let jso = serde_json::Value::Object(self_.inner);
+        let claims: C = C::deserialize(&jso).map_err(|err| {
+            let jso_str = serde_json::to_string_pretty(&jso).unwrap();
+
+            if let Err(better_err) = serde_json::from_str::<C>(&jso_str) {
+                return Error::DeserializingClaims {
+                    source: better_err,
+                    claims: jso_str,
+                };
+            }
+
+            log::error!("something fishy is going on here with this faulty json");
+            Error::DeserializingClaims {
+                source: err,
+                claims: "".to_string(),
+            }
+        })?;
 
         Ok(visitor(claims))
     }
@@ -456,8 +483,11 @@ pub enum Error {
     )]
     ClaimsDontSerializeToMapButNull { claims_type: &'static str },
 
-    #[error("invalid jwt claims")]
-    DeserializingClaims(#[source] serde_json::Error),
+    #[error("invalid jwt claims: {source} in {claims}")]
+    DeserializingClaims {
+        source: serde_json::Error,
+        claims: String,
+    },
 
     #[error("failed to deserialize claim {claim_name}")]
     DeserializingClaim {
@@ -750,6 +780,33 @@ impl Key for HS256 {
     const ALG: &'static str = "HS256";
 }
 
+/// Some common `FnOnce(Some(T))->Result<(),jwt::Error>`s for calling [`Claims::check`] and co.
+pub mod expecting {
+    use super::*;
+
+    /// Expectation that the claim is present and has the given value.
+    pub fn exactly<T: ToOwned + ?Sized>(
+        what: &T,
+    ) -> impl (FnOnce(&'static str, Option<T::Owned>) -> Result<(), Error>) + use<'_, T>
+    where
+        T: std::fmt::Debug,
+        T: PartialEq,
+    {
+        move |claim_name: &'static str, val_maybe: Option<T::Owned>| {
+            if let Some(val) = val_maybe {
+                if *what == *val.borrow() {
+                    return Ok(());
+                }
+                return Err(Error::InvalidClaim {
+                    claim_name,
+                    source: anyhow::anyhow!("expected {:?}; got {:?}", what, val.borrow()),
+                });
+            }
+            Err(Error::MissingClaim(claim_name))
+        }
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -792,10 +849,12 @@ mod tests {
             claims
                 .clone()
                 .ignore("exp")
-                .check_iss(|iss: Option<String>| -> Result<(), Error> {
-                    assert_eq!(iss, Some("joe".to_string()));
-                    Ok(())
-                })
+                .check_iss(
+                    |name: &'static str, iss: Option<String>| -> Result<(), Error> {
+                        assert_eq!(iss, Some("joe".to_string()));
+                        Ok(())
+                    }
+                )
                 .unwrap()
                 .into_custom::<Custom>()
                 .unwrap(),

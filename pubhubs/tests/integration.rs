@@ -1,7 +1,11 @@
 // integration test, testing all aspects of the rust code
 
 use actix_web::web;
-use pubhubs::{api, attr, client, elgamal, hub, misc::jwt, servers};
+use pubhubs::{
+    api, attr, client, elgamal, hub,
+    misc::jwt,
+    servers::{self, yivi},
+};
 use std::{sync::Arc, time::Duration};
 
 const CONFIG_FILE_PATH: &'static str = "pubhubs.default.toml";
@@ -237,9 +241,46 @@ async fn main_integration_test_local(config: servers::Config, admin_sk: api::Sig
         _ => panic!("expected Yivi task"),
     };
 
-    print!("{:?}", jwt);
+    // at this point the end-user should disclosure their attributes to the specified yivi server;
+    // we'll mock the response of the yivi server instead
+    let jwt_claims: jwt::Claims = jwt.open(&jwt::HS256("secret".into())).unwrap();
 
-    let _: jwt::Claims = jwt.open(&jwt::HS256("secret".into())).unwrap();
+    let claims: DisclosureRequestClaims = jwt_claims
+        .check_iss(jwt::expecting::exactly("ph_auths"))
+        .unwrap()
+        .check_sub(jwt::expecting::exactly("verification_request"))
+        .unwrap()
+        .into_custom()
+        .unwrap();
+
+    let discl_resp = claims.sprequest.mock_disclosure_response(
+        |ati: &yivi::AttributeTypeIdentifier| -> String {
+            match ati.as_str() {
+                "irma-demo.sidn-pbdf.email.email" => "user@example.com".to_string(),
+                "irma-demo.sidn-pbdf.mobilenumber.mobilenumber" => "0612345678".to_string(),
+                _ => {
+                    panic!("unexpected yivi attribute type {}", ati.as_str());
+                }
+            }
+        },
+    );
+
+    let yivi_server_creds: yivi::Credentials = toml::from_str(
+        r#"name = "yivi-server"
+        key.hs256 = "c2VjcmV0""#,
+    )
+    .unwrap();
+
+    let result_jwt = discl_resp
+        .sign(&yivi_server_creds, Duration::from_secs(60))
+        .unwrap();
+}
+
+/// Contents of a disclosure session request JWT
+#[derive(serde::Deserialize)]
+#[serde(deny_unknown_fields)]
+struct DisclosureRequestClaims {
+    sprequest: yivi::SessionRequest,
 }
 
 /// Simulates a hub.

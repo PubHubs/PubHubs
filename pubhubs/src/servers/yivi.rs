@@ -365,6 +365,11 @@ impl AttributeTypeIdentifier {
 
         Ok(())
     }
+
+    /// Returns reference to underlying [`str`].
+    pub fn as_str(&self) -> &str {
+        &self.inner
+    }
 }
 
 impl std::str::FromStr for AttributeTypeIdentifier {
@@ -465,7 +470,8 @@ mod test {
 
     #[test]
     fn attribute_type_identifier() {
-        serde_json::from_str::<AttributeTypeIdentifier>("\"a.b.c.d\"").unwrap();
+        let ati = serde_json::from_str::<AttributeTypeIdentifier>("\"a.b.c.d\"").unwrap();
+        assert_eq!(serde_json::to_string(&ati).unwrap(), "\"a.b.c.d\"");
         assert!(serde_json::from_str::<AttributeTypeIdentifier>("\"a.b.c\"").is_err());
     }
 }
