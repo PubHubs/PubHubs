@@ -625,7 +625,7 @@ pub mod bytes_wrapper {
         }
     }
 
-    impl<'de, T, O: Options> serde::de::Visitor<'de> for EncodedBytesVisitor<T, O>
+    impl<T, O: Options> serde::de::Visitor<'_> for EncodedBytesVisitor<T, O>
     where
         T: serde::de::DeserializeOwned,
         O::Encoding: BytesEncoding,
@@ -840,7 +840,7 @@ impl<const N: usize> Serialize for ByteArray<N> {
 /// Extracts a [ByteArray] from a [serde::Deserializer].
 struct ByteArrayVisitor<const N: usize> {}
 
-impl<'de, const N: usize> serde::de::Visitor<'de> for ByteArrayVisitor<N> {
+impl<const N: usize> serde::de::Visitor<'_> for ByteArrayVisitor<N> {
     type Value = [u8; N];
 
     fn expecting(&self, f: &mut core::fmt::Formatter) -> core::fmt::Result {

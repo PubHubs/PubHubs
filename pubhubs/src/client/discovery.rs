@@ -88,7 +88,7 @@ pub struct DiscoveryInfoCheck<'a> {
     pub constellation: Option<&'a Constellation>,
 }
 
-impl<'a> DiscoveryInfoCheck<'a> {
+impl DiscoveryInfoCheck<'_> {
     /// Checks the given [api::DiscoveryInfoResp] according to the [DiscoveryInfoCheck],
     /// and returns it if all checks out.
     pub fn check(

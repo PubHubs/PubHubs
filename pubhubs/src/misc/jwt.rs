@@ -317,7 +317,7 @@ impl<'de> Deserialize<'de> for NumericDate {
 /// [Visitor] for the implementation of [Deserialize] for [NumericDate].
 struct NumericDateVisitor {}
 
-impl<'de> Visitor<'de> for NumericDateVisitor {
+impl Visitor<'_> for NumericDateVisitor {
     type Value = NumericDate;
 
     fn expecting(&self, f: &mut fmt::Formatter) -> fmt::Result {
@@ -570,7 +570,7 @@ impl<'de> Deserialize<'de> for HeaderType {
     }
 }
 
-impl<'de> Visitor<'de> for HeaderType {
+impl Visitor<'_> for HeaderType {
     type Value = Self;
 
     fn expecting(&self, f: &mut fmt::Formatter) -> fmt::Result {
@@ -582,7 +582,7 @@ impl<'de> Visitor<'de> for HeaderType {
             return Ok(self);
         }
 
-        return Err(E::invalid_value(serde::de::Unexpected::Str(v), &self));
+        Err(E::invalid_value(serde::de::Unexpected::Str(v), &self))
     }
 }
 

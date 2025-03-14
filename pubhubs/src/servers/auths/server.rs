@@ -90,7 +90,7 @@ impl App {
                 dc.push(vec![servers::yivi::AttributeRequest { ty: attr_type_id }]);
             }
 
-            if dc.len() == 0 {
+            if dc.is_empty() {
                 log::debug!("got yivi authentication start request for {attr_ty}, but yivi is not supported for this attribute type");
                 return api::err(api::ErrorCode::MissingAttributeSource);
             }

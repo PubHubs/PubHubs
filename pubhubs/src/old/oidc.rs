@@ -827,7 +827,7 @@ pub mod http {
             }
         }
 
-        impl<'r, Body: hyper::body::HttpBody + Unpin> Request for CompleteRequest<'r, Body> {
+        impl<Body: hyper::body::HttpBody + Unpin> Request for CompleteRequest<'_, Body> {
             type Body<'b>
                 = &'b [u8]
             where

@@ -100,7 +100,7 @@ where
     fn remove_session_cookies(self) -> Self;
 }
 
-impl<'a> HttpResponseBuilderExt for &'a mut HttpResponseBuilder {
+impl HttpResponseBuilderExt for &mut HttpResponseBuilder {
     fn add_session_cookies(
         self,
         user_id: String,
@@ -229,7 +229,7 @@ pub trait HttpRequestCookieExt: Sized {
     fn has_all_session_cookies(&self) -> bool;
 }
 
-impl<'s> HttpRequestCookieExt for &'s HttpRequest {
+impl HttpRequestCookieExt for &HttpRequest {
     fn user_id_from_cookies_maybe_cross_site(
         self,
         cookie_secret: &str,

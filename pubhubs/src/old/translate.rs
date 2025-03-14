@@ -215,7 +215,7 @@ pub struct Prefix<'a> {
     without_leading_slash: &'a str,
 }
 
-impl<'a> core::fmt::Display for Prefix<'a> {
+impl core::fmt::Display for Prefix<'_> {
     fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> Result<(), core::fmt::Error> {
         if self.without_leading_slash.is_empty() {
             return Ok(());

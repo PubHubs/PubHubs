@@ -17,7 +17,7 @@ pub struct HubContext<'a> {
     pub timeout: std::time::Duration,
 }
 
-impl<'a> HubContext<'a> {
+impl HubContext<'_> {
     fn ticket_sign<T>(&self, msg: &T) -> api::Result<TicketSigned<T>>
     where
         T: serde::Serialize,

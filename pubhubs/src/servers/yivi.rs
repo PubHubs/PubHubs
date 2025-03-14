@@ -30,7 +30,7 @@ impl SessionRequest {
     /// Reference code for disclosure request:
     ///     <https://github.com/privacybydesign/irmago/blob/d389b4559e007a0fcb4e78d1f6e073c1ad57bc13/requests.go#L957>
     pub fn sign(self, creds: &Credentials) -> anyhow::Result<jwt::JWT> {
-        Ok(creds
+        creds
             .key
             .sign(
                 &jwt::Claims::new()
@@ -39,7 +39,7 @@ impl SessionRequest {
                     .claim("sub", self.context.jwt_sub())?
                     .claim(self.context.jwt_key(), self)?,
             )
-            .context("signing session request")?)
+            .context("signing session request")
 
         // NOTE: the jwt library irmago uses adds a `"typ": "JWT"` to the header,
         // but its presence is not checked, so we omit it.
@@ -207,16 +207,16 @@ impl SessionResult {
         creds: &Credentials,
         validity: std::time::Duration,
     ) -> anyhow::Result<jwt::JWT> {
-        Ok(creds
+        creds
             .key
             .sign(
                 &jwt::Claims::from_custom(&self)?
                     .iat_now()?
                     .exp_after(validity)?
                     .claim("iss", &creds.name)? // issuer is server name
-                    .claim("sub", &format!("{}_result", self.session_type))?,
+                    .claim("sub", format!("{}_result", self.session_type))?,
             )
-            .context("signing session result")?)
+            .context("signing session result")
     }
 }
 

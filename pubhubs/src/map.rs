@@ -47,8 +47,8 @@ impl<T: Handled> Map<T> {
         Q: AsHandleOrId,
     {
         k.match_case::<Option<&T>>(
-            |id| self.value_by_id.get(&id),
-            |handle| self.value_by_id.get(self.id_by_handle.get(&handle)?),
+            |id| self.value_by_id.get(id),
+            |handle| self.value_by_id.get(self.id_by_handle.get(handle)?),
         )
     }
 
@@ -64,7 +64,7 @@ impl<T: Handled> Map<T> {
         }
 
         for handle in value.handles() {
-            if self.id_by_handle.contains_key(&handle) {
+            if self.id_by_handle.contains_key(handle) {
                 return Some(handle.clone().into());
             }
         }
@@ -75,7 +75,7 @@ impl<T: Handled> Map<T> {
 
         assert!(self.value_by_id.insert(id, value).is_none());
 
-        return None;
+        None
     }
 }
 
@@ -96,10 +96,10 @@ pub enum HandleOrId {
 }
 
 impl std::fmt::Display for HandleOrId {
-    fn fmt(&self, mut f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match &self {
-            HandleOrId::Handle(ref handle) => handle.fmt(&mut f),
-            HandleOrId::Id(ref id) => id.fmt(&mut f),
+            HandleOrId::Handle(ref handle) => handle.fmt(f),
+            HandleOrId::Id(ref id) => id.fmt(f),
         }
     }
 }
