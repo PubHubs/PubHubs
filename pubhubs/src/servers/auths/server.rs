@@ -116,8 +116,8 @@ impl App {
     }
 
     async fn handle_auth_complete(
-        app: Rc<Self>,
-        req: web::Json<api::auths::AuthCompleteReq>,
+        _app: Rc<Self>,
+        _req: web::Json<api::auths::AuthCompleteReq>,
     ) -> api::Result<api::auths::AuthCompleteResp> {
         todo! {}
     }

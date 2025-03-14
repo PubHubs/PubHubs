@@ -255,7 +255,7 @@ pub trait AppCreator<ServerT: Server>: Send + Clone + 'static {
 ///
 /// We do not use a trait like `(FnOnce(&mut ServerT)) + Send + 'static`,
 /// because it can not (yet) be implemented by users.
-pub trait Modifier<ServerT: Server>: Send + 'static {
+pub(crate) trait Modifier<ServerT: Server>: Send + 'static {
     /// Stops server, perform modification, and restarts server if true was returned.
     fn modify(self: Box<Self>, server: &mut ServerT) -> bool;
 
@@ -291,7 +291,7 @@ impl<S: Server> Modifier<S> for Exiter {
 }
 
 /// Owned dynamically typed [Modifier].
-pub type BoxModifier<S> = Box<dyn Modifier<S>>;
+pub(crate) type BoxModifier<S> = Box<dyn Modifier<S>>;
 
 impl<S: Server> std::fmt::Display for BoxModifier<S> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> Result<(), std::fmt::Error> {
@@ -300,7 +300,7 @@ impl<S: Server> std::fmt::Display for BoxModifier<S> {
 }
 
 /// What inspects a server via [Command::Inspect].
-pub trait Inspector<ServerT: Server>: Send + 'static {
+pub(crate) trait Inspector<ServerT: Server>: Send + 'static {
     /// Calls this function with server as argument
     fn inspect(self: Box<Self>, server: &ServerT);
 

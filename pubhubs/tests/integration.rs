@@ -237,8 +237,7 @@ async fn main_integration_test_local(config: servers::Config, admin_sk: api::Sig
                 "http://192.0.2.0/".to_string()
             );
             disclosure_request
-        }
-        _ => panic!("expected Yivi task"),
+        } // _ => panic!("expected Yivi task"),
     };
 
     // at this point the end-user should disclosure their attributes to the specified yivi server;
@@ -271,7 +270,7 @@ async fn main_integration_test_local(config: servers::Config, admin_sk: api::Sig
     )
     .unwrap();
 
-    let result_jwt = discl_resp
+    let _result_jwt = discl_resp
         .sign(&yivi_server_creds, Duration::from_secs(60))
         .unwrap();
 }

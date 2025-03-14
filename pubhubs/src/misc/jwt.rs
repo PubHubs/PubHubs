@@ -785,12 +785,11 @@ pub mod expecting {
     use super::*;
 
     /// Expectation that the claim is present and has the given value.
-    pub fn exactly<T: ToOwned + ?Sized>(
+    pub fn exactly<T>(
         what: &T,
     ) -> impl (FnOnce(&'static str, Option<T::Owned>) -> Result<(), Error>) + use<'_, T>
     where
-        T: std::fmt::Debug,
-        T: PartialEq,
+        T: std::fmt::Debug + PartialEq + ToOwned + ?Sized,
     {
         move |claim_name: &'static str, val_maybe: Option<T::Owned>| {
             if let Some(val) = val_maybe {
@@ -850,7 +849,7 @@ mod tests {
                 .clone()
                 .ignore("exp")
                 .check_iss(
-                    |name: &'static str, iss: Option<String>| -> Result<(), Error> {
+                    |_claim_name: &'static str, iss: Option<String>| -> Result<(), Error> {
                         assert_eq!(iss, Some("joe".to_string()));
                         Ok(())
                     }
