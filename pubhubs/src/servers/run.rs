@@ -581,15 +581,18 @@ pub struct Handle<S: Server> {
 struct CommandRequest<S: Server> {
     /// The actual command
     command: Command<S>,
-    /// A way for the [Server] to inform the [App] that the command is about to be executed,
-    /// by dropping this `feedback_sender`.
-    feedback_sender: tokio::sync::oneshot::Sender<Infallible>,
+    /// A way for the [Server] to inform the [App] that the command is about to be executed.
+    feedback_sender: tokio::sync::oneshot::Sender<()>,
 }
 
 impl<S: Server> CommandRequest<S> {
     /// Let's the issuer of the command know that the command is to be fulfilled
     fn accept(self) -> Command<S> {
-        drop(self.feedback_sender);
+        let _ = self.feedback_sender.send(());
+        log::warn!(
+            "The app issuing command {} that is about to execute has already dropped.",
+            &self.command
+        );
         self.command
     }
 }
@@ -632,12 +635,10 @@ impl<S: Server> Handle<S> {
             return Err(());
         };
 
-        // wait for the command to be the next in line
-        feedback_receiver
-            .await
-            .expect_err("got instance of Infallible!");
-
-        Ok(())
+        // Wait for the command to be the next in line.
+        //
+        // If feedback receiver returns an error, the command might not have executed.
+        feedback_receiver.await.map_err(|_| ())
     }
 
     pub async fn modify(
