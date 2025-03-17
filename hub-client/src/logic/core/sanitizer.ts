@@ -13,6 +13,11 @@ const removeHtml = (html: string): string => {
 	return text || '';
 };
 
+/**
+ * Checks string for Html and removes it when found
+ * @param html string to check
+ * @returns false if no Html, otherwise cleaned string
+ */
 const hasHtml = (html: string): boolean | string => {
 	const text = removeHtml(html);
 	if (text === html) {

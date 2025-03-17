@@ -85,7 +85,6 @@
 						</Menu>
 					</section>
 				</HeaderFooter>
-
 				<div class="scrollbar h-full overflow-y-auto dark:bg-gray-middle md:col-span-6 md:block" :class="{ hidden: hubSettings.mobileHubMenu }">
 					<router-view></router-view>
 				</div>

@@ -341,6 +341,9 @@ const en = {
 			original_message_deleted: 'Original message deleted',
 			message_deleted: 'Deleted message',
 		},
+		threads: {
+			view_thread: 'view thread',
+		},
 	},
 	time: {
 		today: 'Today',

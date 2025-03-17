@@ -3,6 +3,7 @@ import { MenuItem, useMenu } from '@/logic/store/menu';
 import { defineStore } from 'pinia';
 import { Room } from './rooms';
 import { FeatureFlag, useSettings } from './settings';
+import { EventType } from 'matrix-js-sdk';
 
 //
 // Plugin Types
@@ -136,7 +137,7 @@ const usePlugins = defineStore('plugins', {
 
 		getEventMessagePlugin: (state) => {
 			return (event: Partial<TEvent>, room_id: string | undefined, room_type: string | undefined): PluginProperties | undefined => {
-				if (event.type !== 'm.room.message') return;
+				if (event.type !== EventType.RoomMessage) return;
 
 				const plugin = state.pluginsMessageType.find((plugin) => {
 					if (!event.content) return;

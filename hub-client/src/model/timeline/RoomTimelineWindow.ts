@@ -1,7 +1,8 @@
+import { Direction, EventTimeline, EventType, Filter, MatrixClient, MatrixEvent, Room as MatrixRoom, MsgType, TimelineWindow } from 'matrix-js-sdk';
 import { LOGGER } from '@/logic/foundation/Logger';
 import { SMI } from '@/logic/foundation/StatusMessage';
-import { Direction, EventTimeline, Filter, MatrixClient, MatrixEvent, Room as MatrixRoom, TimelineWindow } from 'matrix-js-sdk';
 import { TBaseEvent } from '../events/TBaseEvent';
+import { RedactReasons } from '@/logic/core/events';
 
 const PAGE_SIZE = 96;
 
@@ -20,12 +21,12 @@ class RoomTimelineWindow {
 	private redactedEventIds: string[] = [];
 
 	/* event filters: which events are to be shown in the timelineWindow */
-	private visibleEventTypes = ['m.room.message'];
-	private invisibleMessageTypes = ['m.notice'];
+	private visibleEventTypes: string[] = [EventType.RoomMessage];
+	private invisibleMessageTypes: string[] = [MsgType.Notice];
 	private timelineSetFilter = {
 		room: {
 			timeline: {
-				types: ['m.room.message', 'm.room.redaction'],
+				types: [EventType.RoomMessage, EventType.RoomRedaction],
 			},
 		},
 	};
@@ -70,9 +71,19 @@ class RoomTimelineWindow {
 	// filtering happens in two stages: serverside by the filter on the timelineset and clientside on the type of message
 	// this returns if a message is visible or not
 	public isVisibleEvent(event: Partial<TBaseEvent>): boolean {
-		if (!this.visibleEventTypes.includes(event.type as string)) return false;
+		if (event.type && !this.visibleEventTypes.includes(event.type)) {
+			return false;
+		}
 		if (event.content?.msgtype) {
-			if (this.invisibleMessageTypes.includes(event.content?.msgtype)) return false;
+			if (this.invisibleMessageTypes.includes(event.content?.msgtype)) {
+				return false;
+			}
+		}
+		// Deleted events from threads may not be visible: they have lost the direct connection to their thread
+		if (event.unsigned?.redacted_because?.redacts) {
+			if (event.unsigned?.redacted_because?.content.reason === RedactReasons.DeletedFromThread) {
+				return false;
+			}
 		}
 		return true;
 	}
