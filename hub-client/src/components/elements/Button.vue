@@ -15,7 +15,7 @@
 		'gray-light': 'bg-gray-light text-white hover:bg-gray', // Needed for ButtonGroup
 		blue: 'bg-blue hover:bg-blue-dark text-white dark:hover:bg-white dark:hover:text-blue-dark',
 		red: 'bg-red hover:bg-red-dark text-white',
-		black: 'bg-black hover:bg-gray-dark text-white shadow-md cursor-pointer',
+		black: 'bg-black hover:bg-gray-dark text-white',
 	};
 
 	const props = defineProps({

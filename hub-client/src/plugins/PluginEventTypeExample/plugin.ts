@@ -7,6 +7,7 @@
  * - PluginEventTypeExample.vue - the component used
  */
 
+import { EventType } from 'matrix-js-sdk';
 import { TypePluginProperties, PluginType } from '@/logic/store/plugins';
 
 const plugin: TypePluginProperties = {
@@ -15,7 +16,7 @@ const plugin: TypePluginProperties = {
 	plugintype: PluginType.EVENT,
 
 	// The event type that will be rendered by this plugin
-	type: 'm.room.message',
+	type: EventType.RoomMessage,
 
 	// It is optional to use this plugin only for specific rooms (id or type)
 	// room_id: '....',

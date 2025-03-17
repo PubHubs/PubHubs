@@ -6,11 +6,12 @@ import Room from '@/model/rooms/Room';
 import { RoomType } from '@/model/rooms/TBaseRoom';
 import { TPublicRoom } from '@/model/rooms/TPublicRoom';
 import { TSecuredRoom } from '@/model/rooms/TSecuredRoom';
-import { MatrixEvent, Room as MatrixRoom, NotificationCountType } from 'matrix-js-sdk';
+import { EventType, MatrixEvent, Room as MatrixRoom, NotificationCountType } from 'matrix-js-sdk';
 import { defineStore } from 'pinia';
 import { Message, MessageType, useMessageBox } from './messagebox';
 import { useUser } from './user';
 import { useSettings } from './settings';
+import { PubHubsMgType } from '@/logic/core/events';
 import { SecuredRoomAttributeResult } from '@/logic/foundation/statusTypes';
 
 // Matrix Endpoint for messages in a room.
@@ -175,7 +176,7 @@ const useRooms = defineStore('rooms', {
 			// On receiving a moderation "Ask Disclosure" message (in any room),
 			// addressed to the current user,
 			// put the details into the state store to start the Disclosure flow.
-			if (e.event?.type === 'm.room.message' && e.event.content?.msgtype === 'pubhubs.ask_disclosure_message') {
+			if (e.event?.type === EventType.RoomMessage && e.event.content?.msgtype === PubHubsMgType.AskDisclosureMessage) {
 				const user = useUser();
 				const ask = e.event.content.ask_disclosure_message as AskDisclosureMessage;
 				if (ask.userId === user.userId!) {
@@ -256,7 +257,7 @@ const useRooms = defineStore('rooms', {
 				this.roomNotices[roomId][creatingAdminUser!] = ['rooms.admin_badge'];
 			}
 			const limit = 100000;
-			const encodedObject = encodeURIComponent(JSON.stringify({ types: ['m.room.message'], senders: [hub_notice], limit: limit }));
+			const encodedObject = encodeURIComponent(JSON.stringify({ types: [EventType.RoomMessage], senders: [hub_notice], limit: limit }));
 			// The limit is in two places, it used to work in just the filter, but not anymore. It's also an option in the query string.
 			const response = await api_matrix.apiGET<RoomMessages>(api_matrix.apiURLS.rooms + roomId + `/messages?limit=${limit}&filter=` + encodedObject);
 			for (const message of response.chunk) {
@@ -399,12 +400,8 @@ const useRooms = defineStore('rooms', {
 				});
 		},
 
-		yiviSignMessage(message: string, attributes: string[], roomId: string, onFinish: (result: YiviSigningSessionResult) => unknown) {
+		yiviSignMessage(message: string, attributes: string[], roomId: string, accessToken: string, onFinish: (result: YiviSigningSessionResult) => unknown) {
 			const settings = useSettings();
-			const pubhubsStore = usePubHubs();
-
-			const accessToken = pubhubsStore.Auth.getAccessToken();
-			if (!accessToken) throw new Error('Access token missing.');
 
 			const yivi = require('@privacybydesign/yivi-frontend');
 			// @ts-ignore

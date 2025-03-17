@@ -2,11 +2,14 @@ import { usePubHubs } from '@/logic/core/pubhubsStore';
 import { LOGGER } from '@/logic/foundation/Logger';
 import { SMI } from '@/logic/foundation/StatusMessage';
 import { RoomTimelineWindow } from '@/model/timeline/RoomTimelineWindow';
-import { Direction, EventTimeline, EventTimelineSet, MatrixClient, MatrixEvent, Room as MatrixRoom, NotificationCountType, RoomMember as MatrixRoomMember } from 'matrix-js-sdk';
+import { Direction, EventTimeline, EventTimelineSet, MatrixClient, MatrixEvent, Room as MatrixRoom, NotificationCountType, RoomMember as MatrixRoomMember, MsgType, EventType, ThreadEvent, Thread } from 'matrix-js-sdk';
 import { CachedReceipt, WrappedReceipt } from 'matrix-js-sdk/lib/@types/read_receipts';
 import { TBaseEvent } from '../events/TBaseEvent';
 import { TRoomMember } from './TRoomMember';
+import TRoomThread from '../thread/RoomThread';
 import RoomMember from './RoomMember';
+import { TMessageEvent, TMessageEventContent } from '../events/TMessageEvent';
+import { useMatrixFiles } from '@/logic/composables/useMatrixFiles';
 
 enum RoomType {
 	SECURED = 'ph.messages.restricted',
@@ -18,18 +21,32 @@ const BotName = {
 	SYSTEM: 'system_bot',
 };
 
+type RoomThread = {
+	threadId: string;
+	rootEvent: MatrixEvent | undefined;
+	thread: TRoomThread | undefined;
+	threadLength: number;
+};
+
+type NewReplyListener = (thread: Thread, threadEvent: MatrixEvent) => void;
+type UpdateReplyListener = (thread: Thread) => void;
+
 /**
  * Our model of a room based on matrix rooms with some added functionality.
  * It uses the matrix-js-sdk's Room class under the hood.
  *
  */
 export default class Room {
-	private matrixRoom: MatrixRoom;
+	public matrixRoom: MatrixRoom;
 
 	// keep track of 'removed' rooms that are not synced yet.
 	private hidden: boolean;
 
 	public numUnreadMessages: number;
+
+	// Threads/Events, public for vue reactivity
+	public currentThread: RoomThread | undefined = undefined;
+	public currentEventId: string | undefined;
 
 	// timelinewindow of currently shown events
 	private timelineWindow: RoomTimelineWindow;
@@ -43,6 +60,7 @@ export default class Room {
 	private lastVisibleEventId: string;
 
 	private pubhubsStore;
+	private matrixFiles = useMatrixFiles();
 
 	private roomMembers: Map<string, RoomMember> = new Map();
 
@@ -62,8 +80,10 @@ export default class Room {
 		this.lastVisibleTimeStamp = 0;
 
 		this.pubhubsStore = usePubHubs();
+		this.matrixFiles = useMatrixFiles();
 
 		this.timelineWindow = new RoomTimelineWindow(this.matrixRoom);
+		this.matrixRoom.createThreadsTimelineSets(); // using threads we need to create the timeline sets for them
 	}
 
 	public isPrivateRoom(): boolean {
@@ -111,6 +131,10 @@ export default class Room {
 		this.lastVisibleEventId = visibleEventId;
 	}
 
+	public setCurrentEventId(eventId: string | undefined) {
+		this.currentEventId = eventId;
+	}
+
 	public getFirstVisibleEventId(): string {
 		return this.firstVisibleEventId;
 	}
@@ -125,6 +149,10 @@ export default class Room {
 
 	public getLastVisibleTimeStamp(): number {
 		return this.lastVisibleTimeStamp;
+	}
+
+	public getCurrentEventId() {
+		return this.currentEventId;
 	}
 
 	public resetFirstVisibleEvent() {
@@ -199,7 +227,6 @@ export default class Room {
 
 	private getOtherMembers(baseMembers: TRoomMember[]): TRoomMember[] {
 		const currentUserId = this.matrixRoom.client.getUserId() || '';
-
 		return baseMembers.filter((member) => member.userId !== currentUserId && !Object.values(BotName).includes(currentUserId));
 	}
 
@@ -257,7 +284,7 @@ export default class Room {
 		return this.matrixRoom
 			.getLiveTimeline()
 			.getEvents()
-			.some((roomEvent) => roomEvent.getType() === 'm.room.message');
+			.some((roomEvent) => roomEvent.getType() === EventType.RoomMessage);
 	}
 
 	/**
@@ -270,9 +297,37 @@ export default class Room {
 		return this.matrixRoom.removeEvent(eventId);
 	}
 
+	/**
+	 *
+	 * Deletes a message and eventually the media/image file from the server
+	 *
+	 * @param event — The event to delete
+	 * @param isThreadRoot — If given, the event has to be a rootevent of a thread which will also be deleted
+	 * @param threadId — If given, the event is inside a thread
+	 */
+	public deleteMessage(event: TMessageEvent<TMessageEventContent>, isThreadRoot?: boolean, threadId?: string) {
+		const messageType = event.content.msgtype;
+		// If the message that will be deleted contains a file or image, delete this media from the server as well
+		if ((messageType === MsgType.File || messageType === MsgType.Image) && event.content.url && event.content.url.length > 0) {
+			const accessToken = this.pubhubsStore.Auth.getAccessToken();
+			const req = new XMLHttpRequest();
+			req.open('DELETE', this.matrixFiles.deleteMediaUrlfromMxc(event.content.url));
+			req.setRequestHeader('Authorization', 'Bearer ' + accessToken);
+			req.send();
+		}
+
+		// if event to be deleted is the current thread, clear the current thread
+		if (this.currentThread?.threadId === event.event_id) {
+			this.currentThread = undefined;
+		}
+
+		const threadIdToDelete = isThreadRoot ? event.event_id : threadId;
+		this.pubhubsStore.deleteMessage(this.matrixRoom.roomId, event.event_id, threadIdToDelete);
+	}
+
 	// #endregion
 
-	//#region notification functions
+	// #region notification functions
 
 	public resetUnreadMessages() {
 		this.numUnreadMessages = 0;
@@ -292,6 +347,14 @@ export default class Room {
 
 	public getRoomUnreadNotificationCount(type?: NotificationCountType): number {
 		return this.matrixRoom.getRoomUnreadNotificationCount(type);
+	}
+
+	public getUnreadNotificationCount(type?: NotificationCountType): number {
+		return this.matrixRoom.getUnreadNotificationCount(type);
+	}
+
+	public getThreadUnreadNotificationCount(threadId: string, type = NotificationCountType.Total): number {
+		return this.matrixRoom.getThreadUnreadNotificationCount(threadId, type);
 	}
 
 	public hasUserReadEvent(userId: string, eventId: string): boolean {
@@ -364,15 +427,18 @@ export default class Room {
 
 	public getTimelineOldestMessageEventId(): string | undefined {
 		const timeline = this.getTimeline();
-		return timeline?.find((event: MatrixEvent) => event.getType() === 'm.room.message')?.getId();
+		return timeline?.find((event: MatrixEvent) => event.getType() === EventType.RoomMessage)?.getId();
 	}
 
-	public getTimelineNewestMessageEventId(): string | undefined {
-		const timeline = this.getTimeline();
-		return timeline
+	/**
+	 *
+	 * @returns The newest message event id in the default timeline
+	 */
+	public getNewestMessageEventId(): string | undefined {
+		return this.getTimeline()
 			?.slice()
 			.reverse()
-			?.find((event: MatrixEvent) => event.getType() === 'm.room.message')
+			?.find((event: MatrixEvent) => event.getType() === EventType.RoomMessage)
 			?.getId();
 	}
 
@@ -401,6 +467,97 @@ export default class Room {
 	public removeRedactedEventId(eventId: string): void {
 		const index = this.timelineWindow.getRedactedEventIds().indexOf(eventId);
 		this.timelineWindow.getRedactedEventIds().splice(index, 1);
+	}
+
+	// #endregion
+
+	// #region Threads
+
+	/**
+	 * Threads only get created after an event is added to a threadroot event,
+	 * here we make sure the created thread is in our model
+	 */
+	public AssureThread() {
+		if (this.currentThread?.threadId && !this.currentThread?.thread) {
+			this.currentThread.thread = this.getThread(this.currentThread.threadId);
+		}
+	}
+
+	/**
+	 * Passes listener to client
+	 * @param newReplyListener Method to perform on ThreadEvent.NewReply
+	 */
+	public listenToThreadNewReply(newReplyListener: NewReplyListener) {
+		this.matrixRoom.on(ThreadEvent.NewReply, newReplyListener);
+	}
+
+	public stopListeningToThreadNewReply(newReplyListener: NewReplyListener) {
+		this.matrixRoom.off(ThreadEvent.NewReply, newReplyListener);
+	}
+
+	/**
+	 * Passes listener to client
+	 * @param updateReplyListener Method to perform on ThreadEvent.Update
+	 */
+	public listenToThreadUpdate(updateReplyListener: UpdateReplyListener) {
+		this.matrixRoom.on(ThreadEvent.Update, updateReplyListener);
+	}
+
+	public stopListeningToThreadUpdate(updateReplyListener: UpdateReplyListener) {
+		this.matrixRoom.off(ThreadEvent.Update, updateReplyListener);
+	}
+
+	public getThread(eventId: string | undefined): TRoomThread | undefined {
+		if (eventId) {
+			let thread = this.matrixRoom.getThread(eventId);
+			if (!thread) {
+				thread = this.matrixRoom.createThread(eventId, this.findEventById(eventId), undefined, true);
+			}
+			if (thread) {
+				return new TRoomThread(thread);
+			}
+		}
+		return undefined;
+	}
+
+	public async getCurrentThreadEvents(): Promise<MatrixEvent[]> {
+		return (await this.currentThread?.thread?.getEvents(this.pubhubsStore.client as MatrixClient)) ?? [];
+	}
+
+	public setCurrentThreadLength(newValue: number) {
+		if (this.currentThread) {
+			this.currentThread.threadLength = newValue;
+		}
+	}
+
+	public getCurrentThreadLength() {
+		return this.currentThread?.threadLength ?? 0;
+	}
+
+	public getCurrentThreadId(): string | undefined {
+		return this.currentThread?.threadId;
+	}
+
+	public getCurrentThread(): TRoomThread | undefined {
+		return this.currentThread?.thread;
+	}
+
+	public setCurrentThreadId(threadId: string | undefined): boolean {
+		this.currentThread = undefined;
+		if (this.matrixRoom.client.supportsThreads() && threadId) {
+			this.currentThread = {
+				threadId: threadId,
+				rootEvent: this.findEventById(threadId),
+				thread: this.getThread(threadId),
+				threadLength: this.getThread(threadId)?.getLength() ?? 0,
+			};
+			return true;
+		}
+		return false;
+	}
+
+	public deleteThreadMessage(event: TMessageEvent<TMessageEventContent>, threadRootId: string | undefined) {
+		this.deleteMessage(event, undefined, threadRootId);
 	}
 
 	// #endregion

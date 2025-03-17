@@ -343,6 +343,9 @@ const nl = {
 			original_message_deleted: 'Oorspronkelijk bericht verwijderd',
 			message_deleted: 'Verwijderd bericht',
 		},
+		threads: {
+			view_thread: 'bekijk thread',
+		},
 	},
 	time: {
 		today: 'Vandaag',

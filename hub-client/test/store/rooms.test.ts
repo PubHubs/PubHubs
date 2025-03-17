@@ -47,6 +47,10 @@ class MockedMatrixRoom {
 	public getOrCreateFilteredTimelineSet(filter: Filter) {
 		return new EventTimelineSet(undefined);
 	}
+
+	public createThreadsTimelineSets() {
+		// returns nothing
+	}
 }
 
 describe('rooms Store', () => {

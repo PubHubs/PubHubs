@@ -3,6 +3,7 @@
 		<div>
 			<InlineSpinner v-if="isLoadingNewEvents" class="absolute flex w-full justify-center"></InlineSpinner>
 			<DateDisplayer v-if="settings.isFeatureEnabled(FeatureFlag.dateSplitter) && dateInformation !== 0" :scrollStatus="userHasScrolled" :eventTimeStamp="dateInformation.valueOf()"></DateDisplayer>
+			<InRoomNotifyMarker v-if="settings.isFeatureEnabled(FeatureFlag.unreadMarkers)"></InRoomNotifyMarker>
 		</div>
 		<div v-if="room" ref="elRoomTimeline" class="relative flex flex-1 flex-col gap-2 overflow-y-auto pb-4" @scroll="onScroll">
 			<div v-if="oldestEventIsLoaded" class="mx-auto my-4 flex w-60 items-center justify-center rounded-xl border border-black dark:border-white">
@@ -11,37 +12,44 @@
 			<template v-if="roomTimeLine.length > 0">
 				<div v-for="item in roomTimeLine" :key="item.event.event_id">
 					<div ref="elRoomEvent" :id="item.event.event_id">
-						<RoomEvent :room="room" :event="item.event" class="room-event" @in-reply-to-click="onInReplyToClick" @delete-message="confirmDeleteMessage"></RoomEvent>
-						<UnreadMarker v-if="settings.isFeatureEnabled(FeatureFlag.unreadMarkers)" :currentEventId="item.event.event_id" :currentUserId="user.user.userId"></UnreadMarker>
+						<RoomEvent
+							:room="room"
+							:event="item.event"
+							:event-thread-length="eventThreadLengths[item.event.event_id ?? 0]"
+							class="room-event"
+							@in-reply-to-click="onInReplyToClick"
+							@delete-message="confirmDeleteMessage(item.event, item.isThreadRoot)"
+						></RoomEvent>
+						<UnreadMarker v-if="settings.isFeatureEnabled(FeatureFlag.unreadMarkers)" :currentEventId="item.event.event_id ?? ''" :currentUserId="user.user.userId"> </UnreadMarker>
 					</div>
 				</div>
 			</template>
 		</div>
+		<MessageInput class="z-10" v-if="room" :room="room" :in-thread="false"></MessageInput>
 	</div>
 	<DeleteMessageDialog v-if="showConfirmDelMsgDialog" :event="eventToBeDeleted" :room="rooms.currentRoom" @close="showConfirmDelMsgDialog = false" @yes="deleteMessage"></DeleteMessageDialog>
-	<InRoomNotifyMarker v-if="settings.isFeatureEnabled(FeatureFlag.unreadMarkers)"></InRoomNotifyMarker>
 </template>
 
 <script setup lang="ts">
 	// Components
 	import DateDisplayer from '../ui/DateDisplayer.vue';
-	import DeleteMessageDialog from '../forms/DeleteMessageDialog.vue';
 	import InlineSpinner from '../ui/InlineSpinner.vue';
 	import RoomEvent from './RoomEvent.vue';
 	import UnreadMarker from '../ui/UnreadMarker.vue';
+	import DeleteMessageDialog from '../forms/DeleteMessageDialog.vue';
 	import InRoomNotifyMarker from '../ui/InRoomNotifyMarker.vue';
+	import MessageInput from '../forms/MessageInput.vue';
 
-	import { useMatrixFiles } from '@/logic/composables/useMatrixFiles';
+	import { EventTimeline, EventType, Thread, MatrixEvent } from 'matrix-js-sdk';
+	import { computed, onMounted, ref, reactive, watch, onUnmounted } from 'vue';
 	import { ElementObserver } from '@/logic/core/elementObserver';
 	import { usePubHubs } from '@/logic/core/pubhubsStore';
 	import { useRooms } from '@/logic/store/store';
-	import { EventTimeline } from 'matrix-js-sdk';
-	import { computed, onMounted, ref, watch } from 'vue';
-
 	import { LOGGER } from '@/logic/foundation/Logger';
 	import { SMI } from '@/logic/foundation/StatusMessage';
 	import { TMessageEvent } from '@/model/events/TMessageEvent';
 	import Room from '@/model/rooms/Room';
+	import { RoomEmit } from '@/model/constants';
 	import { FeatureFlag, useSettings } from '@/logic/store/settings';
 	import { useUser } from '@/logic/store/user';
 
@@ -49,7 +57,6 @@
 	const rooms = useRooms();
 	const user = useUser();
 	const pubhubs = usePubHubs();
-	const { deleteMediaUrlfromMxc } = useMatrixFiles();
 	const elRoomTimeline = ref<HTMLElement | null>(null);
 	const elRoomEvent = ref<HTMLElement | null>(null);
 	const isLoadingNewEvents = ref(false);
@@ -62,12 +69,26 @@
 
 	let userHasScrolled = ref<boolean>(true);
 	let dateInformation = ref<number>(0);
+
+	// indexed array of all eventid's in room with their threadlength
+	let eventThreadLengths = reactive<{ [Key: string]: number }>({});
+
 	let elementObserver: ElementObserver | null = null;
 	let initialLoading: boolean = false;
+	let eventToBeDeletedIsThreadRoot: boolean = false;
 
-	const props = defineProps({ room: { type: Room, required: true }, scrollToEventId: String });
-	const emit = defineEmits(['scrolledToEventId']);
+	const props = defineProps({
+		room: {
+			type: Room,
+			required: true,
+		},
+		scrollToEventId: String,
+	});
+	const emit = defineEmits([RoomEmit.ScrolledToEventId]);
 
+	/**
+	 * Gets the current timeline and keeps track of the threadlength of each event
+	 */
 	const roomTimeLine = computed(() => {
 		return props.room.getTimeline();
 	});
@@ -83,7 +104,16 @@
 	onMounted(() => {
 		LOGGER.log(SMI.ROOM_TIMELINE, `onMounted RoomTimeline`, { roomId: props.room.roomId });
 
+		// timeline needs to listen to new and update ThreadEvents to update eventthreadlength
+		props.room.listenToThreadNewReply(newReplyListener.bind(this));
+		props.room.listenToThreadUpdate(updateReplyListener.bind(this));
+
 		setupRoomTimeline();
+	});
+
+	onUnmounted(() => {
+		props.room.stopListeningToThreadNewReply(newReplyListener.bind(this));
+		props.room.stopListeningToThreadUpdate(updateReplyListener.bind(this));
 	});
 
 	watch(
@@ -101,6 +131,30 @@
 	// Watch for currently visible eventId
 	watch(() => props.scrollToEventId, onScrollToEventId);
 
+	function getEventThreadLengths() {
+		roomTimeLine.value.forEach((event) => {
+			if (event.event.event_id) {
+				eventThreadLengths[event.event.event_id] = event.getThread()?.length ?? 0;
+			}
+		});
+	}
+
+	// When a new reply to a thread is given the timeline needs to display it per event
+	//
+	// parameters are not used, but needed to listen to the event, so:
+	// eslint-disable-next-line @typescript-eslint/no-unused-vars
+	function newReplyListener(_thread: Thread, _threadEvent: MatrixEvent) {
+		getEventThreadLengths();
+	}
+
+	// When an update or delete to a thread is given the timeline needs to display it per event
+	//
+	// parameters are not used, but needed to listen to the event, so:
+	// eslint-disable-next-line @typescript-eslint/no-unused-vars
+	function updateReplyListener(_thread: Thread) {
+		getEventThreadLengths();
+	}
+
 	async function setupRoomTimeline() {
 		LOGGER.log(SMI.ROOM_TIMELINE, `setupRoomTimeline...`, { roomId: props.room.roomId });
 
@@ -111,7 +165,7 @@
 		// NB order is important here: perform scrollToEvent to last event only after storeRoomNotice has finished,
 		// otherwise it will scroll to another event
 		await rooms.storeRoomNotice(props.room.roomId);
-		const newestEventId = props.room.getTimelineNewestMessageEventId();
+		const newestEventId = props.room.getNewestMessageEventId();
 		if (newestEventId) {
 			scrollToEvent(newestEventId, { position: 'end' });
 		}
@@ -134,6 +188,9 @@
 		//Date Display Interaction callback is based on feature flag
 		settings.isFeatureEnabled(FeatureFlag.dateSplitter) && elementObserver?.setUpObserver(handleDateDisplayer);
 
+		// initialize thread counters on events
+		getEventThreadLengths();
+
 		LOGGER.log(SMI.ROOM_TIMELINE, `setupRoomTimeline done `, roomTimeLine);
 	}
 
@@ -142,7 +199,7 @@
 		entries.forEach((entry) => {
 			const eventId = entry.target.id;
 			const matrixEvent = props.room.findEventById(eventId);
-			if (matrixEvent && matrixEvent.getType() === 'm.room.message') {
+			if (matrixEvent && matrixEvent.getType() === EventType.RoomMessage) {
 				// Only send the receipt to the last visible event on screen
 				if (props.room.getLastVisibleTimeStamp() < matrixEvent.localTimestamp) {
 					props.room.setLastVisibleEventId(eventId);
@@ -172,7 +229,7 @@
 		entries.forEach((entry) => {
 			const eventId = entry.target.id;
 			const matrixEvent = props.room.findEventById(eventId);
-			if (matrixEvent && matrixEvent.getType() === 'm.room.message') {
+			if (matrixEvent && matrixEvent.getType() === EventType.RoomMessage) {
 				if (props.room.getFirstVisibleTimeStamp() < matrixEvent.localTimestamp || props.room.getFirstVisibleTimeStamp() === 0) {
 					matrixEvent.event.event_id && props.room.setFirstVisibleEventId(matrixEvent.event.event_id);
 					props.room.setFirstVisibleTimeStamp(matrixEvent.localTimestamp);
@@ -199,6 +256,13 @@
 			let newestEventId = props.room.getLiveTimelineNewestEvent()?.event_id;
 			await updateTimeLineWindow(); // update timeline and (optionally) the scrollbar
 
+			const currentThreadId = rooms.currentRoom.getCurrentThreadId();
+			if (currentThreadId) {
+				// if the current thread is not in the current timeline: remove the current thread
+				if (roomTimeLine.value.find((event) => event.event.event_id === currentThreadId) === undefined) {
+					rooms.currentRoom.setCurrentThreadId(undefined);
+				}
+			}
 			settings.isFeatureEnabled(FeatureFlag.dateSplitter) && elementObserver?.setUpObserver(handleDateDisplayer);
 
 			if (settings.isFeatureEnabled(FeatureFlag.notifications)) {
@@ -221,7 +285,6 @@
 	async function onScrollToEventId(newEventId?: string, oldEventId?: string) {
 		if (!newEventId) return;
 		scrollToEvent(newEventId, { position: 'center', select: 'Highlight' });
-		emit('scrolledToEventId');
 	}
 
 	//#region Events
@@ -249,7 +312,7 @@
 		if (Math.abs(ev.target.scrollHeight - ev.target.clientHeight - ev.target.scrollTop) <= 1) {
 			isLoadingNewEvents.value = true;
 
-			const prevNewestLoadedEventId = props.room.getTimelineNewestMessageEventId();
+			const prevNewestLoadedEventId = props.room.getNewestMessageEventId();
 			if (prevNewestLoadedEventId && !newestEventLoaded.value) {
 				await props.room.paginate(EventTimeline.FORWARDS);
 				await scrollToEvent(prevNewestLoadedEventId, { position: 'end' });
@@ -265,24 +328,15 @@
 		scrollToEvent(inReplyToId, { position: 'center', select: 'Highlight' });
 	}
 
-	function confirmDeleteMessage(event: TMessageEvent) {
+	function confirmDeleteMessage(event: TMessageEvent, isThreadRoot: boolean) {
 		showConfirmDelMsgDialog.value = true;
 		eventToBeDeleted.value = event;
+		eventToBeDeletedIsThreadRoot = isThreadRoot;
 	}
 
 	async function deleteMessage() {
 		if (eventToBeDeleted.value) {
-			const messageType = eventToBeDeleted.value.content.msgtype;
-			// If the message that will be deleted contains a file or image, delete this media from the server as well
-			// This is only possible if the user that wants to delete the message is an administrator (issue #1009)
-			if ((messageType === 'm.file' || messageType === 'm.image') && eventToBeDeleted.value.content.url && user.isAdmin) {
-				const accessToken = pubhubs.Auth.getAccessToken();
-				const req = new XMLHttpRequest();
-				req.open('DELETE', deleteMediaUrlfromMxc(eventToBeDeleted.value.content.url));
-				req.setRequestHeader('Authorization', 'Bearer ' + accessToken);
-				req.send();
-			}
-			pubhubs.deleteMessage(rooms.currentRoomId, eventToBeDeleted.value.event_id);
+			rooms.currentRoom?.deleteMessage(eventToBeDeleted.value, eventToBeDeletedIsThreadRoot);
 			LOGGER.log(SMI.ROOM_TIMELINE, `Deleted message with id ${eventToBeDeleted.value.event_id}`, { eventToBeDeleted });
 		}
 	}
@@ -301,7 +355,7 @@
 
 	// Update the timelineWindow from timelinechanges
 	async function updateTimeLineWindow() {
-		const currentLastEventId = props.room.getTimelineNewestMessageEventId(); // newest visible event
+		const currentLastEventId = props.room.getNewestMessageEventId(); // newest visible event
 		const inView = currentLastEventId ? elRoomTimeline.value?.querySelector(`[id="${currentLastEventId}"]`) : undefined;
 
 		const newestEvent = props.room.getLiveTimelineNewestEvent(); // newest live event
@@ -316,7 +370,7 @@
 			if (messageSendByUser && newestEvent?.event_id) {
 				await scrollToEvent(newestEvent.event_id);
 			}
-		} else if (newestEvent && newestEvent.type === 'm.room.redaction') {
+		} else if (newestEvent && newestEvent.type === EventType.RoomRedaction) {
 			props.room.addToRedactedEventIds(newestEvent.redacts!);
 		}
 	}
@@ -343,17 +397,20 @@
 			}
 		};
 
-		// If the event is already rendered, we can scroll to it immediately (this is quicker).
+		// try to find the event in the current timeline
 		let elEvent = elRoomTimeline.value.querySelector(`[id="${eventId}"]`);
+		if (!elEvent) {
+			// if the event is not in the current timeline, try to load the event
+			try {
+				await props.room.loadToEvent(eventId);
+			} catch (e) {
+				LOGGER.error(SMI.ROOM_TIMELINE, `Failed to load event ${eventId}`);
+			}
+			elEvent = elRoomTimeline.value.querySelector(`[id="${eventId}"]`);
+		}
 		if (elEvent) {
 			doScroll(elEvent);
-		} else {
-			await props.room.loadToEvent(eventId);
-
-			elEvent = elRoomTimeline.value.querySelector(`[id="${eventId}"]`);
-			if (!elEvent) throw new Error(`Cannot scroll to event that is not rendered (eventId: ${eventId}).`);
-
-			doScroll(elEvent);
+			emit(RoomEmit.ScrolledToEventId);
 		}
 	}
 </script>

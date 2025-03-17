@@ -1,6 +1,8 @@
 import { SignedMessage } from '@/model/components/signedMessages';
 import { WithRequired } from '../utility/utility';
 import { TBaseEvent } from './TBaseEvent';
+import { EventType, MsgType } from 'matrix-js-sdk';
+import { PubHubsMgType } from '@/logic/core/events';
 
 /**
  * Event used for sending messages in a room. Not limited to text.
@@ -9,7 +11,7 @@ import { TBaseEvent } from './TBaseEvent';
  */
 export interface TMessageEvent<C extends TMessageEventContent = TMessageEventContent> extends TBaseEvent {
 	content: C;
-	type: 'm.room.message';
+	type: EventType.RoomMessage;
 }
 
 // In future Matrix spec some refacturing is needed: https://github.com/matrix-org/matrix-spec-proposals/blob/main/proposals/1767-extensible-events.md
@@ -17,8 +19,11 @@ interface TBaseMessageEventContent {
 	body: string;
 	// Custom body type, which has all the processed body or formatted body content, for use in our components
 	ph_body: string;
-	msgtype: 'm.text' | 'm.image' | 'm.file' | 'pubhubs.signed_message';
+	msgtype: MsgType.Text | MsgType.Image | MsgType.File | PubHubsMgType.SignedMessage;
 	'm.relates_to'?: {
+		rel_type?: string;
+		event_id?: string;
+		is_falling_back?: boolean;
 		'm.in_reply_to'?: {
 			event_id: string;
 		};
@@ -31,21 +36,21 @@ export interface TMentions {
 }
 
 export interface TTextMessageEventContent extends TBaseMessageEventContent {
-	msgtype: 'm.text';
+	msgtype: MsgType.Text;
 	format?: 'org.matrix.custom.html';
 	formatted_body?: string;
 	'm.mentions': TMentions;
 }
 
 export interface TImageMessageEventContent extends TBaseMessageEventContent {
-	msgtype: 'm.image';
+	msgtype: MsgType.Image;
 	info?: ImageInfo;
 	// We don't use encryption, so required
 	url: string;
 }
 
 export interface TFileMessageEventContent extends TBaseMessageEventContent {
-	msgtype: 'm.file';
+	msgtype: MsgType.File;
 	file?: EncryptedFile;
 	filename?: string;
 	info?: FileInfo;
@@ -53,7 +58,7 @@ export interface TFileMessageEventContent extends TBaseMessageEventContent {
 }
 
 export interface TSignedMessageEventContent extends TBaseMessageEventContent {
-	msgtype: 'pubhubs.signed_message';
+	msgtype: PubHubsMgType.SignedMessage;
 	signed_message: SignedMessage;
 }
 
