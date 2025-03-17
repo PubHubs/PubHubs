@@ -79,6 +79,17 @@ const useRooms = defineStore('rooms', {
 			return rooms;
 		},
 
+		sortedRoomsArrayByJoinedTime(): Array<Room> {
+			const user = useUser();
+			const rooms: Array<Room> = Object.assign([], this.roomsArray);
+			rooms.sort((a, b) => {
+				const aJoined = a.getMember(user.userId!)?.getLastModifiedTime();
+				const bJoined = b.getMember(user.userId!)?.getLastModifiedTime();
+				return aJoined! < bJoined! ? 1 : -1;
+			});
+			return rooms;
+		},
+
 		sortedRoomsArray(): Array<Room> {
 			const rooms: Array<Room> = Object.assign([], this.roomsArray);
 			rooms.sort((a, b) => (a.name > b.name ? 1 : -1));
