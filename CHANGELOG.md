@@ -13,6 +13,8 @@ _Please add a brief description of any changes and any migrations to be performe
 
 Use the [MIGRATE] and [BREAKING] prefixes together with another one if that makes more sense.
 
+- [NEW] Threads are now supported
+
 ## 6 March 2025 - v1.1.0
 
 - [FIX] Styling fix where Search on DiscoverRoomPage was partly hidden in Header
