@@ -15,6 +15,7 @@ Use the [MIGRATE] and [BREAKING] prefixes together with another one if that make
 
 - [NEW] Threads are now supported
 - [BUG] Error solved when creating/editing rooms with a custom type
+- [BUG] Logo backgrounds where vague. Now allways white
 
 ## 6 March 2025 - v1.1.0
 

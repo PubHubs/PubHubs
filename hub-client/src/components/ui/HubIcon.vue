@@ -1,7 +1,7 @@
 <template>
-	<figure class="flex h-full w-full items-center justify-center overflow-hidden rounded-md bg-ph-background-4">
-		<img v-show="imageLoaded" :src="url" @load="imageLoaded = true" :alt="`Icon of Hub ${hubNameForImgAlt ?? ''}`" class="h-full w-full object-contain" />
-		<Icon v-if="fallback && !imageLoaded" type="hub_fallback"></Icon>
+	<figure class="flex aspect-square h-full w-full items-center justify-center overflow-hidden rounded-md">
+		<img v-show="imageLoaded" :src="url" @load="imageLoaded = true" :alt="`Icon of Hub ${hubNameForImgAlt ?? ''}`" class="h-full w-full bg-white object-contain" />
+		<Icon v-if="fallback && !imageLoaded" type="hub_fallback" class="h-full w-full text-ph-text"></Icon>
 	</figure>
 </template>
 
@@ -12,12 +12,13 @@
 	const settings = useSettings();
 
 	type Props = {
+		hubNameForImgAlt?: string; // Used when showing multiple Hubs.
 		iconUrl: string;
 		iconUrlDark: string;
-		// Used when showing multiple Hubs.
-		hubNameForImgAlt?: string;
+		isActive?: boolean;
 	};
 	const props = defineProps<Props>();
+
 	let fallback = ref(false);
 	let imageLoaded = ref(false);
 
@@ -35,11 +36,6 @@
 	}
 
 	function getUrl(): string {
-		switch (settings.getActiveTheme) {
-			case Theme.Dark:
-				return props.iconUrlDark;
-			case Theme.Light:
-				return props.iconUrl;
-		}
+		return props.iconUrl;
 	}
 </script>
