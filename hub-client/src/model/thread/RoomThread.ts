@@ -1,4 +1,5 @@
 import { MatrixEvent, MatrixClient, Thread } from 'matrix-js-sdk';
+import { RelationType } from '../constants';
 
 export default class TRoomThread {
 	private matrixThread: Thread;
@@ -12,7 +13,7 @@ export default class TRoomThread {
 		while (await matrixClient.paginateEventTimeline(this.matrixThread.liveTimeline, { backwards: true, limit: 100 })) {
 			events.concat(this.matrixThread.liveTimeline.getEvents());
 		}
-		return events;
+		return this.sortThreadEvents(events);
 	}
 
 	public getLength(): number {
@@ -37,5 +38,25 @@ export default class TRoomThread {
 	 */
 	public clearEventMetaData(event: MatrixEvent) {
 		this.matrixThread.clearEventMetadata(event);
+	}
+
+	/**
+	 * Sorts an array of events so that the root of the thread is first
+	 * A rootevent does not have a relationtype of m.thread
+	 * @param events - Array to sort
+	 */
+	private sortThreadEvents(events: MatrixEvent[]): MatrixEvent[] {
+		events.sort((a, b) => {
+			const aIsRoot = a.event.content?.[RelationType.RelatesTo] ? [RelationType.RelType].toString() === RelationType.Thread : true;
+			const bIsRoot = b.event.content?.[RelationType.RelatesTo] ? [RelationType.RelType].toString() === RelationType.Thread : true;
+			if (aIsRoot && !bIsRoot) {
+				return -1;
+			}
+			if (!aIsRoot && bIsRoot) {
+				return 1;
+			}
+			return 0;
+		});
+		return events;
 	}
 }
