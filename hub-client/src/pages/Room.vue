@@ -21,12 +21,12 @@
 							</TruncatedText>
 						</div>
 						<!-- Only show cog wheel in mobile view -->
-						<Icon v-if="room.getUserPowerLevel(user.user.userId) === 50" type="cog" class="z-10 cursor-pointer md:hidden md:text-black" @click="moderatorCanEdit()"></Icon>
+						<Icon v-if="room.getUserPowerLevel(user.user.userId) === 50" type="cog" class="z-10 cursor-pointer md:hidden md:text-black" @click="stewardCanEdit()"></Icon>
 					</div>
-					<!--Only show Editing icon for Moderator but not for administrator-->
+					<!--Only show Editing icon for steward but not for administrator-->
 					<div class="hidden items-center md:flex" v-if="room.getUserPowerLevel(user.user.userId) === 50">
 						<div class="rounded-md border-2 border-gray-light bg-gray-light px-2 py-2 transition-colors hover:border-gray-middle hover:bg-gray-middle">
-							<Icon type="cog" class="cursor-pointer text-white" @click="moderatorCanEdit()"></Icon>
+							<Icon type="cog" class="cursor-pointer text-white" @click="stewardCanEdit()"></Icon>
 						</div>
 					</div>
 					<SearchInput :search-parameters="searchParameters" @scroll-to-event-id="onScrollToEventId" :room="rooms.currentRoom"></SearchInput>
@@ -154,7 +154,7 @@
 		room.value.setCurrentEventId(ev.eventId);
 	}
 
-	async function moderatorCanEdit() {
+	async function stewardCanEdit() {
 		currentRoomToEdit.value = await rooms.getTPublicOrTSecuredRoom(props.id);
 		const isSecuredRoom = rooms.roomIsSecure(props.id);
 		if (isSecuredRoom) secured.value = true;

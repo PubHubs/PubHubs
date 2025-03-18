@@ -1,5 +1,5 @@
 /**
- * Helper class for handling backend service related to advance user like admin or moderator.
+ * Helper class for handling backend service related to advance user like admin or steward.
  */
 
 import { TUserAccountList, TUserJoinedRooms } from '@/model/users/TUser';
