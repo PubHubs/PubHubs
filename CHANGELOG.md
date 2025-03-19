@@ -15,7 +15,9 @@ Use the [MIGRATE] and [BREAKING] prefixes together with another one if that make
 
 - [NEW] Threads are now supported
 - [BUG] Error solved when creating/editing rooms with a custom type
-- [BUG] Logo backgrounds where vague. Now allways white
+- [BUG] Logo backgrounds where vague. Now always white
+- [BUG] When a message is deleted, but someone has replied to it, the contents of the deleted message should no longer be visible in the message snippet contained in the reply.
+- [TYPO] Changed the text on the discover hub page from "Welcome _at_ PubHubs" to "Welcome _to_ PubHubs".
 
 ## 6 March 2025 - v1.1.0
 

@@ -49,7 +49,7 @@ const nl = {
 		hub_homepage_welcome_auth: 'Welkom bij de {0}-hub.',
 		welcome: 'Welkom',
 		highlighted_hubs: 'Uitgelichte Hubs',
-		welcome_at: 'Welkom bij',
+		welcome_to: 'Welkom bij',
 		discover_hubs: 'Ontdek Hubs',
 		hub_card_about: 'Over',
 	},
