@@ -10,7 +10,7 @@ General tips:
   - [ ] You're merging from main into stable (and not from some feature branch.) 
   - [ ] Review and update the [CHANGELOG](CHANGELOG.md) to reflect the state after the merge into stable.
     - [ ] Scan through all changes in merge request to see if there is any issue.
-    - [ ] Set the new version number  ([how to decide which version](https://gitlab.science.ru.nl/ilab/pubhubs_canonical/-/wikis/Tech-Information/Versioning)) in the [CHANGELOG](CHANGELOG.md).
+    - [ ] Set the new version number  ([how to decide which version](https://gitlab.science.ru.nl/ilab/pubhubs_canonical/-/wikis/Tech-Information/Versioning)) in the [CHANGELOG](CHANGELOG.md). **But don't tag yet!** Tagging will release a new stable version. (You can see the tags and their pipelines [here](https://gitlab.science.ru.nl/ilab/pubhubs_canonical/-/tags).)
   - [ ] Before proceeding with the folloing steps please check that the pipeline has been successfully completed. 
   - [ ] Please check that the following works on https://main.pubhubs.ihub.ru.nl/client :
       - [ ] Test basic pubhubs functionality
@@ -47,7 +47,7 @@ General tips:
   - [ ] Figure out if the merge also requires any configuration changes. 
   - [ ] Consider if the merge might cause irreversible changes (different database format), and plan for this. (Backups?)
   - [ ] Inform the pubhubs team (via Slack and PubHubs stable) of the merge and possible downtime of https://stable.pubhubs.ihub.ru.nl/client . 
-  - [ ] Make the changes and perform the merge.
+  - [ ] Make the changes and **perform the merge**. After merging, **tag** the latest commit on stable with the version number to trigger the building and publishing of the stable images. 
   - [ ] While waiting on the pipeline: update dependencies on the main branch in a merge request created from [this issue](https://gitlab.science.ru.nl/ilab/pubhubs_canonical/-/issues/new?issuable_template=update-dependencies&issue[title]=Updating%20dependencies%20on%2020yy-mm-dd). Please wait with merging this, see instruction below.
   - [ ] Check that the following works on https://stable.pubhubs.ihub.ru.nl/client :
     - [ ] Turn off dev mode in Yivi app. 
@@ -55,9 +55,6 @@ General tips:
       - Note for registering a *new* user, with a fresh email address: If possible, tips are if you have a gmail account you can add +<date> before the '@' and add a card for that, if you have a mail domain with a catch-all you can create a new mail address and add a card for that.
     - [ ] Anything related specifically to your merge request.
   - [ ] Make issues for the problems. If they are serious:  fix or revert, if possible.
-  - [ ] Tag the merge commit with the latest version number.
-    - Do this by going to Tags -> new tag
-    - Put vx.y.z and select the stable branch in 'Create from'
   - [ ] Merge stable back into main. Do this on your machine, not via a gitlab merge request (which will make an extra commit leading to out-of-sync main and stable). To check if main and stable are merged correctly, go to the [repository graph](https://gitlab.science.ru.nl/ilab/pubhubs_canonical/-/network/main?ref_type=heads) and check if main and stable are pointing to the same commit. See the screenshot below. (If you already merged the updated dependencies to main, main will be ahead of stable)
 
   ![image](/uploads/478c467465270fe24b4e3ec6ee32cc3b/image.png)
