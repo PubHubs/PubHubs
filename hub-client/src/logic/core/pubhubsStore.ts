@@ -62,11 +62,9 @@ const usePubHubs = defineStore('pubhubs', {
 				user.setClient(x as MatrixClient);
 
 				const events = new Events(this.client as MatrixClient);
-				events.initEvents();
-				// 2024 12 03 The await is removed, because of slow loading testhub
-				// After the next merge to stable, in case this gives no problems,
-				// the old code and comments can be removed
-				// await events.initEvents();
+
+				/* await is necessary for timing, otherwise the roomnames in the roomlist appear as ID's */
+				await events.initEvents();
 
 				logger.trace(SMI.STARTUP, 'PubHubs.logged in ()');
 				const connection = useConnection();
@@ -95,6 +93,8 @@ const usePubHubs = defineStore('pubhubs', {
 					// 	}
 					// });
 
+					// TODO UpdateRooms is called several times during startup from different places.
+					// We need only call it once during startup, the other calls should be replaced by single room calls
 					this.updateRooms();
 					// 2024 12 03 The await is removed, because of slow loading testhub
 					// After the next merge to stable, in case this gives no problems,
