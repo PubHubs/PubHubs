@@ -184,9 +184,10 @@
 		return props.event.event_id.substring(0, 1) === '~';
 	});
 
+	const containsRedactedBecause = props.event.unsigned?.redacted_because !== undefined;
+
 	const redactedMessage = computed(() => {
 		const inRedactedMessageIds = props.room.inRedactedMessageIds(props.event.event_id);
-		const containsRedactedBecause = props.event.unsigned?.redacted_because != undefined;
 		// Remove the event id from the list with redacted event IDs if the event already contains the redacted_because key
 		if (inRedactedMessageIds && containsRedactedBecause) {
 			props.room.removeRedactedEventId(props.event.event_id);

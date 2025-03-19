@@ -51,7 +51,7 @@ const en = {
 		highlighted_hubs: 'Highlighted Hubs',
 		// Boven highlighted Hubs, iets afstand
 		highlighted_hubs_info: 'PubHubs consist of seperate Hubs, where local conversations happen, under a central login. These Hubs are run by seperate, participating organisations.',
-		welcome_at: 'Welcome at',
+		welcome_to: 'Welcome to',
 		discover_hubs: 'Discover Hubs',
 		hub_card_about: 'About',
 	},
