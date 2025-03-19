@@ -381,6 +381,7 @@ const en = {
 		firstname: 'first name',
 		familyname: 'family name',
 		dateofbirth: 'date of birth',
+		gender: 'gender',
 		phonenumber: 'phone number',
 		over12: 'older than 12',
 		over16: 'older than 16',
