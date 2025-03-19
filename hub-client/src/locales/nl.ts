@@ -383,6 +383,7 @@ const nl = {
 		firstname: 'voornaam',
 		familyname: 'achternaam',
 		dateofbirth: 'geboortedatum',
+		gender: 'gender',
 		phonenumber: 'telefoonnummer',
 		over12: 'ouder dan 12',
 		over16: 'ouder dan 16',
