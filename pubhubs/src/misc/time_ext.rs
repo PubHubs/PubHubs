@@ -16,9 +16,25 @@ impl fmt::Display for FormattedTime {
         write!(
             f,
             "{} ({}{}{})",
-            humantime::format_rfc3339_seconds(self.t),
+            jiff::Timestamp::try_from(self.t)
+                .map(|t| t
+                    .round(jiff::Unit::Second)
+                    .expect("should never fail with Unit::Second as argument")
+                    .to_string())
+                .unwrap_or_else(|_| "<overflowing timestamp>".to_string()),
             self.prefix,
-            humantime::format_duration(self.duration),
+            jiff::Span::try_from(self.duration)
+                .map(|s| format!(
+                    "{:#}",
+                    s.round(
+                        jiff::SpanRound::new()
+                            .smallest(jiff::Unit::Second)
+                            .largest(jiff::Unit::Week)
+                            .days_are_24_hours()
+                    )
+                    .unwrap()
+                ))
+                .unwrap_or_else(|_| "<overflowing time span>".to_string()),
             self.suffix
         )
     }
@@ -35,7 +51,7 @@ pub fn format_time(t: time::SystemTime) -> FormattedTime {
 /// Both time and time delta are rounded to seconds.
 ///
 /// For example, at the time of writing the unix epoch is displayed thusly:
-/// `1970-01-01T00:00:00Z (53years 10months 7days 21h 37m 23s ago)`
+/// `1970-01-01T00:00:00Z (2810w 13h 13m 23s ago)`
 pub fn format_time_wrt(t: time::SystemTime, now: time::SystemTime) -> FormattedTime {
     let (prefix, suffix, duration) = match now.duration_since(t) {
         Ok(duration) => ("", " ago", duration),
@@ -71,11 +87,11 @@ mod tests {
         let t2 = epoch + time::Duration::from_secs_f64(1699535603.723209);
         assert_eq!(
             format_time_wrt(epoch, t2).to_string(),
-            "1970-01-01T00:00:00Z (53years 10months 7days 21h 37m 23s ago)".to_string()
+            "1970-01-01T00:00:00Z (2810w 13h 13m 23s ago)".to_string()
         );
         assert_eq!(
             format_time_wrt(t2, epoch).to_string(),
-            "2023-11-09T13:13:23Z (in 53years 10months 7days 21h 37m 23s)".to_string()
+            "2023-11-09T13:13:24Z (in 2810w 13h 13m 23s)".to_string()
         );
     }
 }

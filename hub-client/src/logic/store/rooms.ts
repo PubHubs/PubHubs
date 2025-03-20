@@ -6,11 +6,12 @@ import Room from '@/model/rooms/Room';
 import { RoomType } from '@/model/rooms/TBaseRoom';
 import { TPublicRoom } from '@/model/rooms/TPublicRoom';
 import { TSecuredRoom } from '@/model/rooms/TSecuredRoom';
-import { MatrixEvent, Room as MatrixRoom, NotificationCountType } from 'matrix-js-sdk';
+import { EventType, MatrixEvent, Room as MatrixRoom, NotificationCountType } from 'matrix-js-sdk';
 import { defineStore } from 'pinia';
 import { Message, MessageType, useMessageBox } from './messagebox';
 import { useUser } from './user';
 import { useSettings } from './settings';
+import { PubHubsMgType } from '@/logic/core/events';
 import { SecuredRoomAttributeResult } from '@/logic/foundation/statusTypes';
 
 // Matrix Endpoint for messages in a room.
@@ -75,6 +76,17 @@ const useRooms = defineStore('rooms', {
 		roomsArray(state): Array<Room> {
 			const values = Object.values(state.rooms);
 			const rooms = values.filter((item) => typeof item?.roomId !== 'undefined');
+			return rooms;
+		},
+
+		sortedRoomsArrayByJoinedTime(): Array<Room> {
+			const user = useUser();
+			const rooms: Array<Room> = Object.assign([], this.roomsArray);
+			rooms.sort((a, b) => {
+				const aJoined = a.getMember(user.userId!)?.getLastModifiedTime();
+				const bJoined = b.getMember(user.userId!)?.getLastModifiedTime();
+				return aJoined! < bJoined! ? 1 : -1;
+			});
 			return rooms;
 		},
 
@@ -175,7 +187,7 @@ const useRooms = defineStore('rooms', {
 			// On receiving a moderation "Ask Disclosure" message (in any room),
 			// addressed to the current user,
 			// put the details into the state store to start the Disclosure flow.
-			if (e.event?.type === 'm.room.message' && e.event.content?.msgtype === 'pubhubs.ask_disclosure_message') {
+			if (e.event?.type === EventType.RoomMessage && e.event.content?.msgtype === PubHubsMgType.AskDisclosureMessage) {
 				const user = useUser();
 				const ask = e.event.content.ask_disclosure_message as AskDisclosureMessage;
 				if (ask.userId === user.userId!) {
@@ -199,12 +211,17 @@ const useRooms = defineStore('rooms', {
 		updateRoomsWithMatrixRooms(rooms: MatrixRoom[]) {
 			const tempRooms = {} as { [index: string]: Room }; // reset rooms
 			rooms.forEach((matrixRoom) => {
-				// Check if room already exists else add room
-				if (this.rooms[matrixRoom.roomId]) {
-					tempRooms[matrixRoom.roomId] = this.rooms[matrixRoom.roomId];
-				} else {
-					tempRooms[matrixRoom.roomId] = new Room(matrixRoom);
-				}
+				// // Check if room already exists else add room
+				// if (this.rooms[matrixRoom.roomId]) {
+				// 	tempRooms[matrixRoom.roomId] = this.rooms[matrixRoom.roomId];
+				// } else {
+				// 	tempRooms[matrixRoom.roomId] = new Room(matrixRoom);
+				// }
+
+				// Because rooms by Matrix are initialized with the Id as name and the actual name
+				// is only set when the room is joined we here need to always add the room as a new Room.
+				// Then the name will be set to the correct value.
+				tempRooms[matrixRoom.roomId] = new Room(matrixRoom);
 			});
 
 			this.rooms = tempRooms;
@@ -256,7 +273,7 @@ const useRooms = defineStore('rooms', {
 				this.roomNotices[roomId][creatingAdminUser!] = ['rooms.admin_badge'];
 			}
 			const limit = 100000;
-			const encodedObject = encodeURIComponent(JSON.stringify({ types: ['m.room.message'], senders: [hub_notice], limit: limit }));
+			const encodedObject = encodeURIComponent(JSON.stringify({ types: [EventType.RoomMessage], senders: [hub_notice], limit: limit }));
 			// The limit is in two places, it used to work in just the filter, but not anymore. It's also an option in the query string.
 			const response = await api_matrix.apiGET<RoomMessages>(api_matrix.apiURLS.rooms + roomId + `/messages?limit=${limit}&filter=` + encodedObject);
 			for (const message of response.chunk) {
@@ -399,12 +416,8 @@ const useRooms = defineStore('rooms', {
 				});
 		},
 
-		yiviSignMessage(message: string, attributes: string[], roomId: string, onFinish: (result: YiviSigningSessionResult) => unknown) {
+		yiviSignMessage(message: string, attributes: string[], roomId: string, accessToken: string, onFinish: (result: YiviSigningSessionResult) => unknown) {
 			const settings = useSettings();
-			const pubhubsStore = usePubHubs();
-
-			const accessToken = pubhubsStore.Auth.getAccessToken();
-			if (!accessToken) throw new Error('Access token missing.');
 
 			const yivi = require('@privacybydesign/yivi-frontend');
 			// @ts-ignore

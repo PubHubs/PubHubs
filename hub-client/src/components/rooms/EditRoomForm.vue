@@ -17,7 +17,7 @@
 			</FormLine>
 			<FormLine v-if="!secured">
 				<Label>{{ $t('admin.room_type') }}</Label>
-				<TextInput :placeholder="$t('admin.room_type_placeholder')" v-model="editRoom.type" class="md:w-5/6" @changed="updateData('type', $event)"></TextInput>
+				<TextInput :placeholder="$t('admin.room_type_placeholder')" v-model="editRoom.room_type" :disabled="!isNewRoom" class="md:w-5/6" @changed="updateData('room_type', $event)"></TextInput>
 			</FormLine>
 			<div v-if="secured">
 				<FormLine class="mb-2">
@@ -180,14 +180,10 @@
 			topic: {
 				value: editRoom.value.topic as string,
 			},
+			room_type: {
+				value: editRoom.value.room_type as string,
+			},
 		});
-		if (!props.secured) {
-			setData({
-				type: {
-					value: '',
-				},
-			});
-		}
 	});
 
 	//#endregion
@@ -199,8 +195,9 @@
 	}
 
 	async function submitRoom(): Promise<Boolean> {
-		// Normal room
 		let room = { ...editRoom.value } as TSecuredRoom;
+
+		// Normal room
 		if (!props.secured) {
 			if (isNewRoom.value) {
 				let newRoomOptions = {
@@ -208,7 +205,7 @@
 					topic: room.topic,
 					visibility: 'public',
 					creation_content: {
-						type: room.topic === '' ? undefined : room.topic,
+						type: editRoom.value.room_type === '' ? undefined : editRoom.value.room_type,
 					},
 				};
 				await pubhubs.createRoom(newRoomOptions);
@@ -222,7 +219,6 @@
 		}
 		// Secured room
 		else {
-			let room = { ...editRoom.value } as TSecuredRoom;
 			// Transform room for API
 			// room.room_name = room.name;
 			// delete room.name;

@@ -18,7 +18,7 @@ import { ISendEventResponse } from 'matrix-js-sdk';
 */
 
 export class Administrator implements IUserManagement, IRoomManagement, ISuspendUser {
-	// Access list will be shared by administrator and moderator - therefore it is done via composition.
+	// Access list will be shared by administrator and steward - therefore it is done via composition.
 	private accessListManager: SharedAccessManagement;
 
 	constructor() {
@@ -68,7 +68,7 @@ export class Administrator implements IUserManagement, IRoomManagement, ISuspend
 	 *
 	 * @param userId
 	 * @param roomId
-	 * @param powerLevel changes the permissions depending on the power level i.e., 0 -user, 50 - moderator, 100 - admin.
+	 * @param powerLevel changes the permissions depending on the power level i.e., 0 -user, 50 - steward, 100 - admin.
 	 */
 
 	async changePermission(userId: string, roomId: string, powerLevel: number): Promise<ISendEventResponse> {

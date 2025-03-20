@@ -8,6 +8,7 @@ const useMessageActions = defineStore('message-actions', {
 	state: () => {
 		return {
 			replyingTo: undefined as string | undefined,
+			threadRoot: undefined as string | undefined,
 		};
 	},
 });

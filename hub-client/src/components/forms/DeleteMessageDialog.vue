@@ -1,12 +1,12 @@
 <template>
 	<!-- Temporary fix to set all text in the dialog to black until the dialog changes theme -->
 	<Dialog class="text-black" :title="$t('message.delete.heading')" :buttons="buttonsYesNo" @close="close($event)" width="max-w-full lg:max-w-[40%] min-w-[92.5%] lg:min-w-[22.5%]">
-		<div v-if="!user.isAdmin && (event.content.msgtype === 'm.file' || event.content.msgtype === 'm.image')">
+		<div v-if="!user.isAdmin && (event.content.msgtype === MsgType.File || event.content.msgtype === MsgType.Image)">
 			<p class="font-bold">{{ $t('message.delete.beware') }}</p>
 			<p class="mb-4 font-bold">{{ $t('message.delete.file_not_deleted') }}</p>
 		</div>
 		<Suspense>
-			<RoomEvent class="w-fit" :event="event" :room="room" :deleteMessageDialog="true"></RoomEvent>
+			<RoomEvent class="w-fit" :event="event" :room="room" :deleteMessageDialog="true" :viewFromThread="props.viewFromThread"></RoomEvent>
 			<template #fallback>
 				<p>{{ $t('state.loading_message') }}</p>
 			</template>
@@ -15,21 +15,27 @@
 </template>
 
 <script setup lang="ts">
-	// Components
-	import Dialog from '../ui/Dialog.vue';
-
 	import Room from '@/pages/Room.vue';
 	import { buttonsYesNo, DialogButtonAction } from '@/logic/store/dialog';
 	import { useUser } from '@/logic/store/user';
 
 	const user = useUser();
 
+	// Components
+	import RoomEvent from '../rooms/RoomEvent.vue';
+	import Dialog from '../ui/Dialog.vue';
+	import { MsgType } from 'matrix-js-sdk';
+
 	const emit = defineEmits(['yes', 'close']);
 
-	defineProps({
+	const props = defineProps({
 		event: {
 			type: Object,
 			required: true,
+		},
+		viewFromThread: {
+			type: Boolean,
+			default: false,
 		},
 		room: {
 			type: Room,

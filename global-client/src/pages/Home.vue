@@ -7,7 +7,7 @@
 		<div class="mx-auto mb-8 flex w-full flex-col gap-16 md:w-4/6">
 			<div class="mt-16 flex flex-col items-center justify-start gap-16 px-4 md:px-0">
 				<div class="flex flex-col items-center gap-8 md:flex-row">
-					<div class="work_sanssemibold text-4xl md:text-6xl 2xl:text-8xl">{{ $t('home.welcome_at') }}</div>
+					<div class="work_sanssemibold text-4xl md:text-6xl 2xl:text-8xl">{{ $t('home.welcome_to') }}</div>
 					<Logo class="h-24"></Logo>
 				</div>
 				<div class="flex w-full flex-col items-start gap-8 md:flex-row">
@@ -40,7 +40,7 @@
 			<div class="-mt-16 flex flex-col gap-2 px-8 md:px-0">
 				<div class="flex items-center gap-2">
 					<Icon class="text-ph-background-2 dark:text-ph-text" type="pubhubs-home" size="sm"></Icon>
-					<div class="work_sanssemibold text-2xl">{{ $t('home.welcome_at') }}</div>
+					<div class="work_sanssemibold text-2xl">{{ $t('home.welcome_to') }}</div>
 					<Logo class="w-[8em]"></Logo>
 				</div>
 				<div class="relative">

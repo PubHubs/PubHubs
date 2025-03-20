@@ -13,6 +13,14 @@ _Please add a brief description of any changes and any migrations to be performe
 
 Use the [MIGRATE] and [BREAKING] prefixes together with another one if that makes more sense.
 
+## 20 March 2025 - v1.2.0
+
+- [NEW] Threads are now supported
+- [BUG] Error solved when creating/editing rooms with a custom type
+- [BUG] Logo backgrounds where vague. Now always white
+- [BUG] When a message is deleted, but someone has replied to it, the contents of the deleted message should no longer be visible in the message snippet contained in the reply.
+- [TYPO] Changed the text on the discover hub page from "Welcome _at_ PubHubs" to "Welcome _to_ PubHubs".
+
 ## 6 March 2025 - v1.1.0
 
 - [FIX] Styling fix where Search on DiscoverRoomPage was partly hidden in Header
@@ -36,6 +44,7 @@ Use the [MIGRATE] and [BREAKING] prefixes together with another one if that make
 - [BUG] The hub's welcome page no longer displays an error page when a user has set neither their display name nor avatar.
 - [BUG] When scrolling in a room, message no longer partly overlap the message input bar.
 - [BUG] The date badge (showing the date of the oldest message in view when scrolling up or the date of the most recent message in view when scrolling down) is centered again and does not cause a horizontal scrollbar to appear.
+- [BUG] In the creation of OIDC authorization tokens and handles, replaced message pack by JSON: double check login an registration still works.
 - [NOTE TO MERGERS] Changed yivi server on pubhubs VM used by stable and main in anticipation of the new server setup.  Changes should be backwards compatible, but if there's trouble with registration/login, this might be the cause.  -Bram
 
 ## 6 February 2025 - v1.0.5

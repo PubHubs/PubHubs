@@ -31,7 +31,19 @@
 	const { imageTypes } = useMatrixFiles();
 	const emit = defineEmits(['close']);
 
-	const props = defineProps<{ file: File; blobURL: string }>();
+	const props = defineProps({
+		file: {
+			type: File,
+			required: true,
+		},
+		blobURL: {
+			type: String,
+			required: true,
+		},
+		threadId: {
+			type: String,
+		},
+	});
 
 	async function close(action: number = 0) {
 		if (action === 1) {
@@ -59,9 +71,9 @@
 
 		fileUpload(errorMsg, accessToken, uploadUrl, allTypes, syntheticEvent, (url) => {
 			if (imageTypes.includes(props.file?.type)) {
-				pubhubs.addImage(rooms.currentRoomId, url);
+				pubhubs.addImage(rooms.currentRoomId, props.threadId, url);
 			} else {
-				pubhubs.addFile(rooms.currentRoomId, props.file as File, url);
+				pubhubs.addFile(rooms.currentRoomId, props.threadId, props.file as File, url);
 			}
 			URL.revokeObjectURL(props.blobURL);
 			emit('close');

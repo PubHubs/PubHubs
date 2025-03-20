@@ -1,12 +1,12 @@
 <template>
 	<Dialog v-if="showDisclosureDialog" :title="$t('admin.disclosure_dialog_title')" :buttons="buttonsContinueIgnore" width="w-3/6" @close="closeDialog($event)">
-		<p>The moderator is asking you to disclose some information.</p>
+		<p>The steward is asking you to disclose some information.</p>
 		<p>Please use Yivi to reveal the following identity attribute(s).</p>
 		<ul>
 			<li v-for="(item, index) in rooms.askDisclosureMessage!.attributes" :key="index">{{ item.yivi }}</li>
 		</ul>
 		<p>To proceed, click 'Continue' and follow the Yivi instructions.</p>
-		<p>TODO: Alternatively, please discuss this with the moderator...</p>
+		<p>TODO: Alternatively, please discuss this with the steward...</p>
 	</Dialog>
 	<DisclosureYivi v-if="showDisclosureYivi" :ask="rooms.askDisclosureMessage" @close="closeYivi"></DisclosureYivi>
 </template>

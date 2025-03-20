@@ -12,7 +12,7 @@
 						<div class="flex flex-col">
 							<H1 class="flex">
 								<TruncatedText>
-									<PrivateRoomName v-if="rooms.currentRoom.isPrivateRoom()" :members="rooms.currentRoom.getOtherJoinedAndInvitedMembers()"></PrivateRoomName>
+									<PrivateRoomName v-if="rooms.currentRoom.isPrivateRoom()" :members="rooms.currentRoom.getOtherJoinedAndInvitedMembers()"> </PrivateRoomName>
 									<RoomName v-else :room="rooms.currentRoom"></RoomName>
 								</TruncatedText>
 							</H1>
@@ -21,23 +21,27 @@
 							</TruncatedText>
 						</div>
 						<!-- Only show cog wheel in mobile view -->
-						<Icon v-if="room.getUserPowerLevel(user.user.userId) === 50" type="cog" class="z-10 cursor-pointer md:hidden md:text-black" @click="moderatorCanEdit()"></Icon>
+						<Icon v-if="room.getUserPowerLevel(user.user.userId) === 50" type="cog" class="z-10 cursor-pointer md:hidden md:text-black" @click="stewardCanEdit()"></Icon>
 					</div>
-					<!--Only show Editing icon for Moderator but not for administrator-->
+					<!--Only show Editing icon for steward but not for administrator-->
 					<div class="hidden items-center md:flex" v-if="room.getUserPowerLevel(user.user.userId) === 50">
 						<div class="rounded-md border-2 border-gray-light bg-gray-light px-2 py-2 transition-colors hover:border-gray-middle hover:bg-gray-middle">
-							<Icon type="cog" class="cursor-pointer text-white" @click="moderatorCanEdit()"></Icon>
+							<Icon type="cog" class="cursor-pointer text-white" @click="stewardCanEdit()"></Icon>
 						</div>
 					</div>
 					<SearchInput :search-parameters="searchParameters" @scroll-to-event-id="onScrollToEventId" :room="rooms.currentRoom"></SearchInput>
 				</div>
 			</template>
 
-			<RoomTimeline v-if="room" :room="room" :scroll-to-event-id="scrollToEventId" @scrolled-to-event-id="scrollToEventId = ''"></RoomTimeline>
-
+			<div class="flex h-full w-full justify-between overflow-hidden">
+				<div class="flex h-full w-full flex-col overflow-hidden">
+					<RoomTimeline v-if="room" :room="room" :scroll-to-event-id="room.getCurrentEventId()" @scrolled-to-event-id="room.setCurrentEventId(undefined)"> </RoomTimeline>
+				</div>
+				<RoomThread v-if="room.getCurrentThreadId()" :room="room" :scroll-to-event-id="room.getCurrentEventId()" @scrolled-to-event-id="room.setCurrentEventId(undefined)" @thread-length-changed="currentThreadLengthChanged">
+				</RoomThread>
+			</div>
 			<template #footer>
-				<MessageInput v-if="room" :room="room"></MessageInput>
-				<EditRoomForm v-if="showEditRoom" :room="currentRoomToEdit" :secured="secured" @close="closeEdit()"></EditRoomForm>
+				<EditRoomForm v-if="showEditRoom" :room="currentRoomToEdit" :secured="secured" @close="closeEdit()"> </EditRoomForm>
 			</template>
 		</HeaderFooter>
 
@@ -48,16 +52,16 @@
 
 <script setup lang="ts">
 	// Components
+	import H1 from '@/components/elements/H1.vue';
 	import HeaderFooter from '@/components/ui/HeaderFooter.vue';
 	import Icon from '@/components/elements/Icon.vue';
-	import H1 from '@/components/elements/H1.vue';
 	import TruncatedText from '@/components/elements/TruncatedText.vue';
-	import RoomName from '@/components/rooms/RoomName.vue';
+	import PrivateRoomName from '@/components/rooms/PrivateRoomName.vue';
 	import RoomTopic from '@/components/rooms/RoomTopic.vue';
 	import SearchInput from '@/components/forms/SearchInput.vue';
 	import RoomTimeline from '@/components/rooms/RoomTimeline.vue';
-	import MessageInput from '@/components/forms/MessageInput.vue';
-	import PrivateRoomName from '@/components/rooms/PrivateRoomName.vue';
+	import RoomName from '@/components/rooms/RoomName.vue';
+	import RoomThread from '@/components/rooms/RoomThread.vue';
 
 	import { usePubHubs } from '@/logic/core/pubhubsStore';
 	import { LOGGER } from '@/logic/foundation/Logger';
@@ -67,7 +71,7 @@
 	import { PluginProperties, usePlugins } from '@/logic/store/plugins';
 	import { useRooms } from '@/logic/store/rooms';
 	import { useUser } from '@/logic/store/user';
-	import { TPublicRoom, TSecuredRoom } from '@/store/store';
+	import { TPublicRoom, TSecuredRoom } from '@/logic/store/store';
 	import { computed, onMounted, ref, watch } from 'vue';
 	import { useRoute, useRouter } from 'vue-router';
 
@@ -90,7 +94,6 @@
 	});
 
 	const searchParameters = ref<TSearchParameters>({ roomId: props.id, term: '' });
-	const scrollToEventId = ref<string>('');
 
 	const room = computed(() => {
 		let r = rooms.rooms[props.id];
@@ -108,8 +111,16 @@
 	});
 
 	watch(route, () => {
+		if (rooms.currentRoom) {
+			rooms.currentRoom.setCurrentThreadId(undefined); // reset current thread
+			rooms.currentRoom.setCurrentEventId(undefined); // reset current event
+		}
 		update();
 	});
+
+	function currentThreadLengthChanged(newLength: number) {
+		room.value.setCurrentThreadLength(newLength);
+	}
 
 	async function update() {
 		hubSettings.hideBar();
@@ -127,10 +138,23 @@
 	}
 
 	async function onScrollToEventId(ev: any) {
-		scrollToEventId.value = ev.eventId;
+		// if there is a threadId and this is a valid id in the room: set the current threadId
+		if (ev.threadId && ev.threadId !== ev.eventId) {
+			if (!room.value.findEventById(ev.threadId)) {
+				try {
+					await room.value.loadToEvent(ev.threadId);
+				} catch (e) {
+					LOGGER.error(SMI.ROOM_TIMELINE, `Failed to load event ${eventId}`);
+				}
+			}
+			room.value.setCurrentThreadId(ev.threadId);
+		} else {
+			room.value.setCurrentThreadId(undefined);
+		}
+		room.value.setCurrentEventId(ev.eventId);
 	}
 
-	async function moderatorCanEdit() {
+	async function stewardCanEdit() {
 		currentRoomToEdit.value = await rooms.getTPublicOrTSecuredRoom(props.id);
 		const isSecuredRoom = rooms.roomIsSecure(props.id);
 		if (isSecuredRoom) secured.value = true;
