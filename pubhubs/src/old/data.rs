@@ -573,7 +573,7 @@ impl<'de> Deserialize<'de> for Hubid {
 
         return deserializer.deserialize_string(Visitor {});
 
-        impl<'ve> serde::de::Visitor<'ve> for Visitor {
+        impl serde::de::Visitor<'_> for Visitor {
             type Value = Hubid;
 
             fn expecting(&self, formatter: &mut Formatter) -> std::fmt::Result {

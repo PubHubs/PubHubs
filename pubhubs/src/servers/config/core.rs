@@ -9,8 +9,11 @@ use url::Url;
 use crate::servers::{for_all_servers, server::Server as _};
 use crate::{
     api::{self},
-    elgamal, hub,
+    attr, elgamal, hub,
+    servers::yivi,
 };
+
+use super::host_aliases::{HostAliases, UrlPwa};
 
 /// Configuration for one, or several, of the PubHubs servers
 ///
@@ -21,7 +24,17 @@ pub struct Config {
     /// URL of the PubHubs Central server.
     ///
     /// Any information on the other servers that can be stored at PHC is stored at PHC.
-    pub phc_url: Url,
+    pub phc_url: UrlPwa,
+
+    #[serde(skip)]
+    pub(crate) preparation_state: PreparationState,
+
+    /// Specify abbreviations for an IP address that are only valid in this configuration file.
+    ///
+    /// Any [UrlPwa] that contains one of the aliases as host name exactly (so no subdomain)
+    /// will be modified to have as host name the associated IP address.
+    #[serde(default)]
+    pub host_aliases: HostAliases,
 
     /// Path with respect to which relative paths are interpretted.
     #[serde(default)]
@@ -35,6 +48,20 @@ pub struct Config {
 
     /// Configuration to run the Authentication Server
     pub auths: Option<ServerConfig<auths::ExtraConfig>>,
+}
+
+/// Represents the level of preparation of a [Config] instance.
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq)]
+pub(crate) enum PreparationState {
+    /// State after loading config file from disk.
+    #[default]
+    Unprepared,
+
+    /// [Config::preliminary_prep] has been called.
+    Preliminary,
+
+    /// [Config] is completely prepared after [PrepareConfig::prepare] has been called on it.
+    Complete,
 }
 
 /// Configuration for one server
@@ -68,6 +95,9 @@ pub struct ServerConfig<ServerSpecific> {
     /// If `None`, one is generated automatically and the private key is  printed to the log.
     pub admin_key: Option<api::VerifyingKey>,
 
+    /// If the server needs an object store, use this one.
+    pub object_store: Option<ObjectStoreConfig>,
+
     #[serde(flatten)]
     pub extra: ServerSpecific,
 }
@@ -81,8 +111,9 @@ impl Config {
     ///
     /// Returns [None] if there's no file there.
     pub fn load_from_path(path: &Path) -> Result<Option<Self>> {
-        let file = match std::fs::File::open(path) {
-            Ok(file) => file,
+        // NOTE: the toml crate does not have a `from_reader` like `serde_json` does
+        let mut res: Self = toml::from_str(&match std::fs::read_to_string(path) {
+            Ok(contents) => contents,
             Err(e) => match e.kind() {
                 std::io::ErrorKind::NotFound => return Ok(None),
                 _ => {
@@ -90,10 +121,8 @@ impl Config {
                         .with_context(|| format!("could not open config file {}", path.display()))
                 }
             },
-        };
-
-        let mut res: Self = serde_yaml::from_reader(file)
-            .with_context(|| format!("could not parse config file {}", path.display()))?;
+        })
+        .with_context(|| format!("could not parse config file {}", path.display()))?;
 
         if res.wd.as_os_str().is_empty() {
             res.wd = path
@@ -117,24 +146,50 @@ impl Config {
             res.wd.display()
         );
 
+        res.preliminary_prep()?;
+
         Ok(Some(res))
+    }
+
+    pub fn preliminary_prep(&mut self) -> Result<()> {
+        anyhow::ensure!(
+            self.preparation_state == PreparationState::Unprepared,
+            "configuration already (partially) prepared: {:?}",
+            self.preparation_state
+        );
+
+        self.host_aliases.resolve_all()?;
+        self.host_aliases.dealias(&mut self.phc_url);
+
+        self.preparation_state = PreparationState::Preliminary;
+
+        Ok(())
     }
 
     /// Clones this configuration and strips out everything that's not needed to run
     /// the specified server.  Also generated any random values not yet set.
     pub fn prepare_for(&self, server: crate::servers::Name) -> Result<Self> {
+        anyhow::ensure!(
+            self.preparation_state == PreparationState::Preliminary,
+            "configuration not in the correct preparation state"
+        );
+
         // destruct to make sure we consider every field of Config
         let Self {
+            ref host_aliases,
             ref phc_url,
             ref wd,
+            preparation_state,
             phc: _,
             transcryptor: _,
             auths: _,
         } = self;
 
         let mut config: Config = Config {
+            host_aliases: host_aliases.clone(),
             phc_url: phc_url.clone(),
             wd: wd.clone(),
+            preparation_state: *preparation_state,
             phc: None,
             transcryptor: None,
             auths: None,
@@ -151,9 +206,16 @@ impl Config {
 
         for_all_servers!(clone_only_server);
 
-        config.generate_randoms()?;
+        config.prepare()?;
 
         Ok(config)
+    }
+
+    /// Prepares [Config] to be run; used by [Config::prepare_for].
+    pub fn prepare(&mut self) -> anyhow::Result<()> {
+        let pcc = Pcc::new(actix_web::dev::Extensions::new());
+
+        PrepareConfig::prepare(self, pcc)
     }
 
     /// Creates a new [Config] from the current one by updating a specific part
@@ -183,6 +245,29 @@ impl Config {
     }
 }
 
+#[derive(serde::Deserialize, serde::Serialize, Debug, Clone)]
+pub struct ObjectStoreConfig {
+    /// E.g. "memory:///", or file:///some/path
+    ///
+    /// For a complete list, see:
+    ///
+    ///   <https://docs.rs/object_store/latest/object_store/enum.ObjectStoreScheme.html>
+    pub url: UrlPwa,
+
+    /// Additional options passed to the builder of the object store.
+    #[serde(default)]
+    pub options: std::collections::HashMap<String, String>,
+}
+
+impl Default for ObjectStoreConfig {
+    fn default() -> Self {
+        Self {
+            url: From::<Url>::from("memory:///".try_into().unwrap()),
+            options: Default::default(),
+        }
+    }
+}
+
 pub mod phc {
     use super::*;
 
@@ -190,10 +275,10 @@ pub mod phc {
     #[serde(deny_unknown_fields)]
     pub struct ExtraConfig {
         /// Where can we reach the transcryptor?
-        pub transcryptor_url: Url,
+        pub transcryptor_url: UrlPwa,
 
         /// Where can we reach the authentication server?
-        pub auths_url: Url,
+        pub auths_url: UrlPwa,
 
         /// The hubs that are known to us
         pub hubs: Vec<hub::BasicInfo>,
@@ -219,32 +304,72 @@ pub mod auths {
 
     #[derive(serde::Deserialize, serde::Serialize, Debug, Clone)]
     #[serde(deny_unknown_fields)]
-    pub struct ExtraConfig {}
+    pub struct ExtraConfig {
+        #[serde(default)]
+        pub attribute_types: Vec<attr::Type>,
+
+        /// Yivi configuration.  If `None`, yivi is not supported.
+        pub yivi: Option<YiviConfig>,
+    }
+
+    #[derive(serde::Deserialize, serde::Serialize, Debug, Clone)]
+    #[serde(deny_unknown_fields)]
+    pub struct YiviConfig {
+        /// Where can the Yivi server trusted by the authentication server be reached
+        /// by the hub client for starting disclosure requests?
+        pub requestor_url: UrlPwa,
+
+        pub requestor_creds: yivi::Credentials,
+    }
 }
 
-/// Trait to generate the random values in [Config] where needed
-trait GenerateRandoms {
-    fn generate_randoms(&mut self) -> anyhow::Result<()>;
+/// Trait to prepare [`Config`] for use by initializing random values,
+/// and replacing aliases in [`UrlPwa`]s.
+trait PrepareConfig<C> {
+    fn prepare(&mut self, context: C) -> anyhow::Result<()>;
 }
 
-impl GenerateRandoms for Config {
-    fn generate_randoms(&mut self) -> anyhow::Result<()> {
-        macro_rules! gen_randoms {
+type Pcc = std::rc::Rc<actix_web::dev::Extensions>;
+
+impl PrepareConfig<Pcc> for Config {
+    fn prepare(&mut self, mut c: Pcc) -> anyhow::Result<()> {
+        anyhow::ensure!(
+            self.preparation_state == PreparationState::Preliminary,
+            "configuration not properly prepared"
+        );
+
+        // temporarily move `host_aliases` into Pcc
+        Pcc::get_mut(&mut c)
+            .unwrap()
+            .insert(std::mem::take(&mut self.host_aliases));
+
+        macro_rules! prep {
             ($server:ident) => {
                 if let Some(ref mut server) = self.$server {
-                    server.generate_randoms()?;
+                    server.prepare(c.clone())?;
                 }
             };
         }
 
-        for_all_servers!(gen_randoms);
+        for_all_servers!(prep);
+
+        // move `host_aliases` back to self, drop the substitute
+        drop(std::mem::replace(
+            &mut self.host_aliases,
+            Pcc::get_mut(&mut c)
+                .unwrap()
+                .remove::<HostAliases>()
+                .unwrap(),
+        ));
+
+        self.preparation_state = PreparationState::Complete;
 
         Ok(())
     }
 }
 
-impl<Extra: GenerateRandoms + GetServerType> GenerateRandoms for ServerConfig<Extra> {
-    fn generate_randoms(&mut self) -> anyhow::Result<()> {
+impl<Extra: PrepareConfig<Pcc> + GetServerType> PrepareConfig<Pcc> for ServerConfig<Extra> {
+    fn prepare(&mut self, c: Pcc) -> anyhow::Result<()> {
         self.self_check_code
             .get_or_insert_with(crate::misc::crypto::random_alphanumeric);
 
@@ -264,14 +389,20 @@ impl<Extra: GenerateRandoms + GetServerType> GenerateRandoms for ServerConfig<Ex
             sk.verifying_key().into()
         });
 
-        self.extra.generate_randoms()?;
+        if let Some(&mut ref mut osc) = &mut self.object_store.as_mut() {
+            c.get::<HostAliases>()
+                .expect("host aliases were not passed along")
+                .dealias(&mut osc.url);
+        }
+
+        self.extra.prepare(c)?;
 
         Ok(())
     }
 }
 
-impl GenerateRandoms for transcryptor::ExtraConfig {
-    fn generate_randoms(&mut self) -> anyhow::Result<()> {
+impl PrepareConfig<Pcc> for transcryptor::ExtraConfig {
+    fn prepare(&mut self, _c: Pcc) -> anyhow::Result<()> {
         self.master_enc_key_part
             .get_or_insert_with(elgamal::PrivateKey::random);
 
@@ -279,17 +410,28 @@ impl GenerateRandoms for transcryptor::ExtraConfig {
     }
 }
 
-impl GenerateRandoms for phc::ExtraConfig {
-    fn generate_randoms(&mut self) -> anyhow::Result<()> {
+impl PrepareConfig<Pcc> for phc::ExtraConfig {
+    fn prepare(&mut self, c: Pcc) -> anyhow::Result<()> {
         self.master_enc_key_part
             .get_or_insert_with(elgamal::PrivateKey::random);
+
+        let ha: &HostAliases = c.get::<HostAliases>().unwrap();
+
+        ha.dealias(&mut self.transcryptor_url);
+        ha.dealias(&mut self.auths_url);
 
         Ok(())
     }
 }
 
-impl GenerateRandoms for auths::ExtraConfig {
-    fn generate_randoms(&mut self) -> anyhow::Result<()> {
+impl PrepareConfig<Pcc> for auths::ExtraConfig {
+    fn prepare(&mut self, c: Pcc) -> anyhow::Result<()> {
+        let ha: &HostAliases = c.get::<HostAliases>().unwrap();
+
+        for yivi_cfg in self.yivi.iter_mut() {
+            ha.dealias(&mut yivi_cfg.requestor_url);
+        }
+
         Ok(())
     }
 }

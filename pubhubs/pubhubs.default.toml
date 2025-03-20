@@ -1,0 +1,72 @@
+# PubHubs configuration
+#
+# The default configuration suitable for local development can be found in the "pubhubs.default.toml" file
+# Please do not change that file yourself, but instead make a copy called "pubhubs.toml", and modify that.
+# (This prevents you from accidentally committing your local configuration changes to the repository.)
+# 
+# Currently, the integration tests in the `tests` directory also derive their configuration from
+# the "pubhubs.default.toml" file, but we might change this in the future.
+#
+# For a quick explanation of the TOML file format, see see https://toml.io
+phc_url = 'http://localhost:8080'
+
+[auths]
+bind_to = '0.0.0.0:6060'
+
+[[auths.attribute_types]]
+handles = ['email']
+id = "Fr7Gsfh73AU9k9N4eR9vDBINhMOImXm-Qqfkz0RxjwI"
+name = "Email address"
+bannable = false
+identifying = true
+sources = [
+	{ yivi.attr_type_id = "irma-demo.sidn-pbdf.email.email" },
+]
+
+[[auths.attribute_types]]
+handles = ['phone']
+id = "9_SvEx8xN_vJAHIsqNxZ1zlhTpkz1toLn1G_WxTL2gY"
+name = "Phone number"
+bannable = true
+identifying = false
+sources = [
+	{ yivi.attr_type_id = "irma-demo.sidn-pbdf.mobilenumber.mobilenumber" },
+]
+
+[[auths.attribute_types]]
+handles = ['ph_card']
+id = "QCGdNnTHNS69lyMUKt9UM_lrstmP-ZpRr53XaCR5rHI"
+name = "PubHubs card"
+bannable = false
+identifying = true
+sources = [
+	{ yivi.attr_type_id = "pbdf.PubHubs.account.id" },
+]
+
+[transcryptor]
+bind_to = '0.0.0.0:7070'
+
+[phc]
+auths_url = 'http://localhost:6060'
+transcryptor_url = 'http://localhost:7070'
+bind_to = '0.0.0.0:8080'
+
+[phc.object_store]
+url = "memory:///"
+
+# WARNINGs:
+# 
+#  - Never remove a hub handle, because that will break links;  only add handles.
+#    The first handle is the one that's used by default.  (So, to 'change' a hub's handle,
+#    just add the new handle to the front of the list of handles.)
+#
+#  - Never change the `id` of a hub because the users' pseudonyms are derived from it.
+[[phc.hubs]]
+handles = ['testhub', 'testhub_alias']
+name = "Testhub"
+description = '''This is the default testhub for local development'''
+info_url = 'http://localhost:1234/_synapse/client/.ph/info'
+# NOTE: To generate a new `id`, use `cargo run tools generate-id`
+id = 'i9RSgnZ44MMBdcJHX2GqDRNaOt_v63XOMekOmhLHvzg'
+
+

@@ -1,4 +1,3 @@
-use std::collections::HashMap;
 use std::rc::Rc;
 
 use actix_web::web;
@@ -7,7 +6,7 @@ use futures_util::future::LocalBoxFuture;
 
 use crate::{
     api::{self, EndpointDetails as _},
-    client, phcrypto,
+    client, handle, phcrypto,
     servers::{self, AppBase, AppCreator as _, AppCreatorBase, Constellation, Handle, Server as _},
 };
 
@@ -22,6 +21,7 @@ impl servers::Details for Details {
     type AppT = Rc<App>;
     type AppCreatorT = AppCreator;
     type ExtraRunningState = RunningState;
+    type ObjectStoreT = servers::object_store::DefaultObjectStore;
 
     fn create_running_state(
         server: &Server,
@@ -41,8 +41,7 @@ pub struct App {
     base: AppBase<Server>,
     transcryptor_url: url::Url,
     auths_url: url::Url,
-    hubs: HashMap<hub::Id, hub::BasicInfo>,
-    hub_by_name: HashMap<hub::Name, hub::Id>,
+    hubs: crate::map::Map<hub::BasicInfo>,
     master_enc_key_part: elgamal::PrivateKey,
 }
 
@@ -114,7 +113,7 @@ impl crate::servers::App<Server> for Rc<App> {
                         t = servers::Name::Transcryptor
                     );
                     let url = self.transcryptor_url.clone();
-                    js.spawn_local(api::query::<api::DiscoveryRun>(&url, &()));
+                    js.spawn_local(self.base().client.query::<api::DiscoveryRun>(&url, &()));
                 }
             }
 
@@ -127,7 +126,7 @@ impl crate::servers::App<Server> for Rc<App> {
                         auths = servers::Name::AuthenticationServer
                     );
                     let url = self.auths_url.clone();
-                    js.spawn_local(api::query::<api::DiscoveryRun>(&url, &()));
+                    js.spawn_local(self.base().client.query::<api::DiscoveryRun>(&url, &()));
                 }
             }
 
@@ -177,7 +176,10 @@ impl App {
         name: servers::Name,
         url: &url::Url,
     ) -> api::Result<api::DiscoveryInfoResp> {
-        let tdi = api::return_if_ec!(api::query::<api::DiscoveryInfo>(url, &())
+        let tdi = api::return_if_ec!(self
+            .base
+            .client
+            .query::<api::DiscoveryInfo>(url, &())
             .await
             .into_server_result());
 
@@ -198,13 +200,17 @@ impl App {
 
         let req = api::return_if_ec!(signed_req.clone().open_without_checking_signature());
 
-        let hub = if let Some(hub) = app.hub_by_name(&req.name) {
+        let hub = if let Some(hub) = app.hubs.get(&req.handle) {
             hub
         } else {
             return api::err(api::ErrorCode::UnknownHub);
         };
 
-        let result = api::query::<api::hub::Info>(&hub.info_url, &()).await;
+        let result = app
+            .base
+            .client
+            .query::<api::hub::Info>(&hub.info_url, &())
+            .await;
 
         if result.is_err() {
             return api::Result::Err(result.unwrap_err().into_server_error());
@@ -216,7 +222,7 @@ impl App {
         api::return_if_ec!(signed_req.open(&*resp.verifying_key).inspect_err(|ec| {
             log::warn!(
                 "could not verify authenticity of hub ticket request for hub {}: {ec}",
-                req.name,
+                req.handle,
             )
         }));
 
@@ -224,15 +230,11 @@ impl App {
         api::Result::Ok(api::return_if_ec!(api::Signed::new(
             &*app.base.jwt_key,
             &api::phc::hub::TicketContent {
-                name: req.name,
+                handle: req.handle,
                 verifying_key: resp.verifying_key,
             },
             std::time::Duration::from_secs(3600 * 24) /* = one day */
         )))
-    }
-
-    fn hub_by_name(&self, name: &hub::Name) -> Option<&hub::BasicInfo> {
-        self.hubs.get(self.hub_by_name.get(name)?)
     }
 
     async fn handle_hub_key(
@@ -245,7 +247,7 @@ impl App {
 
         let ticket_digest = phcrypto::TicketDigest::new(&ts_req.ticket);
 
-        let (_, _): (api::phct::hub::KeyReq, hub::Name) =
+        let (_, _): (api::phct::hub::KeyReq, handle::Handle) =
             api::return_if_ec!(ts_req.open(&app.base.jwt_key.verifying_key()));
 
         // At this point we can be confident that the ticket is authentic, so we can give the hub
@@ -266,8 +268,7 @@ pub struct AppCreator {
     base: AppCreatorBase<Server>,
     transcryptor_url: url::Url,
     auths_url: url::Url,
-    hubs: HashMap<hub::Id, hub::BasicInfo>,
-    hub_by_name: HashMap<hub::Name, hub::Id>,
+    hubs: crate::map::Map<hub::BasicInfo>,
     master_enc_key_part: elgamal::PrivateKey,
 }
 
@@ -278,33 +279,18 @@ impl crate::servers::AppCreator<Server> for AppCreator {
             transcryptor_url: self.transcryptor_url,
             auths_url: self.auths_url,
             hubs: self.hubs,
-            hub_by_name: self.hub_by_name,
             master_enc_key_part: self.master_enc_key_part,
         })
     }
 
     fn new(config: &servers::Config) -> anyhow::Result<Self> {
-        let mut hubs: HashMap<hub::Id, hub::BasicInfo> = Default::default();
-        let mut hub_by_name: HashMap<hub::Name, hub::Id> = Default::default();
+        let mut hubs: crate::map::Map<hub::BasicInfo> = Default::default();
 
         let xconf = &config.phc.as_ref().unwrap().extra;
 
         for basic_hub_info in xconf.hubs.iter() {
-            anyhow::ensure!(
-                hubs.insert(basic_hub_info.id, basic_hub_info.clone())
-                    .is_none(),
-                "detected two hubs with the same id, {}",
-                basic_hub_info.id
-            );
-
-            for name in basic_hub_info.names.iter() {
-                anyhow::ensure!(
-                    hub_by_name
-                        .insert(name.clone(), basic_hub_info.id)
-                        .is_none(),
-                    "detected two hubs with the same name, {}",
-                    name
-                );
+            if let Some(hub_or_id) = hubs.insert_new(basic_hub_info.clone()) {
+                anyhow::bail!("two hubs are known as {hub_or_id}");
             }
         }
 
@@ -314,11 +300,10 @@ impl crate::servers::AppCreator<Server> for AppCreator {
             .expect("master_enc_key_part not generated");
 
         Ok(Self {
-            base: AppCreatorBase::<Server>::new(config),
-            transcryptor_url: xconf.transcryptor_url.clone(),
-            auths_url: xconf.auths_url.clone(),
+            base: AppCreatorBase::<Server>::new(config)?,
+            transcryptor_url: xconf.transcryptor_url.as_ref().clone(),
+            auths_url: xconf.auths_url.as_ref().clone(),
             hubs,
-            hub_by_name,
             master_enc_key_part,
         })
     }

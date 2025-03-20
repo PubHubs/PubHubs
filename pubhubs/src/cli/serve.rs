@@ -33,7 +33,9 @@ impl ServeArgs {
                         .await
                         .expect("failed to await ctrl+c");
                     log::info!("ctrl+c received; shutting down server(s)");
+
                     drop(shutdown_sender);
+
                     tokio::signal::ctrl_c()
                         .await
                         .expect("failed to await ctrl+c");

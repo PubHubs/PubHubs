@@ -35,13 +35,15 @@ impl<T> Signed<T> {
         let claims = return_if_ec!(claims
             .check_present_and(
                 MESSAGE_CODE_CLAIM,
-                |mesg_code: MessageCode| -> std::result::Result<(), jwt::Error> {
+                |claim_name: &'static str,
+                 mesg_code: MessageCode|
+                 -> std::result::Result<(), jwt::Error> {
                     if mesg_code == T::CODE {
                         return Ok(());
                     }
 
                     Err(jwt::Error::InvalidClaim {
-                        claim_name: MESSAGE_CODE_CLAIM,
+                        claim_name,
                         source: anyhow::anyhow!(
                             "expected message code {}, but got {}",
                             T::CODE,

@@ -189,7 +189,7 @@ async fn get_hubs_anyhow(
     // the bar, so redefine Serialize for Hub by wrapping it in the following type.
     struct SerializeHub<'s>(&'s crate::data::Hub);
 
-    impl<'s> serde::Serialize for SerializeHub<'s> {
+    impl serde::Serialize for SerializeHub<'_> {
         fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
         where
             S: serde::Serializer,

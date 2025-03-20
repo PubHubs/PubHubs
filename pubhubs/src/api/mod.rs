@@ -6,6 +6,7 @@ pub use signed::*;
 mod discovery;
 pub use discovery::*;
 pub mod admin;
+pub mod auths;
 pub mod hub;
 pub mod phc;
 pub mod phct;
