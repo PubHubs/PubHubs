@@ -211,12 +211,17 @@ const useRooms = defineStore('rooms', {
 		updateRoomsWithMatrixRooms(rooms: MatrixRoom[]) {
 			const tempRooms = {} as { [index: string]: Room }; // reset rooms
 			rooms.forEach((matrixRoom) => {
-				// Check if room already exists else add room
-				if (this.rooms[matrixRoom.roomId]) {
-					tempRooms[matrixRoom.roomId] = this.rooms[matrixRoom.roomId];
-				} else {
-					tempRooms[matrixRoom.roomId] = new Room(matrixRoom);
-				}
+				// // Check if room already exists else add room
+				// if (this.rooms[matrixRoom.roomId]) {
+				// 	tempRooms[matrixRoom.roomId] = this.rooms[matrixRoom.roomId];
+				// } else {
+				// 	tempRooms[matrixRoom.roomId] = new Room(matrixRoom);
+				// }
+
+				// Because rooms by Matrix are initialized with the Id as name and the actual name
+				// is only set when the room is joined we here need to always add the room as a new Room.
+				// Then the name will be set to the correct value.
+				tempRooms[matrixRoom.roomId] = new Room(matrixRoom);
 			});
 
 			this.rooms = tempRooms;

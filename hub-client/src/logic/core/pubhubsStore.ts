@@ -95,11 +95,11 @@ const usePubHubs = defineStore('pubhubs', {
 
 					// TODO UpdateRooms is called several times during startup from different places.
 					// We need only call it once during startup, the other calls should be replaced by single room calls
-					this.updateRooms();
+					//this.updateRooms();
 					// 2024 12 03 The await is removed, because of slow loading testhub
 					// After the next merge to stable, in case this gives no problems,
 					// the old code and comments can be removed
-					//await this.updateRooms();
+					await this.updateRooms();
 				}
 			} catch (error: any) {
 				logger.trace(SMI.STARTUP, 'Something went wrong while creating a matrix-js client instance or logging in', { error });
