@@ -1,5 +1,5 @@
 <template>
-	<div v-if="hub" class="relative flex h-60 w-full flex-col overflow-hidden rounded-xl bg-ph-background shadow-sm">
+	<div v-if="hub" class="relative flex h-60 w-full max-w-full flex-col overflow-hidden rounded-xl bg-ph-background shadow-sm">
 		<div class="h-24 w-full">
 			<ImagePlaceholder source="/client/img/imageplaceholder.jpg" />
 		</div>
@@ -8,11 +8,7 @@
 				<HubIcon :icon-url="hub.iconUrlLight" :icon-url-dark="hub.iconUrlDark" :hub-name="hub.name" />
 			</div>
 			<div class="flex h-full w-full max-w-full flex-col justify-center gap-2 overflow-hidden pb-2 pt-1 text-left">
-				<div>
-					<H2 class="m-0">
-						<TruncatedText>{{ hub.hubName }}</TruncatedText>
-					</H2>
-				</div>
+				<H2 class="line-clamp-1 w-full overflow-hidden text-ellipsis">{{ hub.hubName }}</H2>
 				<div class="h-16">
 					<TruncatedText class="text-xs font-bold uppercase">{{ $t('home.hub_card_about') }}</TruncatedText>
 					<p class="line-clamp-2 max-w-[calc(100%_-_2em)] hyphens-auto break-words" :lang="currentLanguage">{{ description }}</p>

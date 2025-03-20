@@ -51,7 +51,7 @@
 	<div v-if="searched" class="scrollbar absolute right-2 top-16 z-10 max-h-[500%] w-full max-w-80 overflow-y-auto rounded-b-md bg-gray-lighter dark:bg-gray-darker md:right-0 md:top-20">
 		<template v-if="searchResultsToShow && searchResultsToShow.length > 0">
 			<div v-for="item in searchResultsToShow" :key="item.event_id" class="group">
-				<a href="#" @click.prevent="onScrollToEventId(item.event_id)">
+				<a href="#" @click.prevent="onScrollToEventId(item.event_id, item.event_threadId)">
 					<div class="flex gap-2 p-2 group-hover:bg-gray-light group-hover:dark:bg-gray">
 						<Avatar :user="room?.getMember(item.event_sender, true)" class="h-6 w-6 flex-none"></Avatar>
 						<TruncatedText>{{ item.event_body }}</TruncatedText>
@@ -79,6 +79,7 @@
 	import { filterAlphanumeric } from '@/logic/core/extensions';
 	import { usePubHubs } from '@/logic/core/pubhubsStore';
 	import Room from '@/model/rooms/Room';
+	import { RoomEmit } from '@/model/constants';
 	import { useRooms } from '@/logic/store/store';
 	import { ISearchResults, SearchResult } from 'matrix-js-sdk';
 	import { PropType, computed, ref } from 'vue';
@@ -102,7 +103,7 @@
 	const isSearching = ref(false);
 	let searchResponse: ISearchResults | undefined = undefined;
 
-	const emit = defineEmits([...usedEvents, 'scrollToEventId']);
+	const emit = defineEmits([...usedEvents, RoomEmit.ScrollToEventId]);
 	const { value, changed, cancel } = useFormInputEvents(emit);
 
 	// searchresults shown in list. When the text 'more results' is shown the last result is omitted to keep it in view
@@ -144,10 +145,9 @@
 		searched.value = false;
 	}
 
-	async function onScrollToEventId(eventId: string) {
+	async function onScrollToEventId(eventId: string, threadId: string | undefined) {
 		if (props.searchParameters.roomId && rooms.currentRoom!.roomId === props.searchParameters.roomId) {
-			emit('scrollToEventId', { eventId: eventId });
-			// reset();
+			emit(RoomEmit.ScrollToEventId, { eventId: eventId, threadId: threadId });
 		}
 	}
 
@@ -160,6 +160,7 @@
 				({
 					rank: result.rank,
 					event_id: result.context.ourEvent.event.event_id!,
+					event_threadId: result.context.ourEvent.getThread()?.id,
 					event_type: result.context.ourEvent.event.type,
 					event_body: result.context.ourEvent.event.content?.body,
 					event_sender: result.context.ourEvent.event.sender,

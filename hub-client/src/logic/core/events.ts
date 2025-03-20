@@ -1,11 +1,21 @@
 import { EventTimeLineHandler } from '@/logic/core/eventTimeLineHandler';
 import { usePubHubs } from '@/logic/core/pubhubsStore';
 import { TEvent } from '@/model/events/TEvent';
+import { ClientEvent, EventType, MatrixClient, MatrixEvent, Room as MatrixRoom, MsgType, RoomEvent, RoomMember, RoomMemberEvent } from 'matrix-js-sdk';
 import { useConnection } from '@/logic/store/connection';
 import { useSettings } from '@/logic/store/settings';
 import { useRooms } from '@/logic/store/store';
-import { ClientEvent, MatrixClient, MatrixEvent, Room as MatrixRoom, RoomEvent, RoomMember, RoomMemberEvent } from 'matrix-js-sdk';
 import { SyncState } from 'matrix-js-sdk/lib/sync';
+
+enum RedactReasons {
+	Deleted = 'Deleted',
+	DeletedFromThread = 'Deleted from thread',
+}
+
+enum PubHubsMgType {
+	SignedMessage = 'pubhubs.signed_message',
+	AskDisclosureMessage = 'pubhubs.ask_disclosure_message',
+}
 
 class Events {
 	private readonly client: MatrixClient;
@@ -45,6 +55,7 @@ class Events {
 			// Start client sync
 			const settings = useSettings();
 			this.client.startClient({
+				threadSupport: true,
 				initialSyncLimit: settings.pagination,
 				includeArchivedRooms: false,
 			});
@@ -58,18 +69,18 @@ class Events {
 	eventRoomTimeline(eventTimeLineHandler: EventTimeLineHandler, event: MatrixEvent, matrixRoom: MatrixRoom | undefined, toStartOfTimeline: boolean | undefined) {
 		if (!matrixRoom) return;
 
-		if (event.event.type === 'm.room.message' && event.event.content?.msgtype === 'm.text') {
+		if (event.event.type === EventType.RoomMessage && event.event.content?.msgtype === MsgType.Text) {
 			event.event = eventTimeLineHandler.transformEventContent(event.event as Partial<TEvent>);
 		}
 
-		if (event.event.type === 'm.room.message' && event.event.content?.msgtype === 'm.notice') {
+		if (event.event.type === EventType.RoomMessage && event.event.content?.msgtype === MsgType.Notice) {
 			const rooms = useRooms();
 			//Messages are only in rooms.
 			rooms.addProfileNotice(event.getRoomId()!, event.getContent().body);
 		}
 
 		if (!toStartOfTimeline) {
-			if (event.event.type !== 'm.room.message') return;
+			if (event.event.type !== EventType.RoomMessage) return;
 			const rooms = useRooms();
 			rooms.onModRoomMessage(event);
 		}
@@ -102,4 +113,4 @@ class Events {
 	}
 }
 
-export { Events };
+export { Events, RedactReasons, PubHubsMgType };

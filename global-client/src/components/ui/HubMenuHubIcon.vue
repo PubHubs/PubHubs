@@ -11,7 +11,7 @@
 			<iframe :src="hub.url + '/miniclient.html?accessToken=' + accessToken" class="h-7 w-7"></iframe>
 		</div>
 
-		<HubIcon :hub-name="hub.name" :icon-url="hub.iconUrlLight" :icon-url-dark="hub.iconUrlDark" class=""></HubIcon>
+		<HubIcon :hub-name="hub.name" :icon-url="hub.iconUrlLight" :icon-url-dark="hub.iconUrlDark" :is-active="active"></HubIcon>
 	</div>
 </template>
 

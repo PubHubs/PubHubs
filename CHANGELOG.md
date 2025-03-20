@@ -13,6 +13,14 @@ _Please add a brief description of any changes and any migrations to be performe
 
 Use the [MIGRATE] and [BREAKING] prefixes together with another one if that makes more sense.
 
+## 20 March 2025 - v1.2.0
+
+- [NEW] Threads are now supported
+- [BUG] Error solved when creating/editing rooms with a custom type
+- [BUG] Logo backgrounds where vague. Now always white
+- [BUG] When a message is deleted, but someone has replied to it, the contents of the deleted message should no longer be visible in the message snippet contained in the reply.
+- [TYPO] Changed the text on the discover hub page from "Welcome _at_ PubHubs" to "Welcome _to_ PubHubs".
+
 ## 6 March 2025 - v1.1.0
 
 - [FIX] Styling fix where Search on DiscoverRoomPage was partly hidden in Header

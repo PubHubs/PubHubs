@@ -21,7 +21,7 @@
 					<div class="flex w-fit gap-2 overflow-hidden">
 						<p class="text-nowrap">{{ $t('message.in_reply_to') }}</p>
 						<Suspense>
-							<MessageSnippet :eventId="messageActions.replyingTo" :room="room"></MessageSnippet>
+							<MessageSnippet :eventId="messageActions.replyingTo ?? ''" :room="room"> </MessageSnippet>
 							<template #fallback>
 								<div class="flex items-center gap-3 rounded-md px-2">
 									<p>{{ $t('state.loading_message') }}</p>
@@ -93,6 +93,7 @@
 			<FileUploadDialog
 				:file="fileInfo"
 				:blobURL="uri"
+				:thread-id="threadRoot?.event_id"
 				v-if="showFileUploadDialog"
 				@close="
 					showFileUploadDialog = false;
@@ -108,6 +109,16 @@
 
 <script setup lang="ts">
 	// Components
+	import { onMounted, onUnmounted, ref, watch } from 'vue';
+	import { useRoute } from 'vue-router';
+	import { useFormInputEvents, usedEvents } from '@/logic/composables/useFormInputEvents';
+	import { useMatrixFiles } from '@/logic/composables/useMatrixFiles';
+	import filters from '@/logic/core/filters';
+	import { usePubHubs } from '@/logic/core/pubhubsStore';
+	import { useMessageActions } from '@/logic/store/message-actions';
+	import { useRooms } from '@/logic/store/store';
+	import { TMessageEvent } from '@/model/events/TMessageEvent';
+	import Room from '@/model/rooms/Room';
 	import Popover from '../ui/Popover.vue';
 	import TextArea from './TextArea.vue';
 	import Button from '../elements/Button.vue';
@@ -120,21 +131,21 @@
 	import FileUploadDialog from '../ui/FileUploadDialog.vue';
 	import MessageSnippet from '../rooms/MessageSnippet.vue';
 
-	import { useFormInputEvents, usedEvents } from '@/logic/composables/useFormInputEvents';
-	import { useMatrixFiles } from '@/logic/composables/useMatrixFiles';
-	import filters from '@/logic/core/filters';
-	import { usePubHubs } from '@/logic/core/pubhubsStore';
-	import { useMessageActions } from '@/logic/store/message-actions';
-	import { useRooms } from '@/logic/store/store';
-	import { onMounted, onUnmounted, ref, watch } from 'vue';
-	import { useRoute } from 'vue-router';
-	import { YiviSigningSessionResult } from '@/model/components/signedMessages';
-	import { TMessageEvent } from '@/model/events/TMessageEvent';
-
 	const route = useRoute();
 	const rooms = useRooms();
 	const pubhubs = usePubHubs();
 	const messageActions = useMessageActions();
+
+	const props = defineProps({
+		room: {
+			type: Room,
+			required: true,
+		},
+		inThread: {
+			type: Boolean,
+			default: false,
+		},
+	});
 
 	const emit = defineEmits(usedEvents);
 	const { value, reset, changed, cancel } = useFormInputEvents(emit);
@@ -149,7 +160,6 @@
 	const fileUploading = ref<boolean>(false); // to hide other dialogs while in the file upload process
 	const fileInfo = ref<File>();
 	const uri = ref<string>('');
-	import Room from '@/model/rooms/Room';
 
 	const caretPos = ref({ top: 0, left: 0 });
 
@@ -158,14 +168,40 @@
 	const elFileInput = ref<HTMLInputElement | null>(null);
 	const elTextInput = ref<InstanceType<typeof TextArea> | null>(null);
 	const inReplyTo = ref<TMessageEvent | undefined>(undefined);
-	defineProps<{ room: Room }>();
+
+	let threadRoot: TMessageEvent | undefined = undefined;
 
 	watch(route, () => {
 		reset();
 		toggleMenus(undefined);
 	});
 
-	onMounted(() => {
+	watch(
+		() => props.room.roomId,
+		async () => {
+			if (props.room.getCurrentThreadId()) {
+				threadRoot = (await pubhubs.getEvent(rooms.currentRoomId, props.room.getCurrentThreadId() as string)) as TMessageEvent;
+			} else {
+				threadRoot = undefined;
+			}
+		},
+		{ immediate: true },
+	);
+
+	watch(
+		() => props.room.getCurrentThreadId(),
+		async () => {
+			if (props.inThread) {
+				if (props.room.getCurrentThreadId()) {
+					threadRoot = (await pubhubs.getEvent(rooms.currentRoomId, props.room.getCurrentThreadId() as string)) as TMessageEvent;
+				} else {
+					threadRoot = undefined;
+				}
+			}
+		},
+	);
+
+	onMounted(async () => {
 		window.addEventListener('keydown', handleKeydown);
 		reset();
 	});
@@ -176,7 +212,20 @@
 
 	// Focus on message input if the state of messageActions changes (for example, when replying).
 	messageActions.$subscribe(async () => {
-		inReplyTo.value = messageActions.replyingTo ? ((await pubhubs.getEvent(rooms.currentRoomId, messageActions.replyingTo)) as TMessageEvent) : undefined;
+		inReplyTo.value = undefined;
+
+		// If we are replying to a message, we need to check if the message is a thread or not
+		// if the message is in a thread we can only set inReplyTo if we are in a thread
+		// if the message is not in a thread we can only set inReplyTo if we are not in a thread
+		if (messageActions.replyingTo) {
+			const message = ((await pubhubs.getEvent(rooms.currentRoomId, messageActions.replyingTo)) as TMessageEvent) ?? undefined;
+			if (message?.content['m.relates_to']?.['rel_type'] === 'm.thread') {
+				inReplyTo.value = props.inThread ? message : undefined;
+			} else {
+				inReplyTo.value = !props.inThread ? message : undefined;
+			}
+		}
+
 		elTextInput.value?.$el.focus();
 	});
 
@@ -262,26 +311,15 @@
 		if (!isValidMessage()) {
 			return;
 		} // This makes sure value.value is not undefined
-
 		if (signingMessage.value) {
-			signMessage(value.value!.toString(), selectedAttributesSigningMessage.value);
-		} else if (messageActions.replyingTo && inReplyTo.value) {
-			pubhubs.addMessage(rooms.currentRoomId, value.value!.toString(), inReplyTo.value);
-			messageActions.replyingTo = undefined;
+			pubhubs.signAndSubmitMessage(value.value!.toString(), selectedAttributesSigningMessage.value).then(() => {
+				signingMessage.value = false;
+			});
 		} else {
-			pubhubs.addMessage(rooms.currentRoomId, value.value!.toString());
+			pubhubs.submitMessage(value.value!.toString(), rooms.currentRoomId, threadRoot, inReplyTo.value);
 		}
 
 		value.value = '';
-	}
-
-	function signMessage(message: string, attributes: string[]) {
-		rooms.yiviSignMessage(message, attributes, rooms.currentRoomId, finishedSigningMessage);
-	}
-
-	function finishedSigningMessage(result: YiviSigningSessionResult) {
-		pubhubs.addSignedMessage(rooms.currentRoomId, result);
-		signingMessage.value = false;
 	}
 
 	function setCaretPos(pos: { top: number; left: number }) {

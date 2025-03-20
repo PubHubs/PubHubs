@@ -3,7 +3,7 @@ import { SharedAccessManagement } from './sharedmanagement';
 
 /* Administrator can create, delete, update room. Administrator can also change permissions.  */
 
-export class Moderator implements ISuspendUser {
+export class Steward implements ISuspendUser {
 	private accessListManager: SharedAccessManagement;
 
 	constructor() {

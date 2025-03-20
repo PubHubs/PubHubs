@@ -1,8 +1,8 @@
 import { defineStore } from 'pinia';
 
+import { Events, PubHubsMgType, RedactReasons } from '@/logic/core/events';
 import { api_matrix, api_synapse } from '@/logic/core/api';
 import { Authentication } from '@/logic/core/authentication';
-import { Events } from '@/logic/core/events';
 import { createNewPrivateRoomName, fetchMemberIdsFromPrivateRoomName, refreshPrivateRoomName, updatePrivateRoomName } from '@/logic/core/privateRoomNames';
 import { hasHtml, sanitizeHtml } from '@/logic/core/sanitizer';
 import { LOGGER } from '@/logic/foundation/Logger';
@@ -18,6 +18,7 @@ import { User, useUser } from '@/logic/store/user';
 import { router } from '@/logic/core/router';
 import { ContentHelpers, EventType, ISearchResults, ISendEventResponse, MatrixClient, MatrixError, MatrixEvent, Room as MatrixRoom, User as MatrixUser, MsgType } from 'matrix-js-sdk';
 import { ReceiptType } from 'matrix-js-sdk/lib/@types/read_receipts';
+import { useMessageActions } from '@/logic/store/message-actions';
 import { RoomPowerLevelsEventContent } from 'matrix-js-sdk/lib/@types/state_events';
 
 let publicRoomsLoading: Promise<any> | null = null; // outside of defineStore to guarantee lifetime, not accessible outside this module
@@ -61,11 +62,9 @@ const usePubHubs = defineStore('pubhubs', {
 				user.setClient(x as MatrixClient);
 
 				const events = new Events(this.client as MatrixClient);
-				events.initEvents();
-				// 2024 12 03 The await is removed, because of slow loading testhub
-				// After the next merge to stable, in case this gives no problems,
-				// the old code and comments can be removed
-				// await events.initEvents();
+
+				/* await is necessary for timing, otherwise the roomnames in the roomlist appear as ID's */
+				await events.initEvents();
 
 				logger.trace(SMI.STARTUP, 'PubHubs.logged in ()');
 				const connection = useConnection();
@@ -94,11 +93,13 @@ const usePubHubs = defineStore('pubhubs', {
 					// 	}
 					// });
 
+					// TODO UpdateRooms is called several times during startup from different places.
+					// We need only call it once during startup, the other calls should be replaced by single room calls
 					this.updateRooms();
 					// 2024 12 03 The await is removed, because of slow loading testhub
 					// After the next merge to stable, in case this gives no problems,
 					// the old code and comments can be removed
-					//await this.updateRooms();
+					// await this.updateRooms();
 				}
 			} catch (error: any) {
 				logger.trace(SMI.STARTUP, 'Something went wrong while creating a matrix-js client instance or logging in', { error });
@@ -364,25 +365,6 @@ const usePubHubs = defineStore('pubhubs', {
 			this.updateRooms();
 		},
 
-		/**
-		 * Adds users which are mentioned by '@' in the message to m.mentions field, mutating the content argument.
-		 */
-		async _addUserMentionsToMessageContent(content: TTextMessageEventContent) {
-			if (content.body.includes('@')) {
-				const users = await this.getUsers();
-				let mentionedUsersName = [];
-				const mentionedUsers = content.body.split('@');
-				mentionedUsersName = users
-					.filter((user) => {
-						return mentionedUsers.some((menUser: any) => user.rawDisplayName !== undefined && (menUser.includes(user.rawDisplayName) || menUser === user.rawDisplayName));
-					})
-					.map((users) => users.userId)
-					.filter((displayName): displayName is string => displayName !== undefined);
-
-				content['m.mentions']['user_ids'] = content['m.mentions']['user_ids'].concat(mentionedUsersName);
-			}
-		},
-
 		_createEmptyMentions(): TMentions {
 			return {
 				room: false,
@@ -391,42 +373,84 @@ const usePubHubs = defineStore('pubhubs', {
 		},
 
 		/**
-		 * Mutates the message content appropriately to become a reply to the inReplyTo event.
+		 * Adds users which are mentioned by '@' in the message to m.mentions field, mutating the content argument.
+		 * @param content
 		 */
-		_addInReplyToToMessageContent(content: TTextMessageEventContent, inReplyTo: TMessageEvent) {
-			content['m.relates_to'] = { 'm.in_reply_to': { event_id: inReplyTo.event_id } };
+		async _addUserMentionsToMessageContent(content: TTextMessageEventContent) {
+			content['m.mentions'] = this._createEmptyMentions();
 
-			// Mention appropriate users
+			if (content.body.includes('@')) {
+				const users = await this.getUsers();
+				const mentionedUsers = content.body.split('@');
+				const mentionedUsersName = users
+					.filter((user) => {
+						return mentionedUsers.some((menUser: any) => user.rawDisplayName !== undefined && menUser.includes(user.rawDisplayName));
+					})
+					.map((users) => users.userId)
+					.filter((displayName): displayName is string => displayName !== undefined);
 
-			if (
-				inReplyTo.content.msgtype === 'm.text' &&
-				// For backwards compatibility
-				inReplyTo.content['m.mentions']
-			) {
-				const newUsers = [...inReplyTo.content['m.mentions'].user_ids, inReplyTo.sender];
-				content['m.mentions'].user_ids.concat(newUsers);
+				content['m.mentions']['user_ids'] = content['m.mentions']['user_ids'].concat(mentionedUsersName);
 			}
 		},
 
-		async _constructMessageContent(text: string, inReplyTo?: TMessageEvent): Promise<TTextMessageEventContent> {
-			let content = ContentHelpers.makeTextMessage(text) as TTextMessageEventContent;
+		/**
+		 * Mutates the message content appropriately for the relates to field: Thread and/or Reply
+		 * @param content
+		 * @param threadRoot
+		 * @param inReplyTo
+		 */
+		_addRelatesToMessageContent(content: TTextMessageEventContent, threadRoot?: TMessageEvent, inReplyTo?: TMessageEvent) {
+			if (threadRoot || inReplyTo) {
+				content['m.relates_to'] = {};
 
+				if (threadRoot) {
+					content['m.relates_to'].event_id = threadRoot.event_id;
+					content['m.relates_to'].rel_type = 'm.thread';
+					//is_falling_back: true,
+				}
+
+				if (inReplyTo) {
+					content['m.relates_to']['m.in_reply_to'] = { event_id: inReplyTo.event_id };
+
+					// Mention appropriate users
+					if (
+						inReplyTo.content.msgtype === 'm.text' &&
+						// For backwards compatibility
+						inReplyTo.content['m.mentions']
+					) {
+						const newUsers = [...inReplyTo.content['m.mentions'].user_ids, inReplyTo.sender];
+						content['m.mentions'].user_ids.concat(newUsers);
+					}
+				}
+			}
+		},
+
+		/**
+		 * Constructs the content of a text message
+		 * @param text Text of message
+		 * @param threadRoot Root of thread the message might belong to
+		 * @param inReplyTo Original event for when message is a reply
+		 * @returns The content
+		 */
+		async _constructMessageContent(text: string, threadRoot: TMessageEvent | undefined, inReplyTo: TMessageEvent | undefined): Promise<TTextMessageEventContent> {
+			let content = undefined;
+
+			// Set body of content
 			const cleanText = hasHtml(text);
 			if (typeof cleanText === 'string') {
 				const html = sanitizeHtml(text);
 				content = ContentHelpers.makeHtmlMessage(cleanText, html) as TTextMessageEventContent;
+			} else {
+				content = ContentHelpers.makeTextMessage(text) as TTextMessageEventContent;
 			}
 
-			// content should have TTextMessageEventContent type after this step (and not before), but don't know how to change type.
-			content['m.mentions'] = this._createEmptyMentions();
-
+			// Set mention
 			await this._addUserMentionsToMessageContent(content);
 
-			// If the message is a reply to another event.
-			if (inReplyTo) {
-				this._addInReplyToToMessageContent(content, inReplyTo);
+			// Set threadRoot and/or reply
+			if (threadRoot || inReplyTo) {
+				this._addRelatesToMessageContent(content, threadRoot, inReplyTo);
 			}
-
 			return content;
 		},
 
@@ -436,14 +460,23 @@ const usePubHubs = defineStore('pubhubs', {
 		 * @param text
 		 * @param inReplyTo Possible event to which the new message replies.
 		 */
-		async addMessage(roomId: string, text: string, inReplyTo?: TMessageEvent) {
+		async addMessage(roomId: string, text: string, threadRoot: TMessageEvent | undefined, inReplyTo: TMessageEvent | undefined) {
 			const rooms = useRooms();
 			const room = rooms.room(roomId);
-			const content = await this._constructMessageContent(text, inReplyTo);
+			const content = await this._constructMessageContent(text, threadRoot, inReplyTo);
 
-			// @ts-ignore
-			// todo: fix this (issue #808)
-			await this.client.sendMessage(roomId, content);
+			/*
+			   Sendmessage gives a console warning when adding a thread event, because the current timeline does not have a threadId.
+			   For now we skip this , since the functionality is not affected by it.
+			   These consoles can be used when checking for the reason of the warning.
+			*/
+			// console.error('does client support threads: ', this.client.supportsThreads());
+			// console.error('threadTimelineSets: ', room?.matrixRoom.threadsTimelineSets);
+			// console.error('Thread.hasServerSideSupport: ', Thread.hasServerSideSupport);     // Thread from 'matrix-js-sdk'
+			// console.error('Thread.hasServerSideListSupport: ', Thread.hasServerSideListSupport);
+
+			const threadId = threadRoot?.event_id ?? null;
+			await this.client.sendMessage(roomId, threadId, content);
 
 			// make room visible for all members if private room
 			if (room && room.isPrivateRoom()) {
@@ -455,15 +488,63 @@ const usePubHubs = defineStore('pubhubs', {
 			}
 		},
 
+		/**
+		 * Adds a message to the room
+		 * @param messageContent
+		 * @param roomId
+		 * @param threadRoot - when given: the event at the root of the thread
+		 * @param inReplyTo
+		 */
+		submitMessage(messageContent: string, roomId: string, threadRoot: TMessageEvent | undefined, inReplyTo: TMessageEvent | undefined) {
+			const messageActions = useMessageActions();
+			this.addMessage(roomId, messageContent, threadRoot, inReplyTo);
+			messageActions.replyingTo = undefined;
+		},
+
+		/** Sign and send a message in a room
+		 * @param message - message to send
+		 * @param attributes - attributes to sign with
+		 */
+		signAndSubmitMessage(message: string, attributes: string[]): Promise<void> {
+			return new Promise((resolve, reject) => {
+				const rooms = useRooms();
+				const accessToken = this.Auth.getAccessToken();
+				//accessToken && rooms.yiviSignMessage(message, attributes, rooms.currentRoomId, accessToken, this.finishedSigningMessage);
+				if (accessToken) {
+					const handler = this.createFinishedSigningMessageHandler.call(this, resolve, reject);
+					rooms.yiviSignMessage(message, attributes, rooms.currentRoomId, accessToken, handler);
+				}
+			});
+		},
+
+		/** Method to get the yiviSignMessage to return to a promise
+		 * @param resolve
+		 * @param reject
+		 */
+		createFinishedSigningMessageHandler(resolve: () => void, reject: () => void) {
+			return async (result: YiviSigningSessionResult) => {
+				try {
+					const rooms = useRooms();
+					await this.addSignedMessage(rooms.currentRoomId, result);
+					resolve();
+				} catch (error) {
+					reject();
+				}
+			};
+		},
+
+		/**
+		 * Adds the signed message to the room
+		 * @param roomId
+		 * @param signedMessage
+		 */
 		async addSignedMessage(roomId: string, signedMessage: YiviSigningSessionResult) {
 			const content = {
-				msgtype: 'pubhubs.signed_message',
+				msgtype: PubHubsMgType.SignedMessage as any, // client expects string from MsgType enum, to make our own type castable send this as any
 				body: 'signed message',
 				signed_message: signedMessage,
+				ph_body: '',
 			};
-
-			// @ts-ignore
-			// todo: fix this (issue #808)
 			await this.client.sendMessage(roomId, content);
 		},
 
@@ -471,8 +552,9 @@ const usePubHubs = defineStore('pubhubs', {
 		 * @param roomId
 		 * @param eventId
 		 */
-		async deleteMessage(roomId: string, eventId: string) {
-			await this.client.redactEvent(roomId, eventId);
+		async deleteMessage(roomId: string, eventId: string, threadId?: string) {
+			const reason = threadId ? { reason: RedactReasons.DeletedFromThread } : { reason: RedactReasons.Deleted };
+			await this.client.redactEvent(roomId, eventId, undefined, reason);
 		},
 
 		async sendReadReceipt(event: MatrixEvent) {
@@ -510,7 +592,7 @@ const usePubHubs = defineStore('pubhubs', {
 
 		async addAskDisclosureMessage(roomId: string, body: string, askDisclosureMessage: AskDisclosureMessage) {
 			const content = {
-				msgtype: 'pubhubs.ask_disclosure_message',
+				msgtype: PubHubsMgType.AskDisclosureMessage as any, // client expects string from MsgType enum, to make our own type castable send this as any
 				body: body,
 				ask_disclosure_message: askDisclosureMessage,
 
@@ -519,20 +601,20 @@ const usePubHubs = defineStore('pubhubs', {
 				'm.relates_to': undefined,
 			};
 
-			// @ts-ignore
-			// todo: fix this (issue #808)
 			await this.client.sendMessage(roomId, content);
 		},
 
-		async addImage(roomId: string, uri: string) {
+		async addImage(roomId: string, threadId: string | undefined, uri: string) {
 			try {
-				await this.client.sendImageMessage(roomId, uri, undefined);
+				const thread = threadId && threadId.length > 0 ? threadId : null;
+				await this.client.sendImageMessage(roomId, thread, uri, undefined);
 			} catch (error) {
 				logger.trace(SMI.STORE, 'swallowing add image error', { error });
 			}
 		},
 
-		async addFile(roomId: string, file: File, uri: string) {
+		async addFile(roomId: string, threadId: string | undefined, file: File, uri: string) {
+			const thread = threadId && threadId.length > 0 ? threadId : null;
 			const content = {
 				body: file.name,
 				filename: file.name,
@@ -540,7 +622,7 @@ const usePubHubs = defineStore('pubhubs', {
 					mimetype: file.type,
 					size: file.size,
 				},
-				msgtype: MsgType.File,
+				msgtype: MsgType.File as any, // client expects string from MsgType enum, to make our own type castable send this as any
 				url: uri,
 
 				// satisfy the sdk's type checking
@@ -548,9 +630,7 @@ const usePubHubs = defineStore('pubhubs', {
 				'm.relates_to': undefined,
 			};
 			try {
-				// @ts-ignore
-				// todo: fix this (issue #808)
-				await this.client.sendMessage(roomId, content);
+				await this.client.sendMessage(roomId, thread, content);
 			} catch (error) {
 				logger.trace(SMI.STORE, 'swallowing add file error', { error });
 			}
@@ -595,14 +675,6 @@ const usePubHubs = defineStore('pubhubs', {
 				return [];
 			}
 			const users = (await this.client.getUsers()) as Array<MatrixUser>;
-			// Removed this hack @ 04 april 2024, if all seems well at next merge to stable, this can be removed permanent
-			// Doesn't get all displaynames correct from database, this is a hack to change displayName to only the pseudonym
-			// users = users.map((user) => {
-			// 	if (user.userId === user.displayName) {
-			// 		user.displayName = filters.extractPseudonym(user.userId);
-			// 	}
-			// 	return user;
-			// });
 			return users;
 		},
 
