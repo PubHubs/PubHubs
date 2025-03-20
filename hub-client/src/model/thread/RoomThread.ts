@@ -1,5 +1,4 @@
 import { MatrixEvent, MatrixClient, Thread } from 'matrix-js-sdk';
-import { RelationType } from '../constants';
 
 export default class TRoomThread {
 	private matrixThread: Thread;
@@ -9,10 +8,23 @@ export default class TRoomThread {
 	}
 
 	public async getEvents(matrixClient: MatrixClient): Promise<MatrixEvent[]> {
-		const events = this.matrixThread.liveTimeline.getEvents();
+		// get events from liveTimeline and paginate to get them all
+		let events = this.matrixThread.liveTimeline.getEvents();
 		while (await matrixClient.paginateEventTimeline(this.matrixThread.liveTimeline, { backwards: true, limit: 100 })) {
 			events.concat(this.matrixThread.liveTimeline.getEvents());
 		}
+
+		// TODO better way of building thread-list
+		// using console.trace('events voor sorted: ', events); shows that this methd is called to often which in the end can lead
+		// to multiple instances of the same event in the thread
+		// This is a quick fix to remove duplicates
+		const uniqueEvents = new Map();
+		events.forEach((event) => {
+			uniqueEvents.set(event.event.event_id, event); // use eventId as unique key
+		});
+		events = Array.from(uniqueEvents.values());
+
+		// sort events by localTimestamp
 		return this.sortThreadEvents(events);
 	}
 
@@ -41,21 +53,12 @@ export default class TRoomThread {
 	}
 
 	/**
-	 * Sorts an array of events so that the root of the thread is first
-	 * A rootevent does not have a relationtype of m.thread
+	 * Sorts an array of events by localTimestamp
 	 * @param events - Array to sort
 	 */
 	private sortThreadEvents(events: MatrixEvent[]): MatrixEvent[] {
 		events.sort((a, b) => {
-			const aIsRoot = a.event.content?.[RelationType.RelatesTo] ? [RelationType.RelType].toString() === RelationType.Thread : true;
-			const bIsRoot = b.event.content?.[RelationType.RelatesTo] ? [RelationType.RelType].toString() === RelationType.Thread : true;
-			if (aIsRoot && !bIsRoot) {
-				return -1;
-			}
-			if (!aIsRoot && bIsRoot) {
-				return 1;
-			}
-			return 0;
+			return a.localTimestamp - b.localTimestamp;
 		});
 		return events;
 	}

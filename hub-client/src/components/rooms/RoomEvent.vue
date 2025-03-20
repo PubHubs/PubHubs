@@ -37,7 +37,7 @@
 								<Icon v-if="msgIsNotSend && !connection.isOn" type="lost-connection" size="sm" class="mb-1 ml-2 text-red"></Icon>
 							</template>
 							<RoomEventActionsPopup v-if="!deleteMessageDialog">
-								<button v-if="!msgIsNotSend && !redactedMessage" @click="reply" class="rounded-md bg-hub-background-4 p-1 hover:bg-hub-accent">
+								<button v-if="!msgIsNotSend && !redactedMessage && !isThreadRoot" @click="reply" class="rounded-md bg-hub-background-4 p-1 hover:bg-hub-accent">
 									<Icon :type="'reply'" :size="'xs'"></Icon>
 								</button>
 								<button v-if="!viewFromThread && threadLength <= 0 && canReplyInThread && !msgIsNotSend && !redactedMessage" @click="replyInThread" class="rounded-md bg-hub-background-4 p-1 hover:bg-hub-accent">
@@ -77,7 +77,7 @@
 							</div>
 						</template>
 					</Suspense>
-					<Message v-if="event.content.msgtype === 'm.text' || redactedMessage" :event="event" :deleted="redactedMessage"></Message>
+					<Message v-if="event.content.msgtype === MsgType.Text || redactedMessage" :event="event" :deleted="redactedMessage"></Message>
 					<!-- Temporary fix to set the background color of the signed message in the dialog to delete a message -->
 					<MessageSigned :class="{ '!bg-[#e2e2e2]': deleteMessageDialog }" v-if="event.content.msgtype === PubHubsMgType.SignedMessage && !redactedMessage" :message="event.content.signed_message"></MessageSigned>
 					<MessageFile v-if="event.content.msgtype === MsgType.File && !redactedMessage" :message="event.content"> </MessageFile>
@@ -124,6 +124,7 @@
 	import UserDisplayName from './UserDisplayName.vue';
 	import Icon from '../elements/Icon.vue';
 	import { MsgType } from 'matrix-js-sdk';
+	import { RelationType } from '@/model/constants';
 
 	// Stores
 	const connection = useConnection();
@@ -173,7 +174,7 @@
 	const roomMember = props.room.getMember(props.event.sender, true);
 	if (!roomMember) throw new Error('Sender of event not found while trying to display event.');
 
-	const inReplyToId = props.event.content['m.relates_to']?.['m.in_reply_to']?.event_id;
+	const inReplyToId = props.event.content[RelationType.RelatesTo]?.[RelationType.InReplyTo]?.event_id;
 
 	const emit = defineEmits<{
 		(e: 'inReplyToClick', inReplyToId: string): void;
@@ -182,6 +183,10 @@
 
 	const msgIsNotSend = computed(() => {
 		return props.event.event_id.substring(0, 1) === '~';
+	});
+
+	const isThreadRoot = computed(() => {
+		return props.room.currentThread?.threadId === props.event.event_id;
 	});
 
 	const containsRedactedBecause = props.event.unsigned?.redacted_because !== undefined;
@@ -196,7 +201,7 @@
 	});
 
 	const canReplyInThread = computed(() => {
-		return !props.event.content['m.relates_to'];
+		return !props.event.content[RelationType.RelatesTo];
 	});
 
 	/**
