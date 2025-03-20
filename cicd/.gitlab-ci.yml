@@ -2,7 +2,7 @@ variables:
   DOCKER_DRIVER: overlay # faster docker builds, see https://gitlab.com/gitlab-org/gitlab-ce/issues/21374
 
 before_script:
-  - if [ -z "${CI_COMMIT_TAG}" ]; then ENVIRONMENT=stable; fi
+  - if [ -n "${CI_COMMIT_TAG}" ]; then ENVIRONMENT=stable; fi
   - if [ -z "${ENVIRONMENT}" ]; then ENVIRONMENT="${CI_COMMIT_REF_NAME}"; fi
   - echo "Environment=${ENVIRONMENT}"
   - ENV_FILE="pubhubs/.${ENVIRONMENT}.env"
