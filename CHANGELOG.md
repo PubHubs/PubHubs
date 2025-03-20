@@ -13,6 +13,8 @@ _Please add a brief description of any changes and any migrations to be performe
 
 Use the [MIGRATE] and [BREAKING] prefixes together with another one if that makes more sense.
 
+## 20 March 2025 - v1.2.0
+
 - [NEW] Threads are now supported
 - [BUG] Error solved when creating/editing rooms with a custom type
 - [BUG] Logo backgrounds where vague. Now always white
