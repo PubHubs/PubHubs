@@ -25,7 +25,7 @@
 		"emojibase-data": "^16",
 		"https-browserify": "^1.0.0",
 		"loglevel": "^1.8.0",
-		"matrix-js-sdk": "=36.1.0",
+		"matrix-js-sdk": "=37.1.0",
 		"pinia": "^3",
 		"postcss": "^8.4.33",
 		"register-service-worker": "^1.7.2",
