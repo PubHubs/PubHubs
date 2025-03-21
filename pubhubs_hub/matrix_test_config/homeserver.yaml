@@ -164,3 +164,6 @@ rc_login:
     burst_count: 1000
 
 enable_authenticated_media: true
+
+room_list_publication_rules:
+  - "action": "allow"
