@@ -731,18 +731,11 @@ impl<S: Server> AppBase<S> {
     pub(super) async fn discover_phc(app: S::AppT) -> api::Result<api::DiscoveryInfoResp> {
         let base = app.base();
 
-        let pdi = {
-            let result = base
-                .client
-                .query::<api::DiscoveryInfo>(&base.phc_url, &())
-                .await;
-
-            if result.is_err() {
-                return api::Result::Err(result.unwrap_err().into_server_error());
-            }
-
-            result.unwrap()
-        };
+        let pdi = base
+            .client
+            .query::<api::DiscoveryInfo>(&base.phc_url, &())
+            .await
+            .into_server_result()?;
 
         client::discovery::DiscoveryInfoCheck {
             phc_url: &base.phc_url,

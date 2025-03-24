@@ -92,11 +92,6 @@ pub trait ApiResultExt: Sized {
     fn into_server_result(self) -> Result<Self::Ok> {
         self.into_ec().map_err(ErrorCode::into_server_error)
     }
-
-    #[deprecated]
-    fn into_std(self) -> Self {
-        self
-    }
 }
 
 impl<T> ApiResultExt for Result<T> {

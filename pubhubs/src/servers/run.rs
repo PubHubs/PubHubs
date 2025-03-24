@@ -470,13 +470,7 @@ impl DiscoveryLimiter {
         // Obtain discovery info from PHC (even when we are PHC ourselves, for perhaps
         // the phc_url is misconfigured) and perform some basis checks.
         // Should not return an error when our constellation is out of sync.
-        let phc_discovery_info = {
-            let result = AppBase::<S>::discover_phc(app.clone()).await;
-            if result.is_err() {
-                return Err(result.unwrap_err());
-            }
-            result.unwrap()
-        };
+        let phc_discovery_info = AppBase::<S>::discover_phc(app.clone()).await?;
 
         if phc_discovery_info.constellation.is_none() && S::NAME != Name::PubhubsCentral {
             // PubHubs Central is not yet ready - make the caller retry

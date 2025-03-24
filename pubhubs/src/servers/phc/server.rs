@@ -206,17 +206,12 @@ impl App {
             return Err(api::ErrorCode::UnknownHub);
         };
 
-        let result = app
+        let resp = app
             .base
             .client
             .query::<api::hub::Info>(&hub.info_url, &())
-            .await;
-
-        if result.is_err() {
-            return api::Result::Err(result.unwrap_err().into_server_error());
-        }
-
-        let resp = result.unwrap();
+            .await
+            .into_server_result()?;
 
         // check that the request indeed came from the hub
         signed_req.open(&*resp.verifying_key).inspect_err(|ec| {
