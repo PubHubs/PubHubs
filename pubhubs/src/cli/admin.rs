@@ -1,6 +1,6 @@
 use anyhow::Result;
 
-use crate::api::{self, ApiResultExt as _};
+use crate::api::{self};
 use crate::cli;
 use crate::client;
 use crate::servers::{self, Config};
@@ -171,11 +171,9 @@ impl ConfigUpdateArgs {
                         new_value: self.new_value.clone(),
                     },
                     std::time::Duration::from_secs(10),
-                )
-                .into_std()?,
+                )?,
             )
-            .await
-            .into_std()?;
+            .await?;
 
         log::info!("Waiting for the configuration change to take effect...");
         crate::misc::task::retry::<(), anyhow::Error, _>(|| async {

@@ -1,7 +1,7 @@
 //! For use by (mocked) hubs
 
 use crate::api::phc::hub::{Ticket, TicketSigned};
-use crate::api::{self, ResultExt as _};
+use crate::api::{self};
 use crate::common::elgamal;
 use crate::servers::Constellation;
 
