@@ -20,7 +20,6 @@ export enum SMI {
 	STARTUP = 'STARTUP_TRACE',
 	STORE = 'STORE_TRACE',
 	USER = 'USER',
-	OTHER = 'OTHER',
 }
 
 // A StatusMessage instance could later have parameters and a stack trace passed to it.
