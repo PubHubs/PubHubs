@@ -22,17 +22,17 @@ impl<T> Signed<T> {
     where
         T: DeserializeOwned + HavingMessageCode,
     {
-        let claims: jwt::Claims = return_if_ec!(self.inner.open(key).into_ec(|err| {
+        let claims: jwt::Claims = self.inner.open(key).into_ec(|err| {
             log::info!(
                 "could not open signed message (of type {}): {}",
                 std::any::type_name::<T>(),
                 err
             );
             ErrorCode::InvalidSignature
-        }));
+        })?;
 
         // check that the message code is correct
-        let claims = return_if_ec!(claims
+        let claims = claims
             .check_present_and(
                 MESSAGE_CODE_CLAIM,
                 |claim_name: &'static str,
@@ -55,16 +55,16 @@ impl<T> Signed<T> {
             .into_ec(|err| {
                 log::info!("could not verify signed message's claims: {}", err);
                 ErrorCode::BadRequest
-            }));
+            })?;
 
-        let res = return_if_ec!(claims.into_custom().into_ec(|err| {
+        let res = claims.into_custom().into_ec(|err| {
             log::info!(
                 "could not parse signed message jwt into {}: {}",
                 std::any::type_name::<T>(),
                 err
             );
             ErrorCode::BadRequest
-        }));
+        })?;
 
         Result::Ok(res)
     }

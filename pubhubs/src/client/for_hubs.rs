@@ -25,7 +25,7 @@ impl HubContext<'_> {
     {
         api::ok(TicketSigned::new(
             self.ticket.clone(),
-            api::return_if_ec!(api::Signed::new(&**self.signing_key, msg, self.timeout)),
+            api::Signed::new(&**self.signing_key, msg, self.timeout)?,
         ))
     }
 }
@@ -33,7 +33,7 @@ impl HubContext<'_> {
 impl crate::client::Client {
     /// Retrieve hub encryption key from PHC and transcryptor. See Figure 4 of the whitepaper.
     pub async fn get_hub_enc_key(&self, ctx: HubContext<'_>) -> api::Result<elgamal::PrivateKey> {
-        let (phc_part, t_part): (Scalar, Scalar) = api::return_if_ec!(tokio::try_join!(
+        let (phc_part, t_part): (Scalar, Scalar) = tokio::try_join!(
             // request key part from Pubhubs Central
             async {
                 Ok(self
@@ -54,7 +54,7 @@ impl crate::client::Client {
                     .await?
                     .key_part)
             }
-        ));
+        )?;
 
         api::ok((phc_part * t_part).into())
     }

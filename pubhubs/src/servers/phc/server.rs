@@ -70,8 +70,8 @@ impl crate::servers::App<Server> for Rc<App> {
                 self.discovery_info_of(servers::Name::AuthenticationServer, &self.auths_url)
             );
 
-            let tdi = api::return_if_ec!(tdi_res);
-            let asdi = api::return_if_ec!(asdi_res);
+            let tdi = tdi_res?;
+            let asdi = asdi_res?;
 
             let transcryptor_master_enc_key_part = tdi
                 .master_enc_key_part
@@ -176,12 +176,12 @@ impl App {
         name: servers::Name,
         url: &url::Url,
     ) -> api::Result<api::DiscoveryInfoResp> {
-        let tdi = api::return_if_ec!(self
+        let tdi = self
             .base
             .client
             .query::<api::DiscoveryInfo>(url, &())
             .await
-            .into_server_result());
+            .into_server_result()?;
 
         client::discovery::DiscoveryInfoCheck {
             phc_url: &self.base.phc_url,
@@ -198,7 +198,7 @@ impl App {
     ) -> api::Result<api::Signed<api::phc::hub::TicketContent>> {
         let signed_req = signed_req.into_inner();
 
-        let req = api::return_if_ec!(signed_req.clone().open_without_checking_signature());
+        let req = signed_req.clone().open_without_checking_signature()?;
 
         let hub = if let Some(hub) = app.hubs.get(&req.handle) {
             hub
@@ -219,36 +219,36 @@ impl App {
         let resp = result.unwrap();
 
         // check that the request indeed came from the hub
-        api::return_if_ec!(signed_req.open(&*resp.verifying_key).inspect_err(|ec| {
+        signed_req.open(&*resp.verifying_key).inspect_err(|ec| {
             log::warn!(
                 "could not verify authenticity of hub ticket request for hub {}: {ec}",
                 req.handle,
             )
-        }));
+        })?;
 
         // if so, hand out ticket
-        api::Result::Ok(api::return_if_ec!(api::Signed::new(
+        api::Signed::new(
             &*app.base.jwt_key,
             &api::phc::hub::TicketContent {
                 handle: req.handle,
                 verifying_key: resp.verifying_key,
             },
-            std::time::Duration::from_secs(3600 * 24) /* = one day */
-        )))
+            std::time::Duration::from_secs(3600 * 24), /* = one day */
+        )
     }
 
     async fn handle_hub_key(
         app: Rc<Self>,
         signed_req: web::Json<api::phc::hub::TicketSigned<api::phct::hub::KeyReq>>,
     ) -> api::Result<api::phct::hub::KeyResp> {
-        let running_state = &api::return_if_ec!(app.base.running_state()).extra;
+        let running_state = &app.base.running_state()?.extra;
 
         let ts_req = signed_req.into_inner();
 
         let ticket_digest = phcrypto::TicketDigest::new(&ts_req.ticket);
 
         let (_, _): (api::phct::hub::KeyReq, handle::Handle) =
-            api::return_if_ec!(ts_req.open(&app.base.jwt_key.verifying_key()));
+            ts_req.open(&app.base.jwt_key.verifying_key())?;
 
         // At this point we can be confident that the ticket is authentic, so we can give the hub
         // its decryption key based on the provided ticket

@@ -40,15 +40,6 @@ impl<T> From<Result<T>> for ResultResponder<T> {
     }
 }
 
-/// Like `?`, but for [crate::api::Result].
-#[deprecated]
-macro_rules! return_if_ec {
-    ( $x:expr ) => {{
-        ($x)?
-    }};
-}
-pub(crate) use return_if_ec;
-
 /// Extension trait for [std::result::Result].
 pub trait ResultExt {
     type Ok;

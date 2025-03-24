@@ -76,7 +76,7 @@ impl App {
         app: Rc<Self>,
         attr_types: Vec<attr::Type>,
     ) -> api::Result<api::auths::AuthStartResp> {
-        let yivi = api::return_if_ec!(app.get_yivi());
+        let yivi = app.get_yivi()?;
 
         // Create ConDisCon for our attributes
         let mut cdc: servers::yivi::AttributeConDisCon = Default::default(); // empty
@@ -102,14 +102,13 @@ impl App {
             cdc.push(dc);
         }
 
-        let disclosure_request: jwt::JWT =
-            api::return_if_ec!(servers::yivi::SessionRequest::disclosure(cdc)
-                .sign(&yivi.requestor_creds)
-                .into_ec(|err| {
-                    log::error!("failed to create signed disclosure request: {err}");
+        let disclosure_request: jwt::JWT = servers::yivi::SessionRequest::disclosure(cdc)
+            .sign(&yivi.requestor_creds)
+            .into_ec(|err| {
+                log::error!("failed to create signed disclosure request: {err}");
 
-                    api::ErrorCode::InternalError
-                }));
+                api::ErrorCode::InternalError
+            })?;
 
         api::ok(api::auths::AuthStartResp {
             task: api::auths::AuthTask::Yivi {

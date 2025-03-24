@@ -50,9 +50,9 @@ pub mod hub {
         where
             T: HavingMessageCode + serde::de::DeserializeOwned,
         {
-            let ticket_content: TicketContent = return_if_ec!(self.ticket.open(key));
+            let ticket_content: TicketContent = self.ticket.open(key)?;
 
-            let msg: T = return_if_ec!(self.signed.open(&*ticket_content.verifying_key));
+            let msg: T = self.signed.open(&*ticket_content.verifying_key)?;
 
             Result::Ok((msg, ticket_content.handle))
         }

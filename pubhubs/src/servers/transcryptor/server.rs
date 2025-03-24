@@ -85,14 +85,14 @@ impl App {
         app: Rc<Self>,
         signed_req: web::Json<api::phc::hub::TicketSigned<api::phct::hub::KeyReq>>,
     ) -> api::Result<api::phct::hub::KeyResp> {
-        let running_state = &api::return_if_ec!(app.base.running_state());
+        let running_state = &app.base.running_state()?;
 
         let ts_req = signed_req.into_inner();
 
         let ticket_digest = phcrypto::TicketDigest::new(&ts_req.ticket);
 
         let (_, _): (api::phct::hub::KeyReq, handle::Handle) =
-            api::return_if_ec!(ts_req.open(&running_state.constellation.phc_jwt_key));
+            ts_req.open(&running_state.constellation.phc_jwt_key)?;
 
         // At this point we can be confident that the ticket is authentic, so we can give the hub
         // its decryption key based on the provided ticket

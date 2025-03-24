@@ -31,7 +31,7 @@ impl crate::client::Client {
         phc_url: &url::Url,
     ) -> api::Result<Option<Constellation>> {
         log::debug!("trying to get stable constellation");
-        let phc_inf = api::return_if_ec!(self.query::<api::DiscoveryInfo>(phc_url, &()).await);
+        let phc_inf = self.query::<api::DiscoveryInfo>(phc_url, &()).await?;
         if phc_inf.constellation.is_none() {
             log::debug!(
                 "{phc}'s constellation not yet set",
@@ -59,7 +59,7 @@ impl crate::client::Client {
             match js.join_next().await {
                 None => break 'lp,
                 Some(Ok(inf_res)) => {
-                    let inf = api::return_if_ec!(inf_res);
+                    let inf = inf_res?;
 
                     if inf.constellation.is_none() || inf.constellation.unwrap() != constellation {
                         log::debug!("constellations not yet in sync");

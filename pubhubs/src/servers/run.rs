@@ -488,7 +488,7 @@ impl DiscoveryLimiter {
             return api::err(api::ErrorCode::NotYetReady);
         }
 
-        let new_constellation_maybe = api::return_if_ec!(app.discover(phc_discovery_info).await);
+        let new_constellation_maybe = app.discover(phc_discovery_info).await?;
         if new_constellation_maybe.is_none() {
             return api::ok(api::DiscoveryRunResp::UpToDate);
         }

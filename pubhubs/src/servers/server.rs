@@ -404,12 +404,11 @@ pub trait App<S: Server>: Clone + 'static {
                         phc = Name::PubhubsCentral
                     );
                     // PHC's discovery is out of date; invoke discovery and return
-                    api::return_if_ec!(self
-                        .base()
+                    self.base()
                         .client
                         .query::<api::DiscoveryRun>(&phc_inf.phc_url, &())
                         .await
-                        .into_server_result());
+                        .into_server_result()?;
                     return api::err(api::ErrorCode::NotYetReady);
                 }
 
@@ -448,16 +447,16 @@ pub trait App<S: Server>: Clone + 'static {
             let url = c.url(S::NAME);
 
             // obtain DiscoveryInfo from oneself
-            let di = api::return_if_ec!(self
+            let di = self
                 .base()
                 .client
                 .query::<api::DiscoveryInfo>(url, &())
                 .await
-                .into_server_result());
+                .into_server_result()?;
 
             let base = self.base();
 
-            api::return_if_ec!(client::discovery::DiscoveryInfoCheck {
+            client::discovery::DiscoveryInfoCheck {
                 name: S::NAME,
                 phc_url: &base.phc_url,
                 self_check_code: Some(&base.self_check_code),
@@ -465,7 +464,7 @@ pub trait App<S: Server>: Clone + 'static {
                 // NOTE: we're not checking whether our own constellation is up-to-date,
                 // because it likely is not - why would we run discovery otherwise?
             }
-            .check(di, url));
+            .check(di, url)?;
 
             api::ok(Some(phc_inf.constellation.unwrap()))
         })
@@ -621,25 +620,25 @@ impl<S: Server> AppBase<S> {
 
         let base = app.base();
 
-        let req = api::return_if_ec!(base.open_admin_req(signed_req));
+        let req = base.open_admin_req(signed_req)?;
 
         // Before restarting the server, check that the modification would work,
         // so we can return an error to the requestor.  Once we issue a modification command
         // the present connection is severed, and so no error can be returned.
 
-        let config = api::return_if_ec!(base
+        let config = base
             .handle
             .inspect(
                 "admin's retrieval of current configuration",
-                |server: &S| -> Config { server.config().clone() }
+                |server: &S| -> Config { server.config().clone() },
             )
             .await
             .into_ec(|_| {
                 log::warn!("{}: failed to retrieve configuration from server", S::NAME,);
                 api::ErrorCode::NotYetReady // probably the server is restarting
-            }));
+            })?;
 
-        let mut new_config: Config = api::return_if_ec!(config
+        let mut new_config: Config = config
             .json_updated(&req.pointer, req.new_value.clone())
             .into_ec(|err| {
                 log::warn!(
@@ -649,28 +648,28 @@ impl<S: Server> AppBase<S> {
                     req.new_value
                 );
                 api::ErrorCode::BadRequest
-            }));
+            })?;
 
         drop(config);
 
         // reprepare config...
-        api::return_if_ec!(new_config.preliminary_prep().into_ec(|err| {
+        new_config.preliminary_prep().into_ec(|err| {
             log::warn!(
                 "{}: failed to reprepare (preliminary step) modified configuration: {err}",
                 S::NAME
             );
             api::ErrorCode::BadRequest
-        }));
-        api::return_if_ec!(new_config.prepare().into_ec(|err| {
+        })?;
+        new_config.prepare().into_ec(|err| {
             log::warn!(
                 "{}: failed to reprepare modified configuration: {err}",
                 S::NAME
             );
             api::ErrorCode::BadRequest
-        }));
+        })?;
 
         // All is well - let's restart the server with the new configuration
-        api::return_if_ec!(base
+        base
         .handle
         .modify(
             "admin update of current in-memory configuration",
@@ -692,7 +691,7 @@ impl<S: Server> AppBase<S> {
         .into_ec(|_| {
             log::warn!("{}: failed to enqueue modification", S::NAME);
             api::ErrorCode::NotYetReady
-        }));
+        })?;
 
         api::ok(api::admin::UpdateConfigResp {})
     }
@@ -706,19 +705,19 @@ impl<S: Server> AppBase<S> {
 
         let base = app.base();
 
-        let _req = api::return_if_ec!(base.open_admin_req(signed_req));
+        let _req = base.open_admin_req(signed_req)?;
 
-        let config = api::return_if_ec!(base
+        let config = base
             .handle
             .inspect(
                 "admin's retrieval of current configuration",
-                |server: &S| -> Config { server.config().clone() }
+                |server: &S| -> Config { server.config().clone() },
             )
             .await
             .into_ec(|_| {
                 log::warn!("{}: failed to retrieve configuration from server", S::NAME,);
                 api::ErrorCode::NotYetReady // probably the server is restarting
-            }));
+            })?;
 
         api::ok(api::admin::InfoResp { config })
     }
