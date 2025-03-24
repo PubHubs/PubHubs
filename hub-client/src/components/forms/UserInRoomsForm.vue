@@ -113,16 +113,14 @@
 	// Fetch permissions methods //
 
 	async function fetchRoomUserPermissions(): Promise<UserRoomPermission[]> {
-		const rooms = await props.administrator.showUserPermissions(props.userId);
-
+		const roomsPerm = await props.administrator.showUserPermissions(props.userId);
+		const publicRoomsPerm = roomsPerm.filter((room) => room.public === true);
 		// Only display public rooms and not chat.
-		if (rooms.length === 0) {
+		if (publicRoomsPerm.length === 0) {
 			dialog.confirm(t('errors.no_room_error', props.userId));
-
 			emit('close');
 		}
-
-		return rooms.filter((room) => room.public === true);
+		return publicRoomsPerm;
 	}
 
 	async function changeUserPermission(roomId: string, newRole: number) {
