@@ -1,96 +1,101 @@
-use serde::{de::IntoDeserializer as _, Deserialize, Serialize};
+use serde::{
+    de::{DeserializeOwned, IntoDeserializer as _},
+    Deserialize, Serialize,
+};
 
 use crate::misc::serde_ext::bytes_wrapper;
 use crate::servers::server;
 
 use actix_web::web;
 
-/// The result of an API-request to a PubHubs server endpoint.
-///
-/// We have made a new type because we cannot implement [actix_web::Responder]
-/// for the existing [std::result::Result].
-#[derive(Serialize, Deserialize, Debug)]
-pub enum Result<T> {
-    Ok(T),
-    Err(ErrorCode),
+pub type Result<T> = std::result::Result<T, ErrorCode>;
+
+#[deprecated]
+pub fn ok<T>(t: T) -> Result<T> {
+    Ok(t)
 }
 
-/// Creates an [actix_web::Responder] from the given [Serialize] `T`.
-pub fn ok<T>(t: T) -> Result<T>
-where
-    T: Serialize,
-{
-    Result::Ok(t)
+#[deprecated]
+pub fn err<T>(ec: ErrorCode) -> Result<T> {
+    Err(ec)
 }
 
-/// Creates an [actix_web::Responder] from the given [ErrorCode].
-pub fn err<T: Serialize>(code: ErrorCode) -> Result<T> {
-    Result::<T>::Err(code)
-}
+/// The [`actix_web::Responder`] used for all API endpoints: a wrapper around [`Result<T, ErrorCode>`].
+pub struct ResultResponder<T>(Result<T>);
 
-impl<T: Serialize> actix_web::Responder for Result<T> {
+impl<T: Serialize> actix_web::Responder for ResultResponder<T> {
     type Body = actix_web::body::EitherBody<String>;
 
     fn respond_to(self, req: &actix_web::HttpRequest) -> actix_web::HttpResponse<Self::Body> {
         // NOTE: `actix_web::web::Json(self).respond_to(req)` does not work here,
         // because actix_web::web::Json implements `Deref` so the very function we are defining
         // will shadow the function we want to call.
-        actix_web::Responder::respond_to(actix_web::web::Json(self), req)
+        actix_web::Responder::respond_to(actix_web::web::Json(self.0), req)
     }
 }
 
-impl<T> Result<T> {
-    pub fn unwrap(self) -> T {
+impl<T> From<Result<T>> for ResultResponder<T> {
+    fn from(res: Result<T>) -> Self {
+        Self(res)
+    }
+}
+
+/// Like `?`, but for [crate::api::Result].
+#[deprecated]
+macro_rules! return_if_ec {
+    ( $x:expr ) => {{
+        ($x)?
+    }};
+}
+pub(crate) use return_if_ec;
+
+/// Extension trait for [std::result::Result].
+pub trait ResultExt {
+    type Ok;
+    type Err;
+
+    /// Turns `self` into an [ErrorCode] result by calling `f` when `self` is an error.
+    ///
+    /// Consider logging the error you're turning into an [ErrorCode].
+    fn into_ec<F: FnOnce(Self::Err) -> ErrorCode>(self, f: F) -> Result<Self::Ok>;
+}
+
+impl<T, E> ResultExt for std::result::Result<T, E> {
+    type Ok = T;
+    type Err = E;
+
+    fn into_ec<F: FnOnce(E) -> ErrorCode>(self, f: F) -> Result<T> {
         match self {
-            Result::Ok(v) => v,
-            Result::Err(err) => panic!("unwrapped non-Ok: {err:?}: {err}"),
-        }
-    }
-
-    pub fn unwrap_err(self) -> ErrorCode {
-        match self {
-            Result::Err(err) => err,
-            Result::Ok(_) => panic!("unwrapped_err-ed non-Err"),
-        }
-    }
-
-    pub fn is_err(&self) -> bool {
-        !self.is_ok()
-    }
-
-    pub fn is_ok(&self) -> bool {
-        matches!(self, Result::Ok(_))
-    }
-
-    pub fn inspect_err(self, f: impl FnOnce(ErrorCode)) -> Self {
-        if let Result::Err(ref ec) = self {
-            f(*ec);
-        }
-        self
-    }
-
-    /// Converts this [crate::api::Result] into a standard [std::result::Result].
-    pub fn into_std(self) -> std::result::Result<T, ErrorCode> {
-        match self {
-            Result::Ok(v) => Ok(v),
-            Result::Err(err) => Err(err),
-        }
-    }
-
-    /// Creates an [crate::api::Result] from a standard [std::result::Result].
-    pub fn from_std(res: std::result::Result<T, ErrorCode>) -> Self {
-        match res {
             Ok(v) => Result::Ok(v),
-            Err(err) => Result::Err(err),
+            Err(err) => Result::Err(f(err)),
         }
     }
+}
+
+impl<T> ResultExt for Option<T> {
+    type Ok = T;
+    type Err = ();
+
+    fn into_ec<F: FnOnce(()) -> ErrorCode>(self, f: F) -> Result<T> {
+        match self {
+            Some(v) => Result::Ok(v),
+            None => Result::Err(f(())),
+        }
+    }
+}
+
+/// Extension trait for `[Result<T,ErrorCode>]`.
+pub trait ApiResultExt: Sized {
+    type Ok;
+
+    fn into_ec(self) -> Result<Self::Ok>;
 
     /// Turns retryable errors into `None`, and the [Result] into a [std::result::Result],
     /// making the output suitable for use with [crate::misc::task::retry].
-    pub fn retryable(self) -> std::result::Result<Option<T>, ErrorCode> {
-        match self {
-            Result::Ok(v) => Ok(Some(v)),
-            Result::Err(ec) => {
+    fn retryable(self) -> std::result::Result<Option<Self::Ok>, ErrorCode> {
+        match self.into_ec() {
+            Ok(v) => Ok(Some(v)),
+            Err(ec) => {
                 if ec.info().retryable == Some(true) {
                     log::trace!("ignoring retryable error: {ec}");
                     Ok(None)
@@ -103,63 +108,21 @@ impl<T> Result<T> {
 
     /// When passing along a result from another server to a client, this method is called
     /// to modify any [ErrorCode]. For details, see  [ErrorCode::into_server_error].
-    pub fn into_server_result(self) -> Self {
-        self.map_err(ErrorCode::into_server_error)
+    fn into_server_result(self) -> Result<Self::Ok> {
+        self.into_ec().map_err(ErrorCode::into_server_error)
     }
 
-    pub fn map_err(self, f: impl FnOnce(ErrorCode) -> ErrorCode) -> Self {
-        match self {
-            Result::Ok(v) => Result::Ok(v),
-            Result::Err(ec) => Result::Err(f(ec)),
-        }
+    #[deprecated]
+    fn into_std(self) -> Self {
+        self
     }
 }
 
-/// Like `?`, but for [crate::api::Result].
-macro_rules! return_if_ec {
-    ( $x:expr ) => {{
-        let result = $x;
-        #[allow(clippy::unnecessary_unwrap)] // clippy's suggestion won't work with api::Result
-        if result.is_err() {
-            return $crate::api::Result::Err(result.unwrap_err());
-        }
-        result.unwrap()
-    }};
-}
-pub(crate) use return_if_ec;
-
-/// Extension trait to add [IntoErrorCode::into_ec] to [std::result::Result].
-pub trait IntoErrorCode {
-    type Ok;
-    type Err;
-
-    /// Turns `self` into an [ErrorCode] result by calling `f` when `self` is an error.
-    ///
-    /// Consider logging the error you're turning into an [ErrorCode].
-    fn into_ec<F: FnOnce(Self::Err) -> ErrorCode>(self, f: F) -> Result<Self::Ok>;
-}
-
-impl<T, E> IntoErrorCode for std::result::Result<T, E> {
+impl<T> ApiResultExt for Result<T> {
     type Ok = T;
-    type Err = E;
 
-    fn into_ec<F: FnOnce(E) -> ErrorCode>(self, f: F) -> Result<T> {
-        match self {
-            Ok(v) => Result::Ok(v),
-            Err(err) => Result::Err(f(err)),
-        }
-    }
-}
-
-impl<T> IntoErrorCode for Option<T> {
-    type Ok = T;
-    type Err = ();
-
-    fn into_ec<F: FnOnce(()) -> ErrorCode>(self, f: F) -> Result<T> {
-        match self {
-            Some(v) => Result::Ok(v),
-            None => Result::Err(f(())),
-        }
+    fn into_ec(self) -> Result<T> {
+        self
     }
 }
 
@@ -278,21 +241,27 @@ impl ErrorCode {
 
 /// Details on a PubHubs server endpoint
 pub trait EndpointDetails {
-    type RequestType: Serialize + for<'a> Deserialize<'a> + core::fmt::Debug;
-    type ResponseType: Serialize + for<'a> Deserialize<'a> + core::fmt::Debug;
+    type RequestType: Serialize + DeserializeOwned + core::fmt::Debug;
+    type ResponseType: Serialize + DeserializeOwned + core::fmt::Debug;
 
     const METHOD: http::Method;
     const PATH: &'static str;
 
-    /// Helper function to add this endpoint to a [web::ServiceConfig].
+    /// Helper function to add this endpoint to a [`web::ServiceConfig`].
+    ///
+    /// The `handler` argument must be of the form:
+    /// ```text
+    /// async fn f(app : App, ...) -> api::Result<ResponseType>
+    /// ```
+    /// The `...` can contain arguments of type `[actix_web::FromRequest]`.
     fn add_to<App: Clone, F, Args: actix_web::FromRequest + 'static>(
         app: &App,
         sc: &mut web::ServiceConfig,
         handler: F,
     ) where
-        server::AppMethod<App, F>: actix_web::Handler<Args>,
-        <server::AppMethod<App, F> as actix_web::Handler<Args>>::Output:
-            actix_web::Responder + 'static,
+        server::AppMethod<App, F, Self::ResponseType>: actix_web::Handler<Args>,
+        <server::AppMethod<App, F, Self::ResponseType> as actix_web::Handler<Args>>::Output:
+            'static + actix_web::Responder,
     {
         sc.route(
             Self::PATH,

@@ -1,6 +1,6 @@
 use anyhow::Result;
 
-use crate::api;
+use crate::api::{self, ApiResultExt as _};
 use crate::cli;
 use crate::client;
 use crate::servers::{self, Config};
@@ -59,8 +59,7 @@ impl AdminContext {
                 )
                 .unwrap(),
             )
-            .await
-            .into_std()?;
+            .await?;
 
         Ok(resp.config)
     }

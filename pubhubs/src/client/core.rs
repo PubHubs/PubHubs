@@ -2,7 +2,7 @@ use std::rc::Rc;
 
 use crate::misc::fmt_ext;
 
-use crate::api::{EndpointDetails, ErrorCode, Result};
+use crate::api::{ApiResultExt as _, EndpointDetails, ErrorCode, Result};
 
 /// Client for making requests to pubhubs servers and hubs; cheaply clonable
 #[derive(Clone)]

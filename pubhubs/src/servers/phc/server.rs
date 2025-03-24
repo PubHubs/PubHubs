@@ -5,7 +5,7 @@ use actix_web::web;
 use futures_util::future::LocalBoxFuture;
 
 use crate::{
-    api::{self, EndpointDetails as _},
+    api::{self, ApiResultExt as _, EndpointDetails as _},
     client, handle, phcrypto,
     servers::{self, AppBase, AppCreator as _, AppCreatorBase, Constellation, Handle, Server as _},
 };

@@ -2,7 +2,8 @@
 
 use actix_web::web;
 use pubhubs::{
-    api, attr, client, elgamal, hub,
+    api::{self, ApiResultExt as _},
+    attr, client, elgamal, hub,
     misc::jwt,
     servers::{self, yivi},
 };

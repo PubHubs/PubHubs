@@ -5,7 +5,7 @@ use actix_web::web;
 
 use crate::servers::{self, yivi, AppBase, AppCreatorBase, Constellation, Handle};
 use crate::{
-    api::{self, EndpointDetails as _, IntoErrorCode as _},
+    api::{self, ApiResultExt as _, EndpointDetails as _, ResultExt as _},
     attr, map,
     misc::jwt,
 };

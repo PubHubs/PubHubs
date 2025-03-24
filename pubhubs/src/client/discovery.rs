@@ -1,4 +1,4 @@
-use crate::api;
+use crate::api::{self, ApiResultExt as _};
 use crate::servers::{self, server::Server as _, Constellation};
 
 impl crate::client::Client {

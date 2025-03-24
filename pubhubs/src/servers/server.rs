@@ -1,7 +1,7 @@
 //! What's common between PubHubs servers
 use actix_web::web;
 use anyhow::{Context as _, Result};
-use futures_util::future::LocalBoxFuture;
+use futures_util::future::{FutureExt as _, LocalBoxFuture};
 
 use core::convert::Infallible;
 use std::rc::Rc;
@@ -10,7 +10,7 @@ use crate::elgamal;
 
 use crate::client;
 
-use crate::api::{self, DiscoveryRunResp, EndpointDetails, IntoErrorCode as _};
+use crate::api::{self, ApiResultExt as _, DiscoveryRunResp, EndpointDetails, ResultExt as _};
 use crate::servers::{self, Config, Constellation, Handle};
 
 /// Enumerates the names of the different PubHubs servers
@@ -785,39 +785,56 @@ impl<S: Server> AppBase<S> {
     }
 }
 
-/// An [App] together with a method on it.  Used to pass [App]s to [actix_web::Handler]s.
-#[derive(Clone)]
-pub struct AppMethod<App, F> {
+/// An [`App`] together with a method on it.  Used to pass [`App`]s to [`actix_web::Handler`]s
+/// as first argument. See [`api::EndpointDetails::add_to`].
+pub struct AppMethod<App, F, ResponseType> {
     app: App,
     f: F,
+    phantom: std::marker::PhantomData<ResponseType>,
 }
 
-impl<App: Clone, F> AppMethod<App, F> {
-    pub fn new(app: &App, f: F) -> Self {
-        AppMethod {
-            app: app.clone(),
-            f,
+/// Implement [`Clone`] manually so we don't have to require `ResponseType` to implement
+/// [`Clone`].
+impl<App: Clone, F: Clone, ResponseType> Clone for AppMethod<App, F, ResponseType> {
+    fn clone(&self) -> Self {
+        Self {
+            app: self.app.clone(),
+            f: self.f.clone(),
+            phantom: std::marker::PhantomData,
         }
     }
 }
 
-/// Implements [actix_web::Handler] for an [AppMethod] with the given number of arguments.
+impl<App: Clone, F, ResponseType> AppMethod<App, F, ResponseType> {
+    /// Creates a new [`AppMethod`], cloning [`App`].
+    pub fn new(app: &App, f: F) -> Self {
+        AppMethod {
+            app: app.clone(),
+            f,
+            phantom: std::marker::PhantomData,
+        }
+    }
+}
+
+/// Implements [`actix_web::Handler`] for an [`AppMethod`] with the given number of arguments.
 ///
-/// Based on [actix_web]'s implementation of [actix_web::Handler] for [Fn]s.
+/// Based on [`actix_web`]'s implementation of [`actix_web::Handler`] for [`Fn`]s.
 macro_rules! factory_tuple ({ $($param:ident)* } => {
-    impl<Func, Fut, App, $($param,)*> actix_web::Handler<($($param,)*)> for AppMethod<App, Func>
+    impl<Func, Fut, App, ResponseType, $($param,)*> actix_web::Handler<($($param,)*)> for AppMethod<App, Func, ResponseType>
     where
         Func:  Fn(App, $($param),*) -> Fut + Clone + 'static,
         Fut: core::future::Future,
         App: Clone + 'static,
+        ResponseType: 'static + serde::Serialize,
+        Fut::Output : Into<api::ResultResponder<ResponseType>>,
     {
-        type Output = Fut::Output;
-        type Future = Fut;
+        type Output = api::ResultResponder<ResponseType>;
+        type Future = futures::future::Map<Fut, fn(Fut::Output)->api::ResultResponder<ResponseType>>;
 
         #[inline]
-        #[allow(non_snake_case)]
+        #[allow(non_snake_case)] // because the signature will be:  call(&self, A: A, B: B, ...)
         fn call(&self, ($($param,)*): ($($param,)*)) -> Self::Future {
-            (self.f)(self.app.clone(), $($param,)*)
+            (self.f)(self.app.clone(), $($param,)*).map(Into::<api::ResultResponder<ResponseType>>::into)
         }
     }
 });
