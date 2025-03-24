@@ -5,7 +5,7 @@
 				<slot name="title"></slot>
 			</div>
 			<div>
-				<Icon :type="icon" :class="iconClass" class="cursor-pointer" @click="toggle()"></Icon>
+				<Icon :type="icon" :class="iconClass" class="cursor-pointer" @click="toggle()" />
 			</div>
 		</div>
 		<div>

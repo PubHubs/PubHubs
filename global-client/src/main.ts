@@ -1,18 +1,19 @@
 /* eslint-disable */
-import '@/assets/tailwind.css';
-import { focus, twClass } from '@/logic/core/directives';
-import { routes } from '@/logic/core/routes';
-import { setUpi18n } from '@/i18n';
-import '@/registerServiceWorker';
+
+// Package imports
 import { createPinia } from 'pinia';
 import { createApp, markRaw } from 'vue';
 import { createRouter, createWebHashHistory } from 'vue-router';
 
-// Local components
+// Global imports
+import { setUpi18n } from '@/i18n';
+import { focus, twClass } from '@/logic/core/directives';
+import { routes } from '@/logic/core/routes';
 import App from '@/pages/App.vue';
 import { registerComponents } from '@/registerComponents.js';
+import '@/registerServiceWorker';
 
-// Components from hub-client
+// Hub imports
 import Badge from '@/../../hub-client/src/components/elements/Badge.vue';
 import Button from '@/../../hub-client/src/components/elements/Button.vue';
 import H1 from '@/../../hub-client/src/components/elements/H1.vue';
@@ -27,16 +28,21 @@ import Label from '@/../../hub-client/src/components/forms/Label.vue';
 import Dialog from '@/../../hub-client/src/components/ui/Dialog.vue';
 import Logo from '@/../../hub-client/src/components/ui/Logo.vue';
 import Checkbox from '@/../../hub-client/src/components/forms/Checkbox.vue';
-
 import { ReplaceConsole } from '@/../../hub-client/src/console';
-import { Logger } from '@/../../hub-client/src/logic/foundation/Logger';
 import { CONFIG } from '../../hub-client/src/logic/foundation/Config';
+import { Logger } from '@/../../hub-client/src/logic/foundation/Logger';
+import '@/../../hub-client/src/assets/tailwind.css';
+
+// Custom console for development
 ReplaceConsole();
 
+// Initialize logger
 const LOGGER = new Logger('GC', CONFIG);
 
+// Set up internationalization
 const i18n = setUpi18n();
 
+// Set up router
 const router = createRouter({
 	history: createWebHashHistory(),
 	routes: routes,
@@ -51,35 +57,47 @@ const router = createRouter({
 	sensitive: true,
 });
 
+// Set up Pinia store
 const pinia = createPinia();
 pinia.use(({ store }) => {
 	store.router = markRaw(router);
 });
+
+// Create Vue app
 const app = createApp(App);
 
+// Register global components
 registerComponents(app);
 
-app.component('P', P);
-app.component('H1', H1);
-app.component('H2', H2);
-app.component('H3', H3);
-app.component('Icon', Icon);
-app.component('Line', Line);
-app.component('Label', Label);
-app.component('Badge', Badge);
-app.component('Button', Button);
-app.component('TruncatedText', TruncatedText);
-app.component('ButtonGroup', ButtonGroup);
-app.component('Logo', Logo);
-app.component('Dialog', Dialog);
-app.component('Checkbox', Checkbox);
+const components = {
+	P,
+	H1,
+	H2,
+	H3,
+	Icon,
+	Line,
+	Label,
+	Badge,
+	Button,
+	TruncatedText,
+	ButtonGroup,
+	Logo,
+	Dialog,
+	Checkbox,
+};
 
+Object.entries(components).forEach(([name, component]) => {
+	app.component(name, component);
+});
+
+// Use plugins and directives
 app.use(router);
 app.use(pinia);
 app.use(i18n as any);
 app.directive('focus', focus);
 app.directive('tw-class', twClass as any);
 
+// Mount the app
 app.mount('#app');
 
 export { LOGGER };

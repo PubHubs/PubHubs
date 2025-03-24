@@ -275,7 +275,7 @@ const en = {
 		title_permission: 'Permission',
 		title_update: 'Update',
 		title_user: 'User',
-		title_administrator: 'Adminirator',
+		title_administrator: 'Administrator',
 		title_steward: 'Steward',
 		make_admin_confirm: 'Make Admin',
 		join: 'Join',

@@ -1,6 +1,6 @@
 <template>
-	<div class="rounded-md bg-hub-background-4" v-click-outside="close">
-		<Icon v-if="showClosingCross" type="closingCross" size="base" :asButton="true" @click="close()" class="absolute right-2 top-2"></Icon>
+	<div class="z-40 rounded-md bg-surface-high" v-click-outside="close">
+		<Icon v-if="showClosingCross" type="closingCross" size="base" :asButton="true" @click="close()" class="absolute right-2 top-2" />
 		<slot></slot>
 	</div>
 </template>

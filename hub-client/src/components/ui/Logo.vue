@@ -1,21 +1,11 @@
 <template>
-	<img alt="PubHubs logo" :src="logoUrl" />
+	<!-- FIXME dark mode doesnt want to work with 'hidden' -->
+	<img alt="PubHubs logo" :src="logoLightUrl" class="h-full w-full dark:hidden" />
+	<img alt="PubHubs logo" :src="logoDarkUrl" class="hidden h-full w-full dark:block" />
 </template>
 
 <script setup lang="ts">
-	import { Theme, useSettings } from '@/logic/store/settings';
-	import { computed } from 'vue';
-
-	const logoLightUrl = '/client/img/logo.svg';
-	const logoDarkUrl = '/client/img/logo-dark.svg';
-
-	const settings = useSettings();
-
-	const logoUrl = computed(() => {
-		if (settings.getActiveTheme === Theme.Dark) {
-			return logoDarkUrl;
-		} else {
-			return logoLightUrl;
-		}
-	});
+	// Hub imports
+	const logoLightUrl = '/img/pubhubs-logo.svg';
+	const logoDarkUrl = '/img/pubhubs-logo-dark.svg';
 </script>

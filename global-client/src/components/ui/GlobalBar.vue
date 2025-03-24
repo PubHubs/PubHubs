@@ -1,57 +1,69 @@
 <template>
-	<div id="pubhubs-bar" class="h-full w-24 flex-none bg-ph-background-3 pt-20 dark:bg-gray-darker 2md:block 2md:pt-0" :class="{ hidden: !toggleMenu.globalIsActive }">
+	<div id="pubhubs-bar" class="h-screen w-16 flex-none flex-shrink-0 flex-col bg-surface md:flex md:w-24" :class="{ hidden: !toggleMenu.globalIsActive }">
 		<Modal :show="global.isModalVisible">
-			<div class="flex h-full flex-col justify-between">
-				<div class="grid h-24 items-center justify-center bg-ph-background-4 dark:bg-ph-background-5">
-					<router-link to="/">
-						<div class="flex h-14 w-14 items-center justify-center rounded-xl bg-white text-white hover:bg-lightgray-light hover:text-lightgray-light">
-							<Icon type="pubhubs-home" size="xl" @click="toggleMenu.hideMenuAndSendToHub()"></Icon>
-						</div>
+			<div class="flex h-full flex-col">
+				<!-- Global top bar (discover) -->
+				<div class="flex aspect-square w-full items-center justify-center bg-surface-high p-3 md:p-4">
+					<router-link to="/" class="w-full">
+						<figure class="group flex items-center justify-center rounded-[25%] bg-background p-1 hover:bg-accent-primary dark:bg-on-surface dark:hover:bg-accent-primary">
+							<svg
+								viewBox="0 0 24 24"
+								fill="transparent"
+								stroke="currentColor"
+								stroke-linecap="round"
+								stroke-linejoin="round"
+								v-html="icons['pubhubs-home']"
+								class="aspect-square w-full text-on-accent-secondary group-hover:text-accent-primary"
+								@click="toggleMenu.hideMenuAndSendToHub()"
+							></svg>
+						</figure>
 					</router-link>
 				</div>
-				<div class="mx-auto h-full w-full flex-1 overflow-hidden">
-					<HubMenu :hubOrderingIsActive="hubOrdering"></HubMenu>
-				</div>
 
-				<div class="grid h-fit gap-4 p-2 pb-4">
-					<div v-if="global.loggedIn">
-						<SettingsDialog v-if="settingsDialog" @close="settingsDialog = false"></SettingsDialog>
-						<div class="mx-auto grid w-fit grid-cols-2 gap-2">
-							<Icon type="question_mark" class="rounded-sm bg-gray-lighter p-1 hover:cursor-pointer hover:bg-gray-light dark:bg-gray dark:hover:bg-gray-dark" size="base" @click="showHelp()"></Icon>
-							<div class="relative">
-								<Icon
-									type="reorder_hubs"
-									:class="{ 'bg-white text-black dark:hover:bg-lightgray-light': hubOrdering }"
-									class="rounded-sm bg-gray-lighter p-1 hover:cursor-pointer hover:bg-white hover:text-black dark:bg-gray dark:hover:bg-lightgray-light"
-									size="base"
-									@click="toggleHubOrdering()"
-								></Icon>
-								<DialogBubble class="absolute -top-2/3 left-[150%]" :showBubble="hubOrdering">
-									{{ t('bubble.organize') }}
-								</DialogBubble>
-							</div>
-							<Icon type="cog" class="rounded-sm bg-gray-lighter p-1 hover:cursor-pointer hover:bg-gray-light dark:bg-gray dark:hover:bg-gray-dark" size="base" @click="settingsDialog = true"></Icon>
-							<Icon type="power" class="rounded-sm bg-gray-lighter p-1 hover:cursor-pointer hover:bg-gray-light dark:bg-gray dark:hover:bg-gray-dark" size="base" @click="logout()"></Icon>
-						</div>
+				<div class="flex flex-1 flex-col gap-1 py-3 md:gap-4 md:py-6">
+					<!-- Global middle bar (hub menu) -->
+					<div class="flex-1 overflow-y-auto px-2 md:gap-2 md:px-4">
+						<HubMenu :hubOrderingIsActive="hubOrdering" />
 					</div>
-					<a :href="pubHubsUrl">
-						<Logo class="px-1"></Logo>
-					</a>
+
+					<!-- Global bottom bar (settings) -->
+					<div class="flex h-fit w-full flex-col gap-4 self-end px-2">
+						<div v-if="global.loggedIn">
+							<div class="flex w-full flex-wrap items-center justify-center gap-2">
+								<GlobalbarButton type="reorder_hubs" @click="toggleHubOrdering" :class="hubOrdering && '!bg-accent-primary !text-on-accent-primary hover:!bg-accent-secondary'" />
+								<GlobalbarButton type="cog" @click="settingsDialog = true" />
+								<GlobalbarButton type="question_mark" @click="showHelp" />
+								<GlobalbarButton type="power" @click="logout" />
+							</div>
+						</div>
+						<a :href="pubHubsUrl" target="_blank" rel="noopener noreferrer">
+							<Logo />
+						</a>
+					</div>
 				</div>
 			</div>
 		</Modal>
 	</div>
+
+	<!-- Dialogs -->
+	<SettingsDialog v-if="settingsDialog" @close="settingsDialog = false" />
 </template>
 
 <script setup lang="ts">
-	import { useDialog, useGlobal } from '@/logic/store/store';
-	import { useToggleMenu } from '@/logic/store/toggleGlobalMenu';
+	// Package imports
 	import { ref } from 'vue';
 	import { useI18n } from 'vue-i18n';
 
-	// Components
-	import DialogBubble from '../../../../hub-client/src/components/ui/DialogBubble.vue';
-	import Logo from '../../../../hub-client/src/components/ui/Logo.vue';
+	// Global imports
+	import SettingsDialog from '@/components/forms/SettingsDialog.vue';
+	import HubMenu from '@/components/ui/HubMenu.vue';
+	import Logo from '@/components/ui/Logo.vue';
+	import { useDialog, useGlobal } from '@/logic/store/store';
+	import { useToggleMenu } from '@/logic/store/toggleGlobalMenu';
+	import GlobalbarButton from '@/components/ui/GlobalbarButton.vue';
+
+	// Hub imports
+	import { icons } from '@/../../hub-client/src/assets/icons';
 
 	const dialog = useDialog();
 	const settingsDialog = ref(false);

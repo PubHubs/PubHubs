@@ -1,7 +1,7 @@
 <template>
 	<div class="flex overflow-hidden bg-black text-white">
-		<Icon :type="folded ? 'chevron-right' : 'chevron-down'" @click="toggleFold()" class="text-green"></Icon>
-		<pre class="font-mono p-1 text-sm" :class="folded ? 'h-16' : ''">{{ JSON.stringify(json, null, 2) }}</pre>
+		<Icon :type="folded ? 'chevron-right' : 'chevron-down'" @click="toggleFold()" class="text-green" />
+		<pre class="p-1 font-mono ~text-label-min/label-max" :class="folded ? 'h-16' : ''">{{ JSON.stringify(json, null, 2) }}</pre>
 	</div>
 </template>
 

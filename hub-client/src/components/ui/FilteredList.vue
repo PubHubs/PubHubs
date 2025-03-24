@@ -1,12 +1,14 @@
 <template>
-	<div>
-		<TextInput v-if="!listTop" :placeholder="placeholder" v-model="filter" class="mb-4 w-full" :class="inputClass" @input="changed()"></TextInput>
-		<ul v-if="filteredItems.length > 0" :class="listClass + ' max-h-screen overflow-y-scroll'">
-			<li v-for="(item, index) in filteredItems" :key="index" class="group block cursor-pointer rounded p-1 hover:bg-lightgray hover:dark:bg-gray-dark" @click="clickedItem(item)">
+	<div class="flex w-full flex-col">
+		<div class="flex w-full items-center gap-4 pb-4">
+			<Icon type="pubhubs-home" class="text-surface-high dark:text-on-surface-dim" />
+			<TextInput v-if="!listTop" :placeholder="placeholder" v-model="filter" class="h-8 w-full border-none !bg-surface-low ~text-label-min/label-max" :class="inputClass" @input="changed()" />
+		</div>
+		<ul v-if="filteredItems.length > 0" :class="listClass + ' flex h-full flex-col gap-2 overflow-y-auto rounded-md'">
+			<li v-for="(item, index) in filteredItems" :key="index" class="group block cursor-pointer" @click="clickedItem(item)">
 				<slot name="item" v-bind="{ item }"></slot>
 			</li>
 		</ul>
-		<TextInput v-if="listTop" :placeholder="placeholder" v-model="filter" class="mt-4 w-full" :class="inputClass" @input="changed()"></TextInput>
 	</div>
 </template>
 

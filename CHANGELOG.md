@@ -13,7 +13,9 @@ _Please add a brief description of any changes and any migrations to be performe
 
 Use the [MIGRATE] and [BREAKING] prefixes together with another one if that makes more sense.
 
+
 - [BUG] Adds workaround for 'Open Yivi app' button not working in an iframe on iOS.
+- [NEW] Update and implement Tailwind colors and add minor UX/UI improvements
 
 ## 20 March 2025 - v1.2.0
 

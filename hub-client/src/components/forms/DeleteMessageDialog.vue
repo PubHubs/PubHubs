@@ -1,12 +1,11 @@
 <template>
-	<!-- Temporary fix to set all text in the dialog to black until the dialog changes theme -->
-	<Dialog class="text-black" :title="$t('message.delete.heading')" :buttons="buttonsYesNo" @close="close($event)" width="max-w-full lg:max-w-[40%] min-w-[92.5%] lg:min-w-[22.5%]">
+	<Dialog :title="$t('message.delete.heading')" :buttons="buttonsYesNo" @close="close($event)" width="max-w-full lg:max-w-[40%] min-w-[92.5%] lg:min-w-[22.5%]">
 		<div v-if="!user.isAdmin && (event.content.msgtype === MsgType.File || event.content.msgtype === MsgType.Image)">
 			<p class="font-bold">{{ $t('message.delete.beware') }}</p>
 			<p class="mb-4 font-bold">{{ $t('message.delete.file_not_deleted') }}</p>
 		</div>
 		<Suspense>
-			<RoomEvent class="w-fit" :event="event" :room="room" :deleteMessageDialog="true" :viewFromThread="props.viewFromThread"></RoomEvent>
+			<RoomEvent class="w-fit" :event="event" :room="room" :deleteMessageDialog="true" :viewFromThread="props.viewFromThread" />
 			<template #fallback>
 				<p>{{ $t('state.loading_message') }}</p>
 			</template>

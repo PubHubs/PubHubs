@@ -1,7 +1,7 @@
 <template>
 	<HeaderFooter class="pl-3">
 		<template #header>
-			<H1 class="m-0 font-bold text-blue">Tool</H1>
+			<H1 class="text-blue m-0 font-bold">Tool</H1>
 		</template>
 
 		<H2>Example Plugin</H2>

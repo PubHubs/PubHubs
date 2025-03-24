@@ -34,6 +34,6 @@ module.exports = defineConfig({
 	transpileDependencies: true,
 	publicPath: '/client',
 	pwa: {
-		themeColor: '#686868',
+		themeColor: '#686868', // FIXME update
 	},
 });
