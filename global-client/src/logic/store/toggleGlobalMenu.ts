@@ -1,4 +1,7 @@
+// Project imports
 import { defineStore } from 'pinia';
+
+// Global imports
 import { useMessageBox, Message, MessageType } from '@/logic/store/store';
 
 const useToggleMenu = defineStore('toggleMenu', {

@@ -3,7 +3,7 @@
 		<Button
 			v-for="(option, index) in options"
 			:key="index"
-			:color="optionIsSelected(option) ? 'blue' : 'gray-light'"
+			:color="optionIsSelected(option) ? 'blue' : 'gray'"
 			:size="size"
 			:class="roundedClass(index)"
 			@click="

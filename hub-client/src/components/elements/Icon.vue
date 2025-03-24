@@ -1,6 +1,6 @@
 <template>
-	<div class="h-fit w-fit shrink-0">
-		<button v-if="asButton" class="flex items-center justify-center">
+	<div class="flex h-fit w-fit shrink-0 items-center justify-center">
+		<button v-if="asButton" :class="['flex items-center justify-center', iconColor]">
 			<svg viewBox="0 0 24 24" fill="transparent" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" :class="sizes[size]" v-html="icons[type]"></svg>
 		</button>
 		<svg v-else viewBox="0 0 24 24" fill="transparent" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" :class="sizes[size]" v-html="icons[type]"></svg>
@@ -28,6 +28,10 @@
 		asButton: {
 			type: Boolean,
 			default: false,
+		},
+		iconColor: {
+			type: String,
+			default: 'text-on-surface',
 		},
 	});
 </script>

@@ -7,10 +7,10 @@
 </template>
 
 <script setup lang="ts">
-	import { RoomMember } from 'matrix-js-sdk';
+	import { TRoomMember } from '@/model/rooms/TRoomMember';
 	defineProps({
 		members: {
-			type: Array<RoomMember>,
+			type: Array<TRoomMember>,
 			required: true,
 		},
 	});

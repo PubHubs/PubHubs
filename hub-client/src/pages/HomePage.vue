@@ -1,9 +1,11 @@
 <template>
-	<div class="m-auto flex h-full flex-col gap-8 p-5 xl:max-w-screen-xl">
-		<div class="mx-auto mt-20 flex w-6/12 flex-col">
-			<H1 v-if="!isTryOutHub() && hubSettings.hubName" class="mb-8 text-center">{{ $t('home.hub_homepage_welcome_auth', [hubSettings.hubName]) }}</H1>
-			<H1 v-else class="mb-8 text-center">Welkom bij de TryOutHub</H1>
-			<HubIcon v-if="hubSettings.hubName" :hub-name="hubSettings.hubName" :icon-url="hubSettings.iconUrlLight" :icon-url-dark="hubSettings.iconUrlDark" class="mx-auto mb-8 max-h-20 max-w-24"></HubIcon>
+	<div class="m-auto flex h-full flex-col gap-8 p-5">
+		<div class="mx-auto mt-20 flex w-6/12 flex-col items-center gap-4">
+			<H1 v-if="!isTryOutHub() && hubSettings.hubName" class="text-center">{{ $t('home.hub_homepage_welcome_auth', [hubSettings.hubName]) }}</H1>
+			<H1 v-else class="text-center">Welkom bij de TryOutHub</H1>
+			<div class="mx-auto max-h-20 max-w-24 rounded-md">
+				<HubIcon v-if="hubSettings.hubName" :hub-name="hubSettings.hubName" :icon-url="hubSettings.iconUrlLight" :icon-url-dark="hubSettings.iconUrlDark" />
+			</div>
 			<div v-if="isTryOutHub()" class="mt-20">
 				<p class="mb-6">
 					Hier kun je als organisatie een eigen Room krijgen om PubHubs zelf uit te proberen. Stel je organisatie heet ABC met webadres abc.nl. Dan kun je hier een eigen gesloten Room krijgen met naam ABC, binnen de TryOutHub.
@@ -27,12 +29,12 @@
 				</p>
 			</div>
 
-			<Button @click="gotoDiscoverRooms()" color="gray-light" class="flex justify-center gap-2"
-				><Icon type="compass"></Icon><span>{{ $t('menu.discover') }}</span></Button
+			<Button @click="gotoDiscoverRooms()" class="flex w-max justify-center gap-2"
+				><Icon type="pubhubs-home" /><span>{{ $t('menu.discover') }}</span></Button
 			>
 
-			<Button v-if="!showPubHubsCentralLoginButton && !isTryOutHub()" class="mt-10 text-xs md:text-base" @click="goToLoginPage()">{{ $t('home.hub_homepage_join') }}</Button>
-			<Button v-if="!showPubHubsCentralLoginButton && isTryOutHub()" class="mt-10 text-xs md:text-base" @click="goToLoginPage()">Doe mee met de TryOutHub </Button>
+			<Button v-if="!showPubHubsCentralLoginButton && !isTryOutHub()" class="md:~text-body-min/body-max mt-10 ~text-label-min/label-max" @click="goToLoginPage()">{{ $t('home.hub_homepage_join') }}</Button>
+			<Button v-if="!showPubHubsCentralLoginButton && isTryOutHub()" class="md:~text-body-min/body-max mt-10 ~text-label-min/label-max" @click="goToLoginPage()">Doe mee met de TryOutHub </Button>
 		</div>
 	</div>
 </template>

@@ -1,15 +1,15 @@
 <template>
-	<div class="flex cursor-pointer items-center gap-3 truncate break-words rounded-md bg-hub-background-4 px-2">
+	<div class="flex cursor-pointer items-center gap-3 truncate text-nowrap rounded-md px-2" :class="showInReplyTo ? 'bg-surface-high' : 'bg-surface-low'">
 		<p v-if="showInReplyTo" class="text-nowrap">
 			{{ $t('message.in_reply_to') }}
 		</p>
 		<p :class="textColor(userColor)">
-			<UserDisplayName :user="event.sender" :room="room"></UserDisplayName>
+			<UserDisplayName :user="event.sender || 'Deleted user'" :room="room" />
 		</p>
-		<p class="flex items-center gap-1 truncate" :class="{ 'theme-light:text-gray-middle dark:text-gray-lighter': redactedMessage }" :title="snippetText">
-			<Icon v-if="redactedMessage" :type="'bin'" :size="'sm'"></Icon>
-			<span class="truncate">{{ snippetText }}</span>
-		</p>
+		<div class="flex w-full items-center gap-1" :class="{ 'text-accent-error': redactedMessage }" :title="snippetText">
+			<Icon v-if="redactedMessage" :type="'bin'" :size="'sm'" />
+			<p class="line-clamp-1">{{ snippetText }}</p>
+		</div>
 	</div>
 </template>
 

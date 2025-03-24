@@ -1,8 +1,10 @@
 <template>
 	<details class="group">
-		<summary class="relative my-2 flex list-none items-start pr-6 after:absolute after:right-1 after:ml-2 after:mt-1 after:rotate-45 after:border-b-2 after:border-r-2 after:p-1 group-open:after:mt-2 group-open:after:-rotate-135">
-			<div class="mr-2 flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-blue text-white">
-				<Icon type="information" size="xs"></Icon>
+		<summary
+			class="group-open:after:-rotate-135 relative my-2 flex list-none items-start pr-6 after:absolute after:right-1 after:ml-2 after:mt-1 after:rotate-45 after:border-b-2 after:border-r-2 after:border-on-surface-dim after:p-1 group-open:after:mt-2"
+		>
+			<div class="mr-2 flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-accent-primary text-on-accent-primary">
+				<Icon type="information" size="xs" />
 			</div>
 			{{ props.question }}
 		</summary>

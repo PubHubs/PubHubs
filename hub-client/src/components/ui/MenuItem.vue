@@ -1,15 +1,15 @@
 <template>
 	<li
-		:class="{ 'bg-lightgray dark:bg-gray-middle': isActive }"
+		:class="{ 'bg-background': isActive }"
 		@click="
 			click();
 			menu.setActiveMenuItem(props.roomInfo?.roomId);
 		"
-		class="menu-item h-11 rounded-lg py-2 pl-5 pr-2 transition-all duration-150 ease-in-out hover:bg-lightgray hover:dark:bg-gray-middle"
+		class="h-fit rounded-lg px-4 py-2 transition-all duration-200 ease-in-out hover:bg-background"
 	>
-		<router-link :to="to" class="flex items-center gap-2">
-			<Icon v-if="isSecuredRoom()" type="shield"></Icon>
-			<Icon v-else class="dark:text-white" :type="icon"></Icon>
+		<router-link :to="to" class="flex items-center gap-4">
+			<Icon v-if="isSecuredRoom()" type="shield" :size="iconSize" />
+			<Icon v-else class="" :type="icon" :size="iconSize" />
 			<TruncatedText class="w-full"><slot></slot></TruncatedText>
 		</router-link>
 	</li>
@@ -21,6 +21,7 @@
 	import { Room } from '@/logic/store/rooms';
 	import { useRooms } from '@/logic/store/store';
 	import { computed } from 'vue';
+	import Icon from '@/components/elements/Icon.vue';
 
 	const router = useRouter();
 	const rooms = useRooms();
@@ -42,6 +43,10 @@
 		icon: {
 			type: String,
 			default: 'circle',
+		},
+		iconSize: {
+			type: String,
+			default: 'base',
 		},
 		roomInfo: {
 			type: [Room, Object],

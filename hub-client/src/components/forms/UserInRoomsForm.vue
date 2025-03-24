@@ -1,62 +1,51 @@
 <template>
-	<div class="absolute inset-0 z-20 h-full bg-gray-middle opacity-75"></div>
-	<div
-		v-if="listUserRooms.length > 0"
-		class="border-b-1 border-x-1 absolute left-1/2 top-40 z-20 max-h-[80%] w-[95%] -translate-x-1/2 transform overflow-hidden rounded-md bg-hub-background-2 p-4 dark:text-white-middle sm:w-[80%] sm:p-8 md:w-[40%]"
-	>
-		<div class="flex justify-between">
-			<h2 class="light:text-black mx-2 my-2 mt-4 text-lg font-bold theme-light:text-black">{{ t('admin.user_perm_heading') }}</h2>
-			<Icon type="close" size="md" class="mt-4 hover:text-red theme-light:text-gray theme-light:hover:text-red" @click="$emit('close')"></Icon>
-		</div>
-		<hr class="mx-4 mb-4 mt-2 border-gray-lighter sm:mx-8" />
+	<Dialog v-if="listUserRooms.length > 0" :title="$t('admin.user_perm_heading')" @close="emit('close')">
 		<div class="flex p-2 sm:p-4">
 			<Avatar :user="user" :overrideAvatarUrl="avatarUrl"></Avatar>
 			<div class="ml-2 flex flex-col">
-				<div class="text-base text-black sm:text-lg">{{ displayName }}</div>
-				<div class="sm:text-md mb-2 text-sm text-gray-middle sm:mb-4">{{ userId }}</div>
+				<div>{{ displayName }}</div>
+				<div class="mb-2 italic text-on-surface-dim sm:mb-4">{{ userId }}</div>
 			</div>
 		</div>
-		<div class="flex justify-center">
-			<span class="sm:text-md mb-2 rounded-md bg-blue-light px-2 text-sm font-medium text-white"><Icon type="exclamation" class="inline"></Icon> {{ t('admin.important_perm_msg') }}</span>
+		<div class="flex gap-2 rounded-md bg-accent-primary p-2 text-on-accent-primary">
+			<Icon type="exclamation" class="" />
+			<span class="font-medium">{{ t('admin.important_perm_msg') }}</span>
 		</div>
-		<hr class="mx-4 mb-4 mt-2 border-gray-lighter sm:mx-8" />
 
 		<!-- Table header -->
-		<div class="w-full">
-			<div class="grid w-full grid-cols-3 text-left text-sm text-gray-darker dark:text-white rtl:text-right">
-				<div class="sm:text-md px-2 py-3 text-sm font-medium sm:px-6">{{ t('admin.title_room') }}</div>
-				<div class="sm:text-md px-1 py-3 text-sm font-medium">{{ t('admin.title_permission') }}</div>
-				<div class="sm:text-md px-2 py-3 text-sm font-medium sm:px-6">{{ t('admin.title_update') }}</div>
-			</div>
+		<div class="text-label-small-min/label-small-max mb-2 mt-8 grid w-full grid-cols-3 text-left text-on-surface-dim rtl:text-right">
+			<div class="font-medium sm:px-6">{{ t('admin.title_room') }}</div>
+			<div class="font-medium">{{ t('admin.title_permission') }}</div>
+			<div class="font-medium sm:px-6">{{ t('admin.title_update') }}</div>
 		</div>
 
 		<!-- Scrollable table body -->
-		<div class="max-h-[180px] w-full overflow-y-auto overflow-x-hidden sm:max-h-[250px]">
-			<div v-for="room in listUserRooms" :key="room.room_id" class="grid w-full grid-cols-3 border-t border-gray-lighter">
-				<div class="truncate px-2 py-2 text-sm sm:px-6 sm:py-4 sm:text-lg">{{ room.room_name }}</div>
+		<div class="max-h-[180px] w-full overflow-y-auto overflow-x-hidden ~text-label-min/label-max sm:max-h-[250px]">
+			<div v-for="room in listUserRooms" :key="room.room_id" class="grid w-full grid-cols-3 border-t border-on-surface-dim">
+				<div class="truncate px-2 py-2 sm:px-6 sm:py-4">{{ room.room_name }}</div>
 				<div class="px-1 py-2 sm:py-4">
-					<span :class="'inline-block rounded-md px-1 text-xs text-white sm:px-2 sm:text-sm ' + getTagBasedOnRole(room.room_pl)">{{ showPermissionRole(room.room_pl) }}</span>
+					<span :class="'inline-block rounded-md px-1 sm:px-2 ' + getTagBasedOnRole(room.room_pl)">{{ showPermissionRole(room.room_pl) }}</span>
 				</div>
 				<div class="px-2 py-2 sm:px-6 sm:py-4">
 					<div v-if="adminIsMember(room.room_id)" class="ml-0 sm:ml-2">
 						<select
 							:disabled="isRoomAdmin(room.room_id)"
-							class="peer block w-full appearance-none border-0 border-gray-lighter bg-gray-lighter px-2 py-1 text-xs text-gray-middle focus:border-gray-light focus:outline-none focus:ring-0 dark:border-gray-darker dark:text-gray-middle sm:px-8 sm:py-2.5 sm:text-sm"
+							class="peer block w-full appearance-none border-0 border-on-surface-dim px-2 py-1 text-on-surface-dim focus:border-on-surface-dim focus:outline-none focus:ring-0 sm:px-8 sm:py-2"
 							:class="isRoomAdmin(room.room_id) ? 'bg-transparent bg-none' : ''"
 							v-model="room.room_pl"
 							@change="changeUserPermission(room.room_id, room.room_pl)"
 						>
-							<option :value="0">{{ t('admin.title_user') }}</option>
+							<option :value="0" class="active:bg-accent-primary">{{ t('admin.title_user') }}</option>
 							<option :value="50">{{ t('admin.title_steward') }}</option>
 						</select>
 					</div>
 					<div v-else>
-						<button @click="adminJoinRoom(room.room_id)" class="ml-0 rounded bg-blue px-2 py-1 text-xs text-white transition hover:bg-blue-dark sm:ml-2 sm:px-3 sm:text-sm">{{ $t('admin.join') }}</button>
+						<button @click="adminJoinRoom(room.room_id)" class="ml-0 rounded bg-accent-primary px-2 py-1 transition sm:ml-2 sm:px-3">{{ $t('admin.join') }}</button>
 					</div>
 				</div>
 			</div>
 		</div>
-	</div>
+	</Dialog>
 </template>
 
 <script setup lang="ts">
@@ -76,6 +65,7 @@
 	import { UserRoomPermission } from '@/model/hubmanagement/types/roomPerm';
 	import { Administrator } from '@/model/hubmanagement/models/admin';
 	import Avatar from '../ui/Avatar.vue';
+	import Dialog from '../ui/Dialog.vue';
 
 	const { t } = useI18n();
 
@@ -171,10 +161,10 @@
 	function getTagBasedOnRole(powerLevel: number) {
 		const currentRole = showPermissionRole(powerLevel);
 
-		if (currentRole === 'Administrator') return 'bg-avatar-red';
+		if (currentRole === 'Administrator') return 'bg-accent-red';
 
-		if (currentRole === 'Steward') return 'bg-avatar-green';
+		if (currentRole === 'Steward') return 'bg-accent-lime';
 
-		return 'bg-avatar-yellow';
+		return 'bg-accent-yellow';
 	}
 </script>

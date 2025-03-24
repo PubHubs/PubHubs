@@ -8,7 +8,7 @@
 		<p>To proceed, click 'Continue' and follow the Yivi instructions.</p>
 		<p>TODO: Alternatively, please discuss this with the steward...</p>
 	</Dialog>
-	<DisclosureYivi v-if="showDisclosureYivi" :ask="rooms.askDisclosureMessage" @close="closeYivi"></DisclosureYivi>
+	<DisclosureYivi v-if="showDisclosureYivi" :ask="rooms.askDisclosureMessage" @close="closeYivi" />
 </template>
 
 <script setup lang="ts">

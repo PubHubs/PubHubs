@@ -1,7 +1,7 @@
 <template>
 	<div class="relative flex items-center">
 		<input
-			class="w-full min-w-48 rounded-md border-none bg-hub-background-3 py-2 text-hub-text placeholder:text-gray focus:ring-0 md:pr-8"
+			class="bg-hub-background-3 text-hub-text placeholder:text-gray w-full min-w-48 rounded-md border-none py-2 focus:ring-0 md:pr-8"
 			type="search"
 			v-model="inputValue"
 			:placeholder="$t('others.search')"
@@ -9,7 +9,7 @@
 			aria-describedby="$t('others.search_room')"
 			@input="updateSearchTerm()"
 		/>
-		<Icon class="-ml-6 hover:cursor-pointer" type="search" size="sm"></Icon>
+		<Icon class="-ml-6 hover:cursor-pointer" type="search" size="sm" />
 	</div>
 </template>
 

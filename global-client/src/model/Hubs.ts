@@ -1,5 +1,10 @@
+// Package imports
 import { Pinia } from 'pinia';
+
+// Global imports
 import { useSettings } from '@/logic/store/store';
+
+// Hub imports
 import { FeatureFlag, SettingsStore } from '../../../hub-client/src/logic/store/settings';
 
 class Hub {

@@ -2,26 +2,26 @@
 	<div class="w-full px-3 pb-3 md:px-6">
 		<!-- Floating -->
 		<div class="relative">
-			<Popover v-if="showPopover" @close="togglePopover" class="absolute bottom-2">
+			<Popover v-if="showPopover" @close="togglePopover" class="absolute bottom-4">
 				<div class="flex items-center">
-					<UploadPicker @click="clickedAttachment"></UploadPicker>
-					<SignedMessageButton v-if="!signingMessage" @click.stop="toggleSigningMessage(true)"> </SignedMessageButton>
+					<UploadPicker @click="clickedAttachment" class="hover:bg-surface" />
+					<SignedMessageButton v-if="!signingMessage" @click.stop="toggleSigningMessage(true)" class="hover:bg-surface" />
 				</div>
 			</Popover>
-			<Mention v-if="showMention" :msg="value" :top="caretPos.top" :left="caretPos.left" :room="room" @click="mentionUser($event)"></Mention>
-			<div v-if="showEmojiPicker" class="absolute bottom-2 right-0 z-20 xs:right-4 md:right-32">
+			<Mention v-if="showMention" :msg="value" :top="caretPos.top" :left="caretPos.left" :room="room" @click="mentionUser($event)" />
+			<div v-if="showEmojiPicker" class="absolute bottom-2 right-0 z-20 xs:right-4 md:right-12">
 				<EmojiPicker @emojiSelected="clickedEmoticon" @close="toggleEmojiPicker" />
 			</div>
 		</div>
 
-		<div class="flex items-end justify-between gap-2">
-			<div class="w-full overflow-hidden rounded-xl bg-hub-background-2">
+		<div class="flex max-h-12 items-end justify-between gap-2 md:max-h-[50vh]">
+			<div class="w-full overflow-hidden rounded-xl bg-surface-high shadow-sm">
 				<!-- In reply to -->
 				<div class="flex h-10 items-center justify-between gap-2 px-2" v-if="inReplyTo">
 					<div class="flex w-fit gap-2 overflow-hidden">
 						<p class="text-nowrap">{{ $t('message.in_reply_to') }}</p>
 						<Suspense>
-							<MessageSnippet :eventId="messageActions.replyingTo ?? ''" :room="room"> </MessageSnippet>
+							<MessageSnippet :eventId="messageActions.replyingTo ?? ''" :room="room" />
 							<template #fallback>
 								<div class="flex items-center gap-3 rounded-md px-2">
 									<p>{{ $t('state.loading_message') }}</p>
@@ -30,16 +30,16 @@
 						</Suspense>
 					</div>
 					<button @click="messageActions.replyingTo = undefined">
-						<Icon type="closingCross" size="sm"></Icon>
+						<Icon type="closingCross" size="sm" />
 					</button>
 				</div>
 
-				<div class="flex min-h-[50px] items-center gap-x-4 rounded-2xl px-4 py-2">
-					<Icon class="dark:text-white" type="paperclip" size="md" @click.stop="togglePopover" :asButton="true"></Icon>
+				<div class="flex items-end gap-x-4 rounded-2xl px-4 py-2">
+					<Icon type="paperclip" size="md" @click.stop="togglePopover" :asButton="true" />
 					<!-- Overflow-x-hidden prevents firefox from adding an extra row to the textarea for a possible scrollbar -->
 					<TextArea
 						ref="elTextInput"
-						class="max-h-40 overflow-x-hidden border-none bg-transparent placeholder:text-gray-dark dark:placeholder:text-gray-lighter md:max-h-60"
+						class="max-h-40 overflow-x-hidden border-none bg-transparent ~text-label-min/label-max placeholder:text-on-surface-variant md:max-h-60"
 						v-focus
 						:placeholder="$t('rooms.new_message')"
 						:title="$t('rooms.new_message')"
@@ -51,59 +51,52 @@
 						@submit="submitMessage()"
 						@cancel="cancel()"
 						@caretPos="setCaretPos"
-					></TextArea>
+					/>
 
 					<!-- Emoji picker -->
-					<Icon class="dark:text-white" type="emoticon" size="md" @click.stop="toggleEmojiPicker" :asButton="true"></Icon>
+					<Icon type="emoticon" :iconColor="'text-background dark:text-on-surface-variant'" size="md" @click.stop="toggleEmojiPicker" :asButton="true" class="rounded-full bg-accent-secondary" />
 
 					<!-- Sendbutton -->
-					<Button
-						class="flex aspect-square h-7 w-7 items-center justify-center !rounded-full bg-hub-background-4 !p-0"
-						:class="!buttonEnabled && 'opacity-50 hover:cursor-default'"
-						:disabled="!buttonEnabled"
-						@click="submitMessage"
-					>
-						<Icon type="send" size="sm" class="shrink-0 text-hub-text-variant"></Icon>
+					<Button class="flex aspect-square h-7 w-7 items-center justify-center !rounded-full bg-background !p-0" :class="!buttonEnabled && 'opacity-50 hover:cursor-default'" :disabled="!buttonEnabled" @click="submitMessage">
+						<Icon type="send" size="sm" class="shrink-0 text-on-surface-variant" />
 					</Button>
 				</div>
 
-				<div v-if="signingMessage" class="m-4 mt-0 flex items-center rounded-md bg-hub-background-4 p-2">
-					<Icon type="sign" size="base" class="mt-1 self-start"></Icon>
+				<div v-if="signingMessage" class="m-4 mt-0 flex items-center rounded-md bg-surface-low p-2">
+					<Icon type="sign" size="base" class="mt-1 self-start" />
 					<div class="ml-2 flex max-w-3xl flex-col justify-between">
 						<h3 class="font-bold">{{ $t('message.sign.heading') }}</h3>
 						<p>{{ $t('message.sign.info') }}</p>
 						<div class="mt-2 flex items-center">
-							<Icon type="warning" size="sm" class="mb-[2px] mr-2 mt-1 shrink-0 self-start"></Icon>
+							<Icon type="warning" size="sm" class="mb-[2px] mr-2 mt-1 shrink-0 self-start" />
 							<p class="italic">{{ $t('message.sign.warning') }}</p>
 						</div>
-						<Line class="mb-2"></Line>
+						<Line class="mb-2" />
 						<p>{{ $t('message.sign.selected_attributes') }}</p>
-						<div class="mt-1 flex w-20 justify-center rounded-full bg-black text-white">
+						<div class="mt-1 flex w-20 justify-center rounded-full">
 							<p>Email</p>
 						</div>
 					</div>
-					<Icon type="closingCross" size="sm" :asButton="true" @click.stop="toggleSigningMessage(false)" class="ml-auto self-start"></Icon>
+					<Icon type="closingCross" size="sm" :asButton="true" @click.stop="toggleSigningMessage(false)" class="ml-auto self-start" />
 				</div>
 			</div>
 
 			<!-- Yivi signing qr popup -->
 			<div v-if="signingMessage" class="absolute bottom-[10%] md:left-[40%]" id="yivi-web-form"></div>
 		</div>
-		<div class="text-black dark:bg-gray-dark dark:text-white">
-			<FileUploadDialog
-				:file="fileInfo"
-				:blobURL="uri"
-				:thread-id="threadRoot?.event_id"
-				v-if="showFileUploadDialog"
-				@close="
-					showFileUploadDialog = false;
-					fileUploading = false;
-				"
-			>
-			</FileUploadDialog>
-			<!-- todo: move this into UploadPicker? -->
-			<input type="file" :accept="getTypesAsString(allTypes)" class="attach-file" ref="elFileInput" @change="uploadFile($event)" @cancel="fileUploading = false" hidden />
-		</div>
+		<FileUploadDialog
+			:file="fileInfo"
+			:blobURL="uri"
+			:thread-id="threadRoot?.event_id"
+			v-if="showFileUploadDialog"
+			@close="
+				showFileUploadDialog = false;
+				fileUploading = false;
+			"
+		>
+		</FileUploadDialog>
+		<!-- todo: move this into UploadPicker? -->
+		<input type="file" :accept="getTypesAsString(allTypes)" class="attach-file" ref="elFileInput" @change="uploadFile($event)" @cancel="fileUploading = false" hidden />
 	</div>
 </template>
 

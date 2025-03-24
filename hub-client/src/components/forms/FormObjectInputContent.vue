@@ -2,20 +2,20 @@
 	<TabHeader>
 		<TabPill v-for="(item, index) in list" :key="index" class="h-8">
 			{{ pillTitle(index) }}
-			<Icon v-if="props.canRemove && index > 0" type="remove" class="float-right ml-1 cursor-pointer text-red opacity-50 hover:opacity-100" @click.stop="removeItem(index)"></Icon>
+			<Icon v-if="props.canRemove && index > 0" type="remove" class="text-red float-right ml-1 cursor-pointer opacity-50 hover:opacity-100" @click.stop="removeItem(index)" />
 		</TabPill>
-		<div v-if="props.canAdd" class="tabs-tab z-20 float-right inline-block h-8 cursor-pointer rounded-t border border-b-0 px-2 py-1 theme-light:border-gray" @click.stop="addItem()">
-			<Icon type="plus" class="cursor-pointer text-green-dark opacity-70 hover:opacity-100" @click.stop="addItem()"></Icon>
+		<div v-if="props.canAdd" class="tabs-tab theme-light:border-gray z-20 float-right inline-block h-8 cursor-pointer rounded-t border border-b-0 px-2 py-1" @click.stop="addItem()">
+			<Icon type="plus" class="text-green-dark cursor-pointer opacity-70 hover:opacity-100" @click.stop="addItem()" />
 		</div>
 	</TabHeader>
 	<TabContainer>
 		<TabContent v-for="(item, index) in list" :key="index">
 			<FormLine v-for="(type, ti) in template" :key="ti">
 				<Label>{{ type.label }}</Label>
-				<TextInput v-if="type.type === 'text'" :placeholder="(index + 1).toString()" :value="item[type.key]" :disabled="type.disabled" @input="update(index, type.key, $event.target.value)"></TextInput>
-				<TextArea class="theme-light:bg-white" v-if="type.type === 'textarea'" :modelValue="item[type.key]" :disabled="type.disabled" :maxLength="type.maxLength" @input="update(index, type.key, $event.target.value)"></TextArea>
-				<Checkbox v-if="type.type === 'checkbox'" :value="item[type.key]" :disabled="type.disabled" @input="update(index, type.key, $event.target.checked)"></Checkbox>
-				<Select v-if="type.type === 'select'" :value="item[type.key]" :options="type.options" :disabled="type.disabled" @input="update(index, type.key, $event.target.value)"></Select>
+				<TextInput v-if="type.type === 'text'" :placeholder="(index + 1).toString()" :value="item[type.key]" :disabled="type.disabled" @input="update(index, type.key, $event.target.value)" />
+				<TextArea class="bg-surface-low" v-if="type.type === 'textarea'" :modelValue="item[type.key]" :disabled="type.disabled" :maxLength="type.maxLength" @input="update(index, type.key, $event.target.value)" />
+				<Checkbox v-if="type.type === 'checkbox'" :value="item[type.key]" :disabled="type.disabled" @input="update(index, type.key, $event.target.checked)" />
+				<Select v-if="type.type === 'select'" :value="item[type.key]" :options="type.options" :disabled="type.disabled" @input="update(index, type.key, $event.target.value)" />
 				<AutoComplete v-if="type.type === 'autocomplete'" :value="item[type.key]" :options="type.options" :disabled="type.disabled" @input="update(index, type.key, $event.target.value)" @changed="update(index, type.key, $event)">
 				</AutoComplete>
 			</FormLine>

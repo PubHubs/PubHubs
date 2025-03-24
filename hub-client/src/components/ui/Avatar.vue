@@ -1,7 +1,7 @@
 <template>
 	<div class="flex aspect-square h-12 w-12 shrink-0 items-center justify-center overflow-hidden rounded-full" :class="avatarColor">
 		<img v-if="imageUrl" data-testid="avatar" :src="imageUrl" class="h-full w-full" />
-		<Icon v-else size="lg" type="person"></Icon>
+		<Icon v-else size="lg" type="person" />
 	</div>
 </template>
 
@@ -31,7 +31,7 @@
 
 	const props = defineProps<Props>();
 
-	const backgroundColor = 'bg-hub-background-4';
+	const backgroundColor = 'bg-surface-high';
 
 	const imageUrl = computed(getImageUrl);
 	const avatarColor = computed(getAvatarColor);

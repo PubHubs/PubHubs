@@ -1,20 +1,22 @@
 <template>
-	<div class="relative flex h-min min-w-56 max-w-[23rem] cursor-pointer rounded-md bg-white-middle text-black dark:bg-gray dark:text-white" @click="expandPillToggle()">
-		<div class="absolute left-0 top-0 h-full w-3 shrink-0 bg-hub-background-5 transition-all duration-1000 ease-in-out" :class="{ 'w-full bg-notification': joinedARoom }"></div>
-		<div class="flex h-min w-full justify-between p-2 py-3 pl-5" :class="{ 'gap-4': expanded }">
-			<div class="flex items-center gap-4">
-				<Icon :type="roomIsSecure ? 'shield' : 'speech_bubbles'" class="shrink-0"></Icon>
-				<SecuredRoomLogin v-if="securedRoomLoginFlow && panelOpen" :securedRoomId="room.room_id" @click="panelOpen = false"></SecuredRoomLogin>
-				<div class="grid">
-					<H3 class="relative z-0 m-0 line-clamp-1 overflow-hidden font-semibold" :class="{ 'line-clamp-3': expanded && !joinedARoom }">{{ room?.name }}</H3>
+	<div class="relative flex h-20 min-w-56 max-w-[36.8rem] cursor-pointer flex-col rounded-md bg-background shadow-md" @click="expandPillToggle()">
+		<div class="flex h-full items-center">
+			<div class="absolute left-0 top-0 h-full w-3 shrink-0 bg-surface-high transition-all duration-1000 ease-in-out" :class="{ 'w-full !bg-accent-primary': joinedARoom }"></div>
+			<div class="flex h-min w-full justify-between p-2 py-3 pl-5" :class="{ 'gap-4': expanded }">
+				<div class="flex items-center gap-4">
+					<Icon :type="roomIsSecure ? 'shield' : 'speech_bubbles'" class="shrink-0" />
+					<SecuredRoomLogin v-if="securedRoomLoginFlow && panelOpen" :securedRoomId="room.room_id" @click="panelOpen = false" />
+					<div class="grid">
+						<H3 class="relative z-0 m-0 line-clamp-1 overflow-hidden font-semibold" :class="{ 'line-clamp-3': expanded && !joinedARoom }">{{ room?.name }}</H3>
 
-					<p v-if="joinedARoom === false" class="line-clamp-1 text-xs italic" :class="{ 'line-clamp-3': expanded }">{{ room.topic }}</p>
-					<p v-else class="z-0 text-base">{{ t('rooms.joined') }}</p>
+						<p v-if="joinedARoom === false" class="line-clamp-1 italic ~text-label-min/label-max" :class="{ 'line-clamp-3': expanded }">{{ room.topic }}</p>
+						<p v-else class="~text-body-min/body-max z-0 line-clamp-1 truncate">{{ t('rooms.joined') }}</p>
+					</div>
 				</div>
-			</div>
-			<div class="grid items-center gap-2">
-				<Icon v-if="memberOfRoom" type="arrow-right" size="lg" class="min-w-[4rem] hover:cursor-pointer" @click="goToRoom()"></Icon>
-				<Icon v-if="!memberOfRoom" type="join_room" size="lg" class="hover:cursor-pointer" @click="joinRoom()"></Icon>
+				<div class="grid items-center gap-2">
+					<Icon v-if="memberOfRoom" type="arrow-right" size="lg" class="min-w-[4rem] hover:cursor-pointer" @click="goToRoom()" />
+					<Icon v-if="!memberOfRoom" type="join_room" size="lg" class="hover:cursor-pointer" @click="joinRoom()" />
+				</div>
 			</div>
 		</div>
 	</div>

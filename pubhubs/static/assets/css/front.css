@@ -9058,15 +9058,15 @@ padding-right: 3rem;
         padding-left: 3rem !important;
     }
 
-    .text-sm-start {
+    .~text-label-min/label-max-start {
         text-align: left !important;
     }
 
-    .text-sm-end {
+    .~text-label-min/label-max-end {
         text-align: right !important;
     }
 
-    .text-sm-center {
+    .~text-label-min/label-max-center {
         text-align: center !important;
     }
 }
@@ -9709,15 +9709,15 @@ padding-right: 3rem;
         padding-left: 3rem !important;
     }
 
-    .text-md-start {
+    .~text-body-min/body-max-start {
         text-align: left !important;
     }
 
-    .text-md-end {
+    .~text-body-min/body-max-end {
         text-align: right !important;
     }
 
-    .text-md-center {
+    .~text-body-min/body-max-center {
         text-align: center !important;
     }
 }
