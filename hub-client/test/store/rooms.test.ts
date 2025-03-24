@@ -136,63 +136,57 @@ describe('rooms Store', () => {
 			expect(rooms.roomsArray.length).toBeTypeOf('number');
 		});
 
-		// Temporary removed because of TypeError: matrixRoom.getOrCreateFilteredTimelineSet is not a function
-		// test('sortedRoomsArray', () => {
-		// 	const rooms = useRooms();
-		// 	rooms.updateRoomsWithMatrixRooms([new Room(new MockedMatrixRoom('Btest')), new Room(new MockedMatrixRoom('Atest')), new Room(new MockedMatrixRoom('Ctest'))]);
-		// 	expect(rooms.sortedRoomsArray).toBeTypeOf('object');
-		// 	expect(rooms.sortedRoomsArray.length).toBeTypeOf('number');
-		// 	expect(rooms.sortedRoomsArray.length).toEqual(rooms.roomsArray.length);
-		// 	expect(rooms.sortedRoomsArray).not.toEqual(rooms.roomsArray);
-		// });
+		test('sortedRoomsArray', () => {
+			const rooms = useRooms();
+			rooms.updateRoomsWithMatrixRooms([new Room(new MockedMatrixRoom('Btest')), new Room(new MockedMatrixRoom('Atest')), new Room(new MockedMatrixRoom('Ctest'))]);
+			expect(rooms.sortedRoomsArray).toBeTypeOf('object');
+			expect(rooms.sortedRoomsArray.length).toBeTypeOf('number');
+			expect(rooms.sortedRoomsArray.length).toEqual(rooms.roomsArray.length);
+			expect(rooms.sortedRoomsArray).not.toEqual(rooms.roomsArray);
+		});
 
-		// Temporary removed because of TypeError: matrixRoom.getOrCreateFilteredTimelineSet is not a function
-		// test('hasRooms', () => {
-		// 	const rooms = useRooms();
-		// 	expect(rooms.hasRooms).toEqual(false);
-		// 	rooms.updateRoomsWithMatrixRooms([new Room(new MockedMatrixRoom('test'))]);
-		// 	expect(rooms.hasRooms).toEqual(true);
-		// });
+		test('hasRooms', () => {
+			const rooms = useRooms();
+			expect(rooms.hasRooms).toEqual(false);
+			rooms.updateRoomsWithMatrixRooms([new Room(new MockedMatrixRoom('test'))]);
+			expect(rooms.hasRooms).toEqual(true);
+		});
 
-		// Temporary removed because of TypeError: matrixRoom.getOrCreateFilteredTimelineSet is not a function
-		// test('roomExists', () => {
-		// 	const rooms = useRooms();
-		// 	expect(rooms.roomExists('test')).toEqual(false);
-		// 	rooms.updateRoomsWithMatrixRooms([new Room(new MockedMatrixRoom('test'))]);
-		// 	expect(rooms.roomExists('test')).toEqual(true);
-		// });
+		test('roomExists', () => {
+			const rooms = useRooms();
+			expect(rooms.roomExists('test')).toEqual(false);
+			rooms.updateRoomsWithMatrixRooms([new Room(new MockedMatrixRoom('test'))]);
+			expect(rooms.roomExists('test')).toEqual(true);
+		});
 
-		// Temporary removed because of TypeError: matrixRoom.getOrCreateFilteredTimelineSet is not a function
-		// test('room', () => {
-		// 	const rooms = useRooms();
-		// 	rooms.updateRoomsWithMatrixRooms([new Room(new MockedMatrixRoom('test'))]);
-		// 	expect(rooms.room('test')).toBeTypeOf('object');
-		// });
+		test('room', () => {
+			const rooms = useRooms();
+			rooms.updateRoomsWithMatrixRooms([new Room(new MockedMatrixRoom('test'))]);
+			expect(rooms.room('test')).toBeTypeOf('object');
+		});
 
-		// Temporary removed because of TypeError: matrixRoom.getOrCreateFilteredTimelineSet is not a function
-		// test('isHiddenRoom', () => {
-		// 	const rooms = useRooms();
+		test('isHiddenRoom', () => {
+			const rooms = useRooms();
 
-		// 	rooms.updateRoomsWithMatrixRooms([new Room(new MockedMatrixRoom('test'))]);
-		// 	expect(rooms.rooms['test'].hidden).toEqual(false);
+			rooms.updateRoomsWithMatrixRooms([new Room(new MockedMatrixRoom('test'))]);
+			expect(rooms.rooms['test'].hidden).toEqual(false);
 
-		// 	rooms.rooms['test'].hidden = true;
-		// 	expect(rooms.rooms['test'].hidden).toEqual(true);
+			rooms.rooms['test'].hidden = true;
+			expect(rooms.rooms['test'].hidden).toEqual(true);
 
-		// 	rooms.rooms['test'].hidden = false;
-		// 	expect(rooms.rooms['test'].hidden).toEqual(false);
-		// });
+			rooms.rooms['test'].hidden = false;
+			expect(rooms.rooms['test'].hidden).toEqual(false);
+		});
 
-		// Temporary removed because of TypeError: matrixRoom.getOrCreateFilteredTimelineSet is not a function
-		// test('unreadMessages', () => {
-		// 	const rooms = useRooms();
-		// 	expect(rooms.totalUnreadMessages).toEqual(0);
+		test('unreadMessages', () => {
+			const rooms = useRooms();
+			expect(rooms.totalUnreadMessages).toEqual(0);
 
-		// 	rooms.updateRoomsWithMatrixRooms([new Room(new MockedMatrixRoom('test')), new Room(new MockedMatrixRoom('test2'))]);
+			rooms.updateRoomsWithMatrixRooms([new Room(new MockedMatrixRoom('test')), new Room(new MockedMatrixRoom('test2'))]);
 
-		// 	expect(rooms.rooms['test'].getRoomUnreadNotificationCount(NotificationCountType.Highlight)).toEqual(1);
-		// 	expect(rooms.rooms['test'].getRoomUnreadNotificationCount(NotificationCountType.Total)).toEqual(1);
-		// });
+			expect(rooms.rooms['test'].getRoomUnreadNotificationCount(NotificationCountType.Highlight)).toEqual(1);
+			expect(rooms.rooms['test'].getRoomUnreadNotificationCount(NotificationCountType.Total)).toEqual(1);
+		});
 
 		test('PublicRooms', () => {
 			const rooms = useRooms();
