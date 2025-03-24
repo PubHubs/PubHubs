@@ -1,3 +1,4 @@
+//! Authentication server core code
 use std::rc::Rc;
 
 use actix_web::web;
@@ -9,9 +10,10 @@ use crate::{
     misc::jwt,
 };
 
-/// Authentication server
+/// Authentication server type
 pub type Server = servers::ServerImpl<Details>;
 
+/// [`servers::Details`] used to define [`Server`].
 pub struct Details;
 impl servers::Details for Details {
     const NAME: servers::Name = servers::Name::AuthenticationServer;
@@ -29,12 +31,14 @@ impl servers::Details for Details {
     }
 }
 
+/// Authentication server per-thread [`App`] that handles incoming requests.
 pub struct App {
     base: AppBase<Server>,
     attribute_types: map::Map<attr::Type>,
     yivi: Option<YiviCtx>,
 }
 
+/// Details on the Yivi server trusted by this authentication server.
 #[derive(Debug, Clone)]
 pub struct YiviCtx {
     requestor_url: url::Url,
@@ -157,6 +161,7 @@ impl crate::servers::App<Server> for Rc<App> {
     }
 }
 
+/// Moves accross threads to create [`App`]s.
 #[derive(Clone)]
 pub struct AppCreator {
     base: AppCreatorBase<Server>,
