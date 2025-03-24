@@ -97,7 +97,7 @@ impl crate::servers::App<Server> for Rc<App> {
             if self.base().running_state.is_none()
                 || *self.base().running_state.as_ref().unwrap().constellation != new_constellation
             {
-                return api::ok(Some(new_constellation));
+                return Ok(Some(new_constellation));
             }
 
             // Check whether the other servers' constellations are up-to-date
@@ -138,12 +138,12 @@ impl crate::servers::App<Server> for Rc<App> {
             match result_maybe {
                 // joinset was empty;  servers were already up to date
                 None => {
-                    return api::ok(None);
+                    return Ok(None);
                 }
                 // a task ended irregularly (panicked, joined,...)
                 Some(Err(join_err)) => {
                     log::error!("discovery run task joined unexpectedly: {}", join_err);
-                    return api::err(api::ErrorCode::InternalError);
+                    return Err(api::ErrorCode::InternalError);
                 }
                 // we got a result from one of the tasks..
                 Some(Ok(res)) => {
@@ -151,12 +151,12 @@ impl crate::servers::App<Server> for Rc<App> {
                         // the discovery task was completed succesfully, or made some progress,
                         // or we got a retryable error.
                         // In all these cases the caller should try again.
-                        return api::err(api::ErrorCode::NotYetReady);
+                        return Err(api::ErrorCode::NotYetReady);
                     }
                 }
             }
 
-            api::ok(None)
+            Ok(None)
         })
     }
 
@@ -203,7 +203,7 @@ impl App {
         let hub = if let Some(hub) = app.hubs.get(&req.handle) {
             hub
         } else {
-            return api::err(api::ErrorCode::UnknownHub);
+            return Err(api::ErrorCode::UnknownHub);
         };
 
         let result = app
@@ -259,7 +259,7 @@ impl App {
             &app.master_enc_key_part,
         );
 
-        api::ok(api::phct::hub::KeyResp { key_part })
+        Ok(api::phct::hub::KeyResp { key_part })
     }
 }
 

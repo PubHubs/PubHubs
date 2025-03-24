@@ -463,7 +463,7 @@ impl DiscoveryLimiter {
                     "{server_name}: discovery aborted because the server is already restarting",
                     server_name = S::NAME
                 );
-                return api::ok(api::DiscoveryRunResp::Restarting);
+                return Ok(api::DiscoveryRunResp::Restarting);
             }
         };
 
@@ -473,7 +473,7 @@ impl DiscoveryLimiter {
         let phc_discovery_info = {
             let result = AppBase::<S>::discover_phc(app.clone()).await;
             if result.is_err() {
-                return api::err(result.unwrap_err());
+                return Err(result.unwrap_err());
             }
             result.unwrap()
         };
@@ -485,12 +485,12 @@ impl DiscoveryLimiter {
                 S::NAME,
                 Name::PubhubsCentral,
             );
-            return api::err(api::ErrorCode::NotYetReady);
+            return Err(api::ErrorCode::NotYetReady);
         }
 
         let new_constellation_maybe = app.discover(phc_discovery_info).await?;
         if new_constellation_maybe.is_none() {
-            return api::ok(api::DiscoveryRunResp::UpToDate);
+            return Ok(api::DiscoveryRunResp::UpToDate);
         }
 
         let new_constellation = new_constellation_maybe.unwrap();
@@ -527,7 +527,7 @@ impl DiscoveryLimiter {
 
         if let Err(()) = result {
             log::warn!("failed to initiate restart of {} for discovery, probably because the server is already shutting down", S::NAME,);
-            return api::err(api::ErrorCode::NotYetReady);
+            return Err(api::ErrorCode::NotYetReady);
         }
 
         log::trace!(
@@ -537,7 +537,7 @@ impl DiscoveryLimiter {
         *restart_imminent_guard = true;
         let _ = self.restart_imminent_cached.set(());
 
-        api::ok(api::DiscoveryRunResp::Restarting)
+        Ok(api::DiscoveryRunResp::Restarting)
     }
 
     /// Obtains write lock to `self.restart_imminent_lock` when restart is not imminent.

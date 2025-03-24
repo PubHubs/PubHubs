@@ -104,7 +104,7 @@ impl App {
             &app.master_enc_key_part,
         );
 
-        api::ok(api::phct::hub::KeyResp { key_part })
+        Ok(api::phct::hub::KeyResp { key_part })
     }
 }
 

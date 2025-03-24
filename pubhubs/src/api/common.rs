@@ -10,16 +10,6 @@ use actix_web::web;
 
 pub type Result<T> = std::result::Result<T, ErrorCode>;
 
-#[deprecated]
-pub fn ok<T>(t: T) -> Result<T> {
-    Ok(t)
-}
-
-#[deprecated]
-pub fn err<T>(ec: ErrorCode) -> Result<T> {
-    Err(ec)
-}
-
 /// The [`actix_web::Responder`] used for all API endpoints: a wrapper around [`Result<T, ErrorCode>`].
 pub struct ResultResponder<T>(Result<T>);
 

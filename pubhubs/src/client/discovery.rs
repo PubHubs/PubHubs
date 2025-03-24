@@ -37,7 +37,7 @@ impl crate::client::Client {
                 "{phc}'s constellation not yet set",
                 phc = servers::Name::PubhubsCentral
             );
-            return api::ok(None);
+            return Ok(None);
         }
         let constellation = phc_inf.constellation.unwrap();
 
@@ -63,20 +63,20 @@ impl crate::client::Client {
 
                     if inf.constellation.is_none() || inf.constellation.unwrap() != constellation {
                         log::debug!("constellations not yet in sync");
-                        return api::ok(None);
+                        return Ok(None);
                     }
                 }
                 Some(Err(join_err)) => {
                     log::warn!(
                         "unexpected join error getting constellation from server: {join_err}"
                     );
-                    return api::err(api::ErrorCode::InternalClientError);
+                    return Err(api::ErrorCode::InternalClientError);
                 }
             }
         }
 
         log::info!("obtained stable constellation");
-        api::ok(Some(constellation))
+        Ok(Some(constellation))
     }
 }
 
@@ -103,7 +103,7 @@ impl DiscoveryInfoCheck<'_> {
                 source,
                 inf.name
             );
-            return api::err(api::ErrorCode::Malconfigured);
+            return Err(api::ErrorCode::Malconfigured);
         }
 
         if &inf.phc_url != self.phc_url {
@@ -113,7 +113,7 @@ impl DiscoveryInfoCheck<'_> {
                 source,
                 inf.phc_url,
             );
-            return api::err(api::ErrorCode::Malconfigured);
+            return Err(api::ErrorCode::Malconfigured);
         }
 
         if let Some(scc) = self.self_check_code {
@@ -123,7 +123,7 @@ impl DiscoveryInfoCheck<'_> {
                     self.name,
                     source,
                 );
-                return api::err(api::ErrorCode::Malconfigured);
+                return Err(api::ErrorCode::Malconfigured);
             }
         }
 
@@ -134,7 +134,7 @@ impl DiscoveryInfoCheck<'_> {
             )
         {
             log::error!("master_enc_key_part must be set by the transcryptor and pubhub central, but no other servers - url: {}", source);
-            return api::err(api::ErrorCode::InternalError);
+            return Err(api::ErrorCode::InternalError);
         }
 
         if inf.constellation.is_some() {
@@ -146,7 +146,7 @@ impl DiscoveryInfoCheck<'_> {
                     inf.name,
                     source,
                 );
-                return api::err(api::ErrorCode::Malconfigured);
+                return Err(api::ErrorCode::Malconfigured);
             }
         }
 

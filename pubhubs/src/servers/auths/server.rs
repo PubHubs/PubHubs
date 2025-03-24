@@ -63,7 +63,7 @@ impl App {
                 attr_types.push(attr_type.clone());
             } else {
                 log::debug!("got authentication start request with unknown attribute type handle: {attr_type_handle}");
-                return api::err(api::ErrorCode::UnknownAttributeType);
+                return Err(api::ErrorCode::UnknownAttributeType);
             }
         }
 
@@ -96,7 +96,7 @@ impl App {
 
             if dc.is_empty() {
                 log::debug!("got yivi authentication start request for {attr_ty}, but yivi is not supported for this attribute type");
-                return api::err(api::ErrorCode::MissingAttributeSource);
+                return Err(api::ErrorCode::MissingAttributeSource);
             }
 
             cdc.push(dc);
@@ -110,7 +110,7 @@ impl App {
                 api::ErrorCode::InternalError
             })?;
 
-        api::ok(api::auths::AuthStartResp {
+        Ok(api::auths::AuthStartResp {
             task: api::auths::AuthTask::Yivi {
                 disclosure_request,
                 yivi_requestor_url: yivi.requestor_url.clone(),

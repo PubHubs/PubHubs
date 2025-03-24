@@ -388,7 +388,7 @@ pub trait App<S: Server>: Clone + 'static {
                     "{} should implement discovery itself!",
                     Name::PubhubsCentral
                 );
-                return api::err(api::ErrorCode::InternalError);
+                return Err(api::ErrorCode::InternalError);
             }
 
             assert!(
@@ -409,7 +409,7 @@ pub trait App<S: Server>: Clone + 'static {
                         .query::<api::DiscoveryRun>(&phc_inf.phc_url, &())
                         .await
                         .into_server_result()?;
-                    return api::err(api::ErrorCode::NotYetReady);
+                    return Err(api::ErrorCode::NotYetReady);
                 }
 
                 log::trace!(
@@ -424,7 +424,7 @@ pub trait App<S: Server>: Clone + 'static {
                         server_name = S::NAME,
                     );
 
-                    return api::ok(None);
+                    return Ok(None);
                 }
             }
 
@@ -466,7 +466,7 @@ pub trait App<S: Server>: Clone + 'static {
             }
             .check(di, url)?;
 
-            api::ok(Some(phc_inf.constellation.unwrap()))
+            Ok(Some(phc_inf.constellation.unwrap()))
         })
     }
 
@@ -693,7 +693,7 @@ impl<S: Server> AppBase<S> {
             api::ErrorCode::NotYetReady
         })?;
 
-        api::ok(api::admin::UpdateConfigResp {})
+        Ok(api::admin::UpdateConfigResp {})
     }
 
     /// Retrieve non-public information about the server
@@ -719,7 +719,7 @@ impl<S: Server> AppBase<S> {
                 api::ErrorCode::NotYetReady // probably the server is restarting
             })?;
 
-        api::ok(api::admin::InfoResp { config })
+        Ok(api::admin::InfoResp { config })
     }
 
     /// Run the discovery process, and restarts server if necessary.  Returns when
@@ -763,7 +763,7 @@ impl<S: Server> AppBase<S> {
     async fn handle_discovery_info(app: S::AppT) -> api::Result<api::DiscoveryInfoResp> {
         let app_base = app.base();
 
-        api::ok(api::DiscoveryInfoResp {
+        Ok(api::DiscoveryInfoResp {
             name: S::NAME,
             self_check_code: app_base.self_check_code.clone(),
             phc_url: app_base.phc_url.clone(),

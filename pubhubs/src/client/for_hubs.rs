@@ -23,7 +23,7 @@ impl HubContext<'_> {
         T: serde::Serialize,
         T: api::HavingMessageCode,
     {
-        api::ok(TicketSigned::new(
+        Ok(TicketSigned::new(
             self.ticket.clone(),
             api::Signed::new(&**self.signing_key, msg, self.timeout)?,
         ))
@@ -56,6 +56,6 @@ impl crate::client::Client {
             }
         )?;
 
-        api::ok((phc_part * t_part).into())
+        Ok((phc_part * t_part).into())
     }
 }
