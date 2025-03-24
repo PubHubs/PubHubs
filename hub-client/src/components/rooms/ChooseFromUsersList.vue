@@ -9,7 +9,7 @@
 			<template #item="{ item }">
 				<div class="flex justify-between">
 					<span :title="item.userId" class="w-100 grow truncate">{{ item.displayName }}</span>
-					<Icon type="plus" class="flex-none"></Icon>
+					<Icon type="plus" class="flex-none" />
 				</div>
 			</template>
 		</FilteredList>

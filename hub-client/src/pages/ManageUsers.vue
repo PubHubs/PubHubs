@@ -1,42 +1,46 @@
 <template>
 	<!-- When user selects a user account, show UserInRoomsForm page-->
-	<UserInRoomsForm v-if="showUserInRoomForm" :administrator="currentAdministrator" :userId="selectedUserById" :displayName="selectedUserDisplayName" :avatarUrl="selectedUserAvatarUrl" @close="closeUserRoomForm()"></UserInRoomsForm>
+	<UserInRoomsForm v-if="showUserInRoomForm" :administrator="currentAdministrator" :userId="selectedUserById" :displayName="selectedUserDisplayName" :avatarUrl="selectedUserAvatarUrl" @close="closeUserRoomForm()" />
 
-	<HeaderFooter>
+	<HeaderFooter bgBarLow="bg-background" bgBarMedium="bg-surface-low">
 		<template #header>
-			<div class="pl-20 md:p-4">
-				<H1>{{ t('menu.admin_tools_users') }}</H1>
-				<p class="text-sm">{{ t('admin.manage_user_description') }}</p>
+			<div class="hidden items-center gap-4 text-on-surface-dim md:flex">
+				<span class="font-semibold uppercase">{{ t('admin.title_administrator') }}</span>
+				<hr class="h-[2px] grow bg-on-surface-dim" />
 			</div>
+			<div class="flex h-full items-center pl-12 md:pl-0">
+				<H3 class="font-body font-bold text-on-surface">{{ t('menu.admin_tools_users') }}</H3>
+			</div>
+		</template>
 
+		<div class="p-3 md:p-4">
 			<!-- Reload button gets new user account if someone creates an account when this page is opened-->
 			<Button class="mb-4 flex max-h-[30px] w-32 rounded-xl" @click="ManagementUtils.getUsersAccounts()">
 				<div class="flex items-center gap-2 text-xl">
-					<Icon type="refresh" size="sm"></Icon>
-					<span class="hidden text-sm md:flex">{{ t('admin.reload') }}</span>
+					<Icon type="refresh" size="sm" />
+					<span class="flex ~text-label-min/label-max">{{ t('admin.reload') }}</span>
 				</div>
 			</Button>
 
 			<!---List all users accounts -->
-
-			<FilteredList class="h-0" :items="hubUsers" :filterKey="['displayname']" sortby="displayname" :placeholder="$t('rooms.filter')">
+			<FilteredList :items="hubUsers" :filterKey="['displayname']" sortby="displayname" :placeholder="$t('rooms.filter')">
 				<template #item="{ item }">
 					<div class="flex w-full justify-between gap-8" :title="item.room_id">
 						<div class="flex w-full items-center gap-4">
-							<Avatar :user="item.name" :override-avatar-url="item.avatar_url"></Avatar>
-							<p class="truncate">{{ item.displayname }}</p>
-							<p class="hidden truncate pr-1 italic text-gray-light md:inline">{{ item.name }}</p>
-							<span v-if="item.admin" class="relative items-center rounded-md bg-avatar-red px-1 text-sm font-medium text-white">Hub Administrator</span>
+							<Avatar :user="item.name" :override-avatar-url="item.avatar_url" />
+							<p class="truncate font-semibold">{{ item.displayname }}</p>
+							<p class="hidden truncate pr-1 italic text-on-surface-dim md:inline">{{ item.name }}</p>
+							<span v-if="item.admin" class="relative items-center rounded-md bg-accent-red px-1 font-medium text-on-accent-red ~text-label-min/label-max">Hub Administrator</span>
 						</div>
 						<div class="flex w-fit gap-4">
 							<div class="flex items-center gap-2">
-								<Icon type="edit" class="hover:stroke-hub-accent" @click="selectUser(item.name, item.displayname, item.avatar_url)"></Icon>
+								<Icon type="edit" class="hover:text-accent-primary" @click="selectUser(item.name, item.displayname, item.avatar_url)" />
 							</div>
 						</div>
 					</div>
 				</template>
 			</FilteredList>
-		</template>
+		</div>
 	</HeaderFooter>
 </template>
 

@@ -1,18 +1,18 @@
 <template>
-	<div class="absolute inset-0 z-20 h-full bg-gray-middle opacity-75"></div>
-	<div class="border-b-1 border-x-1 absolute top-40 z-30 m-auto w-1/2 rounded-md bg-hub-background-2 p-8 dark:text-white-middle">
+	<div class="bg-gray-middle absolute inset-0 z-20 h-full opacity-75"></div>
+	<div class="border-b-1 border-x-1 bg-hub-background-2 dark:text-white-middle absolute top-40 z-30 m-auto w-1/2 rounded-md p-8">
 		<div class="flex justify-between">
-			<h2 class="light:text-black mx-2 my-2 mt-4 text-lg font-bold theme-light:text-black">Room Join</h2>
-			<Icon type="close" size="md" class="mt-4 hover:text-red theme-light:text-gray theme-light:hover:text-red" @click="$emit('close')"></Icon>
+			<h2 class="light:text-black theme-light:text-black mx-2 my-2 mt-4 text-lg font-bold">Room Join</h2>
+			<Icon type="close" size="md" class="hover:text-red theme-light:text-gray theme-light:hover:text-red mt-4" @click="$emit('close')" />
 		</div>
-		<hr class="mx-8 mb-4 mt-2 border-gray-lighter" />
-		<div class="bg-blue-middle flex justify-center rounded-md bg-blue-light text-white-middle">
-			<Icon type="exclamation" class="inline"></Icon>
+		<hr class="border-gray-lighter mx-8 mb-4 mt-2" />
+		<div class="bg-blue-middle bg-blue-light text-white-middle flex justify-center rounded-md">
+			<Icon type="exclamation" class="inline" />
 			<span>{{ t('admin.join_warning') }}</span>
 		</div>
 		<div>
-			<table class="w-full text-left text-lg text-gray-darker dark:text-white rtl:text-right">
-				<thead class="text-md">
+			<table class="text-gray-darker w-full text-left text-lg dark:text-white rtl:text-right">
+				<thead class="~text-body-min/body-max">
 					<tr>
 						<th scope="col" class="w-8 px-6 py-3"></th>
 						<th scope="col" class="py-3"></th>
@@ -21,13 +21,13 @@
 				</thead>
 				<tbody>
 					<tr v-for="adminId in adminMembersId" :key="adminId">
-						<td class="px-6 py-4"><Avatar :user="getMatrixUser(adminId)" :overrideAvatarUrl="updateAuthenticatedUrlMap.get(adminId)" class="h-10 w-10"></Avatar></td>
+						<td class="px-6 py-4"><Avatar :user="getMatrixUser(adminId)" :overrideAvatarUrl="updateAuthenticatedUrlMap.get(adminId)" class="h-10 w-10" /></td>
 
 						<td class="px-6 py-4">
-							<span class="font-semibold text-gray-dark">{{ adminId }}</span>
+							<span class="text-gray-dark font-semibold">{{ adminId }}</span>
 						</td>
 						<td>
-							<button @click="forceRejoinFlow(adminId)" class="ml-4 rounded bg-blue px-3 py-1 text-white transition hover:bg-blue-dark">{{ $t('admin.join') }}</button>
+							<button @click="forceRejoinFlow(adminId)" class="bg-blue hover:bg-blue-dark ml-4 rounded px-3 py-1 text-white transition">{{ $t('admin.join') }}</button>
 						</td>
 					</tr>
 				</tbody>

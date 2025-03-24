@@ -1,7 +1,7 @@
 <template>
-	<span class="flex flex-row items-start gap-x-2" :title="displayName">
-		<span v-if="displayName" data-testid="display-name" :class="`${textColor(color(user))} text-sm font-semibold`">{{ filters.maxLengthText(displayName, settings.getDisplayNameMaxLength) }}</span>
-		<span class="text-nowrap text-xs font-normal" style="margin-top: 3px">{{ filters.extractPseudonym(user) }}</span>
+	<span class="flex flex-row items-center gap-x-2 truncate" :title="displayName">
+		<span v-if="displayName" data-testid="display-name" :class="`${textColor(color(user))} truncate font-semibold ~text-label-min/label-max`">{{ filters.maxLengthText(displayName, settings.getDisplayNameMaxLength) }}</span>
+		<span :class="`${!displayName && textColor(color(user))} ${!displayName && 'font-semibold'} text-nowrap ~text-label-small-min/label-small-max`">{{ filters.extractPseudonym(user) }}</span>
 	</span>
 </template>
 

@@ -2,7 +2,7 @@
 	<Dialog :title="$t('settings.title')" :buttons="buttonsSubmitCancel" @close="dialogAction($event)">
 		<form @submit.prevent>
 			<div class="mb-4 flex flex-col items-center md:flex-row md:items-start">
-				<label class="font-semibold text-gray md:w-2/6">{{ $t('settings.avatar') }}</label>
+				<label class="text-gray font-semibold md:w-2/6">{{ $t('settings.avatar') }}</label>
 				<input type="file" id="avatar" accept="image/png, image/jpeg, image/svg" class="hidden" ref="file" @change="chooseAvatar($event)" />
 
 				<div class="flex flex-col justify-between md:w-4/6 md:flex-row">
@@ -12,31 +12,31 @@
 
 					<div class="mt-5 flex justify-center md:mr-3 md:flex-col md:justify-normal md:space-y-4">
 						<label for="avatar">
-							<Icon size="lg" type="edit" class="cursor-pointer group-hover:block"></Icon>
+							<Icon size="lg" type="edit" class="cursor-pointer hover:text-on-surface-variant group-hover:block" />
 						</label>
-						<Icon size="lg" type="bin" class="cursor-pointer group-hover:block" @click="removeAvatar"></Icon>
+						<Icon size="lg" type="bin" class="cursor-pointer hover:text-on-surface-variant group-hover:block" @click="removeAvatar" />
 					</div>
 				</div>
 			</div>
 			<div class="mb-4 flex flex-col md:flex-row">
-				<label class="w-2/6 font-semibold text-gray">{{ $t('settings.displayname') }}</label>
+				<label class="text-gray w-2/6 font-semibold">{{ $t('settings.displayname') }}</label>
 				<TextInput
-					class="focus:border-blue-500 rounded border p-1 focus:outline-none md:w-4/6"
+					class="rounded border p-1 ~text-base-min/base-max focus:border-blue-500 focus:outline-none md:w-4/6"
 					name="displayname"
 					v-model.trim="formState.data.displayName.value"
 					:placeholder="$t('settings.displayname')"
 					@changed="formState.updateData('displayName', $event)"
-				></TextInput>
+				/>
 			</div>
 			<div class="mb-4 flex flex-col md:flex-row">
-				<label class="w-2/6 font-semibold text-gray">{{ $t('settings.userId') }}</label>
-				<div title="Hub specific User ID" class="p-1 text-lg italic text-gray-light md:w-4/6">{{ user.user.userId }}</div>
+				<label class="text-gray w-2/6 font-semibold">{{ $t('settings.userId') }}</label>
+				<div title="Hub specific User ID" class="p-1 text-lg italic text-on-surface-dim ~text-base-min/base-max md:w-4/6">{{ user.user.userId }}</div>
 			</div>
 		</form>
 
-		<ValidationErrors :errors="formState.validationErrors.value"></ValidationErrors>
+		<ValidationErrors :errors="formState.validationErrors.value" />
 
-		<div v-if="formState.message.value !== ''" class="mt-2 rounded-lg bg-green-dark p-2 text-white">{{ formState.message }}</div>
+		<div v-if="formState.message.value !== ''" class="bg-green-dark mt-2 rounded-lg p-2 text-white">{{ formState.message }}</div>
 	</Dialog>
 </template>
 

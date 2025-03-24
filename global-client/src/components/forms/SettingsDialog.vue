@@ -3,36 +3,29 @@
 		<div class="flex flex-col gap-2">
 			<div class="flex flex-col justify-between md:flex-row">
 				<Label>{{ t('settings.theme') }}</Label>
-				<ButtonGroup size="sm" v-model="data.theme.value" :value="data.theme.value" :options="settings.getThemeOptions(t)" @changed="updateData('theme', $event)"></ButtonGroup>
+				<ButtonGroup size="sm" v-model="data.theme.value" :value="data.theme.value" :options="settings.getThemeOptions(t)" @changed="updateData('theme', $event)" />
 			</div>
 			<div class="flex flex-col justify-between md:flex-row">
 				<Label>{{ t('settings.language') }}</Label>
-				<ButtonGroup size="sm" v-model="data.language.value" :value="data.language.value" :options="settings.getLanguageOptions" @changed="updateData('language', $event)"></ButtonGroup>
+				<ButtonGroup size="sm" v-model="data.language.value" :value="data.language.value" :options="settings.getLanguageOptions" @changed="updateData('language', $event)" />
 			</div>
 			<div class="flex flex-col justify-between md:flex-row">
 				<Label>{{ t('settings.timeformat') }}</Label>
-				<ButtonGroup size="sm" v-model="data.timeformat.value" :value="data.timeformat.value" :options="settings.getTimeFormatOptions(t)" @changed="updateData('timeformat', $event)"></ButtonGroup>
+				<ButtonGroup size="sm" v-model="data.timeformat.value" :value="data.timeformat.value" :options="settings.getTimeFormatOptions(t)" @changed="updateData('timeformat', $event)" />
 			</div>
 			<div class="flex flex-col justify-between md:flex-row">
 				<Label>{{ t('settings.notifications') }}</Label>
-				<ButtonGroup
-					v-if="notificationSupported"
-					size="sm"
-					v-model="data.notifications.value"
-					:value="data.notifications.value"
-					:options="settings.getNotificationOptions(t)"
-					@changed="updateNotificationsPermission($event)"
-				></ButtonGroup>
-				<p v-if="!notificationSupported" class="text-black theme-light:text-black theme-dark:text-white dark:text-white">{{ $t('notifications.notSupported') }}</p>
+				<ButtonGroup v-if="notificationSupported" size="sm" v-model="data.notifications.value" :value="data.notifications.value" :options="settings.getNotificationOptions(t)" @changed="updateNotificationsPermission($event)" />
+				<p v-if="!notificationSupported">{{ $t('notifications.notSupported') }}</p>
 			</div>
-			<div v-if="promptAllow || promptReset" class="flex text-black theme-light:text-black theme-dark:text-white dark:text-white">
-				<Icon type="warning" size="sm" class="mr-1 mt-[3px] shrink-0"></Icon>
+			<div v-if="promptAllow || promptReset" class="flex">
+				<Icon type="warning" size="sm" class="mr-1 mt-[3px] shrink-0" />
 				<p v-if="promptAllow" class="italic">{{ $t('notifications.promptAllow') }}</p>
 				<p v-if="promptReset" class="italic">{{ $t('notifications.promptReset') }}</p>
 			</div>
-			<div v-if="promptInfo" class="flex text-black theme-light:text-black theme-dark:text-white dark:text-white">
+			<div v-if="promptInfo" class="flex">
 				<div class="mr-1 flex h-5 w-5 shrink-0 items-center justify-center rounded-full border-2">
-					<Icon type="information" size="xs"></Icon>
+					<Icon type="information" size="xs" />
 				</div>
 				<p class="italic">{{ $t('notifications.info') }}</p>
 			</div>
@@ -41,16 +34,19 @@
 </template>
 
 <script setup lang="ts">
-	// Components
-	import ButtonGroup from '../../../../hub-client/src/components/forms/ButtonGroup.vue';
-	import Dialog from '../../../../hub-client/src/components/ui/Dialog.vue';
-	import Icon from '../../../../hub-client/src/components/elements/Icon.vue';
-	import Label from '../../../../hub-client/src/components/forms/Label.vue';
-
+	// Package imports
 	import { nextTick, onMounted, ref } from 'vue';
+
+	// Global imports
 	import { useSettings, Theme, TimeFormat, NotificationsPermission } from '@/logic/store/settings';
 	import { useFormState, FormDataType } from '@/logic/composables/useFormState';
 	import { useDialog, buttonsSubmitCancel, DialogOk } from '@/logic/store/dialog';
+
+	// Hub imports
+	import ButtonGroup from '@/../../hub-client/src/components/forms/ButtonGroup.vue';
+	import Dialog from '@/../../hub-client/src/components/ui/Dialog.vue';
+	import Icon from '@/../../hub-client/src/components/elements/Icon.vue';
+	import Label from '@/../../hub-client/src/components/forms/Label.vue';
 
 	import { useI18n } from 'vue-i18n';
 	const { t } = useI18n();

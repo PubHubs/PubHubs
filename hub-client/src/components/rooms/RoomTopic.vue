@@ -1,7 +1,7 @@
 <template>
 	<span v-if="room?.isPrivateRoom()">
 		{{ $t('rooms.private_members') }}
-		<PrivateRoomMembersList :members="room?.getOtherJoinedAndInvitedMembers()"></PrivateRoomMembersList>
+		<PrivateRoomMembersList :members="room?.getOtherJoinedAndInvitedMembers()" />
 	</span>
 	<span v-else>{{ room?.getTopic() }}</span>
 </template>

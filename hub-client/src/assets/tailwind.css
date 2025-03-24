@@ -2,141 +2,110 @@
 @tailwind components;
 @tailwind utilities;
 
-/*
-This is the 'default branding' of a hub.
-These colors should be the same as the global color palette (--ph-...), see tailwind.css in global client)
-todo: use the global color palette as a default. Not trivial because of iframes.
-*/
-
 :root {
-	--hub-background: #ffffff;
-	--hub-background-2: #f9f9f9;
-	--hub-background-3: #e2e2e2;
-	--hub-background-4: #d4d4d4;
-	--hub-background-5: #b6b6b6;
-	--hub-background-6: #7e7e7e;
-	--hub-text: #000000;
-	--hub-text-variant: #686868;
-	--hub-accent: #00adee;
-	--hub-accent-2: #001242;
-	/* Some of the pubhubs-made icons will have additional accent colors */
-	--hub-accent-icon: #999999;
-	--hub-accent-icon-2: #118de8;
-	--hub-accent-icon-3: #000000;
-	--hub-accent-icon-4: #686868;
-	--hub-accent-icon-5: #b6b6b6;
-	--notification: #118de8;
+	/* Main colors */
+	--background: #ffffff; /* Used for room background */
+	--surface-low: #f2f3f5; /* Used for the room top bar and hub bar */
+	--surface: #e3e5e8; /* Used for the hub top bar and global bar */
+	--surface-high: #d9dbde; /* Used for the global top bar */
+	--on-surface: #000000; /* Used for text */
+	--on-surface-variant: #333333; /* Used for secondary text */
+	--on-surface-dim: #666666; /* Used for dimmed text */
+	--on-surface-disabled: #aaaaaa; /* Used for disabled text */
+
+	/* Accent colors */
+	--accent-primary: #00adee; /* Used for theming */
+	--on-accent-primary: #ffffff; /* Used for text on primary accent */
+	--accent-secondary: #5c5e66; /* Used for theming */
+	--on-accent-secondary: #ffffff; /* Used for text on secondary accent */
+	--accent-error: #e45959; /* Used for error messages */
+	--on-accent-error: #ffffff; /* Used for text on error accent */
+	--accent-lime: #61fe8d; /* Used for avatar colors */
+	--on-accent-lime: #000000;
+	--accent-pink: #bf5cd8;
+	--on-accent-pink: #ffffff;
+	--accent-yellow: #e7d63d;
+	--on-accent-yellow: #000000;
+	--accent-red: #e45959;
+	--on-accent-red: #ffffff;
+	--accent-teal: #27e0bf;
+	--on-accent-teal: #000000;
+	--accent-blue: #26ccf0;
+	--on-accent-blue: #000000;
+	--accent-orange: #fcba6d;
+	--on-accent-orange: #000000;
 }
 
 .dark {
-	--hub-background: #464545;
-	--hub-background-2: #323232;
-	--hub-background-3: #2f2e2e;
-	--hub-background-4: #686868;
-	--hub-background-5: #202020;
-	--hub-background-6: #3d3c3c;
-	--hub-text: #ffffff;
-	--hub-text-variant: #b6b6b6;
-	--hub-accent: #00adee;
-	--hub-accent-2: #4ee9a4;
-	--hub-accent-icon: #d9d9d9;
-	--hub-accent-icon-2: #118de8;
-	--hub-accent-icon-3: #ffffff;
-	--hub-accent-icon-4: #d9d9d9;
-	--hub-accent-icon-5: #b6b6b6;
-	--notification: #ff0000;
-	--notification: #118de8;
+	/* Main colors (dark) */
+	--background: #464545;
+	--surface-low: #3d3c3c;
+	--surface: #2f2e2e;
+	--surface-high: #202020;
+	--on-surface: #ffffff;
+	--on-surface-variant: #cccccc;
+	--on-surface-dim: #999999;
+	--on-surface-disabled: #555555;
 }
 
-html,
-body,
-#app {
-	width: 100;
-	min-width: 100%;
-	height: 100%;
-	min-height: 100%;
-	font-family: 'atkinson_hyperlegibleregular';
+@layer base {
+	html {
+		font-kerning: normal;
+		font-size: 62.5%;
+		font-smooth: always;
+		text-rendering: optimizeLegibility;
+		-moz-osx-font-smoothing: grayscale;
+		-webkit-font-smoothing: subpixel-antialiased;
+	}
+
+	body {
+		font-size: 1.6rem;
+		overscroll-behavior: contain;
+	}
+
+	*,
+	*:focus {
+		outline: none;
+	}
+
+	.emoji-font {
+		font-family: notocoloremoji;
+	}
+
+	.scrollbar {
+		scrollbar-width: thin;
+		/* scrollbar-color: theme(colors.hub.background.5) theme(colors.hub.background.4); */
+	}
 }
 
-*,
-*:focus {
-	outline: none;
-}
-
-:root {
-	/* !The colors below are deprecated. Please use the color palette. See above. */
-	--black: #000;
-
-	--white: #fff;
-	--white-middle: #e7e3e3;
-
-	--lightgray-light: #ececec;
-	--lightgray: #e2e2e2;
-	--lightgray-dark: #d4d4d4;
-
-	--gray-lighter: #ccc;
-	--gray-light: #aaa;
-	--gray: #686868;
-	--gray-middle: #464545;
-	--gray-dark: #3d3c3c;
-	--gray-darker: #2f2e2e;
-
-	--green-lighter: #00ee98;
-	--green-light: #7ee6a9;
-	--green: #5ec269;
-	--green-dark: #3ea439;
-	--green-darker: #1c8217;
-
-	--blue-lighter: #67e8f9;
-	--blue-light: #00adee;
-	--blue: #408be1;
-	--blue-dark: #001242;
-
-	--red-light: #ff3333;
-	--red: #ff0000;
-	--red-dark: #660000;
-}
-
+/* Fonts */
 @font-face {
 	font-display: swap;
-	font-family: 'work_sansregular';
+	font-family: 'work_sans';
 	font-style: normal;
 	font-weight: normal;
-	src: url('./fonts/worksans-regular.eot');
-	src:
-		url('./fonts/worksans-regular.eot?#iefix') format('embedded-opentype'),
-		url('./fonts/worksans-regular.woff2') format('woff2'),
-		url('./fonts/worksans-regular.woff') format('woff'),
-		url('./fonts/worksans-regular.ttf') format('truetype'),
-		url('./fonts/worksans-regular.svg#work_sansregular') format('svg');
+	src: url('./fonts/WorkSans-VariableFont_wght.ttf') format('truetype');
 }
 
 @font-face {
 	font-display: swap;
-	font-family: 'work_sanssemibold';
-	font-style: normal;
-	font-weight: normal;
-	src: url('./fonts/worksans-semibold.eot');
-	src:
-		url('./fonts/worksans-semibold.eot?#iefix') format('embedded-opentype'),
-		url('./fonts/worksans-semibold.woff2') format('woff2'),
-		url('./fonts/worksans-semibold.woff') format('woff'),
-		url('./fonts/worksans-semibold.ttf') format('truetype'),
-		url('./fonts/worksans-semibold.svg#work_sanssemibold') format('svg');
+	font-family: 'work_sans';
+	font-style: italic;
+	src: url('./fonts/WorkSans-Italic-VariableFont_wght.ttf') format('truetype');
 }
 
 @font-face {
 	font-display: swap;
-	font-family: 'atkinson_hyperlegibleregular';
+	font-family: 'atkinson_hyperlegible';
 	font-style: normal;
-	font-weight: 400;
-	src: url('./fonts/Atkinson-Hyperlegible-Regular-102.eot');
-	src:
-		url('./fonts/Atkinson-Hyperlegible-Regular-102.eot?#iefix') format('embedded-opentype'),
-		url('./fonts/Atkinson-Hyperlegible-Regular-102a.woff2') format('woff2'),
-		url('./fonts/Atkinson-Hyperlegible-Regular-102.woff') format('woff'),
-		url('./fonts/Atkinson-Hyperlegible-Regular-102.ttf') format('truetype'),
-		url('./fonts/Atkinson-Hyperlegible-Regular-102.svg#atkinson_hyperlegibleregular') format('svg');
+	src: url('./fonts/AtkinsonHyperlegibleNext-VariableFont_wght.ttf') format('truetype');
+}
+
+@font-face {
+	font-display: swap;
+	font-family: 'atkinson_hyperlegible';
+	font-style: italic;
+	src: url('./fonts/AtkinsonHyperlegibleNext-Italic-VariableFont_wght.ttf') format('truetype');
 }
 
 @font-face {
@@ -147,28 +116,21 @@ body,
 	src: url('./fonts/NotoColorEmoji-Regular.ttf') format('truetype');
 }
 
+/* Classes */
 @layer components {
 	.highlighted {
-		@apply bg-gray-lighter transition duration-500 ease-out dark:bg-gray;
+		@apply bg-surface-low transition duration-500 ease-out;
 	}
 
 	.unhighlighted {
 		@apply transition duration-500 ease-out;
 	}
 
-	.message-link {
-		@apply text-blue dark:text-green;
-	}
-	.message-mention {
+	/* .message-mention {
 		@apply inline-block rounded-md bg-black px-1 text-white;
-	}
+	} */
 
 	.emoji-font {
 		font-family: notocoloremoji;
-	}
-
-	.scrollbar {
-		scrollbar-width: thin;
-		scrollbar-color: theme(colors.hub.background.5) theme(colors.hub.background.4);
 	}
 }

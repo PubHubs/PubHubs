@@ -1,5 +1,7 @@
 <template>
-	<span class="text-xs font-normal"> {{ getDateTime() }}</span>
+	<span class="flex items-center ~text-label-small-min/label-small-max"
+		><span>{{ getDateTime() }}</span></span
+	>
 </template>
 
 <script setup lang="ts">

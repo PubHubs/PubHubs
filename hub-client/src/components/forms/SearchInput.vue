@@ -1,32 +1,9 @@
 <template>
 	<!-- Desktop search component -->
-	<div class="relative hidden items-center md:flex" v-click-outside="reset">
-		<input
-			class="w-full min-w-48 rounded-md border-none bg-gray-lighter py-1 placeholder:text-black focus:border-black focus:outline-0 focus:outline-offset-0 focus:ring-0 dark:bg-gray-darker dark:text-white dark:placeholder:text-gray-light md:pr-8"
-			type="text"
-			v-model="value"
-			:placeholder="$t('others.search_room')"
-			:title="$t('others.search_room')"
-			@keydown="
-				changed();
-				reset();
-			"
-			@keydown.enter="search()"
-			@keydown.esc="
-				cancel();
-				reset();
-			"
-		/>
-		<span class="cursor-pointer">
-			<Icon class="search-icon -ml-6 dark:text-gray-light" type="search" size="sm" @click="search()"></Icon>
-		</span>
-	</div>
-
-	<!-- Mobile search component. -->
-	<div class="absolute flex h-full w-full items-center justify-end pr-2 md:hidden">
-		<div class="relative flex w-[35px] max-w-full items-center justify-end gap-4 rounded-md transition-all duration-200 focus-within:w-full focus-within:bg-hub-background-4 focus-within:dark:bg-hub-background-3">
+	<div class="hidden items-center justify-end rounded-md bg-background md:flex" v-click-outside="reset">
+		<div class="relative flex max-w-full items-center justify-end transition-all duration-200">
 			<input
-				class="h-10 w-full flex-1 border-none bg-transparent placeholder:text-black focus:outline-0 focus:outline-offset-0 focus:ring-0 dark:text-white dark:placeholder:text-gray-light"
+				class="h-full w-full flex-1 border-none bg-transparent ~text-label-small-min/label-small-max placeholder:text-on-surface-variant focus:outline-0 focus:outline-offset-0 focus:ring-0"
 				type="text"
 				v-model="value"
 				:placeholder="$t('others.search_room')"
@@ -39,28 +16,54 @@
 				@keydown.esc="
 					cancel();
 					reset();
+					toggleSearch();
 				"
 			/>
-			<button class="flex cursor-pointer items-center justify-center rounded-md px-1" @click.stop="search()">
-				<Icon class="search-icon px-1" type="search" size="md"></Icon>
-			</button>
+
+			<button @click="search()"><Icon type="search" class="rounded-md bg-background p-2 text-accent-secondary dark:text-on-surface-variant" size="sm" /></button>
+		</div>
+	</div>
+
+	<!-- Mobile search component. -->
+	<div class="flex items-center justify-end rounded-md bg-background md:hidden">
+		<div class="relative flex max-w-full items-center justify-end transition-all duration-200">
+			<Icon v-if="!isExpanded" type="search" class="cursor-pointer p-2 text-accent-secondary dark:text-on-surface-variant" size="sm" @click="toggleSearch" />
+			<input
+				v-if="isExpanded"
+				class="h-full w-full flex-1 border-none bg-transparent ~text-label-small-min/label-small-max placeholder:text-on-surface-variant focus:outline-0 focus:outline-offset-0 focus:ring-0"
+				type="text"
+				v-model="value"
+				:placeholder="$t('others.search_room')"
+				:title="$t('others.search_room')"
+				@keydown="
+					changed();
+					reset();
+				"
+				@keydown.enter="search()"
+				@keydown.esc="
+					cancel();
+					reset();
+					toggleSearch();
+				"
+			/>
+			<button v-if="isExpanded" @click.stop="search()" @click="toggleSearch"><Icon type="search" class="rounded-md bg-background p-2 text-accent-secondary dark:text-on-surface-variant" size="sm" /></button>
 		</div>
 	</div>
 
 	<!-- Search results -->
-	<div v-if="searched" class="scrollbar absolute right-2 top-16 z-10 max-h-[500%] w-full max-w-80 overflow-y-auto rounded-b-md bg-gray-lighter dark:bg-gray-darker md:right-0 md:top-20">
+	<div v-if="searched" class="absolute right-0 top-16 z-50 w-full overflow-y-auto rounded-md bg-surface-low md:top-20 md:w-[15vw] md:w-[20vw]">
 		<template v-if="searchResultsToShow && searchResultsToShow.length > 0">
 			<div v-for="item in searchResultsToShow" :key="item.event_id" class="group">
 				<a href="#" @click.prevent="onScrollToEventId(item.event_id, item.event_threadId)">
-					<div class="flex gap-2 p-2 group-hover:bg-gray-light group-hover:dark:bg-gray">
-						<Avatar :user="room?.getMember(item.event_sender, true)" class="h-6 w-6 flex-none"></Avatar>
+					<div class="flex items-center gap-2 p-2 group-hover:bg-surface">
+						<Avatar :user="room?.getMember(item.event_sender, true)" class="h-8 w-8 flex-none" />
 						<TruncatedText>{{ item.event_body }}</TruncatedText>
 					</div>
 				</a>
 			</div>
 		</template>
 		<template v-else-if="isSearching">
-			<InlineSpinner class="float-left mr-2"></InlineSpinner>
+			<InlineSpinner class="float-left mr-2" />
 			<p>{{ $t('others.searching') }}</p>
 		</template>
 		<template v-else>
@@ -105,6 +108,16 @@
 
 	const emit = defineEmits([...usedEvents, RoomEmit.ScrollToEventId]);
 	const { value, changed, cancel } = useFormInputEvents(emit);
+
+	const isExpanded = ref(false);
+
+	function toggleSearch() {
+		if (isExpanded.value && !value.value) {
+			isExpanded.value = false;
+		} else {
+			isExpanded.value = true;
+		}
+	}
 
 	// searchresults shown in list. When the text 'more results' is shown the last result is omitted to keep it in view
 	const searchResultsToShow = computed(() => {

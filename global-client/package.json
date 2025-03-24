@@ -49,6 +49,7 @@
 		"@vue/eslint-config-typescript": "^13",
 		"eslint": "^8",
 		"eslint-plugin-vue": "^9",
+		"fluid-tailwind": "^1.0.4",
 		"jsdoc": "^4.0.2",
 		"jsdom": "^26",
 		"msw": "2.3.2",

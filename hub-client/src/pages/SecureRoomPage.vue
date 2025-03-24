@@ -2,7 +2,7 @@
 	<HeaderFooter :headerSize="'sm'" :headerMobilePadding="true">
 		<template #header>
 			<div class="flex gap-x-2 overflow-hidden">
-				<Icon type="shield" size="lg"></Icon>
+				<Icon type="shield" size="lg" />
 				<H1>
 					<TruncatedText :title="rooms.securedRoom.name">
 						{{ rooms.securedRoom.name }}

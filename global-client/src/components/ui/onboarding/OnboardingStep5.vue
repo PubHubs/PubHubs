@@ -1,7 +1,7 @@
 <template>
 	<OnboardingTemplate>
 		<template #column1>
-			<Progressbar :currentStep="3"></Progressbar>
+			<Progressbar :currentStep="3" />
 			<OnboardingTitle />
 			<p>
 				<b>{{ $t('register.step', [3]) }}</b>
@@ -14,7 +14,7 @@
 				<li>{{ $t('register.add_registration') }}</li>
 			</ol>
 			<p class="whitespace-pre-line">{{ $t('register.rewards.hooray', ['&#127881;']) }}</p>
-			<a href="javascript:void(0)" class="mt-8 hidden text-sm underline underline-offset-4 lg:block" @click="$emit('back')">&#x27F5; {{ $t('register.step_previous') }}</a>
+			<a href="javascript:void(0)" class="mt-8 hidden underline underline-offset-4 ~text-label-min/label-max lg:block" @click="$emit('back')">&#x27F5; {{ $t('register.step_previous') }}</a>
 		</template>
 		<template #column2>
 			<div class="flex w-3/4 flex-col lg:w-full">
@@ -29,7 +29,7 @@
 						<img src="../../../assets/mascot-attributes-small.svg" alt="PubHubs mascot with attributes" />
 					</div>
 				</div>
-				<a href="javascript:void(0)" class="flex text-sm underline underline-offset-4 lg:hidden" @click="$emit('back')">&#x27F5; {{ $t('register.step_previous') }}</a>
+				<a href="javascript:void(0)" class="flex underline underline-offset-4 ~text-label-min/label-max lg:hidden" @click="$emit('back')">&#x27F5; {{ $t('register.step_previous') }}</a>
 			</div>
 			<div class="lg:hidden">
 				<img class="relative left-1/2 -mb-28 w-40 pb-4 md:left-3/4" src="../../../assets/mascot-yivi-app-small.svg" />

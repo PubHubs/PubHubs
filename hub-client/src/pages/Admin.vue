@@ -1,46 +1,49 @@
 <template>
 	<AdminMembers v-if="showPastMemberPanel" :roomId="currentRoomId" @close="closeForm()"> </AdminMembers>
-	<HeaderFooter>
+	<HeaderFooter bgBarLow="bg-background" bgBarMedium="bg-surface-low">
 		<template #header>
-			<div class="pl-20 md:p-4">
-				<H1>{{ $t('menu.admin_tools_rooms') }}</H1>
-				<p class="text-sm">{{ $t('admin.manage_room_description') }}</p>
+			<div class="hidden items-center gap-4 text-on-surface-dim md:flex">
+				<span class="font-semibold uppercase">{{ t('admin.title_administrator') }}</span>
+				<hr class="h-[2px] grow bg-on-surface-dim" />
+			</div>
+			<div class="flex h-full items-center pl-12 md:pl-0">
+				<H3 class="font-body font-bold text-on-surface">{{ t('menu.admin_tools_rooms') }}</H3>
 			</div>
 		</template>
 
-		<Tabs class="px-3">
+		<Tabs class="p-3 md:p-4">
 			<TabHeader>
-				<TabPill v-slot="slotProps">{{ $t('admin.public_rooms') }}<Icon v-if="slotProps.active" class="float-right ml-2 hover:text-green" type="plus" @click="newPublicRoom()"></Icon></TabPill>
-				<TabPill v-slot="slotProps">{{ $t('admin.secured_rooms') }}<Icon v-if="slotProps.active" class="float-right ml-2 hover:text-green" type="plus" @click="newSecuredRoom()"></Icon></TabPill>
+				<TabPill v-slot="slotProps">{{ $t('admin.public_rooms') }}<Icon v-if="slotProps.active" class="hover:text-green float-right ml-2 mt-1" type="plus" size="sm" @click="newPublicRoom()" /></TabPill>
+				<TabPill v-slot="slotProps">{{ $t('admin.secured_rooms') }}<Icon v-if="slotProps.active" class="hover:text-green float-right ml-2 mt-1" type="plus" size="sm" @click="newSecuredRoom()" /></TabPill>
 			</TabHeader>
 			<TabContainer>
 				<TabContent>
-					<p v-if="rooms.nonSecuredPublicRooms.length === 0">{{ $t('admin.no_secured_rooms') }}</p>
+					<p v-if="rooms.nonSecuredPublicRooms.length === 0">{{ $t('admin.no_rooms') }}</p>
 					<FilteredList v-else :items="rooms.nonSecuredPublicRooms" :filterKey="['name']" sortby="name" :placeholder="$t('rooms.filter')">
 						<template #item="{ item }">
 							<div class="flex w-full justify-between gap-8 overflow-hidden" :title="item.room_id">
 								<div class="flex w-full items-center gap-4 overflow-hidden">
-									<Icon type="speech_bubbles" class="shrink-0 text-green group-hover:text-black"></Icon>
+									<Icon type="speech_bubbles" class="text-green shrink-0 group-hover:text-black" />
 									<p class="min-w-20 truncate">{{ item.name }}</p>
-									<p class="hidden truncate pr-1 italic text-gray-light md:inline">{{ rooms.getRoomTopic(item.room_id) }}</p>
-									<span v-if="item.room_type" class="italic text-gray-light">- {{ item.room_type }} </span>
+									<p class="text-gray-light hidden truncate pr-1 italic md:inline">{{ rooms.getRoomTopic(item.room_id) }}</p>
+									<span v-if="item.room_type" class="text-gray-light italic">- {{ item.room_type }} </span>
 								</div>
 								<div class="flex w-fit gap-4">
 									<div class="flex items-center gap-2">
-										<span v-if="isUserRoomAdmin(user.user.userId, item.room_id)" class="relative items-center rounded-md bg-avatar-red px-1 text-sm font-medium text-white">Administrator</span>
-										<span class="flex items-center text-blue-light">
-											<Icon type="person" size="sm" class="shrink-0"></Icon>
+										<span v-if="isUserRoomAdmin(user.user.userId, item.room_id)" class="relative items-center rounded-md bg-accent-red px-1 font-medium text-on-accent-red ~text-label-min/label-max">Administrator</span>
+										<span class="text-blue-light flex items-center">
+											<Icon type="person" size="sm" class="shrink-0" />
 											<p>x</p>
 											<p>{{ item.num_joined_members }}</p>
 										</span>
 										<span v-if="rooms.room(item.room_id)?.userIsMember(user.user.userId)" class="text-green group-hover:text-white">
-											<Icon type="person" size="sm" class="shrink-0"></Icon>
+											<Icon type="person" size="sm" class="shrink-0" />
 										</span>
 									</div>
 									<div class="flex items-center gap-1">
-										<Icon type="remove" class="hover:fill-red" @click="removePublicRoom(item)"></Icon>
-										<Icon type="edit" class="hover:stroke-hub-accent" v-if="rooms.room(item.room_id)?.userCanChangeName(user.user.userId)" @click="editPublicRoom(item)"></Icon>
-										<Icon v-else type="promote" class="cursor-pointer hover:text-white" @click="makeRoomAdmin(item.room_id, user.user.userId)"></Icon>
+										<Icon type="remove" class="hover:fill-red" @click="removePublicRoom(item)" />
+										<Icon type="edit" class="hover:stroke-hub-accent" v-if="rooms.room(item.room_id)?.userCanChangeName(user.user.userId)" @click="editPublicRoom(item)" />
+										<Icon v-else type="promote" class="cursor-pointer hover:text-white" @click="makeRoomAdmin(item.room_id, user.user.userId)" />
 									</div>
 								</div>
 							</div>
@@ -54,22 +57,22 @@
 						<template #item="{ item }">
 							<div class="flex w-full justify-between gap-8 overflow-hidden" :title="item.room_id">
 								<div class="flex w-full items-center gap-4 overflow-hidden">
-									<Icon type="shield" class="shrink-0 text-green group-hover:text-black"></Icon>
+									<Icon type="shield" class="text-green shrink-0 group-hover:text-black" />
 									<p class="min-w-20 truncate">{{ item.name }}</p>
-									<p class="hidden truncate pr-1 italic text-gray-light md:inline">{{ rooms.getRoomTopic(item.room_id) }}</p>
-									<span v-if="item.user_txt !== ''" class="hidden truncate italic text-gray-light md:inline"> [{{ item.user_txt }}]</span>
+									<p class="text-gray-light hidden truncate pr-1 italic md:inline">{{ rooms.getRoomTopic(item.room_id) }}</p>
+									<span v-if="item.user_txt !== ''" class="text-gray-light hidden truncate italic md:inline"> [{{ item.user_txt }}]</span>
 								</div>
 								<div class="flex w-fit gap-4">
 									<div class="flex items-center gap-2">
-										<span v-if="isUserRoomAdmin(user.user.userId, item.room_id)" class="relative items-center rounded-md bg-avatar-red px-1 text-sm font-medium text-white">Administrator</span>
+										<span v-if="isUserRoomAdmin(user.user.userId, item.room_id)" class="relative items-center rounded-md bg-accent-red px-1 font-medium text-white ~text-label-min/label-max">Administrator</span>
 										<span v-if="rooms.room(item.room_id)?.userIsMember(user.user.userId)" class="text-green group-hover:text-white">
-											<Icon type="person" size="sm" class="shrink-0"></Icon>
+											<Icon type="person" size="sm" class="shrink-0" />
 										</span>
 									</div>
 									<div class="flex items-center gap-1">
-										<Icon type="remove" class="cursor-pointer hover:text-red" v-if="rooms.room(item.room_id)?.userCanChangeName(user.user.userId)" @click="removeSecuredRoom(item)"></Icon>
-										<Icon type="edit" class="hover:stroke-hub-accent" v-if="rooms.room(item.room_id)?.userCanChangeName(user.user.userId)" @click="EditSecuredRoom(item)"></Icon>
-										<Icon type="promote" class="cursor-pointer hover:text-white" @click="makeRoomAdmin(item.room_id, user.user.userId)"></Icon>
+										<Icon type="remove" class="hover:text-red cursor-pointer" v-if="rooms.room(item.room_id)?.userCanChangeName(user.user.userId)" @click="removeSecuredRoom(item)" />
+										<Icon type="edit" class="hover:stroke-hub-accent" v-if="rooms.room(item.room_id)?.userCanChangeName(user.user.userId)" @click="EditSecuredRoom(item)" />
+										<Icon type="promote" class="cursor-pointer hover:text-white" @click="makeRoomAdmin(item.room_id, user.user.userId)" />
 									</div>
 								</div>
 							</div>
@@ -80,7 +83,7 @@
 		</Tabs>
 
 		<template #footer>
-			<EditRoomForm v-if="showEditRoom" :room="editRoom" :secured="secured" @close="closeEdit()"></EditRoomForm>
+			<EditRoomForm v-if="showEditRoom" :room="editRoom" :secured="secured" @close="closeEdit()" />
 		</template>
 	</HeaderFooter>
 </template>
@@ -99,7 +102,7 @@
 	import FilteredList from '@/components/ui/FilteredList.vue';
 	import Icon from '@/components/elements/Icon.vue';
 	import EditRoomForm from '@/components/rooms/EditRoomForm.vue';
-	import H1 from '@/components/elements/H1.vue';
+	import H3 from '@/components/elements/H3.vue';
 
 	import { useDialog } from '@/logic/store/dialog';
 	import { TPublicRoom, TSecuredRoom, useRooms } from '@/logic/store/rooms';

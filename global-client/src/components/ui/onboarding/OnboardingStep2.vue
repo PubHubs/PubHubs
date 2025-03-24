@@ -10,13 +10,13 @@
 				<li>{{ $t('register.overview_step3') }}</li>
 			</ol>
 			<p>{{ $t('register.yivi_downloaded') }}</p>
-			<Button class="mr-6 mt-6 w-80 max-w-full" @click="$emit('next')">{{ $t('register.yivi_no') }}</Button>
-			<Button class="mb-4 mt-6 w-80 max-w-full py-3 leading-tight" @click="$emit('skip')">
-				{{ $t('register.yivi_yes') }}<br /><span class="text-nowrap text-base">({{ $t('register.skip_step1') }})</span>
+			<Button class="mr-6 mt-6 w-[320px] max-w-full" @click="$emit('next')">{{ $t('register.yivi_no') }}</Button>
+			<Button class="mb-4 mt-6 w-[320px] max-w-full py-3 leading-tight" @click="$emit('skip')">
+				{{ $t('register.yivi_yes') }}<br /><span class="~text-body-min/body-max text-nowrap">({{ $t('register.skip_step1') }})</span>
 			</Button>
 		</template>
 		<template #column2>
-			<div class="hidden h-80 lg:flex">
+			<div class="hidden h-[320px] lg:flex">
 				<div class="flex w-full">
 					<img src="../../../assets/mascot-yivi-app.svg" alt="PubHubs mascot with Yivi app and Pubhubs screen silhouette" />
 				</div>

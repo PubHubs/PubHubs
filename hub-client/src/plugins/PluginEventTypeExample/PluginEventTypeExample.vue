@@ -1,7 +1,7 @@
 <template>
 	<div class="mb-2 bg-black text-white opacity-50">
 		<H3>Plugin event type = '{{ event.plugin?.type }}'</H3>
-		<Json :json="event"></Json>
+		<Json :json="event" />
 	</div>
 </template>
 
