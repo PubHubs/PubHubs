@@ -15,7 +15,11 @@
 							<Badge color="hub" v-if="room.getRoomUnreadNotificationCount(NotificationCountType.Highlight) > 0"><Icon type="mention" size="sm" class="shrink-0" /></Badge>
 						</span>
 
-						<Icon type="unlink" class="hidden cursor-pointer stroke-2 text-on-surface-variant transition-all duration-200 ease-in-out hover:text-accent-error group-hover:inline-block" @click.prevent="leaveRoom(room.roomId)" />
+						<Icon
+							type="unlink"
+							class="cursor-pointer stroke-2 text-on-surface-variant transition-all duration-200 ease-in-out hover:text-accent-error md:hidden md:group-hover:inline-block"
+							@click.prevent="leaveRoom(room.roomId)"
+						/>
 					</span>
 				</MenuItem>
 			</template>
