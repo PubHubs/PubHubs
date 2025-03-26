@@ -51,6 +51,13 @@ impl App {
     }
 }
 
+/// Plaintext content of `[api::auths::AuthState]`.
+#[derive(serde::Serialize, serde::Deserialize, Clone, Debug)]
+struct AuthState {
+    source: attr::Source,
+    attr_types: Vec<crate::handle::Handle>,
+}
+
 impl App {
     async fn handle_auth_start(
         app: Rc<Self>,
@@ -115,6 +122,7 @@ impl App {
                 disclosure_request,
                 yivi_requestor_url: yivi.requestor_url.clone(),
             },
+            state: api::auths::AuthState::new(Default::default()),
         })
     }
 

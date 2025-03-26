@@ -33,6 +33,21 @@ pub struct AuthStartResp {
     /// Task for the global client to satisfy the authentication server.
     /// Depends on the requested attribute types
     pub task: AuthTask,
+
+    /// Opaque state that should be sent with the [`AuthCompleteReq`].
+    pub state: AuthState,
+}
+
+#[derive(Serialize, Deserialize, Debug, Clone)]
+#[serde(transparent)]
+pub struct AuthState {
+    inner: serde_bytes::ByteBuf,
+}
+
+impl AuthState {
+    pub(crate) fn new(inner: serde_bytes::ByteBuf) -> Self {
+        Self { inner }
+    }
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
@@ -59,8 +74,9 @@ impl EndpointDetails for AuthCompleteEP {
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct AuthCompleteReq {
-    pub attr_types: Vec<crate::handle::Handle>,
     pub proof: AuthProof,
+
+    pub state: AuthState,
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]

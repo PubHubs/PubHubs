@@ -1832,11 +1832,11 @@ struct AuthRequestData {
 
 impl AuthRequestData {
     fn to_handle(&self, key: &chacha20poly1305::Key) -> anyhow::Result<String> {
-        crate::crypto::seal(&self, key, b"")
+        crate::misc::crypto::seal(&self, key, b"")
     }
 
     fn from_handle(handle: impl AsRef<str>, key: &chacha20poly1305::Key) -> Result<Self, Error> {
-        crate::crypto::unseal(handle, key, b"").map_err(|_| Error::InvalidAuthRequestHandle)
+        crate::misc::crypto::unseal(handle, key, b"").map_err(|_| Error::InvalidAuthRequestHandle)
     }
 }
 
@@ -1854,7 +1854,7 @@ impl AuthCodeData {
         key: &chacha20poly1305::Key,
         client_id: impl AsRef<str>,
     ) -> anyhow::Result<String> {
-        crate::crypto::seal(&self, key, client_id.as_ref().as_bytes())
+        crate::misc::crypto::seal(&self, key, client_id.as_ref().as_bytes())
     }
 
     #[doc(hidden)]
@@ -1863,7 +1863,7 @@ impl AuthCodeData {
         key: &chacha20poly1305::Key,
         client_id: impl AsRef<str>,
     ) -> Result<Self, Error> {
-        crate::crypto::unseal(code, key, client_id.as_ref().as_bytes())
+        crate::misc::crypto::unseal(code, key, client_id.as_ref().as_bytes())
             .map_err(|_| Error::InvalidAuthCode)
     }
 }
@@ -2056,7 +2056,7 @@ pub mod html {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::crypto::GenericArrayExt as _;
+    use crate::misc::crypto::GenericArrayExt as _;
     use aead::KeyInit as _;
     use chacha20poly1305::XChaCha20Poly1305;
 
