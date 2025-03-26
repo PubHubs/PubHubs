@@ -93,17 +93,10 @@
 							<Menu>
 								<MenuItem :to="{ name: 'admin' }" icon="admin">{{ $t('menu.admin_tools_rooms') }}</MenuItem>
 								<MenuItem :to="{ name: 'manageusers' }" icon="admin">{{ $t('menu.admin_tools_users') }}</MenuItem>
-							</Menu>
-						</section>
-					</div>
-
-					<template #footer>
-						<section class="flex flex-col gap-2 p-3 md:p-4">
-							<Menu v-if="settings.isFeatureEnabled(FeatureFlag.hubSettings)">
 								<MenuItem :to="{ name: 'hub-settings' }" icon="cog">{{ $t('menu.admin_tools_hub_settings') }}</MenuItem>
 							</Menu>
 						</section>
-					</template>
+					</div>
 				</HeaderFooter>
 
 				<div class="h-full w-full overflow-y-auto overflow-x-hidden" :class="{ hidden: hubSettings.mobileHubMenu }">
