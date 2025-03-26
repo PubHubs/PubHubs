@@ -20,6 +20,7 @@ Use the [MIGRATE] and [BREAKING] prefixes together with another one if that make
   room_list_publication_rules:
     - "action": "allow"
   ```
+- [BREAKING] Update feature flag for authenticatedMedia to `true` in hub-client/src/logic/store/settings.ts.
 
 ## 20 March 2025 - v1.2.0
 
