@@ -1870,7 +1870,7 @@ impl AuthCodeData {
 
 /// Type to hold secrets for internal use- basically an [u8, 32], i.e., an 'u256'
 #[doc(hidden)]
-type Secret = generic_array::GenericArray<u8, typenum::consts::U32>;
+type Secret = aead::generic_array::GenericArray<u8, typenum::consts::U32>;
 
 #[doc(hidden)]
 fn is_valid_state(s: &Option<String>) -> bool {
@@ -2512,9 +2512,9 @@ mod tests {
 
     #[test]
     fn chacha20poly1305_lengths() {
-        assert_eq!(chacha20poly1305::Key::LENGTH, 32);
-        assert_eq!(chacha20poly1305::XNonce::LENGTH, 24);
-        assert_eq!(chacha20poly1305::Tag::LENGTH, 16);
+        assert_eq!(chacha20poly1305::Key::len(), 32);
+        assert_eq!(chacha20poly1305::XNonce::len(), 24);
+        assert_eq!(chacha20poly1305::Tag::len(), 16);
     }
 
     #[test]

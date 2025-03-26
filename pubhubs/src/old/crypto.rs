@@ -22,7 +22,7 @@ use digest::Digest as _;
 pub fn derive_secret(
     concerns: &str,
     secret: &[u8],
-) -> generic_array::GenericArray<u8, typenum::consts::U32> {
+) -> aead::generic_array::GenericArray<u8, typenum::consts::U32> {
     assert!(!concerns.contains('\0'));
 
     sha2::Sha256::new()

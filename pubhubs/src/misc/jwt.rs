@@ -742,9 +742,12 @@ pub struct HS256(#[serde(with = "serde_bytes")] pub Vec<u8>);
 ///     "dBjftJeZ4CVP-mB92K27uhbUJU1p1r_wW1gFWFOEjXk");
 /// ```
 impl SigningKey for HS256 {
-    type Signature = generic_array::GenericArray<u8, typenum::U32>;
+    type Signature = digest::generic_array::GenericArray<u8, typenum::U32>;
 
-    fn sign(&self, s: &[u8]) -> anyhow::Result<generic_array::GenericArray<u8, typenum::U32>> {
+    fn sign(
+        &self,
+        s: &[u8],
+    ) -> anyhow::Result<digest::generic_array::GenericArray<u8, typenum::U32>> {
         let mut mac = hmac::Hmac::<sha2::Sha256>::new_from_slice(&self.0)?;
         mac.update(s);
         Ok(mac.finalize().into_bytes())

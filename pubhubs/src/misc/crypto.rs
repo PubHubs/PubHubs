@@ -3,7 +3,6 @@ use anyhow::Context as _;
 use base64ct::{Base64Url, Encoding as _};
 use chacha20poly1305::XChaCha20Poly1305;
 use rand::Rng as _;
-use sha2::Digest as _;
 
 /// Generates a random 22 character alphanumeric string (`[a-zA-Z0-9]{22}`),
 /// having > 128 bits of randomness.
@@ -51,18 +50,17 @@ pub fn unseal<T: serde::de::DeserializeOwned>(
 ) -> Result<T, crate::error::Opaque> {
     let buf = Base64Url::decode_vec(envelope.as_ref()).map_err(|_| crate::error::OPAQUE)?;
 
-    #[allow(dead_code)] // buf[..NONCE_LEN] is not considered usage - a bug?
-    const NONCE_LEN: usize = chacha20poly1305::XNonce::LENGTH;
+    let nonce_len: usize = chacha20poly1305::XNonce::len();
 
-    if buf.len() < NONCE_LEN {
+    if buf.len() < nonce_len {
         return Err(crate::error::OPAQUE);
     }
 
     let plaintext = XChaCha20Poly1305::new(key)
         .decrypt(
-            (&buf[..NONCE_LEN]).into(),
+            (&buf[..nonce_len]).into(),
             aead::Payload {
-                msg: &buf[NONCE_LEN..],
+                msg: &buf[nonce_len..],
                 aad: aad.as_ref(),
             },
         )
@@ -71,11 +69,18 @@ pub fn unseal<T: serde::de::DeserializeOwned>(
     serde_json::from_slice(&plaintext).map_err(|_| crate::error::OPAQUE)
 }
 
-/// Trait to extract the length from a GenericArray
+/// Implements the `generic_array` version `1.2`
+/// [`len()`](https://docs.rs/generic-array/latest/generic_array/struct.GenericArray.html#method.len)
+/// method for the older `generic_array` version currently(?) used by
+/// rust crypto (e.g. [`aead`] and [`digest`]).
 pub trait GenericArrayExt {
-    const LENGTH: usize;
+    fn len() -> usize;
 }
 
-impl<T, U: generic_array::ArrayLength<T>> GenericArrayExt for generic_array::GenericArray<T, U> {
-    const LENGTH: usize = <U as typenum::marker_traits::Unsigned>::USIZE;
+impl<T, U: aead::generic_array::ArrayLength<T>> GenericArrayExt
+    for aead::generic_array::GenericArray<T, U>
+{
+    fn len() -> usize {
+        <U as typenum::marker_traits::Unsigned>::USIZE
+    }
 }
