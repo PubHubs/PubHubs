@@ -108,7 +108,7 @@
 	import { RoomType } from '@/logic/store/rooms';
 	import { FeatureFlag, useSettings } from '@/logic/store/settings';
 	import { useUser } from '@/logic/store/user';
-	import { computed, ref, watch, defineProps, onMounted } from 'vue';
+	import { computed, ref, watch, onMounted } from 'vue';
 	import { PubHubsMgType } from '@/logic/core/events';
 
 	// Components

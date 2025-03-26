@@ -45,6 +45,11 @@ import { Theme, TimeFormat, useSettings } from './settings';
 const iframeHubId = 'hub-frame-id';
 
 /**
+ * The id of the iframe used for the miniclients in the global bar.
+ */
+const miniClientId = 'miniclient-frame-id';
+
+/**
  * Messagebox types
  */
 enum MessageBoxType {
@@ -108,10 +113,10 @@ const useMessageBox = defineStore('messagebox', {
 		return {
 			inIframe: false, // Is the messagebox inside an iframe? Used to determine if a hub is on its own or inside an iframe of the global client.
 			type: MessageBoxType.Unset, // Parent or Child
-			receiverUrl: '' as string, // The url to which this messagebox can send and receive messages
-			handshake: HandshakeState.Idle, // Handshake state
-			callbacks: {} as { [index in MessageType]: Function }, // List of callbacks per MessageType
-			_windowMessageListener: {} as any, // Event listener, set at init - (ts: a lot off overhead to replace any)
+			receiverUrlMap: new Map<string, string>(), // The id of the iframe mapped to the url to which this messagebox can send and receive messages
+			handshake: new Map<string, HandshakeState>(), // Handshake state
+			callbacks: new Map<string, { [index in MessageType]: Function }>(), // List of callbacks per MessageType
+			_windowMessageListener: new Map<string, any>(), // Event listener, set at init - (ts: a lot off overhead to replace any)
 		};
 	},
 
@@ -119,8 +124,10 @@ const useMessageBox = defineStore('messagebox', {
 		/**
 		 * Handshake is ready (true)
 		 */
-		isReady(state): Boolean {
-			return state.handshake === HandshakeState.Ready;
+		isReady: (state) => {
+			return (id: string): Boolean => {
+				return state.handshake.get(id) === HandshakeState.Ready;
+			};
 		},
 
 		/**
@@ -133,35 +140,43 @@ const useMessageBox = defineStore('messagebox', {
 
 	actions: {
 		/**
-		 * Both parent and hub needs to be initialised.
+		 * Initialize an empty messagebox for parent, hub and miniclients.
 		 *
 		 * @param type MessageBoxType (PARENT|CHILD)
+		 */
+		init(type: MessageBoxType) {
+			this.reset();
+			this.type = type;
+		},
+
+		/**
+		 * The parent needs to perform a handshake with any of the child messageboxes (hub and miniclients),
+		 * before communication can take place.
+		 *
 		 * @param url url of the other side
+		 * @param [id='parentFrame'] the iframe id of the other side (the main frame does not have such an id, so the id will then be 'parentFrame')
 		 *
 		 * @returns a Promise after handshake is ready. Add callbacks after the promise is resolved.
 		 */
-		init(type: MessageBoxType, url: string): Promise<boolean> {
+		startCommunication(url: string, id: string = 'parentFrame'): Promise<boolean> {
 			return new Promise((resolve, reject) => {
-				this.reset();
-				this.type = type;
-				this.receiverUrl = url;
+				this.receiverUrlMap.set(id, url);
 
 				// If Child: start handshake with parent
 				if (this.inIframe && this.type === MessageBoxType.Child) {
-					this.sendMessage(new Message(MessageType.Sync));
-					this.handshake = HandshakeState.Started;
+					this.sendMessage(new Message(MessageType.Sync), id);
+					this.handshake.set(id, HandshakeState.Started);
 				}
 
 				// Start listening
 				if (this.isConnected) {
-					this._windowMessageListener = (event: MessageEvent) => {
-						// Allways test if message is from expected domain
-						if (filters.removeBackSlash(event.origin) === filters.removeBackSlash(this.receiverUrl)) {
+					this._windowMessageListener.set(id, (event: MessageEvent) => {
+						if (filters.removeBackSlash(event.origin) === filters.removeBackSlash(url)) {
 							const message = new Message(event.data.type, event.data.content);
 
 							const settings = useSettings();
 							// Answer to handshake as parent
-							if (message.type == MessageType.Sync && type === MessageBoxType.Parent) {
+							if (message.type == MessageType.Sync && this.type === MessageBoxType.Parent) {
 								// console.log('<= ' + this.type + ' RECEIVED handshake:', this.receiverUrl);
 								this.sendMessage(
 									new Message(MessageType.Settings, {
@@ -172,32 +187,32 @@ const useMessageBox = defineStore('messagebox', {
 										// @ts-ignore
 										language: settings.language,
 									}),
+									id,
 								);
 
-								this.handshake = HandshakeState.Ready;
+								this.handshake.set(id, HandshakeState.Ready);
 								resolve(true);
 							}
 
 							// Answer to handshake as child
-							else if (message.type == MessageType.Settings && type === MessageBoxType.Child) {
+							else if (message.type == MessageType.Settings && this.type === MessageBoxType.Child) {
 								// console.log('=> ' + this.type + ' RECEIVED', HandshakeState.Ready);
 
 								settings.setTheme(message.content.theme as Theme);
 								settings.setTimeFormat(message.content.timeformat as TimeFormat);
 								settings.setLanguage(message.content.language);
-								this.handshake = HandshakeState.Ready;
+								this.handshake.set(id, HandshakeState.Ready);
 								resolve(true);
 							}
 
 							// Normal message was received and is of a known message type
 							else if (Object.values(MessageType).includes(message.type)) {
-								this.receivedMessage(message);
-								reject();
+								this.receivedMessage(message, id);
 							}
 						}
-					};
+					});
 
-					window.addEventListener('message', this._windowMessageListener);
+					window.addEventListener('message', this._windowMessageListener.get(id));
 				} else {
 					reject();
 				}
@@ -208,26 +223,62 @@ const useMessageBox = defineStore('messagebox', {
 		 * Resets the messagebox. Messages can't be send or received anymore.
 		 */
 		reset() {
-			window.removeEventListener('message', this._windowMessageListener);
+			this.receiverUrlMap.forEach((_, id) => window.removeEventListener('message', this._windowMessageListener.get(id)));
+			this._windowMessageListener.clear();
 			this.inIframe = window.self !== window.top;
 			this.type = MessageBoxType.Unset;
-			this.receiverUrl = '';
-			this.handshake = HandshakeState.Idle;
-			this.callbacks = {} as { [index in MessageType]: Function };
+			this.receiverUrlMap.clear();
+			this.handshake.clear();
+			this.callbacks.clear();
+		},
+
+		/**
+		 * Resets the values for the hub that is currently opened in the iframe.
+		 * Messages to and from this hub cannot be sent or received anymore, while messages to and from
+		 * the miniclient iframes (for the pinned hubs in the global bar) can still be sent and received.
+		 */
+		resetCurrentHub() {
+			window.removeEventListener('message', this._windowMessageListener.get(iframeHubId));
+			this._windowMessageListener.delete(iframeHubId);
+			this.receiverUrlMap.delete(iframeHubId);
+			this.handshake.delete(iframeHubId);
+			this.callbacks.delete(iframeHubId);
+		},
+
+		resetMiniclient(id: string) {
+			const fullMiniclientId = miniClientId + '_' + id;
+			window.removeEventListener('message', this._windowMessageListener.get(fullMiniclientId));
+			this._windowMessageListener.delete(fullMiniclientId);
+			this.receiverUrlMap.delete(fullMiniclientId);
+			this.handshake.delete(fullMiniclientId);
+			this.callbacks.delete(fullMiniclientId);
 		},
 
 		/**
 		 * Depending on which client, resolve the target window.
+		 * @param [id='parentFrame'] the id of the target window that needs to be resolved
 		 * @ignore
 		 */
-		resolveTarget() {
-			let target = null;
+		resolveTarget(id: string = 'parentFrame') {
+			const target = {} as { [receiverurl: string]: Window };
 			if (this.type === MessageBoxType.Child) {
-				target = window.parent;
+				const receiverUrl = this.receiverUrlMap.get(id);
+				if (receiverUrl) {
+					target[receiverUrl] = window.parent;
+				}
+			} else if (id === 'parentFrame') {
+				// If the id is 'parentFrame' and the messagebox is of type PARENT, the message needs to be sent to all receivers that are connected with the PARENT.
+				this.receiverUrlMap.forEach((receiverUrl, idFromMap) => {
+					const el: HTMLIFrameElement | null = document.querySelector('iframe#' + idFromMap);
+					if (el !== null && el.contentWindow !== null && typeof el.contentWindow !== 'undefined') {
+						target[receiverUrl] = el.contentWindow;
+					}
+				});
 			} else {
-				const el: HTMLIFrameElement | null = document.querySelector('iframe#' + iframeHubId);
-				if (el !== null && typeof el.contentWindow !== 'undefined') {
-					target = el ? el.contentWindow : null;
+				const el: HTMLIFrameElement | null = document.querySelector('iframe#' + id);
+				if (el !== null && el.contentWindow !== null && typeof el.contentWindow !== 'undefined') {
+					const receiverUrl = this.receiverUrlMap.get(id);
+					if (receiverUrl) target[receiverUrl] = el.contentWindow;
 				}
 			}
 			return target;
@@ -237,13 +288,14 @@ const useMessageBox = defineStore('messagebox', {
 		 * Send a message
 		 *
 		 * @param message Message
+		 * @param [id='parentFrame'] the id of the target that the message needs to be sent to
 		 */
-		sendMessage(message: Message) {
+		sendMessage(message: Message, id: string = 'parentFrame') {
 			if (this.isConnected) {
-				const target = this.resolveTarget();
-				if (target) {
-					// console.log('=> ' + this.type + ' SEND', message, this.receiverUrl);
-					target.postMessage(message, this.receiverUrl);
+				const target = this.resolveTarget(id);
+				for (const receiverUrl in target) {
+					// console.log('=> ' + this.type + ' SEND', message, receiverUrl);
+					target[receiverUrl].postMessage(message, receiverUrl);
 				}
 			}
 		},
@@ -253,11 +305,13 @@ const useMessageBox = defineStore('messagebox', {
 		 * It will call the callback that is set for the MessageType
 		 *
 		 * @param message Message
+		 * @param id id of iframe that the message was received from
 		 */
-		receivedMessage(message: Message) {
-			if (this.handshake === HandshakeState.Ready) {
-				const callback = this.callbacks[message.type];
-				// console.log('<= ' + this.type + ' RECEIVED', message, callback);
+		receivedMessage(message: Message, id: string) {
+			if (this.isReady(id)) {
+				const callbacks = this.callbacks.get(id);
+				const callback = callbacks ? callbacks[message.type] : undefined;
+				// console.log('<= ' + this.type + ' RECEIVED', message, id, callback);
 				if (callback) {
 					callback(message as Message);
 				}
@@ -267,22 +321,30 @@ const useMessageBox = defineStore('messagebox', {
 		/**
 		 * Add a callback to a given MessageType. The callback will be called after that MessageType has been received with the message.
 		 *
+		 * @param id id of the iframe that the callback belongs to
 		 * @param type MessageType
 		 * @param callback Function(message)
 		 */
-		addCallback(type: MessageType, callback: Function) {
-			this.callbacks[type] = callback;
+		addCallback(id: string, type: MessageType, callback: Function) {
+			let callbacksList = this.callbacks.get(id);
+			if (!callbacksList) callbacksList = {} as { [index in MessageType]: Function };
+			callbacksList[type] = callback;
+			this.callbacks.set(id, callbacksList);
 		},
 
 		/**
 		 * Remove a callback
 		 *
+		 * @param id id of the iframe that the callback belongs to
 		 * @param type MessageType
 		 */
-		removeCallback(type: MessageType) {
-			delete this.callbacks[type];
+		removeCallback(id: string, type: MessageType) {
+			let callbacksList = this.callbacks.get(id);
+			if (!callbacksList) callbacksList = {} as { [index in MessageType]: Function };
+			delete callbacksList[type];
+			this.callbacks.set(id, callbacksList);
 		},
 	},
 });
 
-export { iframeHubId, Message, MessageBoxType, MessageType, useMessageBox };
+export { iframeHubId, miniClientId, Message, MessageBoxType, MessageType, useMessageBox };
