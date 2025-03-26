@@ -93,17 +93,10 @@
 							<Menu>
 								<MenuItem :to="{ name: 'admin' }" icon="admin">{{ $t('menu.admin_tools_rooms') }}</MenuItem>
 								<MenuItem :to="{ name: 'manageusers' }" icon="admin">{{ $t('menu.admin_tools_users') }}</MenuItem>
-							</Menu>
-						</section>
-					</div>
-
-					<template #footer>
-						<section class="flex flex-col gap-2 p-3 md:p-4">
-							<Menu v-if="settings.isFeatureEnabled(FeatureFlag.hubSettings)">
 								<MenuItem :to="{ name: 'hub-settings' }" icon="cog">{{ $t('menu.admin_tools_hub_settings') }}</MenuItem>
 							</Menu>
 						</section>
-					</template>
+					</div>
 				</HeaderFooter>
 
 				<div class="h-full w-full overflow-y-auto overflow-x-hidden" :class="{ hidden: hubSettings.mobileHubMenu }">
@@ -171,13 +164,6 @@
 	const setupReady = ref(false);
 	const disclosureEnabled = settings.isFeatureEnabled(FeatureFlag.disclosure);
 
-	watch(
-		() => rooms.totalUnreadMessages,
-		() => {
-			rooms.sendUnreadMessageCounter();
-		},
-	);
-
 	onMounted(() => {
 		plugins.setPlugins(getCurrentInstance()?.appContext.config.globalProperties._plugins, router);
 	});
@@ -232,15 +218,16 @@
 
 	async function startMessageBox() {
 		if (!hubSettings.isSolo) {
-			await messagebox.init(MessageBoxType.Child, hubSettings.parentUrl);
+			messagebox.init(MessageBoxType.Child);
+			await messagebox.startCommunication(hubSettings.parentUrl);
 
 			// Ask for Hub name etc.
-			messagebox.addCallback(MessageType.HubInformation, (message: Message) => {
+			messagebox.addCallback('parentFrame', MessageType.HubInformation, (message: Message) => {
 				hubSettings.initHubInformation(message.content as HubInformation);
 			});
 
 			// Listen to roomchange
-			messagebox.addCallback(MessageType.RoomChange, async (message: Message) => {
+			messagebox.addCallback('parentFrame', MessageType.RoomChange, async (message: Message) => {
 				const roomId = message.content as RouteParamValue;
 				if (rooms.currentRoomId !== roomId) {
 					rooms.currentRoomId = roomId;
@@ -254,11 +241,11 @@
 			});
 
 			//Listen to global menu change
-			messagebox.addCallback(MessageType.BarHide, () => {
+			messagebox.addCallback('parentFrame', MessageType.BarHide, () => {
 				hubSettings.mobileHubMenu = false;
 			});
 
-			messagebox.addCallback(MessageType.BarShow, () => {
+			messagebox.addCallback('parentFrame', MessageType.BarShow, () => {
 				hubSettings.mobileHubMenu = true;
 			});
 		}

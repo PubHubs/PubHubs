@@ -13,7 +13,7 @@
 		</div>
 
 		<div v-show="hub && !hubOrderingIsActive && accessToken && settings.isFeatureEnabled(FeatureFlag.unreadCounter)" class="absolute -right-1 -top-1 z-10">
-			<iframe :src="hub.url + '/miniclient.html?accessToken=' + accessToken" class="h-7 w-7"></iframe>
+			<iframe :src="hub.url + '/miniclient.html?accessToken=' + accessToken" class="h-7 w-7" :id="miniClientId + '_' + hubId"></iframe>
 		</div>
 
 		<HubIcon :hub-name="hub.name" :icon-url="hub.iconUrlLight" :icon-url-dark="hub.iconUrlDark" :is-active="active" />
@@ -26,8 +26,9 @@
 
 	// Global imports
 	import { useGlobal } from '@/logic/store/global';
-	import { useMessageBox } from '@/logic/store/messagebox';
+	import { useMessageBox, miniClientId } from '@/logic/store/messagebox';
 	import { useSettings, FeatureFlag } from '@/logic/store/settings';
+	import { useHubs } from '@/logic/store/hubs';
 	import { Hub } from '@/model/Hubs';
 
 	// Hub imports
@@ -37,6 +38,7 @@
 	const global = useGlobal();
 	const messagebox = useMessageBox();
 	const settings = useSettings();
+	const hubs = useHubs();
 
 	type Props = {
 		type?: string;
@@ -59,6 +61,8 @@
 		active: false,
 		hubOrderingIsActive: false,
 	});
+
+	hubs.setupMiniclient(props.hubId);
 
 	const accessToken = ref<string | null>(global.getAccessToken(props.hubId));
 
