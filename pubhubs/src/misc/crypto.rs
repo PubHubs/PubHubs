@@ -47,13 +47,13 @@ pub fn unseal<T: serde::de::DeserializeOwned>(
     envelope: impl AsRef<str>,
     key: &chacha20poly1305::Key,
     aad: impl AsRef<[u8]>,
-) -> Result<T, crate::error::Opaque> {
-    let buf = Base64Url::decode_vec(envelope.as_ref()).map_err(|_| crate::error::OPAQUE)?;
+) -> Result<T, crate::misc::error::Opaque> {
+    let buf = Base64Url::decode_vec(envelope.as_ref()).map_err(|_| crate::misc::error::OPAQUE)?;
 
     let nonce_len: usize = chacha20poly1305::XNonce::len();
 
     if buf.len() < nonce_len {
-        return Err(crate::error::OPAQUE);
+        return Err(crate::misc::error::OPAQUE);
     }
 
     let plaintext = XChaCha20Poly1305::new(key)
@@ -64,9 +64,9 @@ pub fn unseal<T: serde::de::DeserializeOwned>(
                 aad: aad.as_ref(),
             },
         )
-        .map_err(|_| crate::error::OPAQUE)?;
+        .map_err(|_| crate::misc::error::OPAQUE)?;
 
-    serde_json::from_slice(&plaintext).map_err(|_| crate::error::OPAQUE)
+    serde_json::from_slice(&plaintext).map_err(|_| crate::misc::error::OPAQUE)
 }
 
 /// Implements the `generic_array` version `1.2`

@@ -13,6 +13,10 @@ crate-type = ["cdylib","rlib"]
 name = "pubhubs"
 required-features = ["bin"]
 
+[[test]]
+name = "integration"
+required-features = ["bin"]
+
 [features]
 # bin:     what's used by the pubhubs binary
 # abi:     what's needed for the ABI (libpubhubs.so) used by the hub
@@ -52,6 +56,7 @@ bin = [
 	"dep:tokio",
 	"dep:actix-web",
 	"dep:ed25519-dalek",
+	"dep:chacha20poly1305",
 	"dep:futures-util", # used by actix already
 	"dep:futures",
 	"dep:http",
@@ -60,14 +65,17 @@ bin = [
 	"dep:typenum",
 	"dep:jiff",
 	"dep:object_store",
+	"dep:aead",
 ]
 real_credentials = []
 old = [
 	"dep:actix-files",
  	"common",
-	"dep:base64ct",
-	"dep:actix-web",
 	"dep:aead",
+	"dep:base64ct",
+	"dep:jiff",
+	"dep:actix-web",
+	"dep:serde_bytes",
 	"dep:anyhow",
 	"dep:async-recursion",
 	"dep:awc",
