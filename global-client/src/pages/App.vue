@@ -22,7 +22,7 @@
 	import GlobalBar from '@/components/ui/GlobalBar.vue';
 	import MobileMenu from '@/components/ui/MobileMenu.vue';
 	import { NotificationsPermission } from '@/logic/store/settings';
-	import { useDialog, useGlobal, useHubs, useSettings } from '@/logic/store/store';
+	import { MessageBoxType, useDialog, useGlobal, useHubs, useMessageBox, useSettings } from '@/logic/store/store';
 
 	// Hub imports
 	import { CONFIG } from '@/../../hub-client/src/logic/foundation/Config';
@@ -31,6 +31,7 @@
 
 	const LOGGER = new Logger('GC', CONFIG);
 	const { locale, availableLocales } = useI18n();
+	const messagebox = useMessageBox();
 	const settings = useSettings();
 	const dialog = useDialog();
 	const global = useGlobal();
@@ -66,6 +67,8 @@
 			// Watch for saved state changes and save to backend
 			watchEffect(() => global.saveGlobalSettings());
 		}
+
+		messagebox.init(MessageBoxType.Parent);
 
 		await addHubs();
 

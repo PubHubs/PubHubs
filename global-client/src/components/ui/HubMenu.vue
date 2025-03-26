@@ -22,7 +22,7 @@
 			<div class="absolute grid h-full w-full items-center justify-center">
 				<Icon type="unpin" class="rounded-md p-1" :class="[hoverOverHubremoval ? 'text-accent-error opacity-100' : 'text-on-surface-disabled']" size="md" />
 			</div>
-			<draggable group="hubs" @dragover="hoverOverHubremoval = true" @dragleave="hoverOverHubremoval = false" :list="[]" @change="confirmationHubRemoval" :item-key="'unpin'" tag="ul" class="list-group h-full opacity-0">
+			<draggable group="hubs" @dragover="hoverOverHubremoval = true" @dragleave="hoverOverHubremoval = false" :list="unpinnedHubs" @change="confirmationHubRemoval" :item-key="'unpin'" tag="ul" class="list-group h-full opacity-0">
 				<template #item="{ element: trash }">
 					<li>{{ trash }}</li>
 				</template>
@@ -39,7 +39,7 @@
 
 	// Global imports
 	import HubMenuHubIcon from '@/components/ui/HubMenuHubIcon.vue';
-	import { PinnedHubs, useDialog, useGlobal, useHubs } from '@/logic/store/store';
+	import { PinnedHubs, useDialog, useGlobal, useHubs, useMessageBox } from '@/logic/store/store';
 	import { useToggleMenu } from '@/logic/store/toggleGlobalMenu';
 
 	const global = useGlobal();
@@ -50,6 +50,7 @@
 	const hoverOverHubremoval = ref(false);
 
 	let backupPinnedHubs = [] as PinnedHubs;
+	let unpinnedHubs = [] as PinnedHubs;
 
 	const props = defineProps({
 		hubOrderingIsActive: Boolean,
@@ -68,9 +69,12 @@
 
 		if (removeHub) {
 			backupPinnedHubs.splice(0, backupPinnedHubs.length);
+			const messagebox = useMessageBox();
+			messagebox.resetMiniclient(unpinnedHubs[0].hubId);
 		} else {
 			global.pinnedHubs = backupPinnedHubs.slice();
 			backupPinnedHubs.splice(0, backupPinnedHubs.length);
 		}
+		unpinnedHubs = [];
 	}
 </script>

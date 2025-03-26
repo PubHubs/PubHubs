@@ -8,9 +8,6 @@
 </template>
 
 <script setup lang="ts">
-	// Package imports
-	import { defineProps, defineEmits } from 'vue';
-
 	// Global imports
 	import Icon from '@/../../hub-client/src/components/elements/Icon.vue';
 
