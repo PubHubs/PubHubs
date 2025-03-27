@@ -160,6 +160,9 @@ pub enum ErrorCode {
 
     #[error("yivi is not configured for this authentication server")]
     YiviNotConfigured,
+
+    #[error("could not unseal data: corrupted or outdated")]
+    BrokenSeal,
 }
 use ErrorCode::*;
 
@@ -186,7 +189,8 @@ impl ErrorCode {
             | UnknownAttributeType
             | MissingAttributeSource
             | YiviNotConfigured
-            | NotImplemented => ErrorInfo {
+            | NotImplemented
+            | BrokenSeal => ErrorInfo {
                 retryable: Some(false),
             },
             CouldNotConnectYet | TemporaryFailure | NotYetReady | SeveredConnection => ErrorInfo {

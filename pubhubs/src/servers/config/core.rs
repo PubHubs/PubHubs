@@ -10,6 +10,7 @@ use crate::servers::{for_all_servers, server::Server as _};
 use crate::{
     api::{self},
     attr, elgamal, hub,
+    misc::time_ext,
     servers::yivi,
 };
 
@@ -310,6 +311,16 @@ pub mod auths {
 
         /// Yivi configuration.  If `None`, yivi is not supported.
         pub yivi: Option<YiviConfig>,
+
+        /// Authentication must be completed within this timeframe
+        /// formatted as string understood by [`humantime::parse_duration`] such as `1 week`.
+        #[serde(with = "time_ext::human_duration")]
+        #[serde(default = "default_auth_window")]
+        pub auth_window: core::time::Duration,
+    }
+
+    fn default_auth_window() -> core::time::Duration {
+        core::time::Duration::from_secs(60 * 60) // one hour
     }
 
     #[derive(serde::Deserialize, serde::Serialize, Debug, Clone)]

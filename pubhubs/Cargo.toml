@@ -63,10 +63,10 @@ bin = [
 	"dep:awc",
 	"dep:hmac",
 	"dep:typenum",
-	"dep:jiff",
 	"dep:object_store",
 	"dep:aead",
 	"dep:postcard",
+	"dep:humantime",
 ]
 real_credentials = []
 old = [
@@ -75,7 +75,6 @@ old = [
 	"dep:aead",
 	"dep:postcard",
 	"dep:base64ct",
-	"dep:jiff",
 	"dep:actix-web",
 	"dep:serde_bytes",
 	"dep:anyhow",
@@ -117,6 +116,9 @@ old = [
 # note:  anyhow is also used by cargo
 anyhow = { version = "1.0", features = ["backtrace"], optional = true }
 thiserror = { version="1.0", optional = true }
+
+# time
+humantime = { version = "2.2", optional = true }
 
 # serde
 serde = { version = "1.0", features = ["derive"], optional = true }
@@ -191,7 +193,6 @@ hairy = { version = "0.1", optional = true }
 # command line argument parser
 clap = { version = "4.5", features = ["derive"], optional = true }
 
-jiff = { version = "0.2", optional = true }
 
 [dev-dependencies]
 tempfile = "3.14"

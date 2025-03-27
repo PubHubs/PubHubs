@@ -41,7 +41,7 @@ pub struct AuthStartResp {
 #[derive(Serialize, Deserialize, Debug, Clone)]
 #[serde(transparent)]
 pub struct AuthState {
-    inner: serde_bytes::ByteBuf,
+    pub(crate) inner: serde_bytes::ByteBuf,
 }
 
 impl AuthState {

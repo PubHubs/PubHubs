@@ -4,7 +4,7 @@ use curve25519_dalek::Scalar;
 pub trait DigestibleSecret {
     fn as_bytes(&self) -> &[u8];
 
-    /// Inserts this shared secret in the given digest
+    /// Inserts this secret in the given digest
     fn update_digest<D: digest::Digest>(&self, d: D, domain: impl AsRef<str>) -> D {
         let domain: &str = domain.as_ref();
         let bytes: &[u8] = self.as_bytes();
@@ -16,7 +16,7 @@ pub trait DigestibleSecret {
             .chain_update(bytes)
     }
 
-    /// Creates a [`Scalar`] from this shared secret
+    /// Creates a [`Scalar`] from this secret
     fn derive_scalar<D>(&self, d: D, domain: impl AsRef<str>) -> Scalar
     where
         D: digest::Digest<OutputSize = typenum::U64>,
@@ -24,7 +24,7 @@ pub trait DigestibleSecret {
         Scalar::from_hash(self.update_digest(d, domain))
     }
 
-    /// Creates `Vec<u8>` from this shared secret
+    /// Creates [`Vec<u8>`] from this secret.
     fn derive_bytes<D>(&self, d: D, domain: impl AsRef<str>) -> Vec<u8>
     where
         D: digest::Digest,
@@ -34,6 +34,25 @@ pub trait DigestibleSecret {
             .finalize()
             .as_slice()
             .to_owned()
+    }
+
+    /// Creates a (256-bit) [`crate::misc::crypto::SealingKey`] from this secret.
+    #[cfg(any(feature = "bin", feature = "old"))]
+    fn derive_sealing_key<D>(
+        &self,
+        d: D,
+        domain: impl AsRef<str>,
+    ) -> crate::misc::crypto::SealingKey
+    where
+        D: digest::Digest<OutputSize = typenum::U32>,
+    {
+        self.update_digest(d, domain).finalize()
+    }
+}
+
+impl DigestibleSecret for &[u8] {
+    fn as_bytes(&self) -> &[u8] {
+        &self
     }
 }
 

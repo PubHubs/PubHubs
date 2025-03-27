@@ -2,12 +2,15 @@
 use std::rc::Rc;
 
 use actix_web::web;
+use digest::Digest as _;
 
 use crate::servers::{self, yivi, AppBase, AppCreatorBase, Constellation, Handle};
 use crate::{
     api::{self, EndpointDetails as _, ResultExt as _},
-    attr, map,
-    misc::jwt,
+    attr,
+    common::secret::DigestibleSecret as _,
+    handle, map,
+    misc::{crypto, jwt},
 };
 
 /// Authentication server type
@@ -36,6 +39,8 @@ pub struct App {
     base: AppBase<Server>,
     attribute_types: map::Map<attr::Type>,
     yivi: Option<YiviCtx>,
+    auth_state_secret: crypto::SealingKey,
+    auth_window: core::time::Duration,
 }
 
 /// Details on the Yivi server trusted by this authentication server.
@@ -51,11 +56,34 @@ impl App {
     }
 }
 
-/// Plaintext content of `[api::auths::AuthState]`.
+/// Plaintext content of [`api::auths::AuthState`].
 #[derive(serde::Serialize, serde::Deserialize, Clone, Debug)]
 struct AuthState {
     source: attr::Source,
-    attr_types: Vec<crate::handle::Handle>,
+    attr_types: Vec<handle::Handle>,
+
+    /// When this request expires
+    exp: jwt::NumericDate,
+}
+
+impl AuthState {
+    fn seal(&self, key: &crypto::SealingKey) -> api::Result<api::auths::AuthState> {
+        Ok(api::auths::AuthState::new(
+            crypto::seal(&self, &key, b"")
+                .map_err(|err| {
+                    log::warn!("failed to seal AuthState: {err}");
+                    api::ErrorCode::InternalError
+                })?
+                .into(),
+        ))
+    }
+
+    fn unseal(sealed: &api::auths::AuthState, key: &crypto::SealingKey) -> api::Result<AuthState> {
+        crypto::unseal(&sealed.inner, &key, b"").map_err(|err| {
+            log::debug!("failed to unseal AuthState: {err}");
+            api::ErrorCode::BrokenSeal
+        })
+    }
 }
 
 impl App {
@@ -74,14 +102,21 @@ impl App {
             }
         }
 
+        let state = AuthState {
+            source: req.source,
+            attr_types: req.attr_types.clone(),
+            exp: jwt::NumericDate::now() + app.auth_window,
+        };
+
         match req.source {
-            attr::Source::Yivi => Self::handle_auth_start_yivi(app, attr_types).await,
+            attr::Source::Yivi => Self::handle_auth_start_yivi(app, attr_types, state).await,
         }
     }
 
     async fn handle_auth_start_yivi(
         app: Rc<Self>,
         attr_types: Vec<attr::Type>,
+        state: AuthState,
     ) -> api::Result<api::auths::AuthStartResp> {
         let yivi = app.get_yivi()?;
 
@@ -122,14 +157,16 @@ impl App {
                 disclosure_request,
                 yivi_requestor_url: yivi.requestor_url.clone(),
             },
-            state: api::auths::AuthState::new(Default::default()),
+            state: state.seal(&app.auth_state_secret)?,
         })
     }
 
     async fn handle_auth_complete(
-        _app: Rc<Self>,
-        _req: web::Json<api::auths::AuthCompleteReq>,
+        app: Rc<Self>,
+        req: web::Json<api::auths::AuthCompleteReq>,
     ) -> api::Result<api::auths::AuthCompleteResp> {
+        let state: AuthState = AuthState::unseal(&req.state, &app.auth_state_secret)?;
+
         todo! {}
     }
 }
@@ -174,10 +211,14 @@ pub struct AppCreator {
     base: AppCreatorBase<Server>,
     attribute_types: map::Map<attr::Type>,
     yivi: Option<YiviCtx>,
+    auth_state_secret: crypto::SealingKey,
+    auth_window: core::time::Duration,
 }
 
 impl crate::servers::AppCreator<Server> for AppCreator {
     fn new(config: &servers::Config) -> anyhow::Result<Self> {
+        let base = AppCreatorBase::<Server>::new(config)?;
+
         let xconf = &config.auths.as_ref().unwrap().extra;
 
         let mut attribute_types: crate::map::Map<attr::Type> = Default::default();
@@ -193,10 +234,18 @@ impl crate::servers::AppCreator<Server> for AppCreator {
             requestor_creds: cfg.requestor_creds.clone(),
         });
 
+        let auth_state_secret: crypto::SealingKey = base
+            .enc_key
+            .derive_sealing_key(sha2::Sha256::new(), "pubhubs-auths-auth-state");
+
+        let auth_window = xconf.auth_window;
+
         Ok(Self {
-            base: AppCreatorBase::<Server>::new(config)?,
+            base,
             attribute_types,
             yivi,
+            auth_state_secret,
+            auth_window,
         })
     }
 
@@ -205,6 +254,8 @@ impl crate::servers::AppCreator<Server> for AppCreator {
             base: AppBase::new(self.base, handle),
             attribute_types: self.attribute_types,
             yivi: self.yivi,
+            auth_state_secret: self.auth_state_secret,
+            auth_window: self.auth_window,
         })
     }
 

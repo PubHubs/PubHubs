@@ -4,6 +4,9 @@ use base64ct::{Base64Url, Encoding as _};
 use chacha20poly1305::XChaCha20Poly1305;
 use rand::Rng as _;
 
+/// Key used by [`seal`] and co.
+pub type SealingKey = chacha20poly1305::Key;
+
 /// Generates a random 22 character alphanumeric string (`[a-zA-Z0-9]{22}`),
 /// having > 128 bits of randomness.
 pub fn random_alphanumeric() -> String {
@@ -18,7 +21,7 @@ pub fn random_alphanumeric() -> String {
 /// and returns it as urlsafe base64 string.  Use [`url_unseal`] to revert.
 pub fn url_seal<T: serde::Serialize>(
     obj: &T,
-    key: &chacha20poly1305::Key,
+    key: &SealingKey,
     aad: impl AsRef<[u8]>,
 ) -> anyhow::Result<String> {
     let buf: Vec<u8> = seal(obj, &key, aad)?;
@@ -44,7 +47,7 @@ pub fn url_unseal<T: serde::de::DeserializeOwned>(
 /// data that might change.
 pub fn seal<T: serde::Serialize>(
     obj: &T,
-    key: &chacha20poly1305::Key,
+    key: &SealingKey,
     aad: impl AsRef<[u8]>,
 ) -> anyhow::Result<Vec<u8>> {
     let plaintext = postcard::to_stdvec(obj).context("serializing")?;
@@ -71,7 +74,7 @@ pub fn seal<T: serde::Serialize>(
 /// Reverse of the [`seal`] operation.
 pub fn unseal<T: serde::de::DeserializeOwned>(
     envelope: impl AsRef<[u8]>,
-    key: &chacha20poly1305::Key,
+    key: &SealingKey,
     aad: impl AsRef<[u8]>,
 ) -> Result<T, crate::misc::error::Opaque> {
     let nonce_len: usize = chacha20poly1305::XNonce::len();
