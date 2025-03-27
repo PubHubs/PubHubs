@@ -14,9 +14,9 @@ pub fn random_alphanumeric() -> String {
         .collect()
 }
 
-/// Encodes and encrypts the given obj with additional associated data (or b"" if none)
-/// and returns it as urlsafe base64 string.  Use [unseal] to revert.
-pub fn seal<T: serde::Serialize>(
+/// Encodes and encrypts the given `obj` with additional associated data (or `b""` if `None`),
+/// and returns it as urlsafe base64 string.  Use [`url_unseal`] to revert.
+pub fn url_seal<T: serde::Serialize>(
     obj: &T,
     key: &chacha20poly1305::Key,
     aad: impl AsRef<[u8]>,
@@ -42,8 +42,8 @@ pub fn seal<T: serde::Serialize>(
     Ok(Base64Url::encode_string(&buf))
 }
 
-/// Reverse of the [seal] operation.
-pub fn unseal<T: serde::de::DeserializeOwned>(
+/// Reverse of the [`url_seal`] operation.
+pub fn url_unseal<T: serde::de::DeserializeOwned>(
     envelope: impl AsRef<str>,
     key: &chacha20poly1305::Key,
     aad: impl AsRef<[u8]>,
