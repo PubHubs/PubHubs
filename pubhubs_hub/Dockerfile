@@ -33,6 +33,7 @@ FROM ghcr.io/element-hq/synapse:v1.126.0
 COPY --from=yivi_build /go/bin/irma /usr/bin/irma
 COPY --from=libpubhubs_build /wd/target/debug/libpubhubs.so /usr/lib
 COPY --chmod=755 pubhubs_hub/start.sh .
+COPY --chmod=755 pubhubs_hub/start_synaps.sh .
 
 # Secret to be used by libpep to decrypt the pseudonyms
 ENV HUB_SECRET change_me
@@ -40,6 +41,7 @@ ENV HUB_SECRET change_me
 # Use the modules and templates that are PubHubs specific. To use the modules make sure the configuration in homeserver.yaml points  to the /conf/modules. See the example config.
 COPY pubhubs_hub/matrix_test_config/templates /conf/templates
 COPY pubhubs_hub/modules /conf/modules
+COPY --chmod=755 pubhubs_hub/update_config /conf/update_config
 
 COPY pubhubs_hub/assets /non-persistent-data/assets
 
