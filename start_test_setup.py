@@ -417,15 +417,14 @@ def docker_run_hub_server(hub_secret, image_name, container_name, hub_matrix_por
     # Hack to run the Hub containers in a sort of 'watch mode'.
     # If in 'watch mode', the container will use the pubhubs_hub/modules directory from your os instead of the container.
     # Furthermore, the container will only start the yivi server and not the synapse server
-    # The synapse server can than be started and stopped manually by running the ./start.synaps.sh file from the container.
+    # The synapse server can than be started and stopped manually by running the start.py file from the container.
     # The result is that you can make changes in the pubhubs_hub/modules directory,
     # manually stop and start the synapse server and see the changes withouth running this whole script.
-    # Set UPDATE_CONFIG_ENV to "development" for development checks and to "production" for production checks
     # TODO implement this properly (by using parameters instead of environment variables)
     mount_modules = []
     dont_start_hub = ["-e", "DONT_START_HUB=0"]
     if (os.getenv('WATCH_MODULES') == '1'):
-        print("\033[31mWATCH_MODULES enabled, will not start the Hub. Do so manually by running ./start.synaps.sh from inside the docker container.\033[0m")
+        print("\033[31mWATCH_MODULES enabled, will not start the Hub. Do so manually by running ./start.py from inside the docker container.\033[0m")
         mount_modules = ["-v", f"{os.path.abspath(f'modules')}:/conf/modules:ro"]
         dont_start_hub = ["-e", "DONT_START_HUB=1"]
 
@@ -438,7 +437,6 @@ def docker_run_hub_server(hub_secret, image_name, container_name, hub_matrix_por
                       *dont_start_hub,
                       "-e", "SYNAPSE_CONFIG_DIR=/data",
                       "-e", "AUTHLIB_INSECURE_TRANSPORT=for_testing_only_of_course",
-                      "-e", f"UPDATE_CONFIG_ENV={os.getenv("UPDATE_CONFIG_ENV", default="development")}",
                       "-v", f"{config_dir}:/data:rw",
                       *mount_modules,
                       "--add-host", "host.docker.internal:host-gateway",
@@ -789,7 +787,7 @@ def main_runner(cargo_setup:str, node_arg:str, hubs:int = 1) -> None:
         print("\n"
               "Don't forget to start synapse manually (and restart it after any changes to its modules):\n"
               "\n"
-              "  docker exec -it testhub0_8008  ./start_synaps.sh\n")
+              "  docker exec -it testhub0_8008  ./start.py\n")
 
 
 ## TEST SECTION ##
