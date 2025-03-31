@@ -518,7 +518,7 @@ mod serde_impls {
 /// Shared secret created by combining a [`PrivateKey`] with a [`PublicKey`], which, although it is
 /// basically the encoding of a [`RistrettoPoint`], is given a separate interface to limit its
 /// usage.
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, zeroize::ZeroizeOnDrop)]
 pub struct SharedSecret {
     inner: [u8; 32],
 }

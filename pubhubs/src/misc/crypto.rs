@@ -5,6 +5,9 @@ use chacha20poly1305::XChaCha20Poly1305;
 use rand::Rng as _;
 
 /// Key used by [`seal`] and co.
+///
+// TODO: nice-to-have: make SealingKey zeroize::Zeroize
+// This will likely be possible when chacha20poly1305 move away from generic-array
 pub type SealingKey = chacha20poly1305::Key;
 
 /// Generates a random 22 character alphanumeric string (`[a-zA-Z0-9]{22}`),
