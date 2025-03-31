@@ -2,7 +2,6 @@
 use std::cell::OnceCell;
 
 use anyhow::Context as _;
-use rsa::pkcs8::{DecodePublicKey as _, EncodePublicKey as _};
 use serde::{
     self,
     de::{Error as _, IntoDeserializer as _},
@@ -176,7 +175,7 @@ pub enum VerifyingKey {
     HS256(serde_ext::bytes_wrapper::B64<jwt::HS256>),
 
     #[serde(rename = "rs256")]
-    RS256(#[serde(with = "rs256pk_encoding")] jwt::RS256Pk),
+    RS256(#[serde(with = "rs256pk_encoding")] jwt::RS256Vk),
     // We do not use the `Token` Yivi `auth_method`s,
     // see: https://docs.yivi.app/irma-server#requestor-authentication
 }
@@ -185,25 +184,21 @@ pub enum VerifyingKey {
 mod rs256pk_encoding {
     use super::*;
 
-    pub fn deserialize<'de, D>(d: D) -> Result<jwt::RS256Pk, D::Error>
+    pub fn deserialize<'de, D>(d: D) -> Result<jwt::RS256Vk, D::Error>
     where
         D: serde::Deserializer<'de>,
     {
         let s: &'de str = <&'de str>::deserialize(d)?;
 
-        Ok(jwt::RS256Pk(
-            rsa::pkcs1v15::VerifyingKey::from_public_key_pem(&s)
-                .map_err(|err| D::Error::custom(err))?,
-        ))
+        Ok(jwt::RS256Vk::from_public_key_pem(&s).map_err(|err| D::Error::custom(err))?)
     }
 
-    pub fn serialize<S>(pk: &jwt::RS256Pk, s: S) -> Result<S::Ok, S::Error>
+    pub fn serialize<S>(pk: &jwt::RS256Vk, s: S) -> Result<S::Ok, S::Error>
     where
         S: serde::ser::Serializer,
     {
         s.serialize_str(
-            &pk.0
-                .to_public_key_pem(Default::default())
+            &pk.to_public_key_pem()
                 .map_err(|err| S::Error::custom(err))?,
         )
     }

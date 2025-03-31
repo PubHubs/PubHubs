@@ -4,7 +4,6 @@ use std::net::SocketAddr;
 use std::path::{Path, PathBuf};
 
 use anyhow::{Context as _, Result};
-use rsa::pkcs8::DecodePublicKey as _;
 use url::Url;
 
 use crate::servers::{for_all_servers, server::Server as _};
@@ -482,12 +481,10 @@ impl PrepareConfig<Pcc> for auths::YiviConfig {
 
             let payload: bytes::Bytes = res.body().await?;
 
-            self.server_key = Some(yivi::VerifyingKey::RS256(jwt::RS256Pk(
-                rsa::pkcs1v15::VerifyingKey::<sha2::Sha256>::from_public_key_pem(
-                    std::str::from_utf8(&payload)?,
-                )
-                .context("decoding public key at {pk_url}")?,
-            )));
+            self.server_key = Some(yivi::VerifyingKey::RS256(
+                jwt::RS256Vk::from_public_key_pem(std::str::from_utf8(&payload)?)
+                    .context("decoding public key at {pk_url}")?,
+            ));
         }
 
         Ok(())

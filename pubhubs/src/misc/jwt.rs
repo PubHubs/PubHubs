@@ -9,6 +9,10 @@ use std::fmt;
 
 use base64ct::{Base64UrlUnpadded, Encoding as _};
 use hmac::Mac as _;
+use rsa::{
+    pkcs8::{DecodePublicKey as _, EncodePublicKey as _},
+    signature::Verifier as _,
+};
 use serde::{
     de::{DeserializeOwned, Visitor},
     Deserialize, Deserializer, Serialize,
@@ -16,7 +20,9 @@ use serde::{
 
 use crate::misc::time_ext;
 
-/// Wrapper around [String] to indicate it should be interpretted as a JWT.
+/// Wrapper around [`String`] to indicate it should be interpretted as a JWT.
+///
+/// Use [`JWT::from`] turn a [`String`] into a [`JWT`]..
 #[derive(Serialize, Deserialize, Debug, Clone)]
 #[serde(transparent)]
 pub struct JWT {
@@ -784,26 +790,69 @@ impl Key for HS256 {
 }
 
 /// RS256 public key  
+///
+/// **Note:** When a [`rsa::RsaPublicKey`] is used for signing under [`rsa::pkcs1v15`], a `prefix` is added
+/// to identify the hash used.  This additional information is encapsulated
+/// in a [`rsa::pkcs1v15::VerifyingKey`], which is just a [`rsa::RsaPublicKey`] plus `prefix`.
 #[derive(Clone, Debug)]
-pub struct RS256Pk(pub rsa::pkcs1v15::VerifyingKey<sha2::Sha256>);
+pub struct RS256Vk(rsa::pkcs1v15::VerifyingKey<sha2::Sha256>);
 
-impl PartialEq for RS256Pk {
-    fn eq(&self, other: &Self) -> bool {}
+impl RS256Vk {
+    pub fn new(pk: rsa::RsaPublicKey) -> Self {
+        // NOTE: `pk.into()` does not work here:  https://github.com/RustCrypto/RSA/issues/234
+        Self(rsa::pkcs1v15::VerifyingKey::<sha2::Sha256>::new(pk))
+    }
+
+    pub fn from_public_key_pem(pem: &str) -> anyhow::Result<Self> {
+        Ok(Self(
+            rsa::pkcs1v15::VerifyingKey::<sha2::Sha256>::from_public_key_pem(&pem)?,
+        ))
+    }
+
+    pub fn to_public_key_pem(&self) -> anyhow::Result<String> {
+        Ok(self.0.to_public_key_pem(Default::default())?)
+    }
+
+    /// Returns the underlying [`rsa::RsaPublicKey`], which completely determines this [`RS256Vk`].
+    pub fn as_rsa_pk(&self) -> &rsa::RsaPublicKey {
+        AsRef::<rsa::RsaPublicKey>::as_ref(&self.0)
+    }
 }
 
-impl Key for RS256Pk {
+/// For some reason [`PartialEq`] is not implemented for [`rsa::pkcs1v15::VerifyingKey`].
+///
+/// Maybe because checking equality of the `prefix` is often redundant, as it is in this case.
+impl PartialEq for RS256Vk {
+    fn eq(&self, other: &Self) -> bool {
+        // note: the `prefix` is fixed by our choice for `sha2::Sha256`
+        self.as_rsa_pk() == other.as_rsa_pk()
+    }
+}
+
+/// [`rsa::RsaPublicKey`] implements [`Eq`].`
+impl Eq for RS256Vk {}
+
+impl Key for RS256Vk {
     const ALG: &'static str = "RS256";
 }
 
-impl VerifyingKey for RS256Pk {
+impl VerifyingKey for RS256Vk {
     fn is_valid_signature(&self, message: &[u8], signature: Vec<u8>) -> bool {
-        self.0.verify(message, signature.try_into()?).is_ok()
+        let signature: rsa::pkcs1v15::Signature = match signature.as_slice().try_into() {
+            Ok(signature) => signature,
+            Err(_) => return false,
+        };
+
+        self.0.verify(message, &signature).is_ok()
     }
 
     fn describe(&self) -> String {
         format!("{self:?}")
     }
 }
+
+/// RS256 private key
+pub struct RS256Sk();
 
 /// Some common `FnOnce(Some(T))->Result<(),jwt::Error>`s for calling [`Claims::check`] and co.
 pub mod expecting {
@@ -945,5 +994,49 @@ mod tests {
                 .timestamp,
             1
         );
+    }
+
+    #[test]
+    fn test_rs256_verifying() {
+        // from appendix A.2 of RFC 7515
+        let jwt: JWT = concat!(
+            "eyJhbGciOiJSUzI1NiJ9",
+            ".",
+            "eyJpc3MiOiJqb2UiLA0KICJleHAiOjEzMDA4MTkzODAsDQogImh0dHA6Ly9leGFt",
+            "cGxlLmNvbS9pc19yb290Ijp0cnVlfQ",
+            ".",
+            "cC4hiUPoj9Eetdgtv3hF80EGrhuB__dzERat0XF9g2VtQgr9PJbu3XOiZj5RZmh7",
+            "AAuHIm4Bh-0Qc_lF5YKt_O8W2Fp5jujGbds9uJdbF9CUAr7t1dnZcAcQjbKBYNX4",
+            "BAynRFdiuB--f_nZLgrnbyTyWzO75vRK5h6xBArLIARNPvkSjtQBMHlb1L07Qe7K",
+            "0GarZRmB_eSN9383LcOLn6_dO--xi12jzDwusC-eOkHWEsqtFZESc6BfI7noOPqv",
+            "hJ1phCnvWh6IeYI2w9QOYEUipUTI8np6LbgGY9Fs98rqVt5AXLIhWkWywlVmtVrB",
+            "p0igcN_IoypGlUPQGe77Rw",
+        )
+        .to_string()
+        .into();
+
+        let pk = RS256Vk::new(
+            rsa::RsaPublicKey::new(
+                rsa::BigUint::from_bytes_be(
+                    // n
+                    &base64ct::Base64UrlUnpadded::decode_vec(concat!(
+                        "ofgWCuLjybRlzo0tZWJjNiuSfb4p4fAkd_wWJcyQoTbji9k0l8W26mPddx",
+                        "HmfHQp-Vaw-4qPCJrcS2mJPMEzP1Pt0Bm4d4QlL-yRT-SFd2lZS-pCgNMs",
+                        "D1W_YpRPEwOWvG6b32690r2jZ47soMZo9wGzjb_7OMg0LOL-bSf63kpaSH",
+                        "SXndS5z5rexMdbBYUsLA9e-KXBdQOS-UTo7WTBEMa2R2CapHg665xsmtdV",
+                        "MTBQY4uDZlxvb3qCo5ZwKh9kG4LT6_I5IhlJH7aGhyxXFvUK-DWNmoudF8",
+                        "NAco9_h9iaGNj8q2ethFkMLs91kzk2PAcDTW9gb54h4FRWyuXpoQ",
+                    ))
+                    .unwrap(),
+                ),
+                // e
+                rsa::BigUint::from_bytes_be(
+                    &base64ct::Base64UrlUnpadded::decode_vec("AQAB").unwrap(),
+                ),
+            )
+            .unwrap(),
+        );
+
+        let _ = jwt.open(&pk).unwrap();
     }
 }

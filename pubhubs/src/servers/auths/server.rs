@@ -208,10 +208,10 @@ impl App {
     }
 
     async fn handle_auth_complete_yivi(
-        app: Rc<Self>,
-        attr_types: Vec<attr::Type>,
-        state: AuthState,
-        disclosure: jwt::JWT,
+        _app: Rc<Self>,
+        _attr_types: Vec<attr::Type>,
+        _state: AuthState,
+        _disclosure: jwt::JWT,
     ) -> api::Result<api::auths::AuthCompleteResp> {
         todo! {}
     }
