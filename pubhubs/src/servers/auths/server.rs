@@ -70,7 +70,7 @@ struct AuthState {
 impl AuthState {
     fn seal(&self, key: &crypto::SealingKey) -> api::Result<api::auths::AuthState> {
         Ok(api::auths::AuthState::new(
-            crypto::seal(&self, &key, b"")
+            crypto::seal(&self, key, b"")
                 .map_err(|err| {
                     log::warn!("failed to seal AuthState: {err}");
                     api::ErrorCode::InternalError
@@ -80,7 +80,7 @@ impl AuthState {
     }
 
     fn unseal(sealed: &api::auths::AuthState, key: &crypto::SealingKey) -> api::Result<AuthState> {
-        crypto::unseal(&sealed.inner, &key, b"").map_err(|err| {
+        crypto::unseal(&sealed.inner, key, b"").map_err(|err| {
             log::debug!("failed to unseal AuthState: {err}");
             api::ErrorCode::BrokenSeal
         })
@@ -107,7 +107,7 @@ impl App {
 
     fn attr_types_from_handles(
         &self,
-        attr_type_handles: &Vec<handle::Handle>,
+        attr_type_handles: &[handle::Handle],
     ) -> api::Result<Vec<attr::Type>> {
         let mut attr_types = Vec::<attr::Type>::with_capacity(attr_type_handles.len());
 

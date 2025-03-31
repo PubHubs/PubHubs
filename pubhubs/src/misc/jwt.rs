@@ -810,7 +810,7 @@ impl RS256Vk {
 
     pub fn from_public_key_pem(pem: &str) -> anyhow::Result<Self> {
         Ok(Self(
-            rsa::pkcs1v15::VerifyingKey::<sha2::Sha256>::from_public_key_pem(&pem)?,
+            rsa::pkcs1v15::VerifyingKey::<sha2::Sha256>::from_public_key_pem(pem)?,
         ))
     }
 
@@ -876,7 +876,7 @@ impl SigningKey for RS256Sk {
     type Signature = Box<[u8]>;
 
     fn sign(&self, s: &[u8]) -> anyhow::Result<Self::Signature> {
-        Ok(self.0.sign(&s).to_bytes())
+        Ok(self.0.sign(s).to_bytes())
     }
 
     fn jwk(&self) -> serde_json::Value {
@@ -905,7 +905,7 @@ impl RS256Sk {
 
     pub fn from_pkcs8_pem(pem: &str) -> anyhow::Result<Self> {
         Ok(Self(
-            rsa::pkcs1v15::SigningKey::<sha2::Sha256>::from_pkcs8_pem(&pem)?,
+            rsa::pkcs1v15::SigningKey::<sha2::Sha256>::from_pkcs8_pem(pem)?,
         ))
     }
 

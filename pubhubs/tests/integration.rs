@@ -57,7 +57,7 @@ async fn main_integration_test() {
     .inspect_err(|err| log::error!("{}", err))
     .unwrap();
 
-    let sk = yivi::SigningKey::RS256(jwt::RS256Sk::random(512).unwrap());
+    let sk = yivi::SigningKey::RS256(Box::new(jwt::RS256Sk::random(512).unwrap()));
 
     config
         .auths

@@ -61,14 +61,14 @@ pub mod human_duration {
     {
         let s: &'de str = <&'de str>::deserialize(d)?;
 
-        humantime::parse_duration(&s).map_err(|err| D::Error::custom(err))
+        humantime::parse_duration(s).map_err(D::Error::custom)
     }
 
     pub fn serialize<S>(duration: &core::time::Duration, s: S) -> Result<S::Ok, S::Error>
     where
         S: serde::ser::Serializer,
     {
-        s.collect_str(&humantime::format_duration(duration.clone()))
+        s.collect_str(&humantime::format_duration(*duration))
     }
 }
 

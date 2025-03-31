@@ -27,7 +27,7 @@ pub fn url_seal<T: serde::Serialize>(
     key: &SealingKey,
     aad: impl AsRef<[u8]>,
 ) -> anyhow::Result<String> {
-    let buf: Vec<u8> = seal(obj, &key, aad)?;
+    let buf: Vec<u8> = seal(obj, key, aad)?;
 
     Ok(Base64Url::encode_string(&buf))
 }
@@ -40,7 +40,7 @@ pub fn url_unseal<T: serde::de::DeserializeOwned>(
 ) -> Result<T, crate::misc::error::Opaque> {
     let buf = Base64Url::decode_vec(envelope.as_ref()).map_err(|_| crate::misc::error::OPAQUE)?;
 
-    unseal(&buf, &key, aad)
+    unseal(&buf, key, aad)
 }
 
 /// Encodes and encrypts the given `obj` with additional associated data (or `b""` if `None`).

@@ -52,7 +52,7 @@ pub trait DigestibleSecret {
 
 impl DigestibleSecret for &[u8] {
     fn as_bytes(&self) -> &[u8] {
-        &self
+        self
     }
 }
 
