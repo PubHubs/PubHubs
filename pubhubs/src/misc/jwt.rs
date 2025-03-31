@@ -11,7 +11,8 @@ use base64ct::{Base64UrlUnpadded, Encoding as _};
 use hmac::Mac as _;
 use rsa::{
     pkcs8::{DecodePublicKey as _, EncodePublicKey as _},
-    signature::Verifier as _,
+    signature::{SignatureEncoding as _, Signer as _, Verifier as _},
+    traits::PublicKeyParts as _,
 };
 use serde::{
     de::{DeserializeOwned, Visitor},
@@ -852,7 +853,44 @@ impl VerifyingKey for RS256Vk {
 }
 
 /// RS256 private key
-pub struct RS256Sk();
+pub struct RS256Sk(rsa::pkcs1v15::SigningKey<sha2::Sha256>);
+
+impl Key for RS256Sk {
+    const ALG: &'static str = RS256Vk::ALG;
+}
+
+impl SigningKey for RS256Sk {
+    type Signature = Box<[u8]>;
+
+    fn sign(&self, s: &[u8]) -> anyhow::Result<Self::Signature> {
+        Ok(self.0.sign(&s).to_bytes())
+    }
+
+    fn jwk(&self) -> serde_json::Value {
+        let rsa_pub: &rsa::RsaPublicKey = self.as_rsa_pub();
+
+        serde_json::json!({
+            "kty": "RSA",
+            "alg": Self::ALG,
+            "mod": Base64UrlUnpadded::encode_string(&rsa_pub.n().to_bytes_be()),
+            "exp": Base64UrlUnpadded::encode_string(&rsa_pub.e().to_bytes_be()),
+        })
+    }
+}
+
+impl RS256Sk {
+    pub fn new(pk: rsa::RsaPrivateKey) -> Self {
+        Self(rsa::pkcs1v15::SigningKey::<sha2::Sha256>::new(pk))
+    }
+
+    pub fn as_rsa_priv(&self) -> &rsa::RsaPrivateKey {
+        AsRef::<rsa::RsaPrivateKey>::as_ref(&self.0)
+    }
+
+    pub fn as_rsa_pub(&self) -> &rsa::RsaPublicKey {
+        AsRef::<rsa::RsaPublicKey>::as_ref(self.as_rsa_priv())
+    }
+}
 
 /// Some common `FnOnce(Some(T))->Result<(),jwt::Error>`s for calling [`Claims::check`] and co.
 pub mod expecting {
@@ -997,8 +1035,85 @@ mod tests {
     }
 
     #[test]
-    fn test_rs256_verifying() {
+    fn test_rs256() {
         // from appendix A.2 of RFC 7515
+        let sk = RS256Sk::new(
+            rsa::RsaPrivateKey::from_components(
+                // n
+                rsa::BigUint::from_bytes_be(
+                    &base64ct::Base64UrlUnpadded::decode_vec(concat!(
+                        "ofgWCuLjybRlzo0tZWJjNiuSfb4p4fAkd_wWJcyQoTbji9k0l8W26mPddx",
+                        "HmfHQp-Vaw-4qPCJrcS2mJPMEzP1Pt0Bm4d4QlL-yRT-SFd2lZS-pCgNMs",
+                        "D1W_YpRPEwOWvG6b32690r2jZ47soMZo9wGzjb_7OMg0LOL-bSf63kpaSH",
+                        "SXndS5z5rexMdbBYUsLA9e-KXBdQOS-UTo7WTBEMa2R2CapHg665xsmtdV",
+                        "MTBQY4uDZlxvb3qCo5ZwKh9kG4LT6_I5IhlJH7aGhyxXFvUK-DWNmoudF8",
+                        "NAco9_h9iaGNj8q2ethFkMLs91kzk2PAcDTW9gb54h4FRWyuXpoQ",
+                    ))
+                    .unwrap(),
+                ),
+                // e
+                rsa::BigUint::from_bytes_be(
+                    &base64ct::Base64UrlUnpadded::decode_vec("AQAB").unwrap(),
+                ),
+                // d
+                rsa::BigUint::from_bytes_be(
+                    &base64ct::Base64UrlUnpadded::decode_vec(concat!(
+                        "Eq5xpGnNCivDflJsRQBXHx1hdR1k6Ulwe2JZD50LpXyWPEAeP88vLNO97I",
+                        "jlA7_GQ5sLKMgvfTeXZx9SE-7YwVol2NXOoAJe46sui395IW_GO-pWJ1O0",
+                        "BkTGoVEn2bKVRUCgu-GjBVaYLU6f3l9kJfFNS3E0QbVdxzubSu3Mkqzjkn",
+                        "439X0M_V51gfpRLI9JYanrC4D4qAdGcopV_0ZHHzQlBjudU2QvXt4ehNYT",
+                        "CBr6XCLQUShb1juUO1ZdiYoFaFQT5Tw8bGUl_x_jTj3ccPDVZFD9pIuhLh",
+                        "BOneufuBiB4cS98l2SR_RQyGWSeWjnczT0QU91p1DhOVRuOopznQ",
+                    ))
+                    .unwrap(),
+                ),
+                // primes
+                vec![
+                    // p
+                    rsa::BigUint::from_bytes_be(
+                        &base64ct::Base64UrlUnpadded::decode_vec(concat!(
+                            "4BzEEOtIpmVdVEZNCqS7baC4crd0pqnRH_5IB3jw3bcxGn6QLvnEtfdUdi",
+                            "YrqBdss1l58BQ3KhooKeQTa9AB0Hw_Py5PJdTJNPY8cQn7ouZ2KKDcmnPG",
+                            "BY5t7yLc1QlQ5xHdwW1VhvKn-nXqhJTBgIPgtldC-KDV5z-y2XDwGUc",
+                        ))
+                        .unwrap(),
+                    ),
+                    // q
+                    rsa::BigUint::from_bytes_be(
+                        &base64ct::Base64UrlUnpadded::decode_vec(concat!(
+                            "uQPEfgmVtjL0Uyyx88GZFF1fOunH3-7cepKmtH4pxhtCoHqpWmT8YAmZxa",
+                            "ewHgHAjLYsp1ZSe7zFYHj7C6ul7TjeLQeZD_YwD66t62wDmpe_HlB-TnBA",
+                            "-njbglfIsRLtXlnDzQkv5dTltRJ11BKBBypeeF6689rjcJIDEz9RWdc",
+                        ))
+                        .unwrap(),
+                    ),
+                ],
+            )
+            .unwrap(),
+        );
+
+        let to_sign: &str = concat!(
+            "eyJhbGciOiJSUzI1NiJ9",
+            ".",
+            "eyJpc3MiOiJqb2UiLA0KICJleHAiOjEzMDA4MTkzODAsDQogImh0dHA6Ly9leGFt",
+            "cGxlLmNvbS9pc19yb290Ijp0cnVlfQ",
+        );
+
+        let signature = sk.sign(&to_sign.as_bytes()).unwrap();
+
+        assert_eq!(
+            signature.as_ref(),
+            &Base64UrlUnpadded::decode_vec(concat!(
+                "cC4hiUPoj9Eetdgtv3hF80EGrhuB__dzERat0XF9g2VtQgr9PJbu3XOiZj5RZmh7",
+                "AAuHIm4Bh-0Qc_lF5YKt_O8W2Fp5jujGbds9uJdbF9CUAr7t1dnZcAcQjbKBYNX4",
+                "BAynRFdiuB--f_nZLgrnbyTyWzO75vRK5h6xBArLIARNPvkSjtQBMHlb1L07Qe7K",
+                "0GarZRmB_eSN9383LcOLn6_dO--xi12jzDwusC-eOkHWEsqtFZESc6BfI7noOPqv",
+                "hJ1phCnvWh6IeYI2w9QOYEUipUTI8np6LbgGY9Fs98rqVt5AXLIhWkWywlVmtVrB",
+                "p0igcN_IoypGlUPQGe77Rw",
+            ))
+            .unwrap()
+        );
+
         let jwt: JWT = concat!(
             "eyJhbGciOiJSUzI1NiJ9",
             ".",
@@ -1015,27 +1130,7 @@ mod tests {
         .to_string()
         .into();
 
-        let pk = RS256Vk::new(
-            rsa::RsaPublicKey::new(
-                rsa::BigUint::from_bytes_be(
-                    // n
-                    &base64ct::Base64UrlUnpadded::decode_vec(concat!(
-                        "ofgWCuLjybRlzo0tZWJjNiuSfb4p4fAkd_wWJcyQoTbji9k0l8W26mPddx",
-                        "HmfHQp-Vaw-4qPCJrcS2mJPMEzP1Pt0Bm4d4QlL-yRT-SFd2lZS-pCgNMs",
-                        "D1W_YpRPEwOWvG6b32690r2jZ47soMZo9wGzjb_7OMg0LOL-bSf63kpaSH",
-                        "SXndS5z5rexMdbBYUsLA9e-KXBdQOS-UTo7WTBEMa2R2CapHg665xsmtdV",
-                        "MTBQY4uDZlxvb3qCo5ZwKh9kG4LT6_I5IhlJH7aGhyxXFvUK-DWNmoudF8",
-                        "NAco9_h9iaGNj8q2ethFkMLs91kzk2PAcDTW9gb54h4FRWyuXpoQ",
-                    ))
-                    .unwrap(),
-                ),
-                // e
-                rsa::BigUint::from_bytes_be(
-                    &base64ct::Base64UrlUnpadded::decode_vec("AQAB").unwrap(),
-                ),
-            )
-            .unwrap(),
-        );
+        let pk = RS256Vk::new(sk.as_rsa_pub().clone());
 
         let _ = jwt.open(&pk).unwrap();
     }
