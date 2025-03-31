@@ -89,7 +89,7 @@ pub(crate) trait Server: Sized + 'static {
         constellation: &Constellation,
     ) -> Result<Self::ExtraRunningState>;
 
-    /// This function is called when the server is started to run disovery.
+    /// This function is called when the server is started to run discovery.
     ///
     /// It is only passed a shared (and thus immutable) reference to itself to prevent any modifications
     /// going unnoticed by [App] instances.
@@ -380,7 +380,7 @@ pub trait App<S: Server>: Clone + 'static {
         &self,
         phc_inf: api::DiscoveryInfoResp,
     ) -> LocalBoxFuture<'_, api::Result<Option<Constellation>>> {
-        log::debug!("{server_name}: running disovery", server_name = S::NAME);
+        log::debug!("{server_name}: running discovery", server_name = S::NAME);
 
         Box::pin(async move {
             if S::NAME == Name::PubhubsCentral {

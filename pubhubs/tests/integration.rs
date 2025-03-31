@@ -52,10 +52,22 @@ async fn main_integration_test() {
         
         [requestor_creds]
         name = "ph_auths"
-        key.hs256 = "c2VjcmV0""#, // Python: base64.b64encode(b"secret")
+        key.hs256 = "secret""#,
     )
     .inspect_err(|err| log::error!("{}", err))
     .unwrap();
+
+    let sk = yivi::SigningKey::RS256(jwt::RS256Sk::random(512).unwrap());
+
+    config
+        .auths
+        .as_mut()
+        .unwrap()
+        .extra
+        .yivi
+        .as_mut()
+        .unwrap()
+        .server_key = Some(sk.to_verifying_key());
 
     let (set, shutdown_sender) = servers::Set::new(&config).unwrap();
 

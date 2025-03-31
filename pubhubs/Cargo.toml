@@ -68,6 +68,7 @@ bin = [
 	"dep:aead",
 	"dep:postcard",
 	"dep:humantime",
+	"dep:zeroize",
 ]
 real_credentials = []
 old = [
@@ -109,6 +110,7 @@ old = [
 	"dep:url",
 	"dep:uuid",
 	"dep:urlencoding",
+	"dep:zeroize",
 ]
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
@@ -176,6 +178,7 @@ curve25519-dalek = { version = "4.1.3", features = ["rand_core", "digest", "serd
 ed25519-dalek = { version = "2.1", features = ["rand_core", "serde"], optional = true }
 rsa = { version = "0.9", features = ["sha2"], optional = true }
 hmac = { version = "0.12", optional = true }
+zeroize = { version = "1.8", optional = true }
 sha2 = { version = "0.10", optional = true }
 subtle = { version = "2.6", optional = true }
 typenum = { version = "1.17", optional = true }

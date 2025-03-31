@@ -150,9 +150,32 @@ pub struct Credentials<K> {
 #[serde(deny_unknown_fields)]
 pub enum SigningKey {
     #[serde(rename = "hs256")]
-    HS256(serde_ext::bytes_wrapper::B64<jwt::HS256>),
-    // We do not use the `Token` or `RS256` Yivi `auth_method`s,
+    HS256(jwt::HS256),
+    // We do not use the `Token`  Yivi `auth_method`s,
     // see: https://docs.yivi.app/irma-server#requestor-authentication
+    #[serde(rename = "rs256")]
+    RS256(#[serde(with = "rs256sk_encoding")] jwt::RS256Sk),
+}
+
+/// We encode the RS256 private key using the PEM-encoded PKCS #8 format
+mod rs256sk_encoding {
+    use super::*;
+
+    pub fn deserialize<'de, D>(d: D) -> Result<jwt::RS256Sk, D::Error>
+    where
+        D: serde::Deserializer<'de>,
+    {
+        let s: &'de str = <&'de str>::deserialize(d)?;
+
+        Ok(jwt::RS256Sk::from_pkcs8_pem(&s).map_err(|err| D::Error::custom(err))?)
+    }
+
+    pub fn serialize<S>(pk: &jwt::RS256Sk, s: S) -> Result<S::Ok, S::Error>
+    where
+        S: serde::ser::Serializer,
+    {
+        s.serialize_str(&pk.to_pkcs8_pem().map_err(|err| S::Error::custom(err))?)
+    }
 }
 
 impl SigningKey {
@@ -162,7 +185,17 @@ impl SigningKey {
     /// supports multiple algorithms.
     fn sign<C: serde::Serialize>(&self, claims: &C) -> Result<jwt::JWT, jwt::Error> {
         match self {
-            SigningKey::HS256(ref key) => jwt::JWT::create(claims, &**key),
+            SigningKey::HS256(ref key) => jwt::JWT::create(claims, &*key),
+            SigningKey::RS256(ref key) => jwt::JWT::create(claims, &*key),
+        }
+    }
+
+    pub fn to_verifying_key(&self) -> VerifyingKey {
+        match self {
+            SigningKey::HS256(key) => VerifyingKey::HS256(key.clone()),
+            SigningKey::RS256(key) => {
+                VerifyingKey::RS256(jwt::RS256Vk::new(key.as_rsa_pub().clone()))
+            }
         }
     }
 }
@@ -172,16 +205,16 @@ impl SigningKey {
 #[serde(deny_unknown_fields)]
 pub enum VerifyingKey {
     #[serde(rename = "hs256")]
-    HS256(serde_ext::bytes_wrapper::B64<jwt::HS256>),
+    HS256(jwt::HS256),
 
     #[serde(rename = "rs256")]
-    RS256(#[serde(with = "rs256pk_encoding")] jwt::RS256Vk),
+    RS256(#[serde(with = "rs256vk_encoding")] jwt::RS256Vk),
     // We do not use the `Token` Yivi `auth_method`s,
     // see: https://docs.yivi.app/irma-server#requestor-authentication
 }
 
-/// We encode the RS256 public key using the PEM-encoded PKCS #8 format, like yivi does.
-mod rs256pk_encoding {
+/// We encode the RS256 public key using the PEM-encoded PKCS #8 format
+mod rs256vk_encoding {
     use super::*;
 
     pub fn deserialize<'de, D>(d: D) -> Result<jwt::RS256Vk, D::Error>
@@ -208,7 +241,7 @@ impl VerifyingKey {
     /// Open the given jwt using this key
     fn open(&self, jwt: &jwt::JWT) -> Result<jwt::Claims, jwt::Error> {
         match self {
-            VerifyingKey::HS256(ref key) => jwt::JWT::open(&jwt, &**key),
+            VerifyingKey::HS256(ref key) => jwt::JWT::open(&jwt, &*key),
             VerifyingKey::RS256(ref key) => jwt::JWT::open(&jwt, &*key),
         }
     }

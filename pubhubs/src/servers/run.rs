@@ -447,7 +447,7 @@ impl DiscoveryLimiter {
     ///     correctly.
     ///  2. Retrieve discovery info from the other servers and construct a constellation from it.
     ///  3. If the constellation has changed, restart to update it.
-    ///  4. Invoke disovery on those servers that have no or outdated constellations,
+    ///  4. Invoke discovery on those servers that have no or outdated constellations,
     ///     and return a retryable error - effectively go back to step 1.
     ///
     ///

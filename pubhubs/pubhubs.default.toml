@@ -13,6 +13,14 @@ phc_url = 'http://localhost:8080'
 [auths]
 bind_to = '0.0.0.0:6060'
 
+#[auths.yivi]
+#requestor_url = "https://yivi.pubhubs.net"
+#server_name = "test"
+#
+#[auths.yivi.requestor_creds]
+#name = "requestor"
+#key.hs256 = "Asna"
+
 [[auths.attribute_types]]
 handles = ['email']
 id = "Fr7Gsfh73AU9k9N4eR9vDBINhMOImXm-Qqfkz0RxjwI"

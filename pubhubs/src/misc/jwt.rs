@@ -10,7 +10,9 @@ use std::fmt;
 use base64ct::{Base64UrlUnpadded, Encoding as _};
 use hmac::Mac as _;
 use rsa::{
-    pkcs8::{DecodePublicKey as _, EncodePublicKey as _},
+    pkcs8::{
+        DecodePrivateKey as _, DecodePublicKey as _, EncodePrivateKey as _, EncodePublicKey as _,
+    },
     signature::{SignatureEncoding as _, Signer as _, Verifier as _},
     traits::PublicKeyParts as _,
 };
@@ -853,7 +855,16 @@ impl VerifyingKey for RS256Vk {
 }
 
 /// RS256 private key
+#[derive(Clone, Debug)]
 pub struct RS256Sk(rsa::pkcs1v15::SigningKey<sha2::Sha256>);
+
+impl PartialEq for RS256Sk {
+    fn eq(&self, other: &Self) -> bool {
+        self.as_rsa_priv() == other.as_rsa_priv()
+    }
+}
+
+impl Eq for RS256Sk {}
 
 impl Key for RS256Sk {
     const ALG: &'static str = RS256Vk::ALG;
@@ -881,6 +892,23 @@ impl SigningKey for RS256Sk {
 impl RS256Sk {
     pub fn new(pk: rsa::RsaPrivateKey) -> Self {
         Self(rsa::pkcs1v15::SigningKey::<sha2::Sha256>::new(pk))
+    }
+
+    pub fn random(bit_size: usize) -> anyhow::Result<Self> {
+        Ok(Self::new(rsa::RsaPrivateKey::new(
+            &mut rand::rngs::OsRng,
+            bit_size,
+        )?))
+    }
+
+    pub fn from_pkcs8_pem(pem: &str) -> anyhow::Result<Self> {
+        Ok(Self(
+            rsa::pkcs1v15::SigningKey::<sha2::Sha256>::from_pkcs8_pem(&pem)?,
+        ))
+    }
+
+    pub fn to_pkcs8_pem(&self) -> anyhow::Result<zeroize::Zeroizing<String>> {
+        Ok(self.0.to_pkcs8_pem(Default::default())?)
     }
 
     pub fn as_rsa_priv(&self) -> &rsa::RsaPrivateKey {
