@@ -2,7 +2,13 @@
 use std::cell::OnceCell;
 
 use anyhow::Context as _;
-use serde::{self, de::Error as _, Deserialize as _, Serialize as _};
+use rsa::pkcs8::{DecodePublicKey as _, EncodePublicKey as _};
+use serde::{
+    self,
+    de::{Error as _, IntoDeserializer as _},
+    ser::Error as _,
+    Deserialize as _, Serialize as _,
+};
 
 use crate::misc::{jwt, serde_ext};
 
@@ -29,7 +35,7 @@ impl SessionRequest {
     /// Documentation: <https://docs.yivi.app/session-requests/#jwts-signed-session-requests>
     /// Reference code for disclosure request:
     ///     <https://github.com/privacybydesign/irmago/blob/d389b4559e007a0fcb4e78d1f6e073c1ad57bc13/requests.go#L957>
-    pub fn sign(self, creds: &Credentials) -> anyhow::Result<jwt::JWT> {
+    pub fn sign(self, creds: &Credentials<SigningKey>) -> anyhow::Result<jwt::JWT> {
         creds
             .key
             .sign(
@@ -130,12 +136,14 @@ pub struct AttributeRequest {
     pub ty: AttributeTypeIdentifier,
 }
 
-/// Credentials (name and key) for a requestor (or yivi server).
+/// Credentials (name and key) for a requestor or yivi server.
+///
+/// Use [`Credentials<SigningKey>`] or [`Credentials<VerifyingKey>`].
 #[derive(serde::Serialize, serde::Deserialize, Debug, Clone, PartialEq, Eq)]
 #[serde(deny_unknown_fields)]
-pub struct Credentials {
+pub struct Credentials<K> {
     pub name: String,
-    pub key: SigningKey,
+    pub key: K,
 }
 
 /// Private key used by a requestor or yivi server to sign their JWTs.
@@ -149,13 +157,64 @@ pub enum SigningKey {
 }
 
 impl SigningKey {
-    /// Sign the given claims using this requestor key.
+    /// Sign the given claims using this key.
     ///
     /// Note that [`SigningKey`] cannot implement [`jwt::Key`] because [`SigningKey`]
     /// supports multiple algorithms.
     fn sign<C: serde::Serialize>(&self, claims: &C) -> Result<jwt::JWT, jwt::Error> {
         match self {
             SigningKey::HS256(ref key) => jwt::JWT::create(claims, &**key),
+        }
+    }
+}
+
+/// Public key used by a requestor or yivi server to sign their JWTs.
+#[derive(serde::Serialize, serde::Deserialize, Debug, Clone, PartialEq, Eq)]
+#[serde(deny_unknown_fields)]
+pub enum VerifyingKey {
+    #[serde(rename = "hs256")]
+    HS256(serde_ext::bytes_wrapper::B64<jwt::HS256>),
+
+    #[serde(rename = "rs256")]
+    RS256(#[serde(with = "rs256pk_encoding")] jwt::RS256Pk),
+    // We do not use the `Token` Yivi `auth_method`s,
+    // see: https://docs.yivi.app/irma-server#requestor-authentication
+}
+
+/// We encode the RS256 public key using the PEM-encoded PKCS #8 format, like yivi does.
+mod rs256pk_encoding {
+    use super::*;
+
+    pub fn deserialize<'de, D>(d: D) -> Result<jwt::RS256Pk, D::Error>
+    where
+        D: serde::Deserializer<'de>,
+    {
+        let s: &'de str = <&'de str>::deserialize(d)?;
+
+        Ok(jwt::RS256Pk(
+            rsa::pkcs1v15::VerifyingKey::from_public_key_pem(&s)
+                .map_err(|err| D::Error::custom(err))?,
+        ))
+    }
+
+    pub fn serialize<S>(pk: &jwt::RS256Pk, s: S) -> Result<S::Ok, S::Error>
+    where
+        S: serde::ser::Serializer,
+    {
+        s.serialize_str(
+            &pk.0
+                .to_public_key_pem(Default::default())
+                .map_err(|err| S::Error::custom(err))?,
+        )
+    }
+}
+
+impl VerifyingKey {
+    /// Open the given jwt using this key
+    fn open(&self, jwt: &jwt::JWT) -> Result<jwt::Claims, jwt::Error> {
+        match self {
+            VerifyingKey::HS256(ref key) => jwt::JWT::open(&jwt, &**key),
+            VerifyingKey::RS256(ref key) => jwt::JWT::open(&jwt, &*key),
         }
     }
 }
@@ -204,7 +263,7 @@ impl SessionResult {
     /// <https://github.com/privacybydesign/irmago/blob/b1c38f4f2c9da3d3f39b5c21a330bcbd04143f41/server/api.go#L326>
     pub fn sign(
         self,
-        creds: &Credentials,
+        creds: &Credentials<SigningKey>,
         validity: std::time::Duration,
     ) -> anyhow::Result<jwt::JWT> {
         creds
@@ -214,9 +273,54 @@ impl SessionResult {
                     .iat_now()?
                     .exp_after(validity)?
                     .claim("iss", &creds.name)? // issuer is server name
-                    .claim("sub", format!("{}_result", self.session_type))?,
+                    .claim("sub", self.session_type.to_result_sub())?,
             )
             .context("signing session result")
+    }
+
+    /// Opens the given signed [`SessionResult`].
+    pub fn open_signed(
+        jwt: &jwt::JWT,
+        server_credentials: Credentials<VerifyingKey>,
+    ) -> anyhow::Result<Self> {
+        let mut session_type_perhaps: Option<SessionType> = None;
+
+        let session_result: Self = server_credentials
+            .key
+            .open(&jwt)
+            .context("invalid jwt")?
+            .check_iss(jwt::expecting::exactly(&server_credentials.name))?
+            .check_sub(
+                |claim_name: &'static str, sub: Option<String>| -> Result<(), jwt::Error> {
+                    let sub = sub.ok_or_else(|| jwt::Error::MissingClaim(claim_name))?;
+
+                    assert!(
+                        session_type_perhaps
+                            .replace(SessionType::from_result_sub(&sub).map_err(|err| {
+                                jwt::Error::InvalidClaim {
+                                    claim_name,
+                                    source: err,
+                                }
+                            })?)
+                            .is_none(),
+                        "bug: did not expect to set session_type twice"
+                    );
+
+                    Ok(())
+                },
+            )?
+            .into_custom()?;
+
+        let session_type = session_type_perhaps.expect("bug: expected session_type to be set here");
+
+        anyhow::ensure!(
+            session_result.session_type == session_type,
+            "session result jwt subject, {}, does not align with session result type, {}",
+            session_type,
+            session_result.session_type
+        );
+
+        Ok(session_result)
     }
 }
 
@@ -451,6 +555,30 @@ pub enum SessionType {
 impl std::fmt::Display for SessionType {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         self.serialize(f)
+    }
+}
+
+impl std::str::FromStr for SessionType {
+    type Err = serde::de::value::Error;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        Self::deserialize(s.into_deserializer())
+    }
+}
+
+impl SessionType {
+    /// Inverse of [`SessionType::to_result_sub`].
+    fn from_result_sub(sub: &str) -> anyhow::Result<Self> {
+        let stripped_sub = sub
+            .strip_suffix("_result")
+            .ok_or_else(|| anyhow::anyhow!("subject did not end with '_result'"))?;
+
+        Ok(stripped_sub.parse().context("unknown session type")?)
+    }
+
+    /// Returns the `sub` value used for this session type in signed session result JWTs.
+    fn to_result_sub(&self) -> String {
+        format!("{}_result", self)
     }
 }
 

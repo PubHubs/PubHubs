@@ -120,7 +120,7 @@ impl SetInner {
         macro_rules! run_server {
             ($server:ident) => {
                 if config.$server.is_some() {
-                    let config = config.prepare_for(crate::servers::$server::Server::NAME)?;
+                    let config = config.clone();
                     let rt_handle = rt_handle.clone();
                     let shutdown_receiver = shutdown_sender.subscribe();
 
@@ -162,13 +162,17 @@ impl SetInner {
         shutdown_receiver: tokio::sync::broadcast::Receiver<Infallible>,
         worker_count: Option<NonZero<usize>>,
     ) -> Result<()> {
-        assert!(config.preparation_state == crate::servers::config::PreparationState::Complete);
+        assert!(config.preparation_state == crate::servers::config::PreparationState::Preliminary);
 
         let localset = tokio::task::LocalSet::new();
 
-        let fut = localset.run_until(
-            crate::servers::run::Runner::<S>::new(&config, shutdown_receiver, worker_count)?.run(),
-        );
+        let fut = localset.run_until(async {
+            let config = config.prepare_for(S::NAME).await?;
+
+            crate::servers::run::Runner::<S>::new(&config, shutdown_receiver, worker_count)?
+                .run()
+                .await
+        });
 
         let result = rt_handle.block_on(fut);
 

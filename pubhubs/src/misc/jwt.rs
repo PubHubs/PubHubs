@@ -783,6 +783,28 @@ impl Key for HS256 {
     const ALG: &'static str = "HS256";
 }
 
+/// RS256 public key  
+#[derive(Clone, Debug)]
+pub struct RS256Pk(pub rsa::pkcs1v15::VerifyingKey<sha2::Sha256>);
+
+impl PartialEq for RS256Pk {
+    fn eq(&self, other: &Self) -> bool {}
+}
+
+impl Key for RS256Pk {
+    const ALG: &'static str = "RS256";
+}
+
+impl VerifyingKey for RS256Pk {
+    fn is_valid_signature(&self, message: &[u8], signature: Vec<u8>) -> bool {
+        self.0.verify(message, signature.try_into()?).is_ok()
+    }
+
+    fn describe(&self) -> String {
+        format!("{self:?}")
+    }
+}
+
 /// Some common `FnOnce(Some(T))->Result<(),jwt::Error>`s for calling [`Claims::check`] and co.
 pub mod expecting {
     use super::*;

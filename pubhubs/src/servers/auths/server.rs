@@ -47,7 +47,8 @@ pub struct App {
 #[derive(Debug, Clone)]
 pub struct YiviCtx {
     requestor_url: url::Url,
-    requestor_creds: servers::yivi::Credentials,
+    requestor_creds: yivi::Credentials<yivi::SigningKey>,
+    server_creds: yivi::Credentials<yivi::VerifyingKey>,
 }
 
 impl App {
@@ -91,16 +92,7 @@ impl App {
         app: Rc<Self>,
         req: web::Json<api::auths::AuthStartReq>,
     ) -> api::Result<api::auths::AuthStartResp> {
-        let mut attr_types = Vec::<attr::Type>::with_capacity(req.attr_types.len());
-
-        for attr_type_handle in req.attr_types.iter() {
-            if let Some(attr_type) = app.attribute_types.get(attr_type_handle) {
-                attr_types.push(attr_type.clone());
-            } else {
-                log::debug!("got authentication start request with unknown attribute type handle: {attr_type_handle}");
-                return Err(api::ErrorCode::UnknownAttributeType);
-            }
-        }
+        let attr_types: Vec<attr::Type> = app.attr_types_from_handles(&req.attr_types)?;
 
         let state = AuthState {
             source: req.source,
@@ -111,6 +103,24 @@ impl App {
         match req.source {
             attr::Source::Yivi => Self::handle_auth_start_yivi(app, attr_types, state).await,
         }
+    }
+
+    fn attr_types_from_handles(
+        &self,
+        attr_type_handles: &Vec<handle::Handle>,
+    ) -> api::Result<Vec<attr::Type>> {
+        let mut attr_types = Vec::<attr::Type>::with_capacity(attr_type_handles.len());
+
+        for attr_type_handle in attr_type_handles.iter() {
+            if let Some(attr_type) = self.attribute_types.get(attr_type_handle) {
+                attr_types.push(attr_type.clone());
+            } else {
+                log::debug!("got authentication start request with unknown attribute type handle: {attr_type_handle}");
+                return Err(api::ErrorCode::UnknownAttributeType);
+            }
+        }
+
+        Ok(attr_types)
     }
 
     async fn handle_auth_start_yivi(
@@ -165,8 +175,44 @@ impl App {
         app: Rc<Self>,
         req: web::Json<api::auths::AuthCompleteReq>,
     ) -> api::Result<api::auths::AuthCompleteResp> {
+        let req: api::auths::AuthCompleteReq = req.into_inner();
+
         let state: AuthState = AuthState::unseal(&req.state, &app.auth_state_secret)?;
 
+        if state.exp < jwt::NumericDate::now() {
+            return Err(api::ErrorCode::Expired);
+        }
+
+        let attr_types = app
+            .attr_types_from_handles(&state.attr_types)
+            .map_err(|err| {
+                log::error!("unexpected error: {err}");
+                api::ErrorCode::InternalError
+            })?;
+
+        match state.source {
+            attr::Source::Yivi => {
+                Self::handle_auth_complete_yivi(
+                    app,
+                    attr_types,
+                    state,
+                    match req.proof {
+                        api::auths::AuthProof::Yivi { disclosure } => disclosure,
+                        #[expect(unreachable_patterns)]
+                        _ => return Err(api::ErrorCode::InvalidAuthProof),
+                    },
+                )
+                .await
+            }
+        }
+    }
+
+    async fn handle_auth_complete_yivi(
+        app: Rc<Self>,
+        attr_types: Vec<attr::Type>,
+        state: AuthState,
+        disclosure: jwt::JWT,
+    ) -> api::Result<api::auths::AuthCompleteResp> {
         todo! {}
     }
 }
@@ -232,6 +278,7 @@ impl crate::servers::AppCreator<Server> for AppCreator {
         let yivi: Option<YiviCtx> = xconf.yivi.as_ref().map(|cfg| YiviCtx {
             requestor_url: cfg.requestor_url.as_ref().clone(),
             requestor_creds: cfg.requestor_creds.clone(),
+            server_creds: cfg.server_creds(),
         });
 
         let auth_state_secret: crypto::SealingKey = base

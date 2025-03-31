@@ -1,5 +1,6 @@
 //! Additional endpoints provided by the authentication server
 use crate::api::*;
+use crate::handle;
 use crate::misc::jwt;
 
 use serde::{Deserialize, Serialize};
@@ -90,5 +91,5 @@ pub enum AuthProof {
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct AuthCompleteResp {
-    attrs: Vec<Signed<crate::attr::Attr>>,
+    attrs: std::collections::HashMap<handle::Handle, Signed<crate::attr::Attr>>,
 }

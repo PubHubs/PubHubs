@@ -163,6 +163,12 @@ pub enum ErrorCode {
 
     #[error("could not unseal data: corrupted or outdated")]
     BrokenSeal,
+
+    #[error("invalid authentication proof")]
+    InvalidAuthProof,
+
+    #[error("expired data")]
+    Expired,
 }
 use ErrorCode::*;
 
@@ -190,6 +196,8 @@ impl ErrorCode {
             | MissingAttributeSource
             | YiviNotConfigured
             | NotImplemented
+            | Expired
+            | InvalidAuthProof
             | BrokenSeal => ErrorInfo {
                 retryable: Some(false),
             },

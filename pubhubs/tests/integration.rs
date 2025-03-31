@@ -48,6 +48,7 @@ async fn main_integration_test() {
     config.auths.as_mut().unwrap().extra.yivi = toml::from_str(
         r#"
         requestor_url = "http://192.0.2.0"  # will not be used - placeholder ip address from RFC5737
+        server_name = "yivi-server"
         
         [requestor_creds]
         name = "ph_auths"
@@ -265,7 +266,7 @@ async fn main_integration_test_local(config: servers::Config, admin_sk: api::Sig
         },
     );
 
-    let yivi_server_creds: yivi::Credentials = toml::from_str(
+    let yivi_server_creds: yivi::Credentials<yivi::SigningKey> = toml::from_str(
         r#"name = "yivi-server"
         key.hs256 = "c2VjcmV0""#,
     )

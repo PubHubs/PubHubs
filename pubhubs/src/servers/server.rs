@@ -660,7 +660,7 @@ impl<S: Server> AppBase<S> {
             );
             api::ErrorCode::BadRequest
         })?;
-        new_config.prepare().into_ec(|err| {
+        new_config.prepare().await.into_ec(|err| {
             log::warn!(
                 "{}: failed to reprepare modified configuration: {err}",
                 S::NAME
