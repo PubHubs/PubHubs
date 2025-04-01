@@ -177,9 +177,9 @@ impl Config {
 
         // destruct to make sure we consider every field of Config
         let Self {
-            ref host_aliases,
-            ref phc_url,
-            ref wd,
+            host_aliases,
+            phc_url,
+            wd,
             preparation_state,
             phc: _,
             transcryptor: _,
@@ -419,7 +419,7 @@ impl<Extra: PrepareConfig<Pcc> + GetServerType> PrepareConfig<Pcc> for ServerCon
             sk.verifying_key().into()
         });
 
-        if let Some(&mut ref mut osc) = &mut self.object_store.as_mut() {
+        if let &mut Some(&mut ref mut osc) = &mut self.object_store.as_mut() {
             c.get::<HostAliases>()
                 .expect("host aliases were not passed along")
                 .dealias(&mut osc.url);

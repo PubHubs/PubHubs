@@ -21,7 +21,7 @@ impl HostAlias {
     /// If [`HostAlias`] has been resolved to an [`IpAddr`], return that ip address.
     fn as_ip(&self) -> Option<&IpAddr> {
         match self {
-            HostAlias::Ip(ref ip) => Some(ip),
+            HostAlias::Ip(ip) => Some(ip),
             _ => None,
         }
     }
@@ -153,7 +153,7 @@ impl<'a> Resolver<'a> {
 
         let ip: IpAddr = match ha {
             HostAlias::Ip(_) => return Ok(Ok(())), // already resolved
-            HostAlias::SourceIpFor(ref url_pwa) => {
+            HostAlias::SourceIpFor(url_pwa) => {
                 let url_pwa = match self.try_dealias_url_pwa(url_pwa.clone()) {
                     Ok(url_pwa) => url_pwa,
                     Err(dep) => return Ok(Err(dep)),
@@ -280,7 +280,7 @@ impl UrlPwa {
     /// Returns underlying [`Url`] which may, or may not (anymore) contain an host alias.
     fn url_perhaps_with_alias(&self) -> &Url {
         match self {
-            UrlPwa::PerhapsWithAlias(ref u) | UrlPwa::WithoutAlias(ref u) => u,
+            UrlPwa::PerhapsWithAlias(u) | UrlPwa::WithoutAlias(u) => u,
         }
     }
 }
@@ -311,7 +311,7 @@ impl<'de> serde::Deserialize<'de> for UrlPwa {
 
 impl AsRef<Url> for UrlPwa {
     fn as_ref(&self) -> &url::Url {
-        if let UrlPwa::WithoutAlias(ref url) = self {
+        if let UrlPwa::WithoutAlias(url) = self {
             return url;
         }
         panic!("internal error: url {self} is used but might still contain a host alias.  it should have been dealiased during configuration processing.");

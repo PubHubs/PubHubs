@@ -36,6 +36,7 @@ common = [
 	"dep:digest",
 	"dep:typenum",
 	"dep:sha2",
+	"dep:zeroize",
 ]
 bin = [
 	"common",
@@ -69,6 +70,7 @@ bin = [
 	"dep:postcard",
 	"dep:humantime",
 	"dep:zeroize",
+	"dep:bytes",
 ]
 real_credentials = []
 old = [
@@ -110,7 +112,6 @@ old = [
 	"dep:url",
 	"dep:uuid",
 	"dep:urlencoding",
-	"dep:zeroize",
 ]
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html

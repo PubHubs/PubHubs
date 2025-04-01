@@ -189,8 +189,8 @@ impl SigningKey {
     /// supports multiple algorithms.
     fn sign<C: serde::Serialize>(&self, claims: &C) -> Result<jwt::JWT, jwt::Error> {
         match self {
-            SigningKey::HS256(ref key) => jwt::JWT::create(claims, key),
-            SigningKey::RS256(ref key) => jwt::JWT::create(claims, &**key),
+            SigningKey::HS256(key) => jwt::JWT::create(claims, key),
+            SigningKey::RS256(key) => jwt::JWT::create(claims, &**key),
         }
     }
 
@@ -242,8 +242,8 @@ impl VerifyingKey {
     /// Open the given jwt using this key
     fn open(&self, jwt: &jwt::JWT) -> Result<jwt::Claims, jwt::Error> {
         match self {
-            VerifyingKey::HS256(ref key) => jwt::JWT::open(jwt, key),
-            VerifyingKey::RS256(ref key) => jwt::JWT::open(jwt, key),
+            VerifyingKey::HS256(key) => jwt::JWT::open(jwt, key),
+            VerifyingKey::RS256(key) => jwt::JWT::open(jwt, key),
         }
     }
 }

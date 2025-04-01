@@ -454,7 +454,7 @@ pub mod http {
 
             HEADERS
                 .into_iter()
-                .filter_map(|(name, gen)| gen(self).map(|value| (name, value)))
+                .filter_map(|(name, g)| g(self).map(|value| (name, value)))
         }
 
         /// Returns the HTTP body associated with this response.
@@ -1216,7 +1216,7 @@ impl ClientId {
 
     /// Given the client's `bare_id`, the hmac `secret` and the `redirect_uri`,
     /// computes the associated hmac, returned as [hmac::Mac].
-    fn compute_mac(bare_id: &str, secret: &[u8], redirect_uri: &str) -> impl hmac::Mac {
+    fn compute_mac(bare_id: &str, secret: &[u8], redirect_uri: &str) -> impl hmac::Mac + use<> {
         <hmac::Hmac<sha2::Sha256> as hmac::Mac>::new_from_slice(secret)
             // currently, new_from_slice never returns an error
             .expect("expected no error from 'Hmac::new_from_slice'")
@@ -1244,7 +1244,7 @@ impl ClientId {
         }
     }
 
-    fn password_mac(client_id: &str, secret: &[u8]) -> impl hmac::Mac {
+    fn password_mac(client_id: &str, secret: &[u8]) -> impl hmac::Mac + use<> {
         <hmac::Hmac<sha2::Sha256> as hmac::Mac>::new_from_slice(secret)
             // currently, new_from_slice never returns an error
             .expect("expected no error from 'Hmac::new_from_slice'")

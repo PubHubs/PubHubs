@@ -200,11 +200,10 @@ impl App {
 
         let req = signed_req.clone().open_without_checking_signature()?;
 
-        let hub = if let Some(hub) = app.hubs.get(&req.handle) {
-            hub
-        } else {
-            return Err(api::ErrorCode::UnknownHub);
-        };
+        let hub = app
+            .hubs
+            .get(&req.handle)
+            .ok_or(api::ErrorCode::UnknownHub)?;
 
         let resp = app
             .base

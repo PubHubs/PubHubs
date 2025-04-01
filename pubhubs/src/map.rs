@@ -98,8 +98,8 @@ pub enum HandleOrId {
 impl std::fmt::Display for HandleOrId {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match &self {
-            HandleOrId::Handle(ref handle) => handle.fmt(f),
-            HandleOrId::Id(ref id) => id.fmt(f),
+            HandleOrId::Handle(handle) => handle.fmt(f),
+            HandleOrId::Id(id) => id.fmt(f),
         }
     }
 }

@@ -97,7 +97,7 @@ impl Client {
         &self,
         server_url: &url::Url,
         req: &EP::RequestType,
-    ) -> impl std::future::Future<Output = Result<EP::ResponseType>> + 'static {
+    ) -> impl std::future::Future<Output = Result<EP::ResponseType>> + 'static + use<EP> {
         // endpoint url
         let ep_url = {
             let result = server_url.join(EP::PATH);
