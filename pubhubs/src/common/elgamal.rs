@@ -552,7 +552,7 @@ pub mod abi {
     /// are readable, and plaintext is writable, and are not otherwise modified.
     ///
     /// For more details, see [core::slice::from_raw_parts] and [core::slice::from_raw_parts_mut].
-    #[no_mangle]
+    #[unsafe(no_mangle)]
     pub unsafe extern "C" fn decrypt(
         plaintext: *mut u8,
         ciphertext: *const u8,
