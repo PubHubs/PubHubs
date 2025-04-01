@@ -22,7 +22,7 @@
 								<span class="~text-label-small-min/label-small-max">|</span>
 								<EventTime :timestamp="event.origin_server_ts" :showDate="true"> </EventTime>
 							</span>
-							<ProfileAttributes class="inline-block pl-2" v-if="props.room.getType() == RoomType.PH_MESSAGES_RESTRICTED" :user="event.sender" :room_id="event.room_id" />
+							<ProfileAttributes class="flex-1" v-if="props.room.getType() == RoomType.PH_MESSAGES_RESTRICTED" :user="event.sender" :room_id="event.room_id" />
 						</div>
 
 						<div>
@@ -33,20 +33,26 @@
 								<Icon v-if="msgIsNotSend && !connection.isOn" type="lost-connection" size="sm" class="text-red mb-1 ml-2" />
 							</template>
 							<RoomEventActionsPopup v-if="!deleteMessageDialog">
-								<button v-if="!msgIsNotSend && !redactedMessage && !isThreadRoot" @click="reply" class="rounded-md p-1 text-on-surface-variant hover:bg-accent-primary hover:text-background">
+								<button
+									v-if="!msgIsNotSend && !redactedMessage && !isThreadRoot"
+									@click="reply"
+									class="flex items-center justify-center rounded-md p-1 text-on-surface-variant transition-all duration-300 ease-in-out hover:w-fit hover:bg-accent-primary hover:text-on-accent-primary"
+									:title="$t('message.reply')"
+								>
 									<Icon :type="'reply'" size="xs" />
 								</button>
 								<button
 									v-if="!viewFromThread && threadLength <= 0 && canReplyInThread && !msgIsNotSend && !redactedMessage"
 									@click="replyInThread"
-									class="hover:text-backgroundp-1 flec items-center justify-center rounded-md p-1 text-on-surface-variant hover:bg-accent-primary"
+									class="flex items-center justify-center rounded-md p-1 text-on-surface-variant transition-all duration-300 ease-in-out hover:w-fit hover:bg-accent-primary hover:text-on-accent-primary"
+									:title="$t('message.reply_in_thread')"
 								>
 									<Icon :type="'talk'" :size="'xs'"></Icon>
 								</button>
 								<button
 									v-if="!msgIsNotSend && user.isAdmin && event.sender !== user.user.userId && settings.isFeatureEnabled(FeatureFlag.disclosure)"
 									@click="router.push({ name: 'ask-disclosure', query: { user: event.sender } })"
-									class="flex rounded-md p-1 text-on-surface-variant hover:bg-accent-primary hover:text-background"
+									class="flex items-center justify-center rounded-md p-1 text-on-surface-variant transition-all duration-300 ease-in-out hover:w-fit hover:bg-accent-primary hover:text-on-accent-primary"
 									:title="$t('menu.moderation_tools_disclosure')"
 								>
 									<Icon :type="'warning'" size="xs" />
@@ -54,7 +60,7 @@
 								<button
 									v-if="settings.isFeatureEnabled(FeatureFlag.deleteMessages) && !msgIsNotSend && event.sender === user.user.userId && !redactedMessage"
 									@click="onDeleteMessage(event)"
-									class="rounded-md p-1 text-on-surface-variant hover:bg-accent-error hover:text-background"
+									class="flex items-center justify-center rounded-md p-1 text-on-surface-variant transition-all duration-300 ease-in-out hover:w-fit hover:bg-accent-red hover:text-on-accent-red"
 									:title="$t('menu.delete_message')"
 								>
 									<Icon :type="'bin'" size="xs" />

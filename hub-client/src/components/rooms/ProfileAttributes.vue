@@ -1,14 +1,14 @@
 <template>
-	<span v-if="roomAttributes.length > 0" class="flex items-center gap-x-1">
+	<span v-if="roomAttributes.length > 0" class="flex w-full items-center gap-x-1">
 		<span
 			v-for="value in roomAttributes"
 			:key="value"
 			:class="value === 'rooms.admin_badge' ? 'bg-accent-primary' : 'bg-surface text-on-surface-variant'"
-			class="flex items-center gap-1 rounded-full px-2 lowercase text-background ~text-label-small-min/label-small-max"
+			class="flex w-fit items-center gap-1 rounded-full px-2 lowercase text-background ~text-label-small-min/label-small-max"
 		>
-			<Icon type="check" size="xs" :class="value === 'rooms.admin_badge' ? 'text-background' : 'text-on-surface-variant'" />
-			<span v-if="value === 'rooms.admin_badge'">{{ $t(value) }}</span>
-			<span v-else>{{ value }}</span>
+			<Icon type="check" size="xs" :class="value === 'rooms.admin_badge' ? 'text-background' : 'text-on-surface-variant'" class="py-1" />
+			<span v-if="value === 'rooms.admin_badge'" class="line-clamp-1">{{ $t(value) }}</span>
+			<span v-else class="line-clamp-1">{{ value }}</span>
 		</span>
 	</span>
 </template>

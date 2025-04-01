@@ -22,6 +22,7 @@ import { useMessageActions } from '@/logic/store/message-actions';
 import { RoomPowerLevelsEventContent } from 'matrix-js-sdk/lib/@types/state_events';
 
 let publicRoomsLoading: Promise<any> | null = null; // outside of defineStore to guarantee lifetime, not accessible outside this module
+let updateRoomsPerforming: Promise<void> | null = null; // outside of defineStore to guarantee lifetime, not accessible outside this module
 
 const logger = LOGGER;
 
@@ -63,8 +64,8 @@ const usePubHubs = defineStore('pubhubs', {
 
 				const events = new Events(this.client as MatrixClient);
 
-				/* await is necessary for timing, otherwise the roomnames in the roomlist appear as ID's */
-				await events.initEvents();
+				/* is await necessary? */
+				events.initEvents();
 
 				logger.trace(SMI.STARTUP, 'PubHubs.logged in ()');
 				const connection = useConnection();
@@ -93,8 +94,6 @@ const usePubHubs = defineStore('pubhubs', {
 					// 	}
 					// });
 
-					// TODO UpdateRooms is called several times during startup from different places.
-					// We need only call it once during startup, the other calls should be replaced by single room calls
 					this.updateRooms();
 					// 2024 12 03 The await is removed, because of slow loading testhub
 					// After the next merge to stable, in case this gives no problems,
@@ -112,14 +111,59 @@ const usePubHubs = defineStore('pubhubs', {
 		},
 
 		// Will check with the homeserver for changes in joined rooms and update the local situation to reflect that.
+		// async updateRooms() {
+		// 	const rooms = useRooms();
+
+		// 	const joinedRooms = (await this.client.getJoinedRooms()).joined_rooms; //Actually makes an HTTP request to the Hub server.
+		// 	let knownRooms = this.client.getRooms();
+		// 	// Make sure the metrix js SDK client is aware of all the rooms the user has joined
+		// 	for (const room_id of joinedRooms) {
+		// 		if (!knownRooms.find((kr) => kr.roomId === room_id)) {
+		// 			const room = await this.client.joinRoom(room_id);
+		// 			this.client.store.storeRoom(room);
+		// 		}
+		// 	}
+
+		// 	knownRooms = this.client.getRooms();
+
+		// 	const currentRooms = knownRooms.filter((room) => joinedRooms.indexOf(room.roomId) !== -1);
+		// 	logger.trace(SMI.STORE, 'PubHubs.updateRooms');
+		// 	rooms.updateRoomsWithMatrixRooms(currentRooms);
+		// 	await rooms.fetchPublicRooms();
+		// },
+
 		async updateRooms() {
+			// if promise already running: return promise
+			if (updateRoomsPerforming) {
+				return updateRoomsPerforming;
+			}
+
+			// create promise
+			updateRoomsPerforming = new Promise<void>((resolve, reject) => {
+				try {
+					resolve(this.performUpdateRooms());
+				} catch (error) {
+					reject(error);
+				}
+			}).then((x) => {
+				updateRoomsPerforming = null;
+				return x;
+			});
+
+			// return promise
+			return updateRoomsPerforming;
+		},
+
+		// actual performing of updateRooms
+		// Will check with the homeserver for changes in joined rooms and update the local situation to reflect that.
+		async performUpdateRooms(this) {
 			const rooms = useRooms();
 
 			const joinedRooms = (await this.client.getJoinedRooms()).joined_rooms; //Actually makes an HTTP request to the Hub server.
 			let knownRooms = this.client.getRooms();
 			// Make sure the metrix js SDK client is aware of all the rooms the user has joined
 			for (const room_id of joinedRooms) {
-				if (!knownRooms.find((kr) => kr.roomId === room_id)) {
+				if (!knownRooms.find((kr: any) => kr.roomId === room_id)) {
 					const room = await this.client.joinRoom(room_id);
 					this.client.store.storeRoom(room);
 				}
@@ -127,10 +171,11 @@ const usePubHubs = defineStore('pubhubs', {
 
 			knownRooms = this.client.getRooms();
 
-			const currentRooms = knownRooms.filter((room) => joinedRooms.indexOf(room.roomId) !== -1);
+			const currentRooms = knownRooms.filter((room: any) => joinedRooms.indexOf(room.roomId) !== -1);
 			logger.trace(SMI.STORE, 'PubHubs.updateRooms');
+
 			rooms.updateRoomsWithMatrixRooms(currentRooms);
-			await rooms.fetchPublicRooms();
+			rooms.fetchPublicRooms();
 		},
 
 		/**

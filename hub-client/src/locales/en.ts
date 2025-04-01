@@ -320,6 +320,8 @@ const en = {
 		in_reply_to: 'In reply to:',
 		notification: 'New message in hub',
 		upload_file: 'Upload file',
+		reply: 'Reply',
+		reply_in_thread: 'Reply in thread',
 		sign: {
 			add_signature: 'Sign message',
 			heading: 'Signing a message',
