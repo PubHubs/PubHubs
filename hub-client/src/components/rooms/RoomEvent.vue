@@ -22,7 +22,7 @@
 								<span class="~text-label-small-min/label-small-max">|</span>
 								<EventTime :timestamp="event.origin_server_ts" :showDate="true"> </EventTime>
 							</span>
-							<ProfileAttributes class="inline-block pl-2" v-if="props.room.getType() == RoomType.PH_MESSAGES_RESTRICTED" :user="event.sender" :room_id="event.room_id" />
+							<ProfileAttributes class="flex-1" v-if="props.room.getType() == RoomType.PH_MESSAGES_RESTRICTED" :user="event.sender" :room_id="event.room_id" />
 						</div>
 
 						<div>
