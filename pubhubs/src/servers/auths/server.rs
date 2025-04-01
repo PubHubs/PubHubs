@@ -4,7 +4,7 @@ use std::rc::Rc;
 use actix_web::web;
 use digest::Digest as _;
 
-use crate::servers::{self, yivi, AppBase, AppCreatorBase, Constellation, Handle};
+use crate::servers::{self, yivi, AppBase, AppCreatorBase, Constellation, Handle, Server as _};
 use crate::{
     api::{self, EndpointDetails as _, ResultExt as _},
     attr,
@@ -147,7 +147,7 @@ impl App {
             }
 
             if dc.is_empty() {
-                log::debug!("got yivi authentication start request for {attr_ty}, but yivi is not supported for this attribute type");
+                log::debug!("{}: got yivi authentication start request for {attr_ty}, but yivi is not supported for this attribute type", Server::NAME);
                 return Err(api::ErrorCode::MissingAttributeSource);
             }
 
@@ -157,7 +157,10 @@ impl App {
         let disclosure_request: jwt::JWT = servers::yivi::SessionRequest::disclosure(cdc)
             .sign(&yivi.requestor_creds)
             .into_ec(|err| {
-                log::error!("failed to create signed disclosure request: {err}");
+                log::error!(
+                    "{}: failed to create signed disclosure request: {err}",
+                    Server::NAME
+                );
 
                 api::ErrorCode::InternalError
             })?;
@@ -208,11 +211,22 @@ impl App {
     }
 
     async fn handle_auth_complete_yivi(
-        _app: Rc<Self>,
-        _attr_types: Vec<attr::Type>,
-        _state: AuthState,
-        _disclosure: jwt::JWT,
+        app: Rc<Self>,
+        attr_types: Vec<attr::Type>,
+        state: AuthState,
+        disclosure: jwt::JWT,
     ) -> api::Result<api::auths::AuthCompleteResp> {
+        let yivi = app.get_yivi()?;
+
+        let ssr =
+            yivi::SessionResult::open_signed(&disclosure, &yivi.server_creds).map_err(|err| {
+                log::debug!(
+                    "{}: invalid yivi signed session result submitted: {err}",
+                    Server::NAME,
+                );
+                api::ErrorCode::InvalidAuthProof
+            })?;
+
         todo! {}
     }
 }

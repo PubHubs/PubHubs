@@ -310,7 +310,7 @@ impl SessionResult {
     /// Opens the given signed [`SessionResult`].
     pub fn open_signed(
         jwt: &jwt::JWT,
-        server_credentials: Credentials<VerifyingKey>,
+        server_credentials: &Credentials<VerifyingKey>,
     ) -> anyhow::Result<Self> {
         let mut session_type_perhaps: Option<SessionType> = None;
 
@@ -351,6 +351,45 @@ impl SessionResult {
 
         Ok(session_result)
     }
+
+    /// Verifies that this [`SessionResult`] is valid.
+    fn validate(&self) -> anyhow::Result<()> {
+        anyhow::ensure!(
+            self.status == Status::Done,
+            "session status is not 'done', but {}",
+            self.status
+        );
+
+        if let Some(proof_status) = self.proof_status {
+            anyhow::ensure!(
+                proof_status == ProofStatus::Valid,
+                "session proof status is not 'valid', but {}",
+                proof_status
+            );
+        }
+
+        if let Some(error) = &self.error {
+            anyhow::bail!(
+                "session result error field set: {}",
+                serde_json::to_string(&error).unwrap_or_else(|_| "<ERROR SERIALIZING>".to_string()),
+            );
+        }
+
+        if let Some(disclosed) = &self.disclosed {
+            for (i, con) in disclosed.iter().enumerate() {
+                for (j, dattr) in con.iter().enumerate() {
+                    dattr.validate().with_context(|| {
+                        format!(
+                        "something is wrong with disclosed attribute number {i} sub {j} of type {}",
+                        dattr.id,
+                    )
+                    })?;
+                }
+            }
+        }
+
+        Ok(())
+    }
 }
 
 /// Disclosure of a single attribute
@@ -387,6 +426,26 @@ impl DisclosedAttribute {
             not_revoked: None,
             not_revoked_before: None,
         }
+    }
+
+    /// Verifies that this [`DisclosedAttribute`] is valid.
+    fn validate(&self) -> anyhow::Result<()> {
+        anyhow::ensure!(
+            self.status == AttributeProofStatus::Present,
+            "proof status is not 'present'"
+        );
+
+        if self.not_revoked == Some(false) {
+            anyhow::bail!("attribute is revoked");
+        }
+
+        if let Some(not_revoked_before) = self.not_revoked_before {
+            if jwt::NumericDate::now() > not_revoked_before {
+                anyhow::bail!("attribute is (presumably) revoked after {not_revoked_before}");
+            }
+        }
+
+        Ok(())
     }
 }
 
@@ -516,6 +575,12 @@ impl std::str::FromStr for AttributeTypeIdentifier {
     }
 }
 
+impl std::fmt::Display for AttributeTypeIdentifier {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        self.inner.fmt(f)
+    }
+}
+
 /// Error type that may be part of a session result
 ///
 /// <https://github.com/privacybydesign/irmago/blob/b1c38f4f2c9da3d3f39b5c21a330bcbd04143f41/messages.go#L119>
@@ -542,6 +607,12 @@ pub enum ProofStatus {
     Expired,
 }
 
+impl std::fmt::Display for ProofStatus {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        self.serialize(f)
+    }
+}
+
 /// Status of a yivi session
 ///
 /// <https://github.com/privacybydesign/irmago/blob/b1c38f4f2c9da3d3f39b5c21a330bcbd04143f41/messages.go#L216>
@@ -554,6 +625,12 @@ pub enum Status {
     Cancelled,
     Timeout,
     Initialized,
+}
+
+impl std::fmt::Display for Status {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        self.serialize(f)
+    }
 }
 
 /// Proof status of a single yivi attribute

@@ -16,9 +16,6 @@ impl EndpointDetails for AuthStartEP {
 
 /// Starts the process of obtaining attributes from the authentication server.
 ///
-/// Results in `ErrorCode::BadRequest` if `attr_types` or if requested attribute types
-/// have mixed sources.
-///
 /// Results in `ErrorCode::UnknownAttributeType` if one of the attribute types is not known.
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct AuthStartReq {

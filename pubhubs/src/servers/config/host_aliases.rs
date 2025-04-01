@@ -1,3 +1,4 @@
+//! Using aliases for hosts
 use std::net::{IpAddr, Ipv4Addr, Ipv6Addr, SocketAddr, ToSocketAddrs as _};
 use url::Url;
 

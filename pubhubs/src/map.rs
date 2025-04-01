@@ -1,3 +1,4 @@
+//! [`Map`]: look up objects by their [`Id`] or [`Handle`].
 use crate::handle::Handle;
 use crate::id::Id;
 
