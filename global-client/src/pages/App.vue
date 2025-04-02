@@ -15,12 +15,11 @@
 
 <script setup lang="ts">
 	// Package imports
-	import { onMounted, watchEffect, watch } from 'vue';
+	import { onMounted, onUnmounted, watchEffect, watch } from 'vue';
 	import { useI18n } from 'vue-i18n';
 
 	// Global imports
 	import GlobalBar from '@/components/ui/GlobalBar.vue';
-	import MobileMenu from '@/components/ui/MobileMenu.vue';
 	import { NotificationsPermission } from '@/logic/store/settings';
 	import { MessageBoxType, useDialog, useGlobal, useHubs, useMessageBox, useSettings } from '@/logic/store/store';
 
@@ -62,6 +61,9 @@
 				setTheme(newTheme);
 			},
 		);
+
+		// Update isMobile state on initial load
+		settings.startListening();
 
 		if (await global.checkLoginAndSettings()) {
 			// Watch for saved state changes and save to backend
@@ -105,4 +107,8 @@
 
 	// Lifecycle hook
 	onMounted(initializeSettings);
+
+	onUnmounted(() => {
+		settings.stopListening();
+	});
 </script>

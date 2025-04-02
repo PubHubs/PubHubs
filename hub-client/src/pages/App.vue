@@ -2,15 +2,15 @@
 	<div class="h-screen w-full bg-background font-body text-on-surface ~text-base-min/base-max">
 		<div v-if="setupReady" class="h-full">
 			<div v-if="user.isLoggedIn" class="flex h-full">
-				<HeaderFooter class="w-full bg-surface-low md:flex md:max-w-[40rem]" :class="{ hidden: !hubSettings.mobileHubMenu }">
+				<HeaderFooter class="w-full bg-surface-low" :class="[{ hidden: !hubSettings.mobileHubMenu && isMobile }, !isMobile && 'flex max-w-[40rem]']">
 					<template #header>
-						<div class="hidden items-center gap-4 text-on-surface-dim md:flex">
+						<div class="items-center gap-4 text-on-surface-dim" :class="isMobile ? 'hidden' : 'flex'">
 							<span class="font-semibold uppercase">hub</span>
 							<hr class="h-[2px] grow bg-on-surface-dim" />
 						</div>
 						<div class="flex h-full justify-between py-2">
 							<div class="flex items-center justify-between">
-								<H3 @click="router.push('/')" :title="hubSettings.hubName" class="font-body font-bold text-on-surface">{{ hubSettings.hubName }}</H3>
+								<H3 @click="router.push('/')" :title="hubSettings.hubName" class="font-headings font-semibold text-on-surface">{{ hubSettings.hubName }}</H3>
 								<!-- TODO: Hiding this settings wheel as there is no functionality to it yet. -->
 								<!-- <Icon type="cog" size="sm" class="bg-hub-background-2 rounded-md p-2"/> -->
 							</div>
@@ -103,10 +103,6 @@
 					<router-view></router-view>
 				</div>
 			</div>
-
-			<!-- <div v-else>
-				<router-view></router-view>
-			</div> -->
 		</div>
 
 		<Disclosure v-if="disclosureEnabled" />
@@ -119,7 +115,7 @@
 
 <script setup lang="ts">
 	// Packages imports
-	import { getCurrentInstance, onMounted, ref, watch } from 'vue';
+	import { computed, getCurrentInstance, onMounted, ref, watch } from 'vue';
 	import { useI18n } from 'vue-i18n';
 	import { RouteParamValue, useRouter } from 'vue-router';
 
@@ -163,6 +159,7 @@
 	const settingsDialog = ref(false);
 	const setupReady = ref(false);
 	const disclosureEnabled = settings.isFeatureEnabled(FeatureFlag.disclosure);
+	const isMobile = computed(() => settings.isMobileState);
 
 	onMounted(() => {
 		plugins.setPlugins(getCurrentInstance()?.appContext.config.globalProperties._plugins, router);
@@ -187,6 +184,14 @@
 				setTheme(newTheme);
 			},
 		);
+
+		// Listen to isMobileState from global client
+		window.addEventListener('message', (event) => {
+			if (event.data?.isMobileState !== undefined) {
+				settings.isMobileState = event.data.isMobileState;
+			}
+		});
+		settings.updateIsMobile();
 
 		// check if hash doesn't start with hub,
 		// then it is running only the hub-client, so we need to do some checks

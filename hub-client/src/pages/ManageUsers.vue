@@ -8,8 +8,8 @@
 				<span class="font-semibold uppercase">{{ t('admin.title_administrator') }}</span>
 				<hr class="h-[2px] grow bg-on-surface-dim" />
 			</div>
-			<div class="flex h-full items-center pl-12 md:pl-0">
-				<H3 class="font-body font-bold text-on-surface">{{ t('menu.admin_tools_users') }}</H3>
+			<div class="flex h-full items-center" :class="isMobile ? 'pl-12' : 'pl-0'">
+				<H3 class="font-headings font-semibold text-on-surface">{{ t('menu.admin_tools_users') }}</H3>
 			</div>
 		</template>
 
@@ -34,7 +34,7 @@
 						</div>
 						<div class="flex w-fit gap-4">
 							<div class="flex items-center gap-2">
-								<Icon type="edit" class="hover:text-accent-primary" @click="selectUser(item.name, item.displayname, item.avatar_url)" />
+								<Icon type="edit" class="hover:cursor-pointer hover:text-accent-primary" @click="selectUser(item.name, item.displayname, item.avatar_url)" />
 							</div>
 						</div>
 					</div>
@@ -47,14 +47,17 @@
 <script setup lang="ts">
 	import Avatar from '@/components/ui/Avatar.vue';
 
-	import { onMounted, ref } from 'vue';
+	import { computed, onMounted, ref } from 'vue';
 	import { TUserAccount } from '@/model/users/TUser';
 	import { useUser } from '@/logic/store/user';
 	import { ManagementUtils } from '@/model/hubmanagement/utility/managementutils';
 
 	import { useI18n } from 'vue-i18n';
+	import { useSettings } from '@/logic/store/settings';
 
 	const { t } = useI18n();
+	const settings = useSettings();
+	const isMobile = computed(() => settings.isMobileState);
 
 	// Store
 	const user = useUser();

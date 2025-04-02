@@ -9,7 +9,7 @@
 				<div class="flex items-center whitespace-nowrap ~gap-2/4">
 					<div class="flex items-center gap-2">
 						<Icon class="text-surface dark:text-on-surface" type="pubhubs-home" size="md" />
-						<div class="font-body font-bold ~text-h1-min/h1-max">{{ $t('home.welcome_to') }}</div>
+						<div class="font-headings font-semibold ~text-h1-min/h1-max">{{ $t('home.welcome_to') }}</div>
 					</div>
 					<div class="object-contain ~h-6/12">
 						<Logo />
@@ -46,7 +46,7 @@
 				<div class="flex items-center whitespace-nowrap ~gap-1/4">
 					<div class="flex items-center gap-2">
 						<Icon class="text-surface dark:text-on-surface" type="pubhubs-home" size="md" />
-						<div class="font-body font-bold ~text-h3-min/h3-max">{{ $t('home.welcome_to') }}</div>
+						<div class="font-headings font-semibold ~text-h3-min/h3-max">{{ $t('home.welcome_to') }}</div>
 					</div>
 					<div class="object-contain ~h-6/12">
 						<Logo />
@@ -65,7 +65,7 @@
 			<div class="flex flex-col gap-2">
 				<div class="flex items-center gap-2 px-8 md:px-0">
 					<Icon class="text-surface dark:text-on-surface" type="pubhubs-home" size="md" />
-					<div class="font-body font-bold ~text-h3-min/h3-max">{{ $t('home.discover_hubs') }}</div>
+					<div class="font-headings font-semibold ~text-h3-min/h3-max">{{ $t('home.discover_hubs') }}</div>
 				</div>
 				<div class="rounded-xl bg-surface-low px-8 py-8 md:px-12">
 					<div v-if="filteredHubs.length > 0" class="grid w-full gap-8 md:grid-cols-2 3xl:grid-cols-3">

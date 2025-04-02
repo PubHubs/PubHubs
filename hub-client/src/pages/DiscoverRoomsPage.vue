@@ -7,7 +7,7 @@
 			<div class="flex items-center whitespace-nowrap ~gap-1/4">
 				<div class="flex items-center gap-2">
 					<Icon class="text-surface dark:text-on-surface" type="pubhubs-home" size="md" />
-					<div class="font-body font-bold ~text-h3-min/h3-max">{{ $t('menu.discover') }}</div>
+					<div class="font-headings font-semibold ~text-h3-min/h3-max">{{ $t('menu.discover') }}</div>
 				</div>
 			</div>
 			<div class="relative">
