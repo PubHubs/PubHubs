@@ -1,9 +1,9 @@
 <template>
-	<div id="pubhubs-bar" class="h-screen w-16 flex-none flex-shrink-0 flex-col bg-surface md:flex md:w-24" :class="{ hidden: !toggleMenu.globalIsActive }">
+	<div id="pubhubs-bar" class="h-screen flex-none flex-shrink-0 flex-col bg-surface" :class="[{ hidden: !toggleMenu.globalIsActive && isMobile }, isMobile ? 'w-[7.5rem]' : 'flex w-[10rem]']">
 		<Modal :show="global.isModalVisible">
 			<div class="flex h-full flex-col">
 				<!-- Global top bar (discover) -->
-				<div class="flex aspect-square w-full items-center justify-center bg-surface-high p-3 md:p-4">
+				<div class="flex aspect-square w-full items-center justify-center bg-surface-high" :class="isMobile ? 'p-3' : 'p-4'">
 					<router-link to="/" class="w-full">
 						<figure class="group flex items-center justify-center rounded-[25%] bg-background p-1 hover:bg-accent-primary dark:bg-on-surface dark:hover:bg-accent-primary">
 							<svg
@@ -51,14 +51,14 @@
 
 <script setup lang="ts">
 	// Package imports
-	import { ref } from 'vue';
+	import { ref, computed } from 'vue';
 	import { useI18n } from 'vue-i18n';
 
 	// Global imports
 	import SettingsDialog from '@/components/forms/SettingsDialog.vue';
 	import HubMenu from '@/components/ui/HubMenu.vue';
 	import Logo from '@/components/ui/Logo.vue';
-	import { useDialog, useGlobal } from '@/logic/store/store';
+	import { useDialog, useGlobal, useSettings } from '@/logic/store/store';
 	import { useToggleMenu } from '@/logic/store/toggleGlobalMenu';
 	import GlobalbarButton from '@/components/ui/GlobalbarButton.vue';
 
@@ -71,6 +71,8 @@
 	const global = useGlobal();
 	const toggleMenu = useToggleMenu();
 	const hubOrdering = ref(false);
+	const settings = useSettings();
+	const isMobile = computed(() => settings.isMobileState);
 
 	// eslint-disable-next-line
 	const pubHubsUrl = _env.PUBHUBS_URL;

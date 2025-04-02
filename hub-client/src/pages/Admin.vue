@@ -6,15 +6,15 @@
 				<span class="font-semibold uppercase">{{ t('admin.title_administrator') }}</span>
 				<hr class="h-[2px] grow bg-on-surface-dim" />
 			</div>
-			<div class="flex h-full items-center pl-12 md:pl-0">
-				<H3 class="font-body font-bold text-on-surface">{{ t('menu.admin_tools_rooms') }}</H3>
+			<div class="flex h-full items-center" :class="isMobile ? 'pl-12' : 'pl-0'">
+				<H3 class="font-headings font-semibold text-on-surface">{{ t('menu.admin_tools_rooms') }}</H3>
 			</div>
 		</template>
 
 		<Tabs class="p-3 md:p-4">
 			<TabHeader>
-				<TabPill v-slot="slotProps">{{ $t('admin.public_rooms') }}<Icon v-if="slotProps.active" class="hover:text-green float-right ml-2 mt-1" type="plus" size="sm" @click="newPublicRoom()" /></TabPill>
-				<TabPill v-slot="slotProps">{{ $t('admin.secured_rooms') }}<Icon v-if="slotProps.active" class="hover:text-green float-right ml-2 mt-1" type="plus" size="sm" @click="newSecuredRoom()" /></TabPill>
+				<TabPill v-slot="slotProps">{{ $t('admin.public_rooms') }}<Icon v-if="slotProps.active" class="float-right ml-2 mt-1 hover:text-accent-primary" type="plus" size="sm" @click="newPublicRoom()" /></TabPill>
+				<TabPill v-slot="slotProps">{{ $t('admin.secured_rooms') }}<Icon v-if="slotProps.active" class="float-right ml-2 mt-1 hover:text-accent-primary" type="plus" size="sm" @click="newSecuredRoom()" /></TabPill>
 			</TabHeader>
 			<TabContainer>
 				<TabContent>
@@ -23,7 +23,7 @@
 						<template #item="{ item }">
 							<div class="flex w-full justify-between gap-8 overflow-hidden" :title="item.room_id">
 								<div class="flex w-full items-center gap-4 overflow-hidden">
-									<Icon type="speech_bubbles" class="text-green shrink-0 group-hover:text-black" />
+									<Icon type="speech_bubbles" class="shrink-0 fill-accent-lime" />
 									<p class="min-w-20 truncate">{{ item.name }}</p>
 									<p class="text-gray-light hidden truncate pr-1 italic md:inline">{{ rooms.getRoomTopic(item.room_id) }}</p>
 									<span v-if="item.room_type" class="text-gray-light italic">- {{ item.room_type }} </span>
@@ -33,19 +33,19 @@
 										<span v-if="isUserRoomAdmin(user.user.userId, item.room_id)" class="relative line-clamp-1 items-center rounded-md bg-accent-red px-1 font-medium text-on-accent-red ~text-label-min/label-max"
 											>Administrator</span
 										>
-										<span class="text-blue-light flex items-center">
+										<span class="flex items-center">
 											<Icon type="person" size="sm" class="shrink-0" />
 											<p>x</p>
 											<p>{{ item.num_joined_members }}</p>
 										</span>
-										<span v-if="rooms.room(item.room_id)?.userIsMember(user.user.userId)" class="text-green group-hover:text-white">
+										<span v-if="rooms.room(item.room_id)?.userIsMember(user.user.userId)">
 											<Icon type="person" size="sm" class="shrink-0" />
 										</span>
 									</div>
 									<div class="flex items-center gap-1">
-										<Icon type="remove" class="hover:fill-red" @click="removePublicRoom(item)" />
-										<Icon type="edit" class="hover:stroke-hub-accent" v-if="rooms.room(item.room_id)?.userCanChangeName(user.user.userId)" @click="editPublicRoom(item)" />
-										<Icon v-else type="promote" class="cursor-pointer hover:text-white" @click="makeRoomAdmin(item.room_id, user.user.userId)" />
+										<Icon type="remove" class="hover:cursor-pointer hover:text-accent-red" @click="removePublicRoom(item)" />
+										<Icon type="edit" class="hover:cursor-pointer hover:text-accent-primary" v-if="rooms.room(item.room_id)?.userCanChangeName(user.user.userId)" @click="editPublicRoom(item)" />
+										<Icon v-else type="promote" class="hover:cursor-pointer hover:text-accent-primary" @click="makeRoomAdmin(item.room_id, user.user.userId)" />
 									</div>
 								</div>
 							</div>
@@ -67,14 +67,14 @@
 								<div class="flex w-fit gap-4">
 									<div class="flex items-center gap-2">
 										<span v-if="isUserRoomAdmin(user.user.userId, item.room_id)" class="relative items-center rounded-md bg-accent-red px-1 font-medium text-white ~text-label-min/label-max">Administrator</span>
-										<span v-if="rooms.room(item.room_id)?.userIsMember(user.user.userId)" class="text-green group-hover:text-white">
+										<span v-if="rooms.room(item.room_id)?.userIsMember(user.user.userId)">
 											<Icon type="person" size="sm" class="shrink-0" />
 										</span>
 									</div>
 									<div class="flex items-center gap-1">
-										<Icon type="remove" class="hover:text-red cursor-pointer" v-if="rooms.room(item.room_id)?.userCanChangeName(user.user.userId)" @click="removeSecuredRoom(item)" />
-										<Icon type="edit" class="hover:stroke-hub-accent" v-if="rooms.room(item.room_id)?.userCanChangeName(user.user.userId)" @click="EditSecuredRoom(item)" />
-										<Icon type="promote" class="cursor-pointer hover:text-white" @click="makeRoomAdmin(item.room_id, user.user.userId)" />
+										<Icon type="remove" class="hover:cursor-pointer hover:text-accent-red" v-if="rooms.room(item.room_id)?.userCanChangeName(user.user.userId)" @click="removeSecuredRoom(item)" />
+										<Icon type="edit" class="hover:cursor-pointer hover:text-accent-primary" v-if="rooms.room(item.room_id)?.userCanChangeName(user.user.userId)" @click="EditSecuredRoom(item)" />
+										<Icon type="promote" class="hover:cursor-pointer hover:text-accent-primary" @click="makeRoomAdmin(item.room_id, user.user.userId)" />
 									</div>
 								</div>
 							</div>
@@ -109,8 +109,10 @@
 	import { useDialog } from '@/logic/store/dialog';
 	import { TPublicRoom, TSecuredRoom, useRooms } from '@/logic/store/rooms';
 	import { useUser } from '@/logic/store/user';
-	import { onMounted, ref } from 'vue';
+	import { computed, onMounted, ref } from 'vue';
 	import { useI18n } from 'vue-i18n';
+	import { useSettings } from '@/logic/store/settings';
+
 	const { t } = useI18n();
 	const user = useUser();
 	const rooms = useRooms();
@@ -119,6 +121,8 @@
 	const showEditRoom = ref(false);
 	const showPastMemberPanel = ref(false);
 	const currentRoomId = ref('');
+	const settings = useSettings();
+	const isMobile = computed(() => settings.isMobileState);
 
 	onMounted(async () => {
 		await rooms.fetchPublicRooms();

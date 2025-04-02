@@ -5,7 +5,7 @@
 			<TextInput v-if="!listTop" :placeholder="placeholder" v-model="filter" class="h-8 w-full border-none !bg-surface-low ~text-label-min/label-max" :class="inputClass" @input="changed()" />
 		</div>
 		<ul v-if="filteredItems.length > 0" :class="listClass + ' flex h-full flex-col gap-2 overflow-y-auto overflow-x-hidden rounded-md'">
-			<li v-for="(item, index) in filteredItems" :key="index" class="group block cursor-pointer" @click="clickedItem(item)">
+			<li v-for="(item, index) in filteredItems" :key="index" class="group block" @click="clickedItem(item)">
 				<slot name="item" v-bind="{ item }"></slot>
 			</li>
 		</ul>
