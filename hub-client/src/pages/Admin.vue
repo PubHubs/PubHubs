@@ -30,7 +30,9 @@
 								</div>
 								<div class="flex w-fit gap-4">
 									<div class="flex items-center gap-2">
-										<span v-if="isUserRoomAdmin(user.user.userId, item.room_id)" class="relative items-center rounded-md bg-accent-red px-1 font-medium text-on-accent-red ~text-label-min/label-max">Administrator</span>
+										<span v-if="isUserRoomAdmin(user.user.userId, item.room_id)" class="relative line-clamp-1 items-center rounded-md bg-accent-red px-1 font-medium text-on-accent-red ~text-label-min/label-max"
+											>Administrator</span
+										>
 										<span class="text-blue-light flex items-center">
 											<Icon type="person" size="sm" class="shrink-0" />
 											<p>x</p>

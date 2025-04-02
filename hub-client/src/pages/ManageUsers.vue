@@ -25,12 +25,12 @@
 			<!---List all users accounts -->
 			<FilteredList :items="hubUsers" :filterKey="['displayname']" sortby="displayname" :placeholder="$t('rooms.filter')">
 				<template #item="{ item }">
-					<div class="flex w-full justify-between gap-8" :title="item.room_id">
-						<div class="flex w-full items-center gap-4">
+					<div class="box-border flex w-full justify-between gap-4 md:gap-8" :title="item.room_id">
+						<div class="flex min-w-0 flex-1 items-center gap-4">
 							<Avatar :user="item.name" :override-avatar-url="item.avatar_url" />
-							<p class="truncate font-semibold">{{ item.displayname }}</p>
-							<p class="hidden truncate pr-1 italic text-on-surface-dim md:inline">{{ item.name }}</p>
-							<span v-if="item.admin" class="relative items-center rounded-md bg-accent-red px-1 font-medium text-on-accent-red ~text-label-min/label-max">Hub Administrator</span>
+							<p class="min-w-0 truncate font-semibold">{{ item.displayname }}</p>
+							<p class="line-clamp-1 hidden min-w-0 pr-1 italic text-on-surface-dim md:inline">{{ item.name }}</p>
+							<span v-if="item.admin" class="relative line-clamp-1 w-fit items-center rounded-md bg-accent-red px-1 font-medium text-on-accent-red ~text-label-min/label-max">Hub Administrator</span>
 						</div>
 						<div class="flex w-fit gap-4">
 							<div class="flex items-center gap-2">
