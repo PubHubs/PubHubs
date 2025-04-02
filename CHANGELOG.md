@@ -21,6 +21,9 @@ Use the [MIGRATE] and [BREAKING] prefixes together with another one if that make
     - "action": "allow"
   ```
 - [BREAKING] Update feature flag for authenticatedMedia to `true` in hub-client/src/logic/store/settings.ts.
+- [BUG] Loading of rooms shows spinner again
+- [BUG] Show Hub Settings only to hub admin
+- [BUG] Sometimes threads displayed messages in the wrong order
 
 ## 20 March 2025 - v1.2.0
 
