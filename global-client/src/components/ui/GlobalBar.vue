@@ -1,7 +1,7 @@
 <template>
 	<div id="pubhubs-bar" class="h-screen flex-none flex-shrink-0 flex-col bg-surface" :class="[{ hidden: !toggleMenu.globalIsActive && isMobile }, isMobile ? 'w-[7.5rem]' : 'flex w-[10rem]']">
 		<Modal :show="global.isModalVisible">
-			<div class="flex h-full flex-col">
+			<div class="flex h-full w-full max-w-[100svh] flex-col overflow-y-hidden">
 				<!-- Global top bar (discover) -->
 				<div class="flex aspect-square w-full items-center justify-center bg-surface-high" :class="isMobile ? 'p-3' : 'p-4'">
 					<router-link to="/" class="w-full">
@@ -20,11 +20,9 @@
 					</router-link>
 				</div>
 
-				<div class="flex flex-1 flex-col gap-1 py-3 md:gap-4 md:py-6">
+				<div class="flex h-full flex-1 flex-col gap-1 overflow-y-hidden py-3 md:gap-4 md:py-6">
 					<!-- Global middle bar (hub menu) -->
-					<div class="flex-1 overflow-y-auto px-2 md:gap-2 md:px-4">
-						<HubMenu :hubOrderingIsActive="hubOrdering" />
-					</div>
+					<HubMenu :hubOrderingIsActive="hubOrdering" />
 
 					<!-- Global bottom bar (settings) -->
 					<div class="flex h-fit w-full flex-col gap-4 self-end px-2">
