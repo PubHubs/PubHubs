@@ -1,5 +1,5 @@
 <template>
-	<div id="pubhubs-bar" class="h-screen flex-none flex-shrink-0 flex-col bg-surface" :class="[{ hidden: !toggleMenu.globalIsActive && isMobile }, isMobile ? 'w-[7.5rem]' : 'flex w-[10rem]']">
+	<div id="pubhubs-bar" class="h-[100svh] flex-none flex-shrink-0 flex-col bg-surface" :class="[{ hidden: !toggleMenu.globalIsActive && isMobile }, isMobile ? 'w-[7.5rem]' : 'flex w-[10rem]']">
 		<Modal :show="global.isModalVisible">
 			<div class="flex h-full w-full max-w-[100svh] flex-col overflow-y-hidden">
 				<!-- Global top bar (discover) -->

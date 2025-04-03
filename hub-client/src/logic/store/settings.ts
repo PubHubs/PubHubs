@@ -93,7 +93,7 @@ const defaultSettings: Settings = {
 	 */
 	featureFlags: {
 		main: {
-			signedMessages: true,
+			signedMessages: false,
 			plugins: true,
 			dateSplitter: true,
 			disclosure: false,
@@ -105,7 +105,7 @@ const defaultSettings: Settings = {
 			unreadCounter: true,
 		},
 		stable: {
-			signedMessages: true,
+			signedMessages: false,
 			plugins: true,
 			dateSplitter: true,
 			disclosure: false,
