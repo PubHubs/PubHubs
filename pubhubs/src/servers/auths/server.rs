@@ -51,9 +51,21 @@ pub struct YiviCtx {
     server_creds: yivi::Credentials<yivi::VerifyingKey>,
 }
 
+/// # Helper functions
 impl App {
     fn get_yivi(&self) -> Result<&YiviCtx, api::ErrorCode> {
         self.yivi.as_ref().ok_or(api::ErrorCode::YiviNotConfigured)
+    }
+
+    /// Get [`attr::Type`] by [`handle::Handle`], returning [`api::ErrorCode::UnknownAttributeType`]
+    /// when it cannot be found.
+    fn attr_type_from_handle<'s>(
+        &'s self,
+        attr_type_handle: &handle::Handle,
+    ) -> api::Result<&'s attr::Type> {
+        self.attribute_types
+            .get(attr_type_handle)
+            .ok_or(api::ErrorCode::UnknownAttributeType)
     }
 }
 
@@ -87,13 +99,12 @@ impl AuthState {
     }
 }
 
+/// # Implementaton of endpoints
 impl App {
     async fn handle_auth_start(
         app: Rc<Self>,
         req: web::Json<api::auths::AuthStartReq>,
     ) -> api::Result<api::auths::AuthStartResp> {
-        let attr_types: Vec<attr::Type> = app.attr_types_from_handles(&req.attr_types)?;
-
         let state = AuthState {
             source: req.source,
             attr_types: req.attr_types.clone(),
@@ -101,31 +112,12 @@ impl App {
         };
 
         match req.source {
-            attr::Source::Yivi => Self::handle_auth_start_yivi(app, attr_types, state).await,
+            attr::Source::Yivi => Self::handle_auth_start_yivi(app, state).await,
         }
-    }
-
-    fn attr_types_from_handles(
-        &self,
-        attr_type_handles: &[handle::Handle],
-    ) -> api::Result<Vec<attr::Type>> {
-        let mut attr_types = Vec::<attr::Type>::with_capacity(attr_type_handles.len());
-
-        for attr_type_handle in attr_type_handles.iter() {
-            if let Some(attr_type) = self.attribute_types.get(attr_type_handle) {
-                attr_types.push(attr_type.clone());
-            } else {
-                log::debug!("got authentication start request with unknown attribute type handle: {attr_type_handle}");
-                return Err(api::ErrorCode::UnknownAttributeType);
-            }
-        }
-
-        Ok(attr_types)
     }
 
     async fn handle_auth_start_yivi(
         app: Rc<Self>,
-        attr_types: Vec<attr::Type>,
         state: AuthState,
     ) -> api::Result<api::auths::AuthStartResp> {
         let yivi = app.get_yivi()?;
@@ -133,18 +125,17 @@ impl App {
         // Create ConDisCon for our attributes
         let mut cdc: servers::yivi::AttributeConDisCon = Default::default(); // empty
 
-        for attr_ty in attr_types.iter() {
-            let mut dc: Vec<Vec<servers::yivi::AttributeRequest>> = Default::default();
+        for attr_ty_handle in state.attr_types.iter() {
+            let attr_ty = app.attr_type_from_handle(&attr_ty_handle)?;
 
-            for source in attr_ty.sources.iter() {
-                let attr_type_id: yivi::AttributeTypeIdentifier = match source {
-                    attr::SourceDetails::Yivi { attr_type_id } => attr_type_id.clone(),
-                    #[expect(unreachable_patterns)]
-                    _ => continue,
-                };
-
-                dc.push(vec![servers::yivi::AttributeRequest { ty: attr_type_id }]);
-            }
+            let dc: Vec<Vec<servers::yivi::AttributeRequest>> = attr_ty
+                .yivi_attr_type_ids()
+                .map(|attr_type_id| {
+                    vec![servers::yivi::AttributeRequest {
+                        ty: attr_type_id.clone(),
+                    }]
+                })
+                .collect();
 
             if dc.is_empty() {
                 log::debug!("{}: got yivi authentication start request for {attr_ty}, but yivi is not supported for this attribute type", Server::NAME);
@@ -186,18 +177,10 @@ impl App {
             return Err(api::ErrorCode::Expired);
         }
 
-        let attr_types = app
-            .attr_types_from_handles(&state.attr_types)
-            .map_err(|err| {
-                log::error!("unexpected error: {err}");
-                api::ErrorCode::InternalError
-            })?;
-
         match state.source {
             attr::Source::Yivi => {
                 Self::handle_auth_complete_yivi(
                     app,
-                    attr_types,
                     state,
                     match req.proof {
                         api::auths::AuthProof::Yivi { disclosure } => disclosure,
@@ -212,7 +195,6 @@ impl App {
 
     async fn handle_auth_complete_yivi(
         app: Rc<Self>,
-        attr_types: Vec<attr::Type>,
         state: AuthState,
         disclosure: jwt::JWT,
     ) -> api::Result<api::auths::AuthCompleteResp> {
@@ -220,14 +202,50 @@ impl App {
 
         let ssr =
             yivi::SessionResult::open_signed(&disclosure, &yivi.server_creds).map_err(|err| {
-                log::debug!(
-                    "{}: invalid yivi signed session result submitted: {err}",
-                    Server::NAME,
-                );
+                log::debug!("invalid yivi signed session result submitted: {err}",);
                 api::ErrorCode::InvalidAuthProof
             })?;
 
-        todo! {}
+        let attrs: std::collections::HashMap<handle::Handle, api::Signed<attr::Attr>> =
+            std::collections::HashMap::with_capacity(state.attr_types.len());
+
+        for (i, result) in ssr
+            .validate_and_extract_raw_singles()
+            .map_err(|err| {
+                log::debug!("invalid session result submitted: {err}");
+                api::ErrorCode::InvalidAuthProof
+            })?
+            .enumerate()
+        {
+            let (yati, raw_value): (&yivi::AttributeTypeIdentifier, &str) =
+                result.map_err(|err| {
+                    log::debug!(
+                        "problem with attribute number {i} of submitted session result: {err}",
+                    );
+                    api::ErrorCode::InvalidAuthProof
+                })?;
+
+            let attr_type_handle: &handle::Handle = state.attr_types.get(i).ok_or_else(|| {
+                log::debug!("extra attributes disclosed in submitted session result",);
+                api::ErrorCode::InvalidAuthProof
+            })?;
+
+            let attr_type = app.attr_type_from_handle(&attr_type_handle)?;
+
+            if attr_type
+                .yivi_attr_type_ids()
+                .find(|&allowed_yati| allowed_yati == yati)
+                .is_none()
+            {
+                log::debug!("attribute number {i} of submitted session result has unexpected attribute type id {}",  yati);
+                return Err(api::ErrorCode::InvalidAuthProof);
+            }
+
+            // Disclosure for attribute is OK.
+            todo! {}
+        }
+
+        Ok(api::auths::AuthCompleteResp { attrs })
     }
 }
 

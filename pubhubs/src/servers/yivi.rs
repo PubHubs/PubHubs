@@ -352,8 +352,8 @@ impl SessionResult {
         Ok(session_result)
     }
 
-    /// Verifies that this [`SessionResult`] is valid.
-    fn validate(&self) -> anyhow::Result<()> {
+    /// Verifies that this [`SessionResult`] is valid ignoring the [`Self::disclosed`] field.
+    fn validate_except_disclosed(&self) -> anyhow::Result<()> {
         anyhow::ensure!(
             self.status == Status::Done,
             "session status is not 'done', but {}",
@@ -375,20 +375,36 @@ impl SessionResult {
             );
         }
 
-        if let Some(disclosed) = &self.disclosed {
-            for (i, con) in disclosed.iter().enumerate() {
-                for (j, dattr) in con.iter().enumerate() {
-                    dattr.validate().with_context(|| {
-                        format!(
-                        "something is wrong with disclosed attribute number {i} sub {j} of type {}",
-                        dattr.id,
-                    )
-                    })?;
-                }
-            }
-        }
-
         Ok(())
+    }
+
+    /// Verifyies that this [`SessionResult`] is valid, and that the inner conjunctions contain
+    /// just one attribute each.  Returns the [`AttributeTypeIdentifier`] and raw values of these
+    /// attributes.
+    pub fn validate_and_extract_raw_singles(
+        &self,
+    ) -> anyhow::Result<impl Iterator<Item = anyhow::Result<(&AttributeTypeIdentifier, &str)>>>
+    {
+        self.validate_except_disclosed()?;
+
+        Ok(self
+            .disclosed
+            .iter()
+            .flatten()
+            .map(|inner_con: &Vec<DisclosedAttribute>| {
+                anyhow::ensure!(
+                    inner_con.len() <= 1,
+                    "inner conjunction has more than one attribute"
+                );
+
+                let da: &DisclosedAttribute = inner_con
+                    .get(0)
+                    .context("inner conjunction has no attribute")?;
+
+                da.validate()?;
+
+                Ok((&da.id, da.raw_value.as_str()))
+            }))
     }
 }
 

@@ -32,6 +32,16 @@ impl std::fmt::Display for Type {
     }
 }
 
+impl Type {
+    /// Iterates over all the [`yivi::AttributeTypeIdentifier`]s that can be used to obtain this
+    /// attribite type.
+    pub fn yivi_attr_type_ids(&self) -> impl Iterator<Item = &yivi::AttributeTypeIdentifier> {
+        self.sources.iter().filter_map(|source| match source {
+            SourceDetails::Yivi { attr_type_id } => Some(attr_type_id),
+        })
+    }
+}
+
 /// Instructions on how to obtain an [`Attr`]ibute of a particular [`Type`].
 #[derive(serde::Deserialize, serde::Serialize, Debug, Clone)]
 #[serde(rename_all = "snake_case")]
@@ -67,7 +77,7 @@ impl crate::map::Handled for Type {
 
 #[derive(serde::Deserialize, serde::Serialize, Debug, Clone)]
 pub struct Attr {
-    /// Refers to the this attribute's [`Type`] via the type's `[Id]`.
+    /// Refers to the this attribute's [`Type`] via the type's [`Id`].
     attr_type: Id,
 
     /// Actual value of this attribute, in a format that is [`Type`] dependent.
@@ -75,7 +85,7 @@ pub struct Attr {
 }
 
 impl Attr {
-    /// Derives an identifier for this attribute from [`Attr.value`] and [`Attr.attr_type`],
+    /// Derives an identifier for this attribute from [`Attr::value`] and [`Attr::attr_type`],
     /// and the given digestible secret.
     #[expect(dead_code)]
     fn id(&self, secret: impl secret::DigestibleSecret) -> Id {
@@ -94,7 +104,7 @@ impl Attr {
     }
 }
 
-/// State of an [Attr] according to pubhubs central.
+/// State of an [`Attr`] according to pubhubs central.
 #[derive(serde::Deserialize, serde::Serialize, Debug, Clone)]
 pub struct AttrState {
     attr: Id,
