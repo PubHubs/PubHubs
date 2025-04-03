@@ -15,6 +15,7 @@ Use the [MIGRATE] and [BREAKING] prefixes together with another one if that make
 
 ## 03 April 2025 - v2.0.0
 
+- [BUG] Signed messages are temporarily disabled since they were not working as intended
 - [NEW] Desktop notifications for new messages are now also sent for pinned hubs when the user has the hub not currently open.
 - [NEW] Update and implement Tailwind colors and add minor UX/UI improvements
 - [BREAKING] To allow a hub administrator to publish new rooms after [updating Synapse from v1.125.0 to v1.126.0](https://github.com/element-hq/synapse/blob/develop/docs/upgrade.md#room-list-publication-rules-change), the following should be added to the homeserver.yaml file of all running hubs:
