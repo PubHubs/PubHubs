@@ -34,13 +34,13 @@ const curatedAttributes: Attributes = [
 	{ attribute: 'pbdf.gemeente.personalData.over18', description: 'attribute.over18' },
 	{ attribute: 'pbdf.gemeente.personalData.over21', description: 'attribute.over21' },
 	{ attribute: 'pbdf.gemeente.personalData.over65', description: 'attribute.over65' },
-	// { attribute: 'pbdf.pbdf.surfnet.institute', description: 'attribute.surfinstitute' },
-	// { attribute: 'pbdf.pbdf.surfnet.type', description: 'attribute.surftype' },
-	// { attribute: 'pbdf.pbdf.surfnet.id', description: 'attribute.surfid' },
-	// { attribute: 'pbdf.pbdf.surfnet.fullname', description: 'attribute.surffullname' },
-	// { attribute: 'pbdf.pbdf.surfnet.firstname', description: 'attribute.surffirstname' },
-	// { attribute: 'pbdf.pbdf.surfnet.familyname', description: 'attribute.surffamilyname' },
-	// { attribute: 'pbdf.pbdf.surfnet.email', description: 'attribute.surfemail' },
+	{ attribute: 'pbdf.pbdf.surfnet-2.institute', description: 'attribute.surfinstitute' },
+	{ attribute: 'pbdf.pbdf.surfnet-2.type', description: 'attribute.surftype' },
+	{ attribute: 'pbdf.pbdf.surfnet-2.id', description: 'attribute.surfid' },
+	{ attribute: 'pbdf.pbdf.surfnet-2.fullname', description: 'attribute.surffullname' },
+	{ attribute: 'pbdf.pbdf.surfnet-2.firstname', description: 'attribute.surffirstname' },
+	{ attribute: 'pbdf.pbdf.surfnet-2.familyname', description: 'attribute.surffamilyname' },
+	{ attribute: 'pbdf.pbdf.surfnet-2.email', description: 'attribute.surfemail' },
 ];
 
 const useYivi = defineStore('yivi', {

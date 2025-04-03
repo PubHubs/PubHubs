@@ -1,7 +1,7 @@
 <template>
-	<AskDisclosureAttrsForm v-if="showAskDisclosureAttrsForm" :askDisclosure="rooms.askDisclosure" @submit="onSubmit" @choose-user="onChooseUser" @close="onCloseAskDisclosureAttrsForm"></AskDisclosureAttrsForm>
+	<AskDisclosureAttrsForm v-if="showAskDisclosureAttrsForm" :askDisclosure="rooms.askDisclosure" @submit="onSubmit" @choose-user="onChooseUser" @close="onCloseAskDisclosureAttrsForm" />
 
-	<ChooseFromUsersList v-if="showChooseFromUsersList" :header="$t('admin.ask_disclosure_choose_user')" @chosen-user="onChosenUser" @close="onCloseChooseFromUsersList"></ChooseFromUsersList>
+	<ChooseFromUsersList v-if="showChooseFromUsersList" :header="$t('admin.ask_disclosure_choose_user')" @chosen-user="onChosenUser" @close="onCloseChooseFromUsersList" />
 </template>
 
 <script setup lang="ts">

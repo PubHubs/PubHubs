@@ -7,57 +7,63 @@
 		<!-- Normal Event -->
 		<div
 			v-else
-			class="group flex gap-4 px-3 py-4 md:px-6"
-			:class="{ 'transition-all duration-150 ease-in-out hover:bg-lightgray-light hover:dark:bg-hub-background-2': !deleteMessageDialog, 'mx-4 rounded shadow-[0_0_5px_0_rgba(0,0,0,0.3)]': props.deleteMessageDialog }"
+			class="group flex gap-6 px-3 py-4 md:px-6"
+			:class="{ 'transition-all duration-150 ease-in-out hover:bg-surface-low': !deleteMessageDialog, 'mx-4 rounded bg-surface shadow-[0_0_5px_0_rgba(0,0,0,0.3)]': props.deleteMessageDialog }"
 		>
-			<Avatar :user="roomMember"></Avatar>
-			<div :class="{ 'w-5/6': deleteMessageDialog, 'w-4/5 xl:w-3/5': !deleteMessageDialog }">
+			<Avatar :user="roomMember" />
+			<div :class="{ 'w-5/6': deleteMessageDialog, 'w-full': !deleteMessageDialog }" class="min-w-0">
 				<div class="flex flex-wrap items-center overflow-hidden text-wrap break-all">
-					<div class="relative flex min-h-6 w-full items-start gap-x-1">
-						<div class="flex flex-grow flex-wrap items-start">
-							<span class="inline-block" style="margin-top: -2px">
-								<UserDisplayName :user="event.sender" :room="room"></UserDisplayName>
+					<div class="relative flex min-h-6 w-full items-start gap-x-2 pb-1">
+						<div class="flex w-full min-w-0 flex-grow flex-wrap items-center gap-2">
+							<UserDisplayName :user="event.sender" :room="room" />
+							<span class="flex gap-2">
+								<span class="~text-label-small-min/label-small-max">|</span>
+								<EventTime :timestamp="event.origin_server_ts" :showDate="false"> </EventTime>
+								<span class="~text-label-small-min/label-small-max">|</span>
+								<EventTime :timestamp="event.origin_server_ts" :showDate="true"> </EventTime>
 							</span>
-							<span class="mx-1 inline-block" style="margin-top: 1px">
-								<span class="flex gap-x-1">
-									<span class="text-xs font-normal">|</span>
-									<EventTime :timestamp="event.origin_server_ts" :showDate="false"> </EventTime>
-									<span class="text-xs font-normal">|</span>
-									<EventTime :timestamp="event.origin_server_ts" :showDate="true"> </EventTime>
-								</span>
-							</span>
-							<ProfileAttributes class="inline-block" v-if="props.room.getType() == RoomType.PH_MESSAGES_RESTRICTED" :user="event.sender" :room_id="event.room_id"></ProfileAttributes>
+							<ProfileAttributes class="flex-1" v-if="props.room.getType() == RoomType.PH_MESSAGES_RESTRICTED" :user="event.sender" :room_id="event.room_id" />
 						</div>
 
 						<div>
 							<template v-if="timerReady && !deleteMessageDialog">
 								<button v-if="msgIsNotSend && connection.isOn" @click="resend()" class="mb-1 ml-2" :title="$t('errors.resend')">
-									<Icon type="refresh" size="sm" class="text-red"></Icon>
+									<Icon type="refresh" size="sm" class="text-red" />
 								</button>
-								<Icon v-if="msgIsNotSend && !connection.isOn" type="lost-connection" size="sm" class="mb-1 ml-2 text-red"></Icon>
+								<Icon v-if="msgIsNotSend && !connection.isOn" type="lost-connection" size="sm" class="text-red mb-1 ml-2" />
 							</template>
 							<RoomEventActionsPopup v-if="!deleteMessageDialog">
-								<button v-if="!msgIsNotSend && !redactedMessage && !isThreadRoot" @click="reply" class="rounded-md bg-hub-background-4 p-1 hover:bg-hub-accent">
-									<Icon :type="'reply'" :size="'xs'"></Icon>
+								<button
+									v-if="!msgIsNotSend && !redactedMessage && !isThreadRoot"
+									@click="reply"
+									class="flex items-center justify-center rounded-md p-1 text-on-surface-variant transition-all duration-300 ease-in-out hover:w-fit hover:bg-accent-primary hover:text-on-accent-primary"
+									:title="$t('message.reply')"
+								>
+									<Icon :type="'reply'" size="xs" />
 								</button>
-								<button v-if="!viewFromThread && threadLength <= 0 && canReplyInThread && !msgIsNotSend && !redactedMessage" @click="replyInThread" class="rounded-md bg-hub-background-4 p-1 hover:bg-hub-accent">
+								<button
+									v-if="!viewFromThread && threadLength <= 0 && canReplyInThread && !msgIsNotSend && !redactedMessage"
+									@click="replyInThread"
+									class="flex items-center justify-center rounded-md p-1 text-on-surface-variant transition-all duration-300 ease-in-out hover:w-fit hover:bg-accent-primary hover:text-on-accent-primary"
+									:title="$t('message.reply_in_thread')"
+								>
 									<Icon :type="'talk'" :size="'xs'"></Icon>
 								</button>
 								<button
 									v-if="!msgIsNotSend && user.isAdmin && event.sender !== user.user.userId && settings.isFeatureEnabled(FeatureFlag.disclosure)"
 									@click="router.push({ name: 'ask-disclosure', query: { user: event.sender } })"
-									class="flex rounded-md bg-hub-background-4 p-1 hover:bg-hub-accent"
+									class="flex items-center justify-center rounded-md p-1 text-on-surface-variant transition-all duration-300 ease-in-out hover:w-fit hover:bg-accent-primary hover:text-on-accent-primary"
 									:title="$t('menu.moderation_tools_disclosure')"
 								>
-									<Icon :type="'warning'" :size="'xs'"></Icon>
+									<Icon :type="'warning'" size="xs" />
 								</button>
 								<button
 									v-if="settings.isFeatureEnabled(FeatureFlag.deleteMessages) && !msgIsNotSend && event.sender === user.user.userId && !redactedMessage"
 									@click="onDeleteMessage(event)"
-									class="rounded-md bg-hub-background-4 p-1 hover:bg-red"
+									class="flex items-center justify-center rounded-md p-1 text-on-surface-variant transition-all duration-300 ease-in-out hover:w-fit hover:bg-accent-red hover:text-on-accent-red"
 									:title="$t('menu.delete_message')"
 								>
-									<Icon :type="'bin'" :size="'xs'"></Icon>
+									<Icon :type="'bin'" size="xs" />
 								</button>
 							</RoomEventActionsPopup>
 						</div>
@@ -72,21 +78,21 @@
 						<!-- Temporary fix to set the background color of the MessageSnippet in the dialog to delete a message -->
 						<MessageSnippet :class="{ '!bg-[#e2e2e2]': deleteMessageDialog }" v-if="showReplySnippet(event.content.msgtype)" @click="onInReplyToClick" :eventId="inReplyToId" :showInReplyTo="true" :room="room"></MessageSnippet>
 						<template #fallback>
-							<div class="flex items-center gap-3 rounded-md bg-hub-background-3 px-2">
+							<div class="flex items-center gap-3 rounded-md px-2">
 								<p>{{ $t('state.loading_message') }}</p>
 							</div>
 						</template>
 					</Suspense>
-					<Message v-if="event.content.msgtype === MsgType.Text || redactedMessage" :event="event" :deleted="redactedMessage"></Message>
+					<Message v-if="event.content.msgtype === MsgType.Text || redactedMessage" :event="event" :deleted="redactedMessage" class="max-w-[90ch]" />
 					<!-- Temporary fix to set the background color of the signed message in the dialog to delete a message -->
-					<MessageSigned :class="{ '!bg-[#e2e2e2]': deleteMessageDialog }" v-if="event.content.msgtype === PubHubsMgType.SignedMessage && !redactedMessage" :message="event.content.signed_message"></MessageSigned>
-					<MessageFile v-if="event.content.msgtype === MsgType.File && !redactedMessage" :message="event.content"> </MessageFile>
-					<MessageImage v-if="event.content.msgtype === MsgType.Image && !redactedMessage" :message="event.content"></MessageImage>
+					<MessageSigned :class="{ '!bg-[#e2e2e2]': deleteMessageDialog }" v-if="event.content.msgtype === PubHubsMgType.SignedMessage && !redactedMessage" :message="event.content.signed_message" class="max-w-[90ch]" />
+					<MessageFile v-if="event.content.msgtype === MsgType.File && !redactedMessage" :message="event.content" class="max-w-[90ch]" />
+					<MessageImage v-if="event.content.msgtype === MsgType.Image && !redactedMessage" :message="event.content" class="max-w-[90ch]" />
 				</template>
 
 				<button
 					@click="replyInThread"
-					class="inline-flex rounded-md bg-hub-background-3 px-2 py-1 text-xs hover:opacity-80"
+					class="inline-flex items-center rounded-md bg-surface-high px-2 py-1 ~text-label-tiny-min/label-tiny-max hover:bg-accent-primary hover:text-on-accent-primary"
 					v-if="!deleteMessageDialog && !viewFromThread && threadLength > 0 && canReplyInThread && !msgIsNotSend && !redactedMessage"
 				>
 					<Icon :type="'talk'" :size="'xs'"></Icon>
@@ -108,7 +114,7 @@
 	import { RoomType } from '@/logic/store/rooms';
 	import { FeatureFlag, useSettings } from '@/logic/store/settings';
 	import { useUser } from '@/logic/store/user';
-	import { computed, ref, watch, defineProps, onMounted } from 'vue';
+	import { computed, ref, watch, onMounted } from 'vue';
 	import { PubHubsMgType } from '@/logic/core/events';
 
 	// Components

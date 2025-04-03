@@ -1,15 +1,15 @@
 <template>
 	<Dialog :buttons="buttonsOkCancel" @close="close($event)" v-click-outside="close">
 		<template #header>
-			<div class="text-xl text-black">
+			<div class="">
 				{{ $t('file.upload_file') }}
 			</div>
 		</template>
 		<div v-if="imageTypes.includes(props.file?.type)" class="flex items-center justify-center">
 			<img :src="blobURL" class="max-h-96 max-w-full rounded-lg" />
 		</div>
-		<div class="mt-4 flex justify-center text-black">
-			<div class="text-lg text-gray">{{ file.name }} ({{ `${filters.formatBytes(file.size, 2)}` }})</div>
+		<div class="mt-4 flex justify-center">
+			<div class="text-on-surface-dim ~text-label-min/label-max">{{ file.name }} ({{ `${filters.formatBytes(file.size, 2)}` }})</div>
 		</div>
 	</Dialog>
 </template>

@@ -1,5 +1,5 @@
 <template>
-	<div :class="buttonClass" class="relative block cursor-pointer rounded-lg text-center font-semibold shadow-md transition-all duration-150 ease-in-out" @click="click($event)">
+	<div :class="buttonClass" class="relative block cursor-pointer rounded-lg text-center font-semibold transition-all duration-150 ease-in-out" @click="click($event)">
 		<slot></slot>
 	</div>
 </template>
@@ -9,13 +9,11 @@
 	import { buttonSizes } from '@/assets/sizes';
 
 	const colorClass: { [key: string]: string } = {
-		disabled: 'bg-gray-light text-gray-lighter shadow-none cursor-not-allowed',
-		white: 'bg-white hover:bg-blue text-black ',
-		gray: 'bg-gray-dark hover:bg-black dark:bg-black hover:dark:bg-gray-dark text-white',
-		'gray-light': 'bg-gray-light text-white hover:bg-gray', // Needed for ButtonGroup
-		blue: 'bg-blue hover:bg-blue-dark text-white dark:hover:bg-white dark:hover:text-blue-dark',
-		red: 'bg-red hover:bg-red-dark text-white',
-		black: 'bg-black hover:bg-gray-dark text-white',
+		disabled: 'opacity-50 !cursor-not-allowed',
+		text: 'shadow-none hover:opacity-75',
+		blue: 'bg-accent-primary hover:opacity-75 text-background dark:text-on-surface',
+		red: 'bg-accent-red hover:opacity-75 text-background dark:text-on-surface',
+		gray: 'bg-surface hover:opacity-75 text-on-surface',
 	};
 
 	const props = defineProps({

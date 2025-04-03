@@ -12,7 +12,7 @@
 		<input
 			type="text"
 			v-model="search"
-			class="w-full rounded-lg border px-2 py-1 focus:border-black focus:outline-0 focus:outline-offset-0 focus:ring-0 theme-light:border-black theme-light:text-black dark:border-white dark:bg-transparent dark:text-white"
+			class="theme-light:border-black theme-light:text-black w-full rounded-lg border px-2 py-1 focus:border-black focus:outline-0 focus:outline-offset-0 focus:ring-0 dark:border-white dark:bg-transparent dark:text-white"
 			:placeholder="$t('others.typing')"
 			:disabled="disabled === true"
 		/>

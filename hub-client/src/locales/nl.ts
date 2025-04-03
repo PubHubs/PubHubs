@@ -322,6 +322,8 @@ const nl = {
 		in_reply_to: 'Antwoord op:',
 		notification: 'Nieuw bericht in hub',
 		upload_file: 'Upload bestand',
+		reply: 'Antwoord',
+		reply_in_thread: 'Antwoord in thread',
 		sign: {
 			add_signature: 'Onderteken bericht',
 			heading: 'Een bericht ondertekenen',

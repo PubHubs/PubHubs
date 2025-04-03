@@ -10,7 +10,7 @@ pub(crate) struct CommonArgs {
         short,
         long,
         value_name = "PATHS",
-        default_values = ["pubhubs.yaml", "pubhubs.default.yaml"]
+        default_values = ["pubhubs.toml", "pubhubs.default.toml"]
     )]
     config_search_paths: Vec<std::path::PathBuf>,
 }

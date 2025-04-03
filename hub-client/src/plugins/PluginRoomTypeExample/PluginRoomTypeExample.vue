@@ -1,8 +1,8 @@
 <template>
 	<HeaderFooter v-if="rooms.currentRoomExists" class="pl-3">
 		<template #header>
-			<H1 class="m-0 font-bold text-blue">{{ rooms.currentRoom?.name }}</H1>
-			<p class="text-sm leading-4">Example of room Type plugin. [ Type: {{ rooms.currentRoom?.getType() }}]</p>
+			<H1 class="text-blue m-0 font-bold">{{ rooms.currentRoom?.name }}</H1>
+			<p class="leading-4 ~text-label-min/label-max">Example of room Type plugin. [ Type: {{ rooms.currentRoom?.getType() }}]</p>
 		</template>
 
 		<Json :json="rooms.currentRoom?.getLiveTimelineEvents()"></Json>

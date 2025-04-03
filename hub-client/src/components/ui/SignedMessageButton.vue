@@ -1,6 +1,6 @@
 <template>
-	<button v-if="signedMessagesEnabled" class="m-2 flex flex-col items-center" @click="$emit('click', $event)">
-		<Icon class="dark:text-white" type="sign"></Icon>
+	<button v-if="signedMessagesEnabled" class="flex flex-col items-center p-4" @click="$emit('click', $event)">
+		<Icon type="sign" />
 		<p>{{ $t('message.sign.add_signature') }}</p>
 	</button>
 </template>

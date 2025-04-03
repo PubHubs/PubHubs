@@ -275,7 +275,7 @@ const en = {
 		title_permission: 'Permission',
 		title_update: 'Update',
 		title_user: 'User',
-		title_administrator: 'Adminirator',
+		title_administrator: 'Administrator',
 		title_steward: 'Steward',
 		make_admin_confirm: 'Make Admin',
 		join: 'Join',
@@ -320,6 +320,8 @@ const en = {
 		in_reply_to: 'In reply to:',
 		notification: 'New message in hub',
 		upload_file: 'Upload file',
+		reply: 'Reply',
+		reply_in_thread: 'Reply in thread',
 		sign: {
 			add_signature: 'Sign message',
 			heading: 'Signing a message',

@@ -1,16 +1,18 @@
 <template>
-	<div class="flex h-full w-full items-center justify-center overflow-hidden rounded-md">
+	<div class="flex h-full w-full items-center justify-center overflow-hidden rounded-xl">
 		<img class="h-full w-full object-cover" v-show="!fallback" :src="hubUrl + logoPath" @load="hideFallback" :alt="'logo of ' + hubId" />
-		<Icon v-if="fallback" type="hub_fallback"></Icon>
+		<Icon v-if="fallback" type="hub_fallback" />
 	</div>
 </template>
 
 <script setup lang="ts">
-	import { useSettings } from '@/logic/store/store';
+	// Package imports
 	import { computed, ref } from 'vue';
 
-	const settings = useSettings();
+	// Global imports
+	import { useSettings } from '@/logic/store/store';
 
+	const settings = useSettings();
 	const props = defineProps<{ hubUrl: string; hubId: string; changeToDark: boolean }>();
 	let fallback = ref(true);
 

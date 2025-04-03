@@ -6,15 +6,20 @@
 		</div>
 		<div class="mx-auto mb-8 flex w-full flex-col gap-16 md:w-4/6">
 			<div class="mt-16 flex flex-col items-center justify-start gap-16 px-4 md:px-0">
-				<div class="flex flex-col items-center gap-8 md:flex-row">
-					<div class="work_sanssemibold text-4xl md:text-6xl 2xl:text-8xl">{{ $t('home.welcome_to') }}</div>
-					<Logo class="h-24"></Logo>
+				<div class="flex items-center whitespace-nowrap ~gap-2/4">
+					<div class="flex items-center gap-2">
+						<Icon class="text-surface dark:text-on-surface" type="pubhubs-home" size="md" />
+						<div class="font-headings font-semibold ~text-h1-min/h1-max">{{ $t('home.welcome_to') }}</div>
+					</div>
+					<div class="object-contain ~h-6/12">
+						<Logo />
+					</div>
 				</div>
 				<div class="flex w-full flex-col items-start gap-8 md:flex-row">
 					<div class="flex w-full flex-col items-center justify-center gap-4">
 						<Button class="w-full md:px-12" @click="loadYivi">{{ $t('login.global_login') }}</Button>
 						<div v-show="show" class="relative w-fit">
-							<Icon type="close" class="absolute right-2 top-8 z-10 cursor-pointer dark:text-black" @click="closeYivi"></Icon>
+							<Icon type="close" class="absolute right-2 top-8 z-10 cursor-pointer dark:text-black" @click="closeYivi" />
 							<div
 								id="yivi-login"
 								class="relative top-6 !mb-6 w-[255px] after:absolute after:-top-[1.2em] after:left-[50%] after:border-[1.25em] after:border-r-0 after:border-t-0 after:border-transparent after:border-b-white after:drop-shadow-[0px_-5px_16px_rgb(0,0,0,0.15)]"
@@ -37,28 +42,32 @@
 			<ImagePlaceholder source="/client/img/imageplaceholder.jpg" />
 		</div>
 		<div class="mx-auto mb-8 flex w-full flex-col gap-16 md:w-4/6">
-			<div class="-mt-16 flex flex-col gap-2 px-8 md:px-0">
-				<div class="flex items-center gap-2">
-					<Icon class="text-ph-background-2 dark:text-ph-text" type="pubhubs-home" size="sm"></Icon>
-					<div class="work_sanssemibold text-2xl">{{ $t('home.welcome_to') }}</div>
-					<Logo class="w-[8em]"></Logo>
+			<div class="-mt-[5.5rem] flex flex-col gap-2 px-8 md:px-0">
+				<div class="flex items-center whitespace-nowrap ~gap-1/4">
+					<div class="flex items-center gap-2">
+						<Icon class="text-surface dark:text-on-surface" type="pubhubs-home" size="md" />
+						<div class="font-headings font-semibold ~text-h3-min/h3-max">{{ $t('home.welcome_to') }}</div>
+					</div>
+					<div class="object-contain ~h-6/12">
+						<Logo />
+					</div>
 				</div>
 				<div class="relative">
 					<input
 						type="text"
 						v-model="searchQuery"
 						:placeholder="$t('others.search_hubs')"
-						class="bg-ph-accent-icon-1 focus mb-4 w-full rounded border px-4 py-2 text-ph-background-5 placeholder-ph-background-5 focus:placeholder-ph-background focus:ring-ph-accent"
+						class="focus mb-4 w-full rounded border bg-surface px-4 py-2 text-on-surface placeholder-on-surface-dim ~text-label-min/label-max focus:placeholder-on-surface-variant focus:ring-accent-primary"
 					/>
-					<Icon type="search" class="pointer-events-none absolute right-4 top-[25%] z-10 text-ph-background-5" size="sm" />
+					<Icon type="search" class="pointer-events-none absolute right-2 top-[20%] z-10 text-on-surface-variant" size="sm" />
 				</div>
 			</div>
 			<div class="flex flex-col gap-2">
 				<div class="flex items-center gap-2 px-8 md:px-0">
-					<Icon class="text-ph-background-3 dark:text-ph-text" type="pubhubs-home" size="sm"></Icon>
-					<div class="work_sanssemibold text-2xl">{{ $t('home.discover_hubs') }}</div>
+					<Icon class="text-surface dark:text-on-surface" type="pubhubs-home" size="md" />
+					<div class="font-headings font-semibold ~text-h3-min/h3-max">{{ $t('home.discover_hubs') }}</div>
 				</div>
-				<div class="rounded-xl bg-ph-background-4 px-8 py-8 md:px-12">
+				<div class="rounded-xl bg-surface-low px-8 py-8 md:px-12">
 					<div v-if="filteredHubs.length > 0" class="grid w-full gap-8 md:grid-cols-2 3xl:grid-cols-3">
 						<div v-for="hub in filteredHubs" v-bind:key="hub.hubId">
 							<HubBlock :hub="hub" />
@@ -78,8 +87,10 @@
 </template>
 
 <script setup lang="ts">
-	import { useGlobal, useHubs } from '@/logic/store/store';
 	import { computed, ref } from 'vue';
+
+	import Logo from '@/components/ui/Logo.vue';
+	import { useGlobal, useHubs } from '@/logic/store/store';
 	import { yivi } from '@/yivi';
 
 	import ImagePlaceholder from '../../../hub-client/src/components/elements/ImagePlaceholder.vue';

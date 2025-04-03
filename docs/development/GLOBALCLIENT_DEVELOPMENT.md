@@ -24,7 +24,7 @@ We use [Vue I18n](https://vue-i18n.intlify.dev/) for localization. Language file
 
 ## Theming and UI
 
-Theming importerd from hub-client in: `../hub-client/src/assets/pubhubs-theme.js`.
+Theming importerd from hub-client in: `../hub-client/src/assets/tailwind.css`.
 
 ## Development
 

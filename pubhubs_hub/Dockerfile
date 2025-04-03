@@ -8,7 +8,7 @@
 # Should be the same debian version as the version on which synapse is based.
 FROM golang:bookworm AS yivi_build
 
-RUN git clone https://github.com/privacybydesign/irmago --branch v0.16.0 --depth 1
+RUN git clone https://github.com/privacybydesign/irmago --branch v0.17.0 --depth 1
 
 WORKDIR irmago
 
@@ -27,7 +27,7 @@ RUN cargo build --no-default-features --lib --features=abi
 
 ## FINAL CONTAINER STAGE
 
-FROM ghcr.io/element-hq/synapse:v1.125.0
+FROM ghcr.io/element-hq/synapse:v1.126.0
 
 
 COPY --from=yivi_build /go/bin/irma /usr/bin/irma

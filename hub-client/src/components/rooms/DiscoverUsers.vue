@@ -1,22 +1,15 @@
 <template>
-	<div class="relative pl-6 pr-8" @focusin="focus(true)" @click="focus(true)" @keydown.esc="focus(false)" @mouseleave="focus(false)">
-		<Icon type="compass" class="absolute -ml-2 bg-white dark:bg-hub-background-2"></Icon>
-		<FilteredList
-			:items="usersList"
-			:filterKey="['localPart', 'displayName']"
-			sortby="localPart"
-			:placeholder="$t('rooms.private_search_user')"
-			@click="addNewPrivateRoom($event)"
-			@filter="filter($event)"
-			:inputClass="'pl-6'"
-			:listClass="'-mt-[17px] border rounded-md shadow-md'"
-			:showCompleteList="showList"
-		>
+	<div class="relative flex w-full items-center gap-4 pl-4" @focusin="focus(true)" @click="focus(true)" @keydown.esc="focus(false)" @mouseleave="focus(false)">
+		<FilteredList :items="usersList" :filterKey="['localPart', 'displayName']" sortby="localPart" :placeholder="$t('rooms.private_search_user')" @click="addNewPrivateRoom($event)" @filter="filter($event)" :showCompleteList="showList">
 			<template #item="{ item }">
-				<div class="flex items-center justify-between gap-2">
-					<span data-testid="user-id" class="text-nowrap text-xs font-normal">{{ item.localPart }}</span>
-					<span v-if="item.displayName" data-testid="display-name" :class="`${textColor(color(item.userId))} truncate text-sm font-semibold`">{{ filters.maxLengthText(item.displayName, settings.getDisplayNameMaxLength) }}</span>
-					<Icon type="plus" class="flex-none"></Icon>
+				<div class="flex cursor-pointer items-center justify-between gap-4 rounded-md px-2 py-1 hover:bg-background">
+					<span class="flex items-center gap-2 truncate"
+						><span v-if="item.displayName" data-testid="display-name" :class="`${textColor(color(item.userId))} ~text-body-min/body-max truncate font-semibold`">{{
+							filters.maxLengthText(item.displayName, settings.getDisplayNameMaxLength)
+						}}</span>
+						<span data-testid="user-id" class="text-nowrap">{{ item.localPart }}</span></span
+					>
+					<Icon type="plus" class="flex-none" size="sm" />
 				</div>
 			</template>
 		</FilteredList>
@@ -26,6 +19,7 @@
 <script setup lang="ts">
 	// Components
 	import FilteredList from '../ui/FilteredList.vue';
+	import { FilteredListEvent } from '@/model/components/FilteredListEvent';
 	import Icon from '../elements/Icon.vue';
 
 	import { useUserColor } from '@/logic/composables/useUserColor';
@@ -33,7 +27,6 @@
 	import { usePubHubs } from '@/logic/core/pubhubsStore';
 	import { useSettings } from '@/logic/store/settings';
 	import { useUser } from '@/logic/store/user';
-	import { FilteredListEvent } from '@/model/components/components';
 	import { User as MatrixUser } from 'matrix-js-sdk';
 	import { computed, onMounted, ref } from 'vue';
 	import { useRouter } from 'vue-router';

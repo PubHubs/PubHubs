@@ -30,8 +30,6 @@ class Events {
 	initEvents() {
 		return new Promise((resolve) => {
 			this.client.on(ClientEvent.Sync, (state: SyncState) => {
-				// console.debug('STATE:', state);
-
 				const connection = useConnection();
 				if (state === 'ERROR') {
 					connection.error();
@@ -107,6 +105,18 @@ class Events {
 						.then(function () {
 							console.log('joined DM');
 						});
+				}
+				// This case is needed to force the rooms store to update in the miniclient when a user joins a room.
+				// Otherwise no notifications would be sent for rooms that are newly joined (only after a refresh the notificiations would be sent).
+				// Once the microclients are implemented (see #1128), this case is probably unnecessary.
+				else if (member.membership === 'join') {
+					const roomId = event.getRoomId();
+					if (roomId !== undefined && rooms.rooms[roomId]) {
+						rooms.rooms[roomId].setHidden(false);
+					} else {
+						const pubhubs = usePubHubs();
+						pubhubs.updateRooms();
+					}
 				}
 			}
 		};

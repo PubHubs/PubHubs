@@ -71,7 +71,7 @@ const useHubSettings = defineStore('hub-settings', {
 			if (settings.isFeatureEnabled(FeatureFlag.hubSettings)) {
 				return this._iconUrl;
 			} else {
-				return '/img/logo.svg';
+				return '/img/logo-person.svg';
 			}
 		},
 
@@ -81,7 +81,7 @@ const useHubSettings = defineStore('hub-settings', {
 			if (settings.isFeatureEnabled(FeatureFlag.hubSettings)) {
 				return this._iconUrlDark;
 			} else {
-				return '/img/logo-dark.svg';
+				return '/img/logo-person-dark.svg';
 			}
 		},
 
@@ -91,7 +91,7 @@ const useHubSettings = defineStore('hub-settings', {
 			if (settings.isFeatureEnabled(FeatureFlag.hubSettings)) {
 				return api_synapse.apiURLS.hubIconDefault;
 			} else {
-				return '/img/logo.svg';
+				return '/img/logo-person.svg';
 			}
 		},
 
@@ -101,7 +101,7 @@ const useHubSettings = defineStore('hub-settings', {
 			if (settings.isFeatureEnabled(FeatureFlag.hubSettings)) {
 				return api_synapse.apiURLS.hubIconDefaultDark;
 			} else {
-				return '/img/logo-dark.svg';
+				return '/img/logo-person-dark.svg';
 			}
 		},
 

@@ -5,10 +5,10 @@
 
   inputs = {
     # Specify the Nixpkgs repository version to use for building the development environment
-    nixpkgs.url = "github:nixos/nixpkgs/nixos-24.11";
+    nixpkgs.url = "github:nixos/nixpkgs/nixos-unstable";
   };
 
-  outputs = { nixpkgs, ... }: let
+  outputs = {nixpkgs, ...}: let
     # Define the system architecture
     system = "x86_64-linux";
     # system = "x86_64-darwin";
@@ -18,29 +18,28 @@
       pkgs = import nixpkgs {
         inherit system;
       };
-    in pkgs.mkShell {
-      # Ensure that Docker is already installed on your system before using the development environment
-      packages = with pkgs; [
-        cargo
-        cargo-watch
-        nodejs
-        nodePackages.sass
-        openssl 
-        pkg-config
-        python3
-        sqlite
-      ];
+    in
+      pkgs.mkShell {
+        # Ensure that Docker is already installed on your system before using the development environment
+        packages = with pkgs; [
+          rustc
+          cargo
+          cargo-watch
+          nodejs
+          nodePackages.sass
+          openssl
+          pkg-config
+          python3
+          sqlite
+        ];
 
-      # Shell hook that executes when the development environment starts
-      shellHook = ''
-        # If the shell is Fish, start a new Fish shell session to ensure proper environment setup
-        if [[ "$SHELL" == *"fish"* ]]; then
-          exec fish
-        fi
-
-        # Define an alias to initialize the testhub using the specified Python script
-        alias pubhubs-hub-init='python3 start_test_setup.py exec --cargo-disabled'
-      '';
-    };
+        # Shell hook that executes when the development environment starts
+        shellHook = ''
+          # If the shell is Fish, start a new Fish shell session to ensure proper environment setup
+          if [[ "$SHELL" == *"fish"* ]]; then
+            exec fish
+          fi
+        '';
+      };
   };
 }

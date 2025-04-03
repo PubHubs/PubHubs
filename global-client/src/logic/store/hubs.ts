@@ -1,10 +1,12 @@
 import { defineStore } from 'pinia';
 import { RouteParams } from 'vue-router';
-import { Message, MessageBoxType, MessageType, useGlobal, useMessageBox, useSettings } from '@/logic/store/store';
+import { useGlobal, useMessageBox, useSettings } from '@/logic/store/store';
+import { iframeHubId, MessageType, Message } from '@/logic/store/messagebox';
 import { setLanguage, setUpi18n } from '@/i18n';
 import { useToggleMenu } from '@/logic/store/toggleGlobalMenu';
 
 import { Hub, HubList } from '@/model/Hubs';
+import { miniClientId } from './messagebox';
 
 const useHubs = defineStore('hubs', {
 	state: () => {
@@ -86,11 +88,29 @@ const useHubs = defineStore('hubs', {
 			});
 		},
 
+		async setupMiniclient(hubId: string) {
+			const self = this;
+
+			const messagebox = useMessageBox();
+
+			if (!this.hubs[hubId]) throw new Error('Current hub is not initialized');
+
+			// Start conversation with hub frame and sync latest settings
+			await messagebox.startCommunication(this.hubs[hubId].url, miniClientId + '_' + hubId);
+
+			// Listen to sync unreadmessages
+			messagebox.addCallback(miniClientId + '_' + hubId, MessageType.UnreadMessages, (message: Message) => {
+				self.hubs[hubId].unreadMessages = message.content as number;
+				if (self.hubs[hubId].unreadMessages > 0) {
+					sendNotification(self.hubs[hubId].hubName);
+				}
+			});
+		},
+
 		async changeHub(params: RouteParams) {
 			const hubName = params.name as string;
 			const hubId = hubName === '' ? '' : this.hubId(hubName);
 			const roomId = params.roomId as string;
-			const self = this;
 			const toggleMenu = useToggleMenu();
 			const messagebox = useMessageBox();
 			const global = useGlobal();
@@ -101,7 +121,7 @@ const useHubs = defineStore('hubs', {
 			// Only change to a Hub if there is a hubId given of a valid hub, otherwise return
 			if (typeof hubId === 'undefined' || !this.currentHubExists) {
 				this.currentHubId = '';
-				messagebox.reset();
+				messagebox.resetCurrentHub();
 				// TODO: find a way router can be part of a store that TypeScript swallows.
 				// @ts-ignore
 				this.router.push({ name: 'home' });
@@ -119,14 +139,14 @@ const useHubs = defineStore('hubs', {
 				// Let hub navigate to given room (if loggedIn)
 				if (global.loggedIn && roomId !== undefined && roomId !== '' && roomId != this.currentRoomId) {
 					this.currentRoomId = roomId;
-					messagebox.sendMessage(new Message(MessageType.RoomChange, roomId));
+					messagebox.sendMessage(new Message(MessageType.RoomChange, roomId), iframeHubId);
 				}
 			} else {
 				//The hub has changed: set it up
 
 				if (!this.currentHub) throw new Error('Current hub is not initialized');
 				// Start conversation with hub frame and sync latest settings
-				await messagebox.init(MessageBoxType.Parent, this.currentHub.url);
+				await messagebox.startCommunication(this.currentHub.url, iframeHubId);
 
 				//Show bar both client and global-side so we always enter a hub with them and we start in the same state of the bar. Hub rooms should close the bar themselves.
 				toggleMenu.showMenuAndSendToHub();
@@ -136,16 +156,16 @@ const useHubs = defineStore('hubs', {
 				settings.sendSettings();
 
 				// Send hub information
-				messagebox.sendMessage(new Message(MessageType.HubInformation, { name: this.hub(hubId)!.hubName }));
+				messagebox.sendMessage(new Message(MessageType.HubInformation, { name: this.hub(hubId)!.hubName }), iframeHubId);
 
 				// Let hub navigate to given room (if loggedIn)
 				if (global.loggedIn && roomId !== undefined && roomId !== '') {
-					messagebox.sendMessage(new Message(MessageType.RoomChange, roomId));
+					messagebox.sendMessage(new Message(MessageType.RoomChange, roomId), iframeHubId);
 				}
 
 				// Listen to room change: only change url without reloading
 				// Because this is the callback that sets the URL from the iFrame
-				messagebox.addCallback(MessageType.RoomChange, (message: Message) => {
+				messagebox.addCallback(iframeHubId, MessageType.RoomChange, (message: Message) => {
 					const roomId = message.content;
 					const currentUrl = window.location.href;
 					const [baseUrl] = currentUrl.split('#');
@@ -156,35 +176,27 @@ const useHubs = defineStore('hubs', {
 				});
 
 				//Listen to global menu change and don't resend own state.
-				messagebox.addCallback(MessageType.BarHide, () => {
+				messagebox.addCallback(iframeHubId, MessageType.BarHide, () => {
 					toggleMenu.globalIsActive = false;
 				});
 
-				messagebox.addCallback(MessageType.BarShow, () => {
+				messagebox.addCallback(iframeHubId, MessageType.BarShow, () => {
 					toggleMenu.globalIsActive = true;
 				});
 
-				// Listen to sync unreadmessages
-				messagebox.addCallback(MessageType.UnreadMessages, (message: Message) => {
-					self.hubs[hubId].unreadMessages = message.content as number;
-					if (self.hubs[hubId].unreadMessages > 0) {
-						sendNotification(self.hubs[hubId].hubName);
-					}
-				});
-
 				// Listen to modal show/hide
-				messagebox.addCallback(MessageType.DialogShowModal, () => {
+				messagebox.addCallback(iframeHubId, MessageType.DialogShowModal, () => {
 					global.showModal();
 				});
-				messagebox.addCallback(MessageType.DialogHideModal, () => {
+				messagebox.addCallback(iframeHubId, MessageType.DialogHideModal, () => {
 					global.hideModal();
 				});
 
 				// Store and remove access tokens when send from the hub client
-				messagebox.addCallback(MessageType.AddAccessToken, (accessTokenMessage: Message) => {
+				messagebox.addCallback(iframeHubId, MessageType.AddAccessToken, (accessTokenMessage: Message) => {
 					global.addAccessToken(this.currentHubId, accessTokenMessage.content as string);
 				});
-				messagebox.addCallback(MessageType.RemoveAccessToken, () => {
+				messagebox.addCallback(iframeHubId, MessageType.RemoveAccessToken, () => {
 					global.removeAccessToken(this.currentHubId);
 					// So far this message is not yet used but the hub clients.
 					// This will happen if the client says it's unhappy with its' token so refresh the page to reflect current state.

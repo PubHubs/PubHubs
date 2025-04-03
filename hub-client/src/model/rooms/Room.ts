@@ -100,6 +100,7 @@ export default class Room {
 	}
 
 	get name(): string {
+		// in Matrix initially the name of the rooom is the Id, only by joining the room the name is calculated
 		return this.matrixRoom.name;
 	}
 

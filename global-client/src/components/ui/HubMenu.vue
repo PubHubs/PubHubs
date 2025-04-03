@@ -1,35 +1,28 @@
 <template>
-	<div class="flex h-full flex-col gap-2">
-		<div class="scrollbar grid flex-1 gap-2 overflow-y-auto pt-4">
-			<draggable @start="backupPinnedHubs = global.pinnedHubs.slice()" @end="hoverOverHubremoval = false" :list="global.pinnedHubs" :item-key="'hubId'" handle=".handle" class="list-group flex flex-col gap-2" group="hubs">
-				<template #item="{ element }">
-					<div v-if="hubs.hub(element.hubId)" class="flex justify-center gap-1" :class="{ handle: hubOrderingIsActive }">
-						<!-- When hub ordering is active, these buttons will be visible as an indicator -->
-						<div class="my-auto flex flex-col gap-2 hover:cursor-pointer" :class="{ hidden: !hubOrderingIsActive }">
-							<Icon type="triangle" size="xs"></Icon>
-							<Icon class="rotate-180" type="triangle" size="xs"></Icon>
-						</div>
-						<router-link :to="{ name: 'hub', params: { name: element.hubName } }" v-slot="{ isActive }">
-							<HubMenuHubIcon
-								class="text-ph-text"
-								v-if="global.loggedIn || element.hubId === hubs.currentHubId"
-								:hub="hubs.hub(element.hubId)"
-								:hubId="element.hubId"
-								:active="isActive"
-								:pinned="true"
-								:hubOrderingIsActive="hubOrderingIsActive"
-								@click="sendToHub"
-							></HubMenuHubIcon>
-						</router-link>
-					</div>
-				</template>
-			</draggable>
-		</div>
-		<div class="relative h-14 max-h-0 overflow-hidden transition-all duration-300 ease-in-out" :class="{ 'max-h-14': hubOrderingIsActive }">
+	<div class="flex h-full flex-col justify-between gap-2 md:gap-4" :class="{ 'rounded-md border-2 border-dashed border-on-surface-disabled p-1': hubOrderingIsActive }">
+		<draggable @start="backupPinnedHubs = global.pinnedHubs.slice()" @end="hoverOverHubremoval = false" :list="global.pinnedHubs" :item-key="'hubId'" handle=".handle" class="list-group flex flex-1 flex-col gap-2" group="hubs">
+			<template #item="{ element }">
+				<div v-if="hubs.hub(element.hubId)" class="flex h-auto justify-center gap-1 p-1" :class="{ handle: hubOrderingIsActive }">
+					<router-link :to="{ name: 'hub', params: { name: element.hubName } }" v-slot="{ isActive }" class="w-full">
+						<HubMenuHubIcon
+							class="text-on-surface"
+							v-if="global.loggedIn || element.hubId === hubs.currentHubId"
+							:hub="hubs.hub(element.hubId)"
+							:hubId="element.hubId"
+							:active="isActive"
+							:pinned="true"
+							:hubOrderingIsActive="hubOrderingIsActive"
+							@click="sendToHub"
+						/>
+					</router-link>
+				</div>
+			</template>
+		</draggable>
+		<div class="relative h-12 max-h-0 overflow-hidden transition-all duration-300 ease-in-out" :class="{ 'max-h-12': hubOrderingIsActive }">
 			<div class="absolute grid h-full w-full items-center justify-center">
-				<Icon type="unpin" size="xl" :class="[hoverOverHubremoval ? 'text-red' : 'text-ph-accent-icon']"></Icon>
+				<Icon type="unpin" class="rounded-md p-1" :class="[hoverOverHubremoval ? 'text-accent-error opacity-100' : 'text-on-surface-disabled']" size="md" />
 			</div>
-			<draggable group="hubs" @dragover="hoverOverHubremoval = true" @dragleave="hoverOverHubremoval = false" :list="[]" @change="confirmationHubRemoval" :item-key="'unpin'" tag="ul" class="list-group h-full opacity-0">
+			<draggable group="hubs" @dragover="hoverOverHubremoval = true" @dragleave="hoverOverHubremoval = false" :list="unpinnedHubs" @change="confirmationHubRemoval" :item-key="'unpin'" tag="ul" class="list-group h-full opacity-0">
 				<template #item="{ element: trash }">
 					<li>{{ trash }}</li>
 				</template>
@@ -39,14 +32,15 @@
 </template>
 
 <script setup lang="ts">
-	import draggable from 'vuedraggable';
-	import { PinnedHubs, useDialog, useGlobal, useHubs } from '@/logic/store/store';
-	import { useToggleMenu } from '@/logic/store/toggleGlobalMenu';
+	// Package imports
 	import { ref } from 'vue';
+	import draggable from 'vuedraggable';
 	import { useI18n } from 'vue-i18n';
 
-	// Components
-	import HubMenuHubIcon from './HubMenuHubIcon.vue';
+	// Global imports
+	import HubMenuHubIcon from '@/components/ui/HubMenuHubIcon.vue';
+	import { PinnedHubs, useDialog, useGlobal, useHubs, useMessageBox } from '@/logic/store/store';
+	import { useToggleMenu } from '@/logic/store/toggleGlobalMenu';
 
 	const global = useGlobal();
 	const hubs = useHubs();
@@ -56,6 +50,7 @@
 	const hoverOverHubremoval = ref(false);
 
 	let backupPinnedHubs = [] as PinnedHubs;
+	let unpinnedHubs = [] as PinnedHubs;
 
 	const props = defineProps({
 		hubOrderingIsActive: Boolean,
@@ -74,9 +69,12 @@
 
 		if (removeHub) {
 			backupPinnedHubs.splice(0, backupPinnedHubs.length);
+			const messagebox = useMessageBox();
+			messagebox.resetMiniclient(unpinnedHubs[0].hubId);
 		} else {
 			global.pinnedHubs = backupPinnedHubs.slice();
 			backupPinnedHubs.splice(0, backupPinnedHubs.length);
 		}
+		unpinnedHubs = [];
 	}
 </script>

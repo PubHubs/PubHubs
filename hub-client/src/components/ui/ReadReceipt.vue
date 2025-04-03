@@ -1,7 +1,7 @@
 <template>
-	<span v-if="numOfUsersRead > 0" class="-m-2.5 px-2.5 py-1.5 text-xs font-medium dark:text-white">
+	<span v-if="numOfUsersRead > 0" class="-m-2.5 px-2.5 py-1.5 font-medium ~text-label-min/label-max dark:text-white">
 		<!-- Tick icon  -->
-		<Icon type="filled_tick" size="sm" class="mb-1 inline"></Icon>
+		<Icon type="filled_tick" size="sm" class="mb-1 inline" />
 
 		<!-- Shows the text eg., Read by followed by a number  -->
 		{{ numOfUsersRead > 0 ? $t('others.read_receipt') + ' ' + numOfUsersRead : ' ' }}

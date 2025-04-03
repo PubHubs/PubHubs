@@ -3,8 +3,10 @@
 pub mod config;
 mod constellation;
 pub mod macros;
+mod object_store;
 mod run;
 pub(super) mod server;
+pub mod yivi;
 
 pub(crate) mod auths;
 pub(crate) mod phc;

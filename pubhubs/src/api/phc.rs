@@ -21,16 +21,16 @@ pub mod hub {
 
     #[derive(Serialize, Deserialize, Debug, Clone)]
     pub struct TicketReq {
-        pub name: crate::hub::Name,
+        pub handle: crate::handle::Handle,
     }
 
     pub type Ticket = Signed<TicketContent>;
 
-    /// A ticket, a [Signed] [TicketContent], certifies that the named hub uses the given
+    /// A ticket, a [Signed] [TicketContent], certifies that the hub uses the given
     /// `verifying_key`.
     #[derive(Serialize, Deserialize, Debug, Clone)]
     pub struct TicketContent {
-        pub name: crate::hub::Name,
+        pub handle: crate::handle::Handle,
         pub verifying_key: VerifyingKey,
     }
 
@@ -46,7 +46,7 @@ pub mod hub {
     impl<T> TicketSigned<T> {
         /// Opens this [TicketSigned], checking the signature on `signed` using the verifying key in
         /// the provided `ticket`, and checking the `ticket` using `key`.
-        pub fn open(self, key: &ed25519_dalek::VerifyingKey) -> Result<(T, crate::hub::Name)>
+        pub fn open(self, key: &ed25519_dalek::VerifyingKey) -> Result<(T, crate::handle::Handle)>
         where
             T: HavingMessageCode + serde::de::DeserializeOwned,
         {
@@ -54,7 +54,7 @@ pub mod hub {
 
             let msg: T = return_if_ec!(self.signed.open(&*ticket_content.verifying_key));
 
-            Result::Ok((msg, ticket_content.name))
+            Result::Ok((msg, ticket_content.handle))
         }
 
         pub fn new(ticket: Ticket, signed: Signed<T>) -> Self {

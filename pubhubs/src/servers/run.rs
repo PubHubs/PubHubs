@@ -1,5 +1,6 @@
 //! Running PubHubs [Server]s
 use std::net::SocketAddr;
+use std::num::NonZero;
 use std::rc::Rc;
 use std::sync::Arc;
 
@@ -15,10 +16,49 @@ use crate::servers::{
 
 /// A set of running PubHubs servers.
 pub struct Set {
+    /// Handle to the task waiting on [SetInner::wait].
+    wait_jh: tokio::task::JoinHandle<usize>,
+}
+
+impl Set {
+    /// Creates a new set of PubHubs servers from the given config.
+    /// To signal shutdown of these senders, drop the returned `sender`.
+    pub fn new(
+        config: &crate::servers::Config,
+    ) -> Result<(Self, tokio::sync::oneshot::Sender<Infallible>)> {
+        let (inner, shutdown_sender) = SetInner::new(config)?;
+
+        let wait_jh = tokio::task::spawn(inner.wait());
+
+        Ok((Self { wait_jh }, shutdown_sender))
+    }
+
+    /// Waits for one of the servers to return, panic, or be cancelled.
+    /// If that happens, the other servers are directed to shutdown as well.
+    ///
+    /// Returns the number of servers that did *not* shutdown cleanly.
+    ///
+    /// Panics when the tokio runtime is shut down.
+    pub async fn wait(self) -> usize {
+        match self.wait_jh.await {
+            Ok(nr) => nr,
+            Err(join_error) => {
+                panic!(
+                    "task waiting on servers to exit was cancelled or panicked: {}",
+                    join_error
+                );
+            }
+        }
+    }
+}
+
+/// A set of running PubHubs servers.
+struct SetInner {
+    /// The servers' tasks
     joinset: tokio::task::JoinSet<Result<()>>,
 
     /// Via `shutdown_sender` [Set] broadcasts the instruction to shutdown to all servers
-    /// running in the `jointset`.  It does so not by `send`ing a message, but by dropping
+    /// running in the `joinset`.  It does so not by `send`ing a message, but by dropping
     /// the `shutdown_sender`.
     shutdown_sender: Option<tokio::sync::broadcast::Sender<Infallible>>,
 
@@ -26,19 +66,19 @@ pub struct Set {
     shutdown_receiver: tokio::sync::oneshot::Receiver<Infallible>,
 }
 
-impl Drop for Set {
+impl Drop for SetInner {
     fn drop(&mut self) {
         if self.shutdown_sender.is_some() {
-            log::error!("the completion of all pubhubs servers was not awaited - please consume Set using wait() or shutdown()")
+            log::error!("the completion of all pubhubs servers was not awaited - please consume SetInner using wait() or shutdown()")
         }
     }
 }
 
-impl Set {
+impl SetInner {
     /// Creates a new set of PubHubs servers from the given config.
     ///
-    /// Returns not only the [Set] instance, but also a [`tokio::sync::oneshot::Sender<Infallible>`]
-    /// that can be dropped to signal the [Set] should shutdown.
+    /// Returns not only the [SetInner] instance, but also a [`tokio::sync::oneshot::Sender<Infallible>`]
+    /// that can be dropped to signal the [SetInner] should shutdown.
     pub fn new(
         config: &crate::servers::Config,
     ) -> Result<(Self, tokio::sync::oneshot::Sender<Infallible>)> {
@@ -46,6 +86,36 @@ impl Set {
         let mut joinset = tokio::task::JoinSet::<Result<()>>::new();
 
         let (shutdown_sender, _) = tokio::sync::broadcast::channel(1); // NB capacity of 0 is not allowed
+
+        // count the number of servers
+        let server_count: usize = {
+            let mut counter: usize = 0;
+
+            macro_rules! count_server {
+                ($server:ident) => {
+                    if config.$server.is_some() {
+                        counter += 1;
+                    }
+                };
+            }
+
+            for_all_servers!(count_server);
+
+            counter
+        };
+
+        // don't use one thread per code for each server - this speeds up testing
+        let worker_count: Option<NonZero<usize>> =
+            std::thread::available_parallelism()
+                .ok()
+                .map(|parallelism: NonZero<usize>| {
+                    if server_count == 0 {
+                        return NonZero::<usize>::new(1).unwrap();
+                    }
+
+                    NonZero::<usize>::try_from(parallelism.get() / server_count)
+                        .unwrap_or(NonZero::<usize>::new(1).unwrap()) // more servers than cores
+                });
 
         macro_rules! run_server {
             ($server:ident) => {
@@ -56,11 +126,12 @@ impl Set {
 
                     // We use spawn_blocking instead of spawn, because we want a separate thread
                     // for each server to run on
-                    joinset.spawn_blocking(|| -> Result<()> {
+                    joinset.spawn_blocking(move || -> Result<()> {
                         Self::run_server::<crate::servers::$server::Server>(
                             config,
                             rt_handle,
                             shutdown_receiver,
+                            worker_count,
                         )
                     });
                 }
@@ -89,10 +160,15 @@ impl Set {
         config: crate::servers::Config,
         rt_handle: tokio::runtime::Handle,
         shutdown_receiver: tokio::sync::broadcast::Receiver<Infallible>,
+        worker_count: Option<NonZero<usize>>,
     ) -> Result<()> {
+        assert!(config.preparation_state == crate::servers::config::PreparationState::Complete);
+
         let localset = tokio::task::LocalSet::new();
-        let fut = localset
-            .run_until(crate::servers::run::Runner::<S>::new(&config, shutdown_receiver)?.run());
+
+        let fut = localset.run_until(
+            crate::servers::run::Runner::<S>::new(&config, shutdown_receiver, worker_count)?.run(),
+        );
 
         let result = rt_handle.block_on(fut);
 
@@ -105,19 +181,26 @@ impl Set {
 
     /// Waits for one of the servers to return, panic, or be cancelled.
     /// If that happens, the other servers are directed to shutdown as well.
+    ///
+    /// If this function is not called, servers can fail silently.
+    ///
     /// Returns the number of servers that did *not* shutdown cleanly
     pub async fn wait(mut self) -> usize {
+        log::trace!("waiting for one of the servers to exit...");
         let err_count: usize = tokio::select! {
-            // either one of the servers exists
+            // either one of the servers exits
             result_maybe = self
                 .joinset
                 .join_next() => {
                     let result = result_maybe.expect("no servers to wait on");
-                    log::debug!(
+                    let is_err : bool =  matches!(result, Err(_) | Ok(Err(_)));
+
+                    log::log!( if is_err { log::Level::Error } else { log::Level::Debug },
                         "one of the servers exited with {:?};  stopping all servers..",
                         result
                     );
-                    if matches!(result, Err(_) | Ok(Err(_))) {
+
+                    if is_err {
                         1
                     } else {
                         0
@@ -127,7 +210,7 @@ impl Set {
             // or we get the command to shut down from higher up
             result = &mut self.shutdown_receiver => {
                 result.expect_err("received Infallible");
-                log::debug!("shutdown requested");0
+                log::debug!("shutdown requested"); 0
             }
         };
 
@@ -162,10 +245,11 @@ impl Set {
     }
 }
 
-/// Runs a [Server].
-pub struct Runner<ServerT: Server> {
+/// Runs a [Server]
+struct Runner<ServerT: Server> {
     pubhubs_server: Rc<ServerT>,
     shutdown_receiver: tokio::sync::broadcast::Receiver<Infallible>,
+    worker_count: Option<NonZero<usize>>,
 }
 
 /// The handles to control an [actix_web::dev::Server] running a pubhubs [Server].
@@ -487,22 +571,28 @@ impl DiscoveryLimiter {
 /// Used to issue commands to the server.  Since discovery is requested a often a separate struct
 /// is used to deal with discovery requests.
 pub struct Handle<S: Server> {
+    /// To send commands to the server
     sender: mpsc::Sender<CommandRequest<S>>,
+
+    /// To coordinate the handling of discovery requests
     discovery_limiter: DiscoveryLimiter,
 }
 
 struct CommandRequest<S: Server> {
     /// The actual command
     command: Command<S>,
-    /// A way for the [Server] to inform the [App] that the command is about to be executed,
-    /// by dropping this `feedback_sender`.
-    feedback_sender: tokio::sync::oneshot::Sender<Infallible>,
+    /// A way for the [Server] to inform the [App] that the command is about to be executed.
+    feedback_sender: tokio::sync::oneshot::Sender<()>,
 }
 
 impl<S: Server> CommandRequest<S> {
     /// Let's the issuer of the command know that the command is to be fulfilled
     fn accept(self) -> Command<S> {
-        drop(self.feedback_sender);
+        let _ = self.feedback_sender.send(());
+        log::warn!(
+            "The app issuing command {} that is about to execute has already dropped.",
+            &self.command
+        );
         self.command
     }
 }
@@ -545,12 +635,10 @@ impl<S: Server> Handle<S> {
             return Err(());
         };
 
-        // wait for the command to be the next in line
-        feedback_receiver
-            .await
-            .expect_err("got instance of Infallible!");
-
-        Ok(())
+        // Wait for the command to be the next in line.
+        //
+        // If feedback receiver returns an error, the command might not have executed.
+        feedback_receiver.await.map_err(|_| ())
     }
 
     pub async fn modify(
@@ -604,12 +692,18 @@ impl<S: Server> Runner<S> {
     pub fn new(
         global_config: &crate::servers::Config,
         shutdown_receiver: tokio::sync::broadcast::Receiver<Infallible>,
+        worker_count: Option<NonZero<usize>>,
     ) -> Result<Self> {
+        log::trace!("{}: creating runner...", S::NAME);
+
         let pubhubs_server = Rc::new(S::new(global_config)?);
+
+        log::trace!("{}: created runner", S::NAME);
 
         Ok(Runner {
             pubhubs_server,
             shutdown_receiver,
+            worker_count,
         })
     }
 
@@ -641,20 +735,29 @@ impl<S: Server> Runner<S> {
         let app_creator2 = app_creator.clone();
         let handle2 = handle.clone();
 
-        let actual_actix_server: actix_web::dev::Server = actix_web::HttpServer::new(move || {
-            let app: S::AppT = app_creator2.clone().into_app(&handle2);
+        let actual_actix_server: actix_web::dev::Server = {
+            // Build actix server
+            let mut builder: actix_web::HttpServer<_, _, _, _> =
+                actix_web::HttpServer::new(move || {
+                    let app: S::AppT = app_creator2.clone().into_app(&handle2);
 
-            actix_web::App::new().configure(|sc: &mut web::ServiceConfig| {
-                // first configure endpoints common to all servers
-                AppBase::<S>::configure_actix_app(&app, sc);
+                    actix_web::App::new().configure(|sc: &mut web::ServiceConfig| {
+                        // first configure endpoints common to all servers
+                        AppBase::<S>::configure_actix_app(&app, sc);
 
-                // and then server-specific endpoints
-                app.configure_actix_app(sc);
-            })
-        })
-        .disable_signals() // we handle signals ourselves
-        .bind(bind_to)?
-        .run();
+                        // and then server-specific endpoints
+                        app.configure_actix_app(sc);
+                    })
+                })
+                .disable_signals() // we handle signals ourselves
+                .bind(bind_to)?;
+
+            if let Some(worker_count) = self.worker_count {
+                builder = builder.workers(worker_count.get());
+            }
+
+            builder.run()
+        };
 
         // start actix server
         let actix_server_handle = actual_actix_server.handle().clone();

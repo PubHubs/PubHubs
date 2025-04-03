@@ -1,35 +1,31 @@
 <template>
 	<template v-if="rooms.currentRoomExists">
-		<HeaderFooter v-if="plugin === false" :headerSize="'sm'" :headerMobilePadding="true">
+		<HeaderFooter v-if="plugin === false" :headerSize="'sm'" :headerMobilePadding="true" bgBarLow="bg-background" bgBarMedium="bg-surface-low">
 			<template #header>
-				<div class="hidden items-center gap-4 md:flex">
-					<span class="text-xxs font-bold uppercase">{{ $t('rooms.room') }}</span>
-					<hr class="grow" />
+				<div class="items-center gap-4 text-on-surface-dim" :class="isMobile ? 'hidden' : 'flex'">
+					<span class="font-semibold uppercase">{{ $t('rooms.room') }}</span>
+					<hr class="h-[2px] grow bg-on-surface-dim" />
 				</div>
-				<div class="relative flex h-full justify-between gap-x-2">
-					<div v-if="rooms.currentRoom" class="flex w-[75%] shrink-0 items-center gap-x-1 overflow-hidden md:w-[60%] md:gap-x-4">
-						<Icon :type="rooms.currentRoom.isSecuredRoom() ? 'shield' : 'speech_bubbles'" size="lg"></Icon>
+				<div class="relative flex h-full items-center justify-between gap-4" :class="isMobile ? 'pl-12' : 'pl-0'">
+					<div v-if="rooms.currentRoom" class="flex w-fit items-center gap-3 overflow-hidden">
+						<Icon :type="rooms.currentRoom.isSecuredRoom() ? 'shield' : 'speech_bubbles'" size="base" />
 						<div class="flex flex-col">
-							<H1 class="flex">
-								<TruncatedText>
-									<PrivateRoomName v-if="rooms.currentRoom.isPrivateRoom()" :members="rooms.currentRoom.getOtherJoinedAndInvitedMembers()"> </PrivateRoomName>
-									<RoomName v-else :room="rooms.currentRoom"></RoomName>
+							<H3 class="flex text-on-surface">
+								<TruncatedText class="font-headings font-semibold">
+									<PrivateRoomName v-if="rooms.currentRoom.isPrivateRoom()" :members="rooms.currentRoom.getOtherJoinedAndInvitedMembers()" />
+									<RoomName v-else :room="rooms.currentRoom" />
 								</TruncatedText>
-							</H1>
+							</H3>
 							<TruncatedText class="hidden md:inline">
-								<RoomTopic :room="rooms.currentRoom"></RoomTopic>
+								<!-- <RoomTopic :room="rooms.currentRoom"/> -->
 							</TruncatedText>
 						</div>
-						<!-- Only show cog wheel in mobile view -->
-						<Icon v-if="room.getUserPowerLevel(user.user.userId) === 50" type="cog" class="z-10 cursor-pointer md:hidden md:text-black" @click="stewardCanEdit()"></Icon>
 					</div>
 					<!--Only show Editing icon for steward but not for administrator-->
-					<div class="hidden items-center md:flex" v-if="room.getUserPowerLevel(user.user.userId) === 50">
-						<div class="rounded-md border-2 border-gray-light bg-gray-light px-2 py-2 transition-colors hover:border-gray-middle hover:bg-gray-middle">
-							<Icon type="cog" class="cursor-pointer text-white" @click="stewardCanEdit()"></Icon>
-						</div>
+					<div class="flex gap-4">
+						<GlobalBarButton v-if="room.getUserPowerLevel(user.user.userId) === 50" type="cog" size="sm" @click="stewardCanEdit()" />
+						<SearchInput :search-parameters="searchParameters" @scroll-to-event-id="onScrollToEventId" :room="rooms.currentRoom" />
 					</div>
-					<SearchInput :search-parameters="searchParameters" @scroll-to-event-id="onScrollToEventId" :room="rooms.currentRoom"></SearchInput>
 				</div>
 			</template>
 
@@ -40,28 +36,29 @@
 				<RoomThread v-if="room.getCurrentThreadId()" :room="room" :scroll-to-event-id="room.getCurrentEventId()" @scrolled-to-event-id="room.setCurrentEventId(undefined)" @thread-length-changed="currentThreadLengthChanged">
 				</RoomThread>
 			</div>
+
 			<template #footer>
-				<EditRoomForm v-if="showEditRoom" :room="currentRoomToEdit" :secured="secured" @close="closeEdit()"> </EditRoomForm>
+				<EditRoomForm v-if="showEditRoom" :room="currentRoomToEdit" :secured="secured" @close="closeEdit()" />
 			</template>
 		</HeaderFooter>
 
 		<!-- Plugin Room -->
-		<component v-if="plugin !== false && plugin !== true" :is="plugin.component"></component>
+		<component v-if="plugin !== false && plugin !== true" :is="plugin.component" />
 	</template>
 </template>
 
 <script setup lang="ts">
 	// Components
-	import H1 from '@/components/elements/H1.vue';
 	import HeaderFooter from '@/components/ui/HeaderFooter.vue';
 	import Icon from '@/components/elements/Icon.vue';
+	import H3 from '@/components/elements/H3.vue';
 	import TruncatedText from '@/components/elements/TruncatedText.vue';
 	import PrivateRoomName from '@/components/rooms/PrivateRoomName.vue';
-	import RoomTopic from '@/components/rooms/RoomTopic.vue';
 	import SearchInput from '@/components/forms/SearchInput.vue';
 	import RoomTimeline from '@/components/rooms/RoomTimeline.vue';
 	import RoomName from '@/components/rooms/RoomName.vue';
 	import RoomThread from '@/components/rooms/RoomThread.vue';
+	import GlobalBarButton from '@/components/ui/GlobalbarButton.vue';
 
 	import { usePubHubs } from '@/logic/core/pubhubsStore';
 	import { LOGGER } from '@/logic/foundation/Logger';
@@ -71,9 +68,11 @@
 	import { PluginProperties, usePlugins } from '@/logic/store/plugins';
 	import { useRooms } from '@/logic/store/rooms';
 	import { useUser } from '@/logic/store/user';
-	import { TPublicRoom, TSecuredRoom } from '@/logic/store/store';
+	import { TPublicRoom } from '@/model/rooms/TPublicRoom';
+	import { TSecuredRoom } from '@/model/rooms/TSecuredRoom';
 	import { computed, onMounted, ref, watch } from 'vue';
 	import { useRoute, useRouter } from 'vue-router';
+	import { useSettings } from '@/logic/store/settings';
 
 	const route = useRoute();
 	const rooms = useRooms();
@@ -85,6 +84,8 @@
 	const currentRoomToEdit = ref<TSecuredRoom | TPublicRoom | null>(null);
 	const showEditRoom = ref(false);
 	const secured = ref(false);
+	const settings = useSettings();
+	const isMobile = computed(() => settings.isMobileState);
 
 	const pubhubs = usePubHubs();
 

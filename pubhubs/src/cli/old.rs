@@ -73,7 +73,7 @@ struct HubFormUpdate {
     client_uri: String,
 }
 
-async fn get_hubs<'a>(
+async fn get_hubs(
     context: Data<Main>,
     request: HttpRequest,
     translations: Translations,

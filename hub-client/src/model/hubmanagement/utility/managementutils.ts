@@ -23,9 +23,11 @@ export class ManagementUtils {
 
 		// Room Name for automatically  generated can be taken from canonical alias - Example is General room
 		// by @system_bot:testhub.matrix.host. These rooms does not have name in room state.
-		// Better to keep their name as alias. The form of the alias doesn't
-		if (!roomName) roomName = roomState?.state.find((event) => event.type === EventType.RoomCanonicalAlias)?.content.alias;
-		if (!roomName) throw new Error('Event for Name not found.');
+		// Better to keep their name as alias. If RoomName or RoomCanonicalAlias is not present then default to roomId.
+		// This issue was found when user created automated rooms
+
+		if (!roomName) roomName = roomState?.state.find((event) => event.type === EventType.RoomCanonicalAlias)?.content.alias ?? roomId;
+
 		// Extract room type
 		const joinRuleEvent = roomState.state.find((event) => event.type === EventType.RoomJoinRules);
 		const isPublicRoom = joinRuleEvent?.content?.join_rule === 'public';

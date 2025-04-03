@@ -1,10 +1,10 @@
 <template>
-	<div ref="elThreadTimeline" class="bg-hub-background-6 relative flex h-full w-full shrink-0 flex-col md:w-[33%]">
-		<div class="m-3 mb-0 flex gap-2 rounded-md bg-hub-background-5 p-2">
-			<button @click="closeThread" class="rounded-md bg-gray-lighter p-1 hover:bg-gray-light dark:bg-gray-middle hover:dark:bg-gray-darker">
-				<Icon :type="'arrow'" :size="'xs'"></Icon>
+	<div ref="elThreadTimeline" class="relative flex h-full w-full shrink-0 flex-col border-l border-surface-high bg-background md:w-[33%]">
+		<div class="m-3 mb-0 flex items-center gap-2 rounded-md bg-surface-low p-2">
+			<button @click="closeThread" class="rounded-md p-1">
+				<Icon :type="'arrow'" :size="'sm'"></Icon>
 			</button>
-			<p class="truncate text-nowrap text-xs"><span class="text-sm font-bold">Thread - </span>{{ numberOfThreadEvents ?? 0 }}</p>
+			<p class="truncate text-nowrap ~text-label-tiny-min/label-tiny-max">Thread ({{ numberOfThreadEvents ?? 0 }})</p>
 		</div>
 
 		<div class="h-full flex-1 overflow-y-scroll pb-8 pt-4">

@@ -7,21 +7,21 @@
 					<span>{{ ask.user.userId }}</span>
 					"<span v-if="ask.user.displayName" :title="ask.user.displayName">{{ ask.user.displayName.substring(0, 20) + (ask.user.displayName.length > 20 ? '...' : '') }}</span
 					>"
-					<Icon type="edit" class="float-right"></Icon>
+					<Icon type="edit" class="float-right" />
 				</span>
-				<Icon v-else type="plus" class="float-right cursor-pointer" @click="onChooseUser"></Icon>
+				<Icon v-else type="plus" class="float-right cursor-pointer" @click="onChooseUser" />
 			</FormLine>
 			<FormLine class="mb-2">
 				<Label>{{ $t('admin.ask_disclosure_message_title') }}</Label>
-				<TextInput :placeholder="$t('admin.ask_disclosure_message_placeholder')" v-model="ask.message" class="w-5/6"></TextInput>
+				<TextInput :placeholder="$t('admin.ask_disclosure_message_placeholder')" v-model="ask.message" class="w-5/6" />
 			</FormLine>
 			<FormLine>
 				<Label>{{ $t('admin.secured_yivi_attributes') }}</Label>
-				<FormObjectInput :template="securedRoomTemplate" v-model="ask.attributes"></FormObjectInput>
+				<FormObjectInput :template="securedRoomTemplate" v-model="ask.attributes" />
 			</FormLine>
 			<FormLine>
 				<Label>{{ $t('admin.ask_disclosure_where_room_title') }}</Label>
-				<TextInput :placeholder="$t('admin.ask_disclosure_where_room_placeholder')" v-model="ask.where_room" class="flex"></TextInput>
+				<TextInput :placeholder="$t('admin.ask_disclosure_where_room_placeholder')" v-model="ask.where_room" class="flex" />
 			</FormLine>
 			<FormLine>
 				<Label>{{ $t('admin.ask_disclosure_where_title') }}</Label>

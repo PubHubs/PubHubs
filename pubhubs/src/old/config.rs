@@ -195,20 +195,19 @@ impl File {
     }
 }
 
+/// The Yivi server serves two APIs:
+///  1.)  One, under /irma,  for 'clients' (i.e. Yivi apps)  to disclose, sign, and receive credentials, and
+///  2.)  one, under /session,  for 'requestors' to start and inspect Yivi sessions.
+///
+/// By default, Yivi serves both on the same (IP address and) port, but it can be configured to
+/// serve the client endpoints via a different (IP address and) port, via `client_port` (and
+/// `client_listen_addr`, see:
+///
+///  <https://irma.app/docs/irma-server/#http-server-endpoints>
+///
+/// Seperate ports make it possible to shield the requestor endpoint from the wider internet.
 #[derive(Serialize, Deserialize)]
 pub struct Yivi {
-    /// The Yivi server serves two APIs:
-    ///  1.)  One, under /irma,  for 'clients' (i.e. Yivi apps)  to disclose, sign, and receive credentials, and
-    ///  2.)  one, under /session,  for 'requestors' to start and inspect Yivi sessions.
-    ///
-    /// By default, Yivi serves both on the same (IP address and) port, but it can be configured to
-    /// serve the client endpoints via a different (IP address and) port, via `client_port` (and
-    /// `client_listen_addr`, see:
-    ///
-    ///  <https://irma.app/docs/irma-server/#http-server-endpoints>
-    ///
-    /// Seperate ports make it possible to shield the requestor endpoint from the wider internet.
-
     /// Base url (so without the /session) to the Yivi server's requestor API for use by
     /// PubHubs Central.
     #[serde(alias = "server_url")]

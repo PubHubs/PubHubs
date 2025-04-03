@@ -139,7 +139,7 @@ pub mod rsk {
         k: &'k Scalar,
     }
 
-    impl<'s, 'k> Params for SAndK<'s, 'k> {
+    impl Params for SAndK<'_, '_> {
         fn s(&self) -> &Scalar {
             self.s
         }
@@ -155,7 +155,7 @@ pub mod rsk {
         pub(crate) s: &'a Scalar,
     }
 
-    impl<'a> WithS<'a> {
+    impl WithS<'_> {
         pub fn and_k(self, k: &Scalar) -> Triple {
             self.t.rsk(SAndK { s: self.s, k })
         }

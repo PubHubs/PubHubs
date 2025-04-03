@@ -32,6 +32,7 @@ impl AdminArgs {
                 server: self.server,
                 admin_key: self.admin_key,
                 url: tokio::sync::OnceCell::const_new(),
+                client: client::Client::builder().agent(client::Agent::Cli).finish(),
             }),
         }
     }
@@ -42,21 +43,24 @@ struct AdminContext {
     server: servers::Name,
     admin_key: api::SigningKey,
     url: tokio::sync::OnceCell<url::Url>,
+    client: client::Client,
 }
 
 impl AdminContext {
     async fn retrieve_config(&self) -> anyhow::Result<Config> {
-        let resp = api::query_with_retry::<api::admin::Info>(
-            self.get_url().await?,
-            &api::Signed::<api::admin::InfoReq>::new(
-                &*self.admin_key,
-                &api::admin::InfoReq {},
-                std::time::Duration::from_secs(10),
+        let resp = self
+            .client
+            .query_with_retry::<api::admin::Info>(
+                self.get_url().await?,
+                &api::Signed::<api::admin::InfoReq>::new(
+                    &*self.admin_key,
+                    &api::admin::InfoReq {},
+                    std::time::Duration::from_secs(10),
+                )
+                .unwrap(),
             )
-            .unwrap(),
-        )
-        .await
-        .into_std()?;
+            .await
+            .into_std()?;
 
         Ok(resp.config)
     }
@@ -65,16 +69,19 @@ impl AdminContext {
         self.url
             .get_or_try_init(|| async {
                 if self.server == servers::Name::PubhubsCentral {
-                    return Ok(self.config.phc_url.clone());
+                    return Ok(self.config.phc_url.as_ref().clone());
                 }
 
                 log::info!(
                     "retrieving constellation from {phc_url} to get url of {server_name}",
-                    phc_url = self.config.phc_url,
+                    phc_url = self.config.phc_url.as_ref(),
                     server_name = self.server
                 );
 
-                let constellation = client::get_constellation(&self.config.phc_url).await?;
+                let constellation = self
+                    .client
+                    .get_constellation(self.config.phc_url.as_ref())
+                    .await?;
 
                 Ok(constellation.url(self.server).clone())
             })
@@ -155,20 +162,21 @@ impl ConfigUpdateArgs {
         config.json_updated(&self.pointer, self.new_value.clone())?;
 
         log::info!("Sending configuration change to {}...", ctx.server);
-        api::query_with_retry::<api::admin::UpdateConfig>(
-            ctx.get_url().await?,
-            &api::Signed::<api::admin::UpdateConfigReq>::new(
-                &*ctx.admin_key,
-                &api::admin::UpdateConfigReq {
-                    pointer: self.pointer.clone(),
-                    new_value: self.new_value.clone(),
-                },
-                std::time::Duration::from_secs(10),
+        ctx.client
+            .query_with_retry::<api::admin::UpdateConfig>(
+                ctx.get_url().await?,
+                &api::Signed::<api::admin::UpdateConfigReq>::new(
+                    &*ctx.admin_key,
+                    &api::admin::UpdateConfigReq {
+                        pointer: self.pointer.clone(),
+                        new_value: self.new_value.clone(),
+                    },
+                    std::time::Duration::from_secs(10),
+                )
+                .into_std()?,
             )
-            .into_std()?,
-        )
-        .await
-        .into_std()?;
+            .await
+            .into_std()?;
 
         log::info!("Waiting for the configuration change to take effect...");
         crate::misc::task::retry::<(), anyhow::Error, _>(|| async {

@@ -1,21 +1,25 @@
 <template>
-	<InlineSpinner v-if="!rooms.roomsLoaded" class="ml-4"></InlineSpinner>
+	<InlineSpinner v-if="!rooms.roomsLoaded" class="ml-4" />
 	<Menu v-else>
 		<template v-for="room in rooms.sortedRoomsArray" :key="room.roomId">
 			<template v-if="showRoom(room)">
 				<MenuItem :to="{ name: 'room', params: { id: room.roomId } }" :roomInfo="room" :icon="roomIcon(room)" :key="room.roomId" @click="hubSettings.hideBar()" class="group inline-block w-full">
-					<span class="flex w-full items-center justify-between gap-2">
+					<span class="flex w-full items-center justify-between gap-4">
 						<TruncatedText>
-							<PrivateRoomName v-if="room.isPrivateRoom()" :members="room.getOtherJoinedAndInvitedMembers()"></PrivateRoomName>
-							<RoomName v-else :room="room"></RoomName>
+							<PrivateRoomName v-if="room.isPrivateRoom()" :members="room.getOtherJoinedAndInvitedMembers()" />
+							<RoomName v-else :room="room" />
 						</TruncatedText>
 						<span class="flex gap-2 transition-all duration-200 ease-in-out group-hover:hidden" v-if="settings.isFeatureEnabled(FeatureFlag.notifications)">
-							<Badge class="text-xxs" color="hub" v-if="room.getRoomUnreadNotificationCount(NotificationCountType.Total) > 99">99+</Badge>
+							<Badge class="~text-label-small-min/label-small-max" color="hub" v-if="room.getRoomUnreadNotificationCount(NotificationCountType.Total) > 99">99+</Badge>
 							<Badge v-else-if="room.getRoomUnreadNotificationCount(NotificationCountType.Total) > 0" color="hub">{{ room.getRoomUnreadNotificationCount(NotificationCountType.Total) }}</Badge>
-							<Badge color="hub" v-if="room.getRoomUnreadNotificationCount(NotificationCountType.Highlight) > 0"><Icon type="mention" size="sm" class="shrink-0"></Icon></Badge>
+							<Badge color="hub" v-if="room.getRoomUnreadNotificationCount(NotificationCountType.Highlight) > 0"><Icon type="mention" size="sm" class="shrink-0" /></Badge>
 						</span>
 
-						<Icon type="unlink" class="hidden cursor-pointer stroke-2 transition-all duration-200 ease-in-out hover:text-red-light group-hover:inline-block" @click.prevent="leaveRoom(room.roomId)"></Icon>
+						<Icon
+							type="unlink"
+							class="cursor-pointer stroke-2 text-on-surface-variant transition-all duration-200 ease-in-out hover:text-accent-error md:hidden md:group-hover:inline-block"
+							@click.prevent="leaveRoom(room.roomId)"
+						/>
 					</span>
 				</MenuItem>
 			</template>

@@ -1,7 +1,7 @@
 <template>
 	<HeaderFooter class="pl-3">
 		<template #header>
-			<H1 class="m-0 font-bold text-blue">{{ $t('plugin-example.page.title') }}</H1>
+			<H1 class="text-blue m-0 font-bold">{{ $t('plugin-example.page.title') }}</H1>
 		</template>
 
 		<H2>{{ $t('plugin-example.page.subtitle') }}</H2>

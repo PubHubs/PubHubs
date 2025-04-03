@@ -1,10 +1,12 @@
 <template>
-	<div class="z-10 flex h-full flex-col overflow-hidden">
-		<div :class="headerClass" class="relative z-10 flex flex-1 flex-col justify-center">
-			<slot name="header"></slot>
-		</div>
-		<div class="scrollbar relative flex-1 overflow-y-auto">
-			<slot></slot>
+	<div :class="['relative flex h-screen w-full flex-col justify-between overflow-hidden', bgBarLow]">
+		<div class="z-10 flex h-full flex-col overflow-hidden">
+			<div :class="['flex flex-col', bgBarMedium, isMobile ? 'h-[7.5rem] justify-center p-3' : 'h-[10rem] justify-start p-4']">
+				<slot name="header"></slot>
+			</div>
+			<div class="relative flex-1 overflow-y-auto">
+				<slot class="p-3 md:p-4"></slot>
+			</div>
 		</div>
 		<div>
 			<slot name="footer"></slot>
@@ -13,32 +15,23 @@
 </template>
 
 <script setup lang="ts">
-	import { headerSizes } from '@/assets/sizes';
+	// Vue imports
 	import { computed } from 'vue';
 
+	// Hub imports
+	import { useSettings } from '@/logic/store/settings';
+
+	const settings = useSettings();
+	const isMobile = computed(() => settings.isMobileState);
+
 	const props = defineProps({
-		headerSize: {
+		bgBarLow: {
 			type: String,
-			default: 'base',
+			default: 'bg-surface-low',
 		},
-		headerBgColor: {
+		bgBarMedium: {
 			type: String,
-			default: 'bg-hub-background-2',
+			default: 'bg-surface',
 		},
-		headerMobilePadding: {
-			type: Boolean,
-			default: false,
-		},
-	});
-
-	const headerClass = computed(() => {
-		let c = headerSizes[props.headerSize] + ' ' + props.headerBgColor;
-
-		if (props.headerMobilePadding) {
-			c += ' md:px-6 md:pt-4 pl-20 ';
-		} else {
-			c += ' px-6 pt-4 ';
-		}
-		return c;
 	});
 </script>

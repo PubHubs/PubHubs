@@ -1,22 +1,22 @@
 <template>
-	<div v-if="hub" class="relative flex h-60 w-full max-w-full flex-col overflow-hidden rounded-xl bg-ph-background shadow-sm">
+	<div v-if="hub" class="relative flex h-60 w-full max-w-full flex-col overflow-hidden rounded-xl bg-background shadow-md hover:cursor-pointer" @click="enterHub(hub)">
 		<div class="h-24 w-full">
 			<ImagePlaceholder source="/client/img/imageplaceholder.jpg" />
 		</div>
 		<div class="flex h-min items-start gap-4 px-4 py-2">
-			<div class="-mt-8 aspect-square h-14 w-14 overflow-clip rounded-xl border-2 border-ph-background-5 bg-ph-background-4">
+			<div class="-mt-8 aspect-square h-16 w-16 overflow-clip rounded-xl bg-surface-high">
 				<HubIcon :icon-url="hub.iconUrlLight" :icon-url-dark="hub.iconUrlDark" :hub-name="hub.name" />
 			</div>
 			<div class="flex h-full w-full max-w-full flex-col justify-center gap-2 overflow-hidden pb-2 pt-1 text-left">
 				<H2 class="line-clamp-1 w-full overflow-hidden text-ellipsis">{{ hub.hubName }}</H2>
 				<div class="h-16">
-					<TruncatedText class="text-xs font-bold uppercase">{{ $t('home.hub_card_about') }}</TruncatedText>
+					<TruncatedText class="font-bold uppercase ~text-label-small-min/label-small-max">{{ $t('home.hub_card_about') }}</TruncatedText>
 					<p class="line-clamp-2 max-w-[calc(100%_-_2em)] hyphens-auto break-words" :lang="currentLanguage">{{ description }}</p>
 				</div>
 			</div>
 		</div>
 		<Button class="!absolute bottom-4 right-4 flex aspect-square w-min items-center justify-center rounded-md !p-1">
-			<Icon type="arrow-right" size="sm" @click="enterHub(hub)"></Icon>
+			<Icon type="arrow-right" size="sm" @click="enterHub(hub)" />
 		</Button>
 	</div>
 </template>
