@@ -76,6 +76,18 @@
 		scrollbar-width: thin;
 		/* scrollbar-color: theme(colors.hub.background.5) theme(colors.hub.background.4); */
 	}
+
+	::-webkit-scrollbar {
+		@apply w-[0.25rem] sm:w-[0.5rem];
+	}
+
+	::-webkit-scrollbar-track {
+		@apply bg-transparent;
+	}
+
+	::-webkit-scrollbar-thumb {
+		@apply rounded-full bg-surface;
+	}
 }
 
 /* Fonts */
