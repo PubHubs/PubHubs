@@ -1,6 +1,14 @@
 <template>
-	<div class="flex h-full flex-col justify-between gap-2 md:gap-4" :class="{ 'rounded-md border-2 border-dashed border-on-surface-disabled p-1': hubOrderingIsActive }">
-		<draggable @start="backupPinnedHubs = global.pinnedHubs.slice()" @end="hoverOverHubremoval = false" :list="global.pinnedHubs" :item-key="'hubId'" handle=".handle" class="list-group flex flex-1 flex-col gap-2" group="hubs">
+	<div class="flex h-full flex-1 flex-col justify-between gap-2 overflow-y-auto md:gap-4" :class="{ 'rounded-md border-2 border-dashed border-on-surface-disabled p-1': hubOrderingIsActive }">
+		<draggable
+			@start="backupPinnedHubs = global.pinnedHubs.slice()"
+			@end="hoverOverHubremoval = false"
+			:list="global.pinnedHubs"
+			:item-key="'hubId'"
+			handle=".handle"
+			class="list-group flex flex-1 flex-col gap-2 overflow-y-auto overflow-x-hidden px-2 md:px-4"
+			group="hubs"
+		>
 			<template #item="{ element }">
 				<div v-if="hubs.hub(element.hubId)" class="flex h-auto justify-center gap-1 p-1" :class="{ handle: hubOrderingIsActive }">
 					<router-link :to="{ name: 'hub', params: { name: element.hubName } }" v-slot="{ isActive }" class="w-full">
