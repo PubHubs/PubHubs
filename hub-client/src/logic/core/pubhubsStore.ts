@@ -94,7 +94,7 @@ const usePubHubs = defineStore('pubhubs', {
 					// 	}
 					// });
 
-					this.updateRooms();
+					await this.updateRooms();
 					// 2024 12 03 The await is removed, because of slow loading testhub
 					// After the next merge to stable, in case this gives no problems,
 					// the old code and comments can be removed
