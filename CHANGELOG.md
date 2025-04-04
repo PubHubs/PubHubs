@@ -13,6 +13,9 @@ _Please add a brief description of any changes and any migrations to be performe
 
 Use the [MIGRATE] and [BREAKING] prefixes together with another one if that makes more sense.
 
+- [NEW] New update_config script now checks the configuration in homeserver.yaml and also adds missing configuration , it supersedes the configchecker
+It will generate a checked and updated yaml file as homeserver.live.yaml as default and will use this new yaml file to set the configuration of the hub
+
 ## 03 April 2025 - v2.0.0
 
 - [BUG] Signed messages are temporarily disabled since they were not working as intended
