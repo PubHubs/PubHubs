@@ -5,7 +5,7 @@
 				<span class="font-semibold uppercase">{{ $t('rooms.room') }}</span>
 				<hr class="h-[2px] grow bg-accent-secondary" />
 			</div>
-			<div class="relative flex h-full items-center justify-between gap-4 pl-12 md:pl-0">
+			<div class="relative flex h-full items-center justify-between gap-4" :class="isMobile ? 'pl-12' : 'pl-0'">
 				<H3 class="text-on-surface">{{ $t('settings.title') }}</H3>
 			</div>
 		</template>
@@ -49,6 +49,7 @@
 	import { useI18n } from 'vue-i18n';
 	import H3 from '@/components/elements/H3.vue';
 	import Button from '@/components/elements/Button.vue';
+	import { useSettings } from '@/logic/store/settings';
 
 	const hubSettings = useHubSettings();
 	const i18n = useI18n();
@@ -58,6 +59,8 @@
 	const settingsSaved = ref(false);
 	const iconErrorText = ref<string | undefined>(undefined);
 	const logger = LOGGER;
+	const settings = useSettings();
+	const isMobile = computed(() => settings.isMobileState);
 
 	const iconUrl = computed(computeIconUrl);
 	const selectedIconUrl = ref<string | undefined | null>(undefined);

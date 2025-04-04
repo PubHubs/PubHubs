@@ -2,16 +2,16 @@
 	<template v-if="rooms.currentRoomExists">
 		<HeaderFooter v-if="plugin === false" :headerSize="'sm'" :headerMobilePadding="true" bgBarLow="bg-background" bgBarMedium="bg-surface-low">
 			<template #header>
-				<div class="hidden items-center gap-4 text-on-surface-dim md:flex">
+				<div class="items-center gap-4 text-on-surface-dim" :class="isMobile ? 'hidden' : 'flex'">
 					<span class="font-semibold uppercase">{{ $t('rooms.room') }}</span>
 					<hr class="h-[2px] grow bg-on-surface-dim" />
 				</div>
-				<div class="relative flex h-full items-center justify-between gap-4 pl-12 md:pl-0">
+				<div class="relative flex h-full items-center justify-between gap-4" :class="isMobile ? 'pl-12' : 'pl-0'">
 					<div v-if="rooms.currentRoom" class="flex w-fit items-center gap-3 overflow-hidden">
 						<Icon :type="rooms.currentRoom.isSecuredRoom() ? 'shield' : 'speech_bubbles'" size="base" />
 						<div class="flex flex-col">
 							<H3 class="flex text-on-surface">
-								<TruncatedText class="font-body font-bold">
+								<TruncatedText class="font-headings font-semibold">
 									<PrivateRoomName v-if="rooms.currentRoom.isPrivateRoom()" :members="rooms.currentRoom.getOtherJoinedAndInvitedMembers()" />
 									<RoomName v-else :room="rooms.currentRoom" />
 								</TruncatedText>
@@ -72,6 +72,7 @@
 	import { TSecuredRoom } from '@/model/rooms/TSecuredRoom';
 	import { computed, onMounted, ref, watch } from 'vue';
 	import { useRoute, useRouter } from 'vue-router';
+	import { useSettings } from '@/logic/store/settings';
 
 	const route = useRoute();
 	const rooms = useRooms();
@@ -83,6 +84,8 @@
 	const currentRoomToEdit = ref<TSecuredRoom | TPublicRoom | null>(null);
 	const showEditRoom = ref(false);
 	const secured = ref(false);
+	const settings = useSettings();
+	const isMobile = computed(() => settings.isMobileState);
 
 	const pubhubs = usePubHubs();
 

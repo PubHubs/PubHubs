@@ -13,6 +13,12 @@ _Please add a brief description of any changes and any migrations to be performe
 
 Use the [MIGRATE] and [BREAKING] prefixes together with another one if that makes more sense.
 
+- [NEW] New update_config script now checks the configuration in homeserver.yaml and also adds missing configuration , it supersedes the configchecker
+It will generate a checked and updated yaml file as homeserver.live.yaml as default and will use this new yaml file to set the configuration of the hub
+
+## 03 April 2025 - v2.0.0
+
+- [BUG] Signed messages are temporarily disabled since they were not working as intended
 - [NEW] Desktop notifications for new messages are now also sent for pinned hubs when the user has the hub not currently open.
 - [NEW] Update and implement Tailwind colors and add minor UX/UI improvements
 - [BREAKING] To allow a hub administrator to publish new rooms after [updating Synapse from v1.125.0 to v1.126.0](https://github.com/element-hq/synapse/blob/develop/docs/upgrade.md#room-list-publication-rules-change), the following should be added to the homeserver.yaml file of all running hubs:
@@ -21,6 +27,9 @@ Use the [MIGRATE] and [BREAKING] prefixes together with another one if that make
     - "action": "allow"
   ```
 - [BREAKING] Update feature flag for authenticatedMedia to `true` in hub-client/src/logic/store/settings.ts.
+- [BUG] Loading of rooms shows spinner again
+- [BUG] Show Hub Settings only to hub admin
+- [BUG] Sometimes threads displayed messages in the wrong order
 
 ## 20 March 2025 - v1.2.0
 

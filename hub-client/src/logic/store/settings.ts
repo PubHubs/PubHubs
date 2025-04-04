@@ -93,7 +93,7 @@ const defaultSettings: Settings = {
 	 */
 	featureFlags: {
 		main: {
-			signedMessages: true,
+			signedMessages: false,
 			plugins: true,
 			dateSplitter: true,
 			disclosure: false,
@@ -105,7 +105,7 @@ const defaultSettings: Settings = {
 			unreadCounter: true,
 		},
 		stable: {
-			signedMessages: true,
+			signedMessages: false,
 			plugins: true,
 			dateSplitter: true,
 			disclosure: false,
@@ -120,9 +120,10 @@ const defaultSettings: Settings = {
 };
 
 const useSettings = defineStore('settings', {
-	state: () => {
-		return defaultSettings as Settings;
-	},
+	state: () => ({
+		...defaultSettings,
+		isMobileState: true as boolean | undefined,
+	}),
 
 	getters: {
 		getPagination: (state: Settings) => state.pagination,
@@ -275,6 +276,25 @@ const useSettings = defineStore('settings', {
 				default:
 					return this.featureFlags.stable[feature];
 			}
+		},
+
+		updateIsMobile() {
+			const isMobile = window.innerWidth < 1024;
+			this.isMobileState = isMobile;
+
+			const iframe = document.getElementById('hub-frame-id') as HTMLIFrameElement;
+			if (iframe && iframe.contentWindow) {
+				iframe.contentWindow.postMessage({ isMobileState: isMobile }, '*');
+			}
+		},
+
+		startListening() {
+			this.updateIsMobile();
+			window.addEventListener('resize', this.updateIsMobile);
+		},
+
+		stopListening() {
+			window.removeEventListener('resize', this.updateIsMobile);
 		},
 	},
 });
