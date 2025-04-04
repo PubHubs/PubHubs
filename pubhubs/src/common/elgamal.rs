@@ -265,6 +265,13 @@ pub struct PublicKey {
     compressed: CompressedRistretto,
 }
 
+impl AsRef<[u8]> for PublicKey {
+    /// Returns a reference to the compressed encoding of this public key
+    fn as_ref(&self) -> &[u8] {
+        self.compressed.as_bytes().as_slice()
+    }
+}
+
 impl PublicKey {
     /// Turns a 64 digit hex string into a [PublicKey].
     ///

@@ -126,6 +126,10 @@ pub enum MessageCode {
     PhcTHubKeyResp = 4,
     AdminUpdateConfigReq = 5,
     AdminInfoReq = 6,
+    Attr = 7,
+
+    /// Only used as an example in a doctest
+    Example = 65535,
 }
 
 impl std::fmt::Display for MessageCode {
@@ -143,6 +147,7 @@ pub trait HavingMessageCode {
     const CODE: MessageCode;
 }
 
+#[macro_export]
 macro_rules! having_message_code {
     { $tn:ty, $mc:ident } => {
         impl $crate::api::HavingMessageCode for $tn {
@@ -150,7 +155,17 @@ macro_rules! having_message_code {
         }
     };
 }
-pub(crate) use having_message_code;
+/// Implements [`HavingMessageCode`] for the given struct.  Use as follows:
+/// ```
+/// use pubhubs::api::HavingMessageCode;
+///
+/// struct T {};
+///
+/// pubhubs::api::having_message_code!{T, Example};
+///
+/// assert_eq!(T::CODE, pubhubs::api::MessageCode::Example);
+/// ```
+pub use having_message_code;
 
 #[cfg(test)]
 mod test {

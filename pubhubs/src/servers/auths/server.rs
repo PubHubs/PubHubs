@@ -4,13 +4,16 @@ use std::rc::Rc;
 use actix_web::web;
 use digest::Digest as _;
 
-use crate::servers::{self, yivi, AppBase, AppCreatorBase, Constellation, Handle, Server as _};
+use crate::servers::{
+    self, constellation, yivi, AppBase, AppCreatorBase, Constellation, Handle, Server as _,
+};
 use crate::{
     api::{self, EndpointDetails as _, ResultExt as _},
     attr,
-    common::secret::DigestibleSecret as _,
+    common::{elgamal, secret::DigestibleSecret as _},
     handle, map,
     misc::{crypto, jwt},
+    phcrypto,
 };
 
 /// Authentication server type
@@ -23,15 +26,33 @@ impl servers::Details for Details {
 
     type AppT = Rc<App>;
     type AppCreatorT = AppCreator;
-    type ExtraRunningState = ();
+    type ExtraRunningState = ExtraRunningState;
     type ObjectStoreT = servers::object_store::UseNone;
 
     fn create_running_state(
-        _server: &Server,
-        _constellation: &Constellation,
+        server: &Server,
+        constellation: &Constellation,
     ) -> anyhow::Result<Self::ExtraRunningState> {
-        Ok(())
+        let base = &server.app_creator().base;
+
+        let phc_ss = base.enc_key.shared_secret(&constellation.phc_enc_key);
+
+        Ok(ExtraRunningState {
+            attr_signing_key: phcrypto::attr_signing_key(&phc_ss),
+            phc_ss,
+        })
     }
+}
+
+#[derive(Clone, Debug)]
+pub struct ExtraRunningState {
+    /// Shared secret with pubhubs central
+    phc_ss: elgamal::SharedSecret,
+
+    /// Key used to sign [`Attr`]s, shared with pubhubs central.
+    ///
+    /// [`Attr`]: attr::Attr
+    attr_signing_key: jwt::HS256,
 }
 
 /// Authentication server per-thread [`App`] that handles incoming requests.
@@ -126,7 +147,7 @@ impl App {
         let mut cdc: servers::yivi::AttributeConDisCon = Default::default(); // empty
 
         for attr_ty_handle in state.attr_types.iter() {
-            let attr_ty = app.attr_type_from_handle(&attr_ty_handle)?;
+            let attr_ty = app.attr_type_from_handle(attr_ty_handle)?;
 
             let dc: Vec<Vec<servers::yivi::AttributeRequest>> = attr_ty
                 .yivi_attr_type_ids()
@@ -169,6 +190,8 @@ impl App {
         app: Rc<Self>,
         req: web::Json<api::auths::AuthCompleteReq>,
     ) -> api::Result<api::auths::AuthCompleteResp> {
+        app.base.running_state_or_not_yet_ready()?;
+
         let req: api::auths::AuthCompleteReq = req.into_inner();
 
         let state: AuthState = AuthState::unseal(&req.state, &app.auth_state_secret)?;
@@ -206,8 +229,10 @@ impl App {
                 api::ErrorCode::InvalidAuthProof
             })?;
 
-        let attrs: std::collections::HashMap<handle::Handle, api::Signed<attr::Attr>> =
+        let mut attrs: std::collections::HashMap<handle::Handle, api::Signed<attr::Attr>> =
             std::collections::HashMap::with_capacity(state.attr_types.len());
+
+        let running_state = app.base.running_state_or_internal_error()?;
 
         for (i, result) in ssr
             .validate_and_extract_raw_singles()
@@ -230,19 +255,34 @@ impl App {
                 api::ErrorCode::InvalidAuthProof
             })?;
 
-            let attr_type = app.attr_type_from_handle(&attr_type_handle)?;
+            let attr_type = app.attr_type_from_handle(attr_type_handle)?;
 
-            if attr_type
+            if !attr_type
                 .yivi_attr_type_ids()
-                .find(|&allowed_yati| allowed_yati == yati)
-                .is_none()
+                .any(|allowed_yati| allowed_yati == yati)
             {
                 log::debug!("attribute number {i} of submitted session result has unexpected attribute type id {}",  yati);
                 return Err(api::ErrorCode::InvalidAuthProof);
             }
 
             // Disclosure for attribute is OK.
-            todo! {}
+
+            attrs
+                .insert(
+                    attr_type_handle.clone(),
+                    api::Signed::<attr::Attr>::new(
+                        &running_state.extra.attr_signing_key,
+                        &attr::Attr {
+                            attr_type: attr_type.id,
+                            value: raw_value.to_string(),
+                        },
+                        app.auth_window,
+                    )?,
+                )
+                .into_ec(|_| {
+                    log::error!("expected to have already erred on duplicate attribute types");
+                    api::ErrorCode::InternalError
+                })?;
         }
 
         Ok(api::auths::AuthCompleteResp { attrs })
@@ -259,20 +299,24 @@ impl crate::servers::App<Server> for Rc<App> {
         // Dear maintainer: this destructuring is intentional, making sure that this `check_constellation` function
         // is updated when new fields are added to the constellation
         let Constellation {
-            // These fields we must check:
-            auths_enc_key: enc_key,
-            auths_jwt_key: jwt_key,
+            inner:
+                constellation::Inner {
+                    // These fields we must check:
+                    auths_enc_key: enc_key,
+                    auths_jwt_key: jwt_key,
 
-            // These fields we don't care about:
-            auths_url: _,
-            transcryptor_jwt_key: _,
-            transcryptor_enc_key: _,
-            transcryptor_url: _,
-            transcryptor_master_enc_key_part: _,
-            phc_jwt_key: _,
-            phc_enc_key: _,
-            phc_url: _,
-            master_enc_key: _,
+                    // These fields we don't care about:
+                    auths_url: _,
+                    transcryptor_jwt_key: _,
+                    transcryptor_enc_key: _,
+                    transcryptor_url: _,
+                    transcryptor_master_enc_key_part: _,
+                    phc_jwt_key: _,
+                    phc_enc_key: _,
+                    phc_url: _,
+                    master_enc_key: _,
+                },
+            id: _,
         } = constellation;
 
         enc_key == self.base.enc_key.public_key() && **jwt_key == self.base.jwt_key.verifying_key()

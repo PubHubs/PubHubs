@@ -4,7 +4,10 @@ use actix_web::web;
 
 use crate::{
     api::{self, EndpointDetails as _},
-    servers::{self, AppBase, AppCreator as _, AppCreatorBase, Constellation, Handle, Server as _},
+    servers::{
+        self, constellation, AppBase, AppCreator as _, AppCreatorBase, Constellation, Handle,
+        Server as _,
+    },
 };
 use crate::{elgamal, handle, phcrypto};
 
@@ -50,20 +53,24 @@ impl crate::servers::App<Server> for Rc<App> {
         // Dear maintainer: this destructuring is intentional, making sure that this `check_constellation` function
         // is updated when new fields are added to the constellation
         let Constellation {
-            // These fields we must check:
-            transcryptor_jwt_key: jwt_key,
-            transcryptor_enc_key: enc_key,
-            transcryptor_master_enc_key_part: master_enc_key_part,
+            inner:
+                constellation::Inner {
+                    // These fields we must check:
+                    transcryptor_jwt_key: jwt_key,
+                    transcryptor_enc_key: enc_key,
+                    transcryptor_master_enc_key_part: master_enc_key_part,
 
-            // These fields we don't care about:
-            transcryptor_url: _,
-            auths_enc_key: _,
-            auths_jwt_key: _,
-            auths_url: _,
-            phc_jwt_key: _,
-            phc_enc_key: _,
-            phc_url: _,
-            master_enc_key: _,
+                    // These fields we don't care about:
+                    transcryptor_url: _,
+                    auths_enc_key: _,
+                    auths_jwt_key: _,
+                    auths_url: _,
+                    phc_jwt_key: _,
+                    phc_enc_key: _,
+                    phc_url: _,
+                    master_enc_key: _,
+                },
+            id: _,
         } = constellation;
 
         enc_key == self.base.enc_key.public_key()
@@ -85,7 +92,7 @@ impl App {
         app: Rc<Self>,
         signed_req: web::Json<api::phc::hub::TicketSigned<api::phct::hub::KeyReq>>,
     ) -> api::Result<api::phct::hub::KeyResp> {
-        let running_state = &app.base.running_state()?;
+        let running_state = &app.base.running_state_or_not_yet_ready()?;
 
         let ts_req = signed_req.into_inner();
 

@@ -2,7 +2,7 @@ use crate::api::{self, ApiResultExt as _};
 use crate::servers::{self, server::Server as _, Constellation};
 
 impl crate::client::Client {
-    /// Retrieves [Constellation] from specified url, waiting for it to be set.
+    /// Retrieves [`Constellation`] from specified url, waiting for it to be set.
     pub async fn get_constellation(&self, url: &url::Url) -> anyhow::Result<Constellation> {
         crate::misc::task::retry(|| async {
             // Retry calling DiscoveryInfo endpoint while it returns a retryable error or some
@@ -61,7 +61,9 @@ impl crate::client::Client {
                 Some(Ok(inf_res)) => {
                     let inf = inf_res?;
 
-                    if inf.constellation.is_none() || inf.constellation.unwrap() != constellation {
+                    if inf.constellation.is_none()
+                        || inf.constellation.unwrap().id != constellation.id
+                    {
                         log::debug!("constellations not yet in sync");
                         return Ok(None);
                     }
@@ -89,7 +91,7 @@ pub struct DiscoveryInfoCheck<'a> {
 }
 
 impl DiscoveryInfoCheck<'_> {
-    /// Checks the given [api::DiscoveryInfoResp] according to the [DiscoveryInfoCheck],
+    /// Checks the given [`api::DiscoveryInfoResp`] according to the [`DiscoveryInfoCheck`],
     /// and returns it if all checks out.
     pub fn check(
         self,
@@ -140,7 +142,7 @@ impl DiscoveryInfoCheck<'_> {
         if inf.constellation.is_some() {
             let c = inf.constellation.as_ref().unwrap();
 
-            if self.constellation.is_some() && c != self.constellation.unwrap() {
+            if self.constellation.is_some() && c.id != self.constellation.unwrap().id {
                 log::error!(
                     "{} at {} has a different view of the constellation of PubHubs servers",
                     inf.name,

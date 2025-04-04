@@ -418,7 +418,7 @@ pub trait App<S: Server>: Clone + 'static {
                     phc = Name::PubhubsCentral
                 );
 
-                if *phc_inf.constellation.as_ref().unwrap() == *rs.constellation {
+                if phc_inf.constellation.as_ref().unwrap().id == rs.constellation.id {
                     log::trace!(
                         "{server_name}: my constellation is up-to-date!",
                         server_name = S::NAME,
@@ -581,14 +581,28 @@ impl<S: Server> AppBase<S> {
         }
     }
 
-    pub fn running_state(&self) -> Result<&RunningState<S::ExtraRunningState>, api::ErrorCode> {
-        match self.running_state {
-            Some(ref rs) => Ok(rs),
-            None => {
-                log::error!("tried to get runnng state while not running");
-                Err(api::ErrorCode::InternalError)
-            }
-        }
+    /// Returns the current [`RunningState`] of this server when available.
+    /// Otherwise returns [`api::ErrorCode::NotYetReady`].
+    pub fn running_state_or_not_yet_ready(
+        &self,
+    ) -> Result<&RunningState<S::ExtraRunningState>, api::ErrorCode> {
+        self.running_state
+            .as_ref()
+            .ok_or(api::ErrorCode::NotYetReady)
+    }
+
+    /// Returns the current [`RunningState`] of this server when available.
+    /// Otherwise returns [`api::ErrorCode::InternalError`].
+    pub fn running_state_or_internal_error(
+        &self,
+    ) -> Result<&RunningState<S::ExtraRunningState>, api::ErrorCode> {
+        self.running_state.as_ref().ok_or_else(|| {
+            log::error!(
+                "{}: expected running state to be available, but it was not",
+                S::NAME
+            );
+            api::ErrorCode::InternalError
+        })
     }
 
     /// Configures common endpoints
@@ -772,7 +786,7 @@ impl<S: Server> AppBase<S> {
             constellation: app_base
                 .running_state
                 .as_ref()
-                .map(|rs| (*rs.constellation).clone()),
+                .map(|rs| AsRef::<Constellation>::as_ref(&rs.constellation).clone()),
         })
     }
 }

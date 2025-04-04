@@ -398,7 +398,7 @@ impl SessionResult {
                 );
 
                 let da: &DisclosedAttribute = inner_con
-                    .get(0)
+                    .first()
                     .context("inner conjunction has no attribute")?;
 
                 da.validate()?;

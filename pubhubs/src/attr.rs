@@ -3,9 +3,8 @@
 use crate::common::secret;
 use crate::handle::{Handle, Handles};
 use crate::id::Id;
+use crate::phcrypto;
 use crate::servers::yivi;
-
-use digest::Digest as _;
 
 #[derive(serde::Deserialize, serde::Serialize, Debug, Clone)]
 pub struct Type {
@@ -36,6 +35,7 @@ impl Type {
     /// Iterates over all the [`yivi::AttributeTypeIdentifier`]s that can be used to obtain this
     /// attribite type.
     pub fn yivi_attr_type_ids(&self) -> impl Iterator<Item = &yivi::AttributeTypeIdentifier> {
+        #[expect(clippy::unnecessary_filter_map)] // remove when we get more sources
         self.sources.iter().filter_map(|source| match source {
             SourceDetails::Yivi { attr_type_id } => Some(attr_type_id),
         })
@@ -78,10 +78,10 @@ impl crate::map::Handled for Type {
 #[derive(serde::Deserialize, serde::Serialize, Debug, Clone)]
 pub struct Attr {
     /// Refers to the this attribute's [`Type`] via the type's [`Id`].
-    attr_type: Id,
+    pub attr_type: Id,
 
     /// Actual value of this attribute, in a format that is [`Type`] dependent.
-    value: String,
+    pub value: String,
 }
 
 impl Attr {
@@ -89,20 +89,12 @@ impl Attr {
     /// and the given digestible secret.
     #[expect(dead_code)]
     fn id(&self, secret: impl secret::DigestibleSecret) -> Id {
-        let bytes: [u8; 32] = secret
-            .derive_bytes(
-                sha2::Sha256::new()
-                    .chain_update(self.attr_type.as_slice())
-                    .chain_update(secret::encode_usize(self.value.len()))
-                    .chain_update(self.value.as_bytes()),
-                "pubhubs-attr-id",
-            )
-            .try_into()
-            .expect("sha256 did not yield 32 bytes");
-
-        bytes.into()
+        phcrypto::attr_id(self, secret)
     }
 }
+
+// So Signed<Attr> can be used.
+crate::api::having_message_code! {Attr, Attr}
 
 /// State of an [`Attr`] according to pubhubs central.
 #[derive(serde::Deserialize, serde::Serialize, Debug, Clone)]

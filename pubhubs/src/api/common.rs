@@ -30,14 +30,14 @@ impl<T> From<Result<T>> for ResultResponder<T> {
     }
 }
 
-/// Extension trait for [std::result::Result].
+/// Extension trait for [`std::result::Result`].
 pub trait ResultExt {
     type Ok;
     type Err;
 
-    /// Turns `self` into an [ErrorCode] result by calling `f` when `self` is an error.
+    /// Turns `self` into an [`ErrorCode`] result by calling `f` when `self` is an error.
     ///
-    /// Consider logging the error you're turning into an [ErrorCode].
+    /// Consider logging the error you're turning into an [`ErrorCode`].
     fn into_ec<F: FnOnce(Self::Err) -> ErrorCode>(self, f: F) -> Result<Self::Ok>;
 }
 
@@ -65,7 +65,7 @@ impl<T> ResultExt for Option<T> {
     }
 }
 
-/// Extension trait for `[Result<T,ErrorCode>]`.
+/// Extension trait for [`Result<T,ErrorCode>`].
 pub trait ApiResultExt: Sized {
     type Ok;
 

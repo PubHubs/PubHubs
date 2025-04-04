@@ -7,7 +7,10 @@ use futures_util::future::LocalBoxFuture;
 use crate::{
     api::{self, ApiResultExt as _, EndpointDetails as _},
     client, handle, phcrypto,
-    servers::{self, AppBase, AppCreator as _, AppCreatorBase, Constellation, Handle, Server as _},
+    servers::{
+        self, constellation, AppBase, AppCreator as _, AppCreatorBase, Constellation, Handle,
+        Server as _,
+    },
 };
 
 use crate::{elgamal, hub};
@@ -33,6 +36,7 @@ impl servers::Details for Details {
             t_ss: base
                 .enc_key
                 .shared_secret(&constellation.transcryptor_enc_key),
+            auths_ss: base.enc_key.shared_secret(&constellation.auths_enc_key),
         })
     }
 }
@@ -47,7 +51,11 @@ pub struct App {
 
 #[derive(Clone, Debug)]
 pub struct RunningState {
+    /// Shared secret with transcryptor
     t_ss: elgamal::SharedSecret,
+
+    /// Shared secret with authentication server
+    auths_ss: elgamal::SharedSecret,
 }
 
 impl crate::servers::App<Server> for Rc<App> {
@@ -76,7 +84,7 @@ impl crate::servers::App<Server> for Rc<App> {
             let transcryptor_master_enc_key_part = tdi
                 .master_enc_key_part
                 .expect("should already have been checked to be some by discovery_info_of");
-            let new_constellation = crate::servers::Constellation {
+            let new_constellation_inner = crate::servers::constellation::Inner {
                 // The public master encryption key is `x_PHC * ( x_T * B )`
                 master_enc_key: phcrypto::combine_master_enc_key_parts(
                     &transcryptor_master_enc_key_part,
@@ -95,17 +103,29 @@ impl crate::servers::App<Server> for Rc<App> {
             };
 
             if self.base().running_state.is_none()
-                || *self.base().running_state.as_ref().unwrap().constellation != new_constellation
+                || self
+                    .base()
+                    .running_state
+                    .as_ref()
+                    .unwrap()
+                    .constellation
+                    .inner
+                    != new_constellation_inner
             {
-                return Ok(Some(new_constellation));
+                return Ok(Some(Constellation {
+                    id: constellation::Inner::derive_id(&new_constellation_inner),
+                    inner: new_constellation_inner,
+                }));
             }
+
+            let constellation = &self.base().running_state.as_ref().unwrap().constellation;
 
             // Check whether the other servers' constellations are up-to-date
 
             let mut js = tokio::task::JoinSet::new();
 
             if let Some(c) = tdi.constellation {
-                if c != new_constellation {
+                if c.id != constellation.id {
                     // transcryptor's constellation is out of date; invoke discovery
                     log::info!(
                         "{phc}: {t}'s constellation is out of date - invoking its discovery..",
@@ -118,7 +138,7 @@ impl crate::servers::App<Server> for Rc<App> {
             }
 
             if let Some(c) = asdi.constellation {
-                if c != new_constellation {
+                if c.id != constellation.id {
                     // authentication server's constellation is out of date; invoke discovery
                     log::info!(
                         "{phc}: {auths}'s constellation is out of date - invoking its discovery..",
@@ -235,7 +255,7 @@ impl App {
         app: Rc<Self>,
         signed_req: web::Json<api::phc::hub::TicketSigned<api::phct::hub::KeyReq>>,
     ) -> api::Result<api::phct::hub::KeyResp> {
-        let running_state = &app.base.running_state()?.extra;
+        let running_state = &app.base.running_state_or_not_yet_ready()?.extra;
 
         let ts_req = signed_req.into_inner();
 
