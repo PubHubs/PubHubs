@@ -8,10 +8,7 @@ use futures_util::future::LocalBoxFuture;
 use crate::{
     api::{self, ApiResultExt as _, EndpointDetails as _},
     client, handle, phcrypto,
-    servers::{
-        self, constellation, AppBase, AppCreator as _, AppCreatorBase, Constellation, Handle,
-        Server as _,
-    },
+    servers::{self, constellation, AppBase, AppCreatorBase, Constellation, Handle},
 };
 
 use crate::{elgamal, hub};
@@ -22,7 +19,7 @@ pub type Server = servers::ServerImpl<Details>;
 pub struct Details;
 impl servers::Details for Details {
     const NAME: servers::Name = servers::Name::PubhubsCentral;
-    type AppT = Rc<App>;
+    type AppT = App;
     type AppCreatorT = AppCreator;
     type ExtraRunningState = RunningState;
     type ObjectStoreT = servers::object_store::DefaultObjectStore;
@@ -48,6 +45,14 @@ pub struct App {
     master_enc_key_part: elgamal::PrivateKey,
 }
 
+impl Deref for App {
+    type Target = AppBase<Server>;
+
+    fn deref(&self) -> &Self::Target {
+        &self.base
+    }
+}
+
 #[derive(Clone, Debug)]
 pub struct RunningState {
     /// Shared secret with transcryptor
@@ -57,8 +62,8 @@ pub struct RunningState {
     auths_ss: elgamal::SharedSecret,
 }
 
-impl crate::servers::App<Server> for Rc<App> {
-    fn configure_actix_app(&self, sc: &mut web::ServiceConfig) {
+impl crate::servers::App<Server> for App {
+    fn configure_actix_app(self: &Rc<Self>, sc: &mut web::ServiceConfig) {
         api::phc::hub::TicketEP::add_to(self, sc, App::handle_hub_ticket);
         api::phct::hub::Key::add_to(self, sc, App::handle_hub_key);
     }
@@ -68,7 +73,7 @@ impl crate::servers::App<Server> for Rc<App> {
     }
 
     fn discover(
-        &self,
+        self: &Rc<Self>,
         _phc_di: api::DiscoveryInfoResp,
     ) -> LocalBoxFuture<'_, api::Result<Option<Constellation>>> {
         Box::pin(async {
@@ -90,9 +95,9 @@ impl crate::servers::App<Server> for Rc<App> {
                     &self.master_enc_key_part,
                 ),
                 transcryptor_master_enc_key_part,
-                phc_url: self.base.phc_url.clone(),
-                phc_jwt_key: self.base.jwt_key.verifying_key().into(),
-                phc_enc_key: self.base.enc_key.public_key().clone(),
+                phc_url: self.phc_url.clone(),
+                phc_jwt_key: self.jwt_key.verifying_key().into(),
+                phc_enc_key: self.enc_key.public_key().clone(),
                 transcryptor_url: self.transcryptor_url.clone(),
                 transcryptor_jwt_key: tdi.jwt_key,
                 transcryptor_enc_key: tdi.enc_key,
@@ -101,14 +106,8 @@ impl crate::servers::App<Server> for Rc<App> {
                 auths_enc_key: asdi.enc_key,
             };
 
-            if self.base().running_state.is_none()
-                || self
-                    .base()
-                    .running_state
-                    .as_ref()
-                    .unwrap()
-                    .constellation
-                    .inner
+            if self.running_state.is_none()
+                || self.running_state.as_ref().unwrap().constellation.inner
                     != new_constellation_inner
             {
                 return Ok(Some(Constellation {
@@ -117,7 +116,7 @@ impl crate::servers::App<Server> for Rc<App> {
                 }));
             }
 
-            let constellation = &self.base().running_state.as_ref().unwrap().constellation;
+            let constellation = &self.running_state.as_ref().unwrap().constellation;
 
             // Check whether the other servers' constellations are up-to-date
 
@@ -132,7 +131,7 @@ impl crate::servers::App<Server> for Rc<App> {
                         t = servers::Name::Transcryptor
                     );
                     let url = self.transcryptor_url.clone();
-                    js.spawn_local(self.base().client.query::<api::DiscoveryRun>(&url, &()));
+                    js.spawn_local(self.client.query::<api::DiscoveryRun>(&url, &()));
                 }
             }
 
@@ -145,7 +144,7 @@ impl crate::servers::App<Server> for Rc<App> {
                         auths = servers::Name::AuthenticationServer
                     );
                     let url = self.auths_url.clone();
-                    js.spawn_local(self.base().client.query::<api::DiscoveryRun>(&url, &()));
+                    js.spawn_local(self.client.query::<api::DiscoveryRun>(&url, &()));
                 }
             }
 
@@ -179,31 +178,26 @@ impl crate::servers::App<Server> for Rc<App> {
         })
     }
 
-    fn base(&self) -> &AppBase<Server> {
-        &self.base
-    }
-
     fn master_enc_key_part(&self) -> Option<&elgamal::PrivateKey> {
         Some(&self.master_enc_key_part)
     }
 }
 
 impl App {
-    /// Obtains and checks [api::DiscoveryInfoResp] from the given server
+    /// Obtains and checks [`api::DiscoveryInfoResp`] from the given server
     async fn discovery_info_of(
         &self,
         name: servers::Name,
         url: &url::Url,
     ) -> api::Result<api::DiscoveryInfoResp> {
         let tdi = self
-            .base
             .client
             .query::<api::DiscoveryInfo>(url, &())
             .await
             .into_server_result()?;
 
         client::discovery::DiscoveryInfoCheck {
-            phc_url: &self.base.phc_url,
+            phc_url: &self.phc_url,
             name,
             self_check_code: None,
             constellation: None,
@@ -225,7 +219,6 @@ impl App {
             .ok_or(api::ErrorCode::UnknownHub)?;
 
         let resp = app
-            .base
             .client
             .query::<api::hub::Info>(&hub.info_url, &())
             .await
@@ -241,7 +234,7 @@ impl App {
 
         // if so, hand out ticket
         api::Signed::new(
-            &*app.base.jwt_key,
+            &*app.jwt_key,
             &api::phc::hub::TicketContent {
                 handle: req.handle,
                 verifying_key: resp.verifying_key,
@@ -254,14 +247,14 @@ impl App {
         app: Rc<Self>,
         signed_req: web::Json<api::phc::hub::TicketSigned<api::phct::hub::KeyReq>>,
     ) -> api::Result<api::phct::hub::KeyResp> {
-        let running_state = &app.base.running_state_or_not_yet_ready()?;
+        let running_state = &app.running_state_or_not_yet_ready()?;
 
         let ts_req = signed_req.into_inner();
 
         let ticket_digest = phcrypto::TicketDigest::new(&ts_req.ticket);
 
         let (_, _): (api::phct::hub::KeyReq, handle::Handle) =
-            ts_req.open(&app.base.jwt_key.verifying_key())?;
+            ts_req.open(&app.jwt_key.verifying_key())?;
 
         // At this point we can be confident that the ticket is authentic, so we can give the hub
         // its decryption key based on the provided ticket
@@ -300,14 +293,14 @@ impl DerefMut for AppCreator {
 }
 
 impl crate::servers::AppCreator<Server> for AppCreator {
-    fn into_app(self, handle: &Handle<Server>) -> Rc<App> {
-        Rc::new(App {
+    fn into_app(self, handle: &Handle<Server>) -> App {
+        App {
             base: AppBase::new(self.base, handle),
             transcryptor_url: self.transcryptor_url,
             auths_url: self.auths_url,
             hubs: self.hubs,
             master_enc_key_part: self.master_enc_key_part,
-        })
+        }
     }
 
     fn new(config: &servers::Config) -> anyhow::Result<Self> {

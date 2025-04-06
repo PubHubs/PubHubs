@@ -249,7 +249,7 @@ impl SetInner {
     }
 }
 
-/// Runs a [Server]
+/// Runs a [`Server`]
 struct Runner<ServerT: Server> {
     pubhubs_server: Rc<ServerT>,
     shutdown_receiver: tokio::sync::broadcast::Receiver<Infallible>,
@@ -453,7 +453,7 @@ impl DiscoveryLimiter {
     ///
     async fn request_discovery<S: Server>(
         &self,
-        app: S::AppT,
+        app: Rc<S::AppT>,
     ) -> api::Result<api::DiscoveryRunResp> {
         log::debug!(
             "{server_name}: discovery is requested",
@@ -496,7 +496,6 @@ impl DiscoveryLimiter {
         // modify server, and restart (to modify all Apps)
 
         let result = app
-            .base()
             .handle
             .modify(
                 "updated constellation after discovery",
@@ -678,7 +677,7 @@ impl<S: Server> Handle<S> {
         })
     }
 
-    pub async fn request_discovery(&self, app: S::AppT) -> api::Result<api::DiscoveryRunResp> {
+    pub async fn request_discovery(&self, app: Rc<S::AppT>) -> api::Result<api::DiscoveryRunResp> {
         self.discovery_limiter.request_discovery::<S>(app).await
     }
 }
@@ -734,7 +733,7 @@ impl<S: Server> Runner<S> {
             // Build actix server
             let mut builder: actix_web::HttpServer<_, _, _, _> =
                 actix_web::HttpServer::new(move || {
-                    let app: S::AppT = app_creator2.clone().into_app(&handle2);
+                    let app: Rc<S::AppT> = Rc::new(app_creator2.clone().into_app(&handle2));
 
                     actix_web::App::new().configure(|sc: &mut web::ServiceConfig| {
                         // first configure endpoints common to all servers
@@ -763,7 +762,7 @@ impl<S: Server> Runner<S> {
         let ph_join_handle = tokio::task::spawn_local(
             self.pubhubs_server
                 .clone()
-                .run_until_modifier(ph_shutdown_receiver, app_creator.into_app(&handle)),
+                .run_until_modifier(ph_shutdown_receiver, Rc::new(app_creator.into_app(&handle))),
         );
 
         Ok(Handles {

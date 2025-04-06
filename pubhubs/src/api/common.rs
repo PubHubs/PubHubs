@@ -1,3 +1,5 @@
+use std::rc::Rc;
+
 use serde::{
     de::{DeserializeOwned, IntoDeserializer as _},
     Deserialize, Serialize,
@@ -239,11 +241,11 @@ pub trait EndpointDetails {
     ///
     /// The `handler` argument must be of the form:
     /// ```text
-    /// async fn f(app : App, ...) -> api::Result<ResponseType>
+    /// async fn f(app : Rc<App>, ...) -> api::Result<ResponseType>
     /// ```
     /// The `...` can contain arguments of type `[actix_web::FromRequest]`.
-    fn add_to<App: Clone, F, Args: actix_web::FromRequest + 'static>(
-        app: &App,
+    fn add_to<App, F, Args: actix_web::FromRequest + 'static>(
+        app: &Rc<App>,
         sc: &mut web::ServiceConfig,
         handler: F,
     ) where

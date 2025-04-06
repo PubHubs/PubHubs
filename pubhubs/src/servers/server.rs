@@ -45,21 +45,21 @@ impl std::fmt::Display for Name {
 
 /// Common API to the different PubHubs servers.
 ///
-/// A single instance of the [ServerImpl] implementation of [Server] is created
+/// A single instance of the [`ServerImpl`] implementation of [`Server`] is created
 /// for each server that's being run, and it's mainly responsible for creating
-/// immutable [App] instances to be sent to the individual threads.
+/// immutable [`App`] instances to be sent to the individual threads.
 ///
-/// For efficiency's sake, only the [App] instances are available to each thread,
+/// For efficiency's sake, only the [`App`] instances are available to each thread,
 /// and are mostly immutable. To change the server's state, generally all apps must be restarted.
 ///
-/// An exception to this no-shared-mutable-state is the shared state in [Handle], for example the
+/// An exception to this no-shared-mutable-state is the shared state in [`Handle`], for example the
 /// `crate::servers::run::DiscoveryLimiter` and the object store
 pub(crate) trait Server: DerefMut<Target = Self::AppCreatorT> + Sized + 'static {
     type AppT: App<Self>;
 
     const NAME: Name;
 
-    /// Is moved accross threads to create the [App]s.
+    /// Is moved accross threads to create the [`App`]s.
     type AppCreatorT: AppCreator<Self>;
 
     type ExtraConfig;
@@ -90,26 +90,26 @@ pub(crate) trait Server: DerefMut<Target = Self::AppCreatorT> + Sized + 'static 
     /// This function is called when the server is started to run discovery.
     ///
     /// It is only passed a shared (and thus immutable) reference to itself to prevent any modifications
-    /// going unnoticed by [App] instances.
+    /// going unnoticed by [`App`] instances.
     ///
     /// It can be ordered to stop via the `shutdown_receiver`, in which case
     /// it should return Ok(None).
     ///
-    /// If can also return on its own to modify itself via the returned [BoxModifier].
+    /// If can also return on its own to modify itself via the returned [`BoxModifier`].
     ///
     /// If it returns an error, the whole binary crashes.
     ///
     /// Before this function's future finishes, it should relinquish all references to `self`.
     /// Otherwise the modification following it will panic.
     ///
-    /// It is given its own [App] instance.
+    /// It is given its own [`App`] instance.
     ///
     /// TODO: remove returning BoxModifier since that can be achieved via App instance?
     #[allow(async_fn_in_trait)] // <- we do not need our future to be Send
     async fn run_until_modifier(
         self: Rc<Self>,
         shutdown_receiver: tokio::sync::oneshot::Receiver<Infallible>,
-        app: Self::AppT,
+        app: Rc<Self::AppT>,
     ) -> anyhow::Result<Option<BoxModifier<Self>>>;
 }
 
@@ -192,7 +192,7 @@ where
     async fn run_until_modifier(
         self: Rc<Self>,
         shutdown_receiver: tokio::sync::oneshot::Receiver<Infallible>,
-        app: Self::AppT,
+        app: Rc<Self::AppT>,
     ) -> anyhow::Result<Option<crate::servers::server::BoxModifier<Self>>> {
         tokio::select! {
             res = shutdown_receiver => {
@@ -216,8 +216,8 @@ where
     D::ObjectStoreT: Sync,
 {
     async fn run_discovery_and_then_wait_forever(
-        self: Rc<Self>,
-        app: D::AppT,
+        &self,
+        app: Rc<D::AppT>,
     ) -> anyhow::Result<Infallible> {
         self.run_discovery(app).await?;
 
@@ -225,7 +225,7 @@ where
         unreachable!();
     }
 
-    async fn run_discovery(self: Rc<Self>, app: D::AppT) -> anyhow::Result<()> {
+    async fn run_discovery(&self, app: Rc<D::AppT>) -> anyhow::Result<()> {
         crate::misc::task::retry(|| async {
             (match
                 AppBase::<Self>::handle_discovery_run(app.clone()).await.retryable()/* <- turns retryable error Err(err) into Ok(None) */?
@@ -359,15 +359,13 @@ impl<S: Server> std::fmt::Display for Command<S> {
     }
 }
 
-/// What's common between the [actix_web::App]s used by the different PubHubs servers.
+/// What's common between the [`actix_web::App`]s used by the different PubHubs servers.
 ///
-/// Each [actix_web::App] gets access to an instance of the appropriate implementation of [App].
-///
-/// Should be cheaply cloneable, like an `Rc<SomeStruct>`.
-pub trait App<S: Server>: Clone + 'static {
-    /// Allows [App] to add server-specific endpoints.  Non-server specific endpoints are added by
-    /// [AppBase::configure_actix_app].
-    fn configure_actix_app(&self, sc: &mut web::ServiceConfig);
+/// Each [`actix_web::App`] gets access to an instance of the appropriate implementation of [`App`]..
+pub trait App<S: Server>: Deref<Target = AppBase<S>> + 'static {
+    /// Allows [`App`] to add server-specific endpoints.  Non-server specific endpoints are added by
+    /// [`AppBase::configure_actix_app`].
+    fn configure_actix_app(self: &Rc<Self>, sc: &mut web::ServiceConfig);
 
     /// Checks whether the given constellation properly reflects this server's configuration.
     fn check_constellation(&self, constellation: &Constellation) -> bool;
@@ -382,7 +380,7 @@ pub trait App<S: Server>: Clone + 'static {
     /// according to this server, discovery of that server is invoked and
     /// [api::ErrorCode::NotYetReady] is returned.
     fn discover(
-        &self,
+        self: &Rc<Self>,
         phc_inf: api::DiscoveryInfoResp,
     ) -> LocalBoxFuture<'_, api::Result<Option<Constellation>>> {
         log::debug!("{server_name}: running discovery", server_name = S::NAME);
@@ -401,7 +399,7 @@ pub trait App<S: Server>: Clone + 'static {
                 "this `discover` method should only be run when phc_inf.constellation is some"
             );
 
-            if let Some(rs) = self.base().running_state.as_ref() {
+            if let Some(rs) = self.running_state.as_ref() {
                 if !self.check_constellation(phc_inf.constellation.as_ref().unwrap()) {
                     log::warn!(
                         "{server_name}: {phc}'s constellation seems to be out-of-date - requesting rediscovery",
@@ -409,8 +407,7 @@ pub trait App<S: Server>: Clone + 'static {
                         phc = Name::PubhubsCentral
                     );
                     // PHC's discovery is out of date; invoke discovery and return
-                    self.base()
-                        .client
+                    self.client
                         .query::<api::DiscoveryRun>(&phc_inf.phc_url, &())
                         .await
                         .into_server_result()?;
@@ -436,7 +433,7 @@ pub trait App<S: Server>: Clone + 'static {
             log::info!(
                 "{}: my constellation is {}",
                 S::NAME,
-                if self.base().running_state.is_some() {
+                if self.running_state.is_some() {
                     "out of date"
                 } else {
                     "not yet set"
@@ -453,18 +450,15 @@ pub trait App<S: Server>: Clone + 'static {
 
             // obtain DiscoveryInfo from oneself
             let di = self
-                .base()
                 .client
                 .query::<api::DiscoveryInfo>(url, &())
                 .await
                 .into_server_result()?;
 
-            let base = self.base();
-
             client::discovery::DiscoveryInfoCheck {
                 name: S::NAME,
-                phc_url: &base.phc_url,
-                self_check_code: Some(&base.self_check_code),
+                phc_url: &self.phc_url,
+                self_check_code: Some(&self.self_check_code),
                 constellation: None,
                 // NOTE: we're not checking whether our own constellation is up-to-date,
                 // because it likely is not - why would we run discovery otherwise?
@@ -475,9 +469,6 @@ pub trait App<S: Server>: Clone + 'static {
         })
     }
 
-    /// Returns the [AppBase] this [App] builds on.
-    fn base(&self) -> &AppBase<S>;
-
     /// Should return the master encryption key part for PHC and the transcryption.
     fn master_enc_key_part(&self) -> Option<&elgamal::PrivateKey> {
         if matches!(S::NAME, Name::PubhubsCentral | Name::Transcryptor) {
@@ -487,7 +478,7 @@ pub trait App<S: Server>: Clone + 'static {
     }
 }
 
-/// What's internally common between PubHubs [AppCreator]s.
+/// What's internally common between PubHubs [`AppCreator`]s.
 pub struct AppCreatorBase<S: Server> {
     pub running_state: Option<RunningState<S::ExtraRunningState>>,
     pub phc_url: url::Url,
@@ -553,7 +544,7 @@ where
     }
 }
 
-/// What's internally common between PubHubs [App]s.
+/// What's internally common between PubHubs [`App`]s.
 ///
 /// Should *NOT* be cloned.
 pub struct AppBase<S: Server> {
@@ -611,7 +602,7 @@ impl<S: Server> AppBase<S> {
     }
 
     /// Configures common endpoints
-    pub fn configure_actix_app(app: &S::AppT, sc: &mut web::ServiceConfig) {
+    pub fn configure_actix_app(app: &Rc<S::AppT>, sc: &mut web::ServiceConfig) {
         api::DiscoveryRun::add_to(app, sc, Self::handle_discovery_run);
         api::DiscoveryInfo::add_to(app, sc, Self::handle_discovery_info);
 
@@ -632,20 +623,18 @@ impl<S: Server> AppBase<S> {
 
     /// Changes server config, and restarts server
     async fn handle_admin_post_config(
-        app: S::AppT,
+        app: Rc<S::AppT>,
         signed_req: web::Json<api::Signed<api::admin::UpdateConfigReq>>,
     ) -> api::Result<api::admin::UpdateConfigResp> {
         let signed_req = signed_req.into_inner();
 
-        let base = app.base();
-
-        let req = base.open_admin_req(signed_req)?;
+        let req = app.open_admin_req(signed_req)?;
 
         // Before restarting the server, check that the modification would work,
         // so we can return an error to the requestor.  Once we issue a modification command
         // the present connection is severed, and so no error can be returned.
 
-        let config = base
+        let config = app
             .handle
             .inspect(
                 "admin's retrieval of current configuration",
@@ -688,7 +677,7 @@ impl<S: Server> AppBase<S> {
         })?;
 
         // All is well - let's restart the server with the new configuration
-        base
+        app
         .handle
         .modify(
             "admin update of current in-memory configuration",
@@ -717,16 +706,14 @@ impl<S: Server> AppBase<S> {
 
     /// Retrieve non-public information about the server
     async fn handle_admin_info(
-        app: S::AppT,
+        app: Rc<S::AppT>,
         signed_req: web::Json<api::Signed<api::admin::InfoReq>>,
     ) -> api::Result<api::admin::InfoResp> {
         let signed_req = signed_req.into_inner();
 
-        let base = app.base();
+        let _req = app.open_admin_req(signed_req)?;
 
-        let _req = base.open_admin_req(signed_req)?;
-
-        let config = base
+        let config = app
             .handle
             .inspect(
                 "admin's retrieval of current configuration",
@@ -743,24 +730,22 @@ impl<S: Server> AppBase<S> {
 
     /// Run the discovery process, and restarts server if necessary.  Returns when
     /// the discovery process is completed, but before a possible restart.
-    async fn handle_discovery_run(app: S::AppT) -> api::Result<api::DiscoveryRunResp> {
-        app.base().handle.request_discovery(app.clone()).await
+    async fn handle_discovery_run(app: Rc<S::AppT>) -> api::Result<api::DiscoveryRunResp> {
+        app.handle.request_discovery(app.clone()).await
     }
 
-    pub(super) async fn discover_phc(app: S::AppT) -> api::Result<api::DiscoveryInfoResp> {
-        let base = app.base();
-
-        let pdi = base
+    pub(super) async fn discover_phc(app: Rc<S::AppT>) -> api::Result<api::DiscoveryInfoResp> {
+        let pdi = app
             .client
-            .query::<api::DiscoveryInfo>(&base.phc_url, &())
+            .query::<api::DiscoveryInfo>(&app.phc_url, &())
             .await
             .into_server_result()?;
 
         client::discovery::DiscoveryInfoCheck {
-            phc_url: &base.phc_url,
+            phc_url: &app.phc_url,
             name: Name::PubhubsCentral,
             self_check_code: if S::NAME == Name::PubhubsCentral {
-                Some(&base.self_check_code)
+                Some(&app.self_check_code)
             } else {
                 None
             },
@@ -769,26 +754,24 @@ impl<S: Server> AppBase<S> {
             // because if they're not the same that will cause an error to be returned, while
             // we want to initiate a restart instead.
         }
-        .check(pdi, &base.phc_url)
+        .check(pdi, &app.phc_url)
     }
 
-    async fn handle_discovery_info(app: S::AppT) -> api::Result<api::DiscoveryInfoResp> {
-        let app_base = app.base();
-
+    async fn handle_discovery_info(app: Rc<S::AppT>) -> api::Result<api::DiscoveryInfoResp> {
         Ok(api::DiscoveryInfoResp {
             name: S::NAME,
-            self_check_code: app_base.self_check_code.clone(),
-            phc_url: app_base.phc_url.clone(),
+            self_check_code: app.self_check_code.clone(),
+            phc_url: app.phc_url.clone(),
             // NOTE on efficiency:  the ed25519_dalek::SigningKey contains a precomputed
             // ed25519_dalek::VerifyingKey, which contains a precomputed compressed (=serialized)
             // form.  So no expensive cryptographic operations like finite field inversion
             // or scalar multiplication are performed here.
-            jwt_key: app_base.jwt_key.verifying_key().into(),
-            enc_key: app_base.enc_key.public_key().clone(),
+            jwt_key: app.jwt_key.verifying_key().into(),
+            enc_key: app.enc_key.public_key().clone(),
             master_enc_key_part: app
                 .master_enc_key_part()
                 .map(|privk| privk.public_key().clone()),
-            constellation: app_base
+            constellation: app
                 .running_state
                 .as_ref()
                 .map(|rs| AsRef::<Constellation>::as_ref(&rs.constellation).clone()),
@@ -799,14 +782,14 @@ impl<S: Server> AppBase<S> {
 /// An [`App`] together with a method on it.  Used to pass [`App`]s to [`actix_web::Handler`]s
 /// as first argument. See [`api::EndpointDetails::add_to`].
 pub struct AppMethod<App, F, ResponseType> {
-    app: App,
+    app: Rc<App>,
     f: F,
     phantom: std::marker::PhantomData<ResponseType>,
 }
 
 /// Implement [`Clone`] manually so we don't have to require `ResponseType` to implement
 /// [`Clone`].
-impl<App: Clone, F: Clone, ResponseType> Clone for AppMethod<App, F, ResponseType> {
+impl<App, F: Clone, ResponseType> Clone for AppMethod<App, F, ResponseType> {
     fn clone(&self) -> Self {
         Self {
             app: self.app.clone(),
@@ -816,9 +799,9 @@ impl<App: Clone, F: Clone, ResponseType> Clone for AppMethod<App, F, ResponseTyp
     }
 }
 
-impl<App: Clone, F, ResponseType> AppMethod<App, F, ResponseType> {
+impl<App, F, ResponseType> AppMethod<App, F, ResponseType> {
     /// Creates a new [`AppMethod`], cloning [`App`].
-    pub fn new(app: &App, f: F) -> Self {
+    pub fn new(app: &Rc<App>, f: F) -> Self {
         AppMethod {
             app: app.clone(),
             f,
@@ -833,9 +816,9 @@ impl<App: Clone, F, ResponseType> AppMethod<App, F, ResponseType> {
 macro_rules! factory_tuple ({ $($param:ident)* } => {
     impl<Func, Fut, App, ResponseType, $($param,)*> actix_web::Handler<($($param,)*)> for AppMethod<App, Func, ResponseType>
     where
-        Func:  Fn(App, $($param),*) -> Fut + Clone + 'static,
+        Func:  Fn(Rc<App>, $($param),*) -> Fut + Clone + 'static,
         Fut: core::future::Future,
-        App: Clone + 'static,
+        App: 'static,
         ResponseType: 'static + serde::Serialize,
         Fut::Output : Into<api::ResultResponder<ResponseType>>,
     {

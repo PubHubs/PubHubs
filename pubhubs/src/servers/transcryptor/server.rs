@@ -5,10 +5,7 @@ use actix_web::web;
 
 use crate::{
     api::{self, EndpointDetails as _},
-    servers::{
-        self, constellation, AppBase, AppCreator as _, AppCreatorBase, Constellation, Handle,
-        Server as _,
-    },
+    servers::{self, constellation, AppBase, AppCreatorBase, Constellation, Handle},
 };
 use crate::{elgamal, handle, phcrypto};
 
@@ -18,7 +15,7 @@ pub type Server = servers::ServerImpl<Details>;
 pub struct Details;
 impl servers::Details for Details {
     const NAME: servers::Name = servers::Name::Transcryptor;
-    type AppT = Rc<App>;
+    type AppT = App;
     type AppCreatorT = AppCreator;
     type ExtraRunningState = ExtraRunningState;
     type ObjectStoreT = servers::object_store::UseNone;
@@ -43,8 +40,16 @@ pub struct App {
     master_enc_key_part: elgamal::PrivateKey,
 }
 
-impl crate::servers::App<Server> for Rc<App> {
-    fn configure_actix_app(&self, sc: &mut web::ServiceConfig) {
+impl Deref for App {
+    type Target = AppBase<Server>;
+
+    fn deref(&self) -> &Self::Target {
+        &self.base
+    }
+}
+
+impl crate::servers::App<Server> for App {
+    fn configure_actix_app(self: &Rc<Self>, sc: &mut web::ServiceConfig) {
         api::phct::hub::Key::add_to(self, sc, App::handle_hub_key);
     }
 
@@ -72,13 +77,9 @@ impl crate::servers::App<Server> for Rc<App> {
             id: _,
         } = constellation;
 
-        enc_key == self.base.enc_key.public_key()
-            && **jwt_key == self.base.jwt_key.verifying_key()
+        enc_key == self.enc_key.public_key()
+            && **jwt_key == self.jwt_key.verifying_key()
             && master_enc_key_part == self.master_enc_key_part.public_key()
-    }
-
-    fn base(&self) -> &AppBase<Server> {
-        &self.base
     }
 
     fn master_enc_key_part(&self) -> Option<&elgamal::PrivateKey> {
@@ -91,7 +92,7 @@ impl App {
         app: Rc<Self>,
         signed_req: web::Json<api::phc::hub::TicketSigned<api::phct::hub::KeyReq>>,
     ) -> api::Result<api::phct::hub::KeyResp> {
-        let running_state = &app.base.running_state_or_not_yet_ready()?;
+        let running_state = &app.running_state_or_not_yet_ready()?;
 
         let ts_req = signed_req.into_inner();
 
@@ -106,7 +107,7 @@ impl App {
         let key_part: curve25519_dalek::Scalar = phcrypto::t_hub_key_part(
             ticket_digest,
             &running_state.phc_ss, // shared secret with pubhubs central
-            &app.base.enc_key,
+            &app.enc_key,
             &app.master_enc_key_part,
         );
 
@@ -149,10 +150,10 @@ impl crate::servers::AppCreator<Server> for AppCreator {
         })
     }
 
-    fn into_app(self, handle: &Handle<Server>) -> Rc<App> {
-        Rc::new(App {
+    fn into_app(self, handle: &Handle<Server>) -> App {
+        App {
             base: AppBase::new(self.base, handle),
             master_enc_key_part: self.master_enc_key_part,
-        })
+        }
     }
 }

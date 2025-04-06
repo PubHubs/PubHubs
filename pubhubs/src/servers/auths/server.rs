@@ -25,7 +25,7 @@ pub struct Details;
 impl servers::Details for Details {
     const NAME: servers::Name = servers::Name::AuthenticationServer;
 
-    type AppT = Rc<App>;
+    type AppT = App;
     type AppCreatorT = AppCreator;
     type ExtraRunningState = ExtraRunningState;
     type ObjectStoreT = servers::object_store::UseNone;
@@ -61,6 +61,14 @@ pub struct App {
     yivi: Option<YiviCtx>,
     auth_state_secret: crypto::SealingKey,
     auth_window: core::time::Duration,
+}
+
+impl Deref for App {
+    type Target = AppBase<Server>;
+
+    fn deref(&self) -> &Self::Target {
+        &self.base
+    }
 }
 
 /// Details on the Yivi server trusted by this authentication server.
@@ -189,7 +197,7 @@ impl App {
         app: Rc<Self>,
         req: web::Json<api::auths::AuthCompleteReq>,
     ) -> api::Result<api::auths::AuthCompleteResp> {
-        app.base.running_state_or_not_yet_ready()?;
+        app.running_state_or_not_yet_ready()?;
 
         let req: api::auths::AuthCompleteReq = req.into_inner();
 
@@ -231,7 +239,7 @@ impl App {
         let mut attrs: std::collections::HashMap<handle::Handle, api::Signed<attr::Attr>> =
             std::collections::HashMap::with_capacity(state.attr_types.len());
 
-        let running_state = app.base.running_state_or_internal_error()?;
+        let running_state = app.running_state_or_internal_error()?;
 
         for (i, result) in ssr
             .validate_and_extract_raw_singles()
@@ -288,8 +296,8 @@ impl App {
     }
 }
 
-impl crate::servers::App<Server> for Rc<App> {
-    fn configure_actix_app(&self, sc: &mut web::ServiceConfig) {
+impl crate::servers::App<Server> for App {
+    fn configure_actix_app(self: &Rc<Self>, sc: &mut web::ServiceConfig) {
         api::auths::AuthStartEP::add_to(self, sc, App::handle_auth_start);
         api::auths::AuthCompleteEP::add_to(self, sc, App::handle_auth_complete);
     }
@@ -318,11 +326,7 @@ impl crate::servers::App<Server> for Rc<App> {
             id: _,
         } = constellation;
 
-        enc_key == self.base.enc_key.public_key() && **jwt_key == self.base.jwt_key.verifying_key()
-    }
-
-    fn base(&self) -> &AppBase<Server> {
-        &self.base
+        enc_key == self.enc_key.public_key() && **jwt_key == self.jwt_key.verifying_key()
     }
 }
 
@@ -387,13 +391,13 @@ impl crate::servers::AppCreator<Server> for AppCreator {
         })
     }
 
-    fn into_app(self, handle: &Handle<Server>) -> Rc<App> {
-        Rc::new(App {
+    fn into_app(self, handle: &Handle<Server>) -> App {
+        App {
             base: AppBase::new(self.base, handle),
             attribute_types: self.attribute_types,
             yivi: self.yivi,
             auth_state_secret: self.auth_state_secret,
             auth_window: self.auth_window,
-        })
+        }
     }
 }
