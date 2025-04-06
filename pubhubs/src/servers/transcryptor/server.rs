@@ -1,3 +1,4 @@
+use std::ops::{Deref, DerefMut};
 use std::rc::Rc;
 
 use actix_web::web;
@@ -26,10 +27,8 @@ impl servers::Details for Details {
         server: &Server,
         constellation: &Constellation,
     ) -> anyhow::Result<Self::ExtraRunningState> {
-        let base = server.app_creator().base();
-
         Ok(ExtraRunningState {
-            phc_ss: base.enc_key.shared_secret(&constellation.phc_enc_key),
+            phc_ss: server.enc_key.shared_secret(&constellation.phc_enc_key),
         })
     }
 }
@@ -121,6 +120,20 @@ pub struct AppCreator {
     master_enc_key_part: elgamal::PrivateKey,
 }
 
+impl Deref for AppCreator {
+    type Target = AppCreatorBase<Server>;
+
+    fn deref(&self) -> &Self::Target {
+        &self.base
+    }
+}
+
+impl DerefMut for AppCreator {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.base
+    }
+}
+
 impl crate::servers::AppCreator<Server> for AppCreator {
     fn new(config: &servers::Config) -> anyhow::Result<Self> {
         let xconf = &config.transcryptor.as_ref().unwrap();
@@ -141,13 +154,5 @@ impl crate::servers::AppCreator<Server> for AppCreator {
             base: AppBase::new(self.base, handle),
             master_enc_key_part: self.master_enc_key_part,
         })
-    }
-
-    fn base(&self) -> &AppCreatorBase<Server> {
-        &self.base
-    }
-
-    fn base_mut(&mut self) -> &mut AppCreatorBase<Server> {
-        &mut self.base
     }
 }

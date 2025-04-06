@@ -1,4 +1,5 @@
 //! Authentication server core code
+use std::ops::{Deref, DerefMut};
 use std::rc::Rc;
 
 use actix_web::web;
@@ -33,9 +34,7 @@ impl servers::Details for Details {
         server: &Server,
         constellation: &Constellation,
     ) -> anyhow::Result<Self::ExtraRunningState> {
-        let base = &server.app_creator().base;
-
-        let phc_ss = base.enc_key.shared_secret(&constellation.phc_enc_key);
+        let phc_ss = server.enc_key.shared_secret(&constellation.phc_enc_key);
 
         Ok(ExtraRunningState {
             attr_signing_key: phcrypto::attr_signing_key(&phc_ss),
@@ -337,6 +336,22 @@ pub struct AppCreator {
     auth_window: core::time::Duration,
 }
 
+impl Deref for AppCreator {
+    type Target = AppCreatorBase<Server>;
+
+    #[inline]
+    fn deref(&self) -> &Self::Target {
+        &self.base
+    }
+}
+
+impl DerefMut for AppCreator {
+    #[inline]
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.base
+    }
+}
+
 impl crate::servers::AppCreator<Server> for AppCreator {
     fn new(config: &servers::Config) -> anyhow::Result<Self> {
         let base = AppCreatorBase::<Server>::new(config)?;
@@ -380,13 +395,5 @@ impl crate::servers::AppCreator<Server> for AppCreator {
             auth_state_secret: self.auth_state_secret,
             auth_window: self.auth_window,
         })
-    }
-
-    fn base(&self) -> &AppCreatorBase<Server> {
-        &self.base
-    }
-
-    fn base_mut(&mut self) -> &mut AppCreatorBase<Server> {
-        &mut self.base
     }
 }

@@ -4,7 +4,7 @@ use anyhow::{Context as _, Result};
 use futures_util::future::{FutureExt as _, LocalBoxFuture};
 
 use core::convert::Infallible;
-use std::ops::Deref;
+use std::ops::{Deref, DerefMut};
 use std::rc::Rc;
 
 use crate::elgamal;
@@ -54,7 +54,7 @@ impl std::fmt::Display for Name {
 ///
 /// An exception to this no-shared-mutable-state is the shared state in [Handle], for example the
 /// `crate::servers::run::DiscoveryLimiter` and the object store
-pub(crate) trait Server: Sized + 'static {
+pub(crate) trait Server: DerefMut<Target = Self::AppCreatorT> + Sized + 'static {
     type AppT: App<Self>;
 
     const NAME: Name;
@@ -71,9 +71,6 @@ pub(crate) trait Server: Sized + 'static {
     type ObjectStoreT: Sync;
 
     fn new(config: &crate::servers::Config) -> anyhow::Result<Self>;
-
-    fn app_creator(&self) -> &Self::AppCreatorT;
-    fn app_creator_mut(&mut self) -> &mut Self::AppCreatorT;
 
     fn config(&self) -> &crate::servers::Config;
 
@@ -122,6 +119,22 @@ pub struct ServerImpl<D: Details> {
     app_creator: D::AppCreatorT,
 }
 
+impl<D: Details> Deref for ServerImpl<D> {
+    type Target = D::AppCreatorT;
+
+    #[inline]
+    fn deref(&self) -> &Self::Target {
+        &self.app_creator
+    }
+}
+
+impl<D: Details> DerefMut for ServerImpl<D> {
+    #[inline]
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.app_creator
+    }
+}
+
 /// Details needed to create a [ServerImpl] type.
 pub trait Details: crate::servers::config::GetServerConfig + 'static + Sized {
     const NAME: Name;
@@ -157,14 +170,6 @@ where
             app_creator: Self::AppCreatorT::new(config)?,
             config: config.clone(),
         })
-    }
-
-    fn app_creator(&self) -> &Self::AppCreatorT {
-        &self.app_creator
-    }
-
-    fn app_creator_mut(&mut self) -> &mut Self::AppCreatorT {
-        &mut self.app_creator
     }
 
     fn config(&self) -> &servers::Config {
@@ -234,19 +239,18 @@ where
     }
 }
 
-/// What's cloned and moved accross threads by a [Server] to create its [App] instances.
-pub trait AppCreator<ServerT: Server>: Send + Clone + 'static {
-    /// Creates a new instance of this [AppCreator] based on the given configuration.
+/// What's cloned and moved accross threads by a [`Server`] to create its [`App`] instances.
+pub trait AppCreator<ServerT: Server>:
+    DerefMut<Target = AppCreatorBase<ServerT>> + Send + Clone + 'static
+{
+    /// Creates a new instance of this [`AppCreator`] based on the given configuration.
     fn new(config: &servers::Config) -> anyhow::Result<Self>;
 
-    /// Create an [App] instance.
+    /// Create an [`App`] instance.
     ///
-    /// The `handle` [Handle] can be used to restart the server.  It's
+    /// The `handle` [`Handle`] can be used to restart the server.  It's
     /// up to the implementor to clone it.
     fn into_app(self, handle: &Handle<ServerT>) -> ServerT::AppT;
-
-    fn base(&self) -> &AppCreatorBase<ServerT>;
-    fn base_mut(&mut self) -> &mut AppCreatorBase<ServerT>;
 }
 
 /// What modifies a [Server] via [Command::Modify].
@@ -885,6 +889,7 @@ impl<Extra: Clone + core::fmt::Debug> RunningState<Extra> {
 impl<Extra: Clone + core::fmt::Debug> Deref for RunningState<Extra> {
     type Target = Extra;
 
+    #[inline]
     fn deref(&self) -> &Extra {
         &self.extra
     }
@@ -906,6 +911,7 @@ impl<S: Server> Clone for SharedState<S> {
 impl<S: Server> std::ops::Deref for SharedState<S> {
     type Target = SharedStateInner<S>;
 
+    #[inline]
     fn deref(&self) -> &Self::Target {
         &self.inner
     }

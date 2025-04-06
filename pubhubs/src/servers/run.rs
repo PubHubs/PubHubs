@@ -513,8 +513,7 @@ impl DiscoveryLimiter {
                         }
                     };
 
-                    server.app_creator_mut().base_mut().running_state =
-                        Some(RunningState::new(new_constellation, extra));
+                    server.running_state = Some(RunningState::new(new_constellation, extra));
 
                     true // yes, restart
                 },
@@ -712,7 +711,7 @@ impl<S: Server> Runner<S> {
     }
 
     fn create_actix_server(&self, bind_to: &SocketAddr) -> Result<Handles<S>> {
-        let app_creator: S::AppCreatorT = self.pubhubs_server.app_creator().clone();
+        let app_creator: S::AppCreatorT = self.pubhubs_server.deref().clone();
 
         let (command_sender, command_receiver) = mpsc::channel(1);
 
