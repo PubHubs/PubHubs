@@ -1,7 +1,7 @@
 //! What's common between PubHubs servers
 use actix_web::web;
 use anyhow::{Context as _, Result};
-use futures_util::future::{FutureExt as _, LocalBoxFuture};
+use futures_util::future::FutureExt as _;
 
 use core::convert::Infallible;
 use std::ops::{Deref, DerefMut};
@@ -379,94 +379,92 @@ pub trait App<S: Server>: Deref<Target = AppBase<S>> + 'static {
     /// Returns None if everything checks out.  If one of the other servers is not up-to-date
     /// according to this server, discovery of that server is invoked and
     /// [api::ErrorCode::NotYetReady] is returned.
-    fn discover(
+    async fn discover(
         self: &Rc<Self>,
         phc_inf: api::DiscoveryInfoResp,
-    ) -> LocalBoxFuture<'_, api::Result<Option<Constellation>>> {
+    ) -> api::Result<Option<Constellation>> {
         log::debug!("{server_name}: running discovery", server_name = S::NAME);
 
-        Box::pin(async move {
-            if S::NAME == Name::PubhubsCentral {
-                log::error!(
-                    "{} should implement discovery itself!",
-                    Name::PubhubsCentral
-                );
-                return Err(api::ErrorCode::InternalError);
-            }
-
-            assert!(
-                phc_inf.constellation.is_some(),
-                "this `discover` method should only be run when phc_inf.constellation is some"
+        if S::NAME == Name::PubhubsCentral {
+            log::error!(
+                "{} should implement discovery itself!",
+                Name::PubhubsCentral
             );
+            return Err(api::ErrorCode::InternalError);
+        }
 
-            if let Some(rs) = self.running_state.as_ref() {
-                if !self.check_constellation(phc_inf.constellation.as_ref().unwrap()) {
-                    log::warn!(
+        assert!(
+            phc_inf.constellation.is_some(),
+            "this `discover` method should only be run when phc_inf.constellation is some"
+        );
+
+        if let Some(rs) = self.running_state.as_ref() {
+            if !self.check_constellation(phc_inf.constellation.as_ref().unwrap()) {
+                log::warn!(
                         "{server_name}: {phc}'s constellation seems to be out-of-date - requesting rediscovery",
                         server_name = S::NAME,
                         phc = Name::PubhubsCentral
                     );
-                    // PHC's discovery is out of date; invoke discovery and return
-                    self.client
-                        .query::<api::DiscoveryRun>(&phc_inf.phc_url, &())
-                        .await
-                        .into_server_result()?;
-                    return Err(api::ErrorCode::NotYetReady);
-                }
-
-                log::trace!(
-                    "{server_name}: {phc}'s constellation looks alright! ",
-                    server_name = S::NAME,
-                    phc = Name::PubhubsCentral
-                );
-
-                if phc_inf.constellation.as_ref().unwrap().id == rs.constellation.id {
-                    log::trace!(
-                        "{server_name}: my constellation is up-to-date!",
-                        server_name = S::NAME,
-                    );
-
-                    return Ok(None);
-                }
+                // PHC's discovery is out of date; invoke discovery and return
+                self.client
+                    .query::<api::DiscoveryRun>(&phc_inf.phc_url, &())
+                    .await
+                    .into_server_result()?;
+                return Err(api::ErrorCode::NotYetReady);
             }
 
-            log::info!(
-                "{}: my constellation is {}",
-                S::NAME,
-                if self.running_state.is_some() {
-                    "out of date"
-                } else {
-                    "not yet set"
-                }
+            log::trace!(
+                "{server_name}: {phc}'s constellation looks alright! ",
+                server_name = S::NAME,
+                phc = Name::PubhubsCentral
             );
 
-            // NOTE: phc_inf has already been (partially) checked
-            let c = phc_inf
-                .constellation
-                .as_ref()
-                .expect("that constellation is not none should already have been checked");
+            if phc_inf.constellation.as_ref().unwrap().id == rs.constellation.id {
+                log::trace!(
+                    "{server_name}: my constellation is up-to-date!",
+                    server_name = S::NAME,
+                );
 
-            let url = c.url(S::NAME);
-
-            // obtain DiscoveryInfo from oneself
-            let di = self
-                .client
-                .query::<api::DiscoveryInfo>(url, &())
-                .await
-                .into_server_result()?;
-
-            client::discovery::DiscoveryInfoCheck {
-                name: S::NAME,
-                phc_url: &self.phc_url,
-                self_check_code: Some(&self.self_check_code),
-                constellation: None,
-                // NOTE: we're not checking whether our own constellation is up-to-date,
-                // because it likely is not - why would we run discovery otherwise?
+                return Ok(None);
             }
-            .check(di, url)?;
+        }
 
-            Ok(Some(phc_inf.constellation.unwrap()))
-        })
+        log::info!(
+            "{}: my constellation is {}",
+            S::NAME,
+            if self.running_state.is_some() {
+                "out of date"
+            } else {
+                "not yet set"
+            }
+        );
+
+        // NOTE: phc_inf has already been (partially) checked
+        let c = phc_inf
+            .constellation
+            .as_ref()
+            .expect("that constellation is not none should already have been checked");
+
+        let url = c.url(S::NAME);
+
+        // obtain DiscoveryInfo from oneself
+        let di = self
+            .client
+            .query::<api::DiscoveryInfo>(url, &())
+            .await
+            .into_server_result()?;
+
+        client::discovery::DiscoveryInfoCheck {
+            name: S::NAME,
+            phc_url: &self.phc_url,
+            self_check_code: Some(&self.self_check_code),
+            constellation: None,
+            // NOTE: we're not checking whether our own constellation is up-to-date,
+            // because it likely is not - why would we run discovery otherwise?
+        }
+        .check(di, url)?;
+
+        Ok(Some(phc_inf.constellation.unwrap()))
     }
 
     /// Should return the master encryption key part for PHC and the transcryption.
