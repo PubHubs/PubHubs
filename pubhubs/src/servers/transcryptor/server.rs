@@ -106,7 +106,7 @@ impl App {
 
         let key_part: curve25519_dalek::Scalar = phcrypto::t_hub_key_part(
             ticket_digest,
-            &running_state.extra.phc_ss, // shared secret with pubhubs central
+            &running_state.phc_ss, // shared secret with pubhubs central
             &app.base.enc_key,
             &app.master_enc_key_part,
         );

@@ -271,7 +271,7 @@ impl App {
                 .insert(
                     attr_type_handle.clone(),
                     api::Signed::<attr::Attr>::new(
-                        &running_state.extra.attr_signing_key,
+                        &running_state.attr_signing_key,
                         &attr::Attr {
                             attr_type: attr_type.id,
                             value: raw_value.to_string(),

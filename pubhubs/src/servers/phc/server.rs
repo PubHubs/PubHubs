@@ -255,7 +255,7 @@ impl App {
         app: Rc<Self>,
         signed_req: web::Json<api::phc::hub::TicketSigned<api::phct::hub::KeyReq>>,
     ) -> api::Result<api::phct::hub::KeyResp> {
-        let running_state = &app.base.running_state_or_not_yet_ready()?.extra;
+        let running_state = &app.base.running_state_or_not_yet_ready()?;
 
         let ts_req = signed_req.into_inner();
 

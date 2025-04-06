@@ -4,6 +4,7 @@ use anyhow::{Context as _, Result};
 use futures_util::future::{FutureExt as _, LocalBoxFuture};
 
 use core::convert::Infallible;
+use std::ops::Deref;
 use std::rc::Rc;
 
 use crate::elgamal;
@@ -863,14 +864,33 @@ factory_tuple! { A B C D E F G H I J K L M N }
 factory_tuple! { A B C D E F G H I J K L M N O }
 factory_tuple! { A B C D E F G H I J K L M N O P }
 
-/// Additional state when discovery has been completed
+/// Additional state when discovery has been completed.  Derefs to `Extra`.
 #[derive(Clone, Debug)]
 pub struct RunningState<Extra: Clone + core::fmt::Debug> {
     pub constellation: Box<Constellation>,
-    pub extra: Extra,
+
+    /// Accessible via [`Deref`].
+    extra: Extra,
 }
 
-/// Shared state between [App]s.  Use sparingly!
+impl<Extra: Clone + core::fmt::Debug> RunningState<Extra> {
+    pub(crate) fn new(constellation: Constellation, extra: Extra) -> Self {
+        RunningState {
+            constellation: Box::new(constellation),
+            extra,
+        }
+    }
+}
+
+impl<Extra: Clone + core::fmt::Debug> Deref for RunningState<Extra> {
+    type Target = Extra;
+
+    fn deref(&self) -> &Extra {
+        &self.extra
+    }
+}
+
+/// Shared state between [`App`]s.  Use sparingly!
 pub struct SharedState<S: Server> {
     inner: std::sync::Arc<SharedStateInner<S>>,
 }

@@ -513,10 +513,8 @@ impl DiscoveryLimiter {
                         }
                     };
 
-                    server.app_creator_mut().base_mut().running_state = Some(RunningState {
-                        constellation: Box::new(new_constellation),
-                        extra,
-                    });
+                    server.app_creator_mut().base_mut().running_state =
+                        Some(RunningState::new(new_constellation, extra));
 
                     true // yes, restart
                 },
