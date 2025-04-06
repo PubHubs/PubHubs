@@ -123,7 +123,7 @@ pub struct AppCreator {
 
 impl crate::servers::AppCreator<Server> for AppCreator {
     fn new(config: &servers::Config) -> anyhow::Result<Self> {
-        let xconf = &config.transcryptor.as_ref().unwrap().extra;
+        let xconf = &config.transcryptor.as_ref().unwrap();
 
         let master_enc_key_part: elgamal::PrivateKey = xconf
             .master_enc_key_part

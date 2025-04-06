@@ -341,7 +341,7 @@ impl crate::servers::AppCreator<Server> for AppCreator {
     fn new(config: &servers::Config) -> anyhow::Result<Self> {
         let base = AppCreatorBase::<Server>::new(config)?;
 
-        let xconf = &config.auths.as_ref().unwrap().extra;
+        let xconf = &config.auths.as_ref().unwrap();
 
         let mut attribute_types: crate::map::Map<attr::Type> = Default::default();
 

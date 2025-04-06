@@ -45,7 +45,7 @@ async fn main_integration_test() {
 
     // Generate temporary yivi requestor credentials.
     // (We're not contacting an actual Yivi server in this test.)
-    config.auths.as_mut().unwrap().extra.yivi = toml::from_str(
+    config.auths.as_mut().unwrap().yivi = toml::from_str(
         r#"
         requestor_url = "http://192.0.2.0"  # will not be used - placeholder ip address from RFC5737
         server_name = "yivi-server"
@@ -63,7 +63,6 @@ async fn main_integration_test() {
         .auths
         .as_mut()
         .unwrap()
-        .extra
         .yivi
         .as_mut()
         .unwrap()
@@ -188,7 +187,6 @@ async fn main_integration_test_local(config: servers::Config, admin_sk: api::Sig
         .phc
         .as_ref()
         .unwrap()
-        .extra
         .hubs
         .iter()
         .find(|h: &&hub::BasicInfo| &*h.handles[0] == "testhub")

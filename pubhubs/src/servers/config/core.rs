@@ -1,6 +1,7 @@
 //! Configuration (files)
 use core::fmt::Debug;
 use std::net::SocketAddr;
+use std::ops::{Deref, DerefMut};
 use std::path::{Path, PathBuf};
 
 use anyhow::{Context as _, Result};
@@ -65,7 +66,7 @@ pub(crate) enum PreparationState {
     Complete,
 }
 
-/// Configuration for one server
+/// Configuration for one server.  Derefs to `ServerSpecific`..
 #[derive(serde::Deserialize, serde::Serialize, Debug, Clone)]
 #[serde(deny_unknown_fields)]
 pub struct ServerConfig<ServerSpecific> {
@@ -100,7 +101,22 @@ pub struct ServerConfig<ServerSpecific> {
     pub object_store: Option<ObjectStoreConfig>,
 
     #[serde(flatten)]
-    pub extra: ServerSpecific,
+    /// Can be accessed via [`Deref`].
+    extra: ServerSpecific,
+}
+
+impl<X> Deref for ServerConfig<X> {
+    type Target = X;
+
+    fn deref(&self) -> &X {
+        &self.extra
+    }
+}
+
+impl<X> DerefMut for ServerConfig<X> {
+    fn deref_mut(&mut self) -> &mut X {
+        &mut self.extra
+    }
 }
 
 fn default_graceful_shutdown() -> bool {

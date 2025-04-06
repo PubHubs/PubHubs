@@ -300,7 +300,7 @@ impl crate::servers::AppCreator<Server> for AppCreator {
     fn new(config: &servers::Config) -> anyhow::Result<Self> {
         let mut hubs: crate::map::Map<hub::BasicInfo> = Default::default();
 
-        let xconf = &config.phc.as_ref().unwrap().extra;
+        let xconf = &config.phc.as_ref().unwrap();
 
         for basic_hub_info in xconf.hubs.iter() {
             if let Some(hub_or_id) = hubs.insert_new(basic_hub_info.clone()) {
