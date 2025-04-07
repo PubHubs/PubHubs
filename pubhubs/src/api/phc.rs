@@ -5,6 +5,7 @@ use std::collections::HashMap;
 
 use serde::{Deserialize, Serialize};
 
+use crate::attr;
 use crate::handle;
 use crate::servers::Constellation;
 
@@ -88,5 +89,59 @@ pub mod user {
     pub struct WelcomeResp {
         pub constellation: Constellation,
         pub hubs: HashMap<handle::Handle, crate::hub::BasicInfo>,
+    }
+
+    /// Login (and register if needed)
+    pub struct EnterEP {}
+    impl EndpointDetails for EnterEP {
+        type RequestType = EnterReq;
+        type ResponseType = EnterResp;
+
+        const METHOD: http::Method = http::Method::POST;
+        const PATH: &'static str = ".ph/user/enter";
+    }
+
+    /// Request to log in to an existing account, or register a new one.
+    #[derive(Serialize, Deserialize, Debug, Clone)]
+    pub struct EnterReq {
+        /// [`Attr`]ibute identifying the user.
+        pub identifying_attr: Signed<attr::Attr>,
+
+        /// Whether we want to create a new account if one does not exist.
+        #[serde(default)]
+        pub permit_registration: bool,
+
+        /// Whether we expect no account to exist.
+        #[serde(default)]
+        pub expect_registration: bool,
+
+        /// Add these attributes to your account, required, for example, when registering a new
+        /// account.
+        #[serde(default)]
+        pub add_attrs: Vec<Signed<attr::Attr>>,
+    }
+
+    #[derive(Serialize, Deserialize, Debug, Clone)]
+    #[serde(rename = "snake_case")]
+    pub enum EnterResp {
+        /// Can happen only when [`EnterReq::expect_registration`] is true
+        AccountAlreadyExists,
+
+        /// Can happen only ewhen [`EnterReq::permit_registration`] is false
+        AccountDoesNotExist,
+
+        /// Login (and registration) was successful
+        Entered {
+            /// Whether we created a new account
+            new_account: bool,
+
+            attr_status: HashMap<handle::Handle, AttrAddResp>,
+        },
+    }
+
+    #[derive(Serialize, Deserialize, Debug, Clone)]
+    #[serde(rename = "snake_case")]
+    pub enum AttrAddResp {
+        Added,
     }
 }

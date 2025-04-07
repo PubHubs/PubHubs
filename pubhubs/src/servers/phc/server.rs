@@ -4,11 +4,12 @@ use std::rc::Rc;
 
 use actix_web::web;
 
-use crate::{
-    api::{self, ApiResultExt as _, EndpointDetails as _},
-    client, handle, phcrypto,
-    servers::{self, constellation, AppBase, AppCreatorBase, Constellation, Handle},
-};
+use crate::api::{self, ApiResultExt as _, EndpointDetails as _};
+use crate::client;
+use crate::handle;
+use crate::misc::jwt;
+use crate::phcrypto;
+use crate::servers::{self, constellation, AppBase, AppCreatorBase, Constellation, Handle};
 
 use crate::{elgamal, hub};
 
@@ -20,18 +21,20 @@ impl servers::Details for Details {
     const NAME: servers::Name = servers::Name::PubhubsCentral;
     type AppT = App;
     type AppCreatorT = AppCreator;
-    type ExtraRunningState = RunningState;
+    type ExtraRunningState = ExtraRunningState;
     type ObjectStoreT = servers::object_store::DefaultObjectStore;
 
     fn create_running_state(
         server: &Server,
         constellation: &Constellation,
     ) -> anyhow::Result<Self::ExtraRunningState> {
-        Ok(RunningState {
+        let auths_ss = server.enc_key.shared_secret(&constellation.auths_enc_key);
+        Ok(ExtraRunningState {
             t_ss: server
                 .enc_key
                 .shared_secret(&constellation.transcryptor_enc_key),
-            auths_ss: server.enc_key.shared_secret(&constellation.auths_enc_key),
+            attr_signing_key: phcrypto::attr_signing_key(&auths_ss),
+            auths_ss,
         })
     }
 }
@@ -53,20 +56,25 @@ impl Deref for App {
 }
 
 #[derive(Clone, Debug)]
-pub struct RunningState {
+pub struct ExtraRunningState {
     /// Shared secret with transcryptor
     t_ss: elgamal::SharedSecret,
 
     /// Shared secret with authentication server
     auths_ss: elgamal::SharedSecret,
+
+    /// Key used to sign [`Attr`]s, shared with the authentication server
+    ///
+    /// [`Attr`]: attr::Attr
+    attr_signing_key: jwt::HS256,
 }
 
 impl crate::servers::App<Server> for App {
     fn configure_actix_app(self: &Rc<Self>, sc: &mut web::ServiceConfig) {
         api::phc::hub::TicketEP::add_to(self, sc, App::handle_hub_ticket);
         api::phct::hub::Key::add_to(self, sc, App::handle_hub_key);
-
         api::phc::user::WelcomeEP::caching_add_to(self, sc, App::cached_handle_user_welcome);
+        api::phc::user::EnterEP::add_to(self, sc, App::handle_user_enter);
     }
 
     fn check_constellation(&self, _constellation: &Constellation) -> bool {
@@ -279,6 +287,19 @@ impl App {
             constellation: (*running_state.constellation).clone(),
             hubs,
         })
+    }
+
+    async fn handle_user_enter(
+        app: Rc<Self>,
+        req: web::Json<api::phc::user::EnterReq>,
+    ) -> api::Result<api::phc::user::EnterResp> {
+        let req = req.into_inner();
+
+        let running_state = &app.running_state_or_not_yet_ready()?;
+
+        let resp = req.identifying_attr.open(&running_state.attr_signing_key);
+
+        todo! {}
     }
 }
 
