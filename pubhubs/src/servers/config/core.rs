@@ -339,6 +339,24 @@ pub mod auths {
         core::time::Duration::from_secs(60 * 60) // one hour
     }
 
+    impl ExtraConfig {
+        /// Removes the [`attr::SourceDetails`]s of unsupported sources from
+        /// [`attribute_types`].
+        ///
+        /// [`attribute_types`]: Self::attribute_types
+        pub(super) fn filter_attribute_types(&mut self) {
+            let mut supported_sources: std::collections::HashSet<attr::Source> = Default::default();
+
+            if self.yivi.is_some() {
+                assert!(supported_sources.insert(attr::Source::Yivi));
+            }
+
+            for attr_type in self.attribute_types.iter_mut() {
+                attr_type.filter_sources(|s| supported_sources.contains(&s))
+            }
+        }
+    }
+
     #[derive(serde::Deserialize, serde::Serialize, Debug, Clone)]
     #[serde(deny_unknown_fields)]
     pub struct YiviConfig {
@@ -475,6 +493,8 @@ impl PrepareConfig<Pcc> for auths::ExtraConfig {
         if let Some(ref mut yivi_cfg) = self.yivi {
             yivi_cfg.prepare(c).await?;
         }
+
+        self.filter_attribute_types();
 
         Ok(())
     }

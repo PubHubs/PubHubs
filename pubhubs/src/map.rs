@@ -78,6 +78,11 @@ impl<T: Handled> Map<T> {
 
         None
     }
+
+    /// Returns an [`Iterator`] over the values of this map.
+    pub fn values(&self) -> std::collections::hash_map::Values<'_, Id, T> {
+        self.value_by_id.values()
+    }
 }
 
 // This cannot be derived using 'derive(Default)' without requiring that T: Default,

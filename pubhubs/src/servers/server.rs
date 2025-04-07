@@ -602,7 +602,7 @@ impl<S: Server> AppBase<S> {
     /// Configures common endpoints
     pub fn configure_actix_app(app: &Rc<S::AppT>, sc: &mut web::ServiceConfig) {
         api::DiscoveryRun::add_to(app, sc, Self::handle_discovery_run);
-        api::DiscoveryInfo::add_to(app, sc, Self::handle_discovery_info);
+        api::DiscoveryInfo::caching_add_to(app, sc, Self::cached_handle_discovery_info);
 
         api::admin::UpdateConfig::add_to(app, sc, Self::handle_admin_post_config);
         api::admin::Info::add_to(app, sc, Self::handle_admin_info);
@@ -755,7 +755,7 @@ impl<S: Server> AppBase<S> {
         .check(pdi, &app.phc_url)
     }
 
-    async fn handle_discovery_info(app: Rc<S::AppT>) -> api::Result<api::DiscoveryInfoResp> {
+    fn cached_handle_discovery_info(app: &S::AppT) -> api::Result<api::DiscoveryInfoResp> {
         Ok(api::DiscoveryInfoResp {
             name: S::NAME,
             self_check_code: app.self_check_code.clone(),

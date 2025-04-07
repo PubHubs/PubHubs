@@ -5,6 +5,22 @@ use crate::{attr, handle};
 
 use serde::{Deserialize, Serialize};
 
+/// Called by the global client to get, for example, the list of supported attribute types.
+pub struct WelcomeEP {}
+impl EndpointDetails for WelcomeEP {
+    type RequestType = ();
+    type ResponseType = WelcomeResp;
+
+    const METHOD: http::Method = http::Method::GET;
+    const PATH: &'static str = ".ph/welcome";
+}
+
+#[derive(Serialize, Deserialize, Debug, Clone)]
+pub struct WelcomeResp {
+    /// Available attribute types
+    pub attr_types: std::collections::HashMap<handle::Handle, attr::Type>,
+}
+
 pub struct AuthStartEP {}
 impl EndpointDetails for AuthStartEP {
     type RequestType = AuthStartReq;

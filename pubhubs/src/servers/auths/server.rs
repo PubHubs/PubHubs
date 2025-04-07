@@ -294,12 +294,23 @@ impl App {
 
         Ok(api::auths::AuthCompleteResp { attrs })
     }
+
+    fn cached_handle_welcome(app: &Self) -> api::Result<api::auths::WelcomeResp> {
+        let attr_types: std::collections::HashMap<handle::Handle, attr::Type> = app
+            .attribute_types
+            .values()
+            .map(|attr_type| (attr_type.handles.preferred().clone(), attr_type.clone()))
+            .collect();
+
+        Ok(api::auths::WelcomeResp { attr_types })
+    }
 }
 
 impl crate::servers::App<Server> for App {
     fn configure_actix_app(self: &Rc<Self>, sc: &mut web::ServiceConfig) {
         api::auths::AuthStartEP::add_to(self, sc, App::handle_auth_start);
         api::auths::AuthCompleteEP::add_to(self, sc, App::handle_auth_complete);
+        api::auths::WelcomeEP::caching_add_to(self, sc, App::cached_handle_welcome);
     }
 
     fn check_constellation(&self, constellation: &Constellation) -> bool {

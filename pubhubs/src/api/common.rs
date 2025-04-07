@@ -243,7 +243,7 @@ pub trait EndpointDetails {
     /// ```text
     /// async fn f(app : Rc<App>, ...) -> api::Result<ResponseType>
     /// ```
-    /// The `...` can contain arguments of type `[actix_web::FromRequest]`.
+    /// The `...` can contain arguments of type [`actix_web::FromRequest`].
     fn add_to<App, F, Args: actix_web::FromRequest + 'static>(
         app: &Rc<App>,
         sc: &mut web::ServiceConfig,
@@ -256,6 +256,49 @@ pub trait EndpointDetails {
         sc.route(
             Self::PATH,
             web::method(Self::METHOD).to(server::AppMethod::new(app, handler)),
+        );
+    }
+
+    /// Like [`add_to`], but runs `handler` only once, caching the result.
+    ///
+    /// Of course, `handler` won't have access to the usual [`actix_web::FromRequest`] arguments,
+    /// as there is no request to derive these arguments from.
+    ///
+    /// Moreover `handler` cannot be `async`, since [`actix_web::App::configure`] takes a non-async
+    /// function.
+    ///
+    /// # `handler` errors and panics
+    ///
+    /// If `handler` returns an [`Err`], then this will not cause the `App` (and associated `Server`) to
+    /// crash.  Instead the [`Err`] is cached and served to any client requesting this endpoint.
+    ///
+    /// If a crash is desirable, then `handler` should panic.  Unlike a panic in a regular
+    /// [`actix_web::Handler`] (which will just cause a connection reset), a panic here will cause
+    /// the `Server` to exit.
+    ///
+    /// [`Err`]: Result::Err
+    /// [`add_to`]: Self::add_to
+    fn caching_add_to<App, F>(app: &Rc<App>, sc: &mut web::ServiceConfig, handler: F)
+    where
+        F: Fn(&App) -> Result<Self::ResponseType>,
+    {
+        let response: String = serde_json::to_string_pretty(&handler(app)).unwrap_or_else(|err| {
+            log::error!("while preparing response for {}: {err}", Self::PATH);
+            serde_json::to_string_pretty(&Result::<Self::ResponseType>::Err(
+                ErrorCode::InternalError,
+            ))
+            .unwrap()
+        });
+
+        sc.route(
+            Self::PATH,
+            web::method(Self::METHOD).to(move || {
+                // TODO: etag
+                let response = actix_web::HttpResponse::Ok()
+                    .content_type(actix_web::http::header::ContentType::json())
+                    .body(response.clone());
+                async { response }
+            }),
         );
     }
 }

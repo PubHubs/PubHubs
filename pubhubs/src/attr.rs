@@ -40,6 +40,12 @@ impl Type {
             SourceDetails::Yivi { attr_type_id } => Some(attr_type_id),
         })
     }
+
+    /// Removes the [`SourceDetails`] from [`Source`]s not accepted by `accept_source`.
+    pub(crate) fn filter_sources(&mut self, accept_source: impl Fn(Source) -> bool) {
+        self.sources
+            .retain(|source_details| accept_source(source_details.source()))
+    }
 }
 
 /// Instructions on how to obtain an [`Attr`]ibute of a particular [`Type`].
@@ -60,7 +66,7 @@ impl SourceDetails {
     }
 }
 
-#[derive(serde::Deserialize, serde::Serialize, Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(serde::Deserialize, serde::Serialize, Hash, Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Source {
     Yivi,
 }
