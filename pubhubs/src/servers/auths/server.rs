@@ -277,6 +277,8 @@ impl App {
             attrs
                 .insert(
                     attr_type_handle.clone(),
+                    // TODO: attr_signing_key is constellation-dependent;  provide a mechanism
+                    // for the client to detect constellation change
                     api::Signed::<attr::Attr>::new(
                         &running_state.attr_signing_key,
                         &attr::Attr {

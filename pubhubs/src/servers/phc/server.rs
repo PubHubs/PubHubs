@@ -1,3 +1,4 @@
+use std::collections::HashMap;
 use std::ops::{Deref, DerefMut};
 use std::rc::Rc;
 
@@ -64,6 +65,8 @@ impl crate::servers::App<Server> for App {
     fn configure_actix_app(self: &Rc<Self>, sc: &mut web::ServiceConfig) {
         api::phc::hub::TicketEP::add_to(self, sc, App::handle_hub_ticket);
         api::phct::hub::Key::add_to(self, sc, App::handle_hub_key);
+
+        api::phc::user::WelcomeEP::caching_add_to(self, sc, App::cached_handle_user_welcome);
     }
 
     fn check_constellation(&self, _constellation: &Constellation) -> bool {
@@ -261,6 +264,21 @@ impl App {
         );
 
         Ok(api::phct::hub::KeyResp { key_part })
+    }
+
+    fn cached_handle_user_welcome(app: &Self) -> api::Result<api::phc::user::WelcomeResp> {
+        let running_state = app.running_state_or_not_yet_ready()?;
+
+        let hubs: HashMap<handle::Handle, hub::BasicInfo> = app
+            .hubs
+            .values()
+            .map(|hub| (hub.handles.preferred().clone(), hub.clone()))
+            .collect();
+
+        Ok(api::phc::user::WelcomeResp {
+            constellation: (*running_state.constellation).clone(),
+            hubs,
+        })
     }
 }
 

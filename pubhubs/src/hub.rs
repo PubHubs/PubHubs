@@ -3,7 +3,7 @@
 use crate::handle::{Handle, Handles};
 use crate::id::Id;
 
-/// Basic details about hub, as provided by PubHubs Central.
+/// Basic public details about hub, as provided by PubHubs Central.
 #[derive(serde::Serialize, serde::Deserialize, Debug, Eq, PartialEq, Clone)]
 pub struct BasicInfo {
     /// The handles for this hub, using in URLs and other places to be understood by both human and
