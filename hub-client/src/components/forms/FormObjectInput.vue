@@ -1,5 +1,5 @@
 <template>
-	<div class="w-full">
+	<div class="w-full ~text-label-min/label-max">
 		<Tabs>
 			<FormObjectInputContent :template="template" :canAdd="props.canAdd" :canRemove="props.canRemove" v-model="value"> </FormObjectInputContent>
 		</Tabs>
