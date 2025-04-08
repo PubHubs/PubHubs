@@ -1,7 +1,7 @@
 <template>
 	<input
 		type="checkbox"
-		class="border-1 focus:ring-offset-width-0 focus:shadow-0 theme-light:border-gray mt-1 h-6 w-6 rounded-md border-black bg-transparent focus:outline-0 focus:outline-offset-0 focus:ring-0 focus:ring-offset-0 dark:border-white"
+		class="border-1 focus:ring-offset-width-0 focus:shadow-0 mt-1 h-6 w-6 rounded-md bg-transparent focus:outline-0 focus:outline-offset-0 focus:ring-0 focus:ring-offset-0"
 		:class="colorClass"
 		:value="modelValue"
 		:checked="modelValue"
