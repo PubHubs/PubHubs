@@ -31,7 +31,7 @@ rust-unit-test:
     - if: $CI_PIPELINE_SOURCE == "merge_request_event"
     - if: $CI_COMMIT_BRANCH == "main"
     - if: $CI_COMMIT_BRANCH == "stable"
-  image: registry.science.ru.nl/ilab/docker-build/pubhubs-rust-stable:main
+  image: registry.science.ru.nl/ilab/docker-build/rust-stable:main
   script:
     - cd pubhubs
     - RUST_BACKTRACE=full RUST_LOG=pubhubs=debug cargo test
@@ -100,7 +100,7 @@ deploy-stable-phc:
   needs:
     - build-pubhubs-image
   tags: [docker]
-  image: ubuntu:rolling
+  image: registry.science.ru.nl/ilab/docker-build/ubuntu-iso:main
   script:
     - cd pubhubs
     - apt update
