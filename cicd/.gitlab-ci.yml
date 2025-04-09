@@ -33,18 +33,8 @@ rust-unit-test:
     - if: $CI_COMMIT_BRANCH == "stable"
   image: registry.science.ru.nl/ilab/docker-build/pubhubs-rust-stable:main
   script:
-    - cp -r global-client/ pubhubs
-    - cp -r hub-client/ pubhubs
     - cd pubhubs
-    #    No pretty reporting for now unfortunatly, see https://github.com/rust-lang/rust/issues/49359
-    #    (more background:  https://github.com/rust-lang/rust/pull/109044), when JSON output is finalized let's turn reporting
-    #    back on.
-    #    - env RUST_BACKTRACE=full cargo +stable test --no-fail-fast -- -Z unstable-options --format json | gitlab-report -p test > report.xml
-    - RUST_BACKTRACE=full RUST_LOG=pubhubs=debug RUSTFLAGS="-C link-arg=-fuse-ld=lld" RUSTDOCFLAGS="-C link-arg=-fuse-ld=lld" cargo +stable test --no-fail-fast
-  artifacts:
-    reports:
-      junit: pubhubs/report.xml
-    expire_in: 1 week
+    - RUST_BACKTRACE=full RUST_LOG=pubhubs=debug cargo test
 
 rust-cargo-deny:
   stage: tests
