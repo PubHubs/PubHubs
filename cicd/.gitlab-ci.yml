@@ -85,7 +85,7 @@ deploy-main-phc:
   needs:
     - build-pubhubs-image
   tags: [docker]
-  image: ubuntu:rolling
+  image: registry.science.ru.nl/ilab/docker-build/ubuntu-iso:main
   script:
     - cd pubhubs
     - apt update
