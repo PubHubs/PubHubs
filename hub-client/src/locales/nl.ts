@@ -197,6 +197,7 @@ const nl = {
 		discussion: 'Discussie',
 		roomCreated: 'Kamer aangemaakt',
 		discover: 'Ontdek kamers',
+		no_rooms_found: 'Geen kamers gevonden',
 		unread_messages: 'Ongelezen berichten',
 	},
 	settings: {

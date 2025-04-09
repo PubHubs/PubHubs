@@ -34,7 +34,7 @@
 					/>
 				</div>
 				<div v-else class="flex w-full items-center justify-center">
-					<P>{{ t('others.search_hubs_not_found') }}</P>
+					<P>{{ t('rooms.no_rooms_found') }}</P>
 				</div>
 			</div>
 		</div>
