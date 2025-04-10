@@ -9,24 +9,48 @@ pub struct ToolsArgs {
 impl ToolsArgs {
     pub fn run(self, _spec: &mut clap::Command) -> Result<()> {
         match self.command {
-            Commands::GenerateId(args) => args.run(),
+            Commands::Generate(args) => args.run(),
         }
     }
 }
 
 #[derive(clap::Subcommand, Debug)]
 enum Commands {
-    /// Generates a random identifier
-    GenerateId(GenerateIdArgs),
+    /// Generates identifiers and/or key material
+    Generate(generate::Args),
 }
 
-#[derive(clap::Args, Debug)]
-pub struct GenerateIdArgs {}
+mod generate {
+    use super::*;
 
-impl GenerateIdArgs {
-    fn run(self) -> Result<()> {
-        println!("{}", crate::id::Id::random());
+    #[derive(clap::Args, Debug)]
+    pub(super) struct Args {
+        #[command(subcommand)]
+        command: Commands,
+    }
 
-        Ok(())
+    impl Args {
+        pub(super) fn run(self) -> Result<()> {
+            match self.command {
+                Commands::Id(args) => args.run(),
+            }
+        }
+    }
+
+    #[derive(clap::Subcommand, Debug)]
+    enum Commands {
+        /// Generate a random identifier for e.g. a hub, attribute type, ...
+        Id(IdArgs),
+    }
+
+    #[derive(clap::Args, Debug)]
+    struct IdArgs {}
+
+    impl IdArgs {
+        fn run(self) -> Result<()> {
+            println!("{}", crate::id::Id::random());
+
+            Ok(())
+        }
     }
 }
