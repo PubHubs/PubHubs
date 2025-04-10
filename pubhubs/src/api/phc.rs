@@ -105,6 +105,8 @@ pub mod user {
     #[derive(Serialize, Deserialize, Debug, Clone)]
     pub struct EnterReq {
         /// [`Attr`]ibute identifying the user.
+        ///
+        /// [`Attr`]: attr::Attr
         pub identifying_attr: Signed<attr::Attr>,
 
         /// Whether we want to create a new account if one does not exist.

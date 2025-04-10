@@ -66,7 +66,7 @@ pub struct ExtraRunningState {
 
     /// Key used to sign [`Attr`]s, shared with the authentication server
     ///
-    /// [`Attr`]: attr::Attr
+    /// [`Attr`]: crate::attr::Attr
     attr_signing_key: jwt::HS256,
 }
 
