@@ -22,17 +22,17 @@ impl<T> Signed<T> {
     where
         T: DeserializeOwned + HavingMessageCode,
     {
-        let claims: jwt::Claims = return_if_ec!(self.inner.open(key).into_ec(|err| {
+        let claims: jwt::Claims = self.inner.open(key).into_ec(|err| {
             log::info!(
                 "could not open signed message (of type {}): {}",
                 std::any::type_name::<T>(),
                 err
             );
             ErrorCode::InvalidSignature
-        }));
+        })?;
 
         // check that the message code is correct
-        let claims = return_if_ec!(claims
+        let claims = claims
             .check_present_and(
                 MESSAGE_CODE_CLAIM,
                 |claim_name: &'static str,
@@ -55,16 +55,16 @@ impl<T> Signed<T> {
             .into_ec(|err| {
                 log::info!("could not verify signed message's claims: {}", err);
                 ErrorCode::BadRequest
-            }));
+            })?;
 
-        let res = return_if_ec!(claims.into_custom().into_ec(|err| {
+        let res = claims.into_custom().into_ec(|err| {
             log::info!(
                 "could not parse signed message jwt into {}: {}",
                 std::any::type_name::<T>(),
                 err
             );
             ErrorCode::BadRequest
-        }));
+        })?;
 
         Result::Ok(res)
     }
@@ -126,6 +126,10 @@ pub enum MessageCode {
     PhcTHubKeyResp = 4,
     AdminUpdateConfigReq = 5,
     AdminInfoReq = 6,
+    Attr = 7,
+
+    /// Only used as an example in a doctest
+    Example = 65535,
 }
 
 impl std::fmt::Display for MessageCode {
@@ -143,6 +147,7 @@ pub trait HavingMessageCode {
     const CODE: MessageCode;
 }
 
+#[macro_export]
 macro_rules! having_message_code {
     { $tn:ty, $mc:ident } => {
         impl $crate::api::HavingMessageCode for $tn {
@@ -150,7 +155,17 @@ macro_rules! having_message_code {
         }
     };
 }
-pub(crate) use having_message_code;
+/// Implements [`HavingMessageCode`] for the given struct.  Use as follows:
+/// ```
+/// use pubhubs::api::HavingMessageCode;
+///
+/// struct T {};
+///
+/// pubhubs::api::having_message_code!{T, Example};
+///
+/// assert_eq!(T::CODE, pubhubs::api::MessageCode::Example);
+/// ```
+pub use having_message_code;
 
 #[cfg(test)]
 mod test {

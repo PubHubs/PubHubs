@@ -1,6 +1,7 @@
 //! Miscellaneous
 pub mod crypto;
 pub mod drop_ext;
+pub mod error;
 pub mod fmt_ext;
 pub mod jwt;
 pub mod net_ext;

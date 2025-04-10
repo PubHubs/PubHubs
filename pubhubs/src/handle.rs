@@ -1,3 +1,5 @@
+//! [`Handle`]s for PubHubs objects like [hub](crate::hub::BasicInfo)s and
+//! [attribute types](crate::attr::Type).
 use std::cell::OnceCell;
 
 /// A handle used to refer to hubs, attributes, etc. - a string that matches [HANDLE_REGEX]

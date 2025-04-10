@@ -4,7 +4,7 @@ use curve25519_dalek::Scalar;
 pub trait DigestibleSecret {
     fn as_bytes(&self) -> &[u8];
 
-    /// Inserts this shared secret in the given digest
+    /// Inserts this secret in the given digest
     fn update_digest<D: digest::Digest>(&self, d: D, domain: impl AsRef<str>) -> D {
         let domain: &str = domain.as_ref();
         let bytes: &[u8] = self.as_bytes();
@@ -16,7 +16,7 @@ pub trait DigestibleSecret {
             .chain_update(bytes)
     }
 
-    /// Creates a [`Scalar`] from this shared secret
+    /// Creates a [`Scalar`] from this secret
     fn derive_scalar<D>(&self, d: D, domain: impl AsRef<str>) -> Scalar
     where
         D: digest::Digest<OutputSize = typenum::U64>,
@@ -24,7 +24,7 @@ pub trait DigestibleSecret {
         Scalar::from_hash(self.update_digest(d, domain))
     }
 
-    /// Creates `Vec<u8>` from this shared secret
+    /// Creates [`Vec<u8>`] from this secret.
     fn derive_bytes<D>(&self, d: D, domain: impl AsRef<str>) -> Vec<u8>
     where
         D: digest::Digest,
@@ -34,6 +34,49 @@ pub trait DigestibleSecret {
             .finalize()
             .as_slice()
             .to_owned()
+    }
+
+    /// Creates an [`Id`] from this secret.
+    ///
+    /// [`Id`]: crate::id::Id
+    #[cfg(feature = "bin")]
+    fn derive_id<D>(&self, d: D, domain: impl AsRef<str>) -> crate::id::Id
+    where
+        D: digest::Digest<OutputSize = typenum::U32>,
+    {
+        let bytes: [u8; 32] = self.derive_bytes(d, domain).try_into().unwrap();
+
+        bytes.into()
+    }
+
+    /// Creates a [`HS256`] from this secret.
+    ///
+    /// [`HS256`]: crate::misc::jwt::HS256
+    #[cfg(feature = "bin")]
+    fn derive_hs256<D>(&self, d: D, domain: impl AsRef<str>) -> crate::misc::jwt::HS256
+    where
+        D: digest::Digest,
+    {
+        crate::misc::jwt::HS256(self.derive_bytes(d, domain))
+    }
+
+    /// Creates a (256-bit) [`crate::misc::crypto::SealingKey`] from this secret.
+    #[cfg(feature = "bin")]
+    fn derive_sealing_key<D>(
+        &self,
+        d: D,
+        domain: impl AsRef<str>,
+    ) -> crate::misc::crypto::SealingKey
+    where
+        D: digest::Digest<OutputSize = typenum::U32>,
+    {
+        self.update_digest(d, domain).finalize()
+    }
+}
+
+impl DigestibleSecret for &[u8] {
+    fn as_bytes(&self) -> &[u8] {
+        self
     }
 }
 

@@ -1,16 +1,17 @@
 //! What's common between PubHubs servers
 use actix_web::web;
 use anyhow::{Context as _, Result};
-use futures_util::future::LocalBoxFuture;
+use futures_util::future::FutureExt as _;
 
 use core::convert::Infallible;
+use std::ops::{Deref, DerefMut};
 use std::rc::Rc;
 
 use crate::elgamal;
 
 use crate::client;
 
-use crate::api::{self, DiscoveryRunResp, EndpointDetails, IntoErrorCode as _};
+use crate::api::{self, ApiResultExt as _, DiscoveryRunResp, EndpointDetails, ResultExt as _};
 use crate::servers::{self, Config, Constellation, Handle};
 
 /// Enumerates the names of the different PubHubs servers
@@ -44,21 +45,21 @@ impl std::fmt::Display for Name {
 
 /// Common API to the different PubHubs servers.
 ///
-/// A single instance of the [ServerImpl] implementation of [Server] is created
+/// A single instance of the [`ServerImpl`] implementation of [`Server`] is created
 /// for each server that's being run, and it's mainly responsible for creating
-/// immutable [App] instances to be sent to the individual threads.
+/// immutable [`App`] instances to be sent to the individual threads.
 ///
-/// For efficiency's sake, only the [App] instances are available to each thread,
+/// For efficiency's sake, only the [`App`] instances are available to each thread,
 /// and are mostly immutable. To change the server's state, generally all apps must be restarted.
 ///
-/// An exception to this no-shared-mutable-state is the shared state in [Handle], for example the
+/// An exception to this no-shared-mutable-state is the shared state in [`Handle`], for example the
 /// `crate::servers::run::DiscoveryLimiter` and the object store
-pub(crate) trait Server: Sized + 'static {
+pub(crate) trait Server: DerefMut<Target = Self::AppCreatorT> + Sized + 'static {
     type AppT: App<Self>;
 
     const NAME: Name;
 
-    /// Is moved accross threads to create the [App]s.
+    /// Is moved accross threads to create the [`App`]s.
     type AppCreatorT: AppCreator<Self>;
 
     type ExtraConfig;
@@ -70,9 +71,6 @@ pub(crate) trait Server: Sized + 'static {
     type ObjectStoreT: Sync;
 
     fn new(config: &crate::servers::Config) -> anyhow::Result<Self>;
-
-    fn app_creator(&self) -> &Self::AppCreatorT;
-    fn app_creator_mut(&mut self) -> &mut Self::AppCreatorT;
 
     fn config(&self) -> &crate::servers::Config;
 
@@ -89,29 +87,29 @@ pub(crate) trait Server: Sized + 'static {
         constellation: &Constellation,
     ) -> Result<Self::ExtraRunningState>;
 
-    /// This function is called when the server is started to run disovery.
+    /// This function is called when the server is started to run discovery.
     ///
     /// It is only passed a shared (and thus immutable) reference to itself to prevent any modifications
-    /// going unnoticed by [App] instances.
+    /// going unnoticed by [`App`] instances.
     ///
     /// It can be ordered to stop via the `shutdown_receiver`, in which case
     /// it should return Ok(None).
     ///
-    /// If can also return on its own to modify itself via the returned [BoxModifier].
+    /// If can also return on its own to modify itself via the returned [`BoxModifier`].
     ///
     /// If it returns an error, the whole binary crashes.
     ///
     /// Before this function's future finishes, it should relinquish all references to `self`.
     /// Otherwise the modification following it will panic.
     ///
-    /// It is given its own [App] instance.
+    /// It is given its own [`App`] instance.
     ///
     /// TODO: remove returning BoxModifier since that can be achieved via App instance?
     #[allow(async_fn_in_trait)] // <- we do not need our future to be Send
     async fn run_until_modifier(
         self: Rc<Self>,
         shutdown_receiver: tokio::sync::oneshot::Receiver<Infallible>,
-        app: Self::AppT,
+        app: Rc<Self::AppT>,
     ) -> anyhow::Result<Option<BoxModifier<Self>>>;
 }
 
@@ -119,6 +117,22 @@ pub(crate) trait Server: Sized + 'static {
 pub struct ServerImpl<D: Details> {
     config: servers::Config,
     app_creator: D::AppCreatorT,
+}
+
+impl<D: Details> Deref for ServerImpl<D> {
+    type Target = D::AppCreatorT;
+
+    #[inline]
+    fn deref(&self) -> &Self::Target {
+        &self.app_creator
+    }
+}
+
+impl<D: Details> DerefMut for ServerImpl<D> {
+    #[inline]
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.app_creator
+    }
 }
 
 /// Details needed to create a [ServerImpl] type.
@@ -158,14 +172,6 @@ where
         })
     }
 
-    fn app_creator(&self) -> &Self::AppCreatorT {
-        &self.app_creator
-    }
-
-    fn app_creator_mut(&mut self) -> &mut Self::AppCreatorT {
-        &mut self.app_creator
-    }
-
     fn config(&self) -> &servers::Config {
         &self.config
     }
@@ -186,7 +192,7 @@ where
     async fn run_until_modifier(
         self: Rc<Self>,
         shutdown_receiver: tokio::sync::oneshot::Receiver<Infallible>,
-        app: Self::AppT,
+        app: Rc<Self::AppT>,
     ) -> anyhow::Result<Option<crate::servers::server::BoxModifier<Self>>> {
         tokio::select! {
             res = shutdown_receiver => {
@@ -210,8 +216,8 @@ where
     D::ObjectStoreT: Sync,
 {
     async fn run_discovery_and_then_wait_forever(
-        self: Rc<Self>,
-        app: D::AppT,
+        &self,
+        app: Rc<D::AppT>,
     ) -> anyhow::Result<Infallible> {
         self.run_discovery(app).await?;
 
@@ -219,7 +225,7 @@ where
         unreachable!();
     }
 
-    async fn run_discovery(self: Rc<Self>, app: D::AppT) -> anyhow::Result<()> {
+    async fn run_discovery(&self, app: Rc<D::AppT>) -> anyhow::Result<()> {
         crate::misc::task::retry(|| async {
             (match
                 AppBase::<Self>::handle_discovery_run(app.clone()).await.retryable()/* <- turns retryable error Err(err) into Ok(None) */?
@@ -233,19 +239,18 @@ where
     }
 }
 
-/// What's cloned and moved accross threads by a [Server] to create its [App] instances.
-pub trait AppCreator<ServerT: Server>: Send + Clone + 'static {
-    /// Creates a new instance of this [AppCreator] based on the given configuration.
+/// What's cloned and moved accross threads by a [`Server`] to create its [`App`] instances.
+pub trait AppCreator<ServerT: Server>:
+    DerefMut<Target = AppCreatorBase<ServerT>> + Send + Clone + 'static
+{
+    /// Creates a new instance of this [`AppCreator`] based on the given configuration.
     fn new(config: &servers::Config) -> anyhow::Result<Self>;
 
-    /// Create an [App] instance.
+    /// Create an [`App`] instance.
     ///
-    /// The `handle` [Handle] can be used to restart the server.  It's
+    /// The `handle` [`Handle`] can be used to restart the server.  It's
     /// up to the implementor to clone it.
     fn into_app(self, handle: &Handle<ServerT>) -> ServerT::AppT;
-
-    fn base(&self) -> &AppCreatorBase<ServerT>;
-    fn base_mut(&mut self) -> &mut AppCreatorBase<ServerT>;
 }
 
 /// What modifies a [Server] via [Command::Modify].
@@ -354,15 +359,13 @@ impl<S: Server> std::fmt::Display for Command<S> {
     }
 }
 
-/// What's common between the [actix_web::App]s used by the different PubHubs servers.
+/// What's common between the [`actix_web::App`]s used by the different PubHubs servers.
 ///
-/// Each [actix_web::App] gets access to an instance of the appropriate implementation of [App].
-///
-/// Should be cheaply cloneable, like an `Rc<SomeStruct>`.
-pub trait App<S: Server>: Clone + 'static {
-    /// Allows [App] to add server-specific endpoints.  Non-server specific endpoints are added by
-    /// [AppBase::configure_actix_app].
-    fn configure_actix_app(&self, sc: &mut web::ServiceConfig);
+/// Each [`actix_web::App`] gets access to an instance of the appropriate implementation of [`App`]..
+pub trait App<S: Server>: Deref<Target = AppBase<S>> + 'static {
+    /// Allows [`App`] to add server-specific endpoints.  Non-server specific endpoints are added by
+    /// [`AppBase::configure_actix_app`].
+    fn configure_actix_app(self: &Rc<Self>, sc: &mut web::ServiceConfig);
 
     /// Checks whether the given constellation properly reflects this server's configuration.
     fn check_constellation(&self, constellation: &Constellation) -> bool;
@@ -376,103 +379,93 @@ pub trait App<S: Server>: Clone + 'static {
     /// Returns None if everything checks out.  If one of the other servers is not up-to-date
     /// according to this server, discovery of that server is invoked and
     /// [api::ErrorCode::NotYetReady] is returned.
-    fn discover(
-        &self,
+    async fn discover(
+        self: &Rc<Self>,
         phc_inf: api::DiscoveryInfoResp,
-    ) -> LocalBoxFuture<'_, api::Result<Option<Constellation>>> {
-        log::debug!("{server_name}: running disovery", server_name = S::NAME);
+    ) -> api::Result<Option<Constellation>> {
+        log::debug!("{server_name}: running discovery", server_name = S::NAME);
 
-        Box::pin(async move {
-            if S::NAME == Name::PubhubsCentral {
-                log::error!(
-                    "{} should implement discovery itself!",
-                    Name::PubhubsCentral
-                );
-                return api::err(api::ErrorCode::InternalError);
-            }
-
-            assert!(
-                phc_inf.constellation.is_some(),
-                "this `discover` method should only be run when phc_inf.constellation is some"
+        if S::NAME == Name::PubhubsCentral {
+            log::error!(
+                "{} should implement discovery itself!",
+                Name::PubhubsCentral
             );
+            return Err(api::ErrorCode::InternalError);
+        }
 
-            if let Some(rs) = self.base().running_state.as_ref() {
-                if !self.check_constellation(phc_inf.constellation.as_ref().unwrap()) {
-                    log::warn!(
+        assert!(
+            phc_inf.constellation.is_some(),
+            "this `discover` method should only be run when phc_inf.constellation is some"
+        );
+
+        if let Some(rs) = self.running_state.as_ref() {
+            if !self.check_constellation(phc_inf.constellation.as_ref().unwrap()) {
+                log::warn!(
                         "{server_name}: {phc}'s constellation seems to be out-of-date - requesting rediscovery",
                         server_name = S::NAME,
                         phc = Name::PubhubsCentral
                     );
-                    // PHC's discovery is out of date; invoke discovery and return
-                    api::return_if_ec!(self
-                        .base()
-                        .client
-                        .query::<api::DiscoveryRun>(&phc_inf.phc_url, &())
-                        .await
-                        .into_server_result());
-                    return api::err(api::ErrorCode::NotYetReady);
-                }
-
-                log::trace!(
-                    "{server_name}: {phc}'s constellation looks alright! ",
-                    server_name = S::NAME,
-                    phc = Name::PubhubsCentral
-                );
-
-                if *phc_inf.constellation.as_ref().unwrap() == *rs.constellation {
-                    log::trace!(
-                        "{server_name}: my constellation is up-to-date!",
-                        server_name = S::NAME,
-                    );
-
-                    return api::ok(None);
-                }
+                // PHC's discovery is out of date; invoke discovery and return
+                self.client
+                    .query::<api::DiscoveryRun>(&phc_inf.phc_url, &())
+                    .await
+                    .into_server_result()?;
+                return Err(api::ErrorCode::NotYetReady);
             }
 
-            log::info!(
-                "{}: my constellation is {}",
-                S::NAME,
-                if self.base().running_state.is_some() {
-                    "out of date"
-                } else {
-                    "not yet set"
-                }
+            log::trace!(
+                "{server_name}: {phc}'s constellation looks alright! ",
+                server_name = S::NAME,
+                phc = Name::PubhubsCentral
             );
 
-            // NOTE: phc_inf has already been (partially) checked
-            let c = phc_inf
-                .constellation
-                .as_ref()
-                .expect("that constellation is not none should already have been checked");
+            if phc_inf.constellation.as_ref().unwrap().id == rs.constellation.id {
+                log::trace!(
+                    "{server_name}: my constellation is up-to-date!",
+                    server_name = S::NAME,
+                );
 
-            let url = c.url(S::NAME);
-
-            // obtain DiscoveryInfo from oneself
-            let di = api::return_if_ec!(self
-                .base()
-                .client
-                .query::<api::DiscoveryInfo>(url, &())
-                .await
-                .into_server_result());
-
-            let base = self.base();
-
-            api::return_if_ec!(client::discovery::DiscoveryInfoCheck {
-                name: S::NAME,
-                phc_url: &base.phc_url,
-                self_check_code: Some(&base.self_check_code),
-                constellation: None,
-                // NOTE: we're not checking whether our own constellation is up-to-date,
-                // because it likely is not - why would we run discovery otherwise?
+                return Ok(None);
             }
-            .check(di, url));
+        }
 
-            api::ok(Some(phc_inf.constellation.unwrap()))
-        })
+        log::info!(
+            "{}: my constellation is {}",
+            S::NAME,
+            if self.running_state.is_some() {
+                "out of date"
+            } else {
+                "not yet set"
+            }
+        );
+
+        // NOTE: phc_inf has already been (partially) checked
+        let c = phc_inf
+            .constellation
+            .as_ref()
+            .expect("that constellation is not none should already have been checked");
+
+        let url = c.url(S::NAME);
+
+        // obtain DiscoveryInfo from oneself
+        let di = self
+            .client
+            .query::<api::DiscoveryInfo>(url, &())
+            .await
+            .into_server_result()?;
+
+        client::discovery::DiscoveryInfoCheck {
+            name: S::NAME,
+            phc_url: &self.phc_url,
+            self_check_code: Some(&self.self_check_code),
+            constellation: None,
+            // NOTE: we're not checking whether our own constellation is up-to-date,
+            // because it likely is not - why would we run discovery otherwise?
+        }
+        .check(di, url)?;
+
+        Ok(Some(phc_inf.constellation.unwrap()))
     }
-
-    /// Returns the [AppBase] this [App] builds on.
-    fn base(&self) -> &AppBase<S>;
 
     /// Should return the master encryption key part for PHC and the transcryption.
     fn master_enc_key_part(&self) -> Option<&elgamal::PrivateKey> {
@@ -483,7 +476,7 @@ pub trait App<S: Server>: Clone + 'static {
     }
 }
 
-/// What's internally common between PubHubs [AppCreator]s.
+/// What's internally common between PubHubs [`AppCreator`]s.
 pub struct AppCreatorBase<S: Server> {
     pub running_state: Option<RunningState<S::ExtraRunningState>>,
     pub phc_url: url::Url,
@@ -549,7 +542,7 @@ where
     }
 }
 
-/// What's internally common between PubHubs [App]s.
+/// What's internally common between PubHubs [`App`]s.
 ///
 /// Should *NOT* be cloned.
 pub struct AppBase<S: Server> {
@@ -582,20 +575,34 @@ impl<S: Server> AppBase<S> {
         }
     }
 
-    pub fn running_state(&self) -> Result<&RunningState<S::ExtraRunningState>, api::ErrorCode> {
-        match self.running_state {
-            Some(ref rs) => Ok(rs),
-            None => {
-                log::error!("tried to get runnng state while not running");
-                Err(api::ErrorCode::InternalError)
-            }
-        }
+    /// Returns the current [`RunningState`] of this server when available.
+    /// Otherwise returns [`api::ErrorCode::NotYetReady`].
+    pub fn running_state_or_not_yet_ready(
+        &self,
+    ) -> Result<&RunningState<S::ExtraRunningState>, api::ErrorCode> {
+        self.running_state
+            .as_ref()
+            .ok_or(api::ErrorCode::NotYetReady)
+    }
+
+    /// Returns the current [`RunningState`] of this server when available.
+    /// Otherwise returns [`api::ErrorCode::InternalError`].
+    pub fn running_state_or_internal_error(
+        &self,
+    ) -> Result<&RunningState<S::ExtraRunningState>, api::ErrorCode> {
+        self.running_state.as_ref().ok_or_else(|| {
+            log::error!(
+                "{}: expected running state to be available, but it was not",
+                S::NAME
+            );
+            api::ErrorCode::InternalError
+        })
     }
 
     /// Configures common endpoints
-    pub fn configure_actix_app(app: &S::AppT, sc: &mut web::ServiceConfig) {
+    pub fn configure_actix_app(app: &Rc<S::AppT>, sc: &mut web::ServiceConfig) {
         api::DiscoveryRun::add_to(app, sc, Self::handle_discovery_run);
-        api::DiscoveryInfo::add_to(app, sc, Self::handle_discovery_info);
+        api::DiscoveryInfo::caching_add_to(app, sc, Self::cached_handle_discovery_info);
 
         api::admin::UpdateConfig::add_to(app, sc, Self::handle_admin_post_config);
         api::admin::Info::add_to(app, sc, Self::handle_admin_info);
@@ -614,32 +621,30 @@ impl<S: Server> AppBase<S> {
 
     /// Changes server config, and restarts server
     async fn handle_admin_post_config(
-        app: S::AppT,
+        app: Rc<S::AppT>,
         signed_req: web::Json<api::Signed<api::admin::UpdateConfigReq>>,
     ) -> api::Result<api::admin::UpdateConfigResp> {
         let signed_req = signed_req.into_inner();
 
-        let base = app.base();
-
-        let req = api::return_if_ec!(base.open_admin_req(signed_req));
+        let req = app.open_admin_req(signed_req)?;
 
         // Before restarting the server, check that the modification would work,
         // so we can return an error to the requestor.  Once we issue a modification command
         // the present connection is severed, and so no error can be returned.
 
-        let config = api::return_if_ec!(base
+        let config = app
             .handle
             .inspect(
                 "admin's retrieval of current configuration",
-                |server: &S| -> Config { server.config().clone() }
+                |server: &S| -> Config { server.config().clone() },
             )
             .await
             .into_ec(|_| {
                 log::warn!("{}: failed to retrieve configuration from server", S::NAME,);
                 api::ErrorCode::NotYetReady // probably the server is restarting
-            }));
+            })?;
 
-        let mut new_config: Config = api::return_if_ec!(config
+        let mut new_config: Config = config
             .json_updated(&req.pointer, req.new_value.clone())
             .into_ec(|err| {
                 log::warn!(
@@ -649,28 +654,28 @@ impl<S: Server> AppBase<S> {
                     req.new_value
                 );
                 api::ErrorCode::BadRequest
-            }));
+            })?;
 
         drop(config);
 
         // reprepare config...
-        api::return_if_ec!(new_config.preliminary_prep().into_ec(|err| {
+        new_config.preliminary_prep().into_ec(|err| {
             log::warn!(
                 "{}: failed to reprepare (preliminary step) modified configuration: {err}",
                 S::NAME
             );
             api::ErrorCode::BadRequest
-        }));
-        api::return_if_ec!(new_config.prepare().into_ec(|err| {
+        })?;
+        new_config.prepare().await.into_ec(|err| {
             log::warn!(
                 "{}: failed to reprepare modified configuration: {err}",
                 S::NAME
             );
             api::ErrorCode::BadRequest
-        }));
+        })?;
 
         // All is well - let's restart the server with the new configuration
-        api::return_if_ec!(base
+        app
         .handle
         .modify(
             "admin update of current in-memory configuration",
@@ -692,64 +697,53 @@ impl<S: Server> AppBase<S> {
         .into_ec(|_| {
             log::warn!("{}: failed to enqueue modification", S::NAME);
             api::ErrorCode::NotYetReady
-        }));
+        })?;
 
-        api::ok(api::admin::UpdateConfigResp {})
+        Ok(api::admin::UpdateConfigResp {})
     }
 
     /// Retrieve non-public information about the server
     async fn handle_admin_info(
-        app: S::AppT,
+        app: Rc<S::AppT>,
         signed_req: web::Json<api::Signed<api::admin::InfoReq>>,
     ) -> api::Result<api::admin::InfoResp> {
         let signed_req = signed_req.into_inner();
 
-        let base = app.base();
+        let _req = app.open_admin_req(signed_req)?;
 
-        let _req = api::return_if_ec!(base.open_admin_req(signed_req));
-
-        let config = api::return_if_ec!(base
+        let config = app
             .handle
             .inspect(
                 "admin's retrieval of current configuration",
-                |server: &S| -> Config { server.config().clone() }
+                |server: &S| -> Config { server.config().clone() },
             )
             .await
             .into_ec(|_| {
                 log::warn!("{}: failed to retrieve configuration from server", S::NAME,);
                 api::ErrorCode::NotYetReady // probably the server is restarting
-            }));
+            })?;
 
-        api::ok(api::admin::InfoResp { config })
+        Ok(api::admin::InfoResp { config })
     }
 
     /// Run the discovery process, and restarts server if necessary.  Returns when
     /// the discovery process is completed, but before a possible restart.
-    async fn handle_discovery_run(app: S::AppT) -> api::Result<api::DiscoveryRunResp> {
-        app.base().handle.request_discovery(app.clone()).await
+    async fn handle_discovery_run(app: Rc<S::AppT>) -> api::Result<api::DiscoveryRunResp> {
+        app.handle.request_discovery(app.clone()).await
     }
 
-    pub(super) async fn discover_phc(app: S::AppT) -> api::Result<api::DiscoveryInfoResp> {
-        let base = app.base();
-
-        let pdi = {
-            let result = base
-                .client
-                .query::<api::DiscoveryInfo>(&base.phc_url, &())
-                .await;
-
-            if result.is_err() {
-                return api::Result::Err(result.unwrap_err().into_server_error());
-            }
-
-            result.unwrap()
-        };
+    pub(super) async fn discover_phc(app: Rc<S::AppT>) -> api::Result<api::DiscoveryInfoResp> {
+        let pdi = app
+            .client
+            .query::<api::DiscoveryInfo>(&app.phc_url, &())
+            .await
+            .into_server_result()?;
 
         client::discovery::DiscoveryInfoCheck {
-            phc_url: &base.phc_url,
+            phc_url: &app.phc_url,
             name: Name::PubhubsCentral,
             self_check_code: if S::NAME == Name::PubhubsCentral {
-                Some(&base.self_check_code)
+                Some(&app.self_check_code)
             } else {
                 None
             },
@@ -758,66 +752,81 @@ impl<S: Server> AppBase<S> {
             // because if they're not the same that will cause an error to be returned, while
             // we want to initiate a restart instead.
         }
-        .check(pdi, &base.phc_url)
+        .check(pdi, &app.phc_url)
     }
 
-    async fn handle_discovery_info(app: S::AppT) -> api::Result<api::DiscoveryInfoResp> {
-        let app_base = app.base();
-
-        api::ok(api::DiscoveryInfoResp {
+    fn cached_handle_discovery_info(app: &S::AppT) -> api::Result<api::DiscoveryInfoResp> {
+        Ok(api::DiscoveryInfoResp {
             name: S::NAME,
-            self_check_code: app_base.self_check_code.clone(),
-            phc_url: app_base.phc_url.clone(),
+            self_check_code: app.self_check_code.clone(),
+            phc_url: app.phc_url.clone(),
             // NOTE on efficiency:  the ed25519_dalek::SigningKey contains a precomputed
             // ed25519_dalek::VerifyingKey, which contains a precomputed compressed (=serialized)
             // form.  So no expensive cryptographic operations like finite field inversion
             // or scalar multiplication are performed here.
-            jwt_key: app_base.jwt_key.verifying_key().into(),
-            enc_key: app_base.enc_key.public_key().clone(),
+            jwt_key: app.jwt_key.verifying_key().into(),
+            enc_key: app.enc_key.public_key().clone(),
             master_enc_key_part: app
                 .master_enc_key_part()
                 .map(|privk| privk.public_key().clone()),
-            constellation: app_base
+            constellation: app
                 .running_state
                 .as_ref()
-                .map(|rs| (*rs.constellation).clone()),
+                .map(|rs| AsRef::<Constellation>::as_ref(&rs.constellation).clone()),
         })
     }
 }
 
-/// An [App] together with a method on it.  Used to pass [App]s to [actix_web::Handler]s.
-#[derive(Clone)]
-pub struct AppMethod<App, F> {
-    app: App,
+/// An [`App`] together with a method on it.  Used to pass [`App`]s to [`actix_web::Handler`]s
+/// as first argument. See [`api::EndpointDetails::add_to`].
+pub struct AppMethod<App, F, ResponseType> {
+    app: Rc<App>,
     f: F,
+    phantom: std::marker::PhantomData<ResponseType>,
 }
 
-impl<App: Clone, F> AppMethod<App, F> {
-    pub fn new(app: &App, f: F) -> Self {
-        AppMethod {
-            app: app.clone(),
-            f,
+/// Implement [`Clone`] manually so we don't have to require `ResponseType` to implement
+/// [`Clone`].
+impl<App, F: Clone, ResponseType> Clone for AppMethod<App, F, ResponseType> {
+    fn clone(&self) -> Self {
+        Self {
+            app: self.app.clone(),
+            f: self.f.clone(),
+            phantom: std::marker::PhantomData,
         }
     }
 }
 
-/// Implements [actix_web::Handler] for an [AppMethod] with the given number of arguments.
+impl<App, F, ResponseType> AppMethod<App, F, ResponseType> {
+    /// Creates a new [`AppMethod`], cloning [`App`].
+    pub fn new(app: &Rc<App>, f: F) -> Self {
+        AppMethod {
+            app: app.clone(),
+            f,
+            phantom: std::marker::PhantomData,
+        }
+    }
+}
+
+/// Implements [`actix_web::Handler`] for an [`AppMethod`] with the given number of arguments.
 ///
-/// Based on [actix_web]'s implementation of [actix_web::Handler] for [Fn]s.
+/// Based on [`actix_web`]'s implementation of [`actix_web::Handler`] for [`Fn`]s.
 macro_rules! factory_tuple ({ $($param:ident)* } => {
-    impl<Func, Fut, App, $($param,)*> actix_web::Handler<($($param,)*)> for AppMethod<App, Func>
+    impl<Func, Fut, App, ResponseType, $($param,)*> actix_web::Handler<($($param,)*)> for AppMethod<App, Func, ResponseType>
     where
-        Func:  Fn(App, $($param),*) -> Fut + Clone + 'static,
+        Func:  Fn(Rc<App>, $($param),*) -> Fut + Clone + 'static,
         Fut: core::future::Future,
-        App: Clone + 'static,
+        App: 'static,
+        ResponseType: 'static + serde::Serialize,
+        Fut::Output : Into<api::ResultResponder<ResponseType>>,
     {
-        type Output = Fut::Output;
-        type Future = Fut;
+        type Output = api::ResultResponder<ResponseType>;
+        type Future = futures::future::Map<Fut, fn(Fut::Output)->api::ResultResponder<ResponseType>>;
 
         #[inline]
-        #[allow(non_snake_case)]
+        #[allow(non_snake_case)] // because the signature will be:  call(&self, A: A, B: B, ...)
         fn call(&self, ($($param,)*): ($($param,)*)) -> Self::Future {
-            (self.f)(self.app.clone(), $($param,)*)
+            (self.f)(self.app.clone(), $($param,)*).map(Into::<api::ResultResponder<ResponseType>>::into)
         }
     }
 });
@@ -840,14 +849,34 @@ factory_tuple! { A B C D E F G H I J K L M N }
 factory_tuple! { A B C D E F G H I J K L M N O }
 factory_tuple! { A B C D E F G H I J K L M N O P }
 
-/// Additional state when discovery has been completed
+/// Additional state when discovery has been completed.  Derefs to `Extra`.
 #[derive(Clone, Debug)]
 pub struct RunningState<Extra: Clone + core::fmt::Debug> {
     pub constellation: Box<Constellation>,
-    pub extra: Extra,
+
+    /// Accessible via [`Deref`].
+    extra: Extra,
 }
 
-/// Shared state between [App]s.  Use sparingly!
+impl<Extra: Clone + core::fmt::Debug> RunningState<Extra> {
+    pub(crate) fn new(constellation: Constellation, extra: Extra) -> Self {
+        RunningState {
+            constellation: Box::new(constellation),
+            extra,
+        }
+    }
+}
+
+impl<Extra: Clone + core::fmt::Debug> Deref for RunningState<Extra> {
+    type Target = Extra;
+
+    #[inline]
+    fn deref(&self) -> &Extra {
+        &self.extra
+    }
+}
+
+/// Shared state between [`App`]s.  Use sparingly!
 pub struct SharedState<S: Server> {
     inner: std::sync::Arc<SharedStateInner<S>>,
 }
@@ -863,6 +892,7 @@ impl<S: Server> Clone for SharedState<S> {
 impl<S: Server> std::ops::Deref for SharedState<S> {
     type Target = SharedStateInner<S>;
 
+    #[inline]
     fn deref(&self) -> &Self::Target {
         &self.inner
     }

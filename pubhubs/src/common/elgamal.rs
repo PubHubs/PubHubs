@@ -265,6 +265,13 @@ pub struct PublicKey {
     compressed: CompressedRistretto,
 }
 
+impl AsRef<[u8]> for PublicKey {
+    /// Returns a reference to the compressed encoding of this public key
+    fn as_ref(&self) -> &[u8] {
+        self.compressed.as_bytes().as_slice()
+    }
+}
+
 impl PublicKey {
     /// Turns a 64 digit hex string into a [PublicKey].
     ///
@@ -518,7 +525,7 @@ mod serde_impls {
 /// Shared secret created by combining a [`PrivateKey`] with a [`PublicKey`], which, although it is
 /// basically the encoding of a [`RistrettoPoint`], is given a separate interface to limit its
 /// usage.
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, zeroize::ZeroizeOnDrop)]
 pub struct SharedSecret {
     inner: [u8; 32],
 }
@@ -552,7 +559,7 @@ pub mod abi {
     /// are readable, and plaintext is writable, and are not otherwise modified.
     ///
     /// For more details, see [core::slice::from_raw_parts] and [core::slice::from_raw_parts_mut].
-    #[no_mangle]
+    #[unsafe(no_mangle)]
     pub unsafe extern "C" fn decrypt(
         plaintext: *mut u8,
         ciphertext: *const u8,

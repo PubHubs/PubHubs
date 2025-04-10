@@ -1,8 +1,14 @@
 //! Some of the Pubhubs specific crypto
 
 use crate::{
-    api,
-    common::{elgamal, secret::DigestibleSecret},
+    api, attr,
+    common::{
+        elgamal,
+        secret::{self, DigestibleSecret},
+    },
+    id,
+    misc::jwt,
+    servers::constellation,
 };
 
 use curve25519_dalek::Scalar;
@@ -69,4 +75,32 @@ impl TicketDigest {
             inner: sha2::Sha512::new().chain_update(ticket.as_str()),
         }
     }
+}
+
+/// Computes the [`jwt::HS256`] key used to sign [`Attr`] from the secret shared between the
+/// authentication server and pubhubs central.
+///
+/// [`Attr`]: crate::attr::Attr
+pub fn attr_signing_key(shared_secret: &elgamal::SharedSecret) -> jwt::HS256 {
+    shared_secret.derive_hs256(sha2::Sha256::new(), "pubhubs-attr-signing")
+}
+
+/// Derives an [`Id`] for an [`Attr`].
+///
+/// [`Attr`]: attr::Attr
+/// [`Id`]: id::Id
+pub fn attr_id(attr: &attr::Attr, secret: impl secret::DigestibleSecret) -> crate::id::Id {
+    secret.derive_id(
+        sha2::Sha256::new()
+            .chain_update(attr.attr_type.as_slice())
+            .chain_update(secret::encode_usize(attr.value.len()))
+            .chain_update(attr.value.as_bytes()),
+        "pubhubs-attr-id",
+    )
+}
+
+/// Derives an [`id::Id`] for a [`constellation::Inner`].
+pub fn constellation_id(c: &constellation::Inner) -> id::Id {
+    b"".as_slice()
+        .derive_id(c.sha256(), "pubhubs-constellation-id")
 }

@@ -2,7 +2,7 @@ use std::rc::Rc;
 
 use crate::misc::fmt_ext;
 
-use crate::api::{EndpointDetails, ErrorCode, Result};
+use crate::api::{ApiResultExt as _, EndpointDetails, ErrorCode, Result};
 
 /// Client for making requests to pubhubs servers and hubs; cheaply clonable
 #[derive(Clone)]
@@ -97,7 +97,7 @@ impl Client {
         &self,
         server_url: &url::Url,
         req: &EP::RequestType,
-    ) -> impl std::future::Future<Output = Result<EP::ResponseType>> + 'static {
+    ) -> impl std::future::Future<Output = Result<EP::ResponseType>> + 'static + use<EP> {
         // endpoint url
         let ep_url = {
             let result = server_url.join(EP::PATH);

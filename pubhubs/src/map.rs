@@ -1,3 +1,4 @@
+//! [`Map`]: look up objects by their [`Id`] or [`Handle`].
 use crate::handle::Handle;
 use crate::id::Id;
 
@@ -77,6 +78,11 @@ impl<T: Handled> Map<T> {
 
         None
     }
+
+    /// Returns an [`Iterator`] over the values of this map.
+    pub fn values(&self) -> std::collections::hash_map::Values<'_, Id, T> {
+        self.value_by_id.values()
+    }
 }
 
 // This cannot be derived using 'derive(Default)' without requiring that T: Default,
@@ -98,8 +104,8 @@ pub enum HandleOrId {
 impl std::fmt::Display for HandleOrId {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match &self {
-            HandleOrId::Handle(ref handle) => handle.fmt(f),
-            HandleOrId::Id(ref id) => id.fmt(f),
+            HandleOrId::Handle(handle) => handle.fmt(f),
+            HandleOrId::Id(id) => id.fmt(f),
         }
     }
 }

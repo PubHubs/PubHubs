@@ -1,14 +1,15 @@
+use std::collections::HashMap;
+use std::ops::{Deref, DerefMut};
 use std::rc::Rc;
 
 use actix_web::web;
 
-use futures_util::future::LocalBoxFuture;
-
-use crate::{
-    api::{self, EndpointDetails as _},
-    client, handle, phcrypto,
-    servers::{self, AppBase, AppCreator as _, AppCreatorBase, Constellation, Handle, Server as _},
-};
+use crate::api::{self, ApiResultExt as _, EndpointDetails as _};
+use crate::client;
+use crate::handle;
+use crate::misc::jwt;
+use crate::phcrypto;
+use crate::servers::{self, constellation, AppBase, AppCreatorBase, Constellation, Handle};
 
 use crate::{elgamal, hub};
 
@@ -18,21 +19,22 @@ pub type Server = servers::ServerImpl<Details>;
 pub struct Details;
 impl servers::Details for Details {
     const NAME: servers::Name = servers::Name::PubhubsCentral;
-    type AppT = Rc<App>;
+    type AppT = App;
     type AppCreatorT = AppCreator;
-    type ExtraRunningState = RunningState;
+    type ExtraRunningState = ExtraRunningState;
     type ObjectStoreT = servers::object_store::DefaultObjectStore;
 
     fn create_running_state(
         server: &Server,
         constellation: &Constellation,
     ) -> anyhow::Result<Self::ExtraRunningState> {
-        let base = server.app_creator().base();
-
-        Ok(RunningState {
-            t_ss: base
+        let auths_ss = server.enc_key.shared_secret(&constellation.auths_enc_key);
+        Ok(ExtraRunningState {
+            t_ss: server
                 .enc_key
                 .shared_secret(&constellation.transcryptor_enc_key),
+            attr_signing_key: phcrypto::attr_signing_key(&auths_ss),
+            auths_ss,
         })
     }
 }
@@ -45,123 +47,142 @@ pub struct App {
     master_enc_key_part: elgamal::PrivateKey,
 }
 
-#[derive(Clone, Debug)]
-pub struct RunningState {
-    t_ss: elgamal::SharedSecret,
+impl Deref for App {
+    type Target = AppBase<Server>;
+
+    fn deref(&self) -> &Self::Target {
+        &self.base
+    }
 }
 
-impl crate::servers::App<Server> for Rc<App> {
-    fn configure_actix_app(&self, sc: &mut web::ServiceConfig) {
+#[derive(Clone, Debug)]
+pub struct ExtraRunningState {
+    /// Shared secret with transcryptor
+    t_ss: elgamal::SharedSecret,
+
+    /// Shared secret with authentication server
+    #[expect(dead_code)]
+    auths_ss: elgamal::SharedSecret,
+
+    /// Key used to sign [`Attr`]s, shared with the authentication server
+    ///
+    /// [`Attr`]: attr::Attr
+    attr_signing_key: jwt::HS256,
+}
+
+impl crate::servers::App<Server> for App {
+    fn configure_actix_app(self: &Rc<Self>, sc: &mut web::ServiceConfig) {
         api::phc::hub::TicketEP::add_to(self, sc, App::handle_hub_ticket);
         api::phct::hub::Key::add_to(self, sc, App::handle_hub_key);
+        api::phc::user::WelcomeEP::caching_add_to(self, sc, App::cached_handle_user_welcome);
+        api::phc::user::EnterEP::add_to(self, sc, App::handle_user_enter);
     }
 
     fn check_constellation(&self, _constellation: &Constellation) -> bool {
         panic!("PHC creates the constellation; it has no need to check it")
     }
 
-    fn discover(
-        &self,
+    async fn discover(
+        self: &Rc<Self>,
         _phc_di: api::DiscoveryInfoResp,
-    ) -> LocalBoxFuture<'_, api::Result<Option<Constellation>>> {
-        Box::pin(async {
-            let (tdi_res, asdi_res) = tokio::join!(
-                self.discovery_info_of(servers::Name::Transcryptor, &self.transcryptor_url),
-                self.discovery_info_of(servers::Name::AuthenticationServer, &self.auths_url)
-            );
+    ) -> api::Result<Option<Constellation>> {
+        let (tdi_res, asdi_res) = tokio::join!(
+            self.discovery_info_of(servers::Name::Transcryptor, &self.transcryptor_url),
+            self.discovery_info_of(servers::Name::AuthenticationServer, &self.auths_url)
+        );
 
-            let tdi = api::return_if_ec!(tdi_res);
-            let asdi = api::return_if_ec!(asdi_res);
+        let tdi = tdi_res?;
+        let asdi = asdi_res?;
 
-            let transcryptor_master_enc_key_part = tdi
-                .master_enc_key_part
-                .expect("should already have been checked to be some by discovery_info_of");
-            let new_constellation = crate::servers::Constellation {
-                // The public master encryption key is `x_PHC * ( x_T * B )`
-                master_enc_key: phcrypto::combine_master_enc_key_parts(
-                    &transcryptor_master_enc_key_part,
-                    &self.master_enc_key_part,
-                ),
-                transcryptor_master_enc_key_part,
-                phc_url: self.base.phc_url.clone(),
-                phc_jwt_key: self.base.jwt_key.verifying_key().into(),
-                phc_enc_key: self.base.enc_key.public_key().clone(),
-                transcryptor_url: self.transcryptor_url.clone(),
-                transcryptor_jwt_key: tdi.jwt_key,
-                transcryptor_enc_key: tdi.enc_key,
-                auths_url: self.auths_url.clone(),
-                auths_jwt_key: asdi.jwt_key,
-                auths_enc_key: asdi.enc_key,
-            };
+        let transcryptor_master_enc_key_part = tdi
+            .master_enc_key_part
+            .expect("should already have been checked to be some by discovery_info_of");
+        let new_constellation_inner = crate::servers::constellation::Inner {
+            // The public master encryption key is `x_PHC * ( x_T * B )`
+            master_enc_key: phcrypto::combine_master_enc_key_parts(
+                &transcryptor_master_enc_key_part,
+                &self.master_enc_key_part,
+            ),
+            transcryptor_master_enc_key_part,
+            phc_url: self.phc_url.clone(),
+            phc_jwt_key: self.jwt_key.verifying_key().into(),
+            phc_enc_key: self.enc_key.public_key().clone(),
+            transcryptor_url: self.transcryptor_url.clone(),
+            transcryptor_jwt_key: tdi.jwt_key,
+            transcryptor_enc_key: tdi.enc_key,
+            auths_url: self.auths_url.clone(),
+            auths_jwt_key: asdi.jwt_key,
+            auths_enc_key: asdi.enc_key,
+        };
 
-            if self.base().running_state.is_none()
-                || *self.base().running_state.as_ref().unwrap().constellation != new_constellation
-            {
-                return api::ok(Some(new_constellation));
+        if self.running_state.is_none()
+            || self.running_state.as_ref().unwrap().constellation.inner != new_constellation_inner
+        {
+            return Ok(Some(Constellation {
+                id: constellation::Inner::derive_id(&new_constellation_inner),
+                inner: new_constellation_inner,
+            }));
+        }
+
+        let constellation = &self.running_state.as_ref().unwrap().constellation;
+
+        // Check whether the other servers' constellations are up-to-date
+
+        let mut js = tokio::task::JoinSet::new();
+
+        if let Some(c) = tdi.constellation {
+            if c.id != constellation.id {
+                // transcryptor's constellation is out of date; invoke discovery
+                log::info!(
+                    "{phc}: {t}'s constellation is out of date - invoking its discovery..",
+                    phc = servers::Name::PubhubsCentral,
+                    t = servers::Name::Transcryptor
+                );
+                let url = self.transcryptor_url.clone();
+                js.spawn_local(self.client.query::<api::DiscoveryRun>(&url, &()));
             }
+        }
 
-            // Check whether the other servers' constellations are up-to-date
+        if let Some(c) = asdi.constellation {
+            if c.id != constellation.id {
+                // authentication server's constellation is out of date; invoke discovery
+                log::info!(
+                    "{phc}: {auths}'s constellation is out of date - invoking its discovery..",
+                    phc = servers::Name::PubhubsCentral,
+                    auths = servers::Name::AuthenticationServer
+                );
+                let url = self.auths_url.clone();
+                js.spawn_local(self.client.query::<api::DiscoveryRun>(&url, &()));
+            }
+        }
 
-            let mut js = tokio::task::JoinSet::new();
+        let result_maybe = js.join_next().await;
 
-            if let Some(c) = tdi.constellation {
-                if c != new_constellation {
-                    // transcryptor's constellation is out of date; invoke discovery
-                    log::info!(
-                        "{phc}: {t}'s constellation is out of date - invoking its discovery..",
-                        phc = servers::Name::PubhubsCentral,
-                        t = servers::Name::Transcryptor
-                    );
-                    let url = self.transcryptor_url.clone();
-                    js.spawn_local(self.base().client.query::<api::DiscoveryRun>(&url, &()));
+        // Whatever the result, we don't want to abort the discovery prematurely
+        js.detach_all();
+
+        match result_maybe {
+            // joinset was empty;  servers were already up to date
+            None => {
+                return Ok(None);
+            }
+            // a task ended irregularly (panicked, joined,...)
+            Some(Err(join_err)) => {
+                log::error!("discovery run task joined unexpectedly: {}", join_err);
+                return Err(api::ErrorCode::InternalError);
+            }
+            // we got a result from one of the tasks..
+            Some(Ok(res)) => {
+                if res.retryable().is_ok() {
+                    // the discovery task was completed succesfully, or made some progress,
+                    // or we got a retryable error.
+                    // In all these cases the caller should try again.
+                    return Err(api::ErrorCode::NotYetReady);
                 }
             }
+        }
 
-            if let Some(c) = asdi.constellation {
-                if c != new_constellation {
-                    // authentication server's constellation is out of date; invoke discovery
-                    log::info!(
-                        "{phc}: {auths}'s constellation is out of date - invoking its discovery..",
-                        phc = servers::Name::PubhubsCentral,
-                        auths = servers::Name::AuthenticationServer
-                    );
-                    let url = self.auths_url.clone();
-                    js.spawn_local(self.base().client.query::<api::DiscoveryRun>(&url, &()));
-                }
-            }
-
-            let result_maybe = js.join_next().await;
-
-            // Whatever the result, we don't want to abort the discovery prematurely
-            js.detach_all();
-
-            match result_maybe {
-                // joinset was empty;  servers were already up to date
-                None => {
-                    return api::ok(None);
-                }
-                // a task ended irregularly (panicked, joined,...)
-                Some(Err(join_err)) => {
-                    log::error!("discovery run task joined unexpectedly: {}", join_err);
-                    return api::err(api::ErrorCode::InternalError);
-                }
-                // we got a result from one of the tasks..
-                Some(Ok(res)) => {
-                    if res.retryable().is_ok() {
-                        // the discovery task was completed succesfully, or made some progress,
-                        // or we got a retryable error.
-                        // In all these cases the caller should try again.
-                        return api::err(api::ErrorCode::NotYetReady);
-                    }
-                }
-            }
-
-            api::ok(None)
-        })
-    }
-
-    fn base(&self) -> &AppBase<Server> {
-        &self.base
+        Ok(None)
     }
 
     fn master_enc_key_part(&self) -> Option<&elgamal::PrivateKey> {
@@ -170,21 +191,20 @@ impl crate::servers::App<Server> for Rc<App> {
 }
 
 impl App {
-    /// Obtains and checks [api::DiscoveryInfoResp] from the given server
+    /// Obtains and checks [`api::DiscoveryInfoResp`] from the given server
     async fn discovery_info_of(
         &self,
         name: servers::Name,
         url: &url::Url,
     ) -> api::Result<api::DiscoveryInfoResp> {
-        let tdi = api::return_if_ec!(self
-            .base
+        let tdi = self
             .client
             .query::<api::DiscoveryInfo>(url, &())
             .await
-            .into_server_result());
+            .into_server_result()?;
 
         client::discovery::DiscoveryInfoCheck {
-            phc_url: &self.base.phc_url,
+            phc_url: &self.phc_url,
             name,
             self_check_code: None,
             constellation: None,
@@ -198,57 +218,50 @@ impl App {
     ) -> api::Result<api::Signed<api::phc::hub::TicketContent>> {
         let signed_req = signed_req.into_inner();
 
-        let req = api::return_if_ec!(signed_req.clone().open_without_checking_signature());
+        let req = signed_req.clone().open_without_checking_signature()?;
 
-        let hub = if let Some(hub) = app.hubs.get(&req.handle) {
-            hub
-        } else {
-            return api::err(api::ErrorCode::UnknownHub);
-        };
+        let hub = app
+            .hubs
+            .get(&req.handle)
+            .ok_or(api::ErrorCode::UnknownHub)?;
 
-        let result = app
-            .base
+        let resp = app
             .client
             .query::<api::hub::Info>(&hub.info_url, &())
-            .await;
-
-        if result.is_err() {
-            return api::Result::Err(result.unwrap_err().into_server_error());
-        }
-
-        let resp = result.unwrap();
+            .await
+            .into_server_result()?;
 
         // check that the request indeed came from the hub
-        api::return_if_ec!(signed_req.open(&*resp.verifying_key).inspect_err(|ec| {
+        signed_req.open(&*resp.verifying_key).inspect_err(|ec| {
             log::warn!(
                 "could not verify authenticity of hub ticket request for hub {}: {ec}",
                 req.handle,
             )
-        }));
+        })?;
 
         // if so, hand out ticket
-        api::Result::Ok(api::return_if_ec!(api::Signed::new(
-            &*app.base.jwt_key,
+        api::Signed::new(
+            &*app.jwt_key,
             &api::phc::hub::TicketContent {
                 handle: req.handle,
                 verifying_key: resp.verifying_key,
             },
-            std::time::Duration::from_secs(3600 * 24) /* = one day */
-        )))
+            std::time::Duration::from_secs(3600 * 24), /* = one day */
+        )
     }
 
     async fn handle_hub_key(
         app: Rc<Self>,
         signed_req: web::Json<api::phc::hub::TicketSigned<api::phct::hub::KeyReq>>,
     ) -> api::Result<api::phct::hub::KeyResp> {
-        let running_state = &api::return_if_ec!(app.base.running_state()).extra;
+        let running_state = &app.running_state_or_not_yet_ready()?;
 
         let ts_req = signed_req.into_inner();
 
         let ticket_digest = phcrypto::TicketDigest::new(&ts_req.ticket);
 
         let (_, _): (api::phct::hub::KeyReq, handle::Handle) =
-            api::return_if_ec!(ts_req.open(&app.base.jwt_key.verifying_key()));
+            ts_req.open(&app.jwt_key.verifying_key())?;
 
         // At this point we can be confident that the ticket is authentic, so we can give the hub
         // its decryption key based on the provided ticket
@@ -259,7 +272,35 @@ impl App {
             &app.master_enc_key_part,
         );
 
-        api::ok(api::phct::hub::KeyResp { key_part })
+        Ok(api::phct::hub::KeyResp { key_part })
+    }
+
+    fn cached_handle_user_welcome(app: &Self) -> api::Result<api::phc::user::WelcomeResp> {
+        let running_state = app.running_state_or_not_yet_ready()?;
+
+        let hubs: HashMap<handle::Handle, hub::BasicInfo> = app
+            .hubs
+            .values()
+            .map(|hub| (hub.handles.preferred().clone(), hub.clone()))
+            .collect();
+
+        Ok(api::phc::user::WelcomeResp {
+            constellation: (*running_state.constellation).clone(),
+            hubs,
+        })
+    }
+
+    async fn handle_user_enter(
+        app: Rc<Self>,
+        req: web::Json<api::phc::user::EnterReq>,
+    ) -> api::Result<api::phc::user::EnterResp> {
+        let req = req.into_inner();
+
+        let running_state = &app.running_state_or_not_yet_ready()?;
+
+        let _resp = req.identifying_attr.open(&running_state.attr_signing_key);
+
+        todo! {}
     }
 }
 
@@ -272,21 +313,35 @@ pub struct AppCreator {
     master_enc_key_part: elgamal::PrivateKey,
 }
 
+impl Deref for AppCreator {
+    type Target = AppCreatorBase<Server>;
+
+    fn deref(&self) -> &Self::Target {
+        &self.base
+    }
+}
+
+impl DerefMut for AppCreator {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.base
+    }
+}
+
 impl crate::servers::AppCreator<Server> for AppCreator {
-    fn into_app(self, handle: &Handle<Server>) -> Rc<App> {
-        Rc::new(App {
+    fn into_app(self, handle: &Handle<Server>) -> App {
+        App {
             base: AppBase::new(self.base, handle),
             transcryptor_url: self.transcryptor_url,
             auths_url: self.auths_url,
             hubs: self.hubs,
             master_enc_key_part: self.master_enc_key_part,
-        })
+        }
     }
 
     fn new(config: &servers::Config) -> anyhow::Result<Self> {
         let mut hubs: crate::map::Map<hub::BasicInfo> = Default::default();
 
-        let xconf = &config.phc.as_ref().unwrap().extra;
+        let xconf = &config.phc.as_ref().unwrap();
 
         for basic_hub_info in xconf.hubs.iter() {
             if let Some(hub_or_id) = hubs.insert_new(basic_hub_info.clone()) {
@@ -306,13 +361,5 @@ impl crate::servers::AppCreator<Server> for AppCreator {
             hubs,
             master_enc_key_part,
         })
-    }
-
-    fn base(&self) -> &AppCreatorBase<Server> {
-        &self.base
-    }
-
-    fn base_mut(&mut self) -> &mut AppCreatorBase<Server> {
-        &mut self.base
     }
 }

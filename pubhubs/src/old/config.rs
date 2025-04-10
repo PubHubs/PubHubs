@@ -190,7 +190,7 @@ impl File {
 
     /// Returns the interpret_path method as object, without
     /// borrowing self
-    pub fn path_interpreter(&self) -> impl Fn(&str) -> PathBuf {
+    pub fn path_interpreter(&self) -> impl Fn(&str) -> PathBuf + use<> {
         let parent_copy: PathBuf = self.path.parent().unwrap().to_path_buf();
         move |path: &str| parent_copy.join(path)
     }
@@ -354,7 +354,7 @@ impl AltUrl {
     ) -> Result<url::Url> {
         Ok(match self {
             AltUrl::SameAsForBrowser => for_browser.clone(),
-            AltUrl::Manual(ref url) => {
+            AltUrl::Manual(url) => {
                 ensure!(
                     url.as_str().ends_with('/'),
                     format!("'{}' must end with a slash ('/')", name),

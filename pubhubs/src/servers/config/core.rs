@@ -1,6 +1,7 @@
 //! Configuration (files)
 use core::fmt::Debug;
 use std::net::SocketAddr;
+use std::ops::{Deref, DerefMut};
 use std::path::{Path, PathBuf};
 
 use anyhow::{Context as _, Result};
@@ -10,6 +11,7 @@ use crate::servers::{for_all_servers, server::Server as _};
 use crate::{
     api::{self},
     attr, elgamal, hub,
+    misc::{jwt, time_ext},
     servers::yivi,
 };
 
@@ -57,14 +59,14 @@ pub(crate) enum PreparationState {
     #[default]
     Unprepared,
 
-    /// [Config::preliminary_prep] has been called.
+    /// [`Config::preliminary_prep`] has been called.
     Preliminary,
 
-    /// [Config] is completely prepared after [PrepareConfig::prepare] has been called on it.
+    /// [`Config`] is completely prepared after [`PrepareConfig::prepare`] has been called on it.
     Complete,
 }
 
-/// Configuration for one server
+/// Configuration for one server.  Derefs to `ServerSpecific`..
 #[derive(serde::Deserialize, serde::Serialize, Debug, Clone)]
 #[serde(deny_unknown_fields)]
 pub struct ServerConfig<ServerSpecific> {
@@ -99,7 +101,22 @@ pub struct ServerConfig<ServerSpecific> {
     pub object_store: Option<ObjectStoreConfig>,
 
     #[serde(flatten)]
-    pub extra: ServerSpecific,
+    /// Can be accessed via [`Deref`].
+    extra: ServerSpecific,
+}
+
+impl<X> Deref for ServerConfig<X> {
+    type Target = X;
+
+    fn deref(&self) -> &X {
+        &self.extra
+    }
+}
+
+impl<X> DerefMut for ServerConfig<X> {
+    fn deref_mut(&mut self) -> &mut X {
+        &mut self.extra
+    }
 }
 
 fn default_graceful_shutdown() -> bool {
@@ -168,7 +185,7 @@ impl Config {
 
     /// Clones this configuration and strips out everything that's not needed to run
     /// the specified server.  Also generated any random values not yet set.
-    pub fn prepare_for(&self, server: crate::servers::Name) -> Result<Self> {
+    pub async fn prepare_for(&self, server: crate::servers::Name) -> Result<Self> {
         anyhow::ensure!(
             self.preparation_state == PreparationState::Preliminary,
             "configuration not in the correct preparation state"
@@ -176,9 +193,9 @@ impl Config {
 
         // destruct to make sure we consider every field of Config
         let Self {
-            ref host_aliases,
-            ref phc_url,
-            ref wd,
+            host_aliases,
+            phc_url,
+            wd,
             preparation_state,
             phc: _,
             transcryptor: _,
@@ -206,16 +223,16 @@ impl Config {
 
         for_all_servers!(clone_only_server);
 
-        config.prepare()?;
+        config.prepare().await?;
 
         Ok(config)
     }
 
-    /// Prepares [Config] to be run; used by [Config::prepare_for].
-    pub fn prepare(&mut self) -> anyhow::Result<()> {
+    /// Prepares [`Config`] to be run; used by [`Config::prepare_for`].
+    pub async fn prepare(&mut self) -> anyhow::Result<()> {
         let pcc = Pcc::new(actix_web::dev::Extensions::new());
 
-        PrepareConfig::prepare(self, pcc)
+        PrepareConfig::prepare(self, pcc).await
     }
 
     /// Creates a new [Config] from the current one by updating a specific part
@@ -310,6 +327,34 @@ pub mod auths {
 
         /// Yivi configuration.  If `None`, yivi is not supported.
         pub yivi: Option<YiviConfig>,
+
+        /// Authentication must be completed within this timeframe
+        /// formatted as string understood by [`humantime::parse_duration`] such as `1 week`.
+        #[serde(with = "time_ext::human_duration")]
+        #[serde(default = "default_auth_window")]
+        pub auth_window: core::time::Duration,
+    }
+
+    fn default_auth_window() -> core::time::Duration {
+        core::time::Duration::from_secs(60 * 60) // one hour
+    }
+
+    impl ExtraConfig {
+        /// Removes the [`attr::SourceDetails`]s of unsupported sources from
+        /// [`attribute_types`].
+        ///
+        /// [`attribute_types`]: Self::attribute_types
+        pub(super) fn filter_attribute_types(&mut self) {
+            let mut supported_sources: std::collections::HashSet<attr::Source> = Default::default();
+
+            if self.yivi.is_some() {
+                assert!(supported_sources.insert(attr::Source::Yivi));
+            }
+
+            for attr_type in self.attribute_types.iter_mut() {
+                attr_type.filter_sources(|s| supported_sources.contains(&s))
+            }
+        }
     }
 
     #[derive(serde::Deserialize, serde::Serialize, Debug, Clone)]
@@ -319,20 +364,39 @@ pub mod auths {
         /// by the hub client for starting disclosure requests?
         pub requestor_url: UrlPwa,
 
-        pub requestor_creds: yivi::Credentials,
+        pub requestor_creds: yivi::Credentials<yivi::SigningKey>,
+
+        /// What server name to expect in signed session results
+        pub server_name: String,
+
+        /// Verify signed session results using this key.  If not set the key is retrieved
+        /// from the yivi server.
+        pub server_key: Option<yivi::VerifyingKey>,
+    }
+
+    impl YiviConfig {
+        pub fn server_creds(&self) -> yivi::Credentials<yivi::VerifyingKey> {
+            yivi::Credentials {
+                name: self.server_name.clone(),
+                key: self
+                    .server_key
+                    .clone()
+                    .expect("bug: YiviConfig was not properly prepared"),
+            }
+        }
     }
 }
 
 /// Trait to prepare [`Config`] for use by initializing random values,
 /// and replacing aliases in [`UrlPwa`]s.
 trait PrepareConfig<C> {
-    fn prepare(&mut self, context: C) -> anyhow::Result<()>;
+    async fn prepare(&mut self, context: C) -> anyhow::Result<()>;
 }
 
 type Pcc = std::rc::Rc<actix_web::dev::Extensions>;
 
 impl PrepareConfig<Pcc> for Config {
-    fn prepare(&mut self, mut c: Pcc) -> anyhow::Result<()> {
+    async fn prepare(&mut self, mut c: Pcc) -> anyhow::Result<()> {
         anyhow::ensure!(
             self.preparation_state == PreparationState::Preliminary,
             "configuration not properly prepared"
@@ -346,7 +410,7 @@ impl PrepareConfig<Pcc> for Config {
         macro_rules! prep {
             ($server:ident) => {
                 if let Some(ref mut server) = self.$server {
-                    server.prepare(c.clone())?;
+                    server.prepare(c.clone()).await?;
                 }
             };
         }
@@ -369,7 +433,7 @@ impl PrepareConfig<Pcc> for Config {
 }
 
 impl<Extra: PrepareConfig<Pcc> + GetServerType> PrepareConfig<Pcc> for ServerConfig<Extra> {
-    fn prepare(&mut self, c: Pcc) -> anyhow::Result<()> {
+    async fn prepare(&mut self, c: Pcc) -> anyhow::Result<()> {
         self.self_check_code
             .get_or_insert_with(crate::misc::crypto::random_alphanumeric);
 
@@ -389,20 +453,20 @@ impl<Extra: PrepareConfig<Pcc> + GetServerType> PrepareConfig<Pcc> for ServerCon
             sk.verifying_key().into()
         });
 
-        if let Some(&mut ref mut osc) = &mut self.object_store.as_mut() {
+        if let &mut Some(&mut ref mut osc) = &mut self.object_store.as_mut() {
             c.get::<HostAliases>()
                 .expect("host aliases were not passed along")
                 .dealias(&mut osc.url);
         }
 
-        self.extra.prepare(c)?;
+        self.extra.prepare(c).await?;
 
         Ok(())
     }
 }
 
 impl PrepareConfig<Pcc> for transcryptor::ExtraConfig {
-    fn prepare(&mut self, _c: Pcc) -> anyhow::Result<()> {
+    async fn prepare(&mut self, _c: Pcc) -> anyhow::Result<()> {
         self.master_enc_key_part
             .get_or_insert_with(elgamal::PrivateKey::random);
 
@@ -411,7 +475,7 @@ impl PrepareConfig<Pcc> for transcryptor::ExtraConfig {
 }
 
 impl PrepareConfig<Pcc> for phc::ExtraConfig {
-    fn prepare(&mut self, c: Pcc) -> anyhow::Result<()> {
+    async fn prepare(&mut self, c: Pcc) -> anyhow::Result<()> {
         self.master_enc_key_part
             .get_or_insert_with(elgamal::PrivateKey::random);
 
@@ -425,11 +489,38 @@ impl PrepareConfig<Pcc> for phc::ExtraConfig {
 }
 
 impl PrepareConfig<Pcc> for auths::ExtraConfig {
-    fn prepare(&mut self, c: Pcc) -> anyhow::Result<()> {
+    async fn prepare(&mut self, c: Pcc) -> anyhow::Result<()> {
+        if let Some(ref mut yivi_cfg) = self.yivi {
+            yivi_cfg.prepare(c).await?;
+        }
+
+        self.filter_attribute_types();
+
+        Ok(())
+    }
+}
+
+impl PrepareConfig<Pcc> for auths::YiviConfig {
+    async fn prepare(&mut self, c: Pcc) -> anyhow::Result<()> {
         let ha: &HostAliases = c.get::<HostAliases>().unwrap();
 
-        for yivi_cfg in self.yivi.iter_mut() {
-            ha.dealias(&mut yivi_cfg.requestor_url);
+        ha.dealias(&mut self.requestor_url);
+
+        if self.server_key.is_none() {
+            let pk_url = self.requestor_url.as_ref().join("publickey")?.to_string();
+            log::debug!("yivi server key not set; retrieving from {pk_url}");
+            let mut res = awc::Client::default()
+                .get(&pk_url)
+                .send()
+                .await
+                .map_err(|err| anyhow::anyhow!("getting public key from {pk_url} failed: {err}"))?;
+
+            let payload: bytes::Bytes = res.body().await?;
+
+            self.server_key = Some(yivi::VerifyingKey::RS256(
+                jwt::RS256Vk::from_public_key_pem(std::str::from_utf8(&payload)?)
+                    .context("decoding public key at {pk_url}")?,
+            ));
         }
 
         Ok(())

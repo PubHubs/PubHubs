@@ -1,3 +1,4 @@
+//! [`for_all_servers`]
 #[macro_export]
 macro_rules! for_all_servers_helper {
     { $mcro:ident $($server:ident)*} => { $($mcro!($server); )* }

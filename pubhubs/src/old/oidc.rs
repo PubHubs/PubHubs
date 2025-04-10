@@ -454,7 +454,7 @@ pub mod http {
 
             HEADERS
                 .into_iter()
-                .filter_map(|(name, gen)| gen(self).map(|value| (name, value)))
+                .filter_map(|(name, g)| g(self).map(|value| (name, value)))
         }
 
         /// Returns the HTTP body associated with this response.
@@ -1216,7 +1216,7 @@ impl ClientId {
 
     /// Given the client's `bare_id`, the hmac `secret` and the `redirect_uri`,
     /// computes the associated hmac, returned as [hmac::Mac].
-    fn compute_mac(bare_id: &str, secret: &[u8], redirect_uri: &str) -> impl hmac::Mac {
+    fn compute_mac(bare_id: &str, secret: &[u8], redirect_uri: &str) -> impl hmac::Mac + use<> {
         <hmac::Hmac<sha2::Sha256> as hmac::Mac>::new_from_slice(secret)
             // currently, new_from_slice never returns an error
             .expect("expected no error from 'Hmac::new_from_slice'")
@@ -1244,7 +1244,7 @@ impl ClientId {
         }
     }
 
-    fn password_mac(client_id: &str, secret: &[u8]) -> impl hmac::Mac {
+    fn password_mac(client_id: &str, secret: &[u8]) -> impl hmac::Mac + use<> {
         <hmac::Hmac<sha2::Sha256> as hmac::Mac>::new_from_slice(secret)
             // currently, new_from_slice never returns an error
             .expect("expected no error from 'Hmac::new_from_slice'")
@@ -1832,11 +1832,12 @@ struct AuthRequestData {
 
 impl AuthRequestData {
     fn to_handle(&self, key: &chacha20poly1305::Key) -> anyhow::Result<String> {
-        crate::crypto::seal(&self, key, b"")
+        crate::misc::crypto::url_seal(&self, key, b"")
     }
 
     fn from_handle(handle: impl AsRef<str>, key: &chacha20poly1305::Key) -> Result<Self, Error> {
-        crate::crypto::unseal(handle, key, b"").map_err(|_| Error::InvalidAuthRequestHandle)
+        crate::misc::crypto::url_unseal(handle, key, b"")
+            .map_err(|_| Error::InvalidAuthRequestHandle)
     }
 }
 
@@ -1854,7 +1855,7 @@ impl AuthCodeData {
         key: &chacha20poly1305::Key,
         client_id: impl AsRef<str>,
     ) -> anyhow::Result<String> {
-        crate::crypto::seal(&self, key, client_id.as_ref().as_bytes())
+        crate::misc::crypto::url_seal(&self, key, client_id.as_ref().as_bytes())
     }
 
     #[doc(hidden)]
@@ -1863,14 +1864,14 @@ impl AuthCodeData {
         key: &chacha20poly1305::Key,
         client_id: impl AsRef<str>,
     ) -> Result<Self, Error> {
-        crate::crypto::unseal(code, key, client_id.as_ref().as_bytes())
+        crate::misc::crypto::url_unseal(code, key, client_id.as_ref().as_bytes())
             .map_err(|_| Error::InvalidAuthCode)
     }
 }
 
 /// Type to hold secrets for internal use- basically an [u8, 32], i.e., an 'u256'
 #[doc(hidden)]
-type Secret = generic_array::GenericArray<u8, typenum::consts::U32>;
+type Secret = aead::generic_array::GenericArray<u8, typenum::consts::U32>;
 
 #[doc(hidden)]
 fn is_valid_state(s: &Option<String>) -> bool {
@@ -2056,7 +2057,7 @@ pub mod html {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::crypto::GenericArrayExt as _;
+    use crate::misc::crypto::GenericArrayExt as _;
     use aead::KeyInit as _;
     use chacha20poly1305::XChaCha20Poly1305;
 
@@ -2512,9 +2513,9 @@ mod tests {
 
     #[test]
     fn chacha20poly1305_lengths() {
-        assert_eq!(chacha20poly1305::Key::LENGTH, 32);
-        assert_eq!(chacha20poly1305::XNonce::LENGTH, 24);
-        assert_eq!(chacha20poly1305::Tag::LENGTH, 16);
+        assert_eq!(chacha20poly1305::Key::len(), 32);
+        assert_eq!(chacha20poly1305::XNonce::len(), 24);
+        assert_eq!(chacha20poly1305::Tag::len(), 16);
     }
 
     #[test]
