@@ -9,5 +9,6 @@
 !pubhubs_hub/update_config
 # * pubhubs rust sources, needed to make libpubhubs ...
 !pubhubs/src/**/*.rs
+!pubhubs/tests/**/*.rs
 !pubhubs/Cargo.toml
 !pubhubs/Cargo.lock
