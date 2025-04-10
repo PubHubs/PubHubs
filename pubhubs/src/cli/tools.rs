@@ -36,6 +36,7 @@ mod generate {
             match self.command {
                 Commands::Id(args) => args.run(),
                 Commands::Scalar(args) => args.run(),
+                Commands::SigningKey(args) => args.run(),
             }
         }
     }
@@ -47,6 +48,9 @@ mod generate {
 
         /// Generate a random ristretto25519 scalar to be used e.g. as elgamal private key
         Scalar(ScalarArgs),
+
+        /// Generate a random ed25519 signing key
+        SigningKey(SigningKeyArgs),
     }
 
     #[derive(clap::Args, Debug)]
@@ -69,6 +73,21 @@ mod generate {
 
             println!("x (private key): {}", pk.to_hex());
             println!("xB (public key): {}", pk.public_key().to_hex());
+
+            Ok(())
+        }
+    }
+
+    #[derive(clap::Args, Debug)]
+    struct SigningKeyArgs {}
+
+    impl SigningKeyArgs {
+        fn run(self) -> Result<()> {
+            let sk = crate::api::SigningKey::generate();
+            let vk: crate::api::VerifyingKey = sk.verifying_key().into();
+
+            println!("  signing key: {}", sk);
+            println!("verifying key: {}", vk);
 
             Ok(())
         }

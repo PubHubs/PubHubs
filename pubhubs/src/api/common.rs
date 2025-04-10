@@ -327,7 +327,7 @@ macro_rules! wrap_dalek_type {
             }
         }
 
-        // We implement [FromStr] so that this type can be used as a command-line argument with [clap].
+        /// We implement [`std::str::FromStr`] so that this type can be used as a command-line argument with [`clap`].
         impl std::str::FromStr for $type {
             type Err = serde::de::value::Error;
 
@@ -347,6 +347,12 @@ macro_rules! wrap_dalek_type {
         impl core::ops::DerefMut for $type {
             fn deref_mut(&mut self) -> &mut Self::Target {
                 &mut self.inner
+            }
+        }
+
+        impl std::fmt::Display for $type {
+            fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+                self.serialize(f)
             }
         }
     }
