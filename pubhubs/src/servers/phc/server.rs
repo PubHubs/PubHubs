@@ -61,6 +61,7 @@ pub struct ExtraRunningState {
     t_ss: elgamal::SharedSecret,
 
     /// Shared secret with authentication server
+    #[expect(dead_code)]
     auths_ss: elgamal::SharedSecret,
 
     /// Key used to sign [`Attr`]s, shared with the authentication server
@@ -297,7 +298,7 @@ impl App {
 
         let running_state = &app.running_state_or_not_yet_ready()?;
 
-        let resp = req.identifying_attr.open(&running_state.attr_signing_key);
+        let _resp = req.identifying_attr.open(&running_state.attr_signing_key);
 
         todo! {}
     }

@@ -76,7 +76,7 @@ For your local PubHubs instance to be reachable by the Yivi app, your host's IP 
 
 When the Yivi app suggests you should check your phone's internet access, this might actually indicate that:
 
-- **Your host is behind a NAT.** This is the case when the IP address reported by your operating system differs from the one from, say, https://ifconfig.me. (If you have control over the NAT, you might be able to setup port forwarding, pinholing, or put your host in the DMZ.)
+- **Your host is behind a NAT and your phone is not on the same network.** This is the case when the IP address reported by your operating system differs from the one from, say, https://ifconfig.me. (If you have control over the NAT, you might be able to setup port forwarding, pinholing, or put your host in the DMZ.)
 - **Your host is behind a firewall.** To check this, run, say, `nmap 1.2.3.4` if `1.2.3.4` is your IP address. When no firewall is present, you should get:
 
   ```

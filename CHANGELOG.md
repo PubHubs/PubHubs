@@ -15,6 +15,8 @@ Use the [MIGRATE] and [BREAKING] prefixes together with another one if that make
 
 - [NEW] New update_config script now checks the configuration in homeserver.yaml and also adds missing configuration , it supersedes the configchecker
 It will generate a checked and updated yaml file as homeserver.live.yaml as default and will use this new yaml file to set the configuration of the hub
+- [TYPO] When no rooms are found on the discover rooms page, the text "no rooms were found" is shown instead of "no hubs were found".
+- [NEW] Local development: changed the way `pubhubs` autodetect your IP address, making development behind a NAT possible.
 
 ## 03 April 2025 - v2.0.0
 

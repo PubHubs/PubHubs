@@ -18,20 +18,10 @@ rust-clippy:
   stage: tests
   tags:
     - docker
-  image: registry.science.ru.nl/ilab/docker-build/rust-nightly:main
+  image: registry.science.ru.nl/ilab/docker-build/rust-stable:main
   script:
     - cd pubhubs
-    # twice, because sometimes clippy has hard errors, and won't produce the report
-    - cargo +nightly clippy
-    - cargo +nightly clippy --message-format=json | gitlab-report -p clippy > gl-code-quality-report.json
-  artifacts:
-    reports:
-      codequality: pubhubs/gl-code-quality-report.json
-    expire_in: 1 week
-  rules:
-    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
-    - if: $CI_COMMIT_BRANCH == "main"
-    - if: $CI_COMMIT_BRANCH == "stable"
+    - cargo clippy -- --deny "warnings"
 
 rust-unit-test:
   stage: tests

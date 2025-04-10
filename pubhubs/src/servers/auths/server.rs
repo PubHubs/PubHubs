@@ -46,6 +46,7 @@ impl servers::Details for Details {
 #[derive(Clone, Debug)]
 pub struct ExtraRunningState {
     /// Shared secret with pubhubs central
+    #[expect(dead_code)]
     phc_ss: elgamal::SharedSecret,
 
     /// Key used to sign [`Attr`]s, shared with pubhubs central.

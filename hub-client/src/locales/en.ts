@@ -134,7 +134,7 @@ const en = {
 		nop: 'This feature is not implemented yet.',
 		search: 'Search',
 		search_hubs: 'Search Hubs',
-		search_hubs_not_found: 'No Hubs where found',
+		search_hubs_not_found: 'No Hubs were found',
 		search_room: 'Search this room',
 		searching: 'Searching...',
 		search_nothing_found: 'Nothing found',
@@ -197,6 +197,7 @@ const en = {
 		discussion: 'Discussion',
 		roomCreated: 'Room created',
 		discover: 'Discover rooms',
+		no_rooms_found: 'No rooms were found',
 		unread_messages: 'Unread Messages',
 	},
 	settings: {
