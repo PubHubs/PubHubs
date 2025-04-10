@@ -27,7 +27,7 @@ pub struct File {
     #[serde(default)]
     pub urls: Option<Urls>,
 
-    /// Bind to this address.  Defaults to ("0.0.0.0", "8080").
+    /// Bind to this address.  Defaults to ("::0", "8080").
     #[serde(default = "default_bind_to")]
     pub bind_to: (String, u16),
 
@@ -102,7 +102,7 @@ pub struct Hotfixes {
 }
 
 fn default_bind_to() -> (String, u16) {
-    ("0.0.0.0".to_string(), 8080)
+    ("::0".to_string(), 8080)
 }
 fn default_policy_directory() -> String {
     "default_policies".to_string()

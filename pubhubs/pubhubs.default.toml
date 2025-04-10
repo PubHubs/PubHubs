@@ -11,7 +11,7 @@
 phc_url = 'http://localhost:8080'
 
 [auths]
-bind_to = '0.0.0.0:6060'
+bind_to = '[::0]:6060'
 
 #[auths.yivi]
 #requestor_url = "https://yivi.pubhubs.net"
@@ -52,12 +52,12 @@ sources = [
 ]
 
 [transcryptor]
-bind_to = '0.0.0.0:7070'
+bind_to = '[::0]:7070'
 
 [phc]
 auths_url = 'http://localhost:6060'
 transcryptor_url = 'http://localhost:7070'
-bind_to = '0.0.0.0:8080'
+bind_to = '[::0]:8080'
 
 [phc.object_store]
 url = "memory:///"
