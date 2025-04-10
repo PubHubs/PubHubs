@@ -88,8 +88,6 @@ deploy-main-phc:
   image: registry.science.ru.nl/ilab/docker-build/ubuntu-iso:main
   script:
     - cd pubhubs
-    - apt update
-    - apt install -y openssh-client
     - chmod 600 $ILAB_VM_TRIGGER_UPDATE_KEY
     - ssh -o UserKnownHostsFile=$ILAB_VM_TRIGGER_UPDATE_KNOWN_HOSTS $ILAB_VM_TRIGGER_UPDATE_USER@ph.ihub.ru.nl -i $ILAB_VM_TRIGGER_UPDATE_KEY docker-pubhubs-main
 
@@ -103,10 +101,20 @@ deploy-stable-phc:
   image: registry.science.ru.nl/ilab/docker-build/ubuntu-iso:main
   script:
     - cd pubhubs
-    - apt update
-    - apt install -y openssh-client
     - chmod 600 $ILAB_VM_TRIGGER_UPDATE_KEY
     - ssh -o UserKnownHostsFile=$ILAB_VM_TRIGGER_UPDATE_KNOWN_HOSTS $ILAB_VM_TRIGGER_UPDATE_USER@ph.ihub.ru.nl -i $ILAB_VM_TRIGGER_UPDATE_KEY docker-pubhubs-stable
+
+deploy-main-phmss:
+  stage: deploy-own
+  rules:
+    - if: $CI_COMMIT_TAG
+  needs:
+    - build-pubhubs-image
+  tags: [docker]
+  image: registry.science.ru.nl/ilab/docker-build/ubuntu-iso:main
+  script:
+    - chmod 600 $ILAB_VM_TRIGGER_UPDATE_KEY
+    - ssh -o UserKnownHostsFile=$ILAB_VM_TRIGGER_UPDATE_KNOWN_HOSTS $ILAB_VM_TRIGGER_UPDATE_USER@ph.ihub.ru.nl -i $ILAB_VM_TRIGGER_UPDATE_KEY docker-phmss-main
 
 start-test-setup-unit-test:
   stage: tests
