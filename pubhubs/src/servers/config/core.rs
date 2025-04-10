@@ -85,6 +85,8 @@ pub struct ServerConfig<ServerSpecific> {
     ///
     /// This key is also used to derive non-permanent secrets, like the the transcryptor's
     /// encryption factor f_H for a hub H.
+    ///
+    /// Generate using `cargo run tools generate scalar`.
     pub enc_key: Option<elgamal::PrivateKey>,
 
     /// When stopping this server (for example, during discovery) have actix shutdown gracefully.
@@ -301,6 +303,8 @@ pub mod phc {
         pub hubs: Vec<hub::BasicInfo>,
 
         /// `x_PHC` from the whitepaper; randomly generated if not set
+        ///
+        /// Generate using `cargo run tools generate scalar`.
         pub master_enc_key_part: Option<elgamal::PrivateKey>,
     }
 }
@@ -312,6 +316,8 @@ pub mod transcryptor {
     #[serde(deny_unknown_fields)]
     pub struct ExtraConfig {
         /// `x_T` from the whitepaper; randomly generated if not set
+        ///
+        /// Generate using `cargo run tools generate scalar`.
         pub master_enc_key_part: Option<elgamal::PrivateKey>,
     }
 }

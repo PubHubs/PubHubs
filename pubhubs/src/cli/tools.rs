@@ -1,3 +1,4 @@
+use crate::common::elgamal::Encoding as _;
 use anyhow::Result;
 
 #[derive(clap::Args, Debug)]
@@ -20,6 +21,7 @@ enum Commands {
     Generate(generate::Args),
 }
 
+/// Implementation details of [`Commands::Generate`].
 mod generate {
     use super::*;
 
@@ -33,6 +35,7 @@ mod generate {
         pub(super) fn run(self) -> Result<()> {
             match self.command {
                 Commands::Id(args) => args.run(),
+                Commands::Scalar(args) => args.run(),
             }
         }
     }
@@ -41,6 +44,9 @@ mod generate {
     enum Commands {
         /// Generate a random identifier for e.g. a hub, attribute type, ...
         Id(IdArgs),
+
+        /// Generate a random ristretto25519 scalar to be used e.g. as elgamal private key
+        Scalar(ScalarArgs),
     }
 
     #[derive(clap::Args, Debug)]
@@ -49,6 +55,20 @@ mod generate {
     impl IdArgs {
         fn run(self) -> Result<()> {
             println!("{}", crate::id::Id::random());
+
+            Ok(())
+        }
+    }
+
+    #[derive(clap::Args, Debug)]
+    struct ScalarArgs {}
+
+    impl ScalarArgs {
+        fn run(self) -> Result<()> {
+            let pk = crate::elgamal::PrivateKey::random();
+
+            println!("x (private key): {}", pk.to_hex());
+            println!("xB (public key): {}", pk.public_key().to_hex());
 
             Ok(())
         }
