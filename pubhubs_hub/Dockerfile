@@ -8,7 +8,7 @@
 # Should be the same debian version as the version on which synapse is based.
 FROM golang:bookworm AS yivi_build
 
-RUN git clone https://github.com/privacybydesign/irmago --branch v0.17.1 --depth 1
+RUN git clone https://github.com/privacybydesign/irmago --branch v0.18.1 --depth 1
 
 WORKDIR irmago
 
