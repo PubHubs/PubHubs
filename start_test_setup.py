@@ -491,13 +491,13 @@ def update_homeserver_yaml(input_path, output_path, client_id, client_secret,cli
         # Find the lines to update based on their content
         for i, line in enumerate(lines):
             # Check if the line starts with 'client_id:' or 'client_secret:'
-            if line.strip().startswith(('client_id:', 'client_secret:', 'client_url:', 'public_baseurl:','- port:')):
+            if line.strip('- ').startswith(('client_id:', 'client_secret:', 'client_url:', 'public_baseurl:','port:')):
                 # Get the whitespace before the key
                 whitespace = line[:-len(line.lstrip())]
 
                 # Create the updated line with the same whitespace and the new value
-                if line.strip().startswith('client_id:'):
-                    lines[i] = f'{whitespace}client_id: {client_id}\n'
+                if line.strip('- ').startswith('client_id:'):
+                    lines[i] = f'-{whitespace}{whitespace}{whitespace}client_id: {client_id}\n'
                 elif line.strip().startswith('client_secret:'):
                     lines[i] = f'{whitespace}client_secret: {client_secret}\n'
                 elif line.strip().startswith('client_url:'):
@@ -505,7 +505,7 @@ def update_homeserver_yaml(input_path, output_path, client_id, client_secret,cli
                 elif line.strip().startswith('public_baseurl:'):
                     lines[i] = f'{whitespace}public_baseurl: "http://localhost:{hub_port}"\n'
                 else:
-                    lines[i] = f'{whitespace}- port: {hub_port}\n'
+                    lines[i] = f'-{whitespace} port: {hub_port}\n'
 
     with open(output_path, 'w') as f:
         f.writelines(lines)
@@ -991,7 +991,7 @@ public_baseurl: "http://localhost:8080"
                 updated_content = updated_file.read()
 
             expected_content = f"""\
-client_id: {new_client_id}
+-client_id: {new_client_id}
 client_secret: {new_client_secret}
 client_url: "http://localhost:{new_client_port}",
 public_baseurl: "http://localhost:{new_hub_port}"
