@@ -370,15 +370,15 @@ pub trait App<S: Server>: Deref<Target = AppBase<S>> + 'static {
     /// Checks whether the given constellation properly reflects this server's configuration.
     fn check_constellation(&self, constellation: &Constellation) -> bool;
 
-    /// Runs the discovery routine for this server given [api::DiscoveryInfoResp] already
-    /// obtained from Pubhubs Central.  If the server is not PHC itself, the [Constellation]
-    /// in this [api::DiscoveryInfoResp] must be set.
+    /// Runs the discovery routine for this server given [`api::DiscoveryInfoResp`] already
+    /// obtained from Pubhubs Central.  If the server is not PHC itself, the [`Constellation`]
+    /// in this [`api::DiscoveryInfoResp`] must be set.
     ///
     /// This function return some constellation if the constellation of this server needs to be updated.
     ///
-    /// Returns None if everything checks out.  If one of the other servers is not up-to-date
+    /// Returns `None` if everything checks out.  If one of the other servers is not up-to-date
     /// according to this server, discovery of that server is invoked and
-    /// [api::ErrorCode::NotYetReady] is returned.
+    /// [`api::ErrorCode::NotYetReady`] is returned.
     async fn discover(
         self: &Rc<Self>,
         phc_inf: api::DiscoveryInfoResp,
@@ -420,7 +420,7 @@ pub trait App<S: Server>: Deref<Target = AppBase<S>> + 'static {
             );
 
             if phc_inf.constellation.as_ref().unwrap().id == rs.constellation.id {
-                log::trace!(
+                log::info!(
                     "{server_name}: my constellation is up-to-date!",
                     server_name = S::NAME,
                 );
