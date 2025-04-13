@@ -10,17 +10,19 @@ pub struct ServeArgs {
     common: cli::CommonArgs,
 
     /// Run not all servers specified in the configuration file, but only these
-    #[arg(name = "only", value_enum, short, long, value_name = "SERVERS")]
+    #[arg(value_enum, short, long, value_name = "SERVERS")]
     only: Option<Vec<crate::servers::Name>>,
+
+    /// Whether to complete existing HTTP requests when restarting
+    #[arg(short, long)]
+    graceful_shutdown: Option<bool>,
 }
 
 impl ServeArgs {
     pub fn run(self, _spec: &mut clap::Command) -> Result<()> {
         env_logger::init();
 
-        let config = self.apply_only(self.common.load_config()?);
-
-        let config = self.apply_only(config);
+        let config = self.adjust_config(self.common.load_config()?)?;
 
         tokio::runtime::Builder::new_multi_thread()
             .enable_all()
@@ -52,6 +54,11 @@ impl ServeArgs {
             })
     }
 
+    /// Adjust config based on the arguments (`--only`, `--graceful-shutdown`, ...) in `self`.
+    fn adjust_config(&self, config: Config) -> Result<Config> {
+        Ok(self.apply_graceful_shutdown(self.apply_only(config)))
+    }
+
     /// Filters servers from config that were not specified to run
     fn apply_only(&self, mut config: Config) -> Config {
         if self.only.is_none() {
@@ -71,6 +78,26 @@ impl ServeArgs {
         }
 
         crate::servers::for_all_servers!(remove_server_if_needed);
+
+        config
+    }
+
+    /// Applies `--graceful-shutdown` argument to `config`
+    fn apply_graceful_shutdown(&self, mut config: Config) -> Config {
+        let gc: bool = match self.graceful_shutdown {
+            Some(gc) => gc,
+            None => return config,
+        };
+
+        macro_rules! set_graceful_shutdown {
+            ($server:ident) => {
+                config.$server.as_mut().map(|sc| {
+                    sc.graceful_shutdown = gc;
+                })
+            };
+        }
+
+        crate::servers::for_all_servers!(set_graceful_shutdown);
 
         config
     }
