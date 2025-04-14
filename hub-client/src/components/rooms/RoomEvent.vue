@@ -52,7 +52,7 @@
 									<Icon :type="'warning'" size="xs" />
 								</button>
 								<button
-									v-if="settings.isFeatureEnabled(FeatureFlag.deleteMessages) && !msgIsNotSend && event.sender === user.user.userId && !redactedMessage"
+									v-if="settings.isFeatureEnabled(FeatureFlag.deleteMessages) && !msgIsNotSend && event.sender === user.user.userId && !redactedMessage && !(props.viewFromThread && isThreadRoot)"
 									@click="onDeleteMessage(event)"
 									class="rounded-md p-1 text-on-surface-variant hover:bg-accent-error hover:text-background"
 									:title="$t('menu.delete_message')"
