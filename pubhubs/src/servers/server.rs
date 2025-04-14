@@ -779,15 +779,15 @@ impl<S: Server> AppBase<S> {
 
 /// An [`App`] together with a method on it.  Used to pass [`App`]s to [`actix_web::Handler`]s
 /// as first argument. See [`api::EndpointDetails::add_to`].
-pub struct AppMethod<App, F, ResponseType> {
+pub struct AppMethod<App, F, EP: ?Sized> {
     app: Rc<App>,
     f: F,
-    phantom: std::marker::PhantomData<ResponseType>,
+    phantom: std::marker::PhantomData<EP>,
 }
 
-/// Implement [`Clone`] manually so we don't have to require `ResponseType` to implement
+/// Implement [`Clone`] manually so we don't have to require `EP` to implement
 /// [`Clone`].
-impl<App, F: Clone, ResponseType> Clone for AppMethod<App, F, ResponseType> {
+impl<App, F: Clone, EP> Clone for AppMethod<App, F, EP> {
     fn clone(&self) -> Self {
         Self {
             app: self.app.clone(),
@@ -797,7 +797,7 @@ impl<App, F: Clone, ResponseType> Clone for AppMethod<App, F, ResponseType> {
     }
 }
 
-impl<App, F, ResponseType> AppMethod<App, F, ResponseType> {
+impl<App, F, EP: ?Sized> AppMethod<App, F, EP> {
     /// Creates a new [`AppMethod`], cloning [`App`].
     pub fn new(app: &Rc<App>, f: F) -> Self {
         AppMethod {
@@ -812,21 +812,21 @@ impl<App, F, ResponseType> AppMethod<App, F, ResponseType> {
 ///
 /// Based on [`actix_web`]'s implementation of [`actix_web::Handler`] for [`Fn`]s.
 macro_rules! factory_tuple ({ $($param:ident)* } => {
-    impl<Func, Fut, App, ResponseType, $($param,)*> actix_web::Handler<($($param,)*)> for AppMethod<App, Func, ResponseType>
+    impl<Func, Fut, App, EP, $($param,)*> actix_web::Handler<($($param,)*)> for AppMethod<App, Func, EP>
     where
         Func:  Fn(Rc<App>, $($param),*) -> Fut + Clone + 'static,
         Fut: core::future::Future,
         App: 'static,
-        ResponseType: 'static + serde::Serialize,
-        Fut::Output : Into<api::ResultResponder<ResponseType>>,
+        EP : EndpointDetails + 'static,
+        Fut::Output : Into<api::ResultResponder<EP>>,
     {
-        type Output = api::ResultResponder<ResponseType>;
-        type Future = futures::future::Map<Fut, fn(Fut::Output)->api::ResultResponder<ResponseType>>;
+        type Output = api::ResultResponder<EP>;
+        type Future = futures::future::Map<Fut, fn(Fut::Output)->api::ResultResponder<EP>>;
 
         #[inline]
         #[allow(non_snake_case)] // because the signature will be:  call(&self, A: A, B: B, ...)
         fn call(&self, ($($param,)*): ($($param,)*)) -> Self::Future {
-            (self.f)(self.app.clone(), $($param,)*).map(Into::<api::ResultResponder<ResponseType>>::into)
+            (self.f)(self.app.clone(), $($param,)*).map(Into::<api::ResultResponder<EP>>::into)
         }
     }
 });

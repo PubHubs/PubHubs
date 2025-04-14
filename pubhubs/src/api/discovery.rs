@@ -19,6 +19,10 @@ impl EndpointDetails for DiscoveryRun {
 
     const METHOD: http::Method = http::Method::POST;
     const PATH: &'static str = ".ph/discovery/run";
+
+    fn force_close(resp: &Result<DiscoveryRunResp>) -> bool {
+        *resp == Ok(DiscoveryRunResp::Restarting)
+    }
 }
 
 /// What's returned by the `.ph/discovery/info` endpoint
@@ -49,7 +53,7 @@ pub struct DiscoveryInfoResp {
 }
 
 /// Result of the `.ph/discovery/run` endpoint
-#[derive(Serialize, Deserialize, Debug)]
+#[derive(Serialize, Deserialize, Debug, PartialEq, Eq)]
 pub enum DiscoveryRunResp {
     /// Everything checks out at our side
     UpToDate,

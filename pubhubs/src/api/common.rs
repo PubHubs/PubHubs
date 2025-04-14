@@ -13,21 +13,24 @@ use actix_web::web;
 pub type Result<T> = std::result::Result<T, ErrorCode>;
 
 /// The [`actix_web::Responder`] used for all API endpoints: a wrapper around [`Result<T, ErrorCode>`].
-pub struct ResultResponder<T>(Result<T>);
+pub struct ResultResponder<EP: EndpointDetails>(Result<EP::ResponseType>);
 
-impl<T: Serialize> actix_web::Responder for ResultResponder<T> {
-    type Body = actix_web::body::EitherBody<String>;
+impl<EP: EndpointDetails> actix_web::Responder for ResultResponder<EP> {
+    type Body = actix_web::body::BoxBody;
 
-    fn respond_to(self, req: &actix_web::HttpRequest) -> actix_web::HttpResponse<Self::Body> {
-        // NOTE: `actix_web::web::Json(self).respond_to(req)` does not work here,
-        // because actix_web::web::Json implements `Deref` so the very function we are defining
-        // will shadow the function we want to call.
-        actix_web::Responder::respond_to(actix_web::web::Json(self.0), req)
+    fn respond_to(self, _req: &actix_web::HttpRequest) -> actix_web::HttpResponse<Self::Body> {
+        let mut builder = actix_web::HttpResponse::Ok();
+
+        if EP::force_close(&self.0) {
+            builder.force_close();
+        }
+
+        builder.json(&self.0)
     }
 }
 
-impl<T> From<Result<T>> for ResultResponder<T> {
-    fn from(res: Result<T>) -> Self {
+impl<EP: EndpointDetails> From<Result<EP::ResponseType>> for ResultResponder<EP> {
+    fn from(res: Result<EP::ResponseType>) -> Self {
         Self(res)
     }
 }
@@ -107,7 +110,7 @@ impl<T> ApiResultExt for Result<T> {
 /// List of possible errors.  We use error codes in favour of more descriptive strings,
 /// because error codes can be more easily processed by the calling code,
 /// should change less often, and can be easily translated.
-#[derive(Clone, Copy, Serialize, Deserialize, Debug, thiserror::Error)]
+#[derive(Clone, Copy, Serialize, Deserialize, Debug, thiserror::Error, PartialEq, Eq)]
 pub enum ErrorCode {
     #[error("requested process already running")]
     AlreadyRunning,
@@ -249,8 +252,8 @@ pub trait EndpointDetails {
         sc: &mut web::ServiceConfig,
         handler: F,
     ) where
-        server::AppMethod<App, F, Self::ResponseType>: actix_web::Handler<Args>,
-        <server::AppMethod<App, F, Self::ResponseType> as actix_web::Handler<Args>>::Output:
+        server::AppMethod<App, F, Self>: actix_web::Handler<Args>,
+        <server::AppMethod<App, F, Self> as actix_web::Handler<Args>>::Output:
             'static + actix_web::Responder,
     {
         sc.route(
@@ -300,6 +303,11 @@ pub trait EndpointDetails {
                 async { response }
             }),
         );
+    }
+
+    /// Decides whether to force close after serving the given `resp`once.
+    fn force_close(_resp: &Result<Self::ResponseType>) -> bool {
+        false
     }
 }
 

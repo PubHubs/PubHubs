@@ -57,7 +57,7 @@ struct SetInner {
     /// The servers' tasks
     joinset: tokio::task::JoinSet<Result<()>>,
 
-    /// Via `shutdown_sender` [Set] broadcasts the instruction to shutdown to all servers
+    /// Via `shutdown_sender` [`Set`] broadcasts the instruction to shutdown to all servers
     /// running in the `joinset`.  It does so not by `send`ing a message, but by dropping
     /// the `shutdown_sender`.
     shutdown_sender: Option<tokio::sync::broadcast::Sender<Infallible>>,
@@ -77,8 +77,8 @@ impl Drop for SetInner {
 impl SetInner {
     /// Creates a new set of PubHubs servers from the given config.
     ///
-    /// Returns not only the [SetInner] instance, but also a [`tokio::sync::oneshot::Sender<Infallible>`]
-    /// that can be dropped to signal the [SetInner] should shutdown.
+    /// Returns not only the [`SetInner`] instance, but also a [`tokio::sync::oneshot::Sender<Infallible>`]
+    /// that can be dropped to signal the [`SetInner`] should shutdown.
     pub fn new(
         config: &crate::servers::Config,
     ) -> Result<(Self, tokio::sync::oneshot::Sender<Infallible>)> {
@@ -575,18 +575,19 @@ pub struct Handle<S: Server> {
 struct CommandRequest<S: Server> {
     /// The actual command
     command: Command<S>,
-    /// A way for the [Server] to inform the [App] that the command is about to be executed.
+    /// A way for the [`Server`] to inform the [`App`] that the command is about to be executed.
     feedback_sender: tokio::sync::oneshot::Sender<()>,
 }
 
 impl<S: Server> CommandRequest<S> {
     /// Let's the issuer of the command know that the command is to be fulfilled
     fn accept(self) -> Command<S> {
-        let _ = self.feedback_sender.send(());
-        log::warn!(
-            "The app issuing command {} that is about to execute has already dropped.",
-            &self.command
-        );
+        if let Err(_) = self.feedback_sender.send(()) {
+            log::warn!(
+                "The app issuing command '{}' that is about to execute has already dropped.",
+                &self.command
+            );
+        }
         self.command
     }
 }

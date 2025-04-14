@@ -118,19 +118,37 @@ impl crate::servers::App<Server> for App {
         if self.running_state.is_none()
             || self.running_state.as_ref().unwrap().constellation.inner != new_constellation_inner
         {
+            let new_constellation_id = constellation::Inner::derive_id(&new_constellation_inner);
+
+            if self.running_state.is_some() {
+                log::info!(
+                    "Detected change in constellation {} -> {}",
+                    self.running_state.as_ref().unwrap().constellation.id,
+                    new_constellation_id
+                );
+            } else {
+                log::info!("Computed constellation {}", new_constellation_id);
+            }
+
             return Ok(Some(Constellation {
-                id: constellation::Inner::derive_id(&new_constellation_inner),
+                id: new_constellation_id,
                 inner: new_constellation_inner,
             }));
         }
 
         let constellation = &self.running_state.as_ref().unwrap().constellation;
 
+        log::info!("My own constellation is up-to-date");
+
         // Check whether the other servers' constellations are up-to-date
 
         let mut js = tokio::task::JoinSet::new();
 
-        if tdi.constellation.map(|c| c.id) != Some(constellation.id) {
+        if tdi
+            .constellation
+            .as_ref()
+            .is_some_and(|c| c.id != constellation.id)
+        {
             // transcryptor's constellation is out of date; invoke discovery
             log::info!(
                 "{phc}: {t}'s constellation is out of date - invoking its discovery..",
@@ -141,7 +159,11 @@ impl crate::servers::App<Server> for App {
             js.spawn_local(self.client.query::<api::DiscoveryRun>(&url, &()));
         }
 
-        if asdi.constellation.map(|c| c.id) != Some(constellation.id) {
+        if asdi
+            .constellation
+            .as_ref()
+            .is_some_and(|c| c.id != constellation.id)
+        {
             // authentication server's constellation is out of date; invoke discovery
             log::info!(
                 "{phc}: {auths}'s constellation is out of date - invoking its discovery..",
@@ -159,10 +181,15 @@ impl crate::servers::App<Server> for App {
         js.detach_all();
 
         match result_maybe {
-            // joinset was empty;  servers were already up to date
+            // joinset was empty, no discovery was ran
             None => {
-                log::info!("Constellation of all servers up to date!");
-                return Ok(None);
+                if tdi.constellation.is_some() && asdi.constellation.is_some() {
+                    log::info!("Constellation of all servers up to date!");
+                    return Ok(None);
+                } else {
+                    log::info!("Waiting for the other servers to update their constellation.");
+                    return Err(api::ErrorCode::NotYetReady);
+                }
             }
             // a task ended irregularly (panicked, joined,...)
             Some(Err(join_err)) => {
