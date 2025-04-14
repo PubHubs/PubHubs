@@ -99,6 +99,7 @@
 	});
 
 	onUnmounted(() => {
+		closeThread();
 		props.room.stopListeningToThreadNewReply(newReplyListener.bind(this));
 		props.room.stopListeningToThreadUpdate(updateReplyListener.bind(this));
 	});
