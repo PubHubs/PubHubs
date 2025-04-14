@@ -122,13 +122,18 @@ impl Client {
             fmt_ext::Json(&req)
         );
 
-        let client_req = self
+        let mut client_req = self
             .inner
             .http_client
-            .request(EP::METHOD, ep_url.to_string())
-            .send_json(&req);
+            .request(EP::METHOD, ep_url.to_string());
 
-        futures::future::Either::Right(self.clone().query_inner::<EP>(ep_url, client_req))
+        if EP::client_force_close(&req) {
+            client_req = client_req.force_close();
+        }
+
+        let send_client_req = client_req.send_json(&req);
+
+        futures::future::Either::Right(self.clone().query_inner::<EP>(ep_url, send_client_req))
     }
 
     async fn query_inner<EP: EndpointDetails + 'static>(

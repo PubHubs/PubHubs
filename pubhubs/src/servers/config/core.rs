@@ -91,9 +91,11 @@ pub struct ServerConfig<ServerSpecific> {
     /// Generate using `cargo run tools generate scalar`.
     pub enc_key: Option<elgamal::PrivateKey>,
 
-    /// When stopping this server (for example, during discovery) have actix shutdown gracefully.
-    /// Makes discovery much slower; only recommended for production.  Defaults to false when
-    /// debug_assertions are true.
+    /// When stopping this server (for example, during discovery) have actix shutdown gracefully,
+    /// preventing resetting active connections.  Enabled by default.  
+    ///
+    /// Note:  clients keeping their connections open can cause graceful shutdown to take quite a
+    /// while to complete.  In that case an ungraceful shutdown might cause less disruption overal.
     #[serde(default = "default_graceful_shutdown")]
     pub graceful_shutdown: bool,
 
@@ -124,7 +126,7 @@ impl<X> DerefMut for ServerConfig<X> {
 }
 
 fn default_graceful_shutdown() -> bool {
-    !cfg!(debug_assertions)
+    true
 }
 
 impl Config {

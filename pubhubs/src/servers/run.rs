@@ -846,3 +846,88 @@ impl<S: Server> Runner<S> {
         }
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    /// Test to figure out how to prevent a HTTP client from keeping an actix server from
+    /// shutting down until the graceful shutdown timeout expires.
+    ///
+    /// The solution is to use `force_close` on the http requests and responses.
+    #[tokio::test]
+    async fn test_graceful_shutdown() {
+        let mut js = tokio::task::JoinSet::new();
+
+        let barrier1 = Arc::new(tokio::sync::Barrier::new(2));
+        let barrier2 = barrier1.clone();
+        let barrier3 = barrier1.clone();
+
+        let server = actix_web::HttpServer::new(move || {
+            let barrier1 = barrier1.clone();
+
+            actix_web::App::new().route(
+                "/wait",
+                actix_web::web::get().to(move || {
+                    let barrier1 = barrier1.clone();
+                    async move {
+                        barrier1.wait().await;
+                        tokio::time::sleep(core::time::Duration::from_millis(500)).await;
+                        actix_web::HttpResponse::Ok()
+                            .force_close()
+                            .body(bytes::Bytes::from("hi!"))
+                    }
+                }),
+            )
+        })
+        .workers(1)
+        .shutdown_timeout(2)
+        .bind("[::1]:12345")
+        .unwrap()
+        .run();
+
+        let handle = server.handle();
+
+        js.spawn(async {
+            server.await.unwrap();
+        });
+
+        js.spawn(async move {
+            barrier2.wait().await;
+            let started = std::time::Instant::now();
+            handle.stop(true).await;
+            barrier2.wait().await;
+            let duration = std::time::Instant::now()
+                .duration_since(started)
+                .as_millis();
+
+            assert!(duration < 1500, "shutdown took too long: {duration}ms");
+        });
+
+        let ls = tokio::task::LocalSet::new();
+
+        ls.run_until(async {
+            let client = awc::Client::default();
+
+            let mut resp = client
+                .get("http://[::1]:12345/wait")
+                .force_close()
+                .send()
+                .await
+                .unwrap();
+
+            assert_eq!(resp.status(), awc::error::StatusCode::OK);
+            assert_eq!(
+                &awc::body::to_bytes(resp.body().await.unwrap())
+                    .await
+                    .unwrap(),
+                b"hi!".as_slice()
+            );
+            barrier3.wait().await;
+        })
+        .await;
+
+        // to make panics in the tasks fail the test
+        js.join_all().await;
+    }
+}

@@ -21,7 +21,7 @@ impl<EP: EndpointDetails> actix_web::Responder for ResultResponder<EP> {
     fn respond_to(self, _req: &actix_web::HttpRequest) -> actix_web::HttpResponse<Self::Body> {
         let mut builder = actix_web::HttpResponse::Ok();
 
-        if EP::force_close(&self.0) {
+        if EP::server_force_close(&self.0) {
             builder.force_close();
         }
 
@@ -305,8 +305,17 @@ pub trait EndpointDetails {
         );
     }
 
-    /// Decides whether to force close after serving the given `resp`once.
-    fn force_close(_resp: &Result<Self::ResponseType>) -> bool {
+    /// Decides whether the client should force close the connection.
+    ///
+    /// Used for discovery requests to prevent keeping the server alive during graceful shutdown.
+    fn client_force_close(_req: &Self::RequestType) -> bool {
+        false
+    }
+
+    /// Decides whether the server should force close the connection after responding.
+    ///
+    /// Used for discovery requests to prevent clients from keeping the server alive during graceful shutdown.
+    fn server_force_close(_req: &Result<Self::ResponseType>) -> bool {
         false
     }
 }
