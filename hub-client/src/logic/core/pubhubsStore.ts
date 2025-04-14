@@ -21,8 +21,8 @@ import { ReceiptType } from 'matrix-js-sdk/lib/@types/read_receipts';
 import { useMessageActions } from '@/logic/store/message-actions';
 import { RoomPowerLevelsEventContent } from 'matrix-js-sdk/lib/@types/state_events';
 
-let publicRoomsLoading: Promise<any> | null = null; // outside of defineStore to guarantee lifetime, not accessible outside this module
-//let updateRoomsPerforming: Promise<void> | null = null; // outside of defineStore to guarantee lifetime, not accessible outside this module
+const publicRoomsLoading: Promise<any> | null = null; // outside of defineStore to guarantee lifetime, not accessible outside this module
+const updateRoomsPerforming: Promise<void> | null = null; // outside of defineStore to guarantee lifetime, not accessible outside this module
 
 const logger = LOGGER;
 
@@ -64,7 +64,7 @@ const usePubHubs = defineStore('pubhubs', {
 
 				const events = new Events(this.client as MatrixClient);
 
-				/* is await necessary? */
+				/* await removed */
 				events.initEvents();
 
 				logger.trace(SMI.STARTUP, 'PubHubs.logged in ()');
@@ -94,11 +94,8 @@ const usePubHubs = defineStore('pubhubs', {
 					// 	}
 					// });
 
-					await this.updateRooms();
-					// 2024 12 03 The await is removed, because of slow loading testhub
-					// After the next merge to stable, in case this gives no problems,
-					// the old code and comments can be removed
-					// await this.updateRooms();
+					/* await removed */
+					this.updateRooms();
 				}
 			} catch (error: any) {
 				logger.trace(SMI.STARTUP, 'Something went wrong while creating a matrix-js client instance or logging in', { error });
@@ -110,26 +107,79 @@ const usePubHubs = defineStore('pubhubs', {
 			this.Auth.logout();
 		},
 
-		// Will check with the homeserver for changes in joined rooms and update the local situation to reflect that.
-		async updateRooms() {
-			const rooms = useRooms();
-
-			const joinedRooms = (await this.client.getJoinedRooms()).joined_rooms; //Actually makes an HTTP request to the Hub server.
-			let knownRooms = this.client.getRooms();
-			// Make sure the metrix js SDK client is aware of all the rooms the user has joined
-			for (const room_id of joinedRooms) {
-				if (!knownRooms.find((kr) => kr.roomId === room_id)) {
-					const room = await this.client.joinRoom(room_id);
-					this.client.store.storeRoom(room);
-				}
+		/**
+		 * To avoid calling the same async method multiple times, we can use this method to ensure
+		 * that only one instance of the async function is running at a time.
+		 *
+		 * @param func - The async function to be executed
+		 * @param stateVar - The state variable to keep track of the current promise
+		 * @returns - The result of the passed async function
+		 */
+		async ensureSingleExecution<T>(func: () => Promise<T>, stateVar: { current: Promise<T> | null }): Promise<T> {
+			// If a promise is already running, return it
+			if (stateVar.current) {
+				return stateVar.current;
 			}
 
-			knownRooms = this.client.getRooms();
+			// Create and store the promise
+			stateVar.current = new Promise<T>((resolve, reject) => {
+				try {
+					resolve(func());
+				} catch (error) {
+					reject(error);
+				} finally {
+					stateVar.current = null; // Reset state after execution
+				}
+			});
 
-			const currentRooms = knownRooms.filter((room) => joinedRooms.indexOf(room.roomId) !== -1);
-			logger.trace(SMI.STORE, 'PubHubs.updateRooms');
-			rooms.updateRoomsWithMatrixRooms(currentRooms);
-			await rooms.fetchPublicRooms();
+			// Return the promise
+			return stateVar.current;
+		},
+
+		async updateRooms() {
+			return this.ensureSingleExecution(() => this.performUpdateRooms(), { current: updateRoomsPerforming });
+		},
+
+		/**
+		 * actual performing of updateRooms
+		 * This method will check with the homeserver for changes in joined rooms and update the local situation to reflect that.
+		 */
+		async performUpdateRooms() {
+			const rooms = useRooms();
+			const allRooms = await this.getAllPublicRooms();
+
+			let joinedRooms = (await this.client.getJoinedRooms()).joined_rooms; // makes an HTTP request to the Hub server to get the known joined rooms of the user
+			joinedRooms = joinedRooms.filter((roomId: string) => allRooms.find((r: any) => r.room_id === roomId)); // filter out the rooms that are not in the public rooms list
+			const knownRooms = this.client.getRooms(); // get all the rooms of the matrix js SDK client
+
+			// update the rooms in the store with the known rooms
+			rooms.updateRoomsWithMatrixRooms(knownRooms.filter((room: any) => joinedRooms.indexOf(room.roomId) !== -1));
+
+			// Make sure the matrix js SDK client is aware of all the rooms the user has joined
+			// knownrooms possibly does not have all rooms, so rejoin every room in joinedRooms that is not in knownrooms
+			// this actually does nothing when already joined, but it will return the room
+			let processedRooms = 0;
+			const totalRooms = joinedRooms.length;
+
+			for (const room_id of joinedRooms) {
+				if (!knownRooms.find((kr: any) => kr.roomId === room_id)) {
+					rooms.setRoomsLoaded(false);
+					const roomName = allRooms.find((r: any) => r.room_id === room_id)?.name ?? undefined;
+
+					// join again and then store the room in the client store
+					this.client.joinRoom(room_id).then((room) => {
+						this.client.store.storeRoom(room);
+						rooms.updateRoomsWithMatrixRoom(room, roomName);
+
+						// if the last room is joined, we can set the roomsLoaded to true
+						processedRooms++;
+						if (processedRooms === totalRooms) {
+							rooms.setRoomsLoaded(true);
+						}
+					});
+				}
+			}
+			rooms.fetchPublicRooms();
 		},
 
 		// async updateRooms() {
@@ -245,29 +295,8 @@ const usePubHubs = defineStore('pubhubs', {
 			});
 		},
 
-		// wrapping API call to publicRooms, so it does not get called again when in progress.
-		// Both login and DiscoverRooms called this method which in some cases lead to slowing the process.
-		// Now we make sure the API is called just once, returning the result to all possible callers.
-		async getAllPublicRooms(): Promise<TPublicRoom[]> {
-			// if promise already running: return promise
-			if (publicRoomsLoading) {
-				return publicRoomsLoading;
-			}
-
-			// create promise
-			publicRoomsLoading = new Promise<TPublicRoom[]>((resolve, reject) => {
-				try {
-					resolve(this.performGetAllPublicRooms());
-				} catch (error) {
-					reject(error);
-				}
-			}).then((x) => {
-				publicRoomsLoading = null;
-				return x;
-			});
-
-			// return promise
-			return publicRoomsLoading;
+		async getAllPublicRooms() {
+			return this.ensureSingleExecution(() => this.performGetAllPublicRooms(), { current: publicRoomsLoading });
 		},
 
 		// actual performing of publicRooms API call

@@ -208,18 +208,41 @@ const useRooms = defineStore('rooms', {
 			}
 		},
 
+		// add one room to the store
+		updateRoomsWithMatrixRoom(matrixRoom: MatrixRoom, roomName: string | undefined) {
+			if (!this.rooms[matrixRoom.roomId]) {
+				this.rooms[matrixRoom.roomId] = new Room(matrixRoom);
+				if (roomName) {
+					this.rooms[matrixRoom.roomId].name = roomName;
+				}
+			}
+		},
+
+		// replace the current rooms in the store with the new ones
 		updateRoomsWithMatrixRooms(matrixRoomArray: MatrixRoom[]) {
-			const tempRooms = {} as { [index: string]: Room }; // reset rooms
+			// Remove every room that is in this.rooms, but not in matrixRoomArray
+			const matrixRoomIds = new Set(matrixRoomArray.map((room) => room.roomId));
+			const filteredRooms: { [index: string]: Room } = {};
+			for (const key in this.rooms) {
+				const room = this.rooms[key];
+				if (matrixRoomIds.has(room.roomId)) {
+					filteredRooms[key] = room;
+				}
+			}
+			this.rooms = filteredRooms;
+
+			// then add the new rooms from matrixRoomArray
 			matrixRoomArray.forEach((matrixRoom) => {
 				// Check if room already exists else add room
-				if (this.rooms[matrixRoom.roomId]) {
-					tempRooms[matrixRoom.roomId] = this.rooms[matrixRoom.roomId];
-				} else {
-					tempRooms[matrixRoom.roomId] = new Room(matrixRoom);
+				if (!this.rooms[matrixRoom.roomId]) {
+					this.rooms[matrixRoom.roomId] = new Room(matrixRoom);
 				}
 			});
-			this.rooms = tempRooms;
 			this.roomsLoaded = true;
+		},
+
+		setRoomsLoaded(loading: boolean) {
+			this.roomsLoaded = loading;
 		},
 
 		sendUnreadMessageCounter() {

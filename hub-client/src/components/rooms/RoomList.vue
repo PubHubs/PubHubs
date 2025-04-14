@@ -1,6 +1,5 @@
 <template>
-	<InlineSpinner v-if="!rooms.roomsLoaded" class="ml-4" />
-	<Menu v-else>
+	<Menu>
 		<template v-for="room in rooms.sortedRoomsArray" :key="room.roomId">
 			<template v-if="showRoom(room)">
 				<MenuItem :to="{ name: 'room', params: { id: room.roomId } }" :roomInfo="room" :icon="roomIcon(room)" :key="room.roomId" @click="hubSettings.hideBar()" class="group inline-block w-full">
@@ -25,6 +24,7 @@
 			</template>
 		</template>
 	</Menu>
+	<InlineSpinner v-if="!roomsLoaded" class="ml-4" />
 </template>
 
 <script setup lang="ts">
@@ -49,6 +49,7 @@
 	import { Room } from '@/logic/store/rooms';
 	import { useI18n } from 'vue-i18n';
 	import { useRouter } from 'vue-router';
+	import { computed } from 'vue';
 
 	const settings = useSettings();
 	const hubSettings = useHubSettings();
@@ -64,6 +65,10 @@
 			type: String,
 			default: '!' + RoomType.PH_MESSAGES_DM,
 		},
+	});
+
+	const roomsLoaded = computed(() => {
+		return rooms.roomsLoaded;
 	});
 
 	// Either private room or public room based on roomType given as prop (private or normal)
