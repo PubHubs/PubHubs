@@ -17,6 +17,9 @@ Use the [MIGRATE] and [BREAKING] prefixes together with another one if that make
 It will generate a checked and updated yaml file as homeserver.live.yaml as default and will use this new yaml file to set the configuration of the hub
 - [TYPO] When no rooms are found on the discover rooms page, the text "no rooms were found" is shown instead of "no hubs were found".
 - [NEW] Local development: changed the way `pubhubs` autodetect your IP address, making development behind a NAT possible.
+- [BUG] Thread stayed open on changing room
+- [BUG] In thread-view the first message could be deleted, forcing the whole thread to be deleted
+- [BUG] The roomslist shows loading spinner again and shows rooms while loading
 
 ## 03 April 2025 - v2.0.0
 
