@@ -185,16 +185,16 @@ impl crate::servers::App<Server> for App {
             None => {
                 if tdi.constellation.is_some() && asdi.constellation.is_some() {
                     log::info!("Constellation of all servers up to date!");
-                    return Ok(None);
+                    Ok(None)
                 } else {
                     log::info!("Waiting for the other servers to update their constellation.");
-                    return Err(api::ErrorCode::NotYetReady);
+                    Err(api::ErrorCode::NotYetReady)
                 }
             }
             // a task ended irregularly (panicked, joined,...)
             Some(Err(join_err)) => {
                 log::error!("discovery run task joined unexpectedly: {}", join_err);
-                return Err(api::ErrorCode::InternalError);
+                Err(api::ErrorCode::InternalError)
             }
             // we got a result from one of the tasks..
             Some(Ok(res)) => {
@@ -203,11 +203,11 @@ impl crate::servers::App<Server> for App {
                         // the discovery task was completed succesfully, or made some progress,
                         // or we got a retryable error.
                         // In all these cases the caller should try again.
-                        return Err(api::ErrorCode::NotYetReady);
+                        Err(api::ErrorCode::NotYetReady)
                     }
                     Err(err) => {
                         log::error!("Failed to run discovery of other server: {err}",);
-                        return Err(api::ErrorCode::InternalError);
+                        Err(api::ErrorCode::InternalError)
                     }
                 }
             }

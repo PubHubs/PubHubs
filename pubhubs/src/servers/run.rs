@@ -335,8 +335,8 @@ impl<S: Server> Handles<S> {
         };
     }
 
-    /// Consumes this [Handles] shutting down the actix server and pubhubs tasks.
-    async fn shutdown(mut self, graceful_actix_shutdown: bool) -> anyhow::Result<()> {
+    /// Consumes this [`Handles`] shutting down the actix server and pubhubs tasks.
+    async fn shutdown(mut self) -> anyhow::Result<()> {
         log::debug!("Shut down of {} started", S::NAME);
 
         anyhow::ensure!(
@@ -346,8 +346,12 @@ impl<S: Server> Handles<S> {
 
         drop(self.ph_shutdown_sender.take());
 
-        // NOTE: this is a noop if the actix server is already stopped
-        self.actix_server_handle.stop(graceful_actix_shutdown).await;
+        // This is a noop if the actix server is already stopped
+        //
+        // We do not use graceful shutdown, becaus in practise the persistent connections
+        // delay shutdown for the maximal shutdown timeout, which causes more disruption
+        // than the graceful shutdown aims to prevent
+        self.actix_server_handle.stop(false).await;
 
         let maybe_modifier = self
             .ph_join_handle
@@ -582,7 +586,7 @@ struct CommandRequest<S: Server> {
 impl<S: Server> CommandRequest<S> {
     /// Let's the issuer of the command know that the command is to be fulfilled
     fn accept(self) -> Command<S> {
-        if let Err(_) = self.feedback_sender.send(()) {
+        if self.feedback_sender.send(()).is_err() {
             log::warn!(
                 "The app issuing command '{}' that is about to execute has already dropped.",
                 &self.command
@@ -706,10 +710,6 @@ impl<S: Server> Runner<S> {
         self.pubhubs_server.server_config().bind_to
     }
 
-    pub fn graceful_shutdown(&self) -> bool {
-        self.pubhubs_server.server_config().graceful_shutdown
-    }
-
     fn create_actix_server(&self, bind_to: &SocketAddr) -> Result<Handles<S>> {
         let app_creator: S::AppCreatorT = self.pubhubs_server.deref().clone();
 
@@ -809,7 +809,7 @@ impl<S: Server> Runner<S> {
 
         let result = Self::run_until_modifier_inner(&mut handles, self).await;
 
-        handles.shutdown(self.graceful_shutdown()).await?;
+        handles.shutdown().await?;
 
         result
     }
@@ -844,90 +844,5 @@ impl<S: Server> Runner<S> {
                 }
             }
         }
-    }
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    /// Test to figure out how to prevent a HTTP client from keeping an actix server from
-    /// shutting down until the graceful shutdown timeout expires.
-    ///
-    /// The solution is to use `force_close` on the http requests and responses.
-    #[tokio::test]
-    async fn test_graceful_shutdown() {
-        let mut js = tokio::task::JoinSet::new();
-
-        let barrier1 = Arc::new(tokio::sync::Barrier::new(2));
-        let barrier2 = barrier1.clone();
-        let barrier3 = barrier1.clone();
-
-        let server = actix_web::HttpServer::new(move || {
-            let barrier1 = barrier1.clone();
-
-            actix_web::App::new().route(
-                "/wait",
-                actix_web::web::get().to(move || {
-                    let barrier1 = barrier1.clone();
-                    async move {
-                        barrier1.wait().await;
-                        tokio::time::sleep(core::time::Duration::from_millis(500)).await;
-                        actix_web::HttpResponse::Ok()
-                            .force_close()
-                            .body(bytes::Bytes::from("hi!"))
-                    }
-                }),
-            )
-        })
-        .workers(1)
-        .shutdown_timeout(2)
-        .bind("[::1]:12345")
-        .unwrap()
-        .run();
-
-        let handle = server.handle();
-
-        js.spawn(async {
-            server.await.unwrap();
-        });
-
-        js.spawn(async move {
-            barrier2.wait().await;
-            let started = std::time::Instant::now();
-            handle.stop(true).await;
-            barrier2.wait().await;
-            let duration = std::time::Instant::now()
-                .duration_since(started)
-                .as_millis();
-
-            assert!(duration < 1500, "shutdown took too long: {duration}ms");
-        });
-
-        let ls = tokio::task::LocalSet::new();
-
-        ls.run_until(async {
-            let client = awc::Client::default();
-
-            let mut resp = client
-                .get("http://[::1]:12345/wait")
-                .force_close()
-                .send()
-                .await
-                .unwrap();
-
-            assert_eq!(resp.status(), awc::error::StatusCode::OK);
-            assert_eq!(
-                &awc::body::to_bytes(resp.body().await.unwrap())
-                    .await
-                    .unwrap(),
-                b"hi!".as_slice()
-            );
-            barrier3.wait().await;
-        })
-        .await;
-
-        // to make panics in the tasks fail the test
-        js.join_all().await;
     }
 }

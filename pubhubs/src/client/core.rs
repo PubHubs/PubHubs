@@ -122,14 +122,10 @@ impl Client {
             fmt_ext::Json(&req)
         );
 
-        let mut client_req = self
+        let client_req = self
             .inner
             .http_client
             .request(EP::METHOD, ep_url.to_string());
-
-        if EP::client_force_close(&req) {
-            client_req = client_req.force_close();
-        }
 
         let send_client_req = client_req.send_json(&req);
 

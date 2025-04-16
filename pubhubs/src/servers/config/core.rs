@@ -91,14 +91,6 @@ pub struct ServerConfig<ServerSpecific> {
     /// Generate using `cargo run tools generate scalar`.
     pub enc_key: Option<elgamal::PrivateKey>,
 
-    /// When stopping this server (for example, during discovery) have actix shutdown gracefully,
-    /// preventing resetting active connections.  Enabled by default.  
-    ///
-    /// Note:  clients keeping their connections open can cause graceful shutdown to take quite a
-    /// while to complete.  In that case an ungraceful shutdown might cause less disruption overal.
-    #[serde(default = "default_graceful_shutdown")]
-    pub graceful_shutdown: bool,
-
     /// Key used by admin to sign requests for the admin endpoints.
     /// If `None`, one is generated automatically and the private key is  printed to the log.
     pub admin_key: Option<api::VerifyingKey>,
@@ -123,10 +115,6 @@ impl<X> DerefMut for ServerConfig<X> {
     fn deref_mut(&mut self) -> &mut X {
         &mut self.extra
     }
-}
-
-fn default_graceful_shutdown() -> bool {
-    true
 }
 
 impl Config {

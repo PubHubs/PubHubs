@@ -10,14 +10,6 @@ impl EndpointDetails for DiscoveryInfo {
 
     const METHOD: http::Method = http::Method::GET;
     const PATH: &'static str = ".ph/discovery/info";
-
-    fn server_force_close(_resp: &Result<Self::ResponseType>) -> bool {
-        true
-    }
-
-    fn client_force_close(_resp: &Self::RequestType) -> bool {
-        true
-    }
 }
 
 pub struct DiscoveryRun {}
@@ -27,14 +19,6 @@ impl EndpointDetails for DiscoveryRun {
 
     const METHOD: http::Method = http::Method::POST;
     const PATH: &'static str = ".ph/discovery/run";
-
-    fn server_force_close(_resp: &Result<Self::ResponseType>) -> bool {
-        true
-    }
-
-    fn client_force_close(_resp: &Self::RequestType) -> bool {
-        true
-    }
 }
 
 /// What's returned by the `.ph/discovery/info` endpoint
