@@ -416,8 +416,11 @@ impl JWT {
         )))
     }
 
-    /// Checks the validity of this jwt against the given [VerifyingKey] `key`, and the JSON syntax
+    /// Checks the validity of this jwt against the given [`VerifyingKey`] `key`, and the JSON syntax
     /// of the claims.  Does not check the validity of the claims itself.
+    ///
+    /// If only the signature is invalid, the claims can be extracted from
+    /// [`Error::InvalidSignature::claims`].
     pub fn open<VK: VerifyingKey>(&self, key: &VK) -> Result<Claims, Error> {
         let s = &self.inner;
 
@@ -434,15 +437,8 @@ impl JWT {
 
         VK::check_alg(&header.alg)?;
 
-        // check signature
         let signature: Vec<u8> =
             Base64UrlUnpadded::decode_vec(&s[last_dot_pos + 1..]).map_err(Error::InvalidBase64)?;
-
-        if !key.is_valid_signature(signed.as_bytes(), signature) {
-            return Err(Error::InvalidSignature {
-                key: key.describe(),
-            });
-        }
 
         // decode claims
         let claims_vec: Vec<u8> = Base64UrlUnpadded::decode_vec(&signed[first_dot_pos + 1..])
@@ -450,10 +446,20 @@ impl JWT {
 
         let mut d = serde_json::Deserializer::from_slice(&claims_vec);
 
-        Ok(Claims {
+        let claims = Claims {
             inner: serde_json::Map::<String, serde_json::Value>::deserialize(&mut d)
                 .map_err(Error::ClaimsNotJsonMap)?,
-        })
+        };
+
+        // check signature
+        if !key.is_valid_signature(signed.as_bytes(), signature) {
+            return Err(Error::InvalidSignature {
+                key: key.describe(),
+                claims,
+            });
+        }
+
+        Ok(claims)
     }
 
     pub fn as_str(&self) -> &str {
@@ -532,7 +538,7 @@ pub enum Error {
     InvalidBase64(#[source] base64ct::Error),
 
     #[error("jwt signature is not valid (for this key, {key})")]
-    InvalidSignature { key: String },
+    InvalidSignature { key: String, claims: Claims },
 
     #[error("unexpected algorithm; got {got}, but expected {expected}")]
     UnexpectedAlgorithm { got: String, expected: &'static str },
@@ -623,7 +629,7 @@ pub trait Key {
 
     /// Checks that `alg` equals `Self::ALG`.
     ///
-    /// This method is overriden by [IgnoreSignature].
+    /// This method is overriden by [`IgnoreSignature`].
     fn check_alg(alg: &str) -> Result<(), Error> {
         if alg == Self::ALG {
             return Ok(());

@@ -261,12 +261,14 @@ impl App {
             .into_server_result()?;
 
         // check that the request indeed came from the hub
-        signed_req.open(&*resp.verifying_key).inspect_err(|ec| {
-            log::warn!(
-                "could not verify authenticity of hub ticket request for hub {}: {ec}",
-                req.handle,
-            )
-        })?;
+        signed_req
+            .old_open(&*resp.verifying_key)
+            .inspect_err(|ec| {
+                log::warn!(
+                    "could not verify authenticity of hub ticket request for hub {}: {ec}",
+                    req.handle,
+                )
+            })?;
 
         // if so, hand out ticket
         api::Signed::new(
@@ -327,7 +329,9 @@ impl App {
 
         let running_state = &app.running_state_or_not_yet_ready()?;
 
-        let _resp = req.identifying_attr.open(&running_state.attr_signing_key);
+        let _resp = req
+            .identifying_attr
+            .old_open(&running_state.attr_signing_key);
 
         todo! {}
     }

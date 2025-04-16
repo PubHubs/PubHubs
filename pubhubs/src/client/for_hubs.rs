@@ -21,7 +21,7 @@ impl HubContext<'_> {
     fn ticket_sign<T>(&self, msg: &T) -> api::Result<TicketSigned<T>>
     where
         T: serde::Serialize,
-        T: api::HavingMessageCode,
+        T: api::Signable,
     {
         Ok(TicketSigned::new(
             self.ticket.clone(),

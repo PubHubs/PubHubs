@@ -214,7 +214,10 @@ async fn main_integration_test_local(config: servers::Config, admin_sk: api::Sig
         .unwrap();
 
     // check that the ticket is valid
-    ticket.clone().open(&*constellation.phc_jwt_key).unwrap();
+    ticket
+        .clone()
+        .old_open(&*constellation.phc_jwt_key)
+        .unwrap();
 
     // request hub encryption key
     let _hek = client

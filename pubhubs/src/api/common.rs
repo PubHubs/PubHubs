@@ -234,7 +234,7 @@ pub trait EndpointDetails {
     const METHOD: http::Method;
     const PATH: &'static str;
 
-    /// When true, sets `Access-Control-Allow-Origin: *` header to allow fetches from the browser.
+    /// When true, sets `Access-Control-Allow-Origin: *` header to allow cross-origin fetches.
     const BROWSER_FETCH_ENDPOINT: bool = false;
 
     /// Helper function to add this endpoint to a [`web::ServiceConfig`].

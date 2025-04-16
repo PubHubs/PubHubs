@@ -56,11 +56,11 @@ pub mod hub {
         /// the provided `ticket`, and checking the `ticket` using `key`.
         pub fn open(self, key: &ed25519_dalek::VerifyingKey) -> Result<(T, crate::handle::Handle)>
         where
-            T: HavingMessageCode + serde::de::DeserializeOwned,
+            T: Signable,
         {
-            let ticket_content: TicketContent = self.ticket.open(key)?;
+            let ticket_content: TicketContent = self.ticket.old_open(key)?;
 
-            let msg: T = self.signed.open(&*ticket_content.verifying_key)?;
+            let msg: T = self.signed.old_open(&*ticket_content.verifying_key)?;
 
             Result::Ok((msg, ticket_content.handle))
         }

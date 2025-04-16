@@ -609,14 +609,13 @@ impl<S: Server> AppBase<S> {
     }
 
     /// Checks the signature on the given request that should be signed with the admin key.
-    fn open_admin_req<T: api::HavingMessageCode + serde::de::DeserializeOwned>(
-        &self,
-        signed_req: api::Signed<T>,
-    ) -> api::Result<T> {
-        signed_req.open(&*self.admin_key).map_err(|err| match err {
-            api::ErrorCode::InvalidSignature => api::ErrorCode::InvalidAdminKey,
-            err => err,
-        })
+    fn open_admin_req<T: api::Signable>(&self, signed_req: api::Signed<T>) -> api::Result<T> {
+        signed_req
+            .old_open(&*self.admin_key)
+            .map_err(|err| match err {
+                api::ErrorCode::InvalidSignature => api::ErrorCode::InvalidAdminKey,
+                err => err,
+            })
     }
 
     /// Changes server config, and restarts server
