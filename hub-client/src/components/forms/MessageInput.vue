@@ -82,7 +82,10 @@
 			</div>
 
 			<!-- Yivi signing qr popup -->
-			<div v-if="signingMessage" class="absolute bottom-[10%] md:left-[40%]" id="yivi-web-form"></div>
+			<div class="absolute bottom-[10%] left-1/2 w-fit -translate-x-1/2" v-show="showYiviQR">
+				<Icon type="close" class="absolute left-[23.5rem] z-10 cursor-pointer dark:text-black" @click="showYiviQR = false" />
+				<div v-if="signingMessage" id="yivi-web-form"></div>
+			</div>
 		</div>
 		<FileUploadDialog
 			:file="fileInfo"
@@ -147,6 +150,7 @@
 	const buttonEnabled = ref<boolean>(false);
 	const showPopover = ref<boolean>(false);
 	const signingMessage = ref<boolean>(false);
+	const showYiviQR = ref<boolean>(false);
 	const showEmojiPicker = ref<boolean>(false);
 	const showMention = ref<boolean>(true); // Mentions may always be shown, except when another popup is shown
 	const showFileUploadDialog = ref<boolean>(false);
@@ -156,7 +160,7 @@
 
 	const caretPos = ref({ top: 0, left: 0 });
 
-	const selectedAttributesSigningMessage = ref<string[]>(['irma-demo.sidn-pbdf.email.domain']);
+	const selectedAttributesSigningMessage = ref<string[]>(['pbdf.sidn-pbdf.email.email']);
 
 	const elFileInput = ref<HTMLInputElement | null>(null);
 	const elTextInput = ref<InstanceType<typeof TextArea> | null>(null);
@@ -229,9 +233,14 @@
 	}
 
 	function handleKeydown(event: KeyboardEvent) {
-		toggleMenus(undefined);
+		if (signingMessage.value) {
+			toggleMenus(signingMessage);
+		} else {
+			toggleMenus(undefined);
+		}
 		if (event.key === 'Escape') {
 			signingMessage.value = false;
+			showYiviQR.value = false;
 			showMention.value = false;
 		}
 	}
@@ -248,7 +257,7 @@
 	function toggleSigningMessage(newValue: boolean) {
 		signingMessage.value = newValue;
 		setCaretPos({ top: 0, left: caretPos.value.left });
-		toggleMenus(undefined);
+		toggleMenus(signingMessage);
 	}
 
 	function isValidMessage(): boolean {
@@ -305,14 +314,16 @@
 			return;
 		} // This makes sure value.value is not undefined
 		if (signingMessage.value) {
-			pubhubs.signAndSubmitMessage(value.value!.toString(), selectedAttributesSigningMessage.value).then(() => {
+			showYiviQR.value = true;
+			pubhubs.signAndSubmitMessage(value.value!.toString(), selectedAttributesSigningMessage.value, threadRoot).then(() => {
 				signingMessage.value = false;
+				value.value = '';
+				showYiviQR.value = false;
 			});
 		} else {
 			pubhubs.submitMessage(value.value!.toString(), rooms.currentRoomId, threadRoot, inReplyTo.value);
+			value.value = '';
 		}
-
-		value.value = '';
 	}
 
 	function setCaretPos(pos: { top: number; left: number }) {
@@ -325,6 +336,8 @@
 	function toggleMenus(from: object | undefined) {
 		showPopover.value = Object.is(from, showPopover) ? !showPopover.value : false;
 		showEmojiPicker.value = Object.is(from, showEmojiPicker) ? !showEmojiPicker.value : false;
+		signingMessage.value = Object.is(from, signingMessage) ? signingMessage.value : false;
+		showYiviQR.value = Object.is(from, signingMessage) ? showYiviQR.value : false;
 		showMention.value = Object.is(from, showMention) ? true : !fileUploading.value && !showPopover.value && !showEmojiPicker.value; // either true (from focus) or dependent of other popups
 		elFileInput.value = null;
 	}
