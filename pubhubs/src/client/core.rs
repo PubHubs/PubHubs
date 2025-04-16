@@ -1,8 +1,9 @@
 use std::rc::Rc;
 
+use crate::api::{ApiResultExt as _, EndpointDetails, ErrorCode, Result};
 use crate::misc::fmt_ext;
 
-use crate::api::{ApiResultExt as _, EndpointDetails, ErrorCode, Result};
+use awc::error::StatusCode;
 
 /// Client for making requests to pubhubs servers and hubs; cheaply clonable
 #[derive(Clone)]
@@ -264,9 +265,11 @@ impl Client {
                 method = EP::METHOD
             );
 
-            #[expect(clippy::match_single_binding)]
             return Result::Err(match status {
-                // Maybe some status codes warrant a retry
+                // Caddy returns 502 Bad Gateway when the service proxied to is (temporarily) down
+                StatusCode::BAD_GATEWAY | StatusCode::GATEWAY_TIMEOUT => {
+                    ErrorCode::CouldNotConnectYet
+                }
                 _ => ErrorCode::BadRequest,
             });
         }
