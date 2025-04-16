@@ -333,7 +333,7 @@ const en = {
 		},
 		messageSigned: {
 			heading: 'Signed message',
-			info: 'A statement that is signed with Yivi attributes and can be shared outside the Hub.',
+			info: 'A message that is signed with Yivi attributes.',
 			verificationStatus: 'Signed messages are a work in progress. They are trustworthy, but are not yet cryptographically verified.',
 		},
 		delete: {

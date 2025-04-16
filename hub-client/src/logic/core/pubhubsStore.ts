@@ -579,13 +579,13 @@ const usePubHubs = defineStore('pubhubs', {
 		 * @param message - message to send
 		 * @param attributes - attributes to sign with
 		 */
-		signAndSubmitMessage(message: string, attributes: string[]): Promise<void> {
+		signAndSubmitMessage(message: string, attributes: string[], threadRoot: TMessageEvent | undefined): Promise<void> {
 			return new Promise((resolve, reject) => {
 				const rooms = useRooms();
 				const accessToken = this.Auth.getAccessToken();
 				//accessToken && rooms.yiviSignMessage(message, attributes, rooms.currentRoomId, accessToken, this.finishedSigningMessage);
 				if (accessToken) {
-					const handler = this.createFinishedSigningMessageHandler.call(this, resolve, reject);
+					const handler = this.createFinishedSigningMessageHandler.call(this, threadRoot, resolve, reject);
 					rooms.yiviSignMessage(message, attributes, rooms.currentRoomId, accessToken, handler);
 				}
 			});
@@ -595,11 +595,11 @@ const usePubHubs = defineStore('pubhubs', {
 		 * @param resolve
 		 * @param reject
 		 */
-		createFinishedSigningMessageHandler(resolve: () => void, reject: () => void) {
+		createFinishedSigningMessageHandler(threadRoot: TMessageEvent | undefined, resolve: () => void, reject: () => void) {
 			return async (result: YiviSigningSessionResult) => {
 				try {
 					const rooms = useRooms();
-					await this.addSignedMessage(rooms.currentRoomId, result);
+					await this.addSignedMessage(rooms.currentRoomId, result, threadRoot);
 					resolve();
 				} catch (error) {
 					reject();
@@ -612,14 +612,18 @@ const usePubHubs = defineStore('pubhubs', {
 		 * @param roomId
 		 * @param signedMessage
 		 */
-		async addSignedMessage(roomId: string, signedMessage: YiviSigningSessionResult) {
+		async addSignedMessage(roomId: string, signedMessage: YiviSigningSessionResult, threadRoot: TMessageEvent | undefined) {
 			const content = {
 				msgtype: PubHubsMgType.SignedMessage as any, // client expects string from MsgType enum, to make our own type castable send this as any
 				body: 'signed message',
 				signed_message: signedMessage,
 				ph_body: '',
+				'm.relates_to': threadRoot ? { event_id: threadRoot.event_id, rel_type: 'm.thread', 'm.in_reply_to': undefined } : undefined,
+				// satisfy the sdk's type checking
+				'm.new_content': undefined,
 			};
-			await this.client.sendMessage(roomId, content);
+			const threadId = threadRoot?.event_id ?? null;
+			await this.client.sendMessage(roomId, threadId, content);
 		},
 
 		/**
