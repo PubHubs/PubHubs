@@ -57,7 +57,7 @@ struct SetInner {
     /// The servers' tasks
     joinset: tokio::task::JoinSet<Result<()>>,
 
-    /// Via `shutdown_sender` [Set] broadcasts the instruction to shutdown to all servers
+    /// Via `shutdown_sender` [`Set`] broadcasts the instruction to shutdown to all servers
     /// running in the `joinset`.  It does so not by `send`ing a message, but by dropping
     /// the `shutdown_sender`.
     shutdown_sender: Option<tokio::sync::broadcast::Sender<Infallible>>,
@@ -77,8 +77,8 @@ impl Drop for SetInner {
 impl SetInner {
     /// Creates a new set of PubHubs servers from the given config.
     ///
-    /// Returns not only the [SetInner] instance, but also a [`tokio::sync::oneshot::Sender<Infallible>`]
-    /// that can be dropped to signal the [SetInner] should shutdown.
+    /// Returns not only the [`SetInner`] instance, but also a [`tokio::sync::oneshot::Sender<Infallible>`]
+    /// that can be dropped to signal the [`SetInner`] should shutdown.
     pub fn new(
         config: &crate::servers::Config,
     ) -> Result<(Self, tokio::sync::oneshot::Sender<Infallible>)> {
@@ -335,8 +335,8 @@ impl<S: Server> Handles<S> {
         };
     }
 
-    /// Consumes this [Handles] shutting down the actix server and pubhubs tasks.
-    async fn shutdown(mut self, graceful_actix_shutdown: bool) -> anyhow::Result<()> {
+    /// Consumes this [`Handles`] shutting down the actix server and pubhubs tasks.
+    async fn shutdown(mut self) -> anyhow::Result<()> {
         log::debug!("Shut down of {} started", S::NAME);
 
         anyhow::ensure!(
@@ -346,8 +346,12 @@ impl<S: Server> Handles<S> {
 
         drop(self.ph_shutdown_sender.take());
 
-        // NOTE: this is a noop if the actix server is already stopped
-        self.actix_server_handle.stop(graceful_actix_shutdown).await;
+        // This is a noop if the actix server is already stopped
+        //
+        // We do not use graceful shutdown, becaus in practise the persistent connections
+        // delay shutdown for the maximal shutdown timeout, which causes more disruption
+        // than the graceful shutdown aims to prevent
+        self.actix_server_handle.stop(false).await;
 
         let maybe_modifier = self
             .ph_join_handle
@@ -575,18 +579,19 @@ pub struct Handle<S: Server> {
 struct CommandRequest<S: Server> {
     /// The actual command
     command: Command<S>,
-    /// A way for the [Server] to inform the [App] that the command is about to be executed.
+    /// A way for the [`Server`] to inform the [`App`] that the command is about to be executed.
     feedback_sender: tokio::sync::oneshot::Sender<()>,
 }
 
 impl<S: Server> CommandRequest<S> {
     /// Let's the issuer of the command know that the command is to be fulfilled
     fn accept(self) -> Command<S> {
-        let _ = self.feedback_sender.send(());
-        log::warn!(
-            "The app issuing command {} that is about to execute has already dropped.",
-            &self.command
-        );
+        if self.feedback_sender.send(()).is_err() {
+            log::warn!(
+                "The app issuing command '{}' that is about to execute has already dropped.",
+                &self.command
+            );
+        }
         self.command
     }
 }
@@ -705,10 +710,6 @@ impl<S: Server> Runner<S> {
         self.pubhubs_server.server_config().bind_to
     }
 
-    pub fn graceful_shutdown(&self) -> bool {
-        self.pubhubs_server.server_config().graceful_shutdown
-    }
-
     fn create_actix_server(&self, bind_to: &SocketAddr) -> Result<Handles<S>> {
         let app_creator: S::AppCreatorT = self.pubhubs_server.deref().clone();
 
@@ -808,7 +809,7 @@ impl<S: Server> Runner<S> {
 
         let result = Self::run_until_modifier_inner(&mut handles, self).await;
 
-        handles.shutdown(self.graceful_shutdown()).await?;
+        handles.shutdown().await?;
 
         result
     }

@@ -13,21 +13,26 @@ use actix_web::web;
 pub type Result<T> = std::result::Result<T, ErrorCode>;
 
 /// The [`actix_web::Responder`] used for all API endpoints: a wrapper around [`Result<T, ErrorCode>`].
-pub struct ResultResponder<T>(Result<T>);
+pub struct ResultResponder<EP: EndpointDetails>(Result<EP::ResponseType>);
 
-impl<T: Serialize> actix_web::Responder for ResultResponder<T> {
-    type Body = actix_web::body::EitherBody<String>;
+impl<EP: EndpointDetails> actix_web::Responder for ResultResponder<EP> {
+    type Body = actix_web::body::BoxBody;
 
-    fn respond_to(self, req: &actix_web::HttpRequest) -> actix_web::HttpResponse<Self::Body> {
-        // NOTE: `actix_web::web::Json(self).respond_to(req)` does not work here,
-        // because actix_web::web::Json implements `Deref` so the very function we are defining
-        // will shadow the function we want to call.
-        actix_web::Responder::respond_to(actix_web::web::Json(self.0), req)
+    fn respond_to(self, _req: &actix_web::HttpRequest) -> actix_web::HttpResponse<Self::Body> {
+        let mut builder = actix_web::HttpResponse::Ok();
+
+        if EP::BROWSER_FETCH_ENDPOINT {
+            // See
+            // https://developer.mozilla.org/en-US/docs/Web/API/Fetch_API/Using_Fetch#making_cross-origin_requests
+            builder.insert_header(("Access-Control-Allow-Origin", "*"));
+        }
+
+        builder.json(&self.0)
     }
 }
 
-impl<T> From<Result<T>> for ResultResponder<T> {
-    fn from(res: Result<T>) -> Self {
+impl<EP: EndpointDetails> From<Result<EP::ResponseType>> for ResultResponder<EP> {
+    fn from(res: Result<EP::ResponseType>) -> Self {
         Self(res)
     }
 }
@@ -107,7 +112,7 @@ impl<T> ApiResultExt for Result<T> {
 /// List of possible errors.  We use error codes in favour of more descriptive strings,
 /// because error codes can be more easily processed by the calling code,
 /// should change less often, and can be easily translated.
-#[derive(Clone, Copy, Serialize, Deserialize, Debug, thiserror::Error)]
+#[derive(Clone, Copy, Serialize, Deserialize, Debug, thiserror::Error, PartialEq, Eq)]
 pub enum ErrorCode {
     #[error("requested process already running")]
     AlreadyRunning,
@@ -237,6 +242,9 @@ pub trait EndpointDetails {
     const METHOD: http::Method;
     const PATH: &'static str;
 
+    /// When true, sets `Access-Control-Allow-Origin: *` header to allow fetches from the browser.
+    const BROWSER_FETCH_ENDPOINT: bool = false;
+
     /// Helper function to add this endpoint to a [`web::ServiceConfig`].
     ///
     /// The `handler` argument must be of the form:
@@ -249,8 +257,8 @@ pub trait EndpointDetails {
         sc: &mut web::ServiceConfig,
         handler: F,
     ) where
-        server::AppMethod<App, F, Self::ResponseType>: actix_web::Handler<Args>,
-        <server::AppMethod<App, F, Self::ResponseType> as actix_web::Handler<Args>>::Output:
+        server::AppMethod<App, F, Self>: actix_web::Handler<Args>,
+        <server::AppMethod<App, F, Self> as actix_web::Handler<Args>>::Output:
             'static + actix_web::Responder,
     {
         sc.route(
@@ -327,7 +335,7 @@ macro_rules! wrap_dalek_type {
             }
         }
 
-        // We implement [FromStr] so that this type can be used as a command-line argument with [clap].
+        /// We implement [`std::str::FromStr`] so that this type can be used as a command-line argument with [`clap`].
         impl std::str::FromStr for $type {
             type Err = serde::de::value::Error;
 
@@ -347,6 +355,12 @@ macro_rules! wrap_dalek_type {
         impl core::ops::DerefMut for $type {
             fn deref_mut(&mut self) -> &mut Self::Target {
                 &mut self.inner
+            }
+        }
+
+        impl std::fmt::Display for $type {
+            fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+                self.serialize(f)
             }
         }
     }

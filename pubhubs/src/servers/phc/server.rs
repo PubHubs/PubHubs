@@ -66,7 +66,7 @@ pub struct ExtraRunningState {
 
     /// Key used to sign [`Attr`]s, shared with the authentication server
     ///
-    /// [`Attr`]: attr::Attr
+    /// [`Attr`]: crate::attr::Attr
     attr_signing_key: jwt::HS256,
 }
 
@@ -118,71 +118,100 @@ impl crate::servers::App<Server> for App {
         if self.running_state.is_none()
             || self.running_state.as_ref().unwrap().constellation.inner != new_constellation_inner
         {
+            let new_constellation_id = constellation::Inner::derive_id(&new_constellation_inner);
+
+            if self.running_state.is_some() {
+                log::info!(
+                    "Detected change in constellation {} -> {}",
+                    self.running_state.as_ref().unwrap().constellation.id,
+                    new_constellation_id
+                );
+            } else {
+                log::info!("Computed constellation {}", new_constellation_id);
+            }
+
             return Ok(Some(Constellation {
-                id: constellation::Inner::derive_id(&new_constellation_inner),
+                id: new_constellation_id,
                 inner: new_constellation_inner,
             }));
         }
 
         let constellation = &self.running_state.as_ref().unwrap().constellation;
 
+        log::info!("My own constellation is up-to-date");
+
         // Check whether the other servers' constellations are up-to-date
 
         let mut js = tokio::task::JoinSet::new();
 
-        if let Some(c) = tdi.constellation {
-            if c.id != constellation.id {
-                // transcryptor's constellation is out of date; invoke discovery
-                log::info!(
-                    "{phc}: {t}'s constellation is out of date - invoking its discovery..",
-                    phc = servers::Name::PubhubsCentral,
-                    t = servers::Name::Transcryptor
-                );
-                let url = self.transcryptor_url.clone();
-                js.spawn_local(self.client.query::<api::DiscoveryRun>(&url, &()));
-            }
+        if tdi
+            .constellation
+            .as_ref()
+            .is_some_and(|c| c.id != constellation.id)
+        {
+            // transcryptor's constellation is out of date; invoke discovery
+            log::info!(
+                "{phc}: {t}'s constellation is out of date - invoking its discovery..",
+                phc = servers::Name::PubhubsCentral,
+                t = servers::Name::Transcryptor
+            );
+            let url = self.transcryptor_url.clone();
+            js.spawn_local(self.client.query::<api::DiscoveryRun>(&url, &()));
         }
 
-        if let Some(c) = asdi.constellation {
-            if c.id != constellation.id {
-                // authentication server's constellation is out of date; invoke discovery
-                log::info!(
-                    "{phc}: {auths}'s constellation is out of date - invoking its discovery..",
-                    phc = servers::Name::PubhubsCentral,
-                    auths = servers::Name::AuthenticationServer
-                );
-                let url = self.auths_url.clone();
-                js.spawn_local(self.client.query::<api::DiscoveryRun>(&url, &()));
-            }
+        if asdi
+            .constellation
+            .as_ref()
+            .is_some_and(|c| c.id != constellation.id)
+        {
+            // authentication server's constellation is out of date; invoke discovery
+            log::info!(
+                "{phc}: {auths}'s constellation is out of date - invoking its discovery..",
+                phc = servers::Name::PubhubsCentral,
+                auths = servers::Name::AuthenticationServer
+            );
+            let url = self.auths_url.clone();
+            js.spawn_local(self.client.query::<api::DiscoveryRun>(&url, &()));
         }
 
         let result_maybe = js.join_next().await;
 
-        // Whatever the result, we don't want to abort the discovery prematurely
+        // Whatever the result, we don't want to abort the the discovery run calls
+        // prematurely when `js` is dropped.
         js.detach_all();
 
         match result_maybe {
-            // joinset was empty;  servers were already up to date
+            // joinset was empty, no discovery was ran
             None => {
-                return Ok(None);
+                if tdi.constellation.is_some() && asdi.constellation.is_some() {
+                    log::info!("Constellation of all servers up to date!");
+                    Ok(None)
+                } else {
+                    log::info!("Waiting for the other servers to update their constellation.");
+                    Err(api::ErrorCode::NotYetReady)
+                }
             }
             // a task ended irregularly (panicked, joined,...)
             Some(Err(join_err)) => {
                 log::error!("discovery run task joined unexpectedly: {}", join_err);
-                return Err(api::ErrorCode::InternalError);
+                Err(api::ErrorCode::InternalError)
             }
             // we got a result from one of the tasks..
             Some(Ok(res)) => {
-                if res.retryable().is_ok() {
-                    // the discovery task was completed succesfully, or made some progress,
-                    // or we got a retryable error.
-                    // In all these cases the caller should try again.
-                    return Err(api::ErrorCode::NotYetReady);
+                match res.retryable() {
+                    Ok(_) => {
+                        // the discovery task was completed succesfully, or made some progress,
+                        // or we got a retryable error.
+                        // In all these cases the caller should try again.
+                        Err(api::ErrorCode::NotYetReady)
+                    }
+                    Err(err) => {
+                        log::error!("Failed to run discovery of other server: {err}",);
+                        Err(api::ErrorCode::InternalError)
+                    }
                 }
             }
         }
-
-        Ok(None)
     }
 
     fn master_enc_key_part(&self) -> Option<&elgamal::PrivateKey> {
