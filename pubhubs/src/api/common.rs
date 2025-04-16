@@ -19,15 +19,7 @@ impl<EP: EndpointDetails> actix_web::Responder for ResultResponder<EP> {
     type Body = actix_web::body::BoxBody;
 
     fn respond_to(self, _req: &actix_web::HttpRequest) -> actix_web::HttpResponse<Self::Body> {
-        let mut builder = actix_web::HttpResponse::Ok();
-
-        if EP::BROWSER_FETCH_ENDPOINT {
-            // See
-            // https://developer.mozilla.org/en-US/docs/Web/API/Fetch_API/Using_Fetch#making_cross-origin_requests
-            builder.insert_header(("Access-Control-Allow-Origin", "*"));
-        }
-
-        builder.json(&self.0)
+        EP::response_builder().json(&self.0)
     }
 }
 
@@ -302,12 +294,25 @@ pub trait EndpointDetails {
             Self::PATH,
             web::method(Self::METHOD).to(move || {
                 // TODO: etag
-                let response = actix_web::HttpResponse::Ok()
+                let http_resp = Self::response_builder()
                     .content_type(actix_web::http::header::ContentType::json())
                     .body(response.clone());
-                async { response }
+                async { http_resp }
             }),
         );
+    }
+
+    /// Creates an [`actix_web::HttpResponseBuilder`] for this endpoint.
+    fn response_builder() -> actix_web::HttpResponseBuilder {
+        let mut builder = actix_web::HttpResponse::Ok();
+
+        if Self::BROWSER_FETCH_ENDPOINT {
+            // See
+            // https://developer.mozilla.org/en-US/docs/Web/API/Fetch_API/Using_Fetch#making_cross-origin_requests
+            builder.insert_header(("Access-Control-Allow-Origin", "*"));
+        }
+
+        builder
     }
 }
 
