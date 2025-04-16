@@ -22,6 +22,10 @@ rust-clippy:
   script:
     - cd pubhubs
     - cargo clippy -- --deny "warnings"
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
+    - if: $CI_COMMIT_BRANCH == "main"
+    - if: $CI_COMMIT_BRANCH == "stable"
 
 rust-unit-test:
   stage: tests
