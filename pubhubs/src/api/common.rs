@@ -21,6 +21,12 @@ impl<EP: EndpointDetails> actix_web::Responder for ResultResponder<EP> {
     fn respond_to(self, _req: &actix_web::HttpRequest) -> actix_web::HttpResponse<Self::Body> {
         let mut builder = actix_web::HttpResponse::Ok();
 
+        if EP::BROWSER_FETCH_ENDPOINT {
+            // See
+            // https://developer.mozilla.org/en-US/docs/Web/API/Fetch_API/Using_Fetch#making_cross-origin_requests
+            builder.insert_header(("Access-Control-Allow-Origin", "*"));
+        }
+
         builder.json(&self.0)
     }
 }
@@ -235,6 +241,9 @@ pub trait EndpointDetails {
 
     const METHOD: http::Method;
     const PATH: &'static str;
+
+    /// When true, sets `Access-Control-Allow-Origin: *` header to allow fetches from the browser.
+    const BROWSER_FETCH_ENDPOINT: bool = false;
 
     /// Helper function to add this endpoint to a [`web::ServiceConfig`].
     ///
