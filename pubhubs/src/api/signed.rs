@@ -2,11 +2,10 @@ use core::marker::PhantomData;
 
 use std::fmt;
 
-use serde::{de::DeserializeOwned, Deserialize, Serialize};
+use serde::{Deserialize, Serialize};
 
 use crate::id;
 use crate::misc::jwt;
-use crate::servers::Constellation;
 
 use crate::api::*;
 
@@ -80,10 +79,10 @@ impl<T> Signed<T> {
                 | jwt::Error::MissingDot
                 | jwt::Error::InvalidBase64(_)
                 | jwt::Error::UnexpectedAlgorithm { .. } => OpenError::OtherwiseInvalid,
-                jwt::Error::InvalidSignature { claims, .. } => {
+                jwt::Error::InvalidSignature { /*claims,*/ .. } => {
                     // claims.check(CONSTELLATION_CLAIM, jwt::expecting::exactly())
-
-                    todo! {}
+                    
+                    // TODO: check if we're dealing with an outdated constellation
 
                     OpenError::OtherwiseInvalid
                 }
@@ -208,6 +207,7 @@ pub const MESSAGE_CODE_CLAIM: &str = "ph-mc";
 /// The claim name used to store the [`Constellation`] [`Id`].
 ///
 /// [`Id`]: id::Id
+/// [`Constellation`]: crate::servers::Constellation
 pub const CONSTELLATION_CLAIM: &str = "ph-ci";
 
 /// A type that's used as the contents of a [`Signed`] message.
@@ -216,7 +216,9 @@ pub trait Signable: serde::de::DeserializeOwned + serde::Serialize {
 
     /// Include a [`CONSTELLATION_CLAIM`] in the [`Signed`] message of this type, binding the
     /// signed message to the current [`Constellation`].
-    const CONSTELLATION_BOUND: bool = true;
+    ///
+    /// [`Constellation`]: crate::servers::Constellation
+    const CONSTELLATION_BOUND: bool = false;
 }
 
 #[macro_export]
