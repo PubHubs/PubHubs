@@ -1,7 +1,7 @@
 <template>
-	<div v-if="isVisible" ref="elContainer" :style="getStyle()" class="scrollbar bg-lightgray-light dark:bg-gray fixed max-h-52 w-fit overflow-y-auto rounded-lg shadow-lg">
+	<div v-if="isVisible" ref="elContainer" :style="getStyle()" class="scrollbar fixed max-h-52 w-fit overflow-y-auto rounded-lg bg-surface shadow-lg">
 		<ul>
-			<li v-for="(member, index) in filteredUsers" :key="index" class="hover:bg-lightgray-dark hover:dark:bg-gray-middle group cursor-pointer px-4" @click.stop="clickedItem(member)">
+			<li v-for="(member, index) in filteredUsers" :key="index" class="group cursor-pointer px-4 hover:bg-surface-high" @click.stop="clickedItem(member)">
 				<div class="flex items-center gap-4 py-2">
 					<Avatar :user="room.getMember(member.userId, true)" />
 					<div>{{ member.rawDisplayName }}</div>

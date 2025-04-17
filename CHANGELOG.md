@@ -20,6 +20,9 @@ It will generate a checked and updated yaml file as homeserver.live.yaml as defa
 - [BUG] Thread stayed open on changing room
 - [BUG] In thread-view the first message could be deleted, forcing the whole thread to be deleted
 - [BUG] The roomslist shows loading spinner again and shows rooms while loading
+- [BUG] Signed messages are enabled again, making it possible to sign messages using an e-mailaddress.
+- [BUG] Files, signed messages and the list of users that shows up when mentioning a user have a background color again.
+- [BUG] The icon to change the avatar and nickname in a hub is changed back from a cog wheel to a pencil.
 
 ## 03 April 2025 - v2.0.0
 

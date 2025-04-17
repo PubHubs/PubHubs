@@ -49,7 +49,7 @@ pub struct DiscoveryInfoResp {
 }
 
 /// Result of the `.ph/discovery/run` endpoint
-#[derive(Serialize, Deserialize, Debug)]
+#[derive(Serialize, Deserialize, Debug, PartialEq, Eq)]
 pub enum DiscoveryRunResp {
     /// Everything checks out at our side
     UpToDate,

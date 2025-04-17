@@ -83,6 +83,8 @@ pub mod user {
 
         const METHOD: http::Method = http::Method::GET;
         const PATH: &'static str = ".ph/user/welcome";
+
+        const BROWSER_FETCH_ENDPOINT: bool = true;
     }
 
     #[derive(Serialize, Deserialize, Debug, Clone)]
@@ -99,12 +101,16 @@ pub mod user {
 
         const METHOD: http::Method = http::Method::POST;
         const PATH: &'static str = ".ph/user/enter";
+
+        const BROWSER_FETCH_ENDPOINT: bool = true;
     }
 
     /// Request to log in to an existing account, or register a new one.
     #[derive(Serialize, Deserialize, Debug, Clone)]
     pub struct EnterReq {
         /// [`Attr`]ibute identifying the user.
+        ///
+        /// [`Attr`]: attr::Attr
         pub identifying_attr: Signed<attr::Attr>,
 
         /// Whether we want to create a new account if one does not exist.

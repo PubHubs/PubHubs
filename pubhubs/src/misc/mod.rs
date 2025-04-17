@@ -8,3 +8,6 @@ pub mod net_ext;
 pub mod serde_ext;
 pub mod task;
 pub mod time_ext;
+
+mod defer;
+pub use defer::defer;

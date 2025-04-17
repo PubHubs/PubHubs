@@ -75,8 +75,7 @@
 				</template>
 				<template v-else>
 					<Suspense>
-						<!-- Temporary fix to set the background color of the MessageSnippet in the dialog to delete a message -->
-						<MessageSnippet :class="{ '!bg-[#e2e2e2]': deleteMessageDialog }" v-if="showReplySnippet(event.content.msgtype)" @click="onInReplyToClick" :eventId="inReplyToId" :showInReplyTo="true" :room="room"></MessageSnippet>
+						<MessageSnippet v-if="showReplySnippet(event.content.msgtype)" @click="onInReplyToClick" :eventId="inReplyToId" :showInReplyTo="true" :room="room"></MessageSnippet>
 						<template #fallback>
 							<div class="flex items-center gap-3 rounded-md px-2">
 								<p>{{ $t('state.loading_message') }}</p>
@@ -85,7 +84,7 @@
 					</Suspense>
 					<Message v-if="event.content.msgtype === MsgType.Text || redactedMessage" :event="event" :deleted="redactedMessage" class="max-w-[90ch]" />
 					<!-- Temporary fix to set the background color of the signed message in the dialog to delete a message -->
-					<MessageSigned :class="{ '!bg-[#e2e2e2]': deleteMessageDialog }" v-if="event.content.msgtype === PubHubsMgType.SignedMessage && !redactedMessage" :message="event.content.signed_message" class="max-w-[90ch]" />
+					<MessageSigned v-if="event.content.msgtype === PubHubsMgType.SignedMessage && !redactedMessage" :message="event.content.signed_message" class="max-w-[90ch]" />
 					<MessageFile v-if="event.content.msgtype === MsgType.File && !redactedMessage" :message="event.content" class="max-w-[90ch]" />
 					<MessageImage v-if="event.content.msgtype === MsgType.Image && !redactedMessage" :message="event.content" class="max-w-[90ch]" />
 				</template>

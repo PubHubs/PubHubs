@@ -370,15 +370,15 @@ pub trait App<S: Server>: Deref<Target = AppBase<S>> + 'static {
     /// Checks whether the given constellation properly reflects this server's configuration.
     fn check_constellation(&self, constellation: &Constellation) -> bool;
 
-    /// Runs the discovery routine for this server given [api::DiscoveryInfoResp] already
-    /// obtained from Pubhubs Central.  If the server is not PHC itself, the [Constellation]
-    /// in this [api::DiscoveryInfoResp] must be set.
+    /// Runs the discovery routine for this server given [`api::DiscoveryInfoResp`] already
+    /// obtained from Pubhubs Central.  If the server is not PHC itself, the [`Constellation`]
+    /// in this [`api::DiscoveryInfoResp`] must be set.
     ///
     /// This function return some constellation if the constellation of this server needs to be updated.
     ///
-    /// Returns None if everything checks out.  If one of the other servers is not up-to-date
+    /// Returns `None` if everything checks out.  If one of the other servers is not up-to-date
     /// according to this server, discovery of that server is invoked and
-    /// [api::ErrorCode::NotYetReady] is returned.
+    /// [`api::ErrorCode::NotYetReady`] is returned.
     async fn discover(
         self: &Rc<Self>,
         phc_inf: api::DiscoveryInfoResp,
@@ -420,7 +420,7 @@ pub trait App<S: Server>: Deref<Target = AppBase<S>> + 'static {
             );
 
             if phc_inf.constellation.as_ref().unwrap().id == rs.constellation.id {
-                log::trace!(
+                log::info!(
                     "{server_name}: my constellation is up-to-date!",
                     server_name = S::NAME,
                 );
@@ -779,15 +779,15 @@ impl<S: Server> AppBase<S> {
 
 /// An [`App`] together with a method on it.  Used to pass [`App`]s to [`actix_web::Handler`]s
 /// as first argument. See [`api::EndpointDetails::add_to`].
-pub struct AppMethod<App, F, ResponseType> {
+pub struct AppMethod<App, F, EP: ?Sized> {
     app: Rc<App>,
     f: F,
-    phantom: std::marker::PhantomData<ResponseType>,
+    phantom: std::marker::PhantomData<EP>,
 }
 
-/// Implement [`Clone`] manually so we don't have to require `ResponseType` to implement
+/// Implement [`Clone`] manually so we don't have to require `EP` to implement
 /// [`Clone`].
-impl<App, F: Clone, ResponseType> Clone for AppMethod<App, F, ResponseType> {
+impl<App, F: Clone, EP> Clone for AppMethod<App, F, EP> {
     fn clone(&self) -> Self {
         Self {
             app: self.app.clone(),
@@ -797,7 +797,7 @@ impl<App, F: Clone, ResponseType> Clone for AppMethod<App, F, ResponseType> {
     }
 }
 
-impl<App, F, ResponseType> AppMethod<App, F, ResponseType> {
+impl<App, F, EP: ?Sized> AppMethod<App, F, EP> {
     /// Creates a new [`AppMethod`], cloning [`App`].
     pub fn new(app: &Rc<App>, f: F) -> Self {
         AppMethod {
@@ -812,21 +812,21 @@ impl<App, F, ResponseType> AppMethod<App, F, ResponseType> {
 ///
 /// Based on [`actix_web`]'s implementation of [`actix_web::Handler`] for [`Fn`]s.
 macro_rules! factory_tuple ({ $($param:ident)* } => {
-    impl<Func, Fut, App, ResponseType, $($param,)*> actix_web::Handler<($($param,)*)> for AppMethod<App, Func, ResponseType>
+    impl<Func, Fut, App, EP, $($param,)*> actix_web::Handler<($($param,)*)> for AppMethod<App, Func, EP>
     where
         Func:  Fn(Rc<App>, $($param),*) -> Fut + Clone + 'static,
         Fut: core::future::Future,
         App: 'static,
-        ResponseType: 'static + serde::Serialize,
-        Fut::Output : Into<api::ResultResponder<ResponseType>>,
+        EP : EndpointDetails + 'static,
+        Fut::Output : Into<api::ResultResponder<EP>>,
     {
-        type Output = api::ResultResponder<ResponseType>;
-        type Future = futures::future::Map<Fut, fn(Fut::Output)->api::ResultResponder<ResponseType>>;
+        type Output = api::ResultResponder<EP>;
+        type Future = futures::future::Map<Fut, fn(Fut::Output)->api::ResultResponder<EP>>;
 
         #[inline]
         #[allow(non_snake_case)] // because the signature will be:  call(&self, A: A, B: B, ...)
         fn call(&self, ($($param,)*): ($($param,)*)) -> Self::Future {
-            (self.f)(self.app.clone(), $($param,)*).map(Into::<api::ResultResponder<ResponseType>>::into)
+            (self.f)(self.app.clone(), $($param,)*).map(Into::<api::ResultResponder<EP>>::into)
         }
     }
 });

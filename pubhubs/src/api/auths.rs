@@ -13,6 +13,8 @@ impl EndpointDetails for WelcomeEP {
 
     const METHOD: http::Method = http::Method::GET;
     const PATH: &'static str = ".ph/welcome";
+
+    const BROWSER_FETCH_ENDPOINT: bool = true;
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
@@ -28,6 +30,8 @@ impl EndpointDetails for AuthStartEP {
 
     const METHOD: http::Method = http::Method::POST;
     const PATH: &'static str = ".ph/auth/start";
+
+    const BROWSER_FETCH_ENDPOINT: bool = true;
 }
 
 /// Starts the process of obtaining attributes from the authentication server.
@@ -84,6 +88,8 @@ impl EndpointDetails for AuthCompleteEP {
 
     const METHOD: http::Method = http::Method::POST;
     const PATH: &'static str = ".ph/auth/complete";
+
+    const BROWSER_FETCH_ENDPOINT: bool = true;
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]

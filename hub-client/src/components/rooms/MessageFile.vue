@@ -1,5 +1,5 @@
 <template>
-	<div v-if="authMediaUrl" class="mt-2 flex overflow-x-hidden rounded-md p-2">
+	<div v-if="authMediaUrl" class="mt-2 flex overflow-x-hidden rounded-md bg-surface p-2">
 		<Icon type="paperclip" class="mr-2" />
 		<a class="text-blue truncate" target="_blank" :href="authMediaUrl">{{ message.filename }}</a>
 	</div>

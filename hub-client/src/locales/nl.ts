@@ -335,7 +335,7 @@ const nl = {
 		},
 		messageSigned: {
 			heading: 'Ondertekend bericht',
-			info: 'Een verklaring dat ondertekend is met Yivi attributen en gedeeld kan worden buiten de Hub.',
+			info: 'Een bericht dat ondertekend is met Yivi attributen.',
 			verificationStatus: 'Ondertekende berichten zijn nog in ontwikkeling. Ze zijn betrouwbaar, maar worden nog niet cryptographisch geverifieerd.',
 		},
 		delete: {

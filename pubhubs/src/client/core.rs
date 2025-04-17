@@ -1,8 +1,9 @@
 use std::rc::Rc;
 
+use crate::api::{ApiResultExt as _, EndpointDetails, ErrorCode, Result};
 use crate::misc::fmt_ext;
 
-use crate::api::{ApiResultExt as _, EndpointDetails, ErrorCode, Result};
+use awc::error::StatusCode;
 
 /// Client for making requests to pubhubs servers and hubs; cheaply clonable
 #[derive(Clone)]
@@ -125,10 +126,11 @@ impl Client {
         let client_req = self
             .inner
             .http_client
-            .request(EP::METHOD, ep_url.to_string())
-            .send_json(&req);
+            .request(EP::METHOD, ep_url.to_string());
 
-        futures::future::Either::Right(self.clone().query_inner::<EP>(ep_url, client_req))
+        let send_client_req = client_req.send_json(&req);
+
+        futures::future::Either::Right(self.clone().query_inner::<EP>(ep_url, send_client_req))
     }
 
     async fn query_inner<EP: EndpointDetails + 'static>(
@@ -263,9 +265,11 @@ impl Client {
                 method = EP::METHOD
             );
 
-            #[expect(clippy::match_single_binding)]
             return Result::Err(match status {
-                // Maybe some status codes warrant a retry
+                // Caddy returns 502 Bad Gateway when the service proxied to is (temporarily) down
+                StatusCode::BAD_GATEWAY | StatusCode::GATEWAY_TIMEOUT => {
+                    ErrorCode::CouldNotConnectYet
+                }
                 _ => ErrorCode::BadRequest,
             });
         }
