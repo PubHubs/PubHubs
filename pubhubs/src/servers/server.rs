@@ -59,6 +59,15 @@ pub(crate) trait Server: DerefMut<Target = Self::AppCreatorT> + Sized + 'static 
 
     const NAME: Name;
 
+    /// Returns the default TCP port this server binds to.
+    fn default_port() -> u16 {
+        match Self::NAME {
+            Name::PubhubsCentral => 8080,
+            Name::Transcryptor => 7070,
+            Name::AuthenticationServer => 6060,
+        }
+    }
+
     /// Is moved accross threads to create the [`App`]s.
     type AppCreatorT: AppCreator<Self>;
 

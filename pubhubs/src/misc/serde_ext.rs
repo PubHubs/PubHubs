@@ -6,6 +6,20 @@ use serde::{
 use core::fmt;
 use std::marker::PhantomData;
 
+/// Deserializes nothing, useful for ignoring deprecated fields in types annotated with
+/// `#[serde(deny_unknown_fields)]`.
+#[derive(serde::Serialize, Debug, Clone, Copy, PartialEq, Eq)]
+pub struct Skip;
+
+impl<'de> Deserialize<'de> for Skip {
+    fn deserialize<D>(_deserializer: D) -> Result<Self, D::Error>
+    where
+        D: serde::de::Deserializer<'de>,
+    {
+        Ok(Self {})
+    }
+}
+
 pub mod bytes_wrapper {
     use super::*;
 

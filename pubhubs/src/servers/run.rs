@@ -1,5 +1,4 @@
-//! Running PubHubs [Server]s
-use std::net::SocketAddr;
+//! Running PubHubs [`Server`]s
 use std::num::NonZero;
 use std::rc::Rc;
 use std::sync::Arc;
@@ -706,11 +705,7 @@ impl<S: Server> Runner<S> {
         })
     }
 
-    pub fn bind_to(&self) -> SocketAddr {
-        self.pubhubs_server.server_config().bind_to
-    }
-
-    fn create_actix_server(&self, bind_to: &SocketAddr) -> Result<Handles<S>> {
+    fn create_actix_server(&self) -> Result<Handles<S>> {
         let app_creator: S::AppCreatorT = self.pubhubs_server.deref().clone();
 
         let (command_sender, command_receiver) = mpsc::channel(1);
@@ -720,10 +715,18 @@ impl<S: Server> Runner<S> {
             discovery_limiter: DiscoveryLimiter::new(),
         };
 
+        let server_config = self.pubhubs_server.server_config();
+
         log::info!(
-            "{}:  binding actix server to {}, running on {:?}",
+            "{}:  binding actix server to {}, port {}, running on {:?}",
             S::NAME,
-            bind_to,
+            server_config
+                .ips
+                .iter()
+                .map(|ip| ip.to_string())
+                .collect::<Box<[String]>>()
+                .join(", "),
+            server_config.port,
             std::thread::current().id()
         );
 
@@ -747,7 +750,7 @@ impl<S: Server> Runner<S> {
                     )
                 })
                 .disable_signals() // we handle signals ourselves
-                .bind(bind_to)?;
+                .bind(server_config)?;
 
             if let Some(worker_count) = self.worker_count {
                 builder = builder.workers(worker_count.get());
@@ -807,7 +810,7 @@ impl<S: Server> Runner<S> {
     pub async fn run_until_modifier(
         &mut self,
     ) -> Result<crate::servers::server::BoxModifier<S>, anyhow::Error> {
-        let mut handles = self.create_actix_server(&self.bind_to())?;
+        let mut handles = self.create_actix_server()?;
 
         let result = Self::run_until_modifier_inner(&mut handles, self).await;
 
