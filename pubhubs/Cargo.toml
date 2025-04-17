@@ -41,6 +41,7 @@ common = [
 bin = [
 	"common",
 	"dep:actix-web",
+	"dep:actix-cors",
 	"dep:aead",
 	"dep:anyhow",
 	"dep:awc",
@@ -132,8 +133,9 @@ qrcode = { version = "0.14", optional = true }
 regex = { version = "1.11", optional = true }
 
 # Web dependencies
-actix-files = { version = "0.6", optional = true }
 actix-web = { version = "4.9", optional = true }
+actix-cors = { version = "0.7", optional = true }
+actix-files = { version = "0.6", optional = true }
 bytes = { version = "1", optional = true }
 env_logger = { version = "0.11.5", optional = true }
 http = { version = "0.2", optional = true }

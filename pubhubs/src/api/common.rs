@@ -234,9 +234,6 @@ pub trait EndpointDetails {
     const METHOD: http::Method;
     const PATH: &'static str;
 
-    /// When true, sets `Access-Control-Allow-Origin: *` header to allow cross-origin fetches.
-    const BROWSER_FETCH_ENDPOINT: bool = false;
-
     /// Helper function to add this endpoint to a [`web::ServiceConfig`].
     ///
     /// The `handler` argument must be of the form:
@@ -304,15 +301,7 @@ pub trait EndpointDetails {
 
     /// Creates an [`actix_web::HttpResponseBuilder`] for this endpoint.
     fn response_builder() -> actix_web::HttpResponseBuilder {
-        let mut builder = actix_web::HttpResponse::Ok();
-
-        if Self::BROWSER_FETCH_ENDPOINT {
-            // See
-            // https://developer.mozilla.org/en-US/docs/Web/API/Fetch_API/Using_Fetch#making_cross-origin_requests
-            builder.insert_header(("Access-Control-Allow-Origin", "*"));
-        }
-
-        builder
+        actix_web::HttpResponse::Ok()
     }
 }
 

@@ -41,8 +41,7 @@
 //!        down.  The client should try the same request again.
 //!
 //!  4. A response may also be rejected when it arrives at a browser, for example, due to improperly set
-//!     [Cross-Origin Resource Sharing] headers.  Make sure that endpoints used by web clients have
-//!     [`EndpointDetails::BROWSER_FETCH_ENDPOINT`]  enabled.
+//!     [Cross-Origin Resource Sharing] headers.  
 //!
 //! [Cross-Origin Resource Sharing]: https://developer.mozilla.org/en-US/docs/Web/HTTP/Guides/CORS
 mod common;

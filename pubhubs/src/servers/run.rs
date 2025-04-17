@@ -736,13 +736,15 @@ impl<S: Server> Runner<S> {
                 actix_web::HttpServer::new(move || {
                     let app: Rc<S::AppT> = Rc::new(app_creator2.clone().into_app(&handle2));
 
-                    actix_web::App::new().configure(|sc: &mut web::ServiceConfig| {
-                        // first configure endpoints common to all servers
-                        AppBase::<S>::configure_actix_app(&app, sc);
+                    actix_web::App::new().wrap(S::cors()).configure(
+                        |sc: &mut web::ServiceConfig| {
+                            // first configure endpoints common to all servers
+                            AppBase::<S>::configure_actix_app(&app, sc);
 
-                        // and then server-specific endpoints
-                        app.configure_actix_app(sc);
-                    })
+                            // and then server-specific endpoints
+                            app.configure_actix_app(sc);
+                        },
+                    )
                 })
                 .disable_signals() // we handle signals ourselves
                 .bind(bind_to)?;

@@ -111,6 +111,14 @@ pub(crate) trait Server: DerefMut<Target = Self::AppCreatorT> + Sized + 'static 
         shutdown_receiver: tokio::sync::oneshot::Receiver<Infallible>,
         app: Rc<Self::AppT>,
     ) -> anyhow::Result<Option<BoxModifier<Self>>>;
+
+    /// Creates cross-origin resource sharing middleware for this server.
+    fn cors() -> actix_cors::Cors {
+        actix_cors::Cors::default()
+            .allow_any_origin()
+            .allowed_methods(["GET", "POST"])
+            .allowed_header(actix_web::http::header::CONTENT_TYPE)
+    }
 }
 
 /// Basic implementation of [Server].
