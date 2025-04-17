@@ -199,6 +199,9 @@ const nl = {
 		discover: 'Ontdek kamers',
 		no_rooms_found: 'Geen kamers gevonden',
 		unread_messages: 'Ongelezen berichten',
+		announcement: 'aankondiging',
+		steward: 'groepsleider',
+		administrator: 'administrator',
 	},
 	settings: {
 		userId: 'UserID',

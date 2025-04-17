@@ -15,6 +15,7 @@ enum RedactReasons {
 enum PubHubsMgType {
 	SignedMessage = 'pubhubs.signed_message',
 	AskDisclosureMessage = 'pubhubs.ask_disclosure_message',
+	AnnouncementMessage = 'pubhubs.announcement_message',
 }
 
 class Events {

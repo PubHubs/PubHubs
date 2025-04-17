@@ -199,6 +199,9 @@ const en = {
 		discover: 'Discover rooms',
 		no_rooms_found: 'No rooms were found',
 		unread_messages: 'Unread Messages',
+		announcement: 'announcement',
+		steward: 'steward',
+		administrator: 'administrator',
 	},
 	settings: {
 		displayname: 'Nickname',

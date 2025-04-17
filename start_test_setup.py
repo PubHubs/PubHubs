@@ -438,7 +438,7 @@ def docker_run_hub_server(hub_secret, image_name, container_name, hub_matrix_por
                       *dont_start_hub,
                       "-e", "SYNAPSE_CONFIG_DIR=/data",
                       "-e", "AUTHLIB_INSECURE_TRANSPORT=for_testing_only_of_course",
-                      "-e", f"UPDATE_CONFIG_ENV={os.getenv("UPDATE_CONFIG_ENV", default="development")}",
+                      "-e", f"UPDATE_CONFIG_ENV={os.getenv('UPDATE_CONFIG_ENV', default='development')}",
                       "-v", f"{config_dir}:/data:rw",
                       *mount_modules,
                       "--add-host", "host.docker.internal:host-gateway",

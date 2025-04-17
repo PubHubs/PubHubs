@@ -35,6 +35,7 @@ It will generate a checked and updated yaml file as homeserver.live.yaml as defa
 - [BUG] Loading of rooms shows spinner again
 - [BUG] Show Hub Settings only to hub admin
 - [BUG] Sometimes threads displayed messages in the wrong order
+- [NEW] Announcements can be made by steward (and room administrator) in rooms.
 
 ## 20 March 2025 - v1.2.0
 

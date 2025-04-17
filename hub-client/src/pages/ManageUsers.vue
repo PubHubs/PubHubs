@@ -30,7 +30,7 @@
 							<Avatar :user="item.name" :override-avatar-url="item.avatar_url" />
 							<p class="min-w-0 truncate font-semibold">{{ item.displayname }}</p>
 							<p class="line-clamp-1 hidden min-w-0 pr-1 italic text-on-surface-dim md:inline">{{ item.name }}</p>
-							<span v-if="item.admin" class="relative line-clamp-1 w-fit items-center rounded-md bg-accent-red px-1 font-medium text-on-accent-red ~text-label-min/label-max">Hub Administrator</span>
+							<RoomBadge :user="item.name" :room_id="item.room_id" :is-hub-admin="item.admin"></RoomBadge>
 						</div>
 						<div class="flex w-fit gap-4">
 							<div class="flex items-center gap-2">
@@ -46,6 +46,7 @@
 
 <script setup lang="ts">
 	import Avatar from '@/components/ui/Avatar.vue';
+	import RoomBadge from '@/components/rooms/RoomBadge.vue';
 
 	import { computed, onMounted, ref } from 'vue';
 	import { TUserAccount } from '@/model/users/TUser';

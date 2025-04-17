@@ -626,6 +626,18 @@ const usePubHubs = defineStore('pubhubs', {
 			await this.client.sendMessage(roomId, threadId, content);
 		},
 
+		async addAnnouncementMessage(roomId: string, text: string, userPL: number) {
+			const content = {
+				msgtype: PubHubsMgType.AnnouncementMessage,
+				body: text,
+				// Sender power level
+				sender: userPL,
+			};
+			// @ts-ignore
+			// todo: fix this (issue #808)
+			await this.client.sendMessage(roomId, content);
+		},
+
 		/**
 		 * @param roomId
 		 * @param eventId
