@@ -27,9 +27,9 @@ pub struct File {
     #[serde(default)]
     pub urls: Option<Urls>,
 
-    /// Bind to this address.  Defaults to ("::0", "8080").
+    /// Bind to thses addresses.  Defaults to (("::", "0.0.0.0"), "8080").
     #[serde(default = "default_bind_to")]
-    pub bind_to: (String, u16),
+    pub bind_to: (Vec<String>, u16),
 
     /// When pubhubs checks it can connect to itself, this value is expected.
     /// When None, it is randomly generated.  Set it to some none-None value
@@ -101,8 +101,8 @@ pub struct Hotfixes {
     pub no_http_only_cookies: bool,
 }
 
-fn default_bind_to() -> (String, u16) {
-    ("::0".to_string(), 8080)
+fn default_bind_to() -> (Vec<String>, u16) {
+    (vec!["::".to_string(), "0.0.0.0".to_string()], 8080)
 }
 fn default_policy_directory() -> String {
     "default_policies".to_string()
