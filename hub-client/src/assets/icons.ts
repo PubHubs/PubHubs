@@ -437,6 +437,14 @@ const icons: { [key: string]: string } = {
         </svg>`,
 	slash: `<svg class="h-10 w-10 text-gray-500"  viewBox="0 0 24 24"  fill="none"  stroke="currentColor"  stroke-width="2"  stroke-linecap="round"  stroke-linejoin="round">  <circle cx="12" cy="12" r="10" />  <line x1="4.93" y1="4.93" x2="19.07" y2="19.07" /></svg>`,
 	help: `<svg class="h-10 w-10 text-gray-500"  width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">  <path stroke="none" d="M0 0h24v24H0z"/>  <circle cx="12" cy="12" r="9" />  <line x1="12" y1="17" x2="12" y2="17.01" />  <path d="M12 13.5a1.5 1.5 0 0 1 1 -1.5a2.6 2.6 0 1 0 -3 -4" /></svg>`,
+	announcement: `<svg width="23" height="23" viewBox="0 0 23 23" fill="none" stroke="currentColor" stroke-width="0.3"  xmlns="http://www.w3.org/2000/svg">
+        <path d="M20.0416 0.800781H2.76156C1.57356 0.800781 0.612362 1.77278 0.612362 2.96078L0.601562 22.4008L4.92156 18.0808H20.0416C21.2296 18.0808 22.2016 17.1088 22.2016 15.9208V2.96078C22.2016 1.77278 21.2296 0.800781 20.0416 0.800781ZM12.4816 10.5208H10.3216V4.04078H12.4816V10.5208ZM12.4816 14.8408H10.3216V12.6808H12.4816V14.8408Z" fill="white"/>
+        </svg>`,
+	power_level: `<svg width="9" height="11" viewBox="0 0 9 9" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <circle cx="4.5" cy="2.5" r="2.5" fill="white"/>
+        <path d="M0 7.5C0 6.11929 1.11929 5 2.5 5H6.5C7.88071 5 9 6.11929 9 7.5V10H0V7.5Z" fill="white"/>
+        </svg>
+        `,
 };
 
 export { icons, iconSizes as sizes };

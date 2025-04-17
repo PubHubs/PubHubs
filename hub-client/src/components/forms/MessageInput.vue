@@ -37,6 +37,7 @@
 				<div class="flex items-end gap-x-4 rounded-2xl px-4 py-2">
 					<Icon type="paperclip" size="md" @click.stop="togglePopover" :asButton="true" />
 					<!-- Overflow-x-hidden prevents firefox from adding an extra row to the textarea for a possible scrollbar -->
+
 					<TextArea
 						ref="elTextInput"
 						class="max-h-40 overflow-x-hidden border-none bg-transparent ~text-label-min/label-max placeholder:text-on-surface-variant md:max-h-60"
@@ -52,6 +53,16 @@
 						@cancel="cancel()"
 						@caretPos="setCaretPos"
 					/>
+
+					<!--Steward and above can broadcast only in main time line-->
+					<div
+						v-if="room.getPowerLevel(user.user.userId) >= 50 && !inThread"
+						class="flex aspect-square h-6 w-6 justify-center"
+						:class="!buttonEnabled && 'opacity-50 hover:cursor-default'"
+						@click="isValidMessage() ? announcementMessage() : null"
+					>
+						<Icon type="announcement" size="md"></Icon>
+					</div>
 
 					<!-- Emoji picker -->
 					<Icon type="emoticon" :iconColor="'text-background dark:text-on-surface-variant'" size="md" @click.stop="toggleEmojiPicker" :asButton="true" class="rounded-full bg-accent-secondary" />
@@ -113,6 +124,7 @@
 	import { usePubHubs } from '@/logic/core/pubhubsStore';
 	import { useMessageActions } from '@/logic/store/message-actions';
 	import { useRooms } from '@/logic/store/store';
+	import { useUser } from '@/logic/store/user';
 	import { TMessageEvent } from '@/model/events/TMessageEvent';
 	import Room from '@/model/rooms/Room';
 	import Popover from '../ui/Popover.vue';
@@ -127,6 +139,7 @@
 	import FileUploadDialog from '../ui/FileUploadDialog.vue';
 	import MessageSnippet from '../rooms/MessageSnippet.vue';
 
+	const user = useUser();
 	const route = useRoute();
 	const rooms = useRooms();
 	const pubhubs = usePubHubs();
@@ -324,6 +337,13 @@
 			pubhubs.submitMessage(value.value!.toString(), rooms.currentRoomId, threadRoot, inReplyTo.value);
 			value.value = '';
 		}
+	}
+
+	async function announcementMessage() {
+		const powerLevel = props.room.getPowerLevel(user.user.userId);
+		// if (value.value?.toLocaleString().length === 0) return;
+		await pubhubs.addAnnouncementMessage(rooms.currentRoomId, value.value!.toString(), powerLevel);
+		value.value = '';
 	}
 
 	function setCaretPos(pos: { top: number; left: number }) {

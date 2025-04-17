@@ -161,12 +161,13 @@ export default class Room {
 		this.firstVisibleTimeStamp = 0;
 	}
 
-	public getPowerLevel(user_id: string): Number | boolean {
+	public getPowerLevel(user_id: string): number {
 		const member = this.matrixRoom.getMember(user_id);
 		if (member) {
 			return member?.powerLevel;
 		}
-		return false;
+		// Doesn't have power level.
+		return -1;
 	}
 
 	public getType(): string | undefined {

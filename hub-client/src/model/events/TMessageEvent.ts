@@ -19,7 +19,7 @@ interface TBaseMessageEventContent {
 	body: string;
 	// Custom body type, which has all the processed body or formatted body content, for use in our components
 	ph_body: string;
-	msgtype: MsgType.Text | MsgType.Image | MsgType.File | PubHubsMgType.SignedMessage;
+	msgtype: MsgType.Text | MsgType.Image | MsgType.File | PubHubsMgType.SignedMessage | PubHubsMgType.AnnouncementMessage;
 	'm.relates_to'?: {
 		rel_type?: string;
 		event_id?: string;
@@ -62,9 +62,14 @@ export interface TSignedMessageEventContent extends TBaseMessageEventContent {
 	signed_message: SignedMessage;
 }
 
+export interface TAnnouncementMessageEventContent extends TBaseMessageEventContent {
+	msgtype: PubHubsMgType.AnnouncementMessage;
+	sender: string;
+}
+
 export type IHTMLTextMessageEventContent = WithRequired<TTextMessageEventContent, 'format' | 'formatted_body'>;
 
-export type TMessageEventContent = TTextMessageEventContent | TImageMessageEventContent | TFileMessageEventContent | TSignedMessageEventContent;
+export type TMessageEventContent = TTextMessageEventContent | TImageMessageEventContent | TFileMessageEventContent | TSignedMessageEventContent | TAnnouncementMessageEventContent;
 
 // To be implemented
 type EncryptedFile = any;
