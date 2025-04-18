@@ -515,7 +515,17 @@ impl DiscoveryLimiter {
                         }
                     };
 
-                    server.running_state = Some(RunningState::new(new_constellation, extra));
+                    let new_url = new_constellation.url(S::NAME).clone();
+
+                    let old_running_state = server
+                        .running_state
+                        .replace(RunningState::new(new_constellation, extra));
+
+                    // See if our url has changed
+                    if old_running_state.is_none_or(|rs| rs.constellation.url(S::NAME) != &new_url)
+                    {
+                        log::info!("{}: at {}", S::NAME, new_url);
+                    }
 
                     true // yes, restart
                 },
