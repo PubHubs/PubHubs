@@ -3,6 +3,7 @@ use anyhow::Context as _;
 use base64ct::{Base64Url, Encoding as _};
 use chacha20poly1305::XChaCha20Poly1305;
 use rand::Rng as _;
+use rand::RngCore as _;
 
 /// Key used by [`seal`] and co.
 ///
@@ -18,6 +19,14 @@ pub fn random_alphanumeric() -> String {
         .take(22)
         .map(char::from)
         .collect()
+}
+
+pub fn random_32_bytes() -> [u8; 32] {
+    let mut bytes: [u8; 32] = [0; 32];
+
+    rand::rngs::OsRng::fill_bytes(&mut rand::rngs::OsRng, bytes.as_mut_slice());
+
+    bytes
 }
 
 /// Like [`seal`], but returns an urlsafe base64 encoded string.

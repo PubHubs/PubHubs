@@ -6,6 +6,7 @@ use std::path::{Path, PathBuf};
 use anyhow::{Context as _, Result};
 use url::Url;
 
+use crate::misc::serde_ext::bytes_wrapper::B64UU;
 use crate::servers::{for_all_servers, server::Server as _};
 use crate::{
     api::{self},
@@ -324,6 +325,13 @@ pub mod phc {
         ///
         /// Generate using `cargo run tools generate scalar`.
         pub master_enc_key_part: Option<elgamal::PrivateKey>,
+
+        /// Secret used to derive [`Attr::id`]s.
+        ///
+        /// Randomly generated if not set, which is not suitable for production.
+        ///
+        /// [`Attr::id`]: crate::attr::Attr::id
+        pub attr_id_secret: Option<B64UU>,
     }
 }
 
@@ -506,6 +514,10 @@ impl PrepareConfig<Pcc> for phc::ExtraConfig {
     async fn prepare(&mut self, c: Pcc) -> anyhow::Result<()> {
         self.master_enc_key_part
             .get_or_insert_with(elgamal::PrivateKey::random);
+
+        self.attr_id_secret.get_or_insert_with(|| {
+            serde_bytes::ByteBuf::from(crate::misc::crypto::random_32_bytes()).into()
+        });
 
         let ha: &HostAliases = c.get::<HostAliases>().unwrap();
 

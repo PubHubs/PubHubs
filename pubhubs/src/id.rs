@@ -1,7 +1,6 @@
 //! [`Id`]s for PubHubs objects like [hub](crate::hub::BasicInfo)s and [attrbute
 //! types](crate::attr::Type).
 use crate::misc::serde_ext::{self, bytes_wrapper};
-use rand::RngCore as _;
 
 /// An identifier, a random 256-bit number, which is encoded
 /// using unpadded url-safe base64
@@ -14,11 +13,7 @@ pub struct Id {
 impl Id {
     /// Creates a new random id
     pub fn random() -> Self {
-        let mut bytes: [u8; 32] = [0; 32];
-
-        rand::rngs::OsRng::fill_bytes(&mut rand::rngs::OsRng, bytes.as_mut_slice());
-
-        bytes.into()
+        crate::misc::crypto::random_32_bytes().into()
     }
 
     /// Returns byte slice to underlying `[u8; 32]`.

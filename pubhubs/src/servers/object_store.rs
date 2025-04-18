@@ -20,8 +20,15 @@ impl<'a> TryFrom<&'a Option<ObjectStoreConfig>> for UseNone {
 }
 
 /// The default object store we use.
-#[expect(dead_code)]
 pub struct DefaultObjectStore(Box<object_store::DynObjectStore>);
+
+impl std::ops::Deref for DefaultObjectStore {
+    type Target = object_store::DynObjectStore;
+
+    fn deref(&self) -> &Self::Target {
+        &*self.0
+    }
+}
 
 impl<'a> TryFrom<&'a Option<ObjectStoreConfig>> for DefaultObjectStore {
     type Error = anyhow::Error;

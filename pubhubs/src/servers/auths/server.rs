@@ -285,6 +285,8 @@ impl App {
                         &attr::Attr {
                             attr_type: attr_type.id,
                             value: raw_value.to_string(),
+                            bannable: attr_type.bannable,
+                            identifying: attr_type.identifying,
                         },
                         app.auth_window,
                     )?,

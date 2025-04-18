@@ -4,9 +4,12 @@ use std::rc::Rc;
 
 use actix_web::web;
 
+use crate::api::phc::user::{EnterMode, EnterResp};
 use crate::api::{self, ApiResultExt as _, EndpointDetails as _};
+use crate::attr;
 use crate::client;
 use crate::handle;
+use crate::id;
 use crate::misc::jwt;
 use crate::phcrypto;
 use crate::servers::{self, constellation, AppBase, AppCreatorBase, Constellation, Handle};
@@ -45,6 +48,7 @@ pub struct App {
     auths_url: url::Url,
     hubs: crate::map::Map<hub::BasicInfo>,
     master_enc_key_part: elgamal::PrivateKey,
+    attr_id_secret: Box<[u8]>,
 }
 
 impl Deref for App {
@@ -324,16 +328,92 @@ impl App {
     async fn handle_user_enter(
         app: Rc<Self>,
         req: web::Json<api::phc::user::EnterReq>,
-    ) -> api::Result<api::phc::user::EnterResp> {
-        let req = req.into_inner();
-
+    ) -> api::Result<EnterResp> {
         let running_state = &app.running_state_or_not_yet_ready()?;
 
-        let _resp = req
-            .identifying_attr
-            .old_open(&running_state.attr_signing_key);
+        let api::phc::user::EnterReq {
+            identifying_attr,
+            mode,
+            add_attrs,
+        } = req.into_inner();
+
+        // Check attributes are valid
+        let identifying_attr = identifying_attr.old_open(&running_state.attr_signing_key)?;
+
+        if !identifying_attr.identifying {
+            log::debug!(
+                "supposed attribute {} of type {} is not identifying",
+                identifying_attr.value,
+                identifying_attr.attr_type
+            );
+            return Err(api::ErrorCode::BadRequest);
+        }
+
+        let mut opened_add_attrs: Vec<attr::Attr> = Vec::with_capacity(add_attrs.len());
+
+        for add_attr in add_attrs {
+            opened_add_attrs.push(add_attr.old_open(&running_state.attr_signing_key)?);
+        }
+
+        // Attributes are fine, check if we have a user account
+        let _identifying_attr_state: attr::AttrState = 'found_attr_state: {
+            if matches!(mode, EnterMode::Login | EnterMode::LoginOrRegister) {
+                // see if account exists
+                if let Some(ias) = app
+                    .get_attr_state(identifying_attr.id(&*app.attr_id_secret))
+                    .await?
+                {
+                    log::trace!(
+                        "enter: account exists for attribute {} of type {}",
+                        identifying_attr.value,
+                        identifying_attr.attr_type,
+                    );
+                    break 'found_attr_state ias;
+                }
+
+                log::trace!(
+                    "enter: no account exists for attribute {} of type {}",
+                    identifying_attr.value,
+                    identifying_attr.attr_type,
+                );
+            }
+
+            if mode == EnterMode::Login {
+                return Ok(EnterResp::AccountDoesNotExist);
+            }
+
+            todo! {}
+            // try to register account; check if we have a bannable attribute
+        };
 
         todo! {}
+    }
+
+    /// Retrieves the [`attr::AttrState`] stored for the attribute with this `id::Id`.
+    async fn get_attr_state(&self, attr_id: id::Id) -> api::Result<Option<attr::AttrState>> {
+        match self
+            .shared
+            .object_store
+            .get(&std::format!("attr/{attr_id}").into())
+            .await
+        {
+            Ok(get_result) => {
+                let bytes: bytes::Bytes = get_result.bytes().await.map_err(|err| {
+                    log::error!("unexpected error getting attribute {attr_id}'s state: {err}");
+                    api::ErrorCode::InternalError
+                })?;
+
+                Ok(Some(serde_json::from_slice(&bytes).map_err(|err| {
+                    log::error!("could not parse object stored under attr/{attr_id}: {err}");
+                    api::ErrorCode::InternalError
+                })?))
+            }
+            Err(object_store::Error::NotFound { .. }) => Ok(None),
+            Err(err) => Err({
+                log::error!("unexpected error getting attribute {attr_id}'s state: {err}");
+                api::ErrorCode::InternalError
+            }),
+        }
     }
 }
 
@@ -344,6 +424,7 @@ pub struct AppCreator {
     auths_url: url::Url,
     hubs: crate::map::Map<hub::BasicInfo>,
     master_enc_key_part: elgamal::PrivateKey,
+    attr_id_secret: Box<[u8]>,
 }
 
 impl Deref for AppCreator {
@@ -368,6 +449,7 @@ impl crate::servers::AppCreator<Server> for AppCreator {
             auths_url: self.auths_url,
             hubs: self.hubs,
             master_enc_key_part: self.master_enc_key_part,
+            attr_id_secret: self.attr_id_secret,
         }
     }
 
@@ -393,6 +475,14 @@ impl crate::servers::AppCreator<Server> for AppCreator {
             auths_url: xconf.auths_url.as_ref().clone(),
             hubs,
             master_enc_key_part,
+            attr_id_secret: <serde_bytes::ByteBuf as Clone>::clone(
+                xconf
+                    .attr_id_secret
+                    .as_ref()
+                    .expect("attr_id_secret was not initialized"),
+            )
+            .into_vec()
+            .into_boxed_slice(),
         })
     }
 }

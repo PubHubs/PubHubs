@@ -88,13 +88,15 @@ pub struct Attr {
 
     /// Actual value of this attribute, in a format that is [`Type`] dependent.
     pub value: String,
+
+    pub bannable: bool,
+    pub identifying: bool,
 }
 
 impl Attr {
     /// Derives an identifier for this attribute from [`Attr::value`] and [`Attr::attr_type`],
     /// and the given digestible secret.
-    #[expect(dead_code)]
-    fn id(&self, secret: impl secret::DigestibleSecret) -> Id {
+    pub fn id(&self, secret: impl secret::DigestibleSecret) -> Id {
         phcrypto::attr_id(self, secret)
     }
 }

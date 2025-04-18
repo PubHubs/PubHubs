@@ -7,6 +7,7 @@ use serde::{Deserialize, Serialize};
 
 use crate::attr;
 use crate::handle;
+use crate::id;
 use crate::servers::Constellation;
 
 /// `.ph/hub/...` endpoints, used by hubs
@@ -109,13 +110,10 @@ pub mod user {
         /// [`Attr`]: attr::Attr
         pub identifying_attr: Signed<attr::Attr>,
 
-        /// Whether we want to create a new account if one does not exist.
+        /// The mode determines whether we want to create an account if none exists,
+        /// and whether we expect an account to exist.
         #[serde(default)]
-        pub permit_registration: bool,
-
-        /// Whether we expect no account to exist.
-        #[serde(default)]
-        pub expect_registration: bool,
+        pub mode: EnterMode,
 
         /// Add these attributes to your account, required, for example, when registering a new
         /// account.
@@ -126,10 +124,10 @@ pub mod user {
     #[derive(Serialize, Deserialize, Debug, Clone)]
     #[serde(rename = "snake_case")]
     pub enum EnterResp {
-        /// Can happen only when [`EnterReq::expect_registration`] is true
+        /// Happens only in [`EnterMode::Register`]
         AccountAlreadyExists,
 
-        /// Can happen only ewhen [`EnterReq::permit_registration`] is false
+        /// Happens only in [`EnterMode::Login`]
         AccountDoesNotExist,
 
         /// Login (and registration) was successful
@@ -137,8 +135,21 @@ pub mod user {
             /// Whether we created a new account
             new_account: bool,
 
-            attr_status: HashMap<handle::Handle, AttrAddResp>,
+            attr_status: HashMap<id::Id, AttrAddResp>,
         },
+    }
+
+    #[derive(Default, Serialize, Deserialize, Debug, Clone, Copy, PartialEq, Eq)]
+    pub enum EnterMode {
+        /// Log in to an existing account
+        #[default]
+        Login,
+
+        /// Register a new account
+        Register,
+
+        /// Log in to an existing account, or register one first if needed
+        LoginOrRegister,
     }
 
     #[derive(Serialize, Deserialize, Debug, Clone)]
