@@ -26,6 +26,9 @@ It will generate a checked and updated yaml file as homeserver.live.yaml as defa
 - [BUG] Files, signed messages and the list of users that shows up when mentioning a user have a background color again.
 - [BUG] The icon to change the avatar and nickname in a hub is changed back from a cog wheel to a pencil.
 - [NEW] Announcements can be made by steward (and room administrator) in rooms.
+- [NEW] For the hub a banner, description, summary and contact details can now be set in the hub settings. 
+The summary and contact details are displayed on the discover hub page.
+The description and contact details are displayed in the hub homepage.
 
 ## 03 April 2025 - v2.0.0
 

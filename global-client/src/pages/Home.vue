@@ -1,9 +1,7 @@
 <template>
 	<!-- Page when logged-out -->
 	<div v-if="!global.loggedIn">
-		<div class="h-[15svh] min-h-[150px] w-full">
-			<ImagePlaceholder source="/client/img/imageplaceholder.jpg" />
-		</div>
+		<HubBanner />
 		<div class="mx-auto mb-8 flex w-full flex-col gap-16 md:w-4/6">
 			<div class="mt-16 flex flex-col items-center justify-start gap-16 px-4 md:px-0">
 				<div class="flex items-center whitespace-nowrap ~gap-2/4">
@@ -38,9 +36,7 @@
 
 	<!-- Page when logged-in -->
 	<div v-else>
-		<div class="h-[15svh] min-h-[150px] w-full">
-			<ImagePlaceholder source="/client/img/imageplaceholder.jpg" />
-		</div>
+		<HubBanner />
 		<div class="mx-auto mb-8 flex w-full flex-col gap-16 md:w-4/6">
 			<div class="-mt-[5.5rem] flex flex-col gap-2 px-8 md:px-0">
 				<div class="flex items-center whitespace-nowrap ~gap-1/4">
@@ -88,12 +84,11 @@
 
 <script setup lang="ts">
 	import { computed, ref } from 'vue';
-
 	import Logo from '@/components/ui/Logo.vue';
 	import { useGlobal, useHubs } from '@/logic/store/store';
 	import { yivi } from '@/yivi';
 
-	import ImagePlaceholder from '../../../hub-client/src/components/elements/ImagePlaceholder.vue';
+	import HubBanner from '../../../hub-client/src/components/ui/HubBanner.vue';
 
 	const global = useGlobal();
 	const hubs = useHubs();

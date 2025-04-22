@@ -14,5 +14,11 @@ const api = new Api(_env.PUBHUBS_URL, {
 	bar: 'bar/state',
 	hubs: 'bar/hubs',
 });
+const hub_api = new Api('/', {
+	hubSettingsUrl: '_synapse/client/hub/settings',
+	iconLight: '_synapse/client/hub/icon',
+	iconUrlDark: '_synapse/client/hub/icon/dark',
+	bannerUrl: '_synapse/client/hub/banner',
+});
 
-export { api };
+export { api, hub_api };

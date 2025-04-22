@@ -1,7 +1,5 @@
 <template>
-	<div class="h-[15svh] min-h-[150px] w-full">
-		<ImagePlaceholder source="/img/imageplaceholder.jpg" />
-	</div>
+	<HubBanner :banner-url="hubSettings.bannerUrl" />
 	<div class="mx-auto mb-8 flex w-full flex-col gap-16 md:w-4/6">
 		<div class="-mt-[5.5rem] flex flex-col gap-2 px-8 md:px-0">
 			<div class="flex items-center whitespace-nowrap ~gap-1/4">
@@ -43,10 +41,13 @@
 
 <script setup lang="ts">
 	// Components
-	import ImagePlaceholder from '@/components/elements/ImagePlaceholder.vue';
+	import HubBanner from '@/components/ui/HubBanner.vue';
+	// import SearchRoomsInput from '@/components/forms/SearchRoomsInput.vue';
+	// import HeaderFooter from '@/components/ui/HeaderFooter.vue';
 	import RoomPill from '@/components/rooms/RoomPill.vue';
 	import Icon from '@/components/elements/Icon.vue';
 
+	import { useHubSettings } from '@/logic/store/hub-settings';
 	import { useRooms } from '@/logic/store/store';
 	import { computed, ref, onMounted } from 'vue';
 	import { useI18n } from 'vue-i18n';
@@ -54,6 +55,7 @@
 	const currentRoomId = ref<string | null>(null);
 	const searchQuery = ref('');
 
+	const hubSettings = useHubSettings();
 	const rooms = useRooms();
 	const { t } = useI18n();
 

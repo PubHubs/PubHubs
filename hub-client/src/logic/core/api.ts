@@ -29,12 +29,17 @@ const api_synapse = new Api(BASE_URL + '/_synapse/', {
 	// user room
 	roomsAPIV1: 'admin/v1/rooms/',
 	roomsAPIV2: 'admin/v2/rooms/',
+
+	// hub settings
 	hub: 'client/hub',
 	hubLogo: 'client/hublogo',
+	hubDescription: 'client/hub/settings',
 	hubIcon: 'client/hub/icon',
 	hubIconDark: 'client/hub/icon/dark',
 	hubIconDefault: 'client/hub/default-icon',
 	hubIconDefaultDark: 'client/hub/default-icon/dark',
+	hubBanner: 'client/hub/banner',
+	hubBannerDefault: 'client/hub/default-banner',
 });
 
 const api_matrix = new Api(BASE_URL + '/_matrix', {
