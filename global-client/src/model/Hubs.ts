@@ -4,11 +4,9 @@ import { Pinia } from 'pinia';
 // Global imports
 import { useSettings } from '@/logic/store/store';
 import { hub_api } from '@/logic/core/api';
-// import { api } from '@/logic/core/api';
 
 // Hub imports
 import { FeatureFlag, SettingsStore } from '../../../hub-client/src/logic/store/settings';
-import { HubSettingsJSONParser } from '../../../hub-client/src/logic/store/hub-settings';
 
 class Hub {
 	readonly hubId: string;
@@ -68,11 +66,11 @@ class Hub {
 			return `${this.url}/img/banner.svg`;
 		}
 	}
-	public async getHubJSON(): Promise<HubSettingsJSONParser> {
+	public async getHubJSON(): Promise<Object> {
 		if (this.settingsStore.isFeatureEnabled(FeatureFlag.hubSettings)) {
 			return await hub_api.apiGET(`${this.serverUrl}${hub_api.apiURLS.hubSettingsUrl}`);
 		} else {
-			return {} as HubSettingsJSONParser;
+			return {};
 		}
 	}
 }
