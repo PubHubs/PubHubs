@@ -52,14 +52,12 @@
 	import { TUserAccount } from '@/model/users/TUser';
 	import { useUser } from '@/logic/store/user';
 	import { ManagementUtils } from '@/model/hubmanagement/utility/managementutils';
-
 	import { useI18n } from 'vue-i18n';
 	import { useSettings } from '@/logic/store/settings';
 
 	const { t } = useI18n();
 	const settings = useSettings();
 	const isMobile = computed(() => settings.isMobileState);
-
 	// Store
 	const user = useUser();
 

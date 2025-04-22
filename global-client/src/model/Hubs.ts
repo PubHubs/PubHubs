@@ -3,9 +3,12 @@ import { Pinia } from 'pinia';
 
 // Global imports
 import { useSettings } from '@/logic/store/store';
+import { hub_api } from '@/logic/core/api';
+// import { api } from '@/logic/core/api';
 
 // Hub imports
 import { FeatureFlag, SettingsStore } from '../../../hub-client/src/logic/store/settings';
+import { HubSettingsJSONParser } from '../../../hub-client/src/logic/store/hub-settings';
 
 class Hub {
 	readonly hubId: string;
@@ -45,7 +48,7 @@ class Hub {
 
 	public get iconUrlLight(): string {
 		if (this.settingsStore.isFeatureEnabled(FeatureFlag.hubSettings)) {
-			return `${this.serverUrl}_synapse/client/hub/icon`;
+			return `${this.serverUrl}${hub_api.apiURLS.iconLight}`;
 		} else {
 			return `${this.url}/img/logo.svg`;
 		}
@@ -53,9 +56,23 @@ class Hub {
 
 	public get iconUrlDark(): string {
 		if (this.settingsStore.isFeatureEnabled(FeatureFlag.hubSettings)) {
-			return `${this.serverUrl}_synapse/client/hub/icon/dark`;
+			return `${this.serverUrl}${hub_api.apiURLS.iconUrlDark}`;
 		} else {
 			return `${this.url}/img/logo-dark.svg`;
+		}
+	}
+	public get bannerUrl(): string {
+		if (this.settingsStore.isFeatureEnabled(FeatureFlag.hubSettings)) {
+			return `${this.serverUrl}${hub_api.apiURLS.bannerUrl}`;
+		} else {
+			return `${this.url}/img/banner.svg`;
+		}
+	}
+	public async getHubJSON(): Promise<HubSettingsJSONParser> {
+		if (this.settingsStore.isFeatureEnabled(FeatureFlag.hubSettings)) {
+			return await hub_api.apiGET(`${this.serverUrl}${hub_api.apiURLS.hubSettingsUrl}`);
+		} else {
+			return {} as HubSettingsJSONParser;
 		}
 	}
 }

@@ -18,9 +18,19 @@ type HubSettingsState = {
 	hubUrl: string;
 	isSolo: boolean;
 	mobileHubMenu: boolean;
-	_iconUrl: string;
-	_iconUrlDark: string;
 };
+
+export class HubSettingsJSONParser {
+	description: string;
+	summary: string;
+	contact: string;
+
+	constructor(description: string, summary: string, contact: string) {
+		this.description = description ? description.replace(/\\n/g, '\n').replace(/"/g, '') : '';
+		this.summary = summary ? summary.replace(/\\n/g, '\n').replace(/"/g, '') : '';
+		this.contact = contact ? contact.replace(/\\n/g, '\n').replace(/"/g, '') : '';
+	}
+}
 
 export const ALLOWED_HUB_ICON_TYPES = ['image/png', 'image/jpeg', 'image/jpg', 'image/svg+xml'];
 export const MAX_HUB_ICON_SIZE = 5000000; // ~5MB
@@ -35,8 +45,6 @@ const useHubSettings = defineStore('hub-settings', {
 			hubUrl: _env.HUB_URL,
 			isSolo: window.self === window.top,
 			mobileHubMenu: true,
-			_iconUrl: api_synapse.apiURLS.hubIcon,
-			_iconUrlDark: api_synapse.apiURLS.hubIconDark,
 		};
 	},
 
@@ -64,12 +72,11 @@ const useHubSettings = defineStore('hub-settings', {
 					return this.iconDefaultDarkUrl;
 			}
 		},
-
 		iconUrlLight(): string {
 			const settings = useSettings();
 
 			if (settings.isFeatureEnabled(FeatureFlag.hubSettings)) {
-				return this._iconUrl;
+				return api_synapse.apiURLS.hubIcon;
 			} else {
 				return '/img/logo-person.svg';
 			}
@@ -79,7 +86,7 @@ const useHubSettings = defineStore('hub-settings', {
 			const settings = useSettings();
 
 			if (settings.isFeatureEnabled(FeatureFlag.hubSettings)) {
-				return this._iconUrlDark;
+				return api_synapse.apiURLS.hubIconDark;
 			} else {
 				return '/img/logo-person-dark.svg';
 			}
@@ -105,6 +112,26 @@ const useHubSettings = defineStore('hub-settings', {
 			}
 		},
 
+		bannerUrl(): string {
+			const settings = useSettings();
+
+			if (settings.isFeatureEnabled(FeatureFlag.hubSettings)) {
+				return api_synapse.apiURLS.hubBanner;
+			} else {
+				return '/img/banner.svg';
+			}
+		},
+
+		bannerDefaultUrl(): string {
+			const settings = useSettings();
+
+			if (settings.isFeatureEnabled(FeatureFlag.hubSettings)) {
+				return api_synapse.apiURLS.hubBannerDefault;
+			} else {
+				return '/img/banner.svg';
+			}
+		},
+
 		hubInfo(): HubInformation | undefined {
 			return this._hub;
 		},
@@ -126,6 +153,24 @@ const useHubSettings = defineStore('hub-settings', {
 
 		async deleteIcon() {
 			await api_synapse.apiDELETE(api_synapse.apiURLS.hubIcon);
+		},
+		async setBanner(image: File) {
+			await api_synapse.uploadImage(api_synapse.apiURLS.hubBanner, image);
+		},
+
+		async deleteBanner() {
+			await api_synapse.apiDELETE(api_synapse.apiURLS.hubBanner);
+		},
+		async getHubJSON(): Promise<HubSettingsJSONParser> {
+			const settings = useSettings();
+			if (settings.isFeatureEnabled(FeatureFlag.hubSettings)) {
+				return (await api_synapse.apiGET(api_synapse.apiURLS.hubDescription)) as unknown as HubSettingsJSONParser;
+			} else {
+				return {} as HubSettingsJSONParser;
+			}
+		},
+		async setHubJSON(hubSettingsData: HubSettingsJSONParser) {
+			await api_synapse.apiPOST(api_synapse.apiURLS.hubDescription, hubSettingsData);
 		},
 	},
 });
