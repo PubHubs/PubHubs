@@ -1,7 +1,7 @@
 //! Creation and verification of cookies
 use crate::error::HttpContextExt as _;
 use actix_web::{HttpRequest, HttpResponseBuilder};
-use anyhow::{anyhow, bail, ensure, Context as _, Result};
+use anyhow::{Context as _, Result, anyhow, bail, ensure};
 use base64ct::{Base64UrlUnpadded, Encoding as _};
 use chrono::Utc;
 use hmac::{Hmac, Mac};
@@ -273,7 +273,7 @@ impl HttpRequestCookieExt for &HttpRequest {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use actix_web::{test, HttpResponse};
+    use actix_web::{HttpResponse, test};
     use uuid::Uuid;
 
     #[actix_web::test]

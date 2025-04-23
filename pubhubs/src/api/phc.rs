@@ -124,11 +124,17 @@ pub mod user {
     #[derive(Serialize, Deserialize, Debug, Clone)]
     #[serde(rename = "snake_case")]
     pub enum EnterResp {
-        /// Happens only in [`EnterMode::Register`]
-        AccountAlreadyExists,
+        /// The given identifying attribute is already tied to another account.
+        AttributeAlreadyTaken(attr::Attr),
 
         /// Happens only in [`EnterMode::Login`]
         AccountDoesNotExist,
+
+        /// This attribute is banned;  use another one.
+        AttributeBanned(attr::Attr),
+
+        /// Cannot register an account with these attributes:  no bannable attribute provided.
+        NoBannableAttribute,
 
         /// Login (and registration) was successful
         Entered {

@@ -156,7 +156,7 @@ impl Config {
                 std::io::ErrorKind::NotFound => return Ok(None),
                 _ => {
                     return Err(e)
-                        .with_context(|| format!("could not open config file {}", path.display()))
+                        .with_context(|| format!("could not open config file {}", path.display()));
                 }
             },
         })

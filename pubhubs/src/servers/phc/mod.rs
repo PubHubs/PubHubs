@@ -1,4 +1,4 @@
 //! Server: PubHubs Central
 mod server;
 
-pub use server::{Details, Server};
+pub use server::{Details, Server, UserState};

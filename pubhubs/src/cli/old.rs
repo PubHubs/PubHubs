@@ -7,7 +7,7 @@ use std::str::FromStr;
 
 use actix_web::web::{self, Data, Form, Path};
 
-use anyhow::{bail, Context, Result};
+use anyhow::{Context, Result, bail};
 use env_logger::Env;
 
 use log::{error, info, warn};
@@ -15,8 +15,8 @@ use serde::{Deserialize, Serialize};
 
 use tokio::sync::oneshot;
 
-use expry::{key_str, value, BytecodeVec};
-use http::{header, HeaderValue};
+use expry::{BytecodeVec, key_str, value};
+use http::{HeaderValue, header};
 use prometheus::{Encoder, TextEncoder};
 use tokio::sync::mpsc::Sender;
 
@@ -29,8 +29,8 @@ use crate::error::{AnyhowExt, TranslatedError};
 use crate::hairy_ext::hairy_eval_html_translations;
 use crate::middleware;
 use crate::middleware::{metrics_auth, metrics_middleware};
-use crate::oidc::http::actix_support::CompleteRequest;
 use crate::oidc::AuthenticAuthRequestHandle;
+use crate::oidc::http::actix_support::CompleteRequest;
 use crate::{
     cookie::{HttpRequestCookieExt as _, HttpResponseBuilderExt as _},
     data::{
@@ -39,7 +39,7 @@ use crate::{
     },
     oidc::Oidc as _,
     translate::Translations,
-    yivi::{disclosed_ph_id, login, next_session, register, SessionDataWithImage},
+    yivi::{SessionDataWithImage, disclosed_ph_id, login, next_session, register},
     yivi_proxy::{yivi_proxy, yivi_proxy_stream},
 };
 
@@ -168,25 +168,26 @@ async fn get_hub_details(
                 Ok(Ok(hub)) => {
                     match request.uri().query() {
                         Some("secret") => {
-                            let body = context.pep.make_local_decryption_key(
-                                &hub,
-                            ).unwrap() // TODO: replace this unwrap
-                            .to_hex();
+                            let body = context
+                                .pep
+                                .make_local_decryption_key(&hub)
+                                .unwrap() // TODO: replace this unwrap
+                                .to_hex();
                             HttpResponse::Ok().body(body)
-                        },
-                        _ => render_hub(&context, &hub, translations)
+                        }
+                        _ => render_hub(&context, &hub, translations),
                     }
-                },
-                error =>
-                    internal_server_error(
-                        "Could get hub details",
-                        &context.hair,
-                        &format!(
-                            "Someone tried to get details of a hub with parameters {:} and got this error {:?}",
-                            id, error,
-                        ),
-                        &request,translations
+                }
+                error => internal_server_error(
+                    "Could get hub details",
+                    &context.hair,
+                    &format!(
+                        "Someone tried to get details of a hub with parameters {:} and got this error {:?}",
+                        id, error,
                     ),
+                    &request,
+                    translations,
+                ),
             }
         }
         Err(err) => bad_request(
@@ -292,7 +293,7 @@ async fn update_hub(
                 })
                 .await
                 .expect("To use our channel");
-            match rx.await  {
+            match rx.await {
                 Ok(Ok(hub)) => render_hub(&context, &hub, translations),
                 error => internal_server_error(
                     "Could not update hub",
@@ -301,7 +302,8 @@ async fn update_hub(
                         "Someone tried to update hub with id {} and parameters {:?} and got this error {:?}",
                         id, hub_form, error,
                     ),
-                    &request,translations
+                    &request,
+                    translations,
                 ),
             }
         }
@@ -432,9 +434,7 @@ async fn yivi_start(
             hair,
             &format!(
                 "Someone tried to start an Yivi session with {} as requestor {} and got this error {:?}",
-                yivi_host,
-                yivi_requestor,
-                error,
+                yivi_host, yivi_requestor, error,
             ),
             &request,
             translations,
@@ -768,7 +768,7 @@ async fn get_user_by_id_wrap(
             id, error,
         ),
         req,
-        translations
+        translations,
     ))
 }
 
@@ -916,7 +916,12 @@ async fn check_connection_once(url: &str, nonce: &str) -> Result<()> {
     let bytes = resp.body().await?;
     let result = String::from_utf8(bytes.to_vec())?;
 
-    anyhow::ensure!(result == nonce, "{} did not return {}; we probably connected to another pubhubs instance, or to something else entirely", url, nonce);
+    anyhow::ensure!(
+        result == nonce,
+        "{} did not return {}; we probably connected to another pubhubs instance, or to something else entirely",
+        url,
+        nonce
+    );
 
     info!(" ✓ got correct response from {}", url);
     Ok(())
@@ -1051,27 +1056,27 @@ fn create_app(cfg: &mut web::ServiceConfig, context: Data<Main>) {
 mod tests {
     use super::*;
     use crate::data::User;
+    use actix_web::FromRequest as _;
     use actix_web::body::MessageBody;
     use actix_web::dev::Service;
     use actix_web::http::StatusCode;
     use actix_web::test;
     use actix_web::test::TestRequest;
-    use actix_web::FromRequest as _;
     use http::header::{AUTHORIZATION, SET_COOKIE};
     use hyper::service::{make_service_fn, service_fn};
     use hyper::{Body, Request, Response, Server};
     use std::convert::Infallible;
     use std::net::SocketAddr;
     use std::ops::DerefMut;
-    use std::sync::mpsc::{channel, Receiver};
+    use std::sync::mpsc::{Receiver, channel};
     use std::sync::{Arc, Mutex};
 
     use crate::data::DataCommands::{CreateUser, GetUser};
     use crate::data::HubHandle::Id;
     use crate::misc::serde_ext::bytes_wrapper::B64;
     use crate::yivi::{
-        Attribute, SessionData, SessionPointer, SessionResult, SessionType,
-        SessionType::Disclosing, Status, MAIL, MOBILE_NO, PUB_HUBS_ID,
+        Attribute, MAIL, MOBILE_NO, PUB_HUBS_ID, SessionData, SessionPointer, SessionResult,
+        SessionType, SessionType::Disclosing, Status,
     };
     use regex::Regex;
 

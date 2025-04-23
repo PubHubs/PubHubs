@@ -1,5 +1,5 @@
 use actix_web::http::header::{HeaderMap, HeaderValue};
-use anyhow::{anyhow, Context, Result};
+use anyhow::{Context, Result, anyhow};
 use expry::BytecodeVec;
 use hairy::hairy_compile_html;
 

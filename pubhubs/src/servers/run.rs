@@ -4,13 +4,13 @@ use std::rc::Rc;
 use std::sync::Arc;
 
 use actix_web::web;
-use anyhow::{bail, Context as _, Result};
+use anyhow::{Context as _, Result, bail};
 use core::convert::Infallible;
 use tokio::sync::mpsc;
 
 use crate::api;
 use crate::servers::{
-    for_all_servers, server::RunningState, App, AppBase, AppCreator, Command, Name, Server,
+    App, AppBase, AppCreator, Command, Name, Server, for_all_servers, server::RunningState,
 };
 
 /// A set of running PubHubs servers.
@@ -68,7 +68,9 @@ struct SetInner {
 impl Drop for SetInner {
     fn drop(&mut self) {
         if self.shutdown_sender.is_some() {
-            log::error!("the completion of all pubhubs servers was not awaited - please consume SetInner using wait() or shutdown()")
+            log::error!(
+                "the completion of all pubhubs servers was not awaited - please consume SetInner using wait() or shutdown()"
+            )
         }
     }
 }
@@ -369,8 +371,11 @@ impl<S: Server> Handles<S> {
             })?;
 
         if let Some(ph_modifier) = maybe_modifier {
-            log::error!("Woops! {}'s pubhubs task's modifier {} was ignored, because another modifier was first",
-                            S::NAME, ph_modifier);
+            log::error!(
+                "Woops! {}'s pubhubs task's modifier {} was ignored, because another modifier was first",
+                S::NAME,
+                ph_modifier
+            );
         }
 
         self.drop_bomb.diffuse();
@@ -533,7 +538,10 @@ impl DiscoveryLimiter {
             .await;
 
         if let Err(()) = result {
-            log::warn!("failed to initiate restart of {} for discovery, probably because the server is already shutting down", S::NAME,);
+            log::warn!(
+                "failed to initiate restart of {} for discovery, probably because the server is already shutting down",
+                S::NAME,
+            );
             return Err(api::ErrorCode::NotYetReady);
         }
 
@@ -637,8 +645,8 @@ impl<S: Server> Handle<S> {
         if let Err(send_error) = result {
             log::warn!(
                 "{server_name}: since the command receiver is closed (probably because the server is shutting down/restarting) we could not issue the command {cmd:?}",
-                server_name=S::NAME,
-                cmd=send_error.0.command.to_string(),
+                server_name = S::NAME,
+                cmd = send_error.0.command.to_string(),
             );
             return Err(());
         };

@@ -1,5 +1,5 @@
 use crate::api::{self, ApiResultExt as _};
-use crate::servers::{self, server::Server as _, Constellation};
+use crate::servers::{self, Constellation, server::Server as _};
 
 impl crate::client::Client {
     /// Retrieves [`Constellation`] from specified url, waiting for it to be set.
@@ -135,7 +135,10 @@ impl DiscoveryInfoCheck<'_> {
                 servers::Name::PubhubsCentral | servers::Name::Transcryptor
             )
         {
-            log::error!("master_enc_key_part must be set by the transcryptor and pubhub central, but no other servers - url: {}", source);
+            log::error!(
+                "master_enc_key_part must be set by the transcryptor and pubhub central, but no other servers - url: {}",
+                source
+            );
             return Err(api::ErrorCode::InternalError);
         }
 

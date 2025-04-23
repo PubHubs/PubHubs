@@ -107,11 +107,11 @@ crate::api::having_message_code! {Attr, Attr}
 /// State of an [`Attr`] according to pubhubs central.
 #[derive(serde::Deserialize, serde::Serialize, Debug, Clone)]
 pub struct AttrState {
-    attr: Id,
+    pub attr: Id,
 
     /// Whether this attribute has been banned.
     #[serde(default)]
-    banned: bool,
+    pub banned: bool,
 
     /// The user, if any, that this attribute can identify.
     ///
@@ -120,10 +120,10 @@ pub struct AttrState {
     /// Once set, this should never be unset.  This prevents impersonation of a user when
     /// they remove their id.
     #[serde(default)]
-    may_identify_user: Option<Id>,
+    pub may_identify_user: Option<Id>,
 
     /// The users that provided this attribute as bannable attribute.
     /// If this attribute gets banned, so will they.
     #[serde(default)]
-    bans_users: Vec<Id>,
+    pub bans_users: Vec<Id>,
 }

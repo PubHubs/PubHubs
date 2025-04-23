@@ -284,11 +284,8 @@ pub(crate) trait Modifier<ServerT: Server>: Send + 'static {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> Result<(), std::fmt::Error>;
 }
 
-impl<
-        S: Server,
-        F: FnOnce(&mut S) -> bool + Send + 'static,
-        D: std::fmt::Display + Send + 'static,
-    > Modifier<S> for (F, D)
+impl<S: Server, F: FnOnce(&mut S) -> bool + Send + 'static, D: std::fmt::Display + Send + 'static>
+    Modifier<S> for (F, D)
 {
     fn modify(self: Box<Self>, server: &mut S) -> bool {
         self.0(server)
@@ -418,10 +415,10 @@ pub trait App<S: Server>: Deref<Target = AppBase<S>> + 'static {
         if let Some(rs) = self.running_state.as_ref() {
             if !self.check_constellation(phc_inf.constellation.as_ref().unwrap()) {
                 log::warn!(
-                        "{server_name}: {phc}'s constellation seems to be out-of-date - requesting rediscovery",
-                        server_name = S::NAME,
-                        phc = Name::PubhubsCentral
-                    );
+                    "{server_name}: {phc}'s constellation seems to be out-of-date - requesting rediscovery",
+                    server_name = S::NAME,
+                    phc = Name::PubhubsCentral
+                );
                 // PHC's discovery is out of date; invoke discovery and return
                 self.client
                     .query::<api::DiscoveryRun>(&phc_inf.phc_url, &())

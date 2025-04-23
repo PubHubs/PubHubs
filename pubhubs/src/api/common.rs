@@ -1,8 +1,8 @@
 use std::rc::Rc;
 
 use serde::{
-    de::{DeserializeOwned, IntoDeserializer as _},
     Deserialize, Serialize,
+    de::{DeserializeOwned, IntoDeserializer as _},
 };
 
 use crate::misc::serde_ext::bytes_wrapper;

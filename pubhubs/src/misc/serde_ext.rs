@@ -1,6 +1,6 @@
 //! Tools for (de)serialization
 use serde::{
-    de::IntoDeserializer as _, ser::Error as _, Deserialize, Deserializer, Serialize, Serializer,
+    Deserialize, Deserializer, Serialize, Serializer, de::IntoDeserializer as _, ser::Error as _,
 };
 
 use core::fmt;
@@ -515,7 +515,9 @@ pub mod bytes_wrapper {
         }
 
         #[derive(thiserror::Error, Debug)]
-        #[error("to use a bytes encoding (like base64) for the serialization of a type, that type must serialize to bytes, but got {got}")]
+        #[error(
+            "to use a bytes encoding (like base64) for the serialization of a type, that type must serialize to bytes, but got {got}"
+        )]
         struct ExpectedBytesError {
             got: &'static str,
         }
@@ -549,7 +551,9 @@ pub mod bytes_wrapper {
                 value: &T,
             ) -> Result<(), Self::Error> {
                 if self.inner.len() == self.expected_len {
-                    return Err(Self::Error::custom("improper use of serializer: serializing more tuple elements than announced"));
+                    return Err(Self::Error::custom(
+                        "improper use of serializer: serializing more tuple elements than announced",
+                    ));
                 }
 
                 // TODO, maybe: proper `ByteSerializer` implementation to replace this hack

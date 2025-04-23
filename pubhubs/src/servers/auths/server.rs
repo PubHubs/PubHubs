@@ -6,7 +6,7 @@ use actix_web::web;
 use digest::Digest as _;
 
 use crate::servers::{
-    self, constellation, yivi, AppBase, AppCreatorBase, Constellation, Handle, Server as _,
+    self, AppBase, AppCreatorBase, Constellation, Handle, Server as _, constellation, yivi,
 };
 use crate::{
     api::{self, EndpointDetails as _, ResultExt as _},
@@ -167,7 +167,10 @@ impl App {
                 .collect();
 
             if dc.is_empty() {
-                log::debug!("{}: got yivi authentication start request for {attr_ty}, but yivi is not supported for this attribute type", Server::NAME);
+                log::debug!(
+                    "{}: got yivi authentication start request for {attr_ty}, but yivi is not supported for this attribute type",
+                    Server::NAME
+                );
                 return Err(api::ErrorCode::MissingAttributeSource);
             }
 
@@ -269,7 +272,10 @@ impl App {
                 .yivi_attr_type_ids()
                 .any(|allowed_yati| allowed_yati == yati)
             {
-                log::debug!("attribute number {i} of submitted session result has unexpected attribute type id {}",  yati);
+                log::debug!(
+                    "attribute number {i} of submitted session result has unexpected attribute type id {}",
+                    yati
+                );
                 return Err(api::ErrorCode::InvalidAuthProof);
             }
 

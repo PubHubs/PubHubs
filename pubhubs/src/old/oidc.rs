@@ -35,7 +35,7 @@ use std::str::FromStr as _;
 use base64ct::{Base64, Base64Url, Encoding as _};
 use serde::Deserialize;
 use thiserror::Error; // this module is written like a library - don't use anyhow
-                      // for errors returned to the user of the library
+// for errors returned to the user of the library
 use hmac::Mac as _;
 
 use crate::crypto::derive_secret;
@@ -465,7 +465,11 @@ pub mod http {
         pub fn into_body(self) -> String {
             match self {
                 Response::Auth(AuthResponse::Error(e)) => {
-                    format!("Oops! something went wrong - sorry about that.\n\nWe can't tell for sure who sent you here, but it might have been a fool's errand. \n\nIf you think it isn't, please contact the website that sent you here, and provide them the following information.\n\n{}\n\n{}", e.error(), e.error_description())
+                    format!(
+                        "Oops! something went wrong - sorry about that.\n\nWe can't tell for sure who sent you here, but it might have been a fool's errand. \n\nIf you think it isn't, please contact the website that sent you here, and provide them the following information.\n\n{}\n\n{}",
+                        e.error(),
+                        e.error_description()
+                    )
                 }
                 Response::Auth(AuthResponse::FormPost(rur)) | Response::Grant(rur) => {
                     let mut inputs = String::new();
@@ -618,19 +622,39 @@ pub mod http {
 
         fn error_description(&self) -> &'static str {
             match self {
-        S52Error::UnsupportedMethod => "Invalid HTTP method - GET must be used for the authorization endpoint, and POST for the token endpoint",
-        S52Error::MalformedQuery => "The query string could not be parsed, contained unknown fields, or lacked required fields such as client_id, response_type or redirect_uri.",
-        S52Error::MalformedClientId => "The client_id contained invalid characters, or did not contain a tilde ('~').",
-        S52Error::MalformedRedirectUri => "The redirect_uri could not be parsed, contained a fragment (which is prohibited), was not absolute, or did not use the 'https' scheme.",
-        S52Error::InvalidClientMAC => "The combination of client_id and redirect_uri was not authenticated by the MAC inside the client_id.",
-        S52Error::UnsupportedResponseMode => "Unsupported (or missing) response_mode; only 'form_post' is supported.",
-        S52Error::MalformedRequestBody => "The request body could not be parsed, contained unknown fields, or lacked required fields.",
-        S52Error::UnsupportedContentType => "Unsupported Content-Type; only 'application/x-www-form-urlencoded' is supported",
-        S52Error::InvalidAuthCode => "Invalid authorization code (for given client_id)",
-        S52Error::UnsupportedGrantType => "Unsupported grant_type; only 'authorization_code' is supported.",
-        S52Error::MissingClientCredentials => "Missing 'Authorization' HTTP header.",
-        S52Error::MalformedClientCredentials => "Malformed 'Authorization: Basic ...' header.",
-        S52Error::InvalidClientCredentials => "Invalid client_id or password.",
+                S52Error::UnsupportedMethod => {
+                    "Invalid HTTP method - GET must be used for the authorization endpoint, and POST for the token endpoint"
+                }
+                S52Error::MalformedQuery => {
+                    "The query string could not be parsed, contained unknown fields, or lacked required fields such as client_id, response_type or redirect_uri."
+                }
+                S52Error::MalformedClientId => {
+                    "The client_id contained invalid characters, or did not contain a tilde ('~')."
+                }
+                S52Error::MalformedRedirectUri => {
+                    "The redirect_uri could not be parsed, contained a fragment (which is prohibited), was not absolute, or did not use the 'https' scheme."
+                }
+                S52Error::InvalidClientMAC => {
+                    "The combination of client_id and redirect_uri was not authenticated by the MAC inside the client_id."
+                }
+                S52Error::UnsupportedResponseMode => {
+                    "Unsupported (or missing) response_mode; only 'form_post' is supported."
+                }
+                S52Error::MalformedRequestBody => {
+                    "The request body could not be parsed, contained unknown fields, or lacked required fields."
+                }
+                S52Error::UnsupportedContentType => {
+                    "Unsupported Content-Type; only 'application/x-www-form-urlencoded' is supported"
+                }
+                S52Error::InvalidAuthCode => "Invalid authorization code (for given client_id)",
+                S52Error::UnsupportedGrantType => {
+                    "Unsupported grant_type; only 'authorization_code' is supported."
+                }
+                S52Error::MissingClientCredentials => "Missing 'Authorization' HTTP header.",
+                S52Error::MalformedClientCredentials => {
+                    "Malformed 'Authorization: Basic ...' header."
+                }
+                S52Error::InvalidClientCredentials => "Invalid client_id or password.",
             }
         }
     }

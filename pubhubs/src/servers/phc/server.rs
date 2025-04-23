@@ -6,10 +6,10 @@ use actix_web::web;
 
 use crate::api::phc::user::{EnterMode, EnterResp};
 use crate::api::{self, ApiResultExt as _, EndpointDetails as _};
-use crate::attr;
+use crate::attr::{self, Attr, AttrState};
 use crate::client;
 use crate::handle;
-use crate::id;
+use crate::id::{self, Id};
 use crate::misc::jwt;
 use crate::phcrypto;
 use crate::servers::{self, constellation, AppBase, AppCreatorBase, Constellation, Handle};
@@ -69,8 +69,6 @@ pub struct ExtraRunningState {
     auths_ss: elgamal::SharedSecret,
 
     /// Key used to sign [`Attr`]s, shared with the authentication server
-    ///
-    /// [`Attr`]: crate::attr::Attr
     attr_signing_key: jwt::HS256,
 }
 
@@ -338,7 +336,8 @@ impl App {
         } = req.into_inner();
 
         // Check attributes are valid
-        let identifying_attr = identifying_attr.old_open(&running_state.attr_signing_key)?;
+        let identifying_attr =
+            app.id_attr(identifying_attr.old_open(&running_state.attr_signing_key)?);
 
         if !identifying_attr.identifying {
             log::debug!(
@@ -349,26 +348,60 @@ impl App {
             return Err(api::ErrorCode::BadRequest);
         }
 
-        let mut opened_add_attrs: Vec<attr::Attr> = Vec::with_capacity(add_attrs.len());
+        let mut add_attrs: Vec<IdedAttr> = {
+            let mut new_add_attrs: Vec<IdedAttr> = Vec::with_capacity(add_attrs.len());
 
-        for add_attr in add_attrs {
-            opened_add_attrs.push(add_attr.old_open(&running_state.attr_signing_key)?);
-        }
+            for add_attr in add_attrs {
+                new_add_attrs
+                    .push(app.id_attr(add_attr.old_open(&running_state.attr_signing_key)?));
+            }
+
+            new_add_attrs
+        };
+
+        let mut attr_states: std::collections::HashMap<
+            Id,
+            (AttrState, object_store::UpdateVersion),
+        > = Default::default();
 
         // Attributes are fine, check if we have a user account
-        let _identifying_attr_state: attr::AttrState = 'found_attr_state: {
+        let (user_state, user_state_v) = 'found_user: {
             if matches!(mode, EnterMode::Login | EnterMode::LoginOrRegister) {
                 // see if account exists
-                if let Some(ias) = app
-                    .get_attr_state(identifying_attr.id(&*app.attr_id_secret))
-                    .await?
+                if let Some((ias, ias_v)) =
+                    app.get_object::<AttrState>(&identifying_attr.id).await?
                 {
                     log::trace!(
                         "enter: account exists for attribute {} of type {}",
                         identifying_attr.value,
                         identifying_attr.attr_type,
                     );
-                    break 'found_attr_state ias;
+
+                    let user_id = ias.may_identify_user.ok_or_else(|| {
+                        log::error!(
+                            "identifying attribute {} of type {} has may_identify_user set to None",
+                            identifying_attr.value,
+                            identifying_attr.attr_type
+                        );
+                        api::ErrorCode::InternalError
+                    })?;
+
+                    attr_states.insert(identifying_attr.id, (ias, ias_v));
+
+                    let user_and_version = app
+                        .get_object::<UserState>(&user_id)
+                        .await?
+                        .ok_or_else(|| {
+                            log::error!(
+                                "identifying attribute {} of type {} refers to a user \
+                            account {user_id} that does not exist",
+                                identifying_attr.value,
+                                identifying_attr.attr_type
+                            );
+                            api::ErrorCode::InternalError
+                        })?;
+
+                    break 'found_user user_and_version;
                 }
 
                 log::trace!(
@@ -382,38 +415,101 @@ impl App {
                 return Ok(EnterResp::AccountDoesNotExist);
             }
 
+            assert!(matches!(
+                mode,
+                EnterMode::LoginOrRegister | EnterMode::Register
+            ));
+
+            if let Some(resp) = app
+                .precheck_attrs_for_registration(
+                    std::iter::once(&identifying_attr).chain(add_attrs.iter()),
+                )
+                .await?
+            {
+                return Ok(resp);
+            }
+
+            let new_user_id = Id::random();
+
+            // we need to be careful with the order of things here lest we leave the object
+            // store in a broken state.
+            //
+            //  1. Add the user account object.  If this fails, the client just needs to register
+            //     again.
+            //
+            //  2. Add the identifying attribute pointing to the user account.  If this fails, the
+            //     client can always register again, and we're only left with an orphaned account.
+            //
+            //  3. Add the other attributes.  If this fails the user can always add the attributes
+            //     again using the identifying attribute already registered.
+            //
+
             todo! {}
-            // try to register account; check if we have a bannable attribute
         };
 
+        // add the missing attributes
         todo! {}
     }
 
-    /// Retrieves the [`attr::AttrState`] stored for the attribute with this `id::Id`.
-    async fn get_attr_state(&self, attr_id: id::Id) -> api::Result<Option<attr::AttrState>> {
-        match self
-            .shared
-            .object_store
-            .get(&std::format!("attr/{attr_id}").into())
-            .await
-        {
-            Ok(get_result) => {
-                let bytes: bytes::Bytes = get_result.bytes().await.map_err(|err| {
-                    log::error!("unexpected error getting attribute {attr_id}'s state: {err}");
-                    api::ErrorCode::InternalError
-                })?;
-
-                Ok(Some(serde_json::from_slice(&bytes).map_err(|err| {
-                    log::error!("could not parse object stored under attr/{attr_id}: {err}");
-                    api::ErrorCode::InternalError
-                })?))
-            }
-            Err(object_store::Error::NotFound { .. }) => Ok(None),
-            Err(err) => Err({
-                log::error!("unexpected error getting attribute {attr_id}'s state: {err}");
-                api::ErrorCode::InternalError
-            }),
+    /// Computes and caches the [`Id`] of an [`Attr`].
+    fn id_attr(&self, attr: Attr) -> IdedAttr {
+        IdedAttr {
+            id: attr.id(&*self.attr_id_secret),
+            attr: attr,
         }
+    }
+
+    /// Pre-checks whether the given attributes permit registration of a new user account
+    ///
+    /// Returns `Ok(None)` when there are no issues.
+    ///
+    /// The situation can, of course, change between the time of the check and the time of
+    /// registration.
+    async fn precheck_attrs_for_registration(
+        &self,
+        attrs: impl Iterator<Item = &IdedAttr> + Clone,
+    ) -> api::Result<Option<EnterResp>> {
+        // Before doing potentially expensive queries to the object store, make sure a bannable
+        // attribute has been provided by the client
+        if !attrs.clone().any(|attr| attr.bannable) {
+            return Ok(Some(EnterResp::NoBannableAttribute));
+        }
+
+        // TODO: parallelize?
+        for attr in attrs {
+            if let Some((attr_state, _)) = self.get_object::<AttrState>(&attr.id).await? {
+                if attr_state.banned {
+                    return Ok(Some(EnterResp::AttributeBanned(attr.attr.clone())));
+                }
+
+                if attr_state.may_identify_user.is_some() {
+                    return Ok(Some(EnterResp::AttributeAlreadyTaken(attr.attr.clone())));
+                }
+            }
+        }
+
+        Ok(None)
+    }
+}
+
+/// An [`Attr`] with its [`Id`].
+struct IdedAttr {
+    id: Id,
+    attr: Attr,
+}
+
+impl IdedAttr {
+    #[expect(dead_code)]
+    pub fn id(&self) -> Id {
+        unimplemented!("use the field `id` instead")
+    }
+}
+
+impl Deref for IdedAttr {
+    type Target = Attr;
+
+    fn deref(&self) -> &Attr {
+        &self.attr
     }
 }
 
@@ -485,4 +581,29 @@ impl crate::servers::AppCreator<Server> for AppCreator {
             .into_boxed_slice(),
         })
     }
+}
+
+/// Details pubhubs central stores about a user's account
+#[derive(serde::Serialize, serde::Deserialize, Debug, Clone, PartialEq, Eq)]
+pub struct UserState {
+    /// Randomly generated identifier for this account
+    pub id: Id,
+
+    /// Whether this account is banned
+    pub banned: bool,
+
+    /// Attributes that may be used to log in as this user,
+    /// provided that [`attr::AttrState.may_identify_user`] also points to this account.
+    ///
+    /// The user may remove an attribute from this list.
+    pub allow_login_by: std::collections::HashSet<Id>,
+
+    /// Attributes that when banned will ban this user
+    ///
+    /// The user can only add attributes to this list, but not remove them.
+    ///
+    /// This list is used to keep track of whether there is at least one attribute that would
+    /// ban this user.  If there are none, the user must add a bannable attribute before they can
+    /// login in.
+    pub could_be_banned_by: Vec<Id>,
 }
