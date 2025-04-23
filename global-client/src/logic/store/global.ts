@@ -1,5 +1,4 @@
 import { defineStore } from 'pinia';
-
 import { api } from '@/logic/core/api';
 import { Theme, TimeFormat, useSettings } from '@/logic/store/store';
 import { Hub, HubList } from '@/model/Hubs';
