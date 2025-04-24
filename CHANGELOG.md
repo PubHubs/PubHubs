@@ -25,7 +25,8 @@ It will generate a checked and updated yaml file as homeserver.live.yaml as defa
 - [NEW] For the hub a banner, description, summary and contact details can now be set in the hub settings. 
 The summary and contact details are displayed on the discover hub page.
 The description and contact details are displayed in the hub homepage.
-- [NEW] Datepicker & Pollingwidget. Add a datepicker or poll in your room. Let members choose a date or option.
+- [NEW] Datepicker & Pollingwidget. Add a datepicker or poll in your room. Let members choose a date or option.  
+_NOTE TO MERGERS:_ The feature flag for voting widgets on stable is currently disabled. If everything works as expected, it needs to be enabled during the merge.
 
 ## 03 April 2025 - v2.0.0
 
