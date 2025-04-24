@@ -1,12 +1,6 @@
 <template>
 	<div class="flex h-[30rem] w-full max-w-[30rem] flex-col rounded-2xl bg-surface p-4" v-click-outside="close">
-		<input
-			class="w-full rounded-md border-none bg-background py-2 text-on-surface ~text-label-min/label-max placeholder:text-on-surface-dim"
-			v-model="searchQuery"
-			type="text"
-			:placeholder="$t('others.search')"
-			@keydown.stop="preventClose()"
-		/>
+		<input class="w-full rounded-md border-none bg-background py-2 text-on-surface ~text-label-min/label-max placeholder:text-on-surface-dim" v-model="searchQuery" type="text" :placeholder="$t('others.search')" />
 		<div class="flex flex-row gap-2 border-b py-3">
 			<template v-for="(image, index) in imageList" :key="index">
 				<Icon :class="{ 'border-b-2': selectedGroup === index }" @click="index === 0 || index === 1 ? selectEmojiByGroup() : selectEmojiByGroup(index)" v-if="index !== 1" :type="image" class="w-6 cursor-pointer pb-1" />
@@ -121,13 +115,7 @@
 		return labels[selectedGroup.value];
 	}
 
-	async function close() {
+	function close() {
 		emit('close');
-	}
-
-	function preventClose() {
-		// Does nothing, but needed to add this comment:
-		// @keydown.stop attribute on the input is needed for preventing to close the popup
-		// Due to the MessageInput component that sees every keystroke as a reason to close all popups.
 	}
 </script>

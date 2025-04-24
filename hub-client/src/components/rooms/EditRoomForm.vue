@@ -121,9 +121,27 @@
 	const editRoom = ref({} as Room | TSecuredRoom);
 
 	const securedRoomTemplate = ref([
-		{ key: 'yivi', label: t('admin.secured_attribute'), type: 'autocomplete', options: [], default: '', disabled: !isNewRoom.value },
-		{ key: 'values', label: t('admin.secured_values'), type: 'textarea', default: '', maxLength: 3000 },
-		{ key: 'profile', label: t('admin.secured_profile'), type: 'checkbox', default: false },
+		{
+			key: 'yivi',
+			label: t('admin.secured_attribute'),
+			type: 'autocomplete',
+			options: [],
+			default: '',
+			disabled: !isNewRoom.value,
+		},
+		{
+			key: 'values',
+			label: t('admin.secured_values'),
+			type: 'textarea',
+			default: '',
+			maxLength: 3000,
+		},
+		{
+			key: 'profile',
+			label: t('admin.secured_profile'),
+			type: 'checkbox',
+			default: false,
+		},
 	] as Array<FormObjectInputTemplate>);
 
 	//#region mount
@@ -175,7 +193,12 @@
 		setData({
 			name: {
 				value: editRoom.value.name as string,
-				validation: { required: true, allow_empty_number: false, allow_empty_object: false, allow_empty_text: false },
+				validation: {
+					required: true,
+					allow_empty_number: false,
+					allow_empty_object: false,
+					allow_empty_text: false,
+				},
 			},
 			topic: {
 				value: editRoom.value.topic as string,

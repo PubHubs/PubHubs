@@ -106,7 +106,19 @@ const useFormInputEvents = (emit: Function, set: InputType = '') => {
 		emit('cancel');
 	};
 
-	return { value, setValue, options, setOptions, selectOption, optionIsSelected, update, changed, reset, submit, cancel };
+	return {
+		value,
+		setValue,
+		options,
+		setOptions,
+		selectOption,
+		optionIsSelected,
+		update,
+		changed,
+		reset,
+		submit,
+		cancel,
+	};
 };
 
 export { type InputType, type Option, type Options, FormObjectInputTemplate, FormInputType, useFormInputEvents, usedEvents };

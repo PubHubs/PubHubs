@@ -42,6 +42,7 @@ const en = {
 	},
 	forms: {
 		submit: 'Submit',
+		save: 'Save',
 	},
 	home: {
 		hub_homepage_welcome: 'Welcome to the {0}-hub!',
@@ -204,6 +205,7 @@ const en = {
 		announcement: 'announcement',
 		steward: 'steward',
 		administrator: 'administrator',
+		votes: 'votes',
 	},
 	settings: {
 		displayname: 'Nickname',
@@ -339,6 +341,16 @@ const en = {
 		upload_file: 'Upload file',
 		reply: 'Reply',
 		reply_in_thread: 'Reply in thread',
+		// Added for polling
+		scheduler: 'Scheduler',
+		poll: 'Poll',
+		scheduler_closed: 'This scheduler has ended. You are no longer able to respond.',
+		pick_option: 'Pick final date',
+		close: 'Close',
+		reopen: 'Reopen',
+		edit: 'Edit',
+		pick: 'Pick',
+		// Added for polling END
 		sign: {
 			add_signature: 'Sign message',
 			heading: 'Signing a message',
@@ -346,6 +358,8 @@ const en = {
 			warning: 'A signed message can be shared. Do not include personal information and consider other users in this room.',
 			selected_attributes: 'Your message will be signed with this information:',
 			send: 'Sign & Send',
+			// Added for polling
+			edit: 'Sign & Edit',
 		},
 		messageSigned: {
 			heading: 'Signed message',
@@ -359,6 +373,20 @@ const en = {
 			file_not_deleted: 'Your message is no longer visible to others after deletion, but the file can still be downloaded by users who saved the link.',
 			original_message_deleted: 'Original message deleted',
 			message_deleted: 'Deleted message',
+		},
+		voting: {
+			add_option: 'Add option',
+			creating_option: 'Creating option...',
+			enter_title: 'Enter title...',
+			enter_option: 'Enter option...',
+			enter_description: 'Enter description...',
+			enter_location: 'Enter location...',
+			allow_multiple_answers: 'Allow multiple answers',
+			show_votes_before_voting: 'Show votes before voting',
+			show_votes: 'Show votes',
+			hide_votes: 'Hide votes',
+			plural_votes: 'vote|votes',
+			edited: 'edited',
 		},
 		threads: {
 			view_thread: 'view thread',

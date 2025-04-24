@@ -41,7 +41,16 @@ const useKeyStrokes = () => {
 		selected.value = undefined;
 	};
 
-	return { setItems, cursor, selected, cursorDown, cursorUp, selectItem, selectItemByEnter, reset };
+	return {
+		setItems,
+		cursor,
+		selected,
+		cursorDown,
+		cursorUp,
+		selectItem,
+		selectItemByEnter,
+		reset,
+	};
 };
 
 export { useKeyStrokes };

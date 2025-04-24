@@ -6,3 +6,6 @@ pubhubs_hub/report.xml
 client-config.local.js
 .vscode
 .python-version
+
+# Playwright local state
+hub-client/playwright_login_token.json

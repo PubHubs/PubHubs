@@ -24,7 +24,9 @@
 				<Line v-if="hasContent" class="z-0" />
 				<div v-if="hasContent" class="h-full overflow-y-auto py-1 pr-4 text-left">
 					<slot></slot>
-					<div v-if="dialog.properties.content !== ''">{{ dialog.properties.content }}</div>
+					<div v-if="dialog.properties.content !== ''">
+						{{ dialog.properties.content }}
+					</div>
 				</div>
 				<Line class="z-0" />
 				<div class="flex w-full flex-row-reverse justify-start gap-2">
@@ -78,7 +80,6 @@
 		if (props.buttons.length > 0) {
 			dialog.properties.buttons = props.buttons;
 		}
-
 		dialog.showModal();
 	});
 

@@ -40,7 +40,7 @@ class EventTimeLineHandler {
 			}
 		}
 
-		eventContent.ph_body = this.createClickableLinks(eventContent.ph_body);
+		eventContent.ph_body = this.createClickableLinks(eventContent.ph_body!);
 		eventContent.ph_body = this.addMentions(eventContent.ph_body);
 		eventContent.ph_body = this.addLineBreaks(eventContent.ph_body);
 		eventContent.ph_body = this.sanitizeEventContent(eventContent.ph_body);

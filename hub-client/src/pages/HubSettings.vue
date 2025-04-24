@@ -91,7 +91,7 @@
 
 			<div class="fixed bottom-5 right-10 ml-auto flex items-center">
 				<P v-if="settingsSaved" class="text-hub-text-variant">{{ $t('hub_settings.settings_saved') }}</P>
-				<Button @click="saveChanges()" :disabled="!settingsChanged" colo>{{ $t('hub_settings.save') }}</Button>
+				<Button @click="saveChanges()" :disabled="!settingsChanged">{{ $t('hub_settings.save') }}</Button>
 			</div>
 		</form>
 	</HeaderFooter>

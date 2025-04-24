@@ -9,7 +9,7 @@ export default defineConfig({
 		Vue({
 			template: {
 				compilerOptions: {
-					isCustomElement: (tag) => ['Icon'].includes(tag),
+					isCustomElement: (tag) => ['Icon', 'ActionMenu', 'ActionMenuItem', 'AvatarMember', 'Avatar', 'ProgressBar', 'ProgressBarMulti', 'H2', 'Line', 'Button'].includes(tag),
 				},
 			},
 		}),
