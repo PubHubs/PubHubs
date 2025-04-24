@@ -12,6 +12,13 @@ use serde::{
 use crate::misc::jwt;
 use crate::misc::serde_ext::bytes_wrapper::B64UU;
 
+/// An extended session request, see <https://irma.app/docs/session-requests/#extra-parameters>
+#[derive(serde::Serialize, serde::Deserialize, Debug, Clone, PartialEq, Eq)]
+pub struct ExtendedSessionRequest {
+    // TODO, maybe: validity, timeout, callbackUrl, nextSession
+    request: SessionRequest,
+}
+
 /// A session request sent by a requestor to a yivi server
 #[derive(serde::Serialize, serde::Deserialize, Debug, Clone, PartialEq, Eq)]
 pub struct SessionRequest {
@@ -22,15 +29,17 @@ pub struct SessionRequest {
     disclose: Option<AttributeConDisCon>,
 }
 
-impl SessionRequest {
-    pub fn disclosure(cdc: AttributeConDisCon) -> SessionRequest {
+impl ExtendedSessionRequest {
+    pub fn disclosure(cdc: AttributeConDisCon) -> Self {
         Self {
-            context: LdContext::Disclosure,
-            disclose: Some(cdc),
+            request: SessionRequest {
+                context: LdContext::Disclosure,
+                disclose: Some(cdc),
+            },
         }
     }
 
-    /// Signs this session request using the provided requestor credentials.
+    /// Signs this extended session request using the provided requestor credentials.
     ///
     /// Documentation: <https://docs.yivi.app/session-requests/#jwts-signed-session-requests>
     /// Reference code for disclosure request:
@@ -42,8 +51,8 @@ impl SessionRequest {
                 &jwt::Claims::new()
                     .iat_now()?
                     .claim("iss", &creds.name)? // issuer is requestor name
-                    .claim("sub", self.context.jwt_sub())?
-                    .claim(self.context.jwt_key(), self)?,
+                    .claim("sub", self.request.context.jwt_sub())?
+                    .claim(self.request.context.jwt_key(), self)?,
             )
             .context("signing session request")
 
@@ -51,7 +60,7 @@ impl SessionRequest {
         // but its presence is not checked, so we omit it.
     }
 
-    /// Mocks a valid [`SessionResult`] to this [`SessionRequest`] disclosing
+    /// Mocks a valid [`SessionResult`] to this [`ExtendedSessionRequest`] disclosing
     /// the values specified by the `df` function.
     ///
     /// Only simple disclosure requests not involving any 'discon's are currently supported.
@@ -63,9 +72,10 @@ impl SessionRequest {
         &self,
         df: impl Fn(&AttributeTypeIdentifier) -> String,
     ) -> SessionResult {
-        assert_eq!(self.context, LdContext::Disclosure);
+        assert_eq!(self.request.context, LdContext::Disclosure);
 
         let disclosed: Vec<Vec<DisclosedAttribute>> = self
+            .request
             .disclose
             .as_ref()
             .expect("missing `disclose` field in disclosure session request")

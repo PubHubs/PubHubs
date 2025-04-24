@@ -174,7 +174,7 @@ impl App {
             cdc.push(dc);
         }
 
-        let disclosure_request: jwt::JWT = servers::yivi::SessionRequest::disclosure(cdc)
+        let disclosure_request: jwt::JWT = servers::yivi::ExtendedSessionRequest::disclosure(cdc)
             .sign(&yivi.requestor_creds)
             .into_ec(|err| {
                 log::error!(
