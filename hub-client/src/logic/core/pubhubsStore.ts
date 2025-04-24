@@ -65,7 +65,7 @@ const usePubHubs = defineStore('pubhubs', {
 				const events = new Events(this.client as MatrixClient);
 
 				/* await removed */
-				events.initEvents();
+				events.initEvents(); // Starts the client
 
 				logger.trace(SMI.STARTUP, 'PubHubs.logged in ()');
 				const connection = useConnection();
@@ -146,64 +146,47 @@ const usePubHubs = defineStore('pubhubs', {
 		 */
 		async performUpdateRooms() {
 			const rooms = useRooms();
-			const allRooms = await this.getAllPublicRooms();
 
-			let joinedRooms = (await this.client.getJoinedRooms()).joined_rooms; // makes an HTTP request to the Hub server to get the known joined rooms of the user
-			joinedRooms = joinedRooms.filter((roomId: string) => allRooms.find((r: any) => r.room_id === roomId)); // filter out the rooms that are not in the public rooms list
+			const allPublicRooms = await this.getAllPublicRooms(); // all public rooms, including their names
+			const joinedRooms = (await this.client.getJoinedRooms()).joined_rooms; // all joined rooms of the user
 			const knownRooms = this.client.getRooms(); // get all the rooms of the matrix js SDK client
 
 			// update the rooms in the store with the known rooms
-			rooms.updateRoomsWithMatrixRooms(knownRooms.filter((room: any) => joinedRooms.indexOf(room.roomId) !== -1));
+			if (knownRooms?.length > 0) {
+				rooms.updateRoomsWithMatrixRooms(knownRooms.filter((room: any) => joinedRooms.indexOf(room.roomId) !== -1));
+			}
 
 			// Make sure the matrix js SDK client is aware of all the rooms the user has joined
 			// knownrooms possibly does not have all rooms, so rejoin every room in joinedRooms that is not in knownrooms
-			// this actually does nothing when already joined, but it will return the room
+			// this actually does nothing when already joined, but it will return the room to be stored
 			let processedRooms = 0;
-			const totalRooms = joinedRooms.length;
 
 			for (const room_id of joinedRooms) {
 				if (!knownRooms.find((kr: any) => kr.roomId === room_id)) {
-					rooms.setRoomsLoaded(false);
-					const roomName = allRooms.find((r: any) => r.room_id === room_id)?.name ?? undefined;
+					rooms.setPublicRoomsLoaded(false);
+					const roomName = allPublicRooms.find((r: any) => r.room_id === room_id)?.name ?? undefined;
 
 					// join again and then store the room in the client store
+					// and when the name is known in the rooms store
 					this.client.joinRoom(room_id).then((room) => {
 						this.client.store.storeRoom(room);
-						rooms.updateRoomsWithMatrixRoom(room, roomName);
+						if (roomName) {
+							rooms.updateRoomsWithMatrixRoom(room, roomName);
+						}
 
 						// if the last room is joined, we can set the roomsLoaded to true
 						processedRooms++;
-						if (processedRooms === totalRooms) {
-							rooms.setRoomsLoaded(true);
+						if (processedRooms === joinedRooms.length) {
+							rooms.setPublicRoomsLoaded(true);
 						}
 					});
 				}
 			}
+
 			rooms.fetchPublicRooms();
 		},
 
-		// async updateRooms() {
-		// 	// if promise already running: return promise
-		// 	if (updateRoomsPerforming) {
-		// 		return updateRoomsPerforming;
-		// 	}
-
-		// 	// create promise
-		// 	updateRoomsPerforming = new Promise<void>((resolve, reject) => {
-		// 		try {
-		// 			resolve(this.performUpdateRooms());
-		// 		} catch (error) {
-		// 			reject(error);
-		// 		}
-		// 	}).then((x) => {
-		// 		updateRoomsPerforming = null;
-		// 		return x;
-		// 	});
-
-		// 	// return promise
-		// 	return updateRoomsPerforming;
-		// },
-
+		// ORIGINAL CODE
 		// // actual performing of updateRooms
 		// // Will check with the homeserver for changes in joined rooms and update the local situation to reflect that.
 		// async performUpdateRooms(this) {
