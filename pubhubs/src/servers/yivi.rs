@@ -3,12 +3,14 @@ use std::cell::OnceCell;
 
 use anyhow::Context as _;
 use serde::{
-    self, Deserialize as _, Serialize as _,
+    self,
     de::{Error as _, IntoDeserializer as _},
     ser::Error as _,
+    Deserialize as _, Serialize as _,
 };
 
 use crate::misc::jwt;
+use crate::misc::serde_ext::bytes_wrapper::B64UU;
 
 /// A session request sent by a requestor to a yivi server
 #[derive(serde::Serialize, serde::Deserialize, Debug, Clone, PartialEq, Eq)]
@@ -149,7 +151,8 @@ pub struct Credentials<K> {
 #[serde(deny_unknown_fields)]
 pub enum SigningKey {
     #[serde(rename = "hs256")]
-    HS256(jwt::HS256),
+    HS256(B64UU<jwt::HS256>),
+
     // We do not use the `Token`  Yivi `auth_method`s,
     // see: https://docs.yivi.app/irma-server#requestor-authentication
     #[serde(rename = "rs256")]
@@ -188,7 +191,7 @@ impl SigningKey {
     /// supports multiple algorithms.
     fn sign<C: serde::Serialize>(&self, claims: &C) -> Result<jwt::JWT, jwt::Error> {
         match self {
-            SigningKey::HS256(key) => jwt::JWT::create(claims, key),
+            SigningKey::HS256(key) => jwt::JWT::create(claims, &**key),
             SigningKey::RS256(key) => jwt::JWT::create(claims, &**key),
         }
     }
@@ -208,7 +211,7 @@ impl SigningKey {
 #[serde(deny_unknown_fields)]
 pub enum VerifyingKey {
     #[serde(rename = "hs256")]
-    HS256(jwt::HS256),
+    HS256(B64UU<jwt::HS256>),
 
     #[serde(rename = "rs256")]
     RS256(#[serde(with = "rs256vk_encoding")] jwt::RS256Vk),
@@ -241,7 +244,7 @@ impl VerifyingKey {
     /// Open the given jwt using this key
     fn open(&self, jwt: &jwt::JWT) -> Result<jwt::Claims, jwt::Error> {
         match self {
-            VerifyingKey::HS256(key) => jwt::JWT::open(jwt, key),
+            VerifyingKey::HS256(key) => jwt::JWT::open(jwt, &**key),
             VerifyingKey::RS256(key) => jwt::JWT::open(jwt, key),
         }
     }

@@ -52,7 +52,7 @@ async fn main_integration_test() {
         
         [requestor_creds]
         name = "ph_auths"
-        key.hs256 = "secret""#,
+        key.hs256 = "c2VjcmV0""#, // = "secret"
     )
     .inspect_err(|err| log::error!("{}", err))
     .unwrap();
