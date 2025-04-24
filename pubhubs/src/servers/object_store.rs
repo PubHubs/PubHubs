@@ -157,7 +157,7 @@ where
     /// [`get_object`]: Self::get_object
     pub async fn put_object<T>(
         &self,
-        obj: T,
+        obj: &T,
         update: Option<object_store::UpdateVersion>,
     ) -> api::Result<Option<object_store::UpdateVersion>>
     where

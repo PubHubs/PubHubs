@@ -103,6 +103,13 @@ pub mod user {
     }
 
     /// Request to log in to an existing account, or register a new one.
+    ///
+    /// May fail with [`ErrorCode::BadRequest`] when:
+    ///  - [`identifying_attr`] is not identifying
+    ///  - The same attribute appears twice among [`add_attrs`] and [`identifying_attr`].
+    ///
+    /// [`identifying_attr`]: Self::identifying_attr
+    /// [`add_attrs`]: Self::add_attrs
     #[derive(Serialize, Deserialize, Debug, Clone)]
     pub struct EnterReq {
         /// [`Attr`]ibute identifying the user.
@@ -116,7 +123,7 @@ pub mod user {
         pub mode: EnterMode,
 
         /// Add these attributes to your account, required, for example, when registering a new
-        /// account.
+        /// account, or when no bannable attribute is registered for this account.
         #[serde(default)]
         pub add_attrs: Vec<Signed<attr::Attr>>,
     }
@@ -124,25 +131,45 @@ pub mod user {
     #[derive(Serialize, Deserialize, Debug, Clone)]
     #[serde(rename = "snake_case")]
     pub enum EnterResp {
-        /// The given identifying attribute is already tied to another account.
-        AttributeAlreadyTaken(attr::Attr),
-
         /// Happens only in [`EnterMode::Login`]
         AccountDoesNotExist,
 
-        /// This attribute is banned;  use another one.
+        /// This attribute is banned and therefore cannot be used.
         AttributeBanned(attr::Attr),
+
+        /// The given identifying attribute (in [`EnterReq::add_attrs`] or [`EnterReq::identifying_attr`])
+        /// is already tied to another account.
+        AttributeAlreadyTaken(attr::Attr),
 
         /// Cannot register an account with these attributes:  no bannable attribute provided.
         NoBannableAttribute,
 
-        /// Login (and registration) was successful
+        /// The given identifying attribute (now) grants access to a pubhubs account.
         Entered {
             /// Whether we created a new account
             new_account: bool,
 
-            attr_status: HashMap<id::Id, AttrAddResp>,
+            /// An access token identifying the user towards pubhubs central.
+            ///
+            /// May not be provided, for example, when the user is banned, or if no bannable
+            /// attribute is currently associated to the user's account.
+            id_token: std::result::Result<IdToken, IdTokenDeniedReason>,
+
+            attr_status: Vec<(attr::Attr, AttrAddStatus)>,
         },
+    }
+
+    /// Why no id token was granted
+    #[derive(Serialize, Deserialize, Debug, Clone, Copy, PartialEq, Eq)]
+    pub enum IdTokenDeniedReason {
+        /// This account is banned
+        Banned,
+
+        /// No bannable attribute associated to account.
+        ///
+        /// May happen when a bannable attribute was provided in the [`EnterReq`], but adding this
+        /// attribute failed for some reason.  Just try to add the bannable attribute again.
+        NoBannableAttribute,
     }
 
     #[derive(Default, Serialize, Deserialize, Debug, Clone, Copy, PartialEq, Eq)]
@@ -160,7 +187,21 @@ pub mod user {
 
     #[derive(Serialize, Deserialize, Debug, Clone)]
     #[serde(rename = "snake_case")]
-    pub enum AttrAddResp {
+    pub enum AttrAddStatus {
+        /// Did nothing - the attribute was already there
+        AlreadyThere,
+
+        /// The attribute was added
         Added,
+
+        /// Adding this attribute (partially) failed.
+        PleaseRetry,
+    }
+
+    /// An opaque token used to identify the user towards pubhubs central
+    #[derive(Serialize, Deserialize, Debug, Clone)]
+    #[serde(transparent)]
+    pub struct IdToken {
+        pub(crate) inner: serde_bytes::ByteBuf,
     }
 }

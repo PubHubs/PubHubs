@@ -4,7 +4,7 @@ use std::rc::Rc;
 
 use actix_web::web;
 
-use crate::api::phc::user::{EnterMode, EnterResp};
+use crate::api::phc::user::{AttrAddStatus, EnterMode, EnterResp};
 use crate::api::{self, ApiResultExt as _, EndpointDetails as _};
 use crate::attr::{self, Attr, AttrState};
 use crate::client;
@@ -340,7 +340,7 @@ impl App {
             app.id_attr(identifying_attr.old_open(&running_state.attr_signing_key)?);
 
         if !identifying_attr.identifying {
-            log::debug!(
+            log::warn!(
                 "supposed attribute {} of type {} is not identifying",
                 identifying_attr.value,
                 identifying_attr.attr_type
@@ -348,24 +348,40 @@ impl App {
             return Err(api::ErrorCode::BadRequest);
         }
 
-        let mut add_attrs: Vec<IdedAttr> = {
-            let mut new_add_attrs: Vec<IdedAttr> = Vec::with_capacity(add_attrs.len());
+        let attrs: HashMap<Id, IdedAttr> = {
+            let mut attrs: HashMap<Id, IdedAttr> = HashMap::with_capacity(add_attrs.len());
+
+            attrs.insert(identifying_attr.id, identifying_attr.clone());
 
             for add_attr in add_attrs {
-                new_add_attrs
-                    .push(app.id_attr(add_attr.old_open(&running_state.attr_signing_key)?));
+                let ided_attr = app.id_attr(add_attr.old_open(&running_state.attr_signing_key)?);
+
+                let previous_value = attrs.insert(ided_attr.id, ided_attr);
+
+                if let Some(attr) = previous_value {
+                    log::warn!(
+                        "entry: attribute {} of type {} provided twice",
+                        attr.value,
+                        attr.attr_type
+                    );
+                    return Err(api::ErrorCode::BadRequest);
+                }
             }
 
-            new_add_attrs
+            attrs
         };
 
+        // will be filled while getting and putting attributes to the object store
         let mut attr_states: std::collections::HashMap<
             Id,
             (AttrState, object_store::UpdateVersion),
         > = Default::default();
 
+        // keeps track of which attributes have already been added
+        let mut attr_add_status: HashMap<Id, AttrAddStatus> = Default::default();
+
         // Attributes are fine, check if we have a user account
-        let (user_state, user_state_v) = 'found_user: {
+        let (user_state, user_state_version) = 'found_user: {
             if matches!(mode, EnterMode::Login | EnterMode::LoginOrRegister) {
                 // see if account exists
                 if let Some((ias, ias_v)) =
@@ -421,20 +437,18 @@ impl App {
             ));
 
             if let Some(resp) = app
-                .precheck_attrs_for_registration(
-                    std::iter::once(&identifying_attr).chain(add_attrs.iter()),
-                )
+                .precheck_attrs_for_registration(&attrs, &mut attr_states)
                 .await?
             {
                 return Ok(resp);
             }
 
-            let new_user_id = Id::random();
-
             // we need to be careful with the order of things here lest we leave the object
             // store in a broken state.
             //
-            //  1. Add the user account object.  If this fails, the client just needs to register
+            //  1. Add the user account object.  Include the identying attributes in the user
+            //     account already - they can be added later - but do not include the bannable
+            //     attributes. If this fails, the client just needs to register
             //     again.
             //
             //  2. Add the identifying attribute pointing to the user account.  If this fails, the
@@ -443,11 +457,93 @@ impl App {
             //  3. Add the other attributes.  If this fails the user can always add the attributes
             //     again using the identifying attribute already registered.
             //
+            //  4. Modify the user account to register the added bannable attributes.  If this
+            //     fails, the user can always re-add those bannable attributes.
+            //
+            //  Here, we're only doing steps 1 and 2. Steps 3 and 4 are shared with regular login.
 
-            todo! {}
+            let user_state = UserState {
+                id: Id::random(),
+                banned: false,
+                allow_login_by: attrs
+                    .values()
+                    .filter_map(|attr| {
+                        if attr.identifying {
+                            Some(attr.id)
+                        } else {
+                            None
+                        }
+                    })
+                    .collect(),
+                could_be_banned_by: Default::default(), // set after the bannable attributes have
+                                                        // been added
+            };
+
+            let user_state_version = app
+                .put_object::<UserState>(&user_state, None)
+                .await?
+                .ok_or_else(|| {
+                    log::error!("User with id {} already exists - very odd", user_state.id);
+                    api::ErrorCode::InternalError
+                })?;
+
+            // Add identifying attribute.  We do not expect the attribute to exist, because
+            // otherwise we would be logging in, not registering.
+            assert!(!attr_states.contains_key(&identifying_attr.id));
+
+            let identifying_attr_state = AttrState {
+                attr: identifying_attr.id,
+                banned: false,
+                may_identify_user: Some(user_state.id),
+                bans_users: if identifying_attr.bannable {
+                    vec![user_state.id]
+                } else {
+                    vec![]
+                },
+            };
+
+            if let Some(identifying_attr_state_version) = app
+                .put_object::<AttrState>(&identifying_attr_state, None)
+                .await
+                .inspect_err(|err| {
+                    log::warn!(
+                        "orphaned user account {} due to error with putting \
+                        identifying attribute: {err}",
+                        user_state.id
+                    );
+                })?
+            {
+                assert!(attr_states
+                    .insert(
+                        identifying_attr.id,
+                        (identifying_attr_state, identifying_attr_state_version),
+                    )
+                    .is_none());
+
+                assert!(attr_add_status
+                    .insert(identifying_attr.id, AttrAddStatus::Added)
+                    .is_none());
+            } else {
+                log::warn!(
+                    "possibly orphaned user account {} because identifying \
+                    attribute {} was just added before our noses",
+                    user_state.id,
+                    identifying_attr.id
+                );
+                return Ok(EnterResp::AttributeAlreadyTaken(identifying_attr.attr));
+            }
+
+            log::debug!("created user account {}", user_state.id);
+            break 'found_user (user_state, user_state_version);
         };
 
         // add the missing attributes
+        for attr in attrs.values() {
+            if attr_states.contains_key(&attr.id) {
+                todo! {}
+            }
+        }
+
         todo! {}
     }
 
@@ -459,7 +555,16 @@ impl App {
         }
     }
 
-    /// Pre-checks whether the given attributes permit registration of a new user account
+    /// Pre-checks whether the given attributes in `attrs` are suitable for
+    /// registering a new user.
+    ///
+    /// Potential problems:
+    ///  1. None of the given attributes is bannable.
+    ///  2. One of the attributes is banned
+    ///  3. One of the attributes already identifies another user.
+    ///
+    /// Will try to retrieve attribute states for attributes not already in `attr_states`,
+    /// and will add those to `attr_states`.
     ///
     /// Returns `Ok(None)` when there are no issues.
     ///
@@ -467,24 +572,38 @@ impl App {
     /// registration.
     async fn precheck_attrs_for_registration(
         &self,
-        attrs: impl Iterator<Item = &IdedAttr> + Clone,
+        attrs: &HashMap<Id, IdedAttr>,
+        attr_states: &mut HashMap<Id, (AttrState, object_store::UpdateVersion)>,
     ) -> api::Result<Option<EnterResp>> {
         // Before doing potentially expensive queries to the object store, make sure a bannable
         // attribute has been provided by the client
-        if !attrs.clone().any(|attr| attr.bannable) {
+        if !attrs.values().any(|attr| attr.bannable) {
             return Ok(Some(EnterResp::NoBannableAttribute));
         }
 
-        // TODO: parallelize?
-        for attr in attrs {
-            if let Some((attr_state, _)) = self.get_object::<AttrState>(&attr.id).await? {
-                if attr_state.banned {
-                    return Ok(Some(EnterResp::AttributeBanned(attr.attr.clone())));
-                }
+        // Retrieve attributes states in so far they are available
+        for (attr_id, attr) in attrs {
+            // TODO: parallelize?
+            if attr_states.contains_key(attr_id) {
+                continue;
+            }
 
-                if attr_state.may_identify_user.is_some() {
-                    return Ok(Some(EnterResp::AttributeAlreadyTaken(attr.attr.clone())));
-                }
+            if let Some(attr_state_and_version) = self.get_object::<AttrState>(&attr_id).await? {
+                attr_states.insert(attr.id, attr_state_and_version);
+            }
+        }
+
+        for (attr_id, (attr_state, ..)) in attr_states.iter() {
+            if attr_state.banned {
+                return Ok(Some(EnterResp::AttributeBanned(
+                    attrs.get(attr_id).unwrap().attr.clone(),
+                )));
+            }
+
+            if attr_state.may_identify_user.is_some() {
+                return Ok(Some(EnterResp::AttributeAlreadyTaken(
+                    attrs.get(attr_id).unwrap().attr.clone(),
+                )));
             }
         }
 
@@ -493,6 +612,7 @@ impl App {
 }
 
 /// An [`Attr`] with its [`Id`].
+#[derive(Clone)]
 struct IdedAttr {
     id: Id,
     attr: Attr,
@@ -593,7 +713,7 @@ pub struct UserState {
     pub banned: bool,
 
     /// Attributes that may be used to log in as this user,
-    /// provided that [`attr::AttrState.may_identify_user`] also points to this account.
+    /// provided that [`attr::AttrState::may_identify_user`] also points to this account.
     ///
     /// The user may remove an attribute from this list.
     pub allow_login_by: std::collections::HashSet<Id>,
