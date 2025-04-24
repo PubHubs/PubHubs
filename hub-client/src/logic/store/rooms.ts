@@ -59,7 +59,7 @@ const useRooms = defineStore('rooms', {
 	state: () => {
 		return {
 			currentRoomId: '' as string,
-			roomsLoaded: false as boolean,
+			publicRoomsLoaded: false as boolean,
 			rooms: {} as { [index: string]: Room },
 			roomsSeen: {} as { [index: string]: number },
 			publicRooms: [] as Array<TPublicRoom>,
@@ -73,9 +73,20 @@ const useRooms = defineStore('rooms', {
 	},
 
 	getters: {
+		/**
+		 *  Returns roomsLoaded: all rooms are loaded AND all rooms have a name that is different from the roomId.
+		 *  Rooms can be added with the Id as name (the initial value) and only when syncing these rooms get their calculated name,
+		 *  so we check for that
+		 */
+		roomsLoaded(state): boolean {
+			const values = Object.values(state.rooms);
+			return this.publicRoomsLoaded && !values.some((room) => room.roomId === room.name);
+		},
+
 		roomsArray(state): Array<Room> {
 			const values = Object.values(state.rooms);
-			const rooms = values.filter((item) => typeof item?.roomId !== 'undefined');
+			// check if the room has an Id and if the Id is different from the name (because then the Id would be displayed and the room unreachable)
+			const rooms = values.filter((room) => typeof (room.roomId !== 'undefined') && room.roomId !== room.name);
 			return rooms;
 		},
 
@@ -238,11 +249,11 @@ const useRooms = defineStore('rooms', {
 					this.rooms[matrixRoom.roomId] = new Room(matrixRoom);
 				}
 			});
-			this.roomsLoaded = true;
+			this.publicRoomsLoaded = true;
 		},
 
-		setRoomsLoaded(loading: boolean) {
-			this.roomsLoaded = loading;
+		setPublicRoomsLoaded(loading: boolean) {
+			this.publicRoomsLoaded = loading;
 		},
 
 		sendUnreadMessageCounter() {
