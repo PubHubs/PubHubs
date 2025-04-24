@@ -6,7 +6,7 @@ use actix_web::web;
 use digest::Digest as _;
 
 use crate::servers::{
-    self, AppBase, AppCreatorBase, Constellation, Handle, Server as _, constellation, yivi,
+    self, constellation, yivi, AppBase, AppCreatorBase, Constellation, Handle, Server as _,
 };
 use crate::{
     api::{self, EndpointDetails as _, ResultExt as _},
@@ -121,7 +121,7 @@ impl AuthState {
     }
 
     fn unseal(sealed: &api::auths::AuthState, key: &crypto::SealingKey) -> api::Result<AuthState> {
-        crypto::unseal(&sealed.inner, key, b"").map_err(|err| {
+        crypto::unseal(&*sealed.inner, key, b"").map_err(|err| {
             log::debug!("failed to unseal AuthState: {err}");
             api::ErrorCode::BrokenSeal
         })
