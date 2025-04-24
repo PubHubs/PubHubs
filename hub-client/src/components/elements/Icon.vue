@@ -45,6 +45,6 @@
 		if (props.filled) {
 			return 0;
 		}
-		return 2;
+		return 1;
 	});
 </script>
