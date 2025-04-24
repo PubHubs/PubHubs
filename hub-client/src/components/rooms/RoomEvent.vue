@@ -33,7 +33,7 @@
 									<EventTime :timestamp="event.origin_server_ts" :showDate="true"> </EventTime>
 								</span>
 
-								<RoomBadge class="inline-block" :user="event.sender" :room_id="event.room_id"></RoomBadge>
+								<RoomBadge v-if="!room.isPrivateRoom()" class="inline-block" :user="event.sender" :room_id="event.room_id"></RoomBadge>
 							</div>
 							<div>
 								<template v-if="timerReady && !deleteMessageDialog">
@@ -97,7 +97,7 @@
 						</Suspense>
 
 						<Message v-if="event.content.msgtype === MsgType.Text || redactedMessage" :event="event" :deleted="redactedMessage" class="max-w-[90ch]" />
-						<AnnouncementMessage v-if="isAnnouncementMessage && !redactedMessage" :event="event.content"></AnnouncementMessage>
+						<AnnouncementMessage v-if="isAnnouncementMessage && !redactedMessage && !room.isPrivateRoom()" :event="event.content"></AnnouncementMessage>
 						<!-- Temporary fix to set the background color of the signed message in the dialog to delete a message -->
 						<MessageSigned v-if="event.content.msgtype === PubHubsMgType.SignedMessage && !redactedMessage" :message="event.content.signed_message" class="max-w-[90ch]" />
 						<MessageFile v-if="event.content.msgtype === MsgType.File && !redactedMessage" :message="event.content" class="max-w-[90ch]" />
