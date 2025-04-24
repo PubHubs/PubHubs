@@ -1,15 +1,15 @@
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 use std::ops::{Deref, DerefMut};
 use std::rc::Rc;
 
 use actix_web::web;
 
-use crate::api::phc::user::{AttrAddStatus, EnterMode, EnterResp};
+use crate::api::phc::user::{AttrAddStatus, EnterMode, EnterResp, IdToken};
 use crate::api::{self, ApiResultExt as _, EndpointDetails as _};
-use crate::attr::{self, Attr, AttrState};
+use crate::attr::{Attr, AttrState};
 use crate::client;
 use crate::handle;
-use crate::id::{self, Id};
+use crate::id::Id;
 use crate::misc::jwt;
 use crate::phcrypto;
 use crate::servers::{self, constellation, AppBase, AppCreatorBase, Constellation, Handle};
@@ -381,7 +381,7 @@ impl App {
         let mut attr_add_status: HashMap<Id, AttrAddStatus> = Default::default();
 
         // Attributes are fine, check if we have a user account
-        let (user_state, user_state_version) = 'found_user: {
+        let ((user_state, mut user_state_version), new_account) = 'found_user: {
             if matches!(mode, EnterMode::Login | EnterMode::LoginOrRegister) {
                 // see if account exists
                 if let Some((ias, ias_v)) =
@@ -417,7 +417,7 @@ impl App {
                             api::ErrorCode::InternalError
                         })?;
 
-                    break 'found_user user_and_version;
+                    break 'found_user (user_and_version, false);
                 }
 
                 log::trace!(
@@ -491,16 +491,8 @@ impl App {
             // otherwise we would be logging in, not registering.
             assert!(!attr_states.contains_key(&identifying_attr.id));
 
-            let identifying_attr_state = AttrState {
-                attr: identifying_attr.id,
-                banned: false,
-                may_identify_user: Some(user_state.id),
-                bans_users: if identifying_attr.bannable {
-                    vec![user_state.id]
-                } else {
-                    vec![]
-                },
-            };
+            let identifying_attr_state =
+                AttrState::new(identifying_attr.id, &identifying_attr, user_state.id);
 
             if let Some(identifying_attr_state_version) = app
                 .put_object::<AttrState>(&identifying_attr_state, None)
@@ -534,24 +526,150 @@ impl App {
             }
 
             log::debug!("created user account {}", user_state.id);
-            break 'found_user (user_state, user_state_version);
+            break 'found_user ((user_state, user_state_version), true);
         };
 
-        // add the missing attributes
+        if user_state.banned {
+            return Ok(EnterResp::Banned);
+        }
+
+        // Add the missing attributes.  First the attribute states.
         for attr in attrs.values() {
             if attr_states.contains_key(&attr.id) {
-                todo! {}
+                attr_add_status
+                    .entry(attr.id)
+                    .or_insert(AttrAddStatus::AlreadyThere);
+                continue;
+            }
+
+            let attr_state = AttrState::new(attr.id, attr, user_state.id);
+
+            match app.put_object::<AttrState>(&attr_state, None).await {
+                Ok(Some(attr_state_version)) => {
+                    assert!(attr_states
+                        .insert(attr.id, (attr_state, attr_state_version))
+                        .is_none());
+                    assert!(attr_add_status
+                        .insert(attr.id, AttrAddStatus::Added)
+                        .is_none());
+                }
+                _ => {
+                    assert!(attr_add_status
+                        .insert(attr.id, AttrAddStatus::PleaseTryAgain)
+                        .is_none());
+                }
             }
         }
 
-        todo! {}
+        // Now check that all the bannable attributes ban this user
+        for attr in attrs.values() {
+            let (attr_state, attr_state_version) =
+                if let Some(attr_state_and_version) = attr_states.get(&attr.id) {
+                    attr_state_and_version
+                } else {
+                    continue;
+                };
+
+            if !attr.bannable || attr_state.bans_users.contains(&user_state.id) {
+                continue;
+            }
+
+            let mut attr_state = attr_state.clone();
+            assert!(attr_state.bans_users.insert(user_state.id));
+
+            match app
+                .put_object::<AttrState>(&attr_state, Some(attr_state_version.clone()))
+                .await
+            {
+                Ok(Some(attr_state_version)) => {
+                    assert!(attr_states
+                        .insert(attr.id, (attr_state.clone(), attr_state_version))
+                        .is_none());
+                    assert!(attr_add_status
+                        .insert(attr.id, AttrAddStatus::Added)
+                        .is_none());
+                }
+                _ => {
+                    assert!(attr_add_status
+                        .insert(attr.id, AttrAddStatus::PleaseTryAgain)
+                        .is_none());
+                }
+            }
+        }
+
+        let mut new_user_state = user_state.clone();
+        let mut added_attrs: HashSet<Id> = Default::default();
+
+        // Finally check that the attributes are added to the user's account state
+        for (attr_id, (attr_state, ..)) in attr_states {
+            if *attr_add_status.get(&attr_id).unwrap() == AttrAddStatus::PleaseTryAgain {
+                continue;
+            }
+
+            if let Some(identifies_user_id) = attr_state.may_identify_user {
+                assert_eq!(identifies_user_id, user_state.id);
+
+                if new_user_state.allow_login_by.insert(attr_id) {
+                    added_attrs.insert(attr_id);
+                }
+            }
+
+            if attr_state.bans_users.contains(&user_state.id)
+                && new_user_state.could_be_banned_by.insert(attr_id)
+            {
+                added_attrs.insert(attr_id);
+            }
+        }
+
+        if !added_attrs.is_empty() {
+            match app
+                .put_object::<UserState>(&user_state, Some(user_state_version))
+                .await
+            {
+                Ok(Some(new_user_state_version)) => {
+                    #[expect(unused_assignments)]
+                    {
+                        user_state_version = new_user_state_version;
+                    }
+
+                    for added_attr_id in added_attrs {
+                        attr_add_status.insert(added_attr_id, AttrAddStatus::Added);
+                    }
+                }
+
+                _ => {
+                    for added_attr_id in added_attrs {
+                        attr_add_status.insert(added_attr_id, AttrAddStatus::PleaseTryAgain);
+                    }
+                }
+            }
+        }
+
+        let id_token = if user_state.could_be_banned_by.is_empty() {
+            Err(api::phc::user::IdTokenDeniedReason::NoBannableAttribute)
+        } else {
+            Ok(IdToken {
+                inner: Default::default(),
+            }) // TODO
+        };
+
+        Ok(EnterResp::Entered {
+            new_account,
+            id_token,
+            attr_status: attr_add_status
+                .iter()
+                .map(|(attr_id, attr_add_status)| {
+                    (attrs.get(attr_id).unwrap().attr.clone(), *attr_add_status)
+                })
+                .collect(),
+        })
     }
 
     /// Computes and caches the [`Id`] of an [`Attr`].
     fn id_attr(&self, attr: Attr) -> IdedAttr {
         IdedAttr {
             id: attr.id(&*self.attr_id_secret),
-            attr: attr,
+            attr,
         }
     }
 
@@ -588,7 +706,7 @@ impl App {
                 continue;
             }
 
-            if let Some(attr_state_and_version) = self.get_object::<AttrState>(&attr_id).await? {
+            if let Some(attr_state_and_version) = self.get_object::<AttrState>(attr_id).await? {
                 attr_states.insert(attr.id, attr_state_and_version);
             }
         }
@@ -716,7 +834,7 @@ pub struct UserState {
     /// provided that [`attr::AttrState::may_identify_user`] also points to this account.
     ///
     /// The user may remove an attribute from this list.
-    pub allow_login_by: std::collections::HashSet<Id>,
+    pub allow_login_by: HashSet<Id>,
 
     /// Attributes that when banned will ban this user
     ///
@@ -725,5 +843,5 @@ pub struct UserState {
     /// This list is used to keep track of whether there is at least one attribute that would
     /// ban this user.  If there are none, the user must add a bannable attribute before they can
     /// login in.
-    pub could_be_banned_by: Vec<Id>,
+    pub could_be_banned_by: HashSet<Id>,
 }

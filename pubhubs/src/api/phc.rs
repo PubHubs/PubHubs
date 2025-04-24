@@ -7,7 +7,6 @@ use serde::{Deserialize, Serialize};
 
 use crate::attr;
 use crate::handle;
-use crate::id;
 use crate::servers::Constellation;
 
 /// `.ph/hub/...` endpoints, used by hubs
@@ -137,6 +136,9 @@ pub mod user {
         /// This attribute is banned and therefore cannot be used.
         AttributeBanned(attr::Attr),
 
+        /// Cannot login, because this account is banned.
+        Banned,
+
         /// The given identifying attribute (in [`EnterReq::add_attrs`] or [`EnterReq::identifying_attr`])
         /// is already tied to another account.
         AttributeAlreadyTaken(attr::Attr),
@@ -162,9 +164,6 @@ pub mod user {
     /// Why no id token was granted
     #[derive(Serialize, Deserialize, Debug, Clone, Copy, PartialEq, Eq)]
     pub enum IdTokenDeniedReason {
-        /// This account is banned
-        Banned,
-
         /// No bannable attribute associated to account.
         ///
         /// May happen when a bannable attribute was provided in the [`EnterReq`], but adding this
@@ -185,7 +184,7 @@ pub mod user {
         LoginOrRegister,
     }
 
-    #[derive(Serialize, Deserialize, Debug, Clone)]
+    #[derive(Serialize, Deserialize, Debug, Clone, Copy, PartialEq, Eq)]
     #[serde(rename = "snake_case")]
     pub enum AttrAddStatus {
         /// Did nothing - the attribute was already there
@@ -195,7 +194,7 @@ pub mod user {
         Added,
 
         /// Adding this attribute (partially) failed.
-        PleaseRetry,
+        PleaseTryAgain,
     }
 
     /// An opaque token used to identify the user towards pubhubs central

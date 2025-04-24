@@ -108,7 +108,7 @@ where
     {
         let os = self.shared.object_store.as_object_store();
 
-        let path = T::path_for(&id);
+        let path = T::path_for(id);
 
         match os.get(&path).await {
             Ok(get_result) => {

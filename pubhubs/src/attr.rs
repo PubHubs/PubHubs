@@ -1,5 +1,7 @@
 //! Attributes, for identifying (and/or banning) end-users
 
+use std::collections::HashSet;
+
 use crate::common::secret;
 use crate::handle::{Handle, Handles};
 use crate::id::Id;
@@ -125,5 +127,24 @@ pub struct AttrState {
     /// The users that provided this attribute as bannable attribute.
     /// If this attribute gets banned, so will they.
     #[serde(default)]
-    pub bans_users: Vec<Id>,
+    pub bans_users: HashSet<Id>,
+}
+
+impl AttrState {
+    pub fn new(attr_id: Id, attr: &Attr, user_id: Id) -> Self {
+        Self {
+            attr: attr_id,
+            banned: false,
+            may_identify_user: if attr.identifying {
+                Some(user_id)
+            } else {
+                None
+            },
+            bans_users: if attr.bannable {
+                std::iter::once(user_id).collect()
+            } else {
+                Default::default()
+            },
+        }
+    }
 }
