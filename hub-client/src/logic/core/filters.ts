@@ -17,6 +17,36 @@ export default {
 		return date.toLocaleDateString() + ' ' + date.toLocaleTimeString();
 	},
 
+	getDateStr(date: string | string[] | Date | Date[], hour24: boolean, d: any, preview = false) {
+		if (date instanceof Date || typeof date === 'string') {
+			if (typeof date === 'string') {
+				date = new Date(date);
+			}
+			const time = hour24 ? d(date, 'shorter') : d(date, 'shorter12Hour');
+			return `${d(date, 'short')}, ${time}`;
+		} else if (Array.isArray(date) && date.every((d, i, array) => d instanceof Date || typeof d === 'string' || (i === array.length - 1 && d === null))) {
+			const startDate = new Date(date[0]);
+			const startTime = hour24 ? d(startDate, 'shorter') : d(startDate, 'shorter12Hour');
+			const endDate = date[1] ? new Date(date[1]) : null;
+			let endTime: string | null = null;
+			if (endDate) {
+				endTime = hour24 ? d(endDate, 'shorter') : d(endDate, 'shorter12Hour');
+			}
+			if (endDate === null || startDate.toLocaleDateString() === endDate.toLocaleDateString()) {
+				if (endTime && !preview) {
+					return `${d(startDate, 'short')}, ${startTime} - ${endTime}`;
+				} else if (endTime && preview) {
+					return `${d(startDate, 'short')}, ${startTime} - ${d(endDate, 'short')}, ${endTime}`;
+				} else {
+					return `${d(startDate, 'short')}, ${startTime}`;
+				}
+			}
+			return `${d(startDate, 'short')}, ${startTime} - ${d(endDate, 'short')}, ${endTime}`;
+		} else {
+			throw new Error('The date was not provided in one of the allowed types.');
+		}
+	},
+
 	removeBackSlash(url: string) {
 		return url.replace(/\/$/g, '');
 	},

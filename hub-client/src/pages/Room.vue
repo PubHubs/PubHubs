@@ -101,7 +101,10 @@
 		if (!r) {
 			// I want the side effect that should be avoided according to the lint rule.
 			// eslint-disable-next-line
-			router.push({ name: 'error-page', query: { errorKey: 'errors.cant_find_room' } });
+			router.push({
+				name: 'error-page',
+				query: { errorKey: 'errors.cant_find_room' },
+			});
 		}
 		return r;
 	});

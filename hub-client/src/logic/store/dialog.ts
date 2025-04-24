@@ -54,6 +54,7 @@ class DialogProperties {
 	modal: Boolean;
 	modalonly: Boolean;
 	close: Boolean;
+	message: Boolean;
 
 	constructor(title = '', content = '', buttons: Array<DialogButton> = [], modal = true, close = true) {
 		this.title = title;
@@ -66,6 +67,7 @@ class DialogProperties {
 		this.modal = modal;
 		this.modalonly = false;
 		this.close = close;
+		this.message = false;
 	}
 }
 

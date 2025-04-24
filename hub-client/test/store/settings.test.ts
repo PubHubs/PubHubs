@@ -48,7 +48,10 @@ describe('Settings Store', () => {
 			expect(settings.getThemeOptions()).toHaveLength(3);
 			expect(settings.getThemeOptions()[0].label).toBeTypeOf('string');
 			expect(settings.getThemeOptions()[0].value).toBeTypeOf('string');
-			expect(settings.getThemeOptions()[0]).toEqual({ label: 'System', value: 'system' });
+			expect(settings.getThemeOptions()[0]).toEqual({
+				label: 'System',
+				value: 'system',
+			});
 		});
 
 		test('getThemeOptions localization', () => {
@@ -64,7 +67,10 @@ describe('Settings Store', () => {
 			expect(settings.getThemeOptions(themes)).toHaveLength(3);
 			expect(settings.getThemeOptions(themes)[0].label).toBeTypeOf('string');
 			expect(settings.getThemeOptions(themes)[0].value).toBeTypeOf('string');
-			expect(settings.getThemeOptions(themes)[0]).toEqual({ label: 'Systeem', value: 'system' });
+			expect(settings.getThemeOptions(themes)[0]).toEqual({
+				label: 'Systeem',
+				value: 'system',
+			});
 		});
 	});
 });

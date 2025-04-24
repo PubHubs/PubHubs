@@ -1,0 +1,34 @@
+.dp__theme_dark {
+	--dp-background-color: var(--background);
+	--dp-border-color: var(--surface-high);
+	--dp-menu-border-color: var(--background);
+	--dp-text-color: var(--on-surface);
+	--dp-range-between-dates-background-color: var(--surface-high);
+	--dp-range-between-border-color: var(--surface-high);
+	--dp-range-between-dates-text-color: var(--on-surface);
+}
+
+:root {
+	--dp-font-size: clamp(1.2rem, 1.13rem + 0.14vw, 1.4rem); /*Default font-size*/
+	--dp-preview-font-size: 1.1rem; /*Font size of the date preview in the action row*/
+	--dp-time-font-size: clamp(1.6rem, 1.53rem + 0.14vw, 1.8rem); /*Font size in the time picker*/
+}
+
+.dp--menu-wrapper {
+	box-shadow: 0px 0px 5px var(--black);
+	border-radius: 5px;
+}
+.dp__input_wrap input {
+	display: none;
+}
+.dp__clear_icon {
+	display: none;
+}
+.dp__input_icon {
+	color: var(--black);
+}
+.time-picker-overlay {
+	display: flex;
+	height: 100%;
+	flex-direction: column;
+}

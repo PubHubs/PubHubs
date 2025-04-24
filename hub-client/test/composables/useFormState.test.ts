@@ -60,7 +60,10 @@ describe('useFormState', () => {
 	test('Validation', () => {
 		setData({
 			aNumber: { value: '', validation: { required: true } },
-			aString: { value: '', validation: { required: true, max_length: 10, min_length: 2 } },
+			aString: {
+				value: '',
+				validation: { required: true, max_length: 10, min_length: 2 },
+			},
 		});
 
 		// required
@@ -131,8 +134,20 @@ describe('useFormState', () => {
 
 test('Validation No Validation Messages', () => {
 	setData({
-		aNumber: { value: '', validation: { required: true }, show_validation: { required: false } },
-		aString: { value: '', validation: { required: true, max_length: 10, min_length: 2 }, show_validation: { required: false, max_length: false, min_length: false } },
+		aNumber: {
+			value: '',
+			validation: { required: true },
+			show_validation: { required: false },
+		},
+		aString: {
+			value: '',
+			validation: { required: true, max_length: 10, min_length: 2 },
+			show_validation: {
+				required: false,
+				max_length: false,
+				min_length: false,
+			},
+		},
 	});
 
 	// required

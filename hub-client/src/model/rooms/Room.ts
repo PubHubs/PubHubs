@@ -67,7 +67,9 @@ export default class Room {
 	logger = LOGGER;
 
 	constructor(matrixRoom: MatrixRoom) {
-		LOGGER.trace(SMI.ROOM, `Roomclass Constructor `, { roomId: matrixRoom.roomId });
+		LOGGER.trace(SMI.ROOM, `Roomclass Constructor `, {
+			roomId: matrixRoom.roomId,
+		});
 
 		this.matrixRoom = matrixRoom;
 		this.hidden = false;
@@ -382,6 +384,17 @@ export default class Room {
 		return this.matrixRoom.getLiveTimeline().getEvents().at(-1)?.event;
 	}
 
+	public getRelatedLiveTimeEvents(eventId: string): MatrixEvent[] {
+		// TODO: use the matrix-js-sdk filter options if possible
+		const events = this.matrixRoom
+			.getLiveTimeline()
+			.getEvents()
+			.filter((event) => {
+				return event.event.content?.['m.relates_to']?.event_id === eventId;
+			});
+		return events;
+	}
+
 	public getLivetimelineLength(): number {
 		return this.matrixRoom.getLiveTimeline().getEvents().length;
 	}
@@ -399,7 +412,9 @@ export default class Room {
 	}
 
 	public getTimeline(): MatrixEvent[] {
-		LOGGER.trace(SMI.ROOM, `Room gettimeline `, { getTimeline: this.timelineWindow?.getTimeline() });
+		LOGGER.trace(SMI.ROOM, `Room gettimeline `, {
+			getTimeline: this.timelineWindow?.getTimeline(),
+		});
 		return this.timelineWindow?.getTimeline();
 	}
 

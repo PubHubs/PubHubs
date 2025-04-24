@@ -9,6 +9,7 @@ import { LOGGER } from '@/logic/foundation/Logger';
 import { SMI } from '@/logic/foundation/StatusMessage';
 import { AskDisclosureMessage, YiviSigningSessionResult } from '@/model/components/signedMessages';
 import { TMentions, TMessageEvent, TTextMessageEventContent } from '@/model/events/TMessageEvent';
+import { TVotingWidgetClose, TVotingWidgetEditEventContent, TVotingWidgetMessageEventContent, TVotingWidgetOpen, TVotingWidgetPickOption, TVotingWidgetVote } from '@/model/events/voting/TVotingMessageEvent';
 import Room from '@/model/rooms/Room';
 import { TSearchParameters } from '@/model/search/TSearch';
 import { useConnection } from '@/logic/store/connection';
@@ -18,8 +19,10 @@ import { User, useUser } from '@/logic/store/user';
 import { router } from '@/logic/core/router';
 import { ContentHelpers, EventType, ISearchResults, ISendEventResponse, MatrixClient, MatrixError, MatrixEvent, Room as MatrixRoom, User as MatrixUser, MsgType } from 'matrix-js-sdk';
 import { ReceiptType } from 'matrix-js-sdk/lib/@types/read_receipts';
+import { Poll, Scheduler } from '@/model/events/voting/VotingTypes';
 import { useMessageActions } from '@/logic/store/message-actions';
 import { RoomPowerLevelsEventContent } from 'matrix-js-sdk/lib/@types/state_events';
+import { RoomMessageEventContent } from 'matrix-js-sdk/lib/types';
 
 const publicRoomsLoading: Promise<any> | null = null; // outside of defineStore to guarantee lifetime, not accessible outside this module
 const updateRoomsPerforming: Promise<void> | null = null; // outside of defineStore to guarantee lifetime, not accessible outside this module
@@ -59,6 +62,7 @@ const usePubHubs = defineStore('pubhubs', {
 
 				logger.trace(SMI.STARTUP, 'PubHubs.logged in (X) - started client');
 				this.client = x as MatrixClient;
+
 				const user = useUser();
 				user.setClient(x as MatrixClient);
 
@@ -436,7 +440,7 @@ const usePubHubs = defineStore('pubhubs', {
 		async _addUserMentionsToMessageContent(content: TTextMessageEventContent) {
 			content['m.mentions'] = this._createEmptyMentions();
 
-			if (content.body.includes('@')) {
+			if (content.body?.includes('@')) {
 				const users = await this.getUsers();
 				const mentionedUsers = content.body.split('@');
 				const mentionedUsersName = users
@@ -523,17 +527,17 @@ const usePubHubs = defineStore('pubhubs', {
 			const content = await this._constructMessageContent(text, threadRoot, inReplyTo);
 
 			/*
-			   Sendmessage gives a console warning when adding a thread event, because the current timeline does not have a threadId.
-			   For now we skip this , since the functionality is not affected by it.
-			   These consoles can be used when checking for the reason of the warning.
-			*/
+               Sendmessage gives a console warning when adding a thread event, because the current timeline does not have a threadId.
+               For now we skip this , since the functionality is not affected by it.
+               These consoles can be used when checking for the reason of the warning.
+            */
 			// console.error('does client support threads: ', this.client.supportsThreads());
 			// console.error('threadTimelineSets: ', room?.matrixRoom.threadsTimelineSets);
 			// console.error('Thread.hasServerSideSupport: ', Thread.hasServerSideSupport);     // Thread from 'matrix-js-sdk'
 			// console.error('Thread.hasServerSideListSupport: ', Thread.hasServerSideListSupport);
 
 			const threadId = threadRoot?.event_id ?? null;
-			await this.client.sendMessage(roomId, threadId, content);
+			await this.client.sendMessage(roomId, threadId, content as RoomMessageEventContent);
 
 			// make room visible for all members if private room
 			if (room && room.isPrivateRoom()) {
@@ -556,22 +560,6 @@ const usePubHubs = defineStore('pubhubs', {
 			const messageActions = useMessageActions();
 			this.addMessage(roomId, messageContent, threadRoot, inReplyTo);
 			messageActions.replyingTo = undefined;
-		},
-
-		/** Sign and send a message in a room
-		 * @param message - message to send
-		 * @param attributes - attributes to sign with
-		 */
-		signAndSubmitMessage(message: string, attributes: string[], threadRoot: TMessageEvent | undefined): Promise<void> {
-			return new Promise((resolve, reject) => {
-				const rooms = useRooms();
-				const accessToken = this.Auth.getAccessToken();
-				//accessToken && rooms.yiviSignMessage(message, attributes, rooms.currentRoomId, accessToken, this.finishedSigningMessage);
-				if (accessToken) {
-					const handler = this.createFinishedSigningMessageHandler.call(this, threadRoot, resolve, reject);
-					rooms.yiviSignMessage(message, attributes, rooms.currentRoomId, accessToken, handler);
-				}
-			});
 		},
 
 		/** Method to get the yiviSignMessage to return to a promise
@@ -642,6 +630,127 @@ const usePubHubs = defineStore('pubhubs', {
 				},
 			};
 			await this.client.sendReceipt(event, ReceiptType.Read, content);
+		},
+
+		async addPoll(roomId: string, poll: Poll) {
+			const content: TVotingWidgetMessageEventContent = {
+				msgtype: PubHubsMgType.VotingWidget,
+				body: poll.title,
+				title: poll.title,
+				description: poll.description,
+				options: poll.options,
+				type: poll.type,
+				showVotesBeforeVoting: poll.showVotesBeforeVoting,
+			};
+			//@ts-ignore
+			await this.client.sendMessage(roomId, content);
+		},
+
+		async addScheduler(roomID: string, scheduler: Scheduler) {
+			const content: TVotingWidgetMessageEventContent = {
+				msgtype: PubHubsMgType.VotingWidget,
+				body: scheduler.title,
+				title: scheduler.title,
+				description: scheduler.description,
+				location: scheduler.location,
+				options: scheduler.options.filter((option) => option.status === 'filled'),
+				type: scheduler.type,
+				showVotesBeforeVoting: scheduler.showVotesBeforeVoting,
+			};
+			//@ts-ignore
+			await this.client.sendMessage(roomID, content);
+		},
+
+		async addVote(roomId: string, inReplyTo: string, optionId: number, vote: string) {
+			const content: TVotingWidgetVote = {
+				msgtype: PubHubsMgType.VotingWidgetVote,
+				optionId: optionId,
+				vote: vote,
+				'm.relates_to': {
+					event_id: inReplyTo,
+					rel_type: PubHubsMgType.VotingWidgetVote,
+				},
+			};
+			//@ts-ignore
+			await this.client.sendEvent(roomId, PubHubsMgType.VotingWidgetReply, content);
+		},
+
+		async closeVotingWidget(roomId: string, inReplyTo: string, user_ids: string[]) {
+			const content: TVotingWidgetClose = {
+				msgtype: PubHubsMgType.VotingWidgetClose,
+				'm.relates_to': {
+					event_id: inReplyTo,
+					rel_type: PubHubsMgType.VotingWidgetClose,
+				},
+				'm.mentions': {
+					user_ids: user_ids,
+				},
+			};
+			//@ts-ignore
+			await this.client.sendEvent(roomId, PubHubsMgType.VotingWidgetModify, content);
+		},
+
+		async reopenVotingWidget(roomId: string, inReplyTo: string, user_ids: string[]) {
+			const content: TVotingWidgetOpen = {
+				msgtype: PubHubsMgType.VotingWidgetOpen,
+				'm.relates_to': {
+					event_id: inReplyTo,
+					rel_type: PubHubsMgType.VotingWidgetOpen,
+				},
+				'm.mentions': {
+					user_ids: user_ids,
+				},
+			};
+			//@ts-ignore
+			await this.client.sendEvent(roomId, PubHubsMgType.VotingWidgetModify, content);
+		},
+
+		async pickOptionVotingWidget(roomId: string, inReplyTo: string, optionId: number) {
+			const content: TVotingWidgetPickOption = {
+				msgtype: PubHubsMgType.VotingWidgetPickOption,
+				'm.relates_to': {
+					event_id: inReplyTo,
+					rel_type: PubHubsMgType.VotingWidgetPickOption,
+				},
+				optionId: optionId,
+			};
+			//@ts-ignore
+			await this.client.sendEvent(roomId, PubHubsMgType.VotingWidgetPickOption, content);
+		},
+
+		async editPoll(roomId: string, inReplyTo: string, widget: Poll) {
+			const content: TVotingWidgetEditEventContent = {
+				msgtype: PubHubsMgType.VotingWidgetEdit,
+				title: widget.title,
+				'm.relates_to': {
+					event_id: inReplyTo,
+					rel_type: PubHubsMgType.VotingWidgetEdit,
+				},
+				description: widget.description,
+				options: widget.options,
+				type: widget.type,
+				showVotesBeforeVoting: widget.showVotesBeforeVoting,
+			};
+			//@ts-ignore
+			await this.client.sendEvent(roomId, PubHubsMgType.VotingWidgetModify, content);
+		},
+
+		async editScheduler(roomId: string, inReplyTo: string, widget: Scheduler) {
+			const content: TVotingWidgetEditEventContent = {
+				msgtype: PubHubsMgType.VotingWidgetEdit,
+				title: widget.title,
+				'm.relates_to': {
+					event_id: inReplyTo,
+					rel_type: PubHubsMgType.VotingWidgetEdit,
+				},
+				description: widget.description,
+				location: widget.location,
+				options: widget.options.filter((option) => option.status === 'filled'),
+				type: widget.type,
+				showVotesBeforeVoting: widget.showVotesBeforeVoting,
+			};
+			//@ts-ignore
+			await this.client.sendEvent(roomId, PubHubsMgType.VotingWidgetModify, content);
 		},
 
 		async sendPrivateReceipt(event: MatrixEvent) {
@@ -765,7 +874,10 @@ const usePubHubs = defineStore('pubhubs', {
 				return emptySearchResult;
 			}
 
-			return await this.client.searchRoomEvents({ term: term, filter: { rooms: [searchParameters.roomId] } });
+			return await this.client.searchRoomEvents({
+				term: term,
+				filter: { rooms: [searchParameters.roomId] },
+			});
 		},
 
 		/**

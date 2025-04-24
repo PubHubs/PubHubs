@@ -43,7 +43,10 @@
 		const user_found = typeof route.query.user === 'string' ? pubhubs.client.getUser(route.query.user) : null;
 		// initialise from defaults and params
 		if (user_found) {
-			ask.user = { userId: user_found.userId, displayName: user_found.displayName };
+			ask.user = {
+				userId: user_found.userId,
+				displayName: user_found.displayName,
+			};
 		}
 		rooms.askDisclosure = ask;
 	});
@@ -79,7 +82,10 @@
 
 	function onChosenUser(other: MatrixUser) {
 		showChooseFromUsersList.value = false;
-		rooms.askDisclosure!.user = { userId: other.userId, displayName: other.displayName };
+		rooms.askDisclosure!.user = {
+			userId: other.userId,
+			displayName: other.displayName,
+		};
 		showAskDisclosureAttrsForm.value = true;
 	}
 

@@ -87,7 +87,6 @@
 
 					<template v-else>
 						<Suspense>
-							<!-- Temporary fix to set the background color of the MessageSnippet in the dialog to delete a message -->
 							<MessageSnippet v-if="showReplySnippet(event.content.msgtype)" @click="onInReplyToClick" :eventId="inReplyToId" :showInReplyTo="true" :room="room"></MessageSnippet>
 							<template #fallback>
 								<div class="flex items-center gap-3 rounded-md px-2">
@@ -98,15 +97,21 @@
 
 						<Message v-if="event.content.msgtype === MsgType.Text || redactedMessage" :event="event" :deleted="redactedMessage" class="max-w-[90ch]" />
 						<AnnouncementMessage v-if="isAnnouncementMessage && !redactedMessage && !room.isPrivateRoom()" :event="event.content"></AnnouncementMessage>
-						<!-- Temporary fix to set the background color of the signed message in the dialog to delete a message -->
 						<MessageSigned v-if="event.content.msgtype === PubHubsMgType.SignedMessage && !redactedMessage" :message="event.content.signed_message" class="max-w-[90ch]" />
 						<MessageFile v-if="event.content.msgtype === MsgType.File && !redactedMessage" :message="event.content" class="max-w-[90ch]" />
 						<MessageImage v-if="event.content.msgtype === MsgType.Image && !redactedMessage" :message="event.content" class="max-w-[90ch]" />
+
+						<VotingWidget
+							v-if="settings.isFeatureEnabled(FeatureFlag.votingWidget) && event.content.msgtype === PubHubsMgType.VotingWidget && !redactedMessage"
+							:event="event"
+							@edit-poll="(poll, eventId) => emit('editPoll', poll, eventId)"
+							@edit-scheduler="(scheduler, eventId) => emit('editScheduler', scheduler, eventId)"
+						></VotingWidget>
 					</template>
 
 					<button
 						@click="replyInThread"
-						class="bg-hub-background-3 inline-flex rounded-md px-2 py-1 text-xs hover:opacity-80"
+						class="bg-hub-background-3 inline-flex rounded-md px-2 py-1 ~text-label-tiny-min/label-tiny-max hover:opacity-80"
 						v-if="!deleteMessageDialog && !viewFromThread && threadLength > 0 && canReplyInThread && !msgIsNotSend && !redactedMessage"
 					>
 						<Icon :type="'talk'" :size="'xs'"></Icon>
@@ -148,8 +153,10 @@
 
 	// Dependencies
 	import { MsgType } from 'matrix-js-sdk';
-	import { computed, ref, watch, defineProps, onMounted } from 'vue';
+	import { computed, ref, watch, onMounted } from 'vue';
 	import { useI18n } from 'vue-i18n';
+	import VotingWidget from '@/components/rooms/voting/VotingWidget.vue';
+	import { Poll, Scheduler } from '@/model/events/voting/VotingTypes';
 
 	// Stores
 	const connection = useConnection();
@@ -203,6 +210,8 @@
 	const emit = defineEmits<{
 		(e: 'inReplyToClick', inReplyToId: string): void;
 		(e: 'deleteMessage', event: TMessageEvent): void;
+		(e: 'editPoll', poll: Poll, eventId: string): void;
+		(e: 'editScheduler', scheduler: Scheduler, eventId: string): void;
 	}>();
 
 	const msgIsNotSend = computed(() => props.event.event_id.substring(0, 1) === '~');

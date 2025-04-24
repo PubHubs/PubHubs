@@ -24,7 +24,9 @@
 								<div class="flex w-full items-center gap-2 truncate">
 									<Avatar :user="user" :img="user.avatarUrl" />
 									<div class="flex h-fit w-full flex-col overflow-hidden">
-										<p class="truncate font-bold leading-tight">{{ user.displayName }}</p>
+										<p class="truncate font-bold leading-tight">
+											{{ user.displayName }}
+										</p>
 										<p class="leading-tight">{{ user.pseudonym ?? '' }}</p>
 									</div>
 								</div>
@@ -118,6 +120,7 @@
 	import { computed, getCurrentInstance, onMounted, ref, watch } from 'vue';
 	import { useI18n } from 'vue-i18n';
 	import { RouteParamValue, useRouter } from 'vue-router';
+	import { ConditionKind, IPushRule, PushRuleKind } from 'matrix-js-sdk';
 
 	// Hub imports
 	import Disclosure from '@/components/rooms/Disclosure.vue';
@@ -134,6 +137,7 @@
 	import Avatar from '@/components/ui/Avatar.vue';
 	import { HubInformation } from '@/logic/store/hub-settings';
 	import { usePubHubs } from '@/logic/core/pubhubsStore';
+	import { PubHubsInvisibleMsgType } from '@/logic/core/events';
 	import { LOGGER } from '@/logic/foundation/Logger';
 	import { SMI } from '@/logic/foundation/StatusMessage';
 	import { useDialog } from '@/logic/store/dialog';
@@ -196,7 +200,10 @@
 		// check if hash doesn't start with hub,
 		// then it is running only the hub-client, so we need to do some checks
 		if (!window.location.hash.startsWith('#/hub/')) {
-			pubhubs.login().then(() => (setupReady.value = true));
+			pubhubs.login().then(() => {
+				setupReady.value = true;
+				addPushRules();
+			});
 			// Needs onboarding?
 			if (user.needsOnboarding) {
 				router.push({ name: 'onboarding' });
@@ -254,6 +261,18 @@
 				hubSettings.mobileHubMenu = true;
 			});
 		}
+	}
+
+	function addPushRules() {
+		// Add a pushrule to make sure that events that modify a voting widget (poll or date picker) do not trigger unread messages and mentions.
+		const pushrule: IPushRule = {
+			actions: [],
+			conditions: [{ kind: ConditionKind.EventMatch, key: 'type', pattern: PubHubsInvisibleMsgType.VotingWidgetModify }],
+			default: false,
+			enabled: true,
+			rule_id: 'votingwidgetmodify',
+		};
+		pubhubs.client.addPushRule('global', PushRuleKind.Override, 'votingwidgetmodify', pushrule);
 	}
 
 	function setTheme(theme: string) {

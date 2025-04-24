@@ -13,6 +13,7 @@ import { useUser } from './user';
 import { useSettings } from './settings';
 import { PubHubsMgType } from '@/logic/core/events';
 import { SecuredRoomAttributeResult } from '@/logic/foundation/statusTypes';
+import { TMessageEvent } from '@/model/events/TMessageEvent';
 
 // Matrix Endpoint for messages in a room.
 interface RoomMessages {
@@ -301,7 +302,13 @@ const useRooms = defineStore('rooms', {
 				this.roomNotices[roomId][creatingAdminUser!] = ['rooms.admin_badge'];
 			}
 			const limit = 100000;
-			const encodedObject = encodeURIComponent(JSON.stringify({ types: [EventType.RoomMessage], senders: [hub_notice], limit: limit }));
+			const encodedObject = encodeURIComponent(
+				JSON.stringify({
+					types: [EventType.RoomMessage],
+					senders: [hub_notice],
+					limit: limit,
+				}),
+			);
 			// The limit is in two places, it used to work in just the filter, but not anymore. It's also an option in the query string.
 			const response = await api_matrix.apiGET<RoomMessages>(api_matrix.apiURLS.rooms + roomId + `/messages?limit=${limit}&filter=` + encodedObject);
 			for (const message of response.chunk) {
@@ -444,8 +451,12 @@ const useRooms = defineStore('rooms', {
 				});
 		},
 
-		yiviSignMessage(message: string, attributes: string[], roomId: string, accessToken: string, onFinish: (result: YiviSigningSessionResult) => unknown) {
+		yiviSignMessage(message: string, attributes: string[], roomId: string, threadRoot: TMessageEvent | undefined, onFinish: (result: YiviSigningSessionResult, threadRoot: TMessageEvent | undefined) => unknown) {
 			const settings = useSettings();
+			const pubhubsStore = usePubHubs();
+
+			const accessToken = pubhubsStore.Auth.getAccessToken();
+			if (!accessToken) throw new Error('Access token missing.');
 
 			const yivi = require('@privacybydesign/yivi-frontend');
 			// @ts-ignore
@@ -482,7 +493,7 @@ const useRooms = defineStore('rooms', {
 			yiviWeb
 				.start()
 				.then((result: YiviSigningSessionResult) => {
-					onFinish(result);
+					onFinish(result, threadRoot);
 				})
 				.catch((error: any) => {
 					console.info(`There is an Error: ${error}`);
