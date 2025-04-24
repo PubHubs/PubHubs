@@ -11,7 +11,7 @@ const iconSizes: { [key: string]: string } = {
 };
 
 const buttonSizes: { [key: string]: string } = {
-	xs: 'py-0 px-1',
+	xs: 'py-0 px-2 h-6',
 	sm: 'py-1 px-2',
 	base: 'py-2 px-4',
 	lg: 'py-3 px-6',

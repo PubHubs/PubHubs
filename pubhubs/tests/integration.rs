@@ -294,7 +294,7 @@ async fn main_integration_test_local(config: servers::Config, admin_sk: api::Sig
 #[derive(serde::Deserialize)]
 #[serde(deny_unknown_fields)]
 struct DisclosureRequestClaims {
-    sprequest: yivi::SessionRequest,
+    sprequest: yivi::ExtendedSessionRequest,
 }
 
 /// Simulates a hub.

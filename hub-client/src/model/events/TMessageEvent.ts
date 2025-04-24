@@ -3,6 +3,7 @@ import { WithRequired } from '../utility/utility';
 import { TBaseEvent } from './TBaseEvent';
 import { EventType, MsgType } from 'matrix-js-sdk';
 import { PubHubsMgType } from '@/logic/core/events';
+import { TVotingWidgetMessageEventContent } from './voting/TVotingMessageEvent';
 
 /**
  * Event used for sending messages in a room. Not limited to text.
@@ -15,11 +16,23 @@ export interface TMessageEvent<C extends TMessageEventContent = TMessageEventCon
 }
 
 // In future Matrix spec some refacturing is needed: https://github.com/matrix-org/matrix-spec-proposals/blob/main/proposals/1767-extensible-events.md
-interface TBaseMessageEventContent {
-	body: string;
+export interface TBaseMessageEventContent {
+	body?: string;
 	// Custom body type, which has all the processed body or formatted body content, for use in our components
-	ph_body: string;
-	msgtype: MsgType.Text | MsgType.Image | MsgType.File | PubHubsMgType.SignedMessage | PubHubsMgType.AnnouncementMessage;
+	ph_body?: string;
+	msgtype:
+		| MsgType.Text
+		| MsgType.Image
+		| MsgType.File
+		| PubHubsMgType.SignedMessage
+		| PubHubsMgType.AnnouncementMessage
+		| PubHubsMgType.VotingWidget
+		| PubHubsMgType.VotingWidgetEdit
+		| PubHubsMgType.VotingWidgetVote
+		| PubHubsMgType.VotingWidgetClose
+		| PubHubsMgType.VotingWidgetOpen
+		| PubHubsMgType.VotingWidgetPickOption
+		| PubHubsMgType.VotingWidgetAddVoteOption;
 	'm.relates_to'?: {
 		rel_type?: string;
 		event_id?: string;
@@ -69,7 +82,7 @@ export interface TAnnouncementMessageEventContent extends TBaseMessageEventConte
 
 export type IHTMLTextMessageEventContent = WithRequired<TTextMessageEventContent, 'format' | 'formatted_body'>;
 
-export type TMessageEventContent = TTextMessageEventContent | TImageMessageEventContent | TFileMessageEventContent | TSignedMessageEventContent | TAnnouncementMessageEventContent;
+export type TMessageEventContent = TTextMessageEventContent | TImageMessageEventContent | TFileMessageEventContent | TSignedMessageEventContent | TAnnouncementMessageEventContent | TVotingWidgetMessageEventContent;
 
 // To be implemented
 type EncryptedFile = any;

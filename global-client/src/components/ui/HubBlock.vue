@@ -3,11 +3,11 @@
 		<Button class="!btn-white !absolute right-2 top-2 z-40 flex h-10 w-10 items-center justify-center rounded-xl border border-black bg-white" @click="toggleDescription($event)">
 			<Icon :type="showDescription ? 'hubBlockCross' : 'hubBlockInfo'" />
 		</Button>
-		<div v-if="showDescription" class="absolute right-0 top-0 z-30 h-full max-h-60 w-full overflow-y-auto rounded-2xl bg-background p-4">
+		<div v-if="showDescription" class="absolute right-0 top-0 z-30 h-full max-h-60 w-full overflow-y-auto rounded-xl bg-background p-4">
 			<H3>{{ $t('home.contact_details') }}</H3>
 			<Pre v-model="contact" class="whitespace-pre-line break-all">{{ contact }}</Pre>
 		</div>
-		<div class="h-24 w-full">
+		<div v-if="!showDescription" class="h-24 w-full">
 			<HubBanner :banner-url="hub.bannerUrl" :hub-name="hub.name" />
 		</div>
 		<div class="flex h-min items-start gap-4 px-4 py-2">

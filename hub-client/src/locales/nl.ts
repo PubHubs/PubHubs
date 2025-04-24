@@ -42,6 +42,7 @@ const nl = {
 	},
 	forms: {
 		submit: 'Invoeren',
+		save: 'Opslaan',
 	},
 	home: {
 		hub_homepage_welcome: 'Welkom bij de {0}-hub!',
@@ -205,6 +206,7 @@ const nl = {
 		announcement: 'aankondiging',
 		steward: 'groepsleider',
 		administrator: 'administrator',
+		votes: 'stemmen',
 	},
 	settings: {
 		userId: 'UserID',
@@ -228,15 +230,16 @@ const nl = {
 		save: 'Opslaan',
 		settings_saved: 'Veranderingen opgeslagen (ververs de pagina om ze te zien).',
 		error_saving_icon: 'Kon het icoon niet opslaan. Probeer het later opnieuw.',
+		error_saving_banner: 'Kon het spandoek niet opslaan. Probeer het later opnieuw.',
 		file_format_not_allowed: 'Bestandsformaat niet toegestaan. Gebruik .png, .jpeg, .jpg of svg bestanden.',
 		file_too_large: 'Bestand te groot. Gebruik een kleiner bestand.',
 		description_heading: 'Hub beschrijving',
-		description_description: 'De beschrijving van uw hub voor op de Hub Home pagina',
-		description: 'Welkom op de hub. Dit is een standaard informatieoverzicht van de hub. Als u deze tekst aanpast, zal die getoond worden op de Hub Home pagina',
+		description_description: 'De beschrijving van uw hub voor op de Hub Home pagina.',
+		description: 'Welkom op de hub. Dit is een standaard informatieoverzicht van de hub. Als u deze tekst aanpast, zal die getoond worden op de Hub Home pagina.',
 		banner_heading: 'Hub spandoek',
 		banner_description: 'Een publieke spandoek afbeelding voor deze Hub (468x85)px.',
 		summary_heading: 'Hub samenvatting',
-		summary_description: 'De samenvatting van uw Hub voor op de ontdek Hubs pagina (2 regels)',
+		summary_description: 'De samenvatting van uw Hub voor op de ontdek Hubs pagina (2 regels).',
 		summary: 'Dit is een voorbeeld van een korte samenvatting van de hub. Als u deze tekst aanpast, zal die getoond worden op het ontdek Hubs pagina overzicht.',
 		contact_heading: 'Hub contactgegevens',
 		contact_description: 'Contactgegevens voor de eigenaren van de Hub.',
@@ -342,6 +345,16 @@ const nl = {
 		upload_file: 'Upload bestand',
 		reply: 'Antwoord',
 		reply_in_thread: 'Antwoord in thread',
+		// Added for polling
+		scheduler: 'Datumprikker',
+		poll: 'Peiling',
+		scheduler_closed: 'Deze datumprikker is gesloten. Je kunt niet meer stemmen.',
+		pick_option: 'Kies een datum',
+		close: 'Sluiten',
+		reopen: 'Heropenen',
+		edit: 'Bewerk',
+		pick: 'Kies',
+		// Added for polling END
 		sign: {
 			add_signature: 'Onderteken bericht',
 			heading: 'Een bericht ondertekenen',
@@ -349,6 +362,8 @@ const nl = {
 			warning: 'Een ondertekend bericht kan worden gedeeld. Zet er geen persoonlijke informatie in en denk aan de medegebruikers in deze kamer.',
 			selected_attributes: 'Met deze informatie onderteken jij je bericht:',
 			send: 'Onderteken & Verstuur',
+			// Added for polling
+			edit: 'Onderteken & Bewerk',
 		},
 		messageSigned: {
 			heading: 'Ondertekend bericht',
@@ -362,6 +377,20 @@ const nl = {
 			file_not_deleted: 'Je bericht is na het verwijderen niet meer zichtbaar voor anderen, maar het bestand kan nog steeds gedownload worden door gebruikers die de link hebben opgeslagen.',
 			original_message_deleted: 'Oorspronkelijk bericht verwijderd',
 			message_deleted: 'Verwijderd bericht',
+		},
+		voting: {
+			add_option: 'Voeg keuze toe',
+			creating_option: 'Bezig keuze aan te maken...',
+			enter_title: 'Geef een titel...',
+			enter_option: 'Geef een keuze...',
+			enter_description: 'Geef omschrijving...',
+			enter_location: 'Geef locatie...',
+			allow_multiple_answers: 'Meerder antwoorden mogelijk',
+			show_votes_before_voting: 'Stemmen laten zien',
+			show_votes: 'Laat stemmen zien',
+			hide_votes: 'Verberg stemmen',
+			plural_votes: 'stem|stemmen',
+			edited: 'aangepast',
 		},
 		threads: {
 			view_thread: 'bekijk thread',

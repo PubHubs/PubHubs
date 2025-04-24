@@ -13,7 +13,9 @@ const createNewPrivateRoomName = (members: Array<TUser>): string => {
 
 // show private room name for all members
 const refreshPrivateRoomName = (name: string): string => {
-	const members = fetchMemberIdsFromPrivateRoomName(name).map((n) => ({ userId: n }));
+	const members = fetchMemberIdsFromPrivateRoomName(name).map((n) => ({
+		userId: n,
+	}));
 	return createNewPrivateRoomName(members);
 };
 

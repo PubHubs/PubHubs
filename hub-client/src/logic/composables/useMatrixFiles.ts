@@ -73,7 +73,20 @@ const useMatrixFiles = () => {
 		return fetchedAuthorizedUrl;
 	}
 
-	return { downloadUrl, uploadUrl, formUrlfromMxc, deleteMediaUrlfromMxc, imageTypes, mediaTypes, fileTypes, allTypes, getTypesAsString, isImage, isAllowed, useAuthorizedMediaUrl };
+	return {
+		downloadUrl,
+		uploadUrl,
+		formUrlfromMxc,
+		deleteMediaUrlfromMxc,
+		imageTypes,
+		mediaTypes,
+		fileTypes,
+		allTypes,
+		getTypesAsString,
+		isImage,
+		isAllowed,
+		useAuthorizedMediaUrl,
+	};
 };
 
 export type MatrixFilesStore = ReturnType<typeof useMatrixFiles>;

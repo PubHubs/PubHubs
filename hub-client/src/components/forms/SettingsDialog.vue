@@ -30,13 +30,17 @@
 			</div>
 			<div class="mb-4 flex flex-col md:flex-row">
 				<label class="text-gray w-2/6 font-semibold">{{ $t('settings.userId') }}</label>
-				<div title="Hub specific User ID" class="p-1 text-lg italic text-on-surface-dim ~text-base-min/base-max md:w-4/6">{{ user.user.userId }}</div>
+				<div title="Hub specific User ID" class="p-1 text-lg italic text-on-surface-dim ~text-base-min/base-max md:w-4/6">
+					{{ user.user.userId }}
+				</div>
 			</div>
 		</form>
 
 		<ValidationErrors :errors="formState.validationErrors.value" />
 
-		<div v-if="formState.message.value !== ''" class="bg-green-dark mt-2 rounded-lg p-2 text-white">{{ formState.message }}</div>
+		<div v-if="formState.message.value !== ''" class="bg-green-dark mt-2 rounded-lg p-2 text-white">
+			{{ formState.message }}
+		</div>
 	</Dialog>
 </template>
 
@@ -74,7 +78,13 @@
 	formState.setData({
 		displayName: {
 			value: user.user.displayName as string,
-			validation: { required: true, max_length: settings.getDisplayNameMaxLength, allow_empty_number: false, allow_empty_object: false, allow_empty_text: true },
+			validation: {
+				required: true,
+				max_length: settings.getDisplayNameMaxLength,
+				allow_empty_number: false,
+				allow_empty_object: false,
+				allow_empty_text: true,
+			},
 			show_validation: { required: false, max_length: true },
 		},
 	});

@@ -118,7 +118,9 @@ const useUser = defineStore('user', {
 		},
 
 		async fetchUserFirstTimeLoggedIn(): Promise<boolean> {
-			const resp = await api_synapse.apiPOST<any>(api_synapse.apiURLS.joinHub, { user: this.userId! });
+			const resp = await api_synapse.apiPOST<any>(api_synapse.apiURLS.joinHub, {
+				user: this.userId!,
+			});
 			this.needsOnboarding = resp.first_time_joined;
 			return this.needsOnboarding;
 		},

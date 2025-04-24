@@ -5,7 +5,9 @@
 			<p class="mb-4 font-bold">{{ $t('message.delete.file_not_deleted') }}</p>
 		</div>
 		<Suspense>
-			<RoomEvent class="w-fit" :event="event" :room="room" :deleteMessageDialog="true" :viewFromThread="props.viewFromThread" />
+			<Mask>
+				<RoomEvent class="w-fit" :event="event" :room="room" :deleteMessageDialog="true" :viewFromThread="props.viewFromThread" />
+			</Mask>
 			<template #fallback>
 				<p>{{ $t('state.loading_message') }}</p>
 			</template>

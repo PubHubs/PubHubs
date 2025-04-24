@@ -11,6 +11,10 @@ import { router } from '@/logic/core/router';
 import { focus, twClass, clickOutside } from '@/logic/core/directives';
 import App from '@/pages/App.vue';
 
+import VueDatePicker from '@vuepic/vue-datepicker';
+import '@vuepic/vue-datepicker/dist/main.css';
+import '@/assets/datepicker.css';
+
 import { ReplaceConsole } from '@/console';
 ReplaceConsole();
 
@@ -29,4 +33,5 @@ app.use(pinia);
 app.directive('focus', focus);
 app.directive('tw-class', twClass);
 app.directive('click-outside', clickOutside);
+app.component('VueDatePicker', VueDatePicker);
 app.mount('#app');

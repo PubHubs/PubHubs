@@ -14,7 +14,10 @@
 					Hier kun je als organisatie een eigen Room krijgen om PubHubs zelf uit te proberen. Stel je organisatie heet ABC met webadres abc.nl. Dan kun je hier een eigen gesloten Room krijgen met naam ABC, binnen de TryOutHub.
 					Alleen mensen die kunnen laten zien (via de Yivi app) dat ze een e-mailadres hebben van de vorm ...@abc.nl kunnen in deze Room ABC. Zo kunnen alleen eigen mensen van de room gebruik maken.
 				</p>
-				<p class="mb-6">Heb je interesse? Neem contact op via: <a style="all: revert" href="mailto:contact@pubhubs.net">contact@pubhubs.net</a></p>
+				<p class="mb-6">
+					Heb je interesse? Neem contact op via:
+					<a style="all: revert" href="mailto:contact@pubhubs.net">contact@pubhubs.net</a>
+				</p>
 				<p class="mb-6">
 					Het PubHubs team aan de Radboud Universiteit wil per Room een contactpersoon en aanspreekpunt (van organisatie ABC) die zichzelf bekend maakt (o.a. met mobiele nummer) en verantwoordelijkheid op zich neemt voor de inhoud
 					en de toon van de gesprekken in de room ABC. Bij signalen van misbruik zal het PubHubs team de Room verwijderen.
@@ -35,17 +38,13 @@
 			<Button @click="gotoDiscoverRooms()" class="flex w-max justify-center gap-2"
 				><Icon type="pubhubs-home" /><span>{{ $t('menu.discover') }}</span></Button
 			>
-			<div v-if="hubDescription">
-				<H3 class="p-4">{{ $t('home.heading') }}</H3>
-				<div class="min-w-64 rounded-2xl bg-surface">
-					<Pre class="whitespace-pre-line break-all p-4">{{ hubDescription }}</Pre>
-				</div>
+			<H3 v-if="hubDescription" class="p-4">{{ $t('home.heading') }}</H3>
+			<div v-if="hubDescription" class="min-w-64 rounded-2xl bg-surface">
+				<Pre class="whitespace-pre-line break-all p-4">{{ hubDescription }}</Pre>
 			</div>
-			<div v-if="hubContact">
-				<H3 class="p-4">{{ $t('home.contact_details') }}</H3>
-				<div class="min-w-64 rounded-2xl bg-surface">
-					<Pre class="whitespace-pre-line break-all p-4">{{ hubContact }}</Pre>
-				</div>
+			<H3 v-if="hubContact" class="p-4">{{ $t('home.contact_details') }}</H3>
+			<div v-if="hubContact" class="min-w-64 rounded-2xl bg-surface">
+				<Pre class="whitespace-pre-line break-all p-4">{{ hubContact }}</Pre>
 			</div>
 			<Button v-if="!showPubHubsCentralLoginButton && !isTryOutHub()" class="md:~text-body-min/body-max mt-10 ~text-label-min/label-max" @click="goToLoginPage()">{{ $t('home.hub_homepage_join') }}</Button>
 			<Button v-if="!showPubHubsCentralLoginButton && isTryOutHub()" class="md:~text-body-min/body-max mt-10 ~text-label-min/label-max" @click="goToLoginPage()">Doe mee met de TryOutHub </Button>
