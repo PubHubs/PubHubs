@@ -177,6 +177,11 @@ where
             })?
             .into();
 
+        log::trace!(
+            "Putting to {path} the object {}",
+            std::str::from_utf8(&bytes).unwrap()
+        );
+
         match os
             .put_opts(
                 &path,

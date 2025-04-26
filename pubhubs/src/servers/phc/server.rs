@@ -623,7 +623,7 @@ impl App {
 
         if !added_attrs.is_empty() {
             match app
-                .put_object::<UserState>(&user_state, Some(user_state_version))
+                .put_object::<UserState>(&new_user_state, Some(user_state_version))
                 .await
             {
                 Ok(Some(new_user_state_version)) => {
@@ -644,6 +644,7 @@ impl App {
                 }
             }
         }
+        let user_state = new_user_state;
 
         let id_token = if user_state.could_be_banned_by.is_empty() {
             Err(api::phc::user::IdTokenDeniedReason::NoBannableAttribute)
