@@ -91,8 +91,10 @@ impl EndpointDetails for AuthCompleteEP {
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct AuthCompleteReq {
+    /// Proof that the end-user possesses the requested attributes.
     pub proof: AuthProof,
 
+    /// The [`AuthStateResp::state`] obtained earlier.
     pub state: AuthState,
 }
 

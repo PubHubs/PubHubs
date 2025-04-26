@@ -236,7 +236,7 @@ impl App {
 
         let ssr =
             yivi::SessionResult::open_signed(&disclosure, &yivi.server_creds).map_err(|err| {
-                log::debug!("invalid yivi signed session result submitted: {err}",);
+                log::debug!("invalid yivi signed session result submitted: {err:#}",);
                 api::ErrorCode::InvalidAuthProof
             })?;
 
@@ -281,26 +281,26 @@ impl App {
 
             // Disclosure for attribute is OK.
 
-            attrs
-                .insert(
-                    attr_type_handle.clone(),
-                    // TODO: attr_signing_key is constellation-dependent;  provide a mechanism
-                    // for the client to detect constellation change
-                    api::Signed::<attr::Attr>::new(
-                        &running_state.attr_signing_key,
-                        &attr::Attr {
-                            attr_type: attr_type.id,
-                            value: raw_value.to_string(),
-                            bannable: attr_type.bannable,
-                            identifying: attr_type.identifying,
-                        },
-                        app.auth_window,
-                    )?,
-                )
-                .into_ec(|_| {
-                    log::error!("expected to have already erred on duplicate attribute types");
-                    api::ErrorCode::InternalError
-                })?;
+            let old_value = attrs.insert(
+                attr_type_handle.clone(),
+                // TODO: attr_signing_key is constellation-dependent;  provide a mechanism
+                // for the client to detect constellation change
+                api::Signed::<attr::Attr>::new(
+                    &running_state.attr_signing_key,
+                    &attr::Attr {
+                        attr_type: attr_type.id,
+                        value: raw_value.to_string(),
+                        bannable: attr_type.bannable,
+                        identifying: attr_type.identifying,
+                    },
+                    app.auth_window,
+                )?,
+            );
+
+            if old_value.is_some() {
+                log::error!("expected to have already erred on duplicate attribute types");
+                return Err(api::ErrorCode::InternalError);
+            }
         }
 
         Ok(api::auths::AuthCompleteResp { attrs })
