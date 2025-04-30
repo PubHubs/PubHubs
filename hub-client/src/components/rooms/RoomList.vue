@@ -61,9 +61,15 @@
 	const plugins = usePlugins();
 
 	const props = defineProps({
-		roomType: {
-			type: String,
-			default: '!' + RoomType.PH_MESSAGES_DM,
+		filters: {
+			type: Object as () => {
+				type?: RoomType | `!${RoomType}`;
+				secure?: 'secure' | 'public' | 'all';
+			},
+			default: () => ({
+				type: undefined,
+				secure: 'all',
+			}),
 		},
 	});
 
@@ -71,16 +77,18 @@
 		return rooms.roomsLoaded;
 	});
 
-	// Either private room or public room based on roomType given as prop (private or normal)
-	// Needs a bit of refacturing, not so clear now.
-	function showRoom(room: Room): Boolean {
+	// Either private, public or secured
+	function showRoom(room: Room): boolean {
 		const roomType = room.getType();
 
-		// if no specific type is set, allways show this room
-		if (props.roomType !== '') {
-			const type = props.roomType.substring(1);
+		// Secure / public filtering
+		if (props.filters.secure === 'secure' && !rooms.roomIsSecure(room.roomId)) return false;
+		if (props.filters.secure === 'public' && rooms.roomIsSecure(room.roomId)) return false;
+
+		if (props.filters.type !== undefined) {
+			const type = props.filters.type.substring(1);
 			// If not (given room type), just show
-			if (props.roomType.charAt(0) === '!') {
+			if (props.filters.type.charAt(0) === '!') {
 				return roomType !== type;
 			} else {
 				if (roomType === RoomType.PH_MESSAGES_DM) {
@@ -88,10 +96,11 @@
 					const user = useUser();
 					return isVisiblePrivateRoom(room.name, user.user);
 				} else {
-					return roomType === props.roomType;
+					return roomType === props.filters.type;
 				}
 			}
 		}
+
 		return true;
 	}
 
