@@ -1,5 +1,5 @@
 <template>
-	<Dialog :title="$t('settings.title')" :buttons="buttonsSubmitCancel" @close="dialogAction($event)">
+	<Dialog :title="$t('settings.profile_title')" :buttons="buttonsSubmitCancel" @close="dialogAction($event)">
 		<form @submit.prevent>
 			<div class="mb-4 flex flex-col items-center md:flex-row md:items-start">
 				<label class="text-gray font-semibold md:w-2/6">{{ $t('settings.avatar') }}</label>

@@ -1,5 +1,5 @@
 <template>
-	<Dialog :title="$t('settings.title')" :buttons="buttonsSubmitCancel" width="w-3/5">
+	<Dialog :title="$t('settings.title')" :buttons="buttonsSubmitCancel">
 		<div class="flex flex-col gap-2">
 			<div class="flex flex-col justify-between md:flex-row">
 				<Label>{{ t('settings.theme') }}</Label>
