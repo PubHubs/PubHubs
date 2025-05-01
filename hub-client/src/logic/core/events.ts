@@ -15,6 +15,27 @@ enum RedactReasons {
 enum PubHubsMgType {
 	SignedMessage = 'pubhubs.signed_message',
 	AskDisclosureMessage = 'pubhubs.ask_disclosure_message',
+	AnnouncementMessage = 'pubhubs.announcement_message',
+	VotingWidget = 'pubhubs.voting_widget.widget',
+	VotingWidgetEdit = 'pubhubs.voting_widget.edit',
+	VotingWidgetVote = 'pubhubs.voting_widget.vote',
+	VotingWidgetClose = 'pubhubs.voting_widget.close',
+	VotingWidgetOpen = 'pubhubs.voting_widget.open',
+	VotingWidgetPickOption = 'pubhubs.voting_widget.pick_option',
+	VotingWidgetAddVoteOption = 'pubhubs.voting_widget.add_vote_option',
+	VotingWidgetReply = 'pubhubs.voting_widget.reply',
+	VotingWidgetModify = 'pubhubs.voting_widget.modify',
+}
+
+enum PubHubsInvisibleMsgType {
+	VotingWidgetEdit = 'pubhubs.voting_widget.edit',
+	VotingWidgetVote = 'pubhubs.voting_widget.vote',
+	VotingWidgetClose = 'pubhubs.voting_widget.close',
+	VotingWidgetOpen = 'pubhubs.voting_widget.open',
+	VotingWidgetPickOption = 'pubhubs.voting_widget.pick_option',
+	VotingWidgetAddVoteOption = 'pubhubs.voting_widget.add_vote_option',
+	VotingWidgetReply = 'pubhubs.voting_widget.reply',
+	VotingWidgetModify = 'pubhubs.voting_widget.modify',
 }
 
 class Events {
@@ -123,4 +144,4 @@ class Events {
 	}
 }
 
-export { Events, RedactReasons, PubHubsMgType };
+export { Events, RedactReasons, PubHubsMgType, PubHubsInvisibleMsgType };

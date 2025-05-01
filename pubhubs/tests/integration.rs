@@ -2,7 +2,8 @@
 
 use actix_web::web;
 use pubhubs::{
-    api, attr, client, elgamal, hub,
+    api::{self, ApiResultExt as _},
+    attr, client, elgamal, hub,
     misc::jwt,
     servers::{self, yivi},
 };
@@ -44,16 +45,28 @@ async fn main_integration_test() {
 
     // Generate temporary yivi requestor credentials.
     // (We're not contacting an actual Yivi server in this test.)
-    config.auths.as_mut().unwrap().extra.yivi = toml::from_str(
+    config.auths.as_mut().unwrap().yivi = toml::from_str(
         r#"
         requestor_url = "http://192.0.2.0"  # will not be used - placeholder ip address from RFC5737
+        server_name = "yivi-server"
         
         [requestor_creds]
         name = "ph_auths"
-        key.hs256 = "c2VjcmV0""#, // Python: base64.b64encode(b"secret")
+        key.hs256 = "c2VjcmV0""#, // = "secret"
     )
     .inspect_err(|err| log::error!("{}", err))
     .unwrap();
+
+    let sk = yivi::SigningKey::RS256(Box::new(jwt::RS256Sk::random(512).unwrap()));
+
+    config
+        .auths
+        .as_mut()
+        .unwrap()
+        .yivi
+        .as_mut()
+        .unwrap()
+        .server_key = Some(sk.to_verifying_key());
 
     let (set, shutdown_sender) = servers::Set::new(&config).unwrap();
 
@@ -174,7 +187,6 @@ async fn main_integration_test_local(config: servers::Config, admin_sk: api::Sig
         .phc
         .as_ref()
         .unwrap()
-        .extra
         .hubs
         .iter()
         .find(|h: &&hub::BasicInfo| &*h.handles[0] == "testhub")
@@ -202,7 +214,10 @@ async fn main_integration_test_local(config: servers::Config, admin_sk: api::Sig
         .unwrap();
 
     // check that the ticket is valid
-    ticket.clone().open(&*constellation.phc_jwt_key).unwrap();
+    ticket
+        .clone()
+        .old_open(&*constellation.phc_jwt_key)
+        .unwrap();
 
     // request hub encryption key
     let _hek = client
@@ -264,7 +279,7 @@ async fn main_integration_test_local(config: servers::Config, admin_sk: api::Sig
         },
     );
 
-    let yivi_server_creds: yivi::Credentials = toml::from_str(
+    let yivi_server_creds: yivi::Credentials<yivi::SigningKey> = toml::from_str(
         r#"name = "yivi-server"
         key.hs256 = "c2VjcmV0""#,
     )
@@ -279,7 +294,7 @@ async fn main_integration_test_local(config: servers::Config, admin_sk: api::Sig
 #[derive(serde::Deserialize)]
 #[serde(deny_unknown_fields)]
 struct DisclosureRequestClaims {
-    sprequest: yivi::SessionRequest,
+    sprequest: yivi::ExtendedSessionRequest,
 }
 
 /// Simulates a hub.

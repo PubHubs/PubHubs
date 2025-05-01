@@ -71,7 +71,7 @@ describe('MessageBox Store', () => {
 			// Receive same message and test if callback works
 			const callbackObj = {
 				fake: () => {
-					console.log('FAKE CALLBACK');
+					// console.log('FAKE CALLBACK');
 				},
 			};
 			const spyOnCallback = vi.spyOn(callbackObj, 'fake');

@@ -9,15 +9,9 @@
 		"
 		class="relative w-full"
 	>
-		<input
-			type="text"
-			v-model="search"
-			class="theme-light:border-black theme-light:text-black w-full rounded-lg border px-2 py-1 focus:border-black focus:outline-0 focus:outline-offset-0 focus:ring-0 dark:border-white dark:bg-transparent dark:text-white"
-			:placeholder="$t('others.typing')"
-			:disabled="disabled === true"
-		/>
-		<ul v-if="result.length > 0" class="absolute z-50 w-full rounded-lg border border-black bg-white px-2 py-1 shadow-md">
-			<li v-for="(item, index) in result" :key="index" @click="click(item)" class="cursor-pointer text-black" :class="{ 'bg-lightgray': cursor === index }">
+		<input type="text" v-model="search" class="w-full rounded-lg border bg-background px-2 py-1 ~text-label-min/label-max" :placeholder="$t('others.typing')" :disabled="disabled === true" />
+		<ul v-if="result.length > 0" class="absolute z-50 w-full rounded-lg border px-2 py-1 shadow-md">
+			<li v-for="(item, index) in result" :key="index" @click="click(item)" class="cursor-pointer" :class="{ '': cursor === index }">
 				{{ item.label }}
 			</li>
 		</ul>

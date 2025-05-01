@@ -94,7 +94,7 @@ pub fn translate<
 >(
     mut req: ServiceRequest,
     srv: &S,
-) -> impl Future<Output = Result<ServiceResponse<B>, actix_web::Error>> {
+) -> impl Future<Output = Result<ServiceResponse<B>, actix_web::Error>> + use<B, S> {
     // based on actix_web::middleware::NormalizePath
 
     let context = context_from_request(&req).clone();
@@ -124,7 +124,7 @@ pub fn metrics_auth<
 >(
     req: ServiceRequest,
     srv: &S,
-) -> impl Future<Output = Result<ServiceResponse<B>, actix_web::Error>> {
+) -> impl Future<Output = Result<ServiceResponse<B>, actix_web::Error>> + use<B, S> {
     let context = context_from_request(&req).clone();
     if !context.is_metrics_request(req.headers()) {
         futures::future::Either::Left(async { Err(Error::from(Forbidden {})) })
@@ -140,7 +140,7 @@ pub fn metrics_middleware<
 >(
     req: ServiceRequest,
     srv: &S,
-) -> impl Future<Output = Result<ServiceResponse<B>, actix_web::Error>> {
+) -> impl Future<Output = Result<ServiceResponse<B>, actix_web::Error>> + use<B, S> {
     let resource = req.match_pattern().unwrap_or_default();
     let context = context_from_request(&req);
     let http_req_histogram = &context.http_req_histogram;
@@ -175,7 +175,7 @@ pub fn hotfix_middleware<
 >(
     req: ServiceRequest,
     srv: &S,
-) -> impl Future<Output = Result<ServiceResponse, actix_web::Error>>
+) -> impl Future<Output = Result<ServiceResponse, actix_web::Error>> + use<B, S>
 where
     B::Error: Debug,
 {

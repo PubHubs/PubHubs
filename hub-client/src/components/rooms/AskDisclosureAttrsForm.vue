@@ -59,8 +59,19 @@
 	}>();
 
 	const securedRoomTemplate = ref([
-		{ key: 'yivi', label: t('admin.secured_attribute'), type: 'select', options: [], default: '' },
-		{ key: 'values', label: t('admin.secured_values'), type: 'textarea', default: '' },
+		{
+			key: 'yivi',
+			label: t('admin.secured_attribute'),
+			type: 'select',
+			options: [],
+			default: '',
+		},
+		{
+			key: 'values',
+			label: t('admin.secured_values'),
+			type: 'textarea',
+			default: '',
+		},
 	] as Array<FormObjectInputTemplate>);
 
 	watch(

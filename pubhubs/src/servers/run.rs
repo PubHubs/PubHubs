@@ -57,7 +57,7 @@ struct SetInner {
     /// The servers' tasks
     joinset: tokio::task::JoinSet<Result<()>>,
 
-    /// Via `shutdown_sender` [Set] broadcasts the instruction to shutdown to all servers
+    /// Via `shutdown_sender` [`Set`] broadcasts the instruction to shutdown to all servers
     /// running in the `joinset`.  It does so not by `send`ing a message, but by dropping
     /// the `shutdown_sender`.
     shutdown_sender: Option<tokio::sync::broadcast::Sender<Infallible>>,
@@ -77,8 +77,8 @@ impl Drop for SetInner {
 impl SetInner {
     /// Creates a new set of PubHubs servers from the given config.
     ///
-    /// Returns not only the [SetInner] instance, but also a [`tokio::sync::oneshot::Sender<Infallible>`]
-    /// that can be dropped to signal the [SetInner] should shutdown.
+    /// Returns not only the [`SetInner`] instance, but also a [`tokio::sync::oneshot::Sender<Infallible>`]
+    /// that can be dropped to signal the [`SetInner`] should shutdown.
     pub fn new(
         config: &crate::servers::Config,
     ) -> Result<(Self, tokio::sync::oneshot::Sender<Infallible>)> {
@@ -120,7 +120,7 @@ impl SetInner {
         macro_rules! run_server {
             ($server:ident) => {
                 if config.$server.is_some() {
-                    let config = config.prepare_for(crate::servers::$server::Server::NAME)?;
+                    let config = config.clone();
                     let rt_handle = rt_handle.clone();
                     let shutdown_receiver = shutdown_sender.subscribe();
 
@@ -162,13 +162,17 @@ impl SetInner {
         shutdown_receiver: tokio::sync::broadcast::Receiver<Infallible>,
         worker_count: Option<NonZero<usize>>,
     ) -> Result<()> {
-        assert!(config.preparation_state == crate::servers::config::PreparationState::Complete);
+        assert!(config.preparation_state == crate::servers::config::PreparationState::Preliminary);
 
         let localset = tokio::task::LocalSet::new();
 
-        let fut = localset.run_until(
-            crate::servers::run::Runner::<S>::new(&config, shutdown_receiver, worker_count)?.run(),
-        );
+        let fut = localset.run_until(async {
+            let config = config.prepare_for(S::NAME).await?;
+
+            crate::servers::run::Runner::<S>::new(&config, shutdown_receiver, worker_count)?
+                .run()
+                .await
+        });
 
         let result = rt_handle.block_on(fut);
 
@@ -245,7 +249,7 @@ impl SetInner {
     }
 }
 
-/// Runs a [Server]
+/// Runs a [`Server`]
 struct Runner<ServerT: Server> {
     pubhubs_server: Rc<ServerT>,
     shutdown_receiver: tokio::sync::broadcast::Receiver<Infallible>,
@@ -331,8 +335,8 @@ impl<S: Server> Handles<S> {
         };
     }
 
-    /// Consumes this [Handles] shutting down the actix server and pubhubs tasks.
-    async fn shutdown(mut self, graceful_actix_shutdown: bool) -> anyhow::Result<()> {
+    /// Consumes this [`Handles`] shutting down the actix server and pubhubs tasks.
+    async fn shutdown(mut self) -> anyhow::Result<()> {
         log::debug!("Shut down of {} started", S::NAME);
 
         anyhow::ensure!(
@@ -342,8 +346,12 @@ impl<S: Server> Handles<S> {
 
         drop(self.ph_shutdown_sender.take());
 
-        // NOTE: this is a noop if the actix server is already stopped
-        self.actix_server_handle.stop(graceful_actix_shutdown).await;
+        // This is a noop if the actix server is already stopped
+        //
+        // We do not use graceful shutdown, becaus in practise the persistent connections
+        // delay shutdown for the maximal shutdown timeout, which causes more disruption
+        // than the graceful shutdown aims to prevent
+        self.actix_server_handle.stop(false).await;
 
         let maybe_modifier = self
             .ph_join_handle
@@ -443,13 +451,13 @@ impl DiscoveryLimiter {
     ///     correctly.
     ///  2. Retrieve discovery info from the other servers and construct a constellation from it.
     ///  3. If the constellation has changed, restart to update it.
-    ///  4. Invoke disovery on those servers that have no or outdated constellations,
+    ///  4. Invoke discovery on those servers that have no or outdated constellations,
     ///     and return a retryable error - effectively go back to step 1.
     ///
     ///
     async fn request_discovery<S: Server>(
         &self,
-        app: S::AppT,
+        app: Rc<S::AppT>,
     ) -> api::Result<api::DiscoveryRunResp> {
         log::debug!(
             "{server_name}: discovery is requested",
@@ -463,20 +471,14 @@ impl DiscoveryLimiter {
                     "{server_name}: discovery aborted because the server is already restarting",
                     server_name = S::NAME
                 );
-                return api::ok(api::DiscoveryRunResp::Restarting);
+                return Ok(api::DiscoveryRunResp::Restarting);
             }
         };
 
         // Obtain discovery info from PHC (even when we are PHC ourselves, for perhaps
         // the phc_url is misconfigured) and perform some basis checks.
         // Should not return an error when our constellation is out of sync.
-        let phc_discovery_info = {
-            let result = AppBase::<S>::discover_phc(app.clone()).await;
-            if result.is_err() {
-                return api::err(result.unwrap_err());
-            }
-            result.unwrap()
-        };
+        let phc_discovery_info = AppBase::<S>::discover_phc(app.clone()).await?;
 
         if phc_discovery_info.constellation.is_none() && S::NAME != Name::PubhubsCentral {
             // PubHubs Central is not yet ready - make the caller retry
@@ -485,12 +487,12 @@ impl DiscoveryLimiter {
                 S::NAME,
                 Name::PubhubsCentral,
             );
-            return api::err(api::ErrorCode::NotYetReady);
+            return Err(api::ErrorCode::NotYetReady);
         }
 
-        let new_constellation_maybe = api::return_if_ec!(app.discover(phc_discovery_info).await);
+        let new_constellation_maybe = app.discover(phc_discovery_info).await?;
         if new_constellation_maybe.is_none() {
-            return api::ok(api::DiscoveryRunResp::UpToDate);
+            return Ok(api::DiscoveryRunResp::UpToDate);
         }
 
         let new_constellation = new_constellation_maybe.unwrap();
@@ -498,7 +500,6 @@ impl DiscoveryLimiter {
         // modify server, and restart (to modify all Apps)
 
         let result = app
-            .base()
             .handle
             .modify(
                 "updated constellation after discovery",
@@ -515,10 +516,7 @@ impl DiscoveryLimiter {
                         }
                     };
 
-                    server.app_creator_mut().base_mut().running_state = Some(RunningState {
-                        constellation: Box::new(new_constellation),
-                        extra,
-                    });
+                    server.running_state = Some(RunningState::new(new_constellation, extra));
 
                     true // yes, restart
                 },
@@ -527,7 +525,7 @@ impl DiscoveryLimiter {
 
         if let Err(()) = result {
             log::warn!("failed to initiate restart of {} for discovery, probably because the server is already shutting down", S::NAME,);
-            return api::err(api::ErrorCode::NotYetReady);
+            return Err(api::ErrorCode::NotYetReady);
         }
 
         log::trace!(
@@ -537,7 +535,7 @@ impl DiscoveryLimiter {
         *restart_imminent_guard = true;
         let _ = self.restart_imminent_cached.set(());
 
-        api::ok(api::DiscoveryRunResp::Restarting)
+        Ok(api::DiscoveryRunResp::Restarting)
     }
 
     /// Obtains write lock to `self.restart_imminent_lock` when restart is not imminent.
@@ -581,18 +579,19 @@ pub struct Handle<S: Server> {
 struct CommandRequest<S: Server> {
     /// The actual command
     command: Command<S>,
-    /// A way for the [Server] to inform the [App] that the command is about to be executed.
+    /// A way for the [`Server`] to inform the [`App`] that the command is about to be executed.
     feedback_sender: tokio::sync::oneshot::Sender<()>,
 }
 
 impl<S: Server> CommandRequest<S> {
     /// Let's the issuer of the command know that the command is to be fulfilled
     fn accept(self) -> Command<S> {
-        let _ = self.feedback_sender.send(());
-        log::warn!(
-            "The app issuing command {} that is about to execute has already dropped.",
-            &self.command
-        );
+        if self.feedback_sender.send(()).is_err() {
+            log::warn!(
+                "The app issuing command '{}' that is about to execute has already dropped.",
+                &self.command
+            );
+        }
         self.command
     }
 }
@@ -683,7 +682,7 @@ impl<S: Server> Handle<S> {
         })
     }
 
-    pub async fn request_discovery(&self, app: S::AppT) -> api::Result<api::DiscoveryRunResp> {
+    pub async fn request_discovery(&self, app: Rc<S::AppT>) -> api::Result<api::DiscoveryRunResp> {
         self.discovery_limiter.request_discovery::<S>(app).await
     }
 }
@@ -711,12 +710,8 @@ impl<S: Server> Runner<S> {
         self.pubhubs_server.server_config().bind_to
     }
 
-    pub fn graceful_shutdown(&self) -> bool {
-        self.pubhubs_server.server_config().graceful_shutdown
-    }
-
     fn create_actix_server(&self, bind_to: &SocketAddr) -> Result<Handles<S>> {
-        let app_creator: S::AppCreatorT = self.pubhubs_server.app_creator().clone();
+        let app_creator: S::AppCreatorT = self.pubhubs_server.deref().clone();
 
         let (command_sender, command_receiver) = mpsc::channel(1);
 
@@ -739,15 +734,17 @@ impl<S: Server> Runner<S> {
             // Build actix server
             let mut builder: actix_web::HttpServer<_, _, _, _> =
                 actix_web::HttpServer::new(move || {
-                    let app: S::AppT = app_creator2.clone().into_app(&handle2);
+                    let app: Rc<S::AppT> = Rc::new(app_creator2.clone().into_app(&handle2));
 
-                    actix_web::App::new().configure(|sc: &mut web::ServiceConfig| {
-                        // first configure endpoints common to all servers
-                        AppBase::<S>::configure_actix_app(&app, sc);
+                    actix_web::App::new().wrap(S::cors()).configure(
+                        |sc: &mut web::ServiceConfig| {
+                            // first configure endpoints common to all servers
+                            AppBase::<S>::configure_actix_app(&app, sc);
 
-                        // and then server-specific endpoints
-                        app.configure_actix_app(sc);
-                    })
+                            // and then server-specific endpoints
+                            app.configure_actix_app(sc);
+                        },
+                    )
                 })
                 .disable_signals() // we handle signals ourselves
                 .bind(bind_to)?;
@@ -768,7 +765,7 @@ impl<S: Server> Runner<S> {
         let ph_join_handle = tokio::task::spawn_local(
             self.pubhubs_server
                 .clone()
-                .run_until_modifier(ph_shutdown_receiver, app_creator.into_app(&handle)),
+                .run_until_modifier(ph_shutdown_receiver, Rc::new(app_creator.into_app(&handle))),
         );
 
         Ok(Handles {
@@ -814,7 +811,7 @@ impl<S: Server> Runner<S> {
 
         let result = Self::run_until_modifier_inner(&mut handles, self).await;
 
-        handles.shutdown(self.graceful_shutdown()).await?;
+        handles.shutdown().await?;
 
         result
     }

@@ -40,7 +40,7 @@ const buttonsCancel: Array<DialogButton> = [new DialogButton('cancel', 'red', Di
 
 const buttonsOkCancel: Array<DialogButton> = [new DialogButton('ok', 'blue', DialogOk), new DialogButton('cancel', 'red', DialogCancel)];
 
-const buttonsSubmitCancel: Array<DialogButton> = [new DialogButton('submit', 'blue', DialogSubmit), new DialogButton('cancel', 'red', DialogCancel)];
+const buttonsSubmitCancel: Array<DialogButton> = [new DialogButton('submit', 'blue', DialogSubmit), new DialogButton('cancel', 'text', DialogCancel)];
 
 const buttonsYesNo: Array<DialogButton> = [new DialogButton('yes', 'blue', DialogYes), new DialogButton('no', 'red', DialogNo)];
 
@@ -54,6 +54,7 @@ class DialogProperties {
 	modal: Boolean;
 	modalonly: Boolean;
 	close: Boolean;
+	message: Boolean;
 
 	constructor(title = '', content = '', buttons: Array<DialogButton> = [], modal = true, close = true) {
 		this.title = title;
@@ -66,6 +67,7 @@ class DialogProperties {
 		this.modal = modal;
 		this.modalonly = false;
 		this.close = close;
+		this.message = false;
 	}
 }
 

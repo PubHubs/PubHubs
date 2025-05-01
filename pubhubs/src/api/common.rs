@@ -1,96 +1,81 @@
-use serde::{de::IntoDeserializer as _, Deserialize, Serialize};
+use std::rc::Rc;
+
+use serde::{
+    de::{DeserializeOwned, IntoDeserializer as _},
+    Deserialize, Serialize,
+};
 
 use crate::misc::serde_ext::bytes_wrapper;
 use crate::servers::server;
 
 use actix_web::web;
 
-/// The result of an API-request to a PubHubs server endpoint.
-///
-/// We have made a new type because we cannot implement [actix_web::Responder]
-/// for the existing [std::result::Result].
-#[derive(Serialize, Deserialize, Debug)]
-pub enum Result<T> {
-    Ok(T),
-    Err(ErrorCode),
-}
+pub type Result<T> = std::result::Result<T, ErrorCode>;
 
-/// Creates an [actix_web::Responder] from the given [Serialize] `T`.
-pub fn ok<T>(t: T) -> Result<T>
-where
-    T: Serialize,
-{
-    Result::Ok(t)
-}
+/// The [`actix_web::Responder`] used for all API endpoints: a wrapper around [`Result<T, ErrorCode>`].
+pub struct ResultResponder<EP: EndpointDetails>(Result<EP::ResponseType>);
 
-/// Creates an [actix_web::Responder] from the given [ErrorCode].
-pub fn err<T: Serialize>(code: ErrorCode) -> Result<T> {
-    Result::<T>::Err(code)
-}
+impl<EP: EndpointDetails> actix_web::Responder for ResultResponder<EP> {
+    type Body = actix_web::body::BoxBody;
 
-impl<T: Serialize> actix_web::Responder for Result<T> {
-    type Body = actix_web::body::EitherBody<String>;
-
-    fn respond_to(self, req: &actix_web::HttpRequest) -> actix_web::HttpResponse<Self::Body> {
-        // NOTE: `actix_web::web::Json(self).respond_to(req)` does not work here,
-        // because actix_web::web::Json implements `Deref` so the very function we are defining
-        // will shadow the function we want to call.
-        actix_web::Responder::respond_to(actix_web::web::Json(self), req)
+    fn respond_to(self, _req: &actix_web::HttpRequest) -> actix_web::HttpResponse<Self::Body> {
+        EP::response_builder().json(&self.0)
     }
 }
 
-impl<T> Result<T> {
-    pub fn unwrap(self) -> T {
+impl<EP: EndpointDetails> From<Result<EP::ResponseType>> for ResultResponder<EP> {
+    fn from(res: Result<EP::ResponseType>) -> Self {
+        Self(res)
+    }
+}
+
+/// Extension trait for [`std::result::Result`].
+pub trait ResultExt {
+    type Ok;
+    type Err;
+
+    /// Turns `self` into an [`ErrorCode`] result by calling `f` when `self` is an error.
+    ///
+    /// Consider logging the error you're turning into an [`ErrorCode`].
+    fn into_ec<F: FnOnce(Self::Err) -> ErrorCode>(self, f: F) -> Result<Self::Ok>;
+}
+
+impl<T, E> ResultExt for std::result::Result<T, E> {
+    type Ok = T;
+    type Err = E;
+
+    fn into_ec<F: FnOnce(E) -> ErrorCode>(self, f: F) -> Result<T> {
         match self {
-            Result::Ok(v) => v,
-            Result::Err(err) => panic!("unwrapped non-Ok: {err:?}: {err}"),
-        }
-    }
-
-    pub fn unwrap_err(self) -> ErrorCode {
-        match self {
-            Result::Err(err) => err,
-            Result::Ok(_) => panic!("unwrapped_err-ed non-Err"),
-        }
-    }
-
-    pub fn is_err(&self) -> bool {
-        !self.is_ok()
-    }
-
-    pub fn is_ok(&self) -> bool {
-        matches!(self, Result::Ok(_))
-    }
-
-    pub fn inspect_err(self, f: impl FnOnce(ErrorCode)) -> Self {
-        if let Result::Err(ref ec) = self {
-            f(*ec);
-        }
-        self
-    }
-
-    /// Converts this [crate::api::Result] into a standard [std::result::Result].
-    pub fn into_std(self) -> std::result::Result<T, ErrorCode> {
-        match self {
-            Result::Ok(v) => Ok(v),
-            Result::Err(err) => Err(err),
-        }
-    }
-
-    /// Creates an [crate::api::Result] from a standard [std::result::Result].
-    pub fn from_std(res: std::result::Result<T, ErrorCode>) -> Self {
-        match res {
             Ok(v) => Result::Ok(v),
-            Err(err) => Result::Err(err),
+            Err(err) => Result::Err(f(err)),
         }
     }
+}
+
+impl<T> ResultExt for Option<T> {
+    type Ok = T;
+    type Err = ();
+
+    fn into_ec<F: FnOnce(()) -> ErrorCode>(self, f: F) -> Result<T> {
+        match self {
+            Some(v) => Result::Ok(v),
+            None => Result::Err(f(())),
+        }
+    }
+}
+
+/// Extension trait for [`Result<T,ErrorCode>`].
+pub trait ApiResultExt: Sized {
+    type Ok;
+
+    fn into_ec(self) -> Result<Self::Ok>;
 
     /// Turns retryable errors into `None`, and the [Result] into a [std::result::Result],
     /// making the output suitable for use with [crate::misc::task::retry].
-    pub fn retryable(self) -> std::result::Result<Option<T>, ErrorCode> {
-        match self {
-            Result::Ok(v) => Ok(Some(v)),
-            Result::Err(ec) => {
+    fn retryable(self) -> std::result::Result<Option<Self::Ok>, ErrorCode> {
+        match self.into_ec() {
+            Ok(v) => Ok(Some(v)),
+            Err(ec) => {
                 if ec.info().retryable == Some(true) {
                     log::trace!("ignoring retryable error: {ec}");
                     Ok(None)
@@ -103,70 +88,23 @@ impl<T> Result<T> {
 
     /// When passing along a result from another server to a client, this method is called
     /// to modify any [ErrorCode]. For details, see  [ErrorCode::into_server_error].
-    pub fn into_server_result(self) -> Self {
-        self.map_err(ErrorCode::into_server_error)
-    }
-
-    pub fn map_err(self, f: impl FnOnce(ErrorCode) -> ErrorCode) -> Self {
-        match self {
-            Result::Ok(v) => Result::Ok(v),
-            Result::Err(ec) => Result::Err(f(ec)),
-        }
+    fn into_server_result(self) -> Result<Self::Ok> {
+        self.into_ec().map_err(ErrorCode::into_server_error)
     }
 }
 
-/// Like `?`, but for [crate::api::Result].
-macro_rules! return_if_ec {
-    ( $x:expr ) => {{
-        let result = $x;
-        #[allow(clippy::unnecessary_unwrap)] // clippy's suggestion won't work with api::Result
-        if result.is_err() {
-            return $crate::api::Result::Err(result.unwrap_err());
-        }
-        result.unwrap()
-    }};
-}
-pub(crate) use return_if_ec;
-
-/// Extension trait to add [IntoErrorCode::into_ec] to [std::result::Result].
-pub trait IntoErrorCode {
-    type Ok;
-    type Err;
-
-    /// Turns `self` into an [ErrorCode] result by calling `f` when `self` is an error.
-    ///
-    /// Consider logging the error you're turning into an [ErrorCode].
-    fn into_ec<F: FnOnce(Self::Err) -> ErrorCode>(self, f: F) -> Result<Self::Ok>;
-}
-
-impl<T, E> IntoErrorCode for std::result::Result<T, E> {
+impl<T> ApiResultExt for Result<T> {
     type Ok = T;
-    type Err = E;
 
-    fn into_ec<F: FnOnce(E) -> ErrorCode>(self, f: F) -> Result<T> {
-        match self {
-            Ok(v) => Result::Ok(v),
-            Err(err) => Result::Err(f(err)),
-        }
-    }
-}
-
-impl<T> IntoErrorCode for Option<T> {
-    type Ok = T;
-    type Err = ();
-
-    fn into_ec<F: FnOnce(()) -> ErrorCode>(self, f: F) -> Result<T> {
-        match self {
-            Some(v) => Result::Ok(v),
-            None => Result::Err(f(())),
-        }
+    fn into_ec(self) -> Result<T> {
+        self
     }
 }
 
 /// List of possible errors.  We use error codes in favour of more descriptive strings,
 /// because error codes can be more easily processed by the calling code,
 /// should change less often, and can be easily translated.
-#[derive(Clone, Copy, Serialize, Deserialize, Debug, thiserror::Error)]
+#[derive(Clone, Copy, Serialize, Deserialize, Debug, thiserror::Error, PartialEq, Eq)]
 pub enum ErrorCode {
     #[error("requested process already running")]
     AlreadyRunning,
@@ -221,6 +159,15 @@ pub enum ErrorCode {
 
     #[error("yivi is not configured for this authentication server")]
     YiviNotConfigured,
+
+    #[error("could not unseal data: corrupted or outdated")]
+    BrokenSeal,
+
+    #[error("invalid authentication proof")]
+    InvalidAuthProof,
+
+    #[error("expired data")]
+    Expired,
 }
 use ErrorCode::*;
 
@@ -247,7 +194,10 @@ impl ErrorCode {
             | UnknownAttributeType
             | MissingAttributeSource
             | YiviNotConfigured
-            | NotImplemented => ErrorInfo {
+            | NotImplemented
+            | Expired
+            | InvalidAuthProof
+            | BrokenSeal => ErrorInfo {
                 retryable: Some(false),
             },
             CouldNotConnectYet | TemporaryFailure | NotYetReady | SeveredConnection => ErrorInfo {
@@ -278,26 +228,80 @@ impl ErrorCode {
 
 /// Details on a PubHubs server endpoint
 pub trait EndpointDetails {
-    type RequestType: Serialize + for<'a> Deserialize<'a> + core::fmt::Debug;
-    type ResponseType: Serialize + for<'a> Deserialize<'a> + core::fmt::Debug;
+    type RequestType: Serialize + DeserializeOwned + core::fmt::Debug;
+    type ResponseType: Serialize + DeserializeOwned + core::fmt::Debug;
 
     const METHOD: http::Method;
     const PATH: &'static str;
 
-    /// Helper function to add this endpoint to a [web::ServiceConfig].
-    fn add_to<App: Clone, F, Args: actix_web::FromRequest + 'static>(
-        app: &App,
+    /// Helper function to add this endpoint to a [`web::ServiceConfig`].
+    ///
+    /// The `handler` argument must be of the form:
+    /// ```text
+    /// async fn f(app : Rc<App>, ...) -> api::Result<ResponseType>
+    /// ```
+    /// The `...` can contain arguments of type [`actix_web::FromRequest`].
+    fn add_to<App, F, Args: actix_web::FromRequest + 'static>(
+        app: &Rc<App>,
         sc: &mut web::ServiceConfig,
         handler: F,
     ) where
-        server::AppMethod<App, F>: actix_web::Handler<Args>,
-        <server::AppMethod<App, F> as actix_web::Handler<Args>>::Output:
-            actix_web::Responder + 'static,
+        server::AppMethod<App, F, Self>: actix_web::Handler<Args>,
+        <server::AppMethod<App, F, Self> as actix_web::Handler<Args>>::Output:
+            'static + actix_web::Responder,
     {
         sc.route(
             Self::PATH,
             web::method(Self::METHOD).to(server::AppMethod::new(app, handler)),
         );
+    }
+
+    /// Like [`add_to`], but runs `handler` only once, caching the result.
+    ///
+    /// Of course, `handler` won't have access to the usual [`actix_web::FromRequest`] arguments,
+    /// as there is no request to derive these arguments from.
+    ///
+    /// Moreover `handler` cannot be `async`, since [`actix_web::App::configure`] takes a non-async
+    /// function.
+    ///
+    /// # `handler` errors and panics
+    ///
+    /// If `handler` returns an [`Err`], then this will not cause the `App` (and associated `Server`) to
+    /// crash.  Instead the [`Err`] is cached and served to any client requesting this endpoint.
+    ///
+    /// If a crash is desirable, then `handler` should panic.  Unlike a panic in a regular
+    /// [`actix_web::Handler`] (which will just cause a connection reset), a panic here will cause
+    /// the `Server` to exit.
+    ///
+    /// [`Err`]: Result::Err
+    /// [`add_to`]: Self::add_to
+    fn caching_add_to<App, F>(app: &Rc<App>, sc: &mut web::ServiceConfig, handler: F)
+    where
+        F: Fn(&App) -> Result<Self::ResponseType>,
+    {
+        let response: String = serde_json::to_string_pretty(&handler(app)).unwrap_or_else(|err| {
+            log::error!("while preparing response for {}: {err}", Self::PATH);
+            serde_json::to_string_pretty(&Result::<Self::ResponseType>::Err(
+                ErrorCode::InternalError,
+            ))
+            .unwrap()
+        });
+
+        sc.route(
+            Self::PATH,
+            web::method(Self::METHOD).to(move || {
+                // TODO: etag
+                let http_resp = Self::response_builder()
+                    .content_type(actix_web::http::header::ContentType::json())
+                    .body(response.clone());
+                async { http_resp }
+            }),
+        );
+    }
+
+    /// Creates an [`actix_web::HttpResponseBuilder`] for this endpoint.
+    fn response_builder() -> actix_web::HttpResponseBuilder {
+        actix_web::HttpResponse::Ok()
     }
 }
 
@@ -325,7 +329,7 @@ macro_rules! wrap_dalek_type {
             }
         }
 
-        // We implement [FromStr] so that this type can be used as a command-line argument with [clap].
+        /// We implement [`std::str::FromStr`] so that this type can be used as a command-line argument with [`clap`].
         impl std::str::FromStr for $type {
             type Err = serde::de::value::Error;
 
@@ -345,6 +349,12 @@ macro_rules! wrap_dalek_type {
         impl core::ops::DerefMut for $type {
             fn deref_mut(&mut self) -> &mut Self::Target {
                 &mut self.inner
+            }
+        }
+
+        impl std::fmt::Display for $type {
+            fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+                self.serialize(f)
             }
         }
     }

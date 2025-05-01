@@ -26,6 +26,22 @@ class HubClientApiConfig(object):
     @property
     def global_client_url(self) -> str:
         return self._global_client_url
+    
+    @property
+    def hub_description_path(self) -> str:
+        return f"{self._media_dir_path}/hub_settings"
+    
+    @property
+    def hub_banner_path(self) -> str:
+        return f"{self._media_dir_path}/hub_banner"
+    
+    @property
+    def default_hub_description_path(self) -> str:
+        return f"{self._assets_dir_path}/default_hub_settings.json"
+    
+    @property
+    def default_hub_banner_path(self) -> str:
+        return f"{self._assets_dir_path}/default_hub_banner.png"
 
     @property
     def hub_icon_path(self) -> str:

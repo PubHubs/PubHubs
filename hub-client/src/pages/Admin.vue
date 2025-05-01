@@ -54,7 +54,9 @@
 				</TabContent>
 
 				<TabContent>
-					<p v-if="!rooms.hasSecuredRooms">{{ $t('admin.no_secured_rooms') }}</p>
+					<p v-if="!rooms.hasSecuredRooms">
+						{{ $t('admin.no_secured_rooms') }}
+					</p>
 					<FilteredList v-else :items="rooms.sortedSecuredRooms" :filterKey="['name']" sortby="name" :placeholder="$t('rooms.filter')">
 						<template #item="{ item }">
 							<div class="flex w-full justify-between gap-8 overflow-hidden" :title="item.room_id">

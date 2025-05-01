@@ -33,6 +33,7 @@ enum FeatureFlag {
 	notifications = 'notifications',
 	deleteMessages = 'deleteMessages',
 	hubSettings = 'hubSettings',
+	votingWidget = 'votingWidget',
 	// Implemented with issue #984
 	authenticatedMedia = 'authenticatedMedia',
 	unreadCounter = 'unreadCounter',
@@ -93,7 +94,7 @@ const defaultSettings: Settings = {
 	 */
 	featureFlags: {
 		main: {
-			signedMessages: false,
+			signedMessages: true,
 			plugins: true,
 			dateSplitter: true,
 			disclosure: false,
@@ -103,9 +104,10 @@ const defaultSettings: Settings = {
 			hubSettings: true,
 			authenticatedMedia: true,
 			unreadCounter: true,
+			votingWidget: true,
 		},
 		stable: {
-			signedMessages: false,
+			signedMessages: true,
 			plugins: true,
 			dateSplitter: true,
 			disclosure: false,
@@ -115,6 +117,7 @@ const defaultSettings: Settings = {
 			hubSettings: true,
 			authenticatedMedia: false,
 			unreadCounter: true,
+			votingWidget: true,
 		},
 	},
 };

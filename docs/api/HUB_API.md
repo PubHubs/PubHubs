@@ -26,8 +26,7 @@ The rooms and the attributes are configured through the secured rooms endpoint o
 
 ### Requirements
 
-Two extra settings in homeserver.yaml are required to make the module work:
-- Enable `server_notices` `system_mxid_localpart` to have a user making the waiting rooms
+One extra settings in homeserver.yaml is required to make the module work:
 - `public_baseurl` needs to be set to something publicly reachable if you want to be able to use the proxied Yivi service. Unless your phone will reach the synapse server on the default public baseurl
 
 As in all matrix settings with docker on mac 'host.docker.internal' works on linux replace with: '172.17.0.1'

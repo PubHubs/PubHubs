@@ -2,13 +2,14 @@ use core::marker::PhantomData;
 
 use std::fmt;
 
-use serde::{de::DeserializeOwned, Deserialize, Serialize};
+use serde::{Deserialize, Serialize};
 
+use crate::id;
 use crate::misc::jwt;
 
 use crate::api::*;
 
-/// A signed `T` by encoding `T` into a [jwt::JWT].
+/// A signed `T` by encoding `T` into a [`jwt::JWT`].
 #[derive(Serialize, Deserialize, Debug, Clone)]
 #[serde(transparent)]
 pub struct Signed<T> {
@@ -17,22 +18,83 @@ pub struct Signed<T> {
     phantom: PhantomData<T>,
 }
 
+/// Error returned by [`Signed::open`].
+#[derive(thiserror::Error, Debug)]
+pub enum OpenError {
+    #[error("signature intended for other constellation")]
+    OtherConstellation,
+
+    #[error("signature expired")]
+    Expired,
+
+    #[error("invalid signature or malformed jwt")]
+    OtherwiseInvalid,
+
+    #[error("unexpected error - consult logs")]
+    InternalError,
+}
+
 impl<T> Signed<T> {
-    pub fn open<VK: jwt::VerifyingKey>(self, key: &VK) -> Result<T>
+    /// Old version of [`Signed::open`].  Will be deprecated eventually.
+    pub fn old_open<VK: jwt::VerifyingKey>(self, key: &VK) -> Result<T>
     where
-        T: DeserializeOwned + HavingMessageCode,
+        T: Signable,
     {
-        let claims: jwt::Claims = return_if_ec!(self.inner.open(key).into_ec(|err| {
-            log::info!(
+        self.open(key, None).into_ec(|err| match err {
+            OpenError::OtherConstellation => ErrorCode::InvalidSignature,
+            OpenError::Expired => ErrorCode::Expired,
+            OpenError::OtherwiseInvalid => ErrorCode::BadRequest,
+            OpenError::InternalError => ErrorCode::InternalError,
+        })
+    }
+
+    /// Opens this [`Signed`] message using the provided key.
+    pub fn open<VK: jwt::VerifyingKey>(
+        self,
+        key: &VK,
+        constellation: Option<id::Id>,
+    ) -> std::result::Result<T, OpenError>
+    where
+        T: Signable,
+    {
+        if T::CONSTELLATION_BOUND != constellation.is_some() {
+            log::error!(
+                "internal error: a constellation must only be provided to Signed::open \
+                     if the type T is constellation bound"
+            );
+            return Err(OpenError::InternalError);
+        }
+
+        let claims: jwt::Claims = self.inner.open(key).map_err(|err| {
+            log::debug!(
                 "could not open signed message (of type {}): {}",
                 std::any::type_name::<T>(),
                 err
             );
-            ErrorCode::InvalidSignature
-        }));
+
+            match err {
+                jwt::Error::Expired { .. } => OpenError::Expired,
+                jwt::Error::DeserializingHeader(_)
+                | jwt::Error::ClaimsNotJsonMap(_)
+                | jwt::Error::MissingDot
+                | jwt::Error::InvalidBase64(_)
+                | jwt::Error::UnexpectedAlgorithm { .. } => OpenError::OtherwiseInvalid,
+                jwt::Error::InvalidSignature { /*claims,*/ .. } => {
+                    // claims.check(CONSTELLATION_CLAIM, jwt::expecting::exactly())
+                    
+                    // TODO: check if we're dealing with an outdated constellation
+
+                    OpenError::OtherwiseInvalid
+                }
+                _ => {
+                    log::error!("unexpected error opening signed message: {err}");
+                    OpenError::InternalError
+                }
+            }
+        })?;
 
         // check that the message code is correct
-        let claims = return_if_ec!(claims
+        let claims = claims
             .check_present_and(
                 MESSAGE_CODE_CLAIM,
                 |claim_name: &'static str,
@@ -52,28 +114,28 @@ impl<T> Signed<T> {
                     })
                 },
             )
-            .into_ec(|err| {
-                log::info!("could not verify signed message's claims: {}", err);
-                ErrorCode::BadRequest
-            }));
+            .map_err(|err| {
+                log::debug!("could not verify signed message's claims: {}", err);
+                OpenError::OtherwiseInvalid
+            })?;
 
-        let res = return_if_ec!(claims.into_custom().into_ec(|err| {
+        let res = claims.into_custom().map_err(|err| {
             log::info!(
                 "could not parse signed message jwt into {}: {}",
                 std::any::type_name::<T>(),
                 err
             );
-            ErrorCode::BadRequest
-        }));
+            OpenError::OtherwiseInvalid
+        })?;
 
-        Result::Ok(res)
+        Ok(res)
     }
 
     pub fn open_without_checking_signature(self) -> Result<T>
     where
-        T: DeserializeOwned + HavingMessageCode,
+        T: Signable,
     {
-        self.open(&jwt::IgnoreSignature)
+        self.old_open(&jwt::IgnoreSignature)
     }
 
     /// Signs `message`, and returns the resulting [`Signed`].
@@ -83,7 +145,7 @@ impl<T> Signed<T> {
         valid_for: std::time::Duration,
     ) -> Result<Self>
     where
-        T: Serialize + HavingMessageCode,
+        T: Signable,
     {
         let result = || -> std::result::Result<jwt::JWT, jwt::Error> {
             jwt::Claims::from_custom(message)?
@@ -126,6 +188,10 @@ pub enum MessageCode {
     PhcTHubKeyResp = 4,
     AdminUpdateConfigReq = 5,
     AdminInfoReq = 6,
+    Attr = 7,
+
+    /// Only used as an example in a doctest
+    Example = 65535,
 }
 
 impl std::fmt::Display for MessageCode {
@@ -135,22 +201,46 @@ impl std::fmt::Display for MessageCode {
     }
 }
 
-/// The claim name used to store the [MessageCode].
+/// The claim name used to store the [`MessageCode`].
 pub const MESSAGE_CODE_CLAIM: &str = "ph-mc";
 
-/// A type that's used as the contents of a [Signed] message.
-pub trait HavingMessageCode {
+/// The claim name used to store the [`Constellation`] [`Id`].
+///
+/// [`Id`]: id::Id
+/// [`Constellation`]: crate::servers::Constellation
+pub const CONSTELLATION_CLAIM: &str = "ph-ci";
+
+/// A type that's used as the contents of a [`Signed`] message.
+pub trait Signable: serde::de::DeserializeOwned + serde::Serialize {
     const CODE: MessageCode;
+
+    /// Include a [`CONSTELLATION_CLAIM`] in the [`Signed`] message of this type, binding the
+    /// signed message to the current [`Constellation`].
+    ///
+    /// [`Constellation`]: crate::servers::Constellation
+    const CONSTELLATION_BOUND: bool = false;
 }
 
+#[macro_export]
 macro_rules! having_message_code {
     { $tn:ty, $mc:ident } => {
-        impl $crate::api::HavingMessageCode for $tn {
+        impl $crate::api::Signable for $tn {
             const CODE: $crate::api::MessageCode = $crate::api::MessageCode::$mc;
         }
     };
 }
-pub(crate) use having_message_code;
+/// Implements [`Signable`] for the given struct.  Use as follows:
+/// ```
+/// use pubhubs::api::Signable;
+///
+/// #[derive(serde::Serialize, serde::Deserialize)]
+/// struct T {};
+///
+/// pubhubs::api::having_message_code!{T, Example};
+///
+/// assert_eq!(T::CODE, pubhubs::api::MessageCode::Example);
+/// ```
+pub use having_message_code;
 
 #[cfg(test)]
 mod test {

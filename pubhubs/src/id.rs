@@ -1,3 +1,5 @@
+//! [`Id`]s for PubHubs objects like [hub](crate::hub::BasicInfo)s and [attrbute
+//! types](crate::attr::Type).
 use crate::misc::serde_ext::{self, bytes_wrapper};
 use rand::RngCore as _;
 

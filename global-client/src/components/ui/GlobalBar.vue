@@ -86,6 +86,6 @@
 	}
 
 	function showHelp() {
-		dialog.okcancel(t('others.help'), t('others.work_in_progress'));
+		dialog.confirm(t('others.help'), t('others.work_in_progress'));
 	}
 </script>

@@ -1,5 +1,10 @@
 <template>
-	<div :class="{ block: isTouchDevice, 'opacity-0 transition-all duration-75 ease-in-out group-hover:opacity-100': !isTouchDevice }">
+	<div
+		:class="{
+			block: isTouchDevice,
+			'hidden group-hover:block': !isTouchDevice,
+		}"
+	>
 		<div class="flex gap-1">
 			<slot></slot>
 		</div>

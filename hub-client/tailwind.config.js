@@ -47,6 +47,7 @@ module.exports = {
 
 				background: 'var(--background)',
 				surface: 'var(--surface)',
+				'surface-subtle': 'var(--surface-subtle)',
 				'surface-low': 'var(--surface-low)',
 				'surface-high': 'var(--surface-high)',
 				'on-surface': 'var(--on-surface)',

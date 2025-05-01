@@ -5,10 +5,13 @@ irma server --issue-perms "*" --production --no-email --no-tls --sse --allow-uns
 
 if [ "$DONT_START_HUB" = 1 ]
 then
-  echo 'Will not start the hub. Do so manually by running ./start.py from inside the container'
-else
-  ./start.py &
+  echo 'Will not start the hub. Do so manually by running ./start_synaps.sh from inside the container'
+else 
+  ./start_synaps.sh &
 fi
 
-# wait for either the irma server or synapse to quit
 wait -n
+
+
+
+

@@ -2,7 +2,7 @@
 use std::fmt;
 use std::time;
 
-/// Returned by [format_time_wrt].
+/// Returned by [`format_time_wrt`].
 #[derive(Clone, Debug)]
 pub struct FormattedTime {
     prefix: &'static str,
@@ -16,31 +16,15 @@ impl fmt::Display for FormattedTime {
         write!(
             f,
             "{} ({}{}{})",
-            jiff::Timestamp::try_from(self.t)
-                .map(|t| t
-                    .round(jiff::Unit::Second)
-                    .expect("should never fail with Unit::Second as argument")
-                    .to_string())
-                .unwrap_or_else(|_| "<overflowing timestamp>".to_string()),
+            humantime::format_rfc3339_seconds(self.t),
             self.prefix,
-            jiff::Span::try_from(self.duration)
-                .map(|s| format!(
-                    "{:#}",
-                    s.round(
-                        jiff::SpanRound::new()
-                            .smallest(jiff::Unit::Second)
-                            .largest(jiff::Unit::Week)
-                            .days_are_24_hours()
-                    )
-                    .unwrap()
-                ))
-                .unwrap_or_else(|_| "<overflowing time span>".to_string()),
+            humantime::format_duration(self.duration),
             self.suffix
         )
     }
 }
 
-/// Like [format_time_wrt], but computes `now` itself.
+/// Like [`format_time_wrt`], but computes `now` itself.
 pub fn format_time(t: time::SystemTime) -> FormattedTime {
     format_time_wrt(t, time::SystemTime::now())
 }
@@ -68,6 +52,26 @@ pub fn format_time_wrt(t: time::SystemTime, now: time::SystemTime) -> FormattedT
     }
 }
 
+pub mod human_duration {
+    use serde::{de::Error as _, Deserialize as _};
+
+    pub fn deserialize<'de, D>(d: D) -> Result<core::time::Duration, D::Error>
+    where
+        D: serde::Deserializer<'de>,
+    {
+        let s: &'de str = <&'de str>::deserialize(d)?;
+
+        humantime::parse_duration(s).map_err(D::Error::custom)
+    }
+
+    pub fn serialize<S>(duration: &core::time::Duration, s: S) -> Result<S::Ok, S::Error>
+    where
+        S: serde::ser::Serializer,
+    {
+        s.collect_str(&humantime::format_duration(*duration))
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -87,11 +91,30 @@ mod tests {
         let t2 = epoch + time::Duration::from_secs_f64(1699535603.723209);
         assert_eq!(
             format_time_wrt(epoch, t2).to_string(),
-            "1970-01-01T00:00:00Z (2810w 13h 13m 23s ago)".to_string()
+            "1970-01-01T00:00:00Z (53years 10months 7days 21h 37m 23s ago)".to_string()
         );
         assert_eq!(
             format_time_wrt(t2, epoch).to_string(),
-            "2023-11-09T13:13:24Z (in 2810w 13h 13m 23s)".to_string()
+            "2023-11-09T13:13:23Z (in 53years 10months 7days 21h 37m 23s)".to_string()
+        );
+    }
+
+    #[derive(serde::Deserialize, serde::Serialize)]
+    struct TestStruct {
+        #[serde(with = "human_duration")]
+        duration: core::time::Duration,
+    }
+
+    #[test]
+    fn test_human_duration() {
+        let ts: TestStruct = serde_json::from_str(r#"{"duration": "1w 5s"}"#).unwrap();
+        assert_eq!(
+            ts.duration,
+            core::time::Duration::from_secs(5 + 7 * 24 * 60 * 60)
+        );
+        assert_eq!(
+            serde_json::to_string(&ts).unwrap(),
+            r#"{"duration":"7days 5s"}"#.to_string()
         );
     }
 }

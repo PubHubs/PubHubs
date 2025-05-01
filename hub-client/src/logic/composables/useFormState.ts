@@ -103,7 +103,10 @@ const useFormState = () => {
 						) {
 							isValidated = false;
 							if (data[key].show_validation === undefined || data[key].show_validation?.required) {
-								validationErrors.value[key] = { error: 'validation.required', field: key };
+								validationErrors.value[key] = {
+									error: 'validation.required',
+									field: key,
+								};
 							}
 						}
 					}
@@ -117,7 +120,11 @@ const useFormState = () => {
 						if (value.length > max_length) {
 							isValidated = false;
 							if (data[key].show_validation === undefined || data[key].show_validation?.max_length) {
-								validationErrors.value[key] = { error: 'validation.max_length', field: key, param: max_length };
+								validationErrors.value[key] = {
+									error: 'validation.max_length',
+									field: key,
+									param: max_length,
+								};
 							}
 						}
 					}
@@ -131,7 +138,11 @@ const useFormState = () => {
 						if (value.length < min_length) {
 							isValidated = false;
 							if (data[key].show_validation === undefined || data[key].show_validation?.min_length) {
-								validationErrors.value[key] = { error: 'validation.min_length', field: key, param: min_length };
+								validationErrors.value[key] = {
+									error: 'validation.min_length',
+									field: key,
+									param: min_length,
+								};
 							}
 						}
 					}
@@ -178,7 +189,22 @@ const useFormState = () => {
 		}, 3000);
 	};
 
-	return { originalData, changed, validated, isChanged, isValidated, validationErrors, data, setSubmitButton, setSubmitTestOnValidation, setData, updateData, dataIsChanged, message, setMessage };
+	return {
+		originalData,
+		changed,
+		validated,
+		isChanged,
+		isValidated,
+		validationErrors,
+		data,
+		setSubmitButton,
+		setSubmitTestOnValidation,
+		setData,
+		updateData,
+		dataIsChanged,
+		message,
+		setMessage,
+	};
 };
 
 export { useFormState, type FormDataType, type ValidationErrors };

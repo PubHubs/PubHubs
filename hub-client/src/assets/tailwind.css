@@ -7,6 +7,7 @@
 	--background: #ffffff; /* Used for room background */
 	--surface-low: #f2f3f5; /* Used for the room top bar and hub bar */
 	--surface: #e3e5e8; /* Used for the hub top bar and global bar */
+	--surface-subtle: #d4d4d4; /* Used for the voting widget */
 	--surface-high: #d9dbde; /* Used for the global top bar */
 	--on-surface: #000000; /* Used for text */
 	--on-surface-variant: #333333; /* Used for secondary text */
@@ -41,6 +42,7 @@
 	--background: #464545;
 	--surface-low: #3d3c3c;
 	--surface: #2f2e2e;
+	--surface-subtle: #686868;
 	--surface-high: #202020;
 	--on-surface: #ffffff;
 	--on-surface-variant: #cccccc;
@@ -79,6 +81,7 @@
 
 	::-webkit-scrollbar {
 		@apply w-[0.25rem] sm:w-[0.5rem];
+		@apply h-[0.25rem] sm:h-[0.5rem];
 	}
 
 	::-webkit-scrollbar-track {
@@ -86,7 +89,7 @@
 	}
 
 	::-webkit-scrollbar-thumb {
-		@apply rounded-full bg-surface;
+		@apply rounded-full bg-on-surface-dim;
 	}
 }
 

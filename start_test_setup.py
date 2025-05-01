@@ -417,14 +417,15 @@ def docker_run_hub_server(hub_secret, image_name, container_name, hub_matrix_por
     # Hack to run the Hub containers in a sort of 'watch mode'.
     # If in 'watch mode', the container will use the pubhubs_hub/modules directory from your os instead of the container.
     # Furthermore, the container will only start the yivi server and not the synapse server
-    # The synapse server can than be started and stopped manually by running the start.py file from the container.
+    # The synapse server can than be started and stopped manually by running the ./start.synaps.sh file from the container.
     # The result is that you can make changes in the pubhubs_hub/modules directory,
     # manually stop and start the synapse server and see the changes withouth running this whole script.
+    # Set UPDATE_CONFIG_ENV to "development" for development checks and to "production" for production checks
     # TODO implement this properly (by using parameters instead of environment variables)
     mount_modules = []
     dont_start_hub = ["-e", "DONT_START_HUB=0"]
     if (os.getenv('WATCH_MODULES') == '1'):
-        print("\033[31mWATCH_MODULES enabled, will not start the Hub. Do so manually by running ./start.py from inside the docker container.\033[0m")
+        print("\033[31mWATCH_MODULES enabled, will not start the Hub. Do so manually by running ./start.synaps.sh from inside the docker container.\033[0m")
         mount_modules = ["-v", f"{os.path.abspath(f'modules')}:/conf/modules:ro"]
         dont_start_hub = ["-e", "DONT_START_HUB=1"]
 
@@ -437,6 +438,7 @@ def docker_run_hub_server(hub_secret, image_name, container_name, hub_matrix_por
                       *dont_start_hub,
                       "-e", "SYNAPSE_CONFIG_DIR=/data",
                       "-e", "AUTHLIB_INSECURE_TRANSPORT=for_testing_only_of_course",
+                      "-e", f"UPDATE_CONFIG_ENV={os.getenv('UPDATE_CONFIG_ENV', default='development')}",
                       "-v", f"{config_dir}:/data:rw",
                       *mount_modules,
                       "--add-host", "host.docker.internal:host-gateway",
@@ -489,13 +491,13 @@ def update_homeserver_yaml(input_path, output_path, client_id, client_secret,cli
         # Find the lines to update based on their content
         for i, line in enumerate(lines):
             # Check if the line starts with 'client_id:' or 'client_secret:'
-            if line.strip().startswith(('client_id:', 'client_secret:', 'client_url:', 'public_baseurl:','- port:')):
+            if line.strip('- ').startswith(('client_id:', 'client_secret:', 'client_url:', 'public_baseurl:','port:')):
                 # Get the whitespace before the key
                 whitespace = line[:-len(line.lstrip())]
 
                 # Create the updated line with the same whitespace and the new value
-                if line.strip().startswith('client_id:'):
-                    lines[i] = f'{whitespace}client_id: {client_id}\n'
+                if line.strip('- ').startswith('client_id:'):
+                    lines[i] = f'-{whitespace}{whitespace}{whitespace}client_id: {client_id}\n'
                 elif line.strip().startswith('client_secret:'):
                     lines[i] = f'{whitespace}client_secret: {client_secret}\n'
                 elif line.strip().startswith('client_url:'):
@@ -503,7 +505,7 @@ def update_homeserver_yaml(input_path, output_path, client_id, client_secret,cli
                 elif line.strip().startswith('public_baseurl:'):
                     lines[i] = f'{whitespace}public_baseurl: "http://localhost:{hub_port}"\n'
                 else:
-                    lines[i] = f'{whitespace}- port: {hub_port}\n'
+                    lines[i] = f'-{whitespace} port: {hub_port}\n'
 
     with open(output_path, 'w') as f:
         f.writelines(lines)
@@ -787,7 +789,7 @@ def main_runner(cargo_setup:str, node_arg:str, hubs:int = 1) -> None:
         print("\n"
               "Don't forget to start synapse manually (and restart it after any changes to its modules):\n"
               "\n"
-              "  docker exec -it testhub0_8008  ./start.py\n")
+              "  docker exec -it testhub0_8008  ./start_synaps.sh\n")
 
 
 ## TEST SECTION ##
@@ -989,7 +991,7 @@ public_baseurl: "http://localhost:8080"
                 updated_content = updated_file.read()
 
             expected_content = f"""\
-client_id: {new_client_id}
+-client_id: {new_client_id}
 client_secret: {new_client_secret}
 client_url: "http://localhost:{new_client_port}",
 public_baseurl: "http://localhost:{new_hub_port}"

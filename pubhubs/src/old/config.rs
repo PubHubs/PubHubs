@@ -6,6 +6,7 @@ use anyhow::{anyhow, bail, ensure, Context as _, Result};
 use log::{info, warn};
 use serde::{Deserialize, Serialize};
 
+use crate::misc::net_ext;
 use crate::misc::serde_ext::bytes_wrapper::B64;
 
 #[derive(Serialize, Deserialize)]
@@ -26,9 +27,9 @@ pub struct File {
     #[serde(default)]
     pub urls: Option<Urls>,
 
-    /// Bind to this address.  Defaults to ("0.0.0.0", "8080").
+    /// Bind to thses addresses.  Defaults to (("::", "0.0.0.0"), "8080").
     #[serde(default = "default_bind_to")]
-    pub bind_to: (String, u16),
+    pub bind_to: (Vec<String>, u16),
 
     /// When pubhubs checks it can connect to itself, this value is expected.
     /// When None, it is randomly generated.  Set it to some none-None value
@@ -100,8 +101,8 @@ pub struct Hotfixes {
     pub no_http_only_cookies: bool,
 }
 
-fn default_bind_to() -> (String, u16) {
-    ("0.0.0.0".to_string(), 8080)
+fn default_bind_to() -> (Vec<String>, u16) {
+    (vec!["::".to_string(), "0.0.0.0".to_string()], 8080)
 }
 fn default_policy_directory() -> String {
     "default_policies".to_string()
@@ -189,7 +190,7 @@ impl File {
 
     /// Returns the interpret_path method as object, without
     /// borrowing self
-    pub fn path_interpreter(&self) -> impl Fn(&str) -> PathBuf {
+    pub fn path_interpreter(&self) -> impl Fn(&str) -> PathBuf + use<> {
         let parent_copy: PathBuf = self.path.parent().unwrap().to_path_buf();
         move |path: &str| parent_copy.join(path)
     }
@@ -249,7 +250,7 @@ pub enum AltUrl {
     /// Use this URL
     Manual(url::Url),
 
-    /// Autodetect public IP address of the local host using ifconfig.me,
+    /// Autodetect local network ip address
     /// and use that one with the port from `bind_to`.
     ///
     /// Warning:  you might be behind a NAT or firewall
@@ -271,7 +272,7 @@ pub struct Pep {
 }
 
 impl File {
-    pub async fn determine_urls(&self) -> Result<crate::context::Urls> {
+    pub fn determine_urls(&self) -> Result<crate::context::Urls> {
         if cfg!(not(debug_assertions)) && self.url.is_none() {
             bail!("in production 'url' must be set (and 'urls' can't be used)");
         }
@@ -297,7 +298,7 @@ impl File {
 
         let urls = self.urls.as_ref().unwrap();
 
-        let autodetected = urls.autodetect(self).await?;
+        let autodetected = urls.autodetect(self)?;
 
         Ok(crate::context::Urls {
             for_browser: urls.for_browser.clone(),
@@ -315,62 +316,32 @@ impl File {
 
 impl Urls {
     /// If for_hub or for_yivi_app is autodetect, autodetect URL;  else returns None.
-    async fn autodetect(&self, file: &File) -> Result<Option<url::Url>> {
+    fn autodetect(&self, file: &File) -> Result<Option<url::Url>> {
         if self.for_hub != AltUrl::Autodetect && self.for_yivi_app != AltUrl::Autodetect {
             return Ok(None);
         }
 
         ensure!(
             !cfg!(test),
-            "autodetection of public IP address not permitted during tests!"
+            "autodetection of ip address not permitted during tests!"
         );
-
-        info!("autodetecting your public ip address...");
 
         // the awc crate has no multi-thread support, see
         //   https://github.com/actix/actix-web/issues/2679#issuecomment-1059141565
         // so we execute awc on a single thread..
-        Ok(Some(
-            tokio::task::LocalSet::new()
-                .run_until(async move {
-                    // get ip address..
-                    let client = awc::Client::default();
-                    let mut resp = client
-                        .get("http://ifconfig.me/ip")
-                        .send()
-                        .await
-                        .map_err(|e| anyhow!(e.to_string() /* e is not Send */))?;
 
-                    let status = resp.status();
-                    ensure!(
-                        status.is_success(),
-                        "ifconfig.me returned status {}",
-                        status
-                    );
+        let ipa: core::net::IpAddr = net_ext::source_ip()?;
 
-                    let bytes = resp.body().await?;
-                    let result = String::from_utf8(bytes.to_vec())?;
+        info!("your ip address is {}", ipa);
 
-                    let ipa: core::net::IpAddr = result
-                        .parse()
-                        .inspect_err(|_| {
-                            log::warn!("The IP address that could not be parsed is: {result}");
-                        })
-                        .context("parsing IP address returned by ifconfig.me")?;
+        let mut url: url::Url = "http://example.com".parse().unwrap();
 
-                    info!("your ip address is {}", ipa);
+        url.set_ip_host(ipa)
+            .map_err(|_: ()| anyhow!("failed to put ip address in URL"))?;
+        url.set_port(Some(file.bind_to.1))
+            .map_err(|_: ()| anyhow!("failed to put port in URL"))?;
 
-                    let mut url: url::Url = "http://example.com".parse().unwrap();
-
-                    url.set_ip_host(ipa)
-                        .map_err(|_: ()| anyhow!("failed to put ip address in URL"))?;
-                    url.set_port(Some(file.bind_to.1))
-                        .map_err(|_: ()| anyhow!("failed to put port in URL"))?;
-
-                    Ok(url)
-                })
-                .await?,
-        ))
+        Ok(Some(url))
     }
 }
 
@@ -383,7 +354,7 @@ impl AltUrl {
     ) -> Result<url::Url> {
         Ok(match self {
             AltUrl::SameAsForBrowser => for_browser.clone(),
-            AltUrl::Manual(ref url) => {
+            AltUrl::Manual(url) => {
                 ensure!(
                     url.as_str().ends_with('/'),
                     format!("'{}' must end with a slash ('/')", name),

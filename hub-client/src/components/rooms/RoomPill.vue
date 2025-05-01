@@ -9,7 +9,9 @@
 					<div class="grid">
 						<H3 class="relative z-0 m-0 line-clamp-1 overflow-hidden font-semibold" :class="{ 'line-clamp-3': expanded && !joinedARoom }">{{ room?.name }}</H3>
 
-						<p v-if="joinedARoom === false" class="line-clamp-1 italic ~text-label-min/label-max" :class="{ 'line-clamp-3': expanded }">{{ room.topic }}</p>
+						<p v-if="joinedARoom === false" class="line-clamp-1 italic ~text-label-min/label-max" :class="{ 'line-clamp-3': expanded }">
+							{{ room.topic }}
+						</p>
 						<p v-else class="~text-body-min/body-max z-0 line-clamp-1 truncate">{{ t('rooms.joined') }}</p>
 					</div>
 				</div>
