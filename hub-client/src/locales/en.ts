@@ -243,7 +243,7 @@ const en = {
 		summary: 'Online community / platform for ....',
 		contact_heading: 'Hub contact details',
 		contact_description: 'Contact details of the owners of the hub.',
-		contact: 'Email: example@email.com',
+		contact: 'Your email address',
 	},
 	admin: {
 		title: 'Admin tools',
