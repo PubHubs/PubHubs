@@ -10,7 +10,7 @@ _Please add a brief description of any changes and any migrations to be performe
  * _(Use the [MIGRATE] and [BREAKING] prefixes together with another one if that makes more sense.)_
 
 ## 01 May 2025 - v2.0.4
-_NOTE:_ tag was updated twice before authenticated media flag was not update. v2.0.3 and v.2.0.4
+_NOTE:_ Tag was updated twice because authenticated media flag was not update in tag v2.0.3.
 
 - [NEW] New update_config script now checks the configuration in homeserver.yaml and also adds missing configuration , it supersedes the configchecker
 It will generate a checked and updated yaml file as homeserver.live.yaml as default and will use this new yaml file to set the configuration of the hub
@@ -30,7 +30,8 @@ The description and contact details are displayed in the hub homepage.
 _NOTE TO MERGERS:_ The feature flag for voting widgets on stable is currently disabled. If everything works as expected, it needs to be enabled during the merge.
 
 ## 03 April 2025 - v2.0.2
-_NOTE:_ Tag was updated three times v.2.0.0, v.2.0.1 and v.2.0.2 due to some changes identified after merge.
+_NOTE:_ Tag was updated three times v.2.0.0, v.2.0.1 and v.2.0.2 due to some changes identified after each tag was added.
+
 - [BUG] Signed messages are temporarily disabled since they were not working as intended
 - [NEW] Desktop notifications for new messages are now also sent for pinned hubs when the user has the hub not currently open.
 - [NEW] Update and implement Tailwind colors and add minor UX/UI improvements
