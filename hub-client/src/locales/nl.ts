@@ -243,7 +243,7 @@ const nl = {
 		summary: 'Online community / platform voor ....',
 		contact_heading: 'Contactgegevens hub',
 		contact_description: 'Contactgegevens van de eigenaren van de hub.',
-		contact: 'Email: voorbeeld@email.nl',
+		contact: 'Jouw e-mailadres',
 	},
 	admin: {
 		title: 'Beheerder',
