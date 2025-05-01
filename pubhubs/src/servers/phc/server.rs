@@ -3,13 +3,16 @@ use std::ops::{Deref, DerefMut};
 use std::rc::Rc;
 
 use actix_web::web;
+use digest::Digest as _;
 
-use crate::api::phc::user::{AttrAddStatus, EnterMode, EnterResp, IdToken};
+use crate::api::phc::user::{AttrAddStatus, AuthToken, EnterMode, EnterResp};
 use crate::api::{self, ApiResultExt as _, EndpointDetails as _};
 use crate::attr::{Attr, AttrState};
 use crate::client;
+use crate::common::secret::DigestibleSecret as _;
 use crate::handle;
 use crate::id::Id;
+use crate::misc::crypto;
 use crate::misc::jwt;
 use crate::phcrypto;
 use crate::servers::{self, constellation, AppBase, AppCreatorBase, Constellation, Handle};
@@ -49,6 +52,8 @@ pub struct App {
     hubs: crate::map::Map<hub::BasicInfo>,
     master_enc_key_part: elgamal::PrivateKey,
     attr_id_secret: Box<[u8]>,
+    auth_token_secret: crypto::SealingKey,
+    auth_token_validity: core::time::Duration,
 }
 
 impl Deref for App {
@@ -646,17 +651,22 @@ impl App {
         }
         let user_state = new_user_state;
 
-        let id_token = if user_state.could_be_banned_by.is_empty() {
-            Err(api::phc::user::IdTokenDeniedReason::NoBannableAttribute)
+        let auth_token = if user_state.could_be_banned_by.is_empty() {
+            Err(api::phc::user::AuthTokenDeniedReason::NoBannableAttribute)
         } else {
-            Ok(IdToken {
-                inner: Default::default(),
-            }) // TODO
+            let iat = jwt::NumericDate::now();
+            let exp = iat + app.auth_token_validity;
+            Ok(AuthTokenInner {
+                user_id: user_state.id,
+                iat,
+                exp,
+            }
+            .seal(&app.auth_token_secret)?)
         };
 
         Ok(EnterResp::Entered {
             new_account,
-            id_token,
+            auth_token,
             attr_status: attr_add_status
                 .iter()
                 .map(|(attr_id, attr_add_status)| {
@@ -760,6 +770,8 @@ pub struct AppCreator {
     hubs: crate::map::Map<hub::BasicInfo>,
     master_enc_key_part: elgamal::PrivateKey,
     attr_id_secret: Box<[u8]>,
+    auth_token_secret: crypto::SealingKey,
+    auth_token_validity: core::time::Duration,
 }
 
 impl Deref for AppCreator {
@@ -785,6 +797,8 @@ impl crate::servers::AppCreator<Server> for AppCreator {
             hubs: self.hubs,
             master_enc_key_part: self.master_enc_key_part,
             attr_id_secret: self.attr_id_secret,
+            auth_token_secret: self.auth_token_secret,
+            auth_token_validity: self.auth_token_validity,
         }
     }
 
@@ -804,8 +818,14 @@ impl crate::servers::AppCreator<Server> for AppCreator {
             .clone()
             .expect("master_enc_key_part not generated");
 
+        let base = AppCreatorBase::<Server>::new(config)?;
+
+        let auth_token_secret: crypto::SealingKey = base
+            .enc_key
+            .derive_sealing_key(sha2::Sha256::new(), "pubhubs-phc-auth-token-secret");
+
         Ok(Self {
-            base: AppCreatorBase::<Server>::new(config)?,
+            base,
             transcryptor_url: xconf.transcryptor_url.as_ref().clone(),
             auths_url: xconf.auths_url.as_ref().clone(),
             hubs,
@@ -818,7 +838,41 @@ impl crate::servers::AppCreator<Server> for AppCreator {
             )
             .into_vec()
             .into_boxed_slice(),
+            auth_token_secret,
+            auth_token_validity: xconf.auth_token_validity.clone(),
         })
+    }
+}
+
+/// Plaintext content of [`AuthToken`].
+#[derive(serde::Serialize, serde::Deserialize, Clone, Debug)]
+struct AuthTokenInner {
+    /// The [`Id`] of the user to whom this token has been issued.
+    user_id: Id,
+
+    /// When this token expires.
+    exp: jwt::NumericDate,
+
+    /// When this token was issued.
+    iat: jwt::NumericDate,
+}
+
+impl AuthTokenInner {
+    fn seal(&self, key: &crypto::SealingKey) -> api::Result<AuthToken> {
+        Ok(AuthToken {
+            inner: serde_bytes::ByteBuf::from(crypto::seal(&self, key, b"").map_err(|err| {
+                log::warn!("failed to seal AuthTokenInner: {err}");
+                api::ErrorCode::InternalError
+            })?)
+            .into(),
+        })
+    }
+
+    fn unseal(
+        sealed: &AuthToken,
+        key: &crypto::SealingKey,
+    ) -> Result<AuthTokenInner, crate::misc::error::Opaque> {
+        crypto::unseal(&*sealed.inner, key, b"")
     }
 }
 

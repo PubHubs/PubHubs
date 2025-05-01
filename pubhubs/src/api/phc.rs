@@ -7,6 +7,7 @@ use serde::{Deserialize, Serialize};
 
 use crate::attr;
 use crate::handle;
+use crate::misc::serde_ext::bytes_wrapper::B64UU;
 use crate::servers::Constellation;
 
 /// `.ph/hub/...` endpoints, used by hubs
@@ -155,7 +156,7 @@ pub mod user {
             ///
             /// May not be provided, for example, when the user is banned, or if no bannable
             /// attribute is currently associated to the user's account.
-            id_token: std::result::Result<IdToken, IdTokenDeniedReason>,
+            auth_token: std::result::Result<AuthToken, AuthTokenDeniedReason>,
 
             attr_status: Vec<(attr::Attr, AttrAddStatus)>,
         },
@@ -163,7 +164,7 @@ pub mod user {
 
     /// Why no id token was granted
     #[derive(Serialize, Deserialize, Debug, Clone, Copy, PartialEq, Eq)]
-    pub enum IdTokenDeniedReason {
+    pub enum AuthTokenDeniedReason {
         /// No bannable attribute associated to account.
         ///
         /// May happen when a bannable attribute was provided in the [`EnterReq`], but adding this
@@ -197,10 +198,11 @@ pub mod user {
         PleaseTryAgain,
     }
 
-    /// An opaque token used to identify the user towards pubhubs central
+    /// An opaque token used to identify the user towards pubhubs central via the
+    /// `Authorization` header.  The token can be obtained via the [`EnterEP`].
     #[derive(Serialize, Deserialize, Debug, Clone)]
     #[serde(transparent)]
-    pub struct IdToken {
-        pub(crate) inner: serde_bytes::ByteBuf,
+    pub struct AuthToken {
+        pub(crate) inner: B64UU,
     }
 }

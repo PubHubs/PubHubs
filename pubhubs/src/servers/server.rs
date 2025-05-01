@@ -284,8 +284,11 @@ pub(crate) trait Modifier<ServerT: Server>: Send + 'static {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> Result<(), std::fmt::Error>;
 }
 
-impl<S: Server, F: FnOnce(&mut S) -> bool + Send + 'static, D: std::fmt::Display + Send + 'static>
-    Modifier<S> for (F, D)
+impl<
+        S: Server,
+        F: FnOnce(&mut S) -> bool + Send + 'static,
+        D: std::fmt::Display + Send + 'static,
+    > Modifier<S> for (F, D)
 {
     fn modify(self: Box<Self>, server: &mut S) -> bool {
         self.0(server)
@@ -660,7 +663,7 @@ impl<S: Server> AppBase<S> {
             .json_updated(&req.pointer, req.new_value.clone())
             .into_ec(|err| {
                 log::warn!(
-                    "{}: failed to modify configuration at {} to {}: {err}",
+                    "{}: failed to modify configuration at {} to {}: {err:#}",
                     S::NAME,
                     req.pointer,
                     req.new_value

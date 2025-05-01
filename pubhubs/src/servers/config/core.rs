@@ -332,6 +332,16 @@ pub mod phc {
         ///
         /// [`Attr::id`]: crate::attr::Attr::id
         pub attr_id_secret: Option<B64UU>,
+
+        /// Authentication tokens issued to the global client are valid for this duration.
+        #[serde(with = "time_ext::human_duration")]
+        #[serde(default = "default_auth_token_validity")]
+        pub auth_token_validity: core::time::Duration,
+    }
+
+    fn default_auth_token_validity() -> core::time::Duration {
+        // TODO: implement refreshing of expired tokens:
+        core::time::Duration::from_secs(60 * 60) // 1 hour
     }
 }
 

@@ -53,15 +53,17 @@ pub fn format_time_wrt(t: time::SystemTime, now: time::SystemTime) -> FormattedT
 }
 
 pub mod human_duration {
-    use serde::{Deserialize as _, de::Error as _};
+    use serde::{de::Error as _, Deserialize as _};
 
     pub fn deserialize<'de, D>(d: D) -> Result<core::time::Duration, D::Error>
     where
         D: serde::Deserializer<'de>,
     {
-        let s: &'de str = <&'de str>::deserialize(d)?;
+        // Could be more efficient with something like serde_cow::CowStr, but that'd require
+        // another dependency
+        let s = String::deserialize(d)?;
 
-        humantime::parse_duration(s).map_err(D::Error::custom)
+        humantime::parse_duration(&s).map_err(D::Error::custom)
     }
 
     pub fn serialize<S>(duration: &core::time::Duration, s: S) -> Result<S::Ok, S::Error>
