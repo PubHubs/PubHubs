@@ -29,11 +29,11 @@ General tips:
           - [ ] Use the search functionality
           - [ ] Create a new room
           - [ ] Create one or more new secured room with mulitple profile attributes and a non profile attributes.
-          - [ ] Make an announcment to the room.
             - Make sure to require at least one value, so that one of the users cannot enter the secured room.
             - Check if the badges are shown properly (in line with which (non-)profile attributes are set).
             - Try to vary a bit in what you do exactly on each merge.
           - [ ] In general act like a regular PubHubs user and try and see if everything works as expected.
+          - [ ] Make an announcment to the room.
         - [ ] With the new user (not an admin!):
           - [ ] Send a message in the public room.
           - [ ] Send a message in the secured room (if you are admin, you can allways enter a secured room, so important to test this with a normal user).
