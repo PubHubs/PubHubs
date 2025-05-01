@@ -1,6 +1,6 @@
 <template>
 	<div v-if="hub" class="relative flex h-60 w-full max-w-full flex-col overflow-hidden rounded-xl bg-background shadow-md hover:cursor-pointer" @click="enterHub(hub)">
-		<Button class="!btn-white !absolute right-2 top-2 z-40 flex h-10 w-10 items-center justify-center rounded-xl border border-black bg-white" @click="toggleDescription($event)">
+		<Button v-if="contact" class="!btn-white !absolute right-2 top-2 z-40 flex h-10 w-10 items-center justify-center rounded-xl border border-black bg-white" @click="toggleDescription($event)">
 			<Icon :type="showDescription ? 'hubBlockCross' : 'hubBlockInfo'" />
 		</Button>
 		<div v-if="showDescription" class="absolute right-0 top-0 z-30 h-full max-h-60 w-full overflow-y-auto rounded-xl bg-background p-4">
