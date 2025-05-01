@@ -94,7 +94,7 @@ pub struct AuthCompleteReq {
     /// Proof that the end-user possesses the requested attributes.
     pub proof: AuthProof,
 
-    /// The [`AuthStateResp::state`] obtained earlier.
+    /// The [`AuthStartResp::state`] obtained earlier.
     pub state: AuthState,
 }
 

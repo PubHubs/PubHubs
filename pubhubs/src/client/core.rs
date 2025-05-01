@@ -1,3 +1,4 @@
+use std::borrow::Borrow;
 use std::rc::Rc;
 
 use crate::api::{ApiResultExt as _, EndpointDetails, ErrorCode, Result};
@@ -69,24 +70,46 @@ impl Client {
         Builder::default()
     }
 
-    /// Like [Client::query], but retries the query when it fails with a [crate::api::ErrorInfo::retryable] [ErrorCode].
+    /// Like [`Client::query`], but retries the query when it fails with a [`crate::api::ErrorInfo::retryable`] [`ErrorCode`].
     ///
     /// When `A` queries `B` and `B` queries `C`, the `B` should, in general, not use
-    /// [Client::query_with_retry], but let `A` manage retries.  This prevents `A`'s request from hanging
+    /// [`Client::query_with_retry`], but let `A` manage retries.  This prevents `A`'s request from hanging
     /// without any explanation.
-    pub async fn query_with_retry<EP: EndpointDetails + 'static>(
+    ///
+    /// Unlike [`Client::query`], the future returned by `query_with_retry` borrows `server_url`
+    /// and `req`.  (It does not borrow `self`.)
+    ///
+    /// The borrowing of `server_url` and `req` by the returned future has the unfortunate
+    /// side-effect that when the future is passed to, say, [`tokio::spawn`], `server_url`
+    /// and `req` are forced to have the `'static` lifetime.  In such cases it's easiest to pass
+    /// `server_url` and `req` not by reference, but by value - whence the use of the [`Borrow<T>`] trait,
+    /// which is implemented both by `T` and `&T`.
+    pub fn query_with_retry<EP: EndpointDetails + 'static, BU, BR>(
         &self,
-        server_url: &url::Url,
-        req: &EP::RequestType,
-    ) -> Result<EP::ResponseType> {
-        match crate::misc::task::retry(|| async {
-            self.query::<EP>(server_url, req).await.retryable()
-        })
-        .await
-        {
-            Ok(Some(resp)) => Result::Ok(resp),
-            Ok(None) => Result::Err(ErrorCode::TemporaryFailure),
-            Err(ec) => Result::Err(ec),
+        server_url: BU,
+        req: BR,
+    ) -> impl std::future::Future<Output = Result<EP::ResponseType>> + use<EP, BU, BR>
+    where
+        BU: Borrow<url::Url>,
+        BR: Borrow<EP::RequestType>,
+    {
+        let client: Client = self.clone();
+
+        async move {
+            let server_url = server_url.borrow();
+            let req = req.borrow();
+
+            let retry_fut = crate::misc::task::retry(move || {
+                let client = client.clone();
+
+                async move { client.query::<EP>(server_url, req).await.retryable() }
+            });
+
+            match retry_fut.await {
+                Ok(Some(resp)) => Result::Ok(resp),
+                Ok(None) => Result::Err(ErrorCode::TemporaryFailure),
+                Err(ec) => Result::Err(ec),
+            }
         }
     }
 

@@ -107,7 +107,7 @@ async fn main_integration_test_local(
     let phc_enc_key_sk = elgamal::PrivateKey::random();
 
     client
-        .query_with_retry::<api::admin::UpdateConfig>(
+        .query_with_retry::<api::admin::UpdateConfig, _, _>(
             &constellation.transcryptor_url,
             &api::Signed::<api::admin::UpdateConfigReq>::new(
                 &*admin_sk,
@@ -148,7 +148,7 @@ async fn main_integration_test_local(
 
     // update PHC's key
     client
-        .query_with_retry::<api::admin::UpdateConfig>(
+        .query_with_retry::<api::admin::UpdateConfig, _, _>(
             &constellation.phc_url,
             &api::Signed::<api::admin::UpdateConfigReq>::new(
                 &*admin_sk,
@@ -207,8 +207,8 @@ async fn main_integration_test_local(
 
     // get a ticket for testhub
     let ticket = client
-        .query_with_retry::<api::phc::hub::TicketEP>(
-            &config.phc_url.as_ref(),
+        .query_with_retry::<api::phc::hub::TicketEP, _, _>(
+            config.phc_url.as_ref(),
             &api::Signed::<api::phc::hub::TicketReq>::new(
                 &*mock_hub.context.sk,
                 &api::phc::hub::TicketReq {
@@ -240,7 +240,7 @@ async fn main_integration_test_local(
 
     // request authentication as end-user
     let asr = client
-        .query_with_retry::<api::auths::AuthStartEP>(
+        .query_with_retry::<api::auths::AuthStartEP, _, _>(
             &constellation.auths_url,
             &api::auths::AuthStartReq {
                 source: attr::Source::Yivi,
@@ -298,7 +298,7 @@ async fn main_integration_test_local(
 
     // Now send the disclosure response to the authentication server to get some credentials
     let acr = client
-        .query_with_retry::<api::auths::AuthCompleteEP>(
+        .query_with_retry::<api::auths::AuthCompleteEP, _, _>(
             &constellation.auths_url,
             &api::auths::AuthCompleteReq {
                 state: asr.state,
@@ -317,7 +317,7 @@ async fn main_integration_test_local(
     // address..
     assert!(matches!(
         client
-            .query_with_retry::<api::phc::user::EnterEP>(
+            .query_with_retry::<api::phc::user::EnterEP, _, _>(
                 &constellation.phc_url,
                 &api::phc::user::EnterReq {
                     identifying_attr: email.clone(),
@@ -330,31 +330,49 @@ async fn main_integration_test_local(
         api::phc::user::EnterResp::NoBannableAttribute
     ));
 
-    // Registering does succeed like this:
-    let enter_resp = client
-        .query_with_retry::<api::phc::user::EnterEP>(
-            &constellation.phc_url,
-            &api::phc::user::EnterReq {
-                identifying_attr: email.clone(),
-                mode: api::phc::user::EnterMode::LoginOrRegister,
-                add_attrs: vec![phone.clone()],
-            },
-        )
-        .await
-        .unwrap();
+    // Registering in the following way does succeed.
+    // Let's also make several calls to register or login at once.
+    {
+        let mut tjs = tokio::task::JoinSet::new();
 
-    assert!(matches!(
-        enter_resp,
-        api::phc::user::EnterResp::Entered {
-            new_account: true,
-            ..
+        let phc_url = constellation.phc_url.clone();
+        let req = api::phc::user::EnterReq {
+            identifying_attr: email.clone(),
+            mode: api::phc::user::EnterMode::LoginOrRegister,
+            add_attrs: vec![phone.clone()],
+        };
+
+        for _ in 1..=10 {
+            let enter_resp_fut = client
+                .query_with_retry::<api::phc::user::EnterEP, _, _>(phc_url.clone(), req.clone());
+
+            tjs.spawn_local(async move {
+                let enter_resp = enter_resp_fut.await.unwrap();
+
+                if let api::phc::user::EnterResp::Entered { new_account, .. } = enter_resp {
+                    new_account
+                } else {
+                    panic!("expected registration/login to succeed");
+                }
+            });
         }
-    ));
 
-    // Registering again fails
+        let new_accounts: Vec<bool> = tjs.join_all().await;
+
+        assert_eq!(
+            new_accounts
+                .into_iter()
+                .filter(|new_account| *new_account)
+                .count(),
+            1,
+            "expected exactly one registration to result in a new account"
+        );
+    }
+
+    // Registering a second time fails
     assert!(matches!(
         client
-            .query_with_retry::<api::phc::user::EnterEP>(
+            .query_with_retry::<api::phc::user::EnterEP, _, _>(
                 &constellation.phc_url,
                 &api::phc::user::EnterReq {
                     identifying_attr: email.clone(),
@@ -370,7 +388,7 @@ async fn main_integration_test_local(
     // Logging in using the email address works..
     assert!(matches!(
         client
-            .query_with_retry::<api::phc::user::EnterEP>(
+            .query_with_retry::<api::phc::user::EnterEP, _, _>(
                 &constellation.phc_url,
                 &api::phc::user::EnterReq {
                     identifying_attr: email.clone(),

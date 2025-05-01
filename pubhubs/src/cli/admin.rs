@@ -50,8 +50,8 @@ impl AdminContext {
     async fn retrieve_config(&self) -> anyhow::Result<Config> {
         let resp = self
             .client
-            .query_with_retry::<api::admin::Info>(
-                self.get_url().await?,
+            .query_with_retry::<api::admin::Info, _, _>(
+                &self.get_url().await?.clone(),
                 &api::Signed::<api::admin::InfoReq>::new(
                     &*self.admin_key,
                     &api::admin::InfoReq {},
@@ -162,7 +162,7 @@ impl ConfigUpdateArgs {
 
         log::info!("Sending configuration change to {}...", ctx.server);
         ctx.client
-            .query_with_retry::<api::admin::UpdateConfig>(
+            .query_with_retry::<api::admin::UpdateConfig, _, _>(
                 ctx.get_url().await?,
                 &api::Signed::<api::admin::UpdateConfigReq>::new(
                     &*ctx.admin_key,

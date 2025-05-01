@@ -832,7 +832,7 @@ pub struct UserState {
     pub banned: bool,
 
     /// Attributes that may be used to log in as this user,
-    /// provided that [`attr::AttrState::may_identify_user`] also points to this account.
+    /// provided that [`AttrState::may_identify_user`] also points to this account.
     ///
     /// The user may remove an attribute from this list.
     pub allow_login_by: HashSet<Id>,
