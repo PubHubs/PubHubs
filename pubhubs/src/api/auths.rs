@@ -1,8 +1,25 @@
 //! Additional endpoints provided by the authentication server
 use crate::api::*;
 use crate::misc::jwt;
+use crate::{attr, handle};
 
 use serde::{Deserialize, Serialize};
+
+/// Called by the global client to get, for example, the list of supported attribute types.
+pub struct WelcomeEP {}
+impl EndpointDetails for WelcomeEP {
+    type RequestType = ();
+    type ResponseType = WelcomeResp;
+
+    const METHOD: http::Method = http::Method::GET;
+    const PATH: &'static str = ".ph/welcome";
+}
+
+#[derive(Serialize, Deserialize, Debug, Clone)]
+pub struct WelcomeResp {
+    /// Available attribute types
+    pub attr_types: std::collections::HashMap<handle::Handle, attr::Type>,
+}
 
 pub struct AuthStartEP {}
 impl EndpointDetails for AuthStartEP {
@@ -14,9 +31,6 @@ impl EndpointDetails for AuthStartEP {
 }
 
 /// Starts the process of obtaining attributes from the authentication server.
-///
-/// Results in `ErrorCode::BadRequest` if `attr_types` or if requested attribute types
-/// have mixed sources.
 ///
 /// Results in `ErrorCode::UnknownAttributeType` if one of the attribute types is not known.
 #[derive(Serialize, Deserialize, Debug, Clone)]
@@ -33,6 +47,21 @@ pub struct AuthStartResp {
     /// Task for the global client to satisfy the authentication server.
     /// Depends on the requested attribute types
     pub task: AuthTask,
+
+    /// Opaque state that should be sent with the [`AuthCompleteReq`].
+    pub state: AuthState,
+}
+
+#[derive(Serialize, Deserialize, Debug, Clone)]
+#[serde(transparent)]
+pub struct AuthState {
+    pub(crate) inner: serde_bytes::ByteBuf,
+}
+
+impl AuthState {
+    pub(crate) fn new(inner: serde_bytes::ByteBuf) -> Self {
+        Self { inner }
+    }
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
@@ -59,8 +88,9 @@ impl EndpointDetails for AuthCompleteEP {
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct AuthCompleteReq {
-    pub attr_types: Vec<crate::handle::Handle>,
     pub proof: AuthProof,
+
+    pub state: AuthState,
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
@@ -74,5 +104,5 @@ pub enum AuthProof {
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct AuthCompleteResp {
-    attrs: Vec<Signed<crate::attr::Attr>>,
+    pub attrs: std::collections::HashMap<handle::Handle, Signed<attr::Attr>>,
 }

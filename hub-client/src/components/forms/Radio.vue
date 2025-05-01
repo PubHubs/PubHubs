@@ -11,7 +11,7 @@
 					changed();
 				"
 			/>
-			<label class="ml-2 dark:text-white" :for="option.value">{{ option.label }}</label>
+			<label class="ml-2" :for="option.value">{{ option.label }}</label>
 		</li>
 	</ul>
 </template>

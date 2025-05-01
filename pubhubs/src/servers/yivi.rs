@@ -2,9 +2,22 @@
 use std::cell::OnceCell;
 
 use anyhow::Context as _;
-use serde::{self, de::Error as _, Deserialize as _, Serialize as _};
+use serde::{
+    self,
+    de::{Error as _, IntoDeserializer as _},
+    ser::Error as _,
+    Deserialize as _, Serialize as _,
+};
 
-use crate::misc::{jwt, serde_ext};
+use crate::misc::jwt;
+use crate::misc::serde_ext::bytes_wrapper::B64UU;
+
+/// An extended session request, see <https://irma.app/docs/session-requests/#extra-parameters>
+#[derive(serde::Serialize, serde::Deserialize, Debug, Clone, PartialEq, Eq)]
+pub struct ExtendedSessionRequest {
+    // TODO, maybe: validity, timeout, callbackUrl, nextSession
+    request: SessionRequest,
+}
 
 /// A session request sent by a requestor to a yivi server
 #[derive(serde::Serialize, serde::Deserialize, Debug, Clone, PartialEq, Eq)]
@@ -16,28 +29,30 @@ pub struct SessionRequest {
     disclose: Option<AttributeConDisCon>,
 }
 
-impl SessionRequest {
-    pub fn disclosure(cdc: AttributeConDisCon) -> SessionRequest {
+impl ExtendedSessionRequest {
+    pub fn disclosure(cdc: AttributeConDisCon) -> Self {
         Self {
-            context: LdContext::Disclosure,
-            disclose: Some(cdc),
+            request: SessionRequest {
+                context: LdContext::Disclosure,
+                disclose: Some(cdc),
+            },
         }
     }
 
-    /// Signs this session request using the provided requestor credentials.
+    /// Signs this extended session request using the provided requestor credentials.
     ///
     /// Documentation: <https://docs.yivi.app/session-requests/#jwts-signed-session-requests>
     /// Reference code for disclosure request:
     ///     <https://github.com/privacybydesign/irmago/blob/d389b4559e007a0fcb4e78d1f6e073c1ad57bc13/requests.go#L957>
-    pub fn sign(self, creds: &Credentials) -> anyhow::Result<jwt::JWT> {
+    pub fn sign(self, creds: &Credentials<SigningKey>) -> anyhow::Result<jwt::JWT> {
         creds
             .key
             .sign(
                 &jwt::Claims::new()
                     .iat_now()?
                     .claim("iss", &creds.name)? // issuer is requestor name
-                    .claim("sub", self.context.jwt_sub())?
-                    .claim(self.context.jwt_key(), self)?,
+                    .claim("sub", self.request.context.jwt_sub())?
+                    .claim(self.request.context.jwt_key(), self)?,
             )
             .context("signing session request")
 
@@ -45,7 +60,7 @@ impl SessionRequest {
         // but its presence is not checked, so we omit it.
     }
 
-    /// Mocks a valid [`SessionResult`] to this [`SessionRequest`] disclosing
+    /// Mocks a valid [`SessionResult`] to this [`ExtendedSessionRequest`] disclosing
     /// the values specified by the `df` function.
     ///
     /// Only simple disclosure requests not involving any 'discon's are currently supported.
@@ -57,9 +72,10 @@ impl SessionRequest {
         &self,
         df: impl Fn(&AttributeTypeIdentifier) -> String,
     ) -> SessionResult {
-        assert_eq!(self.context, LdContext::Disclosure);
+        assert_eq!(self.request.context, LdContext::Disclosure);
 
         let disclosed: Vec<Vec<DisclosedAttribute>> = self
+            .request
             .disclose
             .as_ref()
             .expect("missing `disclose` field in disclosure session request")
@@ -130,12 +146,14 @@ pub struct AttributeRequest {
     pub ty: AttributeTypeIdentifier,
 }
 
-/// Credentials (name and key) for a requestor (or yivi server).
+/// Credentials (name and key) for a requestor or yivi server.
+///
+/// Use [`Credentials<SigningKey>`] or [`Credentials<VerifyingKey>`].
 #[derive(serde::Serialize, serde::Deserialize, Debug, Clone, PartialEq, Eq)]
 #[serde(deny_unknown_fields)]
-pub struct Credentials {
+pub struct Credentials<K> {
     pub name: String,
-    pub key: SigningKey,
+    pub key: K,
 }
 
 /// Private key used by a requestor or yivi server to sign their JWTs.
@@ -143,19 +161,101 @@ pub struct Credentials {
 #[serde(deny_unknown_fields)]
 pub enum SigningKey {
     #[serde(rename = "hs256")]
-    HS256(serde_ext::bytes_wrapper::B64<jwt::HS256>),
-    // We do not use the `Token` or `RS256` Yivi `auth_method`s,
+    HS256(B64UU<jwt::HS256>),
+
+    // We do not use the `Token`  Yivi `auth_method`s,
     // see: https://docs.yivi.app/irma-server#requestor-authentication
+    #[serde(rename = "rs256")]
+    RS256(#[serde(with = "rs256sk_encoding")] Box<jwt::RS256Sk>),
+}
+
+/// We encode the RS256 private key using the PEM-encoded PKCS #8 format
+mod rs256sk_encoding {
+    use super::*;
+
+    pub fn deserialize<'de, D>(d: D) -> Result<Box<jwt::RS256Sk>, D::Error>
+    where
+        D: serde::Deserializer<'de>,
+    {
+        let s: &'de str = <&'de str>::deserialize(d)?;
+
+        Ok(Box::new(
+            jwt::RS256Sk::from_pkcs8_pem(s).map_err(D::Error::custom)?,
+        ))
+    }
+
+    // `serde(with = ...` forces the signature `&Box<...` that clippy does not like
+    #[expect(clippy::borrowed_box)]
+    pub fn serialize<S>(pk: &Box<jwt::RS256Sk>, s: S) -> Result<S::Ok, S::Error>
+    where
+        S: serde::ser::Serializer,
+    {
+        s.serialize_str(&pk.to_pkcs8_pem().map_err(S::Error::custom)?)
+    }
 }
 
 impl SigningKey {
-    /// Sign the given claims using this requestor key.
+    /// Sign the given claims using this key.
     ///
     /// Note that [`SigningKey`] cannot implement [`jwt::Key`] because [`SigningKey`]
     /// supports multiple algorithms.
     fn sign<C: serde::Serialize>(&self, claims: &C) -> Result<jwt::JWT, jwt::Error> {
         match self {
-            SigningKey::HS256(ref key) => jwt::JWT::create(claims, &**key),
+            SigningKey::HS256(key) => jwt::JWT::create(claims, &**key),
+            SigningKey::RS256(key) => jwt::JWT::create(claims, &**key),
+        }
+    }
+
+    pub fn to_verifying_key(&self) -> VerifyingKey {
+        match self {
+            SigningKey::HS256(key) => VerifyingKey::HS256(key.clone()),
+            SigningKey::RS256(key) => {
+                VerifyingKey::RS256(jwt::RS256Vk::new(key.as_rsa_pub().clone()))
+            }
+        }
+    }
+}
+
+/// Public key used by a requestor or yivi server to sign their JWTs.
+#[derive(serde::Serialize, serde::Deserialize, Debug, Clone, PartialEq, Eq)]
+#[serde(deny_unknown_fields)]
+pub enum VerifyingKey {
+    #[serde(rename = "hs256")]
+    HS256(B64UU<jwt::HS256>),
+
+    #[serde(rename = "rs256")]
+    RS256(#[serde(with = "rs256vk_encoding")] jwt::RS256Vk),
+    // We do not use the `Token` Yivi `auth_method`s,
+    // see: https://docs.yivi.app/irma-server#requestor-authentication
+}
+
+/// We encode the RS256 public key using the PEM-encoded PKCS #8 format
+mod rs256vk_encoding {
+    use super::*;
+
+    pub fn deserialize<'de, D>(d: D) -> Result<jwt::RS256Vk, D::Error>
+    where
+        D: serde::Deserializer<'de>,
+    {
+        let s: &'de str = <&'de str>::deserialize(d)?;
+
+        jwt::RS256Vk::from_public_key_pem(s).map_err(D::Error::custom)
+    }
+
+    pub fn serialize<S>(pk: &jwt::RS256Vk, s: S) -> Result<S::Ok, S::Error>
+    where
+        S: serde::ser::Serializer,
+    {
+        s.serialize_str(&pk.to_public_key_pem().map_err(S::Error::custom)?)
+    }
+}
+
+impl VerifyingKey {
+    /// Open the given jwt using this key
+    fn open(&self, jwt: &jwt::JWT) -> Result<jwt::Claims, jwt::Error> {
+        match self {
+            VerifyingKey::HS256(key) => jwt::JWT::open(jwt, &**key),
+            VerifyingKey::RS256(key) => jwt::JWT::open(jwt, key),
         }
     }
 }
@@ -204,7 +304,7 @@ impl SessionResult {
     /// <https://github.com/privacybydesign/irmago/blob/b1c38f4f2c9da3d3f39b5c21a330bcbd04143f41/server/api.go#L326>
     pub fn sign(
         self,
-        creds: &Credentials,
+        creds: &Credentials<SigningKey>,
         validity: std::time::Duration,
     ) -> anyhow::Result<jwt::JWT> {
         creds
@@ -214,9 +314,109 @@ impl SessionResult {
                     .iat_now()?
                     .exp_after(validity)?
                     .claim("iss", &creds.name)? // issuer is server name
-                    .claim("sub", format!("{}_result", self.session_type))?,
+                    .claim("sub", self.session_type.to_result_sub())?,
             )
             .context("signing session result")
+    }
+
+    /// Opens the given signed [`SessionResult`].
+    pub fn open_signed(
+        jwt: &jwt::JWT,
+        server_credentials: &Credentials<VerifyingKey>,
+    ) -> anyhow::Result<Self> {
+        let mut session_type_perhaps: Option<SessionType> = None;
+
+        let session_result: Self = server_credentials
+            .key
+            .open(jwt)
+            .context("invalid jwt")?
+            .check_iss(jwt::expecting::exactly(&server_credentials.name))?
+            .check_sub(
+                |claim_name: &'static str, sub: Option<String>| -> Result<(), jwt::Error> {
+                    let sub = sub.ok_or_else(|| jwt::Error::MissingClaim(claim_name))?;
+
+                    assert!(
+                        session_type_perhaps
+                            .replace(SessionType::from_result_sub(&sub).map_err(|err| {
+                                jwt::Error::InvalidClaim {
+                                    claim_name,
+                                    source: err,
+                                }
+                            })?)
+                            .is_none(),
+                        "bug: did not expect to set session_type twice"
+                    );
+
+                    Ok(())
+                },
+            )?
+            .into_custom()?;
+
+        let session_type = session_type_perhaps.expect("bug: expected session_type to be set here");
+
+        anyhow::ensure!(
+            session_result.session_type == session_type,
+            "session result jwt subject, {}, does not align with session result type, {}",
+            session_type,
+            session_result.session_type
+        );
+
+        Ok(session_result)
+    }
+
+    /// Verifies that this [`SessionResult`] is valid ignoring the [`Self::disclosed`] field.
+    fn validate_except_disclosed(&self) -> anyhow::Result<()> {
+        anyhow::ensure!(
+            self.status == Status::Done,
+            "session status is not 'done', but {}",
+            self.status
+        );
+
+        if let Some(proof_status) = self.proof_status {
+            anyhow::ensure!(
+                proof_status == ProofStatus::Valid,
+                "session proof status is not 'valid', but {}",
+                proof_status
+            );
+        }
+
+        if let Some(error) = &self.error {
+            anyhow::bail!(
+                "session result error field set: {}",
+                serde_json::to_string(&error).unwrap_or_else(|_| "<ERROR SERIALIZING>".to_string()),
+            );
+        }
+
+        Ok(())
+    }
+
+    /// Verifyies that this [`SessionResult`] is valid, and that the inner conjunctions contain
+    /// just one attribute each.  Returns the [`AttributeTypeIdentifier`] and raw values of these
+    /// attributes.
+    pub fn validate_and_extract_raw_singles(
+        &self,
+    ) -> anyhow::Result<impl Iterator<Item = anyhow::Result<(&AttributeTypeIdentifier, &str)>>>
+    {
+        self.validate_except_disclosed()?;
+
+        Ok(self
+            .disclosed
+            .iter()
+            .flatten()
+            .map(|inner_con: &Vec<DisclosedAttribute>| {
+                anyhow::ensure!(
+                    inner_con.len() <= 1,
+                    "inner conjunction has more than one attribute"
+                );
+
+                let da: &DisclosedAttribute = inner_con
+                    .first()
+                    .context("inner conjunction has no attribute")?;
+
+                da.validate()?;
+
+                Ok((&da.id, da.raw_value.as_str()))
+            }))
     }
 }
 
@@ -254,6 +454,26 @@ impl DisclosedAttribute {
             not_revoked: None,
             not_revoked_before: None,
         }
+    }
+
+    /// Verifies that this [`DisclosedAttribute`] is valid.
+    fn validate(&self) -> anyhow::Result<()> {
+        anyhow::ensure!(
+            self.status == AttributeProofStatus::Present,
+            "proof status is not 'present'"
+        );
+
+        if self.not_revoked == Some(false) {
+            anyhow::bail!("attribute is revoked");
+        }
+
+        if let Some(not_revoked_before) = self.not_revoked_before {
+            if jwt::NumericDate::now() > not_revoked_before {
+                anyhow::bail!("attribute is (presumably) revoked after {not_revoked_before}");
+            }
+        }
+
+        Ok(())
     }
 }
 
@@ -383,6 +603,12 @@ impl std::str::FromStr for AttributeTypeIdentifier {
     }
 }
 
+impl std::fmt::Display for AttributeTypeIdentifier {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        self.inner.fmt(f)
+    }
+}
+
 /// Error type that may be part of a session result
 ///
 /// <https://github.com/privacybydesign/irmago/blob/b1c38f4f2c9da3d3f39b5c21a330bcbd04143f41/messages.go#L119>
@@ -409,6 +635,12 @@ pub enum ProofStatus {
     Expired,
 }
 
+impl std::fmt::Display for ProofStatus {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        self.serialize(f)
+    }
+}
+
 /// Status of a yivi session
 ///
 /// <https://github.com/privacybydesign/irmago/blob/b1c38f4f2c9da3d3f39b5c21a330bcbd04143f41/messages.go#L216>
@@ -421,6 +653,12 @@ pub enum Status {
     Cancelled,
     Timeout,
     Initialized,
+}
+
+impl std::fmt::Display for Status {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        self.serialize(f)
+    }
 }
 
 /// Proof status of a single yivi attribute
@@ -451,6 +689,30 @@ pub enum SessionType {
 impl std::fmt::Display for SessionType {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         self.serialize(f)
+    }
+}
+
+impl std::str::FromStr for SessionType {
+    type Err = serde::de::value::Error;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        Self::deserialize(s.into_deserializer())
+    }
+}
+
+impl SessionType {
+    /// Inverse of [`SessionType::to_result_sub`].
+    fn from_result_sub(sub: &str) -> anyhow::Result<Self> {
+        let stripped_sub = sub
+            .strip_suffix("_result")
+            .ok_or_else(|| anyhow::anyhow!("subject did not end with '_result'"))?;
+
+        stripped_sub.parse().context("unknown session type")
+    }
+
+    /// Returns the `sub` value used for this session type in signed session result JWTs.
+    fn to_result_sub(self) -> String {
+        format!("{}_result", self)
     }
 }
 

@@ -98,6 +98,9 @@ const icons: { [key: string]: string } = {
         <path stroke="none"  fill="currentColor" d="M57.4639 25.0575L49.7253 24.3018C49.1872 21.9122 48.2437 19.6749 46.9756 17.6671L51.9151 11.6593C52.109 11.4239 52.0912 11.0817 51.8776 10.8661L47.1339 6.12244C46.9203 5.9088 46.5761 5.891 46.3407 6.08486L40.3329 11.0244C38.3251 9.75436 36.0878 8.81078 33.6982 8.27271L32.9425 0.534106C32.9128 0.231446 32.6576 0 32.355 0H25.647C25.3424 0 25.0892 0.229468 25.0575 0.534106L24.3018 8.27271C21.9122 8.81276 19.6769 9.75436 17.6671 11.0224L11.6593 6.08486C11.4239 5.891 11.0817 5.9088 10.8661 6.12244L6.12244 10.8661C5.90682 11.0797 5.891 11.4239 6.08288 11.6593L11.0224 17.6671C9.75239 19.6749 8.81078 21.9122 8.27271 24.3018L0.534106 25.0575C0.231446 25.0872 0 25.3424 0 25.645V32.353C0 32.6576 0.231446 32.9108 0.534106 32.9425L8.27271 33.6982C8.81276 36.0878 9.75436 38.3251 11.0224 40.3329L6.08288 46.3407C5.88902 46.5761 5.90682 46.9183 6.12244 47.1339L10.8661 51.8776C11.0817 52.0932 11.4239 52.109 11.6593 51.9171L17.6671 46.9776C19.6749 48.2476 21.9122 49.1892 24.3018 49.7273L25.0575 57.4659C25.0872 57.7686 25.3424 58 25.647 58H32.355C32.6596 58 32.9128 57.7686 32.9425 57.4659L33.6982 49.7273C36.0878 49.1892 38.3251 48.2456 40.3329 46.9776L46.3407 51.9171C46.5761 52.109 46.9183 52.0932 47.1339 51.8776L51.8776 47.1339C52.0912 46.9183 52.109 46.5741 51.9151 46.3407L46.9776 40.3329C48.2456 38.3251 49.1872 36.0878 49.7273 33.6982L57.4659 32.9425C57.7686 32.9128 58 32.6576 58 32.353V25.645C58 25.3404 57.7705 25.0872 57.4659 25.0575H57.4639ZM28.996 42.4437C21.572 42.4437 15.5524 36.4241 15.5524 29C15.5524 21.5759 21.572 15.5563 28.996 15.5563C36.4201 15.5563 42.4397 21.5759 42.4397 29C42.4397 36.4241 36.4201 42.4437 28.996 42.4437Z"/>
         </svg>
     `,
+	hubBlockCross: `
+       <svg fill="#000000" width="25px" height="25px" viewBox="0 0 24 24" id="cross" data-name="Flat Color" xmlns="http://www.w3.org/2000/svg" class="icon flat-color"><path id="primary" d="M13.41,12l6.3-6.29a1,1,0,1,0-1.42-1.42L12,10.59,5.71,4.29A1,1,0,0,0,4.29,5.71L10.59,12l-6.3,6.29a1,1,0,0,0,0,1.42,1,1,0,0,0,1.42,0L12,13.41l6.29,6.3a1,1,0,0,0,1.42,0,1,1,0,0,0,0-1.42Z" style="fill: rgb(0, 0, 0);"></path></svg>
+    `,
 	edit: `
         <path stroke="none" d="M0 0h24v24H0z"/>
         <path d="M9 7 h-3a2 2 0 0 0 -2 2v9a2 2 0 0 0 2 2h9a2 2 0 0 0 2 -2v-3" />
@@ -261,12 +264,23 @@ const icons: { [key: string]: string } = {
 	upload: `
         <path stroke="none" d="M0 0h24v24H0z"/>  <path d="M4 17v2a2 2 0 0 0 2 2h12a2 2 0 0 0 2 -2v-2" />  <polyline points="7 9 12 4 17 9" />  <line x1="12" y1="4" x2="12" y2="16" />
         `,
+	// Added for polling
+	scheduler: `
+		<svg class="h-8 w-8 width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">  <path stroke="none" d="M0 0h24v24H0z"/>  <rect x="4" y="5" width="16" height="16" rx="2" />  <line x1="16" y1="3" x2="16" y2="7" />  <line x1="8" y1="3" x2="8" y2="7" />  <line x1="4" y1="11" x2="20" y2="11" />  <rect x="8" y="15" width="2" height="2" /></svg>
+		`,
+	// Added for polling
+	poll: `
+		<svg class="h-8 w-8 fill="none" viewBox="0 0 24 24" stroke="currentColor"> <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/> </svg>
+		`,
 	warning: `
         <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z" />  <line x1="12" y1="9" x2="12" y2="13" />  <line x1="12" y1="17" x2="12.01" y2="17" />
         `,
 	info: `
         <circle cx="12" cy="12" r="10" />  <line x1="12" y1="16" x2="12" y2="12" />  <line x1="12" y1="8" x2="12.01" y2="8" />
         `,
+	hubBlockInfo: `
+        <svg width="25px" height="25px" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><g id="SVGRepo_bgCarrier" stroke-width="0"></g><g id="SVGRepo_tracerCarrier" stroke-linecap="round" stroke-linejoin="round"></g><g id="SVGRepo_iconCarrier"> <path fill-rule="evenodd" clip-rule="evenodd" d="M12 7C12.8284 7 13.5 6.32843 13.5 5.5C13.5 4.67157 12.8284 4 12 4C11.1716 4 10.5 4.67157 10.5 5.5C10.5 6.32843 11.1716 7 12 7ZM11 9C10.4477 9 10 9.44772 10 10C10 10.5523 10.4477 11 11 11V19C11 19.5523 11.4477 20 12 20C12.5523 20 13 19.5523 13 19V10C13 9.44772 12.5523 9 12 9H11Z" fill="#000000"></path> </g></svg>
+	`,
 	download: `
         <path stroke="none" d="M0 0h24v24H0z"/>  <path d="M4 17v2a2 2 0 0 0 2 2h12a2 2 0 0 0 2 -2v-2" />  <polyline points="7 11 12 16 17 11" />  <line x1="12" y1="4" x2="12" y2="16" />
         `,
@@ -275,6 +289,41 @@ const icons: { [key: string]: string } = {
 	user_plus: `<svg width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">  <path stroke="none" d="M0 0h24v24H0z"/>  <line x1="12" y1="5" x2="12" y2="19" />  <line x1="5" y1="12" x2="19" y2="12" /></svg>`,
 	tick: `<svg viewBox="0 0 50 50" width="24px" height="24px"><path d="M 11 4 C 7.101563 4 4 7.101563 4 11 L 4 39 C 4 42.898438 7.101563 46 11 46 L 39 46 C 42.898438 46 46 42.898438 46 39 L 46 15 L 44 17.3125 L 44 39 C 44 41.800781 41.800781 44 39 44 L 11 44 C 8.199219 44 6 41.800781 6 39 L 6 11 C 6 8.199219 8.199219 6 11 6 L 37.40625 6 L 39 4 Z M 43.25 7.75 L 23.90625 30.5625 L 15.78125 22.96875 L 14.40625 24.4375 L 23.3125 32.71875 L 24.09375 33.4375 L 24.75 32.65625 L 44.75 9.03125 Z"/></svg>`,
 	filled_tick: `<svg xmlns="http://www.w3.org/2000/svg"  viewBox="0 0 48 48" width="24px" height="24px" baseProfile="basic"><circle cx="24" cy="24" r="20" fill="#6be3a2"/><path fill="#324561" d="M22.5,33c-0.226,0-0.446-0.076-0.625-0.219l-7.5-6c-0.431-0.345-0.501-0.974-0.156-1.405	c0.347-0.431,0.975-0.501,1.406-0.156l6.667,5.334l9.889-14.126c0.316-0.454,0.94-0.562,1.393-0.246	c0.453,0.317,0.562,0.94,0.246,1.393l-10.5,15c-0.158,0.227-0.403,0.377-0.677,0.417C22.595,32.997,22.547,33,22.5,33z"/></svg>`,
+
+	// Added for polling
+	checkmark: `
+			<path stroke="none" d="M0 0h24v24H0z"/>  <path d="M5 12l5 5l10 -10" />
+			`,
+	// Added for polling
+	checkmark_circle: `
+		<path stroke="none" d="M0 0h24v24H0z"/>
+		<circle cx="12" cy="12" r="9" />
+		<path d="M9 12l2 2l4 -4" />
+	`,
+
+	// Added for polling
+	map_pin: `
+		<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="w-6 h-6">
+  			<path fill-rule="evenodd" d="m11.54 22.351.07.04.028.016a.76.76 0 0 0 .723 0l.028-.015.071-.041a16.975 16.975 0 0 0 1.144-.742 19.58 19.58 0 0 0 2.683-2.282c1.944-1.99 3.963-4.98 3.963-8.827a8.25 8.25 0 0 0-16.5 0c0 3.846 2.02 6.837 3.963 8.827a19.58 19.58 0 0 0 2.682 2.282 16.975 16.975 0 0 0 1.145.742ZM12 13.5a3 3 0 1 0 0-6 3 3 0 0 0 0 6Z" clip-rule="evenodd" />
+		</svg>
+	`,
+
+	// Added for polling
+	scheduler_lock: `
+		<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="w-6 h-6"">
+			<path fill="currentColor" d="M18 8h-1V6c0-2.76-2.24-5-5-5S7 3.24 7 6v2H6c-1.1 0-2 .9-2 2v10c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V10c0-1.1-.9-2-2-2m-6 9c-1.1 0-2-.9-2-2s.9-2 2-2s2 .9 2 2s-.9 2-2 2m3.1-9H8.9V6c0-1.71 1.39-3.1 3.1-3.1c1.71 0 3.1 1.39 3.1 3.1z"/>
+		</svg>
+	`,
+
+	// Added for polling
+	voting_widget_options: `
+		<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
+			<g fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2">
+				<circle cx="12" cy="12" r="1"/><circle cx="19" cy="12" r="1"/><circle cx="5" cy="12" r="1"/>
+			</g>
+		</svg>
+	`,
+
 	emoji_clock: `
         <svg viewBox="0 0 14 15" fill="none" xmlns="http://www.w3.org/2000/svg">
         <circle cx="7" cy="7.23145" r="6.5" stroke="currentColor"/>
@@ -429,6 +478,14 @@ const icons: { [key: string]: string } = {
         <path fill="currentColor" fill-rule="evenodd" clip-rule="evenodd" d="M0.371094 11.1288C0.371094 10.9239 0.537182 10.7578 0.742062 10.7578L10.3872 10.7578C10.5921 10.7578 10.7582 10.9239 10.7582 11.1288C10.7582 11.3337 10.5921 11.4997 10.3872 11.4997L0.742061 11.4997C0.537182 11.4997 0.371094 11.3337 0.371094 11.1288Z" />
         </svg>
         `,
+
+	actionmenu: `
+        <svg viewBox="0 0 24 24">
+        <circle cx="12" cy="5" r="1" />
+        <circle cx="12" cy="12" r="1" />
+        <circle cx="12" cy="19" r="1" />
+        </svg>
+    `,
 	lock: `<svg width="17" height="23" viewBox="0 0 17 23" fill="none" xmlns="http://www.w3.org/2000/svg">
         <rect y="7.51758" width="16.2963" height="15.4815" rx="1" fill="#001242"/>
         <circle cx="8.14916" cy="14.0378" r="1.62963" fill="white"/>
@@ -437,6 +494,14 @@ const icons: { [key: string]: string } = {
         </svg>`,
 	slash: `<svg class="h-10 w-10 text-gray-500"  viewBox="0 0 24 24"  fill="none"  stroke="currentColor"  stroke-width="2"  stroke-linecap="round"  stroke-linejoin="round">  <circle cx="12" cy="12" r="10" />  <line x1="4.93" y1="4.93" x2="19.07" y2="19.07" /></svg>`,
 	help: `<svg class="h-10 w-10 text-gray-500"  width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">  <path stroke="none" d="M0 0h24v24H0z"/>  <circle cx="12" cy="12" r="9" />  <line x1="12" y1="17" x2="12" y2="17.01" />  <path d="M12 13.5a1.5 1.5 0 0 1 1 -1.5a2.6 2.6 0 1 0 -3 -4" /></svg>`,
+	announcement: `<svg width="23" height="23" viewBox="0 0 23 23" fill="none" stroke="currentColor" stroke-width="0.3"  xmlns="http://www.w3.org/2000/svg">
+        <path d="M20.0416 0.800781H2.76156C1.57356 0.800781 0.612362 1.77278 0.612362 2.96078L0.601562 22.4008L4.92156 18.0808H20.0416C21.2296 18.0808 22.2016 17.1088 22.2016 15.9208V2.96078C22.2016 1.77278 21.2296 0.800781 20.0416 0.800781ZM12.4816 10.5208H10.3216V4.04078H12.4816V10.5208ZM12.4816 14.8408H10.3216V12.6808H12.4816V14.8408Z" fill="white"/>
+        </svg>`,
+	power_level: `<svg width="9" height="11" viewBox="0 0 9 9" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <circle cx="4.5" cy="2.5" r="2.5" fill="white"/>
+        <path d="M0 7.5C0 6.11929 1.11929 5 2.5 5H6.5C7.88071 5 9 6.11929 9 7.5V10H0V7.5Z" fill="white"/>
+        </svg>
+        `,
 };
 
 export { icons, iconSizes as sizes };

@@ -67,7 +67,9 @@
 			<p>{{ $t('others.searching') }}</p>
 		</template>
 		<template v-else>
-			<p v-if="value !== ''" class="p-2">{{ $t('others.search_nothing_found') }}</p>
+			<p v-if="value !== ''" class="p-2">
+				{{ $t('others.search_nothing_found') }}
+			</p>
 		</template>
 	</div>
 </template>

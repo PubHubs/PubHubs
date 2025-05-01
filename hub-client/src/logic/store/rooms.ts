@@ -13,6 +13,7 @@ import { useUser } from './user';
 import { useSettings } from './settings';
 import { PubHubsMgType } from '@/logic/core/events';
 import { SecuredRoomAttributeResult } from '@/logic/foundation/statusTypes';
+import { TMessageEvent } from '@/model/events/TMessageEvent';
 
 // Matrix Endpoint for messages in a room.
 interface RoomMessages {
@@ -59,7 +60,7 @@ const useRooms = defineStore('rooms', {
 	state: () => {
 		return {
 			currentRoomId: '' as string,
-			roomsLoaded: false as boolean,
+			publicRoomsLoaded: false as boolean,
 			rooms: {} as { [index: string]: Room },
 			roomsSeen: {} as { [index: string]: number },
 			publicRooms: [] as Array<TPublicRoom>,
@@ -73,9 +74,20 @@ const useRooms = defineStore('rooms', {
 	},
 
 	getters: {
+		/**
+		 *  Returns roomsLoaded: all rooms are loaded AND all rooms have a name that is different from the roomId.
+		 *  Rooms can be added with the Id as name (the initial value) and only when syncing these rooms get their calculated name,
+		 *  so we check for that
+		 */
+		roomsLoaded(state): boolean {
+			const values = Object.values(state.rooms);
+			return this.publicRoomsLoaded && !values.some((room) => room.roomId === room.name);
+		},
+
 		roomsArray(state): Array<Room> {
 			const values = Object.values(state.rooms);
-			const rooms = values.filter((item) => typeof item?.roomId !== 'undefined');
+			// check if the room has an Id and if the Id is different from the name (because then the Id would be displayed and the room unreachable)
+			const rooms = values.filter((room) => typeof (room.roomId !== 'undefined') && room.roomId !== room.name);
 			return rooms;
 		},
 
@@ -208,18 +220,41 @@ const useRooms = defineStore('rooms', {
 			}
 		},
 
+		// add one room to the store
+		updateRoomsWithMatrixRoom(matrixRoom: MatrixRoom, roomName: string | undefined) {
+			if (!this.rooms[matrixRoom.roomId]) {
+				this.rooms[matrixRoom.roomId] = new Room(matrixRoom);
+				if (roomName) {
+					this.rooms[matrixRoom.roomId].name = roomName;
+				}
+			}
+		},
+
+		// replace the current rooms in the store with the new ones
 		updateRoomsWithMatrixRooms(matrixRoomArray: MatrixRoom[]) {
-			const tempRooms = {} as { [index: string]: Room }; // reset rooms
+			// Remove every room that is in this.rooms, but not in matrixRoomArray
+			const matrixRoomIds = new Set(matrixRoomArray.map((room) => room.roomId));
+			const filteredRooms: { [index: string]: Room } = {};
+			for (const key in this.rooms) {
+				const room = this.rooms[key];
+				if (matrixRoomIds.has(room.roomId)) {
+					filteredRooms[key] = room;
+				}
+			}
+			this.rooms = filteredRooms;
+
+			// then add the new rooms from matrixRoomArray
 			matrixRoomArray.forEach((matrixRoom) => {
 				// Check if room already exists else add room
-				if (this.rooms[matrixRoom.roomId]) {
-					tempRooms[matrixRoom.roomId] = this.rooms[matrixRoom.roomId];
-				} else {
-					tempRooms[matrixRoom.roomId] = new Room(matrixRoom);
+				if (!this.rooms[matrixRoom.roomId]) {
+					this.rooms[matrixRoom.roomId] = new Room(matrixRoom);
 				}
 			});
-			this.rooms = tempRooms;
-			this.roomsLoaded = true;
+			this.publicRoomsLoaded = true;
+		},
+
+		setPublicRoomsLoaded(loading: boolean) {
+			this.publicRoomsLoaded = loading;
 		},
 
 		sendUnreadMessageCounter() {
@@ -267,7 +302,13 @@ const useRooms = defineStore('rooms', {
 				this.roomNotices[roomId][creatingAdminUser!] = ['rooms.admin_badge'];
 			}
 			const limit = 100000;
-			const encodedObject = encodeURIComponent(JSON.stringify({ types: [EventType.RoomMessage], senders: [hub_notice], limit: limit }));
+			const encodedObject = encodeURIComponent(
+				JSON.stringify({
+					types: [EventType.RoomMessage],
+					senders: [hub_notice],
+					limit: limit,
+				}),
+			);
 			// The limit is in two places, it used to work in just the filter, but not anymore. It's also an option in the query string.
 			const response = await api_matrix.apiGET<RoomMessages>(api_matrix.apiURLS.rooms + roomId + `/messages?limit=${limit}&filter=` + encodedObject);
 			for (const message of response.chunk) {
@@ -410,8 +451,12 @@ const useRooms = defineStore('rooms', {
 				});
 		},
 
-		yiviSignMessage(message: string, attributes: string[], roomId: string, accessToken: string, onFinish: (result: YiviSigningSessionResult) => unknown) {
+		yiviSignMessage(message: string, attributes: string[], roomId: string, threadRoot: TMessageEvent | undefined, onFinish: (result: YiviSigningSessionResult, threadRoot: TMessageEvent | undefined) => unknown) {
 			const settings = useSettings();
+			const pubhubsStore = usePubHubs();
+
+			const accessToken = pubhubsStore.Auth.getAccessToken();
+			if (!accessToken) throw new Error('Access token missing.');
 
 			const yivi = require('@privacybydesign/yivi-frontend');
 			// @ts-ignore
@@ -448,7 +493,7 @@ const useRooms = defineStore('rooms', {
 			yiviWeb
 				.start()
 				.then((result: YiviSigningSessionResult) => {
-					onFinish(result);
+					onFinish(result, threadRoot);
 				})
 				.catch((error: any) => {
 					console.info(`There is an Error: ${error}`);

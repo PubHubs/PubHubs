@@ -1,3 +1,4 @@
+//! Storage backend for pubhubs servers
 use crate::servers::config::ObjectStoreConfig;
 
 use anyhow::Context as _;

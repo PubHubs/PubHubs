@@ -2,10 +2,13 @@
 *
 # except:  * files for the hub ...
 !pubhubs_hub/start.sh
+!pubhubs_hub/start_synaps.sh
 !pubhubs_hub/matrix_test_config/templates/
 !pubhubs_hub/modules/**/*.py
 !pubhubs_hub/assets
+!pubhubs_hub/update_config
 # * pubhubs rust sources, needed to make libpubhubs ...
 !pubhubs/src/**/*.rs
+!pubhubs/tests/**/*.rs
 !pubhubs/Cargo.toml
 !pubhubs/Cargo.lock

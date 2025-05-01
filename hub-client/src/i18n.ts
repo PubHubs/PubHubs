@@ -30,6 +30,12 @@ const i18nOptions: I18nOptions = {
 			shorter: {
 				hour: 'numeric',
 				minute: 'numeric',
+				hour12: false,
+			},
+			shorter12Hour: {
+				hour: 'numeric',
+				minute: 'numeric',
+				hour12: true,
 			},
 			short: {
 				year: 'numeric',
@@ -49,6 +55,12 @@ const i18nOptions: I18nOptions = {
 			shorter: {
 				hour: 'numeric',
 				minute: 'numeric',
+				hour12: false,
+			},
+			shorter12Hour: {
+				hour: 'numeric',
+				minute: 'numeric',
+				hour12: true,
 			},
 			short: {
 				year: 'numeric',

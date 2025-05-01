@@ -26,4 +26,8 @@ static/assets/client
 global-client/
 hub-client/
 
+# old configuration file:
 config.yaml
+
+# new configuration file:
+pubhubs.toml

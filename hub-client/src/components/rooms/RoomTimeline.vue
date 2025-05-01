@@ -19,13 +19,15 @@
 							class="room-event"
 							@in-reply-to-click="onInReplyToClick"
 							@delete-message="confirmDeleteMessage(item.event, item.isThreadRoot)"
+							@edit-poll="onEditPoll"
+							@edit-scheduler="onEditScheduler"
 						/>
 						<UnreadMarker v-if="settings.isFeatureEnabled(FeatureFlag.unreadMarkers)" :currentEventId="item.event.event_id ?? ''" :currentUserId="user.user.userId" />
 					</div>
 				</div>
 			</template>
 		</div>
-		<MessageInput class="z-10" v-if="room" :room="room" :in-thread="false"></MessageInput>
+		<MessageInput class="z-10" v-if="room" :room="room" :in-thread="false" :editing-poll="editingPoll" :editing-scheduler="editingScheduler"></MessageInput>
 	</div>
 	<DeleteMessageDialog v-if="showConfirmDelMsgDialog" :event="eventToBeDeleted" :room="rooms.currentRoom" @close="showConfirmDelMsgDialog = false" @yes="deleteMessage" />
 	<InRoomNotifyMarker v-if="settings.isFeatureEnabled(FeatureFlag.unreadMarkers)" />
@@ -53,6 +55,8 @@
 	import { RoomEmit } from '@/model/constants';
 	import { FeatureFlag, useSettings } from '@/logic/store/settings';
 	import { useUser } from '@/logic/store/user';
+	import { PubHubsInvisibleMsgType } from '@/logic/core/events';
+	import { Poll, Scheduler } from '@/model/events/voting/VotingTypes';
 
 	const settings = useSettings();
 	const rooms = useRooms();
@@ -63,6 +67,8 @@
 	const isLoadingNewEvents = ref(false);
 	const showConfirmDelMsgDialog = ref(false);
 	const eventToBeDeleted = ref<TMessageEvent>();
+	const editingPoll = ref<{ poll: Poll; eventId: string } | undefined>(undefined);
+	const editingScheduler = ref<{ scheduler: Scheduler; eventId: string } | undefined>(undefined);
 
 	const DELAY_POPUP_VIEW_ON_SCREEN = 4000; // 4 seconds
 	const DELAY_RECEIPT_MESSAGE = 4000; // 4 seconds
@@ -157,7 +163,9 @@
 	}
 
 	async function setupRoomTimeline() {
-		LOGGER.log(SMI.ROOM_TIMELINE, `setupRoomTimeline...`, { roomId: props.room.roomId });
+		LOGGER.log(SMI.ROOM_TIMELINE, `setupRoomTimeline...`, {
+			roomId: props.room.roomId,
+		});
 
 		initialLoading = true;
 		await props.room.loadInitialEvents();
@@ -251,7 +259,17 @@
 		if (!rooms.currentRoom) return;
 		if (props.room.isNewestMessageLoaded()) return;
 
-		LOGGER.log(SMI.ROOM_TIMELINE, `onTimelineChange`, { newTimelineLength, oldTimelineLength });
+		LOGGER.log(SMI.ROOM_TIMELINE_TRACE, `onTimelineChange`, {
+			newTimelineLength,
+			oldTimelineLength,
+		});
+
+		const lastEventMsgType = props.room.getLiveTimelineEvents().at(-1)?.getContent().msgtype;
+		if (typeof lastEventMsgType === 'string') {
+			if (lastEventMsgType in PubHubsInvisibleMsgType) {
+				return;
+			}
+		}
 
 		if (!initialLoading) {
 			let newestEventId = props.room.getLiveTimelineNewestEvent()?.event_id;
@@ -329,6 +347,14 @@
 		scrollToEvent(inReplyToId, { position: 'center', select: 'Highlight' });
 	}
 
+	function onEditPoll(poll: Poll, eventId: string) {
+		editingPoll.value = { poll, eventId };
+	}
+
+	function onEditScheduler(scheduler: Scheduler, eventId: string) {
+		editingScheduler.value = { scheduler, eventId };
+	}
+
 	function confirmDeleteMessage(event: TMessageEvent, isThreadRoot: boolean) {
 		showConfirmDelMsgDialog.value = true;
 		eventToBeDeleted.value = event;
@@ -378,7 +404,13 @@
 
 	//#endregion
 
-	async function scrollToEvent(eventId: string, options: { position: 'start' | 'center' | 'end'; select?: 'Highlight' | 'Select' } = { position: 'start' }) {
+	async function scrollToEvent(
+		eventId: string,
+		options: {
+			position: 'start' | 'center' | 'end';
+			select?: 'Highlight' | 'Select';
+		} = { position: 'start' },
+	) {
 		LOGGER.log(SMI.ROOM_TIMELINE, `scroll to event: ${eventId}`, { eventId });
 
 		if (!elRoomTimeline.value) throw new Error('elRoomTimeline not defined, RoomTimeline not mounted?');

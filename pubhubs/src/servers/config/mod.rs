@@ -1,3 +1,4 @@
+//! Configuration (files)
 pub mod core;
 pub use core::*;
 

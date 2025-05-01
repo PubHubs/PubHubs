@@ -755,7 +755,7 @@ fn get_first_attribute_raw_value(attribute_name: &str, result: &SessionResult) -
                 .iter()
                 .flat_map(|x| x.iter())
                 .filter(|x| x.id == attribute_name)
-                .last();
+                .next_back();
 
             match attribute {
                 Some(a) => Ok(a.raw_value.clone()),

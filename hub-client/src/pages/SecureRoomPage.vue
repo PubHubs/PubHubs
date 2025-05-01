@@ -13,10 +13,16 @@
 
 		<div class="mx-auto flex max-w-screen-sm flex-col gap-4 pt-10">
 			<div v-if="rooms.securedRoom.name" class="flex flex-col gap-4">
-				<p class="line-clamp-4 text-2xl font-semibold" :title="rooms.securedRoom.name">{{ $t('rooms.secure_room_message_heading') + ' `' + rooms.securedRoom.name + '`' }}</p>
+				<p class="line-clamp-4 text-2xl font-semibold" :title="rooms.securedRoom.name">
+					{{ $t('rooms.secure_room_message_heading') + ' `' + rooms.securedRoom.name + '`' }}
+				</p>
 				<p class="text-lg">{{ $t('rooms.secure_room_message') }}</p>
-				<p v-if="rooms.securedRoom.user_txt" class="text-lg">{{ $t('rooms.secure_room_enter_info') }}</p>
-				<p class="line-clamp-6 text-lg font-semibold" :title="rooms.securedRoom.user_txt">{{ rooms.securedRoom.user_txt }}</p>
+				<p v-if="rooms.securedRoom.user_txt" class="text-lg">
+					{{ $t('rooms.secure_room_enter_info') }}
+				</p>
+				<p class="line-clamp-6 text-lg font-semibold" :title="rooms.securedRoom.user_txt">
+					{{ rooms.securedRoom.user_txt }}
+				</p>
 			</div>
 			<div id="yivi-web-form">
 				<!-- Content for the right column -->

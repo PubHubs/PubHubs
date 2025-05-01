@@ -1,6 +1,6 @@
-/// A [Bomb] instance will panic if it is not [Bomb::diffuse]d.
+/// A [`Bomb`] instance will panic if it is not [`Bomb::diffuse`]d.
 ///
-/// Add a [Bomb] to your type to make sure that something happens before
+/// Add a [`Bomb`] to your type to make sure that something happens before
 /// the type (and thus bomb) is dropped.
 pub struct Bomb {
     payload: Option<Box<dyn FnOnce() -> String>>,

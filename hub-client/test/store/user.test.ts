@@ -19,7 +19,9 @@ describe('User Store', () => {
 	beforeEach(() => {
 		setActivePinia(createPinia());
 		user = useUser();
-		user.setClient({ getUser: (userId) => (userId === 'test' ? { userId: userId } : undefined) });
+		user.setClient({
+			getUser: (userId) => (userId === 'test' ? { userId: userId } : undefined),
+		});
 	});
 
 	describe('user', () => {

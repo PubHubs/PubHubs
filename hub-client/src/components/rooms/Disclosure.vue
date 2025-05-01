@@ -3,7 +3,9 @@
 		<p>The steward is asking you to disclose some information.</p>
 		<p>Please use Yivi to reveal the following identity attribute(s).</p>
 		<ul>
-			<li v-for="(item, index) in rooms.askDisclosureMessage!.attributes" :key="index">{{ item.yivi }}</li>
+			<li v-for="(item, index) in rooms.askDisclosureMessage!.attributes" :key="index">
+				{{ item.yivi }}
+			</li>
 		</ul>
 		<p>To proceed, click 'Continue' and follow the Yivi instructions.</p>
 		<p>TODO: Alternatively, please discuss this with the steward...</p>

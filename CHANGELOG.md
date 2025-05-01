@@ -1,5 +1,3 @@
-## Changes to main, not yet committed to stable
-
 _Please add a brief description of any changes and any migrations to be performed here. And use these prefixes before the description:_
 
  * _[BUG] - If the change is a bugfix (from own branch)_
@@ -11,18 +9,30 @@ _Please add a brief description of any changes and any migrations to be performe
  * _[BREAKING] - If it is a breaking change that needs changes done on the deployment/installation/settings_
  * _(Use the [MIGRATE] and [BREAKING] prefixes together with another one if that makes more sense.)_
 
-Use the [MIGRATE] and [BREAKING] prefixes together with another one if that makes more sense.
+## 01 May 2025 - v2.0.1
+
+- [NEW] New update_config script now checks the configuration in homeserver.yaml and also adds missing configuration , it supersedes the configchecker
+It will generate a checked and updated yaml file as homeserver.live.yaml as default and will use this new yaml file to set the configuration of the hub
+- [TYPO] When no rooms are found on the discover rooms page, the text "no rooms were found" is shown instead of "no hubs were found".
+- [NEW] Local development: changed the way `pubhubs` autodetect your IP address, making development behind a NAT possible.
+- [BUG] Thread stayed open on changing room
+- [BUG] In thread-view the first message could be deleted, forcing the whole thread to be deleted
+- [BUG] The roomslist shows loading spinner again and shows rooms while loading
+- [BUG] Signed messages are enabled again, making it possible to sign messages using an e-mailaddress.
+- [BUG] Files, signed messages and the list of users that shows up when mentioning a user have a background color again.
+- [BUG] The icon to change the avatar and nickname in a hub is changed back from a cog wheel to a pencil.
+- [NEW] Announcements can be made by steward (and room administrator) in rooms.
+- [NEW] For the hub a banner, description, summary and contact details can now be set in the hub settings. 
+The summary and contact details are displayed on the discover hub page.
+The description and contact details are displayed in the hub homepage.
+- [NEW] Datepicker & Pollingwidget. Add a datepicker or poll in your room. Let members choose a date or option.  
+_NOTE TO MERGERS:_ The feature flag for voting widgets on stable is currently disabled. If everything works as expected, it needs to be enabled during the merge.
 
 ## 03 April 2025 - v2.0.0
 
 - [BUG] Signed messages are temporarily disabled since they were not working as intended
 - [NEW] Desktop notifications for new messages are now also sent for pinned hubs when the user has the hub not currently open.
 - [NEW] Update and implement Tailwind colors and add minor UX/UI improvements
-- [BREAKING] To allow a hub administrator to publish new rooms after [updating Synapse from v1.125.0 to v1.126.0](https://github.com/element-hq/synapse/blob/develop/docs/upgrade.md#room-list-publication-rules-change), the following should be added to the homeserver.yaml file of all running hubs:
-  ```yaml
-  room_list_publication_rules:
-    - "action": "allow"
-  ```
 - [BREAKING] Update feature flag for authenticatedMedia to `true` in hub-client/src/logic/store/settings.ts.
 - [BUG] Loading of rooms shows spinner again
 - [BUG] Show Hub Settings only to hub admin

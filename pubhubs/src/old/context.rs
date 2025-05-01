@@ -26,7 +26,7 @@ use crate::{
 
 pub struct Main {
     pub url: Urls,
-    pub bind_to: (String, u16),
+    pub bind_to: (Vec<String>, u16),
     pub connection_check_nonce: String,
 
     pub admins: HashSet<String>,
@@ -140,8 +140,7 @@ impl Main {
 
         let url: Urls = config
             .determine_urls()
-            .await
-            .context("determining URL(s) for PubHubs Central failed")?;
+            .context("determining URL for PubHubs Central failed")?;
 
         let pep = crate::pseudonyms::PepContext::from_config(config.pep)?;
 

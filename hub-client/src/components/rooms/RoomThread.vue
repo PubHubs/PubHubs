@@ -12,7 +12,7 @@
 				<RoomEvent :room="room" :event="props.room.currentThread?.rootEvent?.event" :viewFromThread="true" class="room-event" @in-reply-to-click="onInReplyToClick" @delete-message="confirmDeleteMessage"> </RoomEvent>
 			</div>
 			<div v-for="item in filteredEvents" :key="item.event.event_id">
-				<div class="mx-3 overflow-hidden rounded-md" ref="elRoomEvent" :id="item.event.event_id">
+				<div class="mx-3 rounded-md" ref="elRoomEvent" :id="item.event.event_id">
 					<RoomEvent :room="room" :event="item.event" :viewFromThread="true" class="room-event" @in-reply-to-click="onInReplyToClick" @delete-message="confirmDeleteMessage"></RoomEvent>
 				</div>
 			</div>
@@ -99,6 +99,7 @@
 	});
 
 	onUnmounted(() => {
+		closeThread();
 		props.room.stopListeningToThreadNewReply(newReplyListener.bind(this));
 		props.room.stopListeningToThreadUpdate(updateReplyListener.bind(this));
 	});

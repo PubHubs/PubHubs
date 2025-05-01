@@ -2,7 +2,7 @@ use actix_web::http::header::{CONTENT_TYPE, LOCATION};
 use actix_web::{App, HttpRequest, HttpResponse, HttpResponseBuilder, HttpServer, Responder};
 
 use std::fmt::{Debug, Formatter};
-
+use std::net::ToSocketAddrs as _;
 use std::str::FromStr;
 
 use actix_web::web::{self, Data, Form, Path};
@@ -785,12 +785,22 @@ pub async fn main() -> Result<()> {
 
     let context = Data::from(context);
 
-    let bind_to = context.bind_to.clone();
+    let (ref hosts, port) = context.bind_to;
 
     let connection_check_nonce = context.connection_check_nonce.clone();
     let urls = context.url.clone();
 
-    info!("binding to {}:{}", bind_to.0, bind_to.1);
+    let mut addrs: Vec<std::net::SocketAddr> = Default::default();
+
+    for host in hosts {
+        for addr in (host.as_str(), port)
+            .to_socket_addrs()
+            .with_context(|| format!("failed to resolve {host} : {port} to socket address"))?
+        {
+            addrs.push(addr);
+        }
+    }
+
     let server_fut = HttpServer::new(move || {
         let context = context.clone();
         App::new()
@@ -798,7 +808,7 @@ pub async fn main() -> Result<()> {
             .wrap_fn(metrics_middleware)
             .wrap_fn(middleware::hotfix_middleware)
     })
-    .bind(bind_to.clone())?
+    .bind(&*addrs)?
     .run();
 
     futures::try_join!(
@@ -865,7 +875,7 @@ async fn check_connection(url: &str, nonce: &str) -> Result<()> {
             for n in 0..10 {
                 match check_connection_once(url, nonce).await {
                     Ok(_) => return Ok(()),
-                    Err(e) => warn!("try nr. {} failed:  {}", n, e),
+                    Err(e) => warn!("try nr. {n} to connect to {url} failed:  {e}"),
                 };
 
                 tokio::time::sleep(tokio::time::Duration::from_millis(2_u64.pow(n) * 100)).await;
@@ -1022,7 +1032,6 @@ fn create_app(cfg: &mut web::ServiceConfig, context: Data<Main>) {
                 )
                 .service(
                     web::scope("bar")
-                        .wrap(actix_web::middleware::Logger::default().exclude("/bar/state"))
                         // get and put the state of the side bar used to switch
                         // between hubs
                         .route("/state", web::get().to(crate::bar::get_state))

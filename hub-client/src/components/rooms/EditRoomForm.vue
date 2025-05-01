@@ -9,20 +9,20 @@
 		<form @submit.prevent class="flex flex-col gap-4">
 			<FormLine>
 				<Label>{{ $t('admin.name') }}</Label>
-				<TextInput :placeholder="$t('admin.name')" v-model="editRoom.name" class="~text-label-small-min/label-small-max md:w-5/6" @changed="updateData('name', $event)" />
+				<TextInput :placeholder="$t('admin.name')" v-model="editRoom.name" class="~text-label-min/label-max md:w-5/6" @changed="updateData('name', $event)" />
 			</FormLine>
 			<FormLine>
 				<Label>{{ $t('admin.topic') }}</Label>
-				<TextInput :placeholder="$t('admin.topic')" v-model="editRoom.topic" class="~text-label-small-min/label-small-max md:w-5/6" @changed="updateData('topic', $event)" />
+				<TextInput :placeholder="$t('admin.topic')" v-model="editRoom.topic" class="~text-label-min/label-max md:w-5/6" @changed="updateData('topic', $event)" />
 			</FormLine>
 			<FormLine v-if="!secured">
 				<Label>{{ $t('admin.room_type') }}</Label>
-				<TextInput :placeholder="$t('admin.room_type_placeholder')" v-model="editRoom.room_type" :disabled="!isNewRoom" class="~text-label-small-min/label-small-max md:w-5/6" @changed="updateData('room_type', $event)" />
+				<TextInput :placeholder="$t('admin.room_type_placeholder')" v-model="editRoom.room_type" :disabled="!isNewRoom" class="~text-label-min/label-max md:w-5/6" @changed="updateData('room_type', $event)" />
 			</FormLine>
 			<div v-if="secured">
 				<FormLine class="mb-2">
 					<Label>{{ $t('admin.secured_description') }}</Label>
-					<TextInput :placeholder="$t('admin.secured_description')" v-model="editRoom.user_txt" class="~text-label-small-min/label-small-max md:w-5/6" />
+					<TextInput :placeholder="$t('admin.secured_description')" v-model="editRoom.user_txt" class="~text-label-min/label-max md:w-5/6" />
 				</FormLine>
 				<FormLine>
 					<Label>{{ $t('admin.secured_yivi_attributes') }}</Label>
@@ -121,9 +121,27 @@
 	const editRoom = ref({} as Room | TSecuredRoom);
 
 	const securedRoomTemplate = ref([
-		{ key: 'yivi', label: t('admin.secured_attribute'), type: 'autocomplete', options: [], default: '', disabled: !isNewRoom.value },
-		{ key: 'values', label: t('admin.secured_values'), type: 'textarea', default: '', maxLength: 3000 },
-		{ key: 'profile', label: t('admin.secured_profile'), type: 'checkbox', default: false },
+		{
+			key: 'yivi',
+			label: t('admin.secured_attribute'),
+			type: 'autocomplete',
+			options: [],
+			default: '',
+			disabled: !isNewRoom.value,
+		},
+		{
+			key: 'values',
+			label: t('admin.secured_values'),
+			type: 'textarea',
+			default: '',
+			maxLength: 3000,
+		},
+		{
+			key: 'profile',
+			label: t('admin.secured_profile'),
+			type: 'checkbox',
+			default: false,
+		},
 	] as Array<FormObjectInputTemplate>);
 
 	//#region mount
@@ -175,7 +193,12 @@
 		setData({
 			name: {
 				value: editRoom.value.name as string,
-				validation: { required: true, allow_empty_number: false, allow_empty_object: false, allow_empty_text: false },
+				validation: {
+					required: true,
+					allow_empty_number: false,
+					allow_empty_object: false,
+					allow_empty_text: false,
+				},
 			},
 			topic: {
 				value: editRoom.value.topic as string,

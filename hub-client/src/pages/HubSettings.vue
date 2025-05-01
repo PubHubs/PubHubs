@@ -11,132 +11,300 @@
 		</template>
 
 		<form @submit.prevent class="flex h-full max-w-screen-2xl flex-col px-4 py-4 md:px-16 md:py-10">
-			<div class="mb-4 flex-col">
-				<H3 class="pb-2 text-lg font-semibold">{{ $t('hub_settings.icon_heading') }}</H3>
-				<p>{{ $t('hub_settings.icon_description') }}</p>
+			<!-- Description Section -->
+			<div class="mb-8">
+				<div class="mb-4 flex-col">
+					<H3 class="pb-2 text-lg font-semibold">{{ $t('hub_settings.description_heading') }}</H3>
+					<P>{{ $t('hub_settings.description_description') }}</P>
+				</div>
+				<!-- Textarea for Editing Description -->
+				<TextArea
+					v-model="hubDescription"
+					class="border-hub-border max-h-64 w-full max-w-[600px] rounded-md border p-3 font-body text-2xl dark:text-black"
+					rows="4"
+					:placeholder="t('hub_settings.description')"
+					@input="onHubSettingsChange"
+				></TextArea>
 			</div>
 
-			<div class="mb-2 flex h-12 items-center">
-				<input ref="elFileInput" type="file" name="logo" class="hidden" @change="onFileChange" />
-
-				<div class="mr-2 h-12 w-12 rounded-xl border p-2">
-					<HubIcon :icon-url="iconUrl" :icon-url-dark="iconUrl" />
+			<!-- Summary Section -->
+			<div class="mb-8">
+				<div class="mb-4 flex-col">
+					<H3 class="pb-2 text-lg font-semibold">{{ $t('hub_settings.summary_heading') }}</H3>
+					<P>{{ $t('hub_settings.summary_description') }}</P>
 				</div>
-
-				<div>
-					<Icon @click="elFileInput?.click()" type="edit" size="md" :as-button="true" />
-					<Icon @click="removeIcon()" type="bin" size="md" :as-button="true" />
-				</div>
+				<!-- Textarea for Editing Summary -->
+				<TextArea
+					v-model="hubSummary"
+					class="border-hub-border max-h max-h-16 w-full max-w-[600px] rounded-md border p-3 font-body text-2xl dark:text-black"
+					rows="4"
+					:placeholder="t('hub_settings.summary')"
+					@input="onHubSettingsChange"
+				></TextArea>
 			</div>
-			<p v-if="iconErrorText" class="text-red">{{ iconErrorText }}</p>
 
-			<div class="mt-auto flex items-center">
-				<p v-if="settingsSaved" class="text-hub-text-variant">{{ $t('hub_settings.settings_saved') }}</p>
-				<Button @click="saveChanges()" :disabled="!settingsChanged" colo>{{ $t('hub_settings.save') }}</Button>
+			<!-- Contact Section -->
+			<div class="mb-8">
+				<div class="mb-4 flex-col">
+					<H3 class="pb-2 text-lg font-semibold">{{ $t('hub_settings.contact_heading') }}</H3>
+					<P>{{ $t('hub_settings.contact_description') }}</P>
+				</div>
+				<!-- Textarea for Editing Contact -->
+				<TextArea
+					v-model="hubContact"
+					class="border-hub-border max-h-16 w-full max-w-[600px] rounded-md border p-3 font-body text-2xl dark:text-black"
+					rows="4"
+					:placeholder="t('hub_settings.contact')"
+					@input="onHubSettingsChange"
+				></TextArea>
+			</div>
+
+			<!-- Icon Section -->
+			<MediaUploadSection
+				:title="$t('hub_settings.icon_heading')"
+				:description="$t('hub_settings.icon_description')"
+				:media-url="iconUrl"
+				:accept="'image/*, .svg'"
+				:error-text="iconErrorText"
+				@file-change="onFileChange('icon', $event)"
+				@remove="removeMedia('icon')"
+			>
+				<template #preview>
+					<HubIcon :icon-url="iconUrl" :icon-url-dark="iconUrl" class="mr-2 max-w-[70px] rounded-xl border p-2" />
+				</template>
+			</MediaUploadSection>
+
+			<!-- Banner Section -->
+			<MediaUploadSection
+				:title="$t('hub_settings.banner_heading')"
+				:description="$t('hub_settings.banner_description')"
+				:media-url="bannerUrl"
+				:accept="'image/*, .svg'"
+				:error-text="bannerErrorText"
+				@file-change="onFileChange('banner', $event)"
+				@remove="removeMedia('banner')"
+			>
+				<template #preview>
+					<HubBanner :banner-url="bannerUrl" class="mr-2 max-w-[600px] rounded-xl border p-2" />
+				</template>
+			</MediaUploadSection>
+
+			<div class="fixed bottom-5 right-10 ml-auto flex items-center">
+				<P v-if="settingsSaved" class="text-hub-text-variant">{{ $t('hub_settings.settings_saved') }}</P>
+				<Button @click="saveChanges()" :disabled="!settingsChanged">{{ $t('hub_settings.save') }}</Button>
 			</div>
 		</form>
 	</HeaderFooter>
 </template>
 
 <script setup lang="ts">
-	import Icon from '@/components/elements/Icon.vue';
 	import HubIcon from '@/components/ui/HubIcon.vue';
+	import HubBanner from '@/components/ui/HubBanner.vue';
 	import HeaderFooter from '@/components/ui/HeaderFooter.vue';
+	import MediaUploadSection from '@/components/ui/MediaUploadSection.vue';
 	import { SMI } from '@/logic/foundation/StatusMessage';
 	import { LOGGER } from '@/logic/foundation/Logger';
-	import { ALLOWED_HUB_ICON_TYPES, MAX_HUB_ICON_SIZE, useHubSettings } from '@/logic/store/hub-settings';
-	import { computed, ref, useTemplateRef } from 'vue';
+	import { ALLOWED_HUB_ICON_TYPES, MAX_HUB_ICON_SIZE, useHubSettings, HubSettingsJSONParser } from '@/logic/store/hub-settings';
+	import { computed, ref, onBeforeMount } from 'vue';
 	import { useI18n } from 'vue-i18n';
 	import H3 from '@/components/elements/H3.vue';
+	import P from '@/components/elements/P.vue';
 	import Button from '@/components/elements/Button.vue';
 	import { useSettings } from '@/logic/store/settings';
+	import TextArea from '@/components/forms/TextArea.vue';
 
 	const hubSettings = useHubSettings();
-	const i18n = useI18n();
-	const elFileInput = useTemplateRef('elFileInput');
-	const newIconFile = ref<File | undefined | null>(undefined);
-	const settingsChanged = ref(false);
-	const settingsSaved = ref(false);
-	const iconErrorText = ref<string | undefined>(undefined);
+	const { t } = useI18n();
 	const logger = LOGGER;
+
+	// Media files
+	const mediaFiles = ref<Record<string, File | null | undefined>>({
+		icon: undefined,
+		banner: undefined,
+	});
+
+	// Error messages
+	const iconErrorText = ref<string | undefined>(undefined);
+	const bannerErrorText = ref<string | undefined>(undefined);
+
 	const settings = useSettings();
 	const isMobile = computed(() => settings.isMobileState);
 
-	const iconUrl = computed(computeIconUrl);
-	const selectedIconUrl = ref<string | undefined | null>(undefined);
+	// Settings state
+	const settingsChanged = ref(false);
+	const settingsSaved = ref(false);
 
-	function computeIconUrl() {
-		if (selectedIconUrl.value === undefined) {
-			return hubSettings.iconUrlActiveTheme;
-		} else if (selectedIconUrl.value === null) {
-			return hubSettings.iconDefaultUrlActiveTheme;
+	// Selected URLs
+	const selectedUrls = ref<Record<string, string | null | undefined>>({
+		icon: undefined,
+		banner: undefined,
+	});
+
+	// Hub settings
+	const hubDescription = ref<string>('');
+	const originalDescription = ref<string>('');
+
+	const hubSummary = ref<string>('');
+	const originalSummary = ref<string>('');
+
+	const hubContact = ref<string>('');
+	const originalContact = ref<string>('');
+
+	onBeforeMount(() => {
+		displayHubJSON();
+	});
+
+	// Computed URLs
+	const iconUrl = computed(() => computeMediaUrl('icon'));
+	const bannerUrl = computed(() => computeMediaUrl('banner'));
+
+	function computeMediaUrl(mediaType: 'icon' | 'banner') {
+		const selectedUrl = selectedUrls.value[mediaType];
+
+		if (selectedUrl === undefined) {
+			return mediaType === 'icon' ? hubSettings.iconUrlActiveTheme : hubSettings.bannerUrl;
+		} else if (selectedUrl === null) {
+			return mediaType === 'icon' ? hubSettings.iconDefaultUrlActiveTheme : hubSettings.bannerDefaultUrl;
 		} else {
-			return selectedIconUrl.value;
+			return selectedUrl;
 		}
 	}
 
-	function onFileChange() {
-		const file = elFileInput.value?.files?.[0];
+	function onFileChange(mediaType: 'icon' | 'banner', file: File) {
 		if (!file) return;
 
 		if (!ALLOWED_HUB_ICON_TYPES.includes(file.type)) {
 			logger.info(SMI.HUB_SETTINGS, 'User tried to upload file with type that is not allowed.', { type: file.type });
-			showError('hub_settings.file_format_not_allowed');
+			showError(mediaType, 'hub_settings.file_format_not_allowed');
 			return;
 		}
 
 		if (file.size > MAX_HUB_ICON_SIZE) {
 			logger.info(SMI.HUB_SETTINGS, 'User tried to upload file that is too large.', { size: file.size });
-			showError('hub_settings.file_too_large');
+			showError(mediaType, 'hub_settings.file_too_large');
 			return;
 		}
 
-		iconErrorText.value = undefined;
-		newIconFile.value = file;
-		selectedIconUrl.value = URL.createObjectURL(file);
+		// Clear any previous error
+		if (mediaType === 'icon') {
+			iconErrorText.value = undefined;
+		} else {
+			bannerErrorText.value = undefined;
+		}
 
+		// Store the file and create object URL
+		mediaFiles.value[mediaType] = file;
+		selectedUrls.value[mediaType] = URL.createObjectURL(file);
+		settingsChanged.value = true;
+	}
+
+	function onHubSettingsChange() {
+		// Mark settings as changed if hubsettings are different from original
+		if (hubDescription.value !== originalDescription.value || hubSummary.value !== originalSummary.value || hubContact.value !== originalContact.value) {
+			settingsChanged.value = true;
+		} else if (!Object.values(selectedUrls.value).some((url) => url !== undefined) && !Object.values(mediaFiles.value).some((file) => file !== undefined)) {
+			// If nothing else has changed and hubsettings reverted to original
+			settingsChanged.value = false;
+		}
+	}
+
+	function removeMedia(mediaType: 'icon' | 'banner') {
+		selectedUrls.value[mediaType] = null;
+		mediaFiles.value[mediaType] = null;
 		settingsChanged.value = true;
 	}
 
 	async function saveChanges() {
 		if (!settingsChanged.value) throw new Error('Assertion error');
 
-		settingsSaved.value = await saveIcon();
-		settingsChanged.value = !settingsSaved.value;
+		const iconSaved = await saveMedia('icon');
+		const bannerSaved = await saveMedia('banner');
+		const hubSettingsSaved = await saveHubSettings();
+
+		settingsSaved.value = iconSaved && bannerSaved && hubSettingsSaved;
+
+		if (settingsSaved.value) {
+			settingsChanged.value = false;
+			originalDescription.value = hubDescription.value;
+			originalSummary.value = hubSummary.value;
+			originalContact.value = hubContact.value;
+		}
 	}
 
-	async function saveIcon(): Promise<boolean> {
-		if (selectedIconUrl.value === null) {
+	async function saveHubSettings(): Promise<boolean> {
+		// Skip if hubsettings have not changed
+		if (hubDescription.value === originalDescription.value && hubSummary.value === originalSummary.value && hubContact.value === originalContact.value) {
+			return true;
+		}
+
+		try {
+			await hubSettings.setHubJSON(new HubSettingsJSONParser(hubDescription.value, hubSummary.value, hubContact.value));
+			logger.info(SMI.HUB_SETTINGS, 'Hub settings updated');
+			return true;
+		} catch (er) {
+			logger.error(SMI.HUB_SETTINGS, 'Failed to save hub description', { error: er });
+			return false;
+		}
+	}
+	async function displayHubJSON(): Promise<void> {
+		const hubSettingsJSON = await hubSettings.getHubJSON();
+
+		hubDescription.value = hubSettingsJSON.description;
+		originalDescription.value = hubDescription.value;
+		hubSummary.value = hubSettingsJSON.summary;
+		originalSummary.value = hubSummary.value;
+		hubContact.value = hubSettingsJSON.contact;
+		originalContact.value = hubContact.value;
+	}
+
+	async function saveMedia(mediaType: 'icon' | 'banner'): Promise<boolean> {
+		const selectedUrl = selectedUrls.value[mediaType];
+		const file = mediaFiles.value[mediaType];
+
+		// Skip if nothing changed for this media type
+		if (selectedUrl === undefined && !file) {
+			return true;
+		}
+
+		// Handle deletion
+		if (selectedUrl === null) {
 			try {
-				await hubSettings.deleteIcon();
+				if (mediaType === 'icon') {
+					await hubSettings.deleteIcon();
+				} else {
+					await hubSettings.deleteBanner();
+				}
 			} catch (er) {
-				logger.error(SMI.HUB_SETTINGS, 'Failed to delete icon.', { error: er });
-				showError('hub_settings.error_saving_icon');
+				logger.error(SMI.HUB_SETTINGS, `Failed to delete ${mediaType}.`, { error: er });
+				showError(mediaType, mediaType === 'icon' ? 'hub_settings.error_saving_icon' : 'hub_settings.error_saving_banner');
+				return false;
 			}
 		}
 
-		if (!newIconFile.value) return true;
-		logger.info(SMI.HUB_SETTINGS, 'Saving new icon...');
+		// No new file to upload
+		if (!file) return true;
+
+		logger.info(SMI.HUB_SETTINGS, `Saving new ${mediaType}...`);
 
 		try {
-			await hubSettings.setIcon(newIconFile.value);
+			if (mediaType === 'icon') {
+				await hubSettings.setIcon(file);
+			} else {
+				await hubSettings.setBanner(file);
+			}
 		} catch (er) {
-			showError('hub_settings.error_saving_icon');
+			showError(mediaType, mediaType === 'icon' ? 'hub_settings.error_saving_icon' : 'hub_settings.error_saving_banner');
 			return false;
 		}
 
 		return true;
 	}
 
-	function removeIcon() {
-		selectedIconUrl.value = null;
-		settingsChanged.value = true;
-		if (elFileInput.value) {
-			elFileInput.value.value = '';
+	function showError(mediaType: 'icon' | 'banner', message: 'hub_settings.error_saving_icon' | 'hub_settings.error_saving_banner' | 'hub_settings.file_format_not_allowed' | 'hub_settings.file_too_large') {
+		if (mediaType === 'icon') {
+			iconErrorText.value = t(message).toString();
+		} else {
+			bannerErrorText.value = t(message).toString();
 		}
-	}
-
-	function showError(message: 'hub_settings.error_saving_icon' | 'hub_settings.file_format_not_allowed' | 'hub_settings.file_too_large') {
-		iconErrorText.value = i18n.t(message).toString();
 	}
 </script>

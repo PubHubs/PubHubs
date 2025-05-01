@@ -1,8 +1,8 @@
-use crate::api;
+use crate::api::{self, ApiResultExt as _};
 use crate::servers::{self, server::Server as _, Constellation};
 
 impl crate::client::Client {
-    /// Retrieves [Constellation] from specified url, waiting for it to be set.
+    /// Retrieves [`Constellation`] from specified url, waiting for it to be set.
     pub async fn get_constellation(&self, url: &url::Url) -> anyhow::Result<Constellation> {
         crate::misc::task::retry(|| async {
             // Retry calling DiscoveryInfo endpoint while it returns a retryable error or some
@@ -31,13 +31,13 @@ impl crate::client::Client {
         phc_url: &url::Url,
     ) -> api::Result<Option<Constellation>> {
         log::debug!("trying to get stable constellation");
-        let phc_inf = api::return_if_ec!(self.query::<api::DiscoveryInfo>(phc_url, &()).await);
+        let phc_inf = self.query::<api::DiscoveryInfo>(phc_url, &()).await?;
         if phc_inf.constellation.is_none() {
             log::debug!(
                 "{phc}'s constellation not yet set",
                 phc = servers::Name::PubhubsCentral
             );
-            return api::ok(None);
+            return Ok(None);
         }
         let constellation = phc_inf.constellation.unwrap();
 
@@ -59,24 +59,26 @@ impl crate::client::Client {
             match js.join_next().await {
                 None => break 'lp,
                 Some(Ok(inf_res)) => {
-                    let inf = api::return_if_ec!(inf_res);
+                    let inf = inf_res?;
 
-                    if inf.constellation.is_none() || inf.constellation.unwrap() != constellation {
+                    if inf.constellation.is_none()
+                        || inf.constellation.unwrap().id != constellation.id
+                    {
                         log::debug!("constellations not yet in sync");
-                        return api::ok(None);
+                        return Ok(None);
                     }
                 }
                 Some(Err(join_err)) => {
                     log::warn!(
                         "unexpected join error getting constellation from server: {join_err}"
                     );
-                    return api::err(api::ErrorCode::InternalClientError);
+                    return Err(api::ErrorCode::InternalClientError);
                 }
             }
         }
 
         log::info!("obtained stable constellation");
-        api::ok(Some(constellation))
+        Ok(Some(constellation))
     }
 }
 
@@ -89,7 +91,7 @@ pub struct DiscoveryInfoCheck<'a> {
 }
 
 impl DiscoveryInfoCheck<'_> {
-    /// Checks the given [api::DiscoveryInfoResp] according to the [DiscoveryInfoCheck],
+    /// Checks the given [`api::DiscoveryInfoResp`] according to the [`DiscoveryInfoCheck`],
     /// and returns it if all checks out.
     pub fn check(
         self,
@@ -103,7 +105,7 @@ impl DiscoveryInfoCheck<'_> {
                 source,
                 inf.name
             );
-            return api::err(api::ErrorCode::Malconfigured);
+            return Err(api::ErrorCode::Malconfigured);
         }
 
         if &inf.phc_url != self.phc_url {
@@ -113,7 +115,7 @@ impl DiscoveryInfoCheck<'_> {
                 source,
                 inf.phc_url,
             );
-            return api::err(api::ErrorCode::Malconfigured);
+            return Err(api::ErrorCode::Malconfigured);
         }
 
         if let Some(scc) = self.self_check_code {
@@ -123,7 +125,7 @@ impl DiscoveryInfoCheck<'_> {
                     self.name,
                     source,
                 );
-                return api::err(api::ErrorCode::Malconfigured);
+                return Err(api::ErrorCode::Malconfigured);
             }
         }
 
@@ -134,19 +136,19 @@ impl DiscoveryInfoCheck<'_> {
             )
         {
             log::error!("master_enc_key_part must be set by the transcryptor and pubhub central, but no other servers - url: {}", source);
-            return api::err(api::ErrorCode::InternalError);
+            return Err(api::ErrorCode::InternalError);
         }
 
         if inf.constellation.is_some() {
             let c = inf.constellation.as_ref().unwrap();
 
-            if self.constellation.is_some() && c != self.constellation.unwrap() {
+            if self.constellation.is_some() && c.id != self.constellation.unwrap().id {
                 log::error!(
                     "{} at {} has a different view of the constellation of PubHubs servers",
                     inf.name,
                     source,
                 );
-                return api::err(api::ErrorCode::Malconfigured);
+                return Err(api::ErrorCode::Malconfigured);
             }
         }
 

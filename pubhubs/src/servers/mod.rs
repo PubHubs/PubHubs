@@ -1,7 +1,7 @@
 //! The pubhubs backend servers
 
 pub mod config;
-mod constellation;
+pub mod constellation;
 pub mod macros;
 mod object_store;
 mod run;

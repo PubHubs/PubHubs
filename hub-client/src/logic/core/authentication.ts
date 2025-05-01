@@ -39,7 +39,15 @@ class Authentication {
 		};
 		this.localDevelopmentAccessToken = auth.accessToken;
 		this.user.setUserId(auth.userId);
-		useMessageBox().sendMessage(new Message(MessageType.AddAccessToken, JSON.stringify({ token: response.access_token, userId: response.user_id })));
+		useMessageBox().sendMessage(
+			new Message(
+				MessageType.AddAccessToken,
+				JSON.stringify({
+					token: response.access_token,
+					userId: response.user_id,
+				}),
+			),
+		);
 	}
 
 	private _fetchAuth() {

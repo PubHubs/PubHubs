@@ -6,7 +6,7 @@ use curve25519_dalek::{
     scalar::Scalar,
 };
 
-/// ElGamal ciphertext - the result of [PublicKey::encrypt].
+/// ElGamal ciphertext - the result of [`PublicKey::encrypt`].
 ///
 /// The associated public key is remembered to allow rerandomization, but this public key is
 /// not authenticated in any way.  This means that anyone intercepting a triple may
@@ -208,7 +208,7 @@ pub fn random_scalar() -> Scalar {
     Scalar::random(osrng!())
 }
 
-/// Private key - load using [PrivateKey::from_hex] or generate with [PrivateKey::random].
+/// Private key - load using [`PrivateKey::from_hex`] or generate with [`PrivateKey::random`].
 ///
 /// Caches the associated [`PublicKey`], which means that loading a [`PrivateKey`] involves a base
 /// point multiplication.
@@ -258,15 +258,22 @@ impl From<Scalar> for PrivateKey {
     }
 }
 
-/// Public key - obtained using [PublicKey::from_hex] or [PrivateKey::public_key].
+/// Public key - obtained using [`PublicKey::from_hex`] or [`PrivateKey::public_key`].
 #[derive(Clone, PartialEq, Eq, Debug)]
 pub struct PublicKey {
     point: RistrettoPoint,
     compressed: CompressedRistretto,
 }
 
+impl AsRef<[u8]> for PublicKey {
+    /// Returns a reference to the compressed encoding of this public key
+    fn as_ref(&self) -> &[u8] {
+        self.compressed.as_bytes().as_slice()
+    }
+}
+
 impl PublicKey {
-    /// Turns a 64 digit hex string into a [PublicKey].
+    /// Turns a 64 digit hex string into a [`PublicKey`].
     ///
     /// Returns `None` when the hex-encoding is invalid or when the hex-encoding does not encode a
     /// valid Ristretto point.
@@ -280,7 +287,7 @@ impl PublicKey {
         self.encrypt_with_random(random_scalar(), plaintext)
     }
 
-    /// Like [Self::encrypt], but you can specify the random scalar used - which you shouldn't
+    /// Like [`Self::encrypt`], but you can specify the random scalar used - which you shouldn't
     /// except to make deterministic tests.
     pub fn encrypt_with_random(&self, r: Scalar, plaintext: RistrettoPoint) -> Triple {
         Triple {
@@ -326,8 +333,8 @@ impl TryFrom<CompressedRistretto> for PublicKey {
     }
 }
 
-/// Adds encoding and decoding methods to [PrivateKey], [PublicKey], [Triple], [Scalar]
-/// and [RistrettoPoint] which can all be represented as `[u8; N]`s for some `N`.  
+/// Adds encoding and decoding methods to [`PrivateKey`], [`PublicKey`], [`Triple`], [`Scalar`]
+/// and [`RistrettoPoint`] which can all be represented as `[u8; N]`s for some `N`.  
 ///
 /// Not all arrays of the form `[u8; N]` may be a valid representation of the type of object in question, though.
 pub trait Encoding<const N: usize>
@@ -518,7 +525,7 @@ mod serde_impls {
 /// Shared secret created by combining a [`PrivateKey`] with a [`PublicKey`], which, although it is
 /// basically the encoding of a [`RistrettoPoint`], is given a separate interface to limit its
 /// usage.
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, zeroize::ZeroizeOnDrop)]
 pub struct SharedSecret {
     inner: [u8; 32],
 }
@@ -552,7 +559,7 @@ pub mod abi {
     /// are readable, and plaintext is writable, and are not otherwise modified.
     ///
     /// For more details, see [core::slice::from_raw_parts] and [core::slice::from_raw_parts_mut].
-    #[no_mangle]
+    #[unsafe(no_mangle)]
     pub unsafe extern "C" fn decrypt(
         plaintext: *mut u8,
         ciphertext: *const u8,

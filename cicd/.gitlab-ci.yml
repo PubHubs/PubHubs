@@ -18,16 +18,10 @@ rust-clippy:
   stage: tests
   tags:
     - docker
-  image: registry.science.ru.nl/ilab/docker-build/rust-nightly:main
+  image: registry.science.ru.nl/ilab/docker-build/rust-stable:main
   script:
     - cd pubhubs
-    # twice, because sometimes clippy has hard errors, and won't produce the report
-    - cargo +nightly clippy
-    - cargo +nightly clippy --message-format=json | gitlab-report -p clippy > gl-code-quality-report.json
-  artifacts:
-    reports:
-      codequality: pubhubs/gl-code-quality-report.json
-    expire_in: 1 week
+    - cargo clippy -- --deny "warnings"
   rules:
     - if: $CI_PIPELINE_SOURCE == "merge_request_event"
     - if: $CI_COMMIT_BRANCH == "main"
@@ -41,20 +35,10 @@ rust-unit-test:
     - if: $CI_PIPELINE_SOURCE == "merge_request_event"
     - if: $CI_COMMIT_BRANCH == "main"
     - if: $CI_COMMIT_BRANCH == "stable"
-  image: registry.science.ru.nl/ilab/docker-build/pubhubs-rust-stable:main
+  image: registry.science.ru.nl/ilab/docker-build/rust-stable:main
   script:
-    - cp -r global-client/ pubhubs
-    - cp -r hub-client/ pubhubs
     - cd pubhubs
-    #    No pretty reporting for now unfortunatly, see https://github.com/rust-lang/rust/issues/49359
-    #    (more background:  https://github.com/rust-lang/rust/pull/109044), when JSON output is finalized let's turn reporting
-    #    back on.
-    #    - env RUST_BACKTRACE=full cargo +stable test --no-fail-fast -- -Z unstable-options --format json | gitlab-report -p test > report.xml
-    - RUST_BACKTRACE=full RUST_LOG=pubhubs=debug RUSTFLAGS="-C link-arg=-fuse-ld=lld" RUSTDOCFLAGS="-C link-arg=-fuse-ld=lld" cargo +stable test --no-fail-fast
-  artifacts:
-    reports:
-      junit: pubhubs/report.xml
-    expire_in: 1 week
+    - RUST_BACKTRACE=full RUST_LOG=pubhubs=debug cargo test
 
 rust-cargo-deny:
   stage: tests
@@ -105,11 +89,9 @@ deploy-main-phc:
   needs:
     - build-pubhubs-image
   tags: [docker]
-  image: ubuntu:rolling
+  image: registry.science.ru.nl/ilab/docker-build/ubuntu-iso:main
   script:
     - cd pubhubs
-    - apt update
-    - apt install -y openssh-client
     - chmod 600 $ILAB_VM_TRIGGER_UPDATE_KEY
     - ssh -o UserKnownHostsFile=$ILAB_VM_TRIGGER_UPDATE_KNOWN_HOSTS $ILAB_VM_TRIGGER_UPDATE_USER@ph.ihub.ru.nl -i $ILAB_VM_TRIGGER_UPDATE_KEY docker-pubhubs-main
 
@@ -120,13 +102,23 @@ deploy-stable-phc:
   needs:
     - build-pubhubs-image
   tags: [docker]
-  image: ubuntu:rolling
+  image: registry.science.ru.nl/ilab/docker-build/ubuntu-iso:main
   script:
     - cd pubhubs
-    - apt update
-    - apt install -y openssh-client
     - chmod 600 $ILAB_VM_TRIGGER_UPDATE_KEY
     - ssh -o UserKnownHostsFile=$ILAB_VM_TRIGGER_UPDATE_KNOWN_HOSTS $ILAB_VM_TRIGGER_UPDATE_USER@ph.ihub.ru.nl -i $ILAB_VM_TRIGGER_UPDATE_KEY docker-pubhubs-stable
+
+deploy-main-phmss:
+  stage: deploy-own
+  rules:
+    - if: $CI_COMMIT_BRANCH == "main"
+  needs:
+    - build-pubhubs-image
+  tags: [docker]
+  image: registry.science.ru.nl/ilab/docker-build/ubuntu-iso:main
+  script:
+    - chmod 600 $ILAB_VM_TRIGGER_UPDATE_KEY
+    - ssh -o UserKnownHostsFile=$ILAB_VM_TRIGGER_UPDATE_KNOWN_HOSTS $ILAB_VM_TRIGGER_UPDATE_USER@ph.ihub.ru.nl -i $ILAB_VM_TRIGGER_UPDATE_KEY docker-phmss-main
 
 start-test-setup-unit-test:
   stage: tests
