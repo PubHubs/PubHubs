@@ -115,7 +115,7 @@ const defaultSettings: Settings = {
 			notifications: true,
 			deleteMessages: true,
 			hubSettings: true,
-			authenticatedMedia: false,
+			authenticatedMedia: true,
 			unreadCounter: true,
 			votingWidget: true,
 		},
