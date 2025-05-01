@@ -117,7 +117,7 @@ const defaultSettings: Settings = {
 			hubSettings: true,
 			authenticatedMedia: false,
 			unreadCounter: true,
-			votingWidget: false,
+			votingWidget: true,
 		},
 	},
 };
