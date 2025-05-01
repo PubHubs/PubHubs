@@ -29,6 +29,7 @@ General tips:
           - [ ] Use the search functionality
           - [ ] Create a new room
           - [ ] Create one or more new secured room with mulitple profile attributes and a non profile attributes.
+          - [ ] Make an announcment to the room.
             - Make sure to require at least one value, so that one of the users cannot enter the secured room.
             - Check if the badges are shown properly (in line with which (non-)profile attributes are set).
             - Try to vary a bit in what you do exactly on each merge.
@@ -42,6 +43,7 @@ General tips:
         - [ ] Change displayname and avatar.
         - [ ] Change Theme & Language, and see they are stored/fetched after logout/login.
         - [ ] Logging out and logging in again with your original user.
+        - [ ] Create a poll and date picker, check if other users can see the update of the poll and datepicker.
       - [ ] Anything related specifically to your merge request.
   - [ ] Given all the issues found, decide whether it's prudent to continue the merge.  (That is, are the bugs bearable.) Consider consulting with other colleagues.
   - [ ] Figure out if the merge also requires any configuration changes. 
