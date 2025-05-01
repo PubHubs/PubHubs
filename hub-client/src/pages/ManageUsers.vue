@@ -79,7 +79,6 @@
 	onMounted(async () => {
 		// Get All user accounts from the Hub
 		hubUsers.value = await ManagementUtils.getUsersAccounts();
-		console.debug(hubUsers.value);
 	});
 
 	// Display related information
