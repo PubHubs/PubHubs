@@ -3,6 +3,7 @@ use crate::api::*;
 
 use std::collections::HashMap;
 
+use actix_web::http::header;
 use serde::{Deserialize, Serialize};
 
 use crate::attr;
@@ -204,5 +205,75 @@ pub mod user {
     #[serde(transparent)]
     pub struct AuthToken {
         pub(crate) inner: B64UU,
+    }
+
+    impl header::TryIntoHeaderValue for AuthToken {
+        type Error = std::convert::Infallible;
+
+        fn try_into_value(self) -> std::result::Result<header::HeaderValue, Self::Error> {
+            let vec: Vec<u8> = self.inner.into_inner().into_vec();
+
+            Ok(header::HeaderValue::try_from(vec).unwrap())
+        }
+    }
+
+    impl header::Header for AuthToken {
+        fn name() -> header::HeaderName {
+            header::AUTHORIZATION
+        }
+
+        fn parse<M: actix_web::HttpMessage>(
+            msg: &M,
+        ) -> std::result::Result<Self, actix_web::error::ParseError> {
+            Ok(AuthToken {
+                inner: header::from_one_raw_str(msg.headers().get(Self::name()))?,
+            })
+        }
+    }
+
+    /// Stores a new object at pubhubs central, under the given `handle`.
+    pub struct NewObjectEP {}
+    impl EndpointDetails for NewObjectEP {
+        type RequestType = bytes::Bytes;
+        type ResponseType = StoreObjectResp;
+
+        const METHOD: http::Method = http::Method::POST;
+        const PATH: &'static str = ".ph/user/obj/store/{handle}";
+    }
+
+    /// Stores an object at pubhubs central under the given `handle`, overwriting the previous
+    /// object stored there.
+    pub struct OverwriteObjectEP {}
+    impl EndpointDetails for OverwriteObjectEP {
+        type RequestType = bytes::Bytes;
+        type ResponseType = StoreObjectResp;
+
+        const METHOD: http::Method = http::Method::POST;
+        const PATH: &'static str = ".ph/user/obj/store/{handle}/{overwrite_hash}";
+    }
+
+    #[derive(Serialize, Deserialize, Debug, Clone)]
+    #[serde(rename = "snake_case")]
+    pub enum StoreObjectResp {
+        /// The auth provided is expired or otherwise invalid.  Obtain a new one and retry.
+        RetryWithNewAuthToken,
+
+        /// Returned when using [`NewObjectEP`], but there is already an object stored under that handle.  
+        /// To make sure that you're not overriding recent changes made by another global client,
+        /// you must pass the hash of the object you want to overwrite by using the
+        /// [`OverwriteObjectEP`] instead.
+        MissingHash,
+
+        /// Returned when [`OverwriteObjectEP`] is used, but there is no (longer) an object
+        /// stored under that handle.  Use [`NewObjectEP`] to create a new one.
+        NotFound,
+
+        /// Returned when using [`OverwriteObjectEP`] but the object stored at that handle
+        /// has a different hash, presumably because it has been changed in the meantime by another
+        /// global client.
+        HashDidNotMatch,
+
+        /// The object was stored succesfully under the given handle.
+        Stored { hash: B64UU },
     }
 }

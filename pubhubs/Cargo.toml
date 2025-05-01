@@ -136,7 +136,7 @@ regex = { version = "1.11", optional = true }
 actix-web = { version = "4.9", optional = true }
 actix-cors = { version = "0.7", optional = true }
 actix-files = { version = "0.6", optional = true }
-bytes = { version = "1", optional = true }
+bytes = { version = "1", features = ["serde"], optional = true }
 env_logger = { version = "0.11.5", optional = true }
 http = { version = "0.2", optional = true }
 hyper = { version= "0.14", features= ["server", "client", "http1", "stream" ], optional = true }
