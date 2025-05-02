@@ -124,6 +124,7 @@ pub struct AttrState {
     #[serde(default)]
     pub may_identify_user: Option<Id>,
 
+    // TODO: limit size of this set
     /// The users that provided this attribute as bannable attribute.
     /// If this attribute gets banned, so will they.
     #[serde(default)]

@@ -8,6 +8,7 @@ use serde::{Deserialize, Serialize};
 
 use crate::attr;
 use crate::handle;
+use crate::id::Id;
 use crate::misc::serde_ext::bytes_wrapper::B64UU;
 use crate::servers::Constellation;
 
@@ -252,9 +253,15 @@ pub mod user {
         const PATH: &'static str = ".ph/user/obj/store/{handle}/{overwrite_hash}";
     }
 
+    /// Returned by [`NewObjectEP`] and [`OverwriteObjectEP`].
     #[derive(Serialize, Deserialize, Debug, Clone)]
     #[serde(rename = "snake_case")]
     pub enum StoreObjectResp {
+        /// Please retry the same request again.  This may happen when another call changed the
+        /// user's state. The purpose of letting the client make the same call again (instead of
+        /// letting the server retry) is that the client gets feedback about this.
+        PleaseRetry,
+
         /// The auth provided is expired or otherwise invalid.  Obtain a new one and retry.
         RetryWithNewAuthToken,
 
@@ -273,13 +280,16 @@ pub mod user {
         /// global client.
         HashDidNotMatch,
 
+        /// The object that you sent did not differ from the object already stored.  Doing this
+        /// should be avoided.
+        NoChanges,
         /// The user has already reached the maximum number of objects it is allowed to store
         ///
         /// Either the global client is storing more at pubhubs central than it should, or the user
         /// is trying to abuse pubhubs central as object storage.
         QuotumReached,
 
-        /// The object was stored succesfully under the given handle.
-        Stored { hash: B64UU },
+        /// The object was stored succesfully under the given hash
+        Stored { hash: Id },
     }
 }

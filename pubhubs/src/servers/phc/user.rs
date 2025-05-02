@@ -524,6 +524,7 @@ pub struct UserState {
     /// Whether this account is banned
     pub banned: bool,
 
+    // TODO: limit number of allow_login_by attributes
     /// Attributes that may be used to log in as this user,
     /// provided that [`AttrState::may_identify_user`] also points to this account.
     ///

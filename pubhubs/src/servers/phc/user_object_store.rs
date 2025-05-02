@@ -55,7 +55,7 @@ impl App {
             return Ok(StoreObjectResp::RetryWithNewAuthToken);
         };
 
-        let (user_state, _user_state_version) = self
+        let (mut user_state, user_state_version) = self
             .get_object::<UserState>(&user_id)
             .await?
             .ok_or_else(|| {
@@ -64,6 +64,10 @@ impl App {
                 );
                 api::ErrorCode::InternalError
             })?;
+
+        // TODO: check quota
+
+        let obj = UserObject::new(payload, user_id);
 
         if let Some(overwrite_hash) = overwrite_hash {
             // client expects an object with `overwrite_hash` to exist; let's check this
@@ -77,6 +81,10 @@ impl App {
             if existing_obj_details.id != overwrite_hash {
                 return Ok(StoreObjectResp::HashDidNotMatch);
             }
+
+            if existing_obj_details.id == obj.object_id {
+                return Ok(StoreObjectResp::NoChanges);
+            }
         } else {
             // client expects no object to exist
             if user_state.stored_objects.contains_key(&handle) {
@@ -84,9 +92,30 @@ impl App {
             }
         }
 
-        let _obj = UserObject::new(payload, user_id);
+        if self.put_object(&obj, None).await?.is_none() {
+            log::debug!("user object {} already exists", obj.object_id);
+            // might happen when updating `user_state` below fails
+        }
 
-        todo! {}
+        user_state
+            .stored_objects
+            .entry(handle)
+            .insert_entry(UserObjectDetails {
+                size: obj.payload.len() as u32,
+                id: obj.object_id,
+            });
+
+        if self
+            .put_object(&user_state, Some(user_state_version))
+            .await?
+            .is_none()
+        {
+            return Ok(StoreObjectResp::PleaseRetry);
+        }
+
+        Ok(StoreObjectResp::Stored {
+            hash: obj.object_id,
+        })
     }
 }
 
@@ -176,7 +205,7 @@ impl crate::servers::object_store::ObjectDetails for UserObject {
 
 /// Details contained in [`UserState`] about an object stored by a user at pubhubs central
 #[derive(serde::Serialize, serde::Deserialize, Debug, Clone, PartialEq, Eq)]
-pub(crate) struct UserObjectDetails {
+pub struct UserObjectDetails {
     /// To make sure a user does not exceed their quotum
     pub size: u32,
 
