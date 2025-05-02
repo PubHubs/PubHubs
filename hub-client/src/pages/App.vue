@@ -50,17 +50,19 @@
 						<section class="flex flex-col gap-2">
 							<div class="group flex items-center justify-between rounded-lg bg-surface px-4 py-2">
 								<div class="flex h-[24px] items-center">
-									<p class="truncate font-bold leading-tight">{{ $t('menu.rooms') }}</p>
-								</div>
-								<div class="items-center gap-2">
-									<router-link :to="{ name: 'discover-rooms' }">
-										<Icon type="user_plus" class="text-on-surface hover:text-accent-primary" />
-									</router-link>
-									<!-- TODO: Add functionality to the 3-dots icon. This serves as a hidden placeholder now. -->
-									<!-- <Icon class="hidden stroke-0" type="dots" size="sm"/> -->
+									<p class="truncate font-bold leading-tight">{{ $t('admin.public_rooms') }}</p>
 								</div>
 							</div>
-							<RoomList />
+							<RoomList :filters="{ secure: 'public', type: '!' + RoomType.PH_MESSAGES_DM }" />
+						</section>
+
+						<section class="flex flex-col gap-2">
+							<div class="group flex items-center justify-between rounded-lg bg-surface px-4 py-2">
+								<div class="flex h-[24px] items-center">
+									<p class="truncate font-bold leading-tight">{{ $t('admin.secured_rooms') }}</p>
+								</div>
+							</div>
+							<RoomList :filters="{ secure: 'secure', type: '!' + RoomType.PH_MESSAGES_DM }" />
 						</section>
 
 						<section class="flex flex-col gap-2">
@@ -69,7 +71,7 @@
 									<p class="truncate font-bold leading-tight">{{ $t('menu.private_rooms') }}</p>
 								</div>
 							</div>
-							<RoomList :roomType="RoomType.PH_MESSAGES_DM" />
+							<RoomList :filters="{ type: RoomType.PH_MESSAGES_DM }" />
 							<DiscoverUsers />
 						</section>
 

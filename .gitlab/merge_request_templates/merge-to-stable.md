@@ -12,6 +12,7 @@ General tips:
     - [ ] Scan through all changes in merge request to see if there is any issue.
     - [ ] Set the new version number  ([how to decide which version](https://gitlab.science.ru.nl/ilab/pubhubs_canonical/-/wikis/Tech-Information/Versioning)) in the [CHANGELOG](CHANGELOG.md). **But don't tag yet!** Tagging will release a new stable version. (You can see the tags and their pipelines [here](https://gitlab.science.ru.nl/ilab/pubhubs_canonical/-/tags).)
   - [ ] Before proceeding with the folloing steps please check that the pipeline has been successfully completed. 
+  - [ ] Consider if the merge might cause irreversible changes (different database format), and plan for this. (Backups?)
   - [ ] Please check that the following works on https://main.pubhubs.ihub.ru.nl/client :
       - [ ] Test basic pubhubs functionality
         - [ ] Open two (private) browser windows and:
@@ -33,6 +34,7 @@ General tips:
             - Check if the badges are shown properly (in line with which (non-)profile attributes are set).
             - Try to vary a bit in what you do exactly on each merge.
           - [ ] In general act like a regular PubHubs user and try and see if everything works as expected.
+          - [ ] Make an announcment to the room.
         - [ ] With the new user (not an admin!):
           - [ ] Send a message in the public room.
           - [ ] Send a message in the secured room (if you are admin, you can allways enter a secured room, so important to test this with a normal user).
@@ -42,10 +44,11 @@ General tips:
         - [ ] Change displayname and avatar.
         - [ ] Change Theme & Language, and see they are stored/fetched after logout/login.
         - [ ] Logging out and logging in again with your original user.
+        - [ ] Create a poll and date picker, check if other users can see the update of the poll and datepicker.
       - [ ] Anything related specifically to your merge request.
   - [ ] Given all the issues found, decide whether it's prudent to continue the merge.  (That is, are the bugs bearable.) Consider consulting with other colleagues.
-  - [ ] Figure out if the merge also requires any configuration changes. 
-  - [ ] Consider if the merge might cause irreversible changes (different database format), and plan for this. (Backups?)
+  - [ ] Figure out if the merge also requires any configuration changes.
+  - [ ] Update feature flag for stable if the feature works properly.
   - [ ] Inform the pubhubs team (via Slack and PubHubs stable) of the merge and possible downtime of https://stable.pubhubs.ihub.ru.nl/client . 
   - [ ] Make the changes and **perform the merge**. After merging, **tag** the latest commit on stable with the version number to trigger the building and publishing of the stable images. 
   - [ ] While waiting on the pipeline: update dependencies on the main branch in a merge request created from [this issue](https://gitlab.science.ru.nl/ilab/pubhubs_canonical/-/issues/new?issuable_template=update-dependencies&issue[title]=Updating%20dependencies%20on%2020yy-mm-dd). Please wait with merging this, see instruction below.
