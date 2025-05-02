@@ -80,7 +80,9 @@ impl<'a> TryFrom<&'a Option<ObjectStoreConfig>> for DefaultObjectStore {
 }
 
 /// Details on how to store this type in the object store.
-pub trait ObjectDetails: serde::Serialize + serde::de::DeserializeOwned {
+///
+/// You probably want to implement this trait via [`JsonObjectDetails`].
+pub trait ObjectDetails: std::marker::Sized {
     type Identifier: std::fmt::Display;
 
     const PREFIX: &'static str;
@@ -89,6 +91,40 @@ pub trait ObjectDetails: serde::Serialize + serde::de::DeserializeOwned {
 
     fn path_for(id: &Self::Identifier) -> object_store::path::Path {
         std::format!("{}/{id}", Self::PREFIX).into()
+    }
+
+    fn from_bytes(bytes: bytes::Bytes) -> anyhow::Result<Self>;
+
+    /// Turn this object into one (or more) [`bytes::Bytes`]
+    fn to_put_payload(&self) -> anyhow::Result<object_store::PutPayload>;
+}
+
+/// Default way to implement [`ObjectDetails`], via json serialization.
+pub trait JsonObjectDetails: serde::Serialize + serde::de::DeserializeOwned {
+    type Identifier: std::fmt::Display;
+
+    const PREFIX: &'static str;
+
+    fn object_id(&self) -> &Self::Identifier;
+}
+
+impl<T: JsonObjectDetails> ObjectDetails for T {
+    type Identifier = <T as JsonObjectDetails>::Identifier;
+
+    const PREFIX: &str = <T as JsonObjectDetails>::PREFIX;
+
+    fn object_id(&self) -> &Self::Identifier {
+        <T as JsonObjectDetails>::object_id(self)
+    }
+
+    fn from_bytes(bytes: bytes::Bytes) -> anyhow::Result<Self> {
+        Ok(serde_json::from_slice(&bytes)?)
+    }
+
+    fn to_put_payload(&self) -> anyhow::Result<object_store::PutPayload> {
+        Ok(object_store::PutPayload::from_bytes(
+            serde_json::to_vec(&self)?.into(),
+        ))
     }
 }
 
@@ -119,16 +155,16 @@ where
 
                 let bytes: bytes::Bytes = get_result.bytes().await.map_err(|err| {
                     log::error!(
-                        "{}'s object store: unexpected error getting body of {path}: {err}",
+                        "{}'s object store: unexpected error getting body of {path}: {err:#}",
                         S::NAME
                     );
                     api::ErrorCode::InternalError
                 })?;
 
                 Ok(Some((
-                    serde_json::from_slice(&bytes).map_err(|err| {
+                    T::from_bytes(bytes).map_err(|err| {
                         log::error!(
-                            "{}'s object store: could not parse object stored at {path}: {err}",
+                            "{}'s object store: unexpected error parsing object at {path}: {err:#}",
                             S::NAME
                         );
                         api::ErrorCode::InternalError
@@ -140,7 +176,7 @@ where
             // TODO: deal with timeouts
             Err(err) => Err({
                 log::error!(
-                    "{}'s object store: unexpected error getting {path}: {err}",
+                    "{}'s object store: unexpected error getting {path}: {err:#}",
                     S::NAME
                 );
                 api::ErrorCode::InternalError
@@ -167,25 +203,18 @@ where
 
         let path = T::path_for(obj.object_id());
 
-        let bytes: bytes::Bytes = serde_json::to_vec(&obj)
-            .map_err(|err| {
-                log::error!(
-                "{}'s object store: unexpected error encoding object to be put at {path}: {err}",
+        let put_payload: object_store::PutPayload = obj.to_put_payload().map_err(|err| {
+            log::error!(
+                "{}'s object store: unexpected error encoding object to be put at {path}: {err:#}",
                 S::NAME
             );
-                api::ErrorCode::InternalError
-            })?
-            .into();
-
-        log::trace!(
-            "Putting to {path} the object {}",
-            std::str::from_utf8(&bytes).unwrap()
-        );
+            api::ErrorCode::InternalError
+        })?;
 
         match os
             .put_opts(
                 &path,
-                object_store::PutPayload::from_bytes(bytes),
+                put_payload,
                 object_store::PutOptions {
                     mode: if let Some(ref version) = update {
                         object_store::PutMode::Update(version.clone())
@@ -221,7 +250,7 @@ where
             }
             Err(err) => Err({
                 log::error!(
-                    "{}'s object store: unexpected error putting {path}: {err}",
+                    "{}'s object store: unexpected error putting {path}: {err:#}",
                     S::NAME
                 );
                 api::ErrorCode::InternalError
@@ -230,7 +259,7 @@ where
     }
 }
 
-impl ObjectDetails for crate::attr::AttrState {
+impl JsonObjectDetails for crate::attr::AttrState {
     type Identifier = Id;
     const PREFIX: &str = "attr";
 
@@ -239,7 +268,7 @@ impl ObjectDetails for crate::attr::AttrState {
     }
 }
 
-impl ObjectDetails for crate::servers::phc::UserState {
+impl JsonObjectDetails for crate::servers::phc::UserState {
     type Identifier = Id;
     const PREFIX: &str = "user";
 

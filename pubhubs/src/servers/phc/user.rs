@@ -1,4 +1,4 @@
-//! Implements basic user endpoints
+//! Basic user endpoints, such as [`EnterEP`].
 use std::collections::{HashMap, HashSet};
 use std::ops::Deref;
 use std::rc::Rc;
@@ -9,6 +9,7 @@ use crate::handle;
 use crate::hub;
 use crate::id::Id;
 use crate::misc::crypto;
+use crate::misc::error::{Opaque, OPAQUE};
 use crate::misc::jwt;
 
 use actix_web::web;
@@ -449,7 +450,7 @@ impl App {
 
 /// Plaintext content of [`AuthToken`].
 #[derive(serde::Serialize, serde::Deserialize, Clone, Debug)]
-struct AuthTokenInner {
+pub(super) struct AuthTokenInner {
     /// The [`Id`] of the user to whom this token has been issued.
     user_id: Id,
 
@@ -471,11 +472,24 @@ impl AuthTokenInner {
         })
     }
 
-    fn unseal(
-        sealed: &AuthToken,
-        key: &crypto::SealingKey,
-    ) -> Result<AuthTokenInner, crate::misc::error::Opaque> {
+    fn unseal(sealed: &AuthToken, key: &crypto::SealingKey) -> Result<AuthTokenInner, Opaque> {
         crypto::unseal(&*sealed.inner, key, b"")
+    }
+
+    /// Opens this [`AuthToken`], returning the enclosed user's [`Id`].
+    fn open(self) -> Result<Id, Opaque> {
+        if self.exp < jwt::NumericDate::now() {
+            return Err(OPAQUE);
+        }
+
+        Ok(self.user_id)
+    }
+}
+
+impl App {
+    /// Opens the given [`AuthToken`] returning the enclosed user's [`Id`].
+    pub(super) fn open_auth_token(&self, auth_token: AuthToken) -> Result<Id, Opaque> {
+        AuthTokenInner::unseal(&auth_token, &self.auth_token_secret)?.open()
     }
 }
 

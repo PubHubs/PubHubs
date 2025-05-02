@@ -273,6 +273,12 @@ pub mod user {
         /// global client.
         HashDidNotMatch,
 
+        /// The user has already reached the maximum number of objects it is allowed to store
+        ///
+        /// Either the global client is storing more at pubhubs central than it should, or the user
+        /// is trying to abuse pubhubs central as object storage.
+        QuotumReached,
+
         /// The object was stored succesfully under the given handle.
         Stored { hash: B64UU },
     }

@@ -328,7 +328,7 @@ impl crate::servers::AppCreator<Server> for AppCreator {
             .into_vec()
             .into_boxed_slice(),
             auth_token_secret,
-            auth_token_validity: xconf.auth_token_validity.clone(),
+            auth_token_validity: xconf.auth_token_validity,
         })
     }
 }
