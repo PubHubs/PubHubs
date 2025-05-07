@@ -257,6 +257,29 @@ where
             }),
         }
     }
+
+    /// Attempts to delete an object with the given [`Id`]; returns `true` when an object was
+    /// deleted, and false when no object with the given `id` was found.
+    pub async fn delete_object<T>(&self, id: T::Identifier) -> api::Result<bool>
+    where
+        T: ObjectDetails,
+    {
+        let os = self.shared.object_store.as_object_store();
+
+        let path = T::path_for(&id);
+
+        match os.delete(&path).await {
+            Ok(()) => Ok(true),
+            Err(object_store::Error::NotFound { .. }) => Ok(false),
+            Err(err) => Err({
+                log::error!(
+                    "{}'s object store: failed to delete {path}: {err:#}",
+                    S::NAME
+                );
+                api::ErrorCode::InternalError
+            }),
+        }
+    }
 }
 
 impl JsonObjectDetails for crate::attr::AttrState {

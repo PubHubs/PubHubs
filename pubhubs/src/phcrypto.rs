@@ -104,3 +104,16 @@ pub fn constellation_id(c: &constellation::Inner) -> id::Id {
     b"".as_slice()
         .derive_id(c.sha256(), "pubhubs-constellation-id")
 }
+
+/// Derives an `hmac` for a user object stored at pubhubs central.
+///
+/// See [`crate::api::phc::user::GetObjectEP`].
+pub fn phc_user_object_hmac(
+    object_id: crate::id::Id,
+    secret: impl secret::DigestibleSecret,
+) -> crate::id::Id {
+    secret.derive_id(
+        sha2::Sha256::new().chain_update(object_id.as_slice()),
+        "pubhubs-user-object-hmac",
+    )
+}

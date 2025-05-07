@@ -12,20 +12,42 @@ use actix_web::web;
 
 pub type Result<T> = std::result::Result<T, ErrorCode>;
 
-/// The [`actix_web::Responder`] used for all API endpoints: a wrapper around [`Result<T, ErrorCode>`].
-pub struct ResultResponder<EP: EndpointDetails>(Result<EP::ResponseType>);
+/// The [`actix_web::Responder`] used for all API endpoints: a wrapper arround an [`Result<T, ErrorCode>`]
+/// or a [`bytes::Bytes`].
+pub enum Responder<EP: EndpointDetails> {
+    /// The default response, encoded using JSON.
+    Json(Result<EP::ResponseType>),
 
-impl<EP: EndpointDetails> actix_web::Responder for ResultResponder<EP> {
-    type Body = actix_web::body::BoxBody;
+    /// Some endpoint, like [`crate::api::user::GetObjectEP`], may return an octet stream instead.
+    Octets(bytes::Bytes),
+}
 
-    fn respond_to(self, _req: &actix_web::HttpRequest) -> actix_web::HttpResponse<Self::Body> {
-        EP::response_builder().json(&self.0)
+impl<EP: EndpointDetails> Responder<EP> {
+    fn content_type(&self) -> actix_web::http::header::ContentType {
+        match self {
+            Responder::Json(..) => actix_web::http::header::ContentType::json(),
+            Responder::Octets(..) => actix_web::http::header::ContentType::octet_stream(),
+        }
     }
 }
 
-impl<EP: EndpointDetails> From<Result<EP::ResponseType>> for ResultResponder<EP> {
+impl<EP: EndpointDetails> actix_web::Responder for Responder<EP> {
+    type Body = actix_web::body::BoxBody;
+
+    fn respond_to(self, _req: &actix_web::HttpRequest) -> actix_web::HttpResponse<Self::Body> {
+        let mut rb = EP::response_builder();
+        rb.content_type(self.content_type());
+
+        match self {
+            Responder::Json(result) => rb.json(result),
+            Responder::Octets(bytes) => rb.body(bytes),
+        }
+    }
+}
+
+impl<EP: EndpointDetails> From<Result<EP::ResponseType>> for Responder<EP> {
     fn from(res: Result<EP::ResponseType>) -> Self {
-        Self(res)
+        Responder::Json(res)
     }
 }
 
@@ -263,6 +285,8 @@ pub trait EndpointDetails {
     ///
     /// Moreover `handler` cannot be `async`, since [`actix_web::App::configure`] takes a non-async
     /// function.
+    ///
+    /// Only `application/json` responses are supported.
     ///
     /// # `handler` errors and panics
     ///

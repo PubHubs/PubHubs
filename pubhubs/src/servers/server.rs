@@ -833,15 +833,15 @@ macro_rules! factory_tuple ({ $($param:ident)* } => {
         Fut: core::future::Future,
         App: 'static,
         EP : EndpointDetails + 'static,
-        Fut::Output : Into<api::ResultResponder<EP>>,
+        Fut::Output : Into<api::Responder<EP>>,
     {
-        type Output = api::ResultResponder<EP>;
-        type Future = futures::future::Map<Fut, fn(Fut::Output)->api::ResultResponder<EP>>;
+        type Output = api::Responder<EP>;
+        type Future = futures::future::Map<Fut, fn(Fut::Output)->api::Responder<EP>>;
 
         #[inline]
         #[allow(non_snake_case)] // because the signature will be:  call(&self, A: A, B: B, ...)
         fn call(&self, ($($param,)*): ($($param,)*)) -> Self::Future {
-            (self.f)(self.app.clone(), $($param,)*).map(Into::<api::ResultResponder<EP>>::into)
+            (self.f)(self.app.clone(), $($param,)*).map(Into::<api::Responder<EP>>::into)
         }
     }
 });
