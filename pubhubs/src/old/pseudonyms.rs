@@ -127,11 +127,13 @@ mod tests {
         // bcf2616f1de8875be554fd8db683664c52792b0e434dc15d0465bc6b687bb15d
         //
         // Note: due to the rerandomisation, only the last portion of pseudonym is predictable
-        assert!(Regex::new(
-            "[a-f0-9]{128}bcf2616f1de8875be554fd8db683664c52792b0e434dc15d0465bc6b687bb15d",
-        )
-        .unwrap()
-        .is_match(dbg!(pseudonym.as_str())));
+        assert!(
+            Regex::new(
+                "[a-f0-9]{128}bcf2616f1de8875be554fd8db683664c52792b0e434dc15d0465bc6b687bb15d",
+            )
+            .unwrap()
+            .is_match(dbg!(pseudonym.as_str()))
+        );
 
         // Use fixed pseudonym for further computations.
         // (We do this to get predictable results because unlike libpepcli which derives the
@@ -164,11 +166,13 @@ mod tests {
         // libpepcli convert-to-local-pseudonym a8457aaed982dbb9d086dc6a8e1b6f7679ca9849d6776da5a7e6c4797289c07712f8bd8e52e010c42aa0faecedf09d03790f3be047b86c546a03fbb4a82c3531bcf2616f1de8875be554fd8db683664c52792b0e434dc15d0465bc6b687bb15d "is also called server secret" "Hub decryption key #936da01f-9abd-4d9d-80c7-02af85c822a8" "Hub #936da01f-9abd-4d9d-80c7-02af85c822a8"
         //
         // Note: due to the rerandomisation, only the last portion of local_pseudonym is predictable
-        assert!(Regex::new(
-            "[a-f0-9]{128}127b805c293508ae6cb222d9606851f8f8db3d940d8b3f1e31274990021d8212",
-        )
-        .unwrap()
-        .is_match(&encrypted_local_pseudonym.to_hex()),);
+        assert!(
+            Regex::new(
+                "[a-f0-9]{128}127b805c293508ae6cb222d9606851f8f8db3d940d8b3f1e31274990021d8212",
+            )
+            .unwrap()
+            .is_match(&encrypted_local_pseudonym.to_hex()),
+        );
 
         let local_pseudonym = encrypted_local_pseudonym.decrypt(&local_decryption_key);
 

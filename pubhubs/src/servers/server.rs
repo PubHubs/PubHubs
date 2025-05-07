@@ -59,6 +59,15 @@ pub(crate) trait Server: DerefMut<Target = Self::AppCreatorT> + Sized + 'static 
 
     const NAME: Name;
 
+    /// Returns the default TCP port this server binds to.
+    fn default_port() -> u16 {
+        match Self::NAME {
+            Name::PubhubsCentral => 8080,
+            Name::Transcryptor => 7070,
+            Name::AuthenticationServer => 6060,
+        }
+    }
+
     /// Is moved accross threads to create the [`App`]s.
     type AppCreatorT: AppCreator<Self>;
 
@@ -409,10 +418,10 @@ pub trait App<S: Server>: Deref<Target = AppBase<S>> + 'static {
         if let Some(rs) = self.running_state.as_ref() {
             if !self.check_constellation(phc_inf.constellation.as_ref().unwrap()) {
                 log::warn!(
-                        "{server_name}: {phc}'s constellation seems to be out-of-date - requesting rediscovery",
-                        server_name = S::NAME,
-                        phc = Name::PubhubsCentral
-                    );
+                    "{server_name}: {phc}'s constellation seems to be out-of-date - requesting rediscovery",
+                    server_name = S::NAME,
+                    phc = Name::PubhubsCentral
+                );
                 // PHC's discovery is out of date; invoke discovery and return
                 self.client
                     .query::<api::DiscoveryRun>(&phc_inf.phc_url, &())
@@ -561,7 +570,6 @@ pub struct AppBase<S: Server> {
     pub jwt_key: api::SigningKey,
     pub enc_key: elgamal::PrivateKey,
     pub admin_key: api::VerifyingKey,
-    #[expect(dead_code)] // shared is not yet used
     pub shared: SharedState<S>,
     pub client: client::Client,
 }
@@ -655,7 +663,7 @@ impl<S: Server> AppBase<S> {
             .json_updated(&req.pointer, req.new_value.clone())
             .into_ec(|err| {
                 log::warn!(
-                    "{}: failed to modify configuration at {} to {}: {err}",
+                    "{}: failed to modify configuration at {} to {}: {err:#}",
                     S::NAME,
                     req.pointer,
                     req.new_value
@@ -914,6 +922,5 @@ impl<S: Server> SharedState<S> {
 }
 
 pub struct SharedStateInner<S: Server> {
-    #[expect(dead_code)]
-    object_store: S::ObjectStoreT,
+    pub object_store: S::ObjectStoreT,
 }

@@ -17,8 +17,8 @@ use rsa::{
     traits::PublicKeyParts as _,
 };
 use serde::{
-    de::{DeserializeOwned, Visitor},
     Deserialize, Deserializer, Serialize,
+    de::{DeserializeOwned, Visitor},
 };
 
 use crate::misc::time_ext;
@@ -218,12 +218,12 @@ impl Claims {
                 serde_json::Value::Null => {
                     return Err(Error::ClaimsDontSerializeToMapButNull {
                         claims_type: std::any::type_name::<C>(),
-                    })
+                    });
                 }
                 _ => {
                     return Err(Error::ClaimsDontSerializeToMap {
                         claims_type: std::any::type_name::<C>(),
-                    })
+                    });
                 }
             },
         })
@@ -968,12 +968,14 @@ mod tests {
 
         let claims = jwt.open(&key).unwrap();
 
-        assert!(claims
-            .clone()
-            .into_custom::<serde_json::Value>()
-            .unwrap_err()
-            .to_string()
-            .starts_with("expired at 2011-03-22T18:43:00Z ("));
+        assert!(
+            claims
+                .clone()
+                .into_custom::<serde_json::Value>()
+                .unwrap_err()
+                .to_string()
+                .starts_with("expired at 2011-03-22T18:43:00Z (")
+        );
 
         assert_eq!(
             &claims

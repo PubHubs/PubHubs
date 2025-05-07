@@ -59,9 +59,11 @@ pub mod human_duration {
     where
         D: serde::Deserializer<'de>,
     {
-        let s: &'de str = <&'de str>::deserialize(d)?;
+        // Could be more efficient with something like serde_cow::CowStr, but that'd require
+        // another dependency
+        let s = String::deserialize(d)?;
 
-        humantime::parse_duration(s).map_err(D::Error::custom)
+        humantime::parse_duration(&s).map_err(D::Error::custom)
     }
 
     pub fn serialize<S>(duration: &core::time::Duration, s: S) -> Result<S::Ok, S::Error>
