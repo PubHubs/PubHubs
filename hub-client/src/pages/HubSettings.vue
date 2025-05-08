@@ -12,51 +12,27 @@
 
 		<form @submit.prevent class="flex h-full max-w-screen-2xl flex-col px-4 py-4 md:px-16 md:py-10">
 			<!-- Description Section -->
-			<div class="mb-8">
-				<div class="mb-4 flex-col">
-					<H3 class="pb-2 text-lg font-semibold">{{ $t('hub_settings.description_heading') }}</H3>
-					<P>{{ $t('hub_settings.description_description') }}</P>
-				</div>
-				<!-- Textarea for Editing Description -->
-				<TextArea
-					v-model="hubDescription"
-					class="border-hub-border max-h-64 w-full max-w-[600px] rounded-md border p-3 font-body text-2xl dark:text-black"
-					rows="4"
-					:placeholder="t('hub_settings.description')"
-					@input="onHubSettingsChange"
-				></TextArea>
+			<div class="mb-8 flex flex-col gap-y-2">
+				<H3>{{ $t('hub_settings.description_heading') }}</H3>
+				<P>{{ $t('hub_settings.description_description') }}</P>
+				<TextArea v-model="hubDescription" class="border-hub-border max-h-64 w-full max-w-[600px] rounded-md border p-3" rows="4" :placeholder="t('hub_settings.description')" @input="onHubSettingsChange"></TextArea>
 			</div>
 
 			<!-- Summary Section -->
-			<div class="mb-8">
-				<div class="mb-4 flex-col">
-					<H3 class="pb-2 text-lg font-semibold">{{ $t('hub_settings.summary_heading') }}</H3>
-					<P>{{ $t('hub_settings.summary_description') }}</P>
+			<div class="mb-2 flex flex-col gap-y-2">
+				<H3>{{ $t('hub_settings.summary_heading') }}</H3>
+				<P>{{ $t('hub_settings.summary_description') }}</P>
+				<div class="max-w-[600px]">
+					<TextArea v-model="hubSummary" class="border-hub-border max-h-16 w-full rounded-md border p-3" rows="4" :placeholder="t('hub_settings.summary')" @input="onHubSettingsChange" :maxlength="maxSummaryLength"></TextArea>
+					<P class="float-end ~text-label-small-min/label-small-max"> {{ hubSummary.length }} / {{ maxSummaryLength }} </P>
 				</div>
-				<!-- Textarea for Editing Summary -->
-				<TextArea
-					v-model="hubSummary"
-					class="border-hub-border max-h max-h-16 w-full max-w-[600px] rounded-md border p-3 font-body text-2xl dark:text-black"
-					rows="4"
-					:placeholder="t('hub_settings.summary')"
-					@input="onHubSettingsChange"
-				></TextArea>
 			</div>
 
 			<!-- Contact Section -->
-			<div class="mb-8">
-				<div class="mb-4 flex-col">
-					<H3 class="pb-2 text-lg font-semibold">{{ $t('hub_settings.contact_heading') }}</H3>
-					<P>{{ $t('hub_settings.contact_description') }}</P>
-				</div>
-				<!-- Textarea for Editing Contact -->
-				<TextArea
-					v-model="hubContact"
-					class="border-hub-border max-h-16 w-full max-w-[600px] rounded-md border p-3 font-body text-2xl dark:text-black"
-					rows="4"
-					:placeholder="t('hub_settings.contact')"
-					@input="onHubSettingsChange"
-				></TextArea>
+			<div class="mb-8 flex flex-col gap-y-2">
+				<H3>{{ $t('hub_settings.contact_heading') }}</H3>
+				<P>{{ $t('hub_settings.contact_description') }}</P>
+				<TextArea v-model="hubContact" class="border-hub-border max-h-16 w-full max-w-[600px] rounded-md border p-3" rows="4" :placeholder="t('hub_settings.contact')" @input="onHubSettingsChange"></TextArea>
 			</div>
 
 			<!-- Icon Section -->
@@ -116,6 +92,7 @@
 	const hubSettings = useHubSettings();
 	const { t } = useI18n();
 	const logger = LOGGER;
+	const maxSummaryLength = 60;
 
 	// Media files
 	const mediaFiles = ref<Record<string, File | null | undefined>>({

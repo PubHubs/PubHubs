@@ -239,7 +239,7 @@ const nl = {
 		banner_heading: 'Hubbanner',
 		banner_description: 'Een publiekkelijk zichtbare bannerafbeelding voor deze hub (468x85)px.',
 		summary_heading: 'Hubsamenvatting',
-		summary_description: `Omschrijf deze hub in 2 regels. Deze omschrijving komt op de centrale 'Ontdek hubs' pagina onder de hub naam en is doorzoekbaar.`,
+		summary_description: `Deze omschrijving komt op de centrale 'Ontdek hubs' pagina onder de hub naam en is doorzoekbaar.`,
 		summary: 'Online community / platform voor ....',
 		contact_heading: 'Contactgegevens hub',
 		contact_description: 'Contactgegevens van de eigenaren van de hub.',
