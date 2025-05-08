@@ -18,14 +18,14 @@
 				<H2 class="line-clamp-1 w-full overflow-hidden text-ellipsis">{{ hub.hubName }}</H2>
 				<div class="h-16">
 					<TruncatedText class="font-bold uppercase ~text-label-small-min/label-small-max">{{ $t('home.hub_card_about') }}</TruncatedText>
-					<Pre v-model="summary" class="line-clamp-2 max-w-[calc(100%_-_2em)] hyphens-auto whitespace-pre-line break-words">{{ summary }}</Pre>
+					<Pre v-model="summary" class="max-w-[calc(100%_-_2em)] hyphens-auto whitespace-pre-line break-words font-body" :class="isMobile ? 'line-clamp-3 text-xl' : 'line-clamp-2'">{{ summary }}</Pre>
 				</div>
 			</div>
 		</div>
 	</div>
 </template>
 <script setup lang="ts">
-	import { ref, onMounted, onUnmounted, onBeforeMount } from 'vue';
+	import { ref, onMounted, onUnmounted, onBeforeMount, computed } from 'vue';
 	import { useI18n } from 'vue-i18n';
 	import { useRouter } from 'vue-router';
 	import { useDialog } from '@/logic/store/store';
@@ -36,12 +36,15 @@
 	import TruncatedText from '../../../../hub-client/src/components/elements/TruncatedText.vue';
 	import { HubSettingsJSONParser } from '../../../../hub-client/src/logic/store/hub-settings';
 	import Pre from '../../../../hub-client/src/components/elements/Pre.vue';
+	import { useSettings } from '@/logic/store/store';
 
 	const router = useRouter();
 	const dialog = useDialog();
 	const { t } = useI18n();
 	const showDescription = ref(false);
 	const props = defineProps<{ hub: Hub }>();
+	const settings = useSettings();
+	const isMobile = computed(() => settings.isMobileState);
 
 	const summary = ref<string>('');
 	const contact = ref<string>('');

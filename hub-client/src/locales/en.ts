@@ -239,7 +239,7 @@ const en = {
 		banner_heading: 'Hub banner',
 		banner_description: 'A publicly visible banner image for this hub (468x85)px.',
 		summary_heading: 'Hub summary',
-		summary_description: `Describe this hub in 2 lines. This description will appear on the central 'Discover hubs' page under the hub name and is searchable.`,
+		summary_description: `This description will appear on the central 'Discover hubs' page under the hub name and is searchable.`,
 		summary: 'Online community / platform for ....',
 		contact_heading: 'Hub contact details',
 		contact_description: 'Contact details of the owners of the hub.',
