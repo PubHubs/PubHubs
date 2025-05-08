@@ -8,6 +8,7 @@ use serde::{
 use crate::misc::serde_ext::bytes_wrapper;
 use crate::servers::server;
 
+use actix_web::http::header;
 use actix_web::web;
 
 pub type Result<T> = std::result::Result<T, ErrorCode>;
@@ -18,15 +19,20 @@ pub enum Responder<EP: EndpointDetails> {
     /// The default response, encoded using JSON.
     Json(Result<EP::ResponseType>),
 
-    /// Some endpoint, like [`crate::api::user::GetObjectEP`], may return an octet stream instead.
-    Octets(bytes::Bytes),
+    /// Some endpoint, like [`crate::api::phc::user::GetObjectEP`], may return an octet stream instead.
+    Octets {
+        payload: bytes::Bytes,
+
+        /// Response can be cached indefinitely as it never changes.
+        immutable: bool,
+    },
 }
 
 impl<EP: EndpointDetails> Responder<EP> {
-    fn content_type(&self) -> actix_web::http::header::ContentType {
+    fn content_type(&self) -> header::ContentType {
         match self {
-            Responder::Json(..) => actix_web::http::header::ContentType::json(),
-            Responder::Octets(..) => actix_web::http::header::ContentType::octet_stream(),
+            Responder::Json(..) => header::ContentType::json(),
+            Responder::Octets { .. } => header::ContentType::octet_stream(),
         }
     }
 }
@@ -40,7 +46,17 @@ impl<EP: EndpointDetails> actix_web::Responder for Responder<EP> {
 
         match self {
             Responder::Json(result) => rb.json(result),
-            Responder::Octets(bytes) => rb.body(bytes),
+            Responder::Octets { payload, immutable } => {
+                if immutable {
+                    rb.insert_header(header::CacheControl(vec![
+                        header::CacheDirective::MaxAge(i32::MAX as u32),
+                        // https://github.com/actix/actix-web/issues/2666
+                        header::CacheDirective::Extension("immutable".to_string(), None),
+                    ]));
+                }
+
+                rb.body(payload)
+            }
         }
     }
 }

@@ -165,13 +165,37 @@ impl App {
     ) -> api::Responder<GetObjectEP> {
         let (hash, hmac) = path.into_inner();
 
-        // TODO: contant time check
         if phcrypto::phc_user_object_hmac(hash, &*app.user_object_hmac_secret) != hmac {
             return api::Responder::Json(Ok(GetObjectResp::RetryWithNewHmac));
         }
 
-        todo!()
-        // TODO
+        let (obj, _) = match app.get_object::<UserObject>(&hash).await {
+            Ok(Some(obj)) => obj,
+            Ok(None) => {
+                log::debug!(
+                    "user object {} was requested (with valid hmac), but not found",
+                    hash
+                );
+                return api::Responder::Json(Ok(GetObjectResp::NotFound));
+            }
+            Err(err) => {
+                return api::Responder::Json(Err(err));
+            }
+        };
+
+        if obj.object_id != hash {
+            log::error!(
+                "user object {} submitted by user {} is corrupted!",
+                hash,
+                obj.user_id
+            );
+            return api::Responder::Json(Err(api::ErrorCode::InternalError));
+        }
+
+        api::Responder::Octets {
+            payload: obj.payload,
+            immutable: true,
+        }
     }
 }
 

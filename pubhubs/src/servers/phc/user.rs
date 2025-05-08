@@ -570,7 +570,7 @@ pub struct UserState {
 }
 
 impl UserState {
-    /// Subtract quota usage from the given [`Quota`], returning an error when a [`Quotum`] was
+    /// Subtract quota usage from the given [`Quota`], returning an error when a [`QuotumName`] was
     /// reached.
     pub(crate) fn update_quota(&self, mut quota: Quota) -> Result<Quota, QuotumName> {
         quota.object_count = quota

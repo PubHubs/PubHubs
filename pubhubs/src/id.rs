@@ -4,6 +4,10 @@ use crate::misc::serde_ext::{self, bytes_wrapper};
 
 /// An identifier, a random 256-bit number, which is encoded
 /// using unpadded url-safe base64
+#[allow( // not "expect", because of https://github.com/rust-lang/rust-clippy/issues/13356
+    clippy::derived_hash_with_manual_eq,
+    reason = "the manual PartialEq implementation agrees with the default one, but is constant time"
+)]
 #[derive(Clone, Copy, Debug, Eq, Hash, serde::Serialize, serde::Deserialize)]
 #[serde(transparent)]
 pub struct Id {

@@ -74,7 +74,7 @@ pub mod hub {
     }
 }
 
-/// `.ph/user/` endpoints, used by the ('global') web client
+/// `.ph/user/...` endpoints, used by the ('global') web client
 pub mod user {
     use super::*;
 
@@ -88,6 +88,7 @@ pub mod user {
         const PATH: &'static str = ".ph/user/welcome";
     }
 
+    /// Returned by [`WelcomeEp`].
     #[derive(Serialize, Deserialize, Debug, Clone)]
     pub struct WelcomeResp {
         pub constellation: Constellation,
@@ -130,6 +131,7 @@ pub mod user {
         pub add_attrs: Vec<Signed<attr::Attr>>,
     }
 
+    /// Returned by [`EnterEP`].
     #[derive(Serialize, Deserialize, Debug, Clone)]
     #[serde(rename = "snake_case")]
     pub enum EnterResp {
@@ -174,6 +176,7 @@ pub mod user {
         NoBannableAttribute,
     }
 
+    /// Whether to login, register, or both.
     #[derive(Default, Serialize, Deserialize, Debug, Clone, Copy, PartialEq, Eq)]
     pub enum EnterMode {
         /// Log in to an existing account
@@ -187,6 +190,7 @@ pub mod user {
         LoginOrRegister,
     }
 
+    /// Result of trying to add an attribute via [`EnterEP`].
     #[derive(Serialize, Deserialize, Debug, Clone, Copy, PartialEq, Eq)]
     #[serde(rename = "snake_case")]
     pub enum AttrAddStatus {
@@ -254,19 +258,12 @@ pub mod user {
     }
 
     /// State of a user's account at pubhubs as shown to the user.
-    ///
-    /// Not to be confused with [`crate::servers::phc::user::UserState`], which has some additional
-    /// details not shared with the user.
     #[derive(Serialize, Deserialize, Debug, Clone)]
     pub struct UserState {
         /// Attributes that may be used to log in as this user.
-        ///
-        /// See [`crate::servers::phc::user::UserState::allow_login_by`] for more details.
         pub allow_login_by: HashSet<Id>,
 
         /// Attributes that when banned ban this user.
-        ///
-        /// See [`crate::servers::phc::user::UserState::could_be_banned_by`] for more details.
         pub could_be_banned_by: HashSet<Id>,
 
         /// Objects stored for this user
@@ -274,8 +271,6 @@ pub mod user {
     }
 
     /// Details on an object stored at pubhubs central for a user.
-    ///
-    /// Not to be confused with [`crate::servers::phc::user_object_store::UserObjectDetails`].
     #[derive(Serialize, Deserialize, Debug, Clone)]
     pub struct UserObjectDetails {
         /// Identifier for this object - does not change
@@ -288,7 +283,7 @@ pub mod user {
         pub size: u32,
     }
 
-    /// Retrieves a user object with the given ``hash` from PubHubs central
+    /// Retrieves a user object with the given `hash` from PubHubs central
     ///
     /// Authorization happens not via an access token, but using the [`UserObjectDetails::hmac`].
     /// This allows HTTP caching without leaking the access token to the cache.
@@ -312,6 +307,10 @@ pub mod user {
         ///
         /// Please retry after obtaining the current `hmac` from [`StateEP`].
         RetryWithNewHmac,
+
+        /// The `hmac` was correct, so the object you requested probably did exist at one point,
+        /// but it does not longer.  Please reload the list of stored objects via [`StateEP`].
+        NotFound,
     }
 
     /// Stores a new object at pubhubs central, under the given `handle`.
