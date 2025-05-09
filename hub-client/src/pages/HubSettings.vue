@@ -15,7 +15,7 @@
 			<div class="mb-8 flex flex-col gap-y-2">
 				<H3>{{ $t('hub_settings.description_heading') }}</H3>
 				<P>{{ $t('hub_settings.description_description') }}</P>
-				<TextArea v-model="hubDescription" class="border-hub-border max-h-64 w-full max-w-[600px] rounded-md border p-3" rows="4" :placeholder="t('hub_settings.description')" @input="onHubSettingsChange"></TextArea>
+				<TextArea v-model="hubDescription" class="border-hub-border max-h-64 w-full max-w-[600px] rounded-md border p-3 dark:text-black" rows="4" :placeholder="t('hub_settings.description')" @input="onHubSettingsChange"></TextArea>
 			</div>
 
 			<!-- Summary Section -->
@@ -23,7 +23,14 @@
 				<H3>{{ $t('hub_settings.summary_heading') }}</H3>
 				<P>{{ $t('hub_settings.summary_description') }}</P>
 				<div class="max-w-[600px]">
-					<TextArea v-model="hubSummary" class="border-hub-border max-h-16 w-full rounded-md border p-3" rows="4" :placeholder="t('hub_settings.summary')" @input="onHubSettingsChange" :maxlength="maxSummaryLength"></TextArea>
+					<TextArea
+						v-model="hubSummary"
+						class="border-hub-border max-h-16 w-full rounded-md border p-3 dark:text-black"
+						rows="4"
+						:placeholder="t('hub_settings.summary')"
+						@input="onHubSettingsChange"
+						:maxlength="maxSummaryLength"
+					></TextArea>
 					<P class="float-end ~text-label-small-min/label-small-max"> {{ hubSummary.length }} / {{ maxSummaryLength }} </P>
 				</div>
 			</div>
@@ -32,7 +39,7 @@
 			<div class="mb-8 flex flex-col gap-y-2">
 				<H3>{{ $t('hub_settings.contact_heading') }}</H3>
 				<P>{{ $t('hub_settings.contact_description') }}</P>
-				<TextArea v-model="hubContact" class="border-hub-border max-h-16 w-full max-w-[600px] rounded-md border p-3" rows="4" :placeholder="t('hub_settings.contact')" @input="onHubSettingsChange"></TextArea>
+				<TextArea v-model="hubContact" class="border-hub-border max-h-16 w-full max-w-[600px] rounded-md border p-3 dark:text-black" rows="4" :placeholder="t('hub_settings.contact')" @input="onHubSettingsChange"></TextArea>
 			</div>
 
 			<!-- Icon Section -->
