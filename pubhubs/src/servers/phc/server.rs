@@ -169,7 +169,11 @@ impl crate::servers::App<Server> for App {
                 t = servers::Name::Transcryptor
             );
             let url = self.transcryptor_url.clone();
-            js.spawn_local(self.client.query::<api::DiscoveryRun>(&url, &()));
+            js.spawn_local(
+                self.client
+                    .query::<api::DiscoveryRun>(&url, &())
+                    .into_future(),
+            );
         }
 
         if asdi
@@ -184,7 +188,11 @@ impl crate::servers::App<Server> for App {
                 auths = servers::Name::AuthenticationServer
             );
             let url = self.auths_url.clone();
-            js.spawn_local(self.client.query::<api::DiscoveryRun>(&url, &()));
+            js.spawn_local(
+                self.client
+                    .query::<api::DiscoveryRun>(&url, &())
+                    .into_future(),
+            );
         }
 
         let result_maybe = js.join_next().await;

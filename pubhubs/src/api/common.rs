@@ -9,6 +9,7 @@ use crate::misc::serde_ext::bytes_wrapper;
 use crate::servers::server;
 
 use actix_web::http::header;
+use actix_web::http::header::TryIntoHeaderValue as _;
 use actix_web::web;
 
 pub type Result<T> = std::result::Result<T, ErrorCode>;
@@ -342,6 +343,26 @@ pub trait EndpointDetails {
     /// Creates an [`actix_web::HttpResponseBuilder`] for this endpoint.
     fn response_builder() -> actix_web::HttpResponseBuilder {
         actix_web::HttpResponse::Ok()
+    }
+
+    /// Determines the content type used for requests to this endpoint.
+    fn request_content_type() -> http::header::HeaderValue {
+        actix_web::http::header::ContentType::json()
+            .try_into_value()
+            .unwrap()
+    }
+
+    /// Determines how [`Self::RequestType`] is serialized to [`bytes::Bytes`].
+    fn serialize_request_type(req: &Self::RequestType) -> bytes::Bytes {
+        serde_json::to_vec_pretty(&req)
+            .unwrap_or_else(|err| {
+                log::error!(
+                    "failed to serialize type {}: {err}",
+                    std::any::type_name::<Self::RequestType>()
+                );
+                serde_json::to_vec_pretty(&Result::<()>::Err(ErrorCode::InternalError)).unwrap()
+            })
+            .into()
     }
 }
 

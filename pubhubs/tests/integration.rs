@@ -386,23 +386,40 @@ async fn main_integration_test_local(
     ));
 
     // Logging in using the email address works..
-    assert!(matches!(
-        client
-            .query_with_retry::<api::phc::user::EnterEP, _, _>(
-                &constellation.phc_url,
-                &api::phc::user::EnterReq {
-                    identifying_attr: email.clone(),
-                    mode: api::phc::user::EnterMode::Login,
-                    add_attrs: vec![],
-                },
-            )
-            .await
-            .unwrap(),
-        api::phc::user::EnterResp::Entered {
-            new_account: false,
-            ..
-        }
-    ));
+    let enter_resp = client
+        .query_with_retry::<api::phc::user::EnterEP, _, _>(
+            &constellation.phc_url,
+            &api::phc::user::EnterReq {
+                identifying_attr: email.clone(),
+                mode: api::phc::user::EnterMode::Login,
+                add_attrs: vec![],
+            },
+        )
+        .await
+        .unwrap();
+
+    let api::phc::user::EnterResp::Entered {
+        new_account: false,
+        auth_token: Ok(auth_token),
+        ..
+    } = enter_resp
+    else {
+        panic!();
+    };
+
+    let api::phc::user::StoreObjectResp::Stored { hash: _hash } = client
+        .query::<api::phc::user::NewObjectEP>(
+            &constellation.phc_url,
+            &bytes::Bytes::from_static(b"object contents!"),
+        )
+        .path_param("handle", "objhandle")
+        .auth_header(auth_token.clone())
+        .with_retry()
+        .await
+        .unwrap()
+    else {
+        panic!()
+    };
 }
 
 /// Contents of a disclosure session request JWT

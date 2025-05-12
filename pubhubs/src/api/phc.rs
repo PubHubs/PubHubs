@@ -3,7 +3,7 @@ use crate::api::*;
 
 use std::collections::{HashMap, HashSet};
 
-use actix_web::http::header;
+use actix_web::http::header::{self, TryIntoHeaderValue as _};
 use serde::{Deserialize, Serialize};
 
 use crate::attr;
@@ -88,7 +88,7 @@ pub mod user {
         const PATH: &'static str = ".ph/user/welcome";
     }
 
-    /// Returned by [`WelcomeEp`].
+    /// Returned by [`WelcomeEP`].
     #[derive(Serialize, Deserialize, Debug, Clone)]
     pub struct WelcomeResp {
         pub constellation: Constellation,
@@ -216,7 +216,7 @@ pub mod user {
         type Error = std::convert::Infallible;
 
         fn try_into_value(self) -> std::result::Result<header::HeaderValue, Self::Error> {
-            let vec: Vec<u8> = self.inner.into_inner().into_vec();
+            let vec: Vec<u8> = self.inner.to_string().into_bytes();
 
             Ok(header::HeaderValue::try_from(vec).unwrap())
         }
@@ -321,6 +321,16 @@ pub mod user {
 
         const METHOD: http::Method = http::Method::POST;
         const PATH: &'static str = ".ph/user/obj/by-handle/{handle}";
+
+        fn request_content_type() -> http::HeaderValue {
+            header::ContentType::octet_stream()
+                .try_into_value()
+                .unwrap()
+        }
+
+        fn serialize_request_type(req: &bytes::Bytes) -> bytes::Bytes {
+            req.clone()
+        }
     }
 
     /// Stores an object at pubhubs central under the given `handle`, overwriting the previous
@@ -332,6 +342,16 @@ pub mod user {
 
         const METHOD: http::Method = http::Method::POST;
         const PATH: &'static str = ".ph/user/obj/by-hash/{handle}/{overwrite_hash}";
+
+        fn request_content_type() -> http::HeaderValue {
+            header::ContentType::octet_stream()
+                .try_into_value()
+                .unwrap()
+        }
+
+        fn serialize_request_type(req: &bytes::Bytes) -> bytes::Bytes {
+            req.clone()
+        }
     }
 
     /// Returned by [`NewObjectEP`] and [`OverwriteObjectEP`].

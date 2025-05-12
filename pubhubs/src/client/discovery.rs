@@ -1,5 +1,5 @@
 use crate::api::{self, ApiResultExt as _};
-use crate::servers::{self, Constellation, server::Server as _};
+use crate::servers::{self, server::Server as _, Constellation};
 
 impl crate::client::Client {
     /// Retrieves [`Constellation`] from specified url, waiting for it to be set.
@@ -48,7 +48,7 @@ impl crate::client::Client {
                 let server_name = crate::servers::$server::Server::NAME;
                 if server_name != servers::Name::PubhubsCentral {
                     let url = constellation.url(server_name);
-                    js.spawn_local(self.query::<api::DiscoveryInfo>(url, &()));
+                    js.spawn_local(self.query::<api::DiscoveryInfo>(url, &()).into_future());
                 }
             };
         }
