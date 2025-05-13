@@ -228,13 +228,18 @@ impl<EP: EndpointDetails + 'static> BorrowedQuerySetup<'_, EP> {
             fmt_ext::Json(&self.request)
         );
 
+        let has_body: bool = EP::request_has_body();
+
         let client_req = {
             let mut client_req = self
                 .client
                 .inner
                 .http_client
-                .request(EP::METHOD, ep_url.to_string())
-                .content_type(EP::request_content_type());
+                .request(EP::METHOD, ep_url.to_string());
+
+            if has_body {
+                client_req = client_req.content_type(EP::request_content_type());
+            }
 
             if let Some(auth_header) = self.auth_header {
                 client_req = client_req.insert_header(("Authorization", auth_header));
@@ -243,7 +248,11 @@ impl<EP: EndpointDetails + 'static> BorrowedQuerySetup<'_, EP> {
             client_req
         };
 
-        let send_client_req = client_req.send_body(EP::serialize_request_type(self.request));
+        let send_client_req = if has_body {
+            client_req.send_body(EP::serialize_request_type(self.request))
+        } else {
+            client_req.send()
+        };
 
         futures::future::Either::Right(
             self.client

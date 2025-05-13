@@ -364,6 +364,16 @@ pub trait EndpointDetails {
             })
             .into()
     }
+
+    /// Whether a request should include a body.  If `false, [`Self::RequestType`] should probably be set
+    /// to `()`.
+    fn request_has_body() -> bool {
+        match Self::METHOD {
+            http::Method::GET => false,
+            http::Method::POST => true,
+            _ => unimplemented! {}, // other methods are not used in our API at the moment
+        }
+    }
 }
 
 /// Wraps one of the dalek types to enforce hex serialization
