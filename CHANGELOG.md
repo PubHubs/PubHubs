@@ -9,6 +9,10 @@ _Please add a brief description of any changes and any migrations to be performe
  * _[BREAKING] - If it is a breaking change that needs changes done on the deployment/installation/settings_
  * _(Use the [MIGRATE] and [BREAKING] prefixes together with another one if that makes more sense.)_
 
+- [NEW] There is now a max length for the summary text with a max word counter to keep track
+- [BUG] In the hub description words were split between 2 lines
+- [FIX] The size of the icons on the badges for secured rooms was too large
+
 ## 01 May 2025 - v2.0.5
 _NOTE:_ Tag (v.2.0.3 and v.2.0.4) was updated couple of times due to some issues identified after each tag was added.
 
