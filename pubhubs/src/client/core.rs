@@ -220,13 +220,20 @@ impl<EP: EndpointDetails + 'static> BorrowedQuerySetup<'_, EP> {
             result.unwrap()
         };
 
-        log::debug!(
-            "{}: Querying {} {} {}",
-            self.client.inner.agent,
-            EP::METHOD,
-            &ep_url,
-            fmt_ext::Json(&self.request)
-        );
+        if log::log_enabled!(log::Level::Debug) {
+            let body = if EP::request_content_type().as_bytes() == b"application/json" {
+                format!("{}", fmt_ext::Json(&self.request))
+            } else {
+                format!("[ binary data ]")
+            };
+
+            log::debug!(
+                "{}: Querying {} {} {body}",
+                self.client.inner.agent,
+                EP::METHOD,
+                &ep_url,
+            );
+        }
 
         let has_body: bool = EP::request_has_body();
 
@@ -445,17 +452,16 @@ impl Client {
         // check statuscode
         let status = resp.status();
         if !status.is_success() {
-            let body = String::from_utf8(
-                resp.body()
-                    .await
-                    .unwrap_or_else(|_| bytes::Bytes::from_static(b"<failed to load body>"))
-                    .to_vec(),
-            )
-            .unwrap_or_else(|_| "<not utf8>".to_string());
+            let body = resp
+                .body()
+                .await
+                .unwrap_or_else(|_| bytes::Bytes::from_static(b"<failed to load body>"))
+                .to_vec();
 
             log::warn!(
                 "request to {method} {url} was not succesfull: {status} {body:.100}",
-                method = EP::METHOD
+                method = EP::METHOD,
+                body = fmt_ext::Bytes(&body)
             );
 
             return Result::Err(match status {
