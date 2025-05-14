@@ -415,7 +415,6 @@ impl App {
         // Before doing potentially expensive queries to the object store, make sure a bannable
         // attribute has been provided by the client
         if !attrs.values().any(|attr| attr.bannable) {
-            log::debug!("no bannable attribute: {attrs:?}");
             return Ok(Some(EnterResp::NoBannableAttribute));
         }
 
@@ -495,7 +494,7 @@ impl App {
 }
 
 /// An [`Attr`] with its [`Id`].
-#[derive(Clone, Debug)]
+#[derive(Clone)]
 struct IdedAttr {
     id: Id,
     attr: Attr,
