@@ -162,11 +162,11 @@ impl App {
     pub(crate) async fn handle_user_get_object(
         app: Rc<Self>,
         path: actix_web::web::Path<(Id, Id)>,
-    ) -> api::Responder<GetObjectEP> {
+    ) -> api::Payload<api::Result<GetObjectResp>> {
         let (hash, hmac) = path.into_inner();
 
         if phcrypto::phc_user_object_hmac(hash, &*app.user_object_hmac_secret) != hmac {
-            return api::Responder::Json(Ok(GetObjectResp::RetryWithNewHmac));
+            return api::Payload::Json(Ok(GetObjectResp::RetryWithNewHmac));
         }
 
         let (obj, _) = match app.get_object::<UserObject>(&hash).await {
@@ -176,10 +176,10 @@ impl App {
                     "user object {} was requested (with valid hmac), but not found",
                     hash
                 );
-                return api::Responder::Json(Ok(GetObjectResp::NotFound));
+                return api::Payload::Json(Ok(GetObjectResp::NotFound));
             }
             Err(err) => {
-                return api::Responder::Json(Err(err));
+                return api::Payload::Json(Err(err));
             }
         };
 
@@ -189,13 +189,10 @@ impl App {
                 hash,
                 obj.user_id
             );
-            return api::Responder::Json(Err(api::ErrorCode::InternalError));
+            return api::Payload::Json(Err(api::ErrorCode::InternalError));
         }
 
-        api::Responder::Octets {
-            payload: obj.payload,
-            immutable: true,
-        }
+        api::Payload::Octets(obj.payload)
     }
 }
 

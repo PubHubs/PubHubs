@@ -5,7 +5,7 @@ use std::rc::Rc;
 use actix_web::web;
 use digest::Digest as _;
 
-use crate::api::{self, ApiResultExt as _, EndpointDetails as _};
+use crate::api::{self, ApiResultExt as _, EndpointDetails as _, NoPayload};
 use crate::client;
 use crate::common::secret::DigestibleSecret as _;
 use crate::misc::crypto;
@@ -171,7 +171,7 @@ impl crate::servers::App<Server> for App {
             let url = self.transcryptor_url.clone();
             js.spawn_local(
                 self.client
-                    .query::<api::DiscoveryRun>(&url, &())
+                    .query::<api::DiscoveryRun>(&url, NoPayload)
                     .into_future(),
             );
         }
@@ -190,7 +190,7 @@ impl crate::servers::App<Server> for App {
             let url = self.auths_url.clone();
             js.spawn_local(
                 self.client
-                    .query::<api::DiscoveryRun>(&url, &())
+                    .query::<api::DiscoveryRun>(&url, NoPayload)
                     .into_future(),
             );
         }
@@ -249,7 +249,7 @@ impl App {
     ) -> api::Result<api::DiscoveryInfoResp> {
         let tdi = self
             .client
-            .query::<api::DiscoveryInfo>(url, &())
+            .query::<api::DiscoveryInfo>(url, NoPayload)
             .await
             .into_server_result()?;
 

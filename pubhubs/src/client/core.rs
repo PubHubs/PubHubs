@@ -3,7 +3,10 @@ use std::collections::HashMap;
 use std::marker::PhantomData;
 use std::rc::Rc;
 
-use crate::api::{ApiResultExt as _, EndpointDetails, ErrorCode, Result};
+use crate::api::{
+    ApiResultExt as _, EndpointDetails, ErrorCode, Payload, PayloadTrait, Result,
+    ResultPayloadTrait as _,
+};
 use crate::misc::fmt_ext;
 
 use awc::error::StatusCode;
@@ -88,7 +91,7 @@ where
     PP: Borrow<PathParams<'a>>,
     HV: Borrow<http::HeaderValue>,
 {
-    type Output = Result<EP::ResponseType>;
+    type Output = EP::ResponseType;
     type IntoFuture = futures::future::LocalBoxFuture<'static, Self::Output>;
 
     fn into_future(self) -> Self::IntoFuture {
@@ -120,15 +123,16 @@ where
         }
     }
 
-    pub async fn with_retry(self) -> Result<EP::ResponseType> {
+    pub async fn with_retry(self) -> EP::ResponseType {
         let borrowed = self.borrow();
-        let retry_fut = crate::misc::task::retry(|| async { borrowed.clone().await.retryable() });
+        let retry_fut =
+            crate::misc::task::retry(|| async { borrowed.clone().await.into_result().retryable() });
 
-        match retry_fut.await {
+        EP::ResponseType::from_result(match retry_fut.await {
             Ok(Some(resp)) => Result::Ok(resp),
             Ok(None) => Result::Err(ErrorCode::TemporaryFailure),
             Err(ec) => Result::Err(ec),
-        }
+        })
     }
 }
 
@@ -188,7 +192,7 @@ impl<EP: EndpointDetails + 'static> Clone for BorrowedQuerySetup<'_, EP> {
 impl<EP: EndpointDetails + 'static> BorrowedQuerySetup<'_, EP> {
     fn into_future_impl(
         self,
-    ) -> impl std::future::Future<Output = Result<EP::ResponseType>> + 'static + use<EP> {
+    ) -> impl std::future::Future<Output = EP::ResponseType> + 'static + use<EP> {
         // endpoint url
         let ep_url = {
             let mut path = String::new();
@@ -200,9 +204,9 @@ impl<EP: EndpointDetails + 'static> BorrowedQuerySetup<'_, EP> {
                     EP::PATH,
                     self.path_params
                 );
-                return futures::future::Either::Left(std::future::ready(Result::Err(
-                    ErrorCode::InternalError,
-                )));
+                return futures::future::Either::Left(std::future::ready(
+                    EP::ResponseType::from_ec(ErrorCode::InternalError),
+                ));
             }
 
             let result = self.url.join(&path);
@@ -213,29 +217,23 @@ impl<EP: EndpointDetails + 'static> BorrowedQuerySetup<'_, EP> {
                     path,
                     result.unwrap_err()
                 );
-                return futures::future::Either::Left(std::future::ready(Result::Err(
-                    ErrorCode::Malconfigured,
-                )));
+                return futures::future::Either::Left(std::future::ready(
+                    EP::ResponseType::from_ec(ErrorCode::Malconfigured),
+                ));
             }
             result.unwrap()
         };
 
-        if log::log_enabled!(log::Level::Debug) {
-            let body = if EP::request_content_type().as_bytes() == b"application/json" {
-                format!("{}", fmt_ext::Json(&self.request))
-            } else {
-                "[ ... binary data ... ]".to_string()
-            };
+        let payload = self.request.clone().into_payload(); // TODO: remove clone
 
+        if log::log_enabled!(log::Level::Debug) {
             log::debug!(
-                "{}: Querying {} {} {body}",
+                "{}: Querying {} {} {payload}",
                 self.client.inner.agent,
                 EP::METHOD,
                 &ep_url,
             );
         }
-
-        let has_body: bool = EP::request_has_body();
 
         let client_req = {
             let mut client_req = self
@@ -244,8 +242,8 @@ impl<EP: EndpointDetails + 'static> BorrowedQuerySetup<'_, EP> {
                 .http_client
                 .request(EP::METHOD, ep_url.to_string());
 
-            if has_body {
-                client_req = client_req.content_type(EP::request_content_type());
+            if let Some(ct) = payload.content_type() {
+                client_req = client_req.content_type(ct.try_into_value().unwrap());
             }
 
             if let Some(auth_header) = self.auth_header {
@@ -255,16 +253,31 @@ impl<EP: EndpointDetails + 'static> BorrowedQuerySetup<'_, EP> {
             client_req
         };
 
-        let send_client_req = if has_body {
-            client_req.send_body(EP::serialize_request_type(self.request))
-        } else {
-            client_req.send()
+        let payload_bytes_maybe = match payload.into_body() {
+            Ok(payload_bytes_maybe) => payload_bytes_maybe,
+            Err(err) => {
+                log::error!(
+                    "{agent}: Failed to query {method} {url}: could serialize payload: {err:#}",
+                    agent = self.client.inner.agent,
+                    method = EP::METHOD,
+                    url = &ep_url
+                );
+                return futures::future::Either::Left(std::future::ready(
+                    EP::ResponseType::from_ec(ErrorCode::BadRequest),
+                ));
+            }
+        };
+
+        let send_client_req = match payload_bytes_maybe {
+            Some(bytes) => client_req.send_body(bytes),
+            None => client_req.send(),
         };
 
         futures::future::Either::Right(
             self.client
                 .clone()
-                .query_inner::<EP>(ep_url, send_client_req),
+                .query_inner::<EP>(ep_url, send_client_req)
+                .map(EP::ResponseType::from_result),
         )
     }
 }
@@ -293,7 +306,7 @@ impl Client {
         &self,
         server_url: BU,
         req: BR,
-    ) -> impl std::future::Future<Output = Result<EP::ResponseType>> + use<EP, BU, BR>
+    ) -> impl std::future::Future<Output = EP::ResponseType> + use<EP, BU, BR>
     where
         BU: Borrow<url::Url>,
         BR: Borrow<EP::RequestType>,
@@ -313,8 +326,9 @@ impl Client {
     pub fn query<'a, EP: EndpointDetails + 'static>(
         &self,
         server_url: &'a url::Url,
-        req: &'a EP::RequestType,
-    ) -> QuerySetup<EP, &'a url::Url, &'a EP::RequestType, PathParams<'a>, http::HeaderValue> {
+        req: impl Borrow<EP::RequestType> + 'a,
+    ) -> QuerySetup<EP, &'a url::Url, impl Borrow<EP::RequestType>, PathParams<'a>, http::HeaderValue>
+    {
         QuerySetup {
             client: self.clone(),
             url: server_url,
@@ -459,9 +473,10 @@ impl Client {
                 .to_vec();
 
             log::warn!(
-                "request to {method} {url} was not succesfull: {status} {body:.100}",
+                "{agent}: {method} {url} was not succesfull: {status} {body:.100}",
                 method = EP::METHOD,
-                body = fmt_ext::Bytes(&body)
+                body = fmt_ext::Bytes(&body),
+                agent = self.inner.agent,
             );
 
             return Result::Err(match status {
@@ -473,27 +488,32 @@ impl Client {
             });
         }
 
-        let response: Result<EP::ResponseType> = {
-            let result = resp.json().await;
-            if result.is_err() {
-                log::error!(
-                    "problem parsing response to {} {url} as JSON: {}",
-                    EP::METHOD,
-                    result.unwrap_err()
-                );
-                return Result::Err(ErrorCode::InternalClientError);
-            }
-            result.unwrap()
-        };
+        let payload =
+            Payload::<<EP::ResponseType as PayloadTrait>::JsonType>::from_client_response(resp)
+                .await
+                .map_err(|err| {
+                    log::error!(
+                        "{agent}: {method} {url} failed to deserialize payload: {err:#}",
+                        method = EP::METHOD,
+                        agent = self.inner.agent,
+                    );
+                    ErrorCode::InternalError
+                })?;
 
         log::debug!(
-            "{}: {} {} returned {}",
-            self.inner.agent,
-            EP::METHOD,
-            &url,
-            fmt_ext::Json(&response)
+            "{agent}: {method} {url} returned {payload}",
+            agent = self.inner.agent,
+            method = EP::METHOD,
         );
 
-        response
+        EP::ResponseType::from_payload(payload).map_err(|err| {
+            log::error!(
+                "{agent}: {method} {url} failed to convert to {typename}: {err:#}",
+                typename = std::any::type_name::<EP::ResponseType>(),
+                method = EP::METHOD,
+                agent = self.inner.agent,
+            );
+            ErrorCode::InternalError
+        })
     }
 }

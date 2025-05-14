@@ -3,8 +3,8 @@ use std::rc::Rc;
 
 use actix_web::web;
 
-use crate::api;
 use crate::api::ApiResultExt as _;
+use crate::api::{self, NoPayload};
 use crate::handle;
 use crate::phcrypto;
 
@@ -27,7 +27,7 @@ impl App {
 
         let resp = app
             .client
-            .query::<api::hub::Info>(&hub.info_url, &())
+            .query::<api::hub::Info>(&hub.info_url, NoPayload)
             .await
             .into_server_result()?;
 

@@ -9,8 +9,8 @@ use serde::{Deserialize, Serialize};
 /// Called by the global client to get, for example, the list of supported attribute types.
 pub struct WelcomeEP {}
 impl EndpointDetails for WelcomeEP {
-    type RequestType = ();
-    type ResponseType = WelcomeResp;
+    type RequestType = NoPayload;
+    type ResponseType = Result<WelcomeResp>;
 
     const METHOD: http::Method = http::Method::GET;
     const PATH: &'static str = ".ph/welcome";
@@ -26,7 +26,7 @@ pub struct WelcomeResp {
 pub struct AuthStartEP {}
 impl EndpointDetails for AuthStartEP {
     type RequestType = AuthStartReq;
-    type ResponseType = AuthStartResp;
+    type ResponseType = Result<AuthStartResp>;
 
     const METHOD: http::Method = http::Method::POST;
     const PATH: &'static str = ".ph/auth/start";
@@ -87,7 +87,7 @@ pub enum AuthTask {
 pub struct AuthCompleteEP {}
 impl EndpointDetails for AuthCompleteEP {
     type RequestType = AuthCompleteReq;
-    type ResponseType = AuthCompleteResp;
+    type ResponseType = Result<AuthCompleteResp>;
 
     const METHOD: http::Method = http::Method::POST;
     const PATH: &'static str = ".ph/auth/complete";

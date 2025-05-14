@@ -3,7 +3,7 @@ use crate::api::*;
 
 use std::collections::{HashMap, HashSet};
 
-use actix_web::http::header::{self, TryIntoHeaderValue as _};
+use actix_web::http::header;
 use serde::{Deserialize, Serialize};
 
 use crate::attr;
@@ -22,7 +22,7 @@ pub mod hub {
     pub struct TicketEP {}
     impl EndpointDetails for TicketEP {
         type RequestType = Signed<TicketReq>;
-        type ResponseType = Ticket;
+        type ResponseType = Result<Ticket>;
 
         const METHOD: http::Method = http::Method::POST;
         const PATH: &'static str = ".ph/hub/ticket";
@@ -50,7 +50,7 @@ pub mod hub {
     having_message_code!(TicketContent, PhcHubTicket);
 
     /// A [`Signed`] message together with a [`Ticket`].
-    #[derive(Serialize, Deserialize, Debug)]
+    #[derive(Serialize, Deserialize, Debug, Clone)]
     #[serde(deny_unknown_fields)]
     pub struct TicketSigned<T> {
         pub ticket: Ticket,
@@ -84,8 +84,8 @@ pub mod user {
     /// Provides the global client with basic details about the current PubHubs setup.
     pub struct WelcomeEP {}
     impl EndpointDetails for WelcomeEP {
-        type RequestType = ();
-        type ResponseType = WelcomeResp;
+        type RequestType = NoPayload;
+        type ResponseType = Result<WelcomeResp>;
 
         const METHOD: http::Method = http::Method::GET;
         const PATH: &'static str = ".ph/user/welcome";
@@ -103,7 +103,7 @@ pub mod user {
     pub struct EnterEP {}
     impl EndpointDetails for EnterEP {
         type RequestType = EnterReq;
-        type ResponseType = EnterResp;
+        type ResponseType = Result<EnterResp>;
 
         const METHOD: http::Method = http::Method::POST;
         const PATH: &'static str = ".ph/user/enter";
@@ -248,8 +248,8 @@ pub mod user {
     /// Get state of the current user
     pub struct StateEP {}
     impl EndpointDetails for StateEP {
-        type RequestType = ();
-        type ResponseType = StateResp;
+        type RequestType = NoPayload;
+        type ResponseType = Result<StateResp>;
 
         const METHOD: http::Method = http::Method::GET;
         const PATH: &'static str = ".ph/user/state";
@@ -279,6 +279,7 @@ pub mod user {
 
         /// Objects stored for this user
         pub stored_objects: HashMap<handle::Handle, UserObjectDetails>,
+        // TODO: add information on Quota
     }
 
     /// Details on an object stored at pubhubs central for a user.
@@ -301,10 +302,12 @@ pub mod user {
     /// This allows HTTP caching without leaking the access token to the cache.
     pub struct GetObjectEP {}
     impl EndpointDetails for GetObjectEP {
-        type RequestType = ();
-        /// Of course the response to [`GetObjectEP`] will be an octet stream, but when there is an
-        /// error, the response content-type will be `application/json` encoding an [`GetObjectResp`].
-        type ResponseType = GetObjectResp;
+        type RequestType = NoPayload;
+
+        /// Generally the API endpoints return `application/json` encoding `Result<ResponseType>`,
+        /// but this endpoint is different.  It returns either an `application/json` encoding an
+        /// `Result<GetObjectResp>` (when there's a problem) or an `application/octet-stream` containing just `bytes::Bytes`.
+        type ResponseType = Payload<Result<GetObjectResp>>;
 
         const METHOD: http::Method = http::Method::GET;
         const PATH: &'static str = ".ph/user/obj/by-hash/{hash}/{hmac}";
@@ -329,42 +332,22 @@ pub mod user {
     /// Stores a new object at pubhubs central, under the given `handle`.
     pub struct NewObjectEP {}
     impl EndpointDetails for NewObjectEP {
-        type RequestType = bytes::Bytes;
-        type ResponseType = StoreObjectResp;
+        type RequestType = BytesPayload;
+        type ResponseType = Result<StoreObjectResp>;
 
         const METHOD: http::Method = http::Method::POST;
         const PATH: &'static str = ".ph/user/obj/by-handle/{handle}";
-
-        fn request_content_type() -> http::HeaderValue {
-            header::ContentType::octet_stream()
-                .try_into_value()
-                .unwrap()
-        }
-
-        fn serialize_request_type(req: &bytes::Bytes) -> bytes::Bytes {
-            req.clone()
-        }
     }
 
     /// Stores an object at pubhubs central under the given `handle`, overwriting the previous
     /// object stored there.
     pub struct OverwriteObjectEP {}
     impl EndpointDetails for OverwriteObjectEP {
-        type RequestType = bytes::Bytes;
-        type ResponseType = StoreObjectResp;
+        type RequestType = BytesPayload;
+        type ResponseType = Result<StoreObjectResp>;
 
         const METHOD: http::Method = http::Method::POST;
         const PATH: &'static str = ".ph/user/obj/by-hash/{handle}/{overwrite_hash}";
-
-        fn request_content_type() -> http::HeaderValue {
-            header::ContentType::octet_stream()
-                .try_into_value()
-                .unwrap()
-        }
-
-        fn serialize_request_type(req: &bytes::Bytes) -> bytes::Bytes {
-            req.clone()
-        }
     }
 
     /// Returned by [`NewObjectEP`] and [`OverwriteObjectEP`].

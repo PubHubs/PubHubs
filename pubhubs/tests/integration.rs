@@ -2,7 +2,7 @@
 
 use actix_web::web;
 use pubhubs::{
-    api::{self, ApiResultExt as _},
+    api::{self, ApiResultExt as _, BytesPayload, NoPayload},
     attr, client, elgamal, hub,
     misc::jwt,
     servers::{self, yivi},
@@ -407,10 +407,11 @@ async fn main_integration_test_local(
         panic!();
     };
 
-    let api::phc::user::StoreObjectResp::Stored { hash: _hash } = client
+    // store object
+    let api::phc::user::StoreObjectResp::Stored { hash } = client
         .query::<api::phc::user::NewObjectEP>(
             &constellation.phc_url,
-            &bytes::Bytes::from_static(b"object contents!"),
+            &BytesPayload(bytes::Bytes::from_static(b"object contents!")),
         )
         .path_param("handle", "objhandle")
         .auth_header(auth_token.clone())
@@ -420,6 +421,68 @@ async fn main_integration_test_local(
     else {
         panic!()
     };
+
+    // creating same object fails
+    assert!(matches!(
+        client
+            .query::<api::phc::user::NewObjectEP>(
+                &constellation.phc_url,
+                &BytesPayload(bytes::Bytes::from_static(b"object contents! 2")),
+            )
+            .path_param("handle", "objhandle")
+            .auth_header(auth_token.clone())
+            .with_retry()
+            .await
+            .unwrap(),
+        api::phc::user::StoreObjectResp::MissingHash
+    ));
+
+    // overriding the object should work
+    let api::phc::user::StoreObjectResp::Stored { hash: new_hash } = client
+        .query::<api::phc::user::OverwriteObjectEP>(
+            &constellation.phc_url,
+            BytesPayload(bytes::Bytes::from_static(b"object contents! 2")),
+        )
+        .path_param("handle", "objhandle")
+        .path_param("overwrite_hash", hash.to_string())
+        .auth_header(auth_token.clone())
+        .with_retry()
+        .await
+        .unwrap()
+    else {
+        panic!()
+    };
+
+    // retrieve user state
+    let api::phc::user::StateResp::State(user_state) = client
+        .query::<api::phc::user::StateEP>(&constellation.phc_url, NoPayload)
+        .auth_header(auth_token.clone())
+        .with_retry()
+        .await
+        .unwrap()
+    else {
+        panic!()
+    };
+
+    let api::phc::user::UserObjectDetails {
+        hash: obj_hash,
+        hmac: obj_hmac,
+        size: obj_size,
+    } = user_state
+        .stored_objects
+        .get(&"objhandle".parse().unwrap())
+        .unwrap();
+
+    assert_eq!(*obj_hash, new_hash);
+    assert_eq!(*obj_size, "object contents! 2".len() as u32);
+
+    // retrieve object
+    let bytes = client
+        .query::<api::phc::user::GetObjectEP>(&constellation.phc_url, NoPayload)
+        .path_param("hash", new_hash.to_string())
+        .path_param("hmac", obj_hmac.to_string())
+        .with_retry()
+        .await;
 }
 
 /// Contents of a disclosure session request JWT

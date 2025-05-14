@@ -10,13 +10,13 @@ use serde::{Deserialize, Serialize};
 pub struct UpdateConfig {}
 impl EndpointDetails for UpdateConfig {
     type RequestType = Signed<UpdateConfigReq>;
-    type ResponseType = UpdateConfigResp;
+    type ResponseType = Result<UpdateConfigResp>;
 
     const METHOD: http::Method = http::Method::POST;
     const PATH: &'static str = ".ph/admin/update-config";
 }
 
-#[derive(Serialize, Deserialize, Debug)]
+#[derive(Serialize, Deserialize, Debug, Clone)]
 #[serde(deny_unknown_fields)]
 pub struct UpdateConfigReq {
     /// JSON Pointer (see RFC6901) to the part of the configuration that is to be changed
@@ -27,7 +27,7 @@ pub struct UpdateConfigReq {
     pub new_value: serde_json::Value,
 }
 
-#[derive(Serialize, Deserialize, Debug)]
+#[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct UpdateConfigResp {}
 
 having_message_code!(UpdateConfigReq, AdminUpdateConfigReq);
@@ -40,18 +40,18 @@ having_message_code!(UpdateConfigReq, AdminUpdateConfigReq);
 pub struct Info {}
 impl EndpointDetails for Info {
     type RequestType = Signed<InfoReq>;
-    type ResponseType = InfoResp;
+    type ResponseType = Result<InfoResp>;
 
     const METHOD: http::Method = http::Method::POST;
     const PATH: &'static str = ".ph/admin/info";
 }
 
-#[derive(Serialize, Deserialize, Debug)]
+#[derive(Serialize, Deserialize, Debug, Clone)]
 #[serde(deny_unknown_fields)]
 pub struct InfoReq {}
 
 having_message_code!(InfoReq, AdminInfoReq);
-#[derive(Serialize, Deserialize, Debug)]
+#[derive(Serialize, Deserialize, Debug, Clone)]
 #[serde(deny_unknown_fields)]
 pub struct InfoResp {
     /// Current server configuration

@@ -5,8 +5,8 @@ use crate::elgamal;
 
 pub struct DiscoveryInfo {}
 impl EndpointDetails for DiscoveryInfo {
-    type RequestType = ();
-    type ResponseType = DiscoveryInfoResp;
+    type RequestType = NoPayload;
+    type ResponseType = Result<DiscoveryInfoResp>;
 
     const METHOD: http::Method = http::Method::GET;
     const PATH: &'static str = ".ph/discovery/info";
@@ -14,15 +14,15 @@ impl EndpointDetails for DiscoveryInfo {
 
 pub struct DiscoveryRun {}
 impl EndpointDetails for DiscoveryRun {
-    type RequestType = ();
-    type ResponseType = DiscoveryRunResp;
+    type RequestType = NoPayload;
+    type ResponseType = Result<DiscoveryRunResp>;
 
     const METHOD: http::Method = http::Method::POST;
     const PATH: &'static str = ".ph/discovery/run";
 }
 
 /// What's returned by the `.ph/discovery/info` endpoint
-#[derive(Serialize, Deserialize, Debug)]
+#[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct DiscoveryInfoResp {
     pub name: crate::servers::Name,
 
@@ -49,7 +49,7 @@ pub struct DiscoveryInfoResp {
 }
 
 /// Result of the `.ph/discovery/run` endpoint
-#[derive(Serialize, Deserialize, Debug, PartialEq, Eq)]
+#[derive(Serialize, Deserialize, Debug, PartialEq, Eq, Clone)]
 pub enum DiscoveryRunResp {
     /// Everything checks out at our side
     UpToDate,
