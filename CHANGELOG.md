@@ -13,6 +13,7 @@ _Please add a brief description of any changes and any migrations to be performe
 - [BUG] In the hub description words were split between 2 lines
 - [FIX] The size of the icons on the badges for secured rooms was too large
 - [FIX] Users enter the rooms directly after they have joined.
+- [FIX] Active rooms, home menu and admin menu are higlighted when clicked.
 
 ## 01 May 2025 - v2.0.5
 _NOTE:_ Tag (v.2.0.3 and v.2.0.4) was updated couple of times due to some issues identified after each tag was added.
