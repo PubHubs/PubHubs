@@ -17,6 +17,7 @@ impl EndpointDetails for UpdateConfig {
 }
 
 #[derive(Serialize, Deserialize, Debug)]
+#[serde(deny_unknown_fields)]
 pub struct UpdateConfigReq {
     /// JSON Pointer (see RFC6901) to the part of the configuration that is to be changed
     ///
@@ -46,10 +47,12 @@ impl EndpointDetails for Info {
 }
 
 #[derive(Serialize, Deserialize, Debug)]
+#[serde(deny_unknown_fields)]
 pub struct InfoReq {}
 
 having_message_code!(InfoReq, AdminInfoReq);
 #[derive(Serialize, Deserialize, Debug)]
+#[serde(deny_unknown_fields)]
 pub struct InfoResp {
     /// Current server configuration
     pub config: crate::servers::Config,

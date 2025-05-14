@@ -31,6 +31,7 @@ pub mod hub {
     having_message_code!(TicketReq, PhcHubTicketReq);
 
     #[derive(Serialize, Deserialize, Debug, Clone)]
+    #[serde(deny_unknown_fields)]
     pub struct TicketReq {
         pub handle: crate::handle::Handle,
     }
@@ -40,6 +41,7 @@ pub mod hub {
     /// A ticket, a [`Signed`] [`TicketContent`], certifies that the hub uses the given
     /// `verifying_key`.
     #[derive(Serialize, Deserialize, Debug, Clone)]
+    #[serde(deny_unknown_fields)]
     pub struct TicketContent {
         pub handle: crate::handle::Handle,
         pub verifying_key: VerifyingKey,
@@ -49,6 +51,7 @@ pub mod hub {
 
     /// A [`Signed`] message together with a [`Ticket`].
     #[derive(Serialize, Deserialize, Debug)]
+    #[serde(deny_unknown_fields)]
     pub struct TicketSigned<T> {
         pub ticket: Ticket,
         signed: Signed<T>,
@@ -90,6 +93,7 @@ pub mod user {
 
     /// Returned by [`WelcomeEP`].
     #[derive(Serialize, Deserialize, Debug, Clone)]
+    #[serde(deny_unknown_fields)]
     pub struct WelcomeResp {
         pub constellation: Constellation,
         pub hubs: HashMap<handle::Handle, crate::hub::BasicInfo>,
@@ -114,6 +118,7 @@ pub mod user {
     /// [`identifying_attr`]: Self::identifying_attr
     /// [`add_attrs`]: Self::add_attrs
     #[derive(Serialize, Deserialize, Debug, Clone)]
+    #[serde(deny_unknown_fields)]
     pub struct EnterReq {
         /// [`Attr`]ibute identifying the user.
         ///
@@ -133,6 +138,7 @@ pub mod user {
 
     /// Returned by [`EnterEP`].
     #[derive(Serialize, Deserialize, Debug, Clone)]
+    #[serde(deny_unknown_fields)]
     #[serde(rename = "snake_case")]
     pub enum EnterResp {
         /// Happens only in [`EnterMode::Login`]
@@ -168,6 +174,7 @@ pub mod user {
 
     /// Why no id token was granted
     #[derive(Serialize, Deserialize, Debug, Clone, Copy, PartialEq, Eq)]
+    #[serde(deny_unknown_fields)]
     pub enum AuthTokenDeniedReason {
         /// No bannable attribute associated to account.
         ///
@@ -178,6 +185,7 @@ pub mod user {
 
     /// Whether to login, register, or both.
     #[derive(Default, Serialize, Deserialize, Debug, Clone, Copy, PartialEq, Eq)]
+    #[serde(deny_unknown_fields)]
     pub enum EnterMode {
         /// Log in to an existing account
         #[default]
@@ -192,6 +200,7 @@ pub mod user {
 
     /// Result of trying to add an attribute via [`EnterEP`].
     #[derive(Serialize, Deserialize, Debug, Clone, Copy, PartialEq, Eq)]
+    #[serde(deny_unknown_fields)]
     #[serde(rename = "snake_case")]
     pub enum AttrAddStatus {
         /// Did nothing - the attribute was already there
@@ -248,6 +257,7 @@ pub mod user {
 
     /// Result of retrieving a user's state
     #[derive(Serialize, Deserialize, Debug, Clone)]
+    #[serde(deny_unknown_fields)]
     #[serde(rename = "snake_case")]
     pub enum StateResp {
         /// The auth provided is expired or otherwise invalid.  Obtain a new one and retry.
@@ -259,6 +269,7 @@ pub mod user {
 
     /// State of a user's account at pubhubs as shown to the user.
     #[derive(Serialize, Deserialize, Debug, Clone)]
+    #[serde(deny_unknown_fields)]
     pub struct UserState {
         /// Attributes that may be used to log in as this user.
         pub allow_login_by: HashSet<Id>,
@@ -272,6 +283,7 @@ pub mod user {
 
     /// Details on an object stored at pubhubs central for a user.
     #[derive(Serialize, Deserialize, Debug, Clone)]
+    #[serde(deny_unknown_fields)]
     pub struct UserObjectDetails {
         /// Identifier for this object - does not change
         pub hash: Id,
@@ -301,6 +313,7 @@ pub mod user {
     /// Returned by [`GetObjectEP`] when there's a problem.  When there's no problem an octet
     /// stream is returned instead.
     #[derive(Serialize, Deserialize, Debug, Clone)]
+    #[serde(deny_unknown_fields)]
     #[serde(rename = "snake_case")]
     pub enum GetObjectResp {
         /// The `hmac` you sent is invalid, probably because it is outdated.
@@ -356,6 +369,7 @@ pub mod user {
 
     /// Returned by [`NewObjectEP`] and [`OverwriteObjectEP`].
     #[derive(Serialize, Deserialize, Debug, Clone)]
+    #[serde(deny_unknown_fields)]
     #[serde(rename = "snake_case")]
     pub enum StoreObjectResp {
         /// Please retry the same request again.  This may happen when another call changed the
@@ -398,6 +412,7 @@ pub mod user {
 
     /// Quota for a user
     #[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Eq)]
+    #[serde(deny_unknown_fields)]
     pub struct Quota {
         /// Total number of objects allowed for a user
         pub object_count: u16,
@@ -417,6 +432,7 @@ pub mod user {
 
     /// The different quota used in [`Quota`].
     #[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Eq)]
+    #[serde(deny_unknown_fields)]
     #[serde(rename_all = "snake_case")]
     pub enum QuotumName {
         ObjectCount,

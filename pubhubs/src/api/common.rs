@@ -144,6 +144,7 @@ impl<T> ApiResultExt for Result<T> {
 /// because error codes can be more easily processed by the calling code,
 /// should change less often, and can be easily translated.
 #[derive(Clone, Copy, Serialize, Deserialize, Debug, thiserror::Error, PartialEq, Eq)]
+#[serde(deny_unknown_fields)]
 pub enum ErrorCode {
     #[error("requested process already running")]
     AlreadyRunning,

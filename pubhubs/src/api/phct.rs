@@ -19,11 +19,13 @@ pub mod hub {
 
     // NOTE: we use an empty [`KeyReq`] instead of [`()`] just to be able to add a `MessageCode`.
     #[derive(Serialize, Deserialize, Debug, Clone)]
+    #[serde(deny_unknown_fields)]
     pub struct KeyReq {}
 
     having_message_code!(KeyReq, PhcTHubKeyReq);
 
     #[derive(Serialize, Deserialize, Debug)]
+    #[serde(deny_unknown_fields)]
     pub struct KeyResp {
         pub key_part: Scalar,
     }

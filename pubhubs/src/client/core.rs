@@ -224,7 +224,7 @@ impl<EP: EndpointDetails + 'static> BorrowedQuerySetup<'_, EP> {
             let body = if EP::request_content_type().as_bytes() == b"application/json" {
                 format!("{}", fmt_ext::Json(&self.request))
             } else {
-                format!("[ binary data ]")
+                "[ ... binary data ... ]".to_string()
             };
 
             log::debug!(

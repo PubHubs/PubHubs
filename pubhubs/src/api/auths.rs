@@ -17,6 +17,7 @@ impl EndpointDetails for WelcomeEP {
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
+#[serde(deny_unknown_fields)]
 pub struct WelcomeResp {
     /// Available attribute types
     pub attr_types: std::collections::HashMap<handle::Handle, attr::Type>,
@@ -35,6 +36,7 @@ impl EndpointDetails for AuthStartEP {
 ///
 /// Results in `ErrorCode::UnknownAttributeType` if one of the attribute types is not known.
 #[derive(Serialize, Deserialize, Debug, Clone)]
+#[serde(deny_unknown_fields)]
 pub struct AuthStartReq {
     /// Which source to use (e.g. yivi)
     pub source: crate::attr::Source,
@@ -44,6 +46,7 @@ pub struct AuthStartReq {
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
+#[serde(deny_unknown_fields)]
 pub struct AuthStartResp {
     /// Task for the global client to satisfy the authentication server.
     /// Depends on the requested attribute types
@@ -68,6 +71,7 @@ impl AuthState {
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
+#[serde(deny_unknown_fields)]
 pub enum AuthTask {
     /// Have the end-user disclose to the specified yivi server.
     /// The authentication server only creates the signed (disclosure) session request,
@@ -90,6 +94,7 @@ impl EndpointDetails for AuthCompleteEP {
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
+#[serde(deny_unknown_fields)]
 pub struct AuthCompleteReq {
     /// Proof that the end-user possesses the requested attributes.
     pub proof: AuthProof,
@@ -99,6 +104,7 @@ pub struct AuthCompleteReq {
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
+#[serde(deny_unknown_fields)]
 pub enum AuthProof {
     Yivi {
         /// The JWT returned by the yivi server's `/session/(...)/result-jwt` after completing a session
@@ -108,6 +114,7 @@ pub enum AuthProof {
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
+#[serde(deny_unknown_fields)]
 pub struct AuthCompleteResp {
     pub attrs: std::collections::HashMap<handle::Handle, Signed<attr::Attr>>,
 }

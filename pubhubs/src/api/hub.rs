@@ -14,6 +14,7 @@ impl EndpointDetails for Info {
 }
 
 #[derive(Serialize, Deserialize, Debug)]
+#[serde(deny_unknown_fields)]
 pub struct InfoResp {
     /// Key used by the hub to sign requests to the other hubs with
     pub verifying_key: VerifyingKey,

@@ -89,9 +89,7 @@ impl Display for Bytes<'_> {
             }
         }
 
-        print!("{} {}", truncated, result.len());
         if truncated && result.len() >= 3 {
-            print!("HSAKAJSOD");
             let result_len = result.len();
             result[result_len - 3..].copy_from_slice(b"...");
         }
