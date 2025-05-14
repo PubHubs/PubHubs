@@ -159,6 +159,7 @@ const nl = {
 		leave_admin: 'Waarschuwing: je bent de enige beheerder in de kamer. Als je de kamer velaat zal deze geen beheerder meer hebben.',
 		leave_only_admin: 'Waarschuwing: je bent de maker van de kamer en het enige lid van de kamer. Al je weggaat, wordt de kamer verwijderd.',
 		hide_sure: 'Weet je zeker dat je deze privé kamer onzichtbaar wilt maken?',
+		try_again: 'Kan niet deelnemen aan kamer. Probeer het opnieuw.',
 		new_message: 'Bericht',
 		members: 'leden',
 		member: 'lid',
