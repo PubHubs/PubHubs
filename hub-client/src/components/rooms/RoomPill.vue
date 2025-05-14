@@ -32,13 +32,20 @@
 	import { ref } from 'vue';
 	import { router } from '@/logic/core/router';
 	import { usePubHubs } from '@/logic/core/pubhubsStore';
+	import { useUser } from '@/logic/store/user';
+	import { useDialog } from '@/logic/store/dialog';
+
 	import { useI18n } from 'vue-i18n';
 	import { TPublicRoom } from '@/logic/store/rooms';
+
 	import SecuredRoomLogin from '../ui/SecuredRoomLogin.vue';
 
 	const pubhubs = usePubHubs();
+	const user = useUser();
+	const dialog = useDialog();
+
 	const { t } = useI18n();
-	t;
+
 	const expanded = ref(false);
 	const joinedARoom = ref(false);
 	const panelOpen = ref(true);
@@ -68,9 +75,33 @@
 			panelOpen.value = true; // Resets the ref so that the panel can be opened and closed multiple times.
 		} else {
 			joinedARoom.value = true;
-			setTimeout(() => {
-				pubhubs.joinRoom(props.room.room_id);
-			}, 1000);
+
+			await pubhubs.joinRoom(props.room.room_id);
+
+			// Wait with timeout for user to join the room
+			const startTime = Date.now();
+			const maxWaitTime = 10000; // 10 seconds timeout
+
+			let hasJoined = false;
+
+			while (!hasJoined) {
+				// Check if joined
+				hasJoined = await pubhubs.isUserRoomMember(user.user.userId, props.room.room_id);
+
+				if (hasJoined) {
+					goToRoom();
+					return;
+				}
+
+				// Check if we've exceeded the timeout
+				if (Date.now() - startTime > maxWaitTime) {
+					dialog.confirm(t('rooms.try_again'));
+					joinedARoom.value = false;
+				}
+
+				// Wait a bit before checking again
+				await new Promise((resolve) => setTimeout(resolve, 500));
+			}
 		}
 	}
 

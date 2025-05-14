@@ -159,6 +159,7 @@ const en = {
 		leave_admin: 'Warning: You are the only admin in the room. If you leave the room, there will be no admin.',
 		leave_only_admin: 'Warning: You are the creator & only member of the room. If you leave, theroom will be deleted.',
 		hide_sure: 'Do you really want to hide this private room?',
+		try_again: 'Cannot join room. Please try again.',
 		new_message: 'Message',
 		members: 'members',
 		member: 'member',
