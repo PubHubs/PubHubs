@@ -4,13 +4,14 @@ type MenuItem = {
 	key: string; // i18n key for name
 	icon?: string;
 	to: any; // router-to object
+	path?: string;
 };
 
 type MenuItems = Array<MenuItem>;
 
 const defaultMenu: MenuItems = [
-	{ key: 'menu.home', icon: 'home', to: { name: 'home' } },
-	{ key: 'menu.discover', icon: 'compass', to: { name: 'discover-rooms' } },
+	{ key: 'menu.home', icon: 'home', to: { name: 'home' }, path: '/' },
+	{ key: 'menu.discover', icon: 'compass', to: { name: 'discover-rooms' }, path: '/discoverrooms' },
 ];
 
 const useMenu = defineStore('menu', {
@@ -40,6 +41,13 @@ const useMenu = defineStore('menu', {
 
 		setActiveMenuItem(id: String) {
 			this.activeMenuItemId = id;
+		},
+
+		getMenuItemPath(routeName: string) {
+			return this.$state.menu
+				.filter((menuItem) => menuItem.to['name'] === routeName)
+				.map((filteredMenuItem) => filteredMenuItem.path)
+				.pop();
 		},
 	},
 });

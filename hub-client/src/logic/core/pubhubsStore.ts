@@ -379,6 +379,7 @@ const usePubHubs = defineStore('pubhubs', {
 					name = updatePrivateRoomName(name, me, false);
 					this.renameRoom(existingRoomId, name);
 				}
+				return { room_id: existingRoomId };
 			}
 
 			// If realy not exists, create new
