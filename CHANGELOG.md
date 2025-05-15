@@ -9,6 +9,7 @@ _Please add a brief description of any changes and any migrations to be performe
  * _[BREAKING] - If it is a breaking change that needs changes done on the deployment/installation/settings_
  * _(Use the [MIGRATE] and [BREAKING] prefixes together with another one if that makes more sense.)_
 
+- [FIX] Users can enter public rooms after they have joined it.
 
 ## 15 May 2025 - v2.0.6
 - [NEW] There is now a max length for the summary text with a max word counter to keep track
