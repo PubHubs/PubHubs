@@ -86,7 +86,7 @@
 	import { computed, ref } from 'vue';
 	import Logo from '@/components/ui/Logo.vue';
 	import { useGlobal, useHubs } from '@/logic/store/store';
-	import { yivi } from '@/yivi';
+	import startYiviSession from '@/logic/utils/yiviHandler';
 
 	import HubBanner from '../../../hub-client/src/components/ui/HubBanner.vue';
 
@@ -101,10 +101,15 @@
 		return hubs.activeHubs.filter((hub) => hub.name.toLowerCase().includes(searchQuery.value.toLowerCase()) || hub.description.toLowerCase().includes(searchQuery.value.toLowerCase()));
 	});
 
-	function loadYivi() {
+	const loadYivi = () => {
 		show.value = !show.value;
-		yivi(false, yivi_token);
-	}
+
+		try {
+			startYiviSession(false, yivi_token);
+		} catch (error) {
+			console.error('Yivi session load failed:', error);
+		}
+	};
 
 	function closeYivi() {
 		show.value = false;

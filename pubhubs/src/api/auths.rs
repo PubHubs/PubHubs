@@ -1,6 +1,7 @@
 //! Additional endpoints provided by the authentication server
 use crate::api::*;
 use crate::misc::jwt;
+use crate::misc::serde_ext::bytes_wrapper::B64UU;
 use crate::{attr, handle};
 
 use serde::{Deserialize, Serialize};
@@ -55,12 +56,14 @@ pub struct AuthStartResp {
 #[derive(Serialize, Deserialize, Debug, Clone)]
 #[serde(transparent)]
 pub struct AuthState {
-    pub(crate) inner: serde_bytes::ByteBuf,
+    pub(crate) inner: B64UU,
 }
 
 impl AuthState {
     pub(crate) fn new(inner: serde_bytes::ByteBuf) -> Self {
-        Self { inner }
+        Self {
+            inner: inner.into(),
+        }
     }
 }
 
@@ -88,8 +91,10 @@ impl EndpointDetails for AuthCompleteEP {
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct AuthCompleteReq {
+    /// Proof that the end-user possesses the requested attributes.
     pub proof: AuthProof,
 
+    /// The [`AuthStartResp::state`] obtained earlier.
     pub state: AuthState,
 }
 

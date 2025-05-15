@@ -1,12 +1,14 @@
-use std::collections::HashMap;
+//! Basic server [`Details`]: [`Server`], [`App`], etc.
 use std::ops::{Deref, DerefMut};
 use std::rc::Rc;
 
 use actix_web::web;
+use digest::Digest as _;
 
 use crate::api::{self, ApiResultExt as _, EndpointDetails as _};
 use crate::client;
-use crate::handle;
+use crate::common::secret::DigestibleSecret as _;
+use crate::misc::crypto;
 use crate::misc::jwt;
 use crate::phcrypto;
 use crate::servers::{self, constellation, AppBase, AppCreatorBase, Constellation, Handle};
@@ -40,11 +42,14 @@ impl servers::Details for Details {
 }
 
 pub struct App {
-    base: AppBase<Server>,
-    transcryptor_url: url::Url,
-    auths_url: url::Url,
-    hubs: crate::map::Map<hub::BasicInfo>,
-    master_enc_key_part: elgamal::PrivateKey,
+    pub base: AppBase<Server>,
+    pub transcryptor_url: url::Url,
+    pub auths_url: url::Url,
+    pub hubs: crate::map::Map<hub::BasicInfo>,
+    pub master_enc_key_part: elgamal::PrivateKey,
+    pub attr_id_secret: Box<[u8]>,
+    pub auth_token_secret: crypto::SealingKey,
+    pub auth_token_validity: core::time::Duration,
 }
 
 impl Deref for App {
@@ -58,24 +63,28 @@ impl Deref for App {
 #[derive(Clone, Debug)]
 pub struct ExtraRunningState {
     /// Shared secret with transcryptor
-    t_ss: elgamal::SharedSecret,
+    pub(super) t_ss: elgamal::SharedSecret,
 
     /// Shared secret with authentication server
     #[expect(dead_code)]
-    auths_ss: elgamal::SharedSecret,
+    pub(super) auths_ss: elgamal::SharedSecret,
 
     /// Key used to sign [`Attr`]s, shared with the authentication server
     ///
     /// [`Attr`]: crate::attr::Attr
-    attr_signing_key: jwt::HS256,
+    pub(super) attr_signing_key: jwt::HS256,
 }
 
 impl crate::servers::App<Server> for App {
     fn configure_actix_app(self: &Rc<Self>, sc: &mut web::ServiceConfig) {
         api::phc::hub::TicketEP::add_to(self, sc, App::handle_hub_ticket);
         api::phct::hub::Key::add_to(self, sc, App::handle_hub_key);
+
         api::phc::user::WelcomeEP::caching_add_to(self, sc, App::cached_handle_user_welcome);
         api::phc::user::EnterEP::add_to(self, sc, App::handle_user_enter);
+
+        api::phc::user::NewObjectEP::add_to(self, sc, App::handle_user_new_object);
+        api::phc::user::OverwriteObjectEP::add_to(self, sc, App::handle_user_overwrite_object);
     }
 
     fn check_constellation(&self, _constellation: &Constellation) -> bool {
@@ -240,110 +249,18 @@ impl App {
         }
         .check(tdi, url)
     }
-
-    async fn handle_hub_ticket(
-        app: Rc<Self>,
-        signed_req: web::Json<api::Signed<api::phc::hub::TicketReq>>,
-    ) -> api::Result<api::Signed<api::phc::hub::TicketContent>> {
-        let signed_req = signed_req.into_inner();
-
-        let req = signed_req.clone().open_without_checking_signature()?;
-
-        let hub = app
-            .hubs
-            .get(&req.handle)
-            .ok_or(api::ErrorCode::UnknownHub)?;
-
-        let resp = app
-            .client
-            .query::<api::hub::Info>(&hub.info_url, &())
-            .await
-            .into_server_result()?;
-
-        // check that the request indeed came from the hub
-        signed_req
-            .old_open(&*resp.verifying_key)
-            .inspect_err(|ec| {
-                log::warn!(
-                    "could not verify authenticity of hub ticket request for hub {}: {ec}",
-                    req.handle,
-                )
-            })?;
-
-        // if so, hand out ticket
-        api::Signed::new(
-            &*app.jwt_key,
-            &api::phc::hub::TicketContent {
-                handle: req.handle,
-                verifying_key: resp.verifying_key,
-            },
-            std::time::Duration::from_secs(3600 * 24), /* = one day */
-        )
-    }
-
-    async fn handle_hub_key(
-        app: Rc<Self>,
-        signed_req: web::Json<api::phc::hub::TicketSigned<api::phct::hub::KeyReq>>,
-    ) -> api::Result<api::phct::hub::KeyResp> {
-        let running_state = &app.running_state_or_not_yet_ready()?;
-
-        let ts_req = signed_req.into_inner();
-
-        let ticket_digest = phcrypto::TicketDigest::new(&ts_req.ticket);
-
-        let (_, _): (api::phct::hub::KeyReq, handle::Handle) =
-            ts_req.open(&app.jwt_key.verifying_key())?;
-
-        // At this point we can be confident that the ticket is authentic, so we can give the hub
-        // its decryption key based on the provided ticket
-
-        let key_part: curve25519_dalek::Scalar = phcrypto::phc_hub_key_part(
-            ticket_digest,
-            &running_state.t_ss, // shared secret with transcryptor
-            &app.master_enc_key_part,
-        );
-
-        Ok(api::phct::hub::KeyResp { key_part })
-    }
-
-    fn cached_handle_user_welcome(app: &Self) -> api::Result<api::phc::user::WelcomeResp> {
-        let running_state = app.running_state_or_not_yet_ready()?;
-
-        let hubs: HashMap<handle::Handle, hub::BasicInfo> = app
-            .hubs
-            .values()
-            .map(|hub| (hub.handles.preferred().clone(), hub.clone()))
-            .collect();
-
-        Ok(api::phc::user::WelcomeResp {
-            constellation: (*running_state.constellation).clone(),
-            hubs,
-        })
-    }
-
-    async fn handle_user_enter(
-        app: Rc<Self>,
-        req: web::Json<api::phc::user::EnterReq>,
-    ) -> api::Result<api::phc::user::EnterResp> {
-        let req = req.into_inner();
-
-        let running_state = &app.running_state_or_not_yet_ready()?;
-
-        let _resp = req
-            .identifying_attr
-            .old_open(&running_state.attr_signing_key);
-
-        todo! {}
-    }
 }
 
 #[derive(Clone)]
 pub struct AppCreator {
-    base: AppCreatorBase<Server>,
-    transcryptor_url: url::Url,
-    auths_url: url::Url,
-    hubs: crate::map::Map<hub::BasicInfo>,
-    master_enc_key_part: elgamal::PrivateKey,
+    pub base: AppCreatorBase<Server>,
+    pub transcryptor_url: url::Url,
+    pub auths_url: url::Url,
+    pub hubs: crate::map::Map<hub::BasicInfo>,
+    pub master_enc_key_part: elgamal::PrivateKey,
+    pub attr_id_secret: Box<[u8]>,
+    pub auth_token_secret: crypto::SealingKey,
+    pub auth_token_validity: core::time::Duration,
 }
 
 impl Deref for AppCreator {
@@ -368,6 +285,9 @@ impl crate::servers::AppCreator<Server> for AppCreator {
             auths_url: self.auths_url,
             hubs: self.hubs,
             master_enc_key_part: self.master_enc_key_part,
+            attr_id_secret: self.attr_id_secret,
+            auth_token_secret: self.auth_token_secret,
+            auth_token_validity: self.auth_token_validity,
         }
     }
 
@@ -387,12 +307,28 @@ impl crate::servers::AppCreator<Server> for AppCreator {
             .clone()
             .expect("master_enc_key_part not generated");
 
+        let base = AppCreatorBase::<Server>::new(config)?;
+
+        let auth_token_secret: crypto::SealingKey = base
+            .enc_key
+            .derive_sealing_key(sha2::Sha256::new(), "pubhubs-phc-auth-token-secret");
+
         Ok(Self {
-            base: AppCreatorBase::<Server>::new(config)?,
+            base,
             transcryptor_url: xconf.transcryptor_url.as_ref().clone(),
             auths_url: xconf.auths_url.as_ref().clone(),
             hubs,
             master_enc_key_part,
+            attr_id_secret: <serde_bytes::ByteBuf as Clone>::clone(
+                xconf
+                    .attr_id_secret
+                    .as_ref()
+                    .expect("attr_id_secret was not initialized"),
+            )
+            .into_vec()
+            .into_boxed_slice(),
+            auth_token_secret,
+            auth_token_validity: xconf.auth_token_validity,
         })
     }
 }

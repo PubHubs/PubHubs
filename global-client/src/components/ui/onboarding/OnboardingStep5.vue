@@ -43,12 +43,16 @@
 
 <script setup lang="ts">
 	import { onMounted, ref } from 'vue';
-	import { yivi } from '@/yivi';
+	import startYiviSession from '@/logic/utils/yiviHandler';
 
 	const yivi_token = ref<string>('');
 
 	onMounted(() => {
-		yivi(true, yivi_token);
+		try {
+			startYiviSession(true, yivi_token);
+		} catch (error) {
+			console.error('Yivi session on mount failed:', error);
+		}
 	});
 
 	window.addEventListener('pageshow', () => yivi(true, yivi_token));

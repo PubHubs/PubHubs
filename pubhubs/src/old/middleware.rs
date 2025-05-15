@@ -1,11 +1,11 @@
-use actix_web::dev::{forward_ready, Service, ServiceRequest, ServiceResponse, Transform};
-use actix_web::http::header::ContentType;
+use actix_web::dev::{Service, ServiceRequest, ServiceResponse, Transform, forward_ready};
 use actix_web::http::StatusCode;
+use actix_web::http::header::ContentType;
 use actix_web::web::Data;
-use actix_web::{error, Error, HttpMessage as _, HttpResponse};
+use actix_web::{Error, HttpMessage as _, HttpResponse, error};
 
 use std::fmt::{Debug, Display, Formatter};
-use std::future::{ready, Future, Ready};
+use std::future::{Future, Ready, ready};
 use std::pin::Pin;
 use std::rc::Rc;
 

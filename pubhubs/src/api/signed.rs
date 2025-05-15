@@ -81,7 +81,6 @@ impl<T> Signed<T> {
                 | jwt::Error::UnexpectedAlgorithm { .. } => OpenError::OtherwiseInvalid,
                 jwt::Error::InvalidSignature { /*claims,*/ .. } => {
                     // claims.check(CONSTELLATION_CLAIM, jwt::expecting::exactly())
-                    
                     // TODO: check if we're dealing with an outdated constellation
 
                     OpenError::OtherwiseInvalid

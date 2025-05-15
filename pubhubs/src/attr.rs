@@ -1,5 +1,7 @@
 //! Attributes, for identifying (and/or banning) end-users
 
+use std::collections::HashSet;
+
 use crate::common::secret;
 use crate::handle::{Handle, Handles};
 use crate::id::Id;
@@ -88,13 +90,15 @@ pub struct Attr {
 
     /// Actual value of this attribute, in a format that is [`Type`] dependent.
     pub value: String,
+
+    pub bannable: bool,
+    pub identifying: bool,
 }
 
 impl Attr {
     /// Derives an identifier for this attribute from [`Attr::value`] and [`Attr::attr_type`],
     /// and the given digestible secret.
-    #[expect(dead_code)]
-    fn id(&self, secret: impl secret::DigestibleSecret) -> Id {
+    pub fn id(&self, secret: impl secret::DigestibleSecret) -> Id {
         phcrypto::attr_id(self, secret)
     }
 }
@@ -105,11 +109,11 @@ crate::api::having_message_code! {Attr, Attr}
 /// State of an [`Attr`] according to pubhubs central.
 #[derive(serde::Deserialize, serde::Serialize, Debug, Clone)]
 pub struct AttrState {
-    attr: Id,
+    pub attr: Id,
 
     /// Whether this attribute has been banned.
     #[serde(default)]
-    banned: bool,
+    pub banned: bool,
 
     /// The user, if any, that this attribute can identify.
     ///
@@ -118,10 +122,30 @@ pub struct AttrState {
     /// Once set, this should never be unset.  This prevents impersonation of a user when
     /// they remove their id.
     #[serde(default)]
-    may_identify_user: Option<Id>,
+    pub may_identify_user: Option<Id>,
 
+    // TODO: limit size of this set
     /// The users that provided this attribute as bannable attribute.
     /// If this attribute gets banned, so will they.
     #[serde(default)]
-    bans_users: Vec<Id>,
+    pub bans_users: HashSet<Id>,
+}
+
+impl AttrState {
+    pub fn new(attr_id: Id, attr: &Attr, user_id: Id) -> Self {
+        Self {
+            attr: attr_id,
+            banned: false,
+            may_identify_user: if attr.identifying {
+                Some(user_id)
+            } else {
+                None
+            },
+            bans_users: if attr.bannable {
+                std::iter::once(user_id).collect()
+            } else {
+                Default::default()
+            },
+        }
+    }
 }

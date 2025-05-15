@@ -1,17 +1,17 @@
 //! Configuration (files)
 use core::fmt::Debug;
-use std::net::SocketAddr;
 use std::ops::{Deref, DerefMut};
 use std::path::{Path, PathBuf};
 
 use anyhow::{Context as _, Result};
 use url::Url;
 
+use crate::misc::serde_ext::bytes_wrapper::B64UU;
 use crate::servers::{for_all_servers, server::Server as _};
 use crate::{
     api::{self},
     attr, elgamal, hub,
-    misc::{jwt, time_ext},
+    misc::{jwt, serde_ext, time_ext},
     servers::yivi,
 };
 
@@ -70,7 +70,17 @@ pub(crate) enum PreparationState {
 #[derive(serde::Deserialize, serde::Serialize, Debug, Clone)]
 #[serde(deny_unknown_fields)]
 pub struct ServerConfig<ServerSpecific> {
-    pub bind_to: SocketAddr,
+    /// Port to bind this server to
+    #[serde(default)]
+    pub port: u16,
+
+    /// Ip addresses to bind to
+    #[serde(default = "default_ips")]
+    pub ips: Box<[std::net::IpAddr]>,
+
+    // Note: #[serde(skip)] does not consume the 'bind_to' key
+    /// Deprecated.
+    pub bind_to: serde_ext::Skip,
 
     /// Random string used by this server to identify itself.  Randomly generated if not set.
     /// May be set manually when multiple instances of the same server are used.
@@ -117,6 +127,23 @@ impl<X> DerefMut for ServerConfig<X> {
     }
 }
 
+fn default_ips() -> Box<[std::net::IpAddr]> {
+    Box::new([
+        // Bind :: first, as this may already bind 0.0.0.0 too;
+        // if 0.0.0.0 is bound first a separate service will be started for ::.
+        std::net::Ipv6Addr::UNSPECIFIED.into(), // ::
+        std::net::Ipv4Addr::UNSPECIFIED.into(), // 0.0.0.0
+    ])
+}
+
+impl<'a, X> std::net::ToSocketAddrs for &'a ServerConfig<X> {
+    type Iter = Box<dyn Iterator<Item = std::net::SocketAddr> + 'a>;
+
+    fn to_socket_addrs(&self) -> std::io::Result<Self::Iter> {
+        Ok(Box::new(self.ips.iter().map(|ip| (*ip, self.port).into())))
+    }
+}
+
 impl Config {
     /// Loads [Config] from `path` and generates random values.
     ///
@@ -129,7 +156,7 @@ impl Config {
                 std::io::ErrorKind::NotFound => return Ok(None),
                 _ => {
                     return Err(e)
-                        .with_context(|| format!("could not open config file {}", path.display()))
+                        .with_context(|| format!("could not open config file {}", path.display()));
                 }
             },
         })
@@ -298,6 +325,23 @@ pub mod phc {
         ///
         /// Generate using `cargo run tools generate scalar`.
         pub master_enc_key_part: Option<elgamal::PrivateKey>,
+
+        /// Secret used to derive [`Attr::id`]s.
+        ///
+        /// Randomly generated if not set, which is not suitable for production.
+        ///
+        /// [`Attr::id`]: crate::attr::Attr::id
+        pub attr_id_secret: Option<B64UU>,
+
+        /// Authentication tokens issued to the global client are valid for this duration.
+        #[serde(with = "time_ext::human_duration")]
+        #[serde(default = "default_auth_token_validity")]
+        pub auth_token_validity: core::time::Duration,
+    }
+
+    fn default_auth_token_validity() -> core::time::Duration {
+        // TODO: implement refreshing of expired tokens:
+        core::time::Duration::from_secs(60 * 60) // 1 hour
     }
 }
 
@@ -432,6 +476,10 @@ impl PrepareConfig<Pcc> for Config {
 
 impl<Extra: PrepareConfig<Pcc> + GetServerType> PrepareConfig<Pcc> for ServerConfig<Extra> {
     async fn prepare(&mut self, c: Pcc) -> anyhow::Result<()> {
+        if self.port == 0 {
+            self.port = Extra::ServerT::default_port();
+        }
+
         self.self_check_code
             .get_or_insert_with(crate::misc::crypto::random_alphanumeric);
 
@@ -476,6 +524,10 @@ impl PrepareConfig<Pcc> for phc::ExtraConfig {
     async fn prepare(&mut self, c: Pcc) -> anyhow::Result<()> {
         self.master_enc_key_part
             .get_or_insert_with(elgamal::PrivateKey::random);
+
+        self.attr_id_secret.get_or_insert_with(|| {
+            serde_bytes::ByteBuf::from(crate::misc::crypto::random_32_bytes()).into()
+        });
 
         let ha: &HostAliases = c.get::<HostAliases>().unwrap();
 

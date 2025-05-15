@@ -2,7 +2,7 @@ use std::collections::HashSet;
 use std::path::PathBuf;
 use std::str::FromStr;
 
-use anyhow::{anyhow, bail, ensure, Context as _, Result};
+use anyhow::{Context as _, Result, anyhow, bail, ensure};
 use log::{info, warn};
 use serde::{Deserialize, Serialize};
 
@@ -152,17 +152,18 @@ impl File {
                         p,
                         ENV
                     )
-                })
+                });
             }
             Err(std::env::VarError::NotPresent) => { /* break */ }
             Err(e) => {
                 return Err(e)
-                    .with_context(|| format!("could not read environmental variable {:?}", ENV))
+                    .with_context(|| format!("could not read environmental variable {:?}", ENV));
             }
         }
 
         info!(
-            "Environmental variable {:?} not set, searching for configuration at one of the default locations: {:?} ...", ENV, DEFAULT_PATHS,
+            "Environmental variable {:?} not set, searching for configuration at one of the default locations: {:?} ...",
+            ENV, DEFAULT_PATHS,
         );
 
         for p in DEFAULT_PATHS {

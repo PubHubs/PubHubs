@@ -3,10 +3,13 @@ use crate::api::*;
 
 use std::collections::HashMap;
 
+use actix_web::http::header;
 use serde::{Deserialize, Serialize};
 
 use crate::attr;
 use crate::handle;
+use crate::id::Id;
+use crate::misc::serde_ext::bytes_wrapper::B64UU;
 use crate::servers::Constellation;
 
 /// `.ph/hub/...` endpoints, used by hubs
@@ -102,6 +105,13 @@ pub mod user {
     }
 
     /// Request to log in to an existing account, or register a new one.
+    ///
+    /// May fail with [`ErrorCode::BadRequest`] when:
+    ///  - [`identifying_attr`] is not identifying
+    ///  - The same attribute appears twice among [`add_attrs`] and [`identifying_attr`].
+    ///
+    /// [`identifying_attr`]: Self::identifying_attr
+    /// [`add_attrs`]: Self::add_attrs
     #[derive(Serialize, Deserialize, Debug, Clone)]
     pub struct EnterReq {
         /// [`Attr`]ibute identifying the user.
@@ -109,16 +119,13 @@ pub mod user {
         /// [`Attr`]: attr::Attr
         pub identifying_attr: Signed<attr::Attr>,
 
-        /// Whether we want to create a new account if one does not exist.
+        /// The mode determines whether we want to create an account if none exists,
+        /// and whether we expect an account to exist.
         #[serde(default)]
-        pub permit_registration: bool,
-
-        /// Whether we expect no account to exist.
-        #[serde(default)]
-        pub expect_registration: bool,
+        pub mode: EnterMode,
 
         /// Add these attributes to your account, required, for example, when registering a new
-        /// account.
+        /// account, or when no bannable attribute is registered for this account.
         #[serde(default)]
         pub add_attrs: Vec<Signed<attr::Attr>>,
     }
@@ -126,24 +133,163 @@ pub mod user {
     #[derive(Serialize, Deserialize, Debug, Clone)]
     #[serde(rename = "snake_case")]
     pub enum EnterResp {
-        /// Can happen only when [`EnterReq::expect_registration`] is true
-        AccountAlreadyExists,
-
-        /// Can happen only ewhen [`EnterReq::permit_registration`] is false
+        /// Happens only in [`EnterMode::Login`]
         AccountDoesNotExist,
 
-        /// Login (and registration) was successful
+        /// This attribute is banned and therefore cannot be used.
+        AttributeBanned(attr::Attr),
+
+        /// Cannot login, because this account is banned.
+        Banned,
+
+        /// The given identifying attribute (in [`EnterReq::add_attrs`] or [`EnterReq::identifying_attr`])
+        /// is already tied to another account.
+        AttributeAlreadyTaken(attr::Attr),
+
+        /// Cannot register an account with these attributes:  no bannable attribute provided.
+        NoBannableAttribute,
+
+        /// The given identifying attribute (now) grants access to a pubhubs account.
         Entered {
             /// Whether we created a new account
             new_account: bool,
 
-            attr_status: HashMap<handle::Handle, AttrAddResp>,
+            /// An access token identifying the user towards pubhubs central.
+            ///
+            /// May not be provided, for example, when the user is banned, or if no bannable
+            /// attribute is currently associated to the user's account.
+            auth_token: std::result::Result<AuthToken, AuthTokenDeniedReason>,
+
+            attr_status: Vec<(attr::Attr, AttrAddStatus)>,
         },
     }
 
+    /// Why no id token was granted
+    #[derive(Serialize, Deserialize, Debug, Clone, Copy, PartialEq, Eq)]
+    pub enum AuthTokenDeniedReason {
+        /// No bannable attribute associated to account.
+        ///
+        /// May happen when a bannable attribute was provided in the [`EnterReq`], but adding this
+        /// attribute failed for some reason.  Just try to add the bannable attribute again.
+        NoBannableAttribute,
+    }
+
+    #[derive(Default, Serialize, Deserialize, Debug, Clone, Copy, PartialEq, Eq)]
+    pub enum EnterMode {
+        /// Log in to an existing account
+        #[default]
+        Login,
+
+        /// Register a new account
+        Register,
+
+        /// Log in to an existing account, or register one first if needed
+        LoginOrRegister,
+    }
+
+    #[derive(Serialize, Deserialize, Debug, Clone, Copy, PartialEq, Eq)]
+    #[serde(rename = "snake_case")]
+    pub enum AttrAddStatus {
+        /// Did nothing - the attribute was already there
+        AlreadyThere,
+
+        /// The attribute was added
+        Added,
+
+        /// Adding this attribute (partially) failed.
+        PleaseTryAgain,
+    }
+
+    /// An opaque token used to identify the user towards pubhubs central via the
+    /// `Authorization` header.  The token can be obtained via the [`EnterEP`].
+    #[derive(Serialize, Deserialize, Debug, Clone)]
+    #[serde(transparent)]
+    pub struct AuthToken {
+        pub(crate) inner: B64UU,
+    }
+
+    impl header::TryIntoHeaderValue for AuthToken {
+        type Error = std::convert::Infallible;
+
+        fn try_into_value(self) -> std::result::Result<header::HeaderValue, Self::Error> {
+            let vec: Vec<u8> = self.inner.into_inner().into_vec();
+
+            Ok(header::HeaderValue::try_from(vec).unwrap())
+        }
+    }
+
+    impl header::Header for AuthToken {
+        fn name() -> header::HeaderName {
+            header::AUTHORIZATION
+        }
+
+        fn parse<M: actix_web::HttpMessage>(
+            msg: &M,
+        ) -> std::result::Result<Self, actix_web::error::ParseError> {
+            Ok(AuthToken {
+                inner: header::from_one_raw_str(msg.headers().get(Self::name()))?,
+            })
+        }
+    }
+
+    /// Stores a new object at pubhubs central, under the given `handle`.
+    pub struct NewObjectEP {}
+    impl EndpointDetails for NewObjectEP {
+        type RequestType = bytes::Bytes;
+        type ResponseType = StoreObjectResp;
+
+        const METHOD: http::Method = http::Method::POST;
+        const PATH: &'static str = ".ph/user/obj/store/{handle}";
+    }
+
+    /// Stores an object at pubhubs central under the given `handle`, overwriting the previous
+    /// object stored there.
+    pub struct OverwriteObjectEP {}
+    impl EndpointDetails for OverwriteObjectEP {
+        type RequestType = bytes::Bytes;
+        type ResponseType = StoreObjectResp;
+
+        const METHOD: http::Method = http::Method::POST;
+        const PATH: &'static str = ".ph/user/obj/store/{handle}/{overwrite_hash}";
+    }
+
+    /// Returned by [`NewObjectEP`] and [`OverwriteObjectEP`].
     #[derive(Serialize, Deserialize, Debug, Clone)]
     #[serde(rename = "snake_case")]
-    pub enum AttrAddResp {
-        Added,
+    pub enum StoreObjectResp {
+        /// Please retry the same request again.  This may happen when another call changed the
+        /// user's state. The purpose of letting the client make the same call again (instead of
+        /// letting the server retry) is that the client gets feedback about this.
+        PleaseRetry,
+
+        /// The auth provided is expired or otherwise invalid.  Obtain a new one and retry.
+        RetryWithNewAuthToken,
+
+        /// Returned when using [`NewObjectEP`], but there is already an object stored under that handle.  
+        /// To make sure that you're not overriding recent changes made by another global client,
+        /// you must pass the hash of the object you want to overwrite by using the
+        /// [`OverwriteObjectEP`] instead.
+        MissingHash,
+
+        /// Returned when [`OverwriteObjectEP`] is used, but there is no (longer) an object
+        /// stored under that handle.  Use [`NewObjectEP`] to create a new one.
+        NotFound,
+
+        /// Returned when using [`OverwriteObjectEP`] but the object stored at that handle
+        /// has a different hash, presumably because it has been changed in the meantime by another
+        /// global client.
+        HashDidNotMatch,
+
+        /// The object that you sent did not differ from the object already stored.  Doing this
+        /// should be avoided.
+        NoChanges,
+        /// The user has already reached the maximum number of objects it is allowed to store
+        ///
+        /// Either the global client is storing more at pubhubs central than it should, or the user
+        /// is trying to abuse pubhubs central as object storage.
+        QuotumReached,
+
+        /// The object was stored succesfully under the given hash
+        Stored { hash: Id },
     }
 }
