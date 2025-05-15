@@ -1,7 +1,7 @@
 //! Additional endpoints provided by PubHubs Central
 use crate::api::*;
 
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 
 use actix_web::http::header;
 use serde::{Deserialize, Serialize};
@@ -22,7 +22,7 @@ pub mod hub {
     pub struct TicketEP {}
     impl EndpointDetails for TicketEP {
         type RequestType = Signed<TicketReq>;
-        type ResponseType = Ticket;
+        type ResponseType = Result<Ticket>;
 
         const METHOD: http::Method = http::Method::POST;
         const PATH: &'static str = ".ph/hub/ticket";
@@ -31,6 +31,7 @@ pub mod hub {
     having_message_code!(TicketReq, PhcHubTicketReq);
 
     #[derive(Serialize, Deserialize, Debug, Clone)]
+    #[serde(deny_unknown_fields)]
     pub struct TicketReq {
         pub handle: crate::handle::Handle,
     }
@@ -40,6 +41,7 @@ pub mod hub {
     /// A ticket, a [`Signed`] [`TicketContent`], certifies that the hub uses the given
     /// `verifying_key`.
     #[derive(Serialize, Deserialize, Debug, Clone)]
+    #[serde(deny_unknown_fields)]
     pub struct TicketContent {
         pub handle: crate::handle::Handle,
         pub verifying_key: VerifyingKey,
@@ -48,7 +50,8 @@ pub mod hub {
     having_message_code!(TicketContent, PhcHubTicket);
 
     /// A [`Signed`] message together with a [`Ticket`].
-    #[derive(Serialize, Deserialize, Debug)]
+    #[derive(Serialize, Deserialize, Debug, Clone)]
+    #[serde(deny_unknown_fields)]
     pub struct TicketSigned<T> {
         pub ticket: Ticket,
         signed: Signed<T>,
@@ -74,21 +77,23 @@ pub mod hub {
     }
 }
 
-/// `.ph/user/` endpoints, used by the ('global') web client
+/// `.ph/user/...` endpoints, used by the ('global') web client
 pub mod user {
     use super::*;
 
     /// Provides the global client with basic details about the current PubHubs setup.
     pub struct WelcomeEP {}
     impl EndpointDetails for WelcomeEP {
-        type RequestType = ();
-        type ResponseType = WelcomeResp;
+        type RequestType = NoPayload;
+        type ResponseType = Result<WelcomeResp>;
 
         const METHOD: http::Method = http::Method::GET;
         const PATH: &'static str = ".ph/user/welcome";
     }
 
+    /// Returned by [`WelcomeEP`].
     #[derive(Serialize, Deserialize, Debug, Clone)]
+    #[serde(deny_unknown_fields)]
     pub struct WelcomeResp {
         pub constellation: Constellation,
         pub hubs: HashMap<handle::Handle, crate::hub::BasicInfo>,
@@ -98,7 +103,7 @@ pub mod user {
     pub struct EnterEP {}
     impl EndpointDetails for EnterEP {
         type RequestType = EnterReq;
-        type ResponseType = EnterResp;
+        type ResponseType = Result<EnterResp>;
 
         const METHOD: http::Method = http::Method::POST;
         const PATH: &'static str = ".ph/user/enter";
@@ -113,6 +118,7 @@ pub mod user {
     /// [`identifying_attr`]: Self::identifying_attr
     /// [`add_attrs`]: Self::add_attrs
     #[derive(Serialize, Deserialize, Debug, Clone)]
+    #[serde(deny_unknown_fields)]
     pub struct EnterReq {
         /// [`Attr`]ibute identifying the user.
         ///
@@ -130,7 +136,9 @@ pub mod user {
         pub add_attrs: Vec<Signed<attr::Attr>>,
     }
 
+    /// Returned by [`EnterEP`].
     #[derive(Serialize, Deserialize, Debug, Clone)]
+    #[serde(deny_unknown_fields)]
     #[serde(rename = "snake_case")]
     pub enum EnterResp {
         /// Happens only in [`EnterMode::Login`]
@@ -166,6 +174,7 @@ pub mod user {
 
     /// Why no id token was granted
     #[derive(Serialize, Deserialize, Debug, Clone, Copy, PartialEq, Eq)]
+    #[serde(deny_unknown_fields)]
     pub enum AuthTokenDeniedReason {
         /// No bannable attribute associated to account.
         ///
@@ -174,7 +183,9 @@ pub mod user {
         NoBannableAttribute,
     }
 
+    /// Whether to login, register, or both.
     #[derive(Default, Serialize, Deserialize, Debug, Clone, Copy, PartialEq, Eq)]
+    #[serde(deny_unknown_fields)]
     pub enum EnterMode {
         /// Log in to an existing account
         #[default]
@@ -187,7 +198,9 @@ pub mod user {
         LoginOrRegister,
     }
 
+    /// Result of trying to add an attribute via [`EnterEP`].
     #[derive(Serialize, Deserialize, Debug, Clone, Copy, PartialEq, Eq)]
+    #[serde(deny_unknown_fields)]
     #[serde(rename = "snake_case")]
     pub enum AttrAddStatus {
         /// Did nothing - the attribute was already there
@@ -212,7 +225,7 @@ pub mod user {
         type Error = std::convert::Infallible;
 
         fn try_into_value(self) -> std::result::Result<header::HeaderValue, Self::Error> {
-            let vec: Vec<u8> = self.inner.into_inner().into_vec();
+            let vec: Vec<u8> = self.inner.to_string().into_bytes();
 
             Ok(header::HeaderValue::try_from(vec).unwrap())
         }
@@ -232,29 +245,114 @@ pub mod user {
         }
     }
 
+    /// Get state of the current user
+    pub struct StateEP {}
+    impl EndpointDetails for StateEP {
+        type RequestType = NoPayload;
+        type ResponseType = Result<StateResp>;
+
+        const METHOD: http::Method = http::Method::GET;
+        const PATH: &'static str = ".ph/user/state";
+    }
+
+    /// Result of retrieving a user's state
+    #[derive(Serialize, Deserialize, Debug, Clone)]
+    #[serde(deny_unknown_fields)]
+    #[serde(rename = "snake_case")]
+    pub enum StateResp {
+        /// The auth provided is expired or otherwise invalid.  Obtain a new one and retry.
+        RetryWithNewAuthToken,
+
+        /// Retrieval of [`UserState`] was successful
+        State(UserState),
+    }
+
+    /// State of a user's account at pubhubs as shown to the user.
+    #[derive(Serialize, Deserialize, Debug, Clone)]
+    #[serde(deny_unknown_fields)]
+    pub struct UserState {
+        /// Attributes that may be used to log in as this user.
+        pub allow_login_by: HashSet<Id>,
+
+        /// Attributes that when banned ban this user.
+        pub could_be_banned_by: HashSet<Id>,
+
+        /// Objects stored for this user
+        pub stored_objects: HashMap<handle::Handle, UserObjectDetails>,
+        // TODO: add information on Quota
+    }
+
+    /// Details on an object stored at pubhubs central for a user.
+    #[derive(Serialize, Deserialize, Debug, Clone)]
+    #[serde(deny_unknown_fields)]
+    pub struct UserObjectDetails {
+        /// Identifier for this object - does not change
+        pub hash: Id,
+
+        /// Needs to be provided to the [`GetObjectEP`] when retrieving this object.  May change.
+        pub hmac: Id,
+
+        /// Size of the object in bytes
+        pub size: u32,
+    }
+
+    /// Retrieves a user object with the given `hash` from PubHubs central
+    ///
+    /// Authorization happens not via an access token, but using the [`UserObjectDetails::hmac`].
+    /// This allows HTTP caching without leaking the access token to the cache.
+    pub struct GetObjectEP {}
+    impl EndpointDetails for GetObjectEP {
+        type RequestType = NoPayload;
+
+        /// Generally the API endpoints return `application/json` encoding `Result<ResponseType>`,
+        /// but this endpoint is different.  It returns either an `application/json` encoding an
+        /// `Result<GetObjectResp>` (when there's a problem) or an `application/octet-stream` containing just `bytes::Bytes`.
+        type ResponseType = Payload<Result<GetObjectResp>>;
+
+        const METHOD: http::Method = http::Method::GET;
+        const PATH: &'static str = ".ph/user/obj/by-hash/{hash}/{hmac}";
+    }
+
+    /// Returned by [`GetObjectEP`] when there's a problem.  When there's no problem an octet
+    /// stream is returned instead.
+    #[derive(Serialize, Deserialize, Debug, Clone)]
+    #[serde(deny_unknown_fields)]
+    #[serde(rename = "snake_case")]
+    pub enum GetObjectResp {
+        /// The `hmac` you sent is invalid, probably because it is outdated.
+        ///
+        /// Please retry after obtaining the current `hmac` from [`StateEP`].
+        RetryWithNewHmac,
+
+        /// The `hmac` was correct, so the object you requested probably did exist at one point,
+        /// but it does not longer.  Please reload the list of stored objects via [`StateEP`].
+        NotFound,
+    }
+
     /// Stores a new object at pubhubs central, under the given `handle`.
     pub struct NewObjectEP {}
     impl EndpointDetails for NewObjectEP {
-        type RequestType = bytes::Bytes;
-        type ResponseType = StoreObjectResp;
+        type RequestType = BytesPayload;
+        type ResponseType = Result<StoreObjectResp>;
 
         const METHOD: http::Method = http::Method::POST;
-        const PATH: &'static str = ".ph/user/obj/store/{handle}";
+        const PATH: &'static str = ".ph/user/obj/by-handle/{handle}";
     }
 
     /// Stores an object at pubhubs central under the given `handle`, overwriting the previous
     /// object stored there.
     pub struct OverwriteObjectEP {}
     impl EndpointDetails for OverwriteObjectEP {
-        type RequestType = bytes::Bytes;
-        type ResponseType = StoreObjectResp;
+        type RequestType = BytesPayload;
+        type ResponseType = Result<StoreObjectResp>;
 
         const METHOD: http::Method = http::Method::POST;
-        const PATH: &'static str = ".ph/user/obj/store/{handle}/{overwrite_hash}";
+        const PATH: &'static str = ".ph/user/obj/by-hash/{handle}/{overwrite_hash}";
     }
 
     /// Returned by [`NewObjectEP`] and [`OverwriteObjectEP`].
     #[derive(Serialize, Deserialize, Debug, Clone)]
+    #[serde(deny_unknown_fields)]
     #[serde(rename = "snake_case")]
     pub enum StoreObjectResp {
         /// Please retry the same request again.  This may happen when another call changed the
@@ -283,13 +381,50 @@ pub mod user {
         /// The object that you sent did not differ from the object already stored.  Doing this
         /// should be avoided.
         NoChanges,
-        /// The user has already reached the maximum number of objects it is allowed to store
+
+        /// Cannot perform this request, because the user has (or would have) reached the named
+        /// quotum.
         ///
-        /// Either the global client is storing more at pubhubs central than it should, or the user
-        /// is trying to abuse pubhubs central as object storage.
-        QuotumReached,
+        /// This should only happen when the user is trying to abuse PubHubs central as object
+        /// store, or when the global client is storing more than it should.
+        QuotumReached(QuotumName),
 
         /// The object was stored succesfully under the given hash
         Stored { hash: Id },
+    }
+
+    /// Quota for a user
+    #[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Eq)]
+    #[serde(deny_unknown_fields)]
+    pub struct Quota {
+        /// Total number of objects allowed for a user
+        pub object_count: u16,
+
+        /// The sum total of all bytes of all objects of a user cannot exceed this
+        pub object_bytes_total: u32,
+    }
+
+    impl Default for Quota {
+        fn default() -> Self {
+            Self {
+                object_count: 5,
+                object_bytes_total: 1024 * 1024, // 1 mb
+            }
+        }
+    }
+
+    /// The different quota used in [`Quota`].
+    #[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Eq)]
+    #[serde(deny_unknown_fields)]
+    #[serde(rename_all = "snake_case")]
+    pub enum QuotumName {
+        ObjectCount,
+        ObjectBytesTotal,
+    }
+
+    impl std::fmt::Display for QuotumName {
+        fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+            self.serialize(f)
+        }
     }
 }

@@ -1,6 +1,5 @@
 [package]
 name = "pubhubs"
-version = "0.5.0"
 edition = "2024"
 license-file = "../LICENSE"
 rust-version = "1.85"
@@ -55,6 +54,7 @@ bin = [
 	"dep:futures-util", # used by actix already
 	"dep:hmac",
 	"dep:http",
+	"dep:mime",
 	"dep:humantime",
 	"dep:indexmap",
 	"dep:log",
@@ -139,6 +139,7 @@ actix-files = { version = "0.6", optional = true }
 bytes = { version = "1", features = ["serde"], optional = true }
 env_logger = { version = "0.11.5", optional = true }
 http = { version = "0.2", optional = true }
+mime = { version = "0.3", optional = true }
 hyper = { version= "0.14", features= ["server", "client", "http1", "stream" ], optional = true }
 hyper-tls = { version = "0.5", optional = true }
 jsonwebtoken = { version = "9", optional = true }  # uses non RustCrypto - perhaps replace?

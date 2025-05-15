@@ -337,6 +337,15 @@ pub mod phc {
         #[serde(with = "time_ext::human_duration")]
         #[serde(default = "default_auth_token_validity")]
         pub auth_token_validity: core::time::Duration,
+
+        /// Secret used to derive `hmac`s for the retrieval of user objects.
+        ///
+        /// Randomly generated if not set.
+        pub user_object_hmac_secret: Option<B64UU>,
+
+        /// Quotas for a user
+        #[serde(default)]
+        pub user_quota: api::phc::user::Quota,
     }
 
     fn default_auth_token_validity() -> core::time::Duration {
@@ -526,6 +535,10 @@ impl PrepareConfig<Pcc> for phc::ExtraConfig {
             .get_or_insert_with(elgamal::PrivateKey::random);
 
         self.attr_id_secret.get_or_insert_with(|| {
+            serde_bytes::ByteBuf::from(crate::misc::crypto::random_32_bytes()).into()
+        });
+
+        self.user_object_hmac_secret.get_or_insert_with(|| {
             serde_bytes::ByteBuf::from(crate::misc::crypto::random_32_bytes()).into()
         });
 

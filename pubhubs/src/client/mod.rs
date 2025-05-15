@@ -3,5 +3,5 @@
 pub mod discovery;
 pub mod for_hubs;
 
-mod core;
+pub mod core;
 pub use core::{Agent, Client};

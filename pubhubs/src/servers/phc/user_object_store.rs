@@ -10,6 +10,7 @@ use crate::id::Id;
 
 use crate::api;
 use crate::handle;
+use crate::phcrypto;
 
 use super::server::*;
 use crate::api::phc::user::*;
@@ -42,6 +43,17 @@ impl App {
     }
 
     /// Called by [`Self::handle_user_new_object`] and [`Self::handle_user_overwrite_object`].
+    ///
+    /// # Note on the implementation
+    ///
+    /// To add a user object we:
+    ///   (1) First add the [`UserObject`] to the object store, if its not there already;
+    ///   (2) Add a reference to that object in [`UserState`]; and
+    ///   (3) Delete the old [`UserObject`] object, if there is any.
+    ///
+    /// This way, if the process fails between steps (1) and (2), the client will simply retry,
+    /// and if the process fails between steps (2) and (3) we are only left with an orphaned
+    /// object. (Which is not a big deal.)
     async fn handle_user_store_object(
         &self,
         payload: bytes::Bytes,
@@ -64,8 +76,6 @@ impl App {
                 );
                 api::ErrorCode::InternalError
             })?;
-
-        // TODO: check quota
 
         let obj = UserObject::new(payload, user_id);
 
@@ -92,30 +102,97 @@ impl App {
             }
         }
 
-        if self.put_object(&obj, None).await?.is_none() {
-            log::debug!("user object {} already exists", obj.object_id);
-            // might happen when updating `user_state` below fails
-        }
+        // modify `user_state` locally to check quotum
+        let mut existing_object_id: Option<Id> = None;
 
         user_state
             .stored_objects
             .entry(handle)
+            .and_modify(|e| existing_object_id = Some(e.id))
             .insert_entry(UserObjectDetails {
                 size: obj.payload.len() as u32,
                 id: obj.object_id,
             });
+
+        // check quota
+        let _quota = match user_state.update_quota(self.quota.clone()) {
+            Ok(quota) => quota,
+            Err(quotum_name) => {
+                return Ok(StoreObjectResp::QuotumReached(quotum_name));
+            }
+        };
+
+        // Ok, everything if fine; start by putting object
+        if self.put_object(&obj, None).await?.is_none() {
+            log::debug!("user object {} already exists", obj.object_id);
+            // might happen when updating `user_state` below fails
+        }
 
         if self
             .put_object(&user_state, Some(user_state_version))
             .await?
             .is_none()
         {
+            // someone else is changing `user_state` too
             return Ok(StoreObjectResp::PleaseRetry);
+        }
+
+        // remove previous object, if there is any
+        if let Some(existing_object_id) = existing_object_id {
+            match self.delete_object::<UserObject>(existing_object_id).await {
+                Err(err) => {
+                    log::warn!(
+                        "failed to delete user object {existing_object_id} that is replaced by {}: {err:#}",
+                        obj.object_id
+                    );
+                }
+                Ok(false) => {
+                    log::warn!("expected to delete {existing_object_id}, but it is already gone");
+                }
+                Ok(true) => { /* ok */ }
+            }
         }
 
         Ok(StoreObjectResp::Stored {
             hash: obj.object_id,
         })
+    }
+
+    /// Implements [`GetObjectEP`].
+    pub(crate) async fn handle_user_get_object(
+        app: Rc<Self>,
+        path: actix_web::web::Path<(Id, Id)>,
+    ) -> api::Payload<api::Result<GetObjectResp>> {
+        let (hash, hmac) = path.into_inner();
+
+        if phcrypto::phc_user_object_hmac(hash, &*app.user_object_hmac_secret) != hmac {
+            return api::Payload::Json(Ok(GetObjectResp::RetryWithNewHmac));
+        }
+
+        let (obj, _) = match app.get_object::<UserObject>(&hash).await {
+            Ok(Some(obj)) => obj,
+            Ok(None) => {
+                log::debug!(
+                    "user object {} was requested (with valid hmac), but not found",
+                    hash
+                );
+                return api::Payload::Json(Ok(GetObjectResp::NotFound));
+            }
+            Err(err) => {
+                return api::Payload::Json(Err(err));
+            }
+        };
+
+        if obj.object_id != hash {
+            log::error!(
+                "user object {} submitted by user {} is corrupted!",
+                hash,
+                obj.user_id
+            );
+            return api::Payload::Json(Err(api::ErrorCode::InternalError));
+        }
+
+        api::Payload::Octets(obj.payload)
     }
 }
 
@@ -211,4 +288,15 @@ pub struct UserObjectDetails {
 
     /// The sha256 digest of the stored object
     pub id: Id,
+}
+
+impl UserObjectDetails {
+    /// Turns this [`UserObjectDetails`] into a [`api::phc::user::UserObjectDetails`].
+    pub(crate) fn into_user_version(self, hmac_secret: &[u8]) -> api::phc::user::UserObjectDetails {
+        api::phc::user::UserObjectDetails {
+            hash: self.id,
+            hmac: phcrypto::phc_user_object_hmac(self.id, hmac_secret),
+            size: self.size,
+        }
+    }
 }

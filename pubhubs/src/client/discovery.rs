@@ -1,5 +1,5 @@
-use crate::api::{self, ApiResultExt as _};
-use crate::servers::{self, Constellation, server::Server as _};
+use crate::api::{self, ApiResultExt as _, NoPayload};
+use crate::servers::{self, server::Server as _, Constellation};
 
 impl crate::client::Client {
     /// Retrieves [`Constellation`] from specified url, waiting for it to be set.
@@ -7,7 +7,7 @@ impl crate::client::Client {
         crate::misc::task::retry(|| async {
             // Retry calling DiscoveryInfo endpoint while it returns a retryable error or some
             // DiscoveryInfoResp with None constellation until constellation is Some.
-            (match self.query::<api::DiscoveryInfo>(url, &())
+            (match self.query::<api::DiscoveryInfo>(url, NoPayload)
                 .await
                 .retryable()/* <- turns retryable error Err(err) into Ok(None) */?
             {
@@ -31,7 +31,7 @@ impl crate::client::Client {
         phc_url: &url::Url,
     ) -> api::Result<Option<Constellation>> {
         log::debug!("trying to get stable constellation");
-        let phc_inf = self.query::<api::DiscoveryInfo>(phc_url, &()).await?;
+        let phc_inf = self.query::<api::DiscoveryInfo>(phc_url, NoPayload).await?;
         if phc_inf.constellation.is_none() {
             log::debug!(
                 "{phc}'s constellation not yet set",
@@ -48,7 +48,10 @@ impl crate::client::Client {
                 let server_name = crate::servers::$server::Server::NAME;
                 if server_name != servers::Name::PubhubsCentral {
                     let url = constellation.url(server_name);
-                    js.spawn_local(self.query::<api::DiscoveryInfo>(url, &()));
+                    js.spawn_local(
+                        self.query::<api::DiscoveryInfo>(url, NoPayload)
+                            .into_future(),
+                    );
                 }
             };
         }
