@@ -1,11 +1,11 @@
 <template>
 	<div>
-		<div class="mb-4 flex-col">
-			<H3 class="pb-2 text-lg font-semibold">{{ title }}</H3>
+		<div class="mb-4 flex flex-col">
+			<H3>{{ title }}</H3>
 			<p>{{ description }}</p>
 		</div>
 
-		<div class="h-14 mb-2 flex">
+		<div class="h-14 mb-8 flex">
 			<input :accept="accept" ref="fileInput" type="file" class="hidden" @change="handleFileChange" />
 
 			<div class="">

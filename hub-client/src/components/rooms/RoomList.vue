@@ -2,7 +2,7 @@
 	<Menu>
 		<template v-for="room in rooms.sortedRoomsArray" :key="room.roomId">
 			<template v-if="showRoom(room)">
-				<MenuItem :to="{ name: 'room', params: { id: room.roomId } }" :roomInfo="room" :icon="roomIcon(room)" :key="room.roomId" @click="hubSettings.hideBar()" class="group inline-block w-full">
+				<MenuItem :to="{ name: 'room', params: { id: room.roomId } }" :room="room" :icon="roomIcon(room)" :key="room.roomId" @click="hubSettings.hideBar()" class="group inline-block w-full">
 					<span class="flex w-full items-center justify-between gap-4">
 						<TruncatedText>
 							<PrivateRoomName v-if="room.isPrivateRoom()" :members="room.getOtherJoinedAndInvitedMembers()" />
@@ -82,8 +82,9 @@
 		const roomType = room.getType();
 
 		// Secure / public filtering
-		if (props.filters.secure === 'secure' && !rooms.roomIsSecure(room.roomId)) return false;
-		if (props.filters.secure === 'public' && rooms.roomIsSecure(room.roomId)) return false;
+		// Issue #1239 will update this logic.
+		if (props.filters.secure === 'secure' && roomType !== RoomType.PH_MESSAGES_RESTRICTED) return false;
+		if (props.filters.secure === 'public' && roomType !== undefined) return false;
 
 		if (props.filters.type !== undefined) {
 			const type = props.filters.type.substring(1);

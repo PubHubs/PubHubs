@@ -5,7 +5,7 @@ use actix_web::web;
 
 use crate::{
     api::{self, EndpointDetails as _},
-    servers::{self, constellation, AppBase, AppCreatorBase, Constellation, Handle},
+    servers::{self, AppBase, AppCreatorBase, Constellation, Handle, constellation},
 };
 use crate::{elgamal, handle, phcrypto};
 

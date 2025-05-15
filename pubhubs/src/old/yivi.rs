@@ -2,15 +2,15 @@ use crate::context::{Main, Yivi as YiviContext};
 use crate::error::HttpContextExt as _;
 use actix_web::web::Data;
 use actix_web::{HttpRequest, HttpResponse};
-use anyhow::{anyhow, bail, Context as _, Result};
+use anyhow::{Context as _, Result, anyhow, bail};
 use async_recursion::async_recursion;
 use chrono::Utc;
 
 use actix_web::http::header::CONTENT_TYPE;
-use hyper::{body, Body, Client, Method, Request, StatusCode};
+use hyper::{Body, Client, Method, Request, StatusCode, body};
 use log::error;
-use qrcode::render::svg;
 use qrcode::QrCode;
+use qrcode::render::svg;
 use regex::Regex;
 use serde::{Deserialize, Serialize};
 use std::fmt::{Debug, Formatter};
@@ -19,7 +19,7 @@ use tokio::sync::oneshot;
 use url::form_urlencoded;
 
 use crate::data::DataCommands::{CreateUser, GetUser, GetUserById};
-use crate::data::{no_result, User};
+use crate::data::{User, no_result};
 use tokio::time::sleep;
 
 #[cfg(not(feature = "real_credentials"))]
@@ -270,7 +270,10 @@ async fn disclose(
                 YiviErrorMessage::default()
             }
         };
-        error!("Did not receive OK from Yivi server on disclosure request, status '{status}', error '{:?}' ", error);
+        error!(
+            "Did not receive OK from Yivi server on disclosure request, status '{status}', error '{:?}' ",
+            error
+        );
         bail!("Did not receive OK from Yivi server on disclosure request");
     }
 
@@ -429,7 +432,10 @@ pub async fn disclosed_ph_id(yivi_host: &str, token: &str, context: &Main) -> Re
                     YiviErrorMessage::default()
                 }
             };
-            error!("Did not receive OK from Yivi server on polling request for result, status '{status}', error '{:?}' ", error);
+            error!(
+                "Did not receive OK from Yivi server on polling request for result, status '{status}', error '{:?}' ",
+                error
+            );
             bail!("Did not receive OK from Yivi server on disclosure request");
         }
 
@@ -794,9 +800,10 @@ mod tests {
         assert_eq!(resp.session_ptr.u, "test_host/yivi/test_token/session");
         assert_ne!(resp.token, "");
         assert_eq!(resp.session_ptr.irmaqr, SessionType::Disclosing);
-        assert!(resp
-            .svg
-            .starts_with(r#"<?xml version="1.0" standalone="yes"?><svg "#));
+        assert!(
+            resp.svg
+                .starts_with(r#"<?xml version="1.0" standalone="yes"?><svg "#)
+        );
 
         //errors
         let result = login(
@@ -1028,11 +1035,13 @@ mL8ccRpy26VYM7CYRcsoeJMCAwEAAQ==
         let credential = credentials.first().unwrap();
         assert_eq!(credential.credential, PUB_HUBS);
         assert_eq!(*(&credential.attributes.id.len()), 10);
-        assert!(&credential
-            .attributes
-            .id
-            .chars()
-            .all(|c| c.is_alphanumeric()));
+        assert!(
+            &credential
+                .attributes
+                .id
+                .chars()
+                .all(|c| c.is_alphanumeric())
+        );
     }
 
     #[actix_web::test]

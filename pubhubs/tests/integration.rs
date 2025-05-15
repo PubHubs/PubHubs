@@ -57,7 +57,7 @@ async fn main_integration_test() {
     .inspect_err(|err| log::error!("{}", err))
     .unwrap();
 
-    let sk = yivi::SigningKey::RS256(Box::new(jwt::RS256Sk::random(512).unwrap()));
+    let yivi_server_sk = yivi::SigningKey::RS256(Box::new(jwt::RS256Sk::random(512).unwrap()));
 
     config
         .auths
@@ -66,14 +66,18 @@ async fn main_integration_test() {
         .yivi
         .as_mut()
         .unwrap()
-        .server_key = Some(sk.to_verifying_key());
+        .server_key = Some(yivi_server_sk.to_verifying_key());
 
     let (set, shutdown_sender) = servers::Set::new(&config).unwrap();
 
     tokio::join!(
         async {
             tokio::task::LocalSet::new()
-                .run_until(main_integration_test_local(config, admin_sk))
+                .run_until(main_integration_test_local(
+                    config,
+                    admin_sk,
+                    yivi_server_sk,
+                ))
                 .await;
             drop(shutdown_sender); // causes the servers to stop
         },
@@ -83,8 +87,12 @@ async fn main_integration_test() {
     );
 }
 
-/// The part of [main_integration_test] that's run on one thread.
-async fn main_integration_test_local(config: servers::Config, admin_sk: api::SigningKey) {
+/// The part of [`main_integration_test`] that's run on one thread.
+async fn main_integration_test_local(
+    config: servers::Config,
+    admin_sk: api::SigningKey,
+    yivi_server_sk: yivi::SigningKey,
+) {
     let client = client::Client::builder()
         .agent(client::Agent::IntegrationTest)
         .finish();
@@ -99,7 +107,7 @@ async fn main_integration_test_local(config: servers::Config, admin_sk: api::Sig
     let phc_enc_key_sk = elgamal::PrivateKey::random();
 
     client
-        .query_with_retry::<api::admin::UpdateConfig>(
+        .query_with_retry::<api::admin::UpdateConfig, _, _>(
             &constellation.transcryptor_url,
             &api::Signed::<api::admin::UpdateConfigReq>::new(
                 &*admin_sk,
@@ -140,7 +148,7 @@ async fn main_integration_test_local(config: servers::Config, admin_sk: api::Sig
 
     // update PHC's key
     client
-        .query_with_retry::<api::admin::UpdateConfig>(
+        .query_with_retry::<api::admin::UpdateConfig, _, _>(
             &constellation.phc_url,
             &api::Signed::<api::admin::UpdateConfigReq>::new(
                 &*admin_sk,
@@ -199,8 +207,8 @@ async fn main_integration_test_local(config: servers::Config, admin_sk: api::Sig
 
     // get a ticket for testhub
     let ticket = client
-        .query_with_retry::<api::phc::hub::TicketEP>(
-            &config.phc_url.as_ref(),
+        .query_with_retry::<api::phc::hub::TicketEP, _, _>(
+            config.phc_url.as_ref(),
             &api::Signed::<api::phc::hub::TicketReq>::new(
                 &*mock_hub.context.sk,
                 &api::phc::hub::TicketReq {
@@ -232,7 +240,7 @@ async fn main_integration_test_local(config: servers::Config, admin_sk: api::Sig
 
     // request authentication as end-user
     let asr = client
-        .query_with_retry::<api::auths::AuthStartEP>(
+        .query_with_retry::<api::auths::AuthStartEP, _, _>(
             &constellation.auths_url,
             &api::auths::AuthStartReq {
                 source: attr::Source::Yivi,
@@ -279,15 +287,122 @@ async fn main_integration_test_local(config: servers::Config, admin_sk: api::Sig
         },
     );
 
-    let yivi_server_creds: yivi::Credentials<yivi::SigningKey> = toml::from_str(
-        r#"name = "yivi-server"
-        key.hs256 = "c2VjcmV0""#,
-    )
-    .unwrap();
+    let yivi_server_creds = yivi::Credentials {
+        name: "yivi-server".to_string(),
+        key: yivi_server_sk,
+    };
 
-    let _result_jwt = discl_resp
+    let result_jwt = discl_resp
         .sign(&yivi_server_creds, Duration::from_secs(60))
         .unwrap();
+
+    // Now send the disclosure response to the authentication server to get some credentials
+    let acr = client
+        .query_with_retry::<api::auths::AuthCompleteEP, _, _>(
+            &constellation.auths_url,
+            &api::auths::AuthCompleteReq {
+                state: asr.state,
+                proof: api::auths::AuthProof::Yivi {
+                    disclosure: result_jwt,
+                },
+            },
+        )
+        .await
+        .unwrap();
+
+    let email = acr.attrs.get(&"email".parse().unwrap()).unwrap();
+    let phone = acr.attrs.get(&"phone".parse().unwrap()).unwrap();
+
+    // Use these attributes to register an account;  which cannot be done with just the email
+    // address..
+    assert!(matches!(
+        client
+            .query_with_retry::<api::phc::user::EnterEP, _, _>(
+                &constellation.phc_url,
+                &api::phc::user::EnterReq {
+                    identifying_attr: email.clone(),
+                    mode: api::phc::user::EnterMode::Register,
+                    add_attrs: vec![]
+                },
+            )
+            .await
+            .unwrap(),
+        api::phc::user::EnterResp::NoBannableAttribute
+    ));
+
+    // Registering in the following way does succeed.
+    // Let's also make several calls to register or login at once.
+    {
+        let mut tjs = tokio::task::JoinSet::new();
+
+        let phc_url = constellation.phc_url.clone();
+        let req = api::phc::user::EnterReq {
+            identifying_attr: email.clone(),
+            mode: api::phc::user::EnterMode::LoginOrRegister,
+            add_attrs: vec![phone.clone()],
+        };
+
+        for _ in 1..=10 {
+            let enter_resp_fut = client
+                .query_with_retry::<api::phc::user::EnterEP, _, _>(phc_url.clone(), req.clone());
+
+            tjs.spawn_local(async move {
+                let enter_resp = enter_resp_fut.await.unwrap();
+
+                if let api::phc::user::EnterResp::Entered { new_account, .. } = enter_resp {
+                    new_account
+                } else {
+                    panic!("expected registration/login to succeed");
+                }
+            });
+        }
+
+        let new_accounts: Vec<bool> = tjs.join_all().await;
+
+        assert_eq!(
+            new_accounts
+                .into_iter()
+                .filter(|new_account| *new_account)
+                .count(),
+            1,
+            "expected exactly one registration to result in a new account"
+        );
+    }
+
+    // Registering a second time fails
+    assert!(matches!(
+        client
+            .query_with_retry::<api::phc::user::EnterEP, _, _>(
+                &constellation.phc_url,
+                &api::phc::user::EnterReq {
+                    identifying_attr: email.clone(),
+                    mode: api::phc::user::EnterMode::Register,
+                    add_attrs: vec![phone.clone()],
+                },
+            )
+            .await
+            .unwrap(),
+        api::phc::user::EnterResp::AttributeAlreadyTaken(..)
+    ));
+
+    // Logging in using the email address works..
+    assert!(matches!(
+        client
+            .query_with_retry::<api::phc::user::EnterEP, _, _>(
+                &constellation.phc_url,
+                &api::phc::user::EnterReq {
+                    identifying_attr: email.clone(),
+                    mode: api::phc::user::EnterMode::Login,
+                    add_attrs: vec![],
+                },
+            )
+            .await
+            .unwrap(),
+        api::phc::user::EnterResp::Entered {
+            new_account: false,
+            ..
+        }
+    ));
 }
 
 /// Contents of a disclosure session request JWT

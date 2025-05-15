@@ -1,14 +1,14 @@
 use crate::elgamal::Encoding as _;
 use crate::pseudonyms::PepContext;
-use anyhow::{anyhow, bail, ensure, Context as _, Result};
+use anyhow::{Context as _, Result, anyhow, bail, ensure};
 use expry::key_str;
-use expry::{value, DecodedValue};
+use expry::{DecodedValue, value};
 
 use prometheus::HistogramVec;
-use rand::distributions::Alphanumeric;
 use rand::Rng;
+use rand::distributions::Alphanumeric;
 use rusqlite::Error::QueryReturnedNoRows;
-use rusqlite::{params, Connection, Row};
+use rusqlite::{Connection, Row, params};
 use serde::{Deserialize, Serialize};
 use sha2::Digest as _;
 use std::convert::AsRef;
@@ -197,9 +197,9 @@ const MIGRATIONS: [&dyn Migration; 12] = [
     &"ALTER TABLE user ADD bar_state BLOB DEFAULT X'' NOT NULL;",
     &"ALTER TABLE user ADD bar_state_etag TEXT DEFAULT \"e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855\" NOT NULL;",
     &"ALTER TABLE hub RENAME COLUMN redirection_uri TO oidc_redirect_uri;", // #8
-    &("adding client_uri to hub", migration_add_client_uri), // #9
+    &("adding client_uri to hub", migration_add_client_uri),                // #9
     &"ALTER TABLE user ADD registration_date TEXT DEFAULT 'older card' NOT NULL;", //#10
-    &("add external id to user",migration_add_user_external_id)//#11
+    &("add external id to user", migration_add_user_external_id),           //#11
 ];
 
 /// Adds `client_uri` field to hub, with as initial value the `oidc_redirect_uri` but with path,

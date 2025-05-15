@@ -1,9 +1,9 @@
 <template>
 	<li
-		:class="{ 'bg-background': isActive }"
+		:class="{ 'bg-background': roomIsActive || menuItemIsActive || adminMenuIsActive }"
 		@click="
 			click();
-			menu.setActiveMenuItem(props.roomInfo?.roomId);
+			room && menu.setActiveMenuItem(room.roomId);
 		"
 		class="h-fit rounded-lg px-4 py-2 transition-all duration-200 ease-in-out hover:bg-background"
 	>
@@ -19,20 +19,30 @@
 	import { useRouter } from 'vue-router';
 	import { useMenu } from '@/logic/store/menu';
 	import { Room } from '@/logic/store/rooms';
-	import { useRooms } from '@/logic/store/store';
-	import { computed } from 'vue';
+	import { computed, PropType } from 'vue';
 	import Icon from '@/components/elements/Icon.vue';
 
 	const router = useRouter();
-	const rooms = useRooms();
+
 	const menu = useMenu();
 
-	const isActive = computed(() => {
-		if (props.roomInfo?.roomId) {
-			return props.roomInfo?.roomId === menu.activeMenuItemId;
-		} else {
-			return false;
+	const menuItemIsActive = computed(() => {
+		if (typeof props.to === 'object' && props.to !== null && props.to.name !== undefined) {
+			return menu.getMenuItemPath(props.to.name) === router.currentRoute.value.fullPath;
 		}
+		return false;
+	});
+
+	const roomIsActive = computed(() => {
+		if (!props.room) return false;
+		return props.room.roomId === router.currentRoute.value.fullPath.split('/').pop(); // full path looks like /room/room_id
+	});
+
+	const adminMenuIsActive = computed(() => {
+		if (typeof props.to === 'object' && props.to !== null && props.to.name !== undefined) {
+			return props.to['name'] === router.currentRoute.value.fullPath.split('/').pop();
+		}
+		return false;
 	});
 
 	const props = defineProps({
@@ -48,17 +58,15 @@
 			type: String,
 			default: 'base',
 		},
-		roomInfo: {
-			type: [Room, Object],
-			default: Object,
+		room: {
+			type: Object as PropType<Room | undefined>, // room prop can be a Room type or undefined.
+			required: false,
 		},
 	});
 
 	function isSecuredRoom() {
-		if (props.roomInfo?.roomId !== undefined) {
-			return rooms.roomIsSecure(props.roomInfo.roomId);
-		}
-		return false;
+		if (!props.room) return false;
+		return props.room.isSecuredRoom();
 	}
 
 	function click() {

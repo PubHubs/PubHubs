@@ -16,8 +16,7 @@ pub mod reason {
         "Bad Request - You must send an If-Match header (with the ETag of the current state)";
     pub const IF_MATCH_MULTIPLE_ETAGS: &str =
         "Bad Request - Sending multiple ETags via If-Match is not supported here";
-    pub const IF_MATCH_STAR: & str =
-                "Bad Request - 'If-Match: *' is not supported here; you must send the ETag of the old (and still current) state.";
+    pub const IF_MATCH_STAR: &str = "Bad Request - 'If-Match: *' is not supported here; you must send the ETag of the old (and still current) state.";
     pub const MISSING_COOKIE: &str = "Forbidden - missing PHAccount cookie";
     pub const INVALID_COOKIE: &str = "Forbidden - invalid PHAccount cookie";
 }

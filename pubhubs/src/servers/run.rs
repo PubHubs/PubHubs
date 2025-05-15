@@ -1,17 +1,16 @@
-//! Running PubHubs [Server]s
-use std::net::SocketAddr;
+//! Running PubHubs [`Server`]s
 use std::num::NonZero;
 use std::rc::Rc;
 use std::sync::Arc;
 
 use actix_web::web;
-use anyhow::{bail, Context as _, Result};
+use anyhow::{Context as _, Result, bail};
 use core::convert::Infallible;
 use tokio::sync::mpsc;
 
 use crate::api;
 use crate::servers::{
-    for_all_servers, server::RunningState, App, AppBase, AppCreator, Command, Name, Server,
+    App, AppBase, AppCreator, Command, Name, Server, for_all_servers, server::RunningState,
 };
 
 /// A set of running PubHubs servers.
@@ -69,7 +68,9 @@ struct SetInner {
 impl Drop for SetInner {
     fn drop(&mut self) {
         if self.shutdown_sender.is_some() {
-            log::error!("the completion of all pubhubs servers was not awaited - please consume SetInner using wait() or shutdown()")
+            log::error!(
+                "the completion of all pubhubs servers was not awaited - please consume SetInner using wait() or shutdown()"
+            )
         }
     }
 }
@@ -370,8 +371,11 @@ impl<S: Server> Handles<S> {
             })?;
 
         if let Some(ph_modifier) = maybe_modifier {
-            log::error!("Woops! {}'s pubhubs task's modifier {} was ignored, because another modifier was first",
-                            S::NAME, ph_modifier);
+            log::error!(
+                "Woops! {}'s pubhubs task's modifier {} was ignored, because another modifier was first",
+                S::NAME,
+                ph_modifier
+            );
         }
 
         self.drop_bomb.diffuse();
@@ -516,7 +520,17 @@ impl DiscoveryLimiter {
                         }
                     };
 
-                    server.running_state = Some(RunningState::new(new_constellation, extra));
+                    let new_url = new_constellation.url(S::NAME).clone();
+
+                    let old_running_state = server
+                        .running_state
+                        .replace(RunningState::new(new_constellation, extra));
+
+                    // See if our url has changed
+                    if old_running_state.is_none_or(|rs| rs.constellation.url(S::NAME) != &new_url)
+                    {
+                        log::info!("{}: at {}", S::NAME, new_url);
+                    }
 
                     true // yes, restart
                 },
@@ -524,7 +538,10 @@ impl DiscoveryLimiter {
             .await;
 
         if let Err(()) = result {
-            log::warn!("failed to initiate restart of {} for discovery, probably because the server is already shutting down", S::NAME,);
+            log::warn!(
+                "failed to initiate restart of {} for discovery, probably because the server is already shutting down",
+                S::NAME,
+            );
             return Err(api::ErrorCode::NotYetReady);
         }
 
@@ -628,8 +645,8 @@ impl<S: Server> Handle<S> {
         if let Err(send_error) = result {
             log::warn!(
                 "{server_name}: since the command receiver is closed (probably because the server is shutting down/restarting) we could not issue the command {cmd:?}",
-                server_name=S::NAME,
-                cmd=send_error.0.command.to_string(),
+                server_name = S::NAME,
+                cmd = send_error.0.command.to_string(),
             );
             return Err(());
         };
@@ -706,11 +723,7 @@ impl<S: Server> Runner<S> {
         })
     }
 
-    pub fn bind_to(&self) -> SocketAddr {
-        self.pubhubs_server.server_config().bind_to
-    }
-
-    fn create_actix_server(&self, bind_to: &SocketAddr) -> Result<Handles<S>> {
+    fn create_actix_server(&self) -> Result<Handles<S>> {
         let app_creator: S::AppCreatorT = self.pubhubs_server.deref().clone();
 
         let (command_sender, command_receiver) = mpsc::channel(1);
@@ -720,10 +733,18 @@ impl<S: Server> Runner<S> {
             discovery_limiter: DiscoveryLimiter::new(),
         };
 
+        let server_config = self.pubhubs_server.server_config();
+
         log::info!(
-            "{}:  binding actix server to {}, running on {:?}",
+            "{}:  binding actix server to {}, port {}, running on {:?}",
             S::NAME,
-            bind_to,
+            server_config
+                .ips
+                .iter()
+                .map(|ip| ip.to_string())
+                .collect::<Box<[String]>>()
+                .join(", "),
+            server_config.port,
             std::thread::current().id()
         );
 
@@ -747,7 +768,7 @@ impl<S: Server> Runner<S> {
                     )
                 })
                 .disable_signals() // we handle signals ourselves
-                .bind(bind_to)?;
+                .bind(server_config)?;
 
             if let Some(worker_count) = self.worker_count {
                 builder = builder.workers(worker_count.get());
@@ -807,7 +828,7 @@ impl<S: Server> Runner<S> {
     pub async fn run_until_modifier(
         &mut self,
     ) -> Result<crate::servers::server::BoxModifier<S>, anyhow::Error> {
-        let mut handles = self.create_actix_server(&self.bind_to())?;
+        let mut handles = self.create_actix_server()?;
 
         let result = Self::run_until_modifier_inner(&mut handles, self).await;
 
