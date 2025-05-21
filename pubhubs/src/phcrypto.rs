@@ -117,3 +117,22 @@ pub fn phc_user_object_hmac(
         "pubhubs-user-object-hmac",
     )
 }
+
+/// Derives attribute keys for a given [`attr::Attr`]ibute and a list of timestamps.
+pub fn auths_attr_keys(
+    attr: attr::Attr,
+    secret: impl secret::DigestibleSecret,
+    timestamps: impl IntoIterator<Item = jwt::NumericDate>,
+) -> Vec<Vec<u8>> {
+    let attr_secret = attr_id(&attr, secret);
+
+    timestamps
+        .into_iter()
+        .map(|ts| {
+            attr_secret.derive_bytes(
+                sha2::Sha256::new().chain_update(ts.timestamp().to_be_bytes()),
+                "pubhubs-attr-key",
+            )
+        })
+        .collect()
+}

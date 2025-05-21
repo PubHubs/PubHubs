@@ -3,10 +3,11 @@
 use actix_web::web;
 use pubhubs::{
     api::{self, ApiResultExt as _, BytesPayload, NoPayload},
-    attr, client, elgamal, hub,
+    attr, client, elgamal, handle, hub,
     misc::jwt,
     servers::{self, yivi},
 };
+use std::collections::HashMap;
 use std::{sync::Arc, time::Duration};
 
 const CONFIG_FILE_PATH: &'static str = "pubhubs.default.toml";
@@ -313,7 +314,59 @@ async fn main_integration_test_local(
     let email = acr.attrs.get(&"email".parse().unwrap()).unwrap();
     let phone = acr.attrs.get(&"phone".parse().unwrap()).unwrap();
 
-    // Use these attributes to register an account;  which cannot be done with just the email
+    // Retrieve attribute key for email
+    let Ok(api::auths::AttrKeysResp::Success(attr_keys)) = client
+        .query_with_retry::<api::auths::AttrKeysEP, _, _>(
+            &constellation.auths_url,
+            HashMap::<handle::Handle, api::auths::AttrKeyReq>::from([(
+                "em".parse().unwrap(),
+                api::auths::AttrKeyReq {
+                    attr: email.clone(),
+                    timestamp: None,
+                },
+            )]),
+        )
+        .await
+    else {
+        panic!()
+    };
+
+    let api::auths::AttrKeyResp {
+        latest_key: (email_key, email_key_ts),
+        old_key: None,
+    } = attr_keys.get(&"em".parse().unwrap()).unwrap()
+    else {
+        panic!()
+    };
+
+    // Retrieve attribute key for email, again
+    let Ok(api::auths::AttrKeysResp::Success(attr_keys)) = client
+        .query_with_retry::<api::auths::AttrKeysEP, _, _>(
+            &constellation.auths_url,
+            HashMap::<handle::Handle, api::auths::AttrKeyReq>::from([(
+                "em".parse().unwrap(),
+                api::auths::AttrKeyReq {
+                    attr: email.clone(),
+                    timestamp: Some(*email_key_ts),
+                },
+            )]),
+        )
+        .await
+    else {
+        panic!()
+    };
+
+    let api::auths::AttrKeyResp {
+        old_key: Some(email_old_key),
+        ..
+    } = attr_keys.get(&"em".parse().unwrap()).unwrap()
+    else {
+        panic!()
+    };
+
+    assert_eq!(email_old_key, email_key);
+
+    // Use the attributes to register an account;  which cannot be done with just the email
     // address..
     assert!(matches!(
         client

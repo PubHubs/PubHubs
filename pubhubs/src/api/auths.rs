@@ -1,10 +1,13 @@
 //! Additional endpoints provided by the authentication server
 use crate::api::*;
+use crate::attr::Attr;
 use crate::misc::jwt;
 use crate::misc::serde_ext::bytes_wrapper::B64UU;
-use crate::{attr, handle};
+use crate::{api, attr, handle};
 
 use serde::{Deserialize, Serialize};
+
+use std::collections::HashMap;
 
 /// Called by the global client to get, for example, the list of supported attribute types.
 pub struct WelcomeEP {}
@@ -20,7 +23,7 @@ impl EndpointDetails for WelcomeEP {
 #[serde(deny_unknown_fields)]
 pub struct WelcomeResp {
     /// Available attribute types
-    pub attr_types: std::collections::HashMap<handle::Handle, attr::Type>,
+    pub attr_types: HashMap<handle::Handle, attr::Type>,
 }
 
 pub struct AuthStartEP {}
@@ -116,5 +119,61 @@ pub enum AuthProof {
 #[derive(Serialize, Deserialize, Debug, Clone)]
 #[serde(deny_unknown_fields)]
 pub struct AuthCompleteResp {
-    pub attrs: std::collections::HashMap<handle::Handle, Signed<attr::Attr>>,
+    pub attrs: HashMap<handle::Handle, Signed<Attr>>,
+}
+
+/// Allows the global client to retrieve secrets tied to identifying [`Attr`]ibutes.
+///
+/// These *attribute keys* are used by the global client to encrypt its  *master secret(s)* before
+/// storing them at pubhubs central.
+///
+/// To allow a compromised attribute key to be replaced (automatically), attribute keys are tied
+/// not only to an attribute, but also a timestamp.
+pub struct AttrKeysEP {}
+impl EndpointDetails for AttrKeysEP {
+    type RequestType = HashMap<handle::Handle, AttrKeyReq>;
+    type ResponseType = Result<AttrKeysResp>;
+
+    const METHOD: http::Method = http::Method::POST;
+    const PATH: &'static str = ".ph/attr-keys";
+}
+
+/// Request type for [`AttrKeysEP`]
+#[derive(Serialize, Deserialize, Debug, Clone)]
+#[serde(deny_unknown_fields)]
+pub struct AttrKeyReq {
+    /// A signed attribute, obtained via [`AuthCompleteEP`].
+    ///
+    /// The attribute must be identifying.
+    pub attr: api::Signed<Attr>,
+
+    /// If set, will not only return the latest attribute key for `attr`, but also an older
+    /// attribute key tied to the given timestamp.
+    pub timestamp: Option<jwt::NumericDate>,
+}
+
+/// Response type for [`AttrKeysEP`]
+#[derive(Serialize, Deserialize, Debug, Clone)]
+#[serde(deny_unknown_fields)]
+pub enum AttrKeysResp {
+    /// The attribute with the given handle is not (or no longer) valid.  Reobtain the attribute
+    /// and try again.
+    RetryWithNewAttr(handle::Handle),
+
+    /// Successfully retrieves keys for all attributes provided.
+    Success(HashMap<handle::Handle, AttrKeyResp>),
+}
+
+/// Part of a successful [`AttrKeyResp`].
+#[derive(Serialize, Deserialize, Debug, Clone)]
+#[serde(deny_unknown_fields)]
+pub struct AttrKeyResp {
+    /// A pair, `(key, timestamp)`, where `key` is the latest attribute key for the requested attribute
+    /// and `timestamp` can be used to retrieve the same key again later on by setting `AttrKeyReq::timestamp`.
+    pub latest_key: (B64UU, jwt::NumericDate),
+
+    /// The attribute key at [`AttrKeyReq::timestamp`], when this was set.
+    ///
+    /// This key should only be use for decryption, not for encryption.
+    pub old_key: Option<B64UU>,
 }

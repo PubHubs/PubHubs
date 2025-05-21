@@ -7,9 +7,10 @@
 //!
 //! ## Entering pubhubs
 //!
-//!  1. Everything starts with the global client, knowing only the url of pubhubs central, obtaining general information
-//!     about the rest of the pubhubs environment from the [`phc::user::WelcomeEP`] endpoint of pubhubs central,
-//!     including, for example, the url of the authentication server.
+//!  1. Everything starts with the global client, knowing only the url of pubhubs central (PHC),
+//!     obtaining general information about the rest of the pubhubs environment
+//!     from the [`phc::user::WelcomeEP`] endpoint of PHC, including, for example, the url of
+//!     the authentication server and transcryptor.
 //!
 //!  2. Next the user authenticates towards the
 //!     authentication server in order to obtain **[`Attr`]ibutes**.
@@ -22,8 +23,7 @@
 //!     [`phc::user::EnterEP`], registering a new account if needed.
 //!     or logging into an existing account.  The result of entering PubHubs is not
 //!     a session cookie, but an **[`phc::user::AuthToken`]** that must be passed along
-//!     in the `Authorization` header of most subsequent requests from the global client to
-//!     pubhubs central.
+//!     in the `Authorization` header of most subsequent requests from the global client to PHC.
 //!
 //!  4. After having entered pubhubs, the global client retrieves details on the [`phc::user::UserState`] via
 //!     the [`phc::user::StateEP`] endpoint (authenticating using the previously obtained auth token).  
@@ -32,7 +32,14 @@
 //!     [`phc::user::GetObjectEP`] (and stored using [`phc::user::OverwriteObjectEP`] and
 //!     [`phc::user::NewObjectEP`]).
 //!
-//!  5. TODO: protecting the contents of user objects and authentication towards hubs
+//!  5. The contents of user objects should be encrypted by the global client. Indeed, there's
+//!     no need for PHC to be able to read the contents of these user objects.
+//!     But where can the global client store the 'user object key' used to encrypt
+//!     these objects?  Not in plaintext at PHC!  Instead, the authentication server provides
+//!     **attribute keys** via [`auths::AttrKeysEP`] with which the global client can encrypt its
+//!     'user object key' before storing it at PHC in a designated user object.  Other user objects
+//!     can then be encrypted using this user object key.
+//!
 //! # Errors
 //!
 //! A request to a pubhubs endpoint may fail in several ways.
