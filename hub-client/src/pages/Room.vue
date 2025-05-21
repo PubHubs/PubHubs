@@ -13,6 +13,7 @@
 							<H3 class="flex text-on-surface">
 								<TruncatedText class="font-headings font-semibold">
 									<PrivateRoomName v-if="rooms.currentRoom.isPrivateRoom()" :members="rooms.currentRoom.getOtherJoinedAndInvitedMembers()" />
+									<GroupRoomName v-else-if="room.isGroupRoom()" :members="room.getOtherJoinedAndInvitedMembers()" />
 									<RoomName v-else :room="rooms.currentRoom" />
 								</TruncatedText>
 							</H3>
@@ -54,6 +55,7 @@
 	import H3 from '@/components/elements/H3.vue';
 	import TruncatedText from '@/components/elements/TruncatedText.vue';
 	import PrivateRoomName from '@/components/rooms/PrivateRoomName.vue';
+	import GroupRoomName from '@/components/rooms/GroupRoomName.vue';
 	import SearchInput from '@/components/forms/SearchInput.vue';
 	import RoomTimeline from '@/components/rooms/RoomTimeline.vue';
 	import RoomName from '@/components/rooms/RoomName.vue';

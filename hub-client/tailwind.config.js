@@ -102,8 +102,5 @@ module.exports = {
 		files: ['./public/**/*.html', './src/**/*.{js,ts,jsx,tsx,vue}', '../global-client/public/**/*.html', '../global-client/src/**/*.{js,ts,jsx,tsx,vue}'],
 		extract,
 	},
-	plugins: [
-		fluid,
-		require('@tailwindcss/forms'),
-	],
+	plugins: [fluid, require('@tailwindcss/forms')],
 };

@@ -3,7 +3,7 @@ import { defineStore } from 'pinia';
 import { Events, PubHubsMgType, RedactReasons } from '@/logic/core/events';
 import { api_matrix, api_synapse } from '@/logic/core/api';
 import { Authentication } from '@/logic/core/authentication';
-import { createNewPrivateRoomName, fetchMemberIdsFromPrivateRoomName, refreshPrivateRoomName, updatePrivateRoomName } from '@/logic/core/privateRoomNames';
+import { createNewPrivateRoomName, refreshPrivateRoomName, updatePrivateRoomName } from '@/logic/core/privateRoomNames';
 import { hasHtml, sanitizeHtml } from '@/logic/core/sanitizer';
 import { LOGGER } from '@/logic/foundation/Logger';
 import { SMI } from '@/logic/foundation/StatusMessage';
@@ -313,9 +313,8 @@ const usePubHubs = defineStore('pubhubs', {
 			return public_rooms;
 		},
 
-		async getAllRooms(): Promise<Array<MatrixRoom>> {
-			const rooms = await this.client.getRooms();
-			return rooms;
+		getAllRooms(): Array<MatrixRoom> {
+			return this.client.getRooms();
 		},
 
 		/**
@@ -352,8 +351,11 @@ const usePubHubs = defineStore('pubhubs', {
 
 		getPrivateRoomWithMembers(memberIds: Array<string>, rooms: Array<any>): boolean | string {
 			for (let index = rooms.length - 1; index >= 0; index--) {
-				const room = rooms[index] as Room;
-				const roomMemberIds = fetchMemberIdsFromPrivateRoomName(room.name);
+				const roomId = (rooms[index] as Room).roomId;
+				const room = this.client.getRoom(roomId);
+				if (!room) return false;
+				const roomMembers = room.getMembers();
+				const roomMemberIds = roomMembers.map((member) => member.userId);
 				roomMemberIds.sort();
 				const found = JSON.stringify(memberIds.sort()) === JSON.stringify(roomMemberIds);
 				if (found) {
@@ -363,42 +365,55 @@ const usePubHubs = defineStore('pubhubs', {
 			return false;
 		},
 
-		async createPrivateRoomWith(other: any): Promise<{ room_id: string } | null> {
+		async createPrivateRoomWith(other: User | MatrixUser[]): Promise<{ room_id: string } | null> {
 			const user = useUser();
 			const me = user.user as User;
-			const memberIds = [me.userId, other.userId];
-			const allRooms = await this.getAllRooms();
-			const existingRoomId = this.getPrivateRoomWithMembers(memberIds, allRooms);
+			let otherUsers: (User | MatrixUser)[];
+			let roomType: RoomType;
+
+			if (other instanceof Array) {
+				otherUsers = other;
+				roomType = RoomType.PH_MESSAGES_GROUP;
+			} else {
+				otherUsers = [other];
+				roomType = RoomType.PH_MESSAGES_DM;
+			}
+
+			const memberIds = [me.userId, ...otherUsers.map((u) => u.userId)];
+			const allRoomsByType = this.getAllRooms().filter((room) => room.getType() === roomType);
+			const existingRoomId = this.getPrivateRoomWithMembers(memberIds, allRoomsByType);
 
 			// Try joining existing by renaming
 			if (existingRoomId !== false && typeof existingRoomId === 'string') {
 				const rooms = useRooms();
 				let name = rooms.room(existingRoomId)?.name;
 				if (name) {
-					// unHide room for me
 					name = updatePrivateRoomName(name, me, false);
 					this.renameRoom(existingRoomId, name);
 				}
 				return { room_id: existingRoomId };
 			}
 
-			// If realy not exists, create new
+			// Create new room
 			if (existingRoomId === false) {
-				const privateRoomName = createNewPrivateRoomName([me, other]);
+				const otherUserForName = otherUsers;
+				const privateRoomName = createNewPrivateRoomName([me, ...otherUserForName]);
+				const inviteIds = otherUsers.map((u) => u.userId);
+
 				const room = await this.createRoom({
 					preset: 'trusted_private_chat',
 					name: privateRoomName,
 					visibility: 'private',
-					invite: [other.userId],
+					invite: inviteIds,
 					is_direct: true,
-					creation_content: { type: RoomType.PH_MESSAGES_DM },
-					topic: `PRIVATE: ${me.userId}, ${other.userId}`,
+					creation_content: { type: roomType },
+					topic: `PRIVATE: ${me.userId}, ${inviteIds.join(', ')}`,
 					history_visibility: 'shared',
 					guest_can_join: false,
 				});
-				// Returns invalid user id - 400, when no such user. So nice
 				return room;
 			}
+
 			return null;
 		},
 

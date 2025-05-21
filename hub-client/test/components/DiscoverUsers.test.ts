@@ -6,6 +6,9 @@ import { usePubHubs } from '../../src/logic/core/pubhubsStore';
 import { describe, expect, beforeEach, test, afterEach } from 'vitest';
 import { mount, flushPromises } from '@vue/test-utils';
 import { createTestingPinia } from '@pinia/testing';
+import { createI18n } from 'vue-i18n';
+import { nl } from '../../src/locales/nl';
+import { en } from '../../src/locales/en';
 
 const foundDisplayName = '[data-testid=display-name]';
 const foundUserId = '[data-testid=user-id]';
@@ -15,10 +18,23 @@ describe('DiscoverUsers.vue Test', () => {
 	let pubhubs;
 
 	beforeEach(() => {
+		const fallbackLanguage = 'en';
+		const i18n = createI18n({
+			legacy: false,
+			warnHtmlMessage: false,
+			globalInjection: true,
+			locale: fallbackLanguage,
+			fallbackLocale: fallbackLanguage,
+			messages: {
+				nl: nl,
+				en: en,
+			},
+		});
 		wrapper = mount(DiscoverUsers, {
 			global: {
 				components: { FilteredList: FilteredList, TextInput: TextInput },
-				plugins: [createTestingPinia({ stubActions: false })],
+				plugins: [createTestingPinia({ stubActions: false }), i18n,],
+				
 				mocks: {
 					$t: (_) => 'translation',
 				},
