@@ -14,6 +14,7 @@ import { useMatrixFiles } from '@/logic/composables/useMatrixFiles';
 enum RoomType {
 	SECURED = 'ph.messages.restricted',
 	PH_MESSAGES_DM = 'ph.messages.dm',
+	PH_MESSAGES_GROUP = 'ph.messages.group',
 }
 
 const BotName = {
@@ -90,6 +91,10 @@ export default class Room {
 
 	public isPrivateRoom(): boolean {
 		return this.getType() === RoomType.PH_MESSAGES_DM;
+	}
+
+	public isGroupRoom(): boolean {
+		return this.getType() === RoomType.PH_MESSAGES_GROUP;
 	}
 
 	public isSecuredRoom(): boolean {

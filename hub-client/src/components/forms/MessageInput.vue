@@ -69,7 +69,7 @@
 
 					<!--Steward and above can broadcast only in main time line-->
 					<div
-						v-if="room.getPowerLevel(user.user.userId) >= 50 && !inThread && !room.isPrivateRoom()"
+						v-if="room.getPowerLevel(user.user.userId) >= 50 && !inThread && !room.isPrivateRoom() && !room.isGroupRoom()"
 						class="flex aspect-square h-6 w-6 justify-center"
 						:class="!state.sendButtonEnabled && 'opacity-50 hover:cursor-default'"
 						@click="isValidMessage() ? announcementMessage() : null"
