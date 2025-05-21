@@ -129,6 +129,7 @@ pub(crate) trait Server: DerefMut<Target = Self::AppCreatorT> + Sized + 'static 
             .allow_any_origin()
             .allowed_methods(["GET", "POST"])
             .allowed_header(actix_web::http::header::CONTENT_TYPE)
+            .allowed_header(actix_web::http::header::AUTHORIZATION)
     }
 }
 

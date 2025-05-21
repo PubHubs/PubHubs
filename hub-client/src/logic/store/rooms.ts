@@ -14,6 +14,7 @@ import { useSettings } from './settings';
 import { PubHubsMgType } from '@/logic/core/events';
 import { SecuredRoomAttributeResult } from '@/logic/foundation/statusTypes';
 import { TMessageEvent } from '@/model/events/TMessageEvent';
+import { isVisiblePrivateRoom } from '../core/privateRoomNames';
 
 // Matrix Endpoint for messages in a room.
 interface RoomMessages {
@@ -276,6 +277,20 @@ const useRooms = defineStore('rooms', {
 			const pubhubs = usePubHubs();
 			const rooms = await pubhubs.getAllPublicRooms();
 			this.publicRooms = rooms.sort(propCompare('name'));
+		},
+
+		// Filter rooms based on type defined. Synapse public rooms doesn't have a type so they are undefined.
+		// Useful to filter based on custom room types.
+		fetchRoomArrayByType(type: string | undefined): Array<Room> {
+			const user = useUser().user;
+			const rooms = [...this.roomsArray].sort((a, b) => a.name.localeCompare(b.name));
+
+			// visibility is based on a prefix on room names when the room is joined or left.
+			if (type === RoomType.PH_MESSAGES_DM || type === RoomType.PH_MESSAGES_GROUP) {
+				return rooms.filter((room) => room.getType() === type).filter((room) => isVisiblePrivateRoom(room.name, user));
+			}
+
+			return rooms.filter((room) => room.getType() === type);
 		},
 
 		memberOfPublicRoom(roomId: string): boolean {

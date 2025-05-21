@@ -32,13 +32,21 @@
 	import { ref } from 'vue';
 	import { router } from '@/logic/core/router';
 	import { usePubHubs } from '@/logic/core/pubhubsStore';
+
 	import { useI18n } from 'vue-i18n';
 	import { TPublicRoom } from '@/logic/store/rooms';
+
 	import SecuredRoomLogin from '../ui/SecuredRoomLogin.vue';
+	import { useRooms } from '@/logic/store/rooms';
+	import { useUser } from '@/logic/store/user';
+	import { useDialog } from '@/logic/store/dialog';
 
 	const pubhubs = usePubHubs();
+	const rooms = useRooms();
+	const dialog = useDialog();
+	const user = useUser();
 	const { t } = useI18n();
-	t;
+
 	const expanded = ref(false);
 	const joinedARoom = ref(false);
 	const panelOpen = ref(true);
@@ -62,15 +70,43 @@
 	}
 
 	async function joinRoom() {
+		// Handle secured room access
 		if (props.roomIsSecure && !props.memberOfRoom) {
-			// Whenever user is not in the secured room, it means that secure room panel should be visible
-			emit('toggle-secured-room'); // sets the props for open panel to true and only for current Room.
-			panelOpen.value = true; // Resets the ref so that the panel can be opened and closed multiple times.
-		} else {
-			joinedARoom.value = true;
-			setTimeout(() => {
-				pubhubs.joinRoom(props.room.room_id);
-			}, 1000);
+			emit('toggle-secured-room');
+			panelOpen.value = true;
+			return;
+		}
+
+		joinedARoom.value = true;
+		await pubhubs.joinRoom(props.room.room_id);
+
+		// Wait for room membership with timeout
+		const maxRetries = 10;
+		const retryDelay = 500;
+
+		for (let attempt = 0; attempt < maxRetries; attempt++) {
+			const hasJoined = await pubhubs.isUserRoomMember(user.user.userId, props.room.room_id);
+			if (hasJoined) break;
+
+			if (attempt === maxRetries - 1) {
+				dialog.confirm(t('room.try_again'));
+			}
+
+			await new Promise((resolve) => setTimeout(resolve, retryDelay));
+		}
+
+		// Check if room exists in store with timeout
+		for (let attempt = 0; attempt < maxRetries; attempt++) {
+			if (rooms.roomExists(props.room.room_id)) {
+				goToRoom();
+				return;
+			}
+
+			if (attempt === maxRetries - 1) {
+				dialog.confirm(t('room.try_again'));
+			}
+
+			await new Promise((resolve) => setTimeout(resolve, retryDelay));
 		}
 	}
 

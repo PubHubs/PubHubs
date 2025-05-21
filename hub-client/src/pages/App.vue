@@ -53,7 +53,7 @@
 									<p class="truncate font-bold leading-tight">{{ $t('admin.public_rooms') }}</p>
 								</div>
 							</div>
-							<RoomList :filters="{ secure: 'public', type: '!' + RoomType.PH_MESSAGES_DM }" />
+							<RoomList />
 						</section>
 
 						<section class="flex flex-col gap-2">
@@ -62,7 +62,7 @@
 									<p class="truncate font-bold leading-tight">{{ $t('admin.secured_rooms') }}</p>
 								</div>
 							</div>
-							<RoomList :filters="{ secure: 'secure', type: '!' + RoomType.PH_MESSAGES_DM }" />
+							<RoomList :roomType="RoomType.PH_MESSAGES_RESTRICTED" />
 						</section>
 
 						<section class="flex flex-col gap-2">
@@ -71,8 +71,18 @@
 									<p class="truncate font-bold leading-tight">{{ $t('menu.private_rooms') }}</p>
 								</div>
 							</div>
-							<RoomList :filters="{ type: RoomType.PH_MESSAGES_DM }" />
+							<RoomList :roomType="RoomType.PH_MESSAGES_DM" />
 							<DiscoverUsers />
+						</section>
+
+						<section class="flex flex-col gap-2">
+							<div class="group flex items-center justify-between rounded-lg bg-surface px-4 py-2">
+								<div class="flex h-[24px] items-center">
+									<p class="truncate font-bold leading-tight">{{ $t('menu.group_rooms') }}</p>
+								</div>
+							</div>
+							<RoomList :roomType="RoomType.PH_MESSAGES_GROUP" />
+							<DiscoverUsers :group="true" />
 						</section>
 
 						<!-- When user is admin, show the moderation tools menu -->
