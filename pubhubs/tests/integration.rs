@@ -477,12 +477,17 @@ async fn main_integration_test_local(
     assert_eq!(*obj_size, "object contents! 2".len() as u32);
 
     // retrieve object
-    let bytes = client
+    let api::Payload::Octets(bytes) = client
         .query::<api::phc::user::GetObjectEP>(&constellation.phc_url, NoPayload)
         .path_param("hash", new_hash.to_string())
         .path_param("hmac", obj_hmac.to_string())
         .with_retry()
-        .await;
+        .await
+    else {
+        panic!()
+    };
+
+    assert_eq!(bytes.as_ref(), b"object contents! 2");
 }
 
 /// Contents of a disclosure session request JWT
