@@ -7,28 +7,32 @@
 //!
 //! ## Entering pubhubs
 //!
-//!  1. Everything starts with the global client authenticating the user towards the
+//!  1. Everything starts with the global client, knowing only the url of pubhubs central, obtaining general information
+//!     about the rest of the pubhubs environment from the [`phc::user::WelcomeEP`] endpoint of pubhubs central,
+//!     including, for example, the url of the authentication server.
+//!
+//!  2. Next the user authenticates towards the
 //!     authentication server in order to obtain **[`Attr`]ibutes**.
 //!  
 //!     -  The global client first gets the available authentication methods via [`auths::WelcomeEP`], and
 //!     -  then obtains the attributes using the [`auths::AuthStartEP`]
 //!        and [`auths::AuthCompleteEP`] endpoints.
 //!
-//!  2. Using those [`Attr`]ibutes the global client can 'enter' PubHubs via the
+//!  3. Using those [`Attr`]ibutes the global client can 'enter' PubHubs via the
 //!     [`phc::user::EnterEP`], registering a new account if needed.
 //!     or logging into an existing account.  The result of entering PubHubs is not
 //!     a session cookie, but an **[`phc::user::AuthToken`]** that must be passed along
 //!     in the `Authorization` header of most subsequent requests from the global client to
 //!     pubhubs central.
 //!
-//!  3. After having entered pubhubs, the global client retrieves details on the [`phc::user::UserState`] via
+//!  4. After having entered pubhubs, the global client retrieves details on the [`phc::user::UserState`] via
 //!     the [`phc::user::StateEP`] endpoint (authenticating using the previously obtained auth token).  
 //!     The user state includes (among other details), a list of stored **user objects**,
 //!     [`phc::user::UserState::stored_objects`], which can be retrieved using
 //!     [`phc::user::GetObjectEP`] (and stored using [`phc::user::OverwriteObjectEP`] and
 //!     [`phc::user::NewObjectEP`]).
 //!
-//!  4. TODO: protecting the contents of user objects and authentication towards hubs
+//!  5. TODO: protecting the contents of user objects and authentication towards hubs
 //! # Errors
 //!
 //! A request to a pubhubs endpoint may fail in several ways.
