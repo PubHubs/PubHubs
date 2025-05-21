@@ -34,6 +34,8 @@ class OidcMappingProvider:
         self._secret = os.environ['HUB_SECRET']
         self._libpubhubs = ctypes.CDLL(config["libpubhubspath"])
 
+        self._libpubhubs.decrypt.restype = ctypes.c_ubyte
+
     @staticmethod
     def parse_config(config):
         if "libpubhubspath" not in config:
