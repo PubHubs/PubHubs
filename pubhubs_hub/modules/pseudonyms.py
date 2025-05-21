@@ -61,8 +61,8 @@ class OidcMappingProvider:
                 raise RuntimeError("failed to decrypt user's encrypted local pseudonym - not a valid ElGamal ciphertext")
             case 4: # InvalidPrivateKey
                 raise RuntimeError("failed to decrypt user's encrypted local pseudonym - invalid HUB_SECRET")
-            case _: 
-                raise RuntimeError("failed to decrypt user's encrypted local pseudonym - unknown error")
+            case _ as ec: 
+                raise RuntimeError(f"failed to decrypt user's encrypted local pseudonym - unknown error code {ec}")
 
         decrypted_local_pseudonym = result_buf.raw.hex()
 
