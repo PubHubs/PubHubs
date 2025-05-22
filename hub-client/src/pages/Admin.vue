@@ -10,7 +10,6 @@
 				<H3 class="font-headings font-semibold text-on-surface">{{ t('menu.admin_tools_rooms') }}</H3>
 			</div>
 		</template>
-
 		<Tabs class="p-3 md:p-4">
 			<TabHeader>
 				<TabPill v-slot="slotProps">{{ $t('admin.public_rooms') }}<Icon v-if="slotProps.active" class="float-right ml-2 mt-1 hover:text-accent-primary" type="plus" size="sm" @click="newPublicRoom()" /></TabPill>

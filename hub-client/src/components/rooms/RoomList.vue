@@ -1,11 +1,12 @@
 <template>
 	<Menu>
 		<template v-for="room in rooms.fetchRoomArrayByType(props.roomType)" :key="room.roomId">
-			<MenuItem :to="{ name: 'room', params: { id: room.roomId } }" :roomInfo="room" :icon="roomIcon(room)" @click="hubSettings.hideBar()" class="group inline-block w-full">
+			<MenuItem :to="{ name: 'room', params: { id: room.roomId } }" :room="room" :icon="roomIcon(room)" @click="hubSettings.hideBar()" class="group inline-block w-full">
 				<span class="flex w-full items-center justify-between gap-4">
 					<TruncatedText>
 						<PrivateRoomName v-if="room.isPrivateRoom()" :members="room.getOtherJoinedAndInvitedMembers()" />
 						<GroupRoomName v-else-if="room.isGroupRoom()" :members="room.getOtherJoinedAndInvitedMembers()" />
+						<AdminContactRoomName v-else-if="room.isAdminContactRoom()" :members="room.getOtherJoinedAndInvitedMembers()" />
 						<RoomName v-else :room="room" />
 					</TruncatedText>
 					<span class="flex gap-2 transition-all duration-200 ease-in-out group-hover:hidden" v-if="settings.isFeatureEnabled(FeatureFlag.notifications)">
@@ -14,7 +15,12 @@
 						<Badge color="hub" v-if="room.getRoomUnreadNotificationCount(NotificationCountType.Highlight) > 0"><Icon type="mention" size="sm" class="shrink-0" /></Badge>
 					</span>
 
-					<Icon type="unlink" class="cursor-pointer stroke-2 text-on-surface-variant transition-all duration-200 ease-in-out hover:text-accent-error md:hidden md:group-hover:inline-block" @click.prevent="leaveRoom(room.roomId)" />
+					<Icon
+						v-if="!room.isAdminContactRoom()"
+						type="unlink"
+						class="cursor-pointer stroke-2 text-on-surface-variant transition-all duration-200 ease-in-out hover:text-accent-error md:hidden md:group-hover:inline-block"
+						@click.prevent="leaveRoom(room.roomId)"
+					/>
 				</span>
 			</MenuItem>
 		</template>
@@ -29,6 +35,8 @@
 	import MenuItem from '../ui/MenuItem.vue';
 	import TruncatedText from '../elements/TruncatedText.vue';
 	import PrivateRoomName from './PrivateRoomName.vue';
+	import GroupRoomName from './GroupRoomName.vue';
+	import AdminContactRoomName from './AdminContactRoomName.vue';
 	import RoomName from './RoomName.vue';
 	import Badge from '../elements/Badge.vue';
 	import Icon from '../elements/Icon.vue';
@@ -42,7 +50,6 @@
 	import { useI18n } from 'vue-i18n';
 	import { useRouter } from 'vue-router';
 	import { computed } from 'vue';
-	import GroupRoomName from './GroupRoomName.vue';
 
 	const settings = useSettings();
 	const hubSettings = useHubSettings();
