@@ -15,6 +15,7 @@ enum RoomType {
 	SECURED = 'ph.messages.restricted',
 	PH_MESSAGES_DM = 'ph.messages.dm',
 	PH_MESSAGES_GROUP = 'ph.messages.group',
+	PH_MESSAGE_ADMIN_CONTACT = 'ph.messages.admin.contact',
 }
 
 const BotName = {
@@ -95,6 +96,10 @@ export default class Room {
 
 	public isGroupRoom(): boolean {
 		return this.getType() === RoomType.PH_MESSAGES_GROUP;
+	}
+
+	public isAdminContactRoom(): boolean {
+		return this.getType() === RoomType.PH_MESSAGE_ADMIN_CONTACT;
 	}
 
 	public isSecuredRoom(): boolean {

@@ -11,7 +11,7 @@ from synapse.types import Requester
 from synapse.api.constants import EventTypes
 
 from ._secured_rooms_class import SecuredRoom
-from ._store import YiviRoomJoinStore
+from ._store import HubStore
 
 logger = logging.getLogger(__name__)
 
@@ -23,7 +23,7 @@ class SecuredRoomsServlet(DirectServeJsonResource):
     def __init__(
         self,
         config: dict,
-        store: YiviRoomJoinStore,
+        store: HubStore,
         api: ModuleApi,
         room_creation_handler: RoomCreationHandler,
         room_shutdown_handler: RoomShutdownHandler,

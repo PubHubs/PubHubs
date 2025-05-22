@@ -13,6 +13,7 @@ const routes = [
 	{ path: '/ask-disclosure', name: 'ask-disclosure', component: () => import('@/pages/AskDisclosure.vue'), meta: { onlyAdmin: true } },
 	{ path: '/room/:id', props: true, name: 'room', component: () => import('@/pages/Room.vue'), meta: { hideBar: true } },
 	{ path: '/discoverrooms', name: 'discover-rooms', component: () => import('@/pages/DiscoverRoomsPage.vue'), meta: { hideBar: true } },
+	{ path: '/admin-contact', name: 'admin-contact', component: () => import('@/pages/Contact.vue'), meta: { hideBar: true } },
 	{ path: '/error/', name: 'error-page', component: () => import('@/pages/ErrorPage.vue'), props: (route: any) => ({ errorKey: route.query?.errorKey ? route.query?.errorKey : 'errors.error' }), meta: { hideBar: true } },
 	{ path: '/nop', name: 'nop', component: () => import('@/pages/NotImplemented.vue') },
 ];

@@ -33,8 +33,8 @@ describe('DiscoverUsers.vue Test', () => {
 		wrapper = mount(DiscoverUsers, {
 			global: {
 				components: { FilteredList: FilteredList, TextInput: TextInput },
-				plugins: [createTestingPinia({ stubActions: false }), i18n,],
-				
+				plugins: [createTestingPinia({ stubActions: false }), i18n],
+
 				mocks: {
 					$t: (_) => 'translation',
 				},

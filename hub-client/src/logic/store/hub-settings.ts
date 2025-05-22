@@ -164,13 +164,13 @@ const useHubSettings = defineStore('hub-settings', {
 		async getHubJSON(): Promise<HubSettingsJSONParser> {
 			const settings = useSettings();
 			if (settings.isFeatureEnabled(FeatureFlag.hubSettings)) {
-				return (await api_synapse.apiGET(api_synapse.apiURLS.hubDescription)) as unknown as HubSettingsJSONParser;
+				return await api_synapse.apiGET<HubSettingsJSONParser>(api_synapse.apiURLS.hubSettings);
 			} else {
 				return {} as HubSettingsJSONParser;
 			}
 		},
 		async setHubJSON(hubSettingsData: HubSettingsJSONParser) {
-			await api_synapse.apiPOST(api_synapse.apiURLS.hubDescription, hubSettingsData);
+			await api_synapse.apiPOST(api_synapse.apiURLS.hubSettings, hubSettingsData);
 		},
 	},
 });

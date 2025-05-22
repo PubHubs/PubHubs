@@ -24,7 +24,7 @@ def _generate_token() -> (str, int):
 
 
 
-class YiviRoomJoinStore:
+class HubStore:
     """Contains methods for database operations connected to room access with Yivi.
     """
 
@@ -401,7 +401,22 @@ class YiviRoomJoinStore:
                 user_id,
             )
 
+    async def get_hub_admins(self) -> list:
+        """Get all hub admin user Ids"""
 
+        def get_hub_admins_txn(txn: LoggingTransaction):
+            txn.execute(
+                        """
+                        SELECT * FROM users WHERE admin = 1;
+                        """)
+            
+            return txn.fetchall()
+
+        return await self.module_api.run_db_interaction(
+            "get_hub_admins",
+            get_hub_admins_txn
+        )
+        
 def tuple_to_room(room) -> SecuredRoom:
     logger.info(f"Tuple looks like  {room}")
     (room_id, name, topic, accepted, expiration_time_days, user_txt, type) = room

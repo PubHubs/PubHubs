@@ -10,7 +10,7 @@ from twisted.web.resource import Resource
 import time
 from ._constants import SERVER_NOTICES_USER, CLIENT_URL
 from ._secured_rooms_class import RoomAttribute
-from ._store import YiviRoomJoinStore
+from ._store import HubStore
 
 import json
 import re
@@ -25,7 +25,7 @@ yivi_token_regex = re.compile("[a-zA-Z0-9]*")
 class JoinServlet(Resource):
     """Main servlet to handle the disclosed attributes."""
 
-    def __init__(self, config: dict, module_api: ModuleApi, store: YiviRoomJoinStore):
+    def __init__(self, config: dict, module_api: ModuleApi, store: HubStore):
         super().__init__()
         self.module_api = module_api
         self.config = config
@@ -37,7 +37,7 @@ class JoinServlet(Resource):
 class YiviEndpoint(Resource):
     """Servlet that bundles the Yivi endpoints for the javascript client to communicate with."""
 
-    def __init__(self, config: dict, module_api: ModuleApi, store: YiviRoomJoinStore):
+    def __init__(self, config: dict, module_api: ModuleApi, store: HubStore):
         super().__init__()
         self.module_api = module_api
         self.config = config
@@ -50,7 +50,7 @@ class YiviStart(DirectServeJsonResource):
     Will ask to disclose the attributes as specified in the module configuration
     """
 
-    def __init__(self, config: dict, module_api: ModuleApi, store: YiviRoomJoinStore):
+    def __init__(self, config: dict, module_api: ModuleApi, store: HubStore):
         super().__init__()
         self.module_api = module_api
         self.config = config
@@ -126,7 +126,7 @@ class YiviResult(DirectServeJsonResource):
      If so will return the url of the room the waiting room was for.
     """
 
-    def __init__(self, config: dict, module_api: ModuleApi, store: YiviRoomJoinStore):
+    def __init__(self, config: dict, module_api: ModuleApi, store: HubStore):
         super().__init__()
         self.module_api = module_api
         self.config = config
