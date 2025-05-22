@@ -33,7 +33,7 @@ const api_synapse = new Api(BASE_URL + '/_synapse/', {
 	// hub settings
 	hub: 'client/hub',
 	hubLogo: 'client/hublogo',
-	hubDescription: 'client/hub/settings',
+	hubSettings: 'client/hub/settings',
 	hubIcon: 'client/hub/icon',
 	hubIconDark: 'client/hub/icon/dark',
 	hubIconDefault: 'client/hub/default-icon',
