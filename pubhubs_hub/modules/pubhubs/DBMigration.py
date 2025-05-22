@@ -3,7 +3,7 @@ from ._constants import METHOD_POLLING_INTERVAL
 import time
 from synapse.logging.context import run_in_background
 from synapse.module_api import ModuleApi
-from ._store import YiviRoomJoinStore
+from ._store import HubStore
 from ._store_modifier import StoreModifier, AddColumnsMigrationStrategy, RemoveColumnsMigrationStrategy, RenameColumnsMigrationStrategy
 
 logger = logging.getLogger("synapse.contrib." + __name__)
@@ -36,7 +36,7 @@ class DBMigration(object):
         if store:
             self.store = store
         else:
-            self.store = YiviRoomJoinStore(api,config)
+            self.store = HubStore(api,config)
         self.module_api = api
         self.migration =  StoreModifier(api, AddColumnsMigrationStrategy())
         

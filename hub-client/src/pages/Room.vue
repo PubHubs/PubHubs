@@ -14,6 +14,7 @@
 								<TruncatedText class="font-headings font-semibold">
 									<PrivateRoomName v-if="rooms.currentRoom.isPrivateRoom()" :members="rooms.currentRoom.getOtherJoinedAndInvitedMembers()" />
 									<GroupRoomName v-else-if="room.isGroupRoom()" :members="room.getOtherJoinedAndInvitedMembers()" />
+									<AdminContactRoomName v-else-if="room.isAdminContactRoom()" :members="room.getOtherJoinedAndInvitedMembers()" />
 									<RoomName v-else :room="rooms.currentRoom" />
 								</TruncatedText>
 							</H3>
@@ -75,6 +76,7 @@
 	import { computed, onMounted, ref, watch } from 'vue';
 	import { useRoute, useRouter } from 'vue-router';
 	import { useSettings } from '@/logic/store/settings';
+	import AdminContactRoomName from '@/components/rooms/AdminContactRoomName.vue';
 
 	const route = useRoute();
 	const rooms = useRooms();

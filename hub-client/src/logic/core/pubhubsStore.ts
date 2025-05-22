@@ -365,7 +365,7 @@ const usePubHubs = defineStore('pubhubs', {
 			return false;
 		},
 
-		async createPrivateRoomWith(other: User | MatrixUser[]): Promise<{ room_id: string } | null> {
+		async createPrivateRoomWith(other: User | MatrixUser[], adminContact: boolean = false): Promise<{ room_id: string } | null> {
 			const user = useUser();
 			const me = user.user as User;
 			let otherUsers: (User | MatrixUser)[];
@@ -373,10 +373,10 @@ const usePubHubs = defineStore('pubhubs', {
 
 			if (other instanceof Array) {
 				otherUsers = other;
-				roomType = RoomType.PH_MESSAGES_GROUP;
+				roomType = adminContact ? RoomType.PH_MESSAGE_ADMIN_CONTACT : RoomType.PH_MESSAGES_GROUP;
 			} else {
 				otherUsers = [other];
-				roomType = RoomType.PH_MESSAGES_DM;
+				roomType = adminContact ? RoomType.PH_MESSAGE_ADMIN_CONTACT : RoomType.PH_MESSAGES_DM;
 			}
 
 			const memberIds = [me.userId, ...otherUsers.map((u) => u.userId)];

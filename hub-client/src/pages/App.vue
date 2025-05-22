@@ -42,6 +42,7 @@
 							</div>
 							<Menu>
 								<template v-for="(item, index) in menu.getMenu" :key="index">
+									<!-- Don't show admin contact for admin users-->
 									<MenuItem :to="item.to" :icon="item.icon" @click="hubSettings.hideBar()">{{ $t(item.key) }}</MenuItem>
 								</template>
 							</Menu>
@@ -85,6 +86,15 @@
 							<DiscoverUsers :group="true" />
 						</section>
 
+						<section v-if="user.isAdmin" class="flex flex-col gap-2">
+							<div class="group flex items-center justify-between rounded-lg bg-surface px-4 py-2">
+								<div class="flex h-[24px] items-center">
+									<p class="truncate font-bold leading-tight">{{ $t('menu.admin_contact') }}</p>
+								</div>
+							</div>
+							<RoomList :roomType="RoomType.PH_MESSAGE_ADMIN_CONTACT" />
+						</section>
+
 						<!-- When user is admin, show the moderation tools menu -->
 						<section v-if="disclosureEnabled && user.isAdmin" class="flex flex-col gap-2">
 							<div class="group flex items-center justify-between rounded-lg bg-surface px-4 py-2">
@@ -110,6 +120,20 @@
 								<MenuItem :to="{ name: 'hub-settings' }" icon="cog">{{ $t('menu.admin_tools_hub_settings') }}</MenuItem>
 							</Menu>
 						</section>
+
+						<section v-if="!user.isAdmin" class="flex w-full justify-center">
+							<Button color="gray" class="flex items-center justify-between rounded-xl px-4 hover:bg-surface-subtle" @click="router.push({ name: 'admin-contact' })">
+								<div class="flex items-center gap-2">
+									<Icon type="person"></Icon>
+									<span class="whitespace-nowrap">{{ $t('menu.contact') }}</span>
+								</div>
+
+								<span class="flex gap-2 pl-2" v-if="settings.isFeatureEnabled(FeatureFlag.notifications)">
+									<Badge class="~text-label-small-min/label-small-max" color="ph" v-if="newAdminMsgCount > 99">99+</Badge>
+									<Badge v-else-if="newAdminMsgCount > 0" color="ph">{{ newAdminMsgCount }}</Badge>
+								</span>
+							</Button>
+						</section>
 					</div>
 				</HeaderFooter>
 
@@ -132,7 +156,7 @@
 	import { computed, getCurrentInstance, onMounted, ref, watch } from 'vue';
 	import { useI18n } from 'vue-i18n';
 	import { RouteParamValue, useRouter } from 'vue-router';
-	import { ConditionKind, IPushRule, PushRuleKind } from 'matrix-js-sdk';
+	import { ConditionKind, IPushRule, NotificationCountType, PushRuleKind } from 'matrix-js-sdk';
 
 	// Hub imports
 	import Disclosure from '@/components/rooms/Disclosure.vue';
@@ -160,6 +184,7 @@
 	import { FeatureFlag, useSettings } from '@/logic/store/settings';
 	import { Message, MessageBoxType, useHubSettings, useMessageBox, useRooms } from '@/logic/store/store';
 	import { useUser } from '@/logic/store/user';
+	import Button from '@/components/elements/Button.vue';
 
 	const { locale, availableLocales } = useI18n();
 	const router = useRouter();
@@ -174,8 +199,13 @@
 	const menu = useMenu();
 	const settingsDialog = ref(false);
 	const setupReady = ref(false);
+
 	const disclosureEnabled = settings.isFeatureEnabled(FeatureFlag.disclosure);
 	const isMobile = computed(() => settings.isMobileState);
+	const newAdminMsgCount = computed(() => {
+		const adminContactRoom = rooms.fetchRoomArrayByType(RoomType.PH_MESSAGE_ADMIN_CONTACT).pop();
+		return adminContactRoom?.getUnreadNotificationCount(NotificationCountType.Total) ?? 0;
+	});
 
 	onMounted(() => {
 		plugins.setPlugins(getCurrentInstance()?.appContext.config.globalProperties._plugins, router);
