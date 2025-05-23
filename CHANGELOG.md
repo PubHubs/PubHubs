@@ -12,6 +12,7 @@ _Please add a brief description of any changes and any migrations to be performe
 - [NEW] Users can create group rooms.
 - [NEW] Users can contact Hub administrator.
 - [FIX] Users can enter public rooms after they have joined it.
+- [NEW] New discover rooms design with member count, time of last activity and secured attributes.
 
 
 ## 15 May 2025 - v2.0.6
