@@ -35,6 +35,7 @@ class UpdateConfig:
     Important Methods
     -----------------
     _update_and_check_dont_change_config: This method checks all values that should not changed and adds them if they are missing or raises an error if they are the wrong value using the DONT_CHANGE_CONFIG dict
+    The function also removes settings that PubHubs used in the past but need to be removed with the latest changes to PubHubs
 
     _check_did_change_config: This method checks all values that should be changed for production and raises an error if they are not with the DO_CHANGE_CONFIG dict
     In the development this method checks that the values are not changed from the default settings which work for development
@@ -77,7 +78,6 @@ class UpdateConfig:
     # The modules key is of a different python structure than the modules key in the loaded yaml file
     DO_CHANGE_CONFIG = {
         "macaroon_secret_key": "macaroon_key",
-        "form_secret": "form_secret",
         "server_name": "testhub.matrix.host",
         "public_baseurl": "http://localhost:8008",      
     }
@@ -208,6 +208,17 @@ class UpdateConfig:
                             self._check_did_not_change(f"{key}.action", value[0]['action'], self.DONT_CHANGE_CONFIG[key][0]['action'])
                         else:
                             homeserver_live[key][0].update(self.DONT_CHANGE_CONFIG[key][0])
+                case "listeners":
+                    if "resources" in value[0] and "names" in value[0]["resources"][0] and "consent" in value[0]["resources"][0]["names"]:
+                            homeserver_live[key][0]["resources"][0]["names"].remove("consent")
+                            logger.warning(f" - Warning ⚠️  {key}.resources.names has the value consent which is a setting that is no longer used by Pubhubs, so the value was removed from the homeserver.yaml.live")
+                case "form_secret":
+                    homeserver_live.pop("form_secret")
+                    logger.warning(f" - Warning ⚠️  {key} is a setting that is no longer used by Pubhubs, so the value was removed from the homeserver.yaml.live")
+                case "user_consent":
+                    homeserver_live.pop("user_consent")
+                    logger.warning(f" - Warning ⚠️  {key} is a setting that is no longer used by Pubhubs, so the value was removed from the homeserver.yaml.live")
+
         # Update settings that pubhubs needs to work that are missing
         for key, value in to_be_checked_config.items():
             try:
@@ -245,9 +256,6 @@ class UpdateConfig:
         for key, value in homeserver_live.items():
             match key:
                 case "macaroon_secret_key":
-                    with self._try_check(key, to_be_checked_config,check_type_log_info):
-                        self._check_did_change(key, value, self.DO_CHANGE_CONFIG[key])
-                case "form_secret":
                     with self._try_check(key, to_be_checked_config,check_type_log_info):
                         self._check_did_change(key, value, self.DO_CHANGE_CONFIG[key])
                 case "server_name":

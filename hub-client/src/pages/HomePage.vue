@@ -53,6 +53,7 @@
 </template>
 
 <script setup lang="ts">
+	// Logic
 	import { ref, onBeforeMount } from 'vue';
 	import { router } from '@/logic/core/router';
 	import { usePubHubs } from '@/logic/core/pubhubsStore';
@@ -76,7 +77,7 @@
 
 	const props = defineProps<Props>();
 
-	onBeforeMount(() => {
+	onBeforeMount(async () => {
 		loadHubSettings();
 	});
 	/**

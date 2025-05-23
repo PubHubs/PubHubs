@@ -137,7 +137,7 @@
 					</div>
 				</HeaderFooter>
 
-				<div class="h-full w-full overflow-y-auto overflow-x-hidden" :class="{ hidden: isMobile }">
+				<div class="h-full w-full overflow-y-auto overflow-x-hidden" :class="{ hidden: hubSettings.mobileHubMenu }">
 					<router-view></router-view>
 				</div>
 			</div>
@@ -246,12 +246,7 @@
 				setupReady.value = true;
 				addPushRules();
 			});
-			// Needs onboarding?
-			if (user.needsOnboarding) {
-				router.push({ name: 'onboarding' });
-			} else {
-				router.push({ name: 'home' });
-			}
+			router.push({ name: 'home' });
 			// 2024 12 03 The await is removed, because of slow loading testhub
 			// After the next merge to stable, in case this gives no problems,
 			// the old code and comments can be removed

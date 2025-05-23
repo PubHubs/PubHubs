@@ -29,6 +29,7 @@
 #
 
 modules:
+  - module: conf.modules.pubhubs.ConsentResource
   - module: conf.modules.pubhubs.HubClientApi # DON'T CHANGE
     config:
           {
@@ -51,7 +52,6 @@ server_name: "testhub.matrix.host" # DO CHANGE - to your Hub server domain name
 public_baseurl: http://localhost:8008 # DO CHANGE - to https://<hub-server-domain>
 
 macaroon_secret_key: "macaroon_key"           # DO CHANGE - to e.g. a 32 letter generated password
-form_secret: "form_secret"                    # DO CHANGE - to e.g. a 32 letter generated password
 signing_key_path: "/data/testhub.signing.key" # DO CHANGE - remove this to auto-generate a signing key
 
 trusted_key_servers: []
@@ -66,7 +66,6 @@ listeners:
     resources:
       - names:
           - client
-          - consent
         compress: false
 
 templates:
@@ -96,14 +95,6 @@ sso:
 
 update_profile_information: true
 
-user_consent:
-  template_dir: /data/templates/privacy
-  version: 1.0
-  block_events_error: >-
-    De regels en het privacybeleid zijn aangepast. Om gebruik te blijven
-    maken van deze Hub zul je de nieuwe versie moeten lezen
-    en accepteren via deze link %(consent_uri)s
-  require_at_registration: true
 
 # Less login attempt restrictions
 rc_login:

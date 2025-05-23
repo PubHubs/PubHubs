@@ -80,7 +80,7 @@ const usePubHubs = defineStore('pubhubs', {
 					api_synapse.setAccessToken(this.Auth.getAccessToken()!); //Since user isn't null, we expect there to be an access token.
 					api_matrix.setAccessToken(this.Auth.getAccessToken()!);
 					user.fetchIsAdministrator(this.client as MatrixClient);
-					user.fetchUserFirstTimeLoggedIn();
+					user.fetchIfUserNeedsConsent();
 
 					try {
 						const profile = await this.client.getProfileInfo(newUser.userId);

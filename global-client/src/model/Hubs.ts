@@ -7,6 +7,7 @@ import { hub_api } from '@/logic/core/api';
 
 // Hub imports
 import { FeatureFlag, SettingsStore } from '../../../hub-client/src/logic/store/settings';
+import { HubSettingsJSONParser } from '../../../hub-client/src/logic/store/jsonutility';
 
 class Hub {
 	readonly hubId: string;
@@ -66,11 +67,11 @@ class Hub {
 			return `${this.url}/img/banner.svg`;
 		}
 	}
-	public async getHubJSON(): Promise<Object> {
+	public async getHubJSON(): Promise<HubSettingsJSONParser | undefined> {
 		if (this.settingsStore.isFeatureEnabled(FeatureFlag.hubSettings)) {
 			return await hub_api.apiGET(`${this.serverUrl}${hub_api.apiURLS.hubSettingsUrl}`);
 		} else {
-			return {};
+			return undefined;
 		}
 	}
 }

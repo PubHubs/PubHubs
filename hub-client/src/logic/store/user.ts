@@ -17,6 +17,9 @@ import { MatrixClient, User as MatrixUser } from 'matrix-js-sdk';
 import { defineStore } from 'pinia';
 import { Administrator } from '@/model/hubmanagement/models/admin';
 import { FeatureFlag, useSettings } from './settings';
+import { ConsentJSONParser } from './jsonutility';
+import { router } from '@/logic/core/router';
+import { OnboardingType } from '@/model/constants';
 
 /**
  *  Extending the MatrixUser with some extra PubHubs specific methods :
@@ -38,6 +41,7 @@ type State = {
 	_displayName: string | undefined | null;
 	isAdministrator: boolean;
 	needsOnboarding: boolean;
+	needsConsent: boolean;
 	client: MatrixClient;
 	userId: string | null;
 };
@@ -53,6 +57,7 @@ const useUser = defineStore('user', {
 		_displayName: undefined,
 		isAdministrator: false,
 		needsOnboarding: false,
+		needsConsent: false,
 		client: {} as MatrixClient,
 		userId: null,
 	}),
@@ -91,6 +96,9 @@ const useUser = defineStore('user', {
 
 			return filters.extractPseudonym(userId);
 		},
+		userConsent({ needsConsent }): boolean {
+			return needsConsent;
+		},
 	},
 
 	actions: {
@@ -116,13 +124,37 @@ const useUser = defineStore('user', {
 				this.isAdministrator = false;
 			}
 		},
+		async fetchIfUserNeedsConsent(): Promise<boolean> {
+			try {
+				const response = (await api_synapse.apiGET(`${api_synapse.apiURLS.consent}?user_id=${this.userId}`)) as ConsentJSONParser;
+				if (response) {
+					this.needsConsent = response.needs_consent;
+					this.needsOnboarding = response.needs_onboarding;
+				}
+			} catch (error) {
+				console.error('Could not check if user needs consent, ', error);
+				router.push({ name: 'error-page' });
+				this.needsConsent = true;
+			}
+			if (this.needsConsent || this.needsOnboarding) {
+				const onboardingType = this.needsOnboarding ? OnboardingType.full : OnboardingType.consent;
+				router.push({ name: 'onboarding', query: { type: onboardingType } });
+			}
+			return this.needsConsent;
+		},
 
-		async fetchUserFirstTimeLoggedIn(): Promise<boolean> {
-			const resp = await api_synapse.apiPOST<any>(api_synapse.apiURLS.joinHub, {
-				user: this.userId!,
-			});
-			this.needsOnboarding = resp.first_time_joined;
-			return this.needsOnboarding;
+		async setUserConsentVersion(version: number): Promise<void> {
+			const data = {
+				user_id: this.userId,
+				version: version,
+			};
+			try {
+				await api_synapse.apiPOST(`${api_synapse.apiURLS.consent}`, data);
+				this.needsConsent = false;
+				this.needsOnboarding = false;
+			} catch (error) {
+				console.log(error);
+			}
 		},
 
 		setDisplayName(name: string | undefined | null) {
