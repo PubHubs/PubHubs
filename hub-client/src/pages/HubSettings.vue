@@ -72,6 +72,22 @@
 				</template>
 			</MediaUploadSection>
 
+			<!-- Contact Section -->
+			<div class="mb-8">
+				<div class="mb-4 flex-col">
+					<H3 class="pb-2 text-lg font-semibold">{{ $t('hub_settings.consent_heading') }}</H3>
+					<P>{{ $t('hub_settings.consent_description') }}</P>
+				</div>
+				<!-- Textarea for Editing Contact -->
+				<TextArea
+					v-model="hubConsent"
+					class="border-hub-border max-h-16 w-full max-w-[600px] rounded-md border p-3 font-body text-2xl dark:text-black"
+					rows="4"
+					:placeholder="t('hub_settings.consent')"
+					@input="onHubSettingsChange"
+				></TextArea>
+			</div>
+
 			<div class="fixed bottom-5 right-10 ml-auto flex items-center">
 				<P v-if="settingsSaved" class="text-hub-text-variant">{{ $t('hub_settings.settings_saved') }}</P>
 				<Button @click="saveChanges()" :disabled="!settingsChanged">{{ $t('hub_settings.save') }}</Button>
@@ -87,7 +103,8 @@
 	import MediaUploadSection from '@/components/ui/MediaUploadSection.vue';
 	import { SMI } from '@/logic/foundation/StatusMessage';
 	import { LOGGER } from '@/logic/foundation/Logger';
-	import { ALLOWED_HUB_ICON_TYPES, MAX_HUB_ICON_SIZE, useHubSettings, HubSettingsJSONParser } from '@/logic/store/hub-settings';
+	import { ALLOWED_HUB_ICON_TYPES, MAX_HUB_ICON_SIZE, useHubSettings } from '@/logic/store/hub-settings';
+	import { HubSettingsJSONParser } from '@/logic/store/jsonutility';
 	import { computed, ref, onBeforeMount } from 'vue';
 	import { useI18n } from 'vue-i18n';
 	import H3 from '@/components/elements/H3.vue';
@@ -133,6 +150,11 @@
 
 	const hubContact = ref<string>('');
 	const originalContact = ref<string>('');
+
+	const hubConsent = ref<string>('');
+	const originalConsent = ref<string>('');
+
+	const version = ref<number>(0);
 
 	onBeforeMount(() => {
 		displayHubJSON();
@@ -184,8 +206,10 @@
 
 	function onHubSettingsChange() {
 		// Mark settings as changed if hubsettings are different from original
-		if (hubDescription.value !== originalDescription.value || hubSummary.value !== originalSummary.value || hubContact.value !== originalContact.value) {
+		if (hubDescription.value !== originalDescription.value || hubSummary.value !== originalSummary.value || hubContact.value !== originalContact.value || hubConsent.value !== originalConsent.value) {
 			settingsChanged.value = true;
+		} else if (selectedUrls.value !== undefined || mediaFiles.value !== undefined) {
+			settingsChanged.value = false;
 		} else if (!Object.values(selectedUrls.value).some((url) => url !== undefined) && !Object.values(mediaFiles.value).some((file) => file !== undefined)) {
 			// If nothing else has changed and hubsettings reverted to original
 			settingsChanged.value = false;
@@ -212,17 +236,21 @@
 			originalDescription.value = hubDescription.value;
 			originalSummary.value = hubSummary.value;
 			originalContact.value = hubContact.value;
+			originalConsent.value = hubConsent.value;
 		}
 	}
 
 	async function saveHubSettings(): Promise<boolean> {
 		// Skip if hubsettings have not changed
-		if (hubDescription.value === originalDescription.value && hubSummary.value === originalSummary.value && hubContact.value === originalContact.value) {
+		if (hubDescription.value === originalDescription.value && hubSummary.value === originalSummary.value && hubContact.value === originalContact.value && hubConsent.value === originalConsent.value) {
 			return true;
+		}
+		if (hubConsent.value !== originalConsent.value) {
+			version.value += 1;
 		}
 
 		try {
-			await hubSettings.setHubJSON(new HubSettingsJSONParser(hubDescription.value, hubSummary.value, hubContact.value));
+			await hubSettings.setHubJSON(new HubSettingsJSONParser(hubDescription.value, hubSummary.value, hubContact.value, hubConsent.value, version.value));
 			logger.info(SMI.HUB_SETTINGS, 'Hub settings updated');
 			return true;
 		} catch (er) {
@@ -232,13 +260,17 @@
 	}
 	async function displayHubJSON(): Promise<void> {
 		const hubSettingsJSON = await hubSettings.getHubJSON();
-
-		hubDescription.value = hubSettingsJSON.description;
-		originalDescription.value = hubDescription.value;
-		hubSummary.value = hubSettingsJSON.summary;
-		originalSummary.value = hubSummary.value;
-		hubContact.value = hubSettingsJSON.contact;
-		originalContact.value = hubContact.value;
+		if (hubSettingsJSON) {
+			hubDescription.value = hubSettingsJSON.description;
+			originalDescription.value = hubDescription.value;
+			hubSummary.value = hubSettingsJSON.summary;
+			originalSummary.value = hubSummary.value;
+			hubContact.value = hubSettingsJSON.contact;
+			originalContact.value = hubContact.value;
+			hubConsent.value = hubSettingsJSON.consent;
+			originalConsent.value = hubConsent.value;
+			version.value = hubSettingsJSON.version;
+		}
 	}
 
 	async function saveMedia(mediaType: 'icon' | 'banner'): Promise<boolean> {

@@ -3,7 +3,7 @@
 		<input
 			ref="input"
 			type="checkbox"
-			class="border-1 focus:ring-offset-width-0 focus:shadow-0 mt-1 h-6 w-6 rounded-md bg-transparent focus:outline-0 focus:outline-offset-0 focus:ring-0 focus:ring-offset-0"
+			class="border-1 focus:ring-offset-width-0 focus:shadow-0 mt-1 h-6 w-6 rounded-md bg-transparent ring-accent-primary checked:!bg-accent-primary hover:cursor-pointer hover:ring-2 focus:outline-0 focus:outline-offset-0 focus:ring-0 focus:ring-offset-0"
 			:class="colorClass"
 			:value="modelValue"
 			:checked="modelValue"
@@ -28,7 +28,7 @@
 		},
 		color: {
 			type: String,
-			default: 'green',
+			default: 'blue',
 		},
 		modelValue: {
 			type: Boolean,
@@ -47,8 +47,8 @@
 	const { update, cancel, value } = useFormInputEvents(emit, props.modelValue);
 
 	const colors: { [key: string]: string } = {
-		green: 'text-green',
-		blue: 'text-blue',
+		green: 'accent-accent-secondary',
+		blue: 'accent-accent-primary',
 	};
 
 	const colorClass = computed(() => {

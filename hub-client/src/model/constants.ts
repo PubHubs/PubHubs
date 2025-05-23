@@ -17,5 +17,9 @@ enum RoomEmit {
 	ScrolledToEventId = 'scrolledToEventId',
 	ThreadLengthChanged = 'threadLengthChanged',
 }
+enum OnboardingType {
+	consent = 'consent',
+	full = 'full',
+}
 
-export { RelationType, RoomEmit };
+export { RelationType, RoomEmit, OnboardingType };

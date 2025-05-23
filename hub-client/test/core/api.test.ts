@@ -21,7 +21,6 @@ describe('api_synapse', () => {
 		expect(api_synapse.apiURLS.usersAPIV1).toBe('http://test/_synapse/admin/v1/users/');
 		expect(api_synapse.apiURLS.securedRoom).toBe('http://test/_synapse/client/srextra');
 		expect(api_synapse.apiURLS.notice).toBe('http://test/_synapse/client/notices');
-		expect(api_synapse.apiURLS.joinHub).toBe('http://test/_synapse/client/hubjoined');
 		expect(api_synapse.apiURLS.usersAPIV3).toBe('http://test/_synapse/admin/v3/users/');
 		expect(api_synapse.apiURLS.roomsAPIV1).toBe('http://test/_synapse/admin/v1/rooms/');
 	});

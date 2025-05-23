@@ -22,6 +22,7 @@ class HubClientApiConfig(object):
     @property
     def hub_client_url(self) -> str:
         return self._hub_client_url
+    
 
     @property
     def global_client_url(self) -> str:
@@ -73,4 +74,5 @@ class HubClientApiConfig(object):
         if module_config_from_file.get(GLOBAL_CLIENT_URL) is None or not isinstance(module_config_from_file.get(GLOBAL_CLIENT_URL), str):
             raise ConfigError(f"'{GLOBAL_CLIENT_URL}' should be a string in the config")
         self._global_client_url = module_config_from_file.get(GLOBAL_CLIENT_URL)
+
 
