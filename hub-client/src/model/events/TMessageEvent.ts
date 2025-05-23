@@ -3,7 +3,7 @@ import { WithRequired } from '../utility/utility';
 import { TBaseEvent } from './TBaseEvent';
 import { EventType, MsgType } from 'matrix-js-sdk';
 import { PubHubsMgType } from '@/logic/core/events';
-import { TVotingWidgetMessageEventContent } from './voting/TVotingMessageEvent';
+import { TVotingWidgetMessageEventContent } from '@/model/events/voting/TVotingMessageEvent';
 
 /**
  * Event used for sending messages in a room. Not limited to text.

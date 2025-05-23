@@ -33,8 +33,8 @@ class HubResource(DirectServeJsonResource):
 		self.putChild(b'default-icon', HubMediaResource(module_api, module_config, media_type="icon", is_default=True))
 		self.putChild(b'banner', HubMediaResource(module_api, module_config, media_type="banner", is_default=False))
 		self.putChild(b'default-banner', HubMediaResource(module_api, module_config, media_type="banner", is_default=True))
-		self.putChild(b'settings', HubJSONResource(module_api, module_config, is_default=False))
-		self.putChild(b'default-settings', HubJSONResource(module_api, module_config, is_default=True))
+		self.putChild(b'settings', HubJSONResource(module_api, module_config, store, is_default=False))
+		self.putChild(b'default-settings', HubJSONResource(module_api, module_config, store, is_default=True))
 		self.putChild(b'users', HubUserResource(module_api, module_config , store ,only_admin_data=True))
 
 class HubMediaResource(DirectServeJsonResource):
@@ -146,31 +146,43 @@ class HubMediaResource(DirectServeJsonResource):
 class HubJSONResource(DirectServeJsonResource):
 	_module_api: ModuleApi
 	_module_config: HubClientApiConfig
+	_store: any
 	_is_default: bool
 	
-	def __init__(self, module_api: ModuleApi, module_config: HubClientApiConfig, is_default: bool = False):
+	def __init__(self, module_api: ModuleApi, module_config: HubClientApiConfig, store, is_default: bool = False):
 		super().__init__()
 		
 		self._module_api = module_api
 		self._module_config = module_config
+		self._store = store
 		self._is_default = is_default
 	
 	async def _async_render_GET(self, request: SynapseRequest) -> bytes:
 		path = self._get_json_path()
-		
+
 		if not os.path.exists(path):
 			self._respond_with_default_json(request)
 			return
 			
 		with open(path, 'r') as fd:
-			hub_settings_json = fd.read()
+			hub_settings_json = json.load(fd)
+		
 
 		origin = request.getHeader(b"Origin")
 		if origin in [self._module_config.hub_client_url.encode(), self._module_config.global_client_url.encode()]:
+			if origin == self._module_config.hub_client_url.encode():
+				# Use get_user_by_req to validate the access token
+				try:
+					await self._module_api.get_user_by_req(request)
+				except Exception as e:
+					respond_with_json(request, 400, {"error": {e}})
+					return
+				timestamps = await self._store.all_rooms_latest_timestamp()
+				hub_settings_json['timestamps'] = timestamps
+
 			request.setHeader(b"Access-Control-Allow-Origin", origin)
 			request.setHeader(b"Content-Type", b"application/json")
-			request.write(hub_settings_json.encode())
-			request.finish()
+			respond_with_json(request, 200, hub_settings_json)
 		else:
 			respond_with_json(request, 403, {"message": "Origin not allowed."})
 			return
