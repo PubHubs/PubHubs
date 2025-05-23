@@ -349,9 +349,22 @@ const useRooms = defineStore('rooms', {
 		},
 
 		// Non-Admin api for getting information about an individual secured room based on room ID.
-		async getSecuredRoomInfo(roomId: string) {
+		async getSecuredRoomInfo(roomId: string): Promise<TSecuredRoom | undefined> {
+			// Check if already in the store
+			const existing = this.securedRooms.find((room) => room.room_id === roomId);
+			if (existing) {
+				this.securedRoom = existing;
+				return existing;
+			}
+
+			// Otherwise, fetch from API
 			const jsonInString = await api_synapse.apiGET<string>(api_synapse.apiURLS.securedRoom + '?room_id=' + roomId);
-			this.securedRoom = JSON.parse(jsonInString);
+			const fetchedRoom = JSON.parse(jsonInString) as TSecuredRoom;
+
+			this.securedRooms.push(fetchedRoom);
+
+			this.securedRoom = fetchedRoom;
+			return fetchedRoom;
 		},
 
 		async addSecuredRoom(room: TSecuredRoom) {

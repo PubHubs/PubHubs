@@ -1,7 +1,10 @@
 <template>
+	<!-- Banner -->
 	<HubBanner :banner-url="hubSettings.bannerUrl" />
-	<div class="mx-auto mb-8 flex w-full flex-col gap-16 md:w-4/6">
-		<div class="-mt-[5.5rem] flex flex-col gap-2 px-8 md:px-0">
+
+	<div class="mx-auto mb-8 flex w-full flex-col gap-4 px-8 md:w-4/6 md:px-0">
+		<!-- Search bar -->
+		<div class="-mt-[5.5rem] flex flex-col gap-2">
 			<div class="flex items-center whitespace-nowrap ~gap-1/4">
 				<div class="flex items-center gap-2">
 					<Icon class="text-surface dark:text-on-surface" type="pubhubs-home" size="md" />
@@ -18,19 +21,24 @@
 				<Icon type="search" class="pointer-events-none absolute right-2 top-[20%] z-10 text-on-surface-variant" size="sm" />
 			</div>
 		</div>
-		<div class="flex flex-col gap-2">
-			<div class="rounded-xl bg-surface-low px-8 py-8 md:px-12">
-				<div v-if="filteredRooms.length > 0" class="grid w-full grid-cols-1 justify-center gap-5 gap-x-16 lg:grid-cols-2">
-					<RoomPill
+
+		<!-- Room grid -->
+		<div class="flex w-full flex-col gap-2">
+			<div class="flex w-full justify-center rounded-xl py-8">
+				<TransitionGroup v-if="filteredRooms.length > 0" name="room-grid" tag="div" class="grid w-full grid-cols-1 gap-8 px-0 transition-all duration-300 md:px-16 lg:grid-cols-2 2xl:grid-cols-3">
+					<RoomCard
 						v-for="room in filteredRooms"
 						:key="room.room_id"
 						:room="room"
-						:roomIsSecure="rooms.roomIsSecure(room.room_id)"
+						:isSecured="rooms.roomIsSecure(room.room_id)"
 						:memberOfRoom="rooms.memberOfPublicRoom(room.room_id)"
-						:securedRoomLoginFlow="currentRoomId === room.room_id"
-						@toggle-secured-room="setCurrentRoomId(room.room_id)"
+						:timestamp="roomTimestamps[room.room_id] || 0"
+						:isExpanded="expandedCardId === room.room_id"
+						@toggleExpand="handleToggleExpand(room.room_id)"
 					/>
-				</div>
+				</TransitionGroup>
+
+				<!-- No results message -->
 				<div v-else class="flex w-full items-center justify-center">
 					<P>{{ t('rooms.no_rooms_found') }}</P>
 				</div>
@@ -38,38 +46,68 @@
 		</div>
 	</div>
 </template>
-
 <script setup lang="ts">
-	// Components
-	import HubBanner from '@/components/ui/HubBanner.vue';
-	// import SearchRoomsInput from '@/components/forms/SearchRoomsInput.vue';
-	// import HeaderFooter from '@/components/ui/HeaderFooter.vue';
-	import RoomPill from '@/components/rooms/RoomPill.vue';
-	import Icon from '@/components/elements/Icon.vue';
-
-	import { useHubSettings } from '@/logic/store/hub-settings';
-	import { useRooms } from '@/logic/store/store';
-	import { computed, ref, onMounted } from 'vue';
+	// External imports
+	import { computed, ref, onMounted, onBeforeMount, watchEffect } from 'vue';
 	import { useI18n } from 'vue-i18n';
 
-	const currentRoomId = ref<string | null>(null);
-	const searchQuery = ref('');
+	// Components
+	import HubBanner from '@/components/ui/HubBanner.vue';
+	import RoomCard from '@/components/rooms/RoomCard.vue';
+	import Icon from '@/components/elements/Icon.vue';
 
+	// Logic
+	import { useHubSettings } from '@/logic/store/hub-settings';
+	import { useRooms } from '@/logic/store/store';
+
+	// Setup
 	const hubSettings = useHubSettings();
 	const rooms = useRooms();
 	const { t } = useI18n();
+	const timestamps = ref<any[]>([]);
+	const roomTimestamps = ref<Record<string, Date>>({});
+	const expandedCardId = ref<string | null>(null);
+	const searchQuery = ref('');
 
 	const filteredRooms = computed(() => {
-		let visibleRooms = rooms.visiblePublicRooms;
-
-		return visibleRooms.filter((room) => room.name?.toLowerCase().includes(searchQuery.value.toLowerCase()) || room.topic?.toLowerCase().includes(searchQuery.value.toLowerCase()));
+		const query = searchQuery.value.toLowerCase().trim();
+		return rooms.visiblePublicRooms.filter((room) => room.name?.toLowerCase().includes(query) || room.topic?.toLowerCase().includes(query));
 	});
 
-	onMounted(async () => {
-		rooms.fetchPublicRooms();
-	});
+	const handleToggleExpand = (roomId: string) => {
+		expandedCardId.value = expandedCardId.value === roomId ? null : roomId;
+	};
+	// Process timestamps into a map for easier lookup
+	function processTimestamps() {
+		if (!timestamps.value) return;
 
-	function setCurrentRoomId(roomId: string) {
-		currentRoomId.value = roomId;
+		const timestampMap: Record<string, Date> = {};
+		timestamps.value.forEach((timestamp) => {
+			if (timestamp && timestamp.length >= 2) {
+				timestampMap[timestamp[1]] = new Date(timestamp[0]) || 0;
+			}
+		});
+		roomTimestamps.value = timestampMap;
 	}
+
+	async function loadHubSettings() {
+		const hubSettingsJSON = await hubSettings.getHubJSON();
+		timestamps.value = hubSettingsJSON.timestamps || [];
+		processTimestamps();
+	}
+
+	// This ensures that whenever timestamps or rooms change, we reprocess the timestamps
+	watchEffect(() => {
+		if (timestamps.value && timestamps.value.length > 0) {
+			processTimestamps();
+		}
+	});
+	onBeforeMount(() => {
+		loadHubSettings();
+	});
+
+	onMounted(() => {
+		rooms.fetchPublicRooms();
+		processTimestamps();
+	});
 </script>

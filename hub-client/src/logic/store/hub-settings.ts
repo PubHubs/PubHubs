@@ -24,11 +24,21 @@ export class HubSettingsJSONParser {
 	description: string;
 	summary: string;
 	contact: string;
+	timestamps: Array<Array<Number | String>>;
 
-	constructor(description: string, summary: string, contact: string) {
+	constructor(description: string, summary: string, contact: string, timestamps: Array<Array<Number | string>>) {
 		this.description = description ? description.replace(/\\n/g, '\n').replace(/"/g, '') : '';
 		this.summary = summary ? summary.replace(/\\n/g, '\n').replace(/"/g, '') : '';
 		this.contact = contact ? contact.replace(/\\n/g, '\n').replace(/"/g, '') : '';
+		this.timestamps = timestamps;
+	}
+}
+
+export class attributes {
+	accepted_values: string;
+
+	constructor(accepted_values: string) {
+		this.accepted_values = accepted_values;
 	}
 }
 

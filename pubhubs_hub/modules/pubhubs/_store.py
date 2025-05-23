@@ -374,6 +374,27 @@ class HubStore:
                     hub_join_txn,
                     user_id,
         )
+            
+    async def all_rooms_latest_timestamp(self):
+            """
+            Returns the latest activity timestamp for every room.
+            """
+            
+            
+            def all_rooms_latest_timestamp_txn(
+                txn: LoggingTransaction):
+                
+                txn.execute(
+                        """
+                            SELECT MAX(received_ts), room_id FROM events GROUP BY room_id
+                            """,
+                    )
+                return txn.fetchall()
+            
+            return await self.module_api.run_db_interaction(
+                    "joined_hub",
+                    all_rooms_latest_timestamp_txn
+        )
 
     async def has_joined(self, user_id: str) -> bool:
             """Check whether a user is allowed to join a room.

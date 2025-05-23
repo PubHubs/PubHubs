@@ -1,40 +1,195 @@
 <template>
-	<div class="max-w-80 flex h-44 min-w-44 flex-col overflow-hidden rounded-md">
-		<div class="h-1/2">
-			<ImagePlaceholder :src="image" />
-		</div>
-		<div class="bg-hub-background-3 text-hub-text relative flex">
-			<div class="bg-hub-accent absolute -top-4 flex w-fit rounded-r-md px-4 py-1">
-				<Icon type="speech_bubbles" size="sm" class="text-black" />
-				<p class="pl-2 text-white"><slot name="category"></slot></p>
-			</div>
-			<div class="flex flex-col p-4">
-				<H3 class="~text-body-min/body-max font-semibold"><slot name="header"></slot></H3>
-				<div class="flex flex-row justify-between gap-x-8 pb-1">
-					<p class="font-normal ~text-label-min/label-max"><slot name="content"></slot></p>
-					<button class="bg-blue-light hover:bg-blue self-end rounded-sm text-white focus:outline-none focus:ring-2 focus:ring-opacity-75">
-						<Icon type="arrow-right" />
-					</button>
+	<div class="flex h-[320px] w-full flex-col rounded-xl shadow transition-all duration-300 xs:w-auto" :class="isExpanded ? 'row-span-2 h-[672px] bg-surface' : 'h-[320px] bg-surface-low'">
+		<!-- Main card -->
+		<div class="flex h-[320px] w-full shrink-0 flex-col gap-4 overflow-hidden rounded-xl bg-surface-low py-8 shadow-md">
+			<div class="flex items-center justify-between">
+				<H2 class="line-clamp-2 w-2/3 pl-8">{{ room.name }}</H2>
+				<div v-if="isSecured" class="flex h-fit items-center justify-center rounded-l-lg bg-accent-primary py-2 pl-2 pr-4 text-on-accent-primary" :title="t('admin.secured_room')">
+					<Icon type="shield" filled />
 				</div>
+			</div>
+			<div class="flex h-full flex-col gap-4 px-8">
+				<div class="flex h-full items-center">
+					<P class="line-clamp-2">{{ room.topic }}</P>
+				</div>
+
+				<div class="flex w-full items-end justify-between gap-8">
+					<div class="flex flex-row flex-wrap gap-4 overflow-hidden text-on-surface-dim ~text-label-min/label-max">
+						<div class="flex items-center gap-2">
+							<Icon type="person" size="sm" filled />
+							<span class="truncate whitespace-nowrap">{{ memberCount }}</span>
+						</div>
+						<div v-if="timestamp" class="flex items-center gap-2">
+							<Icon type="clock" size="sm" filled />
+							<span> {{ timestamp.toLocaleDateString().slice(0, 6) + timestamp.toLocaleDateString().slice(8, 10) }} {{ timestamp.toLocaleTimeString().slice(0, 5) }}</span>
+						</div>
+					</div>
+
+					<Button v-if="isSecured" @click="toggleExpand" class="w-fit shrink-0" :title="t('rooms.view_access_requirements')" :color="!isExpanded ? 'primary' : 'secondary'">
+						{{ !isExpanded ? t('rooms.view_access_requirements') : t('rooms.close_access_requirements') }}
+					</Button>
+					<Button v-else-if="memberOfRoom" disabled :title="t('rooms.already_joined')" class="w-fit shrink-0 whitespace-nowrap">
+						{{ t('rooms.already_joined') }}
+					</Button>
+					<Button v-else @click="joinRoom" class="w-fit shrink-0 whitespace-nowrap" :title="t('rooms.join_room')">
+						{{ t('rooms.join_room') }}
+					</Button>
+				</div>
+			</div>
+		</div>
+
+		<!-- Expanded card for secure rooms -->
+		<div v-if="isSecured && isExpanded" class="mt-8 flex h-full max-h-[320px] flex-col gap-4 bg-surface p-8">
+			<H2 class="w-full">{{ t('admin.secured_description') }}</H2>
+			<div class="h-full overflow-y-auto">
+				<P class="mb-4">{{ accessVerifytext }}</P>
+				<div v-if="securedAttributes" class="flex flex-wrap items-center gap-y-2">
+					<div class="flew-row flex items-center gap-1">
+						<Icon v-if="memberOfRoom" type="lock_open" size="sm"></Icon>
+						<Icon v-else type="lock_closed" size="sm"></Icon>
+						<P>{{ $t('attribute.heading') }}</P>
+					</div>
+					<div v-for="attribute in securedAttributes" :key="attribute.id" class="">
+						<div class="float-left ml-1 rounded-3xl bg-surface-high p-1 px-2 ~text-label-small-min/label-small-max">
+							<P class="">{{ $t('attribute.' + attribute) }}</P>
+						</div>
+						<P class="float-left">&nbsp;</P>
+					</div>
+				</div>
+				<P v-else> {{ $t('common.loading') }}</P>
+			</div>
+			<div class="flex w-full items-end justify-between gap-8">
+				<Button v-if="memberOfRoom" disabled :title="t('rooms.already_joined')" class="w-fit shrink-0 truncate whitespace-nowrap">
+					{{ t('rooms.already_joined') }}
+				</Button>
+				<Button v-else @click="joinSecureRoom" class="w-fit shrink-0 truncate whitespace-nowrap" :disabled="panelOpen">
+					{{ t('rooms.join_secured_room') }}
+				</Button>
+
+				<!-- Secure room join dialog -->
+				<SecuredRoomLogin v-if="panelOpen" :securedRoomId="room.room_id" @click="panelOpen = false" />
 			</div>
 		</div>
 	</div>
 </template>
 
 <script setup lang="ts">
-	// Components
-	import ImagePlaceholder from '../elements/ImagePlaceholder.vue';
-	import Icon from '../elements/Icon.vue';
-	import H3 from '../elements/H3.vue';
+	// External imports
+	import { computed, ref, watch } from 'vue';
+	import { useI18n } from 'vue-i18n';
+	import { useRouter } from 'vue-router';
 
+	// Components
+	import Button from '@/components/elements/Button.vue';
+	import H2 from '@/components/elements/H2.vue';
+	import Icon from '@/components/elements/Icon.vue';
+	import P from '@/components/elements/P.vue';
+
+	// Logic
+	import { usePubHubs } from '@/logic/core/pubhubsStore';
+	import { useRooms } from '@/logic/store/rooms';
+	import { useDialog } from '@/logic/store/dialog';
+	import { useUser } from '@/logic/store/user';
+
+	// Setup
 	const props = defineProps({
-		image: {
-			type: String,
-			default: 'img/imageplaceholder.jpg',
-		},
-		to: {
+		room: {
 			type: Object,
-			default: null,
+			required: true,
+		},
+		isSecured: {
+			type: Boolean,
+			default: false,
+		},
+		memberOfRoom: {
+			type: Boolean,
+			default: false,
+		},
+		isExpanded: {
+			type: Boolean,
+			default: false,
+		},
+		timestamp: {
+			type: Date,
+			required: true,
 		},
 	});
+
+	const { t } = useI18n();
+	const router = useRouter();
+
+	const user = useUser();
+	const dialog = useDialog();
+	const pubhubsStore = usePubHubs();
+	const roomsStore = useRooms();
+	const accessVerifytext = ref('');
+	const panelOpen = ref(false);
+	const securedAttributes = ref();
+
+	// Compute member count string
+	const memberCount = computed(() => {
+		const count = props.isSecured ? props.room.num_joined_members - 1 : props.room.num_joined_members;
+		const label = count === 1 ? t('rooms.member') : t('rooms.members');
+		return `${count} ${label}`;
+	});
+
+	// Handle expand
+	const emit = defineEmits(['toggleExpand']);
+
+	const toggleExpand = () => {
+		emit('toggleExpand', props.room.room_id);
+	};
+
+	watch(
+		() => props.isExpanded,
+		async (expanded) => {
+			if (expanded && props.isSecured) {
+				const securedRoom = await roomsStore.getSecuredRoomInfo(props.room.room_id);
+				accessVerifytext.value = securedRoom?.user_txt ?? '';
+				securedAttributes.value = securedRoom?.accepted ? Object.keys(securedRoom.accepted) : undefined;
+			}
+		},
+		{ immediate: true },
+	);
+
+	// Handle room join
+	const joinRoom = async () => {
+		if (!props.room?.room_id) return;
+
+		await pubhubsStore.joinRoom(props.room.room_id);
+
+		// Wait for room membership with timeout
+		const maxRetries = 10;
+		const retryDelay = 500;
+
+		for (let attempt = 0; attempt < maxRetries; attempt++) {
+			const hasJoined = await pubhubsStore.isUserRoomMember(user.user.userId, props.room.room_id);
+			if (hasJoined) break;
+
+			if (attempt === maxRetries - 1) {
+				dialog.confirm(t('room.try_again'));
+			}
+
+			await new Promise((resolve) => setTimeout(resolve, retryDelay));
+		}
+
+		// Check if room exists in store with timeout
+		for (let attempt = 0; attempt < maxRetries; attempt++) {
+			if (roomsStore.roomExists(props.room.room_id)) {
+				router.push({ name: 'room', params: { id: props.room.room_id } });
+				return;
+			}
+
+			// Check if we've exceeded the timeout
+			if (attempt === maxRetries - 1) {
+				dialog.confirm(t('room.try_again'));
+			}
+
+			await new Promise((resolve) => setTimeout(resolve, retryDelay));
+		}
+	};
+
+	const joinSecureRoom = () => {
+		panelOpen.value = true;
+	};
 </script>
