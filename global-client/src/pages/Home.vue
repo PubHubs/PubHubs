@@ -27,7 +27,7 @@
 						</div>
 					</div>
 					<router-link to="/register" class="w-full">
-						<Button :color="'blue'" class="" @click="false">{{ $t('register.register_with') }} PubHubs</Button>
+						<Button class="" @click="false">{{ $t('register.register_with') }} PubHubs</Button>
 					</router-link>
 				</div>
 			</div>

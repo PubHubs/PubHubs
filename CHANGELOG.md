@@ -14,6 +14,7 @@ _Please add a brief description of any changes and any migrations to be performe
 - [FIX] Users can enter public rooms after they have joined it.
 - [NEW] New discover rooms design with member count, time of last activity and secured attributes.
 - [NEW] New onboarding and consent page of which the contents can be edited in the hub settings.
+- [FIX] Some buttons no longer had a background color.
 
 
 ## 15 May 2025 - v2.0.6

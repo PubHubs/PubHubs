@@ -34,15 +34,15 @@ class DialogButton {
 	}
 }
 
-const buttonsOk: Array<DialogButton> = [new DialogButton('ok', 'blue', DialogOk)];
+const buttonsOk: Array<DialogButton> = [new DialogButton('ok', 'primary', DialogOk)];
 
 const buttonsCancel: Array<DialogButton> = [new DialogButton('cancel', 'red', DialogCancel)];
 
-const buttonsOkCancel: Array<DialogButton> = [new DialogButton('ok', 'blue', DialogOk), new DialogButton('cancel', 'red', DialogCancel)];
+const buttonsOkCancel: Array<DialogButton> = [new DialogButton('ok', 'primary', DialogOk), new DialogButton('cancel', 'red', DialogCancel)];
 
-const buttonsSubmitCancel: Array<DialogButton> = [new DialogButton('submit', 'blue', DialogSubmit), new DialogButton('cancel', 'text', DialogCancel)];
+const buttonsSubmitCancel: Array<DialogButton> = [new DialogButton('submit', 'primary', DialogSubmit), new DialogButton('cancel', 'text', DialogCancel)];
 
-const buttonsYesNo: Array<DialogButton> = [new DialogButton('yes', 'blue', DialogYes), new DialogButton('no', 'red', DialogNo)];
+const buttonsYesNo: Array<DialogButton> = [new DialogButton('yes', 'primary', DialogYes), new DialogButton('no', 'red', DialogNo)];
 
 /**
  * DailogProperties class with all the properties a dialog needs
