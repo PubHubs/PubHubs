@@ -140,6 +140,8 @@ class HubClientApi(object):
 
         api.register_web_resource("/_synapse/client/hub_consent", ConsentResource(api, self._module_config))
 
+        api.register_web_resource("/_synapse/client/custom_consent", ConsentResource(api, self._module_config))
+
         api.register_spam_checker_callbacks(user_may_join_room=self.joining)
 
 

@@ -38,7 +38,7 @@
 						<!-- Preview Message -->
 						<div v-if="isUsernameChanged" class="flex flex-col gap-2">
 							<P>{{ t('onboarding.message_example') }}</P>
-							<div class="flex w-full items-center rounded-xl bg-surface-low ~gap-4/8 ~p-3/6 xl:w-1/2">
+							<div class="w--full flex items-center rounded-xl bg-surface-low ~gap-4/8 ~p-3/6 xl:w-1/2">
 								<div class="flex aspect-square h-12 w-12 shrink-0 items-center justify-center overflow-hidden rounded-full" :class="textColor(color(user.userId!))">
 									<img v-if="avatarPreviewUrl" data-testid="avatar" :src="avatarPreviewUrl" class="h-full w-full" />
 									<Icon v-else size="lg" type="person" />
@@ -70,7 +70,7 @@
 					<!-- House Rules -->
 					<div class="flex h-full flex-col gap-2">
 						<H1>{{ t('onboarding.house_rules', [hubName]) }}</H1>
-						<P class="h-full overflow-y-auto whitespace-pre-line break-words rounded-3xl bg-surface-low p-4">
+						<P class="h-full overflow-y-auto whitespace-pre-line break-all rounded-3xl bg-surface-low p-4">
 							{{ consentText }}
 						</P>
 					</div>
@@ -87,7 +87,7 @@
 							{{ t('forms.back') }}
 						</Button>
 						<Button :disabled="submitted || !hasAgreed" class="w-fit" @click="submit">
-							{{ t('onboarding.enter_hub', [hubName]) }}
+							{{ t('onboarding.enter_hub') }}
 						</Button>
 					</div>
 				</div>
@@ -98,7 +98,7 @@
 		<div v-else class="overflow-none relative flex h-full max-h-screen w-full items-center justify-center">
 			<div class="relative flex aspect-square h-auto max-h-full w-3/4 rounded-3xl shadow xl:aspect-[3/2] xl:h-2/3 xl:w-auto">
 				<!-- Step 1 -->
-				<div v-if="step === 1" class="flex h-full w-full overflow-y-auto rounded-3xl bg-surface-low">
+				<div v-if="step === 1" class="flex h-full w-full overflow-hidden rounded-3xl bg-surface-low">
 					<!-- Left Image -->
 					<div class="flex h-full w-1/2 flex-col overflow-y-auto ~gap-4/8">
 						<figure class="h-full w-full">
@@ -107,7 +107,7 @@
 					</div>
 
 					<!-- Right Form -->
-					<div class="flex h-full w-1/2 flex-col overflow-x-hidden bg-surface ~gap-4/8 ~px-4/24 ~py-24/36">
+					<div class="flex h-full w-1/2 flex-col bg-surface ~gap-4/8 ~px-4/24 ~py-24/36">
 						<div class="flex flex-col ~gap-1/2">
 							<H1>{{ t('onboarding.welcome', [hubName]) }}</H1>
 							<P>{{ t('onboarding.welcome_description') }}</P>
@@ -131,9 +131,9 @@
 						<!-- Message Preview -->
 						<div v-if="isUsernameChanged" class="flex flex-col ~gap-1/2">
 							<P>{{ t('onboarding.message_example') }}</P>
-							<div class="flex w-full items-center rounded-xl bg-background ~gap-4/8 ~p-3/6 xl:w-5/6">
+							<div class="w--full flex items-center rounded-xl bg-background ~gap-4/8 ~p-3/6 xl:w-1/2">
 								<div class="flex aspect-square h-12 w-12 shrink-0 items-center justify-center overflow-hidden rounded-full" :class="textColor(color(user.userId!))">
-									<img v-if="avatarPreviewUrl" data-testid="avatar" :src="avatarPreviewUrl" class="h-full" />
+									<img v-if="avatarPreviewUrl" data-testid="avatar" :src="avatarPreviewUrl" class="h-full w-full" />
 									<Icon v-else size="lg" type="person" />
 								</div>
 								<div class="flex flex-col ~gap-1/2">
@@ -149,25 +149,25 @@
 							</div>
 						</div>
 
-						<Button @click="nextStep" :disabled="!isUsernameChanged" class="min-h-10 w-fit">
+						<Button @click="nextStep" :disabled="!isUsernameChanged" class="w-fit">
 							{{ t('forms.next') }}
 						</Button>
 					</div>
 				</div>
 
 				<!-- Step 2 -->
-				<div v-if="step === 2" class="flex h-full w-full overflow-y-auto rounded-3xl bg-surface-low">
+				<div v-if="step === 2" class="flex h-full w-full overflow-hidden rounded-3xl bg-surface-low">
 					<!-- Left Rules -->
 					<div class="flex h-full w-1/2 flex-col overflow-y-auto ~gap-4/8 ~px-4/24 ~pt-24/36">
 						<H1>{{ t('onboarding.house_rules', [hubName]) }}</H1>
-						<P class="w-full whitespace-pre-line break-words">
+						<P class="w-full overflow-y-auto whitespace-pre-line break-words">
 							{{ consentText }}
 						</P>
 					</div>
 
 					<!-- Right Consent -->
-					<div class="flex h-full w-1/2 flex-col overflow-x-hidden bg-surface ~gap-4/8 ~px-4/24 ~py-24/36">
-						<Button v-if="!isConsentOnly" @click="prevStep" color="text" class="min-h-10 w-fit px-0 text-on-surface-variant">
+					<div class="flex h-full w-1/2 flex-col bg-surface ~gap-4/8 ~px-4/24 ~py-24/36">
+						<Button v-if="!isConsentOnly" @click="prevStep" color="text" class="w-fit px-0 text-on-surface-variant">
 							{{ t('forms.back') }}
 						</Button>
 						<div class="flex flex-col ~gap-1/2">
@@ -178,14 +178,14 @@
 							<Checkbox v-model="hasAgreed" />
 							<span>{{ t('onboarding.consent_text') }}</span>
 						</div>
-						<Button :disabled="submitted || !hasAgreed" class="min-h-10 w-fit" @click="submit">
-							{{ t('onboarding.enter_hub', [hubName]) }}
+						<Button :disabled="submitted || !hasAgreed" class="w-fit" @click="submit">
+							{{ t('onboarding.enter_hub') }}
 						</Button>
 					</div>
 				</div>
 
 				<!-- Mascot -->
-				<figure class="pointer-events-none absolute -bottom-4 -right-16 w-64 xl:-right-32 xl:w-auto">
+				<figure class="absolute -bottom-4 -right-16 hidden w-64 lg:block xl:-right-32 xl:w-auto">
 					<img alt="PubHubs mascotte" :src="mascotteImage" />
 				</figure>
 			</div>
@@ -223,9 +223,6 @@
 	import { useSettings } from '@/logic/store/settings';
 	import { useUser } from '@/logic/store/user';
 
-	// Types
-	import { OnboardingType } from '@/model/constants';
-
 	// Setup
 	const { t } = useI18n();
 	const router = useRouter();
@@ -238,13 +235,13 @@
 
 	const hubName = ref(hubSettings.hubName);
 	const isMobile = computed(() => settings.isMobileState);
-	console.log(isMobile.value);
 
 	const inputValue = ref('');
-	const pseudonym = ref(user.user.userId ? user.user.userId.split(':')[0].substring(1) : 'your id');
+	const pseudonym = ref(user.user.userId.split(':')[0].substring(1));
 	const isUsernameChanged = computed(() => inputValue.value !== '');
 
-	const isConsentOnly = computed(() => route.query.type === OnboardingType.consent);
+	const isConsentOnly = computed(() => route.query.type === 'consent');
+	console.log(isConsentOnly.value);
 	const step = ref(isConsentOnly.value ? 2 : 1);
 	const nextStep = () => (step.value = 2);
 	const prevStep = () => (step.value = 1);
@@ -296,8 +293,9 @@
 
 	const loadHubSettings = async () => {
 		const hubSettingsJSON = await hubSettings.getHubJSON();
-		if (hubSettingsJSON) {
-			consentVersion.value = hubSettingsJSON.version ? hubSettingsJSON.version : 1;
+
+		if (hubSettingsJSON !== undefined) {
+			consentVersion.value = hubSettingsJSON.version;
 			consentText.value = hubSettingsJSON.consent;
 		}
 	};
@@ -321,6 +319,7 @@
 				await uploadAvatar();
 			}
 
+			await user.fetchIfUserNeedsConsent();
 			await user.setUserConsentVersion(consentVersion.value);
 
 			router.push({ name: 'home' });
@@ -330,9 +329,9 @@
 	};
 
 	// Misc
-	// TODO: move to a utility folder
 	const { color, textColor } = useUserColor();
 
+	// TODO: move to a utility folder
 	const now = new Date();
 	const time = now.toLocaleTimeString([], {
 		hour: '2-digit',

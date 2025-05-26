@@ -124,6 +124,7 @@ const useUser = defineStore('user', {
 				this.isAdministrator = false;
 			}
 		},
+
 		async fetchIfUserNeedsConsent(): Promise<boolean> {
 			try {
 				const response = (await api_synapse.apiGET(`${api_synapse.apiURLS.consent}?user_id=${this.userId}`)) as ConsentJSONParser;
