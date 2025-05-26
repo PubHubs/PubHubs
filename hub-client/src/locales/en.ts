@@ -350,7 +350,7 @@ const en = {
 		message_example: 'This is what your messages will look like:',
 		message_example_text: "Wow, That's cool!",
 		consent_text: 'I have read the rules and privacy policy of the {0} hub and accept the terms.',
-		enter_hub: 'Save and enter the {0} hub',
+		enter_hub: 'Save and enter the hub',
 		welcome_consent: 'The house rules of this hub have changed',
 		welcome_consent_description: 'Please review the terms before entering.',
 

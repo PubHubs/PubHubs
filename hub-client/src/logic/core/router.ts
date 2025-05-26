@@ -104,7 +104,7 @@ router.beforeEach((to) => {
 		hubSettings.hideBar();
 	}
 
-	// Redirect to onboarding only if user is NOT an admin and needs onboarding / consent
+	// Redirect to onboarding only if user needs onboarding / consent
 	if (to.meta.onboarding) {
 		const { needsConsent, needsOnboarding } = useUser();
 		if (needsConsent || needsOnboarding) {

@@ -351,7 +351,7 @@ const nl = {
 		message_example: 'Zo zien jouw berichten er straks uit:',
 		message_example_text: 'Wauw! Dat is cool!',
 		consent_text: 'Ik heb de regels en privacy policy van de {0} hub doorgelezen en accepteer de voorwaarden.',
-		enter_hub: 'Sla op en betreed de {0} hub',
+		enter_hub: 'Sla op en betreed de hub',
 		welcome_consent: 'De huisregels van deze hub zijn gewijzigd',
 		welcome_consent_description: 'Accepteer de voorwaarden opnieuw om de hub te betreden.',
 
