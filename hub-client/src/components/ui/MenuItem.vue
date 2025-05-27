@@ -11,6 +11,7 @@
 			<Icon v-if="isSecuredRoom()" type="shield" :size="iconSize" />
 			<Icon v-else class="" :type="icon" :size="iconSize" />
 			<TruncatedText class="w-full"><slot></slot></TruncatedText>
+			<Badge v-if="to.name === 'direct-msg' && newMessage > 0" color="notification" class="ml-auto flex-shrink-0">{{ newMessage }}</Badge>
 		</router-link>
 	</li>
 </template>
@@ -18,9 +19,13 @@
 <script setup lang="ts">
 	import { useRouter } from 'vue-router';
 	import { useMenu } from '@/logic/store/menu';
-	import { Room } from '@/logic/store/rooms';
+	import { Room, useRooms } from '@/logic/store/rooms';
 	import { computed, PropType } from 'vue';
+
 	import Icon from '@/components/elements/Icon.vue';
+	import Badge from '../elements/Badge.vue';
+
+	const rooms = useRooms();
 
 	const router = useRouter();
 
@@ -37,6 +42,8 @@
 		if (!props.room) return false;
 		return props.room.roomId === router.currentRoute.value.fullPath.split('/').pop(); // full path looks like /room/room_id
 	});
+
+	const newMessage = computed(() => rooms.getTotalPrivateRoomUnreadMsgCount());
 
 	const adminMenuIsActive = computed(() => {
 		if (typeof props.to === 'object' && props.to !== null && props.to.name !== undefined) {

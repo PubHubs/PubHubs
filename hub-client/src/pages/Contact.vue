@@ -59,7 +59,7 @@
 		const newAdminId = findNewAdminId(adminIds);
 
 		if (newAdminId) {
-			newAdminId.forEach(async (adminId: string) => await pubhubs.invite(roomId, adminId));
+			await pubhubs.invite(roomId, newAdminId); // We specific case in main-testhub, since we have so many admins leading to rate limit hit.
 		}
 
 		const oldAdminIds = removeOldAdminId(adminIds);
@@ -113,13 +113,13 @@
 	/**
 	 * Finds any new admin ID that needs to be invited to the room
 	 */
-	function findNewAdminId(adminIds: string[]): string[] | undefined {
+	function findNewAdminId(adminIds: string[]): string | undefined {
 		const existingAdminIds = getExistingAdminMemberIds();
 
 		if (existingAdminIds.length >= adminIds.length) {
 			return undefined;
 		}
-		return adminIds.filter((id) => !existingAdminIds.includes(id));
+		return adminIds.find((id) => !existingAdminIds.includes(id));
 	}
 
 	/**
