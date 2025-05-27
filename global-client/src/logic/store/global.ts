@@ -188,8 +188,6 @@ const useGlobal = defineStore('global', {
 		logout() {
 			// This will work now, since we redirect away with the 'window.location.refresh' but if we didn't need to make components reactive to the 'loggedIn' state.
 			this.loggedIn = false;
-			// This does not actually invalidate the previously stored access tokens. We should call logout on the hubs in the future.
-			localStorage.clear();
 			window.location.replace(api.apiURLS.logout);
 		},
 

@@ -20,6 +20,7 @@
 
 	// Global imports
 	import GlobalBar from '@/components/ui/GlobalBar.vue';
+	import { useInstallPromptStore } from '@/logic/store/installPromptPWA';
 	import { NotificationsPermission } from '@/logic/store/settings';
 	import { MessageBoxType, useDialog, useGlobal, useHubs, useMessageBox, useSettings } from '@/logic/store/store';
 
@@ -34,6 +35,7 @@
 	const settings = useSettings();
 	const dialog = useDialog();
 	const global = useGlobal();
+	const installPromptStore = useInstallPromptStore();
 	const hubs = useHubs();
 
 	// Function to initialize settings and language
@@ -42,6 +44,15 @@
 
 		settings.initI18b({ locale: locale, availableLocales: availableLocales });
 		dialog.asGlobal();
+
+		// Set the information needed for the installation prompt for the PWA
+		installPromptStore.loadNeverShowAgain();
+		installPromptStore.checkConditionsAndSetPrompt();
+
+		window.addEventListener('beforeinstallprompt', (e) => {
+			e.preventDefault();
+			installPromptStore.setDeferredPrompt(e);
+		});
 
 		// Change active language to the user's preferred language
 		locale.value = settings.getActiveLanguage;

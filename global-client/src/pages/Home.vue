@@ -75,6 +75,7 @@
 				</div>
 			</div>
 		</div>
+		<InstallPrompt :browser="device.getBrowserName()" :operating-system="device.getMobileOS()" />
 	</div>
 
 	<form v-if="show" method="POST" action="/yivi-endpoint/finish-and-redirect">
@@ -83,12 +84,18 @@
 </template>
 
 <script setup lang="ts">
+	// Package imports
 	import { computed, ref } from 'vue';
+
+	// Global imports
+	import InstallPrompt from '@/components/ui/InstallPrompt.vue';
 	import Logo from '@/components/ui/Logo.vue';
 	import { useGlobal, useHubs } from '@/logic/store/store';
 	import startYiviSession from '@/logic/utils/yiviHandler';
 
-	import HubBanner from '../../../hub-client/src/components/ui/HubBanner.vue';
+	// Hub imports
+	import HubBanner from '@/../../hub-client/src/components/ui/HubBanner.vue';
+	import device from '@/../../hub-client/src/logic/core/device';
 
 	const global = useGlobal();
 	const hubs = useHubs();
