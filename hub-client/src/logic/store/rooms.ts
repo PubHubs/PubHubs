@@ -288,7 +288,7 @@ const useRooms = defineStore('rooms', {
 			const rooms = [...this.roomsArray].sort((a, b) => a.name.localeCompare(b.name));
 
 			// visibility is based on a prefix on room names when the room is joined or left.
-			if (type === RoomType.PH_MESSAGES_DM || type === RoomType.PH_MESSAGES_GROUP) {
+			if (type === RoomType.PH_MESSAGES_DM) {
 				return rooms.filter((room) => room.getType() === type).filter((room) => isVisiblePrivateRoom(room.name, user));
 			}
 
@@ -593,6 +593,14 @@ const useRooms = defineStore('rooms', {
 				// We need to get information from TPublicRoom instead of room.
 				return this.publicRooms.find((room) => room.room_id == this.currentRoomId)!;
 			}
+		},
+		getTotalPrivateRoomUnreadMsgCount(): number {
+			const dmRooms = this.fetchRoomArrayByType(RoomType.PH_MESSAGES_DM) ?? [];
+			const groupRooms = this.fetchRoomArrayByType(RoomType.PH_MESSAGES_GROUP) ?? [];
+			const adminRooms = this.fetchRoomArrayByType(RoomType.PH_MESSAGE_ADMIN_CONTACT) ?? [];
+
+			const totalPrivateRooms = [...dmRooms, ...groupRooms, ...adminRooms];
+			return totalPrivateRooms.reduce((total, room) => total + (room.getRoomUnreadNotificationCount(NotificationCountType.Total) ?? 0), 0);
 		},
 	},
 });

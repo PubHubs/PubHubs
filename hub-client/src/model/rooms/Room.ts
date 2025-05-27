@@ -588,5 +588,13 @@ export default class Room {
 		this.deleteMessage(event, undefined, threadRootId);
 	}
 
+	public getRoomAvatarMxcUrl(): string | null {
+		return this.matrixRoom.getMxcAvatarUrl();
+	}
+
+	public getRoomMembers(): number {
+		return this.matrixRoom.getMembers().length;
+	}
+
 	// #endregion
 }

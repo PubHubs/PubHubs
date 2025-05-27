@@ -6,7 +6,7 @@
 		<!-- Search bar -->
 		<div class="-mt-[5.5rem] flex flex-col gap-2">
 			<div class="flex items-center whitespace-nowrap ~gap-1/4">
-				<div class="flex items-center gap-2">
+				<div class="flex items-center gap-2 py-2">
 					<Icon class="text-surface dark:text-on-surface" type="pubhubs-home" size="md" />
 					<div class="font-headings font-semibold ~text-h3-min/h3-max">{{ $t('menu.discover') }}</div>
 				</div>

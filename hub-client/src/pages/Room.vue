@@ -6,15 +6,16 @@
 					<span class="font-semibold uppercase">{{ $t('rooms.room') }}</span>
 					<hr class="h-[2px] grow bg-on-surface-dim" />
 				</div>
-				<div class="relative flex h-full items-center justify-between gap-4" :class="isMobile ? 'pl-12' : 'pl-0'">
+				<div class="relative flex h-full items-center justify-between gap-4" :class="isMobile ? 'pl-8' : 'pl-0'">
 					<div v-if="rooms.currentRoom" class="flex w-fit items-center gap-3 overflow-hidden">
-						<Icon :type="rooms.currentRoom.isSecuredRoom() ? 'shield' : 'speech_bubbles'" size="base" />
+						<Icon v-if="!notPrivateRoom()" type="back" size="base" @click="router.push('/direct-msg')" />
+						<Icon v-if="notPrivateRoom()" :type="rooms.currentRoom.isSecuredRoom() ? 'shield' : 'speech_bubbles'" size="base" />
 						<div class="flex flex-col">
 							<H3 class="flex text-on-surface">
 								<TruncatedText class="font-headings font-semibold">
-									<PrivateRoomName v-if="rooms.currentRoom.isPrivateRoom()" :members="rooms.currentRoom.getOtherJoinedAndInvitedMembers()" />
-									<GroupRoomName v-else-if="room.isGroupRoom()" :members="room.getOtherJoinedAndInvitedMembers()" />
-									<AdminContactRoomName v-else-if="room.isAdminContactRoom()" :members="room.getOtherJoinedAndInvitedMembers()" />
+									<PrivateRoomHeader v-if="room.isPrivateRoom()" :room="room" :members="room.getOtherJoinedAndInvitedMembers()" />
+									<GroupRoomHeader v-else-if="room.isGroupRoom()" :room="room" :members="room.getOtherJoinedAndInvitedMembers()" />
+									<AdminContactRoomHeader v-else-if="room.isAdminContactRoom()" :room="room" :members="room.getOtherJoinedAndInvitedMembers()" />
 									<RoomName v-else :room="rooms.currentRoom" />
 								</TruncatedText>
 							</H3>
@@ -30,7 +31,6 @@
 					</div>
 				</div>
 			</template>
-
 			<div class="flex h-full w-full justify-between overflow-hidden">
 				<div class="flex h-full w-full flex-col overflow-hidden">
 					<RoomTimeline v-if="room" :room="room" :scroll-to-event-id="room.getCurrentEventId()" @scrolled-to-event-id="room.setCurrentEventId(undefined)"> </RoomTimeline>
@@ -55,8 +55,9 @@
 	import Icon from '@/components/elements/Icon.vue';
 	import H3 from '@/components/elements/H3.vue';
 	import TruncatedText from '@/components/elements/TruncatedText.vue';
-	import PrivateRoomName from '@/components/rooms/PrivateRoomName.vue';
-	import GroupRoomName from '@/components/rooms/GroupRoomName.vue';
+	import PrivateRoomHeader from '@/components/rooms/PrivateRoomHeader.vue';
+	import GroupRoomHeader from '@/components/rooms/GroupRoomHeader.vue';
+	import AdminContactRoomHeader from '@/components/rooms/AdminContactRoomHeader.vue';
 	import SearchInput from '@/components/forms/SearchInput.vue';
 	import RoomTimeline from '@/components/rooms/RoomTimeline.vue';
 	import RoomName from '@/components/rooms/RoomName.vue';
@@ -76,7 +77,6 @@
 	import { computed, onMounted, ref, watch } from 'vue';
 	import { useRoute, useRouter } from 'vue-router';
 	import { useSettings } from '@/logic/store/settings';
-	import AdminContactRoomName from '@/components/rooms/AdminContactRoomName.vue';
 
 	const route = useRoute();
 	const rooms = useRooms();
@@ -172,5 +172,9 @@
 	function closeEdit() {
 		showEditRoom.value = false;
 		secured.value = false;
+	}
+
+	function notPrivateRoom() {
+		return !room.value.isPrivateRoom() && !room.value.isGroupRoom() && !room.value.isAdminContactRoom();
 	}
 </script>

@@ -1002,6 +1002,14 @@ const usePubHubs = defineStore('pubhubs', {
 		async setPowerLevelEventContent(roomId: string, newPls: RoomPowerLevelsEventContent): Promise<ISendEventResponse> {
 			return await this.client.sendStateEvent(roomId, EventType.RoomPowerLevels, newPls, '');
 		},
+
+		async setRoomAvatar(roomId: string, url: string) {
+			await this.client.sendStateEvent(roomId, EventType.RoomAvatar, { url: url }, '');
+		},
+
+		async getRoomAvatar(roomId: string) {
+			return await this.client.getStateEvent(roomId, EventType.RoomAvatar, '');
+		},
 	},
 });
 
