@@ -4,7 +4,7 @@
 			<Progressbar :currentStep="2" />
 			<OnboardingTitle />
 			<p>
-				<b>{{ $t('register.step', [2]) }}</b>
+				<b>{{ $t('others.step', [2]) }}</b>
 				&nbsp; {{ $t('register.overview_step2') }}.
 			</p>
 			<p class="mb-2 mt-4">{{ $t('register.rewards.good_job') }}</p>
