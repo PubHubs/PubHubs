@@ -9,6 +9,7 @@ _Please add a brief description of any changes and any migrations to be performe
  * _[BREAKING] - If it is a breaking change that needs changes done on the deployment/installation/settings_
  * _(Use the [MIGRATE] and [BREAKING] prefixes together with another one if that makes more sense.)_
 
+- [NEW] We improved the registration flow
 - [NEW] Users can create group rooms.
 - [NEW] Users can contact Hub administrator.
 - [FIX] Users can enter public rooms after they have joined it.
@@ -17,7 +18,6 @@ _Please add a brief description of any changes and any migrations to be performe
 - [FIX] Some buttons no longer had a background color.
 - [NEW] Users are now provided with instructions to install PubHubs as a Progressive Web App (PWA) after they are logged in.
 - [BUG] Rooms sometimes appeared to be empty, when they were not loaded correctly
-
 
 ## 15 May 2025 - v2.0.6
 - [NEW] There is now a max length for the summary text with a max word counter to keep track

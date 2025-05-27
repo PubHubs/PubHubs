@@ -137,7 +137,7 @@
 					</div>
 				</HeaderFooter>
 
-				<div class="h-full w-full overflow-y-auto overflow-x-hidden" :class="{ hidden: hubSettings.mobileHubMenu }">
+				<div class="h-full w-full overflow-y-auto overflow-x-hidden" :class="{ hidden: hubSettings.mobileHubMenu && isMobile }">
 					<router-view></router-view>
 				</div>
 			</div>
