@@ -68,8 +68,7 @@ const usePubHubs = defineStore('pubhubs', {
 
 				const events = new Events(this.client as MatrixClient);
 
-				/* await removed */
-				events.initEvents(); // Starts the client
+				await events.initEvents(); // Starts the client and syncing. Needs to be awaited
 
 				logger.trace(SMI.STARTUP, 'PubHubs.logged in ()');
 				const connection = useConnection();
@@ -98,8 +97,7 @@ const usePubHubs = defineStore('pubhubs', {
 					// 	}
 					// });
 
-					/* await removed */
-					this.updateRooms();
+					this.initRoomList();
 				}
 			} catch (error: any) {
 				logger.trace(SMI.STARTUP, 'Something went wrong while creating a matrix-js client instance or logging in', { error });
@@ -216,6 +214,52 @@ const usePubHubs = defineStore('pubhubs', {
 		// },
 
 		/**
+		 * Initializes the room list with all joined rooms of the current user.
+		 * Also fetches all public rooms from the server.
+		 */
+		async initRoomList() {
+			const rooms = useRooms();
+
+			const allPublicRooms = await this.getAllPublicRooms(); // all public rooms, including their names
+			const joinedRooms = (await this.client.getJoinedRooms()).joined_rooms; // all joined rooms of the user
+
+			// Make sure the matrix js SDK client is aware of all the rooms the user has joined
+			// Since the SDK not always has knowledge of the rooms in time we rejoin every room in joinedRooms
+			// this actually does nothing when already joined, but it will return the room to be stored
+			const roomsToJoin = joinedRooms.filter((joinedRoomId) => allPublicRooms.some((publicRoom) => publicRoom.room_id === joinedRoomId && publicRoom.name));
+
+			for (const room_id of roomsToJoin) {
+				rooms.setPublicRoomsLoaded(false);
+				const roomName = allPublicRooms.find((r: any) => r.room_id === room_id)?.name;
+				this.client.joinRoom(room_id).then((room) => {
+					this.client.store.storeRoom(room);
+					rooms.updateRoomsWithMatrixRoom(room, roomName);
+				});
+			}
+			rooms.setPublicRoomsLoaded(true);
+
+			rooms.fetchPublicRooms();
+		},
+
+		/**
+		 * Updates the store with this one room
+		 * Fetches the public rooms from the server as update
+		 */
+		async updateRoom(roomId: string, roomLeave: boolean = false) {
+			const rooms = useRooms();
+
+			if (roomLeave) {
+				rooms.deleteRoomsWithMatrixRoom(roomId);
+			} else {
+				// The sdk is not always update so when adding we rejoin the room
+				// this actually does nothing when already joined, but it will return the room to be stored
+				const room = await this.client.joinRoom(roomId);
+				this.client.store.storeRoom(room);
+				rooms.updateRoomsWithMatrixRoom(room, undefined);
+			}
+		},
+
+		/**
 		 * Helpers
 		 */
 
@@ -317,6 +361,10 @@ const usePubHubs = defineStore('pubhubs', {
 			return this.client.getRooms();
 		},
 
+		getRoom(roomId: string): MatrixRoom | null {
+			return this.client.getRoom(roomId);
+		},
+
 		/**
 		 * @param roomId
 		 * @param eventId
@@ -336,7 +384,7 @@ const usePubHubs = defineStore('pubhubs', {
 		 */
 		async joinRoom(room_id: string) {
 			await this.client.joinRoom(room_id);
-			this.updateRooms();
+			this.updateRoom(room_id);
 		},
 
 		async invite(room_id: string, user_id: string, reason = undefined) {
@@ -345,7 +393,7 @@ const usePubHubs = defineStore('pubhubs', {
 
 		async createRoom(options: any): Promise<{ room_id: string }> {
 			const room = await this.client.createRoom(options);
-			this.updateRooms();
+			this.updateRoom(room.room_id);
 			return room;
 		},
 
@@ -419,18 +467,18 @@ const usePubHubs = defineStore('pubhubs', {
 
 		async renameRoom(roomId: string, name: string) {
 			const response = await this.client.setRoomName(roomId, name);
-			this.updateRooms();
+			this.updateRoom(roomId);
 			return response;
 		},
 
 		async setTopic(roomId: string, topic: string) {
 			await this.client.setRoomTopic(roomId, topic);
-			this.updateRooms();
+			this.updateRoom(roomId);
 		},
 
 		async leaveRoom(roomId: string) {
 			await this.client.leave(roomId);
-			this.updateRooms();
+			this.updateRoom(roomId, true);
 		},
 
 		async setPrivateRoomHiddenStateForUser(room: Room, hide: boolean) {

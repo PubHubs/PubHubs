@@ -418,6 +418,7 @@ export default class Room {
 
 	// initiate and load to newest message by creating a filtered timelineset
 	public async loadInitialEvents() {
+		this.matrixRoom = this.pubhubsStore.getRoom(this.matrixRoom.roomId)!; // sync matrixRoom to current state
 		await this.timelineWindow.initTimelineWindow(this.matrixRoom, this.pubhubsStore.client as MatrixClient);
 	}
 

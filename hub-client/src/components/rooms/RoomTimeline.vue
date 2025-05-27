@@ -259,7 +259,7 @@
 		if (!rooms.currentRoom) return;
 		if (props.room.isNewestMessageLoaded()) return;
 
-		LOGGER.log(SMI.ROOM_TIMELINE_TRACE, `onTimelineChange`, {
+		LOGGER.log(SMI.ROOM_TIMELINE, `onTimelineChange`, {
 			newTimelineLength,
 			oldTimelineLength,
 		});

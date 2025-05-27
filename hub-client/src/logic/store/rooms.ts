@@ -231,6 +231,10 @@ const useRooms = defineStore('rooms', {
 			}
 		},
 
+		deleteRoomsWithMatrixRoom(roomId: string) {
+			delete this.rooms[roomId];
+		},
+
 		// replace the current rooms in the store with the new ones
 		updateRoomsWithMatrixRooms(matrixRoomArray: MatrixRoom[]) {
 			// Remove every room that is in this.rooms, but not in matrixRoomArray
