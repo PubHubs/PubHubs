@@ -74,6 +74,15 @@
 		font-family: notocoloremoji;
 	}
 
+	.no-scrollbar {
+		scrollbar-width: none;
+		-ms-overflow-style: none;
+	}
+
+	.no-scrollbar::-webkit-scrollbar {
+		display: none;
+	}
+
 	.scrollbar {
 		scrollbar-width: thin;
 		/* scrollbar-color: theme(colors.hub.background.5) theme(colors.hub.background.4); */

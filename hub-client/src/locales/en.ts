@@ -1,5 +1,7 @@
 const en = {
 	common: {
+		app_name: 'PubHubs',
+		yivi: 'Yivi',
 		loading: 'Loading ...',
 	},
 	state: {
@@ -21,6 +23,9 @@ const en = {
 		submit: 'Confirm',
 		ignore: 'Ignore',
 		continue: 'Continue',
+		back: 'Back',
+		next: 'Next',
+		previous: 'Previous',
 		title_sure: 'Are you sure?',
 		go_back: 'Go back',
 	},
@@ -56,15 +61,44 @@ const en = {
 		welcome: 'Welcome',
 		highlighted_hubs: 'Highlighted hubs',
 		highlighted_hubs_info: 'PubHubs consist of seperate hubs, where local conversations happen, under a central login. These hubs are run by seperate, participating organisations.',
-		welcome_to: 'Welcome to',
+		welcome_to: 'Welcome to {0}',
 		discover_hubs: 'Discover hubs',
 		hub_card_about: 'About',
 		heading: 'Hub description:',
 		contact_details: 'Contact details:',
 	},
 	register: {
+		have_account: 'Do you already have a {0} account?',
+		no_account_yet: 'No {0} account yet?',
+		register_3_steps: 'Registreer for {0} in 3 steps!',
+		card_1_title: 'Secure registration with {0}',
+		card_1_text_1: '{0} uses the {1} app for logging in and registration.',
+		card_1_yivi: 'What is {0}?',
+		card_1_yivi_text: '{0} is an identity app (similar to DigiD) that allows you to log in easily and securely, share information, and prove who you are — without oversharing personal data.',
+
+		card_2_title: 'Add your email and phone number to {0}',
+		card_2_text_1: 'Follow the steps in the {0} app. Then, add your phone number.',
+		card_2_text_2: '{0} needs this information to complete registration.',
+
+		card_3_title: 'Scan the QR code',
+		card_3_text_1: "Great, you're almost done!",
+		card_3_text_2: 'Scan the QR code with your {0} app and share your details to log into {1}.',
+
+		yivi_explained: '{0} uitgelegd in 1,5 minuut',
+		yivi_faq: 'Frequently asked questions',
+		yivi_faq_1_question: 'What is Yivi?',
+		yivi_faq_1_answer: 'Yivi is an identity app that allows you to log in securely and share data without revealing too much personal information.',
+		yivi_faq_2_question: 'How does Yivi work?',
+		yivi_faq_2_answer: 'Yivi uses attributes you can present when a website or app requires them, without having to share everything about yourself.',
+		yivi_faq_3_question: 'Why does PubHubs use Yivi?',
+		yivi_faq_3_answer: 'PubHubs uses Yivi to securely verify your identity and ensure your privacy.',
+		yivi_faq_4_question: 'How do I add data to Yivi?',
+		yivi_faq_4_answer: 'You can add personal data via the Yivi app by retrieving it from trusted sources such as the government or your employer.',
+		yivi_faq_5_question: 'Why does PubHubs need my email address and phone number?',
+		yivi_faq_5_answer: 'This information is needed to guarantee that you are a unique individual.',
+
 		register: 'Register',
-		register_with: 'Register with',
+		register_with: 'Register with {0}',
 		welcome: 'Welcome, join Pubhubs!',
 		use_yivi: 'To register, you will use the Yivi app\n(and for logging in as well, by the way).',
 		start_registration: 'You start registering here, in 3 steps.',
@@ -112,7 +146,7 @@ const en = {
 	},
 	login: {
 		login: 'Login',
-		global_login: 'Login to PubHubs',
+		global_login: 'Login',
 	},
 	logout: {
 		logout: 'Logout',

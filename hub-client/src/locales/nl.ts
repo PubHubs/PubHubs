@@ -1,5 +1,7 @@
 const nl = {
 	common: {
+		app_name: 'PubHubs',
+		yivi: 'Yivi',
 		loading: 'Laden ...',
 	},
 	state: {
@@ -21,6 +23,9 @@ const nl = {
 		submit: 'Bevestig',
 		ignore: 'Negeren',
 		continue: 'Verder',
+		back: 'Terug',
+		next: 'Volgende',
+		previous: 'Vorige',
 		title_sure: 'Weet je het zeker?',
 		go_back: 'Ga terug',
 	},
@@ -55,15 +60,44 @@ const nl = {
 		hub_homepage_welcome_auth: 'Welkom bij de {0}-hub.',
 		welcome: 'Welkom',
 		highlighted_hubs: 'Uitgelichte hubs',
-		welcome_to: 'Welkom bij',
+		welcome_to: 'Welkom bij {0}',
 		discover_hubs: 'Ontdek hubs',
 		hub_card_about: 'Over',
 		heading: 'Hub beschrijving:',
 		contact_details: 'Contactgegevens:',
 	},
 	register: {
+		have_account: 'Heb je al een {0} account?',
+		no_account_yet: 'Nog geen {0} account?',
+		register_3_steps: 'Registreer bij {0} in 3 stappen!',
+		card_1_title: 'Veilig registreren met {0}',
+		card_1_text_1: 'Voor het inloggen en registreren maakt {0} gebruik van de {1} app.',
+		card_1_yivi: 'Wat is {0}?',
+		card_1_yivi_text: '{0} is een identiteitsapp (vergelijkbaar met DigiD) waarmee je makkelijk en veilig inlogt, gegevens deelt en bewijst wie je bent. Zonder dat je te veel over jezelf deelt.',
+
+		card_2_title: 'Voeg je email en telefoonnummer toe aan {0}',
+		card_2_text_1: 'Volg de stappen in de {0} app. Voeg daarna je telefoonnummer toe.',
+		card_2_text_2: 'Deze gegevens heeft {0} nodig voor registratie.',
+
+		card_3_title: 'Scan de QR-code',
+		card_3_text_1: 'Top, je bent bijna klaar!',
+		card_3_text_2: 'Scan de QR code met je {0} app en deel je gegevens om in te loggen op {1}.',
+
+		yivi_explained: '{0} uitgelegd in 1,5 minuut',
+		yivi_faq: 'Veelgestelde vragen',
+		yivi_faq_1_question: 'Wat is Yivi?',
+		yivi_faq_1_answer: 'Yivi is een identiteitsapp waarmee je veilig kunt inloggen en gegevens kunt delen zonder te veel persoonlijke informatie vrij te geven.',
+		yivi_faq_2_question: 'Hoe werkt Yivi?',
+		yivi_faq_2_answer: 'Yivi gebruikt attributen die je kunt tonen wanneer een website of app dat nodig heeft, zonder dat je alles over jezelf hoeft te delen.',
+		yivi_faq_3_question: 'Waarom gebruikt PubHubs Yivi?',
+		yivi_faq_3_answer: 'PubHubs gebruikt Yivi om jouw identiteit veilig te verifiëren en privacy te garanderen.',
+		yivi_faq_4_question: 'Hoe voeg ik gegevens toe aan Yivi?',
+		yivi_faq_4_answer: 'Je kunt via de Yivi-app persoonlijke gegevens toevoegen door ze op te halen van betrouwbare bronnen zoals de overheid of je werkgever.',
+		yivi_faq_5_question: 'Waarom heeft PubHubs mijn e-mail adres en telefoonnummer nodig?',
+		yivi_faq_5_answer: 'Deze gegevens zijn nodig om je te kunnen garanderen dat je een uniek individu bent.',
+
 		register: 'Registreren',
-		register_with: 'Registreren bij',
+		register_with: 'Registreren met {0}',
 		welcome: 'Welkom, doe mee met PubHubs!',
 		use_yivi: 'Voor het registreren en inloggen maak je gebruik van de Yivi app.',
 		start_registration: 'Je begint hier met registreren, in 3 stappen.',
@@ -112,7 +146,7 @@ const nl = {
 	},
 	login: {
 		login: 'Login',
-		global_login: 'Login bij PubHubs',
+		global_login: 'Login',
 	},
 	logout: {
 		logout: 'Logout',

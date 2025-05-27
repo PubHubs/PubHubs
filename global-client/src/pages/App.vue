@@ -1,10 +1,10 @@
 <template>
 	<div class="h-full min-w-[32rem] bg-background font-body text-on-surface ~text-base-min/base-max">
-		<MobileMenu />
+		<MobileMenu v-if="!(route.name === 'home' || route.name === 'onboarding')" />
 
 		<div class="flex h-full">
-			<GlobalBar v-if="!($route.name === 'onboarding')" />
-			<div v-if="hubs.hasHubs" class="flex-1" :class="{ 'overflow-y-auto': $route.name !== 'onboarding' }">
+			<GlobalBar v-if="!(route.name === 'home' || route.name === 'onboarding')" />
+			<div v-if="hubs.hasHubs" class="w-full flex-1" :class="isMobile ? 'max-screen' : 'max-w-[calc(100vw_-_10rem)]'">
 				<router-view />
 			</div>
 		</div>
@@ -15,8 +15,9 @@
 
 <script setup lang="ts">
 	// Package imports
-	import { onMounted, onUnmounted, watchEffect, watch } from 'vue';
+	import { onMounted, onUnmounted, watchEffect, watch, computed } from 'vue';
 	import { useI18n } from 'vue-i18n';
+	import { useRoute } from 'vue-router';
 
 	// Global imports
 	import GlobalBar from '@/components/ui/GlobalBar.vue';
@@ -37,6 +38,9 @@
 	const global = useGlobal();
 	const installPromptStore = useInstallPromptStore();
 	const hubs = useHubs();
+
+	const isMobile = computed(() => settings.isMobileState);
+	const route = useRoute();
 
 	// Function to initialize settings and language
 	async function initializeSettings() {
