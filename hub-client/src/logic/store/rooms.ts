@@ -61,7 +61,6 @@ const useRooms = defineStore('rooms', {
 	state: () => {
 		return {
 			currentRoomId: '' as string,
-			publicRoomsLoaded: false as boolean,
 			rooms: {} as { [index: string]: Room },
 			roomsSeen: {} as { [index: string]: number },
 			publicRooms: [] as Array<TPublicRoom>,
@@ -71,6 +70,7 @@ const useRooms = defineStore('rooms', {
 			askDisclosure: null as AskDisclosure | null,
 			askDisclosureMessage: null as AskDisclosureMessage | null,
 			newAskDisclosureMessage: false,
+			initialRoomsLoaded: false,
 		};
 	},
 
@@ -81,8 +81,7 @@ const useRooms = defineStore('rooms', {
 		 *  so we check for that
 		 */
 		roomsLoaded(state): boolean {
-			const values = Object.values(state.rooms);
-			return this.publicRoomsLoaded && !values.some((room) => room.roomId === room.name);
+			return state.initialRoomsLoaded;
 		},
 
 		roomsArray(state): Array<Room> {
@@ -195,6 +194,10 @@ const useRooms = defineStore('rooms', {
 	},
 
 	actions: {
+		setRoomsLoaded(value: boolean) {
+			this.initialRoomsLoaded = value;
+		},
+
 		// On receiving a message in any room:
 		onModRoomMessage(e: MatrixEvent) {
 			// On receiving a moderation "Ask Disclosure" message (in any room),
@@ -255,11 +258,6 @@ const useRooms = defineStore('rooms', {
 					this.rooms[matrixRoom.roomId] = new Room(matrixRoom);
 				}
 			});
-			this.publicRoomsLoaded = true;
-		},
-
-		setPublicRoomsLoaded(loading: boolean) {
-			this.publicRoomsLoaded = loading;
 		},
 
 		sendUnreadMessageCounter() {

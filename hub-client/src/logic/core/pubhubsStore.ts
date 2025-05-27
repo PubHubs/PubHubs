@@ -161,11 +161,9 @@ const usePubHubs = defineStore('pubhubs', {
 			// Make sure the matrix js SDK client is aware of all the rooms the user has joined
 			// knownrooms possibly does not have all rooms, so rejoin every room in joinedRooms that is not in knownrooms
 			// this actually does nothing when already joined, but it will return the room to be stored
-			let processedRooms = 0;
 
 			for (const room_id of joinedRooms) {
 				if (!knownRooms.find((kr: any) => kr.roomId === room_id)) {
-					rooms.setPublicRoomsLoaded(false);
 					const roomName = allPublicRooms.find((r: any) => r.room_id === room_id)?.name ?? undefined;
 
 					// join again and then store the room in the client store
@@ -174,12 +172,6 @@ const usePubHubs = defineStore('pubhubs', {
 						this.client.store.storeRoom(room);
 						if (roomName) {
 							rooms.updateRoomsWithMatrixRoom(room, roomName);
-						}
-
-						// if the last room is joined, we can set the roomsLoaded to true
-						processedRooms++;
-						if (processedRooms === joinedRooms.length) {
-							rooms.setPublicRoomsLoaded(true);
 						}
 					});
 				}
@@ -223,22 +215,23 @@ const usePubHubs = defineStore('pubhubs', {
 			const allPublicRooms = await this.getAllPublicRooms(); // all public rooms, including their names
 			const joinedRooms = (await this.client.getJoinedRooms()).joined_rooms; // all joined rooms of the user
 
+			rooms.setRoomsLoaded(false);
+
 			// Make sure the matrix js SDK client is aware of all the rooms the user has joined
 			// Since the SDK not always has knowledge of the rooms in time we rejoin every room in joinedRooms
 			// this actually does nothing when already joined, but it will return the room to be stored
 			const roomsToJoin = joinedRooms.filter((joinedRoomId) => allPublicRooms.some((publicRoom) => publicRoom.room_id === joinedRoomId && publicRoom.name));
 
 			for (const room_id of roomsToJoin) {
-				rooms.setPublicRoomsLoaded(false);
 				const roomName = allPublicRooms.find((r: any) => r.room_id === room_id)?.name;
 				this.client.joinRoom(room_id).then((room) => {
 					this.client.store.storeRoom(room);
 					rooms.updateRoomsWithMatrixRoom(room, roomName);
 				});
 			}
-			rooms.setPublicRoomsLoaded(true);
 
 			rooms.fetchPublicRooms();
+			rooms.setRoomsLoaded(true);
 		},
 
 		/**
