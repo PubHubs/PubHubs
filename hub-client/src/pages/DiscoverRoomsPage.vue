@@ -92,8 +92,10 @@
 
 	async function loadHubSettings() {
 		const hubSettingsJSON = await hubSettings.getHubJSON();
-		timestamps.value = hubSettingsJSON.timestamps || [];
-		processTimestamps();
+		if (hubSettingsJSON) {
+			timestamps.value = hubSettingsJSON.timestamps || [];
+			processTimestamps();
+		}
 	}
 
 	// This ensures that whenever timestamps or rooms change, we reprocess the timestamps
