@@ -20,14 +20,15 @@
 					</router-link>
 				</div>
 
-				<div class="flex h-full flex-1 flex-col gap-1 overflow-y-hidden pb-3 md:gap-4 md:pb-6">
+				<div class="flex h-full flex-1 flex-col gap-1 overflow-y-hidden py-3 md:gap-4 md:py-6">
 					<!-- Global middle bar (hub menu) -->
-					<HubMenu />
+					<HubMenu :hubOrderingIsActive="hubOrdering" />
 
 					<!-- Global bottom bar (settings) -->
-					<div class="flex h-fit w-full flex-col gap-6 self-end px-2">
+					<div class="flex h-fit w-full flex-col gap-4 self-end px-2">
 						<div v-if="global.loggedIn">
-							<div class="flex w-full flex-col items-center justify-center gap-2">
+							<div class="flex w-full flex-wrap items-center justify-center gap-2">
+								<GlobalbarButton type="reorder_hubs" @click="toggleHubOrdering" :class="hubOrdering && '!bg-accent-primary !text-on-accent-primary hover:!bg-accent-secondary'" />
 								<GlobalbarButton type="cog" @click="settingsDialog = true" />
 								<GlobalbarButton type="question_mark" @click="showHelp" />
 								<GlobalbarButton type="power" @click="logout" />
@@ -67,6 +68,7 @@
 	const { t } = useI18n();
 	const global = useGlobal();
 	const toggleMenu = useToggleMenu();
+	const hubOrdering = ref(false);
 	const settings = useSettings();
 	const isMobile = computed(() => settings.isMobileState);
 
@@ -77,6 +79,10 @@
 		if (await dialog.yesno(t('logout.logout_sure'))) {
 			global.logout();
 		}
+	}
+
+	function toggleHubOrdering() {
+		hubOrdering.value = !hubOrdering.value;
 	}
 
 	function showHelp() {
