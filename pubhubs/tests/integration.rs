@@ -2,7 +2,7 @@
 
 use actix_web::web;
 use pubhubs::{
-    api::{self, ApiResultExt as _, BytesPayload, NoPayload},
+    api::{self, ApiResultExt as _, BytesPayload, EndpointDetails as _, NoPayload},
     attr, client, elgamal, handle, hub,
     misc::jwt,
     servers::{self, yivi},
@@ -576,14 +576,17 @@ impl MockHub {
                 move || {
                     actix_web::App::new()
                         .app_data(web::Data::new(context.clone()))
-                        .route(context.info.info_url.path(), web::get().to(handle_info_url))
+                        .service(
+                            actix_web::web::scope(context.info.url.path().trim_end_matches('/'))
+                                .route(api::hub::Info::PATH, web::get().to(handle_info_url)),
+                        )
                 }
             })
             .bind((
-                context.info.info_url.host_str().unwrap(),
+                context.info.url.host_str().unwrap(),
                 context
                     .info
-                    .info_url
+                    .url
                     .port()
                     .expect("testhub info url has no port"),
             ))

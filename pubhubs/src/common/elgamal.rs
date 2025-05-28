@@ -520,6 +520,7 @@ mod serde_impls {
 
     serde_impl! { PrivateKey, 32 }
     serde_impl! { PublicKey, 32 }
+    serde_impl! { Triple, 96 }
 }
 
 /// Shared secret created by combining a [`PrivateKey`] with a [`PublicKey`], which, although it is

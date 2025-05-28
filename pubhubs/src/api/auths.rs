@@ -3,7 +3,7 @@ use crate::api::*;
 use crate::attr::Attr;
 use crate::misc::jwt;
 use crate::misc::serde_ext::bytes_wrapper::B64UU;
-use crate::{api, attr, handle};
+use crate::{attr, handle};
 
 use serde::{Deserialize, Serialize};
 
@@ -145,7 +145,7 @@ pub struct AttrKeyReq {
     /// A signed attribute, obtained via [`AuthCompleteEP`].
     ///
     /// The attribute must be identifying.
-    pub attr: api::Signed<Attr>,
+    pub attr: Signed<Attr>,
 
     /// If set, will not only return the latest attribute key for `attr`, but also an older
     /// attribute key tied to the given timestamp.

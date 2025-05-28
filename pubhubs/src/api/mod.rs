@@ -40,6 +40,28 @@
 //!     'user object key' before storing it at PHC in a designated user object.  Other user objects
 //!     can then be encrypted using this user object key.
 //!
+//! ## Entering hubs
+//!
+//! Entering a hub is slightly more involved, as pubhubs central is not allowed to know the hub and
+//! the transcryptor is not allowed to know the user.  These privacy guarantees can be achieved by
+//! clever use of elliptic curves as described in the whitepaper
+//! <https://academic.oup.com/logcom/article/34/7/1377/7319213>.  The procedure below uses the same
+//! ideas but has been modified to prevent 'harvest know, decrypt later' attacks against the
+//! elliptic curve cryptography when quantum computers ever materialize.
+//!
+//!  1. The global client obtains a sealed  **[`sso::PolymorphicPseudonymPackage`] (PPP)**
+//!     from PHC via [`phc::user::PppEP`] and a **hub nonce** and **hub state**
+//!     pair from [`hub::EnterStartEP`].
+//!
+//!  2. The global client sends the PPP, hub nonce and hub id to the transcryptor's
+//!     [`tr::EhppEP`], which yields a sealed **[`sso::EncryptedHubPseudonymPackage`] (EHPP)**.
+//!
+//!  3. This EHPP is forwarded back to PHC, to the [`phc::user::HhppEP`], yielding a signed
+//!     **[`sso::HashedHubPseudonymPackage`] (HHPP)**.
+//!
+//!  4. This HHPP is sent back by the global client to the hub's [`hub::EnterCompleteEP`],
+//!     together with the **hub state**, which results in a Synapse access token to the hub.
+//!
 //! # Errors
 //!
 //! A request to a pubhubs endpoint may fail in several ways.
@@ -86,10 +108,16 @@ mod common;
 pub use common::*;
 mod signed;
 pub use signed::*;
+mod sealed;
+pub use sealed::*;
 mod discovery;
 pub use discovery::*;
 pub mod admin;
+
 pub mod auths;
 pub mod hub;
 pub mod phc;
 pub mod phct;
+pub mod tr;
+
+pub mod sso;
