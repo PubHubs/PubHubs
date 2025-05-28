@@ -70,7 +70,7 @@ const en = {
 	register: {
 		have_account: 'Do you already have a {0} account?',
 		no_account_yet: 'No {0} account yet?',
-		register_3_steps: 'Registreer for {0} in 3 steps!',
+		register_3_steps: 'Register for {0} in 3 steps!',
 		card_1_title: 'Secure registration with {0}',
 		card_1_text_1: '{0} uses the {1} app for logging in and registration.',
 		card_1_yivi: 'What is {0}?',
@@ -84,7 +84,7 @@ const en = {
 		card_3_text_1: "Great, you're almost done!",
 		card_3_text_2: 'Scan the QR code with your {0} app and share your details to log into {1}.',
 
-		yivi_explained: '{0} uitgelegd in 1,5 minuut',
+		yivi_explained: '{0} explained in 1,5 minutes',
 		yivi_faq: 'Frequently asked questions',
 		yivi_faq_1_question: 'What is Yivi?',
 		yivi_faq_1_answer: 'Yivi is an identity app that allows you to log in securely and share data without revealing too much personal information.',
