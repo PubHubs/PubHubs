@@ -1,10 +1,11 @@
 <template>
 	<div class="h-full min-w-[32rem] bg-background font-body text-on-surface ~text-base-min/base-max">
-		<MobileMenu />
+		<MobileMenu v-if="!(route.name === 'onboarding')" />
 
 		<div class="flex h-full">
-			<GlobalBar v-if="!($route.name === 'onboarding')" />
-			<div v-if="hubs.hasHubs" class="flex-1" :class="{ 'overflow-y-auto': $route.name !== 'onboarding' }">
+			<GlobalBar v-if="!(route.name === 'onboarding')" />
+			<!-- FIXME: Split giscover hub page and login home page into seperate pages-->
+			<div v-if="hubs.hasHubs" class="max-screen w-full flex-1">
 				<router-view />
 			</div>
 		</div>
@@ -17,9 +18,11 @@
 	// Package imports
 	import { onMounted, onUnmounted, watchEffect, watch } from 'vue';
 	import { useI18n } from 'vue-i18n';
+	import { useRoute } from 'vue-router';
 
 	// Global imports
 	import GlobalBar from '@/components/ui/GlobalBar.vue';
+	import { useInstallPromptStore } from '@/logic/store/installPromptPWA';
 	import { NotificationsPermission } from '@/logic/store/settings';
 	import { MessageBoxType, useDialog, useGlobal, useHubs, useMessageBox, useSettings } from '@/logic/store/store';
 
@@ -34,7 +37,9 @@
 	const settings = useSettings();
 	const dialog = useDialog();
 	const global = useGlobal();
+	const installPromptStore = useInstallPromptStore();
 	const hubs = useHubs();
+	const route = useRoute();
 
 	// Function to initialize settings and language
 	async function initializeSettings() {
@@ -42,6 +47,15 @@
 
 		settings.initI18b({ locale: locale, availableLocales: availableLocales });
 		dialog.asGlobal();
+
+		// Set the information needed for the installation prompt for the PWA
+		installPromptStore.loadNeverShowAgain();
+		installPromptStore.checkConditionsAndSetPrompt();
+
+		window.addEventListener('beforeinstallprompt', (e) => {
+			e.preventDefault();
+			installPromptStore.setDeferredPrompt(e);
+		});
 
 		// Change active language to the user's preferred language
 		locale.value = settings.getActiveLanguage;

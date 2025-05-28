@@ -4,7 +4,7 @@
 			<Progressbar :currentStep="1" />
 			<OnboardingTitle />
 			<p>
-				<b>{{ $t('register.step', [1]) }}</b>
+				<b>{{ $t('others.step', [1]) }}</b>
 				&nbsp; {{ $t('register.install_yivi') }}
 			</p>
 			<p class="mt-4">

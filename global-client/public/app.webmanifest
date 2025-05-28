@@ -1,0 +1,55 @@
+{
+	"name": "PubHubs",
+	"id": "/client#/",
+	"icons": [
+		{
+			"src": "img/icons/android-chrome-512x512.png",
+			"type": "image/png",
+			"sizes": "512x512"
+		},
+		{
+			"src": "img/icons/android-chrome-192x192.png",
+			"type": "image/png",
+			"sizes": "192x192"
+		},
+		{
+			"src": "img/icons/android-chrome-maskable-512x512.png",
+			"type": "image/png",
+			"sizes": "512x512",
+			"purpose": "maskable"
+		},
+		{
+			"src": "img/icons/android-chrome-maskable-192x192.png",
+			"type": "image/png",
+			"sizes": "192x192",
+			"purpose": "maskable"
+		},
+		{
+			"src": "img/icons/apple-touch-icon-60x60.png",
+			"type": "image/png",
+			"sizes": "60x60"
+		},
+		{
+			"src": "img/icons/apple-touch-icon-76x76.png",
+			"type": "image/png",
+			"sizes": "76x76"
+		},
+		{
+			"src": "img/icons/apple-touch-icon-120x120.png",
+			"type": "image/png",
+			"sizes": "120x120"
+		},
+		{
+			"src": "img/icons/apple-touch-icon-152x152.png",
+			"type": "image/png",
+			"sizes": "152x152"
+		},
+		{
+			"src": "img/icons/apple-touch-icon-180x180.png",
+			"type": "image/png",
+			"sizes": "180x180"
+		}
+	],
+	"start_url": "/client#/",
+	"display": "standalone"
+}

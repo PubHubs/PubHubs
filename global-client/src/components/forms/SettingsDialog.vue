@@ -29,6 +29,10 @@
 				</div>
 				<p class="italic">{{ $t('notifications.info') }}</p>
 			</div>
+			<div v-if="installPromptStore.conditionsMet" class="flex flex-col justify-between md:flex-row">
+				<Label>{{ $t('pwa.add_app') }}</Label>
+				<Button class="w-fit" @click="installPromptStore.setShowPrompt(true)">{{ $t('pwa.open_instructions') }}</Button>
+			</div>
 		</div>
 	</Dialog>
 </template>
@@ -41,8 +45,10 @@
 	import { useSettings, Theme, TimeFormat, NotificationsPermission } from '@/logic/store/settings';
 	import { useFormState, FormDataType } from '@/logic/composables/useFormState';
 	import { useDialog, buttonsSubmitCancel, DialogOk } from '@/logic/store/dialog';
+	import { useInstallPromptStore } from '@/logic/store/installPromptPWA';
 
 	// Hub imports
+	import Button from '../../../../hub-client/src/components/elements/Button.vue';
 	import ButtonGroup from '@/../../hub-client/src/components/forms/ButtonGroup.vue';
 	import Dialog from '@/../../hub-client/src/components/ui/Dialog.vue';
 	import Icon from '@/../../hub-client/src/components/elements/Icon.vue';
@@ -54,6 +60,7 @@
 	const { data, setSubmitButton, setData, updateData, dataIsChanged, changed } = useFormState();
 	const settings = useSettings();
 	const dialog = useDialog();
+	const installPromptStore = useInstallPromptStore();
 
 	const promptAllow = ref<boolean>(false);
 	const promptReset = ref<boolean>(false);

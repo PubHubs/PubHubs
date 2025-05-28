@@ -1,5 +1,5 @@
 <template>
-	<div :class="buttonClass" class="relative block cursor-pointer rounded-lg text-center font-semibold transition-all duration-150 ease-in-out" @click="click($event)">
+	<div :class="buttonClass" class="relative line-clamp-1 block h-fit shrink-0 cursor-pointer whitespace-nowrap rounded-lg text-center font-semibold transition-all duration-150 ease-in-out" @click="click($event)">
 		<slot></slot>
 	</div>
 </template>
@@ -9,9 +9,10 @@
 	import { buttonSizes } from '@/assets/sizes';
 
 	const colorClass: { [key: string]: string } = {
-		disabled: 'opacity-50 !cursor-not-allowed',
+		disabled: 'opacity-50 !cursor-not-allowed bg-on-surface-disabled text-on-surface-variant',
 		text: 'shadow-none hover:opacity-75',
-		blue: 'bg-accent-primary hover:opacity-75 text-background dark:text-on-surface',
+		primary: 'bg-accent-primary hover:opacity-75 text-on-accent-primary',
+		secondary: 'bg-accent-secondary hover:opacity-75 text-on-accent-secondary',
 		red: 'bg-accent-red hover:opacity-75 text-background dark:text-on-surface',
 		gray: 'bg-surface hover:opacity-75 text-on-surface',
 	};
@@ -19,7 +20,7 @@
 	const props = defineProps({
 		color: {
 			type: String,
-			default: 'blue',
+			default: 'primary',
 		},
 		size: {
 			type: String,

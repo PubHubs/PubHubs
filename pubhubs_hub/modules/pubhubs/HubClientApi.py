@@ -7,13 +7,13 @@ from synapse.module_api.errors import ConfigError
 from twisted.web.server import Request
 
 from ._yivi_proxy import ProxyServlet
-from ._hub import HubJoiner
 from ._secured_rooms_web import SecuredRoomsServlet, NoticesServlet, SecuredRoomExtraServlet
 from ._store import HubStore
 from ._web import JoinServlet
 from ._constants import CLIENT_URL, SERVER_NOTICES_USER, GLOBAL_CLIENT_URL, METHOD_POLLING_INTERVAL
 from .HubResource import HubResource
 from .HubClientApiConfig import HubClientApiConfig
+from .ConsentResource import ConsentResource
 
 
 logger = logging.getLogger("synapse.contrib." + __name__)
@@ -132,13 +132,15 @@ class HubClientApi(object):
             ),
         )
 
-        api.register_web_resource("/_synapse/client/hubjoined", HubJoiner(self.store, self.module_api))
-
         api.register_web_resource("/_synapse/client/notices", NoticesServlet(self.config[SERVER_NOTICES_USER]))
 
         api.register_web_resource("/_synapse/client/srextra", SecuredRoomExtraServlet(self.store, self.module_api))
 
         api.register_web_resource("/_synapse/client/hub", HubResource(api, self._module_config, self.store))
+
+        api.register_web_resource("/_synapse/client/hub_consent", ConsentResource(api, self._module_config))
+
+        api.register_web_resource("/_synapse/client/custom_consent", ConsentResource(api, self._module_config))
 
         api.register_spam_checker_callbacks(user_may_join_room=self.joining)
 

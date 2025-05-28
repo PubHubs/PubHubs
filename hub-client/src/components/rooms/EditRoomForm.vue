@@ -149,7 +149,7 @@
 		//Fetch the attrbiute objects
 		securedRoomTemplate.value[0].options = yivi.attributesOptions;
 		securedRoomTemplate.value[0].options.forEach((option) => {
-			option.label = t(option.label);
+			option.label = t('attribute.' + option.value);
 		});
 
 		if (isNewRoom.value) {

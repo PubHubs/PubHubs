@@ -61,7 +61,6 @@ const useRooms = defineStore('rooms', {
 	state: () => {
 		return {
 			currentRoomId: '' as string,
-			publicRoomsLoaded: false as boolean,
 			rooms: {} as { [index: string]: Room },
 			roomsSeen: {} as { [index: string]: number },
 			publicRooms: [] as Array<TPublicRoom>,
@@ -71,6 +70,7 @@ const useRooms = defineStore('rooms', {
 			askDisclosure: null as AskDisclosure | null,
 			askDisclosureMessage: null as AskDisclosureMessage | null,
 			newAskDisclosureMessage: false,
+			initialRoomsLoaded: false,
 		};
 	},
 
@@ -81,8 +81,7 @@ const useRooms = defineStore('rooms', {
 		 *  so we check for that
 		 */
 		roomsLoaded(state): boolean {
-			const values = Object.values(state.rooms);
-			return this.publicRoomsLoaded && !values.some((room) => room.roomId === room.name);
+			return state.initialRoomsLoaded;
 		},
 
 		roomsArray(state): Array<Room> {
@@ -195,6 +194,10 @@ const useRooms = defineStore('rooms', {
 	},
 
 	actions: {
+		setRoomsLoaded(value: boolean) {
+			this.initialRoomsLoaded = value;
+		},
+
 		// On receiving a message in any room:
 		onModRoomMessage(e: MatrixEvent) {
 			// On receiving a moderation "Ask Disclosure" message (in any room),
@@ -231,6 +234,10 @@ const useRooms = defineStore('rooms', {
 			}
 		},
 
+		deleteRoomsWithMatrixRoom(roomId: string) {
+			delete this.rooms[roomId];
+		},
+
 		// replace the current rooms in the store with the new ones
 		updateRoomsWithMatrixRooms(matrixRoomArray: MatrixRoom[]) {
 			// Remove every room that is in this.rooms, but not in matrixRoomArray
@@ -251,11 +258,6 @@ const useRooms = defineStore('rooms', {
 					this.rooms[matrixRoom.roomId] = new Room(matrixRoom);
 				}
 			});
-			this.publicRoomsLoaded = true;
-		},
-
-		setPublicRoomsLoaded(loading: boolean) {
-			this.publicRoomsLoaded = loading;
 		},
 
 		sendUnreadMessageCounter() {
@@ -286,7 +288,7 @@ const useRooms = defineStore('rooms', {
 			const rooms = [...this.roomsArray].sort((a, b) => a.name.localeCompare(b.name));
 
 			// visibility is based on a prefix on room names when the room is joined or left.
-			if (type === RoomType.PH_MESSAGES_DM || type === RoomType.PH_MESSAGES_GROUP) {
+			if (type === RoomType.PH_MESSAGES_DM) {
 				return rooms.filter((room) => room.getType() === type).filter((room) => isVisiblePrivateRoom(room.name, user));
 			}
 
@@ -349,9 +351,22 @@ const useRooms = defineStore('rooms', {
 		},
 
 		// Non-Admin api for getting information about an individual secured room based on room ID.
-		async getSecuredRoomInfo(roomId: string) {
+		async getSecuredRoomInfo(roomId: string): Promise<TSecuredRoom | undefined> {
+			// Check if already in the store
+			const existing = this.securedRooms.find((room) => room.room_id === roomId);
+			if (existing) {
+				this.securedRoom = existing;
+				return existing;
+			}
+
+			// Otherwise, fetch from API
 			const jsonInString = await api_synapse.apiGET<string>(api_synapse.apiURLS.securedRoom + '?room_id=' + roomId);
-			this.securedRoom = JSON.parse(jsonInString);
+			const fetchedRoom = JSON.parse(jsonInString) as TSecuredRoom;
+
+			this.securedRooms.push(fetchedRoom);
+
+			this.securedRoom = fetchedRoom;
+			return fetchedRoom;
 		},
 
 		async addSecuredRoom(room: TSecuredRoom) {
@@ -578,6 +593,14 @@ const useRooms = defineStore('rooms', {
 				// We need to get information from TPublicRoom instead of room.
 				return this.publicRooms.find((room) => room.room_id == this.currentRoomId)!;
 			}
+		},
+		getTotalPrivateRoomUnreadMsgCount(): number {
+			const dmRooms = this.fetchRoomArrayByType(RoomType.PH_MESSAGES_DM) ?? [];
+			const groupRooms = this.fetchRoomArrayByType(RoomType.PH_MESSAGES_GROUP) ?? [];
+			const adminRooms = this.fetchRoomArrayByType(RoomType.PH_MESSAGE_ADMIN_CONTACT) ?? [];
+
+			const totalPrivateRooms = [...dmRooms, ...groupRooms, ...adminRooms];
+			return totalPrivateRooms.reduce((total, room) => total + (room.getRoomUnreadNotificationCount(NotificationCountType.Total) ?? 0), 0);
 		},
 	},
 });
