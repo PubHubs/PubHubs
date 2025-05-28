@@ -5,6 +5,7 @@ use std::rc::Rc;
 
 use crate::api;
 use crate::attr::{Attr, AttrState};
+use crate::common::elgamal;
 use crate::handle;
 use crate::hub;
 use crate::id::Id;
@@ -35,6 +36,7 @@ impl App {
             hubs,
         })
     }
+
     /// Implements [`StateEP`]
     pub(super) async fn handle_user_state(
         app: Rc<Self>,
@@ -201,6 +203,7 @@ impl App {
 
             let user_state = UserState {
                 id: Id::random(),
+                polymorphic_pseudonym: running_state.constellation.master_enc_key.encrypt_random(),
                 banned: false,
                 allow_login_by: attrs
                     .values()
@@ -543,8 +546,12 @@ impl Deref for IdedAttr {
 /// Details pubhubs central stores about a user's account
 #[derive(serde::Serialize, serde::Deserialize, Debug, Clone, PartialEq, Eq)]
 pub struct UserState {
-    /// Randomly generated identifier for this account
+    /// Randomly generated identifier for this account, used for creating access tokens and such
     pub id: Id,
+
+    /// Randomly generated and by [`Constellation::master_enc_key`] elgamal encrypted
+    /// identifier used to generate hub pseudonyms for this user.
+    pub polymorphic_pseudonym: elgamal::Triple,
 
     /// Whether this account is banned
     pub banned: bool,
