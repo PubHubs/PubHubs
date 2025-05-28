@@ -46,7 +46,7 @@
 	</div>
 
 	<!-- Page when logged-in -->
-	<div v-else>
+	<div v-else class="max-h-screen overflow-y-auto">
 		<HubBanner />
 		<div class="mx-auto mb-8 flex w-full flex-col gap-16 md:w-4/6">
 			<div class="-mt-[5.5rem] flex flex-col gap-2 px-8 md:px-0">
