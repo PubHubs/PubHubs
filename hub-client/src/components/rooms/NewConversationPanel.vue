@@ -73,17 +73,21 @@
 			</div>
 
 			<div v-if="!groupProfile" class="flex-grow overflow-y-auto px-8 py-2">
-				<div v-for="(usersInLetter, letter) in categorizedUsers" :key="letter" class="mb-4">
-					<h3 class="text-md sticky top-0 z-10 py-1 font-bold uppercase text-on-surface-dim">{{ letter }}</h3>
-					<ul>
-						<li v-for="user in usersInLetter" :key="user.userId" class="flex cursor-pointer items-center gap-2 py-1 pl-4 hover:bg-surface-low" @click="groupPanel ? toggleUserSelection(user) : gotToPrivateRoom(user)">
-							<Icon v-if="groupPanel && selectedUsers.includes(user.userId)" type="check" size="xl"></Icon>
-							<Avatar v-else :user="user" :override-avatar-url="user.avatarUrl"></Avatar>
-
-							<span>{{ user.displayName || user.userId }}</span>
-						</li>
-					</ul>
-				</div>
+				<template v-if="Object.keys(categorizedUsers).length">
+					<div v-for="(usersInLetter, letter) in categorizedUsers" :key="letter" class="mb-4">
+						<h3 class="text-md sticky top-0 z-10 py-1 font-bold uppercase text-on-surface-dim">{{ letter }}</h3>
+						<ul>
+							<li v-for="user in usersInLetter" :key="user.userId" class="flex cursor-pointer items-center gap-2 py-1 pl-4 hover:bg-surface-low" @click="groupPanel ? toggleUserSelection(user) : gotToPrivateRoom(user)">
+								<Icon v-if="groupPanel && selectedUsers.includes(user.userId)" type="check" size="xl"></Icon>
+								<Avatar v-else :user="user" :override-avatar-url="user.avatarUrl"></Avatar>
+								<span>{{ user.displayName || user.userId }}</span>
+							</li>
+						</ul>
+					</div>
+				</template>
+				<template v-else>
+					<div class="py-4 text-center text-on-surface-dim">{{ $t('others.join_room_to_dm') }}</div>
+				</template>
 			</div>
 		</div>
 	</div>

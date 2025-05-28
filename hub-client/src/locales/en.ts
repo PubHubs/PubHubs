@@ -201,6 +201,7 @@ const en = {
 		search_nothing_found: 'Nothing found',
 		read_receipt: 'Read by',
 		new_message: 'New conversation',
+		join_room_to_dm: 'No users found. Join a room first to talk to other users.',
 		new_group: 'New group',
 		group_select: 'Select maximum of 5 people',
 		next: 'Next',
