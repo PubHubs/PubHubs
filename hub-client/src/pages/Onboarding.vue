@@ -24,7 +24,7 @@
 							<H2>{{ t('onboarding.username_label') }}</H2>
 							<P>{{ t('onboarding.username_description') }}</P>
 							<div class="flex gap-4">
-								<TextInput v-model="inputValue" :placeholder="pseudonym" class="h-10 !placeholder-on-surface-dim ~text-label-min/label-max" />
+								<TextInput v-model="inputValue" :placeholder="pseudonym" class="h-10 !placeholder-on-surface-dim ~text-label-min/label-max" maxlength="24" />
 								<Button @click="fileInput!.click()">
 									<Icon type="image_add" :filled="true" />
 								</Button>
@@ -96,18 +96,18 @@
 
 		<!-- Desktop Layout -->
 		<div v-else class="overflow-none relative flex h-full max-h-screen w-full items-center justify-center">
-			<div class="relative flex aspect-square h-auto max-h-full w-3/4 rounded-3xl shadow xl:aspect-[3/2] xl:h-2/3 xl:w-auto">
+			<div class="relative flex aspect-auto h-auto max-h-full w-3/4 rounded-3xl shadow xl:aspect-[3/2] xl:h-2/3 xl:w-auto">
 				<!-- Step 1 -->
-				<div v-if="step === 1" class="flex h-full w-full overflow-hidden rounded-3xl bg-surface-low">
+				<div v-if="step === 1" class="flex lg:flex-row flex-col h-full w-full overflow-hidden rounded-3xl bg-surface-low">
 					<!-- Left Image -->
-					<div class="flex h-full w-1/2 flex-col overflow-y-auto ~gap-4/8">
+					<div class="flex h-[250px] w-full lg:h-auto lg:w-1/2 flex-col overflow-y-auto ~gap-4/8">
 						<figure class="h-full w-full">
 							<img alt="Placeholder" :src="onboardingPlaceholder" class="h-full w-full object-cover" />
 						</figure>
 					</div>
 
 					<!-- Right Form -->
-					<div class="flex h-full w-1/2 flex-col bg-surface ~gap-4/8 ~px-4/24 ~py-24/36">
+					<div class="flex h-full w-full lg:w-1/2 flex-col overflow-y-auto bg-surface ~gap-4/8 ~px-4/24 lg:~py-24/36 ~py-12/24">
 						<div class="flex flex-col ~gap-1/2">
 							<H1>{{ t('onboarding.welcome', [hubName]) }}</H1>
 							<P>{{ t('onboarding.welcome_description') }}</P>
@@ -131,14 +131,14 @@
 						<!-- Message Preview -->
 						<div v-if="isUsernameChanged" class="flex flex-col ~gap-1/2">
 							<P>{{ t('onboarding.message_example') }}</P>
-							<div class="w--full flex items-center rounded-xl bg-background ~gap-4/8 ~p-3/6 xl:w-1/2">
-								<div class="flex aspect-square h-12 w-12 shrink-0 items-center justify-center overflow-hidden rounded-full" :class="textColor(color(user.userId!))">
+							<div class="flex w-full items-center rounded-xl bg-background ~gap-4/8 ~p-3/6">
+								<div class="min-w-1/3 flex aspect-square h-12 w-12 shrink-0 items-center justify-center overflow-hidden rounded-full" :class="textColor(color(user.userId!))">
 									<img v-if="avatarPreviewUrl" data-testid="avatar" :src="avatarPreviewUrl" class="h-full w-full" />
 									<Icon v-else size="lg" type="person" />
 								</div>
 								<div class="flex flex-col ~gap-1/2">
-									<div class="flex items-center ~gap-1/2">
-										<span v-if="inputValue" data-testid="display-name" :class="`${textColor(color(user.userId!))} truncate font-semibold ~text-label-min/label-max`">
+									<div class="flex flex-wrap items-center ~gap-1/2">
+										<span v-if="inputValue" data-testid="display-name" :class="`${textColor(color(user.userId!))} truncate break-all font-semibold ~text-label-min/label-max`">
 											{{ inputValue }}
 										</span>
 										<span class="~text-label-small-min/label-small-max">|</span>

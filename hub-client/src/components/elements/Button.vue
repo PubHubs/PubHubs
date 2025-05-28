@@ -1,5 +1,5 @@
 <template>
-	<div :class="buttonClass" class="relative line-clamp-1 block h-fit cursor-pointer whitespace-nowrap rounded-lg text-center font-semibold transition-all duration-150 ease-in-out" @click="click($event)">
+	<div :class="buttonClass" class="relative line-clamp-1 block h-fit shrink-0 cursor-pointer whitespace-nowrap rounded-lg text-center font-semibold transition-all duration-150 ease-in-out" @click="click($event)">
 		<slot></slot>
 	</div>
 </template>
