@@ -27,14 +27,14 @@
 							<H1>{{ $t('home.welcome_to', [$t('common.app_name')]) }}</H1>
 							<P>{{ $t('register.have_account', [$t('common.app_name')]) }}</P>
 						</div>
-						<div class="flex flex-col ~gap-2/4" @click="loadYivi">
+						<div class="flex flex-col ~gap-2/4">
 							<div v-show="show" class="relative flex w-full items-center justify-center" :class="isMobile ? '-mb-2' : '-mb-4'">
 								<div
 									id="yivi-login"
 									class="absolute bottom-8 left-0 z-50 w-full after:absolute after:-bottom-[1.2em] after:right-[50%] after:border-[1.25em] after:border-b-0 after:border-l-0 after:border-transparent after:border-t-white after:drop-shadow-[0px_-5px_16px_rgb(0,0,0,0.15)]"
 								></div>
 							</div>
-							<Button color="gray">{{ show ? $t('dialog.close') : $t('login.login') }}</Button>
+							<Button color="gray" @click="loadYivi">{{ show ? $t('dialog.close') : $t('login.login') }}</Button>
 							<router-link to="/register" class="w-full">
 								<Button>{{ $t('register.register_with', [$t('common.yivi')]) }}</Button>
 							</router-link>
