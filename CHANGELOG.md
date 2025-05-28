@@ -9,6 +9,8 @@ _Please add a brief description of any changes and any migrations to be performe
  * _[BREAKING] - If it is a breaking change that needs changes done on the deployment/installation/settings_
  * _(Use the [MIGRATE] and [BREAKING] prefixes together with another one if that makes more sense.)_
 
+
+## 28 May 2025 - v2.1.0
 - [NEW] We improved the registration flow
 - [NEW] Users can create group rooms.
 - [NEW] Users can contact Hub administrator.
