@@ -2,8 +2,8 @@
 	<div class="max-w-screen w-full">
 		<!-- Header -->
 		<div class="flex w-full items-center bg-surface px-6 py-4" :class="isMobile ? 'h-[7.5rem]' : 'h-[10rem]'">
-			<div class="flex h-full w-full items-center justify-between gap-16 py-16">
-				<a :href="pubHubsUrl" rel="noopener noreferrer" class="h-full py-2">
+			<div class="flex h-full w-full items-center justify-between gap-16">
+				<a :href="pubHubsUrl" target="_blank" rel="noopener noreferrer" class="h-full py-2">
 					<Logo />
 				</a>
 				<div class="flex h-4 items-center justify-center gap-2">
