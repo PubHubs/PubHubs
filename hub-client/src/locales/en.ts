@@ -210,7 +210,7 @@ const en = {
 		group_members: 'group members',
 		typing: 'Start typing...',
 		load_more_results: 'Load more results',
-		help: 'Are you struggling in wroking with PubHubs?',
+		help: 'Are you struggling with using PubHubs?',
 		work_in_progress: 'PunHubs is a work in progress. A manual is currently being worked on. In the meantime, please ask your question in one of the rooms.',
 		no_private_message: "It's looks a little quiet here. Lets start something new! Just tap the + icon to begin your first conversation.",
 	},
