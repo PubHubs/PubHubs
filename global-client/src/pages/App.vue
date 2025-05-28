@@ -3,7 +3,8 @@
 		<MobileMenu v-if="!(route.name === 'home' || route.name === 'onboarding')" />
 
 		<div class="flex h-full">
-			<GlobalBar v-if="!(route.name === 'onboarding')" /> <!-- FIXME: Split giscover hub page and login home page into seperate pages-->
+			<GlobalBar v-if="!(route.name === 'onboarding')" />
+			<!-- FIXME: Split giscover hub page and login home page into seperate pages-->
 			<div v-if="hubs.hasHubs" class="max-screen w-full flex-1">
 				<router-view />
 			</div>
