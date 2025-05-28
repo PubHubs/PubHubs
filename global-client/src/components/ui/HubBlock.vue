@@ -34,7 +34,6 @@
 	import HubBanner from '../../../../hub-client/src/components/ui/HubBanner.vue';
 	import Button from '../../../../hub-client/src/components/elements/Button.vue';
 	import TruncatedText from '../../../../hub-client/src/components/elements/TruncatedText.vue';
-	import { HubSettingsJSONParser } from '../../../../hub-client/src/logic/store/hub-settings';
 	import Pre from '../../../../hub-client/src/components/elements/Pre.vue';
 	import { useSettings } from '@/logic/store/store';
 
@@ -91,8 +90,10 @@
 		document.removeEventListener('click', handleGlobalClick);
 	});
 	async function loadHubSettings(hub: Hub): Promise<void> {
-		const hubSettingsJSON = (await hub.getHubJSON()) as unknown as HubSettingsJSONParser;
-		summary.value = hubSettingsJSON.summary ? hubSettingsJSON.summary : props.hub.description;
-		contact.value = hubSettingsJSON.contact;
+		const hubSettingsJSON = await hub.getHubJSON();
+		if (hubSettingsJSON) {
+			summary.value = hubSettingsJSON.summary ? hubSettingsJSON.summary : props.hub.description;
+			contact.value = hubSettingsJSON.contact;
+		}
 	}
 </script>

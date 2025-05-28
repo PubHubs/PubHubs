@@ -11,7 +11,7 @@ pub mod hub {
     pub struct Key {}
     impl EndpointDetails for Key {
         type RequestType = phc::hub::TicketSigned<KeyReq>;
-        type ResponseType = KeyResp; // does not need to be signed, as authenticity is guaranteed by TLS
+        type ResponseType = Result<KeyResp>; // does not need to be signed, as authenticity is guaranteed by TLS
 
         const METHOD: http::Method = http::Method::POST;
         const PATH: &'static str = ".ph/hubs/key";
@@ -19,11 +19,13 @@ pub mod hub {
 
     // NOTE: we use an empty [`KeyReq`] instead of [`()`] just to be able to add a `MessageCode`.
     #[derive(Serialize, Deserialize, Debug, Clone)]
+    #[serde(deny_unknown_fields)]
     pub struct KeyReq {}
 
     having_message_code!(KeyReq, PhcTHubKeyReq);
 
-    #[derive(Serialize, Deserialize, Debug)]
+    #[derive(Serialize, Deserialize, Debug, Clone)]
+    #[serde(deny_unknown_fields)]
     pub struct KeyResp {
         pub key_part: Scalar,
     }

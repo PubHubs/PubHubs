@@ -14,6 +14,8 @@ import { useMatrixFiles } from '@/logic/composables/useMatrixFiles';
 enum RoomType {
 	SECURED = 'ph.messages.restricted',
 	PH_MESSAGES_DM = 'ph.messages.dm',
+	PH_MESSAGES_GROUP = 'ph.messages.group',
+	PH_MESSAGE_ADMIN_CONTACT = 'ph.messages.admin.contact',
 }
 
 const BotName = {
@@ -90,6 +92,14 @@ export default class Room {
 
 	public isPrivateRoom(): boolean {
 		return this.getType() === RoomType.PH_MESSAGES_DM;
+	}
+
+	public isGroupRoom(): boolean {
+		return this.getType() === RoomType.PH_MESSAGES_GROUP;
+	}
+
+	public isAdminContactRoom(): boolean {
+		return this.getType() === RoomType.PH_MESSAGE_ADMIN_CONTACT;
 	}
 
 	public isSecuredRoom(): boolean {
@@ -408,6 +418,7 @@ export default class Room {
 
 	// initiate and load to newest message by creating a filtered timelineset
 	public async loadInitialEvents() {
+		this.matrixRoom = this.pubhubsStore.getRoom(this.matrixRoom.roomId)!; // sync matrixRoom to current state
 		await this.timelineWindow.initTimelineWindow(this.matrixRoom, this.pubhubsStore.client as MatrixClient);
 	}
 
@@ -575,6 +586,14 @@ export default class Room {
 
 	public deleteThreadMessage(event: TMessageEvent<TMessageEventContent>, threadRootId: string | undefined) {
 		this.deleteMessage(event, undefined, threadRootId);
+	}
+
+	public getRoomAvatarMxcUrl(): string | null {
+		return this.matrixRoom.getMxcAvatarUrl();
+	}
+
+	public getRoomMembers(): number {
+		return this.matrixRoom.getMembers().length;
 	}
 
 	// #endregion

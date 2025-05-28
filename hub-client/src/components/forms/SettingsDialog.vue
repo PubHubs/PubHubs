@@ -134,6 +134,7 @@
 			blobUrl.value = URL.createObjectURL(file);
 		}
 	}
+
 	// Avatar related functions
 	async function uploadAvatar() {
 		const accessToken = pubhubs.Auth.getAccessToken();

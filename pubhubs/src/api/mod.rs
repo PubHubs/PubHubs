@@ -3,6 +3,32 @@
 //! The different endpoints offered by the PubHubs servers and hubs are described by types
 //! implementing the [`EndpointDetails`] trait.
 //!
+//! # Overview for web clients
+//!
+//! ## Entering pubhubs
+//!
+//!  1. Everything starts with the global client authenticating the user towards the
+//!     authentication server in order to obtain **[`Attr`]ibutes**.
+//!  
+//!     -  The global client first gets the available authentication methods via [`auths::WelcomeEP`], and
+//!     -  then obtains the attributes using the [`auths::AuthStartEP`]
+//!        and [`auths::AuthCompleteEP`] endpoints.
+//!
+//!  2. Using those [`Attr`]ibutes the global client can 'enter' PubHubs via the
+//!     [`phc::user::EnterEP`], registering a new account if needed.
+//!     or logging into an existing account.  The result of entering PubHubs is not
+//!     a session cookie, but an **[`phc::user::AuthToken`]** that must be passed along
+//!     in the `Authorization` header of most subsequent requests from the global client to
+//!     pubhubs central.
+//!
+//!  3. After having entered pubhubs, the global client retrieves details on the [`phc::user::UserState`] via
+//!     the [`phc::user::StateEP`] endpoint (authenticating using the previously obtained auth token).  
+//!     The user state includes (among other details), a list of stored **user objects**,
+//!     [`phc::user::UserState::stored_objects`], which can be retrieved using
+//!     [`phc::user::GetObjectEP`] (and stored using [`phc::user::OverwriteObjectEP`] and
+//!     [`phc::user::NewObjectEP`]).
+//!
+//!  4. TODO: protecting the contents of user objects and authentication towards hubs
 //! # Errors
 //!
 //! A request to a pubhubs endpoint may fail in several ways.
@@ -44,6 +70,7 @@
 //!     [Cross-Origin Resource Sharing] headers.  
 //!
 //! [Cross-Origin Resource Sharing]: https://developer.mozilla.org/en-US/docs/Web/HTTP/Guides/CORS
+//! [`Attr`]: crate::attr::Attr
 mod common;
 pub use common::*;
 mod signed;

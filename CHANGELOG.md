@@ -10,6 +10,17 @@ _Please add a brief description of any changes and any migrations to be performe
  * _(Use the [MIGRATE] and [BREAKING] prefixes together with another one if that makes more sense.)_
 
 
+## 28 May 2025 - v2.1.0
+- [NEW] We improved the registration flow
+- [NEW] Users can create group rooms.
+- [NEW] Users can contact Hub administrator.
+- [FIX] Users can enter public rooms after they have joined it.
+- [NEW] New discover rooms design with member count, time of last activity and secured attributes.
+- [NEW] New onboarding and consent page of which the contents can be edited in the hub settings.
+- [FIX] Some buttons no longer had a background color.
+- [NEW] Users are now provided with instructions to install PubHubs as a Progressive Web App (PWA) after they are logged in.
+- [BUG] Rooms sometimes appeared to be empty, when they were not loaded correctly
+
 ## 15 May 2025 - v2.0.6
 - [NEW] There is now a max length for the summary text with a max word counter to keep track
 - [BUG] In the hub description words were split between 2 lines

@@ -56,6 +56,7 @@ impl Cli {
 }
 
 #[derive(clap::Subcommand, Debug)]
+#[allow(clippy::large_enum_variant)]
 enum Commands {
     /// Runs the old pubhubs binary (default)
     #[cfg(feature = "old")]

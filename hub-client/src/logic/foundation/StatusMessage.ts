@@ -13,10 +13,12 @@ import { LogLevel } from '../foundation/statusTypes';
  * Shortened for readability in usage of log function.
  */
 export enum SMI {
+	HUB_SETTINGS = 'HUB_SETTINGS',
+	OTHER = 'OTHER',
+	ROOM = 'ROOM_TRACE',
+	ROOM_THREAD = 'ROOM_THREAD_TRACE',
 	ROOM_TIMELINE = 'ROOM_TIMELINE_TRACE',
 	ROOM_TIMELINEWINDOW = 'ROOM_TIMELINEWINDOW_TRACE',
-	ROOM_THREAD = 'ROOM_THREAD_TRACE',
-	ROOM = 'ROOM_TRACE',
 	STARTUP = 'STARTUP_TRACE',
 	STORE = 'STORE_TRACE',
 	USER = 'USER',

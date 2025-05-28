@@ -736,4 +736,69 @@ mod test {
         assert_eq!(serde_json::to_string(&ati).unwrap(), "\"a.b.c.d\"");
         assert!(serde_json::from_str::<AttributeTypeIdentifier>("\"a.b.c\"").is_err());
     }
+
+    #[test]
+    fn test_session_result_validation() {
+        let sr: SessionResult = serde_json::from_value(serde_json::json!({
+          "disclosed": [
+            [
+              {
+                "id": "irma-demo.sidn-pbdf.email.email",
+                "issuancetime": 1735776000,
+                "rawvalue": "test@test.com",
+                "status": "PRESENT",
+                "value": {
+                  "": "test@test.com",
+                  "en": "test@test.com",
+                  "nl": "test@test.com"
+                }
+              }
+            ],
+            [
+              {
+                "id": "irma-demo.sidn-pbdf.mobilenumber.mobilenumber",
+                "issuancetime": 1735776000,
+                "rawvalue": "0612345678",
+                "status": "PRESENT",
+                "value": {
+                  "": "0612345678",
+                  "en": "0612345678",
+                  "nl": "0612345678"
+                }
+              }
+            ]
+          ],
+          "proofStatus": "VALID",
+          "status": "DONE",
+          "token": "KDRkE7LE0jIPhIBNdoBb",
+          "type": "disclosing"
+        }))
+        .unwrap();
+
+        let mut results: Vec<(&AttributeTypeIdentifier, &str)> = sr
+            .validate_and_extract_raw_singles()
+            .unwrap()
+            .map(|r| r.unwrap())
+            .collect();
+
+        // Sort by second argument, just to get predictable output
+        results.sort_by_key(|(_, v)| v.to_string());
+
+        assert_eq!(
+            results,
+            vec![
+                (
+                    &AttributeTypeIdentifier::from_str(
+                        "irma-demo.sidn-pbdf.mobilenumber.mobilenumber"
+                    )
+                    .unwrap(),
+                    "0612345678"
+                ),
+                (
+                    &AttributeTypeIdentifier::from_str("irma-demo.sidn-pbdf.email.email").unwrap(),
+                    "test@test.com"
+                ),
+            ]
+        );
+    }
 }

@@ -17,7 +17,6 @@ if (typeof _env !== 'undefined') {
 const api_synapse = new Api(BASE_URL + '/_synapse/', {
 	// client APIs
 	securedRooms: 'client/secured_rooms',
-	joinHub: 'client/hubjoined',
 	notice: 'client/notices',
 	securedRoom: 'client/srextra',
 
@@ -33,13 +32,17 @@ const api_synapse = new Api(BASE_URL + '/_synapse/', {
 	// hub settings
 	hub: 'client/hub',
 	hubLogo: 'client/hublogo',
-	hubDescription: 'client/hub/settings',
+	hubSettings: 'client/hub/settings',
 	hubIcon: 'client/hub/icon',
 	hubIconDark: 'client/hub/icon/dark',
 	hubIconDefault: 'client/hub/default-icon',
 	hubIconDefaultDark: 'client/hub/default-icon/dark',
 	hubBanner: 'client/hub/banner',
 	hubBannerDefault: 'client/hub/default-banner',
+	users: 'client/hub/users',
+
+	// hub consent
+	consent: 'client/hub_consent',
 });
 
 const api_matrix = new Api(BASE_URL + '/_matrix', {

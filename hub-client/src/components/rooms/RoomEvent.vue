@@ -33,7 +33,7 @@
 									<EventTime :timestamp="event.origin_server_ts" :showDate="true"> </EventTime>
 								</span>
 
-								<RoomBadge v-if="!room.isPrivateRoom()" class="inline-block" :user="event.sender" :room_id="event.room_id"></RoomBadge>
+								<RoomBadge v-if="!room.isPrivateRoom() && !room.isGroupRoom() && !room.isAdminContactRoom()" class="inline-block" :user="event.sender" :room_id="event.room_id"></RoomBadge>
 							</div>
 							<div>
 								<template v-if="timerReady && !deleteMessageDialog">

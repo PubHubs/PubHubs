@@ -17,6 +17,8 @@ use actix_web::web;
 use super::server::*;
 use api::phc::user::*;
 
+use api::phc::user::UserState as ApiUserState;
+
 impl App {
     /// Implements [`WelcomeEP`]
     pub(super) fn cached_handle_user_welcome(app: &Self) -> api::Result<WelcomeResp> {
@@ -32,6 +34,29 @@ impl App {
             constellation: (*running_state.constellation).clone(),
             hubs,
         })
+    }
+    /// Implements [`StateEP`]
+    pub(super) async fn handle_user_state(
+        app: Rc<Self>,
+        auth_token: actix_web::web::Header<AuthToken>,
+    ) -> api::Result<StateResp> {
+        let user_id = if let Ok(user_id) = app.open_auth_token(auth_token.into_inner()) {
+            user_id
+        } else {
+            return Ok(StateResp::RetryWithNewAuthToken);
+        };
+
+        let (user_state, _) = app
+            .get_object::<UserState>(&user_id)
+            .await?
+            .ok_or_else(|| {
+                log::error!(
+                    "auth token refers to non- (or no longer) existing user with id {user_id}",
+                );
+                api::ErrorCode::InternalError
+            })?;
+
+        Ok(StateResp::State(user_state.into_user_version(&app)))
     }
 
     /// Implements [`EnterEP`]
@@ -542,4 +567,46 @@ pub struct UserState {
 
     /// Details about the objects stored by this user at pubhubs central
     pub stored_objects: HashMap<handle::Handle, super::user_object_store::UserObjectDetails>,
+}
+
+impl UserState {
+    /// Subtract quota usage from the given [`Quota`], returning an error when a [`QuotumName`] was
+    /// reached.
+    pub(crate) fn update_quota(&self, mut quota: Quota) -> Result<Quota, QuotumName> {
+        quota.object_count = quota
+            .object_count
+            .checked_sub(self.stored_objects.len().try_into().unwrap_or(u16::MAX))
+            .ok_or_else(|| {
+                let quotum = QuotumName::ObjectCount;
+                log::warn!("user {} has reached quotum {quotum}", self.id);
+                quotum
+            })?;
+
+        for sod in self.stored_objects.values() {
+            quota.object_bytes_total =
+                quota
+                    .object_bytes_total
+                    .checked_sub(sod.size)
+                    .ok_or_else(|| {
+                        let quotum = QuotumName::ObjectBytesTotal;
+                        log::warn!("user {} has reached quotum {quotum}", self.id);
+                        quotum
+                    })?;
+        }
+
+        Ok(quota)
+    }
+
+    /// Turns this [`UserState`] into a [`ApiUserState`].
+    pub(crate) fn into_user_version(self: UserState, app: &App) -> ApiUserState {
+        ApiUserState {
+            allow_login_by: self.allow_login_by,
+            could_be_banned_by: self.could_be_banned_by,
+            stored_objects: self
+                .stored_objects
+                .into_iter()
+                .map(|(handle, uod)| (handle, uod.into_user_version(&app.user_object_hmac_secret)))
+                .collect(),
+        }
+    }
 }

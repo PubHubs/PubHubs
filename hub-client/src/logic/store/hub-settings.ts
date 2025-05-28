@@ -7,6 +7,7 @@ import { defineStore } from 'pinia';
 import { MessageType } from './messagebox';
 import { api_synapse } from '@/logic/core/api';
 import { FeatureFlag, Theme, useSettings } from './settings';
+import { HubSettingsJSONParser } from '@/logic/store/jsonutility';
 
 type HubInformation = {
 	name: string;
@@ -19,18 +20,6 @@ type HubSettingsState = {
 	isSolo: boolean;
 	mobileHubMenu: boolean;
 };
-
-export class HubSettingsJSONParser {
-	description: string;
-	summary: string;
-	contact: string;
-
-	constructor(description: string, summary: string, contact: string) {
-		this.description = description ? description.replace(/\\n/g, '\n').replace(/"/g, '') : '';
-		this.summary = summary ? summary.replace(/\\n/g, '\n').replace(/"/g, '') : '';
-		this.contact = contact ? contact.replace(/\\n/g, '\n').replace(/"/g, '') : '';
-	}
-}
 
 export const ALLOWED_HUB_ICON_TYPES = ['image/png', 'image/jpeg', 'image/jpg', 'image/svg+xml'];
 export const MAX_HUB_ICON_SIZE = 5000000; // ~5MB
@@ -161,16 +150,16 @@ const useHubSettings = defineStore('hub-settings', {
 		async deleteBanner() {
 			await api_synapse.apiDELETE(api_synapse.apiURLS.hubBanner);
 		},
-		async getHubJSON(): Promise<HubSettingsJSONParser> {
+		async getHubJSON(): Promise<HubSettingsJSONParser | undefined> {
 			const settings = useSettings();
 			if (settings.isFeatureEnabled(FeatureFlag.hubSettings)) {
-				return (await api_synapse.apiGET(api_synapse.apiURLS.hubDescription)) as unknown as HubSettingsJSONParser;
+				return await api_synapse.apiGET<HubSettingsJSONParser>(api_synapse.apiURLS.hubSettings);
 			} else {
-				return {} as HubSettingsJSONParser;
+				return undefined;
 			}
 		},
 		async setHubJSON(hubSettingsData: HubSettingsJSONParser) {
-			await api_synapse.apiPOST(api_synapse.apiURLS.hubDescription, hubSettingsData);
+			await api_synapse.apiPOST(api_synapse.apiURLS.hubSettings, hubSettingsData);
 		},
 	},
 });

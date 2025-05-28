@@ -1,31 +1,78 @@
 use std::rc::Rc;
+use std::str::FromStr as _;
 
 use serde::{
     de::{DeserializeOwned, IntoDeserializer as _},
     Deserialize, Serialize,
 };
 
+use anyhow::Context as _;
+
+use actix_web::http::header;
+use actix_web::web;
+
+use crate::misc::fmt_ext;
 use crate::misc::serde_ext::bytes_wrapper;
 use crate::servers::server;
 
-use actix_web::web;
-
 pub type Result<T> = std::result::Result<T, ErrorCode>;
 
-/// The [`actix_web::Responder`] used for all API endpoints: a wrapper around [`Result<T, ErrorCode>`].
-pub struct ResultResponder<EP: EndpointDetails>(Result<EP::ResponseType>);
+/// The [`actix_web::Responder`] used for all API endpoints, [`EndpointDetails`] together with an
+/// instance of [`Result<EndpointDetails::ResponseType>`].
+pub struct Responder<EP: EndpointDetails>(pub EP::ResponseType);
 
-impl<EP: EndpointDetails> actix_web::Responder for ResultResponder<EP> {
+impl<EP: EndpointDetails> actix_web::Responder for Responder<EP> {
     type Body = actix_web::body::BoxBody;
 
     fn respond_to(self, _req: &actix_web::HttpRequest) -> actix_web::HttpResponse<Self::Body> {
-        EP::response_builder().json(&self.0)
+        let (body, mut rb) = self.into_cached()();
+
+        match body {
+            Some(bytes) => rb.body(bytes),
+            None => rb.finish(),
+        }
     }
 }
 
-impl<EP: EndpointDetails> From<Result<EP::ResponseType>> for ResultResponder<EP> {
-    fn from(res: Result<EP::ResponseType>) -> Self {
-        Self(res)
+impl<EP: EndpointDetails> Responder<EP> {
+    pub fn into_cached(
+        self,
+    ) -> impl Fn() -> (Option<bytes::Bytes>, actix_web::HttpResponseBuilder) + Clone {
+        let payload = self.0.into_payload();
+        let mut ct = payload.content_type();
+
+        let body = payload.into_body().unwrap_or_else(|err| {
+            log::error!(
+                "failed to serialize payload for {method} {url}: {err:#}",
+                method = EP::METHOD,
+                url = EP::PATH
+            );
+
+            ct = Some(header::ContentType::json());
+            Some(
+                serde_json::to_vec_pretty(&Result::<()>::Err(ErrorCode::InternalError))
+                    .unwrap()
+                    .into(),
+            )
+        });
+
+        move || {
+            let mut rb = actix_web::HttpResponse::Ok();
+
+            if let Some(ct) = &ct {
+                rb.content_type(ct.clone());
+            }
+
+            if EP::immutable_response() {
+                rb.insert_header(header::CacheControl(vec![
+                    header::CacheDirective::MaxAge(i32::MAX as u32),
+                    // https://github.com/actix/actix-web/issues/2666
+                    header::CacheDirective::Extension("immutable".to_string(), None),
+                ]));
+            }
+
+            (body.clone(), rb)
+        }
     }
 }
 
@@ -105,6 +152,7 @@ impl<T> ApiResultExt for Result<T> {
 /// because error codes can be more easily processed by the calling code,
 /// should change less often, and can be easily translated.
 #[derive(Clone, Copy, Serialize, Deserialize, Debug, thiserror::Error, PartialEq, Eq)]
+#[serde(deny_unknown_fields)]
 pub enum ErrorCode {
     #[error("requested process already running")]
     AlreadyRunning,
@@ -226,19 +274,242 @@ impl ErrorCode {
     }
 }
 
+// TODO: remove Clone, needed for current query impl
+/// What's expected from a [`EndpointDetails::RequestType`].
+pub trait PayloadTrait: Clone {
+    type JsonType: Serialize + DeserializeOwned + core::fmt::Debug;
+
+    fn into_payload(self) -> Payload<Self::JsonType>;
+
+    fn from_payload(payload: Payload<Self::JsonType>) -> anyhow::Result<Self>;
+}
+
+/// Payload of a request or response to an api endpoint.
+#[derive(Debug, Clone)] // TODO: remove Clone
+pub enum Payload<JsonType> {
+    None,
+    Json(JsonType),
+    Octets(bytes::Bytes),
+}
+
+impl<T> Payload<T> {
+    /// Returns the content type appropriate for this payload
+    pub fn content_type(&self) -> Option<header::ContentType> {
+        match self {
+            Payload::None => None,
+            Payload::Json(..) => Some(header::ContentType::json()),
+            Payload::Octets(..) => Some(header::ContentType::octet_stream()),
+        }
+    }
+
+    /// Converts this payload into bytes.
+    pub fn into_body(self) -> anyhow::Result<Option<bytes::Bytes>>
+    where
+        T: Serialize,
+    {
+        match self {
+            Payload::None => Ok(None),
+            Payload::Octets(bytes) => Ok(Some(bytes)),
+            Payload::Json(tp) => Ok(Some(
+                serde_json::to_vec_pretty(&tp)
+                    .with_context(|| {
+                        format!("failed to convert {} to JSON", std::any::type_name::<T>())
+                    })?
+                    .into(),
+            )),
+        }
+    }
+
+    /// Extracts payload from [`awc::ClientResponse`].
+    pub async fn from_client_response<S>(
+        mut resp: awc::ClientResponse<S>,
+    ) -> anyhow::Result<Payload<T>>
+    where
+        S: futures::stream::Stream<
+            Item = std::result::Result<bytes::Bytes, awc::error::PayloadError>,
+        >,
+        T: DeserializeOwned,
+    {
+        let Some(content_type_hv) = resp.headers().get(http::header::CONTENT_TYPE) else {
+            anyhow::bail!("no Content-Type in response",);
+        };
+
+        let content_type = mime::Mime::from_str(
+            content_type_hv
+                .to_str()
+                .context("Content-Type value not utf8")?,
+        )
+        .context("could not parse Content-Type value")?;
+
+        match (content_type.type_(), content_type.subtype()) {
+            (mime::APPLICATION, mime::JSON) => Ok(Payload::Json(
+                resp.json::<T>().await.with_context(|| {
+                    format!(
+                        "could deserialize JSON to type {}",
+                        std::any::type_name::<T>()
+                    )
+                })?,
+            )),
+            (mime::APPLICATION, mime::OCTET_STREAM) => Ok(Payload::Octets(
+                resp.body().await.context("problem loading body")?,
+            )),
+            _ => {
+                anyhow::bail!(
+                    "expected Content-Type {} or {}, but got {content_type}",
+                    mime::APPLICATION_JSON,
+                    mime::APPLICATION_OCTET_STREAM
+                )
+            }
+        }
+    }
+}
+
+impl<T> std::fmt::Display for Payload<T>
+where
+    T: Serialize,
+{
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Payload::None => write!(f, ""),
+            Payload::Json(t) => write!(f, "{}", fmt_ext::Json(t)),
+            Payload::Octets(b) => write!(f, "{} bytes", b.len()),
+        }
+    }
+}
+
+impl<T> PayloadTrait for Payload<T>
+where
+    T: Serialize + DeserializeOwned + core::fmt::Debug + Clone, // TODO: remove Clone
+{
+    type JsonType = T;
+
+    fn into_payload(self) -> Payload<T> {
+        self
+    }
+
+    fn from_payload(payload: Payload<T>) -> anyhow::Result<Self> {
+        Ok(payload)
+    }
+}
+
+impl<T> PayloadTrait for T
+where
+    T: Serialize + DeserializeOwned + core::fmt::Debug + Clone,
+{
+    type JsonType = T;
+
+    fn into_payload(self) -> Payload<T> {
+        Payload::Json(self)
+    }
+
+    fn from_payload(payload: Payload<T>) -> anyhow::Result<T> {
+        let Payload::Json(res) = payload else {
+            anyhow::bail!("expected, but did not get, application/json");
+        };
+
+        Ok(res)
+    }
+}
+
+/// Use [`NoPayload`] as [`EndpointDetails::RequestType`] to indicate no payload is expected.
+#[derive(Clone, Copy)]
+pub struct NoPayload;
+
+impl PayloadTrait for NoPayload {
+    type JsonType = ();
+
+    fn into_payload(self) -> Payload<()> {
+        Payload::None
+    }
+
+    fn from_payload(payload: Payload<()>) -> anyhow::Result<Self> {
+        let Payload::None = payload else {
+            anyhow::bail!("expected no payload");
+        };
+
+        Ok(NoPayload)
+    }
+}
+
+/// A payload (see [`PayloadTrait`]) that can only hold bytes. Probably only useful for as
+/// [`EndpointDetails::RequestType`].
+#[derive(Clone)]
+pub struct BytesPayload(pub bytes::Bytes);
+
+impl PayloadTrait for BytesPayload {
+    type JsonType = ();
+
+    fn into_payload(self) -> Payload<()> {
+        Payload::Octets(self.0)
+    }
+
+    fn from_payload(payload: Payload<()>) -> anyhow::Result<Self> {
+        let Payload::Octets(bytes) = payload else {
+            anyhow::bail!("expected, but did not get, bytes payload (application/octet-stream)");
+        };
+
+        Ok(BytesPayload(bytes))
+    }
+}
+
+/// What's expected from a [`EndpointDetails::ResponseType`].
+///
+/// Or: trait for those [`PayloadTrait`]s that have a [`PayloadTrait::JsonType`] of the form
+/// `Result<T>`, and for which `Self::from_payload(Payload::Json(Err(..)))`
+/// and `Self::from_payload(Self::into_payload())` never fail.
+pub trait ResultPayloadTrait: PayloadTrait<JsonType = Result<Self::OkType>> {
+    type OkType: Serialize + DeserializeOwned + core::fmt::Debug + Clone;
+
+    /// Create an instance of this result payload type from the given [`ErrorCode`] infallibly.
+    fn from_ec(ec: ErrorCode) -> Self {
+        Self::from_payload(Payload::Json(Err(ec))).unwrap()
+    }
+
+    /// Destructs this payload result, extracting any error.
+    fn into_result(self) -> Result<Self> {
+        match self.into_payload() {
+            Payload::Json(Err(ec)) => Err(ec),
+            oth => Ok(Self::from_payload(oth).unwrap()),
+        }
+    }
+
+    fn from_result(res: Result<Self>) -> Self {
+        res.unwrap_or_else(Self::from_ec)
+    }
+}
+
+impl<T> ResultPayloadTrait for Result<T>
+where
+    T: Serialize + DeserializeOwned + core::fmt::Debug + Clone,
+{
+    type OkType = T;
+}
+
+impl<T> ResultPayloadTrait for Payload<Result<T>>
+where
+    T: Serialize + DeserializeOwned + core::fmt::Debug + Clone,
+{
+    type OkType = T;
+}
+
 /// Details on a PubHubs server endpoint
 pub trait EndpointDetails {
-    type RequestType: Serialize + DeserializeOwned + core::fmt::Debug;
-    type ResponseType: Serialize + DeserializeOwned + core::fmt::Debug;
+    type RequestType: PayloadTrait;
+    type ResponseType: ResultPayloadTrait;
 
     const METHOD: http::Method;
     const PATH: &'static str;
+
+    /// Can the response be cached indefinitely?
+    fn immutable_response() -> bool {
+        false
+    }
 
     /// Helper function to add this endpoint to a [`web::ServiceConfig`].
     ///
     /// The `handler` argument must be of the form:
     /// ```text
-    /// async fn f(app : Rc<App>, ...) -> api::Result<ResponseType>
+    /// async fn f(app : Rc<App>, ...) -> api::ResponseType
     /// ```
     /// The `...` can contain arguments of type [`actix_web::FromRequest`].
     fn add_to<App, F, Args: actix_web::FromRequest + 'static>(
@@ -264,6 +535,8 @@ pub trait EndpointDetails {
     /// Moreover `handler` cannot be `async`, since [`actix_web::App::configure`] takes a non-async
     /// function.
     ///
+    /// Only `application/json` responses are supported.
+    ///
     /// # `handler` errors and panics
     ///
     /// If `handler` returns an [`Err`], then this will not cause the `App` (and associated `Server`) to
@@ -277,31 +550,25 @@ pub trait EndpointDetails {
     /// [`add_to`]: Self::add_to
     fn caching_add_to<App, F>(app: &Rc<App>, sc: &mut web::ServiceConfig, handler: F)
     where
-        F: Fn(&App) -> Result<Self::ResponseType>,
+        F: Fn(&App) -> Self::ResponseType,
+        Self: Sized + 'static,
     {
-        let response: String = serde_json::to_string_pretty(&handler(app)).unwrap_or_else(|err| {
-            log::error!("while preparing response for {}: {err}", Self::PATH);
-            serde_json::to_string_pretty(&Result::<Self::ResponseType>::Err(
-                ErrorCode::InternalError,
-            ))
-            .unwrap()
-        });
+        let cached = Responder::<Self>(handler(app)).into_cached();
 
         sc.route(
             Self::PATH,
             web::method(Self::METHOD).to(move || {
-                // TODO: etag
-                let http_resp = Self::response_builder()
-                    .content_type(actix_web::http::header::ContentType::json())
-                    .body(response.clone());
+                // TODO: etag ?
+                let (body, mut rb) = cached();
+
+                let http_resp = match body {
+                    None => rb.finish(),
+                    Some(bytes) => rb.body(bytes),
+                };
+
                 async { http_resp }
             }),
         );
-    }
-
-    /// Creates an [`actix_web::HttpResponseBuilder`] for this endpoint.
-    fn response_builder() -> actix_web::HttpResponseBuilder {
-        actix_web::HttpResponse::Ok()
     }
 }
 

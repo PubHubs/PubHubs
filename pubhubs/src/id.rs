@@ -4,7 +4,11 @@ use crate::misc::serde_ext::{self, bytes_wrapper};
 
 /// An identifier, a random 256-bit number, which is encoded
 /// using unpadded url-safe base64
-#[derive(Clone, Copy, Debug, Eq, PartialEq, Hash, serde::Serialize, serde::Deserialize)]
+#[allow( // not "expect", because of https://github.com/rust-lang/rust-clippy/issues/13356
+    clippy::derived_hash_with_manual_eq,
+    reason = "the manual PartialEq implementation agrees with the default one, but is constant time"
+)]
+#[derive(Clone, Copy, Debug, Eq, Hash, serde::Serialize, serde::Deserialize)]
 #[serde(transparent)]
 pub struct Id {
     inner: bytes_wrapper::B64UU<serde_ext::ByteArray<32>>,
@@ -41,5 +45,12 @@ impl core::str::FromStr for Id {
 impl std::fmt::Display for Id {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         write!(f, "{}", self.inner)
+    }
+}
+
+/// Compare [`Id`]s, in constant time.
+impl PartialEq for Id {
+    fn eq(&self, other: &Id) -> bool {
+        subtle::ConstantTimeEq::ct_eq(self.inner.as_slice(), other.inner.as_slice()).into()
     }
 }

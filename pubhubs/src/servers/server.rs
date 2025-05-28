@@ -11,7 +11,9 @@ use crate::elgamal;
 
 use crate::client;
 
-use crate::api::{self, ApiResultExt as _, DiscoveryRunResp, EndpointDetails, ResultExt as _};
+use crate::api::{
+    self, ApiResultExt as _, DiscoveryRunResp, EndpointDetails, NoPayload, ResultExt as _,
+};
 use crate::servers::{self, Config, Constellation, Handle};
 
 /// Enumerates the names of the different PubHubs servers
@@ -127,6 +129,7 @@ pub(crate) trait Server: DerefMut<Target = Self::AppCreatorT> + Sized + 'static 
             .allow_any_origin()
             .allowed_methods(["GET", "POST"])
             .allowed_header(actix_web::http::header::CONTENT_TYPE)
+            .allowed_header(actix_web::http::header::AUTHORIZATION)
     }
 }
 
@@ -424,7 +427,7 @@ pub trait App<S: Server>: Deref<Target = AppBase<S>> + 'static {
                 );
                 // PHC's discovery is out of date; invoke discovery and return
                 self.client
-                    .query::<api::DiscoveryRun>(&phc_inf.phc_url, &())
+                    .query::<api::DiscoveryRun>(&phc_inf.phc_url, NoPayload)
                     .await
                     .into_server_result()?;
                 return Err(api::ErrorCode::NotYetReady);
@@ -467,7 +470,7 @@ pub trait App<S: Server>: Deref<Target = AppBase<S>> + 'static {
         // obtain DiscoveryInfo from oneself
         let di = self
             .client
-            .query::<api::DiscoveryInfo>(url, &())
+            .query::<api::DiscoveryInfo>(url, NoPayload)
             .await
             .into_server_result()?;
 
@@ -750,7 +753,7 @@ impl<S: Server> AppBase<S> {
     pub(super) async fn discover_phc(app: Rc<S::AppT>) -> api::Result<api::DiscoveryInfoResp> {
         let pdi = app
             .client
-            .query::<api::DiscoveryInfo>(&app.phc_url, &())
+            .query::<api::DiscoveryInfo>(&app.phc_url, NoPayload)
             .await
             .into_server_result()?;
 
@@ -829,22 +832,29 @@ impl<App, F, EP: ?Sized> AppMethod<App, F, EP> {
 macro_rules! factory_tuple ({ $($param:ident)* } => {
     impl<Func, Fut, App, EP, $($param,)*> actix_web::Handler<($($param,)*)> for AppMethod<App, Func, EP>
     where
-        Func:  Fn(Rc<App>, $($param),*) -> Fut + Clone + 'static,
+        Func: Fn(Rc<App>, $($param),*) -> Fut + Clone + 'static,
         Fut: core::future::Future,
         App: 'static,
         EP : EndpointDetails + 'static,
-        Fut::Output : Into<api::ResultResponder<EP>>,
+        Fut::Output : Into<EP::ResponseType>,
     {
-        type Output = api::ResultResponder<EP>;
-        type Future = futures::future::Map<Fut, fn(Fut::Output)->api::ResultResponder<EP>>;
+        type Output = api::Responder<EP>;
+        type Future = futures::future::Map<Fut, fn(Fut::Output)->api::Responder<EP>>;
 
         #[inline]
         #[allow(non_snake_case)] // because the signature will be:  call(&self, A: A, B: B, ...)
         fn call(&self, ($($param,)*): ($($param,)*)) -> Self::Future {
-            (self.f)(self.app.clone(), $($param,)*).map(Into::<api::ResultResponder<EP>>::into)
+            (self.f)(self.app.clone(), $($param,)*).map(response_type_to_responder)
         }
     }
 });
+
+/// Helper method for [`factory_tuple`] macro.
+fn response_type_to_responder<EP: EndpointDetails, T: Into<EP::ResponseType>>(
+    output: T,
+) -> api::Responder<EP> {
+    api::Responder(output.into())
+}
 
 factory_tuple! {}
 factory_tuple! { A }

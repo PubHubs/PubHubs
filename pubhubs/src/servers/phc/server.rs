@@ -5,7 +5,7 @@ use std::rc::Rc;
 use actix_web::web;
 use digest::Digest as _;
 
-use crate::api::{self, ApiResultExt as _, EndpointDetails as _};
+use crate::api::{self, ApiResultExt as _, EndpointDetails as _, NoPayload};
 use crate::client;
 use crate::common::secret::DigestibleSecret as _;
 use crate::misc::crypto;
@@ -50,6 +50,8 @@ pub struct App {
     pub attr_id_secret: Box<[u8]>,
     pub auth_token_secret: crypto::SealingKey,
     pub auth_token_validity: core::time::Duration,
+    pub user_object_hmac_secret: Box<[u8]>,
+    pub quota: api::phc::user::Quota,
 }
 
 impl Deref for App {
@@ -82,9 +84,11 @@ impl crate::servers::App<Server> for App {
 
         api::phc::user::WelcomeEP::caching_add_to(self, sc, App::cached_handle_user_welcome);
         api::phc::user::EnterEP::add_to(self, sc, App::handle_user_enter);
+        api::phc::user::StateEP::add_to(self, sc, App::handle_user_state);
 
         api::phc::user::NewObjectEP::add_to(self, sc, App::handle_user_new_object);
         api::phc::user::OverwriteObjectEP::add_to(self, sc, App::handle_user_overwrite_object);
+        api::phc::user::GetObjectEP::add_to(self, sc, App::handle_user_get_object);
     }
 
     fn check_constellation(&self, _constellation: &Constellation) -> bool {
@@ -165,7 +169,11 @@ impl crate::servers::App<Server> for App {
                 t = servers::Name::Transcryptor
             );
             let url = self.transcryptor_url.clone();
-            js.spawn_local(self.client.query::<api::DiscoveryRun>(&url, &()));
+            js.spawn_local(
+                self.client
+                    .query::<api::DiscoveryRun>(&url, NoPayload)
+                    .into_future(),
+            );
         }
 
         if asdi
@@ -180,7 +188,11 @@ impl crate::servers::App<Server> for App {
                 auths = servers::Name::AuthenticationServer
             );
             let url = self.auths_url.clone();
-            js.spawn_local(self.client.query::<api::DiscoveryRun>(&url, &()));
+            js.spawn_local(
+                self.client
+                    .query::<api::DiscoveryRun>(&url, NoPayload)
+                    .into_future(),
+            );
         }
 
         let result_maybe = js.join_next().await;
@@ -237,7 +249,7 @@ impl App {
     ) -> api::Result<api::DiscoveryInfoResp> {
         let tdi = self
             .client
-            .query::<api::DiscoveryInfo>(url, &())
+            .query::<api::DiscoveryInfo>(url, NoPayload)
             .await
             .into_server_result()?;
 
@@ -261,6 +273,8 @@ pub struct AppCreator {
     pub attr_id_secret: Box<[u8]>,
     pub auth_token_secret: crypto::SealingKey,
     pub auth_token_validity: core::time::Duration,
+    pub user_object_hmac_secret: Box<[u8]>,
+    pub quota: api::phc::user::Quota,
 }
 
 impl Deref for AppCreator {
@@ -288,6 +302,8 @@ impl crate::servers::AppCreator<Server> for AppCreator {
             attr_id_secret: self.attr_id_secret,
             auth_token_secret: self.auth_token_secret,
             auth_token_validity: self.auth_token_validity,
+            user_object_hmac_secret: self.user_object_hmac_secret,
+            quota: self.quota,
         }
     }
 
@@ -329,6 +345,15 @@ impl crate::servers::AppCreator<Server> for AppCreator {
             .into_boxed_slice(),
             auth_token_secret,
             auth_token_validity: xconf.auth_token_validity,
+            user_object_hmac_secret: <serde_bytes::ByteBuf as Clone>::clone(
+                xconf
+                    .user_object_hmac_secret
+                    .as_ref()
+                    .expect("user_object_hmac_secret was not initialized"),
+            )
+            .into_vec()
+            .into_boxed_slice(),
+            quota: xconf.user_quota.clone(),
         })
     }
 }

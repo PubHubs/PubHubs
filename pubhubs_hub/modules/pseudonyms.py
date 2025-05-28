@@ -34,6 +34,8 @@ class OidcMappingProvider:
         self._secret = os.environ['HUB_SECRET']
         self._libpubhubs = ctypes.CDLL(config["libpubhubspath"])
 
+        self._libpubhubs.decrypt.restype = ctypes.c_ubyte
+
     @staticmethod
     def parse_config(config):
         if "libpubhubspath" not in config:
@@ -61,8 +63,8 @@ class OidcMappingProvider:
                 raise RuntimeError("failed to decrypt user's encrypted local pseudonym - not a valid ElGamal ciphertext")
             case 4: # InvalidPrivateKey
                 raise RuntimeError("failed to decrypt user's encrypted local pseudonym - invalid HUB_SECRET")
-            case _: 
-                raise RuntimeError("failed to decrypt user's encrypted local pseudonym - unknown error")
+            case _ as ec: 
+                raise RuntimeError(f"failed to decrypt user's encrypted local pseudonym - unknown error code {ec}")
 
         decrypted_local_pseudonym = result_buf.raw.hex()
 

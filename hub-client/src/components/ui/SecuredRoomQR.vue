@@ -25,7 +25,7 @@
 
 	function resultOfEntry(result: SecuredRoomAttributeResult) {
 		if (result.goto) {
-			pubhubs.updateRooms().then(() => router.push({ name: 'room', params: { id: props.securedRoomId } }));
+			pubhubs.updateRoom(props.securedRoomId).then(() => router.push({ name: 'room', params: { id: props.securedRoomId } }));
 		} else if (result.not_correct) {
 			emit('error', result.not_correct);
 		}

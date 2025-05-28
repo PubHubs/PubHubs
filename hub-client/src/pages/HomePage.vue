@@ -53,6 +53,7 @@
 </template>
 
 <script setup lang="ts">
+	// Logic
 	import { ref, onBeforeMount } from 'vue';
 	import { router } from '@/logic/core/router';
 	import { usePubHubs } from '@/logic/core/pubhubsStore';
@@ -76,7 +77,7 @@
 
 	const props = defineProps<Props>();
 
-	onBeforeMount(() => {
+	onBeforeMount(async () => {
 		loadHubSettings();
 	});
 	/**
@@ -96,7 +97,7 @@
 	}
 	async function loadHubSettings() {
 		const hubSettingsJSON = await hubSettings.getHubJSON();
-		hubDescription.value = hubSettingsJSON.description;
-		hubContact.value = hubSettingsJSON.contact;
+		hubDescription.value = hubSettingsJSON?.description ?? '';
+		hubContact.value = hubSettingsJSON?.contact ?? '';
 	}
 </script>

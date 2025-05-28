@@ -40,6 +40,7 @@
 									"
 								/>
 							</div>
+
 							<Menu>
 								<template v-for="(item, index) in menu.getMenu" :key="index">
 									<MenuItem :to="item.to" :icon="item.icon" @click="hubSettings.hideBar()">{{ $t(item.key) }}</MenuItem>
@@ -53,7 +54,7 @@
 									<p class="truncate font-bold leading-tight">{{ $t('admin.public_rooms') }}</p>
 								</div>
 							</div>
-							<RoomList :filters="{ secure: 'public', type: '!' + RoomType.PH_MESSAGES_DM }" />
+							<RoomList />
 						</section>
 
 						<section class="flex flex-col gap-2">
@@ -62,17 +63,7 @@
 									<p class="truncate font-bold leading-tight">{{ $t('admin.secured_rooms') }}</p>
 								</div>
 							</div>
-							<RoomList :filters="{ secure: 'secure', type: '!' + RoomType.PH_MESSAGES_DM }" />
-						</section>
-
-						<section class="flex flex-col gap-2">
-							<div class="group flex items-center justify-between rounded-lg bg-surface px-4 py-2">
-								<div class="flex h-[24px] items-center">
-									<p class="truncate font-bold leading-tight">{{ $t('menu.private_rooms') }}</p>
-								</div>
-							</div>
-							<RoomList :filters="{ type: RoomType.PH_MESSAGES_DM }" />
-							<DiscoverUsers />
+							<RoomList :roomType="RoomType.PH_MESSAGES_RESTRICTED" />
 						</section>
 
 						<!-- When user is admin, show the moderation tools menu -->
@@ -103,7 +94,7 @@
 					</div>
 				</HeaderFooter>
 
-				<div class="h-full w-full overflow-y-auto overflow-x-hidden" :class="{ hidden: hubSettings.mobileHubMenu }">
+				<div class="h-full w-full overflow-y-auto overflow-x-hidden" :class="{ hidden: hubSettings.mobileHubMenu && isMobile }">
 					<router-view></router-view>
 				</div>
 			</div>
@@ -132,7 +123,7 @@
 	import Menu from '@/components/ui/Menu.vue';
 	import MenuItem from '@/components/ui/MenuItem.vue';
 	import RoomList from '@/components/rooms/RoomList.vue';
-	import DiscoverUsers from '@/components/rooms/DiscoverUsers.vue';
+
 	import Badge from '@/components/elements/Badge.vue';
 	import Icon from '@/components/elements/Icon.vue';
 	import H3 from '@/components/elements/H3.vue';
@@ -164,6 +155,7 @@
 	const menu = useMenu();
 	const settingsDialog = ref(false);
 	const setupReady = ref(false);
+
 	const disclosureEnabled = settings.isFeatureEnabled(FeatureFlag.disclosure);
 	const isMobile = computed(() => settings.isMobileState);
 
@@ -206,12 +198,7 @@
 				setupReady.value = true;
 				addPushRules();
 			});
-			// Needs onboarding?
-			if (user.needsOnboarding) {
-				router.push({ name: 'onboarding' });
-			} else {
-				router.push({ name: 'home' });
-			}
+			router.push({ name: 'home' });
 			// 2024 12 03 The await is removed, because of slow loading testhub
 			// After the next merge to stable, in case this gives no problems,
 			// the old code and comments can be removed

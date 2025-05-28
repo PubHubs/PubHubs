@@ -24,7 +24,7 @@ def _generate_token() -> (str, int):
 
 
 
-class YiviRoomJoinStore:
+class HubStore:
     """Contains methods for database operations connected to room access with Yivi.
     """
 
@@ -374,6 +374,27 @@ class YiviRoomJoinStore:
                     hub_join_txn,
                     user_id,
         )
+            
+    async def all_rooms_latest_timestamp(self):
+            """
+            Returns the latest activity timestamp for every room.
+            """
+            
+            
+            def all_rooms_latest_timestamp_txn(
+                txn: LoggingTransaction):
+                
+                txn.execute(
+                        """
+                            SELECT MAX(received_ts), room_id FROM events GROUP BY room_id
+                            """,
+                    )
+                return txn.fetchall()
+            
+            return await self.module_api.run_db_interaction(
+                    "joined_hub",
+                    all_rooms_latest_timestamp_txn
+        )
 
     async def has_joined(self, user_id: str) -> bool:
             """Check whether a user is allowed to join a room.
@@ -401,7 +422,22 @@ class YiviRoomJoinStore:
                 user_id,
             )
 
+    async def get_hub_admins(self) -> list:
+        """Get all hub admin user Ids"""
 
+        def get_hub_admins_txn(txn: LoggingTransaction):
+            txn.execute(
+                        """
+                        SELECT * FROM users WHERE admin = 1;
+                        """)
+            
+            return txn.fetchall()
+
+        return await self.module_api.run_db_interaction(
+            "get_hub_admins",
+            get_hub_admins_txn
+        )
+        
 def tuple_to_room(room) -> SecuredRoom:
     logger.info(f"Tuple looks like  {room}")
     (room_id, name, topic, accepted, expiration_time_days, user_txt, type) = room

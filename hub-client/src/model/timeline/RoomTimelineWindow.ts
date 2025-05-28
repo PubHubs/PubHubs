@@ -57,10 +57,9 @@ class RoomTimelineWindow {
 		const filteredTimelineSet = matrixRoom.getOrCreateFilteredTimelineSet(filter);
 
 		this.timelineWindow = new TimelineWindow(client, filteredTimelineSet);
-		/* */
-		await this.loadToEvent(undefined);
+		this.timelineWindow.load(undefined);
 
-		// loadToEvent when given undefined as parameter goes to the Livetimeline which is unfiltered so afterwards
+		// load with undefined as parameter goes to the Livetimeline which is unfiltered so afterwards
 		// we need to check if we have enough filtered results already and when necessary load some more
 		if (this.timelineWindow && this.timelineWindow.getEvents().length < PAGE_SIZE && this.timelineWindow.canPaginate(EventTimeline.BACKWARDS)) {
 			const currentEvents = this.timelineWindow.getEvents();
