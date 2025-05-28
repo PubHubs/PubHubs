@@ -19,25 +19,25 @@
 					<Button
 						v-if="!user.isAdmin"
 						size="sm"
-						class="flex bg-on-surface-variant ~text-label-small-min/label-small-max hover:bg-surface-subtle dark:text-surface-high"
+						class="flex items-center bg-on-surface-variant ~text-label-small-min/label-small-max hover:bg-surface-subtle dark:text-surface-high"
 						:class="isMobile ? 'w-8 justify-center rounded-full' : 'justify-between gap-2'"
 						@click="router.push({ name: 'admin-contact' })"
 					>
-						<Icon type="person" size="xs" class="mt-1"></Icon>
+						<Icon type="person" size="xs"></Icon>
 						<span v-if="!isMobile">{{ $t('menu.contact') }}</span>
-						<span :class="isMobile ? 'absolute right-0 top-0' : 'flex gap-2 pl-2'">
+						<span :class="isMobile ? 'absolute right-0 top-0' : 'flex items-center gap-2 pl-2'">
 							<Badge class="~text-label-small-min/label-small-max" color="ph" v-if="newAdminMsgCount > 99">99+</Badge>
 							<Badge class="~text-label-small-min/label-small-max" v-else-if="newAdminMsgCount > 0" color="ph">{{ newAdminMsgCount }}</Badge>
 						</span>
 					</Button>
 					<Button
-						class="flex gap-2 bg-on-surface-variant ~text-label-small-min/label-small-max hover:bg-surface-subtle dark:text-surface-high"
+						class="flex items-center gap-2 bg-on-surface-variant ~text-label-small-min/label-small-max hover:bg-surface-subtle dark:text-surface-high"
 						:class="isMobile ? 'mr-4 justify-center' : 'justify-between'"
 						size="sm"
 						@click="openConverationalPanel()"
 						:disabled="panel"
 					>
-						<Icon type="plus" size="xs" class="py-1"></Icon>
+						<Icon type="plus" size="xs"></Icon>
 						<span v-if="!isMobile">{{ $t('others.new_message') }}</span>
 					</Button>
 				</div>
