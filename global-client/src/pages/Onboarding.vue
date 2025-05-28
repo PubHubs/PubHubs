@@ -172,8 +172,8 @@
 						class="aspect-video object-cover shadow-xl"
 						width="100%"
 						height="100%"
-						src="https://www.youtube-nocookie.com/embed/YAscjaHGI1E"
-						title="YouTube video player"
+						src="https://player.vimeo.com/video/807947893?badge=0&autopause=0&amp;player_id=0&amp;app_id=58479"
+						title="Vimeo video player"
 						frameborder="0"
 						allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
 						allowfullscreen
