@@ -210,7 +210,7 @@
 
 <script setup lang="ts">
 	// External imports
-	import { computed, onMounted, ref, watch } from 'vue';
+	import { computed, onMounted, onUnmounted, ref, watch } from 'vue';
 	import { useI18n } from 'vue-i18n';
 	import startYiviSession from '@/logic/utils/yiviHandler';
 
@@ -316,8 +316,23 @@
 	};
 
 	// Lifecycle
+	function debounce(fn: () => void, delay: number) {
+		let timer: number;
+		return () => {
+			clearTimeout(timer);
+			timer = window.setTimeout(fn, delay);
+		};
+	}
+
+	const handleResize = debounce(() => {
+		startYiviSession(true, yivi_token);
+	}, 300);
+
 	onMounted(() => {
 		startYiviSession(true, yivi_token);
+		window.addEventListener('resize', handleResize);
+		window.addEventListener('pageshow', () => startYiviSession(true, yivi_token));
+
 		watch(
 			isMobile,
 			() => {
@@ -327,5 +342,7 @@
 		);
 	});
 
-	window.addEventListener('pageshow', () => startYiviSession(true, yivi_token));
+	onUnmounted(() => {
+		window.removeEventListener('resize', handleResize);
+	});
 </script>
