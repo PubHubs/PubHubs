@@ -1,6 +1,6 @@
 <template>
 	<div class="h-full min-w-[32rem] bg-background font-body text-on-surface ~text-base-min/base-max">
-		<MobileMenu v-if="!(route.name === 'home' || route.name === 'onboarding')" />
+		<MobileMenu v-if="!(route.name === 'onboarding')" />
 
 		<div class="flex h-full">
 			<GlobalBar v-if="!(route.name === 'onboarding')" />
