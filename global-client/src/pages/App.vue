@@ -4,7 +4,7 @@
 
 		<div class="flex h-full">
 			<GlobalBar v-if="!(route.name === 'home' || route.name === 'onboarding')" />
-			<div v-if="hubs.hasHubs" class="w-full flex-1" :class="isMobile ? 'max-screen' : 'max-w-[calc(100vw_-_10rem)]'">
+			<div v-if="hubs.hasHubs" class="max-screen w-full flex-1">
 				<router-view />
 			</div>
 		</div>
@@ -15,7 +15,7 @@
 
 <script setup lang="ts">
 	// Package imports
-	import { onMounted, onUnmounted, watchEffect, watch, computed } from 'vue';
+	import { onMounted, onUnmounted, watchEffect, watch } from 'vue';
 	import { useI18n } from 'vue-i18n';
 	import { useRoute } from 'vue-router';
 
@@ -38,8 +38,6 @@
 	const global = useGlobal();
 	const installPromptStore = useInstallPromptStore();
 	const hubs = useHubs();
-
-	const isMobile = computed(() => settings.isMobileState);
 	const route = useRoute();
 
 	// Function to initialize settings and language
