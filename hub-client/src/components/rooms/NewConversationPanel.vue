@@ -6,9 +6,6 @@
 					<span>{{ $t('others.new_message') }}</span>
 					<Icon type="close" size="md" @click="$emit('close')" class="cursor-pointer" />
 				</div>
-
-				<DiscoverUsers @selectedUser="userFromSearch" />
-
 				<div class="px-8 py-2">
 					<Button class="flex w-full items-center justify-center gap-2 bg-on-surface-variant ~text-label-small-min/label-small-max hover:text-surface-high dark:text-surface-high" size="sm" @click="groupPanel = true">
 						<Icon type="plus" size="xs"></Icon> {{ $t('others.new_group') }}
@@ -113,12 +110,8 @@
 
 	const user = useUser();
 
-	let users: MatrixUser[] = [];
-	let searchUsers: MatrixUser[] = [];
-
 	import { useI18n } from 'vue-i18n';
 	import { useDialog } from '@/logic/store/dialog';
-	import DiscoverUsers from './DiscoverUsers.vue';
 
 	const { t } = useI18n();
 
@@ -164,8 +157,8 @@
 	// Categorize users based on first letter
 	const categorizedUsers = computed(() => {
 		const categories: { [key: string]: User[] } = {};
-		users = pubhubs.client.getUsers().filter((otherUser) => otherUser.userId !== user.user.userId && !otherUser.userId.includes('notices_user')) ?? [];
-		users.concat(searchUsers);
+		const users: MatrixUser[] = pubhubs.client.getUsers().filter((otherUser) => otherUser.userId !== user.user.userId && !otherUser.userId.includes('notices_user')) ?? [];
+
 		// Sort users alphabetically by display name
 		const sortedUsers = [...users].sort((a, b) => {
 			const nameA = a.displayName?.toUpperCase() || '';
@@ -282,9 +275,5 @@
 	async function setRoomName(roomId: string, roomName: string) {
 		await pubhubs.client.setRoomName(roomId, roomName);
 		pubhubs.updateRooms();
-	}
-
-	function userFromSearch(user: MatrixUser) {
-		searchUsers.push(user);
 	}
 </script>
