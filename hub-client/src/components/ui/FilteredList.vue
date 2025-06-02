@@ -1,7 +1,6 @@
 <template>
 	<div class="flex w-full flex-col">
 		<div class="flex w-full items-center gap-4 pb-4">
-			<Icon type="pubhubs-home" class="text-surface-high dark:text-on-surface-dim" />
 			<TextInput v-if="!listTop" :placeholder="placeholder" v-model="filter" class="h-8 w-full border-none !bg-surface-low ~text-label-min/label-max" :class="inputClass" @input="changed()" />
 		</div>
 		<ul v-if="filteredItems.length > 0" :class="listClass + ' flex h-full flex-col gap-2 overflow-y-auto overflow-x-hidden rounded-md'">
