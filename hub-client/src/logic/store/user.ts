@@ -20,6 +20,7 @@ import { FeatureFlag, useSettings } from './settings';
 import { ConsentJSONParser } from './jsonutility';
 import { router } from '@/logic/core/router';
 import { OnboardingType } from '@/model/constants';
+
 /**
  *  Extending the MatrixUser with some extra PubHubs specific methods :
  */
