@@ -94,6 +94,7 @@
 		const hubSettingsJSON = await hubSettings.getHubJSON();
 		if (hubSettingsJSON) {
 			timestamps.value = hubSettingsJSON.timestamps || [];
+			processTimestamps();
 		}
 	}
 
@@ -109,5 +110,6 @@
 
 	onMounted(() => {
 		rooms.fetchPublicRooms();
+		processTimestamps();
 	});
 </script>

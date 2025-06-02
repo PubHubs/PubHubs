@@ -126,8 +126,6 @@ const useUser = defineStore('user', {
 
 		async fetchIfUserNeedsConsent(): Promise<boolean> {
 			try {
-				const settings = useSettings();
-				if (!settings.isFeatureEnabled(FeatureFlag.consent)) return false;
 				const response = (await api_synapse.apiGET(`${api_synapse.apiURLS.consent}?user_id=${this.userId}`)) as ConsentJSONParser;
 				if (response) {
 					this.needsConsent = response.needs_consent;
