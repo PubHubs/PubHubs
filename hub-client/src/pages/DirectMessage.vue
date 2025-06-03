@@ -2,7 +2,7 @@
 	<HeaderFooter :headerSize="'sm'" :headerMobilePadding="true" bgBarLow="bg-background" bgBarMedium="bg-surface-low">
 		<template #header>
 			<div class="items-center gap-4 text-on-surface-dim" :class="isMobile ? 'hidden' : 'flex'">
-				<span class="font-semibold uppercase">{{ $t('menu.directmsg') }}</span>
+				<span class="font-semibold uppercase">{{ t('menu.directmsg') }}</span>
 				<hr class="h-[2px] grow bg-on-surface-dim" />
 			</div>
 			<div class="relative flex h-full items-center justify-between gap-6" :class="isMobile ? 'pl-12' : 'pl-0'">
@@ -10,7 +10,7 @@
 					<H3 class="flex text-on-surface" :class="isMobile ? 'gap-2' : 'gap-4'">
 						<Icon type="directmsg" size="sm" :class="isMobile ? 'mt-[0.5rem]' : 'mt-2'"></Icon>
 						<TruncatedText class="font-headings font-semibold">
-							<h2>{{ $t('menu.directmsg') }}</h2>
+							<h2>{{ t('menu.directmsg') }}</h2>
 						</TruncatedText>
 					</H3>
 					<TruncatedText class="hidden md:inline"> </TruncatedText>
@@ -24,7 +24,7 @@
 						@click="router.push({ name: 'admin-contact' })"
 					>
 						<Icon type="admin_contact" size="sm"></Icon>
-						<span v-if="!isMobile">{{ $t('menu.contact') }}</span>
+						<span v-if="!isMobile">{{ t('menu.contact') }}</span>
 						<span :class="isMobile ? 'absolute -right-2 -top-2' : 'absolute -right-2 -top-2 flex items-center gap-2'">
 							<Badge class="~text-label-small-min/label-small-max" color="ph" v-if="newAdminMsgCount > 99">99+</Badge>
 							<Badge class="~text-label-small-min/label-small-max" color="ph" v-else-if="newAdminMsgCount > 0">{{ newAdminMsgCount }}</Badge>
@@ -32,14 +32,14 @@
 					</Button>
 
 					<Button
-						class="flex items-center gap-2 bg-on-surface-variant ~text-label-small-min/label-small-max hover:bg-surface-subtle dark:text-surface-high"
+						class="flex items-center gap-2 bg-on-surface-variant text-surface-high ~text-label-small-min/label-small-max"
 						:class="isMobile ? 'mr-4 justify-center' : 'justify-between'"
 						size="sm"
 						@click="openConverationalPanel()"
 						:disabled="panel"
 					>
 						<Icon type="plus" size="sm"></Icon>
-						<span v-if="!isMobile">{{ $t('others.new_message') }}</span>
+						<span v-if="!isMobile">{{ t('others.new_message') }}</span>
 					</Button>
 				</div>
 			</div>
@@ -47,7 +47,7 @@
 
 		<div class="flex h-full flex-col px-4 py-4 md:px-16 md:py-10">
 			<span v-if="privateRooms?.length === 0" class="mx-auto flex-shrink-0">
-				{{ $t('others.no_private_message') }}
+				{{ t('others.no_private_message') }}
 			</span>
 			<div class="w-full transition-all duration-300 ease-in-out">
 				<MessagePreview v-for="room in sortedPrivateRooms" :key="room.roomId" :room="room" :isMobile="isMobile" class="hover:cursor-pointer"></MessagePreview>
@@ -74,6 +74,7 @@
 
 	// Vue imports
 	import { computed, ref } from 'vue';
+	import { useI18n } from 'vue-i18n';
 
 	import { NotificationCountType } from 'matrix-js-sdk';
 	import { useUser } from '@/logic/store/user';
@@ -85,6 +86,7 @@
 	const settings = useSettings();
 	const rooms = useRooms();
 	const user = useUser();
+	const { t } = useI18n();
 
 	const isMobile = computed(() => settings.isMobileState);
 
