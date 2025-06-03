@@ -26,7 +26,7 @@
 
 					<Icon type="close" size="sm" class="cursor-pointer" @click="$emit('close')" />
 				</div>
-				<!-- Group Profile block -->
+
 				<div v-if="groupProfile">
 					<span class="~text-label-small-min/label-small-max"> {{ $t('others.select_group_name') }}</span>
 					<div class="flex items-center gap-2 rounded-lg bg-surface-low px-2 py-2">
