@@ -201,7 +201,7 @@ const en = {
 		search_nothing_found: 'Nothing found',
 		read_receipt: 'Read by',
 		new_message: 'New conversation',
-		join_room_to_dm: 'No users found. Search user to talk to other users.',
+		join_room_to_dm: 'No users found. Join a room first to talk to other users.',
 		new_group: 'New group',
 		group_select: 'Select maximum of 5 people',
 		next: 'Next',
@@ -213,6 +213,7 @@ const en = {
 		help: 'Are you struggling with using PubHubs?',
 		work_in_progress: 'PunHubs is a work in progress. A manual is currently being worked on. In the meantime, please ask your question in one of the rooms.',
 		no_private_message: "It's looks a little quiet here. Lets start something new! Just tap the + icon to begin your first conversation.",
+		filter_users: 'filter',
 	},
 	hubs: {
 		under_construction: 'This hub is under construction',

@@ -201,7 +201,7 @@ const nl = {
 		search_nothing_found: 'Niets gevonden',
 		read_receipt: 'Gelezen door',
 		new_message: 'Nieuw gesprek',
-		join_room_to_dm: 'Geen gebruikers gevonden. Zoek een gebruiker om met anderen te praten.',
+		join_room_to_dm: 'Geen gebruikers gevonden. Betreed eerst een kamer om met andere mensen te praten.',
 		new_group: 'Nieuwe groep',
 		group_select: 'Selecteer maximaal 5 mensen',
 		next: 'volgende',
@@ -213,6 +213,7 @@ const nl = {
 		help: 'Loop je vast met PubHubs?',
 		work_in_progress: 'PubHubs is nog in ontwikkeling. We zijn nog bezig met het maken van een handleiding. Stel je vraag voorlopig in een van de kamers.',
 		no_private_message: 'Het is hier nog wat stil. Laten we iets nieuws beginnen! Tik gewoon op het +-icoon om je eerste gesprek te starten.',
+		filter_users: 'filter',
 	},
 	hubs: {
 		under_construction: 'Deze hub is in onderhoud',
