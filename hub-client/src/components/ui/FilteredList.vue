@@ -15,6 +15,7 @@
 <script setup lang="ts">
 	import { ref, computed } from 'vue';
 	import { FilteredListEvent } from '@/model/components/FilteredListEvent';
+	import { User as MatrixUser } from 'matrix-js-sdk';
 
 	const emit = defineEmits(['click', 'filter']);
 
@@ -30,6 +31,7 @@
 		listClass?: string;
 		sortby: string;
 		placeholder: string;
+		selected?: Array<MatrixUser>;
 	};
 
 	const props = withDefaults(defineProps<Props>(), {
@@ -42,13 +44,21 @@
 		minLength: 1,
 		listTop: false,
 		showCompleteList: true,
+		selected: () => [],
 	});
 
 	const filteredItems = computed(() => {
-		let items = props.items;
+		let itemsToFilter = props.items;
+
+		if (props.selected && props.selected.length > 0) {
+			// Check if 'selected' exists and has items
+			const selectedUserIds = new Set(props.selected.map((user) => user.userId));
+			itemsToFilter = itemsToFilter.filter((item: any) => !selectedUserIds.has(item.userId));
+		}
+
 		if (filter.value.length >= props.minLength) {
 			const lcFilter = filter.value.toLowerCase();
-			items = props.items.filter((item: any) => {
+			itemsToFilter = itemsToFilter.filter((item: any) => {
 				if (filter.value === '') {
 					return true;
 				}
@@ -59,16 +69,16 @@
 				return false;
 			});
 			if (props.sortby !== '') {
-				items = items.toSorted((a: Record<string, any>, b: Record<string, any>) => {
+				itemsToFilter = itemsToFilter.toSorted((a: Record<string, any>, b: Record<string, any>) => {
 					return a[props.sortby].toLowerCase().localeCompare(b[props.sortby].toLowerCase());
 				});
 			}
 		} else {
 			if (!props.showCompleteList) {
-				items = [];
+				itemsToFilter = [];
 			}
 		}
-		return items;
+		return itemsToFilter;
 	});
 
 	function changed() {

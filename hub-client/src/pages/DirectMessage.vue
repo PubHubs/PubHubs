@@ -15,21 +15,22 @@
 					</H3>
 					<TruncatedText class="hidden md:inline"> </TruncatedText>
 				</div>
-				<div class="m-0 flex gap-2">
+				<div class="flex gap-2">
 					<Button
 						v-if="!user.isAdmin"
 						size="sm"
-						class="flex items-center bg-on-surface-variant ~text-label-small-min/label-small-max hover:bg-surface-subtle dark:text-surface-high"
-						:class="isMobile ? 'w-8 justify-center rounded-full' : 'justify-between gap-2'"
+						class="flex items-center overflow-visible bg-on-surface-variant ~text-label-small-min/label-small-max hover:bg-surface-subtle dark:text-surface-high"
+						:class="[isMobile ? 'w-8 justify-center rounded-full' : 'justify-between gap-2']"
 						@click="router.push({ name: 'admin-contact' })"
 					>
-						<Icon type="person" size="xs"></Icon>
+						<Icon type="admin_contact" size="sm"></Icon>
 						<span v-if="!isMobile">{{ $t('menu.contact') }}</span>
-						<span :class="isMobile ? 'absolute right-0 top-0' : 'flex items-center gap-2 pl-2'">
+						<span :class="isMobile ? 'absolute -right-2 -top-2' : 'absolute -right-2 -top-2 flex items-center gap-2'">
 							<Badge class="~text-label-small-min/label-small-max" color="ph" v-if="newAdminMsgCount > 99">99+</Badge>
-							<Badge class="~text-label-small-min/label-small-max" v-else-if="newAdminMsgCount > 0" color="ph">{{ newAdminMsgCount }}</Badge>
+							<Badge class="~text-label-small-min/label-small-max" color="ph" v-else-if="newAdminMsgCount > 0">{{ newAdminMsgCount }}</Badge>
 						</span>
 					</Button>
+
 					<Button
 						class="flex items-center gap-2 bg-on-surface-variant ~text-label-small-min/label-small-max hover:bg-surface-subtle dark:text-surface-high"
 						:class="isMobile ? 'mr-4 justify-center' : 'justify-between'"
@@ -37,19 +38,19 @@
 						@click="openConverationalPanel()"
 						:disabled="panel"
 					>
-						<Icon type="plus" size="xs"></Icon>
+						<Icon type="plus" size="sm"></Icon>
 						<span v-if="!isMobile">{{ $t('others.new_message') }}</span>
 					</Button>
 				</div>
 			</div>
 		</template>
 
-		<div class="flex h-full max-w-screen-2xl flex-col px-4 py-4 md:px-16 md:py-10">
+		<div class="flex h-full flex-col px-4 py-4 md:px-16 md:py-10">
 			<span v-if="privateRooms?.length === 0" class="mx-auto flex-shrink-0">
 				{{ $t('others.no_private_message') }}
 			</span>
 			<div class="w-full transition-all duration-300 ease-in-out">
-				<MessagePreview v-for="room in sortedPrivateRooms" :key="room.roomId" :room="room" :isMobile="isMobile"></MessagePreview>
+				<MessagePreview v-for="room in sortedPrivateRooms" :key="room.roomId" :room="room" :isMobile="isMobile" class="hover:cursor-pointer"></MessagePreview>
 			</div>
 			<NewConverationPanel v-if="panel" @close="panel = false" :isMobile="isMobile"></NewConverationPanel>
 		</div>
@@ -65,6 +66,7 @@
 	import HeaderFooter from '@/components/ui/HeaderFooter.vue';
 	import MessagePreview from '@/components/ui/MessagePreview.vue';
 	import NewConverationPanel from '@/components/rooms/NewConversationPanel.vue';
+	import Badge from '@/components/elements/Badge.vue';
 
 	// Store imports
 	import { useSettings } from '@/logic/store/settings';
@@ -77,14 +79,7 @@
 	import { useUser } from '@/logic/store/user';
 	import { router } from '@/logic/core/router';
 
-	// Refs
-	// const privateRooms = ref<Array<Room>>();
 	const panel = ref<boolean>(false);
-
-	// onMounted(() => {
-	// 	// TODO: if privateRooms is empty then show a message that there are not private messages please start a new conversation.
-	// 	privateRooms.value = getPrivateRooms();
-	// });
 
 	// Define store constants
 	const settings = useSettings();

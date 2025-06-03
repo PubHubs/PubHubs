@@ -6,6 +6,9 @@
 					<span>{{ $t('others.new_message') }}</span>
 					<Icon type="close" size="md" @click="$emit('close')" class="cursor-pointer" />
 				</div>
+				<hr class="my-4 border-t border-white" />
+				<DiscoverUsers @selectedUser="userFromSearch" :already-in-list="allSelectedAndExistingUsers" class="px-8 py-2" />
+
 				<div class="px-8 py-2">
 					<Button class="flex w-full items-center justify-center gap-2 bg-on-surface-variant ~text-label-small-min/label-small-max hover:text-surface-high dark:text-surface-high" size="sm" @click="groupPanel = true">
 						<Icon type="plus" size="xs"></Icon> {{ $t('others.new_group') }}
@@ -110,8 +113,11 @@
 
 	const user = useUser();
 
+	const searchUsers = ref<MatrixUser[]>([]);
+
 	import { useI18n } from 'vue-i18n';
 	import { useDialog } from '@/logic/store/dialog';
+	import DiscoverUsers from './DiscoverUsers.vue';
 
 	const { t } = useI18n();
 
@@ -154,13 +160,37 @@
 	// There should be a name and a dp for creating a group.
 	const cannotCreateGroupRoom = computed(() => groupName.value === '' || avatarPreviewUrl.value === null || selectedUsers.value.length < 2);
 
+	// Computed property to combine and deduplicate users
+	const allSelectedAndExistingUsers = computed(() => {
+		const existingUsers = pubhubs.client.getUsers();
+		const combinedMap = new Map<string, MatrixUser>();
+
+		// Add users from pubhubs.client.getUsers() first
+		existingUsers.forEach((user) => {
+			combinedMap.set(user.userId, user);
+		});
+
+		// Add users from searchUsers.value
+		// If a user exists in both, the one from searchUsers.value will overwrite
+		// (or if you prefer existingUsers to take precedence, add searchUsers.value first)
+		searchUsers.value.forEach((user) => {
+			combinedMap.set(user.userId, user);
+		});
+
+		return Array.from(combinedMap.values());
+	});
+
 	// Categorize users based on first letter
 	const categorizedUsers = computed(() => {
 		const categories: { [key: string]: User[] } = {};
-		const users: MatrixUser[] = pubhubs.client.getUsers().filter((otherUser) => otherUser.userId !== user.user.userId && !otherUser.userId.includes('notices_user')) ?? [];
+
+		// Get the base users
+		const baseUsers = pubhubs.client.getUsers().filter((otherUser) => otherUser.userId !== user.user.userId && !otherUser.userId.includes('notices_user')) ?? [];
+
+		const combinedUsers = baseUsers.concat(searchUsers.value);
 
 		// Sort users alphabetically by display name
-		const sortedUsers = [...users].sort((a, b) => {
+		const sortedUsers = [...combinedUsers].sort((a, b) => {
 			const nameA = a.displayName?.toUpperCase() || '';
 			const nameB = b.displayName?.toUpperCase() || '';
 			if (nameA < nameB) return -1;
@@ -169,7 +199,7 @@
 		});
 
 		sortedUsers.forEach((user) => {
-			const firstLetter = user.displayName ? user.displayName.charAt(0).toUpperCase() : '#'; // Use '#' for users without display names
+			const firstLetter = user.displayName ? user.displayName.charAt(0).toUpperCase() : '#';
 			if (!categories[firstLetter]) {
 				categories[firstLetter] = [];
 			}
@@ -275,5 +305,18 @@
 	async function setRoomName(roomId: string, roomName: string) {
 		await pubhubs.client.setRoomName(roomId, roomName);
 		pubhubs.updateRooms();
+	}
+
+	function userFromSearch(userToAdd: MatrixUser) {
+		// Get the current base users to check for duplicates
+		const currentBaseUsers = pubhubs.client.getUsers().filter((otherUser) => otherUser.userId !== user.user.userId && !otherUser.userId.includes('notices_user'));
+
+		const isAlreadyInBase = currentBaseUsers.some((bUser) => bUser.userId === userToAdd.userId);
+		const isAlreadyInSearch = searchUsers.value.some((sUser) => sUser.userId === userToAdd.userId);
+
+		if (!isAlreadyInBase && !isAlreadyInSearch) {
+			// Only push if not already present in either list
+			searchUsers.value.push(userToAdd as User);
+		}
 	}
 </script>
