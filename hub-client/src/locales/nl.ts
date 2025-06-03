@@ -201,7 +201,7 @@ const nl = {
 		search_nothing_found: 'Niets gevonden',
 		read_receipt: 'Gelezen door',
 		new_message: 'Nieuw gesprek',
-		join_room_to_dm: 'Geen gebruikers gevonden. Betreed eerst een kamer om met andere mensen te praten.',
+		join_room_to_dm: 'Geen gebruikers gevonden. Zoek een gebruiker om met anderen te praten.',
 		new_group: 'Nieuwe groep',
 		group_select: 'Selecteer maximaal 5 mensen',
 		next: 'volgende',

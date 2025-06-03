@@ -4,16 +4,16 @@
 			<Avatar :class="'flex-shrink-0'" :user="avatarUser" :override-avatar-url="avatarOverrideUrl" />
 
 			<div class="min-w-0 flex-grow overflow-hidden">
-				<div :class="isMobile ? 'flex flex-col gap-1' : 'flex flex-row items-center gap-4'">
-					<div :class="isMobile ? 'flex-row items-center gap-2' : 'flex-col'" class="flex">
-						<p class="font-bold leading-tight" :class="{ truncate: isMobile }">
+				<div class="flex flex-col gap-1">
+					<div class="flex flex-row items-center gap-2">
+						<p class="truncate font-bold leading-tight" :class="{ truncate: !isMobile }">
 							{{ displayName }}
 						</p>
 
 						<p v-if="isGroupOrContact" class="flex items-center leading-tight ~text-label-small-min/label-small-max">
 							<span>{{ props.room.getRoomMembers() }}</span>
 							<Icon type="user" size="sm" class="mr-1" />
-							<span v-if="!isMobile">members</span>
+							<span v-if="!isMobile">{{ $t('others.group_members') }}</span>
 						</p>
 						<p v-else class="leading-tight ~text-label-small-min/label-small-max" :class="{ 'mt-[0.1rem] truncate': isMobile }">
 							{{ pseudonym }}
@@ -21,10 +21,8 @@
 					</div>
 
 					<!-- Right Section: Message Body -->
-					<div class="min-w-0 flex-grow">
-						<p class="truncate text-left">
-							{{ event.getContent().ph_body }}
-						</p>
+					<div class="mt-1 min-w-0">
+						<p v-html="event.getContent().ph_body" class="truncate"></p>
 					</div>
 				</div>
 			</div>
@@ -89,7 +87,6 @@
 	// No user is needed for Room Avatar, we just override img url. We don't have a Room Avatar.
 	const avatarUser = computed(() => {
 		const sender = getOtherDMUser()?.userId;
-
 		if (!sender || roomType.value === RoomType.PH_MESSAGE_ADMIN_CONTACT) return undefined;
 		return props.room.getMember(sender, true);
 	});
@@ -117,13 +114,18 @@
 	}
 
 	function getOtherDMUser(): RoomMember | null | undefined {
+		// Due to how avatar is implemented  this is a quick fix for group avatar.
+		// For avatars - there needs to be a valid user if the override url needs to work.
+		if (roomType.value === RoomType.PH_MESSAGES_GROUP) return event.value?.sender;
+
 		if (roomType.value !== RoomType.PH_MESSAGES_DM) return;
 
 		const otherMembers = props.room.getOtherJoinedMembers();
 		if (otherMembers.length > 0) {
 			return otherMembers[0] as RoomMember;
 		} else {
-			return event.value?.sender;
+			const notInvitedMembersIds = props.room.notInvitedMembersIdsOfPrivateRoom();
+			return props.room.getMember(notInvitedMembersIds[0]);
 		}
 	}
 </script>

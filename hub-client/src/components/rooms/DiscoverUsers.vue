@@ -1,18 +1,12 @@
 <template>
-	<div v-if="groupUsers.length > 0" class="flew-row space-between flex flex-wrap gap-1 border-b-2">
-		<div v-for="user in groupUsers" :key="user.userId" class="flex flex-row gap-1 rounded-lg bg-surface-high px-2 py-1">
-			<span>{{ user.displayName }} </span>
-			<Icon type="closingCross" size="sm" @click="removeUserFromGroup(user as User)"></Icon>
-		</div>
-		<Button :disabled="cannotCreateGroupRoom" @click="createGroupPrivateRoom"> create</Button>
-	</div>
-	<div class="relative flex w-full items-center gap-4 pl-4" @focusin="focus(true)" @click="focus(true)" @keydown.esc="focus(false)" @mouseleave="focus(false)">
+	<div class="relative flex items-center gap-4" @focusin="focus(true)" @click="focus(true)" @keydown.esc="focus(false)" @mouseleave="focus(false)">
 		<FilteredList
 			:items="usersList"
 			:filterKey="['localPart', 'displayName']"
+			:selected="alreadyInList || []"
 			sortby="localPart"
 			:placeholder="$t('rooms.private_search_user')"
-			@click="createNewPrivateRoom($event)"
+			@click="selectUser($event)"
 			@filter="filter($event)"
 			:showCompleteList="showList"
 		>
@@ -33,45 +27,37 @@
 
 <script setup lang="ts">
 	// Components
-	import Button from '../elements/Button.vue';
 	import FilteredList from '../ui/FilteredList.vue';
 	import Icon from '../elements/Icon.vue';
-
 	import { FilteredListEvent } from '@/model/components/FilteredListEvent';
-
 	import { useUserColor } from '@/logic/composables/useUserColor';
 	import filters from '@/logic/core/filters';
 	import { usePubHubs } from '@/logic/core/pubhubsStore';
 	import { useSettings } from '@/logic/store/settings';
-	import { useDialog } from '@/logic/store/dialog';
-	import { useRouter } from 'vue-router';
-	import { User, useUser } from '@/logic/store/user';
+	import { useUser } from '@/logic/store/user';
 	import { User as MatrixUser } from 'matrix-js-sdk';
 	import { computed, onMounted, ref } from 'vue';
-	import { useI18n } from 'vue-i18n';
 
 	const { color, textColor } = useUserColor();
 
 	const settings = useSettings();
-	const router = useRouter();
-	const pubhubs = usePubHubs();
-	const dialog = useDialog();
-	const user = useUser();
-	const { t } = useI18n();
 
-	const emit = defineEmits(['close']);
+	const pubhubs = usePubHubs();
+
+	const user = useUser();
+	const emit = defineEmits(['selectedUser']);
+
 	const showList = ref(false);
 	const users = ref([] as Array<MatrixUser>);
-	const groupUsers = ref([] as Array<MatrixUser>);
-
-	const MAX_USER_GROUP = 5;
 
 	onMounted(async () => (users.value = await pubhubs.getUsers()));
 
-	// There should be alteast 2 other users and maximum of 5
-	const cannotCreateGroupRoom = computed(() => groupUsers.value.length < 2 || groupUsers.value.length >= MAX_USER_GROUP);
-
-	const props = defineProps<{ group?: Boolean }>();
+	const props = defineProps({
+		alreadyInList: {
+			type: Array<MatrixUser>,
+			required: false,
+		},
+	});
 
 	function focus(focus: boolean) {
 		showList.value = focus;
@@ -91,57 +77,6 @@
 
 		return list;
 	});
-
-	function add(user: User): void {
-		// Check if a user with the same id already exists
-		const isDuplicate = groupUsers.value.some((existingUser) => existingUser.userId === user.userId);
-
-		if (!isDuplicate) {
-			groupUsers.value.push(user);
-		}
-
-		if (groupUsers.value.length >= MAX_USER_GROUP) {
-			dialog.confirm(t('rooms.group_limit'));
-			return;
-		}
-	}
-
-	async function createNewPrivateRoom(other: User): Promise<void> {
-		// Only populate group Users set in case of Group room.
-		if (props.group) {
-			add(other);
-		} else {
-			createPrivateRoom(other);
-		}
-		await close();
-	}
-
-	// Remove the user before creating the room.
-	async function removeUserFromGroup(user: User): Promise<void> {
-		groupUsers.value = groupUsers.value.filter((selectedUser) => selectedUser.userId !== user.userId);
-	}
-
-	async function routeToRoomPage(room: { room_id: string }) {
-		const room_id = room.room_id;
-		await router.push({ name: 'room', params: { id: room_id } });
-	}
-
-	async function createPrivateRoom(other: User | MatrixUser[]) {
-		const room = await pubhubs.createPrivateRoomWith(other);
-		room && (await routeToRoomPage(room));
-	}
-
-	async function createGroupPrivateRoom(): Promise<void> {
-		groupUsers.value.forEach((element) => console.debug(element));
-		const room = await pubhubs.createPrivateRoomWith(groupUsers.value as Array<MatrixUser>);
-		groupUsers.value = [];
-		room && (await routeToRoomPage(room));
-	}
-
-	async function close() {
-		focus(false);
-		emit('close');
-	}
 
 	async function filter(event: FilteredListEvent) {
 		let foundUsers = await pubhubs.findUsers(event.filter);
@@ -167,5 +102,9 @@
 
 		//What we do in the error handling
 		return '!!!-!!!';
+	}
+
+	function selectUser(event: any) {
+		emit('selectedUser', event);
 	}
 </script>
