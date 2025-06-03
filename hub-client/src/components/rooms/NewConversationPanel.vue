@@ -3,32 +3,36 @@
 		<div class="flex h-full flex-col">
 			<div v-if="!groupPanel" class="flex flex-shrink-0 flex-col">
 				<div class="group flex items-center justify-between gap-4 px-8 py-2 font-bold">
-					<span>{{ $t('others.new_message') }}</span>
+					<span>{{ t('others.new_message') }}</span>
 					<Icon type="close" size="md" @click="$emit('close')" class="cursor-pointer" />
 				</div>
 				<hr class="my-4 border-t border-white" />
-				<DiscoverUsers @selectedUser="userFromSearch" :already-in-list="allSelectedAndExistingUsers" class="px-8 py-2" />
-
+				<div class="relative flex px-8 py-2">
+					<input type="text" v-model="userFilter" :placeholder="t('others.filter_users')" class="h-8 w-full min-w-0 flex-grow rounded-lg border bg-background px-4 py-1 ~text-label-min/label-max" />
+					<Icon class="absolute right-10 top-4" type="search" size="sm" />
+				</div>
 				<div class="px-8 py-2">
 					<Button class="flex w-full items-center justify-center gap-2 bg-on-surface-variant ~text-label-small-min/label-small-max hover:text-surface-high dark:text-surface-high" size="sm" @click="groupPanel = true">
-						<Icon type="plus" size="xs"></Icon> {{ $t('others.new_group') }}
+						<Icon type="plus" size="xs"></Icon> {{ t('others.new_group') }}
 					</Button>
 				</div>
 			</div>
-
 			<div v-else class="mx-4 mt-2 flex flex-col">
 				<div class="flex items-center justify-between rounded-lg bg-surface-low px-1 py-1 font-bold">
 					<Icon type="arrow" size="sm" class="cursor-pointer bg-surface-high px-2 py-2" @click="groupProfile ? backToGroupPanel() : (groupPanel = false)" />
 
 					<span class="mr-auto pl-2 ~text-label-small-min/label-small-max">
-						{{ $t('others.new_group') }}
+						{{ t('others.new_group') }}
 					</span>
 
 					<Icon type="close" size="sm" class="cursor-pointer" @click="$emit('close')" />
 				</div>
-				<!-- Group Profile block -->
+				<div class="relative flex pt-2">
+					<input type="text" v-model="userFilter" :placeholder="t('others.filter_users')" class="h-8 w-full min-w-0 flex-grow rounded-lg border bg-background px-4 py-1 ~text-label-min/label-max" />
+					<Icon class="absolute right-2 top-4" type="search" size="sm" />
+				</div>
 				<div v-if="groupProfile">
-					<span class="~text-label-small-min/label-small-max"> {{ $t('others.select_group_name') }}</span>
+					<span class="~text-label-small-min/label-small-max"> {{ t('others.select_group_name') }}</span>
 					<div class="flex items-center gap-2 rounded-lg bg-surface-low px-2 py-2">
 						<div class="h-12 w-12 rounded-full bg-surface-high py-1">
 							<Button color="" @click="fileInput!.click()">
@@ -37,12 +41,12 @@
 						</div>
 						<input ref="fileInput" type="file" accept="image/*" class="hidden" @change="handleFileUpload" />
 
-						<input type="text" v-model="groupName" class="h-8 min-w-0 flex-grow rounded-lg border bg-background px-4 py-1 ~text-label-min/label-max" :placeholder="$t('others.select_group_name')" />
+						<input type="text" v-model="groupName" class="h-8 min-w-0 flex-grow rounded-lg border bg-background px-4 py-1 ~text-label-min/label-max" :placeholder="t('others.select_group_name')" />
 					</div>
-					<span class="mx-auto w-1/2 ~text-label-small-min/label-small-max"> {{ selectedUsers.length + ' ' + $t('others.group_members') }} </span>
+					<span class="mx-auto w-1/2 ~text-label-small-min/label-small-max"> {{ selectedUsers.length + ' ' + t('others.group_members') }} </span>
 				</div>
 
-				<span v-if="selectedUsers.length === 0" class="mx-auto mt-8 ~text-label-small-min/label-small-max"> {{ $t('others.group_select') }} </span>
+				<span v-if="selectedUsers.length === 0" class="mx-auto mt-8 ~text-label-small-min/label-small-max"> {{ t('others.group_select') }} </span>
 				<div v-else class="mt-4 flex flex-wrap justify-start gap-y-2">
 					<div v-for="user in usersSelected" :key="user.userId" class="flex flex-col items-center">
 						<div class="relative">
@@ -54,19 +58,19 @@
 				</div>
 				<Button
 					v-if="groupPanelButton"
-					class="mt mt-8 flex justify-between bg-on-surface-variant ~text-label-small-min/label-small-max hover:bg-surface-subtle dark:text-surface-high"
+					class="mt-12 flex justify-between bg-on-surface-variant text-surface-high ~text-label-small-min/label-small-max hover:bg-surface-subtle"
 					size="xs"
 					:disabled="selectionNotCompleted"
 					@click="usersSelectionDone()"
-					>{{ $t('others.next') }}<Icon type="arrow-right"></Icon>
+					>{{ t('others.next') }}<Icon type="arrow-right"></Icon>
 				</Button>
 				<Button
 					v-if="groupProfileButton"
-					class="mt mt-8 flex justify-between bg-on-surface-variant ~text-label-small-min/label-small-max hover:bg-surface-subtle dark:text-surface-high"
+					class="mt-12 flex justify-between bg-on-surface-variant text-surface-high ~text-label-small-min/label-small-max hover:bg-surface-subtle"
 					size="xs"
 					:disabled="cannotCreateGroupRoom"
 					@click="groupCreationDone(usersSelected)"
-					>{{ $t('others.next') }}<Icon type="arrow-right"></Icon>
+					>{{ t('others.next') }}<Icon type="arrow-right"></Icon>
 				</Button>
 				<hr class="my-4 border-t border-white" />
 				<div v-if="avatarPreviewUrl && hideAvatarPreview" class="mx-auto flex items-center gap-2 rounded-lg bg-surface-low px-2 py-2">
@@ -83,13 +87,16 @@
 							<li v-for="user in usersInLetter" :key="user.userId" class="flex cursor-pointer items-center gap-2 py-1 pl-4 hover:bg-surface-low" @click="groupPanel ? toggleUserSelection(user) : gotToPrivateRoom(user)">
 								<Icon v-if="groupPanel && selectedUsers.includes(user.userId)" type="check" size="xl"></Icon>
 								<Avatar v-else :user="user" :override-avatar-url="user.avatarUrl"></Avatar>
-								<span>{{ user.displayName || user.userId }}</span>
+								<div class="flex flex-col">
+									<span>{{ user.displayName || user.userId }}</span>
+									<span> {{ filters.extractPseudonym(user.userId) }}</span>
+								</div>
 							</li>
 						</ul>
 					</div>
 				</template>
 				<template v-else>
-					<div class="py-4 text-center text-on-surface-dim">{{ $t('others.join_room_to_dm') }}</div>
+					<div class="py-4 text-center text-on-surface-dim">{{ t('others.join_room_to_dm') }}</div>
 				</template>
 			</div>
 		</div>
@@ -107,17 +114,19 @@
 	import { usePubHubs } from '@/logic/core/pubhubsStore';
 	import { useMatrixFiles } from '@/logic/composables/useMatrixFiles';
 	import { fileUpload } from '@/logic/composables/fileUpload';
+	import filters from '@/logic/core/filters';
 
 	import { User as MatrixUser } from 'matrix-js-sdk';
 	import { User, useUser } from '@/logic/store/user';
 
 	const user = useUser();
 
-	const searchUsers = ref<MatrixUser[]>([]);
+	// Removed searchUsers ref as it's no longer needed for DiscoverUsers replacement
 
 	import { useI18n } from 'vue-i18n';
 	import { useDialog } from '@/logic/store/dialog';
-	import DiscoverUsers from './DiscoverUsers.vue';
+
+	// Removed DiscoverUsers import
 
 	const { t } = useI18n();
 
@@ -154,43 +163,32 @@
 
 	const usersSelected = computed(() => pubhubs.client.getUsers().filter((user) => selectedUsers.value.includes(user.userId)));
 
+	// New ref for the filter input
+	const userFilter = ref<string>('');
+
 	// There should be alteast 2 users to move forward with group creation.
 	const selectionNotCompleted = computed(() => selectedUsers.value.length < 2 || selectedUsers.value.length >= MAX_USER_GROUP);
 
 	// There should be a name and a dp for creating a group.
 	const cannotCreateGroupRoom = computed(() => groupName.value === '' || avatarPreviewUrl.value === null || selectedUsers.value.length < 2);
 
-	// Computed property to combine and deduplicate users
-	const allSelectedAndExistingUsers = computed(() => {
-		const existingUsers = pubhubs.client.getUsers();
-		const combinedMap = new Map<string, MatrixUser>();
-
-		// Add users from pubhubs.client.getUsers() first
-		existingUsers.forEach((user) => {
-			combinedMap.set(user.userId, user);
-		});
-
-		// Add users from searchUsers.value
-		// If a user exists in both, the one from searchUsers.value will overwrite
-		// (or if you prefer existingUsers to take precedence, add searchUsers.value first)
-		searchUsers.value.forEach((user) => {
-			combinedMap.set(user.userId, user);
-		});
-
-		return Array.from(combinedMap.values());
-	});
-
-	// Categorize users based on first letter
+	// Categorize users based on first letter and apply filter
 	const categorizedUsers = computed(() => {
 		const categories: { [key: string]: User[] } = {};
 
-		// Get the base users
-		const baseUsers = pubhubs.client.getUsers().filter((otherUser) => otherUser.userId !== user.user.userId && !otherUser.userId.includes('notices_user')) ?? [];
-
-		const combinedUsers = baseUsers.concat(searchUsers.value);
+		// Get the base users and filter them
+		const baseUsers =
+			pubhubs.client
+				.getUsers()
+				.filter((otherUser) => otherUser.userId !== user.user.userId && !otherUser.userId.includes('notices_user'))
+				.filter((u) => {
+					const displayName = u.displayName?.toLowerCase() || u.userId.toLowerCase();
+					const filterText = userFilter.value.toLowerCase();
+					return displayName.includes(filterText);
+				}) ?? [];
 
 		// Sort users alphabetically by display name
-		const sortedUsers = [...combinedUsers].sort((a, b) => {
+		const sortedUsers = [...baseUsers].sort((a, b) => {
 			const nameA = a.displayName?.toUpperCase() || '';
 			const nameB = b.displayName?.toUpperCase() || '';
 			if (nameA < nameB) return -1;
@@ -225,8 +223,6 @@
 
 		groupProfile.value = true;
 		hideAvatarPreview.value = true;
-
-		//await gotToPrivateRoom(usersSelected.value);
 	}
 
 	function toggleUserSelection(user: User) {
@@ -307,16 +303,5 @@
 		pubhubs.updateRooms();
 	}
 
-	function userFromSearch(userToAdd: MatrixUser) {
-		// Get the current base users to check for duplicates
-		const currentBaseUsers = pubhubs.client.getUsers().filter((otherUser) => otherUser.userId !== user.user.userId && !otherUser.userId.includes('notices_user'));
-
-		const isAlreadyInBase = currentBaseUsers.some((bUser) => bUser.userId === userToAdd.userId);
-		const isAlreadyInSearch = searchUsers.value.some((sUser) => sUser.userId === userToAdd.userId);
-
-		if (!isAlreadyInBase && !isAlreadyInSearch) {
-			// Only push if not already present in either list
-			searchUsers.value.push(userToAdd as User);
-		}
-	}
+	// Removed userFromSearch as it's no longer relevant
 </script>
