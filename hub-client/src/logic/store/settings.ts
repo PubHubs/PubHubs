@@ -37,6 +37,7 @@ enum FeatureFlag {
 	// Implemented with issue #984
 	authenticatedMedia = 'authenticatedMedia',
 	unreadCounter = 'unreadCounter',
+	consent = 'consent',
 }
 
 type FeatureFlags = { [key in FeatureFlag]: boolean };
@@ -75,7 +76,7 @@ interface Settings {
 
 	_i18n?: i18nSettings;
 
-	featureFlags: { main: FeatureFlags; stable: FeatureFlags };
+	featureFlags: { main: FeatureFlags; stable: FeatureFlags; local: FeatureFlags };
 }
 
 const defaultSettings: Settings = {
@@ -105,6 +106,7 @@ const defaultSettings: Settings = {
 			authenticatedMedia: true,
 			unreadCounter: true,
 			votingWidget: true,
+			consent: true,
 		},
 		stable: {
 			signedMessages: true,
@@ -118,6 +120,21 @@ const defaultSettings: Settings = {
 			authenticatedMedia: true,
 			unreadCounter: true,
 			votingWidget: true,
+			consent: true,
+		},
+		local: {
+			signedMessages: true,
+			plugins: true,
+			dateSplitter: true,
+			disclosure: false,
+			unreadmarkers: true,
+			notifications: true,
+			deleteMessages: true,
+			hubSettings: false,
+			authenticatedMedia: true,
+			unreadCounter: true,
+			votingWidget: true,
+			consent: false,
 		},
 	},
 };
@@ -274,7 +291,7 @@ const useSettings = defineStore('settings', {
 				case 'development':
 					return this.featureFlags.main[feature];
 				case 'local development':
-					return this.featureFlags.main[feature];
+					return this.featureFlags.local[feature];
 				case 'production':
 				default:
 					return this.featureFlags.stable[feature];
