@@ -17,11 +17,11 @@
 				</div>
 				<div class="flex gap-2">
 					<Button
-						v-if="!user.isAdmin"
+						v-if="!user.isAdmin && pubhubs.isAdminRoomReady()"
 						size="sm"
-						class="flex items-center overflow-visible bg-on-surface-variant ~text-label-small-min/label-small-max hover:bg-surface-subtle dark:text-surface-high"
-						:class="[isMobile ? 'w-8 justify-center rounded-full' : 'justify-between gap-2']"
-						@click="router.push({ name: 'admin-contact' })"
+						class="flex items-center gap-1 overflow-visible bg-on-surface-variant text-surface-high ~text-label-small-min/label-small-max"
+						:class="[isMobile ? 'w-8 justify-center rounded-full' : 'justify-between']"
+						@click="router.push({ name: 'room', params: { id: pubhubs.getAdminRoomId() } })"
 					>
 						<Icon type="admin_contact" size="sm"></Icon>
 						<span v-if="!isMobile">{{ t('menu.contact') }}</span>
@@ -32,7 +32,7 @@
 					</Button>
 
 					<Button
-						class="flex items-center gap-2 bg-on-surface-variant text-surface-high ~text-label-small-min/label-small-max"
+						class="flex items-center gap-1 bg-on-surface-variant text-surface-high ~text-label-small-min/label-small-max"
 						:class="isMobile ? 'mr-4 justify-center' : 'justify-between'"
 						size="sm"
 						@click="openConverationalPanel()"
@@ -70,17 +70,19 @@
 
 	// Store imports
 	import { useSettings } from '@/logic/store/settings';
+	import { usePubHubs } from '@/logic/core/pubhubsStore';
 	import { Room, RoomType, useRooms } from '@/logic/store/rooms';
 
 	// Vue imports
-	import { computed, ref } from 'vue';
+	import { computed, ref, onMounted } from 'vue';
 	import { useI18n } from 'vue-i18n';
 
-	import { NotificationCountType } from 'matrix-js-sdk';
+	import { EventType, NotificationCountType } from 'matrix-js-sdk';
 	import { useUser } from '@/logic/store/user';
 	import { router } from '@/logic/core/router';
 
 	const panel = ref<boolean>(false);
+	const pubhubs = usePubHubs();
 
 	// Define store constants
 	const settings = useSettings();
@@ -88,11 +90,18 @@
 	const user = useUser();
 	const { t } = useI18n();
 
+	// Initialize admin contact
+	onMounted(async () => await pubhubs.initializeAdminContactRoom());
+
 	const isMobile = computed(() => settings.isMobileState);
 
 	const privateRooms = computed<Array<Room>>(() => getPrivateRooms());
 
+	/**
+	 *  This should not be shown when
+	 */
 	const newAdminMsgCount = computed(() => {
+		if (user.isAdmin) return; // No message preview for unread message count
 		const adminContactRoom = rooms.fetchRoomArrayByType(RoomType.PH_MESSAGE_ADMIN_CONTACT).pop();
 		return adminContactRoom?.getUnreadNotificationCount(NotificationCountType.Total) ?? 0;
 	});
@@ -113,12 +122,16 @@
 	function getPrivateRooms(): Array<Room> {
 		const dmRooms = rooms.fetchRoomArrayByType(RoomType.PH_MESSAGES_DM) ?? [];
 		const groupRooms = rooms.fetchRoomArrayByType(RoomType.PH_MESSAGES_GROUP) ?? [];
-		const adminRoom = rooms.fetchRoomArrayByType(RoomType.PH_MESSAGE_ADMIN_CONTACT) ?? [];
-		return [...dmRooms, ...groupRooms, ...adminRoom];
+		// Only Admin has message preview, other users has a admin contact button
+		if (user.isAdmin) {
+			const adminRoom = rooms.fetchRoomArrayByType(RoomType.PH_MESSAGE_ADMIN_CONTACT) ?? [];
+			return [...dmRooms, ...groupRooms, ...adminRoom];
+		}
+		return [...dmRooms, ...groupRooms];
 	}
 
 	function lastEventTimeStamp(room: Room): number {
-		const messageEvents = room.getLiveTimelineEvents().filter((event) => event.getType() === 'm.room.message');
+		const messageEvents = room.getLiveTimelineEvents().filter((event) => event.getType() === EventType.RoomMessage);
 
 		if (messageEvents.length === 0) {
 			return 0;

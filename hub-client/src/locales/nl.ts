@@ -381,6 +381,7 @@ const nl = {
 		msg_prev_admin_join: 'Wil je je aansluiten bij de vorige kamerbeheerder?',
 		msg_make_admin: 'Je wordt nu kamerbeheerder.',
 		information: 'Informatie',
+		support: 'Admin ondersteuning',
 	},
 
 	themes: {
