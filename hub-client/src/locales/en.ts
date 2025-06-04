@@ -381,6 +381,7 @@ const en = {
 		msg_prev_admin_join: 'Do you want to join previous room administrator?',
 		msg_make_admin: 'You are now going to be room administrator.',
 		information: 'Information',
+		support: 'Admin support',
 	},
 	themes: {
 		dark: 'Dark',

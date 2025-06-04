@@ -66,8 +66,6 @@ const routes = [
 		component: () => import('@/pages/DiscoverRoomsPage.vue'),
 		meta: { hideBar: true, onboarding: true },
 	},
-	{ path: '/admin-contact', name: 'admin-contact', component: () => import('@/pages/Contact.vue'), meta: { hideBar: true, onboarding: true } },
-
 	{
 		path: '/error/',
 		name: 'error-page',
