@@ -294,8 +294,8 @@
 	const loadHubSettings = async () => {
 		const hubSettingsJSON = await hubSettings.getHubJSON();
 
-		if (hubSettingsJSON !== undefined) {
-			consentVersion.value = hubSettingsJSON.version;
+		if (hubSettingsJSON) {
+			consentVersion.value = hubSettingsJSON.version ? hubSettingsJSON.version : 1;
 			consentText.value = hubSettingsJSON.consent;
 		}
 	};
