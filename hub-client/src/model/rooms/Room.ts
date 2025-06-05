@@ -524,7 +524,7 @@ export default class Room {
 	}
 
 	/**
-	 * Passes listener to client
+	 * Passes listener to client.
 	 * @param updateReplyListener Method to perform on ThreadEvent.Update
 	 */
 	public listenToThreadUpdate(updateReplyListener: UpdateReplyListener) {
