@@ -91,7 +91,7 @@
 	const { t } = useI18n();
 
 	// Initialize admin contact
-	onMounted(async () => await pubhubs.initializeAdminContactRoom());
+	onMounted(async () => await pubhubs.initializeOrExtendAdminContactRoom());
 
 	const isMobile = computed(() => settings.isMobileState);
 
