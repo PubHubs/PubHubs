@@ -302,6 +302,4 @@
 		await pubhubs.client.setRoomName(roomId, roomName);
 		pubhubs.updateRooms();
 	}
-
-	// Removed userFromSearch as it's no longer relevant
 </script>

@@ -9,11 +9,15 @@
 						<p class="truncate font-bold leading-tight" :class="{ truncate: !isMobile }">
 							{{ displayName }}
 						</p>
-
-						<p v-if="isGroupOrContact" class="flex items-center leading-tight ~text-label-small-min/label-small-max">
-							<span>{{ props.room.getRoomMembers() }}</span>
-							<Icon type="user" size="sm" class="mr-1" />
-							<span v-if="!isMobile">{{ $t('others.group_members') }}</span>
+						<p v-if="isGroupOrContact" class="flex items-center leading-tight">
+							<template v-if="props.room.getType() !== RoomType.PH_MESSAGE_ADMIN_CONTACT">
+								<span class="~text-label-small-min/label-small-max">{{ props.room.getRoomMembers() }}</span>
+								<Icon type="user" size="sm" class="mr-1" />
+								<span class="~text-label-small-min/label-small-max">{{ $t('others.group_members') }}</span>
+							</template>
+							<template v-else>
+								<span class="truncate font-bold" v-if="getOtherUserDisplayName()"> - {{ getOtherUserDisplayName() }}</span>
+							</template>
 						</p>
 						<p v-else class="leading-tight ~text-label-small-min/label-small-max" :class="{ 'mt-[0.1rem] truncate': isMobile }">
 							{{ pseudonym }}
@@ -39,7 +43,7 @@
 <script setup lang="ts">
 	import { computed } from 'vue';
 	import { useRouter } from 'vue-router';
-	import { NotificationCountType, RoomMember } from 'matrix-js-sdk';
+	import { EventType, NotificationCountType, RoomMember } from 'matrix-js-sdk';
 	import { useI18n } from 'vue-i18n';
 
 	import filters from '@/logic/core/filters';
@@ -73,7 +77,7 @@
 		// Replace with actual SDK method if available
 		const events = props.room.getLiveTimelineEvents();
 		// Find the latest message event
-		const messageEvents = events.filter((event) => event.getType() === 'm.room.message');
+		const messageEvents = events.filter((event) => event.getType() === EventType.RoomMessage);
 		if (messageEvents.length === 0) return undefined;
 		return [...messageEvents].sort((a, b) => b.localTimestamp - a.localTimestamp)[0];
 	});
@@ -100,7 +104,7 @@
 
 	const displayName = computed(() => {
 		if (roomType.value === RoomType.PH_MESSAGES_GROUP) return props.room.name;
-		if (roomType.value === RoomType.PH_MESSAGE_ADMIN_CONTACT) return t('menu.contact');
+		if (roomType.value === RoomType.PH_MESSAGE_ADMIN_CONTACT) return t('admin.support');
 
 		return getOtherDMUser()?.rawDisplayName;
 	});
@@ -127,5 +131,14 @@
 			const notInvitedMembersIds = props.room.notInvitedMembersIdsOfPrivateRoom();
 			return props.room.getMember(notInvitedMembersIds[0]);
 		}
+	}
+
+	function getOtherUserDisplayName(): string | undefined {
+		// Admin contact has a private one-to-one room
+		if (props.room.getOtherJoinedMembers().length > 1) return undefined;
+		return props.room
+			.getOtherJoinedMembers()
+			.map((event) => event.rawDisplayName)
+			.pop();
 	}
 </script>

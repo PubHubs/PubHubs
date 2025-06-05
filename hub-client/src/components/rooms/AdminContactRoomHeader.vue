@@ -3,7 +3,7 @@
 		<Avatar :user="undefined" :override-avatar-url="props.room.getRoomAvatarMxcUrl() ?? undefined"></Avatar>
 		<div class="flex h-fit flex-col overflow-hidden">
 			<p class="truncate font-bold leading-tight">
-				{{ props.room.name.startsWith('@') ? $t('menu.contact') : props.room.name }}
+				{{ props.room.name.startsWith('@') ? $t('admin.support') : props.room.name }}
 			</p>
 			<p class="flex leading-tight ~text-label-small-min/label-small-max">
 				{{ props.room.getRoomMembers() }} <Icon type="user" size="sm" class="mr-1"></Icon>
