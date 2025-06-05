@@ -232,6 +232,10 @@ export default class Room {
 		return this.getOtherMembers(this.matrixRoom.getMembersWithMembership('join'));
 	}
 
+	public getOtherInviteMembers(): TRoomMember[] {
+		return this.getOtherMembers(this.matrixRoom.getMembersWithMembership('invite'));
+	}
+
 	/**
 	 * Gets all joined and invited members of the room except the current user or any bots.
 	 */
@@ -524,7 +528,7 @@ export default class Room {
 	}
 
 	/**
-	 * Passes listener to client
+	 * Passes listener to client.
 	 * @param updateReplyListener Method to perform on ThreadEvent.Update
 	 */
 	public listenToThreadUpdate(updateReplyListener: UpdateReplyListener) {
