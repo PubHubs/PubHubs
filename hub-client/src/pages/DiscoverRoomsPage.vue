@@ -55,6 +55,7 @@
 	import HubBanner from '@/components/ui/HubBanner.vue';
 	import RoomCard from '@/components/rooms/RoomCard.vue';
 	import Icon from '@/components/elements/Icon.vue';
+	import P from '@/components/elements/P.vue';
 
 	// Logic
 	import { useHubSettings } from '@/logic/store/hub-settings';
