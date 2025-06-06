@@ -25,14 +25,15 @@
 	</div>
 
 	<!-- Mobile search component. -->
-	<div class="flex items-center justify-end rounded-md bg-background md:hidden">
-		<div class="relative flex max-w-full items-center justify-end transition-all duration-200">
+	<div class="flex w-full items-center justify-end rounded-md bg-background md:hidden">
+		<div class="relative flex w-full items-center justify-end transition-all duration-200">
 			<Icon v-if="!isExpanded" type="search" class="cursor-pointer p-2 text-accent-secondary dark:text-on-surface-variant" size="sm" @click="toggleSearch" />
 			<input
 				v-if="isExpanded"
 				class="h-full w-full flex-1 border-none bg-transparent ~text-label-small-min/label-small-max placeholder:text-on-surface-variant focus:outline-0 focus:outline-offset-0 focus:ring-0"
 				type="text"
 				v-model="value"
+				ref="searchInput"
 				:placeholder="$t('others.search_room')"
 				:title="$t('others.search_room')"
 				@keydown="
@@ -46,12 +47,19 @@
 					toggleSearch();
 				"
 			/>
-			<button v-if="isExpanded" @click.stop="search()" @click="toggleSearch"><Icon type="search" class="rounded-md bg-background p-2 text-accent-secondary dark:text-on-surface-variant" size="sm" /></button>
+			<div v-if="isExpanded">
+				<button v-if="isExpanded" @click.stop="search()">
+					<Icon type="search" class="rounded-md bg-background p-2 text-accent-secondary dark:text-on-surface-variant" size="sm" />
+				</button>
+				<button v-if="isExpanded" @click="toggleSearch">
+					<Icon type="closingCross" class="rounded-md bg-surface p-2 text-accent-secondary dark:text-on-surface-variant" size="sm" />
+				</button>
+			</div>
 		</div>
 	</div>
 
 	<!-- Search results -->
-	<div v-if="searched" class="absolute right-0 top-16 z-50 w-full overflow-y-auto rounded-md bg-surface-low md:top-20 md:w-[15vw] md:w-[20vw]">
+	<div v-if="searched" class="absolute right-0 top-16 z-50 w-full overflow-y-auto rounded-md bg-surface-low md:top-20 md:w-[20vw]">
 		<template v-if="searchResultsToShow && searchResultsToShow.length > 0">
 			<div v-for="item in searchResultsToShow" :key="item.event_id" class="group">
 				<a href="#" @click.prevent="onScrollToEventId(item.event_id, item.event_threadId)">
@@ -87,12 +95,13 @@
 	import { RoomEmit } from '@/model/constants';
 	import { useRooms } from '@/logic/store/store';
 	import { ISearchResults, SearchResult } from 'matrix-js-sdk';
-	import { PropType, computed, ref } from 'vue';
+	import { PropType, computed, nextTick, ref, useTemplateRef } from 'vue';
 	import TruncatedText from '../elements/TruncatedText.vue';
 	import { TSearchParameters, TSearchResult } from '@/model/search/TSearch';
 
 	const pubhubs = usePubHubs();
 	const rooms = useRooms();
+	const searchField = useTemplateRef('searchInput');
 
 	//Passed by the parentcomponent
 	const props = defineProps({
@@ -108,17 +117,21 @@
 	const isSearching = ref(false);
 	let searchResponse: ISearchResults | undefined = undefined;
 
-	const emit = defineEmits([...usedEvents, RoomEmit.ScrollToEventId]);
+	const emit = defineEmits([...usedEvents, RoomEmit.ScrollToEventId, 'toggleSearchbar']);
 	const { value, changed, cancel } = useFormInputEvents(emit);
 
 	const isExpanded = ref(false);
 
 	function toggleSearch() {
-		if (isExpanded.value && !value.value) {
+		if (isExpanded.value) {
 			isExpanded.value = false;
 		} else {
 			isExpanded.value = true;
+			nextTick(() => {
+				searchField.value?.focus();
+			});
 		}
+		emit('toggleSearchbar', isExpanded.value);
 	}
 
 	// searchresults shown in list. When the text 'more results' is shown the last result is omitted to keep it in view
