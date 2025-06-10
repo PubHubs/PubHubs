@@ -89,6 +89,8 @@ impl crate::servers::App<Server> for App {
         api::phc::user::NewObjectEP::add_to(self, sc, App::handle_user_new_object);
         api::phc::user::OverwriteObjectEP::add_to(self, sc, App::handle_user_overwrite_object);
         api::phc::user::GetObjectEP::add_to(self, sc, App::handle_user_get_object);
+
+        api::phc::user::PppEP::add_to(self, sc, App::handle_user_ppp);
     }
 
     fn check_constellation(&self, _constellation: &Constellation) -> bool {

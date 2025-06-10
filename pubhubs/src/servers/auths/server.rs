@@ -1,4 +1,5 @@
 //! Authentication server core code
+use std::collections::HashMap;
 use std::ops::{Deref, DerefMut};
 use std::rc::Rc;
 
@@ -62,6 +63,7 @@ pub struct App {
     yivi: Option<YiviCtx>,
     auth_state_secret: crypto::SealingKey,
     auth_window: core::time::Duration,
+    attr_key_secret: Vec<u8>,
 }
 
 impl Deref for App {
@@ -240,8 +242,8 @@ impl App {
                 api::ErrorCode::InvalidAuthProof
             })?;
 
-        let mut attrs: std::collections::HashMap<handle::Handle, api::Signed<attr::Attr>> =
-            std::collections::HashMap::with_capacity(state.attr_types.len());
+        let mut attrs: HashMap<handle::Handle, api::Signed<attr::Attr>> =
+            HashMap::with_capacity(state.attr_types.len());
 
         let running_state = app.running_state_or_internal_error()?;
 
@@ -306,8 +308,9 @@ impl App {
         Ok(api::auths::AuthCompleteResp { attrs })
     }
 
+    /// Implements [`api::auths::WelcomeEP`].
     fn cached_handle_welcome(app: &Self) -> api::Result<api::auths::WelcomeResp> {
-        let attr_types: std::collections::HashMap<handle::Handle, attr::Type> = app
+        let attr_types: HashMap<handle::Handle, attr::Type> = app
             .attribute_types
             .values()
             .map(|attr_type| (attr_type.handles.preferred().clone(), attr_type.clone()))
@@ -315,13 +318,93 @@ impl App {
 
         Ok(api::auths::WelcomeResp { attr_types })
     }
+
+    /// Implements [`api::auths::AttrKeysEP`].
+    async fn handle_attr_keys(
+        app: Rc<Self>,
+        reqs: web::Json<HashMap<handle::Handle, api::auths::AttrKeyReq>>,
+    ) -> api::Result<api::auths::AttrKeysResp> {
+        let running_state = &app.running_state_or_not_yet_ready()?;
+
+        let reqs = reqs.into_inner();
+
+        let mut resp: HashMap<handle::Handle, api::auths::AttrKeyResp> =
+            HashMap::with_capacity(reqs.len());
+
+        let now = jwt::NumericDate::now();
+
+        for (handle, req) in reqs.into_iter() {
+            let attr: attr::Attr = match req
+                .attr
+                .open(&running_state.attr_signing_key, None) // TODO: constellation 
+                {
+                    Err(api::OpenError::OtherConstellation)
+                            | Err(api::OpenError::Expired) => {
+                        return Ok(api::auths::AttrKeysResp::RetryWithNewAttr(handle));
+                            }
+                    Err(api::OpenError::OtherwiseInvalid) => {
+                        return Err(api::ErrorCode::BadRequest);
+                    }
+                    Err(api::OpenError::InternalError) => {
+                        return Err(api::ErrorCode::InternalError);
+                    }
+                    Ok(attr) => attr
+                };
+
+            if !attr.identifying {
+                log::debug!("attribute key denied for non-identifying attribute {value} of type {attr_type}", 
+                    value = attr.value, attr_type = attr.attr_type);
+                return Err(api::ErrorCode::BadRequest);
+            }
+
+            let timestamps: Vec<jwt::NumericDate> = if let Some(timestamp) = req.timestamp {
+                if timestamp > now {
+                    log::warn!(
+                        "future attribute key requested for attribute {value} of type {attr_type}",
+                        value = attr.value,
+                        attr_type = attr.attr_type
+                    );
+                    return Err(api::ErrorCode::BadRequest);
+                }
+
+                vec![timestamp, now]
+            } else {
+                vec![now]
+            };
+
+            let mut attr_keys: Vec<Vec<u8>> =
+                phcrypto::auths_attr_keys(attr, app.attr_key_secret.as_slice(), timestamps);
+
+            let latest_key: Vec<u8> = attr_keys.pop().unwrap();
+            let old_key: Option<Vec<u8>> = attr_keys.pop();
+
+            assert!(attr_keys.is_empty());
+
+            resp.insert(
+                handle.clone(),
+                api::auths::AttrKeyResp {
+                    latest_key: (serde_bytes::ByteBuf::from(latest_key).into(), now),
+                    old_key: old_key.map(|old_key| serde_bytes::ByteBuf::from(old_key).into()),
+                },
+            )
+            .map_or(Ok(()), |_| {
+                log::debug!("double handle in attribute keys request: {handle}");
+                Err(api::ErrorCode::BadRequest)
+            })?;
+        }
+
+        Ok(api::auths::AttrKeysResp::Success(resp))
+    }
 }
 
 impl crate::servers::App<Server> for App {
     fn configure_actix_app(self: &Rc<Self>, sc: &mut web::ServiceConfig) {
+        api::auths::WelcomeEP::caching_add_to(self, sc, App::cached_handle_welcome);
+
         api::auths::AuthStartEP::add_to(self, sc, App::handle_auth_start);
         api::auths::AuthCompleteEP::add_to(self, sc, App::handle_auth_complete);
-        api::auths::WelcomeEP::caching_add_to(self, sc, App::cached_handle_welcome);
+
+        api::auths::AttrKeysEP::add_to(self, sc, App::handle_attr_keys);
     }
 
     fn check_constellation(&self, constellation: &Constellation) -> bool {
@@ -360,6 +443,7 @@ pub struct AppCreator {
     yivi: Option<YiviCtx>,
     auth_state_secret: crypto::SealingKey,
     auth_window: core::time::Duration,
+    attr_key_secret: Vec<u8>,
 }
 
 impl Deref for AppCreator {
@@ -404,12 +488,19 @@ impl crate::servers::AppCreator<Server> for AppCreator {
 
         let auth_window = xconf.auth_window;
 
+        let attr_key_secret = xconf
+            .attr_key_secret
+            .as_ref()
+            .expect("attr_key_secret not generated")
+            .to_vec();
+
         Ok(Self {
             base,
             attribute_types,
             yivi,
             auth_state_secret,
             auth_window,
+            attr_key_secret,
         })
     }
 
@@ -420,6 +511,7 @@ impl crate::servers::AppCreator<Server> for AppCreator {
             yivi: self.yivi,
             auth_state_secret: self.auth_state_secret,
             auth_window: self.auth_window,
+            attr_key_secret: self.attr_key_secret,
         }
     }
 }

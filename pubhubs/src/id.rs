@@ -54,3 +54,9 @@ impl PartialEq for Id {
         subtle::ConstantTimeEq::ct_eq(self.inner.as_slice(), other.inner.as_slice()).into()
     }
 }
+
+impl crate::common::secret::DigestibleSecret for Id {
+    fn as_bytes(&self) -> &[u8] {
+        self.as_slice()
+    }
+}
