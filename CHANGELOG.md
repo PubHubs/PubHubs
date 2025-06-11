@@ -10,6 +10,9 @@ _Please add a brief description of any changes and any migrations to be performe
  * _(Use the [MIGRATE] and [BREAKING] prefixes together with another one if that makes more sense.)_
 
 - [BUG] The search bar in rooms now covers the entire width of the screen on mobile devices.
+- [BUG] Searching users for direct messages
+- [NEW] Handling many admins for creating direct contact
+- [FIX] Some styling issues
 
 ## 28 May 2025 - v2.1.0
 - [NEW] We improved the registration flow
