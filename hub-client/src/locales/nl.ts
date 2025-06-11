@@ -192,7 +192,8 @@ const nl = {
 	others: {
 		step: 'Stap {0}',
 		nop: 'Deze functionaliteit is nog niet geimplementeerd.',
-		search: 'Zoek naar kamers',
+		search: 'Zoeken',
+		search_rooms: 'Zoek naar kamers',
 		search_hubs: 'Zoek naar hubs',
 		search_hubs_not_found: 'Geen hubs gevonden',
 		search_rooms_not_found: 'Geen kamers gevonden',

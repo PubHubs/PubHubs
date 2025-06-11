@@ -192,7 +192,8 @@ const en = {
 	others: {
 		step: 'Step {0}',
 		nop: 'This feature is not implemented yet.',
-		search: 'Search for rooms',
+		search: 'Search',
+		search_rooms: 'Search for rooms',
 		search_hubs: 'Search for hubs',
 		search_hubs_not_found: 'No hubs were found',
 		search_rooms_not_found: 'No rooms were found',
