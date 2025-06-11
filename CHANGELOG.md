@@ -13,6 +13,7 @@ _Please add a brief description of any changes and any migrations to be performe
 - [BUG] Searching users for direct messages
 - [NEW] Handling many admins for creating direct contact
 - [FIX] Some styling issues
+- [TYPO] The search bar in the emojipicker showed the text "Search for rooms", instead of "Search".
 
 ## 28 May 2025 - v2.1.0
 - [NEW] We improved the registration flow
