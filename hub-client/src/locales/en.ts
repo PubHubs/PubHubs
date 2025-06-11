@@ -241,7 +241,7 @@ const en = {
 		private_search_user: 'Search person',
 		rooms: 'Rooms',
 		join_room: 'Join room',
-		already_joined: 'Already joined',
+		already_joined: 'Enter room',
 		view_access_requirements: 'View requirements',
 		close_access_requirements: 'Close requirements',
 		join_secured_room: 'Join secured room',
