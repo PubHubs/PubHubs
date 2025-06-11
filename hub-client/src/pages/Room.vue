@@ -7,7 +7,7 @@
 					<hr class="h-[2px] grow bg-on-surface-dim" />
 				</div>
 				<div class="relative flex h-full items-center justify-between gap-4" :class="isMobile ? 'pl-8' : 'pl-0'">
-					<div v-if="rooms.currentRoom" class="flex w-fit items-center gap-3 overflow-hidden">
+					<div v-if="rooms.currentRoom && !isSearchBarExpanded" class="flex w-fit items-center gap-3 overflow-hidden">
 						<Icon v-if="!notPrivateRoom()" type="back" size="base" @click="router.push('/direct-msg')" />
 						<Icon v-if="notPrivateRoom()" :type="rooms.currentRoom.isSecuredRoom() ? 'shield' : 'speech_bubbles'" size="base" />
 						<div class="flex flex-col">
@@ -25,9 +25,9 @@
 						</div>
 					</div>
 					<!--Only show Editing icon for steward but not for administrator-->
-					<div class="flex gap-4">
+					<div class="flex gap-4" :class="{ 'w-full': isSearchBarExpanded }">
 						<GlobalBarButton v-if="room.getUserPowerLevel(user.user.userId) === 50" type="cog" size="sm" @click="stewardCanEdit()" />
-						<SearchInput :search-parameters="searchParameters" @scroll-to-event-id="onScrollToEventId" :room="rooms.currentRoom" />
+						<SearchInput :search-parameters="searchParameters" @scroll-to-event-id="onScrollToEventId" @toggle-searchbar="handleToggleSearchbar" :room="rooms.currentRoom" />
 					</div>
 				</div>
 			</template>
@@ -83,11 +83,12 @@
 	const user = useUser();
 	const router = useRouter();
 	const plugins = usePlugins();
-	const plugin = ref(false as boolean | PluginProperties);
+	const plugin = ref<boolean | PluginProperties>(false);
 	const hubSettings = useHubSettings();
 	const currentRoomToEdit = ref<TSecuredRoom | TPublicRoom | null>(null);
 	const showEditRoom = ref(false);
 	const secured = ref(false);
+	const isSearchBarExpanded = ref<boolean>(false);
 	const settings = useSettings();
 	const isMobile = computed(() => settings.isMobileState);
 
@@ -112,6 +113,10 @@
 		}
 		return r;
 	});
+
+	const handleToggleSearchbar = (isExpanded: boolean) => {
+		isSearchBarExpanded.value = isExpanded;
+	};
 
 	onMounted(() => {
 		update();

@@ -2,6 +2,7 @@
 use serde::{Deserialize, Serialize};
 
 use crate::api::*;
+use crate::misc::serde_ext::bytes_wrapper::B64UU;
 
 /// Basic information advertised by the hub
 pub struct Info {}
@@ -10,7 +11,7 @@ impl EndpointDetails for Info {
     type ResponseType = Result<InfoResp>;
 
     const METHOD: http::Method = http::Method::GET;
-    const PATH: &'static str = ""; // the base url contains the path
+    const PATH: &'static str = ".ph/info";
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
@@ -21,4 +22,73 @@ pub struct InfoResp {
 
     /// String describing the hub version, likely the result of `git describe --tags`
     pub hub_version: String,
+}
+
+/// Endpoint that start the authentication of a (not yet existing) user
+pub struct EnterStartEP {}
+impl EndpointDetails for EnterStartEP {
+    type RequestType = NoPayload;
+    type ResponseType = Result<EnterStartResp>;
+
+    const METHOD: http::Method = http::Method::POST; // to dissuade caching
+    const PATH: &'static str = ".ph/enter-start";
+}
+
+/// What's returned by [`EnterStartEP`].
+#[derive(Serialize, Deserialize, Debug, Clone)]
+#[serde(deny_unknown_fields)]
+pub struct EnterStartResp {
+    /// Opaque state that needs to be send to the [`EnterCompleteEP`] later on
+    pub state: EnterState,
+
+    /// Opaque number used only once to be included in the hub pseudonym package.
+    pub nonce: EnterNonce,
+}
+
+/// Type of [`EnterStartResp::state`]
+#[derive(Serialize, Deserialize, Debug, Clone)]
+#[serde(transparent)]
+pub struct EnterState {
+    pub(crate) inner: B64UU,
+}
+
+/// Type of [`EnterStartResp::nonce`]
+#[derive(Serialize, Deserialize, Debug, Clone)]
+#[serde(transparent)]
+pub struct EnterNonce {
+    pub(crate) inner: B64UU,
+}
+
+/// Endpoint to complete user authentication
+pub struct EnterCompleteEP {}
+impl EndpointDetails for EnterCompleteEP {
+    type RequestType = EnterCompleteReq;
+    type ResponseType = Result<EnterCompleteResp>;
+
+    const METHOD: http::Method = http::Method::POST; // to dissuade caching
+    const PATH: &'static str = ".ph/enter-complete";
+}
+
+/// What's sent to [`EnterCompleteEP`]
+#[derive(Serialize, Deserialize, Debug, Clone)]
+#[serde(deny_unknown_fields)]
+pub struct EnterCompleteReq {
+    /// The one you got from [`EnterStartResp::state`]
+    pub state: EnterState,
+
+    /// The hashed hub pseudonym package obtained from pubhubs central.
+    /// Should include the [`EnterStartResp::nonce`] belonging to the [`Self::state`].
+    pub hhpp: Signed<sso::HashedHubPseudonymPackage>,
+}
+
+/// What's returned by [`EnterCompleteEP`].
+#[derive(Serialize, Deserialize, Debug, Clone)]
+#[serde(deny_unknown_fields)]
+pub enum EnterCompleteResp {
+    /// Start again at [`EnterStartEP`]
+    RetryFromStart,
+
+    Entered {
+        // TODO: probably include some access token here
+    },
 }

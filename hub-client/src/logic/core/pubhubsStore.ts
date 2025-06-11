@@ -1020,12 +1020,12 @@ const usePubHubs = defineStore('pubhubs', {
 		},
 
 		/**
-		 * Initializes the admin contact room
+		 * Initializes or extends admin contact room by adding hub admin members.
 		 */
-		async initializeAdminContactRoom(): Promise<void> {
+		async initializeOrExtendAdminContactRoom(): Promise<void> {
 			const adminIds: string[] = await this.fetchAdminIds();
 			// Don't do anything if there are no new admins
-			if (!this.hasNextAdmin(adminIds)) return;
+			if (!this.hasNewAdmin(adminIds)) return;
 
 			await this.setupAdminContactRoom(adminIds);
 		},
@@ -1051,12 +1051,20 @@ const usePubHubs = defineStore('pubhubs', {
 			const newAdminId = this.findNewAdminId(adminIds);
 
 			if (newAdminId) {
-				newAdminId.forEach(async (adminId: string) => await this.invite(roomId, adminId));
+				newAdminId.forEach(async (adminId: string) => {
+					if (this.hasNotBeenInvitedOrJoined(room, adminId)) {
+						await this.invite(roomId, adminId);
+					}
+				});
 			}
 
 			const oldAdminIds = this.removeOldAdminId(adminIds);
 			if (oldAdminIds) {
-				oldAdminIds.forEach(async (adminId: string) => await this.client.kick(roomId, adminId));
+				oldAdminIds.forEach(async (adminId: string) => {
+					if (room.getMember(adminId)?.membership === 'join') {
+						await this.client.kick(roomId, adminId);
+					}
+				});
 			}
 		},
 
@@ -1066,9 +1074,9 @@ const usePubHubs = defineStore('pubhubs', {
 		async createNewAdminRoom(adminIds: string[]): Promise<void> {
 			const adminUsers = adminIds.map((adminId) => this.client.getUser(adminId)).filter((user) => user !== null);
 
-			const contactTargets = adminUsers.length === 1 ? (adminUsers.pop() as User) : this.handleBurstOfInvites(adminUsers);
-
-			await this.createPrivateRoomWith(contactTargets, true);
+			// This condition is to satisfy the createPrivateRoomWith function - It takes either a User or MatrixUser[] as argument
+			const oneOrManyAdmins = adminUsers.length === 1 ? (adminUsers.pop() as User) : adminUsers;
+			await this.createPrivateRoomWith(oneOrManyAdmins, true);
 		},
 		/**
 		 * Finds the admin contact room if it exists
@@ -1087,8 +1095,9 @@ const usePubHubs = defineStore('pubhubs', {
 			if (!room) {
 				return [];
 			}
-
-			return room.getOtherJoinedMembers().map((member) => member.userId);
+			const joinedMembers = room.getOtherJoinedMembers().map((member) => member.userId);
+			const inviteMembers = room.getOtherInviteMembers().map((member) => member.userId);
+			return [...joinedMembers, ...inviteMembers];
 		},
 		/**
 		 * Finds any new admin ID that needs to be invited to the room
@@ -1100,17 +1109,15 @@ const usePubHubs = defineStore('pubhubs', {
 				return undefined;
 			}
 			const newAdmins = adminIds.filter((id) => !existingAdminIds.includes(id));
-			if (newAdmins.length > 5) return newAdmins.slice(0, 5);
 			return newAdmins;
 		},
 
 		/**
 		 *
-		 * Find x hub administrators so that they can be removed from the room.
+		 * Find  hub administrators who are no longer admins so that they can be removed from the room.
 		 */
 		removeOldAdminId(adminIds: string[]): string[] | undefined {
 			const existingAdminIds = this.getExistingAdminMemberIds();
-
 			if (existingAdminIds.length <= adminIds.length) {
 				return undefined;
 			}
@@ -1125,7 +1132,7 @@ const usePubHubs = defineStore('pubhubs', {
 			return rooms.fetchRoomArrayByType(RoomType.PH_MESSAGE_ADMIN_CONTACT).length != 0;
 		},
 		/*
-		 *
+		 * Get Admin Room Id
 		 */
 		getAdminRoomId(): string | undefined {
 			return this.findAdminContactRoom()?.roomId;
@@ -1135,15 +1142,13 @@ const usePubHubs = defineStore('pubhubs', {
 		 *
 		 *  Check if there are new admin or not
 		 */
-		hasNextAdmin(adminIds: string[]): boolean {
+		hasNewAdmin(adminIds: string[]): boolean {
 			const existingAdminIds = this.getExistingAdminMemberIds();
 			return existingAdminIds.length != adminIds.length;
 		},
-		handleBurstOfInvites(admins: MatrixUser[]) {
-			// By default - User cannot send more than a 5 invites at a time.
-			// https://matrix-org.github.io/synapse/latest/usage/configuration/config_documentation.html#rc_invites
-			// See issue #1325 in gitlab.
-			return admins.length > 5 ? admins.slice(0, 5) : admins;
+
+		hasNotBeenInvitedOrJoined(room: Room, adminId: string) {
+			return !(room.getMember(adminId)?.membership === 'join' || room.getMember(adminId)?.membership === 'invite');
 		},
 	},
 });

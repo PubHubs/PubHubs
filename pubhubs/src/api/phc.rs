@@ -18,7 +18,7 @@ pub mod hub {
 
     /// Used by a hub to request a ticket (see [`TicketContent`]) from PubHubs Central.
     /// The request must be signed for the `verifying_key` advertised by the hub info endoint
-    /// (see crate::api::hub::Info).
+    /// (see hub::Info).
     pub struct TicketEP {}
     impl EndpointDetails for TicketEP {
         type RequestType = Signed<TicketReq>;
@@ -426,5 +426,63 @@ pub mod user {
         fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
             self.serialize(f)
         }
+    }
+
+    /// Requests an [`sso::PolymorphicPseudonymPackage`].  Requires authentication.
+    pub struct PppEP {}
+    impl EndpointDetails for PppEP {
+        type RequestType = NoPayload;
+        type ResponseType = Result<PppResp>;
+
+        const METHOD: http::Method = http::Method::POST;
+        const PATH: &'static str = ".ph/user/ppp";
+    }
+
+    /// Returned by [`PppEP`].
+    #[derive(Serialize, Deserialize, Debug, Clone)]
+    #[serde(deny_unknown_fields)]
+    #[serde(rename = "snake_case")]
+    pub enum PppResp {
+        /// The auth provided is expired or otherwise invalid.  Obtain a new one and retry.
+        RetryWithNewAuthToken,
+
+        /// The requested polymorphic pseudonym package (PPP).  Must be used only once lest the
+        /// transcryptor can track the user by the PPP used.
+        Success(Sealed<sso::PolymorphicPseudonymPackage>),
+    }
+
+    /// Type of [`sso::PolymorphicPseudonymPackage::nonce`]
+    #[derive(Serialize, Deserialize, Debug, Clone)]
+    #[serde(transparent)]
+    pub struct PpNonce {
+        pub(crate) inner: B64UU,
+    }
+
+    /// Requests an [`sso::HashedHubPseudonymPackage`].
+    pub struct HhppEP {}
+    impl EndpointDetails for HhppEP {
+        type RequestType = HhppReq;
+        type ResponseType = Result<HhppResp>;
+
+        const METHOD: http::Method = http::Method::POST;
+        const PATH: &'static str = ".ph/user/hhpp";
+    }
+
+    /// Request type for [`HhppEP`]
+    #[derive(Serialize, Deserialize, Debug, Clone)]
+    #[serde(deny_unknown_fields)]
+    #[serde(rename = "snake_case")]
+    pub struct HhppReq {
+        /// The encrypted pseudonym to hash. Can be obtained from [`tr::EhppEP`].
+        pub ehpp: Sealed<sso::EncryptedHubPseudonymPackage>,
+    }
+
+    /// Returned by [`HhppEP`].
+    #[derive(Serialize, Deserialize, Debug, Clone)]
+    #[serde(deny_unknown_fields)]
+    #[serde(rename = "snake_case")]
+    pub enum HhppResp {
+        /// The requested hashed hub pseudonym package (HHPP).  
+        Success(Signed<sso::HashedHubPseudonymPackage>),
     }
 }

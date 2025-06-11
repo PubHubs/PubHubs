@@ -17,8 +17,8 @@ use rsa::{
     traits::PublicKeyParts as _,
 };
 use serde::{
-    Deserialize, Deserializer, Serialize,
     de::{DeserializeOwned, Visitor},
+    Deserialize, Deserializer, Serialize,
 };
 
 use crate::misc::time_ext;
@@ -302,6 +302,11 @@ impl NumericDate {
                 .expect("system clock reports a time before the Unix epoch")
                 .as_secs(),
         )
+    }
+
+    /// Returns the number of seconds this date is after the unix epoch.
+    pub fn timestamp(&self) -> u64 {
+        self.timestamp
     }
 }
 
@@ -968,14 +973,12 @@ mod tests {
 
         let claims = jwt.open(&key).unwrap();
 
-        assert!(
-            claims
-                .clone()
-                .into_custom::<serde_json::Value>()
-                .unwrap_err()
-                .to_string()
-                .starts_with("expired at 2011-03-22T18:43:00Z (")
-        );
+        assert!(claims
+            .clone()
+            .into_custom::<serde_json::Value>()
+            .unwrap_err()
+            .to_string()
+            .starts_with("expired at 2011-03-22T18:43:00Z ("));
 
         assert_eq!(
             &claims

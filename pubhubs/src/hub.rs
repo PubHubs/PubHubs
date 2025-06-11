@@ -18,9 +18,9 @@ pub struct BasicInfo {
     /// May be changed freely.
     pub description: String,
 
-    /// Hub info endpoint
-    /// May be changed freely.
-    pub info_url: url::Url,
+    /// Hub client API url, likely of the form `https://<some domain>/_synapse/client/`.
+    /// Must end with a `/`.  Can be changed freely.
+    pub url: url::Url,
 
     /// Immutable and unique identifier
     pub id: Id,
@@ -44,7 +44,7 @@ mod tests {
     fn basic_info_serde() {
         assert_eq!(
             serde_json::from_str::<BasicInfo>(
-                r#"{"handles": [], "name": "Hub 1", "info_url": "https://example.com", "description": "some hub",
+                r#"{"handles": [], "name": "Hub 1", "url": "https://example.com", "description": "some hub",
                 "id": "bLAPDnkcYj8S5hZ8NuH9OFTWKzypLqSakexoRvlZ_aA"}"#,
             )
             .unwrap_err()
@@ -53,13 +53,13 @@ mod tests {
         );
         assert_eq!(
             serde_json::from_str::<BasicInfo>(
-                r#"{"handles": ["hub_1"], "name": "Hub 1", "info_url": "https://example.com", "description": "some hub", "id": "bLAPDnkcYj8S5hZ8NuH9OFTWKzypLqSakexoRvlZ_aA"}"#,
+                r#"{"handles": ["hub_1"], "name": "Hub 1", "url": "https://example.com", "description": "some hub", "id": "bLAPDnkcYj8S5hZ8NuH9OFTWKzypLqSakexoRvlZ_aA"}"#,
             )
             .unwrap(),
             BasicInfo{
                 handles: vec!["hub_1".parse().unwrap()].into(),
                 name: "Hub 1".to_string(),
-                info_url: "https://example.com".parse().unwrap(),
+                url: "https://example.com".parse().unwrap(),
                 description: "some hub".to_string(),
                 id: "bLAPDnkcYj8S5hZ8NuH9OFTWKzypLqSakexoRvlZ_aA".parse().unwrap(),
             }

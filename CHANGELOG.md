@@ -9,6 +9,11 @@ _Please add a brief description of any changes and any migrations to be performe
  * _[BREAKING] - If it is a breaking change that needs changes done on the deployment/installation/settings_
  * _(Use the [MIGRATE] and [BREAKING] prefixes together with another one if that makes more sense.)_
 
+- [BUG] The search bar in rooms now covers the entire width of the screen on mobile devices.
+- [BUG] Searching users for direct messages
+- [NEW] Handling many admins for creating direct contact
+- [FIX] Some styling issues
+- [TYPO] The search bar in the emojipicker showed the text "Search for rooms", instead of "Search".
 
 ## 28 May 2025 - v2.1.0
 - [NEW] We improved the registration flow

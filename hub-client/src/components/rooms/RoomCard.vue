@@ -25,12 +25,13 @@
 						</div>
 					</div>
 
-					<Button v-if="isSecured" @click="toggleExpand" class="w-fit shrink-0" :title="t('rooms.view_access_requirements')" :color="!isExpanded ? 'primary' : 'secondary'">
-						{{ !isExpanded ? t('rooms.view_access_requirements') : t('rooms.close_access_requirements') }}
-					</Button>
-					<Button v-else-if="memberOfRoom" disabled :title="t('rooms.already_joined')" class="w-fit shrink-0 whitespace-nowrap">
+					<Button v-if="memberOfRoom" @click="enterRoom" :title="t('rooms.already_joined')" class="w-fit shrink-0 whitespace-nowrap">
 						{{ t('rooms.already_joined') }}
 					</Button>
+					<Button v-else-if="isSecured" @click="toggleExpand" class="w-fit shrink-0" :title="t('rooms.view_access_requirements')" :color="!isExpanded ? 'primary' : 'secondary'">
+						{{ !isExpanded ? t('rooms.view_access_requirements') : t('rooms.close_access_requirements') }}
+					</Button>
+
 					<Button v-else @click="joinRoom" class="w-fit shrink-0 whitespace-nowrap" :title="t('rooms.join_room')">
 						{{ t('rooms.join_room') }}
 					</Button>
@@ -58,11 +59,8 @@
 				</div>
 				<P v-else> {{ $t('common.loading') }}</P>
 			</div>
-			<div class="flex w-full items-end justify-between gap-8">
-				<Button v-if="memberOfRoom" disabled :title="t('rooms.already_joined')" class="w-fit shrink-0 truncate whitespace-nowrap">
-					{{ t('rooms.already_joined') }}
-				</Button>
-				<Button v-else @click="joinSecureRoom" class="w-fit shrink-0 truncate whitespace-nowrap" :disabled="panelOpen">
+			<div class="flex w-full items-end justify-end gap-8">
+				<Button @click="joinSecureRoom" class="w-fit shrink-0 truncate whitespace-nowrap" :disabled="panelOpen">
 					{{ t('rooms.join_secured_room') }}
 				</Button>
 
@@ -172,6 +170,26 @@
 
 			await new Promise((resolve) => setTimeout(resolve, retryDelay));
 		}
+
+		// Check if room exists in store with timeout
+		for (let attempt = 0; attempt < maxRetries; attempt++) {
+			if (roomsStore.roomExists(props.room.room_id)) {
+				router.push({ name: 'room', params: { id: props.room.room_id } });
+				return;
+			}
+
+			// Check if we've exceeded the timeout
+			if (attempt === maxRetries - 1) {
+				dialog.confirm(t('room.try_again'));
+			}
+
+			await new Promise((resolve) => setTimeout(resolve, retryDelay));
+		}
+	};
+
+	const enterRoom = async () => {
+		const maxRetries = 10;
+		const retryDelay = 500;
 
 		// Check if room exists in store with timeout
 		for (let attempt = 0; attempt < maxRetries; attempt++) {
