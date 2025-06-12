@@ -5,13 +5,12 @@ General tips:
 - While testing, keep two browser windows open, one for a existing user (it's easiest if this is a hub admin), and an incognito one for a new user that will be registered during testing. This allows seeing messages being send and easier testing.
 - If you do the merge together with a collegue, one of you should do the tests on an mobile phone and the other on a desktop.
 
-  - [ ] Check that CI/CD pipeline in main has completed without errors. This might take a bit of time therefore, this should be the first step for the merge to stable.
   - [ ] Notify the others that they do not merge anything into main until the merge to stable is done. (otherwise you will merge changes that may not be deployed to main and therefore not tested by the steps below).
   - [ ] You're merging from main into stable (and not from some feature branch.) 
   - [ ] Review and update the [CHANGELOG](CHANGELOG.md) to reflect the state after the merge into stable.
     - [ ] Scan through all changes in merge request to see if there is any issue.
     - [ ] Set the new version number  ([how to decide which version](https://gitlab.science.ru.nl/ilab/pubhubs_canonical/-/wikis/Tech-Information/Versioning)) in the [CHANGELOG](CHANGELOG.md). **But don't tag yet!** Tagging will release a new stable version. (You can see the tags and their pipelines [here](https://gitlab.science.ru.nl/ilab/pubhubs_canonical/-/tags).)
-  - [ ] Before proceeding with the folloing steps please check that the pipeline has been successfully completed. 
+  - [ ] Before proceeding with the following steps please check that the pipeline has been succeeded. 
   - [ ] Consider if the merge might cause irreversible changes (different database format), and plan for this. (Backups?)
   - [ ] Please check that the following works on https://main.pubhubs.ihub.ru.nl/client :
       - [ ] Test basic pubhubs functionality
@@ -50,22 +49,21 @@ General tips:
   - [ ] Figure out if the merge also requires any configuration changes.
   - [ ] Update feature flag for stable if the feature works properly.
   - [ ] Inform the pubhubs team (via Slack and PubHubs stable) of the merge and possible downtime of https://stable.pubhubs.ihub.ru.nl/client . 
-  - [ ] Make the changes and **perform the merge**. After merging, **tag** the latest commit on stable with the version number to trigger the building and publishing of the stable images. 
+  - [ ] Make the changes and **perform the merge** (don't squash commits). After merging, **tag** the latest commit on stable with the version number plus `-rc0` (e.g. `v1.2.3-rc0`) to trigger the building and publishing of the stable images. 
   - [ ] While waiting on the pipeline: update dependencies on the main branch in a merge request created from [this issue](https://gitlab.science.ru.nl/ilab/pubhubs_canonical/-/issues/new?issuable_template=update-dependencies&issue[title]=Updating%20dependencies%20on%2020yy-mm-dd). Please wait with merging this, see instruction below.
-  - [ ] Check that the following works on https://stable.pubhubs.ihub.ru.nl/client :
+  - [ ] Check that the following works on https://app.pubhubs.net :
     - [ ] Turn off dev mode in Yivi app. 
     - [ ] Test basic pubhubs functionality (see above)
       - Note for registering a *new* user, with a fresh email address: If possible, tips are if you have a gmail account you can add +<date> before the '@' and add a card for that, if you have a mail domain with a catch-all you can create a new mail address and add a card for that.
     - [ ] Anything related specifically to your merge request.
   - [ ] Make issues for the problems. If they are serious:  fix or revert, if possible.
+  - [ ] If everything is fine:  tag with the actual version number, e.g. `v1.2.3`, replacing the release candidate with the proper version number.  (Check the deployment succeeded.)
   - [ ] Merge stable back into main. Do this on your machine, not via a gitlab merge request (which will make an extra commit leading to out-of-sync main and stable). To check if main and stable are merged correctly, go to the [repository graph](https://gitlab.science.ru.nl/ilab/pubhubs_canonical/-/network/main?ref_type=heads) and check if main and stable are pointing to the same commit. See the screenshot below. (If you already merged the updated dependencies to main, main will be ahead of stable)
 
   ![image](/uploads/478c467465270fe24b4e3ec6ee32cc3b/image.png)
   - [ ] Merge the branch with the updated dependencies to main. We do this now because otherwise the main and stable will not point to the same commit as shown in the repository graph.
   - [ ] Check this list and cleanup items with due date passed, and add due dates to items that are not in active development anymore.
        
-  
-  
   - [ ] If Frans Lammers is not available, email [external hubs](https://gitlab.science.ru.nl/ilab/pubhubs_canonical/-/wikis/Tech-Information/External-Hub-Deployment) to pull the latest updates with the following email:
 
 > Dear XYZ,
