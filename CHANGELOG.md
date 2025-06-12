@@ -15,6 +15,10 @@ _Please add a brief description of any changes and any migrations to be performe
 - [FIX] Some styling issues
 - [TYPO] The search bar in the emojipicker showed the text "Search for rooms", instead of "Search".
 
+## 5 june 2025 - v2.1.2
+
+- [FIX] Fixed that new users can not join old hubs because of a missing consent version number
+
 ## 28 May 2025 - v2.1.0
 - [NEW] We improved the registration flow
 - [NEW] Users can create group rooms.
