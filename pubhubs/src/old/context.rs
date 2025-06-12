@@ -14,7 +14,7 @@ use std::ops::Deref as _;
 use base64ct::{Base64, Encoding as _};
 use http::header::AUTHORIZATION;
 use prometheus::{CounterVec, HistogramOpts, HistogramVec, Opts, Registry};
-use rand::distributions::DistString as _;
+use rand::distr::SampleString as _;
 use subtle::ConstantTimeEq;
 use tokio::sync::mpsc::Sender;
 use tokio::sync::{mpsc, oneshot};
@@ -160,9 +160,9 @@ impl Main {
             "cookie_secret",
         )?;
 
-        let connection_check_nonce = config.connection_check_nonce.unwrap_or_else(|| {
-            rand::distributions::Alphanumeric.sample_string(&mut rand::thread_rng(), 16)
-        });
+        let connection_check_nonce = config
+            .connection_check_nonce
+            .unwrap_or_else(|| rand::distr::Alphanumeric.sample_string(&mut rand::rng(), 16));
 
         let metrics_key =
             having_debug_default(config.metrics_key, "default_metrics_key", "metrics_key")?;

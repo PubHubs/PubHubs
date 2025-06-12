@@ -7,7 +7,7 @@ use actix_web::web;
 use digest::Digest as _;
 
 use crate::servers::{
-    self, constellation, yivi, AppBase, AppCreatorBase, Constellation, Handle, Server as _,
+    self, AppBase, AppCreatorBase, Constellation, Handle, Server as _, constellation, yivi,
 };
 use crate::{
     api::{self, EndpointDetails as _, ResultExt as _},
@@ -352,8 +352,11 @@ impl App {
                 };
 
             if !attr.identifying {
-                log::debug!("attribute key denied for non-identifying attribute {value} of type {attr_type}", 
-                    value = attr.value, attr_type = attr.attr_type);
+                log::debug!(
+                    "attribute key denied for non-identifying attribute {value} of type {attr_type}",
+                    value = attr.value,
+                    attr_type = attr.attr_type
+                );
                 return Err(api::ErrorCode::BadRequest);
             }
 

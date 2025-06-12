@@ -6,7 +6,7 @@ use expry::{DecodedValue, value};
 
 use prometheus::HistogramVec;
 use rand::Rng;
-use rand::distributions::Alphanumeric;
+use rand::distr::Alphanumeric;
 use rusqlite::Error::QueryReturnedNoRows;
 use rusqlite::{Connection, Row, params};
 use serde::{Deserialize, Serialize};
@@ -865,7 +865,7 @@ pub fn create_user(
 }
 
 fn generate_external_id() -> String {
-    let user_id: String = rand::thread_rng()
+    let user_id: String = rand::rng()
         .sample_iter(&Alphanumeric)
         .take(10)
         .map(char::from)

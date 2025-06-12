@@ -3,7 +3,7 @@ use anyhow::Context as _;
 use base64ct::{Base64Url, Encoding as _};
 use chacha20poly1305::XChaCha20Poly1305;
 use rand::Rng as _;
-use rand::RngCore as _;
+use rand::TryRngCore as _;
 
 /// Key used by [`seal`] and co.
 ///
@@ -15,7 +15,8 @@ pub type SealingKey = chacha20poly1305::Key;
 /// having > 128 bits of randomness.
 pub fn random_alphanumeric() -> String {
     rand::rngs::OsRng
-        .sample_iter(&rand::distributions::Alphanumeric)
+        .unwrap_mut()
+        .sample_iter(&rand::distr::Alphanumeric)
         .take(22)
         .map(char::from)
         .collect()
@@ -24,7 +25,7 @@ pub fn random_alphanumeric() -> String {
 pub fn random_32_bytes() -> [u8; 32] {
     let mut bytes: [u8; 32] = [0; 32];
 
-    rand::rngs::OsRng::fill_bytes(&mut rand::rngs::OsRng, bytes.as_mut_slice());
+    rand::rngs::OsRng::try_fill_bytes(&mut rand::rngs::OsRng, bytes.as_mut_slice()).unwrap();
 
     bytes
 }

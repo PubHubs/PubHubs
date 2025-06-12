@@ -162,7 +162,7 @@ pub fn metrics_middleware<
         };
 
         http_req_status
-            .with_label_values(&[&resource, status.as_str()])
+            .with_label_values(&[&resource, &status.as_str().to_string()])
             .inc();
 
         resp
