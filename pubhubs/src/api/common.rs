@@ -653,13 +653,13 @@ wrap_dalek_type! {
 
 impl SigningKey {
     pub fn generate() -> Self {
-        ed25519_dalek::SigningKey::generate(&mut rand::rngs::OsRng).into()
+        ed25519_dalek::SigningKey::generate(&mut aead::rand_core::OsRng).into()
     }
 }
 
 impl Scalar {
     pub fn random() -> Self {
-        curve25519_dalek::scalar::Scalar::random(&mut rand::rngs::OsRng).into()
+        curve25519_dalek::scalar::Scalar::random(&mut aead::rand_core::OsRng).into()
     }
 }
 

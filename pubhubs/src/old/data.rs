@@ -1,14 +1,14 @@
 use crate::elgamal::Encoding as _;
 use crate::pseudonyms::PepContext;
-use anyhow::{Context as _, Result, anyhow, bail, ensure};
+use anyhow::{anyhow, bail, ensure, Context as _, Result};
 use expry::key_str;
-use expry::{DecodedValue, value};
+use expry::{value, DecodedValue};
 
 use prometheus::HistogramVec;
+use rand::distr::Alphanumeric;
 use rand::Rng;
-use rand::distributions::Alphanumeric;
 use rusqlite::Error::QueryReturnedNoRows;
-use rusqlite::{Connection, Row, params};
+use rusqlite::{params, Connection, Row};
 use serde::{Deserialize, Serialize};
 use sha2::Digest as _;
 use std::convert::AsRef;
@@ -865,7 +865,7 @@ pub fn create_user(
 }
 
 fn generate_external_id() -> String {
-    let user_id: String = rand::thread_rng()
+    let user_id: String = rand::rng()
         .sample_iter(&Alphanumeric)
         .take(10)
         .map(char::from)

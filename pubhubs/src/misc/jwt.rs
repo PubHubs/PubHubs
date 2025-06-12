@@ -909,7 +909,7 @@ impl RS256Sk {
 
     pub fn random(bit_size: usize) -> anyhow::Result<Self> {
         Ok(Self::new(rsa::RsaPrivateKey::new(
-            &mut rand::rngs::OsRng,
+            &mut rsa::rand_core::OsRng,
             bit_size,
         )?))
     }
