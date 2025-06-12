@@ -5,13 +5,13 @@ use std::pin::Pin;
 
 use core::future::Future;
 
-use futures::stream::BoxStream;
 use futures::FutureExt as _;
+use futures::stream::BoxStream;
 use futures_util::future::BoxFuture;
 
 use object_store::{
-    self, path::Path, Error, GetOptions, GetResult, ListResult, MultipartUpload, ObjectMeta,
-    ObjectStore, PutMode, PutMultipartOpts, PutOptions, PutPayload, PutResult, Result,
+    self, Error, GetOptions, GetResult, ListResult, MultipartUpload, ObjectMeta, ObjectStore,
+    PutMode, PutMultipartOpts, PutOptions, PutPayload, PutResult, Result, path::Path,
 };
 
 /// Wraps an existing [`ObjectStore`] adding support for [`object_store::PutMode::Update`].

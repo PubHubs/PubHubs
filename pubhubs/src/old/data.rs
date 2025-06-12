@@ -1,14 +1,14 @@
 use crate::elgamal::Encoding as _;
 use crate::pseudonyms::PepContext;
-use anyhow::{anyhow, bail, ensure, Context as _, Result};
+use anyhow::{Context as _, Result, anyhow, bail, ensure};
 use expry::key_str;
-use expry::{value, DecodedValue};
+use expry::{DecodedValue, value};
 
 use prometheus::HistogramVec;
-use rand::distr::Alphanumeric;
 use rand::Rng;
+use rand::distr::Alphanumeric;
 use rusqlite::Error::QueryReturnedNoRows;
-use rusqlite::{params, Connection, Row};
+use rusqlite::{Connection, Row, params};
 use serde::{Deserialize, Serialize};
 use sha2::Digest as _;
 use std::convert::AsRef;

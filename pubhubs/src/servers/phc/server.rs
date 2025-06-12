@@ -11,7 +11,7 @@ use crate::common::secret::DigestibleSecret as _;
 use crate::misc::crypto;
 use crate::misc::jwt;
 use crate::phcrypto;
-use crate::servers::{self, constellation, AppBase, AppCreatorBase, Constellation, Handle};
+use crate::servers::{self, AppBase, AppCreatorBase, Constellation, Handle, constellation};
 
 use crate::{elgamal, hub};
 

@@ -2,8 +2,8 @@ use std::rc::Rc;
 use std::str::FromStr as _;
 
 use serde::{
-    de::{DeserializeOwned, IntoDeserializer as _},
     Deserialize, Serialize,
+    de::{DeserializeOwned, IntoDeserializer as _},
 };
 
 use anyhow::Context as _;
@@ -326,8 +326,8 @@ impl<T> Payload<T> {
     ) -> anyhow::Result<Payload<T>>
     where
         S: futures::stream::Stream<
-            Item = std::result::Result<bytes::Bytes, awc::error::PayloadError>,
-        >,
+                Item = std::result::Result<bytes::Bytes, awc::error::PayloadError>,
+            >,
         T: DeserializeOwned,
     {
         let Some(content_type_hv) = resp.headers().get(http::header::CONTENT_TYPE) else {
