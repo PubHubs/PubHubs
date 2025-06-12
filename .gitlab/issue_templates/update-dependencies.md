@@ -16,8 +16,6 @@ Also make sure to not squash the commits so we can search for them later.
    - [ ] `git clone https://github.com/privacybydesign/irmago --branch vXXXX` see [yivi releases](https://github.com/privacybydesign/irmago/releases)
    - [ ] `FROM golang:<debian_version>` The [debian_version](https://www.debian.org/releases/stable/) should be the same for both golang and rust and the same as the version on which the synapse image is based. This is to prevent errors like to avoid errors like "OSError: /lib/x86_64-linux-gnu/libc.so.6: version `GLIBC_2.33' not found (required by /usr/lib/libpubhubs.so)".
    - [ ] `FROM rust:<debian_version> AS libpubhubs_build`
-  - [ ] Version number of twisted library in requirements file and python version in CI/CD pipeline script is fixed see #!654. This needs to be updated when the new version of matrix synapse is used. 
-
 
 
 ## Global Client
@@ -42,7 +40,6 @@ For reference, dependencies are in `package.json`.
 - [ ] Check the version number in the [`Dockerfile`](hub-client/Dockerfile): `FROM XX-slim`.  (You can find a list of tags [here](https://hub.docker.com/_/node/tags?name=slim).)
 - [ ] In the `hub-client` directory, run `npm update` to install minor version updates (probably non-breaking changes).
 - [ ] Run `npm outdated` to check for major updates (difference between wantend and latest) and change the package.json file to update major versions if wanted.
-  - **NOTE** For now, don't update matrix-js-sdk, see #654 and #862.
   - **NOTE** Don't update msw until #978 has been fixed.
   - **NOTE** Don't update tailwind-merge and tailwindcss until #1073 has been fixed.
 - [ ] To address issues that do not require attention, run: `npm audit fix`
