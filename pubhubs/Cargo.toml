@@ -31,6 +31,7 @@ common = [
 	"dep:base16ct",
 	"dep:curve25519-dalek",
 	"dep:rand",
+	"dep:aead",
 	"dep:subtle",
 	"dep:digest",
 	"dep:typenum",
@@ -41,7 +42,6 @@ bin = [
 	"common",
 	"dep:actix-web",
 	"dep:actix-cors",
-	"dep:aead",
 	"dep:anyhow",
 	"dep:awc",
 	"dep:base64ct",
@@ -152,7 +152,7 @@ uuid = { version = "1.11", features = ["v4"], optional = true }
 awc = { version = "3.6", features = ["openssl"], optional = true }
 
 # RustCrypto packages
-aead = { version = "0.5", optional = true }
+aead = { version = "0.5", features=["getrandom"], optional = true }
 base16ct = { version = "0.2", features = ["alloc", "std"], optional = true } # hex
 base64ct = { version = "1.6", features = ["alloc", "std"], optional = true }
 chacha20poly1305 = { version = "0.10", optional = true }
