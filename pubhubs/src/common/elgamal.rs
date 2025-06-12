@@ -190,7 +190,7 @@ pub mod rsk {
 
 macro_rules! osrng {
     () => {
-        &mut aead::rand_core::OsRng
+        &mut aead::OsRng
     };
 }
 
