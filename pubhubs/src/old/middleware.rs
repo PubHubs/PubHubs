@@ -1,11 +1,11 @@
-use actix_web::dev::{Service, ServiceRequest, ServiceResponse, Transform, forward_ready};
-use actix_web::http::StatusCode;
+use actix_web::dev::{forward_ready, Service, ServiceRequest, ServiceResponse, Transform};
 use actix_web::http::header::ContentType;
+use actix_web::http::StatusCode;
 use actix_web::web::Data;
-use actix_web::{Error, HttpMessage as _, HttpResponse, error};
+use actix_web::{error, Error, HttpMessage as _, HttpResponse};
 
 use std::fmt::{Debug, Display, Formatter};
-use std::future::{Future, Ready, ready};
+use std::future::{ready, Future, Ready};
 use std::pin::Pin;
 use std::rc::Rc;
 
@@ -162,7 +162,7 @@ pub fn metrics_middleware<
         };
 
         http_req_status
-            .with_label_values(&[&resource, status.as_str()])
+            .with_label_values(&[&resource, &status.as_str().to_string()])
             .inc();
 
         resp
