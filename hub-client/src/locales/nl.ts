@@ -279,6 +279,8 @@ const nl = {
 		unread_messages: 'Ongelezen berichten',
 		announcement: 'aankondiging',
 		steward: 'steward',
+		stewards: 'stewards',
+		memberlist: 'Leden',
 		administrator: 'beheerder',
 		votes: 'stemmen',
 	},
