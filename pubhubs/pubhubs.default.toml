@@ -76,7 +76,7 @@ url = "memory:///"
 handles = ['testhub', 'testhub_alias']
 name = "Testhub"
 description = '''This is the default testhub for local development'''
-info_url = 'http://localhost:1234/_synapse/client/.ph/info'
+url = 'http://localhost:1234/_synapse/client/'
 # NOTE: To generate a new `id`, use `cargo run tools generate id`
 id = 'i9RSgnZ44MMBdcJHX2GqDRNaOt_v63XOMekOmhLHvzg'
 

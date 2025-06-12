@@ -5,6 +5,24 @@ import { TimeFormat } from '@/logic/store/settings';
 import { useTimeFormat } from '../../src/logic/composables/useTimeFormat';
 const { formatDate, formatTimestamp } = useTimeFormat();
 
+vi.mock('vue-i18n', () => ({
+	useI18n: () => ({
+		t: vi.fn((key, params) => {
+			if (key === 'time.today') return 'Today';
+			if (key === 'time.yesterday') return 'Yesterday';
+			if (key === 'time.daysago') return `${params[0]} days ago`;
+			return key;
+		}),
+		d: vi.fn((date, format) => {
+			// Basic mock for d for 'short' format
+			if (format === 'short') {
+				return date.toLocaleDateString(); // Or any other desired mock date format
+			}
+			return '';
+		}),
+	}),
+}));
+
 describe('useTimeFormat', () => {
 	test('formatDate', () => {
 		setActivePinia(createPinia());

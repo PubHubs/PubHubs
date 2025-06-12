@@ -27,7 +27,7 @@ impl App {
 
         let resp = app
             .client
-            .query::<api::hub::Info>(&hub.info_url, NoPayload)
+            .query::<api::hub::Info>(&hub.url, NoPayload)
             .await
             .into_server_result()?;
 

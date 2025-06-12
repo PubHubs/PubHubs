@@ -2,11 +2,12 @@
 
 use actix_web::web;
 use pubhubs::{
-    api::{self, ApiResultExt as _, BytesPayload, NoPayload},
-    attr, client, elgamal, hub,
+    api::{self, ApiResultExt as _, BytesPayload, EndpointDetails as _, NoPayload},
+    attr, client, elgamal, handle, hub,
     misc::jwt,
     servers::{self, yivi},
 };
+use std::collections::HashMap;
 use std::{sync::Arc, time::Duration};
 
 const CONFIG_FILE_PATH: &'static str = "pubhubs.default.toml";
@@ -313,7 +314,59 @@ async fn main_integration_test_local(
     let email = acr.attrs.get(&"email".parse().unwrap()).unwrap();
     let phone = acr.attrs.get(&"phone".parse().unwrap()).unwrap();
 
-    // Use these attributes to register an account;  which cannot be done with just the email
+    // Retrieve attribute key for email
+    let Ok(api::auths::AttrKeysResp::Success(attr_keys)) = client
+        .query_with_retry::<api::auths::AttrKeysEP, _, _>(
+            &constellation.auths_url,
+            HashMap::<handle::Handle, api::auths::AttrKeyReq>::from([(
+                "em".parse().unwrap(),
+                api::auths::AttrKeyReq {
+                    attr: email.clone(),
+                    timestamp: None,
+                },
+            )]),
+        )
+        .await
+    else {
+        panic!()
+    };
+
+    let api::auths::AttrKeyResp {
+        latest_key: (email_key, email_key_ts),
+        old_key: None,
+    } = attr_keys.get(&"em".parse().unwrap()).unwrap()
+    else {
+        panic!()
+    };
+
+    // Retrieve attribute key for email, again
+    let Ok(api::auths::AttrKeysResp::Success(attr_keys)) = client
+        .query_with_retry::<api::auths::AttrKeysEP, _, _>(
+            &constellation.auths_url,
+            HashMap::<handle::Handle, api::auths::AttrKeyReq>::from([(
+                "em".parse().unwrap(),
+                api::auths::AttrKeyReq {
+                    attr: email.clone(),
+                    timestamp: Some(*email_key_ts),
+                },
+            )]),
+        )
+        .await
+    else {
+        panic!()
+    };
+
+    let api::auths::AttrKeyResp {
+        old_key: Some(email_old_key),
+        ..
+    } = attr_keys.get(&"em".parse().unwrap()).unwrap()
+    else {
+        panic!()
+    };
+
+    assert_eq!(email_old_key, email_key);
+
+    // Use the attributes to register an account;  which cannot be done with just the email
     // address..
     assert!(matches!(
         client
@@ -477,12 +530,17 @@ async fn main_integration_test_local(
     assert_eq!(*obj_size, "object contents! 2".len() as u32);
 
     // retrieve object
-    let bytes = client
+    let api::Payload::Octets(bytes) = client
         .query::<api::phc::user::GetObjectEP>(&constellation.phc_url, NoPayload)
         .path_param("hash", new_hash.to_string())
         .path_param("hmac", obj_hmac.to_string())
         .with_retry()
-        .await;
+        .await
+    else {
+        panic!()
+    };
+
+    assert_eq!(bytes.as_ref(), b"object contents! 2");
 }
 
 /// Contents of a disclosure session request JWT
@@ -518,14 +576,17 @@ impl MockHub {
                 move || {
                     actix_web::App::new()
                         .app_data(web::Data::new(context.clone()))
-                        .route(context.info.info_url.path(), web::get().to(handle_info_url))
+                        .service(
+                            actix_web::web::scope(context.info.url.path().trim_end_matches('/'))
+                                .route(api::hub::Info::PATH, web::get().to(handle_info_url)),
+                        )
                 }
             })
             .bind((
-                context.info.info_url.host_str().unwrap(),
+                context.info.url.host_str().unwrap(),
                 context
                     .info
-                    .info_url
+                    .url
                     .port()
                     .expect("testhub info url has no port"),
             ))

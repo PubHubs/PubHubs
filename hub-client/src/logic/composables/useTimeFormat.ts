@@ -2,6 +2,7 @@ import { TimeFormat, useSettings } from '@/logic/store/settings';
 import { useI18n } from 'vue-i18n';
 
 const useTimeFormat = () => {
+	const { t, d } = useI18n();
 	function formatDate(date: Date, format: TimeFormat | undefined) {
 		const settings = useSettings();
 		if (typeof format === 'undefined') {
@@ -30,7 +31,6 @@ const useTimeFormat = () => {
 	// e.g., is the event happened today, yesterday or few days before or on a date.
 	// This is useful for displaying when the message was written on the room.
 	function formattedTimeInformation(timeStamp: number): string {
-		const { t, d } = useI18n();
 		const date = new Date(timeStamp);
 		const today = new Date();
 

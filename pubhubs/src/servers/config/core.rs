@@ -384,6 +384,12 @@ pub mod auths {
         #[serde(with = "time_ext::human_duration")]
         #[serde(default = "default_auth_window")]
         pub auth_window: core::time::Duration,
+
+        /// Used to derive attribute keys (see [`api::auths::AttrKeysEP`])
+        ///
+        /// Randomly generated when not set.  When changed, users loose access to all data
+        /// stored at PHC.
+        pub attr_key_secret: Option<B64UU>,
     }
 
     fn default_auth_window() -> core::time::Duration {
@@ -558,6 +564,10 @@ impl PrepareConfig<Pcc> for auths::ExtraConfig {
         }
 
         self.filter_attribute_types();
+
+        self.attr_key_secret.get_or_insert_with(|| {
+            serde_bytes::ByteBuf::from(crate::misc::crypto::random_32_bytes()).into()
+        });
 
         Ok(())
     }

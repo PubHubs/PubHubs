@@ -192,7 +192,8 @@ const nl = {
 	others: {
 		step: 'Stap {0}',
 		nop: 'Deze functionaliteit is nog niet geimplementeerd.',
-		search: 'Zoek naar kamers',
+		search: 'Zoeken',
+		search_rooms: 'Zoek naar kamers',
 		search_hubs: 'Zoek naar hubs',
 		search_hubs_not_found: 'Geen hubs gevonden',
 		search_rooms_not_found: 'Geen kamers gevonden',
@@ -213,6 +214,7 @@ const nl = {
 		help: 'Loop je vast met PubHubs?',
 		work_in_progress: 'PubHubs is nog in ontwikkeling. We zijn nog bezig met het maken van een handleiding. Stel je vraag voorlopig in een van de kamers.',
 		no_private_message: 'Het is hier nog wat stil. Laten we iets nieuws beginnen! Tik gewoon op het +-icoon om je eerste gesprek te starten.',
+		filter_users: 'filter',
 	},
 	hubs: {
 		under_construction: 'Deze hub is in onderhoud',
@@ -238,8 +240,8 @@ const nl = {
 		private_add: 'Nieuwe privé kamer',
 		private_search_user: 'Zoek persoon',
 		rooms: 'Kamers',
-		join_room: 'Betreed kamer',
-		already_joined: 'Al lid',
+		join_room: 'Neem deel',
+		already_joined: 'Betreed kamer',
 		view_access_requirements: 'Bekijk eisen',
 		close_access_requirements: 'Sluit eisen',
 		join_secured_room: 'Betreed beveiligde kamer',
@@ -380,6 +382,7 @@ const nl = {
 		msg_prev_admin_join: 'Wil je je aansluiten bij de vorige kamerbeheerder?',
 		msg_make_admin: 'Je wordt nu kamerbeheerder.',
 		information: 'Informatie',
+		support: 'Admin ondersteuning',
 	},
 
 	themes: {

@@ -1010,6 +1010,146 @@ const usePubHubs = defineStore('pubhubs', {
 		async getRoomAvatar(roomId: string) {
 			return await this.client.getStateEvent(roomId, EventType.RoomAvatar, '');
 		},
+		// Admin contact related functionality
+
+		/**
+		 * Fetches admin IDs from the API
+		 */
+		async fetchAdminIds(): Promise<string[]> {
+			return await api_synapse.apiGET(api_synapse.apiURLS.users);
+		},
+
+		/**
+		 * Initializes or extends admin contact room by adding hub admin members.
+		 */
+		async initializeOrExtendAdminContactRoom(): Promise<void> {
+			const adminIds: string[] = await this.fetchAdminIds();
+			// Don't do anything if there are no new admins
+			if (!this.hasNewAdmin(adminIds)) return;
+
+			await this.setupAdminContactRoom(adminIds);
+		},
+
+		/**
+		 * Sets up the admin contact room based on existing state
+		 */
+		async setupAdminContactRoom(adminIds: string[]): Promise<void> {
+			const existingRoom = this.findAdminContactRoom();
+
+			if (existingRoom) {
+				await this.handleExistingAdminRoom(existingRoom, adminIds);
+			} else {
+				await this.createNewAdminRoom(adminIds);
+			}
+		},
+
+		/**
+		 * Handles navigation to an existing admin room and invites new admins or remove them based on their admin status.
+		 */
+		async handleExistingAdminRoom(room: Room, adminIds: string[]): Promise<void> {
+			const roomId = room.roomId;
+			const newAdminId = this.findNewAdminId(adminIds);
+
+			if (newAdminId) {
+				newAdminId.forEach(async (adminId: string) => {
+					if (this.hasNotBeenInvitedOrJoined(room, adminId)) {
+						await this.invite(roomId, adminId);
+					}
+				});
+			}
+
+			const oldAdminIds = this.removeOldAdminId(adminIds);
+			if (oldAdminIds) {
+				oldAdminIds.forEach(async (adminId: string) => {
+					if (room.getMember(adminId)?.membership === 'join') {
+						await this.client.kick(roomId, adminId);
+					}
+				});
+			}
+		},
+
+		/**
+		 * Creates a new admin contact room if none exists
+		 */
+		async createNewAdminRoom(adminIds: string[]): Promise<void> {
+			const adminUsers = adminIds.map((adminId) => this.client.getUser(adminId)).filter((user) => user !== null);
+
+			// This condition is to satisfy the createPrivateRoomWith function - It takes either a User or MatrixUser[] as argument
+			const oneOrManyAdmins = adminUsers.length === 1 ? (adminUsers.pop() as User) : adminUsers;
+			await this.createPrivateRoomWith(oneOrManyAdmins, true);
+		},
+		/**
+		 * Finds the admin contact room if it exists
+		 */
+		findAdminContactRoom(): Room | undefined {
+			const rooms = useRooms();
+			return rooms.fetchRoomArrayByType(RoomType.PH_MESSAGE_ADMIN_CONTACT).pop();
+		},
+
+		/**
+		 * Gets the list of existing admin member IDs from the admin contact room
+		 */
+		getExistingAdminMemberIds(): string[] {
+			const room = this.findAdminContactRoom();
+
+			if (!room) {
+				return [];
+			}
+			const joinedMembers = room.getOtherJoinedMembers().map((member) => member.userId);
+			const inviteMembers = room.getOtherInviteMembers().map((member) => member.userId);
+			return [...joinedMembers, ...inviteMembers];
+		},
+		/**
+		 * Finds any new admin ID that needs to be invited to the room
+		 */
+		findNewAdminId(adminIds: string[]): string[] | undefined {
+			const existingAdminIds = this.getExistingAdminMemberIds();
+
+			if (existingAdminIds.length >= adminIds.length) {
+				return undefined;
+			}
+			const newAdmins = adminIds.filter((id) => !existingAdminIds.includes(id));
+			return newAdmins;
+		},
+
+		/**
+		 *
+		 * Find  hub administrators who are no longer admins so that they can be removed from the room.
+		 */
+		removeOldAdminId(adminIds: string[]): string[] | undefined {
+			const existingAdminIds = this.getExistingAdminMemberIds();
+			if (existingAdminIds.length <= adminIds.length) {
+				return undefined;
+			}
+			return existingAdminIds.filter((id) => !adminIds.includes(id));
+		},
+
+		/**
+		 * Is Admin contact room ready
+		 */
+		isAdminRoomReady(): boolean {
+			const rooms = useRooms();
+			return rooms.fetchRoomArrayByType(RoomType.PH_MESSAGE_ADMIN_CONTACT).length != 0;
+		},
+		/*
+		 * Get Admin Room Id
+		 */
+		getAdminRoomId(): string | undefined {
+			return this.findAdminContactRoom()?.roomId;
+		},
+
+		/**
+		 *
+		 *  Check if there are new admin or not
+		 */
+		hasNewAdmin(adminIds: string[]): boolean {
+			const existingAdminIds = this.getExistingAdminMemberIds();
+			return existingAdminIds.length != adminIds.length;
+		},
+
+		hasNotBeenInvitedOrJoined(room: Room, adminId: string) {
+			return !(room.getMember(adminId)?.membership === 'join' || room.getMember(adminId)?.membership === 'invite');
+		},
 	},
 });
 
