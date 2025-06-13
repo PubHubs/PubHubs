@@ -6,6 +6,7 @@ use serde::{de::DeserializeOwned, Deserialize, Serialize};
 
 use crate::api;
 use crate::misc::crypto;
+use crate::misc::error::Opaque;
 use crate::misc::serde_ext::bytes_wrapper::B64UU;
 
 pub use crypto::SealingKey;
@@ -15,7 +16,7 @@ pub use crypto::SealingKey;
 #[serde(transparent)]
 pub struct Sealed<T>
 where
-    T: Serialize + DeserializeOwned,
+    T: api::Signable,
 {
     pub(crate) inner: B64UU,
 
@@ -24,21 +25,28 @@ where
 
 impl<T> Sealed<T>
 where
-    T: Serialize + DeserializeOwned,
+    T: api::Signable,
 {
     /// Seals a `message` using the given [`SealingKey`].
     pub fn new(message: &T, key: &SealingKey) -> api::Result<Self> {
         Ok(Self {
             phantom_data: PhantomData,
-            inner: serde_bytes::ByteBuf::from(crypto::seal(message, key, b"").map_err(|err| {
-                log::error!(
-                    "failed to seal message of type {tp}: {err:#}",
-                    tp = std::any::type_name::<T>()
-                );
+            inner: serde_bytes::ByteBuf::from(
+                crypto::seal(message, key, &T::CODE.to_bytes()).map_err(|err| {
+                    log::error!(
+                        "failed to seal message of type {tp}: {err:#}",
+                        tp = std::any::type_name::<T>()
+                    );
 
-                api::ErrorCode::InternalError
-            })?)
+                    api::ErrorCode::InternalError
+                })?,
+            )
             .into(),
         })
+    }
+
+    /// Opens this sealed message
+    pub fn open(self, key: &SealingKey) -> Result<T, Opaque> {
+        crypto::unseal(&*self.inner, key, &T::CODE.to_bytes())
     }
 }

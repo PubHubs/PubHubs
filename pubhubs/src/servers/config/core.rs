@@ -374,6 +374,13 @@ pub mod transcryptor {
         ///
         /// Generate using `cargo run tools generate scalar`.
         pub master_enc_key_part: Option<elgamal::PrivateKey>,
+
+        /// Used to generate the *pseudonymisation factor secret* `g_H` given hub `H`'s identifier.
+        ///
+        /// Should **never be changed** in a production environment.
+        ///
+        /// Randomly generated when not set.t
+        pub pseud_factor_secret: Option<B64UU>,
     }
 }
 
@@ -540,6 +547,10 @@ impl PrepareConfig<Pcc> for transcryptor::ExtraConfig {
     async fn prepare(&mut self, _c: Pcc) -> anyhow::Result<()> {
         self.master_enc_key_part
             .get_or_insert_with(elgamal::PrivateKey::random);
+
+        self.pseud_factor_secret.get_or_insert_with(|| {
+            serde_bytes::ByteBuf::from(crate::misc::crypto::random_32_bytes()).into()
+        });
 
         Ok(())
     }

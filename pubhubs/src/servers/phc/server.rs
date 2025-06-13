@@ -36,7 +36,7 @@ impl servers::Details for Details {
             .shared_secret(&constellation.transcryptor_enc_key);
         Ok(ExtraRunningState {
             attr_signing_key: phcrypto::attr_signing_key(&auths_ss),
-            ppp_secret: phcrypto::ppp_secret(&t_ss),
+            t_sealing_secret: phcrypto::sealing_secret(&t_ss),
             auths_ss,
             t_ss,
         })
@@ -80,8 +80,8 @@ pub struct ExtraRunningState {
     /// [`Attr`]: crate::attr::Attr
     pub(super) attr_signing_key: jwt::HS256,
 
-    /// Key used to seal [`api::sso::PolymorphicPseudonymPackage`]s
-    pub(super) ppp_secret: crypto::SealingKey,
+    /// Key used to (un)seal messages to and from the transcryptor
+    pub(super) t_sealing_secret: crypto::SealingKey,
 }
 
 impl crate::servers::App<Server> for App {

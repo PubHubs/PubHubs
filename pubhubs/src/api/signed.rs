@@ -188,9 +188,18 @@ pub enum MessageCode {
     AdminUpdateConfigReq = 5,
     AdminInfoReq = 6,
     Attr = 7,
+    Ppp = 8,
+    Ehpp = 9,
+    PpNonce = 10,
 
     /// Only used as an example in a doctest
     Example = 65535,
+}
+
+impl MessageCode {
+    pub fn to_bytes(&self) -> [u8; 2] {
+        u16::deserialize(self.into_deserializer()).to_be()
+    }
 }
 
 impl std::fmt::Display for MessageCode {

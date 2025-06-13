@@ -37,7 +37,7 @@ impl App {
                 polymorphic_pseudonym: user_state.polymorphic_pseudonym.rerandomize(),
                 nonce: api::Sealed::new(&nonce_inner, &app.pp_nonce_secret)?.into(),
             },
-            &running_state.ppp_secret,
+            &running_state.t_sealing_secret,
         )?))
     }
 }
@@ -51,6 +51,8 @@ struct PpNonceInner {
     /// The [`id::Id`] of the user requesting this [`PolymorphicPseudonymPackage`].
     user_id: id::Id,
 }
+
+api::having_message_code!(PpNonceInner, PpNonce);
 
 impl From<api::Sealed<PpNonceInner>> for PpNonce {
     fn from(sealed: api::Sealed<PpNonceInner>) -> Self {
