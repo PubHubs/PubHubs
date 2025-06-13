@@ -338,7 +338,7 @@ pub mod phc {
         #[serde(default = "default_auth_token_validity")]
         pub auth_token_validity: core::time::Duration,
 
-        /// [`api::PpNonce`]s issued to the global client are valid for this duration.
+        /// [`api::phc::user::PpNonce`]s issued to the global client are valid for this duration.
         #[serde(with = "time_ext::human_duration")]
         #[serde(default = "default_pp_nonce_validity")]
         pub pp_nonce_validity: core::time::Duration,

@@ -85,7 +85,7 @@ pub fn attr_signing_key(shared_secret: &elgamal::SharedSecret) -> jwt::HS256 {
     shared_secret.derive_hs256(sha2::Sha256::new(), "pubhubs-attr-signing")
 }
 
-/// Computes the [`crypto::SealingKey`] used to seal [`api::PolymorphicPseudonymPackage`] from the
+/// Computes the [`crypto::SealingKey`] used to seal [`api::sso::PolymorphicPseudonymPackage`] from the
 /// secret shared between PHC and the trancryptor.
 pub fn ppp_secret(shared_secret: &elgamal::SharedSecret) -> crypto::SealingKey {
     shared_secret.derive_sealing_key(sha2::Sha256::new(), "pubhubs-ppp-secret")
