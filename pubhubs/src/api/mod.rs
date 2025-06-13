@@ -44,14 +44,14 @@
 //!
 //! Entering a hub is slightly more involved, as pubhubs central is not allowed to know the hub and
 //! the transcryptor is not allowed to know the user.  These privacy guarantees can be achieved by
-//! clever use of elliptic curves as described in the whitepaper
-//! <https://academic.oup.com/logcom/article/34/7/1377/7319213>.  The procedure below uses the same
-//! ideas but has been modified to prevent 'harvest know, decrypt later' attacks against the
-//! elliptic curve cryptography when quantum computers ever materialize.
+//! clever use of elliptic curves as described in [the whitepaper](https://academic.oup.com/logcom/article/34/7/1377/7319213)  
+//! The procedure below uses the same
+//! ideas but has been modified to prevent already generated pseudonyms from being linked
+//! when a large quantum computer ever materializes.
 //!
 //!  1. The global client obtains a sealed  **[`sso::PolymorphicPseudonymPackage`] (PPP)**
 //!     from PHC via [`phc::user::PppEP`] and a **hub nonce** and **hub state**
-//!     pair from [`hub::EnterStartEP`].
+//!     pair from the hub via [`hub::EnterStartEP`].
 //!
 //!  2. The global client sends the PPP, hub nonce and hub id to the transcryptor's
 //!     [`tr::EhppEP`], which yields a sealed **[`sso::EncryptedHubPseudonymPackage`] (EHPP)**.

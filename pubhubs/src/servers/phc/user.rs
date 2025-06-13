@@ -42,21 +42,12 @@ impl App {
         app: Rc<Self>,
         auth_token: actix_web::web::Header<AuthToken>,
     ) -> api::Result<StateResp> {
-        let user_id = if let Ok(user_id) = app.open_auth_token(auth_token.into_inner()) {
-            user_id
-        } else {
+        let Ok((user_state, _)) = app
+            .open_auth_token_and_get_user_state(auth_token.into_inner())
+            .await?
+        else {
             return Ok(StateResp::RetryWithNewAuthToken);
         };
-
-        let (user_state, _) = app
-            .get_object::<UserState>(&user_id)
-            .await?
-            .ok_or_else(|| {
-                log::error!(
-                    "auth token refers to non- (or no longer) existing user with id {user_id}",
-                );
-                api::ErrorCode::InternalError
-            })?;
 
         Ok(StateResp::State(user_state.into_user_version(&app)))
     }
@@ -518,6 +509,28 @@ impl App {
     /// Opens the given [`AuthToken`] returning the enclosed user's [`Id`].
     pub(super) fn open_auth_token(&self, auth_token: AuthToken) -> Result<Id, Opaque> {
         AuthTokenInner::unseal(&auth_token, &self.auth_token_secret)?.open()
+    }
+
+    /// Opens the given [`AuthToken`] and retrieve the associated [`UserState`].
+    ///
+    /// Returns `Ok(Err(Opaque))` when the auth token was invalid.
+    pub(super) async fn open_auth_token_and_get_user_state(
+        &self,
+        auth_token: AuthToken,
+    ) -> api::Result<Result<(UserState, object_store::UpdateVersion), Opaque>> {
+        let Ok(user_id) = self.open_auth_token(auth_token) else {
+            return Ok(Err(OPAQUE));
+        };
+
+        Ok(Ok(self
+            .get_object::<UserState>(&user_id)
+            .await?
+            .ok_or_else(|| {
+                log::error!(
+                    "auth token refers to non- (or no longer) existing user with id {user_id}",
+                );
+                api::ErrorCode::InternalError
+            })?))
     }
 }
 

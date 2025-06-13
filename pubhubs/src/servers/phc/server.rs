@@ -11,7 +11,7 @@ use crate::common::secret::DigestibleSecret as _;
 use crate::misc::crypto;
 use crate::misc::jwt;
 use crate::phcrypto;
-use crate::servers::{self, AppBase, AppCreatorBase, Constellation, Handle, constellation};
+use crate::servers::{self, constellation, AppBase, AppCreatorBase, Constellation, Handle};
 
 use crate::{elgamal, hub};
 
@@ -31,12 +31,14 @@ impl servers::Details for Details {
         constellation: &Constellation,
     ) -> anyhow::Result<Self::ExtraRunningState> {
         let auths_ss = server.enc_key.shared_secret(&constellation.auths_enc_key);
+        let t_ss = server
+            .enc_key
+            .shared_secret(&constellation.transcryptor_enc_key);
         Ok(ExtraRunningState {
-            t_ss: server
-                .enc_key
-                .shared_secret(&constellation.transcryptor_enc_key),
             attr_signing_key: phcrypto::attr_signing_key(&auths_ss),
+            ppp_secret: phcrypto::ppp_secret(&t_ss),
             auths_ss,
+            t_ss,
         })
     }
 }
@@ -75,6 +77,9 @@ pub struct ExtraRunningState {
     ///
     /// [`Attr`]: crate::attr::Attr
     pub(super) attr_signing_key: jwt::HS256,
+
+    /// Key used to seal [`api::sso::PolymorphicPseudonymPackage`]s
+    pub(super) ppp_secret: crypto::SealingKey,
 }
 
 impl crate::servers::App<Server> for App {
