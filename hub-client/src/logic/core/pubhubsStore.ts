@@ -1010,13 +1010,23 @@ const usePubHubs = defineStore('pubhubs', {
 		async getRoomAvatar(roomId: string) {
 			return await this.client.getStateEvent(roomId, EventType.RoomAvatar, '');
 		},
+		// Room timestamp related functionality
+
+		/**
+		 * Fetches latest room timestamps from the API
+		 */
+		async fetchTimestamps(): Promise<Array<Array<Number | string>>> {
+			const url = `${api_synapse.apiURLS.data}?data=timestamps`;
+			return await api_synapse.apiGET(url);
+		},
 		// Admin contact related functionality
 
 		/**
 		 * Fetches admin IDs from the API
 		 */
 		async fetchAdminIds(): Promise<string[]> {
-			return await api_synapse.apiGET(api_synapse.apiURLS.users);
+			const url = `${api_synapse.apiURLS.data}?data=admin_users`;
+			return await api_synapse.apiGET(url);
 		},
 
 		/**
@@ -1024,6 +1034,7 @@ const usePubHubs = defineStore('pubhubs', {
 		 */
 		async initializeOrExtendAdminContactRoom(): Promise<void> {
 			const adminIds: string[] = await this.fetchAdminIds();
+			if (!adminIds) return;
 			// Don't do anything if there are no new admins
 			if (!this.hasNewAdmin(adminIds)) return;
 

@@ -7,7 +7,7 @@ import { defineStore } from 'pinia';
 import { MessageType } from './messagebox';
 import { api_synapse } from '@/logic/core/api';
 import { FeatureFlag, Theme, useSettings } from './settings';
-import { HubSettingsJSONParser } from '@/logic/store/jsonutility';
+import { HubSettingsJSONParser } from '@/logic/store/json-utility';
 
 type HubInformation = {
 	name: string;
@@ -19,6 +19,11 @@ type HubSettingsState = {
 	hubUrl: string;
 	isSolo: boolean;
 	mobileHubMenu: boolean;
+	_summary: string;
+	_description: string;
+	_contact: string;
+	_consent: string;
+	_version: number;
 };
 
 export const ALLOWED_HUB_ICON_TYPES = ['image/png', 'image/jpeg', 'image/jpg', 'image/svg+xml'];
@@ -34,6 +39,11 @@ const useHubSettings = defineStore('hub-settings', {
 			hubUrl: _env.HUB_URL,
 			isSolo: window.self === window.top,
 			mobileHubMenu: true,
+			_summary: '',
+			_description: '',
+			_contact: '',
+			_consent: '',
+			_version: 1,
 		};
 	},
 
@@ -124,6 +134,21 @@ const useHubSettings = defineStore('hub-settings', {
 		hubInfo(): HubInformation | undefined {
 			return this._hub;
 		},
+		hubDescription(): string {
+			return this._description;
+		},
+		hubSummary(): string {
+			return this._summary;
+		},
+		hubContact(): string {
+			return this._contact;
+		},
+		hubConsent(): string {
+			return this._consent;
+		},
+		hubConsentVersion(): number {
+			return this._version;
+		},
 	},
 	actions: {
 		hideBar() {
@@ -153,7 +178,13 @@ const useHubSettings = defineStore('hub-settings', {
 		async getHubJSON(): Promise<HubSettingsJSONParser | undefined> {
 			const settings = useSettings();
 			if (settings.isFeatureEnabled(FeatureFlag.hubSettings)) {
-				return await api_synapse.apiGET<HubSettingsJSONParser>(api_synapse.apiURLS.hubSettings);
+				const response = await api_synapse.apiGET<HubSettingsJSONParser>(api_synapse.apiURLS.hubSettings);
+				this._summary = response.summary;
+				this._description = response.description;
+				this._contact = response.contact;
+				this._consent = response.consent;
+				this._version = response.version;
+				return response;
 			} else {
 				return undefined;
 			}

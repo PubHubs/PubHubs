@@ -288,14 +288,14 @@
 
 	// Consent handling
 	const hasAgreed = ref(false);
-	const consentVersion = ref(0);
+	const consentVersion = ref(hubSettings.hubConsentVersion);
 	const consentText = ref('');
 
 	const loadHubSettings = async () => {
 		const hubSettingsJSON = await hubSettings.getHubJSON();
 
 		if (hubSettingsJSON) {
-			consentVersion.value = hubSettingsJSON.version ? hubSettingsJSON.version : 1;
+			consentVersion.value = hubSettingsJSON.version ? hubSettingsJSON.version : hubSettings.hubConsentVersion;
 			consentText.value = hubSettingsJSON.consent;
 		}
 	};

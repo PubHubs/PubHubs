@@ -72,8 +72,8 @@
 		showPubHubsCentralLoginButton: boolean;
 	};
 
-	const hubDescription = ref<string>('');
-	const hubContact = ref<string>('');
+	const hubDescription = ref<string>(hubSettings.hubDescription);
+	const hubContact = ref<string>(hubSettings.hubContact);
 
 	const props = defineProps<Props>();
 

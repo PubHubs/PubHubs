@@ -104,7 +104,7 @@
 	import { SMI } from '@/logic/foundation/StatusMessage';
 	import { LOGGER } from '@/logic/foundation/Logger';
 	import { ALLOWED_HUB_ICON_TYPES, MAX_HUB_ICON_SIZE, useHubSettings } from '@/logic/store/hub-settings';
-	import { HubSettingsJSONParser } from '@/logic/store/jsonutility';
+	import { HubSettingsJSONParser } from '@/logic/store/json-utility';
 	import { computed, ref, onBeforeMount } from 'vue';
 	import { useI18n } from 'vue-i18n';
 	import H3 from '@/components/elements/H3.vue';
@@ -142,17 +142,17 @@
 	});
 
 	// Hub settings
-	const hubDescription = ref<string>('');
-	const originalDescription = ref<string>('');
+	const hubDescription = ref<string>(hubSettings.hubDescription);
+	const originalDescription = ref<string>(hubSettings.hubDescription);
 
-	const hubSummary = ref<string>('');
-	const originalSummary = ref<string>('');
+	const hubSummary = ref<string>(hubSettings.hubSummary);
+	const originalSummary = ref<string>(hubSettings.hubSummary);
 
-	const hubContact = ref<string>('');
-	const originalContact = ref<string>('');
+	const hubContact = ref<string>(hubSettings.hubContact);
+	const originalContact = ref<string>(hubSettings.hubContact);
 
-	const hubConsent = ref<string>('');
-	const originalConsent = ref<string>('');
+	const hubConsent = ref<string>(hubSettings.hubConsent);
+	const originalConsent = ref<string>(hubSettings.hubConsent);
 
 	const version = ref<number>(0);
 
