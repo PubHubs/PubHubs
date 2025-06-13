@@ -3,11 +3,14 @@ use std::rc::Rc;
 
 use actix_web::web;
 
+use crate::elgamal;
 use crate::{
     api::{self, EndpointDetails as _},
-    servers::{self, AppBase, AppCreatorBase, Constellation, Handle, constellation},
+    servers::{self, constellation, AppBase, AppCreatorBase, Constellation, Handle},
 };
-use crate::{elgamal, handle, phcrypto};
+use crate::{handle, phcrypto};
+
+use api::tr::*;
 
 /// Transcryptor
 pub type Server = servers::ServerImpl<Details>;
@@ -51,6 +54,8 @@ impl Deref for App {
 impl crate::servers::App<Server> for App {
     fn configure_actix_app(self: &Rc<Self>, sc: &mut web::ServiceConfig) {
         api::phct::hub::Key::add_to(self, sc, App::handle_hub_key);
+
+        EhppEP::add_to(self, sc, App::handle_ehpp);
     }
 
     fn check_constellation(&self, constellation: &Constellation) -> bool {
@@ -112,6 +117,31 @@ impl App {
         );
 
         Ok(api::phct::hub::KeyResp { key_part })
+    }
+
+    /// Implements [`EhppEP`]
+    async fn handle_ehpp(app: Rc<Self>, req: web::Json<EhppReq>) -> api::Result<EhppResp> {
+        let EhppReq {
+            hub_nonce,
+            hub,
+            ppp,
+        } = req.into_inner();
+
+        let api::sso::PolymorphicPseudonymPackage {
+            polymorphic_pseudonym,
+            nonce: phc_nonce,
+        } = todo! {};
+
+        let encrypted_hub_pseudonym: elgamal::Triple = todo! {};
+
+        Ok(EhppResp::Success(api::Sealed::new(
+            &api::sso::EncryptedHubPseudonymPackage {
+                encrypted_hub_pseudonym,
+                hub_nonce,
+                phc_nonce,
+            },
+            todo! {},
+        )?))
     }
 }
 
