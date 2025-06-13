@@ -9,13 +9,38 @@ import os
 
 logger = logging.getLogger("synapse.contrib." + __name__)
 
-class HubJSONResource(DirectServeJsonResource):
+class HubSettingsResource(DirectServeJsonResource):
+	"""
+	HubSettingsResource provides a RESTful resource for managing Hub JSON settings.
+	This resource allows clients to retrieve and update hub's JSON configuration file.
+	It enforces CORS policies and restricts modification operations to hub administrators.
+	Attributes:
+		_module_api (ModuleApi): API for interacting with module-specific logic and user management.
+		_module_config (HubClientApiConfig): Configuration object containing paths and URLs for the hub client.
+		_store: Storage backend or context (type unspecified).
+		_is_default (bool): Indicates if this resource serves the default hub configuration.
+	Methods:
+		__init__(module_api, module_config, store, is_default=False):
+			Initializes the resource with the given API, configuration, store, and default flag.
+		async _async_render_GET(request: SynapseRequest) -> bytes:
+			Handles GET requests to retrieve the hub's JSON settings.
+			Applies CORS headers based on the request's Origin.
+			Returns 403 if the Origin is not allowed.
+		async _async_render_POST(request: SynapseRequest) -> bytes:
+			Handles POST requests to update the hub's JSON settings.
+			Only allows updates by hub administrators.
+			Validates JSON format and writes the updated configuration to disk.
+		async _user_is_admin(request) -> bool:
+			Checks if the user making the request is a hub administrator.
+		_get_json_path() -> str:
+			Returns the path to the hub's JSON configuration file, depending on whether this is the default resource.
+	"""
 	_module_api: ModuleApi
 	_module_config: HubClientApiConfig
 	_store: any
 	_is_default: bool
 	
-	def __init__(self, module_api: ModuleApi, module_config: HubClientApiConfig, store, is_default: bool = False):
+	def __init__(self, module_api: ModuleApi, module_config: HubClientApiConfig, store: HubStore, is_default: bool = False):
 		super().__init__()
 		
 		self._module_api = module_api
@@ -34,16 +59,6 @@ class HubJSONResource(DirectServeJsonResource):
 
 		origin = request.getHeader(b"Origin")
 		if origin in [self._module_config.hub_client_url.encode(), self._module_config.global_client_url.encode()]:
-			if origin == self._module_config.hub_client_url.encode():
-				# Use get_user_by_req to validate the access token
-				try:
-					await self._module_api.get_user_by_req(request)
-				except Exception as e:
-					respond_with_json(request, 400, {"error": {e}})
-					return
-				timestamps = await self._store.all_rooms_latest_timestamp()
-				hub_settings_json['timestamps'] = timestamps
-
 			request.setHeader(b"Access-Control-Allow-Origin", origin)
 			request.setHeader(b"Content-Type", b"application/json")
 			respond_with_json(request, 200, hub_settings_json)
@@ -71,20 +86,8 @@ class HubJSONResource(DirectServeJsonResource):
 		except json.JSONDecodeError:
 			respond_with_json(request, 400, {"message": "Invalid JSON format."})
 		except Exception as e:
-			logger.error(f"Error updating description: {str(e)}")
-			respond_with_json(request, 500, {"message": f"Failed to update Hub JSON: {str(e)}"})
-	
-	async def _async_render_DELETE(self, request: SynapseRequest) -> bytes:
-		if not await self._user_is_admin(request):
-			respond_with_json(request, 403, {"message": "Only Hub admins can delete the Hub JSON data."})
-			return
-			
-		description_path = self._get_json_path()
-		if os.path.exists(description_path):
-			os.remove(description_path)
-			
-		request.setHeader(b"Access-Control-Allow-Origin", self._module_config.hub_client_url.encode())
-		respond_with_json(request, 200, {"message": "Hub JSON data deleted."})
+			logger.error(f"Error updating hub settings JSON: {str(e)}")
+			respond_with_json(request, 500, {"message": f"Failed to update Hub settings JSON: {str(e)}"})
 	
 	async def _user_is_admin(self, request) -> bool:
 		user = await self._module_api.get_user_by_req(request)

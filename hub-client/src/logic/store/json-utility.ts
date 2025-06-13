@@ -14,14 +14,12 @@ export class HubSettingsJSONParser {
 	contact: string;
 	consent: string;
 	version: number;
-	timestamps: Array<Array<Number | String>>;
 
-	constructor(description: string, summary: string, contact: string, consent: string, version: number, timestamps: Array<Array<Number | string>>) {
+	constructor(description: string, summary: string, contact: string, consent: string, version: number) {
 		this.description = description ? description.replace(/\\n/g, '\n').replace(/"/g, '') : '';
 		this.summary = summary ? summary.replace(/\\n/g, '\n').replace(/"/g, '') : '';
 		this.contact = contact ? contact.replace(/\\n/g, '\n').replace(/"/g, '') : '';
 		this.consent = consent ? consent.replace(/\\n/g, '\n').replace(/"/g, '') : '';
 		this.version = version ? Number(version) : 1;
-		this.timestamps = timestamps;
 	}
 }

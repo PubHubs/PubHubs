@@ -71,6 +71,7 @@ const useRooms = defineStore('rooms', {
 			askDisclosureMessage: null as AskDisclosureMessage | null,
 			newAskDisclosureMessage: false,
 			initialRoomsLoaded: false,
+			timestamps: [] as Array<Array<Number | string>>,
 		};
 	},
 
@@ -191,11 +192,17 @@ const useRooms = defineStore('rooms', {
 			});
 			return total;
 		},
+		roomtimestamps(state): Array<Array<Number | string>> {
+			return state.timestamps;
+		},
 	},
 
 	actions: {
 		setRoomsLoaded(value: boolean) {
 			this.initialRoomsLoaded = value;
+		},
+		setTimestamps(timestamps: Array<Array<Number | string>>) {
+			this.timestamps = timestamps;
 		},
 
 		// On receiving a message in any room:

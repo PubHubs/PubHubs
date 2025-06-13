@@ -63,7 +63,8 @@ describe('api fetches', () => {
 	});
 
 	test('api - bar state', async () => {
-		await expect(api.api(api.apiURLS.bar)).rejects.toThrowError();
+		const result = await api.api(api.apiURLS.bar);
+		expect(result).toBeUndefined();
 
 		await api.api(api.apiURLS.login);
 		const resp = await api.api(api.apiURLS.bar);
