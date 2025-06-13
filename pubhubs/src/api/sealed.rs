@@ -17,7 +17,7 @@ pub struct Sealed<T>
 where
     T: Serialize + DeserializeOwned,
 {
-    inner: B64UU,
+    pub(crate) inner: B64UU,
 
     phantom_data: PhantomData<T>,
 }

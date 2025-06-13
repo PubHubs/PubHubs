@@ -338,6 +338,11 @@ pub mod phc {
         #[serde(default = "default_auth_token_validity")]
         pub auth_token_validity: core::time::Duration,
 
+        /// [`api::PpNonce`]s issued to the global client are valid for this duration.
+        #[serde(with = "time_ext::human_duration")]
+        #[serde(default = "default_pp_nonce_validity")]
+        pub pp_nonce_validity: core::time::Duration,
+
         /// Secret used to derive `hmac`s for the retrieval of user objects.
         ///
         /// Randomly generated if not set.
@@ -350,7 +355,12 @@ pub mod phc {
 
     fn default_auth_token_validity() -> core::time::Duration {
         // TODO: implement refreshing of expired tokens:
-        core::time::Duration::from_secs(60 * 60) // 1 hour
+        core::time::Duration::from_secs(60 * 60) // 1 hour - the user might need to add attributes
+                                                 // to their Yivi app
+    }
+
+    fn default_pp_nonce_validity() -> core::time::Duration {
+        core::time::Duration::from_secs(30) // no user interaction required
     }
 }
 
