@@ -119,7 +119,7 @@
 		@apply !bg-surface-high;
 	}
 	.editor .v-note-wrapper {
-		@apply !max-h-[400px] resize-y;
+		@apply relative !z-10 !max-h-[400px] !min-h-20 !resize-y overflow-y-auto;
 	}
 
 	.editor .v-note-wrapper .v-note-edit.divarea-wrapper .content-input-wrapper,
@@ -137,7 +137,7 @@
 	.v-note-wrapper .v-note-edit,
 	.v-note-wrapper .v-note-show .v-show-content,
 	.v-note-wrapper .v-note-show .v-show-content-html {
-		@apply !min-h-20 overflow-y-auto rounded-xl !border-none !bg-surface-low font-body text-on-surface ~text-base-min/base-max;
+		@apply !relative !min-h-20 overflow-y-auto rounded-xl !border-none !bg-surface-low font-body text-on-surface ~text-base-min/base-max;
 	}
 }
 
