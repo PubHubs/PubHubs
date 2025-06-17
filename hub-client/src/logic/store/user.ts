@@ -17,7 +17,7 @@ import { MatrixClient, User as MatrixUser } from 'matrix-js-sdk';
 import { defineStore } from 'pinia';
 import { Administrator } from '@/model/hubmanagement/models/admin';
 import { FeatureFlag, useSettings } from './settings';
-import { ConsentJSONParser } from './jsonutility';
+import { ConsentJSONParser } from './json-utility';
 import { router } from '@/logic/core/router';
 import { OnboardingType } from '@/model/constants';
 /**
@@ -128,7 +128,7 @@ const useUser = defineStore('user', {
 			try {
 				const settings = useSettings();
 				if (!settings.isFeatureEnabled(FeatureFlag.consent)) return false;
-				const response = (await api_synapse.apiGET(`${api_synapse.apiURLS.consent}?user_id=${this.userId}`)) as ConsentJSONParser;
+				const response = (await api_synapse.apiGET(`${api_synapse.apiURLS.data}?data=consent`)) as ConsentJSONParser;
 				if (response) {
 					this.needsConsent = response.needs_consent;
 					this.needsOnboarding = response.needs_onboarding;
@@ -147,11 +147,10 @@ const useUser = defineStore('user', {
 
 		async setUserConsentVersion(version: number): Promise<void> {
 			const data = {
-				user_id: this.userId,
 				version: version,
 			};
 			try {
-				await api_synapse.apiPOST(`${api_synapse.apiURLS.consent}`, data);
+				await api_synapse.apiPOST(`${api_synapse.apiURLS.data}?data=consent`, data);
 				this.needsConsent = false;
 				this.needsOnboarding = false;
 			} catch (error) {

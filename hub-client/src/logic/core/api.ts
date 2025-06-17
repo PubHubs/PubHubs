@@ -39,10 +39,9 @@ const api_synapse = new Api(BASE_URL + '/_synapse/', {
 	hubIconDefaultDark: 'client/hub/default-icon/dark',
 	hubBanner: 'client/hub/banner',
 	hubBannerDefault: 'client/hub/default-banner',
-	users: 'client/hub/users',
 
-	// hub consent
-	consent: 'client/hub_consent',
+	// hub data
+	data: 'client/hub/data',
 });
 
 const api_matrix = new Api(BASE_URL + '/_matrix', {

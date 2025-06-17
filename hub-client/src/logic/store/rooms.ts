@@ -71,6 +71,7 @@ const useRooms = defineStore('rooms', {
 			askDisclosureMessage: null as AskDisclosureMessage | null,
 			newAskDisclosureMessage: false,
 			initialRoomsLoaded: false,
+			timestamps: [] as Array<Array<Number | string>>,
 		};
 	},
 
@@ -87,7 +88,7 @@ const useRooms = defineStore('rooms', {
 		roomsArray(state): Array<Room> {
 			const values = Object.values(state.rooms);
 			// check if the room has an Id and if the Id is different from the name (because then the Id would be displayed and the room unreachable)
-			const rooms = values.filter((room) => typeof (room.roomId !== 'undefined') && room.roomId !== room.name);
+			const rooms = values.filter((room) => typeof room.roomId !== 'undefined' && room.roomId !== room.name);
 			return rooms;
 		},
 
@@ -191,11 +192,17 @@ const useRooms = defineStore('rooms', {
 			});
 			return total;
 		},
+		roomtimestamps(state): Array<Array<Number | string>> {
+			return state.timestamps;
+		},
 	},
 
 	actions: {
 		setRoomsLoaded(value: boolean) {
 			this.initialRoomsLoaded = value;
+		},
+		setTimestamps(timestamps: Array<Array<Number | string>>) {
+			this.timestamps = timestamps;
 		},
 
 		// On receiving a message in any room:
@@ -426,17 +433,23 @@ const useRooms = defineStore('rooms', {
 			return deleted_id;
 		},
 
-		yiviSecuredRoomflow(roomId: string, onFinish: (result: SecuredRoomAttributeResult) => unknown) {
-			//
+		async loadYiviModules() {
+			import('../../assets/yivi.min.css');
 
-			require('../../assets/yivi.min.css');
-			//
-			const yiviCore = require('@privacybydesign/yivi-core');
-			//
-			const yiviWeb = require('@privacybydesign/yivi-web');
-			//
-			const yiviClient = require('@privacybydesign/yivi-client');
+			const [coreModule, webModule, clientModule] = await Promise.all([import('@privacybydesign/yivi-core'), import('@privacybydesign/yivi-web'), import('@privacybydesign/yivi-client')]);
+			return {
+				yiviCore: coreModule.default,
+				yiviWeb: webModule.default,
+				yiviClient: clientModule.default,
+			};
+		},
 
+		async loadYiviFrontend() {
+			const yivi = await import('@privacybydesign/yivi-frontend');
+			return yivi;
+		},
+
+		yiviSecuredRoomflowInternal(roomId: string, onFinish: (result: SecuredRoomAttributeResult) => unknown, yiviCore: any, yiviWeb: any, yiviClient: any) {
 			const pubhubs = usePubHubs();
 			const settings = useSettings();
 
@@ -481,14 +494,19 @@ const useRooms = defineStore('rooms', {
 				});
 		},
 
-		yiviSignMessage(message: string, attributes: string[], roomId: string, threadRoot: TMessageEvent | undefined, onFinish: (result: YiviSigningSessionResult, threadRoot: TMessageEvent | undefined) => unknown) {
+		yiviSecuredRoomflow(roomId: string, onFinish: (result: SecuredRoomAttributeResult) => unknown) {
+			this.loadYiviModules().then(({ yiviCore, yiviWeb, yiviClient }) => {
+				this.yiviSecuredRoomflowInternal(roomId, onFinish, yiviCore, yiviWeb, yiviClient);
+			});
+		},
+
+		yiviSignMessageInternal(message: string, attributes: string[], roomId: string, threadRoot: TMessageEvent | undefined, onFinish: (result: YiviSigningSessionResult, threadRoot: TMessageEvent | undefined) => unknown, yivi: any) {
 			const settings = useSettings();
 			const pubhubsStore = usePubHubs();
 
 			const accessToken = pubhubsStore.Auth.getAccessToken();
 			if (!accessToken) throw new Error('Access token missing.');
 
-			const yivi = require('@privacybydesign/yivi-frontend');
 			// @ts-ignore
 			const urlll = _env.HUB_URL + '/_synapse/client/ph';
 			const yiviWeb = yivi.newWeb({
@@ -530,7 +548,13 @@ const useRooms = defineStore('rooms', {
 				});
 		},
 
-		yiviAskDisclosure(message: string, attributes: string[], roomId: string, onFinish: (result: YiviSigningSessionResult) => unknown) {
+		yiviSignMessage(message: string, attributes: string[], roomId: string, threadRoot: TMessageEvent | undefined, onFinish: (result: YiviSigningSessionResult, threadRoot: TMessageEvent | undefined) => unknown) {
+			this.loadYiviFrontend().then((yivi) => {
+				this.yiviSignMessageInternal(message, attributes, roomId, threadRoot, onFinish, yivi);
+			});
+		},
+
+		yiviAskDisclosureInternal(message: string, attributes: string[], roomId: string, onFinish: (result: YiviSigningSessionResult) => unknown, yivi: any) {
 			console.log(`yiviAskDisclosure: '${message}', attributes=[${attributes}], ${roomId}`);
 
 			const settings = useSettings();
@@ -539,7 +563,6 @@ const useRooms = defineStore('rooms', {
 			const accessToken = pubhubsStore.Auth.getAccessToken();
 			if (!accessToken) throw new Error('Access token missing.');
 
-			const yivi = require('@privacybydesign/yivi-frontend');
 			// @ts-ignore
 			const urlll = _env.HUB_URL + '/_synapse/client/ph';
 			const yiviWeb = yivi.newWeb({
@@ -579,6 +602,12 @@ const useRooms = defineStore('rooms', {
 				.catch((error: any) => {
 					console.info(`There is an Error: ${error}`);
 				});
+		},
+
+		yiviAskDisclosure(message: string, attributes: string[], roomId: string, onFinish: (result: YiviSigningSessionResult) => unknown) {
+			this.loadYiviFrontend().then((yivi) => {
+				this.yiviAskDisclosureInternal(message, attributes, roomId, onFinish, yivi);
+			});
 		},
 
 		// Get specific TPublic or TSecured Room - The structure of the room is different from MatrixRoom.

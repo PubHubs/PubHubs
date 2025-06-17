@@ -188,10 +188,9 @@ pub mod rsk {
     }
 }
 
-/// `osrng!()` is an abbreviation for `&mut rand_07::rngs::OsRng` the rng used by this module.
 macro_rules! osrng {
     () => {
-        &mut rand::rngs::OsRng
+        &mut aead::OsRng
     };
 }
 

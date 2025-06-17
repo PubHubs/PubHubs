@@ -287,11 +287,8 @@ pub(crate) trait Modifier<ServerT: Server>: Send + 'static {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> Result<(), std::fmt::Error>;
 }
 
-impl<
-        S: Server,
-        F: FnOnce(&mut S) -> bool + Send + 'static,
-        D: std::fmt::Display + Send + 'static,
-    > Modifier<S> for (F, D)
+impl<S: Server, F: FnOnce(&mut S) -> bool + Send + 'static, D: std::fmt::Display + Send + 'static>
+    Modifier<S> for (F, D)
 {
     fn modify(self: Box<Self>, server: &mut S) -> bool {
         self.0(server)

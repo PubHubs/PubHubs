@@ -29,7 +29,6 @@
 #
 
 modules:
-  - module: conf.modules.pubhubs.ConsentResource
   - module: conf.modules.pubhubs.HubClientApi # DON'T CHANGE
     config:
           {

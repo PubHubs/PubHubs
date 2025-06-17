@@ -19,6 +19,7 @@
 	import Room from '@/pages/Room.vue';
 	import { buttonsYesNo, DialogButtonAction } from '@/logic/store/dialog';
 	import { useUser } from '@/logic/store/user';
+	import { PropType } from 'vue';
 
 	const user = useUser();
 
@@ -39,7 +40,7 @@
 			default: false,
 		},
 		room: {
-			type: Room,
+			type: Object as PropType<InstanceType<typeof Room>>,
 			required: true,
 		},
 	});

@@ -14,20 +14,21 @@ import { registerComponents } from '@/registerComponents.js';
 import '@/registerServiceWorker';
 
 // Hub imports
-import Badge from '@/../../hub-client/src/components/elements/Badge.vue';
-import Button from '@/../../hub-client/src/components/elements/Button.vue';
+import P from '@/../../hub-client/src/components/elements/P.vue';
 import H1 from '@/../../hub-client/src/components/elements/H1.vue';
 import H2 from '@/../../hub-client/src/components/elements/H2.vue';
 import H3 from '@/../../hub-client/src/components/elements/H3.vue';
 import Icon from '@/../../hub-client/src/components/elements/Icon.vue';
 import Line from '@/../../hub-client/src/components/elements/Line.vue';
-import P from '@/../../hub-client/src/components/elements/P.vue';
+import Label from '@/../../hub-client/src/components/forms/Label.vue';
+import Badge from '@/../../hub-client/src/components/elements/Badge.vue';
+import Button from '@/../../hub-client/src/components/elements/Button.vue';
 import TruncatedText from '@/../../hub-client/src/components/elements/TruncatedText.vue';
 import ButtonGroup from '@/../../hub-client/src/components/forms/ButtonGroup.vue';
-import Label from '@/../../hub-client/src/components/forms/Label.vue';
-import Dialog from '@/../../hub-client/src/components/ui/Dialog.vue';
 import Logo from '@/../../hub-client/src/components/ui/Logo.vue';
+import Dialog from '@/../../hub-client/src/components/ui/Dialog.vue';
 import Checkbox from '@/../../hub-client/src/components/forms/Checkbox.vue';
+
 import { ReplaceConsole } from '@/../../hub-client/src/console';
 import { CONFIG } from '../../hub-client/src/logic/foundation/Config';
 import { Logger } from '@/../../hub-client/src/logic/foundation/Logger';

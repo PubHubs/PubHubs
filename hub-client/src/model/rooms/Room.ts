@@ -252,6 +252,10 @@ export default class Room {
 		let roomMemberIds = [] as Array<string>;
 		const roomMembers = this.matrixRoom.getMembersWithMembership('join');
 		roomMemberIds = roomMembers.map((item) => item.userId);
+		// filter out (old) notice_users
+		roomMemberIds = roomMemberIds.filter((id) => {
+			return id.substring(0, 13) !== '@notices_user';
+		});
 		roomMemberIds.sort();
 		return roomMemberIds;
 	}

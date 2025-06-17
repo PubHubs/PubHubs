@@ -279,6 +279,8 @@ const en = {
 		unread_messages: 'Unread Messages',
 		announcement: 'announcement',
 		steward: 'steward',
+		stewards: 'stewards',
+		memberlist: 'Member list',
 		administrator: 'administrator',
 		votes: 'votes',
 	},

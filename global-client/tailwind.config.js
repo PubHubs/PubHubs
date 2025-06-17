@@ -1,5 +1,6 @@
 // Plugin imports
 import fluid, { extract } from 'fluid-tailwind';
+import forms from '@tailwindcss/forms';
 
 module.exports = {
 	darkMode: 'class',
@@ -107,9 +108,9 @@ module.exports = {
 	},
 	plugins: [
 		fluid,
-		require('@tailwindcss/forms'),
+		forms,
 		function ({ addVariant }) {
-			addVariant("hover!", "&:hover!important");
+			addVariant('hover!', '&:hover!important');
 		},
 	],
 };

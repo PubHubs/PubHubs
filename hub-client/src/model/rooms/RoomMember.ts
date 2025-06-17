@@ -24,6 +24,10 @@ export default class RoomMember {
 		return this.matrixRoomMember.userId;
 	}
 
+	public get name(): string {
+		return this.matrixRoomMember.name;
+	}
+
 	public get avatarUrl(): string | undefined | null {
 		return this._avatarUrl;
 	}

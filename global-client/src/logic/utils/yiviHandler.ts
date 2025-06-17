@@ -1,12 +1,11 @@
-import { useSettings } from '@/logic/store/store';
+import { useSettings } from '@/logic/store/store.js';
+
+import '../../../../hub-client/src/assets/yivi.min.css';
+import yiviCore from '@privacybydesign/yivi-core';
+import yiviWeb from '@privacybydesign/yivi-web';
+import yiviClient from '@privacybydesign/yivi-client';
 
 const startYiviSession = (register: boolean, yivi_token: { value: string }) => {
-	require('@/../../hub-client/src/assets/yivi.min.css');
-
-	const yiviCore = require('@privacybydesign/yivi-core');
-	const yiviWeb = require('@privacybydesign/yivi-web');
-	const yiviClient = require('@privacybydesign/yivi-client');
-
 	const settings = useSettings();
 	const elementId = register ? '#yivi-register' : '#yivi-login';
 	const endpointBase = '/yivi-endpoint';

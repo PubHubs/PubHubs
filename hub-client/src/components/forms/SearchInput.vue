@@ -6,8 +6,8 @@
 				class="h-full w-full flex-1 border-none bg-transparent ~text-label-small-min/label-small-max placeholder:text-on-surface-variant focus:outline-0 focus:outline-offset-0 focus:ring-0"
 				type="text"
 				v-model="value"
-				:placeholder="$t('others.search_room')"
-				:title="$t('others.search_room')"
+				:placeholder="t('others.search_room')"
+				:title="t('others.search_room')"
 				@keydown="
 					changed();
 					reset();
@@ -72,11 +72,11 @@
 		</template>
 		<template v-else-if="isSearching">
 			<InlineSpinner class="float-left mr-2" />
-			<p>{{ $t('others.searching') }}</p>
+			<p>{{ t('others.searching') }}</p>
 		</template>
 		<template v-else>
 			<p v-if="value !== ''" class="p-2">
-				{{ $t('others.search_nothing_found') }}
+				{{ t('others.search_nothing_found') }}
 			</p>
 		</template>
 	</div>
@@ -95,10 +95,11 @@
 	import { RoomEmit } from '@/model/constants';
 	import { useRooms } from '@/logic/store/store';
 	import { ISearchResults, SearchResult } from 'matrix-js-sdk';
+	import { useI18n } from 'vue-i18n';
 	import { PropType, computed, nextTick, ref, useTemplateRef } from 'vue';
 	import TruncatedText from '../elements/TruncatedText.vue';
 	import { TSearchParameters, TSearchResult } from '@/model/search/TSearch';
-
+	const { t } = useI18n();
 	const pubhubs = usePubHubs();
 	const rooms = useRooms();
 	const searchField = useTemplateRef('searchInput');

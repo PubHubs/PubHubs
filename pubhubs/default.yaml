@@ -6,7 +6,8 @@ urls:
   for_hub: !manual http://host.docker.internal:8080
   #for_hub: !autodetect
   #for_hub: !same_as_for_browser
-  for_yivi_app: !autodetect
+  //for_yivi_app: !autodetect
+  for_yivi_app: !manual http://145.116.129.175:8080
   # for_yivi_app: !manual http://192.168.178.25:8080/ # DEZE AANPASSEN met HOTSPOT IP adres
   #for_yivi_app: !same_as_for_browser
 

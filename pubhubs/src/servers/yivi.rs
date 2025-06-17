@@ -3,10 +3,9 @@ use std::cell::OnceCell;
 
 use anyhow::Context as _;
 use serde::{
-    self,
+    self, Deserialize as _, Serialize as _,
     de::{Error as _, IntoDeserializer as _},
     ser::Error as _,
-    Deserialize as _, Serialize as _,
 };
 
 use crate::misc::jwt;

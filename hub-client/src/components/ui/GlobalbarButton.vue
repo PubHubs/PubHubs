@@ -1,5 +1,11 @@
 <template>
-	<Icon :type="type" class="rounded-md bg-background p-2 text-accent-secondary hover:cursor-pointer hover:bg-accent-secondary hover:text-background dark:text-on-surface dark:hover:bg-on-surface" :size="size" @click="handleClick" />
+	<Icon
+		:type="type"
+		class="rounded-md p-2 text-accent-secondary hover:cursor-pointer hover:bg-on-surface-variant hover:text-background dark:text-on-surface"
+		:class="selected ? 'bg-surface-high' : 'bg-background'"
+		:size="size"
+		@click="handleClick"
+	/>
 </template>
 
 <script setup lang="ts">
@@ -14,6 +20,10 @@
 		size: {
 			type: String,
 			default: 'base',
+		},
+		selected: {
+			type: Boolean,
+			default: false,
 		},
 	});
 

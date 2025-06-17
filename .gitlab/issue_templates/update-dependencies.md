@@ -5,11 +5,8 @@ Also make sure to not squash the commits so we can search for them later.
 
 ## PubHubs central
 ### Rust
- - [ ] In the `pubhubs` directory, run `cargo update` to install updates that are likely backwards compatible. 
- - [ ] To check for new major releases (that might break the current code), run [`cargo outdated`](https://github.com/kbknapp/cargo-outdated) (which must be installed first.) 
-   Adjust `Cargo.toml` accordingly and check if `cargo test` succeeds.  If you encounter errors, try if you can easily fix them; if not, revert and make an issue.
-     - **NOTE:** you may ignore the `cargo outdated` for now;  there are several packages `hyper`, `expry`, `hairy`, used by the old rust code that have major new versions that require quite a rewrite of the old code that is both dangerous and wasteful with the new code coming in. (See #438.)
-     - 2024-sept:  `cargo outdated` fails with the error "the package `pubhubs` depends on `env_logger`, with features: `anstream` but `env_logger` does not have these features."
+ - [ ] In the `pubhubs` directory, run `cargo update -v` to install updates that are likely backwards compatible. 
+ - [ ] *If* you are familiar with the rust code, check for (and likely breaking) major releases using `cargo update -v` and adjust `Cargo.toml` (and the code) accordingly.
 
 ## Hub
  - [ ] Check the version numbers in the [hub Dockerfile](pubhubs_hub/Dockerfile):
@@ -19,8 +16,6 @@ Also make sure to not squash the commits so we can search for them later.
    - [ ] `git clone https://github.com/privacybydesign/irmago --branch vXXXX` see [yivi releases](https://github.com/privacybydesign/irmago/releases)
    - [ ] `FROM golang:<debian_version>` The [debian_version](https://www.debian.org/releases/stable/) should be the same for both golang and rust and the same as the version on which the synapse image is based. This is to prevent errors like to avoid errors like "OSError: /lib/x86_64-linux-gnu/libc.so.6: version `GLIBC_2.33' not found (required by /usr/lib/libpubhubs.so)".
    - [ ] `FROM rust:<debian_version> AS libpubhubs_build`
-  - [ ] Version number of twisted library in requirements file and python version in CI/CD pipeline script is fixed see #!654. This needs to be updated when the new version of matrix synapse is used. 
-
 
 
 ## Global Client
@@ -45,7 +40,6 @@ For reference, dependencies are in `package.json`.
 - [ ] Check the version number in the [`Dockerfile`](hub-client/Dockerfile): `FROM XX-slim`.  (You can find a list of tags [here](https://hub.docker.com/_/node/tags?name=slim).)
 - [ ] In the `hub-client` directory, run `npm update` to install minor version updates (probably non-breaking changes).
 - [ ] Run `npm outdated` to check for major updates (difference between wantend and latest) and change the package.json file to update major versions if wanted.
-  - **NOTE** For now, don't update matrix-js-sdk, see #654 and #862.
   - **NOTE** Don't update msw until #978 has been fixed.
   - **NOTE** Don't update tailwind-merge and tailwindcss until #1073 has been fixed.
 - [ ] To address issues that do not require attention, run: `npm audit fix`

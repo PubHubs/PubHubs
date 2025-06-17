@@ -7,7 +7,7 @@ import { hub_api } from '@/logic/core/api';
 
 // Hub imports
 import { FeatureFlag, SettingsStore } from '../../../hub-client/src/logic/store/settings';
-import { HubSettingsJSONParser } from '../../../hub-client/src/logic/store/jsonutility';
+import { HubSettingsJSONParser } from '../../../hub-client/src/logic/store/json-utility';
 
 class Hub {
 	readonly hubId: string;

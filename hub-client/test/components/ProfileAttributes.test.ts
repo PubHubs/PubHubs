@@ -56,7 +56,7 @@ describe('ProfileAttributes.vue Test', () => {
 
 		await flushPromises();
 
-		expect(wrapper.text()).toBe('an attranother attr');
+		expect(wrapper.text().replace(/\s+/g, ' ').trim()).toBe('an attr another attr');
 	});
 
 	test('admin badges', async () => {
