@@ -67,41 +67,31 @@ class Api {
 			}
 			options.headers['Authorization'] = 'Bearer ' + this.accessToken;
 		}
-		try {
-			const response = await fetch(url, options as RequestInit);
-			if (!response.ok) {
-				try {
-					const result = await response.text();
-					const json = JSON.parse(result);
-					if (json.error || json.errors) {
-						console.error(json.error ?? json.errors);
-					} else {
-						console.error(result);
-					}
-					return defaultResponseData as T;
-				} catch (error: any) {
-					console.error('Failed to parse error response:', error);
-					return defaultResponseData as T;
-				}
-			}
-			this.fetchEtagFromHeaders(response.headers);
-			if (response.status === 204) {
-				if (typeof defaultResponseData === 'boolean') {
-					return true as T;
-				}
-				// Optionally throw or return fallback
-				return defaultResponseData as T;
-			}
-			// Test if JSON response
+		const response = await fetch(url, options as RequestInit);
+		if (!response.ok) {
 			try {
-				const text = await response.text();
-				const json = JSON.parse(text);
-				return json as T;
-			} catch {
-				return defaultResponseData as T;
+				const result = await response.text();
+				const json = JSON.parse(result);
+				if (typeof json.error !== 'undefined') {
+					throw new Error(json.error);
+				} else if (typeof json.errors !== 'undefined') {
+					throw new Error(json.errors);
+				}
+				throw new Error(result);
+			} catch (error: any) {
+				throw new Error(error);
 			}
-		} catch (error: any) {
-			console.error(error);
+		}
+		this.fetchEtagFromHeaders(response.headers);
+		if (response.status === 204) {
+			return true as T;
+		}
+		// Test if JSON response
+		try {
+			const text = await response.text();
+			const json = JSON.parse(text);
+			return json as T;
+		} catch {
 			return defaultResponseData as T;
 		}
 	}
