@@ -66,20 +66,15 @@ describe('api secured rooms', () => {
 
 	test('POST', async () => {
 		const body = {} as SecuredRoom;
-		const resultEmpty = await api_synapse.apiPOST(api_synapse.apiURLS.securedRooms, body);
-		expect(resultEmpty).toBeUndefined();
+		await expect(api_synapse.apiPOST(api_synapse.apiURLS.securedRooms, body)).rejects.toThrowError('Error');
 		body.room_name = 'Secured';
-		const resultSecured = await api_synapse.apiPOST(api_synapse.apiURLS.securedRooms, body);
-		expect(resultSecured).toBeUndefined();
+		await expect(api_synapse.apiPOST(api_synapse.apiURLS.securedRooms, body)).rejects.toThrowError('Error');
 		body.user_txt = 'Bla Bla';
-		const resultBlaBla = await api_synapse.apiPOST(api_synapse.apiURLS.securedRooms, body);
-		expect(resultBlaBla).toBeUndefined();
+		await expect(api_synapse.apiPOST(api_synapse.apiURLS.securedRooms, body)).rejects.toThrowError('Error');
 		body.accepted = [];
-		const resultAccepted = await api_synapse.apiPOST(api_synapse.apiURLS.securedRooms, body);
-		expect(resultAccepted).toBeUndefined();
+		await expect(api_synapse.apiPOST(api_synapse.apiURLS.securedRooms, body)).rejects.toThrowError('Error');
 		body.type = 'some_type';
-		const resultSome = await api_synapse.apiPOST(api_synapse.apiURLS.securedRooms, body);
-		expect(resultSome).toBeUndefined();
+		await expect(api_synapse.apiPOST(api_synapse.apiURLS.securedRooms, body)).rejects.toThrowError('Error');
 
 		body.type = 'ph.messages.restricted';
 		const resp = await api_synapse.apiPOST(api_synapse.apiURLS.securedRooms, body);
@@ -90,10 +85,8 @@ describe('api secured rooms', () => {
 
 	test('DELETE', async () => {
 		const room_id = 'roomid';
-		const resultRoom = await api_synapse.apiDELETE(api_synapse.apiURLS.securedRooms);
-		expect(resultRoom).toBeUndefined();
-		const resultRoomId = await api_synapse.apiDELETE(api_synapse.apiURLS.securedRooms + '?room_id=');
-		expect(resultRoomId).toBeUndefined();
+		await expect(api_synapse.apiDELETE(api_synapse.apiURLS.securedRooms)).rejects.toThrowError('Error');
+		await expect(api_synapse.apiDELETE(api_synapse.apiURLS.securedRooms + '?room_id=')).rejects.toThrowError('Error');
 		const resp = await api_synapse.apiDELETE(api_synapse.apiURLS.securedRooms + '?room_id=' + room_id);
 		expect(resp).toBeTypeOf('object');
 		expect(resp).toEqual({ deleted: 'ID:' + room_id });

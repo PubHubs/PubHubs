@@ -137,7 +137,7 @@ class Api {
 		// Validate supported image types
 		const supportedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/svg+xml'];
 		if (!supportedTypes.includes(blob.type)) {
-			console.error(`Unsupported file type: ${blob.type}`);
+			throw new Error(`Unsupported file type: ${blob.type}`);
 		}
 
 		const response = await fetch(url, {
@@ -151,7 +151,7 @@ class Api {
 
 		if (!response.ok) {
 			const errorText = await response.text();
-			console.error(`Failed to upload file: ${errorText}`);
+			throw new Error(`Failed to upload file: ${errorText}`);
 		}
 	}
 }
