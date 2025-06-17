@@ -4,6 +4,9 @@ import '@/registerServiceWorker';
 import '@/assets/tailwind.css';
 import { setUpi18n } from '@/i18n';
 
+import mavonEditor from 'mavon-editor';
+import 'mavon-editor/dist/css/index.css';
+
 import { registerComponents } from '@/registerComponents.js';
 import { registerPlugins, registerPluginComponents } from '@/registerPlugins.js';
 
@@ -30,6 +33,8 @@ app.use(i18n);
 
 app.use(router);
 app.use(pinia);
+
+app.use(mavonEditor);
 app.directive('focus', focus);
 app.directive('tw-class', twClass);
 app.directive('click-outside', clickOutside);

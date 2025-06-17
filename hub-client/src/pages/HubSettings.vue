@@ -12,34 +12,25 @@
 
 		<form @submit.prevent class="flex h-full max-w-screen-2xl flex-col px-4 py-4 md:px-16 md:py-10">
 			<!-- Description Section -->
-			<div class="mb-8 flex flex-col gap-y-2">
+			<div class="editor mb-8 flex flex-col gap-y-2">
 				<H3>{{ $t('hub_settings.description_heading') }}</H3>
 				<P>{{ $t('hub_settings.description_description') }}</P>
-				<TextArea v-model="hubDescription" class="border-hub-border max-h-64 w-full max-w-[600px] rounded-md border p-3 dark:text-black" rows="4" :placeholder="t('hub_settings.description')" @input="onHubSettingsChange"></TextArea>
+				<mavon-editor v-model="hubDescription" language="en" :toolbars="toolbarSettings" :boxShadow="false" :placeholder="t('hub_settings.description')" />
 			</div>
 
 			<!-- Summary Section -->
-			<div class="mb-2 flex flex-col gap-y-2">
+			<div class="editor mb-2 flex flex-col gap-y-2">
 				<H3>{{ $t('hub_settings.summary_heading') }}</H3>
 				<P>{{ $t('hub_settings.summary_description') }}</P>
-				<div class="max-w-[600px]">
-					<TextArea
-						v-model="hubSummary"
-						class="border-hub-border max-h-16 w-full rounded-md border p-3 dark:text-black"
-						rows="4"
-						:placeholder="t('hub_settings.summary')"
-						@input="onHubSettingsChange"
-						:maxlength="maxSummaryLength"
-					></TextArea>
-					<P class="float-end ~text-label-small-min/label-small-max"> {{ hubSummary.length }} / {{ maxSummaryLength }} </P>
-				</div>
+				<TextArea v-model="hubSummary" class="border-hub-border max-h-16 w-full rounded-md border p-3 dark:text-black" rows="4" :placeholder="t('hub_settings.summary')" :maxlength="maxSummaryLength"></TextArea>
+				<P class="float-end ~text-label-small-min/label-small-max"> {{ hubSummary.length }} / {{ maxSummaryLength }} </P>
 			</div>
 
 			<!-- Contact Section -->
-			<div class="mb-8 flex flex-col gap-y-2">
+			<div class="editor mb-8 flex flex-col gap-y-2">
 				<H3>{{ $t('hub_settings.contact_heading') }}</H3>
 				<P>{{ $t('hub_settings.contact_description') }}</P>
-				<TextArea v-model="hubContact" class="border-hub-border max-h-16 w-full max-w-[600px] rounded-md border p-3 dark:text-black" rows="4" :placeholder="t('hub_settings.contact')" @input="onHubSettingsChange"></TextArea>
+				<mavon-editor v-model="hubContact" language="en" :toolbars="toolbarSettings" :boxShadow="false" :placeholder="t('hub_settings.contact')" />
 			</div>
 
 			<!-- Icon Section -->
@@ -68,27 +59,19 @@
 				@remove="removeMedia('banner')"
 			>
 				<template #preview>
-					<HubBanner :banner-url="bannerUrl" class="mr-2 max-w-[600px] rounded-xl border p-2" />
+					<HubBanner :banner-url="bannerUrl" class="mr-2 rounded-xl border p-2" />
 				</template>
 			</MediaUploadSection>
 
-			<!-- Contact Section -->
+			<!-- Consent Section -->
 			<div class="mb-8">
-				<div class="mb-4 flex-col">
+				<div class="editor mb-32 flex flex-col gap-y-2">
 					<H3 class="pb-2 text-lg font-semibold">{{ $t('hub_settings.consent_heading') }}</H3>
 					<P>{{ $t('hub_settings.consent_description') }}</P>
+					<mavon-editor v-model="hubConsent" language="en" :toolbars="toolbarSettings" :boxShadow="false" :placeholder="t('hub_settings.consent')" />
 				</div>
-				<!-- Textarea for Editing Contact -->
-				<TextArea
-					v-model="hubConsent"
-					class="border-hub-border max-h-16 w-full max-w-[600px] rounded-md border p-3 font-body text-2xl dark:text-black"
-					rows="4"
-					:placeholder="t('hub_settings.consent')"
-					@input="onHubSettingsChange"
-				></TextArea>
 			</div>
-
-			<div class="fixed bottom-5 right-10 ml-auto flex items-center">
+			<div class="fixed bottom-5 right-10 z-20 ml-auto flex items-center">
 				<P v-if="settingsSaved" class="text-hub-text-variant">{{ $t('hub_settings.settings_saved') }}</P>
 				<Button @click="saveChanges()" :disabled="!settingsChanged">{{ $t('hub_settings.save') }}</Button>
 			</div>
@@ -103,15 +86,16 @@
 	import MediaUploadSection from '@/components/ui/MediaUploadSection.vue';
 	import { SMI } from '@/logic/foundation/StatusMessage';
 	import { LOGGER } from '@/logic/foundation/Logger';
-	import { ALLOWED_HUB_ICON_TYPES, MAX_HUB_ICON_SIZE, useHubSettings } from '@/logic/store/hub-settings';
+	import { ALLOWED_HUB_ICON_TYPES, MAX_HUB_ICON_SIZE, useHubSettings, toolbarSettings } from '@/logic/store/hub-settings';
 	import { HubSettingsJSONParser } from '@/logic/store/json-utility';
-	import { computed, ref, onBeforeMount } from 'vue';
+	import { computed, ref, onBeforeMount, watch } from 'vue';
 	import { useI18n } from 'vue-i18n';
 	import H3 from '@/components/elements/H3.vue';
 	import P from '@/components/elements/P.vue';
 	import Button from '@/components/elements/Button.vue';
 	import { useSettings } from '@/logic/store/settings';
 	import TextArea from '@/components/forms/TextArea.vue';
+	import '@/assets/tailwind.css';
 
 	const hubSettings = useHubSettings();
 	const { t } = useI18n();
@@ -323,4 +307,7 @@
 			bannerErrorText.value = t(message).toString();
 		}
 	}
+	watch([hubDescription, hubSummary, hubContact, hubConsent], () => {
+		onHubSettingsChange();
+	});
 </script>
