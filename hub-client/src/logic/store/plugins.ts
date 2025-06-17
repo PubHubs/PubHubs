@@ -4,6 +4,7 @@ import { defineStore } from 'pinia';
 import { Room } from './rooms';
 import { FeatureFlag, useSettings } from './settings';
 import { EventType } from 'matrix-js-sdk';
+import { Component } from 'vue';
 
 //
 // Plugin Types
@@ -66,6 +67,24 @@ type TypePluginPropertiesMap = {
 type TypePluginPropertiesArray = Array<TypePluginProperties>;
 
 interface PluginProperties extends MenuPluginProperties, RoomIdPluginProperties, TypePluginProperties {}
+
+// Resolve the Plugin Components, Vite needs to know the path to the component in buildtime
+async function resolvePluginComponent(path: string | undefined, component: string): Promise<Component | null> {
+	const pluginComponents = import.meta.glob('@/plugins/**/*.vue');
+	const key = path ? `./plugins/${path}/${component}` : `./plugins/${component}`;
+	if (pluginComponents[key]) {
+		try {
+			const resolvedComponent = await pluginComponents[key]();
+			return resolvedComponent.default; // Return the Vue component
+		} catch (error) {
+			console.error(`Failed to load plugin component: ${path}/${component}`, error);
+			return null; // Handle gracefully, like rendering a fallback UI
+		}
+	} else {
+		console.error(`Component not found in: ${key}`);
+		return null; // Handle cases where the component is not in the index
+	}
+}
 
 /**
  * The main plugin store
@@ -192,17 +211,17 @@ const usePlugins = defineStore('plugins', {
 								case PluginType.MENU:
 									{
 										const MenuPlugin = plugin as MenuPluginProperties;
-										const routeName = 'plugin-' + plugin.name;
+										const routeName = `plugin-${plugin.name}`;
 										// Add plugin page, if it is a menu
 										const item = {
 											key: MenuPlugin.key,
-											icon: MenuPlugin.icon ? MenuPlugin.icon : 'room',
+											icon: MenuPlugin.icon || 'room',
 											to: MenuPlugin.to,
 										} as MenuItem;
 										const route = {
-											path: '/' + routeName,
+											path: `/${routeName}`,
 											name: routeName,
-											component: () => import('@/plugins/' + MenuPlugin._path + '/' + MenuPlugin.component),
+											component: async () => resolvePluginComponent(plugin._path, plugin.component),
 										};
 										menu.addMenuItemWithRoute(item, route, router);
 									}

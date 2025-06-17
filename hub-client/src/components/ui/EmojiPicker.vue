@@ -28,9 +28,6 @@
 	const settings = useSettings();
 	const language = settings.getActiveLanguage;
 
-	// Fetching data file for emoji from localized dataset.
-	const data = require(`emojibase-data/${language}/data.json`);
-
 	const emojis = ref([] as Emoji[]);
 	const searchQuery = ref('');
 	const selectedGroup = ref(0);
@@ -52,6 +49,11 @@
 
 	onMounted(async () => {
 		try {
+			const response = await fetch(`node_modules/emojibase-data/${language}/data.json`);
+			if (!response.ok) {
+				throw new Error('Network response was not ok');
+			}
+			const data = await response.json();
 			emojis.value = data.filter((emoji: Emoji) => {
 				return !emoji.label.includes('regional');
 			});

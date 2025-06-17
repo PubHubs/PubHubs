@@ -25,6 +25,7 @@ const pinia = createPinia();
 const app = createApp(App);
 
 registerComponents(app);
+
 registerPlugins(app);
 registerPluginComponents(app);
 
@@ -39,4 +40,5 @@ app.directive('focus', focus);
 app.directive('tw-class', twClass);
 app.directive('click-outside', clickOutside);
 app.component('VueDatePicker', VueDatePicker);
+
 app.mount('#app');
