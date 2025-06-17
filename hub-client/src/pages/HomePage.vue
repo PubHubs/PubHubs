@@ -100,3 +100,8 @@
 		hubContact.value = hubSettingsJSON?.contact ?? '';
 	}
 </script>
+<style scoped>
+	.v-note-wrapper {
+		position: relative;
+	}
+</style>
