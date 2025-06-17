@@ -5,7 +5,7 @@
 import { Message, useMessageBox } from '@/logic/store/store';
 import { defineStore } from 'pinia';
 import { MessageType } from './messagebox';
-import { api_synapse } from '@/logic/core/api';
+import { api_synapse as api } from '@/logic/core/api';
 import { FeatureFlag, Theme, useSettings } from './settings';
 import { HubSettingsJSONParser } from '@/logic/store/json-utility';
 
@@ -107,7 +107,7 @@ const useHubSettings = defineStore('hub-settings', {
 			const settings = useSettings();
 
 			if (settings.isFeatureEnabled(FeatureFlag.hubSettings)) {
-				return api_synapse.apiURLS.hubIcon;
+				return api.apiURLS.hubIcon;
 			} else {
 				return '/img/logo-person.svg';
 			}
@@ -117,7 +117,7 @@ const useHubSettings = defineStore('hub-settings', {
 			const settings = useSettings();
 
 			if (settings.isFeatureEnabled(FeatureFlag.hubSettings)) {
-				return api_synapse.apiURLS.hubIconDark;
+				return api.apiURLS.hubIconDark;
 			} else {
 				return '/img/logo-person-dark.svg';
 			}
@@ -127,7 +127,7 @@ const useHubSettings = defineStore('hub-settings', {
 			const settings = useSettings();
 
 			if (settings.isFeatureEnabled(FeatureFlag.hubSettings)) {
-				return api_synapse.apiURLS.hubIconDefault;
+				return api.apiURLS.hubIconDefault;
 			} else {
 				return '/img/logo-person.svg';
 			}
@@ -137,7 +137,7 @@ const useHubSettings = defineStore('hub-settings', {
 			const settings = useSettings();
 
 			if (settings.isFeatureEnabled(FeatureFlag.hubSettings)) {
-				return api_synapse.apiURLS.hubIconDefaultDark;
+				return api.apiURLS.hubIconDefaultDark;
 			} else {
 				return '/img/logo-person-dark.svg';
 			}
@@ -147,7 +147,7 @@ const useHubSettings = defineStore('hub-settings', {
 			const settings = useSettings();
 
 			if (settings.isFeatureEnabled(FeatureFlag.hubSettings)) {
-				return api_synapse.apiURLS.hubBanner;
+				return api.apiURLS.hubBanner;
 			} else {
 				return '/img/banner.svg';
 			}
@@ -157,7 +157,7 @@ const useHubSettings = defineStore('hub-settings', {
 			const settings = useSettings();
 
 			if (settings.isFeatureEnabled(FeatureFlag.hubSettings)) {
-				return api_synapse.apiURLS.hubBannerDefault;
+				return api.apiURLS.hubBannerDefault;
 			} else {
 				return '/img/banner.svg';
 			}
@@ -194,23 +194,23 @@ const useHubSettings = defineStore('hub-settings', {
 		},
 
 		async setIcon(image: File) {
-			await api_synapse.uploadImage(api_synapse.apiURLS.hubIcon, image);
+			await api.uploadImage(api.apiURLS.hubIcon, image);
 		},
 
 		async deleteIcon() {
-			await api_synapse.apiDELETE(api_synapse.apiURLS.hubIcon);
+			await api.apiDELETE(api.apiURLS.hubIcon);
 		},
 		async setBanner(image: File) {
-			await api_synapse.uploadImage(api_synapse.apiURLS.hubBanner, image);
+			await api.uploadImage(api.apiURLS.hubBanner, image);
 		},
 
 		async deleteBanner() {
-			await api_synapse.apiDELETE(api_synapse.apiURLS.hubBanner);
+			await api.apiDELETE(api.apiURLS.hubBanner);
 		},
 		async getHubJSON(): Promise<HubSettingsJSONParser | undefined> {
 			const settings = useSettings();
 			if (settings.isFeatureEnabled(FeatureFlag.hubSettings)) {
-				const response = await api_synapse.apiGET<HubSettingsJSONParser>(api_synapse.apiURLS.hubSettings);
+				const response = await api.apiGET<HubSettingsJSONParser>(api.apiURLS.hubSettings);
 				this._summary = response.summary;
 				this._description = response.description;
 				this._contact = response.contact;
@@ -222,7 +222,7 @@ const useHubSettings = defineStore('hub-settings', {
 			}
 		},
 		async setHubJSON(hubSettingsData: HubSettingsJSONParser) {
-			await api_synapse.apiPOST(api_synapse.apiURLS.hubSettings, hubSettingsData);
+			await api.apiPOST(api.apiURLS.hubSettings, hubSettingsData);
 		},
 	},
 });

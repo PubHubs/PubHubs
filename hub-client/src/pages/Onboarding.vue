@@ -102,7 +102,7 @@
 					<!-- Left Image -->
 					<div class="flex h-[250px] w-full flex-col overflow-y-auto ~gap-4/8 lg:h-auto lg:w-1/2">
 						<figure class="h-full w-full">
-							<img alt="Placeholder" :src="onboardingPlaceholder" class="h-full w-full object-cover" />
+							<img alt="Placeholder" src="../assets/onboarding_placeholder.svg" class="h-full w-full object-cover" />
 						</figure>
 					</div>
 
@@ -186,7 +186,7 @@
 
 				<!-- Mascot -->
 				<figure class="absolute -bottom-4 -right-16 hidden w-64 lg:block xl:-right-32 xl:w-auto">
-					<img alt="PubHubs mascotte" :src="mascotteImage" />
+					<img alt="PubHubs mascotte" src="../assets/mascotte.svg" />
 				</figure>
 			</div>
 		</div>
@@ -198,10 +198,6 @@
 	import { computed, onBeforeMount, ref } from 'vue';
 	import { useI18n } from 'vue-i18n';
 	import { useRouter, useRoute } from 'vue-router';
-
-	// Assets
-	import onboardingPlaceholder from '../../public/img/onboarding_placeholder.svg';
-	import mascotteImage from '../../public/img/mascotte.svg';
 
 	// Components
 	import Button from '@/components/elements/Button.vue';

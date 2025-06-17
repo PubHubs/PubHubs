@@ -1,19 +1,17 @@
 /// <reference types="vitest" />
 
+import { fileURLToPath, URL } from 'node:url';
 import { defineConfig } from 'vite';
-import { alias } from './alias';
 import Vue from '@vitejs/plugin-vue';
+import path from 'node:path';
+import { nodePolyfills } from 'vite-plugin-node-polyfills';
 
 export default defineConfig({
-	plugins: [
-		Vue({
-			template: {
-				compilerOptions: {
-					isCustomElement: (tag) => ['Icon', 'ActionMenu', 'ActionMenuItem', 'AvatarMember', 'Avatar', 'ProgressBar', 'ProgressBarMulti', 'H2', 'Line', 'Button'].includes(tag),
-				},
-			},
-		}),
-	],
+	server: {
+		port: 8081,
+		strictPort: true,
+	},
+	plugins: [Vue(), nodePolyfills()],
 	test: {
 		root: './',
 		globals: true,
@@ -21,6 +19,22 @@ export default defineConfig({
 		setupFiles: ['./test/setup-teardown-hooks.ts'],
 	},
 	resolve: {
-		alias,
+		alias: {
+			'@': fileURLToPath(new URL('./src', import.meta.url)),
+			process: 'process/browser',
+			vue: path.resolve(__dirname, 'node_modules/vue'),
+			pinia: path.resolve(__dirname, 'node_modules/pinia'),
+		},
 	},
+	// build: {
+	// 	rollupOptions: {
+	// 		input: {
+	// 			index: 'index.html',
+	// 			miniclient: 'miniclient.html',
+	// 		},
+	// 		output: {
+	// 			entryFileNames: '[name].[hash].js',
+	// 		},
+	// 	},
+	// },
 });
