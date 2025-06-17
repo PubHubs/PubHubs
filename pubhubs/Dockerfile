@@ -21,7 +21,8 @@ ARG CARGO_FEATURES
 # Build global client
 COPY ./global-client/ ../global-client/
 COPY ./hub-client/ ../hub-client/
-RUN npm run --prefix ../global-client build
+# RUN npm run --prefix ../global-client build
+RUN DEBUG=vite:* npm run --prefix ../global-client build
 RUN cp -a ../global-client/dist/. static/assets/client
 
 RUN cargo install $CARGO_FEATURES --path .
