@@ -11,6 +11,7 @@ _Please add a brief description of any changes and any migrations to be performe
 
 
 - [UPDATE] Replaced vue.cli by Vite
+- [NEW] Added a markdown editor for hub description, house rules, and contact information
 - [NEW] List of the members of a room can be shown now (button in header of the room)
 
 ## 12 June 2025 - v2.1.3
