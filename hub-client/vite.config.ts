@@ -26,15 +26,15 @@ export default defineConfig({
 			pinia: path.resolve(__dirname, 'node_modules/pinia'),
 		},
 	},
-	// build: {
-	// 	rollupOptions: {
-	// 		input: {
-	// 			index: 'index.html',
-	// 			miniclient: 'miniclient.html',
-	// 		},
-	// 		output: {
-	// 			entryFileNames: '[name].[hash].js',
-	// 		},
-	// 	},
-	// },
+	build: {
+		rollupOptions: {
+			input: {
+				index: 'index.html',
+				miniclient: 'miniclient.html',
+			},
+			output: {
+				entryFileNames: '[name].[hash].js',
+			},
+		},
+	},
 });
