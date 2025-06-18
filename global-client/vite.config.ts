@@ -103,7 +103,6 @@ export default defineConfig({
 		dedupe: ['pinia'], // necessary to avoid duplicate pinia instances
 	},
 	build: {
-		watch: {},
 		sourcemap: true,
 		outDir: '../pubhubs/static/assets/client',
 		emptyOutDir: true,
