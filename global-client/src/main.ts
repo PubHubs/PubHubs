@@ -4,6 +4,8 @@
 import { createPinia } from 'pinia';
 import { createApp, markRaw } from 'vue';
 import { createRouter, createWebHashHistory } from 'vue-router';
+import mavonEditor from 'mavon-editor';
+import 'mavon-editor/dist/css/index.css';
 
 // Global imports
 import { setUpi18n } from '@/i18n';
@@ -92,6 +94,7 @@ Object.entries(components).forEach(([name, component]) => {
 });
 
 // Use plugins and directives
+app.use(mavonEditor);
 app.use(router);
 app.use(pinia);
 app.use(i18n as any);
