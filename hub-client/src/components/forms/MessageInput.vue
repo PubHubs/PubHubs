@@ -229,7 +229,7 @@
 
 	watch(route, () => {
 		reset();
-		resetAll();
+		messageInput.resetAll();
 	});
 
 	watch(
