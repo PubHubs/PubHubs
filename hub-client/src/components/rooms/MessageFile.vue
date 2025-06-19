@@ -3,6 +3,7 @@
 		<Icon type="paperclip" class="mr-2" />
 		<a class="text-blue truncate" target="_blank" :href="authMediaUrl">{{ message.filename }}</a>
 	</div>
+	<p v-if="message.body !== message.filename" v-html="message.body" :class="{ 'text-on-surface-dim': deleted }" class="overflow-hidden text-ellipsis"></p>
 </template>
 
 <script setup lang="ts">
