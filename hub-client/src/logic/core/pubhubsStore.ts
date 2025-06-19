@@ -13,6 +13,7 @@ import { TVotingWidgetClose, TVotingWidgetEditEventContent, TVotingWidgetMessage
 import Room from '@/model/rooms/Room';
 import { TSearchParameters } from '@/model/search/TSearch';
 import { useConnection } from '@/logic/store/connection';
+import { imageTypes } from '@/model/constants';
 import { RoomType } from '@/logic/store/rooms';
 import { TPublicRoom, useRooms } from '@/logic/store/store';
 import { User, useUser } from '@/logic/store/user';
@@ -843,25 +844,21 @@ const usePubHubs = defineStore('pubhubs', {
 			await this.client.sendMessage(roomId, content);
 		},
 
-		async addImage(roomId: string, threadId: string | undefined, uri: string) {
-			try {
-				const thread = threadId && threadId.length > 0 ? threadId : null;
-				await this.client.sendImageMessage(roomId, thread, uri, undefined);
-			} catch (error) {
-				logger.trace(SMI.STORE, 'swallowing add image error', { error });
-			}
-		},
-
-		async addFile(roomId: string, threadId: string | undefined, file: File, uri: string) {
+		async addFile(roomId: string, threadId: string | undefined, file: File, uri: string, message: string = '') {
 			const thread = threadId && threadId.length > 0 ? threadId : null;
+			let fileType = MsgType.File;
+			let body = message;
+			if (body === '') body = file.name;
+			if (imageTypes.includes(file?.type)) fileType = MsgType.Image;
+
 			const content = {
-				body: file.name,
+				body: body,
 				filename: file.name,
 				info: {
 					mimetype: file.type,
 					size: file.size,
 				},
-				msgtype: MsgType.File as any, // client expects string from MsgType enum, to make our own type castable send this as any
+				msgtype: fileType, // client expects string from MsgType enum, to make our own type castable send this as any
 				url: uri,
 
 				// satisfy the sdk's type checking
