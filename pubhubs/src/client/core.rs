@@ -351,7 +351,7 @@ impl Client {
                 return Result::Err(match result.unwrap_err() {
                     awc::error::SendRequestError::Url(err) => {
                         log::error!("unexpected problem with {url}: {err}");
-                        ErrorCode::InternalClientError
+                        ErrorCode::InternalError
                     }
                     awc::error::SendRequestError::Connect(err) => match err {
                         awc::error::ConnectError::Timeout => {
@@ -374,7 +374,7 @@ impl Client {
                         }
                         _ => {
                             log::error!("error connecting to {url}: {err}");
-                            ErrorCode::CouldNotConnect
+                            ErrorCode::BadRequest
                         }
                     },
                     awc::error::SendRequestError::Send(err) => {
@@ -413,23 +413,23 @@ impl Client {
                                 "problem parsing response from {} {url}: {err}",
                                 EP::METHOD,
                             );
-                            ErrorCode::InternalClientError
+                            ErrorCode::InternalError
                         }
                         err => {
                             log::error!(
                                 "unexpected error type while parsing response to request to {} {url}: {err}",
                                 EP::METHOD
                             );
-                            ErrorCode::InternalClientError
+                            ErrorCode::InternalError
                         }
                     },
                     awc::error::SendRequestError::Http(err) => {
                         log::error!("HTTP error with request {} {url}: {err}", EP::METHOD,);
-                        ErrorCode::InternalClientError
+                        ErrorCode::InternalError
                     }
                     awc::error::SendRequestError::H2(err) => {
                         log::error!("HTTP/2 error with request {} {url}: {err}", EP::METHOD,);
-                        ErrorCode::InternalClientError
+                        ErrorCode::InternalError
                     }
                     awc::error::SendRequestError::Timeout => {
                         log::warn!("request to {} {url} timed out", EP::METHOD);
@@ -437,7 +437,7 @@ impl Client {
                     }
                     awc::error::SendRequestError::TunnelNotSupported => {
                         log::error!("unexpected 'TunnelNotSupported' error");
-                        ErrorCode::InternalClientError
+                        ErrorCode::InternalError
                     }
                     awc::error::SendRequestError::Body(err) => {
                         log::warn!(
@@ -448,14 +448,14 @@ impl Client {
                     }
                     awc::error::SendRequestError::Custom(err, dbg) => {
                         log::error!("unexpected custom error: {err}; {dbg:?}",);
-                        ErrorCode::InternalClientError
+                        ErrorCode::InternalError
                     }
                     err => {
                         log::error!(
                             "unexpected error type while sending request to {} {url}: {err}",
                             EP::METHOD
                         );
-                        ErrorCode::InternalClientError
+                        ErrorCode::InternalError
                     }
                 });
             }

@@ -75,7 +75,7 @@ impl crate::client::Client {
                     log::warn!(
                         "unexpected join error getting constellation from server: {join_err}"
                     );
-                    return Err(api::ErrorCode::InternalClientError);
+                    return Err(api::ErrorCode::InternalError);
                 }
             }
         }

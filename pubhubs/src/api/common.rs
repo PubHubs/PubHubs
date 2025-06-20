@@ -159,12 +159,6 @@ pub enum ErrorCode {
     )]
     PleaseRetry,
 
-    #[error("unexpected problem with the client (not the server)")]
-    InternalClientError,
-
-    #[error("problem connecting to server")]
-    CouldNotConnect,
-
     #[error("server encountered an unexpected problem")]
     InternalError,
 
@@ -228,9 +222,7 @@ impl ErrorCode {
             PleaseRetry => ErrorInfo {
                 retryable: Some(true),
             },
-            InternalClientError | InternalError | BadRequest | CouldNotConnect => {
-                ErrorInfo { retryable: None }
-            }
+            InternalError | BadRequest => ErrorInfo { retryable: None },
         }
     }
 
