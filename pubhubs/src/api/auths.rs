@@ -133,6 +133,9 @@ pub enum AuthCompleteResp {
     },
 
     /// Something went wrong;  please start again at [`AuthStartEP`].
+    ///
+    /// One reason is that the authentication server restarted and that the provided authenication
+    /// state is no longer valid.
     PleaseRestartAuth,
 }
 

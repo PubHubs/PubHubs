@@ -123,11 +123,13 @@ impl AuthState {
         ))
     }
 
-    fn unseal(sealed: &api::auths::AuthState, key: &crypto::SealingKey) -> api::Result<AuthState> {
-        crypto::unseal(&*sealed.inner, key, b"").map_err(|err| {
-            log::debug!("failed to unseal AuthState: {err}");
-            api::ErrorCode::BrokenSeal
-        })
+    fn unseal(sealed: &api::auths::AuthState, key: &crypto::SealingKey) -> Option<AuthState> {
+        let Ok(state) = crypto::unseal(&*sealed.inner, key, b"") else {
+            log::debug!("failed to unseal AuthState");
+            return None;
+        };
+
+        Some(state)
     }
 }
 
@@ -214,7 +216,9 @@ impl App {
 
         let req: api::auths::AuthCompleteReq = req.into_inner();
 
-        let state: AuthState = AuthState::unseal(&req.state, &app.auth_state_secret)?;
+        let Some(state) = AuthState::unseal(&req.state, &app.auth_state_secret) else {
+            return Ok(api::auths::AuthCompleteResp::PleaseRestartAuth);
+        };
 
         if state.exp < jwt::NumericDate::now() {
             return Err(api::ErrorCode::Expired);
