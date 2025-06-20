@@ -159,9 +159,6 @@ pub enum ErrorCode {
     )]
     PleaseRetry,
 
-    #[error("malconfiguration detected")]
-    Malconfigured,
-
     #[error("unexpected problem with the client (not the server)")]
     InternalClientError,
 
@@ -229,8 +226,7 @@ impl ErrorCode {
     /// Returns additional information about this error code.
     pub fn info(&self) -> ErrorInfo {
         match self {
-            Malconfigured
-            | InvalidSignature
+            InvalidSignature
             | InvalidAdminKey
             | UnknownHub
             | UnknownAttributeType
@@ -255,7 +251,7 @@ impl ErrorCode {
     /// to get the error to send tot the client.
     pub fn into_server_error(self) -> ErrorCode {
         match self {
-            Malconfigured => Malconfigured,
+            InternalError => InternalError,
             PleaseRetry => PleaseRetry,
             err => {
                 if err.info().retryable == Some(true) {

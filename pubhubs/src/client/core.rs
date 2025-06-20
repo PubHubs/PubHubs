@@ -218,7 +218,7 @@ impl<EP: EndpointDetails + 'static> BorrowedQuerySetup<'_, EP> {
                     result.unwrap_err()
                 );
                 return futures::future::Either::Left(std::future::ready(
-                    EP::ResponseType::from_ec(ErrorCode::Malconfigured),
+                    EP::ResponseType::from_ec(ErrorCode::InternalError),
                 ));
             }
             result.unwrap()
