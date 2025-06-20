@@ -159,17 +159,17 @@ pub enum ErrorCode {
     )]
     PleaseRetry,
 
-    #[error("server encountered an unexpected problem")]
+    #[error("encountered an unexpected problem")]
     InternalError,
+
+    #[error("something is wrong with the request")]
+    BadRequest,
 
     #[error("a signature could not be verified")]
     InvalidSignature,
 
     #[error("invalid admin key")]
     InvalidAdminKey,
-
-    #[error("something is wrong with the request")]
-    BadRequest,
 
     #[error("unknown hub")]
     UnknownHub,
@@ -179,9 +179,6 @@ pub enum ErrorCode {
 
     #[error("attribute of this type cannot be obtained from this source")]
     MissingAttributeSource,
-
-    #[error("yivi is not configured for this authentication server")]
-    YiviNotConfigured,
 
     #[error("could not unseal data: corrupted or outdated")]
     BrokenSeal,
@@ -213,7 +210,6 @@ impl ErrorCode {
             | UnknownHub
             | UnknownAttributeType
             | MissingAttributeSource
-            | YiviNotConfigured
             | Expired
             | InvalidAuthProof
             | BrokenSeal => ErrorInfo {

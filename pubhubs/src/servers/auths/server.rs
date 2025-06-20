@@ -85,7 +85,10 @@ pub struct YiviCtx {
 /// # Helper functions
 impl App {
     fn get_yivi(&self) -> Result<&YiviCtx, api::ErrorCode> {
-        self.yivi.as_ref().ok_or(api::ErrorCode::YiviNotConfigured)
+        self.yivi.as_ref().ok_or_else(|| {
+            log::debug!("yivi requested, but not configured");
+            api::ErrorCode::BadRequest
+        })
     }
 
     /// Get [`attr::Type`] by [`handle::Handle`], returning [`api::ErrorCode::UnknownAttributeType`]
