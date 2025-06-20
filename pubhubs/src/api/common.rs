@@ -2,8 +2,8 @@ use std::rc::Rc;
 use std::str::FromStr as _;
 
 use serde::{
-    Deserialize, Serialize,
     de::{DeserializeOwned, IntoDeserializer as _},
+    Deserialize, Serialize,
 };
 
 use anyhow::Context as _;
@@ -154,14 +154,8 @@ impl<T> ApiResultExt for Result<T> {
 #[derive(Clone, Copy, Serialize, Deserialize, Debug, thiserror::Error, PartialEq, Eq)]
 #[serde(deny_unknown_fields)]
 pub enum ErrorCode {
-    #[error("requested process already running")]
-    AlreadyRunning,
-
     #[error("this, or one of the other servers, is not yet ready to process the request")]
     NotYetReady,
-
-    #[error("server is no longer in the correct state to process this request")]
-    NoLongerInCorrectState,
 
     #[error("malconfiguration detected")]
     Malconfigured,
@@ -233,9 +227,7 @@ impl ErrorCode {
     /// Returns additional information about this error code.
     pub fn info(&self) -> ErrorInfo {
         match self {
-            AlreadyRunning
-            | NoLongerInCorrectState
-            | Malconfigured
+            Malconfigured
             | InvalidSignature
             | InvalidAdminKey
             | UnknownHub
@@ -326,8 +318,8 @@ impl<T> Payload<T> {
     ) -> anyhow::Result<Payload<T>>
     where
         S: futures::stream::Stream<
-                Item = std::result::Result<bytes::Bytes, awc::error::PayloadError>,
-            >,
+            Item = std::result::Result<bytes::Bytes, awc::error::PayloadError>,
+        >,
         T: DeserializeOwned,
     {
         let Some(content_type_hv) = resp.headers().get(http::header::CONTENT_TYPE) else {
