@@ -183,9 +183,6 @@ pub enum ErrorCode {
     #[error("something is wrong with the request")]
     BadRequest,
 
-    #[error("not (yet) implemented")]
-    NotImplemented,
-
     #[error("unknown hub")]
     UnknownHub,
 
@@ -229,7 +226,6 @@ impl ErrorCode {
             | UnknownAttributeType
             | MissingAttributeSource
             | YiviNotConfigured
-            | NotImplemented
             | Expired
             | InvalidAuthProof
             | BrokenSeal => ErrorInfo {
