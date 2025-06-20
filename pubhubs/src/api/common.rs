@@ -165,9 +165,6 @@ pub enum ErrorCode {
     #[error("severed connection to server; action may or may not have succeeded")]
     SeveredConnection,
 
-    #[error("problem connecting to server of a potentially temporary nature")]
-    CouldNotConnectYet,
-
     #[error("problem connecting to server")]
     CouldNotConnect,
 
@@ -238,7 +235,7 @@ impl ErrorCode {
             | BrokenSeal => ErrorInfo {
                 retryable: Some(false),
             },
-            CouldNotConnectYet | TemporaryFailure | PleaseRetry | SeveredConnection => ErrorInfo {
+            TemporaryFailure | PleaseRetry | SeveredConnection => ErrorInfo {
                 retryable: Some(true),
             },
             InternalClientError | InternalError | BadRequest | CouldNotConnect => {

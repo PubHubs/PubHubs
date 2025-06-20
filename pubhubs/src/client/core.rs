@@ -356,21 +356,21 @@ impl Client {
                     awc::error::SendRequestError::Connect(err) => match err {
                         awc::error::ConnectError::Timeout => {
                             log::warn!("connecting to {url} timed out");
-                            ErrorCode::CouldNotConnectYet
+                            ErrorCode::PleaseRetry
                         }
                         awc::error::ConnectError::Resolver(err) => {
                             log::warn!("resolving {url}: {err}");
-                            ErrorCode::CouldNotConnectYet
+                            ErrorCode::PleaseRetry
                         }
                         awc::error::ConnectError::Io(err) => {
                             // might happen when the port is closed
                             log::warn!("io error while connecting to {url}: {err}");
-                            ErrorCode::CouldNotConnectYet
+                            ErrorCode::PleaseRetry
                         }
                         awc::error::ConnectError::Disconnected => {
                             // might happen when the contacted server shuts down
                             log::warn!("server disconnected while querying {url}");
-                            ErrorCode::CouldNotConnectYet
+                            ErrorCode::PleaseRetry
                         }
                         _ => {
                             log::error!("error connecting to {url}: {err}");
@@ -383,7 +383,7 @@ impl Client {
                             EP::METHOD,
                             err
                         );
-                        ErrorCode::CouldNotConnectYet
+                        ErrorCode::PleaseRetry
                     }
                     awc::error::SendRequestError::Response(err) => match err {
                         actix_web::error::ParseError::Timeout => {
@@ -433,7 +433,7 @@ impl Client {
                     }
                     awc::error::SendRequestError::Timeout => {
                         log::warn!("request to {} {url} timed out", EP::METHOD);
-                        ErrorCode::CouldNotConnectYet
+                        ErrorCode::PleaseRetry
                     }
                     awc::error::SendRequestError::TunnelNotSupported => {
                         log::error!("unexpected 'TunnelNotSupported' error");
@@ -444,7 +444,7 @@ impl Client {
                             "problem sending request body to {} {url}: {err}",
                             EP::METHOD
                         );
-                        ErrorCode::CouldNotConnectYet
+                        ErrorCode::PleaseRetry
                     }
                     awc::error::SendRequestError::Custom(err, dbg) => {
                         log::error!("unexpected custom error: {err}; {dbg:?}",);
@@ -481,9 +481,7 @@ impl Client {
 
             return Result::Err(match status {
                 // Caddy returns 502 Bad Gateway when the service proxied to is (temporarily) down
-                StatusCode::BAD_GATEWAY | StatusCode::GATEWAY_TIMEOUT => {
-                    ErrorCode::CouldNotConnectYet
-                }
+                StatusCode::BAD_GATEWAY | StatusCode::GATEWAY_TIMEOUT => ErrorCode::PleaseRetry,
                 _ => ErrorCode::BadRequest,
             });
         }
