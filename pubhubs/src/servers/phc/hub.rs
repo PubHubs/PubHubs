@@ -56,7 +56,7 @@ impl App {
         app: Rc<Self>,
         signed_req: web::Json<TicketSigned<api::phct::hub::KeyReq>>,
     ) -> api::Result<api::phct::hub::KeyResp> {
-        let running_state = &app.running_state_or_not_yet_ready()?;
+        let running_state = &app.running_state_or_please_retry()?;
 
         let ts_req = signed_req.into_inner();
 

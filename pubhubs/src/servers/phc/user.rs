@@ -23,7 +23,7 @@ use api::phc::user::UserState as ApiUserState;
 impl App {
     /// Implements [`WelcomeEP`]
     pub(super) fn cached_handle_user_welcome(app: &Self) -> api::Result<WelcomeResp> {
-        let running_state = app.running_state_or_not_yet_ready()?;
+        let running_state = app.running_state_or_please_retry()?;
 
         let hubs: HashMap<handle::Handle, hub::BasicInfo> = app
             .hubs
@@ -57,7 +57,7 @@ impl App {
         app: Rc<Self>,
         req: web::Json<EnterReq>,
     ) -> api::Result<EnterResp> {
-        let running_state = &app.running_state_or_not_yet_ready()?;
+        let running_state = &app.running_state_or_please_retry()?;
 
         let EnterReq {
             identifying_attr,

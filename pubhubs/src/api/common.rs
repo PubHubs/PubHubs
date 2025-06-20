@@ -154,8 +154,10 @@ impl<T> ApiResultExt for Result<T> {
 #[derive(Clone, Copy, Serialize, Deserialize, Debug, thiserror::Error, PartialEq, Eq)]
 #[serde(deny_unknown_fields)]
 pub enum ErrorCode {
-    #[error("this, or one of the other servers, is not yet ready to process the request")]
-    NotYetReady,
+    #[error(
+        "the request you sent failed for now, but please do retry the exact same request again"
+    )]
+    PleaseRetry,
 
     #[error("malconfiguration detected")]
     Malconfigured,
@@ -240,7 +242,7 @@ impl ErrorCode {
             | BrokenSeal => ErrorInfo {
                 retryable: Some(false),
             },
-            CouldNotConnectYet | TemporaryFailure | NotYetReady | SeveredConnection => ErrorInfo {
+            CouldNotConnectYet | TemporaryFailure | PleaseRetry | SeveredConnection => ErrorInfo {
                 retryable: Some(true),
             },
             InternalClientError | InternalError | BadRequest | CouldNotConnect => {
@@ -254,7 +256,7 @@ impl ErrorCode {
     pub fn into_server_error(self) -> ErrorCode {
         match self {
             Malconfigured => Malconfigured,
-            NotYetReady => NotYetReady,
+            PleaseRetry => PleaseRetry,
             err => {
                 if err.info().retryable == Some(true) {
                     TemporaryFailure

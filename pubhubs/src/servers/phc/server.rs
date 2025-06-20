@@ -218,7 +218,7 @@ impl crate::servers::App<Server> for App {
                     Ok(None)
                 } else {
                     log::info!("Waiting for the other servers to update their constellation.");
-                    Err(api::ErrorCode::NotYetReady)
+                    Err(api::ErrorCode::PleaseRetry)
                 }
             }
             // a task ended irregularly (panicked, joined,...)
@@ -233,7 +233,7 @@ impl crate::servers::App<Server> for App {
                         // the discovery task was completed succesfully, or made some progress,
                         // or we got a retryable error.
                         // In all these cases the caller should try again.
-                        Err(api::ErrorCode::NotYetReady)
+                        Err(api::ErrorCode::PleaseRetry)
                     }
                     Err(err) => {
                         log::error!("Failed to run discovery of other server: {err}",);

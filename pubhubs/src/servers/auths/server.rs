@@ -7,7 +7,7 @@ use actix_web::web;
 use digest::Digest as _;
 
 use crate::servers::{
-    self, AppBase, AppCreatorBase, Constellation, Handle, Server as _, constellation, yivi,
+    self, constellation, yivi, AppBase, AppCreatorBase, Constellation, Handle, Server as _,
 };
 use crate::{
     api::{self, EndpointDetails as _, ResultExt as _},
@@ -203,7 +203,7 @@ impl App {
         app: Rc<Self>,
         req: web::Json<api::auths::AuthCompleteReq>,
     ) -> api::Result<api::auths::AuthCompleteResp> {
-        app.running_state_or_not_yet_ready()?;
+        app.running_state_or_please_retry()?;
 
         let req: api::auths::AuthCompleteReq = req.into_inner();
 
@@ -324,7 +324,7 @@ impl App {
         app: Rc<Self>,
         reqs: web::Json<HashMap<handle::Handle, api::auths::AttrKeyReq>>,
     ) -> api::Result<api::auths::AttrKeysResp> {
-        let running_state = &app.running_state_or_not_yet_ready()?;
+        let running_state = &app.running_state_or_please_retry()?;
 
         let reqs = reqs.into_inner();
 

@@ -16,7 +16,7 @@ impl App {
         app: Rc<Self>,
         auth_token: actix_web::web::Header<AuthToken>,
     ) -> api::Result<PppResp> {
-        let running_state = app.running_state_or_not_yet_ready()?;
+        let running_state = app.running_state_or_please_retry()?;
 
         let Ok((user_state, _)) = app
             .open_auth_token_and_get_user_state(auth_token.into_inner())
