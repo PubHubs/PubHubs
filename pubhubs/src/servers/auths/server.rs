@@ -178,7 +178,9 @@ impl App {
                     "{}: got yivi authentication start request for {attr_ty}, but yivi is not supported for this attribute type",
                     Server::NAME
                 );
-                return Err(api::ErrorCode::MissingAttributeSource);
+                return Ok(api::auths::AuthStartResp::SourceNotAvailableFor(
+                    attr_ty_handle.clone(),
+                ));
             }
 
             cdc.push(dc);

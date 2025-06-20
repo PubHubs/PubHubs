@@ -62,6 +62,9 @@ pub enum AuthStartResp {
 
     /// No attribute type known with this handle
     UnknownAttrType(crate::handle::Handle),
+
+    /// The [`AuthStartReq::source`] is not available for the attribute type with this handle
+    SourceNotAvailableFor(crate::handle::Handle),
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]

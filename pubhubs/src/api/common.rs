@@ -171,9 +171,6 @@ pub enum ErrorCode {
     #[error("invalid admin key")]
     InvalidAdminKey,
 
-    #[error("attribute of this type cannot be obtained from this source")]
-    MissingAttributeSource,
-
     #[error("could not unseal data: corrupted or outdated")]
     BrokenSeal,
 
@@ -199,14 +196,11 @@ impl ErrorCode {
     /// Returns additional information about this error code.
     pub fn info(&self) -> ErrorInfo {
         match self {
-            InvalidSignature
-            | InvalidAdminKey
-            | MissingAttributeSource
-            | Expired
-            | InvalidAuthProof
-            | BrokenSeal => ErrorInfo {
-                retryable: Some(false),
-            },
+            InvalidSignature | InvalidAdminKey | Expired | InvalidAuthProof | BrokenSeal => {
+                ErrorInfo {
+                    retryable: Some(false),
+                }
+            }
             PleaseRetry => ErrorInfo {
                 retryable: Some(true),
             },
