@@ -91,15 +91,13 @@ impl App {
         })
     }
 
-    /// Get [`attr::Type`] by [`handle::Handle`], returning [`api::ErrorCode::UnknownAttributeType`]
+    /// Get [`attr::Type`] by [`handle::Handle`], returning [`None`]
     /// when it cannot be found.
     fn attr_type_from_handle<'s>(
         &'s self,
         attr_type_handle: &handle::Handle,
-    ) -> api::Result<&'s attr::Type> {
-        self.attribute_types
-            .get(attr_type_handle)
-            .ok_or(api::ErrorCode::UnknownAttributeType)
+    ) -> Option<&'s attr::Type> {
+        self.attribute_types.get(attr_type_handle)
     }
 }
 
@@ -160,7 +158,11 @@ impl App {
         let mut cdc: servers::yivi::AttributeConDisCon = Default::default(); // empty
 
         for attr_ty_handle in state.attr_types.iter() {
-            let attr_ty = app.attr_type_from_handle(attr_ty_handle)?;
+            let Some(attr_ty) = app.attr_type_from_handle(attr_ty_handle) else {
+                return Ok(api::auths::AuthStartResp::UnknownAttrType(
+                    attr_ty_handle.clone(),
+                ));
+            };
 
             let dc: Vec<Vec<servers::yivi::AttributeRequest>> = attr_ty
                 .yivi_attr_type_ids()
@@ -193,7 +195,7 @@ impl App {
                 api::ErrorCode::InternalError
             })?;
 
-        Ok(api::auths::AuthStartResp {
+        Ok(api::auths::AuthStartResp::Success {
             task: api::auths::AuthTask::Yivi {
                 disclosure_request,
                 yivi_requestor_url: yivi.requestor_url.clone(),
@@ -271,7 +273,10 @@ impl App {
                 api::ErrorCode::InvalidAuthProof
             })?;
 
-            let attr_type = app.attr_type_from_handle(attr_type_handle)?;
+            let Some(attr_type) = app.attr_type_from_handle(attr_type_handle) else {
+                log::warn!("Attribute type with handle {attr_type_handle} mentioned in authentication state can no longer be found.");
+                return Ok(api::auths::AuthCompleteResp::PleaseRestartAuth);
+            };
 
             if !attr_type
                 .yivi_attr_type_ids()
@@ -308,7 +313,7 @@ impl App {
             }
         }
 
-        Ok(api::auths::AuthCompleteResp { attrs })
+        Ok(api::auths::AuthCompleteResp::Success { attrs })
     }
 
     /// Implements [`api::auths::WelcomeEP`].
