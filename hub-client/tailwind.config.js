@@ -1,5 +1,6 @@
 // Plugin imports
 import fluid, { extract } from 'fluid-tailwind';
+import forms from '@tailwindcss/forms';
 
 module.exports = {
 	darkMode: 'class',
@@ -15,6 +16,7 @@ module.exports = {
 		},
 		spacing: {
 			0: '0',
+			0.5: '0.2rem', // 2px
 			1: '0.4rem', // 4px
 			2: '0.8rem', // 8px
 			3: '1.2rem', // 12px
@@ -102,5 +104,5 @@ module.exports = {
 		files: ['./public/**/*.html', './src/**/*.{js,ts,jsx,tsx,vue}', '../global-client/public/**/*.html', '../global-client/src/**/*.{js,ts,jsx,tsx,vue}'],
 		extract,
 	},
-	plugins: [fluid, require('@tailwindcss/forms')],
+	plugins: [fluid, forms],
 };

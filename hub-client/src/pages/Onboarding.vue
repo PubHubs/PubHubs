@@ -17,7 +17,7 @@
 				</div>
 
 				<!-- Step 1: Set Username -->
-				<div v-if="step == 1" class="flex h-full flex-col justify-between gap-8 pb-4">
+				<div v-if="step == 1" class="flex flex-col justify-between gap-8 pb-4">
 					<div class="flex flex-col gap-8">
 						<!-- Username Input -->
 						<div class="flex flex-col gap-2">
@@ -38,7 +38,7 @@
 						<!-- Preview Message -->
 						<div v-if="isUsernameChanged" class="flex flex-col gap-2">
 							<P>{{ t('onboarding.message_example') }}</P>
-							<div class="w--full flex items-center rounded-xl bg-surface-low ~gap-4/8 ~p-3/6 xl:w-1/2">
+							<div class="flex w-full items-center rounded-xl bg-surface-low ~gap-4/8 ~p-3/6 xl:w-1/2">
 								<div class="flex aspect-square h-12 w-12 shrink-0 items-center justify-center overflow-hidden rounded-full" :class="textColor(color(user.userId!))">
 									<img v-if="avatarPreviewUrl" data-testid="avatar" :src="avatarPreviewUrl" class="h-full w-full" />
 									<Icon v-else size="lg" type="person" />
@@ -66,13 +66,13 @@
 				</div>
 
 				<!-- Step 2: Consent -->
-				<div v-if="step === 2" class="flex h-full flex-col gap-8 pb-4">
+				<div v-if="step === 2" class="flex flex-col gap-8 pb-4">
 					<!-- House Rules -->
-					<div class="flex h-full flex-col gap-2">
+					<div class="flex flex-col gap-2 overflow-y-auto">
 						<H1>{{ t('onboarding.house_rules', [hubName]) }}</H1>
-						<P class="h-full overflow-y-auto whitespace-pre-line break-all rounded-3xl bg-surface-low p-4">
-							{{ consentText }}
-						</P>
+						<div v-if="consentText" class="whitespace-pre-line break-all rounded-3xl bg-surface-low p-4">
+							<mavon-editor defaultOpen="preview" :toolbarsFlag="false" :subfield="false" v-model="consentText" :boxShadow="false" />
+						</div>
 					</div>
 
 					<!-- Consent Checkbox -->
@@ -95,14 +95,14 @@
 		</div>
 
 		<!-- Desktop Layout -->
-		<div v-else class="overflow-none relative flex h-full max-h-screen w-full items-center justify-center">
+		<div v-else class="overflow-none relative flex max-h-screen w-full items-center justify-center">
 			<div class="relative flex aspect-auto h-auto max-h-full w-3/4 rounded-3xl shadow xl:aspect-[3/2] xl:h-2/3 xl:w-auto">
 				<!-- Step 1 -->
-				<div v-if="step === 1" class="flex h-full w-full flex-col overflow-hidden rounded-3xl bg-surface-low lg:flex-row">
+				<div v-if="step === 1" class="flex w-full flex-col overflow-hidden rounded-3xl bg-surface-low lg:flex-row">
 					<!-- Left Image -->
 					<div class="flex h-[250px] w-full flex-col overflow-y-auto ~gap-4/8 lg:h-auto lg:w-1/2">
 						<figure class="h-full w-full">
-							<img alt="Placeholder" :src="onboardingPlaceholder" class="h-full w-full object-cover" />
+							<img alt="Placeholder" src="../assets/onboarding_placeholder.svg" class="h-full w-full object-cover" />
 						</figure>
 					</div>
 
@@ -156,13 +156,13 @@
 				</div>
 
 				<!-- Step 2 -->
-				<div v-if="step === 2" class="flex h-full w-full overflow-hidden rounded-3xl bg-surface-low">
+				<div v-if="step === 2" class="flex w-full overflow-hidden rounded-3xl bg-surface-low">
 					<!-- Left Rules -->
-					<div class="flex h-full w-1/2 flex-col overflow-y-auto ~gap-4/8 ~px-4/24 ~pt-24/36">
+					<div class="flex w-1/2 flex-col overflow-y-auto ~gap-4/8 ~px-4/24 ~pt-24/36">
 						<H1>{{ t('onboarding.house_rules', [hubName]) }}</H1>
-						<P class="w-full overflow-y-auto whitespace-pre-line break-words">
-							{{ consentText }}
-						</P>
+						<div v-if="consentText" class="whitespace-pre-line break-all rounded-3xl bg-surface-low p-4">
+							<mavon-editor defaultOpen="preview" :toolbarsFlag="false" :subfield="false" v-model="consentText" :boxShadow="false" />
+						</div>
 					</div>
 
 					<!-- Right Consent -->
@@ -186,7 +186,7 @@
 
 				<!-- Mascot -->
 				<figure class="absolute -bottom-4 -right-16 hidden w-64 lg:block xl:-right-32 xl:w-auto">
-					<img alt="PubHubs mascotte" :src="mascotteImage" />
+					<img alt="PubHubs mascotte" src="../assets/mascotte.svg" />
 				</figure>
 			</div>
 		</div>
@@ -198,10 +198,6 @@
 	import { computed, onBeforeMount, ref } from 'vue';
 	import { useI18n } from 'vue-i18n';
 	import { useRouter, useRoute } from 'vue-router';
-
-	// Assets
-	import onboardingPlaceholder from '../../public/img/onboarding_placeholder.svg';
-	import mascotteImage from '../../public/img/mascotte.svg';
 
 	// Components
 	import Button from '@/components/elements/Button.vue';
@@ -241,7 +237,6 @@
 	const isUsernameChanged = computed(() => inputValue.value !== '');
 
 	const isConsentOnly = computed(() => route.query.type === 'consent');
-	console.log(isConsentOnly.value);
 	const step = ref(isConsentOnly.value ? 2 : 1);
 	const nextStep = () => (step.value = 2);
 	const prevStep = () => (step.value = 1);
@@ -288,14 +283,14 @@
 
 	// Consent handling
 	const hasAgreed = ref(false);
-	const consentVersion = ref(0);
+	const consentVersion = ref(hubSettings.hubConsentVersion);
 	const consentText = ref('');
 
 	const loadHubSettings = async () => {
 		const hubSettingsJSON = await hubSettings.getHubJSON();
 
 		if (hubSettingsJSON) {
-			consentVersion.value = hubSettingsJSON.version ? hubSettingsJSON.version : 1;
+			consentVersion.value = hubSettingsJSON.version ? hubSettingsJSON.version : hubSettings.hubConsentVersion;
 			consentText.value = hubSettingsJSON.consent;
 		}
 	};

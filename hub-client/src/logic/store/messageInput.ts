@@ -1,101 +1,151 @@
-import { reactive } from 'vue';
+import { defineStore } from 'pinia';
+
 import { Scheduler, Poll } from '@/model/events/voting/VotingTypes';
 
-export const useMessageInputComposable = () => {
-	const state = reactive({
-		popover: false,
-		sendButtonEnabled: false,
-		textArea: true,
-		showMention: true,
-		emojiPicker: false,
-		signMessage: false,
-		showYiviQR: false,
-		poll: false,
-		pollObject: null as Poll | null,
-		scheduler: false,
-		schedulerObject: null as Scheduler | null,
-		editEventId: undefined as string | undefined,
-	});
+const useMessageInput = defineStore('messageInput', {
+	state: () => {
+		return {
+			popover: false,
+			sendButtonEnabled: false,
+			textArea: true,
+			showMention: true,
+			emojiPicker: false,
+			signMessage: false,
+			showYiviQR: false,
+			fileDialog: false,
+			fileAdded: null as File | null,
+			poll: false,
+			pollObject: null as Poll | null,
+			scheduler: false,
+			schedulerObject: null as Scheduler | null,
+			editEventId: undefined as string | undefined,
+		};
+	},
 
-	function togglePopover() {
-		state.popover = !state.popover;
-	}
+	getters: {
+		isEdit(state): Boolean {
+			return state.editEventId !== undefined;
+		},
 
-	function isEdit() {
-		return state.editEventId !== undefined;
-	}
+		hasActivePopup(state): Boolean {
+			return state.emojiPicker || state.showMention || state.popover || state.poll || state.scheduler;
+		},
+	},
 
-	function resetAll(rememberSendButtonEnabled = false) {
-		state.popover = false;
-		if (!rememberSendButtonEnabled) {
-			state.sendButtonEnabled = false;
-		}
-		state.textArea = true;
-		state.showMention = true;
-		state.emojiPicker = false;
-		state.signMessage = false;
-		state.showYiviQR = false;
-		state.poll = false;
-		state.pollObject = null;
-		state.scheduler = false;
-		state.schedulerObject = null;
-		state.editEventId = undefined;
-	}
+	actions: {
+		resetAll(rememberSendButtonEnabled = false) {
+			this.popover = false;
+			if (!rememberSendButtonEnabled) {
+				this.sendButtonEnabled = false;
+			}
+			this.textArea = true;
+			this.showMention = true;
+			this.emojiPicker = false;
+			this.signMessage = false;
+			this.showYiviQR = false;
+			this.fileDialog = false;
+			this.fileAdded = null;
+			this.poll = false;
+			this.pollObject = null;
+			this.scheduler = false;
+			this.schedulerObject = null;
+			this.editEventId = undefined;
+		},
 
-	function hasActivePopup() {
-		return state.emojiPicker || state.showMention || state.popover || state.poll || state.scheduler;
-	}
+		togglePopover() {
+			this.popover = !this.popover;
+		},
 
-	function openTextArea() {
-		resetAll();
-	}
+		openTextArea() {
+			this.resetAll();
+		},
 
-	function toggleEmojiPicker() {
-		state.emojiPicker = !state.emojiPicker;
-	}
+		activateSendButton() {
+			this.sendButtonEnabled = true;
+		},
 
-	function openSignMessage() {
-		resetAll(true);
-		state.signMessage = true;
-	}
+		toggleEmojiPicker() {
+			this.emojiPicker = !this.emojiPicker;
+		},
 
-	function openPoll() {
-		resetAll();
-		state.textArea = false;
-		state.poll = true;
-	}
+		openFileDialag() {
+			this.fileDialog = true;
+			this.fileAdded = null;
+		},
 
-	function closePoll() {
-		resetAll();
-	}
+		cancelFileUpload() {
+			this.fileDialog = false;
+			this.fileAdded = null;
+		},
 
-	function editPoll(pollObject: Poll, editEventId: string) {
-		resetAll();
-		state.poll = true;
-		state.pollObject = pollObject;
-		state.pollObject.addNewOptionsIfAllFilled();
-		state.editEventId = editEventId;
-		state.textArea = false;
-	}
+		closeFileUpload() {
+			this.fileDialog = false;
+		},
 
-	function openScheduler() {
-		resetAll();
-		state.textArea = false;
-		state.scheduler = true;
-	}
+		openSignMessage() {
+			this.resetAll(true);
+			this.signMessage = true;
+		},
 
-	function closeScheduler() {
-		resetAll();
-	}
+		openPoll() {
+			this.resetAll();
+			this.textArea = false;
+			this.poll = true;
+		},
 
-	function editScheduler(schedulerObject: Scheduler, editEventId: string) {
-		resetAll();
-		state.scheduler = true;
-		state.schedulerObject = schedulerObject;
-		state.schedulerObject.addNewOptionsIfAllFilled();
-		state.editEventId = editEventId;
-		state.textArea = false;
-	}
+		closePoll() {
+			this.resetAll();
+		},
 
-	return { state, togglePopover, isEdit, resetAll, hasActivePopup, openTextArea, toggleEmojiPicker, openSignMessage, openPoll, closePoll, editPoll, openScheduler, closeScheduler, editScheduler };
+		editPoll(pollObject: Poll, editEventId: string) {
+			this.resetAll();
+			this.poll = true;
+			this.pollObject = pollObject;
+			this.pollObject.addNewOptionsIfAllFilled();
+			this.editEventId = editEventId;
+			this.textArea = false;
+		},
+
+		openScheduler() {
+			this.resetAll();
+			this.textArea = false;
+			this.scheduler = true;
+		},
+
+		closeScheduler() {
+			this.resetAll();
+		},
+
+		editScheduler(schedulerObject: Scheduler, editEventId: string) {
+			this.resetAll();
+			this.scheduler = true;
+			this.schedulerObject = schedulerObject;
+			this.schedulerObject.addNewOptionsIfAllFilled();
+			this.editEventId = editEventId;
+			this.textArea = false;
+		},
+	},
+});
+
+export {
+	useMessageInput,
+	//     state,
+	//     togglePopover,
+	//     isEdit,
+	//     resetAll,
+	//     hasActivePopup,
+	//     activateSendButton,
+	//     openTextArea,
+	//     toggleEmojiPicker,
+	//     openSignMessage,
+	//     openFileDialag,
+	//     cancelFileUpload,
+	//     closeFileUpload,
+	//     openPoll,
+	//     closePoll,
+	//     editPoll,
+	//     openScheduler,
+	//     closeScheduler,
+	//     editScheduler,
+	// };
 };

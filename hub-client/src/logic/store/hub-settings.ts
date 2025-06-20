@@ -5,9 +5,9 @@
 import { Message, useMessageBox } from '@/logic/store/store';
 import { defineStore } from 'pinia';
 import { MessageType } from './messagebox';
-import { api_synapse } from '@/logic/core/api';
+import { api_synapse as api } from '@/logic/core/api';
 import { FeatureFlag, Theme, useSettings } from './settings';
-import { HubSettingsJSONParser } from '@/logic/store/jsonutility';
+import { HubSettingsJSONParser } from '@/logic/store/json-utility';
 
 type HubInformation = {
 	name: string;
@@ -19,6 +19,43 @@ type HubSettingsState = {
 	hubUrl: string;
 	isSolo: boolean;
 	mobileHubMenu: boolean;
+	_summary: string;
+	_description: string;
+	_contact: string;
+	_consent: string;
+	_version: number;
+};
+
+export const toolbarSettings = {
+	bold: true,
+	italic: true,
+	header: true,
+	underline: true,
+	strikethrough: true,
+	mark: true,
+	superscript: true,
+	subscript: true,
+	quote: true,
+	ol: true,
+	ul: true,
+	link: true,
+	imagelink: false,
+	code: true,
+	table: true,
+	fullscreen: false,
+	readmodel: false,
+	htmlcode: true,
+	help: false,
+	undo: true,
+	redo: true,
+	trash: true,
+	save: false,
+	navigation: false,
+	alignleft: true,
+	aligncenter: true,
+	alignright: true,
+	subfield: true,
+	preview: true,
 };
 
 export const ALLOWED_HUB_ICON_TYPES = ['image/png', 'image/jpeg', 'image/jpg', 'image/svg+xml'];
@@ -34,6 +71,11 @@ const useHubSettings = defineStore('hub-settings', {
 			hubUrl: _env.HUB_URL,
 			isSolo: window.self === window.top,
 			mobileHubMenu: true,
+			_summary: '',
+			_description: '',
+			_contact: '',
+			_consent: '',
+			_version: 1,
 		};
 	},
 
@@ -65,7 +107,7 @@ const useHubSettings = defineStore('hub-settings', {
 			const settings = useSettings();
 
 			if (settings.isFeatureEnabled(FeatureFlag.hubSettings)) {
-				return api_synapse.apiURLS.hubIcon;
+				return api.apiURLS.hubIcon;
 			} else {
 				return '/img/logo-person.svg';
 			}
@@ -75,7 +117,7 @@ const useHubSettings = defineStore('hub-settings', {
 			const settings = useSettings();
 
 			if (settings.isFeatureEnabled(FeatureFlag.hubSettings)) {
-				return api_synapse.apiURLS.hubIconDark;
+				return api.apiURLS.hubIconDark;
 			} else {
 				return '/img/logo-person-dark.svg';
 			}
@@ -85,7 +127,7 @@ const useHubSettings = defineStore('hub-settings', {
 			const settings = useSettings();
 
 			if (settings.isFeatureEnabled(FeatureFlag.hubSettings)) {
-				return api_synapse.apiURLS.hubIconDefault;
+				return api.apiURLS.hubIconDefault;
 			} else {
 				return '/img/logo-person.svg';
 			}
@@ -95,7 +137,7 @@ const useHubSettings = defineStore('hub-settings', {
 			const settings = useSettings();
 
 			if (settings.isFeatureEnabled(FeatureFlag.hubSettings)) {
-				return api_synapse.apiURLS.hubIconDefaultDark;
+				return api.apiURLS.hubIconDefaultDark;
 			} else {
 				return '/img/logo-person-dark.svg';
 			}
@@ -105,7 +147,7 @@ const useHubSettings = defineStore('hub-settings', {
 			const settings = useSettings();
 
 			if (settings.isFeatureEnabled(FeatureFlag.hubSettings)) {
-				return api_synapse.apiURLS.hubBanner;
+				return api.apiURLS.hubBanner;
 			} else {
 				return '/img/banner.svg';
 			}
@@ -115,7 +157,7 @@ const useHubSettings = defineStore('hub-settings', {
 			const settings = useSettings();
 
 			if (settings.isFeatureEnabled(FeatureFlag.hubSettings)) {
-				return api_synapse.apiURLS.hubBannerDefault;
+				return api.apiURLS.hubBannerDefault;
 			} else {
 				return '/img/banner.svg';
 			}
@@ -123,6 +165,21 @@ const useHubSettings = defineStore('hub-settings', {
 
 		hubInfo(): HubInformation | undefined {
 			return this._hub;
+		},
+		hubDescription(): string {
+			return this._description;
+		},
+		hubSummary(): string {
+			return this._summary;
+		},
+		hubContact(): string {
+			return this._contact;
+		},
+		hubConsent(): string {
+			return this._consent;
+		},
+		hubConsentVersion(): number {
+			return this._version;
 		},
 	},
 	actions: {
@@ -137,29 +194,35 @@ const useHubSettings = defineStore('hub-settings', {
 		},
 
 		async setIcon(image: File) {
-			await api_synapse.uploadImage(api_synapse.apiURLS.hubIcon, image);
+			await api.uploadImage(api.apiURLS.hubIcon, image);
 		},
 
 		async deleteIcon() {
-			await api_synapse.apiDELETE(api_synapse.apiURLS.hubIcon);
+			await api.apiDELETE(api.apiURLS.hubIcon);
 		},
 		async setBanner(image: File) {
-			await api_synapse.uploadImage(api_synapse.apiURLS.hubBanner, image);
+			await api.uploadImage(api.apiURLS.hubBanner, image);
 		},
 
 		async deleteBanner() {
-			await api_synapse.apiDELETE(api_synapse.apiURLS.hubBanner);
+			await api.apiDELETE(api.apiURLS.hubBanner);
 		},
 		async getHubJSON(): Promise<HubSettingsJSONParser | undefined> {
 			const settings = useSettings();
 			if (settings.isFeatureEnabled(FeatureFlag.hubSettings)) {
-				return await api_synapse.apiGET<HubSettingsJSONParser>(api_synapse.apiURLS.hubSettings);
+				const response = await api.apiGET<HubSettingsJSONParser>(api.apiURLS.hubSettings);
+				this._summary = response.summary;
+				this._description = response.description;
+				this._contact = response.contact;
+				this._consent = response.consent;
+				this._version = response.version;
+				return response;
 			} else {
 				return undefined;
 			}
 		},
 		async setHubJSON(hubSettingsData: HubSettingsJSONParser) {
-			await api_synapse.apiPOST(api_synapse.apiURLS.hubSettings, hubSettingsData);
+			await api.apiPOST(api.apiURLS.hubSettings, hubSettingsData);
 		},
 	},
 });

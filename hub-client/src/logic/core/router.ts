@@ -52,7 +52,7 @@ const routes = [
 		component: () => import('@/pages/AskDisclosure.vue'),
 		meta: { onlyAdmin: true, onboarding: true },
 	},
-	{ path: '/direct-msg', name: 'direct-msg', component: () => import('@/pages/DirectMessage.vue'), meta: { hideBar: true } },
+	{ path: '/direct-msg', name: 'direct-msg', component: () => import('@/pages/DirectMessage.vue'), meta: { hideBar: true, onboarding: true } },
 	{
 		path: '/room/:id',
 		name: 'room',
