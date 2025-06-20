@@ -228,7 +228,7 @@ impl App {
                     match req.proof {
                         api::auths::AuthProof::Yivi { disclosure } => disclosure,
                         #[expect(unreachable_patterns)]
-                        _ => return Err(api::ErrorCode::InvalidAuthProof),
+                        _ => return Err(api::ErrorCode::BadRequest),
                     },
                 )
                 .await
@@ -246,7 +246,7 @@ impl App {
         let ssr =
             yivi::SessionResult::open_signed(&disclosure, &yivi.server_creds).map_err(|err| {
                 log::debug!("invalid yivi signed session result submitted: {err:#}",);
-                api::ErrorCode::InvalidAuthProof
+                api::ErrorCode::BadRequest
             })?;
 
         let mut attrs: HashMap<handle::Handle, api::Signed<attr::Attr>> =
@@ -258,7 +258,7 @@ impl App {
             .validate_and_extract_raw_singles()
             .map_err(|err| {
                 log::debug!("invalid session result submitted: {err}");
-                api::ErrorCode::InvalidAuthProof
+                api::ErrorCode::BadRequest
             })?
             .enumerate()
         {
@@ -267,12 +267,12 @@ impl App {
                     log::debug!(
                         "problem with attribute number {i} of submitted session result: {err}",
                     );
-                    api::ErrorCode::InvalidAuthProof
+                    api::ErrorCode::BadRequest
                 })?;
 
             let attr_type_handle: &handle::Handle = state.attr_types.get(i).ok_or_else(|| {
                 log::debug!("extra attributes disclosed in submitted session result",);
-                api::ErrorCode::InvalidAuthProof
+                api::ErrorCode::BadRequest
             })?;
 
             let Some(attr_type) = app.attr_type_from_handle(attr_type_handle) else {
@@ -288,7 +288,7 @@ impl App {
                     "attribute number {i} of submitted session result has unexpected attribute type id {}",
                     yati
                 );
-                return Err(api::ErrorCode::InvalidAuthProof);
+                return Err(api::ErrorCode::BadRequest);
             }
 
             // Disclosure for attribute is OK.

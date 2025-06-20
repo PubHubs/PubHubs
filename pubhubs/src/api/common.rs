@@ -174,9 +174,6 @@ pub enum ErrorCode {
     #[error("could not unseal data: corrupted or outdated")]
     BrokenSeal,
 
-    #[error("invalid authentication proof")]
-    InvalidAuthProof,
-
     #[error("expired data")]
     Expired,
 }
@@ -196,11 +193,9 @@ impl ErrorCode {
     /// Returns additional information about this error code.
     pub fn info(&self) -> ErrorInfo {
         match self {
-            InvalidSignature | InvalidAdminKey | Expired | InvalidAuthProof | BrokenSeal => {
-                ErrorInfo {
-                    retryable: Some(false),
-                }
-            }
+            InvalidSignature | InvalidAdminKey | Expired | BrokenSeal => ErrorInfo {
+                retryable: Some(false),
+            },
             PleaseRetry => ErrorInfo {
                 retryable: Some(true),
             },
