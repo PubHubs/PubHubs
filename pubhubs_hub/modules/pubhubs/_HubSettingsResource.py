@@ -11,29 +11,20 @@ logger = logging.getLogger("synapse.contrib." + __name__)
 
 class HubSettingsResource(DirectServeJsonResource):
 	"""
-	HubSettingsResource provides a RESTful resource for managing Hub JSON settings.
-	This resource allows clients to retrieve and update hub's JSON configuration file.
-	It enforces CORS policies and restricts modification operations to hub administrators.
-	Attributes:
-		_module_api (ModuleApi): API for interacting with module-specific logic and user management.
-		_module_config (HubClientApiConfig): Configuration object containing paths and URLs for the hub client.
-		_store: Storage backend or context (type unspecified).
-		_is_default (bool): Indicates if this resource serves the default hub configuration.
+	HubSettingsResource provides a resource to retrieve and update the hub's JSON settings file.
+
 	Methods:
-		__init__(module_api, module_config, store, is_default=False):
-			Initializes the resource with the given API, configuration, store, and default flag.
 		async _async_render_GET(request: SynapseRequest) -> bytes:
-			Handles GET requests to retrieve the hub's JSON settings.
-			Applies CORS headers based on the request's Origin.
-			Returns 403 if the Origin is not allowed.
+			- Handles GET requests to retrieve the hub's JSON settings
 		async _async_render_POST(request: SynapseRequest) -> bytes:
-			Handles POST requests to update the hub's JSON settings.
-			Only allows updates by hub administrators.
-			Validates JSON format and writes the updated configuration to disk.
+			- Handles POST requests to update the hub's JSON settings.
+			- Only allows updates by hub administrators.
 		async _user_is_admin(request) -> bool:
-			Checks if the user making the request is a hub administrator.
+			- Checks if the user making the request is a hub administrator.
 		_get_json_path() -> str:
-			Returns the path to the hub's JSON configuration file, depending on whether this is the default resource.
+			- Returns the path to the hub's JSON settings file, depending on whether this is the default resource.
+	  Example usage:
+	     GET <hub_address>/_synapse/client/hub/settings
 	"""
 	_module_api: ModuleApi
 	_module_config: HubClientApiConfig
