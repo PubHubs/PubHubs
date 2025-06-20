@@ -130,7 +130,7 @@ where
 
         EP::ResponseType::from_result(match retry_fut.await {
             Ok(Some(resp)) => Result::Ok(resp),
-            Ok(None) => Result::Err(ErrorCode::TemporaryFailure),
+            Ok(None) => Result::Err(ErrorCode::PleaseRetry),
             Err(ec) => Result::Err(ec),
         })
     }
@@ -391,7 +391,7 @@ impl Client {
                                 "getting response to request to {} {url} timed out",
                                 EP::METHOD
                             );
-                            ErrorCode::SeveredConnection
+                            ErrorCode::PleaseRetry
                         }
                         actix_web::error::ParseError::Io(io_err) => {
                             // this sometimes happens when the request causes the server to exit
@@ -399,7 +399,7 @@ impl Client {
                                 "error getting response to request to {} {url}: {io_err}",
                                 EP::METHOD
                             );
-                            ErrorCode::SeveredConnection
+                            ErrorCode::PleaseRetry
                         }
                         actix_web::error::ParseError::Method
                         | actix_web::error::ParseError::Uri(_)

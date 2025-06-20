@@ -162,14 +162,8 @@ pub enum ErrorCode {
     #[error("unexpected problem with the client (not the server)")]
     InternalClientError,
 
-    #[error("severed connection to server; action may or may not have succeeded")]
-    SeveredConnection,
-
     #[error("problem connecting to server")]
     CouldNotConnect,
-
-    #[error("server encountered a problem which is likely of a temporary nature")]
-    TemporaryFailure,
 
     #[error("server encountered an unexpected problem")]
     InternalError,
@@ -231,7 +225,7 @@ impl ErrorCode {
             | BrokenSeal => ErrorInfo {
                 retryable: Some(false),
             },
-            TemporaryFailure | PleaseRetry | SeveredConnection => ErrorInfo {
+            PleaseRetry => ErrorInfo {
                 retryable: Some(true),
             },
             InternalClientError | InternalError | BadRequest | CouldNotConnect => {
@@ -248,7 +242,7 @@ impl ErrorCode {
             PleaseRetry => PleaseRetry,
             err => {
                 if err.info().retryable == Some(true) {
-                    TemporaryFailure
+                    PleaseRetry
                 } else {
                     InternalError
                 }

@@ -80,7 +80,7 @@
 //!       Consult the logs of the server for more details.  Retrying the request is not
 //!       recommended.
 //!
-//!     - **[`ErrorCode::NotYetReady`], [`ErrorCode::TemporaryFailure`], [`ErrorCode::SeveredConnection`]**:
+//!     - **[`ErrorCode::NotYetReady`]
 //!       just wait a moment, and retry the same request.
 //!
 //!     - **[`ErrorCode::BadRequest`]**: there's something wrong with the request - do not
