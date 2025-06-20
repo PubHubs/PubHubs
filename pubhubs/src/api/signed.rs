@@ -2,6 +2,7 @@ use core::marker::PhantomData;
 
 use std::fmt;
 
+use serde::de::IntoDeserializer as _;
 use serde::{Deserialize, Serialize};
 
 use crate::id;
@@ -197,8 +198,12 @@ pub enum MessageCode {
 }
 
 impl MessageCode {
+    /// Returns big endian bytes representation of this message code.
     pub fn to_bytes(&self) -> [u8; 2] {
-        u16::deserialize(self.into_deserializer()).to_be()
+        // TODO: surely this should be achievable without serde_json somehow.
+        u16::deserialize(serde_json::to_value(self).unwrap().into_deserializer())
+            .unwrap()
+            .to_be_bytes()
     }
 }
 
@@ -255,10 +260,13 @@ mod test {
     use super::*;
 
     #[test]
-    fn test_display_message_code() {
+    fn test_message_code() {
         assert_eq!(
             &format!("{}", MessageCode::PhcHubTicketReq),
             "1 (PhcHubTicketReq)"
         );
+
+        assert_eq!(MessageCode::PhcHubTicketReq.to_bytes(), [0, 1]);
+        assert_eq!(MessageCode::Example.to_bytes(), [255, 255]);
     }
 }

@@ -56,11 +56,11 @@ pub fn t_encrypted_hub_pseudonym(
     hub_id: id::Id,
 ) -> elgamal::Triple {
     let g_h = pseud_factor_secret.derive_scalar(
-        sha2::Sha256::new().chain_update(hub_id),
+        sha2::Sha512::new().chain_update(hub_id.as_slice()),
         "pubhubs-pseud-factor",
     );
 
-    pp.rsk_with_s(g_h).and_k(master_enc_key_part_inv)
+    pp.rsk_with_s(&g_h).and_k(master_enc_key_part_inv)
 }
 
 /// Returns the `f_H` for the given hub ticket

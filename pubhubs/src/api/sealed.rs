@@ -2,7 +2,7 @@
 
 use std::marker::PhantomData;
 
-use serde::{de::DeserializeOwned, Deserialize, Serialize};
+use serde::{Deserialize, Serialize};
 
 use crate::api;
 use crate::misc::crypto;
@@ -32,7 +32,7 @@ where
         Ok(Self {
             phantom_data: PhantomData,
             inner: serde_bytes::ByteBuf::from(
-                crypto::seal(message, key, &T::CODE.to_bytes()).map_err(|err| {
+                crypto::seal(message, key, T::CODE.to_bytes()).map_err(|err| {
                     log::error!(
                         "failed to seal message of type {tp}: {err:#}",
                         tp = std::any::type_name::<T>()
@@ -47,6 +47,6 @@ where
 
     /// Opens this sealed message
     pub fn open(self, key: &SealingKey) -> Result<T, Opaque> {
-        crypto::unseal(&*self.inner, key, &T::CODE.to_bytes())
+        crypto::unseal(&*self.inner, key, T::CODE.to_bytes())
     }
 }
