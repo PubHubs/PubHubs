@@ -207,7 +207,7 @@ async fn main_integration_test_local(
     js.spawn(mock_hub.actix_server); // the actix server does not run itself
 
     // get a ticket for testhub
-    let ticket = client
+    let api::phc::hub::TicketResp::Success(ticket) = client
         .query_with_retry::<api::phc::hub::TicketEP, _, _>(
             config.phc_url.as_ref(),
             &api::Signed::<api::phc::hub::TicketReq>::new(
@@ -220,7 +220,10 @@ async fn main_integration_test_local(
             .unwrap(),
         )
         .await
-        .unwrap();
+        .unwrap()
+    else {
+        panic!()
+    };
 
     // check that the ticket is valid
     ticket

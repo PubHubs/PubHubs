@@ -171,9 +171,6 @@ pub enum ErrorCode {
     #[error("invalid admin key")]
     InvalidAdminKey,
 
-    #[error("unknown hub")]
-    UnknownHub,
-
     #[error("unknown attribute type")]
     UnknownAttributeType,
 
@@ -207,7 +204,6 @@ impl ErrorCode {
         match self {
             InvalidSignature
             | InvalidAdminKey
-            | UnknownHub
             | UnknownAttributeType
             | MissingAttributeSource
             | Expired
