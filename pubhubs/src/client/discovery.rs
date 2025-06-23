@@ -1,5 +1,5 @@
 use crate::api::{self, ApiResultExt as _, NoPayload};
-use crate::servers::{self, Constellation, server::Server as _};
+use crate::servers::{self, server::Server as _, Constellation};
 
 impl crate::client::Client {
     /// Retrieves [`Constellation`] from specified url, waiting for it to be set.
@@ -75,7 +75,7 @@ impl crate::client::Client {
                     log::warn!(
                         "unexpected join error getting constellation from server: {join_err}"
                     );
-                    return Err(api::ErrorCode::InternalClientError);
+                    return Err(api::ErrorCode::InternalError);
                 }
             }
         }
@@ -108,7 +108,7 @@ impl DiscoveryInfoCheck<'_> {
                 source,
                 inf.name
             );
-            return Err(api::ErrorCode::Malconfigured);
+            return Err(api::ErrorCode::InternalError);
         }
 
         if &inf.phc_url != self.phc_url {
@@ -118,7 +118,7 @@ impl DiscoveryInfoCheck<'_> {
                 source,
                 inf.phc_url,
             );
-            return Err(api::ErrorCode::Malconfigured);
+            return Err(api::ErrorCode::InternalError);
         }
 
         if let Some(scc) = self.self_check_code {
@@ -128,7 +128,7 @@ impl DiscoveryInfoCheck<'_> {
                     self.name,
                     source,
                 );
-                return Err(api::ErrorCode::Malconfigured);
+                return Err(api::ErrorCode::InternalError);
             }
         }
 
@@ -154,7 +154,7 @@ impl DiscoveryInfoCheck<'_> {
                     inf.name,
                     source,
                 );
-                return Err(api::ErrorCode::Malconfigured);
+                return Err(api::ErrorCode::InternalError);
             }
         }
 

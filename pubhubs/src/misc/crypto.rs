@@ -65,6 +65,9 @@ pub fn seal<T: serde::Serialize>(
 ) -> anyhow::Result<Vec<u8>> {
     let plaintext = postcard::to_stdvec(obj).context("serializing")?;
 
+    // NOTE: generally it's a bad idea to permit an unlimited amount of initialization vectors for
+    // the same AEAD key, but we use XChaCha20Poly1305, a variant of ChaCha20Poly1305 specifically
+    // made for this exact use case.
     let nonce = XChaCha20Poly1305::generate_nonce(&mut aead::OsRng);
     let ciphertext = XChaCha20Poly1305::new(key)
         .encrypt(
