@@ -15,15 +15,14 @@ impl App {
     pub(super) async fn handle_hub_ticket(
         app: Rc<Self>,
         signed_req: web::Json<api::Signed<TicketReq>>,
-    ) -> api::Result<api::Signed<TicketContent>> {
+    ) -> api::Result<TicketResp> {
         let signed_req = signed_req.into_inner();
 
         let req = signed_req.clone().open_without_checking_signature()?;
 
-        let hub = app
-            .hubs
-            .get(&req.handle)
-            .ok_or(api::ErrorCode::UnknownHub)?;
+        let Some(hub) = app.hubs.get(&req.handle) else {
+            return Ok(TicketResp::UnknownHub);
+        };
 
         let resp = app
             .client
@@ -42,21 +41,21 @@ impl App {
             })?;
 
         // if so, hand out ticket
-        api::Signed::new(
+        Ok(TicketResp::Success(api::Signed::new(
             &*app.jwt_key,
             &TicketContent {
                 handle: req.handle,
                 verifying_key: resp.verifying_key,
             },
             std::time::Duration::from_secs(3600 * 24), /* = one day */
-        )
+        )?))
     }
 
     pub(super) async fn handle_hub_key(
         app: Rc<Self>,
         signed_req: web::Json<TicketSigned<api::phct::hub::KeyReq>>,
     ) -> api::Result<api::phct::hub::KeyResp> {
-        let running_state = &app.running_state_or_not_yet_ready()?;
+        let running_state = &app.running_state_or_please_retry()?;
 
         let ts_req = signed_req.into_inner();
 

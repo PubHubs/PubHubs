@@ -7,7 +7,7 @@ use crate::{
         secret::{self, DigestibleSecret},
     },
     id,
-    misc::jwt,
+    misc::{crypto, jwt},
     servers::constellation,
 };
 
@@ -47,6 +47,22 @@ pub fn t_hub_key_part(
         * master_enc_key_part.as_scalar()
 }
 
+/// Turns the given polymorphic pseudonym `pp` (which should be `Id_U` elgamal encrypted for `x`)
+/// into an encrypted hub pseudonym (which should be `g_H Id_U` elgamal encrypted for `x_PHC`).
+pub fn t_encrypted_hub_pseudonym(
+    pp: elgamal::Triple,
+    pseud_factor_secret: impl DigestibleSecret,
+    master_enc_key_part_inv: &Scalar,
+    hub_id: id::Id,
+) -> elgamal::Triple {
+    let g_h = pseud_factor_secret.derive_scalar(
+        sha2::Sha512::new().chain_update(hub_id.as_slice()),
+        "pubhubs-pseud-factor",
+    );
+
+    pp.rsk_with_s(&g_h).and_k(master_enc_key_part_inv)
+}
+
 /// Returns the `f_H` for the given hub ticket
 pub fn encryption_factor(
     ticket_digest: TicketDigest,
@@ -83,6 +99,11 @@ impl TicketDigest {
 /// [`Attr`]: crate::attr::Attr
 pub fn attr_signing_key(shared_secret: &elgamal::SharedSecret) -> jwt::HS256 {
     shared_secret.derive_hs256(sha2::Sha256::new(), "pubhubs-attr-signing")
+}
+
+/// Computes the [`crypto::SealingKey`] used to seal messages between servers shared a secret.
+pub fn sealing_secret(shared_secret: &elgamal::SharedSecret) -> crypto::SealingKey {
+    shared_secret.derive_sealing_key(sha2::Sha256::new(), "pubhubs-sealing-secret")
 }
 
 /// Derives an [`Id`] for an [`Attr`].

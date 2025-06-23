@@ -2,8 +2,8 @@ use std::rc::Rc;
 use std::str::FromStr as _;
 
 use serde::{
-    Deserialize, Serialize,
     de::{DeserializeOwned, IntoDeserializer as _},
+    Deserialize, Serialize,
 };
 
 use anyhow::Context as _;
@@ -154,65 +154,22 @@ impl<T> ApiResultExt for Result<T> {
 #[derive(Clone, Copy, Serialize, Deserialize, Debug, thiserror::Error, PartialEq, Eq)]
 #[serde(deny_unknown_fields)]
 pub enum ErrorCode {
-    #[error("requested process already running")]
-    AlreadyRunning,
+    #[error(
+        "the request you sent failed for now, but please do retry the exact same request again"
+    )]
+    PleaseRetry,
 
-    #[error("this, or one of the other servers, is not yet ready to process the request")]
-    NotYetReady,
-
-    #[error("server is no longer in the correct state to process this request")]
-    NoLongerInCorrectState,
-
-    #[error("malconfiguration detected")]
-    Malconfigured,
-
-    #[error("unexpected problem with the client (not the server)")]
-    InternalClientError,
-
-    #[error("severed connection to server; action may or may not have succeeded")]
-    SeveredConnection,
-
-    #[error("problem connecting to server of a potentially temporary nature")]
-    CouldNotConnectYet,
-
-    #[error("problem connecting to server")]
-    CouldNotConnect,
-
-    #[error("server encountered a problem which is likely of a temporary nature")]
-    TemporaryFailure,
-
-    #[error("server encountered an unexpected problem")]
+    #[error("encountered an unexpected problem")]
     InternalError,
+
+    #[error("something is wrong with the request")]
+    BadRequest,
 
     #[error("a signature could not be verified")]
     InvalidSignature,
 
     #[error("invalid admin key")]
     InvalidAdminKey,
-
-    #[error("something is wrong with the request")]
-    BadRequest,
-
-    #[error("not (yet) implemented")]
-    NotImplemented,
-
-    #[error("unknown hub")]
-    UnknownHub,
-
-    #[error("unknown attribute type")]
-    UnknownAttributeType,
-
-    #[error("attribute of this type cannot be obtained from this source")]
-    MissingAttributeSource,
-
-    #[error("yivi is not configured for this authentication server")]
-    YiviNotConfigured,
-
-    #[error("could not unseal data: corrupted or outdated")]
-    BrokenSeal,
-
-    #[error("invalid authentication proof")]
-    InvalidAuthProof,
 
     #[error("expired data")]
     Expired,
@@ -233,27 +190,13 @@ impl ErrorCode {
     /// Returns additional information about this error code.
     pub fn info(&self) -> ErrorInfo {
         match self {
-            AlreadyRunning
-            | NoLongerInCorrectState
-            | Malconfigured
-            | InvalidSignature
-            | InvalidAdminKey
-            | UnknownHub
-            | UnknownAttributeType
-            | MissingAttributeSource
-            | YiviNotConfigured
-            | NotImplemented
-            | Expired
-            | InvalidAuthProof
-            | BrokenSeal => ErrorInfo {
+            InvalidSignature | InvalidAdminKey | Expired => ErrorInfo {
                 retryable: Some(false),
             },
-            CouldNotConnectYet | TemporaryFailure | NotYetReady | SeveredConnection => ErrorInfo {
+            PleaseRetry => ErrorInfo {
                 retryable: Some(true),
             },
-            InternalClientError | InternalError | BadRequest | CouldNotConnect => {
-                ErrorInfo { retryable: None }
-            }
+            InternalError | BadRequest => ErrorInfo { retryable: None },
         }
     }
 
@@ -261,11 +204,11 @@ impl ErrorCode {
     /// to get the error to send tot the client.
     pub fn into_server_error(self) -> ErrorCode {
         match self {
-            Malconfigured => Malconfigured,
-            NotYetReady => NotYetReady,
+            InternalError => InternalError,
+            PleaseRetry => PleaseRetry,
             err => {
                 if err.info().retryable == Some(true) {
-                    TemporaryFailure
+                    PleaseRetry
                 } else {
                     InternalError
                 }
@@ -326,8 +269,8 @@ impl<T> Payload<T> {
     ) -> anyhow::Result<Payload<T>>
     where
         S: futures::stream::Stream<
-                Item = std::result::Result<bytes::Bytes, awc::error::PayloadError>,
-            >,
+            Item = std::result::Result<bytes::Bytes, awc::error::PayloadError>,
+        >,
         T: DeserializeOwned,
     {
         let Some(content_type_hv) = resp.headers().get(http::header::CONTENT_TYPE) else {

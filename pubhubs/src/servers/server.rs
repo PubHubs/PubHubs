@@ -287,8 +287,11 @@ pub(crate) trait Modifier<ServerT: Server>: Send + 'static {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> Result<(), std::fmt::Error>;
 }
 
-impl<S: Server, F: FnOnce(&mut S) -> bool + Send + 'static, D: std::fmt::Display + Send + 'static>
-    Modifier<S> for (F, D)
+impl<
+        S: Server,
+        F: FnOnce(&mut S) -> bool + Send + 'static,
+        D: std::fmt::Display + Send + 'static,
+    > Modifier<S> for (F, D)
 {
     fn modify(self: Box<Self>, server: &mut S) -> bool {
         self.0(server)
@@ -395,7 +398,7 @@ pub trait App<S: Server>: Deref<Target = AppBase<S>> + 'static {
     ///
     /// Returns `None` if everything checks out.  If one of the other servers is not up-to-date
     /// according to this server, discovery of that server is invoked and
-    /// [`api::ErrorCode::NotYetReady`] is returned.
+    /// [`api::ErrorCode::PleaseRetry`] is returned.
     async fn discover(
         self: &Rc<Self>,
         phc_inf: api::DiscoveryInfoResp,
@@ -427,7 +430,7 @@ pub trait App<S: Server>: Deref<Target = AppBase<S>> + 'static {
                     .query::<api::DiscoveryRun>(&phc_inf.phc_url, NoPayload)
                     .await
                     .into_server_result()?;
-                return Err(api::ErrorCode::NotYetReady);
+                return Err(api::ErrorCode::PleaseRetry);
             }
 
             log::trace!(
@@ -592,13 +595,13 @@ impl<S: Server> AppBase<S> {
     }
 
     /// Returns the current [`RunningState`] of this server when available.
-    /// Otherwise returns [`api::ErrorCode::NotYetReady`].
-    pub fn running_state_or_not_yet_ready(
+    /// Otherwise returns [`api::ErrorCode::PleaseRetry`].
+    pub fn running_state_or_please_retry(
         &self,
     ) -> Result<&RunningState<S::ExtraRunningState>, api::ErrorCode> {
         self.running_state
             .as_ref()
-            .ok_or(api::ErrorCode::NotYetReady)
+            .ok_or(api::ErrorCode::PleaseRetry)
     }
 
     /// Returns the current [`RunningState`] of this server when available.
@@ -656,7 +659,7 @@ impl<S: Server> AppBase<S> {
             .await
             .into_ec(|_| {
                 log::warn!("{}: failed to retrieve configuration from server", S::NAME,);
-                api::ErrorCode::NotYetReady // probably the server is restarting
+                api::ErrorCode::PleaseRetry // probably the server is restarting
             })?;
 
         let mut new_config: Config = config
@@ -711,7 +714,7 @@ impl<S: Server> AppBase<S> {
         .await
         .into_ec(|_| {
             log::warn!("{}: failed to enqueue modification", S::NAME);
-            api::ErrorCode::NotYetReady
+            api::ErrorCode::PleaseRetry
         })?;
 
         Ok(api::admin::UpdateConfigResp {})
@@ -735,7 +738,7 @@ impl<S: Server> AppBase<S> {
             .await
             .into_ec(|_| {
                 log::warn!("{}: failed to retrieve configuration from server", S::NAME,);
-                api::ErrorCode::NotYetReady // probably the server is restarting
+                api::ErrorCode::PleaseRetry // probably the server is restarting
             })?;
 
         Ok(api::admin::InfoResp { config })

@@ -11,7 +11,7 @@ use crate::common::secret::DigestibleSecret as _;
 use crate::misc::crypto;
 use crate::misc::jwt;
 use crate::phcrypto;
-use crate::servers::{self, AppBase, AppCreatorBase, Constellation, Handle, constellation};
+use crate::servers::{self, constellation, AppBase, AppCreatorBase, Constellation, Handle};
 
 use crate::{elgamal, hub};
 
@@ -31,12 +31,14 @@ impl servers::Details for Details {
         constellation: &Constellation,
     ) -> anyhow::Result<Self::ExtraRunningState> {
         let auths_ss = server.enc_key.shared_secret(&constellation.auths_enc_key);
+        let t_ss = server
+            .enc_key
+            .shared_secret(&constellation.transcryptor_enc_key);
         Ok(ExtraRunningState {
-            t_ss: server
-                .enc_key
-                .shared_secret(&constellation.transcryptor_enc_key),
             attr_signing_key: phcrypto::attr_signing_key(&auths_ss),
+            t_sealing_secret: phcrypto::sealing_secret(&t_ss),
             auths_ss,
+            t_ss,
         })
     }
 }
@@ -50,6 +52,8 @@ pub struct App {
     pub attr_id_secret: Box<[u8]>,
     pub auth_token_secret: crypto::SealingKey,
     pub auth_token_validity: core::time::Duration,
+    pub pp_nonce_secret: crypto::SealingKey,
+    pub pp_nonce_validity: core::time::Duration,
     pub user_object_hmac_secret: Box<[u8]>,
     pub quota: api::phc::user::Quota,
 }
@@ -75,6 +79,9 @@ pub struct ExtraRunningState {
     ///
     /// [`Attr`]: crate::attr::Attr
     pub(super) attr_signing_key: jwt::HS256,
+
+    /// Key used to (un)seal messages to and from the transcryptor
+    pub(super) t_sealing_secret: crypto::SealingKey,
 }
 
 impl crate::servers::App<Server> for App {
@@ -211,7 +218,7 @@ impl crate::servers::App<Server> for App {
                     Ok(None)
                 } else {
                     log::info!("Waiting for the other servers to update their constellation.");
-                    Err(api::ErrorCode::NotYetReady)
+                    Err(api::ErrorCode::PleaseRetry)
                 }
             }
             // a task ended irregularly (panicked, joined,...)
@@ -226,7 +233,7 @@ impl crate::servers::App<Server> for App {
                         // the discovery task was completed succesfully, or made some progress,
                         // or we got a retryable error.
                         // In all these cases the caller should try again.
-                        Err(api::ErrorCode::NotYetReady)
+                        Err(api::ErrorCode::PleaseRetry)
                     }
                     Err(err) => {
                         log::error!("Failed to run discovery of other server: {err}",);
@@ -275,6 +282,8 @@ pub struct AppCreator {
     pub attr_id_secret: Box<[u8]>,
     pub auth_token_secret: crypto::SealingKey,
     pub auth_token_validity: core::time::Duration,
+    pub pp_nonce_secret: crypto::SealingKey,
+    pub pp_nonce_validity: core::time::Duration,
     pub user_object_hmac_secret: Box<[u8]>,
     pub quota: api::phc::user::Quota,
 }
@@ -304,6 +313,8 @@ impl crate::servers::AppCreator<Server> for AppCreator {
             attr_id_secret: self.attr_id_secret,
             auth_token_secret: self.auth_token_secret,
             auth_token_validity: self.auth_token_validity,
+            pp_nonce_secret: self.pp_nonce_secret,
+            pp_nonce_validity: self.pp_nonce_validity,
             user_object_hmac_secret: self.user_object_hmac_secret,
             quota: self.quota,
         }
@@ -331,6 +342,10 @@ impl crate::servers::AppCreator<Server> for AppCreator {
             .enc_key
             .derive_sealing_key(sha2::Sha256::new(), "pubhubs-phc-auth-token-secret");
 
+        let pp_nonce_secret: crypto::SealingKey = base
+            .enc_key
+            .derive_sealing_key(sha2::Sha256::new(), "pubhubs-pp-nonce-secret");
+
         Ok(Self {
             base,
             transcryptor_url: xconf.transcryptor_url.as_ref().clone(),
@@ -347,6 +362,8 @@ impl crate::servers::AppCreator<Server> for AppCreator {
             .into_boxed_slice(),
             auth_token_secret,
             auth_token_validity: xconf.auth_token_validity,
+            pp_nonce_secret,
+            pp_nonce_validity: xconf.pp_nonce_validity,
             user_object_hmac_secret: <serde_bytes::ByteBuf as Clone>::clone(
                 xconf
                     .user_object_hmac_secret

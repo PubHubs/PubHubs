@@ -22,7 +22,7 @@ pub mod hub {
     pub struct TicketEP {}
     impl EndpointDetails for TicketEP {
         type RequestType = Signed<TicketReq>;
-        type ResponseType = Result<Ticket>;
+        type ResponseType = Result<TicketResp>;
 
         const METHOD: http::Method = http::Method::POST;
         const PATH: &'static str = ".ph/hub/ticket";
@@ -34,6 +34,16 @@ pub mod hub {
     #[serde(deny_unknown_fields)]
     pub struct TicketReq {
         pub handle: crate::handle::Handle,
+    }
+
+    /// What [`TicketEP`] returns
+    #[derive(Serialize, Deserialize, Debug, Clone)]
+    #[serde(deny_unknown_fields)]
+    pub enum TicketResp {
+        Success(Ticket),
+
+        /// No hub known with this handle
+        UnknownHub,
     }
 
     pub type Ticket = Signed<TicketContent>;

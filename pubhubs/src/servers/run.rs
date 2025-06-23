@@ -4,13 +4,13 @@ use std::rc::Rc;
 use std::sync::Arc;
 
 use actix_web::web;
-use anyhow::{Context as _, Result, bail};
+use anyhow::{bail, Context as _, Result};
 use core::convert::Infallible;
 use tokio::sync::mpsc;
 
 use crate::api;
 use crate::servers::{
-    App, AppBase, AppCreator, Command, Name, Server, for_all_servers, server::RunningState,
+    for_all_servers, server::RunningState, App, AppBase, AppCreator, Command, Name, Server,
 };
 
 /// A set of running PubHubs servers.
@@ -491,7 +491,7 @@ impl DiscoveryLimiter {
                 S::NAME,
                 Name::PubhubsCentral,
             );
-            return Err(api::ErrorCode::NotYetReady);
+            return Err(api::ErrorCode::PleaseRetry);
         }
 
         let new_constellation_maybe = app.discover(phc_discovery_info).await?;
@@ -542,7 +542,7 @@ impl DiscoveryLimiter {
                 "failed to initiate restart of {} for discovery, probably because the server is already shutting down",
                 S::NAME,
             );
-            return Err(api::ErrorCode::NotYetReady);
+            return Err(api::ErrorCode::PleaseRetry);
         }
 
         log::trace!(

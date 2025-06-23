@@ -18,6 +18,8 @@ pub struct PolymorphicPseudonymPackage {
     pub nonce: phc::user::PpNonce,
 }
 
+having_message_code!(PolymorphicPseudonymPackage, Ppp);
+
 /// Returned (in sealed form) by [`tr::EhppEP`], needed for [`phc::user::HhppEP`].
 #[derive(Serialize, Deserialize, Debug, Clone)]
 #[serde(deny_unknown_fields)]
@@ -31,6 +33,8 @@ pub struct EncryptedHubPseudonymPackage {
     /// Nonce, from [`PolymorphicPseudonymPackage::nonce`]
     pub phc_nonce: phc::user::PpNonce,
 }
+
+having_message_code!(EncryptedHubPseudonymPackage, Ehpp);
 
 /// Returned (in sealed form) by [`phc::user::HhppEP`], needed for [`hub::EnterCompleteEP`].
 #[derive(Serialize, Deserialize, Debug, Clone)]
