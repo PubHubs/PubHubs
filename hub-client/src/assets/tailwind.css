@@ -139,6 +139,13 @@
 	.v-note-wrapper .v-note-show .v-show-content-html {
 		@apply !relative !min-h-20 overflow-y-auto rounded-xl !border-none !bg-surface-low font-body text-on-surface ~text-base-min/base-max;
 	}
+	.global-preview .v-note-wrapper,
+	.global-preview .v-note-wrapper .v-note-panel,
+	.global-preview .v-note-wrapper .v-note-show,
+	.global-preview .v-note-wrapper .v-note-edit,
+	.global-preview .v-note-wrapper .v-note-show .v-show-content {
+		background: none !important;
+	}
 }
 
 /* Fonts */

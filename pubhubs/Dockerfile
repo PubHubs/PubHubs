@@ -1,4 +1,4 @@
-FROM registry.science.ru.nl/ilab/docker-build/rust-stable:main as builder
+FROM registry.science.ru.nl/ilab/docker-build/rust-stable:main AS builder
 
 WORKDIR /usr/src/global-client
 COPY ./global-client/package.json ./global-client/package-lock.json ./
@@ -18,12 +18,12 @@ RUN apt-get update && apt-get install -y npm
 
 ARG CARGO_FEATURES
 
+RUN cargo install $CARGO_FEATURES --path .
+
 # Build global client
 COPY ./global-client/ ../global-client/
 COPY ./hub-client/ ../hub-client/
 RUN npm run --prefix ../global-client build
-
-RUN cargo install $CARGO_FEATURES --path .
 
 FROM debian:stable-slim
 RUN apt-get update && apt-get install -y curl lsb-release && rm -rf /var/lib/apt/lists/*

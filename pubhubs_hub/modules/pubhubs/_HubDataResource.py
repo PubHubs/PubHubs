@@ -12,28 +12,20 @@ logger = logging.getLogger("synapse.contrib." + __name__)
 
 class HubDataResource(DirectServeJsonResource):
 	"""
-	HubDataResource provides a JSON API resource for handling hub-related data requests.
-	This resource supports both GET and POST HTTP methods for various hub data operations,
-	such as retrieving admin users, room timestamps, and user consent status, as well as recording
-	user consent acceptance.
-	Attributes:
-		_module_api (ModuleApi): API interface for module operations, including user authentication.
-		_module_config (HubClientApiConfig): Configuration object for the hub client API.
-		_hub_store (HubStore): Data store interface for hub-specific data operations.
+	HubDataResource provides a resource for handling hub database related requests.
+
 	Methods:
-		__init__(module_api, module_config, hub_Store):
-			Initializes the resource with the provided API, configuration, and data store.
 		async _async_render_GET(request: SynapseRequest) -> bytes:
 			Handles GET requests. Validates the user and processes the 'data' query parameter to:
-				- Retrieve admin users ('admin_users')
-				- Retrieve latest room timestamps ('timestamps')
+				- Retrieve admin users ('admin_users') or
+				- Retrieve latest room timestamps ('timestamps') or
 				- Check user consent status and onboarding requirements ('consent')
-			Returns JSON responses with appropriate status codes and error handling.
 		async _async_render_POST(request: SynapseRequest) -> bytes:
 			Handles POST requests. Validates the user and processes the 'data' query parameter to:
 				- Record user consent acceptance ('consent')
-			Expects a JSON body with a 'version' field for consent versioning.
-			Returns JSON responses with appropriate status codes and error handling.
+					- Expects a JSON body with a 'version' field for consent versioning.
+	Example usage:
+	    GET <hub_address>/_synapse/client/hub/data?data=timestamps
 	"""
 
 
@@ -160,6 +152,7 @@ class HubDataResource(DirectServeJsonResource):
 					except Exception as e:
 						logger.error(f"Error recording consent: {e}")
 						respond_with_json(request, 500, {"error": "Failed to record consent"})
+						return
 				
 				case _:
 					respond_with_json(request, 400, {"error": "Not given a valid data value"})
