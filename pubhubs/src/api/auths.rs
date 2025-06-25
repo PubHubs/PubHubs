@@ -49,6 +49,7 @@ pub struct AuthStartReq {
 /// Response to [`AuthStartEP`]
 #[derive(Serialize, Deserialize, Debug, Clone)]
 #[serde(deny_unknown_fields)]
+#[must_use]
 pub enum AuthStartResp {
     /// Authentication process was started
     Success {
@@ -126,6 +127,7 @@ pub enum AuthProof {
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
 #[serde(deny_unknown_fields)]
+#[must_use]
 pub enum AuthCompleteResp {
     /// All went well
     Success {
@@ -172,6 +174,7 @@ pub struct AttrKeyReq {
 /// Response type for [`AttrKeysEP`]
 #[derive(Serialize, Deserialize, Debug, Clone)]
 #[serde(deny_unknown_fields)]
+#[must_use]
 pub enum AttrKeysResp {
     /// The attribute with the given handle is not (or no longer) valid.  Reobtain the attribute
     /// and try again.
@@ -184,6 +187,7 @@ pub enum AttrKeysResp {
 /// Part of a successful [`AttrKeyResp`].
 #[derive(Serialize, Deserialize, Debug, Clone)]
 #[serde(deny_unknown_fields)]
+#[must_use]
 pub struct AttrKeyResp {
     /// A pair, `(key, timestamp)`, where `key` is the latest attribute key for the requested attribute
     /// and `timestamp` can be used to retrieve the same key again later on by setting `AttrKeyReq::timestamp`.

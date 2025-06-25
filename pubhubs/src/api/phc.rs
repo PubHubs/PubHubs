@@ -39,6 +39,7 @@ pub mod hub {
     /// What [`TicketEP`] returns
     #[derive(Serialize, Deserialize, Debug, Clone)]
     #[serde(deny_unknown_fields)]
+    #[must_use]
     pub enum TicketResp {
         Success(Ticket),
 
@@ -150,6 +151,7 @@ pub mod user {
     #[derive(Serialize, Deserialize, Debug, Clone)]
     #[serde(deny_unknown_fields)]
     #[serde(rename = "snake_case")]
+    #[must_use]
     pub enum EnterResp {
         /// Happens only in [`EnterMode::Login`]
         AccountDoesNotExist,
@@ -269,6 +271,7 @@ pub mod user {
     #[derive(Serialize, Deserialize, Debug, Clone)]
     #[serde(deny_unknown_fields)]
     #[serde(rename = "snake_case")]
+    #[must_use]
     pub enum StateResp {
         /// The auth provided is expired or otherwise invalid.  Obtain a new one and retry.
         RetryWithNewAuthToken,
@@ -328,6 +331,7 @@ pub mod user {
     #[derive(Serialize, Deserialize, Debug, Clone)]
     #[serde(deny_unknown_fields)]
     #[serde(rename = "snake_case")]
+    #[must_use]
     pub enum GetObjectResp {
         /// The `hmac` you sent is invalid, probably because it is outdated.
         ///
@@ -364,6 +368,7 @@ pub mod user {
     #[derive(Serialize, Deserialize, Debug, Clone)]
     #[serde(deny_unknown_fields)]
     #[serde(rename = "snake_case")]
+    #[must_use]
     pub enum StoreObjectResp {
         /// Please retry the same request again.  This may happen when another call changed the
         /// user's state. The purpose of letting the client make the same call again (instead of
@@ -452,6 +457,7 @@ pub mod user {
     #[derive(Serialize, Deserialize, Debug, Clone)]
     #[serde(deny_unknown_fields)]
     #[serde(rename = "snake_case")]
+    #[must_use]
     pub enum PppResp {
         /// The auth provided is expired or otherwise invalid.  Obtain a new one and retry.
         RetryWithNewAuthToken,
@@ -491,6 +497,7 @@ pub mod user {
     #[derive(Serialize, Deserialize, Debug, Clone)]
     #[serde(deny_unknown_fields)]
     #[serde(rename = "snake_case")]
+    #[must_use]
     pub enum HhppResp {
         /// The requested hashed hub pseudonym package (HHPP).  
         Success(Signed<sso::HashedHubPseudonymPackage>),

@@ -426,11 +426,17 @@ pub trait App<S: Server>: Deref<Target = AppBase<S>> + 'static {
                     server_name = S::NAME,
                     phc = Name::PubhubsCentral
                 );
+
                 // PHC's discovery is out of date; invoke discovery and return
-                self.client
+                let _drr = self
+                    .client
                     .query::<api::DiscoveryRun>(&phc_inf.phc_url, NoPayload)
                     .await
                     .into_server_result()?;
+
+                // We don't do anything with _drr: whether or not PHC has been updated in the
+                // meantime, we want to start discovery again from the start.
+
                 return Err(api::ErrorCode::PleaseRetry);
             }
 
@@ -475,7 +481,7 @@ pub trait App<S: Server>: Deref<Target = AppBase<S>> + 'static {
             .await
             .into_server_result()?;
 
-        client::discovery::DiscoveryInfoCheck {
+        let _di_again = client::discovery::DiscoveryInfoCheck {
             name: S::NAME,
             phc_url: &self.phc_url,
             self_check_code: Some(&self.self_check_code),

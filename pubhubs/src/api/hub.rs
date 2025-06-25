@@ -16,6 +16,7 @@ impl EndpointDetails for Info {
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
 #[serde(deny_unknown_fields)]
+#[must_use]
 pub struct InfoResp {
     /// Key used by the hub to sign requests to the other hubs with
     pub verifying_key: VerifyingKey,
@@ -37,6 +38,7 @@ impl EndpointDetails for EnterStartEP {
 /// What's returned by [`EnterStartEP`].
 #[derive(Serialize, Deserialize, Debug, Clone)]
 #[serde(deny_unknown_fields)]
+#[must_use]
 pub struct EnterStartResp {
     /// Opaque state that needs to be send to the [`EnterCompleteEP`] later on
     pub state: EnterState,
@@ -84,6 +86,7 @@ pub struct EnterCompleteReq {
 /// What's returned by [`EnterCompleteEP`].
 #[derive(Serialize, Deserialize, Debug, Clone)]
 #[serde(deny_unknown_fields)]
+#[must_use]
 pub enum EnterCompleteResp {
     /// Start again at [`EnterStartEP`]
     RetryFromStart,
