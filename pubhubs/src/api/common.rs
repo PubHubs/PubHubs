@@ -168,9 +168,6 @@ pub enum ErrorCode {
     #[error("a signature could not be verified")]
     InvalidSignature,
 
-    #[error("invalid admin key")]
-    InvalidAdminKey,
-
     #[error("expired data")]
     Expired,
 }
@@ -190,7 +187,7 @@ impl ErrorCode {
     /// Returns additional information about this error code.
     pub fn info(&self) -> ErrorInfo {
         match self {
-            InvalidSignature | InvalidAdminKey | Expired => ErrorInfo {
+            InvalidSignature | Expired => ErrorInfo {
                 retryable: Some(false),
             },
             PleaseRetry => ErrorInfo {

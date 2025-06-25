@@ -28,7 +28,10 @@ pub enum OpenError {
     #[error("signature expired")]
     Expired,
 
-    #[error("invalid signature or malformed jwt")]
+    #[error("invalid signature")]
+    InvalidSignature,
+
+    #[error("malformed jwt")]
     OtherwiseInvalid,
 
     #[error("unexpected error - consult logs")]
@@ -43,6 +46,7 @@ impl<T> Signed<T> {
     {
         self.open(key, None).into_ec(|err| match err {
             OpenError::OtherConstellation => ErrorCode::InvalidSignature,
+            OpenError::InvalidSignature => ErrorCode::InvalidSignature,
             OpenError::Expired => ErrorCode::Expired,
             OpenError::OtherwiseInvalid => ErrorCode::BadRequest,
             OpenError::InternalError => ErrorCode::InternalError,
@@ -84,7 +88,7 @@ impl<T> Signed<T> {
                     // claims.check(CONSTELLATION_CLAIM, jwt::expecting::exactly())
                     // TODO: check if we're dealing with an outdated constellation
 
-                    OpenError::OtherwiseInvalid
+                    OpenError::InvalidSignature
                 }
                 _ => {
                     log::error!("unexpected error opening signed message: {err}");

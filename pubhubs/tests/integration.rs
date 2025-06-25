@@ -107,8 +107,8 @@ async fn main_integration_test_local(
     let t_enc_key_sk = elgamal::PrivateKey::random();
     let phc_enc_key_sk = elgamal::PrivateKey::random();
 
-    client
-        .query_with_retry::<api::admin::UpdateConfig, _, _>(
+    let resp = client
+        .query_with_retry::<api::admin::UpdateConfigEP, _, _>(
             &constellation.transcryptor_url,
             &api::Signed::<api::admin::UpdateConfigReq>::new(
                 &*admin_sk,
@@ -122,6 +122,8 @@ async fn main_integration_test_local(
         )
         .await
         .unwrap();
+
+    assert!(matches!(resp, api::admin::UpdateConfigResp::Success));
 
     // wait for transcryptor's enc_key to be updated
     pubhubs::misc::task::retry(|| async {
@@ -148,8 +150,8 @@ async fn main_integration_test_local(
     .unwrap();
 
     // update PHC's key
-    client
-        .query_with_retry::<api::admin::UpdateConfig, _, _>(
+    let resp = client
+        .query_with_retry::<api::admin::UpdateConfigEP, _, _>(
             &constellation.phc_url,
             &api::Signed::<api::admin::UpdateConfigReq>::new(
                 &*admin_sk,
@@ -163,6 +165,8 @@ async fn main_integration_test_local(
         )
         .await
         .unwrap();
+
+    assert!(matches!(resp, api::admin::UpdateConfigResp::Success));
 
     // wait for phc's enc_key to be updated
     pubhubs::misc::task::retry(|| async {
@@ -228,7 +232,7 @@ async fn main_integration_test_local(
     // check that the ticket is valid
     ticket
         .clone()
-        .old_open(&*constellation.phc_jwt_key)
+        .open(&*constellation.phc_jwt_key, None)
         .unwrap();
 
     // request hub encryption key

@@ -7,8 +7,8 @@ use serde::{Deserialize, Serialize};
 /// are lost.  This endpoint is used for testing, and can also be useful for debugging.
 ///
 /// The request is verified using the [crate::servers::config::ServerConfig::admin_key].
-pub struct UpdateConfig {}
-impl EndpointDetails for UpdateConfig {
+pub struct UpdateConfigEP {}
+impl EndpointDetails for UpdateConfigEP {
     type RequestType = Signed<UpdateConfigReq>;
     type ResponseType = Result<UpdateConfigResp>;
 
@@ -27,8 +27,20 @@ pub struct UpdateConfigReq {
     pub new_value: serde_json::Value,
 }
 
+/// Response type for [`UpdateConfigEP`]
 #[derive(Serialize, Deserialize, Debug, Clone)]
-pub struct UpdateConfigResp {}
+#[serde(deny_unknown_fields)]
+#[must_use]
+pub enum UpdateConfigResp {
+    /// Signature on request was expired; retry with a fresh one
+    ResignRequest,
+
+    /// Admin key is invalid
+    InvalidAdminKey,
+
+    /// Updating configuration succeeded
+    Success,
+}
 
 having_message_code!(UpdateConfigReq, AdminUpdateConfigReq);
 
@@ -37,8 +49,8 @@ having_message_code!(UpdateConfigReq, AdminUpdateConfigReq);
 /// The request is verified using the [crate::servers::config::ServerConfig::admin_key].
 ///
 /// NB Cannot be a GET request because the request needs to be signed.
-pub struct Info {}
-impl EndpointDetails for Info {
+pub struct InfoEP {}
+impl EndpointDetails for InfoEP {
     type RequestType = Signed<InfoReq>;
     type ResponseType = Result<InfoResp>;
 
@@ -46,14 +58,27 @@ impl EndpointDetails for Info {
     const PATH: &'static str = ".ph/admin/info";
 }
 
+/// Request type for [`InfoEP`]
 #[derive(Serialize, Deserialize, Debug, Clone)]
 #[serde(deny_unknown_fields)]
 pub struct InfoReq {}
 
 having_message_code!(InfoReq, AdminInfoReq);
+
+/// Response type for [`InfoEP`]
 #[derive(Serialize, Deserialize, Debug, Clone)]
 #[serde(deny_unknown_fields)]
-pub struct InfoResp {
-    /// Current server configuration
-    pub config: crate::servers::Config,
+#[must_use]
+pub enum InfoResp {
+    /// Signature on request was expired; retry with a fresh one
+    ResignRequest,
+
+    /// Admin key is invalid
+    InvalidAdminKey,
+
+    /// Request succeeded
+    Success {
+        /// Current server configuration
+        config: Box<crate::servers::Config>,
+    },
 }

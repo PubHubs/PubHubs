@@ -11,6 +11,7 @@ use crate::elgamal;
 
 use crate::client;
 
+use crate::api::OpenError;
 use crate::api::{
     self, ApiResultExt as _, DiscoveryRunResp, EndpointDetails, NoPayload, ResultExt as _,
 };
@@ -623,18 +624,8 @@ impl<S: Server> AppBase<S> {
         api::DiscoveryRun::add_to(app, sc, Self::handle_discovery_run);
         api::DiscoveryInfo::caching_add_to(app, sc, Self::cached_handle_discovery_info);
 
-        api::admin::UpdateConfig::add_to(app, sc, Self::handle_admin_post_config);
-        api::admin::Info::add_to(app, sc, Self::handle_admin_info);
-    }
-
-    /// Checks the signature on the given request that should be signed with the admin key.
-    fn open_admin_req<T: api::Signable>(&self, signed_req: api::Signed<T>) -> api::Result<T> {
-        signed_req
-            .old_open(&*self.admin_key)
-            .map_err(|err| match err {
-                api::ErrorCode::InvalidSignature => api::ErrorCode::InvalidAdminKey,
-                err => err,
-            })
+        api::admin::UpdateConfigEP::add_to(app, sc, Self::handle_admin_post_config);
+        api::admin::InfoEP::add_to(app, sc, Self::handle_admin_info);
     }
 
     /// Changes server config, and restarts server
@@ -644,7 +635,17 @@ impl<S: Server> AppBase<S> {
     ) -> api::Result<api::admin::UpdateConfigResp> {
         let signed_req = signed_req.into_inner();
 
-        let req = app.open_admin_req(signed_req)?;
+        let req = match signed_req.open(&*app.admin_key, None) {
+            Ok(req) => req,
+            Err(OpenError::OtherConstellation) | Err(OpenError::InternalError) => {
+                return Err(api::ErrorCode::InternalError)
+            }
+            Err(OpenError::OtherwiseInvalid) => return Err(api::ErrorCode::BadRequest),
+            Err(OpenError::Expired) => return Ok(api::admin::UpdateConfigResp::ResignRequest),
+            Err(OpenError::InvalidSignature) => {
+                return Ok(api::admin::UpdateConfigResp::InvalidAdminKey)
+            }
+        };
 
         // Before restarting the server, check that the modification would work,
         // so we can return an error to the requestor.  Once we issue a modification command
@@ -717,7 +718,7 @@ impl<S: Server> AppBase<S> {
             api::ErrorCode::PleaseRetry
         })?;
 
-        Ok(api::admin::UpdateConfigResp {})
+        Ok(api::admin::UpdateConfigResp::Success)
     }
 
     /// Retrieve non-public information about the server
@@ -727,7 +728,15 @@ impl<S: Server> AppBase<S> {
     ) -> api::Result<api::admin::InfoResp> {
         let signed_req = signed_req.into_inner();
 
-        let _req = app.open_admin_req(signed_req)?;
+        let _req = match signed_req.open(&*app.admin_key, None) {
+            Ok(req) => req,
+            Err(OpenError::OtherConstellation) | Err(OpenError::InternalError) => {
+                return Err(api::ErrorCode::InternalError)
+            }
+            Err(OpenError::OtherwiseInvalid) => return Err(api::ErrorCode::BadRequest),
+            Err(OpenError::Expired) => return Ok(api::admin::InfoResp::ResignRequest),
+            Err(OpenError::InvalidSignature) => return Ok(api::admin::InfoResp::InvalidAdminKey),
+        };
 
         let config = app
             .handle
@@ -741,7 +750,9 @@ impl<S: Server> AppBase<S> {
                 api::ErrorCode::PleaseRetry // probably the server is restarting
             })?;
 
-        Ok(api::admin::InfoResp { config })
+        Ok(api::admin::InfoResp::Success {
+            config: Box::new(config),
+        })
     }
 
     /// Run the discovery process, and restarts server if necessary.  Returns when
