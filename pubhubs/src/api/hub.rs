@@ -5,8 +5,8 @@ use crate::api::*;
 use crate::misc::serde_ext::bytes_wrapper::B64UU;
 
 /// Basic information advertised by the hub
-pub struct Info {}
-impl EndpointDetails for Info {
+pub struct InfoEP {}
+impl EndpointDetails for InfoEP {
     type RequestType = NoPayload;
     type ResponseType = Result<InfoResp>;
 

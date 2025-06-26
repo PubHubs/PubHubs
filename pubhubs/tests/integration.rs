@@ -594,7 +594,7 @@ impl MockHub {
                         .app_data(web::Data::new(context.clone()))
                         .service(
                             actix_web::web::scope(context.info.url.path().trim_end_matches('/'))
-                                .route(api::hub::Info::PATH, web::get().to(handle_info_url)),
+                                .route(api::hub::InfoEP::PATH, web::get().to(handle_info_url)),
                         )
                 }
             })

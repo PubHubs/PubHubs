@@ -19,7 +19,19 @@ impl App {
     ) -> api::Result<TicketResp> {
         let signed_req = signed_req.into_inner();
 
-        let req = signed_req.clone().open_without_checking_signature()?;
+        let req = signed_req
+            .clone()
+            .open_without_checking_signature()
+            .map_err(|oe| {
+                log::debug!("received invalid ticket request: {oe}");
+
+                match oe {
+                    OpenError::OtherConstellation
+                    | OpenError::InternalError
+                    | OpenError::InvalidSignature => api::ErrorCode::InternalError,
+                    OpenError::OtherwiseInvalid | OpenError::Expired => api::ErrorCode::BadRequest,
+                }
+            })?;
 
         let Some(hub) = app.hubs.get(&req.handle) else {
             return Ok(TicketResp::UnknownHub);
@@ -27,7 +39,7 @@ impl App {
 
         let resp = app
             .client
-            .query::<api::hub::Info>(&hub.url, NoPayload)
+            .query::<api::hub::InfoEP>(&hub.url, NoPayload)
             .await
             .into_server_result()?;
 

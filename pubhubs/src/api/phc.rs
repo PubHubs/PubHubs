@@ -18,7 +18,7 @@ pub mod hub {
 
     /// Used by a hub to request a ticket (see [`TicketContent`]) from PubHubs Central.
     /// The request must be signed for the `verifying_key` advertised by the hub info endoint
-    /// (see [`hub::InfoEP`]).
+    /// (see [`crate::api::hub::InfoEP`]).
     ///
     /// If the signature cannot be verified, [`ErrorCode::BadRequest`] is returned.
     pub struct TicketEP {}

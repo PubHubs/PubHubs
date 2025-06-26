@@ -135,11 +135,13 @@ impl<T> Signed<T> {
         Ok(res)
     }
 
-    pub fn open_without_checking_signature(self) -> Result<T>
+    /// Open this signed message without checking the signature.  Something that should be done
+    /// only in exceptional circumstances, for example, in the  [`phc::hub::TicketEP`] endpoint.
+    pub fn open_without_checking_signature(self) -> std::result::Result<T, OpenError>
     where
         T: Signable,
     {
-        self.old_open(&jwt::IgnoreSignature)
+        self.open(&jwt::IgnoreSignature, None)
     }
 
     /// Signs `message`, and returns the resulting [`Signed`].
