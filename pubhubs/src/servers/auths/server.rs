@@ -221,7 +221,7 @@ impl App {
         };
 
         if state.exp < jwt::NumericDate::now() {
-            return Err(api::ErrorCode::Expired);
+            return Ok(api::auths::AuthCompleteResp::PleaseRestartAuth);
         }
 
         match state.source {

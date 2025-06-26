@@ -164,12 +164,6 @@ pub enum ErrorCode {
 
     #[error("something is wrong with the request")]
     BadRequest,
-
-    #[error("a signature could not be verified")]
-    InvalidSignature,
-
-    #[error("expired data")]
-    Expired,
 }
 use ErrorCode::*;
 
@@ -187,13 +181,12 @@ impl ErrorCode {
     /// Returns additional information about this error code.
     pub fn info(&self) -> ErrorInfo {
         match self {
-            InvalidSignature | Expired => ErrorInfo {
-                retryable: Some(false),
-            },
             PleaseRetry => ErrorInfo {
                 retryable: Some(true),
             },
-            InternalError | BadRequest => ErrorInfo { retryable: None },
+            InternalError | BadRequest => ErrorInfo {
+                retryable: Some(false),
+            },
         }
     }
 

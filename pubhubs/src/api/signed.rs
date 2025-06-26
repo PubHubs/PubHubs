@@ -39,20 +39,6 @@ pub enum OpenError {
 }
 
 impl<T> Signed<T> {
-    /// Old version of [`Signed::open`].  Will be deprecated eventually.
-    pub fn old_open<VK: jwt::VerifyingKey>(self, key: &VK) -> Result<T>
-    where
-        T: Signable,
-    {
-        self.open(key, None).into_ec(|err| match err {
-            OpenError::OtherConstellation => ErrorCode::InvalidSignature,
-            OpenError::InvalidSignature => ErrorCode::InvalidSignature,
-            OpenError::Expired => ErrorCode::Expired,
-            OpenError::OtherwiseInvalid => ErrorCode::BadRequest,
-            OpenError::InternalError => ErrorCode::InternalError,
-        })
-    }
-
     /// Opens this [`Signed`] message using the provided key.
     pub fn open<VK: jwt::VerifyingKey>(
         self,

@@ -38,7 +38,7 @@ pub mod hub {
     }
 
     impl KeyResp {
-        /// Returns contained [`KeyResp::Succes::key_part`], or panics otherwise.
+        /// Returns contained [`KeyResp::Success::key_part`], or panics otherwise.
         pub fn unwrap(self) -> Scalar {
             match self {
                 KeyResp::Success { key_part } => key_part,
