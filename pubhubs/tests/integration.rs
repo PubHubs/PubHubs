@@ -4,7 +4,7 @@ use actix_web::web;
 use pubhubs::{
     api::{self, ApiResultExt as _, BytesPayload, EndpointDetails as _, NoPayload},
     attr, client, elgamal, handle, hub,
-    misc::jwt,
+    misc::{jwt, serde_ext::bytes_wrapper::B64UU},
     servers::{self, yivi},
 };
 use std::collections::HashMap;
@@ -205,7 +205,7 @@ async fn main_integration_test_local(
         .find(|h: &&hub::BasicInfo| &*h.handles[0] == "testhub")
         .expect("could not find 'testhub' hub");
 
-    let mock_hub = MockHub::new(testhub.clone());
+    let mock_hub = MockHub::new(testhub.clone(), constellation.clone());
 
     let mut js = tokio::task::JoinSet::new();
     js.spawn(mock_hub.actix_server); // the actix server does not run itself
@@ -557,6 +557,145 @@ async fn main_integration_test_local(
     };
 
     assert_eq!(bytes.as_ref(), b"object contents! 2");
+
+    // Ok, let's try to log into a hub.
+    //
+    // Step 1a: obtain Ppp
+    let api::phc::user::PppResp::Success(ppp) = client
+        .query::<api::phc::user::PppEP>(&constellation.phc_url, NoPayload)
+        .auth_header(auth_token.clone())
+        .with_retry()
+        .await
+        .unwrap()
+    else {
+        panic!();
+    };
+
+    // Step 1b: obtain hub nonce and state from hub
+    let api::hub::EnterStartResp {
+        state: hub_state,
+        nonce: hub_nonce,
+    } = client
+        .query::<api::hub::EnterStartEP>(&mock_hub.context.info.url, NoPayload)
+        .with_retry()
+        .await
+        .unwrap();
+
+    // Step 2: obtain Ehpp from transcryptor
+    let api::tr::EhppResp::Success(ehpp) = client
+        .query::<api::tr::EhppEP>(
+            &constellation.transcryptor_url,
+            &api::tr::EhppReq {
+                hub_nonce,
+                hub: mock_hub.context.info.id,
+                ppp,
+            },
+        )
+        .with_retry()
+        .await
+        .unwrap()
+    else {
+        panic!()
+    };
+
+    // Step 3: obtain Hhpp from PHC
+    let api::phc::user::HhppResp::Success(hhpp) = client
+        .query::<api::phc::user::HhppEP>(&constellation.phc_url, &api::phc::user::HhppReq { ehpp })
+        .auth_header(auth_token.clone())
+        .with_retry()
+        .await
+        .unwrap()
+    else {
+        panic!()
+    };
+
+    // Step 4: submit Hhpp to hub
+    let api::hub::EnterCompleteResp::Entered {
+        access_token: first_access_token,
+    } = client
+        .query::<api::hub::EnterCompleteEP>(
+            &mock_hub.context.info.url,
+            api::hub::EnterCompleteReq {
+                state: hub_state,
+                hhpp,
+            },
+        )
+        .with_retry()
+        .await
+        .unwrap()
+    else {
+        panic!()
+    };
+
+    // Ok, let's do the whole process again!
+    //
+    // Step 1a: obtain Ppp
+    let api::phc::user::PppResp::Success(ppp) = client
+        .query::<api::phc::user::PppEP>(&constellation.phc_url, NoPayload)
+        .auth_header(auth_token.clone())
+        .with_retry()
+        .await
+        .unwrap()
+    else {
+        panic!();
+    };
+    // Step 1b: obtain hub nonce and state from hub
+    let api::hub::EnterStartResp {
+        state: hub_state,
+        nonce: hub_nonce,
+    } = client
+        .query::<api::hub::EnterStartEP>(&mock_hub.context.info.url, NoPayload)
+        .with_retry()
+        .await
+        .unwrap();
+
+    // Step 2: obtain Ehpp from transcryptor
+    let api::tr::EhppResp::Success(ehpp) = client
+        .query::<api::tr::EhppEP>(
+            &constellation.transcryptor_url,
+            &api::tr::EhppReq {
+                hub_nonce,
+                hub: mock_hub.context.info.id,
+                ppp,
+            },
+        )
+        .with_retry()
+        .await
+        .unwrap()
+    else {
+        panic!()
+    };
+
+    // Step 3: obtain Hhpp from PHC
+    let api::phc::user::HhppResp::Success(hhpp) = client
+        .query::<api::phc::user::HhppEP>(&constellation.phc_url, &api::phc::user::HhppReq { ehpp })
+        .auth_header(auth_token.clone())
+        .with_retry()
+        .await
+        .unwrap()
+    else {
+        panic!()
+    };
+
+    // Step 4: submit Hhpp to hub
+    let api::hub::EnterCompleteResp::Entered { access_token } = client
+        .query::<api::hub::EnterCompleteEP>(
+            &mock_hub.context.info.url,
+            api::hub::EnterCompleteReq {
+                state: hub_state,
+                hhpp,
+            },
+        )
+        .with_retry()
+        .await
+        .unwrap()
+    else {
+        panic!()
+    };
+
+    // The mock hub stores the pseudonym in the access token;
+    // let's check we got the same pseudonym in both cases.
+    assert_eq!(first_access_token, access_token);
 }
 
 /// Contents of a disclosure session request JWT
@@ -576,13 +715,15 @@ struct MockHub {
 struct MockHubContext {
     pub info: hub::BasicInfo,
     pub sk: api::SigningKey,
+    pub constellation: servers::Constellation,
 }
 
 impl MockHub {
-    fn new(info: hub::BasicInfo) -> Self {
+    fn new(info: hub::BasicInfo, constellation: servers::Constellation) -> Self {
         let context = Arc::new(MockHubContext {
             info,
             sk: api::SigningKey::generate(),
+            constellation,
         });
 
         Self {
@@ -594,7 +735,15 @@ impl MockHub {
                         .app_data(web::Data::new(context.clone()))
                         .service(
                             actix_web::web::scope(context.info.url.path().trim_end_matches('/'))
-                                .route(api::hub::InfoEP::PATH, web::get().to(handle_info_url)),
+                                .route(api::hub::InfoEP::PATH, web::get().to(handle_info_url))
+                                .route(
+                                    api::hub::EnterStartEP::PATH,
+                                    web::post().to(handle_enter_start),
+                                )
+                                .route(
+                                    api::hub::EnterCompleteEP::PATH,
+                                    web::post().to(handle_enter_complete),
+                                ),
                         )
                 }
             })
@@ -614,8 +763,44 @@ impl MockHub {
 
 async fn handle_info_url(context: web::Data<Arc<MockHubContext>>) -> impl actix_web::Responder {
     let vk: api::VerifyingKey = context.sk.verifying_key().into();
-    return web::Json(api::Result::Ok(api::hub::InfoResp {
+    web::Json(api::Result::Ok(api::hub::InfoResp {
         verifying_key: vk,
         hub_version: "n/a".to_owned(),
-    }));
+    }))
+}
+
+async fn handle_enter_start(_context: web::Data<Arc<MockHubContext>>) -> impl actix_web::Responder {
+    web::Json(api::Result::Ok(api::hub::EnterStartResp {
+        state: api::hub::EnterState::from(B64UU::from(serde_bytes::ByteBuf::from(b"state"))),
+        nonce: api::hub::EnterNonce::from(B64UU::from(serde_bytes::ByteBuf::from(b"nonce"))),
+    }))
+}
+
+async fn handle_enter_complete(
+    context: web::Data<Arc<MockHubContext>>,
+    req: web::Json<api::hub::EnterCompleteReq>,
+) -> impl actix_web::Responder {
+    let api::hub::EnterCompleteReq { state, hhpp } = req.into_inner();
+
+    assert_eq!(
+        state,
+        api::hub::EnterState::from(B64UU::from(serde_bytes::ByteBuf::from(b"state")))
+    );
+
+    let api::sso::HashedHubPseudonymPackage {
+        hashed_hub_pseudonym,
+        pp_issued_at: _pp_issued_at,
+        hub_nonce,
+    } = hhpp
+        .open(&*context.constellation.phc_jwt_key, None)
+        .unwrap();
+
+    assert_eq!(
+        hub_nonce,
+        api::hub::EnterNonce::from(B64UU::from(serde_bytes::ByteBuf::from(b"nonce")))
+    );
+
+    web::Json(api::Result::Ok(api::hub::EnterCompleteResp::Entered {
+        access_token: base16ct::lower::encode_string(hashed_hub_pseudonym.as_bytes().as_slice()),
+    }))
 }

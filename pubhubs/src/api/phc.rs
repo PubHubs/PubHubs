@@ -508,7 +508,7 @@ pub mod user {
         pub(crate) inner: B64UU,
     }
 
-    /// Requests an [`sso::HashedHubPseudonymPackage`].
+    /// Requests an [`sso::HashedHubPseudonymPackage`].  Requires authentication.
     pub struct HhppEP {}
     impl EndpointDetails for HhppEP {
         type RequestType = HhppReq;

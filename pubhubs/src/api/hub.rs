@@ -48,17 +48,28 @@ pub struct EnterStartResp {
 }
 
 /// Type of [`EnterStartResp::state`]
-#[derive(Serialize, Deserialize, Debug, Clone)]
+#[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Eq)]
 #[serde(transparent)]
 pub struct EnterState {
     pub(crate) inner: B64UU,
 }
 
+impl From<B64UU> for EnterState {
+    fn from(inner: B64UU) -> Self {
+        Self { inner }
+    }
+}
+
 /// Type of [`EnterStartResp::nonce`]
-#[derive(Serialize, Deserialize, Debug, Clone)]
+#[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Eq)]
 #[serde(transparent)]
 pub struct EnterNonce {
     pub(crate) inner: B64UU,
+}
+impl From<B64UU> for EnterNonce {
+    fn from(inner: B64UU) -> Self {
+        Self { inner }
+    }
 }
 
 /// Endpoint to complete user authentication
@@ -92,6 +103,7 @@ pub enum EnterCompleteResp {
     RetryFromStart,
 
     Entered {
-        // TODO: probably include some access token here
+        /// Synapse access token
+        access_token: String,
     },
 }
