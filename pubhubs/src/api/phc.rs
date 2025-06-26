@@ -169,6 +169,19 @@ pub mod user {
         /// Cannot register an account with these attributes:  no bannable attribute provided.
         NoBannableAttribute,
 
+        /// Signature on identifying attribute is invalid or expired; please reobtain the
+        /// identifying attribute and retry.  If this fails even with a fresh attribute something
+        /// is wrong with the server.
+        RetryWithNewIdentifyingAttr,
+
+        /// Signature on [`EnterReq::add_attrs`]  attribute is invalid or expired; please reobtain the
+        /// attribute and retry.  If this fails even with a fresh attribute something
+        /// is wrong with the server.
+        RetryWithNewAddAttr {
+            /// `add_attrs[index]` is the offending attribute
+            index: usize,
+        },
+
         /// The given identifying attribute (now) grants access to a pubhubs account.
         Entered {
             /// Whether we created a new account

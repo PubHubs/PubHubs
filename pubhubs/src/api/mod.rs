@@ -80,7 +80,7 @@
 //!       Consult the logs of the server for more details.  Retrying the request is not
 //!       recommended.
 //!
-//!     - **[`ErrorCode::NotYetReady`]
+//!     - **[`ErrorCode::PleaseRetry`]**
 //!       just wait a moment, and retry the same request.
 //!
 //!     - **[`ErrorCode::BadRequest`]**: there's something wrong with the request - do not
@@ -104,6 +104,13 @@
 //!
 //! [Cross-Origin Resource Sharing]: https://developer.mozilla.org/en-US/docs/Web/HTTP/Guides/CORS
 //! [`Attr`]: crate::attr::Attr
+//!
+//! # Changelog
+//!
+//! ## **2025-06-25**
+//!  - Added [`phc::user::EnterResp::RetryWithNewIdentifyingAttr`] and
+//!    [`phc::user::EnterResp::RetryWithNewAddAttr`] replacing `Expired`
+//!    and `InvalidSignature` error codes for this endpoint.
 mod common;
 pub use common::*;
 mod signed;
