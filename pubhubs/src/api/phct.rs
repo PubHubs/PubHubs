@@ -8,8 +8,8 @@ use curve25519_dalek::scalar::Scalar;
 pub mod hub {
     use super::*;
     /// Used by a hub to request part of its private key from the transcryptor and PHC.
-    pub struct Key {}
-    impl EndpointDetails for Key {
+    pub struct KeyEP {}
+    impl EndpointDetails for KeyEP {
         type RequestType = phc::hub::TicketSigned<KeyReq>;
         type ResponseType = Result<KeyResp>; // does not need to be signed, as authenticity is guaranteed by TLS
 
@@ -26,8 +26,25 @@ pub mod hub {
 
     #[derive(Serialize, Deserialize, Debug, Clone)]
     #[serde(deny_unknown_fields)]
-    pub struct KeyResp {
-        pub key_part: Scalar,
+    #[must_use]
+    pub enum KeyResp {
+        Success {
+            key_part: Scalar,
+        },
+
+        /// Signature on ticket expired or was invalid.  Please obtain a new ticket and try again.
+        /// If this error occurs with a fresh ticket, something is wrong with the server.
+        RetryWithNewTicket,
+    }
+
+    impl KeyResp {
+        /// Returns contained [`KeyResp::Succes::key_part`], or panics otherwise.
+        pub fn unwrap(self) -> Scalar {
+            match self {
+                KeyResp::Success { key_part } => key_part,
+                KeyResp::RetryWithNewTicket => panic!("could not get key part; ticket was invalid"),
+            }
+        }
     }
 
     having_message_code!(KeyResp, PhcTHubKeyResp);

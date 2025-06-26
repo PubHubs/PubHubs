@@ -87,7 +87,7 @@ pub struct ExtraRunningState {
 impl crate::servers::App<Server> for App {
     fn configure_actix_app(self: &Rc<Self>, sc: &mut web::ServiceConfig) {
         api::phc::hub::TicketEP::add_to(self, sc, App::handle_hub_ticket);
-        api::phct::hub::Key::add_to(self, sc, App::handle_hub_key);
+        api::phct::hub::KeyEP::add_to(self, sc, App::handle_hub_key);
 
         api::phc::user::WelcomeEP::caching_add_to(self, sc, App::cached_handle_user_welcome);
         api::phc::user::EnterEP::add_to(self, sc, App::handle_user_enter);

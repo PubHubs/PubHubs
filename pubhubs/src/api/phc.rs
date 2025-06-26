@@ -73,20 +73,39 @@ pub mod hub {
     impl<T> TicketSigned<T> {
         /// Opens this [`TicketSigned`], checking the signature on `signed` using the verifying key in
         /// the provided `ticket`, and checking the `ticket` using `key`.
-        pub fn open(self, key: &ed25519_dalek::VerifyingKey) -> Result<(T, crate::handle::Handle)>
+        pub fn open(
+            self,
+            key: &ed25519_dalek::VerifyingKey,
+        ) -> std::result::Result<(T, crate::handle::Handle), TicketOpenError>
         where
             T: Signable,
         {
-            let ticket_content: TicketContent = self.ticket.old_open(key)?;
+            let ticket_content: TicketContent = self
+                .ticket
+                .open(key, None)
+                .map_err(TicketOpenError::Ticket)?;
 
-            let msg: T = self.signed.old_open(&*ticket_content.verifying_key)?;
+            let msg: T = self
+                .signed
+                .open(&*ticket_content.verifying_key, None)
+                .map_err(TicketOpenError::Signed)?;
 
-            Result::Ok((msg, ticket_content.handle))
+            Ok((msg, ticket_content.handle))
         }
 
         pub fn new(ticket: Ticket, signed: Signed<T>) -> Self {
             Self { ticket, signed }
         }
+    }
+
+    /// Error returned by [`TicketSigned::open`].
+    #[derive(thiserror::Error, Debug)]
+    pub enum TicketOpenError {
+        #[error("ticket is invalid")]
+        Ticket(#[source] OpenError),
+
+        #[error("ticket is valid, but not the signature made using it")]
+        Signed(#[source] OpenError),
     }
 }
 

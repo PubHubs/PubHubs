@@ -6,7 +6,6 @@ use actix_web::web;
 use crate::api::ApiResultExt as _;
 use crate::api::OpenError;
 use crate::api::{self, NoPayload};
-use crate::handle;
 use crate::phcrypto;
 
 use super::server::*;
@@ -71,6 +70,7 @@ impl App {
         )?))
     }
 
+    /// Implements [`api::phct::hub::Key`].
     pub(super) async fn handle_hub_key(
         app: Rc<Self>,
         signed_req: web::Json<TicketSigned<api::phct::hub::KeyReq>>,
@@ -81,8 +81,26 @@ impl App {
 
         let ticket_digest = phcrypto::TicketDigest::new(&ts_req.ticket);
 
-        let (_, _): (api::phct::hub::KeyReq, handle::Handle) =
-            ts_req.open(&app.jwt_key.verifying_key())?;
+        if let Err(toe) = ts_req.open(&app.jwt_key.verifying_key()) {
+            match toe {
+                TicketOpenError::Ticket(OpenError::InvalidSignature)
+                | TicketOpenError::Ticket(OpenError::Expired) => {
+                    return Ok(api::phct::hub::KeyResp::RetryWithNewTicket)
+                }
+                TicketOpenError::Ticket(OpenError::InternalError)
+                | TicketOpenError::Ticket(OpenError::OtherConstellation)
+                | TicketOpenError::Signed(OpenError::OtherConstellation)
+                | TicketOpenError::Signed(OpenError::InternalError) => {
+                    return Err(api::ErrorCode::InternalError)
+                }
+                TicketOpenError::Ticket(OpenError::OtherwiseInvalid)
+                | TicketOpenError::Signed(OpenError::OtherwiseInvalid)
+                | TicketOpenError::Signed(OpenError::InvalidSignature)
+                | TicketOpenError::Signed(OpenError::Expired) => {
+                    return Err(api::ErrorCode::BadRequest)
+                }
+            }
+        }
 
         // At this point we can be confident that the ticket is authentic, so we can give the hub
         // its decryption key based on the provided ticket
@@ -93,6 +111,6 @@ impl App {
             &app.master_enc_key_part,
         );
 
-        Ok(api::phct::hub::KeyResp { key_part })
+        Ok(api::phct::hub::KeyResp::Success { key_part })
     }
 }

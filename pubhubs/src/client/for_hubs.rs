@@ -37,22 +37,23 @@ impl crate::client::Client {
             // request key part from Pubhubs Central
             async {
                 Ok(self
-                    .query::<api::phct::hub::Key>(
+                    .query::<api::phct::hub::KeyEP>(
                         &ctx.constellation.phc_url,
                         &ctx.ticket_sign(&api::phct::hub::KeyReq {})?,
                     )
                     .await?
-                    .key_part)
+                    .unwrap()) // NB. We panic on an expired ticket here as this function is currently
+                               // only used during testing
             },
-            // request keu part from the trancryptor
+            // request key part from the trancryptor
             async {
                 Ok(self
-                    .query::<api::phct::hub::Key>(
+                    .query::<api::phct::hub::KeyEP>(
                         &ctx.constellation.transcryptor_url,
                         &ctx.ticket_sign(&api::phct::hub::KeyReq {})?,
                     )
                     .await?
-                    .key_part)
+                    .unwrap())
             }
         )?;
 
