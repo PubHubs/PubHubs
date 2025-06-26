@@ -18,7 +18,9 @@ pub mod hub {
 
     /// Used by a hub to request a ticket (see [`TicketContent`]) from PubHubs Central.
     /// The request must be signed for the `verifying_key` advertised by the hub info endoint
-    /// (see hub::Info).
+    /// (see [`hub::InfoEP`]).
+    ///
+    /// If the signature cannot be verified, [`ErrorCode::BadRequest`] is returned.
     pub struct TicketEP {}
     impl EndpointDetails for TicketEP {
         type RequestType = Signed<TicketReq>;

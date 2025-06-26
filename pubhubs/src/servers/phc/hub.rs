@@ -4,6 +4,7 @@ use std::rc::Rc;
 use actix_web::web;
 
 use crate::api::ApiResultExt as _;
+use crate::api::OpenError;
 use crate::api::{self, NoPayload};
 use crate::handle;
 use crate::phcrypto;
@@ -31,14 +32,21 @@ impl App {
             .into_server_result()?;
 
         // check that the request indeed came from the hub
-        signed_req
-            .old_open(&*resp.verifying_key)
-            .inspect_err(|ec| {
-                log::warn!(
-                    "could not verify authenticity of hub ticket request for hub {}: {ec}",
-                    req.handle,
-                )
-            })?;
+        signed_req.open(&*resp.verifying_key, None).map_err(|oe| {
+            log::warn!(
+                "could not verify authenticity of hub ticket request for hub {}: {oe}",
+                req.handle,
+            );
+
+            match oe {
+                OpenError::OtherConstellation | OpenError::InternalError => {
+                    api::ErrorCode::InternalError
+                }
+                OpenError::OtherwiseInvalid | OpenError::Expired | OpenError::InvalidSignature => {
+                    api::ErrorCode::BadRequest
+                }
+            }
+        })?;
 
         // if so, hand out ticket
         Ok(TicketResp::Success(api::Signed::new(
