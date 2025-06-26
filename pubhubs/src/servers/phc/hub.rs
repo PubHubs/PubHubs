@@ -70,7 +70,7 @@ impl App {
         )?))
     }
 
-    /// Implements [`api::phct::hub::Key`].
+    /// Implements [`api::phct::hub::KeyEP`].
     pub(super) async fn handle_hub_key(
         app: Rc<Self>,
         signed_req: web::Json<TicketSigned<api::phct::hub::KeyReq>>,

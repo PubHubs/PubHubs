@@ -184,6 +184,7 @@ pub enum MessageCode {
     Ppp = 8,
     Ehpp = 9,
     PpNonce = 10,
+    Hhpp = 11,
 
     /// Only used as an example in a doctest
     Example = 65535,

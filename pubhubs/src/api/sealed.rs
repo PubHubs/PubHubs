@@ -50,3 +50,15 @@ where
         crypto::unseal(&*self.inner, key, T::CODE.to_bytes())
     }
 }
+
+impl<T> From<B64UU> for Sealed<T>
+where
+    T: api::Signable,
+{
+    fn from(inner: B64UU) -> Self {
+        Self {
+            inner,
+            phantom_data: PhantomData,
+        }
+    }
+}

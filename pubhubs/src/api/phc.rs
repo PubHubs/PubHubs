@@ -533,6 +533,13 @@ pub mod user {
     #[serde(rename = "snake_case")]
     #[must_use]
     pub enum HhppResp {
+        /// There's something wrong with the [`sso::EncryptedHubPseudonymPackage`].
+        /// You probably want to start at [`PppEP`] again.
+        RetryWithNewPpp,
+
+        /// The auth provided is expired or otherwise invalid.  Obtain a new one and retry.
+        RetryWithNewAuthToken,
+
         /// The requested hashed hub pseudonym package (HHPP).  
         Success(Signed<sso::HashedHubPseudonymPackage>),
     }

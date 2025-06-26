@@ -50,3 +50,5 @@ pub struct HashedHubPseudonymPackage {
     /// Nonce, from [`hub::EnterStartEP`]
     pub hub_nonce: hub::EnterNonce,
 }
+
+having_message_code!(HashedHubPseudonymPackage, Hhpp);
