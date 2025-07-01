@@ -14,6 +14,10 @@
 		"test:ui": "vitest --ui",
 		"coverage": "vitest run --coverage"
 	},
+	"engines": {
+		"npm": ">=9.8.1",
+		"node": ">=22.0.0"
+	},
 	"dependencies": {
 		"@privacybydesign/yivi-client": "^0",
 		"@privacybydesign/yivi-core": "^0",
