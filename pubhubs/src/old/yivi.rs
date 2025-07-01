@@ -223,6 +223,7 @@ pub async fn register(
     .await
 }
 
+#[allow(clippy::uninlined_format_args)]
 async fn disclose(
     yivi_host: &str,
     yivi_requestor: &str,
@@ -388,6 +389,7 @@ impl Debug for SessionDataWithImage {
     }
 }
 
+#[allow(clippy::uninlined_format_args)]
 #[async_recursion]
 pub async fn disclosed_ph_id(yivi_host: &str, token: &str, context: &Main) -> Result<User> {
     let started = SystemTime::now();
@@ -502,7 +504,7 @@ pub async fn next_session(req: HttpRequest, context: Data<Main>, jwt_text: Strin
         Err(_) => empty_result(),
     }
 }
-
+#[allow(clippy::uninlined_format_args)]
 async fn next_session_priv(
     req: HttpRequest,
     yivi: &YiviContext,
