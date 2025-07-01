@@ -1,5 +1,5 @@
 use crate::api::{self, ApiResultExt as _, NoPayload};
-use crate::servers::{self, server::Server as _, Constellation};
+use crate::servers::{self, Constellation, server::Server as _};
 
 impl crate::client::Client {
     /// Retrieves [`Constellation`] from specified url, waiting for it to be set.
@@ -96,6 +96,7 @@ pub struct DiscoveryInfoCheck<'a> {
 impl DiscoveryInfoCheck<'_> {
     /// Checks the given [`api::DiscoveryInfoResp`] according to the [`DiscoveryInfoCheck`],
     /// and returns it if all checks out.
+    #[allow(clippy::uninlined_format_args)]
     pub fn check(
         self,
         inf: api::DiscoveryInfoResp,

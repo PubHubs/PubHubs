@@ -858,6 +858,7 @@ impl<const N: usize> Serialize for ByteArray<N> {
 /// Extracts a [ByteArray] from a [serde::Deserializer].
 struct ByteArrayVisitor<const N: usize> {}
 
+#[allow(clippy::uninlined_format_args)]
 impl<const N: usize> serde::de::Visitor<'_> for ByteArrayVisitor<N> {
     type Value = [u8; N];
 

@@ -17,6 +17,7 @@ const PHACCOUNT: &str = "PHAccount";
 const PHACCOUNT_CROSS_SITE: &str = "PHAccount.CrossSite";
 
 /// Creates `PHAccount(.CrossSite)` session `Cookie` header content
+#[allow(clippy::uninlined_format_args)]
 fn session_cookie_content(user_id: String, cookie_secret: &str) -> Result<String> {
     let now = Utc::now();
     let created = now.timestamp();

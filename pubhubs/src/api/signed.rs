@@ -50,6 +50,7 @@ impl<T> Signed<T> {
     }
 
     /// Opens this [`Signed`] message using the provided key.
+    #[allow(clippy::uninlined_format_args)]
     pub fn open<VK: jwt::VerifyingKey>(
         self,
         key: &VK,
@@ -139,6 +140,7 @@ impl<T> Signed<T> {
     }
 
     /// Signs `message`, and returns the resulting [`Signed`].
+    #[allow(clippy::uninlined_format_args)]
     pub fn new<SK: jwt::SigningKey>(
         sk: &SK,
         message: &T,

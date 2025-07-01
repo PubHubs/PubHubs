@@ -11,7 +11,7 @@ use crate::common::secret::DigestibleSecret as _;
 use crate::misc::crypto;
 use crate::misc::jwt;
 use crate::phcrypto;
-use crate::servers::{self, constellation, AppBase, AppCreatorBase, Constellation, Handle};
+use crate::servers::{self, AppBase, AppCreatorBase, Constellation, Handle, constellation};
 
 use crate::{elgamal, hub};
 
@@ -104,6 +104,7 @@ impl crate::servers::App<Server> for App {
         panic!("PHC creates the constellation; it has no need to check it")
     }
 
+    #[allow(clippy::uninlined_format_args)]
     async fn discover(
         self: &Rc<Self>,
         _phc_di: api::DiscoveryInfoResp,

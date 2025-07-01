@@ -79,8 +79,10 @@ mod generate {
     }
 
     #[derive(clap::Args, Debug)]
+
     struct SigningKeyArgs {}
 
+    #[allow(clippy::uninlined_format_args)]
     impl SigningKeyArgs {
         fn run(self) -> Result<()> {
             let sk = crate::api::SigningKey::generate();

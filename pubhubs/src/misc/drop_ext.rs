@@ -18,6 +18,7 @@ impl Bomb {
     }
 }
 
+#[allow(clippy::uninlined_format_args)]
 impl Drop for Bomb {
     fn drop(&mut self) {
         if let Some(msg) = self.payload.take() {

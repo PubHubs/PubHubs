@@ -28,7 +28,7 @@ impl Default for RetryOptions {
         }
     }
 }
-
+#[allow(clippy::uninlined_format_args)]
 impl RetryOptions {
     pub async fn retry<T, E, Fut: Future<Output = Result<Option<T>, E>>>(
         &self,

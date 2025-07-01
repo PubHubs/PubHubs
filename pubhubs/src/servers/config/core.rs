@@ -257,6 +257,7 @@ impl Config {
     }
 
     /// Creates a new [Config] from the current one by updating a specific part
+    #[allow(clippy::uninlined_format_args)]
     pub fn json_updated(&self, pointer: &str, new_value: serde_json::Value) -> Result<Self> {
         let mut json_config: serde_json::Value =
             serde_json::to_value(self).context("failed to serialize config")?;
@@ -356,7 +357,7 @@ pub mod phc {
     fn default_auth_token_validity() -> core::time::Duration {
         // TODO: implement refreshing of expired tokens:
         core::time::Duration::from_secs(60 * 60) // 1 hour - the user might need to add attributes
-                                                 // to their Yivi app
+        // to their Yivi app
     }
 
     fn default_pp_nonce_validity() -> core::time::Duration {
