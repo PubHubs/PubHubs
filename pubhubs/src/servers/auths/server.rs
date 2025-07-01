@@ -7,7 +7,7 @@ use actix_web::web;
 use digest::Digest as _;
 
 use crate::servers::{
-    self, constellation, yivi, AppBase, AppCreatorBase, Constellation, Handle, Server as _,
+    self, AppBase, AppCreatorBase, Constellation, Handle, Server as _, constellation, yivi,
 };
 use crate::{
     api::{self, EndpointDetails as _, ResultExt as _},
@@ -240,6 +240,7 @@ impl App {
         }
     }
 
+    #[allow(clippy::uninlined_format_args)]
     async fn handle_auth_complete_yivi(
         app: Rc<Self>,
         state: AuthState,
@@ -280,7 +281,9 @@ impl App {
             })?;
 
             let Some(attr_type) = app.attr_type_from_handle(attr_type_handle) else {
-                log::warn!("Attribute type with handle {attr_type_handle} mentioned in authentication state can no longer be found.");
+                log::warn!(
+                    "Attribute type with handle {attr_type_handle} mentioned in authentication state can no longer be found."
+                );
                 return Ok(api::auths::AuthCompleteResp::PleaseRestartAuth);
             };
 

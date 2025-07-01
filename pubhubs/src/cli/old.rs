@@ -72,7 +72,7 @@ struct HubFormUpdate {
     oidc_redirect_uri: String,
     client_uri: String,
 }
-
+#[allow(clippy::uninlined_format_args)]
 async fn get_hubs(
     context: Data<Main>,
     request: HttpRequest,
@@ -109,7 +109,7 @@ async fn get_hubs(
         ),
     }
 }
-
+#[allow(clippy::uninlined_format_args)]
 async fn add_hub(
     context: Data<Main>,
     request: HttpRequest,
@@ -145,7 +145,7 @@ async fn add_hub(
         ),
     }
 }
-
+#[allow(clippy::uninlined_format_args)]
 async fn get_hub_details(
     id: Path<String>,
     context: Data<Main>,
@@ -203,7 +203,7 @@ async fn get_hub_details(
         ),
     }
 }
-
+#[allow(clippy::uninlined_format_args)]
 async fn get_hubid(
     name: Path<String>,
     context: Data<Main>,
@@ -268,7 +268,7 @@ fn render_hub(context: &Data<Main>, hub: &Hub, translations: Translations) -> Ht
         hairy_eval_html_translations(context.hair.to_ref(), data.to_ref(), translations).unwrap(),
     )
 }
-
+#[allow(clippy::uninlined_format_args)]
 async fn update_hub(
     id: Path<String>,
     context: Data<Main>,
@@ -320,6 +320,7 @@ async fn update_hub(
     }
 }
 
+#[allow(clippy::uninlined_format_args)]
 async fn get_users(
     context: Data<Main>,
     request: HttpRequest,
@@ -359,6 +360,7 @@ async fn get_users(
 }
 
 //TODO callers to errorresponse to bubble
+#[allow(clippy::uninlined_format_args)]
 pub fn internal_server_error(
     message: &str,
     hair: &BytecodeVec,
@@ -383,7 +385,7 @@ pub fn internal_server_error(
             .expect("Expected to render a template"),
     )
 }
-
+#[allow(clippy::uninlined_format_args)]
 pub fn bad_request(
     message: &str,
     hair: &BytecodeVec,
@@ -408,7 +410,7 @@ pub fn bad_request(
             .expect("To render a template"),
     )
 }
-
+#[allow(clippy::uninlined_format_args)]
 async fn yivi_start(
     request: HttpRequest,
     translations: Translations,
@@ -441,7 +443,7 @@ async fn yivi_start(
         ),
     }
 }
-
+#[allow(clippy::uninlined_format_args)]
 async fn yivi_register(
     context: Data<Main>,
     translations: Translations,
@@ -572,7 +574,7 @@ async fn yivi_finish_and_redirect_anyhow(
     )
     .await
 }
-
+#[allow(clippy::uninlined_format_args)]
 async fn oidc_response_from_oidc_handle(
     authentic_auth_request_handle: AuthenticAuthRequestHandle,
     context: Data<Main>,
@@ -734,7 +736,7 @@ pub async fn handle_oidc_authorize(
         .handle_auth(req, crate::oidc_handler::AD { translations })
         .into_translated_error(&inner_req)
 }
-
+#[allow(clippy::uninlined_format_args)]
 async fn get_user_by_id_wrap(
     db_tx: &Sender<DataCommands>,
     id: String,
@@ -836,7 +838,7 @@ async fn check_connections(urls: crate::context::Urls, nonce: String) -> Result<
     )?;
     Ok(())
 }
-
+#[allow(clippy::uninlined_format_args)]
 /// Checks `url` returns `nonce`, provided url is not None.  Retries a few times upon failure.  Aborts on ctrl+c.
 async fn check_connection_abortable(url: Option<&url::Url>, nonce: &str) -> Result<()> {
     if url.is_none() {
@@ -866,7 +868,7 @@ async fn check_connection_abortable(url: Option<&url::Url>, nonce: &str) -> Resu
     )
     .map(|_| ())
 }
-
+#[allow(clippy::uninlined_format_args)]
 async fn check_connection(url: &str, nonce: &str) -> Result<()> {
     // awc works only in such single-threaded context
     tokio::task::LocalSet::new()
@@ -895,7 +897,7 @@ async fn check_connection(url: &str, nonce: &str) -> Result<()> {
         })
         .await
 }
-
+#[allow(clippy::uninlined_format_args)]
 async fn check_connection_once(url: &str, nonce: &str) -> Result<()> {
     let client = awc::Client::default();
     let mut resp = client

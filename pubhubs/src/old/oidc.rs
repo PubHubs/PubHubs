@@ -1451,6 +1451,7 @@ impl RedirectUriSpecialFields {
     }
 }
 
+#[allow(clippy::uninlined_format_args)]
 impl<H: Handler> OidcImpl<H> {
     /// Like [Oidc::handle_auth], but return `auth_request_handle`, [ClientId] and
     /// the original request instead of passing them to the [Handler] via [Handler::handle_auth].  
@@ -1677,6 +1678,7 @@ impl<H: Handler> Oidc for OidcImpl<H> {
         })
     }
 
+    #[allow(clippy::uninlined_format_args)]
     fn grant_code(
         &self,
         auth_request_handle: AuthenticAuthRequestHandle,

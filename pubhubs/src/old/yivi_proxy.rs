@@ -34,7 +34,7 @@ pub async fn yivi_proxy_stream(
     }
     Ok(resp.streaming(original_response))
 }
-
+#[allow(clippy::uninlined_format_args)]
 pub async fn yivi_proxy(
     request: HttpRequest,
     context: Data<Main>,

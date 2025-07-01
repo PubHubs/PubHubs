@@ -191,6 +191,7 @@ where
     }
 }
 
+#[allow(clippy::uninlined_format_args)]
 pub fn create_error_response(
     hair: &expry::BytecodeVec,
     internal_message: Option<&str>,

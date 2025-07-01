@@ -4,13 +4,13 @@ use std::rc::Rc;
 use std::sync::Arc;
 
 use actix_web::web;
-use anyhow::{bail, Context as _, Result};
+use anyhow::{Context as _, Result, bail};
 use core::convert::Infallible;
 use tokio::sync::mpsc;
 
 use crate::api;
 use crate::servers::{
-    for_all_servers, server::RunningState, App, AppBase, AppCreator, Command, Name, Server,
+    App, AppBase, AppCreator, Command, Name, Server, for_all_servers, server::RunningState,
 };
 
 /// A set of running PubHubs servers.
@@ -38,6 +38,7 @@ impl Set {
     /// Returns the number of servers that did *not* shutdown cleanly.
     ///
     /// Panics when the tokio runtime is shut down.
+    #[allow(clippy::uninlined_format_args)]
     pub async fn wait(self) -> usize {
         match self.wait_jh.await {
             Ok(nr) => nr,
@@ -190,6 +191,7 @@ impl SetInner {
     /// If this function is not called, servers can fail silently.
     ///
     /// Returns the number of servers that did *not* shutdown cleanly
+    #[allow(clippy::uninlined_format_args)]
     pub async fn wait(mut self) -> usize {
         log::trace!("waiting for one of the servers to exit...");
         let err_count: usize = tokio::select! {
@@ -801,6 +803,7 @@ impl<S: Server> Runner<S> {
         })
     }
 
+    #[allow(clippy::uninlined_format_args)]
     pub async fn run(mut self) -> Result<()> {
         loop {
             let modifier = self.run_until_modifier().await?;

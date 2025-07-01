@@ -27,6 +27,7 @@ impl std::iter::FromIterator<Translations> for AllTranslations {
     }
 }
 
+#[allow(clippy::uninlined_format_args)]
 impl AllTranslations {
     /// Extracts language part (if there is any) from given uri, and returns
     /// the translations associated to it.

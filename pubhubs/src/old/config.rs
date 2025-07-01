@@ -123,6 +123,7 @@ static ENV: &str = "PUBHUBS_CONFIG";
 /// file at these paths, in the order they are listed here.
 static DEFAULT_PATHS: [&str; 2] = ["config.yaml", "default.yaml"];
 
+#[allow(clippy::uninlined_format_args)]
 impl File {
     /// Loads configuration from given path; returns [None] if the path does not exist.
     pub fn from_path(path_str: &str) -> Result<Option<Self>> {
@@ -315,6 +316,7 @@ impl File {
     }
 }
 
+#[allow(clippy::uninlined_format_args)]
 impl Urls {
     /// If for_hub or for_yivi_app is autodetect, autodetect URL;  else returns None.
     fn autodetect(&self, file: &File) -> Result<Option<url::Url>> {
@@ -369,7 +371,7 @@ impl AltUrl {
         })
     }
 }
-
+#[allow(clippy::uninlined_format_args)]
 pub fn having_debug_default<T>(
     what: Option<T>,
     default: impl Into<T>,
