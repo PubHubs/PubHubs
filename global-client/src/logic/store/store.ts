@@ -1,5 +1,7 @@
 /**
  * All stores in one for easier import, and for stores wich code can be used by both clients, the pinia import can be done here.
+ * Make sure there is no circular dependency created by this import
+ * Files exporting the exports here cannot import from this file, but only from the individual files!
  */
 import { useGlobal, PinnedHub, PinnedHubs } from '@/logic/store/global';
 import { useHubs } from '@/logic/store/hubs';
