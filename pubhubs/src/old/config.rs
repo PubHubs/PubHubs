@@ -132,7 +132,7 @@ impl File {
             Ok(file) => file,
             Err(e) => match e.kind() {
                 std::io::ErrorKind::NotFound => return Ok(None),
-                _ => return Err(e).with_context(|| format!("loading {:?}", path)),
+                _ => return Err(e).with_context(|| format!("loading {path:?}")),
             },
         };
 
@@ -157,18 +157,17 @@ impl File {
             Err(std::env::VarError::NotPresent) => { /* break */ }
             Err(e) => {
                 return Err(e)
-                    .with_context(|| format!("could not read environmental variable {:?}", ENV));
+                    .with_context(|| format!("could not read environmental variable {ENV:?}"));
             }
         }
 
         info!(
-            "Environmental variable {:?} not set, searching for configuration at one of the default locations: {:?} ...",
-            ENV, DEFAULT_PATHS,
+            "Environmental variable {ENV:?} not set, searching for configuration at one of the default locations: {DEFAULT_PATHS:?} ...",
         );
 
         for p in DEFAULT_PATHS {
-            if let Some(conf) = Self::from_path(p).with_context(|| format!("loading {:?}", p))? {
-                info!("loaded configuration from {}", p);
+            if let Some(conf) = Self::from_path(p).with_context(|| format!("loading {p:?}"))? {
+                info!("loaded configuration from {p}");
                 return Ok(conf);
             }
         }
@@ -333,7 +332,7 @@ impl Urls {
 
         let ipa: core::net::IpAddr = net_ext::source_ip()?;
 
-        info!("your ip address is {}", ipa);
+        info!("your ip address is {ipa}");
 
         let mut url: url::Url = "http://example.com".parse().unwrap();
 
@@ -369,7 +368,6 @@ impl AltUrl {
         })
     }
 }
-
 pub fn having_debug_default<T>(
     what: Option<T>,
     default: impl Into<T>,
@@ -377,7 +375,7 @@ pub fn having_debug_default<T>(
 ) -> Result<T> {
     what.or_else(|| {
         if cfg!(debug_assertions) {
-            warn!("using default {}", name);
+            warn!("using default {name}");
             Some(default.into())
         } else {
             None

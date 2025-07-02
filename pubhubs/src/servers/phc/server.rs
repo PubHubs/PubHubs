@@ -11,7 +11,7 @@ use crate::common::secret::DigestibleSecret as _;
 use crate::misc::crypto;
 use crate::misc::jwt;
 use crate::phcrypto;
-use crate::servers::{self, constellation, AppBase, AppCreatorBase, Constellation, Handle};
+use crate::servers::{self, AppBase, AppCreatorBase, Constellation, Handle, constellation};
 
 use crate::{elgamal, hub};
 
@@ -150,7 +150,7 @@ impl crate::servers::App<Server> for App {
                     new_constellation_id
                 );
             } else {
-                log::info!("Computed constellation {}", new_constellation_id);
+                log::info!("Computed constellation {new_constellation_id}");
             }
 
             return Ok(Some(Constellation {
@@ -224,7 +224,7 @@ impl crate::servers::App<Server> for App {
             }
             // a task ended irregularly (panicked, joined,...)
             Some(Err(join_err)) => {
-                log::error!("discovery run task joined unexpectedly: {}", join_err);
+                log::error!("discovery run task joined unexpectedly: {join_err}");
                 Err(api::ErrorCode::InternalError)
             }
             // we got a result from one of the tasks..

@@ -242,7 +242,7 @@ pub fn create_error_response(
         })
     }()
     .unwrap_or_else(|e| {
-        log::error!("failed to render error message to client: {}", e);
+        log::error!("failed to render error message to client: {e}");
         TranslatedError {
             status: StatusCode::INTERNAL_SERVER_ERROR,
             body: "Translation failure for error".to_string(),

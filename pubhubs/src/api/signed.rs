@@ -105,7 +105,7 @@ impl<T> Signed<T> {
                 },
             )
             .map_err(|err| {
-                log::debug!("could not verify signed message's claims: {}", err);
+                log::debug!("could not verify signed message's claims: {err}");
                 OpenError::OtherwiseInvalid
             })?;
 
@@ -150,7 +150,7 @@ impl<T> Signed<T> {
         let jwt = match result {
             Ok(jwt) => jwt,
             Err(err) => {
-                log::warn!("failed to create signed message: {}", err);
+                log::warn!("failed to create signed message: {err}");
                 return Result::Err(ErrorCode::InternalError);
             }
         };

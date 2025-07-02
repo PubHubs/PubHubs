@@ -53,7 +53,7 @@ impl RetryOptions {
 
             retries_left -= 1;
 
-            log::trace!("retrying after {wait_time:.1?}", wait_time = wait_time);
+            log::trace!("retrying after {wait_time:.1?}");
 
             tokio::time::sleep(wait_time).await;
 

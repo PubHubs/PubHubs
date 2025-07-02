@@ -1,4 +1,3 @@
-version: "3"
 services:
   yivi:
     container_name: yivi

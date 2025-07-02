@@ -264,8 +264,7 @@ impl Config {
         let to_be_modified: &mut serde_json::Value =
             json_config.pointer_mut(pointer).with_context(|| {
                 format!(
-                    "wanted to modify {} of the configuration file, but that points nowhere",
-                    pointer
+                    "wanted to modify {pointer} of the configuration file, but that points nowhere"
                 )
             })?;
 
@@ -273,9 +272,7 @@ impl Config {
 
         let new_config: Config = serde_json::from_value(json_config).with_context(|| {
             format!(
-                "wanted to change {} of the configuration file to {}, but the new configuration did not deserialize",
-                pointer,
-                new_value,
+                "wanted to change {pointer} of the configuration file to {new_value}, but the new configuration did not deserialize",
             )
         })?;
 
@@ -356,7 +353,7 @@ pub mod phc {
     fn default_auth_token_validity() -> core::time::Duration {
         // TODO: implement refreshing of expired tokens:
         core::time::Duration::from_secs(60 * 60) // 1 hour - the user might need to add attributes
-                                                 // to their Yivi app
+        // to their Yivi app
     }
 
     fn default_pp_nonce_validity() -> core::time::Duration {

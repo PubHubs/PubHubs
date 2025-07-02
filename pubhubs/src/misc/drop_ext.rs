@@ -23,7 +23,7 @@ impl Drop for Bomb {
         if let Some(msg) = self.payload.take() {
             let message = (msg)();
 
-            log::error!("{}", message);
+            log::error!("{message}");
 
             if !std::thread::panicking() {
                 panic!("{}", message);

@@ -7,7 +7,7 @@ use actix_web::web;
 use digest::Digest as _;
 
 use crate::servers::{
-    self, constellation, yivi, AppBase, AppCreatorBase, Constellation, Handle, Server as _,
+    self, AppBase, AppCreatorBase, Constellation, Handle, Server as _, constellation, yivi,
 };
 use crate::{
     api::{self, EndpointDetails as _, ResultExt as _},
@@ -280,7 +280,9 @@ impl App {
             })?;
 
             let Some(attr_type) = app.attr_type_from_handle(attr_type_handle) else {
-                log::warn!("Attribute type with handle {attr_type_handle} mentioned in authentication state can no longer be found.");
+                log::warn!(
+                    "Attribute type with handle {attr_type_handle} mentioned in authentication state can no longer be found."
+                );
                 return Ok(api::auths::AuthCompleteResp::PleaseRestartAuth);
             };
 
@@ -289,8 +291,7 @@ impl App {
                 .any(|allowed_yati| allowed_yati == yati)
             {
                 log::debug!(
-                    "attribute number {i} of submitted session result has unexpected attribute type id {}",
-                    yati
+                    "attribute number {i} of submitted session result has unexpected attribute type id {yati}"
                 );
                 return Err(api::ErrorCode::BadRequest);
             }

@@ -70,7 +70,7 @@
 					<!-- House Rules -->
 					<div class="flex flex-col gap-2 overflow-y-auto">
 						<H1>{{ t('onboarding.house_rules', [hubName]) }}</H1>
-						<div v-if="consentText" class="whitespace-pre-line break-all rounded-3xl bg-surface-low p-4">
+						<div v-if="consentText" class="break-all rounded-3xl bg-surface-low p-4">
 							<mavon-editor defaultOpen="preview" :toolbarsFlag="false" :subfield="false" v-model="consentText" :boxShadow="false" />
 						</div>
 					</div>
@@ -160,7 +160,7 @@
 					<!-- Left Rules -->
 					<div class="flex w-1/2 flex-col overflow-y-auto ~gap-4/8 ~px-4/24 ~pt-24/36">
 						<H1>{{ t('onboarding.house_rules', [hubName]) }}</H1>
-						<div v-if="consentText" class="whitespace-pre-line break-all rounded-3xl bg-surface-low p-4">
+						<div v-if="consentText" class="rounded-3xl bg-surface-low p-4">
 							<mavon-editor defaultOpen="preview" :toolbarsFlag="false" :subfield="false" v-model="consentText" :boxShadow="false" />
 						</div>
 					</div>

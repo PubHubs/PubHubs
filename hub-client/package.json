@@ -4,7 +4,7 @@
 	"type": "module",
 	"private": true,
 	"scripts": {
-		"serve": "vite",
+    "serve": "vite --host",
 		"watch": "vite",
 		"build": "vite build",
 		"lint": "eslint --ext .js,.vue,.ts --ignore-path .gitignore --fix src",
@@ -13,6 +13,10 @@
 		"test:run": "vitest run",
 		"test:ui": "vitest --ui",
 		"coverage": "vitest run --coverage"
+	},
+	"engines": {
+		"npm": ">=9.8.1",
+		"node": ">=22.0.0"
 	},
 	"dependencies": {
 		"@privacybydesign/yivi-client": "^0",

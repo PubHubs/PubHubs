@@ -1,7 +1,8 @@
 import { defineStore } from 'pinia';
 import { RouteParams } from 'vue-router';
-import { useGlobal, useMessageBox, useSettings } from '@/logic/store/store';
-import { iframeHubId, MessageType, Message } from '@/logic/store/messagebox';
+import { useSettings } from '@/logic/store/settings';
+import { useGlobal } from '@/logic/store/global';
+import { iframeHubId, MessageType, Message, useMessageBox } from '../../../../hub-client/src/logic/store/messagebox';
 import { setLanguage, setUpi18n } from '@/i18n';
 import { useToggleMenu } from '@/logic/store/toggleGlobalMenu';
 
