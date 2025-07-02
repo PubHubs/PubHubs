@@ -698,7 +698,7 @@ impl std::str::FromStr for SessionType {
         Self::deserialize(s.into_deserializer())
     }
 }
-#[allow(clippy::uninlined_format_args)]
+
 impl SessionType {
     /// Inverse of [`SessionType::to_result_sub`].
     fn from_result_sub(sub: &str) -> anyhow::Result<Self> {
@@ -711,7 +711,7 @@ impl SessionType {
 
     /// Returns the `sub` value used for this session type in signed session result JWTs.
     fn to_result_sub(self) -> String {
-        format!("{}_result", self)
+        format!("{self}_result")
     }
 }
 

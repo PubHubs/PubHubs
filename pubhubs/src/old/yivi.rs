@@ -223,7 +223,6 @@ pub async fn register(
     .await
 }
 
-#[allow(clippy::uninlined_format_args)]
 async fn disclose(
     yivi_host: &str,
     yivi_requestor: &str,
@@ -272,8 +271,7 @@ async fn disclose(
             }
         };
         error!(
-            "Did not receive OK from Yivi server on disclosure request, status '{status}', error '{:?}' ",
-            error
+            "Did not receive OK from Yivi server on disclosure request, status '{status}', error '{error:?}' "
         );
         bail!("Did not receive OK from Yivi server on disclosure request");
     }
@@ -285,7 +283,7 @@ async fn disclose(
     let new_url = if re.is_match(&session.session_ptr.u) {
         re.replace(
             &session.session_ptr.u,
-            format!("{}yivi/", pubhubs_url_for_yivi_app),
+            format!("{pubhubs_url_for_yivi_app}yivi/"),
         )
         .to_string()
     } else {
@@ -389,7 +387,6 @@ impl Debug for SessionDataWithImage {
     }
 }
 
-#[allow(clippy::uninlined_format_args)]
 #[async_recursion]
 pub async fn disclosed_ph_id(yivi_host: &str, token: &str, context: &Main) -> Result<User> {
     let started = SystemTime::now();
@@ -435,8 +432,7 @@ pub async fn disclosed_ph_id(yivi_host: &str, token: &str, context: &Main) -> Re
                 }
             };
             error!(
-                "Did not receive OK from Yivi server on polling request for result, status '{status}', error '{:?}' ",
-                error
+                "Did not receive OK from Yivi server on polling request for result, status '{status}', error '{error:?}' "
             );
             bail!("Did not receive OK from Yivi server on disclosure request");
         }
@@ -504,7 +500,6 @@ pub async fn next_session(req: HttpRequest, context: Data<Main>, jwt_text: Strin
         Err(_) => empty_result(),
     }
 }
-#[allow(clippy::uninlined_format_args)]
 async fn next_session_priv(
     req: HttpRequest,
     yivi: &YiviContext,
@@ -517,8 +512,7 @@ async fn next_session_priv(
 
         if !ct.starts_with("text/plain") {
             log::warn!(
-                "Yivi server called back with Content-Type {} instead of 'text/plain' - has a jwt_privkey(_file) been configurad for the Yivi server?",
-                ct
+                "Yivi server called back with Content-Type {ct} instead of 'text/plain' - has a jwt_privkey(_file) been configurad for the Yivi server?"
             );
             return Ok(HttpResponse::InternalServerError().finish());
         }
@@ -699,8 +693,6 @@ fn empty_result() -> HttpResponse {
 }
 
 #[derive(Serialize, Deserialize, Debug, PartialEq, Eq, Clone)]
-#[allow(non_camel_case_types)] // Follow Yivi naming
-#[allow(clippy::upper_case_acronyms)]
 pub enum Status {
     DONE,
     PAIRING,
@@ -711,8 +703,7 @@ pub enum Status {
 }
 
 #[derive(Serialize, Deserialize, Debug)]
-#[allow(non_camel_case_types)] // Follow Yivi naming
-#[allow(clippy::upper_case_acronyms)]
+#[expect(non_camel_case_types)] // Follow Yivi naming
 pub enum ProofStatus {
     VALID,
     INVALID,
@@ -774,7 +765,7 @@ fn get_first_attribute_raw_value(attribute_name: &str, result: &SessionResult) -
 }
 
 #[cfg(test)]
-#[allow(unused_must_use)]
+#[cfg_attr(not(test), expect(unused_must_use))]
 mod tests {
     use super::*;
     use crate::config::File;

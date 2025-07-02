@@ -7,6 +7,7 @@ import path from 'node:path';
 import { nodePolyfills } from 'vite-plugin-node-polyfills';
 
 export default defineConfig({
+	logLevel: 'warn',
 	server: {
 		port: 8081,
 		strictPort: true,

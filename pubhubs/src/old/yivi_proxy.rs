@@ -34,7 +34,7 @@ pub async fn yivi_proxy_stream(
     }
     Ok(resp.streaming(original_response))
 }
-#[allow(clippy::uninlined_format_args)]
+
 pub async fn yivi_proxy(
     request: HttpRequest,
     context: Data<Main>,
@@ -75,12 +75,12 @@ pub async fn yivi_proxy(
     let re = Regex::new(r#""u":"https?://[^/]+/irma"#).unwrap();
 
     let body_with_new_url = if re.is_match(&r) {
-        re.replace(&r, format!(r#""u":"{}yivi"#, proxy_host))
+        re.replace(&r, format!(r#""u":"{proxy_host}yivi"#))
             .to_string()
     } else {
         let re_api = Regex::new(r#""u":""#).unwrap();
         re_api
-            .replace(&r, format!(r#""u":"{}yivi/"#, proxy_host))
+            .replace(&r, format!(r#""u":"{proxy_host}yivi/"#))
             .to_string()
     };
 
@@ -89,7 +89,7 @@ pub async fn yivi_proxy(
 }
 
 #[cfg(test)]
-#[allow(unused_must_use)]
+#[cfg_attr(not(test), expect(unused_must_use))]
 mod tests {
     use crate::config::File;
     use crate::context::Main;

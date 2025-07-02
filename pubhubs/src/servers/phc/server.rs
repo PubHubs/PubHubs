@@ -104,7 +104,6 @@ impl crate::servers::App<Server> for App {
         panic!("PHC creates the constellation; it has no need to check it")
     }
 
-    #[allow(clippy::uninlined_format_args)]
     async fn discover(
         self: &Rc<Self>,
         _phc_di: api::DiscoveryInfoResp,
@@ -150,7 +149,7 @@ impl crate::servers::App<Server> for App {
                     new_constellation_id
                 );
             } else {
-                log::info!("Computed constellation {}", new_constellation_id);
+                log::info!("Computed constellation {new_constellation_id}");
             }
 
             return Ok(Some(Constellation {
@@ -224,7 +223,7 @@ impl crate::servers::App<Server> for App {
             }
             // a task ended irregularly (panicked, joined,...)
             Some(Err(join_err)) => {
-                log::error!("discovery run task joined unexpectedly: {}", join_err);
+                log::error!("discovery run task joined unexpectedly: {join_err}");
                 Err(api::ErrorCode::InternalError)
             }
             // we got a result from one of the tasks..

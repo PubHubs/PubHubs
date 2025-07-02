@@ -96,7 +96,6 @@ pub struct DiscoveryInfoCheck<'a> {
 impl DiscoveryInfoCheck<'_> {
     /// Checks the given [`api::DiscoveryInfoResp`] according to the [`DiscoveryInfoCheck`],
     /// and returns it if all checks out.
-    #[allow(clippy::uninlined_format_args)]
     pub fn check(
         self,
         inf: api::DiscoveryInfoResp,
@@ -140,8 +139,7 @@ impl DiscoveryInfoCheck<'_> {
             )
         {
             log::error!(
-                "master_enc_key_part must be set by the transcryptor and pubhub central, but no other servers - url: {}",
-                source
+                "master_enc_key_part must be set by the transcryptor and pubhub central, but no other servers - url: {source}"
             );
             return Err(api::ErrorCode::InternalError);
         }

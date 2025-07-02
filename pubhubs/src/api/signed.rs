@@ -50,7 +50,6 @@ impl<T> Signed<T> {
     }
 
     /// Opens this [`Signed`] message using the provided key.
-    #[allow(clippy::uninlined_format_args)]
     pub fn open<VK: jwt::VerifyingKey>(
         self,
         key: &VK,
@@ -116,7 +115,7 @@ impl<T> Signed<T> {
                 },
             )
             .map_err(|err| {
-                log::debug!("could not verify signed message's claims: {}", err);
+                log::debug!("could not verify signed message's claims: {err}");
                 OpenError::OtherwiseInvalid
             })?;
 
@@ -140,7 +139,6 @@ impl<T> Signed<T> {
     }
 
     /// Signs `message`, and returns the resulting [`Signed`].
-    #[allow(clippy::uninlined_format_args)]
     pub fn new<SK: jwt::SigningKey>(
         sk: &SK,
         message: &T,
@@ -160,7 +158,7 @@ impl<T> Signed<T> {
         let jwt = match result {
             Ok(jwt) => jwt,
             Err(err) => {
-                log::warn!("failed to create signed message: {}", err);
+                log::warn!("failed to create signed message: {err}");
                 return Result::Err(ErrorCode::InternalError);
             }
         };

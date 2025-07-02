@@ -17,7 +17,6 @@ const PHACCOUNT: &str = "PHAccount";
 const PHACCOUNT_CROSS_SITE: &str = "PHAccount.CrossSite";
 
 /// Creates `PHAccount(.CrossSite)` session `Cookie` header content
-#[allow(clippy::uninlined_format_args)]
 fn session_cookie_content(user_id: String, cookie_secret: &str) -> Result<String> {
     let now = Utc::now();
     let created = now.timestamp();
@@ -29,7 +28,7 @@ fn session_cookie_content(user_id: String, cookie_secret: &str) -> Result<String
     let mut mac = HmacSha256::new_from_slice(cookie_secret.as_bytes())
         .context("creating MAC for PHAccount(.CrossSite) cookie")?;
 
-    let content = format!("{}.{}.{}", user_id, created, until);
+    let content = format!("{user_id}.{created}.{until}");
     mac.update(content.as_bytes());
     let result = mac.finalize();
     let signature = result;

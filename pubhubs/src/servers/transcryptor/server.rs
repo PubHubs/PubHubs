@@ -8,7 +8,7 @@ use crate::misc::crypto;
 use crate::misc::serde_ext::bytes_wrapper::B64UU;
 use crate::{
     api::{self, EndpointDetails as _},
-    servers::{self, constellation, AppBase, AppCreatorBase, Constellation, Handle},
+    servers::{self, AppBase, AppCreatorBase, Constellation, Handle, constellation},
 };
 use crate::{handle, phcrypto};
 

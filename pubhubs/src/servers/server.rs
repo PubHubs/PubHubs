@@ -116,7 +116,6 @@ pub(crate) trait Server: DerefMut<Target = Self::AppCreatorT> + Sized + 'static 
     /// It is given its own [`App`] instance.
     ///
     /// TODO: remove returning BoxModifier since that can be achieved via App instance?
-    #[allow(async_fn_in_trait)] // <- we do not need our future to be Send
     async fn run_until_modifier(
         self: Rc<Self>,
         shutdown_receiver: tokio::sync::oneshot::Receiver<Infallible>,
@@ -217,12 +216,12 @@ where
         tokio::select! {
             res = shutdown_receiver => {
                res.expect_err("got instance of Infallible");
-               #[allow(clippy::needless_return)] // It's more clear this way
+               #[expect(clippy::needless_return)] // It's more clear this way
                return Ok(None);
             }
 
             res = self.run_discovery_and_then_wait_forever(app) => {
-               #[allow(clippy::needless_return)] // It's more clear this way
+               #[expect(clippy::needless_return)] // It's more clear this way
                 return Err(res.expect_err("got instance of Infallible"));
             }
         }
@@ -365,12 +364,11 @@ pub(crate) enum Command<S: Server> {
     /// Stops the server
     Exit,
 }
-#[allow(clippy::uninlined_format_args)]
 impl<S: Server> std::fmt::Display for Command<S> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> Result<(), std::fmt::Error> {
         match self {
-            Command::Inspect(inspector) => write!(f, "inspector {}", inspector),
-            Command::Modify(modifier) => write!(f, "modifier {}", modifier),
+            Command::Inspect(inspector) => write!(f, "inspector {inspector}"),
+            Command::Modify(modifier) => write!(f, "modifier {modifier}"),
             Command::Exit => write!(f, "exit"),
         }
     }
@@ -839,7 +837,9 @@ macro_rules! factory_tuple ({ $($param:ident)* } => {
         type Future = futures::future::Map<Fut, fn(Fut::Output)->api::Responder<EP>>;
 
         #[inline]
-        #[allow(non_snake_case)] // because the signature will be:  call(&self, A: A, B: B, ...)
+        // allow(non_snake_case), because the signature will be:  call(&self, A: A, B: B, ...)
+        // not expect(...), because this macro definition does not fulfill this condition
+        #[allow(non_snake_case)]
         fn call(&self, ($($param,)*): ($($param,)*)) -> Self::Future {
             (self.f)(self.app.clone(), $($param,)*).map(response_type_to_responder)
         }

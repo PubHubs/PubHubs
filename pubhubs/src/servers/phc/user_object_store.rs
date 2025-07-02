@@ -159,7 +159,6 @@ impl App {
     }
 
     /// Implements [`GetObjectEP`].
-    #[allow(clippy::uninlined_format_args)]
     pub(crate) async fn handle_user_get_object(
         app: Rc<Self>,
         path: actix_web::web::Path<(Id, Id)>,
@@ -173,10 +172,7 @@ impl App {
         let (obj, _) = match app.get_object::<UserObject>(&hash).await {
             Ok(Some(obj)) => obj,
             Ok(None) => {
-                log::debug!(
-                    "user object {} was requested (with valid hmac), but not found",
-                    hash
-                );
+                log::debug!("user object {hash} was requested (with valid hmac), but not found");
                 return api::Payload::Json(Ok(GetObjectResp::NotFound));
             }
             Err(err) => {
