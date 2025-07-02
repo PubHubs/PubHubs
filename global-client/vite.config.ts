@@ -8,6 +8,7 @@ import Vue from '@vitejs/plugin-vue';
 import path from 'node:path';
 
 export default defineConfig({
+	logLevel: 'warn',
 	base: '/client/',
 	root: './',
 	server: {

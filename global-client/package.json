@@ -6,7 +6,7 @@
 	"scripts": {
     "serve": "vite --host",
 		"watch": "vite",
-		"build": "vite build && echo 'Build finished' && exit 0",
+		"build": "vite build",
 		"lint": "eslint --ext .js,.vue,.ts --ignore-path .gitignore --fix src",
 		"pwa": "vite build && npx http-server dist",
 		"test": "vitest",

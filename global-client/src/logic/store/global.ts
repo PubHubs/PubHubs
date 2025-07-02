@@ -1,6 +1,6 @@
 import { defineStore } from 'pinia';
 import { api } from '@/logic/core/api';
-import { Theme, TimeFormat, useSettings } from '@/logic/store/store';
+import { Theme, TimeFormat, useSettings } from '@/logic/store/settings';
 import { Hub, HubList } from '@/model/Hubs';
 import { SMI } from '../../../../hub-client/src/logic/foundation/StatusMessage';
 import { Logger } from '@/../../hub-client/src/logic/foundation/Logger';
