@@ -1,6 +1,13 @@
 import logging
 import json
 import subprocess
+import base64
+import time
+
+import nacl
+import nacl.utils
+import nacl.secret
+
 from pathlib import Path
 from synapse.module_api import ModuleApi
 from prometheus_client import Gauge
@@ -16,6 +23,8 @@ class Core:
     def __init__(self, config: dict, api: ModuleApi):
         self._config = config
         self._api = api
+        self._secret_box = nacl.secret.Aead(nacl.utils.random(nacl.secret.Aead.KEY_SIZE))
+
         
         version_string = get_version_string()
 
@@ -31,9 +40,10 @@ class Core:
             version_string
             ).set(1)
 
-        # [Endpoint] 
+        # [Endpoints] 
         api.register_web_resource('/_synapse/client/.ph/info', PhInfoEP(hub_version=version_string))
-
+        api.register_web_resource('/_synapse/client/.ph/enter-start', PhEnterStartEP(self))
+        api.register_web_resource('/_synapse/client/.ph/enter-complete', PhEnterCompleteEP(self))
 
     @staticmethod
     def parse_config(config):
@@ -56,3 +66,46 @@ class PhInfoEP(Resource):
                 'hub_version': self._hub_version
             }).encode('ascii')
 
+class PhEnterStartEP(Resource):
+    def __init__(self, core):
+        self._core = core
+
+    def render_GET(self, request):
+        request.responseHeaders.addRawHeader(b"content-type", b"application/json")
+
+        # binds nonce and state
+        random = b64enc(nacl.utils.random(32))
+
+        state = b64enc(self._core._secret_box.encrypt(json.dumps({
+            'random': random,
+            'iat': time.time()
+        }).encode('ascii'), b"state"))
+
+        nonce = b64enc(self._core._secret_box.encrypt(json.dumps({
+            'random': random
+        }).encode('ascii'), b"nonce"))
+
+
+        return json.dumps({ 'Ok': {
+                    'state': state,
+                    'nonce': nonce,
+                }}).encode('ascii')
+
+def b64enc(some_bytes):
+    return base64.urlsafe_b64encode(some_bytes).decode('ascii').strip('=')
+
+def b64dec(some_string):
+    return base64.urlsafe_b64decode(some_string).encode('ascii')
+
+class PhEnterCompleteEP(Resource):
+    def __init__(self, core):
+        self._core = core
+
+    def render_POST(self, request):
+        request.responseHeaders.addRawHeader(b"content-type", b"application/json")
+
+        access_token = "access_token"
+
+        return json.dumps({ 'Ok': { 'Entered': {
+                    'access_token': access_token,
+                }}}).encode('ascii')
