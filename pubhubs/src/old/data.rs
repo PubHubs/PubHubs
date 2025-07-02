@@ -91,7 +91,7 @@ fn migrate_database(db: &mut Connection, do_migrations: DoMigrations) -> Result<
         DoMigrations::UpTo(up_to) => up_to,
     };
 
-    #[allow(clippy::needless_range_loop)] // Clippy's suggestion is quite unreadable
+    #[expect(clippy::needless_range_loop)] // Clippy's suggestion is quite unreadable
     for i in next_version..up_to {
         let migration = MIGRATIONS[i];
 
@@ -266,7 +266,7 @@ fn migration_add_user_external_id(tx: &rusqlite::Transaction) -> Result<()> {
 }
 
 #[derive(Debug, AsRefStr)]
-#[allow(clippy::large_enum_variant)] // Not worth fixing
+#[expect(clippy::large_enum_variant)] // Not worth fixing
 pub enum DataCommands {
     AllHubs {
         resp: oneshot::Sender<Result<Vec<Hub>>>,
@@ -512,7 +512,7 @@ impl Hubid {
     pub const LENGTH: usize = uuid::fmt::Hyphenated::LENGTH;
 
     // we don't want to implement Default for Hubid
-    #[allow(clippy::new_without_default)]
+    #[expect(clippy::new_without_default)]
     pub fn new() -> Self {
         Self::from_uuid(Uuid::new_v4())
     }
@@ -762,7 +762,6 @@ pub fn get_all_hubs(db: &Connection) -> Result<Vec<Hub>> {
 }
 
 //Will be used later
-#[allow(dead_code)]
 pub fn delete_hub(db: &Connection, id: Hubid) -> Result<usize> {
     let result = db.execute(
         "UPDATE hub
@@ -939,7 +938,6 @@ pub fn get_all_users(db: &Connection) -> Result<Vec<User>> {
 }
 
 //Will be used later
-#[allow(dead_code)]
 pub fn delete_user(db: &Connection, email: &str, telephone: &str) -> Result<usize> {
     let result = db.execute(
         "UPDATE user
@@ -951,7 +949,6 @@ pub fn delete_user(db: &Connection, email: &str, telephone: &str) -> Result<usiz
 }
 
 //Will be used later
-#[allow(dead_code)]
 pub fn update_user(db: &Connection, user: User) -> Result<usize> {
     let result = db.execute(
         "UPDATE user
@@ -986,8 +983,8 @@ pub fn no_result(e: &anyhow::Error) -> bool {
 }
 
 #[cfg(test)]
-#[allow(unused_variables)]
-#[allow(unused_must_use)]
+#[cfg_attr(not(test), expect(unused_variables))]
+#[expect(unused_must_use)]
 mod tests {
     use super::*;
 

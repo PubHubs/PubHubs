@@ -563,9 +563,9 @@ pub mod http {
         UnsupportedGrantType,
 
         // The following two error codes are not presently used.
-        #[allow(dead_code)]
+        #[expect(dead_code)]
         UnauthorizedClient,
-        #[allow(dead_code)]
+        #[expect(dead_code)]
         InvalidScope,
     }
 
@@ -1062,7 +1062,6 @@ pub mod redirect_uri {
 
     /// Represents an error to be passed to a client's `redirect_uri`.
     #[derive(Debug, PartialEq, Eq)]
-    #[allow(clippy::enum_variant_names)] // ServerError refers to OAuth's server_error
     pub enum Error {
         UnsupportedResponseType,
         UnsupportedParameter(String),
@@ -1451,7 +1450,6 @@ impl RedirectUriSpecialFields {
     }
 }
 
-#[allow(clippy::uninlined_format_args)]
 impl<H: Handler> OidcImpl<H> {
     /// Like [Oidc::handle_auth], but return `auth_request_handle`, [ClientId] and
     /// the original request instead of passing them to the [Handler] via [Handler::handle_auth].  
@@ -1637,7 +1635,7 @@ impl<H: Handler> OidcImpl<H> {
         {
             Ok(handle) => Ok((req, handle, client_id)),
             Err(err) => {
-                log::error!("failed to create auth_request_handle: {}", err);
+                log::error!("failed to create auth_request_handle: {err}");
                 err_resp(redirect_uri::Error::ServerError)
             }
         }
@@ -1678,7 +1676,6 @@ impl<H: Handler> Oidc for OidcImpl<H> {
         })
     }
 
-    #[allow(clippy::uninlined_format_args)]
     fn grant_code(
         &self,
         auth_request_handle: AuthenticAuthRequestHandle,
@@ -1696,7 +1693,7 @@ impl<H: Handler> Oidc for OidcImpl<H> {
         let code = AuthCodeData { id_token }.to_code(&self.auth_code_secret, data.client_id);
 
         if let Err(err) = code {
-            log::error!("failed to create auth_code: {}", err);
+            log::error!("failed to create auth_code: {err}");
 
             return Ok(http::Response::Grant(redirect_uri::Response {
                 uri: data.redirect_uri,

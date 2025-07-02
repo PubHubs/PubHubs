@@ -649,7 +649,6 @@ pub trait Key {
 /// A [VerifyingKey] that neglects to check the signature and `alg` header.
 ///
 /// Useful when the signature on a [JWT] can only be checked later on.
-#[allow(non_camel_case_types)]
 pub struct IgnoreSignature;
 
 impl Key for IgnoreSignature {

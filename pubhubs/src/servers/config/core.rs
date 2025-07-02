@@ -257,7 +257,6 @@ impl Config {
     }
 
     /// Creates a new [Config] from the current one by updating a specific part
-    #[allow(clippy::uninlined_format_args)]
     pub fn json_updated(&self, pointer: &str, new_value: serde_json::Value) -> Result<Self> {
         let mut json_config: serde_json::Value =
             serde_json::to_value(self).context("failed to serialize config")?;
@@ -265,8 +264,7 @@ impl Config {
         let to_be_modified: &mut serde_json::Value =
             json_config.pointer_mut(pointer).with_context(|| {
                 format!(
-                    "wanted to modify {} of the configuration file, but that points nowhere",
-                    pointer
+                    "wanted to modify {pointer} of the configuration file, but that points nowhere"
                 )
             })?;
 
@@ -274,9 +272,7 @@ impl Config {
 
         let new_config: Config = serde_json::from_value(json_config).with_context(|| {
             format!(
-                "wanted to change {} of the configuration file to {}, but the new configuration did not deserialize",
-                pointer,
-                new_value,
+                "wanted to change {pointer} of the configuration file to {new_value}, but the new configuration did not deserialize",
             )
         })?;
 

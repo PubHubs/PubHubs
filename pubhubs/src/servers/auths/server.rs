@@ -240,7 +240,6 @@ impl App {
         }
     }
 
-    #[allow(clippy::uninlined_format_args)]
     async fn handle_auth_complete_yivi(
         app: Rc<Self>,
         state: AuthState,
@@ -292,8 +291,7 @@ impl App {
                 .any(|allowed_yati| allowed_yati == yati)
             {
                 log::debug!(
-                    "attribute number {i} of submitted session result has unexpected attribute type id {}",
-                    yati
+                    "attribute number {i} of submitted session result has unexpected attribute type id {yati}"
                 );
                 return Err(api::ErrorCode::BadRequest);
             }

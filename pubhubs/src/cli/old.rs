@@ -72,7 +72,7 @@ struct HubFormUpdate {
     oidc_redirect_uri: String,
     client_uri: String,
 }
-#[allow(clippy::uninlined_format_args)]
+
 async fn get_hubs(
     context: Data<Main>,
     request: HttpRequest,
@@ -103,13 +103,13 @@ async fn get_hubs(
         error => internal_server_error(
             "Could not get hubs",
             &context.hair,
-            &format!("Someone looked for all hubs and got this error {:?}", error,),
+            &format!("Someone looked for all hubs and got this error {error:?}",),
             &request,
             translations,
         ),
     }
 }
-#[allow(clippy::uninlined_format_args)]
+
 async fn add_hub(
     context: Data<Main>,
     request: HttpRequest,
@@ -137,15 +137,14 @@ async fn add_hub(
             "Could not create hub",
             &context.hair,
             &format!(
-                "Someone tried to add a hub with parameters {:?} and got this error {:?}",
-                hub, error,
+                "Someone tried to add a hub with parameters {hub:?} and got this error {error:?}",
             ),
             &request,
             translations,
         ),
     }
 }
-#[allow(clippy::uninlined_format_args)]
+
 async fn get_hub_details(
     id: Path<String>,
     context: Data<Main>,
@@ -182,8 +181,7 @@ async fn get_hub_details(
                     "Could get hub details",
                     &context.hair,
                     &format!(
-                        "Someone tried to get details of a hub with parameters {:} and got this error {:?}",
-                        id, error,
+                        "Someone tried to get details of a hub with parameters {id:} and got this error {error:?}",
                     ),
                     &request,
                     translations,
@@ -193,17 +191,14 @@ async fn get_hub_details(
         Err(err) => bad_request(
             "not an id",
             &context.hair,
-            &format!(
-                "Someone looked for hub with id {} and got this error {:?}",
-                id, err,
-            ),
+            &format!("Someone looked for hub with id {id} and got this error {err:?}",),
             &request,
             //TODO
             translations,
         ),
     }
 }
-#[allow(clippy::uninlined_format_args)]
+
 async fn get_hubid(
     name: Path<String>,
     context: Data<Main>,
@@ -222,13 +217,12 @@ async fn get_hubid(
         .expect("To use our channel");
     match rx.await {
         Ok(Ok(Some(hubid))) => HttpResponse::Ok().body(hubid.to_string()),
-        Ok(Ok(None)) => HttpResponse::NotFound().body(format!("there is no hub named {}", name)),
+        Ok(Ok(None)) => HttpResponse::NotFound().body(format!("there is no hub named {name}")),
         error => internal_server_error(
             "Could not get hubid",
             &context.hair,
             &format!(
-                "Someone tried to get the id of a hub named {:} with but got this error {:?}",
-                name, error,
+                "Someone tried to get the id of a hub named {name:} with but got this error {error:?}",
             ),
             &request,
             translations,
@@ -268,7 +262,6 @@ fn render_hub(context: &Data<Main>, hub: &Hub, translations: Translations) -> Ht
         hairy_eval_html_translations(context.hair.to_ref(), data.to_ref(), translations).unwrap(),
     )
 }
-#[allow(clippy::uninlined_format_args)]
 async fn update_hub(
     id: Path<String>,
     context: Data<Main>,
@@ -299,8 +292,7 @@ async fn update_hub(
                     "Could not update hub",
                     &context.hair,
                     &format!(
-                        "Someone tried to update hub with id {} and parameters {:?} and got this error {:?}",
-                        id, hub_form, error,
+                        "Someone tried to update hub with id {id} and parameters {hub_form:?} and got this error {error:?}",
                     ),
                     &request,
                     translations,
@@ -310,17 +302,13 @@ async fn update_hub(
         Err(err) => bad_request(
             "not an id",
             &context.hair,
-            &format!(
-                "Someone tried to update hub with id {} and got this error {:?}",
-                id, err,
-            ),
+            &format!("Someone tried to update hub with id {id} and got this error {err:?}",),
             &request,
             translations,
         ),
     }
 }
 
-#[allow(clippy::uninlined_format_args)]
 async fn get_users(
     context: Data<Main>,
     request: HttpRequest,
@@ -349,10 +337,7 @@ async fn get_users(
         error => internal_server_error(
             "Could not list users",
             &context.hair,
-            &format!(
-                "Someone tried to get all users and got this error {:?}",
-                error,
-            ),
+            &format!("Someone tried to get all users and got this error {error:?}",),
             &request,
             translations,
         ),
@@ -360,7 +345,6 @@ async fn get_users(
 }
 
 //TODO callers to errorresponse to bubble
-#[allow(clippy::uninlined_format_args)]
 pub fn internal_server_error(
     message: &str,
     hair: &BytecodeVec,
@@ -370,8 +354,7 @@ pub fn internal_server_error(
 ) -> HttpResponse {
     let code = Uuid::new_v4();
     error!(
-        "Something went wrong: {:?} gave it user code {} and showed them the message {:?}. The origin was this request: {:?}",
-        internal_message, code, message, request
+        "Something went wrong: {internal_message:?} gave it user code {code} and showed them the message {message:?}. The origin was this request: {request:?}"
     );
     let code = code.to_string();
     let data = value!({
@@ -385,7 +368,7 @@ pub fn internal_server_error(
             .expect("Expected to render a template"),
     )
 }
-#[allow(clippy::uninlined_format_args)]
+
 pub fn bad_request(
     message: &str,
     hair: &BytecodeVec,
@@ -395,8 +378,7 @@ pub fn bad_request(
 ) -> HttpResponse {
     let code = Uuid::new_v4();
     error!(
-        "Someone made a bad request: {} gave it user code {} and showed them the message {}. The origin was this request: {:?}",
-        internal_message, code, message, request
+        "Someone made a bad request: {internal_message} gave it user code {code} and showed them the message {message}. The origin was this request: {request:?}"
     );
     let code = code.to_string();
     let data = value!({
@@ -410,7 +392,7 @@ pub fn bad_request(
             .expect("To render a template"),
     )
 }
-#[allow(clippy::uninlined_format_args)]
+
 async fn yivi_start(
     request: HttpRequest,
     translations: Translations,
@@ -435,15 +417,14 @@ async fn yivi_start(
             "We're having some trouble with Yivi",
             hair,
             &format!(
-                "Someone tried to start an Yivi session with {} as requestor {} and got this error {:?}",
-                yivi_host, yivi_requestor, error,
+                "Someone tried to start an Yivi session with {yivi_host} as requestor {yivi_requestor} and got this error {error:?}",
             ),
             &request,
             translations,
         ),
     }
 }
-#[allow(clippy::uninlined_format_args)]
+
 async fn yivi_register(
     context: Data<Main>,
     translations: Translations,
@@ -467,10 +448,7 @@ async fn yivi_register(
         Err(error) => internal_server_error(
             "We're having some trouble with Yivi",
             hair,
-            &format!(
-                "Someone tried to start an Yivi sessions and got this error {:?}",
-                error,
-            ),
+            &format!("Someone tried to start an Yivi sessions and got this error {error:?}",),
             &request,
             translations,
         ),
@@ -574,7 +552,7 @@ async fn yivi_finish_and_redirect_anyhow(
     )
     .await
 }
-#[allow(clippy::uninlined_format_args)]
+
 async fn oidc_response_from_oidc_handle(
     authentic_auth_request_handle: AuthenticAuthRequestHandle,
     context: Data<Main>,
@@ -615,7 +593,7 @@ async fn oidc_response_from_oidc_handle(
                         &hub,
                     )
                     .map_err(|e| {
-                        log::warn!("error while translating pseudonym: {}", e);
+                        log::warn!("error while translating pseudonym: {e}");
                     })?;
 
                 crate::jwt::sign(
@@ -631,7 +609,7 @@ async fn oidc_response_from_oidc_handle(
                     &context.id_token_key,
                 )
                 .map_err(|e| {
-                    log::warn!("error while signing id_token: {}", e);
+                    log::warn!("error while signing id_token: {e}");
                 })
             },
         )?
@@ -736,7 +714,6 @@ pub async fn handle_oidc_authorize(
         .handle_auth(req, crate::oidc_handler::AD { translations })
         .into_translated_error(&inner_req)
 }
-#[allow(clippy::uninlined_format_args)]
 async fn get_user_by_id_wrap(
     db_tx: &Sender<DataCommands>,
     id: String,
@@ -766,8 +743,7 @@ async fn get_user_by_id_wrap(
         "Could not locate user",
         hair,
         &format!(
-            "Someone tried to get a redirect to a hub page with a valid cookie with id: '{}' and got this error {:?}",
-            id, error,
+            "Someone tried to get a redirect to a hub page with a valid cookie with id: '{id}' and got this error {error:?}",
         ),
         req,
         translations,
@@ -838,7 +814,6 @@ async fn check_connections(urls: crate::context::Urls, nonce: String) -> Result<
     )?;
     Ok(())
 }
-#[allow(clippy::uninlined_format_args)]
 /// Checks `url` returns `nonce`, provided url is not None.  Retries a few times upon failure.  Aborts on ctrl+c.
 async fn check_connection_abortable(url: Option<&url::Url>, nonce: &str) -> Result<()> {
     if url.is_none() {
@@ -854,7 +829,7 @@ async fn check_connection_abortable(url: Option<&url::Url>, nonce: &str) -> Resu
             futures::future::Abortable::new(check_connection(&url, nonce), abort_registration)
                 .await
                 .unwrap_or_else(|_| {
-                    log::warn!("aborted connection check of {}", url);
+                    log::warn!("aborted connection check of {url}");
                     Ok(())
                 })
         },
@@ -868,12 +843,11 @@ async fn check_connection_abortable(url: Option<&url::Url>, nonce: &str) -> Resu
     )
     .map(|_| ())
 }
-#[allow(clippy::uninlined_format_args)]
 async fn check_connection(url: &str, nonce: &str) -> Result<()> {
     // awc works only in such single-threaded context
     tokio::task::LocalSet::new()
         .run_until(async move {
-            info!("checking that you are reachable via {} ...", url);
+            info!("checking that you are reachable via {url} ...");
             for n in 0..10 {
                 match check_connection_once(url, nonce).await {
                     Ok(_) => return Ok(()),
@@ -897,7 +871,7 @@ async fn check_connection(url: &str, nonce: &str) -> Result<()> {
         })
         .await
 }
-#[allow(clippy::uninlined_format_args)]
+
 async fn check_connection_once(url: &str, nonce: &str) -> Result<()> {
     let client = awc::Client::default();
     let mut resp = client
@@ -925,7 +899,7 @@ async fn check_connection_once(url: &str, nonce: &str) -> Result<()> {
         nonce
     );
 
-    info!(" ✓ got correct response from {}", url);
+    info!(" ✓ got correct response from {url}");
     Ok(())
 }
 
@@ -1053,7 +1027,7 @@ fn create_app(cfg: &mut web::ServiceConfig, context: Data<Main>) {
         );
 }
 
-#[allow(unused_must_use)]
+#[expect(unused_must_use)]
 #[cfg(test)]
 mod tests {
     use super::*;

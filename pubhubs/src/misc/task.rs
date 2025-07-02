@@ -28,7 +28,7 @@ impl Default for RetryOptions {
         }
     }
 }
-#[allow(clippy::uninlined_format_args)]
+
 impl RetryOptions {
     pub async fn retry<T, E, Fut: Future<Output = Result<Option<T>, E>>>(
         &self,
@@ -53,7 +53,7 @@ impl RetryOptions {
 
             retries_left -= 1;
 
-            log::trace!("retrying after {wait_time:.1?}", wait_time = wait_time);
+            log::trace!("retrying after {wait_time:.1?}");
 
             tokio::time::sleep(wait_time).await;
 

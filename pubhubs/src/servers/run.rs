@@ -38,15 +38,11 @@ impl Set {
     /// Returns the number of servers that did *not* shutdown cleanly.
     ///
     /// Panics when the tokio runtime is shut down.
-    #[allow(clippy::uninlined_format_args)]
     pub async fn wait(self) -> usize {
         match self.wait_jh.await {
             Ok(nr) => nr,
             Err(join_error) => {
-                panic!(
-                    "task waiting on servers to exit was cancelled or panicked: {}",
-                    join_error
-                );
+                panic!("task waiting on servers to exit was cancelled or panicked: {join_error}");
             }
         }
     }
@@ -191,7 +187,6 @@ impl SetInner {
     /// If this function is not called, servers can fail silently.
     ///
     /// Returns the number of servers that did *not* shutdown cleanly
-    #[allow(clippy::uninlined_format_args)]
     pub async fn wait(mut self) -> usize {
         log::trace!("waiting for one of the servers to exit...");
         let err_count: usize = tokio::select! {
@@ -203,8 +198,7 @@ impl SetInner {
                     let is_err : bool =  matches!(result, Err(_) | Ok(Err(_)));
 
                     log::log!( if is_err { log::Level::Error } else { log::Level::Debug },
-                        "one of the servers exited with {:?};  stopping all servers..",
-                        result
+                        "one of the servers exited with {result:?};  stopping all servers.."
                     );
 
                     if is_err {
@@ -289,10 +283,6 @@ impl<S: Server> Handles<S> {
             // received command from running pubhubs/actix server
             command_request_maybe = self.command_receiver.recv() => {
                 if let Some(command_request) = command_request_maybe {
-
-                    #[allow(clippy::needless_return)]
-                    // Clippy wants "Ok(command)", but that's not easy to read here
-                    // (Maybe clippy is not aware of the tokio::select! macro?)
                     return Ok(command_request.accept());
                 }
 
@@ -308,7 +298,7 @@ impl<S: Server> Handles<S> {
                     .with_context(|| format!("{}'s pubhubs task stopped without being asked to", S::NAME))?;
 
 
-                #[allow(clippy::needless_return)] // "return" makes the code more readable here
+                #[expect(clippy::needless_return)] // "return" makes the code more readable here
                 return Ok(Command::Modify(modifier));
             },
 
@@ -319,7 +309,7 @@ impl<S: Server> Handles<S> {
                         panic!("got impossible `Lagged` error from shutdown sender");
                     },
                     tokio::sync::broadcast::error::RecvError::Closed => {
-                        #[allow(clippy::needless_return)] // "return" is more readable here
+                        #[expect(clippy::needless_return)] // "return" is more readable here
                         return Ok(Command::Exit);
                     },
                 }
@@ -803,7 +793,6 @@ impl<S: Server> Runner<S> {
         })
     }
 
-    #[allow(clippy::uninlined_format_args)]
     pub async fn run(mut self) -> Result<()> {
         loop {
             let modifier = self.run_until_modifier().await?;
@@ -811,7 +800,7 @@ impl<S: Server> Runner<S> {
             let pubhubs_server_mutref: &mut S =
                 Rc::get_mut(&mut self.pubhubs_server).expect("pubhubs_server is still borrowed");
 
-            let modifier_fmt = format!("{}", modifier); // so modifier can be consumed
+            let modifier_fmt = format!("{modifier}"); // so modifier can be consumed
 
             log::info!("{}: applying modification {:?}", S::NAME, modifier_fmt);
 

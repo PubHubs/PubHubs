@@ -18,13 +18,12 @@ impl Bomb {
     }
 }
 
-#[allow(clippy::uninlined_format_args)]
 impl Drop for Bomb {
     fn drop(&mut self) {
         if let Some(msg) = self.payload.take() {
             let message = (msg)();
 
-            log::error!("{}", message);
+            log::error!("{message}");
 
             if !std::thread::panicking() {
                 panic!("{}", message);

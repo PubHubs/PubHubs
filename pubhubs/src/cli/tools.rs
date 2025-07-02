@@ -82,14 +82,13 @@ mod generate {
 
     struct SigningKeyArgs {}
 
-    #[allow(clippy::uninlined_format_args)]
     impl SigningKeyArgs {
         fn run(self) -> Result<()> {
             let sk = crate::api::SigningKey::generate();
             let vk: crate::api::VerifyingKey = sk.verifying_key().into();
 
-            println!("  signing key: {}", sk);
-            println!("verifying key: {}", vk);
+            println!("  signing key: {sk}");
+            println!("verifying key: {vk}");
 
             Ok(())
         }
