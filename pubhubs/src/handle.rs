@@ -112,6 +112,18 @@ impl std::ops::Deref for Handles {
     }
 }
 
+impl std::borrow::Borrow<str> for Handle {
+    fn borrow(&self) -> &str {
+        &self.inner
+    }
+}
+
+impl std::borrow::Borrow<str> for &Handle {
+    fn borrow(&self) -> &str {
+        &self.inner
+    }
+}
+
 impl From<Vec<Handle>> for Handles {
     fn from(handles: Vec<Handle>) -> Handles {
         Self { inner: handles }

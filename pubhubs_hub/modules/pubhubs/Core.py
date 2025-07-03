@@ -70,7 +70,7 @@ class PhEnterStartEP(Resource):
     def __init__(self, core):
         self._core = core
 
-    def render_GET(self, request):
+    def render_POST(self, request):
         request.responseHeaders.addRawHeader(b"content-type", b"application/json")
 
         # binds nonce and state

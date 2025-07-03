@@ -50,6 +50,7 @@ impl Cli {
                 Commands::Serve(args) => run_args!(args, "serve"),
                 Commands::Tools(args) => run_args!(args, "tools"),
                 Commands::Admin(args) => run_args!(args, "admin"),
+                Commands::Enter(args) => run_args!(args, "enter"),
             },
         }
     }
@@ -70,6 +71,9 @@ enum Commands {
 
     /// Administer a running server
     Admin(pubhubs::cli::AdminArgs),
+
+    /// Enter a hub, returning a Synapse access token
+    Enter(pubhubs::cli::EnterArgs),
 }
 
 #[cfg(feature = "old")]
