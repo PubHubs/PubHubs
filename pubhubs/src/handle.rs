@@ -35,6 +35,15 @@ impl std::ops::Deref for Handle {
     }
 }
 
+impl Handle {
+    /// Returns the undelying string.
+    ///
+    /// Has the sam effect as `deref`, but `as_str` is more readable.
+    pub fn as_str(&self) -> &str {
+        &self.inner
+    }
+}
+
 impl TryFrom<String> for Handle {
     type Error = HubHandleError;
 
@@ -108,18 +117,6 @@ impl std::ops::Deref for Handles {
     type Target = [Handle];
 
     fn deref(&self) -> &[Handle] {
-        &self.inner
-    }
-}
-
-impl std::borrow::Borrow<str> for Handle {
-    fn borrow(&self) -> &str {
-        &self.inner
-    }
-}
-
-impl std::borrow::Borrow<str> for &Handle {
-    fn borrow(&self) -> &str {
         &self.inner
     }
 }

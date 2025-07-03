@@ -2,7 +2,7 @@ use anyhow::{Context as _, Result};
 
 use crate::api;
 use crate::client;
-use crate::handle;
+use crate::handle::Handle;
 
 #[derive(clap::Args, Debug)]
 pub struct EnterArgs {
@@ -17,15 +17,15 @@ pub struct EnterArgs {
 
     /// Handle identifying the hub
     #[arg(value_name = "HUB")]
-    hub_handle: handle::Handle,
+    hub_handle: Handle,
 
     /// Handle of identifying attribute type to use
     #[arg(short, long, default_value = "email", value_name = "ATTR_TYPE")]
-    id_attr_type: handle::Handle,
+    id_attr_type: Handle,
 
     /// Handles of attribute types to add when entering pubhubs
     #[arg(short, long, default_value = "phone", value_name = "ATTR_TYPE")]
-    add_attr_type: Vec<handle::Handle>,
+    add_attr_type: Vec<Handle>,
 }
 
 impl EnterArgs {
@@ -58,7 +58,10 @@ impl EnterArgs {
             anyhow::bail!(
                 "no such hub {}; choose from: {}",
                 self.hub_handle,
-                hubs.keys().collect::<Vec<&handle::Handle>>().join(", ")
+                hubs.keys()
+                    .map(Handle::as_str)
+                    .collect::<Vec<&str>>()
+                    .join(", ")
             )
         };
 
@@ -91,7 +94,8 @@ impl EnterArgs {
                 self.id_attr_type,
                 attr_types
                     .keys()
-                    .collect::<Vec<&handle::Handle>>()
+                    .map(Handle::as_str)
+                    .collect::<Vec<&str>>()
                     .join(", ")
             )
         };
