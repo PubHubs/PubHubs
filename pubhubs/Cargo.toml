@@ -71,6 +71,7 @@ bin = [
 	"dep:toml",
 	"dep:url",
 	"dep:zeroize",
+	"dep:qrcode",
 ]
 real_credentials = []
 old = [
@@ -84,7 +85,6 @@ old = [
 	"dep:hyper-tls",
 	"dep:jsonwebtoken",
 	"dep:prometheus",
-	"dep:qrcode",
 	"dep:rusqlite",
 	"dep:serde_urlencoded",
 	"dep:serde_yaml",

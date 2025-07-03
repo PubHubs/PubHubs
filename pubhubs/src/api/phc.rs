@@ -267,6 +267,23 @@ pub mod user {
         pub(crate) inner: B64UU,
     }
 
+    impl std::fmt::Display for AuthToken {
+        fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+            write!(f, "{}", self.inner)
+        }
+    }
+
+    /// So [`AuthToken`] can be used as the value of a [`clap`] flag.
+    impl std::str::FromStr for AuthToken {
+        type Err = <B64UU as std::str::FromStr>::Err;
+
+        fn from_str(s: &str) -> std::result::Result<Self, Self::Err> {
+            Ok(Self {
+                inner: B64UU::from_str(s)?,
+            })
+        }
+    }
+
     impl header::TryIntoHeaderValue for AuthToken {
         type Error = std::convert::Infallible;
 
