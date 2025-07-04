@@ -72,9 +72,9 @@ const en = {
 		no_account_yet: 'No {0} account yet?',
 		register_3_steps: 'Register for {0} in 3 steps!',
 		card_1_title: 'Secure registration with {0}',
-		card_1_text_1: '{0} uses the {1} app for logging in and registration.',
+		card_1_text_1: '{0} uses a separate app for logging in and registration: {1}.',
 		card_1_yivi: 'What is {0}?',
-		card_1_yivi_text: '{0} is an identity app (similar to DigiD) that allows you to log in easily and securely, share information, and prove who you are — without oversharing personal data.',
+		card_1_yivi_text: '{0} is an identity app that allows you to log in easily and securely, share information — without oversharing personal data.',
 
 		card_2_title: 'Add your email and phone number to {0}',
 		card_2_text_1: 'Follow the steps in the {0} app. Then, add your phone number.',

@@ -71,17 +71,17 @@ const nl = {
 		no_account_yet: 'Nog geen {0} account?',
 		register_3_steps: 'Registreer bij {0} in 3 stappen!',
 		card_1_title: 'Veilig registreren met {0}',
-		card_1_text_1: 'Voor het inloggen en registreren maakt {0} gebruik van de {1} app.',
+		card_1_text_1: 'Voor het inloggen en registreren maakt {0} gebruik van een aparte app: {1}',
 		card_1_yivi: 'Wat is {0}?',
-		card_1_yivi_text: '{0} is een identiteitsapp (vergelijkbaar met DigiD) waarmee je makkelijk en veilig inlogt, gegevens deelt en bewijst wie je bent. Zonder dat je te veel over jezelf deelt.',
+		card_1_yivi_text: '{0} is een identiteitsapp waarmee je makkelijk en veilig inlogt, zonder dat je te veel over jezelf deelt.',
 
-		card_2_title: 'Voeg je email en telefoonnummer toe aan {0}',
+		card_2_title: 'Voeg je e-mail en telefoonnummer toe aan {0}',
 		card_2_text_1: 'Volg de stappen in de {0} app. Voeg daarna je telefoonnummer toe.',
-		card_2_text_2: 'Deze gegevens heeft {0} nodig voor registratie.',
+		card_2_text_2: 'Deze gegevens heeft {0} alleen voor registratie nodig.',
 
 		card_3_title: 'Scan de QR-code',
 		card_3_text_1: 'Top, je bent bijna klaar!',
-		card_3_text_2: 'Scan de QR code met je {0} app en deel je gegevens om in te loggen op {1}.',
+		card_3_text_2: 'Scan de QR-code met je {0} app en deel je gegevens om in te loggen op {1}.',
 
 		yivi_explained: '{0} uitgelegd in 1,5 minuut',
 		yivi_faq: 'Veelgestelde vragen',
@@ -515,8 +515,8 @@ const nl = {
 		pbdf: {
 			'sidn-pbdf': {
 				email: {
-					email: 'email',
-					domain: 'email domein',
+					email: 'e-mail',
+					domain: 'e-mail domein',
 				},
 				mobilenumber: {
 					mobilenumber: 'telefoonnummer',
@@ -551,7 +551,7 @@ const nl = {
 					fullname: 'surf volledige naam',
 					firstname: 'surf voornaam',
 					familyname: 'surf achternaam',
-					email: 'surf email',
+					email: 'surf e-mail',
 				},
 			},
 		},
