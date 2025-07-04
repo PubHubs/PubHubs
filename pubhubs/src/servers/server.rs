@@ -65,7 +65,9 @@ pub(crate) trait Server: DerefMut<Target = Self::AppCreatorT> + Sized + 'static 
     /// Returns the default TCP port this server binds to.
     fn default_port() -> u16 {
         match Self::NAME {
-            Name::PubhubsCentral => 8080,
+            // we've changed phc's port to from 8080 to 5050
+            // so that the old and new phc can be run simultaneously.
+            Name::PubhubsCentral => 5050,
             Name::Transcryptor => 7070,
             Name::AuthenticationServer => 6060,
         }
@@ -287,8 +289,11 @@ pub(crate) trait Modifier<ServerT: Server>: Send + 'static {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> Result<(), std::fmt::Error>;
 }
 
-impl<S: Server, F: FnOnce(&mut S) -> bool + Send + 'static, D: std::fmt::Display + Send + 'static>
-    Modifier<S> for (F, D)
+impl<
+        S: Server,
+        F: FnOnce(&mut S) -> bool + Send + 'static,
+        D: std::fmt::Display + Send + 'static,
+    > Modifier<S> for (F, D)
 {
     fn modify(self: Box<Self>, server: &mut S) -> bool {
         self.0(server)
