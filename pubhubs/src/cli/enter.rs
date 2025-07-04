@@ -85,14 +85,6 @@ impl EnterArgs {
             )
         };
 
-        let api::hub::EnterStartResp {
-            state: hub_state,
-            nonce: hub_nonce,
-        } = client
-            .query_with_retry::<api::hub::EnterStartEP, _, _>(&hub_info.url, api::NoPayload)
-            .await
-            .with_context(|| format!("cannot reach hub at {}", hub_info.url))?;
-
         let api::auths::WelcomeResp { attr_types } = client
             .query_with_retry::<api::auths::WelcomeEP, _, _>(
                 &constellation.auths_url,
@@ -116,6 +108,14 @@ impl EnterArgs {
                 auth_token
             }
         };
+
+        let api::hub::EnterStartResp {
+            state: hub_state,
+            nonce: hub_nonce,
+        } = client
+            .query_with_retry::<api::hub::EnterStartEP, _, _>(&hub_info.url, api::NoPayload)
+            .await
+            .with_context(|| format!("cannot reach hub at {}", hub_info.url))?;
 
         let ppp_resp = client
             .query::<api::phc::user::PppEP>(&constellation.phc_url, api::NoPayload)

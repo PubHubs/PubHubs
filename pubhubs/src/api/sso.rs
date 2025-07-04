@@ -2,7 +2,6 @@
 
 use crate::api::*;
 
-use curve25519_dalek::ristretto;
 use serde::{Deserialize, Serialize};
 
 use crate::common::elgamal;
@@ -42,7 +41,7 @@ having_message_code!(EncryptedHubPseudonymPackage, Ehpp);
 pub struct HashedHubPseudonymPackage {
     /// The hashed hub pseudonym, hashed to a point on curve25519 so we can decide to add an
     /// additional layer of ElGamal encryption later on.
-    pub hashed_hub_pseudonym: ristretto::CompressedRistretto,
+    pub hashed_hub_pseudonym: CurvePoint,
 
     /// When the original pseudonym was issued
     pub pp_issued_at: jwt::NumericDate,

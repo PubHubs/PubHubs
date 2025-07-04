@@ -101,9 +101,10 @@ impl App {
             // if the sealing secret is still valid.
         };
 
-        let hashed_hub_pseudonym =
+        let hashed_hub_pseudonym: api::CurvePoint =
             RistrettoPoint::hash_from_bytes::<sha2::Sha512>(hub_pseudonym.compress().as_bytes())
-                .compress();
+                .compress()
+                .into();
 
         Ok(HhppResp::Success(api::Signed::new(
             &*app.jwt_key,

@@ -3,15 +3,20 @@ import json
 import subprocess
 import base64
 import time
+from dataclasses import dataclass
 
 import nacl
 import nacl.utils
 import nacl.secret
 
 from pathlib import Path
+from urllib.parse import urlparse, urljoin
+from  urllib.request import urlopen
 from synapse.module_api import ModuleApi
 from prometheus_client import Gauge
 from twisted.web.resource import Resource
+import authlib.jose
+
 
 logger = logging.getLogger("synapse.contrib." + __name__)
 
@@ -19,13 +24,16 @@ logger = logging.getLogger("synapse.contrib." + __name__)
 #   - version number metrics
 #   - the '_synapse/client/.ph/' endpoints 
 
+@dataclass
+class Config:
+    phc_url: str = None
+
 class Core:
     def __init__(self, config: dict, api: ModuleApi):
         self._config = config
         self._api = api
         self._secret_box = nacl.secret.Aead(nacl.utils.random(nacl.secret.Aead.KEY_SIZE))
 
-        
         version_string = get_version_string()
 
         # [Metrics] Adds hub build information prometheus gauge
@@ -45,9 +53,35 @@ class Core:
         api.register_web_resource('/_synapse/client/.ph/enter-start', PhEnterStartEP(self))
         api.register_web_resource('/_synapse/client/.ph/enter-complete', PhEnterCompleteEP(self))
 
+        self._constellation = None
+
+        self.get_constellation()
+
     @staticmethod
     def parse_config(config):
-        return None
+        # TODO(!!): not crash when phc_url is not configured
+        return Config(phc_url = config['phc_url'])
+        
+
+    def get_constellation(self):
+        url = urljoin(self._config.phc_url, ".ph/user/welcome")
+        logger.info(f"requesting {url}")
+        resp = urlopen(url)
+        assert(resp.status == 200)
+        resp_json = json.load(resp)
+        assert("Ok" in resp_json)
+        ok_json = resp_json['Ok']
+        assert("constellation" in ok_json)
+        self._constellation = ok_json['constellation']
+        logger.info(f"retrieved constellation with id {self._constellation['id']}")
+
+        self._phc_jwt_key = authlib.jose.JsonWebKey.import_key({
+            'kty': 'OKP',
+            'alg': 'EdDSA',
+            'crv': 'Ed25519',
+            'x': b64enc(bytes.fromhex(self._constellation['phc_jwt_key'])),
+            'use': 'sig',
+        })
 
 def get_version_string():
     try:
@@ -85,7 +119,6 @@ class PhEnterStartEP(Resource):
             'random': random
         }).encode('ascii'), b"nonce"))
 
-
         return json.dumps({ 'Ok': {
                     'state': state,
                     'nonce': nonce,
@@ -95,7 +128,14 @@ def b64enc(some_bytes):
     return base64.urlsafe_b64encode(some_bytes).decode('ascii').strip('=')
 
 def b64dec(some_string):
-    return base64.urlsafe_b64decode(some_string).encode('ascii')
+    return base64.urlsafe_b64decode(some_string + "==") # python requires padding
+
+def bad_request():
+    return json.dumps({ 'Err': 'BadRequest' }).encode('ascii')
+
+def internal_error():
+    return json.dumps({ 'Err': 'InternalError' }).encode('ascii')
+
 
 class PhEnterCompleteEP(Resource):
     def __init__(self, core):
@@ -103,6 +143,73 @@ class PhEnterCompleteEP(Resource):
 
     def render_POST(self, request):
         request.responseHeaders.addRawHeader(b"content-type", b"application/json")
+
+        try:
+            r = json.load(request.content)
+        except Exception as e:
+            logger.warn(f"invalid json passed to enter complete endpoint: {e}")
+            return bad_request()
+    
+        if not isinstance(r, dict) or "hhpp" not in r or "state" not in r:
+            return bad_request()
+            
+        hhpp = r['hhpp']
+        state_str = r['state']
+
+        try:
+            state = json.loads(self._core._secret_box.decrypt(b64dec(state_str), b"state"))
+        except Exception as e:
+            logger.warn(f"invalid state passed to enter complete endpoint: {e}")
+            return bad_request()
+        
+        if not isinstance(state, dict) or "random" not in state or "iat" not in state:
+            logger.error("missing fields in enter state")
+            return internal_error()
+
+        state_random = state['random']
+        state_iat = state['iat']
+
+        # Only access enter states not older than 10 seconds. (TODO: make configurable)
+        if time.time() - state_iat > 10: 
+            logger.info("expired enter state submitted")
+            return json.dumps({ 'Ok': 'RetryFromStart' }).encode('ascii')
+
+        claims = authlib.jose.jwt.decode(hhpp, self._core._phc_jwt_key)
+        claims.validate() # TODO: test that this validates exp, nbf
+
+        if 'ph-mc' not in claims or claims['ph-mc'] != 11:
+            logger.warn("request with wrong message code submitted")
+            return bad_request()
+
+        if not 'hub_nonce' in claims or 'pp_issued_at' not in claims or 'hashed_hub_pseudonym' not in claims:
+            logger.error("missing fields in hhpp")
+            return internal_error()
+
+        pp_issued_at = claims['pp_issued_at']
+        nonce_str = claims['hub_nonce']
+        hhp = claims['hashed_hub_pseudonym']
+
+        if time.time() - pp_issued_at > 10: # TODO: make configurable
+            logger.info("hhpp from pp that was issued too long ago")
+            return json.dumps({ 'Ok': 'RetryFromStart' }).encode('ascii')
+
+        try:
+            nonce = json.loads(self._core._secret_box.decrypt(b64dec(nonce_str), b"nonce"))
+        except Exception as e:
+            logger.warn(f"invalid nonce passed to enter complete endpoint: {e}")
+            return bad_request()
+        
+        if not isinstance(nonce, dict) or "random" not in nonce:
+            logger.error("missing fields in enter nonce")
+            return internal_error()
+
+        nonce_random = nonce['random']
+
+        if nonce_random != state_random:
+            logger.warn("mismatch between enter nonce and state")
+            return bad_request()
+
+        logger.info(f"enter user with hashed hub pseudonym {hhp}")
 
         access_token = "access_token"
 

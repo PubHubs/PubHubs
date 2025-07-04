@@ -39,6 +39,10 @@ modules:
             # yivi_client_url: "http://<outside container>:8089",
             # public_yivi_url: "http://<outside container>:8008/",
           }
+  - module: conf.modules.pubhubs.Core # DON'T CHANGE
+    config:
+      # points to the new multi-server setup pubhubs central
+      phc_url: http://host.docker.internal:5050 # DO CHANGE
 oidc_providers:
  -  client_id: "testhub~TwE1w3BX-RrDRe7FFqkbRlkp4FiBh4cgtRwtrpmv7Gc=" # | DO CHANGE - to the OpenId Connect client id you received from PubHubs Central
     client_secret: "p7v7c_L_Eo0Clkx-fBvbGddHPkTEbR59oueM6XaKVYI="     # /           - to the OpenId Connect client secret you received from PubHubs Central
