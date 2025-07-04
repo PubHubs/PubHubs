@@ -9,6 +9,7 @@ use crate::client;
 use crate::handle::Handle;
 use crate::misc::jwt;
 use crate::servers::yivi;
+use crate::servers::Constellation;
 
 use api::phc::user::AuthToken;
 
@@ -63,20 +64,6 @@ impl EnterArgs {
     async fn run_async(self) -> Result<()> {
         let client = client::Client::builder().agent(client::Agent::Cli).finish();
 
-        let _auth_token = match self.auth_token {
-            Some(auth_token) => auth_token,
-            None => {
-                let auth_token = self.get_auth_token(client).await?;
-                log::info!("auth token: {auth_token}");
-                auth_token
-            }
-        };
-
-        Ok(())
-    }
-
-    /// Enter pubhubs using a QR code on the command line; returns an auth token.
-    async fn get_auth_token(&self, client: client::Client) -> Result<AuthToken> {
         let Ok(api::phc::user::WelcomeResp {
             constellation,
             hubs,
@@ -99,8 +86,8 @@ impl EnterArgs {
         };
 
         let api::hub::EnterStartResp {
-            state: _hub_state,
-            nonce: _hub_nonce,
+            state: hub_state,
+            nonce: hub_nonce,
         } = client
             .query_with_retry::<api::hub::EnterStartEP, _, _>(&hub_info.url, api::NoPayload)
             .await
@@ -119,6 +106,90 @@ impl EnterArgs {
                 )
             })?;
 
+        let auth_token = match self.auth_token {
+            Some(auth_token) => auth_token,
+            None => {
+                let auth_token = self
+                    .get_auth_token(&client, &constellation, &attr_types)
+                    .await?;
+                println!("global auth token: {auth_token}");
+                auth_token
+            }
+        };
+
+        let ppp_resp = client
+            .query::<api::phc::user::PppEP>(&constellation.phc_url, api::NoPayload)
+            .auth_header(auth_token.clone())
+            .with_retry()
+            .await
+            .context("failed to obtain ppp from phc")?;
+
+        let api::phc::user::PppResp::Success(ppp) = ppp_resp else {
+            anyhow::bail!("failed to obtain ppp from phc: {ppp_resp:?}");
+        };
+
+        let ehpp_resp = client
+            .query::<api::tr::EhppEP>(
+                &constellation.transcryptor_url,
+                api::tr::EhppReq {
+                    hub_nonce,
+                    hub: hub_info.id,
+                    ppp,
+                },
+            )
+            .with_retry()
+            .await
+            .context("failed to obtain ehpp from transcryptor")?;
+
+        let api::tr::EhppResp::Success(ehpp) = ehpp_resp else {
+            anyhow::bail!("failed to obtain ehpp from transcryptor: {ehpp_resp:?}");
+        };
+
+        let hhpp_resp = client
+            .query::<api::phc::user::HhppEP>(
+                &constellation.phc_url,
+                api::phc::user::HhppReq { ehpp },
+            )
+            .auth_header(auth_token.clone())
+            .with_retry()
+            .await
+            .context("failed to obtain hhpp from phc")?;
+
+        let api::phc::user::HhppResp::Success(hhpp) = hhpp_resp else {
+            anyhow::bail!("failed to obtain hhpp from phc: {hhpp_resp:?}");
+        };
+
+        let enter_complete_resp = client
+            .query::<api::hub::EnterCompleteEP>(
+                &hub_info.url,
+                api::hub::EnterCompleteReq {
+                    state: hub_state,
+                    hhpp,
+                },
+            )
+            .with_retry()
+            .await
+            .context("failed to complete entering hub")?;
+
+        let api::hub::EnterCompleteResp::Entered {
+            access_token: hub_access_token,
+        } = enter_complete_resp
+        else {
+            anyhow::bail!("failed to complete entering hub: {enter_complete_resp:?}");
+        };
+
+        println!("hub access token: {hub_access_token}");
+
+        Ok(())
+    }
+
+    /// Enter pubhubs using a QR code on the command line; returns an auth token.
+    async fn get_auth_token(
+        &self,
+        client: &client::Client,
+        constellation: &Constellation,
+        attr_types: &HashMap<Handle, attr::Type>,
+    ) -> Result<AuthToken> {
         let Some(_id_attr_info) = attr_types.get(&self.id_attr_type) else {
             anyhow::bail!(
                 "no such attribute type {}; choose from: {}",
@@ -308,7 +379,7 @@ async fn yivi_cli_session(yivi_requestor_url: &url::Url, request: jwt::JWT) -> R
     Ok(std::str::from_utf8(&resp.body().await?)?.to_string().into())
 }
 
-/// https://github.com/privacybydesign/irmago/blob/f9718c334af76a3ad2fa23019d17957878cd2032/server/api.go#L30
+/// Represents a [yivi session package](https://github.com/privacybydesign/irmago/blob/f9718c334af76a3ad2fa23019d17957878cd2032/server/api.go#L30).
 #[derive(serde::Deserialize, Debug, Clone)]
 struct YiviSessionPackage {
     #[serde(rename = "sessionPtr")]
