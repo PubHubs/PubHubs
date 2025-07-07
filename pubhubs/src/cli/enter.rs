@@ -173,12 +173,16 @@ impl EnterArgs {
 
         let api::hub::EnterCompleteResp::Entered {
             access_token: hub_access_token,
+            device_id,
+            new_user,
         } = enter_complete_resp
         else {
             anyhow::bail!("failed to complete entering hub: {enter_complete_resp:?}");
         };
 
-        println!("hub access token: {hub_access_token}");
+        println!("access token: {hub_access_token}");
+        println!("device id:    {device_id}");
+        println!("first time?:  {new_user}");
 
         Ok(())
     }

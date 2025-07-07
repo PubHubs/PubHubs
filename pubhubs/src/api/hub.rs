@@ -105,5 +105,11 @@ pub enum EnterCompleteResp {
     Entered {
         /// Synapse access token
         access_token: String,
+
+        /// Device ID.  (Not sure if it's useful to the global client, though.)
+        device_id: String,
+
+        /// True if this is the first time this user enters this hub.
+        new_user: bool,
     },
 }

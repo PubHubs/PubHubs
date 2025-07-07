@@ -5,17 +5,25 @@ import base64
 import time
 from dataclasses import dataclass
 
+import authlib.jose
+from pathlib import Path
+from urllib.parse import urlparse, urljoin
+from  urllib.request import urlopen
+
 import nacl
 import nacl.utils
 import nacl.secret
 
-from pathlib import Path
-from urllib.parse import urlparse, urljoin
-from  urllib.request import urlopen
-from synapse.module_api import ModuleApi
-from prometheus_client import Gauge
 from twisted.web.resource import Resource
-import authlib.jose
+from twisted.web.server import NOT_DONE_YET
+import twisted.internet.defer
+
+from prometheus_client import Gauge
+
+from synapse.module_api import ModuleApi
+import synapse.api.errors
+
+import conf.modules.pseudonyms
 
 
 logger = logging.getLogger("synapse.contrib." + __name__)
@@ -32,7 +40,6 @@ class Core:
     def __init__(self, config: dict, api: ModuleApi):
         self._config = config
         self._api = api
-        self._secret_box = nacl.secret.Aead(nacl.utils.random(nacl.secret.Aead.KEY_SIZE))
 
         version_string = get_version_string()
 
@@ -50,16 +57,27 @@ class Core:
 
         # [Endpoints] 
         api.register_web_resource('/_synapse/client/.ph/info', PhInfoEP(hub_version=version_string))
+
+        # new, multi-server setup
+        if self._config == None:
+            return
+
+        self._secret_box = nacl.secret.Aead(nacl.utils.random(nacl.secret.Aead.KEY_SIZE))
+
         api.register_web_resource('/_synapse/client/.ph/enter-start', PhEnterStartEP(self))
         api.register_web_resource('/_synapse/client/.ph/enter-complete', PhEnterCompleteEP(self))
-
         self._constellation = None
 
+        # TODO: refresh constellation
+        # TODO: use HTTP client in ModuleApi
         self.get_constellation()
 
     @staticmethod
     def parse_config(config):
-        # TODO(!!): not crash when phc_url is not configured
+        if 'phc_url' not in config:
+            logger.warn("pubhubs core module: phc_url not configured - not enabling multi-server setup endpoints")
+            return None
+
         return Config(phc_url = config['phc_url'])
         
 
@@ -141,7 +159,17 @@ class PhEnterCompleteEP(Resource):
     def __init__(self, core):
         self._core = core
 
+
     def render_POST(self, request):
+        d = twisted.internet.defer.ensureDeferred(self._render_POST_async(request))
+        d.addCallback(lambda result: self._finish_request(request, result))
+        return NOT_DONE_YET
+
+    def _finish_request(self, request, result):
+        request.write(result)
+        request.finish()
+
+    async def _render_POST_async(self, request):
         request.responseHeaders.addRawHeader(b"content-type", b"application/json")
 
         try:
@@ -211,8 +239,37 @@ class PhEnterCompleteEP(Resource):
 
         logger.info(f"enter user with hashed hub pseudonym {hhp}")
 
-        access_token = "access_token"
+        mxid = await self._core._api._store.get_user_by_external_id("pubhubs", hhp)
+        new_user = False
+        
+        if mxid == None:
+            new_user = True
+            # user does not exist - create one
+
+            # we don't base the localpart of the matrix ID on the local pseudonym, because:
+            #  (1) this way, PHC cannot depseudonymize a matrix user without the help of the hub
+            #  (2) this makes migrations easier
+            longlocalpart = nacl.utils.random(32).hex()
+
+            for localpart in conf.modules.pseudonyms.PseudonymHelper.short_pseudonyms(longlocalpart):
+                try:
+                    mxid = await self._core._api.register_user(localpart, localpart, None, False)
+                    break
+                except synapse.api.errors.SynapseError as err:
+                    if err.errcode == synapse.api.errors.Codes.USER_IN_USE:
+                        length += 1
+                        continue
+                    raise err
+            else:
+                raise RuntimeError("random pseudonym already taken (!?) ")
+
+            await self._core._api.record_user_external_id("pubhubs", hhp, mxid)
+            logger.info(f"registered {mxid} for {hhp}")
+
+        (device_id, access_token, access_token_exp, refresh_token) = await self._core._api.register_device(mxid)
 
         return json.dumps({ 'Ok': { 'Entered': {
                     'access_token': access_token,
+                    'device_id': device_id,
+                    'new_user': new_user,
                 }}}).encode('ascii')
