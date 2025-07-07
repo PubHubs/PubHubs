@@ -23,7 +23,10 @@ from prometheus_client import Gauge
 from synapse.module_api import ModuleApi
 import synapse.api.errors
 
-import conf.modules.pseudonyms
+try:
+    import conf.modules.pseudonyms
+except:
+    pass # TODO
 
 
 logger = logging.getLogger("synapse.contrib." + __name__)
