@@ -40,7 +40,7 @@ NPM = ["powershell", "npm"] if platform.system() == "Windows" else ["npm"]
 DOCKER_VERSION = 24
 
 ## NODE VERSION TO USE, otherwise vite doesnt build the project properly
-NODE_VERSION = 24
+NODE_VERSION = 22
 
 def get_version_string():
     # losely based on https://github.com/matrix-org/matrix-python-common/blob/4084b21af839c50f775447d02ca4f1854e2e6191
