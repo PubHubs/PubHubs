@@ -612,6 +612,7 @@ async fn main_integration_test_local(
     // Step 4: submit Hhpp to hub
     let api::hub::EnterCompleteResp::Entered {
         access_token: first_access_token,
+        ..
     } = client
         .query::<api::hub::EnterCompleteEP>(
             &mock_hub.context.info.url,
@@ -678,7 +679,7 @@ async fn main_integration_test_local(
     };
 
     // Step 4: submit Hhpp to hub
-    let api::hub::EnterCompleteResp::Entered { access_token } = client
+    let api::hub::EnterCompleteResp::Entered { access_token, .. } = client
         .query::<api::hub::EnterCompleteEP>(
             &mock_hub.context.info.url,
             api::hub::EnterCompleteReq {
@@ -802,5 +803,7 @@ async fn handle_enter_complete(
 
     web::Json(api::Result::Ok(api::hub::EnterCompleteResp::Entered {
         access_token: base16ct::lower::encode_string(hashed_hub_pseudonym.as_bytes().as_slice()),
+        device_id: "device_id".to_string(),
+        new_user: true,
     }))
 }
