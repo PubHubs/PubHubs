@@ -67,11 +67,8 @@
 
 	function loadMembers() {
 		const memberIds = props.room.getMembersIds();
-		const fullMembers = memberIds.map((member) => {
-			const fullMember = props.room.getMember(member, true);
-			return fullMember;
-		});
 
+		const fullMembers = memberIds.map((member) => props.room.getMember(member, true)).filter((fullMember) => fullMember.matrixRoomMember.membership === 'join' || fullMember.matrixRoomMember.membership === 'invite');
 		const membersSortedByName = fullMembers.sort((a, b) => {
 			if (a === null && b === null) {
 				return 0;
@@ -79,6 +76,7 @@
 				return (a!.name.toLowerCase() > b!.name.toLowerCase()) as unknown as number;
 			}
 		});
+
 		members.value = membersSortedByName;
 		stewards.value = members.value.filter((member: { matrixRoomMember: { powerLevel: number } }) => member.matrixRoomMember.powerLevel >= 50 && member.matrixRoomMember.powerLevel < 100);
 		if (stewards.value.length > 0) {
