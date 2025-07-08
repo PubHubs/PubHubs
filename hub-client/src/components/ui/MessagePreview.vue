@@ -1,7 +1,7 @@
 <template>
 	<div v-if="room.hasMessages()" class="mx-auto my-2 rounded-xl px-4 py-1" :class="newMessage ? 'bg-surface-high' : 'bg-surface-low'" @click="goToRoom">
 		<div class="flex min-w-0 items-center gap-4" :class="{ 'font-bold': newMessage }">
-			<Avatar :class="'flex-shrink-0'" :user="avatarUser" :override-avatar-url="avatarOverrideUrl" />
+			<AvatarCore :class="'flex-shrink-0'" :user="avatarUser" :img="avatarOverrideUrl" icon="two_users" />
 
 			<div class="min-w-0 flex-grow overflow-hidden">
 				<div class="flex flex-col gap-1">
@@ -50,7 +50,7 @@
 	import Room from '@/model/rooms/Room';
 	import { RoomType } from '@/model/rooms/TBaseRoom';
 
-	import Avatar from './Avatar.vue';
+	import AvatarCore from './AvatarCore.vue';
 	import Badge from '../elements/Badge.vue';
 	import EventTime from '../rooms/EventTime.vue';
 
