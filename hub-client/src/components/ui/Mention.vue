@@ -3,7 +3,7 @@
 		<ul>
 			<li v-for="(member, index) in filteredUsers" :key="index" class="group cursor-pointer px-4 hover:bg-surface-high" @click.stop="clickedItem(member)">
 				<div class="flex items-center gap-4 py-2">
-					<Avatar :user="room.getMember(member.userId, true)" />
+					<Avatar :userId="member.userId" />
 					<div>{{ member.rawDisplayName }}</div>
 				</div>
 			</li>

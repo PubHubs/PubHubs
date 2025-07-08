@@ -21,7 +21,7 @@
 				</thead>
 				<tbody>
 					<tr v-for="adminId in adminMembersId" :key="adminId">
-						<td class="px-6 py-4"><Avatar :user="getMatrixUser(adminId)" :overrideAvatarUrl="updateAuthenticatedUrlMap.get(adminId)" class="h-10 w-10" /></td>
+						<td class="px-6 py-4"><Avatar :userId="adminId" class="h-10 w-10" /></td>
 
 						<td class="px-6 py-4">
 							<span class="text-gray-dark font-semibold">{{ adminId }}</span>

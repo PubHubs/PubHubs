@@ -1,6 +1,6 @@
 <template>
 	<div class="flex flex-row gap-2">
-		<Avatar :user="avatarUser" />
+		<Avatar :userId="otherUser?.userId" />
 		<div class="flex h-fit flex-col overflow-hidden">
 			<p class="truncate font-bold leading-tight">
 				{{ otherUser?.rawDisplayName ?? '' }}
@@ -34,14 +34,4 @@
 	});
 
 	const otherUser = computed(() => props.members.findLast((member) => member.userId !== user.user.userId) ?? null);
-
-	const avatarUser = computed(() => {
-		if (!otherUser.value?.userId) return undefined;
-
-		const member = props.room.getMember(otherUser.value.userId, true);
-
-		if (!member) return undefined;
-
-		return member;
-	});
 </script>

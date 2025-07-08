@@ -64,7 +64,7 @@
 			<div v-for="item in searchResultsToShow" :key="item.event_id" class="group">
 				<a href="#" @click.prevent="onScrollToEventId(item.event_id, item.event_threadId)">
 					<div class="flex items-center gap-2 p-2 group-hover:bg-surface">
-						<Avatar :user="room?.getMember(item.event_sender, true)" class="h-8 w-8 flex-none" />
+						<Avatar :userId="item.event_sender" class="h-8 w-8 flex-none" />
 						<TruncatedText>{{ item.event_body }}</TruncatedText>
 					</div>
 				</a>
