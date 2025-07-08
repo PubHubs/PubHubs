@@ -69,6 +69,7 @@
 	import GlobalBarButton from '@/components/ui/GlobalbarButton.vue';
 	import RoomHeaderButtons from '@/components/rooms/RoomHeaderButtons.vue';
 	import RoomMemberList from '@/components/rooms/RoomMemberList.vue';
+	import EditRoomForm from '@/components/rooms/EditRoomForm.vue';
 
 	import { usePubHubs } from '@/logic/core/pubhubsStore';
 	import { LOGGER } from '@/logic/foundation/Logger';
@@ -149,7 +150,11 @@
 		const userIsMemberOfRoom = await pubhubs.isUserRoomMember(user.user.userId, props.id);
 		if (!userIsMemberOfRoom) {
 			// if not a member: try to join, otherwise go to the hubpage
-			pubhubs.joinRoom(props.id).catch(() => router.push({ name: 'hubpage' }));
+			const promise = pubhubs.joinRoom(props.id);
+			// need this extra check
+			if (promise) {
+				promise.catch(() => router.push({ name: 'hubpage' }));
+			}
 		}
 
 		if (!rooms.currentRoom) return;

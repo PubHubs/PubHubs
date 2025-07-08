@@ -1,9 +1,10 @@
-import { setActivePinia, createPinia } from 'pinia';
-import { describe, expect, test, afterAll, afterEach, beforeAll, beforeEach } from 'vitest';
-import { server } from '../mocks/server';
-import { useGlobal, PinnedHubs } from '@/logic/store/global';
-import { useSettings } from '@/logic/store/settings';
+import { PinnedHubs, useGlobal } from '@/logic/store/global';
+import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, test } from 'vitest';
+import { createPinia, setActivePinia } from 'pinia';
+
 import { api } from '@/logic/core/api';
+import { server } from '../mocks/server';
+import { useSettings } from '@/logic/store/settings';
 
 beforeAll(() => server.listen({ onUnhandledRequest: 'error' }));
 afterAll(() => server.close());
