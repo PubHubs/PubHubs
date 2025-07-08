@@ -12,6 +12,8 @@
 <script setup lang="ts">
 	import { nextTick, ref } from 'vue';
 
+	import Icon from '@/components/elements/Icon.vue';
+
 	const open = ref(false);
 	const style = ref('');
 	const menu = ref<HTMLElement | null>(null);

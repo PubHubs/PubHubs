@@ -1,5 +1,6 @@
+import { HttpResponse, http } from 'msw';
+
 import { SecuredRoom } from '@/logic/store/rooms';
-import { http, HttpResponse } from 'msw';
 
 export const handlers = [
 	http.get('http://test/_synapse/client/secured_rooms', () => {
@@ -31,7 +32,14 @@ export const handlers = [
 
 	http.post('http://test/_synapse/client/secured_rooms', async (request) => {
 		const body = (await request.request.json()) as SecuredRoom;
-		if (typeof body.room_name === 'undefined' || body.room_name === '' || typeof body.accepted === 'undefined' || body.accepted === ({} as SecuredRoom) || typeof body.type === 'undefined' || body.type !== 'ph.messages.restricted') {
+		if (
+			typeof body.room_name === 'undefined' ||
+			body.room_name === '' ||
+			typeof body.accepted === 'undefined' ||
+			// || body.accepted === {}
+			typeof body.type === 'undefined' ||
+			body.type !== 'ph.messages.restricted'
+		) {
 			return HttpResponse.json({ errors: 'wrong params' }, { status: 400 });
 		}
 		return HttpResponse.json(

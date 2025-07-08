@@ -22,7 +22,7 @@
 						<section class="flex flex-col gap-2">
 							<div class="text-hub-text group flex items-center justify-between overflow-hidden rounded-xl bg-surface py-2 pl-2 pr-4">
 								<div class="flex w-full items-center gap-2 truncate">
-									<Avatar :user="user" :img="user.avatarUrl" />
+									<Avatar :userId="user.user.userId" />
 									<div class="flex h-fit w-full flex-col overflow-hidden">
 										<p class="truncate font-bold leading-tight">
 											{{ user.displayName }}

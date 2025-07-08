@@ -1,6 +1,6 @@
 <template>
 	<div class="flex flex-row gap-2">
-		<Avatar :user="otherUserMember" :override-avatar-url="props.room.getRoomAvatarMxcUrl() ?? undefined" />
+		<AvatarCore :img="props.room.getRoomAvatarMxcUrl() ?? undefined" icon="two_users" />
 
 		<div class="flex h-fit flex-col overflow-hidden">
 			<p class="truncate font-bold leading-tight">
@@ -26,7 +26,7 @@
 </template>
 
 <script setup lang="ts">
-	import Avatar from '../ui/Avatar.vue';
+	import AvatarCore from '../ui/AvatarCore.vue';
 	import { useUser } from '@/logic/store/user';
 	import { computed } from 'vue';
 
@@ -44,14 +44,6 @@
 			type: Array<TRoomMember>,
 			required: true,
 		},
-	});
-
-	const otherUser = computed(() => props.members.find((member) => member.userId !== user.user.userId));
-
-	const otherUserMember = computed(() => {
-		const roomMember = otherUser.value?.userId ? (props.room.getMember(otherUser.value.userId) ?? null) : null;
-		if (!roomMember) return undefined;
-		return roomMember?.user;
 	});
 
 	// All members except current user

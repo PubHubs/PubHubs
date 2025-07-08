@@ -1,6 +1,6 @@
 <template>
 	<div class="flex flex-row gap-2">
-		<Avatar :user="undefined" :override-avatar-url="props.room.getRoomAvatarMxcUrl() ?? undefined"></Avatar>
+		<AvatarCore :img="props.room.getRoomAvatarMxcUrl() ?? undefined"></AvatarCore>
 		<div class="flex h-fit flex-col overflow-hidden">
 			<p class="truncate font-bold leading-tight">
 				{{ props.room.name.startsWith('@') ? $t('admin.support') : props.room.name }}
@@ -15,7 +15,7 @@
 </template>
 
 <script setup lang="ts">
-	import Avatar from '../ui/Avatar.vue';
+	import AvatarCore from '../ui/AvatarCore.vue';
 
 	import { useUser } from '@/logic/store/user';
 

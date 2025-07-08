@@ -2,6 +2,7 @@ import { vi } from 'vitest';
 
 global._env = {
 	PUBHUBS_URL: 'http://test',
+	HUB_URL: 'http://test',
 };
 
 /**

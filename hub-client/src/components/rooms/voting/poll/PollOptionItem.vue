@@ -15,7 +15,7 @@
 				</div>
 			</div>
 			<div v-if="showVotesBeforeVoting || hasUserVotedOnThisOption || hasUserVotedOnOtherOption" class="flex flex-wrap">
-				<AvatarMember class="-mr-4 max-sm:hidden" v-for="userId in userIds.slice(0).slice(-3)" :key="userId" :userId="userId" :showDisplayname="showVotes" />
+				<AvatarDisplayName class="-mr-4 max-sm:hidden" v-for="userId in userIds.slice(0).slice(-3)" :key="userId" :userId="userId" :showDisplayname="showVotes" />
 			</div>
 		</div>
 		<ProgressBar class="relative -z-10 -mt-2 mb-2" :percentage="percentage"></ProgressBar>
@@ -24,7 +24,7 @@
 
 <script setup lang="ts">
 	import Icon from '@/components/elements/Icon.vue';
-	import AvatarMember from '@/components/ui/AvatarMember.vue';
+	import AvatarDisplayName from '@/components/ui/AvatarDisplayName.vue';
 	import { PollOption } from '@/model/events/voting/VotingTypes';
 	import ProgressBar from '@/components/ui/ProgressBar.vue';
 
