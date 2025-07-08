@@ -46,6 +46,11 @@
 	// Hub imports
 	import { DialogButton, DialogButtonAction, DialogOk, DialogCancel, useDialog } from '@/logic/store/dialog';
 
+	import Icon from '@/components/elements/Icon.vue';
+	import H2 from '@/components/elements/H2.vue';
+	import Button from '@/components/elements/Button.vue';
+	import Line from '@/components/elements/Line.vue';
+
 	const emit = defineEmits(['close']);
 	const dialog = useDialog();
 	const slots = useSlots();

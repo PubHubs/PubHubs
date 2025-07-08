@@ -8,18 +8,20 @@
  *
  */
 
-import { useMatrixFiles } from '@/logic/composables/useMatrixFiles';
-import { api_synapse } from '@/logic/core/api';
-import filters from '@/logic/core/filters';
-import { SMI } from '@/logic/foundation/StatusMessage';
-import { LOGGER } from '@/logic/foundation/Logger';
-import { MatrixClient, User as MatrixUser } from 'matrix-js-sdk';
-import { defineStore } from 'pinia';
-import { Administrator } from '@/model/hubmanagement/models/admin';
 import { FeatureFlag, useSettings } from './settings';
+import { MatrixClient, User as MatrixUser } from 'matrix-js-sdk';
+
+import { Administrator } from '@/model/hubmanagement/models/admin';
 import { ConsentJSONParser } from './json-utility';
-import { router } from '@/logic/core/router';
+import { LOGGER } from '@/logic/foundation/Logger';
 import { OnboardingType } from '@/model/constants';
+import { SMI } from '@/logic/foundation/StatusMessage';
+import { api_synapse } from '@/logic/core/api';
+import { defineStore } from 'pinia';
+import filters from '@/logic/core/filters';
+import { router } from '@/logic/core/router';
+import { useMatrixFiles } from '@/logic/composables/useMatrixFiles';
+
 /**
  *  Extending the MatrixUser with some extra PubHubs specific methods :
  */
@@ -33,7 +35,7 @@ class User extends MatrixUser {
 const defaultUser = {} as User;
 
 type State = {
-	avatarUrl: string;
+	// avatarUrl: string;
 	administrator: Administrator | null;
 	_avatarMxcUrl: string | undefined;
 	_avatarUrl: string | undefined | null;
@@ -49,7 +51,6 @@ const logger = LOGGER;
 
 const useUser = defineStore('user', {
 	state: (): State => ({
-		avatarUrl: '',
 		administrator: null,
 		_avatarMxcUrl: undefined,
 		_avatarUrl: undefined,
