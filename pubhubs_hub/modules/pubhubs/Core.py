@@ -70,10 +70,7 @@ class Core:
         api.register_web_resource('/_synapse/client/.ph/enter-start', PhEnterStartEP(self))
         api.register_web_resource('/_synapse/client/.ph/enter-complete', PhEnterCompleteEP(self))
         self._constellation = None
-
-        # TODO: refresh constellation
-        # TODO: use HTTP client in ModuleApi
-        self.get_constellation()
+        self._phc_jwt_key = None # set by get_constellation
 
     @staticmethod
     def parse_config(config):
@@ -84,14 +81,12 @@ class Core:
         return Config(phc_url = config['phc_url'])
         
 
-    def get_constellation(self):
+    async def get_constellation(self):
         url = urljoin(self._config.phc_url, ".ph/user/welcome")
         logger.info(f"requesting {url}")
-        resp = urlopen(url)
-        assert(resp.status == 200)
-        resp_json = json.load(resp)
-        assert("Ok" in resp_json)
-        ok_json = resp_json['Ok']
+        resp = await self._api.http_client.get_json(url)
+        assert("Ok" in resp)
+        ok_json = resp['Ok']
         assert("constellation" in ok_json)
         self._constellation = ok_json['constellation']
         logger.info(f"retrieved constellation with id {self._constellation['id']}")
@@ -157,6 +152,13 @@ def bad_request():
 def internal_error():
     return json.dumps({ 'Err': 'InternalError' }).encode('ascii')
 
+def please_retry():
+    return json.dumps({ 'Err': 'PleaseRetry' }).encode('ascii')
+
+
+class Return(Exception):
+    def __init__(self, return_value):
+        self._return_value = return_value
 
 class PhEnterCompleteEP(Resource):
     def __init__(self, core):
@@ -171,6 +173,37 @@ class PhEnterCompleteEP(Resource):
     def _finish_request(self, request, result):
         request.write(result)
         request.finish()
+
+
+    def _get_phc_jwt_key(self, header, payload):
+        if self._core._constellation == None:
+            logger.warning("constellation suddenly became None")
+            raise Return(please_retry())
+
+        # check that our constellation if up-to-date
+        if 'ph-ci' not in payload or 'c' not in payload['ph-ci'] or 'i' not in payload['ph-ci']:
+            raise Return(bad_request())
+        
+        their_c = payload['ph-ci']['c']
+        their_i = payload['ph-ci']['i']
+
+        our_c = self._core._constellation['created_at']
+        our_i = self._core._constellation['id']
+
+        if our_c < their_c:
+            # TODO: rate limit
+            logger.info("constellation out of date")
+            self._core._constellation = None 
+            raise Return(please_retry())
+        if their_c < our_c:
+            # signed by old key
+            raise Return(json.dumps({ 'Ok': 'RetryFromStart' }).encode('ascii'))
+        if our_i != their_i:
+            logger.info("constellation maybe out of date")
+            self._core._constellation = None
+            raise Return(json.dumps({ 'Ok': 'RetryFromStart' }).encode('ascii'))
+
+        return self._core._phc_jwt_key
 
     async def _render_POST_async(self, request):
         request.responseHeaders.addRawHeader(b"content-type", b"application/json")
@@ -205,7 +238,16 @@ class PhEnterCompleteEP(Resource):
             logger.info("expired enter state submitted")
             return json.dumps({ 'Ok': 'RetryFromStart' }).encode('ascii')
 
-        claims = authlib.jose.jwt.decode(hhpp, self._core._phc_jwt_key)
+        if self._core._constellation == None:
+            await self._core.get_constellation();
+
+        try:
+            claims = authlib.jose.jwt.decode(hhpp, self._get_phc_jwt_key)
+        except Return as re: 
+            # 'Return' is raised by _get_phc_jwt_key when something is wrong with the 
+            # constellation
+            return re._return_value
+
         claims.validate() # TODO: test that this validates exp, nbf
 
         if 'ph-mc' not in claims or claims['ph-mc'] != 11:
