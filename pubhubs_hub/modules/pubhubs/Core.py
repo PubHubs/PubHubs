@@ -70,7 +70,9 @@ class Core:
         api.register_web_resource('/_synapse/client/.ph/enter-start', PhEnterStartEP(self))
         api.register_web_resource('/_synapse/client/.ph/enter-complete', PhEnterCompleteEP(self))
         self._constellation = None
+        self._constellation_last_update_triggered = 0
         self._phc_jwt_key = None # set by get_constellation
+        self.trigger_get_constellation()
 
     @staticmethod
     def parse_config(config):
@@ -79,7 +81,17 @@ class Core:
             return None
 
         return Config(phc_url = config['phc_url'])
-        
+
+    def trigger_get_constellation(self):
+        now = time.time()
+        # anyone can trick a hub into checking whether its constellation is up-to-date,
+        # so we do not remove the old constellation until we've gotten the new one,
+        # and we don't fire an unlimited amount of requests:
+        if now - self._constellation_last_update_triggered < 3: # TODO: make configurable
+            logger.info("not triggering update of constellation yet")
+            return
+        self._constellation_last_update_triggered = now
+        twisted.internet.defer.ensureDeferred(self.get_constellation())
 
     async def get_constellation(self):
         url = urljoin(self._config.phc_url, ".ph/user/welcome")
@@ -191,16 +203,15 @@ class PhEnterCompleteEP(Resource):
         our_i = self._core._constellation['id']
 
         if our_c < their_c:
-            # TODO: rate limit
             logger.info("constellation out of date")
-            self._core._constellation = None 
+            self._core.trigger_get_constellation()
             raise Return(please_retry())
         if their_c < our_c:
             # signed by old key
             raise Return(json.dumps({ 'Ok': 'RetryFromStart' }).encode('ascii'))
         if our_i != their_i:
             logger.info("constellation maybe out of date")
-            self._core._constellation = None
+            self._core.trigger_get_constellation()
             raise Return(json.dumps({ 'Ok': 'RetryFromStart' }).encode('ascii'))
 
         return self._core._phc_jwt_key
@@ -239,7 +250,8 @@ class PhEnterCompleteEP(Resource):
             return json.dumps({ 'Ok': 'RetryFromStart' }).encode('ascii')
 
         if self._core._constellation == None:
-            await self._core.get_constellation();
+            self._core.trigger_get_constellation();
+            return please_retry()
 
         try:
             claims = authlib.jose.jwt.decode(hhpp, self._get_phc_jwt_key)
