@@ -1,10 +1,11 @@
 /// <reference types="vitest" />
 
-import { fileURLToPath, URL } from 'node:url';
-import { defineConfig } from 'vite';
+import { URL, fileURLToPath } from 'node:url';
+
 import Vue from '@vitejs/plugin-vue';
-import path from 'node:path';
+import { defineConfig } from 'vite';
 import { nodePolyfills } from 'vite-plugin-node-polyfills';
+import path from 'node:path';
 
 export default defineConfig({
 	logLevel: 'warn',
@@ -18,6 +19,11 @@ export default defineConfig({
 		globals: true,
 		environment: 'jsdom',
 		setupFiles: ['./test/setup-teardown-hooks.ts'],
+		onConsoleLog(log) {
+			if (log.includes('Expected Room, got Object')) return false;
+			if (log.includes('Failed to resolve directive')) return false;
+		},
+		// silent: true,
 	},
 	resolve: {
 		alias: {

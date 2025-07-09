@@ -11,7 +11,7 @@
 				</div>
 			</SideKickSubHeader>
 			<div v-for="steward in stewards" :userId="steward?.userId" :key="steward?.userId" class="mb-2 flex w-full gap-2">
-				<Avatar :user="steward" class="ml-2 h-6 w-6"></Avatar>
+				<Avatar :userId="steward.userId" class="ml-2 h-6 w-6"></Avatar>
 				<UserDisplayName :user="steward.userId" :room="room"></UserDisplayName>
 			</div>
 		</div>
@@ -27,7 +27,7 @@
 				</div>
 			</SideKickSubHeader>
 			<div v-for="member in members" :userId="member?.userId" :key="member?.userId" class="mb-2 flex w-full gap-2">
-				<Avatar :user="member" class="ml-2 h-6 w-6"></Avatar>
+				<Avatar :userId="member.userId" class="ml-2 h-6 w-6"></Avatar>
 				<UserDisplayName :user="member.userId" :room="room"></UserDisplayName>
 			</div>
 		</div>
@@ -67,11 +67,8 @@
 
 	function loadMembers() {
 		const memberIds = props.room.getMembersIds();
-		const fullMembers = memberIds.map((member) => {
-			const fullMember = props.room.getMember(member, true);
-			return fullMember;
-		});
 
+		const fullMembers = memberIds.map((member) => props.room.getMember(member, true)).filter((fullMember) => fullMember.matrixRoomMember.membership === 'join' || fullMember.matrixRoomMember.membership === 'invite');
 		const membersSortedByName = fullMembers.sort((a, b) => {
 			if (a === null && b === null) {
 				return 0;
@@ -79,6 +76,7 @@
 				return (a!.name.toLowerCase() > b!.name.toLowerCase()) as unknown as number;
 			}
 		});
+
 		members.value = membersSortedByName;
 		stewards.value = members.value.filter((member: { matrixRoomMember: { powerLevel: number } }) => member.matrixRoomMember.powerLevel >= 50 && member.matrixRoomMember.powerLevel < 100);
 		if (stewards.value.length > 0) {

@@ -20,7 +20,7 @@
 			</div>
 
 			<div class="flex w-full gap-4 px-6" :class="getMessageContainerClasses">
-				<Avatar :user="roomMember" />
+				<Avatar :userId="event.sender" />
 				<div :class="{ 'w-5/6': deleteMessageDialog, 'w-full': !deleteMessageDialog }" class="min-w-0">
 					<div class="flex flex-wrap items-center overflow-hidden text-wrap break-all">
 						<div class="relative flex min-h-6 w-full items-start gap-x-2 pb-1">

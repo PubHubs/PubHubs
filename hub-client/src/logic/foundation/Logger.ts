@@ -1,6 +1,6 @@
 import { LogLevel } from './statusTypes';
 import Config, { CONFIG } from './Config';
-import { SMI } from './StatusMessage';
+import { SMI } from './StatusMessage.js';
 
 type LogOptions = {
 	level?: LogLevel;

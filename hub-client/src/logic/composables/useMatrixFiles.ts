@@ -1,5 +1,6 @@
+import { allTypes, fileTypes, imageTypes, mediaTypes } from '@/model/constants';
+
 import { usePubHubs } from '@/logic/core/pubhubsStore';
-import { imageTypes, mediaTypes, fileTypes, allTypes } from '@/model/constants';
 
 const useMatrixFiles = () => {
 	const pubhubs = usePubHubs();
@@ -9,6 +10,13 @@ const useMatrixFiles = () => {
 
 	function getTypesAsString(types: Array<string>) {
 		return types.join(',');
+	}
+
+	function isMxcUrl(mxc: string): boolean {
+		if (!mxc) {
+			return false;
+		}
+		return mxc.indexOf('mxc:/') === 0;
 	}
 
 	function formUrlfromMxc(mxc: string, useAuthenticatedMediaEndpoint = false) {
@@ -55,6 +63,7 @@ const useMatrixFiles = () => {
 	return {
 		downloadUrl,
 		uploadUrl,
+		isMxcUrl,
 		formUrlfromMxc,
 		deleteMediaUrlfromMxc,
 		imageTypes,

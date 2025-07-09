@@ -1,8 +1,8 @@
-import InRoomNotifyMarker from '@/components/ui/InRoomNotifyMarker.vue';
-import { describe, expect, beforeEach, afterEach, test } from 'vitest';
-import { shallowMount, flushPromises } from '@vue/test-utils';
+import { afterEach, beforeEach, describe, expect, test } from 'vitest';
+import { createPinia, setActivePinia } from 'pinia';
+import { flushPromises, shallowMount } from '@vue/test-utils';
 
-import { setActivePinia, createPinia } from 'pinia';
+import InRoomNotifyMarker from '@/components/ui/InRoomNotifyMarker.vue';
 
 describe('InRoomNotifyMarker.vue Test', () => {
 	// Test variables
@@ -29,7 +29,7 @@ describe('InRoomNotifyMarker.vue Test', () => {
 		wrapper.vm.totalMentionCount = 1;
 		await flushPromises();
 		expect(wrapper.findAll('div').length).toBe(5);
-		expect(wrapper.findAll('icon').length).toBe(2);
+		expect(wrapper.findAllComponents({ name: 'Icon' }).length).toBe(2);
 	});
 	test('test total message count', async () => {
 		wrapper.vm.totalUnreadCount = 1;

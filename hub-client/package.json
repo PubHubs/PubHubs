@@ -4,7 +4,7 @@
 	"type": "module",
 	"private": true,
 	"scripts": {
-    "serve": "vite --host",
+		"serve": "vite --host",
 		"watch": "vite",
 		"build": "vite build",
 		"lint": "eslint --ext .js,.vue,.ts --ignore-path .gitignore --fix src",

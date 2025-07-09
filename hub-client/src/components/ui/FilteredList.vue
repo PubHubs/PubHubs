@@ -17,6 +17,8 @@
 	import { FilteredListEvent } from '@/model/components/FilteredListEvent';
 	import { User as MatrixUser } from 'matrix-js-sdk';
 
+	import Icon from '@/components/elements/Icon.vue';
+
 	const emit = defineEmits(['click', 'filter']);
 
 	const filter = ref('');
