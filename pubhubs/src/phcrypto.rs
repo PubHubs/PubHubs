@@ -143,7 +143,7 @@ pub fn phc_user_object_hmac(
 pub fn auths_attr_keys(
     attr: attr::Attr,
     secret: impl secret::DigestibleSecret,
-    timestamps: impl IntoIterator<Item = jwt::NumericDate>,
+    timestamps: impl IntoIterator<Item = api::NumericDate>,
 ) -> Vec<Vec<u8>> {
     let attr_secret = attr_id(&attr, secret);
 

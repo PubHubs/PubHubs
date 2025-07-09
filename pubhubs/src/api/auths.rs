@@ -168,7 +168,7 @@ pub struct AttrKeyReq {
 
     /// If set, will not only return the latest attribute key for `attr`, but also an older
     /// attribute key tied to the given timestamp.
-    pub timestamp: Option<jwt::NumericDate>,
+    pub timestamp: Option<NumericDate>,
 }
 
 /// Response type for [`AttrKeysEP`]
@@ -191,7 +191,7 @@ pub enum AttrKeysResp {
 pub struct AttrKeyResp {
     /// A pair, `(key, timestamp)`, where `key` is the latest attribute key for the requested attribute
     /// and `timestamp` can be used to retrieve the same key again later on by setting `AttrKeyReq::timestamp`.
-    pub latest_key: (B64UU, jwt::NumericDate),
+    pub latest_key: (B64UU, NumericDate),
 
     /// The attribute key at [`AttrKeyReq::timestamp`], when this was set.
     ///
