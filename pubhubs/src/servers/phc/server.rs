@@ -11,7 +11,7 @@ use crate::common::secret::DigestibleSecret as _;
 use crate::misc::crypto;
 use crate::misc::jwt;
 use crate::phcrypto;
-use crate::servers::{self, AppBase, AppCreatorBase, Constellation, Handle, constellation};
+use crate::servers::{self, constellation, AppBase, AppCreatorBase, Constellation, Handle};
 
 use crate::{elgamal, hub};
 
@@ -155,6 +155,7 @@ impl crate::servers::App<Server> for App {
 
             return Ok(Some(Constellation {
                 id: new_constellation_id,
+                created_at: api::NumericDate::now(),
                 inner: new_constellation_inner,
             }));
         }

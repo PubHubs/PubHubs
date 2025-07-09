@@ -448,6 +448,7 @@ impl crate::servers::App<Server> for App {
                     master_enc_key: _,
                 },
             id: _,
+            created_at: _,
         } = constellation;
 
         enc_key == self.enc_key.public_key() && **jwt_key == self.jwt_key.verifying_key()
