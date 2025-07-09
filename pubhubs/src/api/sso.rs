@@ -50,4 +50,7 @@ pub struct HashedHubPseudonymPackage {
     pub hub_nonce: hub::EnterNonce,
 }
 
-having_message_code!(HashedHubPseudonymPackage, Hhpp);
+impl Signable for HashedHubPseudonymPackage {
+    const CODE: MessageCode = MessageCode::Hhpp;
+    const CONSTELLATION_BOUND: bool = true;
+}

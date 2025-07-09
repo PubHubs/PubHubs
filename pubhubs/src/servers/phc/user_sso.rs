@@ -106,15 +106,17 @@ impl App {
                 .compress()
                 .into();
 
-        Ok(HhppResp::Success(api::Signed::new(
+        Ok(HhppResp::Success(api::Signed::new_opts(
             &*app.jwt_key,
             &HashedHubPseudonymPackage {
                 hashed_hub_pseudonym,
                 pp_issued_at,
                 hub_nonce,
             },
-            app.pp_nonce_validity, // not sure if we should get a seprate configuration field for
-                                   // Hhpp's validity duration
+            app.pp_nonce_validity,
+            // not sure if we should get a seprate configuration field for
+            // Hhpp's validity duration
+            Some(&running_state.constellation),
         )?))
     }
 }

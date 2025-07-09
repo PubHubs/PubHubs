@@ -793,7 +793,10 @@ async fn handle_enter_complete(
         pp_issued_at: _pp_issued_at,
         hub_nonce,
     } = hhpp
-        .open(&*context.constellation.phc_jwt_key, None)
+        .open(
+            &*context.constellation.phc_jwt_key,
+            Some(&context.constellation),
+        )
         .unwrap();
 
     assert_eq!(

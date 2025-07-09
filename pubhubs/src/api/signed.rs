@@ -57,6 +57,25 @@ impl<T> Signed<T> {
             return Err(OpenError::InternalError);
         }
 
+        let check_constellation = |mut claims| -> std::result::Result<jwt::Claims, OpenError> {
+            if !T::CONSTELLATION_BOUND {
+                return Ok(claims);
+            }
+
+            let Ok(Some(constellation_claim)) =
+                claims.extract::<ConstellationClaim>(CONSTELLATION_CLAIM)
+            else {
+                return Err(OpenError::OtherwiseInvalid);
+            };
+
+            let ccr = constellation_claim.compare(constellation.unwrap());
+            if ccr.are_equal() {
+                return Ok(claims);
+            }
+
+            Err(OpenError::OtherConstellation(ccr))
+        };
+
         let claims: jwt::Claims = self.inner.open(key).map_err(|err| {
             log::debug!(
                 "could not open signed message (of type {}): {}",
@@ -71,23 +90,15 @@ impl<T> Signed<T> {
                 | jwt::Error::MissingDot
                 | jwt::Error::InvalidBase64(_)
                 | jwt::Error::UnexpectedAlgorithm { .. } => OpenError::OtherwiseInvalid,
-                jwt::Error::InvalidSignature { mut claims, .. } => {
-                    if !T::CONSTELLATION_BOUND {
-                        return OpenError::InvalidSignature;
+                jwt::Error::InvalidSignature { claims, .. } => {
+                    match check_constellation(claims) {
+                        Ok(..) => {
+                            // constellations coincide, so the invalid signature cannot be
+                            // blamed on diverging constellations
+                            OpenError::InvalidSignature
+                        }
+                        Err(err) => err,
                     }
-
-                    let Ok(Some(constellation_claim)) =
-                        claims.extract::<ConstellationClaim>(CONSTELLATION_CLAIM)
-                    else {
-                        return OpenError::OtherwiseInvalid;
-                    };
-
-                    let ccr = constellation_claim.compare(constellation.unwrap());
-                    if ccr.are_equal() {
-                        return OpenError::InvalidSignature;
-                    }
-
-                    OpenError::OtherConstellation(ccr)
                 }
                 _ => {
                     log::error!("unexpected error opening signed message: {err}");
@@ -95,6 +106,8 @@ impl<T> Signed<T> {
                 }
             }
         })?;
+
+        let claims = check_constellation(claims)?;
 
         // check that the message code is correct
         let claims = claims
