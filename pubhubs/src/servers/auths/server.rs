@@ -353,7 +353,7 @@ impl App {
                 .attr
                 .open(&running_state.attr_signing_key, None) // TODO: constellation 
                 {
-                    Err(api::OpenError::OtherConstellation)
+                    Err(api::OpenError::OtherConstellation(..))
                             | Err(api::OpenError::InvalidSignature)
                             | Err(api::OpenError::Expired) => {
                         return Ok(api::auths::AttrKeysResp::RetryWithNewAttr(handle));

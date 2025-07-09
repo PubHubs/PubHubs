@@ -11,7 +11,7 @@ use crate::handle;
 use crate::hub;
 use crate::id::Id;
 use crate::misc::crypto;
-use crate::misc::error::{OPAQUE, Opaque};
+use crate::misc::error::{Opaque, OPAQUE};
 use crate::misc::jwt;
 
 use actix_web::web;
@@ -70,7 +70,7 @@ impl App {
         let identifying_attr = app.id_attr(
             match identifying_attr.open(&running_state.attr_signing_key, None) {
                 Ok(identifying_attr) => identifying_attr,
-                Err(OpenError::OtherConstellation) | Err(OpenError::InternalError) => {
+                Err(OpenError::OtherConstellation(..)) | Err(OpenError::InternalError) => {
                     return Err(api::ErrorCode::InternalError);
                 }
                 Err(OpenError::OtherwiseInvalid) => {
@@ -100,7 +100,7 @@ impl App {
                 let ided_attr =
                     app.id_attr(match add_attr.open(&running_state.attr_signing_key, None) {
                         Ok(attr) => attr,
-                        Err(OpenError::OtherConstellation) | Err(OpenError::InternalError) => {
+                        Err(OpenError::OtherConstellation(..)) | Err(OpenError::InternalError) => {
                             return Err(api::ErrorCode::InternalError);
                         }
                         Err(OpenError::OtherwiseInvalid) => {
@@ -264,20 +264,16 @@ impl App {
                     );
                 })?
             {
-                assert!(
-                    attr_states
-                        .insert(
-                            identifying_attr.id,
-                            (identifying_attr_state, identifying_attr_state_version),
-                        )
-                        .is_none()
-                );
+                assert!(attr_states
+                    .insert(
+                        identifying_attr.id,
+                        (identifying_attr_state, identifying_attr_state_version),
+                    )
+                    .is_none());
 
-                assert!(
-                    attr_add_status
-                        .insert(identifying_attr.id, AttrAddStatus::Added)
-                        .is_none()
-                );
+                assert!(attr_add_status
+                    .insert(identifying_attr.id, AttrAddStatus::Added)
+                    .is_none());
             } else {
                 log::warn!(
                     "possibly orphaned user account {} because identifying \
@@ -309,23 +305,17 @@ impl App {
 
             match app.put_object::<AttrState>(&attr_state, None).await {
                 Ok(Some(attr_state_version)) => {
-                    assert!(
-                        attr_states
-                            .insert(attr.id, (attr_state, attr_state_version))
-                            .is_none()
-                    );
-                    assert!(
-                        attr_add_status
-                            .insert(attr.id, AttrAddStatus::Added)
-                            .is_none()
-                    );
+                    assert!(attr_states
+                        .insert(attr.id, (attr_state, attr_state_version))
+                        .is_none());
+                    assert!(attr_add_status
+                        .insert(attr.id, AttrAddStatus::Added)
+                        .is_none());
                 }
                 _ => {
-                    assert!(
-                        attr_add_status
-                            .insert(attr.id, AttrAddStatus::PleaseTryAgain)
-                            .is_none()
-                    );
+                    assert!(attr_add_status
+                        .insert(attr.id, AttrAddStatus::PleaseTryAgain)
+                        .is_none());
                 }
             }
         }
@@ -351,23 +341,17 @@ impl App {
                 .await
             {
                 Ok(Some(attr_state_version)) => {
-                    assert!(
-                        attr_states
-                            .insert(attr.id, (attr_state.clone(), attr_state_version))
-                            .is_none()
-                    );
-                    assert!(
-                        attr_add_status
-                            .insert(attr.id, AttrAddStatus::Added)
-                            .is_none()
-                    );
+                    assert!(attr_states
+                        .insert(attr.id, (attr_state.clone(), attr_state_version))
+                        .is_none());
+                    assert!(attr_add_status
+                        .insert(attr.id, AttrAddStatus::Added)
+                        .is_none());
                 }
                 _ => {
-                    assert!(
-                        attr_add_status
-                            .insert(attr.id, AttrAddStatus::PleaseTryAgain)
-                            .is_none()
-                    );
+                    assert!(attr_add_status
+                        .insert(attr.id, AttrAddStatus::PleaseTryAgain)
+                        .is_none());
                 }
             }
         }

@@ -122,8 +122,8 @@ impl App {
                     return Ok(api::phct::hub::KeyResp::RetryWithNewTicket)
                 }
                 TicketOpenError::Ticket(OpenError::InternalError)
-                | TicketOpenError::Ticket(OpenError::OtherConstellation)
-                | TicketOpenError::Signed(OpenError::OtherConstellation)
+                | TicketOpenError::Ticket(OpenError::OtherConstellation(..))
+                | TicketOpenError::Signed(OpenError::OtherConstellation(..))
                 | TicketOpenError::Signed(OpenError::InternalError) => {
                     return Err(api::ErrorCode::InternalError)
                 }

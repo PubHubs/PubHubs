@@ -643,7 +643,7 @@ impl<S: Server> AppBase<S> {
 
         let req = match signed_req.open(&*app.admin_key, None) {
             Ok(req) => req,
-            Err(OpenError::OtherConstellation) | Err(OpenError::InternalError) => {
+            Err(OpenError::OtherConstellation(..)) | Err(OpenError::InternalError) => {
                 return Err(api::ErrorCode::InternalError)
             }
             Err(OpenError::OtherwiseInvalid) => return Err(api::ErrorCode::BadRequest),
@@ -736,7 +736,7 @@ impl<S: Server> AppBase<S> {
 
         let _req = match signed_req.open(&*app.admin_key, None) {
             Ok(req) => req,
-            Err(OpenError::OtherConstellation) | Err(OpenError::InternalError) => {
+            Err(OpenError::OtherConstellation(..)) | Err(OpenError::InternalError) => {
                 return Err(api::ErrorCode::InternalError)
             }
             Err(OpenError::OtherwiseInvalid) => return Err(api::ErrorCode::BadRequest),

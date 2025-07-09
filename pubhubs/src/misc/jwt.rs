@@ -94,6 +94,21 @@ impl Claims {
         Ok(self)
     }
 
+    /// Returns the contents of claim with `name`, if it exists, enabling manual checking.
+    pub fn extract<V: DeserializeOwned>(&mut self, name: &'static str) -> Result<Option<V>, Error> {
+        let Some(json_value) = self.inner.remove(name) else {
+            return Ok(None);
+        };
+
+        let deserialized_value =
+            V::deserialize(json_value).map_err(|err| Error::DeserializingClaim {
+                claim_name: name,
+                source: err,
+            })?;
+
+        Ok(Some(deserialized_value))
+    }
+
     /// Removes named claim from this set, if present, effectively ignoring it.
     pub fn ignore(mut self, name: &'static str) -> Self {
         self.inner.remove(name);

@@ -25,7 +25,7 @@ impl App {
                 log::debug!("received invalid ticket request: {oe}");
 
                 match oe {
-                    OpenError::OtherConstellation
+                    OpenError::OtherConstellation(..)
                     | OpenError::InternalError
                     | OpenError::InvalidSignature => api::ErrorCode::InternalError,
                     OpenError::OtherwiseInvalid | OpenError::Expired => api::ErrorCode::BadRequest,
@@ -50,7 +50,7 @@ impl App {
             );
 
             match oe {
-                OpenError::OtherConstellation | OpenError::InternalError => {
+                OpenError::OtherConstellation(..) | OpenError::InternalError => {
                     api::ErrorCode::InternalError
                 }
                 OpenError::OtherwiseInvalid | OpenError::Expired | OpenError::InvalidSignature => {
@@ -88,8 +88,8 @@ impl App {
                     return Ok(api::phct::hub::KeyResp::RetryWithNewTicket)
                 }
                 TicketOpenError::Ticket(OpenError::InternalError)
-                | TicketOpenError::Ticket(OpenError::OtherConstellation)
-                | TicketOpenError::Signed(OpenError::OtherConstellation)
+                | TicketOpenError::Ticket(OpenError::OtherConstellation(..))
+                | TicketOpenError::Signed(OpenError::OtherConstellation(..))
                 | TicketOpenError::Signed(OpenError::InternalError) => {
                     return Err(api::ErrorCode::InternalError)
                 }
