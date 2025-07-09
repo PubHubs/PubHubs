@@ -375,6 +375,11 @@ pub mod user {
 
         const METHOD: http::Method = http::Method::GET;
         const PATH: &'static str = ".ph/user/obj/by-hash/{hash}/{hmac}";
+
+        /// Responses should be cached indefinitely
+        fn immutable_response() -> bool {
+            true
+        }
     }
 
     /// Returned by [`GetObjectEP`] when there's a problem.  When there's no problem an octet
