@@ -120,7 +120,7 @@ indexmap = { version = "2.7", features = [ "serde" ], optional = true }
 
 # Database interaction
 rand = { version = "0.9", optional = true } 
-rusqlite = { version = "0.36", features = ["bundled"], optional = true }
+rusqlite = { version = "0.37", features = ["bundled"], optional = true }
 # note: object_store is used by crates.io
 object_store = { version = "0.12", optional = true } 
 
