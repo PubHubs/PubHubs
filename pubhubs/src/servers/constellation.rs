@@ -23,7 +23,14 @@ use crate::servers;
 /// [`inner`]: Constellation::inner
 #[derive(Clone, Debug, serde::Serialize, serde::Deserialize)]
 pub struct Constellation {
+    /// Identifier for this constellation derived from [`Inner`] using a hash.
     pub id: id::Id,
+
+    /// When this constellation was first created by pubhubs central.  When two parties
+    /// have different constellations, the party with the oldest constellation should
+    /// update.
+    pub created_at: api::NumericDate,
+
     #[serde(flatten)]
     pub inner: Inner,
 }

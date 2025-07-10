@@ -17,8 +17,8 @@ use rsa::{
     traits::PublicKeyParts as _,
 };
 use serde::{
-    Deserialize, Deserializer, Serialize,
     de::{DeserializeOwned, Visitor},
+    Deserialize, Deserializer, Serialize,
 };
 
 use crate::misc::time_ext;
@@ -92,6 +92,21 @@ impl Claims {
         }
 
         Ok(self)
+    }
+
+    /// Returns the contents of claim with `name`, if it exists, enabling manual checking.
+    pub fn extract<V: DeserializeOwned>(&mut self, name: &'static str) -> Result<Option<V>, Error> {
+        let Some(json_value) = self.inner.remove(name) else {
+            return Ok(None);
+        };
+
+        let deserialized_value =
+            V::deserialize(json_value).map_err(|err| Error::DeserializingClaim {
+                claim_name: name,
+                source: err,
+            })?;
+
+        Ok(Some(deserialized_value))
     }
 
     /// Removes named claim from this set, if present, effectively ignoring it.
@@ -469,6 +484,12 @@ impl JWT {
 
     pub fn as_str(&self) -> &str {
         &self.inner
+    }
+}
+
+impl fmt::Display for JWT {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(f, "{}", self.inner)
     }
 }
 
@@ -972,14 +993,12 @@ mod tests {
 
         let claims = jwt.open(&key).unwrap();
 
-        assert!(
-            claims
-                .clone()
-                .into_custom::<serde_json::Value>()
-                .unwrap_err()
-                .to_string()
-                .starts_with("expired at 2011-03-22T18:43:00Z (")
-        );
+        assert!(claims
+            .clone()
+            .into_custom::<serde_json::Value>()
+            .unwrap_err()
+            .to_string()
+            .starts_with("expired at 2011-03-22T18:43:00Z ("));
 
         assert_eq!(
             &claims

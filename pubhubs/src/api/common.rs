@@ -2,8 +2,8 @@ use std::rc::Rc;
 use std::str::FromStr as _;
 
 use serde::{
-    Deserialize, Serialize,
     de::{DeserializeOwned, IntoDeserializer as _},
+    Deserialize, Serialize,
 };
 
 use anyhow::Context as _;
@@ -164,15 +164,6 @@ pub enum ErrorCode {
 
     #[error("something is wrong with the request")]
     BadRequest,
-
-    #[error("a signature could not be verified")]
-    InvalidSignature,
-
-    #[error("invalid admin key")]
-    InvalidAdminKey,
-
-    #[error("expired data")]
-    Expired,
 }
 use ErrorCode::*;
 
@@ -190,13 +181,12 @@ impl ErrorCode {
     /// Returns additional information about this error code.
     pub fn info(&self) -> ErrorInfo {
         match self {
-            InvalidSignature | InvalidAdminKey | Expired => ErrorInfo {
-                retryable: Some(false),
-            },
             PleaseRetry => ErrorInfo {
                 retryable: Some(true),
             },
-            InternalError | BadRequest => ErrorInfo { retryable: None },
+            InternalError | BadRequest => ErrorInfo {
+                retryable: Some(false),
+            },
         }
     }
 
@@ -269,8 +259,8 @@ impl<T> Payload<T> {
     ) -> anyhow::Result<Payload<T>>
     where
         S: futures::stream::Stream<
-                Item = std::result::Result<bytes::Bytes, awc::error::PayloadError>,
-            >,
+            Item = std::result::Result<bytes::Bytes, awc::error::PayloadError>,
+        >,
         T: DeserializeOwned,
     {
         let Some(content_type_hv) = resp.headers().get(http::header::CONTENT_TYPE) else {

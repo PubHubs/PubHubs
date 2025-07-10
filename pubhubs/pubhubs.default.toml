@@ -8,7 +8,7 @@
 # the "pubhubs.default.toml" file, but we might change this in the future.
 #
 # For a quick explanation of the TOML file format, see see https://toml.io
-phc_url = 'http://networkhost:8080'
+phc_url = 'http://networkhost:5050'
 
 [host_aliases]
 networkhost.source_ip_for = "udp://k.root-servers.net:53"
@@ -76,7 +76,7 @@ url = "memory:///"
 handles = ['testhub', 'testhub_alias']
 name = "Testhub"
 description = '''This is the default testhub for local development'''
-url = 'http://localhost:1234/_synapse/client/'
+url = 'http://localhost:8008/_synapse/client/'
 # NOTE: To generate a new `id`, use `cargo run tools generate id`
 id = 'i9RSgnZ44MMBdcJHX2GqDRNaOt_v63XOMekOmhLHvzg'
 

@@ -1,4 +1,4 @@
-//! [Clap](clap) structs for command line argument parsing
+//! [`Clap`](clap) structs for command line argument parsing
 
 mod common;
 use common::*;
@@ -12,3 +12,5 @@ mod tools;
 pub use tools::ToolsArgs;
 mod admin;
 pub use admin::AdminArgs;
+mod enter;
+pub use enter::EnterArgs;

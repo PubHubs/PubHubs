@@ -4,8 +4,8 @@ use std::rc::Rc;
 use actix_web::web;
 
 use crate::api::ApiResultExt as _;
+use crate::api::OpenError;
 use crate::api::{self, NoPayload};
-use crate::handle;
 use crate::phcrypto;
 
 use super::server::*;
@@ -18,7 +18,19 @@ impl App {
     ) -> api::Result<TicketResp> {
         let signed_req = signed_req.into_inner();
 
-        let req = signed_req.clone().open_without_checking_signature()?;
+        let req = signed_req
+            .clone()
+            .open_without_checking_signature()
+            .map_err(|oe| {
+                log::debug!("received invalid ticket request: {oe}");
+
+                match oe {
+                    OpenError::OtherConstellation(..)
+                    | OpenError::InternalError
+                    | OpenError::InvalidSignature => api::ErrorCode::InternalError,
+                    OpenError::OtherwiseInvalid | OpenError::Expired => api::ErrorCode::BadRequest,
+                }
+            })?;
 
         let Some(hub) = app.hubs.get(&req.handle) else {
             return Ok(TicketResp::UnknownHub);
@@ -26,19 +38,26 @@ impl App {
 
         let resp = app
             .client
-            .query::<api::hub::Info>(&hub.url, NoPayload)
+            .query::<api::hub::InfoEP>(&hub.url, NoPayload)
             .await
             .into_server_result()?;
 
         // check that the request indeed came from the hub
-        signed_req
-            .old_open(&*resp.verifying_key)
-            .inspect_err(|ec| {
-                log::warn!(
-                    "could not verify authenticity of hub ticket request for hub {}: {ec}",
-                    req.handle,
-                )
-            })?;
+        signed_req.open(&*resp.verifying_key, None).map_err(|oe| {
+            log::warn!(
+                "could not verify authenticity of hub ticket request for hub {}: {oe}",
+                req.handle,
+            );
+
+            match oe {
+                OpenError::OtherConstellation(..) | OpenError::InternalError => {
+                    api::ErrorCode::InternalError
+                }
+                OpenError::OtherwiseInvalid | OpenError::Expired | OpenError::InvalidSignature => {
+                    api::ErrorCode::BadRequest
+                }
+            }
+        })?;
 
         // if so, hand out ticket
         Ok(TicketResp::Success(api::Signed::new(
@@ -51,6 +70,7 @@ impl App {
         )?))
     }
 
+    /// Implements [`api::phct::hub::KeyEP`].
     pub(super) async fn handle_hub_key(
         app: Rc<Self>,
         signed_req: web::Json<TicketSigned<api::phct::hub::KeyReq>>,
@@ -61,8 +81,26 @@ impl App {
 
         let ticket_digest = phcrypto::TicketDigest::new(&ts_req.ticket);
 
-        let (_, _): (api::phct::hub::KeyReq, handle::Handle) =
-            ts_req.open(&app.jwt_key.verifying_key())?;
+        if let Err(toe) = ts_req.open(&app.jwt_key.verifying_key()) {
+            match toe {
+                TicketOpenError::Ticket(OpenError::InvalidSignature)
+                | TicketOpenError::Ticket(OpenError::Expired) => {
+                    return Ok(api::phct::hub::KeyResp::RetryWithNewTicket)
+                }
+                TicketOpenError::Ticket(OpenError::InternalError)
+                | TicketOpenError::Ticket(OpenError::OtherConstellation(..))
+                | TicketOpenError::Signed(OpenError::OtherConstellation(..))
+                | TicketOpenError::Signed(OpenError::InternalError) => {
+                    return Err(api::ErrorCode::InternalError)
+                }
+                TicketOpenError::Ticket(OpenError::OtherwiseInvalid)
+                | TicketOpenError::Signed(OpenError::OtherwiseInvalid)
+                | TicketOpenError::Signed(OpenError::InvalidSignature)
+                | TicketOpenError::Signed(OpenError::Expired) => {
+                    return Err(api::ErrorCode::BadRequest)
+                }
+            }
+        }
 
         // At this point we can be confident that the ticket is authentic, so we can give the hub
         // its decryption key based on the provided ticket
@@ -73,6 +111,6 @@ impl App {
             &app.master_enc_key_part,
         );
 
-        Ok(api::phct::hub::KeyResp { key_part })
+        Ok(api::phct::hub::KeyResp::Success { key_part })
     }
 }

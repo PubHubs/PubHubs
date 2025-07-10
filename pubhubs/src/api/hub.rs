@@ -5,8 +5,8 @@ use crate::api::*;
 use crate::misc::serde_ext::bytes_wrapper::B64UU;
 
 /// Basic information advertised by the hub
-pub struct Info {}
-impl EndpointDetails for Info {
+pub struct InfoEP {}
+impl EndpointDetails for InfoEP {
     type RequestType = NoPayload;
     type ResponseType = Result<InfoResp>;
 
@@ -16,6 +16,7 @@ impl EndpointDetails for Info {
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
 #[serde(deny_unknown_fields)]
+#[must_use]
 pub struct InfoResp {
     /// Key used by the hub to sign requests to the other hubs with
     pub verifying_key: VerifyingKey,
@@ -37,6 +38,7 @@ impl EndpointDetails for EnterStartEP {
 /// What's returned by [`EnterStartEP`].
 #[derive(Serialize, Deserialize, Debug, Clone)]
 #[serde(deny_unknown_fields)]
+#[must_use]
 pub struct EnterStartResp {
     /// Opaque state that needs to be send to the [`EnterCompleteEP`] later on
     pub state: EnterState,
@@ -46,17 +48,28 @@ pub struct EnterStartResp {
 }
 
 /// Type of [`EnterStartResp::state`]
-#[derive(Serialize, Deserialize, Debug, Clone)]
+#[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Eq)]
 #[serde(transparent)]
 pub struct EnterState {
     pub(crate) inner: B64UU,
 }
 
+impl From<B64UU> for EnterState {
+    fn from(inner: B64UU) -> Self {
+        Self { inner }
+    }
+}
+
 /// Type of [`EnterStartResp::nonce`]
-#[derive(Serialize, Deserialize, Debug, Clone)]
+#[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Eq)]
 #[serde(transparent)]
 pub struct EnterNonce {
     pub(crate) inner: B64UU,
+}
+impl From<B64UU> for EnterNonce {
+    fn from(inner: B64UU) -> Self {
+        Self { inner }
+    }
 }
 
 /// Endpoint to complete user authentication
@@ -84,11 +97,19 @@ pub struct EnterCompleteReq {
 /// What's returned by [`EnterCompleteEP`].
 #[derive(Serialize, Deserialize, Debug, Clone)]
 #[serde(deny_unknown_fields)]
+#[must_use]
 pub enum EnterCompleteResp {
     /// Start again at [`EnterStartEP`]
     RetryFromStart,
 
     Entered {
-        // TODO: probably include some access token here
+        /// Synapse access token
+        access_token: String,
+
+        /// Device ID.  (Not sure if it's useful to the global client, though.)
+        device_id: String,
+
+        /// True if this is the first time this user enters this hub.
+        new_user: bool,
     },
 }

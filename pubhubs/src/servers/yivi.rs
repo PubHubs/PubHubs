@@ -3,9 +3,10 @@ use std::cell::OnceCell;
 
 use anyhow::Context as _;
 use serde::{
-    self, Deserialize as _, Serialize as _,
+    self,
     de::{Error as _, IntoDeserializer as _},
     ser::Error as _,
+    Deserialize as _, Serialize as _,
 };
 
 use crate::misc::jwt;
@@ -671,7 +672,7 @@ pub enum AttributeProofStatus {
     Null,
 }
 
-/// Session type
+/// Session type (a.k.a. 'Actions')
 ///
 /// <https://github.com/privacybydesign/irmago/blob/b1c38f4f2c9da3d3f39b5c21a330bcbd04143f41/messages.go#L227>
 #[derive(serde::Serialize, serde::Deserialize, Debug, PartialEq, Eq, Clone, Copy)]

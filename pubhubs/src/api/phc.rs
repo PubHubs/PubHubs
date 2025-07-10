@@ -18,7 +18,9 @@ pub mod hub {
 
     /// Used by a hub to request a ticket (see [`TicketContent`]) from PubHubs Central.
     /// The request must be signed for the `verifying_key` advertised by the hub info endoint
-    /// (see hub::Info).
+    /// (see [`crate::api::hub::InfoEP`]).
+    ///
+    /// If the signature cannot be verified, [`ErrorCode::BadRequest`] is returned.
     pub struct TicketEP {}
     impl EndpointDetails for TicketEP {
         type RequestType = Signed<TicketReq>;
@@ -39,6 +41,7 @@ pub mod hub {
     /// What [`TicketEP`] returns
     #[derive(Serialize, Deserialize, Debug, Clone)]
     #[serde(deny_unknown_fields)]
+    #[must_use]
     pub enum TicketResp {
         Success(Ticket),
 
@@ -70,20 +73,39 @@ pub mod hub {
     impl<T> TicketSigned<T> {
         /// Opens this [`TicketSigned`], checking the signature on `signed` using the verifying key in
         /// the provided `ticket`, and checking the `ticket` using `key`.
-        pub fn open(self, key: &ed25519_dalek::VerifyingKey) -> Result<(T, crate::handle::Handle)>
+        pub fn open(
+            self,
+            key: &ed25519_dalek::VerifyingKey,
+        ) -> std::result::Result<(T, crate::handle::Handle), TicketOpenError>
         where
             T: Signable,
         {
-            let ticket_content: TicketContent = self.ticket.old_open(key)?;
+            let ticket_content: TicketContent = self
+                .ticket
+                .open(key, None)
+                .map_err(TicketOpenError::Ticket)?;
 
-            let msg: T = self.signed.old_open(&*ticket_content.verifying_key)?;
+            let msg: T = self
+                .signed
+                .open(&*ticket_content.verifying_key, None)
+                .map_err(TicketOpenError::Signed)?;
 
-            Result::Ok((msg, ticket_content.handle))
+            Ok((msg, ticket_content.handle))
         }
 
         pub fn new(ticket: Ticket, signed: Signed<T>) -> Self {
             Self { ticket, signed }
         }
+    }
+
+    /// Error returned by [`TicketSigned::open`].
+    #[derive(thiserror::Error, Debug)]
+    pub enum TicketOpenError {
+        #[error("ticket is invalid")]
+        Ticket(#[source] OpenError),
+
+        #[error("ticket is valid, but not the signature made using it")]
+        Signed(#[source] OpenError),
     }
 }
 
@@ -150,6 +172,7 @@ pub mod user {
     #[derive(Serialize, Deserialize, Debug, Clone)]
     #[serde(deny_unknown_fields)]
     #[serde(rename = "snake_case")]
+    #[must_use]
     pub enum EnterResp {
         /// Happens only in [`EnterMode::Login`]
         AccountDoesNotExist,
@@ -166,6 +189,19 @@ pub mod user {
 
         /// Cannot register an account with these attributes:  no bannable attribute provided.
         NoBannableAttribute,
+
+        /// Signature on identifying attribute is invalid or expired; please reobtain the
+        /// identifying attribute and retry.  If this fails even with a fresh attribute something
+        /// is wrong with the server.
+        RetryWithNewIdentifyingAttr,
+
+        /// Signature on [`EnterReq::add_attrs`]  attribute is invalid or expired; please reobtain the
+        /// attribute and retry.  If this fails even with a fresh attribute something
+        /// is wrong with the server.
+        RetryWithNewAddAttr {
+            /// `add_attrs[index]` is the offending attribute
+            index: usize,
+        },
 
         /// The given identifying attribute (now) grants access to a pubhubs account.
         Entered {
@@ -231,6 +267,23 @@ pub mod user {
         pub(crate) inner: B64UU,
     }
 
+    impl std::fmt::Display for AuthToken {
+        fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+            write!(f, "{}", self.inner)
+        }
+    }
+
+    /// So [`AuthToken`] can be used as the value of a [`clap`] flag.
+    impl std::str::FromStr for AuthToken {
+        type Err = <B64UU as std::str::FromStr>::Err;
+
+        fn from_str(s: &str) -> std::result::Result<Self, Self::Err> {
+            Ok(Self {
+                inner: B64UU::from_str(s)?,
+            })
+        }
+    }
+
     impl header::TryIntoHeaderValue for AuthToken {
         type Error = std::convert::Infallible;
 
@@ -269,6 +322,7 @@ pub mod user {
     #[derive(Serialize, Deserialize, Debug, Clone)]
     #[serde(deny_unknown_fields)]
     #[serde(rename = "snake_case")]
+    #[must_use]
     pub enum StateResp {
         /// The auth provided is expired or otherwise invalid.  Obtain a new one and retry.
         RetryWithNewAuthToken,
@@ -321,6 +375,11 @@ pub mod user {
 
         const METHOD: http::Method = http::Method::GET;
         const PATH: &'static str = ".ph/user/obj/by-hash/{hash}/{hmac}";
+
+        /// Responses should be cached indefinitely
+        fn immutable_response() -> bool {
+            true
+        }
     }
 
     /// Returned by [`GetObjectEP`] when there's a problem.  When there's no problem an octet
@@ -328,6 +387,7 @@ pub mod user {
     #[derive(Serialize, Deserialize, Debug, Clone)]
     #[serde(deny_unknown_fields)]
     #[serde(rename = "snake_case")]
+    #[must_use]
     pub enum GetObjectResp {
         /// The `hmac` you sent is invalid, probably because it is outdated.
         ///
@@ -364,6 +424,7 @@ pub mod user {
     #[derive(Serialize, Deserialize, Debug, Clone)]
     #[serde(deny_unknown_fields)]
     #[serde(rename = "snake_case")]
+    #[must_use]
     pub enum StoreObjectResp {
         /// Please retry the same request again.  This may happen when another call changed the
         /// user's state. The purpose of letting the client make the same call again (instead of
@@ -452,6 +513,7 @@ pub mod user {
     #[derive(Serialize, Deserialize, Debug, Clone)]
     #[serde(deny_unknown_fields)]
     #[serde(rename = "snake_case")]
+    #[must_use]
     pub enum PppResp {
         /// The auth provided is expired or otherwise invalid.  Obtain a new one and retry.
         RetryWithNewAuthToken,
@@ -468,7 +530,7 @@ pub mod user {
         pub(crate) inner: B64UU,
     }
 
-    /// Requests an [`sso::HashedHubPseudonymPackage`].
+    /// Requests an [`sso::HashedHubPseudonymPackage`].  Requires authentication.
     pub struct HhppEP {}
     impl EndpointDetails for HhppEP {
         type RequestType = HhppReq;
@@ -491,7 +553,15 @@ pub mod user {
     #[derive(Serialize, Deserialize, Debug, Clone)]
     #[serde(deny_unknown_fields)]
     #[serde(rename = "snake_case")]
+    #[must_use]
     pub enum HhppResp {
+        /// There's something wrong with the [`sso::EncryptedHubPseudonymPackage`].
+        /// You probably want to start at [`PppEP`] again.
+        RetryWithNewPpp,
+
+        /// The auth provided is expired or otherwise invalid.  Obtain a new one and retry.
+        RetryWithNewAuthToken,
+
         /// The requested hashed hub pseudonym package (HHPP).  
         Success(Signed<sso::HashedHubPseudonymPackage>),
     }

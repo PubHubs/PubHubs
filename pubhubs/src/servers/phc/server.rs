@@ -11,7 +11,7 @@ use crate::common::secret::DigestibleSecret as _;
 use crate::misc::crypto;
 use crate::misc::jwt;
 use crate::phcrypto;
-use crate::servers::{self, AppBase, AppCreatorBase, Constellation, Handle, constellation};
+use crate::servers::{self, constellation, AppBase, AppCreatorBase, Constellation, Handle};
 
 use crate::{elgamal, hub};
 
@@ -87,7 +87,7 @@ pub struct ExtraRunningState {
 impl crate::servers::App<Server> for App {
     fn configure_actix_app(self: &Rc<Self>, sc: &mut web::ServiceConfig) {
         api::phc::hub::TicketEP::add_to(self, sc, App::handle_hub_ticket);
-        api::phct::hub::Key::add_to(self, sc, App::handle_hub_key);
+        api::phct::hub::KeyEP::add_to(self, sc, App::handle_hub_key);
 
         api::phc::user::WelcomeEP::caching_add_to(self, sc, App::cached_handle_user_welcome);
         api::phc::user::EnterEP::add_to(self, sc, App::handle_user_enter);
@@ -98,6 +98,7 @@ impl crate::servers::App<Server> for App {
         api::phc::user::GetObjectEP::add_to(self, sc, App::handle_user_get_object);
 
         api::phc::user::PppEP::add_to(self, sc, App::handle_user_ppp);
+        api::phc::user::HhppEP::add_to(self, sc, App::handle_user_hhpp);
     }
 
     fn check_constellation(&self, _constellation: &Constellation) -> bool {
@@ -154,6 +155,7 @@ impl crate::servers::App<Server> for App {
 
             return Ok(Some(Constellation {
                 id: new_constellation_id,
+                created_at: api::NumericDate::now(),
                 inner: new_constellation_inner,
             }));
         }

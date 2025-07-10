@@ -11,6 +11,7 @@ use crate::elgamal;
 
 use crate::client;
 
+use crate::api::OpenError;
 use crate::api::{
     self, ApiResultExt as _, DiscoveryRunResp, EndpointDetails, NoPayload, ResultExt as _,
 };
@@ -64,7 +65,9 @@ pub(crate) trait Server: DerefMut<Target = Self::AppCreatorT> + Sized + 'static 
     /// Returns the default TCP port this server binds to.
     fn default_port() -> u16 {
         match Self::NAME {
-            Name::PubhubsCentral => 8080,
+            // we've changed phc's port to from 8080 to 5050
+            // so that the old and new phc can be run simultaneously.
+            Name::PubhubsCentral => 5050,
             Name::Transcryptor => 7070,
             Name::AuthenticationServer => 6060,
         }
@@ -286,8 +289,11 @@ pub(crate) trait Modifier<ServerT: Server>: Send + 'static {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> Result<(), std::fmt::Error>;
 }
 
-impl<S: Server, F: FnOnce(&mut S) -> bool + Send + 'static, D: std::fmt::Display + Send + 'static>
-    Modifier<S> for (F, D)
+impl<
+        S: Server,
+        F: FnOnce(&mut S) -> bool + Send + 'static,
+        D: std::fmt::Display + Send + 'static,
+    > Modifier<S> for (F, D)
 {
     fn modify(self: Box<Self>, server: &mut S) -> bool {
         self.0(server)
@@ -420,11 +426,17 @@ pub trait App<S: Server>: Deref<Target = AppBase<S>> + 'static {
                     server_name = S::NAME,
                     phc = Name::PubhubsCentral
                 );
+
                 // PHC's discovery is out of date; invoke discovery and return
-                self.client
+                let _drr = self
+                    .client
                     .query::<api::DiscoveryRun>(&phc_inf.phc_url, NoPayload)
                     .await
                     .into_server_result()?;
+
+                // We don't do anything with _drr: whether or not PHC has been updated in the
+                // meantime, we want to start discovery again from the start.
+
                 return Err(api::ErrorCode::PleaseRetry);
             }
 
@@ -469,7 +481,7 @@ pub trait App<S: Server>: Deref<Target = AppBase<S>> + 'static {
             .await
             .into_server_result()?;
 
-        client::discovery::DiscoveryInfoCheck {
+        let _di_again = client::discovery::DiscoveryInfoCheck {
             name: S::NAME,
             phc_url: &self.phc_url,
             self_check_code: Some(&self.self_check_code),
@@ -618,18 +630,8 @@ impl<S: Server> AppBase<S> {
         api::DiscoveryRun::add_to(app, sc, Self::handle_discovery_run);
         api::DiscoveryInfo::caching_add_to(app, sc, Self::cached_handle_discovery_info);
 
-        api::admin::UpdateConfig::add_to(app, sc, Self::handle_admin_post_config);
-        api::admin::Info::add_to(app, sc, Self::handle_admin_info);
-    }
-
-    /// Checks the signature on the given request that should be signed with the admin key.
-    fn open_admin_req<T: api::Signable>(&self, signed_req: api::Signed<T>) -> api::Result<T> {
-        signed_req
-            .old_open(&*self.admin_key)
-            .map_err(|err| match err {
-                api::ErrorCode::InvalidSignature => api::ErrorCode::InvalidAdminKey,
-                err => err,
-            })
+        api::admin::UpdateConfigEP::add_to(app, sc, Self::handle_admin_post_config);
+        api::admin::InfoEP::add_to(app, sc, Self::handle_admin_info);
     }
 
     /// Changes server config, and restarts server
@@ -639,7 +641,17 @@ impl<S: Server> AppBase<S> {
     ) -> api::Result<api::admin::UpdateConfigResp> {
         let signed_req = signed_req.into_inner();
 
-        let req = app.open_admin_req(signed_req)?;
+        let req = match signed_req.open(&*app.admin_key, None) {
+            Ok(req) => req,
+            Err(OpenError::OtherConstellation(..)) | Err(OpenError::InternalError) => {
+                return Err(api::ErrorCode::InternalError)
+            }
+            Err(OpenError::OtherwiseInvalid) => return Err(api::ErrorCode::BadRequest),
+            Err(OpenError::Expired) => return Ok(api::admin::UpdateConfigResp::ResignRequest),
+            Err(OpenError::InvalidSignature) => {
+                return Ok(api::admin::UpdateConfigResp::InvalidAdminKey)
+            }
+        };
 
         // Before restarting the server, check that the modification would work,
         // so we can return an error to the requestor.  Once we issue a modification command
@@ -712,7 +724,7 @@ impl<S: Server> AppBase<S> {
             api::ErrorCode::PleaseRetry
         })?;
 
-        Ok(api::admin::UpdateConfigResp {})
+        Ok(api::admin::UpdateConfigResp::Success)
     }
 
     /// Retrieve non-public information about the server
@@ -722,7 +734,15 @@ impl<S: Server> AppBase<S> {
     ) -> api::Result<api::admin::InfoResp> {
         let signed_req = signed_req.into_inner();
 
-        let _req = app.open_admin_req(signed_req)?;
+        let _req = match signed_req.open(&*app.admin_key, None) {
+            Ok(req) => req,
+            Err(OpenError::OtherConstellation(..)) | Err(OpenError::InternalError) => {
+                return Err(api::ErrorCode::InternalError)
+            }
+            Err(OpenError::OtherwiseInvalid) => return Err(api::ErrorCode::BadRequest),
+            Err(OpenError::Expired) => return Ok(api::admin::InfoResp::ResignRequest),
+            Err(OpenError::InvalidSignature) => return Ok(api::admin::InfoResp::InvalidAdminKey),
+        };
 
         let config = app
             .handle
@@ -736,7 +756,9 @@ impl<S: Server> AppBase<S> {
                 api::ErrorCode::PleaseRetry // probably the server is restarting
             })?;
 
-        Ok(api::admin::InfoResp { config })
+        Ok(api::admin::InfoResp::Success {
+            config: Box::new(config),
+        })
     }
 
     /// Run the discovery process, and restarts server if necessary.  Returns when
