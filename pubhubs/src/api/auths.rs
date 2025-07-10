@@ -36,8 +36,6 @@ impl EndpointDetails for AuthStartEP {
 }
 
 /// Starts the process of obtaining attributes from the authentication server.
-///
-/// Results in `ErrorCode::UnknownAttributeType` if one of the attribute types is not known.
 #[derive(Serialize, Deserialize, Debug, Clone)]
 #[serde(deny_unknown_fields)]
 pub struct AuthStartReq {
@@ -48,15 +46,25 @@ pub struct AuthStartReq {
     pub attr_types: Vec<crate::handle::Handle>,
 }
 
+/// Response to [`AuthStartEP`]
 #[derive(Serialize, Deserialize, Debug, Clone)]
 #[serde(deny_unknown_fields)]
-pub struct AuthStartResp {
-    /// Task for the global client to satisfy the authentication server.
-    /// Depends on the requested attribute types
-    pub task: AuthTask,
+pub enum AuthStartResp {
+    /// Authentication process was started
+    Success {
+        /// Task for the global client to satisfy the authentication server.
+        /// Depends on the requested attribute types
+        task: AuthTask,
 
-    /// Opaque state that should be sent with the [`AuthCompleteReq`].
-    pub state: AuthState,
+        /// Opaque state that should be sent with the [`AuthCompleteReq`].
+        state: AuthState,
+    },
+
+    /// No attribute type known with this handle
+    UnknownAttrType(crate::handle::Handle),
+
+    /// The [`AuthStartReq::source`] is not available for the attribute type with this handle
+    SourceNotAvailableFor(crate::handle::Handle),
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
@@ -118,8 +126,17 @@ pub enum AuthProof {
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
 #[serde(deny_unknown_fields)]
-pub struct AuthCompleteResp {
-    pub attrs: HashMap<handle::Handle, Signed<Attr>>,
+pub enum AuthCompleteResp {
+    /// All went well
+    Success {
+        attrs: HashMap<handle::Handle, Signed<Attr>>,
+    },
+
+    /// Something went wrong;  please start again at [`AuthStartEP`].
+    ///
+    /// One reason is that the authentication server restarted and that the provided authenication
+    /// state is no longer valid.
+    PleaseRestartAuth,
 }
 
 /// Allows the global client to retrieve secrets tied to identifying [`Attr`]ibutes.

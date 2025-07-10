@@ -79,6 +79,7 @@ mod generate {
     }
 
     #[derive(clap::Args, Debug)]
+
     struct SigningKeyArgs {}
 
     impl SigningKeyArgs {
@@ -86,8 +87,8 @@ mod generate {
             let sk = crate::api::SigningKey::generate();
             let vk: crate::api::VerifyingKey = sk.verifying_key().into();
 
-            println!("  signing key: {}", sk);
-            println!("verifying key: {}", vk);
+            println!("  signing key: {sk}");
+            println!("verifying key: {vk}");
 
             Ok(())
         }

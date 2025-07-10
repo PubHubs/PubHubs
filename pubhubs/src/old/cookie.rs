@@ -28,7 +28,7 @@ fn session_cookie_content(user_id: String, cookie_secret: &str) -> Result<String
     let mut mac = HmacSha256::new_from_slice(cookie_secret.as_bytes())
         .context("creating MAC for PHAccount(.CrossSite) cookie")?;
 
-    let content = format!("{}.{}.{}", user_id, created, until);
+    let content = format!("{user_id}.{created}.{until}");
     mac.update(content.as_bytes());
     let result = mac.finalize();
     let signature = result;

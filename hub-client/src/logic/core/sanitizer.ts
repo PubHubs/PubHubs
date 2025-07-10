@@ -1,4 +1,4 @@
-const sanitize: any = require('sanitize-html');
+import sanitize from 'sanitize-html';
 
 const removeHtml = (html: string): string => {
 	const parsedHTML = new DOMParser().parseFromString(html, 'text/html');

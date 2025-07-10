@@ -3,10 +3,9 @@ use std::cell::OnceCell;
 
 use anyhow::Context as _;
 use serde::{
-    self,
+    self, Deserialize as _, Serialize as _,
     de::{Error as _, IntoDeserializer as _},
     ser::Error as _,
-    Deserialize as _, Serialize as _,
 };
 
 use crate::misc::jwt;
@@ -712,7 +711,7 @@ impl SessionType {
 
     /// Returns the `sub` value used for this session type in signed session result JWTs.
     fn to_result_sub(self) -> String {
-        format!("{}_result", self)
+        format!("{self}_result")
     }
 }
 

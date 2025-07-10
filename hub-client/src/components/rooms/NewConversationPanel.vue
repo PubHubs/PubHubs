@@ -34,9 +34,10 @@
 				<div v-if="groupProfile">
 					<span class="~text-label-small-min/label-small-max"> {{ t('others.select_group_name') }}</span>
 					<div class="flex items-center gap-2 rounded-lg bg-surface-low px-2 py-2">
-						<div class="h-12 w-12 rounded-full bg-surface-high py-1">
-							<Button color="" @click="fileInput!.click()">
-								<Icon type="image_add" />
+						<div class="h-10 w-10 cursor-pointer rounded-full bg-surface-high">
+							<AvatarCore v-if="avatarPreviewUrl" :img="avatarPreviewUrl" @click="fileInput!.click()"></AvatarCore>
+							<Button v-else color="" @click="fileInput!.click()">
+								<Icon type="image_add" class="-ml-[5px] mt-[2px]" />
 							</Button>
 						</div>
 						<input ref="fileInput" type="file" accept="image/*" class="hidden" @change="handleFileUpload" />
@@ -51,7 +52,7 @@
 					<div v-for="user in usersSelected" :key="user.userId" class="flex flex-col items-center">
 						<div class="relative">
 							<Icon type="close" size="sm" class="absolute bottom-0 right-0 cursor-pointer rounded-full bg-surface-subtle" @click.stop="removeUserFromSelection(user)" />
-							<Avatar :user="user" :override-avatar-url="user.avatarUrl"></Avatar>
+							<Avatar :userId="user.userId"></Avatar>
 						</div>
 						<span class="mt-1 w-16 truncate text-center text-sm">{{ user.displayName || user.userId }}</span>
 					</div>
@@ -72,11 +73,6 @@
 					@click="groupCreationDone(usersSelected)"
 					>{{ t('others.next') }}<Icon type="arrow-right"></Icon>
 				</Button>
-				<hr class="my-4 border-t border-white" />
-				<div v-if="avatarPreviewUrl && hideAvatarPreview" class="mx-auto flex items-center gap-2 rounded-lg bg-surface-low px-2 py-2">
-					<span>Preview</span>
-					<img data-testid="avatar" :src="avatarPreviewUrl" class="h-12 w-12 rounded-full" />
-				</div>
 			</div>
 
 			<div v-if="!groupProfile" class="flex-grow overflow-y-auto px-8 py-2">
@@ -86,7 +82,7 @@
 						<ul>
 							<li v-for="user in usersInLetter" :key="user.userId" class="flex cursor-pointer items-center gap-2 py-1 pl-4 hover:bg-surface-low" @click="groupPanel ? toggleUserSelection(user) : gotToPrivateRoom(user)">
 								<Icon v-if="groupPanel && selectedUsers.includes(user.userId)" type="check" size="xl"></Icon>
-								<Avatar v-else :user="user" :override-avatar-url="user.avatarUrl"></Avatar>
+								<Avatar v-else :userId="user.userId"></Avatar>
 								<div class="flex flex-col">
 									<span>{{ user.displayName || user.userId }}</span>
 									<span> {{ filters.extractPseudonym(user.userId) }}</span>
@@ -108,6 +104,7 @@
 
 	import Icon from '../elements/Icon.vue';
 	import Avatar from '../ui/Avatar.vue';
+	import AvatarCore from '../ui/AvatarCore.vue';
 	import Button from '../elements/Button.vue';
 
 	import { router } from '@/logic/core/router';

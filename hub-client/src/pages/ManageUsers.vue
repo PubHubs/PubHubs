@@ -1,6 +1,6 @@
 <template>
 	<!-- When user selects a user account, show UserInRoomsForm page-->
-	<UserInRoomsForm v-if="showUserInRoomForm" :administrator="currentAdministrator" :userId="selectedUserById" :displayName="selectedUserDisplayName" :avatarUrl="selectedUserAvatarUrl" @close="closeUserRoomForm()" />
+	<UserInRoomsForm v-if="showUserInRoomForm" :administrator="currentAdministrator" :userId="selectedUserById" :displayName="selectedUserDisplayName" @close="closeUserRoomForm()" />
 
 	<HeaderFooter bgBarLow="bg-background" bgBarMedium="bg-surface-low">
 		<template #header>
@@ -27,7 +27,7 @@
 				<template #item="{ item }">
 					<div class="box-border flex w-full justify-between gap-4 md:gap-8" :title="item.room_id">
 						<div class="flex min-w-0 flex-1 items-center gap-4">
-							<Avatar :user="item.name" :override-avatar-url="item.avatar_url" />
+							<Avatar :userId="item.name" />
 							<p class="min-w-0 truncate font-semibold">{{ item.displayname }}</p>
 							<p class="line-clamp-1 hidden min-w-0 pr-1 italic text-on-surface-dim md:inline">{{ item.name }}</p>
 							<RoomBadge :user="item.name" :room_id="item.room_id" :is-hub-admin="item.admin"></RoomBadge>
@@ -70,8 +70,6 @@
 
 	const showUserInRoomForm = ref(false);
 
-	const selectedUserAvatarUrl = ref<string>();
-
 	// This will not be null if we are routed to this page.
 	// See router.vue for manageUser page. It always has a valid admin object if user is an admin.
 	const currentAdministrator = user.administrator!;
@@ -91,8 +89,6 @@
 		selectedUserById.value = userId;
 
 		selectedUserDisplayName.value = displayName;
-
-		selectedUserAvatarUrl.value = avatarUrl;
 	}
 
 	//

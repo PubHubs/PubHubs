@@ -100,6 +100,52 @@
 	::-webkit-scrollbar-thumb {
 		@apply rounded-full bg-on-surface-dim;
 	}
+	.v-note-wrapper .v-note-show ol {
+		list-style-type: i !important;
+	}
+	.v-note-wrapper .v-note-show ul {
+		list-style-type: disc !important;
+	}
+	.v-note-wrapper .v-note-show ul ul {
+		list-style-type: circle !important;
+	}
+	.v-note-wrapper .v-note-show ul ul ul {
+		list-style-type: square !important;
+	}
+	.v-note-wrapper {
+		@apply !z-10;
+	}
+	.editor .v-note-wrapper .v-note-op {
+		@apply !bg-surface-high;
+	}
+	.editor .v-note-wrapper {
+		@apply relative !z-10 !max-h-[400px] !min-h-20 !resize-y overflow-y-auto;
+	}
+
+	.editor .v-note-wrapper .v-note-edit.divarea-wrapper .content-input-wrapper,
+	.editor .v-note-wrapper .v-note-edit.divarea-wrapper .content-input-wrapper .auto-textarea-wrapper,
+	.editor .v-note-wrapper .v-note-edit.divarea-wrapper .content-input-wrapper .auto-textarea-wrapper .auto-textarea-input {
+		@apply rounded-xl !border-none !bg-surface-low p-4 !pt-[15px] !font-body !text-base text-on-surface !~text-base-min/base-max;
+	}
+	.editor .v-note-wrapper .v-note-show,
+	.editor .v-note-wrapper .v-note-show .v-show-content {
+		@apply relative z-10 overflow-y-auto !rounded-none !bg-surface;
+	}
+	.v-note-wrapper,
+	.v-note-wrapper .v-note-panel,
+	.v-note-wrapper .v-note-show,
+	.v-note-wrapper .v-note-edit,
+	.v-note-wrapper .v-note-show .v-show-content,
+	.v-note-wrapper .v-note-show .v-show-content-html {
+		@apply !relative !min-h-20 overflow-y-auto rounded-xl !border-none !bg-surface-low font-body text-on-surface ~text-base-min/base-max;
+	}
+	.global-preview .v-note-wrapper,
+	.global-preview .v-note-wrapper .v-note-panel,
+	.global-preview .v-note-wrapper .v-note-show,
+	.global-preview .v-note-wrapper .v-note-edit,
+	.global-preview .v-note-wrapper .v-note-show .v-show-content {
+		background: none !important;
+	}
 }
 
 /* Fonts */
@@ -141,13 +187,13 @@
 
 /* Classes */
 @layer components {
-	.highlighted {
+	/* .highlighted {
 		@apply bg-surface-low transition duration-500 ease-out;
 	}
 
 	.unhighlighted {
 		@apply transition duration-500 ease-out;
-	}
+	} */
 
 	/* .message-mention {
 		@apply inline-block rounded-md bg-black px-1 text-white;

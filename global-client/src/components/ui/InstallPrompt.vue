@@ -7,8 +7,8 @@
 			</div>
 			<div class="flex items-center justify-between pr-12">
 				<div class="flex items-center">
-					<img alt="PubHubs icon" src="/client/img/icons/favicon_white.svg" class="mr-2 hidden h-10 w-10 dark:block" />
-					<img alt="PubHubs icon" src="/client/img/icons/favicon.svg" class="mr-2 h-10 w-10 dark:hidden" />
+					<img alt="PubHubs icon" :src="logoWhiteUrl" class="mr-2 hidden h-10 w-10 dark:block" />
+					<img alt="PubHubs icon" :src="logoUrl" class="mr-2 h-10 w-10 dark:hidden" />
 					<H1>PubHubs</H1>
 				</div>
 				<Button v-if="deferredPrompt" size="sm" class="rounded-3xl px-8" @click="clickInstall()">{{ $t('pwa.install') }}</Button>
@@ -83,6 +83,9 @@
 	import H3 from '../../../../hub-client/src/components/elements/H3.vue';
 	import Icon from '../../../../hub-client/src/components/elements/Icon.vue';
 	import InstallPromptInstruction from './InstallPromptInstruction.vue';
+
+	const logoWhiteUrl = '/client/img/icons/favicon_white.svg';
+	const logoUrl = '/client/img/icons/favicon.svg';
 
 	const installPromptStore = useInstallPromptStore();
 

@@ -39,12 +39,12 @@
 				><Icon type="pubhubs-home" /><span>{{ $t('menu.discover') }}</span></Button
 			>
 			<H3 v-if="hubDescription" class="p-4">{{ $t('home.heading') }}</H3>
-			<div v-if="hubDescription" class="w-11/12 min-w-64 rounded-2xl bg-surface-low">
-				<Pre class="whitespace-pre-line break-words p-4">{{ hubDescription }}</Pre>
+			<div v-if="hubDescription" class="max-w-full rounded-2xl bg-surface-low">
+				<mavon-editor defaultOpen="preview" :toolbarsFlag="false" :subfield="false" v-model="hubDescription" :boxShadow="false" />
 			</div>
 			<H3 v-if="hubContact" class="p-4">{{ $t('home.contact_details') }}</H3>
-			<div v-if="hubContact" class="w-4/12 min-w-64 rounded-2xl bg-surface-low">
-				<Pre class="whitespace-pre-line break-words p-4">{{ hubContact }}</Pre>
+			<div v-if="hubContact" class="max-w-full rounded-2xl bg-surface-low">
+				<mavon-editor defaultOpen="preview" :toolbarsFlag="false" :subfield="false" v-model="hubContact" :boxShadow="false" />
 			</div>
 			<Button v-if="!showPubHubsCentralLoginButton && !isTryOutHub()" class="md:~text-body-min/body-max mt-10 ~text-label-min/label-max" @click="goToLoginPage()">{{ $t('home.hub_homepage_join') }}</Button>
 			<Button v-if="!showPubHubsCentralLoginButton && isTryOutHub()" class="md:~text-body-min/body-max mt-10 ~text-label-min/label-max" @click="goToLoginPage()">Doe mee met de TryOutHub </Button>
@@ -62,7 +62,6 @@
 	import H1 from '../components/elements/H1.vue';
 	import HubIcon from '@/components/ui/HubIcon.vue';
 	import HubBanner from '@/components/ui/HubBanner.vue';
-	import Pre from '@/components/elements/Pre.vue';
 
 	const pubhubs = usePubHubs();
 	const hubSettings = useHubSettings();
@@ -72,8 +71,8 @@
 		showPubHubsCentralLoginButton: boolean;
 	};
 
-	const hubDescription = ref<string>('');
-	const hubContact = ref<string>('');
+	const hubDescription = ref<string>(hubSettings.hubDescription);
+	const hubContact = ref<string>(hubSettings.hubContact);
 
 	const props = defineProps<Props>();
 
@@ -101,3 +100,8 @@
 		hubContact.value = hubSettingsJSON?.contact ?? '';
 	}
 </script>
+<style scoped>
+	.v-note-wrapper {
+		position: relative;
+	}
+</style>

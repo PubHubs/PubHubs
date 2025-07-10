@@ -207,7 +207,7 @@ async fn main_integration_test_local(
     js.spawn(mock_hub.actix_server); // the actix server does not run itself
 
     // get a ticket for testhub
-    let ticket = client
+    let api::phc::hub::TicketResp::Success(ticket) = client
         .query_with_retry::<api::phc::hub::TicketEP, _, _>(
             config.phc_url.as_ref(),
             &api::Signed::<api::phc::hub::TicketReq>::new(
@@ -220,7 +220,10 @@ async fn main_integration_test_local(
             .unwrap(),
         )
         .await
-        .unwrap();
+        .unwrap()
+    else {
+        panic!()
+    };
 
     // check that the ticket is valid
     ticket
@@ -240,7 +243,10 @@ async fn main_integration_test_local(
         .unwrap();
 
     // request authentication as end-user
-    let asr = client
+    let api::auths::AuthStartResp::Success {
+        task: auth_task,
+        state: auth_state,
+    } = client
         .query_with_retry::<api::auths::AuthStartEP, _, _>(
             &constellation.auths_url,
             &api::auths::AuthStartReq {
@@ -249,9 +255,12 @@ async fn main_integration_test_local(
             },
         )
         .await
-        .unwrap();
+        .unwrap()
+    else {
+        panic!()
+    };
 
-    let jwt: jwt::JWT = match asr.task {
+    let jwt: jwt::JWT = match auth_task {
         api::auths::AuthTask::Yivi {
             disclosure_request,
             yivi_requestor_url,
@@ -298,21 +307,24 @@ async fn main_integration_test_local(
         .unwrap();
 
     // Now send the disclosure response to the authentication server to get some credentials
-    let acr = client
+    let api::auths::AuthCompleteResp::Success { attrs } = client
         .query_with_retry::<api::auths::AuthCompleteEP, _, _>(
             &constellation.auths_url,
             &api::auths::AuthCompleteReq {
-                state: asr.state,
+                state: auth_state,
                 proof: api::auths::AuthProof::Yivi {
                     disclosure: result_jwt,
                 },
             },
         )
         .await
-        .unwrap();
+        .unwrap()
+    else {
+        panic!()
+    };
 
-    let email = acr.attrs.get(&"email".parse().unwrap()).unwrap();
-    let phone = acr.attrs.get(&"phone".parse().unwrap()).unwrap();
+    let email = attrs.get(&"email".parse().unwrap()).unwrap();
+    let phone = attrs.get(&"phone".parse().unwrap()).unwrap();
 
     // Retrieve attribute key for email
     let Ok(api::auths::AttrKeysResp::Success(attr_keys)) = client

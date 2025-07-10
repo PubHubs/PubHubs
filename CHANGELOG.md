@@ -9,6 +9,16 @@ _Please add a brief description of any changes and any migrations to be performe
  * _[BREAKING] - If it is a breaking change that needs changes done on the deployment/installation/settings_
  * _(Use the [MIGRATE] and [BREAKING] prefixes together with another one if that makes more sense.)_
 
+## Changed not yet merged to stable
+
+## 10 July 2025 - v2.2.0
+
+- [UPDATE] Replaced vue.cli by Vite
+- [BUG] Avatars where not visible sometimes. Refactured Avatar system.
+- [NEW] Message can be added to a image or file in the chat
+- [NEW] Added a markdown editor for hub description, house rules, and contact information
+- [NEW] List of the members of a room can be shown now (button in header of the room)
+
 ## 12 June 2025 - v2.1.3
 
 - [BUG] The search bar in rooms now covers the entire width of the screen on mobile devices.
@@ -51,10 +61,10 @@ It will generate a checked and updated yaml file as homeserver.live.yaml as defa
 - [BUG] Files, signed messages and the list of users that shows up when mentioning a user have a background color again.
 - [BUG] The icon to change the avatar and nickname in a hub is changed back from a cog wheel to a pencil.
 - [NEW] Announcements can be made by steward (and room administrator) in rooms.
-- [NEW] For the hub a banner, description, summary and contact details can now be set in the hub settings. 
+- [NEW] For the hub a banner, description, summary and contact details can now be set in the hub settings.
 The summary and contact details are displayed on the discover hub page.
 The description and contact details are displayed in the hub homepage.
-- [NEW] Datepicker & Pollingwidget. Add a datepicker or poll in your room. Let members choose a date or option.  
+- [NEW] Datepicker & Pollingwidget. Add a datepicker or poll in your room. Let members choose a date or option.
 _NOTE TO MERGERS:_ The feature flag for voting widgets on stable is currently disabled. If everything works as expected, it needs to be enabled during the merge.
 
 ## 03 April 2025 - v2.0.2

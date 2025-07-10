@@ -24,9 +24,12 @@
 							</TruncatedText>
 						</div>
 					</div>
-					<!--Only show Editing icon for steward but not for administrator-->
 					<div class="flex gap-4" :class="{ 'w-full': isSearchBarExpanded }">
-						<GlobalBarButton v-if="room.getUserPowerLevel(user.user.userId) === 50" type="cog" size="sm" @click="stewardCanEdit()" />
+						<RoomHeaderButtons>
+							<GlobalBarButton type="two_users" size="sm" :selected="showMembers" @click="toggleMembersList"></GlobalBarButton>
+							<!--Only show Editing icon for steward but not for administrator-->
+							<GlobalBarButton v-if="room.getUserPowerLevel(user.user.userId) === 50" type="cog" size="sm" @click="stewardCanEdit()" />
+						</RoomHeaderButtons>
 						<SearchInput :search-parameters="searchParameters" @scroll-to-event-id="onScrollToEventId" @toggle-searchbar="handleToggleSearchbar" :room="rooms.currentRoom" />
 					</div>
 				</div>
@@ -37,6 +40,7 @@
 				</div>
 				<RoomThread v-if="room.getCurrentThreadId()" :room="room" :scroll-to-event-id="room.getCurrentEventId()" @scrolled-to-event-id="room.setCurrentEventId(undefined)" @thread-length-changed="currentThreadLengthChanged">
 				</RoomThread>
+				<RoomMemberList v-if="showMembers" :room="room" @close="toggleMembersList"></RoomMemberList>
 			</div>
 
 			<template #footer>
@@ -63,6 +67,9 @@
 	import RoomName from '@/components/rooms/RoomName.vue';
 	import RoomThread from '@/components/rooms/RoomThread.vue';
 	import GlobalBarButton from '@/components/ui/GlobalbarButton.vue';
+	import RoomHeaderButtons from '@/components/rooms/RoomHeaderButtons.vue';
+	import RoomMemberList from '@/components/rooms/RoomMemberList.vue';
+	import EditRoomForm from '@/components/rooms/EditRoomForm.vue';
 
 	import { usePubHubs } from '@/logic/core/pubhubsStore';
 	import { LOGGER } from '@/logic/foundation/Logger';
@@ -87,6 +94,7 @@
 	const hubSettings = useHubSettings();
 	const currentRoomToEdit = ref<TSecuredRoom | TPublicRoom | null>(null);
 	const showEditRoom = ref(false);
+	const showMembers = ref(false);
 	const secured = ref(false);
 	const isSearchBarExpanded = ref<boolean>(false);
 	const settings = useSettings();
@@ -142,7 +150,11 @@
 		const userIsMemberOfRoom = await pubhubs.isUserRoomMember(user.user.userId, props.id);
 		if (!userIsMemberOfRoom) {
 			// if not a member: try to join, otherwise go to the hubpage
-			pubhubs.joinRoom(props.id).catch(() => router.push({ name: 'hubpage' }));
+			const promise = pubhubs.joinRoom(props.id);
+			// need this extra check
+			if (promise) {
+				promise.catch(() => router.push({ name: 'hubpage' }));
+			}
 		}
 
 		if (!rooms.currentRoom) return;
@@ -181,5 +193,9 @@
 
 	function notPrivateRoom() {
 		return !room.value.isPrivateRoom() && !room.value.isGroupRoom() && !room.value.isAdminContactRoom();
+	}
+
+	function toggleMembersList() {
+		showMembers.value = !showMembers.value;
 	}
 </script>

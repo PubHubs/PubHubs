@@ -323,7 +323,7 @@ class UpdateConfig:
         if not isinstance(value, list):
             raise ConfigError(f"❌  Expected a list for the {key} value, but got {value} instead")
         # This script replaces the configchecker, so remove the module key from old yaml configurations
-        value = list([mod for mod in value if mod['module'] != 'conf.modules.config_checker.ConfigChecker'])
+        value = list([mod for mod in value if mod['module'] != 'conf.modules.config_checker.ConfigChecker'  and  mod['module'] != 'conf.modules.pubhubs.ConsentResource'])
         mandatory_modules = self.DONT_CHANGE_CONFIG["modules"]
         for module in value.copy():
             # Remove present modules from mandatory modules checklist

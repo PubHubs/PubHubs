@@ -1,3 +1,6 @@
+import { LOGGER } from '@/logic/foundation/Logger.js';
+import { SMI } from '@/logic/foundation/StatusMessage.js';
+
 // Regex describing the general shape of a shortened pseudonym
 // Does not check the checkdigit, nor the fact that the left and right groups must be equally long.
 // Only matches the whole string (does not search for a pseudonym in a larger string).
@@ -84,7 +87,7 @@ export default {
 		const result: RegExpExecArray | null = shortenedPseudonymRegex.exec(localpart);
 
 		if (!result || result.groups?.left.length !== result.groups?.right.length) {
-			console.error(`Matrix ID passed to extractPseudonym did not contain shortened pseudonym: ${matrixUserId}`);
+			LOGGER.log(SMI.ERROR, `Matrix ID passed to extractPseudonym did not contain shortened pseudonym: ${matrixUserId}`);
 			return '!!!-!!!';
 		}
 

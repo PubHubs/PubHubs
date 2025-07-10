@@ -1,11 +1,14 @@
-FROM node:24-slim as builder
-COPY . .
-RUN npm ci
+FROM node:24-slim AS builder
+
+WORKDIR /usr/src/app
+COPY package.json package-lock.json ./
+RUN npm ci && npm cache clean --force
+COPY . . 
 RUN npm run build
 
 FROM nginx:alpine-slim
 
-COPY --from=builder dist /usr/var/static
+COPY --from=builder /usr/src/app/dist /usr/var/static 
 
 COPY nginx.conf /etc/nginx/templates/default.conf.template
 

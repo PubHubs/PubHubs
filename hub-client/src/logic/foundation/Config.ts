@@ -1,6 +1,6 @@
 import { LogLevel } from './statusTypes';
 
-type ProductionMode = 'production' | 'development' | 'local development';
+type ProductionMode = 'production' | 'development' | 'local development' | 'testing';
 
 export default class Config {
 	_productionMode: ProductionMode;
@@ -26,6 +26,9 @@ export default class Config {
 		const globalClientUrl = _env.PUBHUBS_URL || _env.PARENT_URL;
 
 		if (!globalClientUrl || typeof globalClientUrl !== 'string') {
+			if (window._env.HUB_URL === 'http://test') {
+				return 'testing';
+			}
 			console.error('PUBHUBS_URL is not defined in the environment');
 			return 'production';
 		}
@@ -34,13 +37,15 @@ export default class Config {
 			return 'development';
 		} else if (globalClientUrl.startsWith('http://localhost')) {
 			return 'local development';
+		} else if (globalClientUrl === 'http://test') {
+			return 'testing';
 		} else {
 			return 'production';
 		}
 	}
 
 	private getInitLogLevel(productionMode: ProductionMode) {
-		console.log('production mode: ', productionMode);
+		if (productionMode !== 'testing') console.log('production mode: ', productionMode);
 		switch (productionMode) {
 			case 'production':
 				return LogLevel.Trace;

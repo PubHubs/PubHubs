@@ -862,7 +862,7 @@ impl<const N: usize> serde::de::Visitor<'_> for ByteArrayVisitor<N> {
     type Value = [u8; N];
 
     fn expecting(&self, f: &mut core::fmt::Formatter) -> core::fmt::Result {
-        write!(f, "a byte array of length {}", N)
+        write!(f, "a byte array of length {N}")
     }
 
     fn visit_byte_buf<E>(self, v: Vec<u8>) -> Result<Self::Value, E>

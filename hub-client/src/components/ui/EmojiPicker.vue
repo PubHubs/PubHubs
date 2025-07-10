@@ -24,12 +24,10 @@
 	import { useSettings } from '@/logic/store/settings';
 
 	import { Emoji } from 'emojibase';
+	import emojiData from '@/locales/emojidata';
 
 	const settings = useSettings();
 	const language = settings.getActiveLanguage;
-
-	// Fetching data file for emoji from localized dataset.
-	const data = require(`emojibase-data/${language}/data.json`);
 
 	const emojis = ref([] as Emoji[]);
 	const searchQuery = ref('');
@@ -50,13 +48,12 @@
 		'emoji_flag',
 	];
 
-	onMounted(async () => {
-		try {
-			emojis.value = data.filter((emoji: Emoji) => {
-				return !emoji.label.includes('regional');
-			});
-		} catch (error) {
-			console.error('An error occurred while fetching the emojis:', error);
+	onMounted(() => {
+		const data = emojiData[language];
+		if (data) {
+			emojis.value = data.filter((emoji) => !emoji.label.includes('regional'));
+		} else {
+			console.error(`No emoji data available for language "${language}"`);
 		}
 	});
 

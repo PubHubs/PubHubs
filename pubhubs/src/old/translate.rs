@@ -103,7 +103,7 @@ impl AllTranslations {
         let mut uri_parts = uri.clone().into_parts();
         uri_parts.path_and_query = Some(
             http::uri::PathAndQuery::from_maybe_shared(match uri.query() {
-                Some(query) => bytes::Bytes::from(format!("{}?{}", path, query)),
+                Some(query) => bytes::Bytes::from(format!("{path}?{query}")),
                 None => bytes::Bytes::copy_from_slice(path.as_bytes()),
             })
             .expect("expected removing language would not cause an invalid path-and-query"),

@@ -2,19 +2,19 @@
 	<div class="w-full px-3 pb-3 md:px-6">
 		<!-- Floating -->
 		<div class="relative">
-			<Popover v-if="state.popover" @close="togglePopover()" class="absolute bottom-4">
+			<Popover v-if="messageInput.state.popover" @close="messageInput.togglePopover()" class="absolute bottom-4">
 				<div class="flex items-center">
 					<PopoverButton icon="upload" @click="clickedAttachment">{{ $t('message.upload_file') }}</PopoverButton>
 					<template v-if="settings.isFeatureEnabled(FeatureFlag.votingWidget) && !inThread && !inReplyTo">
-						<PopoverButton icon="poll" @click="openPoll()">{{ $t('message.poll') }}</PopoverButton>
-						<PopoverButton icon="scheduler" @click="openScheduler()">{{ $t('message.scheduler') }}</PopoverButton>
+						<PopoverButton icon="poll" @click="messageInput.openPoll()">{{ $t('message.poll') }}</PopoverButton>
+						<PopoverButton icon="scheduler" @click="messageInput.openScheduler()">{{ $t('message.scheduler') }}</PopoverButton>
 					</template>
-					<PopoverButton icon="sign" v-if="!state.signMessage && settings.isFeatureEnabled(FeatureFlag.signedMessages)" @click="openSignMessage()">{{ $t('message.sign.add_signature') }}</PopoverButton>
+					<PopoverButton icon="sign" v-if="!messageInput.state.signMessage && settings.isFeatureEnabled(FeatureFlag.signedMessages)" @click="messageInput.openSignMessage()">{{ $t('message.sign.add_signature') }}</PopoverButton>
 				</div>
 			</Popover>
-			<Mention v-if="state.showMention" :msg="value" :top="caretPos.top" :left="caretPos.left" :room="room" @click="mentionUser($event)" />
-			<div v-if="state.emojiPicker" class="absolute bottom-2 right-0 z-20 xs:right-4 md:right-12">
-				<EmojiPicker @emojiSelected="clickedEmoticon" @close="toggleEmojiPicker()" />
+			<Mention v-if="messageInput.state.showMention" :msg="value as string" :top="caretPos.top" :left="caretPos.left" :room="room" @click="mentionUser($event)" />
+			<div v-if="messageInput.state.emojiPicker" class="absolute bottom-2 right-0 z-20 xs:right-4 md:right-12">
+				<EmojiPicker @emojiSelected="clickedEmoticon" @close="messageInput.toggleEmojiPicker()" />
 			</div>
 		</div>
 
@@ -38,21 +38,31 @@
 					</button>
 				</div>
 
+				<FilePicker ref="filePickerEl" :messageInput="messageInput"></FilePicker>
+
 				<template v-if="settings.isFeatureEnabled(FeatureFlag.votingWidget)">
-					<PollMessageInput v-if="state.poll" :poll-object="state.pollObject" :isEdit="isEdit()" @create-poll="createPoll" @send-poll="submitMessage" @edit-poll="editMessage" @close-poll="closePoll()" />
+					<PollMessageInput
+						v-if="messageInput.state.poll"
+						:poll-object="messageInput.state.pollObject"
+						:isEdit="messageInput.isEdit.value"
+						@create-poll="createPoll"
+						@send-poll="submitMessage"
+						@edit-poll="editMessage"
+						@close-poll="messageInput.closePoll()"
+					/>
 					<SchedulerMessageInput
-						v-if="state.scheduler"
-						:scheduler-object="state.schedulerObject"
-						:isEdit="isEdit()"
+						v-if="messageInput.state.scheduler"
+						:scheduler-object="messageInput.state.schedulerObject"
+						:isEdit="messageInput.isEdit.value"
 						@create-scheduler="createScheduler"
 						@send-scheduler="submitMessage"
 						@edit-scheduler="editMessage"
-						@close-scheduler="closeScheduler()"
+						@close-scheduler="messageInput.closeScheduler()"
 					/>
 				</template>
 
-				<div v-if="state.textArea" class="flex items-end gap-x-4 rounded-2xl px-4 py-2">
-					<Icon type="paperclip" size="md" @click.stop="togglePopover()" :asButton="true" />
+				<div v-if="messageInput.state.textArea" class="flex items-end gap-x-4 rounded-2xl px-4 py-2">
+					<Icon type="paperclip" size="md" @click.stop="messageInput.togglePopover()" :asButton="true" />
 					<!-- Overflow-x-hidden prevents firefox from adding an extra row to the textarea for a possible scrollbar -->
 					<TextArea
 						ref="elTextInput"
@@ -71,27 +81,27 @@
 					<div
 						v-if="room.getPowerLevel(user.user.userId) >= 50 && !inThread && !room.isPrivateRoom() && !room.isGroupRoom()"
 						class="flex aspect-square h-6 w-6 justify-center"
-						:class="!state.sendButtonEnabled && 'opacity-50 hover:cursor-default'"
+						:class="!messageInput.state.sendButtonEnabled && 'opacity-50 hover:cursor-default'"
 						@click="isValidMessage() ? announcementMessage() : null"
 					>
 						<Icon type="announcement" size="md"></Icon>
 					</div>
 
 					<!-- Emoji picker -->
-					<Icon type="emoticon" :iconColor="'text-background dark:text-on-surface-variant'" size="md" @click.stop="toggleEmojiPicker()" :asButton="true" class="rounded-full bg-accent-secondary" />
+					<Icon type="emoticon" :iconColor="'text-background dark:text-on-surface-variant'" size="md" @click.stop="messageInput.toggleEmojiPicker()" :asButton="true" class="rounded-full bg-accent-secondary" />
 
 					<!-- Sendbutton -->
 					<Button
 						class="flex aspect-square h-7 w-7 items-center justify-center !rounded-full bg-background !p-0"
-						:class="!state.sendButtonEnabled && 'opacity-50 hover:cursor-default'"
-						:disabled="!state.sendButtonEnabled"
+						:class="!messageInput.state.sendButtonEnabled && 'opacity-50 hover:cursor-default'"
+						:disabled="!messageInput.state.sendButtonEnabled"
 						@click="submitMessage"
 					>
 						<Icon type="send" size="sm" class="shrink-0 text-on-surface-variant" />
 					</Button>
 				</div>
 
-				<div v-if="state.signMessage" class="m-4 mt-0 flex items-center rounded-md bg-surface-low p-2">
+				<div v-if="messageInput.state.signMessage" class="m-4 mt-0 flex items-center rounded-md bg-surface-low p-2">
 					<Icon type="sign" size="base" class="mt-1 self-start" />
 					<div class="ml-2 flex max-w-3xl flex-col justify-between">
 						<h3 class="font-bold">{{ $t('message.sign.heading') }}</h3>
@@ -106,29 +116,16 @@
 							<p>Email</p>
 						</div>
 					</div>
-					<Icon type="closingCross" size="sm" :asButton="true" @click.stop="resetAll(true)" class="ml-auto self-start" />
+					<Icon type="closingCross" size="sm" :asButton="true" @click.stop="messageInput.resetAll(true)" class="ml-auto self-start" />
 				</div>
 			</div>
 
 			<!-- Yivi signing qr popup -->
-			<div class="absolute bottom-[10%] left-1/2 w-min -translate-x-1/2" v-show="state.showYiviQR">
-				<Icon type="close" class="absolute right-2 z-10 cursor-pointer dark:text-black" @click="state.showYiviQR = false" />
-				<div v-if="state.signMessage" id="yivi-web-form"></div>
+			<div class="absolute bottom-[10%] left-1/2 w-min -translate-x-1/2" v-show="messageInput.state.showYiviQR">
+				<Icon type="close" class="absolute right-2 z-10 cursor-pointer dark:text-black" @click="messageInput.state.showYiviQR = false" />
+				<div v-if="messageInput.state.signMessage" id="yivi-web-form"></div>
 			</div>
 		</div>
-		<FileUploadDialog
-			:file="fileInfo"
-			:blobURL="uri"
-			:thread-id="threadRoot?.event_id"
-			v-if="showFileUploadDialog"
-			@close="
-				showFileUploadDialog = false;
-				fileUploading = false;
-			"
-		>
-		</FileUploadDialog>
-		<!-- todo: move this into UploadPicker? -->
-		<input type="file" :accept="getTypesAsString(allTypes)" class="attach-file" ref="elFileInput" @change="uploadFile($event)" @cancel="fileUploading = false" hidden />
 	</div>
 </template>
 
@@ -141,7 +138,6 @@
 	import EmojiPicker from '../ui/EmojiPicker.vue';
 	import Mention from '../ui/Mention.vue';
 	import Line from '../elements/Line.vue';
-	import FileUploadDialog from '../ui/FileUploadDialog.vue';
 	import MessageSnippet from '../rooms/MessageSnippet.vue';
 	import PollMessageInput from '@/components/rooms/voting/poll/PollMessageInput.vue';
 	import SchedulerMessageInput from '@/components/rooms/voting/scheduler/SchedulerMessageInput.vue';
@@ -150,10 +146,11 @@
 	import { useFormInputEvents, usedEvents } from '@/logic/composables/useFormInputEvents';
 	import { onMounted, onUnmounted, PropType, ref, watch } from 'vue';
 	import { useMatrixFiles } from '@/logic/composables/useMatrixFiles';
+	import { fileUpload } from '@/logic/composables/fileUpload';
 	import filters from '@/logic/core/filters';
 	import { usePubHubs } from '@/logic/core/pubhubsStore';
 	import { useMessageActions } from '@/logic/store/message-actions';
-	import { useMessageInputComposable } from '@/logic/store/messageInput';
+	import { useMessageInput } from '@/logic/store/messageInput';
 	import Room from '@/model/rooms/Room';
 	import { useRooms } from '@/logic/store/store';
 	import { useRoute } from 'vue-router';
@@ -162,14 +159,16 @@
 	import { YiviSigningSessionResult } from '@/model/components/signedMessages';
 	import { TMessageEvent } from '@/model/events/TMessageEvent';
 	import { Scheduler, Poll } from '@/model/events/voting/VotingTypes';
+	import { useI18n } from 'vue-i18n';
 
+	const { t } = useI18n();
 	const user = useUser();
 	const route = useRoute();
 	const rooms = useRooms();
 	const pubhubs = usePubHubs();
 	const settings = useSettings();
 	const messageActions = useMessageActions();
-	const { state, togglePopover, isEdit, resetAll, hasActivePopup, openTextArea, toggleEmojiPicker, openSignMessage, openPoll, closePoll, editPoll, openScheduler, closeScheduler, editScheduler } = useMessageInputComposable();
+	const messageInput = useMessageInput();
 
 	const props = defineProps({
 		room: {
@@ -192,11 +191,9 @@
 
 	const emit = defineEmits(usedEvents);
 	const { value, reset, changed, cancel } = useFormInputEvents(emit);
-	const { allTypes, getTypesAsString } = useMatrixFiles();
+	const { allTypes, uploadUrl } = useMatrixFiles();
 
-	const showFileUploadDialog = ref<boolean>(false);
-	const fileUploading = ref<boolean>(false); // to hide other dialogs while in the file upload process
-	const fileInfo = ref<File>();
+	// const fileInfo = ref<File>();
 	const uri = ref<string>('');
 	const pollObject = ref<Poll>(new Poll());
 	const schedulerObject = ref<Scheduler>(new Scheduler());
@@ -205,7 +202,7 @@
 
 	const selectedAttributesSigningMessage = ref<string[]>(['pbdf.sidn-pbdf.email.email']);
 
-	const elFileInput = ref<HTMLInputElement | null>(null);
+	const filePickerEl = ref();
 	const elTextInput = ref<InstanceType<typeof TextArea> | null>(null);
 	const inReplyTo = ref<TMessageEvent | undefined>(undefined);
 
@@ -213,12 +210,16 @@
 
 	watch(route, () => {
 		reset();
-		resetAll();
+		messageInput.resetAll();
 	});
 
-	watch(value, () => {
-		state.sendButtonEnabled = isValidMessage();
-	});
+	watch(
+		value,
+		() => {
+			messageInput.state.sendButtonEnabled = isValidMessage();
+		},
+		{ immediate: true },
+	);
 
 	watch(
 		() => props.room.roomId,
@@ -249,7 +250,7 @@
 		() => props.editingPoll,
 		() => {
 			if (props.editingPoll) {
-				editPoll(props.editingPoll.poll, props.editingPoll.eventId);
+				pubhubs.editPoll(props.editingPoll.poll, props.editingPoll.eventId);
 				pollObject.value = props.editingPoll.poll;
 			}
 		},
@@ -259,7 +260,7 @@
 		() => props.editingScheduler,
 		() => {
 			if (props.editingScheduler) {
-				editScheduler(props.editingScheduler.scheduler, props.editingScheduler.eventId);
+				pubhubs.editScheduler(props.editingScheduler.scheduler, props.editingScheduler.eventId);
 				schedulerObject.value = props.editingScheduler.scheduler;
 			}
 		},
@@ -299,9 +300,9 @@
 	}
 
 	function handleKeydown(event: KeyboardEvent) {
-		if (!hasActivePopup() || event.key === 'Escape') {
-			resetAll();
-			state.sendButtonEnabled = isValidMessage();
+		if (!messageInput.hasActivePopup.value || event.key === 'Escape') {
+			messageInput.resetAll();
+			messageInput.state.sendButtonEnabled = isValidMessage();
 		}
 	}
 
@@ -309,29 +310,15 @@
 		let valid = false;
 		// TextAreas always return strings, so the message is valid to send if it is a string with a length > 0
 		if (typeof value.value === 'string' && value.value.trim().length > 0) valid = true;
-		if ((state.poll || state.scheduler) && state.sendButtonEnabled) valid = true;
+		if ((messageInput.state.poll || messageInput.state.scheduler) && messageInput.state.sendButtonEnabled) valid = true;
+		if (messageInput.state.fileAdded) valid = true;
 		return valid;
 	}
 
-	function uploadFile(event: Event) {
-		const target = event.currentTarget as HTMLInputElement;
-		const file = target.files && target.files[0];
-		if (file) {
-			// Once the file has been selected from the filesystem.
-			// Set props to be passed to the component.
-			fileInfo.value = file;
-			uri.value = URL.createObjectURL(file);
-			// display the component.
-			showFileUploadDialog.value = true;
-			// Inspiration from  https://dev.to/schirrel/vue-and-input-file-clear-file-or-select-same-file-24do
-			const inputElement = elFileInput.value;
-			if (inputElement) inputElement.value = '';
-		}
-	}
-
 	function clickedAttachment() {
-		fileUploading.value = true;
-		elFileInput.value?.click();
+		if (filePickerEl.value) {
+			filePickerEl.value.openFile();
+		}
 	}
 
 	//  To autocomplete the mention user in the message.
@@ -354,22 +341,36 @@
 	}
 
 	function submitMessage() {
+		// console.log('submit', 'sendButton:', messageInput.sendButtonEnabled, 'valid:', isValidMessage(), 'fileAdded:', messageInput.fileAdded);
 		// This makes sure value.value is not undefined
-		if (!state.sendButtonEnabled || !isValidMessage()) return;
+		if (!messageInput.state.sendButtonEnabled || !isValidMessage()) return;
 
-		if (state.signMessage) {
-			state.showYiviQR = true;
+		if (messageInput.state.signMessage) {
+			messageInput.state.showYiviQR = true;
 			signMessage(value.value!.toString(), selectedAttributesSigningMessage.value, threadRoot);
 		} else if (messageActions.replyingTo && inReplyTo.value) {
 			pubhubs.addMessage(rooms.currentRoomId, value.value!.toString(), threadRoot, inReplyTo.value);
 			messageActions.replyingTo = undefined;
 			value.value = '';
-		} else if (state.poll) {
+		} else if (messageInput.state.poll) {
 			sendPoll();
 			value.value = '';
-		} else if (state.scheduler) {
+		} else if (messageInput.state.scheduler) {
 			sendScheduler();
 			value.value = '';
+		} else if (messageInput.state.fileAdded) {
+			messageInput.closeFileUpload();
+			const syntheticEvent = {
+				currentTarget: {
+					files: [messageInput.state.fileAdded],
+				},
+			} as unknown as Event;
+			fileUpload(t('errors.file_upload'), pubhubs.Auth.getAccessToken(), uploadUrl, allTypes, syntheticEvent, (url) => {
+				pubhubs.addFile(rooms.currentRoomId, threadRoot?.event_id, messageInput.state.fileAdded as File, url, value.value as string);
+				URL.revokeObjectURL(uri.value);
+				value.value = '';
+				messageInput.cancelFileUpload();
+			});
 		} else {
 			pubhubs.submitMessage(value.value!.toString(), rooms.currentRoomId, threadRoot, inReplyTo.value);
 			value.value = '';
@@ -384,13 +385,13 @@
 	}
 
 	function editMessage() {
-		if (state.poll && pollObject.value.canSend()) {
+		if (messageInput.state.poll && pollObject.value.canSend()) {
 			pollObject.value.removeEmptyOptions();
-			pubhubs.editPoll(rooms.currentRoomId, state.editEventId as string, pollObject.value as Poll);
-			openTextArea();
-		} else if (state.scheduler && schedulerObject.value.canSend()) {
-			pubhubs.editScheduler(rooms.currentRoomId, state.editEventId as string, schedulerObject.value as Scheduler);
-			openTextArea();
+			pubhubs.editPoll(rooms.currentRoomId, messageInput.state.editEventId as string, pollObject.value as Poll);
+			messageInput.openTextArea();
+		} else if (messageInput.state.scheduler && schedulerObject.value.canSend()) {
+			pubhubs.editScheduler(rooms.currentRoomId, messageInput.state.editEventId as string, schedulerObject.value as Scheduler);
+			messageInput.openTextArea();
 		}
 	}
 
@@ -400,30 +401,30 @@
 
 	function finishedSigningMessage(result: YiviSigningSessionResult, threadRoot: TMessageEvent | undefined) {
 		pubhubs.addSignedMessage(rooms.currentRoomId, result, threadRoot);
-		state.showYiviQR = false;
-		state.signMessage = false;
+		messageInput.state.showYiviQR = false;
+		messageInput.state.signMessage = false;
 		value.value = '';
 	}
 
 	const createScheduler = (scheduler: Scheduler, canSend: boolean) => {
 		schedulerObject.value = scheduler;
-		state.sendButtonEnabled = canSend;
+		messageInput.state.sendButtonEnabled = canSend;
 	};
 
 	function sendScheduler() {
 		pubhubs.addScheduler(rooms.currentRoomId, schedulerObject.value as Scheduler);
-		openTextArea();
+		messageInput.openTextArea();
 	}
 
 	const createPoll = (poll: Poll, canSend: boolean) => {
 		pollObject.value = poll;
-		state.sendButtonEnabled = canSend;
+		messageInput.state.sendButtonEnabled = canSend;
 	};
 
 	function sendPoll() {
 		pollObject.value.removeEmptyOptions();
 		pubhubs.addPoll(rooms.currentRoomId, pollObject.value as Poll);
-		openTextArea();
+		messageInput.openTextArea();
 	}
 
 	function setCaretPos(pos: { top: number; left: number }) {

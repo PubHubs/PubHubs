@@ -130,7 +130,7 @@ where
 
         EP::ResponseType::from_result(match retry_fut.await {
             Ok(Some(resp)) => Result::Ok(resp),
-            Ok(None) => Result::Err(ErrorCode::TemporaryFailure),
+            Ok(None) => Result::Err(ErrorCode::PleaseRetry),
             Err(ec) => Result::Err(ec),
         })
     }
@@ -218,7 +218,7 @@ impl<EP: EndpointDetails + 'static> BorrowedQuerySetup<'_, EP> {
                     result.unwrap_err()
                 );
                 return futures::future::Either::Left(std::future::ready(
-                    EP::ResponseType::from_ec(ErrorCode::Malconfigured),
+                    EP::ResponseType::from_ec(ErrorCode::InternalError),
                 ));
             }
             result.unwrap()
@@ -351,30 +351,30 @@ impl Client {
                 return Result::Err(match result.unwrap_err() {
                     awc::error::SendRequestError::Url(err) => {
                         log::error!("unexpected problem with {url}: {err}");
-                        ErrorCode::InternalClientError
+                        ErrorCode::InternalError
                     }
                     awc::error::SendRequestError::Connect(err) => match err {
                         awc::error::ConnectError::Timeout => {
                             log::warn!("connecting to {url} timed out");
-                            ErrorCode::CouldNotConnectYet
+                            ErrorCode::PleaseRetry
                         }
                         awc::error::ConnectError::Resolver(err) => {
                             log::warn!("resolving {url}: {err}");
-                            ErrorCode::CouldNotConnectYet
+                            ErrorCode::PleaseRetry
                         }
                         awc::error::ConnectError::Io(err) => {
                             // might happen when the port is closed
                             log::warn!("io error while connecting to {url}: {err}");
-                            ErrorCode::CouldNotConnectYet
+                            ErrorCode::PleaseRetry
                         }
                         awc::error::ConnectError::Disconnected => {
                             // might happen when the contacted server shuts down
                             log::warn!("server disconnected while querying {url}");
-                            ErrorCode::CouldNotConnectYet
+                            ErrorCode::PleaseRetry
                         }
                         _ => {
                             log::error!("error connecting to {url}: {err}");
-                            ErrorCode::CouldNotConnect
+                            ErrorCode::BadRequest
                         }
                     },
                     awc::error::SendRequestError::Send(err) => {
@@ -383,7 +383,7 @@ impl Client {
                             EP::METHOD,
                             err
                         );
-                        ErrorCode::CouldNotConnectYet
+                        ErrorCode::PleaseRetry
                     }
                     awc::error::SendRequestError::Response(err) => match err {
                         actix_web::error::ParseError::Timeout => {
@@ -391,7 +391,7 @@ impl Client {
                                 "getting response to request to {} {url} timed out",
                                 EP::METHOD
                             );
-                            ErrorCode::SeveredConnection
+                            ErrorCode::PleaseRetry
                         }
                         actix_web::error::ParseError::Io(io_err) => {
                             // this sometimes happens when the request causes the server to exit
@@ -399,7 +399,7 @@ impl Client {
                                 "error getting response to request to {} {url}: {io_err}",
                                 EP::METHOD
                             );
-                            ErrorCode::SeveredConnection
+                            ErrorCode::PleaseRetry
                         }
                         actix_web::error::ParseError::Method
                         | actix_web::error::ParseError::Uri(_)
@@ -413,49 +413,49 @@ impl Client {
                                 "problem parsing response from {} {url}: {err}",
                                 EP::METHOD,
                             );
-                            ErrorCode::InternalClientError
+                            ErrorCode::InternalError
                         }
                         err => {
                             log::error!(
                                 "unexpected error type while parsing response to request to {} {url}: {err}",
                                 EP::METHOD
                             );
-                            ErrorCode::InternalClientError
+                            ErrorCode::InternalError
                         }
                     },
                     awc::error::SendRequestError::Http(err) => {
                         log::error!("HTTP error with request {} {url}: {err}", EP::METHOD,);
-                        ErrorCode::InternalClientError
+                        ErrorCode::InternalError
                     }
                     awc::error::SendRequestError::H2(err) => {
                         log::error!("HTTP/2 error with request {} {url}: {err}", EP::METHOD,);
-                        ErrorCode::InternalClientError
+                        ErrorCode::InternalError
                     }
                     awc::error::SendRequestError::Timeout => {
                         log::warn!("request to {} {url} timed out", EP::METHOD);
-                        ErrorCode::CouldNotConnectYet
+                        ErrorCode::PleaseRetry
                     }
                     awc::error::SendRequestError::TunnelNotSupported => {
                         log::error!("unexpected 'TunnelNotSupported' error");
-                        ErrorCode::InternalClientError
+                        ErrorCode::InternalError
                     }
                     awc::error::SendRequestError::Body(err) => {
                         log::warn!(
                             "problem sending request body to {} {url}: {err}",
                             EP::METHOD
                         );
-                        ErrorCode::CouldNotConnectYet
+                        ErrorCode::PleaseRetry
                     }
                     awc::error::SendRequestError::Custom(err, dbg) => {
                         log::error!("unexpected custom error: {err}; {dbg:?}",);
-                        ErrorCode::InternalClientError
+                        ErrorCode::InternalError
                     }
                     err => {
                         log::error!(
                             "unexpected error type while sending request to {} {url}: {err}",
                             EP::METHOD
                         );
-                        ErrorCode::InternalClientError
+                        ErrorCode::InternalError
                     }
                 });
             }
@@ -481,9 +481,7 @@ impl Client {
 
             return Result::Err(match status {
                 // Caddy returns 502 Bad Gateway when the service proxied to is (temporarily) down
-                StatusCode::BAD_GATEWAY | StatusCode::GATEWAY_TIMEOUT => {
-                    ErrorCode::CouldNotConnectYet
-                }
+                StatusCode::BAD_GATEWAY | StatusCode::GATEWAY_TIMEOUT => ErrorCode::PleaseRetry,
                 _ => ErrorCode::BadRequest,
             });
         }

@@ -6,7 +6,7 @@
  * For example, when we're debugging the roomtimeline, we might filter out the Status Messages with related SMI's.
  */
 
-import { LogLevel } from '../foundation/statusTypes';
+import { LogLevel } from '../foundation/statusTypes.js';
 
 /**
  * Status Message Id (SMI)
@@ -22,6 +22,7 @@ export enum SMI {
 	STARTUP = 'STARTUP_TRACE',
 	STORE = 'STORE_TRACE',
 	USER = 'USER',
+	ERROR = 'ERROR',
 }
 
 // A StatusMessage instance could later have parameters and a stack trace passed to it.

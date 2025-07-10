@@ -1,6 +1,7 @@
-import { describe, expect, test, afterAll, afterEach, beforeAll } from 'vitest';
-import { server } from '../mocks/server';
+import { afterAll, afterEach, beforeAll, describe, expect, test } from 'vitest';
+
 import { api } from '@/logic/core/api';
+import { server } from '../mocks/server';
 
 beforeAll(() => server.listen({ onUnhandledRequest: 'error' }));
 afterAll(() => server.close());

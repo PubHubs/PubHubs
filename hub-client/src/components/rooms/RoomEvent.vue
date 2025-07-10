@@ -20,7 +20,7 @@
 			</div>
 
 			<div class="flex w-full gap-4 px-6" :class="getMessageContainerClasses">
-				<Avatar :user="roomMember" />
+				<Avatar :userId="event.sender" />
 				<div :class="{ 'w-5/6': deleteMessageDialog, 'w-full': !deleteMessageDialog }" class="min-w-0">
 					<div class="flex flex-wrap items-center overflow-hidden text-wrap break-all">
 						<div class="relative flex min-h-6 w-full items-start gap-x-2 pb-1">
@@ -98,8 +98,8 @@
 						<Message v-if="event.content.msgtype === MsgType.Text || redactedMessage" :event="event" :deleted="redactedMessage" class="max-w-[90ch]" />
 						<AnnouncementMessage v-if="isAnnouncementMessage && !redactedMessage && !room.isPrivateRoom()" :event="event.content"></AnnouncementMessage>
 						<MessageSigned v-if="event.content.msgtype === PubHubsMgType.SignedMessage && !redactedMessage" :message="event.content.signed_message" class="max-w-[90ch]" />
-						<MessageFile v-if="event.content.msgtype === MsgType.File && !redactedMessage" :message="event.content" class="max-w-[90ch]" />
-						<MessageImage v-if="event.content.msgtype === MsgType.Image && !redactedMessage" :message="event.content" class="max-w-[90ch]" />
+						<MessageFile v-if="event.content.msgtype === MsgType.File && !redactedMessage" :message="event.content" />
+						<MessageImage v-if="event.content.msgtype === MsgType.Image && !redactedMessage" :message="event.content" />
 
 						<VotingWidget
 							v-if="settings.isFeatureEnabled(FeatureFlag.votingWidget) && event.content.msgtype === PubHubsMgType.VotingWidget && !redactedMessage"

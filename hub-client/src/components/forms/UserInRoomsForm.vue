@@ -1,7 +1,7 @@
 <template>
 	<Dialog v-if="listUserRooms.length > 0" :title="$t('admin.user_perm_heading')" @close="emit('close')">
 		<div class="flex p-2 sm:p-4">
-			<Avatar :user="user" :overrideAvatarUrl="avatarUrl"></Avatar>
+			<Avatar :userId="userId"></Avatar>
 			<div class="ml-2 flex flex-col">
 				<div>{{ displayName }}</div>
 				<div class="mb-2 italic text-on-surface-dim sm:mb-4">{{ userId }}</div>
@@ -81,7 +81,6 @@
 	const props = defineProps({
 		userId: { type: String, required: true },
 		displayName: { type: String, required: true },
-		avatarUrl: { type: String },
 		administrator: { type: Administrator, required: true },
 	});
 

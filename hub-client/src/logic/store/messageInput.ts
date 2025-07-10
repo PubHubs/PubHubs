@@ -1,7 +1,10 @@
-import { reactive } from 'vue';
-import { Scheduler, Poll } from '@/model/events/voting/VotingTypes';
+import { computed, reactive } from 'vue';
+import { Scheduler, Poll } from '@/model/events/voting/VotingTypes.js';
 
-export const useMessageInputComposable = () => {
+// This is used on multiple messageinputs at the same time, so we need to create a new instance of it for each message input.
+// That's why it is a composable and not a store.
+
+function useMessageInput() {
 	const state = reactive({
 		popover: false,
 		sendButtonEnabled: false,
@@ -10,6 +13,8 @@ export const useMessageInputComposable = () => {
 		emojiPicker: false,
 		signMessage: false,
 		showYiviQR: false,
+		fileDialog: false,
+		fileAdded: null as File | null,
 		poll: false,
 		pollObject: null as Poll | null,
 		scheduler: false,
@@ -17,24 +22,19 @@ export const useMessageInputComposable = () => {
 		editEventId: undefined as string | undefined,
 	});
 
-	function togglePopover() {
-		state.popover = !state.popover;
-	}
-
-	function isEdit() {
-		return state.editEventId !== undefined;
-	}
+	const isEdit = computed(() => state.editEventId !== undefined);
+	const hasActivePopup = computed(() => state.emojiPicker || state.showMention || state.popover || state.poll || state.scheduler);
 
 	function resetAll(rememberSendButtonEnabled = false) {
 		state.popover = false;
-		if (!rememberSendButtonEnabled) {
-			state.sendButtonEnabled = false;
-		}
+		if (!rememberSendButtonEnabled) state.sendButtonEnabled = false;
 		state.textArea = true;
 		state.showMention = true;
 		state.emojiPicker = false;
 		state.signMessage = false;
 		state.showYiviQR = false;
+		state.fileDialog = false;
+		state.fileAdded = null;
 		state.poll = false;
 		state.pollObject = null;
 		state.scheduler = false;
@@ -42,16 +42,34 @@ export const useMessageInputComposable = () => {
 		state.editEventId = undefined;
 	}
 
-	function hasActivePopup() {
-		return state.emojiPicker || state.showMention || state.popover || state.poll || state.scheduler;
+	function togglePopover() {
+		state.popover = !state.popover;
 	}
 
 	function openTextArea() {
 		resetAll();
 	}
 
+	function activateSendButton() {
+		state.sendButtonEnabled = true;
+	}
+
 	function toggleEmojiPicker() {
 		state.emojiPicker = !state.emojiPicker;
+	}
+
+	function openFileDialog() {
+		state.fileDialog = true;
+		state.fileAdded = null;
+	}
+
+	function cancelFileUpload() {
+		state.fileDialog = false;
+		state.fileAdded = null;
+	}
+
+	function closeFileUpload() {
+		state.fileDialog = false;
 	}
 
 	function openSignMessage() {
@@ -66,6 +84,7 @@ export const useMessageInputComposable = () => {
 	}
 
 	function closePoll() {
+		console.error('closePoll called');
 		resetAll();
 	}
 
@@ -97,5 +116,26 @@ export const useMessageInputComposable = () => {
 		state.textArea = false;
 	}
 
-	return { state, togglePopover, isEdit, resetAll, hasActivePopup, openTextArea, toggleEmojiPicker, openSignMessage, openPoll, closePoll, editPoll, openScheduler, closeScheduler, editScheduler };
-};
+	return {
+		state,
+		isEdit,
+		hasActivePopup,
+		resetAll,
+		togglePopover,
+		openTextArea,
+		activateSendButton,
+		toggleEmojiPicker,
+		openFileDialog,
+		cancelFileUpload,
+		closeFileUpload,
+		openSignMessage,
+		openPoll,
+		closePoll,
+		editPoll,
+		openScheduler,
+		closeScheduler,
+		editScheduler,
+	};
+}
+
+export { useMessageInput };

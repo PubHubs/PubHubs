@@ -5,13 +5,13 @@ use std::pin::Pin;
 
 use core::future::Future;
 
-use futures::stream::BoxStream;
 use futures::FutureExt as _;
+use futures::stream::BoxStream;
 use futures_util::future::BoxFuture;
 
 use object_store::{
-    self, path::Path, Error, GetOptions, GetResult, ListResult, MultipartUpload, ObjectMeta,
-    ObjectStore, PutMode, PutMultipartOpts, PutOptions, PutPayload, PutResult, Result,
+    self, Error, GetOptions, GetResult, ListResult, MultipartUpload, ObjectMeta, ObjectStore,
+    PutMode, PutMultipartOpts, PutOptions, PutPayload, PutResult, Result, path::Path,
 };
 
 /// Wraps an existing [`ObjectStore`] adding support for [`object_store::PutMode::Update`].
@@ -35,8 +35,8 @@ use object_store::{
 ///     If not, return [`Error::Precondition`], but before doing so, delete all outdated versions,
 ///     also when everything was alright.
 ///
-#[allow(dead_code)]
 #[derive(Debug)]
+#[allow(dead_code)]
 struct VersionedObjectStore<T> {
     inner: T,
 }
@@ -47,8 +47,8 @@ struct VersionedObjectStore<T> {
 struct Version(pub u64);
 
 impl Version {
-    /// Tries to interpret the given filename as a version number.
     #[allow(dead_code)]
+    /// Tries to interpret the given filename as a version number.
     fn maybe_from_filename(filename: impl AsRef<str>) -> Option<Self> {
         let filename = filename.as_ref();
 

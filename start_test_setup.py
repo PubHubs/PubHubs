@@ -39,6 +39,9 @@ NPM = ["powershell", "npm"] if platform.system() == "Windows" else ["npm"]
 ## DOCKER VERSION TO USE >= 24
 DOCKER_VERSION = 24
 
+## NODE VERSION TO USE, otherwise vite doesnt build the project properly
+NODE_VERSION = 22
+
 def get_version_string():
     # losely based on https://github.com/matrix-org/matrix-python-common/blob/4084b21af839c50f775447d02ca4f1854e2e6191
     #                                   /src/matrix_common/versionstring.py#L74
@@ -566,6 +569,44 @@ def remove_container(container_name):
             else:
                 print(f"Container {container_name} has been removed.")
 
+def get_and_check_version(command, min_version, name):
+    """
+    Executes a command to get a version, prints it, and checks if it meets
+    the minimum required version.
+
+    Args:
+        command (list): The command and its arguments (e.g., ["docker", "-v"]).
+        min_version (int): The minimum required version.
+        name (str): The name of the software (e.g., "Docker", "Node").
+
+    Returns:
+        str: The extracted version number if successful, None otherwise.
+    """
+    try:
+        version_info = subprocess.run(command, capture_output=True, text=True, check=True)
+        current_version_match = re.findall(r'\d+', version_info.stdout)
+        if not current_version_match:
+            print(f"\x1b[1;31mERROR: Could not extract {name} version from output.\x1b[0m")
+            sys.exit(-1)
+
+        current_version = current_version_match[0]
+        print(f"\033[92m{name} version you are using is --- {current_version}\033[0m")
+
+        if int(current_version) < min_version:
+            print(f"\x1b[1;33mWARNING: {name} version you are using is old. There will be some issues in running the script.\x1b[0m")
+            print(f"\x1b[1;33mThe script will terminate..\x1b[0m")
+            sys.exit(-1)
+        return current_version
+    except FileNotFoundError:
+        print(f"\x1b[1;31mERROR: {name} command not found. Please ensure {name} is installed and in your PATH.\x1b[0m")
+        sys.exit(-1)
+    except subprocess.CalledProcessError as e:
+        print(f"\x1b[1;31mERROR: Failed to run {name} command: {e.stderr}\x1b[0m")
+        sys.exit(-1)
+    except Exception as e:
+        print(f"\x1b[1;31mAn unexpected error occurred while checking {name} version: {e}\x1b[0m")
+        sys.exit(-1)
+
 
 
 # No need for having a unit test for cli_error_message() code.
@@ -641,7 +682,7 @@ def main_runner(cargo_setup:str, node_arg:str, hubs:int = 1) -> None:
     num_of_hubs = hubs
 
     # Check all dependencies for the given project and run pubhubs server and build the pubhubs infrastructure
-    dep_list = ["cargo", "cargo-watch", "npm", "docker", "sass" ]
+    dep_list = ["cargo", "cargo-watch", "npm", "node",  "docker", "sass" ]
     dep_status_dict = check_project_dependencies(dep_list)
 
     # All dependencies should be installed. In dictionary, values are status of package
@@ -654,17 +695,12 @@ def main_runner(cargo_setup:str, node_arg:str, hubs:int = 1) -> None:
     print(f"\033[92mdocker ps\033[0m")
     subprocess.check_output(["docker", "ps"])
 
-    docker_version_info = subprocess.run(["docker", "-v"], capture_output=True, text=True)
 
-    # Getting only the version number of docker you are using.
-    current_version= re.findall(r'\d+', docker_version_info.stdout)[0]
-    print(f"\033[92mDocker version you are using is --- {current_version}\033[0m")
+    get_and_check_version(["docker", "-v"], DOCKER_VERSION, "Docker")
+    get_and_check_version(["node", "-v"], NODE_VERSION, "Node")
 
-    if int(current_version) < DOCKER_VERSION:
-        print(f"\x1b[1;33mWARNING: Docker version you are using is old. There will be some issues in running the script\x1b[0m")
-        print(f"\x1b[1;33m The script will terminate..\x1b[0m")
-        exit(-1)
-
+    print("\n\033[92mAll version checks passed!\033[0m")        
+        
     print(f"\033[92mdocker compose\033[0m")
     subprocess.check_output(["docker", "compose"])
 
@@ -675,10 +711,10 @@ def main_runner(cargo_setup:str, node_arg:str, hubs:int = 1) -> None:
 
 
     # Run global client first
-    print_in_green("Run `npm run watch` for global client...")
+    print_in_green("Run `npm run build` for global client...")
     os.chdir("global-client")
     subprocess.run([*NPM, "install"], check=True)
-    global_client_proces = Process(target=os.system, args=("npm run watch",))
+    global_client_proces = Process(target=os.system, args=("npm run build",))
     global_client_proces.start()
 
 

@@ -16,6 +16,9 @@
 	import { ref } from 'vue';
 	import { useRooms } from '@/logic/store/store';
 	import { watchEffect } from 'vue';
+
+	import Icon from '@/components/elements/Icon.vue';
+
 	const rooms = useRooms();
 
 	let totalUnreadCount = ref<number | undefined>(0);

@@ -1,11 +1,14 @@
-FROM registry.science.ru.nl/ilab/docker-build/rust-stable:main as builder
+FROM registry.science.ru.nl/ilab/docker-build/rust-stable:main AS builder
 
-COPY ./global-client/ /usr/src/global-client/
-COPY ./hub-client/ /usr/src/hub-client/
+WORKDIR /usr/src/global-client
+COPY ./global-client/package.json ./global-client/package-lock.json ./
+RUN npm ci && npm cache clean --force
+WORKDIR /usr/src/hub-client
+COPY ./hub-client/package.json ./hub-client/package-lock.json ./
+RUN npm ci && npm cache clean --force
 
 WORKDIR /usr/src/pubhubs
-
-COPY ./pubhubs/build.rs build.rs
+COPY ./pubhubs/build.rs .
 COPY ./pubhubs/static/ static/
 COPY ./pubhubs/src/ src/
 COPY ./pubhubs/Cargo.toml .
@@ -15,13 +18,12 @@ RUN apt-get update && apt-get install -y npm
 
 ARG CARGO_FEATURES
 
-# Build global client
-RUN npm ci --prefix ../global-client
-RUN npm ci --prefix ../hub-client
-RUN npm run --prefix ../global-client build
-RUN cp -a ../global-client/dist/. static/assets/client
-
 RUN cargo install $CARGO_FEATURES --path .
+
+# Build global client
+COPY ./global-client/ ../global-client/
+COPY ./hub-client/ ../hub-client/
+RUN npm run --prefix ../global-client build
 
 FROM debian:stable-slim
 RUN apt-get update && apt-get install -y curl lsb-release && rm -rf /var/lib/apt/lists/*

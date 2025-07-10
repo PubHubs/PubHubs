@@ -59,13 +59,15 @@
 
 	// Logic
 	import { useHubSettings } from '@/logic/store/hub-settings';
+	import { usePubHubs } from '@/logic/core/pubhubsStore';
 	import { useRooms } from '@/logic/store/store';
 
 	// Setup
+	const pubhubsStore = usePubHubs();
 	const hubSettings = useHubSettings();
 	const rooms = useRooms();
 	const { t } = useI18n();
-	const timestamps = ref<any[]>([]);
+	const timestamps = ref<any[]>(rooms.roomtimestamps);
 	const roomTimestamps = ref<Record<string, Date>>({});
 	const expandedCardId = ref<string | null>(null);
 	const searchQuery = ref('');
@@ -92,9 +94,10 @@
 	}
 
 	async function loadHubSettings() {
-		const hubSettingsJSON = await hubSettings.getHubJSON();
-		if (hubSettingsJSON) {
-			timestamps.value = hubSettingsJSON.timestamps || [];
+		const response = await pubhubsStore.fetchTimestamps();
+		if (response) {
+			timestamps.value = response;
+			rooms.setTimestamps(response);
 		}
 	}
 
