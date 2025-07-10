@@ -215,7 +215,7 @@ const useHubSettings = defineStore('hub-settings', {
 				this._description = response.description;
 				this._contact = response.contact;
 				this._consent = response.consent;
-				this._version = response.version;
+				this._version = response.version ?? 1;
 				return response;
 			} else {
 				return undefined;
