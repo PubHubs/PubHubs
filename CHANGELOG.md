@@ -9,6 +9,9 @@ _Please add a brief description of any changes and any migrations to be performe
  * _[BREAKING] - If it is a breaking change that needs changes done on the deployment/installation/settings_
  * _(Use the [MIGRATE] and [BREAKING] prefixes together with another one if that makes more sense.)_
 
+## Changed not yet merged to stable
+
+## 10 July 2025 - v2.2.0
 
 - [UPDATE] Replaced vue.cli by Vite
 - [BUG] Avatars where not visible sometimes. Refactured Avatar system.
