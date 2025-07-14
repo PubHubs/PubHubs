@@ -1,13 +1,14 @@
-import { defineStore } from 'pinia';
-import { RouteParams } from 'vue-router';
-import { useSettings } from '@/logic/store/settings';
-import { useGlobal } from '@/logic/store/global';
-import { iframeHubId, MessageType, Message, useMessageBox } from '../../../../hub-client/src/logic/store/messagebox';
-import { setLanguage, setUpi18n } from '@/i18n';
-import { useToggleMenu } from '@/logic/store/toggleGlobalMenu';
-
 import { Hub, HubList } from '@/model/Hubs';
+import { Message, MessageType, iframeHubId, useMessageBox } from '../../../../hub-client/src/logic/store/messagebox';
+import { setLanguage, setUpi18n } from '@/i18n';
+
+import { RouteParams } from 'vue-router';
+import { assert } from 'chai';
+import { defineStore } from 'pinia';
 import { miniClientId } from './messagebox';
+import { useGlobal } from '@/logic/store/global';
+import { useSettings } from '@/logic/store/settings';
+import { useToggleMenu } from '@/logic/store/toggleGlobalMenu';
 
 const useHubs = defineStore('hubs', {
 	state: () => {
@@ -94,7 +95,7 @@ const useHubs = defineStore('hubs', {
 
 			const messagebox = useMessageBox();
 
-			if (!this.hubs[hubId]) throw new Error('Current hub is not initialized');
+			assert.isDefined(this.hubs[hubId], 'Current hub is not initialized');
 
 			// Start conversation with hub frame and sync latest settings
 			await messagebox.startCommunication(this.hubs[hubId].url, miniClientId + '_' + hubId);
@@ -131,7 +132,7 @@ const useHubs = defineStore('hubs', {
 
 			// If Hub is not pinned yet (first time) -> Add it to the pinned Hubs
 			if (!global.existsInPinnedHubs(this.currentHubId)) {
-				if (!this.currentHub) throw new Error('Current hub is not initialized');
+				assert.isDefined(this.currentHub, 'Current hub is not initialized');
 				global.addPinnedHub(this.currentHub, 0);
 			}
 
@@ -144,8 +145,8 @@ const useHubs = defineStore('hubs', {
 				}
 			} else {
 				//The hub has changed: set it up
+				assert.isDefined(this.currentHub, 'Current hub is not initialized');
 
-				if (!this.currentHub) throw new Error('Current hub is not initialized');
 				// Start conversation with hub frame and sync latest settings
 				await messagebox.startCommunication(this.currentHub.url, iframeHubId);
 
