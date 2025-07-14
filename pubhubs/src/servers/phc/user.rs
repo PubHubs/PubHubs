@@ -134,6 +134,12 @@ impl App {
             (AttrState, object_store::UpdateVersion),
         > = Default::default();
 
+        // Items are added to `attr_state` incidentally until at some point we loop over all
+        // attributes in attrs that are not yet in `attr_states`.  When this happens depends on
+        // whether the user account already exists or not. To keep track of whether it happened
+        // we've added the following boolean.
+        let mut retrieved_attr_states = false;
+
         // keeps track of which attributes have already been added
         let mut attr_add_status: HashMap<Id, AttrAddStatus> = Default::default();
 
@@ -194,7 +200,11 @@ impl App {
             ));
 
             if let Some(resp) = app
-                .precheck_attrs_for_registration(&attrs, &mut attr_states)
+                .precheck_attrs_for_registration(
+                    &attrs,
+                    &mut attr_states,
+                    &mut retrieved_attr_states,
+                )
                 .await?
             {
                 return Ok(resp);
@@ -203,7 +213,7 @@ impl App {
             // we need to be careful with the order of things here lest we leave the object
             // store in a broken state.
             //
-            //  1. Add the user account object.  Include the identying attributes in the user
+            //  1. Add the user account object.  Include the identifying attributes in the user
             //     account already - they can be added later - but do not include the bannable
             //     attributes. If this fails, the client just needs to register
             //     again.
@@ -292,6 +302,22 @@ impl App {
             return Ok(EnterResp::Banned);
         }
 
+        if !retrieved_attr_states {
+            for attr in attrs.values() {
+                if attr_states.contains_key(&attr.id) {
+                    continue;
+                }
+
+                if let Some(attr_state_and_version) = app.get_object::<AttrState>(&attr.id).await? {
+                    attr_states.insert(attr.id, attr_state_and_version);
+                }
+            }
+
+            retrieved_attr_states = true;
+        }
+
+        assert!(retrieved_attr_states);
+
         // Add the missing attributes.  First the attribute states.
         for attr in attrs.values() {
             if attr_states.contains_key(&attr.id) {
@@ -312,7 +338,8 @@ impl App {
                         .insert(attr.id, AttrAddStatus::Added)
                         .is_none());
                 }
-                _ => {
+                problem => {
+                    log::warn!("problem adding attribute state {}: {problem:?}", attr.value);
                     assert!(attr_add_status
                         .insert(attr.id, AttrAddStatus::PleaseTryAgain)
                         .is_none());
@@ -396,7 +423,9 @@ impl App {
                     }
                 }
 
-                _ => {
+                problem => {
+                    log::warn!("failed to update user state to add attributes: {problem:?}");
+
                     for added_attr_id in added_attrs {
                         attr_add_status.insert(added_attr_id, AttrAddStatus::PleaseTryAgain);
                     }
@@ -446,8 +475,8 @@ impl App {
     ///  2. One of the attributes is banned
     ///  3. One of the attributes already identifies another user.
     ///
-    /// Will try to retrieve attribute states for attributes not already in `attr_states`,
-    /// and will add those to `attr_states`.
+    /// Might try to retrieve attribute states for attributes not already in `attr_states`,
+    /// and will add those to `attr_states`. If it did, will set `retrieved_attr_states`.
     ///
     /// Returns `Ok(None)` when there are no issues.
     ///
@@ -457,12 +486,15 @@ impl App {
         &self,
         attrs: &HashMap<Id, IdedAttr>,
         attr_states: &mut HashMap<Id, (AttrState, object_store::UpdateVersion)>,
+        retrieved_attr_states: &mut bool,
     ) -> api::Result<Option<EnterResp>> {
         // Before doing potentially expensive queries to the object store, make sure a bannable
         // attribute has been provided by the client
         if !attrs.values().any(|attr| attr.bannable) {
             return Ok(Some(EnterResp::NoBannableAttribute));
         }
+
+        assert!(!*retrieved_attr_states, "not expecting double work here");
 
         // Retrieve attributes states in so far they are available
         for (attr_id, attr) in attrs {
@@ -475,6 +507,8 @@ impl App {
                 attr_states.insert(attr.id, attr_state_and_version);
             }
         }
+
+        *retrieved_attr_states = true;
 
         for (attr_id, (attr_state, ..)) in attr_states.iter() {
             if attr_state.banned {
