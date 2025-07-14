@@ -212,13 +212,13 @@ pub mod user {
             ///
             /// May not be provided, for example, when the user is banned, or if no bannable
             /// attribute is currently associated to the user's account.
-            auth_token: std::result::Result<AuthToken, AuthTokenDeniedReason>,
+            auth_token_package: std::result::Result<AuthTokenPackage, AuthTokenDeniedReason>,
 
             attr_status: Vec<(attr::Attr, AttrAddStatus)>,
         },
     }
 
-    /// Why no id token was granted
+    /// Why no auth token was granted
     #[derive(Serialize, Deserialize, Debug, Clone, Copy, PartialEq, Eq)]
     #[serde(deny_unknown_fields)]
     pub enum AuthTokenDeniedReason {
@@ -227,6 +227,10 @@ pub mod user {
         /// May happen when a bannable attribute was provided in the [`EnterReq`], but adding this
         /// attribute failed for some reason.  Just try to add the bannable attribute again.
         NoBannableAttribute,
+
+        /// This account is banned.  Only returned in [`RefreshResp`] (since [`EnterResp`] has
+        /// [`EnterResp::Banned`]).
+        Banned,
     }
 
     /// Whether to login, register, or both.
@@ -259,8 +263,48 @@ pub mod user {
         PleaseTryAgain,
     }
 
+    /// Refresh authentication token.  Requires authentication, but the access token used to
+    /// authenticate may be expired.
+    pub struct RefreshEP {}
+    impl EndpointDetails for RefreshEP {
+        type RequestType = NoPayload;
+        type ResponseType = Result<RefreshResp>;
+
+        const METHOD: http::Method = http::Method::GET;
+        const PATH: &'static str = ".ph/user/refresh";
+    }
+
+    /// Returned by [`RefreshEP`].
+    #[derive(Serialize, Deserialize, Debug, Clone)]
+    #[serde(deny_unknown_fields)]
+    #[serde(rename = "snake_case")]
+    #[must_use]
+    pub enum RefreshResp {
+        /// Something is wrong with the provided auth token.  Please obtain a new one via the
+        /// [`EnterEP`].
+        ReobtainAuthToken,
+
+        /// Cannot issue authentication token for the given [`AuthTokenDeniedReason`]
+        Denied(AuthTokenDeniedReason),
+
+        /// The refreshed authentication token
+        Success(AuthTokenPackage),
+    }
+
+    /// An [`AuthToken`] with some additional information.
+    #[derive(Serialize, Deserialize, Debug, Clone)]
+    #[serde(deny_unknown_fields)]
+    pub struct AuthTokenPackage {
+        /// The actual authentication token
+        pub auth_token: AuthToken,
+
+        /// When [`Self::auth_token`] expires
+        pub expires: NumericDate,
+    }
+
     /// An opaque token used to identify the user towards pubhubs central via the
-    /// `Authorization` header.  The token can be obtained via the [`EnterEP`].
+    /// `Authorization` header.  The token can be obtained via the [`EnterEP`],
+    /// and be refreshed via the [`RefreshEP`].
     #[derive(Serialize, Deserialize, Debug, Clone)]
     #[serde(transparent)]
     pub struct AuthToken {

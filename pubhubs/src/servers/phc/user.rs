@@ -434,22 +434,11 @@ impl App {
         }
         let user_state = new_user_state;
 
-        let auth_token = if user_state.could_be_banned_by.is_empty() {
-            Err(AuthTokenDeniedReason::NoBannableAttribute)
-        } else {
-            let iat = jwt::NumericDate::now();
-            let exp = iat + app.auth_token_validity;
-            Ok(AuthTokenInner {
-                user_id: user_state.id,
-                iat,
-                exp,
-            }
-            .seal(&app.auth_token_secret)?)
-        };
+        let auth_token_package = app.issue_auth_token(&user_state)?;
 
         Ok(EnterResp::Entered {
             new_account,
-            auth_token,
+            auth_token_package,
             attr_status: attr_add_status
                 .iter()
                 .map(|(attr_id, attr_add_status)| {
@@ -526,6 +515,51 @@ impl App {
 
         Ok(None)
     }
+
+    /// Implements [`RefreshEP`]
+    pub(super) async fn handle_user_refresh(
+        app: Rc<Self>,
+        auth_token: actix_web::web::Header<AuthToken>,
+    ) -> api::Result<RefreshResp> {
+        let Ok((user_state, _)) = app
+            // the `true` means we allow expired access tokens
+            .open_auth_token_and_get_user_state_ext(auth_token.into_inner(), true)
+            .await?
+        else {
+            return Ok(RefreshResp::ReobtainAuthToken);
+        };
+
+        Ok(match app.issue_auth_token(&user_state)? {
+            Ok(atp) => RefreshResp::Success(atp),
+            Err(atdr) => RefreshResp::Denied(atdr),
+        })
+    }
+
+    /// Issues auth token for given user, if allowed
+    fn issue_auth_token(
+        &self,
+        user_state: &UserState,
+    ) -> api::Result<Result<AuthTokenPackage, AuthTokenDeniedReason>> {
+        if user_state.could_be_banned_by.is_empty() {
+            return Ok(Err(AuthTokenDeniedReason::NoBannableAttribute));
+        }
+
+        if user_state.banned {
+            return Ok(Err(AuthTokenDeniedReason::Banned));
+        }
+
+        let iat = jwt::NumericDate::now();
+        let exp = iat + self.auth_token_validity;
+        Ok(Ok(AuthTokenPackage {
+            expires: exp,
+            auth_token: AuthTokenInner {
+                user_id: user_state.id,
+                iat,
+                exp,
+            }
+            .seal(&self.auth_token_secret)?,
+        }))
+    }
 }
 
 /// Plaintext content of [`AuthToken`].
@@ -557,8 +591,8 @@ impl AuthTokenInner {
     }
 
     /// Opens this [`AuthToken`], returning the enclosed user's [`Id`].
-    fn open(self) -> Result<Id, Opaque> {
-        if self.exp < jwt::NumericDate::now() {
+    fn open(self, accept_expired: bool) -> Result<Id, Opaque> {
+        if !accept_expired && self.exp < jwt::NumericDate::now() {
             return Err(OPAQUE);
         }
 
@@ -569,7 +603,16 @@ impl AuthTokenInner {
 impl App {
     /// Opens the given [`AuthToken`] returning the enclosed user's [`Id`].
     pub(super) fn open_auth_token(&self, auth_token: AuthToken) -> Result<Id, Opaque> {
-        AuthTokenInner::unseal(&auth_token, &self.auth_token_secret)?.open()
+        self.open_auth_token_ext(auth_token, false)
+    }
+
+    /// Like [`Self::open_auth_token`], but with the option to accept an expired auth token.
+    pub(super) fn open_auth_token_ext(
+        &self,
+        auth_token: AuthToken,
+        accept_expired: bool,
+    ) -> Result<Id, Opaque> {
+        AuthTokenInner::unseal(&auth_token, &self.auth_token_secret)?.open(accept_expired)
     }
 
     /// Opens the given [`AuthToken`] and retrieve the associated [`UserState`].
@@ -579,7 +622,18 @@ impl App {
         &self,
         auth_token: AuthToken,
     ) -> api::Result<Result<(UserState, object_store::UpdateVersion), Opaque>> {
-        let Ok(user_id) = self.open_auth_token(auth_token) else {
+        self.open_auth_token_and_get_user_state_ext(auth_token, false)
+            .await
+    }
+
+    /// Like [`Self::open_auth_token_and_get_user_state`] but with the option to accept an expired auth
+    /// token.
+    pub(super) async fn open_auth_token_and_get_user_state_ext(
+        &self,
+        auth_token: AuthToken,
+        accept_expired: bool,
+    ) -> api::Result<Result<(UserState, object_store::UpdateVersion), Opaque>> {
+        let Ok(user_id) = self.open_auth_token_ext(auth_token, accept_expired) else {
             return Ok(Err(OPAQUE));
         };
 

@@ -469,7 +469,7 @@ async fn main_integration_test_local(
 
     let api::phc::user::EnterResp::Entered {
         new_account: false,
-        auth_token: Ok(..),
+        auth_token_package: Ok(..),
         ..
     } = enter_resp
     else {
@@ -491,7 +491,7 @@ async fn main_integration_test_local(
 
     let api::phc::user::EnterResp::Entered {
         new_account: false,
-        auth_token: Ok(auth_token),
+        auth_token_package: Ok(api::phc::user::AuthTokenPackage { auth_token, .. }),
         attr_status,
     } = enter_resp
     else {

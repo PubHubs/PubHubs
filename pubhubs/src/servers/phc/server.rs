@@ -91,6 +91,7 @@ impl crate::servers::App<Server> for App {
 
         api::phc::user::WelcomeEP::caching_add_to(self, sc, App::cached_handle_user_welcome);
         api::phc::user::EnterEP::add_to(self, sc, App::handle_user_enter);
+        api::phc::user::RefreshEP::add_to(self, sc, App::handle_user_refresh);
         api::phc::user::StateEP::add_to(self, sc, App::handle_user_state);
 
         api::phc::user::NewObjectEP::add_to(self, sc, App::handle_user_new_object);

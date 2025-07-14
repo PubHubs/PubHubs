@@ -331,6 +331,11 @@ pub mod phc {
         pub attr_id_secret: Option<B64UU>,
 
         /// Authentication tokens issued to the global client are valid for this duration.
+        ///
+        /// Auth tokens are validated based on their own contents - there's no list of valid
+        /// authentication tokens in a database somewhere.  This means that when a user is banned,
+        /// the authentication tokens remain valid until they expire.  The validity duration of
+        /// auth tokens should thus not be too long.
         #[serde(with = "time_ext::human_duration")]
         #[serde(default = "default_auth_token_validity")]
         pub auth_token_validity: core::time::Duration,
@@ -351,9 +356,7 @@ pub mod phc {
     }
 
     fn default_auth_token_validity() -> core::time::Duration {
-        // TODO: implement refreshing of expired tokens:
-        core::time::Duration::from_secs(60 * 60) // 1 hour - the user might need to add attributes
-                                                 // to their Yivi app
+        core::time::Duration::from_secs(60 * 60) // 1 hour
     }
 
     fn default_pp_nonce_validity() -> core::time::Duration {
@@ -407,7 +410,8 @@ pub mod auths {
     }
 
     fn default_auth_window() -> core::time::Duration {
-        core::time::Duration::from_secs(60 * 60) // one hour
+        core::time::Duration::from_secs(60 * 60) // 1 hour - the user might need to add attributes
+                                                 // to their Yivi app
     }
 
     impl ExtraConfig {
