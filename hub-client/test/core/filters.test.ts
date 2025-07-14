@@ -1,4 +1,5 @@
 import { expect, test } from 'vitest';
+
 import filters from '@/logic/core/filters';
 
 test('extractPseudonym', () => {
@@ -13,8 +14,8 @@ test('extractPseudonym', () => {
 	expect(filters.extractPseudonym('@123-agc:matrix')).toBe('!!!-!!!');
 	expect(filters.extractPseudonym('@123-abcd:matrix')).toBe('!!!-!!!');
 
-	expect(() => filters.extractPseudonym('acb-123:missing-at')).toThrowError(/^matrix ID did not start with '@'$/);
-	expect(() => filters.extractPseudonym('something entirely different')).toThrowError(/^matrix ID did not contain ':'$/);
+	expect(() => filters.extractPseudonym('acb-123:missing-at')).toThrowError("matrix ID did not start with '@'");
+	expect(() => filters.extractPseudonym('something entirely different')).toThrowError("matrix ID did not contain ':'");
 });
 
 test('extractPseudonymFromString', () => {
