@@ -18,9 +18,11 @@ from twisted.web.resource import Resource
 from twisted.web.server import NOT_DONE_YET
 import twisted.internet.defer
 
+
 from prometheus_client import Gauge
 
 from synapse.module_api import ModuleApi
+from synapse.http.server import respond_with_json
 import synapse.api.errors
 
 try:
@@ -123,18 +125,15 @@ class PhInfoEP(Resource):
         self._hub_version = hub_version
 
     def render_GET(self, request):
-        request.responseHeaders.addRawHeader(b"content-type", b"application/json")
-        return json.dumps({
+        return respond_with_json(request, 200, {
                 'hub_version': self._hub_version
-            }).encode('ascii')
+            }, send_cors=True)
 
 class PhEnterStartEP(Resource):
     def __init__(self, core):
         self._core = core
 
     def render_POST(self, request):
-        request.responseHeaders.addRawHeader(b"content-type", b"application/json")
-
         # binds nonce and state
         random = b64enc(nacl.utils.random(32))
 
@@ -147,10 +146,10 @@ class PhEnterStartEP(Resource):
             'random': random
         }).encode('ascii'), b"nonce"))
 
-        return json.dumps({ 'Ok': {
-                    'state': state,
-                    'nonce': nonce,
-                }}).encode('ascii')
+        return respond_with_json(request, 200, { 'Ok': {
+                'state': state,
+                'nonce': nonce,
+            }}, send_cors=True)
 
 def b64enc(some_bytes):
     return base64.urlsafe_b64encode(some_bytes).decode('ascii').strip('=')
@@ -159,13 +158,13 @@ def b64dec(some_string):
     return base64.urlsafe_b64decode(some_string + "==") # python requires padding
 
 def bad_request():
-    return json.dumps({ 'Err': 'BadRequest' }).encode('ascii')
+    { 'Err': 'BadRequest' }
 
 def internal_error():
-    return json.dumps({ 'Err': 'InternalError' }).encode('ascii')
+    { 'Err': 'InternalError' }
 
 def please_retry():
-    return json.dumps({ 'Err': 'PleaseRetry' }).encode('ascii')
+    { 'Err': 'PleaseRetry' }
 
 
 class Return(Exception):
@@ -176,16 +175,13 @@ class PhEnterCompleteEP(Resource):
     def __init__(self, core):
         self._core = core
 
-
     def render_POST(self, request):
         d = twisted.internet.defer.ensureDeferred(self._render_POST_async(request))
         d.addCallback(lambda result: self._finish_request(request, result))
         return NOT_DONE_YET
 
     def _finish_request(self, request, result):
-        request.write(result)
-        request.finish()
-
+        respond_with_json(request, 200, result, send_cors=True)
 
     def _get_phc_jwt_key(self, header, payload):
         if self._core._constellation == None:
@@ -208,17 +204,15 @@ class PhEnterCompleteEP(Resource):
             raise Return(please_retry())
         if their_c < our_c:
             # signed by old key
-            raise Return(json.dumps({ 'Ok': 'RetryFromStart' }).encode('ascii'))
+            raise Return({ 'Ok': 'RetryFromStart' })
         if our_i != their_i:
             logger.info("constellation maybe out of date")
             self._core.trigger_get_constellation()
-            raise Return(json.dumps({ 'Ok': 'RetryFromStart' }).encode('ascii'))
+            raise Return({ 'Ok': 'RetryFromStart' })
 
         return self._core._phc_jwt_key
 
     async def _render_POST_async(self, request):
-        request.responseHeaders.addRawHeader(b"content-type", b"application/json")
-
         try:
             r = json.load(request.content)
         except Exception as e:
@@ -247,7 +241,7 @@ class PhEnterCompleteEP(Resource):
         # Only access enter states not older than 10 seconds. (TODO: make configurable)
         if time.time() - state_iat > 10: 
             logger.info("expired enter state submitted")
-            return json.dumps({ 'Ok': 'RetryFromStart' }).encode('ascii')
+            return { 'Ok': 'RetryFromStart' }
 
         if self._core._constellation == None:
             self._core.trigger_get_constellation();
@@ -276,7 +270,7 @@ class PhEnterCompleteEP(Resource):
 
         if time.time() - pp_issued_at > 10: # TODO: make configurable
             logger.info("hhpp from pp that was issued too long ago")
-            return json.dumps({ 'Ok': 'RetryFromStart' }).encode('ascii')
+            return { 'Ok': 'RetryFromStart' }
 
         try:
             nonce = json.loads(self._core._secret_box.decrypt(b64dec(nonce_str), b"nonce"))
@@ -325,8 +319,8 @@ class PhEnterCompleteEP(Resource):
 
         (device_id, access_token, access_token_exp, refresh_token) = await self._core._api.register_device(mxid)
 
-        return json.dumps({ 'Ok': { 'Entered': {
-                    'access_token': access_token,
-                    'device_id': device_id,
-                    'new_user': new_user,
-                }}}).encode('ascii')
+        return { 'Ok': { 'Entered': {
+                'access_token': access_token,
+                'device_id': device_id,
+                'new_user': new_user,
+            }}}
