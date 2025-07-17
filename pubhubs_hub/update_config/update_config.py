@@ -423,6 +423,7 @@ class UpdateConfig:
 
         If they are present check if the start of the string is changed with _check_did_start_change
         """
+        client_url = None
         modules = homeserver_live[key].copy()
         for index, module_dict in enumerate(modules):
             if not (
@@ -438,6 +439,7 @@ class UpdateConfig:
                     config["client_url"],
                     "http://localhost"
                 )
+                client_url = config["client_url"]
             else:
                 raise ConfigError("❌   config.client_url should be set but is missing")
             if "global_client_url" in config:
@@ -459,6 +461,18 @@ class UpdateConfig:
             raise ConfigError(
                 "❌   conf.modules.pubhubs.HubClientApi and config should be present in a module but are missing"
             )
+
+        # copy over (global_)client_url from HubClientApi config to Core config
+        for module_dict in homeserver_live[key]:
+            if "module" not in module_dict or module_dict["module"] != "conf.modules.pubhubs.Core":
+                continue
+            core_module_config = module_dict.setdefault("config", {})
+            core_module_config.setdefault("hub_client_url", client_url)
+            core_module_config.setdefault("global_client_url", global_client_url)
+            break
+        else:
+            assert False, "expected conf.modules.pubhubs.Core to be added to live config, but it isn't"
+
         return global_client_url
 
     def _check_did_issuer_or_client_id_change(
