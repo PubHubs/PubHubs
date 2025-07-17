@@ -315,6 +315,12 @@ pub mod phc {
         /// Where can we reach the authentication server?
         pub auths_url: UrlPwa,
 
+        /// The URL to pubhubs used by end-clients.
+        ///
+        /// Currently `https://app.pubhubs.net` for production, `https://main.pubhubs.ihub.ru.nl` for
+        /// acceptance, and `http://localhost:8080` for local development.  
+        pub global_client_url: UrlPwa,
+
         /// The hubs that are known to us
         pub hubs: Vec<hub::BasicInfo>,
 
@@ -574,6 +580,7 @@ impl PrepareConfig<Pcc> for phc::ExtraConfig {
 
         ha.dealias(&mut self.transcryptor_url);
         ha.dealias(&mut self.auths_url);
+        ha.dealias(&mut self.global_client_url);
 
         Ok(())
     }

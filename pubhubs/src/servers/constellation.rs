@@ -61,6 +61,8 @@ pub struct Inner {
 
     /// `x_T x_PHC B`
     pub master_enc_key: elgamal::PublicKey,
+
+    pub global_client_url: url::Url,
 }
 
 impl Inner {
@@ -89,6 +91,8 @@ impl Inner {
             auths_jwt_key,
             auths_enc_key,
 
+            global_client_url,
+
             master_enc_key,
         } = self;
 
@@ -108,6 +112,7 @@ impl Inner {
             .chain_update(**auths_jwt_key)
             .chain_update(auths_enc_key)
             .chain_update(master_enc_key)
+            .chain_update(global_client_url.as_str())
     }
 
     pub fn derive_id(&self) -> id::Id {
