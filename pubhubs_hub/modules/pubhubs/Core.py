@@ -40,6 +40,7 @@ logger = logging.getLogger("synapse.contrib." + __name__)
 @dataclass
 class Config:
     phc_url: str = None
+    hub_client_url: str = None
 
 class Core:
     def __init__(self, config: dict, api: ModuleApi):
@@ -61,11 +62,14 @@ class Core:
             ).set(1)
 
         # [Endpoints] 
-        api.register_web_resource('/_synapse/client/.ph/info', PhInfoEP(hub_version=version_string))
+        hub_info = { 'hub_version': version_string }
+        api.register_web_resource('/_synapse/client/.ph/info', PhInfoEP(hub_info))
 
         # new, multi-server setup
         if self._config == None:
             return
+
+        hub_info['hub_client_url'] = self._config.hub_client_url
 
         self._secret_box = nacl.secret.Aead(nacl.utils.random(nacl.secret.Aead.KEY_SIZE))
 
@@ -82,7 +86,9 @@ class Core:
             logger.warn("pubhubs core module: phc_url not configured - not enabling multi-server setup endpoints")
             return None
 
-        return Config(phc_url = config['phc_url'])
+        return Config(
+                phc_url = config['phc_url'],
+                hub_client_url = config.get('hub_client_url'))
 
     def trigger_get_constellation(self):
         now = time.time()
@@ -121,13 +127,11 @@ def get_version_string():
         return "n/a runtime"
 
 class PhInfoEP(Resource):
-    def __init__(self, hub_version):
-        self._hub_version = hub_version
+    def __init__(self, contents):
+        self._contents = contents
 
     def render_GET(self, request):
-        return respond_with_json(request, 200, {
-                'hub_version': self._hub_version
-            }, send_cors=True)
+        return respond_with_json(request, 200, self._contents, send_cors=True)
 
 class PhEnterStartEP(Resource):
     def __init__(self, core):

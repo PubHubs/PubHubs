@@ -11,6 +11,8 @@ _Please add a brief description of any changes and any migrations to be performe
 
 ## Changed not yet merged to stable
 
+- [MSS: BREAKING] Added `phc.global_client_url` to `pubhubs.toml`.  Has no impact on `https://app.pubhubs.net`.
+
 ## 10 July 2025 - v2.2.0
 
 - [UPDATE] Replaced vue.cli by Vite

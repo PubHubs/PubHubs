@@ -58,9 +58,10 @@ sources = [
 #port = 7070
 
 [phc]
-#port = 8080
+#port = 5050
 auths_url = 'http://networkhost:6060'
 transcryptor_url = 'http://networkhost:7070'
+global_client_url = 'http://localhost:8080'
 
 [phc.object_store]
 url = "memory:///"

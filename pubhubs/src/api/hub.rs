@@ -19,10 +19,15 @@ impl EndpointDetails for InfoEP {
 #[must_use]
 pub struct InfoResp {
     /// Key used by the hub to sign requests to the other hubs with
+    ///
+    /// (Not currently returned by actual hubs.)
     pub verifying_key: VerifyingKey,
 
     /// String describing the hub version, likely the result of `git describe --tags`
     pub hub_version: String,
+
+    /// URL to this hub's client
+    pub hub_client_url: url::Url,
 }
 
 /// Endpoint that start the authentication of a (not yet existing) user

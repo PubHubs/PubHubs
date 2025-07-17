@@ -101,12 +101,20 @@
 //! [Cross-Origin Resource Sharing]: https://developer.mozilla.org/en-US/docs/Web/HTTP/Guides/CORS
 //! [`Attr`]: crate::attr::Attr
 //!
-//! # Changelog
+//! # Changelog of breaking changes
 //!
-//! ## **2025-06-25**
+//! ## 2025-06-25
 //!  - Removed `Expired` and `InvalidSignature` error codes.
 //!  - Added [`phc::user::EnterResp::RetryWithNewIdentifyingAttr`] and
 //!    [`phc::user::EnterResp::RetryWithNewAddAttr`] variants.
+//!
+//! ## 2025-07-14
+//!  - Renamed `phc::user::EnterResp::Entered::auth_token` to
+//!    [`phc::user::EnterResp::Entered::auth_token_package`], and changed its type,
+//!    replacing [`phc::user::AuthToken`]
+//!    with [`phc::user::AuthTokenPackage`] (which contains an expiry date). Instead of
+//!    `{ "Ok": "AuThToken..." }` the `auth_token(_package)` field will now
+//!    be of the form `{ "Ok": { "auth_token": "AuThToken", "expires": 123456789 } }`.
 mod common;
 pub use common::*;
 mod signed;

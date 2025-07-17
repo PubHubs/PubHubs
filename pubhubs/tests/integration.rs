@@ -454,7 +454,7 @@ async fn main_integration_test_local(
         api::phc::user::EnterResp::AttributeAlreadyTaken(..)
     ));
 
-    // Logging in using the email address works..
+    // Logging in using just the email address works..
     let enter_resp = client
         .query_with_retry::<api::phc::user::EnterEP, _, _>(
             &constellation.phc_url,
@@ -469,12 +469,42 @@ async fn main_integration_test_local(
 
     let api::phc::user::EnterResp::Entered {
         new_account: false,
-        auth_token: Ok(auth_token),
+        auth_token_package: Ok(..),
         ..
     } = enter_resp
     else {
         panic!();
     };
+
+    // Logging in using email address and phone works, and the phone attribute is already there
+    let enter_resp = client
+        .query_with_retry::<api::phc::user::EnterEP, _, _>(
+            &constellation.phc_url,
+            &api::phc::user::EnterReq {
+                identifying_attr: email.clone(),
+                mode: api::phc::user::EnterMode::Login,
+                add_attrs: vec![phone.clone()],
+            },
+        )
+        .await
+        .unwrap();
+
+    let api::phc::user::EnterResp::Entered {
+        new_account: false,
+        auth_token_package: Ok(api::phc::user::AuthTokenPackage { auth_token, .. }),
+        attr_status,
+    } = enter_resp
+    else {
+        panic!();
+    };
+
+    for (attr, status) in attr_status {
+        assert!(
+            status == api::phc::user::AttrAddStatus::AlreadyThere,
+            "{} is not already there, but got status {status:?}",
+            attr.value
+        );
+    }
 
     // store object
     let api::phc::user::StoreObjectResp::Stored { hash } = client
@@ -767,6 +797,7 @@ async fn handle_info_url(context: web::Data<Arc<MockHubContext>>) -> impl actix_
     web::Json(api::Result::Ok(api::hub::InfoResp {
         verifying_key: vk,
         hub_version: "n/a".to_owned(),
+        hub_client_url: "http://example.com".parse().unwrap(),
     }))
 }
 

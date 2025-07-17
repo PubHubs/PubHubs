@@ -294,7 +294,7 @@ impl EnterArgs {
             .context("failed to enter pubhubs")?;
 
         let api::phc::user::EnterResp::Entered {
-            auth_token: Ok(auth_token),
+            auth_token_package: Ok(api::phc::user::AuthTokenPackage { auth_token, .. }),
             new_account: _new_account,
             attr_status,
         } = enter_resp
