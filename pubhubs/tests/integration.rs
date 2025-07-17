@@ -797,6 +797,7 @@ async fn handle_info_url(context: web::Data<Arc<MockHubContext>>) -> impl actix_
     web::Json(api::Result::Ok(api::hub::InfoResp {
         verifying_key: vk,
         hub_version: "n/a".to_owned(),
+        hub_client_url: "http://example.com".parse().unwrap(),
     }))
 }
 

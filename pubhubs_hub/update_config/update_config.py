@@ -468,7 +468,6 @@ class UpdateConfig:
                 continue
             core_module_config = module_dict.setdefault("config", {})
             core_module_config.setdefault("hub_client_url", client_url)
-            core_module_config.setdefault("global_client_url", global_client_url)
             break
         else:
             assert False, "expected conf.modules.pubhubs.Core to be added to live config, but it isn't"
