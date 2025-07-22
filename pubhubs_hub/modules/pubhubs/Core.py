@@ -162,13 +162,13 @@ def b64dec(some_string):
     return base64.urlsafe_b64decode(some_string + "==") # python requires padding
 
 def bad_request():
-    { 'Err': 'BadRequest' }
+    return { 'Err': 'BadRequest' }
 
 def internal_error():
-    { 'Err': 'InternalError' }
+    return { 'Err': 'InternalError' }
 
 def please_retry():
-    { 'Err': 'PleaseRetry' }
+    return { 'Err': 'PleaseRetry' }
 
 
 class Return(Exception):
