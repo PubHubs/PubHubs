@@ -839,5 +839,6 @@ async fn handle_enter_complete(
         access_token: base16ct::lower::encode_string(hashed_hub_pseudonym.as_bytes().as_slice()),
         device_id: "device_id".to_string(),
         new_user: true,
+        mxid: "mxid".to_string(),
     }))
 }

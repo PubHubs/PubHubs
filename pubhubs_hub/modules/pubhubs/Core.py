@@ -327,4 +327,5 @@ class PhEnterCompleteEP(Resource):
                 'access_token': access_token,
                 'device_id': device_id,
                 'new_user': new_user,
+                'mxid': mxid,
             }}}
