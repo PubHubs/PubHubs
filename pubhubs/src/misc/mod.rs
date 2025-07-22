@@ -11,5 +11,3 @@ pub mod time_ext;
 
 mod defer;
 pub use defer::defer;
-
-mod object_store_ext;
