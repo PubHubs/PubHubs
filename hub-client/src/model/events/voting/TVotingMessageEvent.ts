@@ -1,3 +1,4 @@
+import { EventType } from 'matrix-js-sdk';
 import { TBaseEvent } from '../TBaseEvent';
 import { TBaseMessageEventContent } from '../TMessageEvent';
 import { PubHubsMgType } from '@/logic/core/events';
@@ -6,7 +7,7 @@ import { VotingWidget, VotingWidgetType, SchedulerOption, PollOption } from '@/m
 
 export interface TVotingMessageEvent<C extends TVotingWidgetMessageBaseEvent = TVotingWidgetMessageBaseEvent> extends TBaseEvent {
 	content: C;
-	type: 'm.room.message';
+	type: EventType.RoomMessage;
 }
 
 export interface TVotingWidgetMessageBaseEvent extends TBaseMessageEventContent {

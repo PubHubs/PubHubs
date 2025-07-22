@@ -1,4 +1,4 @@
-import { allTypes, fileTypes, imageTypes, mediaTypes } from '@/model/constants';
+import { allTypes, fileTypes, imageTypes, imageTypesExt, mediaTypes } from '@/model/constants';
 
 import { usePubHubs } from '@/logic/core/pubhubsStore';
 
@@ -41,8 +41,9 @@ const useMatrixFiles = () => {
 		return url;
 	}
 
-	function isImage(type: string) {
-		return imageTypes.indexOf(type) >= 0;
+	function isImage(img: string) {
+		const ext = img.split('.').pop()?.toLocaleLowerCase();
+		return imageTypesExt.indexOf(ext) >= 0;
 	}
 
 	function isAllowed(type: string) {

@@ -3,10 +3,11 @@ import { describe, beforeEach, expect, test } from 'vitest';
 import { EventTimeLineHandler } from '@/logic/core/eventTimeLineHandler';
 import { TEvent } from '@/logic/core/model/event/TEvent';
 import { TTextMessageEventContent } from '@/logic/core/model/events/TMessageEvent';
+import { EventType } from 'matrix-js-sdk';
 // import { usePlugins, MenuPluginProperties,RoomIdPluginProperties,TypePluginProperties, PluginType } from '@/logic/store/plugins';
 
 const TestEvent = {
-	type: 'm.room.message',
+	type: EventType.RoomMessage,
 	room_id: '##room_id##',
 	content: {
 		body: `<h2>Lorem ipsum dolor sit amet</h2>
@@ -20,7 +21,7 @@ const TestEvent = {
 } as TEvent;
 
 const TestEventLink = {
-	type: 'm.room.message',
+	type: EventType.RoomMessage,
 	room_id: '##room_id##',
 	content: {
 		body: `

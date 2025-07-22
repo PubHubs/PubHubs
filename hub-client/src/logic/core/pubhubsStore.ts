@@ -1,29 +1,29 @@
-import { defineStore } from 'pinia';
-
+import { AskDisclosureMessage, YiviSigningSessionResult } from '@/model/components/signedMessages';
+import { ContentHelpers, EventType, ISearchResults, ISendEventResponse, MatrixClient, MatrixError, MatrixEvent, Room as MatrixRoom, User as MatrixUser, MsgType, TimelineEvents } from 'matrix-js-sdk';
 import { Events, PubHubsMgType, RedactReasons } from '@/logic/core/events';
+import { Poll, Scheduler } from '@/model/events/voting/VotingTypes';
+import { TMentions, TMessageEvent, TTextMessageEventContent } from '@/model/events/TMessageEvent';
+import { TPublicRoom, useRooms } from '@/logic/store/store';
+import { TVotingWidgetClose, TVotingWidgetEditEventContent, TVotingWidgetMessageEventContent, TVotingWidgetOpen, TVotingWidgetPickOption, TVotingWidgetVote } from '@/model/events/voting/TVotingMessageEvent';
+import { User, useUser } from '@/logic/store/user';
 import { api_matrix, api_synapse } from '@/logic/core/api';
-import { Authentication } from '@/logic/core/authentication';
 import { createNewPrivateRoomName, refreshPrivateRoomName, updatePrivateRoomName } from '@/logic/core/privateRoomNames';
 import { hasHtml, sanitizeHtml } from '@/logic/core/sanitizer';
+
+import { Authentication } from '@/logic/core/authentication';
 import { LOGGER } from '@/logic/foundation/Logger';
-import { SMI } from '@/logic/foundation/StatusMessage';
-import { AskDisclosureMessage, YiviSigningSessionResult } from '@/model/components/signedMessages';
-import { TMentions, TMessageEvent, TTextMessageEventContent } from '@/model/events/TMessageEvent';
-import { TVotingWidgetClose, TVotingWidgetEditEventContent, TVotingWidgetMessageEventContent, TVotingWidgetOpen, TVotingWidgetPickOption, TVotingWidgetVote } from '@/model/events/voting/TVotingMessageEvent';
-import Room from '@/model/rooms/Room';
-import { TSearchParameters } from '@/model/search/TSearch';
-import { useConnection } from '@/logic/store/connection';
-import { imageTypes } from '@/model/constants';
-import { RoomType } from '@/logic/store/rooms';
-import { TPublicRoom, useRooms } from '@/logic/store/store';
-import { User, useUser } from '@/logic/store/user';
-import { router } from '@/logic/core/router';
-import { ContentHelpers, EventType, ISearchResults, ISendEventResponse, MatrixClient, MatrixError, MatrixEvent, Room as MatrixRoom, User as MatrixUser, MsgType } from 'matrix-js-sdk';
 import { ReceiptType } from 'matrix-js-sdk/lib/@types/read_receipts';
-import { Poll, Scheduler } from '@/model/events/voting/VotingTypes';
-import { useMessageActions } from '@/logic/store/message-actions';
-import { RoomPowerLevelsEventContent } from 'matrix-js-sdk/lib/@types/state_events';
+import Room from '@/model/rooms/Room';
 import { RoomMessageEventContent } from 'matrix-js-sdk/lib/types';
+import { RoomPowerLevelsEventContent } from 'matrix-js-sdk/lib/@types/state_events';
+import { RoomType } from '@/logic/store/rooms';
+import { SMI } from '@/logic/foundation/StatusMessage';
+import { TSearchParameters } from '@/model/search/TSearch';
+import { defineStore } from 'pinia';
+import { imageTypes } from '@/model/constants';
+import { router } from '@/logic/core/router';
+import { useConnection } from '@/logic/store/connection';
+import { useMessageActions } from '@/logic/store/message-actions';
 
 const publicRoomsLoading: Promise<any> | null = null; // outside of defineStore to guarantee lifetime, not accessible outside this module
 const updateRoomsPerforming: Promise<void> | null = null; // outside of defineStore to guarantee lifetime, not accessible outside this module
@@ -667,6 +667,22 @@ const usePubHubs = defineStore('pubhubs', {
 			await this.client.sendMessage(roomId, content);
 		},
 
+		async addSignedFile(roomId: string, signedFileHash: YiviSigningSessionResult, originalEventId: string | undefined) {
+			const content = {
+				msgtype: PubHubsMgType.SignedFileMessage,
+				body: 'signed file',
+				signed_message: signedFileHash,
+				'm.relates_to': {
+					event_id: originalEventId,
+				},
+			};
+			// @ts-ignore
+			// todo: fix this (issue #808)
+			console.log('addSignedFile ==>', roomId, content);
+			const result = await this.client.sendEvent(roomId, PubHubsMgType.LibraryFileMessage, content);
+			console.log('addSignedFile <==', result);
+		},
+
 		/**
 		 * @param roomId
 		 * @param eventId
@@ -844,7 +860,7 @@ const usePubHubs = defineStore('pubhubs', {
 			await this.client.sendMessage(roomId, content);
 		},
 
-		async addFile(roomId: string, threadId: string | undefined, file: File, uri: string, message: string = '') {
+		async addFile(roomId: string, threadId: string | undefined, file: File, uri: string, message: string = '', eventType: EventType = PubHubsMgType.Default) {
 			const thread = threadId && threadId.length > 0 ? threadId : null;
 			let fileType = MsgType.File;
 			let body = message;
@@ -866,7 +882,12 @@ const usePubHubs = defineStore('pubhubs', {
 				'm.relates_to': undefined,
 			};
 			try {
-				await this.client.sendMessage(roomId, thread, content);
+				// FileLibrary
+				if (eventType === PubHubsMgType.LibraryFileMessage) {
+					await this.client.sendEvent(roomId, eventType as keyof TimelineEvents, content);
+				} else {
+					await this.client.sendMessage(roomId, thread, content);
+				}
 			} catch (error) {
 				logger.trace(SMI.STORE, 'swallowing add file error', { error });
 			}

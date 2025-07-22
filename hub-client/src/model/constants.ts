@@ -24,6 +24,7 @@ enum OnboardingType {
 
 // File types
 const imageTypes = ['image/png', 'image/jpeg', 'image/gif', 'image/svg'];
+const imageTypesExt = ['png', 'jpeg', 'jpg', 'gif', 'svg'];
 const mediaTypes = ['audio/wave', 'audio/wav', 'audio/x-wav', 'audio/x-pn-wav', 'audio/webm', 'video/webm', 'audio/ogg', 'video/ogg', 'application/ogg'];
 const fileTypes = [
 	'application/pdf',
@@ -45,4 +46,4 @@ const fileTypes = [
 
 const allTypes = [...imageTypes, ...mediaTypes, ...fileTypes];
 
-export { RelationType, RoomEmit, OnboardingType, imageTypes, mediaTypes, fileTypes, allTypes };
+export { RelationType, RoomEmit, OnboardingType, imageTypes, mediaTypes, fileTypes, allTypes, imageTypesExt };
