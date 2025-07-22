@@ -8,6 +8,7 @@ import { TBaseEvent } from '../events/TBaseEvent';
 import { TRoomMember } from './TRoomMember';
 import TRoomThread from '../thread/RoomThread';
 import RoomMember from './RoomMember';
+import { useRoomLibrary } from '@/logic/composables/useRoomLibrary';
 import { TMessageEvent, TMessageEventContent } from '../events/TMessageEvent';
 import { useMatrixFiles } from '@/logic/composables/useMatrixFiles';
 
@@ -68,6 +69,8 @@ export default class Room {
 
 	logger = LOGGER;
 
+	private roomLibrary;
+
 	constructor(matrixRoom: MatrixRoom) {
 		LOGGER.trace(SMI.ROOM, `Roomclass Constructor `, {
 			roomId: matrixRoom.roomId,
@@ -84,6 +87,7 @@ export default class Room {
 		this.lastVisibleTimeStamp = 0;
 
 		this.pubhubsStore = usePubHubs();
+		this.roomLibrary = useRoomLibrary();
 		this.matrixFiles = useMatrixFiles();
 
 		this.timelineWindow = new RoomTimelineWindow(this.matrixRoom);
@@ -415,6 +419,14 @@ export default class Room {
 
 	public getLivetimelineLength(): number {
 		return this.matrixRoom.getLiveTimeline().getEvents().length;
+	}
+
+	// #endregion
+
+	// #region RoomLibrary
+
+	public loadRoomlibrary() {
+		return this.roomLibrary.loadRoomLibraryTimeline(this.matrixRoom);
 	}
 
 	// #endregion

@@ -1,4 +1,5 @@
 import { useSettings } from '@/logic/store/settings';
+import { EventType } from 'matrix-js-sdk';
 import { createPinia, setActivePinia } from 'pinia';
 import { beforeEach, describe, expect, test } from 'vitest';
 
@@ -9,7 +10,7 @@ describe('Settings Store', () => {
 		setActivePinia(createPinia());
 		settings = useSettings();
 		settings.pagination = 10;
-		settings.visibleEventTypes = ['m.room.message'];
+		settings.visibleEventTypes = [EventType.RoomMessage];
 	});
 
 	describe('pagination', () => {

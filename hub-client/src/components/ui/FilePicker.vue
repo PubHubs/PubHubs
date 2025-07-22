@@ -9,14 +9,19 @@
 					<div class="text-on-surface-dim ~text-label-min/label-max">{{ messageInput.state.fileAdded.name }} ({{ `${filters.formatBytes(messageInput.state.fileAdded.size, 2)}` }})</div>
 				</div>
 			</div>
-			<div class="flex gap-2 pt-2" :class="{ 'flex-col': imageTypes.includes(messageInput.state.fileAdded?.type) }">
+			<div class="flex gap-2 pt-3" :class="{ 'flex-col': imageTypes.includes(messageInput.state.fileAdded?.type) }">
 				<Icon type="swap" class="cursor-pointer hover:text-accent-secondary" @click="openFile()"></Icon>
 				<Icon type="bin" class="cursor-pointer hover:text-accent-error" @click="removeFile()"></Icon>
+				<div class="relative flex-grow">
+					<div class="absolute" :class="imageTypes.includes(messageInput.state.fileAdded?.type) ? 'bottom-10' : 'bottom-1'">
+						<Button v-if="submitButton" size="sm" @click="submit()">{{ $t('file.upload_file') }}</Button>
+					</div>
+				</div>
 			</div>
 		</div>
 	</div>
 
-	<input type="file" :accept="getTypesAsString(allTypes)" class="attach-file" ref="elFileInput" @change="uploadFile($event)" @cancel="messageInput.cancelFileUpload()" hidden />
+	<input type="file" :accept="getTypesAsString(allTypes)" class="attach-file" ref="elFileInput" @change="uploadFileTemporary($event)" @cancel="messageInput.cancelFileUpload()" hidden />
 </template>
 
 <script setup lang="ts">
@@ -30,10 +35,16 @@
 	const uri = ref<string>('');
 	const elFileInput = ref<HTMLInputElement | null>(null);
 
+	const emit = defineEmits(['submit']);
+
 	const props = defineProps({
 		messageInput: {
 			type: Object as PropType<ReturnType<typeof useMessageInput>>,
 			required: true,
+		},
+		submitButton: {
+			type: Boolean,
+			default: false,
 		},
 	});
 
@@ -49,7 +60,7 @@
 		props.messageInput.state.fileAdded = null;
 	}
 
-	function uploadFile(event: Event) {
+	function uploadFileTemporary(event: Event) {
 		const target = event.currentTarget as HTMLInputElement;
 		const choosenFile = target.files && target.files[0];
 		if (choosenFile) {
@@ -62,5 +73,9 @@
 				elFileInput.value.value = '';
 			}
 		}
+	}
+
+	function submit() {
+		emit('submit');
 	}
 </script>
