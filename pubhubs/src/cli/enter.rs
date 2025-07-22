@@ -175,12 +175,14 @@ impl EnterArgs {
             access_token: hub_access_token,
             device_id,
             new_user,
+            mxid,
         } = enter_complete_resp
         else {
             anyhow::bail!("failed to complete entering hub: {enter_complete_resp:?}");
         };
 
         println!("access token: {hub_access_token}");
+        println!("mxid:         {mxid}");
         println!("device id:    {device_id}");
         println!("first time?:  {new_user}");
 

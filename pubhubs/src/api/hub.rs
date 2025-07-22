@@ -116,5 +116,8 @@ pub enum EnterCompleteResp {
 
         /// True if this is the first time this user enters this hub.
         new_user: bool,
+
+        /// Matrix id to use in combination with the [`Self::Entered::access_token`] to log in.
+        mxid: String,
     },
 }
