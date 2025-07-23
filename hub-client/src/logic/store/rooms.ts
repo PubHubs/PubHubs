@@ -293,7 +293,6 @@ const useRooms = defineStore('rooms', {
 		fetchRoomArrayByType(type: string | undefined): Array<Room> {
 			const user = useUser().user;
 			const rooms = [...this.roomsArray].sort((a, b) => a.name.localeCompare(b.name));
-
 			// visibility is based on a prefix on room names when the room is joined or left.
 			if (type === RoomType.PH_MESSAGES_DM) {
 				return rooms.filter((room) => room.getType() === type).filter((room) => isVisiblePrivateRoom(room.name, user));

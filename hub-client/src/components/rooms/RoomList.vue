@@ -1,6 +1,6 @@
 <template>
 	<Menu>
-		<template v-for="room in rooms.fetchRoomArrayByType(props.roomType)" :key="room.roomId">
+		<template v-for="room in currentJoinedRooms" :key="room.roomId">
 			<MenuItem :to="{ name: 'room', params: { id: room.roomId } }" :room="room" :icon="roomIcon(room)" @click="hubSettings.hideBar()" class="group inline-block w-full">
 				<span class="flex w-full items-center justify-between gap-4">
 					<TruncatedText>
@@ -65,6 +65,10 @@
 			type: String,
 			default: undefined, // Don't define
 		},
+	});
+
+	const currentJoinedRooms = computed(() => {
+		return rooms.fetchRoomArrayByType(props.roomType).filter((room) => room.isHidden() === false);
 	});
 
 	const roomsLoaded = computed(() => {

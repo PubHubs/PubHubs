@@ -111,7 +111,7 @@
 		loadHubSettings();
 	});
 
-	onMounted(() => {
-		rooms.fetchPublicRooms();
+	onMounted(async () => {
+		await rooms.fetchPublicRooms();
 	});
 </script>

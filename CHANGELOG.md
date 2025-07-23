@@ -20,6 +20,7 @@ _Please add a brief description of any changes and any migrations to be performe
 - [NEW] Message can be added to a image or file in the chat
 - [NEW] Added a markdown editor for hub description, house rules, and contact information
 - [NEW] List of the members of a room can be shown now (button in header of the room)
+- [UPDATE] Transfer of ownership of room by Hub administrator
 
 ## 12 June 2025 - v2.1.3
 
