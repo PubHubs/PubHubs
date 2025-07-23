@@ -11,7 +11,7 @@ use crate::common::secret::DigestibleSecret as _;
 use crate::misc::crypto;
 use crate::misc::jwt;
 use crate::phcrypto;
-use crate::servers::{self, AppBase, AppCreatorBase, Constellation, Handle, constellation};
+use crate::servers::{self, constellation, AppBase, AppCreatorBase, Constellation, Handle};
 
 use crate::{elgamal, hub};
 
@@ -47,6 +47,7 @@ pub struct App {
     pub base: AppBase<Server>,
     pub transcryptor_url: url::Url,
     pub auths_url: url::Url,
+    pub global_client_url: url::Url,
     pub hubs: crate::map::Map<hub::BasicInfo>,
     pub master_enc_key_part: elgamal::PrivateKey,
     pub attr_id_secret: Box<[u8]>,
@@ -87,10 +88,11 @@ pub struct ExtraRunningState {
 impl crate::servers::App<Server> for App {
     fn configure_actix_app(self: &Rc<Self>, sc: &mut web::ServiceConfig) {
         api::phc::hub::TicketEP::add_to(self, sc, App::handle_hub_ticket);
-        api::phct::hub::Key::add_to(self, sc, App::handle_hub_key);
+        api::phct::hub::KeyEP::add_to(self, sc, App::handle_hub_key);
 
         api::phc::user::WelcomeEP::caching_add_to(self, sc, App::cached_handle_user_welcome);
         api::phc::user::EnterEP::add_to(self, sc, App::handle_user_enter);
+        api::phc::user::RefreshEP::add_to(self, sc, App::handle_user_refresh);
         api::phc::user::StateEP::add_to(self, sc, App::handle_user_state);
 
         api::phc::user::NewObjectEP::add_to(self, sc, App::handle_user_new_object);
@@ -98,6 +100,7 @@ impl crate::servers::App<Server> for App {
         api::phc::user::GetObjectEP::add_to(self, sc, App::handle_user_get_object);
 
         api::phc::user::PppEP::add_to(self, sc, App::handle_user_ppp);
+        api::phc::user::HhppEP::add_to(self, sc, App::handle_user_hhpp);
     }
 
     fn check_constellation(&self, _constellation: &Constellation) -> bool {
@@ -126,6 +129,7 @@ impl crate::servers::App<Server> for App {
                 &self.master_enc_key_part,
             ),
             transcryptor_master_enc_key_part,
+            global_client_url: self.global_client_url.clone(),
             phc_url: self.phc_url.clone(),
             phc_jwt_key: self.jwt_key.verifying_key().into(),
             phc_enc_key: self.enc_key.public_key().clone(),
@@ -154,6 +158,7 @@ impl crate::servers::App<Server> for App {
 
             return Ok(Some(Constellation {
                 id: new_constellation_id,
+                created_at: api::NumericDate::now(),
                 inner: new_constellation_inner,
             }));
         }
@@ -277,6 +282,7 @@ pub struct AppCreator {
     pub base: AppCreatorBase<Server>,
     pub transcryptor_url: url::Url,
     pub auths_url: url::Url,
+    pub global_client_url: url::Url,
     pub hubs: crate::map::Map<hub::BasicInfo>,
     pub master_enc_key_part: elgamal::PrivateKey,
     pub attr_id_secret: Box<[u8]>,
@@ -308,6 +314,7 @@ impl crate::servers::AppCreator<Server> for AppCreator {
             base: AppBase::new(self.base, handle),
             transcryptor_url: self.transcryptor_url,
             auths_url: self.auths_url,
+            global_client_url: self.global_client_url,
             hubs: self.hubs,
             master_enc_key_part: self.master_enc_key_part,
             attr_id_secret: self.attr_id_secret,
@@ -350,6 +357,7 @@ impl crate::servers::AppCreator<Server> for AppCreator {
             base,
             transcryptor_url: xconf.transcryptor_url.as_ref().clone(),
             auths_url: xconf.auths_url.as_ref().clone(),
+            global_client_url: xconf.global_client_url.as_ref().clone(),
             hubs,
             master_enc_key_part,
             attr_id_secret: <serde_bytes::ByteBuf as Clone>::clone(

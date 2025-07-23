@@ -4,7 +4,7 @@
 	"type": "module",
 	"private": true,
 	"scripts": {
-    "serve": "vite --host",
+		"serve": "vite --host",
 		"watch": "vite",
 		"build": "vite build",
 		"lint": "eslint --ext .js,.vue,.ts --ignore-path .gitignore --fix src",
@@ -24,6 +24,7 @@
 		"@privacybydesign/yivi-web": "^0",
 		"@vitejs/plugin-vue": "^5.2.1",
 		"@vue/test-utils": "^2.2.3",
+		"chai": "^5.2.1",
 		"core-js": "^3.8.3",
 		"mavon-editor": "^3.0.2",
 		"pinia": "^3",

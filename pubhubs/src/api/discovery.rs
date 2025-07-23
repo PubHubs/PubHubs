@@ -23,6 +23,8 @@ impl EndpointDetails for DiscoveryRun {
 
 /// What's returned by the `.ph/discovery/info` endpoint
 #[derive(Serialize, Deserialize, Debug, Clone)]
+#[serde(deny_unknown_fields)]
+#[must_use]
 pub struct DiscoveryInfoResp {
     pub name: crate::servers::Name,
 
@@ -50,6 +52,8 @@ pub struct DiscoveryInfoResp {
 
 /// Result of the `.ph/discovery/run` endpoint
 #[derive(Serialize, Deserialize, Debug, PartialEq, Eq, Clone)]
+#[serde(deny_unknown_fields)]
+#[must_use]
 pub enum DiscoveryRunResp {
     /// Everything checks out at our side
     UpToDate,

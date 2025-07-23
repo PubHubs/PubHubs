@@ -7,7 +7,7 @@ use actix_web::web;
 use digest::Digest as _;
 
 use crate::servers::{
-    self, AppBase, AppCreatorBase, Constellation, Handle, Server as _, constellation, yivi,
+    self, constellation, yivi, AppBase, AppCreatorBase, Constellation, Handle, Server as _,
 };
 use crate::{
     api::{self, EndpointDetails as _, ResultExt as _},
@@ -108,7 +108,7 @@ struct AuthState {
     attr_types: Vec<handle::Handle>,
 
     /// When this request expires
-    exp: jwt::NumericDate,
+    exp: api::NumericDate,
 }
 
 impl AuthState {
@@ -142,7 +142,7 @@ impl App {
         let state = AuthState {
             source: req.source,
             attr_types: req.attr_types.clone(),
-            exp: jwt::NumericDate::now() + app.auth_window,
+            exp: api::NumericDate::now() + app.auth_window,
         };
 
         match req.source {
@@ -220,8 +220,8 @@ impl App {
             return Ok(api::auths::AuthCompleteResp::PleaseRestartAuth);
         };
 
-        if state.exp < jwt::NumericDate::now() {
-            return Err(api::ErrorCode::Expired);
+        if state.exp < api::NumericDate::now() {
+            return Ok(api::auths::AuthCompleteResp::PleaseRestartAuth);
         }
 
         match state.source {
@@ -346,14 +346,15 @@ impl App {
         let mut resp: HashMap<handle::Handle, api::auths::AttrKeyResp> =
             HashMap::with_capacity(reqs.len());
 
-        let now = jwt::NumericDate::now();
+        let now = api::NumericDate::now();
 
         for (handle, req) in reqs.into_iter() {
             let attr: attr::Attr = match req
                 .attr
                 .open(&running_state.attr_signing_key, None) // TODO: constellation 
                 {
-                    Err(api::OpenError::OtherConstellation)
+                    Err(api::OpenError::OtherConstellation(..))
+                            | Err(api::OpenError::InvalidSignature)
                             | Err(api::OpenError::Expired) => {
                         return Ok(api::auths::AttrKeysResp::RetryWithNewAttr(handle));
                             }
@@ -375,7 +376,7 @@ impl App {
                 return Err(api::ErrorCode::BadRequest);
             }
 
-            let timestamps: Vec<jwt::NumericDate> = if let Some(timestamp) = req.timestamp {
+            let timestamps: Vec<api::NumericDate> = if let Some(timestamp) = req.timestamp {
                 if timestamp > now {
                     log::warn!(
                         "future attribute key requested for attribute {value} of type {attr_type}",
@@ -445,8 +446,10 @@ impl crate::servers::App<Server> for App {
                     phc_enc_key: _,
                     phc_url: _,
                     master_enc_key: _,
+                    global_client_url: _,
                 },
             id: _,
+            created_at: _,
         } = constellation;
 
         enc_key == self.enc_key.public_key() && **jwt_key == self.jwt_key.verifying_key()

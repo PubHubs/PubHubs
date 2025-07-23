@@ -35,6 +35,15 @@ impl std::ops::Deref for Handle {
     }
 }
 
+impl Handle {
+    /// Returns the undelying string.
+    ///
+    /// Has the sam effect as `deref`, but `as_str` is more readable.
+    pub fn as_str(&self) -> &str {
+        &self.inner
+    }
+}
+
 impl TryFrom<String> for Handle {
     type Error = HubHandleError;
 

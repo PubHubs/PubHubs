@@ -26,6 +26,7 @@
 					</div>
 					<div class="flex gap-4" :class="{ 'w-full': isSearchBarExpanded }">
 						<RoomHeaderButtons>
+							<GlobalBarButton v-if="settings.isFeatureEnabled(FeatureFlag.roomLibrary)" type="folder" size="sm" :selected="showLibrary" @click="toggleLibrary"></GlobalBarButton>
 							<GlobalBarButton type="two_users" size="sm" :selected="showMembers" @click="toggleMembersList"></GlobalBarButton>
 							<!--Only show Editing icon for steward but not for administrator-->
 							<GlobalBarButton v-if="room.getUserPowerLevel(user.user.userId) === 50" type="cog" size="sm" @click="stewardCanEdit()" />
@@ -34,11 +35,20 @@
 					</div>
 				</div>
 			</template>
+
 			<div class="flex h-full w-full justify-between overflow-hidden">
-				<div class="flex h-full w-full flex-col overflow-hidden">
+				<RoomLibrary v-if="showLibrary" :id="id" @close="toggleLibrary"></RoomLibrary>
+				<div class="flex h-full w-full flex-col overflow-hidden" :class="{ hidden: showLibrary }">
 					<RoomTimeline v-if="room" :room="room" :scroll-to-event-id="room.getCurrentEventId()" @scrolled-to-event-id="room.setCurrentEventId(undefined)"> </RoomTimeline>
 				</div>
-				<RoomThread v-if="room.getCurrentThreadId()" :room="room" :scroll-to-event-id="room.getCurrentEventId()" @scrolled-to-event-id="room.setCurrentEventId(undefined)" @thread-length-changed="currentThreadLengthChanged">
+				<RoomThread
+					v-if="room.getCurrentThreadId()"
+					:class="{ hidden: showLibrary }"
+					:room="room"
+					:scroll-to-event-id="room.getCurrentEventId()"
+					@scrolled-to-event-id="room.setCurrentEventId(undefined)"
+					@thread-length-changed="currentThreadLengthChanged"
+				>
 				</RoomThread>
 				<RoomMemberList v-if="showMembers" :room="room" @close="toggleMembersList"></RoomMemberList>
 			</div>
@@ -69,6 +79,7 @@
 	import GlobalBarButton from '@/components/ui/GlobalbarButton.vue';
 	import RoomHeaderButtons from '@/components/rooms/RoomHeaderButtons.vue';
 	import RoomMemberList from '@/components/rooms/RoomMemberList.vue';
+	import RoomLibrary from '@/components/rooms/RoomLibrary.vue';
 	import EditRoomForm from '@/components/rooms/EditRoomForm.vue';
 
 	import { usePubHubs } from '@/logic/core/pubhubsStore';
@@ -83,7 +94,7 @@
 	import { TSecuredRoom } from '@/model/rooms/TSecuredRoom';
 	import { computed, onMounted, ref, watch } from 'vue';
 	import { useRoute, useRouter } from 'vue-router';
-	import { useSettings } from '@/logic/store/settings';
+	import { FeatureFlag, useSettings } from '@/logic/store/settings';
 
 	const route = useRoute();
 	const rooms = useRooms();
@@ -95,11 +106,11 @@
 	const currentRoomToEdit = ref<TSecuredRoom | TPublicRoom | null>(null);
 	const showEditRoom = ref(false);
 	const showMembers = ref(false);
+	const showLibrary = ref(false);
 	const secured = ref(false);
 	const isSearchBarExpanded = ref<boolean>(false);
 	const settings = useSettings();
 	const isMobile = computed(() => settings.isMobileState);
-
 	const pubhubs = usePubHubs();
 
 	//Passed by the router
@@ -125,6 +136,10 @@
 	const handleToggleSearchbar = (isExpanded: boolean) => {
 		isSearchBarExpanded.value = isExpanded;
 	};
+
+	// const roomLibrary = computed (() => {
+	// 	return rooms.rooms[props.id].getRoomLibrary();
+	// })
 
 	onMounted(() => {
 		update();
@@ -169,7 +184,7 @@
 				try {
 					await room.value.loadToEvent(ev.threadId);
 				} catch (e) {
-					LOGGER.error(SMI.ROOM_TIMELINE, `Failed to load event ${eventId}`);
+					LOGGER.error(SMI.ROOM_TIMELINE, `Failed to load event ${ev.thread}`);
 				}
 			}
 			room.value.setCurrentThreadId(ev.threadId);
@@ -197,5 +212,9 @@
 
 	function toggleMembersList() {
 		showMembers.value = !showMembers.value;
+	}
+
+	function toggleLibrary() {
+		showLibrary.value = !showLibrary.value;
 	}
 </script>

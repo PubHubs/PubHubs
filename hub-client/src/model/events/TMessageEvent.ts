@@ -60,6 +60,7 @@ export interface TImageMessageEventContent extends TBaseMessageEventContent {
 	info?: ImageInfo;
 	// We don't use encryption, so required
 	url: string;
+	filename?: string;
 }
 
 export interface TFileMessageEventContent extends TBaseMessageEventContent {
@@ -67,7 +68,7 @@ export interface TFileMessageEventContent extends TBaseMessageEventContent {
 	file?: EncryptedFile;
 	filename?: string;
 	info?: FileInfo;
-	url?: string;
+	url: string;
 }
 
 export interface TSignedMessageEventContent extends TBaseMessageEventContent {

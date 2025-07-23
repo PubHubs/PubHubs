@@ -1,11 +1,11 @@
+// Project imports
+import { Message, MessageType, useMessageBox } from '@/logic/store/messagebox';
 // React imports
 import { createRouter, createWebHashHistory } from 'vue-router';
 
-// Project imports
-import { useMessageBox, Message, MessageType } from '@/logic/store/messagebox';
+import { OnboardingType } from '@/model/constants';
 import { useHubSettings } from '@/logic/store/store';
 import { useUser } from '@/logic/store/user';
-import { OnboardingType } from '@/model/constants';
 
 // Route definitions
 const routes = [

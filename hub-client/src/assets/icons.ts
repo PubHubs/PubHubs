@@ -478,7 +478,23 @@ const icons: { [key: string]: string } = {
         <path fill="currentColor" fill-rule="evenodd" clip-rule="evenodd" d="M0.371094 11.1288C0.371094 10.9239 0.537182 10.7578 0.742062 10.7578L10.3872 10.7578C10.5921 10.7578 10.7582 10.9239 10.7582 11.1288C10.7582 11.3337 10.5921 11.4997 10.3872 11.4997L0.742061 11.4997C0.537182 11.4997 0.371094 11.3337 0.371094 11.1288Z" />
         </svg>
         `,
-
+	folder: `
+        <svg viewBox="0 0 24 24">
+        <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z" />
+        </svg>
+        `,
+	returnarrow: `
+        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-arrow-return-right" viewBox="0 0 16 16">
+        <path fill-rule="evenodd" d="M1.5 1.5A.5.5 0 0 0 1 2v4.8a2.5 2.5 0 0 0 2.5 2.5h9.793l-3.347 3.346a.5.5 0 0 0 .708.708l4.2-4.2a.5.5 0 0 0 0-.708l-4-4a.5.5 0 0 0-.708.708L13.293 8.3H3.5A1.5 1.5 0 0 1 2 6.8V2a.5.5 0 0 0-.5-.5"/>
+        </svg>`,
+	caretright: `
+        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-caret-right" viewBox="0 0 16 16">
+  <path d="M6 12.796V3.204L11.481 8zm.659.753 5.48-4.796a1 1 0 0 0 0-1.506L6.66 2.451C6.011 1.885 5 2.345 5 3.204v9.592a1 1 0 0 0 1.659.753"/>
+</svg>`,
+	caretdown: `
+        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-caret-down" viewBox="0 0 16 16">
+  <path d="M3.204 5h9.592L8 10.481zm-.753.659 4.796 5.48a1 1 0 0 0 1.506 0l4.796-5.48c.566-.647.106-1.659-.753-1.659H3.204a1 1 0 0 0-.753 1.659"/>
+</svg>`,
 	actionmenu: `
         <svg viewBox="0 0 24 24">
         <circle cx="12" cy="5" r="1" />

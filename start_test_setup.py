@@ -426,10 +426,12 @@ def docker_run_hub_server(hub_secret, image_name, container_name, hub_matrix_por
     # Set UPDATE_CONFIG_ENV to "development" for development checks and to "production" for production checks
     # TODO implement this properly (by using parameters instead of environment variables)
     mount_modules = []
+    mount_update_config = []
     dont_start_hub = ["-e", "DONT_START_HUB=0"]
     if (os.getenv('WATCH_MODULES') == '1'):
         print("\033[31mWATCH_MODULES enabled, will not start the Hub. Do so manually by running ./start.synaps.sh from inside the docker container.\033[0m")
         mount_modules = ["-v", f"{os.path.abspath(f'modules')}:/conf/modules:ro"]
+        mount_update_config = ["-v", f"{os.path.abspath(f'update_config')}:/conf/update_config:ro"]
         dont_start_hub = ["-e", "DONT_START_HUB=1"]
 
     docker_command = ["docker",
@@ -444,6 +446,7 @@ def docker_run_hub_server(hub_secret, image_name, container_name, hub_matrix_por
                       "-e", f"UPDATE_CONFIG_ENV={os.getenv('UPDATE_CONFIG_ENV', default='development')}",
                       "-v", f"{config_dir}:/data:rw",
                       *mount_modules,
+                      *mount_update_config,
                       "--add-host", "host.docker.internal:host-gateway",
                       image_name]
     print(f"\033[92m{docker_command}\033[0m")

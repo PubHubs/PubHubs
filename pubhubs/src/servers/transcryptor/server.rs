@@ -6,11 +6,11 @@ use actix_web::web;
 use crate::elgamal;
 use crate::misc::crypto;
 use crate::misc::serde_ext::bytes_wrapper::B64UU;
+use crate::phcrypto;
 use crate::{
-    api::{self, EndpointDetails as _},
-    servers::{self, AppBase, AppCreatorBase, Constellation, Handle, constellation},
+    api::{self, phc::hub::TicketOpenError, EndpointDetails as _, OpenError},
+    servers::{self, constellation, AppBase, AppCreatorBase, Constellation, Handle},
 };
-use crate::{handle, phcrypto};
 
 use api::tr::*;
 
@@ -64,7 +64,7 @@ impl Deref for App {
 
 impl crate::servers::App<Server> for App {
     fn configure_actix_app(self: &Rc<Self>, sc: &mut web::ServiceConfig) {
-        api::phct::hub::Key::add_to(self, sc, App::handle_hub_key);
+        api::phct::hub::KeyEP::add_to(self, sc, App::handle_hub_key);
 
         EhppEP::add_to(self, sc, App::handle_ehpp);
     }
@@ -89,8 +89,10 @@ impl crate::servers::App<Server> for App {
                     phc_enc_key: _,
                     phc_url: _,
                     master_enc_key: _,
+                    global_client_url: _,
                 },
             id: _,
+            created_at: _,
         } = constellation;
 
         enc_key == self.enc_key.public_key()
@@ -114,8 +116,26 @@ impl App {
 
         let ticket_digest = phcrypto::TicketDigest::new(&ts_req.ticket);
 
-        let (_, _): (api::phct::hub::KeyReq, handle::Handle) =
-            ts_req.open(&running_state.constellation.phc_jwt_key)?;
+        if let Err(toe) = ts_req.open(&running_state.constellation.phc_jwt_key) {
+            match toe {
+                TicketOpenError::Ticket(OpenError::InvalidSignature)
+                | TicketOpenError::Ticket(OpenError::Expired) => {
+                    return Ok(api::phct::hub::KeyResp::RetryWithNewTicket)
+                }
+                TicketOpenError::Ticket(OpenError::InternalError)
+                | TicketOpenError::Ticket(OpenError::OtherConstellation(..))
+                | TicketOpenError::Signed(OpenError::OtherConstellation(..))
+                | TicketOpenError::Signed(OpenError::InternalError) => {
+                    return Err(api::ErrorCode::InternalError)
+                }
+                TicketOpenError::Ticket(OpenError::OtherwiseInvalid)
+                | TicketOpenError::Signed(OpenError::OtherwiseInvalid)
+                | TicketOpenError::Signed(OpenError::InvalidSignature)
+                | TicketOpenError::Signed(OpenError::Expired) => {
+                    return Err(api::ErrorCode::BadRequest)
+                }
+            }
+        }
 
         // At this point we can be confident that the ticket is authentic, so we can give the hub
         // its decryption key based on the provided ticket
@@ -127,7 +147,7 @@ impl App {
             &app.master_enc_key_part,
         );
 
-        Ok(api::phct::hub::KeyResp { key_part })
+        Ok(api::phct::hub::KeyResp::Success { key_part })
     }
 
     /// Implements [`EhppEP`]

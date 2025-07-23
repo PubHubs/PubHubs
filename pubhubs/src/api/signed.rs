@@ -7,6 +7,7 @@ use serde::{Deserialize, Serialize};
 
 use crate::id;
 use crate::misc::jwt;
+use crate::servers::Constellation;
 
 use crate::api::*;
 
@@ -23,12 +24,15 @@ pub struct Signed<T> {
 #[derive(thiserror::Error, Debug)]
 pub enum OpenError {
     #[error("signature intended for other constellation")]
-    OtherConstellation,
+    OtherConstellation(ConstellationCompRes),
 
     #[error("signature expired")]
     Expired,
 
-    #[error("invalid signature or malformed jwt")]
+    #[error("invalid signature")]
+    InvalidSignature,
+
+    #[error("malformed jwt")]
     OtherwiseInvalid,
 
     #[error("unexpected error - consult logs")]
@@ -36,35 +40,41 @@ pub enum OpenError {
 }
 
 impl<T> Signed<T> {
-    /// Old version of [`Signed::open`].  Will be deprecated eventually.
-    pub fn old_open<VK: jwt::VerifyingKey>(self, key: &VK) -> Result<T>
-    where
-        T: Signable,
-    {
-        self.open(key, None).into_ec(|err| match err {
-            OpenError::OtherConstellation => ErrorCode::InvalidSignature,
-            OpenError::Expired => ErrorCode::Expired,
-            OpenError::OtherwiseInvalid => ErrorCode::BadRequest,
-            OpenError::InternalError => ErrorCode::InternalError,
-        })
-    }
-
     /// Opens this [`Signed`] message using the provided key.
     pub fn open<VK: jwt::VerifyingKey>(
         self,
         key: &VK,
-        constellation: Option<id::Id>,
+        constellation: Option<&Constellation>,
     ) -> std::result::Result<T, OpenError>
     where
         T: Signable,
     {
         if T::CONSTELLATION_BOUND != constellation.is_some() {
             log::error!(
-                "internal error: a constellation must only be provided to Signed::open \
+                "internal error: a constellation must (only) be provided to Signed::open \
                      if the type T is constellation bound"
             );
             return Err(OpenError::InternalError);
         }
+
+        let check_constellation = |mut claims| -> std::result::Result<jwt::Claims, OpenError> {
+            if !T::CONSTELLATION_BOUND {
+                return Ok(claims);
+            }
+
+            let Ok(Some(constellation_claim)) =
+                claims.extract::<ConstellationClaim>(CONSTELLATION_CLAIM)
+            else {
+                return Err(OpenError::OtherwiseInvalid);
+            };
+
+            let ccr = constellation_claim.compare(constellation.unwrap());
+            if ccr.are_equal() {
+                return Ok(claims);
+            }
+
+            Err(OpenError::OtherConstellation(ccr))
+        };
 
         let claims: jwt::Claims = self.inner.open(key).map_err(|err| {
             log::debug!(
@@ -80,11 +90,15 @@ impl<T> Signed<T> {
                 | jwt::Error::MissingDot
                 | jwt::Error::InvalidBase64(_)
                 | jwt::Error::UnexpectedAlgorithm { .. } => OpenError::OtherwiseInvalid,
-                jwt::Error::InvalidSignature { /*claims,*/ .. } => {
-                    // claims.check(CONSTELLATION_CLAIM, jwt::expecting::exactly())
-                    // TODO: check if we're dealing with an outdated constellation
-
-                    OpenError::OtherwiseInvalid
+                jwt::Error::InvalidSignature { claims, .. } => {
+                    match check_constellation(claims) {
+                        Ok(..) => {
+                            // constellations coincide, so the invalid signature cannot be
+                            // blamed on diverging constellations
+                            OpenError::InvalidSignature
+                        }
+                        Err(err) => err,
+                    }
                 }
                 _ => {
                     log::error!("unexpected error opening signed message: {err}");
@@ -92,6 +106,8 @@ impl<T> Signed<T> {
                 }
             }
         })?;
+
+        let claims = check_constellation(claims)?;
 
         // check that the message code is correct
         let claims = claims
@@ -131,14 +147,16 @@ impl<T> Signed<T> {
         Ok(res)
     }
 
-    pub fn open_without_checking_signature(self) -> Result<T>
+    /// Open this signed message without checking the signature.  Something that should be done
+    /// only in exceptional circumstances, for example, in the  [`phc::hub::TicketEP`] endpoint.
+    pub fn open_without_checking_signature(self) -> std::result::Result<T, OpenError>
     where
         T: Signable,
     {
-        self.old_open(&jwt::IgnoreSignature)
+        self.open(&jwt::IgnoreSignature, None)
     }
 
-    /// Signs `message`, and returns the resulting [`Signed`].
+    /// Like `new_opts`, but with `None` for the `constellation`.
     pub fn new<SK: jwt::SigningKey>(
         sk: &SK,
         message: &T,
@@ -147,12 +165,41 @@ impl<T> Signed<T> {
     where
         T: Signable,
     {
+        Self::new_opts(sk, message, valid_for, None)
+    }
+
+    /// Signs `message`, and returns the resulting [`Signed`], with more options.
+    pub fn new_opts<SK: jwt::SigningKey>(
+        sk: &SK,
+        message: &T,
+        valid_for: std::time::Duration,
+        constellation: Option<&Constellation>,
+    ) -> Result<Self>
+    where
+        T: Signable,
+    {
+        if T::CONSTELLATION_BOUND != constellation.is_some() {
+            log::error!(
+                "internal error: a constellation must (only) be provided to Signed::new \
+                     if the type T is constellation bound"
+            );
+            return Err(ErrorCode::InternalError);
+        }
+
         let result = || -> std::result::Result<jwt::JWT, jwt::Error> {
-            jwt::Claims::from_custom(message)?
+            let mut claims = jwt::Claims::from_custom(message)?
                 .nbf()?
                 .exp_after(valid_for)?
-                .claim(MESSAGE_CODE_CLAIM, T::CODE)?
-                .sign(sk)
+                .claim(MESSAGE_CODE_CLAIM, T::CODE)?;
+
+            if T::CONSTELLATION_BOUND {
+                let constellation = constellation.unwrap();
+
+                claims =
+                    claims.claim(CONSTELLATION_CLAIM, ConstellationClaim::from(constellation))?;
+            }
+
+            claims.sign(sk)
         }();
 
         let jwt = match result {
@@ -192,6 +239,7 @@ pub enum MessageCode {
     Ppp = 8,
     Ehpp = 9,
     PpNonce = 10,
+    Hhpp = 11,
 
     /// Only used as an example in a doctest
     Example = 65535,
@@ -222,6 +270,75 @@ pub const MESSAGE_CODE_CLAIM: &str = "ph-mc";
 /// [`Id`]: id::Id
 /// [`Constellation`]: crate::servers::Constellation
 pub const CONSTELLATION_CLAIM: &str = "ph-ci";
+
+/// Contents of the [`CONSTELLATION_CLAIM`]
+#[derive(Serialize, Deserialize, Debug, Clone)]
+pub struct ConstellationClaim {
+    /// [`Constellation::id`]
+    #[serde(rename = "i")]
+    id: id::Id,
+
+    /// [`Constellation::created_at`]
+    #[serde(rename = "c")]
+    created_at: NumericDate,
+}
+
+impl From<&Constellation> for ConstellationClaim {
+    fn from(c: &Constellation) -> Self {
+        Self {
+            id: c.id,
+            created_at: c.created_at,
+        }
+    }
+}
+
+impl ConstellationClaim {
+    /// Compare this constellation claim with the constellation known to me
+    pub fn compare(self, my_constellation: &Constellation) -> ConstellationCompRes {
+        match self.created_at.cmp(&my_constellation.created_at) {
+            std::cmp::Ordering::Less => ConstellationCompRes {
+                update_my_constellation: false,
+                update_constellation_claim: true,
+            },
+            std::cmp::Ordering::Greater => ConstellationCompRes {
+                update_my_constellation: true,
+                update_constellation_claim: false,
+            },
+            std::cmp::Ordering::Equal => {
+                if my_constellation.id == self.id {
+                    ConstellationCompRes {
+                        update_my_constellation: false,
+                        update_constellation_claim: false,
+                    }
+                } else {
+                    ConstellationCompRes {
+                        update_my_constellation: true,
+                        update_constellation_claim: true,
+                    }
+                }
+            }
+        }
+    }
+}
+
+/// Result of [`ConstellationClaim::compare`].
+#[derive(Serialize, Deserialize, Debug, Clone, Copy)]
+pub struct ConstellationCompRes {
+    /// The constellation claim is perhaps out of date, and it's best if the originator
+    /// of it is asked to update it.
+    pub update_constellation_claim: bool,
+
+    /// My constellation is perhaps out of date (based on the constellation claim,
+    /// which may, or may not be trustworthy), and may need to be updated.
+    pub update_my_constellation: bool,
+}
+
+impl ConstellationCompRes {
+    /// Whether the constellation and constellation claim are the same.
+    fn are_equal(&self) -> bool {
+        !self.update_constellation_claim && !self.update_my_constellation
+    }
+}
 
 /// A type that's used as the contents of a [`Signed`] message.
 pub trait Signable: serde::de::DeserializeOwned + serde::Serialize {

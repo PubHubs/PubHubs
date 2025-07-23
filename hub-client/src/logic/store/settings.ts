@@ -38,6 +38,7 @@ enum FeatureFlag {
 	authenticatedMedia = 'authenticatedMedia',
 	unreadCounter = 'unreadCounter',
 	consent = 'consent',
+	roomLibrary = 'roomLibrary',
 }
 
 type FeatureFlags = { [key in FeatureFlag]: boolean };
@@ -105,6 +106,7 @@ const defaultSettings: Settings = {
 			hubSettings: true,
 			authenticatedMedia: true,
 			unreadCounter: true,
+			roomLibrary: true,
 			votingWidget: true,
 			consent: true,
 		},
@@ -119,6 +121,7 @@ const defaultSettings: Settings = {
 			hubSettings: true,
 			authenticatedMedia: true,
 			unreadCounter: true,
+			roomLibrary: false,
 			votingWidget: true,
 			consent: true,
 		},
@@ -133,6 +136,7 @@ const defaultSettings: Settings = {
 			hubSettings: false,
 			authenticatedMedia: true,
 			unreadCounter: true,
+			roomLibrary: true,
 			votingWidget: true,
 			consent: false,
 		},

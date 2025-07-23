@@ -10,3 +10,11 @@ client-config.local.js
 
 # Playwright local state
 hub-client/playwright_login_token.json
+
+# Playwright
+node_modules/
+/test-results/
+/playwright-report/
+/blob-report/
+/playwright/.cache/
+/e2e/.auth/
