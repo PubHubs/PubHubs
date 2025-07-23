@@ -106,7 +106,7 @@ const defaultSettings: Settings = {
 			hubSettings: true,
 			authenticatedMedia: true,
 			unreadCounter: true,
-			roomLibrary: true,
+			roomLibrary: false,
 			votingWidget: true,
 			consent: true,
 		},
