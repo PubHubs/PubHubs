@@ -180,9 +180,9 @@ export default class Room {
 	public getPowerLevel(user_id: string): number {
 		const member = this.matrixRoom.getMember(user_id);
 		if (member) {
-			return member?.powerLevel;
+			return member.powerLevel;
 		}
-		// Doesn't have power level.
+		// If user is not a member.
 		return -1;
 	}
 
