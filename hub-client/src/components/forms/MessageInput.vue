@@ -224,6 +224,9 @@
 	watch(
 		() => props.room.roomId,
 		async () => {
+			inReplyTo.value = undefined;
+			messageActions.replyingTo = undefined;
+
 			if (props.room.getCurrentThreadId()) {
 				threadRoot = (await pubhubs.getEvent(rooms.currentRoomId, props.room.getCurrentThreadId() as string)) as TMessageEvent;
 			} else {
