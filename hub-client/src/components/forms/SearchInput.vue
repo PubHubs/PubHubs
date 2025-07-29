@@ -104,7 +104,7 @@
 	const rooms = useRooms();
 	const searchField = useTemplateRef('searchInput');
 
-	//Passed by the parentcomponent
+	// Passed by the parentcomponent
 	const props = defineProps({
 		searchParameters: {
 			type: Object as PropType<TSearchParameters>,
@@ -135,7 +135,7 @@
 		emit('toggleSearchbar', isExpanded.value);
 	}
 
-	// searchresults shown in list. When the text 'more results' is shown the last result is omitted to keep it in view
+	// Searchresults shown in list. When the text 'more results' is shown the last result is omitted to keep it in view
 	const searchResultsToShow = computed(() => {
 		// Only results that do not have an empty event_body should be shown
 		const filteredSearchResults = searchResults.value.filter((result) => result.event_body !== '');
@@ -143,6 +143,7 @@
 	});
 
 	async function search() {
+		emit('search-started');
 		searchResults.value = [];
 		searched.value = true;
 		isSearching.value = true;
