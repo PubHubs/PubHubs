@@ -11,7 +11,10 @@ use crate::common::secret::DigestibleSecret as _;
 use crate::misc::crypto;
 use crate::misc::jwt;
 use crate::phcrypto;
-use crate::servers::{self, AppBase, AppCreatorBase, Constellation, Handle, constellation};
+use crate::servers::{
+    self, constellation, AppBase, AppCreatorBase, Constellation, DiscoverVerdict, Handle,
+    Server as _
+};
 
 use crate::{elgamal, hub};
 
@@ -107,7 +110,7 @@ impl crate::servers::App<Server> for App {
     async fn discover(
         self: &Rc<Self>,
         _phc_di: api::DiscoveryInfoResp,
-    ) -> api::Result<Option<Constellation>> {
+    ) -> api::Result<DiscoverVerdict> {
         let (tdi_res, asdi_res) = tokio::join!(
             self.discovery_info_of(servers::Name::Transcryptor, &self.transcryptor_url),
             self.discovery_info_of(servers::Name::AuthenticationServer, &self.auths_url)
@@ -115,6 +118,47 @@ impl crate::servers::App<Server> for App {
 
         let tdi = tdi_res?;
         let asdi = asdi_res?;
+
+        for (odi, other_server_name) in [
+            (&tdi, servers::Name::Transcryptor),
+            (&asdi, servers::Name::AuthenticationServer),
+        ] {
+            if let Some(ref other_version) = odi.version
+                && let Some(my_version) = &self.version
+            {
+                let other_version = crate::servers::version::to_semver(other_version).map_err(|err| {
+                    log::error!(
+                        "{my_server_name}: could not parse semantic version returned by {other_server_name}: {other_version}: {err}",
+                        my_server_name = Server::NAME
+                    );
+                    
+                    api::ErrorCode::InternalError
+                })?;
+
+                let my_version =
+                    crate::servers::version::to_semver(my_version).map_err(|err| {
+                        log::error!("{my_server_name}: could not parse my semantic version {my_version}: {err}",
+                        my_server_name = Server::NAME
+                            );
+                        api::ErrorCode::InternalError
+                    })?;
+
+                if my_version < other_version {
+                    log::warn!(
+                        "{my_server_name}: {other_server_name}'s version ({other_version}) > my version ({my_version})",
+                        my_server_name = Server::NAME,
+                    );
+                    return Ok(DiscoverVerdict::BinaryOutdated);
+                }
+            } else {
+                log::warn!(
+                    "{my_server_name}: not checking my version ({my_version}) against {other_server_name}'s version ({other_version})",
+                        my_server_name = Server::NAME,
+                    my_version = crate::servers::version::VERSION,
+                    other_version = odi.version.as_deref().unwrap_or("n/a")
+                );
+            }
+        }
 
         let transcryptor_master_enc_key_part = tdi
             .master_enc_key_part
@@ -135,6 +179,7 @@ impl crate::servers::App<Server> for App {
             auths_url: self.auths_url.clone(),
             auths_jwt_key: asdi.jwt_key,
             auths_enc_key: asdi.enc_key,
+            ph_version: self.version.clone(),
         };
 
         if self.running_state.is_none()
@@ -152,10 +197,12 @@ impl crate::servers::App<Server> for App {
                 log::info!("Computed constellation {new_constellation_id}");
             }
 
-            return Ok(Some(Constellation {
-                id: new_constellation_id,
-                inner: new_constellation_inner,
-            }));
+            return Ok(DiscoverVerdict::ConstellationOutdated {
+                new_constellation: Box::new(Constellation {
+                    id: new_constellation_id,
+                    inner: new_constellation_inner,
+                }),
+            });
         }
 
         let constellation = &self.running_state.as_ref().unwrap().constellation;
@@ -215,7 +262,7 @@ impl crate::servers::App<Server> for App {
             None => {
                 if tdi.constellation.is_some() && asdi.constellation.is_some() {
                     log::info!("Constellation of all servers up to date!");
-                    Ok(None)
+                    Ok(DiscoverVerdict::Alright)
                 } else {
                     log::info!("Waiting for the other servers to update their constellation.");
                     Err(api::ErrorCode::PleaseRetry)

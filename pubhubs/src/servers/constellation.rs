@@ -54,6 +54,9 @@ pub struct Inner {
 
     /// `x_T x_PHC B`
     pub master_enc_key: elgamal::PublicKey,
+
+    /// pubhubs version
+    pub ph_version: Option<String>,
 }
 
 impl Inner {
@@ -83,6 +86,7 @@ impl Inner {
             auths_enc_key,
 
             master_enc_key,
+            ph_version,
         } = self;
 
         // NOTE: it would be easier to serialize self using, say, serde_json, and then hash that,
@@ -101,6 +105,7 @@ impl Inner {
             .chain_update(**auths_jwt_key)
             .chain_update(auths_enc_key)
             .chain_update(master_enc_key)
+            .chain_update(ph_version.as_ref().map(String::as_str).unwrap_or("n/a"))
     }
 
     pub fn derive_id(&self) -> id::Id {

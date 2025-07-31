@@ -8,7 +8,7 @@ use crate::misc::crypto;
 use crate::misc::serde_ext::bytes_wrapper::B64UU;
 use crate::{
     api::{self, EndpointDetails as _},
-    servers::{self, AppBase, AppCreatorBase, Constellation, Handle, constellation},
+    servers::{self, constellation, AppBase, AppCreatorBase, Constellation, Handle},
 };
 use crate::{handle, phcrypto};
 
@@ -89,6 +89,7 @@ impl crate::servers::App<Server> for App {
                     phc_enc_key: _,
                     phc_url: _,
                     master_enc_key: _,
+                    ph_version: _, // (already checked)
                 },
             id: _,
         } = constellation;

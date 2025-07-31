@@ -7,7 +7,7 @@ use actix_web::web;
 use digest::Digest as _;
 
 use crate::servers::{
-    self, AppBase, AppCreatorBase, Constellation, Handle, Server as _, constellation, yivi,
+    self, constellation, yivi, AppBase, AppCreatorBase, Constellation, Handle, Server as _,
 };
 use crate::{
     api::{self, EndpointDetails as _, ResultExt as _},
@@ -445,6 +445,7 @@ impl crate::servers::App<Server> for App {
                     phc_enc_key: _,
                     phc_url: _,
                     master_enc_key: _,
+                    ph_version: _, // (already checked)
                 },
             id: _,
         } = constellation;

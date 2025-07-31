@@ -286,8 +286,11 @@ pub(crate) trait Modifier<ServerT: Server>: Send + 'static {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> Result<(), std::fmt::Error>;
 }
 
-impl<S: Server, F: FnOnce(&mut S) -> bool + Send + 'static, D: std::fmt::Display + Send + 'static>
-    Modifier<S> for (F, D)
+impl<
+        S: Server,
+        F: FnOnce(&mut S) -> bool + Send + 'static,
+        D: std::fmt::Display + Send + 'static,
+    > Modifier<S> for (F, D)
 {
     fn modify(self: Box<Self>, server: &mut S) -> bool {
         self.0(server)
@@ -374,6 +377,20 @@ impl<S: Server> std::fmt::Display for Command<S> {
     }
 }
 
+/// Result of [`App::discover`].
+pub enum DiscoverVerdict {
+    /// My and PHC's constellation seem up-to-date
+    Alright,
+
+    /// My constellation is out-of-date and must be replaced with this constellation
+    ConstellationOutdated {
+        new_constellation: Box<Constellation>,
+    },
+
+    /// My binary is out-of-date.  Exit this binary, and hope the binary is updated.
+    BinaryOutdated,
+}
+
 /// What's common between the [`actix_web::App`]s used by the different PubHubs servers.
 ///
 /// Each [`actix_web::App`] gets access to an instance of the appropriate implementation of [`App`]..
@@ -389,15 +406,13 @@ pub trait App<S: Server>: Deref<Target = AppBase<S>> + 'static {
     /// obtained from Pubhubs Central.  If the server is not PHC itself, the [`Constellation`]
     /// in this [`api::DiscoveryInfoResp`] must be set.
     ///
-    /// This function return some constellation if the constellation of this server needs to be updated.
-    ///
-    /// Returns `None` if everything checks out.  If one of the other servers is not up-to-date
+    /// If one of the other servers is not up-to-date
     /// according to this server, discovery of that server is invoked and
     /// [`api::ErrorCode::PleaseRetry`] is returned.
     async fn discover(
         self: &Rc<Self>,
         phc_inf: api::DiscoveryInfoResp,
-    ) -> api::Result<Option<Constellation>> {
+    ) -> api::Result<DiscoverVerdict> {
         log::debug!("{server_name}: running discovery", server_name = S::NAME);
 
         if S::NAME == Name::PubhubsCentral {
@@ -406,6 +421,51 @@ pub trait App<S: Server>: Deref<Target = AppBase<S>> + 'static {
                 Name::PubhubsCentral
             );
             return Err(api::ErrorCode::InternalError);
+        }
+
+        if let Some(ref phc_version) = phc_inf.version
+            && let Some(my_version) = &self.version
+        {
+            let phc_version = crate::servers::version::to_semver(phc_version).map_err(|err| {
+                log::error!(
+                    "could not parse semantic version returned by PHC: {phc_version}: {err}"
+                );
+                api::ErrorCode::InternalError
+            })?;
+
+            let my_version = crate::servers::version::to_semver(my_version).map_err(|err| {
+                log::error!("could not parse my semantic version {my_version}: {err}");
+                api::ErrorCode::InternalError
+            })?;
+
+            if my_version < phc_version {
+                log::warn!(
+                    "{server_name}: {phc}'s version ({phc_version}) > my version ({my_version})",
+                    server_name = S::NAME,
+                    phc = Name::PubhubsCentral
+                );
+                return Ok(DiscoverVerdict::BinaryOutdated);
+            }
+
+            if my_version > phc_version {
+                log::warn!(
+                    "{server_name}: {phc}'s version {phc_version} is out-of-date - requesting rediscovery",
+                    server_name = S::NAME,
+                    phc = Name::PubhubsCentral
+                );
+
+                self.client
+                    .query::<api::DiscoveryRun>(&phc_inf.phc_url, NoPayload)
+                    .await
+                    .into_server_result()?;
+                return Err(api::ErrorCode::PleaseRetry);
+            }
+        } else {
+            log::warn!(
+                "not checking my version ({my_version}) against phc's version ({phc_version})",
+                my_version = crate::servers::version::VERSION,
+                phc_version = phc_inf.version.unwrap_or_else(|| "n/a".to_string())
+            );
         }
 
         assert!(
@@ -440,7 +500,7 @@ pub trait App<S: Server>: Deref<Target = AppBase<S>> + 'static {
                     server_name = S::NAME,
                 );
 
-                return Ok(None);
+                return Ok(DiscoverVerdict::Alright);
             }
         }
 
@@ -479,7 +539,9 @@ pub trait App<S: Server>: Deref<Target = AppBase<S>> + 'static {
         }
         .check(di, url)?;
 
-        Ok(Some(phc_inf.constellation.unwrap()))
+        Ok(DiscoverVerdict::ConstellationOutdated {
+            new_constellation: Box::new(phc_inf.constellation.unwrap()),
+        })
     }
 
     /// Should return the master encryption key part for PHC and the transcryption.
@@ -500,6 +562,7 @@ pub struct AppCreatorBase<S: Server> {
     pub enc_key: elgamal::PrivateKey,
     pub admin_key: api::VerifyingKey,
     pub shared: SharedState<S>,
+    pub version: Option<String>,
 }
 
 // need to implement this manually, because we do not want `Server` to implement `Clone`
@@ -513,6 +576,7 @@ impl<S: Server> Clone for AppCreatorBase<S> {
             enc_key: self.enc_key.clone(),
             admin_key: self.admin_key.clone(),
             shared: self.shared.clone(),
+            version: self.version.clone(),
         }
     }
 }
@@ -553,6 +617,7 @@ where
                 object_store: TryFrom::try_from(&server_config.object_store)
                     .with_context(|| format!("Creating object store for {}", S::NAME))?,
             }),
+            version: server_config.version.clone(),
         })
     }
 }
@@ -570,6 +635,7 @@ pub struct AppBase<S: Server> {
     pub admin_key: api::VerifyingKey,
     pub shared: SharedState<S>,
     pub client: client::Client,
+    pub version: Option<String>,
 }
 
 impl<S: Server> AppBase<S> {
@@ -586,6 +652,7 @@ impl<S: Server> AppBase<S> {
             client: client::Client::builder()
                 .agent(client::Agent::Server(S::NAME))
                 .finish(),
+            version: creator_base.version,
         }
     }
 
@@ -771,6 +838,7 @@ impl<S: Server> AppBase<S> {
     fn cached_handle_discovery_info(app: &S::AppT) -> api::Result<api::DiscoveryInfoResp> {
         Ok(api::DiscoveryInfoResp {
             name: S::NAME,
+            version: app.version.clone(),
             self_check_code: app.self_check_code.clone(),
             phc_url: app.phc_url.clone(),
             // NOTE on efficiency:  the ed25519_dalek::SigningKey contains a precomputed
