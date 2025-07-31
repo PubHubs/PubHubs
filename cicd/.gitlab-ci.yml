@@ -303,7 +303,7 @@ build-hubclient:
       optional: true
   tags:
     - docker
-  image: docker:stable
+  image: docker:latest
   script:
     - cd hub-client
     - docker login -u $CI_REGISTRY_USER -p $CI_REGISTRY_PASSWORD $CI_REGISTRY
