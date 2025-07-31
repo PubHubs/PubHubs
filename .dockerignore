@@ -4,3 +4,6 @@
 !pubhubs/
 !hub-client/
 !global-client/
+
+# so PHC can detect its version using git
+!.git/
