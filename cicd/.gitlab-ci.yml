@@ -75,7 +75,7 @@ build-pubhubs-image:
       optional: true
   tags:
     - docker
-  image: docker:stable
+  image: docker:latest
   script:
     - unset DOCKER_HOST
     - docker login -u $CI_REGISTRY_USER -p $CI_REGISTRY_PASSWORD $CI_REGISTRY
