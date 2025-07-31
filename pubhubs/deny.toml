@@ -96,6 +96,7 @@ allow = [
 	"Apache-2.0",
 	"ISC",
 	"BSD-3-Clause",
+	"BSD-2-Clause",
 	"Zlib",
 ]
 # The confidence threshold for detecting a license from license text.
