@@ -79,6 +79,10 @@ build-pubhubs-image:
   script:
     - unset DOCKER_HOST
     - docker login -u $CI_REGISTRY_USER -p $CI_REGISTRY_PASSWORD $CI_REGISTRY
+    # We want to describe our commit using the latest tag.  However, gitlab runners use a shallow clone of our repo,
+    # which might not contain the latest tag, in which case `git describe --tags` fails.  In that case we fetch 
+    # a bit more history until we hit our tag's commit.
+    - until git describe --tags; do git fetch --deepen 10; done 
     - docker build --build-arg "CARGO_FEATURES=${CARGO_FEATURES}" -f pubhubs/Dockerfile -t ${CONTAINER_IMAGE} .
     - docker push ${CONTAINER_IMAGE}
 
