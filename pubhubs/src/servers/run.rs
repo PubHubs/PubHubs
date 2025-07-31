@@ -4,13 +4,14 @@ use std::rc::Rc;
 use std::sync::Arc;
 
 use actix_web::web;
-use anyhow::{Context as _, Result, bail};
+use anyhow::{bail, Context as _, Result};
 use core::convert::Infallible;
 use tokio::sync::mpsc;
 
 use crate::api;
 use crate::servers::{
-    App, AppBase, AppCreator, Command, Name, Server, for_all_servers, server::RunningState,
+    for_all_servers, server::RunningState, App, AppBase, AppCreator, Command, DiscoverVerdict,
+    Name, Server,
 };
 
 /// A set of running PubHubs servers.
@@ -486,20 +487,29 @@ impl DiscoveryLimiter {
             return Err(api::ErrorCode::PleaseRetry);
         }
 
-        let new_constellation_maybe = app.discover(phc_discovery_info).await?;
-        if new_constellation_maybe.is_none() {
-            return Ok(api::DiscoveryRunResp::UpToDate);
-        }
-
-        let new_constellation = new_constellation_maybe.unwrap();
+        let new_constellation_maybe = match app.discover(phc_discovery_info).await? {
+            DiscoverVerdict::ConstellationOutdated { new_constellation } => Some(new_constellation),
+            DiscoverVerdict::BinaryOutdated => None,
+            DiscoverVerdict::Alright => return Ok(api::DiscoveryRunResp::UpToDate),
+        };
 
         // modify server, and restart (to modify all Apps)
 
         let result = app
             .handle
             .modify(
-                "updated constellation after discovery",
+                if new_constellation_maybe.is_some() {
+                    "updated constellation after discovery"
+                } else {
+                    "restarting binary hoping to update version"
+                },
                 |server: &mut S| -> bool {
+                    let Some(new_constellation) = new_constellation_maybe else {
+                        return false; // no, don't restart the server, but exit the binary so that
+                                      // - hopefully - a new version of the binary will be started
+                                      // by e.g. systemd
+                    };
+
                     let extra = match server.create_running_state(&new_constellation) {
                         Ok(extra) => extra,
                         Err(err) => {
@@ -516,7 +526,7 @@ impl DiscoveryLimiter {
 
                     let old_running_state = server
                         .running_state
-                        .replace(RunningState::new(new_constellation, extra));
+                        .replace(RunningState::new(*new_constellation, extra));
 
                     // See if our url has changed
                     if old_running_state.is_none_or(|rs| rs.constellation.url(S::NAME) != &new_url)
@@ -524,7 +534,7 @@ impl DiscoveryLimiter {
                         log::info!("{}: at {}", S::NAME, new_url);
                     }
 
-                    true // yes, restart
+                    true // yes, restart this server
                 },
             )
             .await;

@@ -18,6 +18,8 @@ impl ServeArgs {
     pub fn run(self, _spec: &mut clap::Command) -> Result<()> {
         env_logger::init();
 
+        log::info!("version: {}", crate::servers::version::VERSION);
+
         let config = self.adjust_config(self.common.load_config()?)?;
 
         tokio::runtime::Builder::new_multi_thread()

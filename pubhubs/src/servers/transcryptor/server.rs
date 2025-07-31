@@ -90,6 +90,7 @@ impl crate::servers::App<Server> for App {
                     phc_url: _,
                     master_enc_key: _,
                     global_client_url: _,
+                    ph_version: _, // (already checked)
                 },
             id: _,
             created_at: _,

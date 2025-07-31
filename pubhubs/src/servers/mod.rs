@@ -18,5 +18,9 @@ pub use macros::for_all_servers;
 pub(super) use run::Handle;
 pub use run::Set;
 pub(super) use server::{
-    App, AppBase, AppCreator, AppCreatorBase, Command, Details, Name, Server, ServerImpl,
+    App, AppBase, AppCreator, AppCreatorBase, Command, Details, DiscoverVerdict, Name, Server,
+    ServerImpl,
 };
+
+pub(crate) mod version;
+pub use version::version;
