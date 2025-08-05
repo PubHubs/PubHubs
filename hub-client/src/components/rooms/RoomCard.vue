@@ -25,6 +25,20 @@
 						</div>
 					</div>
 
+					<div class="hidden lg:block">
+						<Button v-if="memberOfRoom" @click="enterRoom" :title="t('rooms.already_joined')" class="w-fit shrink-0 whitespace-nowrap">
+							{{ t('rooms.already_joined') }}
+						</Button>
+						<Button v-else-if="isSecured" @click="toggleExpand" class="w-fit shrink-0" :title="t('rooms.view_access_requirements')" :color="!isExpanded ? 'primary' : 'secondary'">
+							{{ !isExpanded ? t('rooms.view_access_requirements') : t('rooms.close_access_requirements') }}
+						</Button>
+
+						<Button v-else @click="joinRoom" class="w-fit shrink-0 whitespace-nowrap" :title="t('rooms.join_room')">
+							{{ t('rooms.join_room') }}
+						</Button>
+					</div>
+				</div>
+				<div class="mt-4 block lg:hidden">
 					<Button v-if="memberOfRoom" @click="enterRoom" :title="t('rooms.already_joined')" class="w-fit shrink-0 whitespace-nowrap">
 						{{ t('rooms.already_joined') }}
 					</Button>

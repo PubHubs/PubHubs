@@ -57,7 +57,11 @@
 	 */
 	function resize() {
 		if (!elTextarea.value) return;
-		elTextarea.value.style.height = 'auto';
-		elTextarea.value.style.height = elTextarea.value.scrollHeight + 'px';
+		if (props.modelValue === '') {
+			elTextarea.value.style.height = 'auto';
+		} else {
+			elTextarea.value.style.height = 'auto';
+			elTextarea.value.style.height = elTextarea.value.scrollHeight + 'px';
+		}
 	}
 </script>

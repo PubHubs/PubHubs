@@ -117,6 +117,7 @@ class Events {
 				const rooms = useRooms();
 				if (member.membership === 'leave') {
 					const roomId = event.getRoomId();
+
 					if (roomId !== undefined && rooms.rooms[roomId]) {
 						rooms.rooms[roomId].setHidden(true);
 					}
@@ -137,7 +138,11 @@ class Events {
 				else if (member.membership === 'join') {
 					const roomId = event.getRoomId();
 					if (roomId !== undefined && rooms.rooms[roomId]) {
-						rooms.rooms[roomId].setHidden(false);
+						if (event.sender?.userId !== me) {
+							rooms.rooms[roomId].setHidden(false);
+						} else {
+							rooms.rooms[roomId].setHidden(false);
+						}
 					} else {
 						const pubhubs = usePubHubs();
 						pubhubs.updateRooms();

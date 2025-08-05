@@ -54,11 +54,10 @@ export class ManagementUtils {
 		const roomState = await APIService.adminGetRoomState(roomId);
 		// Room State is empty when creator leaves the room without any users joining the room.
 		if (Array.isArray(roomState.state) && roomState.state.length == 0) throw Error('Room state is empty');
-
 		//Otherwise, we check if the creator has left the room, because
 		const roomMembers: RoomMembers = await APIService.adminGetRoomMembers(roomId);
 		const roomCreator: TRoomCreate | undefined = roomState.state.find((roomEvent) => roomEvent.type === EventType.RoomCreate);
-		if (roomCreator === undefined) throw Error(`No creator of room  ${roomId}`);
+		if (!roomCreator) return false;
 		if (!roomMembers.members.find((member: string) => member === roomCreator.user_id)) {
 			return false;
 		} else {
@@ -66,14 +65,11 @@ export class ManagementUtils {
 		}
 	}
 
-	// List Admin members of the room
-	static async getAdminUsersId(roomId: string): Promise<string[]> {
+	//
+	static async getRoomCreator(roomId: string): Promise<string | undefined> {
 		const roomState: TState = await APIService.adminGetRoomState(roomId);
-		const powerLevel = roomState.state.find((event) => event.type === EventType.RoomPowerLevels);
-		if (!powerLevel) return [];
-		const users = powerLevel?.content.users;
-		const onlyAdminUsers = Object.keys(users).filter((userId) => users[userId] === 100);
-		return onlyAdminUsers;
+		const roomCreator: TRoomCreate | undefined = roomState.state.find((roomEvent) => roomEvent.type === EventType.RoomCreate);
+		return roomCreator?.user_id;
 	}
 
 	// Fetch user account data which iterates until all data is fetched.

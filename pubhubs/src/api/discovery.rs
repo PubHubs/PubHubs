@@ -31,6 +31,11 @@ pub struct DiscoveryInfoResp {
     /// Random string used by a server to check that it has contact with itself.
     pub self_check_code: String,
 
+    /// The version of this server (based on git tags).
+    ///
+    /// `None` if not available for some reason
+    pub version: Option<String>,
+
     /// URL of the PubHubs Central server this server tries to connect to.
     pub phc_url: url::Url,
 

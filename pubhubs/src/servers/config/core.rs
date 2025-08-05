@@ -108,6 +108,12 @@ pub struct ServerConfig<ServerSpecific> {
     /// If the server needs an object store, use this one.
     pub object_store: Option<ObjectStoreConfig>,
 
+    /// What version (if any) to claim this pubhubs binary is running.
+    /// Uses [`crate::servers::version`] by default.  Should only be used for
+    /// troubleshooting/debugging.
+    #[serde(default = "default_version")]
+    pub version: Option<String>,
+
     #[serde(flatten)]
     /// Can be accessed via [`Deref`].
     extra: ServerSpecific,
@@ -125,6 +131,10 @@ impl<X> DerefMut for ServerConfig<X> {
     fn deref_mut(&mut self) -> &mut X {
         &mut self.extra
     }
+}
+
+fn default_version() -> Option<String> {
+    crate::servers::version().map(str::to_string)
 }
 
 fn default_ips() -> Box<[std::net::IpAddr]> {
@@ -362,7 +372,8 @@ pub mod phc {
     }
 
     fn default_auth_token_validity() -> core::time::Duration {
-        core::time::Duration::from_secs(60 * 60) // 1 hour
+        core::time::Duration::from_secs(60 * 60) // 1 hour - the user might need to add attributes
+                                                 // to their Yivi app
     }
 
     fn default_pp_nonce_validity() -> core::time::Duration {

@@ -75,11 +75,15 @@ build-pubhubs-image:
       optional: true
   tags:
     - docker
-  image: docker:stable
+  image: docker:latest
   script:
     - unset DOCKER_HOST
     - docker login -u $CI_REGISTRY_USER -p $CI_REGISTRY_PASSWORD $CI_REGISTRY
-    - docker build --build-arg "CARGO_FEATURES=${CARGO_FEATURES}" -f pubhubs/Dockerfile -t ${CONTAINER_IMAGE} .
+    # We want to describe our commit using the latest tag.  However, gitlab runners use a shallow clone of our repo,
+    # which might not contain the latest tag, in which case `git describe --tags` fails.  In that case we fetch 
+    # a bit more history until we hit our tag's commit.
+    - until git describe --tags; do git fetch --deepen 10; done 
+    - docker build --build-arg PH_VERSION="$(git describe --tags)" --build-arg "CARGO_FEATURES=${CARGO_FEATURES}" -f pubhubs/Dockerfile -t ${CONTAINER_IMAGE} .
     - docker push ${CONTAINER_IMAGE}
 
 deploy-main-phc:
@@ -119,6 +123,18 @@ deploy-main-phmss:
   script:
     - chmod 600 $ILAB_VM_TRIGGER_UPDATE_KEY
     - ssh -o UserKnownHostsFile=$ILAB_VM_TRIGGER_UPDATE_KNOWN_HOSTS $ILAB_VM_TRIGGER_UPDATE_USER@ph.ihub.ru.nl -i $ILAB_VM_TRIGGER_UPDATE_KEY docker-phmss-main
+
+deploy-stable-phmss:
+  stage: deploy-own
+  rules:
+    - if: $CI_COMMIT_TAG
+  needs:
+    - build-pubhubs-image
+  tags: [docker]
+  image: registry.science.ru.nl/ilab/docker-build/ubuntu-iso:main
+  script:
+    - chmod 600 $ILAB_VM_TRIGGER_UPDATE_KEY
+    - ssh -o UserKnownHostsFile=$ILAB_VM_TRIGGER_UPDATE_KNOWN_HOSTS $ILAB_VM_TRIGGER_UPDATE_USER@ph.ihub.ru.nl -i $ILAB_VM_TRIGGER_UPDATE_KEY docker-phmss-stable
 
 start-test-setup-unit-test:
   stage: tests
@@ -287,7 +303,7 @@ build-hubclient:
       optional: true
   tags:
     - docker
-  image: docker:stable
+  image: docker:latest
   script:
     - cd hub-client
     - docker login -u $CI_REGISTRY_USER -p $CI_REGISTRY_PASSWORD $CI_REGISTRY
