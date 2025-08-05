@@ -17,6 +17,7 @@ enum RoomType {
 	PH_MESSAGES_DM = 'ph.messages.dm',
 	PH_MESSAGES_GROUP = 'ph.messages.group',
 	PH_MESSAGE_ADMIN_CONTACT = 'ph.messages.admin.contact',
+	PH_MESSAGE_STEWARD_CONTACT = 'ph.messages.steward.contact',
 }
 
 const BotName = {
@@ -106,8 +107,16 @@ export default class Room {
 		return this.getType() === RoomType.PH_MESSAGE_ADMIN_CONTACT;
 	}
 
+	public isStewardContactRoom(): boolean {
+		return this.getType() === RoomType.PH_MESSAGE_STEWARD_CONTACT;
+	}
+
 	public isSecuredRoom(): boolean {
 		return this.getType() === RoomType.SECURED;
+	}
+
+	public directMessageRoom(): boolean {
+		return this.isPrivateRoom() || this.isAdminContactRoom() || this.isStewardContactRoom() || this.isGroupRoom();
 	}
 
 	// #region getters and setters
@@ -264,6 +273,11 @@ export default class Room {
 		return roomMemberIds;
 	}
 
+	public getRoomStewards(): Array<TRoomMember> {
+		return this.getMembersIds()
+			.map((member) => this.getMember(member))
+			.filter((roomMember) => roomMember?.powerLevel === 50);
+	}
 	public getMembersIdsFromName(): Array<string> {
 		const roomMemberIds = this.name.split(',');
 		roomMemberIds.sort();
@@ -311,6 +325,13 @@ export default class Room {
 			.getLiveTimeline()
 			.getEvents()
 			.some((roomEvent) => roomEvent.getType() === EventType.RoomMessage);
+	}
+
+	public numOfMessages(): number {
+		return this.matrixRoom
+			.getLiveTimeline()
+			.getEvents()
+			.filter((roomEvent) => roomEvent.getType() === EventType.RoomMessage).length;
 	}
 
 	/**

@@ -91,7 +91,9 @@
 	const { t } = useI18n();
 
 	// Initialize admin contact
-	onMounted(async () => await pubhubs.initializeOrExtendAdminContactRoom());
+	onMounted(async () => {
+		await pubhubs.initializeOrExtendAdminContactRoom();
+	});
 
 	const isMobile = computed(() => settings.isMobileState);
 
@@ -122,12 +124,15 @@
 	function getPrivateRooms(): Array<Room> {
 		const dmRooms = rooms.fetchRoomArrayByType(RoomType.PH_MESSAGES_DM) ?? [];
 		const groupRooms = rooms.fetchRoomArrayByType(RoomType.PH_MESSAGES_GROUP) ?? [];
+		const stewardRooms = rooms.fetchRoomArrayByType(RoomType.PH_MESSAGE_STEWARD_CONTACT) ?? [];
+
 		// Only Admin has message preview, other users has a admin contact button
 		if (user.isAdmin) {
 			const adminRoom = rooms.fetchRoomArrayByType(RoomType.PH_MESSAGE_ADMIN_CONTACT) ?? [];
-			return [...dmRooms, ...groupRooms, ...adminRoom];
+			return [...dmRooms, ...groupRooms, ...adminRoom, ...stewardRooms];
 		}
-		return [...dmRooms, ...groupRooms];
+
+		return [...dmRooms, ...groupRooms, ...stewardRooms];
 	}
 
 	function lastEventTimeStamp(room: Room): number {

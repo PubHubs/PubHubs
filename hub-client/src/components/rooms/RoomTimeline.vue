@@ -17,10 +17,13 @@
 							:event="item.event"
 							:event-thread-length="eventThreadLengths[item.event.event_id ?? 0]"
 							class="room-event"
+							:active-profile-card="activeProfileCard"
 							@in-reply-to-click="onInReplyToClick"
 							@delete-message="confirmDeleteMessage(item.event, item.isThreadRoot)"
 							@edit-poll="onEditPoll"
 							@edit-scheduler="onEditScheduler"
+							@profile-card-toggle="toggleProfileCard"
+							@profile-card-close="closeProfileCard"
 						/>
 						<UnreadMarker v-if="settings.isFeatureEnabled(FeatureFlag.unreadMarkers)" :currentEventId="item.event.event_id ?? ''" :currentUserId="user.user.userId" />
 					</div>
@@ -66,6 +69,7 @@
 	const elRoomEvent = ref<HTMLElement | null>(null);
 	const isLoadingNewEvents = ref(false);
 	const showConfirmDelMsgDialog = ref(false);
+	const activeProfileCard = ref<string | null>(null);
 	const eventToBeDeleted = ref<TMessageEvent>();
 	const editingPoll = ref<{ poll: Poll; eventId: string } | undefined>(undefined);
 	const editingScheduler = ref<{ scheduler: Scheduler; eventId: string } | undefined>(undefined);
@@ -353,6 +357,14 @@
 
 	function onEditScheduler(scheduler: Scheduler, eventId: string) {
 		editingScheduler.value = { scheduler, eventId };
+	}
+
+	function toggleProfileCard(eventId: string) {
+		activeProfileCard.value = activeProfileCard.value === eventId ? null : eventId;
+	}
+
+	function closeProfileCard() {
+		activeProfileCard.value = null;
 	}
 
 	function confirmDeleteMessage(event: TMessageEvent, isThreadRoot: boolean) {

@@ -232,9 +232,9 @@
 				const roomId = message.content as RouteParamValue;
 				if (rooms.currentRoomId !== roomId) {
 					rooms.currentRoomId = roomId;
-					await rooms.getSecuredRoomInfo(roomId);
 					if (rooms.securedRoom && rooms.securedRoom !== null) {
-						router.push({ name: 'secure-room', params: { id: roomId } });
+						const securedRoomId = await rooms.getSecuredRoomInfo(roomId);
+						router.push({ name: 'room', params: { id: securedRoomId } });
 					} else {
 						router.push({ name: 'room', params: { id: roomId } });
 					}
