@@ -9,11 +9,32 @@
 
 		<div class="h-full flex-1 overflow-y-scroll pb-8 pt-4">
 			<div v-if="filteredEvents.length === 0" ref="elRoomEvent" :id="props.room.currentThread?.rootEvent?.event.event_id">
-				<RoomEvent :room="room" :event="props.room.currentThread?.rootEvent?.event" :viewFromThread="true" class="room-event" @in-reply-to-click="onInReplyToClick" @delete-message="confirmDeleteMessage"> </RoomEvent>
+				<RoomEvent
+					:room="room"
+					:event="props.room.currentThread?.rootEvent?.event"
+					:viewFromThread="true"
+					:active-profile-card="activeProfileCard"
+					class="room-event"
+					@in-reply-to-click="onInReplyToClick"
+					@delete-message="confirmDeleteMessage"
+					@profile-card-toggle="toggleProfileCard"
+					@profile-card-close="closeProfileCard"
+				>
+				</RoomEvent>
 			</div>
 			<div v-for="item in filteredEvents" :key="item.event.event_id">
 				<div class="mx-3 rounded-md" ref="elRoomEvent" :id="item.event.event_id">
-					<RoomEvent :room="room" :event="item.event" :viewFromThread="true" class="room-event" @in-reply-to-click="onInReplyToClick" @delete-message="confirmDeleteMessage"></RoomEvent>
+					<RoomEvent
+						:room="room"
+						:event="item.event"
+						:viewFromThread="true"
+						:active-profile-card="activeProfileCard"
+						class="room-event"
+						@in-reply-to-click="onInReplyToClick"
+						@delete-message="confirmDeleteMessage"
+						@profile-card-toggle="toggleProfileCard"
+						@profile-card-close="closeProfileCard"
+					></RoomEvent>
 				</div>
 			</div>
 		</div>
@@ -91,6 +112,7 @@
 	const elThreadTimeline = ref<HTMLElement | null>(null);
 	const showConfirmDelMsgDialog = ref(false);
 	const eventToBeDeleted = ref<TMessageEvent>();
+	const activeProfileCard = ref<string | null>(null);
 
 	onMounted(() => {
 		props.room.listenToThreadNewReply(newReplyListener.bind(this));
@@ -222,5 +244,13 @@
 				deletedEvents.push(deletedEvent as MatrixEvent);
 			}
 		}
+	}
+
+	function toggleProfileCard(eventId: string) {
+		activeProfileCard.value = activeProfileCard.value === eventId ? null : eventId;
+	}
+
+	function closeProfileCard() {
+		activeProfileCard.value = null;
 	}
 </script>

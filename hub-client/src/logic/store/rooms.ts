@@ -6,7 +6,7 @@ import Room from '@/model/rooms/Room';
 import { RoomType } from '@/model/rooms/TBaseRoom';
 import { TPublicRoom } from '@/model/rooms/TPublicRoom';
 import { TSecuredRoom } from '@/model/rooms/TSecuredRoom';
-import { EventType, MatrixEvent, Room as MatrixRoom, NotificationCountType } from 'matrix-js-sdk';
+import { EventType, MatrixEvent, Room as MatrixRoom, NotificationCountType, RoomMember } from 'matrix-js-sdk';
 import { defineStore } from 'pinia';
 import { Message, MessageType, useMessageBox } from './messagebox';
 import { useUser } from './user';
@@ -15,6 +15,7 @@ import { PubHubsMgType } from '@/logic/core/events';
 import { SecuredRoomAttributeResult } from '@/logic/foundation/statusTypes';
 import { TMessageEvent } from '@/model/events/TMessageEvent';
 import { isVisiblePrivateRoom } from '../core/privateRoomNames';
+import { TRoomMember } from '@/model/rooms/TRoomMember.js';
 
 // Matrix Endpoint for messages in a room.
 interface RoomMessages {
@@ -203,6 +204,10 @@ const useRooms = defineStore('rooms', {
 		},
 		setTimestamps(timestamps: Array<Array<Number | string>>) {
 			this.timestamps = timestamps;
+		},
+
+		fetchRoomById(roomId: string): Room {
+			return this.room(roomId);
 		},
 
 		// On receiving a message in any room:
@@ -626,9 +631,62 @@ const useRooms = defineStore('rooms', {
 			const dmRooms = this.fetchRoomArrayByType(RoomType.PH_MESSAGES_DM) ?? [];
 			const groupRooms = this.fetchRoomArrayByType(RoomType.PH_MESSAGES_GROUP) ?? [];
 			const adminRooms = this.fetchRoomArrayByType(RoomType.PH_MESSAGE_ADMIN_CONTACT) ?? [];
+			const stewardRooms = this.fetchRoomArrayByType(RoomType.PH_MESSAGE_STEWARD_CONTACT) ?? [];
 
-			const totalPrivateRooms = [...dmRooms, ...groupRooms, ...adminRooms];
+			const totalPrivateRooms = [...dmRooms, ...groupRooms, ...adminRooms, ...stewardRooms];
 			return totalPrivateRooms.reduce((total, room) => total + (room.getRoomUnreadNotificationCount(NotificationCountType.Total) ?? 0), 0);
+		},
+		// Steward room logic //
+
+		stewardRooms(): Array<Room> {
+			const rooms = useRooms();
+			return rooms.fetchRoomArrayByType(RoomType.PH_MESSAGE_STEWARD_CONTACT);
+		},
+
+		currentStewardRoom(roomId: string): Room | undefined {
+			return this.stewardRooms().filter((room) => room.name.split(',')[0] === roomId)[0];
+		},
+
+		/**
+		 * Creates a steward room or modifies the existing one.
+		 * If the room already exists, it updates the members.
+		 * If it doesn't exist, it creates a new private room with the given members.
+		 * @param roomId - The ID of the room to create or modify.
+		 * @param members - An array of RoomMember objects representing the members of the room.
+		 */
+		async createStewardRoomOrModify(roomId: string, members: Array<RoomMember>): Promise<void> {
+			const user = useUser();
+			const pubhubs = usePubHubs();
+			const stewardIds = members.map((member) => member.userId);
+
+			const stewardRoom: Room = this.currentStewardRoom(roomId);
+
+			if (stewardRoom) {
+				const roomMembers: TRoomMember[] = stewardRoom.matrixRoom.getMembers();
+				// If moderators are updated then update the moderators join and leave in the room.
+
+				roomMembers.forEach(async (member: TRoomMember) => {
+					if (this.room(roomId).getPowerLevel(member.userId) !== 50 && member.userId !== user.user.userId) {
+						if (stewardRoom.getMember(member.userId)?.membership !== 'leave') {
+							await pubhubs.client.kick(stewardRoom.roomId, member.userId);
+						}
+					}
+					const roomUserId = roomMembers.map((member) => member.userId);
+
+					const newStewardId = stewardIds.filter((stewardUserId) => !roomUserId.includes(stewardUserId));
+					if (newStewardId.length > 0) {
+						newStewardId.forEach(async (thisSteward) => {
+							await pubhubs.invite(stewardRoom.roomId, thisSteward);
+						});
+					}
+				});
+				await pubhubs.routeToRoomPage({ room_id: stewardRoom.roomId });
+			} else {
+				const pubhubs = usePubHubs();
+
+				const privateRoom = await pubhubs.createPrivateRoomWith(members, false, true, roomId);
+				privateRoom && (await pubhubs.routeToRoomPage(privateRoom));
+			}
 		},
 	},
 });

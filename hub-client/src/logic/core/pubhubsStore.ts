@@ -407,7 +407,7 @@ const usePubHubs = defineStore('pubhubs', {
 			return false;
 		},
 
-		async createPrivateRoomWith(other: User | MatrixUser[], adminContact: boolean = false): Promise<{ room_id: string } | null> {
+		async createPrivateRoomWith(other: User | MatrixUser[], adminContact: boolean = false, stewardContact: boolean = false, roomIdForStewardRoomCreate: string = ''): Promise<{ room_id: string } | null> {
 			const user = useUser();
 			const me = user.user as User;
 			let otherUsers: (User | MatrixUser)[];
@@ -415,10 +415,10 @@ const usePubHubs = defineStore('pubhubs', {
 
 			if (other instanceof Array) {
 				otherUsers = other;
-				roomType = adminContact ? RoomType.PH_MESSAGE_ADMIN_CONTACT : RoomType.PH_MESSAGES_GROUP;
+				roomType = adminContact ? RoomType.PH_MESSAGE_ADMIN_CONTACT : stewardContact ? RoomType.PH_MESSAGE_STEWARD_CONTACT : RoomType.PH_MESSAGES_GROUP;
 			} else {
 				otherUsers = [other];
-				roomType = adminContact ? RoomType.PH_MESSAGE_ADMIN_CONTACT : RoomType.PH_MESSAGES_DM;
+				roomType = adminContact ? RoomType.PH_MESSAGE_ADMIN_CONTACT : stewardContact ? RoomType.PH_MESSAGE_STEWARD_CONTACT : RoomType.PH_MESSAGES_DM;
 			}
 
 			const memberIds = [me.userId, ...otherUsers.map((u) => u.userId)];
@@ -440,11 +440,12 @@ const usePubHubs = defineStore('pubhubs', {
 			if (existingRoomId === false) {
 				const otherUserForName = otherUsers;
 				const privateRoomName = createNewPrivateRoomName([me, ...otherUserForName]);
+				const stewardRoomName = roomIdForStewardRoomCreate !== '' ? roomIdForStewardRoomCreate + ',' + privateRoomName : '';
 				const inviteIds = otherUsers.map((u) => u.userId);
 
 				const room = await this.createRoom({
 					preset: 'trusted_private_chat',
-					name: privateRoomName,
+					name: roomIdForStewardRoomCreate !== '' ? stewardRoomName : privateRoomName,
 					visibility: 'private',
 					invite: inviteIds,
 					is_direct: true,
@@ -1178,6 +1179,10 @@ const usePubHubs = defineStore('pubhubs', {
 
 		hasNotBeenInvitedOrJoined(room: Room, adminId: string) {
 			return !(room.getMember(adminId)?.membership === 'join' || room.getMember(adminId)?.membership === 'invite');
+		},
+		async routeToRoomPage(room: { room_id: string }) {
+			const room_id = room.room_id;
+			await router.push({ name: 'room', params: { id: room_id } });
 		},
 	},
 });

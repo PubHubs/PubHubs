@@ -19,8 +19,19 @@
 				{{ getAnnouncementTitle }}
 			</div>
 
-			<div class="flex w-full gap-4 px-6" :class="getMessageContainerClasses">
-				<Avatar :userId="event.sender" />
+			<div class="flex w-full gap-2 px-6" :class="getMessageContainerClasses">
+				<Avatar
+					:userId="event.sender"
+					@click.stop="emit('profileCardToggle', event.event_id)"
+					:class="['transition-all duration-500 ease-in-out', { 'cursor-pointer ring-1 ring-on-surface-dim ring-offset-4': hover || props.activeProfileCard === props.event.event_id }]"
+					@mouseover="hover = true"
+					@mouseleave="hover = false"
+				/>
+				<div class="relative">
+					<Popover v-if="showProfileCard" @close="emit('profileCardClose')" :class="['absolute z-50 h-40 w-52', profileInPosition(event) ? 'bottom-4' : '']">
+						<ProfileCard :event="event" :room="room" :room-member="roomMember" />
+					</Popover>
+				</div>
 				<div :class="{ 'w-5/6': deleteMessageDialog, 'w-full': !deleteMessageDialog }" class="min-w-0">
 					<div class="flex flex-wrap items-center overflow-hidden text-wrap break-all">
 						<div class="relative flex min-h-6 w-full items-start gap-x-2 pb-1">
@@ -32,8 +43,7 @@
 									<span class="~text-label-small-min/label-small-max">|</span>
 									<EventTime :timestamp="event.origin_server_ts" :showDate="true"> </EventTime>
 								</span>
-
-								<RoomBadge v-if="!room.isPrivateRoom() && !room.isGroupRoom() && !room.isAdminContactRoom()" class="inline-block" :user="event.sender" :room_id="event.room_id"></RoomBadge>
+								<RoomBadge v-if="!room.directMessageRoom()" class="inline-block" :user="event.sender" :room_id="event.room_id"></RoomBadge>
 							</div>
 							<div>
 								<template v-if="timerReady && !deleteMessageDialog">
@@ -42,7 +52,6 @@
 									</button>
 									<Icon v-if="msgIsNotSend && !connection.isOn" type="lost-connection" size="sm" class="text-red mb-1 ml-2" />
 								</template>
-
 								<RoomEventActionsPopup v-if="!deleteMessageDialog">
 									<button
 										v-if="!msgIsNotSend && !redactedMessage && !isThreadRoot"
@@ -139,6 +148,9 @@
 
 	// Components
 	import AnnouncementMessage from './AnnouncementMessage.vue';
+
+	import ProfileCard from '../ui/ProfileCard.vue';
+	import Popover from '../ui/Popover.vue';
 	import MessageSnippet from './MessageSnippet.vue';
 	import Message from './Message.vue';
 	import MessageFile from './MessageFile.vue';
@@ -153,7 +165,7 @@
 
 	// Dependencies
 	import { MsgType } from 'matrix-js-sdk';
-	import { computed, ref, watch, onMounted } from 'vue';
+	import { computed, ref, watch, onMounted, PropType, onBeforeUnmount } from 'vue';
 	import { useI18n } from 'vue-i18n';
 	import VotingWidget from '@/components/rooms/voting/VotingWidget.vue';
 	import { Poll, Scheduler } from '@/model/events/voting/VotingTypes';
@@ -161,11 +173,13 @@
 	// Stores
 	const connection = useConnection();
 	const messageActions = useMessageActions();
+
 	const user = useUser();
 	const settings = useSettings();
 	const { t } = useI18n();
 
 	let threadLength = ref(0);
+	const hover = ref(false);
 
 	const props = defineProps({
 		event: {
@@ -188,9 +202,20 @@
 			type: Boolean,
 			default: false,
 		},
+		activeProfileCard: {
+			type: String as PropType<string | null>,
+			default: null,
+		},
 	});
 
 	onMounted(() => (threadLength.value = props.eventThreadLength));
+	// Add this block
+	onBeforeUnmount(() => {
+		// If the profile card is open when this component is unmounted, close it.
+		if (props.activeProfileCard === props.event.event_id) {
+			emit('profileCardClose');
+		}
+	});
 
 	/**
 	 * Watch the threadlength for external changes, done by other users
@@ -212,7 +237,11 @@
 		(e: 'deleteMessage', event: TMessageEvent): void;
 		(e: 'editPoll', poll: Poll, eventId: string): void;
 		(e: 'editScheduler', scheduler: Scheduler, eventId: string): void;
+		(e: 'profileCardToggle', eventId: string): void;
+		(e: 'profileCardClose'): void;
 	}>();
+
+	const showProfileCard = computed(() => props.activeProfileCard === props.event.event_id);
 
 	const msgIsNotSend = computed(() => props.event.event_id.substring(0, 1) === '~');
 
@@ -309,6 +338,10 @@
 	function resend() {
 		const pubhubs = usePubHubs();
 		pubhubs.resendEvent(props.event);
+	}
+
+	function profileInPosition(ev: Event) {
+		return ev.event_id === props.room.getLastVisibleEventId() && props.room.numOfMessages() > 5;
 	}
 
 	// Waits for checking if message is realy send. Otherwise a 'resend' button appears. See also msgIsNotSend computed.
