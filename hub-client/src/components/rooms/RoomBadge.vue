@@ -1,12 +1,12 @@
 <template>
-	<span v-if="userHasBadge" class="flex gap-x-1">
-		<span v-if="hasPowerPrivileges || isHubAdmin" class="ml-2 flex h-4 min-w-full items-center gap-1 rounded-xl bg-black px-2 lowercase text-white ~text-label-small-min/label-small-max">
+	<span v-if="userHasBadge" class="flex flex-wrap gap-x-1 gap-y-1 px-4">
+		<span v-if="hasPowerPrivileges || isHubAdmin" class="flex h-4 items-center gap-1 rounded-xl bg-black px-2 lowercase text-white ~text-label-small-min/label-small-max">
 			<Icon type="power_level" class="-mr-3 mt-3"></Icon>
 			<span v-if="isHubAdmin">{{ hubAdminLabel }}</span>
 			<span v-else>{{ powerLevelLabel }}</span>
 		</span>
-		<span v-else v-for="value in roomAttributes" :key="value" class="ml-2 flex h-4 min-w-full items-center gap-1 rounded-xl bg-black px-2 lowercase text-white ~text-label-small-min/label-small-max">
-			<Icon type="check" :size="'xs'"></Icon>
+		<span v-else v-for="value in roomAttributes" :key="value" class="flex h-4 items-center gap-1 rounded-xl bg-black px-2 lowercase text-white ~text-label-small-min/label-small-max">
+			<Icon type="check" class="-mr-3 mt-3"></Icon>
 			<span>{{ value }}</span>
 		</span>
 	</span>

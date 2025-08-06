@@ -206,12 +206,8 @@
 
 	async function gotToPrivateRoom(other: User | MatrixUser[]) {
 		const room = await pubhubs.createPrivateRoomWith(other);
-		room && (await routeToRoomPage(room));
-	}
-
-	async function routeToRoomPage(room: { room_id: string }) {
-		const room_id = room.room_id;
-		await router.push({ name: 'room', params: { id: room_id } });
+		if (room) await pubhubs.routeToRoomPage(room);
+		else dialog.confirm(t('errors.cant_find_room'));
 	}
 
 	async function usersSelectionDone() {
