@@ -43,7 +43,7 @@ impl crate::client::Client {
                     )
                     .await?
                     .unwrap()) // NB. We panic on an expired ticket here as this function is currently
-                               // only used during testing
+                // only used during testing
             },
             // request key part from the trancryptor
             async {

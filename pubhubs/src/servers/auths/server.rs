@@ -7,7 +7,7 @@ use actix_web::web;
 use digest::Digest as _;
 
 use crate::servers::{
-    self, constellation, yivi, AppBase, AppCreatorBase, Constellation, Handle, Server as _,
+    self, AppBase, AppCreatorBase, Constellation, Handle, Server as _, constellation, yivi,
 };
 use crate::{
     api::{self, EndpointDetails as _, ResultExt as _},

@@ -598,7 +598,7 @@ impl rusqlite::types::FromSql for Hubid {
 }
 
 impl rusqlite::types::ToSql for Hubid {
-    fn to_sql(&self) -> rusqlite::Result<rusqlite::types::ToSqlOutput> {
+    fn to_sql(&self) -> rusqlite::Result<rusqlite::types::ToSqlOutput<'_>> {
         Ok(rusqlite::types::ToSqlOutput::Owned(
             rusqlite::types::Value::Text(self.to_string()),
         ))
