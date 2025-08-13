@@ -261,18 +261,16 @@ impl Main {
     }
 
     pub fn is_metrics_request(&self, headers: &HeaderMap) -> bool {
-        if let Some(possible_auth) = headers.get(AUTHORIZATION) {
-            if let Ok(auth) = possible_auth.to_str() {
-                if let Some(metrics_api_key) =
+        if let Some(possible_auth) = headers.get(AUTHORIZATION)
+            && let Ok(auth) = possible_auth.to_str()
+                && let Some(metrics_api_key) =
                     auth.trim().split(' ').collect::<Vec<&str>>()[..].last()
                 {
                     return metrics_api_key
                         .as_bytes()
                         .ct_eq(self.metrics_key.as_bytes())
                         .into();
-                }
-            }
-        };
+                };
         false
     }
 

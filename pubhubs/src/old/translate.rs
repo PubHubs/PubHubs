@@ -193,7 +193,7 @@ impl Translations {
     /// Get the language prefix like "/en".  Since the leading slash, "/", of "/en"
     /// is not stored in [Translations], returns an implementation of [core::fmt::Display] that
     /// prepends this "/".
-    pub fn prefix(&self) -> Prefix {
+    pub fn prefix(&self) -> Prefix<'_> {
         Prefix {
             without_leading_slash: self.lang(),
         }
@@ -251,11 +251,10 @@ impl CustomFuncs for Translations {
             return Err("No default for translation given");
         };
 
-        if let Some(ref rc) = self.inner {
-            if let Some(translation) = rc.translations.get(key) {
+        if let Some(ref rc) = self.inner
+            && let Some(translation) = rc.translations.get(key) {
                 return Ok(DecodedValue::String(scope.copy_u8(translation.as_bytes())));
             }
-        }
 
         Ok(default.unwrap().clone())
     }

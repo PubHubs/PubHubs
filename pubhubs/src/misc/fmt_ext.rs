@@ -45,12 +45,11 @@ impl Display for Bytes<'_> {
         let mut bytes = self.0;
 
         // disregard anything that won't fit anyhow
-        if let Some(precision) = f.precision() {
-            if precision < bytes.len() {
+        if let Some(precision) = f.precision()
+            && precision < bytes.len() {
                 bytes = &bytes[..precision];
                 truncated = true;
             }
-        }
 
         let mut buf: Vec<u8> = if bytes
             .iter()
@@ -82,12 +81,11 @@ impl Display for Bytes<'_> {
 
         let mut result: &mut [u8] = buf.as_mut();
 
-        if let Some(precision) = f.precision() {
-            if precision < result.len() {
+        if let Some(precision) = f.precision()
+            && precision < result.len() {
                 result = &mut result[..precision];
                 truncated = true;
             }
-        }
 
         if truncated && result.len() >= 3 {
             let result_len = result.len();

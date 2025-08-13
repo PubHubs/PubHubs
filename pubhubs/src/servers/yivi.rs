@@ -467,11 +467,10 @@ impl DisclosedAttribute {
             anyhow::bail!("attribute is revoked");
         }
 
-        if let Some(not_revoked_before) = self.not_revoked_before {
-            if jwt::NumericDate::now() > not_revoked_before {
+        if let Some(not_revoked_before) = self.not_revoked_before
+            && jwt::NumericDate::now() > not_revoked_before {
                 anyhow::bail!("attribute is (presumably) revoked after {not_revoked_before}");
             }
-        }
 
         Ok(())
     }

@@ -147,11 +147,10 @@ impl Claims {
             "exp",
             |_claim_name: &'static str, exp: Option<NumericDate>| -> Result<(), Error> {
                 // When `exp` is present, it should not be expired.
-                if let Some(exp) = exp {
-                    if exp < now {
+                if let Some(exp) = exp
+                    && exp < now {
                         return Err(Error::Expired { when: exp });
                     }
-                }
 
                 Ok(())
             },
@@ -160,11 +159,10 @@ impl Claims {
             "nbf",
             |_claim_name: &'static str, nbf: Option<NumericDate>| -> Result<(), Error> {
                 // When `nbf` is present, it should be in the past.
-                if let Some(nbf) = nbf {
-                    if now < nbf {
+                if let Some(nbf) = nbf
+                    && now < nbf {
                         return Err(Error::NotYetValid { valid_from: nbf });
                     }
-                }
 
                 Ok(())
             },

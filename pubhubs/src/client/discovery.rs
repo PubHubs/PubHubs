@@ -121,8 +121,8 @@ impl DiscoveryInfoCheck<'_> {
             return Err(api::ErrorCode::InternalError);
         }
 
-        if let Some(scc) = self.self_check_code {
-            if inf.self_check_code != scc {
+        if let Some(scc) = self.self_check_code
+            && inf.self_check_code != scc {
                 log::error!(
                     "{} at {} is not me! (Different self_check_code.)",
                     self.name,
@@ -130,7 +130,6 @@ impl DiscoveryInfoCheck<'_> {
                 );
                 return Err(api::ErrorCode::InternalError);
             }
-        }
 
         if inf.master_enc_key_part.is_some()
             != matches!(
