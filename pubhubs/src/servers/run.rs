@@ -4,14 +4,14 @@ use std::rc::Rc;
 use std::sync::Arc;
 
 use actix_web::web;
-use anyhow::{bail, Context as _, Result};
+use anyhow::{Context as _, Result, bail};
 use core::convert::Infallible;
 use tokio::sync::mpsc;
 
 use crate::api;
 use crate::servers::{
-    for_all_servers, server::RunningState, App, AppBase, AppCreator, Command, DiscoverVerdict,
-    Name, Server,
+    App, AppBase, AppCreator, Command, DiscoverVerdict, Name, Server, for_all_servers,
+    server::RunningState,
 };
 
 /// A set of running PubHubs servers.
@@ -506,8 +506,8 @@ impl DiscoveryLimiter {
                 |server: &mut S| -> bool {
                     let Some(new_constellation) = new_constellation_maybe else {
                         return false; // no, don't restart the server, but exit the binary so that
-                                      // - hopefully - a new version of the binary will be started
-                                      // by e.g. systemd
+                        // - hopefully - a new version of the binary will be started
+                        // by e.g. systemd
                     };
 
                     let extra = match server.create_running_state(&new_constellation) {

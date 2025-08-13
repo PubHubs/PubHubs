@@ -862,7 +862,7 @@ pub mod http {
                 self.underlying.method().into()
             }
 
-            fn query(&self) -> Cow<'_,str> {
+            fn query(&self) -> Cow<'_, str> {
                 match self.underlying.uri().query() {
                     Some(q) => Cow::Borrowed(q),
                     None => Cow::Owned("".to_string()),

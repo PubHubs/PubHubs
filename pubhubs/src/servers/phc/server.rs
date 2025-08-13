@@ -12,8 +12,8 @@ use crate::misc::crypto;
 use crate::misc::jwt;
 use crate::phcrypto;
 use crate::servers::{
-    self, constellation, AppBase, AppCreatorBase, Constellation, DiscoverVerdict, Handle,
-    Server as _
+    self, AppBase, AppCreatorBase, Constellation, DiscoverVerdict, Handle, Server as _,
+    constellation,
 };
 
 use crate::{elgamal, hub};
@@ -134,17 +134,16 @@ impl crate::servers::App<Server> for App {
                         "{my_server_name}: could not parse semantic version returned by {other_server_name}: {other_version}: {err}",
                         my_server_name = Server::NAME
                     );
-                    
                     api::ErrorCode::InternalError
                 })?;
 
-                let my_version =
-                    crate::servers::version::to_semver(my_version).map_err(|err| {
-                        log::error!("{my_server_name}: could not parse my semantic version {my_version}: {err}",
+                let my_version = crate::servers::version::to_semver(my_version).map_err(|err| {
+                    log::error!(
+                        "{my_server_name}: could not parse my semantic version {my_version}: {err}",
                         my_server_name = Server::NAME
-                            );
-                        api::ErrorCode::InternalError
-                    })?;
+                    );
+                    api::ErrorCode::InternalError
+                })?;
 
                 if my_version < other_version {
                     log::warn!(
@@ -156,7 +155,7 @@ impl crate::servers::App<Server> for App {
             } else {
                 log::warn!(
                     "{my_server_name}: not checking my version ({my_version}) against {other_server_name}'s version ({other_version})",
-                        my_server_name = Server::NAME,
+                    my_server_name = Server::NAME,
                     my_version = crate::servers::version::VERSION,
                     other_version = odi.version.as_deref().unwrap_or("n/a")
                 );

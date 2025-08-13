@@ -252,9 +252,10 @@ impl CustomFuncs for Translations {
         };
 
         if let Some(ref rc) = self.inner
-            && let Some(translation) = rc.translations.get(key) {
-                return Ok(DecodedValue::String(scope.copy_u8(translation.as_bytes())));
-            }
+            && let Some(translation) = rc.translations.get(key)
+        {
+            return Ok(DecodedValue::String(scope.copy_u8(translation.as_bytes())));
+        }
 
         Ok(default.unwrap().clone())
     }

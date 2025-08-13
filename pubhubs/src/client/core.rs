@@ -349,7 +349,6 @@ impl Client {
 
             if let Err(err) = result {
                 return Result::Err(match err {
-
                     awc::error::SendRequestError::Url(err) => {
                         log::error!("unexpected problem with {url}: {err}");
                         ErrorCode::InternalError

@@ -3,10 +3,9 @@ use std::cell::OnceCell;
 
 use anyhow::Context as _;
 use serde::{
-    self,
+    self, Deserialize as _, Serialize as _,
     de::{Error as _, IntoDeserializer as _},
     ser::Error as _,
-    Deserialize as _, Serialize as _,
 };
 
 use crate::misc::jwt;
@@ -468,9 +467,10 @@ impl DisclosedAttribute {
         }
 
         if let Some(not_revoked_before) = self.not_revoked_before
-            && jwt::NumericDate::now() > not_revoked_before {
-                anyhow::bail!("attribute is (presumably) revoked after {not_revoked_before}");
-            }
+            && jwt::NumericDate::now() > not_revoked_before
+        {
+            anyhow::bail!("attribute is (presumably) revoked after {not_revoked_before}");
+        }
 
         Ok(())
     }

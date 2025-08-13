@@ -17,8 +17,8 @@ use rsa::{
     traits::PublicKeyParts as _,
 };
 use serde::{
-    de::{DeserializeOwned, Visitor},
     Deserialize, Deserializer, Serialize,
+    de::{DeserializeOwned, Visitor},
 };
 
 use crate::misc::time_ext;
@@ -148,9 +148,10 @@ impl Claims {
             |_claim_name: &'static str, exp: Option<NumericDate>| -> Result<(), Error> {
                 // When `exp` is present, it should not be expired.
                 if let Some(exp) = exp
-                    && exp < now {
-                        return Err(Error::Expired { when: exp });
-                    }
+                    && exp < now
+                {
+                    return Err(Error::Expired { when: exp });
+                }
 
                 Ok(())
             },
@@ -160,9 +161,10 @@ impl Claims {
             |_claim_name: &'static str, nbf: Option<NumericDate>| -> Result<(), Error> {
                 // When `nbf` is present, it should be in the past.
                 if let Some(nbf) = nbf
-                    && now < nbf {
-                        return Err(Error::NotYetValid { valid_from: nbf });
-                    }
+                    && now < nbf
+                {
+                    return Err(Error::NotYetValid { valid_from: nbf });
+                }
 
                 Ok(())
             },
@@ -991,12 +993,14 @@ mod tests {
 
         let claims = jwt.open(&key).unwrap();
 
-        assert!(claims
-            .clone()
-            .into_custom::<serde_json::Value>()
-            .unwrap_err()
-            .to_string()
-            .starts_with("expired at 2011-03-22T18:43:00Z ("));
+        assert!(
+            claims
+                .clone()
+                .into_custom::<serde_json::Value>()
+                .unwrap_err()
+                .to_string()
+                .starts_with("expired at 2011-03-22T18:43:00Z (")
+        );
 
         assert_eq!(
             &claims
