@@ -347,8 +347,8 @@ impl Client {
         let mut resp = {
             let result = req.await;
 
-            if result.is_err() {
-                return Result::Err(match result.unwrap_err() {
+            if let Err(err) = result {
+                return Result::Err(match err {
                     awc::error::SendRequestError::Url(err) => {
                         log::error!("unexpected problem with {url}: {err}");
                         ErrorCode::InternalError

@@ -289,11 +289,8 @@ pub(crate) trait Modifier<ServerT: Server>: Send + 'static {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> Result<(), std::fmt::Error>;
 }
 
-impl<
-        S: Server,
-        F: FnOnce(&mut S) -> bool + Send + 'static,
-        D: std::fmt::Display + Send + 'static,
-    > Modifier<S> for (F, D)
+impl<S: Server, F: FnOnce(&mut S) -> bool + Send + 'static, D: std::fmt::Display + Send + 'static>
+    Modifier<S> for (F, D)
 {
     fn modify(self: Box<Self>, server: &mut S) -> bool {
         self.0(server)
@@ -709,12 +706,12 @@ impl<S: Server> AppBase<S> {
         let req = match signed_req.open(&*app.admin_key, None) {
             Ok(req) => req,
             Err(OpenError::OtherConstellation(..)) | Err(OpenError::InternalError) => {
-                return Err(api::ErrorCode::InternalError)
+                return Err(api::ErrorCode::InternalError);
             }
             Err(OpenError::OtherwiseInvalid) => return Err(api::ErrorCode::BadRequest),
             Err(OpenError::Expired) => return Ok(api::admin::UpdateConfigResp::ResignRequest),
             Err(OpenError::InvalidSignature) => {
-                return Ok(api::admin::UpdateConfigResp::InvalidAdminKey)
+                return Ok(api::admin::UpdateConfigResp::InvalidAdminKey);
             }
         };
 
@@ -802,7 +799,7 @@ impl<S: Server> AppBase<S> {
         let _req = match signed_req.open(&*app.admin_key, None) {
             Ok(req) => req,
             Err(OpenError::OtherConstellation(..)) | Err(OpenError::InternalError) => {
-                return Err(api::ErrorCode::InternalError)
+                return Err(api::ErrorCode::InternalError);
             }
             Err(OpenError::OtherwiseInvalid) => return Err(api::ErrorCode::BadRequest),
             Err(OpenError::Expired) => return Ok(api::admin::InfoResp::ResignRequest),

@@ -85,19 +85,19 @@ impl App {
             match toe {
                 TicketOpenError::Ticket(OpenError::InvalidSignature)
                 | TicketOpenError::Ticket(OpenError::Expired) => {
-                    return Ok(api::phct::hub::KeyResp::RetryWithNewTicket)
+                    return Ok(api::phct::hub::KeyResp::RetryWithNewTicket);
                 }
                 TicketOpenError::Ticket(OpenError::InternalError)
                 | TicketOpenError::Ticket(OpenError::OtherConstellation(..))
                 | TicketOpenError::Signed(OpenError::OtherConstellation(..))
                 | TicketOpenError::Signed(OpenError::InternalError) => {
-                    return Err(api::ErrorCode::InternalError)
+                    return Err(api::ErrorCode::InternalError);
                 }
                 TicketOpenError::Ticket(OpenError::OtherwiseInvalid)
                 | TicketOpenError::Signed(OpenError::OtherwiseInvalid)
                 | TicketOpenError::Signed(OpenError::InvalidSignature)
                 | TicketOpenError::Signed(OpenError::Expired) => {
-                    return Err(api::ErrorCode::BadRequest)
+                    return Err(api::ErrorCode::BadRequest);
                 }
             }
         }
