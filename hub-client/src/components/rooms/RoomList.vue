@@ -24,41 +24,68 @@
 				</span>
 			</MenuItem>
 		</template>
+		<template v-if="props.roomType === RoomType.PH_MESSAGES_RESTRICTED" v-for="notification in notifications" :key="notification.room_id" class="relative flex flex-row">
+			<MenuItem
+				icon="shield"
+				v-if="notification.room_id"
+				@click="
+					dialogOpen = notification.room_id;
+					messageValues = notification.message_values;
+				"
+				class="text-on-surface-dim"
+			>
+				<TruncatedText>
+					<span>{{ notification.message_values[0] }}</span>
+				</TruncatedText>
+			</MenuItem>
+		</template>
 	</Menu>
 	<InlineSpinner v-if="!roomsLoaded" class="ml-4" />
+	<SecuredRoomLoginDialog v-model:dialogOpen="dialogOpen" title="notifications.rejoin_secured_room" message="notifications.removed_from_secured_room" :messageValues="messageValues" />
 </template>
 
 <script setup lang="ts">
 	// Components
-	import InlineSpinner from '../ui/InlineSpinner.vue';
-	import Menu from '../ui/Menu.vue';
-	import MenuItem from '../ui/MenuItem.vue';
-	import TruncatedText from '../elements/TruncatedText.vue';
-	import PrivateRoomName from './PrivateRoomName.vue';
-	import GroupRoomName from './GroupRoomName.vue';
-	import AdminContactRoomName from './AdminContactRoomName.vue';
-	import RoomName from './RoomName.vue';
-	import Badge from '../elements/Badge.vue';
-	import Icon from '../elements/Icon.vue';
+	import InlineSpinner from '@/components/ui/InlineSpinner.vue';
+	import Menu from '@/components/ui/Menu.vue';
+	import MenuItem from '@/components/ui/MenuItem.vue';
+	import TruncatedText from '@/components/elements/TruncatedText.vue';
+	import PrivateRoomName from '@/components/rooms/PrivateRoomName.vue';
+	import GroupRoomName from '@/components/rooms/GroupRoomName.vue';
+	import AdminContactRoomName from '@/components/rooms/AdminContactRoomName.vue';
+	import RoomName from '@/components/rooms/RoomName.vue';
+	import Badge from '@/components/elements/Badge.vue';
+	import Icon from '@/components/elements/Icon.vue';
+	import SecuredRoomLoginDialog from '@/components/rooms/SecuredRoomLoginDialog.vue';
 
+	// Logic
 	import { usePubHubs } from '@/logic/core/pubhubsStore';
 	import { PluginProperties, usePlugins } from '@/logic/store/plugins';
 	import { FeatureFlag, useSettings } from '@/logic/store/settings';
 	import { useDialog, useHubSettings, useRooms } from '@/logic/store/store';
 	import { NotificationCountType } from 'matrix-js-sdk';
-	import { Room } from '@/logic/store/rooms';
+	import { Room, RoomType } from '@/logic/store/rooms';
+	import { useNotifications } from '@/logic/store/notifications';
+
+	// Third party
 	import { useI18n } from 'vue-i18n';
 	import { useRouter } from 'vue-router';
-	import { computed } from 'vue';
+	import { computed, ref } from 'vue';
+
+	// Model
+	import { TNotification, TNotificationType } from '@/model/users/TNotification';
 
 	const settings = useSettings();
 	const hubSettings = useHubSettings();
-
+	const notificationsStore = useNotifications();
 	const { t } = useI18n();
 	const router = useRouter();
 	const rooms = useRooms();
 	const pubhubs = usePubHubs();
 	const plugins = usePlugins();
+	const messageValues = ref<(string | number)[]>([]);
+	const dialogOpen = ref<string | null>(null);
+	const notifications = computed<TNotification[]>(() => notificationsStore.notifications.filter((notification: TNotification) => notification.type === TNotificationType.RemovedFromSecuredRoom));
 
 	const props = defineProps({
 		roomType: {
@@ -68,7 +95,7 @@
 	});
 
 	const currentJoinedRooms = computed(() => {
-		return rooms.fetchRoomArrayByType(props.roomType).filter((room) => room.isHidden() === false);
+		return rooms.fetchRoomArrayByType(props.roomType).filter((room: Room) => room.isHidden() === false);
 	});
 
 	const roomsLoaded = computed(() => {
@@ -90,6 +117,7 @@
 				// e.g., Admin leaves the room and he is the only member or when admin leaves the room which makes the room without adminstrator.
 				if (await dialog.okcancel(t(leaveMsg))) {
 					await pubhubs.leaveRoom(roomId);
+					notificationsStore.removeNotification(roomId, TNotificationType.RemovedFromSecuredRoom);
 					await router.replace({ name: 'home' });
 				}
 			}

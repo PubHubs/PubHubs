@@ -624,8 +624,11 @@ const useRooms = defineStore('rooms', {
 				return this.securedRoom;
 			} else {
 				// We need to get information from TPublicRoom instead of room.
-				return this.publicRooms.find((room) => room.room_id == this.currentRoomId)!;
+				return this.getTPublicRoom(this.currentRoomId)!;
 			}
+		},
+		getTPublicRoom(roomId: string): TPublicRoom | undefined {
+			return this.publicRooms.find((room: TPublicRoom) => room.room_id === roomId);
 		},
 		getTotalPrivateRoomUnreadMsgCount(): number {
 			const dmRooms = this.fetchRoomArrayByType(RoomType.PH_MESSAGES_DM) ?? [];
@@ -635,6 +638,13 @@ const useRooms = defineStore('rooms', {
 
 			const totalPrivateRooms = [...dmRooms, ...groupRooms, ...adminRooms, ...stewardRooms];
 			return totalPrivateRooms.reduce((total, room) => total + (room.getRoomUnreadNotificationCount(NotificationCountType.Total) ?? 0), 0);
+		},
+		async kickUsersFromSecuredRoom(roomId: string): Promise<void> {
+			try {
+				await api_synapse.apiPOST(`${api_synapse.apiURLS.data}?data=removed_from_secured_room`, { room_id: roomId });
+			} catch (error) {
+				console.error(`Could not kick all users from ${roomId}`, error);
+			}
 		},
 		// Steward room logic //
 

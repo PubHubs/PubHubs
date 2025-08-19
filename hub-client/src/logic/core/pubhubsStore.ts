@@ -24,6 +24,7 @@ import { imageTypes } from '@/model/constants';
 import { router } from '@/logic/core/router';
 import { useConnection } from '@/logic/store/connection';
 import { useMessageActions } from '@/logic/store/message-actions';
+import { useNotifications } from '@/logic//store/notifications.js';
 
 const publicRoomsLoading: Promise<any> | null = null; // outside of defineStore to guarantee lifetime, not accessible outside this module
 const updateRoomsPerforming: Promise<void> | null = null; // outside of defineStore to guarantee lifetime, not accessible outside this module
@@ -149,6 +150,7 @@ const usePubHubs = defineStore('pubhubs', {
 		 */
 		async performUpdateRooms() {
 			const rooms = useRooms();
+			const notificationsStore = useNotifications();
 
 			const allPublicRooms = await this.getAllPublicRooms(); // all public rooms, including their names
 			const joinedRooms = (await this.client.getJoinedRooms()).joined_rooms; // all joined rooms of the user
@@ -179,6 +181,7 @@ const usePubHubs = defineStore('pubhubs', {
 			}
 
 			rooms.fetchPublicRooms();
+			notificationsStore.fetchSecuredRoomNotifications();
 		},
 
 		// ORIGINAL CODE

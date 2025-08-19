@@ -12,20 +12,27 @@
 	import { useRooms } from '@/logic/store/rooms';
 	import { usePubHubs } from '@/logic/core/pubhubsStore';
 	import { onMounted } from 'vue';
+	import { useNotifications } from '@/logic/store/notifications';
 
 	const props = defineProps<{ securedRoomId: string }>();
 
 	const rooms = useRooms();
 	const pubhubs = usePubHubs();
 	const router = useRouter();
+	const notificationsStore = useNotifications();
 
 	onMounted(() => rooms.yiviSecuredRoomflow(props.securedRoomId, resultOfEntry));
 
-	const emit = defineEmits<{ (e: 'error', message: string): void }>();
+	const emit = defineEmits<{
+		(e: 'error', message: string): void;
+		(e: 'success'): void;
+	}>();
 
 	function resultOfEntry(result: SecuredRoomAttributeResult) {
 		if (result.goto) {
 			pubhubs.updateRoom(props.securedRoomId).then(() => router.push({ name: 'room', params: { id: props.securedRoomId } }));
+			notificationsStore.removeNotification(props.securedRoomId);
+			emit('success');
 		} else if (result.not_correct) {
 			emit('error', result.not_correct);
 		}
