@@ -9,24 +9,32 @@
 		"
 		class="relative w-full"
 	>
-		<input type="text" v-model="search" class="w-full rounded-lg border bg-background px-2 py-1 ~text-label-min/label-max" :placeholder="$t('others.typing')" :disabled="disabled === true" />
-		<ul v-if="result.length > 0" class="absolute z-50 w-full rounded-lg border px-2 py-1 shadow-md">
+		<input
+			type="text"
+			v-model="search"
+			class="w-full rounded-lg border bg-background px-2 py-1 ~text-label-min/label-max placeholder:text-surface-subtle focus:ring-accent-primary"
+			:placeholder="$t('admin.editroom_typing')"
+			:disabled="disabled === true"
+			:maxlength="maxlength"
+		/>
+		<ul v-if="result.length > 0" class="absolute z-50 w-full rounded-lg border bg-background px-2 py-1 shadow-md">
 			<li v-for="(item, index) in result" :key="index" @click="click(item)" class="cursor-pointer" :class="{ '': cursor === index }">
-				{{ item.label }}
+				{{ item }}
 			</li>
 		</ul>
 	</div>
 </template>
 
 <script setup lang="ts">
-	import { onMounted, computed } from 'vue';
-	import { InputType, Options, useFormInputEvents, usedEvents } from '@/logic/composables/useFormInputEvents';
+	import { onMounted, computed, watch } from 'vue';
+	import { InputType, useFormInputEvents, usedEvents } from '@/logic/composables/useFormInputEvents';
 	import { useKeyStrokes } from '@/logic/composables/useKeyStrokes';
 
 	type Props = {
-		options: Options;
+		options: Array<String>;
 		value: string | Object;
-		disabled: Boolean;
+		disabled?: Boolean;
+		maxlength?: number;
 	};
 
 	const props = withDefaults(defineProps<Props>(), {
@@ -43,7 +51,7 @@
 	});
 
 	const result = computed(() => {
-		if (search.value === '' || search.value === undefined || props.options.find((attribute) => search.value?.toString().toLowerCase() === attribute.label.toLowerCase())) {
+		if (search.value === '' || search.value === undefined || props.options.find((attribute) => search.value?.toString().toLowerCase() === attribute?.toLowerCase())) {
 			setItems([]);
 			return [];
 		}
@@ -52,7 +60,7 @@
 
 		const result = props.options.filter((item) => {
 			const searchValue = search.value?.toString() || '';
-			if (item.label.toLowerCase().includes(searchValue.toLowerCase()) && matches < 10 && item.label.toLowerCase() !== searchValue.toLowerCase()) {
+			if (item?.toLowerCase().includes(searchValue.toLowerCase()) && matches < 10 && item.toLowerCase() !== searchValue.toLowerCase()) {
 				matches++;
 				return item;
 			}
@@ -68,12 +76,25 @@
 
 	const select = (item: any) => {
 		selectItem(item);
-		setValue(item.label);
-		update(item.label);
+		setValue(item);
+		update(item);
 	};
 
 	const click = (item: any) => {
-		setValue(item.label);
-		update(item.label);
+		setValue(item);
+		update(item);
 	};
+
+	// Watch for manual input and update output value even if not in the list
+	watch(search, (newValue) => {
+		if (typeof newValue === 'string') {
+			update(newValue);
+		}
+	});
+	watch(
+		() => props.value,
+		(newValue) => {
+			setValue(newValue as InputType);
+		},
+	);
 </script>

@@ -11,6 +11,7 @@
 						<div class="flex h-full justify-between py-2">
 							<div class="flex items-center justify-between">
 								<H3 @click="router.push('/')" :title="hubSettings.hubName" class="font-headings font-semibold text-on-surface">{{ hubSettings.hubName }}</H3>
+								<Notification class="absolute right-4" />
 								<!-- TODO: Hiding this settings wheel as there is no functionality to it yet. -->
 								<!-- <Icon type="cog" size="sm" class="bg-hub-background-2 rounded-md p-2"/> -->
 							</div>
@@ -116,6 +117,7 @@
 	import { ConditionKind, IPushRule, PushRuleKind } from 'matrix-js-sdk';
 
 	// Hub imports
+	// Components
 	import Disclosure from '@/components/rooms/Disclosure.vue';
 	import SettingsDialog from '@/components/forms/SettingsDialog.vue';
 	import Dialog from '@/components/ui/Dialog.vue';
@@ -123,11 +125,12 @@
 	import Menu from '@/components/ui/Menu.vue';
 	import MenuItem from '@/components/ui/MenuItem.vue';
 	import RoomList from '@/components/rooms/RoomList.vue';
-
 	import Badge from '@/components/elements/Badge.vue';
 	import Icon from '@/components/elements/Icon.vue';
 	import H3 from '@/components/elements/H3.vue';
 	import Avatar from '@/components/ui/Avatar.vue';
+	import Notification from '@/components/ui/Notification.vue';
+	// Logic
 	import { HubInformation } from '@/logic/store/hub-settings';
 	import { usePubHubs } from '@/logic/core/pubhubsStore';
 	import { PubHubsInvisibleMsgType } from '@/logic/core/events';

@@ -22,7 +22,7 @@
 					<Icon v-if="dialog.properties.close" type="close" size="md" class="float-right -mt-1 cursor-pointer self-end hover:opacity-75" @click="doAction(DialogCancel)" />
 				</div>
 				<Line v-if="hasContent" class="z-0" />
-				<div v-if="hasContent" class="h-full overflow-y-auto py-1 pr-4 text-left">
+				<div v-if="hasContent" class="h-full py-1 pr-4 text-left" :class="props.allowOverflow ? 'overflow-visible' : 'overflow-y-auto'">
 					<slot></slot>
 					<div v-if="dialog.properties.content !== ''">
 						{{ dialog.properties.content }}
@@ -41,7 +41,7 @@
 
 <script setup lang="ts">
 	// Package imports
-	import { onMounted, useSlots, computed, onUnmounted } from 'vue';
+	import { onMounted, useSlots, computed, onUnmounted, watch } from 'vue';
 
 	// Hub imports
 	import { DialogButton, DialogButtonAction, DialogOk, DialogCancel, useDialog } from '@/logic/store/dialog';
@@ -72,6 +72,10 @@
 			type: Array<DialogButton>,
 			default: [],
 		},
+		allowOverflow: {
+			type: Boolean,
+			default: false,
+		},
 	});
 
 	onUnmounted(() => {
@@ -88,21 +92,17 @@
 		dialog.showModal();
 	});
 
+	watch(
+		() => props.buttons,
+		(newButtons) => {
+			dialog.properties.buttons = newButtons;
+		},
+		{ deep: true },
+	);
+
 	function doAction(action: DialogButtonAction) {
 		emit('close', action);
 		dialog.hideModal();
 		dialog.close(action);
 	}
 </script>
-
-<style scoped>
-	.adjust-left {
-		transform: translateX(-2.5rem);
-	}
-	/* sm - width of bar = 640 - 128 =  512 */
-	@media (min-width: 512px) {
-		.adjust-left {
-			transform: translateX(-4rem);
-		}
-	}
-</style>
