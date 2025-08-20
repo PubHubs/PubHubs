@@ -44,54 +44,42 @@
 
 							<Menu>
 								<template v-for="(item, index) in menu.getMenu" :key="index">
-									<MenuItem :to="item.to" :icon="item.icon" @click="hubSettings.hideBar()">{{ $t(item.key) }}</MenuItem>
+									<MenuItem :to="item.to" :icon="item.icon" @click="hubSettings.hideBar()">{{ t(item.key) }}</MenuItem>
 								</template>
 							</Menu>
 						</section>
 
-						<section class="flex flex-col gap-2">
-							<div class="group flex items-center justify-between rounded-lg bg-surface px-4 py-2">
-								<div class="flex h-[24px] items-center">
-									<p class="truncate font-bold leading-tight">{{ $t('admin.public_rooms') }}</p>
-								</div>
-							</div>
-							<RoomList />
-						</section>
+						<!-- Public rooms -->
+						<RoomListHeader label="admin.public_rooms">
+							<template #roomlist>
+								<RoomList />
+							</template>
+						</RoomListHeader>
 
-						<section class="flex flex-col gap-2">
-							<div class="group flex items-center justify-between rounded-lg bg-surface px-4 py-2">
-								<div class="flex h-[24px] items-center">
-									<p class="truncate font-bold leading-tight">{{ $t('admin.secured_rooms') }}</p>
-								</div>
-							</div>
-							<RoomList :roomType="RoomType.PH_MESSAGES_RESTRICTED" />
-						</section>
+						<!-- Secured rooms -->
+						<RoomListHeader label="admin.secured_rooms" tooltipText="admin.secured_rooms_tooltip">
+							<template #roomlist>
+								<RoomList :roomType="RoomType.PH_MESSAGES_RESTRICTED" />
+							</template>
+						</RoomListHeader>
 
 						<!-- When user is admin, show the moderation tools menu -->
-						<section v-if="disclosureEnabled && user.isAdmin" class="flex flex-col gap-2">
-							<div class="group flex items-center justify-between rounded-lg bg-surface px-4 py-2">
-								<div class="flex h-[24px] items-center">
-									<p class="truncate font-bold leading-tight">{{ $t('menu.moderation_tools') }}</p>
-								</div>
-							</div>
+						<RoomListHeader v-if="disclosureEnabled && user.isAdmin" label="menu.moderation_tools">
 							<Menu>
-								<MenuItem :to="{ name: 'ask-disclosure' }" icon="sign">{{ $t('menu.moderation_tools_disclosure') }}</MenuItem>
+								<MenuItem :to="{ name: 'ask-disclosure' }" icon="sign">{{ t('menu.moderation_tools_disclosure') }} </MenuItem>
 							</Menu>
-						</section>
+						</RoomListHeader>
 
 						<!-- When user is admin, show the admin tools menu -->
-						<section v-if="user.isAdmin" class="flex flex-col gap-2">
-							<div class="group flex items-center justify-between rounded-lg bg-surface px-4 py-2">
-								<div class="flex h-[24px] items-center">
-									<p class="truncate font-bold leading-tight">{{ $t('menu.admin_tools') }}</p>
-								</div>
-							</div>
-							<Menu>
-								<MenuItem :to="{ name: 'admin' }" icon="admin">{{ $t('menu.admin_tools_rooms') }}</MenuItem>
-								<MenuItem :to="{ name: 'manageusers' }" icon="admin">{{ $t('menu.admin_tools_users') }}</MenuItem>
-								<MenuItem :to="{ name: 'hub-settings' }" icon="cog">{{ $t('menu.admin_tools_hub_settings') }}</MenuItem>
-							</Menu>
-						</section>
+						<RoomListHeader v-if="user.isAdmin" label="menu.admin_tools">
+							<template #roomlist>
+								<Menu>
+									<MenuItem :to="{ name: 'admin' }" icon="admin">{{ t('menu.admin_tools_rooms') }} </MenuItem>
+									<MenuItem :to="{ name: 'manageusers' }" icon="admin">{{ t('menu.admin_tools_users') }}</MenuItem>
+									<MenuItem :to="{ name: 'hub-settings' }" icon="cog">{{ t('menu.admin_tools_hub_settings') }}</MenuItem>
+								</Menu>
+							</template>
+						</RoomListHeader>
 					</div>
 				</HeaderFooter>
 
@@ -129,6 +117,7 @@
 	import Icon from '@/components/elements/Icon.vue';
 	import H3 from '@/components/elements/H3.vue';
 	import Avatar from '@/components/ui/Avatar.vue';
+	import RoomListHeader from '@/components/ui/RoomListHeader.vue';
 	import Notification from '@/components/ui/Notification.vue';
 	// Logic
 	import { HubInformation } from '@/logic/store/hub-settings';
@@ -145,7 +134,7 @@
 	import { Message, MessageBoxType, useHubSettings, useMessageBox, useRooms } from '@/logic/store/store';
 	import { useUser } from '@/logic/store/user';
 
-	const { locale, availableLocales } = useI18n();
+	const { locale, availableLocales, t } = useI18n();
 	const router = useRouter();
 	const settings = useSettings();
 	const hubSettings = useHubSettings();
