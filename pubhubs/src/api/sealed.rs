@@ -12,7 +12,7 @@ use crate::misc::serde_ext::bytes_wrapper::B64UU;
 pub use crypto::SealingKey;
 
 /// A symmetrically encrypted encoding of `T`.
-#[derive(Serialize, Deserialize, Debug, Clone)]
+#[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Eq)]
 #[serde(transparent)]
 pub struct Sealed<T>
 where

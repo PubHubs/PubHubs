@@ -74,6 +74,7 @@ bin = [
 	"dep:qrcode",
 	"dep:git-version",
 	"dep:semver",
+	"dep:serde_urlencoded",
 ]
 real_credentials = []
 old = [
@@ -88,7 +89,6 @@ old = [
 	"dep:jsonwebtoken",
 	"dep:prometheus",
 	"dep:rusqlite",
-	"dep:serde_urlencoded",
 	"dep:serde_yaml",
 	"dep:strum_macros",
 	"dep:uuid",

@@ -2,8 +2,8 @@ use std::rc::Rc;
 use std::str::FromStr as _;
 
 use serde::{
-    Deserialize, Serialize,
     de::{DeserializeOwned, IntoDeserializer as _},
+    Deserialize, Serialize,
 };
 
 use anyhow::Context as _;
@@ -221,7 +221,11 @@ pub trait PayloadTrait: Clone {
 #[derive(Debug, Clone)] // TODO: remove Clone
 pub enum Payload<JsonType> {
     None,
+
+    /// This is the regular response type used by the pubhubs API.
     Json(JsonType),
+
+    /// Raw bytes; used, for example, by [`api::phc::user::GetObjectEP`].
     Octets(bytes::Bytes),
 }
 
@@ -259,8 +263,8 @@ impl<T> Payload<T> {
     ) -> anyhow::Result<Payload<T>>
     where
         S: futures::stream::Stream<
-                Item = std::result::Result<bytes::Bytes, awc::error::PayloadError>,
-            >,
+            Item = std::result::Result<bytes::Bytes, awc::error::PayloadError>,
+        >,
         T: DeserializeOwned,
     {
         let Some(content_type_hv) = resp.headers().get(http::header::CONTENT_TYPE) else {

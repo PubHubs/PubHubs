@@ -10,7 +10,7 @@ use crate::attr;
 use crate::handle;
 use crate::id::Id;
 use crate::misc::serde_ext::bytes_wrapper::B64UU;
-use crate::servers::Constellation;
+use crate::servers::{yivi, Constellation};
 
 /// `.ph/hub/...` endpoints, used by hubs
 pub mod hub {
@@ -609,4 +609,19 @@ pub mod user {
         /// The requested hashed hub pseudonym package (HHPP).  
         Success(Signed<sso::HashedHubPseudonymPackage>),
     }
+
+    pub const YIVI_WAIT_FOR_CARD_PATH: &str = ".ph/user/yivi/wait-for-card";
+
+    /// Query arguments for [`YIVI_WAIT_FOR_CARD_PATH`]
+    #[derive(Serialize, Deserialize, Clone, Eq, PartialEq)]
+    pub(crate) struct WaitForCardQuery {
+        pub state: Sealed<WaitForCardState>,
+    }
+
+    #[derive(Serialize, Deserialize, Clone, Eq, PartialEq)]
+    pub(crate) struct WaitForCardState {
+        pub server_creds: yivi::Credentials<yivi::VerifyingKey>,
+    }
+
+    crate::having_message_code! {WaitForCardState, WaitForCardState}
 }

@@ -3,19 +3,35 @@ use std::cell::OnceCell;
 
 use anyhow::Context as _;
 use serde::{
-    self, Deserialize as _, Serialize as _,
+    self,
     de::{Error as _, IntoDeserializer as _},
     ser::Error as _,
+    Deserialize as _, Serialize as _,
 };
 
 use crate::misc::jwt;
 use crate::misc::serde_ext::bytes_wrapper::B64UU;
 
-/// An extended session request, see <https://irma.app/docs/session-requests/#extra-parameters>
+/// An extended session request, see:
+///  - <https://irma.app/docs/session-requests/#extra-parameters>, and
+///  -
+///  <https://github.com/privacybydesign/irmago/blob/f9718c334af76a3ad2fa23019d17957878cd2032/requests.go#L145>
 #[derive(serde::Serialize, serde::Deserialize, Debug, Clone, PartialEq, Eq)]
 pub struct ExtendedSessionRequest {
-    // TODO, maybe: validity, timeout, callbackUrl, nextSession
+    // TODO, maybe: validity, timeout, callbackUrl
     request: SessionRequest,
+
+    /// Use to setup chained sessions, see
+    /// <https://docs.yivi.app/chained-sessions#the-nextsession-url>
+    #[serde(rename = "nextSession")]
+    #[serde(skip_serializing_if = "Option::is_none")]
+    next_session: Option<NextSessionData>,
+}
+
+/// <https://github.com/privacybydesign/irmago/blob/f9718c334af76a3ad2fa23019d17957878cd2032/requests.go#L139>
+#[derive(serde::Serialize, serde::Deserialize, Debug, Clone, PartialEq, Eq)]
+pub struct NextSessionData {
+    url: url::Url,
 }
 
 /// A session request sent by a requestor to a yivi server
@@ -35,6 +51,15 @@ impl ExtendedSessionRequest {
                 context: LdContext::Disclosure,
                 disclose: Some(cdc),
             },
+            next_session: None,
+        }
+    }
+
+    /// Adds a `next_session` field
+    pub fn next_session(self, url: url::Url) -> Self {
+        Self {
+            next_session: Some(NextSessionData { url }),
+            ..self
         }
     }
 

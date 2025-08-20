@@ -8,8 +8,8 @@ use crate::attr;
 use crate::client;
 use crate::handle::Handle;
 use crate::misc::jwt;
-use crate::servers::Constellation;
 use crate::servers::yivi;
+use crate::servers::Constellation;
 
 use api::phc::user::AuthToken;
 
@@ -23,6 +23,10 @@ pub struct EnterArgs {
         default_value = "https://phc-main.pubhubs.net" // TODO: change to phc.pubhubs.net
     )]
     url: url::Url,
+
+    /// Whether to wait for a pubhubs yivi card
+    #[arg(short, long)]
+    wait_for_card: bool,
 
     /// Handle identifying the hub
     #[arg(value_name = "HUB")]
@@ -236,6 +240,7 @@ impl EnterArgs {
                 &constellation.auths_url,
                 api::auths::AuthStartReq {
                     source: attr::Source::Yivi,
+                    wait_for_card: self.wait_for_card,
                     attr_types: self
                         .add_attr_type
                         .iter()
@@ -357,6 +362,11 @@ async fn yivi_cli_session(yivi_requestor_url: &url::Url, request: jwt::JWT) -> R
             .next()
             .await
             .ok_or_else(|| anyhow::anyhow!("status events aborted early"))??;
+
+        log::debug!(
+            "received status event: {}",
+            crate::misc::fmt_ext::Bytes(&data)
+        );
 
         let Some(data) = data.strip_prefix(b"data:") else {
             continue;

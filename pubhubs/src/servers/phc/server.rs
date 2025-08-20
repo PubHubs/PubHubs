@@ -12,8 +12,8 @@ use crate::misc::crypto;
 use crate::misc::jwt;
 use crate::phcrypto;
 use crate::servers::{
-    self, AppBase, AppCreatorBase, Constellation, DiscoverVerdict, Handle, Server as _,
-    constellation,
+    self, constellation, AppBase, AppCreatorBase, Constellation, DiscoverVerdict, Handle,
+    Server as _,
 };
 
 use crate::{elgamal, hub};
@@ -40,6 +40,7 @@ impl servers::Details for Details {
         Ok(ExtraRunningState {
             attr_signing_key: phcrypto::attr_signing_key(&auths_ss),
             t_sealing_secret: phcrypto::sealing_secret(&t_ss),
+            auths_sealing_secret: phcrypto::sealing_secret(&auths_ss),
             auths_ss,
             t_ss,
         })
@@ -86,6 +87,9 @@ pub struct ExtraRunningState {
 
     /// Key used to (un)seal messages to and from the transcryptor
     pub(super) t_sealing_secret: crypto::SealingKey,
+
+    /// Key used to (un)seal messages to and from the authentication server
+    pub(super) auths_sealing_secret: crypto::SealingKey,
 }
 
 impl crate::servers::App<Server> for App {
@@ -104,6 +108,15 @@ impl crate::servers::App<Server> for App {
 
         api::phc::user::PppEP::add_to(self, sc, App::handle_user_ppp);
         api::phc::user::HhppEP::add_to(self, sc, App::handle_user_hhpp);
+
+        // This endpoint being consumed by the Yivi app does not follow our API's conventions.
+        // For example, it uses the status code 204 to communicate the chained session flow must be
+        // aborted, while the PH API does not use status codes to communicate anything.
+        sc.route(
+            api::phc::user::YIVI_WAIT_FOR_CARD_PATH,
+            actix_web::web::post().to(App::handle_user_yivi_wait_for_card),
+        );
+        sc.app_data(actix_web::web::Data::new(self.clone()));
     }
 
     fn check_constellation(&self, _constellation: &Constellation) -> bool {

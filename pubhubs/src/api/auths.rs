@@ -44,6 +44,11 @@ pub struct AuthStartReq {
 
     /// List of requested attributes
     pub attr_types: Vec<crate::handle::Handle>,
+
+    /// When using [`crate::attr::Source::Yivi`], use a chained session to wait for a pubhubs card
+    /// to be issued from pubhubs central.  Defaults to false.
+    #[serde(default)]
+    pub wait_for_card: bool,
 }
 
 /// Response to [`AuthStartEP`]

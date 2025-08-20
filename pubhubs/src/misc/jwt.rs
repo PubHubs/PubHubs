@@ -8,6 +8,7 @@ use std::borrow::{Borrow as _, Cow};
 use std::fmt;
 
 use base64ct::{Base64UrlUnpadded, Encoding as _};
+use digest::Digest as _;
 use hmac::Mac as _;
 use rsa::{
     pkcs8::{
@@ -17,11 +18,13 @@ use rsa::{
     traits::PublicKeyParts as _,
 };
 use serde::{
-    Deserialize, Deserializer, Serialize,
     de::{DeserializeOwned, Visitor},
+    Deserialize, Deserializer, Serialize,
 };
 
+use crate::id;
 use crate::misc::time_ext;
+use crate::phcrypto;
 
 /// Wrapper around [`String`] to indicate it should be interpretted as a JWT.
 ///
@@ -408,6 +411,12 @@ impl From<String> for JWT {
     }
 }
 
+impl From<JWT> for String {
+    fn from(jwt: JWT) -> String {
+        jwt.inner
+    }
+}
+
 impl JWT {
     /// Creates JWT from `claims` and [SigningKey] `key`.
     ///
@@ -484,6 +493,14 @@ impl JWT {
 
     pub fn as_str(&self) -> &str {
         &self.inner
+    }
+
+    pub fn sha256(&self) -> sha2::Sha256 {
+        sha2::Sha256::new().chain_update(&self.inner)
+    }
+
+    pub fn id(&self) -> id::Id {
+        phcrypto::jwt_id(self)
     }
 }
 
@@ -993,14 +1010,12 @@ mod tests {
 
         let claims = jwt.open(&key).unwrap();
 
-        assert!(
-            claims
-                .clone()
-                .into_custom::<serde_json::Value>()
-                .unwrap_err()
-                .to_string()
-                .starts_with("expired at 2011-03-22T18:43:00Z (")
-        );
+        assert!(claims
+            .clone()
+            .into_custom::<serde_json::Value>()
+            .unwrap_err()
+            .to_string()
+            .starts_with("expired at 2011-03-22T18:43:00Z ("));
 
         assert_eq!(
             &claims

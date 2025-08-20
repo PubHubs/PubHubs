@@ -7,7 +7,7 @@ use actix_web::web;
 use digest::Digest as _;
 
 use crate::servers::{
-    self, AppBase, AppCreatorBase, Constellation, Handle, Server as _, constellation, yivi,
+    self, constellation, yivi, AppBase, AppCreatorBase, Constellation, Handle, Server as _,
 };
 use crate::{
     api::{self, EndpointDetails as _, ResultExt as _},
@@ -39,6 +39,7 @@ impl servers::Details for Details {
 
         Ok(ExtraRunningState {
             attr_signing_key: phcrypto::attr_signing_key(&phc_ss),
+            phc_sealing_secret: phcrypto::sealing_secret(&phc_ss),
             phc_ss,
         })
     }
@@ -54,6 +55,9 @@ pub struct ExtraRunningState {
     ///
     /// [`Attr`]: attr::Attr
     attr_signing_key: jwt::HS256,
+
+    /// key used to seal messages to PHC
+    phc_sealing_secret: crypto::SealingKey,
 }
 
 /// Authentication server per-thread [`App`] that handles incoming requests.
@@ -106,6 +110,7 @@ impl App {
 struct AuthState {
     source: attr::Source,
     attr_types: Vec<handle::Handle>,
+    wait_for_card: bool,
 
     /// When this request expires
     exp: api::NumericDate,
@@ -142,6 +147,7 @@ impl App {
         let state = AuthState {
             source: req.source,
             attr_types: req.attr_types.clone(),
+            wait_for_card: req.wait_for_card,
             exp: api::NumericDate::now() + app.auth_window,
         };
 
@@ -155,6 +161,7 @@ impl App {
         state: AuthState,
     ) -> api::Result<api::auths::AuthStartResp> {
         let yivi = app.get_yivi()?;
+        let running_state = app.running_state_or_please_retry()?;
 
         // Create ConDisCon for our attributes
         let mut cdc: servers::yivi::AttributeConDisCon = Default::default(); // empty
@@ -188,16 +195,58 @@ impl App {
             cdc.push(dc);
         }
 
-        let disclosure_request: jwt::JWT = servers::yivi::ExtendedSessionRequest::disclosure(cdc)
-            .sign(&yivi.requestor_creds)
-            .into_ec(|err| {
+        let disclosure_request: jwt::JWT = {
+            let mut dr = servers::yivi::ExtendedSessionRequest::disclosure(cdc);
+
+            if state.wait_for_card {
+                let state = api::phc::user::WaitForCardState {
+                    server_creds: yivi.server_creds.clone(),
+                };
+
+                let state =
+                    api::Sealed::new(&state, &running_state.phc_sealing_secret).map_err(|err| {
+                        log::error!(
+                            "{}: failed to seal wait-for-card state: {err}",
+                            Server::NAME
+                        );
+                        api::ErrorCode::InternalError
+                    })?;
+
+                let query = serde_urlencoded::to_string(api::phc::user::WaitForCardQuery { state })
+                    .map_err(|err| {
+                        log::error!(
+                            "{}: failed to url-encode sealed wait-for-card state: {err}",
+                            Server::NAME
+                        );
+                        api::ErrorCode::InternalError
+                    })?;
+
+                let mut url: url::Url = running_state
+                    .constellation
+                    .phc_url
+                    .join(api::phc::user::YIVI_WAIT_FOR_CARD_PATH)
+                    .map_err(|err| {
+                        log::error!(
+                            "{}: failed to compute PHC's yivi next session url: {err}",
+                            Server::NAME
+                        );
+                        api::ErrorCode::InternalError
+                    })?;
+
+                url.set_query(Some(&query));
+
+                dr = dr.next_session(url);
+            }
+
+            dr.sign(&yivi.requestor_creds).into_ec(|err| {
                 log::error!(
                     "{}: failed to create signed disclosure request: {err}",
                     Server::NAME
                 );
 
                 api::ErrorCode::InternalError
-            })?;
+            })?
+        };
 
         Ok(api::auths::AuthStartResp::Success {
             task: api::auths::AuthTask::Yivi {
