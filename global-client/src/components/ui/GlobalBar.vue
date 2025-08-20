@@ -25,14 +25,12 @@
 					<HubMenu :hubOrderingIsActive="hubOrdering" />
 
 					<!-- Global bottom bar (settings) -->
-					<div class="flex h-fit w-full flex-col gap-4 self-end px-2">
-						<div v-if="global.loggedIn">
-							<div class="flex w-full flex-wrap items-center justify-center gap-2">
-								<GlobalbarButton type="reorder_hubs" @click="toggleHubOrdering" :class="hubOrdering && '!bg-accent-primary !text-on-accent-primary hover:!bg-accent-secondary'" />
-								<GlobalbarButton type="cog" @click="settingsDialog = true" />
-								<GlobalbarButton type="question_mark" @click="showHelp" />
-								<GlobalbarButton type="power" @click="logout" />
-							</div>
+					<div class="flex h-fit w-full flex-col gap-8 self-end px-4">
+						<div v-if="global.loggedIn" class="flex flex-col items-center gap-4">
+							<GlobalbarButton type="reorder_hubs" @click="toggleHubOrdering" :class="hubOrdering && '!bg-accent-primary !text-on-accent-primary hover:!bg-accent-secondary'" />
+							<GlobalbarButton type="cog" @click="settingsDialog = true" />
+							<!-- <GlobalbarButton type="question_mark" @click="showHelp" /> -->
+							<GlobalbarButton type="power" @click="logout" />
 						</div>
 						<a :href="pubHubsUrl" target="_blank" rel="noopener noreferrer">
 							<Logo />
