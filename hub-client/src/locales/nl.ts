@@ -50,6 +50,7 @@ const nl = {
 	},
 	forms: {
 		next: 'Volgende stap',
+		skip: 'Overslaan',
 		back: 'Terug',
 		submit: 'Indienen',
 		save: 'Opslaan',

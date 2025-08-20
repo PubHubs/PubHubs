@@ -51,6 +51,7 @@ const en = {
 	},
 	forms: {
 		next: 'Next step',
+		skip: 'Skip',
 		back: 'Back',
 		submit: 'Submit',
 		save: 'Save',
