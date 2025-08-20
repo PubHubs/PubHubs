@@ -213,7 +213,7 @@ class HubDataResource(DirectServeJsonResource):
 		except json.JSONDecodeError:
 			respond_with_json(request, 400, {"error": "Invalid JSON"})
 		except Exception as e:
-			logger.error(f"Error processing consent acceptance: {e}")
+			logger.error(f"Error: {e}")
 			respond_with_json(request, 500, {"error": f"Internal server error: {e}"})
 
 	

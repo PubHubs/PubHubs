@@ -403,6 +403,7 @@ class HubStore:
             remove_users_from_secured_room_txn,
             room_id,
         )
+        await self.remove_from_room()
     async def remove_allowed_join_room_row(self, room_id: str, user_id:str) -> None:
         """Remove a user from the allowed_to_join_room table.
 
