@@ -126,7 +126,7 @@ class HubDataResource(DirectServeJsonResource):
 								time_elapsed = current_timestamp - join_room_timestamp
 								time_elapsed_days = time_elapsed / (24 * 3600)  # Convert seconds to days
 
-								if time_elapsed_days > secured_room.expiration_time_days - DEFAULT_EXPIRATION_TIME_DAYS_WARNING:
+								if time_elapsed_days > int(secured_room.expiration_time_days) - DEFAULT_EXPIRATION_TIME_DAYS_WARNING:
 									room_list.append({
 										"room_id": room_id,
 										"type": "soon_removed_from_secured_room",
