@@ -1,6 +1,7 @@
 //! Additional endpoints provided by the authentication server
 use crate::api::*;
 use crate::attr::Attr;
+use crate::id;
 use crate::misc::jwt;
 use crate::misc::serde_ext::bytes_wrapper::B64UU;
 use crate::{attr, handle};
@@ -137,6 +138,10 @@ pub enum AuthCompleteResp {
     /// All went well
     Success {
         attrs: HashMap<handle::Handle, Signed<Attr>>,
+
+        /// If [`AuthStartReq::wait_for_card`] was set, and [`AuthStartReq::source`]
+        /// is [`attr::Source::Yivi`], then this is a digest of [`AuthProof::Yivi::disclosure`]
+        yivi_result_jwt_id: Option<id::Id>,
     },
 
     /// Something went wrong;  please start again at [`AuthStartEP`].

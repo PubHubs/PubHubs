@@ -12,8 +12,8 @@ use crate::misc::crypto;
 use crate::misc::jwt;
 use crate::phcrypto;
 use crate::servers::{
-    self, constellation, AppBase, AppCreatorBase, Constellation, DiscoverVerdict, Handle,
-    Server as _,
+    self, AppBase, AppCreatorBase, Constellation, DiscoverVerdict, Handle, Server as _,
+    constellation, phc::user_card,
 };
 
 use crate::{elgamal, hub};
@@ -47,12 +47,26 @@ impl servers::Details for Details {
         })
     }
 
-    fn create_extra_shared_state(config: &servers::Config) -> anyhow::Result<ExtraSharedState> {
-        Ok(ExtraSharedState {})
+    fn create_extra_shared_state(_config: &servers::Config) -> anyhow::Result<ExtraSharedState> {
+        let (wait_for_card_sender, wait_for_card_receiver) = tokio::sync::mpsc::channel(10);
+        let (issue_card_sender, issue_card_receiver) = tokio::sync::mpsc::channel(10);
+
+        tokio::task::spawn(user_card::card_request_handler(
+            wait_for_card_receiver,
+            issue_card_receiver,
+        ));
+
+        Ok(ExtraSharedState {
+            wait_for_card_sender,
+            issue_card_sender,
+        })
     }
 }
 
-pub struct ExtraSharedState {}
+pub struct ExtraSharedState {
+    pub(crate) issue_card_sender: tokio::sync::mpsc::Sender<user_card::IssueCardInternalReq>,
+    pub(crate) wait_for_card_sender: tokio::sync::mpsc::Sender<user_card::WaitForCardInternalReq>,
+}
 
 pub struct App {
     pub base: AppBase<Server>,

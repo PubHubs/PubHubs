@@ -256,6 +256,7 @@ async fn main_integration_test_local(
             &api::auths::AuthStartReq {
                 source: attr::Source::Yivi,
                 attr_types: vec!["email".parse().unwrap(), "phone".parse().unwrap()],
+                wait_for_card: false,
             },
         )
         .await
@@ -311,7 +312,7 @@ async fn main_integration_test_local(
         .unwrap();
 
     // Now send the disclosure response to the authentication server to get some credentials
-    let api::auths::AuthCompleteResp::Success { attrs } = client
+    let api::auths::AuthCompleteResp::Success { attrs, .. } = client
         .query_with_retry::<api::auths::AuthCompleteEP, _, _>(
             &constellation.auths_url,
             &api::auths::AuthCompleteReq {
@@ -391,7 +392,8 @@ async fn main_integration_test_local(
                 &api::phc::user::EnterReq {
                     identifying_attr: email.clone(),
                     mode: api::phc::user::EnterMode::Register,
-                    add_attrs: vec![]
+                    add_attrs: vec![],
+                    release_waiting_for_card: None,
                 },
             )
             .await
@@ -409,6 +411,7 @@ async fn main_integration_test_local(
             identifying_attr: email.clone(),
             mode: api::phc::user::EnterMode::LoginOrRegister,
             add_attrs: vec![phone.clone()],
+            release_waiting_for_card: None,
         };
 
         for _ in 1..=10 {
@@ -447,6 +450,7 @@ async fn main_integration_test_local(
                     identifying_attr: email.clone(),
                     mode: api::phc::user::EnterMode::Register,
                     add_attrs: vec![phone.clone()],
+                    release_waiting_for_card: None,
                 },
             )
             .await
@@ -462,6 +466,7 @@ async fn main_integration_test_local(
                 identifying_attr: email.clone(),
                 mode: api::phc::user::EnterMode::Login,
                 add_attrs: vec![],
+                release_waiting_for_card: None,
             },
         )
         .await
@@ -484,6 +489,7 @@ async fn main_integration_test_local(
                 identifying_attr: email.clone(),
                 mode: api::phc::user::EnterMode::Login,
                 add_attrs: vec![phone.clone()],
+                release_waiting_for_card: None,
             },
         )
         .await

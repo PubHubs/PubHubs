@@ -13,6 +13,7 @@ use crate::id::Id;
 use crate::misc::crypto;
 use crate::misc::error::{OPAQUE, Opaque};
 use crate::misc::jwt;
+use crate::servers;
 
 use actix_web::web;
 
@@ -64,6 +65,7 @@ impl App {
             identifying_attr,
             mode,
             add_attrs,
+            release_waiting_for_card,
         } = req.into_inner();
 
         // Check attributes are valid
@@ -451,6 +453,28 @@ impl App {
         let user_state = new_user_state;
 
         let auth_token_package = app.issue_auth_token(&user_state)?;
+
+        if let Some(yivi_result_jwt_id) = release_waiting_for_card {
+            let issue_card: Option<jwt::JWT> = None;
+
+            if new_account {
+                todo! {}
+                // Issue credential
+            }
+
+            if app
+                .shared
+                .issue_card_sender
+                .send(servers::phc::user_card::IssueCardInternalReq {
+                    yivi_result_jwt_id,
+                    issue_card,
+                })
+                .await
+                .is_err()
+            {
+                log::warn!("failed to send issue card request - channel was already closed");
+            }
+        };
 
         Ok(EnterResp::Entered {
             new_account,

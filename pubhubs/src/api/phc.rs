@@ -10,7 +10,7 @@ use crate::attr;
 use crate::handle;
 use crate::id::Id;
 use crate::misc::serde_ext::bytes_wrapper::B64UU;
-use crate::servers::{yivi, Constellation};
+use crate::servers::{Constellation, yivi};
 
 /// `.ph/hub/...` endpoints, used by hubs
 pub mod hub {
@@ -166,6 +166,11 @@ pub mod user {
         /// account, or when no bannable attribute is registered for this account.
         #[serde(default)]
         pub add_attrs: Vec<Signed<attr::Attr>>,
+
+        /// Pass [`api::auths::AuthCompleteResp::Success::yivi_result_jwt_id`] here to
+        /// send off the waiting yivi server at [`api::phc::user::YIVI_WAIT_FOR_CARD_PATH`]
+        /// perhaps with the issuance of a pubhubs card.
+        pub release_waiting_for_card: Option<Id>,
     }
 
     /// Returned by [`EnterEP`].

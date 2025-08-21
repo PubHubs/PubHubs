@@ -222,7 +222,7 @@ where
     }
 
     fn create_extra_shared_state(config: &servers::Config) -> Result<Self::ExtraSharedState> {
-        D::create_extra_shared_state(&config)
+        D::create_extra_shared_state(config)
     }
 
     async fn run_until_modifier(
@@ -300,11 +300,8 @@ pub(crate) trait Modifier<ServerT: Server>: Send + 'static {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> Result<(), std::fmt::Error>;
 }
 
-impl<
-        S: Server,
-        F: FnOnce(&mut S) -> bool + Send + 'static,
-        D: std::fmt::Display + Send + 'static,
-    > Modifier<S> for (F, D)
+impl<S: Server, F: FnOnce(&mut S) -> bool + Send + 'static, D: std::fmt::Display + Send + 'static>
+    Modifier<S> for (F, D)
 {
     fn modify(self: Box<Self>, server: &mut S) -> bool {
         self.0(server)
@@ -637,7 +634,7 @@ where
             shared: SharedState::new(SharedStateInner {
                 object_store: TryFrom::try_from(&server_config.object_store)
                     .with_context(|| format!("Creating object store for {}", S::NAME))?,
-                extra: S::create_extra_shared_state(&config)?,
+                extra: S::create_extra_shared_state(config)?,
             }),
             version: server_config.version.clone(),
         })

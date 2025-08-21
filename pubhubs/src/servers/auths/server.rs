@@ -7,7 +7,7 @@ use actix_web::web;
 use digest::Digest as _;
 
 use crate::servers::{
-    self, constellation, yivi, AppBase, AppCreatorBase, Constellation, Handle, Server as _,
+    self, AppBase, AppCreatorBase, Constellation, Handle, Server as _, constellation, yivi,
 };
 use crate::{
     api::{self, EndpointDetails as _, ResultExt as _},
@@ -45,7 +45,7 @@ impl servers::Details for Details {
         })
     }
 
-    fn create_extra_shared_state(config: &servers::Config) -> anyhow::Result<ExtraSharedState> {
+    fn create_extra_shared_state(_config: &servers::Config) -> anyhow::Result<ExtraSharedState> {
         Ok(ExtraSharedState {})
     }
 }
@@ -309,6 +309,8 @@ impl App {
                 api::ErrorCode::BadRequest
             })?;
 
+        let yivi_result_jwt_id = disclosure.id();
+
         let mut attrs: HashMap<handle::Handle, api::Signed<attr::Attr>> =
             HashMap::with_capacity(state.attr_types.len());
 
@@ -376,7 +378,16 @@ impl App {
             }
         }
 
-        Ok(api::auths::AuthCompleteResp::Success { attrs })
+        Ok(api::auths::AuthCompleteResp::Success {
+            attrs,
+            yivi_result_jwt_id: {
+                if state.wait_for_card {
+                    Some(yivi_result_jwt_id)
+                } else {
+                    None
+                }
+            },
+        })
     }
 
     /// Implements [`api::auths::WelcomeEP`].
