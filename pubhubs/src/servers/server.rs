@@ -57,7 +57,7 @@ impl std::fmt::Display for Name {
 ///
 /// An exception to this no-shared-mutable-state is the shared state in [`Handle`], for example the
 /// `crate::servers::run::DiscoveryLimiter` and the object store
-pub(crate) trait Server: DerefMut<Target = Self::AppCreatorT> + Sized + 'static {
+pub trait Server: DerefMut<Target = Self::AppCreatorT> + Sized + 'static {
     type AppT: App<Self>;
 
     const NAME: Name;
@@ -81,10 +81,13 @@ pub(crate) trait Server: DerefMut<Target = Self::AppCreatorT> + Sized + 'static 
     /// Additional state when the server is running
     type ExtraRunningState: Clone + core::fmt::Debug;
 
+    /// Additional shared state
+    type ExtraSharedState;
+
     /// Type of this server's object store, usually an [`object_store::ObjectStore`], or [`()`].
     type ObjectStoreT: Sync;
 
-    fn new(config: &crate::servers::Config) -> anyhow::Result<Self>;
+    fn new(config: &crate::servers::Config) -> Result<Self>;
 
     fn config(&self) -> &crate::servers::Config;
 
@@ -100,6 +103,8 @@ pub(crate) trait Server: DerefMut<Target = Self::AppCreatorT> + Sized + 'static 
         &self,
         constellation: &Constellation,
     ) -> Result<Self::ExtraRunningState>;
+
+    fn create_extra_shared_state(config: &servers::Config) -> Result<Self::ExtraSharedState>;
 
     /// This function is called when the server is started to run discovery.
     ///
@@ -119,11 +124,12 @@ pub(crate) trait Server: DerefMut<Target = Self::AppCreatorT> + Sized + 'static 
     /// It is given its own [`App`] instance.
     ///
     /// TODO: remove returning BoxModifier since that can be achieved via App instance?
+    #[expect(async_fn_in_trait)]
     async fn run_until_modifier(
         self: Rc<Self>,
         shutdown_receiver: tokio::sync::oneshot::Receiver<Infallible>,
         app: Rc<Self::AppT>,
-    ) -> anyhow::Result<Option<BoxModifier<Self>>>;
+    ) -> Result<Option<BoxModifier<Self>>>;
 
     /// Creates cross-origin resource sharing middleware for this server.
     fn cors() -> actix_cors::Cors {
@@ -163,12 +169,15 @@ pub trait Details: crate::servers::config::GetServerConfig + 'static + Sized {
     type AppCreatorT;
     type AppT;
     type ExtraRunningState: Clone + core::fmt::Debug;
+    type ExtraSharedState;
     type ObjectStoreT;
 
     fn create_running_state(
         server: &ServerImpl<Self>,
         constellation: &Constellation,
     ) -> Result<Self::ExtraRunningState>;
+
+    fn create_extra_shared_state(config: &servers::Config) -> Result<Self::ExtraSharedState>;
 }
 
 impl<D: Details> Server for ServerImpl<D>
@@ -184,10 +193,11 @@ where
 
     type ExtraConfig = D::Extra;
     type ExtraRunningState = D::ExtraRunningState;
+    type ExtraSharedState = D::ExtraSharedState;
 
     type ObjectStoreT = D::ObjectStoreT;
 
-    fn new(config: &servers::Config) -> anyhow::Result<Self> {
+    fn new(config: &servers::Config) -> Result<Self> {
         Ok(Self {
             app_creator: Self::AppCreatorT::new(config)?,
             config: config.clone(),
@@ -211,11 +221,15 @@ where
         D::create_running_state(self, constellation)
     }
 
+    fn create_extra_shared_state(config: &servers::Config) -> Result<Self::ExtraSharedState> {
+        D::create_extra_shared_state(&config)
+    }
+
     async fn run_until_modifier(
         self: Rc<Self>,
         shutdown_receiver: tokio::sync::oneshot::Receiver<Infallible>,
         app: Rc<Self::AppT>,
-    ) -> anyhow::Result<Option<crate::servers::server::BoxModifier<Self>>> {
+    ) -> Result<Option<crate::servers::server::BoxModifier<Self>>> {
         tokio::select! {
             res = shutdown_receiver => {
                res.expect_err("got instance of Infallible");
@@ -237,24 +251,21 @@ where
     D::AppCreatorT: AppCreator<Self>,
     D::ObjectStoreT: Sync,
 {
-    async fn run_discovery_and_then_wait_forever(
-        &self,
-        app: Rc<D::AppT>,
-    ) -> anyhow::Result<Infallible> {
+    async fn run_discovery_and_then_wait_forever(&self, app: Rc<D::AppT>) -> Result<Infallible> {
         self.run_discovery(app).await?;
 
         std::future::pending::<Infallible>().await; // wait forever
         unreachable!();
     }
 
-    async fn run_discovery(&self, app: Rc<D::AppT>) -> anyhow::Result<()> {
+    async fn run_discovery(&self, app: Rc<D::AppT>) -> Result<()> {
         crate::misc::task::retry(|| async {
             (match
                 AppBase::<Self>::handle_discovery_run(app.clone()).await.retryable()/* <- turns retryable error Err(err) into Ok(None) */?
             {
                 Some(DiscoveryRunResp::Restarting | DiscoveryRunResp::UpToDate) => Ok(Some(())),
                 None => Ok(None),
-            }) as anyhow::Result<Option<()>>
+            }) as Result<Option<()>>
         })
         .await?
         .ok_or_else(|| anyhow::anyhow!("timeout waiting for discovery of {server_name}", server_name = D::NAME))
@@ -266,7 +277,7 @@ pub trait AppCreator<ServerT: Server>:
     DerefMut<Target = AppCreatorBase<ServerT>> + Send + Clone + 'static
 {
     /// Creates a new instance of this [`AppCreator`] based on the given configuration.
-    fn new(config: &servers::Config) -> anyhow::Result<Self>;
+    fn new(config: &servers::Config) -> Result<Self>;
 
     /// Create an [`App`] instance.
     ///
@@ -289,8 +300,11 @@ pub(crate) trait Modifier<ServerT: Server>: Send + 'static {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> Result<(), std::fmt::Error>;
 }
 
-impl<S: Server, F: FnOnce(&mut S) -> bool + Send + 'static, D: std::fmt::Display + Send + 'static>
-    Modifier<S> for (F, D)
+impl<
+        S: Server,
+        F: FnOnce(&mut S) -> bool + Send + 'static,
+        D: std::fmt::Display + Send + 'static,
+    > Modifier<S> for (F, D)
 {
     fn modify(self: Box<Self>, server: &mut S) -> bool {
         self.0(server)
@@ -593,7 +607,7 @@ where
     S::ObjectStoreT: for<'a> TryFrom<&'a Option<servers::config::ObjectStoreConfig>, Error = anyhow::Error>
         + Sync,
 {
-    pub fn new(config: &crate::servers::Config) -> anyhow::Result<Self> {
+    pub fn new(config: &crate::servers::Config) -> Result<Self> {
         assert_eq!(
             config.preparation_state,
             crate::servers::config::PreparationState::Complete
@@ -623,6 +637,7 @@ where
             shared: SharedState::new(SharedStateInner {
                 object_store: TryFrom::try_from(&server_config.object_store)
                     .with_context(|| format!("Creating object store for {}", S::NAME))?,
+                extra: S::create_extra_shared_state(&config)?,
             }),
             version: server_config.version.clone(),
         })
@@ -1015,4 +1030,14 @@ impl<S: Server> SharedState<S> {
 
 pub struct SharedStateInner<S: Server> {
     pub object_store: S::ObjectStoreT,
+    pub extra: S::ExtraSharedState,
+}
+
+impl<S: Server> std::ops::Deref for SharedStateInner<S> {
+    type Target = S::ExtraSharedState;
+
+    #[inline]
+    fn deref(&self) -> &Self::Target {
+        &self.extra
+    }
 }

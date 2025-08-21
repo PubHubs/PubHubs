@@ -11,7 +11,7 @@ use crate::api::phc::user::*;
 
 impl App {
     /// Implements the `.ph/user/yivi/wait-for-card` endpoint, which is consumed by the user's yivi
-    /// app.
+    /// app in a chained session waiting for a pubhubs card to be issued (or the session to end).
     pub(crate) async fn handle_user_yivi_wait_for_card(
         app: actix_web::web::Data<Rc<Self>>,
         result_jwt: String,
