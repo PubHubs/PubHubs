@@ -83,8 +83,8 @@
 	);
 
 	onBeforeMount(async () => {
-		await yivi.fetchAttributes();
-		securedRoomTemplate.value[0].options = yivi.attributesOptions;
+		// The yivi function has changed, check if it still works as expected if you want to start using this vue component
+		securedRoomTemplate.value[0].options = yivi.getAttributes(t);
 		ask.value = props.askDisclosure;
 	});
 

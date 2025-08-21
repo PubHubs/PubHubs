@@ -1,36 +1,130 @@
-<!--
- TODO
- This is temporarily changed so attributes can be changed after entering (but not removed)
- Because of the fact that a FormObjectInput does not handle the submit button correctly yet the button is always enabled (by removing setSubmitButton(dialog.properties.buttons[0]);)
- -->
-
 <template>
-	<Dialog :title="title" :buttons="buttonsSubmitCancel" @close="close($event)" width="w-full max-w-[960px]">
-		<form @submit.prevent class="flex flex-col gap-4">
+	<Dialog
+		:title="title"
+		:buttons="[
+			{
+				...buttonsSubmitCancel[0],
+				enabled: isFormValid,
+			},
+			buttonsSubmitCancel[1],
+		]"
+		@close="close($event)"
+		width="w-full max-w-[960px]"
+	>
+		<form @keydown.enter.stop class="flex flex-col gap-4">
 			<FormLine>
-				<Label>{{ $t('admin.name') }}</Label>
-				<TextInput :placeholder="$t('admin.name')" v-model="editRoom.name" class="~text-label-min/label-max md:w-5/6" @changed="updateData('name', $event)" />
+				<Label>{{ t('admin.name') }}</Label>
+				<TextInput
+					:placeholder="t('admin.name_placeholder')"
+					:maxlength="validationComposable.roomSchemaConstants.maxNameLength"
+					v-model="editRoom.name"
+					class="~text-label-min/label-max placeholder:text-surface-subtle focus:ring-accent-primary md:w-5/6"
+				/>
+				<P class="float-end ~text-label-small-min/label-small-max"> {{ editRoom.name.length }} / {{ validationComposable.roomSchemaConstants.maxNameLength }} </P>
 			</FormLine>
 			<FormLine>
-				<Label>{{ $t('admin.topic') }}</Label>
-				<TextInput :placeholder="$t('admin.topic')" v-model="editRoom.topic" class="~text-label-min/label-max md:w-5/6" @changed="updateData('topic', $event)" />
+				<Label>{{ t('admin.topic') }}</Label>
+				<TextInput
+					:placeholder="t('admin.topic_placeholder')"
+					:maxlength="validationComposable.roomSchemaConstants.maxTopicLength"
+					v-model="editRoom.topic"
+					class="~text-label-min/label-max placeholder:text-surface-subtle focus:ring-accent-primary md:w-5/6"
+				/>
+				<P class="float-end ~text-label-small-min/label-small-max"> {{ editRoom.topic.length }} / {{ validationComposable.roomSchemaConstants.maxTopicLength }} </P>
 			</FormLine>
 			<FormLine v-if="!secured">
-				<Label>{{ $t('admin.room_type') }}</Label>
-				<TextInput :placeholder="$t('admin.room_type_placeholder')" v-model="editRoom.room_type" :disabled="!isNewRoom" class="~text-label-min/label-max md:w-5/6" @changed="updateData('room_type', $event)" />
+				<Label>{{ t('admin.room_type') }}</Label>
+				<TextInput
+					:placeholder="t('admin.room_type_placeholder')"
+					:maxlength="validationComposable.roomSchemaConstants.maxTypeLength"
+					v-model="editRoom.type"
+					:disabled="!isNewRoom"
+					class="~text-label-min/label-max placeholder:text-surface-subtle focus:ring-accent-primary md:w-5/6"
+				/>
+				<P class="float-end ~text-label-small-min/label-small-max"> {{ editRoom.type.length }} / {{ validationComposable.roomSchemaConstants.maxTypeLength }} </P>
 			</FormLine>
 			<div v-if="secured">
 				<FormLine class="mb-2">
-					<Label>{{ $t('admin.secured_description') }}</Label>
-					<TextInput :placeholder="$t('admin.secured_description')" v-model="editRoom.user_txt" class="~text-label-min/label-max md:w-5/6" />
+					<Label>{{ t('admin.secured_description') }}</Label>
+					<TextInput
+						:placeholder="t('admin.secured_description_placeholder')"
+						:maxlength="validationComposable.roomSchemaConstants.maxDescriptionLength"
+						v-model="editRoom.user_txt"
+						class="~text-label-min/label-max placeholder:text-surface-subtle focus:ring-accent-primary md:w-5/6"
+					/>
+					<P class="float-end ~text-label-small-min/label-small-max"> {{ editRoom.user_txt.length }} / {{ validationComposable.roomSchemaConstants.maxDescriptionLength }} </P>
 				</FormLine>
-				<FormLine>
-					<Label>{{ $t('admin.secured_yivi_attributes') }}</Label>
-					<FormObjectInput v-if="editRoom.accepted" :template="securedRoomTemplate" :canAdd="isNewRoom" :canRemove="isNewRoom" v-model="(editRoom as TSecuredRoom).accepted"> </FormObjectInput>
-				</FormLine>
+				<div>
+					<div class="mt-4 flex flex-wrap gap-2">
+						<Label>{{ t('admin.secured_yivi_attributes') }}</Label>
+						<button v-for="(attr, index) in selectedAttributes" :key="index" :class="['rounded px-3 py-1', activeTab === index ? 'bg-surface-high' : 'bg-surface text-on-surface']" @click="activeTab = index" type="button">
+							{{ attr.label ? attr.label : index + 1 }}
+							<span v-if="selectedAttributes.length > 1" @click.stop="removeAttribute(index)" class="ml-2 cursor-pointer text-accent-red hover:text-on-accent-red">&times;</span>
+						</button>
+						<Button
+							v-if="selectedAttributes.length < validationComposable.roomSchemaConstants.maxAttributes"
+							type="button"
+							class="ml-2 rounded bg-surface px-2 py-1 text-on-surface"
+							@click="selectedAttributes.push({ label: '', attribute: '', accepted: [], profile: false })"
+						>
+							+
+						</Button>
+					</div>
+					<div v-if="selectedAttributes.length" class="border-2 bg-surface-low p-4">
+						<FormLine class="mt-4">
+							<Label>{{ t('admin.secured_attribute') }}</Label>
+							<AutoComplete
+								v-model="selectedAttributes[activeTab].label"
+								:value="selectedAttributes[activeTab].label"
+								:options="yiviAttributes"
+								:maxlength="autoCompleteLength"
+								class="~text-label-min/label-max placeholder:text-surface-subtle"
+							/>
+							<P class="float-end ~text-label-small-min/label-small-max"> {{ selectedAttributes[activeTab].label.length }} / {{ autoCompleteLength }} </P>
+						</FormLine>
+						<FormLine>
+							<Label>{{ t('admin.add_value') }}</Label>
+							<TextArea
+								v-model="valuesString"
+								:maxlength="3000"
+								:placeholder="t('admin.add_tip')"
+								@keydown.enter.prevent="addUniqueValue(activeTab)"
+								class="bg-background p-2 leading-8 ~text-label-min/label-max placeholder:text-surface-subtle focus:ring-1 focus:ring-accent-primary"
+							/>
+							<Button @click="addUniqueValue(activeTab)">{{ t('admin.add') }}</Button>
+						</FormLine>
+						<FormLine>
+							<Label>{{ t('admin.secured_profile') }}</Label>
+							<div class="flex w-full items-center justify-start">
+								<input type="checkbox" v-model="selectedAttributes[activeTab].profile" class="scale-150" />
+							</div>
+						</FormLine>
+						<div class="mt-2 flex flex-wrap gap-2">
+							<Label>{{ t('admin.secured_values') }}</Label>
+							<span v-for="(value, index) in selectedAttributes[activeTab].accepted" :key="value" class="bg-primary text-on-primary inline-flex items-center truncate rounded-xl bg-surface px-2 py-1">
+								{{ value }}
+								<button type="button" class="ml-2 text-accent-red hover:text-on-accent-red" @click="selectedAttributes[activeTab].accepted.splice(index, 1)">&times;</button>
+							</span>
+						</div>
+					</div>
+				</div>
 			</div>
-			<div v-if="errorMessage">
-				<Label>{{ errorMessage }}</Label>
+			<div v-if="errorMessage" class="mt-4">
+				<P class="text-accent-red">{{ errorMessage }}</P>
+			</div>
+			<div v-if="formErrors && Object.keys(formErrors).length" class="mt-4">
+				<P class="text-accent-red">
+					{{
+						Object.values(formErrors)
+							.map((error) =>
+								t(
+									error.translationKey,
+									error.parameters.map((param) => t(param)),
+								),
+							)
+							.join(', ')
+					}}
+				</P>
 			</div>
 		</form>
 	</Dialog>
@@ -38,33 +132,57 @@
 
 <script setup lang="ts">
 	// Components
-	import Dialog from '../ui/Dialog.vue';
-	import FormLine from '../forms/FormLine.vue';
-	import TextInput from '../forms/TextInput.vue';
-	import Label from '../forms/Label.vue';
-	import FormObjectInput from '../forms/FormObjectInput.vue';
+	import Dialog from '@/components/ui/Dialog.vue';
+	import FormLine from '@/components/forms/FormLine.vue';
+	import TextInput from '@/components/forms/TextInput.vue';
+	import Label from '@/components/forms/Label.vue';
+	import AutoComplete from '@/components/forms/AutoComplete.vue';
+	import TextArea from '@/components/forms/TextArea.vue';
+	import Button from '@/components/elements/Button.vue';
 
-	import { FormObjectInputTemplate } from '@/logic/composables/useFormInputEvents';
-	import { useFormState } from '@/logic/composables/useFormState';
-	import { isEmpty, trimSplit } from '@/logic/core/extensions';
-	import { usePubHubs } from '@/logic/core/pubhubsStore';
+	// Logic
+	import { isEmpty } from '@/logic/core/extensions';
 	import { buttonsSubmitCancel, DialogButtonAction } from '@/logic/store/dialog';
-	import { RoomType } from '@/logic/store/rooms';
-	import { SecuredRoomAttributes, TSecuredRoom, useRooms } from '@/logic/store/store';
-	import Room from '@/model/rooms/Room';
-
+	import { TSecuredRoom, useRooms } from '@/logic/store/store';
+	import { useEditRoom } from '@/logic/composables/useEditRoom';
+	import { trimSplit } from '@/logic/core/extensions';
 	import { useYivi } from '@/logic/store/yivi';
-	import { computed, onBeforeMount, ref } from 'vue';
+	import { useValidation } from '@/logic/validation/useValidation';
+
+	// Model
+	import Room from '@/model/rooms/Room';
+	import { TEditRoomFormAttributes } from '@/model/rooms/TEditRoom';
+	import { ValidationMessage } from '@/model/validation/TValidate';
+
+	// Vue
+	import { watch, computed, ref, onBeforeMount } from 'vue';
 	import { useI18n } from 'vue-i18n';
 
 	const { t } = useI18n();
-	const { setData, updateData } = useFormState();
-	const pubhubs = usePubHubs();
-	const rooms = useRooms();
-
-	//const dialog = useDialog();
-	const yivi = useYivi();
+	const editRoomComposable = useEditRoom();
+	const validationComposable = useValidation();
+	const emptyNewRoom = editRoomComposable.emptyNewRoom;
+	const yiviAttributes = useYivi()
+		.getAttributes(t)
+		.map((item) => item.label);
+	const roomsStore = useRooms();
 	const emit = defineEmits(['close']);
+
+	const attributeChanged = ref(false);
+	const activeTab = ref(0);
+	const valuesString = ref<string>('');
+	const formErrors = ref<Record<string, ValidationMessage> | null>(null);
+	const selectedAttributes = ref<Array<TEditRoomFormAttributes>>([{ label: '', attribute: '', accepted: [], profile: false }]);
+	let OriginalAttributes = <Array<TEditRoomFormAttributes>>[{ label: '', attribute: '', accepted: [], profile: false }];
+	const isFormValid = ref(false);
+	let errorMessage = ref<string | undefined>(undefined);
+	const autoCompleteLength = 80;
+	const editRoom = ref({
+		name: '',
+		topic: '',
+		type: '',
+		user_txt: '',
+	});
 
 	const props = defineProps({
 		room: {
@@ -77,251 +195,100 @@
 		},
 	});
 
-	let errorMessage = ref<string | undefined>(undefined);
-
-	// used to check if no attribute values have been deleted after editing
-	let previousAccepted: SecuredRoomAttributes;
-
-	//#region Computed properties
-
 	const isNewRoom = computed(() => {
 		return isEmpty(props.room);
 	});
 
-	const title = computed(() => {
-		if (isNewRoom.value) {
-			if (props.secured) {
-				return t('admin.add_secured_room');
-			} else {
-				return t('admin.add_room');
-			}
-		}
-		if (props.secured) {
-			return t('admin.edit_secured_room');
-		}
-		return t('admin.edit_name');
-	});
+	// Determines the dialog title based on whether the room is new or secured.
+	const title = computed(() => (isNewRoom.value ? (props.secured ? t('admin.add_secured_room') : t('admin.add_room')) : props.secured ? t('admin.edit_secured_room') : t('admin.edit_name')));
 
-	//#region types & defaults
-
-	interface SecuredRoomAttributesObject {
-		yivi_attribute: string;
-		accepted_values: Array<string>;
-		profile: boolean;
-	}
-
-	const emptyNewRoom = {
-		name: '',
-		topic: '',
-		accepted: [] as Array<SecuredRoomAttributesObject>,
-		user_txt: '',
-		type: '',
-	} as TSecuredRoom;
-
-	const editRoom = ref({} as Room | TSecuredRoom);
-
-	const securedRoomTemplate = ref([
-		{
-			key: 'yivi',
-			label: t('admin.secured_attribute'),
-			type: 'autocomplete',
-			options: [],
-			default: '',
-			disabled: !isNewRoom.value,
+	// Validate on any input change
+	watch(
+		[() => editRoom.value.name, () => editRoom.value.topic, () => editRoom.value.type, () => editRoom.value.user_txt, () => selectedAttributes.value],
+		() => {
+			isFormValid.value = validateRoomForm();
 		},
-		{
-			key: 'values',
-			label: t('admin.secured_values'),
-			type: 'textarea',
-			default: '',
-			maxLength: 3000,
-		},
-		{
-			key: 'profile',
-			label: t('admin.secured_profile'),
-			type: 'checkbox',
-			default: false,
-		},
-	] as Array<FormObjectInputTemplate>);
-
-	//#region mount
-	onBeforeMount(async () => {
-		//Fetch the attrbiute objects
-		securedRoomTemplate.value[0].options = yivi.attributesOptions;
-		securedRoomTemplate.value[0].options.forEach((option) => {
-			option.label = t('attribute.' + option.value);
-		});
-
+		{ immediate: true, deep: true },
+	);
+	onBeforeMount(() => {
 		if (isNewRoom.value) {
 			// New Room
 			editRoom.value = { ...emptyNewRoom } as Room | TSecuredRoom;
 		} else {
-			// Edit room
-
-			editRoom.value = { ...(props.room as Room | TSecuredRoom) };
-			editRoom.value.topic = rooms.getRoomTopic(props.room.room_id);
-			// Transform for form
+			// Edit existing room
+			editRoom.value = { ...props.room } as Room | TSecuredRoom;
+			editRoom.value.topic = roomsStore.getRoomTopic(props.room?.room_id);
 			if (props.secured) {
-				// Remove 'profile' for existing secured room (cant be edited after creation)
-				securedRoomTemplate.value.splice(2, 1);
-				previousAccepted = editRoom.value.accepted;
-				let accepted = editRoom.value.accepted;
-				if (accepted !== undefined) {
-					// FormObjectInput needs a different structure of the accepted values, transform them
-					const acceptedKeys = Object.keys(accepted);
-					let newAccepted: Object[] = [];
-					acceptedKeys.forEach((key) => {
-						// Translate the yivi key value to a description/label value for display
-						const foundAttribute = securedRoomTemplate.value[0].options?.find((attribute) => key === attribute.value);
-						let values = accepted[key].accepted_values;
-						if (typeof values === 'object') {
-							values = values.join(', ');
-						}
-						newAccepted.push({
-							yivi: foundAttribute ? foundAttribute.label : key,
-							values: values,
-							profile: accepted[key].profile,
-						});
-					});
-					editRoom.value.accepted = newAccepted;
-				}
+				const [labels, attributes] = editRoomComposable.getYiviLabelsAndAttributes(props.room?.accepted, t);
+				// Deep copy to avoid mutating props.room
+				selectedAttributes.value = JSON.parse(JSON.stringify(editRoomComposable.fillInEditFormAttributes(labels, attributes, props.room?.accepted)));
+				OriginalAttributes = JSON.parse(JSON.stringify(selectedAttributes.value));
 			}
-		}
-
-		//setSubmitButton(dialog.properties.buttons[0]);
-
-		setData({
-			name: {
-				value: editRoom.value.name as string,
-				validation: {
-					required: true,
-					allow_empty_number: false,
-					allow_empty_object: false,
-					allow_empty_text: false,
+			// Watch if any of the original values of the room have been removed or if a new attribute has been added
+			watch(
+				() => selectedAttributes.value,
+				() => {
+					errorMessage.value = t(editRoomComposable.attributesChanged(selectedAttributes.value, OriginalAttributes));
+					attributeChanged.value = !isEmpty(errorMessage.value);
 				},
-			},
-			topic: {
-				value: editRoom.value.topic as string,
-			},
-			room_type: {
-				value: editRoom.value.room_type as string,
-			},
-		});
+				{ immediate: true, deep: true },
+			);
+		}
 	});
+	// Validation function
+	function validateRoomForm() {
+		const values = {
+			name: editRoom.value.name,
+			topic: editRoom.value.topic,
+			type: editRoom.value.type,
+			description: props.secured ? editRoom.value.user_txt : undefined,
+			attributes: selectedAttributes.value,
+			acceptedMax: Math.max(...selectedAttributes.value.map((maxList) => maxList.accepted.length)),
+			acceptedMin: Math.min(...selectedAttributes.value.map((minList) => minList.accepted.length)),
+			labelMin: Math.min(...selectedAttributes.value.map((minList) => minList.label.length)),
+		};
+		if (props.secured) formErrors.value = validationComposable.validateBySchema(values, validationComposable.editSecuredRoomSchema);
+		else formErrors.value = validationComposable.validateBySchema(values, validationComposable.editPublicRoomSchema);
+		return !formErrors.value;
+	}
 
-	//#endregion
-
-	async function close(returnValue: DialogButtonAction) {
+	async function close(returnValue: DialogButtonAction): Promise<void> {
 		if (returnValue === 0 || (returnValue === 1 && (await submitRoom()))) {
 			emit('close');
 		}
 	}
-
 	async function submitRoom(): Promise<Boolean> {
-		let room = { ...editRoom.value } as TSecuredRoom;
-
-		// Normal room
-		if (!props.secured) {
-			if (isNewRoom.value) {
-				let newRoomOptions = {
-					name: room.name,
-					topic: room.topic,
-					visibility: 'public',
-					creation_content: {
-						type: editRoom.value.room_type === '' ? undefined : editRoom.value.room_type,
-					},
-				};
-				await pubhubs.createRoom(newRoomOptions);
-			} else {
-				await pubhubs.renameRoom(props.room.room_id, editRoom.value.name!);
-
-				// update topic
-				await pubhubs.setTopic(props.room.room_id as string, editRoom.value.topic!);
-			}
-			editRoom.value = { ...emptyNewRoom };
+		if (!validateRoomForm()) {
+			return false;
 		}
-		// Secured room
-		else {
-			// Transform room for API
-			// room.room_name = room.name;
-			// delete room.name;
-			room.type = RoomType.PH_MESSAGES_RESTRICTED;
-			let accepted = {} as SecuredRoomAttributes;
-			// @ts-ignore
-			room.accepted.forEach((item: any) => {
-				accepted[item.yivi] = {
-					accepted_values: trimSplit(item.values),
-					profile: item.profile,
-				};
-			});
-			room.accepted = accepted;
-			// Translate the keys from the description/label value back to the yivi attribute value
-			const acceptedKeys = Object.keys(accepted);
-			acceptedKeys.forEach((key) => {
-				const foundAttribute = securedRoomTemplate.value[0].options?.find((attribute) => key === attribute.label);
-				const propertyDescriptor = Object.getOwnPropertyDescriptor(room.accepted, key);
-				if (room.accepted && foundAttribute && propertyDescriptor) {
-					Object.defineProperty(room.accepted, foundAttribute.value, propertyDescriptor);
-					delete room.accepted[key];
-				}
-			});
-			if (isNewRoom.value) {
-				try {
-					await rooms.addSecuredRoom(room);
-					editRoom.value = { ...emptyNewRoom };
-				} catch (error) {
-					errorMessage.value = t((error as Error).message);
-					return false;
-				}
-			} else {
-				// check for each item in previousAccepted whether it still exists in room.accepted
-				if (!AllAttributeValuesPresent(previousAccepted, room.accepted)) {
-					errorMessage.value = t('errors.do_not_remove_attributes');
-					return false;
-				} else {
-					try {
-						await rooms.changeSecuredRoom(room);
-						editRoom.value = { ...emptyNewRoom };
-					} catch (error) {
-						errorMessage.value = t((error as Error).message);
-						return false;
-					}
-				}
+		let room = { ...editRoom.value } as TSecuredRoom;
+		if (!props.secured) {
+			await editRoomComposable.updatePublicRoom(isNewRoom.value, room, props.room?.room_id);
+		} else {
+			selectedAttributes.value = editRoomComposable.translateYiviLabelsToAttributes(selectedAttributes.value, t);
+			try {
+				await editRoomComposable.updateSecuredRoom(isNewRoom.value, room, selectedAttributes.value, attributeChanged.value, props.room?.room_id);
+			} catch (error) {
+				errorMessage.value = t((error as Error).message);
+				return false;
 			}
 		}
 		return true;
 	}
-	/**
-	 * When changing the required attributes of a secured room, users without these attributes are not removed. They can still enter.
-	 * For the moment this is solved by not allowing the values to change. This function checks if all the previous attributevalues
-	 * are strill present after edit
-	 */
-	function AllAttributeValuesPresent(previousAccepted: SecuredRoomAttributes | [], accepted: SecuredRoomAttributes | []): boolean {
-		// previous there were no values
-		if (Array.isArray(previousAccepted)) {
-			return true;
+	function removeAttribute(index: number) {
+		selectedAttributes.value.splice(index, 1);
+		if (activeTab.value >= selectedAttributes.value.length) {
+			activeTab.value = Math.max(0, selectedAttributes.value.length - 1);
 		}
+	}
 
-		// previous has values, but new has not
-		if (Array.isArray(accepted)) {
-			return false;
-		}
-
-		// For each key check if any value has been removed
-		for (const key in previousAccepted) {
-			if (!accepted[key]) {
-				// key not present anymore
-				return false;
+	function addUniqueValue(tabIndex: number) {
+		const acceptedValues = trimSplit(valuesString.value);
+		acceptedValues.forEach((val) => {
+			if (val && !selectedAttributes.value[tabIndex].accepted.includes(val)) {
+				selectedAttributes.value[tabIndex].accepted.push(val);
 			}
-			for (const value of previousAccepted[key].accepted_values) {
-				if (!accepted[key].accepted_values.includes(value)) {
-					// a value has been removed
-					return false;
-				}
-			}
-		}
-
-		// no values have been removed
-		return true;
+		});
+		valuesString.value = '';
 	}
 </script>

@@ -24,6 +24,7 @@ import { imageTypes } from '@/model/constants';
 import { router } from '@/logic/core/router';
 import { useConnection } from '@/logic/store/connection';
 import { useMessageActions } from '@/logic/store/message-actions';
+import { useNotifications } from '@/logic//store/notifications.js';
 
 const publicRoomsLoading: Promise<any> | null = null; // outside of defineStore to guarantee lifetime, not accessible outside this module
 const updateRoomsPerforming: Promise<void> | null = null; // outside of defineStore to guarantee lifetime, not accessible outside this module

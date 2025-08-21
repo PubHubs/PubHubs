@@ -27,16 +27,16 @@ class HubStore:
     """Contains methods for database operations connected to room access with Yivi.
     """
 
-    def __init__(self, module_api: ModuleApi,config: dict ):
+    def __init__(self, module_api: ModuleApi, config: dict):
         self.config = config
         self.module_api = module_api
 
 
-    async def create_tables(self):
+    async def create_tables(self) -> None:
         """Creates the necessary tables for allowing users access using Yivi.
         """
 
-        def create_tables_txn(txn: LoggingTransaction):
+        def create_tables_txn(txn: LoggingTransaction) -> None:
             # No functionality yet for expired Yivi attributes, now able to join room forever.
             # Make some background check for it see: https://github.com/matrix-org/synapse-email-account-validity for an example.
             txn.execute(
@@ -109,7 +109,7 @@ class HubStore:
         def is_allowed_txn(
                 txn: LoggingTransaction,
                 user_id_txn: str,
-                room_id_txn: str):
+                room_id_txn: str) -> bool:
             txn.execute(
                 """
                 SELECT * FROM allowed_to_join_room WHERE user_id = ? AND room_id = ?
@@ -126,7 +126,7 @@ class HubStore:
             room_id
         )
 
-    async def allow(self, user_id: str, room_id: str, join_time: datetime):
+    async def allow(self, user_id: str, room_id: str, join_time: datetime) -> None:
         """Allow a user to join a room
 
         :param user_id: the user
@@ -139,8 +139,8 @@ class HubStore:
                 txn: LoggingTransaction,
                 user_id_txn: str,
                 room_id_txn: str,
-                join_time_txn: str):
-            # Check if the user is already allowed to join the room
+                join_time_txn: str) -> None:
+             # Check if the user is already allowed to join the room
             txn.execute(
                 """
                 SELECT 1 FROM allowed_to_join_room WHERE user_id = ? AND room_id = ?
@@ -169,6 +169,7 @@ class HubStore:
                     (user_id_txn, room_id_txn, join_time_txn),
                 )
 
+
         await self.module_api.run_db_interaction(
             "allowed_to_join_room_insert",
             allow_txn,
@@ -178,10 +179,10 @@ class HubStore:
         )
 
 
-    async def remove_from_room(self):
+    async def remove_from_room(self) -> None:
         def set_expiry_from_user_txn(
                 txn: LoggingTransaction,
-                ):
+                ) -> Optional[list[tuple]]:
 
             txn.execute(
                 """
@@ -207,26 +208,11 @@ class HubStore:
             await self.module_api.update_room_membership(user_id, user_id, room_id, "leave")
 
 
-        def remove_user_from_allowed_into_secured_room_txn(
-                txn: LoggingTransaction,
-                ):
-
-            txn.execute(
-                """
-                DELETE from allowed_to_join_room WHERE user_expired = 1;
-                """,
-            )
-
-        await self.module_api.run_db_interaction(
-            "remove_user_from_allowed_into_secured_room",
-            remove_user_from_allowed_into_secured_room_txn,
-
-        )
 
 
-    async def get_room_expiration_time_days(self, room_id=None):
+    async def get_room_expiration_time_days(self, room_id=None) -> Optional[int]:
 
-        def get_room_expiration_time_days_txn(txn: LoggingTransaction, room_id_txn):
+        def get_room_expiration_time_days_txn(txn: LoggingTransaction, room_id_txn) -> Optional[int]:
 
             txn.execute(
                     """
@@ -292,10 +278,10 @@ class HubStore:
         else:
             return None
 
-    async def create_secured_room(self, room: SecuredRoom):
+    async def create_secured_room(self, room: SecuredRoom) -> None:
         """Turn database results into a SecuredRoom"""
 
-        def create_secured_room_txn(txn: LoggingTransaction, room_tx: SecuredRoom):
+        def create_secured_room_txn(txn: LoggingTransaction, room_tx: SecuredRoom) -> None:
                     txn.execute(
                         """
                             INSERT INTO secured_rooms(room_id, accepted, user_txt, expiration_time_days) VALUES (?, ?, ?, ?)
@@ -310,13 +296,13 @@ class HubStore:
         )
 
 
-    async def update_secured_room(self, room: SecuredRoom):
+    async def update_secured_room(self, room: SecuredRoom) -> None:
         """Update a SecuredRoom by id.
         """
 
         def update_secured_room_txn(
                 txn: LoggingTransaction,
-                room_tx: SecuredRoom):
+                room_tx: SecuredRoom) -> None:
             txn.execute(
                 """
                 UPDATE secured_rooms SET accepted = ?, expiration_time_days = ?, user_txt = ? WHERE room_id = ?
@@ -331,13 +317,13 @@ class HubStore:
             room,
         )
 
-    async def delete_secured_room(self, room: SecuredRoom):
+    async def delete_secured_room(self, room: SecuredRoom) -> None:
         """Delete a SecuredRoom. Match will happen on all room fields in secured_rooms table
         """
 
         def delete_secured_room_txn(
                 txn: LoggingTransaction,
-                room_tx: SecuredRoom):
+                room_tx: SecuredRoom) -> None:
             txn.execute(
                 """
                 DELETE FROM secured_rooms WHERE accepted = ? AND expiration_time_days = ? AND user_txt = ? AND room_id = ?
@@ -350,39 +336,17 @@ class HubStore:
             delete_secured_room_txn,
             room,
         )
-        
-    async def hub_join(self, user_id: str):
-            """
-            Puts the user Id  in the table.
-            """
-            
-            
-            def hub_join_txn(
-                txn: LoggingTransaction,
-                user_id_txn: str):
-                
-                txn.execute(
-                        """
-                            INSERT INTO joined_hub(user_id) VALUES (?)
-                            """,
-                        (user_id_txn,)
-                    )
-            
-            await self.module_api.run_db_interaction(
-                    "joined_hub",
-                    hub_join_txn,
-                    user_id,
-        )
-            
-    async def all_rooms_latest_timestamp(self):
+
+
+    async def all_rooms_latest_timestamp(self) -> Optional[list[tuple]]:
             """
             Returns the latest activity timestamp for every room.
             """
             
             
             def all_rooms_latest_timestamp_txn(
-                txn: LoggingTransaction):
-                
+                txn: LoggingTransaction) -> Optional[list[tuple]]:
+
                 txn.execute(
                         """
                             SELECT MAX(received_ts), room_id FROM events GROUP BY room_id
@@ -391,8 +355,80 @@ class HubStore:
                 return txn.fetchall()
             
             return await self.module_api.run_db_interaction(
-                    "joined_hub",
+                    "retrieve_room_timestamps",
                     all_rooms_latest_timestamp_txn
+        ) 
+    async def user_join_time(self, user_id:str) -> Optional[list[tuple]]:
+            """
+            Returns when the user joined for every secured room.
+            """
+            
+            
+            def user_join_time_txn(
+                txn: LoggingTransaction,
+                user_id_txn: str) -> Optional[list[tuple]]:
+
+                txn.execute(
+                    """
+                    SELECT room_id, join_time, user_expired FROM allowed_to_join_room WHERE user_id = ?
+                    """,
+                    (user_id_txn,),
+                )
+                return txn.fetchall()
+            
+            return await self.module_api.run_db_interaction(
+                    "user_join_time",
+                    user_join_time_txn,
+                    user_id,
+        )
+    
+    async def remove_users_from_secured_room(self, room_id: str) -> None:
+        """Remove all users from a secured room.
+
+        :param room_id: The room to remove users from.
+        """
+
+        def remove_users_from_secured_room_txn(
+                txn: LoggingTransaction,
+                room_id_txn: str) -> None:
+            txn.execute(
+                """
+                UPDATE allowed_to_join_room SET user_expired = 1 WHERE room_id = ?
+                """,
+                (room_id_txn,),
+            )
+
+        await self.module_api.run_db_interaction(
+            "remove_users_from_secured_room",
+            remove_users_from_secured_room_txn,
+            room_id,
+        )
+        await self.remove_from_room()
+    async def remove_allowed_join_room_row(self, room_id: str, user_id:str) -> None:
+        """Remove a user from the allowed_to_join_room table.
+
+        :param room_id: The room id of the notification that has been dismissed.
+        :param user_id: The user that dismissed the expired secured room notification.
+        The row will be removed from the allowed_to_join_room table
+        so that the expired secured roomnotification will not be shown again.
+        """
+
+        def remove_allowed_join_room_row_txn(
+                txn: LoggingTransaction,
+                room_id_txn: str,
+                user_id_txn: str) -> None:
+            txn.execute(
+                """
+                DELETE FROM allowed_to_join_room WHERE room_id = ? AND user_id = ?
+                """,
+                (room_id_txn, user_id_txn),
+            )
+
+        await self.module_api.run_db_interaction(
+            "remove_allowed_join_room_row",
+            remove_allowed_join_room_row_txn,
+            room_id,
+            user_id
         )
 
     async def has_joined(self, user_id: str) -> bool:
@@ -437,8 +473,8 @@ class HubStore:
             get_hub_admins_txn
         )
     
-    async def get_user_consent_version(self, user_id):
-        def get_user_consent_version_txn(txn: LoggingTransaction, user_id):
+    async def get_user_consent_version(self, user_id) -> Optional[int]:
+        def get_user_consent_version_txn(txn: LoggingTransaction, user_id) -> Optional[int]:
             txn.execute(
                 """
                     SELECT consent_version FROM users WHERE name = ?;
@@ -453,17 +489,16 @@ class HubStore:
             user_id
         )
 
-    async def set_user_consent_version(self, accepted_consent_version, user_id):
-        def set_user_consent_version_txn(txn: LoggingTransaction, accepted_consent_version, user_id):
+    async def set_user_consent_version(self, accepted_consent_version, user_id) -> None:
+        def set_user_consent_version_txn(txn: LoggingTransaction, accepted_consent_version, user_id) -> None:
             txn.execute(
                 """
                     UPDATE users SET consent_version = ? WHERE name = ?;
                 """,
                 (accepted_consent_version, user_id)
             )
-            return txn.rowcount 
     
-        return await self.module_api.run_db_interaction(
+        await self.module_api.run_db_interaction(
             "Setting user consent version",
             set_user_consent_version_txn,
             accepted_consent_version,

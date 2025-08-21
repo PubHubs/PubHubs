@@ -74,12 +74,12 @@
 				<P v-else> {{ $t('common.loading') }}</P>
 			</div>
 			<div class="flex w-full items-end justify-end gap-8">
-				<Button @click="joinSecureRoom" class="w-fit shrink-0 truncate whitespace-nowrap" :disabled="panelOpen">
+				<Button @click="joinSecureRoom" class="w-fit shrink-0 truncate whitespace-nowrap">
 					{{ t('rooms.join_secured_room') }}
 				</Button>
 
 				<!-- Secure room join dialog -->
-				<SecuredRoomLogin v-if="panelOpen" :securedRoomId="room.room_id" @click="panelOpen = false" />
+				<SecuredRoomLoginDialog v-model:dialogOpen="dialogOpen" title="rooms.join_room" message="rooms.join_secured_room_dialog" :messageValues="[]" />
 			</div>
 		</div>
 	</div>
@@ -96,6 +96,7 @@
 	import H2 from '@/components/elements/H2.vue';
 	import Icon from '@/components/elements/Icon.vue';
 	import P from '@/components/elements/P.vue';
+	import SecuredRoomLoginDialog from '@/components/rooms/SecuredRoomLoginDialog.vue';
 
 	// Logic
 	import { usePubHubs } from '@/logic/core/pubhubsStore';
@@ -136,6 +137,7 @@
 	const roomsStore = useRooms();
 	const accessVerifytext = ref('');
 	const panelOpen = ref(false);
+	const dialogOpen = ref<string | null>(null);
 	const securedAttributes = ref();
 
 	// Compute member count string
@@ -222,6 +224,7 @@
 	};
 
 	const joinSecureRoom = () => {
+		dialogOpen.value = props.room.room_id;
 		panelOpen.value = true;
 	};
 </script>
