@@ -16,13 +16,13 @@ networkhost.source_ip_for = "udp://k.root-servers.net:53"
 [auths]
 #port = 6060 
 
-#[auths.yivi]
-#requestor_url = "https://yivi.pubhubs.net"
-#server_name = "test"
-#
-#[auths.yivi.requestor_creds]
-#name = "requestor"
-#key.hs256 = "Asna"
+[auths.yivi]
+requestor_url = "http://networkhost:8188"
+server_name = "local-yivi"
+
+[auths.yivi.requestor_creds]
+name = "local-development"
+key.hs256 = "6576257d853bc1ea15cbf103dbc3950b819d65eef4fae4c55d80e9c32b683e06"
 
 [[auths.attribute_types]]
 handles = ['email']
