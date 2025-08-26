@@ -1,5 +1,5 @@
 import time
-from ._constants import DEFAULT_EXPIRATION_TIME_DAYS, DEFAULT_EXPIRATION_TIME_DAYS_WARNING
+from ._constants import DEFAULT_EXPIRATION_TIME_DAYS_WARNING
 from synapse.module_api import ModuleApi
 from synapse.http.site import SynapseRequest
 from synapse.http.server import DirectServeJsonResource, respond_with_json
@@ -126,11 +126,11 @@ class HubDataResource(DirectServeJsonResource):
 								time_elapsed = current_timestamp - join_room_timestamp
 								time_elapsed_days = time_elapsed / (24 * 3600)  # Convert seconds to days
 
-								if time_elapsed_days > int(secured_room.expiration_time_days) - DEFAULT_EXPIRATION_TIME_DAYS_WARNING:
+								if time_elapsed_days > int(float(secured_room.expiration_time_days)) - DEFAULT_EXPIRATION_TIME_DAYS_WARNING:
 									room_list.append({
 										"room_id": room_id,
 										"type": "soon_removed_from_secured_room",
-										"message_values": [secured_room.name, round(DEFAULT_EXPIRATION_TIME_DAYS - time_elapsed_days)]
+										"message_values": [secured_room.name, round(int(float(secured_room.expiration_time_days)) - time_elapsed_days)]
 									})
 					response = room_list
 

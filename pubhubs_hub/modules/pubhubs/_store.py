@@ -205,8 +205,11 @@ class HubStore:
 
         for row in result:
             user_id, room_id =  row
-            await self.module_api.update_room_membership(user_id, user_id, room_id, "leave")
-
+            try:
+                await self.module_api.update_room_membership(user_id, user_id, room_id, "leave")
+            except Exception as e:
+                logger.error(f"Could not remove user with id {user_id} from room {room_id} after the user was expired, Error: {e}")
+           
 
 
 
