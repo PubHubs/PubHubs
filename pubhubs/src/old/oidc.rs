@@ -2175,7 +2175,7 @@ mod tests {
     impl http::Request for MockHttpRequest {
         type Body<'b> = &'b [u8];
 
-        fn query(&self) -> Cow<str> {
+        fn query(&self) -> Cow<'_, str> {
             Cow::Borrowed(&self.query)
         }
 
@@ -2191,7 +2191,7 @@ mod tests {
             self.content_type
         }
 
-        fn authorization(&self) -> Option<Cow<str>> {
+        fn authorization(&self) -> Option<Cow<'_, str>> {
             match self.authorization {
                 None => None,
                 Some(ref s) => Some(Cow::Borrowed(s.as_str())),
