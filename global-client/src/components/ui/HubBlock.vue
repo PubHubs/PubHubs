@@ -69,9 +69,7 @@
 	}
 
 	function toggleDescription(event: Event) {
-		if (event) {
-			event.stopPropagation();
-		}
+		event.stopPropagation();
 		showDescription.value = !showDescription.value;
 	}
 

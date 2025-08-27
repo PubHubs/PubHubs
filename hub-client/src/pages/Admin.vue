@@ -18,31 +18,31 @@
 			<TabContainer>
 				<TabContent>
 					<p v-if="rooms.nonSecuredPublicRooms.length === 0">{{ $t('admin.no_rooms') }}</p>
-					<FilteredList v-else :items="rooms.fetchRoomArrayByType(undefined)" :filterKey="['name']" sortby="name" :placeholder="$t('rooms.filter')">
+					<FilteredList v-else :items="rooms.nonSecuredPublicRooms" :filterKey="['name']" sortby="name" :placeholder="$t('rooms.filter')">
 						<template #item="{ item }">
-							<div class="flex w-full justify-between gap-8 overflow-hidden" :title="item.roomId">
+							<div class="flex w-full justify-between gap-8 overflow-hidden" :title="item.room_id">
 								<div class="flex w-full items-center gap-4 overflow-hidden">
 									<Icon type="speech_bubbles" class="shrink-0 fill-accent-lime" />
 									<p class="min-w-20 truncate">{{ item.name }}</p>
-									<p class="text-gray-light hidden truncate pr-1 italic md:inline">{{ rooms.getRoomTopic(item.roomId) }}</p>
+									<p class="text-gray-light hidden truncate pr-1 italic md:inline">{{ rooms.getRoomTopic(item.room_id) }}</p>
 									<span v-if="item.room_type" class="text-gray-light italic">- {{ item.room_type }} </span>
 								</div>
 								<div class="flex w-fit gap-4">
 									<div class="flex items-center gap-2">
-										<span v-if="isUserRoomAdmin(user.user.userId, item.roomId)" class="ml-2 flex h-4 items-center gap-1 rounded-xl bg-black px-2 text-white ~text-label-small-min/label-small-max">Administrator</span>
+										<span v-if="isUserRoomAdmin(user.user.userId, item.room_id)" class="ml-2 flex h-4 items-center gap-1 rounded-xl bg-black px-2 text-white ~text-label-small-min/label-small-max">Administrator</span>
 										<span class="flex items-center">
 											<Icon type="person" size="sm" class="shrink-0" />
 											<p>x</p>
-											<p>{{ item.getMembersIds().length }}</p>
+											<p>{{ item.num_joined_members }}</p>
 										</span>
-										<span v-if="rooms.room(item.roomId)?.userIsMember(user.user.userId)">
+										<span v-if="rooms.room(item.room_id)?.userIsMember(user.user.userId)">
 											<Icon type="person" size="sm" class="shrink-0" />
 										</span>
 									</div>
 									<div class="flex items-center gap-1">
 										<Icon type="remove" class="hover:cursor-pointer hover:text-accent-red" @click="removePublicRoom(item)" />
-										<Icon type="edit" class="hover:cursor-pointer hover:text-accent-primary" v-if="rooms.room(item.roomId)?.userCanChangeName(user.user.userId)" @click="editPublicRoom(item)" />
-										<Icon v-else type="promote" class="hover:cursor-pointer hover:text-accent-primary" @click="makeRoomAdmin(item.roomId, user.user.userId)" />
+										<Icon type="edit" class="hover:cursor-pointer hover:text-accent-primary" v-if="rooms.room(item.room_id)?.userCanChangeName(user.user.userId)" @click="editPublicRoom(item)" />
+										<Icon v-else type="promote" class="hover:cursor-pointer hover:text-accent-primary" @click="makeRoomAdmin(item.room_id, user.user.userId)" />
 									</div>
 								</div>
 							</div>
@@ -58,7 +58,7 @@
 						<template #item="{ item }">
 							<div class="flex w-full justify-between gap-8 overflow-hidden" :title="item.room_id">
 								<div class="flex w-full items-center gap-4 overflow-hidden">
-									<Icon type="shield" class="text-green shrink-0 group-hover:text-on-surface-dim" />
+									<Icon type="shield" class="text-green shrink-0 group-hover:text-black" />
 									<p class="min-w-20 truncate">{{ item.name }}</p>
 									<p class="text-gray-light hidden truncate pr-1 italic md:inline">{{ rooms.getRoomTopic(item.room_id) }}</p>
 									<span v-if="item.user_txt !== ''" class="text-gray-light hidden truncate italic md:inline"> [{{ item.user_txt }}]</span>
@@ -73,7 +73,7 @@
 									<div class="flex items-center gap-1">
 										<Icon type="remove" class="hover:cursor-pointer hover:text-accent-red" v-if="rooms.room(item.room_id)?.userCanChangeName(user.user.userId)" @click="removeSecuredRoom(item)" />
 										<Icon type="edit" class="hover:cursor-pointer hover:text-accent-primary" v-if="rooms.room(item.room_id)?.userCanChangeName(user.user.userId)" @click="EditSecuredRoom(item)" />
-										<Icon v-else type="promote" class="hover:cursor-pointer hover:text-accent-primary" @click="makeRoomAdmin(item.room_id, user.user.userId)" />
+										<Icon type="promote" class="hover:cursor-pointer hover:text-accent-primary" @click="makeRoomAdmin(item.room_id, user.user.userId)" />
 									</div>
 								</div>
 							</div>
@@ -90,6 +90,9 @@
 </template>
 
 <script setup lang="ts">
+	import { usePubHubs } from '@/logic/core/pubhubsStore';
+	import { APIService } from '@/logic/core/apiHubManagement';
+	import { ManagementUtils } from '@/model/hubmanagement/utility/managementutils';
 	// Components
 	import HeaderFooter from '@/components/ui/HeaderFooter.vue';
 	import Tabs from '@/components/ui/Tabs.vue';
@@ -102,21 +105,12 @@
 	import EditRoomForm from '@/components/rooms/EditRoomForm.vue';
 	import H3 from '@/components/elements/H3.vue';
 
-	// Logic
-	import { usePubHubs } from '@/logic/core/pubhubsStore';
-	import { APIService } from '@/logic/core/apiHubManagement';
 	import { useDialog } from '@/logic/store/dialog';
 	import { TPublicRoom, TSecuredRoom, useRooms } from '@/logic/store/rooms';
 	import { useUser } from '@/logic/store/user';
-	import { useSettings } from '@/logic/store/settings';
-
-	// Model
-	import { ManagementUtils } from '@/model/hubmanagement/utility/managementutils';
-	import Room from '@/model/rooms/Room';
-
-	// Third party
-	import { computed, onMounted, ref, watch } from 'vue';
+	import { computed, onMounted, ref } from 'vue';
 	import { useI18n } from 'vue-i18n';
+	import { useSettings } from '@/logic/store/settings';
 
 	const { t } = useI18n();
 	const user = useUser();
@@ -130,16 +124,9 @@
 	const isMobile = computed(() => settings.isMobileState);
 
 	onMounted(async () => {
-		await refreshRooms();
-	});
-	watch(showEditRoom, () => {
-		refreshRooms();
-	});
-
-	async function refreshRooms() {
 		await rooms.fetchPublicRooms();
 		await rooms.fetchSecuredRooms();
-	}
+	});
 
 	function newPublicRoom() {
 		secured.value = false;
@@ -151,8 +138,8 @@
 		showEditRoom.value = true;
 	}
 
-	function editPublicRoom(room: Room) {
-		editRoom.value = rooms.getTPublicRoom(room.roomId);
+	function editPublicRoom(room: TPublicRoom) {
+		editRoom.value = room;
 		secured.value = false;
 		showEditRoom.value = true;
 	}
@@ -173,7 +160,7 @@
 		const dialog = useDialog();
 		if (await dialog.okcancel(t('admin.remove_room_sure'))) {
 			try {
-				await rooms.removePublicRoom(room.roomId);
+				await rooms.removePublicRoom(room.room_id);
 			} catch (error) {
 				dialog.confirm('ERROR', error as string);
 			}

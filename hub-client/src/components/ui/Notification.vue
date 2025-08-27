@@ -44,7 +44,6 @@
 	import Button from '@/components/elements/Button.vue';
 	import SecuredRoomLoginDialog from '@/components/rooms/SecuredRoomLoginDialog.vue';
 	// Logic
-	import { buttonsCancel } from '@/logic/store/dialog';
 	import { useNotifications } from '@/logic/store/notifications';
 	import { useSettings } from '@/logic/store/settings';
 
@@ -56,8 +55,9 @@
 	const settings = useSettings();
 	const isMobile = computed(() => settings.isMobileState);
 
-	onMounted(() => {
+	onMounted(async () => {
 		document.addEventListener('click', handleGlobalClick);
+		notificationsStore.fetchSecuredRoomNotifications();
 	});
 
 	onUnmounted(() => {

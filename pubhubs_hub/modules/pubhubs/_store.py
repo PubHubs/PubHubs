@@ -205,8 +205,11 @@ class HubStore:
 
         for row in result:
             user_id, room_id =  row
-            await self.module_api.update_room_membership(user_id, user_id, room_id, "leave")
-
+            try:
+                await self.module_api.update_room_membership(user_id, user_id, room_id, "leave")
+            except Exception as e:
+                logger.error(f"Could not remove user with id {user_id} from room {room_id} after the user was expired, Error: {e}")
+           
 
 
 
@@ -403,6 +406,7 @@ class HubStore:
             remove_users_from_secured_room_txn,
             room_id,
         )
+        await self.remove_from_room()
     async def remove_allowed_join_room_row(self, room_id: str, user_id:str) -> None:
         """Remove a user from the allowed_to_join_room table.
 

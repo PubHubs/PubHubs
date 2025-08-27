@@ -150,7 +150,6 @@ const usePubHubs = defineStore('pubhubs', {
 		 */
 		async performUpdateRooms() {
 			const rooms = useRooms();
-			const notificationsStore = useNotifications();
 
 			const allPublicRooms = await this.getAllPublicRooms(); // all public rooms, including their names
 			const joinedRooms = (await this.client.getJoinedRooms()).joined_rooms; // all joined rooms of the user
@@ -181,7 +180,6 @@ const usePubHubs = defineStore('pubhubs', {
 			}
 
 			rooms.fetchPublicRooms();
-			notificationsStore.fetchSecuredRoomNotifications();
 		},
 
 		// ORIGINAL CODE

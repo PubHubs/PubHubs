@@ -32,11 +32,18 @@
 					dialogOpen = notification.room_id;
 					messageValues = notification.message_values;
 				"
-				class="text-on-surface-dim"
+				class="group inline-block w-full text-on-surface-dim"
 			>
-				<TruncatedText>
-					<span>{{ notification.message_values[0] }}</span>
-				</TruncatedText>
+				<span class="flex w-full items-center justify-between gap-4">
+					<TruncatedText>
+						<span>{{ notification.message_values[0] }}</span>
+					</TruncatedText>
+					<Icon
+						type="unlink"
+						class="relative cursor-pointer stroke-2 text-on-surface-variant transition-all duration-200 ease-in-out hover:text-accent-error md:hidden md:group-hover:inline-block"
+						@click.prevent="dismissNotification(notification.room_id, $event)"
+					/>
+				</span>
 			</MenuItem>
 		</template>
 	</Menu>
@@ -86,6 +93,7 @@
 	const messageValues = ref<(string | number)[]>([]);
 	const dialogOpen = ref<string | null>(null);
 	const notifications = computed<TNotification[]>(() => notificationsStore.notifications.filter((notification: TNotification) => notification.type === TNotificationType.RemovedFromSecuredRoom));
+	const dialog = useDialog();
 
 	const props = defineProps({
 		roomType: {
@@ -105,7 +113,6 @@
 	async function leaveRoom(roomId: string) {
 		const room = rooms.room(roomId);
 		if (room) {
-			const dialog = useDialog();
 			const leaveMsg = await leaveMessageContext(roomId);
 			if (room.isPrivateRoom() || room.isGroupRoom()) {
 				if (await dialog.okcancel(t('rooms.hide_sure'))) {
@@ -137,5 +144,11 @@
 			icon = plugin.icon;
 		}
 		return icon;
+	}
+	async function dismissNotification(room_id: string, event: Event) {
+		event.stopPropagation();
+		if (await dialog.okcancel(t('rooms.leave_sure'))) {
+			notificationsStore.removeNotification(room_id, TNotificationType.RemovedFromSecuredRoom);
+		}
 	}
 </script>
