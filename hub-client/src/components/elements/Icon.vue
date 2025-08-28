@@ -1,5 +1,5 @@
 <template>
-	<div class="flex h-fit w-fit shrink-0 items-center justify-center">
+	<div class="flex h-fit w-fit shrink-0 items-center justify-center" :data-testid="type">
 		<button v-if="asButton" :class="['flex items-center justify-center', iconColor]">
 			<svg viewBox="0 0 24 24" fill="transparent" stroke="currentColor" :stroke-width="strokeWidth" stroke-linecap="round" stroke-linejoin="round" :class="sizes[size]" v-html="icons[type]"></svg>
 		</button>

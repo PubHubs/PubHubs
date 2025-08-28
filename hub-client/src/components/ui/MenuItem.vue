@@ -1,5 +1,6 @@
 <template>
 	<li
+		role="menuitem"
 		:class="{ 'bg-background': roomIsActive || menuItemIsActive || adminMenuIsActive }"
 		@click="
 			click();

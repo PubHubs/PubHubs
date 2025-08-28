@@ -19,9 +19,9 @@
 						</div>
 					</template>
 
-					<div class="flex flex-col gap-4 p-3 md:p-4">
+					<div class="flex flex-col gap-4 p-3 md:p-4" role="menu">
 						<section class="flex flex-col gap-2">
-							<div class="text-hub-text group flex items-center justify-between overflow-hidden rounded-xl bg-surface py-2 pl-2 pr-4">
+							<div class="text-hub-text group flex items-center justify-between overflow-hidden rounded-xl bg-surface py-2 pl-2 pr-4" role="complementary">
 								<div class="flex w-full items-center gap-2 truncate">
 									<Avatar :userId="user.user.userId" />
 									<div class="flex h-fit w-full flex-col overflow-hidden">
@@ -83,7 +83,7 @@
 					</div>
 				</HeaderFooter>
 
-				<div class="h-full w-full overflow-y-auto overflow-x-hidden" :class="{ hidden: hubSettings.mobileHubMenu && isMobile }">
+				<div class="h-full w-full overflow-y-auto overflow-x-hidden" :class="{ hidden: hubSettings.mobileHubMenu && isMobile }" role="document">
 					<router-view></router-view>
 				</div>
 			</div>

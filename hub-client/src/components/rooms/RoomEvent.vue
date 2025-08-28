@@ -19,7 +19,7 @@
 				{{ getAnnouncementTitle }}
 			</div>
 
-			<div class="flex w-full gap-2 px-6" :class="getMessageContainerClasses">
+			<div role="article" class="flex w-full gap-2 px-6" :class="getMessageContainerClasses">
 				<Avatar
 					:userId="event.sender"
 					@click.stop="emit('profileCardToggle', event.event_id)"

@@ -1,8 +1,10 @@
 <template>
 	<button v-if="option.status === 'empty'" class="relative mb-1 flex h-[42px] w-full rounded-lg border bg-background text-left hover:bg-surface-high">
 		<div class="mx-2 flex w-full items-center">
-			<div class="flex-1 ~text-label-min/label-max" @click="clickDatePicker">{{ $t('message.voting.add_option') }}</div>
-			<VueDatePicker id="schedulerDatePickerInput" class="mr-4 max-w-10" offset="20" v-model="date" :six-weeks="'fair'" :is-24="is24HourFormat" :locale="locale" range dark :min-date="new Date()" @update:model-value="updateDateOption">
+			<VueDatePicker id="schedulerDatePickerInput" class="" offset="20" v-model="date" :six-weeks="'fair'" :is-24="is24HourFormat" :locale="locale" range dark :min-date="new Date()" @update:model-value="updateDateOption">
+				<template #trigger>
+					<p class="flex-1 ~text-label-min/label-max">{{ $t('message.voting.add_option') }}</p>
+				</template>
 				<template #action-preview="{ value }">
 					<div class="text-balance text-left">{{ filters.getDateStr(value, is24HourFormat, d, true) }}</div>
 				</template>
@@ -10,11 +12,13 @@
 		</div>
 	</button>
 	<button v-else-if="option.status === 'filled'" class="mb-1 flex h-[42px] w-full items-center justify-between rounded-lg border bg-background hover:bg-surface-high">
-		<div class="mx-2 flex w-full text-left">
-			<div>{{ filters.getDateStr(option.date, is24HourFormat, d) }}</div>
-		</div>
-		<div class="flex">
+		<div class="flex w-full">
 			<VueDatePicker v-model="date" :six-weeks="'fair'" :is-24="is24HourFormat" :locale="locale" range dark :min-date="new Date()" class="m-auto min-w-10" @internal-model-change="handleInternal" @update:model-value="updateDateOption">
+				<template #trigger>
+					<div class="mx-2 text-left">
+						<div>{{ filters.getDateStr(option.date, is24HourFormat, d) }}</div>
+					</div>
+				</template>
 				<template #action-preview="{ value }">
 					<div class="text-balance text-left">{{ filters.getDateStr(value, is24HourFormat, d, true) }}</div>
 				</template>
@@ -135,10 +139,5 @@
 
 	function updateDateOption() {
 		emit('updateOption', date.value);
-	}
-
-	function clickDatePicker() {
-		const elem = document.querySelector('#schedulerDatePickerInput > div') as HTMLDivElement;
-		elem.click();
 	}
 </script>
