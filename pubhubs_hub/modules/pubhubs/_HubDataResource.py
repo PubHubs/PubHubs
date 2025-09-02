@@ -1,5 +1,5 @@
 import time
-from ._constants import DEFAULT_EXPIRATION_TIME_DAYS, DEFAULT_EXPIRATION_TIME_DAYS_WARNING
+from ._constants import DEFAULT_EXPIRATION_TIME_DAYS_WARNING
 from synapse.module_api import ModuleApi
 from synapse.http.site import SynapseRequest
 from synapse.http.server import DirectServeJsonResource, respond_with_json
@@ -105,34 +105,42 @@ class HubDataResource(DirectServeJsonResource):
 						"needs_consent": needs_consent, "needs_onboarding": needs_onboarding
 					}
 				case 'removed_from_secured_room':
-					room_list = []
-					data = await self._hub_store.user_join_time(str(user.user))
-					current_timestamp = time.time()
-					if not data or len(data) == 0:
-						response = {"show_notification": False, "message": "You have not joined a secured room yet."}
-					else:
-						for element in data:
-							is_user_expired = element[2]
-							join_room_timestamp = float(element[1])
-							room_id = element[0]
+					# Get all rows from the allowed_to_join_room table for the user_id
+					allowed_to_join_room = await self._hub_store.user_join_time(str(user.user))
+					room_notifications = []
+
+					if allowed_to_join_room:
+						for row in allowed_to_join_room:
+							room_id = row[0]
+							join_room_timestamp = float(row[1])
+							is_user_expired = row[2]
 							secured_room = await self._hub_store.get_secured_room(room_id)
+
+							if not secured_room:
+								# Room removed but allowed_to_join_room row still present
+								await self._hub_store.remove_allowed_join_room_row(room_id, str(user.user))
+								continue
+
 							if is_user_expired:
-								room_list.append({
+								room_notifications.append({
 									"room_id": room_id,
 									"type": "removed_from_secured_room",
 									"message_values": [secured_room.name, secured_room.expiration_time_days]
 								})
-							else:
-								time_elapsed = current_timestamp - join_room_timestamp
-								time_elapsed_days = time_elapsed / (24 * 3600)  # Convert seconds to days
+								continue
 
-								if time_elapsed_days > int(secured_room.expiration_time_days) - DEFAULT_EXPIRATION_TIME_DAYS_WARNING:
-									room_list.append({
-										"room_id": room_id,
-										"type": "soon_removed_from_secured_room",
-										"message_values": [secured_room.name, round(DEFAULT_EXPIRATION_TIME_DAYS - time_elapsed_days)]
-									})
-					response = room_list
+							current_timestamp = time.time()
+							time_elapsed_days = (current_timestamp - join_room_timestamp) / (24 * 3600)
+
+							warning_threshold = int(float(secured_room.expiration_time_days)) - DEFAULT_EXPIRATION_TIME_DAYS_WARNING
+							if time_elapsed_days > warning_threshold:
+								room_notifications.append({
+									"room_id": room_id,
+									"type": "soon_removed_from_secured_room",
+									"message_values": [secured_room.name, round(int(float(secured_room.expiration_time_days)) - time_elapsed_days)]
+								})
+
+					response = room_notifications
 
 				case _:
 					respond_with_json(request, 400, {"error": "Not given a valid data value"})
@@ -215,8 +223,3 @@ class HubDataResource(DirectServeJsonResource):
 		except Exception as e:
 			logger.error(f"Error: {e}")
 			respond_with_json(request, 500, {"error": f"Internal server error: {e}"})
-
-	
-
-		
-

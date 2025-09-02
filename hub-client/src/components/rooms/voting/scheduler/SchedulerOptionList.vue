@@ -1,17 +1,20 @@
 <template>
-	<SchedulerOptionItem
-		v-for="option in sortedOptions"
-		:key="option.id"
-		:option="option"
-		:votes="votesOfOption(option.id)"
-		:uservote="voteOfUserOnOption(option.id)"
-		:eventId="eventId"
-		:closed="closed"
-		:pickedOptionId="pickedOptionId"
-		:isCreator="isCreator"
-		:showVotesBeforeVoting="showVotesBeforeVoting"
-		:showVotes="showVotes"
-	/>
+	<div role="list">
+		<SchedulerOptionItem
+			v-for="option in sortedOptions"
+			:key="option.id"
+			:option="option"
+			:votes="votesOfOption(option.id)"
+			:uservote="voteOfUserOnOption(option.id)"
+			:eventId="eventId"
+			:closed="closed"
+			:pickedOptionId="pickedOptionId"
+			:isCreator="isCreator"
+			:showVotesBeforeVoting="showVotesBeforeVoting"
+			:showVotes="showVotes"
+			role="listitem"
+		/>
+	</div>
 </template>
 
 <script setup lang="ts">

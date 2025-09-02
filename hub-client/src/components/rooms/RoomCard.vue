@@ -1,5 +1,5 @@
 <template>
-	<div class="flex h-[320px] w-full flex-col rounded-xl shadow transition-all duration-300 xs:w-auto" :class="isExpanded ? 'row-span-2 h-[672px] bg-surface' : 'h-[320px] bg-surface-low'">
+	<div role="article" class="flex h-[320px] w-full flex-col rounded-xl shadow transition-all duration-300 xs:w-auto" :class="isExpanded ? 'row-span-2 h-[672px] bg-surface' : 'h-[320px] bg-surface-low'">
 		<!-- Main card -->
 		<div class="flex h-[320px] w-full shrink-0 flex-col gap-4 overflow-hidden rounded-xl bg-surface-low py-8 shadow-md">
 			<div class="flex items-center justify-between">

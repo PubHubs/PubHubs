@@ -1,6 +1,6 @@
 <template>
 	<div class="relative z-0">
-		<div class="flex cursor-pointer justify-between rounded-t-lg bg-background px-5 py-2 hover:bg-surface-high" @click="$emit('vote', option.id)">
+		<div class="flex cursor-pointer justify-between rounded-t-lg bg-background px-5 py-2 hover:bg-surface-high" @click="$emit('vote', option.id)" role="link">
 			<div class="flex">
 				<div class="relative mr-4 flex-none" v-if="hasUserVotedOnThisOption">
 					<div class="relative left-1 top-1 h-4 w-4 rounded-full bg-accent-primary"></div>

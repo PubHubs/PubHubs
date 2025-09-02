@@ -1,5 +1,5 @@
 <template>
-	<div class="relative" ref="menu" v-click-outside="close">
+	<div class="relative" ref="menu" v-click-outside="close" role="menubar">
 		<div class="menu-icon flex cursor-pointer justify-items-stretch" @click="toggle">
 			<Icon class="rounded-md bg-surface p-1 hover:bg-accent-primary" type="actionmenu" size="sm"></Icon>
 		</div>

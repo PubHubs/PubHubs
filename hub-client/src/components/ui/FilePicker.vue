@@ -21,7 +21,7 @@
 		</div>
 	</div>
 
-	<input type="file" :accept="getTypesAsString(allTypes)" class="attach-file" ref="elFileInput" @change="uploadFileTemporary($event)" @cancel="messageInput.cancelFileUpload()" hidden />
+	<input type="file" :accept="getTypesAsString(allTypes)" class="attach-file" data-testid="file-input" ref="elFileInput" @change="uploadFileTemporary($event)" @cancel="messageInput.cancelFileUpload()" hidden />
 </template>
 
 <script setup lang="ts">
