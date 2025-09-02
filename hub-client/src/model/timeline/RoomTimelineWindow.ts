@@ -21,12 +21,12 @@ class RoomTimelineWindow {
 	private redactedEventIds: string[] = [];
 
 	/* event filters: which events are to be shown in the timelineWindow */
-	private visibleEventTypes: string[] = [EventType.RoomMessage];
+	private visibleEventTypes: string[] = [EventType.RoomMessage, EventType.Reaction];
 	private invisibleMessageTypes: string[] = [MsgType.Notice];
 	private timelineSetFilter = {
 		room: {
 			timeline: {
-				types: [EventType.RoomMessage, EventType.RoomRedaction],
+				types: [EventType.RoomMessage, EventType.RoomRedaction, EventType.Reaction],
 			},
 		},
 	};
