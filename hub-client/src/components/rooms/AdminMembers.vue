@@ -126,7 +126,6 @@
 			const hasPrevAdminLeft = !roomMembers.includes(roomCreator.value!);
 
 			// For the spinner
-			console.debug(isAdmin, hasPrevAdminLeft);
 			if (isAdmin && hasPrevAdminLeft) {
 				inProgress.value = false;
 				clearInterval(pollInterval); // Stop polling

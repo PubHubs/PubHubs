@@ -20,7 +20,7 @@ import { RoomType } from '@/logic/store/rooms';
 import { SMI } from '@/logic/foundation/StatusMessage';
 import { TSearchParameters } from '@/model/search/TSearch';
 import { defineStore } from 'pinia';
-import { imageTypes } from '@/model/constants';
+import { imageTypes, RelationType } from '@/model/constants';
 import { router } from '@/logic/core/router';
 import { useConnection } from '@/logic/store/connection';
 import { useMessageActions } from '@/logic/store/message-actions';
@@ -689,9 +689,12 @@ const usePubHubs = defineStore('pubhubs', {
 		 * @param roomId
 		 * @param eventId
 		 */
-		async deleteMessage(roomId: string, eventId: string, threadId?: string) {
+		async deleteMessage(roomId: string, eventId: string, threadId?: string, reactEventId?: string) {
 			const reason = threadId ? { reason: RedactReasons.DeletedFromThread } : { reason: RedactReasons.Deleted };
 			await this.client.redactEvent(roomId, eventId, undefined, reason);
+			if (reactEventId) {
+				await this.client.redactEvent(roomId, reactEventId, undefined, reason);
+			}
 		},
 
 		async sendReadReceipt(event: MatrixEvent) {
@@ -749,6 +752,20 @@ const usePubHubs = defineStore('pubhubs', {
 			};
 			//@ts-ignore
 			await this.client.sendEvent(roomId, PubHubsMgType.VotingWidgetReply, content);
+		},
+
+		// Adds reaction event to an existing event based on eventId.
+		// e.g., react to Message Event.
+		async addReactEvent(roomId: string, eventId: string, emoji: string) {
+			const content = {
+				[RelationType.RelatesTo]: {
+					rel_type: 'm.annotation',
+					event_id: eventId,
+					key: emoji,
+				},
+			};
+			//@ts-ignore
+			await this.client.sendEvent(roomId, EventType.Reaction, content);
 		},
 
 		async closeVotingWidget(roomId: string, inReplyTo: string, user_ids: string[]) {

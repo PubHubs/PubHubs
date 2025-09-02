@@ -36,7 +36,6 @@ export interface TBaseMessageEventContent {
 	'm.relates_to'?: {
 		rel_type?: string;
 		event_id?: string;
-		is_falling_back?: boolean;
 		'm.in_reply_to'?: {
 			event_id: string;
 		};

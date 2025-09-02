@@ -1,8 +1,8 @@
 <template>
 	<div
 		:class="{
-			block: isTouchDevice,
-			'hidden group-hover:block': !isTouchDevice,
+			block: isTouchDevice || remainActive,
+			'hidden group-hover:block': !isTouchDevice && !remainActive,
 		}"
 	>
 		<div class="flex gap-1">
@@ -13,5 +13,13 @@
 
 <script setup lang="ts">
 	import device from '@/logic/core/device';
+
+	const props = defineProps({
+		remainActive: {
+			type: Boolean,
+			default: false,
+		},
+	});
+
 	const isTouchDevice = device.isTouchDevice();
 </script>

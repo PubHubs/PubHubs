@@ -1,5 +1,5 @@
 <template>
-	<div>
+	<div ref="elReactionPopUp">
 		<!-- Plugin Event -->
 		<div v-if="event.plugin && event.plugin.plugintype === PluginType.EVENT && event.type === event.plugin.type">
 			<component :is="event.plugin.component" :event="event">{{ event.plugin.component }}</component>
@@ -20,6 +20,9 @@
 			</div>
 
 			<div role="article" class="flex w-full gap-2 px-6" :class="getMessageContainerClasses">
+				<div v-if="showReactionPanel" :class="['absolute bottom-full right-0 z-50', calculatePanelPlacement() ? 'bottom-full' : 'top-8']">
+					<ReactionMiniPopUp :eventId="event.event_id" :room="room" @emoji-selected="emit('clickedEmoticon', $event, event.event_id)" @close-panel="emit('reactionPanelClose')"></ReactionMiniPopUp>
+				</div>
 				<Avatar
 					:userId="event.sender"
 					@click.stop="emit('profileCardToggle', event.event_id)"
@@ -32,6 +35,7 @@
 						<ProfileCard :event="event" :room="room" :room-member="roomMember" />
 					</Popover>
 				</div>
+
 				<div :class="{ 'w-5/6': deleteMessageDialog, 'w-full': !deleteMessageDialog }" class="min-w-0">
 					<div class="flex flex-wrap items-center overflow-hidden text-wrap break-all">
 						<div class="relative flex min-h-6 w-full items-start gap-x-2 pb-1">
@@ -45,6 +49,7 @@
 								</span>
 								<RoomBadge v-if="!room.directMessageRoom()" class="inline-block" :user="event.sender" :room_id="event.room_id"></RoomBadge>
 							</div>
+
 							<div>
 								<template v-if="timerReady && !deleteMessageDialog">
 									<button v-if="msgIsNotSend && connection.isOn" @click="resend()" class="mb-1 ml-2" :title="$t('errors.resend')">
@@ -52,14 +57,22 @@
 									</button>
 									<Icon v-if="msgIsNotSend && !connection.isOn" type="lost-connection" size="sm" class="text-red mb-1 ml-2" />
 								</template>
-								<RoomEventActionsPopup v-if="!deleteMessageDialog">
+
+								<RoomEventActionsPopup v-if="!deleteMessageDialog" :remain-active="openEmojiPanel">
+									<button
+										@click.stop="emit('reactionPanelToggle', props.event.event_id)"
+										class="flex items-center justify-center rounded-md p-1 text-on-surface-variant transition-all duration-300 ease-in-out hover:w-fit hover:bg-accent-primary hover:text-on-accent-primary"
+									>
+										<Icon type="emoji_smiley" size="sm"></Icon>
+									</button>
+
 									<button
 										v-if="!msgIsNotSend && !redactedMessage && !isThreadRoot"
 										@click="reply"
 										class="flex items-center justify-center rounded-md p-1 text-on-surface-variant transition-all duration-300 ease-in-out hover:w-fit hover:bg-accent-primary hover:text-on-accent-primary"
 										:title="$t('message.reply')"
 									>
-										<Icon :type="'reply'" size="xs" />
+										<Icon :type="'reply'" size="sm" />
 									</button>
 									<button
 										v-if="!viewFromThread && threadLength <= 0 && canReplyInThread && !msgIsNotSend && !redactedMessage"
@@ -67,7 +80,7 @@
 										class="flex items-center justify-center rounded-md p-1 text-on-surface-variant transition-all duration-300 ease-in-out hover:w-fit hover:bg-accent-primary hover:text-on-accent-primary"
 										:title="$t('message.reply_in_thread')"
 									>
-										<Icon :type="'talk'" :size="'xs'"></Icon>
+										<Icon :type="'talk'" :size="'sm'"></Icon>
 									</button>
 									<button
 										v-if="!msgIsNotSend && user.isAdmin && event.sender !== user.user.userId && settings.isFeatureEnabled(FeatureFlag.disclosure)"
@@ -75,7 +88,7 @@
 										class="flex items-center justify-center rounded-md p-1 text-on-surface-variant transition-all duration-300 ease-in-out hover:w-fit hover:bg-accent-primary hover:text-on-accent-primary"
 										:title="$t('menu.moderation_tools_disclosure')"
 									>
-										<Icon :type="'warning'" size="xs" />
+										<Icon :type="'warning'" size="sm" />
 									</button>
 									<button
 										v-if="settings.isFeatureEnabled(FeatureFlag.deleteMessages) && !msgIsNotSend && event.sender === user.user.userId && !redactedMessage && !(props.viewFromThread && isThreadRoot)"
@@ -83,7 +96,7 @@
 										class="flex items-center justify-center rounded-md p-1 text-on-surface-variant transition-all duration-300 ease-in-out hover:w-fit hover:bg-accent-red hover:text-on-accent-red"
 										:title="$t('menu.delete_message')"
 									>
-										<Icon :type="'bin'" size="xs" />
+										<Icon :type="'bin'" size="sm" />
 									</button>
 								</RoomEventActionsPopup>
 							</div>
@@ -169,17 +182,21 @@
 	import { useI18n } from 'vue-i18n';
 	import VotingWidget from '@/components/rooms/voting/VotingWidget.vue';
 	import { Poll, Scheduler } from '@/model/events/voting/VotingTypes';
+	import ReactionMiniPopUp from '../ui/ReactionMiniPopUp.vue';
 
 	// Stores
 	const connection = useConnection();
 	const messageActions = useMessageActions();
 
 	const user = useUser();
+	const pubhubs = usePubHubs();
 	const settings = useSettings();
 	const { t } = useI18n();
 
 	let threadLength = ref(0);
 	const hover = ref(false);
+	const openEmojiPanel = ref(false);
+	const elReactionPopUp = ref<HTMLElement | null>(null);
 
 	const props = defineProps({
 		event: {
@@ -206,10 +223,16 @@
 			type: String as PropType<string | null>,
 			default: null,
 		},
+		activeReactionPanel: {
+			type: String as PropType<string | null>,
+			default: null,
+		},
 	});
 
-	onMounted(() => (threadLength.value = props.eventThreadLength));
-	// Add this block
+	onMounted(() => {
+		threadLength.value = props.eventThreadLength;
+	});
+
 	onBeforeUnmount(() => {
 		// If the profile card is open when this component is unmounted, close it.
 		if (props.activeProfileCard === props.event.event_id) {
@@ -239,9 +262,14 @@
 		(e: 'editScheduler', scheduler: Scheduler, eventId: string): void;
 		(e: 'profileCardToggle', eventId: string): void;
 		(e: 'profileCardClose'): void;
+		(e: 'reactionPanelToggle', eventId: string): void;
+		(e: 'reactionPanelClose'): void;
+		(e: 'clickedEmoticon', emoji: string, eventId: string): void;
 	}>();
 
 	const showProfileCard = computed(() => props.activeProfileCard === props.event.event_id);
+
+	const showReactionPanel = computed(() => props.activeReactionPanel === props.event.event_id);
 
 	const msgIsNotSend = computed(() => props.event.event_id.substring(0, 1) === '~');
 
@@ -342,6 +370,15 @@
 
 	function profileInPosition(ev: Event) {
 		return ev.event_id === props.room.getLastVisibleEventId() && props.room.numOfMessages() > 5;
+	}
+
+	// Positions the panel based on whether the message event is near the bottom of the screen
+	// or near the top.
+	function calculatePanelPlacement(): boolean {
+		const position = elReactionPopUp.value?.getBoundingClientRect();
+		if (!position) return false;
+		// If the top of the bubble is below the middle of the viewport, open upwards
+		return position.top > window.innerHeight / 2;
 	}
 
 	// Waits for checking if message is realy send. Otherwise a 'resend' button appears. See also msgIsNotSend computed.

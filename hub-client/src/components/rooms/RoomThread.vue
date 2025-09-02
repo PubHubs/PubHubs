@@ -8,40 +8,42 @@
 		</div>
 
 		<div class="h-full flex-1 overflow-y-scroll pb-8 pt-4">
-			<div v-if="filteredEvents.length === 0" ref="elRoomEvent" :id="props.room.currentThread?.rootEvent?.event.event_id">
-				<RoomEvent
-					:room="room"
-					:event="props.room.currentThread?.rootEvent?.event"
-					:viewFromThread="true"
-					:active-profile-card="activeProfileCard"
-					class="room-event"
-					@in-reply-to-click="onInReplyToClick"
-					@delete-message="confirmDeleteMessage"
-					@profile-card-toggle="toggleProfileCard"
-					@profile-card-close="closeProfileCard"
-				>
-				</RoomEvent>
-			</div>
 			<div v-for="item in filteredEvents" :key="item.event.event_id">
 				<div class="mx-3 rounded-md" ref="elRoomEvent" :id="item.event.event_id">
-					<RoomEvent
+					<RoomMessageBubble
+						v-if="item.getType() === EventType.RoomMessage"
 						:room="room"
 						:event="item.event"
 						:viewFromThread="true"
 						:active-profile-card="activeProfileCard"
+						:activeReactionPanel="activeReactionPanel"
 						class="room-event"
+						@clicked-emoticon="sendEmoji"
 						@in-reply-to-click="onInReplyToClick"
 						@delete-message="confirmDeleteMessage"
 						@profile-card-toggle="toggleProfileCard"
 						@profile-card-close="closeProfileCard"
-					></RoomEvent>
+						@reaction-panel-toggle="toggleReactionPanel"
+						@reaction-panel-close="closeReactionPanel"
+					></RoomMessageBubble>
+					<div class="flex flex-wrap gap-2 px-20">
+						<Reaction v-if="reactionExistsForMessage(item.event.event_id)" :reactEvent="onlyReactionEvents" :messageEventId="item.event.event_id"></Reaction>
+					</div>
 				</div>
 			</div>
 		</div>
 
 		<MessageInput class="z-10 -mt-4" v-if="room" :room="room" :in-thread="true"></MessageInput>
 	</div>
-	<DeleteMessageDialog v-if="showConfirmDelMsgDialog" :event="eventToBeDeleted" :room="room" :view-from-thread="true" @close="showConfirmDelMsgDialog = false" @yes="deleteMessage(eventToBeDeleted)"></DeleteMessageDialog>
+	<DeleteMessageDialog
+		v-if="showConfirmDelMsgDialog"
+		:event="eventToBeDeleted"
+		:room="room"
+		:thread-reaction-event="onlyReactionEvents"
+		:view-from-thread="true"
+		@close="showConfirmDelMsgDialog = false"
+		@yes="deleteMessage(eventToBeDeleted)"
+	></DeleteMessageDialog>
 </template>
 
 <script setup lang="ts">
@@ -52,13 +54,16 @@
 	import { RelationType, RoomEmit } from '@/model/constants';
 	import MessageInput from '../forms/MessageInput.vue';
 	import { TMessageEvent, TMessageEventContent } from '@/model/events/TMessageEvent';
-	import { Thread } from 'matrix-js-sdk';
+	import { Thread, EventType, MatrixEvent } from 'matrix-js-sdk';
 	import { useUser } from '@/logic/store/user';
+	import { usePubHubs } from '@/logic/core/pubhubsStore';
 
 	// Components
-	import RoomEvent from './RoomEvent.vue';
+	import Reaction from '../ui/Reaction.vue';
+	import RoomMessageBubble from './RoomMessageBubble.vue';
 	import DeleteMessageDialog from '../forms/DeleteMessageDialog.vue';
-	import { MatrixEvent } from 'matrix-js-sdk';
+
+	const pubhubs = usePubHubs();
 
 	const props = defineProps({
 		room: {
@@ -76,6 +81,16 @@
 	const filteredEvents = computed(() => {
 		// return all threadEvents that are not in the deletedEvents
 		return threadEvents.filter((event) => !deletedEvents.some((deletedEvent) => deletedEvent.getId() === event.getId()));
+	});
+
+	const onlyReactionEvents = computed(() => {
+		const rootEventId = props.room.currentThread?.rootEvent?.event.event_id;
+		if (!rootEventId) return;
+		const rootReactEvent = props.room.getReactionEvent(rootEventId);
+
+		const filteredThreadEvents = filteredEvents.value.filter((event) => event.getType() === EventType.Reaction);
+
+		return filteredThreadEvents.concat(rootReactEvent);
 	});
 
 	const numberOfThreadEvents = computed(() => {
@@ -113,6 +128,7 @@
 	const showConfirmDelMsgDialog = ref(false);
 	const eventToBeDeleted = ref<TMessageEvent>();
 	const activeProfileCard = ref<string | null>(null);
+	const activeReactionPanel = ref<string | null>(null);
 
 	onMounted(() => {
 		props.room.listenToThreadNewReply(newReplyListener.bind(this));
@@ -253,4 +269,37 @@
 	function closeProfileCard() {
 		activeProfileCard.value = null;
 	}
+
+	function toggleReactionPanel(eventId: string) {
+		activeReactionPanel.value = activeReactionPanel.value === eventId ? null : eventId;
+	}
+	function closeReactionPanel() {
+		activeReactionPanel.value = null;
+	}
+
+	// Reaction regions ///
+
+	async function sendEmoji(emoji: string, eventId: string) {
+		await pubhubs.addReactEvent(props.room.roomId, eventId, emoji);
+	}
+
+	// Is there a reaction for RoomMessageEvent ID.
+	// If there is then show the reaction otherwise dont render reaction UI component.
+	function reactionExistsForMessage(messageEventId: string): boolean {
+		if (!onlyReactionEvents.value) return false;
+		const reactionEvent = onlyReactionEvents.value.find((event) => {
+			const relatesTo = event.getContent()[RelationType.RelatesTo];
+			// Check if this reaction relates to the target message
+			return relatesTo && relatesTo.event_id === messageEventId;
+		});
+		if (reactionEvent) {
+			const relatesTo = reactionEvent.getContent()[RelationType.RelatesTo];
+
+			return relatesTo?.key ? true : false;
+		}
+
+		return false;
+	}
+
+	// End Reaction regions ///
 </script>
