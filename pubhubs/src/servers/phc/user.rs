@@ -1,8 +1,4 @@
 //! Basic user endpoints, such as [`EnterEP`].
-use std::collections::{HashMap, HashSet};
-use std::ops::Deref;
-use std::rc::Rc;
-
 use crate::api;
 use crate::api::OpenError;
 use crate::attr::{Attr, AttrState};
@@ -11,9 +7,13 @@ use crate::handle;
 use crate::hub;
 use crate::id::Id;
 use crate::misc::crypto;
-use crate::misc::error::{OPAQUE, Opaque};
+use crate::misc::error::{Opaque, OPAQUE};
 use crate::misc::jwt;
 use crate::servers;
+
+use std::collections::{HashMap, HashSet};
+use std::ops::Deref;
+use std::rc::Rc;
 
 use actix_web::web;
 
@@ -276,20 +276,16 @@ impl App {
                     );
                 })?
             {
-                assert!(
-                    attr_states
-                        .insert(
-                            identifying_attr.id,
-                            (identifying_attr_state, identifying_attr_state_version),
-                        )
-                        .is_none()
-                );
+                assert!(attr_states
+                    .insert(
+                        identifying_attr.id,
+                        (identifying_attr_state, identifying_attr_state_version),
+                    )
+                    .is_none());
 
-                assert!(
-                    attr_add_status
-                        .insert(identifying_attr.id, AttrAddStatus::Added)
-                        .is_none()
-                );
+                assert!(attr_add_status
+                    .insert(identifying_attr.id, AttrAddStatus::Added)
+                    .is_none());
             } else {
                 log::warn!(
                     "possibly orphaned user account {} because identifying \
@@ -337,24 +333,18 @@ impl App {
 
             match app.put_object::<AttrState>(&attr_state, None).await {
                 Ok(Some(attr_state_version)) => {
-                    assert!(
-                        attr_states
-                            .insert(attr.id, (attr_state, attr_state_version))
-                            .is_none()
-                    );
-                    assert!(
-                        attr_add_status
-                            .insert(attr.id, AttrAddStatus::Added)
-                            .is_none()
-                    );
+                    assert!(attr_states
+                        .insert(attr.id, (attr_state, attr_state_version))
+                        .is_none());
+                    assert!(attr_add_status
+                        .insert(attr.id, AttrAddStatus::Added)
+                        .is_none());
                 }
                 problem => {
                     log::warn!("problem adding attribute state {}: {problem:?}", attr.value);
-                    assert!(
-                        attr_add_status
-                            .insert(attr.id, AttrAddStatus::PleaseTryAgain)
-                            .is_none()
-                    );
+                    assert!(attr_add_status
+                        .insert(attr.id, AttrAddStatus::PleaseTryAgain)
+                        .is_none());
                 }
             }
         }
@@ -380,23 +370,17 @@ impl App {
                 .await
             {
                 Ok(Some(attr_state_version)) => {
-                    assert!(
-                        attr_states
-                            .insert(attr.id, (attr_state.clone(), attr_state_version))
-                            .is_none()
-                    );
-                    assert!(
-                        attr_add_status
-                            .insert(attr.id, AttrAddStatus::Added)
-                            .is_none()
-                    );
+                    assert!(attr_states
+                        .insert(attr.id, (attr_state.clone(), attr_state_version))
+                        .is_none());
+                    assert!(attr_add_status
+                        .insert(attr.id, AttrAddStatus::Added)
+                        .is_none());
                 }
                 _ => {
-                    assert!(
-                        attr_add_status
-                            .insert(attr.id, AttrAddStatus::PleaseTryAgain)
-                            .is_none()
-                    );
+                    assert!(attr_add_status
+                        .insert(attr.id, AttrAddStatus::PleaseTryAgain)
+                        .is_none());
                 }
             }
         }
@@ -454,12 +438,15 @@ impl App {
 
         let auth_token_package = app.issue_auth_token(&user_state)?;
 
+        // Issue PubHubs card, if needed
         if let Some(yivi_result_jwt_id) = release_waiting_for_card {
-            let issue_card: Option<jwt::JWT> = None;
+            let mut issue_card: Option<jwt::JWT> = None;
 
             if new_account {
-                todo! {}
-                // Issue credential
+                issue_card = Some(App::issue_card(&*app, &user_state).map_err(|err| {
+                    log::warn!("failed to create PubHubs card issuance request: {err:#}");
+                    api::ErrorCode::InternalError
+                })?);
             }
 
             if app
