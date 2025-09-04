@@ -3,13 +3,29 @@
 </template>
 
 <script setup lang="ts">
+	// Package imports
 	import { onMounted, watch, ref, onUnmounted } from 'vue';
-	import { useRoute } from 'vue-router';
-	import { iframeHubId, useHubs, useGlobal } from '@/logic/store/store';
+	import { useRoute, useRouter } from 'vue-router';
+	import { assert } from 'chai';
+
+	// Global imports
+	import { useGlobal } from '@/logic/store/global';
+	import { useHubs } from '@/logic/store/hubs';
+	import { iframeHubId } from '@/logic/store/messagebox';
+	import { useMSS } from '@/logic/store/mss';
+	import { FeatureFlag, useSettings } from '@/logic/store/settings';
+
+	// Hub imports
+	import { Logger } from '@/../../hub-client/src/logic/foundation/Logger';
+	import { CONFIG } from '@/../../hub-client/src/logic/foundation/Config';
+	import { SMI } from '@/../../hub-client/src/logic/foundation/StatusMessage';
 
 	const route = useRoute();
+	const router = useRouter();
 	const hubs = useHubs();
 	const global = useGlobal();
+	const settings = useSettings();
+	const LOGGER = new Logger('GC', CONFIG);
 
 	onMounted(onRouteChange);
 
@@ -29,11 +45,11 @@
 		if (!hubs.hubExists(hubId)) {
 			await hubs.changeHub({ id: '', roomId: '' });
 		}
-		handleHubAuth(hubId);
+		await handleHubAuth(hubId);
 		await hubs.changeHub(route.params);
 	}
 
-	function handleHubAuth(id: string) {
+	async function handleHubAuth(id: string) {
 		const hub = hubs.hub(id)!;
 		const hubId = hub?.hubId!;
 		const state = hubloggedinstatus(hubId, new URLSearchParams(window.location.search));
@@ -45,7 +61,6 @@
 			case Status.HubNotLoggedIn:
 				{
 					const hubServer = hubs.serverUrl(hubId);
-					// @ts-ignore
 					const redirect = _env.PUBHUBS_URL + '/client%23' + window.location.hash.substring(1);
 					window.location.assign(hubServer + '_matrix/client/v3/login/sso/redirect?redirectUrl=' + redirect);
 				}
@@ -57,6 +72,42 @@
 			case Status.AccessToken:
 				hubUrl.value = hub.url + '?accessToken=' + state.token;
 				break;
+			case Status.MSSHubNotLoggedIn: {
+				try {
+					const maxAttempts = 3;
+					for (let attempts = 0; attempts < maxAttempts; attempts++) {
+						const mss = useMSS();
+						const enterStartResp = await hub.enterStartEP();
+						assert.isDefined(enterStartResp, 'Something went wrong receiving/handling the response from enterStartEP.');
+						const hhpp = await mss.enterHub(id, enterStartResp);
+						assert.isDefined(hhpp, 'Something went wrong with getting the signedHhpp.');
+						const enterCompleteResp = await hub.enterCompleteEP(enterStartResp.state, hhpp);
+						// TODO Floris: Add a little delay for each retry
+						if (enterCompleteResp === 'RetryFromStart' && attempts < maxAttempts) continue;
+						else if (enterCompleteResp === 'RetryFromStart') throw new Error('Max attemps for RetryFromStart were passed');
+						assert.isDefined(enterCompleteResp, 'Something went wrong receiving/handling a response from enterCompleteEP.');
+						const authInfo = JSON.stringify({
+							token: enterCompleteResp.access_token,
+							userId: enterCompleteResp.mxid,
+						});
+						// TODO make sure that accessToken is no longer passed in query parameter
+						hubUrl.value = hub.url + '?newToken=true&accessToken=' + authInfo;
+						break;
+					}
+				} catch (error) {
+					LOGGER.error(SMI.ERROR, 'Error during Hub MSS login', { error });
+					router.push({ name: 'error' });
+				}
+				break;
+			}
+			case Status.MSSAccessToken:
+				const authInfo = JSON.stringify({
+					token: state.token,
+					userId: state.userId,
+				});
+				// TODO: make sure that accessToken is no longer passed in query parameter
+				hubUrl.value = hub.url + '?accessToken=' + authInfo;
+				break;
 		}
 	}
 
@@ -65,9 +116,11 @@
 		HubNotLoggedIn,
 		LoginToken,
 		AccessToken,
+		MSSAccessToken,
+		MSSHubNotLoggedIn,
 	}
 
-	type HubLoggedInStatus = GlobalNotLoggedIn | HubNotLoggedIn | LoginToken | AccessToken;
+	type HubLoggedInStatus = GlobalNotLoggedIn | HubNotLoggedIn | LoginToken | AccessToken | MSSAccessToken | MSSHubNotLoggedIn;
 
 	interface GlobalNotLoggedIn {
 		kind: Status.GlobalNotLoggedIn;
@@ -87,13 +140,37 @@
 		token: string;
 	}
 
+	interface MSSHubNotLoggedIn {
+		kind: Status.MSSHubNotLoggedIn;
+	}
+
+	interface MSSAccessToken {
+		kind: Status.MSSAccessToken;
+		token: string;
+		userId: string;
+	}
+
 	function hubloggedinstatus(hubid: string, urlparams: URLSearchParams): HubLoggedInStatus {
 		if (!global.loggedIn) {
 			return { kind: Status.GlobalNotLoggedIn };
 		}
 
-		const logintoken = urlparams.get('loginToken');
+		if (settings.isFeatureEnabled(FeatureFlag.multiServerSetup)) {
+			const authInfo = global.getAuthInfo(hubid);
+			if (authInfo) {
+				return {
+					kind: Status.MSSAccessToken,
+					token: authInfo.token,
+					userId: authInfo.userId,
+				};
+			}
+
+			return { kind: Status.MSSHubNotLoggedIn };
+		}
+
 		const accesstoken = global.getAccessToken(hubid);
+
+		const logintoken = urlparams.get('loginToken');
 
 		if (logintoken && !accesstoken) {
 			return {

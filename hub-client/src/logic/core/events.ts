@@ -1,12 +1,14 @@
+// Package imports
 import { ClientEvent, EventType, MatrixClient, MatrixEvent, Room as MatrixRoom, MsgType, RoomEvent, RoomMember, RoomMemberEvent } from 'matrix-js-sdk';
+import { SyncState } from 'matrix-js-sdk/lib/sync.js';
 
-import { EventTimeLineHandler } from '@/logic/core/eventTimeLineHandler';
-import { SyncState } from 'matrix-js-sdk/lib/sync';
-import { TEvent } from '@/model/events/TEvent';
-import { useConnection } from '@/logic/store/connection';
-import { usePubHubs } from '@/logic/core/pubhubsStore';
-import { useRooms } from '@/logic/store/store';
-import { useSettings } from '@/logic/store/settings';
+// Hub imports
+import { EventTimeLineHandler } from '@/logic/core/eventTimeLineHandler.js';
+import { usePubHubs } from '@/logic/core/pubhubsStore.js';
+import { useConnection } from '@/logic/store/connection.js';
+import { useSettings } from '@/logic/store/settings.js';
+import { useRooms } from '@/logic/store/rooms.js';
+import { TEvent } from '@/model/events/TEvent.js';
 
 enum RedactReasons {
 	Deleted = 'Deleted',

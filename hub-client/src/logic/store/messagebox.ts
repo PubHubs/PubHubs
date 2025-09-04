@@ -1,6 +1,9 @@
-import filters from '@/logic/core/filters';
+// Package imports
 import { defineStore } from 'pinia';
-import { Theme, TimeFormat, useSettings } from './settings';
+
+// Hub imports
+import filters from '@/logic/core/filters.js';
+import { Theme, TimeFormat, useSettings } from '@/logic/store/settings.js';
 
 /**
  * This store is used to exchange messages from global client (parent frame) to hub client (iframe) and the other way around.
@@ -72,6 +75,7 @@ enum MessageType {
 	Settings = 'settings', // Sync settings
 	RoomChange = 'roomchange', // Change to a room - makes it possible to reflect the room in the url
 	AddAccessToken = 'addAccessToken', // Hub frame sends a access token for the global client to store in it's /bar/state.
+	AddAuthInfo = 'addAuthInfo', // Hub frame sends its access token and userID to store it in the globalSettings object.
 	RemoveAccessToken = 'removeAccessToken', // Hub frame sends a message to remove its' access token to the global client.
 	BarShow = 'visibilityBar-show', // Show side bar, mostly relevant for mobile where it can be hidden.
 	BarHide = 'visibilityBar-hide',
@@ -171,7 +175,7 @@ const useMessageBox = defineStore('messagebox', {
 				// Start listening
 				if (this.isConnected) {
 					this._windowMessageListener.set(id, (event: MessageEvent) => {
-						if (filters.removeBackSlash(event.origin) === filters.removeBackSlash(url)) {
+						if (filters.removeTrailingSlash(event.origin) === filters.removeTrailingSlash(url)) {
 							const message = new Message(event.data.type, event.data.content);
 
 							const settings = useSettings();

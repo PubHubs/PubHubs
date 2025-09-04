@@ -36,12 +36,12 @@ test('localeDateFromTimestamp', () => {
 	expect(filters.localeDateFromTimestamp(timestamp)).toBeTypeOf('string');
 });
 
-test('removeBackSlash', () => {
+test('removeTrailingSlash', () => {
 	let url = 'https://main.testhub-matrix.ihub.ru.nl/';
-	expect(filters.removeBackSlash(url)).toBeTypeOf('string');
-	expect(filters.removeBackSlash(url)).toEqual('https://main.testhub-matrix.ihub.ru.nl');
+	expect(filters.removeTrailingSlash(url)).toBeTypeOf('string');
+	expect(filters.removeTrailingSlash(url)).toEqual('https://main.testhub-matrix.ihub.ru.nl');
 
 	url = 'https://main.testhub-matrix.ihub.ru.nl';
-	expect(filters.removeBackSlash(url)).toBeTypeOf('string');
-	expect(filters.removeBackSlash(url)).toEqual('https://main.testhub-matrix.ihub.ru.nl');
+	expect(filters.removeTrailingSlash(url)).toBeTypeOf('string');
+	expect(filters.removeTrailingSlash(url)).toEqual('https://main.testhub-matrix.ihub.ru.nl');
 });

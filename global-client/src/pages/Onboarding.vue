@@ -3,7 +3,7 @@
 		<!-- Header -->
 		<div class="flex w-full items-center bg-surface px-6 py-4" :class="isMobile ? 'h-[7.5rem]' : 'h-[10rem]'">
 			<div class="flex h-full w-full items-center justify-between gap-16">
-				<a :href="pubHubsUrl" target="_blank" rel="noopener noreferrer" class="h-full py-2">
+				<a :href="globalClientUrl" target="_blank" rel="noopener noreferrer" class="h-full py-2">
 					<Logo />
 				</a>
 				<div class="flex h-4 items-center justify-center gap-2">
@@ -77,7 +77,7 @@
 
 								<template #extra>
 									<div class="flex h-full w-full items-center justify-center">
-										<div id="yivi-register" class="aspect-square w-full"></div>
+										<div id="yivi-authentication" class="aspect-square w-full"></div>
 									</div>
 								</template>
 							</CarouselCardMobile>
@@ -141,7 +141,7 @@
 
 								<template #right>
 									<div class="flex h-full w-full items-center justify-center">
-										<div id="yivi-register" class="h-fit w-fit"></div>
+										<div id="yivi-authentication" class="h-fit w-fit"></div>
 									</div>
 								</template>
 							</CarouselCard>
@@ -211,24 +211,38 @@
 <script setup lang="ts">
 	// External imports
 	import { computed, onMounted, onUnmounted, ref, watch } from 'vue';
+	import { useRouter } from 'vue-router';
 	import { useI18n } from 'vue-i18n';
-	import startYiviSession from '@/logic/utils/yiviHandler';
+	import { startYiviSession } from '@/logic/utils/yiviHandler';
 
 	// Components
 	import Logo from '@/components/ui/Logo.vue';
 	import CarouselCard from '@/components/ui/onboarding/CarouselCard.vue';
 	import CarouselCardMobile from '@/components/ui/onboarding/CarouselCardMobile.vue';
+	import DownloadLinks from '@/components/ui/onboarding/DownloadLinks.vue';
 
 	// Logic
-	import { useSettings } from '@/logic/store/settings';
-	import DownloadLinks from '@/components/ui/onboarding/DownloadLinks.vue';
+	import { useGlobal } from '@/logic/store/store';
+	import { useMSS } from '@/logic/store/mss';
+	import { FeatureFlag, useSettings } from '@/logic/store/settings';
+	import { loginMethods, PHCEnterMode } from '@/model/MSS/TMultiServerSetup';
+
+	// Hub imports
+	import { Logger } from '@/logic/foundation/Logger';
+	import { CONFIG } from '@/../../hub-client/src/logic/foundation/Config';
+	import { SMI } from '@/../../hub-client/src/logic/foundation/StatusMessage';
 
 	// Store
 	const settings = useSettings();
 	const { t } = useI18n();
+	const global = useGlobal();
+	const router = useRouter();
+
+	// Logging
+	const LOGGER = new Logger('GC', CONFIG);
 
 	// Reactive state
-	const pubHubsUrl: string = _env.PUBHUBS_URL;
+	const globalClientUrl: string = _env.PUBHUBS_URL;
 	const isMobile = computed(() => settings.isMobileState);
 	const yivi_token = ref<string>('');
 	const currentIndex = ref(0);
@@ -324,14 +338,46 @@
 		};
 	}
 
-	const handleResize = debounce(() => {
-		startYiviSession(true, yivi_token);
+	async function startYiviSessionMSS() {
+		const loginMethod = loginMethods.Yivi; // If there will be multiple sources at a later point, this choice should be made by the user.
+
+		try {
+			const mss = useMSS();
+			const errorMessage = await mss.enterPubHubs(loginMethod, PHCEnterMode.LoginOrRegister);
+			if (errorMessage) {
+				router.push({ name: 'error', query: { errorKey: errorMessage.key, errorValues: errorMessage.values } });
+				return;
+			}
+			await global.checkLoginAndSettings();
+			await router.push({ name: 'home' });
+		} catch (error) {
+			router.push({ name: 'error' });
+			LOGGER.error(SMI.ERROR, 'Error during MSS Registration', { error });
+		}
+	}
+
+	const handleResize = debounce(async () => {
+		if (settings.isFeatureEnabled(FeatureFlag.multiServerSetup)) {
+			await startYiviSessionMSS();
+		} else {
+			startYiviSession(true, yivi_token);
+		}
 	}, 300);
 
-	onMounted(() => {
-		startYiviSession(true, yivi_token);
+	onMounted(async () => {
+		if (settings.isFeatureEnabled(FeatureFlag.multiServerSetup)) {
+			await startYiviSessionMSS();
+		} else {
+			startYiviSession(true, yivi_token);
+		}
 		window.addEventListener('resize', handleResize);
-		window.addEventListener('pageshow', () => startYiviSession(true, yivi_token));
+		window.addEventListener('pageshow', async () => {
+			if (settings.isFeatureEnabled(FeatureFlag.multiServerSetup)) {
+				await startYiviSessionMSS();
+			} else {
+				startYiviSession(true, yivi_token);
+			}
+		});
 
 		watch(
 			isMobile,

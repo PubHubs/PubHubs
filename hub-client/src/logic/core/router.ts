@@ -67,12 +67,10 @@ const routes = [
 		meta: { hideBar: true, onboarding: true },
 	},
 	{
-		path: '/error/',
+		path: '/error',
 		name: 'error-page',
 		component: () => import('@/pages/ErrorPage.vue'),
-		props: (route: any) => ({
-			errorKey: route.query?.errorKey ? route.query?.errorKey : 'errors.error',
-		}),
+		props: (route: { query: { errorKey: String; errorValues: Array<String | Number> } }) => ({ errorKey: route.query.errorKey || 'errors.general_error', errorValues: route.query.errorValues || [] }),
 		meta: { hideBar: true },
 	},
 	{

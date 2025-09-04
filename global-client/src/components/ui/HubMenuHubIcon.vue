@@ -64,7 +64,7 @@
 
 	hubs.setupMiniclient(props.hubId);
 
-	const accessToken = ref<string | null>(global.getAccessToken(props.hubId));
+	const accessToken = settings.isFeatureEnabled(FeatureFlag.multiServerSetup) ? ref<string>(JSON.stringify(global.getAuthInfo(props.hubId))) : ref<string | null>(global.getAccessToken(props.hubId));
 
 	// When a user opens the hub for the first time on a device or in a browser, the accessToken is
 	// only stored after the receivedMessage action with a message of type addAccessToken from
@@ -73,6 +73,18 @@
 		if (name === 'receivedMessage' && args[0].type === 'addAccessToken') {
 			after(() => {
 				accessToken.value = global.getAccessToken(props.hubId);
+			});
+		}
+	});
+
+	// When a user opens the hub for the first time on a device or in a browser, the accessToken
+	// and userId are only stored after the receivedMessage action with a message of type addAuthInfo
+	// from the messageBox is finished.
+	messagebox.$onAction(({ name, args, after }) => {
+		if (name === 'receivedMessage' && args[0].type === 'addAuthInfo') {
+			after(() => {
+				const authInfo = global.getAuthInfo(props.hubId);
+				accessToken.value = JSON.stringify(authInfo);
 			});
 		}
 	});
