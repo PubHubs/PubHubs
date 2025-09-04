@@ -126,7 +126,7 @@ const nl = {
 		yivi_why_central_login:
 			'Voor centrale login. Je deelt dan je e-mailadres en je mobiele nummer. Die gegevens zijn alleen bij de centrale login bekend en niet in de verschillende hubs die je bezoekt. Jouw gegevens worden niet met anderen gedeeld.',
 		yivi_why_room_login:
-			'Om in te loggen in sommige Rooms, waar meer informatie gevraagd wordt over de deelnemers. Dat kan bijvoorbeeld gebeuren bij een Room voor de mensen in je buurt, waar je eerst moet bewijzen wat je postcode is om erin te komen. Ook kan het voorkomen dat je moet bewijzen dat je e-mailadres op een lijst staat voor een bepaalde Room, voordat je binnen kan.',
+			'Om in te loggen in sommige Kamers, waar meer informatie gevraagd wordt over de deelnemers. Dat kan bijvoorbeeld gebeuren bij een Kamer voor de mensen in je buurt, waar je eerst moet bewijzen wat je postcode is om erin te komen. Ook kan het voorkomen dat je moet bewijzen dat je e-mailadres op een lijst staat voor een bepaalde Kamer, voordat je binnen kan.',
 		yivi_link: 'https://yivi.app/',
 		data_request: 'PubHubs vraagt om een e-mailadres en mobiel nummer, alleen voor registratie.',
 		data_add: 'Voeg je e-mailadres en mobiele nummer toe in de Yivi app.',
@@ -388,7 +388,10 @@ const nl = {
 		title_update: 'Update',
 		title_user: 'Gebruiker',
 		title_administrator: 'Beheerder',
+		title_room_administrator: 'Kamer Beheerder',
+		title_hub_administrator: 'Hub Beheerder',
 		title_steward: 'Steward',
+		title_room_steward: 'Kamer Steward',
 		make_admin_confirm: 'Maak beheerder',
 		join: 'Maak lid',
 		reload: 'Herlaad',
