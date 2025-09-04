@@ -10,7 +10,7 @@ interface ApiUrls {
 
 interface ApiOptions {
 	method: string;
-	body?: string;
+	body?: string | Uint8Array;
 	headers?: any;
 }
 
@@ -60,7 +60,7 @@ class Api {
 		return this.etag;
 	}
 
-	async api<T>(url: string, options: ApiOptions = this.options.GET, defaultResponseData: any = undefined): Promise<T> {
+	async api<T>(url: string, options: ApiOptions = this.options.GET): Promise<T> {
 		if (this.accessToken) {
 			if (!options.headers) {
 				options.headers = {};
@@ -86,18 +86,28 @@ class Api {
 		if (response.status === 204) {
 			return true as T;
 		}
-		// Test if JSON response
+
+		const contentType = response.headers.get('Content-Type') || '';
+
 		try {
-			const text = await response.text();
-			const json = JSON.parse(text);
-			return json as T;
+			if (contentType.includes('application/json')) {
+				const json = await response.json();
+				return json as T;
+			} else if (contentType.includes('application/octet-stream')) {
+				const buffer = await response.arrayBuffer();
+				return buffer as unknown as T;
+			} else {
+				// Fallback: treat as text if it is not either an octet-stream or json response
+				const text = await response.text();
+				return text as unknown as T;
+			}
 		} catch {
-			return defaultResponseData as T;
+			return true as T;
 		}
 	}
 
-	async apiGET<T>(url: string, defaultResponseData: any = undefined): Promise<T> {
-		return this.api<T>(url, this.options.GET, defaultResponseData);
+	async apiGET<T>(url: string): Promise<T> {
+		return this.api<T>(url, this.options.GET);
 	}
 
 	async apiPOST<T>(url: string, data: any): Promise<T> {

@@ -1,13 +1,14 @@
 import { useSettings } from '@/logic/store/store.js';
+import { Ref } from 'vue';
 
 import '../../../../hub-client/src/assets/yivi.min.css';
 import yiviCore from '@privacybydesign/yivi-core';
 import yiviWeb from '@privacybydesign/yivi-web';
 import yiviClient from '@privacybydesign/yivi-client';
 
-const startYiviSession = (register: boolean, yivi_token: { value: string }) => {
+const startYiviSession = (register: boolean, yivi_token: Ref<string>) => {
 	const settings = useSettings();
-	const elementId = register ? '#yivi-register' : '#yivi-login';
+	const elementId = '#yivi-authentication';
 	const endpointBase = '/yivi-endpoint';
 
 	let session;
@@ -58,4 +59,45 @@ const startYiviSession = (register: boolean, yivi_token: { value: string }) => {
 		});
 };
 
-export default startYiviSession;
+const startYiviAuthentication = (yiviRequestorUrl: string, disclosureRequest: string) => {
+	const settings = useSettings();
+	let yivi;
+	try {
+		yivi = new yiviCore({
+			debugging: false,
+			element: '#yivi-authentication',
+			language: settings.getActiveLanguage,
+			session: {
+				url: yiviRequestorUrl,
+				start: {
+					method: 'POST',
+					body: disclosureRequest,
+					headers: { 'Content-Type': 'text/plain' },
+				},
+			},
+		});
+		yivi.use(yiviWeb);
+		yivi.use(yiviClient);
+	} catch (initError) {
+		console.error('Yivi initialization failed:', initError);
+		throw initError;
+	}
+
+	return yivi
+		.start()
+		.then(async (result: { token: string }) => {
+			const responseResultJWT = await fetch(`${yiviRequestorUrl}/session/${result.token}/result-jwt`);
+			if (responseResultJWT.ok) {
+				const resultJWT = await responseResultJWT.text();
+				return resultJWT;
+			} else {
+				const errorText = await responseResultJWT.text();
+				throw new Error(`Could not retrieve the Yivi JWT: ${errorText}`);
+			}
+		})
+		.catch((startError: any) => {
+			console.error('Yivi session failed:', startError);
+		});
+};
+
+export { startYiviSession, startYiviAuthentication };

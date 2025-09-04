@@ -3,7 +3,7 @@
 	<div v-if="!global.loggedIn" class="">
 		<div class="flex w-full items-center bg-surface px-6 py-4" :class="isMobile ? 'h-[7.5rem]' : 'h-[10rem]'">
 			<div class="flex h-full w-full items-center justify-between gap-16">
-				<a :href="pubHubsUrl" rel="noopener noreferrer" class="h-full py-2">
+				<a :href="globalClientUrl" rel="noopener noreferrer" class="h-full py-2">
 					<Logo />
 				</a>
 				<div class="flex h-4 items-center justify-center gap-2">
@@ -30,11 +30,11 @@
 						<div class="flex flex-col ~gap-2/4">
 							<div v-show="show" class="relative flex w-full items-center justify-center" :class="isMobile ? '-mb-2' : '-mb-4'">
 								<div
-									id="yivi-login"
+									id="yivi-authentication"
 									class="absolute bottom-8 left-0 z-50 w-full after:absolute after:-bottom-[1.2em] after:right-[50%] after:border-[1.25em] after:border-b-0 after:border-l-0 after:border-transparent after:border-t-white after:drop-shadow-[0px_-5px_16px_rgb(0,0,0,0.15)]"
 								></div>
 							</div>
-							<Button color="gray" @click="loadYivi">{{ show ? $t('dialog.close') : $t('login.login') }}</Button>
+							<Button color="gray" @click="login()">{{ show ? $t('dialog.close') : $t('login.login') }}</Button>
 							<router-link to="/register" class="w-full">
 								<Button>{{ $t('register.register_with', [$t('common.yivi')]) }}</Button>
 							</router-link>
@@ -99,33 +99,79 @@
 	import { computed, ref } from 'vue';
 
 	// Global imports
+	import { useGlobal } from '@/logic/store/global';
+	import { useHubs } from '@/logic/store/hubs';
+	import { useSettings, FeatureFlag } from '@/logic/store/settings';
+	import { useMSS } from '@/logic/store/mss';
+	import { startYiviSession } from '@/logic/utils/yiviHandler';
+	import { Hub } from '@/model/Hubs';
+	import { loginMethods, PHCEnterMode } from '@/model/MSS/TMultiServerSetup';
 	import InstallPrompt from '@/components/ui/InstallPrompt.vue';
+	import HubBlock from '@/components/ui/HubBlock.vue';
 	import Logo from '@/components/ui/Logo.vue';
-	import { useGlobal, useHubs, useSettings } from '@/logic/store/store';
-	import startYiviSession from '@/logic/utils/yiviHandler';
+	import { useRouter } from 'vue-router';
 
 	// Hub imports
+	import { Logger } from '@/logic/foundation/Logger';
+	import { CONFIG } from '@/../../hub-client/src/logic/foundation/Config';
+	import { SMI } from '@/../../hub-client/src/logic/foundation/StatusMessage';
+	import Button from '@/../../hub-client/src/components/elements/Button.vue';
+	import H1 from '@/../../hub-client/src/components/elements/H1.vue';
 	import HubBanner from '@/../../hub-client/src/components/ui/HubBanner.vue';
-	import H1 from '../../../hub-client/src/components/elements/H1.vue';
-	import P from '../../../hub-client/src/components/elements/P.vue';
-
+	import Icon from '@/../../hub-client/src/components/elements/Icon.vue';
+	import P from '@/../../hub-client/src/components/elements/P.vue';
 	import device from '@/../../hub-client/src/logic/core/device';
 
 	const global = useGlobal();
 	const hubs = useHubs();
 	const settings = useSettings();
+	const router = useRouter();
+	const LOGGER = new Logger('GC', CONFIG);
 
-	const pubHubsUrl = _env.PUBHUBS_URL;
+	const globalClientUrl = _env.PUBHUBS_URL;
+
 	const show = ref<Boolean>(false);
 	const yivi_token = ref<string>('');
 	const searchQuery = ref<string>('');
+
 	const isMobile = computed(() => settings.isMobileState);
 
 	const filteredHubs = computed(() => {
-		return hubs.activeHubs.filter((hub) => hub.name.toLowerCase().includes(searchQuery.value.toLowerCase()) || hub.description.toLowerCase().includes(searchQuery.value.toLowerCase()));
+		return hubs.activeHubs.filter((hub: Hub) => hub.name.toLowerCase().includes(searchQuery.value.toLowerCase()) || hub.description.toLowerCase().includes(searchQuery.value.toLowerCase()));
 	});
 
-	const loadYivi = () => {
+	async function login() {
+		if (settings.isFeatureEnabled(FeatureFlag.multiServerSetup)) {
+			await loginMSS();
+		} else {
+			loadYivi();
+		}
+	}
+
+	async function loginMSS() {
+		const loginMethod = loginMethods.Yivi; // If there will be multiple sources at a later point, this choice should be made by the user.
+
+		if (loginMethod === loginMethods.Yivi) {
+			show.value = !show.value;
+		}
+		try {
+			const mss = useMSS();
+			const errorMessage = await mss.enterPubHubs(loginMethod, PHCEnterMode.Login);
+			if (errorMessage) {
+				router.push({ name: 'error', query: { errorKey: errorMessage.key, errorValues: errorMessage.values } });
+				show.value = false;
+				return;
+			}
+			await global.checkLoginAndSettings();
+			show.value = false;
+		} catch (error) {
+			router.push({ name: 'error' });
+			show.value = false;
+			LOGGER.error(SMI.ERROR, 'Error during MSS login', { error });
+		}
+	}
+
+	function loadYivi() {
 		show.value = !show.value;
 
 		try {
@@ -133,7 +179,7 @@
 		} catch (error) {
 			console.error('Yivi session load failed:', error);
 		}
-	};
+	}
 
 	function changeLanguage(language: string) {
 		settings.setLanguage(language, true);

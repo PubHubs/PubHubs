@@ -1,30 +1,31 @@
-import { AskDisclosureMessage, YiviSigningSessionResult } from '@/model/components/signedMessages';
-import { ContentHelpers, EventType, ISearchResults, ISendEventResponse, MatrixClient, MatrixError, MatrixEvent, Room as MatrixRoom, User as MatrixUser, MsgType, TimelineEvents } from 'matrix-js-sdk';
-import { Events, PubHubsMgType, RedactReasons } from '@/logic/core/events';
-import { Poll, Scheduler } from '@/model/events/voting/VotingTypes';
-import { TMentions, TMessageEvent, TTextMessageEventContent } from '@/model/events/TMessageEvent';
-import { TPublicRoom, useRooms } from '@/logic/store/store';
-import { TVotingWidgetClose, TVotingWidgetEditEventContent, TVotingWidgetMessageEventContent, TVotingWidgetOpen, TVotingWidgetPickOption, TVotingWidgetVote } from '@/model/events/voting/TVotingMessageEvent';
-import { User, useUser } from '@/logic/store/user';
-import { api_matrix, api_synapse } from '@/logic/core/api';
-import { createNewPrivateRoomName, refreshPrivateRoomName, updatePrivateRoomName } from '@/logic/core/privateRoomNames';
-import { hasHtml, sanitizeHtml } from '@/logic/core/sanitizer';
-
-import { Authentication } from '@/logic/core/authentication';
-import { LOGGER } from '@/logic/foundation/Logger';
-import { ReceiptType } from 'matrix-js-sdk/lib/@types/read_receipts';
-import Room from '@/model/rooms/Room';
-import { RoomMessageEventContent } from 'matrix-js-sdk/lib/types';
-import { RoomPowerLevelsEventContent } from 'matrix-js-sdk/lib/@types/state_events';
-import { RoomType } from '@/logic/store/rooms';
-import { SMI } from '@/logic/foundation/StatusMessage';
-import { TSearchParameters } from '@/model/search/TSearch';
+// Package imports
 import { defineStore } from 'pinia';
-import { imageTypes, RelationType } from '@/model/constants';
-import { router } from '@/logic/core/router';
-import { useConnection } from '@/logic/store/connection';
-import { useMessageActions } from '@/logic/store/message-actions';
-import { useNotifications } from '@/logic//store/notifications.js';
+import { ContentHelpers, EventType, ISearchResults, ISendEventResponse, MatrixClient, MatrixError, MatrixEvent, Room as MatrixRoom, User as MatrixUser, MsgType, TimelineEvents } from 'matrix-js-sdk';
+import { RoomMessageEventContent } from 'matrix-js-sdk/lib/types.js';
+import { ReceiptType } from 'matrix-js-sdk/lib/@types/read_receipts.js';
+import { RoomPowerLevelsEventContent } from 'matrix-js-sdk/lib/@types/state_events.js';
+
+// Hub imports
+import { api_matrix, api_synapse } from '@/logic/core/api.js';
+import { Authentication } from '@/logic/core/authentication.js';
+import { Events, PubHubsMgType, RedactReasons } from '@/logic/core/events.js';
+import { createNewPrivateRoomName, refreshPrivateRoomName, updatePrivateRoomName } from '@/logic/core/privateRoomNames.js';
+import { router } from '@/logic/core/router.js';
+import { hasHtml, sanitizeHtml } from '@/logic/core/sanitizer.js';
+import { LOGGER } from '@/logic/foundation/Logger.js';
+import { SMI } from '@/logic/foundation/StatusMessage.js';
+import { useConnection } from '@/logic/store/connection.js';
+import { useMessageActions } from '@/logic/store/message-actions.js';
+import { Poll, Scheduler } from '@/model/events/voting/VotingTypes.js';
+import { TMentions, TMessageEvent, TTextMessageEventContent } from '@/model/events/TMessageEvent.js';
+import { TPublicRoom, useRooms } from '@/logic/store/rooms.js';
+import { TVotingWidgetClose, TVotingWidgetEditEventContent, TVotingWidgetMessageEventContent, TVotingWidgetOpen, TVotingWidgetPickOption, TVotingWidgetVote } from '@/model/events/voting/TVotingMessageEvent.js';
+import { User, useUser } from '@/logic/store/user.js';
+import { imageTypes, RelationType } from '@/model/constants.js';
+import { AskDisclosureMessage, YiviSigningSessionResult } from '@/model/components/signedMessages.js';
+import Room from '@/model/rooms/Room.js';
+import { TSearchParameters } from '@/model/search/TSearch.js';
+import { assert } from 'chai';
 
 const publicRoomsLoading: Promise<any> | null = null; // outside of defineStore to guarantee lifetime, not accessible outside this module
 const updateRoomsPerforming: Promise<void> | null = null; // outside of defineStore to guarantee lifetime, not accessible outside this module
@@ -78,8 +79,10 @@ const usePubHubs = defineStore('pubhubs', {
 				const newUser = user.user;
 
 				if (newUser !== null) {
-					api_synapse.setAccessToken(this.Auth.getAccessToken()!); //Since user isn't null, we expect there to be an access token.
-					api_matrix.setAccessToken(this.Auth.getAccessToken()!);
+					const accessToken = this.Auth.getAccessToken();
+					assert.isNotNull(accessToken, 'Since the value of user is not null, we expect there to be an access token.');
+					api_synapse.setAccessToken(accessToken);
+					api_matrix.setAccessToken(accessToken);
 					user.fetchIsAdministrator(this.client as MatrixClient);
 					user.fetchIfUserNeedsConsent();
 

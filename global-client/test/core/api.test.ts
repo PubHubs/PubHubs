@@ -67,13 +67,15 @@ describe('api fetches', () => {
 		await expect(api.api(api.apiURLS.bar)).rejects.toThrowError();
 
 		await api.api(api.apiURLS.login);
-		const resp = await api.api(api.apiURLS.bar);
-		expect(resp).toBeTypeOf('object');
-		expect(resp).toHaveProperty('theme');
-		expect(resp.theme).toBeTypeOf('string');
-		expect(resp).toHaveProperty('language');
-		expect(resp.language).toBeTypeOf('string');
-		expect(resp).toHaveProperty('hubs');
-		expect(resp.hubs).toBeTypeOf('object');
+		const resp = await api.api<ArrayBuffer>(api.apiURLS.bar);
+		expect(resp).toBeInstanceOf(ArrayBuffer);
+		const decodedResp = new TextDecoder().decode(resp);
+		const parsedResp = JSON.parse(decodedResp);
+		expect(parsedResp).toHaveProperty('theme');
+		expect(parsedResp.theme).toBeTypeOf('string');
+		expect(parsedResp).toHaveProperty('language');
+		expect(parsedResp.language).toBeTypeOf('string');
+		expect(parsedResp).toHaveProperty('hubs');
+		expect(parsedResp.hubs).toBeTypeOf('object');
 	});
 });

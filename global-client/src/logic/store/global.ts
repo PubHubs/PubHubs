@@ -1,15 +1,23 @@
+// Package imports
 import { defineStore } from 'pinia';
-import { api } from '@/logic/core/api';
-import { Theme, TimeFormat, useSettings } from '@/logic/store/settings';
-import { Hub, HubList } from '@/model/Hubs';
-import { SMI } from '../../../../hub-client/src/logic/foundation/StatusMessage';
-import { Logger } from '@/../../hub-client/src/logic/foundation/Logger';
-import { CONFIG } from '../../../../hub-client/src/logic/foundation/Config';
+import { assert } from 'chai';
+
+// Global imports
+import { api } from '@/logic/core/api.js';
+import { useMSS } from '@/logic/store/mss.js';
+import { FeatureFlag, Theme, TimeFormat, useSettings } from '@/logic/store/settings.js';
+import { Hub, HubList } from '@/model/Hubs.js';
+
+// Hub imports
+import { SMI } from '@/../../hub-client/src/logic/foundation/StatusMessage.js';
+import { Logger } from '@/../../hub-client/src/logic/foundation/Logger.js';
+import { CONFIG } from '@/../../hub-client/src/logic/foundation/Config.js';
 
 type PinnedHub = {
 	hubId: string;
 	hubName: string;
 	accessToken?: string;
+	userId?: string;
 };
 
 type PinnedHubs = Array<PinnedHub>;
@@ -76,24 +84,70 @@ const useGlobal = defineStore('global', {
 		 */
 		async checkLoginAndSettings() {
 			this.loggedIn = false;
-			try {
-				const data = await api.api<GlobalSettings | boolean>(api.apiURLS.bar, api.options.GET, defaultGlobalSettings);
-				if (!data) {
+
+			const settings = useSettings();
+			if (settings.isFeatureEnabled(FeatureFlag.multiServerSetup)) {
+				const mss = useMSS();
+				try {
+					// If no authToken is stored in localstorage, this means the user is not logged in.
+					if (!localStorage.getItem('PHauthToken')) {
+						return false;
+					}
+
+					const settingsUserObject = await mss.requestUserObject('globalsettings');
+
+					let data: GlobalSettings;
+					if (settingsUserObject) {
+						data = JSON.parse(settingsUserObject) as GlobalSettings;
+					} else {
+						data = defaultGlobalSettings;
+					}
+
+					await this.setGlobalSettings(data);
+
+					this.loggedIn = true;
+					return true;
+				} catch (error) {
+					console.error('Failure getting global settings from server: ', error);
+					// Remove PHauthToken and userSecret from local storage in case the enterEP did successfully return an authToken for the user
+					localStorage.removeItem('PHauthToken');
+					localStorage.removeItem('UserSecret');
 					return false;
 				}
+			} else {
+				try {
+					const data = await api.api<ArrayBuffer | boolean>(api.apiURLS.bar, api.options.GET);
+					if (!data) {
+						return false;
+					}
 
-				await this.setGlobalSettings(data);
+					let globalsettings: GlobalSettings;
 
-				// Remove any accessTokens that are left in localStorage
-				Object.keys(localStorage)
-					.filter((key) => key.endsWith('accessToken'))
-					.forEach((key) => localStorage.removeItem(key));
+					if (data === true || data.byteLength === 0) {
+						globalsettings = defaultGlobalSettings;
+					} else {
+						const decoded = new TextDecoder().decode(data);
+						try {
+							globalsettings = JSON.parse(decoded);
+						} catch {
+							console.error('Could not decode the global settings.');
+							return false;
+						}
+					}
 
-				this.loggedIn = true;
-				return true;
-			} catch (error) {
-				console.error('failure getting global settings from server: ', error);
-				return false;
+					await this.setGlobalSettings(globalsettings);
+
+					// Remove any accessTokens that are left in localStorage
+					Object.keys(localStorage)
+						.filter((key) => key.endsWith('accessToken'))
+						.forEach((key) => localStorage.removeItem(key));
+
+					this.loggedIn = true;
+					return true;
+				} catch (error) {
+					console.error('failure getting global settings from server: ', error);
+					return false;
+				}
 			}
 		},
 
@@ -110,37 +164,50 @@ const useGlobal = defineStore('global', {
 			}
 			settings.setLanguage(data.language);
 
-			const checkHubData = data.hubs.reduce(
-				(result: { updatedPinnedHubs: string[]; oldPinnedHubs: PinnedHubs }, hub: PinnedHub) => {
-					if (hub.hubName !== undefined) {
-						// If a hubName is present, the hub data is already in the updated formate.
-						result.updatedPinnedHubs.push(hub.hubName);
-					} else {
-						result.oldPinnedHubs.push(hub);
-					}
-					return result;
-				},
-				{ updatedPinnedHubs: [], oldPinnedHubs: [] },
-			);
+			if (!settings.isFeatureEnabled(FeatureFlag.multiServerSetup)) {
+				const checkHubData = data.hubs.reduce(
+					(result: { updatedPinnedHubs: string[]; oldPinnedHubs: PinnedHubs }, hub: PinnedHub) => {
+						if (hub.hubName !== undefined) {
+							// If a hubName is present, the hub data is already in the updated formate.
+							result.updatedPinnedHubs.push(hub.hubName);
+						} else {
+							result.oldPinnedHubs.push(hub);
+						}
+						return result;
+					},
+					{ updatedPinnedHubs: [], oldPinnedHubs: [] },
+				);
 
-			// If there are hubs in the old format (with the hubName stored as hubId), update the pinned hubs data to contain both the hubId and hubName.
-			if (checkHubData.oldPinnedHubs.length > 0) {
-				data.hubs = await this.updatePinnedHubs(data.hubs, checkHubData.updatedPinnedHubs);
+				// If there are hubs in the old format (with the hubName stored as hubId), update the pinned hubs data to contain both the hubId and hubName.
+				if (checkHubData.oldPinnedHubs.length > 0) {
+					data.hubs = await this.updatePinnedHubs(data.hubs, checkHubData.updatedPinnedHubs);
+				} else {
+					// Check if the hubName has changed since the last update of /bar/state.
+					const hubs = await api.apiGET<Array<hubResponseItem>>(api.apiURLS.hubs);
+					data.hubs.forEach((hub: PinnedHub) => {
+						const hubName = hubs.find((hubRespItem) => hubRespItem.id === hub.hubId)?.name;
+						if (hubName !== undefined) {
+							hub.hubName = hubName;
+						}
+					});
+				}
+				this.pinnedHubs = data.hubs;
 			} else {
-				// Check if the hubName has changed since the last update of /bar/state.
-				const hubs = await api.apiGET<Array<hubResponseItem>>(api.apiURLS.hubs, []);
+				const mss = useMSS();
+				// Check if the hubName has changed since the last update of the global settings object.
+				const hubs = await mss.getHubs();
 				data.hubs.forEach((hub: PinnedHub) => {
 					const hubName = hubs.find((hubRespItem) => hubRespItem.id === hub.hubId)?.name;
-					if (hubName !== undefined) {
+					if (hubName) {
 						hub.hubName = hubName;
 					}
 				});
+				this.pinnedHubs = data.hubs;
 			}
-			this.pinnedHubs = data.hubs;
 		},
 
 		async updatePinnedHubs(pinnedHubsData: PinnedHubs, upToDatePinnedHubNames: string[]) {
-			const hubs = await api.apiGET<Array<hubResponseItem>>(api.apiURLS.hubs, []);
+			const hubs = await api.apiGET<Array<hubResponseItem>>(api.apiURLS.hubs);
 			const hubNames = hubs.map((hub) => hub.name);
 			for (let i = pinnedHubsData.length - 1; i >= 0; i--) {
 				const hub = pinnedHubsData[i];
@@ -185,16 +252,41 @@ const useGlobal = defineStore('global', {
 			}
 		},
 
-		logout() {
+		async logout() {
+			const settings = useSettings();
 			// This will work now, since we redirect away with the 'window.location.refresh' but if we didn't need to make components reactive to the 'loggedIn' state.
 			this.loggedIn = false;
-			window.location.replace(api.apiURLS.logout);
+			if (settings.isFeatureEnabled(FeatureFlag.multiServerSetup)) {
+				localStorage.removeItem('PHauthToken');
+				localStorage.removeItem('UserSecret');
+				// TODO: find a way router can be part of a store that TypeScript swallows.
+				// @ts-ignore
+				await this.router.replace({ name: 'home' });
+			} else {
+				window.location.replace(api.apiURLS.logout);
+			}
 		},
 
 		// Will be called after each relevant change in state (watched in App.vue)
 		async saveGlobalSettings() {
-			if (this.loggedIn) {
-				await api.apiPUT<any>(api.apiURLS.bar, this.getGlobalSettings, true);
+			try {
+				if (!this.loggedIn) {
+					return;
+				}
+
+				const settings = useSettings();
+				if (!settings.isFeatureEnabled(FeatureFlag.multiServerSetup)) {
+					await api.apiPUT<any>(api.apiURLS.bar, this.getGlobalSettings, true);
+					return;
+				}
+
+				assert.isTrue(settings.isFeatureEnabled(FeatureFlag.multiServerSetup));
+				const mss = useMSS();
+				await mss.storeUserObject<GlobalSettings>('globalsettings', this.getGlobalSettings);
+			} catch (error) {
+				// @ts-ignore
+				this.router.push({ name: 'error' });
+				this.logger.error(SMI.ERROR, String(error));
 			}
 		},
 
@@ -220,18 +312,37 @@ const useGlobal = defineStore('global', {
 			this.pinnedHubs[index].accessToken = accessToken;
 		},
 
+		addAccessTokenAndUserID(hubId: string, token: string, userId: string) {
+			const index = this.pinnedHubs.findIndex((hub) => hub.hubId === hubId);
+			this.pinnedHubs[index].accessToken = token;
+			this.pinnedHubs[index].userId = userId;
+		},
+
 		removeAccessToken(hubId: string) {
 			const index = this.pinnedHubs.findIndex((hub) => hub.hubId === hubId);
 			this.pinnedHubs[index].accessToken = undefined;
 		},
 
 		async getHubs() {
-			const data = await api.apiGET<Array<hubResponseItem>>(api.apiURLS.hubs, []);
-			const hubs = [] as HubList;
-			data.forEach((item: hubResponseItem) => {
-				hubs.push(new Hub(item.id, item.name, item.client_uri, item.server_uri, item.description));
-			});
-			return hubs;
+			const settings = useSettings();
+			if (!settings.isFeatureEnabled(FeatureFlag.multiServerSetup)) {
+				const data = await api.apiGET<Array<hubResponseItem>>(api.apiURLS.hubs);
+				const hubs = [] as HubList;
+				data.forEach((item: hubResponseItem) => {
+					hubs.push(new Hub(item.id, item.name, item.client_uri, item.server_uri, item.description));
+				});
+				return hubs;
+			} else {
+				const mss = useMSS();
+				const data = await mss.getHubs();
+				const hubs = [] as HubList;
+				for (const item of data) {
+					// Strip /synapse/client from the serverurl
+					const serverUrl = item.url.replace(/\/_synapse\/client/, '');
+					hubs.push(new Hub(item.id, item.name, mss.getHubInfo, serverUrl, item.description));
+				}
+				return hubs;
+			}
 		},
 
 		existsInPinnedHubs(hubId: string) {
@@ -246,6 +357,19 @@ const useGlobal = defineStore('global', {
 				return null;
 			}
 			return accessToken;
+		},
+
+		getAuthInfo(hubId: string) {
+			const hub = this.pinnedHubs.find((hub) => hub.hubId === hubId);
+			if (!hub) {
+				return null;
+			}
+			const accessToken = hub.accessToken;
+			const userId = hub.userId;
+			if (accessToken === undefined || userId === undefined) {
+				return null;
+			}
+			return { token: accessToken, userId };
 		},
 
 		showModal() {

@@ -183,6 +183,8 @@
 		});
 		settings.updateIsMobile();
 
+		await startMessageBox();
+
 		// check if hash doesn't start with hub,
 		// then it is running only the hub-client, so we need to do some checks
 		if (!window.location.hash.startsWith('#/hub/')) {
@@ -204,7 +206,6 @@
 			// only needed when loggedIn (then there are user settings to setup)
 			setupReady.value = true;
 		}
-		await startMessageBox();
 
 		LOGGER.trace(SMI.STARTUP, 'App.vue onMounted done');
 	});

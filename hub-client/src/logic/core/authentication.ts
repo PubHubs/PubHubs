@@ -1,9 +1,9 @@
 import * as sdk from 'matrix-js-sdk';
 import { ICreateClientOpts, MatrixClient } from 'matrix-js-sdk';
 
-import { MessageType } from '@/logic/store/messagebox';
-import { Message, useDialog, useMessageBox } from '@/logic/store/store';
-import { useUser } from '@/logic/store/user';
+import { MessageType } from '@/logic/store/messagebox.js';
+import { Message, useDialog, useMessageBox } from '@/logic/store/store.js';
+import { useUser } from '@/logic/store/user.js';
 
 type loginResponse = {
 	access_token: string;
@@ -50,11 +50,26 @@ class Authentication {
 		);
 	}
 
+	private _storeAccessTokenAndUserId(accessToken: string, userId: string) {
+		this.localDevelopmentAccessToken = accessToken;
+		useMessageBox().sendMessage(
+			new Message(
+				MessageType.AddAuthInfo,
+				JSON.stringify({
+					token: accessToken,
+					userId: userId,
+				}),
+			),
+		);
+	}
+
 	private _fetchAuth() {
 		const auth: ICreateClientOpts = { baseUrl: this.baseUrl };
-		const query = new URLSearchParams(window.location.search).get('accessToken');
-		if (query) {
-			const access = JSON.parse(query);
+		const query = new URLSearchParams(window.location.search);
+		const newToken = query.get('newToken');
+		const token = query.get('accessToken');
+		if (token) {
+			const access = JSON.parse(token);
 			const accessToken = access.token;
 			const userId = access.userId;
 			if (accessToken && userId) {
@@ -63,7 +78,7 @@ class Authentication {
 				this.user.setUserId(auth.userId!);
 			}
 		}
-		return auth;
+		return { auth, newToken };
 	}
 
 	private _clearAuth() {
@@ -71,7 +86,7 @@ class Authentication {
 	}
 
 	public getAccessToken(): string | null {
-		const auth = this._fetchAuth();
+		const { auth } = this._fetchAuth();
 		if (auth.accessToken) {
 			return auth.accessToken;
 		}
@@ -104,10 +119,8 @@ class Authentication {
 		this.user = useUser();
 		return new Promise((resolve, reject) => {
 			// First check if we have an accesstoken stored
-			const auth = this._fetchAuth();
+			const { auth, newToken } = this._fetchAuth();
 			if (auth !== null && auth.baseUrl === this.baseUrl) {
-				// Start client with token
-				const auth = this._fetchAuth();
 				auth.timelineSupport = true;
 				this.client = sdk.createClient(auth);
 			} else {
@@ -161,6 +174,9 @@ class Authentication {
 				}
 			} else {
 				if (this.client.baseUrl === this.baseUrl) {
+					if (newToken === 'true' && auth.accessToken && auth.userId) {
+						this._storeAccessTokenAndUserId(auth.accessToken, auth.userId);
+					}
 					resolve(this.client);
 				} else {
 					resolve(false);
