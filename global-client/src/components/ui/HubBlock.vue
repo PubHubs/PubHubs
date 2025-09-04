@@ -92,6 +92,8 @@
 		if (hubSettingsJSON) {
 			summary.value = hubSettingsJSON.summary ? hubSettingsJSON.summary : props.hub.description;
 			contact.value = hubSettingsJSON.contact;
+		} else {
+			summary.value = props.hub.description;
 		}
 	}
 </script>

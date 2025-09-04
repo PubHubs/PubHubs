@@ -32,7 +32,7 @@
 							<!-- <GlobalbarButton type="question_mark" @click="showHelp" /> -->
 							<GlobalbarButton type="power" @click="logout" />
 						</div>
-						<a :href="pubHubsUrl" target="_blank" rel="noopener noreferrer">
+						<a :href="globalClientUrl" target="_blank" rel="noopener noreferrer">
 							<Logo />
 						</a>
 					</div>
@@ -70,12 +70,11 @@
 	const settings = useSettings();
 	const isMobile = computed(() => settings.isMobileState);
 
-	// eslint-disable-next-line
-	const pubHubsUrl = _env.PUBHUBS_URL;
+	const globalClientUrl = _env.PUBHUBS_URL;
 
 	async function logout() {
 		if (await dialog.yesno(t('logout.logout_sure'))) {
-			global.logout();
+			await global.logout();
 		}
 	}
 

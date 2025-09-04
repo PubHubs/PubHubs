@@ -5,7 +5,7 @@
 		<div class="flex h-full">
 			<GlobalBar v-if="!(route.name === 'onboarding')" />
 			<!-- TODO: Split discover hub page and login home page into seperate pages-->
-			<div v-if="hubs.hasHubs" class="h-[100dvh] w-full flex-1">
+			<div class="h-[100dvh] w-full flex-1">
 				<router-view />
 			</div>
 		</div>
@@ -16,15 +16,18 @@
 
 <script setup lang="ts">
 	// Package imports
-	import { onMounted, onUnmounted, watchEffect, watch } from 'vue';
+	import { onMounted, onUnmounted, watch, computed } from 'vue';
 	import { useI18n } from 'vue-i18n';
-	import { useRoute } from 'vue-router';
+	import { useRoute, useRouter } from 'vue-router';
 
 	// Global imports
 	import GlobalBar from '@/components/ui/GlobalBar.vue';
 	import { useInstallPromptStore } from '@/logic/store/installPromptPWA';
-	import { NotificationsPermission } from '@/logic/store/settings';
-	import { MessageBoxType, useDialog, useGlobal, useHubs, useMessageBox, useSettings } from '@/logic/store/store';
+	import { NotificationsPermission, useSettings } from '@/logic/store/settings';
+	import { useDialog } from '@/logic/store/dialog';
+	import { useGlobal } from '@/logic/store/global';
+	import { useHubs } from '@/logic/store/hubs';
+	import { useMessageBox, MessageBoxType } from '@/logic/store/messagebox';
 
 	// Hub imports
 	import { CONFIG } from '@/../../hub-client/src/logic/foundation/Config';
@@ -40,6 +43,10 @@
 	const installPromptStore = useInstallPromptStore();
 	const hubs = useHubs();
 	const route = useRoute();
+	const router = useRouter();
+
+	// Wrapping the getter inside a computed to trigger the watch function to save any changes in global settings
+	const computedGlobalSettings = computed(() => global.getGlobalSettings);
 
 	// Function to initialize settings and language
 	async function initializeSettings() {
@@ -79,14 +86,24 @@
 		// Update isMobile state on initial load
 		settings.startListening();
 
-		if (await global.checkLoginAndSettings()) {
-			// Watch for saved state changes and save to backend
-			watchEffect(() => global.saveGlobalSettings());
-		}
+		await global.checkLoginAndSettings();
+
+		// Watch for saved state changes and save to backend
+		watch(
+			computedGlobalSettings,
+			() => {
+				global.saveGlobalSettings();
+			},
+			{ deep: true },
+		);
 
 		messagebox.init(MessageBoxType.Parent);
 
 		await addHubs();
+
+		if (!hubs.hasHubs) {
+			router.push({ name: 'error', query: { errorKey: 'errors.no_hubs_found' } });
+		}
 
 		// Watch for changes in the permission for notifications by the user to reflect these changes once the user opens the settings dialog
 		if ('permissions' in navigator) {
@@ -104,9 +121,14 @@
 
 	// Function to add hubs
 	async function addHubs() {
-		const hubsResponse = await global.getHubs();
-		if (hubsResponse) {
-			hubs.addHubs(hubsResponse);
+		try {
+			const hubsResponse = await global.getHubs();
+			if (hubsResponse) {
+				hubs.addHubs(hubsResponse);
+			}
+		} catch (error) {
+			router.push({ name: 'error', query: { errorKey: 'errors.no_hubs_found' } });
+			LOGGER.error(SMI.ERROR, 'Error adding hubs', { error });
 		}
 	}
 

@@ -13,16 +13,18 @@ export const handlers = [
 
 	http.get('http://test/bar/state', () => {
 		if (sessionStorage.getItem('loggedIn')) {
-			return HttpResponse.json(
-				{
-					theme: 'system',
-					language: 'en',
-					hubs: [{ hubId: 'TestHub0-Id', hubName: 'Testhub0' }],
+			const data = {
+				theme: 'system',
+				language: 'en',
+				hubs: [{ hubId: 'TestHub0-Id', hubName: 'Testhub0' }],
+			};
+			const encodedData = new TextEncoder().encode(JSON.stringify(data)).buffer;
+			return HttpResponse.arrayBuffer(encodedData, {
+				headers: {
+					'content-type': 'application/octet-stream',
 				},
-				{
-					status: 200,
-				},
-			);
+				status: 200,
+			});
 		} else {
 			return new HttpResponse(null, { status: 403 });
 		}

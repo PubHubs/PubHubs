@@ -1,14 +1,14 @@
-import { Hub, HubList } from '@/model/Hubs';
-import { Message, MessageType, iframeHubId, useMessageBox } from '../../../../hub-client/src/logic/store/messagebox';
-import { setLanguage, setUpi18n } from '@/i18n';
-
 import { RouteParams } from 'vue-router';
 import { assert } from 'chai';
 import { defineStore } from 'pinia';
-import { miniClientId } from './messagebox';
-import { useGlobal } from '@/logic/store/global';
-import { useSettings } from '@/logic/store/settings';
-import { useToggleMenu } from '@/logic/store/toggleGlobalMenu';
+import { setLanguage, setUpi18n } from '@/i18n.js';
+
+import { Hub, HubList } from '@/model/Hubs.js';
+import { useGlobal } from '@/logic/store/global.js';
+import { Message, MessageType, iframeHubId, miniClientId, useMessageBox } from '@/logic/store/messagebox.js';
+import { useSettings } from '@/logic/store/settings.js';
+import { useToggleMenu } from '@/logic/store/toggleGlobalMenu.js';
+import { useMSS } from '@/logic/store/mss.js';
 
 const useHubs = defineStore('hubs', {
 	state: () => {
@@ -80,8 +80,8 @@ const useHubs = defineStore('hubs', {
 	},
 
 	actions: {
-		addHub(hub: Hub) {
-			this.hubs[hub.hubId] = Object.assign(new Hub(hub.hubId, hub.hubName, hub.url, hub.serverUrl), hub);
+		async addHub(hub: Hub) {
+			this.hubs[hub.hubId] = Object.assign(new Hub(hub.hubId, hub.hubName, useMSS().getHubInfo, hub.serverUrl), hub);
 		},
 
 		addHubs(hubs: HubList) {
@@ -193,10 +193,17 @@ const useHubs = defineStore('hubs', {
 					global.hideModal();
 				});
 
-				// Store and remove access tokens when send from the hub client
+				// Old Setup: Store and remove access tokens when send from the hub client
 				messagebox.addCallback(iframeHubId, MessageType.AddAccessToken, (accessTokenMessage: Message) => {
 					global.addAccessToken(this.currentHubId, accessTokenMessage.content as string);
 				});
+
+				// MSS: Store and remove access tokens when send from the hub client
+				messagebox.addCallback(iframeHubId, MessageType.AddAuthInfo, (authInfoMessage: Message) => {
+					const { token, userId }: { token: string; userId: string } = JSON.parse(authInfoMessage.content);
+					global.addAccessTokenAndUserID(this.currentHubId, token, userId);
+				});
+
 				messagebox.addCallback(iframeHubId, MessageType.RemoveAccessToken, () => {
 					global.removeAccessToken(this.currentHubId);
 					// So far this message is not yet used but the hub clients.

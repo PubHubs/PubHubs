@@ -51,7 +51,7 @@ export default {
 		}
 	},
 
-	removeBackSlash(url: string) {
+	removeTrailingSlash(url: string) {
 		assert.isString(url);
 		return url.replace(/\/$/g, '');
 	},

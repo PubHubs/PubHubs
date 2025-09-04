@@ -1,9 +1,9 @@
-import { SignedMessage } from '@/model/components/signedMessages';
-import { WithRequired } from '../utility/utility';
-import { TBaseEvent } from './TBaseEvent';
+import { SignedMessage } from '@/model/components/signedMessages.js';
+import { WithRequired } from '../utility/utility.js';
+import { TBaseEvent } from './TBaseEvent.js';
 import { EventType, MsgType } from 'matrix-js-sdk';
-import { PubHubsMgType } from '@/logic/core/events';
-import { TVotingWidgetMessageEventContent } from '@/model/events/voting/TVotingMessageEvent';
+import { PubHubsMgType } from '@/logic/core/events.js';
+import { TVotingWidgetMessageEventContent } from '@/model/events/voting/TVotingMessageEvent.js';
 
 /**
  * Event used for sending messages in a room. Not limited to text.
