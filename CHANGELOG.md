@@ -11,6 +11,7 @@ _Please add a brief description of any changes and any migrations to be performe
 
 ## Changed not yet merged to stable
 
+- [BREAKING] The old pubhubs server now needs a PHC_URL environment variable pointing to the new mss phc for the global client
 - [NEW] Added the option to remove attribute values from existing secured rooms.
 - [NEW] Updated validation for the form that is used to edit rooms.
 - [NEW] Added user notifications for important events related to the secured rooms.
