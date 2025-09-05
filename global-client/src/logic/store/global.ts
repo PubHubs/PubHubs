@@ -338,8 +338,9 @@ const useGlobal = defineStore('global', {
 				const hubs = [] as HubList;
 				for (const item of data) {
 					// Strip /synapse/client from the serverurl
+					const hubInfo = await mss.getHubInfo(item.url);
 					const serverUrl = item.url.replace(/\/_synapse\/client/, '');
-					hubs.push(new Hub(item.id, item.name, mss.getHubInfo, serverUrl, item.description));
+					hubs.push(new Hub(item.id, item.name, hubInfo.hub_client_url, serverUrl, item.description));
 				}
 				return hubs;
 			}

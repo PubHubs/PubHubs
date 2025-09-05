@@ -298,7 +298,7 @@ const useMessageBox = defineStore('messagebox', {
 			if (this.isConnected) {
 				const target = this.resolveTarget(id);
 				for (const receiverUrl in target) {
-					console.log('=> ' + this.type + ' SEND', message, receiverUrl);
+					// console.log('=> ' + this.type + ' SEND', message, receiverUrl);
 					target[receiverUrl].postMessage(message, receiverUrl);
 				}
 			}

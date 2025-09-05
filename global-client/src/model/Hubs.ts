@@ -18,19 +18,18 @@ import { SMI } from '@/logic/foundation/StatusMessage.js';
 class Hub {
 	readonly hubId: string;
 	readonly hubName: string;
-	url_function: Function | string;
+	readonly url: string;
 	readonly serverUrl: string;
 	description: string;
 	logo: string;
 	unreadMessages: number;
-	url: string;
 
 	private settingsStore: SettingsStore;
 
-	constructor(hubId: string, hubName: string, url_function: Function | string, serverUrl: string, description?: string, pinia?: Pinia) {
+	constructor(hubId: string, hubName: string, url: string, serverUrl: string, description?: string, pinia?: Pinia) {
 		this.hubId = hubId;
 		this.hubName = hubName;
-		this.url_function = url_function;
+		this.url = url;
 		this.serverUrl = serverUrl;
 		if (typeof description !== 'undefined') {
 			this.description = description;
@@ -45,9 +44,6 @@ class Hub {
 		} else {
 			this.settingsStore = useSettings();
 		}
-		this.url = '';
-		if (typeof url_function === 'string') this.url = url_function;
-		else if (typeof url_function === 'function') this.getHubUrl();
 	}
 
 	public get name(): string {
@@ -100,17 +96,6 @@ class Hub {
 		} else {
 			return okEnterCompleteResp.Entered;
 		}
-	}
-	public async getHubUrl(): Promise<string> {
-		if (typeof this.url_function === 'function') {
-			try {
-				const hubInfo = await this.url_function(`${this.serverUrl}`);
-				this.url = hubInfo.hub_client_url;
-			} catch (error) {
-				LOGGER.error(SMI.ERROR, 'Could not fetch the Hub info', { error });
-			}
-		}
-		return this.url;
 	}
 }
 
