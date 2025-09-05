@@ -41,12 +41,24 @@
 	const hubUrl = ref('');
 
 	async function onRouteChange() {
-		const hubId = hubs.hubId(route.params.name as string);
-		if (!hubs.hubExists(hubId)) {
-			await hubs.changeHub({ id: '', roomId: '' });
+		let hubId = undefined;
+		const maxAttempts = 10;
+		// TODO try to change timings of vue events so there is less wait time in this function
+		for (let attempts = 0; attempts < maxAttempts && !hubId; attempts++) {
+			try {
+				await new Promise((r) => setTimeout(r, 100));
+				hubId = hubs.hubId(route.params.name as string);
+				if (!hubs.hubExists(hubId)) {
+					await hubs.changeHub({ id: '', roomId: '' });
+				}
+				await handleHubAuth(hubId);
+				await hubs.changeHub(route.params);
+				continue;
+			} catch (error) {
+				LOGGER.error(SMI.ERROR, `Could not execute function onRouteChange on attempt: ${attempts}`, { error });
+			}
 		}
-		await handleHubAuth(hubId);
-		await hubs.changeHub(route.params);
+		if (!hubId) router.push({ name: 'home' });
 	}
 
 	async function handleHubAuth(id: string) {
