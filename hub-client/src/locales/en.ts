@@ -48,6 +48,7 @@ const en = {
 		attribute_already_taken: 'The following attribute is already tied to a PubHubs account: {0}. Try logging in.',
 		general_error: 'Unfortunately an error occured. Try again and contact the developers if the problem persists.',
 		retry_with_new_attr: 'Please add your attributes again in Yivi and retry.',
+		no_hubs_found: 'Unfortunately we could not show any hubs. Try again later and contact the developers if the problem persists.',
 	},
 	file: {
 		file: 'File',

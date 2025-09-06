@@ -101,6 +101,10 @@ const useMSS = defineStore('mss', {
 			}
 			await this.phcServer.storeObject<T>(handle, data, overwriteHash);
 		},
+		// TODO: possibly move this function to a utility file
+		withTimeout<T>(promise: Promise<T>, ms: number): Promise<T> {
+			return Promise.race([promise, new Promise<T>((_, reject) => setTimeout(() => reject(new Error('Timeout')), ms))]);
+		},
 
 		async getHubInfo(hubServerUrl: string): Promise<InfoResp> {
 			const infoResp = await hub_api.api<InfoResp>(`${hubServerUrl}${hub_api.apiURLS.info}`);
