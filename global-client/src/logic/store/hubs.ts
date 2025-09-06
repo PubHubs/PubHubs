@@ -8,7 +8,6 @@ import { useGlobal } from '@/logic/store/global.js';
 import { Message, MessageType, iframeHubId, miniClientId, useMessageBox } from '@/logic/store/messagebox.js';
 import { useSettings } from '@/logic/store/settings.js';
 import { useToggleMenu } from '@/logic/store/toggleGlobalMenu.js';
-import { useMSS } from '@/logic/store/mss.js';
 
 const useHubs = defineStore('hubs', {
 	state: () => {

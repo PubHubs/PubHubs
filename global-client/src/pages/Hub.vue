@@ -42,15 +42,17 @@
 
 	async function onRouteChange() {
 		let hubId = undefined;
-		const maxAttempts = 5;
+		const maxAttempts = 7;
 		// TODO try to change timings of vue events so there is less wait time in this function
 		for (let attempts = 0; attempts < maxAttempts && !hubId; attempts++) {
 			try {
-				const delay = Math.min(100 * (attempts + 1), 1000);
-				await new Promise((r) => setTimeout(r, delay));
 				hubId = hubs.hubId(route.params.name as string);
 			} catch (error) {
 				LOGGER.error(SMI.ERROR, `Could not execute function onRouteChange on attempt: ${attempts}`, { error });
+			}
+			if (!hubId) {
+				const delay = Math.min(10 * 2 ** attempts, 1000);
+				await new Promise((r) => setTimeout(r, delay));
 			}
 		}
 		if (!hubId) {
