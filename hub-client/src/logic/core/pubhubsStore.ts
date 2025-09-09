@@ -18,7 +18,7 @@ import { useConnection } from '@/logic/store/connection.js';
 import { useMessageActions } from '@/logic/store/message-actions.js';
 import { Poll, Scheduler } from '@/model/events/voting/VotingTypes.js';
 import { TMentions, TMessageEvent, TTextMessageEventContent } from '@/model/events/TMessageEvent.js';
-import { TPublicRoom, useRooms } from '@/logic/store/rooms.js';
+import { RoomType, TPublicRoom, useRooms } from '@/logic/store/rooms.js';
 import { TVotingWidgetClose, TVotingWidgetEditEventContent, TVotingWidgetMessageEventContent, TVotingWidgetOpen, TVotingWidgetPickOption, TVotingWidgetVote } from '@/model/events/voting/TVotingMessageEvent.js';
 import { User, useUser } from '@/logic/store/user.js';
 import { imageTypes, RelationType } from '@/model/constants.js';

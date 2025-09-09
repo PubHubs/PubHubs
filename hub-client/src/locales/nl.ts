@@ -47,6 +47,7 @@ const nl = {
 		attribute_already_taken: 'Het volgende attribuut is al gekoppeld aan een PubHubs account: {0}. Probeer in te loggen.',
 		general_error: 'Helaas is er een fout opgetreden. Probeer het opnieuw en neem contact op met de ontwikkelaars als het probleem blijft bestaan.',
 		retry_with_new_attr: 'Voeg uw attribuuten opnieuw toe in Yivi en probeer het nog een keer.',
+		no_hubs_found: 'Helaas konden we geen hubs tonen.  Probeer het later opnieuw en neem contact op met de ontwikkelaars als het probleem blijft bestaan.',
 	},
 	file: {
 		file: 'Bestand',

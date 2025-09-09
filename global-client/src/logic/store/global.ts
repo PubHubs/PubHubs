@@ -7,6 +7,7 @@ import { api } from '@/logic/core/api.js';
 import { useMSS } from '@/logic/store/mss.js';
 import { FeatureFlag, Theme, TimeFormat, useSettings } from '@/logic/store/settings.js';
 import { Hub, HubList } from '@/model/Hubs.js';
+import { useHubs } from '@/logic/store/hubs.js';
 
 // Hub imports
 import { SMI } from '@/../../hub-client/src/logic/foundation/StatusMessage.js';
@@ -334,14 +335,23 @@ const useGlobal = defineStore('global', {
 				return hubs;
 			} else {
 				const mss = useMSS();
+				const hubsStore = useHubs();
 				const data = await mss.getHubs();
-				const hubs = [] as HubList;
-				for (const item of data) {
-					// Strip /synapse/client from the serverurl
-					const serverUrl = item.url.replace(/\/_synapse\/client/, '');
-					hubs.push(new Hub(item.id, item.name, mss.getHubInfo, serverUrl, item.description));
-				}
-				return hubs;
+				const hubPromises = data.map((item) =>
+					mss
+						.withTimeout(mss.getHubInfo(item.url), 2000) // ms
+						.then((hubInfo) => {
+							const serverUrl = item.url.replace(/\/_synapse\/client/, '');
+							const hub = new Hub(item.id, item.name, hubInfo.hub_client_url, serverUrl, item.description);
+							// Add the hub to the store here already so an offline hub cant block loading online hubs
+							// TODO: make flow after globl.getHubs more efficient given this change
+							hubsStore.addHub(hub);
+						})
+						.catch((error) => {
+							this.logger.error(SMI.ERROR, `Could not fetch hub info for hub '${item.name}' with url ${item.url}: ${error.message}`);
+						}),
+				);
+				await Promise.all(hubPromises);
 			}
 		},
 
