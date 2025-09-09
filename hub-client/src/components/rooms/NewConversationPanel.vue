@@ -252,7 +252,7 @@
 		if (room) {
 			await uploadAvatar(room.room_id);
 			await setRoomName(room.room_id, groupName.value);
-			await routeToRoomPage(room);
+			await pubhubs.routeToRoomPage(room);
 		}
 	}
 
