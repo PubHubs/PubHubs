@@ -29,10 +29,13 @@
 							@profile-card-close="closeProfileCard"
 							@reaction-panel-toggle="toggleReactionPanel"
 							@reaction-panel-close="closeReactionPanel"
-						/>
-						<div class="flex flex-wrap gap-2 px-20">
-							<Reaction v-if="reactionExistsForMessage(item.event.event_id)" :reactEvent="onlyReactionEvent" :messageEventId="item.event.event_id"></Reaction>
-						</div>
+						>
+							<template #reactions>
+								<div class="ml-2 mt-2 flex flex-wrap gap-2 px-20">
+									<Reaction v-if="reactionExistsForMessage(item.event.event_id)" :reactEvent="onlyReactionEvent" :messageEventId="item.event.event_id"></Reaction>
+								</div>
+							</template>
+						</RoomMessageBubble>
 						<UnreadMarker v-if="settings.isFeatureEnabled(FeatureFlag.unreadMarkers)" :currentEventId="item.event.event_id ?? ''" :currentUserId="user.user.userId" />
 					</div>
 				</div>

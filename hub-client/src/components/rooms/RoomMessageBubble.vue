@@ -7,7 +7,7 @@
 
 		<!-- Normal Event -->
 		<!--Styling changed to keep the top border for announcement-->
-		<div v-else class="group flex flex-col py-3">
+		<div v-else class="group flex flex-col py-3" :class="getMessageContainerClasses" role="article">
 			<div
 				v-if="isAnnouncementMessage && !redactedMessage"
 				class="flex w-full items-center bg-surface-high px-8 py-1 ~text-label-small-min/label-small-max"
@@ -19,7 +19,7 @@
 				{{ getAnnouncementTitle }}
 			</div>
 
-			<div role="article" class="relative flex w-full gap-2 px-6" :class="getMessageContainerClasses" :data-testid="event.event_id">
+			<div class="relative flex w-full gap-2 px-6" :data-testid="event.event_id">
 				<!-- <div ref="elReactionPopUp" v-if="openEmojiPanel" class="absolute bottom-full right-0 z-50"> -->
 
 				<div v-if="showReactionPanel" :class="['absolute bottom-full right-0 z-50', calculatePanelPlacement() ? 'bottom-full' : 'top-8']">
@@ -143,6 +143,9 @@
 						&nbsp; {{ t('message.threads.view_thread') }} ({{ threadLength }})
 					</button>
 				</div>
+			</div>
+			<div>
+				<slot name="reactions"></slot>
 			</div>
 		</div>
 	</div>
