@@ -13,7 +13,7 @@
 					<P class="line-clamp-2">{{ room.topic }}</P>
 				</div>
 
-				<div class="flex w-full items-end justify-between gap-8">
+				<div class="flex w-full items-end justify-between gap-4">
 					<div class="flex flex-row flex-wrap gap-4 overflow-hidden text-on-surface-dim ~text-label-min/label-max">
 						<div class="flex items-center gap-2">
 							<Icon type="person" size="sm" filled />
