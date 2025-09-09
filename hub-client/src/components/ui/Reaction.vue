@@ -1,5 +1,5 @@
 <template>
-	<div class="flex flex-wrap gap-2" role="list" :data-testid="'reactions-to-' + messageEventId">
+	<div class="flex flex-wrap gap-2" role="list">
 		<span v-for="(item, index) in reactionSummary" :key="item.key" class="group relative inline-flex items-center gap-1 rounded-full bg-surface px-2 py-1" role="listitem">
 			{{ item.key }} {{ item.count }}
 

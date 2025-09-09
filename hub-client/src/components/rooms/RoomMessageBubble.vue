@@ -19,7 +19,7 @@
 				{{ getAnnouncementTitle }}
 			</div>
 
-			<div class="relative flex w-full gap-2 px-6" :data-testid="event.event_id">
+			<div class="relative flex w-full gap-2 px-6">
 				<!-- <div ref="elReactionPopUp" v-if="openEmojiPanel" class="absolute bottom-full right-0 z-50"> -->
 
 				<div v-if="showReactionPanel" :class="['absolute bottom-full right-0 z-50', calculatePanelPlacement() ? 'bottom-full' : 'top-8']">
