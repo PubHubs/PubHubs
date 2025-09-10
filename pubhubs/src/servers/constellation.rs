@@ -29,6 +29,8 @@ pub struct Constellation {
     /// When this constellation was first created by pubhubs central.  When two parties
     /// have different constellations, the party with the oldest constellation should
     /// update.
+    #[serde(default)] // temporary, for backwards compatibility with transcryptor
+    // running old code not having this field yet
     pub created_at: api::NumericDate,
 
     #[serde(flatten)]
