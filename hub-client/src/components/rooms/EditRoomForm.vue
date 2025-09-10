@@ -41,7 +41,7 @@
 					:disabled="!isNewRoom"
 					class="~text-label-min/label-max placeholder:text-surface-subtle focus:ring-accent-primary md:w-5/6"
 				/>
-				<P class="float-end ~text-label-small-min/label-small-max"> {{ editRoom.type.length }} / {{ validationComposable.roomSchemaConstants.maxTypeLength }} </P>
+				<P v-if="editRoom.type" class="float-end ~text-label-small-min/label-small-max"> {{ editRoom.type.length }} / {{ validationComposable.roomSchemaConstants.maxTypeLength }} </P>
 			</FormLine>
 			<div v-if="secured">
 				<FormLine class="mb-2">
@@ -145,6 +145,7 @@
 	import { buttonsSubmitCancel, DialogButtonAction } from '@/logic/store/dialog';
 	import { TSecuredRoom, useRooms } from '@/logic/store/store';
 	import { useEditRoom } from '@/logic/composables/useEditRoom';
+
 	import { trimSplit } from '@/logic/core/extensions';
 	import { useYivi } from '@/logic/store/yivi';
 	import { useValidation } from '@/logic/validation/useValidation';
@@ -157,6 +158,7 @@
 	// Vue
 	import { watch, computed, ref, onBeforeMount } from 'vue';
 	import { useI18n } from 'vue-i18n';
+	import { RoomType } from '@/model/rooms/TBaseRoom';
 
 	const { t } = useI18n();
 	const editRoomComposable = useEditRoom();
@@ -218,6 +220,7 @@
 			// Edit existing room
 			editRoom.value = { ...props.room } as Room | TSecuredRoom;
 			editRoom.value.topic = roomsStore.getRoomTopic(props.room?.room_id);
+
 			if (props.secured) {
 				const [labels, attributes] = editRoomComposable.getYiviLabelsAndAttributes(props.room?.accepted, t);
 				// Deep copy to avoid mutating props.room
@@ -235,12 +238,13 @@
 			);
 		}
 	});
+
 	// Validation function
 	function validateRoomForm() {
 		const values = {
 			name: editRoom.value.name,
 			topic: editRoom.value.topic,
-			type: editRoom.value.type,
+			type: editRoom.value.type ? editRoom.value.type : RoomType.PH_MESSAGES_DEFAULT,
 			description: props.secured ? editRoom.value.user_txt : undefined,
 			attributes: selectedAttributes.value,
 			acceptedMax: Math.max(...selectedAttributes.value.map((maxList) => maxList.accepted.length)),
