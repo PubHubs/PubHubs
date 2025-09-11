@@ -126,7 +126,7 @@ const defaultSettings: Settings = {
 			roomLibrary: false,
 			votingWidget: true,
 			consent: true,
-			multiServerSetup: false,
+			multiServerSetup: true,
 		},
 		local: {
 			signedMessages: true,
