@@ -474,6 +474,7 @@ const nl = {
 		upload_file: 'Upload bestand',
 		reply: 'Antwoord',
 		reply_in_thread: 'Antwoord in thread',
+		reply_emoji: 'Reageer snel',
 		scheduler: 'Datumprikker',
 		poll: 'Peiling',
 		scheduler_closed: 'Deze datumprikker is gesloten. Je kunt niet meer stemmen.',
