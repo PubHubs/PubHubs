@@ -1,5 +1,5 @@
 <template>
-	<div v-click-outside="close">
+	<div v-click-outside="close" data-testid="react-mini-popup">
 		<EmojiPicker
 			v-if="emojiPanel"
 			@emoji-selected="
@@ -7,7 +7,7 @@
 				close();
 			"
 		></EmojiPicker>
-		<div v-else class="group relative flex cursor-pointer flex-wrap items-center gap-4 rounded-full border bg-surface-high px-2 py-1">
+		<div v-else class="group relative flex cursor-pointer flex-wrap items-center gap-4 rounded-full border bg-surface-high px-2 py-1" role="list">
 			<span
 				v-for="item in defaultEmojis"
 				:key="item"
@@ -15,6 +15,7 @@
 					sendReactEvent(item);
 					close();
 				"
+				role="listitem"
 			>
 				{{ item }}
 			</span>

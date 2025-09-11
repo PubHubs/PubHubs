@@ -475,6 +475,7 @@ const en = {
 		upload_file: 'Upload file',
 		reply: 'Reply',
 		reply_in_thread: 'Reply in thread',
+		reply_emoji: 'React',
 		scheduler: 'Scheduler',
 		poll: 'Poll',
 		scheduler_closed: 'This scheduler has ended. You are no longer able to respond.',

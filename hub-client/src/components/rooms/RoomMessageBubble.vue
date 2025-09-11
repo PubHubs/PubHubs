@@ -7,7 +7,7 @@
 
 		<!-- Normal Event -->
 		<!--Styling changed to keep the top border for announcement-->
-		<div v-else class="group flex flex-col py-3">
+		<div v-else class="group flex flex-col py-3" :class="getMessageContainerClasses" role="article">
 			<div
 				v-if="isAnnouncementMessage && !redactedMessage"
 				class="flex w-full items-center bg-surface-high px-8 py-1 ~text-label-small-min/label-small-max"
@@ -19,7 +19,7 @@
 				{{ getAnnouncementTitle }}
 			</div>
 
-			<div role="article" class="relative flex w-full gap-2 px-6" :class="getMessageContainerClasses">
+			<div class="relative flex w-full gap-2 px-6">
 				<!-- <div ref="elReactionPopUp" v-if="openEmojiPanel" class="absolute bottom-full right-0 z-50"> -->
 
 				<div v-if="showReactionPanel" :class="['absolute bottom-full right-0 z-50', calculatePanelPlacement() ? 'bottom-full' : 'top-8']">
@@ -54,7 +54,7 @@
 
 							<div>
 								<template v-if="timerReady && !deleteMessageDialog">
-									<button v-if="msgIsNotSend && connection.isOn" @click="resend()" class="mb-1 ml-2" :title="$t('errors.resend')">
+									<button v-if="msgIsNotSend && connection.isOn" @click="resend()" class="mb-1 ml-2" :title="t('errors.resend')">
 										<Icon type="refresh" size="sm" class="text-red" />
 									</button>
 									<Icon v-if="msgIsNotSend && !connection.isOn" type="lost-connection" size="sm" class="text-red mb-1 ml-2" />
@@ -64,6 +64,7 @@
 									<button
 										@click.stop="emit('reactionPanelToggle', props.event.event_id)"
 										class="flex items-center justify-center rounded-md p-1 text-on-surface-variant transition-all duration-300 ease-in-out hover:w-fit hover:bg-accent-primary hover:text-on-accent-primary"
+										:title="t('message.reply_emoji')"
 									>
 										<Icon type="emoji_smiley" size="sm"></Icon>
 									</button>
@@ -72,7 +73,7 @@
 										v-if="!msgIsNotSend && !redactedMessage && !isThreadRoot"
 										@click="reply"
 										class="flex items-center justify-center rounded-md p-1 text-on-surface-variant transition-all duration-300 ease-in-out hover:w-fit hover:bg-accent-primary hover:text-on-accent-primary"
-										:title="$t('message.reply')"
+										:title="t('message.reply')"
 									>
 										<Icon :type="'reply'" size="sm" />
 									</button>
@@ -80,7 +81,7 @@
 										v-if="!viewFromThread && threadLength <= 0 && canReplyInThread && !msgIsNotSend && !redactedMessage"
 										@click="replyInThread"
 										class="flex items-center justify-center rounded-md p-1 text-on-surface-variant transition-all duration-300 ease-in-out hover:w-fit hover:bg-accent-primary hover:text-on-accent-primary"
-										:title="$t('message.reply_in_thread')"
+										:title="t('message.reply_in_thread')"
 									>
 										<Icon :type="'talk'" :size="'sm'"></Icon>
 									</button>
@@ -88,7 +89,7 @@
 										v-if="!msgIsNotSend && user.isAdmin && event.sender !== user.user.userId && settings.isFeatureEnabled(FeatureFlag.disclosure)"
 										@click="router.push({ name: 'ask-disclosure', query: { user: event.sender } })"
 										class="flex items-center justify-center rounded-md p-1 text-on-surface-variant transition-all duration-300 ease-in-out hover:w-fit hover:bg-accent-primary hover:text-on-accent-primary"
-										:title="$t('menu.moderation_tools_disclosure')"
+										:title="t('menu.moderation_tools_disclosure')"
 									>
 										<Icon :type="'warning'" size="sm" />
 									</button>
@@ -96,7 +97,7 @@
 										v-if="settings.isFeatureEnabled(FeatureFlag.deleteMessages) && !msgIsNotSend && event.sender === user.user.userId && !redactedMessage && !(props.viewFromThread && isThreadRoot)"
 										@click="onDeleteMessage(event)"
 										class="flex items-center justify-center rounded-md p-1 text-on-surface-variant transition-all duration-300 ease-in-out hover:w-fit hover:bg-accent-red hover:text-on-accent-red"
-										:title="$t('menu.delete_message')"
+										:title="t('menu.delete_message')"
 									>
 										<Icon :type="'bin'" size="sm" />
 									</button>
@@ -114,7 +115,7 @@
 							<MessageSnippet v-if="showReplySnippet(event.content.msgtype)" @click="onInReplyToClick" :eventId="inReplyToId" :showInReplyTo="true" :room="room"></MessageSnippet>
 							<template #fallback>
 								<div class="flex items-center gap-3 rounded-md px-2">
-									<p>{{ $t('state.loading_message') }}</p>
+									<p>{{ t('state.loading_message') }}</p>
 								</div>
 							</template>
 						</Suspense>
@@ -139,9 +140,12 @@
 						v-if="!deleteMessageDialog && !viewFromThread && threadLength > 0 && canReplyInThread && !msgIsNotSend && !redactedMessage"
 					>
 						<Icon :type="'talk'" :size="'xs'"></Icon>
-						&nbsp; {{ $t('message.threads.view_thread') }} ({{ threadLength }})
+						&nbsp; {{ t('message.threads.view_thread') }} ({{ threadLength }})
 					</button>
 				</div>
+			</div>
+			<div>
+				<slot name="reactions"></slot>
 			</div>
 		</div>
 	</div>
