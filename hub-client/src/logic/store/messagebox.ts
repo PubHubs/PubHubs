@@ -264,25 +264,27 @@ const useMessageBox = defineStore('messagebox', {
 		 * @ignore
 		 */
 		resolveTarget(id: string = 'parentFrame') {
-			const target = {} as { [receiverurl: string]: Window };
+			const target = {} as { [id: string]: { window: Window; receiverUrl: string } };
 			if (this.type === MessageBoxType.Child) {
 				const receiverUrl = this.receiverUrlMap.get(id);
 				if (receiverUrl) {
-					target[receiverUrl] = window.parent;
+					target[id] = { window: window.parent, receiverUrl };
 				}
 			} else if (id === 'parentFrame') {
 				// If the id is 'parentFrame' and the messagebox is of type PARENT, the message needs to be sent to all receivers that are connected with the PARENT.
 				this.receiverUrlMap.forEach((receiverUrl, idFromMap) => {
 					const el: HTMLIFrameElement | null = document.querySelector('iframe#' + idFromMap);
 					if (el !== null && el.contentWindow !== null && typeof el.contentWindow !== 'undefined') {
-						target[receiverUrl] = el.contentWindow;
+						target[idFromMap] = { window: el.contentWindow, receiverUrl };
 					}
 				});
 			} else {
 				const el: HTMLIFrameElement | null = document.querySelector('iframe#' + id);
 				if (el !== null && el.contentWindow !== null && typeof el.contentWindow !== 'undefined') {
 					const receiverUrl = this.receiverUrlMap.get(id);
-					if (receiverUrl) target[receiverUrl] = el.contentWindow;
+					if (receiverUrl) {
+						target[id] = { window: el.contentWindow, receiverUrl };
+					}
 				}
 			}
 			return target;
@@ -297,9 +299,9 @@ const useMessageBox = defineStore('messagebox', {
 		sendMessage(message: Message, id: string = 'parentFrame') {
 			if (this.isConnected) {
 				const target = this.resolveTarget(id);
-				for (const receiverUrl in target) {
-					// console.log('=> ' + this.type + ' SEND', message, receiverUrl);
-					target[receiverUrl].postMessage(message, receiverUrl);
+				for (const id in target) {
+					// console.log('=> ' + this.type + ' SEND', message, target[id].receiverUrl);
+					target[id].window.postMessage(message, target[id].receiverUrl);
 				}
 			}
 		},

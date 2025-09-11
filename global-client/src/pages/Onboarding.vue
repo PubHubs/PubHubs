@@ -365,12 +365,14 @@
 	}, 300);
 
 	onMounted(async () => {
+		window.addEventListener('resize', handleResize);
+
 		if (settings.isFeatureEnabled(FeatureFlag.multiServerSetup)) {
 			await startYiviSessionMSS();
 		} else {
 			startYiviSession(true, yivi_token);
 		}
-		window.addEventListener('resize', handleResize);
+
 		window.addEventListener('pageshow', async () => {
 			if (settings.isFeatureEnabled(FeatureFlag.multiServerSetup)) {
 				await startYiviSessionMSS();
