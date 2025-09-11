@@ -268,7 +268,7 @@ async fn main_integration_test_local(
     .await;
 
     let email2 = attrs.get(&"email".parse().unwrap()).unwrap();
-    let phone2 = attrs.get(&"phone".parse().unwrap()).unwrap();
+    let _phone2 = attrs.get(&"phone".parse().unwrap()).unwrap();
 
     // Retrieve attribute key for email
     let Ok(api::auths::AttrKeysResp::Success(attr_keys)) = client
