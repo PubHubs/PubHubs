@@ -2,20 +2,23 @@ import { usePubHubs } from '@/logic/core/pubhubsStore';
 import { LOGGER } from '@/logic/foundation/Logger';
 import { SMI } from '@/logic/foundation/StatusMessage';
 import { RoomTimelineWindow } from '@/model/timeline/RoomTimelineWindow';
-import { Direction, EventTimeline, EventTimelineSet, MatrixClient, MatrixEvent, Room as MatrixRoom, NotificationCountType, RoomMember as MatrixRoomMember, MsgType, EventType, ThreadEvent, Thread } from 'matrix-js-sdk';
+import { Direction, EventTimeline, EventTimelineSet, MatrixClient, MatrixEvent, Room as MatrixRoom, NotificationCountType, RoomMember as MatrixRoomMember, MsgType, EventType, ThreadEvent, Thread, RoomEvent } from 'matrix-js-sdk';
 import { CachedReceipt, WrappedReceipt } from 'matrix-js-sdk/lib/@types/read_receipts';
 import { TBaseEvent } from '../events/TBaseEvent';
 import { TRoomMember } from './TRoomMember';
 import TRoomThread from '../thread/RoomThread';
 import RoomMember from './RoomMember';
+import { useRoomLibrary } from '@/logic/composables/useRoomLibrary';
 import { TMessageEvent, TMessageEventContent } from '../events/TMessageEvent';
 import { useMatrixFiles } from '@/logic/composables/useMatrixFiles';
+import { RelationType } from '../constants.js';
 
 enum RoomType {
 	SECURED = 'ph.messages.restricted',
 	PH_MESSAGES_DM = 'ph.messages.dm',
 	PH_MESSAGES_GROUP = 'ph.messages.group',
 	PH_MESSAGE_ADMIN_CONTACT = 'ph.messages.admin.contact',
+	PH_MESSAGE_STEWARD_CONTACT = 'ph.messages.steward.contact',
 }
 
 const BotName = {
@@ -68,6 +71,8 @@ export default class Room {
 
 	logger = LOGGER;
 
+	private roomLibrary;
+
 	constructor(matrixRoom: MatrixRoom) {
 		LOGGER.trace(SMI.ROOM, `Roomclass Constructor `, {
 			roomId: matrixRoom.roomId,
@@ -84,6 +89,7 @@ export default class Room {
 		this.lastVisibleTimeStamp = 0;
 
 		this.pubhubsStore = usePubHubs();
+		this.roomLibrary = useRoomLibrary();
 		this.matrixFiles = useMatrixFiles();
 
 		this.timelineWindow = new RoomTimelineWindow(this.matrixRoom);
@@ -102,8 +108,16 @@ export default class Room {
 		return this.getType() === RoomType.PH_MESSAGE_ADMIN_CONTACT;
 	}
 
+	public isStewardContactRoom(): boolean {
+		return this.getType() === RoomType.PH_MESSAGE_STEWARD_CONTACT;
+	}
+
 	public isSecuredRoom(): boolean {
 		return this.getType() === RoomType.SECURED;
+	}
+
+	public directMessageRoom(): boolean {
+		return this.isPrivateRoom() || this.isAdminContactRoom() || this.isStewardContactRoom() || this.isGroupRoom();
 	}
 
 	// #region getters and setters
@@ -176,9 +190,9 @@ export default class Room {
 	public getPowerLevel(user_id: string): number {
 		const member = this.matrixRoom.getMember(user_id);
 		if (member) {
-			return member?.powerLevel;
+			return member.powerLevel;
 		}
-		// Doesn't have power level.
+		// If user is not a member.
 		return -1;
 	}
 
@@ -200,6 +214,39 @@ export default class Room {
 			}
 		}
 		return topic;
+	}
+
+	// #endregion
+
+	// #reaction region  ///
+
+	public getReactEventsFromTimeLine(): MatrixEvent[] {
+		return this.getLiveTimelineEvents().filter((event) => event.getType() === EventType.Reaction);
+	}
+
+	public ifLastEventHasReaction(eventId: string): boolean {
+		const lastMessageEventId = this.matrixRoom
+			.getLiveTimeline()
+			.getEvents()
+			.filter((event) => event.getType() === EventType.RoomMessage)
+			.at(-1)?.event.event_id;
+		const reactEvent = this.getReactEventsFromTimeLine().find((event) => event.event.event_id === eventId);
+		if (reactEvent) {
+			const eventIdForMessage = reactEvent.getContent()[RelationType.RelatesTo]?.event_id;
+			if (eventIdForMessage === lastMessageEventId) {
+				return true;
+			}
+		}
+		return false;
+	}
+
+	/**
+	 *  Gets reaction event based on relation event Id
+	 * @param eventId string Relation Event Id
+	 * @returns MatrixEvent event of type Reaction.
+	 */
+	public getReactionEvent(eventId: string) {
+		return this.getReactEventsFromTimeLine().filter((reactEvent) => reactEvent.getContent()[RelationType.RelatesTo]?.event_id === eventId);
 	}
 
 	// #endregion
@@ -260,6 +307,11 @@ export default class Room {
 		return roomMemberIds;
 	}
 
+	public getRoomStewards(): Array<TRoomMember> {
+		return this.getMembersIds()
+			.map((member) => this.getMember(member))
+			.filter((roomMember) => roomMember?.powerLevel === 50);
+	}
 	public getMembersIdsFromName(): Array<string> {
 		const roomMemberIds = this.name.split(',');
 		roomMemberIds.sort();
@@ -309,6 +361,13 @@ export default class Room {
 			.some((roomEvent) => roomEvent.getType() === EventType.RoomMessage);
 	}
 
+	public numOfMessages(): number {
+		return this.matrixRoom
+			.getLiveTimeline()
+			.getEvents()
+			.filter((roomEvent) => roomEvent.getType() === EventType.RoomMessage).length;
+	}
+
 	/**
 	 * Removes a single event from this room.
 	 *
@@ -343,8 +402,11 @@ export default class Room {
 			this.currentThread = undefined;
 		}
 
+		// If reactEvent exists, delete it with the message.
+		const reactEventId = this.getReactionEvent(event.event_id) ? this.getReactionEvent(event.event_id).pop()?.getId() : null;
+
 		const threadIdToDelete = isThreadRoot ? event.event_id : threadId;
-		this.pubhubsStore.deleteMessage(this.matrixRoom.roomId, event.event_id, threadIdToDelete);
+		this.pubhubsStore.deleteMessage(this.matrixRoom.roomId, event.event_id, threadIdToDelete, reactEventId);
 	}
 
 	// #endregion
@@ -415,6 +477,14 @@ export default class Room {
 
 	public getLivetimelineLength(): number {
 		return this.matrixRoom.getLiveTimeline().getEvents().length;
+	}
+
+	// #endregion
+
+	// #region RoomLibrary
+
+	public loadRoomlibrary() {
+		return this.roomLibrary.loadRoomLibraryTimeline(this.matrixRoom);
 	}
 
 	// #endregion

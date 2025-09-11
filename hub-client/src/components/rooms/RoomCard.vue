@@ -1,5 +1,5 @@
 <template>
-	<div class="flex h-[320px] w-full flex-col rounded-xl shadow transition-all duration-300 xs:w-auto" :class="isExpanded ? 'row-span-2 h-[672px] bg-surface' : 'h-[320px] bg-surface-low'">
+	<div role="article" class="flex h-[320px] w-full flex-col rounded-xl shadow transition-all duration-300 xs:w-auto" :class="isExpanded ? 'row-span-2 h-[672px] bg-surface' : 'h-[320px] bg-surface-low'">
 		<!-- Main card -->
 		<div class="flex h-[320px] w-full shrink-0 flex-col gap-4 overflow-hidden rounded-xl bg-surface-low py-8 shadow-md">
 			<div class="flex items-center justify-between">
@@ -13,7 +13,7 @@
 					<P class="line-clamp-2">{{ room.topic }}</P>
 				</div>
 
-				<div class="flex w-full items-end justify-between gap-8">
+				<div class="flex w-full items-end justify-between gap-4">
 					<div class="flex flex-row flex-wrap gap-4 overflow-hidden text-on-surface-dim ~text-label-min/label-max">
 						<div class="flex items-center gap-2">
 							<Icon type="person" size="sm" filled />
@@ -25,6 +25,20 @@
 						</div>
 					</div>
 
+					<div class="hidden lg:block">
+						<Button v-if="memberOfRoom" @click="enterRoom" :title="t('rooms.already_joined')" class="w-fit shrink-0 whitespace-nowrap">
+							{{ t('rooms.already_joined') }}
+						</Button>
+						<Button v-else-if="isSecured" @click="toggleExpand" class="w-fit shrink-0" :title="t('rooms.view_access_requirements')" :color="!isExpanded ? 'primary' : 'secondary'">
+							{{ !isExpanded ? t('rooms.view_access_requirements') : t('rooms.close_access_requirements') }}
+						</Button>
+
+						<Button v-else @click="joinRoom" class="w-fit shrink-0 whitespace-nowrap" :title="t('rooms.join_room')">
+							{{ t('rooms.join_room') }}
+						</Button>
+					</div>
+				</div>
+				<div class="mt-4 block lg:hidden">
 					<Button v-if="memberOfRoom" @click="enterRoom" :title="t('rooms.already_joined')" class="w-fit shrink-0 whitespace-nowrap">
 						{{ t('rooms.already_joined') }}
 					</Button>
@@ -60,12 +74,12 @@
 				<P v-else> {{ $t('common.loading') }}</P>
 			</div>
 			<div class="flex w-full items-end justify-end gap-8">
-				<Button @click="joinSecureRoom" class="w-fit shrink-0 truncate whitespace-nowrap" :disabled="panelOpen">
+				<Button @click="joinSecureRoom" class="w-fit shrink-0 truncate whitespace-nowrap">
 					{{ t('rooms.join_secured_room') }}
 				</Button>
 
 				<!-- Secure room join dialog -->
-				<SecuredRoomLogin v-if="panelOpen" :securedRoomId="room.room_id" @click="panelOpen = false" />
+				<SecuredRoomLoginDialog v-model:dialogOpen="dialogOpen" title="rooms.join_room" message="rooms.join_secured_room_dialog" :messageValues="[]" />
 			</div>
 		</div>
 	</div>
@@ -82,6 +96,7 @@
 	import H2 from '@/components/elements/H2.vue';
 	import Icon from '@/components/elements/Icon.vue';
 	import P from '@/components/elements/P.vue';
+	import SecuredRoomLoginDialog from '@/components/rooms/SecuredRoomLoginDialog.vue';
 
 	// Logic
 	import { usePubHubs } from '@/logic/core/pubhubsStore';
@@ -122,6 +137,7 @@
 	const roomsStore = useRooms();
 	const accessVerifytext = ref('');
 	const panelOpen = ref(false);
+	const dialogOpen = ref<string | null>(null);
 	const securedAttributes = ref();
 
 	// Compute member count string
@@ -208,6 +224,7 @@
 	};
 
 	const joinSecureRoom = () => {
+		dialogOpen.value = props.room.room_id;
 		panelOpen.value = true;
 	};
 </script>

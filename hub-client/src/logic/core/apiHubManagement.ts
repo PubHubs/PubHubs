@@ -85,6 +85,6 @@ export class APIService {
 	// Join the room with an access token of another admin
 	static async forceRoomJoin(roomId: string, accessToken: string) {
 		api_matrix.setAccessToken(accessToken);
-		api_matrix.apiPOST(api_matrix.apiURLS.join + roomId, {});
+		await api_matrix.apiPOST(api_matrix.apiURLS.join + roomId, {});
 	}
 }

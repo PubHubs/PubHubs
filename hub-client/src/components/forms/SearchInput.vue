@@ -5,6 +5,7 @@
 			<input
 				class="h-full w-full flex-1 border-none bg-transparent ~text-label-small-min/label-small-max placeholder:text-on-surface-variant focus:outline-0 focus:outline-offset-0 focus:ring-0"
 				type="text"
+				role="searchbox"
 				v-model="value"
 				:placeholder="t('others.search_room')"
 				:title="t('others.search_room')"
@@ -32,6 +33,7 @@
 				v-if="isExpanded"
 				class="h-full w-full flex-1 border-none bg-transparent ~text-label-small-min/label-small-max placeholder:text-on-surface-variant focus:outline-0 focus:outline-offset-0 focus:ring-0"
 				type="text"
+				role="searchbox"
 				v-model="value"
 				ref="searchInput"
 				:placeholder="$t('others.search_room')"
@@ -59,9 +61,9 @@
 	</div>
 
 	<!-- Search results -->
-	<div v-if="searched" class="absolute right-0 top-16 z-50 w-full overflow-y-auto rounded-md bg-surface-low md:top-20 md:w-[20vw]">
+	<div v-if="searched" class="absolute right-0 top-16 z-50 w-full overflow-y-auto rounded-md bg-surface-low md:top-20 md:w-[20vw]" data-testid="search-result">
 		<template v-if="searchResultsToShow && searchResultsToShow.length > 0">
-			<div v-for="item in searchResultsToShow" :key="item.event_id" class="group">
+			<div v-for="item in searchResultsToShow" :key="item.event_id" class="group" role="listitem">
 				<a href="#" @click.prevent="onScrollToEventId(item.event_id, item.event_threadId)">
 					<div class="flex items-center gap-2 p-2 group-hover:bg-surface">
 						<Avatar :userId="item.event_sender" class="h-8 w-8 flex-none" />
@@ -72,10 +74,10 @@
 		</template>
 		<template v-else-if="isSearching">
 			<InlineSpinner class="float-left mr-2" />
-			<p>{{ t('others.searching') }}</p>
+			<p role="status">{{ t('others.searching') }}</p>
 		</template>
 		<template v-else>
-			<p v-if="value !== ''" class="p-2">
+			<p role="status" v-if="value !== ''" class="p-2">
 				{{ t('others.search_nothing_found') }}
 			</p>
 		</template>
@@ -104,7 +106,7 @@
 	const rooms = useRooms();
 	const searchField = useTemplateRef('searchInput');
 
-	//Passed by the parentcomponent
+	// Passed by the parentcomponent
 	const props = defineProps({
 		searchParameters: {
 			type: Object as PropType<TSearchParameters>,
@@ -135,7 +137,7 @@
 		emit('toggleSearchbar', isExpanded.value);
 	}
 
-	// searchresults shown in list. When the text 'more results' is shown the last result is omitted to keep it in view
+	// Searchresults shown in list. When the text 'more results' is shown the last result is omitted to keep it in view
 	const searchResultsToShow = computed(() => {
 		// Only results that do not have an empty event_body should be shown
 		const filteredSearchResults = searchResults.value.filter((result) => result.event_body !== '');
@@ -143,6 +145,7 @@
 	});
 
 	async function search() {
+		emit('search-started');
 		searchResults.value = [];
 		searched.value = true;
 		isSearching.value = true;

@@ -37,6 +37,7 @@ pub struct EhppReq {
 #[derive(Serialize, Deserialize, Debug, Clone)]
 #[serde(deny_unknown_fields)]
 #[serde(rename = "snake_case")]
+#[must_use]
 pub enum EhppResp {
     RetryWithNewPpp,
 

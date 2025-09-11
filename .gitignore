@@ -7,6 +7,3 @@ client-config.local.js
 .vscode
 .python-version
 *.code-workspace
-
-# Playwright local state
-hub-client/playwright_login_token.json

@@ -7,6 +7,7 @@
 		:title="placeholder"
 		:value="modelValue"
 		:disabled="props.disabled"
+		:maxlength="maxlength"
 		@input="update($event.target.value)"
 		@keydown.enter="submit()"
 		@keydown.esc="cancel()"
@@ -28,6 +29,10 @@
 		disabled: {
 			type: Boolean,
 			default: false,
+		},
+		maxlength: {
+			type: Number,
+			default: 1000,
 		},
 	});
 

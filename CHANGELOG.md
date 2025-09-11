@@ -11,6 +11,15 @@ _Please add a brief description of any changes and any migrations to be performe
 
 ## Changed not yet merged to stable
 
+## 11 September 2025 - v3.0.0-rc0
+
+- [BREAKING] The old pubhubs server now needs a PHC_URL environment variable pointing to the new mss phc for the global client
+- [NEW] Added the option to remove attribute values from existing secured rooms.
+- [NEW] Updated validation for the form that is used to edit rooms.
+- [NEW] Fast reactions on message.
+- [BREAKING] Added `phc.global_client_url` to `pubhubs.toml`.
+
+
 ## 10 July 2025 - v2.2.0
 
 - [UPDATE] Replaced vue.cli by Vite
@@ -18,6 +27,7 @@ _Please add a brief description of any changes and any migrations to be performe
 - [NEW] Message can be added to a image or file in the chat
 - [NEW] Added a markdown editor for hub description, house rules, and contact information
 - [NEW] List of the members of a room can be shown now (button in header of the room)
+- [UPDATE] Transfer of ownership of room by Hub administrator
 
 ## 12 June 2025 - v2.1.3
 

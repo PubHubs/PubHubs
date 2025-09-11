@@ -1,9 +1,9 @@
-import { SignedMessage } from '@/model/components/signedMessages';
-import { WithRequired } from '../utility/utility';
-import { TBaseEvent } from './TBaseEvent';
+import { SignedMessage } from '@/model/components/signedMessages.js';
+import { WithRequired } from '../utility/utility.js';
+import { TBaseEvent } from './TBaseEvent.js';
 import { EventType, MsgType } from 'matrix-js-sdk';
-import { PubHubsMgType } from '@/logic/core/events';
-import { TVotingWidgetMessageEventContent } from '@/model/events/voting/TVotingMessageEvent';
+import { PubHubsMgType } from '@/logic/core/events.js';
+import { TVotingWidgetMessageEventContent } from '@/model/events/voting/TVotingMessageEvent.js';
 
 /**
  * Event used for sending messages in a room. Not limited to text.
@@ -36,7 +36,6 @@ export interface TBaseMessageEventContent {
 	'm.relates_to'?: {
 		rel_type?: string;
 		event_id?: string;
-		is_falling_back?: boolean;
 		'm.in_reply_to'?: {
 			event_id: string;
 		};
@@ -60,6 +59,7 @@ export interface TImageMessageEventContent extends TBaseMessageEventContent {
 	info?: ImageInfo;
 	// We don't use encryption, so required
 	url: string;
+	filename?: string;
 }
 
 export interface TFileMessageEventContent extends TBaseMessageEventContent {
@@ -67,7 +67,7 @@ export interface TFileMessageEventContent extends TBaseMessageEventContent {
 	file?: EncryptedFile;
 	filename?: string;
 	info?: FileInfo;
-	url?: string;
+	url: string;
 }
 
 export interface TSignedMessageEventContent extends TBaseMessageEventContent {

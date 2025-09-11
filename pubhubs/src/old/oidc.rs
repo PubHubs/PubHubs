@@ -316,10 +316,10 @@ pub mod http {
             Self: 'b;
 
         fn method(&self) -> Method;
-        fn query(&self) -> Cow<str>;
+        fn query(&self) -> Cow<'_, str>;
         fn body(&self) -> Self::Body<'_>;
         fn content_type(&self) -> Option<ContentType>;
-        fn authorization(&self) -> Option<Cow<str>>;
+        fn authorization(&self) -> Option<Cow<'_, str>>;
     }
 
     /// Enumerates the Http methods used here.
@@ -862,7 +862,7 @@ pub mod http {
                 self.underlying.method().into()
             }
 
-            fn query(&self) -> Cow<str> {
+            fn query(&self) -> Cow<'_, str> {
                 match self.underlying.uri().query() {
                     Some(q) => Cow::Borrowed(q),
                     None => Cow::Owned("".to_string()),
@@ -877,7 +877,7 @@ pub mod http {
                 Some(self.header(hyper::header::CONTENT_TYPE)?.into())
             }
 
-            fn authorization(&self) -> Option<Cow<str>> {
+            fn authorization(&self) -> Option<Cow<'_, str>> {
                 Some(Cow::Borrowed(self.header(hyper::header::AUTHORIZATION)?))
             }
         }
@@ -1767,23 +1767,21 @@ impl<H: Handler> Oidc for OidcImpl<H> {
             let dec_userid: Result<Cow<'_, str>, _> = urlencoding::decode(&creds.userid);
             let dec_password: Result<Cow<'_, str>, _> = urlencoding::decode(&creds.password);
 
-            if dec_userid.is_ok()
-                && dec_password.is_ok()
+            if let (Ok(dec_userid), Ok(dec_password)) = (dec_userid, dec_password)
                 && ClientId::check_password(
-                    dec_userid.as_ref().unwrap(),
+                    dec_userid.as_ref(),
                     self.client_password_secret,
-                    dec_password.as_ref().unwrap(),
+                    dec_password.as_ref(),
                 )
             {
                 // Okay, not the actual, but the url ecoded userid and password are correct;
                 // let's adjust creds to reflect this.
-                creds.userid = dec_userid.unwrap().to_string();
-                creds.password = dec_password.unwrap().to_string();
+                creds.userid = dec_userid.to_string();
+                creds.password = dec_password.to_string();
             } else {
                 return http_error!(InvalidClientCredentials);
             }
         }
-
         let acd = AuthCodeData::from_code(query.code, &self.auth_code_secret, &creds.userid);
         if acd.is_err() {
             return http_error!(InvalidAuthCode);
@@ -2043,7 +2041,7 @@ pub mod html {
     ///     "and &lt; now &gt; with &amp; some &quot; text &#27; in between"
     /// );
     /// ```
-    pub fn escape(s: &str) -> Cow<str> {
+    pub fn escape(s: &str) -> Cow<'_, str> {
         let mut it = s
             .match_indices(['<', '>', '&', '\'', '"'].as_slice())
             .peekable();

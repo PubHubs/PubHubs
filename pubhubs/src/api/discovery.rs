@@ -22,7 +22,16 @@ impl EndpointDetails for DiscoveryRun {
 }
 
 /// What's returned by the `.ph/discovery/info` endpoint
+///
+/// NOTE: when modifying [`DiscoveryInfoResp`] make sure that
+///  (1) PHC will not crash on the outdated disovery info responses returned by
+///  the transcryptor and authentication server before they are updated;
+///
+///  (2) Old authentication server and transcryptor code will not crash on the updated  discovery
+///  info response returned by PHC.
 #[derive(Serialize, Deserialize, Debug, Clone)]
+#[serde(deny_unknown_fields)]
+#[must_use]
 pub struct DiscoveryInfoResp {
     pub name: crate::servers::Name,
 
@@ -55,6 +64,8 @@ pub struct DiscoveryInfoResp {
 
 /// Result of the `.ph/discovery/run` endpoint
 #[derive(Serialize, Deserialize, Debug, PartialEq, Eq, Clone)]
+#[serde(deny_unknown_fields)]
+#[must_use]
 pub enum DiscoveryRunResp {
     /// Everything checks out at our side
     UpToDate,

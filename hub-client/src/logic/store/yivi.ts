@@ -4,17 +4,11 @@
  */
 
 import { defineStore } from 'pinia';
-import { Option, Options } from '@/logic/composables/useFormInputEvents';
+import { Attribute } from '@/model/yivi/TYivi';
 
 // const yiviRepo = 'https://github.com/privacybydesign/pbdf-schememanager/';
 
-interface Attribute {
-	attribute: string;
-}
-
-type Attributes = Array<Attribute>;
-
-const curatedAttributes: Attributes = [
+const curatedAttributes: Attribute[] = [
 	{ attribute: 'pbdf.sidn-pbdf.email.email' },
 	{ attribute: 'pbdf.sidn-pbdf.email.domain' },
 	{ attribute: 'pbdf.gemeente.address.street' },
@@ -45,20 +39,20 @@ const curatedAttributes: Attributes = [
 const useYivi = defineStore('yivi', {
 	state: () => {
 		return {
-			attributes: curatedAttributes as Attributes,
+			attributes: curatedAttributes as Attribute[],
 		};
 	},
 
-	getters: {
-		attributesOptions(state): Options {
-			const options = state.attributes.map((a) => {
+	actions: {
+		getAttributes(t: (key: string, ...args: any[]) => string): Attribute[] {
+			return this.attributes.map((a: Attribute) => {
 				return {
-					value: a.attribute,
-				} as Option;
+					attribute: a.attribute,
+					label: t('attribute.' + a.attribute),
+				};
 			});
-			return options;
 		},
 	},
 });
 
-export { useYivi, Attribute };
+export { useYivi };

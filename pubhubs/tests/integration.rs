@@ -4,7 +4,7 @@ use actix_web::web;
 use pubhubs::{
     api::{self, ApiResultExt as _, BytesPayload, EndpointDetails as _, NoPayload},
     attr, client, elgamal, handle, hub,
-    misc::jwt,
+    misc::{jwt, serde_ext::bytes_wrapper::B64UU},
     servers::{self, yivi},
 };
 use std::collections::HashMap;
@@ -107,8 +107,8 @@ async fn main_integration_test_local(
     let t_enc_key_sk = elgamal::PrivateKey::random();
     let phc_enc_key_sk = elgamal::PrivateKey::random();
 
-    client
-        .query_with_retry::<api::admin::UpdateConfig, _, _>(
+    let resp = client
+        .query_with_retry::<api::admin::UpdateConfigEP, _, _>(
             &constellation.transcryptor_url,
             &api::Signed::<api::admin::UpdateConfigReq>::new(
                 &*admin_sk,
@@ -122,6 +122,8 @@ async fn main_integration_test_local(
         )
         .await
         .unwrap();
+
+    assert!(matches!(resp, api::admin::UpdateConfigResp::Success));
 
     // wait for transcryptor's enc_key to be updated
     pubhubs::misc::task::retry(|| async {
@@ -148,8 +150,8 @@ async fn main_integration_test_local(
     .unwrap();
 
     // update PHC's key
-    client
-        .query_with_retry::<api::admin::UpdateConfig, _, _>(
+    let resp = client
+        .query_with_retry::<api::admin::UpdateConfigEP, _, _>(
             &constellation.phc_url,
             &api::Signed::<api::admin::UpdateConfigReq>::new(
                 &*admin_sk,
@@ -163,6 +165,8 @@ async fn main_integration_test_local(
         )
         .await
         .unwrap();
+
+    assert!(matches!(resp, api::admin::UpdateConfigResp::Success));
 
     // wait for phc's enc_key to be updated
     pubhubs::misc::task::retry(|| async {
@@ -201,7 +205,7 @@ async fn main_integration_test_local(
         .find(|h: &&hub::BasicInfo| &*h.handles[0] == "testhub")
         .expect("could not find 'testhub' hub");
 
-    let mock_hub = MockHub::new(testhub.clone());
+    let mock_hub = MockHub::new(testhub.clone(), constellation.clone());
 
     let mut js = tokio::task::JoinSet::new();
     js.spawn(mock_hub.actix_server); // the actix server does not run itself
@@ -228,7 +232,7 @@ async fn main_integration_test_local(
     // check that the ticket is valid
     ticket
         .clone()
-        .old_open(&*constellation.phc_jwt_key)
+        .open(&*constellation.phc_jwt_key, None)
         .unwrap();
 
     // request hub encryption key
@@ -242,89 +246,29 @@ async fn main_integration_test_local(
         .await
         .unwrap();
 
-    // request authentication as end-user
-    let api::auths::AuthStartResp::Success {
-        task: auth_task,
-        state: auth_state,
-    } = client
-        .query_with_retry::<api::auths::AuthStartEP, _, _>(
-            &constellation.auths_url,
-            &api::auths::AuthStartReq {
-                source: attr::Source::Yivi,
-                attr_types: vec!["email".parse().unwrap(), "phone".parse().unwrap()],
-            },
-        )
-        .await
-        .unwrap()
-    else {
-        panic!()
-    };
-
-    let jwt: jwt::JWT = match auth_task {
-        api::auths::AuthTask::Yivi {
-            disclosure_request,
-            yivi_requestor_url,
-        } => {
-            assert_eq!(
-                yivi_requestor_url.to_string(),
-                "http://192.0.2.0/".to_string()
-            );
-            disclosure_request
-        } // _ => panic!("expected Yivi task"),
-    };
-
-    // at this point the end-user should disclosure their attributes to the specified yivi server;
-    // we'll mock the response of the yivi server instead
-    let jwt_claims: jwt::Claims = jwt.open(&jwt::HS256("secret".into())).unwrap();
-
-    let claims: DisclosureRequestClaims = jwt_claims
-        .check_iss(jwt::expecting::exactly("ph_auths"))
-        .unwrap()
-        .check_sub(jwt::expecting::exactly("verification_request"))
-        .unwrap()
-        .into_custom()
-        .unwrap();
-
-    let discl_resp = claims.sprequest.mock_disclosure_response(
-        |ati: &yivi::AttributeTypeIdentifier| -> String {
-            match ati.as_str() {
-                "irma-demo.sidn-pbdf.email.email" => "user@example.com".to_string(),
-                "irma-demo.sidn-pbdf.mobilenumber.mobilenumber" => "0612345678".to_string(),
-                _ => {
-                    panic!("unexpected yivi attribute type {}", ati.as_str());
-                }
-            }
-        },
-    );
-
-    let yivi_server_creds = yivi::Credentials {
-        name: "yivi-server".to_string(),
-        key: yivi_server_sk,
-    };
-
-    let result_jwt = discl_resp
-        .sign(&yivi_server_creds, Duration::from_secs(60))
-        .unwrap();
-
-    // Now send the disclosure response to the authentication server to get some credentials
-    let api::auths::AuthCompleteResp::Success { attrs } = client
-        .query_with_retry::<api::auths::AuthCompleteEP, _, _>(
-            &constellation.auths_url,
-            &api::auths::AuthCompleteReq {
-                state: auth_state,
-                proof: api::auths::AuthProof::Yivi {
-                    disclosure: result_jwt,
-                },
-            },
-        )
-        .await
-        .unwrap()
-    else {
-        panic!()
-    };
+    let attrs = request_attributes(
+        &client,
+        &constellation,
+        &yivi_server_sk,
+        "user@example.com",
+        "0612345678",
+    )
+    .await;
 
     let email = attrs.get(&"email".parse().unwrap()).unwrap();
     let phone = attrs.get(&"phone".parse().unwrap()).unwrap();
+
+    let attrs = request_attributes(
+        &client,
+        &constellation,
+        &yivi_server_sk,
+        "user2@example.com",
+        "0623456789",
+    )
+    .await;
+
+    let email2 = attrs.get(&"email".parse().unwrap()).unwrap();
+    let _phone2 = attrs.get(&"phone".parse().unwrap()).unwrap();
 
     // Retrieve attribute key for email
     let Ok(api::auths::AttrKeysResp::Success(attr_keys)) = client
@@ -450,7 +394,26 @@ async fn main_integration_test_local(
         api::phc::user::EnterResp::AttributeAlreadyTaken(..)
     ));
 
-    // Logging in using the email address works..
+    // Registering a second time with the same phone number, but a different email address works
+    assert!(matches!(
+        client
+            .query_with_retry::<api::phc::user::EnterEP, _, _>(
+                &constellation.phc_url,
+                &api::phc::user::EnterReq {
+                    identifying_attr: email2.clone(),
+                    mode: api::phc::user::EnterMode::Register,
+                    add_attrs: vec![phone.clone()],
+                },
+            )
+            .await,
+        Ok(api::phc::user::EnterResp::Entered {
+            new_account: true,
+            auth_token_package: Ok(..),
+            ..
+        })
+    ));
+
+    // Logging in using just the email address works..
     let enter_resp = client
         .query_with_retry::<api::phc::user::EnterEP, _, _>(
             &constellation.phc_url,
@@ -465,12 +428,42 @@ async fn main_integration_test_local(
 
     let api::phc::user::EnterResp::Entered {
         new_account: false,
-        auth_token: Ok(auth_token),
+        auth_token_package: Ok(..),
         ..
     } = enter_resp
     else {
         panic!();
     };
+
+    // Logging in using email address and phone works, and the phone attribute is already there
+    let enter_resp = client
+        .query_with_retry::<api::phc::user::EnterEP, _, _>(
+            &constellation.phc_url,
+            &api::phc::user::EnterReq {
+                identifying_attr: email.clone(),
+                mode: api::phc::user::EnterMode::Login,
+                add_attrs: vec![phone.clone()],
+            },
+        )
+        .await
+        .unwrap();
+
+    let api::phc::user::EnterResp::Entered {
+        new_account: false,
+        auth_token_package: Ok(api::phc::user::AuthTokenPackage { auth_token, .. }),
+        attr_status,
+    } = enter_resp
+    else {
+        panic!();
+    };
+
+    for (attr, status) in attr_status {
+        assert!(
+            status == api::phc::user::AttrAddStatus::AlreadyThere,
+            "{} is not already there, but got status {status:?}",
+            attr.value
+        );
+    }
 
     // store object
     let api::phc::user::StoreObjectResp::Stored { hash } = client
@@ -553,6 +546,146 @@ async fn main_integration_test_local(
     };
 
     assert_eq!(bytes.as_ref(), b"object contents! 2");
+
+    // Ok, let's try to log into a hub.
+    //
+    // Step 1a: obtain Ppp
+    let api::phc::user::PppResp::Success(ppp) = client
+        .query::<api::phc::user::PppEP>(&constellation.phc_url, NoPayload)
+        .auth_header(auth_token.clone())
+        .with_retry()
+        .await
+        .unwrap()
+    else {
+        panic!();
+    };
+
+    // Step 1b: obtain hub nonce and state from hub
+    let api::hub::EnterStartResp {
+        state: hub_state,
+        nonce: hub_nonce,
+    } = client
+        .query::<api::hub::EnterStartEP>(&mock_hub.context.info.url, NoPayload)
+        .with_retry()
+        .await
+        .unwrap();
+
+    // Step 2: obtain Ehpp from transcryptor
+    let api::tr::EhppResp::Success(ehpp) = client
+        .query::<api::tr::EhppEP>(
+            &constellation.transcryptor_url,
+            &api::tr::EhppReq {
+                hub_nonce,
+                hub: mock_hub.context.info.id,
+                ppp,
+            },
+        )
+        .with_retry()
+        .await
+        .unwrap()
+    else {
+        panic!()
+    };
+
+    // Step 3: obtain Hhpp from PHC
+    let api::phc::user::HhppResp::Success(hhpp) = client
+        .query::<api::phc::user::HhppEP>(&constellation.phc_url, &api::phc::user::HhppReq { ehpp })
+        .auth_header(auth_token.clone())
+        .with_retry()
+        .await
+        .unwrap()
+    else {
+        panic!()
+    };
+
+    // Step 4: submit Hhpp to hub
+    let api::hub::EnterCompleteResp::Entered {
+        access_token: first_access_token,
+        ..
+    } = client
+        .query::<api::hub::EnterCompleteEP>(
+            &mock_hub.context.info.url,
+            api::hub::EnterCompleteReq {
+                state: hub_state,
+                hhpp,
+            },
+        )
+        .with_retry()
+        .await
+        .unwrap()
+    else {
+        panic!()
+    };
+
+    // Ok, let's do the whole process again!
+    //
+    // Step 1a: obtain Ppp
+    let api::phc::user::PppResp::Success(ppp) = client
+        .query::<api::phc::user::PppEP>(&constellation.phc_url, NoPayload)
+        .auth_header(auth_token.clone())
+        .with_retry()
+        .await
+        .unwrap()
+    else {
+        panic!();
+    };
+    // Step 1b: obtain hub nonce and state from hub
+    let api::hub::EnterStartResp {
+        state: hub_state,
+        nonce: hub_nonce,
+    } = client
+        .query::<api::hub::EnterStartEP>(&mock_hub.context.info.url, NoPayload)
+        .with_retry()
+        .await
+        .unwrap();
+
+    // Step 2: obtain Ehpp from transcryptor
+    let api::tr::EhppResp::Success(ehpp) = client
+        .query::<api::tr::EhppEP>(
+            &constellation.transcryptor_url,
+            &api::tr::EhppReq {
+                hub_nonce,
+                hub: mock_hub.context.info.id,
+                ppp,
+            },
+        )
+        .with_retry()
+        .await
+        .unwrap()
+    else {
+        panic!()
+    };
+
+    // Step 3: obtain Hhpp from PHC
+    let api::phc::user::HhppResp::Success(hhpp) = client
+        .query::<api::phc::user::HhppEP>(&constellation.phc_url, &api::phc::user::HhppReq { ehpp })
+        .auth_header(auth_token.clone())
+        .with_retry()
+        .await
+        .unwrap()
+    else {
+        panic!()
+    };
+
+    // Step 4: submit Hhpp to hub
+    let api::hub::EnterCompleteResp::Entered { access_token, .. } = client
+        .query::<api::hub::EnterCompleteEP>(
+            &mock_hub.context.info.url,
+            api::hub::EnterCompleteReq {
+                state: hub_state,
+                hhpp,
+            },
+        )
+        .with_retry()
+        .await
+        .unwrap()
+    else {
+        panic!()
+    };
+
+    // The mock hub stores the pseudonym in the access token;
+    // let's check we got the same pseudonym in both cases.
+    assert_eq!(first_access_token, access_token);
 }
 
 /// Contents of a disclosure session request JWT
@@ -572,13 +705,15 @@ struct MockHub {
 struct MockHubContext {
     pub info: hub::BasicInfo,
     pub sk: api::SigningKey,
+    pub constellation: servers::Constellation,
 }
 
 impl MockHub {
-    fn new(info: hub::BasicInfo) -> Self {
+    fn new(info: hub::BasicInfo, constellation: servers::Constellation) -> Self {
         let context = Arc::new(MockHubContext {
             info,
             sk: api::SigningKey::generate(),
+            constellation,
         });
 
         Self {
@@ -590,7 +725,15 @@ impl MockHub {
                         .app_data(web::Data::new(context.clone()))
                         .service(
                             actix_web::web::scope(context.info.url.path().trim_end_matches('/'))
-                                .route(api::hub::Info::PATH, web::get().to(handle_info_url)),
+                                .route(api::hub::InfoEP::PATH, web::get().to(handle_info_url))
+                                .route(
+                                    api::hub::EnterStartEP::PATH,
+                                    web::post().to(handle_enter_start),
+                                )
+                                .route(
+                                    api::hub::EnterCompleteEP::PATH,
+                                    web::post().to(handle_enter_complete),
+                                ),
                         )
                 }
             })
@@ -608,10 +751,144 @@ impl MockHub {
     }
 }
 
+async fn request_attributes(
+    client: &client::Client,
+    constellation: &pubhubs::servers::Constellation,
+    yivi_server_sk: &yivi::SigningKey,
+    email_value: &str,
+    phone_value: &str,
+) -> HashMap<handle::Handle, api::Signed<attr::Attr>> {
+    // request authentication as end-user
+    let api::auths::AuthStartResp::Success {
+        task: auth_task,
+        state: auth_state,
+    } = client
+        .query_with_retry::<api::auths::AuthStartEP, _, _>(
+            &constellation.auths_url,
+            &api::auths::AuthStartReq {
+                source: attr::Source::Yivi,
+                attr_types: vec!["email".parse().unwrap(), "phone".parse().unwrap()],
+            },
+        )
+        .await
+        .unwrap()
+    else {
+        panic!()
+    };
+
+    let jwt: jwt::JWT = match auth_task {
+        api::auths::AuthTask::Yivi {
+            disclosure_request,
+            yivi_requestor_url,
+        } => {
+            assert_eq!(
+                yivi_requestor_url.to_string(),
+                "http://192.0.2.0/".to_string()
+            );
+            disclosure_request
+        } // _ => panic!("expected Yivi task"),
+    };
+
+    // at this point the end-user should disclosure their attributes to the specified yivi server;
+    // we'll mock the response of the yivi server instead
+    let jwt_claims: jwt::Claims = jwt.open(&jwt::HS256("secret".into())).unwrap();
+
+    let claims: DisclosureRequestClaims = jwt_claims
+        .check_iss(jwt::expecting::exactly("ph_auths"))
+        .unwrap()
+        .check_sub(jwt::expecting::exactly("verification_request"))
+        .unwrap()
+        .into_custom()
+        .unwrap();
+
+    let discl_resp = claims.sprequest.mock_disclosure_response(
+        |ati: &yivi::AttributeTypeIdentifier| -> String {
+            match ati.as_str() {
+                "irma-demo.sidn-pbdf.email.email" => email_value.to_string(),
+                "irma-demo.sidn-pbdf.mobilenumber.mobilenumber" => phone_value.to_string(),
+                _ => {
+                    panic!("unexpected yivi attribute type {}", ati.as_str());
+                }
+            }
+        },
+    );
+
+    let yivi_server_creds = yivi::Credentials {
+        name: "yivi-server".to_string(),
+        key: yivi_server_sk.clone(),
+    };
+
+    let result_jwt = discl_resp
+        .sign(&yivi_server_creds, Duration::from_secs(60))
+        .unwrap();
+
+    // Now send the disclosure response to the authentication server to get some credentials
+    let api::auths::AuthCompleteResp::Success { attrs } = client
+        .query_with_retry::<api::auths::AuthCompleteEP, _, _>(
+            &constellation.auths_url,
+            &api::auths::AuthCompleteReq {
+                state: auth_state,
+                proof: api::auths::AuthProof::Yivi {
+                    disclosure: result_jwt,
+                },
+            },
+        )
+        .await
+        .unwrap()
+    else {
+        panic!()
+    };
+
+    attrs
+}
+
 async fn handle_info_url(context: web::Data<Arc<MockHubContext>>) -> impl actix_web::Responder {
     let vk: api::VerifyingKey = context.sk.verifying_key().into();
-    return web::Json(api::Result::Ok(api::hub::InfoResp {
+    web::Json(api::Result::Ok(api::hub::InfoResp {
         verifying_key: vk,
         hub_version: "n/a".to_owned(),
-    }));
+        hub_client_url: "http://example.com".parse().unwrap(),
+    }))
+}
+
+async fn handle_enter_start(_context: web::Data<Arc<MockHubContext>>) -> impl actix_web::Responder {
+    web::Json(api::Result::Ok(api::hub::EnterStartResp {
+        state: api::hub::EnterState::from(B64UU::from(serde_bytes::ByteBuf::from(b"state"))),
+        nonce: api::hub::EnterNonce::from(B64UU::from(serde_bytes::ByteBuf::from(b"nonce"))),
+    }))
+}
+
+async fn handle_enter_complete(
+    context: web::Data<Arc<MockHubContext>>,
+    req: web::Json<api::hub::EnterCompleteReq>,
+) -> impl actix_web::Responder {
+    let api::hub::EnterCompleteReq { state, hhpp } = req.into_inner();
+
+    assert_eq!(
+        state,
+        api::hub::EnterState::from(B64UU::from(serde_bytes::ByteBuf::from(b"state")))
+    );
+
+    let api::sso::HashedHubPseudonymPackage {
+        hashed_hub_pseudonym,
+        pp_issued_at: _pp_issued_at,
+        hub_nonce,
+    } = hhpp
+        .open(
+            &*context.constellation.phc_jwt_key,
+            Some(&context.constellation),
+        )
+        .unwrap();
+
+    assert_eq!(
+        hub_nonce,
+        api::hub::EnterNonce::from(B64UU::from(serde_bytes::ByteBuf::from(b"nonce")))
+    );
+
+    web::Json(api::Result::Ok(api::hub::EnterCompleteResp::Entered {
+        access_token: base16ct::lower::encode_string(hashed_hub_pseudonym.as_bytes().as_slice()),
+        device_id: "device_id".to_string(),
+        new_user: true,
+        mxid: "mxid".to_string(),
+    }))
 }

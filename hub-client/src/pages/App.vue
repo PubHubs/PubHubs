@@ -11,6 +11,7 @@
 						<div class="flex h-full justify-between py-2">
 							<div class="flex items-center justify-between">
 								<H3 @click="router.push('/')" :title="hubSettings.hubName" class="font-headings font-semibold text-on-surface">{{ hubSettings.hubName }}</H3>
+								<Notification class="absolute right-4" />
 								<!-- TODO: Hiding this settings wheel as there is no functionality to it yet. -->
 								<!-- <Icon type="cog" size="sm" class="bg-hub-background-2 rounded-md p-2"/> -->
 							</div>
@@ -18,9 +19,9 @@
 						</div>
 					</template>
 
-					<div class="flex flex-col gap-4 p-3 md:p-4">
+					<div class="flex flex-col gap-4 p-3 md:p-4" role="menu">
 						<section class="flex flex-col gap-2">
-							<div class="text-hub-text group flex items-center justify-between overflow-hidden rounded-xl bg-surface py-2 pl-2 pr-4">
+							<div class="text-hub-text group flex items-center justify-between overflow-hidden rounded-xl bg-surface py-2 pl-2 pr-4" role="complementary">
 								<div class="flex w-full items-center gap-2 truncate">
 									<Avatar :userId="user.user.userId" />
 									<div class="flex h-fit w-full flex-col overflow-hidden">
@@ -43,58 +44,46 @@
 
 							<Menu>
 								<template v-for="(item, index) in menu.getMenu" :key="index">
-									<MenuItem :to="item.to" :icon="item.icon" @click="hubSettings.hideBar()">{{ $t(item.key) }}</MenuItem>
+									<MenuItem :to="item.to" :icon="item.icon" @click="hubSettings.hideBar()">{{ t(item.key) }}</MenuItem>
 								</template>
 							</Menu>
 						</section>
 
-						<section class="flex flex-col gap-2">
-							<div class="group flex items-center justify-between rounded-lg bg-surface px-4 py-2">
-								<div class="flex h-[24px] items-center">
-									<p class="truncate font-bold leading-tight">{{ $t('admin.public_rooms') }}</p>
-								</div>
-							</div>
-							<RoomList />
-						</section>
+						<!-- Public rooms -->
+						<RoomListHeader label="admin.public_rooms">
+							<template #roomlist>
+								<RoomList />
+							</template>
+						</RoomListHeader>
 
-						<section class="flex flex-col gap-2">
-							<div class="group flex items-center justify-between rounded-lg bg-surface px-4 py-2">
-								<div class="flex h-[24px] items-center">
-									<p class="truncate font-bold leading-tight">{{ $t('admin.secured_rooms') }}</p>
-								</div>
-							</div>
-							<RoomList :roomType="RoomType.PH_MESSAGES_RESTRICTED" />
-						</section>
+						<!-- Secured rooms -->
+						<RoomListHeader label="admin.secured_rooms" tooltipText="admin.secured_rooms_tooltip">
+							<template #roomlist>
+								<RoomList :roomType="RoomType.PH_MESSAGES_RESTRICTED" />
+							</template>
+						</RoomListHeader>
 
 						<!-- When user is admin, show the moderation tools menu -->
-						<section v-if="disclosureEnabled && user.isAdmin" class="flex flex-col gap-2">
-							<div class="group flex items-center justify-between rounded-lg bg-surface px-4 py-2">
-								<div class="flex h-[24px] items-center">
-									<p class="truncate font-bold leading-tight">{{ $t('menu.moderation_tools') }}</p>
-								</div>
-							</div>
+						<RoomListHeader v-if="disclosureEnabled && user.isAdmin" label="menu.moderation_tools">
 							<Menu>
-								<MenuItem :to="{ name: 'ask-disclosure' }" icon="sign">{{ $t('menu.moderation_tools_disclosure') }}</MenuItem>
+								<MenuItem :to="{ name: 'ask-disclosure' }" icon="sign">{{ t('menu.moderation_tools_disclosure') }} </MenuItem>
 							</Menu>
-						</section>
+						</RoomListHeader>
 
 						<!-- When user is admin, show the admin tools menu -->
-						<section v-if="user.isAdmin" class="flex flex-col gap-2">
-							<div class="group flex items-center justify-between rounded-lg bg-surface px-4 py-2">
-								<div class="flex h-[24px] items-center">
-									<p class="truncate font-bold leading-tight">{{ $t('menu.admin_tools') }}</p>
-								</div>
-							</div>
-							<Menu>
-								<MenuItem :to="{ name: 'admin' }" icon="admin">{{ $t('menu.admin_tools_rooms') }}</MenuItem>
-								<MenuItem :to="{ name: 'manageusers' }" icon="admin">{{ $t('menu.admin_tools_users') }}</MenuItem>
-								<MenuItem :to="{ name: 'hub-settings' }" icon="cog">{{ $t('menu.admin_tools_hub_settings') }}</MenuItem>
-							</Menu>
-						</section>
+						<RoomListHeader v-if="user.isAdmin" label="menu.admin_tools">
+							<template #roomlist>
+								<Menu>
+									<MenuItem :to="{ name: 'admin' }" icon="admin">{{ t('menu.admin_tools_rooms') }} </MenuItem>
+									<MenuItem :to="{ name: 'manageusers' }" icon="admin">{{ t('menu.admin_tools_users') }}</MenuItem>
+									<MenuItem :to="{ name: 'hub-settings' }" icon="cog">{{ t('menu.admin_tools_hub_settings') }}</MenuItem>
+								</Menu>
+							</template>
+						</RoomListHeader>
 					</div>
 				</HeaderFooter>
 
-				<div class="h-full w-full overflow-y-auto overflow-x-hidden" :class="{ hidden: hubSettings.mobileHubMenu && isMobile }">
+				<div class="h-full w-full overflow-y-auto overflow-x-hidden" :class="{ hidden: hubSettings.mobileHubMenu && isMobile }" role="document">
 					<router-view></router-view>
 				</div>
 			</div>
@@ -116,6 +105,7 @@
 	import { ConditionKind, IPushRule, PushRuleKind } from 'matrix-js-sdk';
 
 	// Hub imports
+	// Components
 	import Disclosure from '@/components/rooms/Disclosure.vue';
 	import SettingsDialog from '@/components/forms/SettingsDialog.vue';
 	import Dialog from '@/components/ui/Dialog.vue';
@@ -123,11 +113,13 @@
 	import Menu from '@/components/ui/Menu.vue';
 	import MenuItem from '@/components/ui/MenuItem.vue';
 	import RoomList from '@/components/rooms/RoomList.vue';
-
 	import Badge from '@/components/elements/Badge.vue';
 	import Icon from '@/components/elements/Icon.vue';
 	import H3 from '@/components/elements/H3.vue';
 	import Avatar from '@/components/ui/Avatar.vue';
+	import RoomListHeader from '@/components/ui/RoomListHeader.vue';
+	import Notification from '@/components/ui/Notification.vue';
+	// Logic
 	import { HubInformation } from '@/logic/store/hub-settings';
 	import { usePubHubs } from '@/logic/core/pubhubsStore';
 	import { PubHubsInvisibleMsgType } from '@/logic/core/events';
@@ -142,7 +134,7 @@
 	import { Message, MessageBoxType, useHubSettings, useMessageBox, useRooms } from '@/logic/store/store';
 	import { useUser } from '@/logic/store/user';
 
-	const { locale, availableLocales } = useI18n();
+	const { locale, availableLocales, t } = useI18n();
 	const router = useRouter();
 	const settings = useSettings();
 	const hubSettings = useHubSettings();
@@ -191,6 +183,8 @@
 		});
 		settings.updateIsMobile();
 
+		await startMessageBox();
+
 		// check if hash doesn't start with hub,
 		// then it is running only the hub-client, so we need to do some checks
 		if (!window.location.hash.startsWith('#/hub/')) {
@@ -212,7 +206,6 @@
 			// only needed when loggedIn (then there are user settings to setup)
 			setupReady.value = true;
 		}
-		await startMessageBox();
 
 		LOGGER.trace(SMI.STARTUP, 'App.vue onMounted done');
 	});
@@ -232,9 +225,9 @@
 				const roomId = message.content as RouteParamValue;
 				if (rooms.currentRoomId !== roomId) {
 					rooms.currentRoomId = roomId;
-					await rooms.getSecuredRoomInfo(roomId);
 					if (rooms.securedRoom && rooms.securedRoom !== null) {
-						router.push({ name: 'secure-room', params: { id: roomId } });
+						const securedRoomId = await rooms.getSecuredRoomInfo(roomId);
+						router.push({ name: 'room', params: { id: securedRoomId } });
 					} else {
 						router.push({ name: 'room', params: { id: roomId } });
 					}

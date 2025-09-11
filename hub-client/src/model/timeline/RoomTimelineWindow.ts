@@ -5,7 +5,7 @@ import { TBaseEvent } from '../events/TBaseEvent';
 import { RedactReasons } from '@/logic/core/events';
 
 const PAGE_SIZE = 96;
-
+const FILTER_ID = 'MainRoomTimeline';
 /*
 	The Matrix SDK keeps its events in EventTimelines that are coupled in EventTimelineSets.
 	There is one special EventTimeline which is the LiveTimeline that keeps track of all the new events that take place inside the room.
@@ -21,17 +21,19 @@ class RoomTimelineWindow {
 	private redactedEventIds: string[] = [];
 
 	/* event filters: which events are to be shown in the timelineWindow */
-	private visibleEventTypes: string[] = [EventType.RoomMessage];
+	private visibleEventTypes: string[] = [EventType.RoomMessage, EventType.Reaction];
 	private invisibleMessageTypes: string[] = [MsgType.Notice];
 	private timelineSetFilter = {
 		room: {
 			timeline: {
-				types: [EventType.RoomMessage, EventType.RoomRedaction],
+				types: [EventType.RoomMessage, EventType.RoomRedaction, EventType.Reaction],
 			},
 		},
 	};
 
 	logger = LOGGER;
+
+	FILTER_ID = 'MainRoomTimeline';
 
 	constructor(matrixRoom: MatrixRoom) {
 		LOGGER.trace(SMI.ROOM_TIMELINEWINDOW, `TimelineWindow constructor `, {
@@ -52,7 +54,7 @@ class RoomTimelineWindow {
 			roomId: matrixRoom.roomId,
 		});
 		/* to constructor? */
-		const filter = new Filter(undefined);
+		const filter = new Filter(undefined, FILTER_ID);
 		filter.setDefinition(this.timelineSetFilter);
 		const filteredTimelineSet = matrixRoom.getOrCreateFilteredTimelineSet(filter);
 

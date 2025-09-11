@@ -164,15 +164,6 @@ pub enum ErrorCode {
 
     #[error("something is wrong with the request")]
     BadRequest,
-
-    #[error("a signature could not be verified")]
-    InvalidSignature,
-
-    #[error("invalid admin key")]
-    InvalidAdminKey,
-
-    #[error("expired data")]
-    Expired,
 }
 use ErrorCode::*;
 
@@ -190,13 +181,12 @@ impl ErrorCode {
     /// Returns additional information about this error code.
     pub fn info(&self) -> ErrorInfo {
         match self {
-            InvalidSignature | InvalidAdminKey | Expired => ErrorInfo {
-                retryable: Some(false),
-            },
             PleaseRetry => ErrorInfo {
                 retryable: Some(true),
             },
-            InternalError | BadRequest => ErrorInfo { retryable: None },
+            InternalError | BadRequest => ErrorInfo {
+                retryable: Some(false),
+            },
         }
     }
 
@@ -285,14 +275,20 @@ impl<T> Payload<T> {
         .context("could not parse Content-Type value")?;
 
         match (content_type.type_(), content_type.subtype()) {
-            (mime::APPLICATION, mime::JSON) => Ok(Payload::Json(
-                resp.json::<T>().await.with_context(|| {
+            (mime::APPLICATION, mime::JSON) => Ok(Payload::Json({
+                let body: bytes::Bytes = resp
+                    .body()
+                    .await
+                    .context("failed to receive response body")?;
+
+                serde_json::from_slice::<T>(&body).with_context(|| {
                     format!(
-                        "could deserialize JSON to type {}",
-                        std::any::type_name::<T>()
+                        "could not deserialize JSON {json} to type {tp} ",
+                        tp = std::any::type_name::<T>(),
+                        json = crate::misc::fmt_ext::Bytes(&body),
                     )
-                })?,
-            )),
+                })?
+            })),
             (mime::APPLICATION, mime::OCTET_STREAM) => Ok(Payload::Octets(
                 resp.body().await.context("problem loading body")?,
             )),

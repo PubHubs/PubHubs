@@ -12,16 +12,27 @@
 			<template v-if="roomTimeLine.length > 0">
 				<div v-for="item in roomTimeLine" :key="item.event.event_id">
 					<div ref="elRoomEvent" :id="item.event.event_id">
-						<RoomEvent
+						<RoomMessageBubble
+							v-if="item.getType() === EventType.RoomMessage"
 							:room="room"
-							:event="item.event"
+							:event="item.event as TMessageEvent"
 							:event-thread-length="eventThreadLengths[item.event.event_id ?? 0]"
+							:activeProfileCard="activeProfileCard"
+							:activeReactionPanel="activeReactionPanel"
 							class="room-event"
+							@clicked-emoticon="sendEmoji"
 							@in-reply-to-click="onInReplyToClick"
-							@delete-message="confirmDeleteMessage(item.event, item.isThreadRoot)"
+							@delete-message="confirmDeleteMessage(item.event as TMessageEvent, item.isThreadRoot)"
 							@edit-poll="onEditPoll"
 							@edit-scheduler="onEditScheduler"
+							@profile-card-toggle="toggleProfileCard"
+							@profile-card-close="closeProfileCard"
+							@reaction-panel-toggle="toggleReactionPanel"
+							@reaction-panel-close="closeReactionPanel"
 						/>
+						<div class="flex flex-wrap gap-2 px-20">
+							<Reaction v-if="reactionExistsForMessage(item.event.event_id)" :reactEvent="onlyReactionEvent" :messageEventId="item.event.event_id"></Reaction>
+						</div>
 						<UnreadMarker v-if="settings.isFeatureEnabled(FeatureFlag.unreadMarkers)" :currentEventId="item.event.event_id ?? ''" :currentUserId="user.user.userId" />
 					</div>
 				</div>
@@ -37,14 +48,15 @@
 	// Components
 	import DateDisplayer from '../ui/DateDisplayer.vue';
 	import InlineSpinner from '../ui/InlineSpinner.vue';
-	import RoomEvent from './RoomEvent.vue';
+	import RoomMessageBubble from './RoomMessageBubble.vue';
 	import UnreadMarker from '../ui/UnreadMarker.vue';
 	import DeleteMessageDialog from '../forms/DeleteMessageDialog.vue';
 	import InRoomNotifyMarker from '../ui/InRoomNotifyMarker.vue';
 	import MessageInput from '../forms/MessageInput.vue';
+	import Reaction from '../ui/Reaction.vue';
 
 	import { EventTimeline, EventType, Thread, MatrixEvent } from 'matrix-js-sdk';
-	import { computed, onMounted, ref, reactive, watch, onUnmounted } from 'vue';
+	import { computed, onMounted, ref, reactive, watch, onUnmounted, nextTick } from 'vue';
 	import { ElementObserver } from '@/logic/core/elementObserver';
 	import { usePubHubs } from '@/logic/core/pubhubsStore';
 	import { useRooms } from '@/logic/store/store';
@@ -57,6 +69,7 @@
 	import { useUser } from '@/logic/store/user';
 	import { PubHubsInvisibleMsgType } from '@/logic/core/events';
 	import { Poll, Scheduler } from '@/model/events/voting/VotingTypes';
+	import { RelationType } from '@/model/constants';
 
 	const settings = useSettings();
 	const rooms = useRooms();
@@ -66,6 +79,8 @@
 	const elRoomEvent = ref<HTMLElement | null>(null);
 	const isLoadingNewEvents = ref(false);
 	const showConfirmDelMsgDialog = ref(false);
+	const activeProfileCard = ref<string | null>(null);
+	const activeReactionPanel = ref<string | null>(null);
 	const eventToBeDeleted = ref<TMessageEvent>();
 	const editingPoll = ref<{ poll: Poll; eventId: string } | undefined>(undefined);
 	const editingScheduler = ref<{ scheduler: Scheduler; eventId: string } | undefined>(undefined);
@@ -98,6 +113,10 @@
 	 */
 	const roomTimeLine = computed(() => {
 		return props.room.getTimeline();
+	});
+
+	const onlyReactionEvent = computed(() => {
+		return roomTimeLine.value.filter((event) => event.getType() === EventType.Reaction);
 	});
 
 	const oldestEventIsLoaded = computed(() => {
@@ -137,6 +156,27 @@
 
 	// Watch for currently visible eventId
 	watch(() => props.scrollToEventId, onScrollToEventId);
+
+	// Is there a reaction for RoomMessageEvent ID.
+	// If there is then show the reaction otherwise dont render reaction UI component.
+	function reactionExistsForMessage(messageEventId: string): boolean {
+		const reactionEvent = onlyReactionEvent.value.find((event) => {
+			const relatesTo = event.getContent()[RelationType.RelatesTo];
+			// Check if this reaction relates to the target message
+			return relatesTo && relatesTo.event_id === messageEventId;
+		});
+
+		if (reactionEvent) {
+			const relatesTo = reactionEvent.getContent()[RelationType.RelatesTo];
+			return relatesTo?.key ? true : false;
+		}
+
+		return false;
+	}
+
+	async function sendEmoji(emoji: string, eventId: string) {
+		await pubhubs.addReactEvent(props.room.roomId, eventId, emoji);
+	}
 
 	function getEventThreadLengths() {
 		roomTimeLine.value.forEach((event) => {
@@ -327,6 +367,8 @@
 			isLoadingNewEvents.value = false;
 		}
 
+		// To get where the event is on the screen, top, middle or bottom.
+
 		// If scrolled to the bottom of the screen, load newer events if available
 		if (Math.abs(ev.target.scrollHeight - ev.target.clientHeight - ev.target.scrollTop) <= 1) {
 			isLoadingNewEvents.value = true;
@@ -353,6 +395,21 @@
 
 	function onEditScheduler(scheduler: Scheduler, eventId: string) {
 		editingScheduler.value = { scheduler, eventId };
+	}
+
+	function toggleProfileCard(eventId: string) {
+		activeProfileCard.value = activeProfileCard.value === eventId ? null : eventId;
+	}
+
+	function closeProfileCard() {
+		activeProfileCard.value = null;
+	}
+
+	function toggleReactionPanel(eventId: string) {
+		activeReactionPanel.value = activeReactionPanel.value === eventId ? null : eventId;
+	}
+	function closeReactionPanel() {
+		activeReactionPanel.value = null;
 	}
 
 	function confirmDeleteMessage(event: TMessageEvent, isThreadRoot: boolean) {
@@ -394,11 +451,19 @@
 			}
 
 			// When the new event is send by the user: scroll to the message
-			if (messageSendByUser && newestEvent?.event_id) {
+			if (messageSendByUser && newestEvent?.event_id && newestEvent.type !== EventType.Reaction) {
+				await scrollToEvent(newestEvent.event_id);
+			}
+			// Don't scroll to newest event if reaction is done for previous event.
+			if (props.room.ifLastEventHasReaction(newestEvent?.event_id)) {
 				await scrollToEvent(newestEvent.event_id);
 			}
 		} else if (newestEvent && newestEvent.type === EventType.RoomRedaction) {
 			props.room.addToRedactedEventIds(newestEvent.redacts!);
+			const reactEventId = props.room.getReactionEvent(newestEvent.redacts!).pop()?.getId();
+			if (reactEventId) {
+				props.room.addToRedactedEventIds(reactEventId);
+			}
 		}
 	}
 

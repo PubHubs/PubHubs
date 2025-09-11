@@ -25,16 +25,14 @@
 					<HubMenu :hubOrderingIsActive="hubOrdering" />
 
 					<!-- Global bottom bar (settings) -->
-					<div class="flex h-fit w-full flex-col gap-4 self-end px-2">
-						<div v-if="global.loggedIn">
-							<div class="flex w-full flex-wrap items-center justify-center gap-2">
-								<GlobalbarButton type="reorder_hubs" @click="toggleHubOrdering" :class="hubOrdering && '!bg-accent-primary !text-on-accent-primary hover:!bg-accent-secondary'" />
-								<GlobalbarButton type="cog" @click="settingsDialog = true" />
-								<GlobalbarButton type="question_mark" @click="showHelp" />
-								<GlobalbarButton type="power" @click="logout" />
-							</div>
+					<div class="flex h-fit w-full flex-col gap-8 self-end px-4">
+						<div v-if="global.loggedIn" class="flex flex-col items-center gap-4">
+							<GlobalbarButton type="reorder_hubs" @click="toggleHubOrdering" :class="hubOrdering && '!bg-accent-primary !text-on-accent-primary hover:!bg-accent-secondary'" />
+							<GlobalbarButton type="cog" @click="settingsDialog = true" />
+							<!-- <GlobalbarButton type="question_mark" @click="showHelp" /> -->
+							<GlobalbarButton type="power" @click="logout" />
 						</div>
-						<a :href="pubHubsUrl" target="_blank" rel="noopener noreferrer">
+						<a :href="globalClientUrl" target="_blank" rel="noopener noreferrer">
 							<Logo />
 						</a>
 					</div>
@@ -72,12 +70,11 @@
 	const settings = useSettings();
 	const isMobile = computed(() => settings.isMobileState);
 
-	// eslint-disable-next-line
-	const pubHubsUrl = _env.PUBHUBS_URL;
+	const globalClientUrl = _env.PUBHUBS_URL;
 
 	async function logout() {
 		if (await dialog.yesno(t('logout.logout_sure'))) {
-			global.logout();
+			await global.logout();
 		}
 	}
 

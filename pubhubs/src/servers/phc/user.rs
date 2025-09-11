@@ -4,13 +4,14 @@ use std::ops::Deref;
 use std::rc::Rc;
 
 use crate::api;
+use crate::api::OpenError;
 use crate::attr::{Attr, AttrState};
 use crate::common::elgamal;
 use crate::handle;
 use crate::hub;
 use crate::id::Id;
 use crate::misc::crypto;
-use crate::misc::error::{OPAQUE, Opaque};
+use crate::misc::error::{Opaque, OPAQUE};
 use crate::misc::jwt;
 
 use actix_web::web;
@@ -66,8 +67,20 @@ impl App {
         } = req.into_inner();
 
         // Check attributes are valid
-        let identifying_attr =
-            app.id_attr(identifying_attr.old_open(&running_state.attr_signing_key)?);
+        let identifying_attr = app.id_attr(
+            match identifying_attr.open(&running_state.attr_signing_key, None) {
+                Ok(identifying_attr) => identifying_attr,
+                Err(OpenError::OtherConstellation(..)) | Err(OpenError::InternalError) => {
+                    return Err(api::ErrorCode::InternalError);
+                }
+                Err(OpenError::OtherwiseInvalid) => {
+                    return Err(api::ErrorCode::BadRequest);
+                }
+                Err(OpenError::Expired) | Err(OpenError::InvalidSignature) => {
+                    return Ok(EnterResp::RetryWithNewIdentifyingAttr);
+                }
+            },
+        );
 
         if !identifying_attr.identifying {
             log::warn!(
@@ -83,8 +96,22 @@ impl App {
 
             attrs.insert(identifying_attr.id, identifying_attr.clone());
 
-            for add_attr in add_attrs {
-                let ided_attr = app.id_attr(add_attr.old_open(&running_state.attr_signing_key)?);
+            for (add_attr_index, add_attr) in add_attrs.into_iter().enumerate() {
+                let ided_attr =
+                    app.id_attr(match add_attr.open(&running_state.attr_signing_key, None) {
+                        Ok(attr) => attr,
+                        Err(OpenError::OtherConstellation(..)) | Err(OpenError::InternalError) => {
+                            return Err(api::ErrorCode::InternalError);
+                        }
+                        Err(OpenError::OtherwiseInvalid) => {
+                            return Err(api::ErrorCode::BadRequest);
+                        }
+                        Err(OpenError::Expired) | Err(OpenError::InvalidSignature) => {
+                            return Ok(EnterResp::RetryWithNewAddAttr {
+                                index: add_attr_index,
+                            });
+                        }
+                    });
 
                 let previous_value = attrs.insert(ided_attr.id, ided_attr);
 
@@ -106,6 +133,12 @@ impl App {
             Id,
             (AttrState, object_store::UpdateVersion),
         > = Default::default();
+
+        // Items are added to `attr_state` incidentally until at some point we loop over all
+        // attributes in attrs that are not yet in `attr_states`.  When this happens depends on
+        // whether the user account already exists or not. To keep track of whether it happened
+        // we've added the following boolean.
+        let mut retrieved_attr_states = false;
 
         // keeps track of which attributes have already been added
         let mut attr_add_status: HashMap<Id, AttrAddStatus> = Default::default();
@@ -167,7 +200,11 @@ impl App {
             ));
 
             if let Some(resp) = app
-                .precheck_attrs_for_registration(&attrs, &mut attr_states)
+                .precheck_attrs_for_registration(
+                    &attrs,
+                    &mut attr_states,
+                    &mut retrieved_attr_states,
+                )
                 .await?
             {
                 return Ok(resp);
@@ -176,7 +213,7 @@ impl App {
             // we need to be careful with the order of things here lest we leave the object
             // store in a broken state.
             //
-            //  1. Add the user account object.  Include the identying attributes in the user
+            //  1. Add the user account object.  Include the identifying attributes in the user
             //     account already - they can be added later - but do not include the bannable
             //     attributes. If this fails, the client just needs to register
             //     again.
@@ -237,20 +274,16 @@ impl App {
                     );
                 })?
             {
-                assert!(
-                    attr_states
-                        .insert(
-                            identifying_attr.id,
-                            (identifying_attr_state, identifying_attr_state_version),
-                        )
-                        .is_none()
-                );
+                assert!(attr_states
+                    .insert(
+                        identifying_attr.id,
+                        (identifying_attr_state, identifying_attr_state_version),
+                    )
+                    .is_none());
 
-                assert!(
-                    attr_add_status
-                        .insert(identifying_attr.id, AttrAddStatus::Added)
-                        .is_none()
-                );
+                assert!(attr_add_status
+                    .insert(identifying_attr.id, AttrAddStatus::Added)
+                    .is_none());
             } else {
                 log::warn!(
                     "possibly orphaned user account {} because identifying \
@@ -269,6 +302,22 @@ impl App {
             return Ok(EnterResp::Banned);
         }
 
+        if !retrieved_attr_states {
+            for attr in attrs.values() {
+                if attr_states.contains_key(&attr.id) {
+                    continue;
+                }
+
+                if let Some(attr_state_and_version) = app.get_object::<AttrState>(&attr.id).await? {
+                    attr_states.insert(attr.id, attr_state_and_version);
+                }
+            }
+
+            retrieved_attr_states = true;
+        }
+
+        assert!(retrieved_attr_states);
+
         // Add the missing attributes.  First the attribute states.
         for attr in attrs.values() {
             if attr_states.contains_key(&attr.id) {
@@ -282,23 +331,18 @@ impl App {
 
             match app.put_object::<AttrState>(&attr_state, None).await {
                 Ok(Some(attr_state_version)) => {
-                    assert!(
-                        attr_states
-                            .insert(attr.id, (attr_state, attr_state_version))
-                            .is_none()
-                    );
-                    assert!(
-                        attr_add_status
-                            .insert(attr.id, AttrAddStatus::Added)
-                            .is_none()
-                    );
+                    assert!(attr_states
+                        .insert(attr.id, (attr_state, attr_state_version))
+                        .is_none());
+                    assert!(attr_add_status
+                        .insert(attr.id, AttrAddStatus::Added)
+                        .is_none());
                 }
-                _ => {
-                    assert!(
-                        attr_add_status
-                            .insert(attr.id, AttrAddStatus::PleaseTryAgain)
-                            .is_none()
-                    );
+                problem => {
+                    log::warn!("problem adding attribute state {}: {problem:?}", attr.value);
+                    assert!(attr_add_status
+                        .insert(attr.id, AttrAddStatus::PleaseTryAgain)
+                        .is_none());
                 }
             }
         }
@@ -324,23 +368,15 @@ impl App {
                 .await
             {
                 Ok(Some(attr_state_version)) => {
-                    assert!(
-                        attr_states
-                            .insert(attr.id, (attr_state.clone(), attr_state_version))
-                            .is_none()
-                    );
-                    assert!(
-                        attr_add_status
-                            .insert(attr.id, AttrAddStatus::Added)
-                            .is_none()
-                    );
+                    assert!(attr_states
+                        .insert(attr.id, (attr_state.clone(), attr_state_version))
+                        .is_some());
+                    assert!(attr_add_status.contains_key(&attr.id));
                 }
                 _ => {
-                    assert!(
-                        attr_add_status
-                            .insert(attr.id, AttrAddStatus::PleaseTryAgain)
-                            .is_none()
-                    );
+                    assert!(attr_add_status
+                        .insert(attr.id, AttrAddStatus::PleaseTryAgain)
+                        .is_none());
                 }
             }
         }
@@ -385,7 +421,9 @@ impl App {
                     }
                 }
 
-                _ => {
+                problem => {
+                    log::warn!("failed to update user state to add attributes: {problem:?}");
+
                     for added_attr_id in added_attrs {
                         attr_add_status.insert(added_attr_id, AttrAddStatus::PleaseTryAgain);
                     }
@@ -394,22 +432,11 @@ impl App {
         }
         let user_state = new_user_state;
 
-        let auth_token = if user_state.could_be_banned_by.is_empty() {
-            Err(AuthTokenDeniedReason::NoBannableAttribute)
-        } else {
-            let iat = jwt::NumericDate::now();
-            let exp = iat + app.auth_token_validity;
-            Ok(AuthTokenInner {
-                user_id: user_state.id,
-                iat,
-                exp,
-            }
-            .seal(&app.auth_token_secret)?)
-        };
+        let auth_token_package = app.issue_auth_token(&user_state)?;
 
         Ok(EnterResp::Entered {
             new_account,
-            auth_token,
+            auth_token_package,
             attr_status: attr_add_status
                 .iter()
                 .map(|(attr_id, attr_add_status)| {
@@ -435,8 +462,8 @@ impl App {
     ///  2. One of the attributes is banned
     ///  3. One of the attributes already identifies another user.
     ///
-    /// Will try to retrieve attribute states for attributes not already in `attr_states`,
-    /// and will add those to `attr_states`.
+    /// Might try to retrieve attribute states for attributes not already in `attr_states`,
+    /// and will add those to `attr_states`. If it did, will set `retrieved_attr_states`.
     ///
     /// Returns `Ok(None)` when there are no issues.
     ///
@@ -446,12 +473,15 @@ impl App {
         &self,
         attrs: &HashMap<Id, IdedAttr>,
         attr_states: &mut HashMap<Id, (AttrState, object_store::UpdateVersion)>,
+        retrieved_attr_states: &mut bool,
     ) -> api::Result<Option<EnterResp>> {
         // Before doing potentially expensive queries to the object store, make sure a bannable
         // attribute has been provided by the client
         if !attrs.values().any(|attr| attr.bannable) {
             return Ok(Some(EnterResp::NoBannableAttribute));
         }
+
+        assert!(!*retrieved_attr_states, "not expecting double work here");
 
         // Retrieve attributes states in so far they are available
         for (attr_id, attr) in attrs {
@@ -464,6 +494,8 @@ impl App {
                 attr_states.insert(attr.id, attr_state_and_version);
             }
         }
+
+        *retrieved_attr_states = true;
 
         for (attr_id, (attr_state, ..)) in attr_states.iter() {
             if attr_state.banned {
@@ -480,6 +512,51 @@ impl App {
         }
 
         Ok(None)
+    }
+
+    /// Implements [`RefreshEP`]
+    pub(super) async fn handle_user_refresh(
+        app: Rc<Self>,
+        auth_token: actix_web::web::Header<AuthToken>,
+    ) -> api::Result<RefreshResp> {
+        let Ok((user_state, _)) = app
+            // the `true` means we allow expired access tokens
+            .open_auth_token_and_get_user_state_ext(auth_token.into_inner(), true)
+            .await?
+        else {
+            return Ok(RefreshResp::ReobtainAuthToken);
+        };
+
+        Ok(match app.issue_auth_token(&user_state)? {
+            Ok(atp) => RefreshResp::Success(atp),
+            Err(atdr) => RefreshResp::Denied(atdr),
+        })
+    }
+
+    /// Issues auth token for given user, if allowed
+    fn issue_auth_token(
+        &self,
+        user_state: &UserState,
+    ) -> api::Result<Result<AuthTokenPackage, AuthTokenDeniedReason>> {
+        if user_state.could_be_banned_by.is_empty() {
+            return Ok(Err(AuthTokenDeniedReason::NoBannableAttribute));
+        }
+
+        if user_state.banned {
+            return Ok(Err(AuthTokenDeniedReason::Banned));
+        }
+
+        let iat = jwt::NumericDate::now();
+        let exp = iat + self.auth_token_validity;
+        Ok(Ok(AuthTokenPackage {
+            expires: exp,
+            auth_token: AuthTokenInner {
+                user_id: user_state.id,
+                iat,
+                exp,
+            }
+            .seal(&self.auth_token_secret)?,
+        }))
     }
 }
 
@@ -512,8 +589,8 @@ impl AuthTokenInner {
     }
 
     /// Opens this [`AuthToken`], returning the enclosed user's [`Id`].
-    fn open(self) -> Result<Id, Opaque> {
-        if self.exp < jwt::NumericDate::now() {
+    fn open(self, accept_expired: bool) -> Result<Id, Opaque> {
+        if !accept_expired && self.exp < jwt::NumericDate::now() {
             return Err(OPAQUE);
         }
 
@@ -524,7 +601,16 @@ impl AuthTokenInner {
 impl App {
     /// Opens the given [`AuthToken`] returning the enclosed user's [`Id`].
     pub(super) fn open_auth_token(&self, auth_token: AuthToken) -> Result<Id, Opaque> {
-        AuthTokenInner::unseal(&auth_token, &self.auth_token_secret)?.open()
+        self.open_auth_token_ext(auth_token, false)
+    }
+
+    /// Like [`Self::open_auth_token`], but with the option to accept an expired auth token.
+    pub(super) fn open_auth_token_ext(
+        &self,
+        auth_token: AuthToken,
+        accept_expired: bool,
+    ) -> Result<Id, Opaque> {
+        AuthTokenInner::unseal(&auth_token, &self.auth_token_secret)?.open(accept_expired)
     }
 
     /// Opens the given [`AuthToken`] and retrieve the associated [`UserState`].
@@ -534,7 +620,18 @@ impl App {
         &self,
         auth_token: AuthToken,
     ) -> api::Result<Result<(UserState, object_store::UpdateVersion), Opaque>> {
-        let Ok(user_id) = self.open_auth_token(auth_token) else {
+        self.open_auth_token_and_get_user_state_ext(auth_token, false)
+            .await
+    }
+
+    /// Like [`Self::open_auth_token_and_get_user_state`] but with the option to accept an expired auth
+    /// token.
+    pub(super) async fn open_auth_token_and_get_user_state_ext(
+        &self,
+        auth_token: AuthToken,
+        accept_expired: bool,
+    ) -> api::Result<Result<(UserState, object_store::UpdateVersion), Opaque>> {
+        let Ok(user_id) = self.open_auth_token_ext(auth_token, accept_expired) else {
             return Ok(Err(OPAQUE));
         };
 

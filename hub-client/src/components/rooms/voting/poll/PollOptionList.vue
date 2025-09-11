@@ -1,16 +1,19 @@
 <template>
-	<PollOptionItem
-		v-for="option in options"
-		:key="option.id"
-		:option="option"
-		:userIds="votesOfOption(option.id)"
-		:hasUserVotedOnThisOption="hasUserVotedOnOption(option.id)"
-		:hasUserVotedOnOtherOption="hasUserVotedOnOtherOption(option.id)"
-		:percentage="percentageOfOption(option.id)"
-		:showVotesBeforeVoting="showVotesBeforeVoting"
-		:showVotes="showVotes"
-		@vote="vote"
-	/>
+	<div role="list">
+		<PollOptionItem
+			v-for="option in options"
+			:key="option.id"
+			:option="option"
+			:userIds="votesOfOption(option.id)"
+			:hasUserVotedOnThisOption="hasUserVotedOnOption(option.id)"
+			:hasUserVotedOnOtherOption="hasUserVotedOnOtherOption(option.id)"
+			:percentage="percentageOfOption(option.id)"
+			:showVotesBeforeVoting="showVotesBeforeVoting"
+			:showVotes="showVotes"
+			@vote="vote"
+			role="listitem"
+		/>
+	</div>
 </template>
 <script setup lang="ts">
 	import PollOptionItem from '@/components/rooms/voting/poll/PollOptionItem.vue';

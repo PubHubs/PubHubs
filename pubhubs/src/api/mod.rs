@@ -73,21 +73,17 @@
 //!
 //!  2. Other errors, such as unexpected errors, or errors caused by the caller breaking protocol
 //!     in some avoidable manner are generally  returned via the [`ErrorCode`]
-//!     in the `Result<EndpointDetails::ResponseType, ErrorCode>`
-//!     returned by the endpoint. Notable errors are:
+//!     in the `Result<EndpointDetails::ResponseType, ErrorCode>`.
 //!
 //!     - **[`ErrorCode::InternalError`]**: something unexpected went wrong internally.  
 //!       Consult the logs of the server for more details.  Retrying the request is not
 //!       recommended.
 //!
-//!     - **[`ErrorCode::NotYetReady`]
+//!     - **[`ErrorCode::PleaseRetry`]**
 //!       just wait a moment, and retry the same request.
 //!
-//!     - **[`ErrorCode::BadRequest`]**: there's something wrong with the request - do not
+//!     - **[`ErrorCode::BadRequest`]**: there's something unexpected is wrong with the request - do not
 //!       retransmit the same request.
-//!
-//!     (Note: I'm not completely happy with the current [`ErrorCode`] - it's not clear enough how to act on
-//!     the different errors.)
 //!
 //!  3. It may, however, happen that a request is rejected before it reaches our code, for example,
 //!     by the HTTP framework [`actix_web`] or by the reverse proxy.  One may in that case encounter a
@@ -104,6 +100,21 @@
 //!
 //! [Cross-Origin Resource Sharing]: https://developer.mozilla.org/en-US/docs/Web/HTTP/Guides/CORS
 //! [`Attr`]: crate::attr::Attr
+//!
+//! # Changelog of breaking changes
+//!
+//! ## 2025-06-25
+//!  - Removed `Expired` and `InvalidSignature` error codes.
+//!  - Added [`phc::user::EnterResp::RetryWithNewIdentifyingAttr`] and
+//!    [`phc::user::EnterResp::RetryWithNewAddAttr`] variants.
+//!
+//! ## 2025-07-14
+//!  - Renamed `phc::user::EnterResp::Entered::auth_token` to
+//!    [`phc::user::EnterResp::Entered::auth_token_package`], and changed its type,
+//!    replacing [`phc::user::AuthToken`]
+//!    with [`phc::user::AuthTokenPackage`] (which contains an expiry date). Instead of
+//!    `{ "Ok": "AuThToken..." }` the `auth_token(_package)` field will now
+//!    be of the form `{ "Ok": { "auth_token": "AuThToken", "expires": 123456789 } }`.
 mod common;
 pub use common::*;
 mod signed;

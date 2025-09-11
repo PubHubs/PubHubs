@@ -1,143 +1,152 @@
 <template>
-	<div class="bg-gray-middle absolute inset-0 z-20 h-full opacity-75"></div>
-	<div class="border-b-1 border-x-1 bg-hub-background-2 dark:text-white-middle absolute top-40 z-30 m-auto w-1/2 rounded-md p-8">
-		<div class="flex justify-between">
-			<h2 class="light:text-black theme-light:text-black mx-2 my-2 mt-4 text-lg font-bold">Room Join</h2>
-			<Icon type="close" size="md" class="hover:text-red theme-light:text-gray theme-light:hover:text-red mt-4" @click="$emit('close')" />
-		</div>
-		<hr class="border-gray-lighter mx-8 mb-4 mt-2" />
-		<div class="bg-blue-middle bg-blue-light text-white-middle flex justify-center rounded-md">
-			<Icon type="exclamation" class="inline" />
-			<span>{{ t('admin.join_warning') }}</span>
-		</div>
-		<div>
-			<table class="text-gray-darker w-full text-left text-lg dark:text-white rtl:text-right">
-				<thead class="~text-body-min/body-max">
-					<tr>
-						<th scope="col" class="w-8 px-6 py-3"></th>
-						<th scope="col" class="py-3"></th>
-						<th scope="col" class="px-6 py-3"></th>
-					</tr>
-				</thead>
-				<tbody>
-					<tr v-for="adminId in adminMembersId" :key="adminId">
-						<td class="px-6 py-4"><Avatar :userId="adminId" class="h-10 w-10" /></td>
+	<div class="absolute inset-0 z-20 h-full bg-surface opacity-75"></div>
+	<div class="fixed inset-0 z-20 flex items-center justify-center p-4">
+		<div class="relative min-h-[300px] rounded-md border bg-surface-low p-8 sm:w-[480px] md:w-[640px]">
+			<div class="flex justify-between">
+				<h2 class="mx-2 my-2 mt-4 font-bold">{{ t('admin.title_room_join') }}</h2>
+				<Icon type="close" @click="close()"></Icon>
+			</div>
 
-						<td class="px-6 py-4">
-							<span class="text-gray-dark font-semibold">{{ adminId }}</span>
-						</td>
-						<td>
-							<button @click="forceRejoinFlow(adminId)" class="bg-blue hover:bg-blue-dark ml-4 rounded px-3 py-1 text-white transition">{{ $t('admin.join') }}</button>
-						</td>
-					</tr>
-				</tbody>
-			</table>
+			<hr class="mx-8 mt-2" />
+			<div class="my-2 flex flex-col">
+				<span>{{ t('admin.join_warning') }}</span>
+				<span class="mt-4">{{ t('admin.refresh_admin_operation') }} </span>
+			</div>
+
+			<hr class="mx-8 mt-2" />
+			<Button @click="handleActionClick" class="absolute inset-0 mt-4 w-full rounded bg-on-surface-variant px-4 text-center hover:bg-surface-subtle dark:text-surface-low">
+				{{ t('admin.join') }}
+			</Button>
+			<InlineSpinner v-if="inProgress"></InlineSpinner>
 		</div>
 	</div>
 </template>
-<script setup lang="ts">
-	import Avatar from '../ui/Avatar.vue';
 
-	import { onMounted, watch, ref } from 'vue';
+<script setup lang="ts">
+	import { ref, onMounted, onUnmounted, watch } from 'vue';
+
+	import { useUser } from '@/logic/store/user';
+	import { usePubHubs } from '@/logic/core/pubhubsStore';
 	import { APIService } from '@/logic/core/apiHubManagement';
-	import { UserAccount } from '@/model/hubmanagement/types/userAccount';
-	import { AccessToken } from '@/model/hubmanagement/types/authType';
 	import { ManagementUtils } from '@/model/hubmanagement/utility/managementutils';
 	import { useDialog } from '@/logic/store/dialog';
-	import { usePubHubs } from '@/logic/core/pubhubsStore';
+	import Button from '../elements/Button.vue';
+
+	import Icon from '../elements/Icon.vue';
+
 	import { useI18n } from 'vue-i18n';
-	import { useUser } from '@/logic/store/user';
-	import { User as MatrixUser } from 'matrix-js-sdk';
+	import { EventType } from 'matrix-js-sdk';
+	import InlineSpinner from '../ui/InlineSpinner.vue';
 
 	const { t } = useI18n();
-
-	const adminMembersId = ref<string[]>([]);
-
-	// Map is used to store <admin id, authenticated media url>
-	const updateAuthenticatedUrlMap = ref<Map<string, string>>(new Map());
-
+	const user = useUser();
+	const pubhubs = usePubHubs();
 	const dialog = useDialog();
 
-	const user = useUser();
+	const inProgress = ref<boolean>(false);
 
-	const emit = defineEmits(['close']);
+	const props = defineProps<{ roomId: string }>();
+	const emit = defineEmits<{
+		(e: 'close'): void;
+	}>();
 
-	const pubhubs = usePubHubs();
+	// Reactive state
+	const roomCreator = ref<string | undefined>(undefined);
 
-	const props = defineProps({
-		roomId: {
-			type: String,
-			required: true,
-		},
-	});
-
+	// Lifecycle hooks
 	onMounted(async () => {
-		adminMembersId.value = await ManagementUtils.getAdminUsersId(props.roomId);
-
-		// New code to populate the updateAuthenticatedUrlMap
-		for (const id of adminMembersId.value) {
-			let url = await getAuthorizedAvatarUrl(id);
-
-			if (url !== null) updateAuthenticatedUrlMap.value.set(id, url);
-		}
+		await fetchRoomCreatorInfo();
 	});
 
+	onUnmounted(() => {
+		dialog.hideModal();
+	});
+
+	// Watchers
 	watch(
 		() => props.roomId,
-		async () => {
-			// For new room, we will have new admin Ids .
-			updateAuthenticatedUrlMap.value.clear();
-
-			//Fetch all admin ids in the room.
-			adminMembersId.value = await ManagementUtils.getAdminUsersId(props.roomId);
-
-			for (const id of adminMembersId.value) {
-				// Get authenticated avatar url for the ids.
-				let url = await getAuthorizedAvatarUrl(id);
-
-				// Store it in a map
-				if (url !== null) updateAuthenticatedUrlMap.value.set(id, url);
-			}
-		},
+		async () => await fetchRoomCreatorInfo(),
 	);
 
-	function getMatrixUser(userId: string): MatrixUser {
-		return pubhubs.client.getUser(userId)!;
-	}
-	async function getAuthorizedAvatarUrl(userId: string) {
-		const userAccount: UserAccount = await APIService.adminQueryAccount(userId);
+	// Methods
+	async function fetchRoomCreatorInfo(): Promise<void> {
+		// If something goes wrong when fetching it is difficult to pinpoint what went wrong.
+		// The end-user would have to notify us if it happens.
 
-		return userAccount.avatar_url && (await pubhubs.getAuthorizedMediaUrl(userAccount.avatar_url));
-	}
-
-	// Flow to trigger force join and make 'this user admin' as the admin of the room.
-	async function forceRejoinFlow(pastAdminUserId: string) {
-		let joinState;
 		try {
-			// Member is not in the room, then prompt for join room message and then join flow begins.
-			joinState = await promptAndAttemptToJoin(pastAdminUserId);
-			joinState && (await promptAndMakeAdmin(props.roomId));
-		} catch (error: any) {
-			dialog.showError(error as string);
+			// Get Room Creator Id
+			roomCreator.value = await ManagementUtils.getRoomCreator(props.roomId);
+
+			if (!roomCreator.value) {
+				dialog.confirm(t('errors.error'));
+				return;
+			}
+
+			dialog.showModal();
+		} catch (error) {
+			dialog.confirm(t('errors.error'));
+			return;
 		}
+	}
+
+	async function joinAndMakeAdmin(roomId: string): Promise<void> {
+		await pubhubs.joinRoom(props.roomId);
+		await APIService.makeRoomAdmin(roomId, user.user.userId);
+	}
+
+	async function attemptToJoinPrevAdmin(adminId: string): Promise<void> {
+		const accessToken = await APIService.adminUserLogin(adminId);
+		await APIService.forceRoomJoin(props.roomId, accessToken.access_token);
+	}
+
+	async function leavePrevAdmin(roomId: string, prevAdminId: string): Promise<void> {
+		const accessToken = await APIService.adminUserLogin(prevAdminId);
+		// Temporarily set the token
+		pubhubs.client.setAccessToken(accessToken.access_token);
+		await pubhubs.client.leave(roomId);
+	}
+
+	// Event handlers
+	async function handleActionClick(): Promise<void> {
+		inProgress.value = true;
+		// We have already checked if room creator is there or not.
+		await attemptToJoinPrevAdmin(roomCreator.value!);
+		await joinAndMakeAdmin(props.roomId);
+		await leavePrevAdmin(props.roomId, roomCreator.value!);
+		await completeFlow();
+	}
+
+	async function completeFlow() {
+		// Start polling for conditions
+		let pollInterval = setInterval(async () => {
+			// This Hub is now a room Admin
+			const isAdmin = await hasBecomeRoomAdmin(user.user.userId);
+			// Check if the previous admin is *not* found in the current members, meaning they've left
+			const roomMembers = (await APIService.adminGetRoomMembers(props.roomId)).members;
+			const hasPrevAdminLeft = !roomMembers.includes(roomCreator.value!);
+
+			// For the spinner
+			if (isAdmin && hasPrevAdminLeft) {
+				inProgress.value = false;
+				clearInterval(pollInterval); // Stop polling
+				pollInterval = 0;
+				emit('close');
+			}
+		}, 2000); // Poll every 2 seconds (adjust as needed)
+	}
+
+	function close(): void {
 		emit('close');
 	}
 
-	async function promptAndAttemptToJoin(pastAdminUserId: string): Promise<number> {
-		const joinRoomState = await dialog.yesno(t('admin.msg_prev_admin_join'));
+	// Sanity Check to complete the workflow
 
-		if (joinRoomState) {
-			// Past admin join
-			const accessToken: AccessToken = await APIService.adminUserLogin(pastAdminUserId);
-			await APIService.forceRoomJoin(props.roomId, accessToken.access_token);
-			// This admin joins the room as well.
-			await pubhubs.client.joinRoom(props.roomId);
-		}
-		return joinRoomState as number;
-	}
-
-	async function promptAndMakeAdmin(roomId: string): Promise<void> {
-		const confirmState = await dialog.confirm(t('admin.msg_make_admin'));
-		confirmState && (await APIService.makeRoomAdmin(roomId, user.user.userId));
+	async function hasBecomeRoomAdmin(userId: string): Promise<boolean | undefined> {
+		// Extract power level event
+		const roomState = await APIService.adminGetRoomState(props.roomId);
+		const powerLevelsEvent = roomState.state.find((event) => event.type === EventType.RoomPowerLevels);
+		if (!powerLevelsEvent) return undefined;
+		const userPowerLevel = powerLevelsEvent.content.users || {};
+		return userPowerLevel[userId] === 100;
 	}
 </script>

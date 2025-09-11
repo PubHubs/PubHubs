@@ -1,11 +1,14 @@
-import { EventTimeLineHandler } from '@/logic/core/eventTimeLineHandler';
-import { usePubHubs } from '@/logic/core/pubhubsStore';
-import { TEvent } from '@/model/events/TEvent';
+// Package imports
 import { ClientEvent, EventType, MatrixClient, MatrixEvent, Room as MatrixRoom, MsgType, RoomEvent, RoomMember, RoomMemberEvent } from 'matrix-js-sdk';
-import { useConnection } from '@/logic/store/connection';
-import { useSettings } from '@/logic/store/settings';
-import { useRooms } from '@/logic/store/store';
-import { SyncState } from 'matrix-js-sdk/lib/sync';
+import { SyncState } from 'matrix-js-sdk/lib/sync.js';
+
+// Hub imports
+import { EventTimeLineHandler } from '@/logic/core/eventTimeLineHandler.js';
+import { usePubHubs } from '@/logic/core/pubhubsStore.js';
+import { useConnection } from '@/logic/store/connection.js';
+import { useSettings } from '@/logic/store/settings.js';
+import { useRooms } from '@/logic/store/rooms.js';
+import { TEvent } from '@/model/events/TEvent.js';
 
 enum RedactReasons {
 	Deleted = 'Deleted',
@@ -13,6 +16,7 @@ enum RedactReasons {
 }
 
 enum PubHubsMgType {
+	Default = '',
 	SignedMessage = 'pubhubs.signed_message',
 	AskDisclosureMessage = 'pubhubs.ask_disclosure_message',
 	AnnouncementMessage = 'pubhubs.announcement_message',
@@ -25,6 +29,8 @@ enum PubHubsMgType {
 	VotingWidgetAddVoteOption = 'pubhubs.voting_widget.add_vote_option',
 	VotingWidgetReply = 'pubhubs.voting_widget.reply',
 	VotingWidgetModify = 'pubhubs.voting_widget.modify',
+	SignedFileMessage = 'pubhubs.roomlibrary.signed_file',
+	LibraryFileMessage = 'pubhubs.roomlibrary.file',
 }
 
 enum PubHubsInvisibleMsgType {
@@ -113,6 +119,7 @@ class Events {
 				const rooms = useRooms();
 				if (member.membership === 'leave') {
 					const roomId = event.getRoomId();
+
 					if (roomId !== undefined && rooms.rooms[roomId]) {
 						rooms.rooms[roomId].setHidden(true);
 					}
@@ -133,7 +140,11 @@ class Events {
 				else if (member.membership === 'join') {
 					const roomId = event.getRoomId();
 					if (roomId !== undefined && rooms.rooms[roomId]) {
-						rooms.rooms[roomId].setHidden(false);
+						if (event.sender?.userId !== me) {
+							rooms.rooms[roomId].setHidden(false);
+						} else {
+							rooms.rooms[roomId].setHidden(false);
+						}
 					} else {
 						const pubhubs = usePubHubs();
 						pubhubs.updateRooms();

@@ -1,29 +1,31 @@
+// Package imports
 import { defineStore } from 'pinia';
+import { ContentHelpers, EventType, ISearchResults, ISendEventResponse, MatrixClient, MatrixError, MatrixEvent, Room as MatrixRoom, User as MatrixUser, MsgType, TimelineEvents } from 'matrix-js-sdk';
+import { RoomMessageEventContent } from 'matrix-js-sdk/lib/types.js';
+import { ReceiptType } from 'matrix-js-sdk/lib/@types/read_receipts.js';
+import { RoomPowerLevelsEventContent } from 'matrix-js-sdk/lib/@types/state_events.js';
 
-import { Events, PubHubsMgType, RedactReasons } from '@/logic/core/events';
-import { api_matrix, api_synapse } from '@/logic/core/api';
-import { Authentication } from '@/logic/core/authentication';
-import { createNewPrivateRoomName, refreshPrivateRoomName, updatePrivateRoomName } from '@/logic/core/privateRoomNames';
-import { hasHtml, sanitizeHtml } from '@/logic/core/sanitizer';
-import { LOGGER } from '@/logic/foundation/Logger';
-import { SMI } from '@/logic/foundation/StatusMessage';
-import { AskDisclosureMessage, YiviSigningSessionResult } from '@/model/components/signedMessages';
-import { TMentions, TMessageEvent, TTextMessageEventContent } from '@/model/events/TMessageEvent';
-import { TVotingWidgetClose, TVotingWidgetEditEventContent, TVotingWidgetMessageEventContent, TVotingWidgetOpen, TVotingWidgetPickOption, TVotingWidgetVote } from '@/model/events/voting/TVotingMessageEvent';
-import Room from '@/model/rooms/Room';
-import { TSearchParameters } from '@/model/search/TSearch';
-import { useConnection } from '@/logic/store/connection';
-import { imageTypes } from '@/model/constants';
-import { RoomType } from '@/logic/store/rooms';
-import { TPublicRoom, useRooms } from '@/logic/store/store';
-import { User, useUser } from '@/logic/store/user';
-import { router } from '@/logic/core/router';
-import { ContentHelpers, EventType, ISearchResults, ISendEventResponse, MatrixClient, MatrixError, MatrixEvent, Room as MatrixRoom, User as MatrixUser, MsgType } from 'matrix-js-sdk';
-import { ReceiptType } from 'matrix-js-sdk/lib/@types/read_receipts';
-import { Poll, Scheduler } from '@/model/events/voting/VotingTypes';
-import { useMessageActions } from '@/logic/store/message-actions';
-import { RoomPowerLevelsEventContent } from 'matrix-js-sdk/lib/@types/state_events';
-import { RoomMessageEventContent } from 'matrix-js-sdk/lib/types';
+// Hub imports
+import { api_matrix, api_synapse } from '@/logic/core/api.js';
+import { Authentication } from '@/logic/core/authentication.js';
+import { Events, PubHubsMgType, RedactReasons } from '@/logic/core/events.js';
+import { createNewPrivateRoomName, refreshPrivateRoomName, updatePrivateRoomName } from '@/logic/core/privateRoomNames.js';
+import { router } from '@/logic/core/router.js';
+import { hasHtml, sanitizeHtml } from '@/logic/core/sanitizer.js';
+import { LOGGER } from '@/logic/foundation/Logger.js';
+import { SMI } from '@/logic/foundation/StatusMessage.js';
+import { useConnection } from '@/logic/store/connection.js';
+import { useMessageActions } from '@/logic/store/message-actions.js';
+import { Poll, Scheduler } from '@/model/events/voting/VotingTypes.js';
+import { TMentions, TMessageEvent, TTextMessageEventContent } from '@/model/events/TMessageEvent.js';
+import { RoomType, TPublicRoom, useRooms } from '@/logic/store/rooms.js';
+import { TVotingWidgetClose, TVotingWidgetEditEventContent, TVotingWidgetMessageEventContent, TVotingWidgetOpen, TVotingWidgetPickOption, TVotingWidgetVote } from '@/model/events/voting/TVotingMessageEvent.js';
+import { User, useUser } from '@/logic/store/user.js';
+import { imageTypes, RelationType } from '@/model/constants.js';
+import { AskDisclosureMessage, YiviSigningSessionResult } from '@/model/components/signedMessages.js';
+import Room from '@/model/rooms/Room.js';
+import { TSearchParameters } from '@/model/search/TSearch.js';
+import { assert } from 'chai';
 
 const publicRoomsLoading: Promise<any> | null = null; // outside of defineStore to guarantee lifetime, not accessible outside this module
 const updateRoomsPerforming: Promise<void> | null = null; // outside of defineStore to guarantee lifetime, not accessible outside this module
@@ -77,8 +79,10 @@ const usePubHubs = defineStore('pubhubs', {
 				const newUser = user.user;
 
 				if (newUser !== null) {
-					api_synapse.setAccessToken(this.Auth.getAccessToken()!); //Since user isn't null, we expect there to be an access token.
-					api_matrix.setAccessToken(this.Auth.getAccessToken()!);
+					const accessToken = this.Auth.getAccessToken();
+					assert.isNotNull(accessToken, 'Since the value of user is not null, we expect there to be an access token.');
+					api_synapse.setAccessToken(accessToken);
+					api_matrix.setAccessToken(accessToken);
 					user.fetchIsAdministrator(this.client as MatrixClient);
 					user.fetchIfUserNeedsConsent();
 
@@ -407,7 +411,7 @@ const usePubHubs = defineStore('pubhubs', {
 			return false;
 		},
 
-		async createPrivateRoomWith(other: User | MatrixUser[], adminContact: boolean = false): Promise<{ room_id: string } | null> {
+		async createPrivateRoomWith(other: User | MatrixUser[], adminContact: boolean = false, stewardContact: boolean = false, roomIdForStewardRoomCreate: string = ''): Promise<{ room_id: string } | null> {
 			const user = useUser();
 			const me = user.user as User;
 			let otherUsers: (User | MatrixUser)[];
@@ -415,10 +419,10 @@ const usePubHubs = defineStore('pubhubs', {
 
 			if (other instanceof Array) {
 				otherUsers = other;
-				roomType = adminContact ? RoomType.PH_MESSAGE_ADMIN_CONTACT : RoomType.PH_MESSAGES_GROUP;
+				roomType = adminContact ? RoomType.PH_MESSAGE_ADMIN_CONTACT : stewardContact ? RoomType.PH_MESSAGE_STEWARD_CONTACT : RoomType.PH_MESSAGES_GROUP;
 			} else {
 				otherUsers = [other];
-				roomType = adminContact ? RoomType.PH_MESSAGE_ADMIN_CONTACT : RoomType.PH_MESSAGES_DM;
+				roomType = adminContact ? RoomType.PH_MESSAGE_ADMIN_CONTACT : stewardContact ? RoomType.PH_MESSAGE_STEWARD_CONTACT : RoomType.PH_MESSAGES_DM;
 			}
 
 			const memberIds = [me.userId, ...otherUsers.map((u) => u.userId)];
@@ -440,11 +444,12 @@ const usePubHubs = defineStore('pubhubs', {
 			if (existingRoomId === false) {
 				const otherUserForName = otherUsers;
 				const privateRoomName = createNewPrivateRoomName([me, ...otherUserForName]);
+				const stewardRoomName = roomIdForStewardRoomCreate !== '' ? roomIdForStewardRoomCreate + ',' + privateRoomName : '';
 				const inviteIds = otherUsers.map((u) => u.userId);
 
 				const room = await this.createRoom({
 					preset: 'trusted_private_chat',
-					name: privateRoomName,
+					name: roomIdForStewardRoomCreate !== '' ? stewardRoomName : privateRoomName,
 					visibility: 'private',
 					invite: inviteIds,
 					is_direct: true,
@@ -667,13 +672,32 @@ const usePubHubs = defineStore('pubhubs', {
 			await this.client.sendMessage(roomId, content);
 		},
 
+		async addSignedFile(roomId: string, signedFileHash: YiviSigningSessionResult, originalEventId: string | undefined) {
+			const content = {
+				msgtype: PubHubsMgType.SignedFileMessage,
+				body: 'signed file',
+				signed_message: signedFileHash,
+				'm.relates_to': {
+					event_id: originalEventId,
+				},
+			};
+			// @ts-ignore
+			// todo: fix this (issue #808)
+			console.log('addSignedFile ==>', roomId, content);
+			const result = await this.client.sendEvent(roomId, PubHubsMgType.LibraryFileMessage, content);
+			console.log('addSignedFile <==', result);
+		},
+
 		/**
 		 * @param roomId
 		 * @param eventId
 		 */
-		async deleteMessage(roomId: string, eventId: string, threadId?: string) {
+		async deleteMessage(roomId: string, eventId: string, threadId?: string, reactEventId?: string) {
 			const reason = threadId ? { reason: RedactReasons.DeletedFromThread } : { reason: RedactReasons.Deleted };
 			await this.client.redactEvent(roomId, eventId, undefined, reason);
+			if (reactEventId) {
+				await this.client.redactEvent(roomId, reactEventId, undefined, reason);
+			}
 		},
 
 		async sendReadReceipt(event: MatrixEvent) {
@@ -731,6 +755,20 @@ const usePubHubs = defineStore('pubhubs', {
 			};
 			//@ts-ignore
 			await this.client.sendEvent(roomId, PubHubsMgType.VotingWidgetReply, content);
+		},
+
+		// Adds reaction event to an existing event based on eventId.
+		// e.g., react to Message Event.
+		async addReactEvent(roomId: string, eventId: string, emoji: string) {
+			const content = {
+				[RelationType.RelatesTo]: {
+					rel_type: 'm.annotation',
+					event_id: eventId,
+					key: emoji,
+				},
+			};
+			//@ts-ignore
+			await this.client.sendEvent(roomId, EventType.Reaction, content);
 		},
 
 		async closeVotingWidget(roomId: string, inReplyTo: string, user_ids: string[]) {
@@ -844,7 +882,7 @@ const usePubHubs = defineStore('pubhubs', {
 			await this.client.sendMessage(roomId, content);
 		},
 
-		async addFile(roomId: string, threadId: string | undefined, file: File, uri: string, message: string = '') {
+		async addFile(roomId: string, threadId: string | undefined, file: File, uri: string, message: string = '', eventType: EventType = PubHubsMgType.Default) {
 			const thread = threadId && threadId.length > 0 ? threadId : null;
 			let fileType = MsgType.File;
 			let body = message;
@@ -866,7 +904,12 @@ const usePubHubs = defineStore('pubhubs', {
 				'm.relates_to': undefined,
 			};
 			try {
-				await this.client.sendMessage(roomId, thread, content);
+				// FileLibrary
+				if (eventType === PubHubsMgType.LibraryFileMessage) {
+					await this.client.sendEvent(roomId, eventType as keyof TimelineEvents, content);
+				} else {
+					await this.client.sendMessage(roomId, thread, content);
+				}
 			} catch (error) {
 				logger.trace(SMI.STORE, 'swallowing add file error', { error });
 			}
@@ -1157,6 +1200,10 @@ const usePubHubs = defineStore('pubhubs', {
 
 		hasNotBeenInvitedOrJoined(room: Room, adminId: string) {
 			return !(room.getMember(adminId)?.membership === 'join' || room.getMember(adminId)?.membership === 'invite');
+		},
+		async routeToRoomPage(room: { room_id: string }) {
+			const room_id = room.room_id;
+			await router.push({ name: 'room', params: { id: room_id } });
 		},
 	},
 });

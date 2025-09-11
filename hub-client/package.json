@@ -26,6 +26,7 @@
 		"@vitejs/plugin-vue": "^5.2.1",
 		"@vue/test-utils": "^2.2.3",
 		"@vuepic/vue-datepicker": "^11.0.2",
+		"chai": "^5.2.1",
 		"emojibase": "^16",
 		"emojibase-data": "^16",
 		"https-browserify": "^1.0.0",

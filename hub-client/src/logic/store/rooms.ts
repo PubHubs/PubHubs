@@ -6,7 +6,7 @@ import Room from '@/model/rooms/Room';
 import { RoomType } from '@/model/rooms/TBaseRoom';
 import { TPublicRoom } from '@/model/rooms/TPublicRoom';
 import { TSecuredRoom } from '@/model/rooms/TSecuredRoom';
-import { EventType, MatrixEvent, Room as MatrixRoom, NotificationCountType } from 'matrix-js-sdk';
+import { EventType, MatrixEvent, Room as MatrixRoom, NotificationCountType, RoomMember } from 'matrix-js-sdk';
 import { defineStore } from 'pinia';
 import { Message, MessageType, useMessageBox } from './messagebox';
 import { useUser } from './user';
@@ -15,6 +15,7 @@ import { PubHubsMgType } from '@/logic/core/events';
 import { SecuredRoomAttributeResult } from '@/logic/foundation/statusTypes';
 import { TMessageEvent } from '@/model/events/TMessageEvent';
 import { isVisiblePrivateRoom } from '../core/privateRoomNames';
+import { TRoomMember } from '@/model/rooms/TRoomMember.js';
 
 // Matrix Endpoint for messages in a room.
 interface RoomMessages {
@@ -205,6 +206,10 @@ const useRooms = defineStore('rooms', {
 			this.timestamps = timestamps;
 		},
 
+		fetchRoomById(roomId: string): Room {
+			return this.room(roomId);
+		},
+
 		// On receiving a message in any room:
 		onModRoomMessage(e: MatrixEvent) {
 			// On receiving a moderation "Ask Disclosure" message (in any room),
@@ -293,7 +298,6 @@ const useRooms = defineStore('rooms', {
 		fetchRoomArrayByType(type: string | undefined): Array<Room> {
 			const user = useUser().user;
 			const rooms = [...this.roomsArray].sort((a, b) => a.name.localeCompare(b.name));
-
 			// visibility is based on a prefix on room names when the room is joined or left.
 			if (type === RoomType.PH_MESSAGES_DM) {
 				return rooms.filter((room) => room.getType() === type).filter((room) => isVisiblePrivateRoom(room.name, user));
@@ -620,16 +624,79 @@ const useRooms = defineStore('rooms', {
 				return this.securedRoom;
 			} else {
 				// We need to get information from TPublicRoom instead of room.
-				return this.publicRooms.find((room) => room.room_id == this.currentRoomId)!;
+				return this.getTPublicRoom(this.currentRoomId)!;
 			}
+		},
+		getTPublicRoom(roomId: string): TPublicRoom | undefined {
+			return this.publicRooms.find((room: TPublicRoom) => room.room_id === roomId);
 		},
 		getTotalPrivateRoomUnreadMsgCount(): number {
 			const dmRooms = this.fetchRoomArrayByType(RoomType.PH_MESSAGES_DM) ?? [];
 			const groupRooms = this.fetchRoomArrayByType(RoomType.PH_MESSAGES_GROUP) ?? [];
 			const adminRooms = this.fetchRoomArrayByType(RoomType.PH_MESSAGE_ADMIN_CONTACT) ?? [];
+			const stewardRooms = this.fetchRoomArrayByType(RoomType.PH_MESSAGE_STEWARD_CONTACT) ?? [];
 
-			const totalPrivateRooms = [...dmRooms, ...groupRooms, ...adminRooms];
+			const totalPrivateRooms = [...dmRooms, ...groupRooms, ...adminRooms, ...stewardRooms];
 			return totalPrivateRooms.reduce((total, room) => total + (room.getRoomUnreadNotificationCount(NotificationCountType.Total) ?? 0), 0);
+		},
+		async kickUsersFromSecuredRoom(roomId: string): Promise<void> {
+			try {
+				await api_synapse.apiPOST(`${api_synapse.apiURLS.data}?data=removed_from_secured_room`, { room_id: roomId });
+			} catch (error) {
+				console.error(`Could not kick all users from ${roomId}`, error);
+			}
+		},
+		// Steward room logic //
+
+		stewardRooms(): Array<Room> {
+			const rooms = useRooms();
+			return rooms.fetchRoomArrayByType(RoomType.PH_MESSAGE_STEWARD_CONTACT);
+		},
+
+		currentStewardRoom(roomId: string): Room | undefined {
+			return this.stewardRooms().filter((room) => room.name.split(',')[0] === roomId)[0];
+		},
+
+		/**
+		 * Creates a steward room or modifies the existing one.
+		 * If the room already exists, it updates the members.
+		 * If it doesn't exist, it creates a new private room with the given members.
+		 * @param roomId - The ID of the room to create or modify.
+		 * @param members - An array of RoomMember objects representing the members of the room.
+		 */
+		async createStewardRoomOrModify(roomId: string, members: Array<RoomMember>): Promise<void> {
+			const user = useUser();
+			const pubhubs = usePubHubs();
+			const stewardIds = members.map((member) => member.userId);
+
+			const stewardRoom: Room = this.currentStewardRoom(roomId);
+
+			if (stewardRoom) {
+				const roomMembers: TRoomMember[] = stewardRoom.matrixRoom.getMembers();
+				// If moderators are updated then update the moderators join and leave in the room.
+
+				roomMembers.forEach(async (member: TRoomMember) => {
+					if (this.room(roomId).getPowerLevel(member.userId) !== 50 && member.userId !== user.user.userId) {
+						if (stewardRoom.getMember(member.userId)?.membership !== 'leave') {
+							await pubhubs.client.kick(stewardRoom.roomId, member.userId);
+						}
+					}
+					const roomUserId = roomMembers.map((member) => member.userId);
+
+					const newStewardId = stewardIds.filter((stewardUserId) => !roomUserId.includes(stewardUserId));
+					if (newStewardId.length > 0) {
+						newStewardId.forEach(async (thisSteward) => {
+							await pubhubs.invite(stewardRoom.roomId, thisSteward);
+						});
+					}
+				});
+				await pubhubs.routeToRoomPage({ room_id: stewardRoom.roomId });
+			} else {
+				const pubhubs = usePubHubs();
+
+				const privateRoom = await pubhubs.createPrivateRoomWith(members, false, true, roomId);
+				privateRoom && (await pubhubs.routeToRoomPage(privateRoom));
+			}
 		},
 	},
 });

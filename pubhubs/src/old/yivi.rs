@@ -521,7 +521,7 @@ async fn next_session_priv(
     let jwt = jsonwebtoken::decode::<SignedSessionResultClaims>(jwt_text, &yivi.server_key, &{
         let mut val = jsonwebtoken::Validation::new(jsonwebtoken::Algorithm::RS256);
 
-        val.set_issuer(&[yivi.server_issuer.clone()]);
+        val.set_issuer(std::slice::from_ref(&yivi.server_issuer));
         val.set_required_spec_claims(&["exp", "iat", "iss", "sub"]);
         val
     });

@@ -1,5 +1,6 @@
 import { LOGGER } from '@/logic/foundation/Logger.js';
 import { SMI } from '@/logic/foundation/StatusMessage.js';
+import { assert } from 'chai';
 
 // Regex describing the general shape of a shortened pseudonym
 // Does not check the checkdigit, nor the fact that the left and right groups must be equally long.
@@ -50,11 +51,15 @@ export default {
 		}
 	},
 
-	removeBackSlash(url: string) {
+	removeTrailingSlash(url: string) {
+		assert.isString(url);
 		return url.replace(/\/$/g, '');
 	},
 
 	maxLengthText(text: string, max: number = 20, ellipsis: string = '...') {
+		assert.isString(text);
+		assert.isNumber(max);
+		assert.isString(ellipsis);
 		if (text.length > max) {
 			return text.substring(0, max) + ellipsis;
 		}
@@ -72,15 +77,14 @@ export default {
 	// Return "!!!-!!!" if the matrix ID is valid, but the localpart is not a shortened pseudonym,
 	// for example, when it's the matrix ID of some "notices" or "system" user.
 	extractPseudonym(matrixUserId: string) {
+		assert.isString(matrixUserId);
+
 		const parts = matrixUserId.split(':', 2);
-		if (parts.length !== 2) {
-			throw new Error("matrix ID did not contain ':'");
-		}
+		assert.equal(parts.length, 2, "matrix ID did not contain ':'");
 
 		const [atLocalpart] = parts;
-		if (atLocalpart.length === 0 || atLocalpart[0] !== '@') {
-			throw new Error("matrix ID did not start with '@'");
-		}
+		assert.isAbove(atLocalpart.length, 0, "matrix ID did not start with '@'");
+		assert.strictEqual(atLocalpart[0], '@', "matrix ID did not start with '@'");
 
 		const localpart = atLocalpart.slice(1);
 
@@ -96,6 +100,7 @@ export default {
 
 	// Extracts (first) shortened pseudonym from a string.
 	extractPseudonymFromString(text: string) {
+		assert.isString(text);
 		const result: RegExpExecArray | null = shortenedPseudonymRegexString.exec(text);
 		if (!result || result.groups?.left.length !== result.groups?.right.length) {
 			return undefined;

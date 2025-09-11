@@ -29,9 +29,7 @@
 								</div>
 								<div class="flex w-fit gap-4">
 									<div class="flex items-center gap-2">
-										<span v-if="isUserRoomAdmin(user.user.userId, item.room_id)" class="relative line-clamp-1 items-center rounded-md bg-accent-red px-1 font-medium text-on-accent-red ~text-label-min/label-max"
-											>Administrator</span
-										>
+										<span v-if="isUserRoomAdmin(user.user.userId, item.room_id)" class="ml-2 flex h-4 items-center gap-1 rounded-xl bg-black px-2 text-white ~text-label-small-min/label-small-max">Administrator</span>
 										<span class="flex items-center">
 											<Icon type="person" size="sm" class="shrink-0" />
 											<p>x</p>
@@ -67,7 +65,7 @@
 								</div>
 								<div class="flex w-fit gap-4">
 									<div class="flex items-center gap-2">
-										<span v-if="isUserRoomAdmin(user.user.userId, item.room_id)" class="relative items-center rounded-md bg-accent-red px-1 font-medium text-white ~text-label-min/label-max">Administrator</span>
+										<span v-if="isUserRoomAdmin(user.user.userId, item.room_id)" class="ml-2 flex h-4 items-center gap-1 rounded-xl bg-black px-2 text-white ~text-label-small-min/label-small-max">Administrator</span>
 										<span v-if="rooms.room(item.room_id)?.userIsMember(user.user.userId)">
 											<Icon type="person" size="sm" class="shrink-0" />
 										</span>
@@ -163,6 +161,10 @@
 		if (await dialog.okcancel(t('admin.remove_room_sure'))) {
 			try {
 				await rooms.removePublicRoom(room.room_id);
+				if (secured.value) {
+					// If the room was secured, we need to remove it from allowed_to_join_room table
+					rooms.kickUsersFromSecuredRoom(room.room_id);
+				}
 			} catch (error) {
 				dialog.confirm('ERROR', error as string);
 			}
@@ -190,17 +192,24 @@
 		const okCancelStatus = await dialog.okcancel(t('admin.make_admin'));
 		// If the user presses cancel, then don't proceed!
 		if (!okCancelStatus) return;
+
 		try {
 			await APIService.makeRoomAdmin(roomId, userId);
 		} catch (error: any) {
+			const roomCreator = await ManagementUtils.getRoomCreator(roomId);
+			if (roomCreator === user.user.userId) {
+				await pubhubs.joinRoom(roomId);
+				return;
+			}
+
+			// This will happen in case of abandon room i.e., rooms without room admin.
 			const isMember = await ManagementUtils.roomCreatorIsMember(roomId);
 			// Creator is not a member of the room, so we show past admin to join.
+
 			if (!isMember) {
 				showPastMemberPanel.value = true;
 				currentRoomId.value = roomId;
-			} else {
-				// if creator is a member, but error was thrown, then some other issue has occured.
-				throw error;
+				return;
 			}
 		}
 		await pubhubs.joinRoom(roomId);

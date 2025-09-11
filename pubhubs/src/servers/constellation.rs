@@ -23,7 +23,16 @@ use crate::servers;
 /// [`inner`]: Constellation::inner
 #[derive(Clone, Debug, serde::Serialize, serde::Deserialize)]
 pub struct Constellation {
+    /// Identifier for this constellation derived from [`Inner`] using a hash.
     pub id: id::Id,
+
+    /// When this constellation was first created by pubhubs central.  When two parties
+    /// have different constellations, the party with the oldest constellation should
+    /// update.
+    #[serde(default)] // temporary, for backwards compatibility with transcryptor
+    // running old code not having this field yet
+    pub created_at: api::NumericDate,
+
     #[serde(flatten)]
     pub inner: Inner,
 }
@@ -36,6 +45,14 @@ impl Deref for Constellation {
     }
 }
 
+// NOTE: When adding a new field to the constellation make sure it has a default value in the first
+// version so that when the new version of PHC contacts the old versions of the transcryptor and
+// the authentication server, PHC will not crash on missing fields at the transcryptor and the
+// authentication server.
+//
+// (The converse is not necessary:  when an outdated authentication server and transcryptor
+// are running discovery against a freshly updated PHC, PHC's constellation will not be set
+// and will thus not cause the transcryptor or authentication server to crash.)
 #[derive(Clone, Debug, serde::Serialize, serde::Deserialize, PartialEq, Eq)]
 pub struct Inner {
     pub transcryptor_url: url::Url,
@@ -55,8 +72,19 @@ pub struct Inner {
     /// `x_T x_PHC B`
     pub master_enc_key: elgamal::PublicKey,
 
+    #[serde(default = "default_global_client_url")]
+    // temporary default for backwards compatibility
+    pub global_client_url: url::Url,
+
     /// pubhubs version
     pub ph_version: Option<String>,
+}
+
+/// Temporary default global client url for backwards compatibility
+fn default_global_client_url() -> url::Url {
+    "http://example.com/global-client-url-not-available"
+        .parse()
+        .unwrap()
 }
 
 impl Inner {
@@ -85,6 +113,8 @@ impl Inner {
             auths_jwt_key,
             auths_enc_key,
 
+            global_client_url,
+
             master_enc_key,
             ph_version,
         } = self;
@@ -105,6 +135,7 @@ impl Inner {
             .chain_update(**auths_jwt_key)
             .chain_update(auths_enc_key)
             .chain_update(master_enc_key)
+            .chain_update(global_client_url.as_str())
             .chain_update(ph_version.as_ref().map(String::as_str).unwrap_or("n/a"))
     }
 

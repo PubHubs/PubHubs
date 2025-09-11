@@ -93,6 +93,7 @@
 					<!-- Sendbutton -->
 					<Button
 						class="flex aspect-square h-7 w-7 items-center justify-center !rounded-full bg-background !p-0"
+						:title="$t('message.send')"
 						:class="!messageInput.state.sendButtonEnabled && 'opacity-50 hover:cursor-default'"
 						:disabled="!messageInput.state.sendButtonEnabled"
 						@click="submitMessage"
@@ -224,6 +225,9 @@
 	watch(
 		() => props.room.roomId,
 		async () => {
+			inReplyTo.value = undefined;
+			messageActions.replyingTo = undefined;
+
 			if (props.room.getCurrentThreadId()) {
 				threadRoot = (await pubhubs.getEvent(rooms.currentRoomId, props.room.getCurrentThreadId() as string)) as TMessageEvent;
 			} else {

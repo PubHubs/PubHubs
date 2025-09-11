@@ -6,8 +6,11 @@ const messages = [];
 function mockTarget(id: string) {
 	return {
 		[id]: {
-			postMessage: (message: string, url: string) => {
-				messages.push({ message: message, url: url });
+			window: {
+				postMessage: (message: string, url: string) => {
+					messages.push({ message: message, url: url });
+				},
+				receiverUrl: 'http://child',
 			},
 		},
 	};

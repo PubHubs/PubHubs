@@ -466,10 +466,10 @@ impl DisclosedAttribute {
             anyhow::bail!("attribute is revoked");
         }
 
-        if let Some(not_revoked_before) = self.not_revoked_before {
-            if jwt::NumericDate::now() > not_revoked_before {
-                anyhow::bail!("attribute is (presumably) revoked after {not_revoked_before}");
-            }
+        if let Some(not_revoked_before) = self.not_revoked_before
+            && jwt::NumericDate::now() > not_revoked_before
+        {
+            anyhow::bail!("attribute is (presumably) revoked after {not_revoked_before}");
         }
 
         Ok(())
@@ -671,7 +671,7 @@ pub enum AttributeProofStatus {
     Null,
 }
 
-/// Session type
+/// Session type (a.k.a. 'Actions')
 ///
 /// <https://github.com/privacybydesign/irmago/blob/b1c38f4f2c9da3d3f39b5c21a330bcbd04143f41/messages.go#L227>
 #[derive(serde::Serialize, serde::Deserialize, Debug, PartialEq, Eq, Clone, Copy)]

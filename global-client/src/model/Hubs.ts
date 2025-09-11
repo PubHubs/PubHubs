@@ -2,12 +2,18 @@
 import { Pinia } from 'pinia';
 
 // Global imports
-import { useSettings } from '@/logic/store/store';
-import { hub_api } from '@/logic/core/api';
+import { useSettings } from '@/logic/store/store.js';
+import { hub_api } from '@/logic/core/api.js';
+import { EnterCompleteResp, EnterStartResp, HubEnterCompleteReq, HubEnterCompleteResp, HubEnterStartResp } from '@/model/MSS/TMultiServerSetup.js';
+import { requestOptions, handleErrors } from '@/model/MSS/Auths.js';
 
 // Hub imports
-import { FeatureFlag, SettingsStore } from '../../../hub-client/src/logic/store/settings';
-import { HubSettingsJSONParser } from '../../../hub-client/src/logic/store/json-utility';
+import { FeatureFlag, SettingsStore } from '@/../../hub-client/src/logic/store/settings.js';
+import { HubSettingsJSONParser } from '@/../../hub-client/src/logic/store/json-utility.js';
+
+// Logging
+import { LOGGER } from '@/main.js';
+import { SMI } from '@/logic/foundation/StatusMessage.js';
 
 class Hub {
 	readonly hubId: string;
@@ -32,7 +38,6 @@ class Hub {
 		}
 		this.logo = '';
 		this.unreadMessages = 0;
-
 		if (pinia) {
 			// Needed in testing
 			this.settingsStore = useSettings(pinia);
@@ -68,10 +73,28 @@ class Hub {
 		}
 	}
 	public async getHubJSON(): Promise<HubSettingsJSONParser | undefined> {
+		// TODO change the description value here to the fetched summary
 		if (this.settingsStore.isFeatureEnabled(FeatureFlag.hubSettings)) {
 			return await hub_api.apiGET(`${this.serverUrl}${hub_api.apiURLS.hubSettingsUrl}`);
 		} else {
 			return undefined;
+		}
+	}
+
+	public async enterStartEP() {
+		const enterStartRespFn = () => hub_api.api<HubEnterStartResp>(`${this.serverUrl}${hub_api.apiURLS.enterStart}`, { method: 'POST' });
+		const okEnterStartResp = await handleErrors<EnterStartResp>(enterStartRespFn);
+		return okEnterStartResp;
+	}
+
+	public async enterCompleteEP(state: string, hhpp: string) {
+		const requestPayload: HubEnterCompleteReq = { state, hhpp };
+		const enterCompleteRespFn = () => hub_api.api<HubEnterCompleteResp>(`${this.serverUrl}${hub_api.apiURLS.enterComplete}`, requestOptions<HubEnterCompleteReq>(requestPayload));
+		const okEnterCompleteResp = await handleErrors<EnterCompleteResp>(enterCompleteRespFn);
+		if (okEnterCompleteResp === 'RetryFromStart') {
+			return okEnterCompleteResp;
+		} else {
+			return okEnterCompleteResp.Entered;
 		}
 	}
 }

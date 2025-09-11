@@ -1,13 +1,13 @@
-import { defineStore } from 'pinia';
 import { RouteParams } from 'vue-router';
-import { useSettings } from '@/logic/store/settings';
-import { useGlobal } from '@/logic/store/global';
-import { iframeHubId, MessageType, Message, useMessageBox } from '../../../../hub-client/src/logic/store/messagebox';
-import { setLanguage, setUpi18n } from '@/i18n';
-import { useToggleMenu } from '@/logic/store/toggleGlobalMenu';
+import { assert } from 'chai';
+import { defineStore } from 'pinia';
+import { setLanguage, setUpi18n } from '@/i18n.js';
 
-import { Hub, HubList } from '@/model/Hubs';
-import { miniClientId } from './messagebox';
+import { Hub, HubList } from '@/model/Hubs.js';
+import { useGlobal } from '@/logic/store/global.js';
+import { Message, MessageType, iframeHubId, miniClientId, useMessageBox } from '@/logic/store/messagebox.js';
+import { useSettings } from '@/logic/store/settings.js';
+import { useToggleMenu } from '@/logic/store/toggleGlobalMenu.js';
 
 const useHubs = defineStore('hubs', {
 	state: () => {
@@ -79,7 +79,7 @@ const useHubs = defineStore('hubs', {
 	},
 
 	actions: {
-		addHub(hub: Hub) {
+		async addHub(hub: Hub) {
 			this.hubs[hub.hubId] = Object.assign(new Hub(hub.hubId, hub.hubName, hub.url, hub.serverUrl), hub);
 		},
 
@@ -94,7 +94,7 @@ const useHubs = defineStore('hubs', {
 
 			const messagebox = useMessageBox();
 
-			if (!this.hubs[hubId]) throw new Error('Current hub is not initialized');
+			assert.isDefined(this.hubs[hubId], 'Current hub is not initialized');
 
 			// Start conversation with hub frame and sync latest settings
 			await messagebox.startCommunication(this.hubs[hubId].url, miniClientId + '_' + hubId);
@@ -131,7 +131,7 @@ const useHubs = defineStore('hubs', {
 
 			// If Hub is not pinned yet (first time) -> Add it to the pinned Hubs
 			if (!global.existsInPinnedHubs(this.currentHubId)) {
-				if (!this.currentHub) throw new Error('Current hub is not initialized');
+				assert.isDefined(this.currentHub, 'Current hub is not initialized');
 				global.addPinnedHub(this.currentHub, 0);
 			}
 
@@ -144,8 +144,8 @@ const useHubs = defineStore('hubs', {
 				}
 			} else {
 				//The hub has changed: set it up
+				assert.isDefined(this.currentHub, 'Current hub is not initialized');
 
-				if (!this.currentHub) throw new Error('Current hub is not initialized');
 				// Start conversation with hub frame and sync latest settings
 				await messagebox.startCommunication(this.currentHub.url, iframeHubId);
 
@@ -170,10 +170,9 @@ const useHubs = defineStore('hubs', {
 					const roomId = message.content;
 					const currentUrl = window.location.href;
 					const [baseUrl] = currentUrl.split('#');
-
 					// preserve the current history state
 					const currentState = history.state || {};
-					window.history.pushState({ ...currentState, roomId }, '', `${baseUrl}#/hub/${hubName}/${roomId}`);
+					window.history.replaceState({ ...currentState, roomId }, '', `${baseUrl}#/hub/${hubName}/${roomId}`);
 				});
 
 				//Listen to global menu change and don't resend own state.
@@ -193,10 +192,17 @@ const useHubs = defineStore('hubs', {
 					global.hideModal();
 				});
 
-				// Store and remove access tokens when send from the hub client
+				// Old Setup: Store and remove access tokens when send from the hub client
 				messagebox.addCallback(iframeHubId, MessageType.AddAccessToken, (accessTokenMessage: Message) => {
 					global.addAccessToken(this.currentHubId, accessTokenMessage.content as string);
 				});
+
+				// MSS: Store and remove access tokens when send from the hub client
+				messagebox.addCallback(iframeHubId, MessageType.AddAuthInfo, (authInfoMessage: Message) => {
+					const { token, userId }: { token: string; userId: string } = JSON.parse(authInfoMessage.content);
+					global.addAccessTokenAndUserID(this.currentHubId, token, userId);
+				});
+
 				messagebox.addCallback(iframeHubId, MessageType.RemoveAccessToken, () => {
 					global.removeAccessToken(this.currentHubId);
 					// So far this message is not yet used but the hub clients.

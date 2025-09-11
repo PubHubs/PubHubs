@@ -1,11 +1,11 @@
+// Project imports
+import { Message, MessageType, useMessageBox } from '@/logic/store/messagebox';
 // React imports
 import { createRouter, createWebHashHistory } from 'vue-router';
 
-// Project imports
-import { useMessageBox, Message, MessageType } from '@/logic/store/messagebox';
+import { OnboardingType } from '@/model/constants';
 import { useHubSettings } from '@/logic/store/store';
 import { useUser } from '@/logic/store/user';
-import { OnboardingType } from '@/model/constants';
 
 // Route definitions
 const routes = [
@@ -67,12 +67,10 @@ const routes = [
 		meta: { hideBar: true, onboarding: true },
 	},
 	{
-		path: '/error/',
+		path: '/error',
 		name: 'error-page',
 		component: () => import('@/pages/ErrorPage.vue'),
-		props: (route: any) => ({
-			errorKey: route.query?.errorKey ? route.query?.errorKey : 'errors.error',
-		}),
+		props: (route: { query: { errorKey: String; errorValues: Array<String | Number> } }) => ({ errorKey: route.query.errorKey || 'errors.general_error', errorValues: route.query.errorValues || [] }),
 		meta: { hideBar: true },
 	},
 	{

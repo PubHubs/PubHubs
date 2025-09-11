@@ -94,6 +94,21 @@ impl Claims {
         Ok(self)
     }
 
+    /// Returns the contents of claim with `name`, if it exists, enabling manual checking.
+    pub fn extract<V: DeserializeOwned>(&mut self, name: &'static str) -> Result<Option<V>, Error> {
+        let Some(json_value) = self.inner.remove(name) else {
+            return Ok(None);
+        };
+
+        let deserialized_value =
+            V::deserialize(json_value).map_err(|err| Error::DeserializingClaim {
+                claim_name: name,
+                source: err,
+            })?;
+
+        Ok(Some(deserialized_value))
+    }
+
     /// Removes named claim from this set, if present, effectively ignoring it.
     pub fn ignore(mut self, name: &'static str) -> Self {
         self.inner.remove(name);
@@ -132,10 +147,10 @@ impl Claims {
             "exp",
             |_claim_name: &'static str, exp: Option<NumericDate>| -> Result<(), Error> {
                 // When `exp` is present, it should not be expired.
-                if let Some(exp) = exp {
-                    if exp < now {
-                        return Err(Error::Expired { when: exp });
-                    }
+                if let Some(exp) = exp
+                    && exp < now
+                {
+                    return Err(Error::Expired { when: exp });
                 }
 
                 Ok(())
@@ -145,10 +160,10 @@ impl Claims {
             "nbf",
             |_claim_name: &'static str, nbf: Option<NumericDate>| -> Result<(), Error> {
                 // When `nbf` is present, it should be in the past.
-                if let Some(nbf) = nbf {
-                    if now < nbf {
-                        return Err(Error::NotYetValid { valid_from: nbf });
-                    }
+                if let Some(nbf) = nbf
+                    && now < nbf
+                {
+                    return Err(Error::NotYetValid { valid_from: nbf });
                 }
 
                 Ok(())
@@ -469,6 +484,12 @@ impl JWT {
 
     pub fn as_str(&self) -> &str {
         &self.inner
+    }
+}
+
+impl fmt::Display for JWT {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(f, "{}", self.inner)
     }
 }
 

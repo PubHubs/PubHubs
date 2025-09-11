@@ -59,8 +59,8 @@
 
 					<!-- Next Button -->
 					<div class="flex w-full justify-end">
-						<Button @click="nextStep" :disabled="!isUsernameChanged" class="w-fit">
-							{{ t('forms.next') }}
+						<Button @click="nextStep" class="w-fit">
+							{{ isUsernameChanged ? t('forms.next') : t('forms.skip') }}
 						</Button>
 					</div>
 				</div>
@@ -149,8 +149,8 @@
 							</div>
 						</div>
 
-						<Button @click="nextStep" :disabled="!isUsernameChanged" class="w-fit">
-							{{ t('forms.next') }}
+						<Button @click="nextStep" class="w-fit">
+							{{ isUsernameChanged ? t('forms.next') : t('forms.skip') }}
 						</Button>
 					</div>
 				</div>
@@ -210,7 +210,7 @@
 	import HubBanner from '@/components/ui/HubBanner.vue';
 	import HubIcon from '@/components/ui/HubIcon.vue';
 
-	// Log
+	// Logic
 	import { fileUpload } from '@/logic/composables/fileUpload';
 	import { useMatrixFiles } from '@/logic/composables/useMatrixFiles';
 	import { useUserColor } from '@/logic/composables/useUserColor';

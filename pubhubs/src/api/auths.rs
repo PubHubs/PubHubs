@@ -49,6 +49,7 @@ pub struct AuthStartReq {
 /// Response to [`AuthStartEP`]
 #[derive(Serialize, Deserialize, Debug, Clone)]
 #[serde(deny_unknown_fields)]
+#[must_use]
 pub enum AuthStartResp {
     /// Authentication process was started
     Success {
@@ -110,7 +111,7 @@ pub struct AuthCompleteReq {
     /// Proof that the end-user possesses the requested attributes.
     pub proof: AuthProof,
 
-    /// The [`AuthStartResp::state`] obtained earlier.
+    /// The [`AuthStartResp::Success::state`] obtained earlier.
     pub state: AuthState,
 }
 
@@ -126,6 +127,7 @@ pub enum AuthProof {
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
 #[serde(deny_unknown_fields)]
+#[must_use]
 pub enum AuthCompleteResp {
     /// All went well
     Success {
@@ -166,12 +168,13 @@ pub struct AttrKeyReq {
 
     /// If set, will not only return the latest attribute key for `attr`, but also an older
     /// attribute key tied to the given timestamp.
-    pub timestamp: Option<jwt::NumericDate>,
+    pub timestamp: Option<NumericDate>,
 }
 
 /// Response type for [`AttrKeysEP`]
 #[derive(Serialize, Deserialize, Debug, Clone)]
 #[serde(deny_unknown_fields)]
+#[must_use]
 pub enum AttrKeysResp {
     /// The attribute with the given handle is not (or no longer) valid.  Reobtain the attribute
     /// and try again.
@@ -184,10 +187,11 @@ pub enum AttrKeysResp {
 /// Part of a successful [`AttrKeyResp`].
 #[derive(Serialize, Deserialize, Debug, Clone)]
 #[serde(deny_unknown_fields)]
+#[must_use]
 pub struct AttrKeyResp {
     /// A pair, `(key, timestamp)`, where `key` is the latest attribute key for the requested attribute
     /// and `timestamp` can be used to retrieve the same key again later on by setting `AttrKeyReq::timestamp`.
-    pub latest_key: (B64UU, jwt::NumericDate),
+    pub latest_key: (B64UU, NumericDate),
 
     /// The attribute key at [`AttrKeyReq::timestamp`], when this was set.
     ///

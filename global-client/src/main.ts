@@ -95,8 +95,8 @@ Object.entries(components).forEach(([name, component]) => {
 
 // Use plugins and directives
 app.use(mavonEditor);
-app.use(router);
 app.use(pinia);
+app.use(router);
 app.use(i18n as any);
 app.directive('focus', focus);
 app.directive('tw-class', twClass as any);

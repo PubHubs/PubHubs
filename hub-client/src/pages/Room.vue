@@ -8,7 +8,7 @@
 				</div>
 				<div class="relative flex h-full items-center justify-between gap-4" :class="isMobile ? 'pl-8' : 'pl-0'">
 					<div v-if="rooms.currentRoom && !isSearchBarExpanded" class="flex w-fit items-center gap-3 overflow-hidden">
-						<Icon v-if="!notPrivateRoom()" type="back" size="base" @click="router.push('/direct-msg')" />
+						<Icon v-if="!notPrivateRoom()" type="back" size="base" @click="router.back()" />
 						<Icon v-if="notPrivateRoom()" :type="rooms.currentRoom.isSecuredRoom() ? 'shield' : 'speech_bubbles'" size="base" />
 						<div class="flex flex-col">
 							<H3 class="flex text-on-surface">
@@ -16,29 +16,40 @@
 									<PrivateRoomHeader v-if="room.isPrivateRoom()" :room="room" :members="room.getOtherJoinedAndInvitedMembers()" />
 									<GroupRoomHeader v-else-if="room.isGroupRoom()" :room="room" :members="room.getOtherJoinedAndInvitedMembers()" />
 									<AdminContactRoomHeader v-else-if="room.isAdminContactRoom()" :room="room" :members="room.getOtherJoinedAndInvitedMembers()" />
+									<StewardContactRoomHeader v-else-if="room.isStewardContactRoom()" :room="room" :members="room.getOtherJoinedAndInvitedMembers()" />
 									<RoomName v-else :room="rooms.currentRoom" />
 								</TruncatedText>
 							</H3>
-							<TruncatedText class="hidden md:inline">
-								<!-- <RoomTopic :room="rooms.currentRoom"/> -->
-							</TruncatedText>
+							<TruncatedText class="hidden md:inline"> </TruncatedText>
 						</div>
 					</div>
 					<div class="flex gap-4" :class="{ 'w-full': isSearchBarExpanded }">
 						<RoomHeaderButtons>
+							<GlobalBarButton v-if="settings.isFeatureEnabled(FeatureFlag.roomLibrary)" type="folder" size="sm" :selected="showLibrary" @click="toggleLibrary"></GlobalBarButton>
 							<GlobalBarButton type="two_users" size="sm" :selected="showMembers" @click="toggleMembersList"></GlobalBarButton>
 							<!--Only show Editing icon for steward but not for administrator-->
 							<GlobalBarButton v-if="room.getUserPowerLevel(user.user.userId) === 50" type="cog" size="sm" @click="stewardCanEdit()" />
+							<!--Except for moderator everyone should talk to room moderator e.g., admins-->
+							<GlobalBarButton v-if="room.getUserPowerLevel(user.user.userId) !== 50 && room.getRoomStewards().length > 0" type="moderator_msg" size="sm" @click="messageRoomSteward()" />
 						</RoomHeaderButtons>
-						<SearchInput :search-parameters="searchParameters" @scroll-to-event-id="onScrollToEventId" @toggle-searchbar="handleToggleSearchbar" :room="rooms.currentRoom" />
+						<SearchInput :search-parameters="searchParameters" @scroll-to-event-id="onScrollToEventId" @toggle-searchbar="handleToggleSearchbar" @search-started="showMembers = false" :room="rooms.currentRoom" />
 					</div>
 				</div>
 			</template>
+
 			<div class="flex h-full w-full justify-between overflow-hidden">
-				<div class="flex h-full w-full flex-col overflow-hidden">
+				<RoomLibrary v-if="showLibrary" :id="id" @close="toggleLibrary"></RoomLibrary>
+				<div class="flex h-full w-full flex-col overflow-hidden" :class="{ hidden: showLibrary }">
 					<RoomTimeline v-if="room" :room="room" :scroll-to-event-id="room.getCurrentEventId()" @scrolled-to-event-id="room.setCurrentEventId(undefined)"> </RoomTimeline>
 				</div>
-				<RoomThread v-if="room.getCurrentThreadId()" :room="room" :scroll-to-event-id="room.getCurrentEventId()" @scrolled-to-event-id="room.setCurrentEventId(undefined)" @thread-length-changed="currentThreadLengthChanged">
+				<RoomThread
+					v-if="room.getCurrentThreadId()"
+					:class="{ hidden: showLibrary }"
+					:room="room"
+					:scroll-to-event-id="room.getCurrentEventId()"
+					@scrolled-to-event-id="room.setCurrentEventId(undefined)"
+					@thread-length-changed="currentThreadLengthChanged"
+				>
 				</RoomThread>
 				<RoomMemberList v-if="showMembers" :room="room" @close="toggleMembersList"></RoomMemberList>
 			</div>
@@ -62,6 +73,7 @@
 	import PrivateRoomHeader from '@/components/rooms/PrivateRoomHeader.vue';
 	import GroupRoomHeader from '@/components/rooms/GroupRoomHeader.vue';
 	import AdminContactRoomHeader from '@/components/rooms/AdminContactRoomHeader.vue';
+	import StewardContactRoomHeader from '@/components/rooms/StewardContactRoomHeader.vue';
 	import SearchInput from '@/components/forms/SearchInput.vue';
 	import RoomTimeline from '@/components/rooms/RoomTimeline.vue';
 	import RoomName from '@/components/rooms/RoomName.vue';
@@ -69,6 +81,7 @@
 	import GlobalBarButton from '@/components/ui/GlobalbarButton.vue';
 	import RoomHeaderButtons from '@/components/rooms/RoomHeaderButtons.vue';
 	import RoomMemberList from '@/components/rooms/RoomMemberList.vue';
+	import RoomLibrary from '@/components/rooms/RoomLibrary.vue';
 	import EditRoomForm from '@/components/rooms/EditRoomForm.vue';
 
 	import { usePubHubs } from '@/logic/core/pubhubsStore';
@@ -83,7 +96,7 @@
 	import { TSecuredRoom } from '@/model/rooms/TSecuredRoom';
 	import { computed, onMounted, ref, watch } from 'vue';
 	import { useRoute, useRouter } from 'vue-router';
-	import { useSettings } from '@/logic/store/settings';
+	import { FeatureFlag, useSettings } from '@/logic/store/settings';
 
 	const route = useRoute();
 	const rooms = useRooms();
@@ -95,11 +108,11 @@
 	const currentRoomToEdit = ref<TSecuredRoom | TPublicRoom | null>(null);
 	const showEditRoom = ref(false);
 	const showMembers = ref(false);
+	const showLibrary = ref(false);
 	const secured = ref(false);
 	const isSearchBarExpanded = ref<boolean>(false);
 	const settings = useSettings();
 	const isMobile = computed(() => settings.isMobileState);
-
 	const pubhubs = usePubHubs();
 
 	//Passed by the router
@@ -125,6 +138,10 @@
 	const handleToggleSearchbar = (isExpanded: boolean) => {
 		isSearchBarExpanded.value = isExpanded;
 	};
+
+	// const roomLibrary = computed (() => {
+	// 	return rooms.rooms[props.id].getRoomLibrary();
+	// })
 
 	onMounted(() => {
 		update();
@@ -169,7 +186,7 @@
 				try {
 					await room.value.loadToEvent(ev.threadId);
 				} catch (e) {
-					LOGGER.error(SMI.ROOM_TIMELINE, `Failed to load event ${eventId}`);
+					LOGGER.error(SMI.ROOM_TIMELINE, `Failed to load event ${ev.thread}`);
 				}
 			}
 			room.value.setCurrentThreadId(ev.threadId);
@@ -192,10 +209,19 @@
 	}
 
 	function notPrivateRoom() {
-		return !room.value.isPrivateRoom() && !room.value.isGroupRoom() && !room.value.isAdminContactRoom();
+		return !room.value.isPrivateRoom() && !room.value.isGroupRoom() && !room.value.isAdminContactRoom() && !room.value.isStewardContactRoom();
 	}
 
 	function toggleMembersList() {
 		showMembers.value = !showMembers.value;
+	}
+
+	async function messageRoomSteward() {
+		const members = room.value.getRoomStewards();
+		await rooms.createStewardRoomOrModify(props.id, members);
+	}
+
+	function toggleLibrary() {
+		showLibrary.value = !showLibrary.value;
 	}
 </script>

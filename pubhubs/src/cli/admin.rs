@@ -50,7 +50,7 @@ impl AdminContext {
     async fn retrieve_config(&self) -> anyhow::Result<Config> {
         let resp = self
             .client
-            .query_with_retry::<api::admin::Info, _, _>(
+            .query_with_retry::<api::admin::InfoEP, _, _>(
                 &self.get_url().await?.clone(),
                 &api::Signed::<api::admin::InfoReq>::new(
                     &*self.admin_key,
@@ -61,7 +61,13 @@ impl AdminContext {
             )
             .await?;
 
-        Ok(resp.config)
+        match resp {
+            api::admin::InfoResp::Success { config } => Ok(*config),
+            api::admin::InfoResp::ResignRequest => {
+                anyhow::bail!("request expired unexpectedly quickly")
+            }
+            api::admin::InfoResp::InvalidAdminKey => anyhow::bail!("invalid admin key"),
+        }
     }
 
     async fn get_url(&self) -> Result<&url::Url> {
@@ -161,8 +167,9 @@ impl ConfigUpdateArgs {
         config.json_updated(&self.pointer, self.new_value.clone())?;
 
         log::info!("Sending configuration change to {}...", ctx.server);
-        ctx.client
-            .query_with_retry::<api::admin::UpdateConfig, _, _>(
+        let resp = ctx
+            .client
+            .query_with_retry::<api::admin::UpdateConfigEP, _, _>(
                 ctx.get_url().await?,
                 &api::Signed::<api::admin::UpdateConfigReq>::new(
                     &*ctx.admin_key,
@@ -174,6 +181,16 @@ impl ConfigUpdateArgs {
                 )?,
             )
             .await?;
+
+        match resp {
+            api::admin::UpdateConfigResp::Success => {}
+            api::admin::UpdateConfigResp::ResignRequest => {
+                anyhow::bail!("request expired unexpectedly quickly")
+            }
+            api::admin::UpdateConfigResp::InvalidAdminKey => {
+                anyhow::bail!("admin key suddenly became invalid")
+            }
+        }
 
         log::info!("Waiting for the configuration change to take effect...");
         crate::misc::task::retry::<(), anyhow::Error, _>(|| async {
