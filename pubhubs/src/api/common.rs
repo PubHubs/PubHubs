@@ -225,7 +225,7 @@ pub enum Payload<JsonType> {
     /// This is the regular response type used by the pubhubs API.
     Json(JsonType),
 
-    /// Raw bytes; used, for example, by [`api::phc::user::GetObjectEP`].
+    /// Raw bytes; used, for example, by [`crate::api::phc::user::GetObjectEP`].
     Octets(bytes::Bytes),
 }
 

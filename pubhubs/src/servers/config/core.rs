@@ -109,7 +109,7 @@ pub struct ServerConfig<ServerSpecific> {
     pub object_store: Option<ObjectStoreConfig>,
 
     /// What version (if any) to claim this pubhubs binary is running.
-    /// Uses [`crate::servers::version`] by default.  Should only be used for
+    /// Uses [`crate::servers::version()`] by default.  Should only be used for
     /// troubleshooting/debugging.
     #[serde(default = "default_version")]
     pub version: Option<String>,
