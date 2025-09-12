@@ -8,8 +8,8 @@ use crate::attr;
 use crate::client;
 use crate::handle::Handle;
 use crate::misc::jwt;
-use crate::servers::Constellation;
 use crate::servers::yivi;
+use crate::servers::Constellation;
 
 use api::phc::user::AuthToken;
 
@@ -240,6 +240,7 @@ impl EnterArgs {
                 &constellation.auths_url,
                 api::auths::AuthStartReq {
                     source: attr::Source::Yivi,
+                    yivi_chained_session: self.wait_for_card,
                     attr_types: self
                         .add_attr_type
                         .iter()

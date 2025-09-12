@@ -768,6 +768,7 @@ async fn request_attributes(
             &api::auths::AuthStartReq {
                 source: attr::Source::Yivi,
                 attr_types: vec!["email".parse().unwrap(), "phone".parse().unwrap()],
+                yivi_chained_session: false,
             },
         )
         .await
