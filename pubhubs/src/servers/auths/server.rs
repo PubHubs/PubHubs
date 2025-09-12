@@ -7,7 +7,7 @@ use actix_web::web;
 use digest::Digest as _;
 
 use crate::servers::{
-    self, constellation, yivi, AppBase, AppCreatorBase, Constellation, Handle, Server as _,
+    self, AppBase, AppCreatorBase, Constellation, Handle, Server as _, constellation, yivi,
 };
 use crate::{
     api::{self, EndpointDetails as _, ResultExt as _},
@@ -64,6 +64,7 @@ pub struct ExtraRunningState {
     attr_signing_key: jwt::HS256,
 
     /// key used to seal messages to PHC
+    #[expect(dead_code)]
     phc_sealing_secret: crypto::SealingKey,
 }
 
@@ -166,7 +167,6 @@ impl App {
         state: AuthState,
     ) -> api::Result<api::auths::AuthStartResp> {
         let yivi = app.get_yivi()?;
-        let running_state = app.running_state_or_please_retry()?;
 
         // Create ConDisCon for our attributes
         let mut cdc: servers::yivi::AttributeConDisCon = Default::default(); // empty
@@ -201,7 +201,7 @@ impl App {
         }
 
         let disclosure_request: jwt::JWT = {
-            let mut dr = servers::yivi::ExtendedSessionRequest::disclosure(cdc);
+            let dr = servers::yivi::ExtendedSessionRequest::disclosure(cdc);
 
             //            if state.wait_for_card {
             //                let state = api::phc::user::WaitForCardState {

@@ -12,8 +12,8 @@ use crate::misc::crypto;
 use crate::misc::jwt;
 use crate::phcrypto;
 use crate::servers::{
-    self, constellation, phc::user_card, AppBase, AppCreatorBase, Constellation, DiscoverVerdict,
-    Handle, Server as _,
+    self, AppBase, AppCreatorBase, Constellation, DiscoverVerdict, Handle, Server as _,
+    constellation, phc::user_card,
 };
 
 use crate::{elgamal, hub};
@@ -97,6 +97,7 @@ pub struct ExtraRunningState {
     pub(super) t_sealing_secret: crypto::SealingKey,
 
     /// Key used to (un)seal messages to and from the authentication server
+    #[expect(dead_code)]
     pub(super) auths_sealing_secret: crypto::SealingKey,
 }
 

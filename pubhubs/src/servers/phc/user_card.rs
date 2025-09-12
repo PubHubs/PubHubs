@@ -1,17 +1,10 @@
 //! User endpoints related to the issuance of the pubhubs yivi card
-use std::collections::{HashMap, VecDeque};
-use std::rc::Rc;
-
-use anyhow::Context as _;
-
 use crate::api;
-use crate::id;
 use crate::misc::jwt::JWT;
 use crate::misc::time_ext;
 use crate::servers::yivi;
 
 use super::server::*;
-use crate::api::phc::user::*;
 
 /// Configuration of PubHubs card issuance
 #[derive(serde::Deserialize, serde::Serialize, Debug, Clone)]
@@ -72,7 +65,8 @@ impl App {
     }
 
     /// Creates a signed issuance request for a PubHubs card for the given user.
-    pub(crate) fn issue_card(&self, user_state: &super::user::UserState) -> anyhow::Result<JWT> {
+    #[expect(dead_code)]
+    pub(crate) fn issue_card(&self, _user_state: &super::user::UserState) -> anyhow::Result<JWT> {
         let card_config = self.card_config_or_internal_error()?;
 
         // TODO: properly set id, source, and date
@@ -86,7 +80,7 @@ impl App {
                     "source".to_string(),
                 )
                 .attribute(card_config.card_type.date().to_string(), "date".to_string()); // TODO:
-                                                                                          // replace
+        // replace
 
         let esr = yivi::ExtendedSessionRequest::issuance(vec![credential]);
 

@@ -1,7 +1,6 @@
 //! Additional endpoints provided by the authentication server
 use crate::api::*;
 use crate::attr::Attr;
-use crate::id;
 use crate::misc::jwt;
 use crate::misc::serde_ext::bytes_wrapper::B64UU;
 use crate::{attr, handle};

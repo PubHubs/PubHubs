@@ -8,8 +8,8 @@ use crate::attr;
 use crate::client;
 use crate::handle::Handle;
 use crate::misc::jwt;
-use crate::servers::yivi;
 use crate::servers::Constellation;
+use crate::servers::yivi;
 
 use api::phc::user::AuthToken;
 
@@ -430,6 +430,7 @@ struct SessionPtr {
     url: url::Url,
 
     #[serde(rename = "irmaqr")]
+    #[expect(dead_code)]
     session_type: yivi::SessionType,
 }
 
@@ -445,5 +446,6 @@ struct FrontendSessionRequest {
 #[serde(rename_all = "camelCase")]
 struct FrontendSessionStatus {
     status: yivi::Status,
+    #[expect(dead_code)]
     next_session: Option<serde_json::Value>,
 }
