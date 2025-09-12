@@ -6,11 +6,9 @@ use std::rc::Rc;
 use actix_web::web;
 use digest::Digest as _;
 
-use crate::servers::{
-    self, AppBase, AppCreatorBase, Constellation, Handle, Server as _, constellation, yivi,
-};
+use crate::servers::{self, AppBase, AppCreatorBase, Constellation, Handle, constellation, yivi};
 use crate::{
-    api::{self, EndpointDetails as _, ResultExt as _},
+    api::{self, EndpointDetails as _},
     attr,
     common::{elgamal, secret::DigestibleSecret as _},
     handle, map,
@@ -56,26 +54,26 @@ pub struct ExtraSharedState {}
 pub struct ExtraRunningState {
     /// Shared secret with pubhubs central
     #[expect(dead_code)]
-    phc_ss: elgamal::SharedSecret,
+    pub phc_ss: elgamal::SharedSecret,
 
     /// Key used to sign [`Attr`]s, shared with pubhubs central.
     ///
     /// [`Attr`]: attr::Attr
-    attr_signing_key: jwt::HS256,
+    pub attr_signing_key: jwt::HS256,
 
     /// key used to seal messages to PHC
     #[expect(dead_code)]
-    phc_sealing_secret: crypto::SealingKey,
+    pub phc_sealing_secret: crypto::SealingKey,
 }
 
 /// Authentication server per-thread [`App`] that handles incoming requests.
 pub struct App {
-    base: AppBase<Server>,
-    attribute_types: map::Map<attr::Type>,
-    yivi: Option<YiviCtx>,
-    auth_state_secret: crypto::SealingKey,
-    auth_window: core::time::Duration,
-    attr_key_secret: Vec<u8>,
+    pub base: AppBase<Server>,
+    pub attribute_types: map::Map<attr::Type>,
+    pub yivi: Option<YiviCtx>,
+    pub auth_state_secret: crypto::SealingKey,
+    pub auth_window: core::time::Duration,
+    pub attr_key_secret: Vec<u8>,
 }
 
 impl Deref for App {
@@ -89,14 +87,14 @@ impl Deref for App {
 /// Details on the Yivi server trusted by this authentication server.
 #[derive(Debug, Clone)]
 pub struct YiviCtx {
-    requestor_url: url::Url,
-    requestor_creds: yivi::Credentials<yivi::SigningKey>,
-    server_creds: yivi::Credentials<yivi::VerifyingKey>,
+    pub requestor_url: url::Url,
+    pub requestor_creds: yivi::Credentials<yivi::SigningKey>,
+    pub server_creds: yivi::Credentials<yivi::VerifyingKey>,
 }
 
 /// # Helper functions
 impl App {
-    fn get_yivi(&self) -> Result<&YiviCtx, api::ErrorCode> {
+    pub fn get_yivi(&self) -> Result<&YiviCtx, api::ErrorCode> {
         self.yivi.as_ref().ok_or_else(|| {
             log::debug!("yivi requested, but not configured");
             api::ErrorCode::BadRequest
@@ -105,7 +103,7 @@ impl App {
 
     /// Get [`attr::Type`] by [`handle::Handle`], returning [`None`]
     /// when it cannot be found.
-    fn attr_type_from_handle<'s>(
+    pub fn attr_type_from_handle<'s>(
         &'s self,
         attr_type_handle: &handle::Handle,
     ) -> Option<&'s attr::Type> {
@@ -115,16 +113,16 @@ impl App {
 
 /// Plaintext content of [`api::auths::AuthState`].
 #[derive(serde::Serialize, serde::Deserialize, Clone, Debug)]
-struct AuthState {
-    source: attr::Source,
-    attr_types: Vec<handle::Handle>,
+pub(super) struct AuthState {
+    pub source: attr::Source,
+    pub attr_types: Vec<handle::Handle>,
 
     /// When this request expires
-    exp: api::NumericDate,
+    pub exp: api::NumericDate,
 }
 
 impl AuthState {
-    fn seal(&self, key: &crypto::SealingKey) -> api::Result<api::auths::AuthState> {
+    pub fn seal(&self, key: &crypto::SealingKey) -> api::Result<api::auths::AuthState> {
         Ok(api::auths::AuthState::new(
             crypto::seal(&self, key, b"")
                 .map_err(|err| {
@@ -135,7 +133,7 @@ impl AuthState {
         ))
     }
 
-    fn unseal(sealed: &api::auths::AuthState, key: &crypto::SealingKey) -> Option<AuthState> {
+    pub fn unseal(sealed: &api::auths::AuthState, key: &crypto::SealingKey) -> Option<AuthState> {
         let Ok(state) = crypto::unseal(&*sealed.inner, key, b"") else {
             log::debug!("failed to unseal AuthState");
             return None;
@@ -145,238 +143,7 @@ impl AuthState {
     }
 }
 
-/// # Implementaton of endpoints
 impl App {
-    async fn handle_auth_start(
-        app: Rc<Self>,
-        req: web::Json<api::auths::AuthStartReq>,
-    ) -> api::Result<api::auths::AuthStartResp> {
-        let state = AuthState {
-            source: req.source,
-            attr_types: req.attr_types.clone(),
-            exp: api::NumericDate::now() + app.auth_window,
-        };
-
-        match req.source {
-            attr::Source::Yivi => Self::handle_auth_start_yivi(app, state).await,
-        }
-    }
-
-    async fn handle_auth_start_yivi(
-        app: Rc<Self>,
-        state: AuthState,
-    ) -> api::Result<api::auths::AuthStartResp> {
-        let yivi = app.get_yivi()?;
-
-        // Create ConDisCon for our attributes
-        let mut cdc: servers::yivi::AttributeConDisCon = Default::default(); // empty
-
-        for attr_ty_handle in state.attr_types.iter() {
-            let Some(attr_ty) = app.attr_type_from_handle(attr_ty_handle) else {
-                return Ok(api::auths::AuthStartResp::UnknownAttrType(
-                    attr_ty_handle.clone(),
-                ));
-            };
-
-            let dc: Vec<Vec<servers::yivi::AttributeRequest>> = attr_ty
-                .yivi_attr_type_ids()
-                .map(|attr_type_id| {
-                    vec![servers::yivi::AttributeRequest {
-                        ty: attr_type_id.clone(),
-                    }]
-                })
-                .collect();
-
-            if dc.is_empty() {
-                log::debug!(
-                    "{}: got yivi authentication start request for {attr_ty}, but yivi is not supported for this attribute type",
-                    Server::NAME
-                );
-                return Ok(api::auths::AuthStartResp::SourceNotAvailableFor(
-                    attr_ty_handle.clone(),
-                ));
-            }
-
-            cdc.push(dc);
-        }
-
-        let disclosure_request: jwt::JWT = {
-            let dr = servers::yivi::ExtendedSessionRequest::disclosure(cdc);
-
-            //            if state.wait_for_card {
-            //                let state = api::phc::user::WaitForCardState {
-            //                    server_creds: yivi.server_creds.clone(),
-            //                };
-            //
-            //                let state =
-            //                    api::Sealed::new(&state, &running_state.phc_sealing_secret).map_err(|err| {
-            //                        log::error!(
-            //                            "{}: failed to seal wait-for-card state: {err}",
-            //                            Server::NAME
-            //                        );
-            //                        api::ErrorCode::InternalError
-            //                    })?;
-            //
-            //                let query = serde_urlencoded::to_string(api::phc::user::WaitForCardQuery { state })
-            //                    .map_err(|err| {
-            //                        log::error!(
-            //                            "{}: failed to url-encode sealed wait-for-card state: {err}",
-            //                            Server::NAME
-            //                        );
-            //                        api::ErrorCode::InternalError
-            //                    })?;
-            //
-            //                let mut url: url::Url = running_state
-            //                    .constellation
-            //                    .phc_url
-            //                    .join(api::phc::user::YIVI_WAIT_FOR_CARD_PATH)
-            //                    .map_err(|err| {
-            //                        log::error!(
-            //                            "{}: failed to compute PHC's yivi next session url: {err}",
-            //                            Server::NAME
-            //                        );
-            //                        api::ErrorCode::InternalError
-            //                    })?;
-            //
-            //                url.set_query(Some(&query));
-            //
-            //                dr = dr.next_session(url);
-            //            }
-
-            dr.sign(&yivi.requestor_creds).into_ec(|err| {
-                log::error!(
-                    "{}: failed to create signed disclosure request: {err}",
-                    Server::NAME
-                );
-
-                api::ErrorCode::InternalError
-            })?
-        };
-
-        Ok(api::auths::AuthStartResp::Success {
-            task: api::auths::AuthTask::Yivi {
-                disclosure_request,
-                yivi_requestor_url: yivi.requestor_url.clone(),
-            },
-            state: state.seal(&app.auth_state_secret)?,
-        })
-    }
-
-    async fn handle_auth_complete(
-        app: Rc<Self>,
-        req: web::Json<api::auths::AuthCompleteReq>,
-    ) -> api::Result<api::auths::AuthCompleteResp> {
-        app.running_state_or_please_retry()?;
-
-        let req: api::auths::AuthCompleteReq = req.into_inner();
-
-        let Some(state) = AuthState::unseal(&req.state, &app.auth_state_secret) else {
-            return Ok(api::auths::AuthCompleteResp::PleaseRestartAuth);
-        };
-
-        if state.exp < api::NumericDate::now() {
-            return Ok(api::auths::AuthCompleteResp::PleaseRestartAuth);
-        }
-
-        match state.source {
-            attr::Source::Yivi => {
-                Self::handle_auth_complete_yivi(
-                    app,
-                    state,
-                    match req.proof {
-                        api::auths::AuthProof::Yivi { disclosure } => disclosure,
-                        #[expect(unreachable_patterns)]
-                        _ => return Err(api::ErrorCode::BadRequest),
-                    },
-                )
-                .await
-            }
-        }
-    }
-
-    async fn handle_auth_complete_yivi(
-        app: Rc<Self>,
-        state: AuthState,
-        disclosure: jwt::JWT,
-    ) -> api::Result<api::auths::AuthCompleteResp> {
-        let yivi = app.get_yivi()?;
-
-        let ssr =
-            yivi::SessionResult::open_signed(&disclosure, &yivi.server_creds).map_err(|err| {
-                log::debug!("invalid yivi signed session result submitted: {err:#}",);
-                api::ErrorCode::BadRequest
-            })?;
-
-        let mut attrs: HashMap<handle::Handle, api::Signed<attr::Attr>> =
-            HashMap::with_capacity(state.attr_types.len());
-
-        let running_state = app.running_state_or_internal_error()?;
-
-        for (i, result) in ssr
-            .validate_and_extract_raw_singles()
-            .map_err(|err| {
-                log::debug!("invalid session result submitted: {err}");
-                api::ErrorCode::BadRequest
-            })?
-            .enumerate()
-        {
-            let (yati, raw_value): (&yivi::AttributeTypeIdentifier, &str) =
-                result.map_err(|err| {
-                    log::debug!(
-                        "problem with attribute number {i} of submitted session result: {err}",
-                    );
-                    api::ErrorCode::BadRequest
-                })?;
-
-            let attr_type_handle: &handle::Handle = state.attr_types.get(i).ok_or_else(|| {
-                log::debug!("extra attributes disclosed in submitted session result",);
-                api::ErrorCode::BadRequest
-            })?;
-
-            let Some(attr_type) = app.attr_type_from_handle(attr_type_handle) else {
-                log::warn!(
-                    "Attribute type with handle {attr_type_handle} mentioned in authentication state can no longer be found."
-                );
-                return Ok(api::auths::AuthCompleteResp::PleaseRestartAuth);
-            };
-
-            if !attr_type
-                .yivi_attr_type_ids()
-                .any(|allowed_yati| allowed_yati == yati)
-            {
-                log::debug!(
-                    "attribute number {i} of submitted session result has unexpected attribute type id {yati}"
-                );
-                return Err(api::ErrorCode::BadRequest);
-            }
-
-            // Disclosure for attribute is OK.
-
-            let old_value = attrs.insert(
-                attr_type_handle.clone(),
-                // TODO: attr_signing_key is constellation-dependent;  provide a mechanism
-                // for the client to detect constellation change
-                api::Signed::<attr::Attr>::new(
-                    &running_state.attr_signing_key,
-                    &attr::Attr {
-                        attr_type: attr_type.id,
-                        value: raw_value.to_string(),
-                        bannable: attr_type.bannable,
-                        identifying: attr_type.identifying,
-                    },
-                    app.auth_window,
-                )?,
-            );
-
-            if old_value.is_some() {
-                log::error!("expected to have already erred on duplicate attribute types");
-                return Err(api::ErrorCode::InternalError);
-            }
-        }
-
-        Ok(api::auths::AuthCompleteResp::Success { attrs })
-    }
-
     /// Implements [`api::auths::WelcomeEP`].
     fn cached_handle_welcome(app: &Self) -> api::Result<api::auths::WelcomeResp> {
         let attr_types: HashMap<handle::Handle, attr::Type> = app
@@ -386,87 +153,6 @@ impl App {
             .collect();
 
         Ok(api::auths::WelcomeResp { attr_types })
-    }
-
-    /// Implements [`api::auths::AttrKeysEP`].
-    async fn handle_attr_keys(
-        app: Rc<Self>,
-        reqs: web::Json<HashMap<handle::Handle, api::auths::AttrKeyReq>>,
-    ) -> api::Result<api::auths::AttrKeysResp> {
-        let running_state = &app.running_state_or_please_retry()?;
-
-        let reqs = reqs.into_inner();
-
-        let mut resp: HashMap<handle::Handle, api::auths::AttrKeyResp> =
-            HashMap::with_capacity(reqs.len());
-
-        let now = api::NumericDate::now();
-
-        for (handle, req) in reqs.into_iter() {
-            let attr: attr::Attr = match req
-                .attr
-                .open(&running_state.attr_signing_key, None) // TODO: constellation 
-                {
-                    Err(api::OpenError::OtherConstellation(..))
-                            | Err(api::OpenError::InvalidSignature)
-                            | Err(api::OpenError::Expired) => {
-                        return Ok(api::auths::AttrKeysResp::RetryWithNewAttr(handle));
-                            }
-                    Err(api::OpenError::OtherwiseInvalid) => {
-                        return Err(api::ErrorCode::BadRequest);
-                    }
-                    Err(api::OpenError::InternalError) => {
-                        return Err(api::ErrorCode::InternalError);
-                    }
-                    Ok(attr) => attr
-                };
-
-            if !attr.identifying {
-                log::debug!(
-                    "attribute key denied for non-identifying attribute {value} of type {attr_type}",
-                    value = attr.value,
-                    attr_type = attr.attr_type
-                );
-                return Err(api::ErrorCode::BadRequest);
-            }
-
-            let timestamps: Vec<api::NumericDate> = if let Some(timestamp) = req.timestamp {
-                if timestamp > now {
-                    log::warn!(
-                        "future attribute key requested for attribute {value} of type {attr_type}",
-                        value = attr.value,
-                        attr_type = attr.attr_type
-                    );
-                    return Err(api::ErrorCode::BadRequest);
-                }
-
-                vec![timestamp, now]
-            } else {
-                vec![now]
-            };
-
-            let mut attr_keys: Vec<Vec<u8>> =
-                phcrypto::auths_attr_keys(attr, app.attr_key_secret.as_slice(), timestamps);
-
-            let latest_key: Vec<u8> = attr_keys.pop().unwrap();
-            let old_key: Option<Vec<u8>> = attr_keys.pop();
-
-            assert!(attr_keys.is_empty());
-
-            resp.insert(
-                handle.clone(),
-                api::auths::AttrKeyResp {
-                    latest_key: (serde_bytes::ByteBuf::from(latest_key).into(), now),
-                    old_key: old_key.map(|old_key| serde_bytes::ByteBuf::from(old_key).into()),
-                },
-            )
-            .map_or(Ok(()), |_| {
-                log::debug!("double handle in attribute keys request: {handle}");
-                Err(api::ErrorCode::BadRequest)
-            })?;
-        }
-
-        Ok(api::auths::AttrKeysResp::Success(resp))
     }
 }
 
@@ -478,6 +164,8 @@ impl crate::servers::App<Server> for App {
         api::auths::AuthCompleteEP::add_to(self, sc, App::handle_auth_complete);
 
         api::auths::AttrKeysEP::add_to(self, sc, App::handle_attr_keys);
+
+        api::auths::YiviWaitForResultEP::add_to(self, sc, App::handle_yivi_wait_for_result);
     }
 
     fn check_constellation(&self, constellation: &Constellation) -> bool {
