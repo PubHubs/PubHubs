@@ -14,7 +14,7 @@
 		<div v-if="dialog.properties.modal" class="absolute h-full w-full bg-surface-high opacity-80" />
 
 		<!-- Dialog -->
-		<div v-if="!dialog.properties.modalonly" class="relative left-0 top-0 flex h-full w-full items-center justify-center text-on-surface" @click="doAction(DialogCancel)">
+		<div role="dialog" v-if="!dialog.properties.modalonly" class="relative left-0 top-0 flex h-full w-full items-center justify-center text-on-surface" @click="doAction(DialogCancel)">
 			<div class="m-2 flex max-h-full flex-col justify-between gap-1 rounded-md bg-surface-low p-4 shadow-xl shadow-surface-high md:m-4" :class="width" @click.stop>
 				<div class="flex w-full items-center justify-between">
 					<H2 v-if="dialog.properties.title !== ''">{{ dialog.properties.title }}</H2>

@@ -43,7 +43,7 @@
 
 <script setup lang="ts">
 	import { onMounted, ref } from 'vue';
-	import startYiviSession from '@/logic/utils/yiviHandler';
+	import { startYiviSession } from '@/logic/utils/yiviHandler';
 
 	const yivi_token = ref<string>('');
 

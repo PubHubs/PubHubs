@@ -7,7 +7,7 @@ use actix_web::web;
 use digest::Digest as _;
 
 use crate::servers::{
-    self, AppBase, AppCreatorBase, Constellation, Handle, Server as _, constellation, yivi,
+    self, constellation, yivi, AppBase, AppCreatorBase, Constellation, Handle, Server as _,
 };
 use crate::{
     api::{self, EndpointDetails as _, ResultExt as _},
@@ -117,7 +117,6 @@ impl App {
 struct AuthState {
     source: attr::Source,
     attr_types: Vec<handle::Handle>,
-    wait_for_card: bool,
 
     /// When this request expires
     exp: api::NumericDate,
@@ -154,7 +153,6 @@ impl App {
         let state = AuthState {
             source: req.source,
             attr_types: req.attr_types.clone(),
-            wait_for_card: req.wait_for_card,
             exp: api::NumericDate::now() + app.auth_window,
         };
 
@@ -205,45 +203,45 @@ impl App {
         let disclosure_request: jwt::JWT = {
             let mut dr = servers::yivi::ExtendedSessionRequest::disclosure(cdc);
 
-            if state.wait_for_card {
-                let state = api::phc::user::WaitForCardState {
-                    server_creds: yivi.server_creds.clone(),
-                };
-
-                let state =
-                    api::Sealed::new(&state, &running_state.phc_sealing_secret).map_err(|err| {
-                        log::error!(
-                            "{}: failed to seal wait-for-card state: {err}",
-                            Server::NAME
-                        );
-                        api::ErrorCode::InternalError
-                    })?;
-
-                let query = serde_urlencoded::to_string(api::phc::user::WaitForCardQuery { state })
-                    .map_err(|err| {
-                        log::error!(
-                            "{}: failed to url-encode sealed wait-for-card state: {err}",
-                            Server::NAME
-                        );
-                        api::ErrorCode::InternalError
-                    })?;
-
-                let mut url: url::Url = running_state
-                    .constellation
-                    .phc_url
-                    .join(api::phc::user::YIVI_WAIT_FOR_CARD_PATH)
-                    .map_err(|err| {
-                        log::error!(
-                            "{}: failed to compute PHC's yivi next session url: {err}",
-                            Server::NAME
-                        );
-                        api::ErrorCode::InternalError
-                    })?;
-
-                url.set_query(Some(&query));
-
-                dr = dr.next_session(url);
-            }
+            //            if state.wait_for_card {
+            //                let state = api::phc::user::WaitForCardState {
+            //                    server_creds: yivi.server_creds.clone(),
+            //                };
+            //
+            //                let state =
+            //                    api::Sealed::new(&state, &running_state.phc_sealing_secret).map_err(|err| {
+            //                        log::error!(
+            //                            "{}: failed to seal wait-for-card state: {err}",
+            //                            Server::NAME
+            //                        );
+            //                        api::ErrorCode::InternalError
+            //                    })?;
+            //
+            //                let query = serde_urlencoded::to_string(api::phc::user::WaitForCardQuery { state })
+            //                    .map_err(|err| {
+            //                        log::error!(
+            //                            "{}: failed to url-encode sealed wait-for-card state: {err}",
+            //                            Server::NAME
+            //                        );
+            //                        api::ErrorCode::InternalError
+            //                    })?;
+            //
+            //                let mut url: url::Url = running_state
+            //                    .constellation
+            //                    .phc_url
+            //                    .join(api::phc::user::YIVI_WAIT_FOR_CARD_PATH)
+            //                    .map_err(|err| {
+            //                        log::error!(
+            //                            "{}: failed to compute PHC's yivi next session url: {err}",
+            //                            Server::NAME
+            //                        );
+            //                        api::ErrorCode::InternalError
+            //                    })?;
+            //
+            //                url.set_query(Some(&query));
+            //
+            //                dr = dr.next_session(url);
+            //            }
 
             dr.sign(&yivi.requestor_creds).into_ec(|err| {
                 log::error!(
@@ -308,8 +306,6 @@ impl App {
                 log::debug!("invalid yivi signed session result submitted: {err:#}",);
                 api::ErrorCode::BadRequest
             })?;
-
-        let yivi_result_jwt_id = disclosure.id();
 
         let mut attrs: HashMap<handle::Handle, api::Signed<attr::Attr>> =
             HashMap::with_capacity(state.attr_types.len());
@@ -378,16 +374,7 @@ impl App {
             }
         }
 
-        Ok(api::auths::AuthCompleteResp::Success {
-            attrs,
-            yivi_result_jwt_id: {
-                if state.wait_for_card {
-                    Some(yivi_result_jwt_id)
-                } else {
-                    None
-                }
-            },
-        })
+        Ok(api::auths::AuthCompleteResp::Success { attrs })
     }
 
     /// Implements [`api::auths::WelcomeEP`].

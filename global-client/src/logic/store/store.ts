@@ -3,11 +3,12 @@
  * Make sure there is no circular dependency created by this import
  * Files exporting the exports here cannot import from this file, but only from the individual files!
  */
-import { useGlobal, PinnedHub, PinnedHubs } from '@/logic/store/global';
-import { useHubs } from '@/logic/store/hubs';
-import { buttonsSubmitCancel, DialogButton, DialogProperties, useDialog, DialogButtonAction, DialogCancel, DialogOk, DialogYes, DialogNo, DialogSubmit } from '@/logic/store/dialog';
-import { Theme, TimeFormat, defaultSettings, useSettings, i18nSettings } from '@/logic/store/settings';
-import { iframeHubId, MessageType, Message, MessageBoxType, useMessageBox } from '../../../../hub-client/src/logic/store/messagebox';
+import { useGlobal, PinnedHub, PinnedHubs } from '@/logic/store/global.js';
+import { useHubs } from '@/logic/store/hubs.js';
+import { buttonsSubmitCancel, DialogButton, DialogProperties, useDialog, DialogButtonAction, DialogCancel, DialogOk, DialogYes, DialogNo, DialogSubmit } from '@/logic/store/dialog.js';
+import { Theme, TimeFormat, defaultSettings, useSettings, i18nSettings } from '@/logic/store/settings.js';
+import { iframeHubId, MessageType, Message, MessageBoxType, useMessageBox } from '../../../../hub-client/src/logic/store/messagebox.js';
+import { useMSS } from './mss.js';
 
 export {
 	useGlobal,
@@ -34,4 +35,5 @@ export {
 	Message,
 	MessageBoxType,
 	useMessageBox,
+	useMSS,
 };

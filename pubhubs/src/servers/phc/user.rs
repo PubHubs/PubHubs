@@ -65,7 +65,6 @@ impl App {
             identifying_attr,
             mode,
             add_attrs,
-            release_waiting_for_card,
         } = req.into_inner();
 
         // Check attributes are valid
@@ -372,10 +371,8 @@ impl App {
                 Ok(Some(attr_state_version)) => {
                     assert!(attr_states
                         .insert(attr.id, (attr_state.clone(), attr_state_version))
-                        .is_none());
-                    assert!(attr_add_status
-                        .insert(attr.id, AttrAddStatus::Added)
-                        .is_none());
+                        .is_some());
+                    assert!(attr_add_status.contains_key(&attr.id));
                 }
                 _ => {
                     assert!(attr_add_status
@@ -437,31 +434,6 @@ impl App {
         let user_state = new_user_state;
 
         let auth_token_package = app.issue_auth_token(&user_state)?;
-
-        // Issue PubHubs card, if needed
-        if let Some(yivi_result_jwt_id) = release_waiting_for_card {
-            let mut issue_card: Option<jwt::JWT> = None;
-
-            if new_account {
-                issue_card = Some(App::issue_card(&*app, &user_state).map_err(|err| {
-                    log::warn!("failed to create PubHubs card issuance request: {err:#}");
-                    api::ErrorCode::InternalError
-                })?);
-            }
-
-            if app
-                .shared
-                .issue_card_sender
-                .send(servers::phc::user_card::IssueCardInternalReq {
-                    yivi_result_jwt_id,
-                    issue_card,
-                })
-                .await
-                .is_err()
-            {
-                log::warn!("failed to send issue card request - channel was already closed");
-            }
-        };
 
         Ok(EnterResp::Entered {
             new_account,

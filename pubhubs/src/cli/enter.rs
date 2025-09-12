@@ -240,7 +240,6 @@ impl EnterArgs {
                 &constellation.auths_url,
                 api::auths::AuthStartReq {
                     source: attr::Source::Yivi,
-                    wait_for_card: self.wait_for_card,
                     attr_types: self
                         .add_attr_type
                         .iter()
@@ -280,11 +279,7 @@ impl EnterArgs {
             .await
             .context("failed to complete authentication")?;
 
-        let api::auths::AuthCompleteResp::Success {
-            mut attrs,
-            yivi_result_jwt_id,
-        } = auth_complete_resp
-        else {
+        let api::auths::AuthCompleteResp::Success { mut attrs } = auth_complete_resp else {
             anyhow::bail!("failed to complete authentication: AS returned {auth_complete_resp:?}");
         };
 
@@ -299,7 +294,6 @@ impl EnterArgs {
                     identifying_attr,
                     mode: api::phc::user::EnterMode::LoginOrRegister,
                     add_attrs: attrs.values().map(Clone::clone).collect(),
-                    release_waiting_for_card: yivi_result_jwt_id,
                 },
             )
             .await

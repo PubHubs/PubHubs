@@ -1,5 +1,5 @@
 <template>
-	<AvatarCore v-if="user" :user="user" :img="image"></AvatarCore>
+	<AvatarCore :user="user" :img="image"></AvatarCore>
 </template>
 
 <script setup lang="ts">

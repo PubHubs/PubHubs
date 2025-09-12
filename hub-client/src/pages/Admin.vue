@@ -161,6 +161,10 @@
 		if (await dialog.okcancel(t('admin.remove_room_sure'))) {
 			try {
 				await rooms.removePublicRoom(room.room_id);
+				if (secured.value) {
+					// If the room was secured, we need to remove it from allowed_to_join_room table
+					rooms.kickUsersFromSecuredRoom(room.room_id);
+				}
 			} catch (error) {
 				dialog.confirm('ERROR', error as string);
 			}

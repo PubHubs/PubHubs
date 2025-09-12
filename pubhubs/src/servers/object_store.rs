@@ -146,6 +146,8 @@ where
 
         let path = T::path_for(id);
 
+        log::debug!("getting {path}");
+
         match os.get(&path).await {
             Ok(get_result) => {
                 let version = object_store::UpdateVersion {
@@ -161,6 +163,8 @@ where
                     api::ErrorCode::InternalError
                 })?;
 
+                log::debug!("got {path}");
+
                 Ok(Some((
                     T::from_bytes(bytes).map_err(|err| {
                         log::error!(
@@ -172,7 +176,10 @@ where
                     version,
                 )))
             }
-            Err(object_store::Error::NotFound { .. }) => Ok(None),
+            Err(object_store::Error::NotFound { .. }) => {
+                log::debug!("did not get {path}: not found");
+                Ok(None)
+            }
             // TODO: deal with timeouts
             Err(err) => Err({
                 log::error!(
@@ -203,6 +210,8 @@ where
 
         let path = T::path_for(obj.object_id());
 
+        log::debug!("putting {path}");
+
         let put_payload: object_store::PutPayload = obj.to_put_payload().map_err(|err| {
             log::error!(
                 "{}'s object store: unexpected error encoding object to be put at {path}: {err:#}",
@@ -228,10 +237,14 @@ where
             )
             .await
         {
-            Ok(put_result) => Ok(Some(object_store::UpdateVersion {
-                e_tag: put_result.e_tag,
-                version: put_result.version,
-            })),
+            Ok(put_result) => {
+                log::debug!("putting {path} succeeded");
+
+                Ok(Some(object_store::UpdateVersion {
+                    e_tag: put_result.e_tag,
+                    version: put_result.version,
+                }))
+            }
             Err(object_store::Error::Precondition { .. }) => {
                 if update.is_some() {
                     return Ok(None);
@@ -268,9 +281,17 @@ where
 
         let path = T::path_for(&id);
 
+        log::debug!("deleting {path}");
+
         match os.delete(&path).await {
-            Ok(()) => Ok(true),
-            Err(object_store::Error::NotFound { .. }) => Ok(false),
+            Ok(()) => {
+                log::debug!("deleted {path}");
+                Ok(true)
+            }
+            Err(object_store::Error::NotFound { .. }) => {
+                log::info!("deleting {path} failed: not found");
+                Ok(false)
+            }
             Err(err) => Err({
                 log::error!(
                     "{}'s object store: failed to delete {path}: {err:#}",

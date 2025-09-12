@@ -1,5 +1,5 @@
 <template>
-	<div class="z-40 rounded-md bg-surface-high" v-click-outside="close">
+	<div class="z-40 rounded-md bg-surface-high" v-click-outside="close" role="toolbar">
 		<Icon v-if="showClosingCross" type="closingCross" size="base" :asButton="true" @click="close()" class="absolute right-2 top-2" />
 		<slot></slot>
 	</div>

@@ -1,6 +1,9 @@
-import filters from '@/logic/core/filters';
+// Package imports
 import { defineStore } from 'pinia';
-import { Theme, TimeFormat, useSettings } from './settings';
+
+// Hub imports
+import filters from '@/logic/core/filters.js';
+import { Theme, TimeFormat, useSettings } from '@/logic/store/settings.js';
 
 /**
  * This store is used to exchange messages from global client (parent frame) to hub client (iframe) and the other way around.
@@ -72,6 +75,7 @@ enum MessageType {
 	Settings = 'settings', // Sync settings
 	RoomChange = 'roomchange', // Change to a room - makes it possible to reflect the room in the url
 	AddAccessToken = 'addAccessToken', // Hub frame sends a access token for the global client to store in it's /bar/state.
+	AddAuthInfo = 'addAuthInfo', // Hub frame sends its access token and userID to store it in the globalSettings object.
 	RemoveAccessToken = 'removeAccessToken', // Hub frame sends a message to remove its' access token to the global client.
 	BarShow = 'visibilityBar-show', // Show side bar, mostly relevant for mobile where it can be hidden.
 	BarHide = 'visibilityBar-hide',
@@ -171,7 +175,7 @@ const useMessageBox = defineStore('messagebox', {
 				// Start listening
 				if (this.isConnected) {
 					this._windowMessageListener.set(id, (event: MessageEvent) => {
-						if (filters.removeBackSlash(event.origin) === filters.removeBackSlash(url)) {
+						if (filters.removeTrailingSlash(event.origin) === filters.removeTrailingSlash(url)) {
 							const message = new Message(event.data.type, event.data.content);
 
 							const settings = useSettings();
@@ -260,25 +264,27 @@ const useMessageBox = defineStore('messagebox', {
 		 * @ignore
 		 */
 		resolveTarget(id: string = 'parentFrame') {
-			const target = {} as { [receiverurl: string]: Window };
+			const target = {} as { [id: string]: { window: Window; receiverUrl: string } };
 			if (this.type === MessageBoxType.Child) {
 				const receiverUrl = this.receiverUrlMap.get(id);
 				if (receiverUrl) {
-					target[receiverUrl] = window.parent;
+					target[id] = { window: window.parent, receiverUrl };
 				}
 			} else if (id === 'parentFrame') {
 				// If the id is 'parentFrame' and the messagebox is of type PARENT, the message needs to be sent to all receivers that are connected with the PARENT.
 				this.receiverUrlMap.forEach((receiverUrl, idFromMap) => {
 					const el: HTMLIFrameElement | null = document.querySelector('iframe#' + idFromMap);
 					if (el !== null && el.contentWindow !== null && typeof el.contentWindow !== 'undefined') {
-						target[receiverUrl] = el.contentWindow;
+						target[idFromMap] = { window: el.contentWindow, receiverUrl };
 					}
 				});
 			} else {
 				const el: HTMLIFrameElement | null = document.querySelector('iframe#' + id);
 				if (el !== null && el.contentWindow !== null && typeof el.contentWindow !== 'undefined') {
 					const receiverUrl = this.receiverUrlMap.get(id);
-					if (receiverUrl) target[receiverUrl] = el.contentWindow;
+					if (receiverUrl) {
+						target[id] = { window: el.contentWindow, receiverUrl };
+					}
 				}
 			}
 			return target;
@@ -293,9 +299,9 @@ const useMessageBox = defineStore('messagebox', {
 		sendMessage(message: Message, id: string = 'parentFrame') {
 			if (this.isConnected) {
 				const target = this.resolveTarget(id);
-				for (const receiverUrl in target) {
-					// console.log('=> ' + this.type + ' SEND', message, receiverUrl);
-					target[receiverUrl].postMessage(message, receiverUrl);
+				for (const id in target) {
+					// console.log('=> ' + this.type + ' SEND', message, target[id].receiverUrl);
+					target[id].window.postMessage(message, target[id].receiverUrl);
 				}
 			}
 		},

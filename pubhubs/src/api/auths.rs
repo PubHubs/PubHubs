@@ -45,11 +45,6 @@ pub struct AuthStartReq {
 
     /// List of requested attributes
     pub attr_types: Vec<crate::handle::Handle>,
-
-    /// When using [`crate::attr::Source::Yivi`], use a chained session to wait for a pubhubs card
-    /// to be issued from pubhubs central.  Defaults to false.
-    #[serde(default)]
-    pub wait_for_card: bool,
 }
 
 /// Response to [`AuthStartEP`]
@@ -138,10 +133,6 @@ pub enum AuthCompleteResp {
     /// All went well
     Success {
         attrs: HashMap<handle::Handle, Signed<Attr>>,
-
-        /// If [`AuthStartReq::wait_for_card`] was set, and [`AuthStartReq::source`]
-        /// is [`attr::Source::Yivi`], then this is a digest of [`AuthProof::Yivi::disclosure`]
-        yivi_result_jwt_id: Option<id::Id>,
     },
 
     /// Something went wrong;  please start again at [`AuthStartEP`].

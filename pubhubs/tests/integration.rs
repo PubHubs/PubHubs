@@ -246,90 +246,29 @@ async fn main_integration_test_local(
         .await
         .unwrap();
 
-    // request authentication as end-user
-    let api::auths::AuthStartResp::Success {
-        task: auth_task,
-        state: auth_state,
-    } = client
-        .query_with_retry::<api::auths::AuthStartEP, _, _>(
-            &constellation.auths_url,
-            &api::auths::AuthStartReq {
-                source: attr::Source::Yivi,
-                attr_types: vec!["email".parse().unwrap(), "phone".parse().unwrap()],
-                wait_for_card: false,
-            },
-        )
-        .await
-        .unwrap()
-    else {
-        panic!()
-    };
-
-    let jwt: jwt::JWT = match auth_task {
-        api::auths::AuthTask::Yivi {
-            disclosure_request,
-            yivi_requestor_url,
-        } => {
-            assert_eq!(
-                yivi_requestor_url.to_string(),
-                "http://192.0.2.0/".to_string()
-            );
-            disclosure_request
-        } // _ => panic!("expected Yivi task"),
-    };
-
-    // at this point the end-user should disclosure their attributes to the specified yivi server;
-    // we'll mock the response of the yivi server instead
-    let jwt_claims: jwt::Claims = jwt.open(&jwt::HS256("secret".into())).unwrap();
-
-    let claims: DisclosureRequestClaims = jwt_claims
-        .check_iss(jwt::expecting::exactly("ph_auths"))
-        .unwrap()
-        .check_sub(jwt::expecting::exactly("verification_request"))
-        .unwrap()
-        .into_custom()
-        .unwrap();
-
-    let discl_resp = claims.sprequest.mock_disclosure_response(
-        |ati: &yivi::AttributeTypeIdentifier| -> String {
-            match ati.as_str() {
-                "irma-demo.sidn-pbdf.email.email" => "user@example.com".to_string(),
-                "irma-demo.sidn-pbdf.mobilenumber.mobilenumber" => "0612345678".to_string(),
-                _ => {
-                    panic!("unexpected yivi attribute type {}", ati.as_str());
-                }
-            }
-        },
-    );
-
-    let yivi_server_creds = yivi::Credentials {
-        name: "yivi-server".to_string(),
-        key: yivi_server_sk,
-    };
-
-    let result_jwt = discl_resp
-        .sign(&yivi_server_creds, Duration::from_secs(60))
-        .unwrap();
-
-    // Now send the disclosure response to the authentication server to get some credentials
-    let api::auths::AuthCompleteResp::Success { attrs, .. } = client
-        .query_with_retry::<api::auths::AuthCompleteEP, _, _>(
-            &constellation.auths_url,
-            &api::auths::AuthCompleteReq {
-                state: auth_state,
-                proof: api::auths::AuthProof::Yivi {
-                    disclosure: result_jwt,
-                },
-            },
-        )
-        .await
-        .unwrap()
-    else {
-        panic!()
-    };
+    let attrs = request_attributes(
+        &client,
+        &constellation,
+        &yivi_server_sk,
+        "user@example.com",
+        "0612345678",
+    )
+    .await;
 
     let email = attrs.get(&"email".parse().unwrap()).unwrap();
     let phone = attrs.get(&"phone".parse().unwrap()).unwrap();
+
+    let attrs = request_attributes(
+        &client,
+        &constellation,
+        &yivi_server_sk,
+        "user2@example.com",
+        "0623456789",
+    )
+    .await;
+
+    let email2 = attrs.get(&"email".parse().unwrap()).unwrap();
+    let _phone2 = attrs.get(&"phone".parse().unwrap()).unwrap();
 
     // Retrieve attribute key for email
     let Ok(api::auths::AttrKeysResp::Success(attr_keys)) = client
@@ -393,7 +332,6 @@ async fn main_integration_test_local(
                     identifying_attr: email.clone(),
                     mode: api::phc::user::EnterMode::Register,
                     add_attrs: vec![],
-                    release_waiting_for_card: None,
                 },
             )
             .await
@@ -411,7 +349,6 @@ async fn main_integration_test_local(
             identifying_attr: email.clone(),
             mode: api::phc::user::EnterMode::LoginOrRegister,
             add_attrs: vec![phone.clone()],
-            release_waiting_for_card: None,
         };
 
         for _ in 1..=10 {
@@ -450,12 +387,30 @@ async fn main_integration_test_local(
                     identifying_attr: email.clone(),
                     mode: api::phc::user::EnterMode::Register,
                     add_attrs: vec![phone.clone()],
-                    release_waiting_for_card: None,
                 },
             )
             .await
             .unwrap(),
         api::phc::user::EnterResp::AttributeAlreadyTaken(..)
+    ));
+
+    // Registering a second time with the same phone number, but a different email address works
+    assert!(matches!(
+        client
+            .query_with_retry::<api::phc::user::EnterEP, _, _>(
+                &constellation.phc_url,
+                &api::phc::user::EnterReq {
+                    identifying_attr: email2.clone(),
+                    mode: api::phc::user::EnterMode::Register,
+                    add_attrs: vec![phone.clone()],
+                },
+            )
+            .await,
+        Ok(api::phc::user::EnterResp::Entered {
+            new_account: true,
+            auth_token_package: Ok(..),
+            ..
+        })
     ));
 
     // Logging in using just the email address works..
@@ -466,7 +421,6 @@ async fn main_integration_test_local(
                 identifying_attr: email.clone(),
                 mode: api::phc::user::EnterMode::Login,
                 add_attrs: vec![],
-                release_waiting_for_card: None,
             },
         )
         .await
@@ -489,7 +443,6 @@ async fn main_integration_test_local(
                 identifying_attr: email.clone(),
                 mode: api::phc::user::EnterMode::Login,
                 add_attrs: vec![phone.clone()],
-                release_waiting_for_card: None,
             },
         )
         .await
@@ -796,6 +749,97 @@ impl MockHub {
             .run(),
         }
     }
+}
+
+async fn request_attributes(
+    client: &client::Client,
+    constellation: &pubhubs::servers::Constellation,
+    yivi_server_sk: &yivi::SigningKey,
+    email_value: &str,
+    phone_value: &str,
+) -> HashMap<handle::Handle, api::Signed<attr::Attr>> {
+    // request authentication as end-user
+    let api::auths::AuthStartResp::Success {
+        task: auth_task,
+        state: auth_state,
+    } = client
+        .query_with_retry::<api::auths::AuthStartEP, _, _>(
+            &constellation.auths_url,
+            &api::auths::AuthStartReq {
+                source: attr::Source::Yivi,
+                attr_types: vec!["email".parse().unwrap(), "phone".parse().unwrap()],
+            },
+        )
+        .await
+        .unwrap()
+    else {
+        panic!()
+    };
+
+    let jwt: jwt::JWT = match auth_task {
+        api::auths::AuthTask::Yivi {
+            disclosure_request,
+            yivi_requestor_url,
+        } => {
+            assert_eq!(
+                yivi_requestor_url.to_string(),
+                "http://192.0.2.0/".to_string()
+            );
+            disclosure_request
+        } // _ => panic!("expected Yivi task"),
+    };
+
+    // at this point the end-user should disclosure their attributes to the specified yivi server;
+    // we'll mock the response of the yivi server instead
+    let jwt_claims: jwt::Claims = jwt.open(&jwt::HS256("secret".into())).unwrap();
+
+    let claims: DisclosureRequestClaims = jwt_claims
+        .check_iss(jwt::expecting::exactly("ph_auths"))
+        .unwrap()
+        .check_sub(jwt::expecting::exactly("verification_request"))
+        .unwrap()
+        .into_custom()
+        .unwrap();
+
+    let discl_resp = claims.sprequest.mock_disclosure_response(
+        |ati: &yivi::AttributeTypeIdentifier| -> String {
+            match ati.as_str() {
+                "irma-demo.sidn-pbdf.email.email" => email_value.to_string(),
+                "irma-demo.sidn-pbdf.mobilenumber.mobilenumber" => phone_value.to_string(),
+                _ => {
+                    panic!("unexpected yivi attribute type {}", ati.as_str());
+                }
+            }
+        },
+    );
+
+    let yivi_server_creds = yivi::Credentials {
+        name: "yivi-server".to_string(),
+        key: yivi_server_sk.clone(),
+    };
+
+    let result_jwt = discl_resp
+        .sign(&yivi_server_creds, Duration::from_secs(60))
+        .unwrap();
+
+    // Now send the disclosure response to the authentication server to get some credentials
+    let api::auths::AuthCompleteResp::Success { attrs } = client
+        .query_with_retry::<api::auths::AuthCompleteEP, _, _>(
+            &constellation.auths_url,
+            &api::auths::AuthCompleteReq {
+                state: auth_state,
+                proof: api::auths::AuthProof::Yivi {
+                    disclosure: result_jwt,
+                },
+            },
+        )
+        .await
+        .unwrap()
+    else {
+        panic!()
+    };
+
+    attrs
 }
 
 async fn handle_info_url(context: web::Data<Arc<MockHubContext>>) -> impl actix_web::Responder {

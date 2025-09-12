@@ -1,5 +1,5 @@
 <template>
-	<div class="flex h-[320px] w-full flex-col rounded-xl shadow transition-all duration-300 xs:w-auto" :class="isExpanded ? 'row-span-2 h-[672px] bg-surface' : 'h-[320px] bg-surface-low'">
+	<div role="article" class="flex h-[320px] w-full flex-col rounded-xl shadow transition-all duration-300 xs:w-auto" :class="isExpanded ? 'row-span-2 h-[672px] bg-surface' : 'h-[320px] bg-surface-low'">
 		<!-- Main card -->
 		<div class="flex h-[320px] w-full shrink-0 flex-col gap-4 overflow-hidden rounded-xl bg-surface-low py-8 shadow-md">
 			<div class="flex items-center justify-between">
@@ -13,7 +13,7 @@
 					<P class="line-clamp-2">{{ room.topic }}</P>
 				</div>
 
-				<div class="flex w-full items-end justify-between gap-8">
+				<div class="flex w-full items-end justify-between gap-4">
 					<div class="flex flex-row flex-wrap gap-4 overflow-hidden text-on-surface-dim ~text-label-min/label-max">
 						<div class="flex items-center gap-2">
 							<Icon type="person" size="sm" filled />

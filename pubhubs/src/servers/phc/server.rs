@@ -48,25 +48,11 @@ impl servers::Details for Details {
     }
 
     fn create_extra_shared_state(_config: &servers::Config) -> anyhow::Result<ExtraSharedState> {
-        let (wait_for_card_sender, wait_for_card_receiver) = tokio::sync::mpsc::channel(10);
-        let (issue_card_sender, issue_card_receiver) = tokio::sync::mpsc::channel(10);
-
-        tokio::task::spawn(user_card::card_request_handler(
-            wait_for_card_receiver,
-            issue_card_receiver,
-        ));
-
-        Ok(ExtraSharedState {
-            wait_for_card_sender,
-            issue_card_sender,
-        })
+        Ok(ExtraSharedState {})
     }
 }
 
-pub struct ExtraSharedState {
-    pub(crate) issue_card_sender: tokio::sync::mpsc::Sender<user_card::IssueCardInternalReq>,
-    pub(crate) wait_for_card_sender: tokio::sync::mpsc::Sender<user_card::WaitForCardInternalReq>,
-}
+pub struct ExtraSharedState {}
 
 pub struct App {
     pub base: AppBase<Server>,
@@ -130,15 +116,6 @@ impl crate::servers::App<Server> for App {
 
         api::phc::user::PppEP::add_to(self, sc, App::handle_user_ppp);
         api::phc::user::HhppEP::add_to(self, sc, App::handle_user_hhpp);
-
-        // This endpoint being consumed by the Yivi app does not follow our API's conventions.
-        // For example, it uses the status code 204 to communicate the chained session flow must be
-        // aborted, while the PH API does not use status codes to communicate anything.
-        sc.route(
-            api::phc::user::YIVI_WAIT_FOR_CARD_PATH,
-            actix_web::web::post().to(App::handle_user_yivi_wait_for_card),
-        );
-        sc.app_data(actix_web::web::Data::new(self.clone()));
     }
 
     fn check_constellation(&self, _constellation: &Constellation) -> bool {
