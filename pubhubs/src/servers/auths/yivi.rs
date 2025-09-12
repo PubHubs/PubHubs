@@ -1,3 +1,4 @@
+//! Implementation of the `/yivi/...` endpoints
 use super::server::*;
 
 use std::rc::Rc;

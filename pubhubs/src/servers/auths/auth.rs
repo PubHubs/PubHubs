@@ -1,3 +1,4 @@
+//! Implementation of the [`api::auths::AuthStartEP`] and [`api::auths::AuthCompleteEP`] endpoints.
 use super::server::*;
 
 use std::collections::HashMap;
@@ -5,7 +6,7 @@ use std::rc::Rc;
 
 use actix_web::web;
 
-use crate::servers::{self, Server as _, yivi};
+use crate::servers::{self, yivi, Server as _};
 use crate::{
     api::{self, ResultExt as _},
     attr, handle,
