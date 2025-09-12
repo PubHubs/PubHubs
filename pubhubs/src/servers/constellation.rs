@@ -29,8 +29,6 @@ pub struct Constellation {
     /// When this constellation was first created by pubhubs central.  When two parties
     /// have different constellations, the party with the oldest constellation should
     /// update.
-    #[serde(default)] // temporary, for backwards compatibility with transcryptor
-    // running old code not having this field yet
     pub created_at: api::NumericDate,
 
     #[serde(flatten)]
@@ -72,19 +70,10 @@ pub struct Inner {
     /// `x_T x_PHC B`
     pub master_enc_key: elgamal::PublicKey,
 
-    #[serde(default = "default_global_client_url")]
-    // temporary default for backwards compatibility
     pub global_client_url: url::Url,
 
     /// pubhubs version
     pub ph_version: Option<String>,
-}
-
-/// Temporary default global client url for backwards compatibility
-fn default_global_client_url() -> url::Url {
-    "http://example.com/global-client-url-not-available"
-        .parse()
-        .unwrap()
 }
 
 impl Inner {
