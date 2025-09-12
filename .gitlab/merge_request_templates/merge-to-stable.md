@@ -50,6 +50,8 @@ General tips:
   - [ ] Update feature flag for stable if the feature works properly.
   - [ ] Inform the pubhubs team (via Slack and PubHubs stable) of the merge and possible downtime of https://stable.pubhubs.ihub.ru.nl/client . 
   - [ ] Make the changes and **perform the merge** (don't squash commits). After merging, **tag** the latest commit on stable with the version number plus `-rc0` (e.g. `v1.2.3-rc0`) to trigger the building and publishing of the stable images. 
+        
+    **NOTE:** do not worry when the transcryptor does not immediately come back up.  The transcryptor is rebuilt from source code when a new version is detected, which may take around 5-10 minutes. 
   - [ ] While waiting on the pipeline: update dependencies on the main branch in a merge request created from [this issue](https://gitlab.science.ru.nl/ilab/pubhubs_canonical/-/issues/new?issuable_template=update-dependencies&issue[title]=Updating%20dependencies%20on%2020yy-mm-dd). Please wait with merging this, see instruction below.
   - [ ] Check that the following works on https://app.pubhubs.net :
     - [ ] Turn off dev mode in Yivi app. 
