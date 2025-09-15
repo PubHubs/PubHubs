@@ -195,17 +195,15 @@ async fn main_integration_test_local(
         .await
         .unwrap();
 
-    // Run mock test hub
-    let testhub = config
-        .phc
-        .as_ref()
-        .unwrap()
-        .hubs
-        .iter()
-        .find(|h: &&hub::BasicInfo| &*h.handles[0] == "testhub")
-        .expect("could not find 'testhub' hub");
+    let welcome_resp = client
+        .query_with_retry::<api::phc::user::WelcomeEP, _, _>(config.phc_url.as_ref(), NoPayload)
+        .await
+        .unwrap();
 
-    let mock_hub = MockHub::new(testhub.clone(), constellation.clone());
+    // Run mock test hub
+    let testhub = welcome_resp.hubs[&"testhub".parse().unwrap()].clone();
+
+    let mock_hub = MockHub::new(testhub.clone().into(), constellation.clone());
 
     let mut js = tokio::task::JoinSet::new();
     js.spawn(mock_hub.actix_server); // the actix server does not run itself
