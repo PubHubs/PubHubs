@@ -16,10 +16,9 @@ COPY ./pubhubs/Cargo.lock .
 
 RUN apt-get update && apt-get install -y npm
 
-ARG CARGO_FEATURES
 ARG PH_VERSION
 
-RUN PH_VERSION=$PH_VERSION cargo install $CARGO_FEATURES --path .
+RUN PH_VERSION=$PH_VERSION cargo install --path .
 
 # Build global client
 COPY ./global-client/ ../global-client/

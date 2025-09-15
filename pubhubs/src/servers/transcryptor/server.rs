@@ -23,6 +23,7 @@ impl servers::Details for Details {
     type AppT = App;
     type AppCreatorT = AppCreator;
     type ExtraRunningState = ExtraRunningState;
+    type ExtraSharedState = ExtraSharedState;
     type ObjectStoreT = servers::object_store::UseNone;
 
     fn create_running_state(
@@ -36,7 +37,13 @@ impl servers::Details for Details {
             phc_ss,
         })
     }
+
+    fn create_extra_shared_state(_config: &servers::Config) -> anyhow::Result<ExtraSharedState> {
+        Ok(ExtraSharedState {})
+    }
 }
+
+pub struct ExtraSharedState {}
 
 #[derive(Clone, Debug)]
 pub struct ExtraRunningState {

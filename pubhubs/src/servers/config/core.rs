@@ -109,7 +109,7 @@ pub struct ServerConfig<ServerSpecific> {
     pub object_store: Option<ObjectStoreConfig>,
 
     /// What version (if any) to claim this pubhubs binary is running.
-    /// Uses [`crate::servers::version`] by default.  Should only be used for
+    /// Uses [`crate::servers::version()`] by default.  Should only be used for
     /// troubleshooting/debugging.
     #[serde(default = "default_version")]
     pub version: Option<String>,
@@ -332,7 +332,7 @@ pub mod phc {
         pub global_client_url: UrlPwa,
 
         /// The hubs that are known to us
-        pub hubs: Vec<hub::BasicInfo>,
+        pub hubs: Vec<hub::BasicInfo<UrlPwa>>,
 
         /// `x_PHC` from the whitepaper; randomly generated if not set
         ///
@@ -369,11 +369,16 @@ pub mod phc {
         /// Quotas for a user
         #[serde(default)]
         pub user_quota: api::phc::user::Quota,
+
+        /// Configuration for issuing the pubhubs yivi card.  If `None`, pubhubs yivi cards are not
+        /// issued.
+        #[serde(default)]
+        pub card: Option<crate::servers::phc::CardConfig>,
     }
 
     fn default_auth_token_validity() -> core::time::Duration {
         core::time::Duration::from_secs(60 * 60) // 1 hour - the user might need to add attributes
-        // to their Yivi app
+                                                 // to their Yivi app
     }
 
     fn default_pp_nonce_validity() -> core::time::Duration {
@@ -428,7 +433,7 @@ pub mod auths {
 
     fn default_auth_window() -> core::time::Duration {
         core::time::Duration::from_secs(60 * 60) // 1 hour - the user might need to add attributes
-        // to their Yivi app
+                                                 // to their Yivi app
     }
 
     impl ExtraConfig {
@@ -592,6 +597,20 @@ impl PrepareConfig<Pcc> for phc::ExtraConfig {
         ha.dealias(&mut self.transcryptor_url);
         ha.dealias(&mut self.auths_url);
         ha.dealias(&mut self.global_client_url);
+
+        for hub in self.hubs.iter_mut() {
+            hub.prepare(c.clone()).await?;
+        }
+
+        Ok(())
+    }
+}
+
+impl PrepareConfig<Pcc> for hub::BasicInfo<UrlPwa> {
+    async fn prepare(&mut self, c: Pcc) -> anyhow::Result<()> {
+        let ha: &HostAliases = c.get::<HostAliases>().unwrap();
+
+        ha.dealias(&mut self.url);
 
         Ok(())
     }

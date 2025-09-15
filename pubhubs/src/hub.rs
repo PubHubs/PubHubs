@@ -2,10 +2,11 @@
 
 use crate::handle::{Handle, Handles};
 use crate::id::Id;
+use crate::servers::config::host_aliases::UrlPwa;
 
 /// Basic public details about hub, as provided by PubHubs Central.
 #[derive(serde::Serialize, serde::Deserialize, Debug, Eq, PartialEq, Clone)]
-pub struct BasicInfo {
+pub struct BasicInfo<UrlT = url::Url> {
     /// The handles for this hub, using in URLs and other places to be understood by both human and
     /// machine. The first one is the one that's used by default.
     /// **WARNING:**  Handles may be added, but should not be removed.
@@ -20,10 +21,22 @@ pub struct BasicInfo {
 
     /// Hub client API url, likely of the form `https://<some domain>/_synapse/client/`.
     /// Must end with a `/`.  Can be changed freely.
-    pub url: url::Url,
+    pub url: UrlT,
 
     /// Immutable and unique identifier
     pub id: Id,
+}
+
+impl From<BasicInfo<UrlPwa>> for BasicInfo {
+    fn from(hi: BasicInfo<UrlPwa>) -> Self {
+        Self {
+            url: hi.url.as_ref().clone(),
+            name: hi.name,
+            description: hi.description,
+            id: hi.id,
+            handles: hi.handles,
+        }
+    }
 }
 
 impl crate::map::Handled for BasicInfo {

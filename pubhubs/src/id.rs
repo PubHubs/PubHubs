@@ -55,6 +55,18 @@ impl PartialEq for Id {
     }
 }
 
+impl PartialOrd for Id {
+    fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
+        Some(self.cmp(other))
+    }
+}
+
+impl Ord for Id {
+    fn cmp(&self, other: &Self) -> std::cmp::Ordering {
+        self.inner.as_slice().cmp(other.inner.as_slice())
+    }
+}
+
 impl crate::common::secret::DigestibleSecret for Id {
     fn as_bytes(&self) -> &[u8] {
         self.as_slice()

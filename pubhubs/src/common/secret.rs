@@ -39,7 +39,6 @@ pub trait DigestibleSecret {
     /// Creates an [`Id`] from this secret.
     ///
     /// [`Id`]: crate::id::Id
-    #[cfg(feature = "bin")]
     fn derive_id<D>(&self, d: D, domain: impl AsRef<str>) -> crate::id::Id
     where
         D: digest::Digest<OutputSize = typenum::U32>,
@@ -52,7 +51,6 @@ pub trait DigestibleSecret {
     /// Creates a [`HS256`] from this secret.
     ///
     /// [`HS256`]: crate::misc::jwt::HS256
-    #[cfg(feature = "bin")]
     fn derive_hs256<D>(&self, d: D, domain: impl AsRef<str>) -> crate::misc::jwt::HS256
     where
         D: digest::Digest,
@@ -61,7 +59,6 @@ pub trait DigestibleSecret {
     }
 
     /// Creates a (256-bit) [`crate::misc::crypto::SealingKey`] from this secret.
-    #[cfg(feature = "bin")]
     fn derive_sealing_key<D>(
         &self,
         d: D,

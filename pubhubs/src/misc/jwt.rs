@@ -8,6 +8,7 @@ use std::borrow::{Borrow as _, Cow};
 use std::fmt;
 
 use base64ct::{Base64UrlUnpadded, Encoding as _};
+use digest::Digest as _;
 use hmac::Mac as _;
 use rsa::{
     pkcs8::{
@@ -21,7 +22,9 @@ use serde::{
     de::{DeserializeOwned, Visitor},
 };
 
+use crate::id;
 use crate::misc::time_ext;
+use crate::phcrypto;
 
 /// Wrapper around [`String`] to indicate it should be interpretted as a JWT.
 ///
@@ -408,6 +411,12 @@ impl From<String> for JWT {
     }
 }
 
+impl From<JWT> for String {
+    fn from(jwt: JWT) -> String {
+        jwt.inner
+    }
+}
+
 impl JWT {
     /// Creates JWT from `claims` and [SigningKey] `key`.
     ///
@@ -484,6 +493,14 @@ impl JWT {
 
     pub fn as_str(&self) -> &str {
         &self.inner
+    }
+
+    pub fn sha256(&self) -> sha2::Sha256 {
+        sha2::Sha256::new().chain_update(&self.inner)
+    }
+
+    pub fn id(&self) -> id::Id {
+        phcrypto::jwt_id(self)
     }
 }
 

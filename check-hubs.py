@@ -6,6 +6,7 @@ import os
 import sys
 import json
 import os.path
+import socket
 import urllib.request
 import urllib.parse
 import urllib.error
@@ -16,8 +17,11 @@ def main():
     parser = argparse.ArgumentParser(description="Checks which hubs are online, "
                                      "and what version they are running")
 
+    parser.add_argument('-e', '--environment', 
+                        default="stable",
+                        choices=["main", "stable", "local"],
+                        help="determines which PHC server is contacted (unless --phc-url is set)")
     parser.add_argument('-p', '--phc-url', 
-                        default="https://app.pubhubs.net/", 
                         help="where to find pubhubs central")
     parser.add_argument('-t', '--timeout', type=int, default=2,
                         help="in number of seconds")
@@ -40,22 +44,32 @@ class Program:
     def run(self):
         phc_url = self._args.phc_url
 
-        hubs_url = urllib.parse.urljoin(phc_url, "bar/hubs")
+        if phc_url == None:
+            match self._args.environment:
+                case "main":
+                    phc_url = "https://phc-main.pubhubs.net"
+                case "stable":
+                    phc_url = "https://phc.pubhubs.net"
+                case "local":
+                    phc_url = "http://localhost:5050"
 
+        hubs_url = urllib.parse.urljoin(phc_url, ".ph/user/welcome")
+        
+        print(f"contacting {phc_url}")
         with self.get(hubs_url) as response:
-            hubs = json.load(response)
+            hubs = json.load(response)['Ok']['hubs']
 
-        for hub in hubs:
+        for hub_handle, hub in hubs.items():
             self._hubs[hub['id']] = hub
 
-        for hub in hubs:
+        for hub in hubs.values():
             self.retrieve_hub_info(hub['id'])
 
         self.print_hub_info()
 
     def retrieve_hub_info(self, hub_id):
         hub = self._hubs[hub_id]
-        info_url = urllib.parse.urljoin(hub['server_uri'], "_synapse/client/.ph/info")
+        info_url = urllib.parse.urljoin(hub['url'], ".ph/info")
         try:
             with self.get(info_url) as response:
                 hub['hub_info'] = json.load(response)
@@ -65,7 +79,7 @@ class Program:
             hub['hub_info'] = { 'error': e }
 
     def print_hub_info(self):
-        max_uri_len = max([len(hub['server_uri']) for hub in self._hubs.values()])
+        max_uri_len = max([len(hub['url']) for hub in self._hubs.values()])
 
         for hub in self._hubs.values():
             hub_info = hub['hub_info']
@@ -76,7 +90,7 @@ class Program:
             else:
                 msg = hub_info['hub_version']
                 prefix = tc.OK
-            print(f"{prefix}{hub['server_uri'].ljust(max_uri_len+1)} {msg}{tc.END}")
+            print(f"{prefix}{hub['url'].ljust(max_uri_len+1)} {msg}{tc.END}")
 
     def get(self, url):
         logger.debug(f"GET {url}")

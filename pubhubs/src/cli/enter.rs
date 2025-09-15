@@ -24,6 +24,10 @@ pub struct EnterArgs {
     )]
     url: url::Url,
 
+    /// Whether to wait for a pubhubs yivi card
+    #[arg(short, long)]
+    wait_for_card: bool,
+
     /// Handle identifying the hub
     #[arg(value_name = "HUB")]
     hub_handle: Handle,
@@ -236,6 +240,7 @@ impl EnterArgs {
                 &constellation.auths_url,
                 api::auths::AuthStartReq {
                     source: attr::Source::Yivi,
+                    yivi_chained_session: self.wait_for_card,
                     attr_types: self
                         .add_attr_type
                         .iter()
@@ -326,14 +331,28 @@ async fn yivi_cli_session(yivi_requestor_url: &url::Url, request: jwt::JWT) -> R
         .map_err(|err| anyhow::anyhow!("failed to start Yivi session: {err}"))?;
 
     let YiviSessionPackage {
-        session_ptr,
+        session_ptr: session_ptr_json,
         token: requestor_token,
+        frontend_request: FrontendSessionRequest { authorization, .. },
     } = resp.json().await?;
+
+    let SessionPtr {
+        url: mut frontend_url,
+        ..
+    } = serde_json::from_value(session_ptr_json.clone())
+        .with_context(|| "failed to parse session pointer returned by yivi server")?;
+
+    // make sure frontend_url ends with a '/' so Url::join works as expected
+    if !frontend_url.path().ends_with("/") {
+        frontend_url.set_path(format!("{}/", frontend_url.path()).as_str());
+    }
+
+    log::debug!("requestor token: {requestor_token}; frontend_url: {frontend_url}");
 
     println!();
     println!("Please scan the following QR code using your Yivi app.");
 
-    let qr = qrcode::QrCode::new(session_ptr.to_string().as_bytes())?;
+    let qr = qrcode::QrCode::new(session_ptr_json.to_string().as_bytes())?;
 
     let qr_render = qr
         .render()
@@ -342,12 +361,16 @@ async fn yivi_cli_session(yivi_requestor_url: &url::Url, request: jwt::JWT) -> R
         .build();
     print!("{qr_render}");
 
+    let statusevents_url = frontend_url.join("frontend/statusevents")?;
+    //yivi_requestor_url
+    //    .join(&format!("/session/{requestor_token}/statusevents"))?
+    //    .as_str(),
+
+    log::debug!("{}", statusevents_url);
+
     let mut statusevents = client
-        .get(
-            yivi_requestor_url
-                .join(&format!("/session/{requestor_token}/statusevents"))?
-                .as_str(),
-        )
+        .get(statusevents_url.as_str())
+        .insert_header(("Authorization", authorization))
         .send()
         .await
         .map_err(|err| anyhow::anyhow!("failed to listen to statusevents: {err}"))?;
@@ -358,11 +381,16 @@ async fn yivi_cli_session(yivi_requestor_url: &url::Url, request: jwt::JWT) -> R
             .await
             .ok_or_else(|| anyhow::anyhow!("status events aborted early"))??;
 
+        log::debug!(
+            "received status event: {}",
+            crate::misc::fmt_ext::Bytes(&data)
+        );
+
         let Some(data) = data.strip_prefix(b"data:") else {
             continue;
         };
 
-        let status: yivi::Status = serde_json::from_slice(data)?;
+        let FrontendSessionStatus { status, .. } = serde_json::from_slice(data)?;
 
         match status {
             yivi::Status::Done => break,
@@ -387,9 +415,38 @@ async fn yivi_cli_session(yivi_requestor_url: &url::Url, request: jwt::JWT) -> R
 
 /// Represents a [yivi session package](https://github.com/privacybydesign/irmago/blob/f9718c334af76a3ad2fa23019d17957878cd2032/server/api.go#L30).
 #[derive(serde::Deserialize, Debug, Clone)]
+#[serde(rename_all = "camelCase")]
 struct YiviSessionPackage {
-    #[serde(rename = "sessionPtr")]
     session_ptr: serde_json::Value,
 
+    /// Requestor token
     token: String,
+
+    frontend_request: FrontendSessionRequest,
+}
+
+#[derive(serde::Deserialize, Debug, Clone)]
+struct SessionPtr {
+    #[serde(rename = "u")]
+    url: url::Url,
+
+    #[serde(rename = "irmaqr")]
+    #[expect(dead_code)]
+    session_type: yivi::SessionType,
+}
+
+// https://github.com/privacybydesign/irmago/blob/773a229329a063043831a4c21e72b139b9600f4b/requests.go#L235
+#[derive(serde::Deserialize, Debug, Clone)]
+struct FrontendSessionRequest {
+    authorization: String,
+    // some fields omitted
+}
+
+/// <https://github.com/privacybydesign/irmago/blob/773a229329a063043831a4c21e72b139b9600f4b/messages.go#L571>
+#[derive(serde::Deserialize, Debug, Clone)]
+#[serde(rename_all = "camelCase")]
+struct FrontendSessionStatus {
+    status: yivi::Status,
+    #[expect(dead_code)]
+    next_session: Option<serde_json::Value>,
 }
