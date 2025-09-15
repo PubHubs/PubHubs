@@ -64,6 +64,7 @@ pub struct AuthStartReq {
     /// This gives the global client time to obtain a PubHubs card issuance request from PubHubs central,
     /// to be passed to the Yivi server as next session via [`YiviReleaseNextSessionEP`].
     #[serde(default)]
+    #[serde(skip_serializing_if = "std::ops::Not::not")]
     pub yivi_chained_session: bool,
 }
 
