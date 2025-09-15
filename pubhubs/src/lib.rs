@@ -1,20 +1,7 @@
 #[cfg(feature = "old")]
 mod old {
-    pub mod bar;
     pub mod config;
     pub mod context;
-    pub mod cookie;
-    pub mod crypto;
-    pub mod data;
-    pub mod error;
-    pub mod hairy_ext;
-    pub mod middleware;
-    pub mod oidc;
-    pub mod oidc_handler;
-    pub mod pseudonyms;
-    pub mod translate;
-    pub mod yivi;
-    pub mod yivi_proxy;
 }
 
 #[cfg(feature = "old")]
