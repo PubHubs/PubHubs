@@ -394,7 +394,7 @@ impl crate::servers::AppCreator<Server> for AppCreator {
         let xconf = &config.phc.as_ref().unwrap();
 
         for basic_hub_info in xconf.hubs.iter() {
-            if let Some(hub_or_id) = hubs.insert_new(basic_hub_info.clone()) {
+            if let Some(hub_or_id) = hubs.insert_new(basic_hub_info.clone().into()) {
                 anyhow::bail!("two hubs are known as {hub_or_id}");
             }
         }
