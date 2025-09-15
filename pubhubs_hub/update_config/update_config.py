@@ -366,8 +366,6 @@ class UpdateConfig:
             actual_value = provider[oidc_key]
             if actual_value != expected_value:
                 logger.warning(f" - Warning ⚠️  {key}.{oidc_key} has incorrect value - overwriting '{actual_value}' with '{expected_value}'")
-            # Remove checked settings from the mandatory list
-            mandatory_oidc.pop(oidc_key)
 
         # Add any missing mandatory settings to the provider configuration
         provider.update(mandatory_oidc)
