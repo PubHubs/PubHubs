@@ -137,7 +137,7 @@ async fn check_connection_once(url: &str, nonce: &str) -> Result<()> {
         // awc cannot deal with the deflate content-encoding produced by the iLab proxy - not sure who's at
         // fault, but we circumvent this problem by setting Accept-Encoding to "identity".
         .insert_header((
-            http::header::ACCEPT_ENCODING,
+            actix_web::http::header::ACCEPT_ENCODING,
             awc::http::header::ContentEncoding::Identity,
         ))
         .send()

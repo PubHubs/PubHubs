@@ -18,7 +18,7 @@ anyhow = { version = "1.0", features = ["backtrace"] }
 thiserror = { version="2.0" }
 
 # time
-humantime = { version = "2.2" }
+humantime = { version = "2.3" }
 
 # serde
 serde = { version = "1.0", features = ["derive"] }
@@ -30,7 +30,7 @@ toml = { version = "0.9" }
 postcard = { version = "1.1", features = [ "use-std" ] }
 
 # better hashmap/hashset, supported by serde_json & toml
-indexmap = { version = "2.7", features = [ "serde" ] }
+indexmap = { version = "2.11", features = [ "serde" ] }
 
 # Database interaction
 rand = { version = "0.9" } 
@@ -42,33 +42,32 @@ qrcode = { version = "0.14" }
 regex = { version = "1.11" }
 
 # Web dependencies
-actix-web = { version = "4.9" }
+actix-web = { version = "4.11" }
 actix-cors = { version = "0.7" }
 actix-files = { version = "0.6" }
 bytes = { version = "1", features = ["serde"] }
-env_logger = { version = "0.11.5" }
-http = { version = "0.2" }
+env_logger = { version = "0.11.8" }
 mime = { version = "0.3" }
 log = { version = "0.4" }
-tokio = { version = "1.41", features = ["rt", "macros", "rt-multi-thread", "sync", "time"] }
+tokio = { version = "1.47", features = ["rt", "macros", "rt-multi-thread", "sync", "time"] }
 url = { version="2.5", features=["serde"] }
 
 # Proxying requests to Yivi and connection check
-awc = { version = "3.6", features = ["openssl"] }
+awc = { version = "3.8", features = ["openssl"] }
 
 # RustCrypto packages
 aead = { version = "0.5", features=["getrandom"] }
-base16ct = { version = "0.2", features = ["alloc", "std"] } # hex
-base64ct = { version = "1.6", features = ["alloc", "std"] }
+base16ct = { version = "0.3", features = ["alloc"] } # hex
+base64ct = { version = "1.8", features = ["alloc"] }
 chacha20poly1305 = { version = "0.10" }
 curve25519-dalek = { version = "4.1.3", features = ["rand_core", "digest", "serde", "zeroize"] }
-ed25519-dalek = { version = "2.1", features = ["rand_core", "serde"] }
+ed25519-dalek = { version = "2.2", features = ["rand_core", "serde"] }
 rsa = { version = "0.9", features = ["sha2"] }
 hmac = { version = "0.12" }
 zeroize = { version = "1.8", features = [ "zeroize_derive" ] }
 sha2 = { version = "0.10" }
 subtle = { version = "2.6" }
-typenum = { version = "1.17" }
+typenum = { version = "1.18" }
 digest = { version = "0" }
 
 #metrics

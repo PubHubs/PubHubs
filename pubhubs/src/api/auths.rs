@@ -9,6 +9,8 @@ use serde::{Deserialize, Serialize};
 
 use std::collections::HashMap;
 
+use actix_web::http;
+
 /// Called by the global client to get, for example, the list of supported attribute types.
 pub struct WelcomeEP {}
 impl EndpointDetails for WelcomeEP {

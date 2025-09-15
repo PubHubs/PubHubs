@@ -2,12 +2,13 @@ use std::rc::Rc;
 use std::str::FromStr as _;
 
 use serde::{
-    Deserialize, Serialize,
     de::{DeserializeOwned, IntoDeserializer as _},
+    Deserialize, Serialize,
 };
 
 use anyhow::Context as _;
 
+use actix_web::http;
 use actix_web::http::header;
 use actix_web::web;
 
@@ -263,8 +264,8 @@ impl<T> Payload<T> {
     ) -> anyhow::Result<Payload<T>>
     where
         S: futures::stream::Stream<
-                Item = std::result::Result<bytes::Bytes, awc::error::PayloadError>,
-            >,
+            Item = std::result::Result<bytes::Bytes, awc::error::PayloadError>,
+        >,
         T: DeserializeOwned,
     {
         let Some(content_type_hv) = resp.headers().get(http::header::CONTENT_TYPE) else {
