@@ -74,20 +74,12 @@ bin = [
 	"dep:qrcode",
 	"dep:git-version",
 	"dep:semver",
-	"dep:serde_urlencoded",
 ]
 real_credentials = []
 old = [
  	"bin",
 	"dep:actix-files",
-	"dep:async-recursion",
-	"dep:chrono",
-	"dep:jsonwebtoken",
-	"dep:rusqlite",
 	"dep:serde_yaml",
-	"dep:strum_macros",
-	"dep:uuid",
-	"dep:urlencoding",
 ]
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
@@ -105,27 +97,19 @@ serde = { version = "1.0", features = ["derive"], optional = true }
 serde_repr = { version = "0.1", optional = true }
 serde_bytes = { version = "0.11", optional = true }
 serde_json = { version = "1.0", optional = true }
-serde_urlencoded = { version = "0.7", optional = true }
 serde_yaml = { version = "0.9", optional = true }
 toml = { version = "0.9", optional = true }
 postcard = { version = "1.1", features = [ "use-std" ],  optional = true }
-
-urlencoding = { version = "2.1", optional = true }
 
 # better hashmap/hashset, supported by serde_json & toml
 indexmap = { version = "2.7", features = [ "serde" ], optional = true }
 
 # Database interaction
 rand = { version = "0.9", optional = true } 
-rusqlite = { version = "0.37", features = ["bundled"], optional = true }
 # note: object_store is used by crates.io
 object_store = { version = "0.12", features = ["aws"], optional = true } 
 
 # Yivi interaction
-async-recursion = { version = "1.1", optional = true }
-chrono = { version="0.4", default-features = false, features = ["clock"], optional = true }
-# note: we don't use chrono 0.4's default features, because it includes oldtime,
-#       which pulls in time 0.1, which has a vulnerability (viz. RUSTSEC-2020-0071)
 qrcode = { version = "0.14", optional = true }
 regex = { version = "1.11", optional = true }
 
@@ -137,13 +121,9 @@ bytes = { version = "1", features = ["serde"], optional = true }
 env_logger = { version = "0.11.5", optional = true }
 http = { version = "0.2", optional = true }
 mime = { version = "0.3", optional = true }
-hyper = { version= "0.14", features= ["server", "client", "http1", "stream" ], optional = true }
-hyper-tls = { version = "0.5", optional = true }
-jsonwebtoken = { version = "9", optional = true }  # uses non RustCrypto - perhaps replace?
 log = { version = "0.4", optional = true }
 tokio = { version = "1.41", features = ["rt", "macros", "rt-multi-thread", "sync", "time"], optional = true }
 url = { version="2.5", features=["serde"], optional = true }
-uuid = { version = "1.11", features = ["v4"], optional = true }
 
 # Proxying requests to Yivi and connection check
 awc = { version = "3.6", features = ["openssl"], optional = true }
@@ -166,13 +146,7 @@ digest = { version = "0", optional = true }
 #metrics
 futures = { version = "0.3", optional = true }
 futures-util = { version = "0.3", optional = true }
-prometheus = { version = "0.14", default-features = false, optional = true }
-strum_macros = { version = "0.27", optional = true }
 
-#iLab crates
-# NOTE: Versions 0.2.1 for expry and hairy are available, but are rather non-backwards compatible.
-expry = { version = "0.1", optional = true }
-hairy = { version = "0.1", optional = true }
 
 # command line argument parser
 clap = { version = "4.5", features = ["derive"], optional = true }
@@ -180,7 +154,3 @@ clap = { version = "4.5", features = ["derive"], optional = true }
 # other
 git-version = { version = "0.3", optional = true }
 semver = { version = "1.0", optional = true }
-
-[dev-dependencies]
-tempfile = "3.14"
-tokio-test = "0.4"
