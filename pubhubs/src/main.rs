@@ -27,24 +27,17 @@ impl Cli {
 
         match self.command {
             None => {
-                #[cfg(feature = "old")]
-                {
-                    let args = old::Args::default();
+                let args = old::Args::default();
 
-                    run_args!(args, "old")
-                }
+                run_args!(args, "old")
 
-                #[cfg(not(feature = "old"))]
-                {
-                    Err(spec.error(
-                        clap::error::ErrorKind::MissingSubcommand,
-                        "no command provided",
-                    ))
-                }
+                //                    Err(spec.error(
+                //                        clap::error::ErrorKind::MissingSubcommand,
+                //                        "no command provided",
+                //                    ))
             }
 
             Some(cmd) => match cmd {
-                #[cfg(feature = "old")]
                 Commands::Old(args) => run_args!(args, "old"),
 
                 Commands::Serve(args) => run_args!(args, "serve"),
@@ -59,7 +52,6 @@ impl Cli {
 #[derive(clap::Subcommand, Debug)]
 enum Commands {
     /// Runs the old pubhubs binary (default)
-    #[cfg(feature = "old")]
     Old(old::Args),
 
     /// Run one (or multiple) PubHubs servers
@@ -75,7 +67,6 @@ enum Commands {
     Enter(pubhubs::cli::EnterArgs),
 }
 
-#[cfg(feature = "old")]
 mod old {
     #[derive(clap::Args, Debug, Default)]
     pub struct Args {}

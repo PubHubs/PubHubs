@@ -1,54 +1,22 @@
-#[cfg(feature = "old")]
 mod old {
     pub mod config;
     pub mod context;
 }
 
-#[cfg(feature = "old")]
 pub use old::*;
-
-#[cfg(feature = "bin")]
 pub mod cli;
 
-#[cfg(feature = "bin")]
-pub mod servers;
-
-#[cfg(feature = "bin")]
-pub mod client;
-
-#[cfg(feature = "bin")]
 pub mod api;
-
-#[cfg(feature = "bin")]
-pub mod hub;
-
-#[cfg(feature = "bin")]
-pub mod handle;
-
-#[cfg(feature = "bin")]
-pub mod id;
-
-#[cfg(feature = "bin")]
-pub mod map;
-
-#[cfg(feature = "bin")]
 pub mod attr;
-
-#[cfg(feature = "bin")]
-pub mod phcrypto;
-
-#[cfg(any(feature = "bin", feature = "old"))]
+pub mod client;
+pub mod handle;
+pub mod hub;
+pub mod id;
+pub mod map;
 pub mod misc;
-
-#[cfg(feature = "old")]
+pub mod phcrypto;
+pub mod servers;
 pub use misc::jwt;
-
-#[cfg(feature = "common")]
 mod common;
 
-#[cfg(feature = "common")]
 pub use common::elgamal; // For backwards compatibility with the old pubhubs
-
-// only symbols in the root are exported
-#[cfg(feature = "abi")]
-pub use elgamal::abi::*;

@@ -55,13 +55,13 @@ class UpdateConfig:
         "oidc_providers": {
             "idp_id": "pubhubs",
             "idp_name": "PubHubs ID provider",
-            "discover": True,
-            "scopes": ["openid"],
-            "skip_verification": False,
-            "user_mapping_provider": {
-                "module": "conf.modules.pseudonyms.OidcMappingProvider",
-                "config": {"libpubhubspath": "/usr/lib/libpubhubs.so"},
-            },
+            "discover": False,
+            "scopes": [],
+            "client_id": "not used but must be set",
+            "issuer": "https://example.com/not-used-but-must-be-set",
+            "authorization_endpoint": "https://example.com/not-used-but-must-be-set",
+            "token_endpoint": "https://example.com/not-used-but-must-be-set",
+            "userinfo_endpoint": "https://example.com/not-used-but-must-be-set",
         },
         "federation_domain_whitelist": [],
         "allow_profile_lookup_over_federation": False,
@@ -87,10 +87,6 @@ class UpdateConfig:
             "config": {
                 "client_url": "http://localhost:8800",
             },
-        },
-        "oidc_providers": {
-            "client_id": "testhub~TwE1w3BX-RrDRe7FFqkbRlkp4FiBh4cgtRwtrpmv7Gc=",
-            "client_secret": "p7v7c_L_Eo0Clkx-fBvbGddHPkTEbR59oueM6XaKVYI=",
         },
     }
 
@@ -146,7 +142,6 @@ class UpdateConfig:
                 case "oidc_providers":
                     with self._try_check(key, to_be_checked_config, check_type_log_info):
                         self._check_and_update_oidc(key, value, homeserver_live)
-                        self._check_did_issuer_or_client_id_change(key, value, homeserver_live)
                 case "sso":
                     with self._try_check(key, to_be_checked_config, check_type_log_info):
                         if global_client_url[-1] != "/":
@@ -366,9 +361,7 @@ class UpdateConfig:
                 continue
             actual_value = provider[oidc_key]
             if actual_value != expected_value:
-                raise ConfigError(
-                    f"❌   {key}.{oidc_key} has incorrect value: expected {expected_value}, but got {actual_value}"
-                )
+                logger.warning(f" - Warning ⚠️  {key}.{oidc_key} has incorrect value - overwriting '{actual_value}' with '{expected_value}'")
             # Remove checked settings from the mandatory list
             mandatory_oidc.pop(oidc_key)
 
@@ -474,31 +467,6 @@ class UpdateConfig:
 
         return global_client_url
 
-    def _check_did_issuer_or_client_id_change(
-        self, key: str, oidc_settings: Any, homeserver_live:dict
-    ) -> None:
-        """
-        If either the issuer or client_id value are not present raise a configerror
-
-        If the values are present check if the value is changed with _check_did_change
-        """
-        if "issuer" in oidc_settings[0]:
-            self._check_did_change(
-                f"{key}.issuer",
-                oidc_settings[0]["issuer"],
-                "http://host.docker.internal:8080"
-            )
-        else:
-            if self.check_environment == CheckEnvironment.DEVELOPMENT:
-                homeserver_live[key][0]['issuer'] = "http://host.docker.internal:8080"
-            else:
-                homeserver_live[key][0]['issuer'] = "https://app.pubhubs.net"
-        if "client_id" in oidc_settings[0]:
-            self._check_did_start_change(
-                f"{key}.client_id", oidc_settings[0]["client_id"], "testhub"
-            )
-        else:
-            raise ConfigError(f"❌   {key}.client_id expected to be set but is missing")
 
 
 if __name__ == "__main__":

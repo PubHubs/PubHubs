@@ -4,153 +4,81 @@ edition = "2024"
 license-file = "../LICENSE"
 rust-version = "1.89"
 
-[lib]
-crate-type = ["cdylib","rlib"]
-# NOTE: the cdylib generates the libpubhubs.so (on Linux)  that's used by the hub
-
 [[bin]]
 name = "pubhubs"
-required-features = ["bin"]
 
 [[test]]
 name = "integration"
-required-features = ["bin"]
-
-[features]
-# bin:     what's used by the pubhubs binary
-# abi:     what's needed for the ABI (libpubhubs.so) used by the hub
-# common:  what's used by both bin and abi.
-# old:     what's used by the old pubhubs library (no separate authentication server/transcryptor)
-default = [
-	"old", "bin",
-]
-abi = [
-	"common",
-]
-common = [
-	"dep:base16ct",
-	"dep:curve25519-dalek",
-	"dep:rand",
-	"dep:aead",
-	"dep:subtle",
-	"dep:digest",
-	"dep:typenum",
-	"dep:sha2",
-	"dep:zeroize",
-]
-bin = [
-	"common",
-	"dep:actix-web",
-	"dep:actix-cors",
-	"dep:anyhow",
-	"dep:awc",
-	"dep:base64ct",
-	"dep:bytes",
-	"dep:chacha20poly1305",
-	"dep:clap",
-	"dep:ed25519-dalek",
-	"dep:env_logger",
-	"dep:futures",
-	"dep:futures-util", # used by actix already
-	"dep:hmac",
-	"dep:http",
-	"dep:mime",
-	"dep:humantime",
-	"dep:indexmap",
-	"dep:log",
-	"dep:object_store",
-	"dep:postcard",
-	"dep:regex",
-	"dep:rsa",
-	"dep:serde",
-	"dep:serde_bytes",
-	"dep:serde_json",
-	"dep:serde_repr",
-	"dep:thiserror",
-	"dep:tokio",
-	"dep:toml",
-	"dep:url",
-	"dep:zeroize",
-	"dep:qrcode",
-	"dep:git-version",
-	"dep:semver",
-]
-real_credentials = []
-old = [
- 	"bin",
-	"dep:actix-files",
-	"dep:serde_yaml",
-]
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 [dependencies]
 # Error handling
 # note:  anyhow is also used by cargo
-anyhow = { version = "1.0", features = ["backtrace"], optional = true }
-thiserror = { version="2.0", optional = true }
+anyhow = { version = "1.0", features = ["backtrace"] }
+thiserror = { version="2.0" }
 
 # time
-humantime = { version = "2.2", optional = true }
+humantime = { version = "2.2" }
 
 # serde
-serde = { version = "1.0", features = ["derive"], optional = true }
-serde_repr = { version = "0.1", optional = true }
-serde_bytes = { version = "0.11", optional = true }
-serde_json = { version = "1.0", optional = true }
-serde_yaml = { version = "0.9", optional = true }
-toml = { version = "0.9", optional = true }
-postcard = { version = "1.1", features = [ "use-std" ],  optional = true }
+serde = { version = "1.0", features = ["derive"] }
+serde_repr = { version = "0.1" }
+serde_bytes = { version = "0.11" }
+serde_json = { version = "1.0" }
+serde_yaml = { version = "0.9" }
+toml = { version = "0.9" }
+postcard = { version = "1.1", features = [ "use-std" ] }
 
 # better hashmap/hashset, supported by serde_json & toml
-indexmap = { version = "2.7", features = [ "serde" ], optional = true }
+indexmap = { version = "2.7", features = [ "serde" ] }
 
 # Database interaction
-rand = { version = "0.9", optional = true } 
+rand = { version = "0.9" } 
 # note: object_store is used by crates.io
-object_store = { version = "0.12", features = ["aws"], optional = true } 
+object_store = { version = "0.12", features = ["aws"] } 
 
 # Yivi interaction
-qrcode = { version = "0.14", optional = true }
-regex = { version = "1.11", optional = true }
+qrcode = { version = "0.14" }
+regex = { version = "1.11" }
 
 # Web dependencies
-actix-web = { version = "4.9", optional = true }
-actix-cors = { version = "0.7", optional = true }
-actix-files = { version = "0.6", optional = true }
-bytes = { version = "1", features = ["serde"], optional = true }
-env_logger = { version = "0.11.5", optional = true }
-http = { version = "0.2", optional = true }
-mime = { version = "0.3", optional = true }
-log = { version = "0.4", optional = true }
-tokio = { version = "1.41", features = ["rt", "macros", "rt-multi-thread", "sync", "time"], optional = true }
-url = { version="2.5", features=["serde"], optional = true }
+actix-web = { version = "4.9" }
+actix-cors = { version = "0.7" }
+actix-files = { version = "0.6" }
+bytes = { version = "1", features = ["serde"] }
+env_logger = { version = "0.11.5" }
+http = { version = "0.2" }
+mime = { version = "0.3" }
+log = { version = "0.4" }
+tokio = { version = "1.41", features = ["rt", "macros", "rt-multi-thread", "sync", "time"] }
+url = { version="2.5", features=["serde"] }
 
 # Proxying requests to Yivi and connection check
-awc = { version = "3.6", features = ["openssl"], optional = true }
+awc = { version = "3.6", features = ["openssl"] }
 
 # RustCrypto packages
-aead = { version = "0.5", features=["getrandom"], optional = true }
-base16ct = { version = "0.2", features = ["alloc", "std"], optional = true } # hex
-base64ct = { version = "1.6", features = ["alloc", "std"], optional = true }
-chacha20poly1305 = { version = "0.10", optional = true }
-curve25519-dalek = { version = "4.1.3", features = ["rand_core", "digest", "serde", "zeroize"], optional = true }
-ed25519-dalek = { version = "2.1", features = ["rand_core", "serde"], optional = true }
-rsa = { version = "0.9", features = ["sha2"], optional = true }
-hmac = { version = "0.12", optional = true }
-zeroize = { version = "1.8", features = [ "zeroize_derive" ], optional = true }
-sha2 = { version = "0.10", optional = true }
-subtle = { version = "2.6", optional = true }
-typenum = { version = "1.17", optional = true }
-digest = { version = "0", optional = true }
+aead = { version = "0.5", features=["getrandom"] }
+base16ct = { version = "0.2", features = ["alloc", "std"] } # hex
+base64ct = { version = "1.6", features = ["alloc", "std"] }
+chacha20poly1305 = { version = "0.10" }
+curve25519-dalek = { version = "4.1.3", features = ["rand_core", "digest", "serde", "zeroize"] }
+ed25519-dalek = { version = "2.1", features = ["rand_core", "serde"] }
+rsa = { version = "0.9", features = ["sha2"] }
+hmac = { version = "0.12" }
+zeroize = { version = "1.8", features = [ "zeroize_derive" ] }
+sha2 = { version = "0.10" }
+subtle = { version = "2.6" }
+typenum = { version = "1.17" }
+digest = { version = "0" }
 
 #metrics
-futures = { version = "0.3", optional = true }
-futures-util = { version = "0.3", optional = true }
+futures = { version = "0.3" }
+futures-util = { version = "0.3" }
 
 
 # command line argument parser
-clap = { version = "4.5", features = ["derive"], optional = true }
+clap = { version = "4.5", features = ["derive"] }
 
 # other
-git-version = { version = "0.3", optional = true }
-semver = { version = "1.0", optional = true }
+git-version = { version = "0.3" }
+semver = { version = "1.0" }

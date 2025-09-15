@@ -12,8 +12,8 @@ use crate::misc::crypto;
 use crate::misc::jwt;
 use crate::phcrypto;
 use crate::servers::{
-    self, AppBase, AppCreatorBase, Constellation, DiscoverVerdict, Handle, Server as _,
-    constellation, phc::user_card,
+    self, constellation, phc::user_card, AppBase, AppCreatorBase, Constellation, DiscoverVerdict,
+    Handle, Server as _,
 };
 
 use crate::{elgamal, hub};
