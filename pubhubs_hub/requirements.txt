@@ -5,4 +5,4 @@ Jinja2<3.1.2
 typing-extensions>=3.7.4
 twisted>=24.11.0
 # /use the same version as the docker image is built from
-matrix-synapse==1.133.0
+matrix-synapse==1.138.0
