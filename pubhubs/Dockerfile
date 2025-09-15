@@ -8,7 +8,6 @@ COPY ./hub-client/package.json ./hub-client/package-lock.json ./
 RUN npm ci && npm cache clean --force
 
 WORKDIR /usr/src/pubhubs
-COPY ./pubhubs/build.rs .
 COPY ./pubhubs/static/ static/
 COPY ./pubhubs/src/ src/
 COPY ./pubhubs/Cargo.toml .
