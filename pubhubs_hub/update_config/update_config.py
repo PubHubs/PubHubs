@@ -355,6 +355,10 @@ class UpdateConfig:
         if not isinstance(provider, dict) :
             raise ConfigError(f"❌  Expected a dict for the {key} list item value, but got {provider} instead")
 
+        if "user_mapping_provider" in provider:
+            logger.warning(f" - Warning ⚠️  outdated {key}.user_mapping_provider was removed")
+            del provider["user_mapping_provider"]
+
         # Check that existing settings have the correct values
         for oidc_key, expected_value in mandatory_oidc.copy().items():
             if oidc_key not in provider:
