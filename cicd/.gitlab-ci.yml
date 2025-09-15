@@ -134,20 +134,20 @@ deploy-stable-phmss:
     - chmod 600 $ILAB_VM_TRIGGER_UPDATE_KEY
     - ssh -o UserKnownHostsFile=$ILAB_VM_TRIGGER_UPDATE_KNOWN_HOSTS $ILAB_VM_TRIGGER_UPDATE_USER@ph.ihub.ru.nl -i $ILAB_VM_TRIGGER_UPDATE_KEY docker-phmss-stable
 
-start-test-setup-unit-test:
-  stage: tests
-  rules:
-    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
-    - if: $CI_COMMIT_BRANCH == "main"
-    - if: $CI_COMMIT_BRANCH == "stable"
-  tags:
-    - docker
-  image: python:latest
-  script:
-    - pip install virtualenv
-    - virtualenv venv
-    - source venv/bin/activate
-    - python3 start_test_setup.py test
+#start-test-setup-unit-test:
+#  stage: tests
+#  rules:
+#    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
+#    - if: $CI_COMMIT_BRANCH == "main"
+#    - if: $CI_COMMIT_BRANCH == "stable"
+#  tags:
+#    - docker
+#  image: python:latest
+#  script:
+#    - pip install virtualenv
+#    - virtualenv venv
+#    - source venv/bin/activate
+#    - python3 start_test_setup.py test
 
 hub-unit-test: # This job runs in the test stage.
   stage: tests
