@@ -184,22 +184,6 @@ fn create_app(cfg: &mut web::ServiceConfig, context: Data<Main>) {
     cfg.app_data(context)
         .service(web::redirect("/", "/client"))
         .service(config_actix_files(
-            actix_files::Files::new("/css", "./static/assets/css"),
-            &static_files_conf,
-        ))
-        .service(config_actix_files(
-            actix_files::Files::new("/fonts", "./static/assets/fonts"),
-            &static_files_conf,
-        ))
-        .service(config_actix_files(
-            actix_files::Files::new("/images", "./static/assets/images"),
-            &static_files_conf,
-        ))
-        .service(config_actix_files(
-            actix_files::Files::new("/js", "./static/assets/js"),
-            &static_files_conf,
-        ))
-        .service(config_actix_files(
             actix_files::Files::new("/client", "./static/assets/client").index_file("index.html"),
             &static_files_conf,
         ))
