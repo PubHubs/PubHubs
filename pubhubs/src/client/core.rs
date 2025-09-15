@@ -240,7 +240,8 @@ impl<EP: EndpointDetails + 'static> BorrowedQuerySetup<'_, EP> {
                 .client
                 .inner
                 .http_client
-                .request(EP::METHOD, ep_url.to_string());
+                .request(EP::METHOD, ep_url.to_string())
+                .insert_header(("User-Agent", "pubhubs")); // see issue #1432
 
             if let Some(ct) = payload.content_type() {
                 client_req = client_req.content_type(ct.try_into_value().unwrap());

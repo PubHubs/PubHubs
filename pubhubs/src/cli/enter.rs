@@ -8,21 +8,20 @@ use crate::attr;
 use crate::client;
 use crate::handle::Handle;
 use crate::misc::jwt;
-use crate::servers::Constellation;
 use crate::servers::yivi;
+use crate::servers::Constellation;
 
 use api::phc::user::AuthToken;
 
 #[derive(clap::Args, Debug)]
 pub struct EnterArgs {
-    /// URL to pubhubs central
-    #[arg(
-        short,
-        long,
-        value_name = "PHC_URL",
-        default_value = "https://phc-main.pubhubs.net" // TODO: change to phc.pubhubs.net
-    )]
-    url: url::Url,
+    /// Enter this pubhubs environment
+    #[arg(short, long, value_name = "ENVIRONMENT", default_value = "stable")]
+    environment: Environment,
+
+    /// Contact PHC at this url, overriding --environment
+    #[arg(short, long, value_name = "PHC_URL")]
+    url: Option<url::Url>,
 
     /// Whether to wait for a pubhubs yivi card
     #[arg(short, long)]
@@ -30,7 +29,7 @@ pub struct EnterArgs {
 
     /// Handle identifying the hub
     #[arg(value_name = "HUB")]
-    hub_handle: Handle,
+    hub_handle: Option<Handle>,
 
     /// Use this pubhubs authentication token
     #[arg(short, long, value_name = "AUTH_TOKEN")]
@@ -55,6 +54,13 @@ pub struct EnterArgs {
     add_attr_type: Vec<Handle>,
 }
 
+#[derive(clap::ValueEnum, Debug, Clone, Copy)]
+enum Environment {
+    Stable,
+    Main,
+    Local,
+}
+
 impl EnterArgs {
     pub fn run(self, _spec: &mut clap::Command) -> Result<()> {
         env_logger::init();
@@ -65,29 +71,50 @@ impl EnterArgs {
             .block_on(tokio::task::LocalSet::new().run_until(self.run_async()))
     }
 
+    fn url(&self) -> std::borrow::Cow<'_, url::Url> {
+        if let Some(url) = &self.url {
+            return std::borrow::Cow::Borrowed(url);
+        }
+
+        std::borrow::Cow::Owned(
+            match self.environment {
+                Environment::Local => "http://localhost:5050",
+                Environment::Stable => "https://phc.pubhubs.net",
+                Environment::Main => "https://phc-main.pubhubs.net",
+            }
+            .parse()
+            .unwrap(),
+        )
+    }
+
     async fn run_async(self) -> Result<()> {
         let client = client::Client::builder().agent(client::Agent::Cli).finish();
+
+        let url = self.url();
+        log::info!("contacting pubhubs central at {}", url);
 
         let Ok(api::phc::user::WelcomeResp {
             constellation,
             hubs,
         }) = client
-            .query_with_retry::<api::phc::user::WelcomeEP, _, _>(&self.url, api::NoPayload)
+            .query_with_retry::<api::phc::user::WelcomeEP, _, _>(url.as_ref(), api::NoPayload)
             .await
         else {
-            anyhow::bail!("cannot reach pubhubs central at {}", self.url);
+            anyhow::bail!("cannot reach pubhubs central at {}", url);
         };
 
-        let Some(hub_info) = hubs.get(&self.hub_handle) else {
+        if let Some(hub_handle) = &self.hub_handle
+            && !hubs.contains_key(hub_handle)
+        {
             anyhow::bail!(
                 "no such hub {}; choose from: {}",
-                self.hub_handle,
+                hub_handle,
                 hubs.keys()
                     .map(Handle::as_str)
                     .collect::<Vec<&str>>()
                     .join(", ")
             )
-        };
+        }
 
         let api::auths::WelcomeResp { attr_types } = client
             .query_with_retry::<api::auths::WelcomeEP, _, _>(
@@ -111,6 +138,14 @@ impl EnterArgs {
                 println!("global auth token: {auth_token}");
                 auth_token
             }
+        };
+
+        let Some(hub_handle) = self.hub_handle else {
+            return Ok(());
+        };
+
+        let Some(hub_info) = hubs.get(&hub_handle) else {
+            panic!("did we not already check we have details on this hub?!");
         };
 
         let api::hub::EnterStartResp {
@@ -359,7 +394,7 @@ async fn yivi_cli_session(yivi_requestor_url: &url::Url, request: jwt::JWT) -> R
         .light_color(qrcode::render::unicode::Dense1x2::Light)
         .dark_color(qrcode::render::unicode::Dense1x2::Dark)
         .build();
-    print!("{qr_render}");
+    print!("{qr_render}\n\n");
 
     let statusevents_url = frontend_url.join("frontend/statusevents")?;
     //yivi_requestor_url
