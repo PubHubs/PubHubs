@@ -645,7 +645,10 @@ impl PrepareConfig<Pcc> for auths::YiviConfig {
                 .get(&pk_url)
                 .send()
                 .await
-                .map_err(|err| anyhow::anyhow!("getting public key from {pk_url} failed: {err}"))?;
+                .map_err(|err| {
+                    log::error!("could not reach yivi server at {}", self.requestor_url);
+                    anyhow::anyhow!("getting Yivi server's public key from {pk_url} failed: {err}")
+                })?;
 
             let payload: bytes::Bytes = res.body().await?;
 
