@@ -125,8 +125,13 @@ export default class PHCServer {
 			const global = useGlobal();
 			global.logout();
 		} else if ('Denied' in okRefreshResp) {
-			if (okRefreshResp.Denied === mssTypes.AuthTokenDeniedReason.Banned) throw new Error('The user is trying to login with a banned attribute');
-			else throw new Error('The user does not have a bannable attribute');
+			if (okRefreshResp.Denied === mssTypes.AuthTokenDeniedReason.Banned) {
+				throw new Error('The user is trying to login with a banned attribute.');
+			} else if (okRefreshResp.Denied === mssTypes.AuthTokenDeniedReason.NoBannableAttribute) {
+				throw new Error('The user does not have a bannable attribute.');
+			} else {
+				throw new Error('Unknown reason to deny an an auth token.');
+			}
 		} else {
 			return okRefreshResp.Success;
 		}
