@@ -33,7 +33,7 @@
 							<HubBlock :hub="hub" />
 						</div>
 					</div>
-					<InlineSpinner v-else-if="loading"></InlineSpinner>
+					<InlineSpinner v-else-if="loading" />
 					<div v-else class="flex w-full items-center justify-center">
 						<P>{{ $t('others.search_hubs_not_found') }}</P>
 					</div>
