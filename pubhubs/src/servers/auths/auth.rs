@@ -6,7 +6,7 @@ use std::rc::Rc;
 
 use actix_web::web;
 
-use crate::servers::{self, yivi};
+use crate::servers::{self, yivi, Server as _};
 use crate::{
     api::{self, ResultExt as _},
     attr, handle,
@@ -15,42 +15,26 @@ use crate::{
 
 /// # Implementaton of endpoints
 impl App {
-    /// Implements [`AuthStartEP`]
     pub async fn handle_auth_start(
         app: Rc<Self>,
         req: web::Json<api::auths::AuthStartReq>,
     ) -> api::Result<api::auths::AuthStartResp> {
-        if req.yivi_chained_session && req.source != attr::Source::Yivi {
-            log::debug!("yivi_chained_session set on non-yivi authentication request");
-            return Err(api::ErrorCode::BadRequest);
-        }
-
         let state = AuthState {
             source: req.source,
             attr_types: req.attr_types.clone(),
             exp: api::NumericDate::now() + app.auth_window,
-            yivi_chained_session_id: None,
         };
 
         match req.source {
-            attr::Source::Yivi => {
-                Self::handle_auth_start_yivi(app, state, req.yivi_chained_session).await
-            }
+            attr::Source::Yivi => Self::handle_auth_start_yivi(app, state).await,
         }
     }
 
     async fn handle_auth_start_yivi(
         app: Rc<Self>,
-        mut state: AuthState,
-        yivi_chained_session: bool,
+        state: AuthState,
     ) -> api::Result<api::auths::AuthStartResp> {
         let yivi = app.get_yivi()?;
-
-        let mut sealed_state: Option<api::auths::AuthState> = None;
-
-        let seal_state = |state: &AuthState| -> api::Result<api::auths::AuthState> {
-            state.seal(&app.auth_state_secret)
-        };
 
         // Create ConDisCon for our attributes
         let mut cdc: servers::yivi::AttributeConDisCon = Default::default(); // empty
@@ -73,7 +57,8 @@ impl App {
 
             if dc.is_empty() {
                 log::debug!(
-                    "got yivi authentication start request for {attr_ty}, but yivi is not supported for this attribute type",
+                    "{}: got yivi authentication start request for {attr_ty}, but yivi is not supported for this attribute type",
+                    Server::NAME
                 );
                 return Ok(api::auths::AuthStartResp::SourceNotAvailableFor(
                     attr_ty_handle.clone(),
@@ -84,56 +69,64 @@ impl App {
         }
 
         let disclosure_request: jwt::JWT = {
-            let mut dr = servers::yivi::ExtendedSessionRequest::disclosure(cdc);
+            let dr = servers::yivi::ExtendedSessionRequest::disclosure(cdc);
 
-            if yivi_chained_session {
-                let csc = app.chained_sessions_ctl_or_bad_request()?;
-                let running_state = app.running_state_or_internal_error()?;
-
-                state.yivi_chained_session_id = Some(csc.create_session().await?);
-
-                sealed_state = Some(seal_state(&state)?);
-
-                let query = serde_urlencoded::to_string(api::auths::YiviNextSessionQuery {
-                    state: sealed_state.as_ref().unwrap().clone(),
-                })
-                .map_err(|err| {
-                    log::error!("failed to url-encode auth state: {err}",);
-                    api::ErrorCode::InternalError
-                })?;
-
-                let mut url: url::Url = running_state
-                    .constellation
-                    .auths_url
-                    .join(api::auths::YIVI_NEXT_SESSION_PATH)
-                    .map_err(|err| {
-                        log::error!(
-                            "failed to compute authenticatio server's yivi next session url: {err}",
-                        );
-                        api::ErrorCode::InternalError
-                    })?;
-
-                url.set_query(Some(&query));
-
-                dr = dr.next_session(url);
-            }
+            //            if state.wait_for_card {
+            //                let state = api::phc::user::WaitForCardState {
+            //                    server_creds: yivi.server_creds.clone(),
+            //                };
+            //
+            //                let state =
+            //                    api::Sealed::new(&state, &running_state.phc_sealing_secret).map_err(|err| {
+            //                        log::error!(
+            //                            "{}: failed to seal wait-for-card state: {err}",
+            //                            Server::NAME
+            //                        );
+            //                        api::ErrorCode::InternalError
+            //                    })?;
+            //
+            //                let query = serde_urlencoded::to_string(api::phc::user::WaitForCardQuery { state })
+            //                    .map_err(|err| {
+            //                        log::error!(
+            //                            "{}: failed to url-encode sealed wait-for-card state: {err}",
+            //                            Server::NAME
+            //                        );
+            //                        api::ErrorCode::InternalError
+            //                    })?;
+            //
+            //                let mut url: url::Url = running_state
+            //                    .constellation
+            //                    .phc_url
+            //                    .join(api::phc::user::YIVI_WAIT_FOR_CARD_PATH)
+            //                    .map_err(|err| {
+            //                        log::error!(
+            //                            "{}: failed to compute PHC's yivi next session url: {err}",
+            //                            Server::NAME
+            //                        );
+            //                        api::ErrorCode::InternalError
+            //                    })?;
+            //
+            //                url.set_query(Some(&query));
+            //
+            //                dr = dr.next_session(url);
+            //            }
 
             dr.sign(&yivi.requestor_creds).into_ec(|err| {
-                log::error!("failed to create signed disclosure request: {err}",);
+                log::error!(
+                    "{}: failed to create signed disclosure request: {err}",
+                    Server::NAME
+                );
+
                 api::ErrorCode::InternalError
             })?
         };
-
-        if sealed_state.is_none() {
-            sealed_state = Some(seal_state(&state)?);
-        }
 
         Ok(api::auths::AuthStartResp::Success {
             task: api::auths::AuthTask::Yivi {
                 disclosure_request,
                 yivi_requestor_url: yivi.requestor_url.clone(),
             },
-            state: sealed_state.unwrap(),
+            state: state.seal(&app.auth_state_secret)?,
         })
     }
 
@@ -148,6 +141,10 @@ impl App {
         let Some(state) = AuthState::unseal(&req.state, &app.auth_state_secret) else {
             return Ok(api::auths::AuthCompleteResp::PleaseRestartAuth);
         };
+
+        if state.exp < api::NumericDate::now() {
+            return Ok(api::auths::AuthCompleteResp::PleaseRestartAuth);
+        }
 
         match state.source {
             attr::Source::Yivi => {
