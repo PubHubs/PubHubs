@@ -16,13 +16,11 @@
 	// Package imports
 	import { computed } from 'vue';
 
-	// Global imports
-	import Button from '@/components/elements/Button.vue';
-	import { useSettings } from '@/logic/store/settings';
-
 	// Hub imports
-	import H1 from '@/../../hub-client/src/components/elements/H1.vue';
-	import H3 from '@/../../hub-client/src/components/elements/H3.vue';
+	import Button from '@/components/elements/Button.vue';
+	import H1 from '@/components/elements/H1.vue';
+	import H3 from '@/components/elements/H3.vue';
+	import { useSettings } from '@/logic/store/settings';
 
 	const settings = useSettings();
 
