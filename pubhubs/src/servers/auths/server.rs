@@ -11,10 +11,12 @@ use crate::{
     api::{self, EndpointDetails as _},
     attr,
     common::{elgamal, secret::DigestibleSecret as _},
-    handle, map,
+    handle, id, map,
     misc::{crypto, jwt},
     phcrypto,
 };
+
+use super::yivi::ChainedSessionsCtl;
 
 /// Authentication server type
 pub type Server = servers::ServerImpl<Details>;
@@ -74,6 +76,7 @@ pub struct App {
     pub auth_state_secret: crypto::SealingKey,
     pub auth_window: core::time::Duration,
     pub attr_key_secret: Vec<u8>,
+    pub chained_sessions_ctl: Option<ChainedSessionsCtl>,
 }
 
 impl Deref for App {
@@ -90,6 +93,7 @@ pub struct YiviCtx {
     pub requestor_url: url::Url,
     pub requestor_creds: yivi::Credentials<yivi::SigningKey>,
     pub server_creds: yivi::Credentials<yivi::VerifyingKey>,
+    pub chained_sessions_config: super::yivi::ChainedSessionsConfig,
 }
 
 /// # Helper functions
@@ -119,6 +123,8 @@ pub(super) struct AuthState {
 
     /// When this request expires
     pub exp: api::NumericDate,
+
+    pub yivi_chained_session_id: Option<id::Id>,
 }
 
 impl AuthState {
@@ -133,11 +139,18 @@ impl AuthState {
         ))
     }
 
+    /// Unseals the given [`AuthState`] returning `None` of the signature is invalid
+    /// or the auth state is expired
     pub fn unseal(sealed: &api::auths::AuthState, key: &crypto::SealingKey) -> Option<AuthState> {
-        let Ok(state) = crypto::unseal(&*sealed.inner, key, b"") else {
+        let Ok(state): Result<AuthState, _> = crypto::unseal(&*sealed.inner, key, b"") else {
             log::debug!("failed to unseal AuthState");
             return None;
         };
+
+        if state.exp < api::NumericDate::now() {
+            log::debug!("received expired AuthState");
+            return None;
+        }
 
         Some(state)
     }
@@ -166,6 +179,13 @@ impl crate::servers::App<Server> for App {
         api::auths::AttrKeysEP::add_to(self, sc, App::handle_attr_keys);
 
         api::auths::YiviWaitForResultEP::add_to(self, sc, App::handle_yivi_wait_for_result);
+
+        // NOTE: the yivi next-session endpoint does conform to our API's endpoint format, so we
+        // register it manually, and not via the `add_to` method
+        sc.app_data(self.clone()).route(
+            api::auths::YIVI_NEXT_SESSION_PATH,
+            web::post().to(App::handle_yivi_next_session),
+        );
     }
 
     fn check_constellation(&self, constellation: &Constellation) -> bool {
@@ -208,6 +228,7 @@ pub struct AppCreator {
     auth_state_secret: crypto::SealingKey,
     auth_window: core::time::Duration,
     attr_key_secret: Vec<u8>,
+    chained_sessions_ctl: Option<ChainedSessionsCtl>,
 }
 
 impl Deref for AppCreator {
@@ -244,6 +265,7 @@ impl crate::servers::AppCreator<Server> for AppCreator {
             requestor_url: cfg.requestor_url.as_ref().clone(),
             requestor_creds: cfg.requestor_creds.clone(),
             server_creds: cfg.server_creds(),
+            chained_sessions_config: cfg.chained_sessions.clone(),
         });
 
         let auth_state_secret: crypto::SealingKey = base
@@ -258,6 +280,10 @@ impl crate::servers::AppCreator<Server> for AppCreator {
             .expect("attr_key_secret not generated")
             .to_vec();
 
+        let chained_sessions_ctl = yivi
+            .as_ref()
+            .map(|yivi_ctx| ChainedSessionsCtl::new(yivi_ctx.clone()));
+
         Ok(Self {
             base,
             attribute_types,
@@ -265,6 +291,7 @@ impl crate::servers::AppCreator<Server> for AppCreator {
             auth_state_secret,
             auth_window,
             attr_key_secret,
+            chained_sessions_ctl,
         })
     }
 
@@ -276,6 +303,7 @@ impl crate::servers::AppCreator<Server> for AppCreator {
             auth_state_secret: self.auth_state_secret,
             auth_window: self.auth_window,
             attr_key_secret: self.attr_key_secret,
+            chained_sessions_ctl: self.chained_sessions_ctl,
         }
     }
 }

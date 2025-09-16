@@ -222,7 +222,9 @@ pub struct AttrKeyResp {
 }
 
 /// Wait for the disclosure result that the yivi server will post to the authentication server
-/// when [`AuthStartReq::yivi_chained_session`] was set.
+///
+/// Might return [`api::ErrorCode::BadRequest`] when yivi is not configured for this authentication
+/// server, or when [`AuthStartReq::yivi_chained_session`] was not set for [`YiviWaitForResultReq::state`].
 pub struct YiviWaitForResultEP {}
 impl EndpointDetails for YiviWaitForResultEP {
     type RequestType = YiviWaitForResultReq;
@@ -250,6 +252,17 @@ pub enum YiviWaitForResultResp {
         /// The disclosure result posted by the Yivi server
         disclosure: jwt::JWT,
     },
+
+    /// Something went wrong;  please start again at [`AuthStartEP`].
+    ///
+    /// One reason is that the authentication server restarted and that the provided authenication
+    /// state is no longer valid.
+    PleaseRestartAuth,
+
+    /// The request seems fine, but the session cannot be found.  Either the session expired, or
+    /// was already completed.  Could caused by a logic error in the client, but also by a slow
+    /// internet connection.
+    SessionGone,
 }
 
 /// Provide the waiting yivi server with the next session.
@@ -290,3 +303,11 @@ pub enum YiviReleaseNextSessionResp {
 /// Note that this endpoint does not conform to the [`EndpointDetails`] format, using, for example,
 /// the HTTP status code to convey information (`204` means no next session).
 pub const YIVI_NEXT_SESSION_PATH: &str = ".ph/yivi/next-session";
+
+/// Query parameters to the [`YIVI_NEXT_SESSION_PATH`] endpoint.
+#[derive(Serialize, Deserialize, Debug, Clone)]
+#[serde(deny_unknown_fields)]
+#[must_use]
+pub struct YiviNextSessionQuery {
+    pub state: AuthState,
+}
