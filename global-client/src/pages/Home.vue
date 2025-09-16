@@ -1,52 +1,5 @@
 <template>
-	<!-- Page when logged-out -->
-	<div v-if="!global.loggedIn" class="">
-		<div class="flex w-full items-center bg-surface px-6 py-4" :class="isMobile ? 'h-[7.5rem]' : 'h-[10rem]'">
-			<div class="flex h-full w-full items-center justify-between gap-16">
-				<a :href="globalClientUrl" rel="noopener noreferrer" class="h-full py-2">
-					<Logo />
-				</a>
-				<div class="flex h-4 items-center justify-center gap-2">
-					<p class="cursor-pointer font-bold hover:text-accent-primary" @click="changeLanguage('nl')">NL</p>
-					<span>|</span>
-					<p class="cursor-pointer font-bold hover:text-accent-primary" @click="changeLanguage('en')">EN</p>
-				</div>
-			</div>
-		</div>
-
-		<div class="w-full bg-background" :class="isMobile ? 'h-[calc(100svh_-_7.5rem)]' : 'h-[calc(100svh_-_10rem)]'">
-			<div class="flex h-full w-full items-center justify-center" :class="isMobile ? 'flex-col' : 'flex-row'">
-				<div class="flex items-center justify-center bg-surface-low" :class="isMobile ? 'h-1/2 w-full ~px-8/16' : 'h-full w-1/2 ~px-24/48'">
-					<figure class="h-auto w-full">
-						<img src="../assets/mascot-welcome.svg" alt="PubHubs mascot" />
-					</figure>
-				</div>
-				<div class="flex flex-col items-center justify-center ~gap-4/8" :class="isMobile ? 'h-1/2 w-full' : 'h-full w-1/2'">
-					<div class="flex flex-col ~gap-4/8">
-						<div class="flex flex-col ~gap-2/4">
-							<H1>{{ $t('home.welcome_to', [$t('common.app_name')]) }}</H1>
-							<P>{{ $t('register.have_account', [$t('common.app_name')]) }}</P>
-						</div>
-						<div class="flex flex-col ~gap-2/4">
-							<div v-show="show" class="relative flex w-full items-center justify-center" :class="isMobile ? '-mb-2' : '-mb-4'">
-								<div
-									id="yivi-authentication"
-									class="absolute bottom-8 left-0 z-50 w-full after:absolute after:-bottom-[1.2em] after:right-[50%] after:border-[1.25em] after:border-b-0 after:border-l-0 after:border-transparent after:border-t-white after:drop-shadow-[0px_-5px_16px_rgb(0,0,0,0.15)]"
-								></div>
-							</div>
-							<Button color="gray" @click="login()">{{ show ? $t('dialog.close') : $t('login.login') }}</Button>
-							<router-link to="/register" class="w-full">
-								<Button>{{ $t('register.register_with', [$t('common.yivi')]) }}</Button>
-							</router-link>
-						</div>
-					</div>
-				</div>
-			</div>
-		</div>
-	</div>
-
-	<!-- Page when logged-in -->
-	<div v-else class="max-h-screen overflow-y-auto">
+	<div class="max-h-screen overflow-y-auto">
 		<HubBanner />
 		<div class="mx-auto mb-8 flex w-full flex-col gap-16 md:w-4/6">
 			<div class="-mt-[5.5rem] flex flex-col gap-2 px-8 md:px-0">
@@ -80,6 +33,7 @@
 							<HubBlock :hub="hub" />
 						</div>
 					</div>
+					<InlineSpinner v-else-if="loading"></InlineSpinner>
 					<div v-else class="flex w-full items-center justify-center">
 						<P>{{ $t('others.search_hubs_not_found') }}</P>
 					</div>
@@ -88,102 +42,64 @@
 		</div>
 		<InstallPrompt :browser="device.getBrowserName()" :operating-system="device.getMobileOS()" />
 	</div>
-
-	<form v-if="show" method="POST" action="/yivi-endpoint/finish-and-redirect">
-		<input type="hidden" name="yivi_token" :value="yivi_token" />
-	</form>
 </template>
 
 <script setup lang="ts">
 	// Package imports
-	import { computed, ref } from 'vue';
+	import { computed, onMounted, ref } from 'vue';
+	import { useRouter } from 'vue-router';
 
 	// Global imports
+	import { LOGGER } from '@/logic/foundation/Logger';
+	import { SMI } from '@/logic/foundation/StatusMessage';
 	import { useGlobal } from '@/logic/store/global';
 	import { useHubs } from '@/logic/store/hubs';
-	import { useSettings, FeatureFlag } from '@/logic/store/settings';
-	import { useMSS } from '@/logic/store/mss';
-	import { startYiviSession } from '@/logic/utils/yiviHandler';
 	import { Hub } from '@/model/Hubs';
-	import { loginMethods, PHCEnterMode } from '@/model/MSS/TMultiServerSetup';
 	import InstallPrompt from '@/components/ui/InstallPrompt.vue';
 	import HubBlock from '@/components/ui/HubBlock.vue';
 	import Logo from '@/components/ui/Logo.vue';
-	import { useRouter } from 'vue-router';
 
 	// Hub imports
-	import { Logger } from '@/logic/foundation/Logger';
-	import { CONFIG } from '@/../../hub-client/src/logic/foundation/Config';
-	import { SMI } from '@/../../hub-client/src/logic/foundation/StatusMessage';
-	import Button from '@/../../hub-client/src/components/elements/Button.vue';
-	import H1 from '@/../../hub-client/src/components/elements/H1.vue';
 	import HubBanner from '@/../../hub-client/src/components/ui/HubBanner.vue';
+	import InlineSpinner from '@/../../hub-client/src/components/ui/InlineSpinner.vue';
 	import Icon from '@/../../hub-client/src/components/elements/Icon.vue';
 	import P from '@/../../hub-client/src/components/elements/P.vue';
 	import device from '@/../../hub-client/src/logic/core/device';
 
 	const global = useGlobal();
 	const hubs = useHubs();
-	const settings = useSettings();
+
 	const router = useRouter();
-	const LOGGER = new Logger('GC', CONFIG);
 
-	const globalClientUrl = _env.PUBHUBS_URL;
+	const loading = ref<boolean>(true);
 
-	const show = ref<Boolean>(false);
-	const yivi_token = ref<string>('');
+	onMounted(async () => {
+		await addHubs();
+
+		if (!hubs.hasHubs) {
+			router.push({ name: 'error', query: { errorKey: 'errors.no_hubs_found' } });
+		}
+	});
+
+	// Function to add hubs
+	async function addHubs() {
+		try {
+			loading.value = true;
+			const hubsResponse = await global.getHubs();
+			if (hubsResponse) {
+				hubs.addHubs(hubsResponse);
+			}
+		} catch (error) {
+			router.push({ name: 'error', query: { errorKey: 'errors.no_hubs_found' } });
+			LOGGER.error(SMI.ERROR, 'Error adding hubs', { error });
+		} finally {
+			loading.value = false;
+		}
+	}
+
 	const searchQuery = ref<string>('');
-
-	const isMobile = computed(() => settings.isMobileState);
 
 	const filteredHubs = computed(() => {
 		return hubs.activeHubs.filter((hub: Hub) => hub.name.toLowerCase().includes(searchQuery.value.toLowerCase()) || hub.description.toLowerCase().includes(searchQuery.value.toLowerCase()));
 	});
-
-	async function login() {
-		if (settings.isFeatureEnabled(FeatureFlag.multiServerSetup)) {
-			await loginMSS();
-		} else {
-			loadYivi();
-		}
-	}
-
-	async function loginMSS() {
-		const loginMethod = loginMethods.Yivi; // If there will be multiple sources at a later point, this choice should be made by the user.
-
-		if (loginMethod === loginMethods.Yivi) {
-			show.value = !show.value;
-		}
-		try {
-			const mss = useMSS();
-			const errorMessage = await mss.enterPubHubs(loginMethod, PHCEnterMode.Login);
-			if (errorMessage) {
-				router.push({ name: 'error', query: { errorKey: errorMessage.key, errorValues: errorMessage.values } });
-				show.value = false;
-				return;
-			}
-			await global.checkLoginAndSettings();
-			show.value = false;
-		} catch (error) {
-			router.push({ name: 'error' });
-			show.value = false;
-			LOGGER.error(SMI.ERROR, 'Error during MSS login', { error });
-		}
-	}
-
-	function loadYivi() {
-		show.value = !show.value;
-
-		try {
-			startYiviSession(false, yivi_token);
-		} catch (error) {
-			console.error('Yivi session load failed:', error);
-		}
-	}
-
-	function changeLanguage(language: string) {
-		settings.setLanguage(language, true);
-	}
-
-	window.addEventListener('pageshow', () => (show.value = false));
 </script>

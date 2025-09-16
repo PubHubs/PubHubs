@@ -262,7 +262,7 @@ const useGlobal = defineStore('global', {
 				localStorage.removeItem('UserSecret');
 				// TODO: find a way router can be part of a store that TypeScript swallows.
 				// @ts-ignore
-				await this.router.replace({ name: 'home' });
+				await this.router.replace({ name: 'login' });
 			} else {
 				window.location.replace(api.apiURLS.logout);
 			}

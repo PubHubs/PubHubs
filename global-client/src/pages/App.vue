@@ -4,7 +4,6 @@
 
 		<div class="flex h-full">
 			<GlobalBar v-if="!(route.name === 'onboarding')" />
-			<!-- TODO: Split discover hub page and login home page into seperate pages-->
 			<div class="h-[100dvh] w-full flex-1">
 				<router-view />
 			</div>
@@ -18,15 +17,15 @@
 	// Package imports
 	import { onMounted, onUnmounted, watch, computed } from 'vue';
 	import { useI18n } from 'vue-i18n';
-	import { useRoute, useRouter } from 'vue-router';
+	import { useRoute } from 'vue-router';
 
 	// Global imports
 	import GlobalBar from '@/components/ui/GlobalBar.vue';
+	import MobileMenu from '@/components/ui/MobileMenu.vue';
 	import { useInstallPromptStore } from '@/logic/store/installPromptPWA';
 	import { NotificationsPermission, useSettings } from '@/logic/store/settings';
 	import { useDialog } from '@/logic/store/dialog';
 	import { useGlobal } from '@/logic/store/global';
-	import { useHubs } from '@/logic/store/hubs';
 	import { useMessageBox, MessageBoxType } from '@/logic/store/messagebox';
 
 	// Hub imports
@@ -41,9 +40,7 @@
 	const dialog = useDialog();
 	const global = useGlobal();
 	const installPromptStore = useInstallPromptStore();
-	const hubs = useHubs();
 	const route = useRoute();
-	const router = useRouter();
 
 	// Wrapping the getter inside a computed to trigger the watch function to save any changes in global settings
 	const computedGlobalSettings = computed(() => global.getGlobalSettings);
@@ -99,12 +96,6 @@
 
 		messagebox.init(MessageBoxType.Parent);
 
-		await addHubs();
-
-		if (!hubs.hasHubs) {
-			router.push({ name: 'error', query: { errorKey: 'errors.no_hubs_found' } });
-		}
-
 		// Watch for changes in the permission for notifications by the user to reflect these changes once the user opens the settings dialog
 		if ('permissions' in navigator) {
 			navigator.permissions.query({ name: 'notifications' }).then(function (notificationPerm) {
@@ -117,19 +108,6 @@
 		}
 
 		LOGGER.log(SMI.STARTUP, 'App.vue onMounted done', { language: settings.getActiveLanguage });
-	}
-
-	// Function to add hubs
-	async function addHubs() {
-		try {
-			const hubsResponse = await global.getHubs();
-			if (hubsResponse) {
-				hubs.addHubs(hubsResponse);
-			}
-		} catch (error) {
-			router.push({ name: 'error', query: { errorKey: 'errors.no_hubs_found' } });
-			LOGGER.error(SMI.ERROR, 'Error adding hubs', { error });
-		}
 	}
 
 	function setTheme(theme: string) {
