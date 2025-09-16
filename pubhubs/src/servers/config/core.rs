@@ -469,6 +469,11 @@ pub mod auths {
         /// Verify signed session results using this key.  If not set the key is retrieved
         /// from the yivi server.
         pub server_key: Option<yivi::VerifyingKey>,
+
+        /// Fine-tune handling of chained sessions, see
+        /// [`api::auths::AuthStartReq::yivi_chained_session`].
+        #[serde(default)]
+        pub chained_sessions: crate::servers::auths::yivi::ChainedSessionsConfig,
     }
 
     impl YiviConfig {

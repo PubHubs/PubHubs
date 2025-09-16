@@ -2,6 +2,6 @@
 mod auth;
 mod keys;
 mod server;
-mod yivi;
+pub(crate) mod yivi;
 
 pub use server::{Details, Server};
