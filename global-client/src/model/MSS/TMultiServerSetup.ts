@@ -5,7 +5,7 @@ export enum ErrorCode {
 	BadRequest = 'BadRequest',
 }
 
-export type Result<T, E> = { Ok: T } | { Err: { errorCode: E } };
+export type Result<T, E> = { Ok: T } | { Err: E };
 
 // Type guard to check if the result is of type Ok
 export function isOk<T, E>(result: Result<T, E>): result is { Ok: T } {
@@ -13,7 +13,7 @@ export function isOk<T, E>(result: Result<T, E>): result is { Ok: T } {
 }
 
 // Type guard to check if the result is of type Err
-export function isErr<T, E>(result: Result<T, E>): result is { Err: { errorCode: E } } {
+export function isErr<T, E>(result: Result<T, E>): result is { Err: E } {
 	return 'Err' in result;
 }
 

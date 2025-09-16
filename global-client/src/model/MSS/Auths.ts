@@ -251,10 +251,10 @@ export function handleErrorCodes<T, E = mssTypes.ErrorCode>(response: mssTypes.R
 	if (mssTypes.isOk(response)) {
 		return response.Ok;
 	} else {
-		if (!response || !response.Err || !response.Err.errorCode) {
+		if (!response || !response.Err) {
 			throw new Error('The global-client received an undefined response in handleErrorCodes');
 		}
-		throw new Error(String(response.Err.errorCode));
+		throw new Error(String(response.Err));
 	}
 }
 
