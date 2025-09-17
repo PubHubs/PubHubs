@@ -4,7 +4,7 @@ import { createPinia, setActivePinia } from 'pinia';
 
 import { api } from '@/logic/core/api';
 import { server } from '../mocks/server';
-import { FeatureFlag, useSettings } from '@/logic/store/settings';
+import { useSettings } from '@/logic/store/settings';
 import { useHubs } from '@/logic/store/hubs';
 
 beforeAll(() => server.listen({ onUnhandledRequest: 'error' }));
@@ -60,31 +60,18 @@ describe('Global', () => {
 	describe('login and hubs', () => {
 		test('fetch hubs', async () => {
 			const global = useGlobal();
-			const settings = useSettings();
-			const resp = await global.getHubs();
-			if (settings.isFeatureEnabled(FeatureFlag.multiServerSetup)) {
-				const hubs = useHubs();
-				expect(hubs.hasHubs).toEqual(true);
-				expect(hubs.hubsArray).toHaveLength(3);
+			await global.getHubs();
+			const hubs = useHubs();
+			expect(hubs.hasHubs).toEqual(true);
+			expect(hubs.hubsArray).toHaveLength(3);
 
-				const testhub0 = hubs.hub('testhub0id');
-				expect(testhub0).toBeTypeOf('object');
-				expect(testhub0).toHaveProperty('hubId');
-				expect(testhub0).toHaveProperty('url');
-				expect(testhub0).toHaveProperty('description');
-				expect(testhub0).toHaveProperty('logo');
-				expect(testhub0).toHaveProperty('unreadMessages');
-			} else {
-				expect(resp).toBeTypeOf('object');
-				expect(resp).toHaveLength(3);
-
-				expect(resp[0]).toBeTypeOf('object');
-				expect(resp[0]).toHaveProperty('hubId');
-				expect(resp[0]).toHaveProperty('url');
-				expect(resp[0]).toHaveProperty('description');
-				expect(resp[0]).toHaveProperty('logo');
-				expect(resp[0]).toHaveProperty('unreadMessages');
-			}
+			const testhub0 = hubs.hub('testhub0id');
+			expect(testhub0).toBeTypeOf('object');
+			expect(testhub0).toHaveProperty('hubId');
+			expect(testhub0).toHaveProperty('url');
+			expect(testhub0).toHaveProperty('description');
+			expect(testhub0).toHaveProperty('logo');
+			expect(testhub0).toHaveProperty('unreadMessages');
 		});
 		test('changed pinnedHubs', async () => {
 			const global = useGlobal();
