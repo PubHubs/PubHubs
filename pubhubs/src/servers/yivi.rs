@@ -3,9 +3,10 @@ use std::cell::OnceCell;
 
 use anyhow::Context as _;
 use serde::{
-    self, Deserialize as _, Serialize as _,
+    self,
     de::{Error as _, IntoDeserializer as _},
     ser::Error as _,
+    Deserialize as _, Serialize as _,
 };
 
 use crate::api;
@@ -440,8 +441,10 @@ impl SessionResult {
     /// Verifies that this [`SessionResult`] is valid ignoring the [`Self::disclosed`] field.
     fn validate_except_disclosed(&self) -> anyhow::Result<()> {
         anyhow::ensure!(
-            self.status == Status::Done,
-            "session status is not 'done', but {}",
+            self.status == Status::Done || self.status == Status::Connected,
+            // NB: when a disclosure is POSTed by the Yivi server in a chained session to the
+            // nextSession url, the state is `connected`, not `done`.
+            "session status is not 'done' (or 'connected'), but {}",
             self.status
         );
 

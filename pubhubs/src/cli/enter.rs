@@ -2,6 +2,7 @@ use std::collections::HashMap;
 
 use anyhow::{Context as _, Result};
 use futures::stream::StreamExt as _;
+use futures_util::FutureExt as _;
 
 use crate::api;
 use crate::attr;
@@ -300,16 +301,79 @@ impl EnterArgs {
             yivi_requestor_url,
         } = auth_task;
 
-        let disclosure = yivi_cli_session(&yivi_requestor_url, disclosure_request)
+        // Getting the disclosure is a bit tricky, as it is retrieved in two different ways
+        // depending on whether we're waiting for a card.
+        //
+        // If we're *not* waiting for a card, we simply call `yivi_cli_session` to get a disclosure, and that's that.
+        //
+        // But if we're waiting for a card, `yivi_cli_session` will not return the disclosure until
+        // we release the issuance request to the yivi server.  In this case, we obtain the
+        // disclosure via YiviWaitForResult, which is not available otherwise.
+        //
+        // We deal with these two ways to a disclosure by taking both paths in separate (tokio)
+        // tasks, and letting these tasks both send their disclosure over disclosure_sender
+        let (disclosure_sender, mut disclosure_receiver) = tokio::sync::mpsc::channel(1);
+
+        if self.wait_for_card {
+            // before we can move a future to a separate task via spawn_local, we must first clone
+            // anything we want to pass to it by reference
+            let client = client.clone();
+            let auth_state = auth_state.clone();
+            let auths_url = constellation.auths_url.clone();
+
+            let fut = async move {
+                client.query::<api::auths::YiviWaitForResultEP>(
+                    &auths_url,
+                    api::auths::YiviWaitForResultReq {
+                        state: auth_state.clone(),
+                    },
+                )
+                .timeout(core::time::Duration::from_secs(24*3600))
+                .with_retry().map(|wait_result| -> anyhow::Result<jwt::JWT> {
+                    let wait_result = wait_result.context("waiting for result of yivi to be submitted to the authentication server failed")?;
+
+                    let api::auths::YiviWaitForResultResp::Success { disclosure } = wait_result else {
+                        anyhow::bail!("waiting for result of yivi server to be submitted to authentication server failed: {wait_result:?} ");
+                    };
+
+                    Ok(disclosure)
+                }).await
+            };
+
+            let disclosure_sender = disclosure_sender.clone();
+
+            tokio::task::spawn_local(async move {
+                disclosure_sender
+                    .send(fut.await)
+                    .await
+                    .expect("did not expect disclosure channel to be closed already");
+            });
+        }
+
+        let fut = yivi_cli_session(yivi_requestor_url.clone(), disclosure_request);
+
+        let yivi_requestor_url_clone = yivi_requestor_url.clone();
+        let disclosure_sender_clone = disclosure_sender.clone();
+
+        tokio::task::spawn_local(async move {
+            let _ = disclosure_sender_clone
+                .send(fut.await.with_context(|| {
+                    format!("Yivi disclosure to {yivi_requestor_url_clone} failed")
+                }))
+                .await;
+        });
+
+        let disclosure = disclosure_receiver
+            .recv()
             .await
-            .with_context(|| format!("Yivi disclosure to {yivi_requestor_url} failed"))?;
+            .context("disclosure channel closed early")??;
 
         let auth_complete_resp = client
             .query_with_retry::<api::auths::AuthCompleteEP, _, _>(
                 &constellation.auths_url,
                 api::auths::AuthCompleteReq {
                     proof: api::auths::AuthProof::Yivi { disclosure },
-                    state: auth_state,
+                    state: auth_state.clone(),
                 },
             )
             .await
@@ -350,12 +414,32 @@ impl EnterArgs {
             }
         }
 
+        if self.wait_for_card {
+            let api::auths::YiviReleaseNextSessionResp::Success {} = client
+                .query_with_retry::<api::auths::YiviReleaseNextSessionEP, _, _>(
+                    &constellation.auths_url,
+                    api::auths::YiviReleaseNextSessionReq {
+                        state: auth_state.clone(),
+                        next_session_request: None,
+                    },
+                )
+                .await
+                .context("starting next yivi session failed")?
+            else {
+                anyhow::bail!("failed to start next yivi session");
+            };
+        }
+
         Ok(auth_token)
     }
 }
 
 /// Starts a yivi session with `yivi_requestor_url`, printing the QR code to the command line.
-async fn yivi_cli_session(yivi_requestor_url: &url::Url, request: jwt::JWT) -> Result<jwt::JWT> {
+async fn yivi_cli_session(
+    yivi_requestor_url: impl std::borrow::Borrow<url::Url>,
+    request: jwt::JWT,
+) -> Result<jwt::JWT> {
+    let yivi_requestor_url = yivi_requestor_url.borrow();
     let client = awc::Client::default();
 
     let mut resp = client

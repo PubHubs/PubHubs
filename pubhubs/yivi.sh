@@ -11,5 +11,5 @@ then
 	exit 1
 fi
 
-irma server -c yivi.toml -v --sse
+irma server -c yivi.toml -vv --sse
 

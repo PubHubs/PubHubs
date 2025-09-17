@@ -179,10 +179,15 @@ impl crate::servers::App<Server> for App {
         api::auths::AttrKeysEP::add_to(self, sc, App::handle_attr_keys);
 
         api::auths::YiviWaitForResultEP::add_to(self, sc, App::handle_yivi_wait_for_result);
+        api::auths::YiviReleaseNextSessionEP::add_to(
+            self,
+            sc,
+            App::handle_yivi_release_next_session,
+        );
 
         // NOTE: the yivi next-session endpoint does conform to our API's endpoint format, so we
         // register it manually, and not via the `add_to` method
-        sc.app_data(self.clone()).route(
+        sc.app_data(web::Data::new(self.clone())).route(
             api::auths::YIVI_NEXT_SESSION_PATH,
             web::post().to(App::handle_yivi_next_session),
         );

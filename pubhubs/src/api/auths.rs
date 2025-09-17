@@ -296,6 +296,21 @@ pub struct YiviReleaseNextSessionReq {
 #[must_use]
 pub enum YiviReleaseNextSessionResp {
     Success {},
+
+    /// Something went wrong;  please start again at [`AuthStartEP`].
+    ///
+    /// One reason is that the authentication server restarted and that the provided authenication
+    /// state is no longer valid.
+    PleaseRestartAuth,
+
+    /// The request seems fine, but the session cannot be found.  Either the session expired, or
+    /// was already completed.  Could caused by a logic error in the client, but also by a slow
+    /// internet connection.
+    SessionGone,
+
+    /// Trying to release a yivi servder that's not there yet.  You should first call the
+    /// [`YiviWaitForResultEP`] endpoint to make sure the yivi server is there.
+    TooEarly,
 }
 
 /// Path for the endpoint used by the yivi server to get the next session in a chained session.

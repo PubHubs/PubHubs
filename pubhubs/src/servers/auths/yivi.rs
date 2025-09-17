@@ -35,7 +35,9 @@ impl App {
         };
 
         let Some(session_id) = state.yivi_chained_session_id else {
-            log::debug!("yivi-wait-for-result endpoint called on a authentication session without a yivi chained session");
+            log::debug!(
+                "yivi-wait-for-result endpoint called on a authentication session without a yivi chained session"
+            );
             return Err(api::ErrorCode::BadRequest);
         };
 
@@ -44,7 +46,7 @@ impl App {
 
     /// Implementes the [`YIVI_NEXT_SESSION_PATH`] endpoint.
     pub async fn handle_yivi_next_session(
-        app: web::Data<App>,
+        app: web::Data<std::rc::Rc<App>>,
         query: web::Query<api::auths::YiviNextSessionQuery>,
         result_jwt: String,
     ) -> impl actix_web::Responder {
@@ -53,12 +55,16 @@ impl App {
         let result_jwt = jwt::JWT::from(result_jwt);
 
         let Some(state) = AuthState::unseal(&state, &app.auth_state_secret) else {
-            log::debug!("yivi server (or an imposter) submitted invalid (or expired) auth state to next-session endpoint");
+            log::debug!(
+                "yivi server (or an imposter) submitted invalid (or expired) auth state to next-session endpoint"
+            );
             return actix_web::HttpResponse::BadRequest().finish();
         };
 
         let Some(chained_session_id) = state.yivi_chained_session_id else {
-            log::warn!("yivi server submitted auth state to next-session endpoint without chained session id");
+            log::warn!(
+                "yivi server submitted auth state to next-session endpoint without chained session id"
+            );
             return actix_web::HttpResponse::BadRequest().finish();
         };
 
@@ -79,6 +85,8 @@ impl App {
             return actix_web::HttpResponse::BadRequest().finish();
         };
 
+        log::trace!("yivi server submitted disclosure and is waiting for chained session {chained_session_id}");
+
         match csc
             .wait_for_next_session(chained_session_id, result_jwt)
             .await
@@ -93,6 +101,33 @@ impl App {
             Err(api::ErrorCode::BadRequest) => actix_web::HttpResponse::BadRequest().finish(),
             Err(api::ErrorCode::PleaseRetry) => panic!("not expecting 'please retry' here"),
         }
+    }
+
+    /// Implements the [`YiviReleaseNextSessionEP`] endpoint.
+    pub async fn handle_yivi_release_next_session(
+        app: Rc<Self>,
+        req: web::Json<api::auths::YiviReleaseNextSessionReq>,
+    ) -> api::Result<api::auths::YiviReleaseNextSessionResp> {
+        let csc = app.chained_sessions_ctl_or_bad_request()?;
+
+        let api::auths::YiviReleaseNextSessionReq {
+            state,
+            next_session_request,
+        } = req.into_inner();
+
+        let Some(state) = AuthState::unseal(&state, &app.auth_state_secret) else {
+            return Ok(api::auths::YiviReleaseNextSessionResp::PleaseRestartAuth);
+        };
+
+        let Some(session_id) = state.yivi_chained_session_id else {
+            log::debug!(
+                "yivi-release-next-session endpoint called on a authentication session without a yivi chained session"
+            );
+            return Err(api::ErrorCode::BadRequest);
+        };
+
+        csc.release_next_session(session_id, next_session_request)
+            .await
     }
 }
 
@@ -111,6 +146,8 @@ type CreateSessionCrs = tokio::sync::oneshot::Sender<api::Result<id::Id>>;
 type WaitForResultCrs =
     tokio::sync::oneshot::Sender<api::Result<api::auths::YiviWaitForResultResp>>;
 type WaitForNextSessionCrs = tokio::sync::oneshot::Sender<api::Result<Option<jwt::JWT>>>;
+type ReleaseNextSessionCrs =
+    tokio::sync::oneshot::Sender<api::Result<api::auths::YiviReleaseNextSessionResp>>;
 
 enum CscCommand {
     CreateSession {
@@ -124,6 +161,11 @@ enum CscCommand {
         chained_session_id: id::Id,
         disclosure: jwt::JWT,
         resp_sender: WaitForNextSessionCrs,
+    },
+    ReleaseNextSession {
+        chained_session_id: id::Id,
+        next_session_request: Option<jwt::JWT>,
+        resp_sender: ReleaseNextSessionCrs,
     },
 }
 
@@ -185,6 +227,31 @@ impl ChainedSessionsCtl {
         let Ok(resp) = resp_receiver.await else {
             log::warn!(
                 "chained session control wait-for-next-session response channel closed early"
+            );
+            return Err(api::ErrorCode::InternalError);
+        };
+
+        resp
+    }
+
+    /// Hands the next session request (if any) to the waiting yivi server
+    pub async fn release_next_session(
+        &self,
+        chained_session_id: id::Id,
+        next_session_request: Option<jwt::JWT>,
+    ) -> api::Result<api::auths::YiviReleaseNextSessionResp> {
+        let (resp_sender, resp_receiver) = tokio::sync::oneshot::channel();
+
+        self.send_command(CscCommand::ReleaseNextSession {
+            chained_session_id,
+            next_session_request,
+            resp_sender,
+        })
+        .await?;
+
+        let Ok(resp) = resp_receiver.await else {
+            log::warn!(
+                "chained session control release-next-session response channel closed early"
             );
             return Err(api::ErrorCode::InternalError);
         };
@@ -276,6 +343,18 @@ impl ChainedSessionsBackend {
             CscCommand::CreateSession { resp_sender } => {
                 self.handle_create_session(resp_sender).await
             }
+            CscCommand::ReleaseNextSession {
+                chained_session_id,
+                next_session_request,
+                resp_sender,
+            } => {
+                self.handle_release_next_session(
+                    chained_session_id,
+                    next_session_request,
+                    resp_sender,
+                )
+                .await
+            }
         }
     }
 
@@ -285,7 +364,9 @@ impl ChainedSessionsBackend {
         chained_session_id: id::Id,
     ) {
         if resp_sender.send(resp).is_err() {
-            log::warn!("response channel for chained session {chained_session_id} was closed before response could be sent");
+            log::warn!(
+                "response channel for chained session {chained_session_id} was closed before response could be sent"
+            );
         }
     }
 
@@ -329,7 +410,9 @@ impl ChainedSessionsBackend {
                 waiters.push(resp_sender)
             }
             ChainedSessionState::YiviServerWaiting { disclosure, .. } => {
-                log::trace!("result for chained session {chained_session_id} requested and immediately available");
+                log::trace!(
+                    "result for chained session {chained_session_id} requested and immediately available"
+                );
                 Self::respond_to(
                     resp_sender,
                     Ok(api::auths::YiviWaitForResultResp::Success {
@@ -348,7 +431,9 @@ impl ChainedSessionsBackend {
         resp_sender: WaitForNextSessionCrs,
     ) {
         let Some(session) = self.sessions.get_mut(&chained_session_id) else {
-            log::warn!("yivi server submitted disclosure for a chained session {chained_session_id} that cannot be found - was the yivi server too slow?");
+            log::warn!(
+                "yivi server submitted disclosure for a chained session {chained_session_id} that cannot be found - was the yivi server too slow?"
+            );
             Self::respond_to(resp_sender, Ok(None), chained_session_id);
             return;
         };
@@ -367,7 +452,6 @@ impl ChainedSessionsBackend {
             }
         }
 
-        log::trace!("yivi server submitted result to chained session {chained_session_id}");
         let old_session = std::mem::replace(
             session,
             ChainedSessionState::YiviServerWaiting {
@@ -380,7 +464,7 @@ impl ChainedSessionsBackend {
             ChainedSessionState::WaitingForYiviServer { waiters } => {
                 // release waiters
                 log::trace!(
-                    "releasing {} waiters on the result of chained session {chained_session_id}",
+                    "releasing {} waiter(s) on the result of chained session {chained_session_id}",
                     waiters.len()
                 );
                 for waiter in waiters.into_iter() {
@@ -397,5 +481,59 @@ impl ChainedSessionsBackend {
                 panic!("session changed unexpectedly");
             }
         }
+    }
+
+    async fn handle_release_next_session(
+        &mut self,
+        chained_session_id: id::Id,
+        next_session_request: Option<jwt::JWT>,
+        resp_sender: ReleaseNextSessionCrs,
+    ) {
+        let Some(session) = self.sessions.get_mut(&chained_session_id) else {
+            log::debug!(
+                "request to release chained session {chained_session_id} that cannot be found "
+            );
+            Self::respond_to(
+                resp_sender,
+                Ok(api::auths::YiviReleaseNextSessionResp::SessionGone),
+                chained_session_id,
+            );
+            return;
+        };
+
+        // check session is ready for the yivi server
+        match session {
+            ChainedSessionState::WaitingForYiviServer { .. } => {
+                log::debug!(
+                    "request to release a yivi server that's not there yet, inchained session {chained_session_id}"
+                );
+                Self::respond_to(
+                    resp_sender,
+                    Ok(api::auths::YiviReleaseNextSessionResp::TooEarly),
+                    chained_session_id,
+                );
+                return;
+            }
+            ChainedSessionState::YiviServerWaiting { .. } => {
+                // this is what we want
+            }
+        }
+
+        log::trace!(
+            "yivi server is about to be released from chained session {chained_session_id}"
+        );
+        let Some(ChainedSessionState::YiviServerWaiting { waiter, .. }) =
+            self.sessions.remove(&chained_session_id)
+        else {
+            panic!("chained session state changed unexpectedly");
+        };
+
+        Self::respond_to(waiter, Ok(next_session_request), chained_session_id);
+
+        Self::respond_to(
+            resp_sender,
+            Ok(api::auths::YiviReleaseNextSessionResp::Success {}),
+            chained_session_id,
+        );
     }
 }
