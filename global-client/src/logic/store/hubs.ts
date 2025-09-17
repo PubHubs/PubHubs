@@ -192,12 +192,7 @@ const useHubs = defineStore('hubs', {
 					global.hideModal();
 				});
 
-				// Old Setup: Store and remove access tokens when send from the hub client
-				messagebox.addCallback(iframeHubId, MessageType.AddAccessToken, (accessTokenMessage: Message) => {
-					global.addAccessToken(this.currentHubId, accessTokenMessage.content as string);
-				});
-
-				// MSS: Store and remove access tokens when send from the hub client
+				// Store and remove access tokens when sent from the hub client
 				messagebox.addCallback(iframeHubId, MessageType.AddAuthInfo, (authInfoMessage: Message) => {
 					const { token, userId }: { token: string; userId: string } = JSON.parse(authInfoMessage.content);
 					global.addAccessTokenAndUserID(this.currentHubId, token, userId);

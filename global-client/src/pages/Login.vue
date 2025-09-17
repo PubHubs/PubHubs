@@ -38,7 +38,7 @@
 									class="absolute bottom-8 left-0 z-50 w-full after:absolute after:-bottom-[1.2em] after:right-[50%] after:border-[1.25em] after:border-b-0 after:border-l-0 after:border-transparent after:border-t-white after:drop-shadow-[0px_-5px_16px_rgb(0,0,0,0.15)]"
 								></div>
 							</div>
-							<Button color="gray" @click="login()">{{ show ? $t('dialog.close') : $t('login.login') }}</Button>
+							<Button color="gray" @click="loginMSS()">{{ show ? $t('dialog.close') : $t('login.login') }}</Button>
 							<router-link to="/register" class="w-full">
 								<Button>{{ $t('register.register_with', [$t('common.yivi')]) }}</Button>
 							</router-link>
@@ -47,24 +47,19 @@
 				</div>
 			</div>
 		</div>
-
-		<form v-if="show" method="POST" action="/yivi-endpoint/finish-and-redirect">
-			<input type="hidden" name="yivi_token" :value="yivi_token" />
-		</form>
 	</div>
 </template>
 
 <script setup lang="ts">
 	// Package imports
 	import { computed, onMounted, ref } from 'vue';
+	import { useRoute, useRouter } from 'vue-router';
 
 	// Global imports
-	import { useSettings, FeatureFlag } from '@/logic/store/settings';
+	import { useSettings } from '@/logic/store/settings';
 	import { useMSS } from '@/logic/store/mss';
-	import { startYiviSession } from '@/logic/utils/yiviHandler';
 	import { loginMethods, PHCEnterMode } from '@/model/MSS/TMultiServerSetup';
 	import Logo from '@/components/ui/Logo.vue';
-	import { useRoute, useRouter } from 'vue-router';
 
 	// Hub imports
 	import { Logger } from '@/logic/foundation/Logger';
@@ -85,7 +80,6 @@
 	const globalClientUrl = _env.PUBHUBS_URL;
 
 	const show = ref<boolean>(false);
-	const yivi_token = ref<string>('');
 	const loading = ref<boolean>(true);
 
 	const isMobile = computed(() => settings.isMobileState);
@@ -100,14 +94,6 @@
 			LOGGER.error(SMI.ERROR, 'Could not initialize the servers for the multi-server setup.', { error });
 		}
 	});
-
-	async function login() {
-		if (settings.isFeatureEnabled(FeatureFlag.multiServerSetup)) {
-			await loginMSS();
-		} else {
-			loadYivi();
-		}
-	}
 
 	async function loginMSS() {
 		const loginMethod = loginMethods.Yivi; // If there will be multiple sources at a later point, this choice should be made by the user.
@@ -130,16 +116,6 @@
 			router.replace({ name: 'error' });
 			show.value = false;
 			LOGGER.error(SMI.ERROR, 'Error during MSS login', { error });
-		}
-	}
-
-	function loadYivi() {
-		show.value = !show.value;
-
-		try {
-			startYiviSession(false, yivi_token);
-		} catch (error) {
-			console.error('Yivi session load failed:', error);
 		}
 	}
 
