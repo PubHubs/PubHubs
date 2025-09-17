@@ -108,6 +108,7 @@ export type AuthAttrKeysResp = Result<AttrKeysResp, ErrorCode>;
 
 export type Constellation = {
 	id: string;
+	created_at: number;
 	transcryptor_url: string;
 	transcryptor_jwt_key: string;
 	transcryptor_enc_key: string;
@@ -119,6 +120,8 @@ export type Constellation = {
 	auths_jwt_key: string;
 	auths_enc_key: string;
 	master_enc_key: string;
+	global_client_url: string;
+	ph_version: string;
 };
 
 export type HubInformation = {
