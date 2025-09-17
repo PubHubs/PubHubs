@@ -181,18 +181,30 @@ export default class PHCServer {
 		return userSecret;
 	}
 
-	private _areUint8ArraysEqual(a: Uint8Array, b: Uint8Array): boolean {
+	private _buffersAreEqual(a: ArrayBuffer | Uint8Array | null, b: ArrayBuffer | Uint8Array | null): boolean {
+		// If they are the exact same ref or are both null
 		if (a === b) {
 			return true;
 		}
-		if (a.length !== b.length) {
+
+		if (a === null || b === null) {
 			return false;
 		}
-		for (let i = 0; i < a.length; i++) {
-			if (a[i] !== b[i]) {
+
+		// Normalize inputs to Uint8Array for comparison
+		const normalizedA = a instanceof Uint8Array ? a : new Uint8Array(a);
+		const normalizedB = b instanceof Uint8Array ? b : new Uint8Array(b);
+
+		if (normalizedA.byteLength !== normalizedB.byteLength) {
+			return false;
+		}
+
+		for (let i = 0; i < normalizedA.length; i++) {
+			if (normalizedA[i] !== normalizedB[i]) {
 				return false;
 			}
 		}
+
 		return true;
 	}
 
@@ -219,7 +231,7 @@ export default class PHCServer {
 				const decryptedUserSecret = await this._decryptUserSecret(keyResp.old_key, userSecretObject[attr.id][attr.value]);
 				if (referenceUserSecret === null) {
 					referenceUserSecret = decryptedUserSecret;
-				} else if (!this._areUint8ArraysEqual(referenceUserSecret, decryptedUserSecret)) {
+				} else if (!this._buffersAreEqual(referenceUserSecret, decryptedUserSecret)) {
 					throw new Error('Something went wrong, the user secrets for different identifying attributes do not match.');
 				}
 			}
