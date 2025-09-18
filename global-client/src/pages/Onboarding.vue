@@ -341,7 +341,6 @@
 				router.push({ name: 'error', query: { errorKey: errorMessage.key, errorValues: errorMessage.values } });
 				return;
 			}
-			await global.checkLoginAndSettings();
 			await router.push({ name: 'home' });
 		} catch (error) {
 			router.push({ name: 'error' });

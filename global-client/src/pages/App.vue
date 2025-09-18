@@ -83,8 +83,6 @@
 		// Update isMobile state on initial load
 		settings.startListening();
 
-		await global.checkLoginAndSettings();
-
 		// Watch for saved state changes and save to backend
 		watch(
 			computedGlobalSettings,
