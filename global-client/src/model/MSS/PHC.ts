@@ -413,7 +413,7 @@ export default class PHCServer {
 		const maxAttempts = 3;
 		let details = objectDetails;
 		for (let attempts = 0; attempts < maxAttempts; attempts++) {
-			const getObjResp = await handleErrors<mssTypes.GetObjectRespProblem>(() => this._phcAPI.apiGET<mssTypes.PHCGetObjectResp | ArrayBuffer>(this._phcAPI.apiURLS.getObject + '/' + objectDetails.hash + '/' + objectDetails.hmac));
+			const getObjResp = await handleErrors<mssTypes.GetObjectRespProblem>(() => this._phcAPI.apiGET<mssTypes.PHCGetObjectResp | ArrayBuffer>(this._phcAPI.apiURLS.getObject + '/' + details.hash + '/' + details.hmac));
 			if (getObjResp instanceof ArrayBuffer) {
 				return getObjResp;
 			} else if (getObjResp === mssTypes.GetObjectRespProblem.NotFound || getObjResp === mssTypes.GetObjectRespProblem.RetryWithNewHmac) {
