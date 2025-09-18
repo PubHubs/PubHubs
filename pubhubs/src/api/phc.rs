@@ -10,8 +10,8 @@ use crate::attr;
 use crate::handle;
 use crate::id::Id;
 use crate::misc::serde_ext::bytes_wrapper::B64UU;
-use crate::servers::Constellation;
 use crate::servers::yivi;
+use crate::servers::Constellation;
 
 /// `.ph/hub/...` endpoints, used by hubs
 pub mod hub {
@@ -614,7 +614,7 @@ pub mod user {
     /// Requests a PubHubs Yivi card in the form of a signed issuance session request that can be
     /// sent to the authentication server's yivi server.  Requires authentication.
     ///
-    /// Intended to be combined with [`api::auths::YiviReleaseNextSession`].
+    /// Intended to be combined with [`auths::YiviReleaseNextSessionEP`].
     pub struct CardEP {}
     impl EndpointDetails for CardEP {
         type RequestType = NoPayload;

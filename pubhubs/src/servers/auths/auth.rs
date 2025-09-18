@@ -15,7 +15,7 @@ use crate::{
 
 /// # Implementaton of endpoints
 impl App {
-    /// Implements [`AuthStartEP`]
+    /// Implements [`api::auths::AuthStartEP`]
     pub async fn handle_auth_start(
         app: Rc<Self>,
         req: web::Json<api::auths::AuthStartReq>,

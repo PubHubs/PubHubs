@@ -224,7 +224,7 @@ pub struct AttrKeyResp {
 
 /// Wait for the disclosure result that the yivi server will post to the authentication server
 ///
-/// Might return [`api::ErrorCode::BadRequest`] when yivi is not configured for this authentication
+/// Might return [`ErrorCode::BadRequest`] when yivi is not configured for this authentication
 /// server, or when [`AuthStartReq::yivi_chained_session`] was not set for [`YiviWaitForResultReq::state`].
 pub struct YiviWaitForResultEP {}
 impl EndpointDetails for YiviWaitForResultEP {
@@ -285,7 +285,7 @@ pub struct YiviReleaseNextSessionReq {
     pub state: AuthState,
 
     /// The extended session request to pass to the yivi server, signed by PHC. Can be obtained
-    /// via the [`api::phc::CardEP`].
+    /// via the [`phc::user::CardEP`].
     ///
     /// If `None`, the yivi server will be served a `HTTP 204` causing it to stop the yivi flow
     /// normally without opening a follow-up session.

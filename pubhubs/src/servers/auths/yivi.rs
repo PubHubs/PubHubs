@@ -21,7 +21,7 @@ impl App {
         })
     }
 
-    /// Implements the [`YiviWaitForResultEP`] endpoint.
+    /// Implements the [`api::auths::YiviWaitForResultEP`] endpoint.
     pub async fn handle_yivi_wait_for_result(
         app: Rc<Self>,
         req: web::Json<api::auths::YiviWaitForResultReq>,
@@ -44,7 +44,7 @@ impl App {
         csc.wait_for_result(session_id).await
     }
 
-    /// Implementes the [`YIVI_NEXT_SESSION_PATH`] endpoint.
+    /// Implementes the [`api::auths::YIVI_NEXT_SESSION_PATH`] endpoint.
     pub async fn handle_yivi_next_session(
         app: web::Data<std::rc::Rc<App>>,
         query: web::Query<api::auths::YiviNextSessionQuery>,
@@ -106,7 +106,7 @@ impl App {
         }
     }
 
-    /// Implements the [`YiviReleaseNextSessionEP`] endpoint.
+    /// Implements the [`api::auths::YiviReleaseNextSessionEP`] endpoint.
     pub async fn handle_yivi_release_next_session(
         app: Rc<Self>,
         req: web::Json<api::auths::YiviReleaseNextSessionReq>,
@@ -291,7 +291,7 @@ impl ChainedSessionsCtl {
         })
     }
 
-    /// Creates a new [`ChainedSessionCtl`] instance, and spawns a background task to drive it.
+    /// Creates a new [`ChainedSessionsCtl`] instance, and spawns a background task to drive it.
     pub fn new(ctx: YiviCtx) -> Self {
         let (sender, receiver) = tokio::sync::mpsc::channel(10);
 
