@@ -50,11 +50,13 @@ export default class PHCServer {
 	}
 
 	/**
-	 * Handle the response from the Enter EndPoint.
+	 * Handle the response from the EnterEP.
 	 *
-	 * @param enterResp The response from the Enter EndPoint that needs to be handled.
+	 * @param enterResp The response from the EnterEP that needs to be handled.
+	 * @returns An object with a boolean denoting whether the user successfully entered PubHubs and an errorMessage.
+	 * The errorMessage is null if the user successfully entered, an object with a translation key and a list of values to use in the translation otherwise.
 	 */
-	private _handleEnterResp(enterResp: mssTypes.EnterResp): { entered: boolean; errorMessage: { key: string; values?: Array<string> } | null } {
+	private _handleEnterResp(enterResp: mssTypes.EnterResp): { entered: false; errorMessage: { key: string; values?: string[] } } | { entered: true; errorMessage: null } {
 		if (enterResp === 'AccountDoesNotExist') {
 			return { entered: false, errorMessage: { key: 'errors.account_does_not_exist' } };
 		} else if (enterResp === 'Banned') {
@@ -85,33 +87,88 @@ export default class PHCServer {
 	 * @param enterMode The mode determines whether we want to create an account if none exists and whether we expect an account to exist.
 	 * @returns An object with a boolean to know whether the user successfully entered PubHubs or not and an error message (which is null if no error occured).
 	 */
-	private async _enter(identifyingAttr: string, signedAddAttrs: string[], enterMode: mssTypes.PHCEnterMode) {
+	private async _enter(identifyingAttr: string, signedAddAttrs: string[], enterMode: mssTypes.PHCEnterMode): Promise<{ entered: true; errorMessage: null } | { entered: false; errorMessage: { key: string; values?: string[] } }> {
 		const requestPayload: mssTypes.PHCEnterReq = {
 			identifying_attr: identifyingAttr,
 			mode: enterMode,
 			add_attrs: signedAddAttrs,
 		};
 		const okEnterResp = await handleErrors(() => this._phcAPI.api<mssTypes.PHCEnterResp>(this._phcAPI.apiURLS.enter, requestOptions<mssTypes.PHCEnterReq>(requestPayload)));
-		const { entered, errorMessage } = this._handleEnterResp(okEnterResp);
-		return { entered, errorMessage };
+		return this._handleEnterResp(okEnterResp);
 	}
 
-	async login(identifyingAttr: string, signedAddAttrs: string[], enterMode: mssTypes.PHCEnterMode) {
+	/**
+	 * Check if two objects (A and B) are equal.
+	 *
+	 * @param a Object A
+	 * @param b Object B
+	 * @returns true if the objects are equal, false otherwise.
+	 */
+	private _deepEqualObjects(a: any, b: any): boolean {
+		if (a === b) return true;
+		if (a === null || b === null || typeof a !== 'object' || typeof b !== 'object') return false;
+
+		const keysA = Object.keys(a);
+		const keysB = Object.keys(b);
+		if (keysA.length !== keysB.length) return false;
+
+		for (const key of keysA) {
+			if (!keysB.includes(key)) return false;
+			if (!this._deepEqualObjects(a[key], b[key])) return false;
+		}
+		return true;
+	}
+
+	/**
+	 * Request the user secret object from the object store. Make sure that, if there is a backup stored, both user secret objects are equal.
+	 *
+	 * @returns An object with the decoded user secret and its details if the object exists; null otherwise.
+	 * @throws Will throw an error if there is no backup user secret object stored while this is expected.
+	 * @throws Will throw an error if the backup user secret object differs from the user secret object.
+	 */
+	private async _getUserSecretObject(): Promise<{ object: mssTypes.UserSecretData; details: mssTypes.UserObjectDetails } | null> {
+		const userSecretObject = await this.getUserObject('usersecret');
+
+		if (!userSecretObject || !userSecretObject.object) {
+			return null;
+		}
+		const decoder = new TextDecoder();
+		const decodedUserSecret = decoder.decode(userSecretObject.object);
+		const secretObject = JSON.parse(decodedUserSecret) as mssTypes.UserSecretObject;
+		// If the user secret object is stored in the new format, expect there to be a backup object stored.
+		if (mssTypes.isUserSecretObjectNew(secretObject)) {
+			const userSecretObjectBackup = await this.getUserObject('usersecretbackup');
+			if (!userSecretObjectBackup || !userSecretObjectBackup.object) {
+				throw new Error('Expected a backup of the user secret object to be stored, but could not find it.');
+			}
+			const decodedUserSecretBackup = decoder.decode(userSecretObjectBackup.object);
+			const secretObjectBackup = JSON.parse(decodedUserSecretBackup) as mssTypes.UserSecretObject;
+			assert.isTrue(this._deepEqualObjects(secretObject, secretObjectBackup), 'The user secret object differs from the backup user secret object.');
+			return { object: secretObject.data, details: userSecretObject.details };
+		}
+		return { object: secretObject, details: userSecretObject.details };
+	}
+
+	async login(
+		identifyingAttr: string,
+		signedAddAttrs: string[],
+		enterMode: mssTypes.PHCEnterMode,
+	): Promise<
+		| { entered: false; errorMessage: { key: string; values?: string[] }; objectDetails: null; userSecretObject: null }
+		| { entered: true; errorMessage: null; objectDetails: null; userSecretObject: null }
+		| { entered: true; errorMessage: null; objectDetails: mssTypes.UserObjectDetails; userSecretObject: mssTypes.UserSecretData }
+	> {
 		const { entered, errorMessage } = await this._enter(identifyingAttr, signedAddAttrs, enterMode);
 
 		if (!entered) {
 			return { entered, errorMessage, objectDetails: null, userSecretObject: null };
 		}
-		const userSecretObject = await this.getUserObject('usersecret');
+		const userSecretObject = await this._getUserSecretObject();
 
 		if (!userSecretObject || !userSecretObject.object) {
-			return { entered, objectDetails: null, userSecretObject: null };
-		} else {
-			const decoder = new TextDecoder();
-			const decodedUserSecret = decoder.decode(userSecretObject.object);
-			const secretObject = JSON.parse(decodedUserSecret) as mssTypes.UserSecretObject;
-			return { entered, objectDetails: userSecretObject.details, userSecretObject: secretObject };
+			return { entered, errorMessage: null, objectDetails: null, userSecretObject: null };
 		}
+		return { entered, errorMessage: null, objectDetails: userSecretObject.details, userSecretObject: userSecretObject.object };
 	}
 
 	private async _refreshEP() {
@@ -208,7 +265,7 @@ export default class PHCServer {
 		return true;
 	}
 
-	async computeNewUserSecretObject(attrKeyResp: Record<string, mssTypes.AttrKeyResp>, identifyingAttrs: mssTypes.SignedIdentifyingAttrs, userSecretObject: mssTypes.UserSecretObject | null) {
+	async computeNewUserSecretObject(attrKeyResp: Record<string, mssTypes.AttrKeyResp>, identifyingAttrs: mssTypes.SignedIdentifyingAttrs, userSecretObject: mssTypes.UserSecretData | null) {
 		let newUserSecretObject: mssTypes.UserSecretObject = userSecretObject ? { ...userSecretObject } : {};
 		let userSecret: Uint8Array | null = null;
 		if (userSecretObject === null) {
@@ -256,7 +313,7 @@ export default class PHCServer {
 	async storeUserSecretObject(
 		attrKeyResp: Record<string, mssTypes.AttrKeyResp>,
 		identifyingAttrs: mssTypes.SignedIdentifyingAttrs,
-		userSecretObject: mssTypes.UserSecretObject | null,
+		userSecretObject: mssTypes.UserSecretData | null,
 		userSecretObjectDetails: mssTypes.UserObjectDetails | null,
 	) {
 		const computedUserSecretObject = await this.computeNewUserSecretObject(attrKeyResp, identifyingAttrs, userSecretObject);

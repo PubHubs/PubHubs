@@ -244,7 +244,7 @@ export type StoreObjectResp =
 
 export type PHCStoreObjectResp = Result<StoreObjectResp, ErrorCode>;
 
-export type UserSecretObject = {
+export type UserSecretData = {
 	[attrId: string]: {
 		[attrValue: string]: {
 			ts: string;
@@ -252,6 +252,19 @@ export type UserSecretObject = {
 		};
 	};
 };
+
+type UserSecretObjectOld = UserSecretData;
+
+type UserSecretObjectNew = {
+	version: number;
+	data: UserSecretData;
+};
+
+export type UserSecretObject = UserSecretObjectOld | UserSecretObjectNew;
+
+export function isUserSecretObjectNew(obj: any): obj is UserSecretObjectNew {
+	return obj && typeof obj === 'object' && 'data' in obj;
+}
 
 export type PppResp = 'RetryWithNewAuthToken' | { Success: string };
 
