@@ -3,10 +3,9 @@ use std::cell::OnceCell;
 
 use anyhow::Context as _;
 use serde::{
-    self,
+    self, Deserialize as _, Serialize as _,
     de::{Error as _, IntoDeserializer as _},
     ser::Error as _,
-    Deserialize as _, Serialize as _,
 };
 
 use crate::api;
@@ -28,6 +27,8 @@ pub struct ExtendedSessionRequest {
     #[serde(skip_serializing_if = "Option::is_none")]
     next_session: Option<NextSessionData>,
 }
+
+api::having_message_code!(ExtendedSessionRequest, YiviExtendedSessionRequest);
 
 /// <https://github.com/privacybydesign/irmago/blob/f9718c334af76a3ad2fa23019d17957878cd2032/requests.go#L139>
 #[derive(serde::Serialize, serde::Deserialize, Debug, Clone, PartialEq, Eq)]
@@ -98,6 +99,44 @@ impl ExtendedSessionRequest {
 
         // NOTE: the jwt library irmago uses adds a `"typ": "JWT"` to the header,
         // but its presence is not checked, so we omit it.
+    }
+
+    /// Opens the given signed [`ExtendedSessionRequest`].
+    pub fn open_signed(
+        jwt: &jwt::JWT,
+        requestor_credentials: &Credentials<VerifyingKey>,
+    ) -> anyhow::Result<Self> {
+        let mut session_type_perhaps: Option<String> = None;
+
+        let session_request: Self = requestor_credentials
+            .key
+            .open(jwt)
+            .context("invalid jwt")?
+            .check_iss(jwt::expecting::exactly(&requestor_credentials.name))?
+            .check_sub(
+                |claim_name: &'static str, sub: Option<String>| -> Result<(), jwt::Error> {
+                    let sub = sub.ok_or_else(|| jwt::Error::MissingClaim(claim_name))?;
+
+                    assert!(
+                        session_type_perhaps.replace(sub.to_string()).is_none(),
+                        "bug: did not expect to set session_type twice"
+                    );
+
+                    Ok(())
+                },
+            )?
+            .into_custom()?;
+
+        let session_type = session_type_perhaps.expect("bug: expected session_type to be set here");
+
+        anyhow::ensure!(
+            *session_request.request.context.jwt_sub() == session_type,
+            "session request jwt subject, {}, does not align with session request context, {}",
+            session_type,
+            session_request.request.context.jwt_sub()
+        );
+
+        Ok(session_request)
     }
 
     /// Mocks a valid [`SessionResult`] to this [`ExtendedSessionRequest`] disclosing
@@ -222,12 +261,22 @@ impl CredentialToBeIssued {
 
 /// Credentials (name and key) for a requestor or yivi server.
 ///
-/// Use [`Credentials<SigningKey>`] or [`Credentials<VerifyingKey>`].
+/// To be used with `K` either [`SigningKey`] or [`VerifyingKey`].
 #[derive(serde::Serialize, serde::Deserialize, Debug, Clone, PartialEq, Eq)]
 #[serde(deny_unknown_fields)]
 pub struct Credentials<K> {
     pub name: String,
     pub key: K,
+}
+
+impl Credentials<SigningKey> {
+    /// Turn these signing credentials into verifying credentials
+    pub fn to_verifying_credentials(&self) -> Credentials<VerifyingKey> {
+        Credentials {
+            name: self.name.clone(),
+            key: self.key.to_verifying_key(),
+        }
+    }
 }
 
 /// Private key used by a requestor or yivi server to sign their JWTs.

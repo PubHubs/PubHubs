@@ -6,7 +6,7 @@ use std::rc::Rc;
 use actix_web::web;
 use digest::Digest as _;
 
-use crate::servers::{self, constellation, yivi, AppBase, AppCreatorBase, Constellation, Handle};
+use crate::servers::{self, AppBase, AppCreatorBase, Constellation, Handle, constellation, yivi};
 use crate::{
     api::{self, EndpointDetails as _},
     attr,
@@ -93,6 +93,8 @@ pub struct YiviCtx {
     pub requestor_url: url::Url,
     pub requestor_creds: yivi::Credentials<yivi::SigningKey>,
     pub server_creds: yivi::Credentials<yivi::VerifyingKey>,
+
+    #[expect(dead_code)]
     pub chained_sessions_config: super::yivi::ChainedSessionsConfig,
 }
 

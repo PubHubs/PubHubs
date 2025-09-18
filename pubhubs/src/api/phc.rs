@@ -11,6 +11,7 @@ use crate::handle;
 use crate::id::Id;
 use crate::misc::serde_ext::bytes_wrapper::B64UU;
 use crate::servers::Constellation;
+use crate::servers::yivi;
 
 /// `.ph/hub/...` endpoints, used by hubs
 pub mod hub {
@@ -608,5 +609,31 @@ pub mod user {
 
         /// The requested hashed hub pseudonym package (HHPP).  
         Success(Signed<sso::HashedHubPseudonymPackage>),
+    }
+
+    /// Requests a PubHubs Yivi card in the form of a signed issuance session request that can be
+    /// sent to the authentication server's yivi server.  Requires authentication.
+    ///
+    /// Intended to be combined with [`api::auths::YiviReleaseNextSession`].
+    pub struct CardEP {}
+    impl EndpointDetails for CardEP {
+        type RequestType = NoPayload;
+        type ResponseType = Result<CardResp>;
+
+        const METHOD: http::Method = http::Method::POST;
+        const PATH: &'static str = ".ph/card";
+    }
+
+    /// Returned by [`CardEP`].
+    #[derive(Serialize, Deserialize, Debug, Clone)]
+    #[serde(deny_unknown_fields)]
+    #[serde(rename = "snake_case")]
+    #[must_use]
+    pub enum CardResp {
+        /// The auth provided is expired or otherwise invalid.  Obtain a new one and retry.
+        RetryWithNewAuthToken,
+
+        /// The requested issuance session request
+        Success(Signed<yivi::ExtendedSessionRequest>),
     }
 }

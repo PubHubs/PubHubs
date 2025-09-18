@@ -9,8 +9,8 @@ use crate::attr;
 use crate::client;
 use crate::handle::Handle;
 use crate::misc::jwt;
-use crate::servers::yivi;
 use crate::servers::Constellation;
+use crate::servers::yivi;
 
 use api::phc::user::AuthToken;
 
@@ -415,12 +415,22 @@ impl EnterArgs {
         }
 
         if self.wait_for_card {
+            let api::phc::user::CardResp::Success(card) = client
+                .query::<api::phc::user::CardEP>(&constellation.phc_url, api::NoPayload)
+                .auth_header(auth_token.clone())
+                .with_retry()
+                .await
+                .context("retrieving pubhubs card failed")?
+            else {
+                anyhow::bail!("failed to retrieve pubhubs card");
+            };
+
             let api::auths::YiviReleaseNextSessionResp::Success {} = client
                 .query_with_retry::<api::auths::YiviReleaseNextSessionEP, _, _>(
                     &constellation.auths_url,
                     api::auths::YiviReleaseNextSessionReq {
                         state: auth_state.clone(),
-                        next_session_request: None,
+                        next_session_request: Some(card),
                     },
                 )
                 .await

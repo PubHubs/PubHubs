@@ -3,6 +3,7 @@ use crate::api;
 use crate::api::OpenError;
 use crate::attr::{Attr, AttrState};
 use crate::common::elgamal;
+use crate::common::secret::DigestibleSecret as _;
 use crate::handle;
 use crate::hub;
 use crate::id::Id;
@@ -15,6 +16,7 @@ use std::ops::Deref;
 use std::rc::Rc;
 
 use actix_web::web;
+use digest::Digest as _;
 
 use super::server::*;
 use api::phc::user::*;
@@ -231,6 +233,9 @@ impl App {
 
             let user_state = UserState {
                 id: Id::random(),
+                card_id: Some(Id::random()),
+                registration_date: Some(api::NumericDate::now()),
+                registration_source: Some("".to_string()),
                 polymorphic_pseudonym: running_state.constellation.master_enc_key.encrypt_random(),
                 banned: false,
                 allow_login_by: attrs
@@ -689,6 +694,25 @@ pub struct UserState {
     /// Randomly generated identifier for this account, used for creating access tokens and such
     pub id: Id,
 
+    /// Used as registration pseudonym on pubhubs cards issued for to this user.
+    ///
+    /// Might not be set for users that registered under v3.0.0, but will be upon entering pubhubs.
+    ///
+    /// If not set, it's derived from [`UserState::id`], which is done by [`UserState::card_id()`].
+    #[serde(default)]
+    card_id: Option<Id>,
+
+    /// Registration date for this user
+    ///
+    /// Might not be set for users that registered under v3.0.0.
+    #[serde(default)]
+    pub registration_date: Option<api::NumericDate>,
+
+    /// Registration source used on pubhubs yivi cards issued for this user.
+    ///
+    /// Might not be set for users that registered under v.3.0.0.
+    pub registration_source: Option<String>,
+
     /// Randomly generated and by [`Constellation::master_enc_key`] elgamal encrypted
     /// identifier used to generate hub pseudonyms for this user.
     ///
@@ -719,6 +743,18 @@ pub struct UserState {
 }
 
 impl UserState {
+    /// Returns [`UserState::card_id`] when available, and otherwise an [`Id`] derived from [`UserState::id`].
+    pub fn card_id(&self) -> Id {
+        if let Some(card_id) = self.card_id {
+            return card_id;
+        }
+
+        b"".as_slice().derive_id(
+            sha2::Sha256::new().chain_update(self.id.as_slice()),
+            "pubhubs-card-id",
+        )
+    }
+
     /// Subtract quota usage from the given [`Quota`], returning an error when a [`QuotumName`] was
     /// reached.
     pub(crate) fn update_quota(&self, mut quota: Quota) -> Result<Quota, QuotumName> {

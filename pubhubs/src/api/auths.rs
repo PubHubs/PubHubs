@@ -3,6 +3,7 @@ use crate::api::*;
 use crate::attr::Attr;
 use crate::misc::jwt;
 use crate::misc::serde_ext::bytes_wrapper::B64UU;
+use crate::servers::yivi;
 use crate::{attr, handle};
 
 use serde::{Deserialize, Serialize};
@@ -283,11 +284,12 @@ pub struct YiviReleaseNextSessionReq {
     /// The [`AuthStartResp::Success::state`] returned earlier
     pub state: AuthState,
 
-    /// The signed next session request to pass to the yivi server
+    /// The extended session request to pass to the yivi server, signed by PHC. Can be obtained
+    /// via the [`api::phc::CardEP`].
     ///
     /// If `None`, the yivi server will be served a `HTTP 204` causing it to stop the yivi flow
     /// normally without opening a follow-up session.
-    pub next_session_request: Option<jwt::JWT>,
+    pub next_session_request: Option<Signed<yivi::ExtendedSessionRequest>>,
 }
 
 /// What's returned by [`YiviReleaseNextSessionEP`]

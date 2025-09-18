@@ -65,11 +65,7 @@ global_client_url = 'http://localhost:8080'
 
 [phc.card]
 type = "demo"
-valid_for = "1 day"
-
-[phc.card.requestor_creds]
-name = "local-development"
-key.hs256 = "6576257d853bc1ea15cbf103dbc3950b819d65eef4fae4c55d80e9c32b683e06"
+valid_for = "2 week"
 
 [phc.object_store]
 url = "memory:///"

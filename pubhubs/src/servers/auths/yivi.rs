@@ -85,16 +85,19 @@ impl App {
             return actix_web::HttpResponse::BadRequest().finish();
         };
 
-        log::trace!("yivi server submitted disclosure and is waiting for chained session {chained_session_id}");
+        log::trace!(
+            "yivi server submitted disclosure and is waiting for chained session {chained_session_id}"
+        );
 
         match csc
             .wait_for_next_session(chained_session_id, result_jwt)
             .await
         {
             Ok(None) => actix_web::HttpResponse::NoContent().finish(),
-            Ok(Some(session_request_jwt)) => actix_web::HttpResponse::Ok()
-                .content_type("text/plain")
-                .body(session_request_jwt.as_str().to_string()),
+            Ok(Some(session_request)) => {
+                log::debug!("sent chained session to yivi server");
+                actix_web::HttpResponse::Ok().json(session_request)
+            }
             Err(api::ErrorCode::InternalError) => {
                 actix_web::HttpResponse::InternalServerError().finish()
             }
@@ -109,6 +112,7 @@ impl App {
         req: web::Json<api::auths::YiviReleaseNextSessionReq>,
     ) -> api::Result<api::auths::YiviReleaseNextSessionResp> {
         let csc = app.chained_sessions_ctl_or_bad_request()?;
+        let running_state = app.running_state_or_please_retry()?;
 
         let api::auths::YiviReleaseNextSessionReq {
             state,
@@ -124,6 +128,25 @@ impl App {
                 "yivi-release-next-session endpoint called on a authentication session without a yivi chained session"
             );
             return Err(api::ErrorCode::BadRequest);
+        };
+
+        let next_session_request = 'nsr: {
+            if let Some(next_session_request) = next_session_request {
+                match next_session_request.open(&*running_state.constellation.phc_jwt_key, None) {
+                    Ok(next_session_request) => break 'nsr Some(next_session_request),
+                    Err(api::OpenError::OtherConstellation(..)) | Err(api::OpenError::Expired) => {
+                        return Ok(api::auths::YiviReleaseNextSessionResp::PleaseRestartAuth);
+                    }
+                    Err(api::OpenError::InvalidSignature)
+                    | Err(api::OpenError::OtherwiseInvalid) => {
+                        return Err(api::ErrorCode::BadRequest);
+                    }
+                    Err(api::OpenError::InternalError) => {
+                        return Err(api::ErrorCode::InternalError);
+                    }
+                };
+            };
+            break 'nsr None;
         };
 
         csc.release_next_session(session_id, next_session_request)
@@ -142,10 +165,12 @@ pub struct ChainedSessionsCtl {
 #[derive(serde::Serialize, serde::Deserialize, Debug, Clone, Default)]
 pub struct ChainedSessionsConfig {}
 
+type NextSession = Option<yivi::ExtendedSessionRequest>;
+
 type CreateSessionCrs = tokio::sync::oneshot::Sender<api::Result<id::Id>>;
 type WaitForResultCrs =
     tokio::sync::oneshot::Sender<api::Result<api::auths::YiviWaitForResultResp>>;
-type WaitForNextSessionCrs = tokio::sync::oneshot::Sender<api::Result<Option<jwt::JWT>>>;
+type WaitForNextSessionCrs = tokio::sync::oneshot::Sender<api::Result<NextSession>>;
 type ReleaseNextSessionCrs =
     tokio::sync::oneshot::Sender<api::Result<api::auths::YiviReleaseNextSessionResp>>;
 
@@ -164,7 +189,7 @@ enum CscCommand {
     },
     ReleaseNextSession {
         chained_session_id: id::Id,
-        next_session_request: Option<jwt::JWT>,
+        next_session_request: NextSession,
         resp_sender: ReleaseNextSessionCrs,
     },
 }
@@ -214,7 +239,7 @@ impl ChainedSessionsCtl {
         &self,
         chained_session_id: id::Id,
         disclosure: jwt::JWT,
-    ) -> api::Result<Option<jwt::JWT>> {
+    ) -> api::Result<NextSession> {
         let (resp_sender, resp_receiver) = tokio::sync::oneshot::channel();
 
         self.send_command(CscCommand::WaitForNextSession {
@@ -238,7 +263,7 @@ impl ChainedSessionsCtl {
     pub async fn release_next_session(
         &self,
         chained_session_id: id::Id,
-        next_session_request: Option<jwt::JWT>,
+        next_session_request: NextSession,
     ) -> api::Result<api::auths::YiviReleaseNextSessionResp> {
         let (resp_sender, resp_receiver) = tokio::sync::oneshot::channel();
 
@@ -311,6 +336,7 @@ enum ChainedSessionState {
 
 /// Backend to [`ChainedSessionsCtl`].
 struct ChainedSessionsBackend {
+    #[expect(dead_code)]
     ctx: YiviCtx,
     sessions: HashMap<id::Id, ChainedSessionState>,
 }
@@ -486,7 +512,7 @@ impl ChainedSessionsBackend {
     async fn handle_release_next_session(
         &mut self,
         chained_session_id: id::Id,
-        next_session_request: Option<jwt::JWT>,
+        next_session_request: NextSession,
         resp_sender: ReleaseNextSessionCrs,
     ) {
         let Some(session) = self.sessions.get_mut(&chained_session_id) else {

@@ -240,6 +240,7 @@ pub enum MessageCode {
     Ehpp = 9,
     PpNonce = 10,
     Hhpp = 11,
+    YiviExtendedSessionRequest = 12,
 
     /// Only used as an example in a doctest
     Example = 65535,
