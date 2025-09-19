@@ -126,7 +126,7 @@ export default class PHCServer {
 	 * @throws Will throw an error if there is no backup user secret object stored while this is expected.
 	 * @throws Will throw an error if the backup user secret object differs from the user secret object.
 	 */
-	private async _getUserSecretObject(): Promise<{ object: mssTypes.UserSecretData; details: mssTypes.UserObjectDetails } | null> {
+	private async _getUserSecretObject(): Promise<{ object: mssTypes.UserSecretData; details: { usersecret: mssTypes.UserObjectDetails; backup: mssTypes.UserObjectDetails | null } } | null> {
 		const userSecretObject = await this.getUserObject('usersecret');
 
 		if (!userSecretObject || !userSecretObject.object) {
@@ -144,9 +144,9 @@ export default class PHCServer {
 			const decodedUserSecretBackup = decoder.decode(userSecretObjectBackup.object);
 			const secretObjectBackup = JSON.parse(decodedUserSecretBackup) as mssTypes.UserSecretObject;
 			assert.isTrue(this._deepEqualObjects(secretObject, secretObjectBackup), 'The user secret object differs from the backup user secret object.');
-			return { object: secretObject.data, details: userSecretObject.details };
+			return { object: secretObject.data, details: { usersecret: userSecretObject.details, backup: userSecretObjectBackup.details } };
 		}
-		return { object: secretObject, details: userSecretObject.details };
+		return { object: secretObject, details: { usersecret: userSecretObject.details, backup: null } };
 	}
 
 	async login(
@@ -156,7 +156,7 @@ export default class PHCServer {
 	): Promise<
 		| { entered: false; errorMessage: { key: string; values?: string[] }; objectDetails: null; userSecretObject: null }
 		| { entered: true; errorMessage: null; objectDetails: null; userSecretObject: null }
-		| { entered: true; errorMessage: null; objectDetails: mssTypes.UserObjectDetails; userSecretObject: mssTypes.UserSecretData }
+		| { entered: true; errorMessage: null; objectDetails: { usersecret: mssTypes.UserObjectDetails; backup: mssTypes.UserObjectDetails | null }; userSecretObject: mssTypes.UserSecretData }
 	> {
 		const { entered, errorMessage } = await this._enter(identifyingAttr, signedAddAttrs, enterMode);
 
@@ -265,8 +265,24 @@ export default class PHCServer {
 		return true;
 	}
 
-	async computeNewUserSecretObject(attrKeyResp: Record<string, mssTypes.AttrKeyResp>, identifyingAttrs: mssTypes.SignedIdentifyingAttrs, userSecretObject: mssTypes.UserSecretData | null) {
-		let newUserSecretObject: mssTypes.UserSecretObject = userSecretObject ? { ...userSecretObject } : {};
+	/**
+	 * Generates a new user secret or decrypt the existing user secret.
+	 * Then encrypts the user secret with the new attribute key for each identifying attribute that was disclosed in the enter request.
+	 *
+	 * @param attrKeyResp The response from the attrKeysEP with the requested attribute keys.
+	 * @param identifyingAttrs A list of the signed identifying attributes that were disclosed in the enter request.
+	 * @param userSecretObject The data for the existing user secret object.
+	 * @returns The updated user secret object.
+	 * @throws Will throw an error if an old attribute key is missing in the attrKeyResp.
+	 * @throws Will throw an error if the user secrets encrypted with different attribute keys do not match.
+	 * @throws Will throw an error if the user secret could not successfully be decrypted.
+	 */
+	private async _computeNewUserSecretObject(
+		attrKeyResp: Record<string, mssTypes.AttrKeyResp>,
+		identifyingAttrs: mssTypes.SignedIdentifyingAttrs,
+		userSecretObject: mssTypes.UserSecretData | null,
+	): Promise<{ newUserSecretObject: mssTypes.UserSecretObjectNew; userSecret: Uint8Array }> {
+		let newUserSecretData: mssTypes.UserSecretData = userSecretObject ? { ...userSecretObject } : {};
 		let userSecret: Uint8Array | null = null;
 		if (userSecretObject === null) {
 			// If this is the first time the user secret object is set, a random 256 bits (32 bytes) user secret needs to be generated.
@@ -305,38 +321,50 @@ export default class PHCServer {
 			// Encrypt the userSecret with the new attribute key and compose the new userSecret object
 			const cipherText = await this._encryptData(userSecret, keyResp.latest_key[0]);
 			// Use local OR assignment operator (||=) to make sure that newUserSecretObject is initialized before assigning the nested property
-			(newUserSecretObject[attr.id] ||= {})[attr.value] = { ts: keyResp.latest_key[1], encUserSecret: Buffer.from(cipherText).toString('base64') };
+			(newUserSecretData[attr.id] ||= {})[attr.value] = { ts: keyResp.latest_key[1], encUserSecret: Buffer.from(cipherText).toString('base64') };
 		}
+		const newUserSecretObject: mssTypes.UserSecretObject = {
+			version: 1,
+			data: newUserSecretData,
+		};
 		return { newUserSecretObject, userSecret };
 	}
 
+	/**
+	 * Stores the user secret object at the PHC object store under the handles 'usersecret' and 'usersecretbackup'.
+	 *
+	 * @param attrKeyResp The response from the attrKeysEP with the requested attribute keys.
+	 * @param identifyingAttrs A list of the signed identifying attributes that were disclosed in the enter request.
+	 * @param userSecretObject The data for the existing user secret object.
+	 * @param userSecretObjectDetails The object details for the existing user secret object.
+	 * @throws Will throw an error if an old attribute key is missing in the attrKeyResp.
+	 * @throws Will throw an error if the user secrets encrypted with different attribute keys do not match.
+	 * @throws Will throw an error if the user secret could not successfully be decrypted.
+	 */
 	async storeUserSecretObject(
 		attrKeyResp: Record<string, mssTypes.AttrKeyResp>,
 		identifyingAttrs: mssTypes.SignedIdentifyingAttrs,
 		userSecretObject: mssTypes.UserSecretData | null,
-		userSecretObjectDetails: mssTypes.UserObjectDetails | null,
-	) {
-		const computedUserSecretObject = await this.computeNewUserSecretObject(attrKeyResp, identifyingAttrs, userSecretObject);
-		if (!computedUserSecretObject || !computedUserSecretObject.userSecret) {
-			console.error('Something went wrong, could not compute the new user secret object.');
-			return;
-		}
+		userSecretObjectDetails: { usersecret: mssTypes.UserObjectDetails; backup: mssTypes.UserObjectDetails | null } | null,
+	): Promise<void> {
+		const computedUserSecretObject = await this._computeNewUserSecretObject(attrKeyResp, identifyingAttrs, userSecretObject);
 		const encodedNewUserSecretObject: Uint8Array = new TextEncoder().encode(JSON.stringify(computedUserSecretObject.newUserSecretObject));
 
-		let response: string | undefined;
-		// Store the userSecret object
-		if (!userSecretObjectDetails) {
-			response = await this._newObjectEP('usersecret', encodedNewUserSecretObject);
-		} else {
-			const overwriteHash = userSecretObjectDetails.hash;
-			response = await this._overwriteObjectEP('usersecret', overwriteHash, encodedNewUserSecretObject);
-		}
-		if (response !== undefined) {
+		// Store the userSecret object (twice)
+		const overwriteHash = userSecretObjectDetails ? userSecretObjectDetails.usersecret.hash : undefined;
+		const storedUserSecret = await this._storeObject('usersecret', encodedNewUserSecretObject, overwriteHash);
+		const overwriteHashBackup = userSecretObjectDetails && userSecretObjectDetails.backup ? userSecretObjectDetails.backup.hash : undefined;
+		const storedBackup = await this._storeObject('usersecretbackup', encodedNewUserSecretObject, overwriteHashBackup);
+
+		// Only set the _userSecret variable and store the user secret in localStorage if they were successfully written to the object store.
+		if (storedUserSecret && storedBackup) {
 			// Encode the userSecret as a base64 string
-			this._userSecret = this._uint8ArrayToBase64(computedUserSecretObject.userSecret);
+			this._userSecret = Buffer.from(computedUserSecretObject.userSecret).toString('base64');
 			localStorage.setItem('UserSecret', this._userSecret);
+		} else {
+			// TODO: trigger logout procedure?
+			throw new Error('Something went wrong in storing the user secret.');
 		}
-		// TODO: check with hash if object was properly stored
 	}
 
 	// #endregion
@@ -429,14 +457,6 @@ export default class PHCServer {
 
 	// #region User object store
 
-	private _uint8ArrayToBase64(array: Uint8Array) {
-		// Convert the Uint8Array into a binary string
-		const binary = String.fromCharCode(...array);
-		// Convert the binary string into a base64-encoded string
-		const base64 = btoa(binary);
-		return base64;
-	}
-
 	/**
 	 * Request the state of the current user.
 	 *
@@ -466,7 +486,7 @@ export default class PHCServer {
 	 * @param handle The handle of the object that is requested.
 	 * @returns The requested object if it exists.
 	 */
-	private async _getObjectEP(objectDetails: mssTypes.UserObjectDetails, handle: string) {
+	private async _getObjectEP(objectDetails: mssTypes.UserObjectDetails, handle: string): Promise<ArrayBuffer | null> {
 		const maxAttempts = 3;
 		let details = objectDetails;
 		for (let attempts = 0; attempts < maxAttempts; attempts++) {
@@ -489,6 +509,7 @@ export default class PHCServer {
 				throw new Error('Unknown response from the getObject endpoint.');
 			}
 		}
+		throw new Error('Unexpectedly could not handle the response of the getObjectEP.');
 	}
 
 	private async _getObjectDetails(handle: string): Promise<mssTypes.UserObjectDetails | null | undefined> {
@@ -535,6 +556,13 @@ export default class PHCServer {
 		return decodedData;
 	}
 
+	/**
+	 * Write a new object with a handle to the object store.
+	 *
+	 * @param handle The handle to store the object under.
+	 * @param object The object to write to the object store.
+	 * @returns The hash if the object was stored correctly.
+	 */
 	private async _newObjectEP(handle: string, object: Uint8Array): Promise<string | undefined> {
 		const maxAttempts = 3;
 		for (let attempts = 0; attempts < maxAttempts; attempts++) {
@@ -549,10 +577,10 @@ export default class PHCServer {
 			const newObjectResp = await handleErrors<mssTypes.StoreObjectResp>(() => this._phcAPI.api<mssTypes.PHCStoreObjectResp>(this._phcAPI.apiURLS.newObject + '/' + handle, options));
 			switch (newObjectResp) {
 				case 'PleaseRetry':
-					if (attempts < maxAttempts) {
-						continue;
+					if (attempts === maxAttempts) {
+						throw new Error('Max attemps for RetryFromStart were passed.');
 					}
-					throw new Error('Max attemps for RetryFromStart were passed');
+					continue;
 				case 'RetryWithNewAuthToken':
 					const global = useGlobal();
 					global.logout();
@@ -569,7 +597,7 @@ export default class PHCServer {
 				case 'HashDidNotMatch':
 					throw new Error('Unexpected response HashDidNotMatch for a newObjectEP request.');
 				case 'NoChanges':
-					break;
+					throw new Error('Unexpected response NoChanges for a newObjectEP request.');
 				default:
 					if ('QuotumReached' in newObjectResp) {
 						throw new Error(`Could not store the new user object with handle ${handle}, because the quotum is reached.`);
@@ -579,8 +607,16 @@ export default class PHCServer {
 					throw new Error('Unknown response for newObjectEP request.');
 			}
 		}
+		throw new Error('Unexpectedly could not handle the response of the newObjectEP.');
 	}
 
+	/**
+	 * Overwrite an object with a certain hash in the object store.
+	 * @param handle The handle of the object to overwrite.
+	 * @param overwriteHash The hash of the object to overwrite.
+	 * @param object The new contents of the object.
+	 * @returns The hash if the object was stored correctly.
+	 */
 	private async _overwriteObjectEP(handle: string, overwriteHash: string, object: Uint8Array): Promise<string | undefined> {
 		const maxAttempts = 3;
 		let hash = overwriteHash;
@@ -596,10 +632,10 @@ export default class PHCServer {
 			const overwriteObjectResp = await handleErrors<mssTypes.StoreObjectResp>(() => this._phcAPI.api<mssTypes.PHCStoreObjectResp>(this._phcAPI.apiURLS.overwriteObject + '/' + handle + '/' + hash, options));
 			switch (overwriteObjectResp) {
 				case 'PleaseRetry':
-					if (attempts < maxAttempts) {
-						continue;
+					if (attempts === maxAttempts) {
+						throw new Error('Max attemps for RetryFromStart were passed');
 					}
-					throw new Error('Max attemps for RetryFromStart were passed');
+					continue;
 				case 'RetryWithNewAuthToken':
 					const global = useGlobal();
 					global.logout();
@@ -609,16 +645,17 @@ export default class PHCServer {
 				case 'NotFound':
 					return await this._newObjectEP(handle, object);
 				case 'HashDidNotMatch':
-					if (attempts < maxAttempts) {
-						const existingObject = await this.getUserObject(handle);
-						if (existingObject !== null) {
-							hash = existingObject.details.hash;
-							continue;
-						}
-						throw new Error('Could not find the object.');
+					if (attempts === maxAttempts) {
+						throw new Error('The object stored at this handle has a different hash');
 					}
+					const existingObject = await this.getUserObject(handle);
+					if (existingObject !== null) {
+						hash = existingObject.details.hash;
+						continue;
+					}
+					throw new Error('Could not find the object.');
 				case 'NoChanges':
-					break;
+					return overwriteHash;
 				default:
 					if ('QuotumReached' in overwriteObjectResp) {
 						throw new Error(`Could not store the new user object with handle ${handle}, because the quotum is reached.`);
@@ -628,9 +665,36 @@ export default class PHCServer {
 					throw new Error('Unknown response for newObjectEP request.');
 			}
 		}
+		throw new Error('Unexpectedly could not handle the response of the overwriteEP.');
 	}
 
-	async storeObject<T>(handle: string, data: T, overwriteHash?: string) {
+	/**
+	 * Stores an object at the PHC object store.
+	 *
+	 * @param handle The handle of the object to store.
+	 * @param data The data of the object to store.
+	 * @param overwriteHash The hash of the object if it existed before.
+	 * @returns A boolean value, denoting whether the object was stored correctly or not.
+	 */
+	private async _storeObject(handle: string, data: Uint8Array, overwriteHash?: string): Promise<boolean> {
+		let storeObjectResp: string | undefined;
+		if (overwriteHash) {
+			storeObjectResp = await this._overwriteObjectEP(handle, overwriteHash, data);
+		} else {
+			storeObjectResp = await this._newObjectEP(handle, data);
+		}
+
+		if (storeObjectResp === undefined) {
+			return false;
+		}
+		const storedObject = await this.getUserObject(handle);
+		assert.isNotNull(storedObject, `Could not retrieve the object with handle ${handle}, even though it seemed to be stored correctly.`);
+		assert.isNotNull(storedObject.object, `Could not retrieve the object with handle ${handle}, even though it seemed to be stored correctly and the object details were retrieved.`);
+		assert.isTrue(this._buffersAreEqual(storedObject.object, data), `The data for the object with handle ${handle} was not correctly stored.`);
+		return true;
+	}
+
+	async encryptAndStoreObject<T>(handle: string, data: T, overwriteHash?: string) {
 		// Encode the data
 		const encoder = new TextEncoder();
 		const encodedData = encoder.encode(JSON.stringify(data));
@@ -640,15 +704,7 @@ export default class PHCServer {
 			throw new Error('Could not retrieve the secret needed to encrypt the data.');
 		}
 		const encryptedData = await this._encryptData(encodedData, userSecret);
-
-		let storeObjectResp: string | undefined;
-		if (overwriteHash) {
-			storeObjectResp = await this._overwriteObjectEP(handle, overwriteHash, encryptedData);
-		} else {
-			storeObjectResp = await this._newObjectEP(handle, encryptedData);
-		}
-
-		// TODO: check with hash if object was properly stored
+		await this._storeObject(handle, encryptedData, overwriteHash);
 	}
 
 	// #region Hub Login

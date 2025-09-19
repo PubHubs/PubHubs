@@ -99,8 +99,9 @@ const useMSS = defineStore('mss', {
 				// If the object already exists, the hash is needed to overwrite the object
 				overwriteHash = object.details.hash;
 			}
-			await this.phcServer.storeObject<T>(handle, data, overwriteHash);
+			await this.phcServer.encryptAndStoreObject<T>(handle, data, overwriteHash);
 		},
+
 		// TODO: possibly move this function to a utility file
 		withTimeout<T>(promise: Promise<T>, ms: number): Promise<T> {
 			return Promise.race([promise, new Promise<T>((_, reject) => setTimeout(() => reject(new Error('Timeout')), ms))]);

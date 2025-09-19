@@ -255,7 +255,7 @@ export type UserSecretData = {
 
 type UserSecretObjectOld = UserSecretData;
 
-type UserSecretObjectNew = {
+export type UserSecretObjectNew = {
 	version: number;
 	data: UserSecretData;
 };
