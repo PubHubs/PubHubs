@@ -22,76 +22,7 @@ class Pseudonym:
     def __init__(self, config: dict, api: ModuleApi):
         self.api = api
 
-# Oidc mapping provider for PubHubs that decrypts the encrypted local pseudonym, and
-# turns it into a short pseudonym.
-# 
-# References:
-#   - https://matrix-org.github.io/synapse/latest/sso_mapping_providers.html
-#   - https://github.com/matrix-org/synapse/blob/6ac35667af31f6d3aa81a8b5d00425e6e7e657e7/synapse/handlers/oidc.py#L1532
-class OidcMappingProvider:
-    def __init__(self, config):
-        self._config = config
-        self._secret = os.environ['HUB_SECRET']
-        self._libpubhubs = ctypes.CDLL(config["libpubhubspath"])
-
-        self._libpubhubs.decrypt.restype = ctypes.c_ubyte
-
-    @staticmethod
-    def parse_config(config):
-        if "libpubhubspath" not in config:
-            logger.error(f"the invalid config was: {config}")
-            raise ConfigError("Please configure 'libpubhubspath'")
-        return config
-
-    def get_remote_user_id(self, userinfo):
-        logger.info(f"get_remote_user_id {userinfo}")
-        encrypted_local_pseudonym = userinfo["sub"]
-
-        result_buf = ctypes.create_string_buffer(32)
-        ciphertext_buf = ctypes.create_string_buffer(96)
-        private_key_buf = ctypes.create_string_buffer(32)
-
-        ciphertext_buf.raw = bytes.fromhex(encrypted_local_pseudonym)
-        private_key_buf.raw = bytes.fromhex(self._secret)
-
-        match self._libpubhubs.decrypt(ctypes.byref(result_buf), ctypes.byref(ciphertext_buf), ctypes.byref(private_key_buf)):
-            case 1: # Ok
-                pass
-            case 2: # WrongPublicKey
-                raise RuntimeError("failed to decrypt user's encrypted local pseudonym - encrypted for another public key (not HUB_SECRET)")
-            case 3: # InvalidTriple
-                raise RuntimeError("failed to decrypt user's encrypted local pseudonym - not a valid ElGamal ciphertext")
-            case 4: # InvalidPrivateKey
-                raise RuntimeError("failed to decrypt user's encrypted local pseudonym - invalid HUB_SECRET")
-            case _ as ec: 
-                raise RuntimeError(f"failed to decrypt user's encrypted local pseudonym - unknown error code {ec}")
-
-        decrypted_local_pseudonym = result_buf.raw.hex()
-
-        assert decrypted_local_pseudonym != "0000000000000000000000000000000000000000000000000000000000000000"
-
-        # HACK: For efficiency's sake, we add the decrypted local pseudonym to userinfo,
-        # so that it can be used in map_user_attributes below.  This seems to work for now,
-        # but might break in the future as it's not clear that mutating userinfo like this is
-        # a feature intended by the synapse authors.  If it breaks, we could add a lookup table
-        # from "sub" to "phlp" in this (OidcMappingProvider) class.
-        userinfo["phlp"] = decrypted_local_pseudonym
-
-        return decrypted_local_pseudonym
-
-    async def map_user_attributes(self, userinfo, token, failures):
-        logger.info(f"map_user_attributes {userinfo} {token} {failures}")
-        return UserAttributeDict(
-                localpart = PseudonymHelper.short_pseudonym_nr(userinfo["phlp"], failures),
-                confirm_localpart = False)
-
-    async def get_extra_attributes(self, userinfo, token):
-        logger.info(f"get_extra_attributes {userinfo} {token}")
-        return {}
-
-
 class PseudonymHelper:
-
     local_pseudonym_pattern = re.compile("[a-f0-9]{64}")
     checkdigit_alphabet = "0123456789abcdefg"
 

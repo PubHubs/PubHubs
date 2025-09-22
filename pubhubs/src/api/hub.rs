@@ -1,4 +1,5 @@
 //! Endpoints provided by a hub
+use actix_web::http;
 use serde::{Deserialize, Serialize};
 
 use crate::api::*;

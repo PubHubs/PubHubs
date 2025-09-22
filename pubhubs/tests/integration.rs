@@ -195,17 +195,15 @@ async fn main_integration_test_local(
         .await
         .unwrap();
 
-    // Run mock test hub
-    let testhub = config
-        .phc
-        .as_ref()
-        .unwrap()
-        .hubs
-        .iter()
-        .find(|h: &&hub::BasicInfo| &*h.handles[0] == "testhub")
-        .expect("could not find 'testhub' hub");
+    let welcome_resp = client
+        .query_with_retry::<api::phc::user::WelcomeEP, _, _>(config.phc_url.as_ref(), NoPayload)
+        .await
+        .unwrap();
 
-    let mock_hub = MockHub::new(testhub.clone(), constellation.clone());
+    // Run mock test hub
+    let testhub = welcome_resp.hubs[&"testhub".parse().unwrap()].clone();
+
+    let mock_hub = MockHub::new(testhub.clone().into(), constellation.clone());
 
     let mut js = tokio::task::JoinSet::new();
     js.spawn(mock_hub.actix_server); // the actix server does not run itself
@@ -331,7 +329,7 @@ async fn main_integration_test_local(
                 &api::phc::user::EnterReq {
                     identifying_attr: email.clone(),
                     mode: api::phc::user::EnterMode::Register,
-                    add_attrs: vec![]
+                    add_attrs: vec![],
                 },
             )
             .await
@@ -768,6 +766,7 @@ async fn request_attributes(
             &api::auths::AuthStartReq {
                 source: attr::Source::Yivi,
                 attr_types: vec!["email".parse().unwrap(), "phone".parse().unwrap()],
+                yivi_chained_session: false,
             },
         )
         .await

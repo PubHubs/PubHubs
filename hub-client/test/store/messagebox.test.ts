@@ -10,8 +10,8 @@ function mockTarget(id: string) {
 				postMessage: (message: string, url: string) => {
 					messages.push({ message: message, url: url });
 				},
-				receiverUrl: 'http://child',
 			},
+			receiverUrl: 'http://child',
 		},
 	};
 }

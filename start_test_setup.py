@@ -401,7 +401,8 @@ def docker_run_hub_client(image_name, client_number, container_name, client_port
     subprocess.call(docker_copy_command)
 
 
-def docker_run_hub_server(hub_secret, image_name, container_name, hub_matrix_port, config_dir):
+def docker_run_hub_server(#hub_secret, 
+                          image_name, container_name, hub_matrix_port, config_dir):
     """
     Run a Docker container using the specified image and environment variables.
 
@@ -439,7 +440,7 @@ def docker_run_hub_server(hub_secret, image_name, container_name, hub_matrix_por
                       "--name", container_name,
                       "-d",
                       "-p", f"{hub_matrix_port}:{hub_matrix_port}",
-                      "-e", f"HUB_SECRET={hub_secret}",
+                      #"-e", f"HUB_SECRET={hub_secret}",
                       *dont_start_hub,
                       "-e", "SYNAPSE_CONFIG_DIR=/data",
                       "-e", "AUTHLIB_INSECURE_TRANSPORT=for_testing_only_of_course",
@@ -474,7 +475,8 @@ def run_docker_compose(env_value=None, args: str = None) -> None:
     subprocess.call(docker_command)
 
 
-def update_homeserver_yaml(input_path, output_path, client_id, client_secret,client_port, hub_port):
+def update_homeserver_yaml(input_path, output_path, #client_id, client_secret,
+                           client_port, hub_port):
 
     """
     Write the homeserver.yaml file with the specified client ID, client secret, and client URL.
@@ -497,16 +499,17 @@ def update_homeserver_yaml(input_path, output_path, client_id, client_secret,cli
         # Find the lines to update based on their content
         for i, line in enumerate(lines):
             # Check if the line starts with 'client_id:' or 'client_secret:'
-            if line.strip('- ').startswith(('client_id:', 'client_secret:', 'client_url:', 'public_baseurl:','port:')):
+            if line.strip('- ').startswith((#'client_id:', 'client_secret:', 
+                                            'client_url:', 'public_baseurl:','port:')):
                 # Get the whitespace before the key
                 whitespace = line[:-len(line.lstrip())]
 
                 # Create the updated line with the same whitespace and the new value
-                if line.strip('- ').startswith('client_id:'):
-                    lines[i] = f'-{whitespace}{whitespace}{whitespace}client_id: {client_id}\n'
-                elif line.strip().startswith('client_secret:'):
-                    lines[i] = f'{whitespace}client_secret: {client_secret}\n'
-                elif line.strip().startswith('client_url:'):
+                #if line.strip('- ').startswith('client_id:'):
+                #    lines[i] = f'-{whitespace}{whitespace}{whitespace}client_id: {client_id}\n'
+                #elif line.strip().startswith('client_secret:'):
+                #    lines[i] = f'{whitespace}client_secret: {client_secret}\n'
+                if line.strip().startswith('client_url:'):
                     lines[i] = f'{whitespace}client_url: "http://localhost:{client_port}",\n'
                 elif line.strip().startswith('public_baseurl:'):
                     lines[i] = f'{whitespace}public_baseurl: "http://localhost:{hub_port}"\n'
@@ -754,18 +757,18 @@ def main_runner(cargo_setup:str, node_arg:str, hubs:int = 1) -> None:
 
         hub_name = "testhub" + str(i)
 
-        hub_id = create_test_pub_hub(url, hub_name, matrix_port, client_port)
+        #hub_id = create_test_pub_hub(url, hub_name, matrix_port, client_port)
 
         # Get html page with oidc id and secret
-        oidc_page_html = get_odic_secret_info(hub_id, url)
+        #oidc_page_html = get_odic_secret_info(hub_id, url)
 
         # Get a tuple container client id and client password
-        oidc_secret = get_oidc_id_secret(oidc_page_html)
+        #oidc_secret = get_oidc_id_secret(oidc_page_html)
 
-        client_id = oidc_secret[0]
-        client_password = oidc_secret[1]
+        #client_id = oidc_secret[0]
+        #client_password = oidc_secret[1]
 
-        hub_secret = export_hub_secret(hub_id, url)
+        #hub_secret = export_hub_secret(hub_id, url)
 
         # Make the data dir for this hub server
         hub_data_dir = os.path.abspath(f'pubhubs_hub/{hub_name}')
@@ -783,7 +786,8 @@ def main_runner(cargo_setup:str, node_arg:str, hubs:int = 1) -> None:
         # Create homeserver file with new client id and password, and other import ports
         homeserver_path = os.path.join(hub_data_dir, 'homeserver.yaml')
         update_homeserver_yaml(get_homeserver_path(), homeserver_path,
-                               client_id, client_password, client_port, matrix_port)
+                               #client_id, client_password, 
+                               client_port, matrix_port)
 
         # Change permissions of relevant matrix config directory
         matrix_config_list = [
@@ -798,7 +802,8 @@ def main_runner(cargo_setup:str, node_arg:str, hubs:int = 1) -> None:
         os.chdir("pubhubs_hub")
         container_name = f"{hub_name}_{matrix_port}"
         remove_container(container_name)
-        docker_run_hub_server(hub_secret, "testhub", container_name, matrix_port, hub_data_dir)
+        docker_run_hub_server(#hub_secret, 
+                              "testhub", container_name, matrix_port, hub_data_dir)
         os.chdir(root_dir)
 
         # Hub Client

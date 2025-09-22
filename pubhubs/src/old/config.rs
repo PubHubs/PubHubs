@@ -1,13 +1,11 @@
-use std::collections::HashSet;
 use std::path::PathBuf;
 use std::str::FromStr;
 
-use anyhow::{Context as _, Result, anyhow, bail, ensure};
+use anyhow::{anyhow, bail, ensure, Context as _, Result};
 use log::{info, warn};
 use serde::{Deserialize, Serialize};
 
 use crate::misc::net_ext;
-use crate::misc::serde_ext::bytes_wrapper::B64;
 
 #[derive(Serialize, Deserialize)]
 pub struct File {
@@ -37,41 +35,11 @@ pub struct File {
     #[serde(default)]
     pub connection_check_nonce: Option<String>,
 
-    /// location of the database file, or None when an in-memory database
-    /// is to be used
-    #[serde(default)]
-    pub database_location: Option<String>,
-
-    /// Legacy - no longer used
-    #[serde(default = "default_policy_directory")]
-    pub policy_directory: String,
-
-    #[serde(default = "default_translations_directory")]
-    pub translations_directory: String,
-
     #[serde(default = "default_assets_directory")]
     pub assets_directory: String,
 
-    #[serde(default = "default_templates_file")]
-    pub templates_file: String,
-
-    pub admins: HashSet<String>,
-    pub allowed_embedding_contexts: Vec<String>,
-
-    pub cookie_secret: Option<String>,
-    pub admin_api_key: Option<String>,
-    pub metrics_key: Option<String>,
-
-    pub oidc_secret: Option<B64>,
-
-    pub yivi: Yivi,
-    pub pep: Pep,
-
     #[serde(default)]
     pub static_files: StaticFiles,
-
-    #[serde(default)]
-    pub hotfixes: Hotfixes,
 }
 
 // for a hotfix to #459
@@ -84,37 +52,11 @@ pub struct StaticFiles {
     pub disable_content_disposition: bool,
 }
 
-#[derive(Serialize, Deserialize, Default)]
-#[serde(deny_unknown_fields, default)]
-pub struct Hotfixes {
-    /// remove these headers from all responses
-    pub remove_headers: Vec<String>,
-
-    /// Turn [actix_web::body::MessageBody]s into [bytes::Bytes] before sending them as response
-    /// WARNING: this breaks the Yivi proxy.
-    pub no_streaming: bool,
-
-    /// Don't use the `Secure` attribute on cookies
-    pub no_secure_cookies: bool,
-
-    /// Don't use the `HttpOnly` attribute on cookies
-    pub no_http_only_cookies: bool,
-}
-
 fn default_bind_to() -> (Vec<String>, u16) {
     (vec!["::".to_string(), "0.0.0.0".to_string()], 8080)
 }
-fn default_policy_directory() -> String {
-    "default_policies".to_string()
-}
-fn default_translations_directory() -> String {
-    "static/translations".to_string()
-}
 fn default_assets_directory() -> String {
     "static/assets".to_string()
-}
-fn default_templates_file() -> String {
-    "static/templates_hair/hair.html".to_string()
 }
 
 static ENV: &str = "PUBHUBS_CONFIG";
@@ -196,43 +138,6 @@ impl File {
     }
 }
 
-/// The Yivi server serves two APIs:
-///  1.)  One, under /irma,  for 'clients' (i.e. Yivi apps)  to disclose, sign, and receive credentials, and
-///  2.)  one, under /session,  for 'requestors' to start and inspect Yivi sessions.
-///
-/// By default, Yivi serves both on the same (IP address and) port, but it can be configured to
-/// serve the client endpoints via a different (IP address and) port, via `client_port` (and
-/// `client_listen_addr`, see:
-///
-///  <https://irma.app/docs/irma-server/#http-server-endpoints>
-///
-/// Seperate ports make it possible to shield the requestor endpoint from the wider internet.
-#[derive(Serialize, Deserialize)]
-pub struct Yivi {
-    /// Base url (so without the /session) to the Yivi server's requestor API for use by
-    /// PubHubs Central.
-    #[serde(alias = "server_url")]
-    pub requestor_api_url: String,
-
-    /// Base url (so without the /irma) to the Yivi server's client API for use by the PubHubs
-    /// Central Yivi proxy.  Note that this is not the url used by the Yivi app.
-    ///
-    /// If None, `requestor_api_url` will be used.
-    #[serde(default)]
-    #[serde(alias = "client_url")]
-    pub client_api_url: Option<String>,
-
-    #[serde(default = "default_yivi_requestor")]
-    pub requestor: String,
-
-    pub requestor_hmac_key: Option<String>, // must be base64
-
-    #[serde(default = "default_yivi_server_issuer")]
-    pub server_issuer: String,
-
-    pub server_key_file: Option<String>,
-}
-
 #[derive(Serialize, Deserialize, PartialEq, Eq, Debug)]
 pub struct Urls {
     for_browser: url::Url,
@@ -255,20 +160,6 @@ pub enum AltUrl {
     ///
     /// Warning:  you might be behind a NAT or firewall
     Autodetect,
-}
-
-fn default_yivi_requestor() -> String {
-    "pubhubs".to_string()
-}
-fn default_yivi_server_issuer() -> String {
-    "irmaserver".to_string()
-}
-
-#[derive(Serialize, Deserialize)]
-pub struct Pep {
-    pub global_public_key: Option<String>,
-    pub global_secret_key: Option<String>,
-    pub factor_secret: Option<String>,
 }
 
 impl File {

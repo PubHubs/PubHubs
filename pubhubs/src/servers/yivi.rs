@@ -8,14 +8,30 @@ use serde::{
     ser::Error as _,
 };
 
+use crate::api;
 use crate::misc::jwt;
 use crate::misc::serde_ext::bytes_wrapper::B64UU;
 
-/// An extended session request, see <https://irma.app/docs/session-requests/#extra-parameters>
+/// An extended session request, see:
+///  - <https://irma.app/docs/session-requests/#extra-parameters>, and
+///  -
+///  <https://github.com/privacybydesign/irmago/blob/f9718c334af76a3ad2fa23019d17957878cd2032/requests.go#L145>
 #[derive(serde::Serialize, serde::Deserialize, Debug, Clone, PartialEq, Eq)]
 pub struct ExtendedSessionRequest {
-    // TODO, maybe: validity, timeout, callbackUrl, nextSession
+    // TODO, maybe: validity, timeout, callbackUrl
     request: SessionRequest,
+
+    /// Use to setup chained sessions, see
+    /// <https://docs.yivi.app/chained-sessions#the-nextsession-url>
+    #[serde(rename = "nextSession")]
+    #[serde(skip_serializing_if = "Option::is_none")]
+    next_session: Option<NextSessionData>,
+}
+
+/// <https://github.com/privacybydesign/irmago/blob/f9718c334af76a3ad2fa23019d17957878cd2032/requests.go#L139>
+#[derive(serde::Serialize, serde::Deserialize, Debug, Clone, PartialEq, Eq)]
+pub struct NextSessionData {
+    url: url::Url,
 }
 
 /// A session request sent by a requestor to a yivi server
@@ -26,6 +42,9 @@ pub struct SessionRequest {
 
     /// <https://pkg.go.dev/github.com/privacybydesign/irmago#DisclosureRequest>
     disclose: Option<AttributeConDisCon>,
+
+    /// <https://pkg.go.dev/github.com/privacybydesign/irmago#IssuanceRequest>
+    credentials: Option<Vec<CredentialToBeIssued>>,
 }
 
 impl ExtendedSessionRequest {
@@ -34,7 +53,28 @@ impl ExtendedSessionRequest {
             request: SessionRequest {
                 context: LdContext::Disclosure,
                 disclose: Some(cdc),
+                credentials: None,
             },
+            next_session: None,
+        }
+    }
+
+    pub fn issuance(credentials: Vec<CredentialToBeIssued>) -> Self {
+        Self {
+            request: SessionRequest {
+                context: LdContext::Issuance,
+                disclose: None,
+                credentials: Some(credentials),
+            },
+            next_session: None,
+        }
+    }
+
+    /// Adds a `next_session` field
+    pub fn next_session(self, url: url::Url) -> Self {
+        Self {
+            next_session: Some(NextSessionData { url }),
+            ..self
         }
     }
 
@@ -143,6 +183,40 @@ pub type AttributeConDisCon = Vec<Vec<Vec<AttributeRequest>>>;
 pub struct AttributeRequest {
     #[serde(rename = "type")] // 'type' is a keyword
     pub ty: AttributeTypeIdentifier,
+}
+
+/// Known as
+/// [`CredentialRequest`](https://pkg.go.dev/github.com/privacybydesign/irmago#CredentialRequest) in irmago.
+#[derive(serde::Serialize, serde::Deserialize, Debug, Clone, PartialEq, Eq)]
+pub struct CredentialToBeIssued {
+    validity: Option<api::NumericDate>,
+
+    #[serde(rename = "credential")]
+    type_id: CredentialTypeIdentifier,
+
+    attributes: std::collections::HashMap<String, String>,
+}
+
+impl CredentialToBeIssued {
+    pub fn new(type_id: CredentialTypeIdentifier) -> Self {
+        Self {
+            validity: None,
+            type_id,
+            attributes: Default::default(),
+        }
+    }
+
+    pub fn valid_for(self, duration: std::time::Duration) -> Self {
+        Self {
+            validity: Some(api::NumericDate::now() + duration),
+            ..self
+        }
+    }
+
+    pub fn attribute(mut self, key: String, value: String) -> Self {
+        self.attributes.insert(key, value);
+        self
+    }
 }
 
 /// Credentials (name and key) for a requestor or yivi server.
@@ -434,13 +508,13 @@ pub struct DisclosedAttribute {
     pub status: AttributeProofStatus,
 
     #[serde(rename = "issuancetime")]
-    pub issuance_time: jwt::NumericDate,
+    pub issuance_time: api::NumericDate,
 
     #[serde(rename = "notrevoked")]
     pub not_revoked: Option<bool>,
 
     #[serde(rename = "notrevokedbefore")]
-    pub not_revoked_before: Option<jwt::NumericDate>,
+    pub not_revoked_before: Option<api::NumericDate>,
 }
 
 impl DisclosedAttribute {
@@ -449,7 +523,7 @@ impl DisclosedAttribute {
             raw_value,
             id,
             status: AttributeProofStatus::Present,
-            issuance_time: jwt::NumericDate::now(),
+            issuance_time: api::NumericDate::now(),
             not_revoked: None,
             not_revoked_before: None,
         }
@@ -467,7 +541,7 @@ impl DisclosedAttribute {
         }
 
         if let Some(not_revoked_before) = self.not_revoked_before
-            && jwt::NumericDate::now() > not_revoked_before
+            && api::NumericDate::now() > not_revoked_before
         {
             anyhow::bail!("attribute is (presumably) revoked after {not_revoked_before}");
         }
@@ -549,7 +623,7 @@ impl std::str::FromStr for RequestorToken {
 ///
 /// <https://github.com/privacybydesign/irmago/blob/b1c38f4f2c9da3d3f39b5c21a330bcbd04143f41/requests.go#L382>
 ///
-/// We don't.
+/// We don't, but use [`CredentialTypeIdentifier`] instead.
 #[derive(serde::Serialize, serde::Deserialize, Clone, Debug, Eq, PartialEq)]
 #[serde(transparent)]
 pub struct AttributeTypeIdentifier {
@@ -603,6 +677,61 @@ impl std::str::FromStr for AttributeTypeIdentifier {
 }
 
 impl std::fmt::Display for AttributeTypeIdentifier {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        self.inner.fmt(f)
+    }
+}
+
+/// Identifier for a yivi credential type, to us a string with two dots ('.').
+#[derive(serde::Serialize, serde::Deserialize, Clone, Debug, Eq, PartialEq)]
+#[serde(transparent)]
+pub struct CredentialTypeIdentifier {
+    #[serde(deserialize_with = "CredentialTypeIdentifier::deserialize_inner")]
+    inner: String,
+}
+
+impl CredentialTypeIdentifier {
+    fn deserialize_inner<'de, D>(d: D) -> Result<String, D::Error>
+    where
+        D: serde::de::Deserializer<'de>,
+    {
+        let inner: String = String::deserialize(d)?;
+
+        Self::validate_inner(&inner).map_err(D::Error::custom)?;
+
+        Ok(inner)
+    }
+
+    /// Checks that the given string contains two dots ('.').
+    fn validate_inner(inner: &str) -> anyhow::Result<()> {
+        let dot_count: usize = inner.chars().filter(|c: &char| *c == '.').count();
+
+        anyhow::ensure!(
+            dot_count == 2,
+            "invalid yivi credential type identifier: does not contain two dots"
+        );
+
+        Ok(())
+    }
+
+    /// Returns reference to underlying [`str`].
+    pub fn as_str(&self) -> &str {
+        &self.inner
+    }
+}
+
+impl std::str::FromStr for CredentialTypeIdentifier {
+    type Err = anyhow::Error;
+
+    fn from_str(inner: &str) -> Result<Self, Self::Err> {
+        Self::validate_inner(inner)?;
+        Ok(Self {
+            inner: inner.to_string(),
+        })
+    }
+}
+
+impl std::fmt::Display for CredentialTypeIdentifier {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         self.inner.fmt(f)
     }

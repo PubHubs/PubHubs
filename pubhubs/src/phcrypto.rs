@@ -126,6 +126,11 @@ pub fn constellation_id(c: &constellation::Inner) -> id::Id {
         .derive_id(c.sha256(), "pubhubs-constellation-id")
 }
 
+/// Derives an [`id::Id`] for a [`jwt::JWT`].
+pub fn jwt_id(jwt: &jwt::JWT) -> id::Id {
+    b"".as_slice().derive_id(jwt.sha256(), "pubhubs-jwt-id")
+}
+
 /// Derives an `hmac` for a user object stored at pubhubs central.
 ///
 /// See [`crate::api::phc::user::GetObjectEP`].

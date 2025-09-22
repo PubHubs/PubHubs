@@ -63,12 +63,25 @@ class FakeAccountDataHandler:
         if type != "im.vector.setting.allowed_widgets":
             raise Exception
 
+class FakeClock:
+    def looping_call(self, callback, interval_ms):
+        # Just a no-op or you can schedule call for tests if needed.
+        pass
+
+class FakeRateLimitConfig:
+    per_second = 5  # or any positive number that mimics rate limit per second
+    burst_count = 10  # possibly needed if accessed, can add more attributes as needed
+    key = "rc_room_creation"
+
+class FakeRatelimiting:
+    rc_room_creation = FakeRateLimitConfig()
 
 class FakeHsConfig:
     room = FakeRoomConfig
     server = FakeServer
     servernotices = FakeNoticesManager()
     worker = FakeWorker()
+    ratelimiting = FakeRatelimiting() 
 
 
 class FakeState:
@@ -218,6 +231,8 @@ class FakeRoomShutdownHandler:
 
 class FakeHs:
     hostname = "hostname"
+    def get_clock(self):
+        return FakeClock()
 
     def get_server_notices_manager(self):
         return FakeNoticesManager()
@@ -227,9 +242,6 @@ class FakeHs:
 
     def get_auth(self):
         return FakeAuth()
-
-    def get_clock(self):
-        return None
 
     def get_event_creation_handler(self):
         return FakeEvencreationHandler()

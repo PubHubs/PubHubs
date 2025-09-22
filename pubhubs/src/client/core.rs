@@ -10,7 +10,7 @@ use crate::api::{
 use crate::misc::fmt_ext;
 
 use awc::error::StatusCode;
-use awc::http::header::TryIntoHeaderValue;
+use awc::http::{self, header::TryIntoHeaderValue};
 use futures_util::FutureExt as _;
 
 /// Client for making requests to pubhubs servers and hubs; cheaply clonable
@@ -89,7 +89,7 @@ where
     BU: Borrow<url::Url>,
     BR: Borrow<EP::RequestType>,
     PP: Borrow<PathParams<'a>>,
-    HV: Borrow<http::HeaderValue>,
+    HV: Borrow<http::header::HeaderValue>,
 {
     type Output = EP::ResponseType;
     type IntoFuture = futures::future::LocalBoxFuture<'static, Self::Output>;
@@ -107,7 +107,7 @@ where
     BU: Borrow<url::Url>,
     BR: Borrow<EP::RequestType>,
     PP: Borrow<PathParams<'pp>>,
-    HV: Borrow<http::HeaderValue>,
+    HV: Borrow<http::header::HeaderValue>,
 {
     fn borrow<'s>(&'s self) -> BorrowedQuerySetup<'s, EP>
     where
@@ -145,7 +145,7 @@ impl<'a, EP, BU, BR, HV> QuerySetup<EP, BU, BR, PathParams<'a>, HV> {
     }
 }
 
-impl<EP, BU, BR, PP> QuerySetup<EP, BU, BR, PP, http::HeaderValue> {
+impl<EP, BU, BR, PP> QuerySetup<EP, BU, BR, PP, http::header::HeaderValue> {
     /// Set `Authorization` header value.
     pub fn auth_header(mut self, value: impl TryIntoHeaderValue) -> Self {
         let original_value = std::mem::replace(
@@ -173,7 +173,7 @@ pub(crate) type BorrowedQuerySetup<'a, EP> = QuerySetup<
     &'a url::Url,
     &'a <EP as EndpointDetails>::RequestType,
     &'a PathParams<'a>,
-    &'a http::HeaderValue,
+    &'a http::header::HeaderValue,
 >;
 
 impl<EP: EndpointDetails + 'static> Clone for BorrowedQuerySetup<'_, EP> {
@@ -240,7 +240,8 @@ impl<EP: EndpointDetails + 'static> BorrowedQuerySetup<'_, EP> {
                 .client
                 .inner
                 .http_client
-                .request(EP::METHOD, ep_url.to_string());
+                .request(EP::METHOD, ep_url.to_string())
+                .insert_header(("User-Agent", "pubhubs")); // see issue #1432
 
             if let Some(ct) = payload.content_type() {
                 client_req = client_req.content_type(ct.try_into_value().unwrap());
@@ -317,7 +318,7 @@ impl Client {
             request: req,
             phantom_ep: PhantomData::<EP>,
             path_params: HashMap::new(),
-            auth_header: None::<http::HeaderValue>,
+            auth_header: None::<http::header::HeaderValue>,
         }
         .with_retry()
     }
@@ -327,8 +328,13 @@ impl Client {
         &self,
         server_url: &'a url::Url,
         req: impl Borrow<EP::RequestType> + 'a,
-    ) -> QuerySetup<EP, &'a url::Url, impl Borrow<EP::RequestType>, PathParams<'a>, http::HeaderValue>
-    {
+    ) -> QuerySetup<
+        EP,
+        &'a url::Url,
+        impl Borrow<EP::RequestType>,
+        PathParams<'a>,
+        http::header::HeaderValue,
+    > {
         QuerySetup {
             client: self.clone(),
             url: server_url,
