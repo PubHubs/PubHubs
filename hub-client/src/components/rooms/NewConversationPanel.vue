@@ -1,9 +1,9 @@
 <template>
-	<div class="absolute inset-y-0 right-0 z-40 flex h-full w-[33%] shrink-0 flex-col px-4 py-4" :class="isMobile ? 'w-full bg-background' : 'w-[33%] bg-surface'">
+	<div class="absolute inset-y-0 right-0 z-40 flex h-full w-[33%] shrink-0 flex-col px-4 py-4" :class="isMobile ? 'w-full bg-background' : 'w-[33%] bg-surface'" data-testid="sidekick">
 		<div class="flex h-full flex-col">
 			<div v-if="!groupPanel" class="flex flex-shrink-0 flex-col">
 				<div class="group flex items-center justify-between gap-4 px-8 py-2 font-bold">
-					<span>{{ t('others.new_message') }}</span>
+					<span role="heading">{{ t('others.new_message') }}</span>
 					<Icon type="close" size="md" @click="$emit('close')" class="cursor-pointer" />
 				</div>
 				<hr class="my-4 border-t border-white" />

@@ -49,8 +49,8 @@
 			<span v-if="privateRooms?.length === 0" class="mx-auto flex-shrink-0">
 				{{ t('others.no_private_message') }}
 			</span>
-			<div class="w-full transition-all duration-300 ease-in-out">
-				<MessagePreview v-for="room in sortedPrivateRooms" :key="room.roomId" :room="room" :isMobile="isMobile" class="hover:cursor-pointer"></MessagePreview>
+			<div class="w-full transition-all duration-300 ease-in-out" role="list" data-testid="conversations">
+				<MessagePreview v-for="room in sortedPrivateRooms" :key="room.roomId" :room="room" :isMobile="isMobile" class="hover:cursor-pointer" role="listitem"></MessagePreview>
 			</div>
 			<NewConverationPanel v-if="panel" @close="panel = false" :isMobile="isMobile"></NewConverationPanel>
 		</div>
