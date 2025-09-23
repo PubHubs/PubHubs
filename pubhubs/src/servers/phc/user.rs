@@ -233,7 +233,7 @@ impl App {
 
             let user_state = UserState {
                 id: Id::random(),
-                card_id: Some(Id::random()),
+                card_id: Some(CardPseud(Id::random())),
                 registration_date: Some(api::NumericDate::now()),
                 registration_source: Some("".to_string()),
                 polymorphic_pseudonym: running_state.constellation.master_enc_key.encrypt_random(),
@@ -700,7 +700,7 @@ pub struct UserState {
     ///
     /// If not set, it's derived from [`UserState::id`], which is done by [`UserState::card_id()`].
     #[serde(default)]
-    card_id: Option<Id>,
+    card_id: Option<CardPseud>,
 
     /// Registration date for this user
     ///
@@ -744,15 +744,15 @@ pub struct UserState {
 
 impl UserState {
     /// Returns [`UserState::card_id`] when available, and otherwise an [`Id`] derived from [`UserState::id`].
-    pub fn card_id(&self) -> Id {
+    pub fn card_id(&self) -> CardPseud {
         if let Some(card_id) = self.card_id {
             return card_id;
         }
 
-        b"".as_slice().derive_id(
+        CardPseud(b"".as_slice().derive_id(
             sha2::Sha256::new().chain_update(self.id.as_slice()),
             "pubhubs-card-id",
-        )
+        ))
     }
 
     /// Subtract quota usage from the given [`Quota`], returning an error when a [`QuotumName`] was

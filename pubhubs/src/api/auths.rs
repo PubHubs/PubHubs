@@ -3,7 +3,6 @@ use crate::api::*;
 use crate::attr::Attr;
 use crate::misc::jwt;
 use crate::misc::serde_ext::bytes_wrapper::B64UU;
-use crate::servers::yivi;
 use crate::{attr, handle};
 
 use serde::{Deserialize, Serialize};
@@ -222,6 +221,48 @@ pub struct AttrKeyResp {
     pub old_key: Option<B64UU>,
 }
 
+/// Request a pubhubs card, or rather, a signed session request for the issuance of a pubhubs card
+/// that can be passed to the authentication server's yivi server to actually issue the card.
+pub struct CardEP {}
+impl EndpointDetails for CardEP {
+    type RequestType = CardReq;
+    type ResponseType = Result<CardResp>;
+
+    const METHOD: http::Method = http::Method::POST;
+    const PATH: &'static str = ".ph/card";
+}
+
+/// Request type for [`CardEP`]
+#[derive(Serialize, Deserialize, Debug, Clone)]
+#[serde(deny_unknown_fields)]
+#[must_use]
+pub struct CardReq {
+    /// A by PHC signed registration pseudonym obtained via [`phc::user::CardPseudEP.`]
+    pub card_pseud_package: Signed<phc::user::CardPseudPackage>,
+
+    /// Optional comment used after the registration date field.
+    /// Could perhaps be the partly anonymized email address and phone number used to originally
+    /// register this account.
+    pub comment: Option<String>,
+}
+
+/// What's returned by [`CardEP`]
+#[derive(Serialize, Deserialize, Debug, Clone)]
+#[serde(deny_unknown_fields)]
+#[must_use]
+pub enum CardResp {
+    Success {
+        /// Signed issuance request to issue the pubhubs card
+        issuance_request: jwt::JWT,
+
+        /// The Yivi server that can handle the issuance request
+        yivi_requestor_url: url::Url,
+    },
+
+    /// Please try again with a new signed card pseudonym package
+    PleaseRetryWithNewCardPseud,
+}
+
 /// Wait for the disclosure result that the yivi server will post to the authentication server
 ///
 /// Might return [`ErrorCode::BadRequest`] when yivi is not configured for this authentication
@@ -284,12 +325,21 @@ pub struct YiviReleaseNextSessionReq {
     /// The [`AuthStartResp::Success::state`] returned earlier
     pub state: AuthState,
 
-    /// The extended session request to pass to the yivi server, signed by PHC. Can be obtained
-    /// via the [`phc::user::CardEP`].
-    ///
-    /// If `None`, the yivi server will be served a `HTTP 204` causing it to stop the yivi flow
+    pub next_session: NextSession,
+}
+
+/// Instructs the authentication server on what next session to start at the yivi server.
+#[derive(Serialize, Deserialize, Debug, Clone)]
+#[serde(deny_unknown_fields)]
+#[must_use]
+pub enum NextSession {
+    /// The yivi server will be served a `HTTP 204` causing it to stop the yivi flow
     /// normally without opening a follow-up session.
-    pub next_session_request: Option<Signed<yivi::ExtendedSessionRequest>>,
+    NoNextSession,
+
+    /// Instructs the authentication server to have the yivi server issue a pubhubs card as next
+    /// session.
+    IssuePubhubsCard(CardReq),
 }
 
 /// What's returned by [`YiviReleaseNextSessionEP`]
@@ -313,6 +363,11 @@ pub enum YiviReleaseNextSessionResp {
     /// Trying to release a yivi servder that's not there yet.  You should first call the
     /// [`YiviWaitForResultEP`] endpoint to make sure the yivi server is there.
     TooEarly,
+
+    /// Please retry with a fresh card pseudonym package.
+    ///
+    /// Happens only when [`NextSession::IssuePubhubsCard`] was requested.
+    PleaseRetryWithNewCardPseud,
 }
 
 /// Path for the endpoint used by the yivi server to get the next session in a chained session.

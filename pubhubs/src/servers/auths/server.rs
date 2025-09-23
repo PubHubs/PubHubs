@@ -96,6 +96,7 @@ pub struct YiviCtx {
 
     #[expect(dead_code)]
     pub chained_sessions_config: super::yivi::ChainedSessionsConfig,
+    pub card_config: super::card::CardConfig,
 }
 
 /// # Helper functions
@@ -273,6 +274,7 @@ impl crate::servers::AppCreator<Server> for AppCreator {
             requestor_creds: cfg.requestor_creds.clone(),
             server_creds: cfg.server_creds(),
             chained_sessions_config: cfg.chained_sessions.clone(),
+            card_config: cfg.card.clone(),
         });
 
         let auth_state_secret: crypto::SealingKey = base

@@ -28,6 +28,10 @@ pub struct EnterArgs {
     #[arg(short, long)]
     wait_for_card: bool,
 
+    /// Comment to use on the pubhubs card, provided a card is requested
+    #[arg(long, value_name = "COMMENT")]
+    card_comment: Option<String>,
+
     /// Handle identifying the hub
     #[arg(value_name = "HUB")]
     hub_handle: Option<Handle>,
@@ -415,14 +419,14 @@ impl EnterArgs {
         }
 
         if self.wait_for_card {
-            let api::phc::user::CardResp::Success(card) = client
-                .query::<api::phc::user::CardEP>(&constellation.phc_url, api::NoPayload)
+            let api::phc::user::CardPseudResp::Success(card_pseud_package) = client
+                .query::<api::phc::user::CardPseudEP>(&constellation.phc_url, api::NoPayload)
                 .auth_header(auth_token.clone())
                 .with_retry()
                 .await
-                .context("retrieving pubhubs card failed")?
+                .context("retrieving registration pseudonym failed")?
             else {
-                anyhow::bail!("failed to retrieve pubhubs card");
+                anyhow::bail!("failed to retrieve registration pseudonym");
             };
 
             let api::auths::YiviReleaseNextSessionResp::Success {} = client
@@ -430,7 +434,12 @@ impl EnterArgs {
                     &constellation.auths_url,
                     api::auths::YiviReleaseNextSessionReq {
                         state: auth_state.clone(),
-                        next_session_request: Some(card),
+                        next_session: api::auths::NextSession::IssuePubhubsCard(
+                            api::auths::CardReq {
+                                card_pseud_package,
+                                comment: self.card_comment.clone(),
+                            },
+                        ),
                     },
                 )
                 .await

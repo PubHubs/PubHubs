@@ -29,6 +29,9 @@ server_name = "local-yivi"
 name = "local-development"
 key.hs256 = "6576257d853bc1ea15cbf103dbc3950b819d65eef4fae4c55d80e9c32b683e06"
 
+[auths.yivi.card]
+type = "demo"
+
 [[auths.attribute_types]]
 handles = ['email']
 id = "Fr7Gsfh73AU9k9N4eR9vDBINhMOImXm-Qqfkz0RxjwI"
@@ -67,10 +70,6 @@ sources = [
 auths_url = 'http://networkhost:6060'
 transcryptor_url = 'http://networkhost:7070'
 global_client_url = 'http://localhost:8080'
-
-[phc.card]
-type = "demo"
-valid_for = "2 week"
 
 [phc.object_store]
 url = "memory:///"

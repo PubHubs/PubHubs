@@ -368,6 +368,12 @@ pub mod phc {
         #[serde(default = "default_pp_nonce_validity")]
         pub pp_nonce_validity: core::time::Duration,
 
+        /// Registration pseudonyms issued to the global client via [`api::phc::user::CardPseudEP`]
+        /// are valid for this duration.
+        #[serde(with = "time_ext::human_duration")]
+        #[serde(default = "default_card_pseud_validity")]
+        pub card_pseud_validity: core::time::Duration,
+
         /// Secret used to derive `hmac`s for the retrieval of user objects.
         ///
         /// Randomly generated if not set.
@@ -376,20 +382,22 @@ pub mod phc {
         /// Quotas for a user
         #[serde(default)]
         pub user_quota: api::phc::user::Quota,
-
-        /// Configuration for issuing the pubhubs yivi card.  If `None`, pubhubs yivi cards are not
-        /// issued.
-        #[serde(default)]
-        pub card: Option<crate::servers::phc::CardConfig>,
     }
 
     fn default_auth_token_validity() -> core::time::Duration {
-        core::time::Duration::from_secs(60 * 60) // 1 hour - the user might need to add attributes
+        core::time::Duration::from_secs(60 * 60)
+        // 1 hour - the user might need to add attributes
         // to their Yivi app
     }
 
     fn default_pp_nonce_validity() -> core::time::Duration {
-        core::time::Duration::from_secs(30) // no user interaction required
+        core::time::Duration::from_secs(30)
+        // no user interaction required
+    }
+
+    fn default_card_pseud_validity() -> core::time::Duration {
+        core::time::Duration::from_secs(30)
+        // no user interaction required
     }
 }
 
@@ -481,6 +489,10 @@ pub mod auths {
         /// [`api::auths::AuthStartReq::yivi_chained_session`].
         #[serde(default)]
         pub chained_sessions: crate::servers::auths::yivi::ChainedSessionsConfig,
+
+        /// Configuration of the pubhubs card issued by the authentication server
+        #[serde(default)]
+        pub card: crate::servers::auths::card::CardConfig,
     }
 
     impl YiviConfig {

@@ -5,6 +5,7 @@ use crate::api;
 use crate::id;
 use crate::misc::jwt;
 use crate::servers::yivi;
+use api::OpenError;
 
 use super::server::YiviCtx;
 
@@ -116,7 +117,7 @@ impl App {
 
         let api::auths::YiviReleaseNextSessionReq {
             state,
-            next_session_request,
+            next_session,
         } = req.into_inner();
 
         let Some(state) = AuthState::unseal(&state, &app.auth_state_secret) else {
@@ -130,26 +131,33 @@ impl App {
             return Err(api::ErrorCode::BadRequest);
         };
 
-        let next_session_request = 'nsr: {
-            if let Some(next_session_request) = next_session_request {
-                match next_session_request.open(&*running_state.constellation.phc_jwt_key, None) {
-                    Ok(next_session_request) => break 'nsr Some(next_session_request),
-                    Err(api::OpenError::OtherConstellation(..)) | Err(api::OpenError::Expired) => {
-                        return Ok(api::auths::YiviReleaseNextSessionResp::PleaseRestartAuth);
-                    }
-                    Err(api::OpenError::InvalidSignature)
-                    | Err(api::OpenError::OtherwiseInvalid) => {
-                        return Err(api::ErrorCode::BadRequest);
-                    }
-                    Err(api::OpenError::InternalError) => {
-                        return Err(api::ErrorCode::InternalError);
-                    }
-                };
-            };
-            break 'nsr None;
+        let internal_next_session = match next_session {
+            api::auths::NextSession::NoNextSession => None,
+            api::auths::NextSession::IssuePubhubsCard(api::auths::CardReq {
+                comment,
+                card_pseud_package: cpp_signed,
+            }) => {
+                let card_pseudonym_package =
+                    match cpp_signed.open(&*running_state.constellation.phc_jwt_key, None) {
+                        Ok(cpp) => cpp,
+                        Err(OpenError::OtherConstellation(..)) | Err(OpenError::InternalError) => {
+                            return Err(api::ErrorCode::InternalError);
+                        }
+                        Err(OpenError::OtherwiseInvalid) => {
+                            return Err(api::ErrorCode::BadRequest);
+                        }
+                        Err(OpenError::Expired) | Err(OpenError::InvalidSignature) => {
+                            return Ok(
+                                api::auths::YiviReleaseNextSessionResp::PleaseRetryWithNewCardPseud,
+                            );
+                        }
+                    };
+
+                Some(app.issue_card(card_pseudonym_package, comment)?)
+            }
         };
 
-        csc.release_next_session(session_id, next_session_request)
+        csc.release_next_session(session_id, internal_next_session)
             .await
     }
 }

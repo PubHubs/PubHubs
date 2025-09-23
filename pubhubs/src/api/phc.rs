@@ -11,7 +11,6 @@ use crate::handle;
 use crate::id::Id;
 use crate::misc::serde_ext::bytes_wrapper::B64UU;
 use crate::servers::Constellation;
-use crate::servers::yivi;
 
 /// `.ph/hub/...` endpoints, used by hubs
 pub mod hub {
@@ -611,29 +610,48 @@ pub mod user {
         Success(Signed<sso::HashedHubPseudonymPackage>),
     }
 
-    /// Requests a PubHubs Yivi card in the form of a signed issuance session request that can be
-    /// sent to the authentication server's yivi server.  Requires authentication.
-    ///
-    /// Intended to be combined with [`auths::YiviReleaseNextSessionEP`].
-    pub struct CardEP {}
-    impl EndpointDetails for CardEP {
-        type RequestType = NoPayload;
-        type ResponseType = Result<CardResp>;
+    /// A registration pseudonym used on pubhubs cards
+    #[derive(Serialize, Deserialize, Debug, Clone, Copy, PartialEq, Eq)]
+    #[serde(transparent)]
+    pub struct CardPseud(pub Id);
 
-        const METHOD: http::Method = http::Method::POST;
-        const PATH: &'static str = ".ph/card";
+    impl std::fmt::Display for CardPseud {
+        fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+            self.0.fmt(f)
+        }
     }
 
-    /// Returned by [`CardEP`].
+    /// A registration pseudonym coupled with the registration date.
+    #[derive(Serialize, Deserialize, Debug, Clone, Copy, PartialEq, Eq)]
+    pub struct CardPseudPackage {
+        pub card_pseud: CardPseud,
+        /// Registration date for this user.  Can be `None` for users that registered under v3.0.0.
+        pub registration_date: Option<NumericDate>,
+    }
+
+    having_message_code!(CardPseudPackage, CardPseudPackage);
+
+    /// Requests the 'registration pseudonym' used on PubHubs cards issued for this account.
+    /// Requires authentication.
+    pub struct CardPseudEP {}
+    impl EndpointDetails for CardPseudEP {
+        type RequestType = NoPayload;
+        type ResponseType = Result<CardPseudResp>;
+
+        const METHOD: http::Method = http::Method::POST;
+        const PATH: &'static str = ".ph/card-pseud";
+    }
+
+    /// Returned by [`CardPseudEP`].
     #[derive(Serialize, Deserialize, Debug, Clone)]
     #[serde(deny_unknown_fields)]
     #[serde(rename = "snake_case")]
     #[must_use]
-    pub enum CardResp {
+    pub enum CardPseudResp {
         /// The auth provided is expired or otherwise invalid.  Obtain a new one and retry.
         RetryWithNewAuthToken,
 
-        /// The requested issuance session request
-        Success(Signed<yivi::ExtendedSessionRequest>),
+        /// The requested registration pseudonym, signed by PHC's jwt key.
+        Success(Signed<CardPseudPackage>),
     }
 }

@@ -28,8 +28,6 @@ pub struct ExtendedSessionRequest {
     next_session: Option<NextSessionData>,
 }
 
-api::having_message_code!(ExtendedSessionRequest, YiviExtendedSessionRequest);
-
 /// <https://github.com/privacybydesign/irmago/blob/f9718c334af76a3ad2fa23019d17957878cd2032/requests.go#L139>
 #[derive(serde::Serialize, serde::Deserialize, Debug, Clone, PartialEq, Eq)]
 pub struct NextSessionData {
