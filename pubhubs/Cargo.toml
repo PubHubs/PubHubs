@@ -49,7 +49,7 @@ actix-files = { version = "0.6" }
 bytes = { version = "1", features = ["serde"] }
 env_logger = { version = "0.11.8" }
 mime = { version = "0.3" }
-log = { version = "0.4" }
+log = { version = "0.4", features = ["serde"] }
 tokio = { version = "1.47", features = ["rt", "macros", "rt-multi-thread", "sync", "time"] }
 url = { version="2.5", features=["serde"] }
 

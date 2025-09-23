@@ -16,6 +16,7 @@ use crate::{
 };
 
 use super::host_aliases::{HostAliases, UrlPwa};
+use super::log::LogConfig;
 
 /// Configuration for one, or several, of the PubHubs servers
 ///
@@ -27,6 +28,10 @@ pub struct Config {
     ///
     /// Any information on the other servers that can be stored at PHC is stored at PHC.
     pub phc_url: UrlPwa,
+
+    /// Configure logging.  Overwrites what's passed through `RUST_LOG`.
+    #[serde(default)]
+    pub log: Option<LogConfig>,
 
     #[serde(skip)]
     pub(crate) preparation_state: PreparationState,
@@ -188,13 +193,13 @@ impl Config {
             );
         }
 
+        res.preliminary_prep()?;
+
         log::info!(
             "loaded config file from {};  interpretting relative paths in {}",
             path.display(),
             res.wd.display()
         );
-
-        res.preliminary_prep()?;
 
         Ok(Some(res))
     }
@@ -224,6 +229,7 @@ impl Config {
 
         // destruct to make sure we consider every field of Config
         let Self {
+            log: _,
             host_aliases,
             phc_url,
             wd,
@@ -234,6 +240,7 @@ impl Config {
         } = self;
 
         let mut config: Config = Config {
+            log: None, // <- servers do not read this
             host_aliases: host_aliases.clone(),
             phc_url: phc_url.clone(),
             wd: wd.clone(),

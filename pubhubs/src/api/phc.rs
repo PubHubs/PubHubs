@@ -10,8 +10,8 @@ use crate::attr;
 use crate::handle;
 use crate::id::Id;
 use crate::misc::serde_ext::bytes_wrapper::B64UU;
-use crate::servers::yivi;
 use crate::servers::Constellation;
+use crate::servers::yivi;
 
 /// `.ph/hub/...` endpoints, used by hubs
 pub mod hub {

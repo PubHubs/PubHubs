@@ -27,6 +27,9 @@ async fn main_integration_test() {
         .unwrap()
         .unwrap();
 
+    // NOTE: the logging configuration in `config` is ignored.  Configure logging for testing
+    // using the RUST_LOG environmental variable.
+
     // Change randomly generated admin key to something we know
     let admin_sk = api::SigningKey::generate();
     let admin_pk = Some(admin_sk.verifying_key().into());

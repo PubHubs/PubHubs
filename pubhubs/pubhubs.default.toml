@@ -10,6 +10,11 @@
 # For a quick explanation of the TOML file format, see see https://toml.io
 phc_url = 'http://networkhost:5050'
 
+# NOTE: logging configured like this only starts after the configuration file is loaded. 
+# To get earlier log messages, configure logging using the RUST_LOG environmental variable.
+[log.modules]
+pubhubs = "debug"
+
 [host_aliases]
 networkhost.source_ip_for = "udp://k.root-servers.net:53"
 
