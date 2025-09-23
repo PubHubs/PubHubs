@@ -7,6 +7,7 @@ export const handlers = [
 		sessionStorage.setItem('loggedIn', 'true');
 		localStorage.setItem('PHauthToken', `{"auth_token":"someValue","expires":${Date.now() + 1000}}`);
 		localStorage.setItem('UserSecret', 'someUserSecret');
+		localStorage.setItem('UserSecretVersion', '1');
 		return new HttpResponse(null, { status: 200 });
 	}),
 
@@ -65,7 +66,8 @@ export const handlers = [
 			const phcServer = new PHCServer();
 			// Using the string index notation as escape hatch to get a hold of the private function _encryptData
 			// https://github.com/microsoft/TypeScript/issues/19335
-			const encryptedData = await phcServer['_encryptData'](encodedData, 'someUserSecret');
+			const encodedKey = new Uint8Array(Buffer.from('someUserSecret', 'base64'));
+			const encryptedData = await phcServer['_encryptData'](encodedData, encodedKey);
 			return HttpResponse.arrayBuffer(encryptedData.buffer, {
 				headers: {
 					'content-type': 'application/octet-stream',

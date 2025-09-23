@@ -5,8 +5,7 @@ import { assert } from 'chai';
 import { phc_api } from '@/logic/core/api.js';
 import { useGlobal } from '@/logic/store/global.js';
 import * as mssTypes from '@/model/MSS/TMultiServerSetup.js';
-import { handleErrorCodes, requestOptions } from '@/model/MSS/Auths.js';
-import { handleErrors } from '@/model/MSS/Auths.js';
+import { base64fromBase64Url, handleErrorCodes, handleErrors, requestOptions } from '@/model/MSS/Auths.js';
 
 // Hub imports
 import { Api } from '@/../../../hub-client/src/logic/core/apiCore.js';
@@ -18,6 +17,8 @@ export default class PHCServer {
 	private _expiryAuthToken: null | bigint = null;
 	/** NOTE: Do not use this variable directly, but use _getUserSecret(). */
 	private _userSecret: string | undefined;
+	/** NOTE: Do not use this variable directly, but use _getUserSecret(). */
+	private _userSecretVersion: number | undefined;
 
 	constructor() {
 		if (!phc_api) {
@@ -126,7 +127,7 @@ export default class PHCServer {
 	 * @throws Will throw an error if there is no backup user secret object stored while this is expected.
 	 * @throws Will throw an error if the backup user secret object differs from the user secret object.
 	 */
-	private async _getUserSecretObject(): Promise<{ object: mssTypes.UserSecretData; details: { usersecret: mssTypes.UserObjectDetails; backup: mssTypes.UserObjectDetails | null } } | null> {
+	private async _getUserSecretObject(): Promise<{ object: mssTypes.UserSecretObject; details: { usersecret: mssTypes.UserObjectDetails; backup: mssTypes.UserObjectDetails | null } } | null> {
 		const userSecretObject = await this.getUserObject('usersecret');
 
 		if (!userSecretObject || !userSecretObject.object) {
@@ -134,19 +135,19 @@ export default class PHCServer {
 		}
 		const decoder = new TextDecoder();
 		const decodedUserSecret = decoder.decode(userSecretObject.object);
-		const secretObject = JSON.parse(decodedUserSecret) as mssTypes.UserSecretObject;
+		const object = JSON.parse(decodedUserSecret) as mssTypes.UserSecretObject;
 		// If the user secret object is stored in the new format, expect there to be a backup object stored.
-		if (mssTypes.isUserSecretObjectNew(secretObject)) {
+		if (mssTypes.isUserSecretObjectNew(object)) {
 			const userSecretObjectBackup = await this.getUserObject('usersecretbackup');
 			if (!userSecretObjectBackup || !userSecretObjectBackup.object) {
 				throw new Error('Expected a backup of the user secret object to be stored, but could not find it.');
 			}
 			const decodedUserSecretBackup = decoder.decode(userSecretObjectBackup.object);
 			const secretObjectBackup = JSON.parse(decodedUserSecretBackup) as mssTypes.UserSecretObject;
-			assert.isTrue(this._deepEqualObjects(secretObject, secretObjectBackup), 'The user secret object differs from the backup user secret object.');
-			return { object: secretObject.data, details: { usersecret: userSecretObject.details, backup: userSecretObjectBackup.details } };
+			assert.isTrue(this._deepEqualObjects(object, secretObjectBackup), 'The user secret object differs from the backup user secret object.');
+			return { object, details: { usersecret: userSecretObject.details, backup: userSecretObjectBackup.details } };
 		}
-		return { object: secretObject, details: { usersecret: userSecretObject.details, backup: null } };
+		return { object, details: { usersecret: userSecretObject.details, backup: null } };
 	}
 
 	async login(
@@ -156,7 +157,7 @@ export default class PHCServer {
 	): Promise<
 		| { entered: false; errorMessage: { key: string; values?: string[] }; objectDetails: null; userSecretObject: null }
 		| { entered: true; errorMessage: null; objectDetails: null; userSecretObject: null }
-		| { entered: true; errorMessage: null; objectDetails: { usersecret: mssTypes.UserObjectDetails; backup: mssTypes.UserObjectDetails | null }; userSecretObject: mssTypes.UserSecretData }
+		| { entered: true; errorMessage: null; objectDetails: { usersecret: mssTypes.UserObjectDetails; backup: mssTypes.UserObjectDetails | null }; userSecretObject: mssTypes.UserSecretObject }
 	> {
 		const { entered, errorMessage } = await this._enter(identifyingAttr, signedAddAttrs, enterMode);
 
@@ -214,27 +215,36 @@ export default class PHCServer {
 
 	// #region UserSecret object
 
-	private async _getUserSecret() {
+	private async _getUserSecretInfo() {
 		const global = useGlobal();
 		assert.isNotNull(global.loggedIn, 'The user secret cannot be requested if a user is not logged in.');
-		if (this._userSecret) {
-			return this._userSecret;
+		if (this._userSecret && this._userSecretVersion) {
+			return { userSecret: this._userSecret, version: this._userSecretVersion };
 		}
 
 		const storedUserSecret = localStorage.getItem('UserSecret');
+		const version = localStorage.getItem('UserSecretVersion');
 		// This will only happen when a user is messing with their local storage, which means the logout procedure will be invoked.
-		if (!storedUserSecret) {
+		if (!storedUserSecret || !version) {
 			const global = useGlobal();
 			global.logout();
 			return;
 		}
 		this._userSecret = storedUserSecret;
-		return this._userSecret;
+		this._userSecretVersion = Number(version);
+		return { userSecret: this._userSecret, version: this._userSecretVersion };
 	}
 
-	private async _decryptUserSecret(oldAttrKey: string, userSecretObject: { ts: string; encUserSecret: string }) {
+	private async _decryptUserSecret(oldAttrKey: string, userSecretObject: { ts: string; encUserSecret: string }, version: number) {
 		const encUserSecret = new Uint8Array(Buffer.from(userSecretObject.encUserSecret, 'base64'));
-		const userSecret = await this._decryptData(encUserSecret, oldAttrKey);
+		let encodedKey;
+		if (version >= 1) {
+			encodedKey = new Uint8Array(Buffer.from(base64fromBase64Url(oldAttrKey), 'base64'));
+		} else {
+			// To ensure backwards compatibility for the first version of the userSecret
+			encodedKey = new TextEncoder().encode(oldAttrKey);
+		}
+		const userSecret = await this._decryptData(encUserSecret, encodedKey);
 		return userSecret;
 	}
 
@@ -280,9 +290,14 @@ export default class PHCServer {
 	private async _computeNewUserSecretObject(
 		attrKeyResp: Record<string, mssTypes.AttrKeyResp>,
 		identifyingAttrs: mssTypes.SignedIdentifyingAttrs,
-		userSecretObject: mssTypes.UserSecretData | null,
+		userSecretObject: mssTypes.UserSecretObject | null,
 	): Promise<{ newUserSecretObject: mssTypes.UserSecretObjectNew; userSecret: Uint8Array }> {
-		let newUserSecretData: mssTypes.UserSecretData = userSecretObject ? { ...userSecretObject } : {};
+		let newUserSecretData: mssTypes.UserSecretData = {};
+		if (mssTypes.isUserSecretObjectNew(userSecretObject)) {
+			newUserSecretData = { ...userSecretObject.data };
+		} else if (userSecretObject) {
+			newUserSecretData = { ...userSecretObject };
+		}
 		let userSecret: Uint8Array | null = null;
 		if (userSecretObject === null) {
 			// If this is the first time the user secret object is set, a random 256 bits (32 bytes) user secret needs to be generated.
@@ -293,7 +308,7 @@ export default class PHCServer {
 			for (const [handle, attr] of Object.entries(identifyingAttrs)) {
 				const keyResp = attrKeyResp[handle];
 				// If the user secret was not stored before for this combination of attribute type and value, continue.
-				if (!userSecretObject[attr.id]?.[attr.value]) {
+				if (!newUserSecretData[attr.id]?.[attr.value]) {
 					continue;
 				}
 				// If there is no old_key in the attrKeyResp for this attribute, something went wrong
@@ -301,7 +316,8 @@ export default class PHCServer {
 					throw new Error(`Expected an old_key in the attrKeyResp for attribute with type ${attr.id} and value ${attr.value}`);
 				}
 				// Try to decrypt the user secret
-				const decryptedUserSecret = await this._decryptUserSecret(keyResp.old_key, userSecretObject[attr.id][attr.value]);
+				const version = mssTypes.isUserSecretObjectNew(userSecretObject) ? userSecretObject.version : 0;
+				const decryptedUserSecret = await this._decryptUserSecret(keyResp.old_key, newUserSecretData[attr.id][attr.value], version);
 				if (referenceUserSecret === null) {
 					referenceUserSecret = decryptedUserSecret;
 				} else if (!this._buffersAreEqual(referenceUserSecret, decryptedUserSecret)) {
@@ -319,7 +335,8 @@ export default class PHCServer {
 		for (const [handle, attr] of Object.entries(identifyingAttrs)) {
 			const keyResp = attrKeyResp[handle];
 			// Encrypt the userSecret with the new attribute key and compose the new userSecret object
-			const cipherText = await this._encryptData(userSecret, keyResp.latest_key[0]);
+			const encodedKey = new Uint8Array(Buffer.from(base64fromBase64Url(keyResp.latest_key[0]), 'base64'));
+			const cipherText = await this._encryptData(userSecret, encodedKey);
 			// Use local OR assignment operator (||=) to make sure that newUserSecretObject is initialized before assigning the nested property
 			(newUserSecretData[attr.id] ||= {})[attr.value] = { ts: keyResp.latest_key[1], encUserSecret: Buffer.from(cipherText).toString('base64') };
 		}
@@ -344,7 +361,7 @@ export default class PHCServer {
 	async storeUserSecretObject(
 		attrKeyResp: Record<string, mssTypes.AttrKeyResp>,
 		identifyingAttrs: mssTypes.SignedIdentifyingAttrs,
-		userSecretObject: mssTypes.UserSecretData | null,
+		userSecretObject: mssTypes.UserSecretObject | null,
 		userSecretObjectDetails: { usersecret: mssTypes.UserObjectDetails; backup: mssTypes.UserObjectDetails | null } | null,
 	): Promise<void> {
 		const computedUserSecretObject = await this._computeNewUserSecretObject(attrKeyResp, identifyingAttrs, userSecretObject);
@@ -360,7 +377,9 @@ export default class PHCServer {
 		if (storedUserSecret && storedBackup) {
 			// Encode the userSecret as a base64 string
 			this._userSecret = Buffer.from(computedUserSecretObject.userSecret).toString('base64');
+			this._userSecretVersion = mssTypes.isUserSecretObjectNew(userSecretObject) ? userSecretObject.version : 0;
 			localStorage.setItem('UserSecret', this._userSecret);
+			localStorage.setItem('UserSecretVersion', this._userSecretVersion.toString());
 		} else {
 			// TODO: trigger logout procedure?
 			throw new Error('Something went wrong in storing the user secret.');
@@ -403,10 +422,8 @@ export default class PHCServer {
 	 * @param key The key to encrypt the data.
 	 * @returns The ciphertext of the encrypted data.
 	 */
-	private async _encryptData(data: Uint8Array, key: string) {
-		// Encode the key
+	private async _encryptData(data: Uint8Array, key: Uint8Array) {
 		const encoder = new TextEncoder();
-		const encodedKey = encoder.encode(key);
 		// Generate random 256 bits (32 bytes) data
 		const randomBits = crypto.getRandomValues(new Uint8Array(32));
 		// Append the key to the random 256 bits
@@ -415,8 +432,8 @@ export default class PHCServer {
 		// as written in section 8.3 of NIST Special Publication 800-38D (https://nvlpubs.nist.gov/nistpubs/legacy/sp/nistspecialpublication800-38d.pdf).
 		// Having a different key every time means that there is a negligible chance of using the same key with the same iv twice.
 		// The IV could have been constructed of just random bits, but this would mean that we need to store an extra 32 bytes for every object to store the IV with the encrypted data.
-		const derivedKey = this._concatUint8Arrays([randomBits, encodedKey, encoder.encode('key')]);
-		const derivedIV = this._concatUint8Arrays([randomBits, encodedKey, encoder.encode('iv')]);
+		const derivedKey = this._concatUint8Arrays([randomBits, key, encoder.encode('key')]);
+		const derivedIV = this._concatUint8Arrays([randomBits, key, encoder.encode('iv')]);
 		// Calculate the SHA-256 hash of the concatenated random bits with the key to use as AES key and IV
 		const aesKeyHash = await crypto.subtle.digest('SHA-256', derivedKey);
 		const iv = await crypto.subtle.digest('SHA-256', derivedIV);
@@ -435,15 +452,14 @@ export default class PHCServer {
 	 * @param key The key to decrypt the data.
 	 * @returns The plaintext of the decrypted data.
 	 */
-	private async _decryptData(ciphertext: Uint8Array, key: string) {
+	private async _decryptData(ciphertext: Uint8Array, key: Uint8Array) {
 		// Encode the key
 		const encoder = new TextEncoder();
-		const encodedAttrKey = encoder.encode(key);
 		// Extract the random bits of data (that were used to generate the seed) from the ciphertext
 		const randomBits = ciphertext.slice(0, 32);
 		// Recover the seed by appending the encoded attrKey to the random bits of data
-		const seedKey = this._concatUint8Arrays([randomBits, encodedAttrKey, encoder.encode('key')]);
-		const seedIV = this._concatUint8Arrays([randomBits, encodedAttrKey, encoder.encode('iv')]);
+		const seedKey = this._concatUint8Arrays([randomBits, key, encoder.encode('key')]);
+		const seedIV = this._concatUint8Arrays([randomBits, key, encoder.encode('iv')]);
 		// Calculate the SHA-256 hash of the concatenated random bits with the key to use as AES key and the SHA-512 hash to use as IV
 		const aesKeyHash = await crypto.subtle.digest('SHA-256', seedKey);
 		const iv = await crypto.subtle.digest('SHA-256', seedIV);
@@ -506,7 +522,7 @@ export default class PHCServer {
 				details = objectDetails;
 				continue;
 			} else {
-				throw new Error('Unknown response from the getObject endpoint.');
+				throw new Error('Unknown response from the getObjectEP.');
 			}
 		}
 		throw new Error('Unexpectedly could not handle the response of the getObjectEP.');
@@ -543,12 +559,19 @@ export default class PHCServer {
 			return null;
 		}
 		const object = new Uint8Array(getObjectResp.object);
-		const userSecret = await this._getUserSecret();
+		const userSecretInfo = await this._getUserSecretInfo();
 		// this._getUserSecret will only return undefined in case where the user gets logged out because they were messing with their local storage.
 		// In practice, this means that this._getUserSecret will never return undefined, since the user will have been redirected to the login page in that case.
-		assert.isDefined(userSecret);
+		assert.isDefined(userSecretInfo, 'Could not retrieve the userSecret from localstorage.');
 		// Decrypt the data that was stored under the given handle
-		const decryptedData = await this._decryptData(object, userSecret);
+		let encodedKey;
+		if (userSecretInfo.version >= 1) {
+			encodedKey = new Uint8Array(Buffer.from(userSecretInfo.userSecret, 'base64'));
+		} else {
+			// To ensure backwards compatibility for the first version of the userSecret
+			encodedKey = new TextEncoder().encode(userSecretInfo.userSecret);
+		}
+		const decryptedData = await this._decryptData(object, encodedKey);
 
 		// Decode the data
 		const decoder = new TextDecoder();
@@ -699,11 +722,12 @@ export default class PHCServer {
 		const encoder = new TextEncoder();
 		const encodedData = encoder.encode(JSON.stringify(data));
 		// Encrypt the encoded data if the userSecret is present
-		const userSecret = await this._getUserSecret();
-		if (!userSecret) {
-			throw new Error('Could not retrieve the secret needed to encrypt the data.');
-		}
-		const encryptedData = await this._encryptData(encodedData, userSecret);
+		const userSecretInfo = await this._getUserSecretInfo();
+		// this._getUserSecret will only return undefined in case where the user gets logged out because they were messing with their local storage.
+		// In practice, this means that this._getUserSecret will never return undefined, since the user will have been redirected to the login page in that case.
+		assert.isDefined(userSecretInfo, 'Could not retrieve the userSecret from localstorage.');
+		const encodedUserSecret = new Uint8Array(Buffer.from(userSecretInfo.userSecret, 'base64'));
+		const encryptedData = await this._encryptData(encodedData, encodedUserSecret);
 		await this._storeObject(handle, encryptedData, overwriteHash);
 	}
 

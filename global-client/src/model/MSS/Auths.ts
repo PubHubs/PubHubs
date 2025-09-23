@@ -176,12 +176,7 @@ export default class AuthenticationServer {
 		try {
 			// Only take the payload of the JWT
 			const base64Url = jwt.split('.')[1];
-			// Change from base64url encoding to standard base64 encoding
-			let base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
-			// Add padding to make sure the length of the base64 encoded string is a multiple of 4
-			while (base64.length % 4) {
-				base64 += '=';
-			}
+			const base64 = base64fromBase64Url(base64Url);
 			// Decode the base64 encoded string to a buffer (bytes) and parse this buffer as JSON
 			const jsonPayload = Buffer.from(base64, 'base64').toString();
 			return JSON.parse(jsonPayload);
@@ -223,6 +218,22 @@ export default class AuthenticationServer {
 	async attrKeysEP(attrKeyRequest: mssTypes.AuthAttrKeyReq) {
 		return await handleErrors<mssTypes.AttrKeysResp>(() => this._authsApi.api<mssTypes.AuthAttrKeysResp>(this._authsApi.apiURLS.attrKeys, requestOptions<mssTypes.AuthAttrKeyReq>(attrKeyRequest)));
 	}
+}
+
+/**
+ * Converts a base64url encoded string into a standard base64 string.
+ *
+ * @param base64Url The base64 url (unpadded) encoded string.
+ * @returns The standard base64 string.
+ */
+export function base64fromBase64Url(base64Url: string) {
+	// Change from base64url encoding to standard base64 encoding
+	let base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
+	// Add padding to make sure the length of the base64 encoded string is a multiple of 4
+	while (base64.length % 4) {
+		base64 += '=';
+	}
+	return base64;
 }
 
 /**
