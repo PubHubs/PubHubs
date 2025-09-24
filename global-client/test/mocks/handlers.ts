@@ -98,46 +98,4 @@ export const handlers = [
 		localStorage.removeItem('UserSecret');
 		return new HttpResponse(null, { status: 200 });
 	}),
-
-	http.get('http://test/bar/state', () => {
-		if (sessionStorage.getItem('loggedIn')) {
-			const data = {
-				theme: 'system',
-				language: 'en',
-				hubs: [{ hubId: 'TestHub0-Id', hubName: 'Testhub0' }],
-			};
-			const encodedData = new TextEncoder().encode(JSON.stringify(data)).buffer;
-			return HttpResponse.arrayBuffer(encodedData, {
-				headers: {
-					'content-type': 'application/octet-stream',
-				},
-				status: 200,
-			});
-		} else {
-			return new HttpResponse(null, { status: 403 });
-		}
-	}),
-
-	http.get('http://test/bar/hubs', () => {
-		return HttpResponse.json(
-			[
-				{
-					name: 'TestHub0',
-					description: 'Test Hub Zero',
-					client_uri: 'http://hubtest0',
-				},
-				{
-					name: 'TestHub1',
-					description: 'Test Hub One',
-					client_uri: 'http://hubtest1',
-				},
-				{
-					name: 'TestHub2',
-					description: 'Test Hub Two',
-					client_uri: 'http://hubtest2',
-				},
-			],
-			{ status: 200 },
-		);
-	}),
 ];
