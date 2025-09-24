@@ -377,7 +377,7 @@ export default class PHCServer {
 		if (storedUserSecret && storedBackup) {
 			// Encode the userSecret as a base64 string
 			this._userSecret = Buffer.from(computedUserSecretObject.userSecret).toString('base64');
-			this._userSecretVersion = mssTypes.isUserSecretObjectNew(userSecretObject) ? userSecretObject.version : 0;
+			this._userSecretVersion = mssTypes.isUserSecretObjectNew(computedUserSecretObject.newUserSecretObject) ? computedUserSecretObject.newUserSecretObject.version : 0;
 			localStorage.setItem('UserSecret', this._userSecret);
 			localStorage.setItem('UserSecretVersion', this._userSecretVersion.toString());
 		} else {
