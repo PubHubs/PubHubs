@@ -12,17 +12,10 @@ Commands for running the development environment.
 
 > Runs the global client
 
-**OPTIONS**
-
-- port
-  - flags: -p --port
-  - type: string
-  - desc: Which port to serve on
-
 ```sh
-PORT=${port:-8080}
-
-( cd global-client && echo "Running Global client..." && npx vite --host -l info --port=$PORT)
+cd global-client
+echo "Running Global client..."
+npx vite --host -l info --port=8080
 ```
 
 ### hub-client
@@ -30,16 +23,29 @@ PORT=${port:-8080}
 > Runs the hub client
 
 ```sh
-( cd hub-client && echo "Running Hub client..." && npx vite --port=8008 )
+cd hub-client
+echo "Running Hub client..."
+npx vite --port=8008
 ```
 
 ### pubhubs
 
-> Runs the global pubhubs server
+> Runs the global PubHubs servers
 
 ```sh
-( cd pubhubs && echo "Running global server..." && cargo run serve)
-# Docker Yivi
+cd pubhubs
+echo "Running global servers..."
+cargo run serve
+```
+
+#### yivi
+
+> Runs the Yivi server for the PubHubs servers
+
+```sh
+cd pubhubs
+echo "Running Yivi server..."
+./yivi.sh
 ```
 
 ### pubhubs-hub
@@ -47,5 +53,7 @@ PORT=${port:-8080}
 > Runs the hub client
 
 ```sh
-( cd hub-client && echo "Running Hub client..." && npx vite --port=8008 )
+cd hub-client
+echo "Running Hub client..."
+npx vite --port=8008 )
 ```
