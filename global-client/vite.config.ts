@@ -13,7 +13,7 @@ export default defineConfig({
 	base: '/client/',
 	root: './',
 	server: {
-		port: 8082,
+		port: 8080,
 		strictPort: true,
 		// TODO see if we get hmr working
 		// hmr: {

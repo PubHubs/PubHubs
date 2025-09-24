@@ -13,7 +13,7 @@ Commands for running the development environment.
 Runs the global client
 
 ```sh
-( cd global-client && echo "Running Global client..." && npm run vite )
+( cd global-client && echo "Running Global client..." && npx vite --host -l info --port=8080)
 ```
 
 ### hub
@@ -21,5 +21,5 @@ Runs the global client
 Runs the hub client
 
 ```sh
-( cd hub-client && echo "Running Hub client..." && vite --port=8008 )
+( cd hub-client && echo "Running Hub client..." && npx vite --port=8008 )
 ```
