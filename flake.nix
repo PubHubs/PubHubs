@@ -25,6 +25,7 @@
           rustc
           cargo
           cargo-watch
+          mask
           nodejs
           nodePackages.sass
           openssl
