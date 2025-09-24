@@ -102,6 +102,7 @@ const useGlobal = defineStore('global', {
 				// Remove PHauthToken and userSecret from local storage in case the enterEP did successfully return an authToken for the user
 				localStorage.removeItem('PHauthToken');
 				localStorage.removeItem('UserSecret');
+				localStorage.removeItem('UserSecretVersion');
 				return false;
 			}
 		},
@@ -149,6 +150,7 @@ const useGlobal = defineStore('global', {
 
 			localStorage.removeItem('PHauthToken');
 			localStorage.removeItem('UserSecret');
+			localStorage.removeItem('UserSecretVersion');
 			// TODO: find a way router can be part of a store that TypeScript swallows.
 			// @ts-ignore
 			await this.router.replace({ name: 'login' });
