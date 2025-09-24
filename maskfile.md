@@ -13,10 +13,11 @@ Commands for running the development environment.
 > Runs the global client
 
 **OPTIONS**
-* port
-    * flags: -p --port
-    * type: string
-    * desc: Which port to serve on
+
+- port
+  - flags: -p --port
+  - type: string
+  - desc: Which port to serve on
 
 ```sh
 PORT=${port:-8080}
@@ -38,12 +39,7 @@ Runs the global pubhubs server
 
 ```sh
 ( cd pubhubs && echo "Running global server..." && cargo run serve)
-
-if [[ -n "$test_file" ]]; then
-    echo "Run tests in $test_file..."
-else
-    echo "Running all tests...."
-fi
+# Docker Yivi
 ```
 
 ### pubhubs-hub
