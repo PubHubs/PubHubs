@@ -2,7 +2,8 @@
 
 # This script runs a yivi server for local development of the pubhubs servers
 
-docker run -p 8188:8188 \
+docker run --rm \
+           -p 8188:8188 \
            -p 8199:8199 \
 	   -v ./yivi.toml:/yivi.toml \
 	   -v ./yivi_jwt.pem:/yivi_jwt.pem \
