@@ -15,13 +15,9 @@ export default defineConfig({
 	server: {
 		port: 8080,
 		strictPort: true,
-		// TODO see if we get hmr working
-		// hmr: {
-		// 	protocol: 'ws',
-		// 	host: 'localhost',
-		// 	port: 8082,
-		// 	path: '/client',
-		// },
+		fs: {
+			allow: ['..'],
+		},
 	},
 	plugins: [
 		Vue(),
