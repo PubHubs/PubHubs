@@ -33,7 +33,7 @@ modules:
     config:
           {
             # URL of the hub client
-            client_url: "http://localhost:8800", # DO CHANGE - to https://<your-hub-client-domain-name>
+            client_url: "http://localhost:8001", # DO CHANGE - to https://<your-hub-client-domain-name>
             ## For DEVELOPMENT only:
             # yivi_url: "http://<outside container>:8089",
             # yivi_client_url: "http://<outside container>:8089",

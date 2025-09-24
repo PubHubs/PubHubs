@@ -21,7 +21,7 @@ FROM ghcr.io/element-hq/synapse:v1.138.0
 
 COPY --from=yivi_build /go/bin/irma /usr/bin/irma
 COPY --chmod=755 pubhubs_hub/start.sh .
-COPY --chmod=755 pubhubs_hub/start_synaps.sh .
+COPY --chmod=755 pubhubs_hub/start_synapse.sh .
 
 # Use the modules and templates that are PubHubs specific. To use the modules make sure the configuration in homeserver.yaml points  to the /conf/modules. See the example config.
 COPY pubhubs_hub/matrix_test_config/templates /conf/templates

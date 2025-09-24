@@ -52,10 +52,14 @@ npx vite --host -l info --port=8001
 
 > Runs a hub
 
+Don't forget to build the hub image and setup the hub's directory using the 
+build-image` and `setup-dir` subcommands.
+
 ```sh
 cd pubhubs_hub
 echo "Running Hub..."
 docker run \
+    -it \
     --rm \
     --name pubhubs-testhub0 \
     -p 8008:8008 \
@@ -65,10 +69,22 @@ docker run \
     --add-host host.docker.internal:host-gateway \
     -e SYNAPSE_CONFIG_DIR=/data \
     -e AUTHLIB_INSECURE_TRANSPORT=for_testing_only_of_course \
+    -e UPDATE_CONFIG_ENV=development \
     pubhubs-hub
 ```
 
-#### build
+#### setup-dir
+
+> Prepares a directory for running the local hub
+
+```sh
+echo "Setting up testhub directory..."
+cd pubhubs_hub
+rm -rf testhub0
+cp -r matrix_test_config testhub0
+```
+
+#### build-image
 
 > Build the PubHubs hub Docker image
 
