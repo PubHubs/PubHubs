@@ -1,9 +1,12 @@
 // Package imports
 import { assert } from 'chai';
+import { setLanguage, setUpi18n } from '@/i18n.js';
 
 // Global imports
 import { phc_api } from '@/logic/core/api.js';
+import { DialogOk, useDialog } from '@/logic/store/dialog.js';
 import { useGlobal } from '@/logic/store/global.js';
+import { useSettings } from '@/logic/store/settings.js';
 import * as mssTypes from '@/model/MSS/TMultiServerSetup.js';
 import { base64fromBase64Url, handleErrorCodes, handleErrors, requestOptions } from '@/model/MSS/Auths.js';
 
@@ -31,6 +34,21 @@ export default class PHCServer {
 			this._authToken = authToken.auth_token;
 			this._expiryAuthToken = authToken.expires;
 		}
+	}
+
+	triggerLogoutProcedure() {
+		const dialog = useDialog();
+		const global = useGlobal();
+		const i18n = setUpi18n();
+		const language = useSettings().language;
+		setLanguage(i18n, language);
+		const { t } = i18n.global;
+		dialog.confirm(t('login.not_logged_in'), t('login.login_again'));
+		dialog.addCallback(DialogOk, async () => {
+			await global.logout();
+			dialog.removeCallback(DialogOk);
+		});
+		throw new Error('Something went wrong. The logout procedure was triggered.');
 	}
 
 	// #region Global client login
@@ -172,7 +190,12 @@ export default class PHCServer {
 		return { entered, errorMessage: null, objectDetails: userSecretObject.details, userSecretObject: userSecretObject.object };
 	}
 
-	private async _refreshEP() {
+	/**
+	 * Call the refreshEP to refresh an (expired) authToken.
+	 *
+	 * @throws Will throw an error if the request to refresh the authToken was denied (for example because the user is logging in with a banned attribute).
+	 */
+	async refreshEP() {
 		assert.isNotNull(this._authToken, 'An (expired) authToken is needed to call the refreshEP.');
 		const options = {
 			headers: { Authorization: this._authToken },
@@ -180,33 +203,30 @@ export default class PHCServer {
 		};
 		const okRefreshResp = await handleErrors<mssTypes.RefreshResp>(() => this._phcAPI.api<mssTypes.PHCRefreshResp>(this._phcAPI.apiURLS.refresh, options));
 		if (okRefreshResp === 'ReobtainAuthToken') {
-			const global = useGlobal();
-			global.logout();
+			this.triggerLogoutProcedure();
 		} else if ('Denied' in okRefreshResp) {
-			if (okRefreshResp.Denied === mssTypes.AuthTokenDeniedReason.Banned) {
-				throw new Error('The user is trying to login with a banned attribute.');
-			} else if (okRefreshResp.Denied === mssTypes.AuthTokenDeniedReason.NoBannableAttribute) {
-				throw new Error('The user does not have a bannable attribute.');
-			} else {
-				throw new Error('Unknown reason to deny an an auth token.');
+			switch (okRefreshResp.Denied) {
+				case mssTypes.AuthTokenDeniedReason.Banned:
+					throw new Error('The user is trying to login with a banned attribute.');
+				case mssTypes.AuthTokenDeniedReason.NoBannableAttribute:
+					throw new Error('The user does not have a bannable attribute.');
+				default:
+					throw new Error('Unknown reason to deny an auth token.');
 			}
 		} else {
-			return okRefreshResp.Success;
+			this._setAuthToken(okRefreshResp.Success);
 		}
 	}
 
 	private async _getAuthToken() {
 		if (!this._authToken) {
-			const global = useGlobal();
-			global.logout();
+			this.triggerLogoutProcedure();
 			return;
 		}
 		// Convert Date.now() to represent the number of seconds from 1970-01-01T00:00:00Z UTC, to be able to compare it to the expiry timestamp we get from the AuthTokenPackage.
 		const now: bigint = BigInt(Math.floor(Date.now() / 1000));
 		if (this._authToken && this._expiryAuthToken && this._expiryAuthToken <= now) {
-			const refreshAuthTokenPackage = await this._refreshEP();
-			assert.isDefined(refreshAuthTokenPackage, 'Something went wrong, refreshAuthTokenPackage should have been defined or you should have been redirected.');
-			this._setAuthToken(refreshAuthTokenPackage);
+			await this.refreshEP();
 		}
 		return this._authToken;
 	}
@@ -226,8 +246,7 @@ export default class PHCServer {
 		const version = localStorage.getItem('UserSecretVersion');
 		// This will only happen when a user is messing with their local storage, which means the logout procedure will be invoked.
 		if (!storedUserSecret || !version) {
-			const global = useGlobal();
-			global.logout();
+			this.triggerLogoutProcedure();
 			return;
 		}
 		this._userSecret = storedUserSecret;
@@ -478,15 +497,15 @@ export default class PHCServer {
 	 *
 	 * @returns Either a message to retry with an updated token or the state of the current user.
 	 */
-	private async _stateEP() {
+	async stateEP() {
 		const options = {
 			headers: { Authorization: await this._getAuthToken() },
 			method: 'GET',
 		};
 		const okStateResp = await handleErrors<mssTypes.StateResp>(() => this._phcAPI.api<mssTypes.PHCStateResp>(this._phcAPI.apiURLS.state, options));
 		if (okStateResp === 'RetryWithNewAuthToken') {
-			const global = useGlobal();
-			await global.logout();
+			this.triggerLogoutProcedure();
+			return;
 		} else if ('State' in okStateResp) {
 			return okStateResp.State;
 		} else {
@@ -529,7 +548,7 @@ export default class PHCServer {
 	}
 
 	private async _getObjectDetails(handle: string): Promise<mssTypes.UserObjectDetails | null | undefined> {
-		const state = await this._stateEP();
+		const state = await this.stateEP();
 		if (state === undefined) {
 			throw new Error('Could not retrieve the state for this user.');
 		}
@@ -605,8 +624,7 @@ export default class PHCServer {
 					}
 					continue;
 				case 'RetryWithNewAuthToken':
-					const global = useGlobal();
-					global.logout();
+					this.triggerLogoutProcedure();
 					return;
 				case 'MissingHash':
 					// There is already an object stored under this handle, so use overwriteObjectEP instead
@@ -660,8 +678,7 @@ export default class PHCServer {
 					}
 					continue;
 				case 'RetryWithNewAuthToken':
-					const global = useGlobal();
-					global.logout();
+					this.triggerLogoutProcedure();
 					return;
 				case 'MissingHash':
 					throw new Error('Unexpected response MissingHash for a newObjectEP request.');
@@ -740,8 +757,8 @@ export default class PHCServer {
 		};
 		const okPppResp = await handleErrors<mssTypes.PppResp>(() => this._phcAPI.api<mssTypes.PHCPppResp>(this._phcAPI.apiURLS.polymorphicPseudonymPackage, options));
 		if (okPppResp === 'RetryWithNewAuthToken') {
-			const global = useGlobal();
-			await global.logout();
+			this.triggerLogoutProcedure();
+			return;
 		} else {
 			return okPppResp.Success;
 		}
@@ -761,7 +778,8 @@ export default class PHCServer {
 		if (okHhppResp === 'RetryWithNewPpp') {
 			return okHhppResp;
 		} else if (okHhppResp === 'RetryWithNewAuthToken') {
-			localStorage.removeItem('PHauthToken');
+			this.triggerLogoutProcedure();
+			return;
 		} else {
 			return okHhppResp.Success;
 		}

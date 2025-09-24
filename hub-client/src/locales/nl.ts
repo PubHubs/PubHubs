@@ -154,6 +154,8 @@ const nl = {
 	login: {
 		login: 'Login',
 		global_login: 'Login',
+		not_logged_in: 'Niet meer ingelogd',
+		login_again: 'Je bent niet meer ingelogd. Je wordt terug gestuurd naar het inlogscherm. Log opnieuw in om verder te gaan.',
 	},
 	logout: {
 		logout: 'Logout',

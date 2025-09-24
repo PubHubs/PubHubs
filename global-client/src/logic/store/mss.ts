@@ -89,6 +89,10 @@ const useMSS = defineStore('mss', {
 			return Object.values(this.hubs);
 		},
 
+		async stateEP() {
+			return await this.phcServer.stateEP();
+		},
+
 		async requestUserObject(handle: string) {
 			const object = await this.phcServer.getDecryptedUserObject(handle);
 			return object;

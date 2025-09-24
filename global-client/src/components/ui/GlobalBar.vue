@@ -54,7 +54,7 @@
 	import SettingsDialog from '@/components/forms/SettingsDialog.vue';
 	import HubMenu from '@/components/ui/HubMenu.vue';
 	import Logo from '@/components/ui/Logo.vue';
-	import { useDialog, useGlobal, useSettings } from '@/logic/store/store';
+	import { useDialog, useGlobal, useMSS, useSettings } from '@/logic/store/store';
 	import { useToggleMenu } from '@/logic/store/toggleGlobalMenu';
 	import GlobalbarButton from '@/components/ui/GlobalbarButton.vue';
 
@@ -62,15 +62,18 @@
 	import { icons } from '@/../../hub-client/src/assets/icons';
 
 	const dialog = useDialog();
-	const settingsDialog = ref(false);
 	const { t } = useI18n();
 	const global = useGlobal();
 	const toggleMenu = useToggleMenu();
-	const hubOrdering = ref(false);
 	const settings = useSettings();
-	const isMobile = computed(() => settings.isMobileState);
+	const mss = useMSS();
+
+	const settingsDialog = ref(false);
+	const hubOrdering = ref(false);
 
 	const globalClientUrl = _env.PUBHUBS_URL;
+
+	const isMobile = computed(() => settings.isMobileState);
 
 	async function logout() {
 		if (await dialog.yesno(t('logout.logout_sure'))) {
@@ -78,8 +81,12 @@
 		}
 	}
 
-	function toggleHubOrdering() {
-		hubOrdering.value = !hubOrdering.value;
+	async function toggleHubOrdering() {
+		// Check if the user still has a valid access token before enabling the hubordering mode
+		const state = await mss.stateEP();
+		if (state !== undefined) {
+			hubOrdering.value = !hubOrdering.value;
+		}
 	}
 
 	function showHelp() {
