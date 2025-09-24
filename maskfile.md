@@ -27,7 +27,7 @@ PORT=${port:-8080}
 
 ### hub-client
 
-Runs the hub client
+> Runs the hub client
 
 ```sh
 ( cd hub-client && echo "Running Hub client..." && npx vite --port=8008 )
@@ -35,7 +35,7 @@ Runs the hub client
 
 ### pubhubs
 
-Runs the global pubhubs server
+> Runs the global pubhubs server
 
 ```sh
 ( cd pubhubs && echo "Running global server..." && cargo run serve)
@@ -44,7 +44,7 @@ Runs the global pubhubs server
 
 ### pubhubs-hub
 
-Runs the hub client
+> Runs the hub client
 
 ```sh
 ( cd hub-client && echo "Running Hub client..." && npx vite --port=8008 )
