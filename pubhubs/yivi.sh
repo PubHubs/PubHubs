@@ -2,11 +2,14 @@
 
 # This script runs a yivi server for local development of the pubhubs servers
 
-docker run --rm \
-           -p 8188:8188 \
-           -p 8199:8199 \
-	   -v ./yivi.toml:/yivi.toml \
-	   -v ./yivi_jwt.pem:/yivi_jwt.pem \
-	   ghcr.io/privacybydesign/irma:latest  \
-	   	server -c /yivi.toml -v --sse
+if ! which irma
+then
+	echo "please add 'irma' to your path"
+	echo ""
+	echo "for instructions on installing 'irma', see:"
+	echo "  https://github.com/privacybydesign/irmago"
+	exit 1
+fi
+
+irma server -c yivi.toml -v --sse
 
