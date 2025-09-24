@@ -1,4 +1,4 @@
-# PubHubs commands
+# PubHubs commands for local development
 
 Run these with the following command: `mask run [command name]` (ex. `mask run global`).
 
@@ -10,10 +10,18 @@ Commands for running the development environment.
 
 ### global-client
 
-Runs the global client
+> Runs the global client
+
+**OPTIONS**
+* port
+    * flags: -p --port
+    * type: string
+    * desc: Which port to serve on
 
 ```sh
-( cd global-client && echo "Running Global client..." && npx vite --host -l info --port=8080)
+PORT=${port:-8080}
+
+( cd global-client && echo "Running Global client..." && npx vite --host -l info --port=$PORT)
 ```
 
 ### hub-client
