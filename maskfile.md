@@ -1,4 +1,4 @@
-# PunHubs commands
+# PubHubs commands
 
 Run these with the following command: `mask run [command name]` (ex. `mask run global`).
 
@@ -13,7 +13,7 @@ Commands for running the development environment.
 Runs the global client
 
 ```sh
-( cd global-client && echo "Running Global client..." && npm run watch )
+( cd global-client && echo "Running Global client..." && npm run vite )
 ```
 
 ### hub
@@ -21,21 +21,5 @@ Runs the global client
 Runs the hub client
 
 ```sh
-( cd hub-client && echo "Running Hub client..." && npx vue-cli-service serve --watch --port=8801 )
-```
-
-### pubhubs
-
-Runs PubHubs Central
-
-```sh
-( cd pubhubs && echo "Running PubHubs Central..." && cargo run )
-```
-
-### setup
-
-Runs the setup script for setting up the docker containers for Yivi and the testserver
-
-```sh
-echo "Running setup script..." && python3 start_test_setup.py exec --cargo-disabled
+( cd hub-client && echo "Running Hub client..." && vite --port=8008 )
 ```
