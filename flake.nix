@@ -8,39 +8,52 @@
     nixpkgs.url = "github:nixos/nixpkgs/nixos-unstable";
   };
 
-  outputs = {nixpkgs, ...}: let
-    # Define the system architecture
-    system = "x86_64-linux";
-    # system = "x86_64-darwin";
-  in {
-    # Define the development shell for the specified system architecture
-    devShells."${system}".default = let
-      pkgs = import nixpkgs {
-        inherit system;
-      };
+  outputs =
+    { nixpkgs, ... }:
+    let
+      # Define the system architecture
+      system = "x86_64-linux";
+      # system = "x86_64-darwin";
     in
-      pkgs.mkShell {
-        # Ensure that Docker is already installed on your system before using the development environment
-        packages = with pkgs; [
-          rustc
-          cargo
-          cargo-watch
-          mask
-          nodejs
-          nodePackages.sass
-          openssl
-          pkg-config
-          python3
-          sqlite
-        ];
+    {
+      # Define the development shell for the specified system architecture
+      devShells."${system}".default =
+        let
+          pkgs = import nixpkgs {
+            inherit system;
+          };
 
-        # Shell hook that executes when the development environment starts
-        shellHook = ''
-          # If the shell is Fish, start a new Fish shell session to ensure proper environment setup
-          if [[ "$SHELL" == *"fish"* ]]; then
-            exec fish
-          fi
-        '';
-      };
-  };
+          # irmaPackage = pkgs.fetchFromGitHub {
+          #   owner = "privacybydesign";
+          #   repo = "irmago";
+          #   tag = "0.18.1";
+          #   hash = "sha256-19e9975f2b6546ec1b62eb56f545b41823516a23=";
+          # };
+        in
+        pkgs.mkShell {
+          # Ensure that Docker is already installed on your system before using the development environment
+          packages = with pkgs; [
+            rustc
+            cargo
+            cargo-watch
+            mask
+            nodejs
+            nodePackages.sass
+            openssl
+            pkg-config
+            python3
+            sqlite
+
+            # irmaPackage
+          ];
+
+          # Shell hook that executes when the development environment starts
+          shellHook = ''
+            # If the shell is Fish, start a new Fish shell session to ensure proper environment setup
+            if [[ "$SHELL" == *"fish"* ]]; then
+              exec fish
+            fi
+          '';
+        };
+    };
 }
