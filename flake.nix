@@ -22,13 +22,6 @@
           pkgs = import nixpkgs {
             inherit system;
           };
-
-          # irmaPackage = pkgs.fetchFromGitHub {
-          #   owner = "privacybydesign";
-          #   repo = "irmago";
-          #   tag = "0.18.1";
-          #   hash = "sha256-19e9975f2b6546ec1b62eb56f545b41823516a23=";
-          # };
         in
         pkgs.mkShell {
           # Ensure that Docker is already installed on your system before using the development environment
@@ -43,14 +36,13 @@
             pkg-config
             python3
             sqlite
-
-            # irmaPackage
           ];
 
           # Shell hook that executes when the development environment starts
           shellHook = ''
             # If the shell is Fish, start a new Fish shell session to ensure proper environment setup
             if [[ "$SHELL" == *"fish"* ]]; then
+              alias pubhubs="mask"
               exec fish
             fi
           '';

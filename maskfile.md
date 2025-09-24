@@ -70,7 +70,7 @@ docker run \
 
 #### build
 
-> Build the pubhubs hub docker image
+> Build the PubHubs hub Docker image
 
 ```sh
 echo  "Building hub..."
