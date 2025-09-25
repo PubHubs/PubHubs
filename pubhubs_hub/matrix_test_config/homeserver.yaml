@@ -70,9 +70,6 @@ listeners:
           - client
         compress: false
 
-templates:
-  custom_template_directory: /data/templates
-
 database:
   name: sqlite3
   args:

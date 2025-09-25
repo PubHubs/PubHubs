@@ -58,17 +58,7 @@ build-image` and `setup-dir` subcommands.
 ```sh
 cd pubhubs_hub
 echo "Running Hub..."
-docker run \
-    -it \
-    --rm \
-    --name pubhubs-testhub0 \
-    -p 8008:8008 \
-    -v ./modules:/conf/modules:ro \
-    -v ./boot:/conf/boot:ro \
-    -v ./testhub0:/data:rw \
-    --add-host host.docker.internal:host-gateway \
-    pubhubs-hub \
-    --environment development
+./start_testhub.py
 ```
 
 #### setup-dir

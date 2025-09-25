@@ -15,6 +15,13 @@ def main():
                         choices=("production", "development"),
                         default="production")
 
+    parser.add_argument("--hub-client-url", default=None,
+                        help="Overwrites the hub client url in the homeserver configuration")
+    parser.add_argument("--hub-server-url", default=None,
+                        help="Overwrites the hub server url in the homeserver configuration")
+    parser.add_argument("--global-client-url", default=None,
+                        help="Overwrites the global client url in the homeserver configuration")
+
     Program(parser.parse_args()).run()
 
 
@@ -24,9 +31,12 @@ class Program:
         self._waiter = Waiter()
 
     def run(self):
-        update_config.run("/data/homeserver.yaml", 
-                          "/data/homeserver.live.yaml",
-                          "development")
+        update_config.run(input_file="/data/homeserver.yaml", 
+                          output_file="/data/homeserver.live.yaml",
+                          environment=self._args.environment,
+                          hub_client_url=self._args.hub_client_url,
+                          hub_server_url=self._args.hub_server_url,
+                          global_client_url=self._args.global_client_url)
 
         self._waiter.add("yivi", subprocess.Popen(("/usr/bin/irma", 
                         "server",
