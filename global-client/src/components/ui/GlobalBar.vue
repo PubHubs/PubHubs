@@ -28,7 +28,7 @@
 					<div class="flex h-fit w-full flex-col gap-8 self-end px-4">
 						<div v-if="global.loggedIn" class="flex flex-col items-center gap-4">
 							<GlobalbarButton type="reorder_hubs" @click="toggleHubOrdering" :class="hubOrdering && '!bg-accent-primary !text-on-accent-primary hover:!bg-accent-secondary'" />
-							<GlobalbarButton type="cog" @click="settingsDialog = true" />
+							<GlobalbarButton type="cog" @click="openSettingsDialog" />
 							<!-- <GlobalbarButton type="question_mark" @click="showHelp" /> -->
 							<GlobalbarButton type="power" @click="logout" />
 						</div>
@@ -83,9 +83,17 @@
 
 	async function toggleHubOrdering() {
 		// Check if the user still has a valid authentication token before enabling the hubOrdering mode
-		const state = await mss.stateEP();
-		if (state !== undefined) {
+		const validAuthToken = await mss.hasValidAuthToken();
+		if (validAuthToken) {
 			hubOrdering.value = !hubOrdering.value;
+		}
+	}
+
+	async function openSettingsDialog() {
+		// Check if the user still has a valid authentication token before opening the settings dialog
+		const validAuthToken = await mss.hasValidAuthToken();
+		if (validAuthToken) {
+			settingsDialog.value = true;
 		}
 	}
 

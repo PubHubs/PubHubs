@@ -65,8 +65,8 @@
 				hubRunning = false;
 			}
 			// Check if the user still has a valid authentication token before allowing the user to enter a hub
-			const state = await mss.stateEP();
-			if (state !== undefined) {
+			const validAuthToken = await mss.hasValidAuthToken();
+			if (validAuthToken) {
 				userLoggedIn = true;
 			}
 		} catch {

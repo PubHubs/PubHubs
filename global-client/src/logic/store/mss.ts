@@ -89,8 +89,9 @@ const useMSS = defineStore('mss', {
 			return Object.values(this.hubs);
 		},
 
-		async stateEP() {
-			return await this.phcServer.stateEP();
+		async hasValidAuthToken() {
+			const state = await this.phcServer.stateEP();
+			return state !== undefined;
 		},
 
 		async requestUserObject(handle: string) {
