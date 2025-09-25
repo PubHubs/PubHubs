@@ -85,10 +85,7 @@
 	async function addHubs() {
 		try {
 			loading.value = true;
-			const hubsResponse = await global.getHubs();
-			if (hubsResponse) {
-				hubs.addHubs(hubsResponse);
-			}
+			await global.getHubs();
 		} catch (error) {
 			router.push({ name: 'error', query: { errorKey: 'errors.no_hubs_found' } });
 			LOGGER.error(SMI.ERROR, 'Error adding hubs', { error });
