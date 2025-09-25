@@ -80,6 +80,7 @@ echo "Setting up testhub directory..."
 cd pubhubs_hub
 rm -rf testhub0
 cp -r matrix_test_config testhub0
+chmod 777 testhub0
 ```
 
 #### build-image
