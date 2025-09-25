@@ -26,6 +26,7 @@
 				<div class="flex items-center gap-2 px-8 md:px-0">
 					<Icon class="text-surface dark:text-on-surface" type="pubhubs-home" size="md" />
 					<div class="font-headings font-semibold ~text-h3-min/h3-max">{{ $t('home.discover_hubs') }}</div>
+					<InlineSpinner v-if="global.hubsLoading" />
 				</div>
 				<div class="rounded-xl bg-surface-low px-8 py-8 md:px-12">
 					<div v-if="filteredHubs.length > 0" class="grid w-full gap-8 md:grid-cols-2 3xl:grid-cols-3">
@@ -48,6 +49,7 @@
 	import { computed, ref } from 'vue';
 
 	// Global imports
+	import { useGlobal } from '@/logic/store/global';
 	import { useHubs } from '@/logic/store/hubs';
 	import { Hub } from '@/model/Hubs';
 	import InstallPrompt from '@/components/ui/InstallPrompt.vue';
@@ -61,6 +63,7 @@
 	import P from '@/../../hub-client/src/components/elements/P.vue';
 	import device from '@/../../hub-client/src/logic/core/device';
 
+	const global = useGlobal();
 	const hubs = useHubs();
 
 	const searchQuery = ref<string>('');

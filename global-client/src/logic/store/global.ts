@@ -201,6 +201,7 @@ const useGlobal = defineStore('global', {
 		},
 
 		async getHubs() {
+			this.hubsLoading = true;
 			const mss = useMSS();
 			const hubsStore = useHubs();
 			const data = await mss.getHubs();
@@ -219,6 +220,7 @@ const useGlobal = defineStore('global', {
 					}),
 			);
 			await Promise.all(hubPromises);
+			this.hubsLoading = false;
 		},
 
 		existsInPinnedHubs(hubId: string) {
