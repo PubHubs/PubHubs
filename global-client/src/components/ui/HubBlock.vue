@@ -24,48 +24,60 @@
 		</div>
 	</div>
 </template>
+
 <script setup lang="ts">
 	import { ref, onMounted, onUnmounted, onBeforeMount, computed } from 'vue';
 	import { useI18n } from 'vue-i18n';
 	import { useRouter } from 'vue-router';
-	import { useDialog } from '@/logic/store/store';
+	import { useDialog } from '@/logic/store/dialog';
 	import { Hub } from '@/model/Hubs';
 	import HubIcon from '../../../../hub-client/src/components/ui/HubIcon.vue';
 	import HubBanner from '../../../../hub-client/src/components/ui/HubBanner.vue';
 	import Button from '../../../../hub-client/src/components/elements/Button.vue';
 	import TruncatedText from '../../../../hub-client/src/components/elements/TruncatedText.vue';
 	import Pre from '../../../../hub-client/src/components/elements/Pre.vue';
-	import { useSettings } from '@/logic/store/store';
+	import { useSettings } from '@/logic/store/settings';
+	import { useMSS } from '@/logic/store/mss';
 
 	const router = useRouter();
 	const dialog = useDialog();
-	const { t } = useI18n();
-	const showDescription = ref(false);
-	const props = defineProps<{ hub: Hub }>();
 	const settings = useSettings();
+	const { t } = useI18n();
+	const mss = useMSS();
+
+	const props = defineProps<{ hub: Hub }>();
+
 	const isMobile = computed(() => settings.isMobileState);
 
 	const summary = ref<string>('');
 	const contact = ref<string>('');
+	const showDescription = ref(false);
 
 	async function enterHub(hub: Hub) {
-		let canEnterHub = false;
+		let userLoggedIn = false;
+		let hubRunning = false;
 		try {
 			// entering only the hub would generate a CORS-error.
 			// Since we only need to know if the hub is running, we can send a no-cors.
 			// The response will be empty, but the type 'opaque' will indicate the url is up and running
 			const response = await fetch(hub.url, { mode: 'no-cors' });
 			if (response.type === 'opaque') {
-				canEnterHub = true;
+				hubRunning = false;
+			}
+			// Check if the user still has a valid authentication token before allowing the user to enter a hub
+			const state = await mss.stateEP();
+			if (state !== undefined) {
+				userLoggedIn = true;
 			}
 		} catch {
 			// intentionally left empty
 		}
-		if (canEnterHub) {
+		if (userLoggedIn && !hubRunning) {
 			router.push({ name: 'hub', params: { name: hub.name } });
-		} else {
+		} else if (hubRunning) {
 			await dialog.confirm(hub.name, t('hubs.under_construction'));
 		}
+		// If the user does not have a valid authentication token, the logout procedure will already be triggered by mss.stateEP()
 	}
 
 	function toggleDescription(event: Event) {

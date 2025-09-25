@@ -82,7 +82,7 @@
 	}
 
 	async function toggleHubOrdering() {
-		// Check if the user still has a valid access token before enabling the hubordering mode
+		// Check if the user still has a valid authentication token before enabling the hubOrdering mode
 		const state = await mss.stateEP();
 		if (state !== undefined) {
 			hubOrdering.value = !hubOrdering.value;
