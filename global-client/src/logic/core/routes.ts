@@ -9,7 +9,7 @@ const routes = [
 		component: () => import('@/pages/Onboarding.vue'),
 		meta: { requiresAuth: false },
 	},
-	{ path: '/hub/:name/:roomId?', name: 'hub', component: Hub },
+	{ path: '/hub/:name/:roomId?', name: 'hub', component: Hub, meta: { requiresAuth: true } },
 	{
 		path: '/error',
 		name: 'error',
