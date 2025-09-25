@@ -33,7 +33,6 @@
 							<HubBlock :hub="hub" />
 						</div>
 					</div>
-					<InlineSpinner v-else-if="loading" />
 					<div v-else class="flex w-full items-center justify-center">
 						<P>{{ $t('others.search_hubs_not_found') }}</P>
 					</div>
@@ -46,13 +45,9 @@
 
 <script setup lang="ts">
 	// Package imports
-	import { computed, onMounted, ref } from 'vue';
-	import { useRouter } from 'vue-router';
+	import { computed, ref } from 'vue';
 
 	// Global imports
-	import { LOGGER } from '@/logic/foundation/Logger';
-	import { SMI } from '@/logic/foundation/StatusMessage';
-	import { useGlobal } from '@/logic/store/global';
 	import { useHubs } from '@/logic/store/hubs';
 	import { Hub } from '@/model/Hubs';
 	import InstallPrompt from '@/components/ui/InstallPrompt.vue';
@@ -66,33 +61,7 @@
 	import P from '@/../../hub-client/src/components/elements/P.vue';
 	import device from '@/../../hub-client/src/logic/core/device';
 
-	const global = useGlobal();
 	const hubs = useHubs();
-
-	const router = useRouter();
-
-	const loading = ref<boolean>(true);
-
-	onMounted(async () => {
-		await addHubs();
-
-		if (!hubs.hasHubs) {
-			router.push({ name: 'error', query: { errorKey: 'errors.no_hubs_found' } });
-		}
-	});
-
-	// Function to add hubs
-	async function addHubs() {
-		try {
-			loading.value = true;
-			await global.getHubs();
-		} catch (error) {
-			router.push({ name: 'error', query: { errorKey: 'errors.no_hubs_found' } });
-			LOGGER.error(SMI.ERROR, 'Error adding hubs', { error });
-		} finally {
-			loading.value = false;
-		}
-	}
 
 	const searchQuery = ref<string>('');
 
