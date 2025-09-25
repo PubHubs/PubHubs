@@ -30,8 +30,8 @@ interface GlobalSettings {
 }
 
 const defaultGlobalSettings = {
-	theme: 'system', // Theme.System,
-	timeformat: 'format24', // TimeFormat.format24,
+	theme: Theme.System,
+	timeformat: TimeFormat.format24,
 	language: 'en',
 	hubs: [] as PinnedHubs,
 };
@@ -42,6 +42,7 @@ const useGlobal = defineStore('global', {
 			loggedIn: false,
 			modalVisible: false,
 			pinnedHubs: [] as PinnedHubs,
+			hubsLoading: false,
 
 			logger: new Logger('GC', CONFIG),
 		};
