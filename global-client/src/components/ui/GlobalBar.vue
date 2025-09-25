@@ -84,7 +84,7 @@
 	async function toggleHubOrdering() {
 		// Check if the user still has a valid authentication token before enabling the hubOrdering mode
 		const validAuthToken = await mss.hasValidAuthToken();
-		if (validAuthToken) {
+		if (validAuthToken && !global.hubsLoading) {
 			hubOrdering.value = !hubOrdering.value;
 		}
 	}
