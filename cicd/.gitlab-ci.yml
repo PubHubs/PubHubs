@@ -195,7 +195,8 @@ build-image-hub:
     # which might not contain the latest tag, in which case `git describe --tags` fails.  In that case we fetch 
     # a bit more history until we hit our tag's commit.
     - until git describe --tags; do git fetch --deepen 10; done 
-    - docker build -t ${CONTAINER_IMAGE} -f pubhubs_hub/Dockerfile --build-arg HUB_VERSION="$(git describe --tags)" .
+    - cd pubhubs_hub
+    - docker build -t ${CONTAINER_IMAGE} --build-arg HUB_VERSION="$(git describe --tags)" .
     - docker push ${CONTAINER_IMAGE}
 
 deploy-main-hub:

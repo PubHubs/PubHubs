@@ -64,7 +64,7 @@ docker run \
     --name pubhubs-testhub0 \
     -p 8008:8008 \
     -v ./modules:/conf/modules:ro \
-    -v ./update_config:/conf/update_config:ro \
+    -v ./boot:/conf/boot:ro \
     -v ./testhub0:/data:rw \
     --add-host host.docker.internal:host-gateway \
     -e SYNAPSE_CONFIG_DIR=/data \
@@ -90,7 +90,6 @@ cp -r matrix_test_config testhub0
 
 ```sh
 echo  "Building hub..."
-docker build \
-    -t pubhubs-hub \
-    -f pubhubs_hub/Dockerfile .
+cd pubhubs_hub
+docker build -t pubhubs-hub .
 ```

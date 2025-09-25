@@ -25,7 +25,7 @@
 # NOTE TO PUBHUBS DEVELOPERS
 #
 # If you change anything here, please realise these changes are not distributed automatically to the hubs,
-# so consider updating the 'update_config' module in modules/update_config.py.
+# so consider updating the 'update_config' module in boot/update_config.py.
 #
 
 modules:

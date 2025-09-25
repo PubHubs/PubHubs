@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 # You can run this script locally in the docker container with 
-# ./conf/update_config/update_config.py  --in 'data/homeserver.yaml' --out "$SYNAPSE_CONFIG_PATH" --environment="$UPDATE_CONFIG_ENV"
+# ./conf/boot/update_config.py  --in 'data/homeserver.yaml' --out "$SYNAPSE_CONFIG_PATH" --environment="$UPDATE_CONFIG_ENV"
 # SYNAPSE_CONFIG_PATH is where the generated file will be stored and also the yaml file that synaps will use to run
 # The --environment can be either "development" or "production"
 import yaml
