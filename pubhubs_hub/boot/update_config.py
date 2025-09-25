@@ -470,8 +470,7 @@ class UpdateConfig:
         return global_client_url
 
 
-
-if __name__ == "__main__":
+def main():
     parser = argparse.ArgumentParser(description='Update Synapse configuration.')
     parser.add_argument('--in', dest='input_file', required=True, 
                        help='Input configuration file path')
@@ -480,12 +479,15 @@ if __name__ == "__main__":
     parser.add_argument('--environment', required=True, choices=["", "production", "development"],
                        help='Determines what configuration changes are expected. ("" is interpreted as production.)')
 
-    
     args = parser.parse_args()
-    
-    homeserver_file_path = args.input_file
-    homeserver_live_file_path = args.output_file
-    config_env = args.environment if args.environment!="" else 'production'
+    run(args.input_file, args.output_file, args.environment)
+
+
+def run(input_file, output_file, environment):
+
+    homeserver_file_path = input_file
+    homeserver_live_file_path = output_file
+    config_env = environment if environment!="" else 'production'
 
     # Update config homeserver, output as homeserver.live
     update_config_module = UpdateConfig(config_env)
@@ -515,3 +517,7 @@ if __name__ == "__main__":
             raise yaml.YAMLError(f"❌  Error while saving homeserver.live dict to YAML: {e}") from e
 
     logger.info(f" - INFO ✅  Generated updated configuration of homeserver.yaml at {homeserver_live_file_path}")
+
+if __name__ == "__main__":
+    main()
+

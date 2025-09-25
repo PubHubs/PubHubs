@@ -67,10 +67,8 @@ docker run \
     -v ./boot:/conf/boot:ro \
     -v ./testhub0:/data:rw \
     --add-host host.docker.internal:host-gateway \
-    -e SYNAPSE_CONFIG_DIR=/data \
-    -e AUTHLIB_INSECURE_TRANSPORT=for_testing_only_of_course \
-    -e UPDATE_CONFIG_ENV=development \
-    pubhubs-hub
+    pubhubs-hub \
+    --environment development
 ```
 
 #### setup-dir

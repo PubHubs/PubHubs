@@ -3,10 +3,17 @@
 import argparse
 import subprocess
 import threading
+import update_config
+import os
 
 def main():
     parser = argparse.ArgumentParser(
             description="Start a PubHubs hub")
+
+    parser.add_argument("-e", "--environment",
+                        help="Influences the checks performed on the /data/homeserver.yaml file.",
+                        choices=("production", "development"),
+                        default="production")
 
     Program(parser.parse_args()).run()
 
@@ -17,6 +24,10 @@ class Program:
         self._waiter = Waiter()
 
     def run(self):
+        update_config.run("/data/homeserver.yaml", 
+                          "/data/homeserver.live.yaml",
+                          "development")
+
         self._waiter.add("yivi", subprocess.Popen(("/usr/bin/irma", 
                         "server",
                         "--issue-perms", "*",
@@ -30,6 +41,12 @@ class Program:
                         "-p", "8089",
                         "--client-listen-addr", "0.0.0.0",
                         "--client-port", "8088")))
+
+        os.putenv("SYNAPSE_CONFIG_PATH", "/data/homeserver.live.yaml")
+        os.putenv("SYNAPSE_CONFIG_DIR", "/data")
+
+        if self._args.environment == "development":
+            os.putenv("AUTHLIB_INSECURE_TRANSPORT", "for_development_only_of_course")
 
         self._waiter.add("synapse", subprocess.Popen(("/start.py",)))
 
