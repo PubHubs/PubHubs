@@ -8,5 +8,3 @@ no_auth: false
 # openssl genrsa 4096 -out jwt.priv
 # ("openssl rsa -in jwt.priv -pubout -out jwt.pub", for public key.)
 jwt_privkey_file: jwt.priv
-
-url: http://145.137.181.209:8088
