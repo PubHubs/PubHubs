@@ -2,12 +2,12 @@ import PHCServer from '@/model/MSS/PHC';
 import { PHCStateResp, PHCWelcomeResp } from '@/model/MSS/TMultiServerSetup';
 import { http, HttpResponse } from 'msw';
 
+let encryptedUserSecret = null;
+let encryptedUserSecretBackup = null;
+
 export const handlers = [
 	http.get('http://test/login', () => {
-		sessionStorage.setItem('loggedIn', 'true');
 		localStorage.setItem('PHauthToken', `{"auth_token":"someValue","expires":${Date.now() + 1000}}`);
-		localStorage.setItem('UserSecret', 'someUserSecret');
-		localStorage.setItem('UserSecretVersion', '1');
 		return new HttpResponse(null, { status: 200 });
 	}),
 
@@ -47,7 +47,11 @@ export const handlers = [
 				State: {
 					allow_login_by: ['someAttribute'],
 					could_be_banned_by: ['someBannableAttribute'],
-					stored_objects: { usersecret: { hash: 'userSecretHash', hmac: 'userSecretHmac', size: 300 }, globalsettings: { hash: 'globalSettingsHash', hmac: 'globalSettingsHmac', size: 350 } },
+					stored_objects: {
+						usersecret: { hash: 'userSecretHash', hmac: 'userSecretHmac', size: 300 },
+						usersecretbackup: { hash: 'userSecretBackupHash', hmac: 'userSecretBackupHmac', size: 300 },
+						globalsettings: { hash: 'globalSettingsHash', hmac: 'globalSettingsHmac', size: 350 },
+					},
 				},
 			},
 		};
@@ -55,7 +59,7 @@ export const handlers = [
 	}),
 
 	http.get('http://test/.ph/user/obj/by-hash/globalSettingsHash/globalSettingsHmac', async () => {
-		if (sessionStorage.getItem('loggedIn') && localStorage.getItem('PHauthToken')) {
+		if (localStorage.getItem('PHauthToken')) {
 			const data = {
 				theme: 'system',
 				timeformat: 'format24',
@@ -66,7 +70,7 @@ export const handlers = [
 			const phcServer = new PHCServer();
 			// Using the string index notation as escape hatch to get a hold of the private function _encryptData
 			// https://github.com/microsoft/TypeScript/issues/19335
-			const encodedKey = new Uint8Array(Buffer.from('someUserSecret', 'base64'));
+			const encodedKey = new Uint8Array(Buffer.from(localStorage.getItem('UserSecret'), 'base64'));
 			const encryptedData = await phcServer['_encryptData'](encodedData, encodedKey);
 			return HttpResponse.arrayBuffer(encryptedData.buffer, {
 				headers: {
@@ -93,9 +97,50 @@ export const handlers = [
 	}),
 
 	http.get('http://test/logout', () => {
-		sessionStorage.setItem('loggedIn', 'false');
 		localStorage.removeItem('PHauthToken');
 		localStorage.removeItem('UserSecret');
 		return new HttpResponse(null, { status: 200 });
+	}),
+
+	http.post('http://test/.ph/user/obj/by-handle/usersecret', async ({ request }) => {
+		const body = await request.arrayBuffer();
+		encryptedUserSecret = body;
+		return HttpResponse.json({ Ok: { Stored: { hash: 'userSecretHash' } } }, { status: 200 });
+	}),
+
+	http.post('http://test/.ph/user/obj/by-hash/usersecret/userSecretHash', async ({ request }) => {
+		const body = await request.arrayBuffer();
+		encryptedUserSecret = body;
+		return HttpResponse.json({ Ok: { Stored: { hash: 'userSecretHash' } } }, { status: 200 });
+	}),
+
+	http.post('http://test/.ph/user/obj/by-handle/usersecretbackup', async ({ request }) => {
+		const body = await request.arrayBuffer();
+		encryptedUserSecretBackup = body;
+		return HttpResponse.json({ Ok: { Stored: { hash: 'userSecretBackupHash' } } }, { status: 200 });
+	}),
+
+	http.post('http://test/.ph/user/obj/by-hash/usersecretbackup/userSecretBackupHash', async ({ request }) => {
+		const body = await request.arrayBuffer();
+		encryptedUserSecretBackup = body;
+		return HttpResponse.json({ Ok: { Stored: { hash: 'userSecretHash' } } }, { status: 200 });
+	}),
+
+	http.get('http://test/.ph/user/obj/by-hash/userSecretHash/userSecretHmac', () => {
+		return HttpResponse.arrayBuffer(encryptedUserSecret, {
+			headers: {
+				'content-type': 'application/octet-stream',
+			},
+			status: 200,
+		});
+	}),
+
+	http.get('http://test/.ph/user/obj/by-hash/userSecretBackupHash/userSecretBackupHmac', () => {
+		return HttpResponse.arrayBuffer(encryptedUserSecretBackup, {
+			headers: {
+				'content-type': 'application/octet-stream',
+			},
+			status: 200,
+		});
 	}),
 ];

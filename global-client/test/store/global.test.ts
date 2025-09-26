@@ -2,10 +2,12 @@ import { PinnedHubs, useGlobal } from '@/logic/store/global';
 import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, test } from 'vitest';
 import { createPinia, setActivePinia } from 'pinia';
 
-import { api } from '@/logic/core/api';
 import { server } from '../mocks/server';
+import { api } from '@/logic/core/api';
 import { useSettings } from '@/logic/store/settings';
 import { useHubs } from '@/logic/store/hubs';
+import PHCServer from '@/model/MSS/PHC';
+import * as mssTypes from '@/model/MSS/TMultiServerSetup';
 
 beforeAll(() => server.listen({ onUnhandledRequest: 'error' }));
 afterAll(() => server.close());
@@ -14,6 +16,7 @@ afterEach(() => server.resetHandlers());
 let pinia;
 
 describe('Global', () => {
+	let phcServer: PHCServer;
 	beforeEach(() => {
 		pinia = createPinia();
 		setActivePinia(pinia);
@@ -47,6 +50,16 @@ describe('Global', () => {
 			const settings = useSettings(pinia);
 
 			await api.api(api.apiURLS.login);
+			phcServer = new PHCServer();
+			const mockedAttrKeysResp: Record<string, mssTypes.AttrKeyResp> = {
+				email: {
+					latest_key: ['someKey1', 'timestamp1'],
+					old_key: null,
+				},
+			};
+			const mockedIdentifyingAttrs: mssTypes.SignedIdentifyingAttrs = { email: { id: 'emailAttrId', signedAttr: 'signedEmailAttr', value: 'emailAttrValue' } };
+
+			await phcServer.storeUserSecretObject(mockedAttrKeysResp, mockedIdentifyingAttrs, null, null);
 			const resp = await global.checkLoginAndSettings();
 			expect(resp).toEqual(true);
 
