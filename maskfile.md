@@ -8,13 +8,13 @@ Make sure you have [mask](https://github.com/jacobdeichert/mask) installed.
 
 Commands for running the development environment.
 
-### global-client
+### pubhubs-client
 
-> Runs the global client
+> Runs the pubhubs global client
 
 ```sh
 cd global-client
-echo "Running Global client..."
+echo "Running pubhubs client..."
 npx vite --host -l info --port=8080
 ```
 
@@ -38,42 +38,72 @@ echo "Running Yivi server..."
 ./yivi.sh
 ```
 
-### hub-client
+### hub-client (n)
 
-> Runs a hub client
+> Runs the n-th hub client
 
 ```sh
 cd hub-client
-echo "Running Hub client..."
-npx vite --host -l info --port=8001
+echo "Running Hub client for testhub${n}..."
+VITE_HUB_URL="http://localhost:$((8008 + n))" npx vite --host --port="$((8001 + n))"
 ```
 
-### hub
+### hub (n)
 
-> Runs a hub
+> Runs the n-th hub server
 
 Don't forget to build the hub image and setup the hub's directory using the 
-build-image` and `setup-dir` subcommands.
+hubs build-image` and `hubs setup-dirs` subcommands.
 
 ```sh
 cd pubhubs_hub
-echo "Running Hub..."
-./start_testhub.py
+echo "Running testhub${n}"
+./start_testhub.py "${n}"
 ```
 
-#### setup-dir
+### all
 
-> Prepares a directory for running the local hub
+> Run everything (WORK IN PROGRESS)
 
 ```sh
-echo "Setting up testhub directory..."
-cd pubhubs_hub
-rm -rf testhub0
-cp -r matrix_test_config testhub0
-chmod 777 testhub0
+trap 'kill $(jobs -p)' EXIT	
+mask run pubhubs yivi &
+sleep 1
+mask run pubhubs &
+mask run pubhubs-client &
+for i in $(0 4);
+do
+    mask run hub "$i" &
+    mask run hub-client "$i" &
+done
+wait
 ```
 
-#### build-image
+### init
+
+> Initialize test setup
+```sh
+mask run init testhub-dirs
+mask run init testhub-image
+```
+
+#### testhub-dirs
+
+> Prepares directories for running the local hubs
+
+```sh
+echo "Setting up testhub directories..."
+cd pubhubs_hub
+for i in $(seq 0 4);
+do
+    echo "testhub$i"
+    rm -rf "testhub${i}"
+    cp -r matrix_test_config "testhub$i"
+    chmod 777 "testhub$i"
+done
+```
+
+#### testhub-image
 
 > Build the PubHubs hub Docker image
 

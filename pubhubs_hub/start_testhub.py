@@ -10,32 +10,52 @@ def main():
     parser = argparse.ArgumentParser(
             description="Spins up a hub container for local development")
 
+    parser.add_argument("--mode",
+                        choices=("networkhost", "localhost"),
+                        default="localhost",
+                        help="Which hostname to use to (have clients) contact the clients and other servers:"
+                        " localhost or 'networkhost', the IP address of the local internet interface")
+    parser.add_argument("number", 
+                        choices=range(0,5),
+                        type=int,
+                        default=0,
+                        nargs="?",
+                        help="Which of the five testhubs to run.")
+
     args = parser.parse_args()
 
-    networkhost = ""
-    try:
-        s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-        s.connect(("k.root-servers.net", 53))
-        networkhost = s.getsockname()[0]
-    except:
-        print("failed to obtain IPv4 address for network host; getting IPv6 address..")
-        s = socket.socket(socket.AF_INET6, socket.SOCK_DGRAM)
-        s.connect(("k.root-servers.net", 53))
-        networkhost = "[" + s.getsockname()[0] + "]"
+    host = ""
 
-    hub_client_url = f"http://{networkhost}:8001"
-    hub_server_url = f"http://{networkhost}:8008"
-    global_client_url = f"http://{networkhost}:8080"
-    phc_url = f"http://{networkhost}:5050"
+    match args.mode:
+        case "networkhost":
+            try:
+                s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+                s.connect(("k.root-servers.net", 53))
+                host = s.getsockname()[0]
+            except:
+                print("failed to obtain IPv4 address for network host; getting IPv6 address..")
+                s = socket.socket(socket.AF_INET6, socket.SOCK_DGRAM)
+                s.connect(("k.root-servers.net", 53))
+                host = "[" + s.getsockname()[0] + "]"
+        case "localhost":
+            host = "localhost"
+        case _:
+            raise RuntimeError(f"unknown mode {args.mode}")
+
+
+    hub_client_url = f"http://{host}:{8001+args.number}"
+    hub_server_url = f"http://{host}:{8008+args.number}"
+    global_client_url = f"http://{host}:8080"
+    phc_url = f"http://{host}:5050"
 
     subprocess.run(("docker", "run", 
                     "-it",
                     "--rm",
-                    "--name", "pubhubs-testhub0",
-                    "-p", "8008:8008",
+                    "--name", f"pubhubs-testhub{args.number}",
+                    "-p", f"{8008+args.number}:8008",
                     "-v", "./modules:/conf/modules:ro",
                     "-v", "./boot:/conf/boot:ro",
-                    "-v", "./testhub0:/data:rw",
+                    "-v", f"./testhub{args.number}:/data:rw",
                     "--add-host", "host.docker.internal:host-gateway",
                     "pubhubs-hub",
                     "--environment", "development",
