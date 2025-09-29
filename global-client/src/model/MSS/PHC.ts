@@ -15,6 +15,7 @@ import { Api } from '@/../../../hub-client/src/logic/core/apiCore.js';
 
 export default class PHCServer {
 	private _phcAPI: Api;
+	private _userStateObjects: Record<string, mssTypes.UserObjectDetails> | undefined = undefined;
 	/** NOTE: Do not use this variable directly to prevent using an expired authToken. Instead, use _getAuthToken(). */
 	private _authToken: string | null = null;
 	private _expiryAuthToken: null | bigint = null;
@@ -182,6 +183,7 @@ export default class PHCServer {
 		if (!entered) {
 			return { entered, errorMessage, objectDetails: null, userSecretObject: null };
 		}
+		await this.stateEP();
 		const userSecretObject = await this._getUserSecretObject();
 
 		if (!userSecretObject || !userSecretObject.object) {
@@ -507,6 +509,7 @@ export default class PHCServer {
 			this.triggerLogoutProcedure();
 			return;
 		} else if ('State' in okStateResp) {
+			this._userStateObjects = okStateResp.State.stored_objects;
 			return okStateResp.State;
 		} else {
 			throw new Error('Unknown response from to state endpoint.');
@@ -532,6 +535,7 @@ export default class PHCServer {
 				if (attempts === maxAttempts) {
 					throw new Error(`Could not retrieve the object with handle ${handle}, errorcode: ${getObjResp}`);
 				}
+				await this.stateEP();
 				// TODO: check if this is the correct way to handle both of these cases
 				const objectDetails = await this._getObjectDetails(handle);
 				// If the object cannot be found, return null.
@@ -548,11 +552,16 @@ export default class PHCServer {
 	}
 
 	private async _getObjectDetails(handle: string): Promise<mssTypes.UserObjectDetails | null | undefined> {
-		const state = await this.stateEP();
-		if (state === undefined) {
+		if (this._userStateObjects === undefined) {
+			await this.stateEP();
+		}
+
+		const objects = this._userStateObjects;
+		if (objects === undefined) {
 			throw new Error('Could not retrieve the state for this user.');
 		}
-		const objectDetails: mssTypes.UserObjectDetails | null = state.stored_objects[handle];
+
+		const objectDetails: mssTypes.UserObjectDetails | null = objects[handle];
 		return objectDetails;
 	}
 
@@ -643,6 +652,8 @@ export default class PHCServer {
 					if ('QuotumReached' in newObjectResp) {
 						throw new Error(`Could not store the new user object with handle ${handle}, because the quotum is reached.`);
 					} else if ('Stored' in newObjectResp) {
+						// TODO: this call to the stateEP can be removed if the newObjectEP also returns the hmac of the new object. In that case the local "shadow record" of the userStateObjects can be directly updated here.
+						await this.stateEP();
 						return newObjectResp.Stored.hash;
 					}
 					throw new Error('Unknown response for newObjectEP request.');
@@ -700,6 +711,8 @@ export default class PHCServer {
 					if ('QuotumReached' in overwriteObjectResp) {
 						throw new Error(`Could not store the new user object with handle ${handle}, because the quotum is reached.`);
 					} else if ('Stored' in overwriteObjectResp) {
+						// TODO: this call to the stateEP can be removed if the overwriteObjectEP also returns the new hmac of the object. In that case the local "shadow record" of the userStateObjects can be directly updated here.
+						await this.stateEP();
 						return overwriteObjectResp.Stored.hash;
 					}
 					throw new Error('Unknown response for newObjectEP request.');
