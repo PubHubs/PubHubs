@@ -22,8 +22,10 @@ export default class Transcryptor {
 		const okEhppResp = await handleErrors<mssTypes.EhppResp>(() => this._trApi.api<mssTypes.TrEhppResp>(this._trApi.apiURLS.encryptedHubPseudonymPackage, requestOptions<mssTypes.EhpppReq>(requestPayload)));
 		if (okEhppResp === 'RetryWithNewPpp') {
 			return okEhppResp;
-		} else {
+		} else if ('Success' in okEhppResp) {
 			return okEhppResp.Success;
+		} else {
+			throw new Error('Unknown response from the ehpp endpoint.');
 		}
 	}
 }

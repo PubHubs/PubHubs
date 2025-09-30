@@ -116,8 +116,10 @@ export default class AuthenticationServer {
 		const okAuthCompleteResp = await handleErrors<mssTypes.CompleteResp>(authCompleteRespFn);
 		if (okAuthCompleteResp === 'PleaseRestartAuth') {
 			throw new Error('Something went wrong. Please start again at AuthStartEP.');
-		} else {
+		} else if ('Success' in okAuthCompleteResp) {
 			return okAuthCompleteResp.Success;
+		} else {
+			throw new Error('Unknown response from the completeAuth endpoint.');
 		}
 	}
 
@@ -145,7 +147,7 @@ export default class AuthenticationServer {
 		} else if ('SourceNotAvailableFor' in startResp) {
 			throw new Error(`The source (${authStartReq.source}) is not available for the attribute type with this handle: ${startResp.SourceNotAvailableFor}`);
 		} else {
-			throw new Error('An unknown error occurred with the AuthStart request.');
+			throw new Error('Unknown response from the AuthStart endpoint.');
 		}
 	}
 

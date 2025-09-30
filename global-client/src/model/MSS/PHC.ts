@@ -91,11 +91,13 @@ export default class PHCServer {
 			return { entered: false, errorMessage: { key: 'errors.attribute_already_taken', values: [enterResp.AttributeAlreadyTaken.value] } };
 		} else if ('RetryWithNewAddAttr' in enterResp) {
 			return { entered: false, errorMessage: { key: 'errors.retry_with_new_attr' } };
-		} else {
+		} else if ('Entered' in enterResp) {
 			const { auth_token_package } = enterResp.Entered;
 			const authToken = handleErrorCodes<mssTypes.AuthTokenPackage, mssTypes.AuthTokenDeniedReason>(auth_token_package);
 			this._setAuthToken(authToken);
 			return { entered: true, errorMessage: null };
+		} else {
+			throw new Error('Unknown response from the enter endpoint.');
 		}
 	}
 
@@ -215,8 +217,10 @@ export default class PHCServer {
 				default:
 					throw new Error('Unknown reason to deny an auth token.');
 			}
-		} else {
+		} else if ('Success' in okRefreshResp) {
 			this._setAuthToken(okRefreshResp.Success);
+		} else {
+			throw new Error('Unknown response from the refresh endpoint.');
 		}
 	}
 
@@ -512,7 +516,7 @@ export default class PHCServer {
 			this._userStateObjects = okStateResp.State.stored_objects;
 			return okStateResp.State;
 		} else {
-			throw new Error('Unknown response from to state endpoint.');
+			throw new Error('Unknown response from the state endpoint.');
 		}
 	}
 
@@ -772,8 +776,10 @@ export default class PHCServer {
 		if (okPppResp === 'RetryWithNewAuthToken') {
 			this.triggerLogoutProcedure();
 			return;
-		} else {
+		} else if ('Success' in okPppResp) {
 			return okPppResp.Success;
+		} else {
+			throw new Error('Unknown response from the ppp endpoint.');
 		}
 	}
 
@@ -793,8 +799,10 @@ export default class PHCServer {
 		} else if (okHhppResp === 'RetryWithNewAuthToken') {
 			this.triggerLogoutProcedure();
 			return;
-		} else {
+		} else if ('Success' in okHhppResp) {
 			return okHhppResp.Success;
+		} else {
+			throw new Error('Unknown response from the hhpp endpoint.');
 		}
 	}
 
