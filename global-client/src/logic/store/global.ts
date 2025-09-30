@@ -201,7 +201,7 @@ const useGlobal = defineStore('global', {
 		},
 
 		async getHubs() {
-			this.hubsLoading = true;
+			this.hubsLoading = this.loggedIn && true;
 			const mss = useMSS();
 			const hubsStore = useHubs();
 			const data = await mss.getHubs();
