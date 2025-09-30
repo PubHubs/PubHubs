@@ -38,12 +38,14 @@
 	import Pre from '../../../../hub-client/src/components/elements/Pre.vue';
 	import { useSettings } from '@/logic/store/settings';
 	import { useMSS } from '@/logic/store/mss';
+	import { useGlobal } from '@/logic/store/store';
 
 	const router = useRouter();
 	const dialog = useDialog();
 	const settings = useSettings();
 	const { t } = useI18n();
 	const mss = useMSS();
+	const global = useGlobal();
 
 	const props = defineProps<{ hub: Hub }>();
 
@@ -64,11 +66,8 @@
 			if (response.type === 'opaque') {
 				hubRunning = true;
 			}
-			// Check if the user still has a valid authentication token before allowing the user to enter a hub
-			const validAuthToken = await mss.hasValidAuthToken();
-			if (validAuthToken) {
-				userLoggedIn = true;
-			}
+			// Check if the user either has an access token stored for the hub or still has a valid PubHubs authentication token before allowing the user to enter a hub
+			userLoggedIn = global.getAuthInfo(hub.hubId) !== null || ((await mss.hasValidAuthToken()) ?? false);
 		} catch {
 			// intentionally left empty
 		}

@@ -1,5 +1,6 @@
 import { defineStore } from 'pinia';
 import { assert } from 'chai';
+import { setUpi18n, setLanguage } from '@/i18n.js';
 
 import AuthenticationServer from '@/model/MSS/Auths.js';
 import PHCServer from '@/model/MSS/PHC.js';
@@ -7,7 +8,9 @@ import Transcryptor from '@/model/MSS/Transcryptor.js';
 import * as mssTypes from '@/model/MSS/TMultiServerSetup.js';
 import filters from '@/logic/core/filters.js';
 import { hub_api } from '@/logic/core/api.js';
+import { useDialog } from '@/logic/store/dialog.js';
 import { useGlobal } from '@/logic/store/global.js';
+import { useSettings } from '@/logic/store/settings.js';
 
 const useMSS = defineStore('mss', {
 	state: () => {
@@ -90,8 +93,21 @@ const useMSS = defineStore('mss', {
 		},
 
 		async hasValidAuthToken() {
-			const state = await this.phcServer.stateEP();
-			return state !== undefined;
+			try {
+				const state = await this.phcServer.stateEP();
+				return state !== undefined;
+			} catch (error) {
+				if (error instanceof Error && error.message.toLowerCase() === 'failed to fetch') {
+					const dialog = useDialog();
+					const i18n = setUpi18n();
+					const language = useSettings().language;
+					setLanguage(i18n, language);
+					const { t } = i18n.global;
+					dialog.confirm(t('mss.system_offline'), t('mss.system_offline_description'));
+				} else {
+					throw error;
+				}
+			}
 		},
 
 		async requestUserObject(handle: string) {
