@@ -62,7 +62,7 @@
 			// The response will be empty, but the type 'opaque' will indicate the url is up and running
 			const response = await fetch(hub.url, { mode: 'no-cors' });
 			if (response.type === 'opaque') {
-				hubRunning = false;
+				hubRunning = true;
 			}
 			// Check if the user still has a valid authentication token before allowing the user to enter a hub
 			const validAuthToken = await mss.hasValidAuthToken();
@@ -72,9 +72,9 @@
 		} catch {
 			// intentionally left empty
 		}
-		if (userLoggedIn && !hubRunning) {
+		if (userLoggedIn && hubRunning) {
 			router.push({ name: 'hub', params: { name: hub.name } });
-		} else if (hubRunning) {
+		} else if (!hubRunning) {
 			await dialog.confirm(hub.name, t('hubs.under_construction'));
 		}
 		// If the user does not have a valid authentication token, the logout procedure will already be triggered by mss.stateEP()
