@@ -223,6 +223,10 @@ const useGlobal = defineStore('global', {
 			this.hubsLoading = false;
 		},
 
+		setLoadingHubs(value: boolean) {
+			this.hubsLoading = value;
+		},
+
 		existsInPinnedHubs(hubId: string) {
 			if (!this.pinnedHubs) return false;
 			const found = this.pinnedHubs.find((hub) => hub.hubId === hubId);

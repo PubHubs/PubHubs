@@ -22,7 +22,7 @@
 
 				<div class="flex h-full flex-1 flex-col gap-1 overflow-y-hidden py-3 md:gap-4 md:py-6">
 					<!-- Global middle bar (hub menu) -->
-					<HubMenu :hubOrderingIsActive="hubOrdering" />
+					<HubMenu :hubOrderingIsActive="hubOrdering && global.loggedIn" />
 
 					<!-- Global bottom bar (settings) -->
 					<div class="flex h-fit w-full flex-col gap-8 self-end px-4">

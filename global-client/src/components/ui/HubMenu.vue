@@ -52,6 +52,7 @@
 	import { useToggleMenu } from '@/logic/store/toggleGlobalMenu';
 
 	// Hub imports
+	import Icon from '@/../../hub-client/src/components/elements/Icon.vue';
 	import InlineSpinner from '@/../../hub-client/src/components/ui/InlineSpinner.vue';
 
 	const global = useGlobal();
