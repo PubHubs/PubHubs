@@ -37,19 +37,25 @@ export default class PHCServer {
 		}
 	}
 
-	triggerLogoutProcedure() {
+	triggerLogoutProcedure(recoverable: boolean = true) {
 		const dialog = useDialog();
 		const global = useGlobal();
 		const i18n = setUpi18n();
 		const language = useSettings().language;
 		setLanguage(i18n, language);
 		const { t } = i18n.global;
-		dialog.confirm(t('login.not_logged_in'), t('login.login_again'));
+		if (recoverable) {
+			dialog.confirm(t('errors.oops'), t('errors.error'));
+		} else {
+			dialog.confirm(t('login.not_logged_in'), t('login.login_again'));
+		}
 		dialog.addCallback(DialogOk, async () => {
 			await global.logout();
 			dialog.removeCallback(DialogOk);
 		});
-		throw new Error('Something went wrong. The logout procedure was triggered.');
+		if (!recoverable) {
+			throw new Error('Something went wrong. The logout procedure was triggered.');
+		}
 	}
 
 	// #region Global client login
@@ -161,6 +167,7 @@ export default class PHCServer {
 		if (mssTypes.isUserSecretObjectNew(object)) {
 			const userSecretObjectBackup = await this.getUserObject('usersecretbackup');
 			if (!userSecretObjectBackup || !userSecretObjectBackup.object) {
+				this.triggerLogoutProcedure(false);
 				throw new Error('Expected a backup of the user secret object to be stored, but could not find it.');
 			}
 			const decodedUserSecretBackup = decoder.decode(userSecretObjectBackup.object);
@@ -346,11 +353,13 @@ export default class PHCServer {
 				if (referenceUserSecret === null) {
 					referenceUserSecret = decryptedUserSecret;
 				} else if (!this._buffersAreEqual(referenceUserSecret, decryptedUserSecret)) {
+					this.triggerLogoutProcedure(false);
 					throw new Error('Something went wrong, the user secrets for different identifying attributes do not match.');
 				}
 			}
 
 			if (referenceUserSecret === null) {
+				this.triggerLogoutProcedure(false);
 				throw new Error('Could not recover the user secret.');
 			}
 			userSecret = referenceUserSecret;
@@ -380,8 +389,6 @@ export default class PHCServer {
 	 * @param userSecretObject The data for the existing user secret object.
 	 * @param userSecretObjectDetails The object details for the existing user secret object.
 	 * @throws Will throw an error if an old attribute key is missing in the attrKeyResp.
-	 * @throws Will throw an error if the user secrets encrypted with different attribute keys do not match.
-	 * @throws Will throw an error if the user secret could not successfully be decrypted.
 	 */
 	async storeUserSecretObject(
 		attrKeyResp: Record<string, mssTypes.AttrKeyResp>,
@@ -389,25 +396,31 @@ export default class PHCServer {
 		userSecretObject: mssTypes.UserSecretObject | null,
 		userSecretObjectDetails: { usersecret: mssTypes.UserObjectDetails; backup: mssTypes.UserObjectDetails | null } | null,
 	): Promise<void> {
-		const computedUserSecretObject = await this._computeNewUserSecretObject(attrKeyResp, identifyingAttrs, userSecretObject);
-		const encodedNewUserSecretObject: Uint8Array = new TextEncoder().encode(JSON.stringify(computedUserSecretObject.newUserSecretObject));
+		try {
+			const computedUserSecretObject = await this._computeNewUserSecretObject(attrKeyResp, identifyingAttrs, userSecretObject);
+			const encodedNewUserSecretObject: Uint8Array = new TextEncoder().encode(JSON.stringify(computedUserSecretObject.newUserSecretObject));
 
-		// Store the userSecret object (twice)
-		const overwriteHash = userSecretObjectDetails ? userSecretObjectDetails.usersecret.hash : undefined;
-		const storedUserSecret = await this._storeObject('usersecret', encodedNewUserSecretObject, overwriteHash);
-		const overwriteHashBackup = userSecretObjectDetails && userSecretObjectDetails.backup ? userSecretObjectDetails.backup.hash : undefined;
-		const storedBackup = await this._storeObject('usersecretbackup', encodedNewUserSecretObject, overwriteHashBackup);
+			// Store the userSecret object (twice)
+			const overwriteHash = userSecretObjectDetails ? userSecretObjectDetails.usersecret.hash : undefined;
+			const storedUserSecret = await this._storeObject('usersecret', encodedNewUserSecretObject, overwriteHash);
+			const overwriteHashBackup = userSecretObjectDetails && userSecretObjectDetails.backup ? userSecretObjectDetails.backup.hash : undefined;
+			const storedBackup = await this._storeObject('usersecretbackup', encodedNewUserSecretObject, overwriteHashBackup);
 
-		// Only set the _userSecret variable and store the user secret in localStorage if they were successfully written to the object store.
-		if (storedUserSecret && storedBackup) {
-			// Encode the userSecret as a base64 string
-			this._userSecret = Buffer.from(computedUserSecretObject.userSecret).toString('base64');
-			this._userSecretVersion = mssTypes.isUserSecretObjectNew(computedUserSecretObject.newUserSecretObject) ? computedUserSecretObject.newUserSecretObject.version : 0;
-			localStorage.setItem('UserSecret', this._userSecret);
-			localStorage.setItem('UserSecretVersion', this._userSecretVersion.toString());
-		} else {
-			// TODO: trigger logout procedure?
-			throw new Error('Something went wrong in storing the user secret.');
+			// Only set the _userSecret variable and store the user secret in localStorage if they were successfully written to the object store.
+			if (storedUserSecret && storedBackup) {
+				// Encode the userSecret as a base64 string
+				this._userSecret = Buffer.from(computedUserSecretObject.userSecret).toString('base64');
+				this._userSecretVersion = mssTypes.isUserSecretObjectNew(computedUserSecretObject.newUserSecretObject) ? computedUserSecretObject.newUserSecretObject.version : 0;
+				localStorage.setItem('UserSecret', this._userSecret);
+				localStorage.setItem('UserSecretVersion', this._userSecretVersion.toString());
+			} else {
+				this.triggerLogoutProcedure(false);
+				throw new Error('Something went wrong in storing the user secret.');
+			}
+		} catch (error) {
+			// If anything goes wrong when storing the user secret, the user should be logged out and instructed to contact the developers.
+			this.triggerLogoutProcedure(false);
+			throw error;
 		}
 	}
 
