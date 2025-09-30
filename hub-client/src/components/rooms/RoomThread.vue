@@ -1,5 +1,5 @@
 <template>
-	<div ref="elThreadTimeline" class="relative flex h-full w-full shrink-0 flex-col border-l border-surface-high bg-background md:w-[33%]">
+	<div ref="elThreadTimeline" class="relative flex h-full w-full shrink-0 flex-col border-l border-surface-high bg-background md:w-[33%]" data-testid="thread-sidekick">
 		<div class="m-3 mb-0 flex items-center gap-2 rounded-md bg-surface-low p-2">
 			<button @click="closeThread" class="rounded-md p-1">
 				<Icon :type="'arrow'" :size="'sm'"></Icon>
