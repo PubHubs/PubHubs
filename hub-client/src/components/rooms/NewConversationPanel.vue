@@ -81,7 +81,7 @@
 						<h3 class="text-md sticky top-0 z-10 py-1 font-bold uppercase text-on-surface-dim">{{ letter }}</h3>
 						<ul>
 							<li v-for="user in usersInLetter" :key="user.userId" class="flex cursor-pointer items-center gap-2 py-1 pl-4 hover:bg-surface-low" @click="groupPanel ? toggleUserSelection(user) : gotToPrivateRoom(user)">
-								<Icon v-if="groupPanel && selectedUsers.includes(user.userId)" type="check" size="xl"></Icon>
+								<Icon v-if="groupPanel && selectedUsers.includes(user.userId)" type="check"></Icon>
 								<Avatar v-else :userId="user.userId"></Avatar>
 								<div class="flex flex-col">
 									<span>{{ user.displayName || user.userId }}</span>

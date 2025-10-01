@@ -15,8 +15,7 @@
 import { iconSizes } from './sizes.js';
 
 const icons: { [key: string]: string } = {
-	empty: ``,
-	home: `
+        home: `
         <svg viewBox="0 0 69 58" stroke="none"  xmlns="http://www.w3.org/2000/svg">
         <path fill="currentColor" d="M8.13197 23.0615H25.7098V58H8.13197V23.0615Z" />
         <path fill="currentColor" d="M43.2865 23.0615H60.8643V58H43.2865V23.0615Z" />
@@ -51,7 +50,7 @@ const icons: { [key: string]: string } = {
         <line x1="9" y1="9" x2="15" y2="15" />
         `,
 	check: `
-        <svg viewBox="0 0 24 24" stroke="none" xmlns="http://www.w3.org/2000/svg">
+        <svg viewBox="0 0 12 12" stroke="none" xmlns="http://www.w3.org/2000/svg">
         <g stroke="none" stroke-width="1" fill="currentColor" fill-rule="evenodd">
         <g fill="currentColor">
         <path d="M6,12 C9.31371,12 12,9.31371 12,6 C12,2.68629 9.31371,0 6,0 C2.68629,0 0,2.68629 0,6 C0,9.31371 2.68629,12 6,12 Z M9.05078,4.32009 C9.22756,4.10795 9.1989,3.79267 8.98676,3.61589 C8.77462,3.43911 8.45934,3.46777 8.28256,3.67991 L5.37791,7.16548 L4.41603,5.72265 C4.26285,5.49289 3.95241,5.4308 3.72265,5.58397 C3.49289,5.73715 3.4308,6.04759 3.58397,6.27735 L4.91731,8.27735 C5.00481,8.40861 5.14913,8.49087 5.30666,8.49929 C5.46419,8.5077 5.61645,8.44128 5.71744,8.32009 L9.05078,4.32009 Z"></path>
