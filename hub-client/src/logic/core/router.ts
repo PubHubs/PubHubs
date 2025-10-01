@@ -87,7 +87,7 @@ const router = createRouter({
 });
 
 // Navigation guard
-router.beforeEach((to) => {
+router.beforeEach((to, from) => {
 	const messagebox = useMessageBox();
 
 	// Notify parent iframe about non-room navigation
@@ -122,7 +122,12 @@ router.beforeEach((to) => {
 		console.log('ONLY FOR ADMINS', isAdmin);
 		return false;
 	}
-
+	if (to.name === 'error-page') {
+		// Redirect to home if coming from a browser refresh (undefined)
+		if (from.name === undefined) {
+			return { name: 'home' };
+		}
+	}
 	// Default allow navigation
 	return true;
 });
