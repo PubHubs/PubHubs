@@ -74,6 +74,11 @@ const routes = [
 		meta: { hideBar: true },
 	},
 	{
+		path: '/icons',
+		name: 'icons',
+		component: () => import('@/pages/Icons.vue'),
+	},
+	{
 		path: '/nop',
 		name: 'nop',
 		component: () => import('@/pages/NotImplemented.vue'),
