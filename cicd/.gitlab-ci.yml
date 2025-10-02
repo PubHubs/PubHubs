@@ -313,9 +313,9 @@ build-and-deploy-global-client-main:
   rules:
     - if: $CI_COMMIT_BRANCH == "main"
   needs:
-    - global-client-build
-    - global-client-format-check
-    - global-client-unit-test
+    - globalclient-build
+    - globalclient-format-check
+    - globalclient-unit-test
   tags: [docker]
   image: node:latest
   script:
