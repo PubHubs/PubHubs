@@ -98,7 +98,7 @@ impl App {
             .unwrap_or_else(|| "?".to_string());
 
         if let Some(comment) = comment {
-            registration_date = format!("{registration_date} ({comment})");
+            registration_date = format!("{registration_date}, {comment}");
         }
 
         let credential = yivi::CredentialToBeIssued::new(

@@ -9,8 +9,8 @@ use crate::attr;
 use crate::client;
 use crate::handle::Handle;
 use crate::misc::jwt;
-use crate::servers::Constellation;
 use crate::servers::yivi;
+use crate::servers::Constellation;
 
 use api::phc::user::AuthToken;
 

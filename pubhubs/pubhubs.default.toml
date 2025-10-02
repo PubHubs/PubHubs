@@ -31,6 +31,7 @@ key.hs256 = "6576257d853bc1ea15cbf103dbc3950b819d65eef4fae4c55d80e9c32b683e06"
 
 [auths.yivi.card]
 type = "demo"
+# registration_source = "app.pubhubs.net"
 
 [[auths.attribute_types]]
 handles = ['email']
