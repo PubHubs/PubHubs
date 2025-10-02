@@ -18,7 +18,7 @@ echo "Running Yivi server..."
 ./yivi.sh
 ```
 
-### server
+### servers
 
 > Runs the global PubHubs servers
 
