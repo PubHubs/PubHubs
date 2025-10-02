@@ -201,7 +201,7 @@ async fn main_integration_test_local(
         .unwrap();
 
     // Run mock test hub
-    let testhub = welcome_resp.hubs[&"testhub".parse().unwrap()].clone();
+    let testhub = welcome_resp.hubs[&"testhub0".parse().unwrap()].clone();
 
     let mock_hub = MockHub::new(testhub.clone().into(), constellation.clone());
 
