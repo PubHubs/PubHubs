@@ -77,7 +77,8 @@ build-pubhubs-image:
     # which might not contain the latest tag, in which case `git describe --tags` fails.  In that case we fetch 
     # a bit more history until we hit our tag's commit.
     - until git describe --tags; do git fetch --deepen 10; done 
-    - docker build --build-arg PH_VERSION="$(git describe --tags)" -f pubhubs/Dockerfile -t ${CONTAINER_IMAGE} .
+    - cd pubhubs
+    - docker build --build-arg PH_VERSION="$(git describe --tags)" -f Dockerfile -t ${CONTAINER_IMAGE} .
     - docker push ${CONTAINER_IMAGE}
 
 deploy-main-phmss:
