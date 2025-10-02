@@ -1,3 +1,10 @@
+const PHiconSizes: { [key: string]: number } = {
+	'sm': 12,
+	'base': 16,
+	'md': 20,
+	'lg': 24,
+};
+
 const iconSizes: { [key: string]: string } = {
 	xs: 'h-3 w-3',
 	sm: 'h-4 w-4',
@@ -22,4 +29,4 @@ const headerSizes: { [key: string]: string } = {
 	base: 'max-h-24',
 };
 
-export { iconSizes, buttonSizes, headerSizes };
+export { PHiconSizes, iconSizes, buttonSizes, headerSizes };
