@@ -61,10 +61,6 @@ build-pubhubs-image:
       variables:
         CONTAINER_IMAGE: ${CI_REGISTRY}/${CI_PROJECT_PATH}/pubhubs:stable
   needs:
-    - job: globalclient-format-check
-      optional: true
-    - job: globalclient-unit-test
-      optional: true
     - job: rust-unit-test
       optional: true
     - job: rust-cargo-deny
@@ -83,32 +79,6 @@ build-pubhubs-image:
     - until git describe --tags; do git fetch --deepen 10; done 
     - docker build --build-arg PH_VERSION="$(git describe --tags)" -f pubhubs/Dockerfile -t ${CONTAINER_IMAGE} .
     - docker push ${CONTAINER_IMAGE}
-
-deploy-main-phc:
-  stage: deploy-own
-  rules:
-    - if: $CI_COMMIT_BRANCH == "main"
-  needs:
-    - build-pubhubs-image
-  tags: [docker]
-  image: registry.science.ru.nl/ilab/docker-build/ubuntu-iso:main
-  script:
-    - cd pubhubs
-    - chmod 600 $ILAB_VM_TRIGGER_UPDATE_KEY
-    - ssh -o UserKnownHostsFile=$ILAB_VM_TRIGGER_UPDATE_KNOWN_HOSTS $ILAB_VM_TRIGGER_UPDATE_USER@ph.ihub.ru.nl -i $ILAB_VM_TRIGGER_UPDATE_KEY docker-pubhubs-main
-
-deploy-stable-phc:
-  stage: deploy-own
-  rules:
-    - if: $CI_COMMIT_TAG
-  needs:
-    - build-pubhubs-image
-  tags: [docker]
-  image: registry.science.ru.nl/ilab/docker-build/ubuntu-iso:main
-  script:
-    - cd pubhubs
-    - chmod 600 $ILAB_VM_TRIGGER_UPDATE_KEY
-    - ssh -o UserKnownHostsFile=$ILAB_VM_TRIGGER_UPDATE_KNOWN_HOSTS $ILAB_VM_TRIGGER_UPDATE_USER@ph.ihub.ru.nl -i $ILAB_VM_TRIGGER_UPDATE_KEY docker-pubhubs-stable
 
 deploy-main-phmss:
   stage: deploy-own
@@ -134,21 +104,6 @@ deploy-stable-phmss:
     - chmod 600 $ILAB_VM_TRIGGER_UPDATE_KEY
     - ssh -o UserKnownHostsFile=$ILAB_VM_TRIGGER_UPDATE_KNOWN_HOSTS $ILAB_VM_TRIGGER_UPDATE_USER@ph.ihub.ru.nl -i $ILAB_VM_TRIGGER_UPDATE_KEY docker-phmss-stable
 
-#start-test-setup-unit-test:
-#  stage: tests
-#  rules:
-#    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
-#    - if: $CI_COMMIT_BRANCH == "main"
-#    - if: $CI_COMMIT_BRANCH == "stable"
-#  tags:
-#    - docker
-#  image: python:latest
-#  script:
-#    - pip install virtualenv
-#    - virtualenv venv
-#    - source venv/bin/activate
-#    - python3 start_test_setup.py test
-
 hub-unit-test: # This job runs in the test stage.
   stage: tests
   rules:
@@ -157,7 +112,7 @@ hub-unit-test: # This job runs in the test stage.
     - if: $CI_COMMIT_BRANCH == "stable"
   tags:
     - docker
-  image: python:latest   # Python 3.11 version is used to fix the issue of failing test because synapse version 1.115.0 has issues with new twisted version.
+  image: python:latest  
   before_script:
     - python --version # For debugging
     - pip install virtualenv
@@ -195,7 +150,8 @@ build-image-hub:
     # which might not contain the latest tag, in which case `git describe --tags` fails.  In that case we fetch 
     # a bit more history until we hit our tag's commit.
     - until git describe --tags; do git fetch --deepen 10; done 
-    - docker build -t ${CONTAINER_IMAGE} -f pubhubs_hub/Dockerfile --build-arg HUB_VERSION="$(git describe --tags)" .
+    - cd pubhubs_hub
+    - docker build -t ${CONTAINER_IMAGE} --build-arg HUB_VERSION="$(git describe --tags)" .
     - docker push ${CONTAINER_IMAGE}
 
 deploy-main-hub:
@@ -211,7 +167,7 @@ deploy-main-hub:
     - chmod 600 $ILAB_VM_TRIGGER_UPDATE_KEY
     - ssh -o UserKnownHostsFile=$ILAB_VM_TRIGGER_UPDATE_KNOWN_HOSTS $ILAB_VM_TRIGGER_UPDATE_USER@ph.ihub.ru.nl -i $ILAB_VM_TRIGGER_UPDATE_KEY docker-testhub-matrix-main
 
-deploy-stable-hub:
+deploy-stable-hubs:
   stage: deploy-own
   rules:
     - if: $CI_COMMIT_TAG
@@ -242,6 +198,21 @@ globalclient-format-check:
     - npm ci
     - npx prettier ./src --check --ignore-unknown --config ./package.json
     - echo "see https://gitlab.science.ru.nl/ilab/pubhubs_canonical/-/wikis/Contributing/(re)format-client-code"
+
+globalclient-build:
+  stage: tests
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
+    - if: $CI_COMMIT_BRANCH == "main"
+    - if: $CI_COMMIT_BRANCH == "stable"
+  tags: [docker]
+  image: node:latest
+  script:
+    - cd hub-client
+    - npm ci
+    - cd ../global-client
+    - npm ci
+    - npx vite build
 
 hubclient-format-check:
   stage: tests
@@ -321,7 +292,7 @@ deploy-main-hubclient:
     - chmod 600 $ILAB_VM_TRIGGER_UPDATE_KEY
     - ssh -o UserKnownHostsFile=$ILAB_VM_TRIGGER_UPDATE_KNOWN_HOSTS $ILAB_VM_TRIGGER_UPDATE_USER@ph.ihub.ru.nl -i $ILAB_VM_TRIGGER_UPDATE_KEY docker-testhub-client-main
 
-deploy-stable-client:
+deploy-stable-clients:
   stage: deploy-own
   rules:
     - if: $CI_COMMIT_TAG

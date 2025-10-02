@@ -18,6 +18,9 @@ import VueDatePicker from '@vuepic/vue-datepicker';
 import '@vuepic/vue-datepicker/dist/main.css';
 import '@/assets/datepicker.css';
 
+import { adjustClientConfig } from './client_config';
+adjustClientConfig();
+
 import { ReplaceConsole } from '@/console';
 ReplaceConsole();
 

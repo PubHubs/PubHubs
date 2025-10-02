@@ -10,7 +10,6 @@ import path from 'node:path';
 export default defineConfig({
 	logLevel: 'warn',
 	server: {
-		port: 8081,
 		strictPort: true,
 	},
 	plugins: [Vue(), nodePolyfills()],

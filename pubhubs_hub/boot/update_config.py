@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 # You can run this script locally in the docker container with 
-# ./conf/update_config/update_config.py  --in 'data/homeserver.yaml' --out "$SYNAPSE_CONFIG_PATH" --environment="$UPDATE_CONFIG_ENV"
+# ./conf/boot/update_config.py  --in 'data/homeserver.yaml' --out "$SYNAPSE_CONFIG_PATH" --environment="$UPDATE_CONFIG_ENV"
 # SYNAPSE_CONFIG_PATH is where the generated file will be stored and also the yaml file that synaps will use to run
 # The --environment can be either "development" or "production"
 import yaml
@@ -90,7 +90,11 @@ class UpdateConfig:
         },
     }
 
-    def __init__(self, config_env: str):
+    def __init__(self, config_env: str, hub_client_url, hub_server_url, global_client_url):
+        self._hub_client_url = hub_client_url
+        self._hub_server_url = hub_server_url
+        self._global_client_url = global_client_url
+
         match config_env:
             case "production":
                 self.check_environment = CheckEnvironment.PRODUCTION
@@ -115,6 +119,21 @@ class UpdateConfig:
             raise IOError(f"❌  Could not open configuration from {homeserver_file_path} file: {e}") from e
         except yaml.YAMLError as e:
             raise yaml.YAMLError(f"❌  Error while loading YAML file from {homeserver_file_path}: {e}") from e
+
+        if self._hub_server_url != None:
+            homeserver['public_baseurl'] = self._hub_server_url
+
+        if self._hub_client_url != None:
+            for module in homeserver['modules']:
+                if module['module'] != "conf.modules.pubhubs.HubClientApi":
+                    continue
+                module['config']['client_url'] = self._hub_client_url
+
+        if self._global_client_url != None:
+            for module in homeserver['modules']:
+                if module['module'] != "conf.modules.pubhubs.HubClientApi":
+                    continue
+                module['config']['global_client_url'] = self._global_client_url
 
         homeserver_live = self._update_and_check_dont_change_config(homeserver)
 
@@ -258,7 +277,7 @@ class UpdateConfig:
                         self._check_did_change(key, value, self.DO_CHANGE_CONFIG[key])
                 case "public_baseurl":
                     with self._try_check(key, to_be_checked_config,check_type_log_info):
-                        self._check_did_start_change(key, value, "http://localhost")
+                        self._check_did_start_change(key, value, "http://")
         if to_be_checked_config:
             raise ConfigError(
                 f"❌   These values that are supposed to be set for the config are missing: {to_be_checked_config}"
@@ -432,7 +451,7 @@ class UpdateConfig:
                 self._check_did_start_change(
                     f"({module_dict['module']}'s config).client_url",
                     config["client_url"],
-                    "http://localhost"
+                    "http://"
                 )
                 client_url = config["client_url"]
             else:
@@ -441,11 +460,12 @@ class UpdateConfig:
                 self._check_did_start_change(
                     f"({module_dict['module']}'s config).global_client_url",
                     config["global_client_url"],
-                    "http://localhost"
+                    "http://"
                 )
             else:
                 if self.check_environment == CheckEnvironment.DEVELOPMENT:
-                    homeserver_live[key][index]["config"]["global_client_url"] = "http://localhost:8080"
+                    raise ConfigError("❌   in development, global_client_url should have been set by start_testhub.py")
+                    homeserver_live[key][index]["config"]["global_client_url"] = self._global_client_url
                 else:
                     homeserver_live[key][index]["config"]["global_client_url"] = "https://app.pubhubs.net"
 
@@ -470,8 +490,7 @@ class UpdateConfig:
         return global_client_url
 
 
-
-if __name__ == "__main__":
+def main():
     parser = argparse.ArgumentParser(description='Update Synapse configuration.')
     parser.add_argument('--in', dest='input_file', required=True, 
                        help='Input configuration file path')
@@ -480,15 +499,21 @@ if __name__ == "__main__":
     parser.add_argument('--environment', required=True, choices=["", "production", "development"],
                        help='Determines what configuration changes are expected. ("" is interpreted as production.)')
 
-    
     args = parser.parse_args()
-    
-    homeserver_file_path = args.input_file
-    homeserver_live_file_path = args.output_file
-    config_env = args.environment if args.environment!="" else 'production'
+    run(args.input_file, args.output_file, args.environment)
+
+
+def run(input_file, output_file, environment, 
+        hub_client_url=None, hub_server_url=None, global_client_url=None):
+
+    homeserver_file_path = input_file
+    homeserver_live_file_path = output_file
+    config_env = environment if environment!="" else 'production'
 
     # Update config homeserver, output as homeserver.live
-    update_config_module = UpdateConfig(config_env)
+    update_config_module = UpdateConfig(config_env, 
+                                        hub_client_url=hub_client_url, hub_server_url=hub_server_url, 
+                                        global_client_url=global_client_url)
     homeserver_live = update_config_module.load_and_update_config(homeserver_file_path)
 
     # Write updated config homeser.live to config path
@@ -515,3 +540,7 @@ if __name__ == "__main__":
             raise yaml.YAMLError(f"❌  Error while saving homeserver.live dict to YAML: {e}") from e
 
     logger.info(f" - INFO ✅  Generated updated configuration of homeserver.yaml at {homeserver_live_file_path}")
+
+if __name__ == "__main__":
+    main()
+

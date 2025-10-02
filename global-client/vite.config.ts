@@ -13,15 +13,11 @@ export default defineConfig({
 	base: '/client/',
 	root: './',
 	server: {
-		port: 8082,
+		port: 8080,
 		strictPort: true,
-		// TODO see if we get hmr working
-		// hmr: {
-		// 	protocol: 'ws',
-		// 	host: 'localhost',
-		// 	port: 8082,
-		// 	path: '/client',
-		// },
+		fs: {
+			allow: ['..'],
+		},
 	},
 	plugins: [
 		Vue(),
@@ -111,8 +107,6 @@ export default defineConfig({
 	},
 	build: {
 		sourcemap: true,
-		outDir: '../pubhubs/static/assets/client',
-		emptyOutDir: true,
 		rollupOptions: {
 			input: {
 				// define included files from outside global-client
