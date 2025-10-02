@@ -107,8 +107,6 @@ export default defineConfig({
 	},
 	build: {
 		sourcemap: true,
-		outDir: '../pubhubs/static/assets/client',
-		emptyOutDir: true,
 		rollupOptions: {
 			input: {
 				// define included files from outside global-client

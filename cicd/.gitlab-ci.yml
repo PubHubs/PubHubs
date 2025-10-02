@@ -199,6 +199,21 @@ globalclient-format-check:
     - npx prettier ./src --check --ignore-unknown --config ./package.json
     - echo "see https://gitlab.science.ru.nl/ilab/pubhubs_canonical/-/wikis/Contributing/(re)format-client-code"
 
+globalclient-build:
+  stage: tests
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
+    - if: $CI_COMMIT_BRANCH == "main"
+    - if: $CI_COMMIT_BRANCH == "stable"
+  tags: [docker]
+  image: node:latest
+  script:
+    - cd hub-client
+    - npm ci
+    - cd ../global-client
+    - npm ci
+    - npx vite build
+
 hubclient-format-check:
   stage: tests
   rules:
