@@ -45,7 +45,7 @@ echo "Running Yivi server..."
 ```sh
 cd hub-client
 echo "Running Hub client for testhub${n}..."
-VITE_HUB_URL="http://localhost:$((8008 + n))" npx vite --host --port="$((8001 + n))"
+env VITE_HUB_URL=$(node -e "console.log('http://localhost:' + (8008 + $n))") npx vite --host -l info --port=$(node -e "console.log(8001 + $n)")
 ```
 
 ### hub (n)
@@ -53,7 +53,7 @@ VITE_HUB_URL="http://localhost:$((8008 + n))" npx vite --host --port="$((8001 + 
 > Runs the n-th hub server
 
 Don't forget to build the hub image and setup the hub's directory using the 
-hubs build-image` and `hubs setup-dirs` subcommands.
+`hubs build-image` and `hubs setup-dirs` subcommands.
 
 ```sh
 cd pubhubs_hub
