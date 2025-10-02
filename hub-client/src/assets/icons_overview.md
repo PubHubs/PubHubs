@@ -1,5 +1,6 @@
-Current             | New Phosphor Icon https://phosphoricons.com/?weight=fill
---------------------|------------------
+| Current | New Phosphor Icon https://phosphoricons.com/?weight=fill |
+| ------- | -------------------------------------------------------- |
+
 actionmenu
 admin_contact
 announcement
