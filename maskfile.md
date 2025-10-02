@@ -2,33 +2,13 @@
 
 Run these with the following command: `mask run [command name]` (ex. `mask run global`).
 
-Make sure you have [mask](https://github.com/jacobdeichert/mask) installed.
+Make sure you have [mask](https://github.com/jacobdeichert/mask) installed (it is already included in the Nix flake).
 
 ## run
 
-Commands for running the development environment.
+> Commands for running the development environment
 
-### pubhubs-client
-
-> Runs the pubhubs global client
-
-```sh
-cd global-client
-echo "Running pubhubs client..."
-npx vite --host -l info --port=8080
-```
-
-### pubhubs
-
-> Runs the global PubHubs servers
-
-```sh
-cd pubhubs
-echo "Running global servers..."
-cargo run serve
-```
-
-#### yivi
+### yivi
 
 > Runs the Yivi server for the PubHubs servers
 
@@ -38,7 +18,44 @@ echo "Running Yivi server..."
 ./yivi.sh
 ```
 
-### hub-client (n)
+### server
+
+> Runs the global PubHubs servers
+
+```sh
+cd pubhubs
+echo "Running global servers..."
+cargo run serve
+```
+
+### client
+
+> Runs the pubhubs global client
+
+```sh
+cd global-client
+echo "Running pubhubs client..."
+npx vite --host -l info --port=8080
+```
+
+### hub
+
+> Commands for running the hub
+
+#### server (n)
+
+> Runs the n-th hub server
+
+Don't forget to build the hub image and setup the hub's directory using the
+`hubs build-image` and `hubs setup-dirs` subcommands
+
+```sh
+cd pubhubs_hub
+echo "Running testhub${n}"
+./start_testhub.py "${n}"
+```
+
+#### client (n)
 
 > Runs the n-th hub client
 
@@ -48,40 +65,10 @@ echo "Running Hub client for testhub${n}..."
 env VITE_HUB_URL=$(node -e "console.log('http://localhost:' + (8008 + $n))") npx vite --host -l info --port=$(node -e "console.log(8001 + $n)")
 ```
 
-### hub (n)
-
-> Runs the n-th hub server
-
-Don't forget to build the hub image and setup the hub's directory using the 
-`hubs build-image` and `hubs setup-dirs` subcommands.
-
-```sh
-cd pubhubs_hub
-echo "Running testhub${n}"
-./start_testhub.py "${n}"
-```
-
-### all
-
-> Run everything (WORK IN PROGRESS)
-
-```sh
-trap 'kill $(jobs -p)' EXIT	
-mask run pubhubs yivi &
-sleep 1
-mask run pubhubs &
-mask run pubhubs-client &
-for i in $(0 4);
-do
-    mask run hub "$i" &
-    mask run hub-client "$i" &
-done
-wait
-```
-
-### init
+#### init
 
 > Initialize test setup
+
 ```sh
 mask run init testhub-dirs
 mask run init testhub-image
