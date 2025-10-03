@@ -12,7 +12,7 @@ _Please add a brief description of any changes and any migrations to be performe
 ## Changed not yet merged to stable
 
 - [BREAKING] The old pubhubs server (that served the global client) has been removed
-  - *Internal:*. the entry for `app.pubhubs.net` in `/data/caddy/Caddyfile` needs to be adjusted
+  - *Internal:* the entry for `app.pubhubs.net` in `/data/caddy/Caddyfile` needs to be adjusted after merge
 - [NEW] The development setup has been simplified, see `maskfile.md`
 
 ## 11 September 2025 - v3.0.0
