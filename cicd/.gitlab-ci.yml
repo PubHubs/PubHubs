@@ -331,8 +331,7 @@ build-and-deploy-global-client-main:
 build-and-deploy-global-client-stable:
   stage: deploy-own
   rules:
-    - if: $CI_COMMIT_BRANCH == "main"
-    #- if: $CI_COMMIT_TAG
+    - if: $CI_COMMIT_TAG
   needs:
     - globalclient-build
     - globalclient-format-check
