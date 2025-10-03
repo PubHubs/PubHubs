@@ -11,7 +11,11 @@ _Please add a brief description of any changes and any migrations to be performe
 
 ## Changed not yet merged to stable
 
-## 11 September 2025 - v3.0.0-rc0
+- [BREAKING] The old pubhubs server (that served the global client) has been removed
+  - *Internal:*. the entry for `app.pubhubs.net` in `/data/caddy/Caddyfile` needs to be adjusted
+- [NEW] The development setup has been simplified, see `maskfile.md`
+
+## 11 September 2025 - v3.0.0
 
 - [BREAKING] The old pubhubs server now needs a PHC_URL environment variable pointing to the new mss phc for the global client
 - [NEW] Added the option to remove attribute values from existing secured rooms.
