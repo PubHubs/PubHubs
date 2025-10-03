@@ -31,8 +31,23 @@ class Program:
         self._waiter = Waiter()
 
     def run(self):
-        update_config.run(input_file="/data/homeserver.yaml", 
-                          output_file="/data/homeserver.live.yaml",
+        # Using the same defaults for SYNAPSE_CONFIG_DIR and SYNAPSE_CONFIG_PATH here
+        #   as Synapse's docker container:  
+        # <https://github.com/element-hq/synapse/blob/70c044db8efabacf3deaf8635d98c593b722541a/docker/start.py#L164>
+        if "SYNAPSE_CONFIG_DIR" not in os.environ:
+            os.environ["SYNAPSE_CONFIG_DIR"] = "/data"
+        config_dir = os.environ["SYNAPSE_CONFIG_DIR"]
+        
+        if "SYNAPSE_CONFIG_PATH" not in os.environ:
+            os.environ["SYNAPSE_CONFIG_PATH"] = os.path.join(config_dir, "homeserver.yaml")
+        old_config_path = os.environ["SYNAPSE_CONFIG_PATH"]
+
+        # make sure synapse loads the updated configuration
+        live_config_path = old_config_path[:-len("yaml")] + "live.yaml"
+        os.environ["SYNAPSE_CONFIG_PATH"] = live_config_path
+
+        update_config.run(input_file=old_config_path,
+                          output_file=live_config_path,
                           environment=self._args.environment,
                           hub_client_url=self._args.hub_client_url,
                           hub_server_url=self._args.hub_server_url,
@@ -51,9 +66,6 @@ class Program:
                         "-p", "8089",
                         "--client-listen-addr", "0.0.0.0",
                         "--client-port", "8088")))
-
-        os.putenv("SYNAPSE_CONFIG_PATH", "/data/homeserver.live.yaml")
-        os.putenv("SYNAPSE_CONFIG_DIR", "/data")
 
         if self._args.environment == "development":
             os.putenv("AUTHLIB_INSECURE_TRANSPORT", "for_development_only_of_course")
