@@ -1,9 +1,3 @@
-mod old {
-    pub mod config;
-    pub mod context;
-}
-
-pub use old::*;
 pub mod cli;
 
 pub mod api;
@@ -18,5 +12,4 @@ pub mod phcrypto;
 pub mod servers;
 pub use misc::jwt;
 mod common;
-
-pub use common::elgamal; // For backwards compatibility with the old pubhubs
+pub use common::elgamal;

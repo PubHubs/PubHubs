@@ -6,7 +6,7 @@ use std::rc::Rc;
 
 use actix_web::web;
 
-use crate::servers::{self, yivi, Server as _};
+use crate::servers::{self, Server as _, yivi};
 use crate::{
     api::{self, ResultExt as _},
     attr, handle,

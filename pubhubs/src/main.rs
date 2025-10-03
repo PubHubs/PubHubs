@@ -26,20 +26,12 @@ impl Cli {
         }
 
         match self.command {
-            None => {
-                let args = old::Args::default();
-
-                run_args!(args, "old")
-
-                //                    Err(spec.error(
-                //                        clap::error::ErrorKind::MissingSubcommand,
-                //                        "no command provided",
-                //                    ))
-            }
+            None => Err(spec.error(
+                clap::error::ErrorKind::MissingSubcommand,
+                "no command provided",
+            )),
 
             Some(cmd) => match cmd {
-                Commands::Old(args) => run_args!(args, "old"),
-
                 Commands::Serve(args) => run_args!(args, "serve"),
                 Commands::Tools(args) => run_args!(args, "tools"),
                 Commands::Admin(args) => run_args!(args, "admin"),
@@ -51,9 +43,6 @@ impl Cli {
 
 #[derive(clap::Subcommand, Debug)]
 enum Commands {
-    /// Runs the old pubhubs binary (default)
-    Old(old::Args),
-
     /// Run one (or multiple) PubHubs servers
     Serve(pubhubs::cli::ServeArgs),
 
@@ -65,17 +54,6 @@ enum Commands {
 
     /// Enter a hub, returning a Synapse access token
     Enter(pubhubs::cli::EnterArgs),
-}
-
-mod old {
-    #[derive(clap::Args, Debug, Default)]
-    pub struct Args {}
-
-    impl Args {
-        pub fn run(self, _spec: &mut clap::Command) -> anyhow::Result<()> {
-            pubhubs::cli::old::main()
-        }
-    }
 }
 
 fn main() {
