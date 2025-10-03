@@ -326,6 +326,4 @@ build-and-deploy-global-client-main:
     - npx vite build
     - cd dist
     - chmod 600 $UPDATE_GLOBAL_CLIENT_MAIN_KEY
-    - echo "REMOVE ME:"
-    - cat $UPDATE_GLOBAL_CLIENT_MAIN_KEY
-    - tar c . | ssh -v -o UserKnownHostsFile=$ILAB_VM_TRIGGER_UPDATE_KNOWN_HOSTS ilab-update@ph.ihub.ru.nl -i $UPDATE_GLOBAL_CLIENT_MAIN_KEY 
+    - tar c . | ssh -o UserKnownHostsFile=$ILAB_VM_TRIGGER_UPDATE_KNOWN_HOSTS ilab-update@ph.ihub.ru.nl -i $UPDATE_GLOBAL_CLIENT_MAIN_KEY 
