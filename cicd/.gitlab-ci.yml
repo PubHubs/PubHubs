@@ -327,3 +327,24 @@ build-and-deploy-global-client-main:
     - cd dist
     - chmod 600 $UPDATE_GLOBAL_CLIENT_MAIN_KEY
     - tar c . | ssh -o UserKnownHostsFile=$ILAB_VM_TRIGGER_UPDATE_KNOWN_HOSTS ilab-update@ph.ihub.ru.nl -i $UPDATE_GLOBAL_CLIENT_MAIN_KEY 
+
+build-and-deploy-global-client-stable:
+  stage: deploy-own
+  rules:
+    - if: $CI_COMMIT_BRANCH == "main"
+    #- if: $CI_COMMIT_TAG
+  needs:
+    - globalclient-build
+    - globalclient-format-check
+    - globalclient-unit-test
+  tags: [docker]
+  image: node:latest
+  script:
+    - cd hub-client
+    - npm ci
+    - cd ../global-client
+    - npm ci
+    - npx vite build
+    - cd dist
+    - chmod 600 $UPDATE_GLOBAL_CLIENT_STABLE_KEY
+    - tar c . | ssh -o UserKnownHostsFile=$ILAB_VM_TRIGGER_UPDATE_KNOWN_HOSTS ilab-update@ph.ihub.ru.nl -i $UPDATE_GLOBAL_CLIENT_STABLE_KEY 
