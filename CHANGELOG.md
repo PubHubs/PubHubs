@@ -1,24 +1,27 @@
 _Please add a brief description of any changes and any migrations to be performed here. And use these prefixes before the description:_
 
- * _[BUG] - If the change is a bugfix (from own branch)_
- * _[FIX] - If it is a small bug (typo or styling) that is done directly on main or stable_
- * _[TYPO] - If a translation/typo in the UI has been changed or implemented_
- * _[NEW] - If it is a new feature_
- * _[UPDATE] - Updated dependencies_
- * _[MIGRATE] - If it is/has a change to a database. Describe the way the migrate is done._
- * _[BREAKING] - If it is a breaking change that needs changes done on the deployment/installation/settings_
- * _(Use the [MIGRATE] and [BREAKING] prefixes together with another one if that makes more sense.)_
+- _[BUG] - If the change is a bugfix (from own branch)_
+- _[FIX] - If it is a small bug (typo or styling) that is done directly on main or stable_
+- _[TYPO] - If a translation/typo in the UI has been changed or implemented_
+- _[NEW] - If it is a new feature_
+- _[UPDATE] - Updated dependencies_
+- _[MIGRATE] - If it is/has a change to a database. Describe the way the migrate is done._
+- _[BREAKING] - If it is a breaking change that needs changes done on the deployment/installation/settings_
+- _(Use the [MIGRATE] and [BREAKING] prefixes together with another one if that makes more sense.)_
 
 ## Changed not yet merged to stable
 
-## 11 September 2025 - v3.0.0-rc0
+- [BREAKING] The old pubhubs server (that served the global client) has been removed
+  - *Internal:* the entry for `app.pubhubs.net` in `/data/caddy/Caddyfile` needs to be adjusted after merge
+- [NEW] The development setup has been simplified, see `maskfile.md`
+
+## 11 September 2025 - v3.0.0
 
 - [BREAKING] The old pubhubs server now needs a PHC_URL environment variable pointing to the new mss phc for the global client
 - [NEW] Added the option to remove attribute values from existing secured rooms.
 - [NEW] Updated validation for the form that is used to edit rooms.
 - [NEW] Fast reactions on message.
 - [BREAKING] Added `phc.global_client_url` to `pubhubs.toml`.
-
 
 ## 10 July 2025 - v2.2.0
 
@@ -42,6 +45,7 @@ _Please add a brief description of any changes and any migrations to be performe
 - [FIX] Fixed that new users can not join old hubs because of a missing consent version number
 
 ## 28 May 2025 - v2.1.0
+
 - [NEW] We improved the registration flow
 - [NEW] Users can create group rooms.
 - [NEW] Users can contact Hub administrator.
@@ -53,15 +57,17 @@ _Please add a brief description of any changes and any migrations to be performe
 - [BUG] Rooms sometimes appeared to be empty, when they were not loaded correctly
 
 ## 15 May 2025 - v2.0.6
+
 - [NEW] There is now a max length for the summary text with a max word counter to keep track
 - [BUG] In the hub description words were split between 2 lines
 - [FIX] The size of the icons on the badges for secured rooms was too large
 
 ## 01 May 2025 - v2.0.5
+
 _NOTE:_ Tag (v.2.0.3 and v.2.0.4) was updated couple of times due to some issues identified after each tag was added.
 
 - [NEW] New update_config script now checks the configuration in homeserver.yaml and also adds missing configuration , it supersedes the configchecker
-It will generate a checked and updated yaml file as homeserver.live.yaml as default and will use this new yaml file to set the configuration of the hub
+  It will generate a checked and updated yaml file as homeserver.live.yaml as default and will use this new yaml file to set the configuration of the hub
 - [TYPO] When no rooms are found on the discover rooms page, the text "no rooms were found" is shown instead of "no hubs were found".
 - [NEW] Local development: changed the way `pubhubs` autodetect your IP address, making development behind a NAT possible.
 - [BUG] Thread stayed open on changing room
@@ -72,12 +78,13 @@ It will generate a checked and updated yaml file as homeserver.live.yaml as defa
 - [BUG] The icon to change the avatar and nickname in a hub is changed back from a cog wheel to a pencil.
 - [NEW] Announcements can be made by steward (and room administrator) in rooms.
 - [NEW] For the hub a banner, description, summary and contact details can now be set in the hub settings.
-The summary and contact details are displayed on the discover hub page.
-The description and contact details are displayed in the hub homepage.
+  The summary and contact details are displayed on the discover hub page.
+  The description and contact details are displayed in the hub homepage.
 - [NEW] Datepicker & Pollingwidget. Add a datepicker or poll in your room. Let members choose a date or option.
-_NOTE TO MERGERS:_ The feature flag for voting widgets on stable is currently disabled. If everything works as expected, it needs to be enabled during the merge.
+  _NOTE TO MERGERS:_ The feature flag for voting widgets on stable is currently disabled. If everything works as expected, it needs to be enabled during the merge.
 
 ## 03 April 2025 - v2.0.2
+
 _NOTE:_ Tag (v.2.0.0 and v.2.0.1) was updated couple of times due to some issues identified after each tag was added.
 
 - [BUG] Signed messages are temporarily disabled since they were not working as intended
@@ -120,7 +127,7 @@ _NOTE:_ Tag (v.2.0.0 and v.2.0.1) was updated couple of times due to some issues
 - [BUG] When scrolling in a room, message no longer partly overlap the message input bar.
 - [BUG] The date badge (showing the date of the oldest message in view when scrolling up or the date of the most recent message in view when scrolling down) is centered again and does not cause a horizontal scrollbar to appear.
 - [BUG] In the creation of OIDC authorization tokens and handles, replaced message pack by JSON: double check login an registration still works.
-- [NOTE TO MERGERS] Changed yivi server on pubhubs VM used by stable and main in anticipation of the new server setup.  Changes should be backwards compatible, but if there's trouble with registration/login, this might be the cause.  -Bram
+- [NOTE TO MERGERS] Changed yivi server on pubhubs VM used by stable and main in anticipation of the new server setup. Changes should be backwards compatible, but if there's trouble with registration/login, this might be the cause. -Bram
 
 ## 6 February 2025 - v1.0.5
 

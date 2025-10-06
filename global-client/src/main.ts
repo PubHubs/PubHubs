@@ -60,6 +60,17 @@ const router = createRouter({
 	},
 	sensitive: true,
 });
+router.beforeEach((to, from, next) => {
+	if (to.name === 'error') {
+		// Redirect to home if coming from a browser refresh (undefined)
+		if (from.name === undefined) {
+			next({ name: 'home' });
+			return;
+		}
+		// Otherwise, continue to error page
+	}
+	next();
+});
 
 router.beforeEach(async (to, _from, next) => {
 	const global = useGlobal();

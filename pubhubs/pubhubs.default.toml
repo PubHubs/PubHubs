@@ -82,11 +82,40 @@ url = "memory:///"
 #
 #  - Never change the `id` of a hub because the users' pseudonyms are derived from it.
 [[phc.hubs]]
-handles = ['testhub', 'testhub_alias']
-name = "Testhub"
+handles = ['testhub0', 'testhub']
+name = "Testhub 0"
 description = '''This is the default testhub for local development'''
 url = 'http://networkhost:8008/_synapse/client/'
-# NOTE: To generate a new `id`, use `cargo run tools generate id`
 id = 'i9RSgnZ44MMBdcJHX2GqDRNaOt_v63XOMekOmhLHvzg'
+
+[[phc.hubs]]
+handles = ['testhub1']
+name = "Testhub 1"
+description = '''This is the second testhub for local development'''
+url = 'http://networkhost:8009/_synapse/client/'
+id = 'FYj7KDsJZDziEU3-tNOimkq0rnc3tr0kTctaP6Msmew'
+
+[[phc.hubs]]
+handles = ['testhub2']
+name = "Testhub 2"
+description = '''This is the third testhub for local development'''
+url = 'http://networkhost:8010/_synapse/client/'
+id = 'sHrID6gjiICx7gkciOKYA9FyFKC6G3967X1CF7-qJhc'
+
+[[phc.hubs]]
+handles = ['testhub3']
+name = "Testhub 3"
+description = '''This is the fourth testhub for local development'''
+url = 'http://networkhost:8011/_synapse/client/'
+id = 'aBii1yp9tW8Uejn7fKBjZSFG9GRyoNy99VREZzhCuhU'
+
+[[phc.hubs]]
+handles = ['testhub4']
+name = "Testhub 4"
+description = '''This is the fifth testhub for local development'''
+url = 'http://networkhost:8012/_synapse/client/'
+# NOTE: To generate a new `id`, use `cargo run tools generate id`
+id = 'seS36YsdBj3oml98UyYT1IvPRFcLEX1TPa03PIa_XBA'
+
 
 

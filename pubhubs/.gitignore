@@ -1,33 +1,8 @@
 # Ignore built files.
 /target
 
-#Ignore development databases and logging.
-*.db3
-*.db
-dev.log
-
-# Ignore files matrix creates when running
-/matrix_test_config/media_store
-/matrix_test_config/homeserver.log
-/matrix_test_config/homeserver.db
-
 # swap files (created by vi, for example)
 *.swp
-
-# Generated static assets
-/static/assets/css/style.css
-/static/assets/css/*.css.map
-
-# cache
-.sass-cache/
-
-# ignore client files
-static/assets/client
-global-client/
-hub-client/
-
-# old configuration file:
-config.yaml
 
 # new configuration file:
 pubhubs.toml

@@ -2,7 +2,7 @@
 name = "pubhubs"
 edition = "2024"
 license-file = "../LICENSE"
-rust-version = "1.89"
+rust-version = "1.90"
 
 [[bin]]
 name = "pubhubs"
@@ -67,7 +67,7 @@ hmac = { version = "0.12" }
 zeroize = { version = "1.8", features = [ "zeroize_derive" ] }
 sha2 = { version = "0.10" }
 subtle = { version = "2.6" }
-typenum = { version = "1.18" }
+typenum = { version = "1.19" }
 digest = { version = "0" }
 
 #metrics
