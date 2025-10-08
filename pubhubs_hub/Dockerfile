@@ -12,7 +12,8 @@ RUN GO111MODULE=auto go install ./irma
 
 
 ## FINAL CONTAINER STAGE
-FROM ghcr.io/element-hq/synapse:v1.138.0
+
+FROM ghcr.io/element-hq/synapse:v1.139.2
 
 COPY --from=yivi_build /go/bin/irma /usr/bin/irma
 
