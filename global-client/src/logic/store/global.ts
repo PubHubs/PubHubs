@@ -78,16 +78,19 @@ const useGlobal = defineStore('global', {
 		async checkLoginAndSettings() {
 			this.loggedIn = false;
 
+			this.logger.log(SMI.STARTUP, 'setup mss');
 			const mss = useMSS();
 			try {
 				// If no authToken is stored in localstorage, this means the user is not logged in.
+				this.logger.log(SMI.STARTUP, 'check localstorage');
 				if (!localStorage.getItem('PHauthToken')) {
 					return false;
 				}
-
+				this.logger.log(SMI.STARTUP, 'request user object');
 				const settingsUserObject = await mss.requestUserObject('globalsettings');
 
 				let data: GlobalSettings;
+				this.logger.log(SMI.STARTUP, 'pass stored globalsettings');
 				if (settingsUserObject) {
 					data = JSON.parse(settingsUserObject) as GlobalSettings;
 				} else {
@@ -111,19 +114,26 @@ const useGlobal = defineStore('global', {
 		async setGlobalSettings(data: any) {
 			this.logger.log(SMI.STARTUP, 'setGlobalSettings', data);
 			const settings = useSettings();
+			this.logger.log(SMI.STARTUP, 'settings', settings);
+			this.logger.log(SMI.STARTUP, 'set theme');
 			settings.setTheme(data.theme);
 			if (!data.timeformat || data.timeformat === '') {
 				data.timeformat = TimeFormat.format24;
 			}
+			this.logger.log(SMI.STARTUP, 'set time format');
 			settings.setTimeFormat(data.timeformat);
 			if (!data.language || data.language === '') {
 				data.language = navigator.language;
 			}
+			this.logger.log(SMI.STARTUP, 'set language');
 			settings.setLanguage(data.language);
 
+			this.logger.log(SMI.STARTUP, 'setup mss');
 			const mss = useMSS();
 			// Check if the hubName has changed since the last update of the global settings object.
+			this.logger.log(SMI.STARTUP, 'get hubs');
 			const hubs = await mss.getHubs();
+			this.logger.log(SMI.STARTUP, 'update hub names');
 			data.hubs.forEach((hub: PinnedHub) => {
 				const hubName = hubs.find((hubRespItem) => hubRespItem.id === hub.hubId)?.name;
 				if (hubName) {
