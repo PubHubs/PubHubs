@@ -113,14 +113,10 @@ hub-unit-test: # This job runs in the test stage.
     - if: $CI_COMMIT_BRANCH == "stable"
   tags:
     - docker
-  image: python:latest  
+  image: python:3.13
   before_script:
     - python --version # For debugging
-    - pip install virtualenv
-    - virtualenv venv
-    - source venv/bin/activate
     - pip install unittest-xml-reporting
-    - apt update && apt install -y lsb-release
   script:
     - cd pubhubs_hub
     - pip install --upgrade -r requirements.txt

@@ -70,11 +70,11 @@ env VITE_HUB_URL=$(node -e "console.log('http://localhost:' + (8008 + $n))") npx
 > Initialize test setup
 
 ```sh
-mask run init testhub-dirs
-mask run init testhub-image
+mask run hub init testhub-dirs
+mask run hub init testhub-image
 ```
 
-#### testhub-dirs
+##### testhub-dirs
 
 > Prepares directories for running the local hubs
 
@@ -90,7 +90,7 @@ do
 done
 ```
 
-#### testhub-image
+##### testhub-image
 
 > Build the PubHubs hub Docker image
 
