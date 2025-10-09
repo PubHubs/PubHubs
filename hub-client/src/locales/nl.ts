@@ -73,6 +73,10 @@ const nl = {
 		heading: 'Hub beschrijving:',
 		contact_details: 'Contactgegevens:',
 	},
+	mss: {
+		system_offline: 'Systeem offline',
+		system_offline_description: 'Ons systeem is nu offline, dus niet alles werkt zoals verwacht.\nProbeer het later opnieuw. Neem concact op met de ontwikkelaars als het probleem blijft bestaan.',
+	},
 	register: {
 		have_account: 'Heb je al een {0} account?',
 		no_account_yet: 'Nog geen {0} account?',
@@ -154,6 +158,8 @@ const nl = {
 	login: {
 		login: 'Login',
 		global_login: 'Login',
+		not_logged_in: 'Niet meer ingelogd',
+		login_again: 'Je bent niet meer ingelogd. Je wordt terug gestuurd naar het inlogscherm. Log opnieuw in om verder te gaan.',
 	},
 	logout: {
 		logout: 'Logout',

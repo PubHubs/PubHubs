@@ -2,11 +2,12 @@ import PHCServer from '@/model/MSS/PHC';
 import { PHCStateResp, PHCWelcomeResp } from '@/model/MSS/TMultiServerSetup';
 import { http, HttpResponse } from 'msw';
 
+let encryptedUserSecret = null;
+let encryptedUserSecretBackup = null;
+
 export const handlers = [
 	http.get('http://test/login', () => {
-		sessionStorage.setItem('loggedIn', 'true');
 		localStorage.setItem('PHauthToken', `{"auth_token":"someValue","expires":${Date.now() + 1000}}`);
-		localStorage.setItem('UserSecret', 'someUserSecret');
 		return new HttpResponse(null, { status: 200 });
 	}),
 
@@ -46,7 +47,11 @@ export const handlers = [
 				State: {
 					allow_login_by: ['someAttribute'],
 					could_be_banned_by: ['someBannableAttribute'],
-					stored_objects: { usersecret: { hash: 'userSecretHash', hmac: 'userSecretHmac', size: 300 }, globalsettings: { hash: 'globalSettingsHash', hmac: 'globalSettingsHmac', size: 350 } },
+					stored_objects: {
+						usersecret: { hash: 'userSecretHash', hmac: 'userSecretHmac', size: 300 },
+						usersecretbackup: { hash: 'userSecretBackupHash', hmac: 'userSecretBackupHmac', size: 300 },
+						globalsettings: { hash: 'globalSettingsHash', hmac: 'globalSettingsHmac', size: 350 },
+					},
 				},
 			},
 		};
@@ -54,7 +59,7 @@ export const handlers = [
 	}),
 
 	http.get('http://test/.ph/user/obj/by-hash/globalSettingsHash/globalSettingsHmac', async () => {
-		if (sessionStorage.getItem('loggedIn') && localStorage.getItem('PHauthToken')) {
+		if (localStorage.getItem('PHauthToken')) {
 			const data = {
 				theme: 'system',
 				timeformat: 'format24',
@@ -65,7 +70,8 @@ export const handlers = [
 			const phcServer = new PHCServer();
 			// Using the string index notation as escape hatch to get a hold of the private function _encryptData
 			// https://github.com/microsoft/TypeScript/issues/19335
-			const encryptedData = await phcServer['_encryptData'](encodedData, 'someUserSecret');
+			const encodedKey = new Uint8Array(Buffer.from(localStorage.getItem('UserSecret'), 'base64'));
+			const encryptedData = await phcServer['_encryptData'](encodedData, encodedKey);
 			return HttpResponse.arrayBuffer(encryptedData.buffer, {
 				headers: {
 					'content-type': 'application/octet-stream',
@@ -91,51 +97,50 @@ export const handlers = [
 	}),
 
 	http.get('http://test/logout', () => {
-		sessionStorage.setItem('loggedIn', 'false');
 		localStorage.removeItem('PHauthToken');
 		localStorage.removeItem('UserSecret');
 		return new HttpResponse(null, { status: 200 });
 	}),
 
-	http.get('http://test/bar/state', () => {
-		if (sessionStorage.getItem('loggedIn')) {
-			const data = {
-				theme: 'system',
-				language: 'en',
-				hubs: [{ hubId: 'TestHub0-Id', hubName: 'Testhub0' }],
-			};
-			const encodedData = new TextEncoder().encode(JSON.stringify(data)).buffer;
-			return HttpResponse.arrayBuffer(encodedData, {
-				headers: {
-					'content-type': 'application/octet-stream',
-				},
-				status: 200,
-			});
-		} else {
-			return new HttpResponse(null, { status: 403 });
-		}
+	http.post('http://test/.ph/user/obj/by-handle/usersecret', async ({ request }) => {
+		const body = await request.arrayBuffer();
+		encryptedUserSecret = body;
+		return HttpResponse.json({ Ok: { Stored: { hash: 'userSecretHash' } } }, { status: 200 });
 	}),
 
-	http.get('http://test/bar/hubs', () => {
-		return HttpResponse.json(
-			[
-				{
-					name: 'TestHub0',
-					description: 'Test Hub Zero',
-					client_uri: 'http://hubtest0',
-				},
-				{
-					name: 'TestHub1',
-					description: 'Test Hub One',
-					client_uri: 'http://hubtest1',
-				},
-				{
-					name: 'TestHub2',
-					description: 'Test Hub Two',
-					client_uri: 'http://hubtest2',
-				},
-			],
-			{ status: 200 },
-		);
+	http.post('http://test/.ph/user/obj/by-hash/usersecret/userSecretHash', async ({ request }) => {
+		const body = await request.arrayBuffer();
+		encryptedUserSecret = body;
+		return HttpResponse.json({ Ok: { Stored: { hash: 'userSecretHash' } } }, { status: 200 });
+	}),
+
+	http.post('http://test/.ph/user/obj/by-handle/usersecretbackup', async ({ request }) => {
+		const body = await request.arrayBuffer();
+		encryptedUserSecretBackup = body;
+		return HttpResponse.json({ Ok: { Stored: { hash: 'userSecretBackupHash' } } }, { status: 200 });
+	}),
+
+	http.post('http://test/.ph/user/obj/by-hash/usersecretbackup/userSecretBackupHash', async ({ request }) => {
+		const body = await request.arrayBuffer();
+		encryptedUserSecretBackup = body;
+		return HttpResponse.json({ Ok: { Stored: { hash: 'userSecretHash' } } }, { status: 200 });
+	}),
+
+	http.get('http://test/.ph/user/obj/by-hash/userSecretHash/userSecretHmac', () => {
+		return HttpResponse.arrayBuffer(encryptedUserSecret, {
+			headers: {
+				'content-type': 'application/octet-stream',
+			},
+			status: 200,
+		});
+	}),
+
+	http.get('http://test/.ph/user/obj/by-hash/userSecretBackupHash/userSecretBackupHmac', () => {
+		return HttpResponse.arrayBuffer(encryptedUserSecretBackup, {
+			headers: {
+				'content-type': 'application/octet-stream',
+			},
+			status: 200,
+		});
 	}),
 ];

@@ -4,7 +4,6 @@
 
 		<div class="flex h-full">
 			<GlobalBar v-if="!(route.name === 'onboarding')" />
-			<!-- TODO: Split discover hub page and login home page into seperate pages-->
 			<div class="h-[100dvh] w-full flex-1">
 				<router-view />
 			</div>
@@ -22,6 +21,7 @@
 
 	// Global imports
 	import GlobalBar from '@/components/ui/GlobalBar.vue';
+	import MobileMenu from '@/components/ui/MobileMenu.vue';
 	import { useInstallPromptStore } from '@/logic/store/installPromptPWA';
 	import { NotificationsPermission, useSettings } from '@/logic/store/settings';
 	import { useDialog } from '@/logic/store/dialog';
@@ -86,8 +86,6 @@
 		// Update isMobile state on initial load
 		settings.startListening();
 
-		await global.checkLoginAndSettings();
-
 		// Watch for saved state changes and save to backend
 		watch(
 			computedGlobalSettings,
@@ -122,11 +120,9 @@
 	// Function to add hubs
 	async function addHubs() {
 		try {
-			const hubsResponse = await global.getHubs();
-			if (hubsResponse) {
-				hubs.addHubs(hubsResponse);
-			}
+			await global.getHubs();
 		} catch (error) {
+			global.setLoadingHubs(false);
 			router.push({ name: 'error', query: { errorKey: 'errors.no_hubs_found' } });
 			LOGGER.error(SMI.ERROR, 'Error adding hubs', { error });
 		}
