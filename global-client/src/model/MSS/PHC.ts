@@ -494,18 +494,26 @@ export default class PHCServer {
 	 */
 	private async _decryptData(ciphertext: Uint8Array, key: Uint8Array) {
 		// Encode the key
+		console.log('Create encoder');
 		const encoder = new TextEncoder();
 		// Extract the random bits of data (that were used to generate the seed) from the ciphertext
+		console.log('Create random bits');
 		const randomBits = ciphertext.slice(0, 32);
 		// Recover the seed by appending the encoded attrKey to the random bits of data
+		console.log('Create seedKey with ', encoder, randomBits);
 		const seedKey = this._concatUint8Arrays([randomBits, key, encoder.encode('key')]);
+		console.log('Create seedIV');
 		const seedIV = this._concatUint8Arrays([randomBits, key, encoder.encode('iv')]);
 		// Calculate the SHA-256 hash of the concatenated random bits with the key to use as AES key and the SHA-512 hash to use as IV
+		console.log('Create has and iv with ', seedKey, seedIV);
 		const aesKeyHash = await crypto.subtle.digest('SHA-256', seedKey);
 		const iv = await crypto.subtle.digest('SHA-256', seedIV);
 		// Import the key and use it to decrypt the data
+		console.log('create aesKey with ', aesKeyHash);
 		const aesKey = await crypto.subtle.importKey('raw', aesKeyHash, { name: 'AES-GCM' }, false, ['encrypt', 'decrypt']);
+		console.log('decrypt data with ', aesKey);
 		const decryptedData = await crypto.subtle.decrypt({ name: 'AES-GCM', iv: iv }, aesKey, ciphertext.slice(32));
+		console.log('return', decryptedData);
 		return new Uint8Array(decryptedData);
 	}
 
