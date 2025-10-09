@@ -254,14 +254,16 @@ export default class PHCServer {
 		if (this._userSecret && this._userSecretVersion) {
 			return { userSecret: this._userSecret, version: this._userSecretVersion };
 		}
-
+		console.log('Get stored user secret');
 		const storedUserSecret = localStorage.getItem('UserSecret');
+		console.log('Get stored user version');
 		const version = localStorage.getItem('UserSecretVersion');
 		// This will only happen when a user is messing with their local storage, which means the logout procedure will be invoked.
 		if (!storedUserSecret || !version) {
 			this.triggerLogoutProcedure();
 			return;
 		}
+		console.log('Store secrets in class');
 		this._userSecret = storedUserSecret;
 		this._userSecretVersion = Number(version);
 		return { userSecret: this._userSecret, version: this._userSecretVersion };
@@ -599,28 +601,37 @@ export default class PHCServer {
 
 	async getDecryptedUserObject(handle: string) {
 		// Retrieve the contents of the object and the userSecret
+		console.log('In getDecryptedUserObject get getObjectResp');
 		const getObjectResp = await this.getUserObject(handle);
 		if (!getObjectResp || !getObjectResp.object) {
 			return null;
 		}
+		console.log('In getDecryptedUserObject get uobject with ', getObjectResp);
 		const object = new Uint8Array(getObjectResp.object);
+		console.log('In getDecryptedUserObject await user secret info ', object);
 		const userSecretInfo = await this._getUserSecretInfo();
 		// this._getUserSecret will only return undefined in case where the user gets logged out because they were messing with their local storage.
 		// In practice, this means that this._getUserSecret will never return undefined, since the user will have been redirected to the login page in that case.
 		assert.isDefined(userSecretInfo, 'Could not retrieve the userSecret from localstorage.');
 		// Decrypt the data that was stored under the given handle
+		console.log('Get the encoded key', userSecretInfo);
 		let encodedKey;
 		if (userSecretInfo.version >= 1) {
+			console.log('Via version 1', userSecretInfo);
 			encodedKey = new Uint8Array(Buffer.from(userSecretInfo.userSecret, 'base64'));
 		} else {
 			// To ensure backwards compatibility for the first version of the userSecret
+			console.log('Via version 0', userSecretInfo);
 			encodedKey = new TextEncoder().encode(userSecretInfo.userSecret);
 		}
+		console.log('Decrypt data with encoded key', encodedKey);
 		const decryptedData = await this._decryptData(object, encodedKey);
 
 		// Decode the data
+		console.log('decode the data', decryptedData);
 		const decoder = new TextDecoder();
 		const decodedData = decoder.decode(decryptedData);
+		console.log('got the decoded data', decryptedData);
 		return decodedData;
 	}
 
