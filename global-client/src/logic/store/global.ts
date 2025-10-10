@@ -87,8 +87,12 @@ const useGlobal = defineStore('global', {
 					return false;
 				}
 				this.logger.log(SMI.STARTUP, 'request user object');
-				const settingsUserObject = await mss.requestUserObject('globalsettings');
-
+				let settingsUserObject = null
+				try {
+					settingsUserObject = await mss.requestUserObject('globalsettings');
+				} catch (error) {
+					console.error('Failure getting global settings from server, attempting to load default settings', error)
+				}
 				let data: GlobalSettings;
 				this.logger.log(SMI.STARTUP, 'pass stored globalsettings');
 				if (settingsUserObject) {
@@ -96,13 +100,12 @@ const useGlobal = defineStore('global', {
 				} else {
 					data = defaultGlobalSettings;
 				}
-
 				await this.setGlobalSettings(data);
 
 				this.loggedIn = true;
 				return true;
 			} catch (error) {
-				console.error('Failure getting global settings from server: ', error);
+				console.error('Failure to set global settings', error);
 				// Remove PHauthToken and userSecret from local storage in case the enterEP did successfully return an authToken for the user
 				localStorage.removeItem('PHauthToken');
 				localStorage.removeItem('UserSecret');
