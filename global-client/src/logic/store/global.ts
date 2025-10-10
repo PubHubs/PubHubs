@@ -87,11 +87,11 @@ const useGlobal = defineStore('global', {
 					return false;
 				}
 				this.logger.log(SMI.STARTUP, 'request user object');
-				let settingsUserObject = null
+				let settingsUserObject = null;
 				try {
 					settingsUserObject = await mss.requestUserObject('globalsettings');
 				} catch (error) {
-					console.error('Failure getting global settings from server, attempting to load default settings', error)
+					console.error('Failure getting global settings from server, attempting to load default settings', error);
 				}
 				let data: GlobalSettings;
 				this.logger.log(SMI.STARTUP, 'pass stored globalsettings');
