@@ -75,7 +75,7 @@
 										class="flex items-center justify-center rounded-md p-1 text-on-surface-variant transition-all duration-300 ease-in-out hover:w-fit hover:bg-accent-primary hover:text-on-accent-primary"
 										:title="t('message.reply')"
 									>
-										<Icon :type="'reply'" size="sm" />
+										<Icon type="reply" size="sm" />
 									</button>
 									<button
 										v-if="!viewFromThread && threadLength <= 0 && canReplyInThread && !msgIsNotSend && !redactedMessage"
@@ -83,7 +83,7 @@
 										class="flex items-center justify-center rounded-md p-1 text-on-surface-variant transition-all duration-300 ease-in-out hover:w-fit hover:bg-accent-primary hover:text-on-accent-primary"
 										:title="t('message.reply_in_thread')"
 									>
-										<Icon :type="'talk'" :size="'sm'"></Icon>
+										<Icon type="talk" :size="'sm'"></Icon>
 									</button>
 									<button
 										v-if="!msgIsNotSend && user.isAdmin && event.sender !== user.user.userId && settings.isFeatureEnabled(FeatureFlag.disclosure)"
@@ -91,7 +91,7 @@
 										class="flex items-center justify-center rounded-md p-1 text-on-surface-variant transition-all duration-300 ease-in-out hover:w-fit hover:bg-accent-primary hover:text-on-accent-primary"
 										:title="t('menu.moderation_tools_disclosure')"
 									>
-										<Icon :type="'warning'" size="sm" />
+										<Icon type="warning" size="sm" />
 									</button>
 									<button
 										v-if="settings.isFeatureEnabled(FeatureFlag.deleteMessages) && !msgIsNotSend && event.sender === user.user.userId && !redactedMessage && !(props.viewFromThread && isThreadRoot)"
@@ -99,7 +99,7 @@
 										class="flex items-center justify-center rounded-md p-1 text-on-surface-variant transition-all duration-300 ease-in-out hover:w-fit hover:bg-accent-red hover:text-on-accent-red"
 										:title="t('menu.delete_message')"
 									>
-										<Icon :type="'bin'" size="sm" />
+										<Icon type="bin" size="sm" />
 									</button>
 								</RoomEventActionsPopup>
 							</div>
@@ -139,7 +139,7 @@
 						class="bg-hub-background-3 inline-flex rounded-md px-2 py-1 ~text-label-tiny-min/label-tiny-max hover:opacity-80"
 						v-if="!deleteMessageDialog && !viewFromThread && threadLength > 0 && canReplyInThread && !msgIsNotSend && !redactedMessage"
 					>
-						<Icon :type="'talk'" :size="'xs'"></Icon>
+						<Icon type="talk" :size="'xs'"></Icon>
 						&nbsp; {{ t('message.threads.view_thread') }} ({{ threadLength }})
 					</button>
 				</div>
