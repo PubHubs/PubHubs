@@ -36,7 +36,7 @@
 			</div>
 
 			<Button @click="gotoDiscoverRooms()" class="flex w-max justify-center gap-2"
-				><Icon type="pubhubs-home" /><span>{{ $t('menu.discover') }}</span></Button
+				><Icon type="compass" /><span>{{ $t('menu.discover') }}</span></Button
 			>
 			<H3 v-if="hubDescription" class="p-4">{{ $t('home.heading') }}</H3>
 			<div v-if="hubDescription" class="max-w-full rounded-2xl bg-surface-low">

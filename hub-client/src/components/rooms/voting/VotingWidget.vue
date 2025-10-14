@@ -3,7 +3,7 @@
 		<div class="mb-4">
 			<div class="flex justify-between">
 				<div class="mb-2">
-					<Icon v-if="votingWidgetClosed" class="float-left -mt-1 mr-1 text-accent-orange" type="scheduler_lock" />
+					<Icon v-if="votingWidgetClosed" class="float-left -mt-1 mr-1 text-accent-orange" type="lock" />
 					<span class="mr-1 font-bold">{{ votingWidget.title }}</span>
 					<span v-if="votingWidgetClosed" class="italic ~text-label-small-min/label-small-max"><br />{{ $t('message.scheduler_closed') }}</span>
 				</div>
@@ -33,7 +33,7 @@
 			</div>
 
 			<span class="flex [overflow-wrap:anywhere]" v-if="votingWidget.location">
-				<Icon class="mr-1 mt-1" type="map_pin" size="sm" />
+				<Icon class="mr-1 mt-1" type="map-pin" size="sm" />
 				{{ votingWidget.location }}
 			</span>
 			<span class="mt-2 flex [overflow-wrap:anywhere]">{{ votingWidget.description }}</span>

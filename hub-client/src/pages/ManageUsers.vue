@@ -17,7 +17,7 @@
 			<!-- Reload button gets new user account if someone creates an account when this page is opened-->
 			<Button class="mb-4 flex max-h-[30px] w-32 rounded-xl" @click="ManagementUtils.getUsersAccounts()">
 				<div class="flex items-center gap-2 text-xl">
-					<Icon type="refresh" size="sm" />
+					<Icon type="arrow-counter-clockwise" size="sm" />
 					<span class="flex ~text-label-min/label-max">{{ t('admin.reload') }}</span>
 				</div>
 			</Button>
@@ -34,7 +34,7 @@
 						</div>
 						<div class="flex w-fit gap-4">
 							<div class="flex items-center gap-2">
-								<Icon type="edit" class="hover:cursor-pointer hover:text-accent-primary" @click="selectUser(item.name, item.displayname, item.avatar_url)" />
+								<Icon type="pencil-line" class="hover:cursor-pointer hover:text-accent-primary" @click="selectUser(item.name, item.displayname, item.avatar_url)" />
 							</div>
 						</div>
 					</div>

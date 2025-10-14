@@ -1,26 +1,39 @@
 <template>
-	<div class="flex h-fit w-fit shrink-0 items-center justify-center" :data-testid="type">
-		<svg viewBox="0 0 24 24" fill="transparent" stroke="currentColor" stroke-width="1" stroke-linecap="round" stroke-linejoin="round" :class="sizes[size]" v-html="icons[type]"></svg>
+	<div class="flex h-fit w-fit shrink-0 items-center justify-center" :class="'w-[' + PHiconSizes[size] + 'px] h-[' + PHiconSizes[size] + 'px]'" :data-testid="type">
+		<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" :width="PHiconSizes[size]" :height="PHiconSizes[size]" fill="currentColor" :transform="displayMirrored" v-bind="$attrs">
+			<slot></slot>
+			<g v-html="phicons[type][weight]"></g>
+		</svg>
 	</div>
 </template>
 
-<script setup lang="ts">
-	import { icons, sizes } from '@/assets/icons';
+<script lang="ts" setup>
+	import { computed, PropType } from 'vue';
+	import { phicons, PHiconSizes } from '@/assets/icons';
 
 	const props = defineProps({
 		type: {
 			type: String,
-			default: 'empty',
+			default: 'x',
 			validator(value: string) {
-				return Object.keys(icons).includes(value);
+				return Object.keys(phicons).includes(value);
 			},
 		},
 		size: {
-			type: String,
+			type: [String, Number],
 			default: 'base',
 			validator(value: string) {
-				return Object.keys(sizes).includes(value);
+				return Object.keys(PHiconSizes).includes(value);
 			},
 		},
+		weight: {
+			type: String as PropType<'default' | 'thin' | 'light' | 'regular' | 'bold' | 'fill' | 'duotone'>,
+			default: 'default',
+		},
+		mirrored: {
+			type: Boolean,
+		},
 	});
+
+	const displayMirrored = computed(() => (props.mirrored ? 'scale(-1, 1)' : undefined));
 </script>

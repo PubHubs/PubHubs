@@ -4,12 +4,12 @@
 			<div v-if="!groupPanel" class="flex flex-shrink-0 flex-col">
 				<div class="group flex items-center justify-between gap-4 px-8 py-2 font-bold">
 					<span role="heading">{{ t('others.new_message') }}</span>
-					<Icon type="close" size="md" @click="$emit('close')" class="cursor-pointer" />
+					<Icon type="x" size="md" @click="$emit('close')" class="cursor-pointer" />
 				</div>
 				<hr class="my-4 border-t border-white" />
 				<div class="relative flex px-8 py-2">
 					<input type="text" v-model="userFilter" :placeholder="t('others.filter_users')" class="h-8 w-full min-w-0 flex-grow rounded-lg border bg-background px-4 py-1 ~text-label-min/label-max" />
-					<Icon class="absolute right-10 top-4" type="search" size="sm" />
+					<Icon class="absolute right-10 top-4" type="magnfying-glass" size="sm" />
 				</div>
 				<div class="px-8 py-2">
 					<Button class="flex w-full items-center justify-center gap-2 bg-on-surface-variant ~text-label-small-min/label-small-max hover:text-surface-high dark:text-surface-high" size="sm" @click="groupPanel = true">
@@ -19,17 +19,17 @@
 			</div>
 			<div v-else class="mx-4 mt-2 flex flex-col">
 				<div class="flex items-center justify-between rounded-lg bg-surface-low px-1 py-1 font-bold">
-					<Icon type="arrow" size="sm" class="cursor-pointer bg-surface-high px-2 py-2" @click="groupProfile ? backToGroupPanel() : (groupPanel = false)" />
+					<Icon type="arrow-left" size="sm" class="cursor-pointer bg-surface-high px-2 py-2" @click="groupProfile ? backToGroupPanel() : (groupPanel = false)" />
 
 					<span class="mr-auto pl-2 ~text-label-small-min/label-small-max">
 						{{ t('others.new_group') }}
 					</span>
 
-					<Icon type="close" size="sm" class="cursor-pointer" @click="$emit('close')" />
+					<Icon type="x" size="sm" class="cursor-pointer" @click="$emit('close')" />
 				</div>
 				<div class="relative flex pt-2">
 					<input type="text" v-model="userFilter" :placeholder="t('others.filter_users')" class="h-8 w-full min-w-0 flex-grow rounded-lg border bg-background px-4 py-1 ~text-label-min/label-max" />
-					<Icon class="absolute right-2 top-4" type="search" size="sm" />
+					<Icon class="absolute right-2 top-4" type="magnfying-glass" size="sm" />
 				</div>
 				<div v-if="groupProfile">
 					<span class="~text-label-small-min/label-small-max"> {{ t('others.select_group_name') }}</span>
@@ -37,7 +37,7 @@
 						<div class="h-10 w-10 cursor-pointer rounded-full bg-surface-high">
 							<AvatarCore v-if="avatarPreviewUrl" :img="avatarPreviewUrl" @click="fileInput!.click()"></AvatarCore>
 							<Button v-else color="" @click="fileInput!.click()">
-								<Icon type="image_add" class="-ml-[5px] mt-[2px]" />
+								<Icon type="image-square" class="-ml-[5px] mt-[2px]" />
 							</Button>
 						</div>
 						<input ref="fileInput" type="file" accept="image/*" class="hidden" @change="handleFileUpload" />
@@ -51,7 +51,7 @@
 				<div v-else class="mt-4 flex flex-wrap justify-start gap-y-2">
 					<div v-for="user in usersSelected" :key="user.userId" class="flex flex-col items-center">
 						<div class="relative">
-							<Icon type="close" size="sm" class="absolute bottom-0 right-0 cursor-pointer rounded-full bg-surface-subtle" @click.stop="removeUserFromSelection(user)" />
+							<Icon type="x" size="sm" class="absolute bottom-0 right-0 cursor-pointer rounded-full bg-surface-subtle" @click.stop="removeUserFromSelection(user)" />
 							<Avatar :userId="user.userId"></Avatar>
 						</div>
 						<span class="mt-1 w-16 truncate text-center text-sm">{{ user.displayName || user.userId }}</span>
@@ -81,7 +81,7 @@
 						<h3 class="text-md sticky top-0 z-10 py-1 font-bold uppercase text-on-surface-dim">{{ letter }}</h3>
 						<ul>
 							<li v-for="user in usersInLetter" :key="user.userId" class="flex cursor-pointer items-center gap-2 py-1 pl-4 hover:bg-surface-low" @click="groupPanel ? toggleUserSelection(user) : gotToPrivateRoom(user)">
-								<Icon v-if="groupPanel && selectedUsers.includes(user.userId)" type="check"></Icon>
+								<Icon v-if="groupPanel && selectedUsers.includes(user.userId)" type="check-circle"></Icon>
 								<Avatar v-else :userId="user.userId"></Avatar>
 								<div class="flex flex-col">
 									<span>{{ user.displayName || user.userId }}</span>

@@ -3,7 +3,7 @@
 		<div class="absolute inset-0 bg-surface-high opacity-80" @click="closePrompt" />
 		<div class="absolute bottom-0 left-0 right-0 flex h-fit w-full flex-col rounded-t-2xl bg-background p-2 shadow-[0_-5px_10px_rgba(0,0,0,0.2)]">
 			<div class="absolute right-3 top-3 h-6 w-6 rounded-full bg-surface-high">
-				<Icon type="close" :as-button="true" @click="closePrompt" />
+				<Icon type="x" :as-button="true" @click="closePrompt" />
 			</div>
 			<div class="flex items-center justify-between pr-12">
 				<div class="flex items-center">
@@ -21,8 +21,8 @@
 				<div v-if="props.operatingSystem === 'Android' && ['Chrome', 'Firefox'].includes(props.browser)">
 					<InstallPromptInstruction
 						:instructions="[
-							{ icon: 'actionmenu', instruction: 'pwa.click_menu' },
-							{ icon: 'add_to_homescreen', instruction: 'pwa.add_to_homescreen' },
+							{ icon: 'dots-three-vertical', instruction: 'pwa.click_menu' },
+							{ icon: 'plus', instruction: 'pwa.add_to_homescreen' },
 						]"
 					/>
 				</div>
@@ -30,7 +30,7 @@
 				<div v-else-if="props.operatingSystem === 'Android' && props.browser === 'Samsung Browser'">
 					<InstallPromptInstruction
 						:instructions="[
-							{ icon: 'hamburger', instruction: 'pwa.click_menu' },
+							{ icon: 'dots-three-vertical', instruction: 'pwa.click_menu' },
 							{ icon: 'plus', instruction: 'pwa.add_page_to' },
 						]"
 					/>
@@ -39,8 +39,8 @@
 				<div v-else-if="props.operatingSystem === 'Android' && props.browser === 'Edge'">
 					<InstallPromptInstruction
 						:instructions="[
-							{ icon: 'hamburger', instruction: 'pwa.click_menu' },
-							{ icon: 'add_to_homescreen', instruction: 'pwa.add_to_phone' },
+							{ icon: 'dots-three-vertical', instruction: 'pwa.click_menu' },
+							{ icon: 'plus', instruction: 'pwa.add_to_phone' },
 						]"
 					/>
 				</div>
@@ -48,8 +48,8 @@
 				<div v-else-if="props.operatingSystem === 'Android' && props.browser === 'Opera'">
 					<InstallPromptInstruction
 						:instructions="[
-							{ icon: 'actionmenu', instruction: 'pwa.click_menu' },
-							{ icon: 'circled_plus', instruction: 'pwa.add_to' },
+							{ icon: 'dots-three-vertical', instruction: 'pwa.click_menu' },
+							{ icon: 'plus', instruction: 'pwa.add_to' },
 						]"
 					/>
 				</div>
@@ -58,7 +58,7 @@
 					<InstallPromptInstruction
 						:instructions="[
 							{ icon: 'share', instruction: 'pwa.click_share' },
-							{ icon: 'ios_add_to_homescreen', instruction: 'pwa.ios_add_to_homescreen' },
+							{ icon: 'plus', instruction: 'pwa.ios_add_to_homescreen' },
 						]"
 					/>
 				</div>

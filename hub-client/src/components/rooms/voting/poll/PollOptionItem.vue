@@ -4,7 +4,7 @@
 			<div class="flex">
 				<div class="relative mr-4 flex-none" v-if="hasUserVotedOnThisOption">
 					<div class="relative left-1 top-1 h-4 w-4 rounded-full bg-accent-primary"></div>
-					<Icon type="checkmark_circle" class="absolute top-0" />
+					<Icon type="check-circle" class="absolute top-0" />
 				</div>
 				<div class="relative mr-8" v-else>
 					<Icon type="circle" class="absolute" />

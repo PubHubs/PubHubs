@@ -26,7 +26,7 @@
 							<div class="flex gap-4">
 								<TextInput v-model="inputValue" :placeholder="pseudonym" class="h-10 !placeholder-on-surface-dim ~text-label-min/label-max" maxlength="24" />
 								<Button @click="fileInput!.click()">
-									<Icon type="image_add"></Icon>
+									<Icon type="image-square"></Icon>
 								</Button>
 								<input ref="fileInput" type="file" accept="image/*" class="hidden" @change="handleFileUpload" />
 							</div>
@@ -41,7 +41,7 @@
 							<div class="flex w-full items-center rounded-xl bg-surface-low ~gap-4/8 ~p-3/6 xl:w-1/2">
 								<div class="flex aspect-square h-12 w-12 shrink-0 items-center justify-center overflow-hidden rounded-full" :class="textColor(color(user.userId!))">
 									<img v-if="avatarPreviewUrl" data-testid="avatar" :src="avatarPreviewUrl" class="h-full w-full" />
-									<Icon v-else size="lg" type="person" />
+									<Icon v-else size="lg" type="user" />
 								</div>
 								<div class="flex flex-col ~gap-1/2">
 									<div class="flex items-center ~gap-1/2">
@@ -119,7 +119,7 @@
 							<div class="flex ~gap-2/4">
 								<TextInput v-model="inputValue" :placeholder="pseudonym" class="h-10 !placeholder-on-surface-dim ~text-label-min/label-max" />
 								<Button @click="fileInput!.click()">
-									<Icon type="image_add" />
+									<Icon type="image-square" />
 								</Button>
 								<input ref="fileInput" type="file" accept="image/*" class="hidden" @change="handleFileUpload" />
 							</div>
@@ -134,7 +134,7 @@
 							<div class="flex w-full items-center rounded-xl bg-background ~gap-4/8 ~p-3/6">
 								<div class="min-w-1/3 flex aspect-square h-12 w-12 shrink-0 items-center justify-center overflow-hidden rounded-full" :class="textColor(color(user.userId!))">
 									<img v-if="avatarPreviewUrl" data-testid="avatar" :src="avatarPreviewUrl" class="h-full w-full" />
-									<Icon v-else size="lg" type="person" />
+									<Icon v-else size="lg" type="user" />
 								</div>
 								<div class="flex flex-col ~gap-1/2">
 									<div class="flex flex-wrap items-center ~gap-1/2">

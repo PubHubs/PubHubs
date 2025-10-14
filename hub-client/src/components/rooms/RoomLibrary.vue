@@ -2,7 +2,7 @@
 	<div v-if="settings.isFeatureEnabled(FeatureFlag.roomLibrary)" class="h-full p-2">
 		<PopoverButton v-if="!messageInput.state.fileAdded" icon="upload" @click="startUploadFile">{{ $t('message.upload_file') }}</PopoverButton>
 		<FilePicker ref="filePickerEl" :messageInput="messageInput" :submitButton="true" @submit="uploadFile"></FilePicker>
-		<Icon v-if="!messageInput.state.fileAdded" class="absolute right-3 top-3 hover:text-accent-red" type="close" size="sm" @click="close()"></Icon>
+		<Icon v-if="!messageInput.state.fileAdded" class="absolute right-3 top-3 hover:text-accent-red" type="x" size="sm" @click="close()"></Icon>
 
 		<div class="h-full w-full overflow-y-auto">
 			<Table :keys="keys" @order="orderBy($event)">
@@ -12,7 +12,7 @@
 							<div class="flex">
 								<div class="xs:mr-1 xs:max-h-6 xs:w-6 md:mr-2 md:w-8">
 									<Image v-if="isImage(item.event.content.filename)" :img="item.event.content.url"></Image>
-									<Icon v-else type="paperclip"></Icon>
+									<Icon v-else type="plus-circle"></Icon>
 								</div>
 								<span class="truncate">
 									<FileDownload :url="item.event.content.url" :filename="item.event.content.filename"></FileDownload>
@@ -45,12 +45,12 @@
 										:attributes="selectedAttributes"
 									></SignedDialog>
 								</template>
-								<IconButton v-else type="sign" @click.stop="handleSigning(item.event.content.url, item.event.event_id)" class="cursor-pointer"></IconButton>
+								<IconButton v-else type="pen-nib" @click.stop="handleSigning(item.event.content.url, item.event.event_id)" class="cursor-pointer"></IconButton>
 							</div>
 						</TableCell>
 						<TableCell>
 							<div class="flex flex-grow justify-end">
-								<IconButton v-if="user.isAdmin" class="bg-hub-background-4 hover:bg-red flex rounded-md p-1" type="bin" @click.stop="confirmDeletion(item.event.content, item.event.event_id)"></IconButton>
+								<IconButton v-if="user.isAdmin" class="bg-hub-background-4 hover:bg-red flex rounded-md p-1" type="trash" @click.stop="confirmDeletion(item.event.content, item.event.event_id)"></IconButton>
 							</div>
 						</TableCell>
 					</TableRow>

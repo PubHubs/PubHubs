@@ -26,7 +26,7 @@ edit | pencil-line
 emoji_smiley | smiley
 emoji_clock | clock
 emoji_bear | dog
-emoji_cup -coffee
+emoji_cup | coffee
 emoticon | smiley
 emoji_house | house
 emoji_basketball | basketball

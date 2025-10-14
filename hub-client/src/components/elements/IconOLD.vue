@@ -1,11 +1,10 @@
 <template>
-	<button class="flex items-center justify-center">
-		<Icon :type="type" :size="size" :weight="weight" :mirrored="mirrored"></Icon>
-	</button>
+	<div class="flex h-fit w-fit shrink-0 items-center justify-center" :data-testid="type">
+		<svg viewBox="0 0 24 24" fill="transparent" stroke="currentColor" stroke-width="1" stroke-linecap="round" stroke-linejoin="round" :class="sizes[size]" v-html="icons[type]"></svg>
+	</div>
 </template>
 
 <script setup lang="ts">
-	import { PropType } from 'vue';
 	import { icons, sizes } from '@/assets/icons';
 
 	const props = defineProps({
@@ -22,13 +21,6 @@
 			validator(value: string) {
 				return Object.keys(sizes).includes(value);
 			},
-		},
-		weight: {
-			type: String as PropType<'default' | 'thin' | 'light' | 'regular' | 'bold' | 'fill' | 'duotone'>,
-			default: 'default',
-		},
-		mirrored: {
-			type: Boolean,
 		},
 	});
 </script>

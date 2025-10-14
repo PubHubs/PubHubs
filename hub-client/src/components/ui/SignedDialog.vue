@@ -1,5 +1,5 @@
 <template>
-	<Icon type="checkmark" @click="togglePopup()" class="cursor-pointer"></Icon>
+	<Icon type="check-circle" @click="togglePopup()" class="cursor-pointer"></Icon>
 
 	<Dialog v-if="showPopup" :title="$t('roomlibrary.signed_info')" :buttons="buttonsOk" @close="togglePopup()">
 		<p>{{ $t('roomlibrary.used_attribute') }} '{{ attributes.toString() }}' {{ $t('roomlibrary.with_value') }} '{{ displayDisclosedAttribute.toString() }}'</p>
@@ -7,7 +7,7 @@
 		<p class="mt-2">
 			<a class="flex gap-2" v-if="fileUrl" :href="fileUrl" :download="fileName">
 				<span>{{ $t('roomlibrary.download_info') }}</span>
-				<IconButton type="download"></IconButton>
+				<IconButton type="download-simple"></IconButton>
 			</a>
 		</p>
 	</Dialog>

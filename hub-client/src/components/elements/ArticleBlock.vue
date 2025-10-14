@@ -3,7 +3,7 @@
 		<ImagePlaceholder :src="image" class="overflow-hidden rounded-t-md" />
 		<div class="bg-white-middle text-hub-text dark:bg-gray rounded-b-md">
 			<div class="bg-blue-light -mt-6 flex w-fit rounded-r-md px-4 py-1">
-				<Icon type="speech_bubbles" size="sm" class="text-black" />
+				<Icon type="chats-circle" size="sm" class="text-black" />
 				<p class="pl-2 text-white"><slot name="category"></slot></p>
 			</div>
 			<div class="mt-1 flex flex-col px-4 pb-1">

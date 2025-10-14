@@ -8,7 +8,7 @@
 				</div>
 				<div class="relative flex h-full items-center justify-between gap-4" :class="isMobile ? 'pl-8' : 'pl-0'">
 					<div v-if="rooms.currentRoom && !isSearchBarExpanded" class="flex w-fit items-center gap-3 overflow-hidden">
-						<Icon v-if="!notPrivateRoom()" type="back" size="base" @click="router.back()" />
+						<Icon v-if="!notPrivateRoom()" type="caret-left" size="base" @click="router.back()" />
 						<Icon v-if="notPrivateRoom()" :type="rooms.currentRoom.isSecuredRoom() ? 'shield' : 'speech_bubbles'" size="base" />
 						<div class="flex flex-col">
 							<H3 class="flex text-on-surface">

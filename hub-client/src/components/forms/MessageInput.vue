@@ -34,7 +34,7 @@
 						</Suspense>
 					</div>
 					<button @click="messageActions.replyingTo = undefined">
-						<Icon type="closingCross" size="sm" />
+						<Icon type="x" size="sm" />
 					</button>
 				</div>
 
@@ -62,7 +62,7 @@
 				</template>
 
 				<div v-if="messageInput.state.textArea" class="flex items-end gap-x-4 rounded-2xl px-4 py-2">
-					<IconButton type="paperclip" size="md" @click.stop="messageInput.togglePopover()" />
+					<IconButton type="plus-circle" size="md" @click.stop="messageInput.togglePopover()" />
 					<!-- Overflow-x-hidden prevents firefox from adding an extra row to the textarea for a possible scrollbar -->
 					<TextArea
 						ref="elTextInput"
@@ -84,11 +84,11 @@
 						:class="!messageInput.state.sendButtonEnabled && 'opacity-50 hover:cursor-default'"
 						@click="isValidMessage() ? announcementMessage() : null"
 					>
-						<Icon type="announcement" size="md"></Icon>
+						<Icon type="megaphone-simple" size="md"></Icon>
 					</div>
 
 					<!-- Emoji picker -->
-					<IconButton type="emoticon" size="md" @click.stop="messageInput.toggleEmojiPicker()" class="rounded-full bg-accent-secondary text-background dark:text-on-surface-variant" />
+					<IconButton type="smiley" size="md" @click.stop="messageInput.toggleEmojiPicker()" class="rounded-full bg-accent-secondary text-background dark:text-on-surface-variant" />
 
 					<!-- Sendbutton -->
 					<Button
@@ -98,12 +98,12 @@
 						:disabled="!messageInput.state.sendButtonEnabled"
 						@click="submitMessage"
 					>
-						<Icon type="send" size="sm" class="shrink-0 text-on-surface-variant" />
+						<Icon type="paper-plane-right" size="sm" class="shrink-0 text-on-surface-variant" />
 					</Button>
 				</div>
 
 				<div v-if="messageInput.state.signMessage" class="m-4 mt-0 flex items-center rounded-md bg-surface-low p-2">
-					<Icon type="sign" size="base" class="mt-1 self-start" />
+					<Icon type="pen-nib" size="base" class="mt-1 self-start" />
 					<div class="ml-2 flex max-w-3xl flex-col justify-between">
 						<h3 class="font-bold">{{ $t('message.sign.heading') }}</h3>
 						<p>{{ $t('message.sign.info') }}</p>
@@ -117,13 +117,13 @@
 							<p>Email</p>
 						</div>
 					</div>
-					<IconButton type="closingCross" size="sm" @click.stop="messageInput.resetAll(true)" class="ml-auto self-start" />
+					<IconButton type="x" size="sm" @click.stop="messageInput.resetAll(true)" class="ml-auto self-start" />
 				</div>
 			</div>
 
 			<!-- Yivi signing qr popup -->
 			<div class="absolute bottom-[10%] left-1/2 w-min -translate-x-1/2" v-show="messageInput.state.showYiviQR">
-				<Icon type="close" class="absolute right-2 z-10 cursor-pointer dark:text-black" @click="messageInput.state.showYiviQR = false" />
+				<Icon type="x" class="absolute right-2 z-10 cursor-pointer dark:text-black" @click="messageInput.state.showYiviQR = false" />
 				<div v-if="messageInput.state.signMessage" id="yivi-web-form"></div>
 			</div>
 		</div>

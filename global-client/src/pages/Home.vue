@@ -5,7 +5,7 @@
 			<div class="-mt-[5.5rem] flex flex-col gap-2 px-8 md:px-0">
 				<div class="flex items-center whitespace-nowrap ~gap-1/4">
 					<div class="flex items-center gap-2">
-						<Icon class="text-surface dark:text-on-surface" type="pubhubs-home" size="md" />
+						<Icon class="text-surface dark:text-on-surface" type="compass" size="md" />
 						<div class="font-headings font-semibold ~text-h3-min/h3-max">{{ $t('home.welcome_to') }}</div>
 					</div>
 					<div class="object-contain ~h-6/12">
@@ -19,12 +19,12 @@
 						:placeholder="$t('others.search_hubs')"
 						class="focus mb-4 w-full rounded border bg-surface px-4 py-2 text-on-surface placeholder-on-surface-dim ~text-label-min/label-max focus:placeholder-on-surface-variant focus:ring-accent-primary"
 					/>
-					<Icon type="search" class="pointer-events-none absolute right-2 top-[20%] z-10 text-on-surface-variant" size="sm" />
+					<Icon type="magnfying-glass" class="pointer-events-none absolute right-2 top-[20%] z-10 text-on-surface-variant" size="sm" />
 				</div>
 			</div>
 			<div class="flex flex-col gap-2">
 				<div class="flex items-center gap-2 px-8 md:px-0">
-					<Icon class="text-surface dark:text-on-surface" type="pubhubs-home" size="md" />
+					<Icon class="text-surface dark:text-on-surface" type="compass" size="md" />
 					<div class="font-headings font-semibold ~text-h3-min/h3-max">{{ $t('home.discover_hubs') }}</div>
 					<InlineSpinner v-if="global.hubsLoading" />
 				</div>

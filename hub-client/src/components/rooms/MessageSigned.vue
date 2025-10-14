@@ -16,13 +16,13 @@
 				</div>
 			</div>
 			<!-- Not supported yet -->
-			<!-- <IconButton type="download" :size="'sm'"  class=" "/> -->
+			<!-- <IconButton type="download-simple" :size="'sm'"  class=" "/> -->
 		</div>
 		<p>{{ getMessage(message) }}</p>
 		<div class="flex w-full min-w-0 flex-col overflow-x-auto p-2">
 			<ul class="ml-auto mt-1 flex w-fit">
 				<li v-for="attribute in getDisclosedAttributes(message)" :key="attribute.id" class="flex w-fit items-center rounded-full bg-black px-2 text-white">
-					<Icon type="sign" :size="'sm'" class="mr-1" />
+					<Icon type="pen-nib" :size="'sm'" class="mr-1" />
 
 					{{
 						//todo: add multilanguage support

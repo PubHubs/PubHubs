@@ -8,7 +8,7 @@
 			<div class="relative flex h-full items-center justify-between gap-6" :class="isMobile ? 'pl-12' : 'pl-0'">
 				<div class="flex flex-col">
 					<H3 class="flex text-on-surface" :class="isMobile ? 'gap-2' : 'gap-4'">
-						<Icon type="directmsg" size="sm" :class="isMobile ? 'mt-[0.5rem]' : 'mt-2'"></Icon>
+						<Icon type="chat-circle-text" size="sm" :class="isMobile ? 'mt-[0.5rem]' : 'mt-2'"></Icon>
 						<TruncatedText class="font-headings font-semibold">
 							<h2>{{ t('menu.directmsg') }}</h2>
 						</TruncatedText>
@@ -23,7 +23,7 @@
 						:class="[isMobile ? 'w-8 justify-center rounded-full' : 'justify-between']"
 						@click="router.push({ name: 'room', params: { id: pubhubs.getAdminRoomId() } })"
 					>
-						<Icon type="admin_contact" size="sm"></Icon>
+						<Icon type="headset" size="sm"></Icon>
 						<span v-if="!isMobile">{{ t('menu.contact') }}</span>
 						<span :class="isMobile ? 'absolute -right-2 -top-2' : 'absolute -right-2 -top-2 flex items-center gap-2'">
 							<Badge class="~text-label-small-min/label-small-max" color="ph" v-if="newAdminMsgCount > 99">99+</Badge>

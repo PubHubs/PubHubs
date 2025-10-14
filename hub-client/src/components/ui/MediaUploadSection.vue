@@ -13,8 +13,8 @@
 			</div>
 
 			<div>
-				<Icon @click="fileInput?.click()" type="edit" size="md" :as-button="true"></Icon>
-				<Icon @click="$emit('remove')" type="bin" size="md" :as-button="true"></Icon>
+				<Icon @click="fileInput?.click()" type="pencil-line" size="md" :as-button="true"></Icon>
+				<Icon @click="$emit('remove')" type="trash" size="md" :as-button="true"></Icon>
 			</div>
 		</div>
 		<p v-if="errorText" class="text-red">{{ errorText }}</p>

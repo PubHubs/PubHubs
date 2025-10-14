@@ -22,7 +22,7 @@
 						<template #item="{ item }">
 							<div class="flex w-full justify-between gap-8 overflow-hidden" :title="item.room_id">
 								<div class="flex w-full items-center gap-4 overflow-hidden">
-									<Icon type="speech_bubbles" class="shrink-0 fill-accent-lime" />
+									<Icon type="chats-circle" class="shrink-0 fill-accent-lime" />
 									<p class="min-w-20 truncate">{{ item.name }}</p>
 									<p class="text-gray-light hidden truncate pr-1 italic md:inline">{{ rooms.getRoomTopic(item.room_id) }}</p>
 									<span v-if="item.room_type" class="text-gray-light italic">- {{ item.room_type }} </span>
@@ -31,18 +31,18 @@
 									<div class="flex items-center gap-2">
 										<span v-if="isUserRoomAdmin(user.user.userId, item.room_id)" class="ml-2 flex h-4 items-center gap-1 rounded-xl bg-black px-2 text-white ~text-label-small-min/label-small-max">Administrator</span>
 										<span class="flex items-center">
-											<Icon type="person" size="sm" class="shrink-0" />
+											<Icon type="user" size="sm" class="shrink-0" />
 											<p>x</p>
 											<p>{{ item.num_joined_members }}</p>
 										</span>
 										<span v-if="rooms.room(item.room_id)?.userIsMember(user.user.userId)">
-											<Icon type="person" size="sm" class="shrink-0" />
+											<Icon type="user" size="sm" class="shrink-0" />
 										</span>
 									</div>
 									<div class="flex items-center gap-1">
-										<Icon type="remove" class="hover:cursor-pointer hover:text-accent-red" @click="removePublicRoom(item)" />
-										<Icon type="edit" class="hover:cursor-pointer hover:text-accent-primary" v-if="rooms.room(item.room_id)?.userCanChangeName(user.user.userId)" @click="editPublicRoom(item)" />
-										<Icon v-else type="promote" class="hover:cursor-pointer hover:text-accent-primary" @click="makeRoomAdmin(item.room_id, user.user.userId)" />
+										<Icon type="trash" class="hover:cursor-pointer hover:text-accent-red" @click="removePublicRoom(item)" />
+										<Icon type="pencil-line" class="hover:cursor-pointer hover:text-accent-primary" v-if="rooms.room(item.room_id)?.userCanChangeName(user.user.userId)" @click="editPublicRoom(item)" />
+										<Icon v-else type="arrow-circle-up" class="hover:cursor-pointer hover:text-accent-primary" @click="makeRoomAdmin(item.room_id, user.user.userId)" />
 									</div>
 								</div>
 							</div>
@@ -67,13 +67,13 @@
 									<div class="flex items-center gap-2">
 										<span v-if="isUserRoomAdmin(user.user.userId, item.room_id)" class="ml-2 flex h-4 items-center gap-1 rounded-xl bg-black px-2 text-white ~text-label-small-min/label-small-max">Administrator</span>
 										<span v-if="rooms.room(item.room_id)?.userIsMember(user.user.userId)">
-											<Icon type="person" size="sm" class="shrink-0" />
+											<Icon type="user" size="sm" class="shrink-0" />
 										</span>
 									</div>
 									<div class="flex items-center gap-1">
-										<Icon type="remove" class="hover:cursor-pointer hover:text-accent-red" v-if="rooms.room(item.room_id)?.userCanChangeName(user.user.userId)" @click="removeSecuredRoom(item)" />
-										<Icon type="edit" class="hover:cursor-pointer hover:text-accent-primary" v-if="rooms.room(item.room_id)?.userCanChangeName(user.user.userId)" @click="EditSecuredRoom(item)" />
-										<Icon type="promote" class="hover:cursor-pointer hover:text-accent-primary" @click="makeRoomAdmin(item.room_id, user.user.userId)" />
+										<Icon type="trash" class="hover:cursor-pointer hover:text-accent-red" v-if="rooms.room(item.room_id)?.userCanChangeName(user.user.userId)" @click="removeSecuredRoom(item)" />
+										<Icon type="pencil-line" class="hover:cursor-pointer hover:text-accent-primary" v-if="rooms.room(item.room_id)?.userCanChangeName(user.user.userId)" @click="EditSecuredRoom(item)" />
+										<Icon type="arrow-circle-up" class="hover:cursor-pointer hover:text-accent-primary" @click="makeRoomAdmin(item.room_id, user.user.userId)" />
 									</div>
 								</div>
 							</div>

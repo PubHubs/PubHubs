@@ -1,7 +1,7 @@
 <template>
 	<div class="bg-ph-background-2 z-10 h-20 w-40 max-w-0 overflow-hidden rounded-md transition-all duration-300 ease-in-out" :class="classObject" @click="closeBubble">
 		<div class="relative flex h-full w-full items-center p-2">
-			<Icon class="absolute right-1 top-1 w-fit hover:cursor-pointer" type="close" size="xs" />
+			<Icon class="absolute right-1 top-1 w-fit hover:cursor-pointer" type="x" size="xs" />
 
 			<p><slot></slot></p>
 			<div class="absolute z-10">
