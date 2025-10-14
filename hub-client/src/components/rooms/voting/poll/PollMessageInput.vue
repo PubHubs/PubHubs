@@ -5,7 +5,7 @@
 			<H2 class="flex-grow">{{ $t('message.poll') }}</H2>
 			<div class="mt-1 flex flex-none">
 				<!-- <Icon type="cog" size="sm" :as-button="true" @click="settingsMenu = !settingsMenu" class="ml-auto"></Icon> -->
-				<Icon type="closingCross" size="sm" :asButton="true" @click="emit('closePoll')" class="ml-2"></Icon>
+				<IconButton type="closingCross" size="sm"  @click="emit('closePoll')" class="ml-2"></Icon>
 			</div>
 		</div>
 		<div class="flex items-center p-2">

@@ -62,7 +62,7 @@
 				</template>
 
 				<div v-if="messageInput.state.textArea" class="flex items-end gap-x-4 rounded-2xl px-4 py-2">
-					<Icon type="paperclip" size="md" @click.stop="messageInput.togglePopover()" :asButton="true" />
+					<IconButton type="paperclip" size="md" @click.stop="messageInput.togglePopover()" />
 					<!-- Overflow-x-hidden prevents firefox from adding an extra row to the textarea for a possible scrollbar -->
 					<TextArea
 						ref="elTextInput"
@@ -88,7 +88,7 @@
 					</div>
 
 					<!-- Emoji picker -->
-					<Icon type="emoticon" size="md" @click.stop="messageInput.toggleEmojiPicker()" :asButton="true" class="rounded-full bg-accent-secondary text-background dark:text-on-surface-variant" />
+					<IconButton type="emoticon" size="md" @click.stop="messageInput.toggleEmojiPicker()" class="rounded-full bg-accent-secondary text-background dark:text-on-surface-variant" />
 
 					<!-- Sendbutton -->
 					<Button
@@ -117,7 +117,7 @@
 							<p>Email</p>
 						</div>
 					</div>
-					<Icon type="closingCross" size="sm" :asButton="true" @click.stop="messageInput.resetAll(true)" class="ml-auto self-start" />
+					<IconButton type="closingCross" size="sm" @click.stop="messageInput.resetAll(true)" class="ml-auto self-start" />
 				</div>
 			</div>
 

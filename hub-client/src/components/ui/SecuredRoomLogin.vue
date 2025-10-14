@@ -3,7 +3,7 @@
 		<!-- Popup Container -->
 		<div class="z-20 box-border min-h-[333px] w-[255px] rounded-lg bg-white p-0 drop-shadow-[0px_-5px_16px_rgb(0,0,0,0.15)]">
 			<!-- Close Button Inside the Popup (Top-Right) -->
-			<Icon v-if="showClose" type="closingCross" size="base" :asButton="true" class="absolute right-2 top-2 z-10 p-2 dark:text-black" @click="closePopOver" />
+			<IconButton v-if="showClose" type="closingCross" size="base" class="absolute right-2 top-2 z-10 p-2 dark:text-black" @click="closePopOver" />
 			<div
 				v-if="!loginFlow"
 				class="mx-4 my-12 flex flex-col gap-12 after:absolute after:-top-[1.2em] after:left-[50%] after:border-[1.25em] after:border-r-0 after:border-t-0 after:border-transparent after:border-b-white after:drop-shadow-[0px_-5px_16px_rgb(0,0,0,0.15)]"

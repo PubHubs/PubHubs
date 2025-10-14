@@ -45,12 +45,12 @@
 										:attributes="selectedAttributes"
 									></SignedDialog>
 								</template>
-								<Icon v-else type="sign" :asButton="true" @click.stop="handleSigning(item.event.content.url, item.event.event_id)" class="cursor-pointer"></Icon>
+								<IconButton v-else type="sign"  @click.stop="handleSigning(item.event.content.url, item.event.event_id)" class="cursor-pointer"></Icon>
 							</div>
 						</TableCell>
 						<TableCell>
 							<div class="flex flex-grow justify-end">
-								<Icon v-if="user.isAdmin" class="bg-hub-background-4 hover:bg-red flex rounded-md p-1" type="bin" :asButton="true" @click.stop="confirmDeletion(item.event.content, item.event.event_id)"></Icon>
+								<IconButton v-if="user.isAdmin" class="bg-hub-background-4 hover:bg-red flex rounded-md p-1" type="bin"  @click.stop="confirmDeletion(item.event.content, item.event.event_id)"></Icon>
 							</div>
 						</TableCell>
 					</TableRow>

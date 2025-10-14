@@ -1,7 +1,7 @@
 <template>
-	<div class="flex h-fit w-fit shrink-0 items-center justify-center" :data-testid="type">
-		<svg viewBox="0 0 24 24" fill="transparent" stroke="currentColor" stroke-width="1" stroke-linecap="round" stroke-linejoin="round" :class="sizes[size]" v-html="icons[type]"></svg>
-	</div>
+	<button class="flex items-center justify-center">
+		<Icon :type="type" :size="size"></Icon>
+	</button>
 </template>
 
 <script setup lang="ts">
