@@ -1,5 +1,6 @@
 <template>
-	<div class="flex h-full flex-1 flex-col justify-between gap-2 overflow-y-auto md:gap-4" :class="{ 'rounded-md border-2 border-dashed border-on-surface-disabled p-1': hubOrderingIsActive }">
+	<div class="flex h-full flex-1 flex-col items-center justify-between gap-2 overflow-y-auto md:gap-4" :class="{ 'rounded-md border-2 border-dashed border-on-surface-disabled p-1': hubOrderingIsActive }">
+		<InlineSpinner v-if="global.loggedIn && global.hubsLoading" />
 		<draggable
 			@start="backupPinnedHubs = global.pinnedHubs.slice()"
 			@end="hoverOverHubremoval = false"
@@ -26,7 +27,7 @@
 				</div>
 			</template>
 		</draggable>
-		<div class="relative h-12 max-h-0 overflow-hidden transition-all duration-300 ease-in-out" :class="{ 'max-h-12': hubOrderingIsActive }">
+		<div class="relative h-12 max-h-0 w-full overflow-hidden transition-all duration-300 ease-in-out" :class="{ 'max-h-12': hubOrderingIsActive }">
 			<div class="absolute grid h-full w-full items-center justify-center">
 				<Icon type="unpin" class="rounded-md p-1" :class="[hoverOverHubremoval ? 'text-accent-error opacity-100' : 'text-on-surface-disabled']" size="md" />
 			</div>
@@ -49,6 +50,10 @@
 	import HubMenuHubIcon from '@/components/ui/HubMenuHubIcon.vue';
 	import { PinnedHubs, useDialog, useGlobal, useHubs, useMessageBox } from '@/logic/store/store';
 	import { useToggleMenu } from '@/logic/store/toggleGlobalMenu';
+
+	// Hub imports
+	import Icon from '@/../../hub-client/src/components/elements/Icon.vue';
+	import InlineSpinner from '@/../../hub-client/src/components/ui/InlineSpinner.vue';
 
 	const global = useGlobal();
 	const hubs = useHubs();

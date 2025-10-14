@@ -53,3 +53,6 @@ For reference, dependencies are in `package.json`.
 
   (The `merge-to-stable` merge request template can be edited [here](https://gitlab.science.ru.nl/ilab/pubhubs_canonical/-/edit/main/.gitlab/issue_templates/update-dependencies.md).)
 
+## CICD
+
+ - [ ] Check if  `python:3.13` can be replaced by `python:latest` in the `hub-unit-test` job of [.gitlab-ci.yml](https://gitlab.science.ru.nl/ilab/pubhubs_canonical/-/blob/main/cicd/.gitlab-ci.yml) without making the tests fail.

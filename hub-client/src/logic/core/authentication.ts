@@ -2,18 +2,12 @@ import * as sdk from 'matrix-js-sdk';
 import { ICreateClientOpts, MatrixClient } from 'matrix-js-sdk';
 
 import { MessageType } from '@/logic/store/messagebox.js';
-import { Message, useDialog, useMessageBox } from '@/logic/store/store.js';
+import { Message, useMessageBox } from '@/logic/store/store.js';
 import { useUser } from '@/logic/store/user.js';
-
-type loginResponse = {
-	access_token: string;
-	user_id: string;
-};
 
 class Authentication {
 	private user = useUser();
 
-	private loginToken: string;
 	private localDevelopmentAccessToken: string = '';
 	private baseUrl: string;
 	private clientUrl: string;
@@ -22,36 +16,15 @@ class Authentication {
 	constructor() {
 		// @ts-ignore
 		this.baseUrl = _env.HUB_URL;
-		this.loginToken = '';
 		this.clientUrl = location.protocol + '//' + location.host + location.pathname;
 	}
 
 	/**
-	 * Set user based on access token and send token to global client for storage.
+	 * Set user based on access token and send token and userId to global client for storage.
 	 */
-
-	private _storeAuth(response: loginResponse) {
-		const auth = {
-			baseUrl: this.baseUrl,
-			accessToken: response.access_token,
-			userId: response.user_id,
-			loginTime: String(Date.now()),
-		};
-		this.localDevelopmentAccessToken = auth.accessToken;
-		this.user.setUserId(auth.userId);
-		useMessageBox().sendMessage(
-			new Message(
-				MessageType.AddAccessToken,
-				JSON.stringify({
-					token: response.access_token,
-					userId: response.user_id,
-				}),
-			),
-		);
-	}
-
 	private _storeAccessTokenAndUserId(accessToken: string, userId: string) {
 		this.localDevelopmentAccessToken = accessToken;
+		this.user.setUserId(userId);
 		useMessageBox().sendMessage(
 			new Message(
 				MessageType.AddAuthInfo,
@@ -124,63 +97,17 @@ class Authentication {
 				auth.timelineSupport = true;
 				this.client = sdk.createClient(auth);
 			} else {
-				// Start a clean client
-				this.client = sdk.createClient({
-					baseUrl: this.baseUrl,
-					timelineSupport: true,
-				});
+				// There should be an accesstoken (and userId) stored, otherwise something went wrong
+				reject('Could not find an access token and/or userId for this hub.');
 			}
 
-			// Check if we are logged in already
-			if (!this.client.isLoggedIn()) {
-				// First check if we came back from PubHubs login flow with a loginToken
-				if (this.loginToken === '') {
-					const urlParams = new URLSearchParams(window.location.search);
-					const loginTokenParam = urlParams.get('loginToken');
-					if (typeof loginTokenParam === 'string') {
-						this.loginToken = loginTokenParam;
-					}
+			if (this.client.baseUrl === this.baseUrl) {
+				if (newToken === 'true' && auth.accessToken && auth.userId) {
+					this._storeAccessTokenAndUserId(auth.accessToken, auth.userId);
 				}
-				//  Redirect to PubHubs login if we realy don't have a token
-				if (this.loginToken === '') {
-					this.redirectToPubHubsLogin();
-				} else {
-					this.client.loginWithToken(this.loginToken).then(
-						(response) => {
-							window.history.pushState('', '', '/');
-							this._storeAuth(response as loginResponse);
-							resolve(this.client);
-						},
-						(error) => {
-							const err = error.data;
-							const dialog = useDialog();
-
-							if (typeof error === 'string' && error.indexOf('Invalid login token') < 0) {
-								dialog.confirm('Server Error', error).then(() => {
-									reject(error);
-								});
-							} else if (error.data.errcode === 'M_LIMIT_EXCEEDED') {
-								const message = `Too much login attempts.Try again in ${[Math.round(err.retry_after_ms / 1000)]} seconds.`;
-								dialog.confirm('Server Error', message).then(() => {
-									reject(error);
-								});
-							} else {
-								console.error(error);
-							}
-
-							reject(error);
-						},
-					);
-				}
+				resolve(this.client);
 			} else {
-				if (this.client.baseUrl === this.baseUrl) {
-					if (newToken === 'true' && auth.accessToken && auth.userId) {
-						this._storeAccessTokenAndUserId(auth.accessToken, auth.userId);
-					}
-					resolve(this.client);
-				} else {
-					resolve(false);
-				}
+				resolve(false);
 			}
 		});
 	}

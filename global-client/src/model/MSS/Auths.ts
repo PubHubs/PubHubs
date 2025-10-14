@@ -116,8 +116,10 @@ export default class AuthenticationServer {
 		const okAuthCompleteResp = await handleErrors<mssTypes.CompleteResp>(authCompleteRespFn);
 		if (okAuthCompleteResp === 'PleaseRestartAuth') {
 			throw new Error('Something went wrong. Please start again at AuthStartEP.');
-		} else {
+		} else if ('Success' in okAuthCompleteResp) {
 			return okAuthCompleteResp.Success;
+		} else {
+			throw new Error('Unknown response from the completeAuth endpoint.');
 		}
 	}
 
@@ -145,7 +147,7 @@ export default class AuthenticationServer {
 		} else if ('SourceNotAvailableFor' in startResp) {
 			throw new Error(`The source (${authStartReq.source}) is not available for the attribute type with this handle: ${startResp.SourceNotAvailableFor}`);
 		} else {
-			throw new Error('An unknown error occurred with the AuthStart request.');
+			throw new Error('Unknown response from the AuthStart endpoint.');
 		}
 	}
 
@@ -176,12 +178,7 @@ export default class AuthenticationServer {
 		try {
 			// Only take the payload of the JWT
 			const base64Url = jwt.split('.')[1];
-			// Change from base64url encoding to standard base64 encoding
-			let base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
-			// Add padding to make sure the length of the base64 encoded string is a multiple of 4
-			while (base64.length % 4) {
-				base64 += '=';
-			}
+			const base64 = base64fromBase64Url(base64Url);
 			// Decode the base64 encoded string to a buffer (bytes) and parse this buffer as JSON
 			const jsonPayload = Buffer.from(base64, 'base64').toString();
 			return JSON.parse(jsonPayload);
@@ -226,6 +223,22 @@ export default class AuthenticationServer {
 }
 
 /**
+ * Converts a base64url encoded string into a standard base64 string.
+ *
+ * @param base64Url The base64 url (unpadded) encoded string.
+ * @returns The standard base64 string.
+ */
+export function base64fromBase64Url(base64Url: string) {
+	// Change from base64url encoding to standard base64 encoding
+	let base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
+	// Add padding to make sure the length of the base64 encoded string is a multiple of 4
+	while (base64.length % 4) {
+		base64 += '=';
+	}
+	return base64;
+}
+
+/**
  * Generate the options for a POST request to one of the API endpoints.
  *
  * @param requestBody What needs to be sent as the body of the request.
@@ -251,10 +264,10 @@ export function handleErrorCodes<T, E = mssTypes.ErrorCode>(response: mssTypes.R
 	if (mssTypes.isOk(response)) {
 		return response.Ok;
 	} else {
-		if (!response || !response.Err || !response.Err.errorCode) {
+		if (!response || !response.Err) {
 			throw new Error('The global-client received an undefined response in handleErrorCodes');
 		}
-		throw new Error(String(response.Err.errorCode));
+		throw new Error(String(response.Err));
 	}
 }
 

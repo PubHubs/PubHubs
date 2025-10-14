@@ -39,7 +39,6 @@ enum FeatureFlag {
 	unreadCounter = 'unreadCounter',
 	consent = 'consent',
 	roomLibrary = 'roomLibrary',
-	multiServerSetup = 'multiServerSetup',
 }
 
 type FeatureFlags = { [key in FeatureFlag]: boolean };
@@ -110,7 +109,6 @@ const defaultSettings: Settings = {
 			roomLibrary: false,
 			votingWidget: true,
 			consent: true,
-			multiServerSetup: true,
 		},
 		stable: {
 			signedMessages: true,
@@ -126,7 +124,6 @@ const defaultSettings: Settings = {
 			roomLibrary: false,
 			votingWidget: true,
 			consent: true,
-			multiServerSetup: true,
 		},
 		local: {
 			signedMessages: true,
@@ -142,7 +139,6 @@ const defaultSettings: Settings = {
 			roomLibrary: true,
 			votingWidget: true,
 			consent: false,
-			multiServerSetup: true,
 		},
 	},
 };

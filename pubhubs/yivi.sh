@@ -2,7 +2,7 @@
 
 # This script runs a yivi server for local development of the pubhubs servers
 
-if !which irma
+if ! which irma
 then
 	echo "please add 'irma' to your path"
 	echo ""

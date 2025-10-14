@@ -16,12 +16,10 @@ describe('api', () => {
 		// @ts-ignore
 		expect(api.baseURL).toBe('http://test');
 
-		expect(Object.keys(api.apiURLS).length).toBe(5);
+		expect(Object.keys(api.apiURLS).length).toBe(3);
 		expect(api.apiURLS.login).toBe('http://test/login');
 		expect(api.apiURLS.loginEn).toBe('http://test/en/login');
 		expect(api.apiURLS.logout).toBe('http://test/logout');
-		expect(api.apiURLS.bar).toBe('http://test/bar/state');
-		expect(api.apiURLS.hubs).toBe('http://test/bar/hubs');
 	});
 
 	test('api - apiOptions', () => {
@@ -44,38 +42,5 @@ describe('api', () => {
 		expect(Object.keys(api.options.DELETE).length).toBe(1);
 		expect(api.options.DELETE).toHaveProperty('method');
 		expect(api.options.DELETE.method).toBe('DELETE');
-	});
-});
-
-describe('api fetches', () => {
-	test('api - hubs', async () => {
-		const resp = await api.api(api.apiURLS.hubs);
-		expect(resp).toBeTypeOf('object');
-		expect(resp).toHaveLength(3);
-		expect(resp[0]).toBeTypeOf('object');
-		expect(resp[0]).toHaveProperty('name');
-		expect(resp[0].name).toBeTypeOf('string');
-		expect(resp[0].name.length).toBeGreaterThan(1);
-		expect(resp[0]).toHaveProperty('client_uri');
-		expect(resp[0].client_uri).toBeTypeOf('string');
-		expect(resp[0].client_uri.length).toBeGreaterThan(8);
-		expect(resp[0]).toHaveProperty('description');
-		expect(resp[0].description).toBeTypeOf('string');
-	});
-
-	test('api - bar state', async () => {
-		await expect(api.api(api.apiURLS.bar)).rejects.toThrowError();
-
-		await api.api(api.apiURLS.login);
-		const resp = await api.api<ArrayBuffer>(api.apiURLS.bar);
-		expect(resp).toBeInstanceOf(ArrayBuffer);
-		const decodedResp = new TextDecoder().decode(resp);
-		const parsedResp = JSON.parse(decodedResp);
-		expect(parsedResp).toHaveProperty('theme');
-		expect(parsedResp.theme).toBeTypeOf('string');
-		expect(parsedResp).toHaveProperty('language');
-		expect(parsedResp.language).toBeTypeOf('string');
-		expect(parsedResp).toHaveProperty('hubs');
-		expect(parsedResp.hubs).toBeTypeOf('object');
 	});
 });

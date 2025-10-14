@@ -1,0 +1,117 @@
+import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, test } from 'vitest';
+import { createPinia, setActivePinia } from 'pinia';
+
+import { server } from '../mocks/server';
+import { api } from '@/logic/core/api';
+import PHCServer from '@/model/MSS/PHC';
+import * as mssTypes from '@/model/MSS/TMultiServerSetup';
+
+beforeAll(() => server.listen({ onUnhandledRequest: 'error' }));
+afterAll(() => server.close());
+afterEach(() => server.resetHandlers());
+
+let pinia;
+
+describe('Multi-server setup', () => {
+	let phcServer: PHCServer;
+	beforeEach(async () => {
+		pinia = createPinia();
+		setActivePinia(pinia);
+	});
+
+	describe('Encrypting and decrypting a user secret', () => {
+		beforeEach(async () => {
+			// We expect to be logged in before doing anything with the user secret
+			await api.api(api.apiURLS.login);
+			phcServer = new PHCServer();
+		});
+
+		test('Generating a new user secret', async () => {
+			const mockedAttrKeysResp: Record<string, mssTypes.AttrKeyResp> = {
+				email: {
+					latest_key: ['someKey1', 'timestamp1'],
+					old_key: null,
+				},
+			};
+			const mockedIdentifyingAttrs: mssTypes.SignedIdentifyingAttrs = { email: { id: 'emailAttrId', signedAttr: 'signedEmailAttr', value: 'emailAttrValue' } };
+
+			expect(localStorage.getItem('UserSecret')).toBeNull();
+
+			await phcServer.storeUserSecretObject(mockedAttrKeysResp, mockedIdentifyingAttrs, null, null);
+
+			expect(localStorage.getItem('UserSecret')).toBeTypeOf('string');
+			expect(localStorage.getItem('UserSecret')).toEqual(phcServer['_userSecret']);
+			expect(localStorage.getItem('UserSecretVersion')).toEqual('1');
+		});
+
+		test('Logging in with a user secret of version 0', async () => {
+			const mockedAttrKeysResp: Record<string, mssTypes.AttrKeyResp> = {
+				email: {
+					latest_key: ['someKey2', 'timestamp2'],
+					old_key: 'someKey1',
+				},
+			};
+			const mockedIdentifyingAttrs: mssTypes.SignedIdentifyingAttrs = { email: { id: 'emailAttrId', signedAttr: 'signedEmailAttr', value: 'emailAttrValue' } };
+
+			// Use the old way of encoding the key
+			const userSecret = window.crypto.getRandomValues(new Uint8Array(32));
+			const encUserSecret = await phcServer['_encryptData'](userSecret, new TextEncoder().encode('someKey1'));
+			let oldUserSecretObject: mssTypes.UserSecretData = { emailAttrId: { emailAttrValue: { ts: 'timestamp1', encUserSecret: Buffer.from(encUserSecret).toString('base64') } } };
+
+			localStorage.removeItem('UserSecret');
+			expect(localStorage.getItem('UserSecret')).toBeNull();
+
+			await phcServer.storeUserSecretObject(mockedAttrKeysResp, mockedIdentifyingAttrs, oldUserSecretObject, { usersecret: { hash: 'userSecretHash', hmac: 'userSecretHmac', size: 300 }, backup: null });
+
+			expect(localStorage.getItem('UserSecret')).toBeTypeOf('string');
+			expect(localStorage.getItem('UserSecret')).toEqual(Buffer.from(userSecret).toString('base64'));
+			expect(localStorage.getItem('UserSecretVersion')).toEqual('1');
+
+			const userSecretObject = await phcServer.getUserObject('usersecret');
+			const backupObject = await phcServer.getUserObject('usersecretbackup');
+			expect(userSecretObject.object).toEqual(backupObject.object);
+		});
+
+		test('Logging in with a user secret of version 1', async () => {
+			const mockedAttrKeysResp: Record<string, mssTypes.AttrKeyResp> = {
+				email: {
+					latest_key: ['someKey3', 'timestamp2'],
+					old_key: 'someKey2',
+				},
+			};
+			const mockedIdentifyingAttrs: mssTypes.SignedIdentifyingAttrs = { email: { id: 'emailAttrId', signedAttr: 'signedEmailAttr', value: 'emailAttrValue' } };
+
+			const oldUserSecret = await phcServer['_getUserSecretObject']();
+
+			const userSecret = localStorage.getItem('UserSecret');
+
+			localStorage.removeItem('UserSecret');
+			expect(localStorage.getItem('UserSecret')).toBeNull();
+
+			await phcServer.storeUserSecretObject(mockedAttrKeysResp, mockedIdentifyingAttrs, oldUserSecret.object, {
+				usersecret: oldUserSecret.details.usersecret,
+				backup: oldUserSecret.details.backup,
+			});
+
+			expect(localStorage.getItem('UserSecret')).toBeTypeOf('string');
+			expect(localStorage.getItem('UserSecret')).toEqual(userSecret);
+			expect(localStorage.getItem('UserSecretVersion')).toEqual('1');
+
+			const userSecretObject = await phcServer.getUserObject('usersecret');
+			const backupObject = await phcServer.getUserObject('usersecretbackup');
+			expect(userSecretObject.object).toEqual(backupObject.object);
+		});
+
+		test('Decrypting a user secret object', async () => {
+			const userSecret = localStorage.getItem('UserSecret');
+			const userSecretBytes = new Uint8Array(Buffer.from(userSecret, 'base64'));
+			const userSecretObject = await phcServer.getUserObject('usersecret');
+
+			const decodedUserSecret = new TextDecoder().decode(userSecretObject.object);
+			const parsedObject = JSON.parse(decodedUserSecret) as mssTypes.UserSecretObject;
+			const decryptedUserSecretBytes = await phcServer['_decryptUserSecret']('someKey3', parsedObject.data['emailAttrId']['emailAttrValue'], Number(parsedObject.version));
+
+			expect(userSecretBytes).toEqual(decryptedUserSecretBytes);
+		});
+	});
+});

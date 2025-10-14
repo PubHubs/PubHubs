@@ -1,5 +1,6 @@
-# Ignore built rust code.
-pubhubs/target/
-pubhubs/static/scss/node_modules/
-global-client/node_modules/
-hub-client/node_modules/
+# Ignore everything
+*
+# except:
+!src/**/*.rs
+!Cargo.toml
+!Cargo.lock

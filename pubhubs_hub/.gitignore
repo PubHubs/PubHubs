@@ -1,5 +1,4 @@
 /testhub[0-9]
-/matrix_test_config/*.db
 /modules/__pycache__
 /matrix_test_config/media_store
 venv
