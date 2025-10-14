@@ -6,7 +6,7 @@
 
 <script setup lang="ts">
 	import { PropType } from 'vue';
-	import { icons, sizes } from '@/assets/icons';
+	import { icons, iconSizes } from '@/assets/icons';
 
 	const props = defineProps({
 		type: {
@@ -20,7 +20,7 @@
 			type: String,
 			default: 'base',
 			validator(value: string) {
-				return Object.keys(sizes).includes(value);
+				return Object.keys(iconSizes).includes(value);
 			},
 		},
 		weight: {

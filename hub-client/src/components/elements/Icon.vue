@@ -1,29 +1,29 @@
 <template>
-	<div class="flex h-fit w-fit shrink-0 items-center justify-center" :class="'w-[' + PHiconSizes[size] + 'px] h-[' + PHiconSizes[size] + 'px]'" :data-testid="type">
-		<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" :width="PHiconSizes[size]" :height="PHiconSizes[size]" fill="currentColor" :transform="displayMirrored" v-bind="$attrs">
+	<div class="flex h-fit w-fit shrink-0 items-center justify-center" :class="'w-[' + iconSizes[size] + 'px] h-[' + iconSizes[size] + 'px]'" :data-testid="type">
+		<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" :width="iconSizes[size]" :height="iconSizes[size]" fill="currentColor" :transform="displayMirrored" v-bind="$attrs">
 			<slot></slot>
-			<g v-html="phicons[type][weight]"></g>
+			<g v-html="icons[type][weight]"></g>
 		</svg>
 	</div>
 </template>
 
 <script lang="ts" setup>
 	import { computed, PropType } from 'vue';
-	import { phicons, PHiconSizes } from '@/assets/icons';
+	import { icons, iconSizes } from '@/assets/icons';
 
 	const props = defineProps({
 		type: {
 			type: String,
 			default: 'x',
 			validator(value: string) {
-				return Object.keys(phicons).includes(value);
+				return Object.keys(icons).includes(value);
 			},
 		},
 		size: {
 			type: [String, Number],
 			default: 'base',
 			validator(value: string) {
-				return Object.keys(PHiconSizes).includes(value);
+				return Object.keys(iconSizes).includes(value);
 			},
 		},
 		weight: {
