@@ -4,6 +4,7 @@
 import argparse
 import subprocess
 import socket
+import os.path
 from urllib.parse import urlparse
 
 def main():
@@ -53,9 +54,9 @@ def main():
                     "--rm",
                     "--name", f"pubhubs-testhub{args.number}",
                     "-p", f"{8008+args.number}:8008",
-                    "-v", "./modules:/conf/modules:ro",
-                    "-v", "./boot:/conf/boot:ro",
-                    "-v", f"./testhub{args.number}:/data:rw",
+                    "-v", f"{os.path.join(".","modules")}:/conf/modules:ro",
+                    "-v", f"{os.path.join(".","boot")}:/conf/boot:ro",
+                    "-v", f"{os.path.join(".",f"testhub{args.number}")}:/data:rw",
                     "--add-host", "host.docker.internal:host-gateway",
                     "pubhubs-hub",
                     "--environment", "development",
