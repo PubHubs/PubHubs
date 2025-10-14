@@ -33,7 +33,7 @@
 			</div>
 
 			<span class="flex [overflow-wrap:anywhere]" v-if="votingWidget.location">
-				<Icon :filled="true" class="mr-1 mt-1" type="map_pin" size="sm" />
+				<Icon class="mr-1 mt-1" type="map_pin" size="sm" />
 				{{ votingWidget.location }}
 			</span>
 			<span class="mt-2 flex [overflow-wrap:anywhere]">{{ votingWidget.description }}</span>

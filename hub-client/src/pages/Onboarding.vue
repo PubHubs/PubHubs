@@ -26,7 +26,7 @@
 							<div class="flex gap-4">
 								<TextInput v-model="inputValue" :placeholder="pseudonym" class="h-10 !placeholder-on-surface-dim ~text-label-min/label-max" maxlength="24" />
 								<Button @click="fileInput!.click()">
-									<Icon type="image_add" :filled="true" />
+									<Icon type="image_add"></Icon>
 								</Button>
 								<input ref="fileInput" type="file" accept="image/*" class="hidden" @change="handleFileUpload" />
 							</div>
@@ -119,7 +119,7 @@
 							<div class="flex ~gap-2/4">
 								<TextInput v-model="inputValue" :placeholder="pseudonym" class="h-10 !placeholder-on-surface-dim ~text-label-min/label-max" />
 								<Button @click="fileInput!.click()">
-									<Icon type="image_add" :filled="true" />
+									<Icon type="image_add" />
 								</Button>
 								<input ref="fileInput" type="file" accept="image/*" class="hidden" @change="handleFileUpload" />
 							</div>
