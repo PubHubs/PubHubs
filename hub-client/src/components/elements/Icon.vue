@@ -30,10 +30,6 @@
 			type: Boolean,
 			default: false,
 		},
-		iconColor: {
-			type: String,
-			default: 'text-on-surface',
-		},
 		// Added for polling
 		filled: {
 			type: Boolean,

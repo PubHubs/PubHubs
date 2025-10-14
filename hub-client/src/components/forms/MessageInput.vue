@@ -88,7 +88,7 @@
 					</div>
 
 					<!-- Emoji picker -->
-					<Icon type="emoticon" :iconColor="'text-background dark:text-on-surface-variant'" size="md" @click.stop="messageInput.toggleEmojiPicker()" :asButton="true" class="rounded-full bg-accent-secondary" />
+					<Icon type="emoticon" size="md" @click.stop="messageInput.toggleEmojiPicker()" :asButton="true" class="rounded-full bg-accent-secondary text-background dark:text-on-surface-variant" />
 
 					<!-- Sendbutton -->
 					<Button
