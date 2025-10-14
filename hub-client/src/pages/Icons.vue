@@ -15,7 +15,7 @@
 			</div>
 		</div>
 
-		<hr class="my-20"></hr>
+		<hr class="my-20" />
 
 		<H2>Old Icons</H2>
 
@@ -46,5 +46,4 @@
 	const setPHSize = (s: string) => {
 		PHsize.value = s;
 	};
-
 </script>

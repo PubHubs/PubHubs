@@ -1,10 +1,10 @@
 const PHiconSizes: { [key: string]: number } = {
-	'xs': 8,
-	'sm': 12,
-	'base': 16,
-	'md': 20,
-	'lg': 24,
-	'xl': 32,
+	xs: 8,
+	sm: 12,
+	base: 16,
+	md: 20,
+	lg: 24,
+	xl: 32,
 };
 
 const iconSizes: { [key: string]: string } = {

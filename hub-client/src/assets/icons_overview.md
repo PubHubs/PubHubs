@@ -80,8 +80,6 @@ user | user
 voting_widget_options | dots-three regular
 warning | warning
 
-
-
 # New icons sorted and filtered
 
 arrow-bend-up-left

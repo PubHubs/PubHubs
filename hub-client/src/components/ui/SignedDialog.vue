@@ -7,7 +7,7 @@
 		<p class="mt-2">
 			<a class="flex gap-2" v-if="fileUrl" :href="fileUrl" :download="fileName">
 				<span>{{ $t('roomlibrary.download_info') }}</span>
-				<IconButton type="download" ></Icon>
+				<IconButton type="download"></IconButton>
 			</a>
 		</p>
 	</Dialog>
