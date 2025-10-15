@@ -9,7 +9,7 @@ sleep 0.2
 
 # Create splits for each remaining global command
 tmux split-window -h -t "$SESSION:1" 'mask run s3'
-tmux split-window -v -t "$SESSION:1" 'mask run servers'
+tmux split-window -h -t "$SESSION:1" 'mask run servers'
 tmux split-window -h -t "$SESSION:1" 'mask run client'
 
 # Create hub tab with first command for the hub
