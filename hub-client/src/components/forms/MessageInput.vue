@@ -6,10 +6,10 @@
 				<div class="flex items-center">
 					<PopoverButton icon="upload-simple" @click="clickedAttachment">{{ $t('message.upload_file') }}</PopoverButton>
 					<template v-if="settings.isFeatureEnabled(FeatureFlag.votingWidget) && !inThread && !inReplyTo">
-						<PopoverButton icon="poll" @click="messageInput.openPoll()">{{ $t('message.poll') }}</PopoverButton>
-						<PopoverButton icon="scheduler" @click="messageInput.openScheduler()">{{ $t('message.scheduler') }}</PopoverButton>
+						<PopoverButton icon="chart-bar" @click="messageInput.openPoll()">{{ $t('message.poll') }}</PopoverButton>
+						<PopoverButton icon="calendar" @click="messageInput.openScheduler()">{{ $t('message.scheduler') }}</PopoverButton>
 					</template>
-					<PopoverButton icon="sign" v-if="!messageInput.state.signMessage && settings.isFeatureEnabled(FeatureFlag.signedMessages)" @click="messageInput.openSignMessage()">{{ $t('message.sign.add_signature') }}</PopoverButton>
+					<PopoverButton icon="pen-nib" v-if="!messageInput.state.signMessage && settings.isFeatureEnabled(FeatureFlag.signedMessages)" @click="messageInput.openSignMessage()">{{ $t('message.sign.add_signature') }}</PopoverButton>
 				</div>
 			</Popover>
 			<Mention v-if="messageInput.state.showMention" :msg="value as string" :top="caretPos.top" :left="caretPos.left" :room="room" @click="mentionUser($event)" />
@@ -61,8 +61,8 @@
 					/>
 				</template>
 
-				<div v-if="messageInput.state.textArea" class="flex items-end gap-x-4 rounded-2xl px-4 py-2">
-					<IconButton type="plus-circle" size="md" @click.stop="messageInput.togglePopover()" />
+				<div v-if="messageInput.state.textArea" class="flex items-center gap-x-4 rounded-2xl px-4 py-2">
+					<IconButton type="plus-circle" size="lg" @click.stop="messageInput.togglePopover()" />
 					<!-- Overflow-x-hidden prevents firefox from adding an extra row to the textarea for a possible scrollbar -->
 					<TextArea
 						ref="elTextInput"
@@ -80,25 +80,25 @@
 					<!--Steward and above can broadcast only in main time line-->
 					<div
 						v-if="room.getPowerLevel(user.user.userId) >= 50 && !inThread && !room.isPrivateRoom() && !room.isGroupRoom()"
-						class="flex aspect-square h-6 w-6 justify-center"
+						class="flex aspect-square justify-center"
 						:class="!messageInput.state.sendButtonEnabled && 'opacity-50 hover:cursor-default'"
 						@click="isValidMessage() ? announcementMessage() : null"
 					>
-						<Icon type="megaphone-simple" size="md"></Icon>
+						<Icon type="megaphone-simple" size="lg"></Icon>
 					</div>
 
 					<!-- Emoji picker -->
-					<IconButton type="smiley" size="md" @click.stop="messageInput.toggleEmojiPicker()" class="rounded-full bg-accent-secondary text-background dark:text-on-surface-variant" />
+					<IconButton type="smiley" size="lg" @click.stop="messageInput.toggleEmojiPicker()" class="rounded-full bg-accent-secondary text-background dark:text-on-surface-variant" />
 
 					<!-- Sendbutton -->
 					<Button
-						class="flex aspect-square h-7 w-7 items-center justify-center !rounded-full bg-background !p-0"
+						class="flex aspect-square items-center justify-center !rounded-full bg-background !p-0"
 						:title="$t('message.send')"
 						:class="!messageInput.state.sendButtonEnabled && 'opacity-50 hover:cursor-default'"
 						:disabled="!messageInput.state.sendButtonEnabled"
 						@click="submitMessage"
 					>
-						<Icon type="paper-plane-right" size="sm" class="shrink-0 text-on-surface-variant" />
+						<Icon type="paper-plane-right" size="lg" class="shrink-0 text-on-surface-variant" />
 					</Button>
 				</div>
 

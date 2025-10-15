@@ -6,9 +6,9 @@
 				<hr class="h-[2px] grow bg-on-surface-dim" />
 			</div>
 			<div class="relative flex h-full items-center justify-between gap-6" :class="isMobile ? 'pl-12' : 'pl-0'">
-				<div class="flex flex-col">
+				<div class="flex w-fit items-center gap-3 overflow-hidden">
+					<Icon type="chat-circle-text"></Icon>
 					<H3 class="flex text-on-surface" :class="isMobile ? 'gap-2' : 'gap-4'">
-						<Icon type="chat-circle-text" size="sm" :class="isMobile ? 'mt-[0.5rem]' : 'mt-2'"></Icon>
 						<TruncatedText class="font-headings font-semibold">
 							<h2>{{ t('menu.directmsg') }}</h2>
 						</TruncatedText>
