@@ -74,9 +74,9 @@
 						<RoomListHeader v-if="user.isAdmin" label="menu.admin_tools">
 							<template #roomlist>
 								<Menu>
-									<MenuItem :to="{ name: 'admin' }" icon="admin">{{ t('menu.admin_tools_rooms') }} </MenuItem>
-									<MenuItem :to="{ name: 'manageusers' }" icon="admin">{{ t('menu.admin_tools_users') }}</MenuItem>
-									<MenuItem :to="{ name: 'hub-settings' }" icon="cog">{{ t('menu.admin_tools_hub_settings') }}</MenuItem>
+									<MenuItem :to="{ name: 'admin' }" icon="chats-circle">{{ t('menu.admin_tools_rooms') }} </MenuItem>
+									<MenuItem :to="{ name: 'manageusers' }" icon="users">{{ t('menu.admin_tools_users') }}</MenuItem>
+									<MenuItem :to="{ name: 'hub-settings' }" icon="sliders-horizontal">{{ t('menu.admin_tools_hub_settings') }}</MenuItem>
 								</Menu>
 							</template>
 						</RoomListHeader>

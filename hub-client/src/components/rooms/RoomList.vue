@@ -17,7 +17,7 @@
 
 					<Icon
 						v-if="!room.isAdminContactRoom()"
-						type="unlink"
+						type="x"
 						class="cursor-pointer stroke-2 text-on-surface-variant transition-all duration-200 ease-in-out hover:text-accent-error md:hidden md:group-hover:inline-block"
 						@click.prevent="leaveRoom(room.roomId)"
 					/>
@@ -138,7 +138,7 @@
 	}
 
 	function roomIcon(room: Room): string {
-		let icon = 'speech_bubbles';
+		let icon = 'chats-circle';
 		const plugin = plugins.hasRoomPlugin(room) as PluginProperties;
 		if (plugin.icon) {
 			icon = plugin.icon;

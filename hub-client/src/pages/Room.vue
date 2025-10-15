@@ -9,7 +9,7 @@
 				<div class="relative flex h-full items-center justify-between gap-4" :class="isMobile ? 'pl-8' : 'pl-0'">
 					<div v-if="rooms.currentRoom && !isSearchBarExpanded" class="flex w-fit items-center gap-3 overflow-hidden">
 						<Icon v-if="!notPrivateRoom()" type="caret-left" size="base" @click="router.back()" />
-						<Icon v-if="notPrivateRoom()" :type="rooms.currentRoom.isSecuredRoom() ? 'shield' : 'speech_bubbles'" size="base" />
+						<Icon v-if="notPrivateRoom()" :type="rooms.currentRoom.isSecuredRoom() ? 'shield' : 'chats-circle'" size="base" />
 						<div class="flex flex-col">
 							<H3 class="flex text-on-surface">
 								<TruncatedText class="font-headings font-semibold">
@@ -25,12 +25,12 @@
 					</div>
 					<div class="flex gap-4" :class="{ 'w-full': isSearchBarExpanded }">
 						<RoomHeaderButtons>
-							<GlobalBarButton v-if="settings.isFeatureEnabled(FeatureFlag.roomLibrary)" type="folder" size="sm" :selected="showLibrary" @click="toggleLibrary"></GlobalBarButton>
-							<GlobalBarButton type="two_users" size="sm" :selected="showMembers" @click="toggleMembersList"></GlobalBarButton>
+							<GlobalBarButton v-if="settings.isFeatureEnabled(FeatureFlag.roomLibrary)" type="folder-simple" :selected="showLibrary" @click="toggleLibrary"></GlobalBarButton>
+							<GlobalBarButton type="users" :selected="showMembers" @click="toggleMembersList"></GlobalBarButton>
 							<!--Only show Editing icon for steward but not for administrator-->
-							<GlobalBarButton v-if="room.getUserPowerLevel(user.user.userId) === 50" type="cog" size="sm" @click="stewardCanEdit()" />
+							<GlobalBarButton v-if="room.getUserPowerLevel(user.user.userId) === 50" type="dots-three-vertical" @click="stewardCanEdit()" />
 							<!--Except for moderator everyone should talk to room moderator e.g., admins-->
-							<GlobalBarButton v-if="room.getUserPowerLevel(user.user.userId) !== 50 && room.getRoomStewards().length > 0" type="moderator_msg" size="sm" @click="messageRoomSteward()" />
+							<GlobalBarButton v-if="room.getUserPowerLevel(user.user.userId) !== 50 && room.getRoomStewards().length > 0" type="chat-circle" @click="messageRoomSteward()" />
 						</RoomHeaderButtons>
 						<SearchInput :search-parameters="searchParameters" @scroll-to-event-id="onScrollToEventId" @toggle-searchbar="handleToggleSearchbar" @search-started="showMembers = false" :room="rooms.currentRoom" />
 					</div>

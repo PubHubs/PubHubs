@@ -287,4 +287,4 @@ const icons: { [key: string]: { [key: string]: string } } = {
 	},
 };
 
-export { icons}
+export { icons }

@@ -1,7 +1,7 @@
 | Current | New Phosphor Icon https://phosphoricons.com/?weight=fill |
 | ------- | -------------------------------------------------------- |
 
-actionmenu | dots-three-vertocal regular
+actionmenu | dots-three-vertical regular
 admin_contact | headset
 announcement | megaphone-simple
 arrow | arrow-left

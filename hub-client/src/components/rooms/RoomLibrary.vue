@@ -1,6 +1,6 @@
 <template>
 	<div v-if="settings.isFeatureEnabled(FeatureFlag.roomLibrary)" class="h-full p-2">
-		<PopoverButton v-if="!messageInput.state.fileAdded" icon="upload" @click="startUploadFile">{{ $t('message.upload_file') }}</PopoverButton>
+		<PopoverButton v-if="!messageInput.state.fileAdded" icon="upload-simple" @click="startUploadFile">{{ $t('message.upload_file') }}</PopoverButton>
 		<FilePicker ref="filePickerEl" :messageInput="messageInput" :submitButton="true" @submit="uploadFile"></FilePicker>
 		<Icon v-if="!messageInput.state.fileAdded" class="absolute right-3 top-3 hover:text-accent-red" type="x" size="sm" @click="close()"></Icon>
 

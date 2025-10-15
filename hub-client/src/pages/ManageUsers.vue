@@ -34,7 +34,7 @@
 						</div>
 						<div class="flex w-fit gap-4">
 							<div class="flex items-center gap-2">
-								<Icon type="pencil-line" class="hover:cursor-pointer hover:text-accent-primary" @click="selectUser(item.name, item.displayname, item.avatar_url)" />
+								<Icon type="pencil-simple" class="hover:cursor-pointer hover:text-accent-primary" @click="selectUser(item.name, item.displayname, item.avatar_url)" />
 							</div>
 						</div>
 					</div>

@@ -13,7 +13,7 @@
 			</div>
 
 			<div>
-				<Icon @click="fileInput?.click()" type="pencil-line" size="md" :as-button="true"></Icon>
+				<Icon @click="fileInput?.click()" type="pencil-simple" size="md" :as-button="true"></Icon>
 				<Icon @click="$emit('remove')" type="trash" size="md" :as-button="true"></Icon>
 			</div>
 		</div>

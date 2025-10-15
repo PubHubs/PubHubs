@@ -4,7 +4,7 @@
 		<div class="relative">
 			<Popover v-if="messageInput.state.popover" @close="messageInput.togglePopover()" class="absolute bottom-4">
 				<div class="flex items-center">
-					<PopoverButton icon="upload" @click="clickedAttachment">{{ $t('message.upload_file') }}</PopoverButton>
+					<PopoverButton icon="upload-simple" @click="clickedAttachment">{{ $t('message.upload_file') }}</PopoverButton>
 					<template v-if="settings.isFeatureEnabled(FeatureFlag.votingWidget) && !inThread && !inReplyTo">
 						<PopoverButton icon="poll" @click="messageInput.openPoll()">{{ $t('message.poll') }}</PopoverButton>
 						<PopoverButton icon="scheduler" @click="messageInput.openScheduler()">{{ $t('message.scheduler') }}</PopoverButton>

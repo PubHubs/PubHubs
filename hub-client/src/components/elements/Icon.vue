@@ -16,16 +16,10 @@
 		type: {
 			type: String,
 			default: 'x',
-			validator(value: string) {
-				return Object.keys(icons).includes(value);
-			},
 		},
 		size: {
 			type: [String, Number],
 			default: 'base',
-			validator(value: string) {
-				return Object.keys(iconSizes).includes(value);
-			},
 		},
 		weight: {
 			type: String as PropType<'default' | 'thin' | 'light' | 'regular' | 'bold' | 'fill' | 'duotone'>,
