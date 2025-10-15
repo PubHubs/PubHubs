@@ -47,13 +47,7 @@ echo "Running Yivi server..."
 
 ```sh
 cd pubhubs
-docker run --name pubhubs-garage --rm  \
-    -p 3900:3900 \
-    -v ./garage/data:/var/lib/garage/data \
-    -v ./garage/meta:/var/lib/garage/meta \
-    -v ./garage/garage.toml:/etc/garage.toml \
-    -e RUST_LOG=garage=info \
-    dxflrs/garage:v2.0.0
+python3 run_garage.py
 ```
 
 #### init
@@ -73,12 +67,7 @@ echo "starting garage for configuration..."
 
 trap 'echo "removing garage container" && docker rm -f pubhubs-garage' EXIT INT
 
-docker run --detach --name pubhubs-garage \
-    -v ./garage/data:/var/lib/garage/data \
-    -v ./garage/meta:/var/lib/garage/meta \
-    -v ./garage/garage.toml:/etc/garage.toml \
-    -e RUST_LOG=garage=info \
-    dxflrs/garage:v2.0.0
+python3 run_garage.py --detach
 
 echo "waiting for garage to initialize..."
 while ! docker exec pubhubs-garage /garage status; do 
