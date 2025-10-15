@@ -35,7 +35,7 @@
 		if (icons[props.type]) {
 			return props.type;
 		}
-		return 'selection';
+		return 'selection'; // dotted square
 	});
 
 	const displayMirrored = computed(() => (props.mirrored ? 'scale(-1, 1)' : undefined));
