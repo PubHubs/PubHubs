@@ -2,7 +2,7 @@
 	<div class="flex h-fit w-fit shrink-0 items-center justify-center" :class="'w-[' + iconSizes[size] + 'px] h-[' + iconSizes[size] + 'px]'" :data-testid="type">
 		<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" :width="iconSizes[size]" :height="iconSizes[size]" fill="currentColor" :transform="displayMirrored" v-bind="$attrs">
 			<slot></slot>
-			<g v-html="icons[type][weight]"></g>
+			<g v-html="icons[displayType][weight]"></g>
 		</svg>
 	</div>
 </template>
@@ -15,7 +15,7 @@
 	const props = defineProps({
 		type: {
 			type: String,
-			default: 'x',
+			default: 'selection',
 		},
 		size: {
 			type: [String, Number],
@@ -29,6 +29,13 @@
 			type: Boolean,
 			default: false,
 		},
+	});
+
+	const displayType = computed(() => {
+		if (icons[props.type]) {
+			return props.type;
+		}
+		return 'selection';
 	});
 
 	const displayMirrored = computed(() => (props.mirrored ? 'scale(-1, 1)' : undefined));
