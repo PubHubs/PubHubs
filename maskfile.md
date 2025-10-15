@@ -9,6 +9,14 @@ Make sure you have [irma](https://github.com/privacybydesign/irmago) installed
 
 > Commands for running the development environment
 
+### all
+
+> Run all
+
+```sh
+./run-all.sh
+```
+
 ### init
 
 > Initializes/wipes the development environment
