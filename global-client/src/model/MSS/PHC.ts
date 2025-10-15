@@ -268,14 +268,7 @@ export default class PHCServer {
 
 	private async _decryptUserSecret(oldAttrKey: string, userSecretObject: { ts: string; encUserSecret: string }, version: number) {
 		const encUserSecret = new Uint8Array(Buffer.from(userSecretObject.encUserSecret, 'base64'));
-		let encodedKey;
-		if (version >= 1) {
-			encodedKey = new Uint8Array(Buffer.from(base64fromBase64Url(oldAttrKey), 'base64'));
-		} else {
-			// To ensure backwards compatibility for the first version of the userSecret
-			encodedKey = new TextEncoder().encode(oldAttrKey);
-		}
-		const userSecret = await this._decryptData(encUserSecret, encodedKey);
+		const userSecret = await this._decryptData(encUserSecret, oldAttrKey);
 		return userSecret;
 	}
 
@@ -489,21 +482,36 @@ export default class PHCServer {
 	 * @param key The key to decrypt the data.
 	 * @returns The plaintext of the decrypted data.
 	 */
-	private async _decryptData(ciphertext: Uint8Array, key: Uint8Array) {
+	private async _decryptData(ciphertext: Uint8Array, key: string) {
 		// Encode the key
 		const encoder = new TextEncoder();
 		// Extract the random bits of data (that were used to generate the seed) from the ciphertext
 		const randomBits = ciphertext.slice(0, 32);
 		// Recover the seed by appending the encoded attrKey to the random bits of data
-		const seedKey = this._concatUint8Arrays([randomBits, key, encoder.encode('key')]);
-		const seedIV = this._concatUint8Arrays([randomBits, key, encoder.encode('iv')]);
-		// Calculate the SHA-256 hash of the concatenated random bits with the key to use as AES key and the SHA-512 hash to use as IV
-		const aesKeyHash = await crypto.subtle.digest('SHA-256', seedKey);
-		const iv = await crypto.subtle.digest('SHA-256', seedIV);
-		// Import the key and use it to decrypt the data
-		const aesKey = await crypto.subtle.importKey('raw', aesKeyHash, { name: 'AES-GCM' }, false, ['encrypt', 'decrypt']);
-		const decryptedData = await crypto.subtle.decrypt({ name: 'AES-GCM', iv: iv }, aesKey, ciphertext.slice(32));
-		return new Uint8Array(decryptedData);
+		try {
+			const encodedKey = new Uint8Array(Buffer.from(key, 'base64'));
+			const seedKey = this._concatUint8Arrays([randomBits, encodedKey, encoder.encode('key')]);
+			const seedIV = this._concatUint8Arrays([randomBits, encodedKey, encoder.encode('iv')]);
+			// Calculate the SHA-256 hash of the concatenated random bits with the key to use as AES key and the SHA-512 hash to use as IV
+			const aesKeyHash = await crypto.subtle.digest('SHA-256', seedKey);
+			const iv = await crypto.subtle.digest('SHA-256', seedIV);
+			// Import the key and use it to decrypt the data
+			const aesKey = await crypto.subtle.importKey('raw', aesKeyHash, { name: 'AES-GCM' }, false, ['encrypt', 'decrypt']);
+			const decryptedData = await crypto.subtle.decrypt({ name: 'AES-GCM', iv: iv }, aesKey, ciphertext.slice(32));
+			return new Uint8Array(decryptedData);
+		} catch (error) {
+			console.error('Could not decrypt data with the most recent encoding version', error);
+			const encodedKey = new TextEncoder().encode(key);
+			const seedKey = this._concatUint8Arrays([randomBits, encodedKey, encoder.encode('key')]);
+			const seedIV = this._concatUint8Arrays([randomBits, encodedKey, encoder.encode('iv')]);
+			// Calculate the SHA-256 hash of the concatenated random bits with the key to use as AES key and the SHA-512 hash to use as IV
+			const aesKeyHash = await crypto.subtle.digest('SHA-256', seedKey);
+			const iv = await crypto.subtle.digest('SHA-256', seedIV);
+			// Import the key and use it to decrypt the data
+			const aesKey = await crypto.subtle.importKey('raw', aesKeyHash, { name: 'AES-GCM' }, false, ['encrypt', 'decrypt']);
+			const decryptedData = await crypto.subtle.decrypt({ name: 'AES-GCM', iv: iv }, aesKey, ciphertext.slice(32));
+			return new Uint8Array(decryptedData);
+		}
 	}
 
 	// #endregion
@@ -608,14 +616,7 @@ export default class PHCServer {
 		// In practice, this means that this._getUserSecret will never return undefined, since the user will have been redirected to the login page in that case.
 		assert.isDefined(userSecretInfo, 'Could not retrieve the userSecret from localstorage.');
 		// Decrypt the data that was stored under the given handle
-		let encodedKey;
-		if (userSecretInfo.version >= 1) {
-			encodedKey = new Uint8Array(Buffer.from(userSecretInfo.userSecret, 'base64'));
-		} else {
-			// To ensure backwards compatibility for the first version of the userSecret
-			encodedKey = new TextEncoder().encode(userSecretInfo.userSecret);
-		}
-		const decryptedData = await this._decryptData(object, encodedKey);
+		const decryptedData = await this._decryptData(object, userSecretInfo.userSecret);
 
 		// Decode the data
 		const decoder = new TextDecoder();

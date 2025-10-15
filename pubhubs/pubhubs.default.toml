@@ -15,6 +15,7 @@ networkhost.source_ip_for = "udp://k.root-servers.net:53"
 
 [auths]
 #port = 6060 
+attr_key_secret = "52f6ea1b26e9227ee4eb5ddce5cf974439d532926d3ab4c1853354fd20ef8839"
 
 [auths.yivi]
 requestor_url = "http://networkhost:8188"
@@ -56,12 +57,16 @@ sources = [
 
 [transcryptor]
 #port = 7070
+master_enc_key_part = "25f0990521c29f24df8d18d09b96f553e6cb462becee636a5ed41e2174212308"
+pseud_factor_secret = "6e0dbe747aeeee7ed06c82af9e0da7206660bfdb8743ffaf36702406e6e6d615"
 
 [phc]
 #port = 5050
 auths_url = 'http://networkhost:6060'
 transcryptor_url = 'http://networkhost:7070'
 global_client_url = 'http://localhost:8080'
+master_enc_key_part = "633a4aa3993eccdd7eed8849db707f047578211ade799a410ab97738a3deef02"
+attr_id_secret = "85b6f0da150d7f07343c258d93d7c6d8c0782f3fa8bcaa267d8f870a149b654e"
 
 [phc.card]
 type = "demo"
@@ -72,7 +77,16 @@ name = "local-development"
 key.hs256 = "6576257d853bc1ea15cbf103dbc3950b819d65eef4fae4c55d80e9c32b683e06"
 
 [phc.object_store]
-url = "memory:///"
+url = "s3://phc"
+## If you cannot get garage to work, you can use this memory store instead:
+# url = "memory:///"
+
+[phc.object_store.options]
+aws_endpoint = "http://localhost:3900"
+aws_default_region = "garage"
+aws_access_key_id = "GK4ab65ecd61df5cd9382075c5"
+aws_secret_access_key = "c46af3789d8f98b527538e4eeea6c1130e1356b694f391fa6f9af5098121e50f"
+aws_allow_http = "true"
 
 # WARNINGs:
 # 

@@ -27,6 +27,18 @@ async fn main_integration_test() {
         .unwrap()
         .unwrap();
 
+    // Use in-memory object store for pubhubs central
+    config
+        .phc
+        .as_mut()
+        .unwrap()
+        .object_store
+        .as_mut()
+        .unwrap()
+        .url = pubhubs::servers::config::host_aliases::UrlPwa::PerhapsWithAlias(
+        "memory://".parse().unwrap(),
+    );
+
     // Change randomly generated admin key to something we know
     let admin_sk = api::SigningKey::generate();
     let admin_pk = Some(admin_sk.verifying_key().into());
