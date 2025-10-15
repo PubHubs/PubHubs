@@ -11,7 +11,7 @@
 				<div class="flex">
 					<Icon
 						v-if="hasUserVoted"
-						type="person"
+						type="user"
 						:asButton="true"
 						size="sm"
 						class="rounded-md bg-surface p-1 hover:bg-accent-primary"
