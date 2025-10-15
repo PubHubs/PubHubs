@@ -1,7 +1,7 @@
 <template>
 	<Icon
-		:type="type"
 		class="rounded-md bg-background p-1 text-accent-secondary hover:cursor-pointer hover:bg-accent-secondary hover:text-background dark:text-on-surface dark:hover:bg-on-surface dark:hover:text-background"
+		:type="type"
 		:size="size"
 		@click="handleClick"
 	/>

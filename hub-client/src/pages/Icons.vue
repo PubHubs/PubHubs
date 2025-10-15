@@ -17,7 +17,8 @@
 
 <script setup lang="ts">
 	import { ref } from 'vue';
-	import { icons, iconSizes } from '@/assets/icons';
+	import { iconSizes } from '@/assets/sizes';
+	import { icons } from '@/assets/icons';
 
 	const size = ref('base');
 

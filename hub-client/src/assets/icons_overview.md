@@ -106,7 +106,7 @@ clock
 compass
 dog
 dots-three regular
-dots-three-vertocal regular
+dots-three-vertical regular
 download-simple
 envelope
 flag
@@ -120,7 +120,7 @@ lightbulb
 lightning-slash
 lock
 lock-open
-magnfying-glass regular
+magnifying-glass regular
 map-pin
 megaphone-simple
 paper-plane-right

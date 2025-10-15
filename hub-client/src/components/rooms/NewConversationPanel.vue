@@ -9,7 +9,7 @@
 				<hr class="my-4 border-t border-white" />
 				<div class="relative flex px-8 py-2">
 					<input type="text" v-model="userFilter" :placeholder="t('others.filter_users')" class="h-8 w-full min-w-0 flex-grow rounded-lg border bg-background px-4 py-1 ~text-label-min/label-max" />
-					<Icon class="absolute right-10 top-4" type="magnfying-glass" size="sm" />
+					<Icon class="absolute right-10 top-4" type="magnifying-glass" size="sm" />
 				</div>
 				<div class="px-8 py-2">
 					<Button class="flex w-full items-center justify-center gap-2 bg-on-surface-variant ~text-label-small-min/label-small-max hover:text-surface-high dark:text-surface-high" size="sm" @click="groupPanel = true">
@@ -29,7 +29,7 @@
 				</div>
 				<div class="relative flex pt-2">
 					<input type="text" v-model="userFilter" :placeholder="t('others.filter_users')" class="h-8 w-full min-w-0 flex-grow rounded-lg border bg-background px-4 py-1 ~text-label-min/label-max" />
-					<Icon class="absolute right-2 top-4" type="magnfying-glass" size="sm" />
+					<Icon class="absolute right-2 top-4" type="magnifying-glass" size="sm" />
 				</div>
 				<div v-if="groupProfile">
 					<span class="~text-label-small-min/label-small-max"> {{ t('others.select_group_name') }}</span>

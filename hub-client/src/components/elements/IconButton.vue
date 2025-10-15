@@ -6,7 +6,8 @@
 
 <script setup lang="ts">
 	import { PropType } from 'vue';
-	import { icons, iconSizes } from '@/assets/icons';
+	import { iconSizes } from '@/assets/sizes';
+	import { icons } from '@/assets/icons';
 
 	const props = defineProps({
 		type: {

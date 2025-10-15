@@ -27,10 +27,10 @@
 					<!-- Global bottom bar (settings) -->
 					<div class="flex h-fit w-full flex-col gap-8 self-end px-4">
 						<div v-if="global.loggedIn" class="flex flex-col items-center gap-4">
-							<GlobalbarButton type="reorder_hubs" @click="toggleHubOrdering" :class="hubOrdering && '!bg-accent-primary !text-on-accent-primary hover:!bg-accent-secondary'" />
-							<GlobalbarButton type="cog" @click="openSettingsDialog" />
+							<GlobalbarButton type="dots-three-vertical" size="xl" @click="toggleHubOrdering" :class="hubOrdering && '!bg-accent-primary !text-on-accent-primary hover:!bg-accent-secondary'" />
+							<GlobalbarButton type="sliders-horizontal" size="xl" @click="openSettingsDialog" />
 							<!-- <GlobalbarButton type="question_mark" @click="showHelp" /> -->
-							<GlobalbarButton type="power" @click="logout" />
+							<GlobalbarButton type="house" size="xl" @click="logout" />
 						</div>
 						<a :href="globalClientUrl" target="_blank" rel="noopener noreferrer">
 							<Logo />

@@ -19,7 +19,7 @@
 						:placeholder="$t('others.search_hubs')"
 						class="focus mb-4 w-full rounded border bg-surface px-4 py-2 text-on-surface placeholder-on-surface-dim ~text-label-min/label-max focus:placeholder-on-surface-variant focus:ring-accent-primary"
 					/>
-					<Icon type="magnfying-glass" class="pointer-events-none absolute right-2 top-[20%] z-10 text-on-surface-variant" size="sm" />
+					<Icon type="magnifying-glass" class="pointer-events-none absolute right-2 top-[20%] z-10 text-on-surface-variant" size="sm" />
 				</div>
 			</div>
 			<div class="flex flex-col gap-2">
