@@ -72,7 +72,16 @@ name = "local-development"
 key.hs256 = "6576257d853bc1ea15cbf103dbc3950b819d65eef4fae4c55d80e9c32b683e06"
 
 [phc.object_store]
-url = "memory:///"
+url = "s3://phc"
+## If you cannot get garage to work, you can use this memory store instead:
+# url = "memory:///"
+
+[phc.object_store.options]
+aws_endpoint = "http://localhost:3900"
+aws_default_region = "garage"
+aws_access_key_id = "GK4ab65ecd61df5cd9382075c5"
+aws_secret_access_key = "c46af3789d8f98b527538e4eeea6c1130e1356b694f391fa6f9af5098121e50f"
+aws_allow_http = "true"
 
 # WARNINGs:
 # 

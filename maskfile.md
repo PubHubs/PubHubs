@@ -9,6 +9,14 @@ Make sure you have [irma](https://github.com/privacybydesign/irmago) installed
 
 > Commands for running the development environment
 
+### init
+
+> Initializes/wipes the development environment
+```sh
+mask run s3 init
+mask run hub init
+```
+
 ### yivi
 
 > Runs the Yivi server for the PubHubs servers
@@ -23,6 +31,71 @@ echo "Running Yivi server..."
 cd pubhubs
 echo "Running Yivi server..."
 ./yivi.sh
+```
+
+### s3
+
+> Runs the Garage S3 server for the PubHubs PHC server
+
+```sh
+cd pubhubs
+docker run --name pubhubs-garage --rm  \
+    -p 3900:3900 \
+    -v ./garage/data:/var/lib/garage/data \
+    -v ./garage/meta:/var/lib/garage/meta \
+    -v ./garage/garage.toml:/etc/garage.toml \
+    -e RUST_LOG=garage=info \
+    dxflrs/garage:v2.0.0
+```
+
+#### init
+
+`> Intializes/wipes the garage storage directory
+
+```sh
+set -e
+cd pubhubs
+echo "removing garage data and meta directories..."
+rm -rf garage/data
+rm -rf garage/meta
+echo "creating garage data and meta directories..."
+mkdir garage/data
+mkdir garage/meta
+echo "starting garage for configuration..."
+
+trap 'echo "removing garage container" && docker rm -f pubhubs-garage' EXIT INT
+
+docker run --detach --name pubhubs-garage \
+    -v ./garage/data:/var/lib/garage/data \
+    -v ./garage/meta:/var/lib/garage/meta \
+    -v ./garage/garage.toml:/etc/garage.toml \
+    -e RUST_LOG=garage=info \
+    dxflrs/garage:v2.0.0
+
+echo "waiting for garage to initialize..."
+while ! docker exec pubhubs-garage /garage status; do 
+  sleep .5
+done
+
+# based on https://garagehq.deuxfleurs.fr/documentation/quick-start/
+
+echo "getting node id..."
+NODE_ID="$(docker exec pubhubs-garage /garage node id)"
+
+echo "assigning and applying layout..."
+docker exec pubhubs-garage /garage layout assign -z dc1 -c 1G "$NODE_ID"
+docker exec pubhubs-garage /garage layout apply --version 1
+
+echo "creating bucket..."
+docker exec pubhubs-garage /garage bucket create phc
+
+echo "creating key..."
+docker exec pubhubs-garage /garage key import --yes -n phc GK4ab65ecd61df5cd9382075c5 c46af3789d8f98b527538e4eeea6c1130e1356b694f391fa6f9af5098121e50f
+
+echo "adding key to bucket..."
+docker exec pubhubs-garage /garage bucket allow --read --write phc --key phc
+
+echo "\033[1;32mfinished setting up garage\033[0m"
 ```
 
 ### servers
@@ -107,7 +180,7 @@ npx vite --host -l info --port=$vitePort
 
 #### init
 
-> Initialize test setup
+> Initialize testhubs setup
 
 
 ```sh
