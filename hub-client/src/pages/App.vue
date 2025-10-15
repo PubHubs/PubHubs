@@ -32,7 +32,7 @@
 									</div>
 								</div>
 								<Icon
-									type="pencil"
+									type="pencil-simple"
 									size="sm"
 									class="rounded-md stroke-0 p-2 text-on-surface-variant hover:cursor-pointer hover:text-accent-primary"
 									@click="

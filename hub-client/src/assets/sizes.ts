@@ -5,6 +5,8 @@ const iconSizes: { [key: string]: number } = {
 	md: 20,
 	lg: 24,
 	xl: 32,
+	'2xl' : 48,
+	'3xl' : 68
 };
 
 const buttonSizes: { [key: string]: string } = {

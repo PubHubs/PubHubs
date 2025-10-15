@@ -33,6 +33,7 @@
 		},
 		mirrored: {
 			type: Boolean,
+			default: false,
 		},
 	});
 

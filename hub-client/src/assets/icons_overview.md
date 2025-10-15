@@ -22,7 +22,7 @@ closingCross | x regular
 cog | sliders-horizontal
 directmsg | chat-circle-text
 download | download-simple
-edit | pencil-line
+edit | pencil-simple
 emoji_smiley | smiley
 emoji_clock | clock
 emoji_bear | dog
@@ -125,7 +125,7 @@ map-pin
 megaphone-simple
 paper-plane-right
 pen-nib
-pencil-line
+pencil-simple
 plus regular
 plus-circle
 plus-square

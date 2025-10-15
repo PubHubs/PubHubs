@@ -8,12 +8,9 @@
 						<figure class="group flex items-center justify-center rounded-[25%] bg-background p-1 hover:bg-accent-primary dark:bg-on-surface dark:hover:bg-accent-primary">
 							<svg
 								viewBox="0 0 24 24"
-								fill="transparent"
 								stroke="currentColor"
-								stroke-linecap="round"
-								stroke-linejoin="round"
-								v-html="icons['pubhubs-home']"
-								class="aspect-square w-full text-on-accent-secondary group-hover:text-accent-primary"
+								v-html="icons['compass']['default']"
+								class="aspect-square w-full text-accent-primary group-hover:text-accent-primary"
 								@click="toggleMenu.hideMenuAndSendToHub()"
 							></svg>
 						</figure>
@@ -30,7 +27,7 @@
 							<GlobalbarButton type="dots-three-vertical" size="xl" @click="toggleHubOrdering" :class="hubOrdering && '!bg-accent-primary !text-on-accent-primary hover:!bg-accent-secondary'" />
 							<GlobalbarButton type="sliders-horizontal" size="xl" @click="openSettingsDialog" />
 							<!-- <GlobalbarButton type="question_mark" @click="showHelp" /> -->
-							<GlobalbarButton type="house" size="xl" @click="logout" />
+							<GlobalbarButton type="sign-out" size="xl" @click="logout" />
 						</div>
 						<a :href="globalClientUrl" target="_blank" rel="noopener noreferrer">
 							<Logo />
