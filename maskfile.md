@@ -183,8 +183,10 @@ npx vite --host -l info --port=$vitePort
 
 > Runs the hub client (local) on main (testhub) server
 
-Add accesstoken after the url, so the URL would look like: `http://localhost:8001/?accessToken={"token":"########","userId":"#####:main.testhub-matrix.ihub.ru.nl"}#/`.
-Accesstoken can be found by checking the testhubs iframe url on main or by typing this command in the pubhubs folder and scanning the Yivi QR code:
+Run this as a standalone command, so without the global client running.
+To login, add your accesstoken after the url. The browser URL would look like: `http://localhost:8001/?accessToken={"token":"########","userId":"#####:main.testhub-matrix.ihub.ru.nl"}#/`.
+
+Get one with `cargo run enter -e main testhub` or by typing this command in the pubhubs folder and scanning the Yivi QR code:
 `cargo run enter -e main testhub`.
 
 ```sh
