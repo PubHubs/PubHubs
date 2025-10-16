@@ -2,7 +2,7 @@
 	<div class="flex h-fit w-fit shrink-0 items-center justify-center" :data-testid="type">
 		<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" :width="iconSizes[size]" :height="iconSizes[size]" fill="currentColor" :transform="displayMirrored" v-bind="$attrs">
 			<slot></slot>
-			<g v-html="icons[displayType][weight]"></g>
+			<g v-html="icons[displayType][weightType]"></g>
 		</svg>
 	</div>
 </template>
@@ -36,6 +36,22 @@
 			return props.type;
 		}
 		return 'selection'; // dotted square
+	});
+
+	const weightType = computed(() => {
+		let weight = props.weight;
+		if (icons[props.type][weight]) {
+			return weight;
+		}
+		weight = 'fill';
+		if (icons[props.type][weight]) {
+			return weight;
+		}
+		weight = 'regular';
+		if (icons[props.type][weight]) {
+			return weight;
+		}
+		return '';
 	});
 
 	const displayMirrored = computed(() => (props.mirrored ? 'scale(-1, 1)' : undefined));
