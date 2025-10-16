@@ -9,7 +9,7 @@
 							<svg
 								viewBox="0 0 24 24"
 								stroke="currentColor"
-								v-html="icons['compass']['default']"
+								v-html="icons['compass']['fill']"
 								class="aspect-square w-full text-accent-primary group-hover:text-accent-primary"
 								@click="toggleMenu.hideMenuAndSendToHub()"
 							></svg>
