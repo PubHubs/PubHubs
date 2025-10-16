@@ -11,6 +11,7 @@ _Please add a brief description of any changes and any migrations to be performe
 
 ## Changed not yet merged to stable
 
+- [BUG] Fixed direct url links to rooms and pages not working in hub-client
 - [BREAKING] The old pubhubs server (that served the global client) has been removed
   - *Internal:* the entry for `app.pubhubs.net` in `/data/caddy/Caddyfile` needs to be adjusted after merge
 - [NEW] The development setup has been simplified, see `maskfile.md`

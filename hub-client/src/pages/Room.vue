@@ -62,6 +62,8 @@
 		<!-- Plugin Room -->
 		<component v-if="plugin !== false && plugin !== true" :is="plugin.component" />
 	</template>
+	<!-- Secure room join dialog -->
+	<SecuredRoomLoginDialog v-if="joinSecuredRoom" v-model:dialogOpen="joinSecuredRoom" title="rooms.join_room" message="rooms.join_secured_room_dialog" :messageValues="[]" @close="router.push({ name: 'home' })" />
 </template>
 
 <script setup lang="ts">
@@ -83,6 +85,7 @@
 	import RoomMemberList from '@/components/rooms/RoomMemberList.vue';
 	import RoomLibrary from '@/components/rooms/RoomLibrary.vue';
 	import EditRoomForm from '@/components/rooms/EditRoomForm.vue';
+	import SecuredRoomLoginDialog from '@/components/rooms/SecuredRoomLoginDialog.vue';
 
 	import { usePubHubs } from '@/logic/core/pubhubsStore';
 	import { LOGGER } from '@/logic/foundation/Logger';
@@ -97,6 +100,7 @@
 	import { computed, onMounted, ref, watch } from 'vue';
 	import { useRoute, useRouter } from 'vue-router';
 	import { FeatureFlag, useSettings } from '@/logic/store/settings';
+	import { routes } from '@/logic/core/router';
 
 	const route = useRoute();
 	const rooms = useRooms();
@@ -114,6 +118,7 @@
 	const settings = useSettings();
 	const isMobile = computed(() => settings.isMobileState);
 	const pubhubs = usePubHubs();
+	const joinSecuredRoom = ref<string | null>(null);
 
 	//Passed by the router
 	const props = defineProps({
@@ -166,11 +171,18 @@
 
 		const userIsMemberOfRoom = await pubhubs.isUserRoomMember(user.user.userId, props.id);
 		if (!userIsMemberOfRoom) {
-			// if not a member: try to join, otherwise go to the hubpage
 			const promise = pubhubs.joinRoom(props.id);
 			// need this extra check
 			if (promise) {
-				promise.catch(() => router.push({ name: 'hubpage' }));
+				if (rooms.roomIsSecure(props.id)) {
+					promise.catch(() => (joinSecuredRoom.value = props.id));
+				} else {
+					promise.catch(() => {
+						// Redirect to route with name equal to props.id (except 'room'), or to home
+						const isValidRoute = routes.some((r) => r.name === props.id && r.name !== 'room');
+						router.push({ name: isValidRoute ? props.id : 'home' });
+					});
+				}
 			}
 		}
 
