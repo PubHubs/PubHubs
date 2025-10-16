@@ -6,13 +6,7 @@
 				<div class="flex aspect-square w-full items-center justify-center bg-surface-high" :class="isMobile ? 'p-3' : 'p-4'">
 					<router-link to="/" class="w-full">
 						<figure class="group flex items-center justify-center rounded-[25%] bg-background p-1 hover:bg-accent-primary dark:bg-on-surface dark:hover:bg-accent-primary">
-							<svg
-								viewBox="0 0 24 24"
-								stroke="currentColor"
-								v-html="icons['compass']['fill']"
-								class="aspect-square w-full text-accent-primary group-hover:text-accent-primary"
-								@click="toggleMenu.hideMenuAndSendToHub()"
-							></svg>
+							<svg viewBox="0 0 24 24" stroke="currentColor" v-html="icons['compass']['fill']" class="aspect-square w-full text-accent-primary group-hover:text-accent-primary" @click="toggleMenu.hideMenuAndSendToHub()"></svg>
 						</figure>
 					</router-link>
 				</div>
