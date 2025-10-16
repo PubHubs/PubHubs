@@ -31,6 +31,15 @@ pub struct EnterArgs {
     #[arg(value_name = "HUB")]
     hub_handle: Option<Handle>,
 
+    /// Instead of the displaying the actual client url after entering a hub,
+    /// display the _local_ client url.  Useful when running your local client against main.
+    #[arg(short, long)]
+    local_client: bool,
+
+    /// The local client url used by  --local-client.
+    #[arg(long, value_name = "URL", default_value = "http://localhost:8001")]
+    local_client_url: url::Url,
+
     /// Use this pubhubs authentication token
     #[arg(short, long, value_name = "AUTH_TOKEN")]
     auth_token: Option<AuthToken>,
@@ -220,20 +229,25 @@ impl EnterArgs {
             anyhow::bail!("failed to complete entering hub: {enter_complete_resp:?}");
         };
 
-        // Manual request to `api::hub::InfoEP` as workaround for #1463
-        let awc_client = awc::Client::default();
+        let mut hub_client_url : url::Url  = if self.local_client {
+            self.local_client_url
+        } else {
+            // Manual request to `api::hub::InfoEP` as workaround for #1463
+            let awc_client = awc::Client::default();
 
-        let mut resp = awc_client
-            .get(format!("{}/.ph/info", hub_info.url))
-            .send()
-            .await
-            .map_err(|err| anyhow::anyhow!("failed to obtain hub information endpoint: {err}"))?;
+            let mut resp = awc_client
+                .get(format!("{}/.ph/info", hub_info.url))
+                .send()
+                .await
+                .map_err(|err| anyhow::anyhow!("failed to obtain hub information endpoint: {err}"))?;
+            let api::hub::InfoResp {
+                hub_client_url, ..
+            } = resp.json().await.map_err(|err| {
+                anyhow::anyhow!("failed to obtain hub information endpoint body: {err}")
+            })?;
 
-        let api::hub::InfoResp {
-            mut hub_client_url, ..
-        } = resp.json().await.map_err(|err| {
-            anyhow::anyhow!("failed to obtain hub information endpoint body: {err}")
-        })?;
+            hub_client_url
+        };
 
         hub_client_url.query_pairs_mut().append_pair(
             "accessToken",
