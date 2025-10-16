@@ -138,7 +138,7 @@ const useHubs = defineStore('hubs', {
 			// if the hub has not changed: check if the room has changed and if necessary sent message
 			if (previousHubId === this.currentHubId) {
 				// Let hub navigate to given room (if loggedIn)
-				if (global.loggedIn && roomId !== undefined && roomId !== '' && roomId != this.currentRoomId) {
+				if (global.loggedIn && roomId !== undefined && roomId !== '') {
 					this.currentRoomId = roomId;
 					messagebox.sendMessage(new Message(MessageType.RoomChange, roomId), iframeHubId);
 				}

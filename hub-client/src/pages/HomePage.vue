@@ -58,7 +58,6 @@
 	import { router } from '@/logic/core/router';
 	import { usePubHubs } from '@/logic/core/pubhubsStore';
 	import { useHubSettings } from '@/logic/store/hub-settings';
-	import { useRooms } from '@/logic/store/rooms';
 	// Components
 	import H1 from '../components/elements/H1.vue';
 	import HubIcon from '@/components/ui/HubIcon.vue';

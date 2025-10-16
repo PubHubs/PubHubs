@@ -75,7 +75,7 @@
 							<template #roomlist>
 								<Menu>
 									<MenuItem :to="{ name: 'admin' }" icon="chats-circle">{{ t('menu.admin_tools_rooms') }} </MenuItem>
-									<MenuItem :to="{ name: 'manageusers' }" icon="users">{{ t('menu.admin_tools_users') }}</MenuItem>
+									<MenuItem :to="{ name: 'manage-users' }" icon="users">{{ t('menu.admin_tools_users') }}</MenuItem>
 									<MenuItem :to="{ name: 'hub-settings' }" icon="sliders-horizontal">{{ t('menu.admin_tools_hub_settings') }}</MenuItem>
 								</Menu>
 							</template>
@@ -223,15 +223,8 @@
 			// Listen to roomchange
 			messagebox.addCallback('parentFrame', MessageType.RoomChange, async (message: Message) => {
 				const roomId = message.content as RouteParamValue;
-				if (rooms.currentRoomId !== roomId) {
-					rooms.currentRoomId = roomId;
-					if (rooms.securedRoom && rooms.securedRoom !== null) {
-						const securedRoomId = await rooms.getSecuredRoomInfo(roomId);
-						router.push({ name: 'room', params: { id: securedRoomId } });
-					} else {
-						router.push({ name: 'room', params: { id: roomId } });
-					}
-				}
+				rooms.currentRoomId = roomId;
+				router.push({ name: 'room', params: { id: roomId } });
 			});
 
 			//Listen to global menu change

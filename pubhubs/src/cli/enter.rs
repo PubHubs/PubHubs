@@ -220,11 +220,36 @@ impl EnterArgs {
             anyhow::bail!("failed to complete entering hub: {enter_complete_resp:?}");
         };
 
-        println!("access token: {hub_access_token}");
-        println!("mxid:         {mxid}");
-        println!("device id:    {device_id}");
-        println!("first time?:  {new_user}");
+        // Manual request to `api::hub::InfoEP` as workaround for #1463
+        let awc_client = awc::Client::default();
 
+        let mut resp = awc_client
+            .get(format!("{}/.ph/info", hub_info.url))
+            .send()
+            .await
+            .map_err(|err| anyhow::anyhow!("failed to obtain hub information endpoint: {err}"))?;
+
+        let api::hub::InfoResp {
+            mut hub_client_url, ..
+        } = resp.json().await.map_err(|err| {
+            anyhow::anyhow!("failed to obtain hub information endpoint body: {err}")
+        })?;
+
+        hub_client_url.query_pairs_mut().append_pair(
+            "accessToken",
+            &serde_json::json!({
+                "token": hub_access_token,
+                "userId": mxid,
+            })
+            .to_string(),
+        );
+
+        println!("access token:   {hub_access_token}");
+        println!("mxid:           {mxid}");
+        println!("device id:      {device_id}");
+        println!("first time?:    {new_user}");
+        println!();
+        println!("hub client url: {hub_client_url}");
         Ok(())
     }
 
