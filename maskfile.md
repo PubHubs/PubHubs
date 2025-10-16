@@ -14,7 +14,7 @@ Make sure you have [irma](https://github.com/privacybydesign/irmago) installed
 > Run all
 
 ```sh
-./run-all.sh
+bash run-all.sh
 ```
 
 ### init
@@ -32,13 +32,13 @@ mask run hub init
 ```sh
 cd pubhubs
 echo "Running Yivi server..."
-./yivi.sh
+python3 run_yivi.py
 ```
 
 ```powershell
 cd pubhubs
 echo "Running Yivi server..."
-./yivi.sh
+python3 run_yivi.py
 ```
 
 ### s3
@@ -68,6 +68,10 @@ echo "starting garage for configuration..."
 trap 'echo "removing garage container" && docker rm -f pubhubs-garage' EXIT INT
 
 python3 run_garage.py --detach
+
+# from this point onwards, we're not using any paths on the host, so we can safely
+# disable windows path conversion (that would convert "/garage" to "C:/...")
+export MSYS_NO_PATHCONV=1
 
 echo "waiting for garage to initialize..."
 while ! docker exec pubhubs-garage /garage status; do
@@ -143,13 +147,13 @@ Don't forget to build the hub image and setup the hub's directory using the
 ```sh
 cd pubhubs_hub
 echo "Running testhub${n}"
-./start_testhub.py "${n}"
+python3 start_testhub.py "${n}"
 ```
 
 ```powershell
 cd pubhubs_hub
 echo "Running testhub${n}"
-./start_testhub.py "${n}"
+python3 start_testhub.py "${n}"
 ```
 
 #### client (n)

@@ -856,7 +856,7 @@ async fn request_attributes(
 async fn handle_info_url(context: web::Data<Arc<MockHubContext>>) -> impl actix_web::Responder {
     let vk: api::VerifyingKey = context.sk.verifying_key().into();
     web::Json(api::Result::Ok(api::hub::InfoResp {
-        verifying_key: vk,
+        verifying_key: Some(vk),
         hub_version: "n/a".to_owned(),
         hub_client_url: "http://example.com".parse().unwrap(),
     }))
