@@ -39,15 +39,12 @@
 	});
 
 	const weightType = computed(() => {
-		let weight = props.weight;
+		let weight = props.weight as string;
 		if (icons[props.type][weight]) {
 			return weight;
 		}
-		weight = 'fill';
-		if (icons[props.type][weight]) {
-			return weight;
-		}
-		weight = 'regular';
+		// fallback: get first weight type
+		weight = Object.keys(icons[props.type])[0];
 		if (icons[props.type][weight]) {
 			return weight;
 		}
