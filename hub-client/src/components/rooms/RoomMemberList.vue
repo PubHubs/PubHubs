@@ -4,9 +4,9 @@
 			<SideKickSubHeader>
 				<div class="flex justify-between">
 					<div class="capitalize">{{ $t('rooms.stewards') }}</div>
-					<div class="flex">
+					<div class="flex items-center gap-2">
 						<div>{{ stewards.length }}</div>
-						<Icon type="user" size="sm" class="mt-1"></Icon>
+						<Icon type="user"></Icon>
 					</div>
 				</div>
 			</SideKickSubHeader>
@@ -20,9 +20,9 @@
 			<SideKickSubHeader>
 				<div class="flex justify-between">
 					<div class="capitalize">{{ $t('rooms.members') }}</div>
-					<div class="flex">
+					<div class="flex items-center gap-2">
 						<div>{{ members.length }}</div>
-						<Icon type="user" size="sm" class="mt-1"></Icon>
+						<Icon type="user"></Icon>
 					</div>
 				</div>
 			</SideKickSubHeader>
