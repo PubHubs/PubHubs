@@ -32,13 +32,13 @@ mask run hub init
 ```sh
 cd pubhubs
 echo "Running Yivi server..."
-bash yivi.sh
+python3 run_yivi.py
 ```
 
 ```powershell
 cd pubhubs
 echo "Running Yivi server..."
-bash yivi.sh
+python3 run_yivi.py
 ```
 
 ### s3
