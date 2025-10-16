@@ -70,7 +70,7 @@ trap 'echo "removing garage container" && docker rm -f pubhubs-garage' EXIT INT
 python3 run_garage.py --detach
 
 echo "waiting for garage to initialize..."
-while ! docker exec pubhubs-garage /garage status; do 
+while ! docker exec pubhubs-garage /garage status; do
   sleep .5
 done
 
@@ -170,6 +170,28 @@ cd hub-client
 $hubPort = 8008 + $n
 $vitePort = 8001 + $n
 $env:VITE_HUB_URL = "http://localhost:$hubPort"
+echo "Running Hub client for testhub$n..."
+echo "Using VITE_HUB_URL=$($env:VITE_HUB_URL) and Vite port $vitePort"
+npx vite --host -l info --port=$vitePort
+```
+
+#### mainclient
+
+> Runs the hub client (local) on main (testhub) server
+
+Add accesstoken after the url, so the URL would look like: `http://localhost:8001/?accessToken={"token":"########","userId":"#####:main.testhub-matrix.ihub.ru.nl"}#/`.
+Accesstoken can be found by checking the testhubs iframe url on main.
+
+```sh
+cd hub-client
+echo "Running Hub client for main testhub ..."
+env VITE_HUB_URL=$(node -e "console.log('https://main.testhub-matrix.ihub.ru.nl')") npx vite --host -l info --port=$(node -e "console.log(8001)")
+```
+
+```powershell
+cd hub-client
+$vitePort = 8001
+$env:VITE_HUB_URL = "https://main.testhub-matrix.ihub.ru.nl"
 echo "Running Hub client for testhub$n..."
 echo "Using VITE_HUB_URL=$($env:VITE_HUB_URL) and Vite port $vitePort"
 npx vite --host -l info --port=$vitePort
