@@ -27,7 +27,7 @@
 						class="mb-2 w-full rounded-md bg-background pl-7 text-on-surface placeholder-on-surface-dim ~text-label-min/label-max focus:border-on-surface focus:outline-0 focus:outline-offset-0 focus:ring-0"
 						:placeholder="$t('message.voting.enter_location')"
 					/>
-					<Icon type="map-pin" size="sm" class="absolute left-0 top-2 ml-2"></Icon>
+					<Icon type="map-pin" class="absolute left-0 top-1 ml-1"></Icon>
 				</div>
 				<div class="-mb-1 flex w-full flex-row justify-stretch">
 					<div class="scrollbar-emojipicker mr-2 w-9/12" id="optionsContainer">

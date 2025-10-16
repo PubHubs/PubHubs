@@ -1,7 +1,7 @@
 <template>
 	<div class="relative" ref="menu" v-click-outside="close" role="menubar">
 		<div class="menu-icon flex cursor-pointer justify-items-stretch" @click="toggle">
-			<Icon class="rounded-md bg-surface p-1 hover:bg-accent-primary" type="dots-three-vertical"></Icon>
+			<Icon class="rounded-md bg-surface hover:bg-accent-primary" type="dots-three-vertical" size="lg"></Icon>
 		</div>
 		<div v-show="open" class="menu-menu absolute -mt-6 ml-6 rounded-md bg-surface" @click="close" :style="style">
 			<slot></slot>

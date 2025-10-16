@@ -9,15 +9,7 @@
 				</div>
 
 				<div class="flex">
-					<Icon
-						v-if="hasUserVoted"
-						type="user"
-						:asButton="true"
-						size="sm"
-						class="rounded-md bg-surface p-1 hover:bg-accent-primary"
-						:title="$t(showVotes ? 'message.voting.hide_votes' : 'message.voting.show_votes')"
-						@click="toggleShowVotes()"
-					></Icon>
+					<Icon v-if="hasUserVoted" type="user" size="lg" class="rounded-md bg-surface hover:bg-accent-primary" :title="$t(showVotes ? 'message.voting.hide_votes' : 'message.voting.show_votes')" @click="toggleShowVotes()"></Icon>
 					<ActionMenu v-if="isCreator" class="ml-2">
 						<template v-if="votingWidget.type === VotingWidgetType.SCHEDULER">
 							<ActionMenuItem v-if="votingWidgetClosed == false" @click="closeWidget">

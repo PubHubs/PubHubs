@@ -12,13 +12,13 @@
 			</div>
 			<div v-if="!closedAndPicking" class="ml-auto flex items-center justify-end gap-2">
 				<OptionButton color="bg-accent-lime" :colorwhen="uservote === 'yes'" :disabled="closed" @click="vote('yes')">
-					<Icon class="ml-1" type="check-circle" size="xs" />
+					<Icon type="check" class="m-auto" />
 				</OptionButton>
 				<OptionButton color="bg-accent-orange" :colorwhen="uservote === 'maybe'" :disabled="closed" @click="vote('maybe')">
-					<div class="-mt-1 text-3xl">~</div>
+					<Icon type="tilde" class="m-auto" />
 				</OptionButton>
 				<OptionButton color="bg-accent-red" :colorwhen="uservote === 'no'" :disabled="closed" @click="vote('no')">
-					<Icon class="ml-1" type="x" size="xs" />
+					<Icon type="x" class="m-auto" />
 				</OptionButton>
 			</div>
 			<div v-if="closedAndPicking" class="ml-auto justify-end">
