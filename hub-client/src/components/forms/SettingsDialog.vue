@@ -10,9 +10,9 @@
 
 					<div class="mt-5 flex justify-center md:mr-3 md:flex-col md:justify-normal md:space-y-4">
 						<label for="avatar">
-							<Icon size="lg" type="pencil-simple" class="cursor-pointer hover:text-on-surface-variant group-hover:block" />
+							<Icon size="lg" type="pencil-simple" class="cursor-pointer hover:text-on-surface-variant group-hover:block" data-testid="change-avatar" />
 						</label>
-						<Icon size="lg" type="trash" class="cursor-pointer hover:text-on-surface-variant group-hover:block" @click="removeAvatar" />
+						<Icon size="lg" type="trash" class="cursor-pointer hover:text-on-surface-variant group-hover:block" @click="removeAvatar" data-testid="remove-avatar" />
 					</div>
 				</div>
 			</div>

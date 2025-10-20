@@ -4,12 +4,12 @@
 		<div class="relative">
 			<Popover v-if="messageInput.state.popover" @close="messageInput.togglePopover()" class="absolute bottom-4">
 				<div class="flex items-center">
-					<PopoverButton icon="upload-simple" @click="clickedAttachment">{{ $t('message.upload_file') }}</PopoverButton>
+					<PopoverButton icon="upload-simple" data-testid="upload" @click="clickedAttachment">{{ $t('message.upload_file') }}</PopoverButton>
 					<template v-if="settings.isFeatureEnabled(FeatureFlag.votingWidget) && !inThread && !inReplyTo">
-						<PopoverButton icon="chart-bar" @click="messageInput.openPoll()">{{ $t('message.poll') }}</PopoverButton>
-						<PopoverButton icon="calendar" @click="messageInput.openScheduler()">{{ $t('message.scheduler') }}</PopoverButton>
+						<PopoverButton icon="chart-bar" data-testid="poll" @click="messageInput.openPoll()">{{ $t('message.poll') }}</PopoverButton>
+						<PopoverButton icon="calendar" data-testid="scheduler" @click="messageInput.openScheduler()">{{ $t('message.scheduler') }}</PopoverButton>
 					</template>
-					<PopoverButton icon="pen-nib" v-if="!messageInput.state.signMessage && settings.isFeatureEnabled(FeatureFlag.signedMessages)" @click="messageInput.openSignMessage()">{{ $t('message.sign.add_signature') }}</PopoverButton>
+					<PopoverButton icon="pen-nib" data-testid="sign" v-if="!messageInput.state.signMessage && settings.isFeatureEnabled(FeatureFlag.signedMessages)" @click="messageInput.openSignMessage()">{{ $t('message.sign.add_signature') }}</PopoverButton>
 				</div>
 			</Popover>
 			<Mention v-if="messageInput.state.showMention" :msg="value as string" :top="caretPos.top" :left="caretPos.left" :room="room" @click="mentionUser($event)" />
@@ -62,7 +62,7 @@
 				</template>
 
 				<div v-if="messageInput.state.textArea" class="flex items-center gap-x-4 rounded-2xl px-4 py-2">
-					<IconButton type="plus-circle" size="lg" @click.stop="messageInput.togglePopover()" />
+					<IconButton type="plus-circle" data-testid="paperclip" size="lg" @click.stop="messageInput.togglePopover()" />
 					<!-- Overflow-x-hidden prevents firefox from adding an extra row to the textarea for a possible scrollbar -->
 					<TextArea
 						ref="elTextInput"
@@ -98,7 +98,7 @@
 						:disabled="!messageInput.state.sendButtonEnabled"
 						@click="submitMessage"
 					>
-						<Icon type="paper-plane-right" size="lg" class="shrink-0 text-on-surface-variant" />
+						<Icon type="paper-plane-right" size="lg" class="shrink-0 text-on-surface-variant"/>
 					</Button>
 				</div>
 

@@ -8,7 +8,7 @@
 				</div>
 				<div class="relative flex h-full items-center justify-between gap-4" :class="isMobile ? 'pl-8' : 'pl-0'">
 					<div v-if="rooms.currentRoom && !isSearchBarExpanded" class="flex w-fit items-center gap-3 overflow-hidden">
-						<Icon v-if="!notPrivateRoom()" type="caret-left" @click="router.back()" />
+						<Icon v-if="!notPrivateRoom()" type="caret-left" data-testid="back" @click="router.push({ name: 'direct-msg' })" class="cursor-pointer" />
 						<Icon v-if="notPrivateRoom()" :type="rooms.currentRoom.isSecuredRoom() ? 'shield' : 'chats-circle'" />
 						<div class="flex flex-col">
 							<H3 class="flex text-on-surface">

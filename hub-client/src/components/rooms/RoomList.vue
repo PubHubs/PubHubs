@@ -18,6 +18,7 @@
 					<Icon
 						v-if="!room.isAdminContactRoom()"
 						type="x"
+						data-testid="leave-room"
 						class="cursor-pointer stroke-2 text-on-surface-variant transition-all duration-200 ease-in-out hover:text-accent-error md:hidden md:group-hover:inline-block"
 						@click.prevent="leaveRoom(room.roomId)"
 					/>

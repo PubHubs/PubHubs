@@ -1,6 +1,6 @@
 <template>
-	<div v-if="authMediaUrl" class="mt-2 flex overflow-x-hidden rounded-md bg-surface p-2">
-		<Icon type="plus-circle" class="mr-2" />
+	<div v-if="authMediaUrl" class="mt-2 flex overflow-x-hidden rounded-md bg-surface p-2 items-center gap-2">
+		<Icon type="file" size="md" />
 		<a class="text-blue truncate" target="_blank" :href="authMediaUrl">{{ message.filename }}</a>
 	</div>
 	<p v-if="message.body !== message.filename" v-html="message.body" :class="{ 'text-on-surface-dim': deleted }" class="overflow-hidden text-ellipsis"></p>
