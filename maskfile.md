@@ -181,12 +181,10 @@ npx vite --host -l info --port=$vitePort
 
 #### mainclient
 
-> Runs the hub client (local) on main (testhub) server
+> Runs the hub client (local) against the main (testhub) server
 
-Run this as a standalone command, so without the global client running.
-To login, add your accesstoken after the url. The browser URL would look like: `http://localhost:8001/?accessToken={"token":"########","userId":"#####:main.testhub-matrix.ihub.ru.nl"}#/`.
-
-Get one with `cargo run enter -e main testhub` (in the pubhubs folder) and scanning the Yivi QR code.
+Run this as a standalone command, so without the global client running. 
+To log in, run `mask run mainclient enter`.
 
 ```sh
 cd hub-client
@@ -201,6 +199,17 @@ $env:VITE_HUB_URL = "https://main.testhub-matrix.ihub.ru.nl"
 echo "Running Hub client for testhub$n..."
 echo "Using VITE_HUB_URL=$($env:VITE_HUB_URL) and Vite port $vitePort"
 npx vite --host -l info --port=$vitePort
+```
+
+##### enter
+
+> Gets the url with access token to your local client running against main
+
+```sh
+cd pubhubs 
+cargo run enter -e main -l testhub
+echo ""
+echo "Don't forget to have 'mask run hub mainclient' running"
 ```
 
 #### init
