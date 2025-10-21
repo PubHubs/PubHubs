@@ -29,17 +29,17 @@
 			type: Boolean,
 			default: false,
 		},
-		testid : {
+		testid: {
 			type: String,
 			default: '',
-		}
+		},
 	});
 
 	const displayType = computed(() => {
 		if (icons[props.type]) {
 			return props.type;
 		}
-		console.log('fallback icon',props.type);
+		console.log('fallback icon', props.type);
 		return 'selection'; // dotted square
 	});
 
@@ -49,7 +49,7 @@
 			return weight;
 		}
 		// fallback: get first weight type
-		console.log('fallback icon weight',displayType.value,weight);
+		console.log('fallback icon weight', displayType.value, weight);
 		weight = Object.keys(icons[displayType.value])[0];
 		if (icons[displayType.value][weight]) {
 			return weight;
@@ -57,7 +57,7 @@
 		return '';
 	});
 
-	const id = computed(()=>{
+	const id = computed(() => {
 		if (props.testid) return props.testid;
 		return props.type;
 	});
