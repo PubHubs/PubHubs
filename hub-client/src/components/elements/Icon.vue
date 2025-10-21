@@ -48,8 +48,6 @@
 		if (icons[displayType.value][weight]) {
 			return weight;
 		}
-		// fallback: get first weight type
-		console.log('fallback icon weight', displayType.value, weight);
 		weight = Object.keys(icons[displayType.value])[0];
 		if (icons[displayType.value][weight]) {
 			return weight;
