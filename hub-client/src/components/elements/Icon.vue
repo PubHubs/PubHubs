@@ -1,5 +1,5 @@
 <template>
-	<div class="flex h-fit w-fit shrink-0 items-center justify-center" :data-testid="type">
+	<div class="flex h-fit w-fit shrink-0 items-center justify-center" :data-testid="id">
 		<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" :width="iconSizes[size]" :height="iconSizes[size]" fill="currentColor" :transform="displayMirrored" v-bind="$attrs">
 			<slot></slot>
 			<g v-html="icons[displayType][weightType]"></g>
@@ -29,26 +29,37 @@
 			type: Boolean,
 			default: false,
 		},
+		testid : {
+			type: String,
+			default: '',
+		}
 	});
 
 	const displayType = computed(() => {
 		if (icons[props.type]) {
 			return props.type;
 		}
+		console.log('fallback icon',props.type);
 		return 'selection'; // dotted square
 	});
 
 	const weightType = computed(() => {
 		let weight = props.weight as string;
-		if (icons[props.type][weight]) {
+		if (icons[displayType.value][weight]) {
 			return weight;
 		}
 		// fallback: get first weight type
-		weight = Object.keys(icons[props.type])[0];
-		if (icons[props.type][weight]) {
+		console.log('fallback icon weight',displayType.value,weight);
+		weight = Object.keys(icons[displayType.value])[0];
+		if (icons[displayType.value][weight]) {
 			return weight;
 		}
 		return '';
+	});
+
+	const id = computed(()=>{
+		if (props.testid) return props.testid;
+		return props.type;
 	});
 
 	const displayMirrored = computed(() => (props.mirrored ? 'scale(-1, 1)' : undefined));
