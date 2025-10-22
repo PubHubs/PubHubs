@@ -7,9 +7,6 @@ import Badge from './components/elements/Badge.vue';
 import { setUpi18n } from '@/i18n';
 import { registerPlugins } from './registerPlugins';
 
-import { adjustClientConfig } from './client_config';
-adjustClientConfig();
-
 const pinia = createPinia();
 const app = createApp(Miniclient);
 

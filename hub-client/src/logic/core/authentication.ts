@@ -4,6 +4,7 @@ import { ICreateClientOpts, MatrixClient } from 'matrix-js-sdk';
 import { MessageType } from '@/logic/store/messagebox.js';
 import { Message, useMessageBox } from '@/logic/store/store.js';
 import { useUser } from '@/logic/store/user.js';
+import { CONFIG } from '@/logic/foundation/Config.js';
 
 class Authentication {
 	private user = useUser();
@@ -15,7 +16,7 @@ class Authentication {
 
 	constructor() {
 		// @ts-ignore
-		this.baseUrl = _env.HUB_URL;
+		this.baseUrl = CONFIG._env.HUB_URL;
 		this.clientUrl = location.protocol + '//' + location.host + location.pathname;
 	}
 

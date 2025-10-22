@@ -7,10 +7,27 @@ export default class Config {
 
 	_logLevelToStartLoggingFrom: LogLevel = LogLevel.Info;
 
+	_env = {
+		HUB_URL: 'https://example.com/hub-url-in-hub-client-not-set!',
+		PARENT_URL: 'https://example.com/parent-url-in-hub-client-not-set!',
+	};
+
 	public constructor() {
 		this._productionMode = this.getInitProductionMode();
 
 		this._logLevelToStartLoggingFrom = this.getInitLogLevel(this._productionMode);
+
+		for (var key of ['HUB_URL', 'PARENT_URL']) {
+			// the global _env (not to be confused with this._env) is set by client-config.js
+			if (key in _env) {
+				this._env[key] = _env[key];
+			}
+
+			const vite_key = `VITE_${key}`;
+			if (vite_key in import.meta.env) {
+				this._env[key] = import.meta.env[vite_key];
+			}
+		}
 	}
 
 	public get productionMode(): ProductionMode {
@@ -23,7 +40,7 @@ export default class Config {
 
 	private getInitProductionMode(): ProductionMode {
 		//@ts-expect-error
-		const globalClientUrl = _env.PUBHUBS_URL || _env.PARENT_URL;
+		const globalClientUrl = this._env.PUBHUBS_URL || this._env.PARENT_URL;
 
 		if (!globalClientUrl || typeof globalClientUrl !== 'string') {
 			if (window._env.HUB_URL === 'http://test') {

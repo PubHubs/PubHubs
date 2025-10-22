@@ -16,6 +16,7 @@ import { SecuredRoomAttributeResult } from '@/logic/foundation/statusTypes';
 import { TMessageEvent } from '@/model/events/TMessageEvent';
 import { isVisiblePrivateRoom } from '../core/privateRoomNames';
 import { TRoomMember } from '@/model/rooms/TRoomMember.js';
+import { CONFIG } from '@/logic/foundation/Config.js';
 
 // Matrix Endpoint for messages in a room.
 interface RoomMessages {
@@ -461,7 +462,7 @@ const useRooms = defineStore('rooms', {
 			if (!accessToken) throw new Error('Access token missing.');
 
 			// @ts-ignore
-			const urlll = _env.HUB_URL + '/_synapse/client/ph';
+			const urlll = CONFIG._env.HUB_URL + '/_synapse/client/ph';
 			const yivi = new yiviCore({
 				debugging: false,
 				element: '#yivi-login',
@@ -512,7 +513,7 @@ const useRooms = defineStore('rooms', {
 			if (!accessToken) throw new Error('Access token missing.');
 
 			// @ts-ignore
-			const urlll = _env.HUB_URL + '/_synapse/client/ph';
+			const urlll = CONFIG._env.HUB_URL + '/_synapse/client/ph';
 			const yiviWeb = yivi.newWeb({
 				debugging: false,
 				element: '#yivi-web-form',
@@ -568,7 +569,7 @@ const useRooms = defineStore('rooms', {
 			if (!accessToken) throw new Error('Access token missing.');
 
 			// @ts-ignore
-			const urlll = _env.HUB_URL + '/_synapse/client/ph';
+			const urlll = CONFIG._env.HUB_URL + '/_synapse/client/ph';
 			const yiviWeb = yivi.newWeb({
 				debugging: true, // ### TODO
 				element: '#yivi-web-form-2',
