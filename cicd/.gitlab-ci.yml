@@ -193,7 +193,7 @@ globalclient-format-check:
     - npm ci
     - cd ../global-client
     - npm ci
-    - npx prettier ./src --check --ignore-unknown --config ./.prettierrc
+    - npx prettier ./src --check --ignore-unknown --config ./package.json
     - echo "see https://gitlab.science.ru.nl/ilab/pubhubs_canonical/-/wikis/Contributing/(re)format-client-code"
 
 globalclient-build:
@@ -222,7 +222,7 @@ hubclient-format-check:
   script:
     - cd hub-client
     - npm ci
-    - npx prettier ./src --check --ignore-unknown --config ./.prettierrc
+    - npx prettier ./src --check --ignore-unknown --config ./package.json
 
 globalclient-unit-test:
   stage: tests
@@ -233,10 +233,8 @@ globalclient-unit-test:
   tags: [docker]
   image: node:24.10.0
   script:
-    
     - cd hub-client
     - npm ci
-    - node -v
     - cd ../global-client
     - npm ci --cache .npm --prefer-offline
     - npm run test
