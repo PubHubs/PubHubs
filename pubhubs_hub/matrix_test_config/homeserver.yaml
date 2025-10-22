@@ -44,7 +44,7 @@ modules:
       # points to the new multi-server setup pubhubs central
       phc_url: http://host.docker.internal:5050 # DO CHANGE
 
-oidc_providers: [{ client_id: "blaat"  }]
+oidc_providers: [{ client_id: "not used but must be set"  }]
 
 # Server name, used in full user/room names.
 # Warning: cannot be changed later on without issues.

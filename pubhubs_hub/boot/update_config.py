@@ -90,9 +90,10 @@ class UpdateConfig:
         },
     }
 
-    def __init__(self, config_env: str, hub_client_url, hub_server_url, global_client_url):
+    def __init__(self, config_env: str, hub_client_url, hub_server_url, hub_server_url_for_yivi, global_client_url):
         self._hub_client_url = hub_client_url
         self._hub_server_url = hub_server_url
+        self._hub_server_url_for_yivi = hub_server_url_for_yivi
         self._global_client_url = global_client_url
 
         match config_env:
@@ -128,6 +129,16 @@ class UpdateConfig:
                 if module['module'] != "conf.modules.pubhubs.HubClientApi":
                     continue
                 module['config']['client_url'] = self._hub_client_url
+
+        if self._hub_server_url_for_yivi != None:
+            hsufy = self._hub_server_url_for_yivi
+            if not hsufy.endswith("/"):
+                hsufy += "/"
+                # The HubClientApi does not properly join paths to this url.
+            for module in homeserver['modules']:
+                if module['module'] != "conf.modules.pubhubs.HubClientApi":
+                    continue
+                module['config']['public_yivi_url'] = hsufy
 
         if self._global_client_url != None:
             for module in homeserver['modules']:
@@ -504,7 +515,7 @@ def main():
 
 
 def run(input_file, output_file, environment, 
-        hub_client_url=None, hub_server_url=None, global_client_url=None):
+        hub_client_url=None, hub_server_url=None, hub_server_url_for_yivi=None, global_client_url=None):
 
     homeserver_file_path = input_file
     homeserver_live_file_path = output_file
@@ -512,7 +523,9 @@ def run(input_file, output_file, environment,
 
     # Update config homeserver, output as homeserver.live
     update_config_module = UpdateConfig(config_env, 
-                                        hub_client_url=hub_client_url, hub_server_url=hub_server_url, 
+                                        hub_client_url=hub_client_url, 
+                                        hub_server_url=hub_server_url, 
+                                        hub_server_url_for_yivi=hub_server_url_for_yivi, 
                                         global_client_url=global_client_url)
     homeserver_live = update_config_module.load_and_update_config(homeserver_file_path)
 

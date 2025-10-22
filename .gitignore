@@ -8,3 +8,8 @@ client-config.local.js
 .python-version
 *.code-workspace
 *.swp
+
+
+# Added by cargo
+
+/target

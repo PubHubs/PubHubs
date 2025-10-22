@@ -19,6 +19,8 @@ def main():
                         help="Overwrites the hub client url in the homeserver configuration")
     parser.add_argument("--hub-server-url", default=None,
                         help="Overwrites the hub server url in the homeserver configuration")
+    parser.add_argument("--hub-server-url-for-yivi", default=None,
+                        help="Overwrites the hub server url used by the yivi app in the homeserver configuration")
     parser.add_argument("--global-client-url", default=None,
                         help="Overwrites the global client url in the homeserver configuration")
 
@@ -51,6 +53,7 @@ class Program:
                           environment=self._args.environment,
                           hub_client_url=self._args.hub_client_url,
                           hub_server_url=self._args.hub_server_url,
+                          hub_server_url_for_yivi=self._args.hub_server_url_for_yivi,
                           global_client_url=self._args.global_client_url)
 
         self._waiter.add("yivi", subprocess.Popen(("/usr/bin/irma", 
