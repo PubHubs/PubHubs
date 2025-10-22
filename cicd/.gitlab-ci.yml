@@ -187,13 +187,13 @@ globalclient-format-check:
     - if: $CI_COMMIT_BRANCH == "main"
     - if: $CI_COMMIT_BRANCH == "stable"
   tags: [docker]
-  image: node:latest
+  image: node:24.10.0
   script:
     - cd hub-client
     - npm ci
     - cd ../global-client
     - npm ci
-    - npx prettier ./src --check --ignore-unknown --config ./package.json
+    - npx prettier ./src --check --ignore-unknown --config ./.prettierrc
     - echo "see https://gitlab.science.ru.nl/ilab/pubhubs_canonical/-/wikis/Contributing/(re)format-client-code"
 
 globalclient-build:
@@ -203,7 +203,7 @@ globalclient-build:
     - if: $CI_COMMIT_BRANCH == "main"
     - if: $CI_COMMIT_BRANCH == "stable"
   tags: [docker]
-  image: node:latest
+  image: node:24.10.0
   script:
     - cd hub-client
     - npm ci
@@ -218,11 +218,11 @@ hubclient-format-check:
     - if: $CI_COMMIT_BRANCH == "main"
     - if: $CI_COMMIT_BRANCH == "stable"
   tags: [docker]
-  image: node:latest
+  image: node:24.10.0
   script:
     - cd hub-client
     - npm ci
-    - npx prettier ./src --check --ignore-unknown --config ./package.json
+    - npx prettier ./src --check --ignore-unknown --config ./.prettierrc
 
 globalclient-unit-test:
   stage: tests
@@ -231,10 +231,12 @@ globalclient-unit-test:
     - if: $CI_COMMIT_BRANCH == "main"
     - if: $CI_COMMIT_BRANCH == "stable"
   tags: [docker]
-  image: node:latest
+  image: node:24.10.0
   script:
+    
     - cd hub-client
     - npm ci
+    - node -v
     - cd ../global-client
     - npm ci --cache .npm --prefer-offline
     - npm run test
@@ -246,7 +248,7 @@ hubclient-unit-test:
     - if: $CI_COMMIT_BRANCH == "main"
     - if: $CI_COMMIT_BRANCH == "stable"
   tags: [docker]
-  image: node:latest
+  image: node:24.10.0
   before_script:
     - cd hub-client
     - npm ci --cache .npm --prefer-offline
@@ -313,7 +315,7 @@ build-and-deploy-global-client-main:
     - globalclient-format-check
     - globalclient-unit-test
   tags: [docker]
-  image: node:latest
+  image: node:24.10.0
   script:
     - cd hub-client
     - npm ci
@@ -333,7 +335,7 @@ build-and-deploy-global-client-stable:
     - globalclient-format-check
     - globalclient-unit-test
   tags: [docker]
-  image: node:latest
+  image: node:24.10.0
   script:
     - cd hub-client
     - npm ci
