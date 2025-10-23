@@ -80,28 +80,23 @@
 					/>
 
 					<!--Steward and above can broadcast only in main time line-->
-					<div
+					<button
 						v-if="room.getPowerLevel(user.user.userId) >= 50 && !inThread && !room.isPrivateRoom() && !room.isGroupRoom()"
-						class="flex aspect-square justify-center"
 						:class="!messageInput.state.sendButtonEnabled && 'opacity-50 hover:cursor-default'"
 						@click="isValidMessage() ? announcementMessage() : null"
 					>
 						<Icon type="megaphone-simple" size="lg"></Icon>
-					</div>
+					</button>
 
 					<!-- Emoji picker -->
-					<IconButton type="smiley" size="lg" @click.stop="messageInput.toggleEmojiPicker()" class="rounded-full bg-accent-secondary text-background dark:text-on-surface-variant" />
+					<button>
+						<Icon type="smiley" size="lg" @click.stop="messageInput.toggleEmojiPicker()" />
+					</button>
 
 					<!-- Sendbutton -->
-					<Button
-						class="flex aspect-square items-center justify-center !rounded-full bg-background !p-0"
-						:title="$t('message.send')"
-						:class="!messageInput.state.sendButtonEnabled && 'opacity-50 hover:cursor-default'"
-						:disabled="!messageInput.state.sendButtonEnabled"
-						@click="submitMessage"
-					>
-						<Icon type="paper-plane-right" size="lg" class="shrink-0 text-on-surface-variant" />
-					</Button>
+					<button :title="$t('message.send')" :class="!messageInput.state.sendButtonEnabled && 'opacity-50 hover:cursor-default'" :disabled="!messageInput.state.sendButtonEnabled" @click="submitMessage">
+						<Icon type="paper-plane-right" size="lg" />
+					</button>
 				</div>
 
 				<div v-if="messageInput.state.signMessage" class="m-4 mt-0 flex items-center rounded-md bg-surface-low p-2">
