@@ -382,6 +382,9 @@ pub mod phc {
         /// Quotas for a user
         #[serde(default)]
         pub user_quota: api::phc::user::Quota,
+
+        /// Deprecated.
+        pub card: serde_ext::Skip,
     }
 
     fn default_auth_token_validity() -> core::time::Duration {
