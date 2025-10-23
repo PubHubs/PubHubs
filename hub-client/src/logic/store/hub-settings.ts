@@ -8,6 +8,7 @@ import { MessageType } from './messagebox';
 import { api_synapse as api } from '@/logic/core/api';
 import { FeatureFlag, Theme, useSettings } from './settings';
 import { HubSettingsJSONParser } from '@/logic/store/json-utility';
+import { CONFIG } from '@/logic/foundation/Config.js';
 
 type HubInformation = {
 	name: string;
@@ -66,9 +67,9 @@ const useHubSettings = defineStore('hub-settings', {
 		return {
 			_hub: undefined,
 			// @ts-ignore
-			parentUrl: _env.PARENT_URL,
+			parentUrl: CONFIG._env.PARENT_URL,
 			// @ts-ignore
-			hubUrl: _env.HUB_URL,
+			hubUrl: CONFIG._env.HUB_URL,
 			isSolo: window.self === window.top,
 			mobileHubMenu: true,
 			_summary: '',

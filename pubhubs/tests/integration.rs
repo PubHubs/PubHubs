@@ -29,6 +29,18 @@ async fn main_integration_test() {
 
     // NOTE: the logging configuration in `config` is ignored.  Configure logging for testing
     // using the RUST_LOG environmental variable.
+    //
+    // Use in-memory object store for pubhubs central
+    config
+        .phc
+        .as_mut()
+        .unwrap()
+        .object_store
+        .as_mut()
+        .unwrap()
+        .url = pubhubs::servers::config::host_aliases::UrlPwa::PerhapsWithAlias(
+        "memory://".parse().unwrap(),
+    );
 
     // Change randomly generated admin key to something we know
     let admin_sk = api::SigningKey::generate();
@@ -204,7 +216,7 @@ async fn main_integration_test_local(
         .unwrap();
 
     // Run mock test hub
-    let testhub = welcome_resp.hubs[&"testhub".parse().unwrap()].clone();
+    let testhub = welcome_resp.hubs[&"testhub0".parse().unwrap()].clone();
 
     let mock_hub = MockHub::new(testhub.clone().into(), constellation.clone());
 
@@ -847,7 +859,7 @@ async fn request_attributes(
 async fn handle_info_url(context: web::Data<Arc<MockHubContext>>) -> impl actix_web::Responder {
     let vk: api::VerifyingKey = context.sk.verifying_key().into();
     web::Json(api::Result::Ok(api::hub::InfoResp {
-        verifying_key: vk,
+        verifying_key: Some(vk),
         hub_version: "n/a".to_owned(),
         hub_client_url: "http://example.com".parse().unwrap(),
     }))

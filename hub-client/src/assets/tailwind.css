@@ -202,4 +202,8 @@
 	.emoji-font {
 		font-family: notocoloremoji;
 	}
+
+	.message-link {
+		@apply text-accent-primary;
+	}
 }

@@ -13,7 +13,7 @@
 		</div>
 
 		<div v-show="hub && !hubOrderingIsActive && accessToken && settings.isFeatureEnabled(FeatureFlag.unreadCounter)" class="absolute -right-1 -top-1 z-10">
-			<iframe :src="hub.url + '/miniclient.html?accessToken=' + accessToken" class="h-7 w-7" :id="miniClientId + '_' + hubId"></iframe>
+			<iframe :src="hub.url + '/miniclient.html?accessToken=' + accessToken" class="pointer-events-none h-7 w-7" :id="miniClientId + '_' + hubId"></iframe>
 		</div>
 
 		<HubIcon :hub-name="hub.name" :icon-url="hub.iconUrlLight" :icon-url-dark="hub.iconUrlDark" :is-active="active" />
@@ -64,18 +64,7 @@
 
 	hubs.setupMiniclient(props.hubId);
 
-	const accessToken = settings.isFeatureEnabled(FeatureFlag.multiServerSetup) ? ref<string>(JSON.stringify(global.getAuthInfo(props.hubId))) : ref<string | null>(global.getAccessToken(props.hubId));
-
-	// When a user opens the hub for the first time on a device or in a browser, the accessToken is
-	// only stored after the receivedMessage action with a message of type addAccessToken from
-	// the messageBox is finished.
-	messagebox.$onAction(({ name, args, after }) => {
-		if (name === 'receivedMessage' && args[0].type === 'addAccessToken') {
-			after(() => {
-				accessToken.value = global.getAccessToken(props.hubId);
-			});
-		}
-	});
+	const accessToken = ref<string>(JSON.stringify(global.getAuthInfo(props.hubId)));
 
 	// When a user opens the hub for the first time on a device or in a browser, the accessToken
 	// and userId are only stored after the receivedMessage action with a message of type addAuthInfo

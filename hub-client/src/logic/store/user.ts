@@ -141,7 +141,7 @@ const useUser = defineStore('user', {
 			}
 			if (this.needsConsent || this.needsOnboarding) {
 				const onboardingType = this.needsOnboarding ? OnboardingType.full : OnboardingType.consent;
-				router.push({ name: 'onboarding', query: { type: onboardingType } });
+				router.push({ name: 'onboarding', query: { type: onboardingType, originalRoute: router.currentRoute.value.path } });
 			}
 			return this.needsConsent;
 		},

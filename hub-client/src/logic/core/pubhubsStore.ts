@@ -13,6 +13,7 @@ import { createNewPrivateRoomName, refreshPrivateRoomName, updatePrivateRoomName
 import { router } from '@/logic/core/router.js';
 import { hasHtml, sanitizeHtml } from '@/logic/core/sanitizer.js';
 import { LOGGER } from '@/logic/foundation/Logger.js';
+import { CONFIG } from '@/logic/foundation/Config.js';
 import { SMI } from '@/logic/foundation/StatusMessage.js';
 import { useConnection } from '@/logic/store/connection.js';
 import { useMessageActions } from '@/logic/store/message-actions.js';
@@ -54,7 +55,7 @@ const usePubHubs = defineStore('pubhubs', {
 	actions: {
 		centralLoginPage() {
 			// @ts-ignore
-			const centralLoginUrl = _env.PARENT_URL + '/client';
+			const centralLoginUrl = CONFIG._env.PARENT_URL + '/client';
 			window.top?.location.replace(centralLoginUrl);
 		},
 

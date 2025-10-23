@@ -8,9 +8,10 @@ import mavonEditor from 'mavon-editor';
 import 'mavon-editor/dist/css/index.css';
 
 // Global imports
-import { setUpi18n } from '@/i18n';
-import { focus, twClass } from '@/logic/core/directives';
-import { routes } from '@/logic/core/routes';
+import { setUpi18n } from '@/i18n.js';
+import { focus, twClass } from '@/logic/core/directives.js';
+import { routes } from '@/logic/core/routes.js';
+import { useGlobal } from '@/logic/store/global.js';
 import App from '@/pages/App.vue';
 import { registerComponents } from '@/registerComponents.js';
 import '@/registerServiceWorker';
@@ -31,9 +32,9 @@ import Logo from '@/../../hub-client/src/components/ui/Logo.vue';
 import Dialog from '@/../../hub-client/src/components/ui/Dialog.vue';
 import Checkbox from '@/../../hub-client/src/components/forms/Checkbox.vue';
 
-import { ReplaceConsole } from '@/../../hub-client/src/console';
-import { CONFIG } from '../../hub-client/src/logic/foundation/Config';
-import { Logger } from '@/../../hub-client/src/logic/foundation/Logger';
+import { ReplaceConsole } from '@/../../hub-client/src/console.js';
+import { CONFIG } from '@/../../hub-client/src/logic/foundation/Config.js';
+import { Logger } from '@/../../hub-client/src/logic/foundation/Logger.js';
 import '@/../../hub-client/src/assets/tailwind.css';
 
 // Custom console for development
@@ -58,6 +59,26 @@ const router = createRouter({
 		}
 	},
 	sensitive: true,
+});
+router.beforeEach((to, from, next) => {
+	// Redirect to home if navigating to error page from a browser refresh (undefined)
+	if (to.name === 'error' && from.name === undefined) {
+		next({ name: 'home' });
+		return;
+	}
+	next();
+});
+
+router.beforeEach(async (to, _from, next) => {
+	const global = useGlobal();
+	const isLoggedIn = await global.checkLoginAndSettings();
+
+	if (to.meta.requiresAuth && !isLoggedIn) {
+		const redirectPath = to.fullPath;
+		next({ name: 'login', query: redirectPath === '/' ? {} : { redirect: redirectPath } });
+	} else {
+		next();
+	}
 });
 
 // Set up Pinia store

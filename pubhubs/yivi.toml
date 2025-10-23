@@ -1,7 +1,7 @@
 # configuration for the yivi server used in local development of
 # pubhubs servers.  
 #
-# Run yivi using ./yivi.sh
+# Run yivi using ./run_yivi.py
 issue_perms = []
 jwt_privkey_file = "yivi_jwt.pem" 
 client_listen_addr = "0.0.0.0"

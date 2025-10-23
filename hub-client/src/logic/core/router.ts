@@ -23,20 +23,14 @@ const routes = [
 		meta: { hideBar: true },
 	},
 	{
-		path: '/hub',
-		name: 'hubpage',
-		component: () => import('@/pages/HomePage.vue'),
-		props: { showPubHubsCentralLoginButton: false },
-	},
-	{
 		path: '/admin',
 		name: 'admin',
 		component: () => import('@/pages/Admin.vue'),
 		meta: { onlyAdmin: true, hideBar: true, onboarding: true },
 	},
 	{
-		path: '/manageusers',
-		name: 'manageusers',
+		path: '/manage-users',
+		name: 'manage-users',
 		component: () => import('@/pages/ManageUsers.vue'),
 		meta: { onlyAdmin: true, hideBar: true, onboarding: true },
 	},
@@ -61,13 +55,13 @@ const routes = [
 		meta: { hideBar: true, onboarding: true },
 	},
 	{
-		path: '/discoverrooms',
+		path: '/discover-rooms',
 		name: 'discover-rooms',
 		component: () => import('@/pages/DiscoverRoomsPage.vue'),
 		meta: { hideBar: true, onboarding: true },
 	},
 	{
-		path: '/error',
+		path: '/error-page',
 		name: 'error-page',
 		component: () => import('@/pages/ErrorPage.vue'),
 		props: (route: { query: { errorKey: String; errorValues: Array<String | Number> } }) => ({ errorKey: route.query.errorKey || 'errors.general_error', errorValues: route.query.errorValues || [] }),
@@ -87,7 +81,7 @@ const router = createRouter({
 });
 
 // Navigation guard
-router.beforeEach((to) => {
+router.beforeEach((to, from) => {
 	const messagebox = useMessageBox();
 
 	// Notify parent iframe about non-room navigation
@@ -108,7 +102,7 @@ router.beforeEach((to) => {
 			const onboardingType = needsOnboarding ? OnboardingType.full : OnboardingType.consent;
 			return {
 				name: 'onboarding',
-				query: { type: onboardingType },
+				query: { type: onboardingType, originalRoute: to.path },
 			};
 		}
 	}
@@ -120,9 +114,12 @@ router.beforeEach((to) => {
 			return true;
 		}
 		console.log('ONLY FOR ADMINS', isAdmin);
-		return false;
+		return { name: 'home' };
 	}
-
+	if (to.name === 'error-page' && from.name === undefined) {
+		// Redirect to home if coming from a browser refresh (undefined)
+		return { name: 'home' };
+	}
 	// Default allow navigation
 	return true;
 });

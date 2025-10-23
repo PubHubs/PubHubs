@@ -138,7 +138,7 @@ const useHubs = defineStore('hubs', {
 			// if the hub has not changed: check if the room has changed and if necessary sent message
 			if (previousHubId === this.currentHubId) {
 				// Let hub navigate to given room (if loggedIn)
-				if (global.loggedIn && roomId !== undefined && roomId !== '' && roomId != this.currentRoomId) {
+				if (global.loggedIn && roomId !== undefined && roomId !== '') {
 					this.currentRoomId = roomId;
 					messagebox.sendMessage(new Message(MessageType.RoomChange, roomId), iframeHubId);
 				}
@@ -192,12 +192,7 @@ const useHubs = defineStore('hubs', {
 					global.hideModal();
 				});
 
-				// Old Setup: Store and remove access tokens when send from the hub client
-				messagebox.addCallback(iframeHubId, MessageType.AddAccessToken, (accessTokenMessage: Message) => {
-					global.addAccessToken(this.currentHubId, accessTokenMessage.content as string);
-				});
-
-				// MSS: Store and remove access tokens when send from the hub client
+				// Store and remove access tokens when sent from the hub client
 				messagebox.addCallback(iframeHubId, MessageType.AddAuthInfo, (authInfoMessage: Message) => {
 					const { token, userId }: { token: string; userId: string } = JSON.parse(authInfoMessage.content);
 					global.addAccessTokenAndUserID(this.currentHubId, token, userId);

@@ -201,11 +201,6 @@
 			</section>
 		</div>
 	</div>
-
-	<!-- Hidden component for Yivi form submit -->
-	<form method="POST" action="/yivi-endpoint/finish-and-redirect">
-		<input type="hidden" name="yivi_token" :value="yivi_token" />
-	</form>
 </template>
 
 <script setup lang="ts">
@@ -213,7 +208,6 @@
 	import { computed, onMounted, onUnmounted, ref, watch } from 'vue';
 	import { useRouter } from 'vue-router';
 	import { useI18n } from 'vue-i18n';
-	import { startYiviSession } from '@/logic/utils/yiviHandler';
 
 	// Components
 	import Logo from '@/components/ui/Logo.vue';
@@ -222,9 +216,9 @@
 	import DownloadLinks from '@/components/ui/onboarding/DownloadLinks.vue';
 
 	// Logic
-	import { useGlobal } from '@/logic/store/store';
+	import { useGlobal } from '@/logic/store/global';
 	import { useMSS } from '@/logic/store/mss';
-	import { FeatureFlag, useSettings } from '@/logic/store/settings';
+	import { useSettings } from '@/logic/store/settings';
 	import { loginMethods, PHCEnterMode } from '@/model/MSS/TMultiServerSetup';
 
 	// Hub imports
@@ -244,7 +238,6 @@
 	// Reactive state
 	const globalClientUrl: string = _env.PUBHUBS_URL;
 	const isMobile = computed(() => settings.isMobileState);
-	const yivi_token = ref<string>('');
 	const currentIndex = ref(0);
 	const faqIndex = ref<number | null>(null);
 
@@ -348,7 +341,6 @@
 				router.push({ name: 'error', query: { errorKey: errorMessage.key, errorValues: errorMessage.values } });
 				return;
 			}
-			await global.checkLoginAndSettings();
 			await router.push({ name: 'home' });
 		} catch (error) {
 			router.push({ name: 'error' });
@@ -357,28 +349,16 @@
 	}
 
 	const handleResize = debounce(async () => {
-		if (settings.isFeatureEnabled(FeatureFlag.multiServerSetup)) {
-			await startYiviSessionMSS();
-		} else {
-			startYiviSession(true, yivi_token);
-		}
+		await startYiviSessionMSS();
 	}, 300);
 
 	onMounted(async () => {
 		window.addEventListener('resize', handleResize);
 
-		if (settings.isFeatureEnabled(FeatureFlag.multiServerSetup)) {
-			await startYiviSessionMSS();
-		} else {
-			startYiviSession(true, yivi_token);
-		}
+		await startYiviSessionMSS();
 
 		window.addEventListener('pageshow', async () => {
-			if (settings.isFeatureEnabled(FeatureFlag.multiServerSetup)) {
-				await startYiviSessionMSS();
-			} else {
-				startYiviSession(true, yivi_token);
-			}
+			await startYiviSessionMSS();
 		});
 
 		watch(

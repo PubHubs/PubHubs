@@ -25,7 +25,7 @@
 # NOTE TO PUBHUBS DEVELOPERS
 #
 # If you change anything here, please realise these changes are not distributed automatically to the hubs,
-# so consider updating the 'update_config' module in modules/update_config.py.
+# so consider updating the 'update_config' module in boot/update_config.py.
 #
 
 modules:
@@ -33,7 +33,7 @@ modules:
     config:
           {
             # URL of the hub client
-            client_url: "http://localhost:8800", # DO CHANGE - to https://<your-hub-client-domain-name>
+            client_url: "http://localhost:8001", # DO CHANGE - to https://<your-hub-client-domain-name>
             ## For DEVELOPMENT only:
             # yivi_url: "http://<outside container>:8089",
             # yivi_client_url: "http://<outside container>:8089",
@@ -44,7 +44,7 @@ modules:
       # points to the new multi-server setup pubhubs central
       phc_url: http://host.docker.internal:5050 # DO CHANGE
 
-oidc_providers: [{ client_id: "blaat"  }]
+oidc_providers: [{ client_id: "not used but must be set"  }]
 
 # Server name, used in full user/room names.
 # Warning: cannot be changed later on without issues.
@@ -69,9 +69,6 @@ listeners:
       - names:
           - client
         compress: false
-
-templates:
-  custom_template_directory: /data/templates
 
 database:
   name: sqlite3

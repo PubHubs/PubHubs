@@ -32,6 +32,7 @@ For reference, dependencies are in `package.json`.
   - (2024-jul) updating 'msw' to 2.3.3 breaks the tests when its ran on gitlab. If it's not fixed in 2024-oct, make an issue at msw repo.
 - [ ] To address issues with breaking changes, check them and solve them if possible.
 
+
 ## Hub Client
 
 For reference, dependencies are in `package.json`.
@@ -45,6 +46,7 @@ For reference, dependencies are in `package.json`.
   - (2024-jul) This gives a warning about @vue/cli-service@3.3.1. You can ignore this as running npm audit fix --force breaks more things.
 - [ ] To address issues with breaking changes, check them and solve them if possible.
 
+
 ## Yivi docker
  - [ ] Check the version numbers in the [yivi Dockerfile](docker_yivi/Dockerfile)
    - [ ] `FROM golang:XXX`
@@ -53,3 +55,7 @@ For reference, dependencies are in `package.json`.
 
   (The `merge-to-stable` merge request template can be edited [here](https://gitlab.science.ru.nl/ilab/pubhubs_canonical/-/edit/main/.gitlab/issue_templates/update-dependencies.md).)
 
+## CICD
+
+ - [ ] Check if  `python:3.13` can be replaced by `python:latest` in the `hub-unit-test` job of [.gitlab-ci.yml](https://gitlab.science.ru.nl/ilab/pubhubs_canonical/-/blob/main/cicd/.gitlab-ci.yml) without making the tests fail.
+ - [ ] Update the node version in the [.gitlab-ci.yml](https://gitlab.science.ru.nl/ilab/pubhubs_canonical/-/blob/main/cicd/.gitlab-ci.yml?ref_type=heads#L190) file for global and hub client related jobs.

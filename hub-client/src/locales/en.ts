@@ -75,6 +75,10 @@ const en = {
 		heading: 'Hub description:',
 		contact_details: 'Contact details:',
 	},
+	mss: {
+		system_offline: 'System offline',
+		system_offline_description: 'Our system is offline right now, so not everything works as expected.\nPlease try again later. Contact the developers if the problem persists.',
+	},
 	register: {
 		have_account: 'Do you already have a {0} account?',
 		no_account_yet: 'No {0} account yet?',
@@ -155,6 +159,8 @@ const en = {
 	login: {
 		login: 'Login',
 		global_login: 'Login',
+		not_logged_in: 'Not logged in anymore',
+		login_again: 'You are not logged in anymore. You will be sent back to the login screen. Please log in again to continue.',
 	},
 	logout: {
 		logout: 'Logout',

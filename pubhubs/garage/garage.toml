@@ -1,0 +1,20 @@
+# Configuration for garage S3 server for local pubhubs development
+#
+# to interact with garage:
+#  docker exec -it pubhubs-garage /garage
+
+metadata_dir = "/var/lib/garage/meta"
+data_dir = "/var/lib/garage/data"
+db_engine = "sqlite"
+
+replication_factor = 1
+
+# it's useless trying to compress encrypted data
+compression_level = 1
+
+rpc_bind_addr = "[::]:3901"
+rpc_secret = "de04e0bbbdd4bbe1dc9bf341571623503a2f54da96e23c0d4bbe8b156be79fa1"
+
+[s3_api]
+s3_region = "garage"
+api_bind_addr = "[::]:3900"

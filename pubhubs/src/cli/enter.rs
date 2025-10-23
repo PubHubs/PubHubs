@@ -9,8 +9,8 @@ use crate::attr;
 use crate::client;
 use crate::handle::Handle;
 use crate::misc::jwt;
-use crate::servers::yivi;
 use crate::servers::Constellation;
+use crate::servers::yivi;
 
 use api::phc::user::AuthToken;
 
@@ -35,6 +35,15 @@ pub struct EnterArgs {
     /// Handle identifying the hub
     #[arg(value_name = "HUB")]
     hub_handle: Option<Handle>,
+
+    /// Instead of the displaying the actual client url after entering a hub,
+    /// display the _local_ client url.  Useful when running your local client against main.
+    #[arg(short, long)]
+    local_client: bool,
+
+    /// The local client url used by  --local-client.
+    #[arg(long, value_name = "URL", default_value = "http://localhost:8001")]
+    local_client_url: url::Url,
 
     /// Use this pubhubs authentication token
     #[arg(short, long, value_name = "AUTH_TOKEN")]
@@ -225,11 +234,41 @@ impl EnterArgs {
             anyhow::bail!("failed to complete entering hub: {enter_complete_resp:?}");
         };
 
-        println!("access token: {hub_access_token}");
-        println!("mxid:         {mxid}");
-        println!("device id:    {device_id}");
-        println!("first time?:  {new_user}");
+        let mut hub_client_url : url::Url  = if self.local_client {
+            self.local_client_url
+        } else {
+            // Manual request to `api::hub::InfoEP` as workaround for #1463
+            let awc_client = awc::Client::default();
 
+            let mut resp = awc_client
+                .get(format!("{}/.ph/info", hub_info.url))
+                .send()
+                .await
+                .map_err(|err| anyhow::anyhow!("failed to obtain hub information endpoint: {err}"))?;
+            let api::hub::InfoResp {
+                hub_client_url, ..
+            } = resp.json().await.map_err(|err| {
+                anyhow::anyhow!("failed to obtain hub information endpoint body: {err}")
+            })?;
+
+            hub_client_url
+        };
+
+        hub_client_url.query_pairs_mut().append_pair(
+            "accessToken",
+            &serde_json::json!({
+                "token": hub_access_token,
+                "userId": mxid,
+            })
+            .to_string(),
+        );
+
+        println!("access token:   {hub_access_token}");
+        println!("mxid:           {mxid}");
+        println!("device id:      {device_id}");
+        println!("first time?:    {new_user}");
+        println!();
+        println!("hub client url: {hub_client_url}");
         Ok(())
     }
 

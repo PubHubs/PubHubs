@@ -30,11 +30,13 @@
 
 	const emit = defineEmits<{
 		(e: 'update:dialogOpen', value: string | null): void;
+		(e: 'close'): void;
 	}>();
 
 	const { t } = useI18n();
 
 	function handleClose() {
 		emit('update:dialogOpen', null);
+		emit('close');
 	}
 </script>

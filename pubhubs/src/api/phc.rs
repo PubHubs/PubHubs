@@ -47,6 +47,9 @@ pub mod hub {
 
         /// No hub known with this handle
         UnknownHub,
+
+        /// Hub has no verifying key set
+        NoVerifyingKey,
     }
 
     pub type Ticket = Signed<TicketContent>;

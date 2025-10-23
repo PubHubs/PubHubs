@@ -13,12 +13,19 @@
 </template>
 
 <script setup lang="ts">
-	import Button from '@/components/elements/Button.vue';
-	import { useSettings } from '@/logic/store/settings';
+	// Package imports
 	import { computed } from 'vue';
 
+	// Hub imports
+	import Button from '@/components/elements/Button.vue';
+	import H1 from '@/components/elements/H1.vue';
+	import H3 from '@/components/elements/H3.vue';
+	import { useSettings } from '@/logic/store/settings';
+
 	const settings = useSettings();
+
 	const isMobile = computed(() => settings.isMobileState);
+
 	const props = defineProps({
 		errorKey: { type: String, required: true },
 		errorValues: { type: Array, required: true },

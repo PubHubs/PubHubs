@@ -1,73 +1,84 @@
+# PubHubs — Public hubs for community networks
 
-# PubHubs
+PubHubs (Public Hubs) is a Dutch community network platform built on public values: openness, transparency, data-minimisation and collective stewardship. It connects people across local hubs (i.e. neighbourhoods, sports clubs, schools, museums, patient organisations, libraries, municipalities) while protecting participants’ data and enabling trustworthy communication — with cryptographic attestation where appropriate.
 
-PubHubs is the name for a new Dutch community network, based on public values. PubHubs stands for Public Hubs.
-It is open and transparent and protects data of the network’s participants. PubHubs aims to connect people,
-in different hubs, such as your neighborhood, sports club, school class, museum, patient organisation, local library, municipality.
-In each such hub, a relevant part of one’s own identity plays a role.
-PubHubs focuses on reliable information, if necessary with digital signatures, and on trusted communication,
-if necessary with guarantees of the identity of participants.
+> Designed for the commons: cooperation, decentral responsibility and practical solidarity are core design goals.
 
-### Contact
+---
 
-**For more information and contact see our** [website](https://pubhubs.net/en/).
+## Contact & quick links
 
-## Current status
+- Website / info: https://pubhubs.net/en/
+- Development dependencies / reproducible dev environment: flake.nix
+- Docs: docs/README.md and doc/
+- If you want to get involved or test: please contact the team via the website.
 
-The PubHubs project is not finished. We gradualy moving towards several test fases. Much of the code you find here will be changed before a definitive release.
-However, we'd still like to show everyone the current status of the code. And if you or your organisation would like to be involved during the testfases, please contact us.
+---
 
-## Contributing
+# Current status
 
-This repository is a mirror of our internal repository where actual development happens. If you want to contribute, test, or report an issue. **Please contact us**
+This project is **in active development** and moving through test phases. The repository is a mirror of internal work and many internals may change before a stable release. If you or your organisation want to help test or contribute, contact the team first.
 
-In the longer term we'd like to move to a more open way of developing, but for now our repository is tightly linked to our (testing) infrastructure, and we'd like to keep this link for now.
+---
 
-## Technical details
+## Architecture
 
-Pubhubs consists of the following components:
+- **PubHubs central** — Central authentication and identity management (issues pseudonyms to hubs). Implemented in Rust.
+- **Global client** — Web client that navigates between hubs (embeds hub clients via iframe). Implemented in TypeScript + Vue.
+- **Hub servers** — Customised Matrix homeservers (based on Synapse) extended with PubHubs Python modules; by default hubs are not federated inside PubHubs.
+- **Hub clients** — Matrix-based clients embedded in the Global Client with PubHubs-specific features (secured rooms, attribute-based access). Implemented in TypeScript + Vue.
+- **Identity / attributes** — Handled by [Yivi](https://yivi.app) (used for login and attribute-based access).
 
-- **Pubhubs Central**: The PubHubs platform itself, for central login and authentication. Hubs will only get pseudonyms of the user but never the central identity. PubHubs Central is written in Rust.
-- **Global Client**: The client which is used to navigate between Hubs. It uses an iframe to embed different Hubs (hosted on different servers). The Global Client is written in TypeScript with Vue.
-- **Hub servers**: Modified [matrix](https://matrix.org/) homeservers, in the PubHubs platform these will not be federated so ids are not shared between hubs (in the longer term we'd like to link hubs to be able to share content so maybe some federation will happen). The hub server is based on the matrix server [Synapse](https://matrix-org.github.io/synapse/latest/welcome_and_overview.html) and extended with custom PubHubs modules written in python. The hub server also uses a Yivi server for secured rooms etc.
-- **Hub clients**: A client which communicates to a Hub, embedded in the Global Client. This client is at its core a matrix client with specifics for PubHubs like secured rooms (where you can restrict access using Yivi (see below) attributes e.g. an 18+ room). The Hub Client is written in TypeScript with Vue.
+---
 
-For the identity oriented functionalities of PubHubs we use [Yivi](https://Yivi.app/). Yivi is also used for logging in to the central platform.
+### Important files & directories
 
-### Folders
+| Path / Name           |   Type | Purpose                                                            | Notes                                              |
+| --------------------- | -----: | ------------------------------------------------------------------ | -------------------------------------------------- |
+| `flake.nix`           |   file | Nix flake with reproducible developer environment and dependencies | Use this to create dev shells.                     |
+| `docker_yivi/`        |    dir | Docker build files for the Yivi image                              | Builds the Yivi server used for identity features. |
+| `global-client/`      |    dir | Global client source (TypeScript + Vue)                            | Embeds hub clients via iframe.                     |
+| `hub-client/`         |    dir | Hub client source (TypeScript + Vue)                               | Matrix client customisations.                      |
+| `pubhubs/`            |    dir | PubHubs Central (Rust)                                             | Central login & identity platform.                 |
+| `pubhubs_hub/`        |    dir | Hub server build / Synapse extensions (Python)                     | Matrix server modules & hub configuration.         |
 
-- docker_yivi - Everything needed for building the yivi image for PubHubs Central
-- doc - Documentation
-- global-client - The code for the global-client. It uses also code found in the `hub-client`.
-- hub-client - The code for the hub-client.
-- pubhubs - The code for PubHubs Central
-- pubhubs_hub - Everything needed for building a hub's sever (Matrix). Including several Python modules for specific PubHubs features.
+> [!Warning] Placement note
+> Do not place this repository inside a folder managed by home-manager’s impermanence feature — that can cause permission problems for test hub data and local services.
 
-In the root folder you will find, amongst others the file `start_test_setup.py` which will help starting a local development setup.
+---
 
-### Project Dependencies
+## Developer quickstart
 
-- [Cargo](https://doc.rust-lang.org/cargo/getting-started/installation.html) (package manager for rust)
-- [Cargo Watch](https://github.com/watchexec/cargo-watch)
-- [Node Package Manager (npm)](https://docs.npmjs.com/downloading-and-installing-node-js-and-npm) (package manager for javascript)
-- [Docker](https://www.docker.com/)
-- [Sass](https://sass-lang.com/install)
-- [OpenSSL](https://www.openssl.org/)
+### 1. Reproducible development shell using `Nix flake`
 
-Several libraries for the clients, most important:
+Use the flake to start a reproducible dev shell:
 
-- [matrix-js-sdk](https://github.com/matrix-org/matrix-js-sdk)
-- [TypeScript](https://www.typescriptlang.org)
-- [Vue](https://vuejs.org)
-- [Pinia](https://pinia.vuejs.org)
-- [Vitest](https://vitest.dev)
-- [Histoire](https://histoire.dev)
+```sh
+nix develop
+# Or, with direnv enabled:
+direnv allow
+```
 
-## Further Documention
+See flake.nix for the exact packages and toolchain the project uses.
 
-More information, regarding development, branding, deployment etc. can be found [here](docs/README.md).
+### 2. Shell helper using `Mask`
 
-Also:
+[Mask](https://github.com/jacobdeichert/mask) is included in the flake, but you can also install it globally.
 
-- [Roadmap](./ROADMAP.md)
-- [Changelog](./CHANGELOG.md)
+```sh
+# Run a task defined in maskfile.md
+mask <task> # e.g. `mask run yivi`
+```
+
+---
+
+## Values & governance
+
+PubHubs is explicitly designed around public-value principles: collective control, privacy by default, transparency, and practical solidarity. Technical choices favor community agency and resist concentration of control in opaque or commercial systems.
+
+---
+
+## Further documentation & changelog
+
+- Main docs: [README.md](./README.md)
+- Changelog: [CHANGELOG.md](./CHANGELOG.md)

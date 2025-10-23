@@ -237,6 +237,7 @@
 	const isUsernameChanged = computed(() => inputValue.value !== '');
 
 	const isConsentOnly = computed(() => route.query.type === 'consent');
+	const originalRoute = route.query.originalRoute;
 	const step = ref(isConsentOnly.value ? 2 : 1);
 	const nextStep = () => (step.value = 2);
 	const prevStep = () => (step.value = 1);
@@ -302,7 +303,7 @@
 		try {
 			if (isConsentOnly.value) {
 				await user.setUserConsentVersion(consentVersion.value);
-				router.push({ name: 'home' });
+				router.push(typeof originalRoute === 'string' ? originalRoute : '/');
 				return;
 			}
 
@@ -316,8 +317,7 @@
 
 			await user.fetchIfUserNeedsConsent();
 			await user.setUserConsentVersion(consentVersion.value);
-
-			router.push({ name: 'home' });
+			router.push(typeof originalRoute === 'string' ? originalRoute : '/');
 		} catch (error) {
 			console.error('Error during submit:', error);
 		}

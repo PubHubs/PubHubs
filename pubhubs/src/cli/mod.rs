@@ -3,8 +3,6 @@
 mod common;
 use common::*;
 
-pub mod old;
-
 mod serve;
 pub use serve::ServeArgs;
 mod tools;

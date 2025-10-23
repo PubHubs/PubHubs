@@ -42,8 +42,12 @@ impl App {
             .await
             .into_server_result()?;
 
+        let Some(verifying_key) = resp.verifying_key else {
+            return Ok(TicketResp::NoVerifyingKey);
+        };
+
         // check that the request indeed came from the hub
-        signed_req.open(&*resp.verifying_key, None).map_err(|oe| {
+        signed_req.open(&*verifying_key, None).map_err(|oe| {
             log::warn!(
                 "could not verify authenticity of hub ticket request for hub {}: {oe}",
                 req.handle,
@@ -64,7 +68,7 @@ impl App {
             &*app.jwt_key,
             &TicketContent {
                 handle: req.handle,
-                verifying_key: resp.verifying_key,
+                verifying_key,
             },
             std::time::Duration::from_secs(3600 * 24), /* = one day */
         )?))
