@@ -45,6 +45,12 @@ pub struct SessionRequest {
 
     /// <https://pkg.go.dev/github.com/privacybydesign/irmago#IssuanceRequest>
     credentials: Option<Vec<CredentialToBeIssued>>,
+
+    /// https://docs.yivi.app/session-requests/#skip-expiry-check
+    #[serde(default)]
+    #[serde(skip_serializing_if = "Vec::is_empty")]
+    #[serde(rename = "skipExpiryCheck")]
+    skip_expiry_check : Vec<CredentialTypeIdentifier>
 }
 
 impl ExtendedSessionRequest {
@@ -54,6 +60,7 @@ impl ExtendedSessionRequest {
                 context: LdContext::Disclosure,
                 disclose: Some(cdc),
                 credentials: None,
+                skip_expiry_check: vec![],
             },
             next_session: None,
         }
@@ -65,6 +72,7 @@ impl ExtendedSessionRequest {
                 context: LdContext::Issuance,
                 disclose: None,
                 credentials: Some(credentials),
+                skip_expiry_check: vec![]
             },
             next_session: None,
         }
