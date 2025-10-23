@@ -10,8 +10,8 @@
 					</div>
 				</div>
 			</SideKickSubHeader>
-			<div v-for="steward in stewards" :userId="steward?.userId" :key="steward?.userId" class="mb-2 flex w-full gap-2">
-				<Avatar :userId="steward.userId" class="ml-2 h-6 w-6"></Avatar>
+			<div v-for="steward in stewards" :userId="steward?.userId" :key="steward?.userId" class="mb-2 flex w-full items-center gap-2">
+				<Avatar :userId="steward.userId" class="ml-2 h-5 w-5"></Avatar>
 				<UserDisplayName :user="steward.userId" :room="room"></UserDisplayName>
 			</div>
 		</div>
@@ -26,8 +26,8 @@
 					</div>
 				</div>
 			</SideKickSubHeader>
-			<div v-for="member in members" :userId="member?.userId" :key="member?.userId" class="mb-2 flex w-full gap-2">
-				<Avatar :userId="member.userId" class="ml-2 h-6 w-6"></Avatar>
+			<div v-for="member in members" :userId="member?.userId" :key="member?.userId" class="mb-2 flex w-full items-center gap-2">
+				<Avatar :userId="member.userId" class="ml-2 h-5 w-5"></Avatar>
 				<UserDisplayName :user="member.userId" :room="room"></UserDisplayName>
 			</div>
 		</div>
