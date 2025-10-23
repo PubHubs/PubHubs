@@ -66,6 +66,13 @@ pub struct EnterArgs {
         conflicts_with = "auth_token"
     )]
     add_attr_type: Vec<Handle>,
+
+
+    /// Don't add any attributes when entering pubhubs
+    #[arg(long, 
+        conflicts_with = "add_attr_type",
+        conflicts_with = "auth_token")]
+    dont_add_attrs: bool
 }
 
 #[derive(clap::ValueEnum, Debug, Clone, Copy)]
@@ -76,8 +83,12 @@ enum Environment {
 }
 
 impl EnterArgs {
-    pub fn run(self, _spec: &mut clap::Command) -> Result<()> {
+    pub fn run(mut self, _spec: &mut clap::Command) -> Result<()> {
         env_logger::init();
+
+        if self.dont_add_attrs {
+            self.add_attr_type.clear();
+        }
 
         tokio::runtime::Builder::new_current_thread()
             .enable_all()
