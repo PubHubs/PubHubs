@@ -5,6 +5,7 @@ import { server } from '../mocks/server';
 import { api } from '@/logic/core/api';
 import PHCServer from '@/model/MSS/PHC';
 import * as mssTypes from '@/model/MSS/TMultiServerSetup';
+import { EncryptVersion0 } from '../mocks/encryptVersion0';
 
 beforeAll(() => server.listen({ onUnhandledRequest: 'error' }));
 afterAll(() => server.close());
@@ -70,6 +71,12 @@ describe('Multi-server setup', () => {
 			const userSecretObject = await phcServer.getUserObject('usersecret');
 			const backupObject = await phcServer.getUserObject('usersecretbackup');
 			expect(userSecretObject.object).toEqual(backupObject.object);
+
+			// Test if globalsettings encrypted with the old userSecret encoding can be retrieved without throwing an error on crypto.subtle.decrypt
+			const globalSettings = window.crypto.getRandomValues(new Uint8Array(32));
+			const oldEncryptedGlobalSettings = await EncryptVersion0.encryptDataVersion0(globalSettings, 'ThisIsAUserSecret');
+			const decodedGlobalSettings = await phcServer['_decryptData'](oldEncryptedGlobalSettings, 'ThisIsAUserSecret');
+			expect(decodedGlobalSettings).toEqual(globalSettings);
 		});
 
 		test('Logging in with a user secret of version 1', async () => {
