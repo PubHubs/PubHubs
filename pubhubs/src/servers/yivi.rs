@@ -106,7 +106,7 @@ impl ExtendedSessionRequest {
     ) -> anyhow::Result<Self> {
         let mut session_type_perhaps: Option<String> = None;
 
-        let session_request: Self = requestor_credentials
+        let mut claims = requestor_credentials
             .key
             .open(jwt)
             .context("invalid jwt")?
@@ -122,15 +122,19 @@ impl ExtendedSessionRequest {
 
                     Ok(())
                 },
-            )?
-            .into_custom()?;
+            )?;
 
-        let session_type = session_type_perhaps.expect("bug: expected session_type to be set here");
+        let session_type = LdContext::from_jwt_sub(
+            &session_type_perhaps.expect("bug: expected session_type to be set here")
+        ).context("unknown subject in signed extended session request")?;
+
+        let session_request: Self = claims.extract(session_type.jwt_key())?
+            .with_context(|| format!("missing claim {}", session_type.jwt_key()))?;
 
         anyhow::ensure!(
-            *session_request.request.context.jwt_sub() == session_type,
-            "session request jwt subject, {}, does not align with session request context, {}",
-            session_type,
+            session_request.request.context == session_type,
+            "session request jwt subject's, {}, does not align with session request context, {}",
+            session_type.jwt_sub(),
             session_request.request.context.jwt_sub()
         );
 
@@ -194,6 +198,18 @@ pub enum LdContext {
 }
 
 impl LdContext {
+    pub fn from_jwt_sub(jwt_sub : &str) -> Option<LdContext> {
+        match jwt_sub {
+                "verification_request" =>
+            Some(LdContext::Disclosure),
+                "signature_request" =>
+            Some(LdContext::Signature),
+                "issue_request" =>
+            Some(LdContext::Issuance),
+            _ => None
+        }
+    }
+
     /// The `sub` field of a signed session request JWT of this type
     pub const fn jwt_sub(&self) -> &'static str {
         match self {

@@ -60,6 +60,7 @@ id = "QCGdNnTHNS69lyMUKt9UM_lrstmP-ZpRr53XaCR5rHI"
 name = "PubHubs card"
 bannable = false
 identifying = true
+not_addable_by_default = true
 sources = [
 	{ yivi.attr_type_id = "irma-demo.PubHubs.account.id" },
 ]

@@ -434,7 +434,7 @@ impl EnterArgs {
             .query_with_retry::<api::phc::user::EnterEP, _, _>(
                 &constellation.phc_url,
                 api::phc::user::EnterReq {
-                    identifying_attr,
+                    identifying_attr: Some(identifying_attr),
                     mode: api::phc::user::EnterMode::LoginOrRegister,
                     add_attrs: attrs.values().map(Clone::clone).collect(),
                 },
@@ -468,17 +468,59 @@ impl EnterArgs {
                 anyhow::bail!("failed to retrieve registration pseudonym");
             };
 
+            let api::auths::CardResp::Success { attr, issuance_request, .. } = client
+                .query_with_retry::<api::auths::CardEP, _, _>(
+                            &constellation.auths_url,
+                            api::auths::CardReq {
+                                card_pseud_package,
+                                comment: self.card_comment.clone(),
+                            } ).await? else {
+                    anyhow::bail!("failed to obtain pubhubs card from authentication server");
+                };
+
+            let enter_resp = client
+                .query::<api::phc::user::EnterEP>(
+                    &constellation.phc_url,
+                    api::phc::user::EnterReq {
+                        identifying_attr: None,
+                        mode: api::phc::user::EnterMode::Login,
+                        add_attrs: vec![attr],
+                    },
+                )
+                .auth_header(auth_token.clone())
+                .with_retry()
+                .await
+                .context("failed to add pubhubs card to account")?;
+
+            let api::phc::user::EnterResp::Entered {
+                auth_token_package: Ok(api::phc::user::AuthTokenPackage { .. }),
+                attr_status,
+                ..
+            } = enter_resp
+            else {
+                anyhow::bail!("failed to add pubhubs card to account: phc returned {enter_resp:?}");
+            };
+
+            for (attr, attr_status) in attr_status.iter() {
+                match *attr_status {
+                    api::phc::user::AttrAddStatus::PleaseTryAgain => {
+                        anyhow::bail!("adding attribute {} failed", attr.value);
+                    }
+                    api::phc::user::AttrAddStatus::Added => {
+                        println!("pubhubs card was added to account");
+                    }
+                    api::phc::user::AttrAddStatus::AlreadyThere => {
+                        println!("pubhubs card already present");
+                    }
+                }
+            }
+
             let api::auths::YiviReleaseNextSessionResp::Success {} = client
                 .query_with_retry::<api::auths::YiviReleaseNextSessionEP, _, _>(
                     &constellation.auths_url,
                     api::auths::YiviReleaseNextSessionReq {
                         state: auth_state.clone(),
-                        next_session: api::auths::NextSession::IssuePubhubsCard(
-                            api::auths::CardReq {
-                                card_pseud_package,
-                                comment: self.card_comment.clone(),
-                            },
-                        ),
+                        next_session: Some(issuance_request)
                     },
                 )
                 .await

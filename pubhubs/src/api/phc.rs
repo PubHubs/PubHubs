@@ -146,9 +146,15 @@ pub mod user {
 
     /// Request to log in to an existing account, or register a new one.
     ///
+    /// Also used to add attributes to the new or existing user account.
+    ///
     /// May fail with [`ErrorCode::BadRequest`] when:
     ///  - [`identifying_attr`] is not identifying
     ///  - The same attribute appears twice among [`add_attrs`] and [`identifying_attr`].
+    ///  - A non-addable attribute is in `add_attrs` (such as a pubhubs card attribute not obtained
+    ///    via the [`auths::CardEP`] endpoint.
+    ///  - Neither an identifying nor a auth token (via the `Authorization` header) is provided.
+    ///  - When the auth token is used, but the mode is not login.
     ///
     /// [`identifying_attr`]: Self::identifying_attr
     /// [`add_attrs`]: Self::add_attrs
@@ -157,8 +163,10 @@ pub mod user {
     pub struct EnterReq {
         /// [`Attr`]ibute identifying the user.
         ///
+        /// If omitted, an `AuthToken` must be passed via the `Authorization` header instead.
+        ///
         /// [`Attr`]: attr::Attr
-        pub identifying_attr: Signed<attr::Attr>,
+        pub identifying_attr: Option<Signed<attr::Attr>>,
 
         /// The mode determines whether we want to create an account if none exists,
         /// and whether we expect an account to exist.
@@ -197,6 +205,10 @@ pub mod user {
         /// identifying attribute and retry.  If this fails even with a fresh attribute something
         /// is wrong with the server.
         RetryWithNewIdentifyingAttr,
+
+        /// An authtoken was passed via the Authorization header that is expired or otherwise invalid.  
+        /// Obtain a new one and retry.
+        RetryWithNewAuthToken,
 
         /// Signature on [`EnterReq::add_attrs`]  attribute is invalid or expired; please reobtain the
         /// attribute and retry.  If this fails even with a fresh attribute something

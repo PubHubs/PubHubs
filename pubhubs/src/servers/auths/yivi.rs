@@ -5,7 +5,6 @@ use crate::api;
 use crate::id;
 use crate::misc::jwt;
 use crate::servers::yivi;
-use api::OpenError;
 
 use super::server::YiviCtx;
 
@@ -113,7 +112,7 @@ impl App {
         req: web::Json<api::auths::YiviReleaseNextSessionReq>,
     ) -> api::Result<api::auths::YiviReleaseNextSessionResp> {
         let csc = app.chained_sessions_ctl_or_bad_request()?;
-        let running_state = app.running_state_or_please_retry()?;
+        let yivi = app.get_yivi()?;
 
         let api::auths::YiviReleaseNextSessionReq {
             state,
@@ -131,34 +130,22 @@ impl App {
             return Err(api::ErrorCode::BadRequest);
         };
 
-        let internal_next_session = match next_session {
-            api::auths::NextSession::NoNextSession => None,
-            api::auths::NextSession::IssuePubhubsCard(api::auths::CardReq {
-                comment,
-                card_pseud_package: cpp_signed,
-            }) => {
-                let card_pseudonym_package =
-                    match cpp_signed.open(&*running_state.constellation.phc_jwt_key, None) {
-                        Ok(cpp) => cpp,
-                        Err(OpenError::OtherConstellation(..)) | Err(OpenError::InternalError) => {
-                            return Err(api::ErrorCode::InternalError);
-                        }
-                        Err(OpenError::OtherwiseInvalid) => {
-                            return Err(api::ErrorCode::BadRequest);
-                        }
-                        Err(OpenError::Expired) | Err(OpenError::InvalidSignature) => {
-                            return Ok(
-                                api::auths::YiviReleaseNextSessionResp::PleaseRetryWithNewCardPseud,
-                            );
-                        }
-                    };
-
-                Some(app.issue_card(card_pseudonym_package, comment)?)
-            }
+        let esr = if let Some(jwt) = next_session {
+            Some(
+                yivi::ExtendedSessionRequest::open_signed(
+                    &jwt,
+                    &yivi.requestor_creds.to_verifying_credentials(),
+                )
+                .map_err(|err| {
+                    log::debug!("failed to open signed extended session request: {}", err);
+                    api::ErrorCode::BadRequest
+                })?,
+            )
+        } else {
+            None
         };
 
-        csc.release_next_session(session_id, internal_next_session)
-            .await
+        csc.release_next_session(session_id, esr).await
     }
 }
 

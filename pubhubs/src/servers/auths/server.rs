@@ -6,7 +6,7 @@ use std::rc::Rc;
 use actix_web::web;
 use digest::Digest as _;
 
-use crate::servers::{self, AppBase, AppCreatorBase, Constellation, Handle, constellation, yivi};
+use crate::servers::{self, constellation, yivi, AppBase, AppCreatorBase, Constellation, Handle};
 use crate::{
     api::{self, EndpointDetails as _},
     attr,
@@ -180,6 +180,8 @@ impl crate::servers::App<Server> for App {
         api::auths::AuthCompleteEP::add_to(self, sc, App::handle_auth_complete);
 
         api::auths::AttrKeysEP::add_to(self, sc, App::handle_attr_keys);
+
+        api::auths::CardEP::add_to(self, sc, App::handle_card);
 
         api::auths::YiviWaitForResultEP::add_to(self, sc, App::handle_yivi_wait_for_result);
         api::auths::YiviReleaseNextSessionEP::add_to(

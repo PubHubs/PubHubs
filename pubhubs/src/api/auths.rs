@@ -252,7 +252,20 @@ pub struct CardReq {
 #[must_use]
 pub enum CardResp {
     Success {
-        /// Signed issuance request to issue the pubhubs card
+        /// Attribute for the card that can be added to the user's account via the
+        /// [`phc::user::EnterEP`] endpoint.
+        ///
+        /// Make sure that you first add this attribute to the user's account before you add the
+        /// card to the user's yivi app - we do not want to end up with a card in the yivi app that
+        /// is not connected to the user's account.
+        attr: Signed<Attr>,
+
+        /// Signed issuance request to issue the pubhubs card.  Can be used to start a new session
+        /// with the Yivi server directly, or an already existing chained session with the
+        /// authentication server, via [`YiviReleaseNextSessionEP`].
+        ///
+        /// Before making the issuance request, make sure [`CardResp::Success::attr`] is added to the
+        /// user's account!
         issuance_request: jwt::JWT,
 
         /// The Yivi server that can handle the issuance request
@@ -325,21 +338,15 @@ pub struct YiviReleaseNextSessionReq {
     /// The [`AuthStartResp::Success::state`] returned earlier
     pub state: AuthState,
 
-    pub next_session: NextSession,
-}
-
-/// Instructs the authentication server on what next session to start at the yivi server.
-#[derive(Serialize, Deserialize, Debug, Clone)]
-#[serde(deny_unknown_fields)]
-#[must_use]
-pub enum NextSession {
-    /// The yivi server will be served a `HTTP 204` causing it to stop the yivi flow
+    /// Instructs the authentication server on what next session (if any) to start at the yivi server.
+    ///
+    /// If `None`  the yivi server will be served a `HTTP 204` causing it to stop the yivi flow
     /// normally without opening a follow-up session.
-    NoNextSession,
-
-    /// Instructs the authentication server to have the yivi server issue a pubhubs card as next
-    /// session.
-    IssuePubhubsCard(CardReq),
+    ///
+    /// Otherwise it must be some signed session request that will be passed to yivi server.
+    /// This session request must be signed by the authentication server's yivi requestor credentials,
+    /// for example, [CardResp::issuance_request`].
+    pub next_session: Option<jwt::JWT>,
 }
 
 /// What's returned by [`YiviReleaseNextSessionEP`]
@@ -363,11 +370,6 @@ pub enum YiviReleaseNextSessionResp {
     /// Trying to release a yivi servder that's not there yet.  You should first call the
     /// [`YiviWaitForResultEP`] endpoint to make sure the yivi server is there.
     TooEarly,
-
-    /// Please retry with a fresh card pseudonym package.
-    ///
-    /// Happens only when [`NextSession::IssuePubhubsCard`] was requested.
-    PleaseRetryWithNewCardPseud,
 }
 
 /// Path for the endpoint used by the yivi server to get the next session in a chained session.
