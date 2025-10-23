@@ -8,6 +8,15 @@ enum SystemDefaults {
 	RoomTimelineLimit = 100, // Can be relatively high: is already filtered on messages
 }
 
+// common matrix types
+enum MatrixType {
+	StateKey = 'state_key',
+	MemberShip = 'membership',
+	IsDirect = 'is_direct',
+	Join = 'join',
+	Invite = 'invite',
+}
+
 // Eventtypes that are not covered by Matrix Constants
 enum MatrixEventType {
 	RoomName = 'm.room.name',
@@ -42,6 +51,7 @@ enum RoomEmit {
 	ScrolledToEventId = 'scrolledToEventId',
 	ThreadLengthChanged = 'threadLengthChanged',
 }
+
 enum OnboardingType {
 	consent = 'consent',
 	full = 'full',
@@ -71,4 +81,4 @@ const fileTypes = [
 
 const allTypes = [...imageTypes, ...mediaTypes, ...fileTypes];
 
-export { SystemDefaults, MatrixEventType, RelationType, Redaction, RoomEmit, OnboardingType, imageTypes, mediaTypes, fileTypes, allTypes, imageTypesExt };
+export { SystemDefaults, MatrixEventType, MatrixType, RelationType, Redaction, RoomEmit, OnboardingType, imageTypes, mediaTypes, fileTypes, allTypes, imageTypesExt };
