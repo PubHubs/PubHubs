@@ -53,26 +53,29 @@
 </template>
 
 <script setup lang="ts">
-	// Logic
-	import { ref, onBeforeMount } from 'vue';
-	import { router } from '@/logic/core/router';
-	import { usePubHubs } from '@/logic/core/pubhubsStore';
-	import { useHubSettings } from '@/logic/store/hub-settings';
+	// Packages
+	import { onBeforeMount, ref } from 'vue';
+
 	// Components
-	import H1 from '../components/elements/H1.vue';
-	import HubIcon from '@/components/ui/HubIcon.vue';
-	import HubBanner from '@/components/ui/HubBanner.vue';
-	import Icon from '@/components/elements/Icon.vue';
-	import Button from '@/components/elements/Button.vue';
-	import H3 from '@/components/elements/H3.vue';
+	import H1 from '@hub-client/components/elements/H1.vue';
+	import HubBanner from '@hub-client/components/ui/HubBanner.vue';
+	import HubIcon from '@hub-client/components/ui/HubIcon.vue';
 
-	const pubhubs = usePubHubs();
-	const hubSettings = useHubSettings();
+	// Logic
+	import { router } from '@hub-client/logic/core/router';
 
+	// Stores
+	import { useHubSettings } from '@hub-client/stores/hub-settings';
+	import { usePubhubsStore } from '@hub-client/stores/pubhubs';
+
+	// Types
 	type Props = {
 		/** This page can be shown to users that are not yet logged in to PubHubs Central. */
 		showPubHubsCentralLoginButton: boolean;
 	};
+
+	const pubhubs = usePubhubsStore();
+	const hubSettings = useHubSettings();
 
 	const hubDescription = ref<string>(hubSettings.hubDescription);
 	const hubContact = ref<string>(hubSettings.hubContact);
@@ -82,6 +85,7 @@
 	onBeforeMount(async () => {
 		loadHubSettings();
 	});
+
 	/**
 	 * A hack to show a different homepage for the TryOutHub
 	 * We ar still thinking about how to improve hub onboarding.
@@ -98,9 +102,9 @@
 		router.push({ name: 'discover-rooms' });
 	}
 	async function loadHubSettings() {
-		const hubSettingsJSON = await hubSettings.getHubJSON();
-		hubDescription.value = hubSettingsJSON?.description ?? '';
-		hubContact.value = hubSettingsJSON?.contact ?? '';
+		// const hubSettingsJSON = await hubSettings.getHubJSON();
+		// hubDescription.value = hubSettingsJSON?.description ?? '';
+		// hubContact.value = hubSettingsJSON?.contact ?? '';
 	}
 </script>
 <style scoped>

@@ -1,10 +1,14 @@
-import { createRouter, createWebHistory } from 'vue-router';
-import { describe, expect, test } from 'vitest';
-
-import Room from '@/pages/Room.vue';
+// Packages
 import { createTestingPinia } from '@pinia/testing';
 import { mount } from '@vue/test-utils';
-import { routes } from '@/logic/core/router';
+import { describe, expect, test } from 'vitest';
+import { createRouter, createWebHistory } from 'vue-router';
+
+// Logic
+import { routes } from '@hub-client/logic/core/router';
+
+// Pages
+import Room from '@hub-client/pages/Room.vue';
 
 describe('Room.vue Test', () => {
 	test('room cannot be found redirects to error page', async () => {

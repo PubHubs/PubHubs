@@ -31,7 +31,7 @@ In `plugin.ts` you need to export a `plugin` object with several properties. Whi
 
 ```
 // Import of types
-import { MenuPluginProperties, PluginType } from '@/store/plugins';
+import { MenuPluginProperties, PluginType } from '@/stores/plugins';
 
 const plugin: MenuPluginProperties = {
 

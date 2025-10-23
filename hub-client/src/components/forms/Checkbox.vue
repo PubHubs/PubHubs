@@ -16,8 +16,11 @@
 </template>
 
 <script setup lang="ts">
-	import { useFormInputEvents, usedEvents } from '@/logic/composables/useFormInputEvents';
-	import { useTemplateRef, computed } from 'vue';
+	// Packages
+	import { computed, useTemplateRef } from 'vue';
+
+	// Composables
+	import { useFormInputEvents, usedEvents } from '@hub-client/composables/useFormInputEvents';
 
 	const input = useTemplateRef('input');
 

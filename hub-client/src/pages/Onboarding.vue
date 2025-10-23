@@ -194,48 +194,45 @@
 </template>
 
 <script setup lang="ts">
-	// External imports
+	// Packages
 	import { computed, onBeforeMount, ref } from 'vue';
 	import { useI18n } from 'vue-i18n';
-	import { useRouter, useRoute } from 'vue-router';
+	import { useRoute, useRouter } from 'vue-router';
 
 	// Components
-	import Button from '@/components/elements/Button.vue';
-	import H1 from '@/components/elements/H1.vue';
-	import H2 from '@/components/elements/H2.vue';
-	import Icon from '@/components/elements/Icon.vue';
-	import P from '@/components/elements/P.vue';
-	import Checkbox from '@/components/forms/Checkbox.vue';
-	import TextInput from '@/components/forms/TextInput.vue';
-	import HubBanner from '@/components/ui/HubBanner.vue';
-	import HubIcon from '@/components/ui/HubIcon.vue';
+	import Button from '@hub-client/components/elements/Button.vue';
+	import H1 from '@hub-client/components/elements/H1.vue';
+	import H2 from '@hub-client/components/elements/H2.vue';
+	import Icon from '@hub-client/components/elements/Icon.vue';
+	import P from '@hub-client/components/elements/P.vue';
+	import Checkbox from '@hub-client/components/forms/Checkbox.vue';
+	import TextInput from '@hub-client/components/forms/TextInput.vue';
+	import HubBanner from '@hub-client/components/ui/HubBanner.vue';
+	import HubIcon from '@hub-client/components/ui/HubIcon.vue';
 
-	// Logic
-	import { fileUpload } from '@/logic/composables/fileUpload';
-	import { useMatrixFiles } from '@/logic/composables/useMatrixFiles';
-	import { useUserColor } from '@/logic/composables/useUserColor';
-	import { usePubHubs } from '@/logic/core/pubhubsStore';
-	import { useHubSettings } from '@/logic/store/hub-settings';
-	import { useSettings } from '@/logic/store/settings';
-	import { useUser } from '@/logic/store/user';
+	// Composables
+	import { fileUpload } from '@hub-client/composables/fileUpload';
+	import { useMatrixFiles } from '@hub-client/composables/useMatrixFiles';
+	import { useUserColor } from '@hub-client/composables/useUserColor';
 
-	// Setup
+	// Stores
+	import { useHubSettings } from '@hub-client/stores/hub-settings';
+	import { usePubhubsStore } from '@hub-client/stores/pubhubs';
+	import { useSettings } from '@hub-client/stores/settings';
+	import { useUser } from '@hub-client/stores/user';
+
 	const { t } = useI18n();
 	const router = useRouter();
 	const route = useRoute();
-
-	const pubhubs = usePubHubs();
+	const pubhubs = usePubhubsStore();
 	const user = useUser();
 	const hubSettings = useHubSettings();
 	const settings = useSettings();
-
 	const hubName = ref(hubSettings.hubName);
 	const isMobile = computed(() => settings.isMobileState);
-
 	const inputValue = ref('');
-	const pseudonym = ref(user.user.userId.split(':')[0].substring(1));
+	const pseudonym = ref(user.userId.split(':')[0].substring(1));
 	const isUsernameChanged = computed(() => inputValue.value !== '');
-
 	const isConsentOnly = computed(() => route.query.type === 'consent');
 	const originalRoute = route.query.originalRoute;
 	const step = ref(isConsentOnly.value ? 2 : 1);
@@ -271,10 +268,10 @@
 		const errorMsg = t('errors.file_upload');
 
 		try {
-			await fileUpload(errorMsg, accessToken, uploadUrl, imageTypes, syntheticEvent, (mxUrl) => {
+			fileUpload(errorMsg, accessToken, uploadUrl, imageTypes, syntheticEvent, async (mxUrl) => {
 				avatarMxcUrl.value = mxUrl;
 				if (avatarMxcUrl.value) {
-					user.setAvatarMxcUrl(avatarMxcUrl.value, true);
+					await user.setAvatarMxcUrl(avatarMxcUrl.value);
 				}
 			});
 		} catch (error) {
@@ -308,7 +305,7 @@
 			}
 
 			if (inputValue.value !== '') {
-				await pubhubs.changeDisplayName(inputValue.value);
+				await user.setDisplayName(inputValue.value);
 			}
 
 			if (selectedAvatarFile.value) {

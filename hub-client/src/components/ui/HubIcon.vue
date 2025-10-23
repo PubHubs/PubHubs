@@ -6,20 +6,22 @@
 </template>
 
 <script setup lang="ts">
+	// Packages
 	import { computed, onMounted, ref } from 'vue';
 
+	// Types
 	type Props = {
 		hubNameForImgAlt?: string; // Used when showing multiple Hubs.
 		iconUrl: string;
 		iconUrlDark: string;
 		isActive?: boolean;
 	};
+
 	const props = defineProps<Props>();
+	const url = computed(getUrl);
 
 	let fallback = ref(false);
 	let imageLoaded = ref(false);
-
-	const url = computed(getUrl);
 
 	onMounted(() => {
 		// Prevent the fallback quickly showing before the image is loaded

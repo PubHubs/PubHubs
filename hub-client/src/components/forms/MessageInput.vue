@@ -79,7 +79,7 @@
 
 					<!--Steward and above can broadcast only in main time line-->
 					<div
-						v-if="room.getPowerLevel(user.user.userId) >= 50 && !inThread && !room.isPrivateRoom() && !room.isGroupRoom()"
+						v-if="room.getPowerLevel(user.userId) >= 50 && !inThread && !room.isPrivateRoom() && !room.isGroupRoom()"
 						class="flex aspect-square h-6 w-6 justify-center"
 						:class="!messageInput.state.sendButtonEnabled && 'opacity-50 hover:cursor-default'"
 						@click="isValidMessage() ? announcementMessage() : null"
@@ -131,42 +131,52 @@
 </template>
 
 <script setup lang="ts">
-	// Components
-	import Popover from '../ui/Popover.vue';
-	import TextArea from './TextArea.vue';
-	import Button from '../elements/Button.vue';
-	import Icon from '../elements/Icon.vue';
-	import EmojiPicker from '../ui/EmojiPicker.vue';
-	import Mention from '../ui/Mention.vue';
-	import Line from '../elements/Line.vue';
-	import MessageSnippet from '../rooms/MessageSnippet.vue';
-	import PollMessageInput from '@/components/rooms/voting/poll/PollMessageInput.vue';
-	import SchedulerMessageInput from '@/components/rooms/voting/scheduler/SchedulerMessageInput.vue';
-	import PopoverButton from '../ui/PopoverButton.vue';
-
-	import { useFormInputEvents, usedEvents } from '@/logic/composables/useFormInputEvents';
-	import { onMounted, onUnmounted, PropType, ref, watch } from 'vue';
-	import { useMatrixFiles } from '@/logic/composables/useMatrixFiles';
-	import { fileUpload } from '@/logic/composables/fileUpload';
-	import filters from '@/logic/core/filters';
-	import { usePubHubs } from '@/logic/core/pubhubsStore';
-	import { useMessageActions } from '@/logic/store/message-actions';
-	import { useMessageInput } from '@/logic/store/messageInput';
-	import Room from '@/model/rooms/Room';
-	import { useRooms } from '@/logic/store/store';
-	import { useRoute } from 'vue-router';
-	import { useUser } from '@/logic/store/user';
-	import { FeatureFlag, useSettings } from '@/logic/store/settings';
-	import { YiviSigningSessionResult } from '@/model/components/signedMessages';
-	import { TMessageEvent } from '@/model/events/TMessageEvent';
-	import { Scheduler, Poll } from '@/model/events/voting/VotingTypes';
+	// Packages
+	import { PropType, onMounted, onUnmounted, ref, watch } from 'vue';
 	import { useI18n } from 'vue-i18n';
+	import { useRoute } from 'vue-router';
+
+	// Components
+	import Button from '@hub-client/components/elements/Button.vue';
+	import Icon from '@hub-client/components/elements/Icon.vue';
+	import Line from '@hub-client/components/elements/Line.vue';
+	import TextArea from '@hub-client/components/forms/TextArea.vue';
+	import MessageSnippet from '@hub-client/components/rooms/MessageSnippet.vue';
+	import PollMessageInput from '@hub-client/components/rooms/voting/poll/PollMessageInput.vue';
+	import SchedulerMessageInput from '@hub-client/components/rooms/voting/scheduler/SchedulerMessageInput.vue';
+	import EmojiPicker from '@hub-client/components/ui/EmojiPicker.vue';
+	import Mention from '@hub-client/components/ui/Mention.vue';
+	import Popover from '@hub-client/components/ui/Popover.vue';
+	import PopoverButton from '@hub-client/components/ui/PopoverButton.vue';
+
+	// Composables
+	import { fileUpload } from '@hub-client/composables/fileUpload';
+	import { useFormInputEvents, usedEvents } from '@hub-client/composables/useFormInputEvents';
+	import { useMatrixFiles } from '@hub-client/composables/useMatrixFiles';
+
+	// Logic
+	import filters from '@hub-client/logic/core/filters';
+	import { useMessageInput } from '@hub-client/logic/messageInput';
+
+	// Models
+	import { YiviSigningSessionResult } from '@hub-client/models/components/signedMessages';
+	import { RelationType } from '@hub-client/models/constants';
+	import { TMessageEvent } from '@hub-client/models/events/TMessageEvent';
+	import { Poll, Scheduler } from '@hub-client/models/events/voting/VotingTypes';
+	import Room from '@hub-client/models/rooms/Room';
+
+	// Stores
+	import { useMessageActions } from '@hub-client/stores/message-actions';
+	import { usePubhubsStore } from '@hub-client/stores/pubhubs';
+	import { useRooms } from '@hub-client/stores/rooms';
+	import { FeatureFlag, useSettings } from '@hub-client/stores/settings';
+	import { useUser } from '@hub-client/stores/user';
 
 	const { t } = useI18n();
 	const user = useUser();
 	const route = useRoute();
 	const rooms = useRooms();
-	const pubhubs = usePubHubs();
+	const pubhubs = usePubhubsStore();
 	const settings = useSettings();
 	const messageActions = useMessageActions();
 	const messageInput = useMessageInput();
@@ -254,7 +264,7 @@
 		() => props.editingPoll,
 		() => {
 			if (props.editingPoll) {
-				pubhubs.editPoll(props.editingPoll.poll, props.editingPoll.eventId);
+				pubhubs.editPoll(props.room.roomId, props.editingPoll.eventId, props.editingPoll.poll);
 				pollObject.value = props.editingPoll.poll;
 			}
 		},
@@ -264,7 +274,7 @@
 		() => props.editingScheduler,
 		() => {
 			if (props.editingScheduler) {
-				pubhubs.editScheduler(props.editingScheduler.scheduler, props.editingScheduler.eventId);
+				pubhubs.editScheduler(props.room.roomId, props.editingScheduler.eventId, props.editingScheduler.scheduler);
 				schedulerObject.value = props.editingScheduler.scheduler;
 			}
 		},
@@ -288,7 +298,7 @@
 		// if the message is not in a thread we can only set inReplyTo if we are not in a thread
 		if (messageActions.replyingTo) {
 			const message = ((await pubhubs.getEvent(rooms.currentRoomId, messageActions.replyingTo)) as TMessageEvent) ?? undefined;
-			if (message?.content['m.relates_to']?.['rel_type'] === 'm.thread') {
+			if (message?.content[RelationType.RelatesTo]?.[RelationType.RelType] === RelationType.Thread) {
 				inReplyTo.value = props.inThread ? message : undefined;
 			} else {
 				inReplyTo.value = !props.inThread ? message : undefined;
@@ -382,7 +392,7 @@
 	}
 
 	async function announcementMessage() {
-		const powerLevel = props.room.getPowerLevel(user.user.userId);
+		const powerLevel = props.room.getPowerLevel(user.userId);
 		// if (value.value?.toLocaleString().length === 0) return;
 		await pubhubs.addAnnouncementMessage(rooms.currentRoomId, value.value!.toString(), powerLevel);
 		value.value = '';

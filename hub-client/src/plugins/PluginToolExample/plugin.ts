@@ -7,8 +7,8 @@
  * - PluginToolExample.vue - the component used
  *
  */
-
-import { MenuPluginProperties, PluginType } from '@/logic/store/plugins';
+// Stores
+import { MenuPluginProperties, PluginType } from '@hub-client/stores/plugins';
 
 // As this is a menu item, we need a translation for the name in the menu
 // In this case we just create them here

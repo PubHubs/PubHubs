@@ -1,8 +1,13 @@
-import Dialog from '../../src/components/ui/Dialog.vue';
-import { DialogButton } from '../../src/logic/store/dialog';
-import { describe, expect, beforeEach, test, afterEach } from 'vitest';
-import { flushPromises, shallowMount } from '@vue/test-utils';
+// Packages
 import { createTestingPinia } from '@pinia/testing';
+import { flushPromises, shallowMount } from '@vue/test-utils';
+import { afterEach, beforeEach, describe, expect, test } from 'vitest';
+
+// Components
+import Dialog from '@hub-client/components/ui/Dialog.vue';
+
+// Stores
+import { DialogButton } from '@hub-client/stores/dialog';
 
 describe('Dialog.vue Test', () => {
 	let wrapper;

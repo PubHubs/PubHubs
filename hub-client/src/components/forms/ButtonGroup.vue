@@ -16,11 +16,14 @@
 </template>
 
 <script setup lang="ts">
-	// Components
-	import Button from '../elements/Button.vue';
-
+	// Packages
 	import { PropType, watch } from 'vue';
-	import { Options, useFormInputEvents, usedEvents } from '@/logic/composables/useFormInputEvents';
+
+	// Components
+	import Button from '@hub-client/components/elements/Button.vue';
+
+	// Composables
+	import { Options, useFormInputEvents, usedEvents } from '@hub-client/composables/useFormInputEvents';
 
 	const props = defineProps({
 		options: {

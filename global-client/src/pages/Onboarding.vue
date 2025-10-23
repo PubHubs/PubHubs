@@ -204,32 +204,32 @@
 </template>
 
 <script setup lang="ts">
-	// External imports
+	// Packages
 	import { computed, onMounted, onUnmounted, ref, watch } from 'vue';
-	import { useRouter } from 'vue-router';
 	import { useI18n } from 'vue-i18n';
+	import { useRouter } from 'vue-router';
 
 	// Components
-	import Logo from '@/components/ui/Logo.vue';
-	import CarouselCard from '@/components/ui/onboarding/CarouselCard.vue';
-	import CarouselCardMobile from '@/components/ui/onboarding/CarouselCardMobile.vue';
-	import DownloadLinks from '@/components/ui/onboarding/DownloadLinks.vue';
+	import Logo from '@global-client/components/ui/Logo.vue';
+	import CarouselCard from '@global-client/components/ui/onboarding/CarouselCard.vue';
+	import CarouselCardMobile from '@global-client/components/ui/onboarding/CarouselCardMobile.vue';
+	import DownloadLinks from '@global-client/components/ui/onboarding/DownloadLinks.vue';
 
 	// Logic
-	import { useGlobal } from '@/logic/store/global';
-	import { useMSS } from '@/logic/store/mss';
-	import { useSettings } from '@/logic/store/settings';
-	import { loginMethods, PHCEnterMode } from '@/model/MSS/TMultiServerSetup';
+	import { CONFIG } from '@hub-client/logic/logging/Config';
+	import { Logger } from '@hub-client/logic/logging/Logger';
+	import { SMI } from '@hub-client/logic/logging/StatusMessage';
 
-	// Hub imports
-	import { Logger } from '@/logic/foundation/Logger';
-	import { CONFIG } from '@/../../hub-client/src/logic/foundation/Config';
-	import { SMI } from '@/../../hub-client/src/logic/foundation/StatusMessage';
+	import { PHCEnterMode, loginMethods } from '@global-client/models/MSS/TMultiServerSetup';
 
-	// Store
+	// Logic
+	import { useMSS } from '@global-client/stores/mss';
+
+	// Stores
+	import { useSettings } from '@hub-client/stores/settings';
+
 	const settings = useSettings();
 	const { t } = useI18n();
-	const global = useGlobal();
 	const router = useRouter();
 
 	// Logging
@@ -240,7 +240,6 @@
 	const isMobile = computed(() => settings.isMobileState);
 	const currentIndex = ref(0);
 	const faqIndex = ref<number | null>(null);
-
 	const items = [1, 2, 3];
 
 	// DOM refs for carousels

@@ -3,9 +3,13 @@
 </template>
 
 <script setup lang="ts">
+	// Packages
 	import { computed } from 'vue';
 	import { useI18n } from 'vue-i18n';
-	import Room from '@/model/rooms/Room';
+
+	// Models
+	import Room from '@hub-client/models/rooms/Room';
+
 	const { t } = useI18n();
 
 	const props = defineProps({

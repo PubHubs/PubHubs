@@ -193,7 +193,7 @@ globalclient-format-check:
     - npm ci
     - cd ../global-client
     - npm ci
-    - npx prettier ./src --check --ignore-unknown --config ./package.json
+    - npx prettier ./src --check --ignore-unknown --config ./.prettierrc
     - echo "see https://gitlab.science.ru.nl/ilab/pubhubs_canonical/-/wikis/Contributing/(re)format-client-code"
 
 globalclient-build:
@@ -222,7 +222,7 @@ hubclient-format-check:
   script:
     - cd hub-client
     - npm ci
-    - npx prettier ./src --check --ignore-unknown --config ./package.json
+    - npx prettier ./src --check --ignore-unknown --config ./.prettierrc
 
 globalclient-unit-test:
   stage: tests

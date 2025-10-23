@@ -1,13 +1,12 @@
-/**
- * Helper class for handling backend service related to advance user like admin or steward.
- */
+// Logic
+import { api_matrix, api_synapse } from '@hub-client/logic/core/api';
 
-import { TUserAccountList, TUserJoinedRooms } from '@/model/users/TUser';
-import { TState } from '@/model/events/TStateEvent';
-import { api_synapse, api_matrix } from '@/logic/core/api';
-import { RoomMembers } from '@/model/hubmanagement/types/roomMembers';
-import { AccessToken } from '@/model/hubmanagement/types/authType';
-import { UserAccount } from '@/model/hubmanagement/types/userAccount';
+// Models
+import { TState } from '@hub-client/models/events/TStateEvent';
+import { AccessToken } from '@hub-client/models/hubmanagement/types/authType';
+import { RoomMembers } from '@hub-client/models/hubmanagement/types/roomMembers';
+import { UserAccount } from '@hub-client/models/hubmanagement/types/userAccount';
+import { TUserAccountList, TUserJoinedRooms } from '@hub-client/models/users/TUser';
 
 export class APIService {
 	/** See https://github.com/element-hq/synapse/blob/develop/docs/admin_api/user_admin_api.md#list-accounts

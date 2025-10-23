@@ -46,20 +46,26 @@
 </template>
 
 <script setup lang="ts">
-	// Package imports
-	import { ref, computed } from 'vue';
+	// Packages
+	import { computed, ref } from 'vue';
 	import { useI18n } from 'vue-i18n';
 
-	// Global imports
-	import SettingsDialog from '@/components/forms/SettingsDialog.vue';
-	import HubMenu from '@/components/ui/HubMenu.vue';
-	import Logo from '@/components/ui/Logo.vue';
-	import { useDialog, useGlobal, useMSS, useSettings } from '@/logic/store/store';
-	import { useToggleMenu } from '@/logic/store/toggleGlobalMenu';
-	import GlobalbarButton from '@/components/ui/GlobalbarButton.vue';
+	// Assets
+	import { icons } from '@hub-client/assets/icons';
 
-	// Hub imports
-	import { icons } from '@/../../hub-client/src/assets/icons';
+	import SettingsDialog from '@global-client/components/forms/SettingsDialog.vue';
+	// Components
+	import GlobalbarButton from '@global-client/components/ui/GlobalbarButton.vue';
+	import HubMenu from '@global-client/components/ui/HubMenu.vue';
+	import Logo from '@global-client/components/ui/Logo.vue';
+
+	// Stores
+	import { useGlobal } from '@global-client/stores/global';
+	import { useMSS } from '@global-client/stores/mss';
+	import { useToggleMenu } from '@global-client/stores/toggleGlobalMenu';
+
+	import { useDialog } from '@hub-client/stores/dialog';
+	import { useSettings } from '@hub-client/stores/settings';
 
 	const dialog = useDialog();
 	const { t } = useI18n();

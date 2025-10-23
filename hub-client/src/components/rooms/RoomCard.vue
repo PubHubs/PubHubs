@@ -86,23 +86,23 @@
 </template>
 
 <script setup lang="ts">
-	// External imports
+	// Packages
 	import { computed, ref, watch } from 'vue';
 	import { useI18n } from 'vue-i18n';
 	import { useRouter } from 'vue-router';
 
 	// Components
-	import Button from '@/components/elements/Button.vue';
-	import H2 from '@/components/elements/H2.vue';
-	import Icon from '@/components/elements/Icon.vue';
-	import P from '@/components/elements/P.vue';
-	import SecuredRoomLoginDialog from '@/components/rooms/SecuredRoomLoginDialog.vue';
+	import Button from '@hub-client/components/elements/Button.vue';
+	import H2 from '@hub-client/components/elements/H2.vue';
+	import Icon from '@hub-client/components/elements/Icon.vue';
+	import P from '@hub-client/components/elements/P.vue';
+	import SecuredRoomLoginDialog from '@hub-client/components/rooms/SecuredRoomLoginDialog.vue';
 
-	// Logic
-	import { usePubHubs } from '@/logic/core/pubhubsStore';
-	import { useRooms } from '@/logic/store/rooms';
-	import { useDialog } from '@/logic/store/dialog';
-	import { useUser } from '@/logic/store/user';
+	// Stores
+	import { useDialog } from '@hub-client/stores/dialog';
+	import { usePubhubsStore } from '@hub-client/stores/pubhubs';
+	import { useRooms } from '@hub-client/stores/rooms';
+	import { useUser } from '@hub-client/stores/user';
 
 	// Setup
 	const props = defineProps({
@@ -130,10 +130,9 @@
 
 	const { t } = useI18n();
 	const router = useRouter();
-
 	const user = useUser();
 	const dialog = useDialog();
-	const pubhubsStore = usePubHubs();
+	const pubhubsStore = usePubhubsStore();
 	const roomsStore = useRooms();
 	const accessVerifytext = ref('');
 	const panelOpen = ref(false);
@@ -177,7 +176,7 @@
 		const retryDelay = 500;
 
 		for (let attempt = 0; attempt < maxRetries; attempt++) {
-			const hasJoined = await pubhubsStore.isUserRoomMember(user.user.userId, props.room.room_id);
+			const hasJoined = await pubhubsStore.isUserRoomMember(user.userId, props.room.room_id);
 			if (hasJoined) break;
 
 			if (attempt === maxRetries - 1) {

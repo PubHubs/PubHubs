@@ -1,21 +1,17 @@
-// Package imports
-import { ClientEvent, EventType, MatrixClient, MatrixEvent, Room as MatrixRoom, MsgType, RoomEvent, RoomMember, RoomMemberEvent } from 'matrix-js-sdk';
-import { SyncState } from 'matrix-js-sdk/lib/sync.js';
+// Packages
+import { EventType, MatrixClient, MatrixEvent, MsgType, RoomMember } from 'matrix-js-sdk';
 
-// Hub imports
-import { EventTimeLineHandler } from '@/logic/core/eventTimeLineHandler.js';
-import { usePubHubs } from '@/logic/core/pubhubsStore.js';
-import { useConnection } from '@/logic/store/connection.js';
-import { useSettings } from '@/logic/store/settings.js';
-import { useRooms } from '@/logic/store/rooms.js';
-import { TEvent } from '@/model/events/TEvent.js';
+// Logic
+import { EventTimeLineHandler } from '@hub-client/logic/core/eventTimeLineHandler';
 
-enum RedactReasons {
-	Deleted = 'Deleted',
-	DeletedFromThread = 'Deleted from thread',
-}
+// Models
+import { TEvent } from '@hub-client/models/events/TEvent';
 
-enum PubHubsMgType {
+// Stores
+import { usePubhubsStore } from '@hub-client/stores/pubhubs';
+import { useRooms } from '@hub-client/stores/rooms';
+
+enum PubHubsMsgType {
 	Default = '',
 	SignedMessage = 'pubhubs.signed_message',
 	AskDisclosureMessage = 'pubhubs.ask_disclosure_message',
@@ -45,57 +41,61 @@ enum PubHubsInvisibleMsgType {
 }
 
 class Events {
-	private readonly client: MatrixClient;
-	private readonly eventTimeHandler = new EventTimeLineHandler();
+	//private readonly client: MatrixClient;
+	private readonly eventTimeLineHandler = new EventTimeLineHandler();
 
-	public constructor(client: MatrixClient) {
-		this.client = client;
-		this.client.on(RoomEvent.Timeline, (event: MatrixEvent, matrixRoom: MatrixRoom | undefined, toStartOfTimeline: boolean | undefined) => this.eventRoomTimeline(this.eventTimeHandler, event, matrixRoom, toStartOfTimeline));
-		this.client.on(RoomMemberEvent.Membership, this.eventRoomMemberMembership(this.client));
-	}
+	// TODO: Can this be removed
+	// public constructor(client: MatrixClient) {
+	// 	//this.client = client;
+	// 	// this.client.on(RoomEvent.Timeline, (event: MatrixEvent, matrixRoom: MatrixRoom | undefined, toStartOfTimeline: boolean | undefined) => this.eventRoomTimeline(this.eventTimeHandler, event, matrixRoom, toStartOfTimeline));
+	// 	// this.client.on(RoomMemberEvent.Membership, this.eventRoomMemberMembership(this.client));
+	// }
 
-	initEvents() {
-		return new Promise((resolve) => {
-			this.client.on(ClientEvent.Sync, (state: SyncState) => {
-				const connection = useConnection();
-				if (state === 'ERROR') {
-					connection.error();
-				}
-				if (state === 'RECONNECTING') {
-					connection.off();
-				}
-				if (state === 'SYNCING') {
-					connection.on();
-				}
-				if (state === 'PREPARED') {
-					// DEBUGGING purpose - To understand the following events.
-					// this.client.on('event' as any, (event: any) => {
-					// 	console.debug('== EVENT', event.getType());
-					// 	console.debug('== EVENT', event);
-					// });
-					resolve(true);
-				}
-			});
+	// TODO SlidingSync threads are passed by the eventtimeline, test if it all still works with the sliding sync.
+	// initEvents() {
+	// 	return new Promise((resolve) => {
+	// 		this.client.on(ClientEvent.Sync, (state: SyncState) => {
+	// 			const connection = useConnection();
+	// 			if (state === 'ERROR') {
+	// 				connection.error();
+	// 			}
+	// 			if (state === 'RECONNECTING') {
+	// 				connection.off();
+	// 			}
+	// 			if (state === 'SYNCING') {
+	// 				connection.on();
+	// 			}
+	// 			if (state === 'PREPARED') {
+	// 				// DEBUGGING purpose - To understand the following events.
+	// 				// this.client.on('event' as any, (event: any) => {
+	// 				// 	console.debug('== EVENT', event.getType());
+	// 				// 	console.debug('== EVENT', event);
+	// 				// });
+	// 				resolve(true);
+	// 			}
+	// 		});
 
-			// Start client sync
-			const settings = useSettings();
-			this.client.startClient({
-				threadSupport: true,
-				initialSyncLimit: settings.pagination,
-				includeArchivedRooms: false,
-			});
-		});
-	}
+	// 		// Start client sync
+	// 		const settings = useSettings();
+	// 		this.client
+	// 			.startClient({
+	// 				threadSupport: true,
+	// 				initialSyncLimit: settings.pagination,
+	// 				includeArchivedRooms: false,
+	// 			})
+	// 			.then((result) => {
+	// 				console.error('Client started with result:', result);
+	// 			});
+	// 	});
+	// }
 
 	/**
 	 * Matrix Events
 	 */
 
-	eventRoomTimeline(eventTimeLineHandler: EventTimeLineHandler, event: MatrixEvent, matrixRoom: MatrixRoom | undefined, toStartOfTimeline: boolean | undefined) {
-		if (!matrixRoom) return;
-
+	eventRoomTimeline(event: MatrixEvent, toStartOfTimeline: boolean | undefined) {
 		if (event.event.type === EventType.RoomMessage && event.event.content?.msgtype === MsgType.Text) {
-			event.event = eventTimeLineHandler.transformEventContent(event.event as Partial<TEvent>);
+			event.event = this.eventTimeLineHandler.transformEventContent(event.event as Partial<TEvent>);
 		}
 
 		if (event.event.type === EventType.RoomMessage && event.event.content?.msgtype === MsgType.Notice) {
@@ -124,7 +124,7 @@ class Events {
 						rooms.rooms[roomId].setHidden(true);
 					}
 				} else if (member.membership === 'invite') {
-					const pubhubs = usePubHubs();
+					const pubhubs = usePubhubsStore();
 					pubhubs
 						.joinRoom(member.roomId)
 						.catch((e) => console.debug(e.toString()))
@@ -146,7 +146,7 @@ class Events {
 							rooms.rooms[roomId].setHidden(false);
 						}
 					} else {
-						const pubhubs = usePubHubs();
+						const pubhubs = usePubhubsStore();
 						pubhubs.updateRooms();
 					}
 				}
@@ -155,4 +155,4 @@ class Events {
 	}
 }
 
-export { Events, RedactReasons, PubHubsMgType, PubHubsInvisibleMsgType };
+export { Events, PubHubsMsgType as PubHubsMgType, PubHubsInvisibleMsgType };

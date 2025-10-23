@@ -1,10 +1,17 @@
-import { useSettings } from '@/logic/store/store.js';
+// Packages
+// @ts-expect-error
+import yiviClient from '@privacybydesign/yivi-client';
+// @ts-expect-error
+import yiviCore from '@privacybydesign/yivi-core';
+// @ts-expect-error
+import yiviWeb from '@privacybydesign/yivi-web';
 import { Ref } from 'vue';
 
-import '../../../../hub-client/src/assets/yivi.min.css';
-import yiviCore from '@privacybydesign/yivi-core';
-import yiviWeb from '@privacybydesign/yivi-web';
-import yiviClient from '@privacybydesign/yivi-client';
+// Assets
+import '@hub-client/assets/yivi.min.css';
+
+// Stores
+import { useSettings } from '@hub-client/stores/settings';
 
 const startYiviSession = (register: boolean, yivi_token: Ref<string>) => {
 	const settings = useSettings();

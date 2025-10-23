@@ -7,14 +7,15 @@
 </template>
 
 <script setup lang="ts">
-	// Components
-	import Tabs from '../ui/Tabs.vue';
-	import FormObjectInputContent from './FormObjectInputContent.vue';
-
+	// Packages
 	import { ref } from 'vue';
-	import { FormObjectInputTemplate } from '@/logic/composables/useFormInputEvents';
 
-	// const emit = defineEmits(['input']);
+	// Components
+	import FormObjectInputContent from '@hub-client/components/forms/FormObjectInputContent.vue';
+	import Tabs from '@hub-client/components/ui/Tabs.vue';
+
+	// Composables
+	import { FormObjectInputTemplate } from '@hub-client/composables/useFormInputEvents';
 
 	const props = defineProps({
 		template: {

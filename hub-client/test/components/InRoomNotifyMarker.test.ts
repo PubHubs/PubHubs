@@ -1,8 +1,10 @@
-import { afterEach, beforeEach, describe, expect, test } from 'vitest';
-import { createPinia, setActivePinia } from 'pinia';
+// Packages
 import { flushPromises, shallowMount } from '@vue/test-utils';
+import { createPinia, setActivePinia } from 'pinia';
+import { afterEach, beforeEach, describe, expect, test } from 'vitest';
 
-import InRoomNotifyMarker from '@/components/ui/InRoomNotifyMarker.vue';
+// Components
+import InRoomNotifyMarker from '@hub-client/components/ui/InRoomNotifyMarker.vue';
 
 describe('InRoomNotifyMarker.vue Test', () => {
 	// Test variables

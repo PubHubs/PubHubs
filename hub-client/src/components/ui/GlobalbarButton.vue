@@ -9,8 +9,8 @@
 </template>
 
 <script setup lang="ts">
-	// Global imports
-	import Icon from '@/components/elements/Icon.vue';
+	// Components
+	import Icon from '@hub-client/components/elements/Icon.vue';
 
 	const props = defineProps({
 		type: {

@@ -9,11 +9,11 @@
 </template>
 
 <script setup lang="ts">
-	// Package imports
+	// Packages
 	import { PropType } from 'vue';
 
-	// Hub imports
-	import Icon from '../../../../hub-client/src/components/elements/Icon.vue';
+	// Componments
+	import Icon from '@hub-client/components/elements/Icon.vue';
 
 	defineProps({
 		instructions: {

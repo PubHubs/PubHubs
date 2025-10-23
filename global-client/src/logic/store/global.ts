@@ -1,17 +1,15 @@
 // Package imports
-import { defineStore } from 'pinia';
-
+import { CONFIG } from '@/../../hub-client/src/logic/foundation/Config.js';
+import { Logger } from '@/../../hub-client/src/logic/foundation/Logger.js';
+// Hub imports
+import { SMI } from '@/../../hub-client/src/logic/foundation/StatusMessage.js';
 // Global imports
 import { api } from '@/logic/core/api.js';
+import { useHubs } from '@/logic/store/hubs.js';
 import { useMSS } from '@/logic/store/mss.js';
 import { Theme, TimeFormat, useSettings } from '@/logic/store/settings.js';
 import { Hub } from '@/model/Hubs.js';
-import { useHubs } from '@/logic/store/hubs.js';
-
-// Hub imports
-import { SMI } from '@/../../hub-client/src/logic/foundation/StatusMessage.js';
-import { Logger } from '@/../../hub-client/src/logic/foundation/Logger.js';
-import { CONFIG } from '@/../../hub-client/src/logic/foundation/Config.js';
+import { defineStore } from 'pinia';
 
 type PinnedHub = {
 	hubId: string;

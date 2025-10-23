@@ -1,7 +1,13 @@
-import { describe, expect, test, afterAll, afterEach, beforeAll } from 'vitest';
+// Packages
+// Tests
 import { server } from '../mocks/server';
-import { SecuredRoom } from '@/logic/store/rooms';
-import { api_synapse } from '@/logic/core/api';
+import { afterAll, afterEach, beforeAll, describe, expect, test } from 'vitest';
+
+// Logic
+import { api_synapse } from '@hub-client/logic/core/api';
+
+// Stores
+import { TSecuredRoom } from '@hub-client/stores/rooms';
 
 beforeAll(() => server.listen({ onUnhandledRequest: 'error' }));
 afterAll(() => server.close());
@@ -13,9 +19,7 @@ describe('api_synapse', () => {
 	});
 
 	test('api - apiURLS', () => {
-		// @ts-ignore
 		expect(api_synapse.baseURL).toBe('http://test/_synapse/');
-
 		expect(api_synapse.apiURLS.securedRooms).toBe('http://test/_synapse/client/secured_rooms');
 		expect(api_synapse.apiURLS.roomsAPIV2).toBe('http://test/_synapse/admin/v2/rooms/');
 		expect(api_synapse.apiURLS.usersAPIV1).toBe('http://test/_synapse/admin/v1/users/');
@@ -65,7 +69,7 @@ describe('api secured rooms', () => {
 	});
 
 	test('POST', async () => {
-		const body = {} as SecuredRoom;
+		const body = {} as TSecuredRoom;
 		await expect(api_synapse.apiPOST(api_synapse.apiURLS.securedRooms, body)).rejects.toThrowError('Error');
 		body.room_name = 'Secured';
 		await expect(api_synapse.apiPOST(api_synapse.apiURLS.securedRooms, body)).rejects.toThrowError('Error');

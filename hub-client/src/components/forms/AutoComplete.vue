@@ -26,10 +26,14 @@
 </template>
 
 <script setup lang="ts">
-	import { onMounted, computed, watch } from 'vue';
-	import { InputType, useFormInputEvents, usedEvents } from '@/logic/composables/useFormInputEvents';
-	import { useKeyStrokes } from '@/logic/composables/useKeyStrokes';
+	// Packages
+	import { computed, onMounted, watch } from 'vue';
 
+	// Composables
+	import { InputType, useFormInputEvents, usedEvents } from '@hub-client/composables/useFormInputEvents';
+	import { useKeyStrokes } from '@hub-client/composables/useKeyStrokes';
+
+	// Types
 	type Props = {
 		options: Array<String>;
 		value: string | Object;

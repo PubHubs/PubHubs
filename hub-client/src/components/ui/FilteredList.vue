@@ -13,16 +13,17 @@
 </template>
 
 <script setup lang="ts">
-	import { ref, computed } from 'vue';
-	import { FilteredListEvent } from '@/model/components/FilteredListEvent';
+	// Packages
 	import { User as MatrixUser } from 'matrix-js-sdk';
+	import { computed, ref } from 'vue';
 
-	import Icon from '@/components/elements/Icon.vue';
+	// Components
+	import Icon from '@hub-client/components/elements/Icon.vue';
 
-	const emit = defineEmits(['click', 'filter']);
+	// Models
+	import { FilteredListEvent } from '@hub-client/models/components/FilteredListEvent';
 
-	const filter = ref('');
-
+	// Types
 	type Props = {
 		items: Array<Record<string, any>>;
 		filterKey?: string[];
@@ -35,6 +36,9 @@
 		placeholder: string;
 		selected?: Array<MatrixUser>;
 	};
+
+	const emit = defineEmits(['click', 'filter']);
+	const filter = ref('');
 
 	const props = withDefaults(defineProps<Props>(), {
 		items: () => [],

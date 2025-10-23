@@ -26,19 +26,27 @@
 </template>
 
 <script setup lang="ts">
-	import { ref, onMounted, onUnmounted, onBeforeMount, computed } from 'vue';
+	// Packages
+	import { computed, onBeforeMount, onMounted, onUnmounted, ref } from 'vue';
 	import { useI18n } from 'vue-i18n';
 	import { useRouter } from 'vue-router';
-	import { useDialog } from '@/logic/store/dialog';
-	import { Hub } from '@/model/Hubs';
-	import HubIcon from '../../../../hub-client/src/components/ui/HubIcon.vue';
-	import HubBanner from '../../../../hub-client/src/components/ui/HubBanner.vue';
-	import Button from '../../../../hub-client/src/components/elements/Button.vue';
-	import TruncatedText from '../../../../hub-client/src/components/elements/TruncatedText.vue';
-	import Pre from '../../../../hub-client/src/components/elements/Pre.vue';
-	import { useSettings } from '@/logic/store/settings';
-	import { useMSS } from '@/logic/store/mss';
-	import { useGlobal } from '@/logic/store/store';
+
+	// Components
+	import Button from '@hub-client/components/elements/Button.vue';
+	import Pre from '@hub-client/components/elements/Pre.vue';
+	import TruncatedText from '@hub-client/components/elements/TruncatedText.vue';
+	import HubBanner from '@hub-client/components/ui/HubBanner.vue';
+	import HubIcon from '@hub-client/components/ui/HubIcon.vue';
+
+	// Models
+	import { Hub } from '@global-client/models/Hubs';
+
+	import { useGlobal } from '@global-client/stores/global';
+	import { useMSS } from '@global-client/stores/mss';
+
+	// Stores
+	import { useDialog } from '@hub-client/stores/dialog';
+	import { useSettings } from '@hub-client/stores/settings';
 
 	const router = useRouter();
 	const dialog = useDialog();
@@ -50,7 +58,6 @@
 	const props = defineProps<{ hub: Hub }>();
 
 	const isMobile = computed(() => settings.isMobileState);
-
 	const summary = ref<string>('');
 	const contact = ref<string>('');
 	const showDescription = ref(false);

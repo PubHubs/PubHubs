@@ -3,12 +3,12 @@
 </template>
 
 <script setup lang="ts">
+	// Packages
 	import { computed } from 'vue';
 
 	type Props = {
 		direction?: 'Vertical' | 'Horizontal';
-		// Given as a tailwind size (For example, h-thickness).
-		thickness?: string;
+		thickness?: string; // Given as a tailwind size (e.g., h-thickness).
 	};
 
 	const props = withDefaults(defineProps<Props>(), {

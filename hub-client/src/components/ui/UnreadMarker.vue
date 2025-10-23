@@ -6,8 +6,11 @@
 </template>
 
 <script setup lang="ts">
+	// Packages
 	import { computed } from 'vue';
-	import { useRooms } from '@/logic/store/store';
+
+	// Stores
+	import { useRooms } from '@hub-client/stores/rooms';
 
 	const rooms = useRooms();
 

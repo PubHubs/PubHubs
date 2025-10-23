@@ -11,7 +11,7 @@
 
 <script setup lang="ts">
 	// Components
-	import HeaderFooter from '@/components/ui/HeaderFooter.vue';
-	import H1 from '@/components/elements/H1.vue';
-	import H2 from '@/components/elements/H2.vue';
+	import H1 from '@hub-client/components/elements/H1.vue';
+	import H2 from '@hub-client/components/elements/H2.vue';
+	import HeaderFooter from '@hub-client/components/ui/HeaderFooter.vue';
 </script>

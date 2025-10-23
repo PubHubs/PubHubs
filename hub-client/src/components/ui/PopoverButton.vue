@@ -6,7 +6,8 @@
 </template>
 
 <script setup lang="ts">
-	import Icon from '../elements/Icon.vue';
+	// Components
+	import Icon from '@hub-client/components/elements/Icon.vue';
 
 	const emit = defineEmits(['click']);
 

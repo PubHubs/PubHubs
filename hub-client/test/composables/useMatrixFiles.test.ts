@@ -1,7 +1,9 @@
+// Packages
 import { createPinia, setActivePinia } from 'pinia';
-import { describe, expect, test, beforeEach } from 'vitest';
+import { beforeEach, describe, expect, test } from 'vitest';
 
-import { useMatrixFiles, downloadUrl } from '@/logic/composables/useMatrixFiles';
+// Composables
+import { useMatrixFiles } from '@hub-client/composables/useMatrixFiles';
 
 describe('useMatrixFiles', () => {
 	beforeEach(() => {

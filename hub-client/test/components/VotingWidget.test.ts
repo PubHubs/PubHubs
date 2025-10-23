@@ -1,17 +1,26 @@
-import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest';
-import { createPinia, setActivePinia } from 'pinia';
+// Packages
 import { config } from '@vue/test-utils';
 import { mount } from '@vue/test-utils';
-import { usePubHubs } from '@/logic/core/pubhubsStore.ts';
+import { createPinia, setActivePinia } from 'pinia';
+import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest';
 import { createI18n } from 'vue-i18n';
-import { nl } from '@/locales/nl';
-import { en } from '@/locales/en';
 
-import { TVotingWidgetMessageEventContent } from '@/model/events/voting/TVotingMessageEvent';
-import { Poll, PollOption, VotingOptions, VotingWidgetType, Scheduler, SchedulerOption } from '@/model/events/voting/VotingTypes';
-import VotingWidget from '@/components/rooms/voting/VotingWidget.vue';
+// Components
+import VotingWidget from '@hub-client/components/rooms/voting/VotingWidget.vue';
 
-//add to VotingWidget-test-setup.ts
+import { en } from '@hub-client/locales/en';
+// Locales
+import { nl } from '@hub-client/locales/nl';
+
+// Models
+import { TVotingWidgetMessageEventContent } from '@hub-client/models/events/voting/TVotingMessageEvent';
+import { Poll, PollOption, Scheduler, SchedulerOption, VotingOptions, VotingWidgetType } from '@hub-client/models/events/voting/VotingTypes';
+
+// Stores
+import { usePubhubsStore } from '@hub-client/stores/pubhubs';
+import { useUser } from '@hub-client/stores/user';
+
+// Add to VotingWidget-test-setup.ts
 config.global.mocks = {
 	$t: (tKey) => tKey,
 };
@@ -23,6 +32,11 @@ describe('VotingWidget functions', () => {
 	beforeEach(() => {
 		setActivePinia(createPinia());
 
+		const user = useUser();
+
+		user.client = {
+			getUser: vi.fn().mockReturnValue({ displayName: 'Test User' }),
+		};
 		// Options cloned from main code - see hub-client/src/i18n.ts
 		i18n = createI18n({
 			legacy: false,
@@ -36,8 +50,8 @@ describe('VotingWidget functions', () => {
 			},
 		});
 
-		//mock access token before each test
-		const pubhubs = usePubHubs();
+		// Mock access token before each test
+		const pubhubs = usePubhubsStore();
 		const accessTokenMock = vi.fn();
 		pubhubs.Auth.getAccessToken = accessTokenMock;
 	});
@@ -47,7 +61,7 @@ describe('VotingWidget functions', () => {
 	});
 
 	test('initializeVotesByOption initializes votes correctly for scheduler type', () => {
-		//use date of the system to test functions
+		// Use date of the system to test functions
 		const date = new Date();
 		const wrapper = mount(VotingWidget, {
 			global: { plugins: [i18n] },
@@ -69,11 +83,11 @@ describe('VotingWidget functions', () => {
 				},
 			},
 		});
-		//call the function and test if it was called
+		// Call the function and test if it was called
 		const initializeVotesByOptionSpy = vi.spyOn(wrapper.vm, 'initializeVotesByOption');
 		const result = wrapper.vm.initializeVotesByOption(wrapper.vm.props.event.content.options);
 		expect(initializeVotesByOptionSpy).toHaveBeenCalled();
-		//add array of expected votes
+		// Add array of expected votes
 		const expectedVotes = [
 			{
 				optionId: 1,
@@ -94,12 +108,12 @@ describe('VotingWidget functions', () => {
 				],
 			},
 		];
-		//check if votes are initialized correctly
+		// Check if votes are initialized correctly
 		expect(result).toEqual(expectedVotes);
 	});
 
 	test('initializeVotesByOption initializes votes correctly for poll type', () => {
-		//mount the component 'VotingWidget' with props
+		// Mount the component 'VotingWidget' with props
 		const wrapper = mount(VotingWidget, {
 			global: { plugins: [i18n] },
 			props: {
@@ -118,11 +132,11 @@ describe('VotingWidget functions', () => {
 			},
 		});
 
-		//call the function
+		// Call the function
 		const initializeVotesByOptionSpy = vi.spyOn(wrapper.vm, 'initializeVotesByOption');
 		const result = wrapper.vm.initializeVotesByOption(wrapper.vm.props.event.content.options);
 		expect(initializeVotesByOptionSpy).toHaveBeenCalled();
-		//add array of expected votes
+		// Add array of expected votes
 		const expectedVotes = [
 			{
 				optionId: 1,
@@ -139,12 +153,12 @@ describe('VotingWidget functions', () => {
 				],
 			},
 		];
-		//check if votes are initialized correctly
+		// Check if votes are initialized correctly
 		expect(result).toEqual(expectedVotes);
 	});
 
 	test('removeRedactedVotes correctly removes redacted votes for scheduler type', () => {
-		//use date of the system to test functions
+		// Use date of the system to test functions
 		const date = new Date();
 		const votesByOption = new VotingOptions();
 		votesByOption.options = [
@@ -179,7 +193,7 @@ describe('VotingWidget functions', () => {
 				],
 			},
 		];
-		//mount the component with the relevant events
+		// Mount the component with the relevant events
 		const wrapper = mount(VotingWidget, {
 			global: { plugins: [i18n] },
 			props: {
@@ -200,10 +214,10 @@ describe('VotingWidget functions', () => {
 				},
 			},
 		});
-		//set the votesByOption field of the mocked component (cant do this when mounting)
+		// Set the votesByOption field of the mocked component (cant do this when mounting)
 		votesByOption.removeRedactedVotes();
 		wrapper.vm.votesByOption = votesByOption;
-		//add array of expected votes
+		// Add array of expected votes
 		const expectedVotes = [
 			{
 				optionId: 1,
@@ -228,12 +242,12 @@ describe('VotingWidget functions', () => {
 				],
 			},
 		];
-		//check if votes are initialized correctly
+		// Check if votes are initialized correctly
 		expect(wrapper.vm.votesByOption.options).toEqual(expectedVotes);
 	});
 
 	test('removeRedactedVotes correctly removes redacted votes for poll type', () => {
-		//use date of the system to test functions
+		// Use date of the system to test functions
 		const date = new Date();
 		const votesByOption = new VotingOptions();
 		votesByOption.options = [
@@ -261,7 +275,7 @@ describe('VotingWidget functions', () => {
 			},
 		];
 
-		//mount the component with the relevant events
+		// Mount the component with the relevant events
 		const wrapper = mount(VotingWidget, {
 			global: { plugins: [i18n] },
 			props: {
@@ -283,10 +297,10 @@ describe('VotingWidget functions', () => {
 			},
 		});
 
-		//set the votesByOption field of the mocked component (cant do this when mounting)
+		// Set the votesByOption field of the mocked component (cant do this when mounting)
 		votesByOption.removeRedactedVotes();
 		wrapper.vm.votesByOption = votesByOption;
-		//add array of expected votes
+		// Add array of expected votes
 		const expectedVotes = [
 			{
 				optionId: 1,
@@ -308,7 +322,7 @@ describe('VotingWidget functions', () => {
 	});
 
 	test('sort_score scores data correctly', () => {
-		//Use date of the system to test functions
+		// Use date of the system to test functions
 		const date = new Date();
 		// Mount the component with the relevant events
 		const wrapper = mount(VotingWidget, {
@@ -331,7 +345,7 @@ describe('VotingWidget functions', () => {
 				},
 			},
 		});
-		//add data to test the scoring function on
+		// Add data to test the scoring function on
 		const data = [
 			{
 				optionId: 1,
@@ -364,18 +378,19 @@ describe('VotingWidget functions', () => {
 				],
 			},
 		];
-		//call the function
+		// Call the function
 		const sort_scoreSpy = vi.spyOn(wrapper.vm, 'sort_score');
 		const res1 = wrapper.vm.sort_score(data[0]);
 		const res2 = wrapper.vm.sort_score(data[0]);
 		expect(sort_scoreSpy).toBeCalledTimes(2);
-		//check if the scoring was done correctly
+
+		// Check if the scoring was done correctly
 		expect(res1).toBe(1);
 		expect(res2).toBe(1);
 	});
 
 	test('get_sorted_votes_for_scheduler sorts the options correctly', () => {
-		//use date of the system to test functions
+		// Use date of the system to test functions
 		const date = new Date();
 		const votesByOption = new VotingOptions();
 		votesByOption.options = [
@@ -415,7 +430,7 @@ describe('VotingWidget functions', () => {
 			},
 		];
 
-		//mount the component with the relevant events
+		// Mount the component with the relevant events
 		const wrapper = mount(VotingWidget, {
 			global: { plugins: [i18n] },
 			props: {
@@ -438,10 +453,10 @@ describe('VotingWidget functions', () => {
 			},
 		});
 
-		//set the votesByOption field of the mocked component (cant do this when mounting)
+		// Set the votesByOption field of the mocked component (cant do this when mounting)
 		wrapper.vm.votesByOption = votesByOption;
 
-		//call the function
+		// Call the function
 		const get_sorted_votes_for_schedulerSpy = vi.spyOn(wrapper.vm, 'get_sorted_votes_for_scheduler');
 
 		// Check if the sort happened correctly
@@ -450,9 +465,9 @@ describe('VotingWidget functions', () => {
 	});
 
 	test('updateVotingWidgetWithEvent correctly updates the votingWidget for poll RADIO type', () => {
-		//use date of the system to test functions
+		// Use date of the system to test functions
 		const date = new Date();
-		//mount the component with the relevant events
+		// Mount the component with the relevant events
 		const wrapper = mount(VotingWidget, {
 			global: { plugins: [i18n] },
 			props: {
@@ -498,19 +513,20 @@ describe('VotingWidget functions', () => {
 				vote: 'yes',
 			},
 		};
-		//send the first event and check if 'votesByOption' has been edited correctly
+		// Send the first event and check if 'votesByOption' has been edited correctly
 		wrapper.vm.updateVotingWidgetWithEvent(replyEventRadioHasNotVoted);
 		expect(wrapper.vm.votesByOption.options[0].votes[0].userIds[0]).toBe('TEST');
-		//send the second event and check if 'votesByOption' has been edited correctly
+
+		// Send the second event and check if 'votesByOption' has been edited correctly
 		wrapper.vm.updateVotingWidgetWithEvent(replyEventRadioHasVoted);
 		expect(wrapper.vm.votesByOption.options[1].votes[0].userIds[0]).toBe('TEST');
 		expect(wrapper.vm.votesByOption.options[0].votes[0].userIds).toStrictEqual([]);
 	});
 
 	test('updateVotingWidgetWithEvent correctly updates the votingWidget for poll CHECKBOX type', () => {
-		//use date of the system to test functions
+		// Use date of the system to test functions
 		const date = new Date();
-		//mount the component with the relevant events
+		// Mount the component with the relevant events
 		const wrapper = mount(VotingWidget, {
 			global: { plugins: [i18n] },
 			props: {
@@ -532,7 +548,7 @@ describe('VotingWidget functions', () => {
 				},
 			},
 		});
-		//event when a user has not voted yet
+		// Event when a user has not voted yet
 		const replyEventCheckboxHasNotVoted = {
 			sender: 'TEST',
 			content: {
@@ -545,7 +561,7 @@ describe('VotingWidget functions', () => {
 				vote: 'yes',
 			},
 		};
-		//event when a user has already voted
+		// Event when a user has already voted
 		const replyEventCheckboxHasVoted = {
 			sender: 'TEST',
 			content: {
@@ -558,13 +574,13 @@ describe('VotingWidget functions', () => {
 				vote: 'yes',
 			},
 		};
-		//send the first event and check if 'votesByOption' has been edited correctly
+		// Send the first event and check if 'votesByOption' has been edited correctly
 		wrapper.vm.updateVotingWidgetWithEvent(replyEventCheckboxHasNotVoted);
 		expect(wrapper.vm.votesByOption.options[0].votes[0].userIds[0]).toBe('TEST');
-		//send the second event and check if 'votesByOption' has been edited correctly
+
+		// Send the second event and check if 'votesByOption' has been edited correctly
 		wrapper.vm.updateVotingWidgetWithEvent(replyEventCheckboxHasVoted);
 		expect(wrapper.vm.votesByOption.options[1].votes[0].userIds[0]).toBe('TEST');
-		// expect(wrapper.vm.votesByOption.options[0].votes[0].userIds[0]).toBe('TEST');
 	});
 });
 
@@ -578,18 +594,18 @@ describe('Back end functions', () => {
 	});
 
 	test('addPoll', () => {
-		const addPollSpy = vi.spyOn(usePubHubs(), 'addPoll');
+		const addPollSpy = vi.spyOn(usePubhubsStore(), 'addPoll');
 
 		// Define a mock sendEvent function
 		const sendEventMock = vi.fn();
 		// Assign the mock sendEvent function to client
-		usePubHubs().client.sendMessage = sendEventMock;
+		usePubhubsStore().client.sendMessage = sendEventMock;
 
 		const roomId = 'roomId';
 
 		const poll = new Poll('Poll Test Title', 'Poll Test Description?', false, ['1', '2', '3']);
 
-		usePubHubs().addPoll(roomId, poll);
+		usePubhubsStore().addPoll(roomId, poll);
 
 		// Expect addPoll to be called with specific parameters
 		expect(addPollSpy).toHaveBeenCalledWith(roomId, poll);
@@ -606,17 +622,17 @@ describe('Back end functions', () => {
 	});
 
 	test('addScheduler', () => {
-		const addPollSpy = vi.spyOn(usePubHubs(), 'addScheduler');
+		const addPollSpy = vi.spyOn(usePubhubsStore(), 'addScheduler');
 
 		// Define a mock sendEvent function
 		const sendEventMock = vi.fn();
 		// Assign the mock sendEvent function to client
-		usePubHubs().client.sendMessage = sendEventMock;
+		usePubhubsStore().client.sendMessage = sendEventMock;
 
 		const roomId = 'roomId';
 		const scheduler = new Scheduler('Scheduler Test Title', 'Scheduler Test Description', 'Scheduler Test Location', ['1', '2', '3'], false, VotingWidgetType.SCHEDULER);
 
-		usePubHubs().addScheduler(roomId, scheduler);
+		usePubhubsStore().addScheduler(roomId, scheduler);
 
 		// Expect addPoll to be called with specific parameters
 		expect(addPollSpy).toHaveBeenCalledWith(roomId, scheduler);
@@ -634,17 +650,17 @@ describe('Back end functions', () => {
 	});
 
 	test('addVote', () => {
-		const addVoteSpy = vi.spyOn(usePubHubs(), 'addVote');
+		const addVoteSpy = vi.spyOn(usePubhubsStore(), 'addVote');
 
 		const sendEventMock = vi.fn();
-		usePubHubs().client.sendEvent = sendEventMock;
+		usePubhubsStore().client.sendEvent = sendEventMock;
 
 		const roomId = 'roomId';
 		const eventId = 'eventId';
 		const optionId = 1;
 		const vote = 'yes';
 
-		usePubHubs().addVote(roomId, eventId, optionId, vote);
+		usePubhubsStore().addVote(roomId, eventId, optionId, vote);
 
 		expect(addVoteSpy).toHaveBeenCalledWith(roomId, eventId, optionId, vote);
 		expect(sendEventMock).toHaveBeenCalledWith(roomId, 'pubhubs.voting_widget.reply', {

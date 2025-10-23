@@ -25,7 +25,7 @@
 					<Icon :type="'sign'" :size="'sm'" class="mr-1" />
 
 					{{
-						//todo: add multilanguage support
+						// TODO: Add multilanguage support
 						attribute.rawvalue
 					}}
 				</li>
@@ -35,15 +35,20 @@
 </template>
 
 <script setup lang="ts">
-	// Components
-	import Icon from '../elements/Icon.vue';
-
-	import { SignedMessage, getDisclosedAttributes, getMessage } from '@/model/components/signedMessages';
+	// Packages
 	import { ref } from 'vue';
 
+	// Components
+	import Icon from '@hub-client/components/elements/Icon.vue';
+
+	// Models
+	import { SignedMessage, getDisclosedAttributes, getMessage } from '@hub-client/models/components/signedMessages';
+
+	// Types
 	type Props = {
 		message: SignedMessage;
 	};
+
 	const props = defineProps<Props>();
 
 	const showInfo = ref(false);

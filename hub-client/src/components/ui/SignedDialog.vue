@@ -14,13 +14,22 @@
 </template>
 
 <script setup lang="ts">
-	// Components
-	import Icon from '../elements/Icon.vue';
+	// Packages
+	import { computed, onMounted, ref } from 'vue';
 
-	import { TFileMessageEventContent, TSignedMessageEventContent } from '@/model/events/TMessageEvent';
-	import { onMounted, computed, ref } from 'vue';
-	import Room from '@/model/rooms/Room';
-	import { buttonsOk } from '@/logic/store/dialog';
+	// Components
+	import Icon from '@hub-client/components/elements/Icon.vue';
+
+	// Models
+	import { TFileMessageEventContent, TSignedMessageEventContent } from '@hub-client/models/events/TMessageEvent';
+	import Room from '@hub-client/models/rooms/Room';
+
+	// Stores
+	import { buttonsOk } from '@hub-client/stores/dialog';
+
+	const showPopup = ref(false);
+	const fileUrl = ref<string>('');
+	const fileName = ref<string>('');
 
 	const props = defineProps<{
 		event: any;
@@ -28,11 +37,6 @@
 		room: Room;
 		attributes: string[];
 	}>();
-
-	const showPopup = ref(false);
-
-	const fileUrl = ref<string>('');
-	const fileName = ref<string>('');
 
 	const signedMessage = computed((): TSignedMessageEventContent => {
 		return props.event.content;

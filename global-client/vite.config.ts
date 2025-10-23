@@ -1,12 +1,10 @@
 /// <reference types="vitest" />
-
-import { URL, fileURLToPath } from 'node:url';
-
-import { VitePWA } from 'vite-plugin-pwa';
 import Vue from '@vitejs/plugin-vue';
+import path from 'node:path';
+import { URL, fileURLToPath } from 'node:url';
 import { defineConfig } from 'vite';
 import { nodePolyfills } from 'vite-plugin-node-polyfills';
-import path from 'node:path';
+import { VitePWA } from 'vite-plugin-pwa';
 
 export default defineConfig({
 	logLevel: 'warn',
@@ -83,6 +81,9 @@ export default defineConfig({
 				scope: '/',
 				display: 'standalone',
 			},
+			workbox: {
+				maximumFileSizeToCacheInBytes: 6 * 1024 * 1024, // 6MB
+			},
 		}),
 	],
 	test: {
@@ -94,24 +95,24 @@ export default defineConfig({
 			if (log.includes('Expected Room, got Object')) return false;
 			if (log.includes('Failed to resolve directive')) return false;
 		},
-		// silent: true,
 	},
 	resolve: {
 		alias: {
-			'@': fileURLToPath(new URL('./src', import.meta.url)),
+			'@global-client': fileURLToPath(new URL('./src', import.meta.url)),
+			'@hub-client': fileURLToPath(new URL('../hub-client/src', import.meta.url)),
 			process: 'process/browser',
 			vue: path.resolve(__dirname, 'node_modules/vue'),
 			pinia: path.resolve(__dirname, 'node_modules/pinia'),
 		},
-		dedupe: ['pinia'], // necessary to avoid duplicate pinia instances
+		dedupe: ['pinia'], // Necessary to avoid duplicate pinia instances
 	},
 	build: {
 		sourcemap: true,
 		rollupOptions: {
 			input: {
-				// define included files from outside global-client
+				// Define included files from outside global-client
 				main: 'index.html',
-				hubClient: '../hub-client/src/logic/store/messagebox.ts',
+				hubClient: '../hub-client/src/stores/messagebox.ts',
 			},
 			output: {
 				entryFileNames: '[name].[hash].js',

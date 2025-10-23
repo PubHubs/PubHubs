@@ -12,6 +12,7 @@
 </template>
 
 <script setup lang="ts">
+	// Packages
 	import { computed, ref } from 'vue';
 
 	const userHidBubble = ref(false);

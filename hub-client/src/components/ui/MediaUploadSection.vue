@@ -22,9 +22,12 @@
 </template>
 
 <script setup lang="ts">
-	import Icon from '@/components/elements/Icon.vue';
-	import H3 from '@/components/elements/H3.vue';
+	// Packages
 	import { ref } from 'vue';
+
+	// Components
+	import H3 from '@hub-client/components/elements/H3.vue';
+	import Icon from '@hub-client/components/elements/Icon.vue';
 
 	defineProps({
 		title: {

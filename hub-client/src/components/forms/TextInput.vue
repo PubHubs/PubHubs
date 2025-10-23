@@ -16,7 +16,8 @@
 </template>
 
 <script setup lang="ts">
-	import { useFormInputEvents, usedEvents } from '@/logic/composables/useFormInputEvents';
+	// Composables
+	import { useFormInputEvents, usedEvents } from '@hub-client/composables/useFormInputEvents';
 
 	const props = defineProps({
 		placeholder: {

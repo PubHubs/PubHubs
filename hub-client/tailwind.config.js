@@ -1,6 +1,6 @@
 // Plugin imports
-import fluid, { extract } from 'fluid-tailwind';
 import forms from '@tailwindcss/forms';
+import fluid, { extract } from 'fluid-tailwind';
 
 module.exports = {
 	darkMode: 'class',

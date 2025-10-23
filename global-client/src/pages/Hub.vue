@@ -3,21 +3,22 @@
 </template>
 
 <script setup lang="ts">
-	// Package imports
-	import { onMounted, watch, ref, onUnmounted } from 'vue';
-	import { useRoute, useRouter } from 'vue-router';
+	// Packages
 	import { assert } from 'chai';
+	import { onMounted, onUnmounted, ref, watch } from 'vue';
+	import { useRoute, useRouter } from 'vue-router';
 
-	// Global imports
-	import { useGlobal } from '@/logic/store/global';
-	import { useHubs } from '@/logic/store/hubs';
-	import { iframeHubId } from '@/logic/store/messagebox';
-	import { useMSS } from '@/logic/store/mss';
+	// Logic
+	import { CONFIG } from '@hub-client/logic/logging/Config';
+	import { Logger } from '@hub-client/logic/logging/Logger';
+	import { SMI } from '@hub-client/logic/logging/StatusMessage';
 
-	// Hub imports
-	import { Logger } from '@/../../hub-client/src/logic/foundation/Logger';
-	import { CONFIG } from '@/../../hub-client/src/logic/foundation/Config';
-	import { SMI } from '@/../../hub-client/src/logic/foundation/StatusMessage';
+	// Stores
+	import { useGlobal } from '@global-client/stores/global';
+	import { useHubs } from '@global-client/stores/hubs';
+	import { useMSS } from '@global-client/stores/mss';
+
+	import { iframeHubId } from '@hub-client/stores/messagebox';
 
 	const route = useRoute();
 	const router = useRouter();

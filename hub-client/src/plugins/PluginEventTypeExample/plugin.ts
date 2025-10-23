@@ -6,9 +6,11 @@
  * - plugin.ts (this file)
  * - PluginEventTypeExample.vue - the component used
  */
-
+// Packages
 import { EventType } from 'matrix-js-sdk';
-import { TypePluginProperties, PluginType } from '@/logic/store/plugins';
+
+// Stores
+import { PluginType, TypePluginProperties } from '@hub-client/stores/plugins';
 
 const plugin: TypePluginProperties = {
 	enabled: false,

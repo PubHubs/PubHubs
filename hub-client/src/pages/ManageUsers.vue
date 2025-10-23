@@ -27,7 +27,7 @@
 				<template #item="{ item }">
 					<div class="box-border flex w-full justify-between gap-4 md:gap-8" :title="item.room_id">
 						<div class="flex min-w-0 flex-1 items-center gap-4">
-							<Avatar :userId="item.name" />
+							<Avatar :avatar-url="user.userAvatar(item.name)" :user-id="item.name"></Avatar>
 							<p class="min-w-0 truncate font-semibold">{{ item.displayname }}</p>
 							<p class="line-clamp-1 hidden min-w-0 pr-1 italic text-on-surface-dim md:inline">{{ item.name }}</p>
 							<RoomBadge :user="item.name" :room_id="item.room_id" :is-hub-admin="item.admin"></RoomBadge>
@@ -45,29 +45,29 @@
 </template>
 
 <script setup lang="ts">
-	import Avatar from '@/components/ui/Avatar.vue';
-	import RoomBadge from '@/components/rooms/RoomBadge.vue';
-
+	// Packages
 	import { computed, onMounted, ref } from 'vue';
-	import { TUserAccount } from '@/model/users/TUser';
-	import { useUser } from '@/logic/store/user';
-	import { ManagementUtils } from '@/model/hubmanagement/utility/managementutils';
 	import { useI18n } from 'vue-i18n';
-	import { useSettings } from '@/logic/store/settings';
+
+	// Components
+	import RoomBadge from '@hub-client/components/rooms/RoomBadge.vue';
+	import Avatar from '@hub-client/components/ui/Avatar.vue';
+
+	// Models
+	import { ManagementUtils } from '@hub-client/models/hubmanagement/utility/managementutils';
+	import { TUserAccount } from '@hub-client/models/users/TUser';
+
+	// Stores
+	import { useSettings } from '@hub-client/stores/settings';
+	import { useUser } from '@hub-client/stores/user';
 
 	const { t } = useI18n();
 	const settings = useSettings();
 	const isMobile = computed(() => settings.isMobileState);
-	// Store
 	const user = useUser();
-
-	// Refs
 	const hubUsers = ref<TUserAccount[]>([]);
-
 	const selectedUserById = ref<string>();
-
 	const selectedUserDisplayName = ref<string>();
-
 	const showUserInRoomForm = ref(false);
 
 	// This will not be null if we are routed to this page.
@@ -75,7 +75,7 @@
 	const currentAdministrator = user.administrator!;
 
 	onMounted(async () => {
-		// Get All user accounts from the Hub
+		// Get all user accounts from the Hub
 		hubUsers.value = await ManagementUtils.getUsersAccounts();
 	});
 

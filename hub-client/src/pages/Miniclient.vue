@@ -4,25 +4,29 @@
 </template>
 
 <script setup lang="ts">
-	// Components
-	import Badge from '@/components/elements/Badge.vue';
-
-	import { usePubHubs } from '@/logic/core/pubhubsStore';
-	import { useHubSettings } from '@/logic/store/hub-settings';
-	import { useMessageBox, MessageBoxType } from '@/logic/store/messagebox';
-	import { useRooms } from '@/logic/store/rooms';
-	import { useSettings } from '@/logic/store/settings';
-	import { LOGGER } from '@/logic/foundation/Logger';
-	import { SMI } from '@/logic/foundation/StatusMessage';
+	// Packages
 	import { onMounted, ref, watch } from 'vue';
 	import { useI18n } from 'vue-i18n';
 
+	// Components
+	import Badge from '@hub-client/components/elements/Badge.vue';
+
+	// Logic
+	import { LOGGER } from '@hub-client/logic/logging/Logger';
+	import { SMI } from '@hub-client/logic/logging/StatusMessage';
+
+	// Stores
+	import { useHubSettings } from '@hub-client/stores/hub-settings';
+	import { MessageBoxType, useMessageBox } from '@hub-client/stores/messagebox';
+	import { usePubhubsStore } from '@hub-client/stores/pubhubs';
+	import { useRooms } from '@hub-client/stores/rooms';
+	import { useSettings } from '@hub-client/stores/settings';
+
 	const hubSettings = useHubSettings();
 	const messagebox = useMessageBox();
-	const pubhubs = usePubHubs();
+	const pubhubs = usePubhubsStore();
 	const rooms = useRooms();
 	const settings = useSettings();
-
 	const { locale, availableLocales } = useI18n();
 
 	let unreadMessages = ref<number>(0);

@@ -1,7 +1,4 @@
-/**
- * Add global directive v-tw-class that merges component tailwind classes and overrides them as expected
- */
-
+// Packages
 import { twMerge } from 'tailwind-merge';
 import { DirectiveBinding, VNode } from 'vue';
 

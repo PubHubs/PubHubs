@@ -22,20 +22,20 @@
 </template>
 
 <script setup lang="ts">
+	// Packages
 	import { ref } from 'vue';
 
-	const emit = defineEmits(['order']);
-
-	const orderKey = ref('');
-	const orderAsc = ref(true);
-
+	// Types
 	type Props = {
 		keys: Array<Object>;
 		sortby: string;
 	};
 
+	const emit = defineEmits(['order']);
+	const orderKey = ref('');
+	const orderAsc = ref(true);
+
 	const props = withDefaults(defineProps<Props>(), {
-		// items: () => [],
 		keys: () => [],
 		sortby: '',
 	});

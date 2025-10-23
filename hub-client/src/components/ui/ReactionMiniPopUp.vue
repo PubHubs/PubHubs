@@ -30,13 +30,13 @@
 </template>
 
 <script setup lang="ts">
-	import { ref } from 'vue';
-
 	import Icon from '../elements/Icon.vue';
 	import EmojiPicker from './EmojiPicker.vue';
+	import { ref } from 'vue';
 
-	import Room from '@/model/rooms/Room';
-	import { useUser } from '@/logic/store/user';
+	import Room from '@hub-client/models/rooms/Room';
+
+	import { useUser } from '@hub-client/stores/user';
 
 	const user = useUser();
 	const emojiPanel = ref(false);
@@ -64,6 +64,6 @@
 	// Matrix throws an error if same event is sent twice. Also this avoids unnecessary request sent to matrix.
 	function checkIfSameReactExists(emoji: string): boolean {
 		const reactEvents = props.room.getReactEventsFromTimeLine();
-		return reactEvents.some((event) => event.getContent()['m.relates_to']?.event_id === props.eventId && event.getContent()['m.relates_to']?.key === emoji && event.getSender() === user.user.userId);
+		return reactEvents.some((event) => event.getContent()['m.relates_to']?.event_id === props.eventId && event.getContent()['m.relates_to']?.key === emoji && event.getSender() === user.userId);
 	}
 </script>

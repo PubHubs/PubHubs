@@ -1,6 +1,8 @@
+// Packages
 import { HttpResponse, http } from 'msw';
 
-import { SecuredRoom } from '@/logic/store/rooms';
+// Stores
+import { TSecuredRoom } from '@hub-client/stores/rooms';
 
 export const handlers = [
 	http.get('http://test/_synapse/client/secured_rooms', () => {
@@ -31,7 +33,7 @@ export const handlers = [
 	}),
 
 	http.post('http://test/_synapse/client/secured_rooms', async (request) => {
-		const body = (await request.request.json()) as SecuredRoom;
+		const body = (await request.request.json()) as TSecuredRoom;
 		if (
 			typeof body.room_name === 'undefined' ||
 			body.room_name === '' ||

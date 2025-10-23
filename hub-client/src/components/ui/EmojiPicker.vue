@@ -19,16 +19,18 @@
 </template>
 
 <script setup lang="ts">
-	import { onMounted, ref, computed } from 'vue';
-
-	import { useSettings } from '@/logic/store/settings';
-
+	// Packages
 	import { Emoji } from 'emojibase';
-	import emojiData from '@/locales/emojidata';
+	import { computed, onMounted, ref } from 'vue';
+
+	// Locales
+	import emojiData from '@hub-client/locales/emojidata';
+
+	// Stores
+	import { useSettings } from '@hub-client/stores/settings';
 
 	const settings = useSettings();
 	const language = settings.getActiveLanguage;
-
 	const emojis = ref([] as Emoji[]);
 	const searchQuery = ref('');
 	const selectedGroup = ref(0);

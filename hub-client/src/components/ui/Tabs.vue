@@ -4,7 +4,8 @@
 	</div>
 </template>
 <script setup lang="ts">
-	import { ref, provide } from 'vue';
+	// Packages
+	import { provide, ref } from 'vue';
 
 	const activeTab = ref(1);
 	const numberOfTabs = ref(0);

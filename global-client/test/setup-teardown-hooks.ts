@@ -1,5 +1,7 @@
+// Packages
 import { vi } from 'vitest';
 
+// @ts-expect-error
 global._env = {
 	PUBHUBS_URL: 'http://test',
 	PHC_URL: 'http://test',

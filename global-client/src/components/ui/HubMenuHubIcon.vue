@@ -21,24 +21,22 @@
 </template>
 
 <script setup lang="ts">
-	// Package imports
+	// Packages
 	import { ref } from 'vue';
 
-	// Global imports
-	import { useGlobal } from '@/logic/store/global';
-	import { useMessageBox, miniClientId } from '@/logic/store/messagebox';
-	import { useSettings, FeatureFlag } from '@/logic/store/settings';
-	import { useHubs } from '@/logic/store/hubs';
-	import { Hub } from '@/model/Hubs';
+	// Components
+	import Badge from '@hub-client/components/elements/Badge.vue';
+	import HubIcon from '@hub-client/components/ui/HubIcon.vue';
 
-	// Hub imports
-	import Badge from '@/../../hub-client/src/components/elements/Badge.vue';
-	import HubIcon from '@/../../hub-client/src/components/ui/HubIcon.vue';
+	// Models
+	import { Hub } from '@global-client/models/Hubs';
 
-	const global = useGlobal();
-	const messagebox = useMessageBox();
-	const settings = useSettings();
-	const hubs = useHubs();
+	// Stores
+	import { useGlobal } from '@global-client/stores/global';
+	import { useHubs } from '@global-client/stores/hubs';
+
+	import { miniClientId, useMessageBox } from '@hub-client/stores/messagebox';
+	import { FeatureFlag, useSettings } from '@hub-client/stores/settings';
 
 	type Props = {
 		type?: string;
@@ -50,6 +48,11 @@
 		active?: boolean;
 		hubOrderingIsActive?: boolean;
 	};
+
+	const global = useGlobal();
+	const messagebox = useMessageBox();
+	const settings = useSettings();
+	const hubs = useHubs();
 
 	const props = withDefaults(defineProps<Props>(), {
 		type: 'circle',

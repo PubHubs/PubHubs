@@ -1,9 +1,7 @@
 /**
- *
  * Globally register all components in 'components' folder.
- *
  */
-
+// Packages
 import { defineAsyncComponent } from 'vue';
 
 export const registerComponents = (app) => {

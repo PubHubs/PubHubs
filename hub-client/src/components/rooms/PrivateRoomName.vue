@@ -7,7 +7,9 @@
 </template>
 
 <script setup lang="ts">
-	import { TRoomMember } from '@/model/rooms/TRoomMember';
+	// Models
+	import { TRoomMember } from '@hub-client/models/rooms/TRoomMember';
+
 	defineProps({
 		members: {
 			type: Array<TRoomMember>,

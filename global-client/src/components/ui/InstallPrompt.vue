@@ -70,25 +70,26 @@
 </template>
 
 <script setup lang="ts">
-	// Package imports
+	// Packages
 	import { computed, ref } from 'vue';
 
-	// Global imports
-	import { useInstallPromptStore } from '@/logic/store/installPromptPWA';
+	// Components
+	import InstallPromptInstruction from '@global-client/components/ui/InstallPromptInstruction.vue';
 
-	// Hub imports
-	import Button from '../../../../hub-client/src/components/elements/Button.vue';
-	import Checkbox from '../../../../hub-client/src/components/forms/Checkbox.vue';
-	import H1 from '../../../../hub-client/src/components/elements/H1.vue';
-	import H3 from '../../../../hub-client/src/components/elements/H3.vue';
-	import Icon from '../../../../hub-client/src/components/elements/Icon.vue';
-	import InstallPromptInstruction from './InstallPromptInstruction.vue';
+	import Button from '@hub-client/components/elements/Button.vue';
+	import H1 from '@hub-client/components/elements/H1.vue';
+	import H3 from '@hub-client/components/elements/H3.vue';
+	import Icon from '@hub-client/components/elements/Icon.vue';
+	import Checkbox from '@hub-client/components/forms/Checkbox.vue';
 
+	// Stores
+	import { useInstallPromptStore } from '@global-client/stores/installPromptPWA';
+
+	// Assets
 	const logoWhiteUrl = '/client/img/icons/favicon_white.svg';
 	const logoUrl = '/client/img/icons/favicon.svg';
 
 	const installPromptStore = useInstallPromptStore();
-
 	const neverShowAgain = ref<boolean>(installPromptStore.neverShowAgain);
 
 	const props = defineProps({

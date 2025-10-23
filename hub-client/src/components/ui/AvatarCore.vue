@@ -12,14 +12,18 @@
 	 * - For Room avatars
 	 * - Also uses by AvatarUser & AvatarUserId
 	 */
+	// Packages
+	import { computed, onMounted, ref, watch } from 'vue';
 
-	import { ref, onMounted, watch, computed } from 'vue';
-	import { useUserColor } from '@/logic/composables/useUserColor';
-	import { useMatrixFiles } from '@/logic/composables/useMatrixFiles';
-	import { FeatureFlag, useSettings } from '@/logic/store/settings';
+	// Components
+	import Icon from '@hub-client/components/elements/Icon.vue';
 
-	//Components
-	import Icon from '../elements/Icon.vue';
+	// Composables
+	import { useMatrixFiles } from '@hub-client/composables/useMatrixFiles';
+	import { useUserColor } from '@hub-client/composables/useUserColor';
+
+	// Stores
+	import { FeatureFlag, useSettings } from '@hub-client/stores/settings';
 
 	const { isMxcUrl, useAuthorizedMediaUrl } = useMatrixFiles();
 	const { color, bgColor } = useUserColor();

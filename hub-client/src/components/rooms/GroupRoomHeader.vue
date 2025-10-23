@@ -1,6 +1,6 @@
 <template>
 	<div class="flex flex-row gap-2">
-		<AvatarCore :img="props.room.getRoomAvatarMxcUrl() ?? undefined" icon="two_users" />
+		<Avatar :avatar-url="props.room.getRoomAvatarMxcUrl() ?? undefined" icon="two_users" />
 
 		<div class="flex h-fit flex-col overflow-hidden">
 			<p class="truncate font-bold leading-tight">
@@ -12,7 +12,7 @@
 				<Icon type="user" size="sm" class="mr-1" />
 
 				<span class="mx-1">
-					{{ user.user.rawDisplayName }}
+					{{ user.rawDisplayName }}
 					<span v-if="memberList.length > 0">,</span>
 				</span>
 
@@ -26,12 +26,18 @@
 </template>
 
 <script setup lang="ts">
-	import AvatarCore from '../ui/AvatarCore.vue';
-	import { useUser } from '@/logic/store/user';
+	// Packages
 	import { computed } from 'vue';
 
-	import Room from '@/model/rooms/Room';
-	import { TRoomMember } from '@/model/rooms/TRoomMember';
+	// Components
+	import Avatar from '@hub-client/components/ui/Avatar.vue';
+
+	// Models
+	import Room from '@hub-client/models/rooms/Room';
+	import { TRoomMember } from '@hub-client/models/rooms/TRoomMember';
+
+	// Stores
+	import { useUser } from '@hub-client/stores/user';
 
 	const user = useUser();
 
@@ -47,5 +53,5 @@
 	});
 
 	// All members except current user
-	const memberList = computed(() => props.members.filter((m) => m.userId !== user.user.userId));
+	const memberList = computed(() => props.members.filter((m) => m.userId !== user.userId));
 </script>

@@ -14,25 +14,27 @@
 </template>
 
 <script setup lang="ts">
-	// Package imports
-	import { onMounted, onUnmounted, watch, computed } from 'vue';
+	// Packages
+	import { computed, onMounted, onUnmounted, watch } from 'vue';
 	import { useI18n } from 'vue-i18n';
 	import { useRoute, useRouter } from 'vue-router';
 
-	// Global imports
-	import GlobalBar from '@/components/ui/GlobalBar.vue';
-	import MobileMenu from '@/components/ui/MobileMenu.vue';
-	import { useInstallPromptStore } from '@/logic/store/installPromptPWA';
-	import { NotificationsPermission, useSettings } from '@/logic/store/settings';
-	import { useDialog } from '@/logic/store/dialog';
-	import { useGlobal } from '@/logic/store/global';
-	import { useHubs } from '@/logic/store/hubs';
-	import { useMessageBox, MessageBoxType } from '@/logic/store/messagebox';
+	// Components
+	import GlobalBar from '@global-client/components/ui/GlobalBar.vue';
 
-	// Hub imports
-	import { CONFIG } from '@/../../hub-client/src/logic/foundation/Config';
-	import { Logger } from '@/../../hub-client/src/logic/foundation/Logger';
-	import { SMI } from '@/../../hub-client/src/logic/foundation/StatusMessage';
+	// Logic
+	import { CONFIG } from '@hub-client/logic/logging/Config';
+	import { Logger } from '@hub-client/logic/logging/Logger';
+	import { SMI } from '@hub-client/logic/logging/StatusMessage';
+
+	// Stores
+	import { useGlobal } from '@global-client/stores/global';
+	import { useHubs } from '@global-client/stores/hubs';
+	import { useInstallPromptStore } from '@global-client/stores/installPromptPWA';
+
+	import { useDialog } from '@hub-client/stores/dialog';
+	import { MessageBoxType, useMessageBox } from '@hub-client/stores/messagebox';
+	import { NotificationsPermission, useSettings } from '@hub-client/stores/settings';
 
 	const LOGGER = new Logger('GC', CONFIG);
 	const { locale, availableLocales } = useI18n();

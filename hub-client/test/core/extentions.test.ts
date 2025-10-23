@@ -1,5 +1,8 @@
+// Packages
 import { describe, expect, test } from 'vitest';
-import { trimSplit, isEmpty } from '@/logic/core/extensions.ts';
+
+// Logic
+import { isEmpty, trimSplit } from '@hub-client/logic/core/extensions';
 
 describe('isEmpty', () => {
 	test('boolean', () => {

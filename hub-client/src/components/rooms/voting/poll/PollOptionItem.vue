@@ -23,10 +23,13 @@
 </template>
 
 <script setup lang="ts">
-	import Icon from '@/components/elements/Icon.vue';
-	import AvatarDisplayName from '@/components/ui/AvatarDisplayName.vue';
-	import { PollOption } from '@/model/events/voting/VotingTypes';
-	import ProgressBar from '@/components/ui/ProgressBar.vue';
+	// Components
+	import Icon from '@hub-client/components/elements/Icon.vue';
+	import AvatarDisplayName from '@hub-client/components/ui/AvatarDisplayName.vue';
+	import ProgressBar from '@hub-client/components/ui/ProgressBar.vue';
+
+	// Models
+	import { PollOption } from '@hub-client/models/events/voting/VotingTypes';
 
 	defineEmits(['vote']);
 

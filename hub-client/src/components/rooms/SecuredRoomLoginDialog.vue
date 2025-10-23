@@ -13,13 +13,13 @@
 	// Vue
 	import { useI18n } from 'vue-i18n';
 
+	import P from '@hub-client/components/elements/P.vue';
 	// Components
-	import Dialog from '@/components/ui/Dialog.vue';
-	import P from '@/components/elements/P.vue';
-	import SecuredRoomLogin from '@/components/ui/SecuredRoomLogin.vue';
+	import Dialog from '@hub-client/components/ui/Dialog.vue';
+	import SecuredRoomLogin from '@hub-client/components/ui/SecuredRoomLogin.vue';
 
 	// Logic
-	import { buttonsCancel } from '@/logic/store/dialog';
+	import { buttonsCancel } from '@hub-client/stores/dialog';
 
 	const props = defineProps<{
 		dialogOpen: string | null;
