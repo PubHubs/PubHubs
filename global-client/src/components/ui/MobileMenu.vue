@@ -1,6 +1,6 @@
 <template>
 	<div v-if="!($route.name === 'onboarding')" :class="[classObject, !isMobile && 'hidden']" class="absolute left-0 top-0 flex items-center" @click="toggleMenu.toggleMenuAndSendToHub()">
-		<Icon v-if="!toggleMenu.globalIsActive && !global.isModalVisible" type="dots-three-vertical" size="xl"/>
+		<Icon v-if="!toggleMenu.globalIsActive && !global.isModalVisible" type="dots-three-vertical" size="xl" />
 	</div>
 </template>
 
