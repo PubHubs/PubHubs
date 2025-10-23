@@ -3,11 +3,9 @@
 		<Modal :show="global.isModalVisible">
 			<div class="flex h-full w-full max-w-[100svh] flex-col overflow-y-hidden">
 				<!-- Global top bar (discover) -->
-				<div class="flex aspect-square w-full items-center justify-center bg-surface-high" :class="isMobile ? 'p-3' : 'p-4'">
-					<router-link to="/" class="w-full">
-						<figure class="group flex items-center justify-center rounded-[25%] bg-background p-1 hover:bg-accent-primary dark:bg-on-surface dark:hover:bg-accent-primary">
-							<svg viewBox="0 0 24 24" stroke="currentColor" v-html="icons['compass']['fill']" class="aspect-square w-full text-accent-primary group-hover:text-accent-primary" @click="toggleMenu.hideMenuAndSendToHub()"></svg>
-						</figure>
+				<div class="flex aspect-square w-full items-center justify-center bg-surface-high">
+					<router-link to="/">
+						<Icon type="compass" @click="toggleMenu.hideMenuAndSendToHub()" size="3xl"></Icon>
 					</router-link>
 				</div>
 

@@ -1,10 +1,7 @@
 <template>
-	<Icon
-		class="rounded-md bg-background p-1 text-accent-secondary hover:cursor-pointer hover:bg-accent-secondary hover:text-background dark:text-on-surface dark:hover:bg-on-surface dark:hover:text-background"
-		:type="type"
-		:size="size"
-		@click="handleClick"
-	/>
+	<div class="rounded-md p-2 hover:cursor-pointer hover:bg-on-surface-variant hover:text-background bg-background" @click="handleClick">
+		<Icon :type="type" :size="size" />
+	</div>
 </template>
 
 <script setup lang="ts">
