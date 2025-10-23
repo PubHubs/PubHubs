@@ -15,25 +15,29 @@
 </template>
 
 <script setup lang="ts">
-	import { computed, ref } from 'vue';
-	import { usePubHubs } from '@/logic/core/pubhubsStore';
-	import { useRooms } from '@/logic/store/store';
 	import Icon from '../elements/Icon.vue';
 	import { MatrixEvent } from 'matrix-js-sdk';
-	import { RelationType } from '@/model/constants';
+	import { computed } from 'vue';
 
-	const pubhubs = usePubHubs();
+	import { RelationType } from '@hub-client/models/constants';
+
+	import { usePubhubsStore } from '@hub-client/stores/pubhubs';
+	import { useRooms } from '@hub-client/stores/rooms';
+
+	const pubhubs = usePubhubsStore();
 	const rooms = useRooms();
 
-	const roomId = rooms.currentRoom.roomId;
+	const roomId = rooms.currentRoom?.roomId;
 	const currentUserId = pubhubs.client.getUserId();
 
 	const props = defineProps<{ reactEvent: MatrixEvent[]; messageEventId: string }>();
 
 	const reactionSummary = computed(() => {
+		if (!props.reactEvent) return;
+
 		const reactionEvents = props.reactEvent.filter((event) => {
 			const relatesTo = event.getContent()[RelationType.RelatesTo];
-			return relatesTo && relatesTo.event_id === props.messageEventId && rooms.currentRoom.timelineWindow.getRedactedEventIds().indexOf(event.getId()) === -1;
+			return relatesTo && relatesTo.event_id === props.messageEventId && !rooms.currentRoom?.inRedactedMessageIds(event.getId());
 		});
 
 		// Map key -> list of { eventId, userId }
@@ -60,8 +64,8 @@
 		if (!rooms.currentRoom?.roomId) return;
 		try {
 			for (const eventId of eventIds) {
-				await pubhubs.client.redactEvent(roomId, eventId);
-				rooms.currentRoom.timelineWindow.addToRedactedEventIds(eventId);
+				await pubhubs.client.redactEvent(rooms.currentRoom?.roomId, eventId);
+				rooms.currentRoom.addToRedactedEventIds(eventId);
 			}
 		} catch (e) {
 			console.error('Failed to redact reaction event(s)', e);

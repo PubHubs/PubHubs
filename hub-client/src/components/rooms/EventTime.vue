@@ -5,8 +5,11 @@
 </template>
 
 <script setup lang="ts">
-	import { useTimeFormat } from '@/logic/composables/useTimeFormat';
+	// Packages
 	import { computed } from 'vue';
+
+	// Composables
+	import { useTimeFormat } from '@hub-client/composables/useTimeFormat';
 
 	const { formatTimestamp, formattedTimeInformation } = useTimeFormat();
 

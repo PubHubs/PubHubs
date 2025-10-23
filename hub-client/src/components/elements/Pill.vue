@@ -10,5 +10,5 @@
 
 <script setup lang="ts">
 	// Components
-	import H3 from './H3.vue';
+	import H3 from '@hub-client/components/elements/H3.vue';
 </script>

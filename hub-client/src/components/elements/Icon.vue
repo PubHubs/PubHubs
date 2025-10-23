@@ -8,8 +8,11 @@
 </template>
 
 <script setup lang="ts">
-	import { icons, sizes } from '@/assets/icons';
+	// Packages
 	import { computed } from 'vue';
+
+	// Assets
+	import { icons, sizes } from '@hub-client/assets/icons';
 
 	const props = defineProps({
 		type: {

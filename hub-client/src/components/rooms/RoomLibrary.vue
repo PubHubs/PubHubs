@@ -29,7 +29,7 @@
 						</TableCell>
 						<TableCell class="xs:max-w-28 md:max-w-none">
 							<div class="flex w-full justify-end xs:gap-1 md:gap-2">
-								<Avatar :userId="item.event.sender" class="h-6 w-6"></Avatar>
+								<Avatar :avatar-url="user.userAvatar(item.event.sender)" :user-id="item.event.sender" class="h-6 w-6"></Avatar>
 								<DisplayName :userId="item.event.sender"></DisplayName>
 							</div>
 						</TableCell>
@@ -75,49 +75,55 @@
 </template>
 
 <script setup lang="ts">
-	//Components
-	import DeleteFileDialog from '@/components/ui/DeleteFileDialog.vue';
-	import SignedDialog from '@/components/ui/SignedDialog.vue';
-	import { FeatureFlag, useSettings } from '@/logic/store/settings';
+	// Packages
+	import { MatrixEvent } from 'matrix-js-sdk';
+	import { onMounted, onUnmounted, ref, watch } from 'vue';
+	import { useI18n } from 'vue-i18n';
+	import { useRoute } from 'vue-router';
+
+	// Components
+	import Avatar from '@hub-client/components/ui/Avatar.vue';
+	import DeleteFileDialog from '@hub-client/components/ui/DeleteFileDialog.vue';
+	import FileDownload from '@hub-client/components/ui/FileDownload.vue';
+	import SignedDialog from '@hub-client/components/ui/SignedDialog.vue';
 
 	// Composables
-	import { onMounted, ref, onUnmounted, watch } from 'vue';
-	import { useRooms } from '@/logic/store/store';
-	import { TSearchParameters } from '@/model/search/TSearch';
-	import { TFileMessageEventContent, TImageMessageEventContent } from '@/model/events/TMessageEvent';
-	import { useMatrixFiles } from '@/logic/composables/useMatrixFiles';
-	import { usePubHubs } from '@/logic/core/pubhubsStore';
-	import { useRoomLibrary } from '@/logic/composables/useRoomLibrary';
-	import { fileUpload } from '@/logic/composables/fileUpload';
-	import { useMessageInput } from '@/logic/store/messageInput';
-	import { YiviSigningSessionResult } from '@/model/components/signedMessages';
-	import { useUser } from '@/logic/store/user';
-	import { useRoute } from 'vue-router';
-	import { MatrixEvent } from 'matrix-js-sdk';
-	import { PubHubsMgType } from '@/logic/core/events';
-	import { useI18n } from 'vue-i18n';
-	import filters from '@/logic/core/filters';
-	import FileDownload from '../ui/FileDownload.vue';
-	import { buttonsCancel } from '@/logic/store/dialog';
+	import { fileUpload } from '@hub-client/composables/fileUpload';
+	import { useMatrixFiles } from '@hub-client/composables/useMatrixFiles';
+	import { useRoomLibrary } from '@hub-client/composables/useRoomLibrary';
+
+	// Logic
+	import { PubHubsMgType } from '@hub-client/logic/core/events';
+	import filters from '@hub-client/logic/core/filters';
+	import { useMessageInput } from '@hub-client/logic/messageInput';
+
+	// Models
+	import { YiviSigningSessionResult } from '@hub-client/models/components/signedMessages';
+	import { TFileMessageEventContent, TImageMessageEventContent } from '@hub-client/models/events/TMessageEvent';
+	import { TSearchParameters } from '@hub-client/models/search/TSearch';
+
+	// Stores
+	import { buttonsCancel } from '@hub-client/stores/dialog';
+	import { usePubhubsStore } from '@hub-client/stores/pubhubs';
+	import { useRooms } from '@hub-client/stores/rooms';
+	import { FeatureFlag, useSettings } from '@hub-client/stores/settings';
+	import { useUser } from '@hub-client/stores/user';
 
 	const emit = defineEmits(['close']);
 	const { t } = useI18n();
 	const rooms = useRooms();
 	const user = useUser();
 	const route = useRoute();
-
 	const settings = useSettings();
-	const pubhubs = usePubHubs();
+	const pubhubs = usePubhubsStore();
 	const messageInput = useMessageInput();
 	const { makeHash, deleteMedia, updateTimeline, uri } = useRoomLibrary();
 	const { allTypes, uploadUrl, formUrlfromMxc, deleteMediaUrlfromMxc, isImage } = useMatrixFiles();
-
 	const signingMessage = ref<boolean>(false);
 	const selectedAttributes = ref<string[]>(['irma-demo.sidn-pbdf.email.domain']);
 	const activeEventId = ref<string | undefined>(undefined);
 	const expandedSignedEventIds = ref<Set<string>>(new Set());
-	// Used to update roomtimeline reactively for e.g. deleting
-	const elRoomTimeline = ref<MatrixEvent[]>([]);
+	const elRoomTimeline = ref<MatrixEvent[]>([]); // Used to update roomtimeline reactively for e.g. deleting
 	const eventContentToShow = ref<TFileMessageEventContent | TImageMessageEventContent>();
 	const showDeleteDialog = ref<boolean>(false);
 	const filePickerEl = ref();
@@ -129,6 +135,7 @@
 	const props = defineProps<{
 		id: string;
 	}>();
+
 	const searchParameters = ref<TSearchParameters>({ roomId: props.id, term: '' });
 
 	const getAllSignedEventsForFile = (eventId: string | undefined) => {

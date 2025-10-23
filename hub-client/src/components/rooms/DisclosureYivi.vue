@@ -4,14 +4,19 @@
 </template>
 
 <script setup lang="ts">
+	// Packages
 	import { onMounted } from 'vue';
 	import { useI18n } from 'vue-i18n';
-	import { usePubHubs } from '@/logic/core/pubhubsStore';
-	import { useRooms } from '@/logic/store/store';
-	import { DisclosureAttribute, AskDisclosureMessage, YiviSigningSessionResult } from '@/model/components/signedMessages';
+
+	// Models
+	import { AskDisclosureMessage, DisclosureAttribute, YiviSigningSessionResult } from '@hub-client/models/components/signedMessages';
+
+	// Stores
+	import { usePubhubsStore } from '@hub-client/stores/pubhubs';
+	import { useRooms } from '@hub-client/stores/rooms';
 
 	const { t } = useI18n();
-	const pubhubs = usePubHubs();
+	const pubhubs = usePubhubsStore();
 	const rooms = useRooms();
 	const emit = defineEmits(['close']);
 
@@ -43,7 +48,7 @@
 				}
 			}
 		}
-		// post the disclosed attributes as a signed message
+		// Post the disclosed attributes as a signed message
 		pubhubs.addSignedMessage(props.ask.replyToRoomId, result);
 		// TODO: Present the response to the moderator, and let them decide what to do with it.
 

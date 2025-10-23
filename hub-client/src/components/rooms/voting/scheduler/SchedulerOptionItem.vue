@@ -32,20 +32,27 @@
 	</div>
 </template>
 <script setup lang="ts">
-	// components
-	import Icon from '@/components/elements/Icon.vue';
-	import OptionButton from './OptionButton.vue';
-
+	// Packages
 	import { computed } from 'vue';
 	import { useI18n } from 'vue-i18n';
-	import filters from '@/logic/core/filters';
-	import { useUser } from '@/logic/store/user';
-	import { useRooms } from '@/logic/store/rooms';
-	import { usePubHubs } from '@/logic/core/pubhubsStore';
-	import { TimeFormat, useSettings } from '@/logic/store/settings';
-	import { vote as voteType, SchedulerOption } from '@/model/events/voting/VotingTypes';
 
-	const pubhubs = usePubHubs();
+	// Components
+	import Icon from '@hub-client/components/elements/Icon.vue';
+	import OptionButton from '@hub-client/components/rooms/voting/scheduler/OptionButton.vue';
+
+	// Logic
+	import filters from '@hub-client/logic/core/filters';
+
+	// Models
+	import { SchedulerOption, vote as voteType } from '@hub-client/models/events/voting/VotingTypes';
+
+	// Stores
+	import { usePubhubsStore } from '@hub-client/stores/pubhubs';
+	import { useRooms } from '@hub-client/stores/rooms';
+	import { TimeFormat, useSettings } from '@hub-client/stores/settings';
+	import { useUser } from '@hub-client/stores/user';
+
+	const pubhubs = usePubhubsStore();
 	const rooms = useRooms();
 	const settings = useSettings();
 	const { d } = useI18n();
@@ -93,7 +100,7 @@
 	const vote = (choice: string) => {
 		const voteObject = getVoteObject(choice);
 		if (voteObject) {
-			if (voteObject.userIds.includes(user.user.userId)) {
+			if (voteObject.userIds.includes(user.userId)) {
 				//user has already voted on this specific choice
 				pubhubs.addVote(rooms.currentRoomId, props.eventId, props.option.id, 'redacted');
 			} else {

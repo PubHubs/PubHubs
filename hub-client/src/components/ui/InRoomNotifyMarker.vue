@@ -13,11 +13,14 @@
 </template>
 
 <script setup lang="ts">
-	import { ref } from 'vue';
-	import { useRooms } from '@/logic/store/store';
-	import { watchEffect } from 'vue';
+	// Packages
+	import { ref, watchEffect } from 'vue';
 
-	import Icon from '@/components/elements/Icon.vue';
+	// Components
+	import Icon from '@hub-client/components/elements/Icon.vue';
+
+	// Stores
+	import { useRooms } from '@hub-client/stores/rooms';
 
 	const rooms = useRooms();
 

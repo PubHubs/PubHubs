@@ -35,7 +35,7 @@
 					<span class="~text-label-small-min/label-small-max"> {{ t('others.select_group_name') }}</span>
 					<div class="flex items-center gap-2 rounded-lg bg-surface-low px-2 py-2">
 						<div class="h-10 w-10 cursor-pointer rounded-full bg-surface-high">
-							<AvatarCore v-if="avatarPreviewUrl" :img="avatarPreviewUrl" @click="fileInput!.click()"></AvatarCore>
+							<Avatar v-if="avatarPreviewUrl" :avatar-url="avatarPreviewUrl" @click="fileInput!.click()"></Avatar>
 							<Button v-else color="" @click="fileInput!.click()">
 								<Icon type="image_add" class="-ml-[5px] mt-[2px]" />
 							</Button>
@@ -51,8 +51,8 @@
 				<div v-else class="mt-4 flex flex-wrap justify-start gap-y-2">
 					<div v-for="user in usersSelected" :key="user.userId" class="flex flex-col items-center">
 						<div class="relative">
-							<Icon type="close" size="sm" class="absolute bottom-0 right-0 cursor-pointer rounded-full bg-surface-subtle" @click.stop="removeUserFromSelection(user)" />
-							<Avatar :userId="user.userId"></Avatar>
+							<Icon type="close" size="sm" class="absolute bottom-0 right-0 cursor-pointer rounded-full bg-surface-subtle" @click.stop="removeUserFromSelection(user as User)" />
+							<Avatar :avatarUrl="userStore.userAvatar(user.userId)" :user-id="user.userId"></Avatar>
 						</div>
 						<span class="mt-1 w-16 truncate text-center text-sm">{{ user.displayName || user.userId }}</span>
 					</div>
@@ -82,7 +82,7 @@
 						<ul>
 							<li v-for="user in usersInLetter" :key="user.userId" class="flex cursor-pointer items-center gap-2 py-1 pl-4 hover:bg-surface-low" @click="groupPanel ? toggleUserSelection(user) : gotToPrivateRoom(user)">
 								<Icon v-if="groupPanel && selectedUsers.includes(user.userId)" type="check" size="xl"></Icon>
-								<Avatar v-else :userId="user.userId"></Avatar>
+								<Avatar v-else :avatarUrl="userStore.userAvatar(user.userId)" :user-id="user.userId"></Avatar>
 								<div class="flex flex-col">
 									<span>{{ user.displayName || user.userId }}</span>
 									<span> {{ filters.extractPseudonym(user.userId) }}</span>
@@ -100,55 +100,44 @@
 </template>
 
 <script setup lang="ts">
-	import { computed, ref } from 'vue';
-
-	import Icon from '../elements/Icon.vue';
-	import Avatar from '../ui/Avatar.vue';
-	import AvatarCore from '../ui/AvatarCore.vue';
-	import Button from '../elements/Button.vue';
-
-	import { router } from '@/logic/core/router';
-	import { usePubHubs } from '@/logic/core/pubhubsStore';
-	import { useMatrixFiles } from '@/logic/composables/useMatrixFiles';
-	import { fileUpload } from '@/logic/composables/fileUpload';
-	import filters from '@/logic/core/filters';
-
+	// Packages
 	import { User as MatrixUser } from 'matrix-js-sdk';
-	import { User, useUser } from '@/logic/store/user';
-
-	const user = useUser();
-
-	// Removed searchUsers ref as it's no longer needed for DiscoverUsers replacement
-
+	import { computed, ref } from 'vue';
 	import { useI18n } from 'vue-i18n';
-	import { useDialog } from '@/logic/store/dialog';
 
-	// Removed DiscoverUsers import
+	// Components
+	import Button from '@hub-client/components/elements/Button.vue';
+	import Icon from '@hub-client/components/elements/Icon.vue';
+	import Avatar from '@hub-client/components/ui/Avatar.vue';
+
+	// Composables
+	import { fileUpload } from '@hub-client/composables/fileUpload';
+	import { useMatrixFiles } from '@hub-client/composables/useMatrixFiles';
+
+	// Logic
+	import filters from '@hub-client/logic/core/filters';
+
+	// Stores
+	import { useDialog } from '@hub-client/stores/dialog';
+	import { usePubhubsStore } from '@hub-client/stores/pubhubs';
+	import { User, useUser } from '@hub-client/stores/user';
 
 	const { t } = useI18n();
-
-	const pubhubs = usePubHubs();
-
+	const pubhubs = usePubhubsStore();
+	const userStore = useUser();
 	const groupPanel = ref<boolean>(false);
 	const groupProfile = ref<boolean>(false);
-
 	const groupPanelButton = ref<boolean>(true);
 	const groupProfileButton = ref<boolean>(false);
-
 	const fileInput = ref<HTMLInputElement | null>(null);
 	const avatarPreviewUrl = ref<string | null>(null);
 	const selectedAvatarFile = ref<File | null>(null);
 	const hideAvatarPreview = ref<boolean>(true);
 	const dialog = useDialog();
-
 	const supportedImageTypes = ['image/png', 'image/jpeg', 'image/gif'];
-
 	const { uploadUrl } = useMatrixFiles();
-
 	const groupName = ref<string>('');
-
 	const selectedUsers = ref<string[]>([]);
-
 	const MAX_USER_GROUP = 5;
 
 	const props = defineProps({
@@ -177,7 +166,7 @@
 		const baseUsers =
 			pubhubs.client
 				.getUsers()
-				.filter((otherUser) => otherUser.userId !== user.user.userId && !otherUser.userId.includes('notices_user'))
+				.filter((otherUser) => otherUser.userId !== userStore.userId && !otherUser.userId.includes('notices_user'))
 				.filter((u) => {
 					const displayName = u.displayName?.toLowerCase() || u.userId.toLowerCase();
 					const filterText = userFilter.value.toLowerCase();
@@ -198,7 +187,7 @@
 			if (!categories[firstLetter]) {
 				categories[firstLetter] = [];
 			}
-			categories[firstLetter].push(user);
+			categories[firstLetter].push(user as User);
 		});
 
 		return categories;

@@ -1,10 +1,9 @@
 // Global imports
-import { tr_api } from '@/logic/core/api.js';
-import * as mssTypes from '@/model/MSS/TMultiServerSetup.js';
-import { requestOptions, handleErrors } from '@/model/MSS/Auths.js';
-
 // Hub imports
 import { Api } from '@/../../../hub-client/src/logic/core/apiCore.js';
+import { tr_api } from '@/logic/core/api.js';
+import { handleErrors, requestOptions } from '@/model/MSS/Auths.js';
+import * as mssTypes from '@/model/MSS/TMultiServerSetup.js';
 
 export default class Transcryptor {
 	private _trApi: Api;

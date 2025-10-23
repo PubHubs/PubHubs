@@ -10,9 +10,11 @@
 </template>
 
 <script setup lang="ts">
+	// Packages
 	import { nextTick, ref } from 'vue';
 
-	import Icon from '@/components/elements/Icon.vue';
+	// Components
+	import Icon from '@hub-client/components/elements/Icon.vue';
 
 	const open = ref(false);
 	const style = ref('');

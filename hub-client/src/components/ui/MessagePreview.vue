@@ -1,8 +1,7 @@
 <template>
-	<div v-if="room.hasMessages()" class="mx-auto my-2 rounded-xl px-4 py-1" :class="newMessage ? 'bg-surface-high' : 'bg-surface-low'" @click="goToRoom">
+	<div class="mx-auto my-2 rounded-xl px-4 py-1" :class="newMessage ? 'bg-surface-high' : 'bg-surface-low'" @click="goToRoom">
 		<div class="flex min-w-0 items-center gap-4" :class="{ 'font-bold': newMessage }">
-			<AvatarCore :class="'flex-shrink-0'" :user="avatarUser" :img="avatarOverrideUrl" icon="two_users" />
-
+			<Avatar :class="'flex-shrink-0'" :avatar-url="avatarOverrideUrl" icon="two_users" />
 			<div class="min-w-0 flex-grow overflow-hidden">
 				<div class="flex flex-col gap-1">
 					<div class="flex flex-row items-center gap-2">
@@ -25,8 +24,11 @@
 					</div>
 
 					<!-- Right Section: Message Body -->
-					<div class="mt-1 min-w-0">
+					<div v-if="room.hasMessages()" class="mt-1 min-w-0">
 						<p v-html="event.getContent().ph_body" class="truncate"></p>
+					</div>
+					<div v-if="!room.hasMessages()" class="mt-1 min-w-0">
+						<p>{{ t('rooms.no_messages_yet') }}</p>
 					</div>
 				</div>
 			</div>
@@ -41,18 +43,22 @@
 </template>
 
 <script setup lang="ts">
-	import { computed } from 'vue';
-	import { useRouter } from 'vue-router';
+	// Packages
 	import { EventType, NotificationCountType, RoomMember } from 'matrix-js-sdk';
+	import { computed } from 'vue';
 	import { useI18n } from 'vue-i18n';
+	import { useRouter } from 'vue-router';
 
-	import filters from '@/logic/core/filters';
-	import Room from '@/model/rooms/Room';
-	import { RoomType } from '@/model/rooms/TBaseRoom';
+	// Components
+	import EventTime from '@hub-client/components/rooms/EventTime.vue';
+	import Avatar from '@hub-client/components/ui/Avatar.vue';
 
-	import AvatarCore from './AvatarCore.vue';
-	import Badge from '../elements/Badge.vue';
-	import EventTime from '../rooms/EventTime.vue';
+	// Logic
+	import filters from '@hub-client/logic/core/filters';
+
+	// Models
+	import Room from '@hub-client/models/rooms/Room';
+	import { RoomType } from '@hub-client/models/rooms/TBaseRoom';
 
 	const router = useRouter();
 	const { t } = useI18n();

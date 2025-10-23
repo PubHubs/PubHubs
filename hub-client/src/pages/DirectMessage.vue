@@ -58,33 +58,35 @@
 </template>
 
 <script setup lang="ts">
-	// Component level imports
-	import Button from '@/components/elements/Button.vue';
-	import H3 from '@/components/elements/H3.vue';
-	import Icon from '@/components/elements/Icon.vue';
-	import TruncatedText from '@/components/elements/TruncatedText.vue';
-	import HeaderFooter from '@/components/ui/HeaderFooter.vue';
-	import MessagePreview from '@/components/ui/MessagePreview.vue';
-	import NewConverationPanel from '@/components/rooms/NewConversationPanel.vue';
-	import Badge from '@/components/elements/Badge.vue';
-
-	// Store imports
-	import { useSettings } from '@/logic/store/settings';
-	import { usePubHubs } from '@/logic/core/pubhubsStore';
-	import { Room, RoomType, useRooms } from '@/logic/store/rooms';
-
-	// Vue imports
-	import { computed, ref, onMounted } from 'vue';
+	// Packages
+	import { EventType, NotificationCountType } from 'matrix-js-sdk';
+	import { computed, onMounted, ref } from 'vue';
 	import { useI18n } from 'vue-i18n';
 
-	import { EventType, NotificationCountType } from 'matrix-js-sdk';
-	import { useUser } from '@/logic/store/user';
-	import { router } from '@/logic/core/router';
+	// Components
+	import Badge from '@hub-client/components/elements/Badge.vue';
+	import Button from '@hub-client/components/elements/Button.vue';
+	import H3 from '@hub-client/components/elements/H3.vue';
+	import Icon from '@hub-client/components/elements/Icon.vue';
+	import TruncatedText from '@hub-client/components/elements/TruncatedText.vue';
+	import NewConverationPanel from '@hub-client/components/rooms/NewConversationPanel.vue';
+	import HeaderFooter from '@hub-client/components/ui/HeaderFooter.vue';
+	import MessagePreview from '@hub-client/components/ui/MessagePreview.vue';
+
+	// Logic
+	import { router } from '@hub-client/logic/core/router';
+
+	// Models
+	import { DirectRooms, RoomType } from '@hub-client/models/rooms/TBaseRoom';
+
+	// Store imports
+	import { usePubhubsStore } from '@hub-client/stores/pubhubs';
+	import { Room, useRooms } from '@hub-client/stores/rooms';
+	import { useSettings } from '@hub-client/stores/settings';
+	import { useUser } from '@hub-client/stores/user';
 
 	const panel = ref<boolean>(false);
-	const pubhubs = usePubHubs();
-
-	// Define store constants
+	const pubhubs = usePubhubsStore();
 	const settings = useSettings();
 	const rooms = useRooms();
 	const user = useUser();
@@ -116,23 +118,15 @@
 		if (!privateRooms.value) {
 			return [];
 		}
+		//display by timestamp
 		return [...privateRooms.value].sort((r1, r2) => {
 			return lastEventTimeStamp(r2) - lastEventTimeStamp(r1);
 		});
+		return privateRooms.value;
 	});
 
 	function getPrivateRooms(): Array<Room> {
-		const dmRooms = rooms.fetchRoomArrayByType(RoomType.PH_MESSAGES_DM) ?? [];
-		const groupRooms = rooms.fetchRoomArrayByType(RoomType.PH_MESSAGES_GROUP) ?? [];
-		const stewardRooms = rooms.fetchRoomArrayByType(RoomType.PH_MESSAGE_STEWARD_CONTACT) ?? [];
-
-		// Only Admin has message preview, other users has a admin contact button
-		if (user.isAdmin) {
-			const adminRoom = rooms.fetchRoomArrayByType(RoomType.PH_MESSAGE_ADMIN_CONTACT) ?? [];
-			return [...dmRooms, ...groupRooms, ...adminRoom, ...stewardRooms];
-		}
-
-		return [...dmRooms, ...groupRooms, ...stewardRooms];
+		return rooms.fetchRoomArrayByAccessibility(DirectRooms);
 	}
 
 	function lastEventTimeStamp(room: Room): number {

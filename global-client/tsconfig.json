@@ -1,11 +1,12 @@
 {
 	"compilerOptions": {
 		"target": "esnext",
-		"module": "Node16",
+		"module": "es2022",
 		"strict": true,
 		"jsx": "preserve",
-		"moduleResolution": "Node16",
+		"moduleResolution": "bundler",
 		"allowJs": true,
+		"checkJs": false,
 		"skipLibCheck": true,
 		"esModuleInterop": true,
 		"allowSyntheticDefaultImports": true,
@@ -13,12 +14,15 @@
 		"useDefineForClassFields": true,
 		"resolveJsonModule": true,
 		"sourceMap": true,
+		"outDir": "dist",
+		"types": ["vite/client"],
 		"baseUrl": ".",
 		"paths": {
-			"@/*": ["src/*"]
+			"@global-client/*": ["./src/*"],
+			"@hub-client/*": ["../hub-client/src/*"]
 		},
 		"lib": ["esnext", "dom", "dom.iterable", "scripthost"]
 	},
-	"include": ["env.d.ts", "src/**/*.ts", "src/**/*.tsx", "src/**/*.vue", "tests/**/*.ts", "tests/**/*.tsx, vite.config.ts"],
+	"include": ["env.d.ts", "src/**/*.ts", "src/**/*.tsx", "src/**/*.vue", "tests/**/*.ts", "tests/**/*.tsx", "vite.config.ts"],
 	"exclude": ["node_modules"]
 }

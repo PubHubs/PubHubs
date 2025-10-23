@@ -13,18 +13,25 @@
 </template>
 
 <script setup lang="ts">
-	import { useUserColor } from '@/logic/composables/useUserColor';
-	import filters from '@/logic/core/filters';
+	// Packages
 	import { computed } from 'vue';
-	import Room from '@/model/rooms/Room';
-	import { useSettings } from '@/logic/store/settings';
+
+	// Composables
+	import { useUserColor } from '@hub-client/composables/useUserColor';
+
+	// Logic
+	import filters from '@hub-client/logic/core/filters';
+
+	// Stores
+	import { useSettings } from '@hub-client/stores/settings';
+	import { useUser } from '@hub-client/stores/user';
 
 	const { color, textColor } = useUserColor();
 	const settings = useSettings();
+	const user = useUser();
 
 	interface Props {
-		user: string;
-		room: Room;
+		userId: string;
 		showDisplayName?: boolean;
 		showPseudonym?: boolean;
 		chooseColor?: boolean;
@@ -36,21 +43,19 @@
 		chooseColor: true,
 	});
 
-	// Computed properties for data
-	const member = computed(() => props.room.getMember(props.user));
+	// Synapse member information
+	const member = computed(() => user.client.getUser(props.userId));
 
-	const displayName = computed(() => {
-		const memberData = member.value;
-		// If the display name is not set, we get user Id. In that case return empty display name.
-		if (props.user === memberData?.rawDisplayName || filters.extractPseudonym(props.user) === memberData?.rawDisplayName) {
-			return '';
-		}
-		return memberData?.rawDisplayName || '';
-	});
+	// get displayname Name from the store.
+	const userDisplayName = computed(() => user.userDisplayName(props.userId));
 
-	const pseudonym = computed(() => filters.extractPseudonym(props.user));
+	// get Pseudonym
+	const pseudonym = computed(() => filters.extractPseudonym(props.userId));
 
-	const truncatedDisplayName = computed(() => filters.maxLengthText(displayName.value, settings.getDisplayNameMaxLength));
+	// If the display Name is not set then userDisplayName is equal to rawDisplayName. We only show pseudo
+	const displayName = computed(() => (userDisplayName.value == member.value?.rawDisplayName ? userDisplayName.value : undefined));
+
+	const truncatedDisplayName = computed(() => filters.maxLengthText(displayName.value ?? '', settings.getDisplayNameMaxLength));
 
 	// Computed properties for display logic
 	const showDisplayName = computed(() => props.showDisplayName && displayName.value);
@@ -65,7 +70,9 @@
 	});
 
 	// Computed properties for styling
-	const userColorClass = computed(() => (props.chooseColor ? textColor(color(props.user)) : ''));
+	const userColorClass = computed(() => {
+		return props.chooseColor ? textColor(color(props.userId)) : '';
+	});
 
 	const displayNameClasses = computed(() => ({
 		truncate: true,

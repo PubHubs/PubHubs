@@ -17,19 +17,24 @@
 </template>
 
 <script setup lang="ts">
-	// Components
-	import Dialog from '../ui/Dialog.vue';
-	import FilteredList from '../ui/FilteredList.vue';
-	import Icon from '../elements/Icon.vue';
-
-	import { usePubHubs } from '@/logic/core/pubhubsStore';
-	import { buttonsCancel } from '@/logic/store/dialog';
-	import { useUser } from '@/logic/store/user';
-	import { FilteredListEvent } from '@/model/components/components';
+	// Packages
 	import { User as MatrixUser } from 'matrix-js-sdk';
 	import { computed, onMounted, ref } from 'vue';
 
-	const pubhubs = usePubHubs();
+	// Components
+	import Icon from '@hub-client/components/elements/Icon.vue';
+	import Dialog from '@hub-client/components/ui/Dialog.vue';
+	import FilteredList from '@hub-client/components/ui/FilteredList.vue';
+
+	// Models
+	import { FilteredListEvent } from '@hub-client/models/components/FilteredListEvent';
+
+	// Stores
+	import { buttonsCancel } from '@hub-client/stores/dialog';
+	import { usePubhubsStore } from '@hub-client/stores/pubhubs';
+	import { useUser } from '@hub-client/stores/user';
+
+	const pubhubs = usePubhubsStore();
 	const user = useUser();
 	const emit = defineEmits(['chosenUser', 'close']);
 
@@ -53,7 +58,7 @@
 			};
 		});
 		// Remove self from list
-		list = list.filter((u: any) => u.userId !== user.user.userId && u.rawDisplayName !== 'notices');
+		list = list.filter((u: any) => u.userId !== user.userId && u.rawDisplayName !== 'notices');
 		return list;
 	});
 

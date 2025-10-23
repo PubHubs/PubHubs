@@ -1,11 +1,17 @@
+// Packages
 import { App } from 'vue';
 import { I18nOptions, createI18n } from 'vue-i18n';
-import { mergeDeep } from './logic/core/extensions';
 
-import { en } from '@/locales/en';
-import { nl } from '@/locales/nl';
+// Locales
+import { en } from '@hub-client/locales/en';
+import { nl } from '@hub-client/locales/nl';
 
+// Logic
+import { mergeDeep } from '@hub-client/logic/core/extensions';
+
+// Types
 type Language = 'nl' | 'en';
+
 const supportedLanguages: Language[] = ['nl', 'en'];
 
 // The default language is determined by the browser

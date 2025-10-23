@@ -11,8 +11,8 @@
  *
  * Some icons are based on https://tailwindtoolbox.com/icons
  */
-
-import { iconSizes } from './sizes.js';
+// Assets
+import { iconSizes } from '@hub-client/assets/sizes';
 
 const icons: { [key: string]: string } = {
 	empty: ``,

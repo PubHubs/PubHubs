@@ -1,6 +1,9 @@
-import { setActivePinia, createPinia } from 'pinia';
-import { describe, beforeEach, expect, test } from 'vitest';
-import { usePubHubs } from '@/logic/core/pubhubsStore';
+// Packages
+import { createPinia, setActivePinia } from 'pinia';
+import { beforeEach, describe, expect, test } from 'vitest';
+
+// Stores
+import { usePubhubsStore } from '@hub-client/stores/pubhubs';
 
 describe('PubHubs Store', () => {
 	beforeEach(() => {
@@ -26,7 +29,7 @@ describe('PubHubs Store', () => {
 				};
 			}
 
-			const pubhubs = usePubHubs() as Partial<any>;
+			const pubhubs = usePubhubsStore() as Partial<any>;
 			pubhubs.client = mockClient(true);
 			let x = await pubhubs.getAllPublicRooms();
 			expect(x).toEqual(['1', '2']);
@@ -42,7 +45,7 @@ describe('PubHubs Store', () => {
 		});
 
 		test('plain text', async () => {
-			const pubhubs = usePubHubs();
+			const pubhubs = usePubhubsStore();
 			const content = await pubhubs._constructMessageContent('Lorem ipsum dolor sit amet,');
 
 			expect(content).toHaveProperty('body', 'Lorem ipsum dolor sit amet,');
@@ -50,7 +53,7 @@ describe('PubHubs Store', () => {
 		});
 
 		test('safe html', async () => {
-			const pubhubs = usePubHubs();
+			const pubhubs = usePubhubsStore();
 			const content = await pubhubs._constructMessageContent('<b>Lorem</b> ipsum dolor sit amet');
 
 			expect(content).toHaveProperty('body', 'Lorem ipsum dolor sit amet');
@@ -60,7 +63,7 @@ describe('PubHubs Store', () => {
 		});
 
 		test('safe link', async () => {
-			const pubhubs = usePubHubs();
+			const pubhubs = usePubhubsStore();
 			const content = await pubhubs._constructMessageContent('<b>Lorem</b> ipsum dolor <a href="https://test.nl">sit</a> amet');
 
 			expect(content).toHaveProperty('body', 'Lorem ipsum dolor sit amet');
@@ -70,7 +73,7 @@ describe('PubHubs Store', () => {
 		});
 
 		test('no img', async () => {
-			const pubhubs = usePubHubs();
+			const pubhubs = usePubhubsStore();
 			const content = await pubhubs._constructMessageContent('<b>Lorem</b> ipsum dolor <img src="https://test.nl"> amet');
 
 			expect(content).toHaveProperty('body', 'Lorem ipsum dolor  amet');
@@ -80,7 +83,7 @@ describe('PubHubs Store', () => {
 		});
 
 		test('matrix img', async () => {
-			const pubhubs = usePubHubs();
+			const pubhubs = usePubhubsStore();
 			const content = await pubhubs._constructMessageContent('<b>Lorem</b> ipsum dolor <img src="mxc://test.nl"> amet');
 
 			expect(content).toHaveProperty('body', 'Lorem ipsum dolor  amet');
@@ -90,7 +93,7 @@ describe('PubHubs Store', () => {
 		});
 
 		test('no iframes', async () => {
-			const pubhubs = usePubHubs();
+			const pubhubs = usePubhubsStore();
 			const content = await pubhubs._constructMessageContent('<b>Lorem</b> ipsum dolor <iframe src="mxc://test.nl"> amet');
 
 			expect(content).toHaveProperty('body', 'Lorem ipsum dolor  amet');
@@ -100,7 +103,7 @@ describe('PubHubs Store', () => {
 		});
 
 		test('no scripts', async () => {
-			const pubhubs = usePubHubs();
+			const pubhubs = usePubhubsStore();
 			const content = await pubhubs._constructMessageContent('<b>Lorem</b> ipsum dolor <script src="mxc://test.nl">windows.location="bad"</script> amet');
 
 			expect(content).toHaveProperty('body', 'Lorem ipsum dolor windows.location="bad" amet');
@@ -110,7 +113,7 @@ describe('PubHubs Store', () => {
 		});
 
 		test('only whithin <html></html>', async () => {
-			const pubhubs = usePubHubs();
+			const pubhubs = usePubhubsStore();
 			const content = await pubhubs._constructMessageContent('<head><title>Lorem</title></head><html><body><h1>Lorum ipsum dolor amet</h1><p>etc</p></body></html>');
 
 			expect(content).toHaveProperty('body', 'Lorum ipsum dolor ametetc');

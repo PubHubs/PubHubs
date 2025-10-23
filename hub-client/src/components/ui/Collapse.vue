@@ -15,8 +15,11 @@
 </template>
 
 <script setup lang="ts">
-	import Icon from '@/components/elements/Icon.vue';
+	// Packages
 	import { ref } from 'vue';
+
+	// Components
+	import Icon from '@hub-client/components/elements/Icon.vue';
 
 	const collapsed = ref(true);
 

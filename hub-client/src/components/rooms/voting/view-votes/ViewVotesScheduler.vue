@@ -3,9 +3,11 @@
 </template>
 
 <script setup lang="ts">
-	import ViewVotesSchedulerOption from '@/components/rooms/voting/view-votes/ViewVotesSchedulerOption.vue';
+	// Components
+	import ViewVotesSchedulerOption from '@hub-client/components/rooms/voting/view-votes/ViewVotesSchedulerOption.vue';
 
-	import { SchedulerOption } from '@/model/events/voting/VotingTypes';
+	// Models
+	import { SchedulerOption } from '@hub-client/models/events/voting/VotingTypes';
 
 	const props = defineProps<{
 		options: SchedulerOption[];

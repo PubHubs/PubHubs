@@ -7,10 +7,17 @@
 </template>
 
 <script setup lang="ts">
-	import { TFileMessageEventContent } from '@/model/events/TMessageEvent';
-	import { useMatrixFiles } from '@/logic/composables/useMatrixFiles';
-	import { FeatureFlag, useSettings } from '@/logic/store/settings';
+	// Packages
 	import { onMounted, ref } from 'vue';
+
+	// Composables
+	import { useMatrixFiles } from '@hub-client/composables/useMatrixFiles';
+
+	// Models
+	import { TFileMessageEventContent } from '@hub-client/models/events/TMessageEvent';
+
+	// Stores
+	import { FeatureFlag, useSettings } from '@hub-client/stores/settings';
 
 	const settings = useSettings();
 	const matrixFiles = useMatrixFiles();

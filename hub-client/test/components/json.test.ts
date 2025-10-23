@@ -1,6 +1,9 @@
-import { expect, test } from 'vitest';
+// Packages
 import { mount } from '@vue/test-utils';
-import Json from '@/components/elements/Json.vue';
+import { expect, test } from 'vitest';
+
+// Components
+import Json from '@hub-client/components/elements/Json.vue';
 
 test('mount component', async () => {
 	expect(Json).toBeTruthy();

@@ -46,26 +46,28 @@
 </template>
 
 <script setup lang="ts">
-	// Components
-	import TabHeader from '../ui/TabHeader.vue';
-	import TabPill from '../ui/TabPill.vue';
-	import Icon from '../elements/Icon.vue';
-	import TabContainer from '../ui/TabContainer.vue';
-	import TabContent from '../ui/TabContent.vue';
-	import FormLine from './FormLine.vue';
-	import Label from './Label.vue';
-	import TextInput from './TextInput.vue';
-	import TextArea from './TextArea.vue';
-	import Checkbox from './Checkbox.vue';
-	import Select from './Select.vue';
-	import AutoComplete from './AutoComplete.vue';
+	// Packages
+	import { inject, ref } from 'vue';
 
-	import { ref, inject } from 'vue';
-	import { InputType, FormObjectInputTemplate } from '@/logic/composables/useFormInputEvents';
+	// Components
+	import Icon from '@hub-client/components/elements/Icon.vue';
+	import AutoComplete from '@hub-client/components/forms/AutoComplete.vue';
+	import Checkbox from '@hub-client/components/forms/Checkbox.vue';
+	import FormLine from '@hub-client/components/forms/FormLine.vue';
+	import Label from '@hub-client/components/forms/Label.vue';
+	import Select from '@hub-client/components/forms/Select.vue';
+	import TextArea from '@hub-client/components/forms/TextArea.vue';
+	import TextInput from '@hub-client/components/forms/TextInput.vue';
+	import TabContainer from '@hub-client/components/ui/TabContainer.vue';
+	import TabContent from '@hub-client/components/ui/TabContent.vue';
+	import TabHeader from '@hub-client/components/ui/TabHeader.vue';
+	import TabPill from '@hub-client/components/ui/TabPill.vue';
+
+	// Composables
+	import { FormObjectInputTemplate, InputType } from '@hub-client/composables/useFormInputEvents';
 
 	const setActiveTab = inject('setActiveTab') as Function;
 	const removeTab = inject('removeTab') as Function;
-
 	const emit = defineEmits(['input']);
 
 	const props = defineProps({

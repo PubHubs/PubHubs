@@ -39,6 +39,7 @@
 							class="mb-1 w-full rounded-lg bg-background text-on-surface placeholder-on-surface-dim ~text-label-min/label-max focus:border-on-surface focus:outline-0 focus:outline-offset-0 focus:ring-0"
 							disabled
 						/>
+						<Checkbox :label="$t('message.voting.show_votes_before_voting')" v-model="poll.showVotesBeforeVoting" @input="updatePoll"></Checkbox>
 					</div>
 					<div class="mb-1 max-h-full w-1/3 rounded-lg border bg-background" v-if="settingsMenu">
 						<div class="ml-3 mt-3">
@@ -63,10 +64,15 @@
 </template>
 
 <script setup lang="ts">
-	import Icon from '@/components/elements/Icon.vue';
+	// Packages
 	import { nextTick, ref, watch } from 'vue';
-	import { Poll, PollOption } from '@/model/events/voting/VotingTypes';
-	import Checkbox from '@/components/forms/Checkbox.vue';
+
+	// Components
+	import Icon from '@hub-client/components/elements/Icon.vue';
+	import Checkbox from '@hub-client/components/forms/Checkbox.vue';
+
+	/// Models
+	import { Poll, PollOption } from '@hub-client/models/events/voting/VotingTypes';
 
 	const props = defineProps({
 		pollObject: {
@@ -83,7 +89,7 @@
 	const poll = ref(props.pollObject ? props.pollObject : new Poll());
 	const settingsMenu = ref(false);
 
-	//watch for switching between creating and editing a poll
+	// Watch for switching between creating and editing a poll
 	watch(
 		() => props.pollObject,
 		(newPoll) => {
@@ -103,7 +109,7 @@
 		updatePoll();
 		poll.value.addNewOptionsIfAllFilled();
 
-		//scroll to the bottom of the options container
+		// Scroll to the bottom of the options container
 		nextTick(() => {
 			const container = document.getElementById('optionsContainer');
 			if (container) {

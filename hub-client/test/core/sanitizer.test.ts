@@ -1,5 +1,8 @@
+// Packages
 import { describe, expect, test } from 'vitest';
-import { removeHtml, sanitizeHtml } from '@/logic/core/sanitizer.ts';
+
+// Logic
+import { removeHtml, sanitizeHtml } from '@hub-client/logic/core/sanitizer';
 
 describe('removeHTML', () => {
 	test('remove HTML', () => {

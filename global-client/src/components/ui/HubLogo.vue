@@ -6,11 +6,11 @@
 </template>
 
 <script setup lang="ts">
-	// Package imports
+	// Packages
 	import { computed, ref } from 'vue';
 
-	// Global imports
-	import { useSettings } from '@/logic/store/store';
+	// Stores
+	import { useSettings } from '@hub-client/stores/settings';
 
 	const settings = useSettings();
 	const props = defineProps<{ hubUrl: string; hubId: string; changeToDark: boolean }>();

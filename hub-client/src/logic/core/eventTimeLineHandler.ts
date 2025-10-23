@@ -1,8 +1,13 @@
-import { TTextMessageEventContent } from '@/model/events/TMessageEvent';
-import { TEvent } from '@/model/events/TEvent';
-import { usePlugins } from '@/logic/store/plugins';
-import { useRooms } from '@/logic/store/rooms';
-import { sanitizeHtml } from '@/logic/core/sanitizer';
+// Logic
+import { sanitizeHtml } from '@hub-client/logic/core/sanitizer';
+
+// Models
+import { TEvent } from '@hub-client/models/events/TEvent';
+import { TTextMessageEventContent } from '@hub-client/models/events/TMessageEvent';
+
+// Stores
+import { usePlugins } from '@hub-client/stores/plugins';
+import { useRooms } from '@hub-client/stores/rooms';
 
 /**
  * This class handles all changes that should be made to incoming timeline events
@@ -60,7 +65,7 @@ class EventTimeLineHandler {
 
 	private addMentions(body: string) {
 		// First test if there is an @ in body
-		if (body.match(/^@|\s@/)) {
+		if (body.match(/^@|\s'@/)) {
 			// If so, replace them with mentions, except email-addresses
 			body = body.replace(mentionsPattern, startMentionTag + '$1' + endMentionTag);
 		}

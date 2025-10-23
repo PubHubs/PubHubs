@@ -1,7 +1,9 @@
+<!-- Protection against the issue of multiple admin. Only add admin that creates the room can only see the room.
+	TODO: Discuss in PH general meeting about the issue of PH admins - we should have only one admin who can create the room. -->
 <template>
 	<Dialog v-if="listUserRooms.length > 0" :title="$t('admin.user_perm_heading')" @close="emit('close')">
 		<div class="flex p-2 sm:p-4">
-			<Avatar :userId="userId"></Avatar>
+			<Avatar :avatar-url="user.userAvatar(userId)" :user-id="userId"></Avatar>
 			<div class="ml-2 flex flex-col">
 				<div>{{ displayName }}</div>
 				<div class="mb-2 italic text-on-surface-dim sm:mb-4">{{ userId }}</div>
@@ -49,27 +51,30 @@
 </template>
 
 <script setup lang="ts">
-	/**
-	 *  Protection against the issue of multiple admin. Only add admin that creates the room can only see the room.
-	 *  TODO: Discuss in PH general meeting about the issue of PH admins - we should have only one admin who can create the room.
-	 */
-
-	import { onMounted, watch, ref } from 'vue';
+	// Packages
+	import { onMounted, ref, watch } from 'vue';
 	import { useI18n } from 'vue-i18n';
-	import { useUser } from '@/logic/store/user';
-	import { useDialog } from '@/logic/store/dialog';
-	import { usePubHubs } from '@/logic/core/pubhubsStore';
-	import { TUserJoinedRooms } from '@/model/users/TUser';
-	import { TUserRole } from '@/model/users/TUser';
-	import { APIService } from '@/logic/core/apiHubManagement';
-	import { UserRoomPermission } from '@/model/hubmanagement/types/roomPerm';
-	import { Administrator } from '@/model/hubmanagement/models/admin';
-	import Avatar from '../ui/Avatar.vue';
-	import Dialog from '../ui/Dialog.vue';
+
+	// Components
+	import Avatar from '@hub-client/components/ui/Avatar.vue';
+	import Dialog from '@hub-client/components/ui/Dialog.vue';
+
+	// Logic
+	import { APIService } from '@hub-client/logic/core/apiHubManagement';
+
+	// Models
+	import { Administrator } from '@hub-client/models/hubmanagement/models/admin';
+	import { UserRoomPermission } from '@hub-client/models/hubmanagement/types/roomPerm';
+	import { TUserJoinedRooms } from '@hub-client/models/users/TUser';
+	import { TUserRole } from '@hub-client/models/users/TUser';
+
+	// Stores
+	import { useDialog } from '@hub-client/stores/dialog';
+	import { usePubhubsStore } from '@hub-client/stores/pubhubs';
+	import { useUser } from '@hub-client/stores/user';
 
 	const { t } = useI18n();
-
-	const pubhubs = usePubHubs();
+	const pubhubs = usePubhubsStore();
 	const dialog = useDialog();
 	const user = useUser();
 
@@ -87,7 +92,7 @@
 	onMounted(async () => {
 		listUserRooms.value = await fetchRoomUserPermissions();
 
-		joinedMembers.value = await APIService.adminListJoinedRoomId(user.user.userId);
+		joinedMembers.value = await APIService.adminListJoinedRoomId(user.userId);
 	});
 
 	watch(
@@ -95,7 +100,7 @@
 		async () => {
 			listUserRooms.value = await fetchRoomUserPermissions();
 
-			joinedMembers.value = await APIService.adminListJoinedRoomId(user.user.userId);
+			joinedMembers.value = await APIService.adminListJoinedRoomId(user.userId);
 		},
 	);
 

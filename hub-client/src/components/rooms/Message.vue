@@ -6,12 +6,15 @@
 </template>
 
 <script setup lang="ts">
-	// Components
-	import Icon from '../elements/Icon.vue';
-
-	import { TMessageEvent } from '@/model/events/TMessageEvent';
+	// Packages
 	import { computed } from 'vue';
 	import { useI18n } from 'vue-i18n';
+
+	// Components
+	import Icon from '@hub-client/components/elements/Icon.vue';
+
+	// Models
+	import { TMessageEvent } from '@hub-client/models/events/TMessageEvent';
 
 	const { t } = useI18n();
 	const props = defineProps<{ event: TMessageEvent; deleted: boolean }>();

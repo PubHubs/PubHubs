@@ -6,7 +6,9 @@
 </template>
 
 <script setup lang="ts">
+	// Packages
 	import { RoomMember } from 'matrix-js-sdk';
+
 	defineProps({
 		members: {
 			type: Array<RoomMember>,

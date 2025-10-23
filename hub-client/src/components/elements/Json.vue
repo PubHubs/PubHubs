@@ -6,10 +6,11 @@
 </template>
 
 <script setup lang="ts">
-	// Components
-	import Icon from './Icon.vue';
-
+	// Packages
 	import { ref } from 'vue';
+
+	// Components
+	import Icon from '@hub-client/components/elements/Icon.vue';
 
 	defineProps({
 		json: Object,

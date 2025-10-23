@@ -13,12 +13,12 @@
 </template>
 
 <script setup lang="ts">
-	// Vue imports
+	// Packages
 	import { defineProps } from 'vue';
 	import { useI18n } from 'vue-i18n';
 
-	// Component imports
-	import Icon from '@/components/elements/Icon.vue';
+	// Components
+	import Icon from '@hub-client/components/elements/Icon.vue';
 
 	const { t } = useI18n();
 

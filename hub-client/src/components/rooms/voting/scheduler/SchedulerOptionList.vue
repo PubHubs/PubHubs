@@ -18,10 +18,17 @@
 </template>
 
 <script setup lang="ts">
-	import { useUser } from '@/logic/store/user';
-	import SchedulerOptionItem from '@/components/rooms/voting/scheduler/SchedulerOptionItem.vue';
-	import { SchedulerOption, votesForOption } from '@/model/events/voting/VotingTypes';
+	// Packages
 	import { computed } from 'vue';
+
+	// Components
+	import SchedulerOptionItem from '@hub-client/components/rooms/voting/scheduler/SchedulerOptionItem.vue';
+
+	// Models
+	import { SchedulerOption, votesForOption } from '@hub-client/models/events/voting/VotingTypes';
+
+	// Users
+	import { useUser } from '@hub-client/stores/user';
 
 	const props = defineProps<{
 		options: SchedulerOption[];
@@ -62,6 +69,6 @@
 
 	const voteOfUserOnOption = (optionId: number) => {
 		const user = useUser();
-		return votesOfOption(optionId).find((vote) => vote.userIds.includes(user.user.userId))?.choice ?? '';
+		return votesOfOption(optionId).find((vote) => vote.userIds.includes(user.userId))?.choice ?? '';
 	};
 </script>

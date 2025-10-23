@@ -17,10 +17,12 @@
 </template>
 
 <script setup lang="ts">
-	import { ref } from 'vue';
-	import { useFormInputEvents, usedEvents } from '@/logic/composables/useFormInputEvents';
-	import { useGetCaretPos } from '@/logic/composables/useGetCaretPos';
-	import { Ref } from 'vue';
+	// Packages
+	import { Ref, ref } from 'vue';
+
+	// Composables
+	import { useFormInputEvents, usedEvents } from '@hub-client/composables/useFormInputEvents';
+	import { useGetCaretPos } from '@hub-client/composables/useGetCaretPos';
 
 	const { getCaretPos } = useGetCaretPos();
 	const elTextarea: Ref<null | HTMLTextAreaElement> = ref(null);

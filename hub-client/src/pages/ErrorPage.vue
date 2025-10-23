@@ -1,6 +1,6 @@
 <template>
 	<div class="flex h-full items-center justify-center p-10">
-		<div class="flex flex-col gap-y-4 rounded-xl bg-surface-low px-8 py-12 text-center shadow-lg" :class="isMobile ? 'w-full' : 'w-8/12'">
+		<div class="md:'-8/12 flex w-full flex-col gap-y-4 rounded-xl bg-surface-low px-8 py-12 text-center shadow-lg">
 			<H1 class="text-accent-primary">{{ $t('errors.oops') }}</H1>
 			<H3 class="">{{ $t(errorKey, errorValues) }}</H3>
 			<router-link :to="{ name: 'home' }">
@@ -13,18 +13,8 @@
 </template>
 
 <script setup lang="ts">
-	// Package imports
-	import { computed } from 'vue';
-
-	// Hub imports
-	import Button from '@/components/elements/Button.vue';
-	import H1 from '@/components/elements/H1.vue';
-	import H3 from '@/components/elements/H3.vue';
-	import { useSettings } from '@/logic/store/settings';
-
-	const settings = useSettings();
-
-	const isMobile = computed(() => settings.isMobileState);
+	// Components
+	import Button from '@hub-client/components/elements/Button.vue';
 
 	const props = defineProps({
 		errorKey: { type: String, required: true },

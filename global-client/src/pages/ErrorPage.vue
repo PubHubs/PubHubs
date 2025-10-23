@@ -13,16 +13,16 @@
 </template>
 
 <script setup lang="ts">
-	// Package imports
+	// Packages
 	import { computed } from 'vue';
 
-	// Global imports
-	import Button from '@/components/elements/Button.vue';
-	import { useSettings } from '@/logic/store/settings';
+	// Components
+	import Button from '@hub-client/components/elements/Button.vue';
+	import H1 from '@hub-client/components/elements/H1.vue';
+	import H3 from '@hub-client/components/elements/H3.vue';
 
-	// Hub imports
-	import H1 from '@/../../hub-client/src/components/elements/H1.vue';
-	import H3 from '@/../../hub-client/src/components/elements/H3.vue';
+	// Stores
+	import { useSettings } from '@hub-client/stores/settings';
 
 	const settings = useSettings();
 

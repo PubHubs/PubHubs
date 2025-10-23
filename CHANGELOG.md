@@ -96,7 +96,7 @@ _NOTE:_ Tag (v.2.0.0 and v.2.0.1) was updated couple of times due to some issues
 - [BUG] Signed messages are temporarily disabled since they were not working as intended
 - [NEW] Desktop notifications for new messages are now also sent for pinned hubs when the user has the hub not currently open.
 - [NEW] Update and implement Tailwind colors and add minor UX/UI improvements
-- [BREAKING] Update feature flag for authenticatedMedia to `true` in hub-client/src/logic/store/settings.ts.
+- [BREAKING] Update feature flag for authenticatedMedia to `true` in hub-client/src/store/settings.ts.
 - [BUG] Loading of rooms shows spinner again
 - [BUG] Show Hub Settings only to hub admin
 - [BUG] Sometimes threads displayed messages in the wrong order

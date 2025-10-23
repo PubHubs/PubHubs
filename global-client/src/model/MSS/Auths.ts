@@ -1,14 +1,12 @@
 // Package imports
-import { assert } from 'chai';
-
+// Hub imports
+import { Api } from '@/../../hub-client/src/logic/core/apiCore.js';
 // Global imports
 import { auths_api } from '@/logic/core/api.js';
 import filters from '@/logic/core/filters.js';
 import { startYiviAuthentication } from '@/logic/utils/yiviHandler.js';
 import * as mssTypes from '@/model/MSS/TMultiServerSetup.js';
-
-// Hub imports
-import { Api } from '@/../../hub-client/src/logic/core/apiCore.js';
+import { assert } from 'chai';
 
 export default class AuthenticationServer {
 	private _state: number[];

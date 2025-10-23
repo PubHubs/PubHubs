@@ -1,5 +1,3 @@
-<!-- Global Dialog, uses dialog.ts store. And is globally present in App.vue -->
-
 <template>
 	<div
 		class="fixed left-0 top-0 z-50 h-full w-full"
@@ -40,16 +38,17 @@
 </template>
 
 <script setup lang="ts">
-	// Package imports
-	import { onMounted, useSlots, computed, onUnmounted, watch } from 'vue';
+	// Packages
+	import { computed, onMounted, onUnmounted, useSlots, watch } from 'vue';
 
-	// Hub imports
-	import { DialogButton, DialogButtonAction, DialogOk, DialogCancel, useDialog } from '@/logic/store/dialog';
+	// Coponents
+	import Button from '@hub-client/components/elements/Button.vue';
+	import H2 from '@hub-client/components/elements/H2.vue';
+	import Icon from '@hub-client/components/elements/Icon.vue';
+	import Line from '@hub-client/components/elements/Line.vue';
 
-	import Icon from '@/components/elements/Icon.vue';
-	import H2 from '@/components/elements/H2.vue';
-	import Button from '@/components/elements/Button.vue';
-	import Line from '@/components/elements/Line.vue';
+	// Stores
+	import { DialogButton, DialogButtonAction, DialogCancel, DialogOk, useDialog } from '@hub-client/stores/dialog';
 
 	const emit = defineEmits(['close']);
 	const dialog = useDialog();

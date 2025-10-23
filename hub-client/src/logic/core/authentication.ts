@@ -1,10 +1,10 @@
+// Packages
 import * as sdk from 'matrix-js-sdk';
 import { ICreateClientOpts, MatrixClient } from 'matrix-js-sdk';
 
-import { MessageType } from '@/logic/store/messagebox.js';
-import { Message, useMessageBox } from '@/logic/store/store.js';
-import { useUser } from '@/logic/store/user.js';
-import { CONFIG } from '@/logic/foundation/Config.js';
+// Stores
+import { Message, MessageType, useMessageBox } from '@hub-client/stores/messagebox';
+import { useUser } from '@hub-client/stores/user';
 
 class Authentication {
 	private user = useUser();
@@ -15,8 +15,8 @@ class Authentication {
 	private client!: MatrixClient;
 
 	constructor() {
-		// @ts-ignore
-		this.baseUrl = CONFIG._env.HUB_URL;
+		// @ts-expect-error
+		this.baseUrl = _env.HUB_URL;
 		this.clientUrl = location.protocol + '//' + location.host + location.pathname;
 	}
 

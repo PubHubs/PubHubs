@@ -25,16 +25,19 @@
 </template>
 
 <script setup lang="ts">
+	// Packages
 	import { PropType, ref } from 'vue';
-	import filters from '@/logic/core/filters';
-	import { useMatrixFiles } from '@/logic/composables/useMatrixFiles';
-	import { useMessageInput } from '@/logic/store/messageInput';
+
+	// Composables
+	import { useMatrixFiles } from '@hub-client/composables/useMatrixFiles';
+
+	// Logic
+	import filters from '@hub-client/logic/core/filters';
+	import { useMessageInput } from '@hub-client/logic/messageInput';
 
 	const { allTypes, imageTypes, getTypesAsString } = useMatrixFiles();
-
 	const uri = ref<string>('');
 	const elFileInput = ref<HTMLInputElement | null>(null);
-
 	const emit = defineEmits(['submit']);
 
 	const props = defineProps({

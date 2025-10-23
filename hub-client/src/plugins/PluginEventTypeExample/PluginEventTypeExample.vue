@@ -7,9 +7,11 @@
 
 <script setup lang="ts">
 	// Components
-	import H3 from '@/components/elements/H3.vue';
-	import Json from '@/components/elements/Json.vue';
+	import H3 from '@hub-client/components/elements/H3.vue';
+	import Json from '@hub-client/components/elements/Json.vue';
 
-	import { TEvent } from '@/logic/store/rooms';
+	// Stores
+	import { TEvent } from '@hub-client/stores/rooms';
+
 	defineProps<{ event: TEvent }>();
 </script>

@@ -5,7 +5,8 @@
 		"baseUrl": "./",
 		"moduleResolution": "node",
 		"paths": {
-			"@/*": ["./src/*"]
+			"@global-client/*": ["./src/*"],
+			"@hub-client/*": ["../hub-client/src/*"]
 		},
 		"lib": ["esnext", "dom", "dom.iterable", "scripthost"]
 	}

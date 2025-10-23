@@ -21,9 +21,9 @@
 
 <script setup lang="ts">
 	// Components
-	import ImagePlaceholder from './ImagePlaceholder.vue';
-	import Icon from './Icon.vue';
-	import H3 from './H3.vue';
+	import H3 from '@hub-client/components/elements/H3.vue';
+	import Icon from '@hub-client/components/elements/Icon.vue';
+	import ImagePlaceholder from '@hub-client/components/elements/ImagePlaceholder.vue';
 
 	const props = defineProps({
 		image: {

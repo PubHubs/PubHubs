@@ -47,23 +47,22 @@
 	</div>
 </template>
 <script setup lang="ts">
-	// External imports
-	import { computed, ref, onMounted, onBeforeMount, watchEffect } from 'vue';
+	// Packages
+	import { computed, onBeforeMount, onMounted, ref, watchEffect } from 'vue';
 	import { useI18n } from 'vue-i18n';
 
 	// Components
-	import HubBanner from '@/components/ui/HubBanner.vue';
-	import RoomCard from '@/components/rooms/RoomCard.vue';
-	import Icon from '@/components/elements/Icon.vue';
-	import P from '@/components/elements/P.vue';
+	import Icon from '@hub-client/components/elements/Icon.vue';
+	import P from '@hub-client/components/elements/P.vue';
+	import RoomCard from '@hub-client/components/rooms/RoomCard.vue';
+	import HubBanner from '@hub-client/components/ui/HubBanner.vue';
 
-	// Logic
-	import { useHubSettings } from '@/logic/store/hub-settings';
-	import { usePubHubs } from '@/logic/core/pubhubsStore';
-	import { useRooms } from '@/logic/store/store';
+	// Stores
+	import { useHubSettings } from '@hub-client/stores/hub-settings';
+	import { usePubhubsStore } from '@hub-client/stores/pubhubs';
+	import { useRooms } from '@hub-client/stores/rooms';
 
-	// Setup
-	const pubhubsStore = usePubHubs();
+	const pubhubsStore = usePubhubsStore();
 	const hubSettings = useHubSettings();
 	const rooms = useRooms();
 	const { t } = useI18n();

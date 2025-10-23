@@ -1,11 +1,9 @@
 /// <reference types="vitest" />
-
-import { URL, fileURLToPath } from 'node:url';
-
 import Vue from '@vitejs/plugin-vue';
+import path from 'node:path';
+import { URL, fileURLToPath } from 'node:url';
 import { defineConfig } from 'vite';
 import { nodePolyfills } from 'vite-plugin-node-polyfills';
-import path from 'node:path';
 
 export default defineConfig({
 	logLevel: 'warn',
@@ -22,11 +20,10 @@ export default defineConfig({
 			if (log.includes('Expected Room, got Object')) return false;
 			if (log.includes('Failed to resolve directive')) return false;
 		},
-		// silent: true,
 	},
 	resolve: {
 		alias: {
-			'@': fileURLToPath(new URL('./src', import.meta.url)),
+			'@hub-client': fileURLToPath(new URL('./src', import.meta.url)),
 			process: 'process/browser',
 			vue: path.resolve(__dirname, 'node_modules/vue'),
 			pinia: path.resolve(__dirname, 'node_modules/pinia'),

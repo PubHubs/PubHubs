@@ -33,8 +33,8 @@
 </template>
 
 <script setup>
-	// External imports
-	import Button from '../../../../../hub-client/src/components/elements/Button.vue';
+	// Components
+	import Button from '@hub-client/components/elements/Button.vue';
 
 	const props = defineProps({
 		index: Number,

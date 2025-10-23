@@ -80,22 +80,31 @@
 </template>
 
 <script setup lang="ts">
-	import HubIcon from '@/components/ui/HubIcon.vue';
-	import HubBanner from '@/components/ui/HubBanner.vue';
-	import HeaderFooter from '@/components/ui/HeaderFooter.vue';
-	import MediaUploadSection from '@/components/ui/MediaUploadSection.vue';
-	import { SMI } from '@/logic/foundation/StatusMessage';
-	import { LOGGER } from '@/logic/foundation/Logger';
-	import { ALLOWED_HUB_ICON_TYPES, MAX_HUB_ICON_SIZE, useHubSettings, toolbarSettings } from '@/logic/store/hub-settings';
-	import { HubSettingsJSONParser } from '@/logic/store/json-utility';
-	import { computed, ref, onBeforeMount, watch } from 'vue';
+	// Packages
+	import { computed, onBeforeMount, ref, watch } from 'vue';
 	import { useI18n } from 'vue-i18n';
-	import H3 from '@/components/elements/H3.vue';
-	import P from '@/components/elements/P.vue';
-	import Button from '@/components/elements/Button.vue';
-	import { useSettings } from '@/logic/store/settings';
-	import TextArea from '@/components/forms/TextArea.vue';
-	import '@/assets/tailwind.css';
+
+	// Assets
+	import '@hub-client/assets/tailwind.css';
+
+	// Components
+	import Button from '@hub-client/components/elements/Button.vue';
+	import H3 from '@hub-client/components/elements/H3.vue';
+	import P from '@hub-client/components/elements/P.vue';
+	import TextArea from '@hub-client/components/forms/TextArea.vue';
+	import HeaderFooter from '@hub-client/components/ui/HeaderFooter.vue';
+	import HubBanner from '@hub-client/components/ui/HubBanner.vue';
+	import HubIcon from '@hub-client/components/ui/HubIcon.vue';
+	import MediaUploadSection from '@hub-client/components/ui/MediaUploadSection.vue';
+
+	// Logic
+	import { HubSettingsJSONParser } from '@hub-client/logic/json-utility';
+	import { LOGGER } from '@hub-client/logic/logging/Logger';
+	import { SMI } from '@hub-client/logic/logging/StatusMessage';
+
+	// Stores
+	import { ALLOWED_HUB_ICON_TYPES, MAX_HUB_ICON_SIZE, toolbarSettings, useHubSettings } from '@hub-client/stores/hub-settings';
+	import { useSettings } from '@hub-client/stores/settings';
 
 	const hubSettings = useHubSettings();
 	const { t } = useI18n();

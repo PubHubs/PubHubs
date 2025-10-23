@@ -66,7 +66,7 @@
 			<div v-for="item in searchResultsToShow" :key="item.event_id" class="group" role="listitem">
 				<a href="#" @click.prevent="onScrollToEventId(item.event_id, item.event_threadId)">
 					<div class="flex items-center gap-2 p-2 group-hover:bg-surface">
-						<Avatar :userId="item.event_sender" class="h-8 w-8 flex-none" />
+						<Avatar :avatar-url="user.userAvatar(item.event_sender)" :user-id="item.event_sender" class="h-8 w-8 flex-none" />
 						<TruncatedText>{{ item.event_body }}</TruncatedText>
 					</div>
 				</a>
@@ -85,28 +85,40 @@
 </template>
 
 <script setup lang="ts">
-	// Components
-	import Avatar from '../ui/Avatar.vue';
-	import Icon from '../elements/Icon.vue';
-	import InlineSpinner from '../ui/InlineSpinner.vue';
-
-	import { useFormInputEvents, usedEvents } from '@/logic/composables/useFormInputEvents';
-	import { filterAlphanumeric } from '@/logic/core/extensions';
-	import { usePubHubs } from '@/logic/core/pubhubsStore';
-	import Room from '@/model/rooms/Room';
-	import { RoomEmit } from '@/model/constants';
-	import { useRooms } from '@/logic/store/store';
+	// Packages
 	import { ISearchResults, SearchResult } from 'matrix-js-sdk';
-	import { useI18n } from 'vue-i18n';
 	import { PropType, computed, nextTick, ref, useTemplateRef } from 'vue';
-	import TruncatedText from '../elements/TruncatedText.vue';
-	import { TSearchParameters, TSearchResult } from '@/model/search/TSearch';
+	import { useI18n } from 'vue-i18n';
+
+	// Components
+	import Icon from '@hub-client/components/elements/Icon.vue';
+	import TruncatedText from '@hub-client/components/elements/TruncatedText.vue';
+	import Avatar from '@hub-client/components/ui/Avatar.vue';
+	import InlineSpinner from '@hub-client/components/ui/InlineSpinner.vue';
+
+	// Composables
+	import { useFormInputEvents, usedEvents } from '@hub-client/composables/useFormInputEvents';
+
+	// Logic
+	import { filterAlphanumeric } from '@hub-client/logic/core/extensions';
+
+	// Models
+	import { RoomEmit } from '@hub-client/models/constants';
+	import Room from '@hub-client/models/rooms/Room';
+	import { TSearchParameters, TSearchResult } from '@hub-client/models/search/TSearch';
+
+	// Stores
+	import { usePubhubsStore } from '@hub-client/stores/pubhubs';
+	import { useRooms } from '@hub-client/stores/rooms';
+	import { useUser } from '@hub-client/stores/user';
+
 	const { t } = useI18n();
-	const pubhubs = usePubHubs();
+	const pubhubs = usePubhubsStore();
 	const rooms = useRooms();
+	const user = useUser();
 	const searchField = useTemplateRef('searchInput');
 
-	// Passed by the parentcomponent
+	// Passed by the parent component
 	const props = defineProps({
 		searchParameters: {
 			type: Object as PropType<TSearchParameters>,

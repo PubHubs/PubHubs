@@ -1,11 +1,14 @@
-import { setActivePinia, createPinia } from 'pinia';
-import { describe, beforeEach, expect, test } from 'vitest';
-import { usePlugins, MenuPluginProperties, RoomIdPluginProperties, TypePluginProperties, PluginType } from '@/logic/store/plugins';
+// Packages
+import { createPinia, setActivePinia } from 'pinia';
+import { beforeEach, describe, expect, test } from 'vitest';
+
+// Stores
+import { MenuPluginProperties, PluginType, RoomIdPluginProperties, TypePluginProperties, usePlugins } from '@hub-client/stores/plugins';
 
 class MockedRouter {
-	//@ts-nocheck
 	public addRoute(route: any) {}
 }
+
 const router = new MockedRouter();
 
 const MockedRoom = {

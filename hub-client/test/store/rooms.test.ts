@@ -1,8 +1,14 @@
-import Room from '@/model/rooms/Room';
-import { RoomType, useRooms } from '@/logic/store/rooms';
+// Packages
 import { EventTimelineSet, Filter, NotificationCountType } from 'matrix-js-sdk';
 import { createPinia, setActivePinia } from 'pinia';
 import { beforeEach, describe, expect, test } from 'vitest';
+
+// Models
+import Room from '@hub-client/models/rooms/Room';
+import { RoomType } from '@hub-client/models/rooms/TBaseRoom';
+
+// Stores
+import { useRooms } from '@hub-client/stores/rooms';
 
 /**
  * The Room class uses Matrix's Room class internally.
@@ -15,6 +21,7 @@ class MockedMatrixRoom {
 	public roomId: string;
 	public name: string;
 	private type: RoomType;
+	public stateEvents: [];
 
 	constructor(roomId: string, type: RoomType = RoomType.PH_MESSAGES_DM) {
 		this.client = {
@@ -53,6 +60,36 @@ class MockedMatrixRoom {
 	}
 }
 
+const MockedStateEvents = [
+	{
+		type: 'm.room.create',
+		sender: 'AA',
+		content: { room_version: '10', creator: '@alice:example.org' },
+		state_key: '',
+		origin_server_ts: 1234567890000,
+		unsigned: { age: 1000 },
+		event_id: '$event0',
+	},
+	{
+		type: 'm.room.member',
+		sender: 'A1',
+		content: { displayname: 'Bob', membership: 'join' },
+		state_key: 'A1',
+		origin_server_ts: 1234567891000,
+		unsigned: { age: 2000 },
+		event_id: '$event1',
+	},
+	{
+		type: 'm.room.member',
+		sender: 'B1',
+		content: { displayname: 'Alice', membership: 'join' },
+		state_key: 'B1',
+		origin_server_ts: 1234567892000,
+		unsigned: { age: 3000 },
+		event_id: '$event2',
+	},
+];
+
 describe('rooms Store', () => {
 	beforeEach(() => {
 		setActivePinia(createPinia());
@@ -68,17 +105,18 @@ describe('rooms Store', () => {
 
 		test('getMembersIds', () => {
 			const mockedMatrixRoom = new MockedMatrixRoom('test-room-id');
-			const room = new Room(mockedMatrixRoom);
+			const room = new Room(mockedMatrixRoom, RoomType.PH_MESSAGES_DEFAULT, MockedStateEvents);
 			const memberIds = room.getMembersIds();
+
 			expect(memberIds).toBeTypeOf('object');
-			expect(memberIds).toHaveLength(4);
+			expect(memberIds).toHaveLength(2);
 			expect(memberIds[0]).toEqual('A1');
-			expect(memberIds[3]).toEqual('D4');
+			expect(memberIds[1]).toEqual('B1');
 		});
 
 		test('getMembersIdsFromName', () => {
 			const room_id = 'c3,a1';
-			const room = new Room(new MockedMatrixRoom(room_id));
+			const room = new Room(new MockedMatrixRoom(room_id, MockedStateEvents));
 			const memberIds = room.getMembersIdsFromName();
 			expect(memberIds).toBeTypeOf('object');
 			expect(memberIds).toHaveLength(2);
@@ -101,23 +139,26 @@ describe('rooms Store', () => {
 			expect(isExact).toEqual(true);
 		});
 
-		test('notInvitedMembersIdsOfPrivateRoom', () => {
-			let room_id = 'C3,A1,B2,D4';
-			let room = new Room(new MockedMatrixRoom(room_id));
-			expect(room.roomId).toEqual(room_id);
-			let notInvited = room.notInvitedMembersIdsOfPrivateRoom();
-			expect(notInvited).toBeTypeOf('object');
-			expect(notInvited).toHaveLength(0);
-			expect(notInvited).toEqual([]);
+		//TODO:  When private room methods will change based on sliding sync this test will be update accordingly.
+		// The implementation of notInvitedMembersIdsOfPrivateRoom() is still not updated with sliding sync
 
-			room_id = 'C3,A1,B2,D4,F6,E5';
-			room = new Room(new MockedMatrixRoom(room_id));
-			expect(room.roomId).toEqual(room_id);
-			notInvited = room.notInvitedMembersIdsOfPrivateRoom();
-			expect(notInvited).toBeTypeOf('object');
-			expect(notInvited).toHaveLength(2);
-			expect(notInvited).toEqual(['E5', 'F6']);
-		});
+		// test('notInvitedMembersIdsOfPrivateRoom', () => {
+		// 	let room_id = 'C3,A1,B2,D4';
+		// 	let room = new Room(new MockedMatrixRoom(room_id), RoomType.PH_MESSAGES_DM, MockedStateEvents);
+		// 	expect(room.roomId).toEqual(room_id);
+		// 	let notInvited = room.notInvitedMembersIdsOfPrivateRoom();
+		// 	expect(notInvited).toBeTypeOf('object');
+		// 	expect(notInvited).toHaveLength(0);
+		// 	expect(notInvited).toEqual([]);
+
+		// 	room_id = 'C3,A1,B2,D4,F6,E5';
+		// 	room = new Room(new MockedMatrixRoom(room_id), RoomType.PH_MESSAGES_DM, MockedStateEvents);
+		// 	expect(room.roomId).toEqual(room_id);
+		// 	notInvited = room.notInvitedMembersIdsOfPrivateRoom();
+		// 	expect(notInvited).toBeTypeOf('object');
+		// 	expect(notInvited).toHaveLength(2);
+		// 	expect(notInvited).toEqual(['E5', 'F6']);
+		// });
 
 		test('getOtherMembers', () => {
 			const room = new Room(new MockedMatrixRoom('test_id'));

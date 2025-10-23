@@ -1,24 +1,30 @@
-import { createApp } from 'vue';
-import { createPinia } from 'pinia';
-import '@/registerServiceWorker';
-import '@/assets/tailwind.css';
-import { setUpi18n } from '@/i18n';
-
-import mavonEditor from 'mavon-editor';
-import 'mavon-editor/dist/css/index.css';
-
-import { registerComponents } from '@/registerComponents.js';
-import { registerPlugins, registerPluginComponents } from '@/registerPlugins.js';
-
-import { router } from '@/logic/core/router';
-import { focus, twClass, clickOutside } from '@/logic/core/directives';
-import App from '@/pages/App.vue';
-
+// Packages
 import VueDatePicker from '@vuepic/vue-datepicker';
 import '@vuepic/vue-datepicker/dist/main.css';
-import '@/assets/datepicker.css';
+import mavonEditor from 'mavon-editor';
+import 'mavon-editor/dist/css/index.css';
+import { createPinia } from 'pinia';
+import { createApp } from 'vue';
 
-import { ReplaceConsole } from '@/console';
+// Assets
+import '@hub-client/assets/datepicker.css';
+import '@hub-client/assets/tailwind.css';
+
+// Logic
+import { clickOutside, focus, twClass } from '@hub-client/logic/core/directives';
+import { router } from '@hub-client/logic/core/router';
+
+// Pages
+import App from '@hub-client/pages/App.vue';
+
+// Other
+
+import { ReplaceConsole } from '@hub-client/console';
+import { setUpi18n } from '@hub-client/i18n';
+import { registerComponents } from '@hub-client/registerComponents';
+import { registerPluginComponents, registerPlugins } from '@hub-client/registerPlugins';
+import '@hub-client/registerServiceWorker';
+
 ReplaceConsole();
 
 const pinia = createPinia();

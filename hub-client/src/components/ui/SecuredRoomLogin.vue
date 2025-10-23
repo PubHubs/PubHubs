@@ -29,18 +29,19 @@
 </template>
 
 <script setup lang="ts">
+	// Packages
 	import { onMounted, ref } from 'vue';
-
-	import QRCode from './SecuredRoomQR.vue';
-
 	import { useI18n } from 'vue-i18n';
-	import { useRooms } from '@/logic/store/rooms';
+
+	// Components
+	import QRCode from '@hub-client/components/ui/SecuredRoomQR.vue';
+
+	// Stores
+	import { useRooms } from '@hub-client/stores/rooms';
 
 	const rooms = useRooms();
-
 	const { t } = useI18n();
 	const emit = defineEmits(['click']);
-
 	const loginFlow = ref(false);
 	const loginFail = ref(false);
 

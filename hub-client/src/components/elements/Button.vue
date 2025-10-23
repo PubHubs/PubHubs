@@ -11,8 +11,11 @@
 </template>
 
 <script setup lang="ts">
+	// Packages
 	import { computed } from 'vue';
-	import { buttonSizes } from '@/assets/sizes';
+
+	// Assets
+	import { buttonSizes } from '@hub-client/assets/sizes';
 
 	const colorClass: { [key: string]: string } = {
 		disabled: 'opacity-50 !cursor-not-allowed bg-on-surface-disabled text-on-surface-variant',

@@ -35,6 +35,7 @@
 							<SchedulerOptionInput :key="option.id" :option="option" @removeOption="removeOption(option.id)" @updateOption="updateDateOption(option.id, $event)" />
 						</div>
 						<div v-if="scheduler.options.length < 2" class="mb-1 h-[42px] w-full rounded-lg border bg-background"></div>
+						<Checkbox :label="$t('message.voting.show_votes_before_voting')" @input="updateScheduler" v-model="scheduler.showVotesBeforeVoting"></Checkbox>
 					</div>
 					<div class="bg-hub-background mb-1 max-h-full w-3/12 rounded-lg border">
 						<div v-if="settingsMenu">
@@ -59,11 +60,16 @@
 </template>
 
 <script setup lang="ts">
+	// Packages
 	import { computed, nextTick, ref, watch } from 'vue';
-	import Checkbox from '@/components/forms/Checkbox.vue';
-	import Icon from '@/components/elements/Icon.vue';
-	import SchedulerOptionInput from '@/components/rooms/voting/scheduler/SchedulerOptionInput.vue';
-	import { Scheduler, SchedulerOption, SchedulerOptionStatus } from '@/model/events/voting/VotingTypes';
+
+	// Components
+	import Icon from '@hub-client/components/elements/Icon.vue';
+	import Checkbox from '@hub-client/components/forms/Checkbox.vue';
+	import SchedulerOptionInput from '@hub-client/components/rooms/voting/scheduler/SchedulerOptionInput.vue';
+
+	// Models
+	import { Scheduler, SchedulerOption, SchedulerOptionStatus } from '@hub-client/models/events/voting/VotingTypes';
 
 	const props = defineProps({
 		schedulerObject: {

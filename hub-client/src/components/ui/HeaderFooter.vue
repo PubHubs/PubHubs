@@ -15,11 +15,11 @@
 </template>
 
 <script setup lang="ts">
-	// Vue imports
+	// Packages
 	import { computed } from 'vue';
 
-	// Hub imports
-	import { useSettings } from '@/logic/store/settings';
+	// Stores
+	import { useSettings } from '@hub-client/stores/settings';
 
 	const settings = useSettings();
 	const isMobile = computed(() => settings.isMobileState);
