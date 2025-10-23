@@ -21,14 +21,14 @@
 				"
 			/>
 
-			<button @click="search()"><Icon type="search" class="rounded-md bg-background p-2 text-accent-secondary dark:text-on-surface-variant" size="sm" /></button>
+			<button @click="search()"><Icon type="magnifying-glass" class="mr-1 rounded-md bg-background text-accent-secondary dark:text-on-surface-variant" /></button>
 		</div>
 	</div>
 
 	<!-- Mobile search component. -->
 	<div class="flex w-full items-center justify-end rounded-md bg-background md:hidden">
 		<div class="relative flex w-full items-center justify-end transition-all duration-200">
-			<Icon v-if="!isExpanded" type="search" class="cursor-pointer p-2 text-accent-secondary dark:text-on-surface-variant" size="sm" @click="toggleSearch" />
+			<Icon v-if="!isExpanded" type="magnifying-glass" class="w-8 cursor-pointer text-accent-secondary dark:text-on-surface-variant" @click.stop="toggleSearch()" />
 			<input
 				v-if="isExpanded"
 				class="h-full w-full flex-1 border-none bg-transparent ~text-label-small-min/label-small-max placeholder:text-on-surface-variant focus:outline-0 focus:outline-offset-0 focus:ring-0"
@@ -49,14 +49,12 @@
 					toggleSearch();
 				"
 			/>
-			<div v-if="isExpanded">
-				<button v-if="isExpanded" @click.stop="search()">
-					<Icon type="search" class="rounded-md bg-background p-2 text-accent-secondary dark:text-on-surface-variant" size="sm" />
-				</button>
-				<button v-if="isExpanded" @click="toggleSearch">
-					<Icon type="closingCross" class="rounded-md bg-surface p-2 text-accent-secondary dark:text-on-surface-variant" size="sm" />
-				</button>
-			</div>
+			<button v-if="isExpanded" @click.stop="search()">
+				<Icon type="magnifying-glass" class="w-6 rounded-md bg-background text-accent-secondary dark:text-on-surface-variant" />
+			</button>
+			<button v-if="isExpanded" @click="toggleSearch()">
+				<Icon type="x" class="w-6 rounded-md text-accent-secondary dark:text-on-surface-variant" />
+			</button>
 		</div>
 	</div>
 
@@ -134,6 +132,7 @@
 				searchField.value?.focus();
 			});
 		}
+		console.log('toggleSearch', isExpanded.value);
 		emit('toggleSearchbar', isExpanded.value);
 	}
 

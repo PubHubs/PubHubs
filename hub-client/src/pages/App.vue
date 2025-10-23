@@ -13,7 +13,7 @@
 								<H3 @click="router.push('/')" :title="hubSettings.hubName" class="font-headings font-semibold text-on-surface">{{ hubSettings.hubName }}</H3>
 								<Notification class="absolute right-4" />
 								<!-- TODO: Hiding this settings wheel as there is no functionality to it yet. -->
-								<!-- <Icon type="cog" size="sm" class="bg-hub-background-2 rounded-md p-2"/> -->
+								<!-- <Icon type="sliders-horizontal" size="sm" class="bg-hub-background-2 rounded-md p-2"/> -->
 							</div>
 							<Badge v-if="hubSettings.isSolo && settings.isFeatureEnabled(FeatureFlag.notifications) && rooms.totalUnreadMessages > 0" class="aspect-square h-full">{{ rooms.totalUnreadMessages }}1</Badge>
 						</div>
@@ -32,9 +32,9 @@
 									</div>
 								</div>
 								<Icon
-									type="pencil"
-									size="sm"
-									class="rounded-md stroke-0 p-2 text-on-surface-variant hover:cursor-pointer hover:text-accent-primary"
+									data-testid="edit-userinfo"
+									type="pencil-simple"
+									class="cursor-pointer hover:text-accent-primary"
 									@click="
 										settingsDialog = true;
 										hubSettings.hideBar();
@@ -74,9 +74,9 @@
 						<RoomListHeader v-if="user.isAdmin" label="menu.admin_tools">
 							<template #roomlist>
 								<Menu>
-									<MenuItem :to="{ name: 'admin' }" icon="admin">{{ t('menu.admin_tools_rooms') }} </MenuItem>
-									<MenuItem :to="{ name: 'manage-users' }" icon="admin">{{ t('menu.admin_tools_users') }}</MenuItem>
-									<MenuItem :to="{ name: 'hub-settings' }" icon="cog">{{ t('menu.admin_tools_hub_settings') }}</MenuItem>
+									<MenuItem :to="{ name: 'admin' }" icon="chats-circle">{{ t('menu.admin_tools_rooms') }} </MenuItem>
+									<MenuItem :to="{ name: 'manage-users' }" icon="users">{{ t('menu.admin_tools_users') }}</MenuItem>
+									<MenuItem :to="{ name: 'hub-settings' }" icon="sliders-horizontal">{{ t('menu.admin_tools_hub_settings') }}</MenuItem>
 								</Menu>
 							</template>
 						</RoomListHeader>

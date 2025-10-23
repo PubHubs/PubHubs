@@ -7,7 +7,7 @@
 			<UserDisplayName :user="event.sender || 'Deleted user'" :room="room" />
 		</p>
 		<div class="flex w-full items-center gap-1" :class="{ 'text-accent-error': redactedMessage }" :title="snippetText">
-			<Icon v-if="redactedMessage" :type="'bin'" :size="'sm'" />
+			<Icon v-if="redactedMessage" type="trash" :size="'sm'" />
 			<p class="line-clamp-1">{{ snippetText }}</p>
 		</div>
 	</div>

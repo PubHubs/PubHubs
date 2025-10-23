@@ -4,12 +4,14 @@
 		<div class="relative">
 			<Popover v-if="messageInput.state.popover" @close="messageInput.togglePopover()" class="absolute bottom-4">
 				<div class="flex items-center">
-					<PopoverButton icon="upload" @click="clickedAttachment">{{ $t('message.upload_file') }}</PopoverButton>
+					<PopoverButton icon="upload-simple" data-testid="upload" @click="clickedAttachment">{{ $t('message.upload_file') }}</PopoverButton>
 					<template v-if="settings.isFeatureEnabled(FeatureFlag.votingWidget) && !inThread && !inReplyTo">
-						<PopoverButton icon="poll" @click="messageInput.openPoll()">{{ $t('message.poll') }}</PopoverButton>
-						<PopoverButton icon="scheduler" @click="messageInput.openScheduler()">{{ $t('message.scheduler') }}</PopoverButton>
+						<PopoverButton icon="chart-bar" data-testid="poll" @click="messageInput.openPoll()">{{ $t('message.poll') }}</PopoverButton>
+						<PopoverButton icon="calendar" data-testid="scheduler" @click="messageInput.openScheduler()">{{ $t('message.scheduler') }}</PopoverButton>
 					</template>
-					<PopoverButton icon="sign" v-if="!messageInput.state.signMessage && settings.isFeatureEnabled(FeatureFlag.signedMessages)" @click="messageInput.openSignMessage()">{{ $t('message.sign.add_signature') }}</PopoverButton>
+					<PopoverButton icon="pen-nib" data-testid="sign" v-if="!messageInput.state.signMessage && settings.isFeatureEnabled(FeatureFlag.signedMessages)" @click="messageInput.openSignMessage()">{{
+						$t('message.sign.add_signature')
+					}}</PopoverButton>
 				</div>
 			</Popover>
 			<Mention v-if="messageInput.state.showMention" :msg="value as string" :top="caretPos.top" :left="caretPos.left" :room="room" @click="mentionUser($event)" />
@@ -34,7 +36,7 @@
 						</Suspense>
 					</div>
 					<button @click="messageActions.replyingTo = undefined">
-						<Icon type="closingCross" size="sm" />
+						<Icon type="x" size="sm" />
 					</button>
 				</div>
 
@@ -61,8 +63,8 @@
 					/>
 				</template>
 
-				<div v-if="messageInput.state.textArea" class="flex items-end gap-x-4 rounded-2xl px-4 py-2">
-					<Icon type="paperclip" size="md" @click.stop="messageInput.togglePopover()" :asButton="true" />
+				<div v-if="messageInput.state.textArea" class="flex items-center gap-x-4 rounded-2xl px-4 py-2">
+					<IconButton type="plus-circle" data-testid="paperclip" size="lg" @click.stop="messageInput.togglePopover()" />
 					<!-- Overflow-x-hidden prevents firefox from adding an extra row to the textarea for a possible scrollbar -->
 					<TextArea
 						ref="elTextInput"
@@ -78,32 +80,27 @@
 					/>
 
 					<!--Steward and above can broadcast only in main time line-->
-					<div
+					<button
 						v-if="room.getPowerLevel(user.user.userId) >= 50 && !inThread && !room.isPrivateRoom() && !room.isGroupRoom()"
-						class="flex aspect-square h-6 w-6 justify-center"
 						:class="!messageInput.state.sendButtonEnabled && 'opacity-50 hover:cursor-default'"
 						@click="isValidMessage() ? announcementMessage() : null"
 					>
-						<Icon type="announcement" size="md"></Icon>
-					</div>
+						<Icon type="megaphone-simple" size="lg"></Icon>
+					</button>
 
 					<!-- Emoji picker -->
-					<Icon type="emoticon" :iconColor="'text-background dark:text-on-surface-variant'" size="md" @click.stop="messageInput.toggleEmojiPicker()" :asButton="true" class="rounded-full bg-accent-secondary" />
+					<button>
+						<Icon type="smiley" size="lg" @click.stop="messageInput.toggleEmojiPicker()" />
+					</button>
 
 					<!-- Sendbutton -->
-					<Button
-						class="flex aspect-square h-7 w-7 items-center justify-center !rounded-full bg-background !p-0"
-						:title="$t('message.send')"
-						:class="!messageInput.state.sendButtonEnabled && 'opacity-50 hover:cursor-default'"
-						:disabled="!messageInput.state.sendButtonEnabled"
-						@click="submitMessage"
-					>
-						<Icon type="send" size="sm" class="shrink-0 text-on-surface-variant" />
-					</Button>
+					<button :title="$t('message.send')" :class="!messageInput.state.sendButtonEnabled && 'opacity-50 hover:cursor-default'" :disabled="!messageInput.state.sendButtonEnabled" @click="submitMessage">
+						<Icon type="paper-plane-right" size="lg" />
+					</button>
 				</div>
 
 				<div v-if="messageInput.state.signMessage" class="m-4 mt-0 flex items-center rounded-md bg-surface-low p-2">
-					<Icon type="sign" size="base" class="mt-1 self-start" />
+					<Icon type="pen-nib" size="base" class="mt-1 self-start" />
 					<div class="ml-2 flex max-w-3xl flex-col justify-between">
 						<h3 class="font-bold">{{ $t('message.sign.heading') }}</h3>
 						<p>{{ $t('message.sign.info') }}</p>
@@ -117,13 +114,13 @@
 							<p>Email</p>
 						</div>
 					</div>
-					<Icon type="closingCross" size="sm" :asButton="true" @click.stop="messageInput.resetAll(true)" class="ml-auto self-start" />
+					<IconButton type="x" size="sm" @click.stop="messageInput.resetAll(true)" class="ml-auto self-start" />
 				</div>
 			</div>
 
 			<!-- Yivi signing qr popup -->
 			<div class="absolute bottom-[10%] left-1/2 w-min -translate-x-1/2" v-show="messageInput.state.showYiviQR">
-				<Icon type="close" class="absolute right-2 z-10 cursor-pointer dark:text-black" @click="messageInput.state.showYiviQR = false" />
+				<Icon type="x" class="absolute right-2 z-10 cursor-pointer dark:text-black" @click="messageInput.state.showYiviQR = false" />
 				<div v-if="messageInput.state.signMessage" id="yivi-web-form"></div>
 			</div>
 		</div>

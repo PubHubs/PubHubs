@@ -25,7 +25,7 @@
 			</div>
 			<div v-if="promptInfo" class="flex">
 				<div class="mr-1 flex h-5 w-5 shrink-0 items-center justify-center rounded-full border-2">
-					<Icon type="information" size="xs" />
+					<Icon type="info" size="xs" />
 				</div>
 				<p class="italic">{{ $t('notifications.info') }}</p>
 			</div>

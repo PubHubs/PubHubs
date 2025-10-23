@@ -3,7 +3,7 @@
 		<div class="mb-4">
 			<div class="flex justify-between">
 				<div class="mb-2">
-					<Icon v-if="votingWidgetClosed" class="float-left -mt-1 mr-1 text-accent-orange" type="scheduler_lock" />
+					<Icon v-if="votingWidgetClosed" class="float-left -mt-1 mr-1 text-accent-orange" type="lock" />
 					<span class="mr-1 font-bold">{{ votingWidget.title }}</span>
 					<span v-if="votingWidgetClosed" class="italic ~text-label-small-min/label-small-max"><br />{{ $t('message.scheduler_closed') }}</span>
 				</div>
@@ -11,12 +11,11 @@
 				<div class="flex">
 					<Icon
 						v-if="hasUserVoted"
-						type="person"
-						:asButton="true"
-						size="sm"
-						class="rounded-md bg-surface p-1 hover:bg-accent-primary"
+						type="user"
+						size="lg"
+						class="rounded-md bg-surface hover:bg-accent-primary"
 						:title="$t(showVotes ? 'message.voting.hide_votes' : 'message.voting.show_votes')"
-						@click="toggleShowVotes()"
+						@click.stop="toggleShowVotes()"
 					></Icon>
 					<ActionMenu v-if="isCreator" class="ml-2">
 						<template v-if="votingWidget.type === VotingWidgetType.SCHEDULER">
@@ -33,7 +32,7 @@
 			</div>
 
 			<span class="flex [overflow-wrap:anywhere]" v-if="votingWidget.location">
-				<Icon :filled="true" class="mr-1 mt-1" type="map_pin" size="sm" />
+				<Icon class="mr-1 mt-1" type="map-pin" size="sm" />
 				{{ votingWidget.location }}
 			</span>
 			<span class="mt-2 flex [overflow-wrap:anywhere]">{{ votingWidget.description }}</span>

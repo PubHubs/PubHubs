@@ -29,7 +29,7 @@
 		</draggable>
 		<div class="relative h-12 max-h-0 w-full overflow-hidden transition-all duration-300 ease-in-out" :class="{ 'max-h-12': hubOrderingIsActive }">
 			<div class="absolute grid h-full w-full items-center justify-center">
-				<Icon type="unpin" class="rounded-md p-1" :class="[hoverOverHubremoval ? 'text-accent-error opacity-100' : 'text-on-surface-disabled']" size="md" />
+				<Icon type="x" class="rounded-md p-1" :class="[hoverOverHubremoval ? 'text-accent-error opacity-100' : 'text-on-surface-disabled']" size="md" />
 			</div>
 			<draggable group="hubs" @dragover="hoverOverHubremoval = true" @dragleave="hoverOverHubremoval = false" :list="unpinnedHubs" @change="confirmationHubRemoval" :item-key="'unpin'" tag="ul" class="list-group h-full opacity-0">
 				<template #item="{ element: trash }">

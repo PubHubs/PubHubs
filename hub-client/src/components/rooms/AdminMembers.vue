@@ -4,7 +4,7 @@
 		<div class="relative min-h-[300px] rounded-md border bg-surface-low p-8 sm:w-[480px] md:w-[640px]">
 			<div class="flex justify-between">
 				<h2 class="mx-2 my-2 mt-4 font-bold">{{ t('admin.title_room_join') }}</h2>
-				<Icon type="close" @click="close()"></Icon>
+				<Icon type="x" @click="close()"></Icon>
 			</div>
 
 			<hr class="mx-8 mt-2" />

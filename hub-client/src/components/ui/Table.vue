@@ -8,8 +8,8 @@
 							{{ key.name }}
 						</span>
 						<span v-if="key.sortable" class="flex flex-col">
-							<Icon type="chevron-up" size="sm" @click="orderBy(key.key, false)" class="cursor-pointer" :class="activeOrderClass(key.key, false)"></Icon>
-							<Icon type="chevron-down" size="sm" @click="orderBy(key.key, true)" class="cursor-pointer" :class="activeOrderClass(key.key, true)"></Icon>
+							<Icon type="caret-up" size="sm" @click="orderBy(key.key, false)" class="cursor-pointer" :class="activeOrderClass(key.key, false)"></Icon>
+							<Icon type="caret-down" size="sm" @click="orderBy(key.key, true)" class="cursor-pointer" :class="activeOrderClass(key.key, true)"></Icon>
 						</span>
 					</span>
 				</th>

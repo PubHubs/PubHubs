@@ -1,11 +1,11 @@
 <template>
 	<div class="rounded-md">
 		<div class="mb-2 flex border-b p-2">
-			<Icon type="scheduler" size="base" class="mx-2 mt-1 flex-none"></Icon>
+			<Icon type="calendar" size="base" class="mx-2 mt-1 flex-none"></Icon>
 			<H2 class="flex-grow">{{ $t('message.scheduler') }}</H2>
 			<div class="mt-1 flex flex-none">
-				<!-- <Icon type="cog" size="sm" :as-button="true" @click="settingsMenu = !settingsMenu" class="ml-auto"></Icon> -->
-				<Icon type="closingCross" size="sm" :asButton="true" @click="emit('closeScheduler')" class="ml-2"></Icon>
+				<!-- <Icon type="sliders-horizontal" size="sm" :as-button="true" @click="settingsMenu = !settingsMenu" class="ml-auto"></Icon> -->
+				<IconButton type="x" size="sm" @click="emit('closeScheduler')" class="ml-2"></IconButton>
 			</div>
 		</div>
 		<div class="flex items-center p-2">
@@ -27,7 +27,7 @@
 						class="mb-2 w-full rounded-md bg-background pl-7 text-on-surface placeholder-on-surface-dim ~text-label-min/label-max focus:border-on-surface focus:outline-0 focus:outline-offset-0 focus:ring-0"
 						:placeholder="$t('message.voting.enter_location')"
 					/>
-					<Icon type="map_pin" size="sm" class="absolute left-0 top-2 ml-2"></Icon>
+					<Icon type="map-pin" class="absolute left-0 top-1 ml-1"></Icon>
 				</div>
 				<div class="-mb-1 flex w-full flex-row justify-stretch">
 					<div class="scrollbar-emojipicker mr-2 w-9/12" id="optionsContainer">

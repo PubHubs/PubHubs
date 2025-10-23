@@ -67,6 +67,12 @@ const routes = [
 		meta: { hideBar: true },
 	},
 	{
+		path: '/icons',
+		name: 'icons',
+		component: () => import('@/pages/Icons.vue'),
+		// meta: { onlyAdmin: true, hideBar: true, onboarding: true },
+	},
+	{
 		path: '/nop',
 		name: 'nop',
 		component: () => import('@/pages/NotImplemented.vue'),

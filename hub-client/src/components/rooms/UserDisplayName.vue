@@ -1,12 +1,12 @@
 <template>
 	<span class="flex flex-row items-center gap-x-2 truncate" :title="displayTitle">
 		<!-- Display Name -->
-		<span v-if="showDisplayName" data-testid="display-name" :class="displayNameClasses">
+		<span v-if="showDisplayName" data-testid="display-name" class="truncate font-semibold ~text-label-min/label-max" :class="displayNameClasses">
 			{{ truncatedDisplayName }}
 		</span>
 
 		<!-- Pseudonym -->
-		<span v-if="showPseudonym" :class="pseudonymClasses">
+		<span v-if="showPseudonym" class="text-nowrap ~text-label-small-min/label-small-max" :class="pseudonymClasses">
 			{{ pseudonym }}
 		</span>
 	</span>
@@ -68,15 +68,10 @@
 	const userColorClass = computed(() => (props.chooseColor ? textColor(color(props.user)) : ''));
 
 	const displayNameClasses = computed(() => ({
-		truncate: true,
-		'font-semibold': true,
-		'~text-label-min/label-max': true,
 		[userColorClass.value]: props.chooseColor,
 	}));
 
 	const pseudonymClasses = computed(() => ({
-		'text-nowrap': true,
-		'~text-label-small-min/label-small-max': true,
 		'font-semibold': !displayName.value,
 		[userColorClass.value]: props.chooseColor && !displayName.value,
 	}));

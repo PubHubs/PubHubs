@@ -1,6 +1,6 @@
 <template>
 	<button class="m-2 flex flex-col items-center" @click="click">
-		<Icon class="dark:text-white" type="upload"></Icon>
+		<Icon class="dark:text-white" type="upload-simple"></Icon>
 		<p>{{ $t('message.upload_file') }}</p>
 	</button>
 </template>

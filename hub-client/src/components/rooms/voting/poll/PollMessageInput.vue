@@ -1,11 +1,11 @@
 <template>
 	<div class="rounded-md">
 		<div class="mb-2 flex border-b p-2">
-			<Icon type="poll" size="base" class="mx-2 mt-1 flex-none"></Icon>
+			<Icon type="chart-bar" size="base" class="mx-2 mt-1 flex-none"></Icon>
 			<H2 class="flex-grow">{{ $t('message.poll') }}</H2>
 			<div class="mt-1 flex flex-none">
-				<!-- <Icon type="cog" size="sm" :as-button="true" @click="settingsMenu = !settingsMenu" class="ml-auto"></Icon> -->
-				<Icon type="closingCross" size="sm" :asButton="true" @click="emit('closePoll')" class="ml-2"></Icon>
+				<!-- <Icon type="sliders-horizontal" size="sm" :as-button="true" @click="settingsMenu = !settingsMenu" class="ml-auto"></Icon> -->
+				<IconButton type="x" size="sm" @click="emit('closePoll')" class="ml-2"></IconButton>
 			</div>
 		</div>
 		<div class="flex items-center p-2">
@@ -32,7 +32,7 @@
 								@input="updateOptions"
 								@blur="cleanupPollOption(option)"
 							/>
-							<Icon type="closingCross" size="sm" :as-button="true" @click="removeOption(option.id)" v-if="option.title !== ''" class="absolute right-2 top-2"></Icon>
+							<Icon type="x" size="sm" :as-button="true" @click="removeOption(option.id)" v-if="option.title !== ''" class="absolute right-2 top-2"></Icon>
 						</div>
 						<input
 							v-if="poll.options.length < 3"
