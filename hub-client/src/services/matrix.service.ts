@@ -1,5 +1,5 @@
 // Packages
-import { EventType, type MatrixClient } from 'matrix-js-sdk';
+import { EventType, IStateEvent, type MatrixClient } from 'matrix-js-sdk';
 import { MSC3575List, MSC3575RoomData, MSC3575SlidingSyncResponse, SlidingSync, SlidingSyncEvent, SlidingSyncState } from 'matrix-js-sdk/lib/sliding-sync';
 
 // Logic
@@ -8,8 +8,9 @@ import { SMI } from '@hub-client/logic/logging/StatusMessage';
 import { RoomSubscription, TimelineSubScription, makeTimelineSubscriptionName } from '@hub-client/logic/matrix.logic.js';
 
 // Models
-import { SystemDefaults } from '@hub-client/models/constants';
+import { MatrixType, SystemDefaults } from '@hub-client/models/constants';
 import { RoomType } from '@hub-client/models/rooms/TBaseRoom';
+import { DirectRooms } from '@hub-client/models/rooms/TBaseRoom';
 
 // Stores
 import { useRooms } from '@hub-client/stores/rooms';
@@ -22,6 +23,9 @@ class MatrixService {
 	private slidingSync: SlidingSync | null = null;
 	private client: MatrixClient | null = null;
 	private subscribedRooms = new Map<string, string>(); // TODO: Move to store
+
+	// TODO: Use room composable instead
+	private roomsStore = useRooms();
 
 	/**
 	 * Construct a MatrixService instance.
@@ -181,7 +185,7 @@ class MatrixService {
 		const currentUser = useUser();
 
 		// profile data of members is in the join content of roommember events, need only update when there is new content
-		const membersOnlyProfileUpdate = roomData.required_state.filter((x) => x.type === EventType.RoomMember && x.content?.membership === 'join' && JSON.stringify(x.content) !== JSON.stringify(x.prev_content));
+		const membersOnlyProfileUpdate = roomData.required_state.filter((x) => x.type === EventType.RoomMember && x.content?.membership === MatrixType.Join && JSON.stringify(x.content) !== JSON.stringify(x.prev_content));
 		if (membersOnlyProfileUpdate.length === 0) return false;
 
 		membersOnlyProfileUpdate.forEach((member) => {
@@ -199,6 +203,33 @@ class MatrixService {
 
 	// #region Event handlers
 
+	/**
+	 * Creates a promise from joining a room and putting it in the roomsStore
+	 * @param roomId id of the room to join
+	 * @param roomType type of the room to join
+	 * @param roomName name of the room to join
+	 * @param required_state required_state as coming from the sync
+	 * @returns void
+	 */
+	private async getJoinRoomPromise(roomId: string, roomType: string, roomName: string, required_state: IStateEvent[]): Promise<any> {
+		return this.client!.joinRoom(roomId)
+			.then((joinedRoom) => {
+				this.client!.store.storeRoom(joinedRoom);
+				this.roomsStore.initRoomsWithMatrixRoom(joinedRoom, roomName, roomType, required_state);
+				const timelineKey = this.addRoomSubscription(roomId);
+				if (timelineKey) this.syncRoom(roomId);
+			})
+			.catch((err) => {
+				LOGGER.error(SMI.SYNC, `Failed joining room ${roomId}`, { roomId, err });
+			});
+	}
+
+	/**
+	 * Handles lifeCycle events from the sync: roomData
+	 * @param state sliding sync state
+	 * @param response response coming from sync
+	 * @returns void
+	 */
 	private handleLifecycleEvent = async (state: SlidingSyncState | null, response: MSC3575SlidingSyncResponse | null) => {
 		try {
 			const currentUser = useUser();
@@ -208,8 +239,6 @@ class MatrixService {
 			if (!roomList) return;
 			//console.error('sliding sync room ', roomList);
 
-			// TODO: Use room composable instead
-			const roomsStore = useRooms();
 			const joinPromises: Promise<any>[] = [];
 
 			for (const [roomId, roomData] of Object.entries(roomList)) {
@@ -218,36 +247,44 @@ class MatrixService {
 				// get the latest roommember info from the required state, sorted on timestamp. This should be join if the user is still joined
 				const latestRoomMemberInfo = roomData.required_state.filter((x) => x.type === EventType.RoomMember && x.sender === currentUser.userId).sort((a, b) => b.origin_server_ts - a.origin_server_ts)[0];
 
-				if (latestRoomMemberInfo?.content.membership === 'join') {
-					const joinPromise = this.client!.joinRoom(roomId)
-						.then((joinedRoom) => {
-							this.client!.store.storeRoom(joinedRoom);
-							const roomType = roomData.required_state.find((x) => x.type === EventType.RoomCreate)?.content?.type ?? RoomType.PH_MESSAGES_DEFAULT;
-							roomsStore.initRoomsWithMatrixRoom(joinedRoom, roomData.name, roomType, roomData.required_state);
-							const timelineKey = this.addRoomSubscription(roomId);
-							if (timelineKey) this.syncRoom(roomId);
-						})
-						.catch((err) => {
-							LOGGER.error(SMI.SYNC, `Failed joining room ${roomId}`, { roomId, err });
+				if (latestRoomMemberInfo?.content.membership === MatrixType.Join) {
+					const roomType = roomData.required_state.find((x) => x.type === EventType.RoomCreate)?.content?.type ?? RoomType.PH_MESSAGES_DEFAULT;
+					joinPromises.push(this.getJoinRoomPromise(roomId, roomType, roomData.name, roomData.required_state));
+				}
+
+				// get the invite state
+				// for now we only use invites for direct messages so we can automatically join
+				// in the future perhaps show roomdata and ask to be joined?
+				const inviteState = roomData.invite_state;
+				if (inviteState) {
+					const roomType = inviteState.find((x) => x.type === EventType.RoomCreate)?.content?.type;
+					const roomName = inviteState.find((x) => x.type === EventType.RoomName)?.content?.name;
+					if (DirectRooms.includes(roomType) && roomName) {
+						const invites = inviteState.filter((x) => x.type === EventType.RoomMember && x.state_key === currentUser.userId && x.content?.[MatrixType.MemberShip] === MatrixType.Invite);
+						invites.forEach((x) => {
+							joinPromises.push(this.getJoinRoomPromise(roomId, roomType, roomName, roomData.required_state));
 						});
-					joinPromises.push(joinPromise);
+					}
 				}
 			}
 
 			await Promise.all(joinPromises);
-			roomsStore.setRoomsLoaded(true);
+			this.roomsStore.setRoomsLoaded(true);
 		} catch (err) {
 			LOGGER.error(SMI.SYNC, 'Lifecycle handler failed', { err });
 			throw err;
 		}
 	};
 
+	/**
+	 * Loads roomdata from sync into the room
+	 * @param id roomId
+	 * @param roomData roomData as from sync
+	 */
 	private handleRoomDataEvent = (id: string, roomData: MSC3575RoomData) => {
 		try {
 			//console.error('sliding sync roomdata ', roomData);
-			// TODO: Use room composable instead
-			const roomsStore = useRooms();
-			roomsStore.loadFromSlidingSync(id, roomData);
+			this.roomsStore.loadFromSlidingSync(id, roomData);
 		} catch (err) {
 			LOGGER.error(SMI.SYNC, 'RoomData handler failed', { id, err });
 		}
