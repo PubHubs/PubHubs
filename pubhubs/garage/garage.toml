@@ -1,7 +1,12 @@
 # Configuration for garage S3 server for local pubhubs development
 #
-# to interact with garage:
+# to interact with garage as admin:
+#
 #  docker exec -it pubhubs-garage /garage
+#
+# to browse the contents of the object store using pubhubs central's credentials:
+#
+#  ./aws.sh s3 ls
 
 metadata_dir = "/var/lib/garage/meta"
 data_dir = "/var/lib/garage/data"
