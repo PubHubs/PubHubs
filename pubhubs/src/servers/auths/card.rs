@@ -90,7 +90,7 @@ impl CardType {
 
 impl App {
     /// Gets the registration source to use when issuing a pubhubs card
-    fn registration_source<'a>(&'a self, yivi: &'a YiviCtx) -> &'a str {
+    pub(crate) fn registration_source<'a>(&'a self, yivi: &'a YiviCtx) -> &'a str {
         if let Some(rs) = yivi.card_config.registration_source.as_ref() {
             return rs.as_str();
         }

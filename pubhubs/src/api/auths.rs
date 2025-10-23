@@ -345,7 +345,7 @@ pub struct YiviReleaseNextSessionReq {
     ///
     /// Otherwise it must be some signed session request that will be passed to yivi server.
     /// This session request must be signed by the authentication server's yivi requestor credentials,
-    /// for example, [CardResp::issuance_request`].
+    /// for example, [`CardResp::Success::issuance_request`].
     pub next_session: Option<jwt::JWT>,
 }
 

@@ -237,6 +237,10 @@ pub type AttributeConDisCon = Vec<Vec<Vec<AttributeRequest>>>;
 pub struct AttributeRequest {
     #[serde(rename = "type")] // 'type' is a keyword
     pub ty: AttributeTypeIdentifier,
+
+    #[serde(default)]
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub value : Option<String>,
 }
 
 /// Known as
@@ -529,9 +533,8 @@ impl SessionResult {
         Ok(())
     }
 
-    /// Verifyies that this [`SessionResult`] is valid, and that the inner conjunctions contain
-    /// just one attribute each.  Returns the [`AttributeTypeIdentifier`] and raw values of these
-    /// attributes.
+    /// Verifyies that this [`SessionResult`] is valid, and for the first attribute in each inner conjunction
+    /// returns the [`AttributeTypeIdentifier`] and raw value.
     pub fn validate_and_extract_raw_singles(
         &self,
     ) -> anyhow::Result<impl Iterator<Item = anyhow::Result<(&AttributeTypeIdentifier, &str)>>>
@@ -543,11 +546,6 @@ impl SessionResult {
             .iter()
             .flatten()
             .map(|inner_con: &Vec<DisclosedAttribute>| {
-                anyhow::ensure!(
-                    inner_con.len() <= 1,
-                    "inner conjunction has more than one attribute"
-                );
-
                 let da: &DisclosedAttribute = inner_con
                     .first()
                     .context("inner conjunction has no attribute")?;

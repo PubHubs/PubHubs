@@ -39,6 +39,47 @@ impl App {
         }
     }
 
+    /// Creates a disclosure 'conjunction' for the given yivi attribute type identifier.
+    ///
+    /// This is almost always just the attibute type idenfitier itself, unless we're dealing with
+    /// the pubhubs card - in which case another factor is added that fixes the registration source.
+    ///
+    /// The yivi attribute type that will provide the actual value for the pubhubs attribute
+    /// will always come first.  This is important because
+    /// [`yivi::SessionResult::validate_and_extract_raw_singles`] will only pick the first value
+    /// from each inner conjunction.
+    fn create_disclosure_con_for(
+        &self,
+        attr_type_id: &servers::yivi::AttributeTypeIdentifier,
+    ) -> api::Result<Vec<servers::yivi::AttributeRequest>> {
+        let yivi = self.get_yivi()?;
+
+        let mut result = vec![servers::yivi::AttributeRequest {
+            ty: attr_type_id.clone(),
+            value: None,
+        }];
+
+        let credential = yivi.card_config.card_type.credential();
+
+        if !attr_type_id.as_str().starts_with(credential) {
+            return Ok(result);
+        }
+
+        let registration_source = yivi.card_config.card_type.source();
+
+        result.push(servers::yivi::AttributeRequest {
+            ty: format!("{credential}.{registration_source}")
+                .parse()
+                .map_err(|err| {
+                    log::error!("failed to form registration source yivi attribute: {err:?}");
+                    api::ErrorCode::InternalError
+                })?,
+            value: Some(self.registration_source(yivi).to_owned()),
+        });
+
+        Ok(result)
+    }
+
     async fn handle_auth_start_yivi(
         app: Rc<Self>,
         mut state: AuthState,
@@ -62,14 +103,12 @@ impl App {
                 ));
             };
 
-            let dc: Vec<Vec<servers::yivi::AttributeRequest>> = attr_ty
+            let dc: api::Result<Vec<Vec<servers::yivi::AttributeRequest>>> = attr_ty
                 .yivi_attr_type_ids()
-                .map(|attr_type_id| {
-                    vec![servers::yivi::AttributeRequest {
-                        ty: attr_type_id.clone(),
-                    }]
-                })
+                .map(|attr_type_id| app.create_disclosure_con_for(attr_type_id))
                 .collect();
+
+            let dc = dc?;
 
             if dc.is_empty() {
                 log::debug!(
