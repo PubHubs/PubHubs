@@ -290,7 +290,6 @@ impl App {
                 id: Id::random(),
                 card_id: Some(CardPseud(Id::random())),
                 registration_date: Some(api::NumericDate::now()),
-                registration_source: Some("".to_string()),
                 polymorphic_pseudonym: running_state.constellation.master_enc_key.encrypt_random(),
                 banned: false,
                 allow_login_by: attrs
@@ -748,11 +747,6 @@ pub struct UserState {
     /// Might not be set for users that registered under v3.0.0.
     #[serde(default)]
     pub registration_date: Option<api::NumericDate>,
-
-    /// Registration source used on pubhubs yivi cards issued for this user.
-    ///
-    /// Might not be set for users that registered under v.3.0.0.
-    pub registration_source: Option<String>,
 
     /// Randomly generated and by [`Constellation::master_enc_key`] elgamal encrypted
     /// identifier used to generate hub pseudonyms for this user.
