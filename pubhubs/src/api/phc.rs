@@ -196,6 +196,9 @@ pub mod user {
 
         /// The given identifying attribute (in [`EnterReq::add_attrs`] or [`EnterReq::identifying_attr`])
         /// is already tied to another account.
+        ///
+        /// May occasionally happen under the [`EnterMode::LoginOrRegister`] mode if the account
+        /// was created by some parallel invocation of [`EnterEP`] at about the same time.
         AttributeAlreadyTaken(attr::Attr),
 
         /// Cannot register an account with these attributes:  no bannable attribute provided.

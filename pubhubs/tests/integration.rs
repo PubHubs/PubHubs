@@ -371,10 +371,15 @@ async fn main_integration_test_local(
             tjs.spawn_local(async move {
                 let enter_resp = enter_resp_fut.await.unwrap();
 
-                if let api::phc::user::EnterResp::Entered { new_account, .. } = enter_resp {
-                    new_account
-                } else {
-                    panic!("expected registration/login to succeed");
+                match enter_resp {
+                    api::phc::user::EnterResp::Entered { new_account, .. } => new_account,
+                    api::phc::user::EnterResp::AttributeAlreadyTaken(..) => {
+                        log::debug!("one registration failed likely due to parallel registration");
+                        false
+                    }
+                    _ => {
+                        panic!("expected registration/login to succeed");
+                    }
                 }
             });
         }
