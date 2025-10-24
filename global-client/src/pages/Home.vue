@@ -45,27 +45,29 @@
 </template>
 
 <script setup lang="ts">
-	// Package imports
+	// Packages
 	import { computed, ref } from 'vue';
 
-	// Global imports
-	import { useGlobal } from '@/logic/store/global';
-	import { useHubs } from '@/logic/store/hubs';
-	import { Hub } from '@/model/Hubs';
-	import InstallPrompt from '@/components/ui/InstallPrompt.vue';
-	import HubBlock from '@/components/ui/HubBlock.vue';
-	import Logo from '@/components/ui/Logo.vue';
+	// Components
+	import HubBlock from '@global-client/components/ui/HubBlock.vue';
+	import InstallPrompt from '@global-client/components/ui/InstallPrompt.vue';
+	import Logo from '@global-client/components/ui/Logo.vue';
 
-	// Hub imports
-	import HubBanner from '@/../../hub-client/src/components/ui/HubBanner.vue';
-	import InlineSpinner from '@/../../hub-client/src/components/ui/InlineSpinner.vue';
-	import Icon from '@/../../hub-client/src/components/elements/Icon.vue';
-	import P from '@/../../hub-client/src/components/elements/P.vue';
-	import device from '@/../../hub-client/src/logic/core/device';
+	import P from '@hub-client/components/elements/P.vue';
+	import HubBanner from '@hub-client/components/ui/HubBanner.vue';
+	import InlineSpinner from '@hub-client/components/ui/InlineSpinner.vue';
+
+	// Logic
+	import device from '@hub-client/logic/core/device';
+
+	import { Hub } from '@global-client/models/Hubs';
+
+	// Stores
+	import { useGlobal } from '@global-client/stores/global';
+	import { useHubs } from '@global-client/stores/hubs';
 
 	const global = useGlobal();
 	const hubs = useHubs();
-
 	const searchQuery = ref<string>('');
 
 	const filteredHubs = computed(() => {

@@ -1,2 +1,4 @@
-import { en } from '@/../../hub-client/src/locales/en';
+// Locales
+import { en } from '@hub-client/locales/en';
+
 export { en };

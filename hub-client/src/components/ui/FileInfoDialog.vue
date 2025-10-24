@@ -9,11 +9,14 @@
 </template>
 
 <script setup lang="ts">
-	//Components
-	import Dialog from '../ui/Dialog.vue';
+	// Components
+	import Dialog from '@hub-client/components/ui/Dialog.vue';
 
-	import { TFileMessageEventContent, TImageMessageEventContent } from '@/model/events/TMessageEvent';
-	import { buttonsCancel, DialogButtonAction } from '@/logic/store/dialog';
+	// Models
+	import { TFileMessageEventContent, TImageMessageEventContent } from '@hub-client/models/events/TMessageEvent';
+
+	// Stores
+	import { DialogButtonAction, buttonsCancel } from '@hub-client/stores/dialog';
 
 	const props = defineProps<{
 		eventContent: TFileMessageEventContent | TImageMessageEventContent;

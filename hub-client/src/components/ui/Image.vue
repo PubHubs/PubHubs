@@ -6,13 +6,16 @@
 </template>
 
 <script setup lang="ts">
-	import Popover from '../ui/Popover.vue';
+	// Packages
+	import { onMounted, ref, watch } from 'vue';
 
-	import { ref, onMounted, watch } from 'vue';
-	import { useMatrixFiles } from '@/logic/composables/useMatrixFiles';
+	// Components
+	import Popover from '@hub-client/components/ui/Popover.vue';
+
+	// Composables
+	import { useMatrixFiles } from '@hub-client/composables/useMatrixFiles';
 
 	const { isMxcUrl, useAuthorizedMediaUrl } = useMatrixFiles();
-
 	const props = defineProps<{ img: string }>();
 	const image = ref(props.img);
 	const showFullImage = ref(false);

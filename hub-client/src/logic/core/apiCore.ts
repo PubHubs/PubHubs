@@ -1,9 +1,4 @@
-/**
- *
- * This class has generic API functions for hub and global
- *
- */
-
+// Types
 interface ApiUrls {
 	[index: string]: string;
 }

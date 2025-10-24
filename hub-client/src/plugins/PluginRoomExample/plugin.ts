@@ -6,8 +6,8 @@
  * - plugin.ts (this file)
  * - PluginRoomExample.vue - the component used
  */
-
-import { RoomIdPluginProperties, PluginType } from '@/logic/store/plugins';
+// Stores
+import { PluginType, RoomIdPluginProperties } from '@hub-client/stores/plugins';
 
 const plugin: RoomIdPluginProperties = {
 	enabled: true,

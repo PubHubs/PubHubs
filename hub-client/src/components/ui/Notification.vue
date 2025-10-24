@@ -34,18 +34,21 @@
 </template>
 
 <script setup lang="ts">
-	// Vue
+	// Packages
+	import { computed, onMounted, onUnmounted, ref } from 'vue';
 	import { useI18n } from 'vue-i18n';
-	import { computed, ref, onMounted, onUnmounted } from 'vue';
-	// Model
-	import { TNotification, TNotificationType } from '@/model/users/TNotification';
+
 	// Components
-	import Icon from '@/components/elements/Icon.vue';
-	import Button from '@/components/elements/Button.vue';
-	import SecuredRoomLoginDialog from '@/components/rooms/SecuredRoomLoginDialog.vue';
-	// Logic
-	import { useNotifications } from '@/logic/store/notifications';
-	import { useSettings } from '@/logic/store/settings';
+	import Button from '@hub-client/components/elements/Button.vue';
+	import Icon from '@hub-client/components/elements/Icon.vue';
+	import SecuredRoomLoginDialog from '@hub-client/components/rooms/SecuredRoomLoginDialog.vue';
+
+	// Models
+	import { TNotification, TNotificationType } from '@hub-client/models/users/TNotification';
+
+	// Stores
+	import { useNotifications } from '@hub-client/stores/notifications';
+	import { useSettings } from '@hub-client/stores/settings';
 
 	const { t } = useI18n();
 	const notificationsStore = useNotifications();

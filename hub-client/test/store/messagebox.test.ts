@@ -1,6 +1,9 @@
-import { setActivePinia, createPinia } from 'pinia';
-import { describe, beforeEach, expect, test, vi } from 'vitest';
-import { Message, MessageType, MessageBoxType, useMessageBox, iframeHubId } from '@/logic/store/messagebox';
+// Packages
+import { createPinia, setActivePinia } from 'pinia';
+import { beforeEach, describe, expect, test, vi } from 'vitest';
+
+// Stores
+import { Message, MessageBoxType, MessageType, iframeHubId, useMessageBox } from '@hub-client/stores/messagebox';
 
 const messages = [];
 function mockTarget(id: string) {

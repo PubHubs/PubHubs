@@ -9,13 +9,20 @@
 </template>
 
 <script setup lang="ts">
-	// Components
-	import Popover from '../ui/Popover.vue';
+	// Packages
+	import { onMounted, ref } from 'vue';
 
-	import { useMatrixFiles } from '@/logic/composables/useMatrixFiles';
-	import { TImageMessageEventContent } from '@/model/events/TMessageEvent';
-	import { ref, onMounted } from 'vue';
-	import { FeatureFlag, useSettings } from '@/logic/store/settings';
+	// Components
+	import Popover from '@hub-client/components/ui/Popover.vue';
+
+	// Composables
+	import { useMatrixFiles } from '@hub-client/composables/useMatrixFiles';
+
+	// Models
+	import { TImageMessageEventContent } from '@hub-client/models/events/TMessageEvent';
+
+	// Stores
+	import { FeatureFlag, useSettings } from '@hub-client/stores/settings';
 
 	const matrixFiles = useMatrixFiles();
 	const settings = useSettings();

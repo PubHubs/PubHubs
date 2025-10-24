@@ -42,8 +42,11 @@
 </template>
 
 <script setup lang="ts">
+	// Packages
 	import { onMounted, ref } from 'vue';
-	import { startYiviSession } from '@/logic/utils/yiviHandler';
+
+	// Logic
+	import { startYiviSession } from '@global-client/logic/utils/yiviHandler';
 
 	const yivi_token = ref<string>('');
 
@@ -55,5 +58,5 @@
 		}
 	});
 
-	window.addEventListener('pageshow', () => yivi(true, yivi_token));
+	window.addEventListener('pageshow', () => startYiviSession(true, yivi_token));
 </script>

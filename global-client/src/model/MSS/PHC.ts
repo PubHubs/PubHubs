@@ -1,17 +1,15 @@
 // Package imports
-import { assert } from 'chai';
+// Hub imports
+import { Api } from '@/../../../hub-client/src/logic/core/apiCore.js';
 import { setLanguage, setUpi18n } from '@/i18n.js';
-
 // Global imports
 import { phc_api } from '@/logic/core/api.js';
 import { DialogOk, useDialog } from '@/logic/store/dialog.js';
 import { useGlobal } from '@/logic/store/global.js';
 import { useSettings } from '@/logic/store/settings.js';
-import * as mssTypes from '@/model/MSS/TMultiServerSetup.js';
 import { base64fromBase64Url, handleErrorCodes, handleErrors, requestOptions } from '@/model/MSS/Auths.js';
-
-// Hub imports
-import { Api } from '@/../../../hub-client/src/logic/core/apiCore.js';
+import * as mssTypes from '@/model/MSS/TMultiServerSetup.js';
+import { assert } from 'chai';
 
 export default class PHCServer {
 	private _phcAPI: Api;

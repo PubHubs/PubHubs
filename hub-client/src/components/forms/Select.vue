@@ -7,8 +7,11 @@
 </template>
 
 <script setup lang="ts">
+	// Packages
 	import { PropType } from 'vue';
-	import { Options, useFormInputEvents, usedEvents } from '@/logic/composables/useFormInputEvents';
+
+	// Composables
+	import { Options, useFormInputEvents, usedEvents } from '@hub-client/composables/useFormInputEvents';
 
 	const props = defineProps({
 		options: {

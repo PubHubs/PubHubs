@@ -12,7 +12,8 @@
 </template>
 
 <script setup lang="ts">
-	import device from '@/logic/core/device';
+	// Logic
+	import device from '@hub-client/logic/core/device';
 
 	const props = defineProps({
 		remainActive: {

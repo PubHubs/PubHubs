@@ -5,8 +5,8 @@
 </template>
 
 <script setup lang="ts">
-	// Components
-	import { TAnnouncementMessageEventContent } from '@/model/events/TMessageEvent';
+	// Models
+	import { TAnnouncementMessageEventContent } from '@hub-client/models/events/TMessageEvent';
 
 	const props = defineProps<{
 		event: TAnnouncementMessageEventContent;

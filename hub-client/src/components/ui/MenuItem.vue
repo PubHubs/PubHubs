@@ -18,19 +18,28 @@
 </template>
 
 <script setup lang="ts">
+	// Packages
+	import { PropType, computed } from 'vue';
 	import { useRouter } from 'vue-router';
-	import { useMenu } from '@/logic/store/menu';
-	import { Room, useRooms } from '@/logic/store/rooms';
-	import { computed, PropType } from 'vue';
 
-	import Icon from '@/components/elements/Icon.vue';
-	import Badge from '../elements/Badge.vue';
+	// Components
+	import Badge from '@hub-client/components/elements/Badge.vue';
+	import Icon from '@hub-client/components/elements/Icon.vue';
 
-	const rooms = useRooms();
-
-	const router = useRouter();
+	// Stores
+	import { useMenu } from '@hub-client/stores/menu';
+	import { Room, useRooms } from '@hub-client/stores/rooms';
 
 	const menu = useMenu();
+	const rooms = useRooms();
+	const router = useRouter();
+
+	const adminMenuIsActive = computed(() => {
+		if (typeof props.to === 'object' && props.to !== null && props.to.name !== undefined) {
+			return props.to['name'] === router.currentRoute.value.fullPath.split('/').pop();
+		}
+		return false;
+	});
 
 	const menuItemIsActive = computed(() => {
 		if (typeof props.to === 'object' && props.to !== null && props.to.name !== undefined) {
@@ -39,18 +48,11 @@
 		return false;
 	});
 
-	const roomIsActive = computed(() => {
-		if (!props.room) return false;
-		return props.room.roomId === router.currentRoute.value.fullPath.split('/').pop(); // full path looks like /room/room_id
-	});
-
 	const newMessage = computed(() => rooms.getTotalPrivateRoomUnreadMsgCount());
 
-	const adminMenuIsActive = computed(() => {
-		if (typeof props.to === 'object' && props.to !== null && props.to.name !== undefined) {
-			return props.to['name'] === router.currentRoute.value.fullPath.split('/').pop();
-		}
-		return false;
+	const roomIsActive = computed(() => {
+		if (!props.room) return false;
+		return props.room.roomId === router.currentRoute.value.fullPath.split('/').pop(); // Full path looks like /room/room_id
 	});
 
 	const props = defineProps({
@@ -67,7 +69,7 @@
 			default: 'base',
 		},
 		room: {
-			type: Object as PropType<Room | undefined>, // room prop can be a Room type or undefined.
+			type: Object as PropType<Room | undefined>, // Room prop can be a Room type or undefined.
 			required: false,
 		},
 	});

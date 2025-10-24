@@ -1,31 +1,31 @@
-/**
- *
- * Specific hub API
- *
- */
-
-import { Api } from '@/logic/core/apiCore';
-import { CONFIG } from '@/logic/foundation/Config';
+// Logic
+import { Api } from '@hub-client/logic/core/apiCore';
 
 // This is needed so histoire can run (otherwise _env is undefined)
-let BASE_URL = CONFIG._env.HUB_URL;
+let BASE_URL = '';
+
+// @ts-expect-error
+if (typeof _env !== 'undefined') {
+	// @ts-expect-error
+	BASE_URL = _env.HUB_URL;
+}
 
 const api_synapse = new Api(BASE_URL + '/_synapse/', {
-	// client APIs
+	// Client APIs
 	securedRooms: 'client/secured_rooms',
 	notice: 'client/notices',
 	securedRoom: 'client/srextra',
 
-	// user admin API
+	// User admin API
 	usersAPIV1: 'admin/v1/users/',
 	usersAPIV2: 'admin/v2/users/',
 	usersAPIV3: 'admin/v3/users/',
 
-	// user room
+	// User room
 	roomsAPIV1: 'admin/v1/rooms/',
 	roomsAPIV2: 'admin/v2/rooms/',
 
-	// hub settings
+	// Hub settings
 	hub: 'client/hub',
 	hubLogo: 'client/hublogo',
 	hubSettings: 'client/hub/settings',
@@ -36,7 +36,7 @@ const api_synapse = new Api(BASE_URL + '/_synapse/', {
 	hubBanner: 'client/hub/banner',
 	hubBannerDefault: 'client/hub/default-banner',
 
-	// hub data
+	// Hub data
 	data: 'client/hub/data',
 });
 

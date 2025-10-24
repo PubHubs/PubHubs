@@ -1,7 +1,5 @@
 /**
- *
  * Globally register plugins in 'plugins' folder.
- *
  */
 
 export const registerPlugins = (app) => {

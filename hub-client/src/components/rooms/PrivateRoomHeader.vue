@@ -1,6 +1,6 @@
 <template>
 	<div class="flex flex-row gap-2">
-		<Avatar :userId="otherUser?.userId" />
+		<Avatar :avatar-url="user.userAvatar(otherUser?.userId)" :user-id="otherUser?.userId" />
 		<div class="flex h-fit flex-col overflow-hidden">
 			<p class="truncate font-bold leading-tight">
 				{{ otherUser?.rawDisplayName ?? '' }}
@@ -13,12 +13,21 @@
 </template>
 
 <script setup lang="ts">
-	import Avatar from '../ui/Avatar.vue';
-	import { useUser } from '@/logic/store/user';
-	import Room from '@/model/rooms/Room';
+	// Packages
 	import { computed } from 'vue';
-	import { TRoomMember } from '@/model/rooms/TRoomMember';
-	import filters from '@/logic/core/filters';
+
+	// Components
+	import Avatar from '@hub-client/components/ui/Avatar.vue';
+
+	// Logic
+	import filters from '@hub-client/logic/core/filters';
+
+	// Models
+	import Room from '@hub-client/models/rooms/Room';
+	import { TRoomMember } from '@hub-client/models/rooms/TRoomMember';
+
+	// Stores
+	import { useUser } from '@hub-client/stores/user';
 
 	const user = useUser();
 
@@ -33,5 +42,5 @@
 		},
 	});
 
-	const otherUser = computed(() => props.members.findLast((member) => member.userId !== user.user.userId) ?? null);
+	const otherUser = computed(() => props.members.findLast((member) => member.userId !== user.userId) ?? null);
 </script>

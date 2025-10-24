@@ -1,8 +1,8 @@
-import { Direction, EventTimeline, EventType, Filter, MatrixClient, MatrixEvent, Room as MatrixRoom, MsgType, TimelineWindow } from 'matrix-js-sdk';
-import { LOGGER } from '@/logic/foundation/Logger';
-import { SMI } from '@/logic/foundation/StatusMessage';
 import { TBaseEvent } from '../events/TBaseEvent';
 import { RedactReasons } from '@/logic/core/events';
+import { LOGGER } from '@/logic/foundation/Logger';
+import { SMI } from '@/logic/foundation/StatusMessage';
+import { Direction, EventTimeline, EventType, Filter, MatrixClient, MatrixEvent, Room as MatrixRoom, MsgType, TimelineWindow } from 'matrix-js-sdk';
 
 const PAGE_SIZE = 96;
 const FILTER_ID = 'MainRoomTimeline';

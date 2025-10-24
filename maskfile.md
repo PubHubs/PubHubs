@@ -11,7 +11,9 @@ Make sure you have [irma](https://github.com/privacybydesign/irmago) installed
 
 ### all
 
-> Run all
+> Runs everything in a TMUX session
+
+This required [tmux](https://github.com/tmux/tmux) to be installed.
 
 ```sh
 bash run-all.sh
@@ -52,7 +54,7 @@ python3 run_garage.py
 
 #### init
 
-`> Intializes/wipes the garage storage directory
+> Intializes/wipes the garage storage directory
 
 ```sh
 set -e

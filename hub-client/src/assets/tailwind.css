@@ -187,13 +187,13 @@
 
 /* Classes */
 @layer components {
-	/* .highlighted {
+	.highlighted {
 		@apply bg-surface-low transition duration-500 ease-out;
 	}
 
 	.unhighlighted {
 		@apply transition duration-500 ease-out;
-	} */
+	}
 
 	/* .message-mention {
 		@apply inline-block rounded-md bg-black px-1 text-white;

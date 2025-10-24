@@ -1,10 +1,10 @@
 <template>
 	<div class="flex cursor-pointer items-center gap-3 truncate text-nowrap rounded-md px-2" :class="showInReplyTo ? 'bg-surface-high' : 'bg-surface-low'">
 		<p v-if="showInReplyTo" class="text-nowrap">
-			{{ $t('message.in_reply_to') }}
+			{{ t('message.in_reply_to') }}
 		</p>
 		<p :class="textColor(userColor)">
-			<UserDisplayName :user="event.sender || 'Deleted user'" :room="room" />
+			<UserDisplayName :userId="event.sender || t('delete.user')" />
 		</p>
 		<div class="flex w-full items-center gap-1" :class="{ 'text-accent-error': redactedMessage }" :title="snippetText">
 			<Icon v-if="redactedMessage" :type="'bin'" :size="'sm'" />
@@ -14,26 +14,35 @@
 </template>
 
 <script setup lang="ts">
-	// Components
-	import UserDisplayName from './UserDisplayName.vue';
-	import Icon from '../elements/Icon.vue';
-
-	import { useUserColor } from '@/logic/composables/useUserColor';
+	// Packages
 	import { computed } from 'vue';
-	import Room from '@/model/rooms/Room';
 	import { useI18n } from 'vue-i18n';
-	import { usePubHubs } from '@/logic/core/pubhubsStore';
 
-	const { color, textColor } = useUserColor();
-	const pubhubs = usePubHubs();
-	const { t } = useI18n();
+	// Components
+	import Icon from '@hub-client/components/elements/Icon.vue';
 
+	// Composables
+	import { useUserColor } from '@hub-client/composables/useUserColor';
+
+	// Models
+	import Room from '@hub-client/models/rooms/Room';
+
+	// Stores
+	import { usePubhubsStore } from '@hub-client/stores/pubhubs';
+	import { useUser } from '@hub-client/stores/user';
+
+	// Types
 	type Props = {
 		eventId: string;
 		// Whether or not to show the text "In reply to:" inside the snippet.
 		showInReplyTo?: boolean;
 		room: Room;
 	};
+
+	const { color, textColor } = useUserColor();
+	const pubhubs = usePubhubsStore();
+	const user = useUser();
+	const { t } = useI18n();
 
 	const props = withDefaults(defineProps<Props>(), {
 		showInReplyTo: false,
@@ -47,9 +56,9 @@
 	});
 
 	const redactedMessage = computed(() => {
-		const inRedactedMessageIds = event.event_id && props.room.inRedactedMessageIds(event.event_id);
+		const isDeletedEvent = event.event_id && props.room.isDeletedEvent(event.event_id);
 		const containsRedactedBecause = event.unsigned?.redacted_because != undefined;
-		return inRedactedMessageIds || containsRedactedBecause;
+		return isDeletedEvent || containsRedactedBecause;
 	});
 
 	const snippetText = computed(() => {

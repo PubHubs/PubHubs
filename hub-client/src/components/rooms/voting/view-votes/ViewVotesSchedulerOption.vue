@@ -8,7 +8,7 @@
 			<div>{{ yesVotes.length }}&nbsp;{{ $t('message.voting.plural_votes', yesVotes.length) }}</div>
 			<div class="mr-2 flex gap-2" v-for="vote in yesVotes" :key="vote[0]">
 				<AvatarDisplayName class="h-5 w-5" :userId="vote[0]"></AvatarDisplayName>
-				<UserDisplayName :user="vote[0]" :room="currentRoom"></UserDisplayName>
+				<UserDisplayName :userId="vote[0]"></UserDisplayName>
 			</div>
 		</div>
 		<div class="flex gap-2 py-2">
@@ -19,7 +19,7 @@
 			<div>{{ maybeVotes.length }}&nbsp;{{ $t('message.voting.plural_votes', maybeVotes.length) }}</div>
 			<div class="mr-2 flex gap-2" v-for="vote in maybeVotes" :key="vote[0]">
 				<AvatarDisplayName class="h-5 w-5" :userId="vote[0]"></AvatarDisplayName>
-				<UserDisplayName :user="vote[0]" :room="currentRoom"></UserDisplayName>
+				<UserDisplayName :userId="vote[0]"></UserDisplayName>
 			</div>
 		</div>
 		<div class="flex gap-2 py-2">
@@ -30,17 +30,21 @@
 			<div>{{ noVotes.length }}&nbsp;{{ $t('message.voting.plural_votes', noVotes.length) }}</div>
 			<div class="mr-2 flex gap-2" v-for="vote in noVotes" :key="vote[0]">
 				<AvatarDisplayName class="h-5 w-5" :userId="vote[0]"></AvatarDisplayName>
-				<UserDisplayName :user="vote[0]" :room="currentRoom"></UserDisplayName>
+				<UserDisplayName :userId="vote[0]"></UserDisplayName>
 			</div>
 		</div>
 	</div>
 </template>
 
 <script setup lang="ts">
-	import { useRooms } from '@/logic/store/rooms';
+	// Components
+	import UserDisplayName from '@hub-client/components/rooms/UserDisplayName.vue';
 
-	const rooms = useRooms();
-	const currentRoom = rooms.currentRoom;
+	// Stores
+	import { useRooms } from '@hub-client/stores/rooms';
+	import { useUser } from '@hub-client/stores/user';
+
+	const user = useUser();
 
 	const props = defineProps<{
 		votes: {

@@ -26,24 +26,31 @@
 </template>
 
 <script setup lang="ts">
-	// Components
-	import FilteredList from '../ui/FilteredList.vue';
-	import Icon from '../elements/Icon.vue';
-	import { FilteredListEvent } from '@/model/components/FilteredListEvent';
-	import { useUserColor } from '@/logic/composables/useUserColor';
-	import filters from '@/logic/core/filters';
-	import { usePubHubs } from '@/logic/core/pubhubsStore';
-	import { useSettings } from '@/logic/store/settings';
-	import { useUser } from '@/logic/store/user';
+	// Packages
 	import { User as MatrixUser } from 'matrix-js-sdk';
 	import { computed, onMounted, ref } from 'vue';
 
+	// Components
+	import Icon from '@hub-client/components/elements/Icon.vue';
+	import FilteredList from '@hub-client/components/ui/FilteredList.vue';
+
+	// Composables
+	import { useUserColor } from '@hub-client/composables/useUserColor';
+
+	// Logic
+	import filters from '@hub-client/logic/core/filters';
+
+	// Models
+	import { FilteredListEvent } from '@hub-client/models/components/FilteredListEvent';
+
+	// Stores
+	import { usePubhubsStore } from '@hub-client/stores/pubhubs';
+	import { useSettings } from '@hub-client/stores/settings';
+	import { useUser } from '@hub-client/stores/user';
+
 	const { color, textColor } = useUserColor();
-
 	const settings = useSettings();
-
-	const pubhubs = usePubHubs();
-
+	const pubhubs = usePubhubsStore();
 	const user = useUser();
 	const emit = defineEmits(['selectedUser']);
 
@@ -73,7 +80,7 @@
 			};
 		});
 		// Remove self from list
-		list = list.filter((u: any) => u.userId !== user.user.userId && u.rawDisplayName !== 'notices');
+		list = list.filter((u: any) => u.userId !== user.userId && u.rawDisplayName !== 'notices');
 
 		return list;
 	});

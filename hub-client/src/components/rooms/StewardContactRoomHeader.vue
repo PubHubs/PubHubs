@@ -11,20 +11,19 @@
 </template>
 
 <script setup lang="ts">
-	import { useRooms } from '@/logic/store/store';
-	import Room from '@/model/rooms/Room';
-
-	import { TRoomMember } from '@/model/rooms/TRoomMember';
-
+	// Packages
 	import { computed } from 'vue';
 	import { useI18n } from 'vue-i18n';
 
+	// Models
+	import Room from '@hub-client/models/rooms/Room';
+	import { TRoomMember } from '@hub-client/models/rooms/TRoomMember';
+
+	// Stores
+	import { useRooms } from '@hub-client/stores/rooms';
+
 	const { t } = useI18n();
 	const rooms = useRooms();
-
-	const roomNameForStewardContact = computed(() => {
-		return rooms.fetchRoomById(props.room.name.split(',')[0]).name;
-	});
 
 	const props = defineProps({
 		room: {
@@ -35,5 +34,9 @@
 			type: Array<TRoomMember>,
 			required: true,
 		},
+	});
+
+	const roomNameForStewardContact = computed(() => {
+		return rooms.fetchRoomById(props.room.name.split(',')[0]).name;
 	});
 </script>

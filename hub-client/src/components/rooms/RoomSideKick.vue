@@ -10,14 +10,14 @@
 	</div>
 </template>
 <script setup lang="ts">
+	const emit = defineEmits(['close']);
+
 	const props = defineProps({
 		title: {
 			type: String,
 			required: true,
 		},
 	});
-
-	const emit = defineEmits(['close']);
 
 	function close() {
 		emit('close');

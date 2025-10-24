@@ -28,9 +28,9 @@
 							<GlobalBarButton v-if="settings.isFeatureEnabled(FeatureFlag.roomLibrary)" type="folder" size="sm" :selected="showLibrary" @click="toggleLibrary"></GlobalBarButton>
 							<GlobalBarButton type="two_users" size="sm" :selected="showMembers" @click="toggleMembersList"></GlobalBarButton>
 							<!--Only show Editing icon for steward but not for administrator-->
-							<GlobalBarButton v-if="room.getUserPowerLevel(user.user.userId) === 50" type="cog" size="sm" @click="stewardCanEdit()" />
+							<GlobalBarButton v-if="room.getUserPowerLevel(user.userId) === 50" type="cog" size="sm" @click="stewardCanEdit()" />
 							<!--Except for moderator everyone should talk to room moderator e.g., admins-->
-							<GlobalBarButton v-if="room.getUserPowerLevel(user.user.userId) !== 50 && room.getRoomStewards().length > 0" type="moderator_msg" size="sm" @click="messageRoomSteward()" />
+							<GlobalBarButton v-if="room.getUserPowerLevel(user.userId) !== 50 && room.getRoomStewards().length > 0" type="moderator_msg" size="sm" @click="messageRoomSteward()" />
 						</RoomHeaderButtons>
 						<SearchInput :search-parameters="searchParameters" @scroll-to-event-id="onScrollToEventId" @toggle-searchbar="handleToggleSearchbar" @search-started="showMembers = false" :room="rooms.currentRoom" />
 					</div>
@@ -40,14 +40,14 @@
 			<div class="flex h-full w-full justify-between overflow-hidden">
 				<RoomLibrary v-if="showLibrary" :id="id" @close="toggleLibrary"></RoomLibrary>
 				<div class="flex h-full w-full flex-col overflow-hidden" :class="{ hidden: showLibrary }">
-					<RoomTimeline v-if="room" :room="room" :scroll-to-event-id="room.getCurrentEventId()" @scrolled-to-event-id="room.setCurrentEventId(undefined)"> </RoomTimeline>
+					<RoomTimeline v-if="room" :room="room" :scroll-to-event-id="room.getCurrentEvent()" @scrolled-to-event-id="room.setCurrentEvent(undefined)"> </RoomTimeline>
 				</div>
 				<RoomThread
 					v-if="room.getCurrentThreadId()"
 					:class="{ hidden: showLibrary }"
 					:room="room"
-					:scroll-to-event-id="room.getCurrentEventId()"
-					@scrolled-to-event-id="room.setCurrentEventId(undefined)"
+					:scroll-to-event-id="room.getCurrentEvent()?.eventId"
+					@scrolled-to-event-id="room.setCurrentEvent(undefined)"
 					@thread-length-changed="currentThreadLengthChanged"
 				>
 				</RoomThread>
@@ -67,47 +67,53 @@
 </template>
 
 <script setup lang="ts">
-	// Components
-	import HeaderFooter from '@/components/ui/HeaderFooter.vue';
-	import Icon from '@/components/elements/Icon.vue';
-	import H3 from '@/components/elements/H3.vue';
-	import TruncatedText from '@/components/elements/TruncatedText.vue';
-	import PrivateRoomHeader from '@/components/rooms/PrivateRoomHeader.vue';
-	import GroupRoomHeader from '@/components/rooms/GroupRoomHeader.vue';
-	import AdminContactRoomHeader from '@/components/rooms/AdminContactRoomHeader.vue';
-	import StewardContactRoomHeader from '@/components/rooms/StewardContactRoomHeader.vue';
-	import SearchInput from '@/components/forms/SearchInput.vue';
-	import RoomTimeline from '@/components/rooms/RoomTimeline.vue';
-	import RoomName from '@/components/rooms/RoomName.vue';
-	import RoomThread from '@/components/rooms/RoomThread.vue';
-	import GlobalBarButton from '@/components/ui/GlobalbarButton.vue';
-	import RoomHeaderButtons from '@/components/rooms/RoomHeaderButtons.vue';
-	import RoomMemberList from '@/components/rooms/RoomMemberList.vue';
-	import RoomLibrary from '@/components/rooms/RoomLibrary.vue';
-	import EditRoomForm from '@/components/rooms/EditRoomForm.vue';
-	import SecuredRoomLoginDialog from '@/components/rooms/SecuredRoomLoginDialog.vue';
-
-	import { usePubHubs } from '@/logic/core/pubhubsStore';
-	import { LOGGER } from '@/logic/foundation/Logger';
-	import { SMI } from '@/logic/foundation/StatusMessage';
-	import { TSearchParameters } from '@/model/search/TSearch';
-	import { useHubSettings } from '@/logic/store/hub-settings';
-	import { PluginProperties, usePlugins } from '@/logic/store/plugins';
-	import { useRooms } from '@/logic/store/rooms';
-	import { useUser } from '@/logic/store/user';
-	import { TPublicRoom } from '@/model/rooms/TPublicRoom';
-	import { TSecuredRoom } from '@/model/rooms/TSecuredRoom';
+	// Packages
 	import { computed, onMounted, ref, watch } from 'vue';
 	import { useRoute, useRouter } from 'vue-router';
-	import { FeatureFlag, useSettings } from '@/logic/store/settings';
-	import { routes } from '@/logic/core/router';
+
+	// Components
+	import H3 from '@hub-client/components/elements/H3.vue';
+	import Icon from '@hub-client/components/elements/Icon.vue';
+	import TruncatedText from '@hub-client/components/elements/TruncatedText.vue';
+	import SearchInput from '@hub-client/components/forms/SearchInput.vue';
+	import AdminContactRoomHeader from '@hub-client/components/rooms/AdminContactRoomHeader.vue';
+	import EditRoomForm from '@hub-client/components/rooms/EditRoomForm.vue';
+	import GroupRoomHeader from '@hub-client/components/rooms/GroupRoomHeader.vue';
+	import PrivateRoomHeader from '@hub-client/components/rooms/PrivateRoomHeader.vue';
+	import RoomHeaderButtons from '@hub-client/components/rooms/RoomHeaderButtons.vue';
+	import RoomLibrary from '@hub-client/components/rooms/RoomLibrary.vue';
+	import RoomMemberList from '@hub-client/components/rooms/RoomMemberList.vue';
+	import RoomName from '@hub-client/components/rooms/RoomName.vue';
+	import RoomThread from '@hub-client/components/rooms/RoomThread.vue';
+	import RoomTimeline from '@hub-client/components/rooms/RoomTimeline.vue';
+	import StewardContactRoomHeader from '@hub-client/components/rooms/StewardContactRoomHeader.vue';
+	import GlobalBarButton from '@hub-client/components/ui/GlobalbarButton.vue';
+	import HeaderFooter from '@hub-client/components/ui/HeaderFooter.vue';
+
+	import { routes } from '@hub-client/logic/core/router';
+	// Logic
+	import { LOGGER } from '@hub-client/logic/logging/Logger';
+	import { SMI } from '@hub-client/logic/logging/StatusMessage';
+
+	// Models
+	import { TPublicRoom } from '@hub-client/models/rooms/TPublicRoom';
+	import { TSecuredRoom } from '@hub-client/models/rooms/TSecuredRoom';
+	import { TSearchParameters } from '@hub-client/models/search/TSearch';
+
+	// Stores
+	import { useHubSettings } from '@hub-client/stores/hub-settings';
+	import { PluginProperties, usePlugins } from '@hub-client/stores/plugins';
+	import { usePubhubsStore } from '@hub-client/stores/pubhubs';
+	import { useRooms } from '@hub-client/stores/rooms';
+	import { FeatureFlag, useSettings } from '@hub-client/stores/settings';
+	import { useUser } from '@hub-client/stores/user';
 
 	const route = useRoute();
 	const rooms = useRooms();
 	const user = useUser();
 	const router = useRouter();
 	const plugins = usePlugins();
-	const plugin = ref<boolean | PluginProperties>(false);
+	const plugin = ref(false as boolean | PluginProperties);
 	const hubSettings = useHubSettings();
 	const currentRoomToEdit = ref<TSecuredRoom | TPublicRoom | null>(null);
 	const showEditRoom = ref(false);
@@ -117,10 +123,10 @@
 	const isSearchBarExpanded = ref<boolean>(false);
 	const settings = useSettings();
 	const isMobile = computed(() => settings.isMobileState);
-	const pubhubs = usePubHubs();
+	const pubhubs = usePubhubsStore();
 	const joinSecuredRoom = ref<string | null>(null);
 
-	//Passed by the router
+	// Passed by the router
 	const props = defineProps({
 		id: { type: String, required: true },
 	});
@@ -156,7 +162,7 @@
 	watch(route, () => {
 		if (rooms.currentRoom) {
 			rooms.currentRoom.setCurrentThreadId(undefined); // reset current thread
-			rooms.currentRoom.setCurrentEventId(undefined); // reset current event
+			rooms.currentRoom.setCurrentEvent(undefined); // reset current event
 		}
 		update();
 	});
@@ -169,7 +175,7 @@
 		hubSettings.hideBar();
 		rooms.changeRoom(props.id);
 
-		const userIsMemberOfRoom = await pubhubs.isUserRoomMember(user.user.userId, props.id);
+		const userIsMemberOfRoom = await pubhubs.isUserRoomMember(user.userId!, props.id);
 		if (!userIsMemberOfRoom) {
 			const promise = pubhubs.joinRoom(props.id);
 			// need this extra check
@@ -187,6 +193,10 @@
 		}
 
 		if (!rooms.currentRoom) return;
+
+		/* Initialize syncing of room */
+		rooms.currentRoom.initTimeline();
+
 		searchParameters.value.roomId = rooms.currentRoom.roomId;
 		plugin.value = plugins.hasRoomPlugin(rooms.currentRoom);
 	}
@@ -205,7 +215,7 @@
 		} else {
 			room.value.setCurrentThreadId(undefined);
 		}
-		room.value.setCurrentEventId(ev.eventId);
+		room.value.setCurrentEvent({ eventId: ev.eventId, threadId: undefined });
 	}
 
 	async function stewardCanEdit() {

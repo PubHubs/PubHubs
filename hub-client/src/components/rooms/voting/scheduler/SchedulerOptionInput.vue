@@ -40,13 +40,21 @@
 </template>
 
 <script setup lang="ts">
-	import Icon from '@/components/elements/Icon.vue';
-
+	// Packages
 	import { computed, onMounted, ref } from 'vue';
 	import { useI18n } from 'vue-i18n';
-	import filters from '@/logic/core/filters';
-	import { SchedulerOption } from '@/model/events/voting/VotingTypes';
-	import { TimeFormat, useSettings } from '@/logic/store/settings';
+
+	// Components
+	import Icon from '@hub-client/components/elements/Icon.vue';
+
+	// Logic
+	import filters from '@hub-client/logic/core/filters';
+
+	// Models
+	import { SchedulerOption } from '@hub-client/models/events/voting/VotingTypes';
+
+	// Stores
+	import { TimeFormat, useSettings } from '@hub-client/stores/settings';
 
 	const emit = defineEmits(['updateOption', 'removeOption']);
 	const settings = useSettings();

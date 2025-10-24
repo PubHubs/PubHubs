@@ -1,13 +1,21 @@
-import { PinnedHubs, useGlobal } from '@/logic/store/global';
-import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, test } from 'vitest';
-import { createPinia, setActivePinia } from 'pinia';
-
+// Packages
+// Tests
 import { server } from '../mocks/server';
-import { api } from '@/logic/core/api';
-import { useSettings } from '@/logic/store/settings';
-import { useHubs } from '@/logic/store/hubs';
-import PHCServer from '@/model/MSS/PHC';
-import * as mssTypes from '@/model/MSS/TMultiServerSetup';
+import { createPinia, setActivePinia } from 'pinia';
+import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, test } from 'vitest';
+
+// Logic
+import { api } from '@global-client/logic/core/api';
+
+// Models
+import PHCServer from '@global-client/models/MSS/PHC';
+import * as mssTypes from '@global-client/models/MSS/TMultiServerSetup';
+
+// Stores
+import { PinnedHubs, useGlobal } from '@global-client/stores/global';
+import { useHubs } from '@global-client/stores/hubs';
+
+import { useSettings } from '@hub-client/stores/settings';
 
 beforeAll(() => server.listen({ onUnhandledRequest: 'error' }));
 afterAll(() => server.close());

@@ -1,6 +1,9 @@
-import { expect, test } from 'vitest';
+// Packages
 import { mount } from '@vue/test-utils';
-import Badge from '@/components/elements/Badge.vue';
+import { expect, test } from 'vitest';
+
+// Components
+import Badge from '@hub-client/components/elements/Badge.vue';
 
 test('mount component', async () => {
 	expect(Badge).toBeTruthy();

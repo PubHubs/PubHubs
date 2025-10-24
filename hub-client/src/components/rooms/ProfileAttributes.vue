@@ -14,21 +14,23 @@
 </template>
 
 <script setup lang="ts">
-	// Components
-	import Icon from '../elements/Icon.vue';
-
-	import { useRooms } from '@/logic/store/store';
+	// Packages
 	import { ref, watch } from 'vue';
 
-	const rooms = useRooms();
+	// Components
+	import Icon from '@hub-client/components/elements/Icon.vue';
 
+	// Stores
+	import { useRooms } from '@hub-client/stores/rooms';
+
+	// Types
 	interface Props {
 		user: string;
 		room_id: string;
 	}
 
+	const rooms = useRooms();
 	const props = defineProps<Props>();
-
 	const roomAttributes = ref<string[]>([]);
 
 	function update_attributes() {

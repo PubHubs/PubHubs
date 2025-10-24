@@ -1,7 +1,12 @@
-import { setActivePinia, createPinia } from 'pinia';
-import { describe, beforeEach, expect, test } from 'vitest';
-import { useHubs } from '../../src/logic/store/hubs';
-import { Hub } from '../../src/model/Hubs';
+// Packages
+import { createPinia, setActivePinia } from 'pinia';
+import { beforeEach, describe, expect, test } from 'vitest';
+
+// Models
+import { Hub } from '@global-client/models/Hubs';
+
+// Stores
+import { useHubs } from '@global-client/stores/hubs';
 
 let pinia;
 

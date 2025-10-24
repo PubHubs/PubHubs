@@ -51,24 +51,30 @@
 </template>
 
 <script setup lang="ts">
-	// Package imports
+	// Packages
 	import { computed, onMounted, ref } from 'vue';
 	import { useRoute, useRouter } from 'vue-router';
 
-	// Global imports
-	import { useSettings } from '@/logic/store/settings';
-	import { useMSS } from '@/logic/store/mss';
-	import { loginMethods, PHCEnterMode } from '@/model/MSS/TMultiServerSetup';
-	import Logo from '@/components/ui/Logo.vue';
+	import Logo from '@global-client/components/ui/Logo.vue';
 
-	// Hub imports
-	import { Logger } from '@/logic/foundation/Logger';
-	import { CONFIG } from '@/../../hub-client/src/logic/foundation/Config';
-	import { SMI } from '@/../../hub-client/src/logic/foundation/StatusMessage';
-	import Button from '@/../../hub-client/src/components/elements/Button.vue';
-	import H1 from '@/../../hub-client/src/components/elements/H1.vue';
-	import P from '@/../../hub-client/src/components/elements/P.vue';
-	import InlineSpinner from '@/../../hub-client/src/components/ui/InlineSpinner.vue';
+	// Components
+	import Button from '@hub-client/components/elements/Button.vue';
+	import H1 from '@hub-client/components/elements/H1.vue';
+	import P from '@hub-client/components/elements/P.vue';
+	import InlineSpinner from '@hub-client/components/ui/InlineSpinner.vue';
+
+	// Logic
+	import { CONFIG } from '@hub-client/logic/logging/Config';
+	import { Logger } from '@hub-client/logic/logging/Logger';
+	import { SMI } from '@hub-client/logic/logging/StatusMessage';
+
+	// Models
+	import { PHCEnterMode, loginMethods } from '@global-client/models/MSS/TMultiServerSetup';
+
+	// Stores
+	import { useMSS } from '@global-client/stores/mss';
+
+	import { useSettings } from '@hub-client/stores/settings';
 
 	const settings = useSettings();
 	const router = useRouter();

@@ -1,10 +1,5 @@
-/**
- *
- * Specific hub API
- *
- */
-
-import { Api } from '@/../../hub-client/src/logic/core/apiCore.js';
+// Logic
+import { Api } from '@hub-client/logic/core/apiCore';
 
 const api = new Api(_env.PUBHUBS_URL, {
 	login: 'login',

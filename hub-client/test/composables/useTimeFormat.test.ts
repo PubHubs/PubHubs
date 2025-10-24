@@ -1,8 +1,13 @@
+// Packages
+import { createPinia, setActivePinia } from 'pinia';
 import { describe, expect, test, vi } from 'vitest';
 
-import { createPinia, setActivePinia } from 'pinia';
-import { TimeFormat } from '@/logic/store/settings';
-import { useTimeFormat } from '../../src/logic/composables/useTimeFormat';
+// Composables
+import { useTimeFormat } from '@hub-client/composables/useTimeFormat';
+
+// Stores
+import { TimeFormat } from '@hub-client/stores/settings';
+
 const { formatDate, formatTimestamp } = useTimeFormat();
 
 vi.mock('vue-i18n', () => ({

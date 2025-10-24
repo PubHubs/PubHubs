@@ -4,13 +4,18 @@
 </template>
 
 <script setup lang="ts">
-	import { ref, onMounted, watch } from 'vue';
-	import { useMatrixFiles } from '@/logic/composables/useMatrixFiles';
-	import { fileDownload } from '@/logic/composables/fileDownload';
-	import { usePubHubs } from '@/logic/core/pubhubsStore';
+	// Packages
+	import { onMounted, ref, watch } from 'vue';
+
+	// Composables
+	import { fileDownload } from '@hub-client/composables/fileDownload';
+	import { useMatrixFiles } from '@hub-client/composables/useMatrixFiles';
+
+	// Stores
+	import { usePubhubsStore } from '@hub-client/stores/pubhubs';
 
 	const { formUrlfromMxc } = useMatrixFiles();
-	const pubhubs = usePubHubs();
+	const pubhubs = usePubhubsStore();
 	const accessToken = pubhubs.Auth.getAccessToken();
 	const props = defineProps<{ url: string; filename: string }>();
 	const download = ref(props.url);

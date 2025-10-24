@@ -22,12 +22,15 @@
 </template>
 
 <script setup lang="ts">
-	// Components
-	import TextInput from './TextInput.vue';
-	import Icon from '../elements/Icon.vue';
-
+	// Packages
 	import { ref } from 'vue';
-	import { useFormInputEvents, usedEvents } from '@/logic/composables/useFormInputEvents';
+
+	// Components
+	import Icon from '@hub-client/components/elements/Icon.vue';
+	import TextInput from '@hub-client/components/forms/TextInput.vue';
+
+	// Composables
+	import { useFormInputEvents, usedEvents } from '@hub-client/composables/useFormInputEvents';
 
 	const props = defineProps({
 		placeholder: {

@@ -1,6 +1,9 @@
+// Packages
 import { describe, expect, test } from 'vitest';
 
-import { useFormInputEvents } from '@/logic/composables/useFormInputEvents';
+// Composables
+import { useFormInputEvents } from '@hub-client/composables/useFormInputEvents';
+
 const { setValue, setOptions, selectOption, optionIsSelected } = useFormInputEvents({});
 
 describe('useFormInputEvents', () => {

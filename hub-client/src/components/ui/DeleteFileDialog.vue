@@ -10,10 +10,13 @@
 
 <script setup lang="ts">
 	// Components
-	import Dialog from '../ui/Dialog.vue';
+	import Dialog from '@hub-client/components/ui/Dialog.vue';
 
-	import { TFileMessageEventContent, TImageMessageEventContent } from '@/model/events/TMessageEvent';
-	import { buttonsYesNo, DialogButtonAction } from '@/logic/store/dialog';
+	// Models
+	import { TFileMessageEventContent, TImageMessageEventContent } from '@hub-client/models/events/TMessageEvent';
+
+	// Stores
+	import { DialogButtonAction, buttonsYesNo } from '@hub-client/stores/dialog';
 
 	const emit = defineEmits<{
 		yes: [];

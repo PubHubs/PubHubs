@@ -1,14 +1,21 @@
-import DiscoverUsers from '../../src/components/rooms/DiscoverUsers.vue';
-import FilteredList from '../../src/components/ui/FilteredList.vue';
-import TextInput from '../../src/components/forms/TextInput.vue';
-import { useUser } from '../../src/logic/store/user';
-import { usePubHubs } from '../../src/logic/core/pubhubsStore';
-import { describe, expect, beforeEach, test, afterEach } from 'vitest';
-import { mount, flushPromises } from '@vue/test-utils';
+// Packages
 import { createTestingPinia } from '@pinia/testing';
+import { flushPromises, mount } from '@vue/test-utils';
+import { afterEach, beforeEach, describe, expect, test } from 'vitest';
 import { createI18n } from 'vue-i18n';
-import { nl } from '../../src/locales/nl';
-import { en } from '../../src/locales/en';
+
+import TextInput from '@hub-client/components/forms/TextInput.vue';
+// Components
+import DiscoverUsers from '@hub-client/components/rooms/DiscoverUsers.vue';
+import FilteredList from '@hub-client/components/ui/FilteredList.vue';
+
+// Locales
+import { en } from '@hub-client/locales/en';
+import { nl } from '@hub-client/locales/nl';
+
+import { usePubhubsStore } from '@hub-client/stores/pubhubs';
+// Stores
+import { useUser } from '@hub-client/stores/user';
 
 const foundDisplayName = '[data-testid=display-name]';
 const foundUserId = '[data-testid=user-id]';
@@ -47,7 +54,7 @@ describe('DiscoverUsers.vue Test', () => {
 			},
 		});
 
-		pubhubs = usePubHubs();
+		pubhubs = usePubhubsStore();
 	});
 
 	afterEach(() => {

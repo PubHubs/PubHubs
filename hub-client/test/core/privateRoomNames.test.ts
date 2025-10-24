@@ -1,5 +1,8 @@
+// Packages
 import { expect, test } from 'vitest';
-import { createNewPrivateRoomName, updatePrivateRoomName, isVisiblePrivateRoom, fetchMemberIdsFromPrivateRoomName } from '@/logic/core/privateRoomNames.ts';
+
+// Logic
+import { createNewPrivateRoomName, fetchMemberIdsFromPrivateRoomName, isVisiblePrivateRoom, updatePrivateRoomName } from '@hub-client/logic/core/privateRoomNames';
 
 test('createNewPrivateRoomName', () => {
 	expect(createNewPrivateRoomName([{ userId: '@IK' }, { userId: '@JIJ' }])).toBe('@IK,@JIJ');

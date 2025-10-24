@@ -32,19 +32,21 @@
 </template>
 
 <script setup lang="ts">
-	// Components
-	import HeaderFooter from '@/components/ui/HeaderFooter.vue';
-	import Icon from '@/components/elements/Icon.vue';
-	import H1 from '@/components/elements/H1.vue';
-	import TruncatedText from '@/components/elements/TruncatedText.vue';
-
+	// Packages
 	import { onMounted, watch } from 'vue';
-	import { MessageType } from '@/logic/store/messagebox';
-	import { Message, useMessageBox, useRooms } from '@/logic/store/store';
 	import { useRoute } from 'vue-router';
 
-	const route = useRoute();
+	// Components
+	import H1 from '@hub-client/components/elements/H1.vue';
+	import Icon from '@hub-client/components/elements/Icon.vue';
+	import TruncatedText from '@hub-client/components/elements/TruncatedText.vue';
+	import HeaderFooter from '@hub-client/components/ui/HeaderFooter.vue';
 
+	// Stores
+	import { Message, MessageType, useMessageBox } from '@hub-client/stores/messagebox';
+	import { useRooms } from '@hub-client/stores/rooms';
+
+	const route = useRoute();
 	const rooms = useRooms();
 	const messageBox = useMessageBox();
 

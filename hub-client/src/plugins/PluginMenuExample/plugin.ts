@@ -8,18 +8,18 @@
  * - locales/... - the i18n files for translations
  *
  */
+// Locales
+import { en } from '@hub-client/locales/en';
+import { nl } from '@hub-client/locales/nl';
 
-// Import plugin types
-import { MenuPluginProperties, PluginType } from '@/logic/store/plugins';
+// Stores
+import { MenuPluginProperties, PluginType } from '@hub-client/stores/plugins';
 
 // As this is a menu item, we need a translation for the name in the menu
 // In this case we import the translations
 // Its best practice to use a seperate name-space for each plugin keys, to minimize the chance for overlapping keys. In this case we use 'plugin-example'.
-import { nl } from './locales/nl';
-import { en } from './locales/en';
 
 // The properties of the plugin
-//
 const plugin: MenuPluginProperties = {
 	// Name, just for reference
 	enabled: false,

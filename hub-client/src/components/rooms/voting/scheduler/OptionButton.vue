@@ -5,6 +5,7 @@
 </template>
 
 <script setup lang="ts">
+	// Packages
 	import { computed } from 'vue';
 
 	const props = withDefaults(

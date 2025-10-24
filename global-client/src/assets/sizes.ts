@@ -1,3 +1,4 @@
-import { iconSizes, buttonSizes } from '../../../hub-client/src/assets/sizes';
+// Assets
+import { buttonSizes, iconSizes } from '@hub-client/assets/sizes';
 
 export { iconSizes, buttonSizes };

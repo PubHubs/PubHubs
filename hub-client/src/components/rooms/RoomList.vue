@@ -52,35 +52,38 @@
 </template>
 
 <script setup lang="ts">
-	// Components
-	import InlineSpinner from '@/components/ui/InlineSpinner.vue';
-	import Menu from '@/components/ui/Menu.vue';
-	import MenuItem from '@/components/ui/MenuItem.vue';
-	import TruncatedText from '@/components/elements/TruncatedText.vue';
-	import PrivateRoomName from '@/components/rooms/PrivateRoomName.vue';
-	import GroupRoomName from '@/components/rooms/GroupRoomName.vue';
-	import AdminContactRoomName from '@/components/rooms/AdminContactRoomName.vue';
-	import RoomName from '@/components/rooms/RoomName.vue';
-	import Badge from '@/components/elements/Badge.vue';
-	import Icon from '@/components/elements/Icon.vue';
-	import SecuredRoomLoginDialog from '@/components/rooms/SecuredRoomLoginDialog.vue';
-
-	// Logic
-	import { usePubHubs } from '@/logic/core/pubhubsStore';
-	import { PluginProperties, usePlugins } from '@/logic/store/plugins';
-	import { FeatureFlag, useSettings } from '@/logic/store/settings';
-	import { useDialog, useHubSettings, useRooms } from '@/logic/store/store';
+	// Packages
 	import { NotificationCountType } from 'matrix-js-sdk';
-	import { Room, RoomType } from '@/logic/store/rooms';
-	import { useNotifications } from '@/logic/store/notifications';
-
-	// Third party
+	import { PropType, computed, ref } from 'vue';
 	import { useI18n } from 'vue-i18n';
 	import { useRouter } from 'vue-router';
-	import { computed, ref } from 'vue';
 
-	// Model
-	import { TNotification, TNotificationType } from '@/model/users/TNotification';
+	// Components
+	import Badge from '@hub-client/components/elements/Badge.vue';
+	import Icon from '@hub-client/components/elements/Icon.vue';
+	import TruncatedText from '@hub-client/components/elements/TruncatedText.vue';
+	import AdminContactRoomName from '@hub-client/components/rooms/AdminContactRoomName.vue';
+	import GroupRoomName from '@hub-client/components/rooms/GroupRoomName.vue';
+	import PrivateRoomName from '@hub-client/components/rooms/PrivateRoomName.vue';
+	import RoomName from '@hub-client/components/rooms/RoomName.vue';
+	import SecuredRoomLoginDialog from '@hub-client/components/rooms/SecuredRoomLoginDialog.vue';
+	import InlineSpinner from '@hub-client/components/ui/InlineSpinner.vue';
+	import Menu from '@hub-client/components/ui/Menu.vue';
+	import MenuItem from '@hub-client/components/ui/MenuItem.vue';
+
+	// Models
+	import Room from '@hub-client/models/rooms/Room';
+	import { RoomType } from '@hub-client/models/rooms/TBaseRoom';
+	import { TNotificationType } from '@hub-client/models/users/TNotification';
+
+	// Stores
+	import { useDialog } from '@hub-client/stores/dialog';
+	import { useHubSettings } from '@hub-client/stores/hub-settings';
+	import { useNotifications } from '@hub-client/stores/notifications';
+	import { PluginProperties, usePlugins } from '@hub-client/stores/plugins';
+	import { usePubhubsStore } from '@hub-client/stores/pubhubs';
+	import { useRooms } from '@hub-client/stores/rooms';
+	import { FeatureFlag, useSettings } from '@hub-client/stores/settings';
 
 	const settings = useSettings();
 	const hubSettings = useHubSettings();
@@ -88,22 +91,22 @@
 	const { t } = useI18n();
 	const router = useRouter();
 	const rooms = useRooms();
-	const pubhubs = usePubHubs();
+	const pubhubs = usePubhubsStore();
 	const plugins = usePlugins();
 	const messageValues = ref<(string | number)[]>([]);
 	const dialogOpen = ref<string | null>(null);
-	const notifications = computed<TNotification[]>(() => notificationsStore.notifications.filter((notification: TNotification) => notification.type === TNotificationType.RemovedFromSecuredRoom));
 	const dialog = useDialog();
 
 	const props = defineProps({
-		roomType: {
-			type: String,
-			default: undefined, // Don't define
+		roomTypes: {
+			type: Array as PropType<RoomType[]>,
+			required: true,
+			default: () => [RoomType.PH_MESSAGES_DEFAULT], // To make sure vue recognizes it, this needs a real array as default
 		},
 	});
 
 	const currentJoinedRooms = computed(() => {
-		return rooms.fetchRoomArrayByType(props.roomType).filter((room: Room) => room.isHidden() === false);
+		return rooms.fetchRoomArrayByAccessibility(props.roomTypes).filter((room: Room) => room.isHidden() === false);
 	});
 
 	const roomsLoaded = computed(() => {
