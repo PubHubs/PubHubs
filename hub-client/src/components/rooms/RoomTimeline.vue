@@ -243,7 +243,7 @@
 
 		timelineObserver = new IntersectionObserver((entries) => {
 			entries.forEach((entry) => {
-				if (!suppressNextObservertrigger && entry.isIntersecting && userHasScrolled.value ) {
+				if (!suppressNextObservertrigger && entry.isIntersecting && userHasScrolled.value) {
 					if (entry.target === topSentinel.value && isScrollingUp.value) {
 						loadPrevious();
 					} else if (entry.target === bottomSentinel.value && !isScrollingUp.value) {
