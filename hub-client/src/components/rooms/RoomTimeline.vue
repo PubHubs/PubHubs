@@ -142,6 +142,21 @@
 	const newestEventIsLoaded = computed(() => {
 		return props.room.isNewestMessageLoaded();
 	});
+	const lastScrollTop = ref(0); // To keep track of the last scroll position
+	const isScrollingUp = ref<boolean>(false);
+
+	// Function to determine scroll direction
+	function findScrollDirection() {
+		const currentScrollTop = elRoomTimeline.value?.scrollTop ?? 0;
+		// Check if the user is scrolling up or down
+		if (currentScrollTop >= lastScrollTop.value) {
+			isScrollingUp.value = false; // Scrolling down
+		} else if (currentScrollTop <= lastScrollTop.value) {
+			isScrollingUp.value = true; // Scrolling up
+		}
+		// Update the last scroll position to the current one
+		lastScrollTop.value = currentScrollTop;
+	}
 
 	onBeforeUnmount(() => {
 		if (timelineObserver) {
@@ -166,8 +181,7 @@
 		() => props.room.getCurrentEvent(),
 		async () => {
 			// This needs to await otherwise events are not loaded when switching rooms
-			// The function below results in the timeline jumping up and down with sliding sync
-			// await onScrollToEvent(props.room.getCurrentEvent());
+			await onScrollToEvent(props.room.getCurrentEvent());
 			setupEventIntersectionObserver();
 		},
 		{ deep: true },
@@ -229,10 +243,10 @@
 
 		timelineObserver = new IntersectionObserver((entries) => {
 			entries.forEach((entry) => {
-				if (!suppressNextObservertrigger && entry.isIntersecting) {
-					if (entry.target === topSentinel.value) {
+				if (!suppressNextObservertrigger && entry.isIntersecting && userHasScrolled.value ) {
+					if (entry.target === topSentinel.value && isScrollingUp.value) {
 						loadPrevious();
-					} else if (entry.target === bottomSentinel.value) {
+					} else if (entry.target === bottomSentinel.value && !isScrollingUp.value) {
 						loadNext();
 					}
 				}
@@ -357,11 +371,14 @@
 
 	function onScroll() {
 		userHasScrolled.value = true;
-		setInterval(() => {
-			if (userHasScrolled.value) {
-				userHasScrolled.value = false;
-			}
-		}, DELAY_POPUP_VIEW_ON_SCREEN);
+		findScrollDirection();
+		// The delay below makes the loading next and previous much less responsive
+		// TO-DO add logic of code below without causing problems for room scrolling
+		// setInterval(() => {
+		// 	if (userHasScrolledForPopup.value) {
+		// 		userHasScrolledForPopup.value = false;
+		// 	}
+		// }, DELAY_POPUP_VIEW_ON_SCREEN);
 	}
 
 	//#region Events
@@ -375,11 +392,7 @@
 
 			await props.room.paginate(Direction.Backward, SystemDefaults.RoomTimelineLimit, prevOldestLoadedEventId);
 
-			if (oldestEventIsLoaded.value) {
-				await scrollToEvent({ eventId: prevOldestLoadedEventId }, { position: 'center' });
-			} else {
-				await scrollToEvent({ eventId: prevOldestLoadedEventId }, { position: 'start' });
-			}
+			await scrollToEvent({ eventId: prevOldestLoadedEventId }, { position: 'end' });
 
 			// Wait for DOM to update and layout to settle
 			await nextTick();
@@ -404,7 +417,7 @@
 
 			await props.room.paginate(Direction.Forward, SystemDefaults.RoomTimelineLimit, prevNewestLoadedEventId);
 
-			// The function below results in the timeline jumping up and down with sliding sync
+			// The function below results in the erratic scrolling behaviour
 			// await scrollToEvent({ eventId: prevNewestLoadedEventId }, { position: 'end' });
 
 			// Wait for DOM to update and layout to settle
