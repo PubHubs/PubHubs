@@ -60,7 +60,7 @@
 	import H1 from '@hub-client/components/elements/H1.vue';
 	import P from '@hub-client/components/elements/P.vue';
 	import InlineSpinner from '@hub-client/components/ui/InlineSpinner.vue';
-	import Logo from '@hub-client/components/ui/Logo.vue';
+	import Logo from '@global-client/components/ui/Logo.vue';
 
 	// Logic
 	import { CONFIG } from '@hub-client/logic/logging/Config';
