@@ -166,7 +166,8 @@
 		() => props.room.getCurrentEvent(),
 		async () => {
 			// This needs to await otherwise events are not loaded when switching rooms
-			await onScrollToEvent(props.room.getCurrentEvent());
+			// The function below results in the timeline jumping up and down with sliding sync
+			// await onScrollToEvent(props.room.getCurrentEvent());
 			setupEventIntersectionObserver();
 		},
 		{ deep: true },
@@ -403,7 +404,8 @@
 
 			await props.room.paginate(Direction.Forward, SystemDefaults.RoomTimelineLimit, prevNewestLoadedEventId);
 
-			await scrollToEvent({ eventId: prevNewestLoadedEventId }, { position: 'end' });
+			// The function below results in the timeline jumping up and down with sliding sync
+			// await scrollToEvent({ eventId: prevNewestLoadedEventId }, { position: 'end' });
 
 			// Wait for DOM to update and layout to settle
 			await nextTick();
