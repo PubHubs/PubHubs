@@ -5,7 +5,7 @@
 enum SystemDefaults {
 	syncIntervalMS = 1000, // Sync interval in milliseconds. Experimental selection for interval. Changed it from 2000 to 1000 to load events much quickly.
 	SyncTimelineLimit = 50, // Find the right balance: filtering of events needs to be done clientside, but we need the first message. In the mean time initial read should be fast.
-	RoomTimelineLimit = 100, // Can be relatively high: is already filtered on messages
+	RoomTimelineLimit = 10, // Can be relatively high: is already filtered on messages
 }
 
 // common matrix types
