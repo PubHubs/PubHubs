@@ -288,6 +288,12 @@
 				}
 				// When sending a message it can be in your Room but not yet in the timeline since it has to go through Synapse.
 				if (lastVisibleEvent && lastVisibleEvent.localTimestamp >= (props.room.findEventById(entries.at(-1)!.target.id!)?.localTimestamp ?? lastVisibleEvent.localTimestamp)) {
+					//  IF event from timelinemanager  doesn't have room Id - private receipt will not be send.
+					// We look at synapse client for the last Event.
+					if (!lastVisibleEvent.getRoomId()) {
+						lastVisibleEvent = props.room.matrixRoom.getLastLiveEvent();
+					}
+
 					await pubhubs.sendPrivateReceipt(lastVisibleEvent);
 				}
 			}
