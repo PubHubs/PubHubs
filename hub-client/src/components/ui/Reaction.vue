@@ -50,7 +50,10 @@
 
 			if (key) {
 				if (!map[key]) map[key] = [];
-				map[key].push({ eventId, userId: userReacted });
+				// Only add if eventId not already in map[key]
+				if (!map[key].some((r) => r.eventId === eventId)) {
+					map[key].push({ eventId, userId: userReacted });
+				}
 			}
 		}
 		return Object.entries(map).map(([key, reactions]) => ({

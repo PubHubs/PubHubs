@@ -33,7 +33,7 @@
 						>
 							<template #reactions>
 								<div class="ml-2 mt-2 flex flex-wrap gap-2 px-20">
-									<Reaction v-if="reactionExistsForMessage(item.matrixEvent.event.event_id)" :reactEvent="onlyReactionEvent" :messageEventId="item.matrixEvent.event.event_id"></Reaction>
+									<Reaction v-if="reactionExistsForMessage(item.matrixEvent.event.event_id, item.matrixEvent)" :reactEvent="onlyReactionEvent" :messageEventId="item.matrixEvent.event.event_id"></Reaction>
 								</div>
 							</template>
 						</RoomMessageBubble>
@@ -51,7 +51,7 @@
 
 <script setup lang="ts">
 	// Packages
-	import { Direction, EventType, MatrixEvent, Thread } from 'matrix-js-sdk';
+	import { Direction, EventType, MatrixEvent } from 'matrix-js-sdk';
 	import { computed, nextTick, onBeforeUnmount, onMounted, onUnmounted, reactive, ref, watch } from 'vue';
 
 	// Components
@@ -73,6 +73,7 @@
 	// Models
 	import { RelationType, RoomEmit, SystemDefaults } from '@hub-client/models/constants';
 	import { TMessageEvent } from '@hub-client/models/events/TMessageEvent';
+	import { TimelineEvent } from '@hub-client/models/events/TimelineEvent';
 	import { TCurrentEvent } from '@hub-client/models/events/types';
 	import { Poll, Scheduler } from '@hub-client/models/events/voting/VotingTypes';
 	import Room from '@hub-client/models/rooms/Room';
@@ -131,6 +132,7 @@
 	});
 
 	const onlyReactionEvent = computed(() => {
+		// To stop from having duplicate events
 		props.room.getRelatedEvents().forEach((reactEvent) => props.room.addCurrentEventToRelatedEvent(reactEvent));
 		return props.room.getCurrentEventRelatedEvents();
 	});
@@ -189,7 +191,8 @@
 
 	// Is there a reaction for RoomMessageEvent ID.
 	// If there is then show the reaction otherwise dont render reaction UI component.
-	function reactionExistsForMessage(messageEventId: string | undefined): boolean {
+	function reactionExistsForMessage(messageEventId: string | undefined, matrixEvent: MatrixEvent): boolean {
+		if (matrixEvent.isRedacted()) return false;
 		if (!messageEventId) return false;
 
 		const reactionEvent = onlyReactionEvent.value.find((event) => {
