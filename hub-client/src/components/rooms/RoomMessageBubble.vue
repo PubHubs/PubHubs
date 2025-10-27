@@ -64,6 +64,7 @@
 								<RoomEventActionsPopup v-if="!deleteMessageDialog" :remain-active="openEmojiPanel">
 									<!-- Reaction Button -->
 									<button
+										v-if="!redactedMessage"
 										@click.stop="emit('reactionPanelToggle', props.event.event_id)"
 										class="flex items-center justify-center rounded-md p-1 text-on-surface-variant transition-all duration-300 ease-in-out hover:w-fit hover:bg-accent-primary hover:text-on-accent-primary"
 										:title="t('message.reply_emoji')"
@@ -88,7 +89,7 @@
 										class="flex items-center justify-center rounded-md p-1 text-on-surface-variant transition-all duration-300 ease-in-out hover:w-fit hover:bg-accent-primary hover:text-on-accent-primary"
 										:title="t('message.reply_in_thread')"
 									>
-										<Icon :type="'talk'" size="'xs'" />
+										<Icon :type="'talk'" size="sm" />
 									</button>
 
 									<!-- Disclosure Button -->
@@ -151,7 +152,7 @@
 						class="bg-hub-background-3 inline-flex rounded-md px-2 py-1 ~text-label-tiny-min/label-tiny-max hover:opacity-80"
 						v-if="!deleteMessageDialog && !viewFromThread && threadLength > 0 && canReplyInThread && !msgIsNotSend && !redactedMessage"
 					>
-						<Icon :type="'talk'" size="'sm'" />
+						<Icon :type="'talk'" size="sm" />
 						&nbsp; {{ t('message.threads.view_thread') }} ({{ threadLength }})
 					</button>
 				</div>
