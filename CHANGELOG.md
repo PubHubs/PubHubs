@@ -11,9 +11,8 @@ _Please add a brief description of any changes and any migrations to be performe
 
 ## Changed not yet merged to stable
 
-- [BUG] Fixed direct url links to rooms and pages not working in hub-client
 - [BREAKING] The old pubhubs server (that served the global client) has been removed
-  - *Internal:* the entry for `app.pubhubs.net` in `/data/caddy/Caddyfile` needs to be adjusted after merge
+  - _Internal:_ the entry for `app.pubhubs.net` in `/data/caddy/Caddyfile` needs to be adjusted after merge
 - [NEW] The development setup has been simplified, see `maskfile.md`
 - [BUG] The login page is no longer visible for a split second upon a refresh when logged in.
 - [NEW] The login and home (hub discovery) page are now split.

@@ -5,7 +5,7 @@
 			<DateDisplayer v-if="settings.isFeatureEnabled(FeatureFlag.dateSplitter) && dateInformation !== 0" :scrollStatus="userHasScrolled" :eventTimeStamp="dateInformation.valueOf()" />
 			<InRoomNotifyMarker v-if="settings.isFeatureEnabled(FeatureFlag.unreadMarkers)" />
 		</div>
-		<div v-if="room" ref="elRoomTimeline" class="relative flex flex-1 flex-col gap-2 overflow-y-auto overflow-x-hidden" @scroll="onScroll">
+		<div v-if="room" ref="elRoomTimeline" class="relative flex flex-1 flex-col gap-2 overflow-x-hidden overflow-y-scroll" @scroll="onScroll">
 			<div ref="topSentinel" class="pointer-events-none min-h-[1px]" style="content-visibility: hidden"></div>
 			<div v-if="oldestEventIsLoaded" class="mx-auto my-4 flex w-60 items-center justify-center rounded-xl border border-on-surface-variant px-4 text-on-surface-variant ~text-label-small-min/label-small-max">
 				{{ $t('rooms.roomCreated') }}
@@ -33,7 +33,7 @@
 						>
 							<template #reactions>
 								<div class="ml-2 mt-2 flex flex-wrap gap-2 px-20">
-									<Reaction v-if="reactionExistsForMessage(item.matrixEvent.event.event_id)" :reactEvent="onlyReactionEvent" :messageEventId="item.matrixEvent.event.event_id"></Reaction>
+									<Reaction v-if="reactionExistsForMessage(item.matrixEvent.event.event_id, item.matrixEvent)" :reactEvent="onlyReactionEvent" :messageEventId="item.matrixEvent.event.event_id"></Reaction>
 								</div>
 							</template>
 						</RoomMessageBubble>
@@ -51,7 +51,7 @@
 
 <script setup lang="ts">
 	// Packages
-	import { Direction, EventType, MatrixEvent, Thread } from 'matrix-js-sdk';
+	import { Direction, EventType, MatrixEvent } from 'matrix-js-sdk';
 	import { computed, nextTick, onBeforeUnmount, onMounted, onUnmounted, reactive, ref, watch } from 'vue';
 
 	// Components
@@ -73,6 +73,7 @@
 	// Models
 	import { RelationType, RoomEmit, SystemDefaults } from '@hub-client/models/constants';
 	import { TMessageEvent } from '@hub-client/models/events/TMessageEvent';
+	import { TimelineEvent } from '@hub-client/models/events/TimelineEvent';
 	import { TCurrentEvent } from '@hub-client/models/events/types';
 	import { Poll, Scheduler } from '@hub-client/models/events/voting/VotingTypes';
 	import Room from '@hub-client/models/rooms/Room';
@@ -131,6 +132,7 @@
 	});
 
 	const onlyReactionEvent = computed(() => {
+		// To stop from having duplicate events
 		props.room.getRelatedEvents().forEach((reactEvent) => props.room.addCurrentEventToRelatedEvent(reactEvent));
 		return props.room.getCurrentEventRelatedEvents();
 	});
@@ -142,6 +144,21 @@
 	const newestEventIsLoaded = computed(() => {
 		return props.room.isNewestMessageLoaded();
 	});
+	const lastScrollTop = ref(0); // To keep track of the last scroll position
+	const isScrollingUp = ref<boolean>(false);
+
+	// Function to determine scroll direction
+	function findScrollDirection() {
+		const currentScrollTop = elRoomTimeline.value?.scrollTop ?? 0;
+		// Check if the user is scrolling up or down
+		if (currentScrollTop >= lastScrollTop.value) {
+			isScrollingUp.value = false; // Scrolling down
+		} else if (currentScrollTop <= lastScrollTop.value) {
+			isScrollingUp.value = true; // Scrolling up
+		}
+		// Update the last scroll position to the current one
+		lastScrollTop.value = currentScrollTop;
+	}
 
 	onBeforeUnmount(() => {
 		if (timelineObserver) {
@@ -174,7 +191,8 @@
 
 	// Is there a reaction for RoomMessageEvent ID.
 	// If there is then show the reaction otherwise dont render reaction UI component.
-	function reactionExistsForMessage(messageEventId: string | undefined): boolean {
+	function reactionExistsForMessage(messageEventId: string | undefined, matrixEvent: MatrixEvent): boolean {
+		if (matrixEvent.isRedacted()) return false;
 		if (!messageEventId) return false;
 
 		const reactionEvent = onlyReactionEvent.value.find((event) => {
@@ -208,6 +226,8 @@
 		onScroll();
 
 		LOGGER.log(SMI.ROOM_TIMELINE, `setupRoomTimeline done `, roomTimeLine);
+
+		props.room.setCurrentEvent(props.room.getLiveTimelineNewestEvent as unknown as TCurrentEvent);
 	}
 
 	function setupEventIntersectionObserver() {
@@ -228,10 +248,10 @@
 
 		timelineObserver = new IntersectionObserver((entries) => {
 			entries.forEach((entry) => {
-				if (!suppressNextObservertrigger && entry.isIntersecting) {
-					if (entry.target === topSentinel.value) {
+				if (!suppressNextObservertrigger && entry.isIntersecting && userHasScrolled.value) {
+					if (entry.target === topSentinel.value && isScrollingUp.value) {
 						loadPrevious();
-					} else if (entry.target === bottomSentinel.value) {
+					} else if (entry.target === bottomSentinel.value && !isScrollingUp.value) {
 						loadNext();
 					}
 				}
@@ -270,6 +290,12 @@
 				}
 				// When sending a message it can be in your Room but not yet in the timeline since it has to go through Synapse.
 				if (lastVisibleEvent && lastVisibleEvent.localTimestamp >= (props.room.findEventById(entries.at(-1)!.target.id!)?.localTimestamp ?? lastVisibleEvent.localTimestamp)) {
+					//  IF event from timelinemanager  doesn't have room Id - private receipt will not be send.
+					// We look at synapse client for the last Event.
+					if (!lastVisibleEvent.getRoomId()) {
+						lastVisibleEvent = props.room.matrixRoom.getLastLiveEvent();
+					}
+
 					await pubhubs.sendPrivateReceipt(lastVisibleEvent);
 				}
 			}
@@ -356,11 +382,14 @@
 
 	function onScroll() {
 		userHasScrolled.value = true;
-		setInterval(() => {
-			if (userHasScrolled.value) {
-				userHasScrolled.value = false;
-			}
-		}, DELAY_POPUP_VIEW_ON_SCREEN);
+		findScrollDirection();
+		// The delay below makes the loading next and previous much less responsive
+		// TO-DO add logic of code below without causing problems for room scrolling
+		// setInterval(() => {
+		// 	if (userHasScrolledForPopup.value) {
+		// 		userHasScrolledForPopup.value = false;
+		// 	}
+		// }, DELAY_POPUP_VIEW_ON_SCREEN);
 	}
 
 	//#region Events
@@ -374,11 +403,7 @@
 
 			await props.room.paginate(Direction.Backward, SystemDefaults.RoomTimelineLimit, prevOldestLoadedEventId);
 
-			if (oldestEventIsLoaded.value) {
-				await scrollToEvent({ eventId: prevOldestLoadedEventId }, { position: 'center' });
-			} else {
-				await scrollToEvent({ eventId: prevOldestLoadedEventId }, { position: 'start' });
-			}
+			await scrollToEvent({ eventId: prevOldestLoadedEventId }, { position: 'end' });
 
 			// Wait for DOM to update and layout to settle
 			await nextTick();
@@ -403,7 +428,8 @@
 
 			await props.room.paginate(Direction.Forward, SystemDefaults.RoomTimelineLimit, prevNewestLoadedEventId);
 
-			await scrollToEvent({ eventId: prevNewestLoadedEventId }, { position: 'end' });
+			// The function below results in the erratic scrolling behaviour
+			// await scrollToEvent({ eventId: prevNewestLoadedEventId }, { position: 'end' });
 
 			// Wait for DOM to update and layout to settle
 			await nextTick();

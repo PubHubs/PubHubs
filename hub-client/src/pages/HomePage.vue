@@ -102,9 +102,9 @@
 		router.push({ name: 'discover-rooms' });
 	}
 	async function loadHubSettings() {
-		// const hubSettingsJSON = await hubSettings.getHubJSON();
-		// hubDescription.value = hubSettingsJSON?.description ?? '';
-		// hubContact.value = hubSettingsJSON?.contact ?? '';
+		const hubSettingsJSON = await hubSettings.getHubJSON();
+		hubDescription.value = hubSettingsJSON?.description ?? '';
+		hubContact.value = hubSettingsJSON?.contact ?? '';
 	}
 </script>
 <style scoped>

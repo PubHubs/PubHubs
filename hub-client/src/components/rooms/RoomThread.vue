@@ -30,7 +30,11 @@
 				</RoomMessageBubble>
 
 				<div class="flex flex-wrap gap-2 px-20">
-					<Reaction v-if="reactionExistsForMessage(props.room.currentThread?.rootEvent?.event.event_id)" :reactEvent="onlyReactionEvents" :messageEventId="props.room.currentThread?.rootEvent?.event.event_id" />
+					<Reaction
+						v-if="reactionExistsForMessage(props.room.currentThread?.rootEvent?.event.event_id, props.room.currentThread?.rootEvent)"
+						:reactEvent="onlyReactionEvents"
+						:messageEventId="props.room.currentThread?.rootEvent?.event.event_id"
+					/>
 				</div>
 			</div>
 
@@ -55,7 +59,7 @@
 
 					<!-- Reaction display for message -->
 					<div class="flex flex-wrap gap-2 px-20">
-						<Reaction v-if="reactionExistsForMessage(item.matrixEvent.event.event_id)" :reactEvent="onlyReactionEvents" :messageEventId="item.matrixEvent.event.event_id" />
+						<Reaction v-if="reactionExistsForMessage(item.matrixEvent.event.event_id, item.matrixEvent)" :reactEvent="onlyReactionEvents" :messageEventId="item.matrixEvent.event.event_id" />
 					</div>
 				</div>
 			</div>
@@ -249,9 +253,9 @@
 		await pubhubs.addReactEvent(props.room.roomId, eventId, emoji);
 	}
 
-	function reactionExistsForMessage(messageEventId: string): boolean {
+	function reactionExistsForMessage(messageEventId: string, matrixEvent: MatrixEvent): boolean {
 		if (!onlyReactionEvents.value) return false;
-
+		if (matrixEvent.isRedacted()) return false;
 		const reactionEvent = onlyReactionEvents.value.find((event) => {
 			const relatesTo = event.getContent()[RelationType.RelatesTo];
 			return relatesTo && relatesTo.event_id === messageEventId;
