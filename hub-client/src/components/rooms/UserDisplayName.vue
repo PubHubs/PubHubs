@@ -32,6 +32,7 @@
 
 	interface Props {
 		userId: string;
+		userDisplayName: string;
 		showDisplayName?: boolean;
 		showPseudonym?: boolean;
 		chooseColor?: boolean;
@@ -43,19 +44,19 @@
 		chooseColor: true,
 	});
 
-	// Synapse member information
-	const member = computed(() => user.client.getUser(props.userId));
-
-	// get displayname Name from the store.
-	const userDisplayName = computed(() => user.userDisplayName(props.userId));
-
 	// get Pseudonym
-	const pseudonym = computed(() => filters.extractPseudonym(props.userId));
+	const pseudonym = computed(() => {
+		return filters.extractPseudonym(props.userId);
+	});
 
 	// If the display Name is not set then userDisplayName is equal to rawDisplayName. We only show pseudo
-	const displayName = computed(() => (userDisplayName.value == member.value?.rawDisplayName ? userDisplayName.value : undefined));
+	const displayName = computed(() => {
+		return props.userDisplayName ? props.userDisplayName : undefined;
+	});
 
-	const truncatedDisplayName = computed(() => filters.maxLengthText(displayName.value ?? '', settings.getDisplayNameMaxLength));
+	const truncatedDisplayName = computed(() => {
+		return filters.maxLengthText(displayName.value ?? '', settings.getDisplayNameMaxLength);
+	});
 
 	// Computed properties for display logic
 	const showDisplayName = computed(() => props.showDisplayName && displayName.value);

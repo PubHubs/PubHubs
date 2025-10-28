@@ -12,7 +12,7 @@
 			</SideKickSubHeader>
 			<div v-for="stewardId in stewardIds" :userId="stewardId" :key="stewardId" class="mb-2 flex w-full gap-2">
 				<Avatar :avatar-url="user.userAvatar(stewardId)" class="ml-2 h-6 w-6"></Avatar>
-				<UserDisplayName :userId="stewardId"></UserDisplayName>
+				<UserDisplayName :userId="stewardId" :user-display-name="user.userDisplayName(stewardId)"></UserDisplayName>
 			</div>
 		</div>
 
@@ -28,7 +28,7 @@
 			</SideKickSubHeader>
 			<div v-for="memberId in memberIds" :userId="memberId" :key="memberId" class="mb-2 flex w-full gap-2">
 				<Avatar :avatar-url="user.userAvatar(memberId)" class="ml-2 h-6 w-6"></Avatar>
-				<UserDisplayName :userId="memberId"></UserDisplayName>
+				<UserDisplayName :userId="memberId" :user-display-name="user.userDisplayName(memberId)"></UserDisplayName>
 			</div>
 		</div>
 	</RoomSideKick>
