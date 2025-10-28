@@ -73,7 +73,6 @@
 	// Models
 	import { RelationType, RoomEmit, SystemDefaults } from '@hub-client/models/constants';
 	import { TMessageEvent } from '@hub-client/models/events/TMessageEvent';
-	import { TimelineEvent } from '@hub-client/models/events/TimelineEvent';
 	import { TCurrentEvent } from '@hub-client/models/events/types';
 	import { Poll, Scheduler } from '@hub-client/models/events/voting/VotingTypes';
 	import Room from '@hub-client/models/rooms/Room';
@@ -379,21 +378,34 @@
 	async function loadPrevious() {
 		isLoadingNewEvents.value = true;
 
+		// Check if elRoomTimeline.value is defined
+		const container = elRoomTimeline.value;
+		if (!container) return;
+
+		// Store scroll information before loading older messages
+		const prevScrollHeight = container.scrollHeight;
+		const prevScrollTop = container.scrollTop;
+
 		const prevOldestLoadedEventId = props.room.getTimelineOldestMessageId();
 		if (prevOldestLoadedEventId && !oldestEventIsLoaded.value) {
 			suppressNextObservertrigger = true;
 
 			await props.room.paginate(Direction.Backward, SystemDefaults.RoomTimelineLimit, prevOldestLoadedEventId);
 
-			await scrollToEvent({ eventId: prevOldestLoadedEventId }, { position: 'center' });
-
-			// Wait for DOM to update and layout to settle
+			// Wait for DOM update
 			await nextTick();
-			await new Promise((resolve) => requestAnimationFrame(resolve)); // Wait for layout
+			await new Promise((resolve) => requestAnimationFrame(resolve));
+
+			// Compute the height difference caused by the newly added messages
+			const newScrollHeight = container.scrollHeight;
+			const heightDiff = newScrollHeight - prevScrollHeight;
+
+			// Restore the previous scroll position
+			container.scrollTop = prevScrollTop + heightDiff;
 
 			setTimeout(() => {
 				suppressNextObservertrigger = false;
-			}, 10); // adjust delay if needed
+			}, 10);
 
 			settings.isFeatureEnabled(FeatureFlag.dateSplitter) && eventObserver?.setUpObserver(handleDateDisplayer);
 		}
@@ -491,8 +503,7 @@
 		if (!elRoomTimeline.value) throw new Error('elRoomTimeline not defined, RoomTimeline not mounted?');
 
 		const doScroll = (elEvent: Element) => {
-			console.error('scrolling to event');
-			elEvent.scrollIntoView({ block: options.position, behavior: 'instant' });
+			elEvent.scrollIntoView({ block: options.position, behavior: 'smooth' });
 			// Style the event depending on the select option.
 			if (options.select === 'Highlight') {
 				elEvent.classList.add('highlighted');

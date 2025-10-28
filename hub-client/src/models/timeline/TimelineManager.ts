@@ -421,7 +421,6 @@ class TimelineManager {
 			tempEvents = [...newBackEvents, ...newForwardEvents];
 			tempEvents = Array.from(new Map(tempEvents.map((e) => [e.event.event_id, e])).values()); // make unique
 		}
-
 		const mappedEvents = tempEvents.map((event) => new TimelineEvent(event, this.roomId));
 
 		this.setRelatedEvents(mappedEvents);
