@@ -100,6 +100,13 @@ class TimelineManager {
 		}
 		return true;
 	}
+	private async setRelatedEvents(eventList: TimelineEvent[]) {
+		if (this.relatedEvents.length > 0) {
+			this.relatedEvents = [...this.relatedEvents, ...(await this.getRelatedEvents(eventList))];
+		} else {
+			this.relatedEvents = await this.getRelatedEvents(eventList);
+		}
+	}
 
 	/**
 	 * Initializes the timeline for a room: subscribes to the room in sliding sync and starts syncing
@@ -177,7 +184,7 @@ class TimelineManager {
 
 		// First add the relatedEvents
 		this.relatedEvents = this.relatedEvents.filter((x) => !eventList.some((newEvent) => newEvent.matrixEvent.event.event_id === x.matrixEvent.event?.content?.[RelationType.RelatesTo]?.event_id));
-		this.relatedEvents = [...this.relatedEvents, ...(await this.getRelatedEvents(eventList))];
+		this.setRelatedEvents(eventList);
 		// Then add the events to the timeline
 		this.timelineEvents = this.timelineEvents.filter((x) => !eventList.some((newEvent) => newEvent.matrixEvent.event.event_id === x.matrixEvent.event.event_id));
 		this.timelineEvents = [...this.timelineEvents, ...eventList];
@@ -384,7 +391,12 @@ class TimelineManager {
 			timeLineEvents = this.ensureListLength(this.timelineEvents, timeLineEvents, SystemDefaults.RoomTimelineLimit, direction);
 
 			this.getRelatedEvents(timeLineEvents);
-			this.timelineEvents = timeLineEvents;
+			this.timelineEvents = this.timelineEvents.filter((x) => !timeLineEvents.some((newEvent) => newEvent.matrixEvent.event.event_id === x.matrixEvent.event.event_id));
+			if (direction == Direction.Backward) {
+				this.timelineEvents = [...timeLineEvents, ...this.timelineEvents];
+			} else {
+				this.timelineEvents = [...this.timelineEvents, ...timeLineEvents];
+			}
 		}
 	}
 
@@ -412,7 +424,7 @@ class TimelineManager {
 
 		const mappedEvents = tempEvents.map((event) => new TimelineEvent(event, this.roomId));
 
-		this.relatedEvents = await this.getRelatedEvents(mappedEvents);
+		this.setRelatedEvents(mappedEvents);
 
 		this.timelineEvents = mappedEvents;
 		this.redactedEvents = []; // Loaded to new event so we can remove the redactedevents

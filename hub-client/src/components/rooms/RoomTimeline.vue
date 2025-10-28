@@ -144,21 +144,6 @@
 	const newestEventIsLoaded = computed(() => {
 		return props.room.isNewestMessageLoaded();
 	});
-	const lastScrollTop = ref(0); // To keep track of the last scroll position
-	const isScrollingUp = ref<boolean>(false);
-
-	// Function to determine scroll direction
-	function findScrollDirection() {
-		const currentScrollTop = elRoomTimeline.value?.scrollTop ?? 0;
-		// Check if the user is scrolling up or down
-		if (currentScrollTop >= lastScrollTop.value) {
-			isScrollingUp.value = false; // Scrolling down
-		} else if (currentScrollTop <= lastScrollTop.value) {
-			isScrollingUp.value = true; // Scrolling up
-		}
-		// Update the last scroll position to the current one
-		lastScrollTop.value = currentScrollTop;
-	}
 
 	onBeforeUnmount(() => {
 		if (timelineObserver) {
@@ -248,10 +233,10 @@
 
 		timelineObserver = new IntersectionObserver((entries) => {
 			entries.forEach((entry) => {
-				if (!suppressNextObservertrigger && entry.isIntersecting && userHasScrolled.value) {
-					if (entry.target === topSentinel.value && isScrollingUp.value) {
+				if (!suppressNextObservertrigger && entry.isIntersecting) {
+					if (entry.target === topSentinel.value) {
 						loadPrevious();
-					} else if (entry.target === bottomSentinel.value && !isScrollingUp.value) {
+					} else if (entry.target === bottomSentinel.value) {
 						loadNext();
 					}
 				}
@@ -382,14 +367,11 @@
 
 	function onScroll() {
 		userHasScrolled.value = true;
-		findScrollDirection();
-		// The delay below makes the loading next and previous much less responsive
-		// TO-DO add logic of code below without causing problems for room scrolling
-		// setInterval(() => {
-		// 	if (userHasScrolledForPopup.value) {
-		// 		userHasScrolledForPopup.value = false;
-		// 	}
-		// }, DELAY_POPUP_VIEW_ON_SCREEN);
+		setInterval(() => {
+			if (userHasScrolled.value) {
+				userHasScrolled.value = false;
+			}
+		}, DELAY_POPUP_VIEW_ON_SCREEN);
 	}
 
 	//#region Events
@@ -403,7 +385,7 @@
 
 			await props.room.paginate(Direction.Backward, SystemDefaults.RoomTimelineLimit, prevOldestLoadedEventId);
 
-			await scrollToEvent({ eventId: prevOldestLoadedEventId }, { position: 'end' });
+			await scrollToEvent({ eventId: prevOldestLoadedEventId }, { position: 'center' });
 
 			// Wait for DOM to update and layout to settle
 			await nextTick();
@@ -428,8 +410,7 @@
 
 			await props.room.paginate(Direction.Forward, SystemDefaults.RoomTimelineLimit, prevNewestLoadedEventId);
 
-			// The function below results in the erratic scrolling behaviour
-			// await scrollToEvent({ eventId: prevNewestLoadedEventId }, { position: 'end' });
+			await scrollToEvent({ eventId: prevNewestLoadedEventId }, { position: 'end' });
 
 			// Wait for DOM to update and layout to settle
 			await nextTick();
@@ -510,7 +491,8 @@
 		if (!elRoomTimeline.value) throw new Error('elRoomTimeline not defined, RoomTimeline not mounted?');
 
 		const doScroll = (elEvent: Element) => {
-			elEvent.scrollIntoView({ block: options.position, behavior: 'smooth' });
+			console.error('scrolling to event');
+			elEvent.scrollIntoView({ block: options.position, behavior: 'instant' });
 			// Style the event depending on the select option.
 			if (options.select === 'Highlight') {
 				elEvent.classList.add('highlighted');
