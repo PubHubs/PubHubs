@@ -226,6 +226,8 @@
 		onScroll();
 
 		LOGGER.log(SMI.ROOM_TIMELINE, `setupRoomTimeline done `, roomTimeLine);
+
+		props.room.setCurrentEvent(props.room.getLiveTimelineNewestEvent as unknown as TCurrentEvent);
 	}
 
 	function setupEventIntersectionObserver() {
