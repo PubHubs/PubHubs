@@ -1,6 +1,6 @@
 <template>
 	<RoomSideKick @close="close()" :title="$t('rooms.memberlist')">
-		<div v-if="hasStewards" class="h-full flex-1">
+		<div v-if="stewardIds" class="h-full flex-1">
 			<SideKickSubHeader>
 				<div class="flex justify-between">
 					<div class="capitalize">{{ $t('rooms.stewards') }}</div>
@@ -16,7 +16,7 @@
 			</div>
 		</div>
 
-		<div v-if="hasMembers" class="h-full flex-1">
+		<div v-if="memberIds" class="h-full flex-1">
 			<SideKickSubHeader>
 				<div class="flex justify-between">
 					<div class="capitalize">{{ $t('rooms.members') }}</div>
@@ -36,7 +36,7 @@
 
 <script setup lang="ts">
 	// Packages
-	import { computed, onMounted, ref, watch } from 'vue';
+	import { onMounted, ref, watch } from 'vue';
 	import { useRoute } from 'vue-router';
 
 	// Components
@@ -80,7 +80,6 @@
 		const realMembers = joinedMembers.filter((m) => !m.state_key.startsWith('@notices_user:'));
 
 		const filterMembersByPowerLevel = (min: number, max: number) =>
-			// Object destructing only for sender key
 			realMembers
 				.filter(({ sender }) => {
 					const powerLevel = props.room.getStateMemberPowerLevel(sender);
@@ -88,20 +87,14 @@
 				})
 				.map(({ sender }) => sender);
 
-		const stewardIdsList = filterMembersByPowerLevel(50, 100);
-		stewardIds.value = stewardIdsList;
-
-		const memberIdsList = filterMembersByPowerLevel(0, 50);
-		memberIds.value = memberIdsList;
+		// direct messages do not have stewards, only members with powerlevel 100, so show only the members
+		if (props.room.directMessageRoom()) {
+			memberIds.value = realMembers.map((x) => x.sender);
+		} else {
+			stewardIds.value = filterMembersByPowerLevel(50, 99);
+			memberIds.value = filterMembersByPowerLevel(0, 49);
+		}
 	}
-
-	const hasMembers = computed(() => {
-		return memberIds.value;
-	});
-
-	const hasStewards = computed(() => {
-		return stewardIds.value;
-	});
 
 	function close() {
 		emit('close');
