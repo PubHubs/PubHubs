@@ -113,9 +113,7 @@ class TimelineManager {
 		if (!this.roomTimelineKey) {
 			this.roomTimelineKey = matrix.addRoomSubscription(roomId);
 		}
-		if (this.roomTimelineKey) {
-			matrix.syncRoom(roomId);
-		}
+		matrix.syncRooms();
 	}
 
 	/**

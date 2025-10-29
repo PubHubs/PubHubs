@@ -424,8 +424,8 @@ const usePubhubsStore = defineStore('pubhubs', {
 				try {
 					if (matrix && typeof matrix.addRoomSubscription === 'function') {
 						matrix.addRoomSubscription(room.room_id);
-						if (typeof matrix.syncRoom === 'function') {
-							matrix.syncRoom(room.room_id);
+						if (typeof matrix.syncRooms === 'function') {
+							matrix.syncRooms();
 						}
 					}
 				} catch (err) {
