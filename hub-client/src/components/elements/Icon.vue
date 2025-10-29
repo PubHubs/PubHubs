@@ -12,8 +12,8 @@
 	import { computed, PropType } from 'vue';
 
 	// Assets
-	import { iconSizes } from '@/assets/sizes';
-	import { icons } from '@/assets/icons';
+	import { iconSizes } from '@hub-client/assets/sizes';
+	import { icons } from '@hub-client/assets/icons';
 
 	const props = defineProps({
 		type: {
