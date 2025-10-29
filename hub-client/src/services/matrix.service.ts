@@ -63,7 +63,7 @@ class MatrixService {
 
 		const filterList = new Map<string, MSC3575List>([['all', RoomSubscription]]);
 
-		this.slidingSync = new SlidingSync(this.client.baseUrl, filterList, { timeline_limit: 10 }, this.client, SystemDefaults.syncIntervalMS);
+		this.slidingSync = new SlidingSync(this.client.baseUrl, filterList, { timeline_limit: 100 /* global default value */ }, this.client, SystemDefaults.syncIntervalMS);
 
 		// Attach event handlers
 		this.slidingSync.on(SlidingSyncEvent.Lifecycle, this.handleLifecycleEvent);
