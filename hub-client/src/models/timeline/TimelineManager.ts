@@ -418,7 +418,8 @@ class TimelineManager {
 				tempEvents = [...newBackEvents, ...newForwardEvents];
 				tempEvents = Array.from(new Map(tempEvents.map((e) => [e.event.event_id, e])).values()); // make unique
 			}
-			const mappedEvents = tempEvents.map((event) => new TimelineEvent(event, this.roomId));
+			let mappedEvents = tempEvents.map((event) => new TimelineEvent(event, this.roomId));
+			mappedEvents = this.ensureListLength(this.timelineEvents, mappedEvents, SystemDefaults.RoomTimelineLimit, Direction.Backward);
 
 			this.getRelatedEvents(mappedEvents).then((relatedEvents) => {
 				this.relatedEvents = relatedEvents;
