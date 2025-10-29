@@ -1,6 +1,6 @@
 <template>
 	<div class="flex flex-row items-center gap-1 break-words">
-		<Icon v-if="deleted" type="bin" size="sm" />
+		<Icon v-if="deleted" type="trash" size="sm" />
 		<p v-html="message" :class="{ 'text-on-surface-dim': deleted }" class="overflow-hidden text-ellipsis"></p>
 	</div>
 </template>

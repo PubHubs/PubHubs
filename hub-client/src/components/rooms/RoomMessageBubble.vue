@@ -9,7 +9,7 @@
 		<div v-else class="group flex flex-col py-3" :class="getMessageContainerClasses" role="article">
 			<!-- Announcement Header -->
 			<div v-if="isAnnouncementMessage && !redactedMessage" class="flex w-full items-center bg-surface-high px-8 py-1 ~text-label-small-min/label-small-max" :class="{ 'mx-4': props.deleteMessageDialog }">
-				<Icon type="announcement" size="sm" class="mr-1"></Icon>
+				<Icon type="megaphone-simple" size="sm" class="mr-1"></Icon>
 				{{ getAnnouncementTitle }}
 			</div>
 
@@ -56,9 +56,9 @@
 							<div>
 								<template v-if="timerReady && !deleteMessageDialog">
 									<button v-if="msgIsNotSend && connection.isOn" @click="resend()" class="mb-1 ml-2" :title="t('errors.resend')">
-										<Icon type="refresh" size="sm" class="text-red" />
+										<Icon type="arrow-counter-clockwise" size="sm" class="text-red" />
 									</button>
-									<Icon v-if="msgIsNotSend && !connection.isOn" type="lost-connection" size="sm" class="text-red mb-1 ml-2" />
+									<Icon v-if="msgIsNotSend && !connection.isOn" type="wifi-slash" size="sm" class="text-red mb-1 ml-2" />
 								</template>
 
 								<RoomEventActionsPopup v-if="!deleteMessageDialog" :remain-active="openEmojiPanel">
@@ -69,7 +69,7 @@
 										class="flex items-center justify-center rounded-md p-1 text-on-surface-variant transition-all duration-300 ease-in-out hover:w-fit hover:bg-accent-primary hover:text-on-accent-primary"
 										:title="t('message.reply_emoji')"
 									>
-										<Icon type="emoji_smiley" size="sm" />
+										<Icon type="smiley" size="sm"></Icon>
 									</button>
 
 									<!-- Reply Button -->
@@ -79,7 +79,7 @@
 										class="flex items-center justify-center rounded-md p-1 text-on-surface-variant transition-all duration-300 ease-in-out hover:w-fit hover:bg-accent-primary hover:text-on-accent-primary"
 										:title="t('message.reply')"
 									>
-										<Icon :type="'reply'" size="sm" />
+										<Icon type="arrow-bend-up-left" size="sm" />
 									</button>
 
 									<!-- Thread Reply Button -->
@@ -89,7 +89,7 @@
 										class="flex items-center justify-center rounded-md p-1 text-on-surface-variant transition-all duration-300 ease-in-out hover:w-fit hover:bg-accent-primary hover:text-on-accent-primary"
 										:title="t('message.reply_in_thread')"
 									>
-										<Icon :type="'talk'" size="sm" />
+										<Icon type="chat-circle" size="sm"></Icon>
 									</button>
 
 									<!-- Disclosure Button -->
@@ -99,7 +99,7 @@
 										class="flex items-center justify-center rounded-md p-1 text-on-surface-variant transition-all duration-300 ease-in-out hover:w-fit hover:bg-accent-primary hover:text-on-accent-primary"
 										:title="t('menu.moderation_tools_disclosure')"
 									>
-										<Icon :type="'warning'" size="sm" />
+										<Icon type="warning" size="sm" />
 									</button>
 
 									<!-- Delete Button -->
@@ -109,7 +109,7 @@
 										class="flex items-center justify-center rounded-md p-1 text-on-surface-variant transition-all duration-300 ease-in-out hover:w-fit hover:bg-accent-red hover:text-on-accent-red"
 										:title="t('menu.delete_message')"
 									>
-										<Icon :type="'bin'" size="sm" />
+										<Icon type="trash" size="sm" />
 									</button>
 								</RoomEventActionsPopup>
 							</div>
@@ -152,9 +152,8 @@
 						class="bg-hub-background-3 inline-flex rounded-md px-2 py-1 ~text-label-tiny-min/label-tiny-max hover:opacity-80"
 						v-if="!deleteMessageDialog && !viewFromThread && threadLength > 0 && canReplyInThread && !msgIsNotSend && !redactedMessage"
 					>
-						<Icon :type="'talk'" size="sm" />
-						<!-- &nbsp; {{ t('message.threads.view_thread') }} ({{ threadLength }}) -->
-						&nbsp; {{ t('message.threads.view_thread') }}
+						<Icon type="chat-circle" size="xs"></Icon>
+						&nbsp; {{ t('message.threads.view_thread') }} ({{ threadLength }})
 					</button>
 				</div>
 			</div>

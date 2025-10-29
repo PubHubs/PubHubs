@@ -1,53 +1,67 @@
 <template>
-	<div class="flex h-fit w-fit shrink-0 items-center justify-center" :data-testid="type">
-		<button v-if="asButton" :class="['flex items-center justify-center', iconColor]">
-			<svg viewBox="0 0 24 24" fill="transparent" stroke="currentColor" :stroke-width="strokeWidth" stroke-linecap="round" stroke-linejoin="round" :class="sizes[size]" v-html="icons[type]"></svg>
-		</button>
-		<svg v-else viewBox="0 0 24 24" fill="transparent" stroke="currentColor" :stroke-width="strokeWidth" stroke-linecap="round" stroke-linejoin="round" :class="sizes[size]" v-html="icons[type]"></svg>
+	<div class="flex h-fit w-fit shrink-0 items-center justify-center" :data-testid="id">
+		<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" :width="iconSizes[size]" :height="iconSizes[size]" fill="currentColor" :transform="displayMirrored" v-bind="$attrs">
+			<slot></slot>
+			<g v-html="icons[displayType][weightType]"></g>
+		</svg>
 	</div>
 </template>
 
 <script setup lang="ts">
 	// Packages
-	import { computed } from 'vue';
+	import { computed, PropType } from 'vue';
 
 	// Assets
-	import { icons, sizes } from '@hub-client/assets/icons';
+	import { iconSizes } from '@/assets/sizes';
+	import { icons } from '@/assets/icons';
 
 	const props = defineProps({
 		type: {
 			type: String,
-			default: 'empty',
-			validator(value: string) {
-				return Object.keys(icons).includes(value);
-			},
+			default: 'selection',
 		},
 		size: {
-			type: String,
+			type: [String, Number],
 			default: 'base',
-			validator(value: string) {
-				return Object.keys(sizes).includes(value);
-			},
 		},
-		asButton: {
+		weight: {
+			type: String as PropType<'default' | 'thin' | 'light' | 'regular' | 'bold' | 'fill' | 'duotone'>,
+			default: 'default',
+		},
+		mirrored: {
 			type: Boolean,
 			default: false,
 		},
-		iconColor: {
+		testid: {
 			type: String,
-			default: 'text-on-surface',
-		},
-		// Added for polling
-		filled: {
-			type: Boolean,
-			default: false,
+			default: '',
 		},
 	});
 
-	const strokeWidth = computed(() => {
-		if (props.filled) {
-			return 0;
+	const displayType = computed(() => {
+		if (icons[props.type]) {
+			return props.type;
 		}
-		return 1;
+		console.log('fallback icon', props.type);
+		return 'selection'; // dotted square
 	});
+
+	const weightType = computed(() => {
+		let weight = props.weight as string;
+		if (icons[displayType.value][weight]) {
+			return weight;
+		}
+		weight = Object.keys(icons[displayType.value])[0];
+		if (icons[displayType.value][weight]) {
+			return weight;
+		}
+		return '';
+	});
+
+	const id = computed(() => {
+		if (props.testid) return props.testid;
+		return props.type;
+	});
+
+	const displayMirrored = computed(() => (props.mirrored ? 'scale(-1, 1)' : undefined));
 </script>

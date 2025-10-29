@@ -1,12 +1,11 @@
+import { Message, MessageType, useMessageBox } from '@hub-client/stores/messagebox';
 // Packages
 import { createRouter, createWebHashHistory } from 'vue-router';
 
 // Models
 import { OnboardingType } from '@hub-client/models/constants';
-
 // Stores
 import { useHubSettings } from '@hub-client/stores/hub-settings';
-import { Message, MessageType, useMessageBox } from '@hub-client/stores/messagebox';
 import { useUser } from '@hub-client/stores/user';
 
 // Route definitions
@@ -74,6 +73,12 @@ const routes = [
 		component: () => import('@hub-client/pages/ErrorPage.vue'),
 		props: (route: { query: { errorKey: String; errorValues: Array<String | Number> } }) => ({ errorKey: route.query.errorKey || 'errors.general_error', errorValues: route.query.errorValues || [] }),
 		meta: { hideBar: true },
+	},
+	{
+		path: '/icons',
+		name: 'icons',
+		component: () => import('@/pages/Icons.vue'),
+		// meta: { onlyAdmin: true, hideBar: true, onboarding: true },
 	},
 	{
 		path: '/nop',

@@ -5,7 +5,7 @@
 
 			<Icon
 				v-if="item.reactions.some((r) => r.userId === currentUserId)"
-				type="remove"
+				type="trash"
 				size="sm"
 				class="absolute right-0 top-0 hidden cursor-pointer rounded-2xl bg-surface-low group-hover:inline-block"
 				@click.stop="removeReaction(item.reactions.filter((r) => r.userId === currentUserId).map((r) => r.eventId))"

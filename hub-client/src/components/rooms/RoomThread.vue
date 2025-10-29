@@ -3,7 +3,7 @@
 		<!-- Thread header -->
 		<div class="m-3 mb-0 flex items-center gap-2 rounded-md bg-surface-low p-2">
 			<button @click="closeThread" class="rounded-md p-1">
-				<Icon :type="'arrow'" :size="'sm'"></Icon>
+				<Icon type="arrow-left" :size="'sm'"></Icon>
 			</button>
 			<p class="truncate text-nowrap ~text-label-tiny-min/label-tiny-max">Thread ({{ numberOfThreadEvents }})</p>
 		</div>

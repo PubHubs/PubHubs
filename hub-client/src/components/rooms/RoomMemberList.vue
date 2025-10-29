@@ -4,14 +4,14 @@
 			<SideKickSubHeader>
 				<div class="flex justify-between">
 					<div class="capitalize">{{ $t('rooms.stewards') }}</div>
-					<div class="flex">
+					<div class="flex items-center gap-2">
 						<div>{{ stewardIds.length }}</div>
-						<Icon type="user" size="sm" class="mt-1"></Icon>
+						<Icon type="user"></Icon>
 					</div>
 				</div>
 			</SideKickSubHeader>
-			<div v-for="stewardId in stewardIds" :userId="stewardId" :key="stewardId" class="mb-2 flex w-full gap-2">
-				<Avatar :avatar-url="user.userAvatar(stewardId)" class="ml-2 h-6 w-6"></Avatar>
+			<div v-for="stewardId in stewardIds" :userId="stewardId" :key="stewardId" class="mb-2 flex w-full items-center gap-2">
+				<Avatar :avatar-url="user.userAvatar(stewardId)" class="ml-2 h-5 w-5"></Avatar>
 				<UserDisplayName :userId="stewardId" :user-display-name="user.userDisplayName(stewardId)"></UserDisplayName>
 			</div>
 		</div>
@@ -20,14 +20,14 @@
 			<SideKickSubHeader>
 				<div class="flex justify-between">
 					<div class="capitalize">{{ $t('rooms.members') }}</div>
-					<div class="flex">
+					<div class="flex items-center gap-2">
 						<div>{{ memberIds.length }}</div>
-						<Icon type="user" size="sm" class="mt-1"></Icon>
+						<Icon type="user"></Icon>
 					</div>
 				</div>
 			</SideKickSubHeader>
-			<div v-for="memberId in memberIds" :userId="memberId" :key="memberId" class="mb-2 flex w-full gap-2">
-				<Avatar :avatar-url="user.userAvatar(memberId)" class="ml-2 h-6 w-6"></Avatar>
+			<div v-for="memberId in memberIds" :userId="memberId" :key="memberId" class="mb-2 flex w-full items-center gap-2">
+				<Avatar :avatar-url="user.userAvatar(memberId)" class="ml-2 h-5 w-5"></Avatar>
 				<UserDisplayName :userId="memberId" :user-display-name="user.userDisplayName(memberId)"></UserDisplayName>
 			</div>
 		</div>

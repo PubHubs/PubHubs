@@ -481,35 +481,35 @@ export default class PHCServer {
 	 * @returns The plaintext of the decrypted data.
 	 */
 	private async _decryptData(ciphertext: Uint8Array, key: string) {
-		// Encode the key
 		const encoder = new TextEncoder();
+		try {
+			// Encode the key with version 1 encoding
+			const encodedKeyVersion1 = new Uint8Array(Buffer.from(key, 'base64'));
+			return await this._decrypt_inner(ciphertext, encodedKeyVersion1, encoder);
+		} catch (error) {
+			/* 
+			We have this try catch here for when a user logs in with usersecret version 0 which only happens once for older mss users.
+			With usesecret version 0 TextEncoder().encode needs to be used to encode the key for an object stored with an old encoding.
+			In theory some old users that never login can still have objects stored with a version 0 encoding at any point in the future.
+			*/
+			// Encode the key with version 0 encoding
+			const encodedKeyVersion0 = encoder.encode(key);
+			return await this._decrypt_inner(ciphertext, encodedKeyVersion0, encoder);
+		}
+	}
+	private async _decrypt_inner(ciphertext: Uint8Array, encodedKey: Uint8Array, encoder: TextEncoder) {
 		// Extract the random bits of data (that were used to generate the seed) from the ciphertext
 		const randomBits = ciphertext.slice(0, 32);
 		// Recover the seed by appending the encoded attrKey to the random bits of data
-		try {
-			const encodedKey = new Uint8Array(Buffer.from(key, 'base64'));
-			const seedKey = this._concatUint8Arrays([randomBits, encodedKey, encoder.encode('key')]);
-			const seedIV = this._concatUint8Arrays([randomBits, encodedKey, encoder.encode('iv')]);
-			// Calculate the SHA-256 hash of the concatenated random bits with the key to use as AES key and the SHA-512 hash to use as IV
-			const aesKeyHash = await crypto.subtle.digest('SHA-256', seedKey);
-			const iv = await crypto.subtle.digest('SHA-256', seedIV);
-			// Import the key and use it to decrypt the data
-			const aesKey = await crypto.subtle.importKey('raw', aesKeyHash, { name: 'AES-GCM' }, false, ['encrypt', 'decrypt']);
-			const decryptedData = await crypto.subtle.decrypt({ name: 'AES-GCM', iv: iv }, aesKey, ciphertext.slice(32));
-			return new Uint8Array(decryptedData);
-		} catch (error) {
-			console.error('Could not decrypt data with the most recent encoding version', error);
-			const encodedKey = new TextEncoder().encode(key);
-			const seedKey = this._concatUint8Arrays([randomBits, encodedKey, encoder.encode('key')]);
-			const seedIV = this._concatUint8Arrays([randomBits, encodedKey, encoder.encode('iv')]);
-			// Calculate the SHA-256 hash of the concatenated random bits with the key to use as AES key and the SHA-512 hash to use as IV
-			const aesKeyHash = await crypto.subtle.digest('SHA-256', seedKey);
-			const iv = await crypto.subtle.digest('SHA-256', seedIV);
-			// Import the key and use it to decrypt the data
-			const aesKey = await crypto.subtle.importKey('raw', aesKeyHash, { name: 'AES-GCM' }, false, ['encrypt', 'decrypt']);
-			const decryptedData = await crypto.subtle.decrypt({ name: 'AES-GCM', iv: iv }, aesKey, ciphertext.slice(32));
-			return new Uint8Array(decryptedData);
-		}
+		const seedKey = this._concatUint8Arrays([randomBits, encodedKey, encoder.encode('key')]);
+		const seedIV = this._concatUint8Arrays([randomBits, encodedKey, encoder.encode('iv')]);
+		// Calculate the SHA-256 hash of the concatenated random bits with the key to use as AES key and the SHA-512 hash to use as IV
+		const aesKeyHash = await crypto.subtle.digest('SHA-256', seedKey);
+		const iv = await crypto.subtle.digest('SHA-256', seedIV);
+		// Import the key and use it to decrypt the data
+		const aesKey = await crypto.subtle.importKey('raw', aesKeyHash, { name: 'AES-GCM' }, false, ['encrypt', 'decrypt']);
+		const decryptedData = await crypto.subtle.decrypt({ name: 'AES-GCM', iv: iv }, aesKey, ciphertext.slice(32));
+		return new Uint8Array(decryptedData);
 	}
 
 	// #endregion

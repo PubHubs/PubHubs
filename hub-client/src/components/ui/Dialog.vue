@@ -17,7 +17,7 @@
 				<div class="flex w-full items-center justify-between">
 					<H2 v-if="dialog.properties.title !== ''">{{ dialog.properties.title }}</H2>
 					<slot name="header"></slot>
-					<Icon v-if="dialog.properties.close" type="close" size="md" class="float-right -mt-1 cursor-pointer self-end hover:opacity-75" @click="doAction(DialogCancel)" />
+					<Icon v-if="dialog.properties.close" type="x" size="md" class="float-right -mt-1 cursor-pointer self-end hover:opacity-75" @click="doAction(DialogCancel)" />
 				</div>
 				<Line v-if="hasContent" class="z-0" />
 				<div v-if="hasContent" class="h-full py-1 pr-4 text-left" :class="props.allowOverflow ? 'overflow-visible' : 'overflow-y-auto'">

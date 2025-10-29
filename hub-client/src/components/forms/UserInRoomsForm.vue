@@ -10,7 +10,7 @@
 			</div>
 		</div>
 		<div class="flex gap-2 rounded-md bg-accent-primary p-2 text-on-accent-primary">
-			<Icon type="exclamation" class="" />
+			<Icon type="warning-circle" class="" />
 			<span class="font-medium">{{ t('admin.important_perm_msg') }}</span>
 		</div>
 

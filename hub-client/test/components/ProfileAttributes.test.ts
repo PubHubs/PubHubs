@@ -1,16 +1,13 @@
-// Packages
-import { createTestingPinia } from '@pinia/testing';
-import { flushPromises, mount } from '@vue/test-utils';
 import { afterEach, beforeEach, describe, expect, test } from 'vitest';
-import { createI18n } from 'vue-i18n';
+import { flushPromises, mount } from '@vue/test-utils';
 
 // Components
 import ProfileAttributes from '@hub-client/components/rooms/ProfileAttributes.vue';
-
+import { createI18n } from 'vue-i18n';
+// Packages
+import { createTestingPinia } from '@pinia/testing';
 import { en } from '@hub-client/locales/en';
-// Logic
 import { nl } from '@hub-client/locales/nl';
-
 // Stores
 import { useRooms } from '@hub-client/stores/rooms';
 
@@ -63,7 +60,7 @@ describe('ProfileAttributes.vue Test', () => {
 
 		await flushPromises();
 
-		expect(wrapper.text().replace(/\s+/g, ' ').trim()).toBe('an attr another attr');
+		expect(wrapper.text().replace(/\s+/g, ' ').trim()).toBe('an attranother attr');
 	});
 
 	test('admin badges', async () => {

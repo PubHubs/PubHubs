@@ -7,7 +7,7 @@
 					<span>{{ ask.user.userId }}</span>
 					"<span v-if="ask.user.displayName" :title="ask.user.displayName">{{ ask.user.displayName.substring(0, 20) + (ask.user.displayName.length > 20 ? '...' : '') }}</span
 					>"
-					<Icon type="edit" class="float-right" />
+					<Icon type="pencil-simple" class="float-right" />
 				</span>
 				<Icon v-else type="plus" class="float-right cursor-pointer" @click="onChooseUser" />
 			</FormLine>

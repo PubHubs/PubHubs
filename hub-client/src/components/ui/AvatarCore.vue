@@ -1,7 +1,7 @@
 <template>
 	<div class="flex aspect-square h-12 w-12 shrink-0 items-center justify-center overflow-hidden rounded-full" :class="avatarColor">
 		<img v-if="img" v-show="loaded" data-testid="avatar" :src="image" class="h-full w-full" @load="imgLoaded()" />
-		<Icon v-if="!img || !loaded" size="lg" :type="icon" />
+		<Icon v-if="!img || !loaded" size="lg" type="user" testid="avatar" />
 	</div>
 </template>
 
@@ -31,7 +31,6 @@
 	type Props = {
 		img: string | undefined;
 		user?: any;
-		icon?: string;
 	};
 
 	const props = withDefaults(defineProps<Props>(), { user: undefined, icon: 'person' });
