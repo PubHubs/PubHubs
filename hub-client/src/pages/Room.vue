@@ -177,7 +177,12 @@
 
 		const userIsMemberOfRoom = await pubhubs.isUserRoomMember(user.userId!, props.id);
 		if (!userIsMemberOfRoom) {
-			const promise = pubhubs.joinRoom(props.id);
+			let promise = null;
+			if (rooms.roomIsSecure(props.id)) {
+				joinSecuredRoom.value = props.id;
+			} else {
+				promise = pubhubs.joinRoom(props.id);
+			}
 			// need this extra check
 			if (promise) {
 				if (rooms.roomIsSecure(props.id)) {

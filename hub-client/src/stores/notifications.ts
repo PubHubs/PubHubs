@@ -14,7 +14,7 @@ export const useNotifications = defineStore('notifications', {
 	actions: {
 		async fetchSecuredRoomNotifications(): Promise<TNotification[]> {
 			try {
-				const newNotifications = await api_synapse.apiGET(`${api_synapse.apiURLS.data}?data=removed_from_secured_room`);
+				const newNotifications = await api_synapse.apiGET<TNotification[]>(`${api_synapse.apiURLS.data}?data=removed_from_secured_room`);
 
 				// Only add notifications that are not already in the list (by room_id and type)
 				// FIXME: Floris
@@ -35,8 +35,9 @@ export const useNotifications = defineStore('notifications', {
 			} else {
 				index = this.notifications.findIndex((n: TNotification) => n.type === type);
 			}
-			if (index === -1) return; // Not found
-			this.notifications.splice(index, 1);
+			if (index !== -1) {
+				this.notifications.splice(index, 1);
+			}
 
 			if (roomId && type === TNotificationType.RemovedFromSecuredRoom) {
 				// If the notification is for being removed from a secured room, also remove the allowed join row in the database

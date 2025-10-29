@@ -127,7 +127,9 @@
 				// e.g., Admin leaves the room and he is the only member or when admin leaves the room which makes the room without adminstrator.
 				if (await dialog.okcancel(t(leaveMsg))) {
 					await pubhubs.leaveRoom(roomId);
-					notificationsStore.removeNotification(roomId, TNotificationType.RemovedFromSecuredRoom);
+					if (rooms.roomIsSecure(roomId)) {
+						notificationsStore.removeNotification(roomId, TNotificationType.RemovedFromSecuredRoom);
+					}
 					await router.replace({ name: 'home' });
 				}
 			}
