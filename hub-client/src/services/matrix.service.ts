@@ -287,8 +287,8 @@ class MatrixService {
 			}
 
 			Promise.all(joinPromises).then(() => {
-				this.roomsStore.setRoomsLoaded(true);
 				this.syncRooms();
+				this.roomsStore.setRoomsLoaded(true);
 			});
 		} catch (err) {
 			LOGGER.error(SMI.SYNC, 'Lifecycle handler failed', { err });
