@@ -307,16 +307,12 @@ class TimelineManager {
 
 	/**
 	 * Paginate from event in given direction for a {limit} number of events
-	 * @param fromEventId
+	 * @param timeline
 	 * @param limit
 	 * @param backwards
 	 * @returns
 	 */
-	async performPaginate(direction: Direction, limit: number, fromEventId: string): Promise<MatrixEvent[]> {
-		const timeline = await this.getEventTimeline(fromEventId);
-		if (!timeline) {
-			return [];
-		}
+	async performPaginate(direction: Direction, limit: number, timeline: EventTimeline): Promise<MatrixEvent[]> {
 		let newEvents: MatrixEvent[] = [];
 		if (
 			await this.client.paginateEventTimeline(timeline, {
@@ -380,17 +376,22 @@ class TimelineManager {
 	 * @param fromEventId
 	 */
 	async paginate(direction: Direction, limit: number, fromEventId: string) {
-		const newEvents = await this.performPaginate(direction, limit, fromEventId);
-		if (newEvents?.length > 0) {
-			let timeLineEvents = newEvents.map((event) => new TimelineEvent(event, this.roomId));
-			timeLineEvents = this.ensureListLength(this.timelineEvents, timeLineEvents, SystemDefaults.RoomTimelineLimit, direction);
+		const timeline = await this.getEventTimeline(fromEventId);
+		if (!timeline) {
+			this.timelineEvents = [];
+		} else {
+			const newEvents = await this.performPaginate(direction, limit, timeline);
+			if (newEvents?.length > 0) {
+				let timeLineEvents = newEvents.map((event) => new TimelineEvent(event, this.roomId));
+				timeLineEvents = this.ensureListLength(this.timelineEvents, timeLineEvents, SystemDefaults.RoomTimelineLimit, direction);
 
-			this.getRelatedEvents(timeLineEvents);
-			this.timelineEvents = this.timelineEvents.filter((x) => !timeLineEvents.some((newEvent) => newEvent.matrixEvent.event.event_id === x.matrixEvent.event.event_id));
-			if (direction == Direction.Backward) {
-				this.timelineEvents = [...timeLineEvents, ...this.timelineEvents];
-			} else {
-				this.timelineEvents = [...this.timelineEvents, ...timeLineEvents];
+				this.getRelatedEvents(timeLineEvents);
+				this.timelineEvents = this.timelineEvents.filter((x) => !timeLineEvents.some((newEvent) => newEvent.matrixEvent.event.event_id === x.matrixEvent.event.event_id));
+				if (direction == Direction.Backward) {
+					this.timelineEvents = [...timeLineEvents, ...this.timelineEvents];
+				} else {
+					this.timelineEvents = [...this.timelineEvents, ...timeLineEvents];
+				}
 			}
 		}
 	}
@@ -410,20 +411,24 @@ class TimelineManager {
 		let tempEvents: MatrixEvent[] = this.prepareEvents(timeline.getEvents());
 
 		// need to paginate both directions, for when event is in beginning or end. The surplus does not matter
-		const newBackEvents = await this.performPaginate(Direction.Backward, SystemDefaults.RoomTimelineLimit, currentEvent.eventId);
-		const newForwardEvents = await this.performPaginate(Direction.Forward, SystemDefaults.RoomTimelineLimit, currentEvent.eventId);
-		if (newBackEvents?.length > 0 || newForwardEvents?.length > 0) {
-			tempEvents = [...newBackEvents, ...newForwardEvents];
-			tempEvents = Array.from(new Map(tempEvents.map((e) => [e.event.event_id, e])).values()); // make unique
-		}
-		const mappedEvents = tempEvents.map((event) => new TimelineEvent(event, this.roomId));
+		const joinPromises: Promise<any>[] = [];
+		joinPromises.push(this.performPaginate(Direction.Backward, SystemDefaults.RoomTimelineLimit, timeline));
+		joinPromises.push(this.performPaginate(Direction.Forward, SystemDefaults.RoomTimelineLimit, timeline));
 
-		this.getRelatedEvents(mappedEvents).then((relatedEvents) => {
-			this.relatedEvents = relatedEvents;
+		Promise.all(joinPromises).then(([newBackEvents, newForwardEvents]) => {
+			if (newBackEvents?.length > 0 || newForwardEvents?.length > 0) {
+				tempEvents = [...newBackEvents, ...newForwardEvents];
+				tempEvents = Array.from(new Map(tempEvents.map((e) => [e.event.event_id, e])).values()); // make unique
+			}
+			const mappedEvents = tempEvents.map((event) => new TimelineEvent(event, this.roomId));
+
+			this.getRelatedEvents(mappedEvents).then((relatedEvents) => {
+				this.relatedEvents = relatedEvents;
+			});
+
+			this.timelineEvents = mappedEvents;
+			this.redactedEvents = []; // Loaded to new event so we can remove the redactedevents
 		});
-
-		this.timelineEvents = mappedEvents;
-		this.redactedEvents = []; // Loaded to new event so we can remove the redactedevents
 	}
 
 	/**
