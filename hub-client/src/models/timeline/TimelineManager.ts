@@ -100,13 +100,6 @@ class TimelineManager {
 		}
 		return true;
 	}
-	private async setRelatedEvents(eventList: TimelineEvent[]) {
-		if (this.relatedEvents.length > 0) {
-			this.relatedEvents = [...this.relatedEvents, ...(await this.getRelatedEvents(eventList))];
-		} else {
-			this.relatedEvents = await this.getRelatedEvents(eventList);
-		}
-	}
 
 	/**
 	 * Initializes the timeline for a room: subscribes to the room in sliding sync and starts syncing
@@ -184,7 +177,9 @@ class TimelineManager {
 
 		// First add the relatedEvents
 		this.relatedEvents = this.relatedEvents.filter((x) => !eventList.some((newEvent) => newEvent.matrixEvent.event.event_id === x.matrixEvent.event?.content?.[RelationType.RelatesTo]?.event_id));
-		this.setRelatedEvents(eventList);
+		this.getRelatedEvents(eventList).then((relatedEvents) => {
+			this.relatedEvents = [...this.relatedEvents, ...relatedEvents];
+		});
 		// Then add the events to the timeline
 		this.timelineEvents = this.timelineEvents.filter((x) => !eventList.some((newEvent) => newEvent.matrixEvent.event.event_id === x.matrixEvent.event.event_id));
 		this.timelineEvents = [...this.timelineEvents, ...eventList];
@@ -423,7 +418,9 @@ class TimelineManager {
 		}
 		const mappedEvents = tempEvents.map((event) => new TimelineEvent(event, this.roomId));
 
-		this.setRelatedEvents(mappedEvents);
+		this.getRelatedEvents(mappedEvents).then((relatedEvents) => {
+			this.relatedEvents = relatedEvents;
+		});
 
 		this.timelineEvents = mappedEvents;
 		this.redactedEvents = []; // Loaded to new event so we can remove the redactedevents
