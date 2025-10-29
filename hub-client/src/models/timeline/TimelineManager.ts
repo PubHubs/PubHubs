@@ -382,10 +382,9 @@ class TimelineManager {
 			if (newEvents?.length > 0) {
 				let timeLineEvents = newEvents.map((event) => new TimelineEvent(event, this.roomId));
 				timeLineEvents = this.ensureListLength(this.timelineEvents, timeLineEvents, SystemDefaults.RoomTimelineLimit, direction);
-
 				this.getRelatedEvents(timeLineEvents);
 				this.timelineEvents = this.timelineEvents.filter((x) => !timeLineEvents.some((newEvent) => newEvent.matrixEvent.event.event_id === x.matrixEvent.event.event_id));
-				if (direction == Direction.Backward) {
+				if (direction === Direction.Backward) {
 					this.timelineEvents = [...timeLineEvents, ...this.timelineEvents];
 				} else {
 					this.timelineEvents = [...this.timelineEvents, ...timeLineEvents];
