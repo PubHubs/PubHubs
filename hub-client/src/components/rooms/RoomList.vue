@@ -48,7 +48,9 @@
 			</MenuItem>
 		</template>
 	</Menu>
-	<InlineSpinner v-if="!roomsLoaded" class="ml-4" />
+	<div class="ml-4">
+		<InlineSpinner v-if="!roomsLoaded" />
+	</div>
 	<SecuredRoomLoginDialog v-model:dialogOpen="dialogOpen" title="notifications.rejoin_secured_room" message="notifications.removed_from_secured_room" :messageValues="messageValues" />
 </template>
 
