@@ -29,7 +29,7 @@ def main():
                     "-v", f"{os.path.join(".", "garage", "meta")}:/var/lib/garage/meta",
                     "-v", f"{os.path.join(".", "garage", "garage.toml")}:/etc/garage.toml",
                     "-e", "RUST_LOG=garage=info",
-                    "dxflrs/garage:v2.0.0"))
+                    "dxflrs/garage:v2.1.0"))
 
 if __name__=="__main__":
     main()
