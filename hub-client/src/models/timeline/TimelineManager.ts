@@ -15,6 +15,7 @@ import { TBaseEvent } from '@hub-client/models/events/TBaseEvent';
 import { TimelineEvent } from '@hub-client/models/events/TimelineEvent';
 import { TCurrentEvent } from '@hub-client/models/events/types';
 
+import { MessageType } from '@hub-client/stores/messagebox';
 // Stores
 import { useUser } from '@hub-client/stores/user';
 
@@ -123,6 +124,23 @@ class TimelineManager {
 	 */
 	prepareEvents(eventList: MatrixEvent[]): MatrixEvent[] {
 		return eventList.filter((event) => this.isVisibleEvent(event.event)).sort((a, b) => a.getTs() - b.getTs());
+	}
+
+	/**
+	 * Gets the newest message of the current livetimeline.
+	 * Necessary for initial timelineloading when sync returns only events of other types
+	 * @returns newest message of current livetimeline
+	 */
+	private async getInitialNewestMessage(): Promise<MatrixEvent | undefined> {
+		const timeline = this.client.getRoom(this.roomId)?.getLiveTimeline();
+		if (timeline) {
+			let newestMessage: MatrixEvent | undefined = undefined;
+			while (!newestMessage && (await this.client.paginateEventTimeline(timeline, { backwards: true, limit: 10 }))) {
+				newestMessage = timeline.getEvents()?.findLast((x) => x.getType() === MatrixEventType.RoomMessage);
+			}
+			return newestMessage;
+		}
+		return undefined;
 	}
 
 	/**
@@ -236,8 +254,6 @@ class TimelineManager {
 
 		// Filters out the visible events, so from now on we are working on the visible timeline
 		matrixEvents = this.prepareEvents(matrixEvents);
-
-		if (matrixEvents.length === 0) return undefined;
 		let eventList = matrixEvents.map((event) => new TimelineEvent(event, this.roomId));
 
 		// if the lastMessageId is undefined
@@ -251,8 +267,18 @@ class TimelineManager {
 		) {
 			this.paginationState.lastMessageId = eventList[eventList.length - 1]?.matrixEvent.event.event_id;
 			if (this.timelineEvents.length === 0) {
-				await this.loadToEvent({ eventId: eventList[eventList.length - 1].matrixEvent.event.event_id! });
-				return eventList[eventList.length - 1]?.matrixEvent.event.event_id;
+				// if the current timeline is empty AND the eventlist is also empty (only when room is new or none of the initial synced events were messages)
+				// we need to initialize with the newest message in the current livetimeline, else we initialize with the eventlist
+				if (eventList.length === 0) {
+					const newestMessage = await this.getInitialNewestMessage();
+					if (newestMessage && newestMessage.event.event_id) {
+						await this.loadToEvent({ eventId: newestMessage.event.event_id });
+						return newestMessage.event.event_id;
+					}
+				} else {
+					await this.loadToEvent({ eventId: eventList[eventList.length - 1].matrixEvent.event.event_id! });
+					return eventList[eventList.length - 1]?.matrixEvent.event.event_id;
+				}
 			} else {
 				return this.addEventList(eventList);
 			}

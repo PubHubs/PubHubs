@@ -83,7 +83,7 @@ class MatrixService {
 	/**
 	 * Stop the Sliding Sync service.
 	 *
-	 * @throws {Error} If remving listeners failed
+	 * @throws {Error} If removing listeners failed
 	 * @throws {Error} If stopping the Sliding Sync service failed
 	 */
 	stopSync() {
@@ -231,19 +231,15 @@ class MatrixService {
 	 * @returns void
 	 */
 	private async getJoinRoomPromise(roomId: string, roomType: string, roomName: string, required_state: IStateEvent[]): Promise<any> {
-		// The roomlist is returned twice from sliding sync:once on sync start and later (once) as normal sync.
-		// Only handle it when the room is not yet handled
-		if (!this.roomsStore.rooms[roomId]) {
-			return this.client!.joinRoom(roomId)
-				.then((joinedRoom) => {
-					this.client!.store.storeRoom(joinedRoom);
-					this.roomsStore.initRoomsWithMatrixRoom(joinedRoom, roomName, roomType, required_state);
-					this.addRoomSubscription(roomId);
-				})
-				.catch((err) => {
-					LOGGER.error(SMI.SYNC, `Failed joining room ${roomId}`, { roomId, err });
-				});
-		}
+		return this.client!.joinRoom(roomId)
+			.then((joinedRoom) => {
+				this.client!.store.storeRoom(joinedRoom);
+				this.roomsStore.initRoomsWithMatrixRoom(joinedRoom, roomName, roomType, required_state);
+				this.addRoomSubscription(roomId);
+			})
+			.catch((err) => {
+				LOGGER.error(SMI.SYNC, `Failed joining room ${roomId}`, { roomId, err });
+			});
 	}
 
 	/**
@@ -269,7 +265,9 @@ class MatrixService {
 				// get the latest roommember info from the required state, sorted on timestamp. This should be join if the user is still joined
 				const latestRoomMemberInfo = roomData.required_state.filter((x) => x.type === EventType.RoomMember && x.sender === currentUser.userId).sort((a, b) => b.origin_server_ts - a.origin_server_ts)[0];
 
-				if (latestRoomMemberInfo?.content.membership === MatrixType.Join) {
+				// The roomlist is initially send twice: on sync start and later during the sync
+				// Only handle the join when the room is not joined yet
+				if (!this.roomsStore.rooms[roomId] && latestRoomMemberInfo?.content.membership === MatrixType.Join) {
 					const roomType = roomData.required_state.find((x) => x.type === EventType.RoomCreate)?.content?.type ?? RoomType.PH_MESSAGES_DEFAULT;
 					joinPromises.push(this.getJoinRoomPromise(roomId, roomType, roomData.name, roomData.required_state));
 				}
@@ -302,15 +300,15 @@ class MatrixService {
 
 	/**
 	 * Loads roomdata from sync into the room
-	 * @param id roomId
+	 * @param roomId roomId
 	 * @param roomData roomData as from sync
 	 */
-	private handleRoomDataEvent = (id: string, roomData: MSC3575RoomData) => {
+	private handleRoomDataEvent = (roomId: string, roomData: MSC3575RoomData) => {
 		try {
-			//console.error('sliding sync roomdata ', id, roomData);
-			this.roomsStore.loadFromSlidingSync(id, roomData);
+			//console.error('sliding sync roomdata ', roomId, roomData);
+			this.roomsStore.loadFromSlidingSync(roomId, roomData);
 		} catch (err) {
-			LOGGER.error(SMI.SYNC, 'RoomData handler failed', { id, err });
+			LOGGER.error(SMI.SYNC, 'RoomData handler failed', { roomId, err });
 		}
 	};
 

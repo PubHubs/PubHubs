@@ -578,12 +578,12 @@ export default class Room {
 		});
 
 		// Threads are kept on room-level, so all events regarding the current thread need to be filtered and handled first.
+
 		// Handle thread redactions, for now only the DeletedFromThread events
 		const redactions = eventList.filter((event) => event.getContent()?.[Redaction.Redacts] && event.getContent()?.[Redaction.Reason] === Redaction.DeletedFromThread);
 		if (redactions.length > 0) {
 			this.currentThread?.thread?.addRedactions(redactions);
 		}
-
 		// Handle thread events, only when they are from the currentthread (otherwise they will be fetched on opening the thread)
 		const currentThreadEvents = eventList.filter(
 			(event) => event.getContent()[RelationType.RelatesTo]?.[RelationType.RelType] === RelationType.Thread && this.currentThread?.threadId === event.getContent()[RelationType.RelatesTo]?.[RelationType.EventId],
