@@ -16,9 +16,9 @@
 </template>
 
 <script setup lang="ts">
-	import { ref } from 'vue';
-	import { iconSizes } from '@/assets/sizes';
 	import { icons } from '@/assets/icons';
+	import { iconSizes } from '@/assets/sizes';
+	import { ref } from 'vue';
 
 	const size = ref('base');
 

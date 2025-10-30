@@ -9,11 +9,11 @@
 
 <script setup lang="ts">
 	// Packages
-	import { computed, PropType } from 'vue';
+	import { PropType, computed } from 'vue';
 
+	import { icons } from '@hub-client/assets/icons';
 	// Assets
 	import { iconSizes } from '@hub-client/assets/sizes';
-	import { icons } from '@hub-client/assets/icons';
 
 	const props = defineProps({
 		type: {

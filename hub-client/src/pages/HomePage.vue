@@ -55,7 +55,6 @@
 		loadHubSettings();
 	});
 
-
 	function gotoDiscoverRooms() {
 		router.push({ name: 'discover-rooms' });
 	}
