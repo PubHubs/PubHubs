@@ -53,7 +53,7 @@ tokio = { version = "1.47", features = ["rt", "macros", "rt-multi-thread", "sync
 url = { version="2.5", features=["serde"] }
 
 # Proxying requests to Yivi and connection check
-awc = { version = "3.8", features = ["openssl"] }
+awc = { version = "3.8", features = ["rustls-0_23-webpki-roots"] }
 
 # RustCrypto packages
 aead = { version = "0.5", features=["getrandom"] }
