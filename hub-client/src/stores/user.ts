@@ -58,7 +58,7 @@ const useUser = defineStore('user', {
 	}),
 
 	getters: {
-		user({ userId }) {
+		user({ userId }): MatrixUser | User {
 			assert.isDefined(this.client, 'MatrixClient in userstore not initialized');
 			try {
 				const clientUser = this.client.getUser(userId!);
@@ -68,19 +68,19 @@ const useUser = defineStore('user', {
 			}
 		},
 
-		isLoggedIn({ userId }) {
+		isLoggedIn({ userId }): boolean {
 			return typeof userId === 'string';
 		},
 
-		isAdmin({ isAdministrator }) {
+		isAdmin({ isAdministrator }): boolean {
 			return isAdministrator;
 		},
 
-		avatarUrl({ _avatarMxcUrl: _avatarMxcUrl }) {
+		avatarUrl({ _avatarMxcUrl: _avatarMxcUrl }): string | undefined {
 			return _avatarMxcUrl;
 		},
 
-		displayName({ _displayName: _displayName }) {
+		displayName({ _displayName: _displayName }): string | null | undefined {
 			return _displayName;
 		},
 

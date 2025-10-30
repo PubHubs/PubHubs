@@ -376,14 +376,10 @@ const usePubhubsStore = defineStore('pubhubs', {
 		 */
 		async joinRoom(room_id: string): Promise<void> {
 			const rooms = useRooms();
-			let matrixRoom = this.client.getRoom(room_id);
 
 			try {
-				if (!matrixRoom) {
-					matrixRoom = await this.client.joinRoom(room_id);
-					this.client.store.storeRoom(matrixRoom);
-				}
-
+				const matrixRoom = await this.client.joinRoom(room_id);
+				this.client.store.storeRoom(matrixRoom);
 				let roomType: string = getRoomType(matrixRoom);
 				rooms.initRoomsWithMatrixRoom(matrixRoom!, matrixRoom?.name ?? undefined, roomType, []);
 			} catch (err) {

@@ -176,11 +176,11 @@
 		const retryDelay = 500;
 
 		for (let attempt = 0; attempt < maxRetries; attempt++) {
-			const hasJoined = await pubhubsStore.isUserRoomMember(user.userId, props.room.room_id);
+			const hasJoined = await pubhubsStore.isUserRoomMember(user.user.userId, props.room.room_id);
 			if (hasJoined) break;
 
 			if (attempt === maxRetries - 1) {
-				dialog.confirm(t('room.try_again'));
+				dialog.confirm(t('rooms.try_again'));
 			}
 
 			await new Promise((resolve) => setTimeout(resolve, retryDelay));
@@ -195,7 +195,7 @@
 
 			// Check if we've exceeded the timeout
 			if (attempt === maxRetries - 1) {
-				dialog.confirm(t('room.try_again'));
+				dialog.confirm(t('rooms.try_again'));
 			}
 
 			await new Promise((resolve) => setTimeout(resolve, retryDelay));
@@ -215,7 +215,7 @@
 
 			// Check if we've exceeded the timeout
 			if (attempt === maxRetries - 1) {
-				dialog.confirm(t('room.try_again'));
+				dialog.confirm(t('rooms.try_again'));
 			}
 
 			await new Promise((resolve) => setTimeout(resolve, retryDelay));
