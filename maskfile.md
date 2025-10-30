@@ -2,6 +2,7 @@
 
 Run these with the following command: `mask run [command name]` (ex. `mask run global`).
 
+For windows users, make sure you have bash installed such as for example [gitBash](https://git-scm.com/install/windows) (It is installed with git as default).
 Make sure you have [mask](https://github.com/jacobdeichert/mask) installed (it is already included in the Nix flake).
 Make sure you have [irma](https://github.com/privacybydesign/irmago) installed
 
@@ -22,6 +23,7 @@ bash run-all.sh
 ### init
 
 > Initializes/wipes the development environment
+
 ```sh
 mask run s3 init
 mask run hub init
@@ -32,12 +34,6 @@ mask run hub init
 > Runs the Yivi server for the PubHubs servers
 
 ```sh
-cd pubhubs
-echo "Running Yivi server..."
-python3 run_yivi.py
-```
-
-```powershell
 cd pubhubs
 echo "Running Yivi server..."
 python3 run_yivi.py
@@ -111,23 +107,11 @@ echo "Running global servers..."
 cargo run serve
 ```
 
-```powershell
-cd pubhubs
-echo "Running global servers..."
-cargo run serve
-```
-
 ### client
 
 > Runs the pubhubs global client
 
 ```sh
-cd global-client
-echo "Running pubhubs client..."
-npx vite --host -l info --port=8080
-```
-
-```powershell
 cd global-client
 echo "Running pubhubs client..."
 npx vite --host -l info --port=8080
@@ -152,12 +136,6 @@ echo "Running testhub${n}"
 python3 start_testhub.py "${n}"
 ```
 
-```powershell
-cd pubhubs_hub
-echo "Running testhub${n}"
-python3 start_testhub.py "${n}"
-```
-
 #### client (n)
 
 > Runs the n-th hub client
@@ -171,21 +149,11 @@ echo "Running Hub client for testhub${n}..."
 env VITE_HUB_URL=$(node -e "console.log('http://localhost:' + (8008 + $n))") npx vite --host -l info --port=$(node -e "console.log(8001 + $n)")
 ```
 
-```powershell
-cd hub-client
-$hubPort = 8008 + $n
-$vitePort = 8001 + $n
-$env:VITE_HUB_URL = "http://localhost:$hubPort"
-echo "Running Hub client for testhub$n..."
-echo "Using VITE_HUB_URL=$($env:VITE_HUB_URL) and Vite port $vitePort"
-npx vite --host -l info --port=$vitePort
-```
-
 #### mainclient
 
 > Runs the hub client (local) against the main (testhub) server
 
-Run this as a standalone command, so without the global client running. 
+Run this as a standalone command, so without the global client running.
 To log in, run `mask run mainclient enter`.
 
 ```sh
@@ -194,21 +162,12 @@ echo "Running Hub client for main testhub ..."
 env VITE_HUB_URL=$(node -e "console.log('https://main.testhub-matrix.ihub.ru.nl')") npx vite --host -l info --port=$(node -e "console.log(8001)")
 ```
 
-```powershell
-cd hub-client
-$vitePort = 8001
-$env:VITE_HUB_URL = "https://main.testhub-matrix.ihub.ru.nl"
-echo "Running Hub client for testhub$n..."
-echo "Using VITE_HUB_URL=$($env:VITE_HUB_URL) and Vite port $vitePort"
-npx vite --host -l info --port=$vitePort
-```
-
 ##### enter
 
 > Gets the url with access token to your local client running against main
 
 ```sh
-cd pubhubs 
+cd pubhubs
 cargo run enter -e main -l testhub
 echo ""
 echo "Don't forget to have 'mask run hub mainclient' running"
@@ -218,13 +177,7 @@ echo "Don't forget to have 'mask run hub mainclient' running"
 
 > Initialize testhubs setup
 
-
 ```sh
-mask run hub init testhub-dirs
-mask run hub init testhub-image
-```
-
-```powershell
 mask run hub init testhub-dirs
 mask run hub init testhub-image
 ```
@@ -247,16 +200,6 @@ do
 done
 ```
 
-```powershell
-echo "Setting up testhub directories..."
-cd pubhubs_hub
-For ($i=0; $i -le 4; $i++) {
-    echo "testhub$i"
-    Remove-Item -Recurse -Force "testhub${i}"
-    cp -r matrix_test_config "testhub$i"
-}
-```
-
 ##### testhub-image
 
 > Build the PubHubs hub Docker image
@@ -264,12 +207,6 @@ For ($i=0; $i -le 4; $i++) {
 This command is normally run via the `mask run hub init` command
 
 ```sh
-echo  "Building hub..."
-cd pubhubs_hub
-docker build -t pubhubs-hub .
-```
-
-```powershell
 echo  "Building hub..."
 cd pubhubs_hub
 docker build -t pubhubs-hub .
