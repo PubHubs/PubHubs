@@ -16,7 +16,7 @@
 				<mavon-editor defaultOpen="preview" :toolbarsFlag="false" :subfield="false" v-model="hubDescription" :boxShadow="false" />
 			</div>
 			<H3 v-if="hubContact" class="p-4">{{ $t('home.contact_details') }}</H3>
-			<div v-if="hubContact" class="max-w-full rounded-2xl bg-surface-low">
+			<div v-if="hubContact" class="max-w-full rounded-2xl !bg-surface-low">
 				<mavon-editor defaultOpen="preview" :toolbarsFlag="false" :subfield="false" v-model="hubContact" :boxShadow="false" />
 			</div>
 		</div>
