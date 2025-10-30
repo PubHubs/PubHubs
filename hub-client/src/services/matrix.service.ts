@@ -231,15 +231,19 @@ class MatrixService {
 	 * @returns void
 	 */
 	private async getJoinRoomPromise(roomId: string, roomType: string, roomName: string, required_state: IStateEvent[]): Promise<any> {
-		return this.client!.joinRoom(roomId)
-			.then((joinedRoom) => {
-				this.client!.store.storeRoom(joinedRoom);
-				this.roomsStore.initRoomsWithMatrixRoom(joinedRoom, roomName, roomType, required_state);
-				this.addRoomSubscription(roomId);
-			})
-			.catch((err) => {
-				LOGGER.error(SMI.SYNC, `Failed joining room ${roomId}`, { roomId, err });
-			});
+		// The roomlist is returned twice from sliding sync:once on sync start and later (once) as normal sync.
+		// Only handle it when the room is not yet handled
+		if (!this.roomsStore.rooms[roomId]) {
+			return this.client!.joinRoom(roomId)
+				.then((joinedRoom) => {
+					this.client!.store.storeRoom(joinedRoom);
+					this.roomsStore.initRoomsWithMatrixRoom(joinedRoom, roomName, roomType, required_state);
+					this.addRoomSubscription(roomId);
+				})
+				.catch((err) => {
+					LOGGER.error(SMI.SYNC, `Failed joining room ${roomId}`, { roomId, err });
+				});
+		}
 	}
 
 	/**
