@@ -16,8 +16,8 @@
 </template>
 
 <script setup lang="ts">
-	import { icons } from '@/assets/icons';
-	import { iconSizes } from '@/assets/sizes';
+	import { icons } from '@hub-client/assets/icons';
+	import { iconSizes } from '@hub-client/assets/sizes';
 	import { ref } from 'vue';
 
 	const size = ref('base');
