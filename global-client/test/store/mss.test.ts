@@ -1,15 +1,15 @@
-import * as mssTypes from '@global-client/models/MSS/TMultiServerSetup';
-
-import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, test } from 'vitest';
-import { createPinia, setActivePinia } from 'pinia';
-
 import { EncryptVersion0 } from '../mocks/encryptVersion0';
-// Models
-import PHCServer from '@global-client/models/MSS/PHC';
-// Logic
-import { api } from '@global-client/logic/core/api';
 // Packages
 import { server } from '../mocks/server';
+import { createPinia, setActivePinia } from 'pinia';
+import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, test } from 'vitest';
+
+// Logic
+import { api } from '@global-client/logic/core/api';
+
+// Models
+import PHCServer from '@global-client/models/MSS/PHC';
+import * as mssTypes from '@global-client/models/MSS/TMultiServerSetup';
 
 beforeAll(() => server.listen({ onUnhandledRequest: 'error' }));
 afterAll(() => server.close());

@@ -1,4 +1,5 @@
-import PHCServer from '@/model/MSS/PHC';
+import PHCServer from '@global-client/models/MSS/PHC';
+
 /*
 This is the encryption with the version 0 encoding of the userSecret from before commit 4a22823 -> 2768b2a
 We need to store this old function for testing if acounts made before 23 october on stable can still login and retreive their globalsettings,
