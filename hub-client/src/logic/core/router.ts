@@ -77,7 +77,7 @@ const routes = [
 	{
 		path: '/icons',
 		name: 'icons',
-		component: () => import('@/pages/Icons.vue'),
+		component: () => import('@hub-client/pages/Icons.vue'),
 		// meta: { onlyAdmin: true, hideBar: true, onboarding: true },
 	},
 	{
