@@ -63,7 +63,7 @@ class MatrixService {
 
 		const filterList = new Map<string, MSC3575List>([['all', RoomSubscription]]);
 
-		this.slidingSync = new SlidingSync(this.client.baseUrl, filterList, { timeline_limit: 10 }, this.client, SystemDefaults.syncIntervalMS);
+		this.slidingSync = new SlidingSync(this.client.baseUrl, filterList, { timeline_limit: 100 /* global default value */ }, this.client, SystemDefaults.syncIntervalMS);
 
 		// Attach event handlers
 		this.slidingSync.on(SlidingSyncEvent.Lifecycle, this.handleLifecycleEvent);
@@ -145,6 +145,10 @@ class MatrixService {
 		try {
 			this.slidingSync.addCustomSubscription(timeLineKey, TimelineSubScription);
 			this.subscribedRooms.set(roomId, timeLineKey);
+
+			this.slidingSync.useCustomSubscription(roomId, timeLineKey);
+			this.slidingSync.modifyRoomSubscriptions(new Set(this.subscribedRooms.keys()));
+
 			LOGGER.log(SMI.SYNC, `Added room subscription for ${roomId} with timeline key ${timeLineKey}`, { roomId, timeLineKey });
 			return timeLineKey;
 		} catch (err) {
@@ -160,21 +164,36 @@ class MatrixService {
 	 *
 	 * @throws {Error} If the synchronization fails
 	 */
-	syncRoom(roomId: string): void {
+	// syncRoom(roomId: string): void {
+	// 	if (!this.slidingSync) {
+	// 		LOGGER.error(SMI.SYNC, `Cannot sync room ${roomId} because there is no active sync`, { roomId });
+	// 		return;
+	// 	}
+
+	// 	const timeLineKey = this.subscribedRooms.get(roomId) ?? this.addRoomSubscription(roomId);
+	// 	if (!timeLineKey) return;
+
+	// 	try {
+	// 		this.slidingSync.useCustomSubscription(roomId, timeLineKey);
+	// 		this.slidingSync.modifyRoomSubscriptions(new Set(this.subscribedRooms.keys()));
+	// 		LOGGER.log(SMI.SYNC, `Synced room ${roomId}`, { roomId });
+	// 	} catch (err) {
+	// 		LOGGER.warn(SMI.SYNC, `Cannot sync room ${roomId}`, { roomId, err });
+	// 		throw err;
+	// 	}
+	// }
+
+	syncRooms(): void {
 		if (!this.slidingSync) {
-			LOGGER.error(SMI.SYNC, `Cannot sync room ${roomId} because there is no active sync`, { roomId });
+			LOGGER.error(SMI.SYNC, `Cannot sync rooms because there is no active sync`);
 			return;
 		}
 
-		const timeLineKey = this.subscribedRooms.get(roomId) ?? this.addRoomSubscription(roomId);
-		if (!timeLineKey) return;
-
 		try {
-			this.slidingSync.useCustomSubscription(roomId, timeLineKey);
 			this.slidingSync.modifyRoomSubscriptions(new Set(this.subscribedRooms.keys()));
-			LOGGER.log(SMI.SYNC, `Synced room ${roomId}`, { roomId });
+			LOGGER.log(SMI.SYNC, `Synced rooms`);
 		} catch (err) {
-			LOGGER.warn(SMI.SYNC, `Cannot sync room ${roomId}`, { roomId, err });
+			LOGGER.warn(SMI.SYNC, `Cannot sync rooms`, { err });
 			throw err;
 		}
 	}
@@ -216,8 +235,7 @@ class MatrixService {
 			.then((joinedRoom) => {
 				this.client!.store.storeRoom(joinedRoom);
 				this.roomsStore.initRoomsWithMatrixRoom(joinedRoom, roomName, roomType, required_state);
-				const timelineKey = this.addRoomSubscription(roomId);
-				if (timelineKey) this.syncRoom(roomId);
+				this.addRoomSubscription(roomId);
 			})
 			.catch((err) => {
 				LOGGER.error(SMI.SYNC, `Failed joining room ${roomId}`, { roomId, err });
@@ -268,7 +286,10 @@ class MatrixService {
 				}
 			}
 
-			Promise.all(joinPromises).then(() => this.roomsStore.setRoomsLoaded(true));
+			Promise.all(joinPromises).then(() => {
+				this.syncRooms();
+				this.roomsStore.setRoomsLoaded(true);
+			});
 		} catch (err) {
 			LOGGER.error(SMI.SYNC, 'Lifecycle handler failed', { err });
 			throw err;
@@ -282,7 +303,7 @@ class MatrixService {
 	 */
 	private handleRoomDataEvent = (id: string, roomData: MSC3575RoomData) => {
 		try {
-			//console.error('sliding sync roomdata ', roomData);
+			//console.error('sliding sync roomdata ', id, roomData);
 			this.roomsStore.loadFromSlidingSync(id, roomData);
 		} catch (err) {
 			LOGGER.error(SMI.SYNC, 'RoomData handler failed', { id, err });

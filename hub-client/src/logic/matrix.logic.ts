@@ -24,7 +24,7 @@ const TimelineSubScription: MSC3575RoomSubscription = {
 		['m.room.member', ''],
 		['m.room.avatar', ''],
 	],
-	timeline_limit: 1000,
+	timeline_limit: 100, // limit specific per room
 };
 
 // #endregion

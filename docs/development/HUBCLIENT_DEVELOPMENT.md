@@ -96,7 +96,7 @@ To have a jumpstart with the [Matrix API](https://spec.matrix.org/latest/) we us
 We extended the SDK classes into [Pinia](https://pinia.vuejs.org/) stores. See `./src/store`. These stores can be used in a page or component (for example the Rooms class and store):
 
 ```ts
-import { Room, useRooms } from '@/stores/rooms'
+import { Room, useRooms } from '@hub-client/stores/rooms'
 ```
 
 Calls to the SDK should not be given directly to the SDK but through the PubHubs wrapper `./src/pubhubs.ts`. Which can be injected in a page or component with:

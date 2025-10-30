@@ -113,9 +113,7 @@ class TimelineManager {
 		if (!this.roomTimelineKey) {
 			this.roomTimelineKey = matrix.addRoomSubscription(roomId);
 		}
-		if (this.roomTimelineKey) {
-			matrix.syncRoom(roomId);
-		}
+		matrix.syncRooms();
 	}
 
 	/**
@@ -384,10 +382,9 @@ class TimelineManager {
 			if (newEvents?.length > 0) {
 				let timeLineEvents = newEvents.map((event) => new TimelineEvent(event, this.roomId));
 				timeLineEvents = this.ensureListLength(this.timelineEvents, timeLineEvents, SystemDefaults.RoomTimelineLimit, direction);
-
 				this.getRelatedEvents(timeLineEvents);
 				this.timelineEvents = this.timelineEvents.filter((x) => !timeLineEvents.some((newEvent) => newEvent.matrixEvent.event.event_id === x.matrixEvent.event.event_id));
-				if (direction == Direction.Backward) {
+				if (direction === Direction.Backward) {
 					this.timelineEvents = [...timeLineEvents, ...this.timelineEvents];
 				} else {
 					this.timelineEvents = [...this.timelineEvents, ...timeLineEvents];
@@ -420,7 +417,8 @@ class TimelineManager {
 				tempEvents = [...newBackEvents, ...newForwardEvents];
 				tempEvents = Array.from(new Map(tempEvents.map((e) => [e.event.event_id, e])).values()); // make unique
 			}
-			const mappedEvents = tempEvents.map((event) => new TimelineEvent(event, this.roomId));
+			let mappedEvents = tempEvents.map((event) => new TimelineEvent(event, this.roomId));
+			mappedEvents = this.ensureListLength(this.timelineEvents, mappedEvents, SystemDefaults.RoomTimelineLimit, Direction.Backward);
 
 			this.getRelatedEvents(mappedEvents).then((relatedEvents) => {
 				this.relatedEvents = relatedEvents;

@@ -43,25 +43,18 @@ export default class PHCServer {
 		}
 	}
 
-	triggerLogoutProcedure(recoverable: boolean = true) {
+	triggerLogoutProcedure() {
 		const dialog = useDialog();
 		const global = useGlobal();
 		const i18n = setUpi18n();
 		const language = useSettings().language;
 		setLanguage(i18n, language);
 		const { t } = i18n.global;
-		if (recoverable) {
-			dialog.confirm(t('errors.oops'), t('errors.error'));
-		} else {
-			dialog.confirm(t('login.not_logged_in'), t('login.login_again'));
-		}
+		dialog.confirm(t('login.not_logged_in'), t('login.login_again'));
 		dialog.addCallback(DialogOk, async () => {
 			await global.logout();
 			dialog.removeCallback(DialogOk);
 		});
-		if (!recoverable) {
-			throw new Error('Something went wrong. The logout procedure was triggered.');
-		}
 	}
 
 	// #region Global client login
@@ -173,7 +166,7 @@ export default class PHCServer {
 		if (mssTypes.isUserSecretObjectNew(object)) {
 			const userSecretObjectBackup = await this.getUserObject('usersecretbackup');
 			if (!userSecretObjectBackup || !userSecretObjectBackup.object) {
-				this.triggerLogoutProcedure(false);
+				this.triggerLogoutProcedure();
 				throw new Error('Expected a backup of the user secret object to be stored, but could not find it.');
 			}
 			const decodedUserSecretBackup = decoder.decode(userSecretObjectBackup.object);
@@ -351,13 +344,13 @@ export default class PHCServer {
 				if (referenceUserSecret === null) {
 					referenceUserSecret = decryptedUserSecret;
 				} else if (!this._buffersAreEqual(referenceUserSecret, decryptedUserSecret)) {
-					this.triggerLogoutProcedure(false);
+					this.triggerLogoutProcedure();
 					throw new Error('Something went wrong, the user secrets for different identifying attributes do not match.');
 				}
 			}
 
 			if (referenceUserSecret === null) {
-				this.triggerLogoutProcedure(false);
+				this.triggerLogoutProcedure();
 				throw new Error('Could not recover the user secret.');
 			}
 			userSecret = referenceUserSecret;
@@ -412,12 +405,12 @@ export default class PHCServer {
 				localStorage.setItem('UserSecret', this._userSecret);
 				localStorage.setItem('UserSecretVersion', this._userSecretVersion.toString());
 			} else {
-				this.triggerLogoutProcedure(false);
+				this.triggerLogoutProcedure();
 				throw new Error('Something went wrong in storing the user secret.');
 			}
 		} catch (error) {
 			// If anything goes wrong when storing the user secret, the user should be logged out and instructed to contact the developers.
-			this.triggerLogoutProcedure(false);
+			this.triggerLogoutProcedure();
 			throw error;
 		}
 	}

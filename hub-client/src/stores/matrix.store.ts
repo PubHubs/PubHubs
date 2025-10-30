@@ -70,10 +70,15 @@ const useMatrixStore = defineStore('matrix', {
 		/**
 		 * Use a subscription to sync a room using the Sliding Sync.
 		 */
-		async syncRoom(roomId: string) {
+		// async syncRoom(roomId: string) {
+		// 	const matrixService = useMatrixService();
+
+		// 	return matrixService.syncRoom(roomId);
+		// },
+		async syncRooms() {
 			const matrixService = useMatrixService();
 
-			return matrixService.syncRoom(roomId);
+			return matrixService.syncRooms();
 		},
 
 		addSubscribedRoom(roomId: string, timelineKey: string) {
