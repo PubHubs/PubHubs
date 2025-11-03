@@ -1,12 +1,13 @@
-import { I18nOptions, createI18n } from 'vue-i18n';
-
 // Packages
 import { App } from 'vue';
+import { I18nOptions, createI18n } from 'vue-i18n';
+
 // Locales
 import { en } from '@hub-client/locales/en';
+import { nl } from '@hub-client/locales/nl';
+
 // Logic
 import { mergeDeep } from '@hub-client/logic/core/extensions';
-import { nl } from '@hub-client/locales/nl';
 
 // Types
 type Language = 'nl' | 'en';
