@@ -89,7 +89,7 @@
 	import { SMI } from '@hub-client/logic/logging/StatusMessage';
 
 	// Models
-	import { RelationType, RoomEmit } from '@hub-client/models/constants';
+	import { RelationType, RoomEmit, ScrollPosition, ScrollSelect } from '@hub-client/models/constants';
 	import { TMessageEvent, TMessageEventContent } from '@hub-client/models/events/TMessageEvent';
 	import { TimelineEvent } from '@hub-client/models/events/TimelineEvent';
 	import Room from '@hub-client/models/rooms/Room';
@@ -167,18 +167,18 @@
 	async function changeThreadId() {
 		await getThreadEvents();
 		if (props.room.getCurrentEvent()) {
-			scrollToEvent(props.room.getCurrentEvent()!.eventId, { position: 'center', select: 'Highlight' });
+			scrollToEvent(props.room.getCurrentEvent()!.eventId, { position: ScrollPosition.Center, select: ScrollSelect.Highlight });
 		} else {
 			const lastEvent = filteredEvents.value[filteredEvents.value.length - 1];
 			if (lastEvent?.matrixEvent.event?.event_id) {
-				scrollToEvent(lastEvent.matrixEvent.event.event_id, { position: 'end' });
+				scrollToEvent(lastEvent.matrixEvent.event.event_id, { position: ScrollPosition.End });
 			}
 		}
 	}
 
 	async function onScrollToEventId(newEventId?: string, oldEventId?: string) {
 		if (!newEventId) return;
-		scrollToEvent(newEventId, { position: 'center', select: 'Highlight' });
+		scrollToEvent(newEventId, { position: ScrollPosition.Center, select: ScrollSelect.Highlight });
 	}
 
 	async function getThreadEvents() {
@@ -191,15 +191,15 @@
 	}
 
 	function onInReplyToClick(inReplyToId: string) {
-		scrollToEvent(inReplyToId, { position: 'center', select: 'Highlight' });
+		scrollToEvent(inReplyToId, { position: ScrollPosition.Center, select: ScrollSelect.Highlight });
 	}
 
-	async function scrollToEvent(eventId: string, options: { position: 'start' | 'center' | 'end'; select?: 'Highlight' | 'Select' } = { position: 'start' }) {
+	async function scrollToEvent(eventId: string, options: { position: ScrollPosition.Start | ScrollPosition.Center | ScrollPosition.End; select?: ScrollSelect.Highlight | ScrollSelect.Select } = { position: ScrollPosition.Start }) {
 		LOGGER.log(SMI.ROOM_THREAD, `scroll to event: ${eventId}`, { eventId });
 
 		const doScroll = (elEvent: Element) => {
 			elEvent.scrollIntoView({ block: options.position });
-			if (options.select === 'Highlight') {
+			if (options.select === ScrollSelect.Highlight) {
 				elEvent.classList.add('highlighted');
 				window.setTimeout(() => {
 					elEvent.classList.add('unhighlighted');

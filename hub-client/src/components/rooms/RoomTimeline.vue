@@ -71,7 +71,7 @@
 	import { SMI } from '@hub-client/logic/logging/StatusMessage';
 
 	// Models
-	import { RelationType, RoomEmit, SystemDefaults } from '@hub-client/models/constants';
+	import { RelationType, RoomEmit, ScrollBehavior, ScrollPosition, ScrollSelect, SystemDefaults } from '@hub-client/models/constants';
 	import { TMessageEvent } from '@hub-client/models/events/TMessageEvent';
 	import { TCurrentEvent } from '@hub-client/models/events/types';
 	import { Poll, Scheduler } from '@hub-client/models/events/voting/VotingTypes';
@@ -143,6 +143,8 @@
 	const newestEventIsLoaded = computed(() => {
 		return props.room.isNewestMessageLoaded();
 	});
+
+	defineExpose({ elRoomTimeline }); // Expose timeline to parent to save and restore scrollposition when leaving room
 
 	onBeforeUnmount(() => {
 		if (timelineObserver) {
@@ -359,7 +361,7 @@
 		if (newestEventId) {
 			const newestEvent = props.room.getLiveTimelineNewestEvent();
 			if (newestEvent && newestEvent.sender === user.userId) {
-				scrollToEvent({ eventId: newestEventId }, { position: 'end' });
+				scrollToEvent({ eventId: newestEventId }, { position: ScrollPosition.End });
 			}
 		}
 
@@ -370,7 +372,7 @@
 	// eslint-disable-next-line @typescript-eslint/no-unused-vars
 	async function onScrollToEvent(currentEvent: TCurrentEvent | undefined) {
 		if (currentEvent) {
-			scrollToEvent(currentEvent, { position: 'center', select: 'Highlight' });
+			scrollToEvent(currentEvent, { position: ScrollPosition.Center, select: ScrollSelect.Highlight });
 		}
 	}
 
@@ -432,7 +434,7 @@
 
 			await props.room.paginate(Direction.Forward, SystemDefaults.RoomTimelineLimit, prevNewestLoadedEventId);
 
-			await scrollToEvent({ eventId: prevNewestLoadedEventId }, { position: 'end' });
+			await scrollToEvent({ eventId: prevNewestLoadedEventId }, { position: ScrollPosition.End });
 
 			// Wait for DOM to update and layout to settle
 			await nextTick();
@@ -448,7 +450,7 @@
 	}
 
 	function onInReplyToClick(inReplyToId: string) {
-		scrollToEvent({ eventId: inReplyToId }, { position: 'center', select: 'Highlight' });
+		scrollToEvent({ eventId: inReplyToId }, { position: ScrollPosition.Center, select: ScrollSelect.Highlight });
 	}
 
 	function onEditPoll(poll: Poll, eventId: string) {
@@ -504,18 +506,20 @@
 	async function scrollToEvent(
 		currentEvent: TCurrentEvent,
 		options: {
-			position: 'start' | 'center' | 'end';
-			select?: 'Highlight' | 'Select';
-		} = { position: 'start' },
+			position: ScrollPosition.Start | ScrollPosition.Center | ScrollPosition.End;
+			select?: ScrollSelect.Highlight | ScrollSelect.Select;
+		} = { position: ScrollPosition.Start },
 	) {
 		LOGGER.log(SMI.ROOM_TIMELINE, `scroll to event: ${currentEvent.eventId}`, { eventId: currentEvent.eventId });
 
 		if (!elRoomTimeline.value) throw new Error('elRoomTimeline not defined, RoomTimeline not mounted?');
 
-		const doScroll = (elEvent: Element) => {
-			elEvent.scrollIntoView({ block: options.position, behavior: 'smooth' });
+		const doScroll = (elEvent: Element, currentEvent: TCurrentEvent) => {
+			// Position is taken from currentEvent, otherwise options
+			const position = currentEvent.position ?? options.position;
+			elEvent.scrollIntoView({ block: position, behavior: ScrollBehavior.Smooth });
 			// Style the event depending on the select option.
-			if (options.select === 'Highlight') {
+			if (options.select === ScrollSelect.Highlight) {
 				elEvent.classList.add('highlighted');
 				window.setTimeout(() => {
 					elEvent.classList.add('unhighlighted');
@@ -538,7 +542,7 @@
 			elEvent = elRoomTimeline.value.querySelector(`[id="${currentEvent.eventId}"]`);
 		}
 		if (elEvent) {
-			doScroll(elEvent);
+			doScroll(elEvent, currentEvent);
 			emit(RoomEmit.ScrolledToEventId);
 		}
 	}

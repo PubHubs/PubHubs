@@ -38,7 +38,7 @@ describe('DateDisplayer.vue Test', () => {
 		setActivePinia(createPinia());
 
 		// Options cloned from main code - see hub-client/src/i18n.ts
-		((i18n = createI18n({
+		(i18n = createI18n({
 			legacy: false,
 			warnHtmlMessage: false,
 			globalInjection: true,
@@ -55,7 +55,7 @@ describe('DateDisplayer.vue Test', () => {
 					eventTimeStamp: 0,
 					scrollStatus: true,
 				},
-			})));
+			}));
 	});
 	// TEARDOWN - run after to each unit test
 	afterEach(() => {

@@ -40,7 +40,7 @@
 			<div class="flex h-full w-full justify-between overflow-hidden">
 				<RoomLibrary v-if="showLibrary" :id="id" @close="toggleLibrary"></RoomLibrary>
 				<div class="flex h-full w-full flex-col overflow-hidden" :class="{ hidden: showLibrary }">
-					<RoomTimeline v-if="room" :room="room" :scroll-to-event-id="room.getCurrentEvent()" @scrolled-to-event-id="room.setCurrentEvent(undefined)"> </RoomTimeline>
+					<RoomTimeline v-if="room" ref="roomTimeLineComponent" :room="room" :scroll-to-event-id="room.getCurrentEvent()" @scrolled-to-event-id="room.setCurrentEvent(undefined)"> </RoomTimeline>
 				</div>
 				<RoomThread
 					v-if="room.getCurrentThreadId()"
@@ -65,7 +65,7 @@
 
 <script setup lang="ts">
 	// Packages
-	import { computed, onMounted, ref, watch } from 'vue';
+	import { computed, onMounted, popScopeId, ref, watch } from 'vue';
 	import { useRoute, useRouter } from 'vue-router';
 
 	// Components
@@ -92,6 +92,7 @@
 	import { LOGGER } from '@hub-client/logic/logging/Logger';
 	import { SMI } from '@hub-client/logic/logging/StatusMessage';
 
+	import { ScrollPosition } from '@hub-client/models/constants';
 	import { RoomType } from '@hub-client/models/rooms/TBaseRoom';
 	// Models
 	import { TPublicRoom } from '@hub-client/models/rooms/TPublicRoom';
@@ -120,6 +121,7 @@
 	const isMobile = computed(() => settings.isMobileState);
 	const pubhubs = usePubhubsStore();
 	const joinSecuredRoom = ref<string | null>(null);
+	const roomTimeLineComponent = ref<InstanceType<typeof RoomTimeline> | null>(null);
 
 	// Passed by the router
 	const props = defineProps({
@@ -156,11 +158,35 @@
 
 	watch(route, () => {
 		if (rooms.currentRoom) {
+			// for scrolling back to this room: save the id of the first visible event
+			const firstEventId = getFirstVisibleEventId();
+			if (firstEventId) {
+				rooms.scrollPositions[rooms.currentRoom.roomId] = firstEventId ?? '';
+			}
 			rooms.currentRoom.setCurrentThreadId(undefined); // reset current thread
 			rooms.currentRoom.setCurrentEvent(undefined); // reset current event
 		}
 		update();
 	});
+
+	/**
+	 * Gets the Event Id of the first visible event in the roomtimeline
+	 * Needed to save the current scrollposition
+	 */
+	function getFirstVisibleEventId(): string | null {
+		const container = roomTimeLineComponent.value?.elRoomTimeline;
+		if (!container) return null;
+
+		const containerRect = container.getBoundingClientRect();
+
+		for (const child of Array.from(container.querySelectorAll('[id]'))) {
+			const rect = (child as HTMLElement).getBoundingClientRect();
+			if (rect.bottom > containerRect.top) {
+				return (child as HTMLElement).id;
+			}
+		}
+		return null;
+	}
 
 	function currentThreadLengthChanged(newLength: number) {
 		room.value.setCurrentThreadLength(newLength);
@@ -198,6 +224,15 @@
 		rooms.currentRoom.initTimeline();
 
 		searchParameters.value.roomId = rooms.currentRoom.roomId;
+
+		// If there is a position saved in scrollPositions for this room: go there
+		// otherwise go to the newest event
+		if (roomTimeLineComponent.value?.elRoomTimeline && rooms.scrollPositions[rooms.currentRoom.roomId]) {
+			rooms.currentRoom.setCurrentEvent({ eventId: rooms.scrollPositions[rooms.currentRoom.roomId], position: ScrollPosition.Start });
+		} else {
+			const lastEventId = rooms.currentRoom.getRoomNewestMessageId() ?? '';
+			rooms.currentRoom.setCurrentEvent({ eventId: lastEventId, position: ScrollPosition.End });
+		}
 	}
 
 	async function onScrollToEventId(ev: any) {

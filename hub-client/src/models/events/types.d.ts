@@ -1,3 +1,5 @@
+import { ScrollPosition } from '../constants';
+
 export type TThread = {
 	count: number;
 	current_user_participated: boolean;
@@ -11,6 +13,7 @@ export type TRelationsProperties = {
 export type TCurrentEvent = {
 	eventId: string;
 	threadId?: string | undefined;
+	position?: ScrollPosition;
 };
 
 // To be implemented.

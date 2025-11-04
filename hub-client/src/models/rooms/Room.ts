@@ -525,7 +525,11 @@ export default class Room {
 	}
 
 	public getLiveTimelineNewestEvent(): Partial<TBaseEvent> | undefined {
-		return this.matrixRoom.getLiveTimeline().getEvents().at(-1)?.event;
+		return this.timelineManager
+			.getEvents()
+			.map((x) => x.matrixEvent)
+			.at(-1)?.event;
+		//return this.matrixRoom.getLiveTimeline().getEvents().at(-1)?.event;
 	}
 
 	/*
