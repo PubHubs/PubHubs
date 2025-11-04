@@ -139,7 +139,8 @@
 						v-if="!deleteMessageDialog && !viewFromThread && threadLength > 0 && canReplyInThread && !msgIsNotSend && !redactedMessage"
 					>
 						<Icon type="chat-circle" size="xs"></Icon>
-						&nbsp; {{ t('message.threads.view_thread') }} ({{ threadLength }})
+						<!-- &nbsp; {{ t('message.threads.view_thread') }} ({{ threadLength }}) -->
+						&nbsp; {{ t('message.threads.view_thread') }}
 					</button>
 				</div>
 			</div>
