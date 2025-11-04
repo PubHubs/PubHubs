@@ -172,6 +172,16 @@
 		},
 		{ deep: true },
 	);
+	/*
+	If the scrollbar is not visible and the last message is not loaded do a paginate.
+	*/
+	async function checkAndPaginateIfNeeded() {
+		let container = elRoomTimeline.value;
+		if (!container) return;
+		if (container.scrollHeight <= container.clientHeight && !oldestEventIsLoaded.value) {
+			await loadPrevious();
+		}
+	}
 
 	// Is there a reaction for RoomMessageEvent ID.
 	// If there is then show the reaction otherwise dont render reaction UI component.
@@ -210,7 +220,6 @@
 		onScroll();
 
 		LOGGER.log(SMI.ROOM_TIMELINE, `setupRoomTimeline done `, roomTimeLine);
-
 		props.room.setCurrentEvent(props.room.getLiveTimelineNewestEvent as unknown as TCurrentEvent);
 	}
 
@@ -227,7 +236,7 @@
 	function setupTimeLineIntersectionObserver() {
 		const options = {
 			root: elRoomTimeline.value,
-			threshold: 0.1, // Trigger when 10% of the sentinel is visible,
+			threshold: 0.001, // Trigger when 0.1% of the sentinel is visible,
 		};
 
 		timelineObserver = new IntersectionObserver((entries) => {
@@ -355,6 +364,7 @@
 		}
 
 		LOGGER.log(SMI.ROOM_TIMELINE, `onTimelineChange ended `, roomTimeLine.value);
+		checkAndPaginateIfNeeded();
 	}
 
 	// eslint-disable-next-line @typescript-eslint/no-unused-vars

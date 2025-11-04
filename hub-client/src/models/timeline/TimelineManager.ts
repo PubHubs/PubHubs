@@ -369,28 +369,33 @@ class TimelineManager {
 		const overlapIndex = events.findIndex((e) => newIds.has(e.matrixEvent.event.event_id));
 		if (overlapIndex === -1) {
 			// No overlap — fallback to slicing from start or end
-			const filler = direction === Direction.Backward ? events.slice(-Math.max(0, limit - newEvents.length)) : events.slice(0, Math.max(0, limit - newEvents.length));
-			return [...newEvents, ...filler];
+			const currentEvents = direction === Direction.Backward ? events.slice(-Math.max(0, limit - newEvents.length)) : events.slice(0, Math.max(0, limit - newEvents.length));
+			if (direction === Direction.Backward) {
+				return [...newEvents, ...currentEvents];
+			} else {
+				return [...currentEvents, ...newEvents];
+			}
 		}
 
 		// Filter out duplicates
 		const filteredEvents = events.filter((e) => !newIds.has(e.matrixEvent.event.event_id));
 
 		// Select filler based on direction
-		let filler: TimelineEvent[] = [];
+		let currentEvents: TimelineEvent[] = [];
 		if (direction === Direction.Backward) {
 			//if overlapIndex is null, then fill from the back
 			if (overlapIndex > 0) {
-				filler = filteredEvents.slice(0, overlapIndex).slice(-Math.max(0, limit - newEvents.length));
+				currentEvents = filteredEvents.slice(0, overlapIndex).slice(-Math.max(0, limit - newEvents.length));
 			} else {
+				currentEvents = filteredEvents.slice(0, overlapIndex).slice(-Math.max(0, limit - newEvents.length));
 				const reversedIndex = [...events].reverse().findIndex((e) => newIds.has(e.matrixEvent.event.event_id));
 				const lastOverlapIndex = reversedIndex === -1 ? -1 : events.length - 1 - reversedIndex;
-				filler = filteredEvents.slice(lastOverlapIndex + 1).slice(0, Math.max(0, limit - newEvents.length));
+				currentEvents = filteredEvents.slice(lastOverlapIndex + 1).slice(0, Math.max(0, limit - newEvents.length));
 			}
 		} else {
-			filler = filteredEvents.slice(overlapIndex + 1).slice(0, Math.max(0, limit - newEvents.length));
+			currentEvents = filteredEvents.slice(overlapIndex + 1).slice(0, Math.max(0, limit - newEvents.length));
 		}
-		return [...newEvents, ...filler];
+		return [...currentEvents, ...newEvents];
 	}
 
 	/**
@@ -409,7 +414,7 @@ class TimelineManager {
 				let timeLineEvents = newEvents.map((event) => new TimelineEvent(event, this.roomId));
 				timeLineEvents = this.ensureListLength(this.timelineEvents, timeLineEvents, SystemDefaults.RoomTimelineLimit, direction);
 				this.getRelatedEvents(timeLineEvents);
-				this.timelineEvents = this.timelineEvents.filter((x) => !timeLineEvents.some((newEvent) => newEvent.matrixEvent.event.event_id === x.matrixEvent.event.event_id));
+				timeLineEvents = timeLineEvents.filter((x) => !this.timelineEvents.some((newEvent) => newEvent.matrixEvent.event.event_id === x.matrixEvent.event.event_id));
 				if (direction === Direction.Backward) {
 					this.timelineEvents = [...timeLineEvents, ...this.timelineEvents];
 				} else {
@@ -432,7 +437,6 @@ class TimelineManager {
 			return [];
 		}
 		let tempEvents: MatrixEvent[] = this.prepareEvents(timeline.getEvents());
-
 		// need to paginate both directions, for when event is in beginning or end. The surplus does not matter
 		const joinPromises: Promise<any>[] = [];
 		joinPromises.push(this.performPaginate(Direction.Backward, SystemDefaults.RoomTimelineLimit, timeline));
