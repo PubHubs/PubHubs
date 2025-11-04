@@ -1,11 +1,11 @@
 // Packages
 import * as sdk from 'matrix-js-sdk';
-
 import { ICreateClientOpts, MatrixClient } from 'matrix-js-sdk';
-// Stores
-import { Message, MessageType, useMessageBox } from '@hub-client/stores/messagebox';
 
 import { CONFIG } from '@hub-client/logic/logging/Config';
+
+// Stores
+import { Message, MessageType, useMessageBox } from '@hub-client/stores/messagebox';
 import { useUser } from '@hub-client/stores/user';
 
 class Authentication {
