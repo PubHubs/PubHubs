@@ -13,7 +13,7 @@ type Language = 'nl' | 'en';
 const supportedLanguages: Language[] = ['nl', 'en'];
 
 // The default language is determined by the browser
-const defaultLanguage = getLanguageFromBrowser() || 'en';
+const defaultLanguage = getLanguageFromBrowser() || 'nl';
 
 // The static site can communicate the user's language preference through the query parameter 'lang'.
 // Usefull when the user is not logged in, but did choose a language on the static site.
@@ -108,7 +108,6 @@ function getLanguageFromBrowser(): Language | null {
 
 function getLanguageFromQueryParam(): Language | null {
 	const lang = new URLSearchParams(window.location.search).get('lang');
-
 	if (lang && languageIsSupported(lang)) {
 		return lang;
 	} else {
