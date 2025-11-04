@@ -1,5 +1,6 @@
 // Packages
 import { Direction, EventTimeline, EventType, Filter, MatrixClient, MatrixEvent, MsgType } from 'matrix-js-sdk';
+import { isMappedTypeNode } from 'typescript';
 
 // Stores
 import { useMatrix } from '@hub-client/composables/matrix.composable';
@@ -429,34 +430,39 @@ class TimelineManager {
 	 * @param currentEvent event to load the timeline to
 	 * @returns
 	 */
-	public async loadToEvent(currentEvent: TCurrentEvent) {
+	public async loadToEvent(currentEvent: TCurrentEvent): Promise<TimelineEvent[]> {
 		LOGGER.log(SMI.ROOM_TIMELINEMANAGER, `Loading timeline to event ${currentEvent.eventId}`);
+
 		// in case the event is not currently in the list: try to get it from its timeline
 		const timeline = await this.getEventTimeline(currentEvent.eventId);
 		if (!timeline) {
 			return [];
 		}
+
 		let tempEvents: MatrixEvent[] = this.prepareEvents(timeline.getEvents());
+
 		// need to paginate both directions, for when event is in beginning or end. The surplus does not matter
-		const joinPromises: Promise<any>[] = [];
+		const joinPromises: Promise<MatrixEvent[]>[] = [];
 		joinPromises.push(this.performPaginate(Direction.Backward, SystemDefaults.RoomTimelineLimit, timeline));
 		joinPromises.push(this.performPaginate(Direction.Forward, SystemDefaults.RoomTimelineLimit, timeline));
 
-		Promise.all(joinPromises).then(([newBackEvents, newForwardEvents]) => {
-			if (newBackEvents?.length > 0 || newForwardEvents?.length > 0) {
-				tempEvents = [...newBackEvents, ...newForwardEvents];
-				tempEvents = Array.from(new Map(tempEvents.map((e) => [e.event.event_id, e])).values()); // make unique
-			}
-			let mappedEvents = tempEvents.map((event) => new TimelineEvent(event, this.roomId));
-			mappedEvents = this.ensureListLength(this.timelineEvents, mappedEvents, SystemDefaults.RoomTimelineLimit, Direction.Backward);
+		const [newBackEvents, newForwardEvents] = await Promise.all(joinPromises);
 
-			this.getRelatedEvents(mappedEvents).then((relatedEvents) => {
-				this.relatedEvents = relatedEvents;
-			});
+		if (newBackEvents?.length > 0 || newForwardEvents?.length > 0) {
+			tempEvents = [...newBackEvents, ...newForwardEvents];
+			tempEvents = Array.from(new Map(tempEvents.map((e) => [e.event.event_id, e])).values()); // make unique
+		}
 
-			this.timelineEvents = mappedEvents;
-			this.redactedEvents = []; // Loaded to new event so we can remove the redactedevents
+		let mappedEvents = tempEvents.map((event) => new TimelineEvent(event, this.roomId));
+		mappedEvents = this.ensureListLength(this.timelineEvents, mappedEvents, SystemDefaults.RoomTimelineLimit, Direction.Backward);
+
+		this.getRelatedEvents(mappedEvents).then((relatedEvents) => {
+			this.relatedEvents = relatedEvents;
 		});
+		this.timelineEvents = mappedEvents;
+		this.redactedEvents = [];
+
+		return mappedEvents;
 	}
 
 	/**
