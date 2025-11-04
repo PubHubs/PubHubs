@@ -1,6 +1,6 @@
 <template>
 	<template v-if="rooms.currentRoomExists">
-		<HeaderFooter v-if="plugin === false" :headerSize="'sm'" :headerMobilePadding="true" bgBarLow="bg-background" bgBarMedium="bg-surface-low">
+		<HeaderFooter :headerSize="'sm'" :headerMobilePadding="true" bgBarLow="bg-background" bgBarMedium="bg-surface-low">
 			<template #header>
 				<div class="items-center gap-4 text-on-surface-dim" :class="isMobile ? 'hidden' : 'flex'">
 					<span class="font-semibold uppercase">{{ $t('rooms.room') }}</span>
@@ -58,9 +58,6 @@
 				<EditRoomForm v-if="showEditRoom" :room="currentRoomToEdit" :secured="secured" @close="closeEdit()" />
 			</template>
 		</HeaderFooter>
-
-		<!-- Plugin Room -->
-		<component v-if="plugin !== false && plugin !== true" :is="plugin.component" />
 	</template>
 	<!-- Secure room join dialog -->
 	<SecuredRoomLoginDialog v-if="joinSecuredRoom" v-model:dialogOpen="joinSecuredRoom" title="rooms.join_room" message="rooms.join_secured_room_dialog" :messageValues="[]" @close="router.push({ name: 'home' })" />
@@ -95,6 +92,7 @@
 	import { LOGGER } from '@hub-client/logic/logging/Logger';
 	import { SMI } from '@hub-client/logic/logging/StatusMessage';
 
+	import { RoomType } from '@hub-client/models/rooms/TBaseRoom';
 	// Models
 	import { TPublicRoom } from '@hub-client/models/rooms/TPublicRoom';
 	import { TSecuredRoom } from '@hub-client/models/rooms/TSecuredRoom';
@@ -102,7 +100,6 @@
 
 	// Stores
 	import { useHubSettings } from '@hub-client/stores/hub-settings';
-	import { PluginProperties, usePlugins } from '@hub-client/stores/plugins';
 	import { usePubhubsStore } from '@hub-client/stores/pubhubs';
 	import { useRooms } from '@hub-client/stores/rooms';
 	import { FeatureFlag, useSettings } from '@hub-client/stores/settings';
@@ -112,8 +109,6 @@
 	const rooms = useRooms();
 	const user = useUser();
 	const router = useRouter();
-	const plugins = usePlugins();
-	const plugin = ref(false as boolean | PluginProperties);
 	const hubSettings = useHubSettings();
 	const currentRoomToEdit = ref<TSecuredRoom | TPublicRoom | null>(null);
 	const showEditRoom = ref(false);
@@ -203,7 +198,6 @@
 		rooms.currentRoom.initTimeline();
 
 		searchParameters.value.roomId = rooms.currentRoom.roomId;
-		plugin.value = plugins.hasRoomPlugin(rooms.currentRoom);
 	}
 
 	async function onScrollToEventId(ev: any) {
@@ -224,10 +218,23 @@
 	}
 
 	async function stewardCanEdit() {
-		currentRoomToEdit.value = await rooms.getTPublicOrTSecuredRoom(props.id);
-		const isSecuredRoom = rooms.roomIsSecure(props.id);
-		if (isSecuredRoom) secured.value = true;
-		showEditRoom.value = true;
+		// We need to fetch latest public created rooms.
+		const currentPublicRooms = await pubhubs.getAllPublicRooms();
+
+		currentRoomToEdit.value = currentPublicRooms.find((room) => room.room_id === props.id);
+
+		// If room is not there then don't show dialog box. Throw an error.
+		if (!currentRoomToEdit.value) {
+			router.push({
+				name: 'error-page',
+				query: { errorKey: 'errors.cant_find_room' },
+			});
+		} else {
+			if (currentRoomToEdit.value?.room_type === RoomType.PH_MESSAGES_RESTRICTED) {
+				secured.value = true;
+			}
+			showEditRoom.value = true;
+		}
 	}
 
 	function closeEdit() {

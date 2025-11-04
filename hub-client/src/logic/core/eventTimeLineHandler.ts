@@ -1,13 +1,9 @@
+// Models
 // Logic
 import { sanitizeHtml } from '@hub-client/logic/core/sanitizer';
 
-// Models
 import { TEvent } from '@hub-client/models/events/TEvent';
 import { TTextMessageEventContent } from '@hub-client/models/events/TMessageEvent';
-
-// Stores
-import { usePlugins } from '@hub-client/stores/plugins';
-import { useRooms } from '@hub-client/stores/rooms';
 
 /**
  * This class handles all changes that should be made to incoming timeline events
@@ -49,7 +45,6 @@ class EventTimeLineHandler {
 		eventContent.ph_body = this.addMentions(eventContent.ph_body);
 		eventContent.ph_body = this.addLineBreaks(eventContent.ph_body);
 		eventContent.ph_body = this.sanitizeEventContent(eventContent.ph_body);
-		event = this.checkPluginEventContent(event);
 		return event;
 	}
 
@@ -80,25 +75,6 @@ class EventTimeLineHandler {
 	private sanitizeEventContent(body: string) {
 		body = sanitizeHtml(body);
 		return body;
-	}
-
-	private checkPluginEventContent(event: Partial<TEvent>) {
-		const roomId = event.room_id;
-		if (!roomId) return event;
-
-		const plugins = usePlugins();
-		const rooms = useRooms();
-		const roomType = rooms.room(roomId)?.getType();
-		const eventPlugin = plugins.getEventPlugin(event, roomId, roomType);
-		if (eventPlugin) {
-			event.plugin = eventPlugin;
-		} else {
-			const eventMessagePlugin = plugins.getEventMessagePlugin(event, roomId, roomType);
-			if (eventMessagePlugin) {
-				event.plugin = eventMessagePlugin;
-			}
-		}
-		return event;
 	}
 }
 

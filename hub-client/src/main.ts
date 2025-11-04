@@ -17,13 +17,12 @@ import { router } from '@hub-client/logic/core/router';
 // Pages
 import App from '@hub-client/pages/App.vue';
 
-// Other
-
 import { ReplaceConsole } from '@hub-client/console';
 import { setUpi18n } from '@hub-client/i18n';
 import { registerComponents } from '@hub-client/registerComponents';
-import { registerPluginComponents, registerPlugins } from '@hub-client/registerPlugins';
 import '@hub-client/registerServiceWorker';
+
+// Other
 
 ReplaceConsole();
 
@@ -31,9 +30,6 @@ const pinia = createPinia();
 const app = createApp(App);
 
 registerComponents(app);
-
-registerPlugins(app);
-registerPluginComponents(app);
 
 const i18n = setUpi18n(app);
 app.use(i18n);

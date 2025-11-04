@@ -4,10 +4,8 @@ import { I18nOptions, createI18n } from 'vue-i18n';
 
 // Locales
 import { en } from '@hub-client/locales/en';
-import { nl } from '@hub-client/locales/nl';
-
 // Logic
-import { mergeDeep } from '@hub-client/logic/core/extensions';
+import { nl } from '@hub-client/locales/nl';
 
 // Types
 type Language = 'nl' | 'en';
@@ -86,17 +84,6 @@ const i18nOptions: I18nOptions = {
 };
 
 const setUpi18n = function (app?: App) {
-	// If there are plugins, their translations will be added to global i18n translations (messages)
-	if (typeof app !== 'undefined') {
-		let pluginMessages = {};
-		app.config.globalProperties._plugins.forEach((plugin: any) => {
-			if (plugin.i18n_messages) {
-				pluginMessages = mergeDeep(pluginMessages, plugin.i18n_messages);
-			}
-		});
-		i18nOptions.messages = mergeDeep(i18nOptions.messages, pluginMessages);
-	}
-
 	const i18n = createI18n(i18nOptions);
 	setLanguage(i18n, fallbackLanguage);
 	return i18n;
