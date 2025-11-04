@@ -13,7 +13,7 @@ import * as mssTypes from '@global-client/models/MSS/TMultiServerSetup';
 // Stores
 import { useGlobal } from '@global-client/stores/global';
 
-import { DialogOk, useDialog } from '@hub-client/stores/dialog';
+import { DialogCancel, DialogOk, useDialog } from '@hub-client/stores/dialog';
 import { useSettings } from '@hub-client/stores/settings';
 
 // Other
@@ -53,6 +53,12 @@ export default class PHCServer {
 		dialog.confirm(t('login.not_logged_in'), t('login.login_again'));
 		dialog.addCallback(DialogOk, async () => {
 			await global.logout();
+			dialog.removeCallback(DialogOk);
+			dialog.removeCallback(DialogCancel);
+		});
+		dialog.addCallback(DialogCancel, async () => {
+			await global.logout();
+			dialog.removeCallback(DialogCancel);
 			dialog.removeCallback(DialogOk);
 		});
 	}
