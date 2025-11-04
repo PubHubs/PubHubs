@@ -1,9 +1,6 @@
 // Models
 import { Unsigned } from '@hub-client/models/events/types';
 
-// Stores
-import { PluginProperties } from '@hub-client/stores/plugins';
-
 /**
  * Base type for events which are based on matrix's ClientEvent.
  *
@@ -19,5 +16,4 @@ export type TBaseEvent = {
 	state_key?: string;
 	type: string;
 	unsigned?: Unsigned;
-	plugin?: PluginProperties;
 };

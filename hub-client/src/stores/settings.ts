@@ -31,7 +31,6 @@ enum NotificationsPermission {
 
 enum FeatureFlag {
 	signedMessages = 'signedMessages',
-	plugins = 'plugins',
 	dateSplitter = 'dateSplitter',
 	disclosure = 'disclosure',
 	unreadMarkers = 'unreadmarkers',
@@ -102,7 +101,6 @@ const defaultSettings: Settings = {
 	featureFlags: {
 		main: {
 			signedMessages: true,
-			plugins: true,
 			dateSplitter: true,
 			disclosure: false,
 			unreadmarkers: true,
@@ -117,7 +115,6 @@ const defaultSettings: Settings = {
 		},
 		stable: {
 			signedMessages: true,
-			plugins: true,
 			dateSplitter: true,
 			disclosure: false,
 			unreadmarkers: true,
@@ -132,7 +129,6 @@ const defaultSettings: Settings = {
 		},
 		local: {
 			signedMessages: true,
-			plugins: true,
 			dateSplitter: true,
 			disclosure: false,
 			unreadmarkers: true,

@@ -134,7 +134,6 @@
 	import { useMenu } from '@hub-client/stores/menu';
 	import { MessageType } from '@hub-client/stores/messagebox';
 	import { Message, MessageBoxType, useMessageBox } from '@hub-client/stores/messagebox';
-	import { usePlugins } from '@hub-client/stores/plugins';
 	import { usePubhubsStore } from '@hub-client/stores/pubhubs';
 	import { useRooms } from '@hub-client/stores/rooms';
 	import { FeatureFlag, useSettings } from '@hub-client/stores/settings';
@@ -149,16 +148,11 @@
 	const messagebox = useMessageBox();
 	const dialog = useDialog();
 	const pubhubs = usePubhubsStore();
-	const plugins = usePlugins();
 	const menu = useMenu();
 	const settingsDialog = ref(false);
 	const setupReady = ref(false);
 	const disclosureEnabled = settings.isFeatureEnabled(FeatureFlag.disclosure);
 	const isMobile = computed(() => settings.isMobileState);
-
-	onMounted(() => {
-		plugins.setPlugins(getCurrentInstance()?.appContext.config.globalProperties._plugins, router);
-	});
 
 	onMounted(async () => {
 		LOGGER.trace(SMI.STARTUP, 'App.vue onMounted');
