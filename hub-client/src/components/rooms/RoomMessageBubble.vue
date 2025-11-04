@@ -1,12 +1,6 @@
 <template>
 	<div ref="elReactionPopUp">
-		<!-- Plugin Event -->
-		<div v-if="event.plugin && event.plugin.plugintype === PluginType.EVENT && event.type === event.plugin.type">
-			<component :is="event.plugin.component" :event="event">{{ event.plugin.component }}</component>
-		</div>
-
-		<!-- Normal Event -->
-		<div v-else class="group flex flex-col py-3" :class="getMessageContainerClasses" role="article">
+		<div class="group flex flex-col py-3" :class="getMessageContainerClasses" role="article">
 			<!-- Announcement Header -->
 			<div v-if="isAnnouncementMessage && !redactedMessage" class="flex w-full items-center bg-surface-high px-8 py-1 ~text-label-small-min/label-small-max" :class="{ 'mx-4': props.deleteMessageDialog }">
 				<Icon type="megaphone-simple" size="sm" class="mr-1"></Icon>
@@ -116,35 +110,27 @@
 						</div>
 					</div>
 
-					<!-- Plugin Message -->
-					<template v-if="event.plugin?.plugintype === PluginType.MESSAGE && event.content.msgtype === event.plugin.type">
-						<component :is="event.plugin.component" :event="event">{{ event.plugin.component }}</component>
-					</template>
+					<Suspense>
+						<MessageSnippet v-if="showReplySnippet(event.content.msgtype)" @click="onInReplyToClick" :eventId="inReplyToId" :showInReplyTo="true" :room="room" />
+						<template #fallback>
+							<div class="flex items-center gap-3 rounded-md px-2">
+								<p>{{ t('state.loading_message') }}</p>
+							</div>
+						</template>
+					</Suspense>
 
-					<!-- Regular Message -->
-					<template v-else>
-						<Suspense>
-							<MessageSnippet v-if="showReplySnippet(event.content.msgtype)" @click="onInReplyToClick" :eventId="inReplyToId" :showInReplyTo="true" :room="room" />
-							<template #fallback>
-								<div class="flex items-center gap-3 rounded-md px-2">
-									<p>{{ t('state.loading_message') }}</p>
-								</div>
-							</template>
-						</Suspense>
+					<Message v-if="event.content.msgtype === MsgType.Text || redactedMessage" :event="event" :deleted="redactedMessage" class="max-w-[90ch]" />
+					<AnnouncementMessage v-if="isAnnouncementMessage && !redactedMessage && !room.isPrivateRoom()" :event="event.content" />
+					<MessageSigned v-if="event.content.msgtype === PubHubsMgType.SignedMessage && !redactedMessage" :message="event.content.signed_message" class="max-w-[90ch]" />
+					<MessageFile v-if="event.content.msgtype === MsgType.File && !redactedMessage" :message="event.content" />
+					<MessageImage v-if="event.content.msgtype === MsgType.Image && !redactedMessage" :message="event.content" />
 
-						<Message v-if="event.content.msgtype === MsgType.Text || redactedMessage" :event="event" :deleted="redactedMessage" class="max-w-[90ch]" />
-						<AnnouncementMessage v-if="isAnnouncementMessage && !redactedMessage && !room.isPrivateRoom()" :event="event.content" />
-						<MessageSigned v-if="event.content.msgtype === PubHubsMgType.SignedMessage && !redactedMessage" :message="event.content.signed_message" class="max-w-[90ch]" />
-						<MessageFile v-if="event.content.msgtype === MsgType.File && !redactedMessage" :message="event.content" />
-						<MessageImage v-if="event.content.msgtype === MsgType.Image && !redactedMessage" :message="event.content" />
-
-						<VotingWidget
-							v-if="settings.isFeatureEnabled(FeatureFlag.votingWidget) && event.content.msgtype === PubHubsMgType.VotingWidget && !redactedMessage"
-							:event="event"
-							@edit-poll="(poll, eventId) => emit('editPoll', poll, eventId)"
-							@edit-scheduler="(scheduler, eventId) => emit('editScheduler', scheduler, eventId)"
-						/>
-					</template>
+					<VotingWidget
+						v-if="settings.isFeatureEnabled(FeatureFlag.votingWidget) && event.content.msgtype === PubHubsMgType.VotingWidget && !redactedMessage"
+						:event="event"
+						@edit-poll="(poll, eventId) => emit('editPoll', poll, eventId)"
+						@edit-scheduler="(scheduler, eventId) => emit('editScheduler', scheduler, eventId)"
+					/>
 
 					<!-- Thread View Button -->
 					<button
@@ -203,7 +189,6 @@
 	// Stores
 	import { useConnection } from '@hub-client/stores/connection';
 	import { useMessageActions } from '@hub-client/stores/message-actions';
-	import { PluginType } from '@hub-client/stores/plugins';
 	import { usePubhubsStore } from '@hub-client/stores/pubhubs';
 	import { FeatureFlag, useSettings } from '@hub-client/stores/settings';
 	import { useUser } from '@hub-client/stores/user';

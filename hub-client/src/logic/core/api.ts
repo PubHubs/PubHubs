@@ -1,14 +1,8 @@
 // Logic
 import { Api } from '@hub-client/logic/core/apiCore';
+import { CONFIG } from '@hub-client/logic/logging/Config';
 
-// This is needed so histoire can run (otherwise _env is undefined)
-let BASE_URL = '';
-
-// @ts-expect-error
-if (typeof _env !== 'undefined') {
-	// @ts-expect-error
-	BASE_URL = _env.HUB_URL;
-}
+let BASE_URL = CONFIG._env.HUB_URL;
 
 const api_synapse = new Api(BASE_URL + '/_synapse/', {
 	// Client APIs

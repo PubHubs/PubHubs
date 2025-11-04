@@ -1,7 +1,7 @@
 <template>
 	<Menu>
 		<template v-for="room in currentJoinedRooms" :key="room.roomId">
-			<MenuItem :to="{ name: 'room', params: { id: room.roomId } }" :room="room" :icon="roomIcon(room)" @click="hubSettings.hideBar()" class="group inline-block w-full">
+			<MenuItem :to="{ name: 'room', params: { id: room.roomId } }" :room="room" icon="chats-circle" @click="hubSettings.hideBar()" class="group inline-block w-full">
 				<span class="flex w-full items-center justify-between gap-4">
 					<TruncatedText>
 						<PrivateRoomName v-if="room.isPrivateRoom()" :members="room.getOtherJoinedAndInvitedMembers()" />
@@ -83,7 +83,6 @@
 	import { useDialog } from '@hub-client/stores/dialog';
 	import { useHubSettings } from '@hub-client/stores/hub-settings';
 	import { useNotifications } from '@hub-client/stores/notifications';
-	import { PluginProperties, usePlugins } from '@hub-client/stores/plugins';
 	import { usePubhubsStore } from '@hub-client/stores/pubhubs';
 	import { useRooms } from '@hub-client/stores/rooms';
 	import { FeatureFlag, useSettings } from '@hub-client/stores/settings';
@@ -95,7 +94,6 @@
 	const router = useRouter();
 	const rooms = useRooms();
 	const pubhubs = usePubhubsStore();
-	const plugins = usePlugins();
 	const messageValues = ref<(string | number)[]>([]);
 	const dialogOpen = ref<string | null>(null);
 	const dialog = useDialog();
@@ -145,14 +143,6 @@
 		return isSingleAdmin ? 'rooms.leave_admin' : 'rooms.leave_sure';
 	}
 
-	function roomIcon(room: Room): string {
-		let icon = 'chats-circle';
-		const plugin = plugins.hasRoomPlugin(room) as PluginProperties;
-		if (plugin.icon) {
-			icon = plugin.icon;
-		}
-		return icon;
-	}
 	async function dismissNotification(room_id: string, event: Event) {
 		event.stopPropagation();
 		if (await dialog.okcancel(t('rooms.leave_sure'))) {
