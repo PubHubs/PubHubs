@@ -87,27 +87,6 @@ router.beforeEach(async (to, _from, next) => {
 	}
 });
 
-router.beforeEach((to, from, next) => {
-	// Redirect to home if navigating to error page from a browser refresh (undefined)
-	if (to.name === 'error' && from.name === undefined) {
-		next({ name: 'home' });
-		return;
-	}
-	next();
-});
-
-router.beforeEach(async (to, _from, next) => {
-	const global = useGlobal();
-	const isLoggedIn = await global.checkLoginAndSettings();
-
-	if (to.meta.requiresAuth && !isLoggedIn) {
-		const redirectPath = to.fullPath;
-		next({ name: 'login', query: redirectPath === '/' ? {} : { redirect: redirectPath } });
-	} else {
-		next();
-	}
-});
-
 // Set up Pinia store
 const pinia = createPinia();
 pinia.use(({ store }) => {
