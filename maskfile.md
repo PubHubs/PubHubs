@@ -25,6 +25,7 @@ bash run-all.sh
 > Initializes/wipes the development environment
 
 ```sh
+mask check versions
 mask run s3 init
 mask run hub init
 ```
@@ -211,3 +212,27 @@ echo  "Building hub..."
 cd pubhubs_hub
 docker build -t pubhubs-hub .
 ```
+
+## check
+
+> Check your local PubHubs development environment
+
+```sh
+mask check versions
+```
+
+### versions
+
+> Check whether some of the required software is installed
+
+```sh
+if ! command -v python3 >/dev/null 2>&1
+then
+    echo "PROBLEM: 'python3' is required to run the pubhubs locally, but was not found"
+    exit 1
+fi
+
+python3 check-python-version.py
+python3 check-versions.py
+```
+
