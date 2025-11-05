@@ -263,7 +263,7 @@ const en = {
 		joined: 'Room successfully joined!',
 		add_room: 'Add a room',
 		name: 'Name of the room',
-		contact: 'Contact for ',
+		contact: 'Room Steward for room ',
 		name_general_room: 'General',
 		name_feedback_room: 'Your feedback on PubHubs',
 		no_match: 'No rooms were found that match your search query.',
@@ -423,6 +423,8 @@ const en = {
 		add_tip: 'Use "," to add several values at once',
 		editroom_typing: 'Select here the secured attribute you want to check',
 		value: 'Values',
+		admin_contact_main_msg: 'For any room-related queries, please contact the room steward. Would you still like to contact the Hub Administrator?',
+		if_admin_contact_not_present: 'The Hub administrator is unavailable. Please contact the room steward for help.',
 	},
 	themes: {
 		dark: 'Dark',

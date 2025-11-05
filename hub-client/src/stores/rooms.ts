@@ -742,6 +742,7 @@ const useRooms = defineStore('rooms', {
 					const roomUserId = roomMembers.map((member) => member.userId);
 
 					const newStewardId = stewardIds.filter((stewardUserId) => !roomUserId.includes(stewardUserId));
+
 					if (newStewardId.length > 0) {
 						newStewardId.forEach(async (thisSteward) => {
 							await pubhubs.invite(stewardRoom.roomId, thisSteward);
@@ -751,7 +752,6 @@ const useRooms = defineStore('rooms', {
 				await pubhubs.routeToRoomPage({ room_id: stewardRoom.roomId });
 			} else {
 				const pubhubs = usePubhubsStore();
-
 				const privateRoom = await pubhubs.createPrivateRoomWith(members, false, true, roomId);
 				privateRoom && (await pubhubs.routeToRoomPage(privateRoom));
 			}

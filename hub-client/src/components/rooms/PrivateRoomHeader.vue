@@ -1,6 +1,6 @@
 <template>
 	<div class="flex flex-row gap-2">
-		<Avatar :avatar-url="user.userAvatar(otherUser?.userId)" :user-id="otherUser?.userId" />
+		<Avatar :avatar-url="user.userAvatar(otherUser?.userId)" :user-id="otherUser?.userId" :icon="users" />
 		<div class="flex h-fit flex-col overflow-hidden">
 			<p class="truncate font-bold leading-tight">
 				{{ otherUser?.rawDisplayName ?? '' }}

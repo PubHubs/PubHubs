@@ -1,7 +1,7 @@
 <template>
 	<div class="mx-auto my-2 rounded-xl px-4 py-1" :class="newMessage ? 'bg-surface-high' : 'bg-surface-low'" @click="goToRoom">
 		<div class="flex min-w-0 items-center gap-4" :class="{ 'font-bold': newMessage }">
-			<Avatar :class="'flex-shrink-0'" :avatar-url="avatarOverrideUrl" icon="two_users" />
+			<Avatar :class="'flex-shrink-0'" :avatar-url="avatarOverrideUrl" icon="users" />
 			<div class="min-w-0 flex-grow overflow-hidden">
 				<div class="flex flex-col gap-1">
 					<div class="flex flex-row items-center gap-2">
@@ -9,9 +9,10 @@
 							{{ displayName }}
 						</p>
 						<p v-if="isGroupOrContact" class="flex items-center leading-tight">
+							<span class="mr-2 truncate font-bold leading-tight" v-if="props.room.getType() === RoomType.PH_MESSAGE_STEWARD_CONTACT">({{ rooms.fetchRoomById(props.room.name.split(',')[0]).name }})</span>
 							<template v-if="props.room.getType() !== RoomType.PH_MESSAGE_ADMIN_CONTACT">
 								<span class="~text-label-small-min/label-small-max">{{ props.room.getRoomMembers() }}</span>
-								<Icon type="user" size="sm" class="mr-1" />
+								<Icon type="user" size="sm" class="mr-0.5" />
 								<span class="~text-label-small-min/label-small-max">{{ $t('others.group_members') }}</span>
 							</template>
 							<template v-else>
@@ -60,7 +61,10 @@
 	import Room from '@hub-client/models/rooms/Room';
 	import { RoomType } from '@hub-client/models/rooms/TBaseRoom';
 
+	import { useRooms } from '@hub-client/stores/rooms';
+
 	const router = useRouter();
+	const rooms = useRooms();
 	const { t } = useI18n();
 
 	const props = defineProps({
