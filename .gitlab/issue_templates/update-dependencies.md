@@ -5,6 +5,7 @@ Also make sure to not squash the commits so we can search for them later.
 
 ## PubHubs central
 ### Rust
+ - [ ] Make sure `rust-version` in [`Cargo.toml`](/pubhubs/Cargo.toml) is equal to the [latest version supported by NixOS](https://search.nixos.org/packages?channel=unstable&show=cargo&query=cargo).
  - [ ] In the `pubhubs` directory, run `cargo update -v` to install updates that are likely backwards compatible. 
  - [ ] *If* you are familiar with the rust code, check for (and likely breaking) major releases using `cargo update -v` and adjust `Cargo.toml` (and the code) accordingly.
 
