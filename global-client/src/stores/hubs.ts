@@ -163,13 +163,15 @@ const useHubs = defineStore('hubs', {
 				const settings = useSettings();
 				settings.sendSettings();
 
-				// Send hub information
-				messagebox.sendMessage(new Message(MessageType.HubInformation, { name: this.hub(hubId)!.hubName }), iframeHubId);
-
-				// Let hub navigate to given room (if loggedIn)
-				if (global.loggedIn && roomId !== undefined && roomId !== '') {
-					messagebox.sendMessage(new Message(MessageType.RoomChange, roomId), iframeHubId);
-				}
+				// Add a callback for sending the hubinformation
+				messagebox.addCallback(iframeHubId, MessageType.SendHubInformation, () => {
+					// Send hub information
+					messagebox.sendMessage(new Message(MessageType.HubInformation, { name: this.hub(hubId)!.hubName }), iframeHubId);
+					// Let hub navigate to given room (if loggedIn)
+					if (global.loggedIn && roomId !== undefined && roomId !== '') {
+						messagebox.sendMessage(new Message(MessageType.RoomChange, roomId), iframeHubId);
+					}
+				});
 
 				// Listen to room change: only change url without reloading
 				// Because this is the callback that sets the URL from the iFrame

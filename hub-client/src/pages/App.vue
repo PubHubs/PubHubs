@@ -225,6 +225,9 @@
 			messagebox.addCallback('parentFrame', MessageType.BarShow, () => {
 				hubSettings.mobileHubMenu = true;
 			});
+
+			// Ask for hubinformation
+			messagebox.sendMessage(new Message(MessageType.SendHubInformation));
 		}
 	}
 

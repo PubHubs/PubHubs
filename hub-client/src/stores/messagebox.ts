@@ -73,6 +73,7 @@ enum MessageType {
 
 	Sync = 'sync', // CHILD asks for syncing settings etc.
 	UnreadMessages = 'unreadmessages', // Sync total of unread messages for a hub
+	SendHubInformation = 'sendhubinformation', // Let child ask to send the hubinformation
 	HubInformation = 'hubinformation', // Sync hub information (name) with hub client.
 	Settings = 'settings', // Sync settings
 	RoomChange = 'roomchange', // Change to a room - makes it possible to reflect the room in the url
