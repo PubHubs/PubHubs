@@ -5,7 +5,7 @@
 
 import sys
 
-required = (3, 13)
+required = (3, 12)
 present = (sys.version_info[0], sys.version_info[1])
 
 if present >= required:
