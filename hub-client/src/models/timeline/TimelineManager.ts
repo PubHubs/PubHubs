@@ -254,6 +254,7 @@ class TimelineManager {
 		// TODO remove redacted events when necessary: so whenever a pagination is taking place
 
 		// Filters out the visible events, so from now on we are working on the visible timeline
+
 		matrixEvents = this.prepareEvents(matrixEvents);
 		let eventList = matrixEvents.map((event) => new TimelineEvent(event, this.roomId));
 
@@ -271,6 +272,7 @@ class TimelineManager {
 				// if the current timeline is empty AND the eventlist is also empty (only when room is new or none of the initial synced events were messages)
 				// we need to initialize with the newest message in the current livetimeline, else we initialize with the eventlist
 				if (eventList.length === 0) {
+					// TODO Find better way of finding newest message without making these calls
 					const newestMessage = await this.getInitialNewestMessage();
 					if (newestMessage && newestMessage.event.event_id) {
 						await this.loadToEvent({ eventId: newestMessage.event.event_id });
@@ -443,8 +445,8 @@ class TimelineManager {
 
 		// need to paginate both directions, for when event is in beginning or end. The surplus does not matter
 		const joinPromises: Promise<MatrixEvent[]>[] = [];
-		joinPromises.push(this.performPaginate(Direction.Backward, SystemDefaults.RoomTimelineLimit / 2, timeline));
-		joinPromises.push(this.performPaginate(Direction.Forward, SystemDefaults.RoomTimelineLimit / 2, timeline));
+		joinPromises.push(this.performPaginate(Direction.Backward, SystemDefaults.InitialRoomTimelineLimit / 2, timeline));
+		joinPromises.push(this.performPaginate(Direction.Forward, SystemDefaults.InitialRoomTimelineLimit / 2, timeline));
 
 		const [newBackEvents, newForwardEvents] = await Promise.all(joinPromises);
 
