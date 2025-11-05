@@ -124,6 +124,7 @@
 
 	div[class='v-note-wrapper markdown-body'] {
 		background-color: rgba(0, 0, 0, 0) !important;
+		z-index: 0 !important;
 	}
 
 	.editor .v-note-wrapper .v-note-edit.divarea-wrapper .content-input-wrapper,
