@@ -17,11 +17,11 @@
 				</div>
 				<div class="flex gap-2">
 					<Button
-						v-if="!user.isAdmin && pubhubs.isAdminRoomReady()"
+						v-if="!user.isAdmin"
 						size="sm"
 						class="flex items-center gap-1 overflow-visible bg-on-surface-variant text-surface-high ~text-label-small-min/label-small-max"
 						:class="[isMobile ? 'w-8 justify-center rounded-full' : 'justify-between']"
-						@click="router.push({ name: 'room', params: { id: pubhubs.getAdminRoomId() } })"
+						@click="directMessageAdmin()"
 					>
 						<Icon type="headset" size="sm"></Icon>
 						<span v-if="!isMobile">{{ t('menu.contact') }}</span>
@@ -70,6 +70,7 @@
 	import Icon from '@hub-client/components/elements/Icon.vue';
 	import TruncatedText from '@hub-client/components/elements/TruncatedText.vue';
 	import NewConverationPanel from '@hub-client/components/rooms/NewConversationPanel.vue';
+	import Dialog from '@hub-client/components/ui/Dialog.vue';
 	import HeaderFooter from '@hub-client/components/ui/HeaderFooter.vue';
 	import MessagePreview from '@hub-client/components/ui/MessagePreview.vue';
 
@@ -79,6 +80,7 @@
 	// Models
 	import { DirectRooms, RoomType } from '@hub-client/models/rooms/TBaseRoom';
 
+	import { useDialog } from '@hub-client/stores/dialog';
 	// Store imports
 	import { usePubhubsStore } from '@hub-client/stores/pubhubs';
 	import { Room, useRooms } from '@hub-client/stores/rooms';
@@ -91,11 +93,12 @@
 	const rooms = useRooms();
 	const user = useUser();
 	const { t } = useI18n();
+	const dialog = useDialog();
 
 	// Initialize admin contact
-	onMounted(async () => {
-		await pubhubs.initializeOrExtendAdminContactRoom();
-	});
+	// onMounted(async () => {
+	// 	await pubhubs.initializeOrExtendAdminContactRoom();
+	// });
 
 	const isMobile = computed(() => settings.isMobileState);
 
@@ -118,12 +121,25 @@
 		if (!privateRooms.value) {
 			return [];
 		}
+
 		//display by timestamp
 		return [...privateRooms.value].sort((r1, r2) => {
 			return lastEventTimeStamp(r2) - lastEventTimeStamp(r1);
 		});
-		return privateRooms.value;
 	});
+
+	async function directMessageAdmin() {
+		const userResponse = await dialog.yesno(t('admin.admin_contact_main_msg'));
+		if (!userResponse) return;
+
+		const roomSetUpResponse = await pubhubs.setUpAdminRoom();
+		// Room Setup return to false means that the room was not set up.
+		if (typeof roomSetUpResponse === 'boolean' && roomSetUpResponse === false) {
+			dialog.confirm(t('admin.if_admin_contact_not_present'));
+		} else if (typeof roomSetUpResponse === 'string') {
+			await router.push({ name: 'room', params: { id: roomSetUpResponse } });
+		}
+	}
 
 	function getPrivateRooms(): Array<Room> {
 		return rooms.fetchRoomArrayByAccessibility(DirectRooms);
