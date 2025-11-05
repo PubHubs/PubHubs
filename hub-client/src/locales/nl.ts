@@ -451,7 +451,7 @@ const nl = {
 	},
 	onboarding: {
 		house_rules: 'Huisregels {0}',
-		welcome_title: 'Welkom bij de {0} hub!',
+		welcome: 'Welkom bij de {0} hub!',
 		welcome_description: 'Dit is je eerste bezoek. Leuk dat je er bent!',
 		username_label: 'Kies een gebruikersnaam',
 		username_description: 'Dit mag je eigen naam zijn, maar dat hoeft niet.',
