@@ -1,34 +1,34 @@
 <template>
 	<RoomSideKick @close="close()" :title="$t('rooms.memberlist')">
-		<div v-if="hasStewards" class="h-full flex-1">
+		<div v-if="stewardIds" class="h-full flex-1">
 			<SideKickSubHeader>
 				<div class="flex justify-between">
 					<div class="capitalize">{{ $t('rooms.stewards') }}</div>
-					<div class="flex">
+					<div class="flex items-center gap-2">
 						<div>{{ stewardIds.length }}</div>
-						<Icon type="user" size="sm" class="mt-1"></Icon>
+						<Icon type="user"></Icon>
 					</div>
 				</div>
 			</SideKickSubHeader>
-			<div v-for="stewardId in stewardIds" :userId="stewardId" :key="stewardId" class="mb-2 flex w-full gap-2">
-				<Avatar :avatar-url="user.userAvatar(stewardId)" class="ml-2 h-6 w-6"></Avatar>
-				<UserDisplayName :userId="stewardId"></UserDisplayName>
+			<div v-for="stewardId in stewardIds" :userId="stewardId" :key="stewardId" class="mb-2 flex w-full items-center gap-2">
+				<Avatar :avatar-url="user.userAvatar(stewardId)" class="ml-2 h-5 w-5"></Avatar>
+				<UserDisplayName :userId="stewardId" :user-display-name="user.userDisplayName(stewardId)"></UserDisplayName>
 			</div>
 		</div>
 
-		<div v-if="hasMembers" class="h-full flex-1">
+		<div v-if="memberIds" class="h-full flex-1">
 			<SideKickSubHeader>
 				<div class="flex justify-between">
 					<div class="capitalize">{{ $t('rooms.members') }}</div>
-					<div class="flex">
+					<div class="flex items-center gap-2">
 						<div>{{ memberIds.length }}</div>
-						<Icon type="user" size="sm" class="mt-1"></Icon>
+						<Icon type="user"></Icon>
 					</div>
 				</div>
 			</SideKickSubHeader>
-			<div v-for="memberId in memberIds" :userId="memberId" :key="memberId" class="mb-2 flex w-full gap-2">
-				<Avatar :avatar-url="user.userAvatar(memberId)" class="ml-2 h-6 w-6"></Avatar>
-				<UserDisplayName :userId="memberId"></UserDisplayName>
+			<div v-for="memberId in memberIds" :userId="memberId" :key="memberId" class="mb-2 flex w-full items-center gap-2">
+				<Avatar :avatar-url="user.userAvatar(memberId)" class="ml-2 h-5 w-5"></Avatar>
+				<UserDisplayName :userId="memberId" :user-display-name="user.userDisplayName(memberId)"></UserDisplayName>
 			</div>
 		</div>
 	</RoomSideKick>
@@ -36,7 +36,7 @@
 
 <script setup lang="ts">
 	// Packages
-	import { computed, onMounted, ref, watch } from 'vue';
+	import { onMounted, ref, watch } from 'vue';
 	import { useRoute } from 'vue-router';
 
 	// Components
@@ -80,7 +80,6 @@
 		const realMembers = joinedMembers.filter((m) => !m.state_key.startsWith('@notices_user:'));
 
 		const filterMembersByPowerLevel = (min: number, max: number) =>
-			// Object destructing only for sender key
 			realMembers
 				.filter(({ sender }) => {
 					const powerLevel = props.room.getStateMemberPowerLevel(sender);
@@ -88,20 +87,14 @@
 				})
 				.map(({ sender }) => sender);
 
-		const stewardIdsList = filterMembersByPowerLevel(50, 100);
-		stewardIds.value = stewardIdsList;
-
-		const memberIdsList = filterMembersByPowerLevel(0, 50);
-		memberIds.value = memberIdsList;
+		// direct messages do not have stewards, only members with powerlevel 100, so show only the members
+		if (props.room.directMessageRoom()) {
+			memberIds.value = [...new Set(realMembers.map((x) => x.sender))]; // Set only stores unique values
+		} else {
+			stewardIds.value = filterMembersByPowerLevel(50, 99);
+			memberIds.value = filterMembersByPowerLevel(0, 49);
+		}
 	}
-
-	const hasMembers = computed(() => {
-		return memberIds.value;
-	});
-
-	const hasStewards = computed(() => {
-		return stewardIds.value;
-	});
 
 	function close() {
 		emit('close');

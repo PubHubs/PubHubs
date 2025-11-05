@@ -88,6 +88,7 @@ const useRooms = defineStore('rooms', {
 			newAskDisclosureMessage: false,
 			initialRoomsLoaded: false,
 			timestamps: [] as Array<Array<Number | string>>,
+			scrollPositions: {} as { [room_id: string]: string },
 		};
 	},
 

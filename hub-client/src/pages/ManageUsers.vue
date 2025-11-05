@@ -17,24 +17,24 @@
 			<!-- Reload button gets new user account if someone creates an account when this page is opened-->
 			<Button class="mb-4 flex max-h-[30px] w-32 rounded-xl" @click="ManagementUtils.getUsersAccounts()">
 				<div class="flex items-center gap-2 text-xl">
-					<Icon type="refresh" size="sm" />
+					<Icon type="arrow-counter-clockwise" size="sm" />
 					<span class="flex ~text-label-min/label-max">{{ t('admin.reload') }}</span>
 				</div>
 			</Button>
 
 			<!---List all users accounts -->
-			<FilteredList :items="hubUsers" :filterKey="['displayname']" sortby="displayname" :placeholder="$t('rooms.filter')">
+			<FilteredList :items="hubUsers" :filterKey="['displayname', 'name']" sortby="displayname" :placeholder="$t('rooms.filter')">
 				<template #item="{ item }">
 					<div class="box-border flex w-full justify-between gap-4 md:gap-8" :title="item.room_id">
 						<div class="flex min-w-0 flex-1 items-center gap-4">
 							<Avatar :avatar-url="user.userAvatar(item.name)" :user-id="item.name"></Avatar>
 							<p class="min-w-0 truncate font-semibold">{{ item.displayname }}</p>
-							<p class="line-clamp-1 hidden min-w-0 pr-1 italic text-on-surface-dim md:inline">{{ item.name }}</p>
+							<p class="line-clamp-1 min-w-0 pr-1 italic text-on-surface-dim md:inline" :class="item.displayname ? '' : '-ml-4'">{{ item.name }}</p>
 							<RoomBadge :user="item.name" :room_id="item.room_id" :is-hub-admin="item.admin"></RoomBadge>
 						</div>
 						<div class="flex w-fit gap-4">
 							<div class="flex items-center gap-2">
-								<Icon type="edit" class="hover:cursor-pointer hover:text-accent-primary" @click="selectUser(item.name, item.displayname, item.avatar_url)" />
+								<Icon type="pencil-simple" class="hover:cursor-pointer hover:text-accent-primary" @click="selectUser(item.name, item.displayname, item.avatar_url)" />
 							</div>
 						</div>
 					</div>

@@ -43,8 +43,8 @@
 				@file-change="onFileChange('icon', $event)"
 				@remove="removeMedia('icon')"
 			>
-				<template #preview>
-					<HubIcon :icon-url="iconUrl" :icon-url-dark="iconUrl" class="mr-2 max-w-[70px] rounded-xl border p-2" />
+				<template #preview class="w-fit">
+					<HubIcon :icon-url="iconUrl" :icon-url-dark="iconUrl" class="mr-2 w-auto max-w-[70px] rounded-xl border p-2" />
 				</template>
 			</MediaUploadSection>
 

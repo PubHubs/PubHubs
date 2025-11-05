@@ -37,7 +37,7 @@ interface GlobalSettings {
 const defaultGlobalSettings = {
 	theme: Theme.System,
 	timeformat: TimeFormat.format24,
-	language: 'en',
+	language: 'nl', // Default language is set in `hub-client/src/i18n.ts`.
 	hubs: [] as PinnedHubs,
 };
 
@@ -124,7 +124,11 @@ const useGlobal = defineStore('global', {
 			}
 			settings.setTimeFormat(data.timeformat);
 			if (!data.language || data.language === '') {
-				data.language = navigator.language;
+				if (settings._i18n?.locale) {
+					data.language = settings._i18n?.locale;
+				} else {
+					data.language = navigator.language;
+				}
 			}
 			settings.setLanguage(data.language);
 

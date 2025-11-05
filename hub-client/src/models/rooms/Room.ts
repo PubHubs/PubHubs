@@ -11,7 +11,7 @@ import { useRoomLibrary } from '@hub-client/composables/useRoomLibrary';
 import { LOGGER } from '@hub-client/logic/logging/Logger';
 import { SMI } from '@hub-client/logic/logging/StatusMessage';
 
-import { Redaction, RelationType } from '@hub-client/models/constants';
+import { Redaction, RelationType, SystemDefaults } from '@hub-client/models/constants';
 // Models
 import { TBaseEvent } from '@hub-client/models/events/TBaseEvent';
 import { TMessageEvent, TMessageEventContent } from '@hub-client/models/events/TMessageEvent';
@@ -525,7 +525,11 @@ export default class Room {
 	}
 
 	public getLiveTimelineNewestEvent(): Partial<TBaseEvent> | undefined {
-		return this.matrixRoom.getLiveTimeline().getEvents().at(-1)?.event;
+		return this.timelineManager
+			.getEvents()
+			.map((x) => x.matrixEvent)
+			.at(-1)?.event;
+		//return this.matrixRoom.getLiveTimeline().getEvents().at(-1)?.event;
 	}
 
 	/*
@@ -578,12 +582,12 @@ export default class Room {
 		});
 
 		// Threads are kept on room-level, so all events regarding the current thread need to be filtered and handled first.
+
 		// Handle thread redactions, for now only the DeletedFromThread events
 		const redactions = eventList.filter((event) => event.getContent()?.[Redaction.Redacts] && event.getContent()?.[Redaction.Reason] === Redaction.DeletedFromThread);
 		if (redactions.length > 0) {
 			this.currentThread?.thread?.addRedactions(redactions);
 		}
-
 		// Handle thread events, only when they are from the currentthread (otherwise they will be fetched on opening the thread)
 		const currentThreadEvents = eventList.filter(
 			(event) => event.getContent()[RelationType.RelatesTo]?.[RelationType.RelType] === RelationType.Thread && this.currentThread?.threadId === event.getContent()[RelationType.RelatesTo]?.[RelationType.EventId],
@@ -598,7 +602,7 @@ export default class Room {
 		}
 
 		// Handle all other events and redactions, not in a thread
-		const nonThreadEvents = eventList.filter((event) => event.getContent()[RelationType.RelatesTo]?.[RelationType.RelType] !== RelationType.Thread);
+		const nonThreadEvents = eventList.filter((event) => event.getContent()[RelationType.RelatesTo]?.[RelationType.RelType] !== RelationType.Thread).slice(-SystemDefaults.RoomTimelineLimit);
 		this.timelineManager.loadFromSlidingSync(nonThreadEvents).then((scrollToEventId) => {
 			if (scrollToEventId) {
 				this.setCurrentEvent({ eventId: scrollToEventId });

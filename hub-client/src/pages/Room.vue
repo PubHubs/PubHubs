@@ -1,6 +1,6 @@
 <template>
 	<template v-if="rooms.currentRoomExists">
-		<HeaderFooter v-if="plugin === false" :headerSize="'sm'" :headerMobilePadding="true" bgBarLow="bg-background" bgBarMedium="bg-surface-low">
+		<HeaderFooter :headerSize="'sm'" :headerMobilePadding="true" bgBarLow="bg-background" bgBarMedium="bg-surface-low">
 			<template #header>
 				<div class="items-center gap-4 text-on-surface-dim" :class="isMobile ? 'hidden' : 'flex'">
 					<span class="font-semibold uppercase">{{ $t('rooms.room') }}</span>
@@ -8,8 +8,8 @@
 				</div>
 				<div class="relative flex h-full items-center justify-between gap-4" :class="isMobile ? 'pl-8' : 'pl-0'">
 					<div v-if="rooms.currentRoom && !isSearchBarExpanded" class="flex w-fit items-center gap-3 overflow-hidden">
-						<Icon v-if="!notPrivateRoom()" type="back" size="base" @click="router.back()" />
-						<Icon v-if="notPrivateRoom()" :type="rooms.currentRoom.isSecuredRoom() ? 'shield' : 'speech_bubbles'" size="base" />
+						<Icon v-if="!notPrivateRoom()" type="caret-left" data-testid="back" @click="router.push({ name: 'direct-msg' })" class="cursor-pointer" />
+						<Icon v-if="notPrivateRoom()" :type="rooms.currentRoom.isSecuredRoom() ? 'shield' : 'chats-circle'" />
 						<div class="flex flex-col">
 							<H3 class="flex text-on-surface">
 								<TruncatedText class="font-headings font-semibold">
@@ -25,12 +25,12 @@
 					</div>
 					<div class="flex gap-4" :class="{ 'w-full': isSearchBarExpanded }">
 						<RoomHeaderButtons>
-							<GlobalBarButton v-if="settings.isFeatureEnabled(FeatureFlag.roomLibrary)" type="folder" size="sm" :selected="showLibrary" @click="toggleLibrary"></GlobalBarButton>
-							<GlobalBarButton type="two_users" size="sm" :selected="showMembers" @click="toggleMembersList"></GlobalBarButton>
+							<GlobalBarButton v-if="settings.isFeatureEnabled(FeatureFlag.roomLibrary)" type="folder-simple" :selected="showLibrary" @click="toggleLibrary"></GlobalBarButton>
+							<GlobalBarButton type="users" :selected="showMembers" @click="toggleMembersList"></GlobalBarButton>
 							<!--Only show Editing icon for steward but not for administrator-->
-							<GlobalBarButton v-if="room.getUserPowerLevel(user.userId) === 50" type="cog" size="sm" @click="stewardCanEdit()" />
+							<GlobalBarButton v-if="room.getUserPowerLevel(user.userId) === 50" type="dots-three-vertical" @click="stewardCanEdit()" />
 							<!--Except for moderator everyone should talk to room moderator e.g., admins-->
-							<GlobalBarButton v-if="room.getUserPowerLevel(user.userId) !== 50 && room.getRoomStewards().length > 0" type="moderator_msg" size="sm" @click="messageRoomSteward()" />
+							<GlobalBarButton v-if="room.getUserPowerLevel(user.userId) !== 50 && room.getRoomStewards().length > 0" type="chat-circle" @click="messageRoomSteward()" />
 						</RoomHeaderButtons>
 						<SearchInput :search-parameters="searchParameters" @scroll-to-event-id="onScrollToEventId" @toggle-searchbar="handleToggleSearchbar" @search-started="showMembers = false" :room="rooms.currentRoom" />
 					</div>
@@ -40,7 +40,7 @@
 			<div class="flex h-full w-full justify-between overflow-hidden">
 				<RoomLibrary v-if="showLibrary" :id="id" @close="toggleLibrary"></RoomLibrary>
 				<div class="flex h-full w-full flex-col overflow-hidden" :class="{ hidden: showLibrary }">
-					<RoomTimeline v-if="room" :room="room" :scroll-to-event-id="room.getCurrentEvent()" @scrolled-to-event-id="room.setCurrentEvent(undefined)"> </RoomTimeline>
+					<RoomTimeline v-if="room" ref="roomTimeLineComponent" :room="room" :scroll-to-event-id="room.getCurrentEvent()" @scrolled-to-event-id="room.setCurrentEvent(undefined)"> </RoomTimeline>
 				</div>
 				<RoomThread
 					v-if="room.getCurrentThreadId()"
@@ -58,9 +58,6 @@
 				<EditRoomForm v-if="showEditRoom" :room="currentRoomToEdit" :secured="secured" @close="closeEdit()" />
 			</template>
 		</HeaderFooter>
-
-		<!-- Plugin Room -->
-		<component v-if="plugin !== false && plugin !== true" :is="plugin.component" />
 	</template>
 	<!-- Secure room join dialog -->
 	<SecuredRoomLoginDialog v-if="joinSecuredRoom" v-model:dialogOpen="joinSecuredRoom" title="rooms.join_room" message="rooms.join_secured_room_dialog" :messageValues="[]" @close="router.push({ name: 'home' })" />
@@ -68,7 +65,7 @@
 
 <script setup lang="ts">
 	// Packages
-	import { computed, onMounted, ref, watch } from 'vue';
+	import { computed, onMounted, popScopeId, ref, watch } from 'vue';
 	import { useRoute, useRouter } from 'vue-router';
 
 	// Components
@@ -95,6 +92,8 @@
 	import { LOGGER } from '@hub-client/logic/logging/Logger';
 	import { SMI } from '@hub-client/logic/logging/StatusMessage';
 
+	import { ScrollPosition } from '@hub-client/models/constants';
+	import { RoomType } from '@hub-client/models/rooms/TBaseRoom';
 	// Models
 	import { TPublicRoom } from '@hub-client/models/rooms/TPublicRoom';
 	import { TSecuredRoom } from '@hub-client/models/rooms/TSecuredRoom';
@@ -102,7 +101,6 @@
 
 	// Stores
 	import { useHubSettings } from '@hub-client/stores/hub-settings';
-	import { PluginProperties, usePlugins } from '@hub-client/stores/plugins';
 	import { usePubhubsStore } from '@hub-client/stores/pubhubs';
 	import { useRooms } from '@hub-client/stores/rooms';
 	import { FeatureFlag, useSettings } from '@hub-client/stores/settings';
@@ -112,8 +110,6 @@
 	const rooms = useRooms();
 	const user = useUser();
 	const router = useRouter();
-	const plugins = usePlugins();
-	const plugin = ref(false as boolean | PluginProperties);
 	const hubSettings = useHubSettings();
 	const currentRoomToEdit = ref<TSecuredRoom | TPublicRoom | null>(null);
 	const showEditRoom = ref(false);
@@ -125,6 +121,7 @@
 	const isMobile = computed(() => settings.isMobileState);
 	const pubhubs = usePubhubsStore();
 	const joinSecuredRoom = ref<string | null>(null);
+	const roomTimeLineComponent = ref<InstanceType<typeof RoomTimeline> | null>(null);
 
 	// Passed by the router
 	const props = defineProps({
@@ -161,11 +158,35 @@
 
 	watch(route, () => {
 		if (rooms.currentRoom) {
+			// for scrolling back to this room: save the id of the first visible event
+			const firstEventId = getFirstVisibleEventId();
+			if (firstEventId) {
+				rooms.scrollPositions[rooms.currentRoom.roomId] = firstEventId ?? '';
+			}
 			rooms.currentRoom.setCurrentThreadId(undefined); // reset current thread
 			rooms.currentRoom.setCurrentEvent(undefined); // reset current event
 		}
 		update();
 	});
+
+	/**
+	 * Gets the Event Id of the first visible event in the roomtimeline
+	 * Needed to save the current scrollposition
+	 */
+	function getFirstVisibleEventId(): string | null {
+		const container = roomTimeLineComponent.value?.elRoomTimeline;
+		if (!container) return null;
+
+		const containerRect = container.getBoundingClientRect();
+
+		for (const child of Array.from(container.querySelectorAll('[id]'))) {
+			const rect = (child as HTMLElement).getBoundingClientRect();
+			if (rect.bottom > containerRect.top) {
+				return (child as HTMLElement).id;
+			}
+		}
+		return null;
+	}
 
 	function currentThreadLengthChanged(newLength: number) {
 		room.value.setCurrentThreadLength(newLength);
@@ -177,7 +198,12 @@
 
 		const userIsMemberOfRoom = await pubhubs.isUserRoomMember(user.userId!, props.id);
 		if (!userIsMemberOfRoom) {
-			const promise = pubhubs.joinRoom(props.id);
+			let promise = null;
+			if (rooms.roomIsSecure(props.id)) {
+				joinSecuredRoom.value = props.id;
+			} else {
+				promise = pubhubs.joinRoom(props.id);
+			}
 			// need this extra check
 			if (promise) {
 				if (rooms.roomIsSecure(props.id)) {
@@ -198,7 +224,15 @@
 		rooms.currentRoom.initTimeline();
 
 		searchParameters.value.roomId = rooms.currentRoom.roomId;
-		plugin.value = plugins.hasRoomPlugin(rooms.currentRoom);
+
+		// If there is a position saved in scrollPositions for this room: go there
+		// otherwise go to the newest event
+		if (roomTimeLineComponent.value?.elRoomTimeline && rooms.scrollPositions[rooms.currentRoom.roomId]) {
+			rooms.currentRoom.setCurrentEvent({ eventId: rooms.scrollPositions[rooms.currentRoom.roomId], position: ScrollPosition.Start });
+		} else {
+			const lastEventId = rooms.currentRoom.getRoomNewestMessageId() ?? '';
+			rooms.currentRoom.setCurrentEvent({ eventId: lastEventId, position: ScrollPosition.End });
+		}
 	}
 
 	async function onScrollToEventId(ev: any) {
@@ -219,10 +253,23 @@
 	}
 
 	async function stewardCanEdit() {
-		currentRoomToEdit.value = await rooms.getTPublicOrTSecuredRoom(props.id);
-		const isSecuredRoom = rooms.roomIsSecure(props.id);
-		if (isSecuredRoom) secured.value = true;
-		showEditRoom.value = true;
+		// We need to fetch latest public created rooms.
+		const currentPublicRooms = await pubhubs.getAllPublicRooms();
+
+		currentRoomToEdit.value = currentPublicRooms.find((room) => room.room_id === props.id);
+
+		// If room is not there then don't show dialog box. Throw an error.
+		if (!currentRoomToEdit.value) {
+			router.push({
+				name: 'error-page',
+				query: { errorKey: 'errors.cant_find_room' },
+			});
+		} else {
+			if (currentRoomToEdit.value?.room_type === RoomType.PH_MESSAGES_RESTRICTED) {
+				secured.value = true;
+			}
+			showEditRoom.value = true;
+		}
 	}
 
 	function closeEdit() {

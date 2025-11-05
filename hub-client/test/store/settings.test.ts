@@ -37,12 +37,12 @@ describe('Settings Store', () => {
 				availableLocales: ['en', 'nl'],
 			};
 
-			expect(settings.language).toBe('en');
-			expect(settings.getActiveLanguage).toBe('en');
-
-			settings.setLanguage('nl');
 			expect(settings.language).toBe('nl');
 			expect(settings.getActiveLanguage).toBe('nl');
+
+			settings.setLanguage('en');
+			expect(settings.language).toBe('en');
+			expect(settings.getActiveLanguage).toBe('en');
 		});
 	});
 

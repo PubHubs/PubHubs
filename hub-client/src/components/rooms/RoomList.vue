@@ -1,7 +1,7 @@
 <template>
 	<Menu>
 		<template v-for="room in currentJoinedRooms" :key="room.roomId">
-			<MenuItem :to="{ name: 'room', params: { id: room.roomId } }" :room="room" :icon="roomIcon(room)" @click="hubSettings.hideBar()" class="group inline-block w-full">
+			<MenuItem :to="{ name: 'room', params: { id: room.roomId } }" :room="room" icon="chats-circle" @click="hubSettings.hideBar()" class="group inline-block w-full">
 				<span class="flex w-full items-center justify-between gap-4">
 					<TruncatedText>
 						<PrivateRoomName v-if="room.isPrivateRoom()" :members="room.getOtherJoinedAndInvitedMembers()" />
@@ -12,12 +12,13 @@
 					<span class="flex gap-2 transition-all duration-200 ease-in-out group-hover:hidden" v-if="settings.isFeatureEnabled(FeatureFlag.notifications)">
 						<Badge class="~text-label-small-min/label-small-max" color="hub" v-if="room.getRoomUnreadNotificationCount(NotificationCountType.Total) > 99">99+</Badge>
 						<Badge v-else-if="room.getRoomUnreadNotificationCount(NotificationCountType.Total) > 0" color="hub">{{ room.getRoomUnreadNotificationCount(NotificationCountType.Total) }}</Badge>
-						<Badge color="hub" v-if="room.getRoomUnreadNotificationCount(NotificationCountType.Highlight) > 0"><Icon type="mention" size="sm" class="shrink-0" /></Badge>
+						<Badge color="hub" v-if="room.getRoomUnreadNotificationCount(NotificationCountType.Highlight) > 0"><Icon type="at" size="sm" class="shrink-0" /></Badge>
 					</span>
 
 					<Icon
 						v-if="!room.isAdminContactRoom()"
-						type="unlink"
+						type="x"
+						data-testid="leave-room"
 						class="cursor-pointer stroke-2 text-on-surface-variant transition-all duration-200 ease-in-out hover:text-accent-error md:hidden md:group-hover:inline-block"
 						@click.prevent="leaveRoom(room.roomId)"
 					/>
@@ -47,7 +48,9 @@
 			</MenuItem>
 		</template>
 	</Menu>
-	<InlineSpinner v-if="!roomsLoaded" class="ml-4" />
+	<div class="ml-4">
+		<InlineSpinner v-if="!roomsLoaded" />
+	</div>
 	<SecuredRoomLoginDialog v-model:dialogOpen="dialogOpen" title="notifications.rejoin_secured_room" message="notifications.removed_from_secured_room" :messageValues="messageValues" />
 </template>
 
@@ -80,7 +83,6 @@
 	import { useDialog } from '@hub-client/stores/dialog';
 	import { useHubSettings } from '@hub-client/stores/hub-settings';
 	import { useNotifications } from '@hub-client/stores/notifications';
-	import { PluginProperties, usePlugins } from '@hub-client/stores/plugins';
 	import { usePubhubsStore } from '@hub-client/stores/pubhubs';
 	import { useRooms } from '@hub-client/stores/rooms';
 	import { FeatureFlag, useSettings } from '@hub-client/stores/settings';
@@ -92,7 +94,6 @@
 	const router = useRouter();
 	const rooms = useRooms();
 	const pubhubs = usePubhubsStore();
-	const plugins = usePlugins();
 	const messageValues = ref<(string | number)[]>([]);
 	const dialogOpen = ref<string | null>(null);
 	const dialog = useDialog();
@@ -127,7 +128,9 @@
 				// e.g., Admin leaves the room and he is the only member or when admin leaves the room which makes the room without adminstrator.
 				if (await dialog.okcancel(t(leaveMsg))) {
 					await pubhubs.leaveRoom(roomId);
-					notificationsStore.removeNotification(roomId, TNotificationType.RemovedFromSecuredRoom);
+					if (rooms.roomIsSecure(roomId)) {
+						notificationsStore.removeNotification(roomId, TNotificationType.RemovedFromSecuredRoom);
+					}
 					await router.replace({ name: 'home' });
 				}
 			}
@@ -140,14 +143,6 @@
 		return isSingleAdmin ? 'rooms.leave_admin' : 'rooms.leave_sure';
 	}
 
-	function roomIcon(room: Room): string {
-		let icon = 'speech_bubbles';
-		const plugin = plugins.hasRoomPlugin(room) as PluginProperties;
-		if (plugin.icon) {
-			icon = plugin.icon;
-		}
-		return icon;
-	}
 	async function dismissNotification(room_id: string, event: Event) {
 		event.stopPropagation();
 		if (await dialog.okcancel(t('rooms.leave_sure'))) {

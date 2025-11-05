@@ -1,9 +1,9 @@
 <template>
-	<div ref="elThreadTimeline" class="relative flex h-full w-full shrink-0 flex-col border-l border-surface-high bg-background md:w-[33%]">
+	<div ref="elThreadTimeline" class="relative flex h-full w-full shrink-0 flex-col border-l border-surface-high bg-background md:w-[33%]" data-testid="thread-sidekick">
 		<!-- Thread header -->
 		<div class="m-3 mb-0 flex items-center gap-2 rounded-md bg-surface-low p-2">
 			<button @click="closeThread" class="rounded-md p-1">
-				<Icon :type="'arrow'" :size="'sm'"></Icon>
+				<Icon type="arrow-left" :size="'sm'"></Icon>
 			</button>
 			<p class="truncate text-nowrap ~text-label-tiny-min/label-tiny-max">Thread ({{ numberOfThreadEvents }})</p>
 		</div>
@@ -30,7 +30,11 @@
 				</RoomMessageBubble>
 
 				<div class="flex flex-wrap gap-2 px-20">
-					<Reaction v-if="reactionExistsForMessage(props.room.currentThread?.rootEvent?.event.event_id)" :reactEvent="onlyReactionEvents" :messageEventId="props.room.currentThread?.rootEvent?.event.event_id" />
+					<Reaction
+						v-if="reactionExistsForMessage(props.room.currentThread?.rootEvent?.event.event_id, props.room.currentThread?.rootEvent)"
+						:reactEvent="onlyReactionEvents"
+						:messageEventId="props.room.currentThread?.rootEvent?.event.event_id"
+					/>
 				</div>
 			</div>
 
@@ -55,7 +59,7 @@
 
 					<!-- Reaction display for message -->
 					<div class="flex flex-wrap gap-2 px-20">
-						<Reaction v-if="reactionExistsForMessage(item.matrixEvent.event.event_id)" :reactEvent="onlyReactionEvents" :messageEventId="item.matrixEvent.event.event_id" />
+						<Reaction v-if="reactionExistsForMessage(item.matrixEvent.event.event_id, item.matrixEvent)" :reactEvent="onlyReactionEvents" :messageEventId="item.matrixEvent.event.event_id" />
 					</div>
 				</div>
 			</div>
@@ -85,7 +89,7 @@
 	import { SMI } from '@hub-client/logic/logging/StatusMessage';
 
 	// Models
-	import { RelationType, RoomEmit } from '@hub-client/models/constants';
+	import { RelationType, RoomEmit, ScrollPosition, ScrollSelect } from '@hub-client/models/constants';
 	import { TMessageEvent, TMessageEventContent } from '@hub-client/models/events/TMessageEvent';
 	import { TimelineEvent } from '@hub-client/models/events/TimelineEvent';
 	import Room from '@hub-client/models/rooms/Room';
@@ -163,18 +167,18 @@
 	async function changeThreadId() {
 		await getThreadEvents();
 		if (props.room.getCurrentEvent()) {
-			scrollToEvent(props.room.getCurrentEvent()!.eventId, { position: 'center', select: 'Highlight' });
+			scrollToEvent(props.room.getCurrentEvent()!.eventId, { position: ScrollPosition.Center, select: ScrollSelect.Highlight });
 		} else {
 			const lastEvent = filteredEvents.value[filteredEvents.value.length - 1];
 			if (lastEvent?.matrixEvent.event?.event_id) {
-				scrollToEvent(lastEvent.matrixEvent.event.event_id, { position: 'end' });
+				scrollToEvent(lastEvent.matrixEvent.event.event_id, { position: ScrollPosition.End });
 			}
 		}
 	}
 
 	async function onScrollToEventId(newEventId?: string, oldEventId?: string) {
 		if (!newEventId) return;
-		scrollToEvent(newEventId, { position: 'center', select: 'Highlight' });
+		scrollToEvent(newEventId, { position: ScrollPosition.Center, select: ScrollSelect.Highlight });
 	}
 
 	async function getThreadEvents() {
@@ -187,15 +191,15 @@
 	}
 
 	function onInReplyToClick(inReplyToId: string) {
-		scrollToEvent(inReplyToId, { position: 'center', select: 'Highlight' });
+		scrollToEvent(inReplyToId, { position: ScrollPosition.Center, select: ScrollSelect.Highlight });
 	}
 
-	async function scrollToEvent(eventId: string, options: { position: 'start' | 'center' | 'end'; select?: 'Highlight' | 'Select' } = { position: 'start' }) {
+	async function scrollToEvent(eventId: string, options: { position: ScrollPosition.Start | ScrollPosition.Center | ScrollPosition.End; select?: ScrollSelect.Highlight | ScrollSelect.Select } = { position: ScrollPosition.Start }) {
 		LOGGER.log(SMI.ROOM_THREAD, `scroll to event: ${eventId}`, { eventId });
 
 		const doScroll = (elEvent: Element) => {
 			elEvent.scrollIntoView({ block: options.position });
-			if (options.select === 'Highlight') {
+			if (options.select === ScrollSelect.Highlight) {
 				elEvent.classList.add('highlighted');
 				window.setTimeout(() => {
 					elEvent.classList.add('unhighlighted');
@@ -249,9 +253,9 @@
 		await pubhubs.addReactEvent(props.room.roomId, eventId, emoji);
 	}
 
-	function reactionExistsForMessage(messageEventId: string): boolean {
+	function reactionExistsForMessage(messageEventId: string, matrixEvent: MatrixEvent): boolean {
 		if (!onlyReactionEvents.value) return false;
-
+		if (matrixEvent.isRedacted()) return false;
 		const reactionEvent = onlyReactionEvents.value.find((event) => {
 			const relatesTo = event.getContent()[RelationType.RelatesTo];
 			return relatesTo && relatesTo.event_id === messageEventId;

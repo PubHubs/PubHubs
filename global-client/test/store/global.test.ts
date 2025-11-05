@@ -50,7 +50,7 @@ describe('Global', () => {
 			const settings = useSettings(pinia);
 
 			expect(settings.theme).toEqual('system');
-			expect(settings.language).toEqual('en');
+			expect(settings.language).toEqual('nl');
 			expect(global.pinnedHubs).toHaveLength(0);
 		});
 		test('logged in', async () => {

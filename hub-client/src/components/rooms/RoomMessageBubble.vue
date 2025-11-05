@@ -1,15 +1,9 @@
 <template>
 	<div ref="elReactionPopUp">
-		<!-- Plugin Event -->
-		<div v-if="event.plugin && event.plugin.plugintype === PluginType.EVENT && event.type === event.plugin.type">
-			<component :is="event.plugin.component" :event="event">{{ event.plugin.component }}</component>
-		</div>
-
-		<!-- Normal Event -->
-		<div v-else class="group flex flex-col py-3" :class="getMessageContainerClasses" role="article">
+		<div class="group flex flex-col py-3" :class="getMessageContainerClasses" role="article">
 			<!-- Announcement Header -->
 			<div v-if="isAnnouncementMessage && !redactedMessage" class="flex w-full items-center bg-surface-high px-8 py-1 ~text-label-small-min/label-small-max" :class="{ 'mx-4': props.deleteMessageDialog }">
-				<Icon type="announcement" size="sm" class="mr-1"></Icon>
+				<Icon type="megaphone-simple" size="sm" class="mr-1"></Icon>
 				{{ getAnnouncementTitle }}
 			</div>
 
@@ -42,7 +36,7 @@
 					<div class="flex flex-wrap items-center overflow-hidden text-wrap break-all">
 						<div class="relative flex min-h-6 w-full items-start gap-x-2 pb-1">
 							<div class="flex w-full min-w-0 flex-grow flex-wrap items-center gap-2">
-								<UserDisplayName :userId="event.sender" />
+								<UserDisplayName :userId="event.sender" :userDisplayName="user.userDisplayName(event.sender)" />
 								<span class="flex gap-2">
 									<span class="~text-label-small-min/label-small-max">|</span>
 									<EventTime :timestamp="event.origin_server_ts" :showDate="false" />
@@ -56,19 +50,20 @@
 							<div>
 								<template v-if="timerReady && !deleteMessageDialog">
 									<button v-if="msgIsNotSend && connection.isOn" @click="resend()" class="mb-1 ml-2" :title="t('errors.resend')">
-										<Icon type="refresh" size="sm" class="text-red" />
+										<Icon type="arrow-counter-clockwise" size="sm" class="text-red" />
 									</button>
-									<Icon v-if="msgIsNotSend && !connection.isOn" type="lost-connection" size="sm" class="text-red mb-1 ml-2" />
+									<Icon v-if="msgIsNotSend && !connection.isOn" type="wifi-slash" size="sm" class="text-red mb-1 ml-2" />
 								</template>
 
 								<RoomEventActionsPopup v-if="!deleteMessageDialog" :remain-active="openEmojiPanel">
 									<!-- Reaction Button -->
 									<button
+										v-if="!redactedMessage"
 										@click.stop="emit('reactionPanelToggle', props.event.event_id)"
 										class="flex items-center justify-center rounded-md p-1 text-on-surface-variant transition-all duration-300 ease-in-out hover:w-fit hover:bg-accent-primary hover:text-on-accent-primary"
 										:title="t('message.reply_emoji')"
 									>
-										<Icon type="emoji_smiley" size="sm" />
+										<Icon type="smiley" size="sm"></Icon>
 									</button>
 
 									<!-- Reply Button -->
@@ -78,7 +73,7 @@
 										class="flex items-center justify-center rounded-md p-1 text-on-surface-variant transition-all duration-300 ease-in-out hover:w-fit hover:bg-accent-primary hover:text-on-accent-primary"
 										:title="t('message.reply')"
 									>
-										<Icon :type="'reply'" size="sm" />
+										<Icon type="arrow-bend-up-left" size="sm" />
 									</button>
 
 									<!-- Thread Reply Button -->
@@ -88,7 +83,7 @@
 										class="flex items-center justify-center rounded-md p-1 text-on-surface-variant transition-all duration-300 ease-in-out hover:w-fit hover:bg-accent-primary hover:text-on-accent-primary"
 										:title="t('message.reply_in_thread')"
 									>
-										<Icon :type="'talk'" size="'xs'" />
+										<Icon type="chat-circle" size="sm"></Icon>
 									</button>
 
 									<!-- Disclosure Button -->
@@ -98,7 +93,7 @@
 										class="flex items-center justify-center rounded-md p-1 text-on-surface-variant transition-all duration-300 ease-in-out hover:w-fit hover:bg-accent-primary hover:text-on-accent-primary"
 										:title="t('menu.moderation_tools_disclosure')"
 									>
-										<Icon :type="'warning'" size="sm" />
+										<Icon type="warning" size="sm" />
 									</button>
 
 									<!-- Delete Button -->
@@ -108,42 +103,34 @@
 										class="flex items-center justify-center rounded-md p-1 text-on-surface-variant transition-all duration-300 ease-in-out hover:w-fit hover:bg-accent-red hover:text-on-accent-red"
 										:title="t('menu.delete_message')"
 									>
-										<Icon :type="'bin'" size="sm" />
+										<Icon type="trash" size="sm" />
 									</button>
 								</RoomEventActionsPopup>
 							</div>
 						</div>
 					</div>
 
-					<!-- Plugin Message -->
-					<template v-if="event.plugin?.plugintype === PluginType.MESSAGE && event.content.msgtype === event.plugin.type">
-						<component :is="event.plugin.component" :event="event">{{ event.plugin.component }}</component>
-					</template>
+					<Suspense>
+						<MessageSnippet v-if="showReplySnippet(event.content.msgtype)" @click="onInReplyToClick" :eventId="inReplyToId" :showInReplyTo="true" :room="room" />
+						<template #fallback>
+							<div class="flex items-center gap-3 rounded-md px-2">
+								<p>{{ t('state.loading_message') }}</p>
+							</div>
+						</template>
+					</Suspense>
 
-					<!-- Regular Message -->
-					<template v-else>
-						<Suspense>
-							<MessageSnippet v-if="showReplySnippet(event.content.msgtype)" @click="onInReplyToClick" :eventId="inReplyToId" :showInReplyTo="true" :room="room" />
-							<template #fallback>
-								<div class="flex items-center gap-3 rounded-md px-2">
-									<p>{{ t('state.loading_message') }}</p>
-								</div>
-							</template>
-						</Suspense>
+					<Message v-if="event.content.msgtype === MsgType.Text || redactedMessage" :event="event" :deleted="redactedMessage" class="max-w-[90ch]" />
+					<AnnouncementMessage v-if="isAnnouncementMessage && !redactedMessage && !room.isPrivateRoom()" :event="event.content" />
+					<MessageSigned v-if="event.content.msgtype === PubHubsMgType.SignedMessage && !redactedMessage" :message="event.content.signed_message" class="max-w-[90ch]" />
+					<MessageFile v-if="event.content.msgtype === MsgType.File && !redactedMessage" :message="event.content" />
+					<MessageImage v-if="event.content.msgtype === MsgType.Image && !redactedMessage" :message="event.content" />
 
-						<Message v-if="event.content.msgtype === MsgType.Text || redactedMessage" :event="event" :deleted="redactedMessage" class="max-w-[90ch]" />
-						<AnnouncementMessage v-if="isAnnouncementMessage && !redactedMessage && !room.isPrivateRoom()" :event="event.content" />
-						<MessageSigned v-if="event.content.msgtype === PubHubsMgType.SignedMessage && !redactedMessage" :message="event.content.signed_message" class="max-w-[90ch]" />
-						<MessageFile v-if="event.content.msgtype === MsgType.File && !redactedMessage" :message="event.content" />
-						<MessageImage v-if="event.content.msgtype === MsgType.Image && !redactedMessage" :message="event.content" />
-
-						<VotingWidget
-							v-if="settings.isFeatureEnabled(FeatureFlag.votingWidget) && event.content.msgtype === PubHubsMgType.VotingWidget && !redactedMessage"
-							:event="event"
-							@edit-poll="(poll, eventId) => emit('editPoll', poll, eventId)"
-							@edit-scheduler="(scheduler, eventId) => emit('editScheduler', scheduler, eventId)"
-						/>
-					</template>
+					<VotingWidget
+						v-if="settings.isFeatureEnabled(FeatureFlag.votingWidget) && event.content.msgtype === PubHubsMgType.VotingWidget && !redactedMessage"
+						:event="event"
+						@edit-poll="(poll, eventId) => emit('editPoll', poll, eventId)"
+						@edit-scheduler="(scheduler, eventId) => emit('editScheduler', scheduler, eventId)"
+					/>
 
 					<!-- Thread View Button -->
 					<button
@@ -151,8 +138,9 @@
 						class="bg-hub-background-3 inline-flex rounded-md px-2 py-1 ~text-label-tiny-min/label-tiny-max hover:opacity-80"
 						v-if="!deleteMessageDialog && !viewFromThread && threadLength > 0 && canReplyInThread && !msgIsNotSend && !redactedMessage"
 					>
-						<Icon :type="'talk'" size="'sm'" />
-						&nbsp; {{ t('message.threads.view_thread') }} ({{ threadLength }})
+						<Icon type="chat-circle" size="xs"></Icon>
+						<!-- &nbsp; {{ t('message.threads.view_thread') }} ({{ threadLength }}) -->
+						&nbsp; {{ t('message.threads.view_thread') }}
 					</button>
 				</div>
 			</div>
@@ -202,7 +190,6 @@
 	// Stores
 	import { useConnection } from '@hub-client/stores/connection';
 	import { useMessageActions } from '@hub-client/stores/message-actions';
-	import { PluginType } from '@hub-client/stores/plugins';
 	import { usePubhubsStore } from '@hub-client/stores/pubhubs';
 	import { FeatureFlag, useSettings } from '@hub-client/stores/settings';
 	import { useUser } from '@hub-client/stores/user';

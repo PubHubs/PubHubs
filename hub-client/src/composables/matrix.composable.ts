@@ -23,7 +23,7 @@ const useMatrix = () => {
 	const startSync = () => store.startSync();
 	const stopSync = () => store.stopSync();
 	const addRoomSubscription = (roomId: string) => store.addRoomSubscription(roomId);
-	const syncRoom = (roomId: string) => store.syncRoom(roomId);
+	const syncRooms = () => store.syncRooms();
 
 	const init = async (client: MatrixClient) => {
 		initMatrixService(client);
@@ -42,7 +42,7 @@ const useMatrix = () => {
 		startSync,
 		stopSync,
 		addRoomSubscription,
-		syncRoom,
+		syncRooms,
 		init,
 	};
 };

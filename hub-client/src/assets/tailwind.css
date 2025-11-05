@@ -122,6 +122,11 @@
 		@apply relative !z-10 !max-h-[400px] !min-h-20 !resize-y overflow-y-auto;
 	}
 
+	div[class='v-note-wrapper markdown-body'] {
+		background-color: rgba(0, 0, 0, 0) !important;
+		z-index: 0 !important;
+	}
+
 	.editor .v-note-wrapper .v-note-edit.divarea-wrapper .content-input-wrapper,
 	.editor .v-note-wrapper .v-note-edit.divarea-wrapper .content-input-wrapper .auto-textarea-wrapper,
 	.editor .v-note-wrapper .v-note-edit.divarea-wrapper .content-input-wrapper .auto-textarea-wrapper .auto-textarea-input {
@@ -136,7 +141,8 @@
 	.v-note-wrapper .v-note-show,
 	.v-note-wrapper .v-note-edit,
 	.v-note-wrapper .v-note-show .v-show-content,
-	.v-note-wrapper .v-note-show .v-show-content-html {
+	.v-note-wrapper .v-note-show .v-show-content-html,
+	div[class='scroll-style scroll-style-border-radius v-show-content'] {
 		@apply !relative !min-h-20 overflow-y-auto rounded-xl !border-none !bg-surface-low font-body text-on-surface ~text-base-min/base-max;
 	}
 	.global-preview .v-note-wrapper,

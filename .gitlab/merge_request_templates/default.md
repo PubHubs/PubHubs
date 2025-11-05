@@ -2,6 +2,7 @@
 
 - [ ] Followed [coding guidelines](https://gitlab.science.ru.nl/ilab/pubhubs_canonical/-/wikis/Contributing/Code-guidelines)
 - [ ] Added to [changelog](https://gitlab.science.ru.nl/ilab/pubhubs_canonical/-/blob/main/CHANGELOG.md) with appropriate prefix and human readable description.
+- [ ] Added new e2e tests
 
 # Review Steps:
 
@@ -12,24 +13,20 @@ If a longer testing time on main for this merge is requested, it is better to me
 
 All test done with complete PubHubs system. (PHC, minimal two Hubs, Global & Hub clients).
 
+Run the PubHubs e2e test locally (https://gitlab.science.ru.nl/pubhubs/pubhubs-e2e-test).
+
 Let console open to see if there are bugs, warnings etc.
 Also good practice: Do the tests on several screensizes (desktop, tablet, phone).
 
 ## Test functionility
 
 - [ ] Test the (new) functionality or solved bug.
-- [ ] Pretend you are a normal user (are you? ;-), and play around if everything works as expected.
 
 ## Test if something is broken
 
 - [ ] Test basic functionality:
   - [ ] Login
   - [ ] Switch Hubs
-  - [ ] Switch Rooms
-  - [ ] Post message
-  - [ ] Start private room
-  - [ ] Post private message
-  - [ ] Search in a room
 
 ## Test UI
 
@@ -37,10 +34,6 @@ Also good practice: Do the tests on several screensizes (desktop, tablet, phone)
   - [ ] Light theme
     - [ ] PubHubs home
     - [ ] Hubpage home
-    - [ ] Room
-    - [ ] Posting message
   - [ ] Dark theme
     - [ ] PubHubs home
     - [ ] Hubpage home
-    - [ ] Room
-    - [ ] Posting message

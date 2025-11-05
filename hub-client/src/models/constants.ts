@@ -52,6 +52,21 @@ enum RoomEmit {
 	ThreadLengthChanged = 'threadLengthChanged',
 }
 
+enum ScrollPosition {
+	Start = 'start',
+	Center = 'center',
+	End = 'end',
+}
+
+enum ScrollSelect {
+	Select = 'select',
+	Highlight = 'highlight',
+}
+
+enum ScrollBehavior {
+	Smooth = 'smooth',
+}
+
 enum OnboardingType {
 	consent = 'consent',
 	full = 'full',
@@ -81,4 +96,4 @@ const fileTypes = [
 
 const allTypes = [...imageTypes, ...mediaTypes, ...fileTypes];
 
-export { SystemDefaults, MatrixEventType, MatrixType, RelationType, Redaction, RoomEmit, OnboardingType, imageTypes, mediaTypes, fileTypes, allTypes, imageTypesExt };
+export { SystemDefaults, MatrixEventType, MatrixType, RelationType, Redaction, RoomEmit, ScrollPosition, ScrollSelect, ScrollBehavior, OnboardingType, imageTypes, mediaTypes, fileTypes, allTypes, imageTypesExt };

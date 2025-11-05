@@ -8,7 +8,6 @@ import { createI18n } from 'vue-i18n';
 import ProfileAttributes from '@hub-client/components/rooms/ProfileAttributes.vue';
 
 import { en } from '@hub-client/locales/en';
-// Logic
 import { nl } from '@hub-client/locales/nl';
 
 // Stores
@@ -63,7 +62,7 @@ describe('ProfileAttributes.vue Test', () => {
 
 		await flushPromises();
 
-		expect(wrapper.text().replace(/\s+/g, ' ').trim()).toBe('an attr another attr');
+		expect(wrapper.text().replace(/\s+/g, ' ').trim()).toBe('an attranother attr');
 	});
 
 	test('admin badges', async () => {

@@ -66,7 +66,7 @@ export const handlers = [
 			const data = {
 				theme: 'system',
 				timeformat: 'format24',
-				language: 'en',
+				language: 'nl',
 				hubs: [{ hubId: 'TestHub0-Id', hubName: 'Testhub0' }],
 			};
 			const encodedData = new TextEncoder().encode(JSON.stringify(data));

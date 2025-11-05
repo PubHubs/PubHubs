@@ -1,7 +1,7 @@
 <template>
 	<div class="flex aspect-square h-12 w-12 shrink-0 items-center justify-center overflow-hidden rounded-full" :class="avatarColor">
 		<img v-if="avatarUrl" v-show="loaded" data-testid="avatar" :src="image" class="h-full w-full" @load="imgLoaded()" />
-		<Icon v-if="!avatarUrl || !loaded" size="lg" :type="icon ? icon : 'person'" />
+		<Icon v-if="!avatarUrl || !loaded" size="lg" :type="icon ? icon : 'user'" testid="avatar" />
 	</div>
 </template>
 

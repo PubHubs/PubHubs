@@ -33,7 +33,7 @@
 						>
 							<template #reactions>
 								<div class="ml-2 mt-2 flex flex-wrap gap-2 px-20">
-									<Reaction v-if="reactionExistsForMessage(item.matrixEvent.event.event_id)" :reactEvent="onlyReactionEvent" :messageEventId="item.matrixEvent.event.event_id"></Reaction>
+									<Reaction v-if="reactionExistsForMessage(item.matrixEvent.event.event_id, item.matrixEvent)" :reactEvent="onlyReactionEvent" :messageEventId="item.matrixEvent.event.event_id"></Reaction>
 								</div>
 							</template>
 						</RoomMessageBubble>
@@ -51,7 +51,7 @@
 
 <script setup lang="ts">
 	// Packages
-	import { Direction, EventType, MatrixEvent, Thread } from 'matrix-js-sdk';
+	import { Direction, EventType, MatrixEvent } from 'matrix-js-sdk';
 	import { computed, nextTick, onBeforeUnmount, onMounted, onUnmounted, reactive, ref, watch } from 'vue';
 
 	// Components
@@ -71,7 +71,7 @@
 	import { SMI } from '@hub-client/logic/logging/StatusMessage';
 
 	// Models
-	import { RelationType, RoomEmit, SystemDefaults } from '@hub-client/models/constants';
+	import { RelationType, RoomEmit, ScrollBehavior, ScrollPosition, ScrollSelect, SystemDefaults } from '@hub-client/models/constants';
 	import { TMessageEvent } from '@hub-client/models/events/TMessageEvent';
 	import { TCurrentEvent } from '@hub-client/models/events/types';
 	import { Poll, Scheduler } from '@hub-client/models/events/voting/VotingTypes';
@@ -131,6 +131,7 @@
 	});
 
 	const onlyReactionEvent = computed(() => {
+		// To stop from having duplicate events
 		props.room.getRelatedEvents().forEach((reactEvent) => props.room.addCurrentEventToRelatedEvent(reactEvent));
 		return props.room.getCurrentEventRelatedEvents();
 	});
@@ -142,21 +143,8 @@
 	const newestEventIsLoaded = computed(() => {
 		return props.room.isNewestMessageLoaded();
 	});
-	const lastScrollTop = ref(0); // To keep track of the last scroll position
-	const isScrollingUp = ref<boolean>(false);
 
-	// Function to determine scroll direction
-	function findScrollDirection() {
-		const currentScrollTop = elRoomTimeline.value?.scrollTop ?? 0;
-		// Check if the user is scrolling up or down
-		if (currentScrollTop >= lastScrollTop.value) {
-			isScrollingUp.value = false; // Scrolling down
-		} else if (currentScrollTop <= lastScrollTop.value) {
-			isScrollingUp.value = true; // Scrolling up
-		}
-		// Update the last scroll position to the current one
-		lastScrollTop.value = currentScrollTop;
-	}
+	defineExpose({ elRoomTimeline }); // Expose timeline to parent to save and restore scrollposition when leaving room
 
 	onBeforeUnmount(() => {
 		if (timelineObserver) {
@@ -186,10 +174,21 @@
 		},
 		{ deep: true },
 	);
+	/*
+	If the scrollbar is not visible and the last message is not loaded do a paginate.
+	*/
+	async function checkAndPaginateIfNeeded() {
+		let container = elRoomTimeline.value;
+		if (!container) return;
+		if (container.scrollHeight <= container.clientHeight && !oldestEventIsLoaded.value) {
+			await loadPrevious();
+		}
+	}
 
 	// Is there a reaction for RoomMessageEvent ID.
 	// If there is then show the reaction otherwise dont render reaction UI component.
-	function reactionExistsForMessage(messageEventId: string | undefined): boolean {
+	function reactionExistsForMessage(messageEventId: string | undefined, matrixEvent: MatrixEvent): boolean {
+		if (matrixEvent.isRedacted()) return false;
 		if (!messageEventId) return false;
 
 		const reactionEvent = onlyReactionEvent.value.find((event) => {
@@ -223,6 +222,7 @@
 		onScroll();
 
 		LOGGER.log(SMI.ROOM_TIMELINE, `setupRoomTimeline done `, roomTimeLine);
+		props.room.setCurrentEvent(props.room.getLiveTimelineNewestEvent as unknown as TCurrentEvent);
 	}
 
 	function setupEventIntersectionObserver() {
@@ -238,15 +238,15 @@
 	function setupTimeLineIntersectionObserver() {
 		const options = {
 			root: elRoomTimeline.value,
-			threshold: 0.1, // Trigger when 10% of the sentinel is visible,
+			threshold: 0.001, // Trigger when 0.1% of the sentinel is visible,
 		};
 
 		timelineObserver = new IntersectionObserver((entries) => {
 			entries.forEach((entry) => {
-				if (!suppressNextObservertrigger && entry.isIntersecting && userHasScrolled.value) {
-					if (entry.target === topSentinel.value && isScrollingUp.value) {
+				if (!suppressNextObservertrigger && entry.isIntersecting) {
+					if (entry.target === topSentinel.value) {
 						loadPrevious();
-					} else if (entry.target === bottomSentinel.value && !isScrollingUp.value) {
+					} else if (entry.target === bottomSentinel.value) {
 						loadNext();
 					}
 				}
@@ -285,6 +285,12 @@
 				}
 				// When sending a message it can be in your Room but not yet in the timeline since it has to go through Synapse.
 				if (lastVisibleEvent && lastVisibleEvent.localTimestamp >= (props.room.findEventById(entries.at(-1)!.target.id!)?.localTimestamp ?? lastVisibleEvent.localTimestamp)) {
+					//  IF event from timelinemanager  doesn't have room Id - private receipt will not be send.
+					// We look at synapse client for the last Event.
+					if (!lastVisibleEvent.getRoomId()) {
+						lastVisibleEvent = props.room.matrixRoom.getLastLiveEvent();
+					}
+
 					await pubhubs.sendPrivateReceipt(lastVisibleEvent);
 				}
 			}
@@ -355,30 +361,28 @@
 		if (newestEventId) {
 			const newestEvent = props.room.getLiveTimelineNewestEvent();
 			if (newestEvent && newestEvent.sender === user.userId) {
-				scrollToEvent({ eventId: newestEventId }, { position: 'end' });
+				scrollToEvent({ eventId: newestEventId }, { position: ScrollPosition.End });
 			}
 		}
 
 		LOGGER.log(SMI.ROOM_TIMELINE, `onTimelineChange ended `, roomTimeLine.value);
+		checkAndPaginateIfNeeded();
 	}
 
 	// eslint-disable-next-line @typescript-eslint/no-unused-vars
 	async function onScrollToEvent(currentEvent: TCurrentEvent | undefined) {
 		if (currentEvent) {
-			scrollToEvent(currentEvent, { position: 'center', select: 'Highlight' });
+			scrollToEvent(currentEvent, { position: ScrollPosition.Center, select: ScrollSelect.Highlight });
 		}
 	}
 
 	function onScroll() {
 		userHasScrolled.value = true;
-		findScrollDirection();
-		// The delay below makes the loading next and previous much less responsive
-		// TO-DO add logic of code below without causing problems for room scrolling
-		// setInterval(() => {
-		// 	if (userHasScrolledForPopup.value) {
-		// 		userHasScrolledForPopup.value = false;
-		// 	}
-		// }, DELAY_POPUP_VIEW_ON_SCREEN);
+		setInterval(() => {
+			if (userHasScrolled.value) {
+				userHasScrolled.value = false;
+			}
+		}, DELAY_POPUP_VIEW_ON_SCREEN);
 	}
 
 	//#region Events
@@ -386,21 +390,34 @@
 	async function loadPrevious() {
 		isLoadingNewEvents.value = true;
 
+		// Check if elRoomTimeline.value is defined
+		const container = elRoomTimeline.value;
+		if (!container) return;
+
+		// Store scroll information before loading older messages
+		const prevScrollHeight = container.scrollHeight;
+		const prevScrollTop = container.scrollTop;
+
 		const prevOldestLoadedEventId = props.room.getTimelineOldestMessageId();
 		if (prevOldestLoadedEventId && !oldestEventIsLoaded.value) {
 			suppressNextObservertrigger = true;
 
 			await props.room.paginate(Direction.Backward, SystemDefaults.RoomTimelineLimit, prevOldestLoadedEventId);
 
-			await scrollToEvent({ eventId: prevOldestLoadedEventId }, { position: 'end' });
-
-			// Wait for DOM to update and layout to settle
+			// Wait for DOM update
 			await nextTick();
-			await new Promise((resolve) => requestAnimationFrame(resolve)); // Wait for layout
+			await new Promise((resolve) => requestAnimationFrame(resolve));
+
+			// Compute the height difference caused by the newly added messages
+			const newScrollHeight = container.scrollHeight;
+			const heightDiff = newScrollHeight - prevScrollHeight;
+
+			// Restore the previous scroll position
+			container.scrollTop = prevScrollTop + heightDiff;
 
 			setTimeout(() => {
 				suppressNextObservertrigger = false;
-			}, 10); // adjust delay if needed
+			}, 10);
 
 			settings.isFeatureEnabled(FeatureFlag.dateSplitter) && eventObserver?.setUpObserver(handleDateDisplayer);
 		}
@@ -417,8 +434,7 @@
 
 			await props.room.paginate(Direction.Forward, SystemDefaults.RoomTimelineLimit, prevNewestLoadedEventId);
 
-			// The function below results in the erratic scrolling behaviour
-			// await scrollToEvent({ eventId: prevNewestLoadedEventId }, { position: 'end' });
+			await scrollToEvent({ eventId: prevNewestLoadedEventId }, { position: ScrollPosition.End });
 
 			// Wait for DOM to update and layout to settle
 			await nextTick();
@@ -434,7 +450,7 @@
 	}
 
 	function onInReplyToClick(inReplyToId: string) {
-		scrollToEvent({ eventId: inReplyToId }, { position: 'center', select: 'Highlight' });
+		scrollToEvent({ eventId: inReplyToId }, { position: ScrollPosition.Center, select: ScrollSelect.Highlight });
 	}
 
 	function onEditPoll(poll: Poll, eventId: string) {
@@ -490,18 +506,20 @@
 	async function scrollToEvent(
 		currentEvent: TCurrentEvent,
 		options: {
-			position: 'start' | 'center' | 'end';
-			select?: 'Highlight' | 'Select';
-		} = { position: 'start' },
+			position: ScrollPosition.Start | ScrollPosition.Center | ScrollPosition.End;
+			select?: ScrollSelect.Highlight | ScrollSelect.Select;
+		} = { position: ScrollPosition.Start },
 	) {
 		LOGGER.log(SMI.ROOM_TIMELINE, `scroll to event: ${currentEvent.eventId}`, { eventId: currentEvent.eventId });
 
 		if (!elRoomTimeline.value) throw new Error('elRoomTimeline not defined, RoomTimeline not mounted?');
 
-		const doScroll = (elEvent: Element) => {
-			elEvent.scrollIntoView({ block: options.position, behavior: 'smooth' });
+		const doScroll = (elEvent: Element, currentEvent: TCurrentEvent) => {
+			// Position is taken from currentEvent, otherwise options
+			const position = currentEvent.position ?? options.position;
+			elEvent.scrollIntoView({ block: position, behavior: ScrollBehavior.Smooth });
 			// Style the event depending on the select option.
-			if (options.select === 'Highlight') {
+			if (options.select === ScrollSelect.Highlight) {
 				elEvent.classList.add('highlighted');
 				window.setTimeout(() => {
 					elEvent.classList.add('unhighlighted');
@@ -524,7 +542,7 @@
 			elEvent = elRoomTimeline.value.querySelector(`[id="${currentEvent.eventId}"]`);
 		}
 		if (elEvent) {
-			doScroll(elEvent);
+			doScroll(elEvent, currentEvent);
 			emit(RoomEmit.ScrolledToEventId);
 		}
 	}

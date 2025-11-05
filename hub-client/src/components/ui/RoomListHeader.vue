@@ -4,7 +4,7 @@
 			<div class="flex h-[24px] w-full items-center justify-between">
 				<p class="truncate font-bold leading-tight" role="heading">{{ t(label) }}</p>
 				<span v-if="tooltipText != undefined" class="ml-2">
-					<Icon type="info" size="sm" class="text-on-surface-dim" />
+					<Icon type="info" class="text-on-surface-dim" />
 				</span>
 			</div>
 		</div>

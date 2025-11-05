@@ -5,7 +5,7 @@
 			<div class="flex items-center justify-between">
 				<H2 class="line-clamp-2 w-2/3 pl-8">{{ room.name }}</H2>
 				<div v-if="isSecured" class="flex h-fit items-center justify-center rounded-l-lg bg-accent-primary py-2 pl-2 pr-4 text-on-accent-primary" :title="t('admin.secured_room')">
-					<Icon type="shield" filled />
+					<Icon type="shield"></Icon>
 				</div>
 			</div>
 			<div class="flex h-full flex-col gap-4 px-8">
@@ -16,11 +16,11 @@
 				<div class="flex w-full items-end justify-between gap-4">
 					<div class="flex flex-row flex-wrap gap-4 overflow-hidden text-on-surface-dim ~text-label-min/label-max">
 						<div class="flex items-center gap-2">
-							<Icon type="person" size="sm" filled />
+							<Icon type="user" size="sm"></Icon>
 							<span class="truncate whitespace-nowrap">{{ memberCount }}</span>
 						</div>
 						<div v-if="timestamp" class="flex items-center gap-2">
-							<Icon type="clock" size="sm" filled />
+							<Icon type="clock" size="sm"></Icon>
 							<span> {{ timestamp.toLocaleDateString().slice(0, 6) + timestamp.toLocaleDateString().slice(8, 10) }} {{ timestamp.toLocaleTimeString().slice(0, 5) }}</span>
 						</div>
 					</div>
@@ -60,8 +60,8 @@
 				<P class="mb-4">{{ accessVerifytext }}</P>
 				<div v-if="securedAttributes" class="flex flex-wrap items-center gap-y-2">
 					<div class="flew-row flex items-center gap-1">
-						<Icon v-if="memberOfRoom" type="lock_open" size="sm"></Icon>
-						<Icon v-else type="lock_closed" size="sm"></Icon>
+						<Icon v-if="memberOfRoom" type="lock-open" size="sm"></Icon>
+						<Icon v-else type="lock" size="sm"></Icon>
 						<P>{{ $t('attribute.heading') }}</P>
 					</div>
 					<div v-for="attribute in securedAttributes" :key="attribute.id" class="">
@@ -176,11 +176,11 @@
 		const retryDelay = 500;
 
 		for (let attempt = 0; attempt < maxRetries; attempt++) {
-			const hasJoined = await pubhubsStore.isUserRoomMember(user.userId, props.room.room_id);
+			const hasJoined = await pubhubsStore.isUserRoomMember(user.user.userId, props.room.room_id);
 			if (hasJoined) break;
 
 			if (attempt === maxRetries - 1) {
-				dialog.confirm(t('room.try_again'));
+				dialog.confirm(t('rooms.try_again'));
 			}
 
 			await new Promise((resolve) => setTimeout(resolve, retryDelay));
@@ -195,7 +195,7 @@
 
 			// Check if we've exceeded the timeout
 			if (attempt === maxRetries - 1) {
-				dialog.confirm(t('room.try_again'));
+				dialog.confirm(t('rooms.try_again'));
 			}
 
 			await new Promise((resolve) => setTimeout(resolve, retryDelay));
@@ -215,7 +215,7 @@
 
 			// Check if we've exceeded the timeout
 			if (attempt === maxRetries - 1) {
-				dialog.confirm(t('room.try_again'));
+				dialog.confirm(t('rooms.try_again'));
 			}
 
 			await new Promise((resolve) => setTimeout(resolve, retryDelay));

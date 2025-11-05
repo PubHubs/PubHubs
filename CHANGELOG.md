@@ -19,6 +19,7 @@ _Please add a brief description of any changes and any migrations to be performe
 - [NEW] The development setup has been simplified, see `maskfile.md`
 - [BUG] The login page is no longer visible for a split second upon a refresh when logged in.
 - [NEW] The login and home (hub discovery) page are now split.
+- [NEW] The synchronization with the server changed from API calls to the Sliding Sync implementation.
 - [BUG] Made the front-end code for the multi-server setup more robust (e.g., added checks whether a user is logged in before certain actions like ordering hubs can be performed).
 - [BUG] The entire hub icon in the global bar is now clickable (including the part covered by the unread message counter).
 - [BUG] Error responses from PHC, the Authentication Server and the Transcryptor are now correctly parsed.

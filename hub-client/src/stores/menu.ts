@@ -12,9 +12,9 @@ type MenuItem = {
 type MenuItems = Array<MenuItem>;
 
 const defaultMenu: MenuItems = [
-	{ key: 'menu.home', icon: 'home', to: { name: 'home' }, path: '/' },
-	{ key: 'menu.directmsg', icon: 'directmsg', to: { name: 'direct-msg' }, path: '/direct-msg' },
-	{ key: 'menu.discover', icon: 'compass', to: { name: 'discover-rooms' }, path: '/discover-rooms' },
+	{ key: 'menu.home', icon: 'house', to: { name: 'home' }, path: '/' },
+	{ key: 'menu.directmsg', icon: 'chat-circle-text', to: { name: 'direct-msg' }, path: '/direct-msg' },
+	{ key: 'menu.discover', icon: 'compass', to: { name: 'discover-rooms' }, path: '/discoverrooms' },
 ];
 
 const useMenu = defineStore('menu', {

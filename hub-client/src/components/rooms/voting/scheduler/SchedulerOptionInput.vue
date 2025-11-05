@@ -34,7 +34,7 @@
 					</div>
 				</template>
 			</VueDatePicker>
-			<Icon type="bin" :as-button="true" size="sm" :icon-color="'text-accent-red'" @click="emit('removeOption')" class="m-auto mr-2"></Icon>
+			<Icon type="trash" :as-button="true" size="sm" :icon-color="'text-accent-red'" @click="emit('removeOption')" class="m-auto mr-2"></Icon>
 		</div>
 	</button>
 </template>

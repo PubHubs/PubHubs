@@ -10,8 +10,8 @@
 				</div>
 			</div>
 			<div class="flex gap-2 pt-3" :class="{ 'flex-col': imageTypes.includes(messageInput.state.fileAdded?.type) }">
-				<Icon type="swap" class="cursor-pointer hover:text-accent-secondary" @click="openFile()"></Icon>
-				<Icon type="bin" class="cursor-pointer hover:text-accent-error" @click="removeFile()"></Icon>
+				<Icon type="arrows-clockwise" class="cursor-pointer hover:text-accent-secondary" @click="openFile()"></Icon>
+				<Icon type="trash" class="cursor-pointer hover:text-accent-error" @click="removeFile()"></Icon>
 				<div class="relative flex-grow">
 					<div class="absolute" :class="imageTypes.includes(messageInput.state.fileAdded?.type) ? 'bottom-10' : 'bottom-1'">
 						<Button v-if="submitButton" size="sm" @click="submit()">{{ $t('file.upload_file') }}</Button>

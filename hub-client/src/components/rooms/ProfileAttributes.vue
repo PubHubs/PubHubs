@@ -6,7 +6,7 @@
 			:class="value === 'rooms.admin_badge' ? 'bg-accent-primary' : 'bg-surface text-on-surface-variant'"
 			class="flex w-fit items-center gap-1 rounded-full px-2 lowercase text-background ~text-label-small-min/label-small-max"
 		>
-			<Icon type="check" size="xs" :class="value === 'rooms.admin_badge' ? 'text-background' : 'text-on-surface-variant'" class="py-1" />
+			<Icon type="check-circle" size="xs" :class="value === 'rooms.admin_badge' ? 'text-background' : 'text-on-surface-variant'" class="py-1" />
 			<span v-if="value === 'rooms.admin_badge'" class="line-clamp-1">{{ $t(value) }}</span>
 			<span v-else class="line-clamp-1">{{ value }}</span>
 		</span>

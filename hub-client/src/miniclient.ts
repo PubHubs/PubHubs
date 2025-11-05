@@ -1,9 +1,9 @@
+// Assets
 // Packages
 import { adjustClientConfig } from './client_config';
 import { createPinia } from 'pinia';
 import { createApp } from 'vue';
 
-// Assets
 import '@hub-client/assets/tailwind.css';
 
 // Components
@@ -14,15 +14,12 @@ import Miniclient from '@hub-client/pages/Miniclient.vue';
 
 // Other
 import { setUpi18n } from '@hub-client/i18n';
-import { registerPlugins } from '@hub-client/registerPlugins';
 import '@hub-client/registerServiceWorker';
 
 adjustClientConfig();
 
 const pinia = createPinia();
 const app = createApp(Miniclient);
-
-registerPlugins(app);
 
 app.component('Badge', Badge);
 

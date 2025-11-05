@@ -1,17 +1,19 @@
-Before merging to stable, please check the following.
+Before merging to stable:
 
-General tips:
+- [ ] Notify the others that they do not merge anything into main until the merge to stable is done. (otherwise you will merge changes that may not be deployed to main and therefore not tested by the steps below).
+- [ ] You're merging from main into stable (and not from some feature branch.) 
+- [ ] Run the PubHubs e2e test (https://gitlab.science.ru.nl/pubhubs/pubhubs-e2e-test)
+- [ ] Review and update the [CHANGELOG](CHANGELOG.md) to reflect the state after the merge into stable.
+- [ ] Scan through all changes in merge request to see if there is any issue.
+- [ ] Set the new version number  ([how to decide which version](https://gitlab.science.ru.nl/ilab/pubhubs_canonical/-/wikis/Tech-Information/Versioning)) in the [CHANGELOG](CHANGELOG.md). **But don't tag yet!** Tagging will release a new stable version. (You can see the tags and their pipelines [here](https://gitlab.science.ru.nl/ilab/pubhubs_canonical/-/tags).)
+- [ ] Before proceeding with the following steps please check that the pipeline has been succeeded. 
+- [ ] Consider if the merge might cause irreversible changes (different database format), and plan for this. (Backups?)
+
+Test by hand:
 
 - While testing, keep two browser windows open, one for a existing user (it's easiest if this is a hub admin), and an incognito one for a new user that will be registered during testing. This allows seeing messages being send and easier testing.
 - If you do the merge together with a collegue, one of you should do the tests on an mobile phone and the other on a desktop.
 
-  - [ ] Notify the others that they do not merge anything into main until the merge to stable is done. (otherwise you will merge changes that may not be deployed to main and therefore not tested by the steps below).
-  - [ ] You're merging from main into stable (and not from some feature branch.) 
-  - [ ] Review and update the [CHANGELOG](CHANGELOG.md) to reflect the state after the merge into stable.
-    - [ ] Scan through all changes in merge request to see if there is any issue.
-    - [ ] Set the new version number  ([how to decide which version](https://gitlab.science.ru.nl/ilab/pubhubs_canonical/-/wikis/Tech-Information/Versioning)) in the [CHANGELOG](CHANGELOG.md). **But don't tag yet!** Tagging will release a new stable version. (You can see the tags and their pipelines [here](https://gitlab.science.ru.nl/ilab/pubhubs_canonical/-/tags).)
-  - [ ] Before proceeding with the following steps please check that the pipeline has been succeeded. 
-  - [ ] Consider if the merge might cause irreversible changes (different database format), and plan for this. (Backups?)
   - [ ] Please check that the following works on https://main.pubhubs.ihub.ru.nl/client :
       - [ ] Test basic pubhubs functionality
         - [ ] Open two (private) browser windows and:
@@ -25,30 +27,22 @@ General tips:
             - `UPDATE users SET admin=1 WHERE name="@XXX-XXX:main.testhub-matrix.ihub.ru.nl";`, where `XXX-XXX` should be replaced by your short pseudonym.
             - `.quit`, etc.
         - [ ] With the admin user:
-          - [ ] Go to an existing room with many messages, scroll around, post a message. Make sure you see everything that should be there.
-          - [ ] Use the search functionality
-          - [ ] Create a new room
           - [ ] Create one or more new secured room with mulitple profile attributes and a non profile attributes.
             - Make sure to require at least one value, so that one of the users cannot enter the secured room.
             - Check if the badges are shown properly (in line with which (non-)profile attributes are set).
             - Try to vary a bit in what you do exactly on each merge.
-          - [ ] In general act like a regular PubHubs user and try and see if everything works as expected.
           - [ ] Make an announcment to the room.
         - [ ] With the new user (not an admin!):
-          - [ ] Send a message in the public room.
           - [ ] Send a message in the secured room (if you are admin, you can allways enter a secured room, so important to test this with a normal user).
-          - [ ] Sending a private message.
-          - [ ] Send a message with an image file and a message with another file (ie PDF or txt or docx).
           - [ ] Leave one of the secured rooms. And re-enter that room.
-        - [ ] Change displayname and avatar.
         - [ ] Change Theme & Language, and see they are stored/fetched after logout/login.
         - [ ] Logging out and logging in again with your original user.
-        - [ ] Create a poll and date picker, check if other users can see the update of the poll and datepicker.
-      - [ ] Anything related specifically to your merge request.
+      - [ ] Anything related specifically to your merge request that is not covered by the e2e test (new stuff should!)
+
   - [ ] Given all the issues found, decide whether it's prudent to continue the merge.  (That is, are the bugs bearable.) Consider consulting with other colleagues.
   - [ ] Figure out if the merge also requires any configuration changes.
   - [ ] Update feature flag for stable if the feature works properly.
-  - [ ] Inform the pubhubs team (via Slack and PubHubs stable) of the merge and possible downtime of https://stable.pubhubs.ihub.ru.nl/client . 
+  - [ ] Inform the pubhubs team (via email and PubHubs stable) of the merge and possible downtime of https://stable.pubhubs.ihub.ru.nl/client . 
   - [ ] Make the changes and **perform the merge** (don't squash commits). After merging, **tag** the latest commit on stable with the version number plus `-rc0` (e.g. `v1.2.3-rc0`) to trigger the building and publishing of the stable images. 
         
     **NOTE:** do not worry when the transcryptor does not immediately come back up.  The transcryptor is rebuilt from source code when a new version is detected, which may take around 5-10 minutes. 

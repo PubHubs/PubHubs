@@ -6,7 +6,7 @@
 		</div>
 		<Suspense>
 			<Mask>
-				<RoomMessageBubble class="w-fit" :event="event" :room="room" :deleteMessageDialog="true" :viewFromThread="props.viewFromThread" />
+				<RoomMessageBubble :event="event" :room="room" :deleteMessageDialog="true" :viewFromThread="props.viewFromThread" />
 				<Reaction class="mx-4 w-5/6" v-if="displayReactionInDialog(event.event_id)" :reactEvent="displayReactionInDialog(event.event_id)" :messageEventId="event.event_id" />
 			</Mask>
 			<template #fallback>
@@ -18,6 +18,7 @@
 
 <script setup lang="ts">
 	// Packages
+	import Reaction from '../ui/Reaction.vue';
 	import { MatrixEvent, MsgType } from 'matrix-js-sdk';
 	import { PropType } from 'vue';
 
@@ -56,12 +57,8 @@
 		},
 	});
 
-	function displayReactionInDialog(eventId: string): MatrixEvent {
-		if (!props.threadReactionEvent) {
-			return props.room.getReactionEvent(eventId); // FIXME: Typing
-		} else {
-			return props.threadReactionEvent.filter((reactEvent: MatrixEvent) => reactEvent.getContent()[RelationType.RelatesTo]?.event_id === eventId);
-		}
+	function displayReactionInDialog(eventId: string): MatrixEvent[] | undefined {
+		return props.room.getRelatedEvents().filter((event) => event.getContent()[RelationType.RelatesTo]?.event_id === eventId);
 	}
 
 	async function close(returnValue: DialogButtonAction) {

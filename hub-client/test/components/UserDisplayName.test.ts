@@ -21,22 +21,23 @@ describe('User Display Name.vue Test', () => {
 		// Mock the useUser store
 		const user = useUser();
 		// Mock the client object with a getUser method
-		user.client = {
-			getUser: vi.fn((userId) => ({
-				userId,
-				rawDisplayName: 'user2',
-			})),
-		};
-		// Override the getter output
-		Object.defineProperty(user, 'userDisplayName', {
-			get: () => () => 'user2',
-		});
+		// user.client = {
+		// 	getUser: vi.fn((userId) => ({
+		// 		userId,
+		// 		rawDisplayName: 'user2',
+		// 	})),
+		// };
+		// // Override the getter output
+		// Object.defineProperty(user, 'userDisplayName', {
+		// 	get: () => () => 'user2',
+		// });
 	});
 
 	test('test member display name is correct', async () => {
 		wrapper = shallowMount(UserDisplayName, {
 			propsData: {
 				userId: '@123-abc:matrix',
+				userDisplayName: 'user2',
 				showDisplayName: true,
 			},
 		});

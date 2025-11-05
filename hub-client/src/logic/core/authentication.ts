@@ -2,6 +2,8 @@
 import * as sdk from 'matrix-js-sdk';
 import { ICreateClientOpts, MatrixClient } from 'matrix-js-sdk';
 
+import { CONFIG } from '@hub-client/logic/logging/Config';
+
 // Stores
 import { Message, MessageType, useMessageBox } from '@hub-client/stores/messagebox';
 import { useUser } from '@hub-client/stores/user';
@@ -15,8 +17,7 @@ class Authentication {
 	private client!: MatrixClient;
 
 	constructor() {
-		// @ts-expect-error
-		this.baseUrl = _env.HUB_URL;
+		this.baseUrl = CONFIG._env.HUB_URL;
 		this.clientUrl = location.protocol + '//' + location.host + location.pathname;
 	}
 
