@@ -85,17 +85,17 @@ export const handlers = [
 	}),
 
 	http.get('http://hubtest0/_synapse/client/.ph/info', () => {
-		const data = { hub_client_url: 'http://hubtest0-client/', hub_version: 'versionHub0' };
+		const data = { Ok: { hub_client_url: 'http://hubtest0-client/', hub_version: 'versionHub0' } };
 		return HttpResponse.json(data, { status: 200 });
 	}),
 
 	http.get('http://hubtest1/_synapse/client/.ph/info', () => {
-		const data = { hub_client_url: 'http://hubtest1-client/', hub_version: 'versionHub1' };
+		const data = { Ok: { hub_client_url: 'http://hubtest1-client/', hub_version: 'versionHub1' } };
 		return HttpResponse.json(data, { status: 200 });
 	}),
 
 	http.get('http://hubtest2/_synapse/client/.ph/info', () => {
-		const data = { hub_client_url: 'http://hubtest2-client/', hub_version: 'versionHub2' };
+		const data = { Ok: { hub_client_url: 'http://hubtest2-client/', hub_version: 'versionHub2' } };
 		return HttpResponse.json(data, { status: 200 });
 	}),
 

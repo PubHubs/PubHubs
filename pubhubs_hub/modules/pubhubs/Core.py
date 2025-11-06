@@ -63,7 +63,7 @@ class Core:
 
         # [Endpoints] 
         hub_info = { 'hub_version': version_string }
-        api.register_web_resource('/_synapse/client/.ph/info', PhInfoEP(hub_info))
+        api.register_web_resource('/_synapse/client/.ph/info', PhInfoEP({ 'Ok': hub_info }))
 
         # new, multi-server setup
         if self._config == None:
