@@ -26,7 +26,7 @@
 									<Avatar :avatarUrl="user.userAvatar(user.userId!) ?? user.avatarUrl" :userId="user.userId!" />
 									<div class="flex h-fit w-full flex-col overflow-hidden">
 										<p class="truncate font-bold leading-tight">
-											{{ user.displayName }}
+											{{ user.userDisplayName(user.userId!) }}
 										</p>
 										<p class="leading-tight">{{ user.pseudonym ?? '' }}</p>
 									</div>

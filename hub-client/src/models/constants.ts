@@ -4,7 +4,7 @@
 
 enum SystemDefaults {
 	syncIntervalMS = 3000, // Sync interval in milliseconds. Experimental selection for interval. Changed it from 2000 to 1000 to load events much quickly.
-	SyncTimelineLimit = 50, // Find the right balance: filtering of events needs to be done clientside, but we need the first message. In the mean time initial read should be fast.
+	SyncTimelineLimit = 100, // Find the right balance: filtering of events needs to be done clientside, but we need the first message. In the mean time initial read should be fast.
 	InitialRoomTimelineLimit = 100, // Initially load less messages in the rooms: makes startup faster
 	RoomTimelineLimit = 500, // Subsequent pagination: can be relatively high
 }

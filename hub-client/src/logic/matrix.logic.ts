@@ -2,6 +2,8 @@
 import { EventType } from 'matrix-js-sdk';
 import type { MSC3575List, MSC3575RoomSubscription } from 'matrix-js-sdk/lib/sliding-sync.js';
 
+import { SystemDefaults } from '@hub-client/models/constants';
+
 // #region Subscriptions
 
 // Room list subscription (the list/filter fed to SlidingSync)
@@ -24,7 +26,7 @@ const TimelineSubScription: MSC3575RoomSubscription = {
 		['m.room.member', ''],
 		['m.room.avatar', ''],
 	],
-	timeline_limit: 100, // limit specific per room
+	timeline_limit: SystemDefaults.SyncTimelineLimit, // limit specific per room
 };
 
 // #endregion
