@@ -79,7 +79,7 @@
 
 	formState.setData({
 		displayName: {
-			value: user.displayName as string,
+			value: user.userDisplayName(user.userId!) as string,
 			validation: {
 				required: true,
 				max_length: settings.getDisplayNameMaxLength,
@@ -93,8 +93,8 @@
 
 	onMounted(() => {
 		formState.setSubmitButton(getSubmitButton());
-		formState.data.displayName.value = user.displayName as FormDataType;
-		blobUrl.value = user.avatarUrl;
+		formState.data.displayName.value = user.userDisplayName(user.userId!) as FormDataType;
+		blobUrl.value = user.userAvatar(user.userId!);
 	});
 
 	function dialogAction(action: DialogButtonAction) {
