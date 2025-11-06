@@ -142,7 +142,13 @@ const useMSS = defineStore('mss', {
 		},
 
 		async getHubInfo(hubServerUrl: string): Promise<mssTypes.InfoResp> {
-			const infoResp = await hub_api.api<mssTypes.InfoResp>(`${hubServerUrl}${hub_api.apiURLS.info}`);
+			const infoResp = await hub_api.api<mssTypes.Result<mssTypes.InfoResp> | mssTypes.InfoResp>(`${hubServerUrl}${hub_api.apiURLS.info}`);
+
+			// hubs <= v3.0.0 do not wrap the info response in an "Ok": { ... }
+			if (infoResp.hasOwnProperty('Ok')) {
+				return infoResp.Ok;
+			}
+
 			return infoResp;
 		},
 

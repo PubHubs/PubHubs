@@ -72,8 +72,13 @@ class Program:
         info_url = urllib.parse.urljoin(hub['url'], ".ph/info")
         try:
             with self.get(info_url) as response:
-                hub['hub_info'] = json.load(response)
-                logger.debug(f"{info_url}: {hub['hub_info']}")
+                hub_info = json.load(response)
+                # It used to be the case that the hub info endpoint would not return its
+                # data wrapped in an "Ok": { ... }. 
+                if "Ok" in hub_info:
+                    hub_info = hub_info["Ok"]
+                hub['hub_info'] = hub_info 
+                logger.debug(f"{info_url}: {hub_info}")
         except urllib.error.URLError as e:
             logger.warn(f'failed to get {info_url}: {e}')
             hub['hub_info'] = { 'error': e }
