@@ -5,7 +5,7 @@
 			<div class="relative z-10 flex items-end justify-between px-4 py-4">
 				<Avatar :avatar-url="user.userAvatar(event.sender)" :user-id="event.sender" class="rounded-full object-cover shadow-md ring-2 ring-white ring-offset-1" />
 				<div v-if="user.userId !== event.sender && props.room?.getPowerLevel(event.sender) !== 50" class="mb-2 rounded-md bg-surface-low p-[2%]">
-					<Icon type="envelope" @click="goToUserRoom(event.sender)" class="cursor-pointer"></Icon>
+					<Icon type="envelope" @click.stop="goToUserRoom(event.sender)" class="cursor-pointer"></Icon>
 				</div>
 			</div>
 		</div>

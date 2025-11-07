@@ -245,22 +245,13 @@ impl EnterArgs {
             anyhow::bail!("failed to complete entering hub: {enter_complete_resp:?}");
         };
 
-        let mut hub_client_url : url::Url  = if self.local_client {
+        let mut hub_client_url: url::Url = if self.local_client {
             self.local_client_url
         } else {
-            // Manual request to `api::hub::InfoEP` as workaround for #1463
-            let awc_client = awc::Client::default();
-
-            let mut resp = awc_client
-                .get(format!("{}/.ph/info", hub_info.url))
-                .send()
+            let api::hub::InfoResp { hub_client_url, .. } = client
+                .query_with_retry::<api::hub::InfoEP, _, _>(&hub_info.url, api::NoPayload)
                 .await
-                .map_err(|err| anyhow::anyhow!("failed to obtain hub information endpoint: {err}"))?;
-            let api::hub::InfoResp {
-                hub_client_url, ..
-            } = resp.json().await.map_err(|err| {
-                anyhow::anyhow!("failed to obtain hub information endpoint body: {err}")
-            })?;
+                .context("failed to obtain hub information")?;
 
             hub_client_url
         };

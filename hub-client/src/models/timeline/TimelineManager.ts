@@ -136,7 +136,7 @@ class TimelineManager {
 		const timeline = this.client.getRoom(this.roomId)?.getLiveTimeline();
 		if (timeline) {
 			let newestMessage: MatrixEvent | undefined = undefined;
-			while (!newestMessage && (await this.client.paginateEventTimeline(timeline, { backwards: true, limit: 10 }))) {
+			while (!newestMessage && (await this.client.paginateEventTimeline(timeline, { backwards: true, limit: 200 }))) {
 				newestMessage = timeline.getEvents()?.findLast((x) => x.getType() === MatrixEventType.RoomMessage);
 			}
 			return newestMessage;
@@ -150,17 +150,17 @@ class TimelineManager {
 	 */
 	private async getRelatedEvents(events: TimelineEvent[]): Promise<TimelineEvent[]> {
 		let allRelatedEvents: MatrixEvent[] = [];
-		let nextBatch: string | undefined = undefined;
-		for (const e of events) {
-			do {
-				const result = await this.client.relations(this.roomId, e.matrixEvent.event.event_id!, null, null, { from: nextBatch });
-				allRelatedEvents.push(...result.events);
-				nextBatch = result.nextBatch ?? undefined;
-			} while (nextBatch);
-		}
+		// let nextBatch: string | undefined = undefined;
+		// for (const e of events) {
+		// 	do {
+		// 		const result = await this.client.relations(this.roomId, e.matrixEvent.event.event_id!, null, null, { from: nextBatch });
+		// 		allRelatedEvents.push(...result.events);
+		// 		nextBatch = result.nextBatch ?? undefined;
+		// 	} while (nextBatch);
+		// }
 
-		// filter out all relations that have no content['m.relates_to'] field (like the matrix SDK does) or that have thread-content (threads are handled in API)
-		allRelatedEvents = allRelatedEvents.filter((x) => typeof x.event?.content?.[RelationType.RelatesTo] === 'object' && x.event.content[RelationType.RelatesTo][RelationType.RelType] !== RelationType.Thread);
+		// // filter out all relations that have no content['m.relates_to'] field (like the matrix SDK does) or that have thread-content (threads are handled in API)
+		// allRelatedEvents = allRelatedEvents.filter((x) => typeof x.event?.content?.[RelationType.RelatesTo] === 'object' && x.event.content[RelationType.RelatesTo][RelationType.RelType] !== RelationType.Thread);
 
 		return allRelatedEvents.map((x) => new TimelineEvent(x, this.roomId));
 	}
@@ -254,6 +254,7 @@ class TimelineManager {
 		// TODO remove redacted events when necessary: so whenever a pagination is taking place
 
 		// Filters out the visible events, so from now on we are working on the visible timeline
+
 		matrixEvents = this.prepareEvents(matrixEvents);
 		let eventList = matrixEvents.map((event) => new TimelineEvent(event, this.roomId));
 
@@ -271,6 +272,7 @@ class TimelineManager {
 				// if the current timeline is empty AND the eventlist is also empty (only when room is new or none of the initial synced events were messages)
 				// we need to initialize with the newest message in the current livetimeline, else we initialize with the eventlist
 				if (eventList.length === 0) {
+					// TODO Find better way of finding newest message without making these calls
 					const newestMessage = await this.getInitialNewestMessage();
 					if (newestMessage && newestMessage.event.event_id) {
 						await this.loadToEvent({ eventId: newestMessage.event.event_id });
@@ -443,8 +445,8 @@ class TimelineManager {
 
 		// need to paginate both directions, for when event is in beginning or end. The surplus does not matter
 		const joinPromises: Promise<MatrixEvent[]>[] = [];
-		joinPromises.push(this.performPaginate(Direction.Backward, SystemDefaults.RoomTimelineLimit, timeline));
-		joinPromises.push(this.performPaginate(Direction.Forward, SystemDefaults.RoomTimelineLimit, timeline));
+		joinPromises.push(this.performPaginate(Direction.Backward, SystemDefaults.InitialRoomTimelineLimit / 2, timeline));
+		joinPromises.push(this.performPaginate(Direction.Forward, SystemDefaults.InitialRoomTimelineLimit / 2, timeline));
 
 		const [newBackEvents, newForwardEvents] = await Promise.all(joinPromises);
 

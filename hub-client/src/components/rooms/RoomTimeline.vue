@@ -366,7 +366,8 @@
 		}
 
 		LOGGER.log(SMI.ROOM_TIMELINE, `onTimelineChange ended `, roomTimeLine.value);
-		checkAndPaginateIfNeeded();
+		// TODO removed: this caused a loop that scrolled loaded al messages and made far too many calls
+		//checkAndPaginateIfNeeded();
 	}
 
 	// eslint-disable-next-line @typescript-eslint/no-unused-vars

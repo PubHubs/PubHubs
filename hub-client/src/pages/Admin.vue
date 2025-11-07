@@ -73,7 +73,7 @@
 									<div class="flex items-center gap-1">
 										<Icon type="trash" class="hover:cursor-pointer hover:text-accent-red" v-if="rooms.room(item.room_id)?.userCanChangeName(user.userId)" @click="removeSecuredRoom(item)" />
 										<Icon type="pencil-simple" class="hover:cursor-pointer hover:text-accent-primary" v-if="rooms.room(item.room_id)?.userCanChangeName(user.userId)" @click="EditSecuredRoom(item)" />
-										<Icon type="arrow-circle-up" class="hover:cursor-pointer hover:text-accent-primary" @click="makeRoomAdmin(item.room_id, user.userId)" />
+										<Icon v-else type="arrow-circle-up" class="hover:cursor-pointer hover:text-accent-primary" @click="makeRoomAdmin(item.room_id, user.userId)" />
 									</div>
 								</div>
 							</div>

@@ -8,13 +8,7 @@ Here you will find api calls to the hub's server that are not standard Matrix Ap
 
 #### `GET _synapse/client/.ph/info`
 
-Unauthenticated (on purpose). Rerturns basic info about the hub, currenly only the hub version, e.g.:
-```json
-{"hub_version": "v0.5.1-34-g1f07cbb7"}
-```
-Will be used more extensively by the upcoming multi-server setup.
-
- - `hub_version`:  what `git describe --tags` returned when the hub's docker image was built
+See [rust `api` documentation](/pubhubs/src/api/mod.rs).
 
 ## Secured rooms
 

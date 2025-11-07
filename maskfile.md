@@ -17,14 +17,21 @@ Make sure you have [irma](https://github.com/privacybydesign/irmago) installed
 This required [tmux](https://github.com/tmux/tmux) to be installed.
 
 ```sh
-bash run-all.sh
+sh run-all.sh
 ```
 
 ### init
 
 > Initializes/wipes the development environment
 
-```sh
+**OPTIONS**
+* no_check
+    * flags: --no-check
+    * desc: Skip version checks
+
+```bash
+set -e
+[[ "$no_check" != "true" ]] && mask check versions
 mask run s3 init
 mask run hub init
 ```
@@ -211,3 +218,29 @@ echo  "Building hub..."
 cd pubhubs_hub
 docker build -t pubhubs-hub .
 ```
+
+## check
+
+> Check your local PubHubs development environment
+
+```sh
+mask check versions
+```
+
+### versions
+
+> Check whether some of the required software is installed
+
+```sh
+set -e
+
+if ! command -v python3 >/dev/null 2>&1
+then
+    echo "PROBLEM: 'python3' is required to run the pubhubs locally, but was not found"
+    exit 1
+fi
+
+python3 check-python3-version.py
+python3 check-versions.py
+```
+

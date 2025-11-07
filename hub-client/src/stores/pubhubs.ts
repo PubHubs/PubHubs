@@ -435,7 +435,7 @@ const usePubhubsStore = defineStore('pubhubs', {
 			return room;
 		},
 
-		getPrivateRoomWithMembers(memberIds: Array<string>, rooms: Array<any>): boolean | string {
+		getPrivateRoomWithMembers(memberIds: Array<string>, rooms: Array<any>, stewardRoomId: string = ''): boolean | string {
 			for (let index = rooms.length - 1; index >= 0; index--) {
 				const roomId = (rooms[index] as Room).roomId;
 				const room = this.client.getRoom(roomId);
@@ -444,8 +444,17 @@ const usePubhubsStore = defineStore('pubhubs', {
 				const roomMemberIds = roomMembers.map((member) => member.userId);
 				roomMemberIds.sort();
 				const found = JSON.stringify(memberIds.sort()) === JSON.stringify(roomMemberIds);
-				if (found) {
-					return room.roomId;
+				// Specific to Steward contact room because of how steward contact room are create.
+				// Room name is based on RoomId,MembersList.
+
+				if (room.getType() === RoomType.PH_MESSAGE_STEWARD_CONTACT) {
+					if (room.name.split(',')[0] === stewardRoomId && found) {
+						return room.roomId;
+					}
+				} else {
+					if (found) {
+						return room.roomId;
+					}
 				}
 			}
 			return false;
@@ -467,8 +476,12 @@ const usePubhubsStore = defineStore('pubhubs', {
 
 			const memberIds = [me.userId!, ...otherUsers.map((u) => u.userId)];
 			const allRoomsByType = this.getAllRooms().filter((room) => room.getType() === roomType);
-			const existingRoomId = this.getPrivateRoomWithMembers(memberIds, allRoomsByType);
-
+			let existingRoomId;
+			if (roomIdForStewardRoomCreate) {
+				existingRoomId = this.getPrivateRoomWithMembers(memberIds, allRoomsByType, roomIdForStewardRoomCreate);
+			} else {
+				existingRoomId = this.getPrivateRoomWithMembers(memberIds, allRoomsByType);
+			}
 			// Try joining existing by renaming
 			if (existingRoomId !== false && typeof existingRoomId === 'string') {
 				const rooms = useRooms();
@@ -1112,25 +1125,26 @@ const usePubhubsStore = defineStore('pubhubs', {
 		/**
 		 * Initializes or extends admin contact room by adding hub admin members.
 		 */
-		async initializeOrExtendAdminContactRoom(): Promise<void> {
+		async initializeOrExtendAdminContactRoom(): Promise<string | undefined> {
 			const adminIds: string[] = await this.fetchAdminIds();
-			if (!adminIds) return;
+			if (!adminIds) return undefined;
 			// Don't do anything if there are no new admins
-			if (!this.hasNewAdmin(adminIds)) return;
+			if (!this.hasNewAdmin(adminIds)) return this.getAdminRoomId();
 
-			await this.setupAdminContactRoom(adminIds);
+			return await this.setupAdminContactRoom(adminIds);
 		},
 
 		/**
 		 * Sets up the admin contact room based on existing state
 		 */
-		async setupAdminContactRoom(adminIds: string[]): Promise<void> {
+		async setupAdminContactRoom(adminIds: string[]): Promise<string | undefined> {
 			const existingRoom = this.findAdminContactRoom();
 
 			if (existingRoom) {
 				await this.handleExistingAdminRoom(existingRoom, adminIds);
+				return existingRoom.roomId;
 			} else {
-				await this.createNewAdminRoom(adminIds);
+				return await this.createNewAdminRoom(adminIds);
 			}
 		},
 
@@ -1162,12 +1176,14 @@ const usePubhubsStore = defineStore('pubhubs', {
 		/**
 		 * Creates a new admin contact room if none exists
 		 */
-		async createNewAdminRoom(adminIds: string[]): Promise<void> {
+		async createNewAdminRoom(adminIds: string[]): Promise<string | undefined> {
 			const adminUsers = adminIds.map((adminId) => this.client.getUser(adminId)).filter((user) => user !== null);
 
 			// This condition is to satisfy the createPrivateRoomWith function - It takes either a User or MatrixUser[] as argument
 			const oneOrManyAdmins = adminUsers.length === 1 ? (adminUsers.pop() as User) : adminUsers;
-			await this.createPrivateRoomWith(oneOrManyAdmins, true);
+			const room = await this.createPrivateRoomWith(oneOrManyAdmins, true);
+			// Returns room_id if it exists
+			return room ? room.room_id : undefined;
 		},
 		/**
 		 * Finds the admin contact room if it exists
@@ -1244,6 +1260,37 @@ const usePubhubsStore = defineStore('pubhubs', {
 		async routeToRoomPage(room: { room_id: string }) {
 			const room_id = room.room_id;
 			await router.push({ name: 'room', params: { id: room_id } });
+		},
+
+		// Set up admin room. Corner case is that members might not have joined yet and room is available.
+		// Therefore, room setup continues until room members have been joined.
+		async setUpAdminRoom(): Promise<Boolean | string> {
+			const rooms = useRooms();
+
+			let room_id = await this.initializeOrExtendAdminContactRoom();
+			if (!room_id) return false;
+
+			const matrixRoomFromStore = rooms.room(room_id);
+			if (!matrixRoomFromStore) return false;
+
+			let roomMembersCount = matrixRoomFromStore.getRoomMembers();
+			let attempts = 0;
+			const MAX_ATTEMPTS = 10;
+			while (roomMembersCount < 2 && attempts < MAX_ATTEMPTS) {
+				// Intialization continues until both members have joined initially.
+				room_id = await this.initializeOrExtendAdminContactRoom();
+				if (!room_id) return false;
+				const room = rooms.room(room_id);
+				if (!room) return false;
+				roomMembersCount = room.getRoomMembers();
+				attempts++;
+			}
+			if (roomMembersCount < 2) return false; // Could not get enough members
+
+			if (room_id && this.isAdminRoomReady()) {
+				return room_id;
+			}
+			return false;
 		},
 	},
 });
