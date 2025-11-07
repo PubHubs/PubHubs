@@ -42,7 +42,9 @@ impl App {
     /// Creates a disclosure 'conjunction' for the given yivi attribute type identifier.
     ///
     /// This is almost always just the attibute type idenfitier itself, unless we're dealing with
-    /// the pubhubs card - in which case another factor is added that fixes the registration source.
+    /// the pubhubs card - in which case two other factors are added that fixes the registration
+    /// source, and allows the user to see the 'comment' attached to the card (usually the
+    /// redacted email address and phone number.)
     ///
     /// The yivi attribute type that will provide the actual value for the pubhubs attribute
     /// will always come first.  This is important because
@@ -64,6 +66,18 @@ impl App {
         if !attr_type_id.as_str().starts_with(credential) {
             return Ok(result);
         }
+
+        let registration_date = yivi.card_config.card_type.date();
+
+        result.push(servers::yivi::AttributeRequest {
+            ty: format!("{credential}.{registration_date}")
+                .parse()
+                .map_err(|err| {
+                    log::error!("failed to form registration date yivi attribute: {err:?}");
+                    api::ErrorCode::InternalError
+                })?,
+            value: None,
+        });
 
         let registration_source = yivi.card_config.card_type.source();
 
