@@ -122,12 +122,17 @@ impl App {
 #[derive(serde::Serialize, serde::Deserialize, Clone, Debug)]
 pub(super) struct AuthState {
     pub source: attr::Source,
-    pub attr_types: Vec<handle::Handle>,
+    pub attr_type_choices: Vec<Vec<handle::Handle>>,
 
     /// When this request expires
     pub exp: api::NumericDate,
 
     pub yivi_chained_session_id: Option<id::Id>,
+
+    /// Under [`attr::Source::Yivi`] this will contain for each `AuthState::attr_type_choice`
+    /// a map using which the original [`attr::Type`] handle can be recovered from the yivi
+    /// attribute type identifier.
+    pub yivi_ati2at: Vec<HashMap<yivi::AttributeTypeIdentifier, handle::Handle>>,
 }
 
 impl AuthState {

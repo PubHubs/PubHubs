@@ -9,6 +9,8 @@ use serde::{Deserialize, Serialize};
 
 use std::collections::HashMap;
 
+use indexmap::IndexMap;
+
 use actix_web::http;
 
 /// Called by the global client to get, for example, the list of supported attribute types.
@@ -28,6 +30,7 @@ pub struct WelcomeResp {
     pub attr_types: HashMap<handle::Handle, attr::Type>,
 }
 
+/// Starts the process of obtaining attributes from the authentication server.
 pub struct AuthStartEP {}
 impl EndpointDetails for AuthStartEP {
     type RequestType = AuthStartReq;
@@ -37,15 +40,34 @@ impl EndpointDetails for AuthStartEP {
     const PATH: &'static str = ".ph/auth/start";
 }
 
-/// Starts the process of obtaining attributes from the authentication server.
+/// Request type for [`AuthStartEP`].
 #[derive(Serialize, Deserialize, Debug, Clone)]
 #[serde(deny_unknown_fields)]
 pub struct AuthStartReq {
     /// Which source to use (e.g. yivi)
     pub source: attr::Source,
 
-    /// List of requested attributes
-    pub attr_types: Vec<crate::handle::Handle>,
+    /// List of requested attributes.
+    ///
+    /// Can be non-empty if and only if [`AuthStartReq::attr_type_choices`] is empty.
+    /// (Otherwise an [`ErrorCode::BadRequest`] is returned.)
+    #[serde(default)]
+    #[serde(skip_serializing_if = "Vec::is_empty")]
+    pub attr_types: Vec<handle::Handle>,
+
+    /// Like [`AuthStartReq::attr_types`], but allow the user to pick each attribute type from a
+    /// list.  For example, if `attr_type_choices` is  `[[ph_card, email], [phone]]` that means the
+    /// user must disclose either a pubhubs card or an email address, and besides that also a phone
+    /// attribute.  
+    ///
+    /// For [`attr::Source::Yivi`] this results in a 'disjunction' in the disclosure request.
+    ///
+    /// Note that we do not offer the option to disclose either (`phone` + `email`) or `ph_card`,
+    /// because Yivi does not allow `phone` and `email` in an inner conjunction, see
+    /// <https://docs.yivi.app/session-requests#multiple-credential-types-within-inner-conjunctions>.
+    #[serde(default)]
+    #[serde(skip_serializing_if = "Vec::is_empty")]
+    pub attr_type_choices: Vec<Vec<handle::Handle>>,
 
     /// Only when [`Self::source`] is `attr::Source::Yivi` can this flag be set.
     /// It makes the [`AuthTask::Yivi::disclosure_request`]  instruct the yivi server to use
@@ -84,10 +106,17 @@ pub enum AuthStartResp {
     },
 
     /// No attribute type known with this handle
-    UnknownAttrType(crate::handle::Handle),
+    UnknownAttrType(handle::Handle),
 
     /// The [`AuthStartReq::source`] is not available for the attribute type with this handle
-    SourceNotAvailableFor(crate::handle::Handle),
+    SourceNotAvailableFor(handle::Handle),
+
+    /// For some reason these two attribute types cannot be requested together
+    ///
+    /// For [`attr::Source::Yivi`] this might happen if the two attribute types can be derived from
+    /// the same [`crate::servers::yivi::AttributeTypeIdentifier`]. This is not something that is currently e
+    /// expected to happen.
+    Conflict(handle::Handle, handle::Handle),
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
@@ -153,7 +182,10 @@ pub enum AuthProof {
 pub enum AuthCompleteResp {
     /// All went well
     Success {
-        attrs: HashMap<handle::Handle, Signed<Attr>>,
+        /// The resulting attributes, in the same order they were requested in
+        /// [`AuthStartReq::attr_types`] or [`AuthStartReq::attr_type_choices`].
+        /// In the latter case, the key indicates the choice the user made.
+        attrs: IndexMap<handle::Handle, Signed<Attr>>,
     },
 
     /// Something went wrong;  please start again at [`AuthStartEP`].

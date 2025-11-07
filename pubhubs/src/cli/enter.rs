@@ -328,6 +328,7 @@ impl EnterArgs {
                         .chain(std::iter::once(&self.id_attr_type))
                         .map(Clone::clone)
                         .collect(),
+                    attr_type_choices: Default::default(),
                 },
             )
             .await
@@ -428,7 +429,7 @@ impl EnterArgs {
             anyhow::bail!("failed to complete authentication: AS returned {auth_complete_resp:?}");
         };
 
-        let Some(identifying_attr) = attrs.remove(&self.id_attr_type) else {
+        let Some(identifying_attr) = attrs.shift_remove(&self.id_attr_type) else {
             anyhow::bail!("did not receive identifying attribute from authentication server");
         };
 

@@ -46,7 +46,7 @@ pub struct SessionRequest {
     /// <https://pkg.go.dev/github.com/privacybydesign/irmago#IssuanceRequest>
     credentials: Option<Vec<CredentialToBeIssued>>,
 
-    /// https://docs.yivi.app/session-requests/#skip-expiry-check
+    /// <https://docs.yivi.app/session-requests/#skip-expiry-check>
     #[serde(default)]
     #[serde(skip_serializing_if = "Vec::is_empty")]
     #[serde(rename = "skipExpiryCheck")]
@@ -696,7 +696,7 @@ impl std::str::FromStr for RequestorToken {
 /// <https://github.com/privacybydesign/irmago/blob/b1c38f4f2c9da3d3f39b5c21a330bcbd04143f41/requests.go#L382>
 ///
 /// We don't, but use [`CredentialTypeIdentifier`] instead.
-#[derive(serde::Serialize, serde::Deserialize, Clone, Debug, Eq, PartialEq)]
+#[derive(serde::Serialize, serde::Deserialize, Clone, Debug, Eq, PartialEq, Hash)]
 #[serde(transparent)]
 pub struct AttributeTypeIdentifier {
     #[serde(deserialize_with = "AttributeTypeIdentifier::deserialize_inner")]

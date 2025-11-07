@@ -5,6 +5,7 @@ use std::collections::HashMap;
 use std::rc::Rc;
 
 use actix_web::web;
+use indexmap::IndexMap;
 
 use crate::servers::{self, yivi};
 use crate::{
@@ -20,16 +21,30 @@ impl App {
         app: Rc<Self>,
         req: web::Json<api::auths::AuthStartReq>,
     ) -> api::Result<api::auths::AuthStartResp> {
+        let req = req.into_inner();
+
         if req.yivi_chained_session && req.source != attr::Source::Yivi {
             log::debug!("yivi_chained_session set on non-yivi authentication request");
             return Err(api::ErrorCode::BadRequest);
         }
 
+        if !req.attr_type_choices.is_empty() && !req.attr_types.is_empty() {
+            log::debug!("both attr_types and attr_type_choices set on AuthStartReq");
+            return Err(api::ErrorCode::BadRequest);
+        }
+
+        let attr_type_choices = if req.attr_type_choices.is_empty() {
+            req.attr_types.into_iter().map(|at| vec![at]).collect()
+        } else {
+            req.attr_type_choices
+        };
+
         let state = AuthState {
             source: req.source,
-            attr_types: req.attr_types.clone(),
+            attr_type_choices,
             exp: api::NumericDate::now() + app.auth_window,
             yivi_chained_session_id: None,
+            yivi_ati2at: Default::default(),
         };
 
         match req.source {
@@ -110,27 +125,43 @@ impl App {
         // Create ConDisCon for our attributes
         let mut cdc: servers::yivi::AttributeConDisCon = Default::default(); // empty
 
-        for attr_ty_handle in state.attr_types.iter() {
-            let Some(attr_ty) = app.attr_type_from_handle(attr_ty_handle) else {
-                return Ok(api::auths::AuthStartResp::UnknownAttrType(
-                    attr_ty_handle.clone(),
-                ));
-            };
+        for attr_ty_options in state.attr_type_choices.iter() {
+            let mut dc: Vec<Vec<servers::yivi::AttributeRequest>> = Default::default();
 
-            let dc: api::Result<Vec<Vec<servers::yivi::AttributeRequest>>> = attr_ty
-                .yivi_attr_type_ids()
-                .map(|attr_type_id| app.create_disclosure_con_for(attr_type_id))
-                .collect();
+            for attr_ty_handle in attr_ty_options.iter() {
+                let mut ati2at: HashMap<yivi::AttributeTypeIdentifier, handle::Handle> =
+                    Default::default();
 
-            let dc = dc?;
+                let Some(attr_ty) = app.attr_type_from_handle(attr_ty_handle) else {
+                    return Ok(api::auths::AuthStartResp::UnknownAttrType(
+                        attr_ty_handle.clone(),
+                    ));
+                };
 
-            if dc.is_empty() {
-                log::debug!(
+                for ati in attr_ty.yivi_attr_type_ids() {
+                    if let Some(existing_at_handle) =
+                        ati2at.insert(ati.clone(), attr_ty_handle.clone())
+                    {
+                        log::debug!("attribute types {existing_at_handle} and {attr_ty_handle} both rely on the same yivi attribute type identifier {ati}");
+                        return Ok(api::auths::AuthStartResp::Conflict(
+                            existing_at_handle,
+                            attr_ty_handle.clone(),
+                        ));
+                    }
+
+                    dc.push(app.create_disclosure_con_for(ati)?);
+                }
+
+                if ati2at.is_empty() {
+                    log::debug!(
                     "got yivi authentication start request for {attr_ty}, but yivi is not supported for this attribute type",
                 );
-                return Ok(api::auths::AuthStartResp::SourceNotAvailableFor(
-                    attr_ty_handle.clone(),
-                ));
+                    return Ok(api::auths::AuthStartResp::SourceNotAvailableFor(
+                        attr_ty_handle.clone(),
+                    ));
+                }
+
+                state.yivi_ati2at.push(ati2at);
             }
 
             cdc.push(dc);
@@ -231,8 +262,8 @@ impl App {
                 api::ErrorCode::BadRequest
             })?;
 
-        let mut attrs: HashMap<handle::Handle, api::Signed<attr::Attr>> =
-            HashMap::with_capacity(state.attr_types.len());
+        let mut attrs: IndexMap<handle::Handle, api::Signed<attr::Attr>> =
+            IndexMap::with_capacity(state.attr_type_choices.len());
 
         let running_state = app.running_state_or_internal_error()?;
 
@@ -252,10 +283,17 @@ impl App {
                     api::ErrorCode::BadRequest
                 })?;
 
-            let attr_type_handle: &handle::Handle = state.attr_types.get(i).ok_or_else(|| {
-                log::debug!("extra attributes disclosed in submitted session result",);
-                api::ErrorCode::BadRequest
-            })?;
+            let Some(ati2at) = state.yivi_ati2at.get(i) else {
+                // NOTE: debug! and BadRequest, and not warn! and InternalError,
+                // because clients can swap result JWTs from different yivi sessions
+                log::debug!("extra attributes disclosed in submitted session result");
+                return Err(api::ErrorCode::BadRequest);
+            };
+
+            let Some(attr_type_handle) = ati2at.get(yati) else {
+                log::debug!("got unexpected yivi attribute {yati}");
+                return Err(api::ErrorCode::BadRequest);
+            };
 
             let Some(attr_type) = app.attr_type_from_handle(attr_type_handle) else {
                 log::warn!(
@@ -263,16 +301,6 @@ impl App {
                 );
                 return Ok(api::auths::AuthCompleteResp::PleaseRestartAuth);
             };
-
-            if !attr_type
-                .yivi_attr_type_ids()
-                .any(|allowed_yati| allowed_yati == yati)
-            {
-                log::debug!(
-                    "attribute number {i} of submitted session result has unexpected attribute type id {yati}"
-                );
-                return Err(api::ErrorCode::BadRequest);
-            }
 
             // Disclosure for attribute is OK.
 

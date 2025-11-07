@@ -1,12 +1,15 @@
 // integration test, testing all aspects of the rust code
 
 use actix_web::web;
+use indexmap::IndexMap;
+
 use pubhubs::{
     api::{self, ApiResultExt as _, BytesPayload, EndpointDetails as _, NoPayload},
     attr, client, elgamal, handle, hub,
     misc::{jwt, serde_ext::bytes_wrapper::B64UU},
     servers::{self, yivi},
 };
+
 use std::collections::HashMap;
 use std::{sync::Arc, time::Duration};
 
@@ -268,8 +271,12 @@ async fn main_integration_test_local(
     )
     .await;
 
-    let email = attrs.get(&"email".parse().unwrap()).unwrap();
-    let phone = attrs.get(&"phone".parse().unwrap()).unwrap();
+    let email = attrs
+        .get::<handle::Handle>(&"email".parse().unwrap())
+        .unwrap();
+    let phone = attrs
+        .get::<handle::Handle>(&"phone".parse().unwrap())
+        .unwrap();
 
     let attrs = request_attributes(
         &client,
@@ -280,8 +287,12 @@ async fn main_integration_test_local(
     )
     .await;
 
-    let email2 = attrs.get(&"email".parse().unwrap()).unwrap();
-    let phone2 = attrs.get(&"phone".parse().unwrap()).unwrap();
+    let email2 = attrs
+        .get::<handle::Handle>(&"email".parse().unwrap())
+        .unwrap();
+    let phone2 = attrs
+        .get::<handle::Handle>(&"phone".parse().unwrap())
+        .unwrap();
 
     // Retrieve attribute key for email
     let Ok(api::auths::AttrKeysResp::Success(attr_keys)) = client
@@ -840,7 +851,7 @@ async fn request_attributes(
     yivi_server_sk: &yivi::SigningKey,
     email_value: &str,
     phone_value: &str,
-) -> HashMap<handle::Handle, api::Signed<attr::Attr>> {
+) -> IndexMap<handle::Handle, api::Signed<attr::Attr>> {
     // request authentication as end-user
     let api::auths::AuthStartResp::Success {
         task: auth_task,
@@ -851,6 +862,7 @@ async fn request_attributes(
             &api::auths::AuthStartReq {
                 source: attr::Source::Yivi,
                 attr_types: vec!["email".parse().unwrap(), "phone".parse().unwrap()],
+                attr_type_choices: Default::default(),
                 yivi_chained_session: false,
             },
         )
