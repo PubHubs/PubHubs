@@ -14,6 +14,34 @@ use crate::servers::yivi;
 
 use api::phc::user::AuthToken;
 
+/// Wrapper around `Vec<Handle>` that parses from a `|`-separated list of handles
+#[derive(Debug, Clone)]
+struct HandleChoice {
+    inner: Vec<Handle>,
+}
+
+impl std::ops::Deref for HandleChoice {
+    type Target = Vec<Handle>;
+    
+    fn deref(&self) -> &Vec<Handle> {
+        &self.inner
+    }
+}
+
+impl core::str::FromStr for HandleChoice {
+    type Err = anyhow::Error;
+
+    fn from_str(s : &str) -> Result<Self, Self::Err> {
+        let mut handles : Vec<Handle> = Default::default();
+
+        for part in s.split('|') {
+            handles.push(Handle::from_str(part)?);
+        }
+
+        Ok(Self{ inner: handles })
+    }
+}
+
 #[derive(clap::Args, Debug)]
 pub struct EnterArgs {
     /// Enter this pubhubs environment
@@ -56,7 +84,7 @@ pub struct EnterArgs {
         value_name = "ATTR_TYPE",
         conflicts_with = "auth_token"
     )]
-    id_attr_type: Handle,
+    id_attr_type: HandleChoice,
 
     /// Add these attributes when entering pubhubs
     #[arg(
@@ -281,17 +309,19 @@ impl EnterArgs {
         constellation: &Constellation,
         attr_types: &HashMap<Handle, attr::Type>,
     ) -> Result<AuthToken> {
-        let Some(_id_attr_info) = attr_types.get(&self.id_attr_type) else {
-            anyhow::bail!(
-                "no such attribute type {}; choose from: {}",
-                self.id_attr_type,
-                attr_types
-                    .keys()
-                    .map(Handle::as_str)
-                    .collect::<Vec<&str>>()
-                    .join(", ")
-            )
-        };
+        for id_attr_type_choice in self.id_attr_type.iter() {
+            let Some(_id_attr_info) = attr_types.get(id_attr_type_choice) else {
+                anyhow::bail!(
+                    "no such attribute type {}; choose from: {}",
+                    id_attr_type_choice,
+                    attr_types
+                        .keys()
+                        .map(Handle::as_str)
+                        .collect::<Vec<&str>>()
+                        .join(", ")
+                )
+            };
+        }
 
         let mut add_attrs_info =
             HashMap::<Handle, attr::Type>::with_capacity(self.add_attr_type.len());
@@ -316,19 +346,22 @@ impl EnterArgs {
             );
         }
 
+        let mut attr_type_choices : Vec<Vec<Handle>> = Default::default();
+
+        attr_type_choices.push(Vec::<Handle>::clone(&self.id_attr_type));
+
+        for add_attr_ty_handle in self.add_attr_type.iter() {
+            attr_type_choices.push(vec![add_attr_ty_handle.clone()]);
+        }
+
         let auth_start_resp = client
             .query_with_retry::<api::auths::AuthStartEP, _, _>(
                 &constellation.auths_url,
                 api::auths::AuthStartReq {
                     source: attr::Source::Yivi,
                     yivi_chained_session: self.wait_for_card,
-                    attr_types: self
-                        .add_attr_type
-                        .iter()
-                        .chain(std::iter::once(&self.id_attr_type))
-                        .map(Clone::clone)
-                        .collect(),
-                    attr_type_choices: Default::default(),
+                    attr_types: Default::default(),
+                    attr_type_choices
                 },
             )
             .await
@@ -429,9 +462,17 @@ impl EnterArgs {
             anyhow::bail!("failed to complete authentication: AS returned {auth_complete_resp:?}");
         };
 
-        let Some(identifying_attr) = attrs.shift_remove(&self.id_attr_type) else {
-            anyhow::bail!("did not receive identifying attribute from authentication server");
+        let Some((id_attr_type, identifying_attr)) = attrs.shift_remove_index(0) else {
+            anyhow::bail!("did not receive any attribute from authentication server");
         };
+
+        if !self.id_attr_type.contains(&id_attr_type) {
+            anyhow::bail!("authentication server returned unexpected attribute type {id_attr_type} for identifying attribute; we were expecting one of {}", 
+                        self.id_attr_type.iter()
+                        .map(Handle::as_str)
+                        .collect::<Vec<&str>>()
+                        .join(", "));
+        }
 
         let enter_resp = client
             .query_with_retry::<api::phc::user::EnterEP, _, _>(

@@ -127,16 +127,17 @@ impl App {
 
         for attr_ty_options in state.attr_type_choices.iter() {
             let mut dc: Vec<Vec<servers::yivi::AttributeRequest>> = Default::default();
+            let mut ati2at: HashMap<yivi::AttributeTypeIdentifier, handle::Handle> =
+                Default::default();
 
             for attr_ty_handle in attr_ty_options.iter() {
-                let mut ati2at: HashMap<yivi::AttributeTypeIdentifier, handle::Handle> =
-                    Default::default();
-
                 let Some(attr_ty) = app.attr_type_from_handle(attr_ty_handle) else {
                     return Ok(api::auths::AuthStartResp::UnknownAttrType(
                         attr_ty_handle.clone(),
                     ));
                 };
+
+                let mut had_one: bool = false;
 
                 for ati in attr_ty.yivi_attr_type_ids() {
                     if let Some(existing_at_handle) =
@@ -149,21 +150,22 @@ impl App {
                         ));
                     }
 
+                    had_one = true;
+
                     dc.push(app.create_disclosure_con_for(ati)?);
                 }
 
-                if ati2at.is_empty() {
+                if !had_one {
                     log::debug!(
-                    "got yivi authentication start request for {attr_ty}, but yivi is not supported for this attribute type",
+                    "got yivi authentication start request for {attr_ty_handle}, but yivi is not supported for this attribute type",
                 );
                     return Ok(api::auths::AuthStartResp::SourceNotAvailableFor(
                         attr_ty_handle.clone(),
                     ));
                 }
-
-                state.yivi_ati2at.push(ati2at);
             }
 
+            state.yivi_ati2at.push(ati2at);
             cdc.push(dc);
         }
 
@@ -283,6 +285,8 @@ impl App {
                     api::ErrorCode::BadRequest
                 })?;
 
+            dbg!(&state);
+
             let Some(ati2at) = state.yivi_ati2at.get(i) else {
                 // NOTE: debug! and BadRequest, and not warn! and InternalError,
                 // because clients can swap result JWTs from different yivi sessions
@@ -291,7 +295,14 @@ impl App {
             };
 
             let Some(attr_type_handle) = ati2at.get(yati) else {
-                log::debug!("got unexpected yivi attribute {yati}");
+                log::debug!(
+                    "got unexpected yivi attribute {yati} at position {i}; expected one of: {}",
+                    ati2at
+                        .values()
+                        .map(handle::Handle::as_str)
+                        .collect::<Vec<&str>>()
+                        .join(", ")
+                );
                 return Err(api::ErrorCode::BadRequest);
             };
 
