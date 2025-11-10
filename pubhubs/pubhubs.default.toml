@@ -10,6 +10,11 @@
 # For a quick explanation of the TOML file format, see see https://toml.io
 phc_url = 'http://networkhost:5050'
 
+# NOTE: logging configured like this only starts after the configuration file is loaded. 
+# To get earlier log messages, configure logging using the RUST_LOG environmental variable.
+[log.modules]
+pubhubs = "debug"
+
 [host_aliases]
 networkhost.source_ip_for = "udp://k.root-servers.net:53"
 
@@ -24,6 +29,10 @@ server_name = "local-yivi"
 [auths.yivi.requestor_creds]
 name = "local-development"
 key.hs256 = "6576257d853bc1ea15cbf103dbc3950b819d65eef4fae4c55d80e9c32b683e06"
+
+[auths.yivi.card]
+type = "demo"
+# registration_source = "app.pubhubs.net"
 
 [[auths.attribute_types]]
 handles = ['email']
@@ -51,6 +60,7 @@ id = "QCGdNnTHNS69lyMUKt9UM_lrstmP-ZpRr53XaCR5rHI"
 name = "PubHubs card"
 bannable = false
 identifying = true
+not_addable_by_default = true
 sources = [
 	{ yivi.attr_type_id = "irma-demo.PubHubs.account.id" },
 ]
@@ -67,14 +77,6 @@ transcryptor_url = 'http://networkhost:7070'
 global_client_url = 'http://localhost:8080'
 master_enc_key_part = "633a4aa3993eccdd7eed8849db707f047578211ade799a410ab97738a3deef02"
 attr_id_secret = "85b6f0da150d7f07343c258d93d7c6d8c0782f3fa8bcaa267d8f870a149b654e"
-
-[phc.card]
-type = "demo"
-valid_for = "1 day"
-
-[phc.card.requestor_creds]
-name = "local-development"
-key.hs256 = "6576257d853bc1ea15cbf103dbc3950b819d65eef4fae4c55d80e9c32b683e06"
 
 [phc.object_store]
 url = "s3://phc"

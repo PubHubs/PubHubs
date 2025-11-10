@@ -11,6 +11,9 @@ _Please add a brief description of any changes and any migrations to be performe
 
 ## Changed not yet merged to stable
 
+- [NEW] Reintroduces pubhubs card
+  *Internal:*: pubhubs card attributes with `not_addable_by_default = true` need to be added to `pubhubs.toml`, as well as a `[auth.yivi.card]` section.
+- [BUG] Fixed direct url links to rooms and pages not working in hub-client
 - [BREAKING] The old pubhubs server (that served the global client) has been removed
   - _Internal:_ the entry for `app.pubhubs.net` in `/data/caddy/Caddyfile` needs to be adjusted after merge
 - [NEW] The development setup has been simplified, see `maskfile.md`

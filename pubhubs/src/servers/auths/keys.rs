@@ -45,7 +45,7 @@ impl App {
                     Ok(attr) => attr
                 };
 
-            if !attr.identifying {
+            if attr.not_identifying {
                 log::debug!(
                     "attribute key denied for non-identifying attribute {value} of type {attr_type}",
                     value = attr.value,

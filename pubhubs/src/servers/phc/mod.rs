@@ -8,4 +8,3 @@ mod user_sso;
 
 pub use server::{Details, Server};
 pub(crate) use user::UserState;
-pub(crate) use user_card::CardConfig;

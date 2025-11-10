@@ -23,8 +23,16 @@ pub struct Type {
     /// Whether [`Attr`]ibutes of this type can be used to identify a users.
     pub identifying: bool,
 
-    /// The different ways this attribute can be obtained
+    /// The different 'regular' ways this attribute can be obtained via [`crate::api::auths::AuthStartEP`].
+    ///
+    /// Some attributes, like the pubhubs card attribute, can also be obtained in irregular ways.
     pub sources: Vec<SourceDetails>,
+
+    #[serde(default)]
+    /// If set, an instance of this attribute obtained by [`crate::api::auths::AuthStartEP`] can not be
+    /// added to a user account.  Pubhubs card attribute types have this flag set - to get an
+    /// pubhubs card attribute instance that is addable, use [`crate::api::auths::CardEP`].
+    pub not_addable_by_default: bool,
 }
 
 impl std::fmt::Display for Type {
@@ -86,13 +94,32 @@ impl crate::map::Handled for Type {
 #[derive(serde::Deserialize, serde::Serialize, Debug, Clone)]
 pub struct Attr {
     /// Refers to the this attribute's [`Type`] via the type's [`Id`].
+    #[serde(rename = "t")]
     pub attr_type: Id,
 
     /// Actual value of this attribute, in a format that is [`Type`] dependent.
+    #[serde(rename = "v")]
     pub value: String,
 
+    #[serde(skip_serializing_if = "std::ops::Not::not")]
+    #[serde(default)]
+    #[serde(rename = "b")]
     pub bannable: bool,
-    pub identifying: bool,
+
+    /// Whether the attribute is not identifying.  We use the negation so that the default will be
+    /// that the attribute _is_ identifying, which most attributes are.
+    #[serde(skip_serializing_if = "std::ops::Not::not")]
+    #[serde(default)]
+    #[serde(rename = "n")]
+    pub not_identifying: bool,
+
+    /// Whether this particular attribute can _not_ be added to a user account.
+    ///
+    /// A pubhubs card attribute obtained via Yivi disclosure is not addable, for example.
+    #[serde(skip_serializing_if = "std::ops::Not::not")]
+    #[serde(default)]
+    #[serde(rename = "a")]
+    pub not_addable: bool,
 }
 
 impl Attr {
@@ -136,10 +163,10 @@ impl AttrState {
         Self {
             attr: attr_id,
             banned: false,
-            may_identify_user: if attr.identifying {
-                Some(user_id)
-            } else {
+            may_identify_user: if attr.not_identifying {
                 None
+            } else {
+                Some(user_id)
             },
             bans_users: if attr.bannable {
                 std::iter::once(user_id).collect()
