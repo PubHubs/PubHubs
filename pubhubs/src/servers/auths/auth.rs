@@ -285,8 +285,6 @@ impl App {
                     api::ErrorCode::BadRequest
                 })?;
 
-            dbg!(&state);
-
             let Some(ati2at) = state.yivi_ati2at.get(i) else {
                 // NOTE: debug! and BadRequest, and not warn! and InternalError,
                 // because clients can swap result JWTs from different yivi sessions
