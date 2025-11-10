@@ -94,23 +94,19 @@ impl crate::map::Handled for Type {
 #[derive(serde::Deserialize, serde::Serialize, Debug, Clone)]
 pub struct Attr {
     /// Refers to the this attribute's [`Type`] via the type's [`Id`].
-    #[serde(rename = "t")]
     pub attr_type: Id,
 
     /// Actual value of this attribute, in a format that is [`Type`] dependent.
-    #[serde(rename = "v")]
     pub value: String,
 
     #[serde(skip_serializing_if = "std::ops::Not::not")]
     #[serde(default)]
-    #[serde(rename = "b")]
     pub bannable: bool,
 
     /// Whether the attribute is not identifying.  We use the negation so that the default will be
     /// that the attribute _is_ identifying, which most attributes are.
     #[serde(skip_serializing_if = "std::ops::Not::not")]
     #[serde(default)]
-    #[serde(rename = "n")]
     pub not_identifying: bool,
 
     /// Whether this particular attribute can _not_ be added to a user account.
@@ -118,7 +114,6 @@ pub struct Attr {
     /// A pubhubs card attribute obtained via Yivi disclosure is not addable, for example.
     #[serde(skip_serializing_if = "std::ops::Not::not")]
     #[serde(default)]
-    #[serde(rename = "a")]
     pub not_addable: bool,
 }
 
