@@ -156,7 +156,8 @@ export type Attr = {
 	attr_type: string;
 	value: string;
 	bannable: boolean;
-	identifying: boolean;
+	not_identifying: boolean;
+	not_addable: boolean;
 };
 
 export enum AuthTokenDeniedReason {
