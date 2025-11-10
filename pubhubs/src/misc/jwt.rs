@@ -326,21 +326,6 @@ impl NumericDate {
     pub fn timestamp(&self) -> u64 {
         self.timestamp
     }
-
-    /// Returns the UTC date for this timestamp
-    pub fn date(&self) -> String {
-        // Maybe not the most efficient implementation using humantime,
-        // but it saves an additional direct dependency
-        let mut datetime = humantime::format_rfc3339(self.into()).to_string();
-
-        let Some(idx) = datetime.find('T') else {
-            panic!("bug: expected date returned by humantime to contain a 'T'");
-        };
-
-        datetime.truncate(idx);
-
-        datetime
-    }
 }
 
 impl From<&NumericDate> for std::time::SystemTime {

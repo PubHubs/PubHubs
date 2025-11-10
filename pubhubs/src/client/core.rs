@@ -81,7 +81,6 @@ pub struct QuerySetup<EP, BU, BR, PP, HV> {
     request: BR,
     path_params: PP,
     auth_header: Option<HV>,
-    timeout: Option<core::time::Duration>,
 }
 
 impl<'a, EP, BU, BR, PP, HV> IntoFuture for QuerySetup<EP, BU, BR, PP, HV>
@@ -121,7 +120,6 @@ where
             request: self.request.borrow(),
             url: self.url.borrow(),
             auth_header: self.auth_header.as_ref().map(|v| v.borrow()),
-            timeout: self.timeout,
         }
     }
 
@@ -135,15 +133,6 @@ where
             Ok(None) => Result::Err(ErrorCode::PleaseRetry),
             Err(ec) => Result::Err(ec),
         })
-    }
-}
-
-impl<EP, BU, BR, HV, PP> QuerySetup<EP, BU, BR, PP, HV> {
-    /// Override timeout for this request
-    pub fn timeout(mut self, duration: core::time::Duration) -> Self {
-        self.timeout = Some(duration);
-
-        self
     }
 }
 
@@ -196,7 +185,6 @@ impl<EP: EndpointDetails + 'static> Clone for BorrowedQuerySetup<'_, EP> {
             request: self.request,
             url: self.url,
             auth_header: self.auth_header,
-            timeout: self.timeout,
         }
     }
 }
@@ -261,10 +249,6 @@ impl<EP: EndpointDetails + 'static> BorrowedQuerySetup<'_, EP> {
 
             if let Some(auth_header) = self.auth_header {
                 client_req = client_req.insert_header(("Authorization", auth_header));
-            }
-
-            if let Some(timeout) = self.timeout {
-                client_req = client_req.timeout(timeout);
             }
 
             client_req
@@ -335,7 +319,6 @@ impl Client {
             phantom_ep: PhantomData::<EP>,
             path_params: HashMap::new(),
             auth_header: None::<http::header::HeaderValue>,
-            timeout: None,
         }
         .with_retry()
     }
@@ -359,7 +342,6 @@ impl Client {
             phantom_ep: PhantomData,
             path_params: HashMap::new(),
             auth_header: None,
-            timeout: None,
         }
     }
 

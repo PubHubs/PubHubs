@@ -1,15 +1,12 @@
 // integration test, testing all aspects of the rust code
 
 use actix_web::web;
-use indexmap::IndexMap;
-
 use pubhubs::{
     api::{self, ApiResultExt as _, BytesPayload, EndpointDetails as _, NoPayload},
     attr, client, elgamal, handle, hub,
     misc::{jwt, serde_ext::bytes_wrapper::B64UU},
     servers::{self, yivi},
 };
-
 use std::collections::HashMap;
 use std::{sync::Arc, time::Duration};
 
@@ -30,9 +27,6 @@ async fn main_integration_test() {
         .unwrap()
         .unwrap();
 
-    // NOTE: the logging configuration in `config` is ignored.  Configure logging for testing
-    // using the RUST_LOG environmental variable.
-    //
     // Use in-memory object store for pubhubs central
     config
         .phc
@@ -271,12 +265,8 @@ async fn main_integration_test_local(
     )
     .await;
 
-    let email = attrs
-        .get::<handle::Handle>(&"email".parse().unwrap())
-        .unwrap();
-    let phone = attrs
-        .get::<handle::Handle>(&"phone".parse().unwrap())
-        .unwrap();
+    let email = attrs.get(&"email".parse().unwrap()).unwrap();
+    let phone = attrs.get(&"phone".parse().unwrap()).unwrap();
 
     let attrs = request_attributes(
         &client,
@@ -287,12 +277,8 @@ async fn main_integration_test_local(
     )
     .await;
 
-    let email2 = attrs
-        .get::<handle::Handle>(&"email".parse().unwrap())
-        .unwrap();
-    let phone2 = attrs
-        .get::<handle::Handle>(&"phone".parse().unwrap())
-        .unwrap();
+    let email2 = attrs.get(&"email".parse().unwrap()).unwrap();
+    let _phone2 = attrs.get(&"phone".parse().unwrap()).unwrap();
 
     // Retrieve attribute key for email
     let Ok(api::auths::AttrKeysResp::Success(attr_keys)) = client
@@ -353,7 +339,7 @@ async fn main_integration_test_local(
             .query_with_retry::<api::phc::user::EnterEP, _, _>(
                 &constellation.phc_url,
                 &api::phc::user::EnterReq {
-                    identifying_attr: Some(email.clone()),
+                    identifying_attr: email.clone(),
                     mode: api::phc::user::EnterMode::Register,
                     add_attrs: vec![],
                 },
@@ -370,7 +356,7 @@ async fn main_integration_test_local(
 
         let phc_url = constellation.phc_url.clone();
         let req = api::phc::user::EnterReq {
-            identifying_attr: Some(email.clone()),
+            identifying_attr: email.clone(),
             mode: api::phc::user::EnterMode::LoginOrRegister,
             add_attrs: vec![phone.clone()],
         };
@@ -382,15 +368,10 @@ async fn main_integration_test_local(
             tjs.spawn_local(async move {
                 let enter_resp = enter_resp_fut.await.unwrap();
 
-                match enter_resp {
-                    api::phc::user::EnterResp::Entered { new_account, .. } => new_account,
-                    api::phc::user::EnterResp::AttributeAlreadyTaken(..) => {
-                        log::debug!("one registration failed likely due to parallel registration");
-                        false
-                    }
-                    _ => {
-                        panic!("expected registration/login to succeed");
-                    }
+                if let api::phc::user::EnterResp::Entered { new_account, .. } = enter_resp {
+                    new_account
+                } else {
+                    panic!("expected registration/login to succeed");
                 }
             });
         }
@@ -413,7 +394,7 @@ async fn main_integration_test_local(
             .query_with_retry::<api::phc::user::EnterEP, _, _>(
                 &constellation.phc_url,
                 &api::phc::user::EnterReq {
-                    identifying_attr: Some(email.clone()),
+                    identifying_attr: email.clone(),
                     mode: api::phc::user::EnterMode::Register,
                     add_attrs: vec![phone.clone()],
                 },
@@ -429,7 +410,7 @@ async fn main_integration_test_local(
             .query_with_retry::<api::phc::user::EnterEP, _, _>(
                 &constellation.phc_url,
                 &api::phc::user::EnterReq {
-                    identifying_attr: Some(email2.clone()),
+                    identifying_attr: email2.clone(),
                     mode: api::phc::user::EnterMode::Register,
                     add_attrs: vec![phone.clone()],
                 },
@@ -447,7 +428,7 @@ async fn main_integration_test_local(
         .query_with_retry::<api::phc::user::EnterEP, _, _>(
             &constellation.phc_url,
             &api::phc::user::EnterReq {
-                identifying_attr: Some(email.clone()),
+                identifying_attr: email.clone(),
                 mode: api::phc::user::EnterMode::Login,
                 add_attrs: vec![],
             },
@@ -469,7 +450,7 @@ async fn main_integration_test_local(
         .query_with_retry::<api::phc::user::EnterEP, _, _>(
             &constellation.phc_url,
             &api::phc::user::EnterReq {
-                identifying_attr: Some(email.clone()),
+                identifying_attr: email.clone(),
                 mode: api::phc::user::EnterMode::Login,
                 add_attrs: vec![phone.clone()],
             },
@@ -493,71 +474,6 @@ async fn main_integration_test_local(
             attr.value
         );
     }
-
-    // Logging in using the auth_token to add another phone number works too
-    let enter_resp = client
-        .query::<api::phc::user::EnterEP>(
-            &constellation.phc_url,
-            &api::phc::user::EnterReq {
-                identifying_attr: None,
-                mode: api::phc::user::EnterMode::Login,
-                add_attrs: vec![phone2.clone()],
-            },
-        )
-        .auth_header(auth_token.clone())
-        .with_retry()
-        .await
-        .unwrap();
-
-    let api::phc::user::EnterResp::Entered {
-        new_account: false,
-        auth_token_package: Ok(..),
-        attr_status,
-    } = enter_resp
-    else {
-        panic!();
-    };
-
-    for (attr, status) in attr_status {
-        assert!(
-            status == api::phc::user::AttrAddStatus::Added,
-            "{} should be added, but got status {status:?}",
-            attr.value
-        );
-    }
-
-    // Providing neither auth token nor identifying attribute shouldn't work
-    assert!(matches!(
-        client
-            .query::<api::phc::user::EnterEP>(
-                &constellation.phc_url,
-                &api::phc::user::EnterReq {
-                    identifying_attr: None,
-                    mode: api::phc::user::EnterMode::LoginOrRegister,
-                    add_attrs: vec![phone2.clone()],
-                },
-            )
-            .auth_header(auth_token.clone())
-            .with_retry()
-            .await,
-        Err(api::ErrorCode::BadRequest)
-    ));
-
-    // Registering a new account with an access token should not work
-    assert!(matches!(
-        client
-            .query::<api::phc::user::EnterEP>(
-                &constellation.phc_url,
-                &api::phc::user::EnterReq {
-                    identifying_attr: None,
-                    mode: api::phc::user::EnterMode::Login,
-                    add_attrs: vec![phone2.clone()],
-                },
-            )
-            .with_retry()
-            .await,
-        Err(api::ErrorCode::BadRequest)
-    ));
 
     // store object
     let api::phc::user::StoreObjectResp::Stored { hash } = client
@@ -851,7 +767,7 @@ async fn request_attributes(
     yivi_server_sk: &yivi::SigningKey,
     email_value: &str,
     phone_value: &str,
-) -> IndexMap<handle::Handle, api::Signed<attr::Attr>> {
+) -> HashMap<handle::Handle, api::Signed<attr::Attr>> {
     // request authentication as end-user
     let api::auths::AuthStartResp::Success {
         task: auth_task,
@@ -862,7 +778,6 @@ async fn request_attributes(
             &api::auths::AuthStartReq {
                 source: attr::Source::Yivi,
                 attr_types: vec!["email".parse().unwrap(), "phone".parse().unwrap()],
-                attr_type_choices: Default::default(),
                 yivi_chained_session: false,
             },
         )

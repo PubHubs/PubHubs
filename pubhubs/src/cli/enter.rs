@@ -2,7 +2,6 @@ use std::collections::HashMap;
 
 use anyhow::{Context as _, Result};
 use futures::stream::StreamExt as _;
-use futures_util::FutureExt as _;
 
 use crate::api;
 use crate::attr;
@@ -13,34 +12,6 @@ use crate::servers::Constellation;
 use crate::servers::yivi;
 
 use api::phc::user::AuthToken;
-
-/// Wrapper around `Vec<Handle>` that parses from a `|`-separated list of handles
-#[derive(Debug, Clone)]
-struct HandleChoice {
-    inner: Vec<Handle>,
-}
-
-impl std::ops::Deref for HandleChoice {
-    type Target = Vec<Handle>;
-    
-    fn deref(&self) -> &Vec<Handle> {
-        &self.inner
-    }
-}
-
-impl core::str::FromStr for HandleChoice {
-    type Err = anyhow::Error;
-
-    fn from_str(s : &str) -> Result<Self, Self::Err> {
-        let mut handles : Vec<Handle> = Default::default();
-
-        for part in s.split('|') {
-            handles.push(Handle::from_str(part)?);
-        }
-
-        Ok(Self{ inner: handles })
-    }
-}
 
 #[derive(clap::Args, Debug)]
 pub struct EnterArgs {
@@ -55,10 +26,6 @@ pub struct EnterArgs {
     /// Whether to wait for a pubhubs yivi card
     #[arg(short, long)]
     wait_for_card: bool,
-
-    /// Comment to use on the pubhubs card, provided a card is requested
-    #[arg(long, value_name = "COMMENT")]
-    card_comment: Option<String>,
 
     /// Handle identifying the hub
     #[arg(value_name = "HUB")]
@@ -84,7 +51,7 @@ pub struct EnterArgs {
         value_name = "ATTR_TYPE",
         conflicts_with = "auth_token"
     )]
-    id_attr_type: HandleChoice,
+    id_attr_type: Handle,
 
     /// Add these attributes when entering pubhubs
     #[arg(
@@ -94,13 +61,6 @@ pub struct EnterArgs {
         conflicts_with = "auth_token"
     )]
     add_attr_type: Vec<Handle>,
-
-
-    /// Don't add any attributes when entering pubhubs
-    #[arg(long, 
-        conflicts_with = "add_attr_type",
-        conflicts_with = "auth_token")]
-    dont_add_attrs: bool
 }
 
 #[derive(clap::ValueEnum, Debug, Clone, Copy)]
@@ -111,12 +71,8 @@ enum Environment {
 }
 
 impl EnterArgs {
-    pub fn run(mut self, _spec: &mut clap::Command) -> Result<()> {
+    pub fn run(self, _spec: &mut clap::Command) -> Result<()> {
         env_logger::init();
-
-        if self.dont_add_attrs {
-            self.add_attr_type.clear();
-        }
 
         tokio::runtime::Builder::new_current_thread()
             .enable_all()
@@ -309,19 +265,17 @@ impl EnterArgs {
         constellation: &Constellation,
         attr_types: &HashMap<Handle, attr::Type>,
     ) -> Result<AuthToken> {
-        for id_attr_type_choice in self.id_attr_type.iter() {
-            let Some(_id_attr_info) = attr_types.get(id_attr_type_choice) else {
-                anyhow::bail!(
-                    "no such attribute type {}; choose from: {}",
-                    id_attr_type_choice,
-                    attr_types
-                        .keys()
-                        .map(Handle::as_str)
-                        .collect::<Vec<&str>>()
-                        .join(", ")
-                )
-            };
-        }
+        let Some(_id_attr_info) = attr_types.get(&self.id_attr_type) else {
+            anyhow::bail!(
+                "no such attribute type {}; choose from: {}",
+                self.id_attr_type,
+                attr_types
+                    .keys()
+                    .map(Handle::as_str)
+                    .collect::<Vec<&str>>()
+                    .join(", ")
+            )
+        };
 
         let mut add_attrs_info =
             HashMap::<Handle, attr::Type>::with_capacity(self.add_attr_type.len());
@@ -346,22 +300,18 @@ impl EnterArgs {
             );
         }
 
-        let mut attr_type_choices : Vec<Vec<Handle>> = Default::default();
-
-        attr_type_choices.push(Vec::<Handle>::clone(&self.id_attr_type));
-
-        for add_attr_ty_handle in self.add_attr_type.iter() {
-            attr_type_choices.push(vec![add_attr_ty_handle.clone()]);
-        }
-
         let auth_start_resp = client
             .query_with_retry::<api::auths::AuthStartEP, _, _>(
                 &constellation.auths_url,
                 api::auths::AuthStartReq {
                     source: attr::Source::Yivi,
                     yivi_chained_session: self.wait_for_card,
-                    attr_types: Default::default(),
-                    attr_type_choices
+                    attr_types: self
+                        .add_attr_type
+                        .iter()
+                        .chain(std::iter::once(&self.id_attr_type))
+                        .map(Clone::clone)
+                        .collect(),
                 },
             )
             .await
@@ -380,79 +330,16 @@ impl EnterArgs {
             yivi_requestor_url,
         } = auth_task;
 
-        // Getting the disclosure is a bit tricky, as it is retrieved in two different ways
-        // depending on whether we're waiting for a card.
-        //
-        // If we're *not* waiting for a card, we simply call `yivi_cli_session` to get a disclosure, and that's that.
-        //
-        // But if we're waiting for a card, `yivi_cli_session` will not return the disclosure until
-        // we release the issuance request to the yivi server.  In this case, we obtain the
-        // disclosure via YiviWaitForResult, which is not available otherwise.
-        //
-        // We deal with these two ways to a disclosure by taking both paths in separate (tokio)
-        // tasks, and letting these tasks both send their disclosure over disclosure_sender
-        let (disclosure_sender, mut disclosure_receiver) = tokio::sync::mpsc::channel(1);
-
-        if self.wait_for_card {
-            // before we can move a future to a separate task via spawn_local, we must first clone
-            // anything we want to pass to it by reference
-            let client = client.clone();
-            let auth_state = auth_state.clone();
-            let auths_url = constellation.auths_url.clone();
-
-            let fut = async move {
-                client.query::<api::auths::YiviWaitForResultEP>(
-                    &auths_url,
-                    api::auths::YiviWaitForResultReq {
-                        state: auth_state.clone(),
-                    },
-                )
-                .timeout(core::time::Duration::from_secs(24*3600))
-                .with_retry().map(|wait_result| -> anyhow::Result<jwt::JWT> {
-                    let wait_result = wait_result.context("waiting for result of yivi to be submitted to the authentication server failed")?;
-
-                    let api::auths::YiviWaitForResultResp::Success { disclosure } = wait_result else {
-                        anyhow::bail!("waiting for result of yivi server to be submitted to authentication server failed: {wait_result:?} ");
-                    };
-
-                    Ok(disclosure)
-                }).await
-            };
-
-            let disclosure_sender = disclosure_sender.clone();
-
-            tokio::task::spawn_local(async move {
-                disclosure_sender
-                    .send(fut.await)
-                    .await
-                    .expect("did not expect disclosure channel to be closed already");
-            });
-        }
-
-        let fut = yivi_cli_session(yivi_requestor_url.clone(), disclosure_request);
-
-        let yivi_requestor_url_clone = yivi_requestor_url.clone();
-        let disclosure_sender_clone = disclosure_sender.clone();
-
-        tokio::task::spawn_local(async move {
-            let _ = disclosure_sender_clone
-                .send(fut.await.with_context(|| {
-                    format!("Yivi disclosure to {yivi_requestor_url_clone} failed")
-                }))
-                .await;
-        });
-
-        let disclosure = disclosure_receiver
-            .recv()
+        let disclosure = yivi_cli_session(&yivi_requestor_url, disclosure_request)
             .await
-            .context("disclosure channel closed early")??;
+            .with_context(|| format!("Yivi disclosure to {yivi_requestor_url} failed"))?;
 
         let auth_complete_resp = client
             .query_with_retry::<api::auths::AuthCompleteEP, _, _>(
                 &constellation.auths_url,
                 api::auths::AuthCompleteReq {
                     proof: api::auths::AuthProof::Yivi { disclosure },
-                    state: auth_state.clone(),
+                    state: auth_state,
                 },
             )
             .await
@@ -462,23 +349,15 @@ impl EnterArgs {
             anyhow::bail!("failed to complete authentication: AS returned {auth_complete_resp:?}");
         };
 
-        let Some((id_attr_type, identifying_attr)) = attrs.shift_remove_index(0) else {
-            anyhow::bail!("did not receive any attribute from authentication server");
+        let Some(identifying_attr) = attrs.remove(&self.id_attr_type) else {
+            anyhow::bail!("did not receive identifying attribute from authentication server");
         };
-
-        if !self.id_attr_type.contains(&id_attr_type) {
-            anyhow::bail!("authentication server returned unexpected attribute type {id_attr_type} for identifying attribute; we were expecting one of {}", 
-                        self.id_attr_type.iter()
-                        .map(Handle::as_str)
-                        .collect::<Vec<&str>>()
-                        .join(", "));
-        }
 
         let enter_resp = client
             .query_with_retry::<api::phc::user::EnterEP, _, _>(
                 &constellation.phc_url,
                 api::phc::user::EnterReq {
-                    identifying_attr: Some(identifying_attr),
+                    identifying_attr,
                     mode: api::phc::user::EnterMode::LoginOrRegister,
                     add_attrs: attrs.values().map(Clone::clone).collect(),
                 },
@@ -501,89 +380,12 @@ impl EnterArgs {
             }
         }
 
-        if self.wait_for_card {
-            let api::phc::user::CardPseudResp::Success(card_pseud_package) = client
-                .query::<api::phc::user::CardPseudEP>(&constellation.phc_url, api::NoPayload)
-                .auth_header(auth_token.clone())
-                .with_retry()
-                .await
-                .context("retrieving registration pseudonym failed")?
-            else {
-                anyhow::bail!("failed to retrieve registration pseudonym");
-            };
-
-            let api::auths::CardResp::Success { attr, issuance_request, .. } = client
-                .query_with_retry::<api::auths::CardEP, _, _>(
-                            &constellation.auths_url,
-                            api::auths::CardReq {
-                                card_pseud_package,
-                                comment: self.card_comment.clone(),
-                            } ).await? else {
-                    anyhow::bail!("failed to obtain pubhubs card from authentication server");
-                };
-
-            let enter_resp = client
-                .query::<api::phc::user::EnterEP>(
-                    &constellation.phc_url,
-                    api::phc::user::EnterReq {
-                        identifying_attr: None,
-                        mode: api::phc::user::EnterMode::Login,
-                        add_attrs: vec![attr],
-                    },
-                )
-                .auth_header(auth_token.clone())
-                .with_retry()
-                .await
-                .context("failed to add pubhubs card to account")?;
-
-            let api::phc::user::EnterResp::Entered {
-                auth_token_package: Ok(api::phc::user::AuthTokenPackage { .. }),
-                attr_status,
-                ..
-            } = enter_resp
-            else {
-                anyhow::bail!("failed to add pubhubs card to account: phc returned {enter_resp:?}");
-            };
-
-            for (attr, attr_status) in attr_status.iter() {
-                match *attr_status {
-                    api::phc::user::AttrAddStatus::PleaseTryAgain => {
-                        anyhow::bail!("adding attribute {} failed", attr.value);
-                    }
-                    api::phc::user::AttrAddStatus::Added => {
-                        println!("pubhubs card was added to account");
-                    }
-                    api::phc::user::AttrAddStatus::AlreadyThere => {
-                        println!("pubhubs card already present");
-                    }
-                }
-            }
-
-            let api::auths::YiviReleaseNextSessionResp::Success {} = client
-                .query_with_retry::<api::auths::YiviReleaseNextSessionEP, _, _>(
-                    &constellation.auths_url,
-                    api::auths::YiviReleaseNextSessionReq {
-                        state: auth_state.clone(),
-                        next_session: Some(issuance_request)
-                    },
-                )
-                .await
-                .context("starting next yivi session failed")?
-            else {
-                anyhow::bail!("failed to start next yivi session");
-            };
-        }
-
         Ok(auth_token)
     }
 }
 
 /// Starts a yivi session with `yivi_requestor_url`, printing the QR code to the command line.
-async fn yivi_cli_session(
-    yivi_requestor_url: impl std::borrow::Borrow<url::Url>,
-    request: jwt::JWT,
-) -> Result<jwt::JWT> {
-    let yivi_requestor_url = yivi_requestor_url.borrow();
+async fn yivi_cli_session(yivi_requestor_url: &url::Url, request: jwt::JWT) -> Result<jwt::JWT> {
     let client = awc::Client::default();
 
     let mut resp = client

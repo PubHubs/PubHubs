@@ -3,12 +3,11 @@ use crate::api;
 use crate::api::OpenError;
 use crate::attr::{Attr, AttrState};
 use crate::common::elgamal;
-use crate::common::secret::DigestibleSecret as _;
 use crate::handle;
 use crate::hub;
 use crate::id::Id;
 use crate::misc::crypto;
-use crate::misc::error::{Opaque, OPAQUE};
+use crate::misc::error::{OPAQUE, Opaque};
 use crate::misc::jwt;
 
 use std::collections::{HashMap, HashSet};
@@ -16,7 +15,6 @@ use std::ops::Deref;
 use std::rc::Rc;
 
 use actix_web::web;
-use digest::Digest as _;
 
 use super::server::*;
 use api::phc::user::*;
@@ -59,7 +57,6 @@ impl App {
     pub(super) async fn handle_user_enter(
         app: Rc<Self>,
         req: web::Json<EnterReq>,
-        auth_token: Option<actix_web::web::Header<AuthToken>>,
     ) -> api::Result<EnterResp> {
         let running_state = &app.running_state_or_please_retry()?;
 
@@ -69,63 +66,35 @@ impl App {
             add_attrs,
         } = req.into_inner();
 
-        let auth_token_user_id = if let Some(auth_token) = auth_token {
-            let Ok(user_id) = app.open_auth_token(auth_token.into_inner()) else {
-                return Ok(EnterResp::RetryWithNewAuthToken);
-            };
+        // Check attributes are valid
+        let identifying_attr = app.id_attr(
+            match identifying_attr.open(&running_state.attr_signing_key, None) {
+                Ok(identifying_attr) => identifying_attr,
+                Err(OpenError::OtherConstellation(..)) | Err(OpenError::InternalError) => {
+                    return Err(api::ErrorCode::InternalError);
+                }
+                Err(OpenError::OtherwiseInvalid) => {
+                    return Err(api::ErrorCode::BadRequest);
+                }
+                Err(OpenError::Expired) | Err(OpenError::InvalidSignature) => {
+                    return Ok(EnterResp::RetryWithNewIdentifyingAttr);
+                }
+            },
+        );
 
-            if !matches!(mode, EnterMode::Login) {
-                log::debug!("a user tried to enter with an auth token, but not in the login mode");
-                return Err(api::ErrorCode::BadRequest);
-            }
-
-            Some(user_id)
-        } else {
-            None
-        };
-
-        if auth_token_user_id.is_none() && identifying_attr.is_none() {
-            log::debug!("entry request with neither auth token nor identifying attribute");
+        if !identifying_attr.identifying {
+            log::warn!(
+                "supposed attribute {} of type {} is not identifying",
+                identifying_attr.value,
+                identifying_attr.attr_type
+            );
             return Err(api::ErrorCode::BadRequest);
         }
-
-        // Check attributes are valid
-        let identifying_attr = if let Some(identifying_attr) = identifying_attr {
-            let identifying_attr = app.id_attr(
-                match identifying_attr.open(&running_state.attr_signing_key, None) {
-                    Ok(identifying_attr) => identifying_attr,
-                    Err(OpenError::OtherConstellation(..)) | Err(OpenError::InternalError) => {
-                        return Err(api::ErrorCode::InternalError);
-                    }
-                    Err(OpenError::OtherwiseInvalid) => {
-                        return Err(api::ErrorCode::BadRequest);
-                    }
-                    Err(OpenError::Expired) | Err(OpenError::InvalidSignature) => {
-                        return Ok(EnterResp::RetryWithNewIdentifyingAttr);
-                    }
-                },
-            );
-
-            if identifying_attr.not_identifying {
-                log::warn!(
-                    "supposed attribute {} of type {} is not identifying",
-                    identifying_attr.value,
-                    identifying_attr.attr_type
-                );
-                return Err(api::ErrorCode::BadRequest);
-            }
-
-            Some(identifying_attr)
-        } else {
-            None
-        };
 
         let attrs: HashMap<Id, IdedAttr> = {
             let mut attrs: HashMap<Id, IdedAttr> = HashMap::with_capacity(add_attrs.len());
 
-            if let Some(ref identifying_attr) = identifying_attr {
-                attrs.insert(identifying_attr.id, identifying_attr.clone());
-            }
+            attrs.insert(identifying_attr.id, identifying_attr.clone());
 
             for (add_attr_index, add_attr) in add_attrs.into_iter().enumerate() {
                 let ided_attr =
@@ -143,14 +112,6 @@ impl App {
                             });
                         }
                     });
-
-                if ided_attr.not_addable {
-                    log::warn!(
-                        "entry: someone tried to add unaddable attribute of type {}",
-                        ided_attr.attr_type
-                    );
-                    return Err(api::ErrorCode::BadRequest);
-                }
 
                 let previous_value = attrs.insert(ided_attr.id, ided_attr);
 
@@ -182,26 +143,8 @@ impl App {
         // keeps track of which attributes have already been added
         let mut attr_add_status: HashMap<Id, AttrAddStatus> = Default::default();
 
-        // Attributes are fine, check if we have a user account, or create it if need be
+        // Attributes are fine, check if we have a user account
         let ((user_state, mut user_state_version), new_account) = 'found_user: {
-            if let Some(auth_token_user_id) = auth_token_user_id {
-                let user_and_version = app
-                    .get_object::<UserState>(&auth_token_user_id)
-                    .await?
-                    .ok_or_else(|| {
-                        log::error!(
-                            "a valid auth token passed during entry refers to a user with user_id {auth_token_user_id}  that does not exist",
-                        );
-                        api::ErrorCode::InternalError
-                    })?;
-
-                break 'found_user (user_and_version, false);
-            }
-
-            let identifying_attr = identifying_attr.expect(
-                "we should (but don't) have either an auth token or an identifying attribute",
-            );
-
             if matches!(mode, EnterMode::Login | EnterMode::LoginOrRegister) {
                 // see if account exists
                 if let Some((ias, ias_v)) =
@@ -288,17 +231,15 @@ impl App {
 
             let user_state = UserState {
                 id: Id::random(),
-                card_id: Some(CardPseud(Id::random())),
-                registration_date: Some(api::NumericDate::now()),
                 polymorphic_pseudonym: running_state.constellation.master_enc_key.encrypt_random(),
                 banned: false,
                 allow_login_by: attrs
                     .values()
                     .filter_map(|attr| {
-                        if attr.not_identifying {
-                            None
-                        } else {
+                        if attr.identifying {
                             Some(attr.id)
+                        } else {
+                            None
                         }
                     })
                     .collect(),
@@ -333,16 +274,20 @@ impl App {
                     );
                 })?
             {
-                assert!(attr_states
-                    .insert(
-                        identifying_attr.id,
-                        (identifying_attr_state, identifying_attr_state_version),
-                    )
-                    .is_none());
+                assert!(
+                    attr_states
+                        .insert(
+                            identifying_attr.id,
+                            (identifying_attr_state, identifying_attr_state_version),
+                        )
+                        .is_none()
+                );
 
-                assert!(attr_add_status
-                    .insert(identifying_attr.id, AttrAddStatus::Added)
-                    .is_none());
+                assert!(
+                    attr_add_status
+                        .insert(identifying_attr.id, AttrAddStatus::Added)
+                        .is_none()
+                );
             } else {
                 log::warn!(
                     "possibly orphaned user account {} because identifying \
@@ -390,18 +335,24 @@ impl App {
 
             match app.put_object::<AttrState>(&attr_state, None).await {
                 Ok(Some(attr_state_version)) => {
-                    assert!(attr_states
-                        .insert(attr.id, (attr_state, attr_state_version))
-                        .is_none());
-                    assert!(attr_add_status
-                        .insert(attr.id, AttrAddStatus::Added)
-                        .is_none());
+                    assert!(
+                        attr_states
+                            .insert(attr.id, (attr_state, attr_state_version))
+                            .is_none()
+                    );
+                    assert!(
+                        attr_add_status
+                            .insert(attr.id, AttrAddStatus::Added)
+                            .is_none()
+                    );
                 }
                 problem => {
                     log::warn!("problem adding attribute state {}: {problem:?}", attr.value);
-                    assert!(attr_add_status
-                        .insert(attr.id, AttrAddStatus::PleaseTryAgain)
-                        .is_none());
+                    assert!(
+                        attr_add_status
+                            .insert(attr.id, AttrAddStatus::PleaseTryAgain)
+                            .is_none()
+                    );
                 }
             }
         }
@@ -427,15 +378,19 @@ impl App {
                 .await
             {
                 Ok(Some(attr_state_version)) => {
-                    assert!(attr_states
-                        .insert(attr.id, (attr_state.clone(), attr_state_version))
-                        .is_some());
+                    assert!(
+                        attr_states
+                            .insert(attr.id, (attr_state.clone(), attr_state_version))
+                            .is_some()
+                    );
                     assert!(attr_add_status.contains_key(&attr.id));
                 }
                 _ => {
-                    assert!(attr_add_status
-                        .insert(attr.id, AttrAddStatus::PleaseTryAgain)
-                        .is_none());
+                    assert!(
+                        attr_add_status
+                            .insert(attr.id, AttrAddStatus::PleaseTryAgain)
+                            .is_none()
+                    );
                 }
             }
         }
@@ -734,20 +689,6 @@ pub struct UserState {
     /// Randomly generated identifier for this account, used for creating access tokens and such
     pub id: Id,
 
-    /// Used as registration pseudonym on pubhubs cards issued for to this user.
-    ///
-    /// Might not be set for users that registered under v3.0.0, but will be upon entering pubhubs.
-    ///
-    /// If not set, it's derived from [`UserState::id`], which is done by [`UserState::card_id()`].
-    #[serde(default)]
-    card_id: Option<CardPseud>,
-
-    /// Registration date for this user
-    ///
-    /// Might not be set for users that registered under v3.0.0.
-    #[serde(default)]
-    pub registration_date: Option<api::NumericDate>,
-
     /// Randomly generated and by [`Constellation::master_enc_key`] elgamal encrypted
     /// identifier used to generate hub pseudonyms for this user.
     ///
@@ -778,18 +719,6 @@ pub struct UserState {
 }
 
 impl UserState {
-    /// Returns [`UserState::card_id`] when available, and otherwise an [`Id`] derived from [`UserState::id`].
-    pub fn card_id(&self) -> CardPseud {
-        if let Some(card_id) = self.card_id {
-            return card_id;
-        }
-
-        CardPseud(b"".as_slice().derive_id(
-            sha2::Sha256::new().chain_update(self.id.as_slice()),
-            "pubhubs-card-id",
-        ))
-    }
-
     /// Subtract quota usage from the given [`Quota`], returning an error when a [`QuotumName`] was
     /// reached.
     pub(crate) fn update_quota(&self, mut quota: Quota) -> Result<Quota, QuotumName> {

@@ -13,7 +13,7 @@ use crate::misc::jwt;
 use crate::phcrypto;
 use crate::servers::{
     self, AppBase, AppCreatorBase, Constellation, DiscoverVerdict, Handle, Server as _,
-    constellation,
+    constellation, phc::user_card,
 };
 
 use crate::{elgamal, hub};
@@ -68,7 +68,7 @@ pub struct App {
     pub pp_nonce_validity: core::time::Duration,
     pub user_object_hmac_secret: Box<[u8]>,
     pub quota: api::phc::user::Quota,
-    pub card_pseud_validity: core::time::Duration,
+    pub card_config: Option<user_card::CardConfig>,
 }
 
 impl Deref for App {
@@ -117,8 +117,6 @@ impl crate::servers::App<Server> for App {
 
         api::phc::user::PppEP::add_to(self, sc, App::handle_user_ppp);
         api::phc::user::HhppEP::add_to(self, sc, App::handle_user_hhpp);
-
-        api::phc::user::CardPseudEP::add_to(self, sc, App::handle_user_card_pseud);
     }
 
     fn check_constellation(&self, _constellation: &Constellation) -> bool {
@@ -353,7 +351,7 @@ pub struct AppCreator {
     pub pp_nonce_validity: core::time::Duration,
     pub user_object_hmac_secret: Box<[u8]>,
     pub quota: api::phc::user::Quota,
-    pub card_pseud_validity: core::time::Duration,
+    pub card_config: Option<user_card::CardConfig>,
 }
 
 impl Deref for AppCreator {
@@ -386,7 +384,7 @@ impl crate::servers::AppCreator<Server> for AppCreator {
             pp_nonce_validity: self.pp_nonce_validity,
             user_object_hmac_secret: self.user_object_hmac_secret,
             quota: self.quota,
-            card_pseud_validity: self.card_pseud_validity,
+            card_config: self.card_config,
         }
     }
 
@@ -444,7 +442,7 @@ impl crate::servers::AppCreator<Server> for AppCreator {
             .into_vec()
             .into_boxed_slice(),
             quota: xconf.user_quota.clone(),
-            card_pseud_validity: xconf.card_pseud_validity,
+            card_config: xconf.card.clone(),
         })
     }
 }

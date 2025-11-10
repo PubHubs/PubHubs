@@ -17,18 +17,6 @@ pub(crate) struct CommonArgs {
 
 impl CommonArgs {
     pub fn load_config(&self) -> anyhow::Result<Config> {
-        let config = self.load_config_inner()?;
-
-        match config.log.as_ref() {
-            Some(c) => std::borrow::Cow::Borrowed(c),
-            None => std::borrow::Cow::Owned(Default::default()),
-        }
-        .try_init_env_logger();
-
-        Ok(config)
-    }
-
-    fn load_config_inner(&self) -> anyhow::Result<Config> {
         for pb in &self.config_search_paths {
             if let Some(config) = Config::load_from_path(pb)? {
                 return Ok(config);

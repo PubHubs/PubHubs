@@ -5,10 +5,6 @@
 //!
 //! # Overview for web clients
 //!
-//! For reference, the flows described below to enter pubhubs, to enter a hub and to obtain a pubhubs card
-//! are also implemented by the `pubhubs enter` CLI tool see [`crate::cli`], which
-//! is usually invoked via `cargo run enter`.
-//!
 //! ## Entering pubhubs
 //!
 //!  1. Everything starts with the global client, knowing only the url of pubhubs central (PHC),
@@ -65,48 +61,6 @@
 //!
 //!  4. This HHPP is sent back by the global client to the hub's [`hub::EnterCompleteEP`],
 //!     together with the **hub state**, which results in a Synapse access token to the hub.
-//!
-//! ## PubHubs card
-//!
-//! Pubhubs also issues yivi 'PubHubs cards'.  To obtain one for the user:
-//!
-//!  1. First enter pubhubs, and get a signed [`phc::user::CardPseudPackage`] from PHC via
-//!     [`phc::user::CardPseudEP`].
-//!
-//!  2. Then pass this to [`auths::CardEP`] to get:
-//!
-//!     - An [`auths::CardResp::Success::attr`] [`Attr`]ibute that can be added to the user's
-//!       account via the [`phc::user::EnterEP`] endpoint.  Note that instead of passing an
-//!       identifying attribute, one may also authenticate by putting auth token in the
-//!       `Authorization` header.
-//!
-//!     - An [`auths::CardResp::Success::issuance_request`] that can be used to start an issuance
-//!       session with the authentication server's yivi server to issue the card to the user.  It's
-//!       important that this is done _after_ adding the card to user's yivi app lest the user
-//!       might end up with a card that does not work.
-//!
-//!  In the flow above, the user may have to scan two Yivi QR codes: one to disclosure attributes
-//!  to enter pubhubs, and then another QR code to receive the PubHubs card.  The disclosure and
-//!  issuance Yivi sessions can be combined into one 'chained session' as follows.
-//!
-//!  1. When entering PubHubs, set [`auths::AuthStartReq::yivi_chained_session`] to `true`.
-//!
-//!     This causes the yivi server to not immediately return the disclosure result to the browser,
-//!     but first to the `auths::YIVI_NEXT_SESSION_PATH` endpoint of this authentication server.
-//!
-//!  2. When the authentication server receives this disclosure, it will keep the yivi server
-//!     waiting, and will make the disclosure available via [`auths::YiviWaitForResultEP`].
-//!     (The disclosure can unfortunately not be obtained in the regular way from the yivi server
-//!     until the authentication server releases the yivi server.)
-//!
-//!  3. Using this disclosure, one can obtain [`Attr`]ibutes, enter PubHubs, obtain a PubHubs card,
-//!     and add this card to the user's account, exactly as before.
-//!  
-//!  4. But now instead of passing it directly to the yivi server (which involves scanning a second
-//!     QR code), [`auths::CardResp::Success::issuance_request`] can be passed via the
-//!     [`auths::YiviReleaseNextSessionEP`] endpoint of the authentication server to the waiting yivi
-//!     server, which will cause the current disclosure session to be followed-up by the pubhubs
-//!     card issuance session - without the user having to scan a second QR code.
 //!
 //! # Errors
 //!

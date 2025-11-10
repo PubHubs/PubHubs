@@ -52,7 +52,7 @@ enum Commands {
     /// Administer a running server
     Admin(pubhubs::cli::AdminArgs),
 
-    /// Enter pubhubs (and a hub) returning pubhubs (and Synapse) access token(s)
+    /// Enter a hub, returning a Synapse access token
     Enter(pubhubs::cli::EnterArgs),
 }
 
