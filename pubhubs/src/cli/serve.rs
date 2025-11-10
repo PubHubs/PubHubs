@@ -16,11 +16,13 @@ pub struct ServeArgs {
 
 impl ServeArgs {
     pub fn run(self, _spec: &mut clap::Command) -> Result<()> {
-        env_logger::init();
-
-        log::info!("version: {}", crate::servers::version::VERSION);
+        if std::env::var("RUST_LOG").is_ok() {
+            env_logger::init();
+        }
 
         let config = self.adjust_config(self.common.load_config()?)?;
+
+        log::info!("version: {}", crate::servers::version::VERSION);
 
         tokio::runtime::Builder::new_multi_thread()
             .enable_all()

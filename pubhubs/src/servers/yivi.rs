@@ -45,6 +45,12 @@ pub struct SessionRequest {
 
     /// <https://pkg.go.dev/github.com/privacybydesign/irmago#IssuanceRequest>
     credentials: Option<Vec<CredentialToBeIssued>>,
+
+    /// <https://docs.yivi.app/session-requests/#skip-expiry-check>
+    #[serde(default)]
+    #[serde(skip_serializing_if = "Vec::is_empty")]
+    #[serde(rename = "skipExpiryCheck")]
+    skip_expiry_check : Vec<CredentialTypeIdentifier>
 }
 
 impl ExtendedSessionRequest {
@@ -54,6 +60,7 @@ impl ExtendedSessionRequest {
                 context: LdContext::Disclosure,
                 disclose: Some(cdc),
                 credentials: None,
+                skip_expiry_check: vec![],
             },
             next_session: None,
         }
@@ -65,6 +72,7 @@ impl ExtendedSessionRequest {
                 context: LdContext::Issuance,
                 disclose: None,
                 credentials: Some(credentials),
+                skip_expiry_check: vec![]
             },
             next_session: None,
         }
@@ -97,6 +105,48 @@ impl ExtendedSessionRequest {
 
         // NOTE: the jwt library irmago uses adds a `"typ": "JWT"` to the header,
         // but its presence is not checked, so we omit it.
+    }
+
+    /// Opens the given signed [`ExtendedSessionRequest`].
+    pub fn open_signed(
+        jwt: &jwt::JWT,
+        requestor_credentials: &Credentials<VerifyingKey>,
+    ) -> anyhow::Result<Self> {
+        let mut session_type_perhaps: Option<String> = None;
+
+        let mut claims = requestor_credentials
+            .key
+            .open(jwt)
+            .context("invalid jwt")?
+            .check_iss(jwt::expecting::exactly(&requestor_credentials.name))?
+            .check_sub(
+                |claim_name: &'static str, sub: Option<String>| -> Result<(), jwt::Error> {
+                    let sub = sub.ok_or_else(|| jwt::Error::MissingClaim(claim_name))?;
+
+                    assert!(
+                        session_type_perhaps.replace(sub.to_string()).is_none(),
+                        "bug: did not expect to set session_type twice"
+                    );
+
+                    Ok(())
+                },
+            )?;
+
+        let session_type = LdContext::from_jwt_sub(
+            &session_type_perhaps.expect("bug: expected session_type to be set here")
+        ).context("unknown subject in signed extended session request")?;
+
+        let session_request: Self = claims.extract(session_type.jwt_key())?
+            .with_context(|| format!("missing claim {}", session_type.jwt_key()))?;
+
+        anyhow::ensure!(
+            session_request.request.context == session_type,
+            "session request jwt subject's, {}, does not align with session request context, {}",
+            session_type.jwt_sub(),
+            session_request.request.context.jwt_sub()
+        );
+
+        Ok(session_request)
     }
 
     /// Mocks a valid [`SessionResult`] to this [`ExtendedSessionRequest`] disclosing
@@ -156,6 +206,18 @@ pub enum LdContext {
 }
 
 impl LdContext {
+    pub fn from_jwt_sub(jwt_sub : &str) -> Option<LdContext> {
+        match jwt_sub {
+                "verification_request" =>
+            Some(LdContext::Disclosure),
+                "signature_request" =>
+            Some(LdContext::Signature),
+                "issue_request" =>
+            Some(LdContext::Issuance),
+            _ => None
+        }
+    }
+
     /// The `sub` field of a signed session request JWT of this type
     pub const fn jwt_sub(&self) -> &'static str {
         match self {
@@ -183,6 +245,10 @@ pub type AttributeConDisCon = Vec<Vec<Vec<AttributeRequest>>>;
 pub struct AttributeRequest {
     #[serde(rename = "type")] // 'type' is a keyword
     pub ty: AttributeTypeIdentifier,
+
+    #[serde(default)]
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub value : Option<String>,
 }
 
 /// Known as
@@ -221,12 +287,22 @@ impl CredentialToBeIssued {
 
 /// Credentials (name and key) for a requestor or yivi server.
 ///
-/// Use [`Credentials<SigningKey>`] or [`Credentials<VerifyingKey>`].
+/// To be used with `K` either [`SigningKey`] or [`VerifyingKey`].
 #[derive(serde::Serialize, serde::Deserialize, Debug, Clone, PartialEq, Eq)]
 #[serde(deny_unknown_fields)]
 pub struct Credentials<K> {
     pub name: String,
     pub key: K,
+}
+
+impl Credentials<SigningKey> {
+    /// Turn these signing credentials into verifying credentials
+    pub fn to_verifying_credentials(&self) -> Credentials<VerifyingKey> {
+        Credentials {
+            name: self.name.clone(),
+            key: self.key.to_verifying_key(),
+        }
+    }
 }
 
 /// Private key used by a requestor or yivi server to sign their JWTs.
@@ -440,8 +516,10 @@ impl SessionResult {
     /// Verifies that this [`SessionResult`] is valid ignoring the [`Self::disclosed`] field.
     fn validate_except_disclosed(&self) -> anyhow::Result<()> {
         anyhow::ensure!(
-            self.status == Status::Done,
-            "session status is not 'done', but {}",
+            self.status == Status::Done || self.status == Status::Connected,
+            // NB: when a disclosure is POSTed by the Yivi server in a chained session to the
+            // nextSession url, the state is `connected`, not `done`.
+            "session status is not 'done' (or 'connected'), but {}",
             self.status
         );
 
@@ -463,9 +541,8 @@ impl SessionResult {
         Ok(())
     }
 
-    /// Verifyies that this [`SessionResult`] is valid, and that the inner conjunctions contain
-    /// just one attribute each.  Returns the [`AttributeTypeIdentifier`] and raw values of these
-    /// attributes.
+    /// Verifyies that this [`SessionResult`] is valid, and for the first attribute in each inner conjunction
+    /// returns the [`AttributeTypeIdentifier`] and raw value.
     pub fn validate_and_extract_raw_singles(
         &self,
     ) -> anyhow::Result<impl Iterator<Item = anyhow::Result<(&AttributeTypeIdentifier, &str)>>>
@@ -477,11 +554,6 @@ impl SessionResult {
             .iter()
             .flatten()
             .map(|inner_con: &Vec<DisclosedAttribute>| {
-                anyhow::ensure!(
-                    inner_con.len() <= 1,
-                    "inner conjunction has more than one attribute"
-                );
-
                 let da: &DisclosedAttribute = inner_con
                     .first()
                     .context("inner conjunction has no attribute")?;
@@ -624,7 +696,7 @@ impl std::str::FromStr for RequestorToken {
 /// <https://github.com/privacybydesign/irmago/blob/b1c38f4f2c9da3d3f39b5c21a330bcbd04143f41/requests.go#L382>
 ///
 /// We don't, but use [`CredentialTypeIdentifier`] instead.
-#[derive(serde::Serialize, serde::Deserialize, Clone, Debug, Eq, PartialEq)]
+#[derive(serde::Serialize, serde::Deserialize, Clone, Debug, Eq, PartialEq, Hash)]
 #[serde(transparent)]
 pub struct AttributeTypeIdentifier {
     #[serde(deserialize_with = "AttributeTypeIdentifier::deserialize_inner")]

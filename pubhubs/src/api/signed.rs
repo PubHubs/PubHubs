@@ -240,6 +240,8 @@ pub enum MessageCode {
     Ehpp = 9,
     PpNonce = 10,
     Hhpp = 11,
+    // new >v3.0.0
+    CardPseudPackage = 12,
 
     /// Only used as an example in a doctest
     Example = 65535,
