@@ -111,7 +111,7 @@ export default class AuthenticationServer {
 	 * @param state The state that was obtained during the call of the AuthStartEP.
 	 * @returns The attributes the user disclosed.
 	 */
-	public async _completeAuthEP(proof: mssTypes.AuthProof, state: number[]): Promise<mssTypes.SuccesResp | undefined> {
+	public async _completeAuthEP(proof: mssTypes.AuthProof, state: number[]): Promise<mssTypes.SuccesResp> {
 		const requestPayload: mssTypes.AuthCompleteReq = { proof, state };
 		const authCompleteRespFn = () => this._authsApi.api<mssTypes.AuthCompleteResp>(this._authsApi.apiURLS.authComplete, requestOptions<mssTypes.AuthCompleteReq>(requestPayload));
 		const okAuthCompleteResp = await handleErrors<mssTypes.CompleteResp>(authCompleteRespFn);

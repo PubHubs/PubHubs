@@ -83,7 +83,7 @@ const useMSS = defineStore('mss', {
 				// 3. Start authentication
 				const startResp = await authServer._startAuthEP(authStartReq);
 
-				let authResp: mssTypes.SuccesResp | undefined;
+				let authResp: mssTypes.SuccesResp;
 
 				// 4. Handle start response
 				if ('Success' in startResp) {
