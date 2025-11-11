@@ -87,7 +87,6 @@
 	import GlobalBarButton from '@hub-client/components/ui/GlobalbarButton.vue';
 	import HeaderFooter from '@hub-client/components/ui/HeaderFooter.vue';
 
-	import { routes } from '@hub-client/logic/core/router';
 	// Logic
 	import { LOGGER } from '@hub-client/logic/logging/Logger';
 	import { SMI } from '@hub-client/logic/logging/StatusMessage';
@@ -195,43 +194,53 @@
 	async function update() {
 		hubSettings.hideBar();
 		rooms.changeRoom(props.id);
-
-		const userIsMemberOfRoom = await pubhubs.isUserRoomMember(user.userId!, props.id);
-		if (!userIsMemberOfRoom) {
+		const userIsMember = await pubhubs.isUserRoomMember(user.userId!, props.id);
+		if (!userIsMember) {
 			let promise = null;
-			if (rooms.roomIsSecure(props.id)) {
+			await rooms.fetchPublicRooms();
+			const roomIsSecure = rooms.roomIsSecure(props.id);
+
+			// For secured rooms users first have to authenticate
+			if (roomIsSecure) {
 				joinSecuredRoom.value = props.id;
-			} else {
+			}
+			// Non-secured rooms can be joined immediately
+			else {
 				promise = pubhubs.joinRoom(props.id);
 			}
 			// need this extra check
 			if (promise) {
-				if (rooms.roomIsSecure(props.id)) {
-					promise.catch(() => (joinSecuredRoom.value = props.id));
-				} else {
-					promise.catch(() => {
-						// Redirect to route with name equal to props.id (except 'room'), or to home
-						const isValidRoute = routes.some((r) => r.name === props.id && r.name !== 'room');
-						router.push({ name: isValidRoute ? props.id : 'home' });
-					});
-				}
+				// Room does not exist or user failed to join room
+				promise.catch(() => {
+					router.push({ name: 'error-page', query: { errorKey: 'errors.cant_find' } });
+					return;
+				});
 			}
 		}
 
 		if (!rooms.currentRoom) return;
 
-		/* Initialize syncing of room */
+		// Initialize syncing of room
 		rooms.currentRoom.initTimeline();
 
 		searchParameters.value.roomId = rooms.currentRoom.roomId;
 
 		// If there is a position saved in scrollPositions for this room: go there
 		// otherwise go to the newest event
-		if (roomTimeLineComponent.value?.elRoomTimeline && rooms.scrollPositions[rooms.currentRoom.roomId]) {
-			rooms.currentRoom.setCurrentEvent({ eventId: rooms.scrollPositions[rooms.currentRoom.roomId], position: ScrollPosition.Start });
+		const timeline = roomTimeLineComponent.value?.elRoomTimeline;
+		const savedPosition = rooms.scrollPositions[rooms.currentRoom.roomId];
+
+		if (timeline && savedPosition) {
+			rooms.currentRoom.setCurrentEvent({
+				eventId: savedPosition,
+				position: ScrollPosition.Start,
+			});
 		} else {
 			const lastEventId = rooms.currentRoom.getRoomNewestMessageId() ?? '';
-			rooms.currentRoom.setCurrentEvent({ eventId: lastEventId, position: ScrollPosition.End });
+			rooms.currentRoom.setCurrentEvent({
+				eventId: lastEventId,
+				position: ScrollPosition.End,
+			});
 		}
 	}
 

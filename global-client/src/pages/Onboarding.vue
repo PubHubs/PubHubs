@@ -207,7 +207,7 @@
 	// Packages
 	import { computed, onMounted, onUnmounted, ref, watch } from 'vue';
 	import { useI18n } from 'vue-i18n';
-	import { useRouter } from 'vue-router';
+	import { useRoute, useRouter } from 'vue-router';
 
 	// Components
 	import Logo from '@global-client/components/ui/Logo.vue';
@@ -231,6 +231,7 @@
 	const settings = useSettings();
 	const { t } = useI18n();
 	const router = useRouter();
+	const route = useRoute();
 
 	// Logging
 	const LOGGER = new Logger('GC', CONFIG);
@@ -246,6 +247,8 @@
 	const carouselMobile = ref<HTMLDivElement | null>(null);
 	const carouselDesktop = ref<HTMLDivElement | null>(null);
 
+	// Query parameters
+	const redirectPath = route.query.redirectPath as string;
 	// FAQ
 	const faqs = computed(() => [
 		{
@@ -340,7 +343,11 @@
 				router.push({ name: 'error', query: { errorKey: errorMessage.key, errorValues: errorMessage.values } });
 				return;
 			}
-			await router.push({ name: 'home' });
+			if (redirectPath) {
+				await router.push({ path: decodeURI(redirectPath) });
+			} else {
+				await router.push({ name: 'home' });
+			}
 		} catch (error) {
 			router.push({ name: 'error' });
 			LOGGER.error(SMI.ERROR, 'Error during MSS Registration', { error });

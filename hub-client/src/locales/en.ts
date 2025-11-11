@@ -49,6 +49,7 @@ const en = {
 		general_error: 'Unfortunately an error occured. Try again and contact the developers if the problem persists.',
 		retry_with_new_attr: 'Please add your attributes again in Yivi and retry.',
 		no_hubs_found: 'Unfortunately we could not show any hubs. Try again later and contact the developers if the problem persists.',
+		cant_find: 'Sorry, we could not find the page or room that you were looking for.',
 	},
 	file: {
 		file: 'File',

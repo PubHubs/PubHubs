@@ -37,15 +37,7 @@
 
 	// Stores
 	import { useHubSettings } from '@hub-client/stores/hub-settings';
-	import { usePubhubsStore } from '@hub-client/stores/pubhubs';
 
-	// Types
-	type Props = {
-		/** This page can be shown to users that are not yet logged in to PubHubs Central. */
-		showPubHubsCentralLoginButton: boolean;
-	};
-
-	const pubhubs = usePubhubsStore();
 	const hubSettings = useHubSettings();
 
 	const hubDescription = ref<string>(hubSettings.hubDescription);

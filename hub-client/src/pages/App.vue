@@ -121,6 +121,7 @@
 
 	// Logic
 	import { PubHubsInvisibleMsgType } from '@hub-client/logic/core/events';
+	import { routes } from '@hub-client/logic/core/router';
 	import { LOGGER } from '@hub-client/logic/logging/Logger';
 	import { SMI } from '@hub-client/logic/logging/StatusMessage';
 
@@ -213,8 +214,13 @@
 
 			// Listen to roomchange
 			messagebox.addCallback('parentFrame', MessageType.RoomChange, async (message: Message) => {
-				const roomId = message.content as RouteParamValue;
-				router.push({ name: 'room', params: { id: roomId } });
+				const content = message.content as RouteParamValue;
+				const isNonRoomRoute = routes.some((r) => r.name === content && r.name !== 'room');
+				if (isNonRoomRoute) {
+					router.push({ name: content });
+				} else {
+					router.push({ name: 'room', params: { id: content } });
+				}
 			});
 
 			// Listen to global menu change

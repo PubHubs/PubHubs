@@ -15,7 +15,6 @@ const routes = [
 		path: '/',
 		name: 'home',
 		component: () => import('@hub-client/pages/HomePage.vue'),
-		props: { showPubHubsCentralLoginButton: true },
 		meta: { onboarding: true },
 	},
 	{
@@ -23,12 +22,6 @@ const routes = [
 		name: 'onboarding',
 		component: () => import('@hub-client/pages/Onboarding.vue'),
 		meta: { hideBar: true },
-	},
-	{
-		path: '/hub',
-		name: 'hubpage',
-		component: () => import('@hub-client/pages/HomePage.vue'),
-		props: { showPubHubsCentralLoginButton: false },
 	},
 	{
 		path: '/admin',

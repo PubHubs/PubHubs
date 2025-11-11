@@ -39,7 +39,7 @@
 								></div>
 							</div>
 							<Button color="gray" @click="loginMSS()">{{ show ? $t('dialog.close') : $t('login.login') }}</Button>
-							<router-link to="/register" class="w-full">
+							<router-link :to="{ path: '/register', query: { redirectPath: redirectPath } }" class="w-full">
 								<Button>{{ $t('register.register_with', [$t('common.yivi')]) }}</Button>
 							</router-link>
 						</div>
@@ -79,6 +79,15 @@
 	const settings = useSettings();
 	const router = useRouter();
 	const route = useRoute();
+
+	const redirectPath = computed(() => {
+		const fullPath = decodeURI(router.currentRoute.value.fullPath);
+		const redirect = '/login?redirect=/';
+		if (fullPath.startsWith(redirect)) {
+			return '/' + fullPath.slice(redirect.length);
+		}
+		return null;
+	});
 	const mss = useMSS();
 
 	const LOGGER = new Logger('GC', CONFIG);
@@ -114,7 +123,6 @@
 				show.value = false;
 				return;
 			}
-			// await global.checkLoginAndSettings();
 			show.value = false;
 			const redirectPath = route.query.redirect?.toString() || '/';
 			router.replace(redirectPath);
