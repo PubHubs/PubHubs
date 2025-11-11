@@ -48,6 +48,7 @@ const nl = {
 		general_error: 'Helaas is er een fout opgetreden. Probeer het opnieuw en neem contact op met de ontwikkelaars als het probleem blijft bestaan.',
 		retry_with_new_attr: 'Voeg uw attribuuten opnieuw toe in Yivi en probeer het nog een keer.',
 		no_hubs_found: 'Helaas konden we geen hubs tonen.  Probeer het later opnieuw en neem contact op met de ontwikkelaars als het probleem blijft bestaan.',
+		cant_find: 'Sorry, we konden de pagina of kamer die u zocht niet vinden.',
 	},
 	file: {
 		file: 'Bestand',
