@@ -12,7 +12,7 @@ import filters from '@hub-client/logic/core/filters';
 import * as mssTypes from '@global-client/models/MSS/TMultiServerSetup';
 
 export default class AuthenticationServer {
-	private _state: number[];
+	public _state: number[];
 	private _authsApi: Api;
 
 	constructor(authServerUrl: string) {
@@ -28,7 +28,7 @@ export default class AuthenticationServer {
 	 * @param loginMethod The login method that is currently used.
 	 * @returns A set of the handles used in the login method that are identifying and thus can be used to login.
 	 */
-	private _checkAttributes(supportedAttrTypes: Record<string, mssTypes.AttrType>, loginMethod: mssTypes.LoginMethod, enterMode: mssTypes.PHCEnterMode) {
+	public _checkAttributes(supportedAttrTypes: Record<string, mssTypes.AttrType>, loginMethod: mssTypes.LoginMethod, enterMode: mssTypes.PHCEnterMode) {
 		if (!loginMethod.attr_types.includes(loginMethod.identifying_attr)) {
 			throw new Error(`The identifying attribute "${loginMethod.identifying_attr}" is not included in the attribute list.`);
 		}
@@ -87,7 +87,7 @@ export default class AuthenticationServer {
 	 * @param loginMethod The login method that is currently used.
 	 * @returns The set of attribute handles used in the login method that belong to identifying attributes.
 	 */
-	private async _welcomeEPAuths() {
+	public async _welcomeEPAuths() {
 		const welcomeResponseFn = () => this._authsApi.apiGET<mssTypes.AuthsWelcomeResp>(this._authsApi.apiURLS.welcome);
 		const okWelcomeResp = await handleErrors<mssTypes.WelcomeResp>(welcomeResponseFn);
 		return okWelcomeResp.attr_types;
@@ -98,7 +98,7 @@ export default class AuthenticationServer {
 	 *
 	 * @returns The task and state returned by the AuthStartEP.
 	 */
-	private async _startAuthEP(requestBody: mssTypes.AuthStartReq) {
+	public async _startAuthEP(requestBody: mssTypes.AuthStartReq) {
 		const authStartRespFn = () => this._authsApi.api<mssTypes.AuthStartResp>(this._authsApi.apiURLS.authStart, requestOptions<mssTypes.AuthStartReq>(requestBody));
 		const okAuthStartResp = await handleErrors<mssTypes.StartResp>(authStartRespFn);
 		return okAuthStartResp;
@@ -111,7 +111,7 @@ export default class AuthenticationServer {
 	 * @param state The state that was obtained during the call of the AuthStartEP.
 	 * @returns The attributes the user disclosed.
 	 */
-	private async _completeAuthEP(proof: mssTypes.AuthProof, state: number[]) {
+	public async _completeAuthEP(proof: mssTypes.AuthProof, state: number[]): Promise<mssTypes.SuccesResp | undefined> {
 		const requestPayload: mssTypes.AuthCompleteReq = { proof, state };
 		const authCompleteRespFn = () => this._authsApi.api<mssTypes.AuthCompleteResp>(this._authsApi.apiURLS.authComplete, requestOptions<mssTypes.AuthCompleteReq>(requestPayload));
 		const okAuthCompleteResp = await handleErrors<mssTypes.CompleteResp>(authCompleteRespFn);
@@ -159,7 +159,7 @@ export default class AuthenticationServer {
 	 * @param responseAttrs The list of attribute handles that were disclosed.
 	 * @returns True if the attributes are matching, false otherwise.
 	 */
-	private _responseEqualToRequested(responseAttrs: string[], attrTypes: readonly string[]): boolean {
+	public _responseEqualToRequested(responseAttrs: string[], attrTypes: readonly string[]): boolean {
 		if (attrTypes.length !== responseAttrs.length) {
 			return false;
 		}
@@ -175,7 +175,7 @@ export default class AuthenticationServer {
 		return true;
 	}
 
-	private _decodeJWT(jwt: string) {
+	public _decodeJWT(jwt: string) {
 		try {
 			// Only take the payload of the JWT
 			const base64Url = jwt.split('.')[1];

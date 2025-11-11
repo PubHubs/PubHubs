@@ -4,6 +4,7 @@ import { defineStore } from 'pinia';
 
 // Logic
 import { hub_api } from '@global-client/logic/core/api';
+import { startYiviAuthentication } from '@global-client/logic/utils/yiviHandler';
 
 import filters from '@hub-client/logic/core/filters';
 
@@ -65,9 +66,102 @@ const useMSS = defineStore('mss', {
 			return this._transcryptor!;
 		},
 
+		async authenticate(loginMethod: mssTypes.LoginMethod, enterMode: mssTypes.PHCEnterMode) {
+			try {
+				//0. Fetch auth server
+				const authServer = await this.getAuthServer();
+				// 1. Fetch supported attribute types and validate
+				const supportedAttrTypes = await authServer._welcomeEPAuths();
+				const identifyingAttrsSet = authServer._checkAttributes(supportedAttrTypes, loginMethod, enterMode);
+
+				// 2. Prepare start request
+				const authStartReq: mssTypes.AuthStartReq = {
+					source: loginMethod.source,
+					attr_types: loginMethod.attr_types,
+				};
+
+				// 3. Start authentication
+				const startResp = await authServer._startAuthEP(authStartReq);
+
+				let authResp: mssTypes.SuccesResp | undefined;
+
+				// 4. Handle start response
+				if ('Success' in startResp) {
+					const { task, state } = startResp.Success;
+					authServer._state = state;
+
+					const source = loginMethod.source;
+					if (source === mssTypes.Source.Yivi && task.Yivi) {
+						const { disclosure_request, yivi_requestor_url } = task.Yivi;
+						const yiviRequestorUrl = filters.removeTrailingSlash(yivi_requestor_url);
+
+						// Perform Yivi authentication
+						const resultJWT = await startYiviAuthentication(yiviRequestorUrl, disclosure_request);
+						const proof = { Yivi: { disclosure: resultJWT } };
+
+						authResp = await authServer._completeAuthEP(proof, authServer._state);
+					} else {
+						throw new Error(`The task does not match the chosen source for the attributes: ${JSON.stringify(task)} (task), ${source} (source)`);
+					}
+				} else if ('UnknownAttrType' in startResp) {
+					throw new Error(`No attribute type known with this handle: ${startResp.UnknownAttrType}`);
+				} else if ('SourceNotAvailableFor' in startResp) {
+					throw new Error(`The source (${authStartReq.source}) is not available for the attribute type: ${startResp.SourceNotAvailableFor}`);
+				} else {
+					throw new Error('Unknown response from the AuthStart endpoint.');
+				}
+
+				// 5. Sanity check
+				if (!authResp) {
+					throw new Error('Authentication response was not received.');
+				}
+
+				// 6. Validate attributes
+				const requestedAttrKeys = loginMethod.attr_types;
+				if (!authServer._responseEqualToRequested(Object.keys(authResp.attrs), requestedAttrKeys)) {
+					throw new Error('The disclosed attributes do not match the requested attributes.');
+				}
+
+				// 7. Collect identifying & additional attributes
+				const signedAddAttrs: string[] = [];
+				const signedIdentifyingAttrs: mssTypes.SignedIdentifyingAttrs = {};
+
+				for (const [handle, attr] of Object.entries(authResp.attrs)) {
+					if (typeof attr !== 'string') {
+						console.warn(`Skipping attribute '${handle}' because value is not a string:`, attr);
+						continue;
+					}
+
+					if (identifyingAttrsSet.has(handle)) {
+						const decodedAttr = authServer._decodeJWT(attr) as mssTypes.Attr;
+						signedIdentifyingAttrs[handle] = {
+							signedAttr: attr,
+							id: decodedAttr.attr_type,
+							value: decodedAttr.value,
+						};
+					}
+
+					if (handle !== loginMethod.identifying_attr) {
+						signedAddAttrs.push(attr);
+					}
+				}
+
+				// 8. Return final result
+				return {
+					identifyingAttr: authResp.attrs[loginMethod.identifying_attr],
+					signedIdentifyingAttrs,
+					signedAddAttrs,
+				};
+			} catch (err) {
+				console.error('Authentication failed:', err);
+				throw err;
+			}
+		},
+
 		async enterPubHubs(loginMethod: mssTypes.LoginMethod, enterMode: mssTypes.PHCEnterMode) {
 			const authServer = await this.getAuthServer();
 
+			// this.authenticate(loginMethod, enterMode);
 			const { identifyingAttr, signedIdentifyingAttrs, signedAddAttrs } = await authServer.startAuthentication(loginMethod, enterMode);
 			const { entered, errorMessage, objectDetails, userSecretObject } = await this.phcServer.login(identifyingAttr, signedAddAttrs, enterMode);
 			if (!entered) {

@@ -87,6 +87,8 @@ export type SignedIdentifyingAttrs = Record<string, { signedAttr: string; id: st
 
 export type AuthCompleteResp = Result<CompleteResp, ErrorCode>;
 
+export type SuccesResp = { attrs: Record<string, string> };
+
 export type AttrKeyReq = {
 	attr: string;
 	timestamp: string | null;
