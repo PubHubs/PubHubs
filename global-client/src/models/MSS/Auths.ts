@@ -29,7 +29,7 @@ export default class AuthenticationServer {
 	 * @returns A set of the handles used in the login method that are identifying and thus can be used to login.
 	 */
 	public _checkAttributes(supportedAttrTypes: Record<string, mssTypes.AttrType>, loginMethod: mssTypes.LoginMethod, enterMode: mssTypes.PHCEnterMode) {
-		if (!loginMethod.attr_types.includes(loginMethod.identifying_attr)) {
+		if (!loginMethod.attr_types.includes(loginMethod.identifying_attr[0]) || !loginMethod.attr_types.includes(loginMethod.identifying_attr[1])) {
 			throw new Error(`The identifying attribute "${loginMethod.identifying_attr}" is not included in the attribute list.`);
 		}
 
@@ -55,7 +55,7 @@ export default class AuthenticationServer {
 				throw new Error(`The attribute "${attr}" is not in the list of supported attributes.`);
 			}
 
-			if (attr === loginMethod.identifying_attr && !type.identifying) {
+			if (attr in loginMethod.identifying_attr && !type.identifying) {
 				throw new Error(`The attribute that is to be used as an identifying attribute (${attr}) is not an identifying attribute.`);
 			}
 
@@ -91,6 +91,31 @@ export default class AuthenticationServer {
 		const welcomeResponseFn = () => this._authsApi.apiGET<mssTypes.AuthsWelcomeResp>(this._authsApi.apiURLS.welcome);
 		const okWelcomeResp = await handleErrors<mssTypes.WelcomeResp>(welcomeResponseFn);
 		return okWelcomeResp.attr_types;
+	}
+	public async YiviWaitForResultEP(argument: any) {
+		const requestBody = { state: argument };
+		const response = await this._authsApi.api(this._authsApi.apiURLS.YiviWaitForResultEP, requestOptions(requestBody));
+		if (mssTypes.isOk(response)) {
+			return response.Ok;
+		} else {
+			throw new Error('The response is not okay');
+		}
+	}
+	public async CardEP(requestBody: mssTypes.CardReq) {
+		const response = await this._authsApi.api<mssTypes.CardResp>(this._authsApi.apiURLS.cardEP, requestOptions(requestBody));
+		if (mssTypes.isOk(response)) {
+			return response.Ok;
+		} else {
+			throw new Error('The response is not okay');
+		}
+	}
+	public async YiviReleaseNextSessionEP(requestBody: mssTypes.YiviReleaseNextSessionReq) {
+		const response = await this._authsApi.api<mssTypes.YiviReleaseNextSessionResp>(this._authsApi.apiURLS.YiviReleaseNextSessionEP, requestOptions(requestBody));
+		if (mssTypes.isOk(response)) {
+			return response.Ok;
+		} else {
+			throw new Error('The response is not okay');
+		}
 	}
 
 	/**

@@ -73,6 +73,21 @@ export default class PHCServer {
 	async welcome() {
 		return await handleErrors<mssTypes.WelcomeRespPHC>(() => this._phcAPI.apiGET<mssTypes.PHCWelcomeResp>(this._phcAPI.apiURLS.welcome));
 	}
+	async cardPseudePackage(): Promise<mssTypes.CardPseudResp> {
+		const options = {
+			headers: {
+				'Content-Type': 'application/json',
+				Authorization: await this._getAuthToken(),
+			},
+			method: 'POST',
+		};
+		const response = await this._phcAPI.api<mssTypes.CardPseudResp>(this._phcAPI.apiURLS.CardPseudPackage, options);
+		if (mssTypes.isOk(response)) {
+			return response.Ok;
+		} else {
+			throw new Error('The response is not okay');
+		}
+	}
 
 	private _setAuthToken(authTokenPackage: mssTypes.AuthTokenPackage) {
 		this._authToken = authTokenPackage.auth_token;
@@ -120,7 +135,7 @@ export default class PHCServer {
 	 * @param enterMode The mode determines whether we want to create an account if none exists and whether we expect an account to exist.
 	 * @returns An object with a boolean to know whether the user successfully entered PubHubs or not and an error message (which is null if no error occured).
 	 */
-	private async _enter(identifyingAttr: string, signedAddAttrs: string[], enterMode: mssTypes.PHCEnterMode): Promise<{ entered: true; errorMessage: null } | { entered: false; errorMessage: { key: string; values?: string[] } }> {
+	public async _enter(signedAddAttrs: string[], enterMode: mssTypes.PHCEnterMode, identifyingAttr?: string): Promise<{ entered: true; errorMessage: null } | { entered: false; errorMessage: { key: string; values?: string[] } }> {
 		const requestPayload: mssTypes.PHCEnterReq = {
 			identifying_attr: identifyingAttr,
 			mode: enterMode,
@@ -192,7 +207,7 @@ export default class PHCServer {
 		| { entered: true; errorMessage: null; objectDetails: null; userSecretObject: null }
 		| { entered: true; errorMessage: null; objectDetails: { usersecret: mssTypes.UserObjectDetails; backup: mssTypes.UserObjectDetails | null }; userSecretObject: mssTypes.UserSecretObject }
 	> {
-		const { entered, errorMessage } = await this._enter(identifyingAttr, signedAddAttrs, enterMode);
+		const { entered, errorMessage } = await this._enter(signedAddAttrs, enterMode, identifyingAttr);
 
 		if (!entered) {
 			return { entered, errorMessage, objectDetails: null, userSecretObject: null };

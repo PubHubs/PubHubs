@@ -47,16 +47,18 @@ export enum Source {
 export type LoginMethod = {
 	readonly source: Source;
 	readonly attr_types: readonly string[];
-	readonly identifying_attr: string;
+	readonly identifying_attr: string[];
 };
 
 export const loginMethods: Record<string, LoginMethod> = {
-	Yivi: { source: Source.Yivi, attr_types: ['email', 'phone'], identifying_attr: 'email' },
+	Yivi: { source: Source.Yivi, attr_types: ['email', 'phone', 'ph_card'], identifying_attr: ['email', 'ph_card'] },
 } as const;
 
 export type AuthStartReq = {
 	source: Source;
 	attr_types: readonly string[];
+	attr_type_choices: string[][];
+	yivi_chained_session: boolean;
 };
 
 type AuthTask = {
@@ -65,6 +67,15 @@ type AuthTask = {
 		yivi_requestor_url: string;
 	};
 };
+export type YiviReleaseNextSessionResp = { Success: {} } | { PleaseRestartAuth: string } | { SessionGone: string } | { TooEarly: string };
+
+export type YiviReleaseNextSessionReq = { state: number[]; next_session?: string };
+
+export type CardResp = { Success: { attr; issuance_request; yivi_requestor_url } } | { PleaseRetryWithNewCardPseud: string };
+
+export type CardReq = { card_pseud_package: { card_pseud: number; registration_date?: Number }; comment: string };
+
+export type CardPseudResp = { RetryWithNewAuthToken: string; Success: { card_pseud: number; registration_date?: Number } };
 
 export type StartResp = { Success: { task: AuthTask; state: Array<number> } } | { UnknownAttrType: string } | { SourceNotAvailableFor: string };
 
@@ -149,7 +160,7 @@ export enum PHCEnterMode {
 }
 
 export type PHCEnterReq = {
-	identifying_attr: string;
+	identifying_attr?: string;
 	mode: PHCEnterMode;
 	add_attrs: Array<string>;
 };

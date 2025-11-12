@@ -74,16 +74,28 @@ const useMSS = defineStore('mss', {
 				const supportedAttrTypes = await authServer._welcomeEPAuths();
 				const identifyingAttrsSet = authServer._checkAttributes(supportedAttrTypes, loginMethod, enterMode);
 
+				let authStartReq: mssTypes.AuthStartReq;
 				// 2. Prepare start request
-				const authStartReq: mssTypes.AuthStartReq = {
-					source: loginMethod.source,
-					attr_types: loginMethod.attr_types,
-				};
+				if (enterMode === mssTypes.PHCEnterMode.LoginOrRegister) {
+					authStartReq = {
+						source: loginMethod.source,
+						attr_types: ['email', 'phone'],
+						attr_type_choices: [],
+						yivi_chained_session: true,
+					};
+				} else {
+					authStartReq = {
+						source: loginMethod.source,
+						// attr_types: loginMethod.attr_types,
+						attr_type_choices: [['ph_card', 'email'], ['phone']],
+						yivi_chained_session: false,
+					};
+				}
 
 				// 3. Start authentication
 				const startResp = await authServer._startAuthEP(authStartReq);
 
-				let authResp: mssTypes.SuccesResp;
+				let authSuccResp: mssTypes.SuccesResp;
 
 				// 4. Handle start response
 				if ('Success' in startResp) {
@@ -96,10 +108,24 @@ const useMSS = defineStore('mss', {
 						const yiviRequestorUrl = filters.removeTrailingSlash(yivi_requestor_url);
 
 						// Perform Yivi authentication
-						const resultJWT = await startYiviAuthentication(yiviRequestorUrl, disclosure_request);
-						const proof = { Yivi: { disclosure: resultJWT } };
+						//
+						let resultJWT;
+						let proof;
+						if (enterMode === mssTypes.PHCEnterMode.LoginOrRegister) {
+							console.error('Login or register');
+							startYiviAuthentication(yiviRequestorUrl, disclosure_request);
+							resultJWT = await authServer.YiviWaitForResultEP(authServer._state);
+							if ('Success' in resultJWT) {
+								proof = { Yivi: resultJWT.Success };
+							} else {
+								throw Error('Restart authentication please');
+							}
+						} else {
+							resultJWT = await startYiviAuthentication(yiviRequestorUrl, disclosure_request);
+							proof = { Yivi: { disclosure: resultJWT } };
+						}
 
-						authResp = await authServer._completeAuthEP(proof, authServer._state);
+						authSuccResp = await authServer._completeAuthEP(proof, authServer._state);
 					} else {
 						throw new Error(`The task does not match the chosen source for the attributes: ${JSON.stringify(task)} (task), ${source} (source)`);
 					}
@@ -112,21 +138,23 @@ const useMSS = defineStore('mss', {
 				}
 
 				// 5. Sanity check
-				if (!authResp) {
+				if (!authSuccResp) {
 					throw new Error('Authentication response was not received.');
 				}
 
 				// 6. Validate attributes
-				const requestedAttrKeys = loginMethod.attr_types;
-				if (!authServer._responseEqualToRequested(Object.keys(authResp.attrs), requestedAttrKeys)) {
-					throw new Error('The disclosed attributes do not match the requested attributes.');
-				}
+				// Logic needs to be updated for choices
+				// const requestedAttrKeys = loginMethod.attr_types;
+				// if (!authServer._responseEqualToRequested(Object.keys(authSuccResp.attrs), requestedAttrKeys)) {
+				// 	throw new Error('The disclosed attributes do not match the requested attributes.');
+				// }
 
 				// 7. Collect identifying & additional attributes
 				const signedAddAttrs: string[] = [];
 				const signedIdentifyingAttrs: mssTypes.SignedIdentifyingAttrs = {};
 
-				for (const [handle, attr] of Object.entries(authResp.attrs)) {
+				let selectedIdentifyingAttribute = 'test';
+				for (const [handle, attr] of Object.entries(authSuccResp.attrs)) {
 					if (typeof attr !== 'string') {
 						console.warn(`Skipping attribute '${handle}' because value is not a string:`, attr);
 						continue;
@@ -134,6 +162,7 @@ const useMSS = defineStore('mss', {
 
 					if (identifyingAttrsSet.has(handle)) {
 						const decodedAttr = authServer._decodeJWT(attr) as mssTypes.Attr;
+						selectedIdentifyingAttribute = handle;
 						signedIdentifyingAttrs[handle] = {
 							signedAttr: attr,
 							id: decodedAttr.attr_type,
@@ -141,14 +170,14 @@ const useMSS = defineStore('mss', {
 						};
 					}
 
-					if (handle !== loginMethod.identifying_attr) {
+					if (!loginMethod.identifying_attr.includes(handle)) {
 						signedAddAttrs.push(attr);
 					}
 				}
 
 				// 8. Return final result
 				return {
-					identifyingAttr: authResp.attrs[loginMethod.identifying_attr],
+					identifyingAttr: authSuccResp.attrs[selectedIdentifyingAttribute],
 					signedIdentifyingAttrs,
 					signedAddAttrs,
 				};
@@ -157,23 +186,78 @@ const useMSS = defineStore('mss', {
 				throw err;
 			}
 		},
+		async issueCard(identifyingAttr: string) {
+			const authServer = await this.getAuthServer();
+
+			// Get pseudo card package
+			const cardPseudePackage = await this.phcServer.cardPseudePackage();
+			// Create card requst for the Auth server
+			let CardReq: mssTypes.CardReq;
+			if ('Success' in cardPseudePackage) {
+				CardReq = {
+					card_pseud_package: cardPseudePackage.Success,
+					comment: 'blah blah blah',
+				};
+			} else {
+				throw new Error('Need to try again with a new Authtoken');
+			}
+			const CardResp = await authServer.CardEP(CardReq);
+
+			let enterReq: mssTypes.PHCEnterReq;
+			if ('Success' in CardResp) {
+				enterReq = {
+					mode: mssTypes.PHCEnterMode.Login,
+					add_attrs: [CardResp.Success.attr],
+				};
+			} else {
+				throw new Error('Need to try again with another PseudoCard 1');
+			}
+			const enterResp = await this.phcServer._enter(enterReq.add_attrs, enterReq.mode, identifyingAttr);
+
+			let YiviReleaseNextSessionReq: mssTypes.YiviReleaseNextSessionReq;
+			if ('Success' in CardResp) {
+				YiviReleaseNextSessionReq = {
+					state: authServer._state,
+					next_session: CardResp.Success.issuance_request,
+				};
+			} else {
+				throw new Error('Need to try again with another PseudoCard 2');
+			}
+
+			await authServer.YiviReleaseNextSessionEP(YiviReleaseNextSessionReq);
+
+			return CardResp.Success.attr;
+		},
 
 		async enterPubHubs(loginMethod: mssTypes.LoginMethod, enterMode: mssTypes.PHCEnterMode) {
 			const authServer = await this.getAuthServer();
 
-			// this.authenticate(loginMethod, enterMode);
-			const { identifyingAttr, signedIdentifyingAttrs, signedAddAttrs } = await authServer.startAuthentication(loginMethod, enterMode);
+			let { identifyingAttr, signedIdentifyingAttrs, signedAddAttrs } = await this.authenticate(loginMethod, enterMode);
+			// const { identifyingAttr, signedIdentifyingAttrs, signedAddAttrs } = await authServer.startAuthentication(loginMethod, enterMode);
+			console.error('attributes', identifyingAttr, signedAddAttrs, signedIdentifyingAttrs);
 			const { entered, errorMessage, objectDetails, userSecretObject } = await this.phcServer.login(identifyingAttr, signedAddAttrs, enterMode);
 			if (!entered) {
 				return errorMessage;
+			}
+			let signedCardAttribute = null;
+			if (enterMode === mssTypes.PHCEnterMode.LoginOrRegister) {
+				signedCardAttribute = await this.issueCard(identifyingAttr);
+			}
+			if (signedCardAttribute) {
+				const decodedAttr = authServer._decodeJWT(signedCardAttribute) as mssTypes.Attr;
+				signedIdentifyingAttrs['ph_card'] = {
+					signedAttr: signedCardAttribute,
+					id: decodedAttr.attr_type,
+					value: decodedAttr.value,
+				};
 			}
 			// Request attribute keys for all identifying attributes used to login.
 			// FIXME: Typescript typing
 			const attrKeyReq: mssTypes.AuthAttrKeyReq = {};
 			for (const [handle, attr] of Object.entries(signedIdentifyingAttrs) as [string, (typeof signedIdentifyingAttrs)[string]][]) {
-				if (mssTypes.isUserSecretObjectNew(userSecretObject) && userSecretObject['data'][attr.id][attr.value]) {
+				if (mssTypes.isUserSecretObjectNew(userSecretObject) && attr.id in userSecretObject['data'] && userSecretObject['data'][attr.id][attr.value]) {
 					attrKeyReq[handle] = { attr: attr.signedAttr, timestamp: userSecretObject['data'][attr.id][attr.value].ts };
-				} else if (!mssTypes.isUserSecretObjectNew(userSecretObject) && userSecretObject && userSecretObject[attr.id][attr.value]) {
+				} else if (!mssTypes.isUserSecretObjectNew(userSecretObject) && userSecretObject && attr.id in userSecretObject && userSecretObject[attr.id][attr.value]) {
 					attrKeyReq[handle] = { attr: attr.signedAttr, timestamp: userSecretObject[attr.id][attr.value].ts };
 				} else {
 					attrKeyReq[handle] = { attr: attr.signedAttr, timestamp: null };

@@ -82,6 +82,9 @@ const startYiviAuthentication = (yiviRequestorUrl: string, disclosureRequest: st
 					headers: { 'Content-Type': 'text/plain' },
 				},
 			},
+			state: {
+				pairing: false,
+			},
 		});
 		yivi.use(yiviWeb);
 		yivi.use(yiviClient);
