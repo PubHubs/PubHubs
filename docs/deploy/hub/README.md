@@ -1,3 +1,5 @@
+> [!warning] Warning: outdated
+
 # Deploying a hub
 
 This page documents how to deploy a hub. We assume you have a basic overview of how PubHubs works, have been in contact with PubHubs Central about running a Hub and would now like to actually setup and deploy your hub. For more information on PubHubs in general, see the main [readme](../../../README.md).

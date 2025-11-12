@@ -1,3 +1,6 @@
+> [!warning] Warning: outdated
+
+
 # Running a local development setup for developing the HubClient
 
 In most cases (external) developers only need to develop for the hub's client.

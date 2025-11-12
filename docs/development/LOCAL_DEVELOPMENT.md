@@ -1,3 +1,6 @@
+> [!warning] Warning: outdated
+
+
 # Running a local development setup
 
 Default settings are in the `default.yaml`; for development these initial settings should work.  If you make a copy of `default.yaml` and call it `config.yaml`, this configuration is used instead.  To use an entirely different configuration file instead, you can pass its path (relative to the current working directory) via the environmental variable `PUBHUBS_CONFIG`, e.g. `PUBHUBS_CONFIG=my_config.yaml cargo run`.
