@@ -1,3 +1,5 @@
+> [!warning] Warning: outdated
+
 # Pubhubs Global Client
 
 The global [PubHubs](https://pubhubs.net/) client.
