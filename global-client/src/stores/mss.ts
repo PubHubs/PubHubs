@@ -204,25 +204,20 @@ const useMSS = defineStore('mss', {
 			const CardResp = await authServer.CardEP(CardReq);
 
 			let enterReq: mssTypes.PHCEnterReq;
+			let YiviReleaseNextSessionReq: mssTypes.YiviReleaseNextSessionReq;
 			if ('Success' in CardResp) {
 				enterReq = {
 					mode: mssTypes.PHCEnterMode.Login,
 					add_attrs: [CardResp.Success.attr],
 				};
-			} else {
-				throw new Error('Need to try again with another PseudoCard 1');
-			}
-			const enterResp = await this.phcServer._enter(enterReq.add_attrs, enterReq.mode, identifyingAttr);
-
-			let YiviReleaseNextSessionReq: mssTypes.YiviReleaseNextSessionReq;
-			if ('Success' in CardResp) {
 				YiviReleaseNextSessionReq = {
 					state: authServer._state,
 					next_session: CardResp.Success.issuance_request,
 				};
 			} else {
-				throw new Error('Need to try again with another PseudoCard 2');
+				throw new Error('Need to try again with another PseudoCard');
 			}
+			const enterResp = await this.phcServer._enter(enterReq.add_attrs, enterReq.mode, identifyingAttr);
 
 			await authServer.YiviReleaseNextSessionEP(YiviReleaseNextSessionReq);
 
@@ -234,7 +229,6 @@ const useMSS = defineStore('mss', {
 
 			let { identifyingAttr, signedIdentifyingAttrs, signedAddAttrs } = await this.authenticate(loginMethod, enterMode);
 			// const { identifyingAttr, signedIdentifyingAttrs, signedAddAttrs } = await authServer.startAuthentication(loginMethod, enterMode);
-			console.error('attributes', identifyingAttr, signedAddAttrs, signedIdentifyingAttrs);
 			const { entered, errorMessage, objectDetails, userSecretObject } = await this.phcServer.login(identifyingAttr, signedAddAttrs, enterMode);
 			if (!entered) {
 				return errorMessage;
