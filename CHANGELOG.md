@@ -11,7 +11,7 @@ _Please add a brief description of any changes and any migrations to be performe
 
 ## Changed not yet merged to stable
 
-- [NEW] Reintroduces pubhubs card
+- [NEW,BREAKING] Reintroduces support for the pubhubs card in the backend
   *Internal:*: pubhubs card attributes with `not_addable_by_default = true` need to be added to `pubhubs.toml`, as well as a `[auth.yivi.card]` section.
 - [NEW] Direct url links to room and pages in the hub-client still redirect after the login or registration flow.
 - [BUG] Fixed direct url links to rooms and pages not working in hub-client
