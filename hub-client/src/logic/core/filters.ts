@@ -54,7 +54,7 @@ export default {
 		}
 	},
 
-	removeTrailingSlash(url: string):string {
+	removeTrailingSlash(url: string): string {
 		assert.isString(url);
 		return url.replace(/\/$/g, '');
 	},
