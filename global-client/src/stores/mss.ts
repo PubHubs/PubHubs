@@ -11,9 +11,9 @@ import filters from '@hub-client/logic/core/filters';
 // Models
 import AuthenticationServer from '@global-client/models/MSS/Auths';
 import PHCServer from '@global-client/models/MSS/PHC';
-import { AuthAttrKeyReq, AuthStartReq, CardReq, LoginMethod, SignedIdentifyingAttrs, Source, SuccesResp, YiviWaitForResultResp } from '@global-client/models/MSS/TAuths';
+import { AuthAttrKeyReq, AuthStartReq, CardReq, LoginMethod, SignedIdentifyingAttrs, Source, SuccesResp, YiviReleaseNextSessionReq, YiviWaitForResultResp } from '@global-client/models/MSS/TAuths';
 import { EnterStartResp, InfoResp, Result } from '@global-client/models/MSS/TGeneral';
-import { Constellation, HubInformation, PHCEnterMode, PHCEnterReq } from '@global-client/models/MSS/TPHC';
+import { Attr, Constellation, HubInformation, PHCEnterMode, PHCEnterReq, isUserSecretObjectNew } from '@global-client/models/MSS/TPHC';
 import Transcryptor from '@global-client/models/MSS/Transcryptor';
 
 // Stores
