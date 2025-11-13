@@ -1,4 +1,5 @@
 // Packages
+import { AttrKeyResp, SignedIdentifyingAttrs } from './TAuths';
 import { assert } from 'chai';
 
 // Logic
@@ -8,6 +9,8 @@ import { Api } from '@hub-client/logic/core/apiCore';
 
 // Models
 import { base64fromBase64Url, handleErrorCodes, handleErrors, requestOptions } from '@global-client/models/MSS/Auths';
+import { isOk } from '@global-client/models/MSS/TGeneral';
+import * as TPHC from '@global-client/models/MSS/TPHC';
 
 // Stores
 import { useGlobal } from '@global-client/stores/global';
@@ -20,7 +23,7 @@ import { setLanguage, setUpi18n } from '@hub-client/i18n';
 
 export default class PHCServer {
 	private _phcAPI: Api;
-	private _userStateObjects: Record<string, MSS.UserObjectDetails> | undefined = undefined;
+	private _userStateObjects: Record<string, TPHC.UserObjectDetails> | undefined = undefined;
 	/** NOTE: Do not use this variable directly to prevent using an expired authToken. Instead, use _getAuthToken(). */
 	private _authToken: string | null = null;
 	private _expiryAuthToken: null | bigint = null;
@@ -36,7 +39,7 @@ export default class PHCServer {
 		this._phcAPI = phc_api;
 		const savedAuthToken = localStorage.getItem('PHauthToken');
 		if (savedAuthToken) {
-			const authToken: MSS.AuthTokenPackage = JSON.parse(savedAuthToken);
+			const authToken: TPHC.AuthTokenPackage = JSON.parse(savedAuthToken);
 			this._authToken = authToken.auth_token;
 			this._expiryAuthToken = authToken.expires;
 		}
@@ -70,9 +73,9 @@ export default class PHCServer {
 	 * @returns Information about the PubHubs constellation and a list of hubs that are running.
 	 */
 	async welcome() {
-		return await handleErrors<MSS.WelcomeRespPHC>(() => this._phcAPI.apiGET<MSS.PHCWelcomeResp>(this._phcAPI.apiURLS.welcome));
+		return await handleErrors<TPHC.WelcomeRespPHC>(() => this._phcAPI.apiGET<TPHC.PHCWelcomeResp>(this._phcAPI.apiURLS.welcome));
 	}
-	async cardPseudePackage(): Promise<MSS.CardPseudResp> {
+	async cardPseudePackage(): Promise<TPHC.CardPseudResp> {
 		const options = {
 			headers: {
 				'Content-Type': 'application/json',
@@ -80,15 +83,15 @@ export default class PHCServer {
 			},
 			method: 'POST',
 		};
-		const response = await this._phcAPI.api<MSS.CardPseudResp>(this._phcAPI.apiURLS.CardPseudPackage, options);
-		if (MSS.isOk(response)) {
+		const response = await this._phcAPI.api<{ Ok: TPHC.CardPseudResp }>(this._phcAPI.apiURLS.CardPseudPackage, options);
+		if (isOk(response)) {
 			return response.Ok;
 		} else {
 			throw new Error('The response is not okay');
 		}
 	}
 
-	private _setAuthToken(authTokenPackage: MSS.AuthTokenPackage) {
+	private _setAuthToken(authTokenPackage: TPHC.AuthTokenPackage) {
 		this._authToken = authTokenPackage.auth_token;
 		this._expiryAuthToken = authTokenPackage.expires;
 		localStorage.setItem('PHauthToken', JSON.stringify(authTokenPackage));
@@ -101,7 +104,7 @@ export default class PHCServer {
 	 * @returns An object with a boolean denoting whether the user successfully entered PubHubs and an errorMessage.
 	 * The errorMessage is null if the user successfully entered, an object with a translation key and a list of values to use in the translation otherwise.
 	 */
-	private _handleEnterResp(enterResp: MSS.EnterResp): { entered: false; errorMessage: { key: string; values?: string[] } } | { entered: true; errorMessage: null } {
+	private _handleEnterResp(enterResp: TPHC.EnterResp): { entered: false; errorMessage: { key: string; values?: string[] } } | { entered: true; errorMessage: null } {
 		if (enterResp === 'AccountDoesNotExist') {
 			return { entered: false, errorMessage: { key: 'errors.account_does_not_exist' } };
 		} else if (enterResp === 'Banned') {
@@ -118,7 +121,7 @@ export default class PHCServer {
 			return { entered: false, errorMessage: { key: 'errors.retry_with_new_attr' } };
 		} else if ('Entered' in enterResp) {
 			const { auth_token_package } = enterResp.Entered;
-			const authToken = handleErrorCodes<MSS.AuthTokenPackage, MSS.AuthTokenDeniedReason>(auth_token_package);
+			const authToken = handleErrorCodes<TPHC.AuthTokenPackage, TPHC.AuthTokenDeniedReason>(auth_token_package);
 			this._setAuthToken(authToken);
 			return { entered: true, errorMessage: null };
 		} else {
@@ -134,13 +137,13 @@ export default class PHCServer {
 	 * @param enterMode The mode determines whether we want to create an account if none exists and whether we expect an account to exist.
 	 * @returns An object with a boolean to know whether the user successfully entered PubHubs or not and an error message (which is null if no error occured).
 	 */
-	public async _enter(signedAddAttrs: string[], enterMode: MSS.PHCEnterMode, identifyingAttr?: string): Promise<{ entered: true; errorMessage: null } | { entered: false; errorMessage: { key: string; values?: string[] } }> {
-		const requestPayload: MSS.PHCEnterReq = {
+	public async _enter(signedAddAttrs: string[], enterMode: TPHC.PHCEnterMode, identifyingAttr?: string): Promise<{ entered: true; errorMessage: null } | { entered: false; errorMessage: { key: string; values?: string[] } }> {
+		const requestPayload: TPHC.PHCEnterReq = {
 			identifying_attr: identifyingAttr,
 			mode: enterMode,
 			add_attrs: signedAddAttrs,
 		};
-		const okEnterResp = await handleErrors(() => this._phcAPI.api<MSS.PHCEnterResp>(this._phcAPI.apiURLS.enter, requestOptions<MSS.PHCEnterReq>(requestPayload)));
+		const okEnterResp = await handleErrors(() => this._phcAPI.api<TPHC.PHCEnterResp>(this._phcAPI.apiURLS.enter, requestOptions<TPHC.PHCEnterReq>(requestPayload)));
 		return this._handleEnterResp(okEnterResp);
 	}
 
@@ -173,7 +176,7 @@ export default class PHCServer {
 	 * @throws Will throw an error if there is no backup user secret object stored while this is expected.
 	 * @throws Will throw an error if the backup user secret object differs from the user secret object.
 	 */
-	private async _getUserSecretObject(): Promise<{ object: MSS.UserSecretObject; details: { usersecret: MSS.UserObjectDetails; backup: MSS.UserObjectDetails | null } } | null> {
+	private async _getUserSecretObject(): Promise<{ object: TPHC.UserSecretObject; details: { usersecret: TPHC.UserObjectDetails; backup: TPHC.UserObjectDetails | null } } | null> {
 		const userSecretObject = await this.getUserObject('usersecret');
 
 		if (!userSecretObject || !userSecretObject.object) {
@@ -181,16 +184,16 @@ export default class PHCServer {
 		}
 		const decoder = new TextDecoder();
 		const decodedUserSecret = decoder.decode(userSecretObject.object);
-		const object = JSON.parse(decodedUserSecret) as MSS.UserSecretObject;
+		const object = JSON.parse(decodedUserSecret) as TPHC.UserSecretObject;
 		// If the user secret object is stored in the new format, expect there to be a backup object stored.
-		if (MSS.isUserSecretObjectNew(object)) {
+		if (TPHC.isUserSecretObjectNew(object)) {
 			const userSecretObjectBackup = await this.getUserObject('usersecretbackup');
 			if (!userSecretObjectBackup || !userSecretObjectBackup.object) {
 				this.triggerLogoutProcedure();
 				throw new Error('Expected a backup of the user secret object to be stored, but could not find it.');
 			}
 			const decodedUserSecretBackup = decoder.decode(userSecretObjectBackup.object);
-			const secretObjectBackup = JSON.parse(decodedUserSecretBackup) as MSS.UserSecretObject;
+			const secretObjectBackup = JSON.parse(decodedUserSecretBackup) as TPHC.UserSecretObject;
 			assert.isTrue(this._deepEqualObjects(object, secretObjectBackup), 'The user secret object differs from the backup user secret object.');
 			return { object, details: { usersecret: userSecretObject.details, backup: userSecretObjectBackup.details } };
 		}
@@ -200,11 +203,11 @@ export default class PHCServer {
 	async login(
 		identifyingAttr: string,
 		signedAddAttrs: string[],
-		enterMode: MSS.PHCEnterMode,
+		enterMode: TPHC.PHCEnterMode,
 	): Promise<
 		| { entered: false; errorMessage: { key: string; values?: string[] }; objectDetails: null; userSecretObject: null }
 		| { entered: true; errorMessage: null; objectDetails: null; userSecretObject: null }
-		| { entered: true; errorMessage: null; objectDetails: { usersecret: MSS.UserObjectDetails; backup: MSS.UserObjectDetails | null }; userSecretObject: MSS.UserSecretObject }
+		| { entered: true; errorMessage: null; objectDetails: { usersecret: TPHC.UserObjectDetails; backup: TPHC.UserObjectDetails | null }; userSecretObject: TPHC.UserSecretObject }
 	> {
 		const { entered, errorMessage } = await this._enter(signedAddAttrs, enterMode, identifyingAttr);
 
@@ -231,14 +234,14 @@ export default class PHCServer {
 			headers: { Authorization: this._authToken },
 			method: 'GET',
 		};
-		const okRefreshResp = await handleErrors<MSS.RefreshResp>(() => this._phcAPI.api<MSS.PHCRefreshResp>(this._phcAPI.apiURLS.refresh, options));
+		const okRefreshResp = await handleErrors<TPHC.RefreshResp>(() => this._phcAPI.api<TPHC.PHCRefreshResp>(this._phcAPI.apiURLS.refresh, options));
 		if (okRefreshResp === 'ReobtainAuthToken') {
 			this.triggerLogoutProcedure();
 		} else if ('Denied' in okRefreshResp) {
 			switch (okRefreshResp.Denied) {
-				case MSS.AuthTokenDeniedReason.Banned:
+				case TPHC.AuthTokenDeniedReason.Banned:
 					throw new Error('The user is trying to login with a banned attribute.');
-				case MSS.AuthTokenDeniedReason.NoBannableAttribute:
+				case TPHC.AuthTokenDeniedReason.NoBannableAttribute:
 					throw new Error('The user does not have a bannable attribute.');
 				default:
 					throw new Error('Unknown reason to deny an auth token.');
@@ -331,12 +334,12 @@ export default class PHCServer {
 	 * @throws Will throw an error if the user secret could not successfully be decrypted.
 	 */
 	private async _computeNewUserSecretObject(
-		attrKeyResp: Record<string, MSS.AttrKeyResp>,
-		identifyingAttrs: MSS.SignedIdentifyingAttrs,
-		userSecretObject: MSS.UserSecretObject | null,
-	): Promise<{ newUserSecretObject: MSS.UserSecretObjectNew; userSecret: Uint8Array }> {
-		let newUserSecretData: MSS.UserSecretData = {};
-		if (MSS.isUserSecretObjectNew(userSecretObject)) {
+		attrKeyResp: Record<string, AttrKeyResp>,
+		identifyingAttrs: SignedIdentifyingAttrs,
+		userSecretObject: TPHC.UserSecretObject | null,
+	): Promise<{ newUserSecretObject: TPHC.UserSecretObjectNew; userSecret: Uint8Array }> {
+		let newUserSecretData: TPHC.UserSecretData = {};
+		if (TPHC.isUserSecretObjectNew(userSecretObject)) {
 			newUserSecretData = { ...userSecretObject.data };
 		} else if (userSecretObject) {
 			newUserSecretData = { ...userSecretObject };
@@ -359,7 +362,7 @@ export default class PHCServer {
 					throw new Error(`Expected an old_key in the attrKeyResp for attribute with type ${attr.id} and value ${attr.value}`);
 				}
 				// Try to decrypt the user secret
-				const version = MSS.isUserSecretObjectNew(userSecretObject) ? userSecretObject.version : 0;
+				const version = TPHC.isUserSecretObjectNew(userSecretObject) ? userSecretObject.version : 0;
 				const decryptedUserSecret = await this._decryptUserSecret(keyResp.old_key, newUserSecretData[attr.id][attr.value], version);
 				if (referenceUserSecret === null) {
 					referenceUserSecret = decryptedUserSecret;
@@ -385,7 +388,7 @@ export default class PHCServer {
 			// Use local OR assignment operator (||=) to make sure that newUserSecretObject is initialized before assigning the nested property
 			(newUserSecretData[attr.id] ||= {})[attr.value] = { ts: keyResp.latest_key[1], encUserSecret: Buffer.from(cipherText).toString('base64') };
 		}
-		const newUserSecretObject: MSS.UserSecretObject = {
+		const newUserSecretObject: TPHC.UserSecretObject = {
 			version: 1,
 			data: newUserSecretData,
 		};
@@ -402,10 +405,10 @@ export default class PHCServer {
 	 * @throws Will throw an error if an old attribute key is missing in the attrKeyResp.
 	 */
 	async storeUserSecretObject(
-		attrKeyResp: Record<string, MSS.AttrKeyResp>,
-		identifyingAttrs: MSS.SignedIdentifyingAttrs,
-		userSecretObject: MSS.UserSecretObject | null,
-		userSecretObjectDetails: { usersecret: MSS.UserObjectDetails; backup: MSS.UserObjectDetails | null } | null,
+		attrKeyResp: Record<string, AttrKeyResp>,
+		identifyingAttrs: SignedIdentifyingAttrs,
+		userSecretObject: TPHC.UserSecretObject | null,
+		userSecretObjectDetails: { usersecret: TPHC.UserObjectDetails; backup: TPHC.UserObjectDetails | null } | null,
 	): Promise<void> {
 		try {
 			const computedUserSecretObject = await this._computeNewUserSecretObject(attrKeyResp, identifyingAttrs, userSecretObject);
@@ -421,7 +424,7 @@ export default class PHCServer {
 			if (storedUserSecret && storedBackup) {
 				// Encode the userSecret as a base64 string
 				this._userSecret = Buffer.from(computedUserSecretObject.userSecret).toString('base64');
-				this._userSecretVersion = MSS.isUserSecretObjectNew(computedUserSecretObject.newUserSecretObject) ? computedUserSecretObject.newUserSecretObject.version : 0;
+				this._userSecretVersion = TPHC.isUserSecretObjectNew(computedUserSecretObject.newUserSecretObject) ? computedUserSecretObject.newUserSecretObject.version : 0;
 				localStorage.setItem('UserSecret', this._userSecret);
 				localStorage.setItem('UserSecretVersion', this._userSecretVersion.toString());
 			} else {
@@ -547,7 +550,7 @@ export default class PHCServer {
 			headers: { Authorization: await this._getAuthToken() },
 			method: 'GET',
 		};
-		const okStateResp = await handleErrors<MSS.StateResp>(() => this._phcAPI.api<MSS.PHCStateResp>(this._phcAPI.apiURLS.state, options));
+		const okStateResp = await handleErrors<TPHC.StateResp>(() => this._phcAPI.api<TPHC.PHCStateResp>(this._phcAPI.apiURLS.state, options));
 		if (okStateResp === 'RetryWithNewAuthToken') {
 			this.triggerLogoutProcedure();
 			return;
@@ -567,14 +570,14 @@ export default class PHCServer {
 	 * @param handle The handle of the object that is requested.
 	 * @returns The requested object if it exists.
 	 */
-	private async _getObjectEP(objectDetails: MSS.UserObjectDetails, handle: string): Promise<ArrayBuffer | null> {
+	private async _getObjectEP(objectDetails: TPHC.UserObjectDetails, handle: string): Promise<ArrayBuffer | null> {
 		const maxAttempts = 3;
 		let details = objectDetails;
 		for (let attempts = 0; attempts < maxAttempts; attempts++) {
-			const getObjResp = await handleErrors<MSS.GetObjectRespProblem>(() => this._phcAPI.apiGET<MSS.PHCGetObjectResp | ArrayBuffer>(this._phcAPI.apiURLS.getObject + '/' + details.hash + '/' + details.hmac));
+			const getObjResp = await handleErrors<TPHC.GetObjectRespProblem>(() => this._phcAPI.apiGET<TPHC.PHCGetObjectResp | ArrayBuffer>(this._phcAPI.apiURLS.getObject + '/' + details.hash + '/' + details.hmac));
 			if (getObjResp instanceof ArrayBuffer) {
 				return getObjResp;
-			} else if (getObjResp === MSS.GetObjectRespProblem.NotFound || getObjResp === MSS.GetObjectRespProblem.RetryWithNewHmac) {
+			} else if (getObjResp === TPHC.GetObjectRespProblem.NotFound || getObjResp === TPHC.GetObjectRespProblem.RetryWithNewHmac) {
 				if (attempts === maxAttempts) {
 					throw new Error(`Could not retrieve the object with handle ${handle}, errorcode: ${getObjResp}`);
 				}
@@ -594,7 +597,7 @@ export default class PHCServer {
 		throw new Error('Unexpectedly could not handle the response of the getObjectEP.');
 	}
 
-	private async _getObjectDetails(handle: string): Promise<MSS.UserObjectDetails | null | undefined> {
+	private async _getObjectDetails(handle: string): Promise<TPHC.UserObjectDetails | null | undefined> {
 		if (this._userStateObjects === undefined) {
 			await this.stateEP();
 		}
@@ -604,7 +607,7 @@ export default class PHCServer {
 			throw new Error('Could not retrieve the state for this user.');
 		}
 
-		const objectDetails: MSS.UserObjectDetails | null = objects[handle];
+		const objectDetails: TPHC.UserObjectDetails | null = objects[handle];
 		return objectDetails;
 	}
 
@@ -661,7 +664,7 @@ export default class PHCServer {
 				},
 				body: object,
 			};
-			const newObjectResp = await handleErrors<MSS.StoreObjectResp>(() => this._phcAPI.api<MSS.PHCStoreObjectResp>(this._phcAPI.apiURLS.newObject + '/' + handle, options));
+			const newObjectResp = await handleErrors<TPHC.StoreObjectResp>(() => this._phcAPI.api<TPHC.PHCStoreObjectResp>(this._phcAPI.apiURLS.newObject + '/' + handle, options));
 			switch (newObjectResp) {
 				case 'PleaseRetry':
 					if (attempts === maxAttempts) {
@@ -717,7 +720,7 @@ export default class PHCServer {
 				},
 				body: object,
 			};
-			const overwriteObjectResp = await handleErrors<MSS.StoreObjectResp>(() => this._phcAPI.api<MSS.PHCStoreObjectResp>(this._phcAPI.apiURLS.overwriteObject + '/' + handle + '/' + hash, options));
+			const overwriteObjectResp = await handleErrors<TPHC.StoreObjectResp>(() => this._phcAPI.api<TPHC.PHCStoreObjectResp>(this._phcAPI.apiURLS.overwriteObject + '/' + handle + '/' + hash, options));
 			switch (overwriteObjectResp) {
 				case 'PleaseRetry':
 					if (attempts === maxAttempts) {
@@ -804,7 +807,7 @@ export default class PHCServer {
 			headers: { Authorization: await this._getAuthToken() },
 			method: 'POST',
 		};
-		const okPppResp = await handleErrors<MSS.PppResp>(() => this._phcAPI.api<MSS.PHCPppResp>(this._phcAPI.apiURLS.polymorphicPseudonymPackage, options));
+		const okPppResp = await handleErrors<TPHC.PppResp>(() => this._phcAPI.api<TPHC.PHCPppResp>(this._phcAPI.apiURLS.polymorphicPseudonymPackage, options));
 		if (okPppResp === 'RetryWithNewAuthToken') {
 			this.triggerLogoutProcedure();
 			return;
@@ -816,7 +819,7 @@ export default class PHCServer {
 	}
 
 	async hhppEP(sealedEhpp: string) {
-		const hhppReq: MSS.HhppReq = { ehpp: sealedEhpp };
+		const hhppReq: TPHC.HhppReq = { ehpp: sealedEhpp };
 		const options = {
 			body: JSON.stringify(hhppReq),
 			headers: {
@@ -825,7 +828,7 @@ export default class PHCServer {
 			},
 			method: 'POST',
 		};
-		const okHhppResp = await handleErrors<MSS.HhppResp>(() => this._phcAPI.api<MSS.PHCHhppResp>(this._phcAPI.apiURLS.HashedHubPseudonymPackage, options));
+		const okHhppResp = await handleErrors<TPHC.HhppResp>(() => this._phcAPI.api<TPHC.PHCHhppResp>(this._phcAPI.apiURLS.HashedHubPseudonymPackage, options));
 		if (okHhppResp === 'RetryWithNewPpp') {
 			return okHhppResp;
 		} else if (okHhppResp === 'RetryWithNewAuthToken') {

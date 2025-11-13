@@ -1,11 +1,11 @@
-namespace MSS {
-	export type EhpppReq = {
-		hub_nonce: string;
-		hub: string;
-		ppp: string;
-	};
+import { ErrorCode, Result } from '@global-client/models/MSS/TGeneral';
 
-	export type EhppResp = 'RetryWithNewPpp' | { Success: string };
+export type EhpppReq = {
+	hub_nonce: string;
+	hub: string;
+	ppp: string;
+};
 
-	export type TrEhppResp = Result<EhppResp, ErrorCode>;
-}
+export type EhppResp = 'RetryWithNewPpp' | { Success: string };
+
+export type TrEhppResp = Result<EhppResp, ErrorCode>;

@@ -5,6 +5,7 @@ import { Api } from '@hub-client/logic/core/apiCore';
 
 // Models
 import { handleErrors, requestOptions } from '@global-client/models/MSS/Auths';
+import { EhppResp, EhpppReq, TrEhppResp } from '@global-client/models/MSS/TTranscryptor';
 
 export default class Transcryptor {
 	private _trApi: Api;
@@ -14,12 +15,12 @@ export default class Transcryptor {
 	}
 
 	async ehppEP(nonce: string, id: string, ppp: string) {
-		const requestPayload: MSS.EhpppReq = {
+		const requestPayload: EhpppReq = {
 			hub_nonce: nonce,
 			hub: id,
 			ppp,
 		};
-		const okEhppResp = await handleErrors<MSS.EhppResp>(() => this._trApi.api<MSS.TrEhppResp>(this._trApi.apiURLS.encryptedHubPseudonymPackage, requestOptions<MSS.EhpppReq>(requestPayload)));
+		const okEhppResp = await handleErrors<EhppResp>(() => this._trApi.api<TrEhppResp>(this._trApi.apiURLS.encryptedHubPseudonymPackage, requestOptions<EhpppReq>(requestPayload)));
 		if (okEhppResp === 'RetryWithNewPpp') {
 			return okEhppResp;
 		} else if ('Success' in okEhppResp) {

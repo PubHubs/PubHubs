@@ -9,6 +9,7 @@ import { api } from '@global-client/logic/core/api';
 
 // Models
 import PHCServer from '@global-client/models/MSS/PHC';
+import { AttrKeyResp, SignedIdentifyingAttrs } from '@global-client/models/MSS/TAuths';
 
 // Stores
 import { PinnedHubs, useGlobal } from '@global-client/stores/global';
@@ -58,13 +59,13 @@ describe('Global', () => {
 
 			await api.api(api.apiURLS.login);
 			phcServer = new PHCServer();
-			const mockedAttrKeysResp: Record<string, MSS.AttrKeyResp> = {
+			const mockedAttrKeysResp: Record<string, AttrKeyResp> = {
 				email: {
 					latest_key: ['someKey1', 'timestamp1'],
 					old_key: null,
 				},
 			};
-			const mockedIdentifyingAttrs: MSS.SignedIdentifyingAttrs = { email: { id: 'emailAttrId', signedAttr: 'signedEmailAttr', value: 'emailAttrValue' } };
+			const mockedIdentifyingAttrs: SignedIdentifyingAttrs = { email: { id: 'emailAttrId', signedAttr: 'signedEmailAttr', value: 'emailAttrValue' } };
 
 			await phcServer.storeUserSecretObject(mockedAttrKeysResp, mockedIdentifyingAttrs, null, null);
 			const resp = await global.checkLoginAndSettings();

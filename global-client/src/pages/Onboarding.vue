@@ -220,6 +220,10 @@
 	import { Logger } from '@hub-client/logic/logging/Logger';
 	import { SMI } from '@hub-client/logic/logging/StatusMessage';
 
+	// Models
+	import { loginMethods } from '@global-client/models/MSS/TAuths';
+	import { PHCEnterMode } from '@global-client/models/MSS/TPHC';
+
 	// Logic
 	import { useMSS } from '@global-client/stores/mss';
 
@@ -332,11 +336,11 @@
 	}
 
 	async function startYiviSessionMSS() {
-		const loginMethod = MSS.loginMethods.Yivi; // If there will be multiple sources at a later point, this choice should be made by the user.
+		const loginMethod = loginMethods.Yivi; // If there will be multiple sources at a later point, this choice should be made by the user.
 
 		try {
 			const mss = useMSS();
-			const errorMessage = await mss.enterPubHubs(loginMethod, MSS.PHCEnterMode.LoginOrRegister);
+			const errorMessage = await mss.enterPubHubs(loginMethod, PHCEnterMode.LoginOrRegister);
 			if (errorMessage) {
 				router.push({ name: 'error', query: { errorKey: errorMessage.key, errorValues: errorMessage.values } });
 				return;

@@ -68,6 +68,10 @@
 	import { Logger } from '@hub-client/logic/logging/Logger';
 	import { SMI } from '@hub-client/logic/logging/StatusMessage';
 
+	// Models
+	import { loginMethods } from '@global-client/models/MSS/TAuths';
+	import { PHCEnterMode } from '@global-client/models/MSS/TPHC';
+
 	// Stores
 	import { useMSS } from '@global-client/stores/mss';
 
@@ -108,13 +112,13 @@
 	});
 
 	async function loginMSS() {
-		const loginMethod = MSS.loginMethods.Yivi; // If there will be multiple sources at a later point, this choice should be made by the user.
+		const loginMethod = loginMethods.Yivi; // If there will be multiple sources at a later point, this choice should be made by the user.
 
-		if (loginMethod === MSS.loginMethods.Yivi) {
+		if (loginMethod === loginMethods.Yivi) {
 			show.value = !show.value;
 		}
 		try {
-			const errorMessage = await mss.enterPubHubs(loginMethod, MSS.PHCEnterMode.Login);
+			const errorMessage = await mss.enterPubHubs(loginMethod, PHCEnterMode.Login);
 			if (errorMessage) {
 				router.replace({ name: 'error', query: { errorKey: errorMessage.key, errorValues: errorMessage.values } });
 				show.value = false;

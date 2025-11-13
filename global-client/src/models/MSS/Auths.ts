@@ -1,12 +1,11 @@
-// Packages
-import { assert } from 'chai';
-
 // Logic
 import { auths_api } from '@global-client/logic/core/api';
-import { startYiviAuthentication } from '@global-client/logic/utils/yiviHandler';
 
 import { Api } from '@hub-client/logic/core/apiCore';
-import filters from '@hub-client/logic/core/filters';
+
+import * as TAuths from '@global-client/models/MSS/TAuths';
+import { ErrorCode, Result, isOk } from '@global-client/models/MSS/TGeneral';
+import { PHCEnterMode } from '@global-client/models/MSS/TPHC';
 
 export default class AuthenticationServer {
 	public _state: number[];
@@ -25,13 +24,13 @@ export default class AuthenticationServer {
 	 * @param loginMethod The login method that is currently used.
 	 * @returns A set of the handles used in the login method that are identifying and thus can be used to login.
 	 */
-	public _checkAttributes(supportedAttrTypes: Record<string, MSS.AttrType>, loginMethod: MSS.LoginMethod, enterMode: MSS.PHCEnterMode) {
+	public _checkAttributes(supportedAttrTypes: Record<string, TAuths.AttrType>, loginMethod: TAuths.LoginMethod, enterMode: PHCEnterMode) {
 		if (!loginMethod.attr_types.includes(loginMethod.identifying_attr[0]) || !loginMethod.attr_types.includes(loginMethod.identifying_attr[1])) {
 			throw new Error(`The identifying attribute "${loginMethod.identifying_attr}" is not included in the attribute list.`);
 		}
 
 		// Build a map from all handles (current handle + old handles) to the attributes for efficient lookup
-		const handleToAttrMap = new Map<string, MSS.AttrType>();
+		const handleToAttrMap = new Map<string, TAuths.AttrType>();
 
 		for (const [handle, attr] of Object.entries(supportedAttrTypes)) {
 			handleToAttrMap.set(handle, attr); // active handle mapping
@@ -43,10 +42,10 @@ export default class AuthenticationServer {
 		const identifyingAttrsSet = new Set<string>();
 		let hasIdentifying = false;
 		// To login no bannable attribute is needed (apart from when there is not yet a bannable attribute registered, but then the enterEP will throw an error).
-		let hasBannable = enterMode === MSS.PHCEnterMode.Login ? true : false;
+		let hasBannable = enterMode === PHCEnterMode.Login ? true : false;
 
 		for (const attr of loginMethod.attr_types) {
-			const type: MSS.AttrType | undefined = handleToAttrMap.get(attr);
+			const type: TAuths.AttrType | undefined = handleToAttrMap.get(attr);
 
 			if (!type) {
 				throw new Error(`The attribute "${attr}" is not in the list of supported attributes.`);
@@ -85,30 +84,30 @@ export default class AuthenticationServer {
 	 * @returns The set of attribute handles used in the login method that belong to identifying attributes.
 	 */
 	public async _welcomeEPAuths() {
-		const welcomeResponseFn = () => this._authsApi.apiGET<MSS.AuthsWelcomeResp>(this._authsApi.apiURLS.welcome);
-		const okWelcomeResp = await handleErrors<MSS.WelcomeResp>(welcomeResponseFn);
+		const welcomeResponseFn = () => this._authsApi.apiGET<TAuths.AuthsWelcomeResp>(this._authsApi.apiURLS.welcome);
+		const okWelcomeResp = await handleErrors<TAuths.WelcomeResp>(welcomeResponseFn);
 		return okWelcomeResp.attr_types;
 	}
-	public async YiviWaitForResultEP(argument: any): Promise<MSS.YiviWaitForResultResp> {
+	public async YiviWaitForResultEP(argument: any): Promise<TAuths.YiviWaitForResultResp> {
 		const requestBody = { state: argument };
-		const response = await this._authsApi.api<{ Ok: MSS.YiviWaitForResultResp }>(this._authsApi.apiURLS.YiviWaitForResultEP, requestOptions(requestBody));
-		if (MSS.isOk(response)) {
+		const response = await this._authsApi.api<{ Ok: TAuths.YiviWaitForResultResp }>(this._authsApi.apiURLS.YiviWaitForResultEP, requestOptions(requestBody));
+		if (isOk(response)) {
 			return response.Ok;
 		} else {
 			throw new Error('The response is not okay');
 		}
 	}
-	public async CardEP(requestBody: MSS.CardReq): Promise<MSS.CardResp> {
-		const response = await this._authsApi.api<{ Ok: MSS.CardResp }>(this._authsApi.apiURLS.cardEP, requestOptions(requestBody));
-		if (MSS.isOk(response)) {
+	public async CardEP(requestBody: TAuths.CardReq): Promise<TAuths.CardResp> {
+		const response = await this._authsApi.api<{ Ok: TAuths.CardResp }>(this._authsApi.apiURLS.cardEP, requestOptions(requestBody));
+		if (isOk(response)) {
 			return response.Ok;
 		} else {
 			throw new Error('The response is not okay');
 		}
 	}
-	public async YiviReleaseNextSessionEP(requestBody: MSS.YiviReleaseNextSessionReq) {
-		const response = await this._authsApi.api<{ Ok: MSS.YiviReleaseNextSessionResp }>(this._authsApi.apiURLS.YiviReleaseNextSessionEP, requestOptions(requestBody));
-		if (MSS.isOk(response)) {
+	public async YiviReleaseNextSessionEP(requestBody: TAuths.YiviReleaseNextSessionReq) {
+		const response = await this._authsApi.api<{ Ok: TAuths.YiviReleaseNextSessionResp }>(this._authsApi.apiURLS.YiviReleaseNextSessionEP, requestOptions(requestBody));
+		if (isOk(response)) {
 			return response.Ok;
 		} else {
 			throw new Error('The response is not okay');
@@ -120,9 +119,9 @@ export default class AuthenticationServer {
 	 *
 	 * @returns The task and state returned by the AuthStartEP.
 	 */
-	public async _startAuthEP(requestBody: MSS.AuthStartReq) {
-		const authStartRespFn = () => this._authsApi.api<MSS.AuthStartResp>(this._authsApi.apiURLS.authStart, requestOptions<MSS.AuthStartReq>(requestBody));
-		const okAuthStartResp = await handleErrors<MSS.StartResp>(authStartRespFn);
+	public async _startAuthEP(requestBody: TAuths.AuthStartReq) {
+		const authStartRespFn = () => this._authsApi.api<TAuths.AuthStartResp>(this._authsApi.apiURLS.authStart, requestOptions<TAuths.AuthStartReq>(requestBody));
+		const okAuthStartResp = await handleErrors<TAuths.StartResp>(authStartRespFn);
 		return okAuthStartResp;
 	}
 
@@ -133,10 +132,10 @@ export default class AuthenticationServer {
 	 * @param state The state that was obtained during the call of the AuthStartEP.
 	 * @returns The attributes the user disclosed.
 	 */
-	public async _completeAuthEP(proof: MSS.AuthProof, state: number[]): Promise<MSS.SuccesResp> {
-		const requestPayload: MSS.AuthCompleteReq = { proof, state };
-		const authCompleteRespFn = () => this._authsApi.api<MSS.AuthCompleteResp>(this._authsApi.apiURLS.authComplete, requestOptions<MSS.AuthCompleteReq>(requestPayload));
-		const okAuthCompleteResp = await handleErrors<MSS.CompleteResp>(authCompleteRespFn);
+	public async _completeAuthEP(proof: TAuths.AuthProof, state: number[]): Promise<TAuths.SuccesResp> {
+		const requestPayload: TAuths.AuthCompleteReq = { proof, state };
+		const authCompleteRespFn = () => this._authsApi.api<TAuths.AuthCompleteResp>(this._authsApi.apiURLS.authComplete, requestOptions<TAuths.AuthCompleteReq>(requestPayload));
+		const okAuthCompleteResp = await handleErrors<TAuths.CompleteResp>(authCompleteRespFn);
 		if (okAuthCompleteResp === 'PleaseRestartAuth') {
 			throw new Error('Something went wrong. Please start again at AuthStartEP.');
 		} else if ('Success' in okAuthCompleteResp) {
@@ -151,28 +150,28 @@ export default class AuthenticationServer {
 	 *
 	 * @returns The attributes the user disclosed.
 	 */
-	private async _authenticate(authStartReq: MSS.AuthStartReq, source: MSS.Source) {
-		const startResp = await this._startAuthEP(authStartReq);
-		if ('Success' in startResp) {
-			const { task, state } = startResp.Success;
-			this._state = state;
-			if (source === MSS.Source.Yivi && task.Yivi) {
-				const disclosureRequest = task.Yivi.disclosure_request;
-				const yiviRequestorUrl = filters.removeTrailingSlash(task.Yivi.yivi_requestor_url);
-				const resultJWT = await startYiviAuthentication(yiviRequestorUrl, disclosureRequest);
-				const proof = { Yivi: { disclosure: resultJWT } };
-				return await this._completeAuthEP(proof, this._state);
-			} else {
-				throw new Error(`The task does not match the chosen source for the attributes: ${task} (task), ${source} (source)`);
-			}
-		} else if ('UnknownAttrType' in startResp) {
-			throw new Error(`No attribute type known with this handle: ${startResp.UnknownAttrType}`);
-		} else if ('SourceNotAvailableFor' in startResp) {
-			throw new Error(`The source (${authStartReq.source}) is not available for the attribute type with this handle: ${startResp.SourceNotAvailableFor}`);
-		} else {
-			throw new Error('Unknown response from the AuthStart endpoint.');
-		}
-	}
+	// private async _authenticate(authStartReq: TAuths.AuthStartReq, source: TAuths.Source) {
+	// 	const startResp = await this._startAuthEP(authStartReq);
+	// 	if ('Success' in startResp) {
+	// 		const { task, state } = startResp.Success;
+	// 		this._state = state;
+	// 		if (source === TAuths.Source.Yivi && task.Yivi) {
+	// 			const disclosureRequest = task.Yivi.disclosure_request;
+	// 			const yiviRequestorUrl = filters.removeTrailingSlash(task.Yivi.yivi_requestor_url);
+	// 			const resultJWT = await startYiviAuthentication(yiviRequestorUrl, disclosureRequest);
+	// 			const proof = { Yivi: { disclosure: resultJWT } };
+	// 			return await this._completeAuthEP(proof, this._state);
+	// 		} else {
+	// 			throw new Error(`The task does not match the chosen source for the attributes: ${task} (task), ${source} (source)`);
+	// 		}
+	// 	} else if ('UnknownAttrType' in startResp) {
+	// 		throw new Error(`No attribute type known with this handle: ${startResp.UnknownAttrType}`);
+	// 	} else if ('SourceNotAvailableFor' in startResp) {
+	// 		throw new Error(`The source (${authStartReq.source}) is not available for the attribute type with this handle: ${startResp.SourceNotAvailableFor}`);
+	// 	} else {
+	// 		throw new Error('Unknown response from the AuthStart endpoint.');
+	// 	}
+	// }
 
 	/**
 	 * A helper function to check whether the attributes the user disclosed are matching the attributes that were requested.
@@ -213,35 +212,35 @@ export default class AuthenticationServer {
 	/**
 	 * Starts the authentication process.
 	 */
-	async startAuthentication(loginMethod: MSS.LoginMethod, enterMode: MSS.PHCEnterMode) {
-		const supportedAttrTypes = await this._welcomeEPAuths();
-		const identifyingAttrsSet = this._checkAttributes(supportedAttrTypes, loginMethod, enterMode);
-		const authStartReq: MSS.AuthStartReq = {
-			source: loginMethod.source,
-			attr_types: loginMethod.attr_types,
-		};
-		const authResp = await this._authenticate(authStartReq, loginMethod.source);
-		assert.isDefined(authResp, 'Something went wrong.');
-		if (this._responseEqualToRequested(Object.keys(authResp.attrs), loginMethod.attr_types)) {
-			const signedAddAttrs: string[] = [];
-			const signedIdentifyingAttrs: MSS.SignedIdentifyingAttrs = {};
-			for (const [handle, attr] of Object.entries(authResp.attrs)) {
-				if (identifyingAttrsSet.has(handle)) {
-					const decodedAttr = this._decodeJWT(attr) as MSS.Attr;
-					signedIdentifyingAttrs[handle] = { signedAttr: attr, id: decodedAttr.attr_type, value: decodedAttr.value };
-				}
-				if (handle !== loginMethod.identifying_attr) {
-					signedAddAttrs.push(attr);
-				}
-			}
-			return { identifyingAttr: authResp.attrs[loginMethod.identifying_attr], signedIdentifyingAttrs, signedAddAttrs };
-		} else {
-			throw new Error(`The disclosed attributes do not match the requested attributes`);
-		}
-	}
+	// async startAuthentication(loginMethod: TAuths.LoginMethod, enterMode: PHCEnterMode) {
+	// 	const supportedAttrTypes = await this._welcomeEPAuths();
+	// 	const identifyingAttrsSet = this._checkAttributes(supportedAttrTypes, loginMethod, enterMode);
+	// 	const authStartReq: TAuths.AuthStartReq = {
+	// 		source: loginMethod.source,
+	// 		attr_types: loginMethod.attr_types,
+	// 	};
+	// 	const authResp = await this._authenticate(authStartReq, loginMethod.source);
+	// 	assert.isDefined(authResp, 'Something went wrong.');
+	// 	if (this._responseEqualToRequested(Object.keys(authResp.attrs), loginMethod.attr_types)) {
+	// 		const signedAddAttrs: string[] = [];
+	// 		const signedIdentifyingAttrs: TAuths.SignedIdentifyingAttrs = {};
+	// 		for (const [handle, attr] of Object.entries(authResp.attrs)) {
+	// 			if (identifyingAttrsSet.has(handle)) {
+	// 				const decodedAttr = this._decodeJWT(attr) as Attr;
+	// 				signedIdentifyingAttrs[handle] = { signedAttr: attr, id: decodedAttr.attr_type, value: decodedAttr.value };
+	// 			}
+	// 			if (handle !== loginMethod.identifying_attr) {
+	// 				signedAddAttrs.push(attr);
+	// 			}
+	// 		}
+	// 		return { identifyingAttr: authResp.attrs[loginMethod.identifying_attr], signedIdentifyingAttrs, signedAddAttrs };
+	// 	} else {
+	// 		throw new Error(`The disclosed attributes do not match the requested attributes`);
+	// 	}
+	// }
 
-	async attrKeysEP(attrKeyRequest: MSS.AuthAttrKeyReq) {
-		return await handleErrors<MSS.AttrKeysResp>(() => this._authsApi.api<MSS.AuthAttrKeysResp>(this._authsApi.apiURLS.attrKeys, requestOptions<MSS.AuthAttrKeyReq>(attrKeyRequest)));
+	async attrKeysEP(attrKeyRequest: TAuths.AuthAttrKeyReq) {
+		return await handleErrors<TAuths.AttrKeysResp>(() => this._authsApi.api<TAuths.AuthAttrKeysResp>(this._authsApi.apiURLS.attrKeys, requestOptions<TAuths.AuthAttrKeyReq>(attrKeyRequest)));
 	}
 }
 
@@ -276,15 +275,15 @@ export function requestOptions<T>(requestBody: T) {
 }
 
 // Use function overloads to specify different return types based on input (return type T instead of T | ArrayBuffer if response is a Result type)
-export function handleErrorCodes<T, E = MSS.ErrorCode>(response: MSS.Result<T, E>): T;
+export function handleErrorCodes<T, E = ErrorCode>(response: Result<T, E>): T;
 
-export function handleErrorCodes<T, E = MSS.ErrorCode>(response: MSS.Result<T, E> | ArrayBuffer): T | ArrayBuffer;
+export function handleErrorCodes<T, E = ErrorCode>(response: Result<T, E> | ArrayBuffer): T | ArrayBuffer;
 
-export function handleErrorCodes<T, E = MSS.ErrorCode>(response: MSS.Result<T, E> | ArrayBuffer): T | ArrayBuffer {
+export function handleErrorCodes<T, E = ErrorCode>(response: Result<T, E> | ArrayBuffer): T | ArrayBuffer {
 	if (response instanceof ArrayBuffer) {
 		return response;
 	}
-	if (MSS.isOk(response)) {
+	if (isOk(response)) {
 		return response.Ok;
 	} else {
 		if (!response || !response.Err) {
@@ -295,17 +294,17 @@ export function handleErrorCodes<T, E = MSS.ErrorCode>(response: MSS.Result<T, E
 }
 
 // Use function overloads to specify different return types based on input (return type Promise<T> instead of Promise<T | ArrayBuffer> if apiCallFn returns a Result type)
-export async function handleErrors<T>(apiCallFn: () => Promise<MSS.Result<T, MSS.ErrorCode>>, maxRetries?: number): Promise<T>;
+export async function handleErrors<T>(apiCallFn: () => Promise<Result<T, ErrorCode>>, maxRetries?: number): Promise<T>;
 
-export async function handleErrors<T>(apiCallFn: () => Promise<MSS.Result<T, MSS.ErrorCode> | ArrayBuffer>, maxRetries?: number): Promise<T | ArrayBuffer>;
+export async function handleErrors<T>(apiCallFn: () => Promise<Result<T, ErrorCode> | ArrayBuffer>, maxRetries?: number): Promise<T | ArrayBuffer>;
 
-export async function handleErrors<T>(apiCallFn: () => Promise<MSS.Result<T, MSS.ErrorCode> | ArrayBuffer>, maxRetries = 7): Promise<T | ArrayBuffer> {
+export async function handleErrors<T>(apiCallFn: () => Promise<Result<T, ErrorCode> | ArrayBuffer>, maxRetries = 7): Promise<T | ArrayBuffer> {
 	for (let retry = 0; retry < maxRetries; retry++) {
 		try {
 			const response = await apiCallFn();
 			return handleErrorCodes<T>(response);
 		} catch (error) {
-			if (error instanceof Error && error.message === MSS.ErrorCode.PleaseRetry) {
+			if (error instanceof Error && error.message === ErrorCode.PleaseRetry) {
 				const delay = Math.min(10 * 2 ** retry, 1000);
 				await new Promise((resolve) => setTimeout(resolve, delay));
 				continue;
@@ -313,5 +312,5 @@ export async function handleErrors<T>(apiCallFn: () => Promise<MSS.Result<T, MSS
 			throw error;
 		}
 	}
-	throw new Error(MSS.ErrorCode.PleaseRetry);
+	throw new Error(ErrorCode.PleaseRetry);
 }

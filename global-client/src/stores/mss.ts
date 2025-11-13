@@ -11,6 +11,9 @@ import filters from '@hub-client/logic/core/filters';
 // Models
 import AuthenticationServer from '@global-client/models/MSS/Auths';
 import PHCServer from '@global-client/models/MSS/PHC';
+import { AuthAttrKeyReq, AuthStartReq, CardReq, LoginMethod, SignedIdentifyingAttrs, Source, SuccesResp, YiviWaitForResultResp } from '@global-client/models/MSS/TAuths';
+import { EnterStartResp, InfoResp, Result } from '@global-client/models/MSS/TGeneral';
+import { Constellation, HubInformation, PHCEnterMode, PHCEnterReq } from '@global-client/models/MSS/TPHC';
 import Transcryptor from '@global-client/models/MSS/Transcryptor';
 
 // Stores
@@ -30,8 +33,8 @@ const useMSS = defineStore('mss', {
 			// NOTE: Do not access this._transcryptor directly. Use getTranscryptor() instead to make sure the server is initialized with the correct API url.
 			_transcryptor: null as Transcryptor | null,
 			phcServer: new PHCServer(),
-			constellation: null as MSS.Constellation | null,
-			hubs: null as Record<string, MSS.HubInformation> | null,
+			constellation: null as Constellation | null,
+			hubs: null as Record<string, HubInformation> | null,
 		};
 	},
 
@@ -65,7 +68,7 @@ const useMSS = defineStore('mss', {
 			return this._transcryptor!;
 		},
 
-		async authenticate(loginMethod: MSS.LoginMethod, enterMode: MSS.PHCEnterMode) {
+		async authenticate(loginMethod: LoginMethod, enterMode: PHCEnterMode) {
 			try {
 				//0. Fetch auth server
 				const authServer = await this.getAuthServer();
@@ -73,9 +76,9 @@ const useMSS = defineStore('mss', {
 				const supportedAttrTypes = await authServer._welcomeEPAuths();
 				const identifyingAttrsSet = authServer._checkAttributes(supportedAttrTypes, loginMethod, enterMode);
 
-				let authStartReq: MSS.AuthStartReq;
+				let authStartReq: AuthStartReq;
 				// 2. Prepare start request
-				if (enterMode === MSS.PHCEnterMode.LoginOrRegister) {
+				if (enterMode === PHCEnterMode.LoginOrRegister) {
 					authStartReq = {
 						source: loginMethod.source,
 						attr_types: ['email', 'phone'],
@@ -94,7 +97,7 @@ const useMSS = defineStore('mss', {
 				// 3. Start authentication
 				const startResp = await authServer._startAuthEP(authStartReq);
 
-				let authSuccResp: MSS.SuccesResp;
+				let authSuccResp: SuccesResp;
 
 				// 4. Handle start response
 				if ('Success' in startResp) {
@@ -102,15 +105,15 @@ const useMSS = defineStore('mss', {
 					authServer._state = state;
 
 					const source = loginMethod.source;
-					if (source === MSS.Source.Yivi && task.Yivi) {
+					if (source === Source.Yivi && task.Yivi) {
 						const { disclosure_request, yivi_requestor_url } = task.Yivi;
 						const yiviRequestorUrl = filters.removeTrailingSlash(yivi_requestor_url);
 
 						// Perform Yivi authentication
 						//
-						let resultJWT: string | MSS.YiviWaitForResultResp;
+						let resultJWT: string | YiviWaitForResultResp;
 						let proof: { Yivi: { disclosure: string } };
-						if (enterMode === MSS.PHCEnterMode.LoginOrRegister) {
+						if (enterMode === PHCEnterMode.LoginOrRegister) {
 							console.error('Login or register');
 							startYiviAuthentication(yiviRequestorUrl, disclosure_request);
 							resultJWT = await authServer.YiviWaitForResultEP(authServer._state);
@@ -151,7 +154,7 @@ const useMSS = defineStore('mss', {
 
 				// 7. Collect identifying & additional attributes
 				const signedAddAttrs: string[] = [];
-				const signedIdentifyingAttrs: MSS.SignedIdentifyingAttrs = {};
+				const signedIdentifyingAttrs: SignedIdentifyingAttrs = {};
 
 				let selectedIdentifyingAttribute = 'test';
 				for (const [handle, attr] of Object.entries(authSuccResp.attrs)) {
@@ -161,7 +164,7 @@ const useMSS = defineStore('mss', {
 					}
 
 					if (identifyingAttrsSet.has(handle)) {
-						const decodedAttr = authServer._decodeJWT(attr) as MSS.Attr;
+						const decodedAttr = authServer._decodeJWT(attr) as Attr;
 						selectedIdentifyingAttribute = handle;
 						signedIdentifyingAttrs[handle] = {
 							signedAttr: attr,
@@ -192,7 +195,7 @@ const useMSS = defineStore('mss', {
 			// Get pseudo card package
 			const cardPseudePackage = await this.phcServer.cardPseudePackage();
 			// Create card requst for the Auth server
-			let CardReq: MSS.CardReq;
+			let CardReq: CardReq;
 			if ('Success' in cardPseudePackage) {
 				CardReq = {
 					card_pseud_package: cardPseudePackage.Success,
@@ -204,12 +207,12 @@ const useMSS = defineStore('mss', {
 			// Get a signed card attribute from the auth server
 			const CardResp = await authServer.CardEP(CardReq);
 
-			let enterReq: MSS.PHCEnterReq;
-			let YiviReleaseNextSessionReq: MSS.YiviReleaseNextSessionReq;
+			let enterReq: PHCEnterReq;
+			let YiviReleaseNextSessionReq: YiviReleaseNextSessionReq;
 			let cardAttr: string;
 			if ('Success' in CardResp) {
 				enterReq = {
-					mode: MSS.PHCEnterMode.Login,
+					mode: PHCEnterMode.Login,
 					add_attrs: [CardResp.Success.attr],
 				};
 				YiviReleaseNextSessionReq = {
@@ -232,7 +235,7 @@ const useMSS = defineStore('mss', {
 			return cardAttr;
 		},
 
-		async enterPubHubs(loginMethod: MSS.LoginMethod, enterMode: MSS.PHCEnterMode) {
+		async enterPubHubs(loginMethod: LoginMethod, enterMode: PHCEnterMode) {
 			const authServer = await this.getAuthServer();
 
 			let { identifyingAttr, signedIdentifyingAttrs, signedAddAttrs } = await this.authenticate(loginMethod, enterMode);
@@ -242,10 +245,10 @@ const useMSS = defineStore('mss', {
 				return errorMessage;
 			}
 			let signedCardAttribute = null;
-			if (enterMode === MSS.PHCEnterMode.LoginOrRegister) {
+			if (enterMode === PHCEnterMode.LoginOrRegister) {
 				signedCardAttribute = await this.issueCard(identifyingAttr);
 				if (signedCardAttribute) {
-					const decodedAttr = authServer._decodeJWT(signedCardAttribute) as MSS.Attr;
+					const decodedAttr = authServer._decodeJWT(signedCardAttribute) as Attr;
 					signedIdentifyingAttrs['ph_card'] = {
 						signedAttr: signedCardAttribute,
 						id: decodedAttr.attr_type,
@@ -256,11 +259,11 @@ const useMSS = defineStore('mss', {
 
 			// Request attribute keys for all identifying attributes used to login.
 			// FIXME: Typescript typing
-			const attrKeyReq: MSS.AuthAttrKeyReq = {};
+			const attrKeyReq: AuthAttrKeyReq = {};
 			for (const [handle, attr] of Object.entries(signedIdentifyingAttrs) as [string, (typeof signedIdentifyingAttrs)[string]][]) {
-				if (MSS.isUserSecretObjectNew(userSecretObject) && attr.id in userSecretObject['data'] && userSecretObject['data'][attr.id][attr.value]) {
+				if (isUserSecretObjectNew(userSecretObject) && attr.id in userSecretObject['data'] && userSecretObject['data'][attr.id][attr.value]) {
 					attrKeyReq[handle] = { attr: attr.signedAttr, timestamp: userSecretObject['data'][attr.id][attr.value].ts };
-				} else if (!MSS.isUserSecretObjectNew(userSecretObject) && userSecretObject && attr.id in userSecretObject && userSecretObject[attr.id][attr.value]) {
+				} else if (!isUserSecretObjectNew(userSecretObject) && userSecretObject && attr.id in userSecretObject && userSecretObject[attr.id][attr.value]) {
 					attrKeyReq[handle] = { attr: attr.signedAttr, timestamp: userSecretObject[attr.id][attr.value].ts };
 				} else {
 					attrKeyReq[handle] = { attr: attr.signedAttr, timestamp: null };
@@ -295,7 +298,7 @@ const useMSS = defineStore('mss', {
 					const language = useSettings().language;
 					setLanguage(i18n, language);
 					const { t } = i18n.global;
-					dialog.confirm(t('mss.system_offline'), t('mss.system_offline_description'));
+					dialog.confirm(t('system_offline'), t('system_offline_description'));
 				} else {
 					throw error;
 				}
@@ -322,8 +325,8 @@ const useMSS = defineStore('mss', {
 			return Promise.race([promise, new Promise<T>((_, reject) => setTimeout(() => reject(new Error('Timeout')), ms))]);
 		},
 
-		async getHubInfo(hubServerUrl: string): Promise<MSS.InfoResp> {
-			const infoResp = await hub_api.api<MSS.Result<MSS.InfoResp> | MSS.InfoResp>(`${hubServerUrl}${hub_api.apiURLS.info}`);
+		async getHubInfo(hubServerUrl: string): Promise<InfoResp> {
+			const infoResp = await hub_api.api<Result<InfoResp> | InfoResp>(`${hubServerUrl}${hub_api.apiURLS.info}`);
 
 			// hubs <= v3.0.0 do not wrap the info response in an "Ok": { ... }
 			if (infoResp.hasOwnProperty('Ok')) {
@@ -333,7 +336,7 @@ const useMSS = defineStore('mss', {
 			return infoResp;
 		},
 
-		async enterHub(id: string, nonceStatePair: MSS.EnterStartResp) {
+		async enterHub(id: string, nonceStatePair: EnterStartResp) {
 			const maxAttempts = 3;
 			for (let attempts = 0; attempts < maxAttempts; attempts++) {
 				const sealedPPP = await this.phcServer.pppEP();
