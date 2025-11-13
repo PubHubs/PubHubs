@@ -602,7 +602,7 @@ export default class Room {
 		}
 
 		// Handle all other events and redactions, not in a thread
-		const nonThreadEvents = eventList.filter((event) => event.getContent()[RelationType.RelatesTo]?.[RelationType.RelType] !== RelationType.Thread).slice(-SystemDefaults.RoomTimelineLimit);
+		const nonThreadEvents = eventList.filter((event) => event.getContent()[RelationType.RelatesTo]?.[RelationType.RelType] !== RelationType.Thread).slice(-SystemDefaults.roomTimelineLimit);
 		this.timelineManager.loadFromSlidingSync(nonThreadEvents).then((scrollToEventId) => {
 			if (scrollToEventId) {
 				this.setCurrentEvent({ eventId: scrollToEventId });

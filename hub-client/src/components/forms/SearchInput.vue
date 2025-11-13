@@ -130,7 +130,7 @@
 	const isSearching = ref(false);
 	let searchResponse: ISearchResults | undefined = undefined;
 
-	const emit = defineEmits([...usedEvents, RoomEmit.ScrollToEventId, 'toggleSearchbar']);
+	const emit = defineEmits([...usedEvents, RoomEmit.ScrollToEventId, 'search-started', 'toggleSearchbar']);
 	const { value, changed, cancel } = useFormInputEvents(emit);
 
 	const isExpanded = ref(false);
@@ -144,7 +144,6 @@
 				searchField.value?.focus();
 			});
 		}
-		console.log('toggleSearch', isExpanded.value);
 		emit('toggleSearchbar', isExpanded.value);
 	}
 

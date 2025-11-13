@@ -393,45 +393,6 @@ const usePubhubsStore = defineStore('pubhubs', {
 
 		async createRoom(options: any): Promise<{ room_id: string }> {
 			const room = await this.client.createRoom(options);
-
-			const rooms = useRooms();
-			const matrix = useMatrix();
-
-			try {
-				let matrixRoom = this.client.getRoom(room.room_id);
-
-				if (!matrixRoom) {
-					try {
-						matrixRoom = await this.client.joinRoom(room.room_id);
-					} catch (joinErr) {
-						matrixRoom = this.client.getRoom(room.room_id) ?? null;
-					}
-				}
-
-				if (matrixRoom) {
-					this.client.store.storeRoom(matrixRoom);
-
-					let roomType: string = getRoomType(matrixRoom);
-					rooms.initRoomsWithMatrixRoom(matrixRoom, options?.name ?? matrixRoom.name ?? undefined, roomType, []);
-				} else {
-					rooms.updateRoomsWithMatrixRoom({ roomId: room.room_id } as any, options?.name ?? undefined);
-				}
-
-				try {
-					if (matrix && typeof matrix.addRoomSubscription === 'function') {
-						matrix.addRoomSubscription(room.room_id);
-						if (typeof matrix.syncRooms === 'function') {
-							matrix.syncRooms();
-						}
-					}
-				} catch (err) {
-					logger.trace(SMI.STORE, 'failed to add sliding-sync subscription after createRoom', { roomId: room.room_id, err });
-				}
-			} catch (err) {
-				logger.trace(SMI.STORE, 'error while finishing createRoom init', { err });
-				throw err;
-			}
-
 			return room;
 		},
 

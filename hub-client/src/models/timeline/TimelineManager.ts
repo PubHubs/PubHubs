@@ -112,10 +112,8 @@ class TimelineManager {
 
 		LOGGER.log(SMI.ROOM_TIMELINEMANAGER, `Initializing timeline for room ${roomId}`);
 		this.roomId = roomId;
-		if (!this.roomTimelineKey) {
-			this.roomTimelineKey = matrix.addRoomSubscription(roomId);
-		}
-		matrix.syncRooms();
+
+		this.roomTimelineKey = matrix.addRoomSubscription(roomId);
 	}
 
 	/**
@@ -127,20 +125,21 @@ class TimelineManager {
 		return eventList.filter((event) => this.isVisibleEvent(event.event)).sort((a, b) => a.getTs() - b.getTs());
 	}
 
+	// TODO this is commented out for the time being. See if it needs to be rewritten or if it can be deleted
 	/**
 	 * Gets the newest message of the current livetimeline.
 	 * Necessary for initial timelineloading when sync returns only events of other types
 	 * @returns newest message of current livetimeline
 	 */
 	private async getInitialNewestMessage(): Promise<MatrixEvent | undefined> {
-		const timeline = this.client.getRoom(this.roomId)?.getLiveTimeline();
-		if (timeline) {
-			let newestMessage: MatrixEvent | undefined = undefined;
-			while (!newestMessage && (await this.client.paginateEventTimeline(timeline, { backwards: true, limit: 200 }))) {
-				newestMessage = timeline.getEvents()?.findLast((x) => x.getType() === MatrixEventType.RoomMessage);
-			}
-			return newestMessage;
-		}
+		// const timeline = this.client.getRoom(this.roomId)?.getLiveTimeline();
+		// if (timeline) {
+		// 	let newestMessage: MatrixEvent | undefined = undefined;
+		// 	while (!newestMessage && (await this.client.paginateEventTimeline(timeline, { backwards: true, limit: 200 }))) {
+		// 		newestMessage = timeline.getEvents()?.findLast((x) => x.getType() === MatrixEventType.RoomMessage);
+		// 	}
+		// 	return newestMessage;
+		// }
 		return undefined;
 	}
 
@@ -341,19 +340,23 @@ class TimelineManager {
 	 */
 	async performPaginate(direction: Direction, limit: number, timeline: EventTimeline): Promise<MatrixEvent[]> {
 		let newEvents: MatrixEvent[] = [];
-		if (
-			await this.client.paginateEventTimeline(timeline, {
-				backwards: direction === Direction.Backward,
-				limit,
-			})
-		) {
-			newEvents = timeline.getEvents();
-		} else {
-			newEvents = timeline.getEvents();
-			// Here we have reached the first or last of all messages
-			const firstMessageId = newEvents.length > 0 ? newEvents[0]?.event?.event_id : this.timelineEvents[0]?.matrixEvent.event?.event_id;
-			const lastMessageId = newEvents.length > 0 ? newEvents[newEvents.length - 1]?.event?.event_id : this.timelineEvents[this.timelineEvents.length - 1]?.matrixEvent.event?.event_id;
-			direction === Direction.Backward ? (this.paginationState.firstMessageId = firstMessageId) : (this.paginationState.lastMessageId = lastMessageId);
+		try {
+			if (
+				await this.client.paginateEventTimeline(timeline, {
+					backwards: direction === Direction.Backward,
+					limit,
+				})
+			) {
+				newEvents = timeline.getEvents();
+			} else {
+				newEvents = timeline.getEvents();
+				// Here we have reached the first or last of all messages
+				const firstMessageId = newEvents.length > 0 ? newEvents[0]?.event?.event_id : this.timelineEvents[0]?.matrixEvent.event?.event_id;
+				const lastMessageId = newEvents.length > 0 ? newEvents[newEvents.length - 1]?.event?.event_id : this.timelineEvents[this.timelineEvents.length - 1]?.matrixEvent.event?.event_id;
+				direction === Direction.Backward ? (this.paginationState.firstMessageId = firstMessageId) : (this.paginationState.lastMessageId = lastMessageId);
+			}
+		} catch {
+			// ignore error: used for an empty timeline
 		}
 		return this.prepareEvents(newEvents);
 	}
@@ -415,7 +418,7 @@ class TimelineManager {
 			const newEvents = await this.performPaginate(direction, limit, timeline);
 			if (newEvents?.length > 0) {
 				let timeLineEvents = newEvents.map((event) => new TimelineEvent(event, this.roomId));
-				timeLineEvents = this.ensureListLength(this.timelineEvents, timeLineEvents, SystemDefaults.RoomTimelineLimit, direction);
+				timeLineEvents = this.ensureListLength(this.timelineEvents, timeLineEvents, SystemDefaults.roomTimelineLimit, direction);
 				this.getRelatedEvents(timeLineEvents);
 				timeLineEvents = timeLineEvents.filter((x) => !this.timelineEvents.some((newEvent) => newEvent.matrixEvent.event.event_id === x.matrixEvent.event.event_id));
 				if (direction === Direction.Backward) {
@@ -445,8 +448,8 @@ class TimelineManager {
 
 		// need to paginate both directions, for when event is in beginning or end. The surplus does not matter
 		const joinPromises: Promise<MatrixEvent[]>[] = [];
-		joinPromises.push(this.performPaginate(Direction.Backward, SystemDefaults.InitialRoomTimelineLimit / 2, timeline));
-		joinPromises.push(this.performPaginate(Direction.Forward, SystemDefaults.InitialRoomTimelineLimit / 2, timeline));
+		joinPromises.push(this.performPaginate(Direction.Backward, SystemDefaults.initialRoomTimelineLimit / 2, timeline));
+		joinPromises.push(this.performPaginate(Direction.Forward, SystemDefaults.initialRoomTimelineLimit / 2, timeline));
 
 		const [newBackEvents, newForwardEvents] = await Promise.all(joinPromises);
 
@@ -456,7 +459,7 @@ class TimelineManager {
 		}
 
 		let mappedEvents = tempEvents.map((event) => new TimelineEvent(event, this.roomId));
-		mappedEvents = this.ensureListLength(this.timelineEvents, mappedEvents, SystemDefaults.RoomTimelineLimit, Direction.Backward);
+		mappedEvents = this.ensureListLength(this.timelineEvents, mappedEvents, SystemDefaults.roomTimelineLimit, Direction.Backward);
 
 		this.getRelatedEvents(mappedEvents).then((relatedEvents) => {
 			this.relatedEvents = relatedEvents;

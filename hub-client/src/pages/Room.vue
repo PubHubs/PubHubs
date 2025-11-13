@@ -40,7 +40,7 @@
 			<div class="flex h-full w-full justify-between overflow-hidden">
 				<RoomLibrary v-if="showLibrary" :id="id" @close="toggleLibrary"></RoomLibrary>
 				<div class="flex h-full w-full flex-col overflow-hidden" :class="{ hidden: showLibrary }">
-					<RoomTimeline v-if="room" ref="roomTimeLineComponent" :room="room" :scroll-to-event-id="room.getCurrentEvent()" @scrolled-to-event-id="room.setCurrentEvent(undefined)"> </RoomTimeline>
+					<RoomTimeline v-if="room" ref="roomTimeLineComponent" :room="room" @scrolled-to-event-id="room.setCurrentEvent(undefined)"> </RoomTimeline>
 				</div>
 				<RoomThread
 					v-if="room.getCurrentThreadId()"
@@ -131,6 +131,10 @@
 
 	const room = computed(() => {
 		let r = rooms.rooms[props.id];
+		// the name of the room will be synced later, start with an empty name
+		if (r.name === props.id) {
+			r.name = '';
+		}
 		if (!r) {
 			// I want the side effect that should be avoided according to the lint rule.
 			// eslint-disable-next-line

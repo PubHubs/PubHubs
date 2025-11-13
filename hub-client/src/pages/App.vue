@@ -52,14 +52,14 @@
 						<!-- Public rooms -->
 						<RoomListHeader label="admin.public_rooms">
 							<template #roomlist>
-								<RoomList />
+								<RoomList :roomTypes="PublicRooms" />
 							</template>
 						</RoomListHeader>
 
 						<!-- Secured rooms -->
 						<RoomListHeader label="admin.secured_rooms" tooltipText="admin.secured_rooms_tooltip">
 							<template #roomlist>
-								<RoomList :roomTypes="[RoomType.PH_MESSAGES_RESTRICTED]" />
+								<RoomList :roomTypes="SecuredRooms" />
 							</template>
 						</RoomListHeader>
 
@@ -126,7 +126,7 @@
 	import { SMI } from '@hub-client/logic/logging/StatusMessage';
 
 	// Models
-	import { RoomType } from '@hub-client/models/rooms/TBaseRoom';
+	import { PublicRooms, SecuredRooms } from '@hub-client/models/rooms/TBaseRoom';
 
 	// Stores
 	import { useDialog } from '@hub-client/stores/dialog';

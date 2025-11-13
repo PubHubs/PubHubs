@@ -214,8 +214,6 @@
 			roomId: props.room.roomId,
 		});
 
-		props.room.initTimeline();
-
 		await rooms.storeRoomNotice(props.room.roomId);
 
 		// set up any action on scrolling e.g., date popup
@@ -403,7 +401,7 @@
 		if (prevOldestLoadedEventId && !oldestEventIsLoaded.value) {
 			suppressNextObservertrigger = true;
 
-			await props.room.paginate(Direction.Backward, SystemDefaults.RoomTimelineLimit, prevOldestLoadedEventId);
+			await props.room.paginate(Direction.Backward, SystemDefaults.roomTimelineLimit, prevOldestLoadedEventId);
 
 			// Wait for DOM update
 			await nextTick();
@@ -433,7 +431,7 @@
 		if (prevNewestLoadedEventId && !newestEventIsLoaded.value) {
 			suppressNextObservertrigger = true;
 
-			await props.room.paginate(Direction.Forward, SystemDefaults.RoomTimelineLimit, prevNewestLoadedEventId);
+			await props.room.paginate(Direction.Forward, SystemDefaults.roomTimelineLimit, prevNewestLoadedEventId);
 
 			await scrollToEvent({ eventId: prevNewestLoadedEventId }, { position: ScrollPosition.End });
 
