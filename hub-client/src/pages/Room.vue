@@ -131,10 +131,6 @@
 
 	const room = computed(() => {
 		let r = rooms.rooms[props.id];
-		// the name of the room will be synced later, start with an empty name
-		if (r.name === props.id) {
-			r.name = '';
-		}
 		if (!r) {
 			// I want the side effect that should be avoided according to the lint rule.
 			// eslint-disable-next-line
@@ -142,6 +138,11 @@
 				name: 'error-page',
 				query: { errorKey: 'errors.cant_find_room' },
 			});
+			return undefined;
+		}
+		// the name of the room will be synced later, start with an empty name
+		if (r.name === props.id) {
+			r.name = '';
 		}
 		return r;
 	});
