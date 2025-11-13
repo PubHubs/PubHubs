@@ -230,9 +230,17 @@ const useMSS = defineStore('mss', {
 			}
 
 			// Finally add the pubhuhs card with jwt in the chained session of yivi started in the authentication, this must be done after the attribute has been added to pubhubs central with _enter
-			await authServer.YiviReleaseNextSessionEP(YiviReleaseNextSessionReq);
+			const releaseResp = await authServer.YiviReleaseNextSessionEP(YiviReleaseNextSessionReq);
+			if (!('Success' in releaseResp)) {
+				throw new Error('Did not succesfully add the card to the chained session in yivi');
+			}
 
-			return cardAttr;
+			const decodedAttr = authServer._decodeJWT(cardAttr) as Attr;
+			return {
+				signedAttr: cardAttr,
+				id: decodedAttr.attr_type,
+				value: decodedAttr.value,
+			};
 		},
 
 		async enterPubHubs(loginMethod: LoginMethod, enterMode: PHCEnterMode) {
@@ -244,17 +252,8 @@ const useMSS = defineStore('mss', {
 			if (!entered) {
 				return errorMessage;
 			}
-			let signedCardAttribute = null;
 			if (enterMode === PHCEnterMode.LoginOrRegister) {
-				signedCardAttribute = await this.issueCard(identifyingAttr);
-				if (signedCardAttribute) {
-					const decodedAttr = authServer._decodeJWT(signedCardAttribute) as Attr;
-					signedIdentifyingAttrs['ph_card'] = {
-						signedAttr: signedCardAttribute,
-						id: decodedAttr.attr_type,
-						value: decodedAttr.value,
-					};
-				}
+				signedIdentifyingAttrs['ph_card'] = await this.issueCard(identifyingAttr);
 			}
 
 			// Request attribute keys for all identifying attributes used to login.
