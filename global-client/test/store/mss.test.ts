@@ -9,7 +9,6 @@ import { api } from '@global-client/logic/core/api';
 
 // Models
 import PHCServer from '@global-client/models/MSS/PHC';
-import * as mssTypes from '@global-client/models/MSS/TMultiServerSetup';
 
 beforeAll(() => server.listen({ onUnhandledRequest: 'error' }));
 afterAll(() => server.close());
@@ -32,13 +31,13 @@ describe('Multi-server setup', () => {
 		});
 
 		test('Generating a new user secret', async () => {
-			const mockedAttrKeysResp: Record<string, mssTypes.AttrKeyResp> = {
+			const mockedAttrKeysResp: Record<string, MSS.AttrKeyResp> = {
 				email: {
 					latest_key: ['someKey1', 'timestamp1'],
 					old_key: null,
 				},
 			};
-			const mockedIdentifyingAttrs: mssTypes.SignedIdentifyingAttrs = { email: { id: 'emailAttrId', signedAttr: 'signedEmailAttr', value: 'emailAttrValue' } };
+			const mockedIdentifyingAttrs: MSS.SignedIdentifyingAttrs = { email: { id: 'emailAttrId', signedAttr: 'signedEmailAttr', value: 'emailAttrValue' } };
 
 			expect(localStorage.getItem('UserSecret')).toBeNull();
 
@@ -50,18 +49,18 @@ describe('Multi-server setup', () => {
 		});
 
 		test('Logging in with a user secret of version 0', async () => {
-			const mockedAttrKeysResp: Record<string, mssTypes.AttrKeyResp> = {
+			const mockedAttrKeysResp: Record<string, MSS.AttrKeyResp> = {
 				email: {
 					latest_key: ['someKey2', 'timestamp2'],
 					old_key: 'someKey1',
 				},
 			};
-			const mockedIdentifyingAttrs: mssTypes.SignedIdentifyingAttrs = { email: { id: 'emailAttrId', signedAttr: 'signedEmailAttr', value: 'emailAttrValue' } };
+			const mockedIdentifyingAttrs: MSS.SignedIdentifyingAttrs = { email: { id: 'emailAttrId', signedAttr: 'signedEmailAttr', value: 'emailAttrValue' } };
 
 			// Use the old way of encoding the key
 			const userSecret = window.crypto.getRandomValues(new Uint8Array(32));
 			const encUserSecret = await phcServer['_encryptData'](userSecret, new TextEncoder().encode('someKey1'));
-			let oldUserSecretObject: mssTypes.UserSecretData = { emailAttrId: { emailAttrValue: { ts: 'timestamp1', encUserSecret: Buffer.from(encUserSecret).toString('base64') } } };
+			let oldUserSecretObject: MSS.UserSecretData = { emailAttrId: { emailAttrValue: { ts: 'timestamp1', encUserSecret: Buffer.from(encUserSecret).toString('base64') } } };
 
 			localStorage.removeItem('UserSecret');
 			expect(localStorage.getItem('UserSecret')).toBeNull();
@@ -84,13 +83,13 @@ describe('Multi-server setup', () => {
 		});
 
 		test('Logging in with a user secret of version 1', async () => {
-			const mockedAttrKeysResp: Record<string, mssTypes.AttrKeyResp> = {
+			const mockedAttrKeysResp: Record<string, MSS.AttrKeyResp> = {
 				email: {
 					latest_key: ['someKey3', 'timestamp2'],
 					old_key: 'someKey2',
 				},
 			};
-			const mockedIdentifyingAttrs: mssTypes.SignedIdentifyingAttrs = { email: { id: 'emailAttrId', signedAttr: 'signedEmailAttr', value: 'emailAttrValue' } };
+			const mockedIdentifyingAttrs: MSS.SignedIdentifyingAttrs = { email: { id: 'emailAttrId', signedAttr: 'signedEmailAttr', value: 'emailAttrValue' } };
 
 			const oldUserSecret = await phcServer['_getUserSecretObject']();
 
@@ -119,7 +118,7 @@ describe('Multi-server setup', () => {
 			const userSecretObject = await phcServer.getUserObject('usersecret');
 
 			const decodedUserSecret = new TextDecoder().decode(userSecretObject.object);
-			const parsedObject = JSON.parse(decodedUserSecret) as mssTypes.UserSecretObject;
+			const parsedObject = JSON.parse(decodedUserSecret) as MSS.UserSecretObject;
 			const decryptedUserSecretBytes = await phcServer['_decryptUserSecret']('someKey3', parsedObject.data['emailAttrId']['emailAttrValue'], Number(parsedObject.version));
 
 			expect(userSecretBytes).toEqual(decryptedUserSecretBytes);
