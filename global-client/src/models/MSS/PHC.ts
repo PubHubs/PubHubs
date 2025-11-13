@@ -9,7 +9,7 @@ import { Api } from '@hub-client/logic/core/apiCore';
 
 // Models
 import { base64fromBase64Url, handleErrorCodes, handleErrors, requestOptions } from '@global-client/models/MSS/Auths';
-import { isOk } from '@global-client/models/MSS/TGeneral';
+import { ErrorCode, Result, isOk } from '@global-client/models/MSS/TGeneral';
 import * as TPHC from '@global-client/models/MSS/TPHC';
 
 // Stores
@@ -83,12 +83,8 @@ export default class PHCServer {
 			},
 			method: 'POST',
 		};
-		const response = await this._phcAPI.api<{ Ok: TPHC.CardPseudResp }>(this._phcAPI.apiURLS.CardPseudPackage, options);
-		if (isOk(response)) {
-			return response.Ok;
-		} else {
-			throw new Error('The response is not okay');
-		}
+		const CardPsFn = () => this._phcAPI.api<Result<TPHC.CardPseudResp, ErrorCode>>(this._phcAPI.apiURLS.CardPseudPackage, options);
+		return await handleErrors<TPHC.CardPseudResp>(CardPsFn);
 	}
 
 	private _setAuthToken(authTokenPackage: TPHC.AuthTokenPackage) {
@@ -176,7 +172,7 @@ export default class PHCServer {
 	 * @throws Will throw an error if there is no backup user secret object stored while this is expected.
 	 * @throws Will throw an error if the backup user secret object differs from the user secret object.
 	 */
-	private async _getUserSecretObject(): Promise<{ object: TPHC.UserSecretObject; details: { usersecret: TPHC.UserObjectDetails; backup: TPHC.UserObjectDetails | null } } | null> {
+	public async _getUserSecretObject(): Promise<{ object: TPHC.UserSecretObject; details: { usersecret: TPHC.UserObjectDetails; backup: TPHC.UserObjectDetails | null } } | null> {
 		const userSecretObject = await this.getUserObject('usersecret');
 
 		if (!userSecretObject || !userSecretObject.object) {
@@ -200,28 +196,28 @@ export default class PHCServer {
 		return { object, details: { usersecret: userSecretObject.details, backup: null } };
 	}
 
-	async login(
-		identifyingAttr: string,
-		signedAddAttrs: string[],
-		enterMode: TPHC.PHCEnterMode,
-	): Promise<
-		| { entered: false; errorMessage: { key: string; values?: string[] }; objectDetails: null; userSecretObject: null }
-		| { entered: true; errorMessage: null; objectDetails: null; userSecretObject: null }
-		| { entered: true; errorMessage: null; objectDetails: { usersecret: TPHC.UserObjectDetails; backup: TPHC.UserObjectDetails | null }; userSecretObject: TPHC.UserSecretObject }
-	> {
-		const { entered, errorMessage } = await this._enter(signedAddAttrs, enterMode, identifyingAttr);
+	// async login(
+	// 	identifyingAttr: string,
+	// 	signedAddAttrs: string[],
+	// 	enterMode: TPHC.PHCEnterMode,
+	// ): Promise<
+	// 	| { entered: false; errorMessage: { key: string; values?: string[] }; objectDetails: null; userSecretObject: null }
+	// 	| { entered: true; errorMessage: null; objectDetails: null; userSecretObject: null }
+	// 	| { entered: true; errorMessage: null; objectDetails: { usersecret: TPHC.UserObjectDetails; backup: TPHC.UserObjectDetails | null }; userSecretObject: TPHC.UserSecretObject }
+	// > {
+	// 	const { entered, errorMessage } = await this._enter(signedAddAttrs, enterMode, identifyingAttr);
 
-		if (!entered) {
-			return { entered, errorMessage, objectDetails: null, userSecretObject: null };
-		}
-		await this.stateEP();
-		const userSecretObject = await this._getUserSecretObject();
+	// 	if (!entered) {
+	// 		return { entered, errorMessage, objectDetails: null, userSecretObject: null };
+	// 	}
+	// 	await this.stateEP();
+	// 	const userSecretObject = await this._getUserSecretObject();
 
-		if (!userSecretObject || !userSecretObject.object) {
-			return { entered, errorMessage: null, objectDetails: null, userSecretObject: null };
-		}
-		return { entered, errorMessage: null, objectDetails: userSecretObject.details, userSecretObject: userSecretObject.object };
-	}
+	// 	if (!userSecretObject || !userSecretObject.object) {
+	// 		return { entered, errorMessage: null, objectDetails: null, userSecretObject: null };
+	// 	}
+	// 	return { entered, errorMessage: null, objectDetails: userSecretObject.details, userSecretObject: userSecretObject.object };
+	// }
 
 	/**
 	 * Call the refreshEP to refresh an (expired) authToken.

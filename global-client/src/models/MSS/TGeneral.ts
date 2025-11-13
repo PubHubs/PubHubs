@@ -5,6 +5,10 @@ export enum ErrorCode {
 	BadRequest = 'BadRequest',
 }
 
+export enum ResultResponse {
+	Success = 'Success',
+}
+
 export type Result<T, E> = { Ok: T } | { Err: E };
 
 // Type guard to check if the result is of type Ok

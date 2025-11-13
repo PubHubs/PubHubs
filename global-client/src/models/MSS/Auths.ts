@@ -25,10 +25,9 @@ export default class AuthenticationServer {
 	 * @returns A set of the handles used in the login method that are identifying and thus can be used to login.
 	 */
 	public _checkAttributes(supportedAttrTypes: Record<string, TAuths.AttrType>, loginMethod: TAuths.LoginMethod, enterMode: PHCEnterMode): Set<string> {
-		if (!loginMethod.attr_types.includes(loginMethod.identifying_attr[0]) || !loginMethod.attr_types.includes(loginMethod.identifying_attr[1])) {
-			throw new Error(`The identifying attribute "${loginMethod.identifying_attr}" is not included in the attribute list.`);
+		if (!loginMethod.attr_types.some((attr) => loginMethod.identifying_attr.includes(attr))) {
+			throw new Error(`The attributes "${loginMethod.attr_types}" do not include an identifying attribute from in the attribute list.`);
 		}
-
 		// Build a map from all handles (current handle + old handles) to the attributes for efficient lookup
 		const handleToAttrMap = new Map<string, TAuths.AttrType>();
 
@@ -90,28 +89,16 @@ export default class AuthenticationServer {
 	}
 	public async YiviWaitForResultEP(argument: any): Promise<TAuths.YiviWaitForResultResp> {
 		const requestBody = { state: argument };
-		const response = await this._authsApi.api<{ Ok: TAuths.YiviWaitForResultResp }>(this._authsApi.apiURLS.YiviWaitForResultEP, requestOptions(requestBody));
-		if (isOk(response)) {
-			return response.Ok;
-		} else {
-			throw new Error('The response is not okay');
-		}
+		const YiviWaitForResulFn = () => this._authsApi.api<Result<TAuths.YiviWaitForResultResp, ErrorCode>>(this._authsApi.apiURLS.YiviWaitForResultEP, requestOptions(requestBody));
+		return await handleErrors<TAuths.YiviWaitForResultResp>(YiviWaitForResulFn);
 	}
 	public async CardEP(requestBody: TAuths.CardReq): Promise<TAuths.CardResp> {
-		const response = await this._authsApi.api<{ Ok: TAuths.CardResp }>(this._authsApi.apiURLS.cardEP, requestOptions(requestBody));
-		if (isOk(response)) {
-			return response.Ok;
-		} else {
-			throw new Error('The response is not okay');
-		}
+		const CardFn = () => this._authsApi.api<Result<TAuths.CardResp, ErrorCode>>(this._authsApi.apiURLS.cardEP, requestOptions(requestBody));
+		return await handleErrors<TAuths.CardResp>(CardFn);
 	}
 	public async YiviReleaseNextSessionEP(requestBody: TAuths.YiviReleaseNextSessionReq): Promise<TAuths.YiviReleaseNextSessionResp> {
-		const response = await this._authsApi.api<{ Ok: TAuths.YiviReleaseNextSessionResp }>(this._authsApi.apiURLS.YiviReleaseNextSessionEP, requestOptions(requestBody));
-		if (isOk(response)) {
-			return response.Ok;
-		} else {
-			throw new Error('The response is not okay');
-		}
+		const YiviReleaseNextSessioFn = () => this._authsApi.api<Result<TAuths.YiviReleaseNextSessionResp, ErrorCode>>(this._authsApi.apiURLS.YiviReleaseNextSessionEP, requestOptions(requestBody));
+		return await handleErrors<TAuths.YiviReleaseNextSessionResp>(YiviReleaseNextSessioFn);
 	}
 
 	/**

@@ -26,10 +26,12 @@ export type LoginMethod = {
 	readonly source: Source;
 	readonly attr_types: readonly string[];
 	readonly identifying_attr: string[];
+	readonly login_choices: string[][];
+	readonly register_attr: string[];
 };
 
 export const loginMethods: Record<string, LoginMethod> = {
-	Yivi: { source: Source.Yivi, attr_types: ['email', 'phone', 'ph_card'], identifying_attr: ['email', 'ph_card'] },
+	Yivi: { source: Source.Yivi, attr_types: ['email', 'phone', 'ph_card'], identifying_attr: ['email', 'ph_card'], login_choices: [['ph_card', 'email'], ['phone']], register_attr: ['email', 'phone'] },
 } as const;
 
 export type AuthStartReq = {
