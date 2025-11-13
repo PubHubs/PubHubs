@@ -100,7 +100,7 @@ export default class PHCServer {
 	 * @returns An object with a boolean denoting whether the user successfully entered PubHubs and an errorMessage.
 	 * The errorMessage is null if the user successfully entered, an object with a translation key and a list of values to use in the translation otherwise.
 	 */
-	private _handleEnterResp(enterResp: TPHC.EnterResp): { entered: false; errorMessage: { key: string; values?: string[] } } | { entered: true; errorMessage: null } {
+	private _handleEnterResp(enterResp: TPHC.EnterResp): { entered: false; errorMessage: { key: string; values?: string[] } } | { entered: true; errorMessage: null; enterResp: [TPHC.Attr, TPHC.AttrAddStatus][] } {
 		if (enterResp === 'AccountDoesNotExist') {
 			return { entered: false, errorMessage: { key: 'errors.account_does_not_exist' } };
 		} else if (enterResp === 'Banned') {

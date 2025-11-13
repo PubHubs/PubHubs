@@ -13,7 +13,7 @@ import AuthenticationServer from '@global-client/models/MSS/Auths';
 import PHCServer from '@global-client/models/MSS/PHC';
 import { AuthAttrKeyReq, AuthStartReq, CardReq, LoginMethod, SignedIdentifyingAttrs, Source, SuccesResp, YiviReleaseNextSessionReq, YiviWaitForResultResp } from '@global-client/models/MSS/TAuths';
 import { EnterStartResp, InfoResp, Result, ResultResponse } from '@global-client/models/MSS/TGeneral';
-import { Attr, Constellation, HubInformation, PHCEnterMode, PHCEnterReq, isUserSecretObjectNew } from '@global-client/models/MSS/TPHC';
+import { Attr, AttrAddStatus, Constellation, HubInformation, PHCEnterMode, PHCEnterReq, isUserSecretObjectNew } from '@global-client/models/MSS/TPHC';
 import Transcryptor from '@global-client/models/MSS/Transcryptor';
 
 // Stores
@@ -68,7 +68,7 @@ const useMSS = defineStore('mss', {
 			return this._transcryptor!;
 		},
 
-		async issueCard(identifyingAttr: string, attributes: string[]) {
+		async issueCard(identifyingAttr: string, attributes: [Attr, AttrAddStatus][]) {
 			const authServer = await this.getAuthServer();
 
 			// Get pseudo card package

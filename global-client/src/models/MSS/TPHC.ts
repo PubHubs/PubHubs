@@ -58,7 +58,7 @@ export enum AuthTokenDeniedReason {
 	Banned = 'Banned',
 }
 
-enum AttrAddStatus {
+export enum AttrAddStatus {
 	AlreadyThere = 'AlreadyThere',
 	Added = 'Added',
 	PleaseTryAgain = 'PleaseTryAgain',
