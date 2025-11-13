@@ -100,21 +100,21 @@ export default class PHCServer {
 	 * @returns An object with a boolean denoting whether the user successfully entered PubHubs and an errorMessage.
 	 * The errorMessage is null if the user successfully entered, an object with a translation key and a list of values to use in the translation otherwise.
 	 */
-	private _handleEnterResp(enterResp: TPHC.EnterResp): { entered: false; errorMessage: { key: string; values?: string[] } } | { entered: true; errorMessage: null; enterResp: [TPHC.Attr, TPHC.AttrAddStatus][] } {
+	private _handleEnterResp(enterResp: TPHC.EnterResp): { entered: false; errorMessage: { key: string; values?: string[] }; enterResp: null } | { entered: true; errorMessage: null; enterResp: [TPHC.Attr, TPHC.AttrAddStatus][] } {
 		if (enterResp === 'AccountDoesNotExist') {
-			return { entered: false, errorMessage: { key: 'errors.account_does_not_exist' } };
+			return { entered: false, errorMessage: { key: 'errors.account_does_not_exist' }, enterResp: null };
 		} else if (enterResp === 'Banned') {
-			return { entered: false, errorMessage: { key: 'errors.banned' } };
+			return { entered: false, errorMessage: { key: 'errors.banned' }, enterResp: null };
 		} else if (enterResp === 'NoBannableAttribute') {
-			return { entered: false, errorMessage: { key: 'errors.general_error' } };
+			return { entered: false, errorMessage: { key: 'errors.general_error' }, enterResp: null };
 		} else if (enterResp === 'RetryWithNewIdentifyingAttr') {
-			return { entered: false, errorMessage: { key: 'errors.retry_with_new_attr' } };
+			return { entered: false, errorMessage: { key: 'errors.retry_with_new_attr' }, enterResp: null };
 		} else if ('AttributeBanned' in enterResp) {
-			return { entered: false, errorMessage: { key: 'errors.attribute_banned', values: [enterResp.AttributeBanned.value] } };
+			return { entered: false, errorMessage: { key: 'errors.attribute_banned', values: [enterResp.AttributeBanned.value] }, enterResp: null };
 		} else if ('AttributeAlreadyTaken' in enterResp) {
-			return { entered: false, errorMessage: { key: 'errors.attribute_already_taken', values: [enterResp.AttributeAlreadyTaken.value] } };
+			return { entered: false, errorMessage: { key: 'errors.attribute_already_taken', values: [enterResp.AttributeAlreadyTaken.value] }, enterResp: null };
 		} else if ('RetryWithNewAddAttr' in enterResp) {
-			return { entered: false, errorMessage: { key: 'errors.retry_with_new_attr' } };
+			return { entered: false, errorMessage: { key: 'errors.retry_with_new_attr' }, enterResp: null };
 		} else if ('Entered' in enterResp) {
 			const { auth_token_package } = enterResp.Entered;
 			const authToken = handleErrorCodes<TPHC.AuthTokenPackage, TPHC.AuthTokenDeniedReason>(auth_token_package);
@@ -133,7 +133,11 @@ export default class PHCServer {
 	 * @param enterMode The mode determines whether we want to create an account if none exists and whether we expect an account to exist.
 	 * @returns An object with a boolean to know whether the user successfully entered PubHubs or not and an error message (which is null if no error occured).
 	 */
-	public async _enter(signedAddAttrs: string[], enterMode: TPHC.PHCEnterMode, identifyingAttr?: string): Promise<{ entered: true; errorMessage: null } | { entered: false; errorMessage: { key: string; values?: string[] } }> {
+	public async _enter(
+		signedAddAttrs: string[],
+		enterMode: TPHC.PHCEnterMode,
+		identifyingAttr?: string,
+	): Promise<{ entered: true; errorMessage: null; enterResp: [TPHC.Attr, TPHC.AttrAddStatus][] } | { entered: false; errorMessage: { key: string; values?: string[] }; enterResp: null }> {
 		const requestPayload: TPHC.PHCEnterReq = {
 			identifying_attr: identifyingAttr,
 			mode: enterMode,
