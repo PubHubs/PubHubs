@@ -114,7 +114,6 @@ const useMSS = defineStore('mss', {
 						let resultJWT: string | YiviWaitForResultResp;
 						let proof: { Yivi: { disclosure: string } };
 						if (enterMode === PHCEnterMode.LoginOrRegister) {
-							console.error('Login or register');
 							startYiviAuthentication(yiviRequestorUrl, disclosure_request);
 							resultJWT = await authServer.YiviWaitForResultEP(authServer._state);
 							if ('Success' in resultJWT) {
@@ -257,7 +256,6 @@ const useMSS = defineStore('mss', {
 			}
 
 			// Request attribute keys for all identifying attributes used to login.
-			// FIXME: Typescript typing
 			const attrKeyReq: AuthAttrKeyReq = {};
 			for (const [handle, attr] of Object.entries(signedIdentifyingAttrs) as [string, (typeof signedIdentifyingAttrs)[string]][]) {
 				if (isUserSecretObjectNew(userSecretObject) && attr.id in userSecretObject['data'] && userSecretObject['data'][attr.id][attr.value]) {

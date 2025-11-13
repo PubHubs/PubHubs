@@ -24,7 +24,7 @@ export default class AuthenticationServer {
 	 * @param loginMethod The login method that is currently used.
 	 * @returns A set of the handles used in the login method that are identifying and thus can be used to login.
 	 */
-	public _checkAttributes(supportedAttrTypes: Record<string, TAuths.AttrType>, loginMethod: TAuths.LoginMethod, enterMode: PHCEnterMode) {
+	public _checkAttributes(supportedAttrTypes: Record<string, TAuths.AttrType>, loginMethod: TAuths.LoginMethod, enterMode: PHCEnterMode): Set<string> {
 		if (!loginMethod.attr_types.includes(loginMethod.identifying_attr[0]) || !loginMethod.attr_types.includes(loginMethod.identifying_attr[1])) {
 			throw new Error(`The identifying attribute "${loginMethod.identifying_attr}" is not included in the attribute list.`);
 		}
@@ -83,7 +83,7 @@ export default class AuthenticationServer {
 	 * @param loginMethod The login method that is currently used.
 	 * @returns The set of attribute handles used in the login method that belong to identifying attributes.
 	 */
-	public async _welcomeEPAuths() {
+	public async _welcomeEPAuths(): Promise<Record<string, TAuths.AttrType>> {
 		const welcomeResponseFn = () => this._authsApi.apiGET<TAuths.AuthsWelcomeResp>(this._authsApi.apiURLS.welcome);
 		const okWelcomeResp = await handleErrors<TAuths.WelcomeResp>(welcomeResponseFn);
 		return okWelcomeResp.attr_types;
@@ -105,7 +105,7 @@ export default class AuthenticationServer {
 			throw new Error('The response is not okay');
 		}
 	}
-	public async YiviReleaseNextSessionEP(requestBody: TAuths.YiviReleaseNextSessionReq) {
+	public async YiviReleaseNextSessionEP(requestBody: TAuths.YiviReleaseNextSessionReq): Promise<TAuths.YiviReleaseNextSessionResp> {
 		const response = await this._authsApi.api<{ Ok: TAuths.YiviReleaseNextSessionResp }>(this._authsApi.apiURLS.YiviReleaseNextSessionEP, requestOptions(requestBody));
 		if (isOk(response)) {
 			return response.Ok;
@@ -119,7 +119,7 @@ export default class AuthenticationServer {
 	 *
 	 * @returns The task and state returned by the AuthStartEP.
 	 */
-	public async _startAuthEP(requestBody: TAuths.AuthStartReq) {
+	public async _startAuthEP(requestBody: TAuths.AuthStartReq): Promise<TAuths.StartResp> {
 		const authStartRespFn = () => this._authsApi.api<TAuths.AuthStartResp>(this._authsApi.apiURLS.authStart, requestOptions<TAuths.AuthStartReq>(requestBody));
 		const okAuthStartResp = await handleErrors<TAuths.StartResp>(authStartRespFn);
 		return okAuthStartResp;
