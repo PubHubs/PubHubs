@@ -145,11 +145,11 @@ const useMSS = defineStore('mss', {
 				}
 
 				// 6. Validate attributes
-				// Logic needs to be updated for choices
-				// const requestedAttrKeys = loginMethod.attr_types;
-				// if (!authServer._responseEqualToRequested(Object.keys(authSuccResp.attrs), requestedAttrKeys)) {
-				// 	throw new Error('The disclosed attributes do not match the requested attributes.');
-				// }
+				const requestedAttrKeys = ['ph_card', 'phone'];
+				const requestedAttrKeys2 = ['email', 'phone'];
+				if (!authServer._responseEqualToRequested(Object.keys(authSuccResp.attrs), requestedAttrKeys) && !authServer._responseEqualToRequested(Object.keys(authSuccResp.attrs), requestedAttrKeys2)) {
+					throw new Error('The disclosed attributes do not match the requested attributes.');
+				}
 
 				// 7. Collect identifying & additional attributes
 				const signedAddAttrs: string[] = [];
@@ -223,8 +223,8 @@ const useMSS = defineStore('mss', {
 				throw new Error('Need to try again with another PseudoCard');
 			}
 			// return the signed card attribute to the pubhubs central server so it knows the user has a pubhubs card now.
-			const enterResp = await this.phcServer._enter(enterReq.add_attrs, enterReq.mode, identifyingAttr);
-			if (!('Entered' in enterResp)) {
+			const { entered, errorMessage } = await this.phcServer._enter(enterReq.add_attrs, enterReq.mode, identifyingAttr);
+			if (!entered) {
 				throw new Error('Did not succesfully add card to central pubhubs server');
 			}
 
