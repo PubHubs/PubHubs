@@ -68,7 +68,7 @@ const useMSS = defineStore('mss', {
 			return this._transcryptor!;
 		},
 
-		async issueCard(identifyingAttr: string) {
+		async issueCard(identifyingAttr: string, attributes: string[]) {
 			const authServer = await this.getAuthServer();
 
 			// Get pseudo card package
@@ -78,7 +78,7 @@ const useMSS = defineStore('mss', {
 			if (ResultResponse.Success in cardPseudePackage) {
 				CardReq = {
 					card_pseud_package: cardPseudePackage.Success,
-					comment: 'blah blah blah',
+					comment: attributes[0][0].value + attributes[1][0].value,
 				};
 			} else {
 				throw new Error('Need to try again with a new Authtoken');
@@ -213,7 +213,7 @@ const useMSS = defineStore('mss', {
 			const signedAddAttrs: string[] = [];
 			const signedIdentifyingAttrs: SignedIdentifyingAttrs = {};
 
-			let selectedIdentifyingAttribute = null;
+			let identifyingAttributeHandle = null;
 			for (const [handle, attr] of Object.entries(authSuccResp.attrs)) {
 				if (typeof attr !== 'string') {
 					console.warn(`Skipping attribute '${handle}' because value is not a string:`, attr);
@@ -222,7 +222,7 @@ const useMSS = defineStore('mss', {
 
 				if (identifyingAttrsSet.has(handle)) {
 					const decodedAttr = authServer._decodeJWT(attr) as Attr;
-					selectedIdentifyingAttribute = handle;
+					identifyingAttributeHandle = handle;
 					signedIdentifyingAttrs[handle] = {
 						signedAttr: attr,
 						id: decodedAttr.attr_type,
@@ -235,11 +235,11 @@ const useMSS = defineStore('mss', {
 				}
 			}
 			// Start login
-			if (!selectedIdentifyingAttribute) {
+			if (!identifyingAttributeHandle) {
 				throw new Error('Could not retreive an identifying attribute from the auth success response');
 			}
-			const identifyingAttr = authSuccResp.attrs[selectedIdentifyingAttribute];
-			const { entered, errorMessage } = await this.phcServer._enter(signedAddAttrs, enterMode, identifyingAttr);
+			const identifyingAttr = authSuccResp.attrs[identifyingAttributeHandle];
+			const { entered, errorMessage, enterResp } = await this.phcServer._enter(signedAddAttrs, enterMode, identifyingAttr);
 			if (!entered) {
 				return errorMessage;
 			}
@@ -251,7 +251,7 @@ const useMSS = defineStore('mss', {
 			const userSecretObject = userSecret?.object ?? null;
 			// Only issue a card if a user is registering
 			if (enterMode === PHCEnterMode.LoginOrRegister) {
-				const { cardAttr, errorMessage } = await this.issueCard(identifyingAttr);
+				const { cardAttr, errorMessage } = await this.issueCard(identifyingAttr, enterResp);
 				if (cardAttr) {
 					signedIdentifyingAttrs['ph_card'] = cardAttr;
 				} else {

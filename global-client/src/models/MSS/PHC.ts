@@ -119,7 +119,7 @@ export default class PHCServer {
 			const { auth_token_package } = enterResp.Entered;
 			const authToken = handleErrorCodes<TPHC.AuthTokenPackage, TPHC.AuthTokenDeniedReason>(auth_token_package);
 			this._setAuthToken(authToken);
-			return { entered: true, errorMessage: null };
+			return { entered: true, errorMessage: null, enterResp: enterResp.Entered.attr_status };
 		} else {
 			throw new Error('Unknown response from the enter endpoint.');
 		}
