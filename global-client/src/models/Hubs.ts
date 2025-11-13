@@ -8,7 +8,7 @@ import { HubSettingsJSONParser } from '@hub-client/logic/json-utility';
 
 // Models
 import { handleErrors, requestOptions } from '@global-client/models/MSS/Auths';
-import { EnterCompleteResp, EnterStartResp, HubEnterCompleteReq, HubEnterCompleteResp, HubEnterStartResp } from '@global-client/models/MSS/TMultiServerSetup';
+import { EnterCompleteResp, EnterStartResp, HubEnterCompleteReq, HubEnterCompleteResp, HubEnterStartResp } from '@global-client/models/MSS/TGeneral';
 
 // Stores
 import { FeatureFlag, SettingsStore } from '@hub-client/stores/settings';
