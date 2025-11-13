@@ -8,7 +8,6 @@ import { HubSettingsJSONParser } from '@hub-client/logic/json-utility';
 
 // Models
 import { handleErrors, requestOptions } from '@global-client/models/MSS/Auths';
-import { EnterCompleteResp, EnterStartResp, HubEnterCompleteReq, HubEnterCompleteResp, HubEnterStartResp } from '@global-client/models/MSS/TGeneral';
 
 // Stores
 import { FeatureFlag, SettingsStore } from '@hub-client/stores/settings';
@@ -81,15 +80,15 @@ class Hub {
 	}
 
 	public async enterStartEP() {
-		const enterStartRespFn = () => hub_api.api<HubEnterStartResp>(`${this.serverUrl}${hub_api.apiURLS.enterStart}`, { method: 'POST' });
-		const okEnterStartResp = await handleErrors<EnterStartResp>(enterStartRespFn);
+		const enterStartRespFn = () => hub_api.api<MSS.HubEnterStartResp>(`${this.serverUrl}${hub_api.apiURLS.enterStart}`, { method: 'POST' });
+		const okEnterStartResp = await handleErrors<MSS.EnterStartResp>(enterStartRespFn);
 		return okEnterStartResp;
 	}
 
 	public async enterCompleteEP(state: string, hhpp: string) {
-		const requestPayload: HubEnterCompleteReq = { state, hhpp };
-		const enterCompleteRespFn = () => hub_api.api<HubEnterCompleteResp>(`${this.serverUrl}${hub_api.apiURLS.enterComplete}`, requestOptions<HubEnterCompleteReq>(requestPayload));
-		const okEnterCompleteResp = await handleErrors<EnterCompleteResp>(enterCompleteRespFn);
+		const requestPayload: MSS.HubEnterCompleteReq = { state, hhpp };
+		const enterCompleteRespFn = () => hub_api.api<MSS.HubEnterCompleteResp>(`${this.serverUrl}${hub_api.apiURLS.enterComplete}`, requestOptions<MSS.HubEnterCompleteReq>(requestPayload));
+		const okEnterCompleteResp = await handleErrors<MSS.EnterCompleteResp>(enterCompleteRespFn);
 		if (okEnterCompleteResp === 'RetryFromStart') {
 			return okEnterCompleteResp;
 		} else {
