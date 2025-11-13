@@ -67,11 +67,13 @@ type AuthTask = {
 		yivi_requestor_url: string;
 	};
 };
+export type YiviWaitForResultResp = { Success: { disclosure: string } } | { PleaseRestartAuth: string } | { SessionGone: string };
+
 export type YiviReleaseNextSessionResp = { Success: {} } | { PleaseRestartAuth: string } | { SessionGone: string } | { TooEarly: string };
 
 export type YiviReleaseNextSessionReq = { state: number[]; next_session?: string };
 
-export type CardResp = { Success: { attr; issuance_request; yivi_requestor_url } } | { PleaseRetryWithNewCardPseud: string };
+export type CardResp = { Success: { attr: string; issuance_request: string; yivi_requestor_url: string } } | { PleaseRetryWithNewCardPseud: string };
 
 export type CardReq = { card_pseud_package: { card_pseud: number; registration_date?: Number }; comment: string };
 

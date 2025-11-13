@@ -92,17 +92,17 @@ export default class AuthenticationServer {
 		const okWelcomeResp = await handleErrors<mssTypes.WelcomeResp>(welcomeResponseFn);
 		return okWelcomeResp.attr_types;
 	}
-	public async YiviWaitForResultEP(argument: any) {
+	public async YiviWaitForResultEP(argument: any): Promise<mssTypes.YiviWaitForResultResp> {
 		const requestBody = { state: argument };
-		const response = await this._authsApi.api(this._authsApi.apiURLS.YiviWaitForResultEP, requestOptions(requestBody));
+		const response = await this._authsApi.api<{ Ok: mssTypes.YiviWaitForResultResp }>(this._authsApi.apiURLS.YiviWaitForResultEP, requestOptions(requestBody));
 		if (mssTypes.isOk(response)) {
 			return response.Ok;
 		} else {
 			throw new Error('The response is not okay');
 		}
 	}
-	public async CardEP(requestBody: mssTypes.CardReq) {
-		const response = await this._authsApi.api<mssTypes.CardResp>(this._authsApi.apiURLS.cardEP, requestOptions(requestBody));
+	public async CardEP(requestBody: mssTypes.CardReq): Promise<mssTypes.CardResp> {
+		const response = await this._authsApi.api<{ Ok: mssTypes.CardResp }>(this._authsApi.apiURLS.cardEP, requestOptions(requestBody));
 		if (mssTypes.isOk(response)) {
 			return response.Ok;
 		} else {
@@ -110,7 +110,7 @@ export default class AuthenticationServer {
 		}
 	}
 	public async YiviReleaseNextSessionEP(requestBody: mssTypes.YiviReleaseNextSessionReq) {
-		const response = await this._authsApi.api<mssTypes.YiviReleaseNextSessionResp>(this._authsApi.apiURLS.YiviReleaseNextSessionEP, requestOptions(requestBody));
+		const response = await this._authsApi.api<{ Ok: mssTypes.YiviReleaseNextSessionResp }>(this._authsApi.apiURLS.YiviReleaseNextSessionEP, requestOptions(requestBody));
 		if (mssTypes.isOk(response)) {
 			return response.Ok;
 		} else {

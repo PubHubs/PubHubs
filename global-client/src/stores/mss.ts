@@ -86,7 +86,7 @@ const useMSS = defineStore('mss', {
 				} else {
 					authStartReq = {
 						source: loginMethod.source,
-						// attr_types: loginMethod.attr_types,
+						attr_types: [],
 						attr_type_choices: [['ph_card', 'email'], ['phone']],
 						yivi_chained_session: false,
 					};
@@ -109,8 +109,8 @@ const useMSS = defineStore('mss', {
 
 						// Perform Yivi authentication
 						//
-						let resultJWT;
-						let proof;
+						let resultJWT: string | mssTypes.YiviWaitForResultResp;
+						let proof: { Yivi: { disclosure: string } };
 						if (enterMode === mssTypes.PHCEnterMode.LoginOrRegister) {
 							console.error('Login or register');
 							startYiviAuthentication(yiviRequestorUrl, disclosure_request);
@@ -122,6 +122,7 @@ const useMSS = defineStore('mss', {
 							}
 						} else {
 							resultJWT = await startYiviAuthentication(yiviRequestorUrl, disclosure_request);
+							console.error(typeof resultJWT);
 							proof = { Yivi: { disclosure: resultJWT } };
 						}
 
@@ -201,10 +202,12 @@ const useMSS = defineStore('mss', {
 			} else {
 				throw new Error('Need to try again with a new Authtoken');
 			}
+			// Get a signed card attribute from the auth server
 			const CardResp = await authServer.CardEP(CardReq);
 
 			let enterReq: mssTypes.PHCEnterReq;
 			let YiviReleaseNextSessionReq: mssTypes.YiviReleaseNextSessionReq;
+			let cardAttr: string;
 			if ('Success' in CardResp) {
 				enterReq = {
 					mode: mssTypes.PHCEnterMode.Login,
@@ -214,14 +217,20 @@ const useMSS = defineStore('mss', {
 					state: authServer._state,
 					next_session: CardResp.Success.issuance_request,
 				};
+				cardAttr = CardResp.Success.attr;
 			} else {
 				throw new Error('Need to try again with another PseudoCard');
 			}
+			// return the signed card attribute to the pubhubs central server so it knows the user has a pubhubs card now.
 			const enterResp = await this.phcServer._enter(enterReq.add_attrs, enterReq.mode, identifyingAttr);
+			if (!('Entered' in enterResp)) {
+				throw new Error('Did not succesfully add card to central pubhubs server');
+			}
 
+			// Finally add the pubhuhs card with jwt in the chained session of yivi started in the authentication, this must be done after the attribute has been added to pubhubs central with _enter
 			await authServer.YiviReleaseNextSessionEP(YiviReleaseNextSessionReq);
 
-			return CardResp.Success.attr;
+			return cardAttr;
 		},
 
 		async enterPubHubs(loginMethod: mssTypes.LoginMethod, enterMode: mssTypes.PHCEnterMode) {
@@ -236,15 +245,16 @@ const useMSS = defineStore('mss', {
 			let signedCardAttribute = null;
 			if (enterMode === mssTypes.PHCEnterMode.LoginOrRegister) {
 				signedCardAttribute = await this.issueCard(identifyingAttr);
+				if (signedCardAttribute) {
+					const decodedAttr = authServer._decodeJWT(signedCardAttribute) as mssTypes.Attr;
+					signedIdentifyingAttrs['ph_card'] = {
+						signedAttr: signedCardAttribute,
+						id: decodedAttr.attr_type,
+						value: decodedAttr.value,
+					};
+				}
 			}
-			if (signedCardAttribute) {
-				const decodedAttr = authServer._decodeJWT(signedCardAttribute) as mssTypes.Attr;
-				signedIdentifyingAttrs['ph_card'] = {
-					signedAttr: signedCardAttribute,
-					id: decodedAttr.attr_type,
-					value: decodedAttr.value,
-				};
-			}
+
 			// Request attribute keys for all identifying attributes used to login.
 			// FIXME: Typescript typing
 			const attrKeyReq: mssTypes.AuthAttrKeyReq = {};
