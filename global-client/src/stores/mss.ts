@@ -207,7 +207,6 @@ const useMSS = defineStore('mss', {
 				if (typeof attr !== 'string') continue;
 				const dec = authServer._decodeJWT(attr) as Attr;
 				allDecodedAttrs.push({ handle, attr: dec });
-
 				if (identifyingAttrs.has(handle)) {
 					identifyingHandle = handle;
 					signedIdentifyingAttrs[handle] = {
@@ -215,8 +214,7 @@ const useMSS = defineStore('mss', {
 						id: dec.attr_type,
 						value: dec.value,
 					};
-				}
-				if (!loginMethod.identifying_attr.includes(handle)) {
+				} else {
 					signedAddAttrs.push(attr);
 				}
 			}
