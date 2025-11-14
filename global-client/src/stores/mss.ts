@@ -68,7 +68,7 @@ const useMSS = defineStore('mss', {
 			return this._transcryptor!;
 		},
 
-		async issueCard(attributes: [Attr, AttrAddStatus][], identifyingAttr?: string) {
+		async issueCard(comment: string = '', identifyingAttr?: string) {
 			const authServer = await this.getAuthServer();
 
 			// 1. Fetch pseudo card package from the Pubhubs Central Server
@@ -80,7 +80,7 @@ const useMSS = defineStore('mss', {
 			const cardReq: CardReq = {
 				card_pseud_package: pseudoResp.Success,
 				// TODO: implement string formatting
-				comment: attributes.map(([attr]) => attr.value).join(''),
+				comment: comment,
 			};
 
 			// 2. Get signed card attribute from Auth server
@@ -201,12 +201,14 @@ const useMSS = defineStore('mss', {
 			const signedAddAttrs: string[] = [];
 
 			let identifyingHandle: string | null = null;
-
+			// Collect all attributes for Pubhubs Card comment text
+			const allDecodedAttrs: { handle: string; attr: Attr }[] = [];
 			for (const [handle, attr] of Object.entries(authSuccess.attrs)) {
 				if (typeof attr !== 'string') continue;
+				const dec = authServer._decodeJWT(attr) as Attr;
+				allDecodedAttrs.push({ handle, attr: dec });
 
 				if (identifyingAttrs.has(handle)) {
-					const dec = authServer._decodeJWT(attr) as Attr;
 					identifyingHandle = handle;
 					signedIdentifyingAttrs[handle] = {
 						signedAttr: attr,
@@ -239,7 +241,8 @@ const useMSS = defineStore('mss', {
 
 			// 9. Issue card if registering
 			if (enterMode === PHCEnterMode.LoginOrRegister) {
-				const { cardAttr, errorMessage } = await this.issueCard(enterResp);
+				const comment = this.createCardComment(allDecodedAttrs);
+				const { cardAttr, errorMessage } = await this.issueCard(comment);
 				if (!cardAttr) return errorMessage;
 				signedIdentifyingAttrs['ph_card'] = cardAttr;
 			}
@@ -269,6 +272,9 @@ const useMSS = defineStore('mss', {
 			if (ResultResponse.Success in attrKeyResp) {
 				await this.phcServer.storeUserSecretObject(attrKeyResp.Success, signedIdentifyingAttrs, userSecretObject, objectDetails);
 			}
+		},
+		createCardComment(allAttrs: { handle: string; attr: Attr }[]): string {
+			return allAttrs.map(({ handle, attr }) => `${handle}: ${attr.value}`).join('\n');
 		},
 		async getHubs() {
 			if (!this.hubs) {
