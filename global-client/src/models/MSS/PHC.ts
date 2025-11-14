@@ -143,7 +143,9 @@ export default class PHCServer {
 			mode: enterMode,
 			add_attrs: signedAddAttrs,
 		};
-		const okEnterResp = await handleErrors(() => this._phcAPI.api<TPHC.PHCEnterResp>(this._phcAPI.apiURLS.enter, requestOptions<TPHC.PHCEnterReq>(requestPayload)));
+		let authorization: string | undefined;
+		if (!identifyingAttr) authorization = await this._getAuthToken();
+		const okEnterResp = await handleErrors(() => this._phcAPI.api<TPHC.PHCEnterResp>(this._phcAPI.apiURLS.enter, requestOptions<TPHC.PHCEnterReq>(requestPayload, authorization)));
 		return this._handleEnterResp(okEnterResp);
 	}
 
@@ -253,7 +255,7 @@ export default class PHCServer {
 		}
 	}
 
-	private async _getAuthToken() {
+	private async _getAuthToken(): Promise<string | undefined> {
 		if (!this._authToken) {
 			this.triggerLogoutProcedure();
 			return;

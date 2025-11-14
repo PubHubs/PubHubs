@@ -68,7 +68,7 @@ const useMSS = defineStore('mss', {
 			return this._transcryptor!;
 		},
 
-		async issueCard(identifyingAttr: string, attributes: [Attr, AttrAddStatus][]) {
+		async issueCard(attributes: [Attr, AttrAddStatus][], identifyingAttr?: string) {
 			const authServer = await this.getAuthServer();
 
 			// 1. Fetch pseudo card package from the Pubhubs Central Server
@@ -93,7 +93,6 @@ const useMSS = defineStore('mss', {
 
 			// 3. Add card attribute to PubHubs Central Server
 			const { entered, errorMessage } = await this.phcServer._enter([signedCardAttr], PHCEnterMode.Login, identifyingAttr);
-
 			if (!entered) {
 				return { cardAttr: null, errorMessage };
 			}
@@ -240,7 +239,7 @@ const useMSS = defineStore('mss', {
 
 			// 9. Issue card if registering
 			if (enterMode === PHCEnterMode.LoginOrRegister) {
-				const { cardAttr, errorMessage } = await this.issueCard(identifyingAttr, enterResp);
+				const { cardAttr, errorMessage } = await this.issueCard(enterResp);
 				if (!cardAttr) return errorMessage;
 				signedIdentifyingAttrs['ph_card'] = cardAttr;
 			}
