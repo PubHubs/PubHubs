@@ -71,58 +71,49 @@ const useMSS = defineStore('mss', {
 		async issueCard(identifyingAttr: string, attributes: [Attr, AttrAddStatus][]) {
 			const authServer = await this.getAuthServer();
 
-			// Get pseudo card package
-			const cardPseudePackage = await this.phcServer.cardPseudePackage();
-			// Create card requst for the Auth server
-			let CardReq: CardReq;
-			if (ResultResponse.Success in cardPseudePackage) {
-				CardReq = {
-					card_pseud_package: cardPseudePackage.Success,
-					comment: attributes[0][0].value + attributes[1][0].value,
-				};
-			} else {
-				throw new Error('Need to try again with a new Authtoken');
+			// 1. Fetch pseudo card package from the Pubhubs Central Server
+			const pseudoResp = await this.phcServer.cardPseudePackage();
+			if (!(ResultResponse.Success in pseudoResp)) {
+				throw new Error('Pseudo card package failed — retry with a new Authtoken.');
 			}
-			// Get a signed card attribute from the auth server
-			const CardResp = await authServer.CardEP(CardReq);
 
-			let enterReq: PHCEnterReq;
-			let YiviReleaseNextSessionReq: YiviReleaseNextSessionReq;
-			let cardAttr: string;
-			if (ResultResponse.Success in CardResp) {
-				enterReq = {
-					mode: PHCEnterMode.Login,
-					add_attrs: [CardResp.Success.attr],
-				};
-				YiviReleaseNextSessionReq = {
-					state: authServer._state,
-					next_session: CardResp.Success.issuance_request,
-				};
-				cardAttr = CardResp.Success.attr;
-			} else {
-				throw new Error('Need to try again with another PseudoCard');
+			const cardReq: CardReq = {
+				card_pseud_package: pseudoResp.Success,
+				comment: attributes.map(([attr]) => attr.value).join(''),
+			};
+
+			// 2. Get signed card attribute from Auth server
+			const cardResp = await authServer.CardEP(cardReq);
+			if (!(ResultResponse.Success in cardResp)) {
+				throw new Error('Card issuance failed — retry with a new PseudoCard.');
 			}
-			// return the signed card attribute to the pubhubs central server so it knows the user has a pubhubs card now.
-			const { entered, errorMessage } = await this.phcServer._enter(enterReq.add_attrs, enterReq.mode, identifyingAttr);
+
+			const { attr: signedCardAttr, issuance_request } = cardResp.Success;
+
+			// 3. Add card attribute to PubHubs Central Server
+			const { entered, errorMessage } = await this.phcServer._enter([signedCardAttr], PHCEnterMode.Login, identifyingAttr);
+
 			if (!entered) {
-				return {
-					cardAttr: null,
-					errorMessage: errorMessage,
-				};
+				return { cardAttr: null, errorMessage };
 			}
 
-			// Finally add the pubhuhs card with jwt in the chained session of yivi started in the authentication, this must be done after the attribute has been added to pubhubs central with _enter
-			const releaseResp = await authServer.YiviReleaseNextSessionEP(YiviReleaseNextSessionReq);
+			// 4. Add card to Yivi chained session
+			const releaseResp = await authServer.YiviReleaseNextSessionEP({
+				state: authServer._state,
+				next_session: issuance_request,
+			});
 			if (!(ResultResponse.Success in releaseResp)) {
-				throw new Error('Did not succesfully add the card to the chained session in yivi');
+				throw new Error('Failed to add the card to the Yivi chained session.');
 			}
 
-			const decodedAttr = authServer._decodeJWT(cardAttr) as Attr;
+			// 5. Decode and return card
+			const decoded = authServer._decodeJWT(signedCardAttr) as Attr;
+
 			return {
 				cardAttr: {
-					signedAttr: cardAttr,
-					id: decodedAttr.attr_type,
-					value: decodedAttr.value,
+					signedAttr: signedCardAttr,
+					id: decoded.attr_type,
+					value: decoded.value,
 				},
 				errorMessage: null,
 			};
@@ -131,155 +122,154 @@ const useMSS = defineStore('mss', {
 		async enterPubHubs(loginMethod: LoginMethod, enterMode: PHCEnterMode): Promise<{ key: string; values?: string[] } | undefined> {
 			const authServer = await this.getAuthServer();
 
-			//0. Fetch auth server
-			// 1. Fetch supported attribute types and validate
-			const supportedAttrTypes = await authServer._welcomeEPAuths();
-			const identifyingAttrsSet = authServer._checkAttributes(supportedAttrTypes, loginMethod, enterMode);
+			// 1. Fetch supported attr types
+			const supported = await authServer._welcomeEPAuths();
+			const identifyingAttrs = authServer._checkAttributes(supported, loginMethod, enterMode);
 
-			let authStartReq: AuthStartReq;
-			// 2. Prepare start request
-			if (enterMode === PHCEnterMode.LoginOrRegister) {
-				authStartReq = {
-					source: loginMethod.source,
-					attr_types: loginMethod.register_attr,
-					attr_type_choices: [],
-					yivi_chained_session: true,
-				};
-			} else {
-				authStartReq = {
-					source: loginMethod.source,
-					attr_types: [],
-					attr_type_choices: loginMethod.login_choices,
-					yivi_chained_session: false,
-				};
-			}
+			// 2. Build auth start request
+			const authStartReq: AuthStartReq =
+				enterMode === PHCEnterMode.LoginOrRegister
+					? {
+							source: loginMethod.source,
+							attr_types: loginMethod.register_attr,
+							attr_type_choices: [],
+							yivi_chained_session: true,
+						}
+					: {
+							source: loginMethod.source,
+							attr_types: [],
+							attr_type_choices: loginMethod.login_choices,
+							yivi_chained_session: false,
+						};
 
 			// 3. Start authentication
 			const startResp = await authServer._startAuthEP(authStartReq);
 
-			let authSuccResp: SuccesResp;
-
-			// 4. Handle start response
-			if (ResultResponse.Success in startResp) {
-				const { task, state } = startResp.Success;
-				authServer._state = state;
-
-				const source = loginMethod.source;
-				if (source === Source.Yivi && task.Yivi) {
-					const { disclosure_request, yivi_requestor_url } = task.Yivi;
-					const yiviRequestorUrl = filters.removeTrailingSlash(yivi_requestor_url);
-
-					// Perform Yivi authentication
-					let resultJWT: string | YiviWaitForResultResp;
-					let proof: { Yivi: { disclosure: string } };
-					if (enterMode === PHCEnterMode.LoginOrRegister) {
-						startYiviAuthentication(yiviRequestorUrl, disclosure_request);
-						resultJWT = await authServer.YiviWaitForResultEP(authServer._state);
-						if (ResultResponse.Success in resultJWT) {
-							proof = { Yivi: resultJWT.Success };
-						} else {
-							throw Error('Restart authentication please');
-						}
-					} else {
-						resultJWT = await startYiviAuthentication(yiviRequestorUrl, disclosure_request);
-						proof = { Yivi: { disclosure: resultJWT } };
-					}
-
-					authSuccResp = await authServer._completeAuthEP(proof, authServer._state);
-				} else {
-					throw new Error(`The task does not match the chosen source for the attributes: ${JSON.stringify(task)} (task), ${source} (source)`);
-				}
-			} else if ('UnknownAttrType' in startResp) {
-				throw new Error(`No attribute type known with this handle: ${startResp.UnknownAttrType}`);
-			} else if ('SourceNotAvailableFor' in startResp) {
-				throw new Error(`The source (${authStartReq.source}) is not available for the attribute type: ${startResp.SourceNotAvailableFor}`);
-			} else {
-				throw new Error('Unknown response from the AuthStart endpoint.');
+			if ('UnknownAttrType' in startResp) {
+				throw new Error(`Unknown attribute handle: ${startResp.UnknownAttrType}`);
+			}
+			if ('SourceNotAvailableFor' in startResp) {
+				throw new Error(`Source ${authStartReq.source} not available for attribute: ${startResp.SourceNotAvailableFor}`);
+			}
+			if (!(ResultResponse.Success in startResp)) {
+				throw new Error('Unexpected response from startAuth.');
 			}
 
-			// 5. Sanity check
-			if (!authSuccResp) {
-				throw new Error('Authentication response was not received.');
+			// 4. Handle Yivi task
+			const { task, state } = startResp.Success;
+			authServer._state = state;
+
+			if (loginMethod.source !== Source.Yivi || !task.Yivi) {
+				throw new Error(`Task mismatch for source ${loginMethod.source}: ${JSON.stringify(task)}`);
+			}
+
+			const { disclosure_request, yivi_requestor_url } = task.Yivi;
+			const yiviUrl = filters.removeTrailingSlash(yivi_requestor_url);
+
+			// Run Yivi
+			let proof: { Yivi: { disclosure: string } };
+
+			if (enterMode === PHCEnterMode.LoginOrRegister) {
+				startYiviAuthentication(yiviUrl, disclosure_request);
+				const jwt = await authServer.YiviWaitForResultEP(authServer._state);
+
+				if (!(ResultResponse.Success in jwt)) throw new Error('Restart authentication please');
+				proof = { Yivi: jwt.Success };
+			} else {
+				const disclosure = await startYiviAuthentication(yiviUrl, disclosure_request);
+				proof = { Yivi: { disclosure } };
+			}
+
+			// 5. Complete authentication
+			const authSuccess = await authServer._completeAuthEP(proof, authServer._state);
+
+			if (!authSuccess) {
+				throw new Error('Authentication completed with no data.');
 			}
 
 			// 6. Validate attributes
-			const requestedAttrKeys = ['ph_card', 'phone'];
-			const requestedAttrKeys2 = ['email', 'phone'];
-			if (!authServer._responseEqualToRequested(Object.keys(authSuccResp.attrs), requestedAttrKeys) && !authServer._responseEqualToRequested(Object.keys(authSuccResp.attrs), requestedAttrKeys2)) {
-				throw new Error('The disclosed attributes do not match the requested attributes.');
+			const keys = Object.keys(authSuccess.attrs);
+			const valid1 = authServer._responseEqualToRequested(keys, ['ph_card', 'phone']);
+			const valid2 = authServer._responseEqualToRequested(keys, ['email', 'phone']);
+
+			if (!valid1 && !valid2) {
+				throw new Error('Disclosed attributes do not match the requested ones.');
 			}
 
-			// 7. Collect identifying & additional attributes
-			const signedAddAttrs: string[] = [];
+			// 7. Collect attributes
 			const signedIdentifyingAttrs: SignedIdentifyingAttrs = {};
+			const signedAddAttrs: string[] = [];
 
-			let identifyingAttributeHandle = null;
-			for (const [handle, attr] of Object.entries(authSuccResp.attrs)) {
-				if (typeof attr !== 'string') {
-					console.warn(`Skipping attribute '${handle}' because value is not a string:`, attr);
-					continue;
-				}
+			let identifyingHandle: string | null = null;
 
-				if (identifyingAttrsSet.has(handle)) {
-					const decodedAttr = authServer._decodeJWT(attr) as Attr;
-					identifyingAttributeHandle = handle;
+			for (const [handle, attr] of Object.entries(authSuccess.attrs)) {
+				if (typeof attr !== 'string') continue;
+
+				if (identifyingAttrs.has(handle)) {
+					const dec = authServer._decodeJWT(attr) as Attr;
+					identifyingHandle = handle;
 					signedIdentifyingAttrs[handle] = {
 						signedAttr: attr,
-						id: decodedAttr.attr_type,
-						value: decodedAttr.value,
+						id: dec.attr_type,
+						value: dec.value,
 					};
 				}
-
 				if (!loginMethod.identifying_attr.includes(handle)) {
 					signedAddAttrs.push(attr);
 				}
 			}
-			// Start login
-			if (!identifyingAttributeHandle) {
-				throw new Error('Could not retreive an identifying attribute from the auth success response');
+
+			if (!identifyingHandle) {
+				throw new Error('Identifying attribute missing in authentication response.');
 			}
-			const identifyingAttr = authSuccResp.attrs[identifyingAttributeHandle];
+
+			// 8. Enter PubHubs
+			const identifyingAttr = authSuccess.attrs[identifyingHandle];
 			const { entered, errorMessage, enterResp } = await this.phcServer._enter(signedAddAttrs, enterMode, identifyingAttr);
-			if (!entered) {
-				return errorMessage;
-			}
-			// Get the state of the user
+
+			if (!entered) return errorMessage;
+
+			// Load updated state
 			await this.phcServer.stateEP();
-			// Get the objects that the user has stored
+
+			// Secret objects
 			const userSecret = await this.phcServer._getUserSecretObject();
 			const objectDetails = userSecret?.details ?? null;
 			const userSecretObject = userSecret?.object ?? null;
-			// Only issue a card if a user is registering
+
+			// 9. Issue card if registering
 			if (enterMode === PHCEnterMode.LoginOrRegister) {
 				const { cardAttr, errorMessage } = await this.issueCard(identifyingAttr, enterResp);
-				if (cardAttr) {
-					signedIdentifyingAttrs['ph_card'] = cardAttr;
-				} else {
-					return errorMessage;
-				}
+				if (!cardAttr) return errorMessage;
+				signedIdentifyingAttrs['ph_card'] = cardAttr;
 			}
 
-			// Request attribute keys for all identifying attributes used to login.
+			// 10. Build attribute key request
 			const attrKeyReq: AuthAttrKeyReq = {};
-			for (const [handle, attr] of Object.entries(signedIdentifyingAttrs) as [string, (typeof signedIdentifyingAttrs)[string]][]) {
-				if (isUserSecretObjectNew(userSecretObject) && attr.id in userSecretObject['data'] && userSecretObject['data'][attr.id][attr.value]) {
-					attrKeyReq[handle] = { attr: attr.signedAttr, timestamp: userSecretObject['data'][attr.id][attr.value].ts };
-				} else if (!isUserSecretObjectNew(userSecretObject) && userSecretObject && attr.id in userSecretObject && userSecretObject[attr.id][attr.value]) {
-					attrKeyReq[handle] = { attr: attr.signedAttr, timestamp: userSecretObject[attr.id][attr.value].ts };
-				} else {
-					attrKeyReq[handle] = { attr: attr.signedAttr, timestamp: null };
+			for (const [handle, attr] of Object.entries(signedIdentifyingAttrs)) {
+				let timestamp = null;
+
+				if (isUserSecretObjectNew(userSecretObject)) {
+					timestamp = userSecretObject?.data?.[attr.id]?.[attr.value]?.ts ?? null;
+				} else if (userSecretObject) {
+					timestamp = userSecretObject?.[attr.id]?.[attr.value]?.ts ?? null;
 				}
+
+				attrKeyReq[handle] = { attr: attr.signedAttr, timestamp };
 			}
+
 			const attrKeyResp = await authServer.attrKeysEP(attrKeyReq);
+
+			// Retry rules
 			if ('RetryWithNewAttr' in attrKeyResp) {
-				const global = useGlobal();
-				global.logout();
+				useGlobal().logout();
 				return { key: 'errors.retry_with_new_attr' };
-			} else if ('Success' in attrKeyResp) {
+			}
+
+			if (ResultResponse.Success in attrKeyResp) {
 				await this.phcServer.storeUserSecretObject(attrKeyResp.Success, signedIdentifyingAttrs, userSecretObject, objectDetails);
 			}
 		},
-
 		async getHubs() {
 			if (!this.hubs) {
 				await this.storePHCWelcomeInfo();
