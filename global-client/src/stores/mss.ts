@@ -239,7 +239,7 @@ const useMSS = defineStore('mss', {
 
 			// 9. Issue card if registering
 			if (enterMode === PHCEnterMode.LoginOrRegister) {
-				const comment = this.createCardComment(allDecodedAttrs);
+				const comment = allDecodedAttrs.map(({ handle, attr }) => `${handle}: ${attr.value}`).join('\n');
 				const { cardAttr, errorMessage } = await this.issueCard(comment);
 				if (!cardAttr) return errorMessage;
 				signedIdentifyingAttrs['ph_card'] = cardAttr;
@@ -270,9 +270,6 @@ const useMSS = defineStore('mss', {
 			if (ResultResponse.Success in attrKeyResp) {
 				await this.phcServer.storeUserSecretObject(attrKeyResp.Success, signedIdentifyingAttrs, userSecretObject, objectDetails);
 			}
-		},
-		createCardComment(allAttrs: { handle: string; attr: Attr }[]): string {
-			return allAttrs.map(({ handle, attr }) => `${handle}: ${attr.value}`).join('\n');
 		},
 		async getHubs() {
 			if (!this.hubs) {
