@@ -8,12 +8,18 @@ import { ErrorCode, Result, isOk } from '@global-client/models/MSS/TGeneral';
 import { PHCEnterMode } from '@global-client/models/MSS/TPHC';
 
 export default class AuthenticationServer {
-	public _state: number[];
+	private _state: number[];
 	private _authsApi: Api;
 
 	constructor(authServerUrl: string) {
 		this._state = [];
 		this._authsApi = auths_api(authServerUrl);
+	}
+	public getState() {
+		return this._state;
+	}
+	public setState(newState: number[]) {
+		this._state = newState;
 	}
 
 	/**

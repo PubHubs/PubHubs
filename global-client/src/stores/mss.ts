@@ -79,6 +79,7 @@ const useMSS = defineStore('mss', {
 
 			const cardReq: CardReq = {
 				card_pseud_package: pseudoResp.Success,
+				// TODO: implement string formatting
 				comment: attributes.map(([attr]) => attr.value).join(''),
 			};
 
@@ -99,7 +100,7 @@ const useMSS = defineStore('mss', {
 
 			// 4. Add card to Yivi chained session
 			const releaseResp = await authServer.YiviReleaseNextSessionEP({
-				state: authServer._state,
+				state: authServer.getState(),
 				next_session: issuance_request,
 			});
 			if (!(ResultResponse.Success in releaseResp)) {
@@ -157,7 +158,7 @@ const useMSS = defineStore('mss', {
 
 			// 4. Handle Yivi task
 			const { task, state } = startResp.Success;
-			authServer._state = state;
+			authServer.setState(state);
 
 			if (loginMethod.source !== Source.Yivi || !task.Yivi) {
 				throw new Error(`Task mismatch for source ${loginMethod.source}: ${JSON.stringify(task)}`);
@@ -171,7 +172,7 @@ const useMSS = defineStore('mss', {
 
 			if (enterMode === PHCEnterMode.LoginOrRegister) {
 				startYiviAuthentication(yiviUrl, disclosure_request);
-				const jwt = await authServer.YiviWaitForResultEP(authServer._state);
+				const jwt = await authServer.YiviWaitForResultEP(authServer.getState());
 
 				if (!(ResultResponse.Success in jwt)) throw new Error('Restart authentication please');
 				proof = { Yivi: jwt.Success };
@@ -181,7 +182,7 @@ const useMSS = defineStore('mss', {
 			}
 
 			// 5. Complete authentication
-			const authSuccess = await authServer._completeAuthEP(proof, authServer._state);
+			const authSuccess = await authServer._completeAuthEP(proof, authServer.getState());
 
 			if (!authSuccess) {
 				throw new Error('Authentication completed with no data.');
