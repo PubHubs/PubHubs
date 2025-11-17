@@ -24,7 +24,7 @@ const InitialRoomList: MSC3575List = {
 	sort: [SlidingSyncOptions.byRecency, SlidingSyncOptions.byNotificationLevel],
 	required_state: [
 		[EventType.RoomName, MSC3575_WILDCARD],
-		[MatrixEventType.RoomType, MSC3575_WILDCARD],
+		[EventType.RoomCreate, MSC3575_WILDCARD],
 		[EventType.RoomMember, MSC3575_WILDCARD],
 		[EventType.RoomPowerLevels, MSC3575_WILDCARD],
 	],
