@@ -2,7 +2,7 @@
 import { EventType } from 'matrix-js-sdk';
 import { type MSC3575List, type MSC3575RoomSubscription, MSC3575_STATE_KEY_LAZY, MSC3575_STATE_KEY_ME, MSC3575_WILDCARD } from 'matrix-js-sdk/lib/sliding-sync.js';
 
-import { SlidingSyncOptions, SystemDefaults } from '@hub-client/models/constants';
+import { MatrixEventType, SlidingSyncOptions, SystemDefaults } from '@hub-client/models/constants';
 
 // #region Subscriptions
 
@@ -24,6 +24,7 @@ const InitialRoomList: MSC3575List = {
 	sort: [SlidingSyncOptions.byRecency, SlidingSyncOptions.byNotificationLevel],
 	required_state: [
 		[EventType.RoomName, MSC3575_WILDCARD],
+		[MatrixEventType.RoomType, MSC3575_WILDCARD],
 		[EventType.RoomMember, MSC3575_WILDCARD],
 		[EventType.RoomPowerLevels, MSC3575_WILDCARD],
 	],

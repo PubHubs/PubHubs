@@ -33,8 +33,8 @@ enum MatrixType {
 // Eventtypes that are not covered by Matrix Constants
 enum MatrixEventType {
 	RoomName = 'm.room.name',
+	RoomType = 'm.room.type',
 	RoomAvatar = 'm.room.avatar',
-	RoomTopic = 'm.room.topic',
 	RoomMember = 'm.room.member',
 	RoomMessage = 'm.room.message',
 	RoomRedaction = 'm.room.redaction',
