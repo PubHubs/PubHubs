@@ -27,9 +27,9 @@ export default class PHCServer {
 	/** NOTE: Do not use this variable directly to prevent using an expired authToken. Instead, use _getAuthToken(). */
 	private _authToken: string | null = null;
 	private _expiryAuthToken: null | bigint = null;
-	/** NOTE: Do not use this variable directly, but use _getUserSecret(). */
+	/** NOTE: Do not use this variable directly, but use _getUserSecretInfo(). */
 	private _userSecret: string | undefined;
-	/** NOTE: Do not use this variable directly, but use _getUserSecret(). */
+	/** NOTE: Do not use this variable directly, but use _getUserSecretInfo(). */
 	private _userSecretVersion: number | undefined;
 
 	constructor() {
@@ -547,7 +547,7 @@ export default class PHCServer {
 	 *
 	 * @returns Either a message to retry with an updated token or the state of the current user.
 	 */
-	async stateEP() {
+	public async _stateEP() {
 		const options = {
 			headers: { Authorization: await this._getAuthToken() },
 			method: 'GET',
@@ -583,7 +583,7 @@ export default class PHCServer {
 				if (attempts === maxAttempts) {
 					throw new Error(`Could not retrieve the object with handle ${handle}, errorcode: ${getObjResp}`);
 				}
-				await this.stateEP();
+				await this._stateEP();
 				// TODO: check if this is the correct way to handle both of these cases
 				const objectDetails = await this._getObjectDetails(handle);
 				// If the object cannot be found, return null.
@@ -599,17 +599,13 @@ export default class PHCServer {
 		throw new Error('Unexpectedly could not handle the response of the getObjectEP.');
 	}
 
-	private async _getObjectDetails(handle: string): Promise<TPHC.UserObjectDetails | null | undefined> {
+	private async _getObjectDetails(handle: string): Promise<TPHC.UserObjectDetails | undefined> {
 		if (this._userStateObjects === undefined) {
-			await this.stateEP();
+			await this._stateEP();
 		}
 
-		const objects = this._userStateObjects;
-		if (objects === undefined) {
-			throw new Error('Could not retrieve the state for this user.');
-		}
-
-		const objectDetails: TPHC.UserObjectDetails | null = objects[handle];
+		assert.isDefined(this._userStateObjects, 'Could not retrieve the user state.');
+		const objectDetails: TPHC.UserObjectDetails | undefined = this._userStateObjects[handle];
 		return objectDetails;
 	}
 
@@ -653,9 +649,9 @@ export default class PHCServer {
 	 *
 	 * @param handle The handle to store the object under.
 	 * @param object The object to write to the object store.
-	 * @returns The hash if the object was stored correctly.
+	 * @returns True if the object was stored correctly.
 	 */
-	private async _newObjectEP(handle: string, object: Uint8Array): Promise<string | undefined> {
+	private async _newObjectEP(handle: string, object: Uint8Array): Promise<boolean | undefined> {
 		const maxAttempts = 3;
 		for (let attempts = 0; attempts < maxAttempts; attempts++) {
 			const options = {
@@ -693,11 +689,12 @@ export default class PHCServer {
 					if ('QuotumReached' in newObjectResp) {
 						throw new Error(`Could not store the new user object with handle ${handle}, because the quotum is reached.`);
 					} else if ('Stored' in newObjectResp) {
-						// TODO: this call to the stateEP can be removed if the newObjectEP also returns the hmac of the new object. In that case the local "shadow record" of the userStateObjects can be directly updated here.
-						await this.stateEP();
-						return newObjectResp.Stored.hash;
+						assert.isDefined(this._userStateObjects, 'this._userStateObjects cannot be undefined, unless something went wrong with the call to the stateEP.');
+						this._userStateObjects = newObjectResp.Stored.stored_objects;
+						return true;
+					} else {
+						throw new Error('Unknown response for newObjectEP request.');
 					}
-					throw new Error('Unknown response for newObjectEP request.');
 			}
 		}
 		throw new Error('Unexpectedly could not handle the response of the newObjectEP.');
@@ -708,9 +705,9 @@ export default class PHCServer {
 	 * @param handle The handle of the object to overwrite.
 	 * @param overwriteHash The hash of the object to overwrite.
 	 * @param object The new contents of the object.
-	 * @returns The hash if the object was stored correctly.
+	 * @returns True if the object was stored correctly.
 	 */
-	private async _overwriteObjectEP(handle: string, overwriteHash: string, object: Uint8Array): Promise<string | undefined> {
+	private async _overwriteObjectEP(handle: string, overwriteHash: string, object: Uint8Array): Promise<boolean | undefined> {
 		const maxAttempts = 3;
 		let hash = overwriteHash;
 		for (let attempts = 0; attempts < maxAttempts; attempts++) {
@@ -740,6 +737,7 @@ export default class PHCServer {
 					if (attempts === maxAttempts) {
 						throw new Error('The object stored at this handle has a different hash');
 					}
+					await this._stateEP();
 					const existingObject = await this.getUserObject(handle);
 					if (existingObject !== null) {
 						hash = existingObject.details.hash;
@@ -747,16 +745,17 @@ export default class PHCServer {
 					}
 					throw new Error('Could not find the object.');
 				case 'NoChanges':
-					return overwriteHash;
+					return true;
 				default:
 					if ('QuotumReached' in overwriteObjectResp) {
 						throw new Error(`Could not store the new user object with handle ${handle}, because the quotum is reached.`);
 					} else if ('Stored' in overwriteObjectResp) {
-						// TODO: this call to the stateEP can be removed if the overwriteObjectEP also returns the new hmac of the object. In that case the local "shadow record" of the userStateObjects can be directly updated here.
-						await this.stateEP();
-						return overwriteObjectResp.Stored.hash;
+						assert.isDefined(this._userStateObjects, 'this._userStateObjects cannot be undefined, unless something went wrong with the call to the stateEP.');
+						this._userStateObjects = overwriteObjectResp.Stored.stored_objects;
+						return true;
+					} else {
+						throw new Error('Unknown response for newObjectEP request.');
 					}
-					throw new Error('Unknown response for newObjectEP request.');
 			}
 		}
 		throw new Error('Unexpectedly could not handle the response of the overwriteEP.');
@@ -771,14 +770,14 @@ export default class PHCServer {
 	 * @returns A boolean value, denoting whether the object was stored correctly or not.
 	 */
 	private async _storeObject(handle: string, data: Uint8Array, overwriteHash?: string): Promise<boolean> {
-		let storeObjectResp: string | undefined;
+		let stored: boolean | undefined;
 		if (overwriteHash) {
-			storeObjectResp = await this._overwriteObjectEP(handle, overwriteHash, data);
+			stored = await this._overwriteObjectEP(handle, overwriteHash, data);
 		} else {
-			storeObjectResp = await this._newObjectEP(handle, data);
+			stored = await this._newObjectEP(handle, data);
 		}
 
-		if (storeObjectResp === undefined) {
+		if (!stored || stored === undefined) {
 			return false;
 		}
 		const storedObject = await this.getUserObject(handle);
@@ -830,7 +829,7 @@ export default class PHCServer {
 			},
 			method: 'POST',
 		};
-		const okHhppResp = await handleErrors<TPHC.HhppResp>(() => this._phcAPI.api<TPHC.PHCHhppResp>(this._phcAPI.apiURLS.HashedHubPseudonymPackage, options));
+		const okHhppResp = await handleErrors<TPHC.HhppResp>(() => this._phcAPI.api<TPHC.PHCHhppResp>(this._phcAPI.apiURLS.hashedHubPseudonymPackage, options));
 		if (okHhppResp === 'RetryWithNewPpp') {
 			return okHhppResp;
 		} else if (okHhppResp === 'RetryWithNewAuthToken') {

@@ -135,7 +135,7 @@ export type StoreObjectResp =
 	| { QuotumReached: QuotumName }
 	| {
 			Stored: {
-				hash: string;
+				stored_objects: Record<string, UserObjectDetails>;
 			};
 	  };
 

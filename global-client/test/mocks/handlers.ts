@@ -108,25 +108,25 @@ export const handlers = [
 	http.post('http://test/.ph/user/obj/by-handle/usersecret', async ({ request }) => {
 		const body = await request.arrayBuffer();
 		encryptedUserSecret = body;
-		return HttpResponse.json({ Ok: { Stored: { hash: 'userSecretHash' } } }, { status: 200 });
+		return HttpResponse.json({ Ok: { Stored: { object_details: { hash: 'userSecretHash', hmac: 'userSecretHmac', size: 300 } } } }, { status: 200 });
 	}),
 
 	http.post('http://test/.ph/user/obj/by-hash/usersecret/userSecretHash', async ({ request }) => {
 		const body = await request.arrayBuffer();
 		encryptedUserSecret = body;
-		return HttpResponse.json({ Ok: { Stored: { hash: 'userSecretHash' } } }, { status: 200 });
+		return HttpResponse.json({ Ok: { Stored: { object_details: { hash: 'userSecretHash', hmac: 'userSecretHmac', size: 300 } } } }, { status: 200 });
 	}),
 
 	http.post('http://test/.ph/user/obj/by-handle/usersecretbackup', async ({ request }) => {
 		const body = await request.arrayBuffer();
 		encryptedUserSecretBackup = body;
-		return HttpResponse.json({ Ok: { Stored: { hash: 'userSecretBackupHash' } } }, { status: 200 });
+		return HttpResponse.json({ Ok: { Stored: { object_details: { hash: 'userSecretBackupHash', hmac: 'userSecretBackupHmac', size: 300 } } } }, { status: 200 });
 	}),
 
 	http.post('http://test/.ph/user/obj/by-hash/usersecretbackup/userSecretBackupHash', async ({ request }) => {
 		const body = await request.arrayBuffer();
 		encryptedUserSecretBackup = body;
-		return HttpResponse.json({ Ok: { Stored: { hash: 'userSecretHash' } } }, { status: 200 });
+		return HttpResponse.json({ Ok: { Stored: { object_details: { hash: 'userSecretBackupHash', hmac: 'userSecretBackupHmac', size: 300 } } } }, { status: 200 });
 	}),
 
 	http.get('http://test/.ph/user/obj/by-hash/userSecretHash/userSecretHmac', () => {

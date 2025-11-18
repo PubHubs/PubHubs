@@ -102,6 +102,11 @@ impl App {
             }
         }
 
+        let object_details: UserObjectDetails = UserObjectDetails {
+            size: obj.payload.len() as u32,
+            id: obj.object_id,
+        };
+
         // modify `user_state` locally to check quotum
         let mut existing_object_id: Option<Id> = None;
 
@@ -109,10 +114,7 @@ impl App {
             .stored_objects
             .entry(handle)
             .and_modify(|e| existing_object_id = Some(e.id))
-            .insert_entry(UserObjectDetails {
-                size: obj.payload.len() as u32,
-                id: obj.object_id,
-            });
+            .insert_entry(object_details.clone());
 
         // check quota
         let _quota = match user_state.update_quota(self.quota.clone()) {
@@ -154,7 +156,11 @@ impl App {
         }
 
         Ok(StoreObjectResp::Stored {
-            hash: obj.object_id,
+            stored_objects: user_state
+                .stored_objects
+                .into_iter()
+                .map(|(handle, uod)| (handle, uod.into_user_version(&self.user_object_hmac_secret)))
+                .collect(),
         })
     }
 

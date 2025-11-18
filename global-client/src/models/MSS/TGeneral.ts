@@ -8,7 +8,10 @@ export enum ErrorCode {
 export enum ResultResponse {
 	Success = 'Success',
 }
-
+// Type guard to check if a variable is of type Result
+export function isResult<T, E>(value: unknown): value is Result<T, E> {
+	return typeof value === 'object' && value !== null && ('Ok' in value || 'Err' in value);
+}
 export type Result<T, E> = { Ok: T } | { Err: E };
 
 // Type guard to check if the result is of type Ok
@@ -30,6 +33,8 @@ export type InfoResp = {
 	hub_version: string;
 	hub_client_url: string;
 };
+
+export type HubInfoResp = Result<InfoResp, ErrorCode>;
 
 export type EnterStartResp = {
 	state: string;

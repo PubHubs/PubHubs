@@ -9,21 +9,15 @@ import { startYiviAuthentication } from '@global-client/logic/utils/yiviHandler'
 import filters from '@hub-client/logic/core/filters';
 
 // Models
-import AuthenticationServer from '@global-client/models/MSS/Auths';
+import AuthenticationServer, { handleErrors } from '@global-client/models/MSS/Auths';
 import PHCServer from '@global-client/models/MSS/PHC';
 import { AuthAttrKeyReq, AuthStartReq, CardReq, LoginMethod, SignedIdentifyingAttrs, Source } from '@global-client/models/MSS/TAuths';
-import { EnterStartResp, InfoResp, Result, ResultResponse } from '@global-client/models/MSS/TGeneral';
+import { EnterStartResp, HubInfoResp, InfoResp, Result, ResultResponse, isResult } from '@global-client/models/MSS/TGeneral';
 import { Attr, Constellation, HubInformation, PHCEnterMode, isUserSecretObjectNew } from '@global-client/models/MSS/TPHC';
 import Transcryptor from '@global-client/models/MSS/Transcryptor';
 
 // Stores
 import { useGlobal } from '@global-client/stores/global';
-
-import { useDialog } from '@hub-client/stores/dialog';
-import { useSettings } from '@hub-client/stores/settings';
-
-// Other
-import { setLanguage, setUpi18n } from '@hub-client/i18n';
 
 const useMSS = defineStore('mss', {
 	state: () => {
@@ -225,7 +219,7 @@ const useMSS = defineStore('mss', {
 			if (!entered) return errorMessage;
 
 			// Load updated state
-			await this.phcServer.stateEP();
+			await this.phcServer._stateEP();
 
 			// Load Secret objects
 			const userSecret = await this.phcServer._getUserSecretObject();
@@ -272,24 +266,6 @@ const useMSS = defineStore('mss', {
 			return Object.values(this.hubs);
 		},
 
-		async hasValidAuthToken() {
-			try {
-				const state = await this.phcServer.stateEP();
-				return state !== undefined;
-			} catch (error) {
-				if (error instanceof Error && error.message.toLowerCase() === 'failed to fetch') {
-					const dialog = useDialog();
-					const i18n = setUpi18n();
-					const language = useSettings().language;
-					setLanguage(i18n, language);
-					const { t } = i18n.global;
-					dialog.confirm(t('system_offline'), t('system_offline_description'));
-				} else {
-					throw error;
-				}
-			}
-		},
-
 		async requestUserObject(handle: string) {
 			const object = await this.phcServer.getDecryptedUserObject(handle);
 			return object;
@@ -311,11 +287,11 @@ const useMSS = defineStore('mss', {
 		},
 
 		async getHubInfo(hubServerUrl: string): Promise<InfoResp> {
-			const infoResp = await hub_api.api<Result<InfoResp> | InfoResp>(`${hubServerUrl}${hub_api.apiURLS.info}`);
+			const infoResp = await hub_api.api<HubInfoResp | InfoResp>(`${hubServerUrl}${hub_api.apiURLS.info}`);
 
 			// hubs <= v3.0.0 do not wrap the info response in an "Ok": { ... }
-			if (infoResp.hasOwnProperty('Ok')) {
-				return infoResp.Ok;
+			if (isResult(infoResp)) {
+				return await handleErrors<InfoResp>(() => Promise.resolve(infoResp));
 			}
 
 			return infoResp;
