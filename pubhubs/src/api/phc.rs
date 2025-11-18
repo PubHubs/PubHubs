@@ -522,8 +522,10 @@ pub mod user {
         /// store, or when the global client is storing more than it should.
         QuotumReached(QuotumName),
 
-        /// The object was stored succesfully under the given hash
-        Stored { hash: Id },
+        /// The object was stored succesfully. The user objects that are currently stored for this user are returned.
+        Stored {
+            stored_objects: HashMap<handle::Handle, UserObjectDetails>,
+        },
     }
 
     /// Quota for a user

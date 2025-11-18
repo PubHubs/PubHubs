@@ -8,6 +8,11 @@ export enum ErrorCode {
 
 export type Result<T, E> = { Ok: T } | { Err: E };
 
+// Type guard to check if a variable is of type Result
+export function isResult<T, E>(value: unknown): value is Result<T, E> {
+	return typeof value === 'object' && value !== null && ('Ok' in value || 'Err' in value);
+}
+
 // Type guard to check if the result is of type Ok
 export function isOk<T, E>(result: Result<T, E>): result is { Ok: T } {
 	return 'Ok' in result;
@@ -240,7 +245,7 @@ export type StoreObjectResp =
 	| { QuotumReached: QuotumName }
 	| {
 			Stored: {
-				hash: string;
+				stored_objects: Record<string, UserObjectDetails>;
 			};
 	  };
 
@@ -303,6 +308,8 @@ export type InfoResp = {
 	hub_version: string;
 	hub_client_url: string;
 };
+
+export type HubInfoResp = Result<InfoResp, ErrorCode>;
 
 export type EnterStartResp = {
 	state: string;
