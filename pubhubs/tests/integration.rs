@@ -560,7 +560,7 @@ async fn main_integration_test_local(
     ));
 
     // store object
-    let api::phc::user::StoreObjectResp::Stored { hash } = client
+    let api::phc::user::StoreObjectResp::Stored { stored_objects } = client
         .query::<api::phc::user::NewObjectEP>(
             &constellation.phc_url,
             &BytesPayload(bytes::Bytes::from_static(b"object contents!")),
@@ -590,13 +590,20 @@ async fn main_integration_test_local(
     ));
 
     // overriding the object should work
-    let api::phc::user::StoreObjectResp::Stored { hash: new_hash } = client
+    let api::phc::user::StoreObjectResp::Stored {
+        stored_objects: new_stored_objects,
+    } = client
         .query::<api::phc::user::OverwriteObjectEP>(
             &constellation.phc_url,
             BytesPayload(bytes::Bytes::from_static(b"object contents! 2")),
         )
         .path_param("handle", "objhandle")
-        .path_param("overwrite_hash", hash.to_string())
+        .path_param(
+            "overwrite_hash",
+            stored_objects[&"objhandle".parse().unwrap()]
+                .hash
+                .to_string(),
+        )
         .auth_header(auth_token.clone())
         .with_retry()
         .await
@@ -625,13 +632,21 @@ async fn main_integration_test_local(
         .get(&"objhandle".parse().unwrap())
         .unwrap();
 
-    assert_eq!(*obj_hash, new_hash);
+    assert_eq!(
+        *obj_hash,
+        new_stored_objects[&"objhandle".parse().unwrap()].hash
+    );
     assert_eq!(*obj_size, "object contents! 2".len() as u32);
 
     // retrieve object
     let api::Payload::Octets(bytes) = client
         .query::<api::phc::user::GetObjectEP>(&constellation.phc_url, NoPayload)
-        .path_param("hash", new_hash.to_string())
+        .path_param(
+            "hash",
+            new_stored_objects[&"objhandle".parse().unwrap()]
+                .hash
+                .to_string(),
+        )
         .path_param("hmac", obj_hmac.to_string())
         .with_retry()
         .await

@@ -42,6 +42,8 @@ describe('Multi-server setup', () => {
 
 			expect(localStorage.getItem('UserSecret')).toBeNull();
 
+			// Simulating the call to stateEP which would normally be performed when requesting the usersecret object to check if it already exists (in the login function), to initialize the "shadow record" of the user state.
+			await phcServer['_stateEP']();
 			await phcServer.storeUserSecretObject(mockedAttrKeysResp, mockedIdentifyingAttrs, null, null);
 
 			expect(localStorage.getItem('UserSecret')).toBeTypeOf('string');
@@ -66,6 +68,8 @@ describe('Multi-server setup', () => {
 			localStorage.removeItem('UserSecret');
 			expect(localStorage.getItem('UserSecret')).toBeNull();
 
+			// Simulating the call to stateEP which would normally be performed when requesting the usersecret object to check if it already exists (in the login function), to initialize the "shadow record" of the user state.
+			await phcServer['_stateEP']();
 			await phcServer.storeUserSecretObject(mockedAttrKeysResp, mockedIdentifyingAttrs, oldUserSecretObject, { usersecret: { hash: 'userSecretHash', hmac: 'userSecretHmac', size: 300 }, backup: null });
 
 			expect(localStorage.getItem('UserSecret')).toBeTypeOf('string');
@@ -99,6 +103,8 @@ describe('Multi-server setup', () => {
 			localStorage.removeItem('UserSecret');
 			expect(localStorage.getItem('UserSecret')).toBeNull();
 
+			// Simulating the call to stateEP which would normally be performed when requesting the usersecret object to check if it already exists (in the login function), to initialize the "shadow record" of the user state.
+			await phcServer['_stateEP']();
 			await phcServer.storeUserSecretObject(mockedAttrKeysResp, mockedIdentifyingAttrs, oldUserSecret.object, {
 				usersecret: oldUserSecret.details.usersecret,
 				backup: oldUserSecret.details.backup,

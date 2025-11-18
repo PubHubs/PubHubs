@@ -8,19 +8,13 @@ import { hub_api } from '@global-client/logic/core/api';
 import filters from '@hub-client/logic/core/filters';
 
 // Models
-import AuthenticationServer from '@global-client/models/MSS/Auths';
+import AuthenticationServer, { handleErrors } from '@global-client/models/MSS/Auths';
 import PHCServer from '@global-client/models/MSS/PHC';
 import * as mssTypes from '@global-client/models/MSS/TMultiServerSetup';
 import Transcryptor from '@global-client/models/MSS/Transcryptor';
 
 // Stores
 import { useGlobal } from '@global-client/stores/global';
-
-import { useDialog } from '@hub-client/stores/dialog';
-import { useSettings } from '@hub-client/stores/settings';
-
-// Other
-import { setLanguage, setUpi18n } from '@hub-client/i18n';
 
 const useMSS = defineStore('mss', {
 	state: () => {
@@ -103,24 +97,6 @@ const useMSS = defineStore('mss', {
 			return Object.values(this.hubs);
 		},
 
-		async hasValidAuthToken() {
-			try {
-				const state = await this.phcServer.stateEP();
-				return state !== undefined;
-			} catch (error) {
-				if (error instanceof Error && error.message.toLowerCase() === 'failed to fetch') {
-					const dialog = useDialog();
-					const i18n = setUpi18n();
-					const language = useSettings().language;
-					setLanguage(i18n, language);
-					const { t } = i18n.global;
-					dialog.confirm(t('mss.system_offline'), t('mss.system_offline_description'));
-				} else {
-					throw error;
-				}
-			}
-		},
-
 		async requestUserObject(handle: string) {
 			const object = await this.phcServer.getDecryptedUserObject(handle);
 			return object;
@@ -142,11 +118,11 @@ const useMSS = defineStore('mss', {
 		},
 
 		async getHubInfo(hubServerUrl: string): Promise<mssTypes.InfoResp> {
-			const infoResp = await hub_api.api<mssTypes.Result<mssTypes.InfoResp> | mssTypes.InfoResp>(`${hubServerUrl}${hub_api.apiURLS.info}`);
+			const infoResp = await hub_api.api<mssTypes.HubInfoResp | mssTypes.InfoResp>(`${hubServerUrl}${hub_api.apiURLS.info}`);
 
 			// hubs <= v3.0.0 do not wrap the info response in an "Ok": { ... }
-			if (infoResp.hasOwnProperty('Ok')) {
-				return infoResp.Ok;
+			if (mssTypes.isResult(infoResp)) {
+				return await handleErrors<mssTypes.InfoResp>(() => Promise.resolve(infoResp));
 			}
 
 			return infoResp;
