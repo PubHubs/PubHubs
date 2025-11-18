@@ -68,7 +68,7 @@ const useMSS = defineStore('mss', {
 			return this._transcryptor!;
 		},
 
-		async issueCard(comment: string = '', identifyingAttr?: string) {
+		async issueCard(chainedSesssion: boolean, comment: string = '', identifyingAttr?: string) {
 			const authServer = await this.getAuthServer();
 
 			// 1. Fetch pseudo card package from the Pubhubs Central Server
@@ -79,7 +79,6 @@ const useMSS = defineStore('mss', {
 
 			const cardReq: CardReq = {
 				card_pseud_package: pseudoResp.Success,
-				// TODO: implement string formatting
 				comment: comment,
 			};
 
@@ -89,7 +88,7 @@ const useMSS = defineStore('mss', {
 				throw new Error('Card issuance failed — retry with a new PseudoCard.');
 			}
 
-			const { attr: signedCardAttr, issuance_request } = cardResp.Success;
+			const { attr: signedCardAttr, issuance_request, yivi_requestor_url } = cardResp.Success;
 
 			// 3. Add card attribute to PubHubs Central Server
 			const { entered, errorMessage } = await this.phcServer._enter([signedCardAttr], PHCEnterMode.Login, identifyingAttr);
@@ -97,15 +96,19 @@ const useMSS = defineStore('mss', {
 				return { cardAttr: null, errorMessage };
 			}
 
-			// 4. Add card to Yivi chained session
-			const releaseResp = await authServer.YiviReleaseNextSessionEP({
-				state: authServer.getState(),
-				next_session: issuance_request,
-			});
-			if (!(ResultResponse.Success in releaseResp)) {
-				throw new Error('Failed to add the card to the Yivi chained session.');
+			if (!chainedSesssion) {
+				await startYiviAuthentication(yivi_requestor_url.slice(0, -1), issuance_request);
+				// What to do if the disclosure fails?
+			} else {
+				// 4. Add card to Yivi chained session
+				const releaseResp = await authServer.YiviReleaseNextSessionEP({
+					state: authServer.getState(),
+					next_session: issuance_request,
+				});
+				if (!(ResultResponse.Success in releaseResp)) {
+					throw new Error('Failed to add the card to the Yivi chained session.');
+				}
 			}
-
 			// 5. Decode and return card
 			const decoded = authServer._decodeJWT(signedCardAttr) as Attr;
 
@@ -143,7 +146,7 @@ const useMSS = defineStore('mss', {
 						};
 
 			// 3. Start authentication
-			const startResp = await authServer._startAuthEP(authStartReq);
+			const startResp = await authServer._authStartEP(authStartReq);
 
 			if ('UnknownAttrType' in startResp) {
 				throw new Error(`Unknown attribute handle: ${startResp.UnknownAttrType}`);
@@ -240,7 +243,7 @@ const useMSS = defineStore('mss', {
 			// 9. Issue card if registering
 			if (enterMode === PHCEnterMode.LoginOrRegister) {
 				const comment = allDecodedAttrs.map(({ handle, attr }) => `${handle}: ${attr.value}`).join('\n');
-				const { cardAttr, errorMessage } = await this.issueCard(comment);
+				const { cardAttr, errorMessage } = await this.issueCard(true, comment);
 				if (!cardAttr) return errorMessage;
 				signedIdentifyingAttrs['ph_card'] = cardAttr;
 			}

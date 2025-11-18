@@ -112,7 +112,7 @@ export default class AuthenticationServer {
 	 *
 	 * @returns The task and state returned by the AuthStartEP.
 	 */
-	public async _startAuthEP(requestBody: TAuths.AuthStartReq): Promise<TAuths.StartResp> {
+	public async _authStartEP(requestBody: TAuths.AuthStartReq): Promise<TAuths.StartResp> {
 		const authStartRespFn = () => this._authsApi.api<TAuths.AuthStartResp>(this._authsApi.apiURLS.authStart, requestOptions<TAuths.AuthStartReq>(requestBody));
 		const okAuthStartResp = await handleErrors<TAuths.StartResp>(authStartRespFn);
 		return okAuthStartResp;
