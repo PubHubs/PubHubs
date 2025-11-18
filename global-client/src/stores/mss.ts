@@ -95,12 +95,12 @@ const useMSS = defineStore('mss', {
 			if (!entered) {
 				return { cardAttr: null, errorMessage };
 			}
-
+			// 4. Add card to Yivi
 			if (!chainedSesssion) {
-				await startYiviAuthentication(yivi_requestor_url.slice(0, -1), issuance_request);
+				const yiviUrl = filters.removeTrailingSlash(yivi_requestor_url);
+				await startYiviAuthentication(yiviUrl, issuance_request);
 				// What to do if the disclosure fails?
 			} else {
-				// 4. Add card to Yivi chained session
 				const releaseResp = await authServer.YiviReleaseNextSessionEP({
 					state: authServer.getState(),
 					next_session: issuance_request,
@@ -147,7 +147,6 @@ const useMSS = defineStore('mss', {
 
 			// 3. Start authentication
 			const startResp = await authServer._authStartEP(authStartReq);
-
 			if ('UnknownAttrType' in startResp) {
 				throw new Error(`Unknown attribute handle: ${startResp.UnknownAttrType}`);
 			}
@@ -161,17 +160,14 @@ const useMSS = defineStore('mss', {
 			// 4. Handle Yivi task
 			const { task, state } = startResp.Success;
 			authServer.setState(state);
-
 			if (loginMethod.source !== Source.Yivi || !task.Yivi) {
 				throw new Error(`Task mismatch for source ${loginMethod.source}: ${JSON.stringify(task)}`);
 			}
-
 			const { disclosure_request, yivi_requestor_url } = task.Yivi;
 			const yiviUrl = filters.removeTrailingSlash(yivi_requestor_url);
 
-			// Run Yivi
+			// Disclose a Pubhubs card in Yivi
 			let proof: { Yivi: { disclosure: string } };
-
 			if (enterMode === PHCEnterMode.LoginOrRegister) {
 				startYiviAuthentication(yiviUrl, disclosure_request);
 				const jwt = await authServer.YiviWaitForResultEP(authServer.getState());
@@ -185,7 +181,6 @@ const useMSS = defineStore('mss', {
 
 			// 5. Complete authentication
 			const authSuccess = await authServer._completeAuthEP(proof, authServer.getState());
-
 			if (!authSuccess) {
 				throw new Error('Authentication completed with no data.');
 			}
@@ -194,7 +189,6 @@ const useMSS = defineStore('mss', {
 			const keys = Object.keys(authSuccess.attrs);
 			const valid1 = authServer._responseEqualToRequested(keys, ['ph_card', 'phone']);
 			const valid2 = authServer._responseEqualToRequested(keys, ['email', 'phone']);
-
 			if (!valid1 && !valid2) {
 				throw new Error('Disclosed attributes do not match the requested ones.');
 			}
@@ -202,7 +196,6 @@ const useMSS = defineStore('mss', {
 			// 7. Collect attributes
 			const signedIdentifyingAttrs: SignedIdentifyingAttrs = {};
 			const signedAddAttrs: string[] = [];
-
 			let identifyingHandle: string | null = null;
 			// Collect all attributes for Pubhubs Card comment text
 			const allDecodedAttrs: { handle: string; attr: Attr }[] = [];
@@ -229,13 +222,12 @@ const useMSS = defineStore('mss', {
 			// 8. Enter PubHubs
 			const identifyingAttr = authSuccess.attrs[identifyingHandle];
 			const { entered, errorMessage, enterResp } = await this.phcServer._enter(signedAddAttrs, enterMode, identifyingAttr);
-
 			if (!entered) return errorMessage;
 
 			// Load updated state
 			await this.phcServer.stateEP();
 
-			// Secret objects
+			// Load Secret objects
 			const userSecret = await this.phcServer._getUserSecretObject();
 			const objectDetails = userSecret?.details ?? null;
 			const userSecretObject = userSecret?.object ?? null;
@@ -252,16 +244,13 @@ const useMSS = defineStore('mss', {
 			const attrKeyReq: AuthAttrKeyReq = {};
 			for (const [handle, attr] of Object.entries(signedIdentifyingAttrs)) {
 				let timestamp = null;
-
 				if (isUserSecretObjectNew(userSecretObject)) {
 					timestamp = userSecretObject?.data?.[attr.id]?.[attr.value]?.ts ?? null;
 				} else if (userSecretObject) {
 					timestamp = userSecretObject?.[attr.id]?.[attr.value]?.ts ?? null;
 				}
-
 				attrKeyReq[handle] = { attr: attr.signedAttr, timestamp };
 			}
-
 			const attrKeyResp = await authServer.attrKeysEP(attrKeyReq);
 
 			// Retry rules
@@ -270,6 +259,7 @@ const useMSS = defineStore('mss', {
 				return { key: 'errors.retry_with_new_attr' };
 			}
 
+			// 11. Store user secret objects
 			if (ResultResponse.Success in attrKeyResp) {
 				await this.phcServer.storeUserSecretObject(attrKeyResp.Success, signedIdentifyingAttrs, userSecretObject, objectDetails);
 			}
