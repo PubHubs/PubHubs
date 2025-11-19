@@ -89,6 +89,13 @@ const useMSS = defineStore('mss', {
 			}
 		},
 
+		logout() {
+			this.phcServer.reset();
+			localStorage.removeItem('PHauthToken');
+			localStorage.removeItem('UserSecret');
+			localStorage.removeItem('UserSecretVersion');
+		},
+
 		async getHubs() {
 			if (!this.hubs) {
 				await this.storePHCWelcomeInfo();

@@ -160,9 +160,9 @@ const useGlobal = defineStore('global', {
 		async logout() {
 			this.loggedIn = false;
 
-			localStorage.removeItem('PHauthToken');
-			localStorage.removeItem('UserSecret');
-			localStorage.removeItem('UserSecretVersion');
+			const mss = useMSS();
+			mss.logout();
+
 			// TODO: find a way router can be part of a store that TypeScript swallows.
 			// @ts-ignore
 			await this.router.replace({ name: 'login' });
