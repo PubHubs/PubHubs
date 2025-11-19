@@ -5,11 +5,11 @@
 			<div class="min-w-0 flex-grow overflow-hidden">
 				<div class="flex flex-col gap-1">
 					<div class="flex flex-row items-center gap-2">
-						<p class="truncate font-bold leading-tight" :class="{ truncate: !isMobile }">
+						<p class="truncate leading-tight font-bold" :class="{ truncate: !isMobile }">
 							{{ displayName }}
 						</p>
 						<p v-if="isGroupOrContact" class="flex items-center leading-tight">
-							<span class="mr-2 truncate font-bold leading-tight" v-if="props.room.getType() === RoomType.PH_MESSAGE_STEWARD_CONTACT">({{ rooms.fetchRoomById(props.room.name.split(',')[0]).name }})</span>
+							<span class="mr-2 truncate leading-tight font-bold" v-if="props.room.getType() === RoomType.PH_MESSAGE_STEWARD_CONTACT">({{ rooms.fetchRoomById(props.room.name.split(',')[0]).name }})</span>
 							<template v-if="props.room.getType() !== RoomType.PH_MESSAGE_ADMIN_CONTACT">
 								<span class="text-label-small">{{ props.room.getRoomMembers() }}</span>
 								<Icon type="user" size="sm" class="mr-1" />
@@ -19,7 +19,7 @@
 								<span class="truncate font-bold" v-if="getOtherUserDisplayName()"> - {{ getOtherUserDisplayName() }}</span>
 							</template>
 						</p>
-						<p v-else class="leading-tight text-label-small" :class="{ 'mt-[0.1rem] truncate': isMobile }">
+						<p v-else class="text-label-small leading-tight" :class="{ 'mt-[0.1rem] truncate': isMobile }">
 							{{ pseudonym }}
 						</p>
 					</div>

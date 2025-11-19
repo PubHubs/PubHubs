@@ -1,8 +1,8 @@
 <template>
 	<div class="flex flex-row gap-2">
 		<div class="flex h-fit flex-col overflow-hidden">
-			<p class="truncate font-bold leading-tight">{{ t('rooms.steward_support') }}</p>
-			<p class="flex leading-tight text-label-small">
+			<p class="truncate leading-tight font-bold">{{ t('rooms.steward_support') }}</p>
+			<p class="text-label-small flex leading-tight">
 				<span class="pr-1">{{ t('rooms.contact') }}</span
 				>{{ roomNameForStewardContact }}
 			</p>

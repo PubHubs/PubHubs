@@ -14,7 +14,7 @@
 					<input
 						v-model="scheduler.title"
 						type="text"
-						class="mb-1 w-full rounded-md bg-background text-on-surface placeholder-on-surface-dim text-label focus:border-on-surface focus:outline-0 focus:outline-offset-0 focus:ring-0"
+						class="bg-background text-on-surface placeholder-on-surface-dim text-label focus:border-on-surface mb-1 w-full rounded-md focus:ring-0 focus:outline-0 focus:outline-offset-0"
 						:placeholder="$t('message.voting.enter_title')"
 						maxlength="100"
 						@input="updateScheduler"
@@ -24,29 +24,29 @@
 					<input
 						v-model="scheduler.location"
 						type="text"
-						class="mb-2 w-full rounded-md bg-background pl-7 text-on-surface placeholder-on-surface-dim text-label focus:border-on-surface focus:outline-0 focus:outline-offset-0 focus:ring-0"
+						class="bg-background text-on-surface placeholder-on-surface-dim text-label focus:border-on-surface mb-2 w-full rounded-md pl-7 focus:ring-0 focus:outline-0 focus:outline-offset-0"
 						:placeholder="$t('message.voting.enter_location')"
 					/>
-					<Icon type="map-pin" class="absolute left-0 top-1 ml-1"></Icon>
+					<Icon type="map-pin" class="absolute top-1 left-0 ml-1"></Icon>
 				</div>
 				<div class="-mb-1 flex w-full flex-row justify-stretch">
 					<div class="scrollbar-emojipicker mr-2 w-9/12" id="optionsContainer">
 						<div v-for="option in sortedOptions" :key="option.id">
 							<SchedulerOptionInput :key="option.id" :option="option" @removeOption="removeOption(option.id)" @updateOption="updateDateOption(option.id, $event)" />
 						</div>
-						<div v-if="scheduler.options.length < 2" class="mb-1 h-[42px] w-full rounded-lg border bg-background"></div>
+						<div v-if="scheduler.options.length < 2" class="bg-background mb-1 h-[42px] w-full rounded-lg border"></div>
 						<Checkbox :label="$t('message.voting.show_votes_before_voting')" @input="updateScheduler" v-model="scheduler.showVotesBeforeVoting"></Checkbox>
 					</div>
 					<div class="bg-hub-background mb-1 max-h-full w-3/12 rounded-lg border">
 						<div v-if="settingsMenu">
-							<div class="ml-3 mt-3">
+							<div class="mt-3 ml-3">
 								<Checkbox :label="$t('message.voting.show_votes_before_voting')" @input="updateScheduler" v-model="scheduler.showVotesBeforeVoting"></Checkbox>
 							</div>
 						</div>
 						<textarea
 							v-else
 							v-model="scheduler.description"
-							class="scrollbar-emojipicker h-full w-full resize-none rounded-lg bg-background text-on-surface placeholder-on-surface-dim text-label focus:border-on-surface focus:outline-0 focus:outline-offset-0 focus:ring-0"
+							class="scrollbar-emojipicker bg-background text-on-surface placeholder-on-surface-dim text-label focus:border-on-surface h-full w-full resize-none rounded-lg focus:ring-0 focus:outline-0 focus:outline-offset-0"
 							maxlength="500"
 							:placeholder="$t('message.voting.enter_description')"
 							@input="updateScheduler"

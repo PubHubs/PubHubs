@@ -1,9 +1,9 @@
 <template>
-	<div id="pubhubs-bar" class="h-[100svh] flex-none flex-shrink-0 flex-col bg-surface" :class="[{ hidden: !toggleMenu.globalIsActive && isMobile }, isMobile ? 'w-[7.5rem]' : 'flex w-[10rem]']">
+	<div id="pubhubs-bar" class="bg-surface h-[100svh] flex-none flex-shrink-0 flex-col" :class="[{ hidden: !toggleMenu.globalIsActive && isMobile }, isMobile ? 'w-[7.5rem]' : 'flex w-[10rem]']">
 		<Modal :show="global.isModalVisible">
 			<div class="flex h-full w-full max-w-[100svh] flex-col overflow-y-hidden">
 				<!-- Global top bar (discover) -->
-				<div class="flex aspect-square w-full items-center justify-center bg-surface-high">
+				<div class="bg-surface-high flex aspect-square w-full items-center justify-center">
 					<router-link to="/">
 						<Icon type="compass" @click="toggleMenu.hideMenuAndSendToHub()" size="3xl"></Icon>
 					</router-link>

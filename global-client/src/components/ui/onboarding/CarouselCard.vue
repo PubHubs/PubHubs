@@ -1,5 +1,5 @@
 <template>
-	<div class="flex w-[80ch] min-w-0 shrink-0 snap-center flex-col items-center justify-center rounded-3xl bg-surface-low p-10 py-12">
+	<div class="bg-surface-low flex w-[80ch] min-w-0 shrink-0 snap-center flex-col items-center justify-center rounded-3xl p-10 py-12">
 		<div class="relative flex h-full w-full flex-col justify-center overflow-hidden">
 			<!-- Two-column layout -->
 			<div class="grid h-full grow grid-cols-2 gap-8">
@@ -7,8 +7,8 @@
 				<div class="col-span-1 flex flex-col justify-center overflow-y-auto">
 					<!-- Header -->
 					<div class="mb-6 flex items-center gap-4">
-						<div class="flex aspect-square h-6 w-6 items-center justify-center rounded-full bg-accent-primary text-on-accent-primary">
-							<span class="font-semibold text-label-small">{{ index + 1 }}</span>
+						<div class="bg-accent-primary text-on-accent-primary flex aspect-square h-6 w-6 items-center justify-center rounded-full">
+							<span class="text-label-small font-semibold">{{ index + 1 }}</span>
 						</div>
 						<slot name="title"></slot>
 					</div>

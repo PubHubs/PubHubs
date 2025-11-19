@@ -6,24 +6,24 @@
 			<Avatar :avatar-url="user.userAvatar(userId)" :user-id="userId"></Avatar>
 			<div class="ml-2 flex flex-col">
 				<div>{{ displayName }}</div>
-				<div class="mb-2 italic text-on-surface-dim sm:mb-4">{{ userId }}</div>
+				<div class="text-on-surface-dim mb-2 italic sm:mb-4">{{ userId }}</div>
 			</div>
 		</div>
-		<div class="flex gap-2 rounded-md bg-accent-primary p-2 text-on-accent-primary">
+		<div class="bg-accent-primary text-on-accent-primary flex gap-2 rounded-md p-2">
 			<Icon type="warning-circle" class="" />
 			<span class="font-medium">{{ t('admin.important_perm_msg') }}</span>
 		</div>
 
 		<!-- Table header -->
-		<div class="text-label-small-min/label-small-max mb-2 mt-8 grid w-full grid-cols-3 text-left text-on-surface-dim rtl:text-right">
+		<div class="text-label-small-min/label-small-max text-on-surface-dim mt-8 mb-2 grid w-full grid-cols-3 text-left rtl:text-right">
 			<div class="font-medium sm:px-6">{{ t('admin.title_room') }}</div>
 			<div class="font-medium">{{ t('admin.title_permission') }}</div>
 			<div class="font-medium sm:px-6">{{ t('admin.title_update') }}</div>
 		</div>
 
 		<!-- Scrollable table body -->
-		<div class="max-h-[180px] w-full overflow-y-auto overflow-x-hidden text-label sm:max-h-[250px]">
-			<div v-for="room in listUserRooms" :key="room.room_id" class="grid w-full grid-cols-3 border-t border-on-surface-dim">
+		<div class="text-label max-h-[180px] w-full overflow-x-hidden overflow-y-auto sm:max-h-[250px]">
+			<div v-for="room in listUserRooms" :key="room.room_id" class="border-on-surface-dim grid w-full grid-cols-3 border-t">
 				<div class="truncate px-2 py-2 sm:px-6 sm:py-4">{{ room.room_name }}</div>
 				<div class="px-1 py-2 sm:py-4">
 					<span :class="'inline-block rounded-md px-1 sm:px-2 ' + getTagBasedOnRole(room.room_pl)">{{ showPermissionRole(room.room_pl) }}</span>
@@ -32,7 +32,7 @@
 					<div v-if="adminIsMember(room.room_id)" class="ml-0 sm:ml-2">
 						<select
 							:disabled="isRoomAdmin(room.room_id)"
-							class="peer block w-full appearance-none border-0 border-on-surface-dim px-2 py-1 text-on-surface-dim focus:border-on-surface-dim focus:outline-none focus:ring-0 sm:px-8 sm:py-2"
+							class="peer border-on-surface-dim text-on-surface-dim focus:border-on-surface-dim block w-full appearance-none border-0 px-2 py-1 focus:ring-0 focus:outline-none sm:px-8 sm:py-2"
 							:class="isRoomAdmin(room.room_id) ? 'bg-transparent bg-none' : ''"
 							v-model="room.room_pl"
 							@change="changeUserPermission(room.room_id, room.room_pl)"
@@ -42,7 +42,7 @@
 						</select>
 					</div>
 					<div v-else>
-						<button @click="adminJoinRoom(room.room_id)" class="ml-0 rounded-xs bg-accent-primary px-2 py-1 transition sm:ml-2 sm:px-3">{{ $t('admin.join') }}</button>
+						<button @click="adminJoinRoom(room.room_id)" class="bg-accent-primary ml-0 rounded-xs px-2 py-1 transition sm:ml-2 sm:px-3">{{ $t('admin.join') }}</button>
 					</div>
 				</div>
 			</div>

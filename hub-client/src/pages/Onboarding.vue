@@ -6,7 +6,7 @@
 
 			<div class="relative flex h-full flex-col gap-8 px-4 pt-20">
 				<!-- Hub Icon -->
-				<div class="absolute -top-12 h-24 w-24 rounded-2xl bg-surface-low p-[3px]">
+				<div class="bg-surface-low absolute -top-12 h-24 w-24 rounded-2xl p-[3px]">
 					<HubIcon :icon-url="hubSettings.iconUrlLight" :icon-url-dark="hubSettings.iconUrlDark" />
 				</div>
 
@@ -24,13 +24,13 @@
 							<H2>{{ t('onboarding.username_label') }}</H2>
 							<P>{{ t('onboarding.username_description') }}</P>
 							<div class="flex gap-4">
-								<TextInput v-model="inputValue" :placeholder="pseudonym" class="h-10 !placeholder-on-surface-dim text-label" maxlength="24" />
+								<TextInput v-model="inputValue" :placeholder="pseudonym" class="!placeholder-on-surface-dim text-label h-10" maxlength="24" />
 								<Button @click="fileInput!.click()">
 									<Icon type="image-square"></Icon>
 								</Button>
 								<input ref="fileInput" type="file" accept="image/*" class="hidden" @change="handleFileUpload" />
 							</div>
-							<p class="italic text-on-surface-variant">
+							<p class="text-on-surface-variant italic">
 								{{ t('onboarding.username_disclaimer') }}
 							</p>
 						</div>
@@ -38,14 +38,14 @@
 						<!-- Preview Message -->
 						<div v-if="isUsernameChanged" class="flex flex-col gap-2">
 							<P>{{ t('onboarding.message_example') }}</P>
-							<div class="flex w-full items-center rounded-xl bg-surface-low gap-6 p-4 xl:w-1/2">
+							<div class="bg-surface-low flex w-full items-center gap-6 rounded-xl p-4 xl:w-1/2">
 								<div class="flex aspect-square h-12 w-12 shrink-0 items-center justify-center overflow-hidden rounded-full" :class="textColor(color(user.userId!))">
 									<img v-if="avatarPreviewUrl" data-testid="avatar" :src="avatarPreviewUrl" class="h-full w-full" />
 									<Icon v-else size="lg" type="user" />
 								</div>
 								<div class="flex flex-col gap-2">
 									<div class="flex items-center gap-2">
-										<span v-if="inputValue" data-testid="display-name" :class="`${textColor(color(user.userId!))} truncate font-semibold text-label`">
+										<span v-if="inputValue" data-testid="display-name" :class="`${textColor(color(user.userId!))} text-label truncate font-semibold`">
 											{{ inputValue }}
 										</span>
 										<span class="text-label-small">|</span>
@@ -70,7 +70,7 @@
 					<!-- House Rules -->
 					<div class="flex flex-col gap-2 overflow-y-auto">
 						<H1>{{ t('onboarding.house_rules', [hubName]) }}</H1>
-						<div v-if="consentText" class="break-all rounded-3xl bg-surface-low p-4">
+						<div v-if="consentText" class="bg-surface-low rounded-3xl p-4 break-all">
 							<mavon-editor defaultOpen="preview" :toolbarsFlag="false" :subfield="false" v-model="consentText" :boxShadow="false" />
 						</div>
 					</div>
@@ -83,7 +83,7 @@
 
 					<!-- Buttons -->
 					<div class="flex gap-4" :class="isConsentOnly ? 'justify-end' : 'justify-between'">
-						<Button v-if="!isConsentOnly" @click="prevStep" color="text" class="w-fit px-0 text-on-surface-variant">
+						<Button v-if="!isConsentOnly" @click="prevStep" color="text" class="text-on-surface-variant w-fit px-0">
 							{{ t('forms.back') }}
 						</Button>
 						<Button :disabled="submitted || !hasAgreed" class="w-fit" @click="submit">
@@ -98,16 +98,16 @@
 		<div v-else class="overflow-none relative flex max-h-screen w-full items-center justify-center">
 			<div class="relative flex aspect-auto h-auto max-h-full w-3/4 rounded-3xl shadow-sm xl:aspect-[3/2] xl:h-2/3 xl:w-auto">
 				<!-- Step 1 -->
-				<div v-if="step === 1" class="flex w-full flex-col overflow-hidden rounded-3xl bg-surface-low lg:flex-row">
+				<div v-if="step === 1" class="bg-surface-low flex w-full flex-col overflow-hidden rounded-3xl lg:flex-row">
 					<!-- Left Image -->
-					<div class="flex h-[250px] w-full flex-col overflow-y-auto gap-6 lg:h-auto lg:w-1/2">
+					<div class="flex h-[250px] w-full flex-col gap-6 overflow-y-auto lg:h-auto lg:w-1/2">
 						<figure class="h-full w-full">
 							<img alt="Placeholder" src="../assets/onboarding_placeholder.svg" class="h-full w-full object-cover" />
 						</figure>
 					</div>
 
 					<!-- Right Form -->
-					<div class="flex h-full w-full flex-col overflow-y-auto bg-surface gap-6 px-16 py-16 lg:w-1/2 lg:py-32">
+					<div class="bg-surface flex h-full w-full flex-col gap-6 overflow-y-auto px-16 py-16 lg:w-1/2 lg:py-32">
 						<div class="flex flex-col gap-2">
 							<H1>{{ t('onboarding.welcome', [hubName]) }}</H1>
 							<P>{{ t('onboarding.welcome_description') }}</P>
@@ -117,13 +117,13 @@
 							<H2>{{ t('onboarding.username_label') }}</H2>
 							<P>{{ t('onboarding.username_description') }}</P>
 							<div class="flex gap-4">
-								<TextInput v-model="inputValue" :placeholder="pseudonym" class="h-10 !placeholder-on-surface-dim text-label" />
+								<TextInput v-model="inputValue" :placeholder="pseudonym" class="!placeholder-on-surface-dim text-label h-10" />
 								<Button @click="fileInput!.click()">
 									<Icon type="image-square" />
 								</Button>
 								<input ref="fileInput" type="file" accept="image/*" class="hidden" @change="handleFileUpload" />
 							</div>
-							<p class="italic text-on-surface-variant">
+							<p class="text-on-surface-variant italic">
 								{{ t('onboarding.username_disclaimer') }}
 							</p>
 						</div>
@@ -131,14 +131,14 @@
 						<!-- Message Preview -->
 						<div v-if="isUsernameChanged" class="flex flex-col gap-2">
 							<P>{{ t('onboarding.message_example') }}</P>
-							<div class="flex w-full items-center rounded-xl bg-background gap-6 p-4">
-								<div class="min-w-1/3 flex aspect-square h-12 w-12 shrink-0 items-center justify-center overflow-hidden rounded-full" :class="textColor(color(user.userId!))">
+							<div class="bg-background flex w-full items-center gap-6 rounded-xl p-4">
+								<div class="flex aspect-square h-12 w-12 min-w-1/3 shrink-0 items-center justify-center overflow-hidden rounded-full" :class="textColor(color(user.userId!))">
 									<img v-if="avatarPreviewUrl" data-testid="avatar" :src="avatarPreviewUrl" class="h-full w-full" />
 									<Icon v-else size="lg" type="user" />
 								</div>
 								<div class="flex flex-col gap-2">
 									<div class="flex flex-wrap items-center gap-2">
-										<span v-if="inputValue" data-testid="display-name" :class="`${textColor(color(user.userId!))} truncate break-all font-semibold text-label`">
+										<span v-if="inputValue" data-testid="display-name" :class="`${textColor(color(user.userId!))} text-label truncate font-semibold break-all`">
 											{{ inputValue }}
 										</span>
 										<span class="text-label-small">|</span>
@@ -156,18 +156,18 @@
 				</div>
 
 				<!-- Step 2 -->
-				<div v-if="step === 2" class="flex w-full overflow-hidden rounded-3xl bg-surface-low">
+				<div v-if="step === 2" class="bg-surface-low flex w-full overflow-hidden rounded-3xl">
 					<!-- Left Rules -->
-					<div class="flex w-1/2 flex-col overflow-y-auto gap-6 px-16 pt-32">
+					<div class="flex w-1/2 flex-col gap-6 overflow-y-auto px-16 pt-32">
 						<H1>{{ t('onboarding.house_rules', [hubName]) }}</H1>
-						<div v-if="consentText" class="rounded-3xl bg-surface-low p-4">
+						<div v-if="consentText" class="bg-surface-low rounded-3xl p-4">
 							<mavon-editor defaultOpen="preview" :toolbarsFlag="false" :subfield="false" v-model="consentText" :boxShadow="false" />
 						</div>
 					</div>
 
 					<!-- Right Consent -->
-					<div class="flex h-full w-1/2 flex-col bg-surface gap-6 px-16 py-32">
-						<Button v-if="!isConsentOnly" @click="prevStep" color="text" class="w-fit px-0 text-on-surface-variant">
+					<div class="bg-surface flex h-full w-1/2 flex-col gap-6 px-16 py-32">
+						<Button v-if="!isConsentOnly" @click="prevStep" color="text" class="text-on-surface-variant w-fit px-0">
 							{{ t('forms.back') }}
 						</Button>
 						<div class="flex flex-col gap-2">
@@ -185,7 +185,7 @@
 				</div>
 
 				<!-- Mascot -->
-				<figure class="absolute -bottom-4 -right-16 hidden w-64 lg:block xl:-right-32 xl:w-auto">
+				<figure class="absolute -right-16 -bottom-4 hidden w-64 lg:block xl:-right-32 xl:w-auto">
 					<img alt="PubHubs mascotte" src="../assets/mascotte.svg" />
 				</figure>
 			</div>

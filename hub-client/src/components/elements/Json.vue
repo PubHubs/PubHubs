@@ -1,7 +1,7 @@
 <template>
 	<div class="flex overflow-hidden bg-black text-white">
 		<Icon :type="folded ? 'caret-right' : 'caret-down'" @click="toggleFold()" class="text-green" />
-		<pre class="p-1 font-mono text-label" :class="folded ? 'h-16' : ''">{{ JSON.stringify(json, null, 2) }}</pre>
+		<pre class="text-label p-1 font-mono" :class="folded ? 'h-16' : ''">{{ JSON.stringify(json, null, 2) }}</pre>
 	</div>
 </template>
 

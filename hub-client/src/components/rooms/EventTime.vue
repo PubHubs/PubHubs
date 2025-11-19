@@ -1,5 +1,5 @@
 <template>
-	<span class="flex text-label-small">
+	<span class="text-label-small flex">
 		<span>{{ formatted }}</span>
 	</span>
 </template>

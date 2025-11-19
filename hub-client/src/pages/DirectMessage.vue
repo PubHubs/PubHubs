@@ -1,14 +1,14 @@
 <template>
 	<HeaderFooter :headerSize="'sm'" :headerMobilePadding="true" bgBarLow="bg-background" bgBarMedium="bg-surface-low">
 		<template #header>
-			<div class="items-center gap-4 text-on-surface-dim" :class="isMobile ? 'hidden' : 'flex'">
+			<div class="text-on-surface-dim items-center gap-4" :class="isMobile ? 'hidden' : 'flex'">
 				<span class="font-semibold uppercase">{{ t('menu.directmsg') }}</span>
-				<hr class="h-[2px] grow bg-on-surface-dim" />
+				<hr class="bg-on-surface-dim h-[2px] grow" />
 			</div>
 			<div class="relative flex h-full items-center justify-between gap-6" :class="isMobile ? 'pl-12' : 'pl-0'">
 				<div class="flex w-fit items-center gap-3 overflow-hidden">
 					<Icon type="chat-circle-text"></Icon>
-					<H3 class="flex text-on-surface" :class="isMobile ? 'gap-2' : 'gap-4'">
+					<H3 class="text-on-surface flex" :class="isMobile ? 'gap-2' : 'gap-4'">
 						<TruncatedText class="font-headings font-semibold">
 							<h2>{{ t('menu.directmsg') }}</h2>
 						</TruncatedText>
@@ -19,20 +19,20 @@
 					<Button
 						v-if="!user.isAdmin"
 						size="sm"
-						class="flex items-center gap-1 overflow-visible bg-on-surface-variant text-surface-high text-label-small"
+						class="bg-on-surface-variant text-surface-high text-label-small flex items-center gap-1 overflow-visible"
 						:class="[isMobile ? 'w-8 justify-center rounded-full' : 'justify-between']"
 						@click="directMessageAdmin()"
 					>
 						<Icon type="headset" size="sm"></Icon>
 						<span v-if="!isMobile">{{ t('menu.contact') }}</span>
-						<span :class="isMobile ? 'absolute -right-2 -top-2' : 'absolute -right-2 -top-2 flex items-center gap-2'">
+						<span :class="isMobile ? 'absolute -top-2 -right-2' : 'absolute -top-2 -right-2 flex items-center gap-2'">
 							<Badge class="text-label-small" color="ph" v-if="newAdminMsgCount > 99">99+</Badge>
 							<Badge class="text-label-small" color="ph" v-else-if="newAdminMsgCount > 0">{{ newAdminMsgCount }}</Badge>
 						</span>
 					</Button>
 
 					<Button
-						class="flex items-center gap-1 bg-on-surface-variant text-surface-high text-label-small"
+						class="bg-on-surface-variant text-surface-high text-label-small flex items-center gap-1"
 						:class="isMobile ? 'mr-4 justify-center' : 'justify-between'"
 						size="sm"
 						@click="openConverationalPanel()"

@@ -39,23 +39,23 @@
 
 :root {
 	/* New colors */
-	--surface-background: #FFFFFF; /* Used for backgrounds */
-	--surface-base: #E3E5E8; /* Used for large surfaces */
-	--surface-elevated: #D1D1D1; /* Used for surfaces on top of a background or surface */
+	--surface-background: #ffffff; /* Used for backgrounds */
+	--surface-base: #e3e5e8; /* Used for large surfaces */
+	--surface-elevated: #d1d1d1; /* Used for surfaces on top of a background or surface */
 	--on-surface-dim: #717171; /* Used for dim text */
-	--on-surface: #3D3C3C; /* Used for text */
+	--on-surface: #3d3c3c; /* Used for text */
 	--on-surface-bright: #202020; /* Used for bright text */
 
-	--accent-blue: #005A9E; /* Used for theming */
-	--on-accent-blue: #C0E3FD; /* Used for text on primary accent */
-	--accent-green: #4C6B1F;
-	--on-accent-green: #D3F1A7;
-	--accent-orange: #A54800;
-	--on-accent-orange: #FEDEC8;
-	--accent-error: #AE2E24;
-	--on-accent-error: #FFD5D2;
-	--accent-purple: #5E24AE;
-	--on-accent-purple: #E8D2FF;
+	--accent-blue: #005a9e; /* Used for theming */
+	--on-accent-blue: #c0e3fd; /* Used for text on primary accent */
+	--accent-green: #4c6b1f;
+	--on-accent-green: #d3f1a7;
+	--accent-orange: #a54800;
+	--on-accent-orange: #fedec8;
+	--accent-error: #ae2e24;
+	--on-accent-error: #ffd5d2;
+	--accent-purple: #5e24ae;
+	--on-accent-purple: #e8d2ff;
 
 	/* Old colors */
 	--background: #ffffff; /* Used for room background */
@@ -88,7 +88,6 @@
 	--accent-orange: #fcba6d;
 	--on-accent-orange: #000000;
 
-
 	--font-atkinson: 'Atkinson Hyperlegible', sans-serif;
 	--font-inter: 'Inter', sans-serif;
 }
@@ -96,22 +95,22 @@
 .dark {
 	/* New colors (dark) */
 	--surface-background: #464545; /* Used for backgrounds */
-	--surface-base: #2F2E2E; /* Used for large surfaces */
+	--surface-base: #2f2e2e; /* Used for large surfaces */
 	--surface-elevated: #202020; /* Used for surfaces on top of a background or surface */
-	--on-surface-dim: #BBBBBB; /* Used for dim text */
-	--on-surface: #E3E5E8; /* Used for text */
-	--on-surface-bright: #FFFFFF; /* Used for bright text */
+	--on-surface-dim: #bbbbbb; /* Used for dim text */
+	--on-surface: #e3e5e8; /* Used for text */
+	--on-surface-bright: #ffffff; /* Used for bright text */
 
-	--accent-blue: #C0E3FD; /* Used for theming */
-	--on-accent-blue: #005A9E; /* Used for text on primary accent */
-	--accent-green: #D3F1A7;
-	--on-accent-green: #4C6B1F;
-	--accent-orange: #FEDEC8;
-	--on-accent-orange: #A54800;
-	--accent-error: #FFD5D2;
-	--on-accent-error: #AE2E24;
-	--accent-purple: #E8D2FF;
-	--on-accent-purple: #5E24AE;
+	--accent-blue: #c0e3fd; /* Used for theming */
+	--on-accent-blue: #005a9e; /* Used for text on primary accent */
+	--accent-green: #d3f1a7;
+	--on-accent-green: #4c6b1f;
+	--accent-orange: #fedec8;
+	--on-accent-orange: #a54800;
+	--accent-error: #ffd5d2;
+	--on-accent-error: #ae2e24;
+	--accent-purple: #e8d2ff;
+	--on-accent-purple: #5e24ae;
 
 	/* Old colors (dark) */
 	--background: #464545;
@@ -206,7 +205,7 @@
 	--text-display-small: 12px;
 	--text-display-small--line-height: 1.3;
 	--text-display-small--font-weight: 500;
-	
+
 	/* Old theme */
 	--breakpoint-xs: 480px;
 	--breakpoint-sm: 640px;
@@ -344,7 +343,7 @@
 	}
 
 	::-webkit-scrollbar-thumb {
-		@apply rounded-full bg-on-surface-dim;
+		@apply bg-on-surface-dim rounded-full;
 	}
 	.v-note-wrapper .v-note-show ol {
 		list-style-type: i !important;
@@ -376,11 +375,11 @@
 	.editor .v-note-wrapper .v-note-edit.divarea-wrapper .content-input-wrapper,
 	.editor .v-note-wrapper .v-note-edit.divarea-wrapper .content-input-wrapper .auto-textarea-wrapper,
 	.editor .v-note-wrapper .v-note-edit.divarea-wrapper .content-input-wrapper .auto-textarea-wrapper .auto-textarea-input {
-		@apply rounded-xl !border-none !bg-surface-low p-4 !pt-[15px] !font-body !text-base text-on-surface;
+		@apply !bg-surface-low !font-body text-on-surface rounded-xl !border-none p-4 !pt-[15px] !text-base;
 	}
 	.editor .v-note-wrapper .v-note-show,
 	.editor .v-note-wrapper .v-note-show .v-show-content {
-		@apply relative z-10 overflow-y-auto !rounded-none !bg-surface;
+		@apply !bg-surface relative z-10 overflow-y-auto !rounded-none;
 	}
 	.v-note-wrapper,
 	.v-note-wrapper .v-note-panel,
@@ -389,7 +388,7 @@
 	.v-note-wrapper .v-note-show .v-show-content,
 	.v-note-wrapper .v-note-show .v-show-content-html,
 	div[class='scroll-style scroll-style-border-radius v-show-content'] {
-		@apply !relative !min-h-20 overflow-y-auto rounded-xl !border-none !bg-surface-low font-body text-on-surface text-base;
+		@apply !bg-surface-low font-body text-on-surface !relative !min-h-20 overflow-y-auto rounded-xl !border-none text-base;
 	}
 	.global-preview .v-note-wrapper,
 	.global-preview .v-note-wrapper .v-note-panel,

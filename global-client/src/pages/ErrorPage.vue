@@ -1,6 +1,6 @@
 <template>
 	<div class="flex h-full items-center justify-center p-10">
-		<div class="flex flex-col gap-y-4 rounded-xl bg-surface-low px-8 py-12 text-center shadow-lg" :class="isMobile ? 'w-full' : 'w-8/12'">
+		<div class="bg-surface-low flex flex-col gap-y-4 rounded-xl px-8 py-12 text-center shadow-lg" :class="isMobile ? 'w-full' : 'w-8/12'">
 			<H1 class="text-accent-primary">{{ $t('errors.oops') }}</H1>
 			<H3 class="">{{ $t(errorKey, errorValues) }}</H3>
 			<router-link :to="{ name: 'home' }">

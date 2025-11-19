@@ -1,9 +1,9 @@
 <template>
 	<!-- Desktop search component -->
-	<div class="hidden items-center justify-end rounded-md bg-background md:flex" v-click-outside="reset">
+	<div class="bg-background hidden items-center justify-end rounded-md md:flex" v-click-outside="reset">
 		<div class="relative flex max-w-full items-center justify-end transition-all duration-200">
 			<input
-				class="h-full w-full flex-1 border-none bg-transparent text-label-small placeholder:text-on-surface-variant focus:outline-0 focus:outline-offset-0 focus:ring-0"
+				class="text-label-small placeholder:text-on-surface-variant h-full w-full flex-1 border-none bg-transparent focus:ring-0 focus:outline-0 focus:outline-offset-0"
 				type="text"
 				role="searchbox"
 				v-model="value"
@@ -21,17 +21,17 @@
 				"
 			/>
 
-			<button @click="search()"><Icon type="magnifying-glass" class="mr-1 rounded-md bg-background text-accent-secondary dark:text-on-surface-variant" /></button>
+			<button @click="search()"><Icon type="magnifying-glass" class="bg-background text-accent-secondary dark:text-on-surface-variant mr-1 rounded-md" /></button>
 		</div>
 	</div>
 
 	<!-- Mobile search component. -->
-	<div class="flex w-full items-center justify-end rounded-md bg-background md:hidden">
+	<div class="bg-background flex w-full items-center justify-end rounded-md md:hidden">
 		<div class="relative flex w-full items-center justify-end transition-all duration-200">
-			<Icon v-if="!isExpanded" type="magnifying-glass" class="w-8 cursor-pointer text-accent-secondary dark:text-on-surface-variant" @click.stop="toggleSearch()" />
+			<Icon v-if="!isExpanded" type="magnifying-glass" class="text-accent-secondary dark:text-on-surface-variant w-8 cursor-pointer" @click.stop="toggleSearch()" />
 			<input
 				v-if="isExpanded"
-				class="h-full w-full flex-1 border-none bg-transparent text-label-small placeholder:text-on-surface-variant focus:outline-0 focus:outline-offset-0 focus:ring-0"
+				class="text-label-small placeholder:text-on-surface-variant h-full w-full flex-1 border-none bg-transparent focus:ring-0 focus:outline-0 focus:outline-offset-0"
 				type="text"
 				role="searchbox"
 				v-model="value"
@@ -50,20 +50,20 @@
 				"
 			/>
 			<button v-if="isExpanded" @click.stop="search()">
-				<Icon type="magnifying-glass" class="w-6 rounded-md bg-background text-accent-secondary dark:text-on-surface-variant" />
+				<Icon type="magnifying-glass" class="bg-background text-accent-secondary dark:text-on-surface-variant w-6 rounded-md" />
 			</button>
 			<button v-if="isExpanded" @click="toggleSearch()">
-				<Icon type="x" class="w-6 rounded-md text-accent-secondary dark:text-on-surface-variant" />
+				<Icon type="x" class="text-accent-secondary dark:text-on-surface-variant w-6 rounded-md" />
 			</button>
 		</div>
 	</div>
 
 	<!-- Search results -->
-	<div v-if="searched" class="absolute right-0 top-16 z-50 w-full overflow-y-auto rounded-md bg-surface-low md:top-20 md:w-[20vw]" data-testid="search-result">
+	<div v-if="searched" class="bg-surface-low absolute top-16 right-0 z-50 w-full overflow-y-auto rounded-md md:top-20 md:w-[20vw]" data-testid="search-result">
 		<template v-if="searchResultsToShow && searchResultsToShow.length > 0">
 			<div v-for="item in searchResultsToShow" :key="item.event_id" class="group" role="listitem">
 				<a href="#" @click.prevent="onScrollToEventId(item.event_id, item.event_threadId)">
-					<div class="flex items-center gap-2 p-2 group-hover:bg-surface">
+					<div class="group-hover:bg-surface flex items-center gap-2 p-2">
 						<Avatar :avatar-url="user.userAvatar(item.event_sender)" :user-id="item.event_sender" class="h-8 w-8 flex-none" />
 						<TruncatedText>{{ item.event_body }}</TruncatedText>
 					</div>

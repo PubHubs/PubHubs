@@ -19,7 +19,7 @@
 						v-if="!room.isAdminContactRoom()"
 						type="x"
 						data-testid="leave-room"
-						class="cursor-pointer stroke-2 text-on-surface-variant transition-all duration-200 ease-in-out hover:text-accent-error md:hidden md:group-hover:inline-block"
+						class="text-on-surface-variant hover:text-accent-error cursor-pointer stroke-2 transition-all duration-200 ease-in-out md:hidden md:group-hover:inline-block"
 						@click.prevent="leaveRoom(room.roomId)"
 					/>
 				</span>
@@ -33,7 +33,7 @@
 					dialogOpen = notification.room_id;
 					messageValues = notification.message_values;
 				"
-				class="group inline-block w-full text-on-surface-dim"
+				class="group text-on-surface-dim inline-block w-full"
 			>
 				<span class="flex w-full items-center justify-between gap-4">
 					<TruncatedText>
@@ -41,7 +41,7 @@
 					</TruncatedText>
 					<Icon
 						type="unlink"
-						class="relative cursor-pointer stroke-2 text-on-surface-variant transition-all duration-200 ease-in-out hover:text-accent-error md:hidden md:group-hover:inline-block"
+						class="text-on-surface-variant hover:text-accent-error relative cursor-pointer stroke-2 transition-all duration-200 ease-in-out md:hidden md:group-hover:inline-block"
 						@click.prevent="dismissNotification(notification.room_id, $event)"
 					/>
 				</span>

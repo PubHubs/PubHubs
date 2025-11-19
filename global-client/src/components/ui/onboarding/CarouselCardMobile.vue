@@ -1,10 +1,10 @@
 <template>
-	<div class="flex aspect-[2/3] h-full w-full min-w-0 shrink-0 snap-center flex-col items-center justify-center overflow-hidden rounded-3xl bg-surface-low p-8">
+	<div class="bg-surface-low flex aspect-[2/3] h-full w-full min-w-0 shrink-0 snap-center flex-col items-center justify-center overflow-hidden rounded-3xl p-8">
 		<div class="relative flex h-full w-full flex-col gap-4 overflow-hidden">
 			<!-- Header -->
 			<div class="items-top flex h-full flex-row gap-4">
-				<span class="mt-2 flex aspect-square h-4 w-4 items-center justify-center rounded-full bg-accent-primary text-on-accent-primary">
-					<span class="font-semibold text-label-small">{{ index + 1 }}</span>
+				<span class="bg-accent-primary text-on-accent-primary mt-2 flex aspect-square h-4 w-4 items-center justify-center rounded-full">
+					<span class="text-label-small font-semibold">{{ index + 1 }}</span>
 				</span>
 				<div class="flex h-full w-full flex-col gap-4">
 					<slot name="title"></slot>

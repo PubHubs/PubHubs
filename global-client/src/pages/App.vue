@@ -1,5 +1,5 @@
 <template>
-	<div class="h-full min-w-[32rem] bg-background font-body text-on-surface text-body">
+	<div class="bg-background font-body text-on-surface text-body h-full min-w-[32rem]">
 		<MobileMenu v-if="!(route.name === 'onboarding')" />
 
 		<div class="flex h-full">

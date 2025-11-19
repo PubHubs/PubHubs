@@ -1,6 +1,6 @@
 <template>
 	<div id="filePickerContainer">
-		<div v-if="messageInput.state.fileAdded" class="relative flex w-full justify-center border-b-2 border-on-surface-disabled">
+		<div v-if="messageInput.state.fileAdded" class="border-on-surface-disabled relative flex w-full justify-center border-b-2">
 			<div class="m-2 mb-2 rounded-lg">
 				<div v-if="imageTypes.includes(messageInput.state.fileAdded?.type)" class="flex justify-center">
 					<img :src="uri" class="max-h-64 max-w-full rounded-lg" />
@@ -10,8 +10,8 @@
 				</div>
 			</div>
 			<div class="flex gap-2 pt-3" :class="{ 'flex-col': imageTypes.includes(messageInput.state.fileAdded?.type) }">
-				<Icon type="arrows-clockwise" class="cursor-pointer hover:text-accent-secondary" @click="openFile()"></Icon>
-				<Icon type="trash" class="cursor-pointer hover:text-accent-error" @click="removeFile()"></Icon>
+				<Icon type="arrows-clockwise" class="hover:text-accent-secondary cursor-pointer" @click="openFile()"></Icon>
+				<Icon type="trash" class="hover:text-accent-error cursor-pointer" @click="removeFile()"></Icon>
 				<div class="relative flex-grow">
 					<div class="absolute" :class="imageTypes.includes(messageInput.state.fileAdded?.type) ? 'bottom-10' : 'bottom-1'">
 						<Button v-if="submitButton" size="sm" @click="submit()">{{ $t('file.upload_file') }}</Button>

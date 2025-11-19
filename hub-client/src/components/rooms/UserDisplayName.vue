@@ -1,12 +1,12 @@
 <template>
 	<span class="flex flex-row items-center gap-x-2 truncate" :title="displayTitle">
 		<!-- Display Name -->
-		<span v-if="showDisplayName" data-testid="display-name" class="truncate font-semibold text-label" :class="displayNameClasses">
+		<span v-if="showDisplayName" data-testid="display-name" class="text-label truncate font-semibold" :class="displayNameClasses">
 			{{ truncatedDisplayName }}
 		</span>
 
 		<!-- Pseudonym -->
-		<span v-if="showPseudonym" class="text-nowrap text-label-small" :class="pseudonymClasses">
+		<span v-if="showPseudonym" class="text-label-small text-nowrap" :class="pseudonymClasses">
 			{{ pseudonym }}
 		</span>
 	</span>

@@ -1,8 +1,8 @@
 <template>
-	<div class="relative flex w-full items-center rounded-md bg-surface-low" v-click-outside="close" role="menubar">
-		<div class="absolute top-1 w-full cursor-pointer whitespace-nowrap rounded-md bg-surface-low">
+	<div class="bg-surface-low relative flex w-full items-center rounded-md" v-click-outside="close" role="menubar">
+		<div class="bg-surface-low absolute top-1 w-full cursor-pointer rounded-md whitespace-nowrap">
 			<div v-show="open">
-				<div v-for="(option, index) in options" class="flex items-center gap-1 rounded-md pl-2 text-on-surface-dim hover:bg-on-surface-variant hover:text-white" :class="selectedClass(index)" @click="select(index)">
+				<div v-for="(option, index) in options" class="text-on-surface-dim hover:bg-on-surface-variant flex items-center gap-1 rounded-md pl-2 hover:text-white" :class="selectedClass(index)" @click="select(index)">
 					<template v-if="toggleOrder">
 						<template v-if="index === selectedIndex">
 							<Icon v-if="selectedOrder === SortOrder.asc" type="arrow-down"></Icon>

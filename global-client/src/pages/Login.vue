@@ -5,22 +5,22 @@
 	</div>
 
 	<div v-else>
-		<div class="flex w-full items-center bg-surface px-6 py-4" :class="isMobile ? 'h-[7.5rem]' : 'h-[10rem]'">
+		<div class="bg-surface flex w-full items-center px-6 py-4" :class="isMobile ? 'h-[7.5rem]' : 'h-[10rem]'">
 			<div class="flex h-full w-full items-center justify-between gap-16">
 				<a :href="globalClientUrl" rel="noopener noreferrer" class="h-full py-2">
 					<Logo />
 				</a>
 				<div class="flex h-4 items-center justify-center gap-2">
-					<p class="cursor-pointer font-bold hover:text-accent-primary" @click="changeLanguage('nl')">NL</p>
+					<p class="hover:text-accent-primary cursor-pointer font-bold" @click="changeLanguage('nl')">NL</p>
 					<span>|</span>
-					<p class="cursor-pointer font-bold hover:text-accent-primary" @click="changeLanguage('en')">EN</p>
+					<p class="hover:text-accent-primary cursor-pointer font-bold" @click="changeLanguage('en')">EN</p>
 				</div>
 			</div>
 		</div>
 
-		<div class="w-full bg-background" :class="isMobile ? 'h-[calc(100svh_-_7.5rem)]' : 'h-[calc(100svh_-_10rem)]'">
+		<div class="bg-background w-full" :class="isMobile ? 'h-[calc(100svh_-_7.5rem)]' : 'h-[calc(100svh_-_10rem)]'">
 			<div class="flex h-full w-full items-center justify-center" :class="isMobile ? 'flex-col' : 'flex-row'">
-				<div class="flex items-center justify-center bg-surface-low" :class="isMobile ? 'h-1/2 w-full px-12' : 'h-full w-1/2 px-36'">
+				<div class="bg-surface-low flex items-center justify-center" :class="isMobile ? 'h-1/2 w-full px-12' : 'h-full w-1/2 px-36'">
 					<figure class="h-auto w-full">
 						<img src="../assets/mascot-welcome.svg" alt="PubHubs mascot" />
 					</figure>
@@ -35,7 +35,7 @@
 							<div v-show="show" class="relative flex w-full items-center justify-center" :class="isMobile ? '-mb-2' : '-mb-4'">
 								<div
 									id="yivi-authentication"
-									class="absolute bottom-8 left-0 z-50 w-full after:absolute after:-bottom-[1.2em] after:right-[50%] after:border-[1.25em] after:border-b-0 after:border-l-0 after:border-transparent after:border-t-white after:drop-shadow-[0px_-5px_16px_rgb(0,0,0,0.15)]"
+									class="absolute bottom-8 left-0 z-50 w-full after:absolute after:right-[50%] after:-bottom-[1.2em] after:border-[1.25em] after:border-b-0 after:border-l-0 after:border-transparent after:border-t-white after:drop-shadow-[0px_-5px_16px_rgb(0,0,0,0.15)]"
 								></div>
 							</div>
 							<Button color="gray" @click="loginMSS()">{{ show ? $t('dialog.close') : $t('login.login') }}</Button>
