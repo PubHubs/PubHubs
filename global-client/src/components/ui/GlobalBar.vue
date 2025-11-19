@@ -17,7 +17,7 @@
 					<div class="flex h-fit w-full flex-col gap-8 self-end px-4">
 						<div v-if="global.loggedIn" class="flex flex-col items-center gap-4">
 							<GlobalbarButton type="dots-three-vertical" size="xl" @click="toggleHubOrdering" :class="hubOrdering && '!bg-accent-primary !text-on-accent-primary hover:!bg-accent-secondary'" />
-							<GlobalbarButton type="sliders-horizontal" size="xl" @click="openSettingsDialog" />
+							<GlobalbarButton type="sliders-horizontal" size="xl" @click="settingsDialog = true" />
 							<!-- <GlobalbarButton type="question_mark" @click="showHelp" /> -->
 							<GlobalbarButton type="sign-out" size="xl" @click="logout" />
 						</div>
@@ -36,7 +36,7 @@
 
 <script setup lang="ts">
 	// Packages
-	import { computed, ref } from 'vue';
+	import { computed, ref, watch } from 'vue';
 	import { useI18n } from 'vue-i18n';
 
 	// Assets
@@ -50,7 +50,6 @@
 
 	// Stores
 	import { useGlobal } from '@global-client/stores/global';
-	import { useMSS } from '@global-client/stores/mss';
 	import { useToggleMenu } from '@global-client/stores/toggleGlobalMenu';
 
 	import { useDialog } from '@hub-client/stores/dialog';
@@ -61,7 +60,6 @@
 	const global = useGlobal();
 	const toggleMenu = useToggleMenu();
 	const settings = useSettings();
-	const mss = useMSS();
 
 	const settingsDialog = ref(false);
 	const hubOrdering = ref(false);
@@ -70,6 +68,16 @@
 
 	const isMobile = computed(() => settings.isMobileState);
 
+	// Make sure that the hubOrdering mode is switched off when a user gets logged out
+	watch(
+		() => global.loggedIn,
+		(newValue: boolean, _) => {
+			if (newValue === false) {
+				hubOrdering.value = false;
+			}
+		},
+	);
+
 	async function logout() {
 		if (await dialog.yesno(t('logout.logout_sure'))) {
 			await global.logout();
@@ -77,18 +85,8 @@
 	}
 
 	async function toggleHubOrdering() {
-		// Check if the user still has a valid authentication token before enabling the hubOrdering mode
-		const validAuthToken = await mss.hasValidAuthToken();
-		if (validAuthToken && !global.hubsLoading) {
+		if (!global.hubsLoading) {
 			hubOrdering.value = !hubOrdering.value;
-		}
-	}
-
-	async function openSettingsDialog() {
-		// Check if the user still has a valid authentication token before opening the settings dialog
-		const validAuthToken = await mss.hasValidAuthToken();
-		if (validAuthToken) {
-			settingsDialog.value = true;
 		}
 	}
 

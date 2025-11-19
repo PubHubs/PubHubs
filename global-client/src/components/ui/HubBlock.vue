@@ -63,27 +63,23 @@
 	const showDescription = ref(false);
 
 	async function enterHub(hub: Hub) {
-		let userLoggedIn = false;
-		let hubRunning = false;
+		let canEnterHub = false;
 		try {
 			// entering only the hub would generate a CORS-error.
 			// Since we only need to know if the hub is running, we can send a no-cors.
 			// The response will be empty, but the type 'opaque' will indicate the url is up and running
 			const response = await fetch(hub.url, { mode: 'no-cors' });
 			if (response.type === 'opaque') {
-				hubRunning = true;
+				canEnterHub = true;
 			}
-			// Check if the user either has an access token stored for the hub or still has a valid PubHubs authentication token before allowing the user to enter a hub
-			userLoggedIn = global.getAuthInfo(hub.hubId) !== null || ((await mss.hasValidAuthToken()) ?? false);
 		} catch {
 			// intentionally left empty
 		}
-		if (userLoggedIn && hubRunning) {
+		if (canEnterHub) {
 			router.push({ name: 'hub', params: { name: hub.name } });
-		} else if (!hubRunning) {
+		} else {
 			await dialog.confirm(hub.name, t('hubs.under_construction'));
 		}
-		// If the user does not have a valid authentication token, the logout procedure will already be triggered by mss.stateEP()
 	}
 
 	function toggleDescription(event: Event) {

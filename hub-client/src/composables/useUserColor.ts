@@ -7,6 +7,7 @@ const useUserColor = () => {
 	 */
 	const color = (userId: string) => {
 		const maxColors = textColors.length;
+		if (!userId.substring) return 0;
 		const intOfUserId = parseInt('0x' + userId.substring(1, 4), 16);
 		return intOfUserId % maxColors;
 	};

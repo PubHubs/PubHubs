@@ -1,3 +1,4 @@
+// Models
 // Packages
 import { ContentHelpers, EventTimeline, EventType, ISearchResults, ISendEventResponse, MatrixClient, MatrixError, MatrixEvent, Room as MatrixRoom, User as MatrixUser, MsgType } from 'matrix-js-sdk';
 import { ReceiptType } from 'matrix-js-sdk/lib/@types/read_receipts';
@@ -19,7 +20,6 @@ import { LOGGER } from '@hub-client/logic/logging/Logger';
 import { SMI } from '@hub-client/logic/logging/StatusMessage';
 import { getRoomType } from '@hub-client/logic/pubhubs.logic';
 
-// Models
 import { AskDisclosureMessage, YiviSigningSessionResult } from '@hub-client/models/components/signedMessages';
 import { Redaction, RelationType, imageTypes } from '@hub-client/models/constants';
 import { TMentions, TMessageEvent, TTextMessageEventContent } from '@hub-client/models/events/TMessageEvent';
@@ -724,6 +724,10 @@ const usePubhubsStore = defineStore('pubhubs', {
 			}
 		},
 
+		async deleteLibraryMessage(roomId: string, eventId: string) {
+			await this.client.redactEvent(roomId, eventId, undefined, { reason: Redaction.DeletedFromLibrary });
+		},
+
 		async sendReadReceipt(event: MatrixEvent) {
 			if (!event) return;
 			const loggedInUser = useUser();
@@ -906,7 +910,7 @@ const usePubhubsStore = defineStore('pubhubs', {
 			await this.client.sendMessage(roomId, content);
 		},
 
-		async addFile(roomId: string, threadId: string | undefined, file: File, uri: string, message: string = '', eventType: EventType = PubHubsMgType.Default) {
+		async addFile(roomId: string, threadId: string | undefined, file: File, uri: string, message: string = '', eventType: PubHubsMgType = PubHubsMgType.Default): Promise<Boolean> {
 			const thread = threadId && threadId.length > 0 ? threadId : null;
 			let fileType = MsgType.File;
 			let body = message;
@@ -934,8 +938,10 @@ const usePubhubsStore = defineStore('pubhubs', {
 				} else {
 					await this.client.sendMessage(roomId, thread, content);
 				}
+				return true;
 			} catch (error) {
 				logger.trace(SMI.STORE, 'swallowing add file error', { error });
+				return false;
 			}
 		},
 

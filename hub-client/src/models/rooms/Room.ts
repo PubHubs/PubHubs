@@ -614,6 +614,10 @@ export default class Room {
 		return this.timelineManager.getEvents();
 	}
 
+	public getLibraryTimeline(): TimelineEvent[] {
+		return this.timelineManager.getLibraryEvents();
+	}
+
 	/**
 	 *
 	 * @returns The newest message event id in the default timeline
@@ -624,9 +628,9 @@ export default class Room {
 
 	// #region RoomLibrary
 
-	public loadRoomLibrary() {
-		return this.roomLibrary.loadRoomLibraryTimeline(this.matrixRoom);
-	}
+	// public loadRoomLibrary() {
+	// 	return this.roomLibrary.loadRoomLibraryTimeline(this.matrixRoom);
+	// }
 
 	// #endregion
 

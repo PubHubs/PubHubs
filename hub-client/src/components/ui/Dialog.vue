@@ -22,9 +22,7 @@
 				<Line v-if="hasContent" class="z-0" />
 				<div v-if="hasContent" class="h-full py-1 pr-4 text-left" :class="props.allowOverflow ? 'overflow-visible' : 'overflow-y-auto'">
 					<slot></slot>
-					<div v-if="dialog.properties.content !== ''">
-						{{ dialog.properties.content }}
-					</div>
+					<div v-if="dialog.properties.content !== ''" v-html="dialog.properties.content"></div>
 				</div>
 				<Line class="z-0" />
 				<div class="flex w-full flex-row-reverse justify-start gap-2">

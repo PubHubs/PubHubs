@@ -1,5 +1,5 @@
 <template>
-	<button class="flex items-center justify-center">
+	<button class="flex items-center justify-center rounded-md bg-surface-high p-1">
 		<Icon :type="type" :size="size" :weight="weight" :mirrored="mirrored"></Icon>
 	</button>
 </template>

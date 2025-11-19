@@ -6,10 +6,12 @@
 					<span class="font-semibold uppercase">{{ $t('rooms.room') }}</span>
 					<hr class="h-[2px] grow bg-on-surface-dim" />
 				</div>
-				<div class="relative flex h-full items-center justify-between gap-4" :class="isMobile ? 'pl-8' : 'pl-0'">
-					<div v-if="rooms.currentRoom && !isSearchBarExpanded" class="flex w-fit items-center gap-3 overflow-hidden">
-						<Icon v-if="!notPrivateRoom()" type="caret-left" data-testid="back" @click="router.push({ name: 'direct-msg' })" class="cursor-pointer" />
-						<Icon v-if="notPrivateRoom()" :type="rooms.currentRoom.isSecuredRoom() ? 'shield' : 'chats-circle'" />
+				<div class="relative flex h-full items-center justify-between gap-4" :class="isMobile ? 'pl-8' : 'pl-0'" data-testid="roomheader">
+					<div v-if="rooms.currentRoom && !isSearchBarExpanded" class="flex w-fit items-center gap-3 overflow-hidden" data-testid="roomtype">
+						<Icon v-if="!notPrivateRoom()" type="caret-left" data-testid="back" class="cursor-pointer" @click="router.push({ name: 'direct-msg' })" />
+						<Icon v-if="showLibrary" type="caret-left" size="base" @click.stop="toggleLibrary" class="cursor-pointer" />
+						<Icon v-if="showLibrary" type="folder-simple" size="base" data-testid="roomlibrary-icon" />
+						<Icon v-else-if="notPrivateRoom()" :type="rooms.currentRoom.isSecuredRoom() ? 'shield' : 'chats-circle'" />
 						<div class="flex flex-col">
 							<H3 class="flex text-on-surface">
 								<TruncatedText class="font-headings font-semibold">
@@ -38,7 +40,7 @@
 			</template>
 
 			<div class="flex h-full w-full justify-between overflow-hidden">
-				<RoomLibrary v-if="showLibrary" :id="id" @close="toggleLibrary"></RoomLibrary>
+				<RoomLibrary v-if="showLibrary" :room="room" @close="toggleLibrary"></RoomLibrary>
 				<div class="flex h-full w-full flex-col overflow-hidden" :class="{ hidden: showLibrary }">
 					<RoomTimeline v-if="room" ref="roomTimeLineComponent" :room="room" @scrolled-to-event-id="room.setCurrentEvent(undefined)"> </RoomTimeline>
 				</div>

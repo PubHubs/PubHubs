@@ -8,6 +8,7 @@ enum SystemDefaults {
 	initialRoomTimelineLimit = 100, // Initially load less messages in the rooms: makes startup faster
 	roomTimelineLimit = 500, // Subsequent pagination: can be relatively high
 	initialRoomListRange = 99999, // Initial number of rooms to fetch, in the future perhaps paginate this?
+	MaxNumberFileUploads = 50, // Maximum number of files that can be dropped/uploaded
 	mainRoomListRange = 20, // Number of rooms to fetch during main sync, lowering this leads to rooms possibly not directly loaded. Higher values give longer initial loadingtimes.
 }
 
@@ -56,6 +57,7 @@ enum Redaction {
 	Redacts = 'redacts',
 	Deleted = 'Deleted',
 	DeletedFromThread = 'Deleted from thread',
+	DeletedFromLibrary = 'Deleted from library',
 }
 
 // Emits must be of type string so double ""

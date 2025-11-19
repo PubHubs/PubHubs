@@ -48,6 +48,8 @@ class TimelineManager {
 	private relatedEvents: TimelineEvent[] = [];
 	/** Contains all redacted events coming from sliding sync */
 	private redactedEvents: TimelineEvent[] = [];
+	/** Contains all roomlibrary events coming from sliding sync */
+	private libraryEvents: TimelineEvent[] = [];
 
 	private roomId: string;
 
@@ -63,7 +65,7 @@ class TimelineManager {
 	private timelineSetFilter = {
 		room: {
 			timeline: {
-				types: [EventType.RoomMessage, EventType.RoomRedaction],
+				types: [EventType.RoomMessage, EventType.RoomRedaction, PubHubsMgType.LibraryFileMessage, PubHubsMgType.SignedFileMessage],
 			},
 		},
 	};
@@ -213,7 +215,9 @@ class TimelineManager {
 			(x) =>
 				x.matrixEvent.event.event_id === eventId &&
 				x.matrixEvent.event.type === MatrixEventType.RoomRedaction &&
-				(x.matrixEvent.event.content?.[Redaction.Reason] === Redaction.Deleted || x.matrixEvent.event.content?.[Redaction.Reason] === Redaction.DeletedFromThread),
+				(x.matrixEvent.event.content?.[Redaction.Reason] === Redaction.Deleted ||
+					x.matrixEvent.event.content?.[Redaction.Reason] === Redaction.DeletedFromThread ||
+					x.matrixEvent.event.content?.[Redaction.Reason] === Redaction.DeletedFromLibrary),
 		);
 		return !!relatedEvent;
 	}
@@ -221,8 +225,8 @@ class TimelineManager {
 	/**
 	 * Set isDeleted true for all deleted events in this.timelineEvents
 	 */
-	private applyIsDeleted() {
-		const eventMap = new Map(this.timelineEvents.map((event) => [event.matrixEvent.event.event_id, event]));
+	private applyIsDeleted(events: TimelineEvent[]) {
+		const eventMap = new Map(events.map((event) => [event.matrixEvent.event.event_id, event]));
 		this.redactedEvents.forEach((redacted) => {
 			if (redacted.matrixEvent.event.event_id && this.IsDeletedEvent(redacted.matrixEvent.event.event_id)) {
 				// if there is an event that gets redacted by this redacted event: set isDeleted
@@ -246,9 +250,19 @@ class TimelineManager {
 		this.relatedEvents = matrixEvents.filter((event) => event.getContent()[RelationType.RelatesTo]).map((event) => new TimelineEvent(event, this.roomId));
 
 		// Filter out redacted events: not for timeline and not read in the related events because they are used only temporary (until the redacted_because field is set in the db)
-		const redactedEvents = matrixEvents.filter((x) => x.getType() === MatrixEventType.RoomRedaction);
+		const redactedEvents = matrixEvents.filter((x) => x.getType() === MatrixEventType.RoomRedaction && x.getContent().reason !== Redaction.DeletedFromLibrary);
 		this.redactedEvents = [...this.redactedEvents, ...redactedEvents.map((x) => new TimelineEvent(x, this.roomId))];
-		this.applyIsDeleted();
+
+		// Filters out the Library events
+		const libraryEvents = matrixEvents.filter(
+			(x) => (x.getType() === PubHubsMgType.LibraryFileMessage || x.getType() === PubHubsMgType.SignedFileMessage) && x.getType() !== Redaction.DeletedFromLibrary && x.getType() !== Redaction.Redacts,
+		);
+		this.libraryEvents = [...this.libraryEvents, ...libraryEvents.map((x) => new TimelineEvent(x, this.roomId))];
+		// Filter out double, sometimes after sync items get doubled
+		this.libraryEvents = this.libraryEvents.filter((item, index, self) => self.findIndex((innerItem) => innerItem.matrixEvent.getId() === item.matrixEvent.getId()) === index);
+
+		this.applyIsDeleted(this.timelineEvents);
+		this.applyIsDeleted(this.libraryEvents);
 
 		// TODO remove redacted events when necessary: so whenever a pagination is taking place
 
@@ -290,6 +304,10 @@ class TimelineManager {
 
 	getEvents(): TimelineEvent[] {
 		return this.timelineEvents;
+	}
+
+	getLibraryEvents(): TimelineEvent[] {
+		return this.libraryEvents;
 	}
 
 	getTimeLineRelatedEvents(): TimelineEvent[] {
