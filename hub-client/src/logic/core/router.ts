@@ -1,11 +1,12 @@
-import { Message, MessageType, useMessageBox } from '@hub-client/stores/messagebox';
 // Packages
 import { createRouter, createWebHashHistory } from 'vue-router';
 
 // Models
 import { OnboardingType } from '@hub-client/models/constants';
+
 // Stores
 import { useHubSettings } from '@hub-client/stores/hub-settings';
+import { Message, MessageType, useMessageBox } from '@hub-client/stores/messagebox';
 import { useUser } from '@hub-client/stores/user';
 
 // Route definitions
