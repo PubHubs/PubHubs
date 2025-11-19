@@ -14,7 +14,7 @@
 			</div>
 
 			<hr class="mx-8 mt-2" />
-			<Button @click="handleActionClick" class="absolute inset-0 mt-4 w-full rounded bg-on-surface-variant px-4 text-center hover:bg-surface-subtle dark:text-surface-low">
+			<Button @click="handleActionClick" class="absolute inset-0 mt-4 w-full rounded-xs bg-on-surface-variant px-4 text-center hover:bg-surface-subtle dark:text-surface-low">
 				{{ t('admin.join') }}
 			</Button>
 			<InlineSpinner v-if="inProgress"></InlineSpinner>

@@ -5,14 +5,14 @@
 			<Icon type="warning" :size="'sm'" @mouseover="showVerificationStatus = true" @mouseout="showVerificationStatus = false" class="p-[0.6rem] text-accent-red" />
 			<div class="relative">
 				<div v-if="showVerificationStatus" class="absolute bottom-6 right-0 w-32 rounded-md bg-surface-high p-2">
-					<p class="~text-label-small-min/label-small-max">{{ $t('message.messageSigned.verificationStatus') }}</p>
+					<p class="text-label-small">{{ $t('message.messageSigned.verificationStatus') }}</p>
 				</div>
 			</div>
 			<Icon type="info" :size="'sm'" class="ml-auto p-[0.6rem]" @mouseover="showInfo = true" @mouseout="showInfo = false" />
 			<!-- An extra div to ensure the info popup is always positioned the same -->
 			<div class="relative">
 				<div v-if="showInfo" class="absolute bottom-6 right-2 w-32 rounded-md bg-surface-high p-2">
-					<p class="~text-label-small-min/label-small-max">{{ $t('message.messageSigned.info') }}</p>
+					<p class="text-label-small">{{ $t('message.messageSigned.info') }}</p>
 				</div>
 			</div>
 			<!-- Not supported yet -->

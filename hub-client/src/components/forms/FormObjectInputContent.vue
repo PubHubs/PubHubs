@@ -11,25 +11,25 @@
 	<TabContainer>
 		<TabContent v-for="(item, index) in list" :key="index">
 			<FormLine v-for="(type, ti) in template" :key="ti">
-				<Label class="~text-label-min/label-max">{{ type.label }}</Label>
+				<Label class="text-label">{{ type.label }}</Label>
 				<TextInput
 					v-if="type.type === 'text'"
 					:placeholder="(index + 1).toString()"
 					:value="item[type.key]"
 					:disabled="type.disabled"
 					@input="update(index, type.key, $event.target.value)"
-					class="bg-background ~text-label-min/label-max"
+					class="bg-background text-label"
 				/>
 				<TextArea
-					class="bg-background ~text-label-min/label-max"
+					class="bg-background text-label"
 					v-if="type.type === 'textarea'"
 					:modelValue="item[type.key]"
 					:disabled="type.disabled"
 					:maxLength="type.maxLength"
 					@input="update(index, type.key, $event.target.value)"
 				/>
-				<Checkbox v-if="type.type === 'checkbox'" :value="item[type.key]" :disabled="type.disabled" @input="update(index, type.key, $event.target.checked)" class="~text-label-min/label-max" />
-				<Select v-if="type.type === 'select'" :value="item[type.key]" :options="type.options" :disabled="type.disabled" @input="update(index, type.key, $event.target.value)" class="~text-label-min/label-max" />
+				<Checkbox v-if="type.type === 'checkbox'" :value="item[type.key]" :disabled="type.disabled" @input="update(index, type.key, $event.target.checked)" class="text-label" />
+				<Select v-if="type.type === 'select'" :value="item[type.key]" :options="type.options" :disabled="type.disabled" @input="update(index, type.key, $event.target.value)" class="text-label" />
 				<AutoComplete
 					v-if="type.type === 'autocomplete'"
 					:value="item[type.key]"
@@ -37,7 +37,7 @@
 					:disabled="type.disabled"
 					@input="update(index, type.key, $event.target.value)"
 					@changed="update(index, type.key, $event)"
-					class="~text-label-min/label-max"
+					class="text-label"
 				>
 				</AutoComplete>
 			</FormLine>

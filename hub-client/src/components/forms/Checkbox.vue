@@ -11,7 +11,7 @@
 			@input="update(($event.target as HTMLInputElement).checked)"
 			@keydown.esc="cancel()"
 		/>
-		<label v-if="label !== ''" class="ml-1 mt-1 ~text-label-min/label-max hover:cursor-pointer" @click="toggle()">{{ label }}</label>
+		<label v-if="label !== ''" class="ml-1 mt-1 text-label hover:cursor-pointer" @click="toggle()">{{ label }}</label>
 	</div>
 </template>
 

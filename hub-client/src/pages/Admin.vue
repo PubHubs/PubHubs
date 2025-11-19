@@ -29,7 +29,7 @@
 								</div>
 								<div class="flex w-fit gap-4">
 									<div class="flex items-center gap-2">
-										<span v-if="isUserRoomAdmin(user.userId, item.room_id)" class="ml-2 flex h-4 items-center gap-1 rounded-xl bg-black px-2 text-white ~text-label-small-min/label-small-max">Administrator</span>
+										<span v-if="isUserRoomAdmin(user.userId, item.room_id)" class="ml-2 flex h-4 items-center gap-1 rounded-xl bg-black px-2 text-white text-label-small">Administrator</span>
 										<span class="flex items-center">
 											<Icon type="user" size="sm" class="shrink-0" />
 											<p>x</p>
@@ -65,7 +65,7 @@
 								</div>
 								<div class="flex w-fit gap-4">
 									<div class="flex items-center gap-2">
-										<span v-if="isUserRoomAdmin(user.userId, item.room_id)" class="ml-2 flex h-4 items-center gap-1 rounded-xl bg-black px-2 text-white ~text-label-small-min/label-small-max">Administrator</span>
+										<span v-if="isUserRoomAdmin(user.userId, item.room_id)" class="ml-2 flex h-4 items-center gap-1 rounded-xl bg-black px-2 text-white text-label-small">Administrator</span>
 										<span v-if="rooms.room(item.room_id)?.userIsMember(user.userId)">
 											<Icon type="user" size="sm" class="shrink-0" />
 										</span>

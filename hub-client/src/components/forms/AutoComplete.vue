@@ -12,7 +12,7 @@
 		<input
 			type="text"
 			v-model="search"
-			class="w-full rounded-lg border bg-background px-2 py-1 ~text-label-min/label-max placeholder:text-surface-subtle focus:ring-accent-primary"
+			class="w-full rounded-lg border bg-background px-2 py-1 text-label placeholder:text-surface-subtle focus:ring-accent-primary"
 			:placeholder="$t('admin.editroom_typing')"
 			:disabled="disabled === true"
 			:maxlength="maxlength"

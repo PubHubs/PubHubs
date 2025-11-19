@@ -5,7 +5,7 @@
 			<p class="truncate font-bold leading-tight">
 				{{ otherUser?.rawDisplayName ?? '' }}
 			</p>
-			<p class="leading-tight ~text-label-small-min/label-small-max">
+			<p class="leading-tight text-label-small">
 				{{ otherUser?.userId ? filters.extractPseudonym(otherUser.userId) : '' }}
 			</p>
 		</div>

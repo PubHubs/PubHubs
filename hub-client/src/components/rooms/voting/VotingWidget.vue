@@ -5,7 +5,7 @@
 				<div class="mb-2">
 					<Icon v-if="votingWidgetClosed" class="float-left -mt-1 mr-1 text-accent-orange" type="lock" />
 					<span class="mr-1 font-bold">{{ votingWidget.title }}</span>
-					<span v-if="votingWidgetClosed" class="italic ~text-label-small-min/label-small-max"><br />{{ $t('message.scheduler_closed') }}</span>
+					<span v-if="votingWidgetClosed" class="italic text-label-small"><br />{{ $t('message.scheduler_closed') }}</span>
 				</div>
 
 				<div class="flex">

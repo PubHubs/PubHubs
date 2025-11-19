@@ -12,7 +12,7 @@
 			<p>{{ $t('register.yivi_downloaded') }}</p>
 			<Button class="mr-6 mt-6 w-[320px] max-w-full" @click="$emit('next')">{{ $t('register.yivi_no') }}</Button>
 			<Button class="mb-4 mt-6 w-[320px] max-w-full py-3 leading-tight" @click="$emit('skip')">
-				{{ $t('register.yivi_yes') }}<br /><span class="~text-body-min/body-max text-nowrap">({{ $t('register.skip_step1') }})</span>
+				{{ $t('register.yivi_yes') }}<br /><span class="text-body text-nowrap">({{ $t('register.skip_step1') }})</span>
 			</Button>
 		</template>
 		<template #column2>

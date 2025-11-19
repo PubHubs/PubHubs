@@ -4,7 +4,7 @@
 			<!-- Header -->
 			<div class="items-top flex h-full flex-row gap-4">
 				<span class="mt-2 flex aspect-square h-4 w-4 items-center justify-center rounded-full bg-accent-primary text-on-accent-primary">
-					<span class="font-semibold ~text-label-small-min/label-small-max">{{ index + 1 }}</span>
+					<span class="font-semibold text-label-small">{{ index + 1 }}</span>
 				</span>
 				<div class="flex h-full w-full flex-col gap-4">
 					<slot name="title"></slot>

@@ -1,5 +1,5 @@
 <template>
-	<div class="h-screen w-full bg-background font-body text-on-surface ~text-base-min/base-max">
+	<div class="h-screen w-full bg-background font-body text-on-surface text-body">
 		<div v-if="setupReady" class="h-full">
 			<div v-if="user.isLoggedIn" class="flex h-full">
 				<HeaderFooter class="w-full bg-surface-low" :class="[{ hidden: !hubSettings.mobileHubMenu && isMobile }, !isMobile && 'flex max-w-[40rem]']">

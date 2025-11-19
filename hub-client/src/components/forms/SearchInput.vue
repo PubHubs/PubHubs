@@ -3,7 +3,7 @@
 	<div class="hidden items-center justify-end rounded-md bg-background md:flex" v-click-outside="reset">
 		<div class="relative flex max-w-full items-center justify-end transition-all duration-200">
 			<input
-				class="h-full w-full flex-1 border-none bg-transparent ~text-label-small-min/label-small-max placeholder:text-on-surface-variant focus:outline-0 focus:outline-offset-0 focus:ring-0"
+				class="h-full w-full flex-1 border-none bg-transparent text-label-small placeholder:text-on-surface-variant focus:outline-0 focus:outline-offset-0 focus:ring-0"
 				type="text"
 				role="searchbox"
 				v-model="value"
@@ -31,7 +31,7 @@
 			<Icon v-if="!isExpanded" type="magnifying-glass" class="w-8 cursor-pointer text-accent-secondary dark:text-on-surface-variant" @click.stop="toggleSearch()" />
 			<input
 				v-if="isExpanded"
-				class="h-full w-full flex-1 border-none bg-transparent ~text-label-small-min/label-small-max placeholder:text-on-surface-variant focus:outline-0 focus:outline-offset-0 focus:ring-0"
+				class="h-full w-full flex-1 border-none bg-transparent text-label-small placeholder:text-on-surface-variant focus:outline-0 focus:outline-offset-0 focus:ring-0"
 				type="text"
 				role="searchbox"
 				v-model="value"

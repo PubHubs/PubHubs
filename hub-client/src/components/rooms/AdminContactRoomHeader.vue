@@ -5,7 +5,7 @@
 			<p class="truncate font-bold leading-tight">
 				{{ props.room.name.startsWith('@') ? $t('admin.support') : props.room.name }}
 			</p>
-			<p class="flex leading-tight ~text-label-small-min/label-small-max">{{ props.room.getRoomMembers() }} <Icon type="user" class="mr-1"></Icon></p>
+			<p class="flex leading-tight text-label-small">{{ props.room.getRoomMembers() }} <Icon type="user" class="mr-1"></Icon></p>
 		</div>
 	</div>
 </template>

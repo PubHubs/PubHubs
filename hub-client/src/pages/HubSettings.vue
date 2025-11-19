@@ -23,7 +23,7 @@
 				<H3>{{ $t('hub_settings.summary_heading') }}</H3>
 				<P>{{ $t('hub_settings.summary_description') }}</P>
 				<TextArea v-model="hubSummary" class="border-hub-border max-h-16 w-full rounded-md border p-3 dark:text-black" rows="4" :placeholder="t('hub_settings.summary')" :maxlength="maxSummaryLength"></TextArea>
-				<P class="float-end ~text-label-small-min/label-small-max"> {{ hubSummary.length }} / {{ maxSummaryLength }} </P>
+				<P class="float-end text-label-small"> {{ hubSummary.length }} / {{ maxSummaryLength }} </P>
 			</div>
 
 			<!-- Contact Section -->

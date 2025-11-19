@@ -18,7 +18,7 @@
 			<Button class="mb-4 flex max-h-[30px] w-32 rounded-xl" @click="ManagementUtils.getUsersAccounts()">
 				<div class="flex items-center gap-2 text-xl">
 					<Icon type="arrow-counter-clockwise" size="sm" />
-					<span class="flex ~text-label-min/label-max">{{ t('admin.reload') }}</span>
+					<span class="flex text-label">{{ t('admin.reload') }}</span>
 				</div>
 			</Button>
 

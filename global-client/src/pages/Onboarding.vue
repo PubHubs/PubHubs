@@ -87,7 +87,7 @@
 						<div
 							v-else
 							ref="carouselDesktop"
-							class="no-scrollbar flex snap-x snap-mandatory overflow-x-auto scroll-smooth ~gap-8/16 ~py-4/8"
+							class="no-scrollbar flex snap-x snap-mandatory overflow-x-auto scroll-smooth gap-12 py-6"
 							style="padding-left: calc(50vw - 40ch); padding-right: calc(50vw - 40ch); scroll-padding-left: calc(50vw - 40ch); scroll-padding-right: calc(50vw - 40ch)"
 						>
 							<!-- Card 1 -->
@@ -181,7 +181,7 @@
 					<div class="mt-4 flex flex-col gap-8 px-4">
 						<div class="flex items-center gap-4">
 							<div class="flex aspect-square h-6 w-6 items-center justify-center rounded-full bg-accent-primary text-on-accent-primary">
-								<span class="font-semibold ~text-label-small-min/label-small-max">i</span>
+								<span class="font-semibold text-label-small">i</span>
 							</div>
 							<H2>{{ $t('register.yivi_faq') }}</H2>
 						</div>

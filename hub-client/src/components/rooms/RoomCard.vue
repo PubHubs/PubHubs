@@ -1,5 +1,5 @@
 <template>
-	<div role="article" class="flex h-[320px] w-full flex-col rounded-xl shadow transition-all duration-300 xs:w-auto" :class="isExpanded ? 'row-span-2 h-[672px] bg-surface' : 'h-[320px] bg-surface-low'">
+	<div role="article" class="flex h-[320px] w-full flex-col rounded-xl shadow-sm transition-all duration-300 xs:w-auto" :class="isExpanded ? 'row-span-2 h-[672px] bg-surface' : 'h-[320px] bg-surface-low'">
 		<!-- Main card -->
 		<div class="flex h-[320px] w-full shrink-0 flex-col gap-4 overflow-hidden rounded-xl bg-surface-low py-8 shadow-md">
 			<div class="flex items-center justify-between">
@@ -14,7 +14,7 @@
 				</div>
 
 				<div class="flex w-full items-end justify-between gap-4">
-					<div class="flex flex-row flex-wrap gap-4 overflow-hidden text-on-surface-dim ~text-label-min/label-max">
+					<div class="flex flex-row flex-wrap gap-4 overflow-hidden text-on-surface-dim text-label">
 						<div class="flex items-center gap-2">
 							<Icon type="user" size="sm"></Icon>
 							<span class="truncate whitespace-nowrap">{{ memberCount }}</span>
@@ -65,7 +65,7 @@
 						<P>{{ $t('attribute.heading') }}</P>
 					</div>
 					<div v-for="attribute in securedAttributes" :key="attribute.id" class="">
-						<div class="float-left ml-1 rounded-3xl bg-surface-high p-1 px-2 ~text-label-small-min/label-small-max">
+						<div class="float-left ml-1 rounded-3xl bg-surface-high p-1 px-2 text-label-small">
 							<P class="">{{ $t('attribute.' + attribute) }}</P>
 						</div>
 						<P class="float-left">&nbsp;</P>

@@ -8,11 +8,11 @@
 				</div>
 				<hr class="my-4 border-t border-white" />
 				<div class="relative flex items-center px-8 py-2">
-					<input type="text" v-model="userFilter" :placeholder="t('others.filter_users')" class="h-8 w-full min-w-0 flex-grow rounded-lg border bg-background px-4 py-1 ~text-label-min/label-max" />
+					<input type="text" v-model="userFilter" :placeholder="t('others.filter_users')" class="h-8 w-full min-w-0 flex-grow rounded-lg border bg-background px-4 py-1 text-label" />
 					<Icon class="absolute right-0 mr-5" type="magnifying-glass" size="sm" />
 				</div>
 				<div class="px-8 py-2">
-					<Button class="flex w-full items-center justify-center gap-2 bg-on-surface-variant ~text-label-small-min/label-small-max hover:text-surface-high dark:text-surface-high" size="sm" @click="groupPanel = true">
+					<Button class="flex w-full items-center justify-center gap-2 bg-on-surface-variant text-label-small hover:text-surface-high dark:text-surface-high" size="sm" @click="groupPanel = true">
 						<Icon type="plus"></Icon> {{ t('others.new_group') }}
 					</Button>
 				</div>
@@ -20,17 +20,17 @@
 			<div v-else class="mx-4 mt-2 flex flex-col">
 				<div class="flex items-center justify-between rounded-lg bg-surface-low px-1 py-1 font-bold">
 					<Icon type="arrow-left" class="cursor-pointer" @click="groupProfile ? backToGroupPanel() : (groupPanel = false)" />
-					<span class="mr-auto pl-2 ~text-label-small-min/label-small-max">
+					<span class="mr-auto pl-2 text-label-small">
 						{{ t('others.new_group') }}
 					</span>
 					<Icon type="x" class="cursor-pointer" @click="$emit('close')" />
 				</div>
 				<div class="relative flex items-center pt-2">
-					<input type="text" v-model="userFilter" :placeholder="t('others.filter_users')" class="h-8 w-full min-w-0 flex-grow rounded-lg border bg-background px-4 py-1 ~text-label-min/label-max" />
+					<input type="text" v-model="userFilter" :placeholder="t('others.filter_users')" class="h-8 w-full min-w-0 flex-grow rounded-lg border bg-background px-4 py-1 text-label" />
 					<Icon class="absolute right-1" type="magnifying-glass" />
 				</div>
 				<div v-if="groupProfile">
-					<span class="~text-label-small-min/label-small-max"> {{ t('others.select_group_name') }}</span>
+					<span class="text-label-small"> {{ t('others.select_group_name') }}</span>
 					<div class="flex items-center gap-2 rounded-lg bg-surface-low px-2 py-2">
 						<div class="h-10 w-10 cursor-pointer rounded-full bg-surface-high">
 							<Avatar v-if="avatarPreviewUrl" :avatar-url="avatarPreviewUrl" @click="fileInput!.click()"></Avatar>
@@ -45,7 +45,7 @@
 					<span class="mx-auto w-1/2"> {{ selectedUsers.length + ' ' + t('others.group_members') }} </span>
 				</div>
 
-				<span v-if="selectedUsers.length === 0" class="mx-auto mt-4 ~text-label-small-min/label-small-max"> {{ t('others.group_select') }} </span>
+				<span v-if="selectedUsers.length === 0" class="mx-auto mt-4 text-label-small"> {{ t('others.group_select') }} </span>
 				<div v-else class="mt-4 flex flex-wrap justify-start gap-y-2">
 					<div v-for="user in usersSelected" :key="user.userId" class="flex flex-col items-center">
 						<div class="relative">
@@ -61,7 +61,7 @@
 				</Button>
 				<Button
 					v-if="groupProfileButton"
-					class="mt-12 flex justify-between bg-on-surface-variant text-surface-high ~text-label-small-min/label-small-max hover:bg-surface-subtle"
+					class="mt-12 flex justify-between bg-on-surface-variant text-surface-high text-label-small hover:bg-surface-subtle"
 					size="xs"
 					:disabled="cannotCreateGroupRoom"
 					@click="groupCreationDone(usersSelected)"

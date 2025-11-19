@@ -24,7 +24,7 @@
 							<H2>{{ t('onboarding.username_label') }}</H2>
 							<P>{{ t('onboarding.username_description') }}</P>
 							<div class="flex gap-4">
-								<TextInput v-model="inputValue" :placeholder="pseudonym" class="h-10 !placeholder-on-surface-dim ~text-label-min/label-max" maxlength="24" />
+								<TextInput v-model="inputValue" :placeholder="pseudonym" class="h-10 !placeholder-on-surface-dim text-label" maxlength="24" />
 								<Button @click="fileInput!.click()">
 									<Icon type="image-square"></Icon>
 								</Button>
@@ -38,18 +38,18 @@
 						<!-- Preview Message -->
 						<div v-if="isUsernameChanged" class="flex flex-col gap-2">
 							<P>{{ t('onboarding.message_example') }}</P>
-							<div class="flex w-full items-center rounded-xl bg-surface-low ~gap-4/8 ~p-3/6 xl:w-1/2">
+							<div class="flex w-full items-center rounded-xl bg-surface-low gap-6 p-4 xl:w-1/2">
 								<div class="flex aspect-square h-12 w-12 shrink-0 items-center justify-center overflow-hidden rounded-full" :class="textColor(color(user.userId!))">
 									<img v-if="avatarPreviewUrl" data-testid="avatar" :src="avatarPreviewUrl" class="h-full w-full" />
 									<Icon v-else size="lg" type="user" />
 								</div>
-								<div class="flex flex-col ~gap-1/2">
-									<div class="flex items-center ~gap-1/2">
-										<span v-if="inputValue" data-testid="display-name" :class="`${textColor(color(user.userId!))} truncate font-semibold ~text-label-min/label-max`">
+								<div class="flex flex-col gap-2">
+									<div class="flex items-center gap-2">
+										<span v-if="inputValue" data-testid="display-name" :class="`${textColor(color(user.userId!))} truncate font-semibold text-label`">
 											{{ inputValue }}
 										</span>
-										<span class="~text-label-small-min/label-small-max">|</span>
-										<span class="~text-label-small-min/label-small-max">{{ time }}</span>
+										<span class="text-label-small">|</span>
+										<span class="text-label-small">{{ time }}</span>
 									</div>
 									<P>{{ t('onboarding.message_example_text') }}</P>
 								</div>
@@ -96,28 +96,28 @@
 
 		<!-- Desktop Layout -->
 		<div v-else class="overflow-none relative flex max-h-screen w-full items-center justify-center">
-			<div class="relative flex aspect-auto h-auto max-h-full w-3/4 rounded-3xl shadow xl:aspect-[3/2] xl:h-2/3 xl:w-auto">
+			<div class="relative flex aspect-auto h-auto max-h-full w-3/4 rounded-3xl shadow-sm xl:aspect-[3/2] xl:h-2/3 xl:w-auto">
 				<!-- Step 1 -->
 				<div v-if="step === 1" class="flex w-full flex-col overflow-hidden rounded-3xl bg-surface-low lg:flex-row">
 					<!-- Left Image -->
-					<div class="flex h-[250px] w-full flex-col overflow-y-auto ~gap-4/8 lg:h-auto lg:w-1/2">
+					<div class="flex h-[250px] w-full flex-col overflow-y-auto gap-6 lg:h-auto lg:w-1/2">
 						<figure class="h-full w-full">
 							<img alt="Placeholder" src="../assets/onboarding_placeholder.svg" class="h-full w-full object-cover" />
 						</figure>
 					</div>
 
 					<!-- Right Form -->
-					<div class="flex h-full w-full flex-col overflow-y-auto bg-surface ~gap-4/8 ~px-4/24 ~py-12/24 lg:w-1/2 lg:~py-24/36">
-						<div class="flex flex-col ~gap-1/2">
+					<div class="flex h-full w-full flex-col overflow-y-auto bg-surface gap-6 px-16 py-16 lg:w-1/2 lg:py-32">
+						<div class="flex flex-col gap-2">
 							<H1>{{ t('onboarding.welcome', [hubName]) }}</H1>
 							<P>{{ t('onboarding.welcome_description') }}</P>
 						</div>
 
-						<div class="flex flex-col ~gap-1/2">
+						<div class="flex flex-col gap-2">
 							<H2>{{ t('onboarding.username_label') }}</H2>
 							<P>{{ t('onboarding.username_description') }}</P>
-							<div class="flex ~gap-2/4">
-								<TextInput v-model="inputValue" :placeholder="pseudonym" class="h-10 !placeholder-on-surface-dim ~text-label-min/label-max" />
+							<div class="flex gap-4">
+								<TextInput v-model="inputValue" :placeholder="pseudonym" class="h-10 !placeholder-on-surface-dim text-label" />
 								<Button @click="fileInput!.click()">
 									<Icon type="image-square" />
 								</Button>
@@ -129,20 +129,20 @@
 						</div>
 
 						<!-- Message Preview -->
-						<div v-if="isUsernameChanged" class="flex flex-col ~gap-1/2">
+						<div v-if="isUsernameChanged" class="flex flex-col gap-2">
 							<P>{{ t('onboarding.message_example') }}</P>
-							<div class="flex w-full items-center rounded-xl bg-background ~gap-4/8 ~p-3/6">
+							<div class="flex w-full items-center rounded-xl bg-background gap-6 p-4">
 								<div class="min-w-1/3 flex aspect-square h-12 w-12 shrink-0 items-center justify-center overflow-hidden rounded-full" :class="textColor(color(user.userId!))">
 									<img v-if="avatarPreviewUrl" data-testid="avatar" :src="avatarPreviewUrl" class="h-full w-full" />
 									<Icon v-else size="lg" type="user" />
 								</div>
-								<div class="flex flex-col ~gap-1/2">
-									<div class="flex flex-wrap items-center ~gap-1/2">
-										<span v-if="inputValue" data-testid="display-name" :class="`${textColor(color(user.userId!))} truncate break-all font-semibold ~text-label-min/label-max`">
+								<div class="flex flex-col gap-2">
+									<div class="flex flex-wrap items-center gap-2">
+										<span v-if="inputValue" data-testid="display-name" :class="`${textColor(color(user.userId!))} truncate break-all font-semibold text-label`">
 											{{ inputValue }}
 										</span>
-										<span class="~text-label-small-min/label-small-max">|</span>
-										<span class="~text-label-small-min/label-small-max">{{ time }}</span>
+										<span class="text-label-small">|</span>
+										<span class="text-label-small">{{ time }}</span>
 									</div>
 									<P>{{ t('onboarding.message_example_text') }}</P>
 								</div>
@@ -158,7 +158,7 @@
 				<!-- Step 2 -->
 				<div v-if="step === 2" class="flex w-full overflow-hidden rounded-3xl bg-surface-low">
 					<!-- Left Rules -->
-					<div class="flex w-1/2 flex-col overflow-y-auto ~gap-4/8 ~px-4/24 ~pt-24/36">
+					<div class="flex w-1/2 flex-col overflow-y-auto gap-6 px-16 pt-32">
 						<H1>{{ t('onboarding.house_rules', [hubName]) }}</H1>
 						<div v-if="consentText" class="rounded-3xl bg-surface-low p-4">
 							<mavon-editor defaultOpen="preview" :toolbarsFlag="false" :subfield="false" v-model="consentText" :boxShadow="false" />
@@ -166,15 +166,15 @@
 					</div>
 
 					<!-- Right Consent -->
-					<div class="flex h-full w-1/2 flex-col bg-surface ~gap-4/8 ~px-4/24 ~py-24/36">
+					<div class="flex h-full w-1/2 flex-col bg-surface gap-6 px-16 py-32">
 						<Button v-if="!isConsentOnly" @click="prevStep" color="text" class="w-fit px-0 text-on-surface-variant">
 							{{ t('forms.back') }}
 						</Button>
-						<div class="flex flex-col ~gap-1/2">
+						<div class="flex flex-col gap-2">
 							<H1>{{ isConsentOnly ? t('onboarding.welcome_consent') : t('onboarding.welcome', [hubName]) }}</H1>
 							<P>{{ isConsentOnly ? t('onboarding.welcome_consent_description') : t('onboarding.welcome_description') }}</P>
 						</div>
-						<div class="flex items-center ~gap-2/4">
+						<div class="flex items-center gap-4">
 							<Checkbox v-model="hasAgreed" />
 							<span>{{ t('onboarding.consent_text') }}</span>
 						</div>

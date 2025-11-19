@@ -1,5 +1,5 @@
 <template>
-	<span class="flex ~text-label-small-min/label-small-max">
+	<span class="flex text-label-small">
 		<span>{{ formatted }}</span>
 	</span>
 </template>

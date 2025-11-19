@@ -5,10 +5,10 @@
 	<div class="mx-auto mb-8 flex w-full flex-col gap-4 px-8 md:w-4/6 md:px-0">
 		<!-- Search bar -->
 		<div class="-mt-[5.5rem] flex flex-col gap-2">
-			<div class="flex items-center whitespace-nowrap ~gap-1/4">
+			<div class="flex items-center whitespace-nowrap gap-2">
 				<div class="flex items-center gap-2 py-2">
 					<Icon class="text-surface dark:text-on-surface" type="compass" size="md" />
-					<div role="heading" class="font-headings font-semibold ~text-h3-min/h3-max">{{ $t('menu.discover') }}</div>
+					<div role="heading" class="font-headings font-semibold text-h3">{{ $t('menu.discover') }}</div>
 				</div>
 			</div>
 			<div class="relative">
@@ -16,7 +16,7 @@
 					type="text"
 					v-model="searchQuery"
 					:placeholder="$t('others.search_rooms')"
-					class="focus mb-4 w-full rounded border bg-surface px-4 py-2 text-on-surface placeholder-on-surface-dim ~text-label-min/label-max focus:placeholder-on-surface-variant focus:ring-accent-primary"
+					class="focus mb-4 w-full rounded-xs border bg-surface px-4 py-2 text-on-surface placeholder-on-surface-dim text-label focus:placeholder-on-surface-variant focus:ring-accent-primary"
 				/>
 				<Icon type="magnifying-glass" class="pointer-events-none absolute right-2 top-[20%] z-10 text-on-surface-variant" size="sm" />
 			</div>

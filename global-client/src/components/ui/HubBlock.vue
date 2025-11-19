@@ -17,7 +17,7 @@
 			<div class="flex h-full w-full max-w-full flex-col justify-center gap-2 overflow-hidden pb-2 pt-1 text-left">
 				<H2 class="line-clamp-1 w-full overflow-hidden text-ellipsis">{{ hub.hubName }}</H2>
 				<div class="h-16">
-					<TruncatedText class="font-bold uppercase ~text-label-small-min/label-small-max">{{ $t('home.hub_card_about') }}</TruncatedText>
+					<TruncatedText class="font-bold uppercase text-label-small">{{ $t('home.hub_card_about') }}</TruncatedText>
 					<Pre v-model="summary" class="max-w-[calc(100%_-_2em)] hyphens-auto whitespace-pre-line break-words font-body" :class="isMobile ? 'line-clamp-3 text-xl' : 'line-clamp-2'">{{ summary }}</Pre>
 				</div>
 			</div>

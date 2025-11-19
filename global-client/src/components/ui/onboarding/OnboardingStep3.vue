@@ -15,7 +15,7 @@
 			<H3 class="mb-0 mt-4 lg:hidden">Download Yivi</H3>
 			<DownloadLinks class="mt-2 lg:hidden" />
 			<label for="yiviDownloaded" class="mt-4 flex font-bold">
-				<Checkbox id="yiviDownloaded" class="md:mt-0.5 mr-2 mt-1 h-[16px] w-[16px]" v-model="checked" :color="'accent-primary'" />
+				<Checkbox id="yiviDownloaded" class="md:mt-1 mr-2 mt-1 h-[16px] w-[16px]" v-model="checked" :color="'accent-primary'" />
 				{{ $t('register.yivi_installed') }}
 			</label>
 			<Button class="mb-4 mt-6 w-fit" :disabled="!checked" @click="$emit('next')">{{ $t('register.step_go_to', [2]) }} &#x27F6;</Button>
@@ -37,7 +37,7 @@
 					</template>
 				</i18n-t>
 			</Foldout>
-			<a href="javascript:void(0)" class="mt-6 underline underline-offset-4 ~text-label-min/label-max" @click="$emit('back')">&#x27F5; {{ $t('register.step_previous') }}</a>
+			<a href="javascript:void(0)" class="mt-6 underline underline-offset-4 text-label" @click="$emit('back')">&#x27F5; {{ $t('register.step_previous') }}</a>
 		</template>
 		<template #column2>
 			<div class="hidden items-start pr-[5em] lg:flex lg:flex-col lg:items-end lg:gap-16">

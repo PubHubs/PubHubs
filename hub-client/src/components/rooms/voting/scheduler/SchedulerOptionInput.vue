@@ -3,7 +3,7 @@
 		<div class="mx-2 flex w-full items-center">
 			<VueDatePicker id="schedulerDatePickerInput" class="" offset="20" v-model="date" :six-weeks="'fair'" :is-24="is24HourFormat" :locale="locale" range dark :min-date="new Date()" @update:model-value="updateDateOption">
 				<template #trigger>
-					<p class="flex-1 ~text-label-min/label-max">{{ $t('message.voting.add_option') }}</p>
+					<p class="flex-1 text-label">{{ $t('message.voting.add_option') }}</p>
 				</template>
 				<template #action-preview="{ value }">
 					<div class="text-balance text-left">{{ filters.getDateStr(value, is24HourFormat, d, true) }}</div>
@@ -88,7 +88,7 @@
 		if (props.option.date.length === 0) {
 			const coeff = 1000 * 60 * 5;
 			const rounded = new Date(Math.ceil(Date.now() / coeff) * coeff); // Current time rounded up to 5 minutes
-			const plusOneHour = new Date(rounded.getTime() + 60 * 60 * 1000); // Add an hour to the rounded current time
+			const plusOneHour = new Date(rounded.getTime() + 60 * 60 * 1000); // Add an hour to the rounded-xs current time
 			date.value = [rounded, plusOneHour];
 			time.value = [getTime(rounded), getTime(plusOneHour)];
 		} else {

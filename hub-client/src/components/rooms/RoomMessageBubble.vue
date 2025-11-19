@@ -2,7 +2,7 @@
 	<div ref="elReactionPopUp">
 		<div class="group flex flex-col py-3" :class="getMessageContainerClasses" role="article">
 			<!-- Announcement Header -->
-			<div v-if="isAnnouncementMessage && !redactedMessage" class="flex w-full items-center bg-surface-high px-8 py-1 ~text-label-small-min/label-small-max" :class="{ 'mx-4': props.deleteMessageDialog }">
+			<div v-if="isAnnouncementMessage && !redactedMessage" class="flex w-full items-center bg-surface-high px-8 py-1 text-label-small" :class="{ 'mx-4': props.deleteMessageDialog }">
 				<Icon type="megaphone-simple" size="sm" class="mr-1"></Icon>
 				{{ getAnnouncementTitle }}
 			</div>
@@ -38,9 +38,9 @@
 							<div class="flex w-full min-w-0 flex-grow flex-wrap items-center gap-2">
 								<UserDisplayName :userId="event.sender" :userDisplayName="user.userDisplayName(event.sender)" />
 								<span class="flex gap-2">
-									<span class="~text-label-small-min/label-small-max">|</span>
+									<span class="text-label-small">|</span>
 									<EventTime :timestamp="event.origin_server_ts" :showDate="false" />
-									<span class="~text-label-small-min/label-small-max">|</span>
+									<span class="text-label-small">|</span>
 									<EventTime :timestamp="event.origin_server_ts" :showDate="true" />
 								</span>
 								<RoomBadge v-if="!room.directMessageRoom()" class="inline-block" :user="event.sender" :room_id="event.room_id" />
@@ -135,7 +135,7 @@
 					<!-- Thread View Button -->
 					<button
 						@click="replyInThread"
-						class="bg-hub-background-3 inline-flex rounded-md px-2 py-1 ~text-label-tiny-min/label-tiny-max hover:opacity-80"
+						class="bg-hub-background-3 inline-flex rounded-md px-2 py-1 text-label-tiny hover:opacity-80"
 						v-if="!deleteMessageDialog && !viewFromThread && threadLength > 0 && canReplyInThread && !msgIsNotSend && !redactedMessage"
 					>
 						<Icon type="chat-circle" size="xs"></Icon>
@@ -301,7 +301,7 @@
 		// Base classes
 		const baseClasses = {
 			'p-2 transition-all duration-150 ease-in-out hover:bg-surface-low': !props.deleteMessageDialog,
-			'mx-4 rounded shadow-[0_0_5px_0_rgba(0,0,0,0.3)]': props.deleteMessageDialog,
+			'mx-4 rounded-xs shadow-[0_0_5px_0_rgba(0,0,0,0.3)]': props.deleteMessageDialog,
 			'rounded-t-none': isAnnouncementMessage.value,
 		};
 

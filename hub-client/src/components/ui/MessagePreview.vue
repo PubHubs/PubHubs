@@ -11,15 +11,15 @@
 						<p v-if="isGroupOrContact" class="flex items-center leading-tight">
 							<span class="mr-2 truncate font-bold leading-tight" v-if="props.room.getType() === RoomType.PH_MESSAGE_STEWARD_CONTACT">({{ rooms.fetchRoomById(props.room.name.split(',')[0]).name }})</span>
 							<template v-if="props.room.getType() !== RoomType.PH_MESSAGE_ADMIN_CONTACT">
-								<span class="~text-label-small-min/label-small-max">{{ props.room.getRoomMembers() }}</span>
-								<Icon type="user" size="sm" class="mr-0.5" />
-								<span class="~text-label-small-min/label-small-max">{{ $t('others.group_members') }}</span>
+								<span class="text-label-small">{{ props.room.getRoomMembers() }}</span>
+								<Icon type="user" size="sm" class="mr-1" />
+								<span class="text-label-small">{{ $t('others.group_members') }}</span>
 							</template>
 							<template v-else>
 								<span class="truncate font-bold" v-if="getOtherUserDisplayName()"> - {{ getOtherUserDisplayName() }}</span>
 							</template>
 						</p>
-						<p v-else class="leading-tight ~text-label-small-min/label-small-max" :class="{ 'mt-[0.1rem] truncate': isMobile }">
+						<p v-else class="leading-tight text-label-small" :class="{ 'mt-[0.1rem] truncate': isMobile }">
 							{{ pseudonym }}
 						</p>
 					</div>

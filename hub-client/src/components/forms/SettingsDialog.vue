@@ -19,7 +19,7 @@
 			<div class="mb-4 flex flex-col md:flex-row">
 				<label class="text-gray w-2/6 font-semibold">{{ $t('settings.displayname') }}</label>
 				<TextInput
-					class="rounded border p-1 ~text-base-min/base-max focus:border-blue-500 focus:outline-none md:w-4/6"
+					class="rounded-xs border p-1 text-body focus:border-blue-500 focus:outline-none md:w-4/6"
 					name="displayname"
 					v-model.trim="formState.data.displayName.value"
 					:placeholder="$t('settings.displayname')"
@@ -28,7 +28,7 @@
 			</div>
 			<div class="mb-4 flex flex-col md:flex-row">
 				<label class="text-gray w-2/6 font-semibold">{{ $t('settings.userId') }}</label>
-				<div title="Hub specific User ID" class="p-1 text-lg italic text-on-surface-dim ~text-base-min/base-max md:w-4/6">
+				<div title="Hub specific User ID" class="p-1 text-lg italic text-on-surface-dim text-body md:w-4/6">
 					{{ user.userId }}
 				</div>
 			</div>

@@ -63,7 +63,7 @@
 					/>
 				</div>
 				<Checkbox color="blue" :label="$t('pwa.do_not_show_again')" v-model="neverShowAgain" class="pt-3"></Checkbox>
-				<p class="pt-1 italic ~text-label-small-min/label-small-max">{{ $t('pwa.find_instructions') }}</p>
+				<p class="pt-1 italic text-label-small">{{ $t('pwa.find_instructions') }}</p>
 			</div>
 		</div>
 	</div>

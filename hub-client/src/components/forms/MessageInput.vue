@@ -21,7 +21,7 @@
 		</div>
 
 		<div class="flex max-h-12 items-end justify-between gap-2 md:max-h-[50vh]">
-			<div class="w-full rounded-xl bg-surface-high shadow-sm">
+			<div class="w-full rounded-xl bg-surface-high shadow-xs">
 				<!-- In reply to -->
 				<div class="flex h-10 items-center justify-between gap-2 px-2" v-if="inReplyTo">
 					<div class="flex w-fit gap-2 overflow-hidden">
@@ -68,7 +68,7 @@
 					<!-- Overflow-x-hidden prevents firefox from adding an extra row to the textarea for a possible scrollbar -->
 					<TextArea
 						ref="elTextInput"
-						class="max-h-40 overflow-x-hidden border-none bg-transparent ~text-label-min/label-max placeholder:text-on-surface-variant md:max-h-60"
+						class="max-h-40 overflow-x-hidden border-none bg-transparent text-label placeholder:text-on-surface-variant md:max-h-60"
 						v-focus
 						:placeholder="$t('rooms.new_message')"
 						:title="$t('rooms.new_message')"

@@ -1,6 +1,6 @@
 <template>
-	<Badge class="~text-label-min/label-max" color="ph" v-if="unreadMessages > 99">99+</Badge>
-	<Badge class="~text-label-min/label-max" color="ph" v-else-if="unreadMessages > 0">{{ unreadMessages }}</Badge>
+	<Badge class="text-label" color="ph" v-if="unreadMessages > 99">99+</Badge>
+	<Badge class="text-label" color="ph" v-else-if="unreadMessages > 0">{{ unreadMessages }}</Badge>
 </template>
 
 <script setup lang="ts">

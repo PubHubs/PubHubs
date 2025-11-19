@@ -22,7 +22,7 @@
 		</div>
 
 		<!-- Scrollable table body -->
-		<div class="max-h-[180px] w-full overflow-y-auto overflow-x-hidden ~text-label-min/label-max sm:max-h-[250px]">
+		<div class="max-h-[180px] w-full overflow-y-auto overflow-x-hidden text-label sm:max-h-[250px]">
 			<div v-for="room in listUserRooms" :key="room.room_id" class="grid w-full grid-cols-3 border-t border-on-surface-dim">
 				<div class="truncate px-2 py-2 sm:px-6 sm:py-4">{{ room.room_name }}</div>
 				<div class="px-1 py-2 sm:py-4">
@@ -42,7 +42,7 @@
 						</select>
 					</div>
 					<div v-else>
-						<button @click="adminJoinRoom(room.room_id)" class="ml-0 rounded bg-accent-primary px-2 py-1 transition sm:ml-2 sm:px-3">{{ $t('admin.join') }}</button>
+						<button @click="adminJoinRoom(room.room_id)" class="ml-0 rounded-xs bg-accent-primary px-2 py-1 transition sm:ml-2 sm:px-3">{{ $t('admin.join') }}</button>
 					</div>
 				</div>
 			</div>

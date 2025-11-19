@@ -7,7 +7,7 @@
 				{{ props.room.name }}
 			</p>
 
-			<p class="flex leading-tight ~text-label-small-min/label-small-max">
+			<p class="flex leading-tight text-label-small">
 				{{ props.room.getRoomMembers() }}
 				<Icon type="user" size="sm" class="mr-1" />
 

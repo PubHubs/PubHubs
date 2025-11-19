@@ -19,20 +19,20 @@
 					<Button
 						v-if="!user.isAdmin"
 						size="sm"
-						class="flex items-center gap-1 overflow-visible bg-on-surface-variant text-surface-high ~text-label-small-min/label-small-max"
+						class="flex items-center gap-1 overflow-visible bg-on-surface-variant text-surface-high text-label-small"
 						:class="[isMobile ? 'w-8 justify-center rounded-full' : 'justify-between']"
 						@click="directMessageAdmin()"
 					>
 						<Icon type="headset" size="sm"></Icon>
 						<span v-if="!isMobile">{{ t('menu.contact') }}</span>
 						<span :class="isMobile ? 'absolute -right-2 -top-2' : 'absolute -right-2 -top-2 flex items-center gap-2'">
-							<Badge class="~text-label-small-min/label-small-max" color="ph" v-if="newAdminMsgCount > 99">99+</Badge>
-							<Badge class="~text-label-small-min/label-small-max" color="ph" v-else-if="newAdminMsgCount > 0">{{ newAdminMsgCount }}</Badge>
+							<Badge class="text-label-small" color="ph" v-if="newAdminMsgCount > 99">99+</Badge>
+							<Badge class="text-label-small" color="ph" v-else-if="newAdminMsgCount > 0">{{ newAdminMsgCount }}</Badge>
 						</span>
 					</Button>
 
 					<Button
-						class="flex items-center gap-1 bg-on-surface-variant text-surface-high ~text-label-small-min/label-small-max"
+						class="flex items-center gap-1 bg-on-surface-variant text-surface-high text-label-small"
 						:class="isMobile ? 'mr-4 justify-center' : 'justify-between'"
 						size="sm"
 						@click="openConverationalPanel()"

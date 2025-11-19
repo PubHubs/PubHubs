@@ -8,7 +8,7 @@
 					<!-- Header -->
 					<div class="mb-6 flex items-center gap-4">
 						<div class="flex aspect-square h-6 w-6 items-center justify-center rounded-full bg-accent-primary text-on-accent-primary">
-							<span class="font-semibold ~text-label-small-min/label-small-max">{{ index + 1 }}</span>
+							<span class="font-semibold text-label-small">{{ index + 1 }}</span>
 						</div>
 						<slot name="title"></slot>
 					</div>

@@ -5,7 +5,7 @@
 			<button @click="closeThread" class="rounded-md p-1">
 				<Icon type="arrow-left" :size="'sm'"></Icon>
 			</button>
-			<p class="truncate text-nowrap ~text-label-tiny-min/label-tiny-max">Thread ({{ numberOfThreadEvents }})</p>
+			<p class="truncate text-nowrap text-label-tiny">Thread ({{ numberOfThreadEvents }})</p>
 		</div>
 
 		<!-- Thread message list -->

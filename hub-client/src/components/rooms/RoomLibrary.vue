@@ -4,7 +4,7 @@
 			<div class="mb-4 flex w-full gap-4">
 				<div class="flex w-1/2 items-center justify-end rounded-md bg-surface-low sm:w-3/4">
 					<input
-						class="h-full w-full flex-1 border-none bg-transparent ~text-base-min/base-max placeholder:text-on-surface-variant focus:outline-0 focus:outline-offset-0 focus:ring-0"
+						class="h-full w-full flex-1 border-none bg-transparent text-body placeholder:text-on-surface-variant focus:outline-0 focus:outline-offset-0 focus:ring-0"
 						type="text"
 						role="searchbox"
 						v-model="filter"
@@ -54,7 +54,7 @@
 												</InlineCollapseToggle>
 											</div>
 											<div class="text-right max-xs:hidden">
-												<span v-if="order.index <= 1" class="whitespace-nowrap ~text-label-small-min/label-small-max">
+												<span v-if="order.index <= 1" class="whitespace-nowrap text-label-small">
 													{{ filters.formatBytes(item.matrixEvent.getContent().info?.size, 2) }}
 												</span>
 												<EventTimeCompact v-else-if="order.index === 2" :timestamp="item.matrixEvent.getTs()"></EventTimeCompact>
@@ -77,7 +77,7 @@
 									<template #collapsed>
 										<div class="text-md flex flex-wrap items-center gap-2">
 											<div class="flex flex-grow">
-												<div v-if="isSigned(item.matrixEvent.getId())" class="bg-signed flex items-center gap-2 rounded-sm px-1 ~text-label-small-min/label-small-max">
+												<div v-if="isSigned(item.matrixEvent.getId())" class="bg-signed flex items-center gap-2 rounded-xs px-1 text-label-small">
 													<Icon type="seal-check" class="text-accent-primary"></Icon>
 													<span class="text-nowrap">{{ $t('roomlibrary.signed') }}</span>
 													<DisplayNameCompact
@@ -87,7 +87,7 @@
 													></DisplayNameCompact>
 												</div>
 											</div>
-											<div class="flex items-center ~text-label-small-min/label-small-max xs:gap-1 md:gap-2">
+											<div class="flex items-center text-label-small xs:gap-1 md:gap-2">
 												<AvatarDisplayNameCompact
 													v-if="item.matrixEvent.getSender()"
 													:userId="item.matrixEvent.getSender()"

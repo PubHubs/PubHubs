@@ -10,9 +10,9 @@
 			>
 				<div class="flex flex-row items-center">
 					<Icon type="lock" size="md" />
-					<P class="ml-2 whitespace-pre-wrap break-words text-left ~text-label-min/label-max dark:text-black">{{ t('rooms.secure_room_message') }}</P>
+					<P class="ml-2 whitespace-pre-wrap break-words text-left text-label dark:text-black">{{ t('rooms.secure_room_message') }}</P>
 				</div>
-				<P class="~text-body-min/body-max text-gray dark:text-gray-middle max-h-24 w-full overflow-y-auto whitespace-pre-wrap break-words" :title="rooms.securedRoom.user_txt">{{ rooms.securedRoom.user_txt }}</P>
+				<P class="text-body text-gray dark:text-gray-middle max-h-24 w-full overflow-y-auto whitespace-pre-wrap break-words" :title="rooms.securedRoom.user_txt">{{ rooms.securedRoom.user_txt }}</P>
 				<Button @click="showQR()" size="sm">{{ t('rooms.display_qr') }}</Button>
 			</div>
 			<QRCode v-if="loginFlow" :securedRoomId="securedRoomId" @error="loginError" @success="emit('click')" />
@@ -20,7 +20,7 @@
 			<div v-if="loginFail" class="z-5 absolute inset-0 rounded-lg bg-white">
 				<div class="my-24 flex flex-col items-center justify-center gap-4">
 					<Icon class="text-avatar-red" type="prohibit" size="xl" />
-					<P class="~text-body-min/body-max ml-2 text-center dark:text-black">{{ t('rooms.incorrect_attributes') }}</P>
+					<P class="text-body ml-2 text-center dark:text-black">{{ t('rooms.incorrect_attributes') }}</P>
 					<Button @click="retry()" size="sm">{{ t('rooms.retry') }}</Button>
 				</div>
 			</div>

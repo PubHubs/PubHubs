@@ -17,11 +17,11 @@
 				{{ $t('register.data_why_answer') }}
 			</Foldout>
 			<label for="attributesAdded" class="mt-6 flex font-bold">
-				<Checkbox id="attributesAdded" class="md:mt-0.5 mr-2 mt-1 h-[16px] w-[16px]" v-model="checked" :color="'blue'"> </Checkbox>
+				<Checkbox id="attributesAdded" class="md:mt-1 mr-2 mt-1 h-[16px] w-[16px]" v-model="checked" :color="'blue'"> </Checkbox>
 				{{ $t('register.data_added') }}
 			</label>
 			<Button class="my-4 w-fit" :disabled="!checked" @click="$emit('next')">{{ $t('register.step_go_to', [3]) }} &#x27F6;</Button>
-			<a href="javascript:void(0)" class="mt-4 underline underline-offset-4 ~text-label-min/label-max" @click="$emit('back')">&#x27F5; {{ $t('register.step_previous') }}</a>
+			<a href="javascript:void(0)" class="mt-4 underline underline-offset-4 text-label" @click="$emit('back')">&#x27F5; {{ $t('register.step_previous') }}</a>
 		</template>
 		<template #column2>
 			<div class="hidden justify-center lg:flex">

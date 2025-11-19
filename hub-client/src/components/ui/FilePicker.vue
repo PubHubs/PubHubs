@@ -6,7 +6,7 @@
 					<img :src="uri" class="max-h-64 max-w-full rounded-lg" />
 				</div>
 				<div class="mt-1 flex justify-center">
-					<div class="text-on-surface-dim ~text-label-min/label-max">{{ messageInput.state.fileAdded.name }} ({{ `${filters.formatBytes(messageInput.state.fileAdded.size, 2)}` }})</div>
+					<div class="text-on-surface-dim text-label">{{ messageInput.state.fileAdded.name }} ({{ `${filters.formatBytes(messageInput.state.fileAdded.size, 2)}` }})</div>
 				</div>
 			</div>
 			<div class="flex gap-2 pt-3" :class="{ 'flex-col': imageTypes.includes(messageInput.state.fileAdded?.type) }">

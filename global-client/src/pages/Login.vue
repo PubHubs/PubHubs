@@ -20,18 +20,18 @@
 
 		<div class="w-full bg-background" :class="isMobile ? 'h-[calc(100svh_-_7.5rem)]' : 'h-[calc(100svh_-_10rem)]'">
 			<div class="flex h-full w-full items-center justify-center" :class="isMobile ? 'flex-col' : 'flex-row'">
-				<div class="flex items-center justify-center bg-surface-low" :class="isMobile ? 'h-1/2 w-full ~px-8/16' : 'h-full w-1/2 ~px-24/48'">
+				<div class="flex items-center justify-center bg-surface-low" :class="isMobile ? 'h-1/2 w-full px-12' : 'h-full w-1/2 px-36'">
 					<figure class="h-auto w-full">
 						<img src="../assets/mascot-welcome.svg" alt="PubHubs mascot" />
 					</figure>
 				</div>
-				<div class="flex flex-col items-center justify-center ~gap-4/8" :class="isMobile ? 'h-1/2 w-full' : 'h-full w-1/2'">
-					<div class="flex flex-col ~gap-4/8">
-						<div class="flex flex-col ~gap-2/4">
+				<div class="flex flex-col items-center justify-center gap-6" :class="isMobile ? 'h-1/2 w-full' : 'h-full w-1/2'">
+					<div class="flex flex-col gap-6">
+						<div class="flex flex-col gap-4">
 							<H1>{{ $t('home.welcome_to', [$t('common.app_name')]) }}</H1>
 							<P>{{ $t('register.have_account', [$t('common.app_name')]) }}</P>
 						</div>
-						<div class="flex flex-col ~gap-2/4">
+						<div class="flex flex-col gap-4">
 							<div v-show="show" class="relative flex w-full items-center justify-center" :class="isMobile ? '-mb-2' : '-mb-4'">
 								<div
 									id="yivi-authentication"
