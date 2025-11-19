@@ -7,6 +7,7 @@ enum SystemDefaults {
 	SyncTimelineLimit = 100, // Find the right balance: filtering of events needs to be done clientside, but we need the first message. In the mean time initial read should be fast.
 	InitialRoomTimelineLimit = 100, // Initially load less messages in the rooms: makes startup faster
 	RoomTimelineLimit = 500, // Subsequent pagination: can be relatively high
+	MaxNumberFileUploads = 50, // Maximum number of files that can be dropped/uploaded
 }
 
 // common matrix types
@@ -44,6 +45,7 @@ enum Redaction {
 	Redacts = 'redacts',
 	Deleted = 'Deleted',
 	DeletedFromThread = 'Deleted from thread',
+	DeletedFromLibrary = 'Deleted from library',
 }
 
 // Emits must be of type string so double ""

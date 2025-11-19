@@ -1,6 +1,11 @@
 // Stores
 import { useDialog } from '@hub-client/stores/dialog';
 
+interface ExtendedFile extends File {
+	status: number;
+	progress: number;
+}
+
 // Better to pass pubhubs object to useMatrixFiles.
 const fileUpload = (errorMsg: string, accessToken: string, uploadUrl: string, fileTypeToCheck: string[], event: Event, callback: (uri: string) => void) => {
 	const target = event.currentTarget as HTMLInputElement;
@@ -37,4 +42,36 @@ const fileUpload = (errorMsg: string, accessToken: string, uploadUrl: string, fi
 		}
 	}
 };
-export { fileUpload };
+
+const asyncFileUpload = (accessToken: string, uploadUrl: string, file: File, onProgress: Function, onReady: Function) => {
+	const fileReader = new FileReader();
+	fileReader.readAsArrayBuffer(file);
+
+	fileReader.onprogress = (e) => {
+		onProgress(e);
+	};
+
+	fileReader.onerror = () => {
+		return false;
+	};
+
+	const req = new XMLHttpRequest();
+	fileReader.onload = () => {
+		req.open('POST', uploadUrl, true);
+		req.setRequestHeader('Authorization', 'Bearer ' + accessToken);
+		req.setRequestHeader('Content-Type', file.type);
+		req.send(fileReader.result);
+	};
+
+	req.onreadystatechange = function () {
+		if (req.readyState === 4) {
+			if (req.status === 200) {
+				const obj = JSON.parse(req.responseText);
+				const uri = obj.content_uri;
+				onReady(uri);
+			}
+		}
+	};
+};
+
+export { fileUpload, asyncFileUpload, ExtendedFile };

@@ -1,12 +1,13 @@
+// Stores
 // Packages
 import { useI18n } from 'vue-i18n';
 
-// Stores
 import { TimeFormat, useSettings } from '@hub-client/stores/settings';
 
 const useTimeFormat = () => {
 	const { t, d } = useI18n();
-	function formatDate(date: Date, format: TimeFormat | undefined) {
+
+	function formatDate(date: Date, format: TimeFormat | undefined = undefined) {
 		const settings = useSettings();
 		if (typeof format === 'undefined') {
 			format = settings.getTimeFormat as TimeFormat;
