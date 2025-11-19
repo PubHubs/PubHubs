@@ -38,6 +38,25 @@
 }
 
 :root {
+	/* New colors */
+	--surface-background: #FFFFFF; /* Used for backgrounds */
+	--surface-base: #E3E5E8; /* Used for large surfaces */
+	--surface-elevated: #D1D1D1; /* Used for surfaces on top of a background or surface */
+	--on-surface-dim: #717171; /* Used for dim text */
+	--on-surface: #3D3C3C; /* Used for text */
+	--on-surface-bright: #202020; /* Used for bright text */
+
+	--accent-blue: #005A9E; /* Used for theming */
+	--on-accent-blue: #C0E3FD; /* Used for text on primary accent */
+	--accent-green: #4C6B1F;
+	--on-accent-green: #D3F1A7;
+	--accent-orange: #A54800;
+	--on-accent-orange: #FEDEC8;
+	--accent-error: #AE2E24;
+	--on-accent-error: #FFD5D2;
+	--accent-purple: #5E24AE;
+	--on-accent-purple: #E8D2FF;
+
 	/* Old colors */
 	--background: #ffffff; /* Used for room background */
 	--surface-low: #f2f3f5; /* Used for the room top bar and hub bar */
@@ -75,6 +94,25 @@
 }
 
 .dark {
+	/* New colors (dark) */
+	--surface-background: #464545; /* Used for backgrounds */
+	--surface-base: #2F2E2E; /* Used for large surfaces */
+	--surface-elevated: #202020; /* Used for surfaces on top of a background or surface */
+	--on-surface-dim: #BBBBBB; /* Used for dim text */
+	--on-surface: #E3E5E8; /* Used for text */
+	--on-surface-bright: #FFFFFF; /* Used for bright text */
+
+	--accent-blue: #C0E3FD; /* Used for theming */
+	--on-accent-blue: #005A9E; /* Used for text on primary accent */
+	--accent-green: #D3F1A7;
+	--on-accent-green: #4C6B1F;
+	--accent-orange: #FEDEC8;
+	--on-accent-orange: #A54800;
+	--accent-error: #FFD5D2;
+	--on-accent-error: #AE2E24;
+	--accent-purple: #E8D2FF;
+	--on-accent-purple: #5E24AE;
+
 	/* Old colors (dark) */
 	--background: #464545;
 	--surface-low: #3d3c3c;
@@ -88,6 +126,42 @@
 }
 
 @theme {
+	/* New theme */
+	--color-currentColor: currentColor;
+	--color-transparent: transparent;
+	--color-black: #202020;
+	--color-white: #ffffff;
+
+	--color-surface-background: var(--surface-background);
+	--color-surface-base: var(--surface-base);
+	--color-surface-elevated: var(--surface-elevated);
+	--color-on-surface: var(--on-surface);
+	--color-on-surface-dim: var(--on-surface-dim);
+	--color-on-surface-bright: var(--on-surface-bright);
+
+	--color-accent-blue: var(--accent-blue);
+	--color-on-accent-blue: var(--on-accent-blue);
+	--color-accent-green: var(--accent-green);
+	--color-on-accent-green: var(--on-accent-green);
+	--color-accent-orange: var(--accent-orange);
+	--color-on-accent-orange: var(--on-accent-orange);
+	--color-accent-red: var(--accent-red);
+	--color-on-accent-red: var(--on-accent-red);
+	--color-accent-purple: var(--accent-purple);
+	--color-on-accent-purple: var(--on-accent-purple);
+
+	/* Aliases */
+	--color-accent-primary: var(--accent-blue);
+	--color-on-accent-primary: var(--on-accent-blue);
+	--color-accent-success: var(--accent-green);
+	--color-on-accent-success: var(--on-accent-green);
+	--color-accent-warning: var(--accent-orange);
+	--color-on-accent-warning: var(--on-accent-orange);
+	--color-accent-error: var(--accent-red);
+	--color-on-accent-error: var(--on-accent-red);
+	--color-accent-steward: var(--accent-purple);
+	--color-on-accent-steward: var(--on-accent-purple);
+	
 	/* Old theme */
 	--breakpoint-xs: 480px;
 	--breakpoint-sm: 640px;
@@ -97,8 +171,8 @@
 	--breakpoint-2xl: 1536px;
 	--breakpoint-3xl: 1920px;
 
-	--color-currentColor: currentColor;
-	--color-transparent: transparent;
+	/* --color-currentColor: currentColor; */
+	/* --color-transparent: transparent; */
 	--color-background: var(--background);
 	--color-surface: var(--surface);
 	--color-surface-low: var(--surface-low);
