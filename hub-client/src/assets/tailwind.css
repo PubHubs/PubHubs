@@ -193,6 +193,10 @@
 
 /* Classes */
 @layer components {
+	.bg-signed {
+		background: #c0e3fd;
+		color: #005a9e;
+	}
 	.highlighted {
 		@apply bg-surface-low transition duration-500 ease-out;
 	}

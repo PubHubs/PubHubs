@@ -23,7 +23,7 @@ import { setLanguage, setUpi18n } from '@hub-client/i18n';
 
 export default class PHCServer {
 	private _phcAPI: Api;
-	private _userStateObjects: Record<string, TPHC.UserObjectDetails> | undefined = undefined;
+	private _userStateObjects: Record<string, TPHC.UserObjectDetails> | undefined;
 	/** NOTE: Do not use this variable directly to prevent using an expired authToken. Instead, use _getAuthToken(). */
 	private _authToken: string | null = null;
 	private _expiryAuthToken: null | bigint = null;
@@ -42,6 +42,32 @@ export default class PHCServer {
 			const authToken: TPHC.AuthTokenPackage = JSON.parse(savedAuthToken);
 			this._authToken = authToken.auth_token;
 			this._expiryAuthToken = authToken.expires;
+		}
+	}
+
+	reset() {
+		this._userStateObjects = undefined;
+		const savedAuthToken = localStorage.getItem('PHauthToken');
+		if (savedAuthToken) {
+			const authToken: TPHC.AuthTokenPackage = JSON.parse(savedAuthToken);
+			this._authToken = authToken.auth_token;
+			this._expiryAuthToken = authToken.expires;
+		} else {
+			this._authToken = null;
+			this._expiryAuthToken = null;
+		}
+	}
+
+	reset() {
+		this._userStateObjects = undefined;
+		const savedAuthToken = localStorage.getItem('PHauthToken');
+		if (savedAuthToken) {
+			const authToken: mssTypes.AuthTokenPackage = JSON.parse(savedAuthToken);
+			this._authToken = authToken.auth_token;
+			this._expiryAuthToken = authToken.expires;
+		} else {
+			this._authToken = null;
+			this._expiryAuthToken = null;
 		}
 	}
 

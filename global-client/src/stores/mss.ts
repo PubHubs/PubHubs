@@ -258,6 +258,13 @@ const useMSS = defineStore('mss', {
 				await this.phcServer.storeUserSecretObject(attrKeyResp.Success, signedIdentifyingAttrs, userSecretObject, objectDetails);
 			}
 		},
+
+		logout() {
+			this.phcServer.reset();
+			localStorage.removeItem('PHauthToken');
+			localStorage.removeItem('UserSecret');
+			localStorage.removeItem('UserSecretVersion');
+		},
 		async getHubs() {
 			if (!this.hubs) {
 				await this.storePHCWelcomeInfo();
