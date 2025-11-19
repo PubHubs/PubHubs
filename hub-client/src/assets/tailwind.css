@@ -161,6 +161,51 @@
 	--color-on-accent-error: var(--on-accent-red);
 	--color-accent-steward: var(--accent-purple);
 	--color-on-accent-steward: var(--on-accent-purple);
+
+	--font-headings: var(--font-atkinson);
+	--font-body: var(--font-inter);
+
+	--spacing-0: 0;
+	--spacing-thin: 0.5px;
+	--spacing-0125: 1px;
+	--spacing-020: 1.5px;
+	--spacing-025: 2px;
+	--spacing-050: 4px;
+	--spacing-075: 6px;
+	--spacing-100: 8px;
+	--spacing-150: 12px;
+	--spacing-175: 14px;
+	--spacing-200: 16px;
+	--spacing-250: 20px;
+	--spacing-300: 24px;
+	--spacing-400: 32px;
+	--spacing-500: 40px;
+	--spacing-550: 44px;
+	--spacing-600: 48px;
+	--spacing-800: 64px;
+	--spacing-1000: 80px;
+
+	--text-title: 24px;
+	--text-title--line-height: 1.28;
+	--text-title--font-weight: 600;
+	--text-heading-base: 20px;
+	--text-heading-base--line-height: 1.35;
+	--text-heading-base--font-weight: 600;
+	--text-heading-small: 16px;
+	--text-heading-small--line-height: 1.35;
+	--text-heading-small--font-weight: 600;
+	--text-body-base: 16px;
+	--text-body-base--line-height: 1.5;
+	--text-body-base--font-weight: 400;
+	--text-body-small: 12px;
+	--text-body-small--line-height: 1.5;
+	--text-body-small--font-weight: 400;
+	--text-display-base: 14px;
+	--text-display-base--line-height: 1.3;
+	--text-display-base--font-weight: 500;
+	--text-display-small: 12px;
+	--text-display-small--line-height: 1.3;
+	--text-display-small--font-weight: 500;
 	
 	/* Old theme */
 	--breakpoint-xs: 480px;
@@ -203,10 +248,7 @@
 	--color-accent-orange: var(--accent-orange);
 	--color-on-accent-orange: var(--on-accent-orange);
 
-	--font-headings: var(--font-atkinson);
-	--font-body: var(--font-inter);
-
-	--spacing-0: 0;
+	/* --spacing-0: 0; */
 	--spacing-1: 4px;
 	--spacing-2: 8px;
 	--spacing-3: 12px;
