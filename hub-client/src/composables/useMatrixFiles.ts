@@ -44,6 +44,7 @@ const useMatrixFiles = () => {
 	}
 
 	function isImage(img: string) {
+		if (typeof img !== 'string') return false;
 		const ext = img.split('.').pop()?.toLocaleLowerCase();
 		return imageTypesExt.indexOf(ext) >= 0;
 	}
