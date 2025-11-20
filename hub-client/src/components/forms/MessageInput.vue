@@ -15,13 +15,13 @@
 				</div>
 			</Popover>
 			<Mention v-if="messageInput.state.showMention" :msg="value as string" :top="caretPos.top" :left="caretPos.left" :room="room" @click="mentionUser($event)" />
-			<div v-if="messageInput.state.emojiPicker" class="absolute bottom-2 right-0 z-20 xs:right-4 md:right-12">
+			<div v-if="messageInput.state.emojiPicker" class="xs:right-4 absolute right-0 bottom-2 z-20 md:right-12">
 				<EmojiPicker @emojiSelected="clickedEmoticon" @close="messageInput.toggleEmojiPicker()" />
 			</div>
 		</div>
 
 		<div class="flex max-h-12 items-end justify-between gap-2 md:max-h-[50vh]">
-			<div class="w-full rounded-xl bg-surface-high shadow-sm">
+			<div class="bg-surface-high w-full rounded-xl shadow-xs">
 				<!-- In reply to -->
 				<div class="flex h-10 items-center justify-between gap-2 px-2" v-if="inReplyTo">
 					<div class="flex w-fit gap-2 overflow-hidden">
@@ -68,7 +68,7 @@
 					<!-- Overflow-x-hidden prevents firefox from adding an extra row to the textarea for a possible scrollbar -->
 					<TextArea
 						ref="elTextInput"
-						class="max-h-40 overflow-x-hidden border-none bg-transparent ~text-label-min/label-max placeholder:text-on-surface-variant md:max-h-60"
+						class="text-label placeholder:text-on-surface-variant max-h-40 overflow-x-hidden border-none bg-transparent md:max-h-60"
 						v-focus
 						:placeholder="$t('rooms.new_message')"
 						:title="$t('rooms.new_message')"
@@ -99,13 +99,13 @@
 					</button>
 				</div>
 
-				<div v-if="messageInput.state.signMessage" class="m-4 mt-0 flex items-center rounded-md bg-surface-low p-2">
+				<div v-if="messageInput.state.signMessage" class="bg-surface-low m-4 mt-0 flex items-center rounded-md p-2">
 					<Icon type="pen-nib" size="base" class="mt-1 self-start" />
 					<div class="ml-2 flex max-w-3xl flex-col justify-between">
 						<h3 class="font-bold">{{ $t('message.sign.heading') }}</h3>
 						<p>{{ $t('message.sign.info') }}</p>
 						<div class="mt-2 flex items-center">
-							<Icon type="warning" size="sm" class="mb-[2px] mr-2 mt-1 shrink-0 self-start" />
+							<Icon type="warning" size="sm" class="mt-1 mr-2 mb-[2px] shrink-0 self-start" />
 							<p class="italic">{{ $t('message.sign.warning') }}</p>
 						</div>
 						<Line class="mb-2" />

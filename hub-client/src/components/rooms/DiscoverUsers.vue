@@ -11,9 +11,9 @@
 			:showCompleteList="showList"
 		>
 			<template #item="{ item }">
-				<div class="flex cursor-pointer items-center justify-between gap-4 rounded-md px-2 py-1 hover:bg-background">
+				<div class="hover:bg-background flex cursor-pointer items-center justify-between gap-4 rounded-md px-2 py-1">
 					<span class="flex items-center gap-2 truncate"
-						><span v-if="item.displayName" data-testid="display-name" :class="`${textColor(color(item.userId))} ~text-body-min/body-max truncate font-semibold`">{{
+						><span v-if="item.displayName" data-testid="display-name" :class="`${textColor(color(item.userId))} text-body truncate font-semibold`">{{
 							filters.maxLengthText(item.displayName, settings.getDisplayNameMaxLength)
 						}}</span>
 						<span data-testid="user-id" class="text-nowrap">{{ item.localPart }}</span></span

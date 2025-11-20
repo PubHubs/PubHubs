@@ -3,12 +3,12 @@
 		<HubBanner />
 		<div class="mx-auto mb-8 flex w-full flex-col gap-16 md:w-4/6">
 			<div class="-mt-[5.5rem] flex flex-col gap-2 px-8 md:px-0">
-				<div class="flex items-center whitespace-nowrap ~gap-1/4">
+				<div class="flex items-center gap-2 whitespace-nowrap">
 					<div class="flex items-center gap-2">
 						<Icon class="text-surface dark:text-on-surface" type="compass" size="md" />
-						<div class="font-headings font-semibold ~text-h3-min/h3-max">{{ $t('home.welcome_to') }}</div>
+						<div class="font-headings text-h3 font-semibold">{{ $t('home.welcome_to') }}</div>
 					</div>
-					<div class="object-contain ~h-6/12">
+					<div class="h-8 object-contain">
 						<Logo />
 					</div>
 				</div>
@@ -17,19 +17,19 @@
 						type="text"
 						v-model="searchQuery"
 						:placeholder="$t('others.search_hubs')"
-						class="focus mb-4 w-full rounded border bg-surface px-4 py-2 text-on-surface placeholder-on-surface-dim ~text-label-min/label-max focus:placeholder-on-surface-variant focus:ring-accent-primary"
+						class="focus bg-surface text-on-surface placeholder-on-surface-dim text-label focus:placeholder-on-surface-variant focus:ring-accent-primary mb-4 w-full rounded-xs border px-4 py-2"
 					/>
-					<Icon type="magnifying-glass" class="pointer-events-none absolute right-2 top-[20%] z-10 text-on-surface-variant" size="sm" />
+					<Icon type="magnifying-glass" class="text-on-surface-variant pointer-events-none absolute top-[20%] right-2 z-10" size="sm" />
 				</div>
 			</div>
 			<div class="flex flex-col gap-2">
 				<div class="flex items-center gap-2 px-8 md:px-0">
 					<Icon class="text-surface dark:text-on-surface" type="compass" size="md" />
-					<div class="font-headings font-semibold ~text-h3-min/h3-max">{{ $t('home.discover_hubs') }}</div>
+					<div class="font-headings text-h3 font-semibold">{{ $t('home.discover_hubs') }}</div>
 					<InlineSpinner v-if="global.hubsLoading" />
 				</div>
-				<div class="rounded-xl bg-surface-low px-8 py-8 md:px-12">
-					<div v-if="filteredHubs.length > 0" class="grid w-full gap-8 md:grid-cols-2 3xl:grid-cols-3">
+				<div class="bg-surface-low rounded-xl px-8 py-8 md:px-12">
+					<div v-if="filteredHubs.length > 0" class="3xl:grid-cols-3 grid w-full gap-8 md:grid-cols-2">
 						<div v-for="hub in filteredHubs" v-bind:key="hub.hubId">
 							<HubBlock :hub="hub" />
 						</div>

@@ -1,5 +1,5 @@
 <template>
-	<span v-if="numOfUsersRead > 0" class="-m-2.5 px-2.5 py-1.5 font-medium ~text-label-min/label-max dark:text-white">
+	<span v-if="numOfUsersRead > 0" class="text-label -m-2.5 px-2.5 py-1.5 font-medium dark:text-white">
 		<!-- Tick icon  -->
 		<Icon type="check-circle" size="sm" class="mb-1 inline" />
 

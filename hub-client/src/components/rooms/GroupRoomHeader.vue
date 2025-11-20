@@ -3,11 +3,11 @@
 		<Avatar :avatar-url="props.room.getRoomAvatarMxcUrl() ?? undefined" icon="two_users" />
 
 		<div class="flex h-fit flex-col overflow-hidden">
-			<p class="truncate font-bold leading-tight">
+			<p class="truncate leading-tight font-bold">
 				{{ props.room.name }}
 			</p>
 
-			<p class="flex leading-tight ~text-label-small-min/label-small-max">
+			<p class="text-label-small flex leading-tight">
 				{{ props.room.getRoomMembers() }}
 				<Icon type="user" size="sm" class="mr-1" />
 

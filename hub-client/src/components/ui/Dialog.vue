@@ -1,6 +1,6 @@
 <template>
 	<div
-		class="fixed left-0 top-0 z-50 h-full w-full"
+		class="fixed top-0 left-0 z-50 h-full w-full"
 		@keydown.esc="doAction(DialogCancel)"
 		@keydown.enter="
 			if (dialog.properties.buttons.some((b) => b.action == 1 && b.enabled)) {
@@ -9,11 +9,11 @@
 		"
 	>
 		<!-- Scrim -->
-		<div v-if="dialog.properties.modal" class="absolute h-full w-full bg-surface-high opacity-80" />
+		<div v-if="dialog.properties.modal" class="bg-surface-high absolute h-full w-full opacity-80" />
 
 		<!-- Dialog -->
-		<div role="dialog" v-if="!dialog.properties.modalonly" class="relative left-0 top-0 flex h-full w-full items-center justify-center text-on-surface" @click="doAction(DialogCancel)">
-			<div class="m-2 flex max-h-full flex-col justify-between gap-1 rounded-md bg-surface-low p-4 shadow-xl shadow-surface-high md:m-4" :class="width" @click.stop>
+		<div role="dialog" v-if="!dialog.properties.modalonly" class="text-on-surface relative top-0 left-0 flex h-full w-full items-center justify-center" @click="doAction(DialogCancel)">
+			<div class="bg-surface-low shadow-surface-high m-2 flex max-h-full flex-col justify-between gap-1 rounded-md p-4 shadow-xl md:m-4" :class="width" @click.stop>
 				<div class="flex w-full items-center justify-between">
 					<H2 v-if="dialog.properties.title !== ''">{{ dialog.properties.title }}</H2>
 					<slot name="header"></slot>

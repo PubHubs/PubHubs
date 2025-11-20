@@ -1,10 +1,10 @@
 <template>
-	<div role="article" class="flex h-[320px] w-full flex-col rounded-xl shadow transition-all duration-300 xs:w-auto" :class="isExpanded ? 'row-span-2 h-[672px] bg-surface' : 'h-[320px] bg-surface-low'">
+	<div role="article" class="xs:w-auto flex h-[320px] w-full flex-col rounded-xl shadow-sm transition-all duration-300" :class="isExpanded ? 'bg-surface row-span-2 h-[672px]' : 'bg-surface-low h-[320px]'">
 		<!-- Main card -->
-		<div class="flex h-[320px] w-full shrink-0 flex-col gap-4 overflow-hidden rounded-xl bg-surface-low py-8 shadow-md">
+		<div class="bg-surface-low flex h-[320px] w-full shrink-0 flex-col gap-4 overflow-hidden rounded-xl py-8 shadow-md">
 			<div class="flex items-center justify-between">
 				<H2 class="line-clamp-2 w-2/3 pl-8">{{ room.name }}</H2>
-				<div v-if="isSecured" class="flex h-fit items-center justify-center rounded-l-lg bg-accent-primary py-2 pl-2 pr-4 text-on-accent-primary" :title="t('admin.secured_room')">
+				<div v-if="isSecured" class="bg-accent-primary text-on-accent-primary flex h-fit items-center justify-center rounded-l-lg py-2 pr-4 pl-2" :title="t('admin.secured_room')">
 					<Icon type="shield"></Icon>
 				</div>
 			</div>
@@ -14,7 +14,7 @@
 				</div>
 
 				<div class="flex w-full items-end justify-between gap-4">
-					<div class="flex flex-row flex-wrap gap-4 overflow-hidden text-on-surface-dim ~text-label-min/label-max">
+					<div class="text-on-surface-dim text-label flex flex-row flex-wrap gap-4 overflow-hidden">
 						<div class="flex items-center gap-2">
 							<Icon type="user" size="sm"></Icon>
 							<span class="truncate whitespace-nowrap">{{ memberCount }}</span>
@@ -54,7 +54,7 @@
 		</div>
 
 		<!-- Expanded card for secure rooms -->
-		<div v-if="isSecured && isExpanded" class="mt-8 flex h-full max-h-[320px] flex-col gap-4 bg-surface p-8">
+		<div v-if="isSecured && isExpanded" class="bg-surface mt-8 flex h-full max-h-[320px] flex-col gap-4 p-8">
 			<H2 class="w-full">{{ t('admin.secured_description') }}</H2>
 			<div class="h-full overflow-y-auto">
 				<P class="mb-4">{{ accessVerifytext }}</P>
@@ -65,7 +65,7 @@
 						<P>{{ $t('attribute.heading') }}</P>
 					</div>
 					<div v-for="attribute in securedAttributes" :key="attribute.id" class="">
-						<div class="float-left ml-1 rounded-3xl bg-surface-high p-1 px-2 ~text-label-small-min/label-small-max">
+						<div class="bg-surface-high text-label-small float-left ml-1 rounded-3xl p-1 px-2">
 							<P class="">{{ $t('attribute.' + attribute) }}</P>
 						</div>
 						<P class="float-left">&nbsp;</P>

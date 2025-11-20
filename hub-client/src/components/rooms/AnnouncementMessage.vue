@@ -1,5 +1,5 @@
 <template>
-	<div class="flex flex-row items-center gap-1 break-words pb-4">
+	<div class="flex flex-row items-center gap-1 pb-4 break-words">
 		<p v-html="event.body" class="overflow-hidden text-ellipsis"></p>
 	</div>
 </template>

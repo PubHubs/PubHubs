@@ -2,9 +2,9 @@
 	<template v-if="rooms.currentRoomExists">
 		<HeaderFooter :headerSize="'sm'" :headerMobilePadding="true" bgBarLow="bg-background" bgBarMedium="bg-surface-low">
 			<template #header>
-				<div class="items-center gap-4 text-on-surface-dim" :class="isMobile ? 'hidden' : 'flex'">
+				<div class="text-on-surface-dim items-center gap-4" :class="isMobile ? 'hidden' : 'flex'">
 					<span class="font-semibold uppercase">{{ $t('rooms.room') }}</span>
-					<hr class="h-[2px] grow bg-on-surface-dim" />
+					<hr class="bg-on-surface-dim h-[2px] grow" />
 				</div>
 				<div class="relative flex h-full items-center justify-between gap-4" :class="isMobile ? 'pl-8' : 'pl-0'" data-testid="roomheader">
 					<div v-if="rooms.currentRoom && !isSearchBarExpanded" class="flex w-fit items-center gap-3 overflow-hidden" data-testid="roomtype">
@@ -13,7 +13,7 @@
 						<Icon v-if="showLibrary" type="folder-simple" size="base" data-testid="roomlibrary-icon" />
 						<Icon v-else-if="notPrivateRoom()" :type="rooms.currentRoom.isSecuredRoom() ? 'shield' : 'chats-circle'" />
 						<div class="flex flex-col">
-							<H3 class="flex text-on-surface">
+							<H3 class="text-on-surface flex">
 								<TruncatedText class="font-headings font-semibold">
 									<PrivateRoomHeader v-if="room.isPrivateRoom()" :room="room" :members="room.getOtherJoinedAndInvitedMembers()" />
 									<GroupRoomHeader v-else-if="room.isGroupRoom()" :room="room" :members="room.getOtherJoinedAndInvitedMembers()" />

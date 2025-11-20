@@ -1,7 +1,7 @@
 <template>
-	<figure class="flex aspect-square h-full w-full items-center justify-center overflow-hidden rounded-xl">
-		<img v-show="imageLoaded" :src="url" @load="imageLoaded = true" :alt="`Icon of Hub ${hubNameForImgAlt ?? ''}`" class="h-full w-full bg-on-accent-primary object-cover" />
-		<Icon v-if="fallback && !imageLoaded" type="lightning-slash" class="h-full w-full text-on-surface-variant" />
+	<figure class="flex aspect-square h-auto w-full items-center justify-center overflow-hidden rounded-xl">
+		<img v-show="imageLoaded" :src="url" @load="imageLoaded = true" :alt="`Icon of Hub ${hubNameForImgAlt ?? ''}`" class="bg-on-accent-primary h-full w-full object-cover" />
+		<Icon v-if="fallback && !imageLoaded" type="lightning-slash" class="text-on-surface-variant h-full w-full" />
 	</figure>
 </template>
 
