@@ -15,14 +15,14 @@
 <script setup lang="ts">
 	import { computed } from 'vue';
 
-	import { buttonBgColors, buttonTextColors, variant } from '@hub-client/new-design/types/component-variants';
+	import { buttonBgColors, buttonTextColors, colorVariant } from '@hub-client/new-design/types/component-variants';
 
 	const props = defineProps({
 		variant: {
 			type: String,
-			default: variant.Primary,
-			validator(value: variant) {
-				return Object.values(variant).includes(value);
+			default: colorVariant.Primary,
+			validator(value: colorVariant) {
+				return Object.values(colorVariant).includes(value);
 			},
 		},
 		iconLeft: {
@@ -41,12 +41,12 @@
 
 	const computedVariant = computed(() => {
 		let v = props.variant;
-		if (props.disabled) v = variant.Disabled;
+		if (props.disabled) v = colorVariant.Disabled;
 		return v;
 	});
 
 	const click = (event: Event) => {
-		if (computedVariant.value === variant.Disabled) {
+		if (computedVariant.value === colorVariant.Disabled) {
 			event.stopImmediatePropagation();
 		}
 	};
