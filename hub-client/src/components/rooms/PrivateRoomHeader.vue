@@ -2,10 +2,10 @@
 	<div class="flex flex-row gap-2">
 		<Avatar :avatar-url="user.userAvatar(otherUser?.userId)" :user-id="otherUser?.userId" :icon="users" />
 		<div class="flex h-fit flex-col overflow-hidden">
-			<p class="truncate font-bold leading-tight">
+			<p class="truncate leading-tight font-bold">
 				{{ otherUser?.rawDisplayName ?? '' }}
 			</p>
-			<p class="leading-tight ~text-label-small-min/label-small-max">
+			<p class="text-label-small leading-tight">
 				{{ otherUser?.userId ? filters.extractPseudonym(otherUser.userId) : '' }}
 			</p>
 		</div>

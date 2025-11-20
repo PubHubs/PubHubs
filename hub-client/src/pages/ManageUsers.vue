@@ -4,12 +4,12 @@
 
 	<HeaderFooter bgBarLow="bg-background" bgBarMedium="bg-surface-low">
 		<template #header>
-			<div class="hidden items-center gap-4 text-on-surface-dim md:flex">
+			<div class="text-on-surface-dim hidden items-center gap-4 md:flex">
 				<span class="font-semibold uppercase">{{ t('admin.title_administrator') }}</span>
-				<hr class="h-[2px] grow bg-on-surface-dim" />
+				<hr class="bg-on-surface-dim h-[2px] grow" />
 			</div>
 			<div class="flex h-full items-center" :class="isMobile ? 'pl-12' : 'pl-0'">
-				<H3 class="font-headings font-semibold text-on-surface">{{ t('menu.admin_tools_users') }}</H3>
+				<H3 class="font-headings text-on-surface font-semibold">{{ t('menu.admin_tools_users') }}</H3>
 			</div>
 		</template>
 
@@ -18,7 +18,7 @@
 			<Button class="mb-4 flex max-h-[30px] w-32 rounded-xl" @click="ManagementUtils.getUsersAccounts()">
 				<div class="flex items-center gap-2 text-xl">
 					<Icon type="arrow-counter-clockwise" size="sm" />
-					<span class="flex ~text-label-min/label-max">{{ t('admin.reload') }}</span>
+					<span class="text-label flex">{{ t('admin.reload') }}</span>
 				</div>
 			</Button>
 
@@ -29,12 +29,12 @@
 						<div class="flex min-w-0 flex-1 items-center gap-4">
 							<Avatar :avatar-url="user.userAvatar(item.name)" :user-id="item.name"></Avatar>
 							<p class="min-w-0 truncate font-semibold">{{ item.displayname }}</p>
-							<p class="line-clamp-1 min-w-0 pr-1 italic text-on-surface-dim md:inline" :class="item.displayname ? '' : '-ml-4'">{{ item.name }}</p>
+							<p class="text-on-surface-dim line-clamp-1 min-w-0 pr-1 italic md:inline" :class="item.displayname ? '' : '-ml-4'">{{ item.name }}</p>
 							<RoomBadge :user="item.name" :room_id="item.room_id" :is-hub-admin="item.admin"></RoomBadge>
 						</div>
 						<div class="flex w-fit gap-4">
 							<div class="flex items-center gap-2">
-								<Icon type="pencil-simple" class="hover:cursor-pointer hover:text-accent-primary" @click="selectUser(item.name, item.displayname, item.avatar_url)" />
+								<Icon type="pencil-simple" class="hover:text-accent-primary hover:cursor-pointer" @click="selectUser(item.name, item.displayname, item.avatar_url)" />
 							</div>
 						</div>
 					</div>

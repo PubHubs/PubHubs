@@ -1,5 +1,5 @@
 <template>
-	<div class="flex h-full flex-1 flex-col items-center justify-between gap-2 overflow-y-auto md:gap-4" :class="{ 'rounded-md border-2 border-dashed border-on-surface-disabled p-1': hubOrderingIsActive }">
+	<div class="flex h-full flex-1 flex-col items-center justify-between gap-2 overflow-y-auto md:gap-4" :class="{ 'border-on-surface-disabled rounded-md border-2 border-dashed p-1': hubOrderingIsActive }">
 		<InlineSpinner v-if="global.loggedIn && global.hubsLoading" />
 		<draggable
 			@start="backupPinnedHubs = global.pinnedHubs.slice()"
@@ -7,7 +7,7 @@
 			:list="global.pinnedHubs"
 			:item-key="'hubId'"
 			handle=".handle"
-			class="list-group flex w-full flex-1 flex-col gap-2 overflow-y-auto overflow-x-hidden px-2 md:px-4"
+			class="list-group flex w-full flex-1 flex-col gap-2 overflow-x-hidden overflow-y-auto px-2 md:px-4"
 			group="hubs"
 		>
 			<template #item="{ element }">

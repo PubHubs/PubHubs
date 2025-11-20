@@ -2,7 +2,7 @@
 	<div ref="elReactionPopUp">
 		<div class="group flex flex-col py-3" :class="getMessageContainerClasses" role="article">
 			<!-- Announcement Header -->
-			<div v-if="isAnnouncementMessage && !redactedMessage" class="flex w-full items-center bg-surface-high px-8 py-1 ~text-label-small-min/label-small-max" :class="{ 'mx-4': props.deleteMessageDialog }">
+			<div v-if="isAnnouncementMessage && !redactedMessage" class="bg-surface-high text-label-small flex w-full items-center px-8 py-1" :class="{ 'mx-4': props.deleteMessageDialog }">
 				<Icon type="megaphone-simple" size="sm" class="mr-1"></Icon>
 				{{ getAnnouncementTitle }}
 			</div>
@@ -10,7 +10,7 @@
 			<!-- Message Container -->
 			<div class="relative flex w-full gap-2 px-6" :class="getMessageContainerClasses">
 				<!-- Reaction Panel -->
-				<div v-if="showReactionPanel" :class="['absolute bottom-full right-0 z-50', calculatePanelPlacement() ? 'bottom-full' : 'top-8']">
+				<div v-if="showReactionPanel" :class="['absolute right-0 bottom-full z-50', calculatePanelPlacement() ? 'bottom-full' : 'top-8']">
 					<ReactionMiniPopUp :eventId="event.event_id" :room="room" @emoji-selected="emit('clickedEmoticon', $event, event.event_id)" @close-panel="emit('reactionPanelClose')" />
 				</div>
 
@@ -19,7 +19,7 @@
 					:avatar-url="user.userAvatar(event.sender)"
 					:user-id="event.sender"
 					@click.stop="emit('profileCardToggle', event.event_id)"
-					:class="['transition-all duration-500 ease-in-out', { 'cursor-pointer ring-1 ring-on-surface-dim ring-offset-4': hover || props.activeProfileCard === props.event.event_id }]"
+					:class="['transition-all duration-500 ease-in-out', { 'ring-on-surface-dim cursor-pointer ring-1 ring-offset-4': hover || props.activeProfileCard === props.event.event_id }]"
 					@mouseover="hover = true"
 					@mouseleave="hover = false"
 				/>
@@ -38,9 +38,9 @@
 							<div class="flex w-full min-w-0 flex-grow flex-wrap items-center gap-2">
 								<UserDisplayName :userId="event.sender" :userDisplayName="user.userDisplayName(event.sender)" />
 								<span class="flex gap-2">
-									<span class="~text-label-small-min/label-small-max">|</span>
+									<span class="text-label-small">|</span>
 									<EventTime :timestamp="event.origin_server_ts" :showDate="false" />
-									<span class="~text-label-small-min/label-small-max">|</span>
+									<span class="text-label-small">|</span>
 									<EventTime :timestamp="event.origin_server_ts" :showDate="true" />
 								</span>
 								<RoomBadge v-if="!room.directMessageRoom()" class="inline-block" :user="event.sender" :room_id="event.room_id" />
@@ -60,7 +60,7 @@
 									<button
 										v-if="!redactedMessage"
 										@click.stop="emit('reactionPanelToggle', props.event.event_id)"
-										class="flex items-center justify-center rounded-md p-1 text-on-surface-variant transition-all duration-300 ease-in-out hover:w-fit hover:bg-accent-primary hover:text-on-accent-primary"
+										class="text-on-surface-variant hover:bg-accent-primary hover:text-on-accent-primary flex items-center justify-center rounded-md p-1 transition-all duration-300 ease-in-out hover:w-fit"
 										:title="t('message.reply_emoji')"
 									>
 										<Icon type="smiley" size="sm"></Icon>
@@ -70,7 +70,7 @@
 									<button
 										v-if="!msgIsNotSend && !redactedMessage && !isThreadRoot"
 										@click="reply"
-										class="flex items-center justify-center rounded-md p-1 text-on-surface-variant transition-all duration-300 ease-in-out hover:w-fit hover:bg-accent-primary hover:text-on-accent-primary"
+										class="text-on-surface-variant hover:bg-accent-primary hover:text-on-accent-primary flex items-center justify-center rounded-md p-1 transition-all duration-300 ease-in-out hover:w-fit"
 										:title="t('message.reply')"
 									>
 										<Icon type="arrow-bend-up-left" size="sm" />
@@ -80,7 +80,7 @@
 									<button
 										v-if="!viewFromThread && threadLength <= 0 && canReplyInThread && !msgIsNotSend && !redactedMessage"
 										@click="replyInThread"
-										class="flex items-center justify-center rounded-md p-1 text-on-surface-variant transition-all duration-300 ease-in-out hover:w-fit hover:bg-accent-primary hover:text-on-accent-primary"
+										class="text-on-surface-variant hover:bg-accent-primary hover:text-on-accent-primary flex items-center justify-center rounded-md p-1 transition-all duration-300 ease-in-out hover:w-fit"
 										:title="t('message.reply_in_thread')"
 									>
 										<Icon type="chat-circle" size="sm"></Icon>
@@ -90,7 +90,7 @@
 									<button
 										v-if="!msgIsNotSend && user.isAdmin && event.sender !== user.userId && settings.isFeatureEnabled(FeatureFlag.disclosure)"
 										@click="router.push({ name: 'ask-disclosure', query: { user: event.sender } })"
-										class="flex items-center justify-center rounded-md p-1 text-on-surface-variant transition-all duration-300 ease-in-out hover:w-fit hover:bg-accent-primary hover:text-on-accent-primary"
+										class="text-on-surface-variant hover:bg-accent-primary hover:text-on-accent-primary flex items-center justify-center rounded-md p-1 transition-all duration-300 ease-in-out hover:w-fit"
 										:title="t('menu.moderation_tools_disclosure')"
 									>
 										<Icon type="warning" size="sm" />
@@ -100,7 +100,7 @@
 									<button
 										v-if="settings.isFeatureEnabled(FeatureFlag.deleteMessages) && !msgIsNotSend && event.sender === user.userId && !redactedMessage && !(props.viewFromThread && isThreadRoot)"
 										@click="onDeleteMessage(event)"
-										class="flex items-center justify-center rounded-md p-1 text-on-surface-variant transition-all duration-300 ease-in-out hover:w-fit hover:bg-accent-red hover:text-on-accent-red"
+										class="text-on-surface-variant hover:bg-accent-red hover:text-on-accent-red flex items-center justify-center rounded-md p-1 transition-all duration-300 ease-in-out hover:w-fit"
 										:title="t('menu.delete_message')"
 									>
 										<Icon type="trash" size="sm" />
@@ -135,7 +135,7 @@
 					<!-- Thread View Button -->
 					<button
 						@click="replyInThread"
-						class="bg-hub-background-3 inline-flex rounded-md px-2 py-1 ~text-label-tiny-min/label-tiny-max hover:opacity-80"
+						class="bg-hub-background-3 text-label-tiny inline-flex rounded-md px-2 py-1 hover:opacity-80"
 						v-if="!deleteMessageDialog && !viewFromThread && threadLength > 0 && canReplyInThread && !msgIsNotSend && !redactedMessage"
 					>
 						<Icon type="chat-circle" size="xs"></Icon>
@@ -301,7 +301,7 @@
 		// Base classes
 		const baseClasses = {
 			'p-2 transition-all duration-150 ease-in-out hover:bg-surface-low': !props.deleteMessageDialog,
-			'mx-4 rounded shadow-[0_0_5px_0_rgba(0,0,0,0.3)]': props.deleteMessageDialog,
+			'mx-4 rounded-xs shadow-[0_0_5px_0_rgba(0,0,0,0.3)]': props.deleteMessageDialog,
 			'rounded-t-none': isAnnouncementMessage.value,
 		};
 

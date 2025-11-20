@@ -2,16 +2,16 @@
 	<div v-if="settings.isFeatureEnabled(FeatureFlag.roomLibrary)" class="flex h-full w-full gap-8 overflow-auto p-4 max-md:max-h-full max-md:flex-col max-md:gap-2">
 		<div class="max-h-full w-full md:w-2/3">
 			<div class="mb-4 flex w-full gap-4">
-				<div class="flex w-1/2 items-center justify-end rounded-md bg-surface-low sm:w-3/4">
+				<div class="bg-surface-low flex w-1/2 items-center justify-end rounded-md sm:w-3/4">
 					<input
-						class="h-full w-full flex-1 border-none bg-transparent ~text-base-min/base-max placeholder:text-on-surface-variant focus:outline-0 focus:outline-offset-0 focus:ring-0"
+						class="text-body placeholder:text-on-surface-variant h-full w-full flex-1 border-none bg-transparent focus:ring-0 focus:outline-0 focus:outline-offset-0"
 						type="text"
 						role="searchbox"
 						v-model="filter"
 						:placeholder="t('others.search')"
 						:title="t('others.search')"
 					/>
-					<button @click=""><Icon type="magnifying-glass" class="mr-1 rounded-md bg-transparent text-accent-secondary dark:text-on-surface-variant" size="md" /></button>
+					<button @click=""><Icon type="magnifying-glass" class="text-accent-secondary dark:text-on-surface-variant mr-1 rounded-md bg-transparent" size="md" /></button>
 				</div>
 				<div class="flex w-1/2 sm:w-1/4">
 					<PullDownMenu :title="t('roomlibrary.info.sortby')" :options="orderByOptionsNames" :selected="order" :toggleOrder="true" @select="setOrderBy($event)"></PullDownMenu>
@@ -19,7 +19,7 @@
 			</div>
 
 			<BarList v-if="roomTimeLineFiles.length > 0" class="max-h-fit" data-testid="filemanager">
-				<BarListItem v-if="user.isAdmin" class="!mb-0 flex justify-end !bg-background" data-testid="filemanager-admin">
+				<BarListItem v-if="user.isAdmin" class="!bg-background !mb-0 flex justify-end" data-testid="filemanager-admin">
 					<div class="flex items-center gap-1">
 						<IconButton v-if="hasSelection()" type="trash" class="hover:text-accent-red" @click.stop="deleteSelected()"></IconButton>
 						<IconButton v-if="!selectedAll" type="square" @click.stop="selectAll(roomTimeLineFiles)"></IconButton>
@@ -38,7 +38,7 @@
 											</div>
 											<div v-else>
 												<Icon v-if="isSigned(item.matrixEvent.getId())" type="seal-check" class="text-accent-blue"></Icon>
-												<Icon v-else type="question" @click.stop="handleSigning(item.matrixEvent.getContent().url, item.matrixEvent.getId())" class="cursor-pointer text-on-surface-disabled"></Icon>
+												<Icon v-else type="question" @click.stop="handleSigning(item.matrixEvent.getContent().url, item.matrixEvent.getId())" class="text-on-surface-disabled cursor-pointer"></Icon>
 											</div>
 											<div>
 												<FileDownload :url="item.matrixEvent.getContent().url" :filename="item.matrixEvent.getContent().filename">
@@ -53,8 +53,8 @@
 													<Icon type="info" :class="{ 'text-accent-blue': !collapsed }"></Icon>
 												</InlineCollapseToggle>
 											</div>
-											<div class="text-right max-xs:hidden">
-												<span v-if="order.index <= 1" class="whitespace-nowrap ~text-label-small-min/label-small-max">
+											<div class="max-xs:hidden text-right">
+												<span v-if="order.index <= 1" class="text-label-small whitespace-nowrap">
 													{{ filters.formatBytes(item.matrixEvent.getContent().info?.size, 2) }}
 												</span>
 												<EventTimeCompact v-else-if="order.index === 2" :timestamp="item.matrixEvent.getTs()"></EventTimeCompact>
@@ -77,7 +77,7 @@
 									<template #collapsed>
 										<div class="text-md flex flex-wrap items-center gap-2">
 											<div class="flex flex-grow">
-												<div v-if="isSigned(item.matrixEvent.getId())" class="bg-signed flex items-center gap-2 rounded-sm px-1 ~text-label-small-min/label-small-max">
+												<div v-if="isSigned(item.matrixEvent.getId())" class="bg-signed text-label-small flex items-center gap-2 rounded-xs px-1">
 													<Icon type="seal-check" class="text-accent-primary"></Icon>
 													<span class="text-nowrap">{{ $t('roomlibrary.signed') }}</span>
 													<DisplayNameCompact
@@ -87,7 +87,7 @@
 													></DisplayNameCompact>
 												</div>
 											</div>
-											<div class="flex items-center ~text-label-small-min/label-small-max xs:gap-1 md:gap-2">
+											<div class="text-label-small xs:gap-1 flex items-center md:gap-2">
 												<AvatarDisplayNameCompact
 													v-if="item.matrixEvent.getSender()"
 													:userId="item.matrixEvent.getSender()"
@@ -102,7 +102,7 @@
 						</BarListItem>
 					</template>
 				</div>
-				<BarListItem class="!mb-0 flex justify-between !bg-background">
+				<BarListItem class="!bg-background !mb-0 flex justify-between">
 					<span>{{ $t('roomlibrary.total_files', roomTimeLineFiles.length, { named: { count: roomTimeLineFiles.length } }) }}</span>
 					<span v-if="user.isAdmin && hasSelection()">{{ $t('roomlibrary.selected_files', selection.length, { named: { count: selection.length } }) }}</span>
 				</BarListItem>

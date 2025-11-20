@@ -10,16 +10,16 @@
 
 					<div class="mt-5 flex justify-center md:mr-3 md:flex-col md:justify-normal md:space-y-4">
 						<label for="avatar">
-							<Icon size="lg" type="pencil-simple" class="cursor-pointer hover:text-on-surface-variant group-hover:block" data-testid="change-avatar" />
+							<Icon size="lg" type="pencil-simple" class="hover:text-on-surface-variant cursor-pointer group-hover:block" data-testid="change-avatar" />
 						</label>
-						<Icon size="lg" type="trash" class="cursor-pointer hover:text-on-surface-variant group-hover:block" @click="removeAvatar" data-testid="remove-avatar" />
+						<Icon size="lg" type="trash" class="hover:text-on-surface-variant cursor-pointer group-hover:block" @click="removeAvatar" data-testid="remove-avatar" />
 					</div>
 				</div>
 			</div>
 			<div class="mb-4 flex flex-col md:flex-row">
 				<label class="text-gray w-2/6 font-semibold">{{ $t('settings.displayname') }}</label>
 				<TextInput
-					class="rounded border p-1 ~text-base-min/base-max focus:border-blue-500 focus:outline-none md:w-4/6"
+					class="text-body rounded-xs border p-1 focus:border-blue-500 focus:outline-none md:w-4/6"
 					name="displayname"
 					v-model.trim="formState.data.displayName.value"
 					:placeholder="$t('settings.displayname')"
@@ -28,7 +28,7 @@
 			</div>
 			<div class="mb-4 flex flex-col md:flex-row">
 				<label class="text-gray w-2/6 font-semibold">{{ $t('settings.userId') }}</label>
-				<div title="Hub specific User ID" class="p-1 text-lg italic text-on-surface-dim ~text-base-min/base-max md:w-4/6">
+				<div title="Hub specific User ID" class="text-on-surface-dim text-body p-1 text-lg italic md:w-4/6">
 					{{ user.userId }}
 				</div>
 			</div>

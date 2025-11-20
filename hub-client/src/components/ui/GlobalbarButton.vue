@@ -1,5 +1,5 @@
 <template>
-	<div class="rounded-md p-2 hover:cursor-pointer hover:bg-on-surface-variant hover:text-background" :class="selected ? 'bg-surface-high' : 'bg-background'" @click="handleClick" role="button">
+	<div class="hover:bg-on-surface-variant hover:text-background rounded-md p-2 hover:cursor-pointer" :class="selected ? 'bg-surface-high' : 'bg-background'" @click="handleClick" role="button">
 		<Icon :type="type" :size="size" />
 	</div>
 </template>

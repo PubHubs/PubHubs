@@ -1,6 +1,6 @@
 <template>
 	<span class="truncate" :title="displayname" :class="`${textColor(color(user?.userId))}`">{{ displayname }}</span>
-	<span class="mt-1 text-nowrap ~text-label-small-min/label-small-max">{{ filters.extractPseudonym(user?.userId) }}</span>
+	<span class="text-label-small mt-1 text-nowrap">{{ filters.extractPseudonym(user?.userId) }}</span>
 </template>
 
 <script setup lang="ts">

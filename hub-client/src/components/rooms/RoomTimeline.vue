@@ -7,7 +7,7 @@
 		</div>
 		<div v-if="room" ref="elRoomTimeline" class="relative flex flex-1 flex-col gap-2 overflow-x-hidden overflow-y-scroll" @scroll="onScroll">
 			<div ref="topSentinel" class="pointer-events-none min-h-[1px]" style="content-visibility: hidden"></div>
-			<div v-if="oldestEventIsLoaded" class="mx-auto my-4 flex w-60 items-center justify-center rounded-xl border border-on-surface-variant px-4 text-on-surface-variant ~text-label-small-min/label-small-max">
+			<div v-if="oldestEventIsLoaded" class="border-on-surface-variant text-on-surface-variant text-label-small mx-auto my-4 flex w-60 items-center justify-center rounded-xl border px-4">
 				{{ $t('rooms.roomCreated') }}
 			</div>
 			<template v-if="roomTimeLine.length > 0">
@@ -32,7 +32,7 @@
 							@clicked-emoticon="sendEmoji"
 						>
 							<template #reactions>
-								<div class="ml-2 mt-2 flex flex-wrap gap-2 px-20">
+								<div class="mt-2 ml-2 flex flex-wrap gap-2 px-20">
 									<Reaction v-if="reactionExistsForMessage(item.matrixEvent.event.event_id, item.matrixEvent)" :reactEvent="onlyReactionEvent" :messageEventId="item.matrixEvent.event.event_id"></Reaction>
 								</div>
 							</template>

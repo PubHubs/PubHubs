@@ -1,5 +1,5 @@
 <template>
-	<div class="z-1 theme-light:border-gray border-b" role="tablist">
+	<div class="theme-light:border-gray z-1 border-b" role="tablist">
 		<slot></slot>
 	</div>
 </template>

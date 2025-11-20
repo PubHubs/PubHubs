@@ -7,9 +7,9 @@
 		</div>
 
 		<div class="flex flex-wrap items-center gap-4">
-			<div v-for="(icon, key) in icons" class="h-36 w-32 place-content-center bg-surface-subtle text-center">
-				<Icon :type="key" :size="size" class="m-auto cursor-pointer bg-surface hover:bg-accent-primary" :title="key"></Icon>
-				<div class="text-nowrap pt-2 text-sm">{{ key }}</div>
+			<div v-for="(icon, key) in icons" class="bg-surface-subtle h-36 w-32 place-content-center text-center">
+				<Icon :type="key" :size="size" class="bg-surface hover:bg-accent-primary m-auto cursor-pointer" :title="key"></Icon>
+				<div class="pt-2 text-sm text-nowrap">{{ key }}</div>
 			</div>
 		</div>
 	</div>

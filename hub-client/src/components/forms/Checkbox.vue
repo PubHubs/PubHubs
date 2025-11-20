@@ -3,7 +3,7 @@
 		<input
 			ref="input"
 			type="checkbox"
-			class="border-1 focus:ring-offset-width-0 focus:shadow-0 mt-1 h-6 w-6 rounded-md bg-transparent ring-accent-primary checked:!bg-accent-primary hover:cursor-pointer hover:ring-2 focus:outline-0 focus:outline-offset-0 focus:ring-0 focus:ring-offset-0"
+			class="focus:ring-offset-width-0 focus:shadow-0 ring-accent-primary checked:!bg-accent-primary mt-1 h-6 w-6 rounded-md border-1 bg-transparent hover:cursor-pointer hover:ring-2 focus:ring-0 focus:ring-offset-0 focus:outline-0 focus:outline-offset-0"
 			:class="colorClass"
 			:value="modelValue"
 			:checked="modelValue"
@@ -11,7 +11,7 @@
 			@input="update(($event.target as HTMLInputElement).checked)"
 			@keydown.esc="cancel()"
 		/>
-		<label v-if="label !== ''" class="ml-1 mt-1 ~text-label-min/label-max hover:cursor-pointer" @click="toggle()">{{ label }}</label>
+		<label v-if="label !== ''" class="text-label mt-1 ml-1 hover:cursor-pointer" @click="toggle()">{{ label }}</label>
 	</div>
 </template>
 
