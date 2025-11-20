@@ -32,8 +32,11 @@
 
 			<div class="rounded-lg border-2 border-dotted border-purple-500 p-4">
 				<h2 class="mb-4">Radio</h2>
-
 				<Radio :options="options" />
+
+				<h2 class="my-4">Checkbox</h2>
+				<Checkbox label="Option 0" />
+				<Checkbox label="Option 1" />
 			</div>
 
 			<div class="rounded-lg border-2 border-dotted border-purple-500 p-4">
@@ -47,7 +50,8 @@
 	import Button from '@hub-client/new-design/components/Button.vue';
 	import ButtonGroup from '@hub-client/new-design/components/ButtonGroup.vue';
 	import IconButton from '@hub-client/new-design/components/IconButton.vue';
-	import Radio from '@hub-client/new-design/components/Radio.vue';
+	import Checkbox from '@hub-client/new-design/components/forms/Checkbox.vue';
+	import Radio from '@hub-client/new-design/components/forms/Radio.vue';
 	import { buttonColorVariant, iconColorVariant, iconSizeVariant } from '@hub-client/new-design/types/component-variants';
 
 	const clicked = () => {
