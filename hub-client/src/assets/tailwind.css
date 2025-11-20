@@ -220,6 +220,7 @@
 	--color-background: var(--background);
 	--color-surface: var(--surface);
 	--color-surface-low: var(--surface-low);
+	--color-surface-subtle: var(--surface-subtle);
 	--color-surface-high: var(--surface-high);
 	--color-on-surface: var(--on-surface);
 	--color-on-surface-variant: var(--on-surface-variant);
