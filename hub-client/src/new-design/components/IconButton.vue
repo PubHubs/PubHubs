@@ -8,6 +8,8 @@
 	// Packages
 	import { PropType, computed } from 'vue';
 
+	import { iconTypes } from '@hub-client/assets/icons';
+
 	import Icon from '@hub-client/new-design/components/Icon.vue';
 	import { iconButtonColors, iconColorVariant, iconSizeVariant } from '@hub-client/new-design/types/component-variants';
 
@@ -15,6 +17,9 @@
 		type: {
 			type: String,
 			default: 'selection',
+			validator(value: string) {
+				return Object.values(iconTypes).includes(value);
+			},
 		},
 		variant: {
 			type: String,

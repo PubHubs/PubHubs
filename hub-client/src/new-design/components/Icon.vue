@@ -11,7 +11,7 @@
 	// Packages
 	import { PropType, computed } from 'vue';
 
-	import { icons } from '@hub-client/assets/icons';
+	import { iconTypes, icons } from '@hub-client/assets/icons';
 
 	import { iconSize, iconSizeVariant } from '@hub-client/new-design/types/component-variants';
 
@@ -19,6 +19,9 @@
 		type: {
 			type: String,
 			default: 'selection',
+			validator(value: string) {
+				return Object.values(iconTypes).includes(value);
+			},
 		},
 		size: {
 			type: String,
