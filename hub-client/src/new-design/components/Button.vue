@@ -1,13 +1,13 @@
 <template>
-	<div :class="buttonBgColors[computedVariant]" class="min-h-11 px-3.5 flex min-w-8 items-center justify-center gap-1 rounded py-2" role="button" @click="click($event)" :disabled="disabled">
+	<div :class="buttonBgColors[computedVariant]" class="flex min-h-11 min-w-8 cursor-pointer items-center justify-center gap-1 rounded px-3.5 py-2" role="button" @click="click($event)" :disabled="disabled">
 		<div v-if="iconLeft" class="h-4 w-4">
-			<Icon :type="iconLeft" :size="iconSizeVariant.Small"></Icon>
+			<Icon :type="iconLeft" :size="iconSizeVariant.Small" :class="buttonTextColors[computedVariant]"></Icon>
 		</div>
 		<div :class="buttonTextColors[computedVariant]" class="justify-start">
 			<slot></slot>
 		</div>
 		<div v-if="iconRight" class="h-4 w-4">
-			<Icon :type="iconRight" :size="iconSizeVariant.Small"></Icon>
+			<Icon :type="iconRight" :size="iconSizeVariant.Small" :class="buttonTextColors[computedVariant]"></Icon>
 		</div>
 	</div>
 </template>

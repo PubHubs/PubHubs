@@ -52,10 +52,15 @@
 	--on-accent-green: #d3f1a7;
 	--accent-orange: #a54800;
 	--on-accent-orange: #fedec8;
-	--accent-error: #ae2e24;
-	--on-accent-error: #ffd5d2;
+	--accent-red: #ae2e24;
+	--on-accent-red: #ffd5d2;
 	--accent-purple: #5e24ae;
 	--on-accent-purple: #e8d2ff;
+
+	--button-blue: #1868db;
+	--button-on-blue: #eaf3ff;
+	--button-red: #c9372c;
+	--button-on-red: #ffeeec;
 
 	/* Old colors */
 	--background: #ffffff; /* Used for room background */
@@ -107,10 +112,15 @@
 	--on-accent-green: #4c6b1f;
 	--accent-orange: #fedec8;
 	--on-accent-orange: #a54800;
-	--accent-error: #ffd5d2;
-	--on-accent-error: #ae2e24;
+	--accent-red: #ffd5d2;
+	--on-accent-red: #ae2e24;
 	--accent-purple: #e8d2ff;
 	--on-accent-purple: #5e24ae;
+
+	--button-blue: #3dadff;
+	--button-on-blue: #003178;
+	--button-red: #f87168;
+	--button-on-red: #600700;
 
 	/* Old colors (dark) */
 	--background: #464545;
@@ -148,6 +158,11 @@
 	--color-on-accent-red: var(--on-accent-red);
 	--color-accent-purple: var(--accent-purple);
 	--color-on-accent-purple: var(--on-accent-purple);
+
+	--color-button-blue: var(--button-blue);
+	--color-button-on-blue: var(--button-on-blue);
+	--color-button-red: var(--button-red);
+	--color-button-on-red: var(--button-on-red);
 
 	/* Aliases */
 	--color-accent-primary: var(--accent-blue);

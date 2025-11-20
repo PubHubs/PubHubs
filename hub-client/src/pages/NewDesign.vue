@@ -4,38 +4,40 @@
 
 		<div class="flex gap-4">
 			<div class="rounded-lg border-2 border-dotted border-purple-500 p-4">
-				<h2>Button</h2>
-				<Button @click="clicked()">Primary</Button>
-				<Button icon-left="check-circle" :variant="buttonColorVariant.Secundary" @click="clicked()">Secundary</Button>
-				<Button icon-right="smiley" :variant="buttonColorVariant.Tertiary" @click="clicked()">Tertiary</Button>
-				<Button icon-left="warning" icon-right="warning" :variant="buttonColorVariant.Error" @click="clicked()">Error</Button>
-				<Button icon-left="circle" icon-right="circle" :variant="buttonColorVariant.Disabled" @click="clicked()">Disabled</Button>
+				<h2 class="mb-4">Button</h2>
+				<div class="flex flex-col gap-2">
+					<Button icon-left="check-circle" @click="clicked()">Primary</Button>
+					<Button icon-left="check-circle" :variant="buttonColorVariant.Secundary" @click="clicked()">Secundary</Button>
+					<Button icon-right="smiley" :variant="buttonColorVariant.Tertiary" @click="clicked()">Tertiary</Button>
+					<Button icon-left="warning" icon-right="warning" :variant="buttonColorVariant.Error" @click="clicked()">Error</Button>
+					<Button icon-left="circle" icon-right="circle" :variant="buttonColorVariant.Disabled" @click="clicked()">Disabled</Button>
+				</div>
 
-				<p>&nbsp;</p>
-
-				<h2>ButtonGroup</h2>
+				<h2 class="my-4">ButtonGroup</h2>
 				<ButtonGroup>
 					<Button :variant="buttonColorVariant.Secundary">Cancel</Button>
 					<Button>Submit</Button>
 				</ButtonGroup>
 
-				<h2>IconButton</h2>
-				<IconButton type="check-circle" :variant="iconColorVariant.Primary" @click="clicked()" title="Handig deze title"></IconButton>
-				<IconButton type="check-circle" :variant="iconColorVariant.Primary" :size="iconSizeVariant.Small" @click="clicked()" title="Handig deze title"></IconButton>
-				<IconButton type="smiley" :variant="iconColorVariant.Secundary" @click="clicked()"></IconButton>
-				<IconButton type="smiley" :variant="iconColorVariant.Secundary" :size="iconSizeVariant.Small" @click="clicked()"></IconButton>
-				<IconButton type="warning" :variant="iconColorVariant.Secundary" @click="clicked()" :disabled="true"></IconButton>
-				<IconButton type="warning" :variant="iconColorVariant.Secundary" :size="iconSizeVariant.Small" @click="clicked()" :disabled="true"></IconButton>
+				<h2 class="my-4">IconButton</h2>
+				<div class="flex flex-col gap-2">
+					<IconButton type="check-circle" :variant="iconColorVariant.Primary" @click="clicked()" title="Handig deze title"></IconButton>
+					<IconButton type="check-circle" :variant="iconColorVariant.Primary" :size="iconSizeVariant.Small" @click="clicked()" title="Handig deze title"></IconButton>
+					<IconButton type="smiley" :variant="iconColorVariant.Secundary" @click="clicked()"></IconButton>
+					<IconButton type="smiley" :variant="iconColorVariant.Secundary" :size="iconSizeVariant.Small" @click="clicked()"></IconButton>
+					<IconButton type="warning" :variant="iconColorVariant.Secundary" @click="clicked()" :disabled="true"></IconButton>
+					<IconButton type="warning" :variant="iconColorVariant.Secundary" :size="iconSizeVariant.Small" @click="clicked()" :disabled="true"></IconButton>
+				</div>
 			</div>
 
 			<div class="rounded-lg border-2 border-dotted border-purple-500 p-4">
-				<h2>Radio</h2>
+				<h2 class="mb-4">Radio</h2>
 
 				<Radio :options="options" />
 			</div>
 
 			<div class="rounded-lg border-2 border-dotted border-purple-500 p-4">
-				<h2>Toggle</h2>
+				<h2 class="mb-4">Toggle</h2>
 			</div>
 		</div>
 	</div>

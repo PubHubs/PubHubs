@@ -1,9 +1,9 @@
 <template>
 	<ul v-for="option in options" :key="option.value" role="radiogroup" class="flex flex-col gap-2">
-		<li class="inline-flex items-start items-center justify-start gap-4" @click="click(option.value)">
+		<li class="inline-flex items-center justify-start gap-4" @click="click(option.value)">
 			<div v-if="inputValue === option.value" class="inline-flex h-6 w-6 flex-col items-center justify-center gap-2">
-				<div class="bg-accent-on-blue flex flex-col items-start justify-center rounded-[999px] p-1 outline outline-1 outline-offset-[-0.50px] outline-accent-blue">
-					<div class="h-2 w-2 rounded-full bg-accent-blue"></div>
+				<div class="bg-button-on-blue outline-accent-blue flex flex-col items-start justify-center rounded-[999px] p-1 outline-1 outline-offset-[-0.50px]">
+					<div class="bg-accent-blue h-2 w-2 rounded-full"></div>
 				</div>
 			</div>
 			<div v-else class="inline-flex h-6 w-6 flex-col items-center justify-center gap-2">
