@@ -3,7 +3,7 @@
 	<div
 		v-if="hub"
 		:class="{ 'border-on-accent-secondary bg-on-accent-secondary border-4': active && !hubOrderingIsActive }"
-		class="group relative z-0 block aspect-square h-16 w-full cursor-pointer rounded-xl text-center transition-all ease-in-out"
+		class="group relative z-0 block h-full w-full cursor-pointer rounded-xl text-center transition-all ease-in-out"
 		:title="hub.name"
 	>
 		<div :class="{ 'border-on-accent-secondary bg-on-accent-secondary border-t-4 border-r-4': active && !hubOrderingIsActive }" class="absolute top-1/3 -right-2 -z-10 h-4 w-4 rotate-45"></div>
