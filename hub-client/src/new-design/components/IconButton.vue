@@ -6,7 +6,7 @@
 
 <script setup lang="ts">
 	// Packages
-	import { PropType, computed, ref } from 'vue';
+	import { PropType, computed } from 'vue';
 
 	import Icon from '@hub-client/new-design/components/Icon.vue';
 	import { iconButtonColors, iconColorVariant, iconSizeVariant } from '@hub-client/new-design/types/component-variants';
