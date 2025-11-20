@@ -30,6 +30,8 @@
 
 			<div class="rounded-lg border-2 border-dotted border-purple-500 p-4">
 				<h2>Radio</h2>
+
+				<Radio :options="options" />
 			</div>
 
 			<div class="rounded-lg border-2 border-dotted border-purple-500 p-4">
@@ -43,9 +45,16 @@
 	import Button from '@hub-client/new-design/components/Button.vue';
 	import ButtonGroup from '@hub-client/new-design/components/ButtonGroup.vue';
 	import IconButton from '@hub-client/new-design/components/IconButton.vue';
+	import Radio from '@hub-client/new-design/components/Radio.vue';
 	import { buttonColorVariant, iconColorVariant, iconSizeVariant } from '@hub-client/new-design/types/component-variants';
 
 	const clicked = () => {
 		alert('clicked!');
 	};
+
+	const options = [
+		{ label: 'Option 1', value: 'option1' },
+		{ label: 'Option 2', value: 'option2' },
+		{ label: 'Option 3', value: 'option3' },
+	];
 </script>
