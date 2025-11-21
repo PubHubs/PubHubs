@@ -15,6 +15,7 @@
 				</div>
 			</Popover>
 			<Mention v-if="messageInput.state.showMention" :msg="value as string" :top="caretPos.top" :left="caretPos.left" :room="room" @click="mentionUser($event)" />
+			<MentionRoom v-if="messageInput.state.showMention" :msg="value as string" :top="caretPos.top" :left="caretPos.left" :room="room" @click="mentionRoom($event)" />
 			<div v-if="messageInput.state.emojiPicker" class="absolute bottom-2 right-0 z-20 xs:right-4 md:right-12">
 				<EmojiPicker @emojiSelected="clickedEmoticon" @close="messageInput.toggleEmojiPicker()" />
 			</div>
@@ -134,7 +135,6 @@
 	import { useRoute } from 'vue-router';
 
 	// Components
-	import Button from '@hub-client/components/elements/Button.vue';
 	import Icon from '@hub-client/components/elements/Icon.vue';
 	import Line from '@hub-client/components/elements/Line.vue';
 	import TextArea from '@hub-client/components/forms/TextArea.vue';
@@ -143,6 +143,7 @@
 	import SchedulerMessageInput from '@hub-client/components/rooms/voting/scheduler/SchedulerMessageInput.vue';
 	import EmojiPicker from '@hub-client/components/ui/EmojiPicker.vue';
 	import Mention from '@hub-client/components/ui/Mention.vue';
+	import MentionRoom from '@hub-client/components/ui/MentionRoom.vue';
 	import Popover from '@hub-client/components/ui/Popover.vue';
 	import PopoverButton from '@hub-client/components/ui/PopoverButton.vue';
 
@@ -165,7 +166,7 @@
 	// Stores
 	import { useMessageActions } from '@hub-client/stores/message-actions';
 	import { usePubhubsStore } from '@hub-client/stores/pubhubs';
-	import { useRooms } from '@hub-client/stores/rooms';
+	import { TPublicRoom, useRooms } from '@hub-client/stores/rooms';
 	import { FeatureFlag, useSettings } from '@hub-client/stores/settings';
 	import { useUser } from '@hub-client/stores/user';
 
@@ -348,6 +349,18 @@
 			value.value = message + ' @' + userMention;
 		} else {
 			value.value += ' @' + userMention;
+		}
+	}
+	function mentionRoom(room: TPublicRoom) {
+		let roomMention = room.room_id;
+
+		let message = value.value?.toString();
+		if (message?.lastIndexOf('#') !== -1) {
+			const lastPosition = message?.lastIndexOf('#');
+			message = message?.substring(0, lastPosition);
+			value.value = message + ' #' + roomMention;
+		} else {
+			value.value += ' #' + roomMention;
 		}
 	}
 

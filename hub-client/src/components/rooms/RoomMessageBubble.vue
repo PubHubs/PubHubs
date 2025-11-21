@@ -118,8 +118,13 @@
 							</div>
 						</template>
 					</Suspense>
+					<P v-if="checkMessageContent(event.content.body)"
+						>{{ beforeRoomId(event.content.body) }}
+						<router-link :to="{ name: 'room', params: { id: getRoomId(event.content.body) } }" class="w-full text-accent-primary">{{ checkMessageContent(event.content.body) }} </router-link
+						>{{ afterRoomId(event.content.body) }}</P
+					>
+					<Message v-else-if="event.content.msgtype === MsgType.Text || redactedMessage" :event="event" :deleted="redactedMessage" class="max-w-[90ch]" />
 
-					<Message v-if="event.content.msgtype === MsgType.Text || redactedMessage" :event="event" :deleted="redactedMessage" class="max-w-[90ch]" />
 					<AnnouncementMessage v-if="isAnnouncementMessage && !redactedMessage && !room.isPrivateRoom()" :event="event.content" />
 					<MessageSigned v-if="event.content.msgtype === PubHubsMgType.SignedMessage && !redactedMessage" :message="event.content.signed_message" class="max-w-[90ch]" />
 					<MessageFile v-if="event.content.msgtype === MsgType.File && !redactedMessage" :message="event.content" />
@@ -155,6 +160,7 @@
 
 <script setup lang="ts">
 	// Packages
+	import RoomSideKick from './RoomSideKick.vue';
 	import { IEvent, MsgType } from 'matrix-js-sdk';
 	import { PropType, computed, onBeforeUnmount, onMounted, ref, watch } from 'vue';
 	import { useI18n } from 'vue-i18n';
@@ -191,6 +197,7 @@
 	import { useConnection } from '@hub-client/stores/connection';
 	import { useMessageActions } from '@hub-client/stores/message-actions';
 	import { usePubhubsStore } from '@hub-client/stores/pubhubs';
+	import { useRooms } from '@hub-client/stores/rooms';
 	import { FeatureFlag, useSettings } from '@hub-client/stores/settings';
 	import { useUser } from '@hub-client/stores/user';
 
@@ -203,6 +210,7 @@
 	const hover = ref(false);
 	const openEmojiPanel = ref(false);
 	const elReactionPopUp = ref<HTMLElement | null>(null);
+	const rooms = useRooms();
 
 	let roomMember = ref();
 	let threadLength = ref(0);
@@ -383,6 +391,36 @@
 		if (!position) return false;
 		// If the top of the bubble is below the middle of the viewport, open upwards
 		return position.top > window.innerHeight / 2;
+	}
+	function checkMessageContent(messagebody: string) {
+		if (messagebody && messagebody.includes('#')) {
+			const start = messagebody.indexOf('#') + 1; // Start after '#'
+			const end = messagebody.indexOf(' ', start); // Find the first space after '#'
+			const roomId = messagebody.substring(start, end === -1 ? messagebody.length : end);
+			rooms.fetchPublicRooms();
+			const room = rooms.getTPublicRoom(roomId);
+			return '#' + room?.name;
+		}
+	}
+	function getRoomId(messagebody: string) {
+		if (messagebody && messagebody.includes('#')) {
+			const start = messagebody.indexOf('#') + 1; // Start after '#'
+			const end = messagebody.indexOf(' ', start); // Find the first space after '#'
+			return messagebody.substring(start, end === -1 ? messagebody.length : end);
+		}
+	}
+	function afterRoomId(messagebody: string) {
+		if (messagebody && messagebody.includes('#')) {
+			const start = messagebody.indexOf('#') + 1;
+			const end = messagebody.indexOf(' ', start);
+			return messagebody.slice(end);
+		}
+	}
+	function beforeRoomId(messagebody: string) {
+		if (messagebody && messagebody.includes('#')) {
+			const start = messagebody.indexOf('#') + 1;
+			return messagebody.slice(0, start - 1);
+		}
 	}
 
 	// Waits for checking if message is realy send. Otherwise a 'resend' button appears. See also msgIsNotSend computed.
