@@ -17,9 +17,9 @@
 						type="text"
 						v-model="searchQuery"
 						:placeholder="$t('others.search_hubs')"
-						class="focus bg-surface text-on-surface placeholder-on-surface-dim text-label focus:placeholder-on-surface-variant focus:ring-accent-primary rounded-xs mb-4 w-full border px-4 py-2"
+						class="focus bg-surface text-on-surface placeholder-on-surface-dim text-label focus:placeholder-on-surface-variant focus:ring-accent-primary mb-4 w-full rounded-xs border px-4 py-2"
 					/>
-					<Icon type="magnifying-glass" class="text-on-surface-variant pointer-events-none absolute right-2 top-[20%] z-10" size="sm" />
+					<Icon type="magnifying-glass" class="text-on-surface-variant pointer-events-none absolute top-[20%] right-2 z-10" size="sm" />
 				</div>
 			</div>
 			<div class="flex flex-col gap-2">

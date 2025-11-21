@@ -7,7 +7,7 @@
 			:list="global.pinnedHubs"
 			:item-key="'hubId'"
 			handle=".handle"
-			class="list-group flex w-full flex-1 flex-col gap-2 overflow-y-auto overflow-x-hidden px-2 md:px-4"
+			class="list-group flex w-full flex-1 flex-col gap-2 overflow-x-hidden overflow-y-auto px-2 md:px-4"
 			group="hubs"
 		>
 			<template #item="{ element }">

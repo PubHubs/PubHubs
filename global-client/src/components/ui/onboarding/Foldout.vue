@@ -1,7 +1,7 @@
 <template>
 	<details class="group">
 		<summary
-			class="after:border-on-surface-dim group-open:after:-rotate-135 relative my-2 flex list-none items-start pr-6 after:absolute after:right-1 after:ml-2 after:mt-1 after:rotate-45 after:border-b-2 after:border-r-2 after:p-1 group-open:after:mt-2"
+			class="after:border-on-surface-dim relative my-2 flex list-none items-start pr-6 after:absolute after:right-1 after:mt-1 after:ml-2 after:rotate-45 after:border-r-2 after:border-b-2 after:p-1 group-open:after:mt-2 group-open:after:-rotate-135"
 		>
 			<div class="bg-accent-primary text-on-accent-primary mr-2 flex h-6 w-6 shrink-0 items-center justify-center rounded-full">
 				<Icon type="info" size="xs" />

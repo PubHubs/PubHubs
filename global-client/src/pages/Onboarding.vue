@@ -1,5 +1,5 @@
 <template>
-	<div class="max-w-screen w-full">
+	<div class="w-full max-w-screen">
 		<!-- Header -->
 		<div class="bg-surface flex w-full items-center px-6 py-4" :class="isMobile ? 'h-[7.5rem]' : 'h-[10rem]'">
 			<div class="flex h-full w-full items-center justify-between gap-16">
@@ -27,7 +27,7 @@
 					</div>
 
 					<!-- Carousel -->
-					<div class="max-w-screen flex h-full w-full flex-col gap-4 overflow-hidden" :class="isMobile && 'max-h-[calc(100svh_-_7.5rem)]'">
+					<div class="flex h-full w-full max-w-screen flex-col gap-4 overflow-hidden" :class="isMobile && 'max-h-[calc(100svh_-_7.5rem)]'">
 						<!-- Mobile -->
 						<div v-if="isMobile" ref="carouselMobile" class="no-scrollbar flex h-full snap-x snap-mandatory gap-4 overflow-x-auto scroll-smooth px-4">
 							<!-- Card 1 -->
