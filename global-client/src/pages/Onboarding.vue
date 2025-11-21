@@ -71,6 +71,11 @@
 								</template>
 
 								<div class="flex flex-col gap-2">
+									<div v-if="error" class="items-top flex flex-row gap-x-2 rounded-xl bg-surface py-2 text-accent-error">
+										<Icon type="warning"></Icon>
+										<P>{{ $t(error.key, error.values) }}</P>
+									</div>
+
 									<P>{{ $t('register.card_3_text_1') }}</P>
 									<P>{{ $t('register.card_3_text_2', [$t('common.yivi'), $t('common.app_name')]) }}</P>
 								</div>
@@ -136,7 +141,12 @@
 
 								<div class="flex flex-col gap-2">
 									<P>{{ $t('register.card_3_text_1') }}</P>
-									<P>{{ $t('register.card_3_text_2', [$t('common.yivi'), $t('common.app_name')]) }}</P>
+									<P class="mb-6">{{ $t('register.card_3_text_2', [$t('common.yivi'), $t('common.app_name')]) }}</P>
+
+									<div v-if="error" class="items-top flex flex-row gap-x-4 rounded-xl bg-surface py-2 text-accent-error">
+										<Icon type="warning" class="mt-1"></Icon>
+										<P class="mt-1"> {{ $t(error.key, error.values) }}</P>
+									</div>
 								</div>
 
 								<template #right>
@@ -215,6 +225,8 @@
 	import CarouselCardMobile from '@global-client/components/ui/onboarding/CarouselCardMobile.vue';
 	import DownloadLinks from '@global-client/components/ui/onboarding/DownloadLinks.vue';
 
+	import Icon from '@hub-client/components/elements/Icon.vue';
+
 	// Logic
 	import { CONFIG } from '@hub-client/logic/logging/Config';
 	import { Logger } from '@hub-client/logic/logging/Logger';
@@ -232,6 +244,7 @@
 	const { t } = useI18n();
 	const router = useRouter();
 	const route = useRoute();
+	const error = ref();
 
 	// Logging
 	const LOGGER = new Logger('GC', CONFIG);
@@ -340,7 +353,7 @@
 			const mss = useMSS();
 			const errorMessage = await mss.enterPubHubs(loginMethod, PHCEnterMode.LoginOrRegister);
 			if (errorMessage) {
-				router.push({ name: 'error', query: { errorKey: errorMessage.key, errorValues: errorMessage.values } });
+				error.value = errorMessage;
 				return;
 			}
 			if (redirectPath) {
