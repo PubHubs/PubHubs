@@ -35,7 +35,7 @@
 							<div v-show="show" class="relative flex w-full items-center justify-center" :class="isMobile ? '-mb-2' : '-mb-4'">
 								<div
 									id="yivi-authentication"
-									class="absolute bottom-8 left-0 z-50 w-full after:absolute after:right-[50%] after:-bottom-[1.2em] after:border-[1.25em] after:border-b-0 after:border-l-0 after:border-transparent after:border-t-white after:drop-shadow-[0px_-5px_16px_rgb(0,0,0,0.15)]"
+									class="absolute bottom-8 left-0 z-50 w-full after:absolute after:-bottom-[1.2em] after:right-[50%] after:border-[1.25em] after:border-b-0 after:border-l-0 after:border-transparent after:border-t-white after:drop-shadow-[0px_-5px_16px_rgb(0,0,0,0.15)]"
 								></div>
 							</div>
 							<Button color="gray" @click="loginMSS()">{{ show ? $t('dialog.close') : $t('login.login') }}</Button>
@@ -45,7 +45,7 @@
 						</div>
 					</div>
 
-					<div v-if="error" class="items-top m-8 flex w-3/4 flex-row gap-x-4 break-normal rounded-xl bg-surface-low px-4 py-8 text-accent-error">
+					<div v-if="error" class="items-top bg-surface-low text-accent-error m-8 flex w-3/4 flex-row gap-x-4 break-normal rounded-xl px-4 py-8">
 						<Icon type="warning" class="mt-1"></Icon>
 						<P> {{ $t(error.key, error.values) }}</P>
 					</div>

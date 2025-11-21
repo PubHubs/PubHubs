@@ -19,7 +19,7 @@
 				<p v-if="!notificationSupported">{{ $t('notifications.notSupported') }}</p>
 			</div>
 			<div v-if="promptAllow || promptReset" class="flex">
-				<Icon type="warning" size="sm" class="mt-[3px] mr-1 shrink-0" />
+				<Icon type="warning" size="sm" class="mr-1 mt-[3px] shrink-0" />
 				<p v-if="promptAllow" class="italic">{{ $t('notifications.promptAllow') }}</p>
 				<p v-if="promptReset" class="italic">{{ $t('notifications.promptReset') }}</p>
 			</div>

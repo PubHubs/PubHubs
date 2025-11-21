@@ -7,7 +7,7 @@
 				<b>{{ $t('others.step', [2]) }}</b>
 				&nbsp; {{ $t('register.overview_step2') }}.
 			</p>
-			<p class="mt-4 mb-2">{{ $t('register.rewards.good_job') }}</p>
+			<p class="mb-2 mt-4">{{ $t('register.rewards.good_job') }}</p>
 			<p class="my-2">{{ $t('register.data_request') }}</p>
 			<p class="my-2">{{ $t('register.data_add') }}</p>
 			<Foldout :question="`${$t('register.data_add_how')}`">
@@ -17,7 +17,7 @@
 				{{ $t('register.data_why_answer') }}
 			</Foldout>
 			<label for="attributesAdded" class="mt-6 flex font-bold">
-				<Checkbox id="attributesAdded" class="mt-1 mr-2 h-[16px] w-[16px] md:mt-1" v-model="checked" :color="'blue'"> </Checkbox>
+				<Checkbox id="attributesAdded" class="mr-2 mt-1 h-[16px] w-[16px] md:mt-1" v-model="checked" :color="'blue'"> </Checkbox>
 				{{ $t('register.data_added') }}
 			</label>
 			<Button class="my-4 w-fit" :disabled="!checked" @click="$emit('next')">{{ $t('register.step_go_to', [3]) }} &#x27F6;</Button>

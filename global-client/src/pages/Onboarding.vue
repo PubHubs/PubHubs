@@ -1,5 +1,5 @@
 <template>
-	<div class="w-full max-w-screen">
+	<div class="max-w-screen w-full">
 		<!-- Header -->
 		<div class="bg-surface flex w-full items-center px-6 py-4" :class="isMobile ? 'h-[7.5rem]' : 'h-[10rem]'">
 			<div class="flex h-full w-full items-center justify-between gap-16">
@@ -27,7 +27,7 @@
 					</div>
 
 					<!-- Carousel -->
-					<div class="flex h-full w-full max-w-screen flex-col gap-4 overflow-hidden" :class="isMobile && 'max-h-[calc(100svh_-_7.5rem)]'">
+					<div class="max-w-screen flex h-full w-full flex-col gap-4 overflow-hidden" :class="isMobile && 'max-h-[calc(100svh_-_7.5rem)]'">
 						<!-- Mobile -->
 						<div v-if="isMobile" ref="carouselMobile" class="no-scrollbar flex h-full snap-x snap-mandatory gap-4 overflow-x-auto scroll-smooth px-4">
 							<!-- Card 1 -->
@@ -71,7 +71,7 @@
 								</template>
 
 								<div class="flex flex-col gap-2">
-									<div v-if="error" class="items-top flex flex-row gap-x-2 rounded-xl bg-surface py-2 text-accent-error">
+									<div v-if="error" class="items-top bg-surface text-accent-error flex flex-row gap-x-2 rounded-xl py-2">
 										<Icon type="warning"></Icon>
 										<P>{{ $t(error.key, error.values) }}</P>
 									</div>
@@ -143,7 +143,7 @@
 									<P>{{ $t('register.card_3_text_1') }}</P>
 									<P class="mb-6">{{ $t('register.card_3_text_2', [$t('common.yivi'), $t('common.app_name')]) }}</P>
 
-									<div v-if="error" class="items-top flex flex-row gap-x-4 rounded-xl bg-surface py-2 text-accent-error">
+									<div v-if="error" class="items-top bg-surface text-accent-error flex flex-row gap-x-4 rounded-xl py-2">
 										<Icon type="warning" class="mt-1"></Icon>
 										<P class="mt-1"> {{ $t(error.key, error.values) }}</P>
 									</div>

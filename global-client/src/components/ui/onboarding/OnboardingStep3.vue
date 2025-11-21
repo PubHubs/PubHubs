@@ -12,14 +12,14 @@
 				&nbsp; {{ $t('register.yivi_short_description') }}
 			</p>
 			<p class="mt-4">{{ $t('register.yivi_download') }}</p>
-			<H3 class="mt-4 mb-0 lg:hidden">Download Yivi</H3>
+			<H3 class="mb-0 mt-4 lg:hidden">Download Yivi</H3>
 			<DownloadLinks class="mt-2 lg:hidden" />
 			<label for="yiviDownloaded" class="mt-4 flex font-bold">
-				<Checkbox id="yiviDownloaded" class="mt-1 mr-2 h-[16px] w-[16px] md:mt-1" v-model="checked" :color="'accent-primary'" />
+				<Checkbox id="yiviDownloaded" class="mr-2 mt-1 h-[16px] w-[16px] md:mt-1" v-model="checked" :color="'accent-primary'" />
 				{{ $t('register.yivi_installed') }}
 			</label>
-			<Button class="mt-6 mb-4 w-fit" :disabled="!checked" @click="$emit('next')">{{ $t('register.step_go_to', [2]) }} &#x27F6;</Button>
-			<H3 class="mt-4 mb-0">{{ $t('register.more') }}</H3>
+			<Button class="mb-4 mt-6 w-fit" :disabled="!checked" @click="$emit('next')">{{ $t('register.step_go_to', [2]) }} &#x27F6;</Button>
+			<H3 class="mb-0 mt-4">{{ $t('register.more') }}</H3>
 			<Foldout :question="`${$t('register.yivi_workings')}`">
 				<i18n-t keypath="register.yivi_workings_answer">
 					<template #hyperlink>
@@ -42,7 +42,7 @@
 		<template #column2>
 			<div class="hidden items-start pr-[5em] lg:flex lg:flex-col lg:items-end lg:gap-16">
 				<div
-					class="bg-on-accent-secondary after:border-t-on-accent-secondary relative rounded-2xl p-4 shadow-md after:absolute after:right-[10%] after:-bottom-[1.2rem] after:border-[1.25em] after:border-r-0 after:border-b-0 after:border-solid after:border-transparent after:drop-shadow-md"
+					class="bg-on-accent-secondary after:border-t-on-accent-secondary relative rounded-2xl p-4 shadow-md after:absolute after:-bottom-[1.2rem] after:right-[10%] after:border-[1.25em] after:border-b-0 after:border-r-0 after:border-solid after:border-transparent after:drop-shadow-md"
 				>
 					<div class="my-4 flex justify-center">
 						<H1 class="mr-2 text-xl !text-black xl:text-2xl">Download</H1>

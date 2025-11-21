@@ -10,8 +10,8 @@
 				<li>{{ $t('register.overview_step3') }}</li>
 			</ol>
 			<p>{{ $t('register.yivi_downloaded') }}</p>
-			<Button class="mt-6 mr-6 w-[320px] max-w-full" @click="$emit('next')">{{ $t('register.yivi_no') }}</Button>
-			<Button class="mt-6 mb-4 w-[320px] max-w-full py-3 leading-tight" @click="$emit('skip')">
+			<Button class="mr-6 mt-6 w-[320px] max-w-full" @click="$emit('next')">{{ $t('register.yivi_no') }}</Button>
+			<Button class="mb-4 mt-6 w-[320px] max-w-full py-3 leading-tight" @click="$emit('skip')">
 				{{ $t('register.yivi_yes') }}<br /><span class="text-body text-nowrap">({{ $t('register.skip_step1') }})</span>
 			</Button>
 		</template>
