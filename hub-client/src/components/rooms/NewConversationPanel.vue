@@ -35,7 +35,7 @@
 						<div class="bg-surface-high h-10 w-10 cursor-pointer rounded-full">
 							<Avatar v-if="avatarPreviewUrl" :avatar-url="avatarPreviewUrl" @click="fileInput!.click()"></Avatar>
 							<Button v-else color="" @click="fileInput!.click()">
-								<Icon type="image-square" class="-ml-[5px] mt-[2px]" />
+								<Icon type="image-square" class="mt-[2px] -ml-[5px]" />
 							</Button>
 						</div>
 						<input ref="fileInput" type="file" accept="image/*" class="hidden" @change="handleFileUpload" />
@@ -49,7 +49,7 @@
 				<div v-else class="mt-4 flex flex-wrap justify-start gap-y-2">
 					<div v-for="user in usersSelected" :key="user.userId" class="flex flex-col items-center">
 						<div class="relative">
-							<Icon type="x" size="sm" class="bg-surface-subtle absolute bottom-0 right-0 cursor-pointer rounded-full" @click.stop="removeUserFromSelection(user as User)" />
+							<Icon type="x" size="sm" class="bg-surface-subtle absolute right-0 bottom-0 cursor-pointer rounded-full" @click.stop="removeUserFromSelection(user as User)" />
 							<Avatar :avatarUrl="userStore.userAvatar(user.userId)" :user-id="user.userId"></Avatar>
 						</div>
 						<span class="mt-1 w-16 truncate text-center text-sm">{{ user.displayName || user.userId }}</span>
