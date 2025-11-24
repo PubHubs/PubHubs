@@ -39,15 +39,22 @@
 
 				<h2 class="my-4">Checkbox</h2>
 				<Checkbox>Checkbox 0</Checkbox>
-				<Checkbox>Checkbox 1</Checkbox>
+				<Checkbox :model-value="true">Checkbox 1</Checkbox>
+				<Checkbox :disabled="true">Disabled</Checkbox>
+				<Checkbox :disabled="true" :model-value="true">Disabled</Checkbox>
 
 				<h2 class="my-4">Toggle</h2>
 				<Toggle>Toggle 0</Toggle>
-				<Toggle>Toggle 1</Toggle>
+				<Toggle :model-value="true">Toggle 1</Toggle>
+				<Toggle :disabled="true">Disabled</Toggle>
+				<Toggle :disabled="true" :model-value="true">Disabled</Toggle>
 			</div>
 
 			<div class="rounded-lg border-2 border-dotted border-purple-500 p-4">
 				<h2 class="mb-4">Inputs</h2>
+				<TextField placeholder="Type voornaam">Voornaam</TextField>
+				<TextField placeholder="Type achternaam" :validation="{ required: true }" help="Hier dus je achternaam">Achternaam</TextField>
+				<TextField placeholder="Geef getal" :validation="{ required: true, isNumber: true, min: 0, max: 100 }" help="Hoe oud ben je?">Leeftijd</TextField>
 			</div>
 		</div>
 
@@ -80,13 +87,14 @@
 </template>
 
 <script setup lang="ts">
-	import { reactive, ref } from 'vue';
+	import { reactive } from 'vue';
 
 	import Button from '@hub-client/new-design/components/Button.vue';
 	import ButtonGroup from '@hub-client/new-design/components/ButtonGroup.vue';
 	import IconButton from '@hub-client/new-design/components/IconButton.vue';
 	import Checkbox from '@hub-client/new-design/components/forms/Checkbox.vue';
 	import Radio from '@hub-client/new-design/components/forms/Radio.vue';
+	import TextField from '@hub-client/new-design/components/forms/TextField.vue';
 	import Toggle from '@hub-client/new-design/components/forms/Toggle.vue';
 	import { buttonColorVariant, iconColorVariant, iconSizeVariant } from '@hub-client/new-design/types/component-variants';
 

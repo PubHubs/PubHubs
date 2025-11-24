@@ -1,8 +1,8 @@
 <template>
-	<div class="flex cursor-pointer items-center justify-start gap-4" @click="toggle()">
+	<div class="flex items-center justify-start gap-4" :class="disabled ? '' : 'cursor-pointer'" @click="toggle(disabled)">
 		<div class="inline-flex h-6 w-6 flex-col items-center justify-center gap-2">
-			<div v-if="!model" class="bg-surface-base border-on-surface-dim h-4 w-4 rounded border-[0.50px]"></div>
-			<div v-else class="bg-button-on-blue outline-accent-on-blue flex h-4 w-4 flex-col items-center justify-center rounded p-0.5 outline-1 outline-offset-[-0.50px]">
+			<div v-if="!model" class="bg-surface-base border-on-surface-dim h-4 w-4 rounded border-[0.50px]" :class="disabled ? 'opacity-50' : ''"></div>
+			<div v-else class="bg-button-on-blue outline-accent-on-blue flex h-4 w-4 flex-col items-center justify-center rounded p-0.5 outline-1 outline-offset-[-0.50px]" :class="disabled ? 'opacity-50' : ''">
 				<div class="relative h-3 w-3 overflow-hidden rounded">
 					<div class="outline-accent-blue absolute top-[3px] left-[1.50px] h-1.5 w-2.5">
 						<svg width="11" height="8" viewBox="0 0 11 8" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -18,24 +18,20 @@
 			</div>
 		</div>
 
-		<input ref="input" type="checkbox" class="hidden" :disabled="props.disabled" @input="update(($event.target as HTMLInputElement).checked)" />
+		<input ref="input" type="checkbox" class="hidden" :disabled="props.disabled" :value="model" />
 
-		<div class="cursor-pointer pt-0.5">
-			<label class="text-surface-on-surface cursor-pointer justify-start"><slot></slot></label>
+		<div class="pt-0.5">
+			<label class="justify-start" :class="disabled ? 'text-on-surface-disabled' : 'text-surface-on-surface cursor-pointer'"><slot></slot></label>
 		</div>
 	</div>
 </template>
 
 <script setup lang="ts">
-	// Packages
-	import { useTemplateRef } from 'vue';
-
 	import { useFormInput } from '@hub-client/new-design/composables/useFormInput';
 
 	const model = defineModel();
-	const input = useTemplateRef('input');
 
-	const { toggle, update } = useFormInput(model, input);
+	const { toggle } = useFormInput(model);
 
 	const props = defineProps({
 		disabled: {
