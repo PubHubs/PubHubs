@@ -35,8 +35,12 @@
 				<Radio :options="options" />
 
 				<h2 class="my-4">Checkbox</h2>
-				<Checkbox label="Option 0" />
-				<Checkbox label="Option 1" />
+				<Checkbox label="Checkbox 0" />
+				<Checkbox label="Checkbox 1" />
+
+				<h2 class="my-4">Toggle</h2>
+				<Toggle label="Toggle 0" />
+				<Toggle label="Toggle 1" />
 			</div>
 
 			<div class="rounded-lg border-2 border-dotted border-purple-500 p-4">
@@ -52,6 +56,7 @@
 	import IconButton from '@hub-client/new-design/components/IconButton.vue';
 	import Checkbox from '@hub-client/new-design/components/forms/Checkbox.vue';
 	import Radio from '@hub-client/new-design/components/forms/Radio.vue';
+	import Toggle from '@hub-client/new-design/components/forms/Toggle.vue';
 	import { buttonColorVariant, iconColorVariant, iconSizeVariant } from '@hub-client/new-design/types/component-variants';
 
 	const clicked = () => {
