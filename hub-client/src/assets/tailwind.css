@@ -361,6 +361,11 @@
 	::-webkit-scrollbar-thumb {
 		@apply bg-on-surface-dim rounded-full;
 	}
+
+	.message-link {
+		@apply text-accent-blue;
+	}
+
 	.v-note-wrapper .v-note-show ol {
 		list-style-type: i !important;
 	}

@@ -22,7 +22,7 @@
 		</div>
 		<div class="flex-grow"></div>
 		<div>
-			<IconButton type="trash" class="!bg-accent-error" size="lg" @click="cancelFiles()"></IconButton>
+			<IconButton type="trash" class="bg-accent-red! cursor-pointer" size="lg" @click="cancelFiles()"></IconButton>
 		</div>
 	</div>
 	<BarList v-if="files.length > 0" class="mt-2" data-testid="file-list">

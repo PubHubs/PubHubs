@@ -44,6 +44,11 @@
 							</router-link>
 						</div>
 					</div>
+
+					<div v-if="error" class="items-top bg-surface-low text-accent-error m-8 flex w-3/4 flex-row gap-x-4 rounded-xl px-4 py-8 break-normal">
+						<Icon type="warning" class="mt-1"></Icon>
+						<P> {{ $t(error.key, error.values) }}</P>
+					</div>
 				</div>
 			</div>
 		</div>
@@ -60,6 +65,7 @@
 	// Components
 	import Button from '@hub-client/components/elements/Button.vue';
 	import H1 from '@hub-client/components/elements/H1.vue';
+	import Icon from '@hub-client/components/elements/Icon.vue';
 	import P from '@hub-client/components/elements/P.vue';
 	import InlineSpinner from '@hub-client/components/ui/InlineSpinner.vue';
 
@@ -96,6 +102,7 @@
 
 	const show = ref<boolean>(false);
 	const loading = ref<boolean>(true);
+	const error = ref();
 
 	const isMobile = computed(() => settings.isMobileState);
 
@@ -119,7 +126,7 @@
 		try {
 			const errorMessage = await mss.enterPubHubs(loginMethod, PHCEnterMode.Login);
 			if (errorMessage) {
-				router.replace({ name: 'error', query: { errorKey: errorMessage.key, errorValues: errorMessage.values } });
+				error.value = errorMessage;
 				show.value = false;
 				return;
 			}

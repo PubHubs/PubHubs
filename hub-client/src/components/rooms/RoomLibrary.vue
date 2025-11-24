@@ -4,7 +4,7 @@
 			<div class="mb-4 flex w-full gap-4">
 				<div class="bg-surface-low flex w-1/2 items-center justify-end rounded-md sm:w-3/4">
 					<input
-						class="text-body placeholder:text-on-surface-variant h-full w-full flex-1 border-none bg-transparent focus:ring-0 focus:outline-0 focus:outline-offset-0"
+						class="text-body placeholder:text-on-surface-variant h-full w-full flex-1 border-none bg-transparent p-1 px-2 focus:ring-0 focus:outline-0 focus:outline-offset-0"
 						type="text"
 						role="searchbox"
 						v-model="filter"
