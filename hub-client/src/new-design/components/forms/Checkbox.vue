@@ -1,7 +1,7 @@
 <template>
 	<div class="flex cursor-pointer items-center justify-start gap-4" @click="toggle()">
 		<div class="inline-flex h-6 w-6 flex-col items-center justify-center gap-2">
-			<div v-if="!value" class="bg-surface-base border-on-surface-dim h-4 w-4 rounded border-[0.50px]"></div>
+			<div v-if="!model" class="bg-surface-base border-on-surface-dim h-4 w-4 rounded border-[0.50px]"></div>
 			<div v-else class="bg-button-on-blue outline-accent-on-blue flex h-4 w-4 flex-col items-center justify-center rounded p-0.5 outline-1 outline-offset-[-0.50px]">
 				<div class="relative h-3 w-3 overflow-hidden rounded">
 					<div class="outline-accent-blue absolute top-[3px] left-[1.50px] h-1.5 w-2.5">
@@ -18,10 +18,10 @@
 			</div>
 		</div>
 
-		<input ref="input" type="checkbox" class="hidden" :value="modelValue" :checked="modelValue" :disabled="props.disabled" @input="update(($event.target as HTMLInputElement).checked)" @keydown.esc="cancel()" @click="toggle()" />
+		<input ref="input" type="checkbox" class="hidden" :disabled="props.disabled" @input="update(($event.target as HTMLInputElement).checked)" />
 
 		<div class="cursor-pointer pt-0.5">
-			<label class="text-surface-on-surface cursor-pointer justify-start">{{ label }}</label>
+			<label class="text-surface-on-surface cursor-pointer justify-start"><slot></slot></label>
 		</div>
 	</div>
 </template>
@@ -30,30 +30,17 @@
 	// Packages
 	import { useTemplateRef } from 'vue';
 
-	// Composables
-	import { useFormInputEvents, usedEvents } from '@hub-client/composables/useFormInputEvents';
+	import { useFormInput } from '@hub-client/new-design/composables/useFormInput';
 
+	const model = defineModel();
 	const input = useTemplateRef('input');
 
+	const { toggle, update } = useFormInput(model, input);
+
 	const props = defineProps({
-		modelValue: {
-			type: Boolean,
-		},
 		disabled: {
 			type: Boolean,
 			default: false,
 		},
-		label: {
-			type: String,
-			default: '',
-		},
 	});
-
-	const emit = defineEmits(usedEvents);
-	const { update, cancel, value } = useFormInputEvents(emit, props.modelValue);
-
-	function toggle() {
-		console.info('toggle', props.modelValue);
-		input.value?.click();
-	}
 </script>

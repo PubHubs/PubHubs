@@ -1,7 +1,7 @@
 <template>
 	<div class="flex overflow-hidden bg-black text-white">
-		<Icon :type="folded ? 'caret-right' : 'caret-down'" @click="toggleFold()" class="text-green" />
-		<pre class="text-label p-1 font-mono" :class="folded ? 'h-16' : ''">{{ JSON.stringify(json, null, 2) }}</pre>
+		<Icon :type="folded ? 'caret-right' : 'caret-down'" @click.stop="toggleFold()" class="text-accent-primary" />
+		<pre v-if="!folded" class="font-mono">{{ JSON.stringify(json, null, 2) }}</pre>
 	</div>
 </template>
 
@@ -16,9 +16,10 @@
 		json: Object,
 	});
 
-	const folded = ref(true);
+	const folded = ref(false);
 
 	function toggleFold() {
 		folded.value = !folded.value;
+		console.info('toggle', folded.value);
 	}
 </script>

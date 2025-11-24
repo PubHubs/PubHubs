@@ -32,25 +32,56 @@
 
 			<div class="rounded-lg border-2 border-dotted border-purple-500 p-4">
 				<h2 class="mb-4">Radio</h2>
-				<Radio :options="options" />
+
+				<Radio v-model="formValues.radio" value="first">Eerste</Radio>
+				<Radio v-model="formValues.radio" value="second">Tweede</Radio>
+				<Radio v-model="formValues.radio" value="third">Derde</Radio>
 
 				<h2 class="my-4">Checkbox</h2>
-				<Checkbox label="Checkbox 0" />
-				<Checkbox label="Checkbox 1" />
+				<Checkbox>Checkbox 0</Checkbox>
+				<Checkbox>Checkbox 1</Checkbox>
 
 				<h2 class="my-4">Toggle</h2>
-				<Toggle label="Toggle 0" />
-				<Toggle label="Toggle 1" />
+				<Toggle>Toggle 0</Toggle>
+				<Toggle>Toggle 1</Toggle>
 			</div>
 
 			<div class="rounded-lg border-2 border-dotted border-purple-500 p-4">
-				<h2 class="mb-4">Toggle</h2>
+				<h2 class="mb-4">Inputs</h2>
 			</div>
+		</div>
+
+		<div class="my-4 rounded-lg border-2 border-dotted border-purple-500 p-4">
+			<h2 class="mb-4">Form Test</h2>
+
+			<form>
+				<div class="mb-4">
+					<Radio v-model="formValues.radio" value="first">Eerste</Radio>
+					<Radio v-model="formValues.radio" value="second">Tweede</Radio>
+					<Radio v-model="formValues.radio" value="third">Derde</Radio>
+				</div>
+
+				<div class="flex gap-12">
+					<div>
+						<Checkbox v-model="formValues.option1">Option 1</Checkbox>
+						<Checkbox v-model="formValues.option2">Option 2</Checkbox>
+					</div>
+					<div>
+						<Toggle v-model="formValues.option1">Option 1</Toggle>
+						<Toggle v-model="formValues.option2">Option 2</Toggle>
+					</div>
+				</div>
+			</form>
+
+			<h2 class="my-4">Result values</h2>
+			<Json :json="formValues"></Json>
 		</div>
 	</div>
 </template>
 
 <script setup lang="ts">
+	import { reactive, ref } from 'vue';
+
 	import Button from '@hub-client/new-design/components/Button.vue';
 	import ButtonGroup from '@hub-client/new-design/components/ButtonGroup.vue';
 	import IconButton from '@hub-client/new-design/components/IconButton.vue';
@@ -59,13 +90,19 @@
 	import Toggle from '@hub-client/new-design/components/forms/Toggle.vue';
 	import { buttonColorVariant, iconColorVariant, iconSizeVariant } from '@hub-client/new-design/types/component-variants';
 
+	type formType = {
+		radio: string;
+		option1: boolean;
+		option2: boolean;
+	};
+
+	const formValues = reactive({
+		radio: '',
+		option1: false,
+		option2: true,
+	} as formType);
+
 	const clicked = () => {
 		alert('clicked!');
 	};
-
-	const options = [
-		{ label: 'Option 1', value: 'option1' },
-		{ label: 'Option 2', value: 'option2' },
-		{ label: 'Option 3', value: 'option3' },
-	];
 </script>
