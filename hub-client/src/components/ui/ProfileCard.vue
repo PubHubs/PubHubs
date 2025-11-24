@@ -1,11 +1,13 @@
 <template>
 	<div class="bg-surface-subtle relative min-h-full overflow-hidden rounded-md">
 		<div class="relative">
-			<div class="bg-on-surface-dim absolute top-0 left-0 h-[50%] w-full"></div>
+			<div class="bg-on-surface-dim absolute left-0 top-0 h-[50%] w-full"></div>
 			<div class="relative z-10 flex items-end justify-between px-4 py-4">
 				<Avatar :avatar-url="user.userAvatar(event.sender)" :user-id="event.sender" class="rounded-full object-cover shadow-md ring-2 ring-white ring-offset-1" />
 				<div v-if="user.userId !== event.sender && props.room?.getPowerLevel(event.sender) !== 50" class="bg-surface-low mb-2 rounded-md p-[2%]">
-					<Icon type="envelope" @click.stop="goToUserRoom(event.sender)" class="cursor-pointer"></Icon>
+					<Button class="bg-on-surface-variant cursor-pointer" @click.once="goToUserRoom(event.sender)">
+						<Icon size="md" type="envelope"></Icon>
+					</Button>
 				</div>
 			</div>
 		</div>

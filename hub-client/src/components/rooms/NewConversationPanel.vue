@@ -35,7 +35,7 @@
 						<div class="bg-surface-high h-10 w-10 cursor-pointer rounded-full">
 							<Avatar v-if="avatarPreviewUrl" :avatar-url="avatarPreviewUrl" @click="fileInput!.click()"></Avatar>
 							<Button v-else color="" @click="fileInput!.click()">
-								<Icon type="image-square" class="mt-[2px] -ml-[5px]" />
+								<Icon type="image-square" class="-ml-[5px] mt-[2px]" />
 							</Button>
 						</div>
 						<input ref="fileInput" type="file" accept="image/*" class="hidden" @change="handleFileUpload" />
@@ -49,7 +49,7 @@
 				<div v-else class="mt-4 flex flex-wrap justify-start gap-y-2">
 					<div v-for="user in usersSelected" :key="user.userId" class="flex flex-col items-center">
 						<div class="relative">
-							<Icon type="x" size="sm" class="bg-surface-subtle absolute right-0 bottom-0 cursor-pointer rounded-full" @click.stop="removeUserFromSelection(user as User)" />
+							<Icon type="x" size="sm" class="bg-surface-subtle absolute bottom-0 right-0 cursor-pointer rounded-full" @click.stop="removeUserFromSelection(user as User)" />
 							<Avatar :avatarUrl="userStore.userAvatar(user.userId)" :user-id="user.userId"></Avatar>
 						</div>
 						<span class="mt-1 w-16 truncate text-center text-sm">{{ user.displayName || user.userId }}</span>
@@ -74,7 +74,7 @@
 					<div v-for="(usersInLetter, letter) in categorizedUsers" :key="letter" class="mb-4">
 						<h3 class="text-md text-on-surface-dim sticky top-0 z-10 py-1 font-bold uppercase">{{ letter }}</h3>
 						<ul>
-							<li v-for="user in usersInLetter" :key="user.userId" class="hover:bg-surface-low flex cursor-pointer items-center gap-2 py-1 pl-4" @click="groupPanel ? toggleUserSelection(user) : gotToPrivateRoom(user)">
+							<li v-for="user in usersInLetter" :key="user.userId" class="hover:bg-surface-low flex cursor-pointer items-center gap-2 py-1 pl-4" @click.once="groupPanel ? toggleUserSelection(user) : gotToPrivateRoom(user)">
 								<Icon v-if="groupPanel && selectedUsers.includes(user.userId)" type="check-circle"></Icon>
 								<Avatar v-else :avatarUrl="userStore.userAvatar(user.userId)" :user-id="user.userId"></Avatar>
 								<div class="flex flex-col">
