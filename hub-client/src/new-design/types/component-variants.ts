@@ -4,9 +4,9 @@ export enum iconSizeVariant {
 }
 
 export const iconSize: { [key: string]: string } = {
-	[iconSizeVariant.Small] : '16',
-	[iconSizeVariant.Base] : '24',
-}
+	[iconSizeVariant.Small]: '16',
+	[iconSizeVariant.Base]: '24',
+};
 
 export enum iconColorVariant {
 	Primary = 'primary',
@@ -14,11 +14,11 @@ export enum iconColorVariant {
 	Disabled = 'disabled',
 }
 
-export const iconButtonColors : { [key: string]: string } = {
+export const iconButtonColors: { [key: string]: string } = {
 	[iconColorVariant.Primary]: 'text-button-blue cursor-pointer',
 	[iconColorVariant.Secundary]: 'text-on-surface-dim cursor-pointer',
 	[iconColorVariant.Disabled]: 'text-on-surface-dim cursor-default opacity-75',
-}
+};
 
 export enum buttonColorVariant {
 	Primary = 'primary',
