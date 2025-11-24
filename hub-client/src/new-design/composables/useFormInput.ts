@@ -14,14 +14,19 @@ export type inputValidation = {
     // allow_empty_object: boolean;
 };
 
-export const defaultValidation = {
-    required:false,
-}
+export const defaultValidation = {}
 
-const validateFunctions = {
+const validateFunctions: { [key: string]: Function } = {
 
-    required : (value:number|string, validation:inputValidation) => {
-        return value !== '';
+    required : (value:number|string, validation:inputValidation, changed:boolean = false) => {
+        let v = false;
+        if (!validation.required || !changed) {
+            v = true;
+        }
+        else {
+            v = (value !== '');
+        }
+        return v;
     },
 
     min_length : (value:string, validation:inputValidation) => {
@@ -32,15 +37,28 @@ const validateFunctions = {
         return value.length < validation.max_length!;
     },
 
-}
-//  as [key: string]: {
-// };
+    isNumber : (value:any, validation:inputValidation) => {
+        return !isNaN(value);
+    },
+
+    min : (value:number, validation:inputValidation) => {
+        return Number(value) >= validation.min!;
+    },
+
+    max : (value:number, validation:inputValidation) => {
+        return Number(value) < validation.max!;
+    },
+
+
+};
 
 
 
 export function useFormInput(model: any, validation : any|undefined = undefined) {
 
     const changed = ref(false);
+    const error = ref('');
+    const errorParam = ref(0);
 
     // For radio inputs
     const id = computed(() => {
@@ -70,21 +88,18 @@ export function useFormInput(model: any, validation : any|undefined = undefined)
         let validated = true;
         if (model.value || changed.value) {
             changed.value = true;
-            Object.keys(validation).forEach((key) => {
-                // const func = validateFunctions[key];
-                validated = validated && validateFunctions.required(model.value,validation);
+            Object.keys(validation).every((key) => {
+                const func = validateFunctions[key];
+                validated = validated && func(model.value,validation, changed.value);
+                error.value = 'forms.validation.'+key;
+                errorParam.value = validation[key];
+                return validated;
             });
         }
-        console.info('validated',model.value, validation, validated);
+        if (validated) error.value = '';
+        // console.info('validated',model.value, validation, validated);
         return validated;
     });
 
-    const validationError = computed(() => {
-        if (!validated.value) {
-            return 'ERROR';
-        }
-        return '';
-    });
-
-	return { id, select, toggle, changed, validated, validationError };
+	return { id, select, toggle, changed, validated, error, errorParam };
 }

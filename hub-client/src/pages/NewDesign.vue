@@ -53,8 +53,8 @@
 			<div class="rounded-lg border-2 border-dotted border-purple-500 p-4">
 				<h2 class="mb-4">Inputs</h2>
 				<TextField placeholder="Type voornaam">Voornaam</TextField>
-				<TextField placeholder="Type achternaam" :validation="{ required: true }" help="Hier dus je achternaam">Achternaam</TextField>
-				<TextField placeholder="Geef getal" :validation="{ required: true, isNumber: true, min: 0, max: 100 }" help="Hoe oud ben je?">Leeftijd</TextField>
+				<TextField placeholder="Type achternaam" :validation="{ required: true, max_length: 10 }" help="Hier dus je achternaam">Achternaam</TextField>
+				<TextField placeholder="Geef getal" :validation="{ required: true, isNumber: true, min: 2, max: 20 }" help="Hoe oud ben je?">Leeftijd</TextField>
 			</div>
 		</div>
 

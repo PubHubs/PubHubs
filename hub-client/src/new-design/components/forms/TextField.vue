@@ -1,0 +1,39 @@
+<template>
+	<div class="flex flex-col items-start justify-start gap-1.5 mb-4">
+		<div class="inline-flex items-start justify-start gap-1 text-label-small">
+			<div class="text-surface-on-surface justify-end"><slot></slot></div>
+			<div v-if="validation.required" class="text-accent-red justify-end">*</div>
+		</div>
+		<div class="bg-surface-base outline-surface-on-surface-dim min-h-11 px-3.5 py-2 outline-[0.50px] outline-offset-[-0.50px]" :class="validated?'outline-surface-on-surface-dim':'outline-accent-red'">
+			<input ref="input" v-model="model" class="text-surface-on-surface-dim justify-start" :placeholder="placeholder"></input>
+		</div>
+        <div v-if="error" class="flex items-center text-accent-red text-label-small gap-1"><Icon type="warning"></Icon>{{ $t(error,[errorParam]) }}</div>
+		<div v-if="help" class="text-surface-on-surface-dim justify-end text-label-small">{{ help }}</div>
+	</div>
+</template>
+
+<script setup lang="ts">
+	// Packages
+    import Icon from '@hub-client/components/elements/Icon.vue';
+
+	import { defaultValidation, useFormInput } from '@hub-client/new-design/composables/useFormInput';
+
+	const model = defineModel();
+
+	const props = defineProps({
+        placeholder: {
+            type: String,
+			default: '',
+		},
+        validation: {
+            type:Object,
+            default:defaultValidation,
+        },
+        help: {
+            type:String,
+            default:'',
+        }
+	});
+
+    const { error, errorParam, validated } = useFormInput(model, props.validation);
+</script>
