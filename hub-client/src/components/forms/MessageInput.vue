@@ -305,6 +305,30 @@
 
 		elTextInput.value?.$el.focus();
 	});
+	// function checkMessageContent(messagebody: string) {
+	// 	if (messagebody && messagebody.includes('#')) {
+	// 		const start = messagebody.indexOf('#') + 1; // Start after '#'
+	// 		const end = messagebody.indexOf(' ', start); // Find the first space after '#'
+	// 		const roomId = messagebody.substring(start, end === -1 ? messagebody.length : end);
+	// 		rooms.fetchPublicRooms();
+	// 		const room = rooms.getTPublicRoom(roomId);
+	// 		return '#' + room?.name;
+	// 	}
+	// }
+
+	// function afterRoomId(messagebody: string) {
+	// 	if (messagebody && messagebody.includes('#')) {
+	// 		const start = messagebody.indexOf('#') + 1;
+	// 		const end = messagebody.indexOf(' ', start);
+	// 		return messagebody.slice(end === -1 ? messagebody.length : end);
+	// 	}
+	// }
+	// function beforeRoomId(messagebody: string) {
+	// 	if (messagebody && messagebody.includes('#')) {
+	// 		const start = messagebody.indexOf('#') + 1;
+	// 		return messagebody.slice(0, start - 1);
+	// 	}
+	// }
 
 	function clickedEmoticon(emoji: string) {
 		value.value += emoji;
@@ -339,7 +363,7 @@
 
 		// Make sure pseudonym is included if it hasn't
 		if (!filters.extractPseudonymFromString(userMention)) {
-			userMention += ' - ' + filters.extractPseudonym(user.userId);
+			userMention += '~' + filters.extractPseudonym(user.userId);
 		}
 
 		let message = value.value?.toString();
@@ -365,7 +389,6 @@
 	}
 
 	function submitMessage() {
-		// console.log('submit', 'sendButton:', messageInput.sendButtonEnabled, 'valid:', isValidMessage(), 'fileAdded:', messageInput.fileAdded);
 		// This makes sure value.value is not undefined
 		if (!messageInput.state.sendButtonEnabled || !isValidMessage()) return;
 

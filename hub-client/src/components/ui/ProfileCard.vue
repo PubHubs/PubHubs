@@ -15,6 +15,13 @@
 			<UserDisplayName :user-id="event.sender" :userDisplayName="user.userDisplayName(event.sender)" :show-display-name="false" :choose-color="false" />
 			<UserDisplayName :user-id="event.sender" :userDisplayName="user.userDisplayName(event.sender)" :show-pseudonym="false" :choose-color="false" />
 		</div>
+		<div v-if="user">
+			<RoomBadge :user="user" :room_id="event.room_id"></RoomBadge>
+			<div class="px-4 py-1">
+				<UserDisplayName :user-id="user" :userDisplayName="user.userDisplayName(user)" :show-display-name="false" :choose-color="false" />
+				<UserDisplayName :user-id="user" :userDisplayName="user.userDisplayName(user)" :show-pseudonym="false" :choose-color="false" />
+			</div>
+		</div>
 	</div>
 </template>
 
@@ -51,6 +58,10 @@
 		room: {
 			type: Room,
 			require: true,
+		},
+		user: {
+			type: String,
+			require: false,
 		},
 	});
 

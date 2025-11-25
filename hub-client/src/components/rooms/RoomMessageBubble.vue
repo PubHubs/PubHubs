@@ -123,8 +123,19 @@
 						<router-link :to="{ name: 'room', params: { id: getRoomId(event.content.body) } }" class="w-full text-accent-primary">{{ checkMessageContent(event.content.body) }} </router-link
 						>{{ afterRoomId(event.content.body) }}</P
 					>
-					<Message v-else-if="event.content.msgtype === MsgType.Text || redactedMessage" :event="event" :deleted="redactedMessage" class="max-w-[90ch]" />
+					<P v-else-if="checkMessageUser(event.content.body)"
+						>{{ beforeUserId(event.content.body) }}
+						<span @click.stop="emit('profileCardToggle', event.event_id)" class="text-accent-primary">{{ checkMessageUser(event.content.body) }}</span>
+						{{ afterUserId(event.content.body) }}
+						<div class="relative">
+							<Popover v-if="showProfileCard" @close="emit('profileCardClose')" :class="['absolute z-50 h-40 w-52', profileInPosition(event) ? 'bottom-4' : '']">
+								<ProfileCard :event="event" :room="room" :room-member="roomMember" :user="getUserId(event.content.body)" />
+							</Popover>
+						</div>
+					</P>
 
+					<Message v-else-if="event.content.msgtype === MsgType.Text || redactedMessage" :event="event" :deleted="redactedMessage" class="max-w-[90ch]" />
+					<P>{{ getUserId(event.content.body) }}</P>
 					<AnnouncementMessage v-if="isAnnouncementMessage && !redactedMessage && !room.isPrivateRoom()" :event="event.content" />
 					<MessageSigned v-if="event.content.msgtype === PubHubsMgType.SignedMessage && !redactedMessage" :message="event.content.signed_message" class="max-w-[90ch]" />
 					<MessageFile v-if="event.content.msgtype === MsgType.File && !redactedMessage" :message="event.content" />
@@ -402,6 +413,27 @@
 			return '#' + room?.name;
 		}
 	}
+	function checkMessageUser(messagebody: string) {
+		if (messagebody && messagebody.includes('@')) {
+			const start = messagebody.indexOf('@'); // Start after '#'
+			const end = messagebody.indexOf(' ', start); // Find the first space after '#'
+			const userId = messagebody.substring(start, end === -1 ? messagebody.length : end);
+			return userId;
+		}
+	}
+	function getUserId(messagebody: string) {
+		if (messagebody && messagebody.includes('@')) {
+			const start = messagebody.indexOf('@') + 1; // Start after '#'
+			const end = messagebody.indexOf('~', start) !== -1 ? messagebody.indexOf('~', start) : messagebody.indexOf(' ', start); // Find the first space after '#'
+			const endend = messagebody.indexOf(' ', end);
+			// console.error(messagebody.substring(start, end === -1 ? messagebody.length : end));
+			if (messagebody.substring(end + 1, endend === -1 ? messagebody.length : endend)) {
+				return messagebody.substring(end + 1, endend === -1 ? messagebody.length : endend);
+			} else {
+				return messagebody.substring(start, end === -1 ? messagebody.length : end);
+			}
+		}
+	}
 	function getRoomId(messagebody: string) {
 		if (messagebody && messagebody.includes('#')) {
 			const start = messagebody.indexOf('#') + 1; // Start after '#'
@@ -413,12 +445,25 @@
 		if (messagebody && messagebody.includes('#')) {
 			const start = messagebody.indexOf('#') + 1;
 			const end = messagebody.indexOf(' ', start);
-			return messagebody.slice(end);
+			return messagebody.slice(end === -1 ? messagebody.length : end);
 		}
 	}
 	function beforeRoomId(messagebody: string) {
 		if (messagebody && messagebody.includes('#')) {
 			const start = messagebody.indexOf('#') + 1;
+			return messagebody.slice(0, start - 1);
+		}
+	}
+	function afterUserId(messagebody: string) {
+		if (messagebody && messagebody.includes('@')) {
+			const start = messagebody.indexOf('@') + 1;
+			const end = messagebody.indexOf(' ', start);
+			return messagebody.slice(end === -1 ? messagebody.length : end);
+		}
+	}
+	function beforeUserId(messagebody: string) {
+		if (messagebody && messagebody.includes('@')) {
+			const start = messagebody.indexOf('@') + 1;
 			return messagebody.slice(0, start - 1);
 		}
 	}
