@@ -55,6 +55,11 @@
 				<TextField placeholder="Type voornaam">Voornaam</TextField>
 				<TextField placeholder="Type achternaam" :validation="{ required: true, max_length: 10 }" help="Hier dus je achternaam">Achternaam</TextField>
 				<TextField placeholder="Geef getal" :validation="{ required: true, isNumber: true, min: 2, max: 20 }" help="Hoe oud ben je?">Leeftijd</TextField>
+
+				<h2 class="my-4">TextArea</h2>
+				<TextArea placeholder="Typ opmerking">Opmerking</TextArea>
+				<TextArea placeholder="Type veel" :validation="{ required: true, min_length: 10 }" help="Echt lange tekst kan hier">Lange tekst</TextArea>
+				<TextArea placeholder="Extra">Nog meer</TextArea>
 			</div>
 		</div>
 
@@ -94,6 +99,7 @@
 	import IconButton from '@hub-client/new-design/components/IconButton.vue';
 	import Checkbox from '@hub-client/new-design/components/forms/Checkbox.vue';
 	import Radio from '@hub-client/new-design/components/forms/Radio.vue';
+	import TextArea from '@hub-client/new-design/components/forms/TextArea.vue';
 	import TextField from '@hub-client/new-design/components/forms/TextField.vue';
 	import Toggle from '@hub-client/new-design/components/forms/Toggle.vue';
 	import { buttonColorVariant, iconColorVariant, iconSizeVariant } from '@hub-client/new-design/types/component-variants';
