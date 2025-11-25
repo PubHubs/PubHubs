@@ -24,7 +24,7 @@
 	// Packages
 	import Icon from '@hub-client/components/elements/Icon.vue';
 
-	import { defaultValidation, useFormInput } from '@hub-client/new-design/composables/useFormInput';
+	import { useFormInput } from '@hub-client/new-design/composables/useFormInput';
 
 	const model = defineModel();
 
@@ -35,7 +35,7 @@
 		},
 		validation: {
 			type: Object,
-			default: defaultValidation,
+			default: {},
 		},
 		help: {
 			type: String,

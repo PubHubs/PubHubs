@@ -10,7 +10,7 @@
 		>
 			<input ref="input" v-model="model" class="text-surface-on-surface-dim justify-start" :placeholder="placeholder" />
 		</div>
-		<div v-if="error" class="text-accent-red text-label-small gap-050 flex items-center"><Icon type="warning"></Icon>{{ $t(error, [errorParam]) }}</div>
+		<div v-if="validateField" class="text-accent-red text-label-small gap-050 flex items-center"><Icon type="warning"></Icon>{{ $t(validateField.translationKey, [validateField.parameters]) }}</div>
 		<div v-if="help" class="text-surface-on-surface-dim text-label-small justify-end">{{ help }}</div>
 	</div>
 </template>
@@ -19,7 +19,9 @@
 	// Packages
 	import Icon from '@hub-client/components/elements/Icon.vue';
 
-	import { defaultValidation, useFormInput } from '@hub-client/new-design/composables/useFormInput';
+	import { useFieldValidation } from '@hub-client/composables/useValidation';
+
+	import { useFormInput } from '@hub-client/new-design/composables/useFormInput';
 
 	const model = defineModel();
 
@@ -30,7 +32,7 @@
 		},
 		validation: {
 			type: Object,
-			default: defaultValidation,
+			default: {},
 		},
 		help: {
 			type: String,
@@ -38,5 +40,6 @@
 		},
 	});
 
-	const { setFocus, hasFocus, error, errorParam, validated } = useFormInput(model, props.validation);
+	const { setFocus, hasFocus } = useFormInput(model);
+	const { validateField, validated } = useFieldValidation(model, props.validation);
 </script>

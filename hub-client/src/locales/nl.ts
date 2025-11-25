@@ -70,16 +70,6 @@ const nl = {
 		back: 'Terug',
 		submit: 'Indienen',
 		save: 'Opslaan',
-		validation: {
-			required: 'Verplicht veld',
-			max_length: 'Te lang, maximaal {0} karakters',
-			min_length: 'Te kort, minimaal {0} karakters',
-			max_items: 'Er mogen maximaal {0} items zijn',
-			min_items: 'Er moeten minimaal {0} items zijn',
-			isNumber: 'Moet een getal zijn',
-			max: 'Te hoog, de maximale waarde is {0}',
-			min: 'Te laag, moet minimaal een waarde van {0} hebben',
-		},
 	},
 	home: {
 		hub_homepage_welcome: 'Welkom bij de {0}-hub!',

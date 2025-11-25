@@ -1,3 +1,11 @@
+enum validationRuleTypes {
+	required = 'required',
+	minValue = 'minValue',
+	maxValue = 'maxValue',
+	minLength = 'minLength',
+	maxLength = 'maxLength',
+};
+
 type ValidatorFn = (value: any, ...args: any[]) => boolean;
 
 type ValidationMessage = {
@@ -14,4 +22,4 @@ type ValidationRule = {
 
 type ValidationSchema = Record<string, ValidationRule[]>;
 
-export { ValidationRule, ValidationSchema, ValidationMessage };
+export { validationRuleTypes, ValidationRule, ValidationSchema, ValidationMessage };
