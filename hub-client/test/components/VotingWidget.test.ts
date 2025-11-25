@@ -1,21 +1,19 @@
-// Packages
-import { config } from '@vue/test-utils';
-import { mount } from '@vue/test-utils';
-import { createPinia, setActivePinia } from 'pinia';
+import { Poll, PollOption, Scheduler, SchedulerOption, VotingOptions, VotingWidgetType } from '@hub-client/models/events/voting/VotingTypes';
 import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest';
-import { createI18n } from 'vue-i18n';
+import { createPinia, setActivePinia } from 'pinia';
 
 // Components
-import VotingWidget from '@hub-client/components/rooms/voting/VotingWidget.vue';
-
-import { en } from '@hub-client/locales/en';
-// Locales
-import { nl } from '@hub-client/locales/nl';
-
+import Icon from '@hub-client/components/elements/Icon.vue';
 // Models
 import { TVotingWidgetMessageEventContent } from '@hub-client/models/events/voting/TVotingMessageEvent';
-import { Poll, PollOption, Scheduler, SchedulerOption, VotingOptions, VotingWidgetType } from '@hub-client/models/events/voting/VotingTypes';
-
+import VotingWidget from '@hub-client/components/rooms/voting/VotingWidget.vue';
+// Packages
+import { config } from '@vue/test-utils';
+import { createI18n } from 'vue-i18n';
+import { en } from '@hub-client/locales/en';
+import { mount } from '@vue/test-utils';
+// Locales
+import { nl } from '@hub-client/locales/nl';
 // Stores
 import { usePubhubsStore } from '@hub-client/stores/pubhubs';
 import { useUser } from '@hub-client/stores/user';
