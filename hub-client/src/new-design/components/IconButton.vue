@@ -1,5 +1,5 @@
 <template>
-	<button @click="click($event)" class="flex h-6 w-6 items-center justify-center">
+	<button @click="click($event)" class="flex h-300 w-300 items-center justify-center" :class="disabled ? 'cursor-default' : 'cursor-pointer'">
 		<Icon :class="iconButtonColors[computedVariant]" :type="type" :size="size" :weight="weight" :mirrored="mirrored" :testid="testid"></Icon>
 	</button>
 </template>

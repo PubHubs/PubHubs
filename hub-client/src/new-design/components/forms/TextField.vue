@@ -1,13 +1,13 @@
 <template>
-	<div class="mb-4 flex flex-col items-start justify-start gap-1.5">
-		<div class="text-label-small inline-flex items-start justify-start gap-1">
+	<div class="gap-075 mb-200 flex flex-col items-start justify-start">
+		<div class="text-label-small gap-050 inline-flex items-start justify-start">
 			<div class="text-surface-on-surface justify-end"><slot></slot></div>
 			<div v-if="validation.required" class="text-accent-red justify-end">*</div>
 		</div>
-		<div class="bg-surface-base outline-surface-on-surface-dim min-h-11 px-3.5 py-2 outline-[0.50px] outline-offset-[-0.50px]" :class="validated ? 'outline-surface-on-surface-dim' : 'outline-accent-red'">
+		<div class="bg-surface-base outline-surface-on-surface-dim outline-offset-thin min-h-1000 px-175 py-100 outline" :class="validated ? 'outline-surface-on-surface-dim' : 'outline-accent-red'">
 			<input ref="input" v-model="model" class="text-surface-on-surface-dim justify-start" :placeholder="placeholder" />
 		</div>
-		<div v-if="error" class="text-accent-red text-label-small flex items-center gap-1"><Icon type="warning"></Icon>{{ $t(error, [errorParam]) }}</div>
+		<div v-if="error" class="text-accent-red text-label-small gap-050 flex items-center"><Icon type="warning"></Icon>{{ $t(error, [errorParam]) }}</div>
 		<div v-if="help" class="text-surface-on-surface-dim text-label-small justify-end">{{ help }}</div>
 	</div>
 </template>

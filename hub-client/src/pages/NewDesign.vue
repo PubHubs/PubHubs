@@ -1,11 +1,11 @@
 <template>
-	<div class="p-4">
+	<div class="p-200">
 		<h1>New Design</h1>
 
-		<div class="flex gap-4">
-			<div class="rounded-lg border-2 border-dotted border-purple-500 p-4">
-				<h2 class="mb-4">Button</h2>
-				<div class="flex flex-col gap-2">
+		<div class="flex gap-200">
+			<div class="border-spacing-200 rounded-lg border border-dotted border-purple-500 p-200">
+				<h2 class="mb-200">Button</h2>
+				<div class="gap-050 flex flex-col">
 					<Button icon-left="check-circle" @click="clicked()">Primary</Button>
 					<Button icon-left="check-circle" :variant="buttonColorVariant.Secundary" @click="clicked()">Secundary</Button>
 					<Button icon-right="smiley" :variant="buttonColorVariant.Tertiary" @click="clicked()">Tertiary</Button>
@@ -13,14 +13,14 @@
 					<Button icon-left="circle" icon-right="circle" :variant="buttonColorVariant.Disabled" @click="clicked()">Disabled</Button>
 				</div>
 
-				<h2 class="my-4">ButtonGroup</h2>
+				<h2 class="my-200">ButtonGroup</h2>
 				<ButtonGroup>
 					<Button :variant="buttonColorVariant.Secundary">Cancel</Button>
 					<Button>Submit</Button>
 				</ButtonGroup>
 
-				<h2 class="my-4">IconButton</h2>
-				<div class="flex flex-col gap-2">
+				<h2 class="my-200">IconButton</h2>
+				<div class="gap-050 flex flex-col">
 					<IconButton type="check-circle" :variant="iconColorVariant.Primary" @click="clicked()" title="Handig deze title"></IconButton>
 					<IconButton type="check-circle" :variant="iconColorVariant.Primary" :size="iconSizeVariant.Small" @click="clicked()" title="Handig deze title"></IconButton>
 					<IconButton type="smiley" :variant="iconColorVariant.Secundary" @click="clicked()"></IconButton>
@@ -30,44 +30,44 @@
 				</div>
 			</div>
 
-			<div class="rounded-lg border-2 border-dotted border-purple-500 p-4">
-				<h2 class="mb-4">Radio</h2>
+			<div class="border-spacing-200 rounded-lg border border-dotted border-purple-500 p-200">
+				<h2 class="mb-200">Radio</h2>
 
 				<Radio v-model="formValues.radio" value="first">Eerste</Radio>
 				<Radio v-model="formValues.radio" value="second">Tweede</Radio>
 				<Radio v-model="formValues.radio" value="third">Derde</Radio>
 
-				<h2 class="my-4">Checkbox</h2>
+				<h2 class="my-200">Checkbox</h2>
 				<Checkbox>Checkbox 0</Checkbox>
 				<Checkbox :model-value="true">Checkbox 1</Checkbox>
 				<Checkbox :disabled="true">Disabled</Checkbox>
 				<Checkbox :disabled="true" :model-value="true">Disabled</Checkbox>
 
-				<h2 class="my-4">Toggle</h2>
+				<h2 class="my-200">Toggle</h2>
 				<Toggle>Toggle 0</Toggle>
 				<Toggle :model-value="true">Toggle 1</Toggle>
 				<Toggle :disabled="true">Disabled</Toggle>
 				<Toggle :disabled="true" :model-value="true">Disabled</Toggle>
 			</div>
 
-			<div class="rounded-lg border-2 border-dotted border-purple-500 p-4">
-				<h2 class="mb-4">Inputs</h2>
+			<div class="border-spacing-200 rounded-lg border border-dotted border-purple-500 p-200">
+				<h2 class="mb-200">Inputs</h2>
 				<TextField placeholder="Type voornaam">Voornaam</TextField>
 				<TextField placeholder="Type achternaam" :validation="{ required: true, max_length: 10 }" help="Hier dus je achternaam">Achternaam</TextField>
 				<TextField placeholder="Geef getal" :validation="{ required: true, isNumber: true, min: 2, max: 20 }" help="Hoe oud ben je?">Leeftijd</TextField>
 
-				<h2 class="my-4">TextArea</h2>
+				<h2 class="my-200">TextArea</h2>
 				<TextArea placeholder="Typ opmerking">Opmerking</TextArea>
 				<TextArea placeholder="Type veel" :validation="{ required: true, min_length: 10 }" help="Echt lange tekst kan hier">Lange tekst</TextArea>
 				<TextArea placeholder="Extra">Nog meer</TextArea>
 			</div>
 		</div>
 
-		<div class="my-4 rounded-lg border-2 border-dotted border-purple-500 p-4">
-			<h2 class="mb-4">Form Test</h2>
+		<div class="my-200 border-spacing-200 rounded-lg border border-dotted border-purple-500 p-200">
+			<h2 class="mb-200">Form Test</h2>
 
 			<form>
-				<div class="mb-4">
+				<div class="mb-200">
 					<Radio v-model="formValues.radio" value="first">Eerste</Radio>
 					<Radio v-model="formValues.radio" value="second">Tweede</Radio>
 					<Radio v-model="formValues.radio" value="third">Derde</Radio>
@@ -85,7 +85,7 @@
 				</div>
 			</form>
 
-			<h2 class="my-4">Result values</h2>
+			<h2 class="my-200">Result values</h2>
 			<Json :json="formValues"></Json>
 		</div>
 	</div>
