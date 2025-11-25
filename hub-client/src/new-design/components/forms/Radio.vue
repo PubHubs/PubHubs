@@ -9,7 +9,7 @@
 			<div class="bg-surface-base border-surface-on-surface-dim border-thin h-200 w-200 rounded-[999px]"></div>
 		</div>
 
-		<input ref="input" type="radio" :id="id" class="hidden" :value="model" />
+		<input ref="input" type="radio" :id="id" class="sr-only" :value="model" />
 
 		<div class="pt-thin inline-flex flex-col items-start justify-center">
 			<label :for="id" class="text-surface-on-surface justify-start" @click="select(value)"><slot></slot></label>

@@ -18,7 +18,7 @@
 			</div>
 		</div>
 
-		<input ref="input" type="checkbox" class="hidden" :disabled="props.disabled" :value="model" />
+		<input ref="input" type="checkbox" class="sr-only" :disabled="props.disabled" :value="model" />
 
 		<div class="pt-thin">
 			<label class="justify-start" :class="disabled ? 'text-on-surface-disabled' : 'text-surface-on-surface cursor-pointer'"><slot></slot></label>
