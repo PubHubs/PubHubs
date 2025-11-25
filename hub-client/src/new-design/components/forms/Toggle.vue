@@ -1,10 +1,18 @@
 <template>
-	<div class="flex items-center justify-start gap-200" :class="disabled ? '' : 'cursor-pointer'" @click="toggle(disabled)">
-		<div v-if="!model" class="bg-surface-base outline-surface-on-surface-dim px-050 py-050 outline-offset-thin flex items-center justify-start rounded-[999px] outline" :class="disabled ? 'opacity-50' : ''">
+	<div class="flex items-center justify-start gap-200" :class="disabled ? '' : 'cursor-pointer'" @click="toggle(disabled)" @focusin="setFocus(true)" @focusout="setFocus(false)">
+		<div
+			v-if="!model"
+			class="bg-surface-base outline-surface-on-surface-dim px-050 py-050 outline-offset-thin flex items-center justify-start rounded-[999px] outline"
+			:class="{ 'ring-button-blue ring-3': hasFocus, 'opacity-50': disabled }"
+		>
 			<div class="bg-on-surface-dim h-150 w-150 rounded-full"></div>
 			<div class="h-150 w-150 rounded-full"></div>
 		</div>
-		<div v-else class="bg-button-on-blue outline-accent-blue px-050 py-050 outline-050 outline-offset-thin inline-flex items-center justify-start rounded-[999px] outline" :class="disabled ? 'opacity-50' : ''">
+		<div
+			v-else
+			class="bg-button-on-blue outline-accent-blue px-050 py-050 outline-050 outline-offset-thin inline-flex items-center justify-start rounded-[999px] outline"
+			:class="{ 'ring-button-blue ring-3': hasFocus, 'opacity-50': disabled }"
+		>
 			<div class="h-150 w-150 rounded-full"></div>
 			<div class="bg-accent-blue h-150 w-150 rounded-full"></div>
 		</div>
@@ -22,7 +30,7 @@
 
 	const model = defineModel();
 
-	const { toggle } = useFormInput(model);
+	const { setFocus, hasFocus, toggle } = useFormInput(model);
 
 	const props = defineProps({
 		disabled: {

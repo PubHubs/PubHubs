@@ -52,6 +52,11 @@ export function useFormInput(model: any, validation: any | undefined = undefined
 	const changed = ref(false);
 	const error = ref('');
 	const errorParam = ref(0);
+	const hasFocus = ref(false);
+
+	const setFocus = (state:boolean) => {
+		hasFocus.value = state;
+	}
 
 	// For radio inputs
 	const id = computed(() => {
@@ -93,5 +98,5 @@ export function useFormInput(model: any, validation: any | undefined = undefined
 		return validated;
 	});
 
-	return { id, select, toggle, changed, validated, error, errorParam };
+	return { id, setFocus, hasFocus, select, toggle, changed, validated, error, errorParam };
 }

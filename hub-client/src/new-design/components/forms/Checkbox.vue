@@ -1,8 +1,12 @@
 <template>
-	<div class="flex items-center justify-start gap-200" :class="disabled ? '' : 'cursor-pointer'" @click="toggle(disabled)">
+	<div class="flex items-center justify-start gap-200" :class="disabled ? '' : 'cursor-pointer'" @click="toggle(disabled)" @focusin="setFocus(true)" @focusout="setFocus(false)">
 		<div class="inline-flex h-300 w-300 flex-col items-center justify-center gap-100">
-			<div v-if="!model" class="bg-surface-base border-on-surface-dim border-thin h-200 w-200 rounded" :class="disabled ? 'opacity-50' : ''"></div>
-			<div v-else class="bg-button-on-blue outline-accent-on-blue p-thin outline-offset-thin flex h-200 w-200 flex-col items-center justify-center rounded outline" :class="disabled ? 'opacity-50' : ''">
+			<div v-if="!model" class="bg-surface-base border-on-surface-dim border-thin h-200 w-200 rounded" :class="{ 'ring-button-blue ring-3': hasFocus, 'opacity-50': disabled }"></div>
+			<div
+				v-else
+				class="bg-button-on-blue outline-accent-on-blue p-thin outline-offset-thin flex h-200 w-200 flex-col items-center justify-center rounded outline"
+				:class="{ 'ring-button-blue ring-3': hasFocus, 'opacity-50': disabled }"
+			>
 				<div class="relative h-150 w-150 overflow-hidden rounded">
 					<div class="outline-accent-blue h-075 top-025 left-025 absolute w-125">
 						<svg width="11" height="8" viewBox="0 0 11 8" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -31,7 +35,7 @@
 
 	const model = defineModel();
 
-	const { toggle } = useFormInput(model);
+	const { setFocus, hasFocus, toggle } = useFormInput(model);
 
 	const props = defineProps({
 		disabled: {
