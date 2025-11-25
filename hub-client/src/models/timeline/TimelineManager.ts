@@ -1,14 +1,19 @@
 // Packages
 import { Direction, EventTimeline, EventType, Filter, MatrixClient, MatrixEvent, MsgType } from 'matrix-js-sdk';
-import { isMappedTypeNode } from 'typescript';
+
+
 
 // Stores
 import { useMatrix } from '@hub-client/composables/matrix.composable';
+
+
 
 // Logic
 import { PubHubsMgType } from '@hub-client/logic/core/events';
 import { LOGGER } from '@hub-client/logic/logging/Logger';
 import { SMI } from '@hub-client/logic/logging/StatusMessage';
+
+
 
 // Models
 import { MatrixEventType, Redaction, RelationType, SystemDefaults } from '@hub-client/models/constants';
@@ -16,9 +21,15 @@ import { TBaseEvent } from '@hub-client/models/events/TBaseEvent';
 import { TimelineEvent } from '@hub-client/models/events/TimelineEvent';
 import { TCurrentEvent } from '@hub-client/models/events/types';
 
+
+
 import { MessageType } from '@hub-client/stores/messagebox';
 // Stores
 import { useUser } from '@hub-client/stores/user';
+
+
+
+
 
 // Types
 type TPaginationState = {
@@ -247,6 +258,7 @@ class TimelineManager {
 		LOGGER.log(SMI.ROOM_TIMELINEMANAGER, `Loading events from sliding sync`);
 		if (!matrixEvents || matrixEvents.length === 0) return undefined;
 
+		// Related Events
 		this.relatedEvents = matrixEvents.filter((event) => event.getContent()[RelationType.RelatesTo]).map((event) => new TimelineEvent(event, this.roomId));
 
 		// Filter out redacted events: not for timeline and not read in the related events because they are used only temporary (until the redacted_because field is set in the db)
@@ -267,8 +279,9 @@ class TimelineManager {
 		// TODO remove redacted events when necessary: so whenever a pagination is taking place
 
 		// Filters out the visible events, so from now on we are working on the visible timeline
-
 		matrixEvents = this.prepareEvents(matrixEvents);
+		if (matrixEvents.length === 0) return undefined;
+
 		let eventList = matrixEvents.map((event) => new TimelineEvent(event, this.roomId));
 
 		// if the lastMessageId is undefined
@@ -282,19 +295,8 @@ class TimelineManager {
 		) {
 			this.paginationState.lastMessageId = eventList[eventList.length - 1]?.matrixEvent.event.event_id;
 			if (this.timelineEvents.length === 0) {
-				// if the current timeline is empty AND the eventlist is also empty (only when room is new or none of the initial synced events were messages)
-				// we need to initialize with the newest message in the current livetimeline, else we initialize with the eventlist
-				if (eventList.length === 0) {
-					// TODO Find better way of finding newest message without making these calls
-					const newestMessage = await this.getInitialNewestMessage();
-					if (newestMessage && newestMessage.event.event_id) {
-						await this.loadToEvent({ eventId: newestMessage.event.event_id });
-						return newestMessage.event.event_id;
-					}
-				} else {
-					await this.loadToEvent({ eventId: eventList[eventList.length - 1].matrixEvent.event.event_id! });
-					return eventList[eventList.length - 1]?.matrixEvent.event.event_id;
-				}
+				await this.loadToEvent({ eventId: eventList[eventList.length - 1].matrixEvent.event.event_id! });
+				return eventList[eventList.length - 1]?.matrixEvent.event.event_id;
 			} else {
 				return this.addEventList(eventList);
 			}
@@ -327,8 +329,6 @@ class TimelineManager {
 		if (!room) {
 			return null;
 		}
-		// make sure the timeline is refreshed, so no gaps occur when eventId is in the history
-		room.refreshLiveTimeline();
 
 		const filter = new Filter(undefined, this.FILTER_ID);
 		filter.setDefinition(this.timelineSetFilter);

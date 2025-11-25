@@ -199,6 +199,9 @@
 	}
 
 	async function update() {
+
+		await rooms.waitForInitialRoomsLoaded();
+		
 		hubSettings.hideBar();
 		rooms.changeRoom(props.id);
 		const userIsMember = await pubhubs.isUserRoomMember(user.userId!, props.id);

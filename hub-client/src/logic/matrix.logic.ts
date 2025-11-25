@@ -2,7 +2,7 @@
 import { EventType } from 'matrix-js-sdk';
 import { type MSC3575List, type MSC3575RoomSubscription, MSC3575_STATE_KEY_LAZY, MSC3575_STATE_KEY_ME, MSC3575_WILDCARD } from 'matrix-js-sdk/lib/sliding-sync.js';
 
-import { MatrixEventType, SlidingSyncOptions, SystemDefaults } from '@hub-client/models/constants';
+import { SlidingSyncOptions, SystemDefaults } from '@hub-client/models/constants';
 
 // #region Subscriptions
 
@@ -42,6 +42,7 @@ const MainRoomList: MSC3575List = {
 	],
 	timeline_limit: SystemDefaults.initialRoomTimelineLimit, // despite subscribing to rooms we also initially need the timeline here
 };
+
 // Put Roomlists in map for easy handling
 const RoomLists = new Map<string, MSC3575List>([
 	[SlidingSyncOptions.initialRoomList, InitialRoomList],
@@ -51,9 +52,9 @@ const RoomLists = new Map<string, MSC3575List>([
 // Per-room timeline subscription (used for custom timeline_xxx subscriptions)
 const MainRoomSubscription: MSC3575RoomSubscription = {
 	required_state: [
-		['m.room.name', MSC3575_WILDCARD],
-		['m.room.member', MSC3575_STATE_KEY_LAZY],
-		['m.room.avatar', MSC3575_WILDCARD],
+		[EventType.RoomName, MSC3575_WILDCARD],
+		[EventType.RoomMember, MSC3575_STATE_KEY_LAZY],
+		[EventType.RoomAvatar, MSC3575_WILDCARD],
 	],
 	timeline_limit: SystemDefaults.SyncTimelineLimit, // limit specific per room
 };

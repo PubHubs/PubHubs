@@ -215,6 +215,12 @@ const useRooms = defineStore('rooms', {
 	},
 
 	actions: {
+		async waitForInitialRoomsLoaded(): Promise<void> {
+			while (!this.initialRoomsLoaded) {
+				await new Promise((resolve) => setTimeout(resolve, 50)); // poll every 50 ms
+			}
+		},
+
 		setRoomsLoaded(value: boolean) {
 			this.initialRoomsLoaded = value;
 		},

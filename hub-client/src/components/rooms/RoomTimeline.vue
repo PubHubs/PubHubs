@@ -322,6 +322,9 @@
 		if (typeof newTimelineLength !== 'number' || newTimelineLength < 0 || typeof oldTimelineLength !== 'number' || oldTimelineLength < 0) return;
 
 		if (!elRoomTimeline.value) return;
+
+		await rooms.waitForInitialRoomsLoaded(); // need to await loading of rooms, otherwise there is no currentRoom
+
 		if (!rooms.currentRoom) return;
 		if (!newestEventIsLoaded.value) return;
 

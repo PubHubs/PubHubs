@@ -3,13 +3,19 @@ import { Direction, EventTimeline, EventTimelineSet, EventType, IStateEvent, Mat
 import { CachedReceipt, WrappedReceipt } from 'matrix-js-sdk/lib/@types/read_receipts';
 import { MSC3575RoomData as SlidingSyncRoomData } from 'matrix-js-sdk/lib/sliding-sync';
 
+
+
 // Composables
 import { useMatrixFiles } from '@hub-client/composables/useMatrixFiles';
 import { useRoomLibrary } from '@hub-client/composables/useRoomLibrary';
 
+
+
 // Logic
 import { LOGGER } from '@hub-client/logic/logging/Logger';
 import { SMI } from '@hub-client/logic/logging/StatusMessage';
+
+
 
 import { Redaction, RelationType, SystemDefaults } from '@hub-client/models/constants';
 // Models
@@ -22,8 +28,14 @@ import { TRoomMember } from '@hub-client/models/rooms/TRoomMember';
 import TRoomThread from '@hub-client/models/thread/RoomThread';
 import { TimelineManager } from '@hub-client/models/timeline/TimelineManager';
 
+
+
 // Stores
 import { usePubhubsStore } from '@hub-client/stores/pubhubs';
+
+
+
+
 
 // Types
 enum RoomType {
