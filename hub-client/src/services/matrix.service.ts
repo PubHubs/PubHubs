@@ -2,29 +2,19 @@
 import { EventType, IStateEvent, type MatrixClient } from 'matrix-js-sdk';
 import { MSC3575List, MSC3575RoomData, MSC3575SlidingSyncResponse, SlidingSync, SlidingSyncEvent, SlidingSyncState } from 'matrix-js-sdk/lib/sliding-sync';
 
-
-
 // Logic
 import { LOGGER } from '@hub-client/logic/logging/Logger';
 import { SMI } from '@hub-client/logic/logging/StatusMessage';
 import { MainRoomSubscription, RoomLists, makeMainRoomSubscriptionName } from '@hub-client/logic/matrix.logic.js';
-
-
 
 // Models
 import { MatrixType, SlidingSyncOptions, SystemDefaults } from '@hub-client/models/constants';
 import { RoomType } from '@hub-client/models/rooms/TBaseRoom';
 import { DirectRooms } from '@hub-client/models/rooms/TBaseRoom';
 
-
-
 // Stores
 import { useRooms } from '@hub-client/stores/rooms';
 import { useUser } from '@hub-client/stores/user';
-
-
-
-
 
 /**
  * Service for the Matrix client

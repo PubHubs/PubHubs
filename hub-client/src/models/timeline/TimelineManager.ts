@@ -1,19 +1,13 @@
 // Packages
 import { Direction, EventTimeline, EventType, Filter, MatrixClient, MatrixEvent, MsgType } from 'matrix-js-sdk';
 
-
-
 // Stores
 import { useMatrix } from '@hub-client/composables/matrix.composable';
-
-
 
 // Logic
 import { PubHubsMgType } from '@hub-client/logic/core/events';
 import { LOGGER } from '@hub-client/logic/logging/Logger';
 import { SMI } from '@hub-client/logic/logging/StatusMessage';
-
-
 
 // Models
 import { MatrixEventType, Redaction, RelationType, SystemDefaults } from '@hub-client/models/constants';
@@ -21,15 +15,9 @@ import { TBaseEvent } from '@hub-client/models/events/TBaseEvent';
 import { TimelineEvent } from '@hub-client/models/events/TimelineEvent';
 import { TCurrentEvent } from '@hub-client/models/events/types';
 
-
-
 import { MessageType } from '@hub-client/stores/messagebox';
 // Stores
 import { useUser } from '@hub-client/stores/user';
-
-
-
-
 
 // Types
 type TPaginationState = {
