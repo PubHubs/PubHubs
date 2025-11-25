@@ -29,11 +29,11 @@ export enum buttonColorVariant {
 }
 
 export const buttonBgColors: { [key: string]: string } = {
-	[buttonColorVariant.Primary]: 'bg-button-blue hover:opacity-75',
-	[buttonColorVariant.Secundary]: 'bg-surface-base hover:opacity-75',
-	[buttonColorVariant.Tertiary]: 'rounded outline outline-1 outline-offset-[-1px] outline-surface-on-surface-dim hover:opacity-75',
-	[buttonColorVariant.Error]: 'bg-button-red hover:opacity-75',
-	[buttonColorVariant.Disabled]: 'rounded outline outline-1 outline-offset-[-1px] outline-surface-on-surface-dim opacity-75 bg-surface-base-50/50 cursor-default',
+	[buttonColorVariant.Primary]: 'bg-button-blue ring-accent-blue hover:opacity-75',
+	[buttonColorVariant.Secundary]: 'bg-surface-base ring-button-blue hover:opacity-75',
+	[buttonColorVariant.Tertiary]: 'rounded ring-button-blue outline outline-1 outline-offset-[-1px] outline-surface-on-surface-dim hover:opacity-75',
+	[buttonColorVariant.Error]: 'bg-button-red ring-button-blue hover:opacity-75',
+	[buttonColorVariant.Disabled]: 'rounded ring-button-blue outline outline-1 outline-offset-[-1px] outline-surface-on-surface-dim opacity-75 bg-surface-base-50/50 cursor-default',
 };
 
 export const buttonTextColors: { [key: string]: string } = {

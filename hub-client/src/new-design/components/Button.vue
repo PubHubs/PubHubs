@@ -1,5 +1,13 @@
 <template>
-	<div :class="buttonBgColors[computedVariant]" class="gap-050 flex min-h-300 min-w-400 cursor-pointer items-center justify-center rounded px-150 py-100" role="button" @click="click($event)" :disabled="disabled">
+	<button
+		:class="[buttonBgColors[computedVariant], { 'ring-3': hasFocus }]"
+		class="gap-050 flex min-h-300 min-w-400 cursor-pointer items-center justify-center rounded px-150 py-100"
+		role="button"
+		@click="click($event)"
+		:disabled="disabled"
+		@focusin="if (!disabled) setFocus(true);"
+		@focusout="setFocus(false)"
+	>
 		<div v-if="iconLeft" class="h-200 w-200">
 			<Icon :type="iconLeft" :size="iconSizeVariant.Small" :class="buttonTextColors[computedVariant]"></Icon>
 		</div>
@@ -9,14 +17,17 @@
 		<div v-if="iconRight" class="h-200 w-200">
 			<Icon :type="iconRight" :size="iconSizeVariant.Small" :class="buttonTextColors[computedVariant]"></Icon>
 		</div>
-	</div>
+	</button>
 </template>
 
 <script setup lang="ts">
 	import { computed } from 'vue';
 
 	import Icon from '@hub-client/new-design/components/Icon.vue';
+	import { useFormInput } from '@hub-client/new-design/composables/useFormInput';
 	import { buttonBgColors, buttonColorVariant, buttonTextColors, iconSizeVariant } from '@hub-client/new-design/types/component-variants';
+
+	const { setFocus, hasFocus } = useFormInput();
 
 	const props = defineProps({
 		variant: {

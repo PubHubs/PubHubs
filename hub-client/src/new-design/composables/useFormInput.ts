@@ -48,7 +48,7 @@ const validateFunctions: { [key: string]: Function } = {
 	},
 };
 
-export function useFormInput(model: any, validation: any | undefined = undefined) {
+export function useFormInput(model: any |undefined = undefined, validation: any | undefined = undefined) {
 	const changed = ref(false);
 	const error = ref('');
 	const errorParam = ref(0);

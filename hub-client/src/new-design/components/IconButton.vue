@@ -1,5 +1,13 @@
 <template>
-	<button @click="click($event)" class="flex h-300 w-300 items-center justify-center" :class="disabled ? 'cursor-default' : 'cursor-pointer'">
+	<button
+		@click="click($event)"
+		class="flex h-300 w-300 items-center justify-center rounded"
+		:class="{ 'bg-accent-blue': hasFocus, 'cursor-pointer': !disabled }"
+		role="button"
+		:disabled="disabled"
+		@focusin="if (!disabled) setFocus(true);"
+		@focusout="setFocus(false)"
+	>
 		<Icon :class="iconButtonColors[computedVariant]" :type="type" :size="size" :weight="weight" :mirrored="mirrored" :testid="testid"></Icon>
 	</button>
 </template>
@@ -11,7 +19,10 @@
 	import { iconTypes } from '@hub-client/assets/icons';
 
 	import Icon from '@hub-client/new-design/components/Icon.vue';
+	import { useFormInput } from '@hub-client/new-design/composables/useFormInput';
 	import { iconButtonColors, iconColorVariant, iconSizeVariant } from '@hub-client/new-design/types/component-variants';
+
+	const { setFocus, hasFocus } = useFormInput();
 
 	const props = defineProps({
 		type: {

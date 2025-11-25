@@ -5,7 +5,7 @@
 			<div v-if="validation.required" class="text-accent-red justify-end">*</div>
 		</div>
 		<div
-			class="bg-surface-base outline-surface-on-surface-dim outline-offset-thin min-h-1000 rounded px-175 py-100 outline"
+			class="bg-surface-base outline-surface-on-surface-dim outline-offset-thin rounded px-175 py-100 outline"
 			:class="{ 'ring-button-blue ring-3': hasFocus, 'outline-surface-on-surface-dim': validated, 'outline-accent-error': !validated }"
 		>
 			<input ref="input" v-model="model" class="text-surface-on-surface-dim justify-start" :placeholder="placeholder" />

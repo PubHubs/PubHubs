@@ -10,7 +10,7 @@
 					<Button icon-left="check-circle" :variant="buttonColorVariant.Secundary" @click="clicked()">Secundary</Button>
 					<Button icon-right="smiley" :variant="buttonColorVariant.Tertiary" @click="clicked()">Tertiary</Button>
 					<Button icon-left="warning" icon-right="warning" :variant="buttonColorVariant.Error" @click="clicked()">Error</Button>
-					<Button icon-left="circle" icon-right="circle" :variant="buttonColorVariant.Disabled" @click="clicked()">Disabled</Button>
+					<Button icon-left="circle" icon-right="circle" :disabled="true" @click="clicked()">Disabled</Button>
 				</div>
 
 				<h2 class="my-200">ButtonGroup</h2>
