@@ -92,7 +92,7 @@
 			memberIds.value = [...new Set(realMembers.map((x) => x.sender))]; // Set only stores unique values
 		} else {
 			stewardIds.value = filterMembersByPowerLevel(50, 99);
-			memberIds.value = filterMembersByPowerLevel(0, 49);
+			memberIds.value = [...new Set([...filterMembersByPowerLevel(0, 49), ...filterMembersByPowerLevel(100, 100)])]; // only steards matter as distinction, so the admin is treated as common member
 		}
 	}
 

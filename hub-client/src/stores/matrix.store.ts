@@ -67,20 +67,6 @@ const useMatrixStore = defineStore('matrix', {
 			return matrixService.addRoomSubscription(roomId);
 		},
 
-		/**
-		 * Use a subscription to sync a room using the Sliding Sync.
-		 */
-		// async syncRoom(roomId: string) {
-		// 	const matrixService = useMatrixService();
-
-		// 	return matrixService.syncRoom(roomId);
-		// },
-		async syncRooms() {
-			const matrixService = useMatrixService();
-
-			return matrixService.syncRooms();
-		},
-
 		addSubscribedRoom(roomId: string, timelineKey: string) {
 			this.subscribedRooms[roomId] = timelineKey;
 		},
@@ -88,18 +74,6 @@ const useMatrixStore = defineStore('matrix', {
 		removeSubscribedRoom(roomId: string) {
 			delete this.subscribedRooms[roomId];
 		},
-
-		// getTimelineKey(roomId: string): string | undefined {
-		// 	return this.subscribedRooms[roomId];
-		// },
-
-		// getSubscribedRoomIds(): string[] {
-		// 	return Object.keys(this.subscribedRooms);
-		// },
-
-		// clearSubscribedRooms() {
-		// 	this.subscribedRooms = {};
-		// },
 
 		// #endregion
 	},
