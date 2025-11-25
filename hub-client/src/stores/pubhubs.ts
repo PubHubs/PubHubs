@@ -790,7 +790,7 @@ const usePubhubsStore = defineStore('pubhubs', {
 		async addReactEvent(roomId: string, eventId: string, emoji: string) {
 			const content = {
 				[RelationType.RelatesTo]: {
-					rel_type: 'm.annotation',
+					rel_type: RelationType.Annotation,
 					event_id: eventId,
 					key: emoji,
 				},

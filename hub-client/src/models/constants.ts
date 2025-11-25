@@ -49,6 +49,7 @@ enum RelationType {
 	InReplyTo = 'm.in_reply_to',
 	Thread = 'm.thread',
 	EventId = 'event_id',
+	Annotation = 'm.annotation',
 }
 
 // Redaction strings that are not included in Matrix enums
@@ -111,4 +112,28 @@ const fileTypes = [
 
 const allTypes = [...imageTypes, ...mediaTypes, ...fileTypes];
 
-export { SystemDefaults, SlidingSyncOptions, MatrixEventType, MatrixType, RelationType, Redaction, RoomEmit, ScrollPosition, ScrollSelect, ScrollBehavior, OnboardingType, imageTypes, mediaTypes, fileTypes, allTypes, imageTypesExt };
+// interfaces
+interface RelatedEventsOptions {
+	eventType?: string;
+	contentRelType?: string;
+}
+
+export {
+	SystemDefaults,
+	SlidingSyncOptions,
+	MatrixEventType,
+	MatrixType,
+	RelationType,
+	Redaction,
+	RoomEmit,
+	ScrollPosition,
+	ScrollSelect,
+	ScrollBehavior,
+	OnboardingType,
+	imageTypes,
+	mediaTypes,
+	fileTypes,
+	allTypes,
+	imageTypesExt,
+	RelatedEventsOptions,
+};

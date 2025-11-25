@@ -10,7 +10,7 @@ import { LOGGER } from '@hub-client/logic/logging/Logger';
 import { SMI } from '@hub-client/logic/logging/StatusMessage';
 
 // Models
-import { MatrixEventType, Redaction, RelationType, SystemDefaults } from '@hub-client/models/constants';
+import { MatrixEventType, Redaction, RelatedEventsOptions, RelationType, SystemDefaults } from '@hub-client/models/constants';
 import { TBaseEvent } from '@hub-client/models/events/TBaseEvent';
 import { TimelineEvent } from '@hub-client/models/events/TimelineEvent';
 import { TCurrentEvent } from '@hub-client/models/events/types';
@@ -150,18 +150,17 @@ class TimelineManager {
 	 */
 	private async getRelatedEvents(events: TimelineEvent[]): Promise<TimelineEvent[]> {
 		let allRelatedEvents: MatrixEvent[] = [];
-		// let nextBatch: string | undefined = undefined;
-		// for (const e of events) {
-		// 	do {
-		// 		const result = await this.client.relations(this.roomId, e.matrixEvent.event.event_id!, null, null, { from: nextBatch });
-		// 		allRelatedEvents.push(...result.events);
-		// 		nextBatch = result.nextBatch ?? undefined;
-		// 	} while (nextBatch);
-		// }
+		let nextBatch: string | undefined = undefined;
+		for (const e of events) {
+			do {
+				const result = await this.client.relations(this.roomId, e.matrixEvent.event.event_id!, null, null, { from: nextBatch });
+				allRelatedEvents.push(...result.events);
+				nextBatch = result.nextBatch ?? undefined;
+			} while (nextBatch);
+		}
 
-		// // filter out all relations that have no content['m.relates_to'] field (like the matrix SDK does) or that have thread-content (threads are handled in API)
-		// allRelatedEvents = allRelatedEvents.filter((x) => typeof x.event?.content?.[RelationType.RelatesTo] === 'object' && x.event.content[RelationType.RelatesTo][RelationType.RelType] !== RelationType.Thread);
-
+		// filter out all relations that have no content['m.relates_to'] field (like the matrix SDK does) or that have thread-content (threads are handled in API)
+		allRelatedEvents = allRelatedEvents.filter((x) => typeof x.event?.content?.[RelationType.RelatesTo] === 'object' && x.event.content[RelationType.RelatesTo][RelationType.RelType] !== RelationType.Thread);
 		return allRelatedEvents.map((x) => new TimelineEvent(x, this.roomId));
 	}
 
@@ -210,7 +209,7 @@ class TimelineManager {
 	 * @returns True if it is deleted
 	 */
 	public IsDeletedEvent(eventId: string): boolean {
-		const relatedEvent = this.redactedEvents.find(
+		const redactedEvent = this.redactedEvents.find(
 			(x) =>
 				x.matrixEvent.event.event_id === eventId &&
 				x.matrixEvent.event.type === MatrixEventType.RoomRedaction &&
@@ -218,7 +217,7 @@ class TimelineManager {
 					x.matrixEvent.event.content?.[Redaction.Reason] === Redaction.DeletedFromThread ||
 					x.matrixEvent.event.content?.[Redaction.Reason] === Redaction.DeletedFromLibrary),
 		);
-		return !!relatedEvent;
+		return !!redactedEvent;
 	}
 
 	/**
@@ -247,7 +246,8 @@ class TimelineManager {
 		if (!matrixEvents || matrixEvents.length === 0) return undefined;
 
 		// Related Events
-		this.relatedEvents = matrixEvents.filter((event) => event.getContent()[RelationType.RelatesTo]).map((event) => new TimelineEvent(event, this.roomId));
+		const relatedEvents = matrixEvents.filter((event) => event.getContent()[RelationType.RelatesTo]);
+		this.relatedEvents = [...this.relatedEvents, ...relatedEvents.map((x) => new TimelineEvent(x, this.roomId))];
 
 		// Filter out redacted events: not for timeline and not read in the related events because they are used only temporary (until the redacted_because field is set in the db)
 		const redactedEvents = matrixEvents.filter((x) => x.getType() === MatrixEventType.RoomRedaction && x.getContent().reason !== Redaction.DeletedFromLibrary);
@@ -261,8 +261,7 @@ class TimelineManager {
 		// Filter out double, sometimes after sync items get doubled
 		this.libraryEvents = this.libraryEvents.filter((item, index, self) => self.findIndex((innerItem) => innerItem.matrixEvent.getId() === item.matrixEvent.getId()) === index);
 
-		this.applyIsDeleted(this.timelineEvents);
-		this.applyIsDeleted(this.libraryEvents);
+		this.applyIsDeleted([...this.timelineEvents, ...this.libraryEvents, ...this.relatedEvents]);
 
 		// TODO remove redacted events when necessary: so whenever a pagination is taking place
 
@@ -300,11 +299,11 @@ class TimelineManager {
 		return this.libraryEvents;
 	}
 
-	getTimeLineRelatedEvents(): TimelineEvent[] {
-		//return this.relatedEvents.filter((event) => event.matrixEvent.event.type === PubHubsMgType.VotingWidgetReply ||  PubHubsMgType.VotingWidgetClose || PubHubsMgType.VotingWidgetModify);
-		//return this.relatedEvents.filter((event) => event.matrixEvent.event.type === PubHubsMgType.VotingWidgetReply ||   event.matrixEvent.event.type === PubHubsMgType.VotingWidgetClose ||  event.matrixEvent.event.type === PubHubsMgType.VotingWidgetModify ||  event.matrixEvent.event.type === PubHubsMgType.VotingWidgetPickOption );
-
-		return this.relatedEvents.filter((event) => this.relatedEventTypes.has(event.matrixEvent.event.type));
+	// Gets related events, either all (defined in this.relatedEventTypes) or of one specific type and or contenttype (for instance EvenType.Reaction, RelationType.Annotation)
+	getTimeLineRelatedEvents(options: RelatedEventsOptions = {}): TimelineEvent[] {
+		const byEventType = options.eventType ? this.relatedEvents.filter((event) => event.matrixEvent.event.type === options.eventType) : this.relatedEvents.filter((event) => this.relatedEventTypes.has(event.matrixEvent.event.type!));
+		const byContentType = options.contentRelType ? byEventType.filter((event) => event.matrixEvent.getContent()?.[RelationType.RelatesTo]?.rel_type === options.contentRelType) : byEventType;
+		return byContentType.filter((x) => !x.isDeleted);
 	}
 
 	/**

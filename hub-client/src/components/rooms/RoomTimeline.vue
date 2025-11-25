@@ -132,7 +132,7 @@
 
 	const onlyReactionEvent = computed(() => {
 		// To stop from having duplicate events
-		props.room.getRelatedEvents().forEach((reactEvent) => props.room.addCurrentEventToRelatedEvent(reactEvent));
+		props.room.getRelatedEvents({ eventType: EventType.Reaction, contentRelType: RelationType.Annotation }).forEach((reactEvent) => props.room.addCurrentEventToRelatedEvent(reactEvent));
 		return props.room.getCurrentEventRelatedEvents();
 	});
 
