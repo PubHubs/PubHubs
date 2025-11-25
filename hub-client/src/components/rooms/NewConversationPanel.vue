@@ -74,7 +74,7 @@
 					<div v-for="(usersInLetter, letter) in categorizedUsers" :key="letter" class="mb-4">
 						<h3 class="text-md text-on-surface-dim sticky top-0 z-10 py-1 font-bold uppercase">{{ letter }}</h3>
 						<ul>
-							<li v-for="user in usersInLetter" :key="user.userId" class="hover:bg-surface-low flex cursor-pointer items-center gap-2 py-1 pl-4" @click="groupPanel ? toggleUserSelection(user) : gotToPrivateRoom(user)">
+							<li v-for="user in usersInLetter" :key="user.userId" class="hover:bg-surface-low flex cursor-pointer items-center gap-2 py-1 pl-4" @click.once="groupPanel ? toggleUserSelection(user) : gotToPrivateRoom(user)">
 								<Icon v-if="groupPanel && selectedUsers.includes(user.userId)" type="check-circle"></Icon>
 								<Avatar v-else :avatarUrl="userStore.userAvatar(user.userId)" :user-id="user.userId"></Avatar>
 								<div class="flex flex-col">
