@@ -283,7 +283,7 @@ class MatrixService {
 	 */
 	private handleRoomDataEvent = (roomId: string, roomData: MSC3575RoomData) => {
 		try {
-			console.error('sliding sync RoomSubscriptions ', roomId, roomData);
+			//console.error('sliding sync RoomSubscriptions ', roomId, roomData);
 			this.roomsStore.loadFromSlidingSync(roomId, roomData);
 		} catch (err) {
 			LOGGER.error(SMI.SYNC, 'RoomData handler failed', { roomId, err });
