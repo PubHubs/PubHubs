@@ -33,7 +33,7 @@ export const buttonBgColors: { [key: string]: string } = {
 	[buttonColorVariant.Secundary]: 'bg-surface-base ring-button-blue hover:opacity-75',
 	[buttonColorVariant.Tertiary]: 'rounded ring-button-blue outline outline-1 outline-offset-[-1px] outline-surface-on-surface-dim hover:opacity-75',
 	[buttonColorVariant.Error]: 'bg-button-red ring-button-blue hover:opacity-75',
-	[buttonColorVariant.Disabled]: 'rounded ring-button-blue outline outline-1 outline-offset-[-1px] outline-surface-on-surface-dim opacity-75 bg-surface-base-50/50 cursor-default!',
+	[buttonColorVariant.Disabled]: 'rounded ring-button-blue outline outline-1 outline-offset-[-1px] outline-surface-on-surface-dim opacity-75 bg-surface-base-50/50 cursor-not-allowed!',
 };
 
 export const buttonTextColors: { [key: string]: string } = {
@@ -41,5 +41,5 @@ export const buttonTextColors: { [key: string]: string } = {
 	[buttonColorVariant.Secundary]: 'text-surface-on-surface-dim',
 	[buttonColorVariant.Tertiary]: 'text-surface-on-surface-dim',
 	[buttonColorVariant.Error]: 'text-button-on-red',
-	[buttonColorVariant.Disabled]: 'text-surface-on-surface-dim cursor-default!',
+	[buttonColorVariant.Disabled]: 'text-surface-on-surface-dim',
 };
