@@ -1,6 +1,7 @@
 // Models
-import { ValidationMessage, ValidationMessageFn, ValidationRule, ValidationSchema, ValidatorFn, validationRuleTypes } from '@hub-client/models/validation/TValidate';
 import { computed, ref } from 'vue';
+
+import { ValidationMessage, ValidationMessageFn, ValidationRule, ValidationSchema, ValidatorFn, validationRuleTypes } from '@hub-client/models/validation/TValidate';
 
 /**
  * useValidation provides a framework for form validation.
@@ -9,24 +10,23 @@ import { computed, ref } from 'vue';
  */
 
 const validateFunctions: { [key: string]: Function } = {
-
-	required : (value: string | any[]): boolean => {
+	required: (value: string | any[]): boolean => {
 		return Array.isArray(value) ? value.length > 0 : !!value;
 	},
 
-	minValue : (value: number, min: number): boolean => {
+	minValue: (value: number, min: number): boolean => {
 		return value >= min;
 	},
 
-	maxValue : (value: number, max: number): boolean => {
+	maxValue: (value: number, max: number): boolean => {
 		return value <= max;
 	},
 
-	minLength : (value: string | any[], min: number): boolean => {
+	minLength: (value: string | any[], min: number): boolean => {
 		return value.length >= min;
 	},
 
-	maxLength : (value: string | any[], max: number): boolean => {
+	maxLength: (value: string | any[], max: number): boolean => {
 		return value.length <= max;
 	},
 
@@ -35,8 +35,7 @@ const validateFunctions: { [key: string]: Function } = {
 	},
 };
 
-const validateMessageFunctions: { [key:string]:Function} = {
-
+const validateMessageFunctions: { [key: string]: Function } = {
 	required: (_: string, keyTranslation: string): ValidationMessage => {
 		return { translationKey: 'validation.required', parameters: [keyTranslation] };
 	},
@@ -64,33 +63,29 @@ const validateMessageFunctions: { [key:string]:Function} = {
 	isNumber: (_: number, keyTranslation: string): ValidationMessage => {
 		return { translationKey: 'validation.is_number', parameters: [keyTranslation] };
 	},
+};
 
-
-}
-
-
-function useFieldValidation(model:any, validation:{}) {
-
+function useFieldValidation(model: any, validation: {}) {
 	const rules = [] as ValidationRule[];
 	const keys = Object.keys(validation);
-	if (keys.length>0) {
+	if (keys.length > 0) {
 		// console.info('validation',validation);
 		keys.forEach((key) => {
 			const validator = validateFunctions[key];
-			const args = validation[key] ? [validation[key]]: undefined;
+			const args = validation[key] ? [validation[key]] : undefined;
 			const message = validateMessageFunctions[key];
 			// console.info('add rule',key,validator,args,message);
 			rules.push({
-				validator:validator as ValidatorFn,
-				args:args,
-				message:message as ValidationMessageFn,
+				validator: validator as ValidatorFn,
+				args: args,
+				message: message as ValidationMessageFn,
 			});
 		});
 		// console.info('rules',validation,rules);
 	}
 
 	const validateField = computed(() => {
-		console.info('validateField',model.value,rules);
+		console.info('validateField', model.value, rules);
 		for (const rule of rules) {
 			if (!rule.validator(model.value, ...(rule.args || []))) {
 				// If message is a function we get the returned ValidationMessage from the function
@@ -104,16 +99,14 @@ function useFieldValidation(model:any, validation:{}) {
 		return null;
 	});
 
-	const validated = computed(()=> {
+	const validated = computed(() => {
 		return validateField.value === null;
 	});
 
-
-	return { validateField, validated }
+	return { validateField, validated };
 }
 
 function useValidation() {
-
 	// Validation Core
 
 	function validateField(value: any, rules: ValidationRule[]): ValidationMessage | null {
@@ -218,12 +211,10 @@ function useValidation() {
 		name: [
 			{ validator: validateRequired, args: ['admin.name'], message: requiredMessage },
 			{ validator: validateMaxLength, args: [roomSchemaConstants.maxNameLength, 'admin.name'], message: maxLengthMessage },
-
 		],
 		topic: [{ validator: validateMaxLength, args: [roomSchemaConstants.maxTopicLength, 'admin.topic'], message: maxLengthMessage }],
 		type: [{ validator: validateMaxLength, args: [roomSchemaConstants.maxTypeLength, 'admin.room_type'], message: maxLengthMessage }],
 	};
-
 
 	return {
 		validateField,

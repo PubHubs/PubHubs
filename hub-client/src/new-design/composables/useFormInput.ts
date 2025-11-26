@@ -1,13 +1,13 @@
 // Packages
 import { computed, getCurrentInstance, ref } from 'vue';
 
-export function useFormInput(model: any |undefined = undefined) {
+export function useFormInput(model: any | undefined = undefined) {
 	const changed = ref(false);
 	const hasFocus = ref(false);
 
-	const setFocus = (state:boolean) => {
+	const setFocus = (state: boolean) => {
 		hasFocus.value = state;
-	}
+	};
 
 	// For radio inputs
 	const id = computed(() => {

@@ -4,7 +4,7 @@ enum validationRuleTypes {
 	maxValue = 'maxValue',
 	minLength = 'minLength',
 	maxLength = 'maxLength',
-};
+}
 
 type ValidatorFn = (value: any, ...args: any[]) => boolean;
 
