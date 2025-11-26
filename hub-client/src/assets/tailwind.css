@@ -136,18 +136,17 @@
 
 @theme {
 	/* New theme */
+	--color-*: initial;
 	--color-currentColor: currentColor;
 	--color-transparent: transparent;
 	--color-black: #202020;
 	--color-white: #ffffff;
-
 	--color-surface-background: var(--surface-background);
 	--color-surface-base: var(--surface-base);
 	--color-surface-elevated: var(--surface-elevated);
 	--color-on-surface: var(--on-surface);
 	--color-on-surface-dim: var(--on-surface-dim);
 	--color-on-surface-bright: var(--on-surface-bright);
-
 	--color-accent-blue: var(--accent-blue);
 	--color-on-accent-blue: var(--on-accent-blue);
 	--color-accent-green: var(--accent-green);
@@ -158,7 +157,6 @@
 	--color-on-accent-red: var(--on-accent-red);
 	--color-accent-purple: var(--accent-purple);
 	--color-on-accent-purple: var(--on-accent-purple);
-
 	--color-button-blue: var(--button-blue);
 	--color-button-on-blue: var(--button-on-blue);
 	--color-button-red: var(--button-red);
@@ -176,9 +174,17 @@
 	--color-accent-steward: var(--accent-purple);
 	--color-on-accent-steward: var(--on-accent-purple);
 
+	--font-*: initial;
 	--font-headings: var(--font-atkinson);
 	--font-body: var(--font-inter);
 
+	/* --radius-*: initial; */
+	--radius-none: 0px;
+	--radius-small: 4px; 
+	--radius-base: 8px;
+	--radius-full: calc(infinity * 1px);
+
+	--spacing-*: initial;
 	--spacing-0: 0;
 	--spacing-thin: 0.5px;
 	--spacing-0125: 1px;
@@ -199,6 +205,7 @@
 	--spacing-800: 64px;
 	--spacing-1000: 80px;
 
+	--text-*: initial;
 	--text-title: 24px;
 	--text-title--line-height: 1.28;
 	--text-title--font-weight: 600;
