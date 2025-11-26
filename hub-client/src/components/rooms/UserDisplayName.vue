@@ -42,6 +42,7 @@
 		showDisplayName: true,
 		showPseudonym: true,
 		chooseColor: true,
+		userDisplayName: '',
 	});
 
 	// get Pseudonym

@@ -132,7 +132,7 @@
 
 	const onlyReactionEvent = computed(() => {
 		// To stop from having duplicate events
-		props.room.getRelatedEvents().forEach((reactEvent) => props.room.addCurrentEventToRelatedEvent(reactEvent));
+		props.room.getRelatedEvents({ eventType: EventType.Reaction, contentRelType: RelationType.Annotation }).forEach((reactEvent) => props.room.addCurrentEventToRelatedEvent(reactEvent));
 		return props.room.getCurrentEventRelatedEvents();
 	});
 
@@ -213,8 +213,6 @@
 		LOGGER.log(SMI.ROOM_TIMELINE, `setupRoomTimeline...`, {
 			roomId: props.room.roomId,
 		});
-
-		props.room.initTimeline();
 
 		await rooms.storeRoomNotice(props.room.roomId);
 
@@ -324,6 +322,9 @@
 		if (typeof newTimelineLength !== 'number' || newTimelineLength < 0 || typeof oldTimelineLength !== 'number' || oldTimelineLength < 0) return;
 
 		if (!elRoomTimeline.value) return;
+
+		await rooms.waitForInitialRoomsLoaded(); // need to await loading of rooms, otherwise there is no currentRoom
+
 		if (!rooms.currentRoom) return;
 		if (!newestEventIsLoaded.value) return;
 
@@ -403,7 +404,7 @@
 		if (prevOldestLoadedEventId && !oldestEventIsLoaded.value) {
 			suppressNextObservertrigger = true;
 
-			await props.room.paginate(Direction.Backward, SystemDefaults.RoomTimelineLimit, prevOldestLoadedEventId);
+			await props.room.paginate(Direction.Backward, SystemDefaults.roomTimelineLimit, prevOldestLoadedEventId);
 
 			// Wait for DOM update
 			await nextTick();
@@ -433,7 +434,7 @@
 		if (prevNewestLoadedEventId && !newestEventIsLoaded.value) {
 			suppressNextObservertrigger = true;
 
-			await props.room.paginate(Direction.Forward, SystemDefaults.RoomTimelineLimit, prevNewestLoadedEventId);
+			await props.room.paginate(Direction.Forward, SystemDefaults.roomTimelineLimit, prevNewestLoadedEventId);
 
 			await scrollToEvent({ eventId: prevNewestLoadedEventId }, { position: ScrollPosition.End });
 

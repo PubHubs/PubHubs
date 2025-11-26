@@ -42,7 +42,7 @@
 			<div class="flex h-full w-full justify-between overflow-hidden">
 				<RoomLibrary v-if="showLibrary" :room="room" @close="toggleLibrary"></RoomLibrary>
 				<div class="flex h-full w-full flex-col overflow-hidden" :class="{ hidden: showLibrary }">
-					<RoomTimeline v-if="room" ref="roomTimeLineComponent" :room="room" :scroll-to-event-id="room.getCurrentEvent()" @scrolled-to-event-id="room.setCurrentEvent(undefined)"> </RoomTimeline>
+					<RoomTimeline v-if="room" ref="roomTimeLineComponent" :room="room" @scrolled-to-event-id="room.setCurrentEvent(undefined)"> </RoomTimeline>
 				</div>
 				<RoomThread
 					v-if="room.getCurrentThreadId()"
@@ -140,6 +140,11 @@
 				name: 'error-page',
 				query: { errorKey: 'errors.cant_find_room' },
 			});
+			return undefined;
+		}
+		// the name of the room will be synced later, start with an empty name
+		if (r.name === props.id) {
+			r.name = '';
 		}
 		return r;
 	});
@@ -194,6 +199,8 @@
 	}
 
 	async function update() {
+		await rooms.waitForInitialRoomsLoaded();
+
 		hubSettings.hideBar();
 		rooms.changeRoom(props.id);
 		const userIsMember = await pubhubs.isUserRoomMember(user.userId!, props.id);
