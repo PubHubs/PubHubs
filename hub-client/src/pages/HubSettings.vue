@@ -3,7 +3,7 @@
 		<template #header>
 			<div class="hidden items-center gap-4 md:flex">
 				<span class="font-semibold uppercase">{{ $t('rooms.room') }}</span>
-				<hr class="h-[2px] grow bg-accent-secondary" />
+				<hr class="bg-accent-secondary h-[2px] grow" />
 			</div>
 			<div class="relative flex h-full items-center justify-between gap-4" :class="isMobile ? 'pl-12' : 'pl-0'">
 				<H3 class="text-on-surface">{{ $t('settings.title') }}</H3>
@@ -23,7 +23,7 @@
 				<H3>{{ $t('hub_settings.summary_heading') }}</H3>
 				<P>{{ $t('hub_settings.summary_description') }}</P>
 				<TextArea v-model="hubSummary" class="border-hub-border max-h-16 w-full rounded-md border p-3 dark:text-black" rows="4" :placeholder="t('hub_settings.summary')" :maxlength="maxSummaryLength"></TextArea>
-				<P class="float-end ~text-label-small-min/label-small-max"> {{ hubSummary.length }} / {{ maxSummaryLength }} </P>
+				<P class="text-label-small float-end"> {{ hubSummary.length }} / {{ maxSummaryLength }} </P>
 			</div>
 
 			<!-- Contact Section -->
@@ -71,7 +71,7 @@
 					<mavon-editor v-model="hubConsent" language="en" :toolbars="toolbarSettings" :boxShadow="false" :placeholder="t('hub_settings.consent')" />
 				</div>
 			</div>
-			<div class="fixed bottom-5 right-10 z-20 ml-auto flex items-center">
+			<div class="fixed right-10 bottom-5 z-20 ml-auto flex items-center">
 				<P v-if="settingsSaved" class="text-hub-text-variant">{{ $t('hub_settings.settings_saved') }}</P>
 				<Button @click="saveChanges()" :disabled="!settingsChanged">{{ $t('hub_settings.save') }}</Button>
 			</div>

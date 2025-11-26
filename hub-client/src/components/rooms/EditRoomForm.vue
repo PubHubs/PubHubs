@@ -7,9 +7,9 @@
 					:placeholder="t('admin.name_placeholder')"
 					:maxlength="validationComposable.roomSchemaConstants.maxNameLength"
 					v-model="editRoom.name"
-					class="~text-label-min/label-max placeholder:text-surface-subtle focus:ring-accent-primary md:w-5/6"
+					class="text-label placeholder:text-surface-subtle focus:ring-accent-primary md:w-5/6"
 				/>
-				<P class="float-end ~text-label-small-min/label-small-max"> {{ editRoom.name.length }} / {{ validationComposable.roomSchemaConstants.maxNameLength }} </P>
+				<P class="text-label-small float-end"> {{ editRoom.name.length }} / {{ validationComposable.roomSchemaConstants.maxNameLength }} </P>
 			</FormLine>
 
 			<FormLine>
@@ -18,9 +18,9 @@
 					:placeholder="t('admin.topic_placeholder')"
 					:maxlength="validationComposable.roomSchemaConstants.maxTopicLength"
 					v-model="editRoom.topic"
-					class="~text-label-min/label-max placeholder:text-surface-subtle focus:ring-accent-primary md:w-5/6"
+					class="text-label placeholder:text-surface-subtle focus:ring-accent-primary md:w-5/6"
 				/>
-				<P class="float-end ~text-label-small-min/label-small-max"> {{ editRoom.topic.length }} / {{ validationComposable.roomSchemaConstants.maxTopicLength }} </P>
+				<P class="text-label-small float-end"> {{ editRoom.topic.length }} / {{ validationComposable.roomSchemaConstants.maxTopicLength }} </P>
 			</FormLine>
 
 			<FormLine v-if="!secured">
@@ -30,9 +30,9 @@
 					:maxlength="validationComposable.roomSchemaConstants.maxTypeLength"
 					v-model="editRoom.type"
 					:disabled="!isNewRoom"
-					class="~text-label-min/label-max placeholder:text-surface-subtle focus:ring-accent-primary md:w-5/6"
+					class="text-label placeholder:text-surface-subtle focus:ring-accent-primary md:w-5/6"
 				/>
-				<P v-if="editRoom.type" class="float-end ~text-label-small-min/label-small-max"> {{ editRoom.type.length }} / {{ validationComposable.roomSchemaConstants.maxTypeLength }} </P>
+				<P v-if="editRoom.type" class="text-label-small float-end"> {{ editRoom.type.length }} / {{ validationComposable.roomSchemaConstants.maxTypeLength }} </P>
 			</FormLine>
 
 			<div v-if="secured">
@@ -42,32 +42,32 @@
 						:placeholder="t('admin.secured_description_placeholder')"
 						:maxlength="validationComposable.roomSchemaConstants.maxDescriptionLength"
 						v-model="editRoom.user_txt"
-						class="~text-label-min/label-max placeholder:text-surface-subtle focus:ring-accent-primary md:w-5/6"
+						class="text-label placeholder:text-surface-subtle focus:ring-accent-primary md:w-5/6"
 					/>
-					<P class="float-end ~text-label-small-min/label-small-max"> {{ editRoom.user_txt.length }} / {{ validationComposable.roomSchemaConstants.maxDescriptionLength }} </P>
+					<P class="text-label-small float-end"> {{ editRoom.user_txt.length }} / {{ validationComposable.roomSchemaConstants.maxDescriptionLength }} </P>
 				</FormLine>
 				<div>
 					<div class="mt-4 flex flex-wrap gap-2">
 						<Label>{{ t('admin.secured_yivi_attributes') }}</Label>
-						<button v-for="(attr, index) in selectedAttributes" :key="index" :class="['rounded px-3 py-1', activeTab === index ? 'bg-surface-high' : 'bg-surface text-on-surface']" @click="activeTab = index" type="button">
+						<button v-for="(attr, index) in selectedAttributes" :key="index" :class="['rounded-xs px-3 py-1', activeTab === index ? 'bg-surface-high' : 'bg-surface text-on-surface']" @click="activeTab = index" type="button">
 							{{ attr.label ? attr.label : index + 1 }}
-							<span v-if="selectedAttributes.length > 1" @click.stop="removeAttribute(index)" class="ml-2 cursor-pointer text-accent-red hover:text-on-accent-red">&times;</span>
+							<span v-if="selectedAttributes.length > 1" @click.stop="removeAttribute(index)" class="text-accent-red hover:text-on-accent-red ml-2 cursor-pointer">&times;</span>
 						</button>
 						<Button
 							v-if="selectedAttributes.length < validationComposable.roomSchemaConstants.maxAttributes"
 							type="button"
-							class="ml-2 rounded bg-surface px-2 py-1 text-on-surface"
+							class="bg-surface text-on-surface ml-2 rounded-xs px-2 py-1"
 							@click="selectedAttributes.push({ label: '', attribute: '', accepted: [], profile: false })"
 						>
 							+
 						</Button>
 					</div>
 
-					<div v-if="selectedAttributes.length" class="border-2 bg-surface-low p-4">
+					<div v-if="selectedAttributes.length" class="bg-surface-low border-2 p-4">
 						<FormLine class="mt-4">
 							<Label>{{ t('admin.secured_attribute') }}</Label>
-							<AutoComplete v-model="selectedAttributes[activeTab].label" :options="yiviAttributes" :maxlength="autoCompleteLength" class="~text-label-min/label-max placeholder:text-surface-subtle" />
-							<P class="float-end ~text-label-small-min/label-small-max"> {{ selectedAttributes[activeTab].label.length }} / {{ autoCompleteLength }} </P>
+							<AutoComplete v-model="selectedAttributes[activeTab].label" :options="yiviAttributes" :maxlength="autoCompleteLength" class="text-label placeholder:text-surface-subtle" />
+							<P class="text-label-small float-end"> {{ selectedAttributes[activeTab].label.length }} / {{ autoCompleteLength }} </P>
 						</FormLine>
 
 						<FormLine>
@@ -77,7 +77,7 @@
 								:maxlength="3000"
 								:placeholder="t('admin.add_tip')"
 								@keydown.enter.prevent="addUniqueValue(activeTab)"
-								class="bg-background p-2 leading-8 ~text-label-min/label-max placeholder:text-surface-subtle focus:ring-1 focus:ring-accent-primary"
+								class="bg-background text-label placeholder:text-surface-subtle focus:ring-accent-primary p-2 leading-8 focus:ring-1"
 							/>
 							<Button @click="addUniqueValue(activeTab)">{{ t('admin.add') }}</Button>
 						</FormLine>
@@ -90,9 +90,9 @@
 
 						<div class="mt-2 flex flex-wrap gap-2">
 							<Label>{{ t('admin.secured_values') }}</Label>
-							<span v-for="(value, index) in selectedAttributes[activeTab].accepted" :key="index" class="bg-primary text-on-primary inline-flex items-center truncate rounded-xl bg-surface px-2 py-1">
+							<span v-for="(value, index) in selectedAttributes[activeTab].accepted" :key="index" class="bg-primary text-on-primary bg-surface inline-flex items-center truncate rounded-xl px-2 py-1">
 								{{ value }}
-								<button type="button" class="ml-2 text-accent-red hover:text-on-accent-red" @click="selectedAttributes[activeTab].accepted.splice(index, 1)">&times;</button>
+								<button type="button" class="text-accent-red hover:text-on-accent-red ml-2" @click="selectedAttributes[activeTab].accepted.splice(index, 1)">&times;</button>
 							</span>
 						</div>
 					</div>

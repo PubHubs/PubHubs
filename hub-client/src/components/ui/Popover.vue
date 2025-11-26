@@ -1,6 +1,6 @@
 <template>
-	<div class="z-40 rounded-md bg-surface-high" v-click-outside="close" role="toolbar">
-		<IconButton v-if="showClosingCross" type="x" size="base" @click="close()" class="absolute right-2 top-2" />
+	<div class="bg-surface-high z-40 rounded-md" v-click-outside="close" role="toolbar">
+		<IconButton v-if="showClosingCross" type="x" size="base" @click="close()" class="absolute top-2 right-2" />
 		<slot></slot>
 	</div>
 </template>

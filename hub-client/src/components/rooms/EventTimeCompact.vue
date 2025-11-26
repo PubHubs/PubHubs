@@ -1,5 +1,5 @@
 <template>
-	<span class="flex items-center gap-1 ~text-label-small-min/label-small-max">
+	<span class="text-label-small flex items-center gap-1">
 		<Icon type="clock"></Icon>
 		<span>{{ formatTimestamp(timestamp) }}</span>
 		<Icon type="calendar"></Icon>

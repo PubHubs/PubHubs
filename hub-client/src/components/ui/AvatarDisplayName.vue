@@ -1,6 +1,6 @@
 <template>
 	<div class="flex">
-		<UserDisplayName v-if="showDisplayname" class="ml-6 mr-2" :user-id="userId" :userDisplayName="user.userDisplayName(userId)"></UserDisplayName>
+		<UserDisplayName v-if="showDisplayname" class="mr-2 ml-6" :user-id="userId" :userDisplayName="user.userDisplayName(userId)"></UserDisplayName>
 		<Avatar class="h-6 w-6 border" :avatar-url="user.userAvatar(userId)" :user-id="userId" :title="displayName"></Avatar>
 	</div>
 </template>

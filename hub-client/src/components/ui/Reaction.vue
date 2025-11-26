@@ -1,13 +1,13 @@
 <template>
 	<div class="flex flex-wrap gap-2" role="list" data-testid="reactions">
-		<span v-for="(item, index) in reactionSummary" :key="item.key" class="group relative inline-flex items-center gap-1 rounded-full bg-surface px-2 py-1" role="listitem">
+		<span v-for="(item, index) in reactionSummary" :key="item.key" class="group bg-surface relative inline-flex items-center gap-1 rounded-full px-2 py-1" role="listitem">
 			{{ item.key }} {{ item.count }}
 
 			<Icon
 				v-if="item.reactions.some((r) => r.userId === currentUserId)"
 				type="trash"
 				size="sm"
-				class="absolute right-0 top-0 hidden cursor-pointer rounded-2xl bg-surface-low group-hover:inline-block"
+				class="bg-surface-low absolute top-0 right-0 hidden cursor-pointer rounded-2xl group-hover:inline-block"
 				@click.stop="removeReaction(item.reactions.filter((r) => r.userId === currentUserId).map((r) => r.eventId))"
 			/>
 		</span>

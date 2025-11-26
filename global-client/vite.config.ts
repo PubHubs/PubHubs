@@ -1,4 +1,5 @@
 /// <reference types="vitest" />
+import tailwindcss from '@tailwindcss/vite';
 import Vue from '@vitejs/plugin-vue';
 import path from 'node:path';
 import { URL, fileURLToPath } from 'node:url';
@@ -18,8 +19,8 @@ export default defineConfig({
 		},
 	},
 	plugins: [
-		Vue(),
 		nodePolyfills(),
+		tailwindcss(),
 		VitePWA({
 			registerType: 'autoUpdate',
 			manifest: {
@@ -85,6 +86,7 @@ export default defineConfig({
 				maximumFileSizeToCacheInBytes: 6 * 1024 * 1024, // 6MB
 			},
 		}),
+		Vue(),
 	],
 	test: {
 		root: './',

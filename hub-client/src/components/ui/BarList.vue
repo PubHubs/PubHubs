@@ -1,5 +1,5 @@
 <template>
-	<ul class="max-w-100 overflow-y-auto">
+	<ul class="max-w-full">
 		<slot></slot>
 	</ul>
 </template>

@@ -1,22 +1,22 @@
 <template>
-	<div class="max-w-screen w-full">
+	<div class="w-full max-w-screen">
 		<!-- Header -->
-		<div class="flex w-full items-center bg-surface px-6 py-4" :class="isMobile ? 'h-[7.5rem]' : 'h-[10rem]'">
+		<div class="bg-surface flex w-full items-center px-6 py-4" :class="isMobile ? 'h-[7.5rem]' : 'h-[10rem]'">
 			<div class="flex h-full w-full items-center justify-between gap-16">
 				<a :href="globalClientUrl" target="_blank" rel="noopener noreferrer" class="h-full py-2">
 					<Logo />
 				</a>
 				<div class="flex h-4 items-center justify-center gap-2">
-					<p class="cursor-pointer font-bold hover:text-accent-primary" @click="changeLanguage('nl')">NL</p>
+					<p class="hover:text-accent-primary cursor-pointer font-bold" @click="changeLanguage('nl')">NL</p>
 					<span>|</span>
-					<p class="cursor-pointer font-bold hover:text-accent-primary" @click="changeLanguage('en')">EN</p>
+					<p class="hover:text-accent-primary cursor-pointer font-bold" @click="changeLanguage('en')">EN</p>
 				</div>
 			</div>
 		</div>
 
 		<div class="overflow-y-auto" :class="isMobile ? 'h-[calc(100svh_-_7.5rem)]' : 'h-[calc(100svh_-_10rem)]'">
 			<!-- Registration section -->
-			<section class="flex flex-col gap-8 overflow-x-hidden bg-background" :class="isMobile ? 'py-8' : 'py-16'">
+			<section class="bg-background flex flex-col gap-8 overflow-x-hidden" :class="isMobile ? 'py-8' : 'py-16'">
 				<div class="flex shrink-0 flex-col gap-8" :class="isMobile && 'h-full'">
 					<!-- Title -->
 					<div class="mx-auto w-full max-w-[80ch]">
@@ -27,7 +27,7 @@
 					</div>
 
 					<!-- Carousel -->
-					<div class="max-w-screen flex h-full w-full flex-col gap-4 overflow-hidden" :class="isMobile && 'max-h-[calc(100svh_-_7.5rem)]'">
+					<div class="flex h-full w-full max-w-screen flex-col gap-4 overflow-hidden" :class="isMobile && 'max-h-[calc(100svh_-_7.5rem)]'">
 						<!-- Mobile -->
 						<div v-if="isMobile" ref="carouselMobile" class="no-scrollbar flex h-full snap-x snap-mandatory gap-4 overflow-x-auto scroll-smooth px-4">
 							<!-- Card 1 -->
@@ -71,6 +71,11 @@
 								</template>
 
 								<div class="flex flex-col gap-2">
+									<div v-if="error" class="items-top bg-surface text-accent-error flex flex-row gap-x-2 rounded-xl py-2">
+										<Icon type="warning"></Icon>
+										<P>{{ $t(error.key, error.values) }}</P>
+									</div>
+
 									<P>{{ $t('register.card_3_text_1') }}</P>
 									<P>{{ $t('register.card_3_text_2', [$t('common.yivi'), $t('common.app_name')]) }}</P>
 								</div>
@@ -87,7 +92,7 @@
 						<div
 							v-else
 							ref="carouselDesktop"
-							class="no-scrollbar flex snap-x snap-mandatory overflow-x-auto scroll-smooth ~gap-8/16 ~py-4/8"
+							class="no-scrollbar flex snap-x snap-mandatory gap-12 overflow-x-auto scroll-smooth py-6"
 							style="padding-left: calc(50vw - 40ch); padding-right: calc(50vw - 40ch); scroll-padding-left: calc(50vw - 40ch); scroll-padding-right: calc(50vw - 40ch)"
 						>
 							<!-- Card 1 -->
@@ -136,7 +141,12 @@
 
 								<div class="flex flex-col gap-2">
 									<P>{{ $t('register.card_3_text_1') }}</P>
-									<P>{{ $t('register.card_3_text_2', [$t('common.yivi'), $t('common.app_name')]) }}</P>
+									<P class="mb-6">{{ $t('register.card_3_text_2', [$t('common.yivi'), $t('common.app_name')]) }}</P>
+
+									<div v-if="error" class="items-top bg-surface text-accent-error flex flex-row gap-x-4 rounded-xl py-2">
+										<Icon type="warning" class="mt-1"></Icon>
+										<P class="mt-1"> {{ $t(error.key, error.values) }}</P>
+									</div>
 								</div>
 
 								<template #right>
@@ -153,7 +163,7 @@
 								v-for="(item, index) in items"
 								:key="index"
 								class="h-3 w-3 rounded-full transition-all duration-300"
-								:class="[currentIndex === index ? 'scale-110 bg-accent-primary' : 'bg-surface-low', 'cursor-pointer']"
+								:class="[currentIndex === index ? 'bg-accent-primary scale-110' : 'bg-surface-low', 'cursor-pointer']"
 								@click="scrollTo(index)"
 							></div>
 						</div>
@@ -180,13 +190,13 @@
 					></iframe>
 					<div class="mt-4 flex flex-col gap-8 px-4">
 						<div class="flex items-center gap-4">
-							<div class="flex aspect-square h-6 w-6 items-center justify-center rounded-full bg-accent-primary text-on-accent-primary">
-								<span class="font-semibold ~text-label-small-min/label-small-max">i</span>
+							<div class="bg-accent-primary text-on-accent-primary flex aspect-square h-6 w-6 items-center justify-center rounded-full">
+								<span class="text-label-small font-semibold">i</span>
 							</div>
 							<H2>{{ $t('register.yivi_faq') }}</H2>
 						</div>
 						<div class="flex flex-col gap-4">
-							<div v-for="(item, index) in faqs" :key="index" class="flex w-full flex-col gap-2 rounded-2xl bg-surface-low">
+							<div v-for="(item, index) in faqs" :key="index" class="bg-surface-low flex w-full flex-col gap-2 rounded-2xl">
 								<div class="flex w-full justify-between rounded-2xl px-4 py-2 font-semibold hover:cursor-pointer" :class="faqIndex === index && 'bg-surface'" @click="toggle(index)">
 									<span>{{ item.question }}</span>
 									<span>{{ faqIndex === index ? '−' : '+' }}</span>
@@ -215,6 +225,8 @@
 	import CarouselCardMobile from '@global-client/components/ui/onboarding/CarouselCardMobile.vue';
 	import DownloadLinks from '@global-client/components/ui/onboarding/DownloadLinks.vue';
 
+	import Icon from '@hub-client/components/elements/Icon.vue';
+
 	// Logic
 	import { CONFIG } from '@hub-client/logic/logging/Config';
 	import { Logger } from '@hub-client/logic/logging/Logger';
@@ -232,6 +244,7 @@
 	const { t } = useI18n();
 	const router = useRouter();
 	const route = useRoute();
+	const error = ref();
 
 	// Logging
 	const LOGGER = new Logger('GC', CONFIG);
@@ -340,7 +353,7 @@
 			const mss = useMSS();
 			const errorMessage = await mss.enterPubHubs(loginMethod, PHCEnterMode.LoginOrRegister);
 			if (errorMessage) {
-				router.push({ name: 'error', query: { errorKey: errorMessage.key, errorValues: errorMessage.values } });
+				error.value = errorMessage;
 				return;
 			}
 			if (redirectPath) {

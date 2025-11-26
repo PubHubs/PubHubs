@@ -1,5 +1,5 @@
 <template>
-	<li class="max-w-100 mb-2 block rounded-md bg-surface-low p-2">
+	<li class="bg-surface-low mb-2 block rounded-md p-2">
 		<slot></slot>
 	</li>
 </template>

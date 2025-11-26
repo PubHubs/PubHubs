@@ -6,7 +6,7 @@
 			click();
 			room && menu.setActiveMenuItem(room.roomId);
 		"
-		class="h-fit rounded-lg px-4 py-2 transition-all duration-200 ease-in-out hover:bg-background"
+		class="hover:bg-background h-fit rounded-lg px-4 py-2 transition-all duration-200 ease-in-out"
 	>
 		<router-link :to="to" class="flex items-center gap-4">
 			<Icon v-if="isSecuredRoom()" type="shield" :size="iconSize" />
