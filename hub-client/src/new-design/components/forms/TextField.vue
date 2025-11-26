@@ -1,16 +1,16 @@
 <template>
-	<div class="gap-075 mb-200 flex flex-col items-start justify-start" @focusin="setFocus(true)" @focusout="setFocus(false)">
+	<div class="gap-075 mb-100 flex flex-col items-start justify-start" @focusin="setFocus(true)" @focusout="setFocus(false)">
 		<div class="text-label-small gap-050 inline-flex items-start justify-start">
 			<div class="text-surface-on-surface justify-end"><slot></slot></div>
-			<div v-if="validation.required" class="text-accent-red justify-end">*</div>
+			<div v-if="required" class="text-accent-red justify-end">*</div>
 		</div>
 		<div
 			class="bg-surface-base outline-surface-on-surface-dim outline-offset-thin rounded px-175 py-100 outline"
 			:class="{ 'ring-button-blue ring-3': hasFocus, 'outline-surface-on-surface-dim': validated, 'outline-accent-error': !validated }"
 		>
-			<input ref="input" v-model="model" class="text-surface-on-surface-dim justify-start" :placeholder="placeholder" />
+			<input ref="input" v-model="model" class="text-surface-on-surface-dim justify-start" :placeholder="placeholder" @change="update()" />
 		</div>
-		<div v-if="validateField" class="text-accent-red text-label-small gap-050 flex items-center"><Icon type="warning"></Icon>{{ $t(validateField.translationKey, [validateField.parameters]) }}</div>
+		<div v-if="!validated" class="text-accent-red text-label-small gap-050 flex items-center"><Icon type="warning"></Icon>{{ $t(validateField!.translationKey, validateField!.parameters) }}</div>
 		<div v-if="help" class="text-surface-on-surface-dim text-label-small justify-end">{{ help }}</div>
 	</div>
 </template>
@@ -26,9 +26,7 @@
 	import { useFormInput } from '@hub-client/new-design/composables/useFormInput';
 
 	const addField = inject('addField') as Function;
-
 	const model = defineModel();
-
 	const props = defineProps({
 		placeholder: {
 			type: String,
@@ -40,7 +38,7 @@
 		},
 		validation: {
 			type: Object,
-			default: {},
+			default: undefined,
 		},
 		help: {
 			type: String,
@@ -48,12 +46,12 @@
 		},
 	});
 
-	const { setFocus, hasFocus } = useFormInput(model);
-	const { validateField, validated } = useFieldValidation(model, props.validation);
+	const { fieldName, setFocus, hasFocus, update, changed } = useFormInput(props, model);
+	const { validateField, validated, required } = useFieldValidation(fieldName.value, model, props.validation);
 
 	onMounted(() => {
-		if (typeof addField === 'function') {
-			addField(model, validated);
+		if (typeof addField === 'function' && props.validation) {
+			addField(fieldName.value, model, changed, validated);
 		}
 	});
 </script>

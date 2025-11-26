@@ -22,12 +22,16 @@
 
 	const model = defineModel();
 
-	const { id, setFocus, hasFocus, select } = useFormInput(model);
-
 	const props = defineProps({
 		value: {
 			type: String,
 			default: '',
 		},
+		name: {
+			type: String,
+			default: '',
+		},
 	});
+
+	const { id, setFocus, hasFocus, select } = useFormInput(props, model);
 </script>

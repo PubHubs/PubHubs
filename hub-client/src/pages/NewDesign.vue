@@ -53,11 +53,11 @@
 			<div class="border-spacing-200 rounded-lg border border-dotted border-purple-500 p-200">
 				<h2 class="mb-200">Inputs</h2>
 				<TextField placeholder="Type voornaam">Voornaam</TextField>
-				<TextField placeholder="Type achternaam" help="Hier dus je achternaam">Achternaam</TextField>
-				<TextField placeholder="Geef getal" help="Hoe oud ben je?">Leeftijd</TextField>
+				<TextField placeholder="Type achternaam" :validation="{ required: true }" help="Hier dus je achternaam">Achternaam</TextField>
+				<TextField placeholder="Geef getal" :validation="{ isNumber: true, minValue: 2 }" help="Hoe oud ben je?">Leeftijd</TextField>
 
 				<h2 class="my-200">TextArea</h2>
-				<TextArea placeholder="Typ opmerking">Opmerking</TextArea>
+				<TextArea placeholder="Typ opmerking" :validation="{ required: true, minLength: 10 }">Opmerking</TextArea>
 				<TextArea placeholder="Type veel" help="Echt lange tekst kan hier">Lange tekst</TextArea>
 				<TextArea placeholder="Extra">Nog meer</TextArea>
 			</div>
@@ -67,9 +67,11 @@
 			<h2 class="mb-200">Form Test</h2>
 
 			<ValidatedForm v-slot="{ isValidated }">
-				<TextField v-model="formValues.firstname" name="firstname" placeholder="Type voornaam">Voornaam</TextField>
-				<TextField v-model="formValues.lastname" name="lastname" placeholder="Type achternaam" :validation="{ required: true, minLength: 10 }" help="Hier dus je achternaam">Achternaam</TextField>
-				<TextField v-model="formValues.age" name="age" placeholder="Geef getal" :validation="{ required: true, isNumber: true, minValue: 2, maxValue: 20 }" help="Hoe oud ben je?">Leeftijd</TextField>
+				<TextField v-model="formValues.firstname" placeholder="Type voornaam">Voornaam</TextField>
+				<TextField v-model="formValues.lastname" placeholder="Type achternaam" :validation="{ required: true, minLength: 10 }" help="Hier dus je achternaam">{{ $t('roomlibrary.info.name') }}</TextField>
+				<TextField v-model="formValues.age" placeholder="Geef getal" :validation="{ required: true, isNumber: true, minValue: 2, maxValue: 20 }" help="Hoe oud ben je?">Leeftijd</TextField>
+
+				<TextArea placeholder="Type veel" :validation="{ required: true }" help="Echt lange tekst kan hier">Lange tekst</TextArea>
 
 				<div class="mb-200">
 					<Radio v-model="formValues.radio" value="first">Eerste</Radio>
@@ -89,12 +91,9 @@
 				</div>
 
 				<ButtonGroup>
-					<Button :disabled="!isValidated" @click="clicked()">Submit</Button>
+					<Button :disabled="!isValidated" @click.stop.prevent="clicked()">Submit</Button>
 				</ButtonGroup>
 			</ValidatedForm>
-
-			<h2 class="my-200">Result values</h2>
-			<Json :json="formValues"></Json>
 		</div>
 	</div>
 </template>

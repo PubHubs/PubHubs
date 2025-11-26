@@ -1,7 +1,6 @@
+import { ValidationMessage, ValidationMessageFn, ValidationRule, ValidationSchema, ValidatorFn } from '@hub-client/models/validation/TValidate';
 // Models
 import { computed, ref } from 'vue';
-
-import { ValidationMessage, ValidationMessageFn, ValidationRule, ValidationSchema, ValidatorFn, validationRuleTypes } from '@hub-client/models/validation/TValidate';
 
 /**
  * useValidation provides a framework for form validation.
@@ -65,45 +64,55 @@ const validateMessageFunctions: { [key: string]: Function } = {
 	},
 };
 
-function useFieldValidation(model: any, validation: {}) {
+function useFieldValidation(name:string, model: any, validation = undefined) {
+	const changed = ref(false);
+	const required = ref(false);
 	const rules = [] as ValidationRule[];
-	const keys = Object.keys(validation);
-	if (keys.length > 0) {
-		// console.info('validation',validation);
-		keys.forEach((key) => {
-			const validator = validateFunctions[key];
-			const args = validation[key] ? [validation[key]] : undefined;
-			const message = validateMessageFunctions[key];
-			// console.info('add rule',key,validator,args,message);
-			rules.push({
-				validator: validator as ValidatorFn,
-				args: args,
-				message: message as ValidationMessageFn,
+
+	if (validation) {
+		const keys = Object.keys(validation);
+		required.value = keys.includes('required');
+		if (keys.length > 0) {
+			keys.forEach((key) => {
+				let rule = {
+					validator : validateFunctions[key],
+					args: [] as any[],
+					message : validateMessageFunctions[key]
+				} as ValidationRule;
+				if (validation[key] && typeof(validation[key])!=="boolean") {
+					rule.args = [validation[key]];
+				}
+				rules.push(rule);
 			});
-		});
-		// console.info('rules',validation,rules);
+			// console.info('rules',validation,rules);
+		}
 	}
 
 	const validateField = computed(() => {
-		console.info('validateField', model.value, rules);
+		// console.info('validateField', model.value, rules);
+		if (!changed.value && model.value!==undefined) {
+			changed.value = true;
+		}
 		for (const rule of rules) {
 			if (!rule.validator(model.value, ...(rule.args || []))) {
 				// If message is a function we get the returned ValidationMessage from the function
 				if (typeof rule.message === 'function') {
-					return rule.message(model.value, ...(rule.args || []));
+					return rule.message(model.value, ...(rule.args || []),name) as ValidationMessage ;
 				}
 				// The ValidationMessage is returned directly if message is not a function
-				return rule.message;
+				return rule.message as ValidationMessage ;
 			}
 		}
 		return null;
 	});
 
 	const validated = computed(() => {
+		console.info('validate',name,changed.value,validateField.value === null);
+		if (!changed.value) return true;
 		return validateField.value === null;
 	});
 
-	return { validateField, validated };
+	return { validateField, validated, required };
 }
 
 function useValidation() {
@@ -224,4 +233,4 @@ function useValidation() {
 		editPublicRoomSchema,
 	};
 }
-export { useFieldValidation, useValidation, validationRuleTypes };
+export { useFieldValidation, useValidation };

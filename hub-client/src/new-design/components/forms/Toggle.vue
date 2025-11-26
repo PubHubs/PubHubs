@@ -30,12 +30,12 @@
 
 	const model = defineModel();
 
-	const { setFocus, hasFocus, toggle } = useFormInput(model);
-
 	const props = defineProps({
 		disabled: {
 			type: Boolean,
 			default: false,
 		},
 	});
+
+	const { setFocus, hasFocus, toggle } = useFormInput(props, model);
 </script>

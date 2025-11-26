@@ -1,5 +1,5 @@
 <template>
-	<form class="border-accent-blue flex flex-col gap-100 border p-200">
+	<form class="flex flex-col gap-200">
 		<slot :isValidated="isValidated"></slot>
 	</form>
 </template>
@@ -11,15 +11,24 @@
 	const fields = reactive([] as Object[]);
 
 	const isValidated = computed(() => {
+		let changed = false;
+		fields.forEach((field) => {
+			changed = changed && field.changed;
+		});
+		console.info('form validation nothing changed', false);
+		if (!changed) return false;
+
 		let validated = true;
 		fields.forEach((field) => {
-			validated = field.validated && field;
+			console.info('validate', field.name, field.changed, field.validated);
+			validated = validated && field.validated;
 		});
+		console.info('form validation', validated);
 		return validated;
 	});
 
-	const addField = (model: any, validated: boolean) => {
-		fields.push({ value: model.value, validated: validated });
+	const addField = (name: string, model: any, changed: boolean, validated: boolean) => {
+		fields.push({ name: name, value: model, changed: changed, validated: validated });
 	};
 
 	provide('addField', addField);
