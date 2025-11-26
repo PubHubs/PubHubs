@@ -567,6 +567,7 @@ const nl = {
 		min_items: 'Te weinig {0}, er moeten minimaal {1} items zijn, maar er zijn {2}',
 		max_value: '{0} is te hoog, de maximale waarde is {1}, maar er zijn {2}',
 		min_value: '{0} moet minimaal een waarde van {1} hebben, maar er zijn {2}',
+		is_number: '{0} moet een getal zijn',
 	},
 	bubble: {
 		organize: 'Organiseer je hubs door ze te slepen.',

@@ -49,15 +49,27 @@
 				<Toggle :disabled="true">Disabled</Toggle>
 				<Toggle :disabled="true" :model-value="true">Disabled</Toggle>
 			</div>
+
+			<div class="border-spacing-200 rounded-lg border border-dotted border-purple-500 p-200">
+				<h2 class="mb-200">Inputs</h2>
+				<TextField placeholder="Type voornaam">Voornaam</TextField>
+				<TextField placeholder="Type achternaam" help="Hier dus je achternaam">Achternaam</TextField>
+				<TextField placeholder="Geef getal" help="Hoe oud ben je?">Leeftijd</TextField>
+
+				<h2 class="my-200">TextArea</h2>
+				<TextArea placeholder="Typ opmerking">Opmerking</TextArea>
+				<TextArea placeholder="Type veel" help="Echt lange tekst kan hier">Lange tekst</TextArea>
+				<TextArea placeholder="Extra">Nog meer</TextArea>
+			</div>
 		</div>
 
 		<div class="my-200 border-spacing-200 rounded-lg border border-dotted border-purple-500 p-200">
 			<h2 class="mb-200">Form Test</h2>
 
-			<FormBox v-slot="{ isValidated }" :values="formValues">
-				<TextField v-model="formValues.firstname" placeholder="Type voornaam">Voornaam</TextField>
-				<TextField v-model="formValues.lastname" placeholder="Type achternaam" :validation="{ required: true, minLength: 10 }" help="Hier dus je achternaam">Achternaam</TextField>
-				<TextField v-model="formValues.age" placeholder="Geef getal" :validation="{ required: true, isNumber: true, minValue: 2, maxValue: 20 }" help="Hoe oud ben je?">Leeftijd</TextField>
+			<ValidatedForm v-slot="{ isValidated }">
+				<TextField v-model="formValues.firstname" name="firstname" placeholder="Type voornaam">Voornaam</TextField>
+				<TextField v-model="formValues.lastname" name="lastname" placeholder="Type achternaam" :validation="{ required: true, minLength: 10 }" help="Hier dus je achternaam">Achternaam</TextField>
+				<TextField v-model="formValues.age" name="age" placeholder="Geef getal" :validation="{ required: true, isNumber: true, minValue: 2, maxValue: 20 }" help="Hoe oud ben je?">Leeftijd</TextField>
 
 				<div class="mb-200">
 					<Radio v-model="formValues.radio" value="first">Eerste</Radio>
@@ -75,11 +87,11 @@
 						<Toggle v-model="formValues.option2">Option 2</Toggle>
 					</div>
 				</div>
+
 				<ButtonGroup>
-					<Button :variant="buttonColorVariant.Secundary">Cancel</Button>
-					<Button :disabled="!isValidated">Submit</Button>
+					<Button :disabled="!isValidated" @click="clicked()">Submit</Button>
 				</ButtonGroup>
-			</FormBox>
+			</ValidatedForm>
 
 			<h2 class="my-200">Result values</h2>
 			<Json :json="formValues"></Json>
@@ -94,11 +106,11 @@
 	import ButtonGroup from '@hub-client/new-design/components/ButtonGroup.vue';
 	import IconButton from '@hub-client/new-design/components/IconButton.vue';
 	import Checkbox from '@hub-client/new-design/components/forms/Checkbox.vue';
-	import FormBox from '@hub-client/new-design/components/forms/FormBox.vue';
 	import Radio from '@hub-client/new-design/components/forms/Radio.vue';
 	import TextArea from '@hub-client/new-design/components/forms/TextArea.vue';
 	import TextField from '@hub-client/new-design/components/forms/TextField.vue';
 	import Toggle from '@hub-client/new-design/components/forms/Toggle.vue';
+	import ValidatedForm from '@hub-client/new-design/components/forms/ValidatedForm.vue';
 	import { buttonColorVariant, iconColorVariant, iconSizeVariant } from '@hub-client/new-design/types/component-variants';
 
 	type formType = {

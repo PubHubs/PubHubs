@@ -17,16 +17,24 @@
 
 <script setup lang="ts">
 	// Packages
+	import { inject, onMounted } from 'vue';
+
 	import Icon from '@hub-client/components/elements/Icon.vue';
 
 	import { useFieldValidation } from '@hub-client/composables/useValidation';
 
 	import { useFormInput } from '@hub-client/new-design/composables/useFormInput';
 
+	const addField = inject('addField') as Function;
+
 	const model = defineModel();
 
 	const props = defineProps({
 		placeholder: {
+			type: String,
+			default: '',
+		},
+		name: {
 			type: String,
 			default: '',
 		},
@@ -42,4 +50,10 @@
 
 	const { setFocus, hasFocus } = useFormInput(model);
 	const { validateField, validated } = useFieldValidation(model, props.validation);
+
+	onMounted(() => {
+		if (typeof addField === 'function') {
+			addField(model, validated);
+		}
+	});
 </script>

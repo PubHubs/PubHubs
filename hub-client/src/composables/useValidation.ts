@@ -1,5 +1,5 @@
 // Models
-import { ValidationMessage, ValidationRule, ValidationSchema, validationRuleTypes } from '@hub-client/models/validation/TValidate';
+import { ValidationMessage, ValidationMessageFn, ValidationRule, ValidationSchema, ValidatorFn, validationRuleTypes } from '@hub-client/models/validation/TValidate';
 import { computed, ref } from 'vue';
 
 /**
@@ -35,32 +35,63 @@ const validateFunctions: { [key: string]: Function } = {
 	},
 };
 
+const validateMessageFunctions: { [key:string]:Function} = {
+
+	required: (_: string, keyTranslation: string): ValidationMessage => {
+		return { translationKey: 'validation.required', parameters: [keyTranslation] };
+	},
+
+	minLength: (value: string, min: number, keyTranslation: string): ValidationMessage => {
+		return { translationKey: 'validation.min_length', parameters: [keyTranslation, min, value.length] };
+	},
+
+	maxLength: (value: string, max: number, keyTranslation: string): ValidationMessage => {
+		return { translationKey: 'validation.max_length', parameters: [keyTranslation, max, value.length] };
+	},
+
+	maxItems: (value: any[], max: number, keyTranslation: string): ValidationMessage => {
+		return { translationKey: 'validation.max_items', parameters: [keyTranslation, max, value.length] };
+	},
+
+	minValue: (value: number, min: number, keyTranslation: string): ValidationMessage => {
+		return { translationKey: 'validation.min_value', parameters: [keyTranslation, min, value] };
+	},
+
+	maxValue: (value: number, max: number, keyTranslation: string): ValidationMessage => {
+		return { translationKey: 'validation.max_value', parameters: [keyTranslation, max, value] };
+	},
+
+	isNumber: (_: number, keyTranslation: string): ValidationMessage => {
+		return { translationKey: 'validation.is_number', parameters: [keyTranslation] };
+	},
+
+
+}
+
 
 function useFieldValidation(model:any, validation:{}) {
 
-	const rules = computed(() => {
-		let rules = [] as ValidationRule[];
-		Object.keys(validation).every((key) => {
-						const func = validateFunctions[key];
-						rules.push({
-							validator:func(model.value),
-							args:[validation[key]],
-							message:''
-						});
-						// validated = validated && func(model.value, validation, changed.value);
-				// 		error.value = 'forms.validation.' + key;
-				// 		errorParam.value = validation[key];
-				// 		return validated;
-				// 	});
-				// }
+	const rules = [] as ValidationRule[];
+	const keys = Object.keys(validation);
+	if (keys.length>0) {
+		// console.info('validation',validation);
+		keys.forEach((key) => {
+			const validator = validateFunctions[key];
+			const args = validation[key] ? [validation[key]]: undefined;
+			const message = validateMessageFunctions[key];
+			// console.info('add rule',key,validator,args,message);
+			rules.push({
+				validator:validator as ValidatorFn,
+				args:args,
+				message:message as ValidationMessageFn,
+			});
 		});
-		console.info('rules',validation);
-		return rules;
-	});
+		// console.info('rules',validation,rules);
+	}
 
 	const validateField = computed(() => {
-		console.info('validateField',model.value,rules.value);
-		for (const rule of rules.value) {
+		console.info('validateField',model.value,rules);
+		for (const rule of rules) {
 			if (!rule.validator(model.value, ...(rule.args || []))) {
 				// If message is a function we get the returned ValidationMessage from the function
 				if (typeof rule.message === 'function') {
