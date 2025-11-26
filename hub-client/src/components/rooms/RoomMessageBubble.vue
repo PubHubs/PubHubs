@@ -118,24 +118,21 @@
 							</div>
 						</template>
 					</Suspense>
-					<P v-if="checkMessageContent(event.content.body)"
-						>{{ beforeRoomId(event.content.body) }}
-						<router-link :to="{ name: 'room', params: { id: getRoomId(event.content.body) } }" class="w-full text-accent-primary">{{ checkMessageContent(event.content.body) }} </router-link
+					<P v-if="checkMessageRoom(event.content.body)"
+						>{{ beforeRoomId(event.content.body) }} <router-link :to="{ name: 'room', params: { id: getRoomId(event.content.body) } }" class="text-accent-primary w-full">{{ checkMessageRoom(event.content.body) }} </router-link
 						>{{ afterRoomId(event.content.body) }}</P
 					>
 					<P v-else-if="checkMessageUser(event.content.body)"
 						>{{ beforeUserId(event.content.body) }}
-						<span @click.stop="emit('profileCardToggle', event.event_id)" class="text-accent-primary">{{ checkMessageUser(event.content.body) }}</span>
+						<span @mouseover="showProfileCardMention = !showProfileCardMention" class="text-accent-primary cursor-pointer">{{ checkMessageUser(event.content.body) }}</span>
 						{{ afterUserId(event.content.body) }}
-						<div class="relative">
-							<Popover v-if="showProfileCard" @close="emit('profileCardClose')" :class="['absolute z-50 h-40 w-52', profileInPosition(event) ? 'bottom-4' : '']">
-								<ProfileCard :event="event" :room="room" :room-member="roomMember" :user="getUserId(event.content.body)" />
-							</Popover>
-						</div>
 					</P>
+					<Message v-else="event.content.msgtype === MsgType.Text || redactedMessage" :event="event" :deleted="redactedMessage" class="max-w-[90ch]" />
+					<div></div>
+					<div v-if="showProfileCardMention" :class="['absolute z-50 h-40 w-52', profileInPosition(event) ? 'bottom-4' : '']">
+						<ProfileCard :event="event" :room="null" :userId="getUserId(event.content.body)" />
+					</div>
 
-					<Message v-else-if="event.content.msgtype === MsgType.Text || redactedMessage" :event="event" :deleted="redactedMessage" class="max-w-[90ch]" />
-					<P>{{ getUserId(event.content.body) }}</P>
 					<AnnouncementMessage v-if="isAnnouncementMessage && !redactedMessage && !room.isPrivateRoom()" :event="event.content" />
 					<MessageSigned v-if="event.content.msgtype === PubHubsMgType.SignedMessage && !redactedMessage" :message="event.content.signed_message" class="max-w-[90ch]" />
 					<MessageFile v-if="event.content.msgtype === MsgType.File && !redactedMessage" :message="event.content" />
@@ -171,7 +168,6 @@
 
 <script setup lang="ts">
 	// Packages
-	import RoomSideKick from './RoomSideKick.vue';
 	import { IEvent, MsgType } from 'matrix-js-sdk';
 	import { PropType, computed, onBeforeUnmount, onMounted, ref, watch } from 'vue';
 	import { useI18n } from 'vue-i18n';
@@ -223,6 +219,7 @@
 	const elReactionPopUp = ref<HTMLElement | null>(null);
 	const rooms = useRooms();
 
+	const showProfileCardMention = ref(false);
 	let roomMember = ref();
 	let threadLength = ref(0);
 
@@ -403,7 +400,7 @@
 		// If the top of the bubble is below the middle of the viewport, open upwards
 		return position.top > window.innerHeight / 2;
 	}
-	function checkMessageContent(messagebody: string) {
+	function checkMessageRoom(messagebody: string) {
 		if (messagebody && messagebody.includes('#')) {
 			const start = messagebody.indexOf('#') + 1; // Start after '#'
 			const end = messagebody.indexOf(' ', start); // Find the first space after '#'
@@ -416,7 +413,7 @@
 	function checkMessageUser(messagebody: string) {
 		if (messagebody && messagebody.includes('@')) {
 			const start = messagebody.indexOf('@'); // Start after '#'
-			const end = messagebody.indexOf(' ', start); // Find the first space after '#'
+			const end = messagebody.indexOf('~', start); // Find the first space after '#'
 			const userId = messagebody.substring(start, end === -1 ? messagebody.length : end);
 			return userId;
 		}

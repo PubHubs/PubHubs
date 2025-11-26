@@ -363,16 +363,18 @@
 
 		// Make sure pseudonym is included if it hasn't
 		if (!filters.extractPseudonymFromString(userMention)) {
-			userMention += '~' + filters.extractPseudonym(user.userId);
+			userMention = '@' + userMention + '~' + user.userId; //filters.extractPseudonym(user.userId);
+		} else {
+			userMention = user.userId;
 		}
 
 		let message = value.value?.toString();
 		if (message?.lastIndexOf('@') !== -1) {
 			const lastPosition = message?.lastIndexOf('@');
 			message = message?.substring(0, lastPosition);
-			value.value = message + ' @' + userMention;
+			value.value = message + userMention;
 		} else {
-			value.value += ' @' + userMention;
+			value.value += userMention;
 		}
 	}
 	function mentionRoom(room: TPublicRoom) {
@@ -382,9 +384,9 @@
 		if (message?.lastIndexOf('#') !== -1) {
 			const lastPosition = message?.lastIndexOf('#');
 			message = message?.substring(0, lastPosition);
-			value.value = message + ' #' + roomMention;
+			value.value = message + '#' + roomMention;
 		} else {
-			value.value += ' #' + roomMention;
+			value.value += '#' + roomMention;
 		}
 	}
 
