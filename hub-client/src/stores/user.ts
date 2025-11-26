@@ -120,14 +120,14 @@ const useUser = defineStore('user', {
 
 		async setDisplayName(name: string) {
 			assert.isDefined(this.client, 'MatrixClient in userstore not initialized');
-			await this.client.setDisplayName(name);
 			this._displayName = name;
+			this.client.setDisplayName(name);
 		},
 
 		async setAvatarMxcUrl(avatarUrl: string) {
 			assert.isDefined(this.client, 'MatrixClient in userstore not initialized');
-			await this.client.setAvatarUrl(avatarUrl);
 			this._avatarMxcUrl = avatarUrl;
+			this.client.setAvatarUrl(avatarUrl);
 		},
 
 		// Profile setter method for me.

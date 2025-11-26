@@ -25,7 +25,7 @@
 				</span>
 			</MenuItem>
 		</template>
-		<template v-if="props.roomType === RoomType.PH_MESSAGES_RESTRICTED" v-for="notification in notifications" :key="notification.room_id" class="relative flex flex-row">
+		<template v-if="props.roomTypes.length === 1 && props.roomTypes[0] === RoomType.PH_MESSAGES_RESTRICTED" v-for="notification in notifications" :key="notification.room_id" class="relative flex flex-row">
 			<MenuItem
 				icon="shield"
 				v-if="notification.room_id"
@@ -89,7 +89,7 @@
 
 	const settings = useSettings();
 	const hubSettings = useHubSettings();
-	const notificationsStore = useNotifications();
+	const notifications = useNotifications();
 	const { t } = useI18n();
 	const router = useRouter();
 	const rooms = useRooms();

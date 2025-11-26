@@ -77,14 +77,14 @@ class Authentication {
 	 * global client.
 	 */
 
-	public redirectToPubHubsLogin() {
-		this.client = sdk.createClient({
-			baseUrl: this.baseUrl,
-		});
-		this.baseUrl = window.location.href;
-		const ssoURL = this.client.getSsoLoginUrl(this.baseUrl);
-		window.location.replace(ssoURL);
-	}
+	// public redirectToPubHubsLogin() {
+	// 	this.client = sdk.createClient({
+	// 		baseUrl: this.baseUrl,
+	// 	});
+	// 	this.baseUrl = window.location.href;
+	// 	const ssoURL = this.client.getSsoLoginUrl(this.baseUrl);
+	// 	window.location.replace(ssoURL);
+	// }
 
 	/**
 	 * Actual login method
@@ -92,12 +92,19 @@ class Authentication {
 
 	login() {
 		this.user = useUser();
-		return new Promise((resolve, reject) => {
+		return new Promise(async (resolve, reject) => {
 			// First check if we have an accesstoken stored
 			const { auth, newToken } = this._fetchAuth();
 			if (auth !== null && auth.baseUrl === this.baseUrl) {
 				auth.timelineSupport = true;
+
+				// create store for indexedDB caching
+				const indexedDBStore = new sdk.IndexedDBStore({ indexedDB: window.indexedDB, dbName: 'pubhubs-matrix-db' });
+				auth.store = indexedDBStore;
+
 				this.client = sdk.createClient(auth);
+
+				await indexedDBStore.startup();
 			} else {
 				// There should be an accesstoken (and userId) stored, otherwise something went wrong
 				reject('Could not find an access token and/or userId for this hub.');

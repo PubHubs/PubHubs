@@ -19,7 +19,7 @@
 	import { MatrixEvent } from 'matrix-js-sdk';
 	import { computed } from 'vue';
 
-	import { RelationType } from '@hub-client/models/constants';
+	import { Redaction, RelationType } from '@hub-client/models/constants';
 
 	import { usePubhubsStore } from '@hub-client/stores/pubhubs';
 	import { useRooms } from '@hub-client/stores/rooms';
@@ -27,7 +27,6 @@
 	const pubhubs = usePubhubsStore();
 	const rooms = useRooms();
 
-	const roomId = rooms.currentRoom?.roomId;
 	const currentUserId = pubhubs.client.getUserId();
 
 	const props = defineProps<{ reactEvent: MatrixEvent[]; messageEventId: string }>();
@@ -67,7 +66,7 @@
 		if (!rooms.currentRoom?.roomId) return;
 		try {
 			for (const eventId of eventIds) {
-				await pubhubs.client.redactEvent(rooms.currentRoom?.roomId, eventId);
+				await pubhubs.client.redactEvent(rooms.currentRoom?.roomId, eventId, undefined, { reason: Redaction.Deleted });
 				rooms.currentRoom.addToRedactedEventIds(eventId);
 			}
 		} catch (e) {

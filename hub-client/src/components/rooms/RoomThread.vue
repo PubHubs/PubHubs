@@ -28,14 +28,6 @@
 					@clicked-emoticon="sendEmoji"
 				>
 				</RoomMessageBubble>
-
-				<div class="flex flex-wrap gap-2 px-20">
-					<Reaction
-						v-if="reactionExistsForMessage(props.room.currentThread?.rootEvent?.event.event_id, props.room.currentThread?.rootEvent)"
-						:reactEvent="onlyReactionEvents"
-						:messageEventId="props.room.currentThread?.rootEvent?.event.event_id"
-					/>
-				</div>
 			</div>
 
 			<!-- Thread replies -->
@@ -59,7 +51,7 @@
 
 					<!-- Reaction display for message -->
 					<div class="flex flex-wrap gap-2 px-20">
-						<Reaction v-if="reactionExistsForMessage(item.matrixEvent.event.event_id, item.matrixEvent)" :reactEvent="onlyReactionEvents" :messageEventId="item.matrixEvent.event.event_id" />
+						<Reaction v-if="reactionExistsForMessage(item)" :reactEvent="onlyReactionEvents" :messageEventId="item.matrixEvent.event.event_id" />
 					</div>
 				</div>
 			</div>
@@ -75,7 +67,7 @@
 
 <script setup lang="ts">
 	// Packages
-	import { MatrixEvent } from 'matrix-js-sdk';
+	import { EventType, MatrixEvent } from 'matrix-js-sdk';
 	import { Reactive, computed, nextTick, onMounted, onUnmounted, reactive, ref, watch } from 'vue';
 
 	// Components
@@ -89,7 +81,7 @@
 	import { SMI } from '@hub-client/logic/logging/StatusMessage';
 
 	// Models
-	import { RelationType, RoomEmit, ScrollPosition, ScrollSelect } from '@hub-client/models/constants';
+	import { MatrixEventType, RelationType, RoomEmit, ScrollPosition, ScrollSelect } from '@hub-client/models/constants';
 	import { TMessageEvent, TMessageEventContent } from '@hub-client/models/events/TMessageEvent';
 	import { TimelineEvent } from '@hub-client/models/events/TimelineEvent';
 	import Room from '@hub-client/models/rooms/Room';
@@ -120,7 +112,7 @@
 	const numberOfThreadEvents = computed(() => Math.max(filteredEvents.value.length, 1));
 
 	const onlyReactionEvents = computed(() => {
-		props.room.getRelatedEvents().forEach((reactEvent) => props.room.addCurrentEventToRelatedEvent(reactEvent));
+		props.room.getRelatedEvents({ eventType: EventType.Reaction }).forEach((reactEvent) => props.room.addCurrentEventToRelatedEvent(reactEvent));
 		return props.room.getCurrentEventRelatedEvents();
 	});
 

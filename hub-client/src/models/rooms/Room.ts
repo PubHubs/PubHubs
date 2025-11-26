@@ -11,7 +11,7 @@ import { useRoomLibrary } from '@hub-client/composables/useRoomLibrary';
 import { LOGGER } from '@hub-client/logic/logging/Logger';
 import { SMI } from '@hub-client/logic/logging/StatusMessage';
 
-import { Redaction, RelationType, SystemDefaults } from '@hub-client/models/constants';
+import { Redaction, RelatedEventsOptions, RelationType, SystemDefaults } from '@hub-client/models/constants';
 // Models
 import { TBaseEvent } from '@hub-client/models/events/TBaseEvent';
 import { TMessageEvent, TMessageEventContent } from '@hub-client/models/events/TMessageEvent';
@@ -555,8 +555,8 @@ export default class Room {
 		return latestEventsPerUser;
 	}
 
-	public getRelatedEvents(): MatrixEvent[] {
-		return this.timelineManager.getTimeLineRelatedEvents().map((event) => event.matrixEvent);
+	public getRelatedEvents(options: RelatedEventsOptions = {}): MatrixEvent[] {
+		return this.timelineManager.getTimeLineRelatedEvents(options).map((event) => event.matrixEvent);
 	}
 
 	public getReactEventsFromTimeLine(): MatrixEvent[] {
@@ -581,6 +581,7 @@ export default class Room {
 			return new MatrixEvent(event);
 		});
 
+		// BEGIN THREADS
 		// Threads are kept on room-level, so all events regarding the current thread need to be filtered and handled first.
 
 		// Handle thread redactions, for now only the DeletedFromThread events
@@ -600,9 +601,10 @@ export default class Room {
 		if (currentThreadEvents.length > 0 || redactions.length > 0) {
 			this.threadUpdated = !this.threadUpdated;
 		}
+		// END THREADS
 
 		// Handle all other events and redactions, not in a thread
-		const nonThreadEvents = eventList.filter((event) => event.getContent()[RelationType.RelatesTo]?.[RelationType.RelType] !== RelationType.Thread).slice(-SystemDefaults.RoomTimelineLimit);
+		const nonThreadEvents = eventList.filter((event) => event.getContent()[RelationType.RelatesTo]?.[RelationType.RelType] !== RelationType.Thread).slice(-SystemDefaults.roomTimelineLimit);
 		this.timelineManager.loadFromSlidingSync(nonThreadEvents).then((scrollToEventId) => {
 			if (scrollToEventId) {
 				this.setCurrentEvent({ eventId: scrollToEventId });
