@@ -65,7 +65,7 @@ const validateMessageFunctions: { [key: string]: Function } = {
 	},
 };
 
-function useFieldValidation(name: string, model: any, validation = undefined) {
+function useFieldValidation(name: string, model: any, validation?: Object) {
 	const changed = ref(false);
 	const required = ref(false);
 	const rules = [] as ValidationRule[];

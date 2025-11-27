@@ -69,6 +69,16 @@
 				<TextArea placeholder="Type veel" help="Echt lange tekst kan hier">Lange tekst</TextArea>
 				<TextArea placeholder="Extra">Nog meer</TextArea>
 			</div>
+
+			<div class="border-spacing-200 rounded-lg border border-dotted border-purple-500 p-200">
+				<h2 class="mb-200">Alt components</h2>
+
+				<div class="flex flex-col gap-100">
+					<Button2 icon="check-circle" @click="clicked()" variant="primary" title="this is a tooltip">I am a button </Button2>
+
+					<TextField2 placeholder="Geef getal" :validation="{ isNumber: true, minValue: 2 }" help="Hoe oud ben je?">Leeftijd</TextField2>
+				</div>
+			</div>
 		</div>
 
 		<div class="my-200 border-spacing-200 rounded-lg border border-dotted border-purple-500 p-200">
@@ -113,6 +123,7 @@
 	import Button from '@hub-client/new-design/components/Button.vue';
 	import ButtonGroup from '@hub-client/new-design/components/ButtonGroup.vue';
 	import IconButton from '@hub-client/new-design/components/IconButton.vue';
+	import TextField2 from '@hub-client/new-design/components/TextField-v2.vue';
 	import Checkbox from '@hub-client/new-design/components/forms/Checkbox.vue';
 	import Radio from '@hub-client/new-design/components/forms/Radio.vue';
 	import TextArea from '@hub-client/new-design/components/forms/TextArea.vue';
