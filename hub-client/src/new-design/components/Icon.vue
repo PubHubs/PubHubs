@@ -7,13 +7,24 @@
 	</div>
 </template>
 
+<script lang="ts">
+	export enum iconSizeVariant {
+		Small = 'sm',
+		Base = 'base',
+	}
+	export type sVariant = keyof typeof iconSizeVariant;
+
+	export const iconSize: { [key: string]: string } = {
+		[iconSizeVariant.Small]: '16',
+		[iconSizeVariant.Base]: '24',
+	};
+</script>
+
 <script setup lang="ts">
 	// Packages
 	import { PropType, computed } from 'vue';
 
 	import { iconTypes, icons } from '@hub-client/assets/icons';
-
-	import { iconSize, iconSizeVariant } from '@hub-client/new-design/types/component-variants';
 
 	const props = defineProps({
 		type: {
