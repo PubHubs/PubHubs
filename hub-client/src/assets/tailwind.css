@@ -38,14 +38,13 @@
 }
 
 :root {
-	/* New colors */
+	/* New values */
 	--surface-background: #ffffff; /* Used for backgrounds */
 	--surface-base: #e3e5e8; /* Used for large surfaces */
 	--surface-elevated: #d1d1d1; /* Used for surfaces on top of a background or surface */
 	--on-surface-dim: #717171; /* Used for dim text */
 	--on-surface: #3d3c3c; /* Used for text */
 	--on-surface-bright: #202020; /* Used for bright text */
-
 	--accent-blue: #005a9e; /* Used for theming */
 	--on-accent-blue: #c0e3fd; /* Used for text on primary accent */
 	--accent-green: #4c6b1f;
@@ -56,13 +55,15 @@
 	--on-accent-red: #ffd5d2;
 	--accent-purple: #5e24ae;
 	--on-accent-purple: #e8d2ff;
-
 	--button-blue: #1868db;
 	--on-button-blue: #eaf3ff;
 	--button-red: #c9372c;
 	--on-button-red: #ffeeec;
 
-	/* Old colors */
+	--font-atkinson: 'Atkinson Hyperlegible', sans-serif;
+	--font-inter: 'Inter', sans-serif;
+
+	/* Old values */
 	--background: #ffffff; /* Used for room background */
 	--surface-low: #f2f3f5; /* Used for the room top bar and hub bar */
 	--surface: #e3e5e8; /* Used for the hub top bar and global bar */
@@ -92,20 +93,16 @@
 	--on-accent-blue: #000000;
 	--accent-orange: #fcba6d;
 	--on-accent-orange: #000000;
-
-	--font-atkinson: 'Atkinson Hyperlegible', sans-serif;
-	--font-inter: 'Inter', sans-serif;
 }
 
 .dark {
-	/* New colors (dark) */
+	/* New values (dark) */
 	--surface-background: #464545; /* Used for backgrounds */
 	--surface-base: #2f2e2e; /* Used for large surfaces */
 	--surface-elevated: #202020; /* Used for surfaces on top of a background or surface */
 	--on-surface-dim: #bbbbbb; /* Used for dim text */
 	--on-surface: #e3e5e8; /* Used for text */
 	--on-surface-bright: #ffffff; /* Used for bright text */
-
 	--accent-blue: #c0e3fd; /* Used for theming */
 	--on-accent-blue: #005a9e; /* Used for text on primary accent */
 	--accent-green: #d3f1a7;
@@ -116,13 +113,12 @@
 	--on-accent-red: #ae2e24;
 	--accent-purple: #e8d2ff;
 	--on-accent-purple: #5e24ae;
-
 	--button-blue: #3dadff;
 	--on-button-blue: #003178;
 	--button-red: #f87168;
 	--on-button-red: #600700;
 
-	/* Old colors (dark) */
+	/* Old values (dark) */
 	--background: #464545;
 	--surface-low: #3d3c3c;
 	--surface: #2f2e2e;
@@ -180,8 +176,9 @@
 
 	/* --radius-*: initial; */
 	--radius-none: 0px;
-	--radius-small: 4px;
-	--radius-base: 8px;
+	--radius-small: 2px;
+	--radius-base: 4px;
+	--radius-large: 8px;
 	--radius-full: calc(infinity * 1px);
 
 	--spacing-*: initial;
