@@ -15,11 +15,11 @@
 					<Button icon="circle" secondary-icon="circle" :loading="true" @click="clicked()">Loading</Button>
 					<Button icon="warning" secondary-icon="smiley" @click="clicked()">Extreem lange tekst in deze button die moet worden afgekapt maar wel in de title</Button>
 					<div class="flex items-center gap-100">
-						<Button icon="pencil-simple" @click="clicked()" title="Handig deze title"></Button>
-						<Button icon="folder-simple" variant="secondary" @click="clicked()" title="Handig deze title"></Button>
-						<Button icon="folder-simple" variant="tertiary" @click="clicked()" title="Handig deze title"></Button>
-						<Button icon="warning" variant="error" @click="clicked()" title="Handig deze title"></Button>
-						<Button icon="warning" variant="error" @click="clicked()" :loading="true" :disabled="true" title="Handig deze title"></Button>
+						<Button icon="pencil-simple" @click="clicked()" aria-label="Label voor screenreaders" title="Handig deze title"></Button>
+						<Button icon="folder-simple" variant="secondary" @click="clicked()" aria-label="Label voor screenreaders" title="Handig deze title"></Button>
+						<Button icon="folder-simple" variant="tertiary" @click="clicked()" aria-label="Label voor screenreaders" title="Handig deze title"></Button>
+						<Button icon="warning" variant="error" @click="clicked()" aria-label="Label voor screenreaders" title="Handig deze title"></Button>
+						<Button icon="warning" variant="error" @click="clicked()" :loading="true" :disabled="true" aria-label="Label voor screenreaders" title="Handig deze title"></Button>
 					</div>
 				</div>
 
@@ -31,12 +31,12 @@
 
 				<h2 class="my-200">IconButton</h2>
 				<div class="gap-050 flex flex-col">
-					<IconButton icon="check-circle" @click="clicked()" title="Handig deze title"></IconButton>
-					<IconButton icon="check-circle" size="sm" @click="clicked()" title="Handig deze title"></IconButton>
-					<IconButton icon="smiley" variant="secondary" @click="clicked()" title="Handig deze title"></IconButton>
-					<IconButton icon="smiley" size="sm" variant="secondary" @click="clicked()" title="Handig deze title"></IconButton>
-					<IconButton icon="warning" variant="secondary" :disabled="true" @click="clicked()" title="Handig deze title"></IconButton>
-					<IconButton icon="warning" size="sm" variant="secondary" :disabled="true" @click="clicked()" title="Handig deze title"></IconButton>
+					<IconButton icon="check-circle" @click="clicked()" aria-label="Label voor screenreaders" title="Handig deze title"></IconButton>
+					<IconButton icon="check-circle" size="sm" @click="clicked()" aria-label="Label voor screenreaders" title="Handig deze title"></IconButton>
+					<IconButton icon="smiley" variant="secondary" @click="clicked()" aria-label="Label voor screenreaders" title="Handig deze title"></IconButton>
+					<IconButton icon="smiley" size="sm" variant="secondary" @click="clicked()" aria-label="Label voor screenreaders" title="Handig deze title"></IconButton>
+					<IconButton icon="warning" variant="secondary" :disabled="true" @click="clicked()" aria-label="Label voor screenreaders" title="Handig deze title"></IconButton>
+					<IconButton icon="warning" size="sm" variant="secondary" :disabled="true" @click="clicked()" aria-label="Label voor screenreaders" title="Handig deze title"></IconButton>
 				</div>
 			</div>
 
@@ -76,7 +76,7 @@
 				<h2 class="mb-200">Alt components</h2>
 
 				<div class="flex flex-col gap-100">
-					<Button2 icon="check-circle" @click="clicked()" variant="primary" title="this is a tooltip">I am a button </Button2>
+					<Button icon="check-circle" @click="clicked()" variant="primary" title="this is a tooltip">I am a button </Button>
 
 					<TextField2 placeholder="Geef getal" :validation="{ isNumber: true, minValue: 2 }" help="Hoe oud ben je?">Leeftijd</TextField2>
 				</div>
