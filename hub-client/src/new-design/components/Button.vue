@@ -118,6 +118,7 @@
 
 	const iconSize = computed(() => {
 		if (isIconOnly.value && props.size === '') return 'base';
+		if (!isIconOnly.value && props.size === '') return 'sm';
 		return props.size;
 	});
 
