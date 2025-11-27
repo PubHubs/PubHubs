@@ -31,7 +31,6 @@
 
 	import { useFormInput } from '@hub-client/new-design/composables/useFormInput';
 
-	const addField = inject('addField') as Function;
 	const model = defineModel();
 	const props = defineProps({
 		placeholder: {
@@ -56,8 +55,11 @@
 	const { validateField, validated, required } = useFieldValidation(fieldName.value, model, props.validation);
 
 	onMounted(() => {
-		if (typeof addField === 'function' && props.validation) {
-			addField(fieldName.value, model, changed, validated);
+		if (props.validation) {
+			const addField = inject('addField') as Function;
+			if (typeof addField === 'function') {
+				addField(fieldName.value, model, changed, validated);
+			}
 		}
 	});
 </script>
