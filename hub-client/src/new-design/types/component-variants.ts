@@ -37,9 +37,9 @@ export const buttonBgColors: { [key: string]: string } = {
 };
 
 export const buttonTextColors: { [key: string]: string } = {
-	[buttonColorVariant.Primary]: 'text-button-on-blue',
+	[buttonColorVariant.Primary]: 'text-on-button-blue',
 	[buttonColorVariant.Secundary]: 'text-surface-on-surface-dim',
 	[buttonColorVariant.Tertiary]: 'text-surface-on-surface-dim',
-	[buttonColorVariant.Error]: 'text-button-on-red',
+	[buttonColorVariant.Error]: 'text-on-button-red',
 	[buttonColorVariant.Disabled]: 'text-surface-on-surface-dim',
 };

@@ -4,7 +4,7 @@
 			<div v-if="!model" class="bg-surface-base border-on-surface-dim border-thin h-200 w-200 rounded" :class="{ 'ring-button-blue ring-3': hasFocus, 'opacity-50': disabled }"></div>
 			<div
 				v-else
-				class="bg-button-on-blue outline-accent-on-blue p-thin outline-offset-thin flex h-200 w-200 flex-col items-center justify-center rounded outline"
+				class="bg-on-button-blue outline-accent-on-blue p-thin outline-offset-thin flex h-200 w-200 flex-col items-center justify-center rounded outline"
 				:class="{ 'ring-button-blue ring-3': hasFocus, 'opacity-50': disabled }"
 			>
 				<div class="relative h-150 w-150 overflow-hidden rounded">
