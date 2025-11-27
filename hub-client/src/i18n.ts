@@ -1,7 +1,7 @@
-import { I18nOptions, createI18n } from 'vue-i18n';
-
 // Packages
 import { App } from 'vue';
+import { I18nOptions, createI18n } from 'vue-i18n';
+
 // Locales
 import { en } from '@hub-client/locales/en';
 // Logic

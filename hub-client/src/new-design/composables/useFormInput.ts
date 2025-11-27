@@ -3,7 +3,7 @@ import { computed, getCurrentInstance, onMounted, ref, useSlots } from 'vue';
 
 import { firstToUpper } from '@hub-client/logic/core/extensions';
 
-export function useFormInput(props:any, model: any | undefined = undefined) {
+export function useFormInput(props: any, model: any | undefined = undefined) {
 	const changed = ref(false);
 	const hasFocus = ref(false);
 
@@ -32,7 +32,7 @@ export function useFormInput(props:any, model: any | undefined = undefined) {
 
 	const update = () => {
 		changed.value = true;
-	}
+	};
 
 	// For radio inputs
 	const select = (value: string | number | boolean) => {

@@ -1,6 +1,7 @@
-import { ValidationMessage, ValidationMessageFn, ValidationRule, ValidationSchema, ValidatorFn } from '@hub-client/models/validation/TValidate';
 // Models
 import { computed, ref } from 'vue';
+
+import { ValidationMessage, ValidationMessageFn, ValidationRule, ValidationSchema, ValidatorFn } from '@hub-client/models/validation/TValidate';
 
 /**
  * useValidation provides a framework for form validation.
@@ -64,7 +65,7 @@ const validateMessageFunctions: { [key: string]: Function } = {
 	},
 };
 
-function useFieldValidation(name:string, model: any, validation = undefined) {
+function useFieldValidation(name: string, model: any, validation = undefined) {
 	const changed = ref(false);
 	const required = ref(false);
 	const rules = [] as ValidationRule[];
@@ -75,11 +76,11 @@ function useFieldValidation(name:string, model: any, validation = undefined) {
 		if (keys.length > 0) {
 			keys.forEach((key) => {
 				let rule = {
-					validator : validateFunctions[key],
+					validator: validateFunctions[key],
 					args: [] as any[],
-					message : validateMessageFunctions[key]
+					message: validateMessageFunctions[key],
 				} as ValidationRule;
-				if (validation[key] && typeof(validation[key])!=="boolean") {
+				if (validation[key] && typeof validation[key] !== 'boolean') {
 					rule.args = [validation[key]];
 				}
 				rules.push(rule);
@@ -90,24 +91,24 @@ function useFieldValidation(name:string, model: any, validation = undefined) {
 
 	const validateField = computed(() => {
 		// console.info('validateField', model.value, rules);
-		if (!changed.value && model.value!==undefined) {
+		if (!changed.value && model.value !== undefined) {
 			changed.value = true;
 		}
 		for (const rule of rules) {
 			if (!rule.validator(model.value, ...(rule.args || []))) {
 				// If message is a function we get the returned ValidationMessage from the function
 				if (typeof rule.message === 'function') {
-					return rule.message(model.value, ...(rule.args || []),name) as ValidationMessage ;
+					return rule.message(model.value, ...(rule.args || []), name) as ValidationMessage;
 				}
 				// The ValidationMessage is returned directly if message is not a function
-				return rule.message as ValidationMessage ;
+				return rule.message as ValidationMessage;
 			}
 		}
 		return null;
 	});
 
 	const validated = computed(() => {
-		console.info('validate',name,changed.value,validateField.value === null);
+		console.info('validate', name, changed.value, validateField.value === null);
 		if (!changed.value) return true;
 		return validateField.value === null;
 	});

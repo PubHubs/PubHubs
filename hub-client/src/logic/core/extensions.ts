@@ -90,8 +90,8 @@ const filterAlphanumeric = (text: string): string => {
 	return text.replace(pattern, ' ').trim();
 };
 
-const firstToUpper = (text:string) : string => {
+const firstToUpper = (text: string): string => {
 	return text[0].toUpperCase() + text.substring(1);
-}
+};
 
 export { memoize, propCompare, trimSplit, isEmpty, isObject, mergeDeep, filterAlphanumeric, firstToUpper };

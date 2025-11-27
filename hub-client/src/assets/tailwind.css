@@ -180,7 +180,7 @@
 
 	/* --radius-*: initial; */
 	--radius-none: 0px;
-	--radius-small: 4px; 
+	--radius-small: 4px;
 	--radius-base: 8px;
 	--radius-full: calc(infinity * 1px);
 
