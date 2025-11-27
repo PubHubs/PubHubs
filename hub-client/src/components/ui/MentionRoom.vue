@@ -61,7 +61,6 @@
 		// If the current message includes a @, we need to get all other users in the room
 		// when it does not, we keep the user-dialog invisible
 		if (props.msg?.includes('#')) {
-			rooms.fetchPublicRooms();
 			users.value = rooms.publicRooms || [];
 
 			// Check at which position the @ is and if there is a list of

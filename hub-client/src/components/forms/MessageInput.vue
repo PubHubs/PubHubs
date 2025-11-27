@@ -305,30 +305,6 @@
 
 		elTextInput.value?.$el.focus();
 	});
-	// function checkMessageContent(messagebody: string) {
-	// 	if (messagebody && messagebody.includes('#')) {
-	// 		const start = messagebody.indexOf('#') + 1; // Start after '#'
-	// 		const end = messagebody.indexOf(' ', start); // Find the first space after '#'
-	// 		const roomId = messagebody.substring(start, end === -1 ? messagebody.length : end);
-	// 		rooms.fetchPublicRooms();
-	// 		const room = rooms.getTPublicRoom(roomId);
-	// 		return '#' + room?.name;
-	// 	}
-	// }
-
-	// function afterRoomId(messagebody: string) {
-	// 	if (messagebody && messagebody.includes('#')) {
-	// 		const start = messagebody.indexOf('#') + 1;
-	// 		const end = messagebody.indexOf(' ', start);
-	// 		return messagebody.slice(end === -1 ? messagebody.length : end);
-	// 	}
-	// }
-	// function beforeRoomId(messagebody: string) {
-	// 	if (messagebody && messagebody.includes('#')) {
-	// 		const start = messagebody.indexOf('#') + 1;
-	// 		return messagebody.slice(0, start - 1);
-	// 	}
-	// }
 
 	function clickedEmoticon(emoji: string) {
 		value.value += emoji;
@@ -378,7 +354,7 @@
 		}
 	}
 	function mentionRoom(room: TPublicRoom) {
-		let roomMention = room.room_id;
+		let roomMention = room.name + '~' + room.room_id;
 
 		let message = value.value?.toString();
 		if (message?.lastIndexOf('#') !== -1) {

@@ -118,19 +118,22 @@
 							</div>
 						</template>
 					</Suspense>
-					<P v-if="checkMessageRoom(event.content.body)"
-						>{{ beforeRoomId(event.content.body) }} <router-link :to="{ name: 'room', params: { id: getRoomId(event.content.body) } }" class="text-accent-primary w-full">{{ checkMessageRoom(event.content.body) }} </router-link
-						>{{ afterRoomId(event.content.body) }}</P
+					<!-- :to="{ name: 'room', params: { id: getRoomId(event.content.body) } }" -->
+					<P v-if="roomMention"
+						>{{ roomMention.before }} <span class="text-accent-primary cursor-pointer" @mouseover="showRoomCardMention = !showRoomCardMention">{{ roomMention.displayName }} </span>{{ roomMention.after }}</P
 					>
-					<P v-else-if="checkMessageUser(event.content.body)"
-						>{{ beforeUserId(event.content.body) }}
-						<span @mouseover="showProfileCardMention = !showProfileCardMention" class="text-accent-primary cursor-pointer">{{ checkMessageUser(event.content.body) }}</span>
-						{{ afterUserId(event.content.body) }}
+					<P v-else-if="userMention"
+						>{{ userMention.before }}
+						<span @mouseover="showProfileCardMention = !showProfileCardMention" class="text-accent-primary cursor-pointer">{{ userMention.userId }}</span>
+						{{ userMention.after }}
 					</P>
 					<Message v-else="event.content.msgtype === MsgType.Text || redactedMessage" :event="event" :deleted="redactedMessage" class="max-w-[90ch]" />
-					<div></div>
-					<div v-if="showProfileCardMention" :class="['absolute z-50 h-40 w-52', profileInPosition(event) ? 'bottom-4' : '']">
-						<ProfileCard :event="event" :room="null" :userId="getUserId(event.content.body)" />
+
+					<div v-if="showProfileCardMention && userMention" class="absolute z-50 h-40 w-52">
+						<ProfileCard :event="event" :room="null" :userId="userMention.id" />
+					</div>
+					<div v-if="showRoomCardMention && roomMention" class="absolute z-50 h-10 w-52">
+						<RoomMiniCard :roomId="roomMention.id"></RoomMiniCard>
 					</div>
 
 					<AnnouncementMessage v-if="isAnnouncementMessage && !redactedMessage && !room.isPrivateRoom()" :event="event.content" />
@@ -168,6 +171,7 @@
 
 <script setup lang="ts">
 	// Packages
+	import RoomMiniCard from './RoomMiniCard.vue';
 	import { IEvent, MsgType } from 'matrix-js-sdk';
 	import { PropType, computed, onBeforeUnmount, onMounted, ref, watch } from 'vue';
 	import { useI18n } from 'vue-i18n';
@@ -220,6 +224,7 @@
 	const rooms = useRooms();
 
 	const showProfileCardMention = ref(false);
+	const showRoomCardMention = ref(false);
 	let roomMember = ref();
 	let threadLength = ref(0);
 
@@ -400,70 +405,69 @@
 		// If the top of the bubble is below the middle of the viewport, open upwards
 		return position.top > window.innerHeight / 2;
 	}
-	function checkMessageRoom(messagebody: string) {
-		if (messagebody && messagebody.includes('#')) {
-			const start = messagebody.indexOf('#') + 1; // Start after '#'
-			const end = messagebody.indexOf(' ', start); // Find the first space after '#'
-			const roomId = messagebody.substring(start, end === -1 ? messagebody.length : end);
-			rooms.fetchPublicRooms();
-			const room = rooms.getTPublicRoom(roomId);
-			return '#' + room?.name;
-		}
+
+	interface ParsedToken {
+		before: string;
+		token: string;
+		after: string;
+		id: string;
+		raw: string; // full match including marker
+		start: number;
+		end: number;
 	}
-	function checkMessageUser(messagebody: string) {
-		if (messagebody && messagebody.includes('@')) {
-			const start = messagebody.indexOf('@'); // Start after '#'
-			const end = messagebody.indexOf('~', start); // Find the first space after '#'
-			const userId = messagebody.substring(start, end === -1 ? messagebody.length : end);
-			return userId;
+
+	function parseToken(body: string, marker: string, delimiters: string[] = [' ', '~', ':']): ParsedToken | null {
+		if (!body) return null;
+
+		const startIndex = body.indexOf(marker);
+		if (startIndex === -1) return null;
+
+		const start = body.indexOf(marker);
+		let end = body.indexOf('~', start) !== -1 ? body.indexOf('~', start) : body.indexOf(' ', start);
+		let endIndex = end;
+		const endend = body.indexOf(' ', end);
+
+		const raw = body.substring(start, end);
+		const id = body.substring(end + 1, endend !== -1 ? endend : body.length);
+		const before = body.slice(0, start);
+		let after = '';
+		if (endend !== -1) {
+			after = body.slice(endend);
+			endIndex = end;
 		}
+
+		return {
+			before,
+			token: raw.replace(marker, ''),
+			after,
+			raw,
+			id,
+			start: start,
+			end: end,
+		};
 	}
-	function getUserId(messagebody: string) {
-		if (messagebody && messagebody.includes('@')) {
-			const start = messagebody.indexOf('@') + 1; // Start after '#'
-			const end = messagebody.indexOf('~', start) !== -1 ? messagebody.indexOf('~', start) : messagebody.indexOf(' ', start); // Find the first space after '#'
-			const endend = messagebody.indexOf(' ', end);
-			// console.error(messagebody.substring(start, end === -1 ? messagebody.length : end));
-			if (messagebody.substring(end + 1, endend === -1 ? messagebody.length : endend)) {
-				return messagebody.substring(end + 1, endend === -1 ? messagebody.length : endend);
-			} else {
-				return messagebody.substring(start, end === -1 ? messagebody.length : end);
-			}
-		}
+	function parseRoomMention(body: string) {
+		const parsed = parseToken(body, '#', [' ']);
+		if (!parsed) return null;
+		const room = rooms.getTPublicRoom(parsed.id);
+		if (!room) return null;
+
+		return {
+			...parsed,
+			displayName: `#${room.name}`,
+		};
 	}
-	function getRoomId(messagebody: string) {
-		if (messagebody && messagebody.includes('#')) {
-			const start = messagebody.indexOf('#') + 1; // Start after '#'
-			const end = messagebody.indexOf(' ', start); // Find the first space after '#'
-			return messagebody.substring(start, end === -1 ? messagebody.length : end);
-		}
+	function parseUserMention(body: string) {
+		const parsed = parseToken(body, '@', [' ', '~', ':']);
+		if (!parsed) return null;
+
+		return {
+			...parsed,
+			userId: parsed.raw, // full @name:server
+		};
 	}
-	function afterRoomId(messagebody: string) {
-		if (messagebody && messagebody.includes('#')) {
-			const start = messagebody.indexOf('#') + 1;
-			const end = messagebody.indexOf(' ', start);
-			return messagebody.slice(end === -1 ? messagebody.length : end);
-		}
-	}
-	function beforeRoomId(messagebody: string) {
-		if (messagebody && messagebody.includes('#')) {
-			const start = messagebody.indexOf('#') + 1;
-			return messagebody.slice(0, start - 1);
-		}
-	}
-	function afterUserId(messagebody: string) {
-		if (messagebody && messagebody.includes('@')) {
-			const start = messagebody.indexOf('@') + 1;
-			const end = messagebody.indexOf(' ', start);
-			return messagebody.slice(end === -1 ? messagebody.length : end);
-		}
-	}
-	function beforeUserId(messagebody: string) {
-		if (messagebody && messagebody.includes('@')) {
-			const start = messagebody.indexOf('@') + 1;
-			return messagebody.slice(0, start - 1);
-		}
-	}
+	const roomMention = computed(() => parseRoomMention(props.event.content.body));
+	const userMention = computed(() => parseUserMention(props.event.content.body));
 
 	// Waits for checking if message is realy send. Otherwise a 'resend' button appears. See also msgIsNotSend computed.
 	const timerReady = ref(false);

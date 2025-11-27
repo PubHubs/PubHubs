@@ -53,12 +53,12 @@
 	});
 
 	async function goToUserRoom(userId: string) {
-		let room;
-		const other = pubhubs.client.getUser(userId);
-		if (other) {
-			room = await pubhubs.createPrivateRoomWith(other);
-			if (room) {
-				await pubhubs.routeToRoomPage(room);
+		let userRoom;
+		const otherUser = pubhubs.client.getUser(userId);
+		if (otherUser) {
+			userRoom = await pubhubs.createPrivateRoomWith(otherUser);
+			if (userRoom) {
+				await pubhubs.routeToRoomPage(userRoom);
 			}
 		}
 	}

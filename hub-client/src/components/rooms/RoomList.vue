@@ -57,7 +57,7 @@
 <script setup lang="ts">
 	// Packages
 	import { NotificationCountType } from 'matrix-js-sdk';
-	import { PropType, computed, ref } from 'vue';
+	import { PropType, computed, onMounted, ref } from 'vue';
 	import { useI18n } from 'vue-i18n';
 	import { useRouter } from 'vue-router';
 
@@ -104,6 +104,10 @@
 			required: true,
 			default: () => [RoomType.PH_MESSAGES_DEFAULT], // To make sure vue recognizes it, this needs a real array as default
 		},
+	});
+
+	onMounted(() => {
+		rooms.fetchPublicRooms();
 	});
 
 	const currentJoinedRooms = computed(() => {
