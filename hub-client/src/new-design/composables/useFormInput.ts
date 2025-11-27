@@ -1,5 +1,5 @@
 // Packages
-import { computed, getCurrentInstance, onMounted, ref, useSlots } from 'vue';
+import { computed, getCurrentInstance, ref, useSlots } from 'vue';
 
 import { firstToUpper } from '@hub-client/logic/core/extensions';
 

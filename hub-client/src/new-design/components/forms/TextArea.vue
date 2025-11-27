@@ -11,7 +11,7 @@
 				:placeholder="placeholder"
 				:title="placeholder"
 				v-model="model"
-				@change="update()"
+				@keypress="update()"
 				@focusin="setFocus(true)"
 				@focusout="setFocus(false)"
 			></textarea>

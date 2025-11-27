@@ -85,12 +85,10 @@ function useFieldValidation(name: string, model: any, validation = undefined) {
 				}
 				rules.push(rule);
 			});
-			// console.info('rules',validation,rules);
 		}
 	}
 
 	const validateField = computed(() => {
-		// console.info('validateField', model.value, rules);
 		if (!changed.value && model.value !== undefined) {
 			changed.value = true;
 		}
@@ -108,9 +106,7 @@ function useFieldValidation(name: string, model: any, validation = undefined) {
 	});
 
 	const validated = computed(() => {
-		console.info('validate', name, changed.value, validateField.value === null);
-		if (!changed.value) return true;
-		return validateField.value === null;
+		return validateField.value === null || !changed.value;
 	});
 
 	return { validateField, validated, required };
