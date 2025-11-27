@@ -6,22 +6,29 @@
 			<div class="border-spacing-200 rounded-lg border border-dotted border-purple-500 p-200">
 				<h2 class="mb-200">Button</h2>
 				<div class="gap-050 flex flex-col">
-					<Button2 icon="check-circle" @click="clicked()" variant="error" title="this is a tooltip"><template v-slot:sr-label>Hi!</template></Button2>
-					<Button icon-left="check-circle" @click="clicked()">Primary</Button>
-					<Button icon-left="check-circle" :variant="buttonColorVariant.Secundary" @click="clicked()">Secundary</Button>
-					<Button icon-right="smiley" :variant="buttonColorVariant.Tertiary" @click="clicked()">Tertiary</Button>
-					<Button icon-left="warning" icon-right="warning" :variant="buttonColorVariant.Error" @click="clicked()">Error</Button>
-					<Button icon-left="circle" icon-right="circle" :disabled="true" @click="clicked()">Disabled</Button>
+					<Button2 icon="check-circle" @click="clicked()" variant="primary" title="this is a tooltip">Primary<template v-slot:sr-label>Hi!</template></Button2>
+					<Button2 icon="check-circle" @click="clicked()">Primary</Button2>
+					<Button2 icon="check-circle" variant="secondary" @click="clicked()">Secondary</Button2>
+					<Button2 secondary-icon="smiley" variant="tertiary" @click="clicked()">Tertiary</Button2>
+					<Button2 icon="warning" secondary-icon="warning" variant="error" @click="clicked()">Error</Button2>
+					<Button2 icon="circle" secondary-icon="circle" :disabled="true" @click="clicked()">Disabled</Button2>
+					<Button2 icon="circle" secondary-icon="circle" :loading="true" @click="clicked()">Loading</Button2>
+					<Button2 icon="warning" secondary-icon="smiley" @click="clicked()">Extreem lange tekst in deze button die moet worden afgekapt maar wel in de title</Button2>
+					<div class="flex items-center gap-100">
+						<Button2 icon="folder-simple" @click="clicked()" title="Handig deze title"></Button2>
+						<Button2 icon="folder-simple" variant="secondary" @click="clicked()" title="Handig deze title"></Button2>
+					</div>
 				</div>
 
 				<h2 class="my-200">ButtonGroup</h2>
 				<ButtonGroup>
-					<Button :variant="buttonColorVariant.Secundary">Cancel</Button>
-					<Button>Submit</Button>
+					<Button2 type="reset" variant="secondary">Cancel</Button2>
+					<Button2 type="submit">Submit</Button2>
 				</ButtonGroup>
 
 				<h2 class="my-200">IconButton</h2>
 				<div class="gap-050 flex flex-col">
+					<Button2 icon="check-circle" @click="clicked()" title="Handig deze title"></Button2>
 					<IconButton type="check-circle" :variant="iconColorVariant.Primary" @click="clicked()" title="Handig deze title"></IconButton>
 					<IconButton type="check-circle" :variant="iconColorVariant.Primary" :size="iconSizeVariant.Small" @click="clicked()" title="Handig deze title"></IconButton>
 					<IconButton type="smiley" :variant="iconColorVariant.Secundary" @click="clicked()"></IconButton>

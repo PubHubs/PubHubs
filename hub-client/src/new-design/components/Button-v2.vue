@@ -30,7 +30,7 @@
 <template>
 	<button
 		v-bind="attrs"
-		class="gap-050 rounded-base inline-flex h-fit min-h-550 w-fit min-w-550 items-center justify-center py-100 transition select-none hover:cursor-pointer focus:ring-3 focus:outline-none aria-disabled:cursor-not-allowed aria-disabled:opacity-50"
+		class="gap-050 rounded-base inline-flex h-fit min-h-550 max-w-3000 items-center justify-center py-100 transition select-none hover:cursor-pointer focus:ring-3 focus:outline-none aria-busy:opacity-100! aria-disabled:cursor-not-allowed aria-disabled:opacity-50"
 		:aria-busy="props.loading ? 'true' : undefined"
 		:aria-disabled="props.disabled || props.loading ? 'true' : undefined"
 		:aria-label="computedAriaLabel"
@@ -45,13 +45,15 @@
 
 		<!-- Label -->
 		<template v-if="slots.default && !props.loading">
-			<slot />
+			<div class="truncate">
+				<slot></slot>
+			</div>
 		</template>
 
 		<!-- SR-only label -->
 		<template v-else-if="slots['sr-label'] && !props.loading">
 			<span class="sr-only">
-				<slot name="sr-label" />
+				<slot name="sr-label"></slot>
 			</span>
 		</template>
 
@@ -59,7 +61,7 @@
 		<Icon v-if="props.secondaryIcon && !isIconOnly && !props.loading" aria-hidden="true" :size="iconSize" :type="props.secondaryIcon" />
 
 		<!-- Loading spinner -->
-		<Icon v-if="props.loading" aria-hidden="true" class="animate-spin" type="smiley" :size="iconSize" />
+		<Icon v-if="props.loading" aria-hidden="true" class="animate-spin" type="spinner" :size="iconSize" />
 
 		<!-- Loading indicator for SR -->
 		<span v-if="props.loading" class="sr-only" role="status" aria-live="polite">Loading...</span>
@@ -75,10 +77,10 @@
 
 	// Variants
 	const buttonVariants = {
-		primary: 'bg-button-blue text-on-button-blue focus:ring-on-accent-primary hover:opacity-75',
-		secondary: 'bg-surface-base text-on-surface focus:ring-button-blue hover:opacity-75',
-		tertiary: 'outline outline-1 outline-offset-[-1px] outline-surface-on-surface-dim focus:ring-button-blue hover:opacity-75',
-		error: 'bg-button-red text-on-button-red focus:ring-on-accent-error hover:opacity-75',
+		primary: 'bg-button-blue text-on-button-blue ring-on-accent-primary hover:opacity-75',
+		secondary: 'bg-surface-base text-on-surface ring-button-blue hover:opacity-75',
+		tertiary: 'outline outline-1 outline-offset-[-1px] outline-surface-on-surface-dim ring-button-blue hover:opacity-75',
+		error: 'bg-button-red text-on-button-red ring-on-accent-error hover:opacity-75',
 	} as const;
 	type TVariant = keyof typeof buttonVariants;
 
@@ -118,12 +120,17 @@
 	});
 
 	// Sets the tooltip value when not explicitly passed
-	const computedTitle = computed(() => props.title ?? computedAriaLabel.value ?? undefined);
+	const computedTitle = computed(() => {
+		if (props.title) return props.title;
+		if (computedAriaLabel.value) return computedAriaLabel.value;
+		if (slots.default) return slots.default()[0].children?.toString();
+		return undefined;
+	});
 
 	const computedClasses = computed(() => {
 		const variantClass = buttonVariants[props.variant ?? 'primary'];
-		const paddingClass = isIconOnly.value ? 'px-100' : 'px-150'; // Required to make the icon-only button look square
-		return [variantClass, paddingClass];
+		const iconClass = isIconOnly.value ? 'w-fit px-100' : 'min-w-550 px-150'; // Required to make the icon-only button look square
+		return [variantClass, iconClass];
 	});
 
 	//  Lifecycle
@@ -144,7 +151,7 @@
 	onMounted(() => {
 		if (process.env.NODE_ENV !== 'production') {
 			if (isIconOnly.value && !props.ariaLabel) {
-				console.warn('[Button-v2] Accessible name missing for icon-only button. Provide `ariaLabel` prop or `#sr-label` slot.');
+				console.warn('[Button] Accessible name missing for icon-only button. Provide `ariaLabel` prop or `#sr-label` slot.');
 			}
 		}
 	});
