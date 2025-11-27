@@ -15,11 +15,11 @@
 					<Button icon="circle" secondary-icon="circle" :loading="true" @click="clicked()">Loading</Button>
 					<Button icon="warning" secondary-icon="smiley" @click="clicked()">Extreem lange tekst in deze button die moet worden afgekapt maar wel in de title</Button>
 					<div class="flex items-center gap-100">
-						<Button icon="pencil-simple" @click="clicked()" aria-label="Label voor screenreaders" title="Handig deze title"></Button>
-						<Button icon="folder-simple" variant="secondary" @click="clicked()" aria-label="Label voor screenreaders" title="Handig deze title"></Button>
-						<Button icon="folder-simple" variant="tertiary" @click="clicked()" aria-label="Label voor screenreaders" title="Handig deze title"></Button>
-						<Button icon="warning" variant="error" @click="clicked()" aria-label="Label voor screenreaders" title="Handig deze title"></Button>
-						<Button icon="warning" variant="error" @click="clicked()" :loading="true" :disabled="true" aria-label="Label voor screenreaders" title="Handig deze title"></Button>
+						<Button icon="pencil-simple" @click="clicked()" title="Handig deze title"></Button>
+						<Button icon="folder-simple" variant="secondary" @click="clicked()" title="Handig deze title"></Button>
+						<Button icon="folder-simple" variant="tertiary" @click="clicked()" title="Handig deze title"></Button>
+						<Button icon="warning" variant="error" @click="clicked()" title="Handig deze title"></Button>
+						<Button icon="warning" variant="error" @click="clicked()" :loading="true" :disabled="true" title="Handig deze title"></Button>
 					</div>
 				</div>
 

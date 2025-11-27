@@ -126,6 +126,7 @@
 	const computedAriaLabel = computed(() => {
 		if (slots.default) return slots.default()[0].children?.toString();
 		if (slots['sr-label']) return slots['sr-label']()[0].children?.toString();
+		if (props.title) return props.title;
 		return props.ariaLabel ?? undefined;
 	});
 
@@ -160,8 +161,8 @@
 	// Accessibility
 	onMounted(() => {
 		if (process.env.NODE_ENV !== 'production') {
-			if (isIconOnly.value && !props.ariaLabel) {
-				console.warn('[Button] Accessible name missing for icon-only button. Provide `ariaLabel` prop or `#sr-label` slot.');
+			if (isIconOnly.value && !props.ariaLabel && !props.title) {
+				console.warn('[Button] Accessible name missing for icon-only button. Provide `ariaLabel` or `title` prop or `#sr-label` slot.');
 			}
 		}
 	});
