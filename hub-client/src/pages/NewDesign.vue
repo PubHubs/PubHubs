@@ -6,6 +6,7 @@
 			<div class="border-spacing-200 rounded-lg border border-dotted border-purple-500 p-200">
 				<h2 class="mb-200">Button</h2>
 				<div class="gap-050 flex flex-col">
+					<Button2 icon="check-circle" @click="clicked()" variant="error" title="this is a tooltip"><template v-slot:sr-label>Hi!</template></Button2>
 					<Button icon-left="check-circle" @click="clicked()">Primary</Button>
 					<Button icon-left="check-circle" :variant="buttonColorVariant.Secundary" @click="clicked()">Secundary</Button>
 					<Button icon-right="smiley" :variant="buttonColorVariant.Tertiary" @click="clicked()">Tertiary</Button>
@@ -101,6 +102,7 @@
 <script setup lang="ts">
 	import { reactive } from 'vue';
 
+	import Button2 from '@hub-client/new-design/components/Button-v2.vue';
 	import Button from '@hub-client/new-design/components/Button.vue';
 	import ButtonGroup from '@hub-client/new-design/components/ButtonGroup.vue';
 	import IconButton from '@hub-client/new-design/components/IconButton.vue';
