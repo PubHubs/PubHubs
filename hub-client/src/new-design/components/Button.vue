@@ -99,7 +99,7 @@
 			secondaryIcon?: string;
 			disabled?: boolean;
 			title?: string;
-			size?: 'base' | 'sm';
+			size?: 'base' | 'sm' | '';
 			type?: 'button' | 'submit' | 'reset';
 			ariaLabel?: string;
 			loading?: boolean;
@@ -108,7 +108,7 @@
 			variant: 'primary',
 			disabled: false,
 			type: 'button',
-			size: 'sm',
+			size: '',
 			loading: false,
 		},
 	);
@@ -117,7 +117,7 @@
 	const isIconOnly = computed(() => !slots.default && props.icon);
 
 	const iconSize = computed(() => {
-		if (isIconOnly.value) return 'base';
+		if (isIconOnly.value && props.size === '') return 'base';
 		return props.size;
 	});
 
