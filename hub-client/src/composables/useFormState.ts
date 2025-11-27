@@ -5,7 +5,7 @@ import { reactive, ref } from 'vue';
 import { DialogButton } from '@hub-client/stores/dialog';
 
 // Types
-type FormDataType = string | number | boolean;
+type FormDataType = string | number | boolean | Object;
 
 type FormValidation = {
 	required?: boolean;
