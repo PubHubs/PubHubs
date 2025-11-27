@@ -6,12 +6,12 @@
 		</div>
 		<div
 			class="bg-surface-base outline-surface-on-surface-dim outline-offset-thin rounded px-175 py-100 outline"
-			:class="{ 'ring-button-blue ring-3': hasFocus, 'outline-surface-on-surface-dim': validated, 'outline-accent-error': !validated }"
+			:class="{ 'ring-button-blue ring-3': hasFocus, 'outline-on-surface-dim': validated, 'outline-accent-error': !validated }"
 		>
-			<input ref="input" v-model="model" class="text-surface-on-surface-dim justify-start" :placeholder="placeholder" @keypress="update()" />
+			<input ref="input" v-model="model" class="text-on-surface-dim justify-start" :placeholder="placeholder" @keypress="update()" />
 		</div>
 		<div v-if="!validated" class="text-accent-red text-label-small gap-050 flex items-center"><Icon type="warning"></Icon>{{ $t(validateField!.translationKey, validateField!.parameters) }}</div>
-		<div v-if="help" class="text-surface-on-surface-dim text-label-small justify-end">{{ help }}</div>
+		<div v-if="help" class="text-on-surface-dim text-label-small justify-end">{{ help }}</div>
 	</div>
 </template>
 
