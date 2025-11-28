@@ -4,7 +4,7 @@
 			<div class="bg-on-surface-dim absolute top-0 left-0 h-[50%] w-full"></div>
 			<div class="relative z-10 flex items-end justify-between px-4 py-4">
 				<Avatar :avatar-url="userStore.userAvatar(userId ? userId : event.sender)" :user-id="userId ? userId : event.sender" class="rounded-full object-cover shadow-md ring-2 ring-white ring-offset-1" />
-				<div v-if="userStore.userId !== userId && props.room?.getPowerLevel(userId ? userId : event.sender) !== 50" class="bg-surface-low mb-2 rounded-md p-[2%]">
+				<div v-if="userStore.userId !== (userId ? userId : event.sender) && props.room?.getPowerLevel(userId ? userId : event.sender) !== 50" class="bg-surface-low mb-2 rounded-md p-[2%]">
 					<Button class="bg-on-surface-variant cursor-pointer" @click.once="goToUserRoom(userId ? userId : event.sender)">
 						<Icon size="md" type="envelope"></Icon>
 					</Button>

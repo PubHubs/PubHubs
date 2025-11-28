@@ -341,7 +341,7 @@
 		if (!filters.extractPseudonymFromString(userMention)) {
 			userMention = '@' + userMention + '~' + user.userId; //filters.extractPseudonym(user.userId);
 		} else {
-			userMention = user.userId;
+			userMention = '@' + filters.extractPseudonym(user.userId) + '~' + user.userId;
 		}
 
 		let message = value.value?.toString();
