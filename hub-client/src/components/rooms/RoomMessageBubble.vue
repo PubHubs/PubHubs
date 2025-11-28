@@ -35,7 +35,7 @@
 				<div :class="{ 'w-5/6': deleteMessageDialog, 'w-full': !deleteMessageDialog }" class="min-w-0">
 					<div class="flex flex-wrap items-center overflow-hidden text-wrap break-all">
 						<div class="relative flex min-h-6 w-full items-start gap-x-2 pb-1">
-							<div class="flex w-full min-w-0 flex-grow flex-wrap items-center gap-2">
+							<div class="flex w-full min-w-0 grow flex-wrap items-center gap-2">
 								<UserDisplayName :userId="event.sender" :userDisplayName="user.userDisplayName(event.sender)" />
 								<span class="flex gap-2">
 									<span class="text-label-small">|</span>
@@ -119,7 +119,7 @@
 						</template>
 					</Suspense>
 
-					<MessageWithMentions :event="event" :deleted="redactedMessage" />
+					<Message :event="event" :deleted="redactedMessage" />
 					<AnnouncementMessage v-if="isAnnouncementMessage && !redactedMessage && !room.isPrivateRoom()" :event="event.content" />
 					<MessageSigned v-if="event.content.msgtype === PubHubsMgType.SignedMessage && !redactedMessage" :message="event.content.signed_message" class="max-w-[90ch]" />
 					<MessageFile v-if="event.content.msgtype === MsgType.File && !redactedMessage" :message="event.content" />
