@@ -8,13 +8,12 @@ interface MessageSegment {
 }
 
 interface MentionMatch {
-	type: 'room' | 'user';
+	type: '#' | '@';
 	start: number;
 	end: number;
 	displayName: string;
-	id: string;
-	roomId?: string;
-	userId?: string;
+	mentionId: string;
+	id?: string;
 }
 
 export { MessageSegment, MentionMatch };

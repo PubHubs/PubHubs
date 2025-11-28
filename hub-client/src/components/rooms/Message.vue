@@ -41,11 +41,9 @@
 	import RoomMiniCard from '@hub-client/components/rooms/RoomMiniCard.vue';
 	import ProfileCard from '@hub-client/components/ui/ProfileCard.vue';
 
-	import { MentionMatch, MessageSegment } from '@hub-client/models/components/TMessage';
-	import { TMessageEvent } from '@hub-client/models/events/TMessageEvent';
+	import { useMentions } from '@hub-client/composables/useMentions';
 
-	import { usePubhubsStore } from '@hub-client/stores/pubhubs';
-	import { useRooms } from '@hub-client/stores/rooms';
+	import { TMessageEvent } from '@hub-client/models/events/TMessageEvent';
 
 	const { t } = useI18n();
 	const props = defineProps<{
@@ -54,147 +52,23 @@
 	}>();
 
 	const activeMentionCard = ref<string | null>(null);
+	const mentionComposable = useMentions();
 
 	// Regular message content (for non-deleted, non-mention messages)
 	const messageContent = computed(() => {
 		return props.event.content.ph_body;
 	});
 
-	const rooms = useRooms();
-	const pubhubs = usePubhubsStore();
-
-	/**
-	 * Find all mentions (for both room and user) in the message body
-	 */
-	function findAllMentions(body: string): MentionMatch[] {
-		if (!body) return [];
-
-		const mentions: MentionMatch[] = [];
-
-		// Find room mentions (#)
-		let index = 0;
-		while (index < body.length) {
-			const hashIndex = body.indexOf('#', index);
-			if (hashIndex === -1) break;
-
-			// Find end of token (~ or space)
-			const tilde = body.indexOf('~', hashIndex);
-			const space = body.indexOf(' ', hashIndex);
-			const endToken = tilde !== -1 && (space === -1 || tilde < space) ? tilde : space;
-			const tokenEnd = endToken !== -1 ? endToken : body.length;
-
-			// Extract room ID
-			const nextSpace = body.indexOf(' ', tokenEnd + 1);
-			const roomId = body.substring(tokenEnd + 1, nextSpace !== -1 ? nextSpace : body.length);
-
-			const room = rooms.getTPublicRoom(roomId);
-			if (room) {
-				mentions.push({
-					type: 'room',
-					start: hashIndex,
-					end: nextSpace !== -1 ? nextSpace : body.length,
-					displayName: `#${room.name}`,
-					id: `room-${roomId}-${hashIndex}`,
-					roomId: roomId,
-				});
-				index = nextSpace !== -1 ? nextSpace : body.length;
-			} else {
-				index = hashIndex + 1;
-			}
-		}
-
-		// Find user mentions (@)
-		index = 0;
-		while (index < body.length) {
-			const atIndex = body.indexOf('@', index);
-			if (atIndex === -1) break;
-
-			// Find end of token (~ or space)
-			const tilde = body.indexOf('~', atIndex);
-			const space = body.indexOf(' ', atIndex);
-			const endToken = tilde !== -1 && (space === -1 || tilde < space) ? tilde : space;
-			const tokenEnd = endToken !== -1 ? endToken : body.length;
-
-			const displayName = body.substring(atIndex, tokenEnd);
-
-			// Extract user ID
-			const nextSpace = body.indexOf(' ', tokenEnd + 1);
-			const userId = body.substring(tokenEnd + 1, nextSpace !== -1 ? nextSpace : body.length);
-
-			if (pubhubs.client.getUser(userId)) {
-				mentions.push({
-					type: 'user',
-					start: atIndex,
-					end: nextSpace !== -1 ? nextSpace : body.length,
-					displayName: displayName,
-					id: `user-${userId}-${atIndex}`,
-					userId: userId,
-				});
-				index = nextSpace !== -1 ? nextSpace : body.length;
-			} else {
-				index = atIndex + 1;
-			}
-		}
-
-		// Sort by start position
-		return mentions.sort((a, b) => a.start - b.start);
-	}
-
 	/**
 	 * Parse message body into segments with mentions replaced
 	 */
-	const messageSegments = computed((): MessageSegment[] => {
+	const messageSegments = computed(() => {
 		if (props.deleted) return [];
 
-		const body = props.event.content.body;
-		if (!body) return [{ type: 'text', content: '', id: null }];
+		const body = props.event.content.body || '';
+		const mentions = mentionComposable.parseMentions(body);
 
-		const mentions = findAllMentions(body);
-		if (mentions.length === 0) return [{ type: 'text', content: body, id: null }];
-
-		const segments: MessageSegment[] = [];
-		let lastIndex = 0;
-
-		mentions.forEach((mention) => {
-			// Add text before mention
-			if (mention.start > lastIndex) {
-				segments.push({
-					type: 'text',
-					content: body.substring(lastIndex, mention.start),
-					id: null,
-				});
-			}
-
-			// Add mention
-			if (mention.type === 'room') {
-				segments.push({
-					type: 'room',
-					displayName: mention.displayName,
-					id: mention.id,
-					roomId: mention.roomId,
-				});
-			} else {
-				segments.push({
-					type: 'user',
-					displayName: mention.displayName,
-					id: mention.id,
-					userId: mention.userId,
-				});
-			}
-
-			lastIndex = mention.end;
-		});
-
-		// Add remaining text
-		if (lastIndex < body.length) {
-			segments.push({
-				type: 'text',
-				content: body.substring(lastIndex),
-				id: null,
-			});
-		}
-
-		return segments;
+		return mentionComposable.buildSegments(body, mentions);
 	});
 
 	const hasAnyMentions = computed(() => {

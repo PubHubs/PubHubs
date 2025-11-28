@@ -155,7 +155,6 @@
 
 <script setup lang="ts">
 	// Packages
-	import RoomMiniCard from './RoomMiniCard.vue';
 	import { IEvent, MsgType } from 'matrix-js-sdk';
 	import { PropType, computed, onBeforeUnmount, onMounted, ref, watch } from 'vue';
 	import { useI18n } from 'vue-i18n';
@@ -169,7 +168,6 @@
 	import MessageImage from '@hub-client/components/rooms/MessageImage.vue';
 	import MessageSigned from '@hub-client/components/rooms/MessageSigned.vue';
 	import MessageSnippet from '@hub-client/components/rooms/MessageSnippet.vue';
-	import MessageWithMentions from '@hub-client/components/rooms/MessageWithMentions.vue';
 	import RoomBadge from '@hub-client/components/rooms/RoomBadge.vue';
 	import RoomEventActionsPopup from '@hub-client/components/rooms/RoomEventActionsPopup.vue';
 	import UserDisplayName from '@hub-client/components/rooms/UserDisplayName.vue';
