@@ -106,9 +106,9 @@
 		},
 	});
 
-	// onMounted(() => {
-	// 	rooms.fetchPublicRooms();
-	// });
+	onMounted(() => {
+		rooms.fetchPublicRooms();
+	});
 
 	const currentJoinedRooms = computed(() => {
 		return rooms.fetchRoomArrayByAccessibility(props.roomTypes).filter((room: Room) => room.isHidden() === false);
