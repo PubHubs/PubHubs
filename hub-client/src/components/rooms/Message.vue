@@ -28,7 +28,7 @@
 			</component>
 		</div>
 
-		<!-- Regular Message (no mentions) -->
+		<!-- Regular Message -->
 		<p v-else v-html="messageContent" class="overflow-hidden text-ellipsis"></p>
 	</div>
 </template>
