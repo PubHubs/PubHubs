@@ -1,7 +1,7 @@
 <template>
-	<div v-if="isVisible" ref="elContainer" :style="getStyle()" class="scrollbar fixed max-h-52 w-fit overflow-y-auto rounded-lg bg-surface shadow-lg">
+	<div v-if="isVisible" ref="elContainer" :style="getStyle()" class="scrollbar bg-surface fixed max-h-52 w-fit overflow-y-auto rounded-lg shadow-lg">
 		<ul>
-			<li v-for="(room, index) in filteredRoooms" :key="index" class="group cursor-pointer px-4 hover:bg-surface-high" @click.stop="clickedItem(room)">
+			<li v-for="(room, index) in filteredRoooms" :key="index" class="group hover:bg-surface-high cursor-pointer px-4" @click.stop="clickedItem(room)">
 				<div class="flex items-center gap-4 py-2">
 					<div>{{ room.name }}</div>
 				</div>

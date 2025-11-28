@@ -229,11 +229,14 @@ class MatrixService {
 	private handleLifecycleEvent = async (state: SlidingSyncState | null, response: MSC3575SlidingSyncResponse | null) => {
 		try {
 			const currentUser = useUser();
-			//if (state !== SlidingSyncState.Complete) return;
+			if (state !== SlidingSyncState.Complete) return;
 
 			const roomList = response?.rooms;
-			if (!roomList) return;
-			//console.error('sliding sync RoomList ', roomList);
+			const isObjectEmpty = (object: any) => {
+				return Object.keys(object).length === 0 && object.constructor === Object;
+			};
+			if (!roomList || isObjectEmpty(roomList)) return;
+			console.error('sliding sync RoomList ', roomList);
 
 			const joinPromises: Promise<any>[] = [];
 

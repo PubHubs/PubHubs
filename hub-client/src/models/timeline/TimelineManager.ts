@@ -193,9 +193,9 @@ class TimelineManager {
 
 		// First add the relatedEvents
 		this.relatedEvents = this.relatedEvents.filter((x) => !eventList.some((newEvent) => newEvent.matrixEvent.event.event_id === x.matrixEvent.event?.content?.[RelationType.RelatesTo]?.event_id));
-		this.getRelatedEvents(eventList).then((relatedEvents) => {
-			this.relatedEvents = [...this.relatedEvents, ...relatedEvents];
-		});
+		// this.getRelatedEvents(eventList).then((relatedEvents) => {
+		// 	this.relatedEvents = [...this.relatedEvents, ...relatedEvents];
+		// });
 		// Then add the events to the timeline
 		this.timelineEvents = this.timelineEvents.filter((x) => !eventList.some((newEvent) => newEvent.matrixEvent.event.event_id === x.matrixEvent.event.event_id));
 		this.timelineEvents = [...this.timelineEvents, ...eventList];
@@ -247,7 +247,7 @@ class TimelineManager {
 
 		// Related Events
 		const relatedEvents = matrixEvents.filter((event) => event.getContent()[RelationType.RelatesTo]);
-		this.relatedEvents = [...this.relatedEvents, ...relatedEvents.map((x) => new TimelineEvent(x, this.roomId))];
+		this.relatedEvents = [...relatedEvents.map((x) => new TimelineEvent(x, this.roomId))];
 
 		// Filter out redacted events: not for timeline and not read in the related events because they are used only temporary (until the redacted_because field is set in the db)
 		const redactedEvents = matrixEvents.filter((x) => x.getType() === MatrixEventType.RoomRedaction && x.getContent().reason !== Redaction.DeletedFromLibrary);
@@ -466,9 +466,9 @@ class TimelineManager {
 		let mappedEvents = tempEvents.map((event) => new TimelineEvent(event, this.roomId));
 		mappedEvents = this.ensureListLength(this.timelineEvents, mappedEvents, SystemDefaults.roomTimelineLimit, Direction.Backward);
 
-		this.getRelatedEvents(mappedEvents).then((relatedEvents) => {
-			this.relatedEvents = relatedEvents;
-		});
+		// this.getRelatedEvents(mappedEvents).then((relatedEvents) => {
+		// 	this.relatedEvents = relatedEvents;
+		// });
 		this.timelineEvents = mappedEvents;
 		this.redactedEvents = [];
 
