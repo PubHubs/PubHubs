@@ -118,28 +118,8 @@
 							</div>
 						</template>
 					</Suspense>
-					<!-- :to="{ name: 'room', params: { id: getRoomId(event.content.body) } }" -->
-					<div v-if="roomMention" @mouseleave="showRoomCardMention = false">
-						<P
-							>{{ roomMention.before }} <span class="text-accent-primary cursor-pointer" @mouseover="showRoomCardMention = true">{{ roomMention.displayName }} </span>{{ roomMention.after }}</P
-						>
-						<div v-if="showRoomCardMention" class="absolute z-50 h-10 w-52" @mouseover="showRoomCardMention = true">
-							<RoomMiniCard :roomId="roomMention.id"></RoomMiniCard>
-						</div>
-					</div>
-					<div v-else-if="userMention" @mouseleave="showProfileCardMention = false">
-						<P
-							>{{ userMention.before }}
-							<span @mouseover="showProfileCardMention = true" class="text-accent-primary cursor-pointer">{{ userMention.userId }}</span>
-							{{ userMention.after }}
-						</P>
-						<div v-if="showProfileCardMention" class="absolute z-50 h-40 w-52" @mouseover="showProfileCardMention = true">
-							<ProfileCard :event="event" :room="null" :userId="userMention.id" />
-						</div>
-					</div>
 
-					<Message v-else="event.content.msgtype === MsgType.Text || redactedMessage" :event="event" :deleted="redactedMessage" class="max-w-[90ch]" />
-
+					<MessageWithMentions :event="event" :deleted="redactedMessage" />
 					<AnnouncementMessage v-if="isAnnouncementMessage && !redactedMessage && !room.isPrivateRoom()" :event="event.content" />
 					<MessageSigned v-if="event.content.msgtype === PubHubsMgType.SignedMessage && !redactedMessage" :message="event.content.signed_message" class="max-w-[90ch]" />
 					<MessageFile v-if="event.content.msgtype === MsgType.File && !redactedMessage" :message="event.content" />
@@ -189,6 +169,7 @@
 	import MessageImage from '@hub-client/components/rooms/MessageImage.vue';
 	import MessageSigned from '@hub-client/components/rooms/MessageSigned.vue';
 	import MessageSnippet from '@hub-client/components/rooms/MessageSnippet.vue';
+	import MessageWithMentions from '@hub-client/components/rooms/MessageWithMentions.vue';
 	import RoomBadge from '@hub-client/components/rooms/RoomBadge.vue';
 	import RoomEventActionsPopup from '@hub-client/components/rooms/RoomEventActionsPopup.vue';
 	import UserDisplayName from '@hub-client/components/rooms/UserDisplayName.vue';
@@ -227,8 +208,6 @@
 	const elReactionPopUp = ref<HTMLElement | null>(null);
 	const rooms = useRooms();
 
-	const showProfileCardMention = ref(false);
-	const showRoomCardMention = ref(false);
 	let roomMember = ref();
 	let threadLength = ref(0);
 
@@ -419,62 +398,6 @@
 		start: number;
 		end: number;
 	}
-
-	function parseMessage(body: string, marker: string): ParsedToken | null {
-		if (!body) return null;
-
-		const start = body.indexOf(marker);
-		if (start === -1) return null;
-
-		// Find the end of the marker token
-		const tilde = body.indexOf('~', start);
-		const space = body.indexOf(' ', start);
-		const end = tilde !== -1 && (space === -1 || tilde < space) ? tilde : space;
-
-		// If neither ~ nor space is found, token goes until end of string
-		const endIndex = end !== -1 ? end : body.length;
-
-		const raw = body.substring(start, endIndex);
-
-		// ID starts after the token, ends at next space (or end of string)
-		const nextSpace = body.indexOf(' ', endIndex + 1);
-		const id = body.substring(endIndex + 1, nextSpace !== -1 ? nextSpace : body.length);
-
-		return {
-			before: body.slice(0, start),
-			token: raw.slice(marker.length), // remove marker
-			after: nextSpace !== -1 ? body.slice(nextSpace) : '',
-			raw,
-			id,
-			start,
-			end: endIndex,
-		};
-	}
-
-	function parseRoomMention(body: string) {
-		const parsed = parseMessage(body, '#');
-		if (!parsed) return null;
-
-		const room = rooms.getTPublicRoom(parsed.id);
-		if (!room) return null;
-
-		return {
-			...parsed,
-			displayName: `#${room.name}`,
-		};
-	}
-	function parseUserMention(body: string) {
-		const parsed = parseMessage(body, '@');
-		if (!parsed) return null;
-		if (!pubhubs.client.getUser(parsed.id)) return null;
-
-		return {
-			...parsed,
-			userId: parsed.raw,
-		};
-	}
-	const roomMention = computed(() => parseRoomMention(props.event.content.body));
-	const userMention = computed(() => parseUserMention(props.event.content.body));
 
 	// Waits for checking if message is realy send. Otherwise a 'resend' button appears. See also msgIsNotSend computed.
 	const timerReady = ref(false);

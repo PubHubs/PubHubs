@@ -44,7 +44,7 @@
 		},
 		room: {
 			type: Room,
-			require: true,
+			require: false,
 		},
 		userId: {
 			type: String,
