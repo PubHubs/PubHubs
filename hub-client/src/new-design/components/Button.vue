@@ -1,7 +1,7 @@
 <template>
 	<button
 		v-bind="attrs"
-		class="rounded-base inline-flex h-fit min-h-550 w-fit max-w-3000 items-center justify-center gap-100 py-100 transition select-none hover:cursor-pointer focus:ring-3 focus:outline-none aria-busy:opacity-100! aria-disabled:cursor-not-allowed aria-disabled:opacity-50"
+		class="rounded-base relative inline-flex h-fit min-h-550 w-fit max-w-3000 items-center justify-center gap-100 py-100 transition select-none hover:cursor-pointer focus:ring-3 focus:outline-none aria-busy:opacity-100! aria-disabled:cursor-not-allowed aria-disabled:opacity-50"
 		:aria-busy="props.loading ? 'true' : undefined"
 		:aria-disabled="props.disabled || props.loading ? 'true' : undefined"
 		:aria-label="computedAriaLabel"
