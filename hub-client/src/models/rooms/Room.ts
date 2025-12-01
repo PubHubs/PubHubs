@@ -465,7 +465,7 @@ export default class Room {
 		}
 
 		// If reactEvent exists, delete it with the message.
-		const reactEventId = this.getReactionEvent(event.event_id) ? this.getReactionEvent(event.event_id).pop()?.getId() : null;
+		const reactEventId = this.getReactionEvent(event.event_id) ? this.getReactionEvent(event.event_id).pop()?.getId() : undefined;
 
 		// FIXME: Typing error
 		const threadIdToDelete = isThreadRoot ? event.event_id : threadId;
@@ -537,7 +537,10 @@ export default class Room {
 	 */
 
 	public filterRoomWidgetRelatedEvents(eventId: string): MatrixEvent[] {
-		const relatedEvents = this.timelineManager.getRelatedEventForEvent(eventId);
+		const relatedEvents = this.timelineManager.getRelatedEvents(eventId);
+		if (!relatedEvents) {
+			return [];
+		}
 
 		const latestEventsPerUser = Object.values(
 			relatedEvents.reduce(
@@ -555,8 +558,16 @@ export default class Room {
 		return latestEventsPerUser;
 	}
 
-	public getRelatedEvents(options: RelatedEventsOptions = {}): MatrixEvent[] {
-		return this.timelineManager.getTimeLineRelatedEvents(options).map((event) => event.matrixEvent);
+	public getRelatedEvents(eventId: string): TimelineEvent[] {
+		return this.timelineManager.getRelatedEvents(eventId);
+	}
+
+	public getRelatedEventsByType(eventId: string, options: RelatedEventsOptions = {}): TimelineEvent[] {
+		return this.timelineManager.getRelatedEventsByType(eventId, options);
+	}
+
+	public fetchRelatedEvents(eventIds: string[]) {
+		return this.timelineManager.fetchRelatedEvents(eventIds);
 	}
 
 	public getReactEventsFromTimeLine(): MatrixEvent[] {

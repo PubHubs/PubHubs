@@ -58,7 +58,7 @@
 	});
 
 	function displayReactionInDialog(eventId: string): MatrixEvent[] | undefined {
-		return props.room.getRelatedEvents().filter((event) => event.getContent()[RelationType.RelatesTo]?.event_id === eventId);
+		return props.room.getRelatedEvents(eventId).map((x) => x.matrixEvent);
 	}
 
 	async function close(returnValue: DialogButtonAction) {

@@ -51,7 +51,7 @@
 
 					<!-- Reaction display for message -->
 					<div class="flex flex-wrap gap-2 px-20">
-						<Reaction v-if="reactionExistsForMessage(item)" :reactEvent="onlyReactionEvents" :messageEventId="item.matrixEvent.event.event_id" />
+						<Reaction v-if="reactionExistsForMessage(item.matrixEvent.event.event_id!, item.matrixEvent as MatrixEvent)" :reactEvent="onlyReactionEvents" :messageEventId="item.matrixEvent.event.event_id" />
 					</div>
 				</div>
 			</div>
@@ -112,7 +112,6 @@
 	const numberOfThreadEvents = computed(() => Math.max(filteredEvents.value.length, 1));
 
 	const onlyReactionEvents = computed(() => {
-		props.room.getRelatedEvents({ eventType: EventType.Reaction }).forEach((reactEvent) => props.room.addCurrentEventToRelatedEvent(reactEvent));
 		return props.room.getCurrentEventRelatedEvents();
 	});
 
@@ -247,7 +246,7 @@
 
 	function reactionExistsForMessage(messageEventId: string, matrixEvent: MatrixEvent): boolean {
 		if (!onlyReactionEvents.value) return false;
-		if (matrixEvent.isRedacted()) return false;
+		if (matrixEvent && matrixEvent.isRedacted()) return false;
 		const reactionEvent = onlyReactionEvents.value.find((event) => {
 			const relatesTo = event.getContent()[RelationType.RelatesTo];
 			return relatesTo && relatesTo.event_id === messageEventId;
