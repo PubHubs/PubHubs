@@ -30,7 +30,7 @@
 <template>
 	<button
 		v-bind="attrs"
-		class="gap-050 rounded-base inline-flex h-fit min-h-550 max-w-3000 items-center justify-center py-100 transition select-none hover:cursor-pointer focus:ring-3 focus:outline-none aria-busy:opacity-100! aria-disabled:cursor-not-allowed aria-disabled:opacity-50"
+		class="gap-050 rounded-base inline-flex h-fit min-h-550 w-fit max-w-3000 items-center justify-center py-100 transition select-none hover:cursor-pointer focus:ring-3 focus:outline-none aria-busy:opacity-100! aria-disabled:cursor-not-allowed aria-disabled:opacity-50"
 		:aria-busy="props.loading ? 'true' : undefined"
 		:aria-disabled="props.disabled || props.loading ? 'true' : undefined"
 		:aria-label="computedAriaLabel"
@@ -44,8 +44,8 @@
 		<Icon v-if="props.icon && !props.loading" aria-hidden="true" :size="iconSize" :type="props.icon" />
 
 		<!-- Label -->
-		<template v-if="slots.default && !props.loading">
-			<div class="truncate">
+		<template v-if="slots.default">
+			<div class="truncate" :class="props.loading && 'opacity-0'">
 				<slot></slot>
 			</div>
 		</template>
@@ -61,7 +61,9 @@
 		<Icon v-if="props.secondaryIcon && !isIconOnly && !props.loading" aria-hidden="true" :size="iconSize" :type="props.secondaryIcon" />
 
 		<!-- Loading spinner -->
-		<Icon v-if="props.loading" aria-hidden="true" class="animate-spin" type="spinner" :size="iconSize" />
+		<div v-if="props.loading" class="absolute flex h-full w-full items-center justify-center">
+			<Icon aria-hidden="true" class="animate-spin" type="spinner" />
+		</div>
 
 		<!-- Loading indicator for SR -->
 		<span v-if="props.loading" class="sr-only" role="status" aria-live="polite">Loading...</span>
@@ -75,8 +77,6 @@
 		secondary: 'bg-surface-base text-on-surface ring-button-blue hover:opacity-75',
 		tertiary: 'outline outline-1 outline-offset-[-1px] outline-surface-on-surface-dim ring-button-blue hover:opacity-75',
 		error: 'bg-button-red text-on-button-red ring-on-accent-error hover:opacity-75',
-		primaryIcon: 'text-button-blue ring-on-accent-primary hover:opacity-75 min-h-300! h-300! w-300!',
-		secondaryIcon: 'text-on-surface-dim ring-button-blue hover:opacity-75 min-h-300! h-300! w-300!',
 	} as const;
 	export type TVariant = keyof typeof buttonVariants;
 </script>
@@ -140,7 +140,7 @@
 
 	const computedClasses = computed(() => {
 		const variantClass = buttonVariants[props.variant ?? 'primary'];
-		const iconClass = isIconOnly.value ? 'w-550 px-100' : 'min-w-550 px-150'; // Required to make the icon-only button look square
+		const iconClass = isIconOnly.value ? 'min-w-550 w-550 px-100' : 'min-w-1000 px-150'; // Required to make the icon-only button look square
 		return [variantClass, iconClass];
 	});
 
