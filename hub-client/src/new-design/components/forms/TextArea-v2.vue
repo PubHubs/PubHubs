@@ -1,5 +1,5 @@
 <template>
-	<div class="gap-075 mb-200 flex w-[320px] flex-col items-start justify-start">
+	<div class="gap-075 flex w-[320px] flex-col items-start justify-start">
 		<!-- Label -->
 		<label :for="inputId" class="text-label-small gap-050 text-on-surface inline-flex w-full items-start justify-start">
 			<slot>{{ label }}</slot>
@@ -7,7 +7,7 @@
 		</label>
 
 		<!-- Input element -->
-		<input
+		<textarea
 			class="text-on-surface-dim bg-surface-base outline-offset-thin w-full justify-start rounded px-175 py-100 outline focus:ring-3"
 			v-model="model"
 			:aria-invalid="!validated ? 'true' : undefined"

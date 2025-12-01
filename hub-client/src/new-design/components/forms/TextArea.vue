@@ -31,7 +31,7 @@
 
 	import { useFormInput } from '@hub-client/new-design/composables/useFormInput';
 
-	const model = defineModel();
+	const model = defineModel<string>();
 	const props = defineProps({
 		placeholder: {
 			type: String,

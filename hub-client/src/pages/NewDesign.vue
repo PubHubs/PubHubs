@@ -79,6 +79,7 @@
 					<Button icon="check-circle" @click="clicked()" variant="primary" title="this is a tooltip">I am a button </Button>
 
 					<TextField2 placeholder="Geef getal" :validation="{ isNumber: true, minValue: 2 }" help="Hoe oud ben je?">Leeftijd</TextField2>
+					<TextArea2 placeholder="Geef getal" :validation="{ isNumber: true, minValue: 2 }" help="Hoe oud ben je?">Leeftijd</TextArea2>
 				</div>
 			</div>
 		</div>
@@ -124,14 +125,14 @@
 	import Button from '@hub-client/new-design/components/Button.vue';
 	import ButtonGroup from '@hub-client/new-design/components/ButtonGroup.vue';
 	import IconButton from '@hub-client/new-design/components/IconButton.vue';
-	import TextField2 from '@hub-client/new-design/components/TextField-v2.vue';
 	import Checkbox from '@hub-client/new-design/components/forms/Checkbox.vue';
 	import Radio from '@hub-client/new-design/components/forms/Radio.vue';
+	import TextArea2 from '@hub-client/new-design/components/forms/TextArea-v2.vue';
 	import TextArea from '@hub-client/new-design/components/forms/TextArea.vue';
+	import TextField2 from '@hub-client/new-design/components/forms/TextField-v2.vue';
 	import TextField from '@hub-client/new-design/components/forms/TextField.vue';
 	import Toggle from '@hub-client/new-design/components/forms/Toggle.vue';
 	import ValidatedForm from '@hub-client/new-design/components/forms/ValidatedForm.vue';
-
 	type formType = {
 		firstname: string;
 		lastname: string;
