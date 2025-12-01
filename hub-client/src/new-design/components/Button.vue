@@ -1,32 +1,3 @@
-<!-- Original old button had the following characteristics (summary + how this version is improved):
-
-- role="button" + manual focus management
--> New uses native <button> which handles keyboard activation (Enter/Space) and form submission semantics automatically.
-
-- Separate iconLeft / iconRight props
--> New uses `icon` and `secondaryIcon` and supports icon-only state.
-
-- Uses a composable `useFormInput()` to manage focus and ring state
--> New relies on CSS focus:ring utilities and :focus handling on native button; fewer moving parts and less coupling to external composables.
-
-- No loading state or aria-busy
--> New adds `loading` prop, shows spinner, sets aria-busy and provides sr-only loading text to communicate loading state to screen readers.
-
-- Tooltip / accessible name handling is implicit
--> New computes aria-label and title fallbacks and warns in dev when icon-only buttons lack accessible names.
-
-- Disabled logic used stopImmediatePropagation in click handler
--> New uses native disabled attribute plus click guard in handleClick
-
-- Class management spread across multiple objects and variables
--> New centralizes `buttonVariants` and `computedClasses` to make theme changes easier and reduce duplication.
-
-- Type and prop validation was done manually
--> New leverages TypeScript with typed variant keys, typed props, and defaults for better DX and safety.
-
-- Accessibility improvments overall:
--> aria-busy, aria-disabled, aria-label fallbacks, sr-only slot, role="status" for loading, focus ring behavior, and developer warnings make the new component more accessible. -->
-
 <template>
 	<button
 		v-bind="attrs"
@@ -77,6 +48,8 @@
 		secondary: 'bg-surface-base text-on-surface ring-button-blue hover:opacity-75',
 		tertiary: 'outline outline-1 outline-offset-[-1px] outline-surface-on-surface-dim ring-button-blue hover:opacity-75',
 		error: 'bg-button-red text-on-button-red ring-on-accent-error hover:opacity-75',
+		primaryIcon: 'text-button-blue ring-on-accent-primary hover:opacity-75 min-h-300! h-300! w-300!',
+		secondaryIcon: 'text-on-surface-dim ring-button-blue hover:opacity-75 min-h-300! h-300! w-300!',
 	} as const;
 	export type TVariant = keyof typeof buttonVariants;
 </script>
