@@ -80,6 +80,14 @@
 
 					<TextField2 placeholder="Geef getal" :validation="{ isNumber: true, minValue: 2 }" help="Hoe oud ben je?">Leeftijd</TextField2>
 					<TextArea2 placeholder="Geef getal" :validation="{ isNumber: true, minValue: 2 }" help="Hoe oud ben je?">Leeftijd</TextArea2>
+
+					<!-- Right click menu -->
+					<ContextMenu>
+						<ContextMenuItem title="Hi!" @click="clicked()">Label</ContextMenuItem>
+						<ContextMenuItem title="Hi3!" @click="clicked()">Label3</ContextMenuItem>
+						<Divider direction="horizontal" />
+						<ContextMenuItem title="Hi2!" :is-delicate="true" @click="clicked()">Label</ContextMenuItem>
+					</ContextMenu>
 				</div>
 			</div>
 		</div>
@@ -124,6 +132,9 @@
 
 	import Button from '@hub-client/new-design/components/Button.vue';
 	import ButtonGroup from '@hub-client/new-design/components/ButtonGroup.vue';
+	import ContextMenu from '@hub-client/new-design/components/ContextMenu.vue';
+	import ContextMenuItem from '@hub-client/new-design/components/ContextMenuItem.vue';
+	import Divider from '@hub-client/new-design/components/Divider.vue';
 	import IconButton from '@hub-client/new-design/components/IconButton.vue';
 	import Checkbox from '@hub-client/new-design/components/forms/Checkbox.vue';
 	import Radio from '@hub-client/new-design/components/forms/Radio.vue';
@@ -133,6 +144,7 @@
 	import TextField from '@hub-client/new-design/components/forms/TextField.vue';
 	import Toggle from '@hub-client/new-design/components/forms/Toggle.vue';
 	import ValidatedForm from '@hub-client/new-design/components/forms/ValidatedForm.vue';
+
 	type formType = {
 		firstname: string;
 		lastname: string;

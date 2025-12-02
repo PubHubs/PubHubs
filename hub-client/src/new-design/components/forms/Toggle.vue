@@ -10,7 +10,7 @@
 		</div>
 		<div
 			v-else
-			class="bg-on-button-blue outline-accent-blue px-050 py-050 outline-050 outline-offset-thin inline-flex items-center justify-start rounded-[999px] outline"
+			class="bg-on-accent-blue outline-accent-blue px-050 py-050 outline-050 outline-offset-thin inline-flex items-center justify-start rounded-[999px] outline"
 			:class="{ 'ring-button-blue ring-3': hasFocus, 'opacity-50': disabled }"
 		>
 			<div class="h-150 w-150 rounded-full"></div>
