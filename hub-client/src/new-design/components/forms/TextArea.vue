@@ -29,7 +29,7 @@
 
 	import { useFieldValidation } from '@hub-client/composables/useValidation';
 
-	import { useFormInput } from '@hub-client/new-design/composables/useFormInput';
+	import { useFormInput } from '@hub-client/new-design/composables/FormInput.composable';
 
 	const model = defineModel<string>();
 	const props = defineProps({

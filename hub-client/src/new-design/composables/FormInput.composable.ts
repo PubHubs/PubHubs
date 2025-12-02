@@ -1,6 +1,7 @@
 // Packages
 import { computed, getCurrentInstance, ref, useSlots } from 'vue';
 
+// Logic
 import { firstToUpper } from '@hub-client/logic/core/extensions';
 
 export function useFormInput(props: any, model: any | undefined = undefined) {

@@ -18,7 +18,7 @@
 </template>
 
 <script setup lang="ts">
-	import { useFormInput } from '@hub-client/new-design/composables/useFormInput';
+	import { useFormInput } from '@hub-client/new-design/composables/FormInput.composable';
 
 	const model = defineModel();
 
