@@ -51,7 +51,7 @@
 
 					<!-- Reaction display for message -->
 					<div class="flex flex-wrap gap-2 px-20">
-						<Reaction v-if="reactionExistsForMessage(item.matrixEvent.event.event_id!, item.matrixEvent as MatrixEvent)" :reactEvent="onlyReactionEvents" :messageEventId="item.matrixEvent.event.event_id" />
+						<Reaction v-if="reactionExistsForMessage(item.matrixEvent)" :reactEvent="onlyReactionEvent(item.matrixEvent.event.event_id!)" :messageEventId="item.matrixEvent.event.event_id" />
 					</div>
 				</div>
 			</div>
@@ -111,9 +111,11 @@
 
 	const numberOfThreadEvents = computed(() => Math.max(filteredEvents.value.length, 1));
 
-	const onlyReactionEvents = computed(() => {
+	function onlyReactionEvent(eventId: string) {
+		// To stop from having duplicate events
+		props.room.getRelatedEventsByType(eventId, { eventType: EventType.Reaction, contentRelType: RelationType.Annotation }).forEach((reactEvent) => props.room.addCurrentEventToRelatedEvent(reactEvent.matrixEvent));
 		return props.room.getCurrentEventRelatedEvents();
-	});
+	}
 
 	watch(
 		() => props.room.threadUpdated,
@@ -244,11 +246,14 @@
 		await pubhubs.addReactEvent(props.room.roomId, eventId, emoji);
 	}
 
-	function reactionExistsForMessage(messageEventId: string, matrixEvent: MatrixEvent): boolean {
-		if (!onlyReactionEvents.value) return false;
+	function reactionExistsForMessage(matrixEvent: MatrixEvent): boolean {
 		if (matrixEvent && matrixEvent.isRedacted()) return false;
-		const reactionEvent = onlyReactionEvents.value.find((event) => {
+		const messageEventId = matrixEvent.event.event_id;
+		if (!messageEventId) return false;
+
+		const reactionEvent = onlyReactionEvent(messageEventId).find((event) => {
 			const relatesTo = event.getContent()[RelationType.RelatesTo];
+			// Check if this reaction relates to the target message
 			return relatesTo && relatesTo.event_id === messageEventId;
 		});
 
