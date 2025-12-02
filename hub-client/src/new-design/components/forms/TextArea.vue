@@ -4,7 +4,7 @@
 			<div class="text-surface-on-surface justify-end"><slot></slot></div>
 			<div v-if="required" class="text-accent-red justify-end">*</div>
 		</div>
-		<div class="bg-surface-base outline-offset-thin rounded outline" :class="{ 'ring-button-blue ring-3': hasFocus, 'outline-surface-on-surface-dim': validated, 'outline-accent-error': !validated }">
+		<div class="bg-surface-base outline-offset-thin rounded outline" :class="{ 'ring-button-blue ring-3': hasFocus, 'outline-on-surface-dim': validated, 'outline-accent-error': !validated }">
 			<textarea
 				ref="input"
 				class="text-surface-on-surface-dim min-h-550 w-full justify-start px-175 py-150"
