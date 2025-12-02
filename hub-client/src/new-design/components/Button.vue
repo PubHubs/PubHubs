@@ -2,42 +2,42 @@
 	<button
 		v-bind="attrs"
 		class="rounded-base relative inline-flex h-fit min-h-550 w-fit max-w-3000 items-center justify-center gap-100 py-100 transition select-none hover:cursor-pointer focus:ring-3 focus:outline-none aria-busy:opacity-100! aria-disabled:cursor-not-allowed aria-disabled:opacity-50"
-		:aria-busy="props.loading ? 'true' : undefined"
-		:aria-disabled="props.disabled || props.loading ? 'true' : undefined"
+		:aria-busy="loading ? 'true' : undefined"
+		:aria-disabled="disabled || loading ? 'true' : undefined"
 		:aria-label="computedAriaLabel"
-		:disabled="props.disabled || props.loading"
+		:disabled="disabled || loading"
 		:class="computedClasses"
-		:type="props.type"
+		:type="type"
 		:title="computedTitle"
 		@click="handleClick"
 	>
 		<!-- Primary icon -->
-		<Icon v-if="props.icon && !props.loading" aria-hidden="true" :size="iconSize" :type="props.icon" />
+		<Icon v-if="icon && !loading" aria-hidden="true" :size="iconSize" :type="icon" />
 
 		<!-- Label -->
 		<template v-if="slots.default">
-			<div class="truncate" :class="props.loading && 'opacity-0'">
+			<div class="truncate" :class="loading && 'opacity-0'">
 				<slot></slot>
 			</div>
 		</template>
 
 		<!-- SR-only label -->
-		<template v-else-if="slots['sr-label'] && !props.loading">
+		<template v-else-if="slots['sr-label'] && !loading">
 			<span class="sr-only">
 				<slot name="sr-label"></slot>
 			</span>
 		</template>
 
 		<!-- Secondary icon -->
-		<Icon v-if="props.secondaryIcon && !isIconOnly && !props.loading" aria-hidden="true" :size="iconSize" :type="props.secondaryIcon" />
+		<Icon v-if="secondaryIcon && !isIconOnly && !loading" aria-hidden="true" :size="iconSize" :type="secondaryIcon" />
 
 		<!-- Loading spinner -->
-		<div v-if="props.loading" class="absolute flex h-full w-full items-center justify-center">
+		<div v-if="loading" class="absolute flex h-full w-full items-center justify-center">
 			<Icon aria-hidden="true" class="animate-spin" type="spinner" />
 		</div>
 
 		<!-- Loading indicator for SR -->
-		<span v-if="props.loading" class="sr-only" role="status" aria-live="polite">Loading...</span>
+		<span v-if="loading" class="sr-only" role="status" aria-live="polite">Loading...</span>
 	</button>
 </template>
 
@@ -58,7 +58,7 @@
 	// Packages
 	import { computed, onMounted, useAttrs, useSlots } from 'vue';
 
-	// Components
+	// New design
 	import Icon from '@hub-client/new-design/components/Icon.vue';
 
 	const attrs = useAttrs();
@@ -86,33 +86,35 @@
 		},
 	);
 
+	const { variant, icon, secondaryIcon, disabled, title, size, type, ariaLabel, loading } = props;
+
 	// Computed props
-	const isIconOnly = computed(() => !slots.default && props.icon);
+	const isIconOnly = computed(() => !slots.default && icon);
 
 	const iconSize = computed(() => {
-		if (isIconOnly.value && props.size === '') return 'base';
-		if (!isIconOnly.value && props.size === '') return 'sm';
-		return props.size;
+		if (isIconOnly.value && size === '') return 'base';
+		if (!isIconOnly.value && size === '') return 'sm';
+		return size;
 	});
 
 	// Sets the aria label (used by screen readers when there is no visible text), as a fallback for sr-label
 	const computedAriaLabel = computed(() => {
 		if (slots.default) return slots.default()[0].children?.toString();
 		if (slots['sr-label']) return slots['sr-label']()[0].children?.toString();
-		if (props.title) return props.title;
-		return props.ariaLabel ?? undefined;
+		if (title) return title;
+		return ariaLabel ?? undefined;
 	});
 
 	// Sets the tooltip value when not explicitly passed
 	const computedTitle = computed(() => {
-		if (props.title) return props.title;
+		if (title) return title;
 		if (computedAriaLabel.value) return computedAriaLabel.value;
 		if (slots.default) return slots.default()[0].children?.toString();
 		return undefined;
 	});
 
 	const computedClasses = computed(() => {
-		const variantClass = buttonVariants[props.variant ?? 'primary'];
+		const variantClass = buttonVariants[variant ?? 'primary'];
 		const iconClass = isIconOnly.value ? 'min-w-550 w-550 px-100' : 'min-w-1000 px-150'; // Required to make the icon-only button look square
 		return [variantClass, iconClass];
 	});
@@ -123,7 +125,7 @@
 	}>();
 
 	const handleClick = (evt: MouseEvent) => {
-		if (props.disabled || props.loading) {
+		if (disabled || loading) {
 			evt.preventDefault();
 			evt.stopPropagation();
 			return;
@@ -134,7 +136,7 @@
 	// Accessibility
 	onMounted(() => {
 		if (process.env.NODE_ENV !== 'production') {
-			if (isIconOnly.value && !props.ariaLabel && !props.title) {
+			if (isIconOnly.value && !ariaLabel && !title) {
 				console.warn('[Button] Accessible name missing for icon-only button. Provide `ariaLabel` or `title` prop or `#sr-label` slot.');
 			}
 		}

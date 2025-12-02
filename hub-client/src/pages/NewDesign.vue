@@ -76,18 +76,11 @@
 				<h2 class="mb-200">Alt components</h2>
 
 				<div class="flex flex-col gap-100">
-					<Button icon="check-circle" @click="clicked()" variant="primary" title="this is a tooltip">I am a button </Button>
+					<Button icon="check-circle" @click="clicked()" @contextmenu="openMenu1" variant="primary" title="this is a tooltip">Right click menu test</Button>
+					<Button icon="check-circle" @click="clicked()" @contextmenu="openMenu2" variant="primary" title="this is a tooltip">Right click menu test</Button>
 
 					<TextField2 placeholder="Geef getal" :validation="{ isNumber: true, minValue: 2 }" help="Hoe oud ben je?">Leeftijd</TextField2>
 					<TextArea2 placeholder="Geef getal" :validation="{ isNumber: true, minValue: 2 }" help="Hoe oud ben je?">Leeftijd</TextArea2>
-
-					<!-- Right click menu -->
-					<ContextMenu>
-						<ContextMenuItem title="Hi!" @click="clicked()">Label</ContextMenuItem>
-						<ContextMenuItem title="Hi3!" @click="clicked()">Label3</ContextMenuItem>
-						<Divider direction="horizontal" />
-						<ContextMenuItem title="Hi2!" :is-delicate="true" @click="clicked()">Label</ContextMenuItem>
-					</ContextMenu>
 				</div>
 			</div>
 		</div>
@@ -132,9 +125,6 @@
 
 	import Button from '@hub-client/new-design/components/Button.vue';
 	import ButtonGroup from '@hub-client/new-design/components/ButtonGroup.vue';
-	import ContextMenu from '@hub-client/new-design/components/ContextMenu.vue';
-	import ContextMenuItem from '@hub-client/new-design/components/ContextMenuItem.vue';
-	import Divider from '@hub-client/new-design/components/Divider.vue';
 	import IconButton from '@hub-client/new-design/components/IconButton.vue';
 	import Checkbox from '@hub-client/new-design/components/forms/Checkbox.vue';
 	import Radio from '@hub-client/new-design/components/forms/Radio.vue';
@@ -144,6 +134,8 @@
 	import TextField from '@hub-client/new-design/components/forms/TextField.vue';
 	import Toggle from '@hub-client/new-design/components/forms/Toggle.vue';
 	import ValidatedForm from '@hub-client/new-design/components/forms/ValidatedForm.vue';
+	import { useContextMenu } from '@hub-client/new-design/composables/contextMenu.composable';
+	import { MenuItem } from '@hub-client/new-design/stores/contextMenu.store';
 
 	type formType = {
 		firstname: string;
@@ -163,4 +155,19 @@
 	const clicked = () => {
 		alert('clicked!');
 	};
+
+	// Context menu
+	const items1: MenuItem[] = [
+		{ label: 'Open1', icon: 'smiley', onClick: () => console.error('Open1') },
+		{ label: 'Rename1', disabled: true, onClick: () => console.error('Rename1') },
+		{ label: 'Delete1', isDelicate: true, onClick: () => console.error('Delete1') },
+	];
+	const { openMenu: openMenu1 } = useContextMenu(items1);
+
+	const items2: MenuItem[] = [
+		{ label: 'Open2', icon: 'smiley', onClick: () => console.error('Open2') },
+		{ label: 'Rename2', disabled: true, onClick: () => console.error('Rename2') },
+		{ label: 'Delete2', isDelicate: true, onClick: () => console.error('Delete2') },
+	];
+	const { openMenu: openMenu2 } = useContextMenu(items2);
 </script>

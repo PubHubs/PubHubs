@@ -95,12 +95,14 @@
 
 		<Dialog v-if="dialog.visible" @close="dialog.close" />
 	</div>
+
+	<ContextMenu />
 </template>
 
 <script setup lang="ts">
 	// Packages
 	import { ConditionKind, IPushRule, PushRuleKind } from 'matrix-js-sdk';
-	import { computed, getCurrentInstance, onMounted, ref, watch } from 'vue';
+	import { computed, onMounted, ref, watch } from 'vue';
 	import { useI18n } from 'vue-i18n';
 	import { RouteParamValue, useRouter } from 'vue-router';
 
@@ -139,6 +141,9 @@
 	import { useRooms } from '@hub-client/stores/rooms';
 	import { FeatureFlag, useSettings } from '@hub-client/stores/settings';
 	import { useUser } from '@hub-client/stores/user';
+
+	// New design
+	import ContextMenu from '@hub-client/new-design/components/ContextMenu.vue';
 
 	const { locale, availableLocales, t } = useI18n();
 	const router = useRouter();
