@@ -15,7 +15,6 @@ import { TBaseEvent } from '@hub-client/models/events/TBaseEvent';
 import { TimelineEvent } from '@hub-client/models/events/TimelineEvent';
 import { TCurrentEvent } from '@hub-client/models/events/types';
 
-import { MessageType } from '@hub-client/stores/messagebox';
 // Stores
 import { useUser } from '@hub-client/stores/user';
 
@@ -54,7 +53,7 @@ class TimelineManager {
 	/** Contains all roomlibrary events */
 	private libraryEvents: TimelineEvent[] = [];
 	/** Contains all related events: reactions, annotations etc. */
-	private relatedEventsTable: TRelatedEvents[] = [];
+	private relatedEvents: TRelatedEvents[] = [];
 
 	private roomId: string;
 
@@ -137,15 +136,16 @@ class TimelineManager {
 	// The array of relatedEvents is sorted on timestamp (oldest -> newest)
 	private addRelatedEvents(events: MatrixEvent[]) {
 		if (events.length <= 0) return;
-		events.forEach((x) => {
-			const relatedEventsEntry = this.relatedEventsTable.find((y) => y.eventId === x.event.event_id);
+		events.forEach((eventToAdd) => {
+			const relatesToEvent = eventToAdd.event.content?.[RelationType.RelatesTo]?.event_id;
+			const relatedEventsEntry = this.relatedEvents.find((x) => x.eventId === relatesToEvent);
 			if (relatedEventsEntry) {
-				if (!relatedEventsEntry.relatedEvents.find((y) => y.event.event_id === x.event.event_id)) {
-					relatedEventsEntry.relatedEvents.push(x);
+				if (!relatedEventsEntry.relatedEvents.find((y) => y.event.event_id === eventToAdd.event.event_id)) {
+					relatedEventsEntry.relatedEvents.push(eventToAdd);
 					relatedEventsEntry.relatedEvents.sort((a, b) => a.getTs() - b.getTs());
 				}
 			} else {
-				this.relatedEventsTable.push({ eventId: x.event.event_id!, isFetched: false, relatedEvents: [x] });
+				this.relatedEvents.push({ eventId: relatesToEvent!, isFetched: false, relatedEvents: [eventToAdd] });
 			}
 		});
 	}
@@ -155,37 +155,39 @@ class TimelineManager {
 	public fetchRelatedEvents(eventIds: string[]) {
 		eventIds.forEach((eventId) => {
 			// find current relations
-			const currentrelatedEvents = this.relatedEventsTable.find((x) => x.eventId === eventId);
-			// if not found or not yet fetched from server: fetch them now
-			if (!currentrelatedEvents || !currentrelatedEvents?.isFetched) {
-				this.client.relations(this.roomId, eventId, null, null).then((relations) => {
-					// add or replace relations and set isFetched to true, so the API call will be once per event
-					if (currentrelatedEvents) {
-						currentrelatedEvents.isFetched = true;
-						for (const relation of relations.events) {
-							const i = currentrelatedEvents.relatedEvents.findIndex((x) => x.event.event_id === relation.event.event_id);
-							if (i >= 0) {
-								currentrelatedEvents.relatedEvents[i] = relation;
-							} else {
-								currentrelatedEvents.relatedEvents.push(relation);
-							}
-						}
-					} else {
-						this.relatedEventsTable.push({ eventId: eventId, isFetched: true, relatedEvents: relations.events });
-					}
-				});
+			const currentrelatedEvents = this.relatedEvents.find((x) => x.eventId === eventId);
+
+			// if found and already fetched from server: do nothing
+			if (currentrelatedEvents && currentrelatedEvents.isFetched) {
+				return;
 			}
+
+			this.client.relations(this.roomId, eventId, null, null).then((relations) => {
+				// add or replace relations and set isFetched to true, so the API call will be once per event
+				if (currentrelatedEvents) {
+					currentrelatedEvents.isFetched = true;
+					for (const relation of relations.events) {
+						const i = currentrelatedEvents.relatedEvents.findIndex((x) => x.event.event_id === relation.event.event_id);
+						if (i >= 0) {
+							currentrelatedEvents.relatedEvents[i] = relation;
+						} else {
+							currentrelatedEvents.relatedEvents.push(relation);
+						}
+					}
+				} else {
+					this.relatedEvents.push({ eventId: eventId, isFetched: true, relatedEvents: relations.events });
+				}
+			});
 		});
 	}
 
 	public getRelatedEvents(eventId: string): TimelineEvent[] {
-		return this.relatedEventsTable.find((x) => x.eventId === eventId)?.relatedEvents.map((x) => new TimelineEvent(x, this.roomId)) ?? [];
+		return this.relatedEvents.find((x) => x.eventId === eventId)?.relatedEvents.map((x) => new TimelineEvent(x, this.roomId)) ?? [];
 	}
 
-	// TODO RelatedEvents
 	// Gets related events, either all (defined in this.relatedEventTypes) or of one specific type and or contenttype (for instance EvenType.Reaction, RelationType.Annotation)
 	public getRelatedEventsByType(eventId: string, options: RelatedEventsOptions = {}): TimelineEvent[] {
-		const relatedEvents = this.getRelatedEvents(eventId)?.map((x) => new TimelineEvent(x, this.roomId));
+		const relatedEvents = this.getRelatedEvents(eventId);
 		if (!relatedEvents) {
 			return [];
 		}

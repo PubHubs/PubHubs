@@ -142,7 +142,7 @@
 	});
 
 	watch(
-		() => currentRoom?.filterRoomWidgetRelatedEvents(props.event.event_id),
+		() => currentRoom?.filterRoomWidgetRelatedEvents(props.event.content.type, props.event.event_id),
 		(event) => {
 			collectNewVotes(event);
 		},
@@ -402,9 +402,7 @@
 		//events do not get registered instantly which leads to errors when creating polls
 		//this check makes sure that the votingwidget event exists
 		if (props.event.unsigned) {
-			//const events = currentRoom?.getRelatedLiveTimeEvents(props.event.event_id);
-			//const events = currentRoom?.getRelatedEvents(props.event.event_id);
-			const events = currentRoom?.filterRoomWidgetRelatedEvents(props.event.event_id);
+			const events = currentRoom?.filterRoomWidgetRelatedEvents(props.event.content.type, props.event.event_id);
 			votesByOption.value.options = initializeVotesByOption(votingWidget.value.options); //clear any stored data in votesByOption
 			events?.forEach((event) => {
 				lastEventTimestamp = event.event.origin_server_ts as number;

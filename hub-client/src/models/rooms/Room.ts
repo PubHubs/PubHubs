@@ -1,4 +1,5 @@
 // Packages
+import { VotingWidgetType } from '../events/voting/VotingTypes';
 import { Direction, EventTimeline, EventTimelineSet, EventType, IStateEvent, MatrixClient, MatrixEvent, Room as MatrixRoom, RoomMember as MatrixRoomMember, MsgType, NotificationCountType, Thread, ThreadEvent } from 'matrix-js-sdk';
 import { CachedReceipt, WrappedReceipt } from 'matrix-js-sdk/lib/@types/read_receipts';
 import { MSC3575RoomData as SlidingSyncRoomData } from 'matrix-js-sdk/lib/sliding-sync';
@@ -532,30 +533,62 @@ export default class Room {
 		//return this.matrixRoom.getLiveTimeline().getEvents().at(-1)?.event;
 	}
 
-	/*
-	 * Grouping users and then selecting the latest related event.
+	/**Select the latest voting event per user and voting option -> schedulers
+	 * or per user -> polls
+	 * @param votingWidgetType Poll or Scheduler?
+	 * @param eventId
+	 * @returns array of latest voting events per user and voting option (scheduler) or per user (poll)
 	 */
-
-	public filterRoomWidgetRelatedEvents(eventId: string): MatrixEvent[] {
-		const relatedEvents = this.timelineManager.getRelatedEvents(eventId);
-		if (!relatedEvents) {
+	public filterRoomWidgetRelatedEvents(votingWidgetType: string, eventId: string): MatrixEvent[] {
+		const relatedTimeleineEvents = this.timelineManager.getRelatedEvents(eventId);
+		if (!relatedTimeleineEvents) {
 			return [];
 		}
 
-		const latestEventsPerUser = Object.values(
-			relatedEvents.reduce(
-				(acc, event) => {
-					const userId = event.getSender(); // or event.user_id if available
-					if (!acc[userId] || acc[userId].event.origin_server_ts < event.event.origin_server_ts) {
-						acc[userId] = event;
-					}
-					return acc;
-				},
-				{} as Record<string, MatrixEvent>,
-			),
-		);
+		const relatedEvents = relatedTimeleineEvents.map((x) => x.matrixEvent);
 
-		return latestEventsPerUser;
+		if (votingWidgetType === VotingWidgetType.SCHEDULER) {
+			// Scheduler: return all latest events per user per option
+			const relatedEventsByOption = Object.values(
+				relatedEvents.reduce(
+					(acc, event) => {
+						const optionId = event.event.content!.optionId;
+						const userId = event.getSender();
+
+						if (!acc[optionId]) {
+							acc[optionId] = [];
+						}
+
+						const existingIndex = acc[optionId].findIndex((event: MatrixEvent) => event.getSender() === userId);
+						if (existingIndex === -1) {
+							acc[optionId].push(event);
+						} else {
+							if (acc[optionId][existingIndex].event.origin_server_ts < event.event.origin_server_ts) {
+								acc[optionId][existingIndex] = event;
+							}
+						}
+						return acc;
+					},
+					{} as Record<string, any>,
+				),
+			).flat();
+			return relatedEventsByOption;
+		} else {
+			//Poll: return all latest events per user
+			const latestEventsPerUser = Object.values(
+				relatedEvents.reduce(
+					(acc, event) => {
+						const userId = event.getSender(); // or event.user_id if available
+						if (!acc[userId] || acc[userId].event.origin_server_ts < event.event.origin_server_ts) {
+							acc[userId] = event;
+						}
+						return acc;
+					},
+					{} as Record<string, MatrixEvent>,
+				),
+			);
+			return latestEventsPerUser;
+		}
 	}
 
 	public getRelatedEvents(eventId: string): TimelineEvent[] {
