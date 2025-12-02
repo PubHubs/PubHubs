@@ -1,5 +1,7 @@
+// Models
 import type { MentionMatch, MessageSegment } from '@hub-client/models/components/TMessage';
 
+// Stores
 import { usePubhubsStore } from '@hub-client/stores/pubhubs';
 import { useRooms } from '@hub-client/stores/rooms';
 
@@ -65,11 +67,12 @@ export function useMentions() {
 
 			// Determine where the token ends (tilde or space, whichever comes first)
 			const tilde = body.indexOf('~', start);
-			const space = body.indexOf(' ', start);
-			const tildeFound = tilde !== -1;
-			const spaceFound = space !== -1;
+			if (tilde === -1) {
+				index = start + 1;
+				continue;
+			}
 
-			const endToken = tildeFound && (!spaceFound || tilde < space) ? tilde : space;
+			const endToken = tilde;
 			const hasEndToken = endToken !== -1;
 			const tokenEnd = hasEndToken ? endToken : body.length;
 
@@ -100,6 +103,7 @@ export function useMentions() {
 
 		return mentions;
 	}
+
 	/**
 	 * Converts the message body and parsed mention information into renderable segments.
 	 *
