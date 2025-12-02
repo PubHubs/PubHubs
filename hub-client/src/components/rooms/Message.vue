@@ -1,25 +1,27 @@
 <template>
 	<div class="flex flex-row items-center gap-1 wrap-break-word">
-		<Icon v-if="deleted" type="trash" size="sm" />
-
 		<!-- Deleted Message -->
+		<Icon v-if="deleted" type="trash" size="sm" />
 		<p v-if="deleted" class="text-on-surface-dim overflow-hidden text-ellipsis">
 			{{ t('message.delete.message_deleted') }}
 		</p>
 
 		<!-- Message with Mentions -->
 		<div v-else-if="hasAnyMentions" class="relative max-w-[90ch] text-ellipsis">
-			<component :is="'p'" v-for="(segment, index) in messageSegments" :key="index" class="inline">
-				<template v-if="segment.type === 'text'">{{ segment.content }}</template>
+			<P v-for="segment in messageSegments" :key="segment" class="inline">
+				<!-- Normal text segment -->
+				<span v-if="segment.type === 'text'">{{ segment.content }}</span>
 
 				<span v-else-if="segment.type === 'user' || segment.type === 'room'" @mouseover="activeMentionCard = segment.id" @mouseleave="activeMentionCard = null" class="relative">
+					<!-- Segment with token -->
 					<span class="text-accent-primary">{{ segment.displayName }}</span>
-					<div v-if="activeMentionCard === segment.id && segment.tokenId" class="absolute top-full left-0 z-50 w-52" :class="segment.type === 'user' ? 'h-40' : 'h-10'" @mouseover="activeMentionCard = segment.id">
+					<!-- Pop up when hovering over mention -->
+					<div v-if="activeMentionCard === segment.id && segment.tokenId" class="test absolute top-full left-0 z-50 w-52" :class="segment.type === 'user' ? 'h-40' : 'h-10'">
 						<ProfileCard v-if="segment.type === 'user'" :event="event" :userId="segment.tokenId" />
 						<RoomMiniCard v-else :roomId="segment.tokenId" />
 					</div>
 				</span>
-			</component>
+			</P>
 		</div>
 
 		<!-- Regular Message -->

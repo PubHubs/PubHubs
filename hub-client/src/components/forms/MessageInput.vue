@@ -202,7 +202,6 @@
 	const { value, reset, changed, cancel } = useFormInputEvents(emit);
 	const { allTypes, uploadUrl } = useMatrixFiles();
 
-	// const fileInfo = ref<File>();
 	const uri = ref<string>('');
 	const pollObject = ref<Poll>(new Poll());
 	const schedulerObject = ref<Scheduler>(new Scheduler());
@@ -279,12 +278,12 @@
 	);
 
 	onMounted(async () => {
-		window.addEventListener('keydown', handleKeydown);
+		globalThis.addEventListener('keydown', handleKeydown);
 		reset();
 	});
 
 	onUnmounted(() => {
-		window.removeEventListener('keydown', handleKeydown);
+		globalThis.removeEventListener('keydown', handleKeydown);
 	});
 
 	// Focus on message input if the state of messageActions changes (for example, when replying).
@@ -299,7 +298,7 @@
 			if (message?.content[RelationType.RelatesTo]?.[RelationType.RelType] === RelationType.Thread) {
 				inReplyTo.value = props.inThread ? message : undefined;
 			} else {
-				inReplyTo.value = !props.inThread ? message : undefined;
+				inReplyTo.value = props.inThread ? undefined : message;
 			}
 		}
 
@@ -338,31 +337,31 @@
 		let userMention = user.rawDisplayName;
 
 		// Make sure pseudonym is included if it hasn't
-		if (!filters.extractPseudonymFromString(userMention)) {
-			userMention = '@' + userMention + '~' + user.userId; //filters.extractPseudonym(user.userId);
-		} else {
+		if (filters.extractPseudonymFromString(userMention)) {
 			userMention = '@' + filters.extractPseudonym(user.userId) + '~' + user.userId;
+		} else {
+			userMention = '@' + userMention + '~' + user.userId; 
 		}
 
 		let message = value.value?.toString();
-		if (message?.lastIndexOf('@') !== -1) {
+		if (message?.lastIndexOf('@') === -1) {
+			value.value += userMention;
+		} else {
 			const lastPosition = message?.lastIndexOf('@');
 			message = message?.substring(0, lastPosition);
 			value.value = message + userMention;
-		} else {
-			value.value += userMention;
 		}
 	}
 	function mentionRoom(room: TPublicRoom) {
 		let roomMention = room.name + '~' + room.room_id;
 
 		let message = value.value?.toString();
-		if (message?.lastIndexOf('#') !== -1) {
+		if (message?.lastIndexOf('#') === -1) {
+			value.value += '#' + roomMention;
+		} else {
 			const lastPosition = message?.lastIndexOf('#');
 			message = message?.substring(0, lastPosition);
 			value.value = message + '#' + roomMention;
-		} else {
-			value.value += '#' + roomMention;
 		}
 	}
 
@@ -404,7 +403,6 @@
 
 	async function announcementMessage() {
 		const powerLevel = props.room.getPowerLevel(user.userId);
-		// if (value.value?.toLocaleString().length === 0) return;
 		await pubhubs.addAnnouncementMessage(rooms.currentRoomId, value.value!.toString(), powerLevel);
 		value.value = '';
 	}

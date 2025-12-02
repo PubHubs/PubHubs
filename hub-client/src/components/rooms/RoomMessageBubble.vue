@@ -399,7 +399,7 @@
 
 	// Waits for checking if message is realy send. Otherwise a 'resend' button appears. See also msgIsNotSend computed.
 	const timerReady = ref(false);
-	window.setTimeout(() => {
+	globalThis.setTimeout(() => {
 		timerReady.value = true;
 	}, 1000);
 </script>

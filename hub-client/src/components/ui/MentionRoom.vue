@@ -1,7 +1,7 @@
 <template>
 	<div v-if="isVisible" ref="elContainer" :style="getStyle()" class="scrollbar bg-surface fixed max-h-52 w-fit overflow-y-auto rounded-lg shadow-lg">
 		<ul>
-			<li v-for="(room, index) in filteredRoooms" :key="index" class="group hover:bg-surface-high cursor-pointer px-4" @click.stop="clickedItem(room)">
+			<li v-for="(room, index) in filteredRooms" :key="index" class="group hover:bg-surface-high cursor-pointer px-4" @click.stop="clickedItem(room)">
 				<div class="flex items-center gap-4 py-2">
 					<div>{{ room.name }}</div>
 				</div>
@@ -13,8 +13,6 @@
 <script setup lang="ts">
 	// Packages
 	import { computed, onMounted, ref, watch } from 'vue';
-
-	import { router } from '@hub-client/logic/core/router';
 
 	// Models
 	import Room from '@hub-client/models/rooms/Room';
@@ -71,7 +69,7 @@
 			} else if ((props.msg?.length ?? 0) < positionOfAt.value && positionOfAt.value > 0) {
 				positionOfAt.value = 0;
 				isVisible.value = false;
-			} else if (filteredRoooms.value.length > 0) {
+			} else if (filteredRooms.value.length) {
 				isVisible.value = true;
 			}
 		} else {
@@ -79,12 +77,10 @@
 		}
 	}
 
-	const filteredRoooms = computed(() => {
+	const filteredRooms = computed(() => {
 		const query = props.msg ?? '';
 
 		if (query.endsWith('#')) {
-			console.error('test');
-			console.error(router.currentRoute.value.fullPath);
 			return displayAllRooms();
 		} else {
 			return filterRooms(query);
@@ -92,12 +88,11 @@
 	});
 
 	function displayAllRooms() {
-		console.error(users.value);
 		return users.value;
 	}
 
 	function filterRooms(searchQuery: string) {
-		const query = searchQuery.toLowerCase().trim();
+		const query = searchQuery.slice(searchQuery.lastIndexOf('#') + 1);
 		return rooms.visiblePublicRooms.filter((room) => room.name?.toLowerCase().includes(query) || room.topic?.toLowerCase().includes(query));
 	}
 

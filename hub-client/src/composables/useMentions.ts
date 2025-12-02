@@ -11,8 +11,8 @@ import { useRooms } from '@hub-client/stores/rooms';
  * * `#displayName~roomId`
  *
  * The parser extracts these patterns from a plain-text message body and produces:
- * 1. A structured list of detected mentions (`MentionMatch[]`).
- * 2. A list of message segments (`MessageSegment[]`) mixing normal text and enriched
+ * 1. A list of detected mentions (`MentionMatch[]`).
+ * 2. A list of message segments (`MessageSegment[]`) mixing normal text and enriched mentions
  *
  */
 export function useMentions() {
@@ -52,7 +52,7 @@ export function useMentions() {
 			let start = -1;
 			let marker: '@' | '#' | null = null;
 
-			if (atFound && atPos < hashPos) {
+			if (atFound && (!hashFound || atPos < hashPos)) {
 				start = atPos;
 				marker = '@';
 			} else if (hashFound) {
@@ -67,9 +67,11 @@ export function useMentions() {
 			const tilde = body.indexOf('~', start);
 			const space = body.indexOf(' ', start);
 			const tildeFound = tilde !== -1;
-			const endToken = tildeFound && tilde < space ? tilde : space;
+			const spaceFound = space !== -1;
+
+			const endToken = tildeFound && (!spaceFound || tilde < space) ? tilde : space;
 			const hasEndToken = endToken !== -1;
-			const tokenEnd = hasEndToken ? body.length : endToken;
+			const tokenEnd = hasEndToken ? endToken : body.length;
 
 			const displayName = body.substring(start, tokenEnd);
 
@@ -87,7 +89,7 @@ export function useMentions() {
 					end: nextSpace === -1 ? body.length : nextSpace,
 					displayName,
 					id: `${id}-${start}`, // unique key for rendering
-					tokenId: id,
+					tokenId: id, // id of the room/user
 				});
 				index = nextSpace === -1 ? body.length : nextSpace;
 			} else {
@@ -104,8 +106,9 @@ export function useMentions() {
 	 * Each segment is either:
 	 * - `{ type: 'text', content: string }`
 	 * - `{ type: 'room', displayName, id, tokenId}`
+	 * - `{ type: 'user', displayName, id, tokenId}`
 	 *
-	 * Output is ordered and non-overlapping. Normal text between mentions is preserved.
+	 * The output is ordered and non-overlapping. Normal text between mentions is preserved.
 	 *
 	 * @param body The original message text.
 	 * @param mentions Parsed mention matches from `parseMentions()`.
