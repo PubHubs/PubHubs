@@ -199,7 +199,7 @@ export default class Room {
 
 	/**
 	 *
-	 * @returns Used within reactions to show only one instance of multiple together with counter
+	 * Used within reactions to show only one instance of multiple together with counter
 	 */
 	public getCurrentEventRelatedEvents(): MatrixEvent[] {
 		return this.eventMultipleRelateEvents;
