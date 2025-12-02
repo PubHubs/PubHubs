@@ -17,7 +17,7 @@
 				<span v-else-if="segment.type === 'room'" @click="activeMentionCard = segment.id" class="relative" @contextmenu="roomMentionMenu">
 					<span class="text-accent-primary cursor-pointer">{{ segment.displayName }}</span>
 					<div v-if="activeMentionCard === segment.id && segment.tokenId">
-						<SecuredRoomLoginDialog v-if="segment.type === 'room'" :secured="isSecured(segment.tokenId)" :dialogOpen="segment.tokenId" title="test" message="test" :messageValues="[]" @close="activeMentionCard = null" />
+						<RoomLoginDialog v-if="segment.type === 'room'" :secured="isSecured(segment.tokenId)" :dialogOpen="segment.tokenId" title="test" message="test" :messageValues="[]" @close="activeMentionCard = null" />
 					</div>
 				</span>
 			</P>
@@ -29,7 +29,6 @@
 </template>
 
 <script setup lang="ts">
-	import SecuredRoomLoginDialog from '../ui/SecuredRoomLoginDialog.vue';
 	import { computed, ref } from 'vue';
 	import { useI18n } from 'vue-i18n';
 
