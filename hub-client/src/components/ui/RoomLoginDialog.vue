@@ -6,7 +6,7 @@
 			</P>
 
 			<SecuredRoomLogin v-if="props.secured" :securedRoomId="props.dialogOpen" :showClose="false" @click="handleClose" class="relative left-1/2 mb-24 w-max -translate-x-1/2 transform" />
-			<Button v-else @click="join(props.dialogOpen)">Join</Button>
+			<Button v-else @click="join(props.dialogOpen)">{{ t('rooms.join_room') }}</Button>
 		</Dialog>
 	</Teleport>
 </template>

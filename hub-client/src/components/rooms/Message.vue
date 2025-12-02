@@ -17,7 +17,15 @@
 				<span v-else-if="segment.type === 'room'" @click="activeMentionCard = segment.id" class="relative" @contextmenu="roomMentionMenu">
 					<span class="text-accent-primary cursor-pointer">{{ segment.displayName }}</span>
 					<div v-if="activeMentionCard === segment.id && segment.tokenId">
-						<RoomLoginDialog v-if="segment.type === 'room'" :secured="isSecured(segment.tokenId)" :dialogOpen="segment.tokenId" title="test" message="test" :messageValues="[]" @close="activeMentionCard = null" />
+						<RoomLoginDialog
+							v-if="segment.type === 'room'"
+							:secured="isSecured(segment.tokenId)"
+							:dialogOpen="segment.tokenId"
+							title="rooms.join_room"
+							message="rooms.join_secured_room_dialog"
+							:messageValues="[]"
+							@close="activeMentionCard = null"
+						/>
 					</div>
 				</span>
 			</P>
@@ -83,7 +91,6 @@
 	const { openMenu: userMentionMenu } = useContextMenu(userMention);
 
 	function isSecured(id: string) {
-		console.error(id);
 		return roomsStore.roomIsSecure(id);
 	}
 	async function goToUserRoom(userId: string) {
