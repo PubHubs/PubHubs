@@ -51,7 +51,7 @@
 	<div class="ml-4">
 		<InlineSpinner v-if="!roomsLoaded" />
 	</div>
-	<SecuredRoomLoginDialog v-model:dialogOpen="dialogOpen" title="notifications.rejoin_secured_room" message="notifications.removed_from_secured_room" :messageValues="messageValues" />
+	<RoomLoginDialog v-model:dialogOpen="dialogOpen" title="notifications.rejoin_secured_room" message="notifications.removed_from_secured_room" :messageValues="messageValues" :secured="true" />
 </template>
 
 <script setup lang="ts">
@@ -69,10 +69,10 @@
 	import GroupRoomName from '@hub-client/components/rooms/GroupRoomName.vue';
 	import PrivateRoomName from '@hub-client/components/rooms/PrivateRoomName.vue';
 	import RoomName from '@hub-client/components/rooms/RoomName.vue';
-	import SecuredRoomLoginDialog from '@hub-client/components/rooms/SecuredRoomLoginDialog.vue';
 	import InlineSpinner from '@hub-client/components/ui/InlineSpinner.vue';
 	import Menu from '@hub-client/components/ui/Menu.vue';
 	import MenuItem from '@hub-client/components/ui/MenuItem.vue';
+	import RoomLoginDialog from '@hub-client/components/ui/RoomLoginDialog.vue';
 
 	// Models
 	import Room from '@hub-client/models/rooms/Room';

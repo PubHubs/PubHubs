@@ -79,7 +79,7 @@
 				</Button>
 
 				<!-- Secure room join dialog -->
-				<SecuredRoomLoginDialog v-model:dialogOpen="dialogOpen" title="rooms.join_room" message="rooms.join_secured_room_dialog" :messageValues="[]" />
+				<RoomLoginDialog v-model:dialogOpen="dialogOpen" title="rooms.join_room" message="rooms.join_secured_room_dialog" :messageValues="[]" :secured="true" />
 			</div>
 		</div>
 	</div>
@@ -96,7 +96,7 @@
 	import H2 from '@hub-client/components/elements/H2.vue';
 	import Icon from '@hub-client/components/elements/Icon.vue';
 	import P from '@hub-client/components/elements/P.vue';
-	import SecuredRoomLoginDialog from '@hub-client/components/rooms/SecuredRoomLoginDialog.vue';
+	import RoomLoginDialog from '@hub-client/components/ui/RoomLoginDialog.vue';
 
 	// Stores
 	import { useDialog } from '@hub-client/stores/dialog';

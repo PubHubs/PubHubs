@@ -11,14 +11,13 @@
 			<P v-for="segment in messageSegments" :key="segment" class="inline">
 				<!-- Normal text segment -->
 				<span v-if="segment.type === 'text'">{{ segment.content }}</span>
-
-				<span v-else-if="segment.type === 'user' || segment.type === 'room'" @mouseover="activeMentionCard = segment.id" @mouseleave="activeMentionCard = null" class="relative">
-					<!-- Segment with token -->
-					<span class="text-accent-primary">{{ segment.displayName }}</span>
-					<!-- Pop up when hovering over mention -->
-					<div v-if="activeMentionCard === segment.id && segment.tokenId" class="test absolute top-full left-0 z-50 w-52" :class="segment.type === 'user' ? 'h-40' : 'h-10'">
-						<ProfileCard v-if="segment.type === 'user'" :event="event" :userId="segment.tokenId" />
-						<RoomMiniCard v-else :roomId="segment.tokenId" />
+				<!-- User Mention segment -->
+				<span v-else-if="segment.type === 'user'" @click.once="goToUserRoom(segment.tokenId!)" class="text-accent-primary cursor-pointer" @contextmenu="userMentionMenu">{{ segment.displayName }}</span>
+				<!-- Room Mention segment -->
+				<span v-else-if="segment.type === 'room'" @click="activeMentionCard = segment.id" class="relative" @contextmenu="roomMentionMenu">
+					<span class="text-accent-primary cursor-pointer">{{ segment.displayName }}</span>
+					<div v-if="activeMentionCard === segment.id && segment.tokenId">
+						<SecuredRoomLoginDialog v-if="segment.type === 'room'" :secured="isSecured(segment.tokenId)" :dialogOpen="segment.tokenId" title="test" message="test" :messageValues="[]" @close="activeMentionCard = null" />
 					</div>
 				</span>
 			</P>
@@ -30,18 +29,25 @@
 </template>
 
 <script setup lang="ts">
+	import SecuredRoomLoginDialog from '../ui/SecuredRoomLoginDialog.vue';
 	import { computed, ref } from 'vue';
 	import { useI18n } from 'vue-i18n';
 
 	import Icon from '@hub-client/components/elements/Icon.vue';
-	import RoomMiniCard from '@hub-client/components/rooms/RoomMiniCard.vue';
-	import ProfileCard from '@hub-client/components/ui/ProfileCard.vue';
 
 	import { useMentions } from '@hub-client/composables/useMentions';
 
 	import { TMessageEvent } from '@hub-client/models/events/TMessageEvent';
 
+	import { usePubhubsStore } from '@hub-client/stores/pubhubs';
+	import { useRooms } from '@hub-client/stores/rooms';
+	import { User } from '@hub-client/stores/user';
+
+	import { useContextMenu } from '@hub-client/new-design/composables/contextMenu.composable';
+
 	const { t } = useI18n();
+	const roomsStore = useRooms();
+	const pubhubs = usePubhubsStore();
 	const props = defineProps<{
 		event: TMessageEvent;
 		deleted: boolean;
@@ -70,4 +76,25 @@
 	const hasAnyMentions = computed(() => {
 		return messageSegments.value.some((seg) => seg.type !== 'text');
 	});
+
+	const roomMention = [{ label: 'join', icon: 'chats-circle', onClick: () => console.error('Open1') }];
+	const { openMenu: roomMentionMenu } = useContextMenu(roomMention);
+
+	const userMention = [{ label: 'direct message', icon: 'chat-circle', onClick: () => console.error('Open1') }];
+	const { openMenu: userMentionMenu } = useContextMenu(userMention);
+
+	function isSecured(id: string) {
+		console.error(id);
+		return roomsStore.roomIsSecure(id);
+	}
+	async function goToUserRoom(userId: string) {
+		let userRoom;
+		const otherUser = pubhubs.client.getUser(userId) as User;
+		if (otherUser) {
+			userRoom = await pubhubs.createPrivateRoomWith(otherUser);
+			if (userRoom) {
+				await pubhubs.routeToRoomPage(userRoom);
+			}
+		}
+	}
 </script>

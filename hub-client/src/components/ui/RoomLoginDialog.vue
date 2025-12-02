@@ -1,10 +1,12 @@
 <template>
 	<Teleport to="body">
-		<Dialog v-if="dialogOpen" @close="handleClose" :title="t(title)" :buttons="buttonsCancel" :allowOverflow="true">
+		<Dialog v-if="props.dialogOpen" @close="handleClose" :title="t(title)" :buttons="buttonsCancel" :allowOverflow="true">
 			<P class="text-label-small-min/label-small-max text-wrap">
 				{{ t(message, messageValues) }}
 			</P>
-			<SecuredRoomLogin :securedRoomId="dialogOpen" :showClose="false" @click="handleClose" class="relative left-1/2 mb-24 w-max -translate-x-1/2 transform" />
+
+			<SecuredRoomLogin v-if="props.secured" :securedRoomId="props.dialogOpen" :showClose="false" @click="handleClose" class="relative left-1/2 mb-24 w-max -translate-x-1/2 transform" />
+			<Button v-else @click="join(dialogOpen)">Join</Button>
 		</Dialog>
 	</Teleport>
 </template>
@@ -26,6 +28,7 @@
 		title: string;
 		message: string;
 		messageValues: (string | number)[];
+		secured?: boolean;
 	}>();
 
 	const emit = defineEmits<{

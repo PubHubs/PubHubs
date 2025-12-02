@@ -387,16 +387,6 @@
 		return position.top > window.innerHeight / 2;
 	}
 
-	interface ParsedToken {
-		before: string;
-		token: string;
-		after: string;
-		id: string;
-		raw: string; // full match including marker
-		start: number;
-		end: number;
-	}
-
 	// Waits for checking if message is realy send. Otherwise a 'resend' button appears. See also msgIsNotSend computed.
 	const timerReady = ref(false);
 	globalThis.setTimeout(() => {
