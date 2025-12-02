@@ -37,19 +37,26 @@
 </template>
 
 <script setup lang="ts">
+	// Packages
 	import { computed, ref } from 'vue';
 	import { useI18n } from 'vue-i18n';
 
+	// Components
 	import Icon from '@hub-client/components/elements/Icon.vue';
+	import RoomLoginDialog from '@hub-client/components/ui/RoomLoginDialog.vue';
 
+	// Composables
 	import { useMentions } from '@hub-client/composables/useMentions';
 
+	// Models
 	import { TMessageEvent } from '@hub-client/models/events/TMessageEvent';
 
+	// Stores
 	import { usePubhubsStore } from '@hub-client/stores/pubhubs';
 	import { useRooms } from '@hub-client/stores/rooms';
 	import { User } from '@hub-client/stores/user';
 
+	// New design
 	import { useContextMenu } from '@hub-client/new-design/composables/contextMenu.composable';
 
 	const { t } = useI18n();
