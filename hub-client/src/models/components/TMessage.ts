@@ -3,17 +3,16 @@ interface MessageSegment {
 	content?: string;
 	displayName?: string;
 	id: string | null;
-	roomId?: string;
-	userId?: string;
+	tokenId?: string;
 }
 
 interface MentionMatch {
-	type: '#' | '@';
+	type: '#' | '@' | null;
 	start: number;
 	end: number;
 	displayName: string;
-	mentionId: string;
-	id?: string;
+	id: string;
+	tokenId?: string;
 }
 
 export { MessageSegment, MentionMatch };

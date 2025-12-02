@@ -12,17 +12,11 @@
 			<component :is="'p'" v-for="(segment, index) in messageSegments" :key="index" class="inline">
 				<template v-if="segment.type === 'text'">{{ segment.content }}</template>
 
-				<span v-else-if="segment.type === 'room'" @mouseover="activeMentionCard = segment.id" @mouseleave="activeMentionCard = null" class="text-accent-primary relative cursor-pointer">
-					{{ segment.displayName }}
-					<div v-if="activeMentionCard === segment.id && segment.roomId" class="absolute top-full left-0 z-50 h-10 w-52" @mouseover="activeMentionCard = segment.id">
-						<RoomMiniCard :roomId="segment.roomId" />
-					</div>
-				</span>
-
-				<span v-else-if="segment.type === 'user'" @mouseover="activeMentionCard = segment.id" @mouseleave="activeMentionCard = null" class="text-accent-primary relative cursor-pointer">
-					{{ segment.displayName }}
-					<div v-if="activeMentionCard === segment.id && segment.userId" class="absolute top-full left-0 z-50 h-40 w-52" @mouseover="activeMentionCard = segment.id">
-						<ProfileCard :event="event" :userId="segment.userId" />
+				<span v-else-if="segment.type === 'user' || segment.type === 'room'" @mouseover="activeMentionCard = segment.id" @mouseleave="activeMentionCard = null" class="relative">
+					<span class="text-accent-primary">{{ segment.displayName }}</span>
+					<div v-if="activeMentionCard === segment.id && segment.tokenId" class="absolute top-full left-0 z-50 w-52" :class="segment.type === 'user' ? 'h-40' : 'h-10'" @mouseover="activeMentionCard = segment.id">
+						<ProfileCard v-if="segment.type === 'user'" :event="event" :userId="segment.tokenId" />
+						<RoomMiniCard v-else :roomId="segment.tokenId" />
 					</div>
 				</span>
 			</component>
@@ -60,7 +54,7 @@
 	});
 
 	/**
-	 * Parse message body into segments with mentions replaced
+	 * Parse message body into segments with mentions replaced by displayName
 	 */
 	const messageSegments = computed(() => {
 		if (props.deleted) return [];
@@ -72,7 +66,6 @@
 	});
 
 	const hasAnyMentions = computed(() => {
-		if (props.deleted) return false;
 		return messageSegments.value.some((seg) => seg.type !== 'text');
 	});
 </script>

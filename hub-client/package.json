@@ -67,6 +67,7 @@
 		"vite-plugin-node-polyfills": "^0.23.0",
 		"vitest": "^3",
 		"vue-eslint-parser": "^9",
+		"vue-mess-detector": "^0.67.0",
 		"webpack": "^5.97.1"
 	},
 	"eslintConfig": {
