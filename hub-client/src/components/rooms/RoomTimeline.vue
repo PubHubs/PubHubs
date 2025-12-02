@@ -34,7 +34,7 @@
 						>
 							<template #reactions>
 								<div class="mt-2 ml-2 flex flex-wrap gap-2 px-20">
-									<Reaction v-if="reactionExistsForMessage(item.matrixEvent.event.event_id, item.matrixEvent)" :reactEvent="onlyReactionEvent" :messageEventId="item.matrixEvent.event.event_id!"></Reaction>
+									<Reaction v-if="reactionExistsForMessage(item.matrixEvent)" :reactEvent="onlyReactionEvent(item.matrixEvent.event.event_id!)" :messageEventId="item.matrixEvent.event.event_id!"></Reaction>
 								</div>
 							</template>
 						</RoomMessageBubble>
@@ -134,12 +134,6 @@
 		return props.room.getTimeline();
 	});
 
-	const onlyReactionEvent = computed(() => {
-		// To stop from having duplicate events
-		props.room.getRelatedEvents({ eventType: EventType.Reaction, contentRelType: RelationType.Annotation }).forEach((reactEvent) => props.room.addCurrentEventToRelatedEvent(reactEvent));
-		return props.room.getCurrentEventRelatedEvents();
-	});
-
 	const oldestEventIsLoaded = computed(() => {
 		return props.room.isOldestMessageLoaded();
 	});
@@ -183,13 +177,20 @@
 		{ deep: true },
 	);
 
+	function onlyReactionEvent(eventId: string) {
+		// To stop from having duplicate events
+		props.room.getRelatedEventsByType(eventId, { eventType: EventType.Reaction, contentRelType: RelationType.Annotation }).forEach((reactEvent) => props.room.addCurrentEventToRelatedEvent(reactEvent.matrixEvent));
+		return props.room.getCurrentEventRelatedEvents();
+	}
+
 	// Is there a reaction for RoomMessageEvent ID.
 	// If there is then show the reaction otherwise dont render reaction UI component.
-	function reactionExistsForMessage(messageEventId: string | undefined, matrixEvent: MatrixEvent): boolean {
+	function reactionExistsForMessage(matrixEvent: MatrixEvent): boolean {
 		if (matrixEvent && matrixEvent.isRedacted()) return false;
+		const messageEventId = matrixEvent.event.event_id;
 		if (!messageEventId) return false;
 
-		const reactionEvent = onlyReactionEvent.value.find((event) => {
+		const reactionEvent = onlyReactionEvent(messageEventId).find((event) => {
 			const relatesTo = event.getContent()[RelationType.RelatesTo];
 			// Check if this reaction relates to the target message
 			return relatesTo && relatesTo.event_id === messageEventId;

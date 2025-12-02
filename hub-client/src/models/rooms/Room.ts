@@ -6,7 +6,6 @@ import { MSC3575RoomData as SlidingSyncRoomData } from 'matrix-js-sdk/lib/slidin
 
 // Composables
 import { useMatrixFiles } from '@hub-client/composables/useMatrixFiles';
-import { useRoomLibrary } from '@hub-client/composables/useRoomLibrary';
 
 // Logic
 import { LOGGER } from '@hub-client/logic/logging/Logger';
@@ -87,14 +86,12 @@ export default class Room {
 
 	private roomMembers: Map<string, RoomMember> = new Map();
 
-	/** Contains all related events for an event. New related event for an event only stores the last event not the history */
+	/** Used in reactions: Contains all related events for an event. New related event for an event only stores the last event not the history */
 	private eventMultipleRelateEvents: MatrixEvent[] = [];
 
 	private stateEvents: IStateEvent[];
 
 	logger = LOGGER;
-
-	private roomLibrary;
 
 	constructor(matrixRoom: MatrixRoom);
 	constructor(matrixRoom: MatrixRoom, roomType: string, stateEvents: IStateEvent[]);
@@ -119,7 +116,6 @@ export default class Room {
 		this.stateEvents = stateEvents ?? [];
 
 		this.pubhubsStore = usePubhubsStore();
-		this.roomLibrary = useRoomLibrary();
 		this.matrixFiles = useMatrixFiles();
 
 		this.timelineManager = new TimelineManager(this.matrixRoom.roomId, this.matrixRoom.client as MatrixClient);
@@ -192,12 +188,19 @@ export default class Room {
 		this.currentEvent = event;
 	}
 
+	/**
+	 * Used within reactions to show only one instance of multiple together with counter
+	 */
 	public addCurrentEventToRelatedEvent(event: MatrixEvent) {
 		if (this.eventMultipleRelateEvents.indexOf(event) === -1) {
 			this.eventMultipleRelateEvents.push(event);
 		}
 	}
 
+	/**
+	 *
+	 * @returns Used within reactions to show only one instance of multiple together with counter
+	 */
 	public getCurrentEventRelatedEvents(): MatrixEvent[] {
 		return this.eventMultipleRelateEvents;
 	}
@@ -672,14 +675,6 @@ export default class Room {
 		return this.timelineManager?.getTimelineNewestMessageId();
 	}
 
-	// #region RoomLibrary
-
-	// public loadRoomLibrary() {
-	// 	return this.roomLibrary.loadRoomLibraryTimeline(this.matrixRoom);
-	// }
-
-	// #endregion
-
 	// #region TimelineManager
 
 	// The TimelineManager that controls the visible part of the timeline
@@ -739,10 +734,12 @@ export default class Room {
 		return 0;
 	}
 
+	// TODO update this so redactedEventIds is not used anymore. Now only reactions use these for when deleting reactions
 	public inRedactedMessageIds(eventId: string): boolean {
 		return this.timelineManager.getRedactedEventIds().includes(eventId);
 	}
 
+	// TODO update this so redactedEventIds is not used anymore. Now only reactions use these for when deleting reactions
 	public addToRedactedEventIds(eventId: string): void {
 		this.timelineManager.getRedactedEventIds().push(eventId);
 	}

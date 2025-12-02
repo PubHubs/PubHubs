@@ -57,6 +57,7 @@ class TimelineManager {
 
 	private roomId: string;
 
+	// TODO update this so redactedEventIds is not used anymore. Now only reactions use these for when deleting reactions
 	private redactedEventIds: string[] = [];
 
 	/** roomTimelineKey of the sliding sync subscription of this timelinemanager */
@@ -253,11 +254,7 @@ class TimelineManager {
 		let mappedEvents = tempEvents.map((event) => new TimelineEvent(event, this.roomId));
 		mappedEvents = this.ensureListLength(this.timelineEvents, mappedEvents, SystemDefaults.roomTimelineLimit, Direction.Backward);
 
-		// this.getRelatedEvents(mappedEvents).then((relatedEvents) => {
-		// 	this.relatedEvents = relatedEvents;
-		// });
 		this.timelineEvents = mappedEvents;
-		//this.redactedEvents = [];
 
 		return mappedEvents;
 	}
@@ -278,6 +275,17 @@ class TimelineManager {
 		// Redacted Events
 		const redactedEvents = matrixEvents.filter((event) => event.getType() === EventType.RoomRedaction);
 		this.redactedEvents = [...this.redactedEvents, ...redactedEvents.map((x) => new TimelineEvent(x, this.roomId))];
+
+		// TODO this is now necessary for reactions that use RedactedEventIds, in the future refactor to use standard redactions
+		// if the redacted event concerns a deleted reaction, put the id in the redactedEventIds
+		this.redactedEvents.forEach((redacted) => {
+			if (redacted.matrixEvent.event.type === MatrixEventType.RoomRedaction && redacted.matrixEvent.event.content?.[Redaction.Reason] === Redaction.Deleted) {
+				const deletedEvent = redacted.matrixEvent.event.content?.[Redaction.Redacts];
+				if (!this.redactedEventIds.some((x) => x === deletedEvent)) {
+					this.redactedEventIds.push(deletedEvent);
+				}
+			}
+		});
 
 		// Filters out the Library events
 		const libraryEvents = matrixEvents.filter(
@@ -489,7 +497,6 @@ class TimelineManager {
 				} else {
 					this.timelineEvents = [...this.timelineEvents, ...timeLineEvents];
 				}
-				// this.getRelatedEvents(this.timelineEvents).then((x) => {	this.relatedEvents = x });
 			}
 		}
 	}
@@ -555,6 +562,7 @@ class TimelineManager {
 	 * @returns List of Ids of redacted events in the timeline
 	 */
 
+	// TODO update this so redactedEventIds is not used anymore. Now only reactions use these for when deleting reactions
 	public getRedactedEventIds() {
 		return this.redactedEventIds;
 	}
