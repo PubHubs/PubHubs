@@ -65,13 +65,8 @@ export function useMentions() {
 			// No further markers found → stop
 			if (start === -1) break;
 
-			// Determine where the token ends (tilde or space, whichever comes first)
+			// Determine where the displayName ends (~)
 			const tilde = body.indexOf('~', start);
-			if (tilde === -1) {
-				index = start + 1;
-				continue;
-			}
-
 			const endToken = tilde;
 			const hasEndToken = endToken !== -1;
 			const tokenEnd = hasEndToken ? endToken : body.length;
