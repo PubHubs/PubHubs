@@ -7,6 +7,7 @@
 			:style="{ left: `${pos.x}px`, top: `${pos.y}px`, position: 'fixed', zIndex: 9999 }"
 			role="menu"
 			tabindex="-1"
+			@keydown="onKeydown"
 		>
 			<ContextMenuItem
 				v-for="item in store.items"
@@ -100,6 +101,8 @@
 	function onKeydown(e: KeyboardEvent) {
 		const buttons = itemButtons.value;
 
+		console.error(buttons);
+
 		if (!buttons.length) return;
 
 		const currentIndex = buttons.findIndex((button) => button === document.activeElement);
@@ -133,6 +136,24 @@
 			e.preventDefault();
 			const btn = document.activeElement as HTMLButtonElement | null;
 			if (btn) btn.click();
+		}
+		if (e.key === 'Tab') {
+			e.preventDefault();
+			let nextIndex = currentIndex;
+
+			if (e.shiftKey) {
+				// Move backward
+				do {
+					nextIndex = (nextIndex - 1 + buttons.length) % buttons.length;
+				} while (buttons[nextIndex].disabled && nextIndex !== currentIndex);
+			} else {
+				// Move forward
+				do {
+					nextIndex = (nextIndex + 1) % buttons.length;
+				} while (buttons[nextIndex].disabled && nextIndex !== currentIndex);
+			}
+
+			buttons[nextIndex]?.focus();
 		}
 	}
 
