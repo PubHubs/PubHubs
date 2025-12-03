@@ -29,3 +29,22 @@ import { useDialog } from "@hub-client/stores/dialog";
 ### Annotation
 
 ### Props definition
+
+We handle props definition in the following way.
+
+- Using `withDefaults` saves 2 lines per prop compared to when using just `defineProps`.
+- This alows to type props easily by doing `defineProps<Props>`.
+
+```ts
+// Props
+const props = withDefaults(
+  defineProps<{
+    label: string;
+    title: string:
+    isActive: boolean;
+  }>(),
+  {
+    isActive: false,
+  }
+);
+```
