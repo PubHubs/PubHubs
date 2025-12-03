@@ -91,6 +91,8 @@ const filterAlphanumeric = (text: string): string => {
 };
 
 const firstToUpper = (text: string): string => {
+	if (!text) return '';
+	if (!text[0]) return '';
 	return text[0].toUpperCase() + text.substring(1);
 };
 
