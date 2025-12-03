@@ -11,6 +11,8 @@ export type MenuItem = ContextMenuItemProps & {
 	payload?: any;
 };
 
+let _wheelHandler: (e: Event) => void;
+
 export const useContextMenuStore = defineStore('contextMenu', () => {
 	// State
 	const isOpen = ref(false);
@@ -22,6 +24,18 @@ export const useContextMenuStore = defineStore('contextMenu', () => {
 	const position = computed(() => ({ x: x.value, y: y.value }));
 
 	// Functions
+	function _disableWheelScroll() {
+		_wheelHandler = (e: Event) => e.preventDefault();
+		window.addEventListener('wheel', _wheelHandler, { passive: false, capture: true });
+	}
+
+	function _enableWheelScroll() {
+		if (_wheelHandler) {
+			window.removeEventListener('wheel', _wheelHandler, { capture: true });
+			_wheelHandler = undefined as any;
+		}
+	}
+
 	function open(newItems: MenuItem[], clientX = 0, clientY = 0) {
 		if (!newItems || newItems.length === 0) return;
 
@@ -29,11 +43,14 @@ export const useContextMenuStore = defineStore('contextMenu', () => {
 		x.value = clientX;
 		y.value = clientY;
 		isOpen.value = true;
+
+		_disableWheelScroll();
 	}
 
 	function close() {
 		isOpen.value = false;
 		items.value = [];
+		_enableWheelScroll();
 	}
 
 	function select(item: MenuItem) {
@@ -45,11 +62,11 @@ export const useContextMenuStore = defineStore('contextMenu', () => {
 			console.error(err);
 		}
 
-		const ev = new CustomEvent('context-menu-select', {
-			detail: { item, payload: item.onClick },
-		});
-
-		document.dispatchEvent(ev);
+		document.dispatchEvent(
+			new CustomEvent('context-menu-select', {
+				detail: { item, payload: item.onClick },
+			}),
+		);
 
 		close();
 	}
