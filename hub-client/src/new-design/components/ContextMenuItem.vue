@@ -1,6 +1,6 @@
 <template>
 	<button
-		class="hover:bg-surface-base first-of-type:rounded-t-base last-of-type:rounded-b-base focus:bg-surface-base flex w-full flex-row gap-150 px-175 py-100 first-of-type:pt-150 last-of-type:pb-150 hover:cursor-pointer disabled:cursor-not-allowed"
+		class="hover:bg-surface-base first-of-type:rounded-t-base last-of-type:rounded-b-base flex w-full flex-row gap-150 px-175 py-100 not-focus:pl-[18px] first-of-type:pt-150 last-of-type:pb-150 hover:cursor-pointer focus:border-l-4 disabled:cursor-not-allowed"
 		role="menuitem"
 		type="button"
 		v-bind="attrs"
