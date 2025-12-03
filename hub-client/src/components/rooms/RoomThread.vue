@@ -51,7 +51,7 @@
 
 					<!-- Reaction display for message -->
 					<div class="flex flex-wrap gap-2 px-20">
-						<Reaction v-if="reactionExistsForMessage(item.matrixEvent)" :reactEvent="onlyReactionEvent(item.matrixEvent.event.event_id!)" :messageEventId="item.matrixEvent.event.event_id" />
+						<Reaction v-if="reactionExistsForMessage(item)" :reactEvent="onlyReactionEvent(item.matrixEvent.event.event_id!)" :messageEventId="item.matrixEvent.event.event_id" />
 					</div>
 				</div>
 			</div>
@@ -246,9 +246,9 @@
 		await pubhubs.addReactEvent(props.room.roomId, eventId, emoji);
 	}
 
-	function reactionExistsForMessage(matrixEvent: MatrixEvent): boolean {
-		if (matrixEvent && matrixEvent.isRedacted()) return false;
-		const messageEventId = matrixEvent.event.event_id;
+	function reactionExistsForMessage(timelineEvent: TimelineEvent): boolean {
+		if (timelineEvent.isDeleted || (timelineEvent.matrixEvent && timelineEvent.matrixEvent.isRedacted())) return false;
+		const messageEventId = timelineEvent.matrixEvent.event.event_id;
 		if (!messageEventId) return false;
 
 		const reactionEvent = onlyReactionEvent(messageEventId).find((event) => {

@@ -34,7 +34,7 @@
 						>
 							<template #reactions>
 								<div class="mt-2 ml-2 flex flex-wrap gap-2 px-20">
-									<Reaction v-if="reactionExistsForMessage(item.matrixEvent)" :reactEvent="onlyReactionEvent(item.matrixEvent.event.event_id!)" :messageEventId="item.matrixEvent.event.event_id!"></Reaction>
+									<Reaction v-if="reactionExistsForMessage(item)" :reactEvent="onlyReactionEvent(item.matrixEvent.event.event_id!)" :messageEventId="item.matrixEvent.event.event_id!"></Reaction>
 								</div>
 							</template>
 						</RoomMessageBubble>
@@ -74,6 +74,7 @@
 	// Models
 	import { RelationType, RoomEmit, ScrollBehavior, ScrollPosition, ScrollSelect, SystemDefaults } from '@hub-client/models/constants';
 	import { TMessageEvent } from '@hub-client/models/events/TMessageEvent';
+	import { TimelineEvent } from '@hub-client/models/events/TimelineEvent';
 	import { TCurrentEvent } from '@hub-client/models/events/types';
 	import { Poll, Scheduler } from '@hub-client/models/events/voting/VotingTypes';
 	import Room from '@hub-client/models/rooms/Room';
@@ -185,9 +186,9 @@
 
 	// Is there a reaction for RoomMessageEvent ID.
 	// If there is then show the reaction otherwise dont render reaction UI component.
-	function reactionExistsForMessage(matrixEvent: MatrixEvent): boolean {
-		if (matrixEvent && matrixEvent.isRedacted()) return false;
-		const messageEventId = matrixEvent.event.event_id;
+	function reactionExistsForMessage(timelineEvent: TimelineEvent): boolean {
+		if (timelineEvent.isDeleted || (timelineEvent.matrixEvent && timelineEvent.matrixEvent.isRedacted())) return false;
+		const messageEventId = timelineEvent.matrixEvent.event.event_id;
 		if (!messageEventId) return false;
 
 		const reactionEvent = onlyReactionEvent(messageEventId).find((event) => {
