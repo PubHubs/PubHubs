@@ -83,7 +83,7 @@
 							openMenu($event, [
 								{ label: 'Open1', icon: 'smiley', onClick: () => console.error(myProp) },
 								{ label: 'Rename1', disabled: true, onClick: () => console.error('Rename1') },
-								{ label: 'Delete1', isDelicate: true, onClick: () => console.error('Delete1') },
+								{ label: 'Delete1', isDelicate: true, onClick: () => clicked() },
 							])
 						"
 						variant="primary"
