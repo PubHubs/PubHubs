@@ -9,7 +9,6 @@
 		<!-- Message with Mentions -->
 		<div v-else-if="hasAnyMentions" class="relative max-w-[90ch] text-ellipsis">
 			<P v-for="segment in messageSegments" :key="segment" class="inline">
-				
 				<!-- Normal text segment -->
 				<span v-if="segment.type === 'text'">{{ segment.content }}</span>
 
@@ -21,7 +20,7 @@
 					@contextmenu="openMenu($event, [{ label: 'direct message', icon: 'chat-circle', onClick: () => userStore.goToUserRoom(segment.tokenId!) }])"
 					>{{ segment.displayName }}
 				</span>
-				
+
 				<!-- Room Mention segment -->
 				<span v-else-if="segment.type === 'room'" @click="activeMentionCard = segment.id" class="relative" @contextmenu="openMenu($event, [{ label: 'join', icon: 'chats-circle', onClick: () => (activeMentionCard = segment.id) }])">
 					<span class="text-accent-primary cursor-pointer">{{ segment.displayName }}</span>
@@ -91,7 +90,6 @@
 		if (props.deleted) return [];
 
 		const body = props.event.content.body || '';
-		console.error(body);
 		const mentions = mentionComposable.parseMentions(body);
 
 		return mentionComposable.buildSegments(body, mentions);
