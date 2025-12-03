@@ -1,7 +1,24 @@
 <template>
 	<Menu>
 		<template v-for="room in currentJoinedRooms" :key="room.roomId">
-			<MenuItem :to="{ name: 'room', params: { id: room.roomId } }" :room="room" icon="chats-circle" @click="hubSettings.hideBar()" class="group inline-block w-full">
+			<MenuItem
+				:to="{ name: 'room', params: { id: room.roomId } }"
+				:room="room"
+				class="group inline-block w-full"
+				:class="contextMenuStore.isOpen && contextMenuStore.currentTargetId == room.roomId && '!bg-background'"
+				icon="chats-circle"
+				@click="hubSettings.hideBar()"
+				@contextmenu="
+					openMenu(
+						$event,
+						[
+							{ label: 'Enter room', icon: 'arrow-right', onClick: () => router.push({ name: 'room', params: { id: room.roomId } }) },
+							{ label: 'Leave room', icon: 'x', isDelicate: true, onClick: () => leaveRoom(room.roomId) },
+						],
+						room.roomId,
+					)
+				"
+			>
 				<span class="flex w-full items-center justify-between gap-4">
 					<TruncatedText>
 						<PrivateRoomName v-if="room.isPrivateRoom()" :members="room.getOtherJoinedAndInvitedMembers()" />
@@ -29,11 +46,11 @@
 			<MenuItem
 				icon="shield"
 				v-if="notification.room_id"
+				class="group text-on-surface-dim inline-block w-full"
 				@click="
 					dialogOpen = notification.room_id;
 					messageValues = notification.message_values;
 				"
-				class="group text-on-surface-dim inline-block w-full"
 			>
 				<span class="flex w-full items-center justify-between gap-4">
 					<TruncatedText>
@@ -87,6 +104,12 @@
 	import { useRooms } from '@hub-client/stores/rooms';
 	import { FeatureFlag, useSettings } from '@hub-client/stores/settings';
 
+	// New design
+	import { useContextMenu } from '@hub-client/new-design/composables/contextMenu.composable';
+	import { useContextMenuStore } from '@hub-client/new-design/stores/contextMenu.store';
+
+	const { openMenu } = useContextMenu();
+	const contextMenuStore = useContextMenuStore();
 	const settings = useSettings();
 	const hubSettings = useHubSettings();
 	const notifications = useNotifications();
