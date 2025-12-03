@@ -12,9 +12,22 @@
 				<!-- Normal text segment -->
 				<span v-if="segment.type === 'text'">{{ segment.content }}</span>
 				<!-- User Mention segment -->
-				<span v-else-if="segment.type === 'user'" @click.once="goToUserRoom(segment.tokenId!)" class="text-accent-primary cursor-pointer" @contextmenu="userMentionMenu">{{ segment.displayName }}</span>
+				<span
+					v-else-if="segment.type === 'user'"
+					@click.once="
+						goToUserRoom(segment.tokenId!);
+					"
+					class="text-accent-primary cursor-pointer"
+					>{{ segment.displayName }}</span
+				>
 				<!-- Room Mention segment -->
-				<span v-else-if="segment.type === 'room'" @click="activeMentionCard = segment.id" class="relative" @contextmenu="roomMentionMenu">
+				<span
+					v-else-if="segment.type === 'room'"
+					@click="
+						activeMentionCard = segment.id;
+					"
+					class="relative"
+				>
 					<span class="text-accent-primary cursor-pointer">{{ segment.displayName }}</span>
 					<div v-if="activeMentionCard === segment.id && segment.tokenId">
 						<RoomLoginDialog
@@ -56,8 +69,6 @@
 	import { useRooms } from '@hub-client/stores/rooms';
 	import { User } from '@hub-client/stores/user';
 
-	// New design
-	import { useContextMenu } from '@hub-client/new-design/composables/contextMenu.composable';
 
 	const { t } = useI18n();
 	const roomsStore = useRooms();
@@ -90,12 +101,6 @@
 	const hasAnyMentions = computed(() => {
 		return messageSegments.value.some((seg) => seg.type !== 'text');
 	});
-
-	const roomMention = [{ label: 'join', icon: 'chats-circle', onClick: () => console.error('Open1') }];
-	const { openMenu: roomMentionMenu } = useContextMenu(roomMention);
-
-	const userMention = [{ label: 'direct message', icon: 'chat-circle', onClick: () => console.error('Open1') }];
-	const { openMenu: userMentionMenu } = useContextMenu(userMention);
 
 	function isSecured(id: string) {
 		return roomsStore.roomIsSecure(id);
