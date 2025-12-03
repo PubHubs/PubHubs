@@ -5,7 +5,7 @@
 			<div class="relative z-10 flex items-end justify-between px-4 py-4">
 				<Avatar :avatar-url="userStore.userAvatar(userId ? userId : event.sender)" :user-id="userId ? userId : event.sender" class="rounded-full object-cover shadow-md ring-2 ring-white ring-offset-1" />
 				<div v-if="userStore.userId !== (userId ? userId : event.sender) && props.room?.getPowerLevel(userId ? userId : event.sender) !== 50" class="bg-surface-low mb-2 rounded-md p-[2%]">
-					<Button class="bg-on-surface-variant cursor-pointer" @click.once="goToUserRoom(userId ? userId : event.sender)">
+					<Button class="bg-on-surface-variant cursor-pointer" @click.once="userStore.goToUserRoom(userId ? userId : event.sender)">
 						<Icon size="md" type="envelope"></Icon>
 					</Button>
 				</div>
@@ -31,10 +31,8 @@
 	import Room from '@hub-client/models/rooms/Room';
 
 	// Stores
-	import { usePubhubsStore } from '@hub-client/stores/pubhubs';
-	import { User, useUser } from '@hub-client/stores/user';
+	import { useUser } from '@hub-client/stores/user';
 
-	const pubhubs = usePubhubsStore();
 	const userStore = useUser();
 
 	const props = defineProps({

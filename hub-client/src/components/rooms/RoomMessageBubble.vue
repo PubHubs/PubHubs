@@ -1,5 +1,5 @@
 <template>
-	<div ref="elReactionPopUp">
+	<div ref="elReactionPopUp" @contextmenu="openMenu($event, getContextMenuItems(), props.event.event_id)">
 		<div class="group flex flex-col py-3" :class="getMessageContainerClasses" role="article">
 			<!-- Announcement Header -->
 			<div v-if="isAnnouncementMessage && !redactedMessage" class="bg-surface-high text-label-small flex w-full items-center px-8 py-1" :class="{ 'mx-4': props.deleteMessageDialog }">
@@ -197,7 +197,9 @@
 
 	// New design
 	import { useContextMenu } from '@hub-client/new-design/composables/contextMenu.composable';
+	import { MenuItem, useContextMenuStore } from '@hub-client/new-design/stores/contextMenu.store';
 
+	const contextMenuStore = useContextMenuStore();
 	const { openMenu } = useContextMenu();
 	const connection = useConnection();
 	const messageActions = useMessageActions();
@@ -308,6 +310,7 @@
 			'p-2 transition-all duration-150 ease-in-out hover:bg-surface-low': !props.deleteMessageDialog,
 			'mx-4 rounded-xs shadow-[0_0_5px_0_rgba(0,0,0,0.3)]': props.deleteMessageDialog,
 			'rounded-t-none': isAnnouncementMessage.value,
+			'!bg-surface-low': contextMenuStore.isOpen && contextMenuStore.currentTargetId == props.event.event_id,
 		};
 
 		// Return base classes if not an announcement or is redacted
@@ -395,4 +398,65 @@
 	globalThis.setTimeout(() => {
 		timerReady.value = true;
 	}, 1000);
+
+	function getContextMenuItems() {
+		const menu: MenuItem[] = [];
+
+		// Direct message (only if sender is not current user)
+		if (props.event.sender !== user.userId) {
+			menu.push({
+				label: 'Direct message',
+				icon: 'chat-circle',
+				onClick: () => user.goToUserRoom(props.event.sender),
+			});
+		}
+
+		// Reaction
+		if (!props.event.redactedMessage) {
+			menu.push({
+				label: 'Add reaction',
+				icon: 'smiley',
+				onClick: () => emit('reactionPanelToggle', props.event.event_id),
+			});
+		}
+
+		// Reply
+		if (!props.event.msgIsNotSend && !props.event.redactedMessage && !props.event.isThreadRoot) {
+			menu.push({
+				label: 'Reply',
+				icon: 'arrow-bend-up-left',
+				onClick: () => reply(),
+			});
+		}
+
+		// Thread reply
+		if (!props.viewFromThread && props.eventThreadLength <= 0 && canReplyInThread && !props.event.msgIsNotSend && !props.event.redactedMessage) {
+			menu.push({
+				label: 'Reply in thread',
+				icon: 'chat-circle',
+				onClick: () => replyInThread(),
+			});
+		}
+
+		// Disclosure (moderator/admin action)
+		if (props.event.msgIsNotSend && user.isAdmin && props.event.sender !== user.userId && settings.isFeatureEnabled(FeatureFlag.disclosure)) {
+			menu.push({
+				label: 'Disclosure',
+				icon: 'warning',
+				onClick: () => router.push({ name: 'ask-disclosure', query: { user: props.event.sender } }),
+			});
+		}
+
+		// Delete (only your own messages)
+		if (settings.isFeatureEnabled(FeatureFlag.deleteMessages) && !props.event.msgIsNotSend && props.event.sender === user.userId && !props.event.redactedMessage && !(props.viewFromThread && props.event.isThreadRoot)) {
+			menu.push({
+				label: 'Delete message',
+				icon: 'trash',
+				isDelicate: true,
+				onClick: () => onDeleteMessage(props.event),
+			});
+		}
+
+		return menu;
+	}
 </script>
