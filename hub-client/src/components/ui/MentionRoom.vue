@@ -56,13 +56,13 @@
 	);
 
 	function initRoomMention() {
-		// If the current message includes a @, we need to get all other users in the room
-		// when it does not, we keep the user-dialog invisible
+		/* If the current message includes a #, we need to get all other rooms
+		 when it does not, we keep the room-dialog invisible */
 		if (props.msg?.includes('#')) {
 			rooms.value = roomsStore.publicRooms.filter((room) => room.room_id !== props.room.roomId) || [];
 
-			// Check at which position the @ is and if there is a list of
-			// filtered users to check if we must display the dialog
+			/* Check at which position the # is and if there is a list of
+			 filtered rooms to check if we must display the dialog */
 			if (props.msg?.endsWith('#')) {
 				positionOfAt.value = props.msg.length;
 				isVisible.value = true;
