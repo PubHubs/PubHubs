@@ -14,20 +14,13 @@
 				<!-- User Mention segment -->
 				<span
 					v-else-if="segment.type === 'user'"
-					@click.once="
-						goToUserRoom(segment.tokenId!);
-					"
+					@click.once="goToUserRoom(segment.tokenId!)"
 					class="text-accent-primary cursor-pointer"
-					>{{ segment.displayName }}</span
-				>
+					@contextmenu="openMenu($event, [{ label: 'direct message', icon: 'chat-circle', onClick: () => goToUserRoom(segment.tokenId!) }])"
+					>{{ segment.displayName }}
+				</span>
 				<!-- Room Mention segment -->
-				<span
-					v-else-if="segment.type === 'room'"
-					@click="
-						activeMentionCard = segment.id;
-					"
-					class="relative"
-				>
+				<span v-else-if="segment.type === 'room'" @click="activeMentionCard = segment.id" class="relative" @contextmenu="openMenu($event, [{ label: 'join', icon: 'chats-circle', onClick: () => (activeMentionCard = segment.id) }])">
 					<span class="text-accent-primary cursor-pointer">{{ segment.displayName }}</span>
 					<div v-if="activeMentionCard === segment.id && segment.tokenId">
 						<RoomLoginDialog
@@ -69,7 +62,10 @@
 	import { useRooms } from '@hub-client/stores/rooms';
 	import { User } from '@hub-client/stores/user';
 
+	// New Design
+	import { useContextMenu } from '@hub-client/new-design/composables/contextMenu.composable';
 
+	const { openMenu } = useContextMenu();
 	const { t } = useI18n();
 	const roomsStore = useRooms();
 	const pubhubs = usePubhubsStore();
