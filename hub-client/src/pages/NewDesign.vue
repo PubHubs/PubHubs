@@ -78,6 +78,8 @@
 				<div class="flex flex-col gap-100">
 					<Button
 						icon="check-circle"
+						title="this is a tooltip"
+						variant="primary"
 						@click="clicked()"
 						@contextmenu="
 							openMenu($event, [
@@ -86,10 +88,9 @@
 								{ label: 'Delete1', isDelicate: true, onClick: () => clicked() },
 							])
 						"
-						variant="primary"
-						title="this is a tooltip"
-						>Right click menu test</Button
 					>
+						Right click menu test
+					</Button>
 					<Button icon="check-circle" @click="clicked()" @contextmenu="openMenu($event, items2)" variant="primary" title="this is a tooltip">Right click menu test</Button>
 
 					<TextField2 placeholder="Geef getal" :validation="{ isNumber: true, minValue: 2 }" help="Hoe oud ben je?">Leeftijd</TextField2>
