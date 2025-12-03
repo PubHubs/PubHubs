@@ -14,15 +14,20 @@
 
 				<!-- User Mention segment -->
 				<span
-					v-else-if="segment.type === 'user'"
-					@click.once="userStore.goToUserRoom(segment.tokenId!)"
+					v-else-if="segment.type === 'user' && segment.tokenId"
+					@click.once="userStore.goToUserRoom(segment.tokenId)"
 					class="text-accent-primary cursor-pointer"
 					@contextmenu="openMenu($event, [{ label: 'direct message', icon: 'chat-circle', onClick: () => userStore.goToUserRoom(segment.tokenId!) }])"
 					>{{ segment.displayName }}
 				</span>
 
 				<!-- Room Mention segment -->
-				<span v-else-if="segment.type === 'room'" @click="activeMentionCard = segment.id" class="relative" @contextmenu="openMenu($event, [{ label: 'join', icon: 'chats-circle', onClick: () => (activeMentionCard = segment.id) }])">
+				<span
+					v-else-if="segment.type === 'room' && segment.tokenId && segment.id"
+					@click="joinIfMember(segment.tokenId, segment.id)"
+					class="relative"
+					@contextmenu="openMenu($event, [{ label: 'join', icon: 'chats-circle', onClick: () => joinIfMember(segment.tokenId!, segment.id) }])"
+				>
 					<span class="text-accent-primary cursor-pointer">{{ segment.displayName }}</span>
 					<div v-if="activeMentionCard === segment.id && segment.tokenId">
 						<RoomLoginDialog
@@ -56,10 +61,14 @@
 	// Composables
 	import { useMentions } from '@hub-client/composables/useMentions';
 
+	//Logic
+	import { router } from '@hub-client/logic/core/router';
+
 	// Models
 	import { TMessageEvent } from '@hub-client/models/events/TMessageEvent';
 
 	// Stores
+	import { usePubhubsStore } from '@hub-client/stores/pubhubs';
 	import { useRooms } from '@hub-client/stores/rooms';
 	import { useUser } from '@hub-client/stores/user';
 
@@ -74,7 +83,7 @@
 		event: TMessageEvent;
 		deleted: boolean;
 	}>();
-
+	const pubhubs = usePubhubsStore();
 	const activeMentionCard = ref<string | null>(null);
 	const mentionComposable = useMentions();
 
@@ -101,5 +110,17 @@
 
 	function isSecured(id: string) {
 		return roomsStore.roomIsSecure(id);
+	}
+	async function joinIfMember(roomId: string, segmentId: string) {
+		const userId = userStore.userId;
+		if (userId) {
+			const userIsMember = await pubhubs.isUserRoomMember(userId, roomId);
+			if (userIsMember) {
+				await pubhubs.joinRoom(roomId);
+				await router.push({ name: 'room', params: { id: roomId } });
+			} else {
+				activeMentionCard.value = segmentId;
+			}
+		}
 	}
 </script>
