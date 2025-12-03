@@ -20,7 +20,7 @@
 	};
 
 	const props = defineProps<Props>();
-	const defaultUrl = 'client/img/banner.svg';
+	const defaultUrl = 'public/img/banner.svg';
 
 	const settings = useSettings();
 	const isMobile = computed(() => settings.isMobileState);
