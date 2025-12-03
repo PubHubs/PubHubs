@@ -7,6 +7,7 @@
 
 <script setup lang="ts">
 	// Packages
+	import defaultUrl from '/public/img/banner.svg';
 	import { computed } from 'vue';
 
 	// Stores
@@ -20,7 +21,6 @@
 	};
 
 	const props = defineProps<Props>();
-	const defaultUrl = 'public/img/banner.svg';
 
 	const settings = useSettings();
 	const isMobile = computed(() => settings.isMobileState);
