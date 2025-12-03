@@ -64,7 +64,7 @@ const useUser = defineStore('user', {
 			try {
 				const clientUser = this.client.getUser(userId!);
 				return clientUser ?? defaultUser;
-			} catch (error) {
+			} catch {
 				return defaultUser;
 			}
 		},
@@ -77,11 +77,11 @@ const useUser = defineStore('user', {
 			return isAdministrator;
 		},
 
-		avatarUrl({ _avatarMxcUrl: _avatarMxcUrl }): string | undefined {
+		avatarUrl({ _avatarMxcUrl }): string | undefined {
 			return _avatarMxcUrl;
 		},
 
-		displayName({ _displayName: _displayName }): string | null | undefined {
+		displayName({ _displayName }): string | null | undefined {
 			return _displayName;
 		},
 
@@ -170,7 +170,7 @@ const useUser = defineStore('user', {
 				} else {
 					this.isAdministrator = false;
 				}
-			} catch (error) {
+			} catch {
 				this.isAdministrator = false;
 			}
 		},
@@ -179,7 +179,7 @@ const useUser = defineStore('user', {
 			try {
 				const settings = useSettings();
 				if (!settings.isFeatureEnabled(FeatureFlag.consent)) return false;
-				const response = (await api_synapse.apiGET(`${api_synapse.apiURLS.data}?data=consent`)) as ConsentJSONParser;
+				const response = await api_synapse.apiGET<ConsentJSONParser>(`${api_synapse.apiURLS.data}?data=consent`);
 				if (response) {
 					this.needsConsent = response.needs_consent;
 					this.needsOnboarding = response.needs_onboarding;
@@ -198,11 +198,9 @@ const useUser = defineStore('user', {
 
 		async goToUserRoom(userId: string) {
 			const pubhubs = usePubhubsStore();
-			
-			let userRoom;
 			const otherUser = this.client!.getUser(userId);
-			if (otherUser) {
-				userRoom = await pubhubs.createPrivateRoomWith(otherUser as User);
+			if (otherUser && this.userId !== otherUser.userId) {
+				const userRoom = await pubhubs.createPrivateRoomWith(otherUser as User);
 				if (userRoom) {
 					await pubhubs.routeToRoomPage(userRoom);
 				}
