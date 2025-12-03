@@ -2,8 +2,8 @@
 	<div v-if="isVisible" ref="elContainer" :style="getStyle()" class="scrollbar bg-surface fixed max-h-52 w-fit overflow-y-auto rounded-lg shadow-lg">
 		<ul>
 			<li v-for="(room, index) in filteredRooms" :key="index" class="group hover:bg-surface-high cursor-pointer px-4" @click.stop="clickedItem(room)">
-				<div class="flex items-center gap-4 py-2">
-					<div>{{ room.name }}</div>
+				<div class="flex max-w-3000 items-center gap-4 truncate py-2">
+					<div class="">{{ room.name }}</div>
 				</div>
 			</li>
 		</ul>
