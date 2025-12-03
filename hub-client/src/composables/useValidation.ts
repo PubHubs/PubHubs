@@ -1,7 +1,6 @@
+import { ValidationMessage, ValidationMessageFn, ValidationRule, ValidationSchema, ValidatorFn } from '@hub-client/models/validation/TValidate';
 // Models
 import { computed, ref } from 'vue';
-
-import { ValidationMessage, ValidationMessageFn, ValidationRule, ValidationSchema, ValidatorFn } from '@hub-client/models/validation/TValidate';
 
 /**
  * useValidation provides a framework for form validation.
@@ -23,11 +22,13 @@ const validateFunctions: { [key: string]: Function } = {
 	},
 
 	minLength: (value: string | any[], min: number): boolean => {
-		return value.length >= min;
+		if (value) return value.length >= min;
+		return false;
 	},
 
 	maxLength: (value: string | any[], max: number): boolean => {
-		return value.length <= max;
+		if (value) return value.length <= max;
+		return true;
 	},
 
 	isNumber: (value: any) => {
