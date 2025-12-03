@@ -89,6 +89,7 @@
 		if (props.deleted) return [];
 
 		const body = props.event.content.body || '';
+		console.error(body);
 		const mentions = mentionComposable.parseMentions(body);
 
 		return mentionComposable.buildSegments(body, mentions);
