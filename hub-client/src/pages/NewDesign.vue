@@ -76,8 +76,21 @@
 				<h2 class="mb-200">Alt components</h2>
 
 				<div class="flex flex-col gap-100">
-					<Button icon="check-circle" @click="clicked()" @contextmenu="openMenu1" variant="primary" title="this is a tooltip">Right click menu test</Button>
-					<Button icon="check-circle" @click="clicked()" @contextmenu="openMenu2" variant="primary" title="this is a tooltip">Right click menu test</Button>
+					<Button
+						icon="check-circle"
+						@click="clicked()"
+						@contextmenu="
+							openMenu($event, [
+								{ label: 'Open1', icon: 'smiley', onClick: () => console.error(myProp) },
+								{ label: 'Rename1', disabled: true, onClick: () => console.error('Rename1') },
+								{ label: 'Delete1', isDelicate: true, onClick: () => console.error('Delete1') },
+							])
+						"
+						variant="primary"
+						title="this is a tooltip"
+						>Right click menu test</Button
+					>
+					<Button icon="check-circle" @click="clicked()" @contextmenu="openMenu($event, items2)" variant="primary" title="this is a tooltip">Right click menu test</Button>
 
 					<TextField2 placeholder="Geef getal" :validation="{ isNumber: true, minValue: 2 }" help="Hoe oud ben je?">Leeftijd</TextField2>
 					<TextArea2 placeholder="Geef getal" :validation="{ isNumber: true, minValue: 2 }" help="Hoe oud ben je?">Leeftijd</TextArea2>
@@ -121,8 +134,10 @@
 </template>
 
 <script setup lang="ts">
-	import { reactive } from 'vue';
+	// Packages
+	import { onMounted, reactive } from 'vue';
 
+	// New design
 	import Button from '@hub-client/new-design/components/Button.vue';
 	import ButtonGroup from '@hub-client/new-design/components/ButtonGroup.vue';
 	import IconButton from '@hub-client/new-design/components/IconButton.vue';
@@ -137,6 +152,7 @@
 	import { useContextMenu } from '@hub-client/new-design/composables/contextMenu.composable';
 	import { MenuItem } from '@hub-client/new-design/stores/contextMenu.store';
 
+	// Types
 	type formType = {
 		firstname: string;
 		lastname: string;
@@ -157,17 +173,22 @@
 	};
 
 	// Context menu
-	const items1: MenuItem[] = [
-		{ label: 'Open1', icon: 'smiley', onClick: () => console.error('Open1') },
-		{ label: 'Rename1', disabled: true, onClick: () => console.error('Rename1') },
-		{ label: 'Delete1', isDelicate: true, onClick: () => console.error('Delete1') },
-	];
-	const { openMenu: openMenu1 } = useContextMenu(items1);
+	const { openMenu } = useContextMenu();
+
+	const myProp = 'Hi';
 
 	const items2: MenuItem[] = [
-		{ label: 'Open2', icon: 'smiley', onClick: () => console.error('Open2') },
-		{ label: 'Rename2', disabled: true, onClick: () => console.error('Rename2') },
-		{ label: 'Delete2', isDelicate: true, onClick: () => console.error('Delete2') },
+		{ label: 'Open1', icon: 'smiley', payload: { myProp } },
+		{ label: 'Rename2', disabled: true },
+		{ label: 'Delete2', isDelicate: true },
 	];
-	const { openMenu: openMenu2 } = useContextMenu(items2);
+
+	onMounted(() => {
+		document.addEventListener('context-menu-select', (e: any) => {
+			const item = e.detail.item;
+			if (item.label === 'Open1') {
+				console.log('Message:', myProp);
+			}
+		});
+	});
 </script>

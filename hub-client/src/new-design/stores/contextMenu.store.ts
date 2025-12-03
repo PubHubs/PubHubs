@@ -8,6 +8,7 @@ import { ContextMenuItemProps } from '@hub-client/new-design/components/ContextM
 // Types
 export type MenuItem = ContextMenuItemProps & {
 	onClick?: () => void;
+	payload?: any;
 };
 
 export const useContextMenuStore = defineStore('contextMenu', () => {

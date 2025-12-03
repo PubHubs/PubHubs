@@ -2,10 +2,10 @@
 import { useContextMenuStore } from '@hub-client/new-design/stores/contextMenu.store';
 import type { MenuItem } from '@hub-client/new-design/stores/contextMenu.store';
 
-export function useContextMenu(items: MenuItem[]) {
+export function useContextMenu() {
 	const store = useContextMenuStore();
 
-	function openMenu(evt: MouseEvent | PointerEvent) {
+	function openMenu(evt: MouseEvent | PointerEvent, items: MenuItem[]) {
 		evt.preventDefault();
 		evt.stopPropagation();
 
