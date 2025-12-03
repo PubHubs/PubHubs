@@ -99,7 +99,8 @@ class Authentication {
 				auth.timelineSupport = true;
 
 				// create store for indexedDB caching
-				const indexedDBStore = new sdk.IndexedDBStore({ indexedDB: window.indexedDB, dbName: 'pubhubs-matrix-db' });
+				const indexedDBStore = new sdk.IndexedDBStore({ indexedDB: window.indexedDB, dbName: `pubhubs-db-${this.user.userId}` });
+
 				auth.store = indexedDBStore;
 
 				this.client = sdk.createClient(auth);

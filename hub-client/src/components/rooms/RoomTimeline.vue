@@ -18,6 +18,7 @@
 							:event="item.matrixEvent.event"
 							:event-thread-length="item.threadLength"
 							:deleted-event="item.isDeleted"
+							:data-event-id="item.matrixEvent.event.event_id"
 							class="room-event"
 							:active-profile-card="activeProfileCard"
 							:active-reaction-panel="activeReactionPanel"
@@ -33,11 +34,11 @@
 						>
 							<template #reactions>
 								<div class="mt-2 ml-2 flex flex-wrap gap-2 px-20">
-									<Reaction v-if="reactionExistsForMessage(item.matrixEvent.event.event_id, item.matrixEvent)" :reactEvent="onlyReactionEvent" :messageEventId="item.matrixEvent.event.event_id"></Reaction>
+									<Reaction v-if="reactionExistsForMessage(item.matrixEvent)" :reactEvent="onlyReactionEvent(item.matrixEvent.event.event_id!)" :messageEventId="item.matrixEvent.event.event_id!"></Reaction>
 								</div>
 							</template>
 						</RoomMessageBubble>
-						<UnreadMarker v-if="settings.isFeatureEnabled(FeatureFlag.unreadMarkers)" :currentEventId="item.matrixEvent.event.event_id ?? ''" :currentUserId="user.userId" />
+						<UnreadMarker v-if="settings.isFeatureEnabled(FeatureFlag.unreadMarkers)" :currentEventId="item.matrixEvent.event.event_id ?? ''" :currentUserId="user.userId!" />
 					</div>
 				</div>
 			</template>
@@ -109,9 +110,12 @@
 	let eventToBeDeletedIsThreadRoot: boolean = false;
 
 	// Observer Variables.
-	// TODO: make both observers use ElementObserver class.
 	let eventObserver: ElementObserver | null = null;
 	let timelineObserver: IntersectionObserver | null = null;
+	let relatedEventsObserver: IntersectionObserver | null = null;
+
+	// eventIds that are visible in the timeline (used for getting related events)
+	let visibleEventIds = new Set<string>();
 
 	let suppressNextObservertrigger: boolean = false;
 
@@ -130,12 +134,6 @@
 		return props.room.getTimeline();
 	});
 
-	const onlyReactionEvent = computed(() => {
-		// To stop from having duplicate events
-		props.room.getRelatedEvents({ eventType: EventType.Reaction, contentRelType: RelationType.Annotation }).forEach((reactEvent) => props.room.addCurrentEventToRelatedEvent(reactEvent));
-		return props.room.getCurrentEventRelatedEvents();
-	});
-
 	const oldestEventIsLoaded = computed(() => {
 		return props.room.isOldestMessageLoaded();
 	});
@@ -150,6 +148,10 @@
 		if (timelineObserver) {
 			timelineObserver.disconnect();
 			timelineObserver = null;
+		}
+		if (relatedEventsObserver) {
+			relatedEventsObserver.disconnect();
+			relatedEventsObserver = null;
 		}
 		if (eventObserver) {
 			eventObserver.disconnectObserver();
@@ -174,24 +176,21 @@
 		},
 		{ deep: true },
 	);
-	/*
-	If the scrollbar is not visible and the last message is not loaded do a paginate.
-	*/
-	async function checkAndPaginateIfNeeded() {
-		let container = elRoomTimeline.value;
-		if (!container) return;
-		if (container.scrollHeight <= container.clientHeight && !oldestEventIsLoaded.value) {
-			await loadPrevious();
-		}
+
+	function onlyReactionEvent(eventId: string) {
+		// To stop from having duplicate events
+		props.room.getRelatedEventsByType(eventId, { eventType: EventType.Reaction, contentRelType: RelationType.Annotation }).forEach((reactEvent) => props.room.addCurrentEventToRelatedEvent(reactEvent.matrixEvent));
+		return props.room.getCurrentEventRelatedEvents();
 	}
 
 	// Is there a reaction for RoomMessageEvent ID.
 	// If there is then show the reaction otherwise dont render reaction UI component.
-	function reactionExistsForMessage(messageEventId: string | undefined, matrixEvent: MatrixEvent): boolean {
-		if (matrixEvent.isRedacted()) return false;
+	function reactionExistsForMessage(matrixEvent: MatrixEvent): boolean {
+		if (matrixEvent && matrixEvent.isRedacted()) return false;
+		const messageEventId = matrixEvent.event.event_id;
 		if (!messageEventId) return false;
 
-		const reactionEvent = onlyReactionEvent.value.find((event) => {
+		const reactionEvent = onlyReactionEvent(messageEventId).find((event) => {
 			const relatesTo = event.getContent()[RelationType.RelatesTo];
 			// Check if this reaction relates to the target message
 			return relatesTo && relatesTo.event_id === messageEventId;
@@ -239,6 +238,7 @@
 			threshold: 0.001, // Trigger when 0.1% of the sentinel is visible,
 		};
 
+		// Observer for next and previous loading
 		timelineObserver = new IntersectionObserver((entries) => {
 			entries.forEach((entry) => {
 				if (!suppressNextObservertrigger && entry.isIntersecting) {
@@ -255,6 +255,27 @@
 			timelineObserver.observe(topSentinel.value);
 			timelineObserver.observe(bottomSentinel.value);
 		}
+
+		// Observer for currently shown events: fetch related
+		let scrollTimeout: number | undefined;
+		relatedEventsObserver = new IntersectionObserver((entries) => {
+			entries.forEach((entry) => {
+				const eventId = (entry.target as HTMLElement).dataset.eventId;
+				if (entry.isIntersecting) {
+					visibleEventIds.add(eventId!);
+				} else {
+					visibleEventIds.delete(eventId!);
+				}
+			});
+
+			// make sure that scrolling has stopped before fetching to reduce api calls
+			if (scrollTimeout) {
+				clearTimeout(scrollTimeout);
+			}
+			scrollTimeout = window.setTimeout(() => {
+				props.room.fetchRelatedEvents([...visibleEventIds]);
+			}, 200);
+		}, options);
 	}
 
 	const handlePrivateReceipt = (entries: IntersectionObserverEntry[]) => {
@@ -366,9 +387,16 @@
 			}
 		}
 
+		// Reassign elements to relatedEventsObserver
+		relatedEventsObserver?.disconnect();
+		roomTimeLine.value.forEach((x) => {
+			const node = document.querySelector(`[data-event-id="${x.matrixEvent.event.event_id}"]`);
+			if (node) {
+				relatedEventsObserver?.observe(node);
+			}
+		});
+
 		LOGGER.log(SMI.ROOM_TIMELINE, `onTimelineChange ended `, roomTimeLine.value);
-		// TODO removed: this caused a loop that scrolled loaded al messages and made far too many calls
-		//checkAndPaginateIfNeeded();
 	}
 
 	// eslint-disable-next-line @typescript-eslint/no-unused-vars
@@ -387,7 +415,7 @@
 		}, DELAY_POPUP_VIEW_ON_SCREEN);
 	}
 
-	//#region Events
+	// #region Events
 
 	async function loadPrevious() {
 		isLoadingNewEvents.value = true;
