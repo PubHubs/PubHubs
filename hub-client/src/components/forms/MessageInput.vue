@@ -168,7 +168,7 @@
 	import { usePubhubsStore } from '@hub-client/stores/pubhubs';
 	import { TPublicRoom, useRooms } from '@hub-client/stores/rooms';
 	import { FeatureFlag, useSettings } from '@hub-client/stores/settings';
-	import { useUser } from '@hub-client/stores/user';
+	import { User, useUser } from '@hub-client/stores/user';
 
 	const { t } = useI18n();
 	const user = useUser();
@@ -333,14 +333,17 @@
 	}
 
 	//  To autocomplete the mention user in the message.
-	function mentionUser(user: any) {
+	function mentionUser(user: User) {
+		if (!user.rawDisplayName) {
+			return;
+		}
 		let userMention = user.rawDisplayName;
 
 		// Make sure pseudonym is included if it hasn't
 		if (filters.extractPseudonymFromString(userMention)) {
 			userMention = '@' + filters.extractPseudonym(user.userId) + '~' + user.userId;
 		} else {
-			userMention = '@' + userMention + '~' + user.userId; 
+			userMention = '@' + userMention + '~' + user.userId;
 		}
 
 		let message = value.value?.toString();
@@ -351,6 +354,7 @@
 			message = message?.substring(0, lastPosition);
 			value.value = message + userMention;
 		}
+		elTextInput.value?.$el.focus();
 	}
 	function mentionRoom(room: TPublicRoom) {
 		let roomMention = room.name + '~' + room.room_id;
@@ -363,6 +367,7 @@
 			message = message?.substring(0, lastPosition);
 			value.value = message + '#' + roomMention;
 		}
+		elTextInput.value?.$el.focus();
 	}
 
 	function submitMessage() {
