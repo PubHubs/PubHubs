@@ -31,10 +31,10 @@
 	const emit = defineEmits(['click']);
 	const isVisible = ref(false);
 	const positionOfAt = ref(0); // Position of @-sign of user in the current message
-	const rooms = useRooms();
+	const roomsStore = useRooms();
 	const elContainer = ref<HTMLElement | null>(null);
 
-	let users = ref([] as TPublicRoom[]);
+	let rooms = ref([] as TPublicRoom[]);
 
 	const props = withDefaults(defineProps<Props>(), {
 		msg: undefined,
@@ -59,7 +59,7 @@
 		// If the current message includes a @, we need to get all other users in the room
 		// when it does not, we keep the user-dialog invisible
 		if (props.msg?.includes('#')) {
-			users.value = rooms.publicRooms || [];
+			rooms.value = roomsStore.publicRooms.filter((room) => room.room_id !== props.room.roomId) || [];
 
 			// Check at which position the @ is and if there is a list of
 			// filtered users to check if we must display the dialog
@@ -88,12 +88,12 @@
 	});
 
 	function displayAllRooms() {
-		return users.value;
+		return rooms.value;
 	}
 
 	function filterRooms(searchQuery: string) {
 		const query = searchQuery.slice(searchQuery.lastIndexOf('#') + 1);
-		return rooms.visiblePublicRooms.filter((room) => room.name?.toLowerCase().includes(query) || room.topic?.toLowerCase().includes(query));
+		return roomsStore.visiblePublicRooms.filter((room) => room.name?.toLowerCase().includes(query) || room.topic?.toLowerCase().includes(query));
 	}
 
 	function clickedItem(item: any) {
