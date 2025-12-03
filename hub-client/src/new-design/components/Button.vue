@@ -86,35 +86,33 @@
 		},
 	);
 
-	const { variant, icon, secondaryIcon, disabled, title, size, type, ariaLabel, loading } = props;
-
 	// Computed props
-	const isIconOnly = computed(() => !slots.default && icon);
+	const isIconOnly = computed(() => !slots.default && props.icon);
 
 	const iconSize = computed(() => {
-		if (isIconOnly.value && size === '') return 'base';
-		if (!isIconOnly.value && size === '') return 'sm';
-		return size;
+		if (isIconOnly.value && props.size === '') return 'base';
+		if (!isIconOnly.value && props.size === '') return 'sm';
+		return props.size;
 	});
 
 	// Sets the aria label (used by screen readers when there is no visible text), as a fallback for sr-label
 	const computedAriaLabel = computed(() => {
 		if (slots.default) return slots.default()[0].children?.toString();
 		if (slots['sr-label']) return slots['sr-label']()[0].children?.toString();
-		if (title) return title;
-		return ariaLabel ?? undefined;
+		if (props.title) return props.title;
+		return props.ariaLabel ?? undefined;
 	});
 
 	// Sets the tooltip value when not explicitly passed
 	const computedTitle = computed(() => {
-		if (title) return title;
+		if (props.title) return props.title;
 		if (computedAriaLabel.value) return computedAriaLabel.value;
 		if (slots.default) return slots.default()[0].children?.toString();
 		return undefined;
 	});
 
 	const computedClasses = computed(() => {
-		const variantClass = buttonVariants[variant ?? 'primary'];
+		const variantClass = buttonVariants[props.variant ?? 'primary'];
 		const iconClass = isIconOnly.value ? 'min-w-550 w-550 px-100' : 'min-w-1000 px-150'; // Required to make the icon-only button look square
 		return [variantClass, iconClass];
 	});
@@ -125,7 +123,7 @@
 	}>();
 
 	const handleClick = (evt: MouseEvent) => {
-		if (disabled || loading) {
+		if (props.disabled || props.loading) {
 			evt.preventDefault();
 			evt.stopPropagation();
 			return;
@@ -136,7 +134,7 @@
 	// Accessibility
 	onMounted(() => {
 		if (process.env.NODE_ENV !== 'production') {
-			if (isIconOnly.value && !ariaLabel && !title) {
+			if (isIconOnly.value && !props.ariaLabel && !props.title) {
 				console.warn('[Button] Accessible name missing for icon-only button. Provide `ariaLabel` or `title` prop or `#sr-label` slot.');
 			}
 		}

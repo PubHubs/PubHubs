@@ -22,6 +22,7 @@
 					:class="['transition-all duration-500 ease-in-out', { 'ring-on-surface-dim cursor-pointer ring-1 ring-offset-4': hover || props.activeProfileCard === props.event.event_id }]"
 					@mouseover="hover = true"
 					@mouseleave="hover = false"
+					@contextmenu="openMenu($event, event.sender !== user.userId ? [{ label: 'Direct message', icon: 'chat-circle', onClick: () => user.goToUserRoom(event.sender) }] : [])"
 				/>
 
 				<!-- Profile Card -->
@@ -191,10 +192,13 @@
 	import { useConnection } from '@hub-client/stores/connection';
 	import { useMessageActions } from '@hub-client/stores/message-actions';
 	import { usePubhubsStore } from '@hub-client/stores/pubhubs';
-	import { useRooms } from '@hub-client/stores/rooms';
 	import { FeatureFlag, useSettings } from '@hub-client/stores/settings';
 	import { useUser } from '@hub-client/stores/user';
 
+	// New design
+	import { useContextMenu } from '@hub-client/new-design/composables/contextMenu.composable';
+
+	const { openMenu } = useContextMenu();
 	const connection = useConnection();
 	const messageActions = useMessageActions();
 	const pubhubs = usePubhubsStore();
@@ -204,7 +208,6 @@
 	const hover = ref(false);
 	const openEmojiPanel = ref(false);
 	const elReactionPopUp = ref<HTMLElement | null>(null);
-	const rooms = useRooms();
 
 	let roomMember = ref();
 	let threadLength = ref(0);

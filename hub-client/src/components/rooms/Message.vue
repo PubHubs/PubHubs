@@ -14,9 +14,9 @@
 				<!-- User Mention segment -->
 				<span
 					v-else-if="segment.type === 'user'"
-					@click.once="goToUserRoom(segment.tokenId!)"
+					@click.once="userStore.goToUserRoom(segment.tokenId!)"
 					class="text-accent-primary cursor-pointer"
-					@contextmenu="openMenu($event, [{ label: 'direct message', icon: 'chat-circle', onClick: () => goToUserRoom(segment.tokenId!) }])"
+					@contextmenu="openMenu($event, [{ label: 'direct message', icon: 'chat-circle', onClick: () => userStore.goToUserRoom(segment.tokenId!) }])"
 					>{{ segment.displayName }}
 				</span>
 				<!-- Room Mention segment -->
@@ -58,17 +58,16 @@
 	import { TMessageEvent } from '@hub-client/models/events/TMessageEvent';
 
 	// Stores
-	import { usePubhubsStore } from '@hub-client/stores/pubhubs';
 	import { useRooms } from '@hub-client/stores/rooms';
-	import { User } from '@hub-client/stores/user';
+	import { useUser } from '@hub-client/stores/user';
 
-	// New Design
+	// New design
 	import { useContextMenu } from '@hub-client/new-design/composables/contextMenu.composable';
 
 	const { openMenu } = useContextMenu();
 	const { t } = useI18n();
 	const roomsStore = useRooms();
-	const pubhubs = usePubhubsStore();
+	const userStore = useUser();
 	const props = defineProps<{
 		event: TMessageEvent;
 		deleted: boolean;
@@ -101,15 +100,5 @@
 
 	function isSecured(id: string) {
 		return roomsStore.roomIsSecure(id);
-	}
-	async function goToUserRoom(userId: string) {
-		let userRoom;
-		const otherUser = pubhubs.client.getUser(userId) as User;
-		if (otherUser) {
-			userRoom = await pubhubs.createPrivateRoomWith(otherUser);
-			if (userRoom) {
-				await pubhubs.routeToRoomPage(userRoom);
-			}
-		}
 	}
 </script>

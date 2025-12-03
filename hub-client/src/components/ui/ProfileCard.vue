@@ -32,7 +32,7 @@
 
 	// Stores
 	import { usePubhubsStore } from '@hub-client/stores/pubhubs';
-	import { useUser } from '@hub-client/stores/user';
+	import { User, useUser } from '@hub-client/stores/user';
 
 	const pubhubs = usePubhubsStore();
 	const userStore = useUser();
@@ -51,15 +51,4 @@
 			require: false,
 		},
 	});
-
-	async function goToUserRoom(userId: string) {
-		let userRoom;
-		const otherUser = pubhubs.client.getUser(userId);
-		if (otherUser) {
-			userRoom = await pubhubs.createPrivateRoomWith(otherUser);
-			if (userRoom) {
-				await pubhubs.routeToRoomPage(userRoom);
-			}
-		}
-	}
 </script>

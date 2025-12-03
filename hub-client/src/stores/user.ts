@@ -1,4 +1,5 @@
 // Packages
+import { usePubhubsStore } from './pubhubs';
 import { assert } from 'chai';
 import { MatrixClient, User as MatrixUser } from 'matrix-js-sdk';
 import { defineStore } from 'pinia';
@@ -193,6 +194,19 @@ const useUser = defineStore('user', {
 				router.push({ name: 'onboarding', query: { type: onboardingType, originalRoute: router.currentRoute.value.path } });
 			}
 			return this.needsConsent;
+		},
+
+		async goToUserRoom(userId: string) {
+			const pubhubs = usePubhubsStore();
+			
+			let userRoom;
+			const otherUser = this.client!.getUser(userId);
+			if (otherUser) {
+				userRoom = await pubhubs.createPrivateRoomWith(otherUser as User);
+				if (userRoom) {
+					await pubhubs.routeToRoomPage(userRoom);
+				}
+			}
 		},
 
 		// #endregion

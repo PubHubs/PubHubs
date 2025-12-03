@@ -313,7 +313,7 @@ class TimelineManager {
 	 */
 	private async getEventTimeline(eventId: string): Promise<EventTimeline | null> {
 		const room = this.client?.getRoom(this.roomId ?? undefined);
-		if (!room) {
+		if (!room || !eventId || eventId === '') {
 			return null;
 		}
 
@@ -346,15 +346,27 @@ class TimelineManager {
 	async performPaginate(direction: Direction, limit: number, timeline: EventTimeline): Promise<MatrixEvent[]> {
 		let newEvents: MatrixEvent[] = [];
 		try {
-			if (
-				await this.client.paginateEventTimeline(timeline, {
+			// Since paginateEventTimeline paginates the unfiltered timeline and filtering takes place in the sdk,
+			// there is a chance that one paginate does not fetch all needed messages.
+			// It requests 'limit' events, but returns the filtered ones. That is why we need a loop
+			// PaginateEventTimeline is not consistent in its returnvalue: it is a boolean that iondicates whether further pagination is possible,
+			// but sometimes the history of the room is incorrect read and it keeps returning true. In that case we try only 2 times.
+			let canPaginate = true;
+			let numberoftries = 0;
+			while (numberoftries < 2 && canPaginate && timeline.getEvents().length < limit) {
+				const before = timeline.getEvents().length;
+				canPaginate = await this.client.paginateEventTimeline(timeline, {
 					backwards: direction === Direction.Backward,
 					limit,
-				})
-			) {
-				newEvents = timeline.getEvents();
-			} else {
-				newEvents = timeline.getEvents();
+				});
+				// canpaginate is true, but no new events: try just a couple of times to prevent hanging loop
+				if (canPaginate && before === timeline.getEvents().length) {
+					numberoftries++;
+				}
+			}
+			console.error('Numberoftries ', numberoftries);
+			newEvents = timeline.getEvents();
+			if (!canPaginate) {
 				// Here we have reached the first or last of all messages
 				const firstMessageId = newEvents.length > 0 ? newEvents[0]?.event?.event_id : this.timelineEvents[0]?.matrixEvent.event?.event_id;
 				const lastMessageId = newEvents.length > 0 ? newEvents[newEvents.length - 1]?.event?.event_id : this.timelineEvents[this.timelineEvents.length - 1]?.matrixEvent.event?.event_id;
@@ -370,7 +382,7 @@ class TimelineManager {
 	 * returns a list of newEvents that is filled to a limit of events taken from the events array
 	 * @param events - current events in list
 	 * @param newEvents - fetched new events
-	 * @param limit - total number of evetns needed
+	 * @param limit - total number of events needed
 	 * @param direction - Direction.Forward or Direction.Backward
 	 * @returns
 	 */
@@ -442,7 +454,6 @@ class TimelineManager {
 	 */
 	public async loadToEvent(currentEvent: TCurrentEvent): Promise<TimelineEvent[]> {
 		LOGGER.log(SMI.ROOM_TIMELINEMANAGER, `Loading timeline to event ${currentEvent.eventId}`);
-
 		// in case the event is not currently in the list: try to get it from its timeline
 		const timeline = await this.getEventTimeline(currentEvent.eventId);
 		if (!timeline) {
@@ -453,8 +464,8 @@ class TimelineManager {
 
 		// need to paginate both directions, for when event is in beginning or end. The surplus does not matter
 		const joinPromises: Promise<MatrixEvent[]>[] = [];
-		joinPromises.push(this.performPaginate(Direction.Backward, SystemDefaults.initialRoomTimelineLimit / 2, timeline));
-		joinPromises.push(this.performPaginate(Direction.Forward, SystemDefaults.initialRoomTimelineLimit / 2, timeline));
+		joinPromises.push(this.performPaginate(Direction.Backward, SystemDefaults.initialRoomTimelineLimit, timeline));
+		joinPromises.push(this.performPaginate(Direction.Forward, SystemDefaults.initialRoomTimelineLimit, timeline));
 
 		const [newBackEvents, newForwardEvents] = await Promise.all(joinPromises);
 
