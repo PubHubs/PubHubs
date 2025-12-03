@@ -100,7 +100,7 @@
 		</div>
 
 		<div class="my-200 border-spacing-200 rounded-lg border border-dotted border-purple-500 p-200">
-			<h2 class="mb-200">Form Test</h2>
+			<h2 class="mb-200">Form Test with valdation attributes</h2>
 
 			<ValidatedForm v-slot="{ isValidated }">
 				<TextField v-model="formValues.firstname" placeholder="Type voornaam">Voornaam</TextField>
