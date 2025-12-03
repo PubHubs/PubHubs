@@ -25,7 +25,7 @@
 		<!-- Room grid -->
 		<div class="flex w-full flex-col gap-2">
 			<div class="flex w-full justify-center rounded-xl py-8">
-				<TransitionGroup v-if="filteredRooms.length > 0" name="room-grid" tag="div" class="grid w-full grid-cols-1 gap-8 px-0 transition-all duration-300 md:grid-cols-2 lg:px-16 2xl:grid-cols-3">
+				<TransitionGroup v-if="filteredRooms.length > 0" name="room-grid" tag="div" class="grid w-full grid-cols-1 gap-8 px-0 transition-all duration-300 md:grid-cols-2 lg:px-16 3xl:grid-cols-3">
 					<RoomCard
 						v-for="room in filteredRooms"
 						:key="room.room_id"
