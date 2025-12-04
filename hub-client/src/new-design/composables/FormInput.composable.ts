@@ -8,13 +8,12 @@ export function useFormInput(props: any, model: any | undefined = undefined) {
 	const changed = ref(false);
 	const hasFocus = ref(false);
 
-
 	const id = computed(() => {
 		if (props.id) return props.id;
 		return 'id-' + getCurrentInstance()?.uid;
 	});
 
-	const slotDefault = computed(()=>{
+	const slotDefault = computed(() => {
 		const slots = useSlots();
 		if (slots.default) {
 			return slots.default()[0].children?.toString() as string;
