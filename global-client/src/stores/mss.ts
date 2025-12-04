@@ -62,7 +62,7 @@ const useMSS = defineStore('mss', {
 			return this._transcryptor!;
 		},
 
-		async issueCard(chainedSesssion: boolean, comment: string = '', identifyingAttr?: string) {
+		async issueCard(chainedSesssion: boolean, comment: string, identifyingAttr?: string) {
 			const authServer = await this.getAuthServer();
 
 			// 1. Fetch pseudo card package from the Pubhubs Central Server
