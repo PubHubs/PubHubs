@@ -17,7 +17,7 @@
 					v-else-if="segment.type === 'user' && segment.tokenId"
 					@click.once="userStore.goToUserRoom(segment.tokenId)"
 					class="text-accent-primary cursor-pointer"
-					@contextmenu="openMenu($event, [{ label: 'direct message', icon: 'chat-circle', onClick: () => userStore.goToUserRoom(segment.tokenId!) }])"
+					@contextmenu="openMenu($event, [{ label: 'direct message', icon: 'chat-circle', onClick: () => userStore.goToUserRoom(segment.tokenId) }])"
 					>{{ segment.displayName }}
 				</span>
 
@@ -26,7 +26,7 @@
 					v-else-if="segment.type === 'room' && segment.tokenId && segment.id"
 					@click="joinIfMember(segment.tokenId, segment.id)"
 					class="relative"
-					@contextmenu="openMenu($event, [{ label: 'join', icon: 'chats-circle', onClick: () => joinIfMember(segment.tokenId!, segment.id) }])"
+					@contextmenu="openMenu($event, [{ label: 'join', icon: 'chats-circle', onClick: () => joinIfMember(segment.tokenId, segment.id) }])"
 				>
 					<span class="text-accent-primary cursor-pointer">{{ segment.displayName }}</span>
 					<div v-if="activeMentionCard === segment.id && segment.tokenId">
@@ -116,7 +116,6 @@
 		if (userId) {
 			const userIsMember = await pubhubs.isUserRoomMember(userId, roomId);
 			if (userIsMember) {
-				await pubhubs.joinRoom(roomId);
 				await router.push({ name: 'room', params: { id: roomId } });
 			} else {
 				activeMentionCard.value = segmentId;
