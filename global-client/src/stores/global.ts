@@ -3,6 +3,7 @@ import { defineStore } from 'pinia';
 
 // Logic
 import { api } from '@global-client/logic/core/api';
+import { withTimeout } from '@global-client/logic/utils/generalUtils';
 
 import { CONFIG } from '@hub-client/logic/logging/Config';
 import { Logger } from '@hub-client/logic/logging/Logger';
@@ -217,8 +218,7 @@ const useGlobal = defineStore('global', {
 			const hubsStore = useHubs();
 			const data = await mss.getHubs();
 			const hubPromises = data.map((item) =>
-				mss
-					.withTimeout(mss.getHubInfo(item.url), 2000) // ms
+				withTimeout(mss.getHubInfo(item.url), 2000) // ms
 					.then((hubInfo) => {
 						const serverUrl = item.url.replace(/\/_synapse\/client/, '');
 						const hub = new Hub(item.id, item.name, hubInfo.hub_client_url, serverUrl, item.description);

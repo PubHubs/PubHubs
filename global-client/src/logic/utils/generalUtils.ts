@@ -4,4 +4,8 @@ async function delay(attempt: number): Promise<void> {
 	await new Promise((resolve) => setTimeout(resolve, delay));
 }
 
-export { delay };
+async function withTimeout<T>(promise: Promise<T>, ms: number): Promise<T> {
+	return Promise.race([promise, new Promise<T>((_, reject) => setTimeout(() => reject(new Error('Timeout')), ms))]);
+}
+
+export { delay, withTimeout };

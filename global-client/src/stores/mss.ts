@@ -292,10 +292,7 @@ const useMSS = defineStore('mss', {
 			}
 			await this.phcServer.encryptAndStoreObject<T>(handle, data, overwriteHash);
 		},
-
-		withTimeout<T>(promise: Promise<T>, ms: number): Promise<T> {
-			return Promise.race([promise, new Promise<T>((_, reject) => setTimeout(() => reject(new Error('Timeout')), ms))]);
-		},
+		
 
 		async getHubInfo(hubServerUrl: string): Promise<InfoResp> {
 			const infoResp = await hub_api.api<HubInfoResp | InfoResp>(`${hubServerUrl}${hub_api.apiURLS.info}`);
