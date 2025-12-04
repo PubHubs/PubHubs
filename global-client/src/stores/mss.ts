@@ -68,7 +68,7 @@ const useMSS = defineStore('mss', {
 			// 1. Fetch pseudo card package from the Pubhubs Central Server
 			const pseudoResp = await this.phcServer.cardPseudePackage();
 			if (!(ResultResponse.Success in pseudoResp)) {
-				throw new Error('Pseudo card package failed — retry with a new Authtoken.');
+				throw new Error('Retreiving the Pseudo card package failed — retry with a new Authtoken.');
 			}
 
 			const cardReq: CardReq = {
