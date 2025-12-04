@@ -61,7 +61,7 @@ export type YiviReleaseNextSessionReq = { state: number[]; next_session?: string
 
 export type CardResp = { Success: { attr: string; issuance_request: string; yivi_requestor_url: string } } | { PleaseRetryWithNewCardPseud: string };
 
-export type CardReq = { card_pseud_package: { card_pseud: number; registration_date?: Number }; comment: string };
+export type CardReq = { card_pseud_package: { card_pseud: number; registration_date?: number }; comment: string };
 
 export type StartResp = { Success: StartRespSuccess } | { UnknownAttrType: string } | { SourceNotAvailableFor: string };
 
