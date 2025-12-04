@@ -139,34 +139,6 @@ export default class AuthenticationServer {
 	}
 
 	/**
-	 * Start the authentication process.
-	 *
-	 * @returns The attributes the user disclosed.
-	 */
-	// private async _authenticate(authStartReq: TAuths.AuthStartReq, source: TAuths.Source) {
-	// 	const startResp = await this._startAuthEP(authStartReq);
-	// 	if ('Success' in startResp) {
-	// 		const { task, state } = startResp.Success;
-	// 		this._state = state;
-	// 		if (source === TAuths.Source.Yivi && task.Yivi) {
-	// 			const disclosureRequest = task.Yivi.disclosure_request;
-	// 			const yiviRequestorUrl = filters.removeTrailingSlash(task.Yivi.yivi_requestor_url);
-	// 			const resultJWT = await startYiviAuthentication(yiviRequestorUrl, disclosureRequest);
-	// 			const proof = { Yivi: { disclosure: resultJWT } };
-	// 			return await this._completeAuthEP(proof, this._state);
-	// 		} else {
-	// 			throw new Error(`The task does not match the chosen source for the attributes: ${task} (task), ${source} (source)`);
-	// 		}
-	// 	} else if ('UnknownAttrType' in startResp) {
-	// 		throw new Error(`No attribute type known with this handle: ${startResp.UnknownAttrType}`);
-	// 	} else if ('SourceNotAvailableFor' in startResp) {
-	// 		throw new Error(`The source (${authStartReq.source}) is not available for the attribute type with this handle: ${startResp.SourceNotAvailableFor}`);
-	// 	} else {
-	// 		throw new Error('Unknown response from the AuthStart endpoint.');
-	// 	}
-	// }
-
-	/**
 	 * A helper function to check whether the attributes the user disclosed are matching the attributes that were requested.
 	 *
 	 * @param attrTypes The list of attribute handles that were requested.
@@ -201,36 +173,6 @@ export default class AuthenticationServer {
 			throw new Error('Invalid JWT');
 		}
 	}
-
-	/**
-	 * Starts the authentication process.
-	 */
-	// async startAuthentication(loginMethod: TAuths.LoginMethod, enterMode: PHCEnterMode) {
-	// 	const supportedAttrTypes = await this._welcomeEPAuths();
-	// 	const identifyingAttrsSet = this._checkAttributes(supportedAttrTypes, loginMethod, enterMode);
-	// 	const authStartReq: TAuths.AuthStartReq = {
-	// 		source: loginMethod.source,
-	// 		attr_types: loginMethod.attr_types,
-	// 	};
-	// 	const authResp = await this._authenticate(authStartReq, loginMethod.source);
-	// 	assert.isDefined(authResp, 'Something went wrong.');
-	// 	if (this._responseEqualToRequested(Object.keys(authResp.attrs), loginMethod.attr_types)) {
-	// 		const signedAddAttrs: string[] = [];
-	// 		const signedIdentifyingAttrs: TAuths.SignedIdentifyingAttrs = {};
-	// 		for (const [handle, attr] of Object.entries(authResp.attrs)) {
-	// 			if (identifyingAttrsSet.has(handle)) {
-	// 				const decodedAttr = this._decodeJWT(attr) as Attr;
-	// 				signedIdentifyingAttrs[handle] = { signedAttr: attr, id: decodedAttr.attr_type, value: decodedAttr.value };
-	// 			}
-	// 			if (handle !== loginMethod.identifying_attr) {
-	// 				signedAddAttrs.push(attr);
-	// 			}
-	// 		}
-	// 		return { identifyingAttr: authResp.attrs[loginMethod.identifying_attr], signedIdentifyingAttrs, signedAddAttrs };
-	// 	} else {
-	// 		throw new Error(`The disclosed attributes do not match the requested attributes`);
-	// 	}
-	// }
 
 	async attrKeysEP(attrKeyRequest: TAuths.AuthAttrKeyReq) {
 		return await handleErrors<TAuths.AttrKeysResp>(() => this._authsApi.api<TAuths.AuthAttrKeysResp>(this._authsApi.apiURLS.attrKeys, requestOptions<TAuths.AuthAttrKeyReq>(attrKeyRequest)));
