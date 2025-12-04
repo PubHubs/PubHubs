@@ -222,8 +222,8 @@ const useGlobal = defineStore('global', {
 					.then((hubInfo) => {
 						const serverUrl = item.url.replace(/\/_synapse\/client/, '');
 						const hub = new Hub(item.id, item.name, hubInfo.hub_client_url, serverUrl, item.description);
-						// Add the hub to the store here already so an offline hub cant block loading online hubs
-						// TODO: make flow after globl.getHubs more efficient given this change
+						// Add the hub to the store here already so an offline hub cant delay the loading of online hubs.
+						// TODO: update the flow after global.getHubs given that hubs are already added before the await.
 						hubsStore.addHub(hub);
 					})
 					.catch((error) => {
