@@ -372,6 +372,12 @@
 	.editor .v-note-wrapper {
 		@apply relative !z-10 !max-h-[400px] !min-h-20 !resize-y overflow-y-auto;
 	}
+	.dark .editor .auto-textarea-wrapper .auto-textarea-input {
+		color: white !important;
+	}
+	.editor .auto-textarea-wrapper .auto-textarea-input {
+		color: black !important;
+	}
 
 	div[class='v-note-wrapper markdown-body'] {
 		background-color: rgba(0, 0, 0, 0) !important;
