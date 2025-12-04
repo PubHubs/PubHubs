@@ -3,16 +3,16 @@ import { Pinia } from 'pinia';
 
 // Logic
 import { hub_api } from '@global-client/logic/core/api';
+import { handleErrors } from '@global-client/logic/utils/mssUtils';
 
 import { HubSettingsJSONParser } from '@hub-client/logic/json-utility';
 
 // Models
-import { handleErrors, requestOptions } from '@global-client/models/MSS/Auths';
+import { requestOptions } from '@global-client/models/MSS/Auths';
 import { EnterCompleteResp, EnterStartResp, HubEnterCompleteReq, HubEnterCompleteResp, HubEnterStartResp } from '@global-client/models/MSS/TGeneral';
 
 // Stores
-import { FeatureFlag, SettingsStore } from '@hub-client/stores/settings';
-import { useSettings } from '@hub-client/stores/settings';
+import { FeatureFlag, SettingsStore, useSettings } from '@hub-client/stores/settings';
 
 class Hub {
 	readonly hubId: string;

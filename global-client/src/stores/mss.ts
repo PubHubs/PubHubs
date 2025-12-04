@@ -5,12 +5,13 @@ import { defineStore } from 'pinia';
 // Logic
 import { hub_api } from '@global-client/logic/core/api';
 import { delay } from '@global-client/logic/utils/generalUtils';
+import { handleErrors } from '@global-client/logic/utils/mssUtils';
 import { startYiviAuthentication } from '@global-client/logic/utils/yiviHandler';
 
 import filters from '@hub-client/logic/core/filters';
 
 // Models
-import AuthenticationServer, { handleErrors } from '@global-client/models/MSS/Auths';
+import AuthenticationServer from '@global-client/models/MSS/Auths';
 import PHCServer from '@global-client/models/MSS/PHC';
 import { AuthAttrKeyReq, AuthStartReq, CardReq, LoginMethod, SignedIdentifyingAttrs, Source } from '@global-client/models/MSS/TAuths';
 import { EnterStartResp, HubInfoResp, InfoResp, ResultResponse, isResult } from '@global-client/models/MSS/TGeneral';
@@ -34,13 +35,13 @@ const useMSS = defineStore('mss', {
 	},
 
 	actions: {
-		async storePHCWelcomeInfo() {
+		async storePHCWelcomeInfo(): Promise<void> {
 			const welcomeResp = await this.phcServer.welcome();
 			this.constellation = welcomeResp.constellation;
 			this.hubs = welcomeResp.hubs;
 		},
 
-		async initializeServers() {
+		async initializeServers(): Promise<void> {
 			if (!this.constellation || !this.hubs) {
 				await this.storePHCWelcomeInfo();
 			}
@@ -56,14 +57,20 @@ const useMSS = defineStore('mss', {
 			return this._authServer!;
 		},
 
-		async getTranscryptor() {
+		async getTranscryptor(): Promise<{
+			ehppEP: (nonce: string, id: string, ppp: string) => Promise<string>;
+		}> {
 			if (!this._transcryptor) {
 				await this.initializeServers();
 			}
 			return this._transcryptor!;
 		},
 
-		async issueCard(chainedSession: boolean, comment: string, identifyingAttr?: string) {
+		async issueCard(
+			chainedSession: boolean,
+			comment: string,
+			identifyingAttr?: string,
+		): Promise<{ cardAttr: null; errorMessage: { key: string; values?: string[] | undefined } } | { cardAttr: { signedAttr: string; id: string; value: string }; errorMessage: null }> {
 			const authServer = await this.getAuthServer();
 
 			// 1. Fetch pseudo card package from the Pubhubs Central Server
@@ -264,13 +271,13 @@ const useMSS = defineStore('mss', {
 			}
 		},
 
-		logout() {
+		logout(): void {
 			this.phcServer.reset();
 			localStorage.removeItem('PHauthToken');
 			localStorage.removeItem('UserSecret');
 			localStorage.removeItem('UserSecretVersion');
 		},
-		async getHubs() {
+		async getHubs(): Promise<HubInformation[]> {
 			if (!this.hubs) {
 				await this.storePHCWelcomeInfo();
 			}
@@ -278,12 +285,12 @@ const useMSS = defineStore('mss', {
 			return Object.values(this.hubs);
 		},
 
-		async requestUserObject(handle: string) {
+		async requestUserObject(handle: string): Promise<string | null> {
 			const object = await this.phcServer.getDecryptedUserObject(handle);
 			return object;
 		},
 
-		async storeUserObject<T>(handle: string, data: T) {
+		async storeUserObject<T>(handle: string, data: T): Promise<void> {
 			const object = await this.phcServer.getUserObject(handle);
 			let overwriteHash: string | undefined = undefined;
 			if (object) {
@@ -292,7 +299,6 @@ const useMSS = defineStore('mss', {
 			}
 			await this.phcServer.encryptAndStoreObject<T>(handle, data, overwriteHash);
 		},
-		
 
 		async getHubInfo(hubServerUrl: string): Promise<InfoResp> {
 			const infoResp = await hub_api.api<HubInfoResp | InfoResp>(`${hubServerUrl}${hub_api.apiURLS.info}`);
@@ -305,7 +311,7 @@ const useMSS = defineStore('mss', {
 			return infoResp;
 		},
 
-		async enterHub(id: string, nonceStatePair: EnterStartResp) {
+		async enterHub(id: string, nonceStatePair: EnterStartResp): Promise<string | undefined> {
 			const maxAttempts = 4;
 			for (let attempt = 0; attempt < maxAttempts; attempt++) {
 				if (attempt > 0) {

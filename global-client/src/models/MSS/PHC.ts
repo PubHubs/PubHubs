@@ -8,7 +8,7 @@ import { phc_api } from '@global-client/logic/core/api';
 import { Api } from '@hub-client/logic/core/apiCore';
 
 // Models
-import { base64fromBase64Url, handleErrorCodes, handleErrors, requestOptions } from '@global-client/models/MSS/Auths';
+import { base64fromBase64Url, requestOptions } from '@global-client/models/MSS/Auths';
 import { ErrorCode, Result } from '@global-client/models/MSS/TGeneral';
 import * as TPHC from '@global-client/models/MSS/TPHC';
 
@@ -20,6 +20,7 @@ import { useSettings } from '@hub-client/stores/settings';
 
 // Other
 import { setLanguage, setUpi18n } from '@hub-client/i18n';
+import { handleErrorCodes, handleErrors } from '@global-client/logic/utils/mssUtils';
 
 export default class PHCServer {
 	private readonly _phcAPI: Api;

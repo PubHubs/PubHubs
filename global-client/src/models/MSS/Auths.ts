@@ -1,11 +1,12 @@
 // Logic
 import { auths_api } from '@global-client/logic/core/api';
-import { delay } from '@global-client/logic/utils/generalUtils';
+import { handleErrors } from '@global-client/logic/utils/mssUtils';
 
 import { Api } from '@hub-client/logic/core/apiCore';
 
+// Models
 import * as TAuths from '@global-client/models/MSS/TAuths';
-import { ErrorCode, Result, isOk } from '@global-client/models/MSS/TGeneral';
+import { ErrorCode, Result } from '@global-client/models/MSS/TGeneral';
 import { PHCEnterMode } from '@global-client/models/MSS/TPHC';
 
 export default class AuthenticationServer {
@@ -208,44 +209,4 @@ export function requestOptions<T>(requestBody: T, authorization?: string | undef
 		headers: { 'Content-Type': 'application/json', Authorization: authorization },
 		method: 'POST',
 	};
-}
-
-// Use function overloads to specify different return types based on input (return type T instead of T | ArrayBuffer if response is a Result type)
-export function handleErrorCodes<T, E = ErrorCode>(response: Result<T, E>): T;
-
-export function handleErrorCodes<T, E = ErrorCode>(response: Result<T, E> | ArrayBuffer): T | ArrayBuffer;
-
-export function handleErrorCodes<T, E = ErrorCode>(response: Result<T, E> | ArrayBuffer): T | ArrayBuffer {
-	if (response instanceof ArrayBuffer) {
-		return response;
-	}
-	if (isOk(response)) {
-		return response.Ok;
-	} else {
-		if (!response?.Err) {
-			throw new Error('The global-client received an undefined response in handleErrorCodes');
-		}
-		throw new Error(String(response.Err));
-	}
-}
-
-// Use function overloads to specify different return types based on input (return type Promise<T> instead of Promise<T | ArrayBuffer> if apiCallFn returns a Result type)
-export async function handleErrors<T>(apiCallFn: () => Promise<Result<T, ErrorCode>>, maxRetries?: number): Promise<T>;
-
-export async function handleErrors<T>(apiCallFn: () => Promise<Result<T, ErrorCode> | ArrayBuffer>, maxRetries?: number): Promise<T | ArrayBuffer>;
-
-export async function handleErrors<T>(apiCallFn: () => Promise<Result<T, ErrorCode> | ArrayBuffer>, maxRetries = 4): Promise<T | ArrayBuffer> {
-	for (let retry = 0; retry < maxRetries; retry++) {
-		try {
-			const response = await apiCallFn();
-			return handleErrorCodes<T>(response);
-		} catch (error) {
-			if (error instanceof Error && error.message === ErrorCode.PleaseRetry) {
-				delay(retry);
-				continue;
-			}
-			throw error;
-		}
-	}
-	throw new Error(ErrorCode.PleaseRetry);
 }
