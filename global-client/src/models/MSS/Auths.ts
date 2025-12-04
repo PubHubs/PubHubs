@@ -1,5 +1,6 @@
 // Logic
 import { auths_api } from '@global-client/logic/core/api';
+import { delay } from '@global-client/logic/utils/generalUtils';
 
 import { Api } from '@hub-client/logic/core/apiCore';
 
@@ -233,15 +234,14 @@ export async function handleErrors<T>(apiCallFn: () => Promise<Result<T, ErrorCo
 
 export async function handleErrors<T>(apiCallFn: () => Promise<Result<T, ErrorCode> | ArrayBuffer>, maxRetries?: number): Promise<T | ArrayBuffer>;
 
-export async function handleErrors<T>(apiCallFn: () => Promise<Result<T, ErrorCode> | ArrayBuffer>, maxRetries = 7): Promise<T | ArrayBuffer> {
+export async function handleErrors<T>(apiCallFn: () => Promise<Result<T, ErrorCode> | ArrayBuffer>, maxRetries = 4): Promise<T | ArrayBuffer> {
 	for (let retry = 0; retry < maxRetries; retry++) {
 		try {
 			const response = await apiCallFn();
 			return handleErrorCodes<T>(response);
 		} catch (error) {
 			if (error instanceof Error && error.message === ErrorCode.PleaseRetry) {
-				const delay = Math.min(10 * 2 ** retry, 1000);
-				await new Promise((resolve) => setTimeout(resolve, delay));
+				delay(retry);
 				continue;
 			}
 			throw error;

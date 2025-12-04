@@ -4,6 +4,7 @@ import { defineStore } from 'pinia';
 
 // Logic
 import { hub_api } from '@global-client/logic/core/api';
+import { delay } from '@global-client/logic/utils/generalUtils';
 import { startYiviAuthentication } from '@global-client/logic/utils/yiviHandler';
 
 import filters from '@hub-client/logic/core/filters';
@@ -308,23 +309,30 @@ const useMSS = defineStore('mss', {
 		},
 
 		async enterHub(id: string, nonceStatePair: EnterStartResp) {
-			const maxAttempts = 3;
+			const maxAttempts = 4;
 			for (let attempt = 0; attempt < maxAttempts; attempt++) {
-				// TODO create a delay function
 				if (attempt > 0) {
-					const ms = 100 * Math.pow(2, attempt - 1); // 100, 200, 400 …
-					await new Promise((resolve) => setTimeout(resolve, ms));
+					delay(attempt - 1);
 				}
+
 				const sealedPPP = await this.phcServer.pppEP();
 				assert.isDefined(sealedPPP, 'Something went wrong, sealedPPP should be defined.');
 				const transcryptor = await this.getTranscryptor();
 				const sealedEhpp = await transcryptor.ehppEP(nonceStatePair.nonce, id, sealedPPP);
-				if (sealedEhpp === 'RetryWithNewPpp' && attempt < maxAttempts) continue;
-				else if (sealedEhpp === 'RetryWithNewPpp') throw new Error('Theres something wrong with the sso::EncryptedHubPseudonymPackage');
+
+				if (sealedEhpp === 'RetryWithNewPpp' && attempt < maxAttempts) {
+					continue;
+				} else if (sealedEhpp === 'RetryWithNewPpp') {
+					throw new Error('Theres something wrong with the sso::EncryptedHubPseudonymPackage');
+				}
 				assert.isDefined(sealedEhpp, 'Something went wrong, sealedEhpp should be defined or you should have gone back to requesting a new Ppp.');
 				const signedHhpp = await this.phcServer.hhppEP(sealedEhpp);
-				if (signedHhpp === 'RetryWithNewPpp' && attempt < maxAttempts) continue;
-				else if (signedHhpp === 'RetryWithNewPpp') throw new Error('Theres something wrong with the sso::EncryptedHubPseudonymPackage');
+
+				if (signedHhpp === 'RetryWithNewPpp' && attempt < maxAttempts) {
+					continue;
+				} else if (signedHhpp === 'RetryWithNewPpp') {
+					throw new Error('Theres something wrong with the sso::EncryptedHubPseudonymPackage');
+				}
 				assert.isDefined(signedHhpp, 'Something went wrong, signedHhpp should be defined or you should have logged out or gone back to requesting a new Ppp.');
 				return signedHhpp;
 			}

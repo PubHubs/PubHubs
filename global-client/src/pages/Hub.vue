@@ -8,6 +8,8 @@
 	import { onMounted, onUnmounted, ref, watch } from 'vue';
 	import { useRoute, useRouter } from 'vue-router';
 
+	import { delay } from '@global-client/logic/utils/generalUtils';
+
 	// Logic
 	import { CONFIG } from '@hub-client/logic/logging/Config';
 	import { Logger } from '@hub-client/logic/logging/Logger';
@@ -41,17 +43,15 @@
 
 	async function onRouteChange() {
 		let hubId = undefined;
-		const maxAttempts = 7;
-		// TODO try to change timings of vue events so there is less wait time in this function
-		for (let attempts = 0; attempts < maxAttempts && !hubId; attempts++) {
+		const maxAttempts = 4;
+		for (let attempt = 0; attempt < maxAttempts && !hubId; attempt++) {
 			try {
 				hubId = hubs.hubId(route.params.name as string);
 			} catch (error) {
-				LOGGER.error(SMI.ERROR, `Could not execute function onRouteChange on attempt: ${attempts}`, { error });
+				LOGGER.error(SMI.ERROR, `Could not execute function onRouteChange on attempt: ${attempt}`, { error });
 			}
 			if (!hubId) {
-				const delay = Math.min(10 * 2 ** attempts, 1000);
-				await new Promise((r) => setTimeout(r, delay));
+				delay(attempt);
 			}
 		}
 		if (!hubId) {
@@ -76,12 +76,10 @@
 				break;
 			case Status.MSSHubNotLoggedIn: {
 				try {
-					const maxAttempts = 3;
+					const maxAttempts = 4;
 					for (let attempt = 0; attempt < maxAttempts; attempt++) {
-						// TODO create a delay function
 						if (attempt > 0) {
-							const ms = 100 * Math.pow(2, attempt - 1); // 100, 200, 400 …
-							await new Promise((resolve) => setTimeout(resolve, ms));
+							delay(attempt - 1);
 						}
 						const mss = useMSS();
 						const enterStartResp = await hub.enterStartEP();
