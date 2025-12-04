@@ -241,7 +241,7 @@ class MatrixService {
 				this.syncUsersProfile(roomData);
 
 				// get the latest roommember info from the required state, sorted on timestamp. This should be join if the user is still joined
-				const latestRoomMemberInfo = roomData.required_state?.filter((x) => x.type === EventType.RoomMember && x.sender === currentUser.userId).sort((a, b) => b.origin_server_ts - a.origin_server_ts)[0];
+				const latestRoomMemberInfo = roomData.required_state?.filter((x) => x.type === EventType.RoomMember && x.state_key === currentUser.userId).sort((a, b) => b.origin_server_ts - a.origin_server_ts)[0];
 
 				// The roomlist is initially send twice: on sync start and later during the sync
 				// Only handle the join when the room is not joined yet
