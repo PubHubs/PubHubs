@@ -14,7 +14,7 @@ import filters from '@hub-client/logic/core/filters';
 import AuthenticationServer from '@global-client/models/MSS/Auths';
 import PHCServer from '@global-client/models/MSS/PHC';
 import { AuthAttrKeyReq, AuthStartReq, CardReq, LoginMethod, SignedIdentifyingAttrs, Source } from '@global-client/models/MSS/TAuths';
-import { EnterStartResp, HubInfoResp, InfoResp, ResultResponse, isResult } from '@global-client/models/MSS/TGeneral';
+import { EnterStartResp, HubInfoResp, InfoResp, ResultResponse, ReturnCard, isResult } from '@global-client/models/MSS/TGeneral';
 import { Attr, Constellation, HubInformation, PHCEnterMode, isUserSecretObjectNew } from '@global-client/models/MSS/TPHC';
 import Transcryptor from '@global-client/models/MSS/Transcryptor';
 
@@ -66,11 +66,7 @@ const useMSS = defineStore('mss', {
 			return this._transcryptor!;
 		},
 
-		async issueCard(
-			chainedSession: boolean,
-			comment: string,
-			identifyingAttr?: string,
-		): Promise<{ cardAttr: null; errorMessage: { key: string; values?: string[] | undefined } } | { cardAttr: { signedAttr: string; id: string; value: string }; errorMessage: null }> {
+		async issueCard(chainedSession: boolean, comment: string, identifyingAttr?: string): Promise<ReturnCard> {
 			const authServer = await this.getAuthServer();
 
 			// 1. Fetch pseudo card package from the Pubhubs Central Server

@@ -60,4 +60,6 @@ export type EnterCompleteResp =
 	  };
 
 export type HubEnterCompleteResp = Result<EnterCompleteResp, ErrorCode>;
+
+export type ReturnCard = { cardAttr: null; errorMessage: { key: string; values?: string[] | undefined } } | { cardAttr: { signedAttr: string; id: string; value: string }; errorMessage: null }
 // #endregion
