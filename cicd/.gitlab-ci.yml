@@ -329,9 +329,12 @@ build-and-deploy-global-client-stable:
   rules:
     - if: $CI_COMMIT_TAG
   needs:
-    - globalclient-build
-    - globalclient-format-check
-    - globalclient-unit-test
+    - job: globalclient-build
+      optional: true
+    - job: globalclient-format-check
+      optional: true
+    - job: globalclient-unit-test
+      optional: true
   tags: [docker]
   image: node:24.10.0
   script:
