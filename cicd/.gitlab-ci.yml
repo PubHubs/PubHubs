@@ -113,7 +113,7 @@ hub-unit-test: # This job runs in the test stage.
     - if: $CI_COMMIT_BRANCH == "stable"
   tags:
     - docker
-  image: python:3.13
+  image: python:latest
   before_script:
     - python --version # For debugging
     - pip install unittest-xml-reporting
