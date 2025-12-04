@@ -1,17 +1,17 @@
 // Packages
+import { VotingWidgetType } from '../events/voting/VotingTypes';
 import { Direction, EventTimeline, EventTimelineSet, EventType, IStateEvent, MatrixClient, MatrixEvent, Room as MatrixRoom, RoomMember as MatrixRoomMember, MsgType, NotificationCountType, Thread, ThreadEvent } from 'matrix-js-sdk';
 import { CachedReceipt, WrappedReceipt } from 'matrix-js-sdk/lib/@types/read_receipts';
 import { MSC3575RoomData as SlidingSyncRoomData } from 'matrix-js-sdk/lib/sliding-sync';
 
 // Composables
 import { useMatrixFiles } from '@hub-client/composables/useMatrixFiles';
-import { useRoomLibrary } from '@hub-client/composables/useRoomLibrary';
 
 // Logic
 import { LOGGER } from '@hub-client/logic/logging/Logger';
 import { SMI } from '@hub-client/logic/logging/StatusMessage';
 
-import { Redaction, RelationType, SystemDefaults } from '@hub-client/models/constants';
+import { Redaction, RelatedEventsOptions, RelationType, SystemDefaults } from '@hub-client/models/constants';
 // Models
 import { TBaseEvent } from '@hub-client/models/events/TBaseEvent';
 import { TMessageEvent, TMessageEventContent } from '@hub-client/models/events/TMessageEvent';
@@ -86,14 +86,12 @@ export default class Room {
 
 	private roomMembers: Map<string, RoomMember> = new Map();
 
-	/** Contains all related events for an event. New related event for an event only stores the last event not the history */
+	/** Used in reactions: Contains all related events for an event. New related event for an event only stores the last event not the history */
 	private eventMultipleRelateEvents: MatrixEvent[] = [];
 
 	private stateEvents: IStateEvent[];
 
 	logger = LOGGER;
-
-	private roomLibrary;
 
 	constructor(matrixRoom: MatrixRoom);
 	constructor(matrixRoom: MatrixRoom, roomType: string, stateEvents: IStateEvent[]);
@@ -118,7 +116,6 @@ export default class Room {
 		this.stateEvents = stateEvents ?? [];
 
 		this.pubhubsStore = usePubhubsStore();
-		this.roomLibrary = useRoomLibrary();
 		this.matrixFiles = useMatrixFiles();
 
 		this.timelineManager = new TimelineManager(this.matrixRoom.roomId, this.matrixRoom.client as MatrixClient);
@@ -191,12 +188,19 @@ export default class Room {
 		this.currentEvent = event;
 	}
 
+	/**
+	 * Used within reactions to show only one instance of multiple together with counter
+	 */
 	public addCurrentEventToRelatedEvent(event: MatrixEvent) {
 		if (this.eventMultipleRelateEvents.indexOf(event) === -1) {
 			this.eventMultipleRelateEvents.push(event);
 		}
 	}
 
+	/**
+	 *
+	 * Used within reactions to show only one instance of multiple together with counter
+	 */
 	public getCurrentEventRelatedEvents(): MatrixEvent[] {
 		return this.eventMultipleRelateEvents;
 	}
@@ -465,7 +469,7 @@ export default class Room {
 		}
 
 		// If reactEvent exists, delete it with the message.
-		const reactEventId = this.getReactionEvent(event.event_id) ? this.getReactionEvent(event.event_id).pop()?.getId() : null;
+		const reactEventId = this.getReactionEvent(event.event_id) ? this.getReactionEvent(event.event_id).pop()?.getId() : undefined;
 
 		// FIXME: Typing error
 		const threadIdToDelete = isThreadRoot ? event.event_id : threadId;
@@ -532,31 +536,74 @@ export default class Room {
 		//return this.matrixRoom.getLiveTimeline().getEvents().at(-1)?.event;
 	}
 
-	/*
-	 * Grouping users and then selecting the latest related event.
+	/**Select the latest voting event per user and voting option -> schedulers
+	 * or per user -> polls
+	 * @param votingWidgetType Poll or Scheduler?
+	 * @param eventId
+	 * @returns array of latest voting events per user and voting option (scheduler) or per user (poll)
 	 */
+	public filterRoomWidgetRelatedEvents(votingWidgetType: string, eventId: string): MatrixEvent[] {
+		const relatedTimeleineEvents = this.timelineManager.getRelatedEvents(eventId);
+		if (!relatedTimeleineEvents) {
+			return [];
+		}
 
-	public filterRoomWidgetRelatedEvents(eventId: string): MatrixEvent[] {
-		const relatedEvents = this.timelineManager.getRelatedEventForEvent(eventId);
+		const relatedEvents = relatedTimeleineEvents.map((x) => x.matrixEvent);
 
-		const latestEventsPerUser = Object.values(
-			relatedEvents.reduce(
-				(acc, event) => {
-					const userId = event.getSender(); // or event.user_id if available
-					if (!acc[userId] || acc[userId].event.origin_server_ts < event.event.origin_server_ts) {
-						acc[userId] = event;
-					}
-					return acc;
-				},
-				{} as Record<string, MatrixEvent>,
-			),
-		);
+		if (votingWidgetType === VotingWidgetType.SCHEDULER) {
+			// Scheduler: return all latest events per user per option
+			const relatedEventsByOption = Object.values(
+				relatedEvents.reduce(
+					(acc, event) => {
+						const optionId = event.event.content!.optionId;
+						const userId = event.getSender();
 
-		return latestEventsPerUser;
+						if (!acc[optionId]) {
+							acc[optionId] = [];
+						}
+
+						const existingIndex = acc[optionId].findIndex((event: MatrixEvent) => event.getSender() === userId);
+						if (existingIndex === -1) {
+							acc[optionId].push(event);
+						} else {
+							if (acc[optionId][existingIndex].event.origin_server_ts < event.event.origin_server_ts) {
+								acc[optionId][existingIndex] = event;
+							}
+						}
+						return acc;
+					},
+					{} as Record<string, any>,
+				),
+			).flat();
+			return relatedEventsByOption;
+		} else {
+			//Poll: return all latest events per user
+			const latestEventsPerUser = Object.values(
+				relatedEvents.reduce(
+					(acc, event) => {
+						const userId = event.getSender(); // or event.user_id if available
+						if (!acc[userId] || acc[userId].event.origin_server_ts < event.event.origin_server_ts) {
+							acc[userId] = event;
+						}
+						return acc;
+					},
+					{} as Record<string, MatrixEvent>,
+				),
+			);
+			return latestEventsPerUser;
+		}
 	}
 
-	public getRelatedEvents(): MatrixEvent[] {
-		return this.timelineManager.getTimeLineRelatedEvents().map((event) => event.matrixEvent);
+	public getRelatedEvents(eventId: string): TimelineEvent[] {
+		return this.timelineManager.getRelatedEvents(eventId);
+	}
+
+	public getRelatedEventsByType(eventId: string, options: RelatedEventsOptions = {}): TimelineEvent[] {
+		return this.timelineManager.getRelatedEventsByType(eventId, options);
+	}
+
+	public fetchRelatedEvents(eventIds: string[]) {
+		return this.timelineManager.fetchRelatedEvents(eventIds);
 	}
 
 	public getReactEventsFromTimeLine(): MatrixEvent[] {
@@ -581,6 +628,7 @@ export default class Room {
 			return new MatrixEvent(event);
 		});
 
+		// BEGIN THREADS
 		// Threads are kept on room-level, so all events regarding the current thread need to be filtered and handled first.
 
 		// Handle thread redactions, for now only the DeletedFromThread events
@@ -600,9 +648,10 @@ export default class Room {
 		if (currentThreadEvents.length > 0 || redactions.length > 0) {
 			this.threadUpdated = !this.threadUpdated;
 		}
+		// END THREADS
 
 		// Handle all other events and redactions, not in a thread
-		const nonThreadEvents = eventList.filter((event) => event.getContent()[RelationType.RelatesTo]?.[RelationType.RelType] !== RelationType.Thread).slice(-SystemDefaults.RoomTimelineLimit);
+		const nonThreadEvents = eventList.filter((event) => event.getContent()[RelationType.RelatesTo]?.[RelationType.RelType] !== RelationType.Thread).slice(-SystemDefaults.roomTimelineLimit);
 		this.timelineManager.loadFromSlidingSync(nonThreadEvents).then((scrollToEventId) => {
 			if (scrollToEventId) {
 				this.setCurrentEvent({ eventId: scrollToEventId });
@@ -625,14 +674,6 @@ export default class Room {
 	public getTimelineNewestMessageEventId(): string | undefined {
 		return this.timelineManager?.getTimelineNewestMessageId();
 	}
-
-	// #region RoomLibrary
-
-	// public loadRoomLibrary() {
-	// 	return this.roomLibrary.loadRoomLibraryTimeline(this.matrixRoom);
-	// }
-
-	// #endregion
 
 	// #region TimelineManager
 
@@ -693,10 +734,12 @@ export default class Room {
 		return 0;
 	}
 
+	// TODO update this so redactedEventIds is not used anymore. Now only reactions use these for when deleting reactions
 	public inRedactedMessageIds(eventId: string): boolean {
 		return this.timelineManager.getRedactedEventIds().includes(eventId);
 	}
 
+	// TODO update this so redactedEventIds is not used anymore. Now only reactions use these for when deleting reactions
 	public addToRedactedEventIds(eventId: string): void {
 		this.timelineManager.getRedactedEventIds().push(eventId);
 	}

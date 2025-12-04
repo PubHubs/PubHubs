@@ -2,18 +2,18 @@
 	<AdminMembers v-if="showPastMemberPanel" :roomId="currentRoomId" @close="closeForm()"> </AdminMembers>
 	<HeaderFooter bgBarLow="bg-background" bgBarMedium="bg-surface-low">
 		<template #header>
-			<div class="hidden items-center gap-4 text-on-surface-dim md:flex">
+			<div class="text-on-surface-dim hidden items-center gap-4 md:flex">
 				<span class="font-semibold uppercase">{{ t('admin.title_administrator') }}</span>
-				<hr class="h-[2px] grow bg-on-surface-dim" />
+				<hr class="bg-on-surface-dim h-[2px] grow" />
 			</div>
 			<div class="flex h-full items-center" :class="isMobile ? 'pl-12' : 'pl-0'">
-				<H3 class="font-headings font-semibold text-on-surface">{{ t('menu.admin_tools_rooms') }}</H3>
+				<H3 class="font-headings text-on-surface font-semibold">{{ t('menu.admin_tools_rooms') }}</H3>
 			</div>
 		</template>
 		<Tabs class="p-3 md:p-4">
 			<TabHeader>
-				<TabPill v-slot="slotProps">{{ $t('admin.public_rooms') }}<Icon v-if="slotProps.active" class="float-right ml-2 mt-1 hover:text-accent-primary" type="plus" size="sm" @click="newPublicRoom()" /></TabPill>
-				<TabPill v-slot="slotProps">{{ $t('admin.secured_rooms') }}<Icon v-if="slotProps.active" class="float-right ml-2 mt-1 hover:text-accent-primary" type="plus" size="sm" @click="newSecuredRoom()" /></TabPill>
+				<TabPill v-slot="slotProps">{{ $t('admin.public_rooms') }}<Icon v-if="slotProps.active" class="hover:text-accent-primary float-right mt-1 ml-2" type="plus" size="sm" @click="newPublicRoom()" /></TabPill>
+				<TabPill v-slot="slotProps">{{ $t('admin.secured_rooms') }}<Icon v-if="slotProps.active" class="hover:text-accent-primary float-right mt-1 ml-2" type="plus" size="sm" @click="newSecuredRoom()" /></TabPill>
 			</TabHeader>
 			<TabContainer>
 				<TabContent>
@@ -22,14 +22,14 @@
 						<template #item="{ item }">
 							<div class="flex w-full justify-between gap-8 overflow-hidden" :title="item.room_id">
 								<div class="flex w-full items-center gap-4 overflow-hidden">
-									<Icon type="chats-circle" class="shrink-0 fill-accent-lime" />
+									<Icon type="chats-circle" class="fill-accent-lime shrink-0" />
 									<p class="min-w-20 truncate">{{ item.name }}</p>
 									<p class="text-gray-light hidden truncate pr-1 italic md:inline">{{ rooms.getRoomTopic(item.room_id) }}</p>
 									<span v-if="item.room_type" class="text-gray-light italic">- {{ item.room_type }} </span>
 								</div>
 								<div class="flex w-fit gap-4">
 									<div class="flex items-center gap-2">
-										<span v-if="isUserRoomAdmin(user.userId, item.room_id)" class="ml-2 flex h-4 items-center gap-1 rounded-xl bg-black px-2 text-white ~text-label-small-min/label-small-max">Administrator</span>
+										<span v-if="isUserRoomAdmin(user.userId, item.room_id)" class="text-label-small ml-2 flex h-4 items-center gap-1 rounded-xl bg-black px-2 text-white">Administrator</span>
 										<span class="flex items-center">
 											<Icon type="user" size="sm" class="shrink-0" />
 											<p>x</p>
@@ -40,9 +40,9 @@
 										</span>
 									</div>
 									<div class="flex items-center gap-1">
-										<Icon type="trash" class="hover:cursor-pointer hover:text-accent-red" @click="removePublicRoom(item)" />
-										<Icon type="pencil-simple" class="hover:cursor-pointer hover:text-accent-primary" v-if="rooms.room(item.room_id)?.userCanChangeName(user.userId)" @click="editPublicRoom(item)" />
-										<Icon v-else type="arrow-circle-up" data-testid="promote" class="hover:cursor-pointer hover:text-accent-primary" @click="makeRoomAdmin(item.room_id, user.userId)" />
+										<Icon type="trash" class="hover:text-accent-red hover:cursor-pointer" @click="removePublicRoom(item)" />
+										<Icon type="pencil-simple" class="hover:text-accent-primary hover:cursor-pointer" v-if="rooms.room(item.room_id)?.userCanChangeName(user.userId)" @click="editPublicRoom(item)" />
+										<Icon v-else type="arrow-circle-up" data-testid="promote" class="hover:text-accent-primary hover:cursor-pointer" @click="makeRoomAdmin(item.room_id, user.userId)" />
 									</div>
 								</div>
 							</div>
@@ -65,15 +65,15 @@
 								</div>
 								<div class="flex w-fit gap-4">
 									<div class="flex items-center gap-2">
-										<span v-if="isUserRoomAdmin(user.userId, item.room_id)" class="ml-2 flex h-4 items-center gap-1 rounded-xl bg-black px-2 text-white ~text-label-small-min/label-small-max">Administrator</span>
+										<span v-if="isUserRoomAdmin(user.userId, item.room_id)" class="text-label-small ml-2 flex h-4 items-center gap-1 rounded-xl bg-black px-2 text-white">Administrator</span>
 										<span v-if="rooms.room(item.room_id)?.userIsMember(user.userId)">
 											<Icon type="user" size="sm" class="shrink-0" />
 										</span>
 									</div>
 									<div class="flex items-center gap-1">
-										<Icon type="trash" class="hover:cursor-pointer hover:text-accent-red" v-if="rooms.room(item.room_id)?.userCanChangeName(user.userId)" @click="removeSecuredRoom(item)" />
-										<Icon type="pencil-simple" class="hover:cursor-pointer hover:text-accent-primary" v-if="rooms.room(item.room_id)?.userCanChangeName(user.userId)" @click="EditSecuredRoom(item)" />
-										<Icon v-else type="arrow-circle-up" class="hover:cursor-pointer hover:text-accent-primary" @click="makeRoomAdmin(item.room_id, user.userId)" />
+										<Icon type="trash" class="hover:text-accent-red hover:cursor-pointer" v-if="rooms.room(item.room_id)?.userCanChangeName(user.userId)" @click="removeSecuredRoom(item)" />
+										<Icon type="pencil-simple" class="hover:text-accent-primary hover:cursor-pointer" v-if="rooms.room(item.room_id)?.userCanChangeName(user.userId)" @click="EditSecuredRoom(item)" />
+										<Icon v-else type="arrow-circle-up" class="hover:text-accent-primary hover:cursor-pointer" @click="makeRoomAdmin(item.room_id, user.userId)" />
 									</div>
 								</div>
 							</div>

@@ -5,9 +5,21 @@
 enum SystemDefaults {
 	syncIntervalMS = 3000, // Sync interval in milliseconds. Experimental selection for interval. Changed it from 2000 to 1000 to load events much quickly.
 	SyncTimelineLimit = 100, // Find the right balance: filtering of events needs to be done clientside, but we need the first message. In the mean time initial read should be fast.
-	InitialRoomTimelineLimit = 100, // Initially load less messages in the rooms: makes startup faster
-	RoomTimelineLimit = 500, // Subsequent pagination: can be relatively high
+	initialRoomTimelineLimit = 100, // Initially load less messages in the rooms: makes startup faster
+	roomTimelineLimit = 500, // Subsequent pagination: can be relatively high
+	initialRoomListRange = 99999, // Initial number of rooms to fetch, in the future perhaps paginate this?
 	MaxNumberFileUploads = 50, // Maximum number of files that can be dropped/uploaded
+	mainRoomListRange = 20, // Number of rooms to fetch during main sync, lowering this leads to rooms possibly not directly loaded. Higher values give longer initial loadingtimes.
+}
+
+// options for sliding sync
+enum SlidingSyncOptions {
+	byRecency = 'by_recency', // sort on most recently received event
+	byNotificationLevel = 'by_notification_level', // sort on highlight_count + notification_count
+	byName = 'by_name', // sort on name, forces server to use the roomcalculation
+	roomList = 'roomList',
+	initialRoomList = 'initalRoomList',
+	mainRoomList = 'mainRoomList',
 }
 
 // common matrix types
@@ -22,8 +34,8 @@ enum MatrixType {
 // Eventtypes that are not covered by Matrix Constants
 enum MatrixEventType {
 	RoomName = 'm.room.name',
+	RoomType = 'm.room.type',
 	RoomAvatar = 'm.room.avatar',
-	RoomTopic = 'm.room.topic',
 	RoomMember = 'm.room.member',
 	RoomMessage = 'm.room.message',
 	RoomRedaction = 'm.room.redaction',
@@ -36,6 +48,8 @@ enum RelationType {
 	RelatesTo = 'm.relates_to',
 	InReplyTo = 'm.in_reply_to',
 	Thread = 'm.thread',
+	Replace = 'm.replace',
+	Annotation = 'm.annotation',
 	EventId = 'event_id',
 }
 
@@ -99,4 +113,28 @@ const fileTypes = [
 
 const allTypes = [...imageTypes, ...mediaTypes, ...fileTypes];
 
-export { SystemDefaults, MatrixEventType, MatrixType, RelationType, Redaction, RoomEmit, ScrollPosition, ScrollSelect, ScrollBehavior, OnboardingType, imageTypes, mediaTypes, fileTypes, allTypes, imageTypesExt };
+// interfaces
+interface RelatedEventsOptions {
+	eventType?: string;
+	contentRelType?: string;
+}
+
+export {
+	SystemDefaults,
+	SlidingSyncOptions,
+	MatrixEventType,
+	MatrixType,
+	RelationType,
+	Redaction,
+	RoomEmit,
+	ScrollPosition,
+	ScrollSelect,
+	ScrollBehavior,
+	OnboardingType,
+	imageTypes,
+	mediaTypes,
+	fileTypes,
+	allTypes,
+	imageTypesExt,
+	RelatedEventsOptions,
+};

@@ -2,7 +2,7 @@
 	<div
 		id="yivi-login"
 		ref="yivi-login-ref"
-		class="w-[255px] after:absolute after:-top-[1.2em] after:left-[50%] after:border-[1.25em] after:border-r-0 after:border-t-0 after:border-transparent after:border-b-white after:drop-shadow-[0px_-5px_16px_rgb(0,0,0,0.15)]"
+		class="w-[255px] after:absolute after:-top-[1.2em] after:left-[50%] after:border-[1.25em] after:border-t-0 after:border-r-0 after:border-transparent after:border-b-white after:drop-shadow-[0px_-5px_16px_rgb(0,0,0,0.15)]"
 	></div>
 </template>
 

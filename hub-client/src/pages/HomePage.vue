@@ -12,11 +12,11 @@
 				><Icon type="compass" size="lg" /><span>{{ $t('menu.discover') }}</span></Button
 			>
 			<H3 v-if="hubDescription" class="p-4">{{ $t('home.heading') }}</H3>
-			<div v-if="hubDescription" class="max-w-full rounded-2xl bg-surface-low">
+			<div v-if="hubDescription" class="bg-surface-low max-w-full rounded-2xl">
 				<mavon-editor defaultOpen="preview" :toolbarsFlag="false" :subfield="false" v-model="hubDescription" :boxShadow="false" />
 			</div>
 			<H3 v-if="hubContact" class="p-4">{{ $t('home.contact_details') }}</H3>
-			<div v-if="hubContact" class="max-w-full rounded-2xl !bg-surface-low">
+			<div v-if="hubContact" class="!bg-surface-low max-w-full rounded-2xl">
 				<mavon-editor defaultOpen="preview" :toolbarsFlag="false" :subfield="false" v-model="hubContact" :boxShadow="false" />
 			</div>
 		</div>

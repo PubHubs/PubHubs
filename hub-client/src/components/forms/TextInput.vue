@@ -1,7 +1,7 @@
 <template>
 	<input
 		v-tw-class="'w-full'"
-		class="truncate break-all rounded-lg border bg-background px-2 py-1 text-on-surface placeholder:text-on-surface"
+		class="bg-background text-on-surface placeholder:text-on-surface truncate rounded-lg border px-2 py-1 break-all"
 		type="text"
 		:placeholder="placeholder"
 		:title="placeholder"

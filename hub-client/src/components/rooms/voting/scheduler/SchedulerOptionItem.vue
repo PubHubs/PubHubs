@@ -6,7 +6,7 @@
 			'opacity-50': datePicked && pickedOptionId !== props.option.id,
 		}"
 	>
-		<div class="align-items-center flex flex-wrap rounded-t-lg bg-background px-5 py-2 lg:justify-items-start">
+		<div class="align-items-center bg-background flex flex-wrap rounded-t-lg px-5 py-2 lg:justify-items-start">
 			<div class="flex items-end">
 				{{ filters.getDateStr(option.date, is24HourFormat, d) }}
 			</div>
@@ -25,7 +25,7 @@
 				<Button @click="pickDate()" size="sm">{{ $t('message.pick') }}</Button>
 			</div>
 		</div>
-		<div v-if="showVotes" class="relative flex bg-surface-high px-5">
+		<div v-if="showVotes" class="bg-surface-high relative flex px-5">
 			<ViewVotesSchedulerOption :votes="votes"></ViewVotesSchedulerOption>
 		</div>
 		<ProgressBarMulti class="relative -z-10 -mt-2 mb-2" :percentages="[getPercentage('yes'), getPercentage('maybe'), getPercentage('no')]"></ProgressBarMulti>
@@ -100,7 +100,7 @@
 	const vote = (choice: string) => {
 		const voteObject = getVoteObject(choice);
 		if (voteObject) {
-			if (voteObject.userIds.includes(user.userId)) {
+			if (voteObject.userIds.includes(user.user.userId)) {
 				//user has already voted on this specific choice
 				pubhubs.addVote(rooms.currentRoomId, props.eventId, props.option.id, 'redacted');
 			} else {

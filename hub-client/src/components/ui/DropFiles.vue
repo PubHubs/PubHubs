@@ -1,7 +1,7 @@
 <template>
 	<div class="flex min-h-36 w-full cursor-pointer flex-col justify-center border-2 border-dotted max-md:min-h-0 max-md:border-none" @drop.prevent="onDroppedFile" @click="openBrowse()">
 		<template v-if="maxNumerOfFilesReached">
-			<div class="font-bold text-accent-error md:text-center"><Icon type="warning" class="mr-1 inline-block"></Icon>{{ $t('file.max_upload_reached') }}</div>
+			<div class="text-accent-error font-bold md:text-center"><Icon type="warning" class="mr-1 inline-block"></Icon>{{ $t('file.max_upload_reached') }}</div>
 		</template>
 		<template v-else>
 			<div class="text-center max-md:hidden"><Icon type="upload-simple" class="mr-1 inline-block"></Icon>{{ $t('file.drop_files') }}</div>
@@ -15,14 +15,14 @@
 		</template>
 		<input ref="fileInput" type="file" id="library-file-input" data-testid="library-file-input" multiple @change="browseFiles($event)" hidden />
 	</div>
-	<div v-if="uploadError" class="mb-2 mt-2 inline-block w-full rounded-lg bg-accent-error p-2 text-center text-white"><Icon type="warning" class="mr-1 inline-block"></Icon>{{ $t('file.upload_error') }}</div>
-	<div v-if="files.length > 0" class="mb-2 mt-2 flex flex-wrap gap-2" data-testid="file-list-buttons">
+	<div v-if="uploadError" class="bg-accent-error mt-2 mb-2 inline-block w-full rounded-lg p-2 text-center text-white"><Icon type="warning" class="mr-1 inline-block"></Icon>{{ $t('file.upload_error') }}</div>
+	<div v-if="files.length > 0" class="mt-2 mb-2 flex flex-wrap gap-2" data-testid="file-list-buttons">
 		<div>
 			<Button size="sm" @click="uploadFiles()">{{ $t('file.start_upload') }}</Button>
 		</div>
 		<div class="flex-grow"></div>
 		<div>
-			<IconButton type="trash" class="!bg-accent-error" size="lg" @click="cancelFiles()"></IconButton>
+			<IconButton type="trash" class="bg-accent-red! cursor-pointer" size="lg" @click="cancelFiles()"></IconButton>
 		</div>
 	</div>
 	<BarList v-if="files.length > 0" class="mt-2" data-testid="file-list">

@@ -1,15 +1,15 @@
 <template>
-	<div ref="elThreadTimeline" class="relative flex h-full w-full shrink-0 flex-col border-l border-surface-high bg-background md:w-[33%]" data-testid="thread-sidekick">
+	<div ref="elThreadTimeline" class="border-surface-high bg-background relative flex h-full w-full shrink-0 flex-col border-l md:w-[33%]" data-testid="thread-sidekick">
 		<!-- Thread header -->
-		<div class="m-3 mb-0 flex items-center gap-2 rounded-md bg-surface-low p-2">
+		<div class="bg-surface-low m-3 mb-0 flex items-center gap-2 rounded-md p-2">
 			<button @click="closeThread" class="rounded-md p-1">
 				<Icon type="arrow-left" :size="'sm'"></Icon>
 			</button>
-			<p class="truncate text-nowrap ~text-label-tiny-min/label-tiny-max">Thread ({{ numberOfThreadEvents }})</p>
+			<p class="text-label-tiny truncate text-nowrap">Thread ({{ numberOfThreadEvents }})</p>
 		</div>
 
 		<!-- Thread message list -->
-		<div class="h-full flex-1 overflow-y-scroll pb-8 pt-4">
+		<div class="h-full flex-1 overflow-y-scroll pt-4 pb-8">
 			<!-- Root event -->
 			<div v-if="filteredEvents.length === 0" ref="elRoomEvent" :id="props.room.currentThread?.rootEvent?.event.event_id">
 				<RoomMessageBubble
@@ -28,14 +28,6 @@
 					@clicked-emoticon="sendEmoji"
 				>
 				</RoomMessageBubble>
-
-				<div class="flex flex-wrap gap-2 px-20">
-					<Reaction
-						v-if="reactionExistsForMessage(props.room.currentThread?.rootEvent?.event.event_id, props.room.currentThread?.rootEvent)"
-						:reactEvent="onlyReactionEvents"
-						:messageEventId="props.room.currentThread?.rootEvent?.event.event_id"
-					/>
-				</div>
 			</div>
 
 			<!-- Thread replies -->
@@ -59,7 +51,7 @@
 
 					<!-- Reaction display for message -->
 					<div class="flex flex-wrap gap-2 px-20">
-						<Reaction v-if="reactionExistsForMessage(item.matrixEvent.event.event_id, item.matrixEvent)" :reactEvent="onlyReactionEvents" :messageEventId="item.matrixEvent.event.event_id" />
+						<Reaction v-if="reactionExistsForMessage(item)" :reactEvent="onlyReactionEvent(item.matrixEvent.event.event_id!)" :messageEventId="item.matrixEvent.event.event_id" />
 					</div>
 				</div>
 			</div>
@@ -75,7 +67,7 @@
 
 <script setup lang="ts">
 	// Packages
-	import { MatrixEvent } from 'matrix-js-sdk';
+	import { EventType, MatrixEvent } from 'matrix-js-sdk';
 	import { Reactive, computed, nextTick, onMounted, onUnmounted, reactive, ref, watch } from 'vue';
 
 	// Components
@@ -89,7 +81,7 @@
 	import { SMI } from '@hub-client/logic/logging/StatusMessage';
 
 	// Models
-	import { RelationType, RoomEmit, ScrollPosition, ScrollSelect } from '@hub-client/models/constants';
+	import { MatrixEventType, RelationType, RoomEmit, ScrollPosition, ScrollSelect } from '@hub-client/models/constants';
 	import { TMessageEvent, TMessageEventContent } from '@hub-client/models/events/TMessageEvent';
 	import { TimelineEvent } from '@hub-client/models/events/TimelineEvent';
 	import Room from '@hub-client/models/rooms/Room';
@@ -119,10 +111,11 @@
 
 	const numberOfThreadEvents = computed(() => Math.max(filteredEvents.value.length, 1));
 
-	const onlyReactionEvents = computed(() => {
-		props.room.getRelatedEvents().forEach((reactEvent) => props.room.addCurrentEventToRelatedEvent(reactEvent));
+	function onlyReactionEvent(eventId: string) {
+		// To stop from having duplicate events
+		props.room.getRelatedEventsByType(eventId, { eventType: EventType.Reaction, contentRelType: RelationType.Annotation }).forEach((reactEvent) => props.room.addCurrentEventToRelatedEvent(reactEvent.matrixEvent));
 		return props.room.getCurrentEventRelatedEvents();
-	});
+	}
 
 	watch(
 		() => props.room.threadUpdated,
@@ -253,11 +246,14 @@
 		await pubhubs.addReactEvent(props.room.roomId, eventId, emoji);
 	}
 
-	function reactionExistsForMessage(messageEventId: string, matrixEvent: MatrixEvent): boolean {
-		if (!onlyReactionEvents.value) return false;
-		if (matrixEvent.isRedacted()) return false;
-		const reactionEvent = onlyReactionEvents.value.find((event) => {
+	function reactionExistsForMessage(timelineEvent: TimelineEvent): boolean {
+		if (timelineEvent.isDeleted || (timelineEvent.matrixEvent && timelineEvent.matrixEvent.isRedacted())) return false;
+		const messageEventId = timelineEvent.matrixEvent.event.event_id;
+		if (!messageEventId) return false;
+
+		const reactionEvent = onlyReactionEvent(messageEventId).find((event) => {
 			const relatesTo = event.getContent()[RelationType.RelatesTo];
+			// Check if this reaction relates to the target message
 			return relatesTo && relatesTo.event_id === messageEventId;
 		});
 

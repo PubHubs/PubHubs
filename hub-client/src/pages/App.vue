@@ -1,16 +1,16 @@
 <template>
-	<div class="h-screen w-full bg-background font-body text-on-surface ~text-base-min/base-max">
+	<div class="bg-background font-body text-on-surface text-body h-screen w-full">
 		<div v-if="setupReady" class="h-full">
 			<div v-if="user.isLoggedIn" class="flex h-full">
-				<HeaderFooter class="w-full bg-surface-low" :class="[{ hidden: !hubSettings.mobileHubMenu && isMobile }, !isMobile && 'flex max-w-[40rem]']">
+				<HeaderFooter class="bg-surface-low w-full" :class="[{ hidden: !hubSettings.mobileHubMenu && isMobile }, !isMobile && 'flex max-w-[40rem]']">
 					<template #header>
-						<div class="items-center gap-4 text-on-surface-dim" :class="isMobile ? 'hidden' : 'flex'">
+						<div class="text-on-surface-dim items-center gap-4" :class="isMobile ? 'hidden' : 'flex'">
 							<span class="font-semibold uppercase">hub</span>
-							<hr class="h-[2px] grow bg-on-surface-dim" />
+							<hr class="bg-on-surface-dim h-[2px] grow" />
 						</div>
 						<div class="flex h-full justify-between py-2">
 							<div class="flex items-center justify-between">
-								<H3 @click="router.push('/')" :title="hubSettings.hubName" class="font-headings font-semibold text-on-surface">{{ hubSettings.hubName }}</H3>
+								<H3 @click="router.push('/')" :title="hubSettings.hubName" class="font-headings text-on-surface font-semibold">{{ hubSettings.hubName }}</H3>
 								<Notification class="absolute right-4" />
 								<!-- TODO: Hiding this settings wheel as there is no functionality to it yet. -->
 								<!-- <Icon type="sliders-horizontal" size="sm" class="bg-hub-background-2 rounded-md p-2"/> -->
@@ -21,11 +21,11 @@
 
 					<div class="flex flex-col gap-4 p-3 md:p-4" role="menu">
 						<section class="flex flex-col gap-2">
-							<div class="text-hub-text group flex items-center justify-between overflow-hidden rounded-xl bg-surface py-2 pl-2 pr-4" role="complementary">
+							<div class="text-hub-text group bg-surface flex items-center justify-between overflow-hidden rounded-xl py-2 pr-4 pl-2" role="complementary">
 								<div class="flex w-full items-center gap-2 truncate">
 									<Avatar :avatarUrl="user.userAvatar(user.userId!) ?? user.avatarUrl" :userId="user.userId!" />
 									<div class="flex h-fit w-full flex-col overflow-hidden">
-										<p class="truncate font-bold leading-tight">
+										<p class="truncate leading-tight font-bold">
 											{{ user.userDisplayName(user.userId!) }}
 										</p>
 										<p class="leading-tight">{{ user.pseudonym ?? '' }}</p>
@@ -34,7 +34,7 @@
 								<Icon
 									data-testid="edit-userinfo"
 									type="pencil-simple"
-									class="cursor-pointer hover:text-accent-primary"
+									class="hover:text-accent-primary cursor-pointer"
 									@click="
 										settingsDialog = true;
 										hubSettings.hideBar();
@@ -52,14 +52,14 @@
 						<!-- Public rooms -->
 						<RoomListHeader label="admin.public_rooms">
 							<template #roomlist>
-								<RoomList />
+								<RoomList :roomTypes="PublicRooms" />
 							</template>
 						</RoomListHeader>
 
 						<!-- Secured rooms -->
 						<RoomListHeader label="admin.secured_rooms" tooltipText="admin.secured_rooms_tooltip">
 							<template #roomlist>
-								<RoomList :roomTypes="[RoomType.PH_MESSAGES_RESTRICTED]" />
+								<RoomList :roomTypes="SecuredRooms" />
 							</template>
 						</RoomListHeader>
 
@@ -83,7 +83,7 @@
 					</div>
 				</HeaderFooter>
 
-				<div class="h-full w-full overflow-y-auto overflow-x-hidden" :class="{ hidden: hubSettings.mobileHubMenu && isMobile }" role="document">
+				<div class="h-full w-full overflow-x-hidden overflow-y-auto" :class="{ hidden: hubSettings.mobileHubMenu && isMobile }" role="document">
 					<router-view></router-view>
 				</div>
 			</div>
@@ -126,7 +126,7 @@
 	import { SMI } from '@hub-client/logic/logging/StatusMessage';
 
 	// Models
-	import { RoomType } from '@hub-client/models/rooms/TBaseRoom';
+	import { PublicRooms, SecuredRooms } from '@hub-client/models/rooms/TBaseRoom';
 
 	// Stores
 	import { useDialog } from '@hub-client/stores/dialog';

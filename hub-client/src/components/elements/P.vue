@@ -1,5 +1,5 @@
 <template>
-	<p v-tw-class="'~text-body-min/body-max-min/base-max'">
+	<p v-tw-class="'text-body-min/base-max'">
 		<slot></slot>
 	</p>
 </template>

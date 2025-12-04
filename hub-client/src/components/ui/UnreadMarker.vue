@@ -1,6 +1,6 @@
 <template>
 	<div v-if="unreadMarker" class="text-center">
-		<div class="m-auto inline-block rounded-full text-center font-medium ~text-label-min/label-max">{{ $t('rooms.unread_messages') }}</div>
+		<div class="text-label m-auto inline-block rounded-full text-center font-medium">{{ $t('rooms.unread_messages') }}</div>
 		<div class="bg-primary-accent text-on-primary-accent -mt-4 h-[1px]"></div>
 	</div>
 </template>

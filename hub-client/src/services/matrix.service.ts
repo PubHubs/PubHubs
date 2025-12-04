@@ -5,10 +5,10 @@ import { MSC3575List, MSC3575RoomData, MSC3575SlidingSyncResponse, SlidingSync, 
 // Logic
 import { LOGGER } from '@hub-client/logic/logging/Logger';
 import { SMI } from '@hub-client/logic/logging/StatusMessage';
-import { RoomSubscription, TimelineSubScription, makeTimelineSubscriptionName } from '@hub-client/logic/matrix.logic.js';
+import { MainRoomSubscription, RoomLists, makeMainRoomSubscriptionName } from '@hub-client/logic/matrix.logic.js';
 
 // Models
-import { MatrixType, SystemDefaults } from '@hub-client/models/constants';
+import { MatrixType, SlidingSyncOptions, SystemDefaults } from '@hub-client/models/constants';
 import { RoomType } from '@hub-client/models/rooms/TBaseRoom';
 import { DirectRooms } from '@hub-client/models/rooms/TBaseRoom';
 
@@ -27,6 +27,7 @@ class MatrixService {
 	// TODO: Use room composable instead
 	private roomsStore = useRooms();
 
+	private initialRoomLoading: boolean = true;
 	/**
 	 * Construct a MatrixService instance.
 	 *
@@ -61,15 +62,18 @@ class MatrixService {
 
 		LOGGER.log(SMI.SYNC, 'Starting Sliding Sync');
 
-		const filterList = new Map<string, MSC3575List>([['all', RoomSubscription]]);
+		const initialRoomListFilter = new Map<string, MSC3575List>([[SlidingSyncOptions.roomList, RoomLists.get(SlidingSyncOptions.initialRoomList)!]]);
 
-		this.slidingSync = new SlidingSync(this.client.baseUrl, filterList, { timeline_limit: 100 /* global default value */ }, this.client, SystemDefaults.syncIntervalMS);
+		this.slidingSync = new SlidingSync(this.client.baseUrl, initialRoomListFilter, { timeline_limit: 100 /* global default value */ }, this.client, SystemDefaults.syncIntervalMS);
 
 		// Attach event handlers
 		this.slidingSync.on(SlidingSyncEvent.Lifecycle, this.handleLifecycleEvent);
 		this.slidingSync.on(SlidingSyncEvent.RoomData, this.handleRoomDataEvent);
 
 		try {
+			// debug only
+			//(window as any).SYNC_TRACE = 1;
+
 			await this.client.startClient({ threadSupport: true, includeArchivedRooms: false });
 			await this.slidingSync.start();
 			LOGGER.log(SMI.SYNC, 'Sliding Sync started');
@@ -127,8 +131,17 @@ class MatrixService {
 		LOGGER.log(SMI.SYNC, 'Sliding Sync stopped');
 	}
 
+	/* Switch the list of sliding sync rooms after collecting the initial roomslist.
+	 */
+	private SetRoomSlidingSync() {
+		if (this.initialRoomLoading) {
+			this.slidingSync?.setList(SlidingSyncOptions.roomList, RoomLists.get(SlidingSyncOptions.mainRoomList)!);
+			this.initialRoomLoading = false;
+		}
+	}
+
 	/**
-	 * Add a subscription to a room to the Sliding Sync.
+	 * Add a subscription to a room to the Sliding Sync and starts syncing
 	 *
 	 * @params roomId - The id of the room to subscribe to
 	 *
@@ -140,60 +153,24 @@ class MatrixService {
 			return undefined;
 		}
 
-		const timeLineKey = makeTimelineSubscriptionName(roomId);
+		const timeLineKey = makeMainRoomSubscriptionName(roomId);
 
 		try {
-			this.slidingSync.addCustomSubscription(timeLineKey, TimelineSubScription);
-			this.subscribedRooms.set(roomId, timeLineKey);
+			// when subscribing to multiple rooms
+			// this.slidingSync.addCustomSubscription(timeLineKey, MainRoomSubscription);
+			// this.subscribedRooms.set(roomId, timeLineKey);
+			// this.slidingSync.useCustomSubscription(roomId, timeLineKey);
+			// this.slidingSync.modifyRoomSubscriptions(new Set(this.subscribedRooms.keys()));
 
+			// subscribe only to one room
+			this.slidingSync.addCustomSubscription(timeLineKey, MainRoomSubscription);
 			this.slidingSync.useCustomSubscription(roomId, timeLineKey);
-			this.slidingSync.modifyRoomSubscriptions(new Set(this.subscribedRooms.keys()));
+			this.slidingSync.modifyRoomSubscriptions(new Set([roomId]));
 
 			LOGGER.log(SMI.SYNC, `Added room subscription for ${roomId} with timeline key ${timeLineKey}`, { roomId, timeLineKey });
 			return timeLineKey;
 		} catch (err) {
 			LOGGER.error(SMI.SYNC, `Failed to subscribe to ${roomId}`, { roomId, err });
-			throw err;
-		}
-	}
-
-	/**
-	 * Use a subscription to sync a room using the Sliding Sync.
-	 *
-	 * @params roomId - The id of the room to sync
-	 *
-	 * @throws {Error} If the synchronization fails
-	 */
-	// syncRoom(roomId: string): void {
-	// 	if (!this.slidingSync) {
-	// 		LOGGER.error(SMI.SYNC, `Cannot sync room ${roomId} because there is no active sync`, { roomId });
-	// 		return;
-	// 	}
-
-	// 	const timeLineKey = this.subscribedRooms.get(roomId) ?? this.addRoomSubscription(roomId);
-	// 	if (!timeLineKey) return;
-
-	// 	try {
-	// 		this.slidingSync.useCustomSubscription(roomId, timeLineKey);
-	// 		this.slidingSync.modifyRoomSubscriptions(new Set(this.subscribedRooms.keys()));
-	// 		LOGGER.log(SMI.SYNC, `Synced room ${roomId}`, { roomId });
-	// 	} catch (err) {
-	// 		LOGGER.warn(SMI.SYNC, `Cannot sync room ${roomId}`, { roomId, err });
-	// 		throw err;
-	// 	}
-	// }
-
-	syncRooms(): void {
-		if (!this.slidingSync) {
-			LOGGER.error(SMI.SYNC, `Cannot sync rooms because there is no active sync`);
-			return;
-		}
-
-		try {
-			this.slidingSync.modifyRoomSubscriptions(new Set(this.subscribedRooms.keys()));
-			LOGGER.log(SMI.SYNC, `Synced rooms`);
-		} catch (err) {
-			LOGGER.warn(SMI.SYNC, `Cannot sync rooms`, { err });
 			throw err;
 		}
 	}
@@ -204,8 +181,8 @@ class MatrixService {
 		const currentUser = useUser();
 
 		// profile data of members is in the join content of roommember events, need only update when there is new content
-		const membersOnlyProfileUpdate = roomData.required_state.filter((x) => x.type === EventType.RoomMember && x.content?.membership === MatrixType.Join && JSON.stringify(x.content) !== JSON.stringify(x.prev_content));
-		if (membersOnlyProfileUpdate.length === 0) return false;
+		const membersOnlyProfileUpdate = roomData.required_state?.filter((x) => x.type === EventType.RoomMember && x.content?.membership === MatrixType.Join && JSON.stringify(x.content) !== JSON.stringify(x.prev_content));
+		if (!membersOnlyProfileUpdate || membersOnlyProfileUpdate.length === 0) return false;
 
 		membersOnlyProfileUpdate.forEach((member) => {
 			const profile = {
@@ -235,7 +212,6 @@ class MatrixService {
 			.then((joinedRoom) => {
 				this.client!.store.storeRoom(joinedRoom);
 				this.roomsStore.initRoomsWithMatrixRoom(joinedRoom, roomName, roomType, required_state);
-				this.addRoomSubscription(roomId);
 			})
 			.catch((err) => {
 				LOGGER.error(SMI.SYNC, `Failed joining room ${roomId}`, { roomId, err });
@@ -244,6 +220,8 @@ class MatrixService {
 
 	/**
 	 * Handles lifeCycle events from the sync: roomData
+	 * For now there is no pagination in the rooms.
+	 * If we want to implement that, see for instance: https://github.com/element-hq/element-web/blob/bb582fa8f3c859a2b7430ee70c5ea9a69c4910c8/src/SlidingSyncManager.ts#L339 the startspidering method
 	 * @param state sliding sync state
 	 * @param response response coming from sync
 	 * @returns void
@@ -254,8 +232,8 @@ class MatrixService {
 			if (state !== SlidingSyncState.Complete) return;
 
 			const roomList = response?.rooms;
-			if (!roomList) return;
-			//console.error('sliding sync room ', roomList);
+			if (!roomList || Object.keys(roomList).length === 0) return;
+			//console.error('sliding sync RoomList ', roomList);
 
 			const joinPromises: Promise<any>[] = [];
 
@@ -263,7 +241,7 @@ class MatrixService {
 				this.syncUsersProfile(roomData);
 
 				// get the latest roommember info from the required state, sorted on timestamp. This should be join if the user is still joined
-				const latestRoomMemberInfo = roomData.required_state.filter((x) => x.type === EventType.RoomMember && x.sender === currentUser.userId).sort((a, b) => b.origin_server_ts - a.origin_server_ts)[0];
+				const latestRoomMemberInfo = roomData.required_state?.filter((x) => x.type === EventType.RoomMember && x.sender === currentUser.userId).sort((a, b) => b.origin_server_ts - a.origin_server_ts)[0];
 
 				// The roomlist is initially send twice: on sync start and later during the sync
 				// Only handle the join when the room is not joined yet
@@ -289,7 +267,7 @@ class MatrixService {
 			}
 
 			Promise.all(joinPromises).then(() => {
-				this.syncRooms();
+				this.SetRoomSlidingSync(); // sets the correct sliding sync for the room
 				this.roomsStore.setRoomsLoaded(true);
 			});
 		} catch (err) {
@@ -305,7 +283,7 @@ class MatrixService {
 	 */
 	private handleRoomDataEvent = (roomId: string, roomData: MSC3575RoomData) => {
 		try {
-			//console.error('sliding sync roomdata ', roomId, roomData);
+			//console.error('sliding sync RoomSubscriptions ', roomId, roomData);
 			this.roomsStore.loadFromSlidingSync(roomId, roomData);
 		} catch (err) {
 			LOGGER.error(SMI.SYNC, 'RoomData handler failed', { roomId, err });

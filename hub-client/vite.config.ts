@@ -1,4 +1,5 @@
 /// <reference types="vitest" />
+import tailwindcss from '@tailwindcss/vite';
 import Vue from '@vitejs/plugin-vue';
 import path from 'node:path';
 import { URL, fileURLToPath } from 'node:url';
@@ -10,7 +11,7 @@ export default defineConfig({
 	server: {
 		strictPort: true,
 	},
-	plugins: [Vue(), nodePolyfills()],
+	plugins: [nodePolyfills(), tailwindcss(), Vue()],
 	test: {
 		root: './',
 		globals: true,

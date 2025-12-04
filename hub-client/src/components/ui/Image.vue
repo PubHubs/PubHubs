@@ -1,6 +1,6 @@
 <template>
 	<img v-if="img" v-show="loaded" :alt="img" :src="image" class="h-full cursor-pointer rounded-md object-contain" @click.stop="showFullImage = true" @load="imgLoaded()" />
-	<Popover v-if="showFullImage" @close="showFullImage = false" class="fixed left-0 top-0 z-50 flex h-screen w-screen" :show-closing-cross="true">
+	<Popover v-if="showFullImage" @close="showFullImage = false" class="fixed top-0 left-0 z-50 flex h-screen w-screen" :show-closing-cross="true">
 		<img :alt="img" :src="image" class="m-auto h-4/5 w-4/5 object-contain" />
 	</Popover>
 </template>

@@ -9,23 +9,23 @@
 						<AdminContactRoomName v-else-if="room.isAdminContactRoom()" :members="room.getOtherJoinedAndInvitedMembers()" />
 						<RoomName v-else :room="room" />
 					</TruncatedText>
-					<span class="flex gap-2 transition-all duration-200 ease-in-out group-hover:hidden" v-if="settings.isFeatureEnabled(FeatureFlag.notifications)">
-						<Badge class="~text-label-small-min/label-small-max" color="hub" v-if="room.getRoomUnreadNotificationCount(NotificationCountType.Total) > 99">99+</Badge>
-						<Badge v-else-if="room.getRoomUnreadNotificationCount(NotificationCountType.Total) > 0" color="hub">{{ room.getRoomUnreadNotificationCount(NotificationCountType.Total) }}</Badge>
-						<Badge color="hub" v-if="room.getRoomUnreadNotificationCount(NotificationCountType.Highlight) > 0"><Icon type="at" size="sm" class="shrink-0" /></Badge>
-					</span>
 
 					<Icon
 						v-if="!room.isAdminContactRoom()"
 						type="x"
 						data-testid="leave-room"
-						class="cursor-pointer stroke-2 text-on-surface-variant transition-all duration-200 ease-in-out hover:text-accent-error md:hidden md:group-hover:inline-block"
+						class="text-on-surface-variant hover:text-accent-error cursor-pointer stroke-2 transition-all duration-200 ease-in-out md:hidden md:group-hover:inline-block"
 						@click.prevent="leaveRoom(room.roomId)"
 					/>
+					<span class="flex gap-2 transition-all duration-200 ease-in-out" v-if="settings.isFeatureEnabled(FeatureFlag.notifications)">
+						<Badge class="text-label-small" color="hub" v-if="room.getRoomUnreadNotificationCount(NotificationCountType.Total) > 99">99+</Badge>
+						<Badge v-else-if="room.getRoomUnreadNotificationCount(NotificationCountType.Total) > 0" color="hub">{{ room.getRoomUnreadNotificationCount(NotificationCountType.Total) }}</Badge>
+						<Badge color="hub" v-if="room.getRoomUnreadNotificationCount(NotificationCountType.Highlight) > 0"><Icon type="at" size="sm" class="shrink-0" /></Badge>
+					</span>
 				</span>
 			</MenuItem>
 		</template>
-		<template v-if="props.roomType === RoomType.PH_MESSAGES_RESTRICTED" v-for="notification in notifications" :key="notification.room_id" class="relative flex flex-row">
+		<template v-if="props.roomTypes.length === 1 && props.roomTypes[0] === RoomType.PH_MESSAGES_RESTRICTED" v-for="notification in notifications" :key="notification.room_id" class="relative flex flex-row">
 			<MenuItem
 				icon="shield"
 				v-if="notification.room_id"
@@ -33,7 +33,7 @@
 					dialogOpen = notification.room_id;
 					messageValues = notification.message_values;
 				"
-				class="group inline-block w-full text-on-surface-dim"
+				class="group text-on-surface-dim inline-block w-full"
 			>
 				<span class="flex w-full items-center justify-between gap-4">
 					<TruncatedText>
@@ -41,7 +41,7 @@
 					</TruncatedText>
 					<Icon
 						type="unlink"
-						class="relative cursor-pointer stroke-2 text-on-surface-variant transition-all duration-200 ease-in-out hover:text-accent-error md:hidden md:group-hover:inline-block"
+						class="text-on-surface-variant hover:text-accent-error relative cursor-pointer stroke-2 transition-all duration-200 ease-in-out md:hidden md:group-hover:inline-block"
 						@click.prevent="dismissNotification(notification.room_id, $event)"
 					/>
 				</span>
@@ -89,7 +89,7 @@
 
 	const settings = useSettings();
 	const hubSettings = useHubSettings();
-	const notificationsStore = useNotifications();
+	const notifications = useNotifications();
 	const { t } = useI18n();
 	const router = useRouter();
 	const rooms = useRooms();

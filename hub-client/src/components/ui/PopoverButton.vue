@@ -1,5 +1,5 @@
 <template>
-	<button class="flex flex-col items-center rounded-md p-2 hover:bg-surface" @click="click">
+	<button class="hover:bg-surface flex flex-col items-center rounded-md p-2" @click="click">
 		<Icon :type="icon"></Icon>
 		<p><slot></slot></p>
 	</button>

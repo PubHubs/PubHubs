@@ -1,11 +1,11 @@
 <template>
-	<div class="w-5/6 rounded-lg bg-surface-subtle p-5">
+	<div class="bg-surface-subtle w-5/6 rounded-lg p-5">
 		<div class="mb-4">
 			<div class="flex justify-between">
 				<div class="mb-2">
-					<Icon v-if="votingWidgetClosed" class="float-left -mt-1 mr-1 text-accent-orange" type="lock" />
+					<Icon v-if="votingWidgetClosed" class="text-accent-orange float-left -mt-1 mr-1" type="lock" />
 					<span class="mr-1 font-bold">{{ votingWidget.title }}</span>
-					<span v-if="votingWidgetClosed" class="italic ~text-label-small-min/label-small-max"><br />{{ $t('message.scheduler_closed') }}</span>
+					<span v-if="votingWidgetClosed" class="text-label-small italic"><br />{{ $t('message.scheduler_closed') }}</span>
 				</div>
 
 				<div class="flex">
@@ -13,7 +13,7 @@
 						v-if="hasUserVoted"
 						type="user"
 						size="lg"
-						class="rounded-md bg-surface hover:bg-accent-primary"
+						class="bg-surface hover:bg-accent-primary rounded-md"
 						:title="$t(showVotes ? 'message.voting.hide_votes' : 'message.voting.show_votes')"
 						@click.stop="toggleShowVotes()"
 					></Icon>
@@ -32,14 +32,14 @@
 			</div>
 
 			<span class="flex [overflow-wrap:anywhere]" v-if="votingWidget.location">
-				<Icon class="mr-1 mt-1" type="map-pin" size="sm" />
+				<Icon class="mt-1 mr-1" type="map-pin" size="sm" />
 				{{ votingWidget.location }}
 			</span>
 			<span class="mt-2 flex [overflow-wrap:anywhere]">{{ votingWidget.description }}</span>
-			<span class="flex text-on-surface-variant" v-if="isEdited"> ({{ $t('message.voting.edited') }}) </span>
+			<span class="text-on-surface-variant flex" v-if="isEdited"> ({{ $t('message.voting.edited') }}) </span>
 			<div v-if="isCreator && votingWidgetClosed && pickedOptionId === -1" class="flex justify-center">
-				<div class="flex items-center rounded-md bg-background px-2 py-1">
-					<div class="mr-2 h-5 w-5 rounded-full bg-accent-orange text-center">!</div>
+				<div class="bg-background flex items-center rounded-md px-2 py-1">
+					<div class="bg-accent-orange mr-2 h-5 w-5 rounded-full text-center">!</div>
 					<span>{{ $t('message.pick_option') }} :</span>
 				</div>
 			</div>
@@ -142,7 +142,7 @@
 	});
 
 	watch(
-		() => currentRoom?.filterRoomWidgetRelatedEvents(props.event.event_id),
+		() => currentRoom?.filterRoomWidgetRelatedEvents(props.event.content.type, props.event.event_id),
 		(event) => {
 			collectNewVotes(event);
 		},
@@ -402,9 +402,7 @@
 		//events do not get registered instantly which leads to errors when creating polls
 		//this check makes sure that the votingwidget event exists
 		if (props.event.unsigned) {
-			//const events = currentRoom?.getRelatedLiveTimeEvents(props.event.event_id);
-			//const events = currentRoom?.getRelatedEvents(props.event.event_id);
-			const events = currentRoom?.filterRoomWidgetRelatedEvents(props.event.event_id);
+			const events = currentRoom?.filterRoomWidgetRelatedEvents(props.event.content.type, props.event.event_id);
 			votesByOption.value.options = initializeVotesByOption(votingWidget.value.options); //clear any stored data in votesByOption
 			events?.forEach((event) => {
 				lastEventTimestamp = event.event.origin_server_ts as number;

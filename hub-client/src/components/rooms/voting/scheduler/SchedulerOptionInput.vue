@@ -1,17 +1,17 @@
 <template>
-	<button v-if="option.status === 'empty'" class="relative mb-1 flex h-[42px] w-full rounded-lg border bg-background text-left hover:bg-surface-high">
+	<button v-if="option.status === 'empty'" class="bg-background hover:bg-surface-high relative mb-1 flex h-[42px] w-full rounded-lg border text-left">
 		<div class="mx-2 flex w-full items-center">
 			<VueDatePicker id="schedulerDatePickerInput" class="" offset="20" v-model="date" :six-weeks="'fair'" :is-24="is24HourFormat" :locale="locale" range dark :min-date="new Date()" @update:model-value="updateDateOption">
 				<template #trigger>
-					<p class="flex-1 ~text-label-min/label-max">{{ $t('message.voting.add_option') }}</p>
+					<p class="text-label flex-1">{{ $t('message.voting.add_option') }}</p>
 				</template>
 				<template #action-preview="{ value }">
-					<div class="text-balance text-left">{{ filters.getDateStr(value, is24HourFormat, d, true) }}</div>
+					<div class="text-left text-balance">{{ filters.getDateStr(value, is24HourFormat, d, true) }}</div>
 				</template>
 			</VueDatePicker>
 		</div>
 	</button>
-	<button v-else-if="option.status === 'filled'" class="mb-1 flex h-[42px] w-full items-center justify-between rounded-lg border bg-background hover:bg-surface-high">
+	<button v-else-if="option.status === 'filled'" class="bg-background hover:bg-surface-high mb-1 flex h-[42px] w-full items-center justify-between rounded-lg border">
 		<div class="flex w-full">
 			<VueDatePicker v-model="date" :six-weeks="'fair'" :is-24="is24HourFormat" :locale="locale" range dark :min-date="new Date()" class="m-auto min-w-10" @internal-model-change="handleInternal" @update:model-value="updateDateOption">
 				<template #trigger>
@@ -20,7 +20,7 @@
 					</div>
 				</template>
 				<template #action-preview="{ value }">
-					<div class="text-balance text-left">{{ filters.getDateStr(value, is24HourFormat, d, true) }}</div>
+					<div class="text-left text-balance">{{ filters.getDateStr(value, is24HourFormat, d, true) }}</div>
 				</template>
 				<!-- Add a custom time picker overlay, because model-auto with range does not allow for changing the time for a single date. -->
 				<template #time-picker-overlay>
@@ -88,7 +88,7 @@
 		if (props.option.date.length === 0) {
 			const coeff = 1000 * 60 * 5;
 			const rounded = new Date(Math.ceil(Date.now() / coeff) * coeff); // Current time rounded up to 5 minutes
-			const plusOneHour = new Date(rounded.getTime() + 60 * 60 * 1000); // Add an hour to the rounded current time
+			const plusOneHour = new Date(rounded.getTime() + 60 * 60 * 1000); // Add an hour to the rounded-xs current time
 			date.value = [rounded, plusOneHour];
 			time.value = [getTime(rounded), getTime(plusOneHour)];
 		} else {

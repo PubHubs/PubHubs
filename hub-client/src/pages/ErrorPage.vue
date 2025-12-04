@@ -1,6 +1,6 @@
 <template>
 	<div class="flex h-full items-center justify-center p-10">
-		<div class="md:'-8/12 flex w-full flex-col gap-y-4 rounded-xl bg-surface-low px-8 py-12 text-center shadow-lg">
+		<div class="md:'-8/12 bg-surface-low flex w-full flex-col gap-y-4 rounded-xl px-8 py-12 text-center shadow-lg">
 			<H1 class="text-accent-primary">{{ $t('errors.oops') }}</H1>
 			<H3 class="">{{ $t(errorKey, errorValues) }}</H3>
 			<router-link :to="{ name: 'home' }">
