@@ -1,9 +1,9 @@
 <template>
-	<div v-if="isVisible" ref="elContainer" :style="getStyle()" class="scrollbar fixed max-h-52 w-fit overflow-y-auto rounded-lg bg-surface shadow-lg">
+	<div v-if="isVisible" ref="elContainer" :style="getStyle()" class="scrollbar bg-surface fixed max-h-52 w-fit overflow-y-auto rounded-lg shadow-lg">
 		<ul>
-			<li v-for="(member, index) in filteredUsers" :key="index" class="group cursor-pointer px-4 hover:bg-surface-high" @click.stop="clickedItem(member)">
+			<li v-for="(member, index) in filteredUsers" :key="index" class="group hover:bg-surface-high cursor-pointer px-4" @click.stop="clickedItem(member)">
 				<div class="flex items-center gap-4 py-2">
-					<Avatar :userId="member.userId" />
+					<Avatar :avatar-url="user.userAvatar(member.userId)" :user-id="member.userId" />
 					<div>{{ member.rawDisplayName }}</div>
 				</div>
 			</li>
@@ -12,30 +12,36 @@
 </template>
 
 <script setup lang="ts">
-	import Room from '@/model/rooms/Room';
-	import { TRoomMember } from '@/model/rooms/TRoomMember';
-	import { useRooms } from '@/logic/store/store';
+	// Packages
 	import { computed, onMounted, ref, watch } from 'vue';
 
-	import Avatar from './Avatar.vue';
+	// Components
+	import Avatar from '@hub-client/components/ui/Avatar.vue';
 
-	const emit = defineEmits(['click']);
+	// Models
+	import Room from '@hub-client/models/rooms/Room';
+	import { TRoomMember } from '@hub-client/models/rooms/TRoomMember';
 
-	const isVisible = ref(false);
+	// Stores
+	import { useRooms } from '@hub-client/stores/rooms';
+	import { useUser } from '@hub-client/stores/user';
 
-	// position of @-sign of user in the current message
-	const positionOfAt = ref(0);
-
-	const rooms = useRooms();
-	let users = ref([] as TRoomMember[]);
-	const elContainer = ref<HTMLElement | null>(null);
-
+	// Types
 	type Props = {
 		msg?: string;
 		left: number;
 		top: number;
 		room: Room;
 	};
+
+	const user = useUser();
+	const emit = defineEmits(['click']);
+	const isVisible = ref(false);
+	const positionOfAt = ref(0); // Position of @-sign of user in the current message
+	const rooms = useRooms();
+	const elContainer = ref<HTMLElement | null>(null);
+
+	let users = ref([] as TRoomMember[]);
 
 	const props = withDefaults(defineProps<Props>(), {
 		msg: undefined,
@@ -48,7 +54,7 @@
 		initUserMention();
 	});
 
-	// watch for changes in the props.msg to control visibility
+	// Watch for changes in the props.msg to control visibility
 	watch(
 		() => props.msg,
 		() => {
@@ -57,12 +63,12 @@
 	);
 
 	function initUserMention() {
-		// if the current message includes a @, we need to get all other users in the room
+		// If the current message includes a @, we need to get all other users in the room
 		// when it does not, we keep the user-dialog invisible
 		if (props.msg?.includes('@')) {
 			users.value = rooms.currentRoom?.getOtherJoinedMembers() || [];
 
-			// check at which position the @ is and if there is a list of
+			// Check at which position the @ is and if there is a list of
 			// filtered users to check if we must display the dialog
 			if (props.msg?.endsWith('@')) {
 				positionOfAt.value = props.msg.length;

@@ -3,7 +3,7 @@
 		ref="elTextarea"
 		v-tw-class="'p-2'"
 		rows="1"
-		class="w-full resize-none rounded-lg border ~text-base-min/base-max focus:border-on-surface focus:outline-0 focus:outline-offset-0 focus:ring-0"
+		class="text-body focus:border-on-surface w-full resize-none rounded-lg border focus:ring-0 focus:outline-0 focus:outline-offset-0"
 		:maxlength="maxLength"
 		:placeholder="placeholder"
 		:title="placeholder"
@@ -17,10 +17,12 @@
 </template>
 
 <script setup lang="ts">
-	import { ref } from 'vue';
-	import { useFormInputEvents, usedEvents } from '@/logic/composables/useFormInputEvents';
-	import { useGetCaretPos } from '@/logic/composables/useGetCaretPos';
-	import { Ref } from 'vue';
+	// Packages
+	import { Ref, ref } from 'vue';
+
+	// Composables
+	import { useFormInputEvents, usedEvents } from '@hub-client/composables/useFormInputEvents';
+	import { useGetCaretPos } from '@hub-client/composables/useGetCaretPos';
 
 	const { getCaretPos } = useGetCaretPos();
 	const elTextarea: Ref<null | HTMLTextAreaElement> = ref(null);

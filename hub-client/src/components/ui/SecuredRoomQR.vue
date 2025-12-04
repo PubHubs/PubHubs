@@ -2,24 +2,33 @@
 	<div
 		id="yivi-login"
 		ref="yivi-login-ref"
-		class="w-[255px] after:absolute after:-top-[1.2em] after:left-[50%] after:border-[1.25em] after:border-r-0 after:border-t-0 after:border-transparent after:border-b-white after:drop-shadow-[0px_-5px_16px_rgb(0,0,0,0.15)]"
+		class="w-[255px] after:absolute after:-top-[1.2em] after:left-[50%] after:border-[1.25em] after:border-t-0 after:border-r-0 after:border-transparent after:border-b-white after:drop-shadow-[0px_-5px_16px_rgb(0,0,0,0.15)]"
 	></div>
 </template>
 
+<!-- FIXME: Multiple type errors -->
 <script setup lang="ts">
-	import { SecuredRoomAttributeResult } from '@/logic/foundation/statusTypes';
-	import { useRouter } from 'vue-router';
-	import { useRooms } from '@/logic/store/rooms';
-	import { usePubHubs } from '@/logic/core/pubhubsStore';
+	// Packages
 	import { onMounted } from 'vue';
-	import { useNotifications } from '@/logic/store/notifications';
+	import { onWatcherCleanup, useTemplateRef, watch } from 'vue';
+	import { useRouter } from 'vue-router';
 
-	const props = defineProps<{ securedRoomId: string }>();
+	// Logic
+	import { LOGGER } from '@hub-client/logic/logging/Logger';
+	import { SMI } from '@hub-client/logic/logging/StatusMessage';
+	import { SecuredRoomAttributeResult } from '@hub-client/logic/logging/statusTypes';
+
+	import { useNotifications } from '@hub-client/stores/notifications';
+	// Stores
+	import { usePubhubsStore } from '@hub-client/stores/pubhubs';
+	import { useRooms } from '@hub-client/stores/rooms';
 
 	const rooms = useRooms();
-	const pubhubs = usePubHubs();
+	const pubhubs = usePubhubsStore();
 	const router = useRouter();
 	const notificationsStore = useNotifications();
+
+	const props = defineProps<{ securedRoomId: string }>();
 
 	onMounted(() => rooms.yiviSecuredRoomflow(props.securedRoomId, resultOfEntry));
 
@@ -45,16 +54,12 @@
 	// Idea: we wait for the "Open Yivi app" anchor <a class="yivi-web-button-link" ...>
 	//       to be created using a MutationObserver, and add target="_top" attribute to it.
 	//
-	import { useTemplateRef, watch, onWatcherCleanup } from 'vue';
-	import { LOGGER } from '@/logic/foundation/Logger';
-	import { SMI } from '@/logic/foundation/StatusMessage';
-
 	const yiviLoginRef = useTemplateRef('yivi-login-ref');
 
 	function onYiviNodeChange() {
 		LOGGER.trace(SMI.OTHER, "Changes to Yivi div's subtree");
 
-		const yiviAnchor: Node | undefined = yiviLoginRef.value.querySelector('.yivi-web-button-link');
+		const yiviAnchor: Node | undefined = yiviLoginRef.value!.querySelector('.yivi-web-button-link');
 
 		if (!yiviAnchor) {
 			LOGGER.trace(SMI.OTHER, "Yivi div changed, but no 'Open Yivi app' anchor was found.");

@@ -1,0 +1,21 @@
+# configuration for the yivi server used in local development of
+# pubhubs servers.  
+#
+# Run yivi using ./run_yivi.py
+issue_perms = []
+jwt_privkey_file = "yivi_jwt.pem" 
+client_listen_addr = "0.0.0.0"
+client_port = 8189
+port = 8188
+jwt_issuer = "local-yivi"
+no_auth = false
+
+[requestors.local-development]
+auth_method = "hmac"
+issue_perms = ["irma-demo.PubHubs.account"]
+disclose_perms = [
+	"irma-demo.PubHubs.account.*",
+	"irma-demo.sidn-pbdf.mobilenumber.mobilenumber",
+	"irma-demo.sidn-pbdf.email.email",
+]
+key = "6576257d853bc1ea15cbf103dbc3950b819d65eef4fae4c55d80e9c32b683e06"

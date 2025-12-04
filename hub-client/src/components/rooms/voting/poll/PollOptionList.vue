@@ -16,13 +16,18 @@
 	</div>
 </template>
 <script setup lang="ts">
-	import PollOptionItem from '@/components/rooms/voting/poll/PollOptionItem.vue';
-	import { useUser } from '@/logic/store/user';
-	import { useRooms } from '@/logic/store/rooms';
-	import { usePubHubs } from '@/logic/core/pubhubsStore';
-	import { PollOption, votesForOption } from '@/model/events/voting/VotingTypes';
+	// Components
+	import PollOptionItem from '@hub-client/components/rooms/voting/poll/PollOptionItem.vue';
 
-	const pubhubs = usePubHubs();
+	// Models
+	import { PollOption, votesForOption } from '@hub-client/models/events/voting/VotingTypes';
+
+	// Stores
+	import { usePubhubsStore } from '@hub-client/stores/pubhubs';
+	import { useRooms } from '@hub-client/stores/rooms';
+	import { useUser } from '@hub-client/stores/user';
+
+	const pubhubs = usePubhubsStore();
 	const rooms = useRooms();
 
 	const props = defineProps<{
@@ -40,11 +45,11 @@
 		return props.votesByOption.find((vote) => vote.optionId === optionId)?.votes[0].userIds ?? [];
 	};
 	const hasUserVotedOnOption = (optionId: number) => {
-		return votesOfOption(optionId).includes(user.user.userId);
+		return votesOfOption(optionId).includes(user.userId);
 	};
 	const hasUserVotedOnOtherOption = (optionId: number) => {
 		for (const option of props.votesByOption) {
-			if (votesOfOption(option.optionId).includes(user.user.userId) && option.optionId !== optionId) {
+			if (votesOfOption(option.optionId).includes(user.userId) && option.optionId !== optionId) {
 				return true;
 			}
 		}
@@ -52,7 +57,7 @@
 	};
 
 	const percentageOfOption = (optionId: number) => {
-		const hasUserVoted = props.votesByOption.some((vote) => vote.votes.some((v) => v.userIds.includes(user.user.userId)));
+		const hasUserVoted = props.votesByOption.some((vote) => vote.votes.some((v) => v.userIds.includes(user.userId)));
 		const showVotesBeforeVoting = props.showVotesBeforeVoting;
 		if (!showVotesBeforeVoting && !hasUserVoted) return 0;
 		const votes = votesOfOption(optionId).length;

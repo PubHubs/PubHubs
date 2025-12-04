@@ -1,4 +1,5 @@
 //! Endpoints provided by a hub
+use actix_web::http;
 use serde::{Deserialize, Serialize};
 
 use crate::api::*;
@@ -21,7 +22,8 @@ pub struct InfoResp {
     /// Key used by the hub to sign requests to the other hubs with
     ///
     /// (Not currently returned by actual hubs.)
-    pub verifying_key: VerifyingKey,
+    #[serde(default)]
+    pub verifying_key: Option<VerifyingKey>,
 
     /// String describing the hub version, likely the result of `git describe --tags`
     pub hub_version: String,

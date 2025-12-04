@@ -3,9 +3,6 @@
 mod common;
 use common::*;
 
-#[cfg(feature = "old")]
-pub mod old;
-
 mod serve;
 pub use serve::ServeArgs;
 mod tools;

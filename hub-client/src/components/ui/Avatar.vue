@@ -1,53 +1,67 @@
 <template>
-	<AvatarCore :user="user" :img="image"></AvatarCore>
+	<div class="flex aspect-square h-12 w-12 shrink-0 items-center justify-center overflow-hidden rounded-full" :class="avatarColor">
+		<img v-if="avatarUrl" v-show="loaded" data-testid="avatar" :src="image" class="h-full w-full" @load="imgLoaded()" />
+		<Icon v-if="!avatarUrl || !loaded" size="lg" :type="icon ? icon : 'user'" testid="avatar" />
+	</div>
 </template>
 
 <script setup lang="ts">
-	import { computed } from 'vue';
-	import { useUser } from '@/logic/store/user';
-	import { usePubHubs } from '@/logic/core/pubhubsStore';
-	import { User as MatrixUser } from 'matrix-js-sdk';
+	// Packages
+	import { computed, onMounted, ref, watch } from 'vue';
 
-	//Components
-	import AvatarCore from '@/components/ui/AvatarCore.vue';
+	// Composables
+	import { useMatrixFiles } from '@hub-client/composables/useMatrixFiles';
+	import { useUserColor } from '@hub-client/composables/useUserColor';
 
-	const currentUser = useUser();
-	const pubhubs = usePubHubs();
+	// Stores
+	import { FeatureFlag, useSettings } from '@hub-client/stores/settings';
+	import { useUser } from '@hub-client/stores/user';
 
+	// Types
 	type Props = {
-		userId: string;
+		avatarUrl: string | undefined;
+		userId?: string;
+		icon?: string;
 	};
 
+	const user = useUser();
+	const { color, bgColor } = useUserColor();
+	const { isMxcUrl, useAuthorizedMediaUrl } = useMatrixFiles();
+	const image = ref<string | undefined>();
+	const loaded = ref(false);
+	const avatarColor = computed(getAvatarColor);
 	const props = defineProps<Props>();
-	const user = computed(getMatrixUser);
-	const image = computed(getImage);
 
-	function getMatrixUser(): MatrixUser | undefined {
-		if (pubhubs.client.getUser) {
-			return pubhubs.client.getUser(props.userId)!;
-		}
-		return undefined;
-	}
+	onMounted(async () => {
+		await getImage();
+	});
 
-	function getImage(): string | undefined {
-		if (!user.value) return undefined;
-		let url = '';
-		if (user.value.avatarUrl && user.value.avatarUrl !== '') {
-			url = user.value.avatarUrl;
-		}
+	watch(props, async () => {
+		await getImage();
+	});
 
-		// This is needed to reflect local changes to the users avatar immediatly
-		if (userIsCurrentUser()) {
-			url = currentUser.avatarUrl;
-			if (currentUser._avatarUrl) {
-				url = currentUser._avatarUrl;
+	async function getImage() {
+		let url = props.avatarUrl as string;
+		if (props.avatarUrl) {
+			if (isMxcUrl(props.avatarUrl)) {
+				const settings = useSettings();
+				url = await useAuthorizedMediaUrl(props.avatarUrl, settings.isFeatureEnabled(FeatureFlag.authenticatedMedia));
 			}
 		}
-		return url;
+		image.value = url;
 	}
 
-	function userIsCurrentUser(): boolean {
-		if (user.value?.userId && user.value?.userId === currentUser.userId) return true;
-		return false;
+	function getAvatarColor(): string {
+		if (!props.userId) return 'bg-surface-high';
+		const currentUser = user.client.getUser(props.userId);
+
+		if (!props.userId && !currentUser?.displayName) return 'bg-surface-high';
+		if (!props.userId && currentUser?.displayName) return bgColor(color(props.userId));
+
+		return bgColor(color(props.userId));
+	}
+
+	function imgLoaded() {
+		loaded.value = true;
 	}
 </script>

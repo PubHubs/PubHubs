@@ -1,6 +1,9 @@
+// Packages
 import { describe, expect, test, vi } from 'vitest';
 
-import { useFormState } from '@/logic/composables/useFormState';
+// Composables
+import { useFormState } from '@hub-client/composables/useFormState';
+
 const { data, setData, updateData, dataIsChanged, isChanged, isValidated, message, validationErrors, setMessage } = useFormState();
 
 describe('useFormState', () => {

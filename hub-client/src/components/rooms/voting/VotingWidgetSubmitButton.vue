@@ -5,6 +5,7 @@
 </template>
 
 <script setup lang="ts">
+	// Packages
 	import { computed } from 'vue';
 
 	const emit = defineEmits(['send', 'edit']);

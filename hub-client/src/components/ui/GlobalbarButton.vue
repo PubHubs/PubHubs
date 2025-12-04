@@ -1,16 +1,12 @@
 <template>
-	<Icon
-		:type="type"
-		class="rounded-md p-2 text-accent-secondary hover:cursor-pointer hover:bg-on-surface-variant hover:text-background dark:text-on-surface"
-		:class="selected ? 'bg-surface-high' : 'bg-background'"
-		:size="size"
-		@click="handleClick"
-	/>
+	<div class="hover:bg-on-surface-variant hover:text-background rounded-md p-2 hover:cursor-pointer" :class="selected ? 'bg-surface-high' : 'bg-background'" @click="handleClick" role="button">
+		<Icon :type="type" :size="size" />
+	</div>
 </template>
 
 <script setup lang="ts">
-	// Global imports
-	import Icon from '@/components/elements/Icon.vue';
+	// Components
+	import Icon from '@hub-client/components/elements/Icon.vue';
 
 	const props = defineProps({
 		type: {

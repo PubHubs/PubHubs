@@ -1,208 +1,215 @@
 <template>
 	<div ref="elReactionPopUp">
-		<!-- Plugin Event -->
-		<div v-if="event.plugin && event.plugin.plugintype === PluginType.EVENT && event.type === event.plugin.type">
-			<component :is="event.plugin.component" :event="event">{{ event.plugin.component }}</component>
-		</div>
-
-		<!-- Normal Event -->
-		<!--Styling changed to keep the top border for announcement-->
-		<div v-else class="group flex flex-col py-3">
-			<div
-				v-if="isAnnouncementMessage && !redactedMessage"
-				class="flex w-full items-center bg-surface-high px-8 py-1 ~text-label-small-min/label-small-max"
-				:class="{
-					'mx-4': props.deleteMessageDialog,
-				}"
-			>
-				<Icon type="announcement" size="sm" class="mr-1"></Icon>
+		<div class="group flex flex-col py-3" :class="getMessageContainerClasses" role="article">
+			<!-- Announcement Header -->
+			<div v-if="isAnnouncementMessage && !redactedMessage" class="bg-surface-high text-label-small flex w-full items-center px-8 py-1" :class="{ 'mx-4': props.deleteMessageDialog }">
+				<Icon type="megaphone-simple" size="sm" class="mr-1"></Icon>
 				{{ getAnnouncementTitle }}
 			</div>
 
-			<div role="article" class="relative flex w-full gap-2 px-6" :class="getMessageContainerClasses">
-				<!-- <div ref="elReactionPopUp" v-if="openEmojiPanel" class="absolute bottom-full right-0 z-50"> -->
-
-				<div v-if="showReactionPanel" :class="['absolute bottom-full right-0 z-50', calculatePanelPlacement() ? 'bottom-full' : 'top-8']">
-					<ReactionMiniPopUp :eventId="event.event_id" :room="room" @emoji-selected="emit('clickedEmoticon', $event, event.event_id)" @close-panel="emit('reactionPanelClose')"></ReactionMiniPopUp>
+			<!-- Message Container -->
+			<div class="relative flex w-full gap-2 px-6" :class="getMessageContainerClasses">
+				<!-- Reaction Panel -->
+				<div v-if="showReactionPanel" :class="['absolute right-0 bottom-full z-50', calculatePanelPlacement() ? 'bottom-full' : 'top-8']">
+					<ReactionMiniPopUp :eventId="event.event_id" :room="room" @emoji-selected="emit('clickedEmoticon', $event, event.event_id)" @close-panel="emit('reactionPanelClose')" />
 				</div>
+
+				<!-- Avatar -->
 				<Avatar
-					:userId="event.sender"
+					:avatar-url="user.userAvatar(event.sender)"
+					:user-id="event.sender"
 					@click.stop="emit('profileCardToggle', event.event_id)"
-					:class="['transition-all duration-500 ease-in-out', { 'cursor-pointer ring-1 ring-on-surface-dim ring-offset-4': hover || props.activeProfileCard === props.event.event_id }]"
+					:class="['transition-all duration-500 ease-in-out', { 'ring-on-surface-dim cursor-pointer ring-1 ring-offset-4': hover || props.activeProfileCard === props.event.event_id }]"
 					@mouseover="hover = true"
 					@mouseleave="hover = false"
 				/>
+
+				<!-- Profile Card -->
 				<div class="relative">
 					<Popover v-if="showProfileCard" @close="emit('profileCardClose')" :class="['absolute z-50 h-40 w-52', profileInPosition(event) ? 'bottom-4' : '']">
 						<ProfileCard :event="event" :room="room" :room-member="roomMember" />
 					</Popover>
 				</div>
 
+				<!-- Message and Actions -->
 				<div :class="{ 'w-5/6': deleteMessageDialog, 'w-full': !deleteMessageDialog }" class="min-w-0">
 					<div class="flex flex-wrap items-center overflow-hidden text-wrap break-all">
 						<div class="relative flex min-h-6 w-full items-start gap-x-2 pb-1">
 							<div class="flex w-full min-w-0 flex-grow flex-wrap items-center gap-2">
-								<UserDisplayName :user="event.sender" :room="room" />
+								<UserDisplayName :userId="event.sender" :userDisplayName="user.userDisplayName(event.sender)" />
 								<span class="flex gap-2">
-									<span class="~text-label-small-min/label-small-max">|</span>
-									<EventTime :timestamp="event.origin_server_ts" :showDate="false"> </EventTime>
-									<span class="~text-label-small-min/label-small-max">|</span>
-									<EventTime :timestamp="event.origin_server_ts" :showDate="true"> </EventTime>
+									<span class="text-label-small">|</span>
+									<EventTime :timestamp="event.origin_server_ts" :showDate="false" />
+									<span class="text-label-small">|</span>
+									<EventTime :timestamp="event.origin_server_ts" :showDate="true" />
 								</span>
-								<RoomBadge v-if="!room.directMessageRoom()" class="inline-block" :user="event.sender" :room_id="event.room_id"></RoomBadge>
+								<RoomBadge v-if="!room.directMessageRoom()" class="inline-block" :user="event.sender" :room_id="event.room_id" />
 							</div>
 
+							<!-- Message Action Buttons -->
 							<div>
 								<template v-if="timerReady && !deleteMessageDialog">
-									<button v-if="msgIsNotSend && connection.isOn" @click="resend()" class="mb-1 ml-2" :title="$t('errors.resend')">
-										<Icon type="refresh" size="sm" class="text-red" />
+									<button v-if="msgIsNotSend && connection.isOn" @click="resend()" class="mb-1 ml-2" :title="t('errors.resend')">
+										<Icon type="arrow-counter-clockwise" size="sm" class="text-red" />
 									</button>
-									<Icon v-if="msgIsNotSend && !connection.isOn" type="lost-connection" size="sm" class="text-red mb-1 ml-2" />
+									<Icon v-if="msgIsNotSend && !connection.isOn" type="wifi-slash" size="sm" class="text-red mb-1 ml-2" />
 								</template>
 
 								<RoomEventActionsPopup v-if="!deleteMessageDialog" :remain-active="openEmojiPanel">
+									<!-- Reaction Button -->
 									<button
+										v-if="!redactedMessage"
 										@click.stop="emit('reactionPanelToggle', props.event.event_id)"
-										class="flex items-center justify-center rounded-md p-1 text-on-surface-variant transition-all duration-300 ease-in-out hover:w-fit hover:bg-accent-primary hover:text-on-accent-primary"
+										class="text-on-surface-variant hover:bg-accent-primary hover:text-on-accent-primary flex items-center justify-center rounded-md p-1 transition-all duration-300 ease-in-out hover:w-fit"
+										:title="t('message.reply_emoji')"
 									>
-										<Icon type="emoji_smiley" size="sm"></Icon>
+										<Icon type="smiley" size="sm"></Icon>
 									</button>
 
+									<!-- Reply Button -->
 									<button
 										v-if="!msgIsNotSend && !redactedMessage && !isThreadRoot"
 										@click="reply"
-										class="flex items-center justify-center rounded-md p-1 text-on-surface-variant transition-all duration-300 ease-in-out hover:w-fit hover:bg-accent-primary hover:text-on-accent-primary"
-										:title="$t('message.reply')"
+										class="text-on-surface-variant hover:bg-accent-primary hover:text-on-accent-primary flex items-center justify-center rounded-md p-1 transition-all duration-300 ease-in-out hover:w-fit"
+										:title="t('message.reply')"
 									>
-										<Icon :type="'reply'" size="sm" />
+										<Icon type="arrow-bend-up-left" size="sm" />
 									</button>
+
+									<!-- Thread Reply Button -->
 									<button
 										v-if="!viewFromThread && threadLength <= 0 && canReplyInThread && !msgIsNotSend && !redactedMessage"
 										@click="replyInThread"
-										class="flex items-center justify-center rounded-md p-1 text-on-surface-variant transition-all duration-300 ease-in-out hover:w-fit hover:bg-accent-primary hover:text-on-accent-primary"
-										:title="$t('message.reply_in_thread')"
+										class="text-on-surface-variant hover:bg-accent-primary hover:text-on-accent-primary flex items-center justify-center rounded-md p-1 transition-all duration-300 ease-in-out hover:w-fit"
+										:title="t('message.reply_in_thread')"
 									>
-										<Icon :type="'talk'" :size="'sm'"></Icon>
+										<Icon type="chat-circle" size="sm"></Icon>
 									</button>
+
+									<!-- Disclosure Button -->
 									<button
-										v-if="!msgIsNotSend && user.isAdmin && event.sender !== user.user.userId && settings.isFeatureEnabled(FeatureFlag.disclosure)"
+										v-if="!msgIsNotSend && user.isAdmin && event.sender !== user.userId && settings.isFeatureEnabled(FeatureFlag.disclosure)"
 										@click="router.push({ name: 'ask-disclosure', query: { user: event.sender } })"
-										class="flex items-center justify-center rounded-md p-1 text-on-surface-variant transition-all duration-300 ease-in-out hover:w-fit hover:bg-accent-primary hover:text-on-accent-primary"
-										:title="$t('menu.moderation_tools_disclosure')"
+										class="text-on-surface-variant hover:bg-accent-primary hover:text-on-accent-primary flex items-center justify-center rounded-md p-1 transition-all duration-300 ease-in-out hover:w-fit"
+										:title="t('menu.moderation_tools_disclosure')"
 									>
-										<Icon :type="'warning'" size="sm" />
+										<Icon type="warning" size="sm" />
 									</button>
+
+									<!-- Delete Button -->
 									<button
-										v-if="settings.isFeatureEnabled(FeatureFlag.deleteMessages) && !msgIsNotSend && event.sender === user.user.userId && !redactedMessage && !(props.viewFromThread && isThreadRoot)"
+										v-if="settings.isFeatureEnabled(FeatureFlag.deleteMessages) && !msgIsNotSend && event.sender === user.userId && !redactedMessage && !(props.viewFromThread && isThreadRoot)"
 										@click="onDeleteMessage(event)"
-										class="flex items-center justify-center rounded-md p-1 text-on-surface-variant transition-all duration-300 ease-in-out hover:w-fit hover:bg-accent-red hover:text-on-accent-red"
-										:title="$t('menu.delete_message')"
+										class="text-on-surface-variant hover:bg-accent-red hover:text-on-accent-red flex items-center justify-center rounded-md p-1 transition-all duration-300 ease-in-out hover:w-fit"
+										:title="t('menu.delete_message')"
 									>
-										<Icon :type="'bin'" size="sm" />
+										<Icon type="trash" size="sm" />
 									</button>
 								</RoomEventActionsPopup>
 							</div>
 						</div>
 					</div>
-					<template v-if="event.plugin?.plugintype === PluginType.MESSAGE && event.content.msgtype === event.plugin.type">
-						<!-- Plugin Message -->
-						<component :is="event.plugin.component" :event="event">{{ event.plugin.component }}</component>
-					</template>
 
-					<template v-else>
-						<Suspense>
-							<MessageSnippet v-if="showReplySnippet(event.content.msgtype)" @click="onInReplyToClick" :eventId="inReplyToId" :showInReplyTo="true" :room="room"></MessageSnippet>
-							<template #fallback>
-								<div class="flex items-center gap-3 rounded-md px-2">
-									<p>{{ $t('state.loading_message') }}</p>
-								</div>
-							</template>
-						</Suspense>
+					<Suspense>
+						<MessageSnippet v-if="showReplySnippet(event.content.msgtype)" @click="onInReplyToClick" :eventId="inReplyToId" :showInReplyTo="true" :room="room" />
+						<template #fallback>
+							<div class="flex items-center gap-3 rounded-md px-2">
+								<p>{{ t('state.loading_message') }}</p>
+							</div>
+						</template>
+					</Suspense>
 
-						<Message v-if="event.content.msgtype === MsgType.Text || redactedMessage" :event="event" :deleted="redactedMessage" class="max-w-[90ch]" />
-						<AnnouncementMessage v-if="isAnnouncementMessage && !redactedMessage && !room.isPrivateRoom()" :event="event.content"></AnnouncementMessage>
-						<MessageSigned v-if="event.content.msgtype === PubHubsMgType.SignedMessage && !redactedMessage" :message="event.content.signed_message" class="max-w-[90ch]" />
-						<MessageFile v-if="event.content.msgtype === MsgType.File && !redactedMessage" :message="event.content" />
-						<MessageImage v-if="event.content.msgtype === MsgType.Image && !redactedMessage" :message="event.content" />
+					<Message v-if="event.content.msgtype === MsgType.Text || redactedMessage" :event="event" :deleted="redactedMessage" class="max-w-[90ch]" />
+					<AnnouncementMessage v-if="isAnnouncementMessage && !redactedMessage && !room.isPrivateRoom()" :event="event.content" />
+					<MessageSigned v-if="event.content.msgtype === PubHubsMgType.SignedMessage && !redactedMessage" :message="event.content.signed_message" class="max-w-[90ch]" />
+					<MessageFile v-if="event.content.msgtype === MsgType.File && !redactedMessage" :message="event.content" />
+					<MessageImage v-if="event.content.msgtype === MsgType.Image && !redactedMessage" :message="event.content" />
 
-						<VotingWidget
-							v-if="settings.isFeatureEnabled(FeatureFlag.votingWidget) && event.content.msgtype === PubHubsMgType.VotingWidget && !redactedMessage"
-							:event="event"
-							@edit-poll="(poll, eventId) => emit('editPoll', poll, eventId)"
-							@edit-scheduler="(scheduler, eventId) => emit('editScheduler', scheduler, eventId)"
-						></VotingWidget>
-					</template>
+					<VotingWidget
+						v-if="settings.isFeatureEnabled(FeatureFlag.votingWidget) && event.content.msgtype === PubHubsMgType.VotingWidget && !redactedMessage"
+						:event="event"
+						@edit-poll="(poll, eventId) => emit('editPoll', poll, eventId)"
+						@edit-scheduler="(scheduler, eventId) => emit('editScheduler', scheduler, eventId)"
+					/>
 
+					<!-- Thread View Button -->
 					<button
 						@click="replyInThread"
-						class="bg-hub-background-3 inline-flex rounded-md px-2 py-1 ~text-label-tiny-min/label-tiny-max hover:opacity-80"
+						class="bg-hub-background-3 text-label-tiny inline-flex rounded-md px-2 py-1 hover:opacity-80"
 						v-if="!deleteMessageDialog && !viewFromThread && threadLength > 0 && canReplyInThread && !msgIsNotSend && !redactedMessage"
 					>
-						<Icon :type="'talk'" :size="'xs'"></Icon>
-						&nbsp; {{ $t('message.threads.view_thread') }} ({{ threadLength }})
+						<Icon type="chat-circle" size="xs"></Icon>
+						<!-- &nbsp; {{ t('message.threads.view_thread') }} ({{ threadLength }}) -->
+						&nbsp; {{ t('message.threads.view_thread') }}
 					</button>
 				</div>
+			</div>
+
+			<!-- Reactions Slot -->
+			<div>
+				<slot name="reactions"></slot>
 			</div>
 		</div>
 	</div>
 </template>
 
 <script setup lang="ts">
-	import { usePubHubs } from '@/logic/core/pubhubsStore';
-	import { router } from '@/logic/core/router';
-	import { TMessageEvent } from '@/model/events/TMessageEvent';
-	import { RelationType } from '@/model/constants';
-	import Room from '@/model/rooms/Room';
-	import { useConnection } from '@/logic/store/connection';
-	import { useMessageActions } from '@/logic/store/message-actions';
-	import { PluginType } from '@/logic/store/plugins';
-
-	import { FeatureFlag, useSettings } from '@/logic/store/settings';
-	import { useUser } from '@/logic/store/user';
-	import { PubHubsMgType } from '@/logic/core/events';
+	// Packages
+	import { IEvent, MsgType } from 'matrix-js-sdk';
+	import { PropType, computed, onBeforeUnmount, onMounted, ref, watch } from 'vue';
+	import { useI18n } from 'vue-i18n';
 
 	// Components
-	import AnnouncementMessage from './AnnouncementMessage.vue';
+	import Icon from '@hub-client/components/elements/Icon.vue';
+	import AnnouncementMessage from '@hub-client/components/rooms/AnnouncementMessage.vue';
+	import EventTime from '@hub-client/components/rooms/EventTime.vue';
+	import Message from '@hub-client/components/rooms/Message.vue';
+	import MessageFile from '@hub-client/components/rooms/MessageFile.vue';
+	import MessageImage from '@hub-client/components/rooms/MessageImage.vue';
+	import MessageSigned from '@hub-client/components/rooms/MessageSigned.vue';
+	import MessageSnippet from '@hub-client/components/rooms/MessageSnippet.vue';
+	import RoomBadge from '@hub-client/components/rooms/RoomBadge.vue';
+	import RoomEventActionsPopup from '@hub-client/components/rooms/RoomEventActionsPopup.vue';
+	import UserDisplayName from '@hub-client/components/rooms/UserDisplayName.vue';
+	import VotingWidget from '@hub-client/components/rooms/voting/VotingWidget.vue';
+	import Avatar from '@hub-client/components/ui/Avatar.vue';
+	import Popover from '@hub-client/components/ui/Popover.vue';
+	import ProfileCard from '@hub-client/components/ui/ProfileCard.vue';
+	import ReactionMiniPopUp from '@hub-client/components/ui/ReactionMiniPopUp.vue';
 
-	import ProfileCard from '../ui/ProfileCard.vue';
-	import Popover from '../ui/Popover.vue';
-	import MessageSnippet from './MessageSnippet.vue';
-	import Message from './Message.vue';
-	import MessageFile from './MessageFile.vue';
-	import MessageImage from './MessageImage.vue';
-	import MessageSigned from './MessageSigned.vue';
-	import RoomEventActionsPopup from './RoomEventActionsPopup.vue';
-	import Avatar from '../ui/Avatar.vue';
-	import EventTime from './EventTime.vue';
-	import RoomBadge from './RoomBadge.vue';
-	import UserDisplayName from './UserDisplayName.vue';
-	import Icon from '../elements/Icon.vue';
+	// Logic
+	import { PubHubsMgType } from '@hub-client/logic/core/events';
+	import { router } from '@hub-client/logic/core/router';
 
-	// Dependencies
-	import { MsgType } from 'matrix-js-sdk';
-	import { computed, ref, watch, onMounted, PropType, onBeforeUnmount } from 'vue';
-	import { useI18n } from 'vue-i18n';
-	import VotingWidget from '@/components/rooms/voting/VotingWidget.vue';
-	import { Poll, Scheduler } from '@/model/events/voting/VotingTypes';
-	import ReactionMiniPopUp from '../ui/ReactionMiniPopUp.vue';
+	// Models
+	import { RelationType } from '@hub-client/models/constants';
+	import { TMessageEvent } from '@hub-client/models/events/TMessageEvent';
+	import { Poll, Scheduler } from '@hub-client/models/events/voting/VotingTypes';
+	import Room from '@hub-client/models/rooms/Room';
 
 	// Stores
+	import { useConnection } from '@hub-client/stores/connection';
+	import { useMessageActions } from '@hub-client/stores/message-actions';
+	import { usePubhubsStore } from '@hub-client/stores/pubhubs';
+	import { FeatureFlag, useSettings } from '@hub-client/stores/settings';
+	import { useUser } from '@hub-client/stores/user';
+
 	const connection = useConnection();
 	const messageActions = useMessageActions();
-
+	const pubhubs = usePubhubsStore();
 	const user = useUser();
-	const pubhubs = usePubHubs();
 	const settings = useSettings();
 	const { t } = useI18n();
-
-	let threadLength = ref(0);
 	const hover = ref(false);
 	const openEmojiPanel = ref(false);
 	const elReactionPopUp = ref<HTMLElement | null>(null);
 
+	let roomMember = ref();
+	let threadLength = ref(0);
+
 	const props = defineProps({
 		event: {
-			type: Object as () => TMessageEvent,
+			type: Object,
 			required: true,
 		},
 		eventThreadLength: {
@@ -216,6 +223,9 @@
 		viewFromThread: {
 			type: Boolean,
 			default: false,
+		},
+		deletedEvent: {
+			type: Boolean,
 		},
 		deleteMessageDialog: {
 			type: Boolean,
@@ -231,9 +241,7 @@
 		},
 	});
 
-	onMounted(() => {
-		threadLength.value = props.eventThreadLength;
-	});
+	onMounted(() => (threadLength.value = props.eventThreadLength));
 
 	onBeforeUnmount(() => {
 		// If the profile card is open when this component is unmounted, close it.
@@ -243,17 +251,16 @@
 	});
 
 	/**
-	 * Watch the threadlength for external changes, done by other users
+	 * Watch the threadUpdated for new events coming from slidingsync
 	 */
 	watch(
-		() => props.eventThreadLength,
+		() => props.room.threadUpdated,
 		() => {
-			threadLength.value = props.eventThreadLength;
+			if (props.event.event_id === props.room.currentThread?.rootEvent?.event.event_id) {
+				threadLength.value = (props.room.currentThread?.rootEvent?.getThread()?.length ?? 0) + 1; // length does not include rootEvent
+			}
 		},
 	);
-
-	const roomMember = props.room.getMember(props.event.sender, true);
-	if (!roomMember) throw new Error('Sender of event not found while trying to display event.');
 
 	const inReplyToId = props.event.content[RelationType.RelatesTo]?.[RelationType.InReplyTo]?.event_id;
 
@@ -275,19 +282,14 @@
 
 	const msgIsNotSend = computed(() => props.event.event_id.substring(0, 1) === '~');
 
-	const canReplyInThread = computed(() => !props.event.content['m.relates_to']);
+	const canReplyInThread = computed(() => !props.event.content[RelationType.RelatesTo]);
 
 	const isThreadRoot = computed(() => props.room.currentThread?.threadId === props.event.event_id);
 
 	const containsRedactedBecause = props.event.unsigned?.redacted_because !== undefined;
 
 	const redactedMessage = computed(() => {
-		const inRedactedMessageIds = props.room.inRedactedMessageIds(props.event.event_id);
-		// Remove the event id from the list with redacted event IDs if the event already contains the redacted_because key
-		if (inRedactedMessageIds && containsRedactedBecause) {
-			props.room.removeRedactedEventId(props.event.event_id);
-		}
-		return inRedactedMessageIds || containsRedactedBecause;
+		return props.deletedEvent || containsRedactedBecause;
 	});
 
 	const isAnnouncementMessage = computed(() => props.event.content.msgtype === PubHubsMgType.AnnouncementMessage);
@@ -299,7 +301,7 @@
 		// Base classes
 		const baseClasses = {
 			'p-2 transition-all duration-150 ease-in-out hover:bg-surface-low': !props.deleteMessageDialog,
-			'mx-4 rounded shadow-[0_0_5px_0_rgba(0,0,0,0.3)]': props.deleteMessageDialog,
+			'mx-4 rounded-xs shadow-[0_0_5px_0_rgba(0,0,0,0.3)]': props.deleteMessageDialog,
 			'rounded-t-none': isAnnouncementMessage.value,
 		};
 
@@ -318,6 +320,7 @@
 			...commonAnnouncementClasses,
 		};
 	});
+
 	/**
 	 * Determines the announcement title based on user power level
 	 * - Power level 50 = Steward
@@ -366,11 +369,10 @@
 	}
 
 	function resend() {
-		const pubhubs = usePubHubs();
 		pubhubs.resendEvent(props.event);
 	}
 
-	function profileInPosition(ev: Event) {
+	function profileInPosition(ev: Partial<IEvent>) {
 		return ev.event_id === props.room.getLastVisibleEventId() && props.room.numOfMessages() > 5;
 	}
 

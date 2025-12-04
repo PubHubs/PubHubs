@@ -8,5 +8,6 @@
 </template>
 
 <script setup lang="ts">
-	import Logo from '@/components/ui/Logo.vue';
+	// Components
+	import Logo from '@global-client/components/ui/Logo.vue';
 </script>

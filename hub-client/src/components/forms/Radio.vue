@@ -5,7 +5,7 @@
 				type="radio"
 				v-model="inputValue"
 				:value="option.value"
-				class="focus:ring-offset-width-0 focus:shadow-0 focus:outline-0 focus:outline-offset-0 focus:ring-0 focus:ring-offset-0"
+				class="focus:ring-offset-width-0 focus:shadow-0 focus:ring-0 focus:ring-offset-0 focus:outline-0 focus:outline-offset-0"
 				@change="
 					selectOption(option);
 					changed();
@@ -17,8 +17,11 @@
 </template>
 
 <script setup lang="ts">
+	// Packagges
 	import { PropType } from 'vue';
-	import { Options, useFormInputEvents, usedEvents } from '@/logic/composables/useFormInputEvents';
+
+	// Composables
+	import { Options, useFormInputEvents, usedEvents } from '@hub-client/composables/useFormInputEvents';
 
 	const props = defineProps({
 		options: {

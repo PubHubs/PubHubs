@@ -1,40 +1,47 @@
-/* eslint-disable */
-
-// Package imports
+// Packages
+import mavonEditor from 'mavon-editor';
+import 'mavon-editor/dist/css/index.css';
 import { createPinia } from 'pinia';
 import { createApp, markRaw } from 'vue';
 import { createRouter, createWebHashHistory } from 'vue-router';
-import mavonEditor from 'mavon-editor';
-import 'mavon-editor/dist/css/index.css';
 
-// Global imports
-import { setUpi18n } from '@/i18n';
-import { focus, twClass } from '@/logic/core/directives';
-import { routes } from '@/logic/core/routes';
-import App from '@/pages/App.vue';
-import { registerComponents } from '@/registerComponents.js';
-import '@/registerServiceWorker';
+// Assets
+import '@hub-client/assets/tailwind.css';
 
-// Hub imports
-import P from '@/../../hub-client/src/components/elements/P.vue';
-import H1 from '@/../../hub-client/src/components/elements/H1.vue';
-import H2 from '@/../../hub-client/src/components/elements/H2.vue';
-import H3 from '@/../../hub-client/src/components/elements/H3.vue';
-import Icon from '@/../../hub-client/src/components/elements/Icon.vue';
-import Line from '@/../../hub-client/src/components/elements/Line.vue';
-import Label from '@/../../hub-client/src/components/forms/Label.vue';
-import Badge from '@/../../hub-client/src/components/elements/Badge.vue';
-import Button from '@/../../hub-client/src/components/elements/Button.vue';
-import TruncatedText from '@/../../hub-client/src/components/elements/TruncatedText.vue';
-import ButtonGroup from '@/../../hub-client/src/components/forms/ButtonGroup.vue';
-import Logo from '@/../../hub-client/src/components/ui/Logo.vue';
-import Dialog from '@/../../hub-client/src/components/ui/Dialog.vue';
-import Checkbox from '@/../../hub-client/src/components/forms/Checkbox.vue';
+// Components
+import Badge from '@hub-client/components/elements/Badge.vue';
+import Button from '@hub-client/components/elements/Button.vue';
+import H1 from '@hub-client/components/elements/H1.vue';
+import H2 from '@hub-client/components/elements/H2.vue';
+import H3 from '@hub-client/components/elements/H3.vue';
+import Icon from '@hub-client/components/elements/Icon.vue';
+import Line from '@hub-client/components/elements/Line.vue';
+import P from '@hub-client/components/elements/P.vue';
+import TruncatedText from '@hub-client/components/elements/TruncatedText.vue';
+import ButtonGroup from '@hub-client/components/forms/ButtonGroup.vue';
+import Checkbox from '@hub-client/components/forms/Checkbox.vue';
+import Label from '@hub-client/components/forms/Label.vue';
+import Dialog from '@hub-client/components/ui/Dialog.vue';
+import Logo from '@hub-client/components/ui/Logo.vue';
 
-import { ReplaceConsole } from '@/../../hub-client/src/console';
-import { CONFIG } from '../../hub-client/src/logic/foundation/Config';
-import { Logger } from '@/../../hub-client/src/logic/foundation/Logger';
-import '@/../../hub-client/src/assets/tailwind.css';
+// Logic
+import { routes } from '@global-client/logic/core/routes';
+
+import { focus, twClass } from '@hub-client/logic/core/directives';
+import { CONFIG } from '@hub-client/logic/logging/Config';
+import { Logger } from '@hub-client/logic/logging/Logger';
+
+// Pages
+import App from '@global-client/pages/App.vue';
+
+import { useGlobal } from '@global-client/stores/global';
+
+// Other
+import { registerComponents } from '@global-client/registerComponents';
+import '@global-client/registerServiceWorker';
+
+import { ReplaceConsole } from '@hub-client/console';
+import { setUpi18n } from '@hub-client/i18n';
 
 // Custom console for development
 ReplaceConsole();
@@ -58,6 +65,26 @@ const router = createRouter({
 		}
 	},
 	sensitive: true,
+});
+router.beforeEach((to, from, next) => {
+	// Redirect to home if navigating to error page from a browser refresh (undefined)
+	if (to.name === 'error' && from.name === undefined) {
+		next({ name: 'home' });
+		return;
+	}
+	next();
+});
+
+router.beforeEach(async (to, _from, next) => {
+	const global = useGlobal();
+	const isLoggedIn = await global.checkLoginAndSettings();
+
+	if (to.meta.requiresAuth && !isLoggedIn) {
+		const redirectPath = to.fullPath;
+		next({ name: 'login', query: redirectPath === '/' ? {} : { redirect: redirectPath } });
+	} else {
+		next();
+	}
 });
 
 // Set up Pinia store

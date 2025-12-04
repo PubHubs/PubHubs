@@ -1,7 +1,13 @@
-import UserDisplayName from '@/components/rooms/UserDisplayName.vue';
-import { describe, expect, beforeEach, test } from 'vitest';
-import { shallowMount, flushPromises } from '@vue/test-utils';
-import { setActivePinia, createPinia } from 'pinia';
+// Packages
+import { flushPromises, shallowMount } from '@vue/test-utils';
+import { createPinia, setActivePinia } from 'pinia';
+import { beforeEach, describe, expect, test, vi } from 'vitest';
+
+// Components
+import UserDisplayName from '@hub-client/components/rooms/UserDisplayName.vue';
+
+// Stores
+import { useUser } from '@hub-client/stores/user';
 
 describe('User Display Name.vue Test', () => {
 	// Test variables
@@ -12,45 +18,36 @@ describe('User Display Name.vue Test', () => {
 	// SETUP - run before to each unit test
 	beforeEach(() => {
 		setActivePinia(createPinia());
-	});
-	test('test member is null', async () => {
-		// Wait until the DOM updates
-		wrapper = shallowMount(UserDisplayName, {
-			propsData: {
-				user: '@123-abc:matrix',
-				room: {
-					getMember: (user) => null,
-				},
-			},
-		});
-
-		await flushPromises();
-		expect(wrapper.find(nameSelector).exists()).toEqual(false);
+		// Mock the useUser store
+		const user = useUser();
+		// Mock the client object with a getUser method
+		// user.client = {
+		// 	getUser: vi.fn((userId) => ({
+		// 		userId,
+		// 		rawDisplayName: 'user2',
+		// 	})),
+		// };
+		// // Override the getter output
+		// Object.defineProperty(user, 'userDisplayName', {
+		// 	get: () => () => 'user2',
+		// });
 	});
 
 	test('test member display name is correct', async () => {
-		let room = {
-			getMember: (user) => {
-				return { rawDisplayName: 'user' };
-			},
-		};
 		wrapper = shallowMount(UserDisplayName, {
 			propsData: {
-				user: '@123-abc:matrix',
-				room: room,
+				userId: '@123-abc:matrix',
+				userDisplayName: 'user2',
+				showDisplayName: true,
 			},
 		});
-
 		// Wait until the DOM updates
 		await flushPromises();
-		expect(wrapper.find(nameSelector).text()).toEqual('user');
+		console.info(wrapper.find(nameSelector));
+		expect(wrapper.find(nameSelector).text()).toEqual('user2');
 		await wrapper.setProps({
 			user: '@123-abc:matrix',
-			room: {
-				getMember: (user) => {
-					return { rawDisplayName: 'user2' };
-				},
-			},
+			showDisplayName: true,
 		});
 		expect(wrapper.find(nameSelector).text()).toEqual('user2');
 	});

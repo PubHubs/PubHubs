@@ -1,41 +1,41 @@
 <template>
 	<span v-if="userHasBadge" class="flex flex-wrap gap-x-1 gap-y-1 px-4" data-testid="event-badges">
-		<span v-if="hasPowerPrivileges || isHubAdmin" class="flex h-4 items-center gap-1 rounded-xl bg-black px-2 lowercase text-white ~text-label-small-min/label-small-max">
-			<Icon type="power_level" class="-mr-3 mt-3"></Icon>
+		<span v-if="hasPowerPrivileges || isHubAdmin" class="text-label-small flex h-4 items-center gap-1 rounded-xl bg-black px-2 text-white lowercase">
+			<Icon type="user" size="sm"></Icon>
 			<span v-if="isHubAdmin">{{ hubAdminLabel }}</span>
 			<span v-else>{{ powerLevelLabel }}</span>
 		</span>
-		<span v-else v-for="value in roomAttributes" :key="value" class="flex h-4 items-center gap-1 rounded-xl bg-black px-2 lowercase text-white ~text-label-small-min/label-small-max">
-			<Icon type="check" class="-mr-3 mt-3"></Icon>
+		<span v-else v-for="value in roomAttributes" :key="value" class="text-label-small flex h-4 items-center gap-1 rounded-xl bg-black px-2 text-white lowercase">
+			<Icon type="check-circle" size="sm"></Icon>
 			<span>{{ value }}</span>
 		</span>
 	</span>
 </template>
 
 <script setup lang="ts">
-	// Components
-	import Icon from '../elements/Icon.vue';
-
+	// Packages
+	import { computed, onMounted, ref, watch } from 'vue';
 	import { useI18n } from 'vue-i18n';
 
-	import { useRooms } from '@/logic/store/store';
-	import { ref, watch, computed, onMounted } from 'vue';
+	// Components
+	import Icon from '@hub-client/components/elements/Icon.vue';
 
-	const { t } = useI18n();
+	// Stores
+	import { useRooms } from '@hub-client/stores/rooms';
 
-	const rooms = useRooms();
-
+	// Types
 	interface Props {
 		user: string;
 		room_id: string;
 		isHubAdmin?: boolean;
 	}
 
+	const { t } = useI18n();
+	const rooms = useRooms();
 	const props = defineProps<Props>();
-
 	const roomAttributes = ref<string[]>([]);
 
-	const hasPowerPrivileges = computed(() => rooms.currentRoom?.getPowerLevel(props.user) >= 50);
+	const hasPowerPrivileges = computed(() => rooms.currentRoom?.getPowerLevel(props.user) ?? 0 >= 50);
 
 	const userHasBadge = computed(() => roomAttributes.value.length > 0 || hasPowerPrivileges.value || props.isHubAdmin);
 

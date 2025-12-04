@@ -14,12 +14,12 @@
 	</div>
 </template>
 
-<script lang="ts">
-	import { icons } from '@/assets/icons';
-</script>
-
 <script setup lang="ts">
-	import { ref, computed } from 'vue';
+	// Packages
+	import { computed, ref } from 'vue';
+
+	// Assets
+	import { icons } from '@hub-client/assets/icons';
 
 	const props = defineProps({
 		icon: {

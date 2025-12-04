@@ -1,12 +1,12 @@
 <template>
-	<div class="flex flex-row items-center gap-1 break-words pb-4">
+	<div class="flex flex-row items-center gap-1 pb-4 break-words">
 		<p v-html="event.body" class="overflow-hidden text-ellipsis"></p>
 	</div>
 </template>
 
 <script setup lang="ts">
-	// Components
-	import { TAnnouncementMessageEventContent } from '@/model/events/TMessageEvent';
+	// Models
+	import { TAnnouncementMessageEventContent } from '@hub-client/models/events/TMessageEvent';
 
 	const props = defineProps<{
 		event: TAnnouncementMessageEventContent;

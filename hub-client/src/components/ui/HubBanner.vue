@@ -6,16 +6,21 @@
 </template>
 
 <script setup lang="ts">
+	// Packages
+	import defaultUrl from '/public/img/banner.svg';
 	import { computed } from 'vue';
-	import { useSettings } from '@/logic/store/settings';
 
+	// Stores
+	import { useSettings } from '@hub-client/stores/settings';
+
+	// Types
 	type Props = {
 		bannerUrl?: string;
 		hubNameForImgAlt?: string;
 		class?: string;
 	};
+
 	const props = defineProps<Props>();
-	const defaultUrl = 'client/img/banner.svg';
 
 	const settings = useSettings();
 	const isMobile = computed(() => settings.isMobileState);

@@ -1,16 +1,25 @@
-import { createApp } from 'vue';
-import '@/registerServiceWorker';
-import '@/assets/tailwind.css';
-import Miniclient from '@/pages/Miniclient.vue';
+// Assets
+// Packages
+import { adjustClientConfig } from './client_config';
 import { createPinia } from 'pinia';
-import Badge from './components/elements/Badge.vue';
-import { setUpi18n } from '@/i18n';
-import { registerPlugins } from './registerPlugins';
+import { createApp } from 'vue';
+
+import '@hub-client/assets/tailwind.css';
+
+// Components
+import Badge from '@hub-client/components/elements/Badge.vue';
+
+// Pages
+import Miniclient from '@hub-client/pages/Miniclient.vue';
+
+// Other
+import { setUpi18n } from '@hub-client/i18n';
+import '@hub-client/registerServiceWorker';
+
+adjustClientConfig();
 
 const pinia = createPinia();
 const app = createApp(Miniclient);
-
-registerPlugins(app);
 
 app.component('Badge', Badge);
 

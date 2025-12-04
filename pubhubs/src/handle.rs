@@ -2,10 +2,20 @@
 //! [attribute types](crate::attr::Type).
 use std::cell::OnceCell;
 
-/// A handle used to refer to hubs, attributes, etc. - a string that matches [HANDLE_REGEX]
+/// A handle used to refer to hubs, attributes, etc. - a string that matches [`HANDLE_REGEX`].
+///
+/// The default handle is `_`, and is sometimes used as a placeholder.
 #[derive(Clone, PartialEq, Eq, Hash, Debug)]
 pub struct Handle {
     inner: String,
+}
+
+impl Default for Handle {
+    fn default() -> Self {
+        Handle {
+            inner: "_".to_string(),
+        }
+    }
 }
 
 impl serde::Serialize for Handle {

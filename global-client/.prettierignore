@@ -1,6 +1,6 @@
-# Ignore artifacts:
+# Ignore artifacts
 build
 public
 
-# Ignore all HTML files:
+# Ignore all HTML files
 **/*.html

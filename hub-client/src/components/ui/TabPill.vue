@@ -5,12 +5,12 @@
 </template>
 
 <script setup lang="ts">
-	import { ref, computed, inject, onMounted } from 'vue';
+	// Packages
+	import { computed, inject, onMounted, ref } from 'vue';
 
 	const registerTabHeader = inject('registerTabHeader') as Function;
 	const setActiveTab = inject('setActiveTab') as Function;
 	const isActiveTab = inject('isActiveTab') as Function;
-
 	const tab = ref(0);
 
 	onMounted(() => {

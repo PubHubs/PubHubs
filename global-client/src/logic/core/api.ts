@@ -1,17 +1,10 @@
-/**
- *
- * Specific hub API
- *
- */
-
-import { Api } from '@/../../hub-client/src/logic/core/apiCore.js';
+// Logic
+import { Api } from '@hub-client/logic/core/apiCore';
 
 const api = new Api(_env.PUBHUBS_URL, {
 	login: 'login',
 	loginEn: 'en/login',
 	logout: 'logout',
-	bar: 'bar/state',
-	hubs: 'bar/hubs',
 });
 
 const hub_api = new Api('_synapse', {
@@ -34,7 +27,7 @@ const phc_api = _env.PHC_URL
 			newObject: '.ph/user/obj/by-handle',
 			overwriteObject: '.ph/user/obj/by-hash',
 			polymorphicPseudonymPackage: '.ph/user/ppp',
-			HashedHubPseudonymPackage: '.ph/user/hhpp',
+			hashedHubPseudonymPackage: '.ph/user/hhpp',
 		})
 	: null;
 

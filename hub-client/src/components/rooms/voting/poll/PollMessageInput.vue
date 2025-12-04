@@ -1,11 +1,11 @@
 <template>
 	<div class="rounded-md">
 		<div class="mb-2 flex border-b p-2">
-			<Icon type="poll" size="base" class="mx-2 mt-1 flex-none"></Icon>
+			<Icon type="chart-bar" size="base" class="mx-2 mt-1 flex-none"></Icon>
 			<H2 class="flex-grow">{{ $t('message.poll') }}</H2>
 			<div class="mt-1 flex flex-none">
-				<!-- <Icon type="cog" size="sm" :as-button="true" @click="settingsMenu = !settingsMenu" class="ml-auto"></Icon> -->
-				<Icon type="closingCross" size="sm" :asButton="true" @click="emit('closePoll')" class="ml-2"></Icon>
+				<!-- <Icon type="sliders-horizontal" size="sm" :as-button="true" @click="settingsMenu = !settingsMenu" class="ml-auto"></Icon> -->
+				<IconButton type="x" size="sm" @click="emit('closePoll')" class="ml-2"></IconButton>
 			</div>
 		</div>
 		<div class="flex items-center p-2">
@@ -14,7 +14,7 @@
 					<input
 						v-model="poll.title"
 						type="text"
-						class="mb-2 w-full rounded-lg bg-background text-on-surface placeholder-on-surface-dim ~text-label-min/label-max focus:border-on-surface focus:outline-0 focus:outline-offset-0 focus:ring-0"
+						class="bg-background text-on-surface placeholder-on-surface-dim text-label focus:border-on-surface mb-2 w-full rounded-lg focus:ring-0 focus:outline-0 focus:outline-offset-0"
 						:placeholder="$t('message.voting.enter_title')"
 						maxlength="100"
 						@input="updatePoll"
@@ -26,22 +26,23 @@
 							<input
 								v-model="option.title"
 								type="text"
-								class="mb-1 w-full rounded-lg bg-background text-on-surface placeholder-on-surface-dim ~text-label-min/label-max focus:border-on-surface focus:outline-0 focus:outline-offset-0 focus:ring-0"
+								class="bg-background text-on-surface placeholder-on-surface-dim text-label focus:border-on-surface mb-1 w-full rounded-lg focus:ring-0 focus:outline-0 focus:outline-offset-0"
 								:placeholder="$t('message.voting.enter_option')"
 								maxlength="70"
 								@input="updateOptions"
 								@blur="cleanupPollOption(option)"
 							/>
-							<Icon type="closingCross" size="sm" :as-button="true" @click="removeOption(option.id)" v-if="option.title !== ''" class="absolute right-2 top-2"></Icon>
+							<Icon type="x" size="sm" :as-button="true" @click="removeOption(option.id)" v-if="option.title !== ''" class="absolute top-2 right-2"></Icon>
 						</div>
 						<input
 							v-if="poll.options.length < 3"
-							class="mb-1 w-full rounded-lg bg-background text-on-surface placeholder-on-surface-dim ~text-label-min/label-max focus:border-on-surface focus:outline-0 focus:outline-offset-0 focus:ring-0"
+							class="bg-background text-on-surface placeholder-on-surface-dim text-label focus:border-on-surface mb-1 w-full rounded-lg focus:ring-0 focus:outline-0 focus:outline-offset-0"
 							disabled
 						/>
+						<Checkbox :label="$t('message.voting.show_votes_before_voting')" v-model="poll.showVotesBeforeVoting" @input="updatePoll"></Checkbox>
 					</div>
-					<div class="mb-1 max-h-full w-1/3 rounded-lg border bg-background" v-if="settingsMenu">
-						<div class="ml-3 mt-3">
+					<div class="bg-background mb-1 max-h-full w-1/3 rounded-lg border" v-if="settingsMenu">
+						<div class="mt-3 ml-3">
 							<div>
 								<Checkbox :label="$t('message.voting.show_votes_before_voting')" v-model="poll.showVotesBeforeVoting" @input="updatePoll"></Checkbox>
 							</div>
@@ -50,7 +51,7 @@
 					<textarea
 						v-else
 						v-model="poll.description"
-						class="scrollbar-emojipicker mb-1 max-h-full w-1/3 resize-none rounded-lg bg-background text-on-surface placeholder-on-surface-dim ~text-label-min/label-max focus:border-on-surface focus:outline-0 focus:outline-offset-0 focus:ring-0"
+						class="scrollbar-emojipicker bg-background text-on-surface placeholder-on-surface-dim text-label focus:border-on-surface mb-1 max-h-full w-1/3 resize-none rounded-lg focus:ring-0 focus:outline-0 focus:outline-offset-0"
 						maxlength="500"
 						:placeholder="$t('message.voting.enter_description')"
 						@input="updatePoll"
@@ -63,10 +64,15 @@
 </template>
 
 <script setup lang="ts">
-	import Icon from '@/components/elements/Icon.vue';
+	// Packages
 	import { nextTick, ref, watch } from 'vue';
-	import { Poll, PollOption } from '@/model/events/voting/VotingTypes';
-	import Checkbox from '@/components/forms/Checkbox.vue';
+
+	// Components
+	import Icon from '@hub-client/components/elements/Icon.vue';
+	import Checkbox from '@hub-client/components/forms/Checkbox.vue';
+
+	/// Models
+	import { Poll, PollOption } from '@hub-client/models/events/voting/VotingTypes';
 
 	const props = defineProps({
 		pollObject: {
@@ -83,7 +89,7 @@
 	const poll = ref(props.pollObject ? props.pollObject : new Poll());
 	const settingsMenu = ref(false);
 
-	//watch for switching between creating and editing a poll
+	// Watch for switching between creating and editing a poll
 	watch(
 		() => props.pollObject,
 		(newPoll) => {
@@ -103,7 +109,7 @@
 		updatePoll();
 		poll.value.addNewOptionsIfAllFilled();
 
-		//scroll to the bottom of the options container
+		// Scroll to the bottom of the options container
 		nextTick(() => {
 			const container = document.getElementById('optionsContainer');
 			if (container) {

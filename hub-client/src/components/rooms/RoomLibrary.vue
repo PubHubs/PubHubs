@@ -1,150 +1,191 @@
 <template>
-	<div v-if="settings.isFeatureEnabled(FeatureFlag.roomLibrary)" class="h-full p-2">
-		<PopoverButton v-if="!messageInput.state.fileAdded" icon="upload" @click="startUploadFile">{{ $t('message.upload_file') }}</PopoverButton>
-		<FilePicker ref="filePickerEl" :messageInput="messageInput" :submitButton="true" @submit="uploadFile"></FilePicker>
-		<Icon v-if="!messageInput.state.fileAdded" class="absolute right-3 top-3 hover:text-accent-red" type="close" size="sm" @click="close()"></Icon>
+	<div v-if="settings.isFeatureEnabled(FeatureFlag.roomLibrary)" class="flex h-full w-full gap-8 overflow-auto p-4 max-md:max-h-full max-md:flex-col max-md:gap-2">
+		<div class="max-h-full w-full md:w-2/3">
+			<div class="mb-4 flex w-full gap-4">
+				<div class="bg-surface-low flex w-1/2 items-center justify-end rounded-md sm:w-3/4">
+					<input
+						class="text-body placeholder:text-on-surface-variant h-full w-full flex-1 border-none bg-transparent p-1 px-2 focus:ring-0 focus:outline-0 focus:outline-offset-0"
+						type="text"
+						role="searchbox"
+						v-model="filter"
+						:placeholder="t('others.search')"
+						:title="t('others.search')"
+					/>
+					<button @click=""><Icon type="magnifying-glass" class="text-accent-secondary dark:text-on-surface-variant mr-1 rounded-md bg-transparent" size="md" /></button>
+				</div>
+				<div class="flex w-1/2 sm:w-1/4">
+					<PullDownMenu :title="t('roomlibrary.info.sortby')" :options="orderByOptionsNames" :selected="order" :toggleOrder="true" @select="setOrderBy($event)"></PullDownMenu>
+				</div>
+			</div>
 
-		<div class="h-full w-full overflow-y-auto">
-			<Table :keys="keys" @order="orderBy($event)">
-				<template v-for="(item, rowIndex) in elRoomTimeline">
-					<TableRow v-if="item.event.content?.msgtype === 'm.file' || item.event.content?.msgtype === 'm.image'" :key="rowIndex">
-						<TableCell class="xs:max-w-24 sm:max-w-48 md:max-w-none">
-							<div class="flex">
-								<div class="xs:mr-1 xs:max-h-6 xs:w-6 md:mr-2 md:w-8">
-									<Image v-if="isImage(item.event.content.filename)" :img="item.event.content.url"></Image>
-									<Icon v-else type="paperclip"></Icon>
-								</div>
-								<span class="truncate">
-									<FileDownload :url="item.event.content.url" :filename="item.event.content.filename"></FileDownload>
-								</span>
-							</div>
-						</TableCell>
-						<TableCell class="whitespace-nowrap">
-							<span class="~text-label-small-min/label-small-max">
-								{{ filters.formatBytes(item.event.content?.info?.size, 2) }}
-							</span>
-						</TableCell>
-						<TableCell>
-							<EventTime :timestamp="item.event.origin_server_ts!" :showDate="true" :timeForMsgPreview="true" class="justify-end"></EventTime>
-						</TableCell>
-						<TableCell class="xs:max-w-28 md:max-w-none">
-							<div class="flex w-full justify-end xs:gap-1 md:gap-2">
-								<Avatar :userId="item.event.sender" class="h-6 w-6"></Avatar>
-								<DisplayName :userId="item.event.sender"></DisplayName>
-							</div>
-						</TableCell>
-						<TableCell>
-							<div class="flex w-full justify-end">
-								<template v-if="isSigned(item.event.event_id)">
-									<SignedDialog
-										v-for="signedEvent in getAllSignedEventsForFile(item.event.event_id)"
-										:key="signedEvent.event.sender"
-										:event="signedEvent.event"
-										:originalEvent="item.event"
-										:room="rooms.rooms[props.id]"
-										:attributes="selectedAttributes"
-									></SignedDialog>
-								</template>
-								<Icon v-else :type="'sign'" :asButton="true" @click.stop="handleSigning(item.event.content.url, item.event.event_id)" class="cursor-pointer"></Icon>
-							</div>
-						</TableCell>
-						<TableCell>
-							<div class="flex flex-grow justify-end">
-								<Icon v-if="user.isAdmin" class="bg-hub-background-4 hover:bg-red flex rounded-md p-1" :type="'bin'" :asButton="true" @click.stop="confirmDeletion(item.event.content, item.event.event_id)"></Icon>
-							</div>
-						</TableCell>
-					</TableRow>
-				</template>
-			</Table>
-
-			<template v-for="item in elRoomTimeline" :key="item.event.event_id">
-				<Dialog v-if="signingMessage && activeEventId === item.event.event_id" :buttons="buttonsCancel" :title="$t('roomlibrary.sign_file_hash')" @close="signingMessage = false">
-					<div class="flex flex-col items-center gap-4">
-						<div class="text-center" id="yivi-web-form"></div>
-						<div class="text-center">
-							{{ $t('roomlibrary.sign_file_hash') }} `{{ item.event.content?.filename }}` : <span class="font-bold">{{ showFileHash }}</span> <br />
-							{{ $t('roomlibrary.check_file_hash') }}
-						</div>
+			<BarList v-if="roomTimeLineFiles.length > 0" class="max-h-fit" data-testid="filemanager">
+				<BarListItem v-if="user.isAdmin" class="!bg-background !mb-0 flex justify-end" data-testid="filemanager-admin">
+					<div class="flex items-center gap-1">
+						<IconButton v-if="hasSelection()" type="trash" class="hover:text-accent-red" @click.stop="deleteSelected()"></IconButton>
+						<IconButton v-if="!selectedAll" type="square" @click.stop="selectAll(roomTimeLineFiles)"></IconButton>
+						<IconButton v-else type="check-square" @click.stop="unselectAll()"></IconButton>
 					</div>
-				</Dialog>
-			</template>
+				</BarListItem>
+				<div data-testid="filemanager-list">
+					<template v-for="item in roomTimeLineFiles">
+						<BarListItem :class="{ '!bg-on-surface-dim': isSelected(item) && !deletingAll, '!bg-accent-error': isSelected(item) && deletingAll }">
+							<div>
+								<InlineCollapse>
+									<template #visible="{ collapsed }">
+										<div class="flex h-6 items-center gap-2">
+											<div v-if="deletingAll && isSelected(item)">
+												<InlineSpinner></InlineSpinner>
+											</div>
+											<div v-else>
+												<Icon v-if="isSigned(item.matrixEvent.getId())" type="seal-check" class="text-accent-blue"></Icon>
+												<Icon v-else type="question" @click.stop="handleSigning(item.matrixEvent.getContent().url, item.matrixEvent.getId())" class="text-on-surface-disabled cursor-pointer"></Icon>
+											</div>
+											<div>
+												<FileDownload :url="item.matrixEvent.getContent().url" :filename="item.matrixEvent.getContent().filename">
+													<FileIcon :filename="item.matrixEvent.getContent().filename"></FileIcon>
+												</FileDownload>
+											</div>
+											<div class="flex-grow truncate">
+												<FileDownload :url="item.matrixEvent.getContent().url" :filename="item.matrixEvent.getContent().filename">{{ item.matrixEvent.getContent().filename }}</FileDownload>
+											</div>
+											<div>
+												<InlineCollapseToggle>
+													<Icon type="info" :class="{ 'text-accent-blue': !collapsed }"></Icon>
+												</InlineCollapseToggle>
+											</div>
+											<div class="max-xs:hidden text-right">
+												<span v-if="order.index <= 1" class="text-label-small whitespace-nowrap">
+													{{ filters.formatBytes(item.matrixEvent.getContent().info?.size, 2) }}
+												</span>
+												<EventTimeCompact v-else-if="order.index === 2" :timestamp="item.matrixEvent.getTs()"></EventTimeCompact>
+												<AvatarDisplayNameCompact
+													v-else-if="order.index === 3"
+													:userId="item.matrixEvent.getSender()"
+													:userDisplayName="user.userDisplayName(item.matrixEvent.getSender()!)"
+												></AvatarDisplayNameCompact>
+											</div>
+											<div>
+												<FileDownload :url="item.matrixEvent.getContent().url" :filename="item.matrixEvent.getContent().filename"><IconButton type="download-simple"></IconButton></FileDownload>
+											</div>
+											<div v-if="user.isAdmin" class="flex items-center gap-2">
+												<IconButton class="hover:text-accent-red" type="trash" @click.stop="confirmDeletion(item.matrixEvent.getContent(), item.matrixEvent.getId())"></IconButton>
+												<IconButton v-if="isSelected(item)" type="check-square" @click.stop="removeFromSelection(item)"></IconButton>
+												<IconButton v-else type="square" @click.stop="addToSelection(item)"></IconButton>
+											</div>
+										</div>
+									</template>
+									<template #collapsed>
+										<div class="text-md flex flex-wrap items-center gap-2">
+											<div class="flex flex-grow">
+												<div v-if="isSigned(item.matrixEvent.getId())" class="bg-signed text-label-small flex items-center gap-2 rounded-xs px-1">
+													<Icon type="seal-check" class="text-accent-primary"></Icon>
+													<span class="text-nowrap">{{ $t('roomlibrary.signed') }}</span>
+													<DisplayNameCompact
+														v-for="signedEvent in getAllSignedEventsForFile(item.matrixEvent.getId())"
+														:userId="signedEvent.matrixEvent.getSender()"
+														:userDisplayName="user.userDisplayName(signedEvent.matrixEvent.getSender()!)"
+													></DisplayNameCompact>
+												</div>
+											</div>
+											<div class="text-label-small xs:gap-1 flex items-center md:gap-2">
+												<AvatarDisplayNameCompact
+													v-if="item.matrixEvent.getSender()"
+													:userId="item.matrixEvent.getSender()"
+													:userDisplayName="user.userDisplayName(item.matrixEvent.getSender()!)"
+												></AvatarDisplayNameCompact>
+												<EventTimeCompact :timestamp="item.matrixEvent.getTs()"></EventTimeCompact>
+											</div>
+										</div>
+									</template>
+								</InlineCollapse>
+							</div>
+						</BarListItem>
+					</template>
+				</div>
+				<BarListItem class="!bg-background !mb-0 flex justify-between">
+					<span>{{ $t('roomlibrary.total_files', roomTimeLineFiles.length, { named: { count: roomTimeLineFiles.length } }) }}</span>
+					<span v-if="user.isAdmin && hasSelection()">{{ $t('roomlibrary.selected_files', selection.length, { named: { count: selection.length } }) }}</span>
+				</BarListItem>
+			</BarList>
 		</div>
 
-		<DeleteFileDialog v-if="showDeleteDialog" :eventContent="eventContentToShow" @close="showDeleteDialog = false" @yes="handleDeletion(eventContentToShow, eventIdHolder)"></DeleteFileDialog>
+		<div class="w-full max-md:order-first md:w-1/3">
+			<DropFiles></DropFiles>
+		</div>
 	</div>
+
+	<template v-for="item in roomTimeLine" :key="item.matrixEvent.event.event_id">
+		<Dialog v-if="signingMessage && activeEventId === item.matrixEvent.event.event_id" :buttons="buttonsCancel" :title="$t('roomlibrary.sign_file_hash')" @close="signingMessage = false">
+			<div class="flex flex-col items-center gap-4">
+				<div class="text-center" id="yivi-web-form"></div>
+				<div class="text-center">
+					{{ $t('roomlibrary.sign_file_hash') }} `{{ item.matrixEvent.event.content?.filename }}` : <span class="font-bold">{{ showFileHash }}</span> <br />
+					{{ $t('roomlibrary.check_file_hash') }}
+				</div>
+			</div>
+		</Dialog>
+	</template>
 </template>
 
 <script setup lang="ts">
 	//Components
-	import DeleteFileDialog from '@/components/ui/DeleteFileDialog.vue';
-	import SignedDialog from '@/components/ui/SignedDialog.vue';
-	import { FeatureFlag, useSettings } from '@/logic/store/settings';
-
-	// Composables
-	import { onMounted, ref, onUnmounted, watch } from 'vue';
-	import { useRooms } from '@/logic/store/store';
-	import { TSearchParameters } from '@/model/search/TSearch';
-	import { TFileMessageEventContent, TImageMessageEventContent } from '@/model/events/TMessageEvent';
-	import { useMatrixFiles } from '@/logic/composables/useMatrixFiles';
-	import { usePubHubs } from '@/logic/core/pubhubsStore';
-	import { useRoomLibrary } from '@/logic/composables/useRoomLibrary';
-	import { fileUpload } from '@/logic/composables/fileUpload';
-	import { useMessageInput } from '@/logic/store/messageInput';
-	import { YiviSigningSessionResult } from '@/model/components/signedMessages';
-	import { useUser } from '@/logic/store/user';
-	import { useRoute } from 'vue-router';
-	import { MatrixEvent } from 'matrix-js-sdk';
-	import { PubHubsMgType } from '@/logic/core/events';
-	import { useI18n } from 'vue-i18n';
-	import filters from '@/logic/core/filters';
+	import BarList from '../ui/BarList.vue';
+	import BarListItem from '../ui/BarListItem.vue';
+	import Dialog from '../ui/Dialog.vue';
+	import DropFiles from '../ui/DropFiles.vue';
 	import FileDownload from '../ui/FileDownload.vue';
-	import { buttonsCancel } from '@/logic/store/dialog';
+	import InlineCollapse from '../ui/InlineCollapse.vue';
+	// Composables
+	import { computed, onMounted, onUnmounted, ref } from 'vue';
+	import { useI18n } from 'vue-i18n';
+
+	import { useMatrixFiles } from '@hub-client/composables/useMatrixFiles';
+	import { useRoomLibrary } from '@hub-client/composables/useRoomLibrary';
+
+	import { PubHubsMgType } from '@hub-client/logic/core/events';
+	import filters from '@hub-client/logic/core/filters';
+
+	import { SortOption, SortOrder } from '@hub-client/models/components/SortOrder';
+	import { YiviSigningSessionResult } from '@hub-client/models/components/signedMessages';
+	import { TFileMessageEventContent, TImageMessageEventContent } from '@hub-client/models/events/TMessageEvent';
+	import Room from '@hub-client/models/rooms/Room';
+
+	import { buttonsCancel } from '@hub-client/stores/dialog';
+	import { useDialog } from '@hub-client/stores/dialog';
+	import { usePubhubsStore } from '@hub-client/stores/pubhubs';
+	import { useRooms } from '@hub-client/stores/rooms';
+	import { FeatureFlag, useSettings } from '@hub-client/stores/settings';
+	import { useUser } from '@hub-client/stores/user';
+
+	const dialog = useDialog();
 
 	const emit = defineEmits(['close']);
 	const { t } = useI18n();
 	const rooms = useRooms();
 	const user = useUser();
-	const route = useRoute();
 
 	const settings = useSettings();
-	const pubhubs = usePubHubs();
-	const messageInput = useMessageInput();
-	const { makeHash, deleteMedia, updateTimeline, uri } = useRoomLibrary();
-	const { allTypes, uploadUrl, formUrlfromMxc, deleteMediaUrlfromMxc, isImage } = useMatrixFiles();
+	const pubhubs = usePubhubsStore();
+	const { makeHash, deleteMedia, removeFromTimeline } = useRoomLibrary();
+	const { formUrlfromMxc, deleteMediaUrlfromMxc } = useMatrixFiles();
 
 	const signingMessage = ref<boolean>(false);
 	const selectedAttributes = ref<string[]>(['irma-demo.sidn-pbdf.email.domain']);
 	const activeEventId = ref<string | undefined>(undefined);
 	const expandedSignedEventIds = ref<Set<string>>(new Set());
-	// Used to update roomtimeline reactively for e.g. deleting
-	const elRoomTimeline = ref<MatrixEvent[]>([]);
-	const eventContentToShow = ref<TFileMessageEventContent | TImageMessageEventContent>();
-	const showDeleteDialog = ref<boolean>(false);
-	const filePickerEl = ref();
-	const eventIdHolder = ref<string>('');
 	const showFileHash = ref<string>('');
-	const orderKey = ref('');
-	const orderAsc = ref(true);
+	const order = ref({ index: 0, order: SortOrder.asc } as SortOption);
+	const filter = ref('');
+
+	const selection = ref([] as Array<any>);
+	const selectedAll = ref(false);
+	const deletingAll = ref(false);
 
 	const props = defineProps<{
-		id: string;
+		room: Room;
 	}>();
-	const searchParameters = ref<TSearchParameters>({ roomId: props.id, term: '' });
-
-	const getAllSignedEventsForFile = (eventId: string | undefined) => {
-		// Get all signed events for the given file (using the event_id to match the related 'original' file event)
-		const signed = elRoomTimeline.value.filter((e) => {
-			return e.event.content?.msgtype === PubHubsMgType.SignedFileMessage && e.event.content?.['m.relates_to']?.event_id === eventId;
-		});
-		return signed;
-	};
-
-	const isSigned = (eventId: string | undefined) => {
-		return getAllSignedEventsForFile(eventId).length > 0;
-	};
 
 	onMounted(() => {
-		update();
 		window.addEventListener('keydown', handleEsc);
 	});
 
@@ -153,90 +194,108 @@
 		expandedSignedEventIds.value.clear();
 	});
 
-	watch(route, () => {
-		update();
+	const orderByOptions = [
+		{
+			key: 'name',
+			name: 'roomlibrary.info.name',
+			sortable: true,
+			sortAsc: (a, b) => {
+				if (a.matrixEvent.event.content.filename && b.matrixEvent.event.content.filename) {
+					const lowA = (a.matrixEvent.event.content.filename as String).toLowerCase();
+					const lowB = (b.matrixEvent.event.content.filename as String).toLowerCase();
+					return lowA < lowB;
+				}
+				return 0;
+			},
+			sortDesc: (a, b) => {
+				if (a.matrixEvent.event.content.filename && b.matrixEvent.event.content.filename) {
+					const lowA = (a.matrixEvent.event.content.filename as String).toLowerCase();
+					const lowB = (b.matrixEvent.event.content.filename as String).toLowerCase();
+					return lowA > lowB;
+				}
+				return 0;
+			},
+		},
+		{
+			key: 'size',
+			name: 'roomlibrary.info.filesize',
+			sortable: true,
+			sortAsc: (a, b) => a.matrixEvent.event.content?.info?.size < b.matrixEvent.event.content?.info?.size,
+			sortDesc: (a, b) => a.matrixEvent.event.content?.info?.size > b.matrixEvent.event.content?.info?.size,
+		},
+		{
+			key: 'date',
+			name: 'roomlibrary.info.filedate',
+			sortable: true,
+			sortAsc: (a, b) => a.matrixEvent.event.origin_server_ts < b.matrixEvent.event.origin_server_ts,
+			sortDesc: (a, b) => a.matrixEvent.event.origin_server_ts > b.matrixEvent.event.origin_server_ts,
+		},
+		{
+			key: 'user',
+			name: 'roomlibrary.info.user',
+			sortable: true,
+			sortAsc: (a, b) => a.matrixEvent.event.sender < b.matrixEvent.event.sender,
+			sortDesc: (a, b) => a.matrixEvent.event.sender > b.matrixEvent.event.sender,
+		},
+	];
+	const orderByOptionsNames = orderByOptions.map((item) => {
+		return item.name;
 	});
 
-	const keys = {
-		name: {
-			key: 'name',
-			name: t('roomlibrary.info.name'),
-			sortable: true,
-			sortAsc: (a, b) => a.event.content.filename < b.event.content.filename,
-			sortDesc: (a, b) => a.event.content.filename > b.event.content.filename,
-		},
-		size: {
-			key: 'size',
-			name: t('roomlibrary.info.filesize'),
-			sortable: true,
-			sortAsc: (a, b) => a.event.content?.info?.size < b.event.content?.info?.size,
-			sortDesc: (a, b) => a.event.content?.info?.size > b.event.content?.info?.size,
-		},
-		date: {
-			key: 'date',
-			name: t('roomlibrary.info.uploaded_on'),
-			sortable: true,
-			sortAsc: (a, b) => a.event.origin_server_ts < b.event.origin_server_ts,
-			sortDesc: (a, b) => a.event.origin_server_ts > b.event.origin_server_ts,
-		},
-		user: {
-			key: 'user',
-			name: t('roomlibrary.info.uploaded_by'),
-			sortable: true,
-			sortAsc: (a, b) => a.event.sender < b.event.sender,
-			sortDesc: (a, b) => a.event.sender > b.event.sender,
-		},
-		signed: {
-			key: 'signed',
-			name: t('roomlibrary.info.sign'),
-			sortable: false,
-		},
-		actions: { key: 'actions', sortable: false },
+	const roomTimeLine = computed(() => {
+		let timeline = props.room.getLibraryTimeline().filter(
+			(e) =>
+				e.matrixEvent.event !== null &&
+				e.matrixEvent.event.content &&
+				Object.keys(e.matrixEvent.event.content).length > 0 &&
+				// e.matrixEvent.event.type !== Redaction.DeletedFromLibrary &&
+				// e.matrixEvent.event.type !== Redaction.Redacts &&
+				e.isDeleted === false,
+		);
+		// filter
+		if (filter.value !== '') {
+			timeline = timeline.filter((e) => {
+				const lowerFilter = filter.value.toLocaleLowerCase();
+				if (e.matrixEvent.event.content?.filename) {
+					const filename = (e.matrixEvent.event.content.filename as String).toLocaleLowerCase();
+					return filename.indexOf(lowerFilter) >= 0;
+				}
+				return false;
+			});
+		}
+		// order
+		if (order.value.index >= 0) {
+			let func = orderByOptions[order.value.index].sortAsc;
+			if (order.value.order == SortOrder.desc) {
+				func = orderByOptions[order.value.index].sortDesc;
+			}
+			timeline = timeline.sort(func);
+		}
+		return timeline;
+	});
+
+	const roomTimeLineFiles = computed(() => {
+		return roomTimeLine.value.filter((e) => e.matrixEvent.getContent().msgtype === 'm.file' || e.matrixEvent.getContent().msgtype === 'm.image');
+	});
+
+	const setOrderBy = (o: SortOption) => {
+		order.value = o;
 	};
 
-	function update() {
-		elRoomTimeline.value = rooms.rooms[props.id]
-			.loadRoomlibrary()
-			.getLiveTimeline()
-			.getEvents()
-			.filter((e) => e.event !== null);
-		if (orderKey.value !== '') {
-			let func = keys[orderKey.value].sortAsc;
-			if (orderAsc.value) {
-				func = keys[orderKey.value].sortDesc;
-			}
-			elRoomTimeline.value = elRoomTimeline.value.sort(func);
-			// console.log('update sort', orderKey.value, orderAsc.value, func, elRoomTimeline.value);
+	const getAllSignedEventsForFile = (eventId: string | undefined) => {
+		// Get all signed events for the given file (using the event_id to match the related 'original' file event)
+		if (roomTimeLine.value) {
+			const signed = roomTimeLine.value.filter((e) => {
+				return e.matrixEvent.event.content?.msgtype === PubHubsMgType.SignedFileMessage && e.matrixEvent.event.content?.['m.relates_to']?.event_id === eventId;
+			});
+			return signed;
 		}
-		searchParameters.value.roomId = rooms.currentRoom.roomId;
-	}
+		return [];
+	};
 
-	function orderBy(order: Object) {
-		orderKey.value = order.key;
-		orderAsc.value = order.asc;
-		update();
-	}
-
-	function startUploadFile() {
-		if (filePickerEl.value) {
-			filePickerEl.value.openFile();
-		}
-	}
-
-	function uploadFile() {
-		messageInput.closeFileUpload();
-		const syntheticEvent = {
-			currentTarget: {
-				files: [messageInput.state.fileAdded],
-			},
-		} as unknown as Event;
-		fileUpload(t('errors.file_upload'), pubhubs.Auth.getAccessToken(), uploadUrl, allTypes, syntheticEvent, (url) => {
-			pubhubs.addFile(rooms.currentRoomId, undefined, messageInput.state.fileAdded as File, url, '', PubHubsMgType.LibraryFileMessage);
-			URL.revokeObjectURL(uri.value);
-			messageInput.cancelFileUpload();
-			update();
-		});
-	}
+	const isSigned = (eventId: string | undefined) => {
+		return getAllSignedEventsForFile(eventId).length > 0;
+	};
 
 	function handleEsc(event: KeyboardEvent) {
 		if (event.key === 'Escape' && signingMessage.value) {
@@ -251,43 +310,77 @@
 		const accessToken = pubhubs.Auth.getAccessToken();
 		if (accessToken) {
 			const url = formUrlfromMxc(mxc, true);
-
-			const hashedFile = await makeHash(accessToken, url, props.id);
+			const hashedFile = await makeHash(accessToken, url, props.room);
 			showFileHash.value = hashedFile;
-
 			rooms.yiviSignMessage(hashedFile, selectedAttributes.value, rooms.currentRoomId, undefined, finishedSigningMessage);
 		}
 	}
-	// used this from MessageInput.vue
+
 	async function finishedSigningMessage(result: YiviSigningSessionResult) {
 		signingMessage.value = false;
 		await pubhubs.addSignedFile(rooms.currentRoomId, result, activeEventId.value);
-		update();
 	}
 
-	function confirmDeletion(eventContent: TFileMessageEventContent | TImageMessageEventContent, eventId: string) {
-		showDeleteDialog.value = true;
-		eventContentToShow.value = eventContent;
-		eventIdHolder.value = eventId;
+	async function confirmDeletion(eventContent: TFileMessageEventContent | TImageMessageEventContent, eventId: string | undefined) {
+		const confirm = await dialog.okcancel(t('roomlibrary.delete.heading'), t('roomlibrary.delete.content', [eventContent.filename]));
+		if (confirm) {
+			await handleDeletion(eventContent, eventId as string);
+		}
 	}
 
 	async function handleDeletion(eventContent: TFileMessageEventContent | TImageMessageEventContent | undefined, eventId: string) {
 		if (eventContent) {
 			const mxc = eventContent.url;
 			const url = deleteMediaUrlfromMxc(mxc);
-			await deleteMedia(url, eventId);
-			update();
-			// Update the room timeline
-			const room = rooms.rooms[props.id];
 			const allSignedEvents = getAllSignedEventsForFile(eventId);
-			const newTimeline = await updateTimeline(eventId, room, allSignedEvents);
-			if (newTimeline) {
-				elRoomTimeline.value = newTimeline.getEvents();
-			}
+			await deleteMedia(url, eventId, props.room.roomId);
+			await removeFromTimeline(eventId, props.room.roomId, allSignedEvents);
 		}
 	}
 
-	function close() {
-		emit('close');
+	function hasSelection() {
+		return selection.value.length > 0;
+	}
+
+	function addToSelection(item: any) {
+		if (!isSelected(item)) {
+			selection.value.push(item);
+		}
+	}
+
+	function selectAll(all: Array<any>) {
+		selectedAll.value = true;
+		all.forEach((item) => {
+			addToSelection(item);
+		});
+	}
+
+	function unselectAll() {
+		selectedAll.value = false;
+		selection.value = [];
+	}
+
+	function isSelected(item: any) {
+		return selection.value.includes(item);
+	}
+
+	function removeFromSelection(item: any) {
+		const index = selection.value.findIndex((e) => e === item);
+		selection.value.splice(index, 1);
+	}
+
+	async function deleteSelected() {
+		const confirm = await dialog.okcancel(t('roomlibrary.delete.multiple_heading'), t('roomlibrary.delete.multiple_content', [selection.value.length]));
+		if (confirm) {
+			filter.value = '';
+			deletingAll.value = true;
+			await Promise.all(
+				selection.value.map(async (item) => {
+					await handleDeletion(item.matrixEvent.event.content, item.matrixEvent.event.event_id);
+				}),
+			);
+			deletingAll.value = false;
+			unselectAll();
+		}
 	}
 </script>

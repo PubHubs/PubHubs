@@ -1,5 +1,5 @@
 <template>
-	<Icon type="checkmark" @click="togglePopup()" class="cursor-pointer"></Icon>
+	<Icon type="check-circle" @click="togglePopup()" class="cursor-pointer"></Icon>
 
 	<Dialog v-if="showPopup" :title="$t('roomlibrary.signed_info')" :buttons="buttonsOk" @close="togglePopup()">
 		<p>{{ $t('roomlibrary.used_attribute') }} '{{ attributes.toString() }}' {{ $t('roomlibrary.with_value') }} '{{ displayDisclosedAttribute.toString() }}'</p>
@@ -7,20 +7,29 @@
 		<p class="mt-2">
 			<a class="flex gap-2" v-if="fileUrl" :href="fileUrl" :download="fileName">
 				<span>{{ $t('roomlibrary.download_info') }}</span>
-				<Icon :type="'download'" :asButton="true"></Icon>
+				<IconButton type="download-simple"></IconButton>
 			</a>
 		</p>
 	</Dialog>
 </template>
 
 <script setup lang="ts">
-	// Components
-	import Icon from '../elements/Icon.vue';
+	// Packages
+	import { computed, onMounted, ref } from 'vue';
 
-	import { TFileMessageEventContent, TSignedMessageEventContent } from '@/model/events/TMessageEvent';
-	import { onMounted, computed, ref } from 'vue';
-	import Room from '@/model/rooms/Room';
-	import { buttonsOk } from '@/logic/store/dialog';
+	// Components
+	import Icon from '@hub-client/components/elements/Icon.vue';
+
+	// Models
+	import { TFileMessageEventContent, TSignedMessageEventContent } from '@hub-client/models/events/TMessageEvent';
+	import Room from '@hub-client/models/rooms/Room';
+
+	// Stores
+	import { buttonsOk } from '@hub-client/stores/dialog';
+
+	const showPopup = ref(false);
+	const fileUrl = ref<string>('');
+	const fileName = ref<string>('');
 
 	const props = defineProps<{
 		event: any;
@@ -28,11 +37,6 @@
 		room: Room;
 		attributes: string[];
 	}>();
-
-	const showPopup = ref(false);
-
-	const fileUrl = ref<string>('');
-	const fileName = ref<string>('');
 
 	const signedMessage = computed((): TSignedMessageEventContent => {
 		return props.event.content;

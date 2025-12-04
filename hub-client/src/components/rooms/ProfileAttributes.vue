@@ -4,9 +4,9 @@
 			v-for="value in roomAttributes"
 			:key="value"
 			:class="value === 'rooms.admin_badge' ? 'bg-accent-primary' : 'bg-surface text-on-surface-variant'"
-			class="flex w-fit items-center gap-1 rounded-full px-2 lowercase text-background ~text-label-small-min/label-small-max"
+			class="text-background text-label-small flex w-fit items-center gap-1 rounded-full px-2 lowercase"
 		>
-			<Icon type="check" size="xs" :class="value === 'rooms.admin_badge' ? 'text-background' : 'text-on-surface-variant'" class="py-1" />
+			<Icon type="check-circle" size="xs" :class="value === 'rooms.admin_badge' ? 'text-background' : 'text-on-surface-variant'" class="py-1" />
 			<span v-if="value === 'rooms.admin_badge'" class="line-clamp-1">{{ $t(value) }}</span>
 			<span v-else class="line-clamp-1">{{ value }}</span>
 		</span>
@@ -14,21 +14,23 @@
 </template>
 
 <script setup lang="ts">
-	// Components
-	import Icon from '../elements/Icon.vue';
-
-	import { useRooms } from '@/logic/store/store';
+	// Packages
 	import { ref, watch } from 'vue';
 
-	const rooms = useRooms();
+	// Components
+	import Icon from '@hub-client/components/elements/Icon.vue';
 
+	// Stores
+	import { useRooms } from '@hub-client/stores/rooms';
+
+	// Types
 	interface Props {
 		user: string;
 		room_id: string;
 	}
 
+	const rooms = useRooms();
 	const props = defineProps<Props>();
-
 	const roomAttributes = ref<string[]>([]);
 
 	function update_attributes() {

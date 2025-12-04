@@ -6,7 +6,7 @@
 		</div>
 		<Suspense>
 			<Mask>
-				<RoomMessageBubble class="w-fit" :event="event" :room="room" :deleteMessageDialog="true" :viewFromThread="props.viewFromThread" />
+				<RoomMessageBubble :event="event" :room="room" :deleteMessageDialog="true" :viewFromThread="props.viewFromThread" />
 				<Reaction class="mx-4 w-5/6" v-if="displayReactionInDialog(event.event_id)" :reactEvent="displayReactionInDialog(event.event_id)" :messageEventId="event.event_id" />
 			</Mask>
 			<template #fallback>
@@ -17,22 +17,25 @@
 </template>
 
 <script setup lang="ts">
-	import Room from '@/pages/Room.vue';
-	import { buttonsYesNo, DialogButtonAction } from '@/logic/store/dialog';
-	import { useUser } from '@/logic/store/user';
+	// Packages
+	import Reaction from '../ui/Reaction.vue';
+	import { MatrixEvent, MsgType } from 'matrix-js-sdk';
 	import { PropType } from 'vue';
 
-	const user = useUser();
-
 	// Components
+	import RoomMessageBubble from '@hub-client/components/rooms/RoomMessageBubble.vue';
+	import Dialog from '@hub-client/components/ui/Dialog.vue';
 
-	import Dialog from '../ui/Dialog.vue';
-	import Reaction from '../ui/Reaction.vue';
-	import RoomMessageBubble from '../rooms/RoomMessageBubble.vue';
+	import { RelationType } from '@hub-client/models/constants';
 
-	import { RelationType } from '@/model/constants';
-	import { MatrixEvent, MsgType } from 'matrix-js-sdk';
+	// Pages
 
+	// Stores
+	import { DialogButtonAction, buttonsYesNo } from '@hub-client/stores/dialog';
+	import { Room } from '@hub-client/stores/rooms';
+	import { useUser } from '@hub-client/stores/user';
+
+	const user = useUser();
 	const emit = defineEmits(['yes', 'close']);
 
 	const props = defineProps({
@@ -54,12 +57,8 @@
 		},
 	});
 
-	function displayReactionInDialog(eventId: string): MatrixEvent {
-		if (!props.threadReactionEvent) {
-			return props.room.getReactionEvent(eventId);
-		} else {
-			return props.threadReactionEvent.filter((reactEvent: MatrixEvent) => reactEvent.getContent()[RelationType.RelatesTo]?.event_id === eventId);
-		}
+	function displayReactionInDialog(eventId: string): MatrixEvent[] | undefined {
+		return props.room.getRelatedEvents(eventId).map((x) => x.matrixEvent);
 	}
 
 	async function close(returnValue: DialogButtonAction) {

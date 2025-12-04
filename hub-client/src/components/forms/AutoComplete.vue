@@ -12,12 +12,12 @@
 		<input
 			type="text"
 			v-model="search"
-			class="w-full rounded-lg border bg-background px-2 py-1 ~text-label-min/label-max placeholder:text-surface-subtle focus:ring-accent-primary"
+			class="bg-background text-label placeholder:text-surface-subtle focus:ring-accent-primary w-full rounded-lg border px-2 py-1"
 			:placeholder="$t('admin.editroom_typing')"
 			:disabled="disabled === true"
 			:maxlength="maxlength"
 		/>
-		<ul v-if="result.length > 0" class="absolute z-50 w-full rounded-lg border bg-background px-2 py-1 shadow-md">
+		<ul v-if="result.length > 0" class="bg-background absolute z-50 w-full rounded-lg border px-2 py-1 shadow-md">
 			<li v-for="(item, index) in result" :key="index" @click="click(item)" class="cursor-pointer" :class="{ '': cursor === index }">
 				{{ item }}
 			</li>
@@ -26,10 +26,14 @@
 </template>
 
 <script setup lang="ts">
-	import { onMounted, computed, watch } from 'vue';
-	import { InputType, useFormInputEvents, usedEvents } from '@/logic/composables/useFormInputEvents';
-	import { useKeyStrokes } from '@/logic/composables/useKeyStrokes';
+	// Packages
+	import { computed, onMounted, watch } from 'vue';
 
+	// Composables
+	import { InputType, useFormInputEvents, usedEvents } from '@hub-client/composables/useFormInputEvents';
+	import { useKeyStrokes } from '@hub-client/composables/useKeyStrokes';
+
+	// Types
 	type Props = {
 		options: Array<String>;
 		value: string | Object;

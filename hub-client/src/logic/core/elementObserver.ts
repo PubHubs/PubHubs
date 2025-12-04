@@ -15,7 +15,8 @@ class ElementObserver {
 
 	setUpObserver(callback: IntersectionObserverCallback) {
 		if (!this.element) {
-			throw new Error('Element ${element} is not found');
+			return; // do NOT throw an error, that stops further execution
+			//throw new Error('Element ${element} is not found');
 		}
 
 		this.observer = new IntersectionObserver((entries, observer) => {

@@ -8,9 +8,11 @@
 
 <script setup lang="ts">
 	// Components
-	import PrivateRoomMembersList from './PrivateRoomMembersList.vue';
+	import PrivateRoomMembersList from '@hub-client/components/rooms/PrivateRoomMembersList.vue';
 
-	import Room from '@/model/rooms/Room';
+	// Models
+	import Room from '@hub-client/models/rooms/Room';
+
 	const props = defineProps({
 		room: {
 			type: Room,

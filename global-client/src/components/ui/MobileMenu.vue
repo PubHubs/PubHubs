@@ -1,17 +1,18 @@
 <template>
-	<div v-if="!($route.name === 'onboarding')" :class="[classObject, !isMobile && 'hidden']" class="absolute left-0 top-0 flex h-[7.5rem] items-center p-4" @click="toggleMenu.toggleMenuAndSendToHub()">
-		<Icon v-if="!toggleMenu.globalIsActive && !global.isModalVisible" type="list" />
+	<div v-if="!($route.name === 'onboarding')" :class="[classObject, !isMobile && 'hidden']" class="absolute top-0 left-0 flex items-center" @click="toggleMenu.toggleMenuAndSendToHub()">
+		<Icon v-if="!toggleMenu.globalIsActive && !global.isModalVisible" type="dots-three-vertical" size="xl" />
 	</div>
 </template>
 
 <script setup lang="ts">
-	// Vue imports
+	// Packages
 	import { computed } from 'vue';
 
-	// Global imports
-	import { useGlobal } from '@/logic/store/global';
-	import { useToggleMenu } from '@/logic/store/toggleGlobalMenu';
-	import { useSettings } from '@/logic/store/settings';
+	// Stores
+	import { useGlobal } from '@global-client/stores/global';
+	import { useToggleMenu } from '@global-client/stores/toggleGlobalMenu';
+
+	import { useSettings } from '@hub-client/stores/settings';
 
 	const toggleMenu = useToggleMenu();
 	const global = useGlobal();

@@ -1,8 +1,9 @@
+# General
 .DS_Store
 node_modules
 /dist
 
-# local env files
+# Local env files
 .env.local
 .env.*.local
 
@@ -21,6 +22,6 @@ pnpm-debug.log*
 *.sln
 *.sw?
 
-# coverage & test
+# Coverage & test
 coverage
 __snapshots__

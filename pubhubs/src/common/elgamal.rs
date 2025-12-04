@@ -488,7 +488,6 @@ impl Encoding<96> for Triple {
     }
 }
 
-#[cfg(feature = "bin")]
 mod serde_impls {
     use super::*;
     use crate::misc::serde_ext;
@@ -542,55 +541,54 @@ impl crate::common::secret::DigestibleSecret for PrivateKey {
     }
 }
 
-/// Application binary interface
-#[cfg(feature = "abi")]
-pub mod abi {
-    use super::*;
-
-    /// Decrypts the given `ciphertext` using the given `private_key` and stores the result in
-    /// `plaintext`.
-    ///
-    ///   * `plaintext` - pointer to a writable 32-byte buffer
-    ///   * `ciperhtext` - pointer to a 96-byte buffer holding the result of [Triple::to_bytes]
-    ///   * `private_key` - pointer to a 32-byte buffer holding the result of [Scalar::to_bytes]
-    ///
-    /// # Safety
-    /// The caller must make sure the pointers are aligned, point to valid memory regions,
-    /// are readable, and plaintext is writable, and are not otherwise modified.
-    ///
-    /// For more details, see [core::slice::from_raw_parts] and [core::slice::from_raw_parts_mut].
-    #[unsafe(no_mangle)]
-    pub unsafe extern "C" fn decrypt(
-        plaintext: *mut u8,
-        ciphertext: *const u8,
-        private_key: *const u8,
-    ) -> DecryptResult {
-        let pk = match unsafe { PrivateKey::from_ptr(private_key) } {
-            Some(pk) => pk,
-            None => return DecryptResult::InvalidPrivateKey,
-        };
-
-        let ct = match unsafe { Triple::from_ptr(ciphertext) } {
-            Some(ct) => ct,
-            None => return DecryptResult::InvalidTriple,
-        };
-
-        let pt = match ct.decrypt_and_check_pk(&pk) {
-            Some(pt) => pt,
-            None => return DecryptResult::WrongPublicKey,
-        };
-
-        unsafe { pt.copy_to_ptr(plaintext) }
-
-        DecryptResult::Ok
-    }
-
-    /// Result of [decrypt].
-    #[repr(u8)]
-    pub enum DecryptResult {
-        Ok = 1,
-        WrongPublicKey = 2,
-        InvalidTriple = 3,
-        InvalidPrivateKey = 4,
-    }
-}
+///// Application binary interface
+//pub mod abi {
+//    use super::*;
+//
+//    /// Decrypts the given `ciphertext` using the given `private_key` and stores the result in
+//    /// `plaintext`.
+//    ///
+//    ///   * `plaintext` - pointer to a writable 32-byte buffer
+//    ///   * `ciperhtext` - pointer to a 96-byte buffer holding the result of [Triple::to_bytes]
+//    ///   * `private_key` - pointer to a 32-byte buffer holding the result of [Scalar::to_bytes]
+//    ///
+//    /// # Safety
+//    /// The caller must make sure the pointers are aligned, point to valid memory regions,
+//    /// are readable, and plaintext is writable, and are not otherwise modified.
+//    ///
+//    /// For more details, see [core::slice::from_raw_parts] and [core::slice::from_raw_parts_mut].
+//    #[unsafe(no_mangle)]
+//    pub unsafe extern "C" fn decrypt(
+//        plaintext: *mut u8,
+//        ciphertext: *const u8,
+//        private_key: *const u8,
+//    ) -> DecryptResult {
+//        let pk = match unsafe { PrivateKey::from_ptr(private_key) } {
+//            Some(pk) => pk,
+//            None => return DecryptResult::InvalidPrivateKey,
+//        };
+//
+//        let ct = match unsafe { Triple::from_ptr(ciphertext) } {
+//            Some(ct) => ct,
+//            None => return DecryptResult::InvalidTriple,
+//        };
+//
+//        let pt = match ct.decrypt_and_check_pk(&pk) {
+//            Some(pt) => pt,
+//            None => return DecryptResult::WrongPublicKey,
+//        };
+//
+//        unsafe { pt.copy_to_ptr(plaintext) }
+//
+//        DecryptResult::Ok
+//    }
+//
+//    /// Result of [decrypt].
+//    #[repr(u8)]
+//    pub enum DecryptResult {
+//        Ok = 1,
+//        WrongPublicKey = 2,
+//        InvalidTriple = 3,
+//        InvalidPrivateKey = 4,
+//    }
+//}

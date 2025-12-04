@@ -8,6 +8,7 @@ use serde::{
 
 use anyhow::Context as _;
 
+use actix_web::http;
 use actix_web::http::header;
 use actix_web::web;
 
@@ -221,7 +222,11 @@ pub trait PayloadTrait: Clone {
 #[derive(Debug, Clone)] // TODO: remove Clone
 pub enum Payload<JsonType> {
     None,
+
+    /// This is the regular response type used by the pubhubs API.
     Json(JsonType),
+
+    /// Raw bytes; used, for example, by [`crate::api::phc::user::GetObjectEP`].
     Octets(bytes::Bytes),
 }
 

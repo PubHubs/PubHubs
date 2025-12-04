@@ -1,6 +1,9 @@
-import { setActivePinia, createPinia } from 'pinia';
-import { describe, beforeEach, assert, expect, test } from 'vitest';
-import { useUser } from '@/logic/store/user';
+// Packages
+import { createPinia, setActivePinia } from 'pinia';
+import { beforeEach, describe, expect, test } from 'vitest';
+
+// Stores
+import { useUser } from '@hub-client/stores/user';
 
 const client = {
 	isSynapseAdministrator: () => {
@@ -25,14 +28,9 @@ describe('User Store', () => {
 	});
 
 	describe('user', () => {
-		test('default', () => {
-			expect(user.user).toBeTypeOf('object');
-		});
-
 		test('setUserId', () => {
 			user.setUserId('test');
-			expect(user.user).toHaveProperty('userId');
-			expect(user.user.userId).toEqual('test');
+			expect(user.userId).toEqual('test');
 		});
 
 		test('isLoggedIn', () => {

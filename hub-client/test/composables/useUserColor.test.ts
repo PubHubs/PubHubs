@@ -1,6 +1,9 @@
-import { describe, expect, test, vi } from 'vitest';
+// Packages
+import { describe, expect, test } from 'vitest';
 
-import { useUserColor, textColors } from '@/logic/composables/useUserColor';
+// Composables
+import { textColors, useUserColor } from '@hub-client/composables/useUserColor';
+
 const { color } = useUserColor();
 
 describe('useUserColor', () => {

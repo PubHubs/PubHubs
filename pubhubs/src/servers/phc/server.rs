@@ -27,6 +27,7 @@ impl servers::Details for Details {
     type AppT = App;
     type AppCreatorT = AppCreator;
     type ExtraRunningState = ExtraRunningState;
+    type ExtraSharedState = ExtraSharedState;
     type ObjectStoreT = servers::object_store::DefaultObjectStore;
 
     fn create_running_state(
@@ -40,11 +41,18 @@ impl servers::Details for Details {
         Ok(ExtraRunningState {
             attr_signing_key: phcrypto::attr_signing_key(&auths_ss),
             t_sealing_secret: phcrypto::sealing_secret(&t_ss),
+            auths_sealing_secret: phcrypto::sealing_secret(&auths_ss),
             auths_ss,
             t_ss,
         })
     }
+
+    fn create_extra_shared_state(_config: &servers::Config) -> anyhow::Result<ExtraSharedState> {
+        Ok(ExtraSharedState {})
+    }
 }
+
+pub struct ExtraSharedState {}
 
 pub struct App {
     pub base: AppBase<Server>,
@@ -60,6 +68,7 @@ pub struct App {
     pub pp_nonce_validity: core::time::Duration,
     pub user_object_hmac_secret: Box<[u8]>,
     pub quota: api::phc::user::Quota,
+    pub card_pseud_validity: core::time::Duration,
 }
 
 impl Deref for App {
@@ -86,6 +95,10 @@ pub struct ExtraRunningState {
 
     /// Key used to (un)seal messages to and from the transcryptor
     pub(super) t_sealing_secret: crypto::SealingKey,
+
+    /// Key used to (un)seal messages to and from the authentication server
+    #[expect(dead_code)]
+    pub(super) auths_sealing_secret: crypto::SealingKey,
 }
 
 impl crate::servers::App<Server> for App {
@@ -104,6 +117,8 @@ impl crate::servers::App<Server> for App {
 
         api::phc::user::PppEP::add_to(self, sc, App::handle_user_ppp);
         api::phc::user::HhppEP::add_to(self, sc, App::handle_user_hhpp);
+
+        api::phc::user::CardPseudEP::add_to(self, sc, App::handle_user_card_pseud);
     }
 
     fn check_constellation(&self, _constellation: &Constellation) -> bool {
@@ -338,6 +353,7 @@ pub struct AppCreator {
     pub pp_nonce_validity: core::time::Duration,
     pub user_object_hmac_secret: Box<[u8]>,
     pub quota: api::phc::user::Quota,
+    pub card_pseud_validity: core::time::Duration,
 }
 
 impl Deref for AppCreator {
@@ -370,6 +386,7 @@ impl crate::servers::AppCreator<Server> for AppCreator {
             pp_nonce_validity: self.pp_nonce_validity,
             user_object_hmac_secret: self.user_object_hmac_secret,
             quota: self.quota,
+            card_pseud_validity: self.card_pseud_validity,
         }
     }
 
@@ -379,7 +396,7 @@ impl crate::servers::AppCreator<Server> for AppCreator {
         let xconf = &config.phc.as_ref().unwrap();
 
         for basic_hub_info in xconf.hubs.iter() {
-            if let Some(hub_or_id) = hubs.insert_new(basic_hub_info.clone()) {
+            if let Some(hub_or_id) = hubs.insert_new(basic_hub_info.clone().into()) {
                 anyhow::bail!("two hubs are known as {hub_or_id}");
             }
         }
@@ -427,6 +444,7 @@ impl crate::servers::AppCreator<Server> for AppCreator {
             .into_vec()
             .into_boxed_slice(),
             quota: xconf.user_quota.clone(),
+            card_pseud_validity: xconf.card_pseud_validity,
         })
     }
 }

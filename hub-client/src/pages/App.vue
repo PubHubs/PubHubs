@@ -1,19 +1,19 @@
 <template>
-	<div class="h-screen w-full bg-background font-body text-on-surface ~text-base-min/base-max">
+	<div class="bg-background font-body text-on-surface text-body h-screen w-full">
 		<div v-if="setupReady" class="h-full">
 			<div v-if="user.isLoggedIn" class="flex h-full">
-				<HeaderFooter class="w-full bg-surface-low" :class="[{ hidden: !hubSettings.mobileHubMenu && isMobile }, !isMobile && 'flex max-w-[40rem]']">
+				<HeaderFooter class="bg-surface-low w-full" :class="[{ hidden: !hubSettings.mobileHubMenu && isMobile }, !isMobile && 'flex max-w-[40rem]']">
 					<template #header>
-						<div class="items-center gap-4 text-on-surface-dim" :class="isMobile ? 'hidden' : 'flex'">
+						<div class="text-on-surface-dim items-center gap-4" :class="isMobile ? 'hidden' : 'flex'">
 							<span class="font-semibold uppercase">hub</span>
-							<hr class="h-[2px] grow bg-on-surface-dim" />
+							<hr class="bg-on-surface-dim h-[2px] grow" />
 						</div>
 						<div class="flex h-full justify-between py-2">
 							<div class="flex items-center justify-between">
-								<H3 @click="router.push('/')" :title="hubSettings.hubName" class="font-headings font-semibold text-on-surface">{{ hubSettings.hubName }}</H3>
+								<H3 @click="router.push('/')" :title="hubSettings.hubName" class="font-headings text-on-surface font-semibold">{{ hubSettings.hubName }}</H3>
 								<Notification class="absolute right-4" />
 								<!-- TODO: Hiding this settings wheel as there is no functionality to it yet. -->
-								<!-- <Icon type="cog" size="sm" class="bg-hub-background-2 rounded-md p-2"/> -->
+								<!-- <Icon type="sliders-horizontal" size="sm" class="bg-hub-background-2 rounded-md p-2"/> -->
 							</div>
 							<Badge v-if="hubSettings.isSolo && settings.isFeatureEnabled(FeatureFlag.notifications) && rooms.totalUnreadMessages > 0" class="aspect-square h-full">{{ rooms.totalUnreadMessages }}1</Badge>
 						</div>
@@ -21,20 +21,20 @@
 
 					<div class="flex flex-col gap-4 p-3 md:p-4" role="menu">
 						<section class="flex flex-col gap-2">
-							<div class="text-hub-text group flex items-center justify-between overflow-hidden rounded-xl bg-surface py-2 pl-2 pr-4" role="complementary">
+							<div class="text-hub-text group bg-surface flex items-center justify-between overflow-hidden rounded-xl py-2 pr-4 pl-2" role="complementary">
 								<div class="flex w-full items-center gap-2 truncate">
-									<Avatar :userId="user.user.userId" />
+									<Avatar :avatarUrl="user.userAvatar(user.userId!) ?? user.avatarUrl" :userId="user.userId!" />
 									<div class="flex h-fit w-full flex-col overflow-hidden">
-										<p class="truncate font-bold leading-tight">
-											{{ user.displayName }}
+										<p class="truncate leading-tight font-bold">
+											{{ user.userDisplayName(user.userId!) }}
 										</p>
 										<p class="leading-tight">{{ user.pseudonym ?? '' }}</p>
 									</div>
 								</div>
 								<Icon
-									type="pencil"
-									size="sm"
-									class="rounded-md stroke-0 p-2 text-on-surface-variant hover:cursor-pointer hover:text-accent-primary"
+									data-testid="edit-userinfo"
+									type="pencil-simple"
+									class="hover:text-accent-primary cursor-pointer"
 									@click="
 										settingsDialog = true;
 										hubSettings.hideBar();
@@ -52,14 +52,14 @@
 						<!-- Public rooms -->
 						<RoomListHeader label="admin.public_rooms">
 							<template #roomlist>
-								<RoomList />
+								<RoomList :roomTypes="PublicRooms" />
 							</template>
 						</RoomListHeader>
 
 						<!-- Secured rooms -->
 						<RoomListHeader label="admin.secured_rooms" tooltipText="admin.secured_rooms_tooltip">
 							<template #roomlist>
-								<RoomList :roomType="RoomType.PH_MESSAGES_RESTRICTED" />
+								<RoomList :roomTypes="SecuredRooms" />
 							</template>
 						</RoomListHeader>
 
@@ -74,16 +74,16 @@
 						<RoomListHeader v-if="user.isAdmin" label="menu.admin_tools">
 							<template #roomlist>
 								<Menu>
-									<MenuItem :to="{ name: 'admin' }" icon="admin">{{ t('menu.admin_tools_rooms') }} </MenuItem>
-									<MenuItem :to="{ name: 'manageusers' }" icon="admin">{{ t('menu.admin_tools_users') }}</MenuItem>
-									<MenuItem :to="{ name: 'hub-settings' }" icon="cog">{{ t('menu.admin_tools_hub_settings') }}</MenuItem>
+									<MenuItem :to="{ name: 'admin' }" icon="chats-circle">{{ t('menu.admin_tools_rooms') }} </MenuItem>
+									<MenuItem :to="{ name: 'manage-users' }" icon="users">{{ t('menu.admin_tools_users') }}</MenuItem>
+									<MenuItem :to="{ name: 'hub-settings' }" icon="sliders-horizontal">{{ t('menu.admin_tools_hub_settings') }}</MenuItem>
 								</Menu>
 							</template>
 						</RoomListHeader>
 					</div>
 				</HeaderFooter>
 
-				<div class="h-full w-full overflow-y-auto overflow-x-hidden" :class="{ hidden: hubSettings.mobileHubMenu && isMobile }" role="document">
+				<div class="h-full w-full overflow-x-hidden overflow-y-auto" :class="{ hidden: hubSettings.mobileHubMenu && isMobile }" role="document">
 					<router-view></router-view>
 				</div>
 			</div>
@@ -98,41 +98,47 @@
 </template>
 
 <script setup lang="ts">
-	// Packages imports
+	// Packages
+	import { ConditionKind, IPushRule, PushRuleKind } from 'matrix-js-sdk';
 	import { computed, getCurrentInstance, onMounted, ref, watch } from 'vue';
 	import { useI18n } from 'vue-i18n';
 	import { RouteParamValue, useRouter } from 'vue-router';
-	import { ConditionKind, IPushRule, PushRuleKind } from 'matrix-js-sdk';
 
-	// Hub imports
 	// Components
-	import Disclosure from '@/components/rooms/Disclosure.vue';
-	import SettingsDialog from '@/components/forms/SettingsDialog.vue';
-	import Dialog from '@/components/ui/Dialog.vue';
-	import HeaderFooter from '@/components/ui/HeaderFooter.vue';
-	import Menu from '@/components/ui/Menu.vue';
-	import MenuItem from '@/components/ui/MenuItem.vue';
-	import RoomList from '@/components/rooms/RoomList.vue';
-	import Badge from '@/components/elements/Badge.vue';
-	import Icon from '@/components/elements/Icon.vue';
-	import H3 from '@/components/elements/H3.vue';
-	import Avatar from '@/components/ui/Avatar.vue';
-	import RoomListHeader from '@/components/ui/RoomListHeader.vue';
-	import Notification from '@/components/ui/Notification.vue';
+	import Badge from '@hub-client/components/elements/Badge.vue';
+	import H3 from '@hub-client/components/elements/H3.vue';
+	import Icon from '@hub-client/components/elements/Icon.vue';
+	import SettingsDialog from '@hub-client/components/forms/SettingsDialog.vue';
+	import Disclosure from '@hub-client/components/rooms/Disclosure.vue';
+	import RoomList from '@hub-client/components/rooms/RoomList.vue';
+	import Avatar from '@hub-client/components/ui/Avatar.vue';
+	import Dialog from '@hub-client/components/ui/Dialog.vue';
+	import HeaderFooter from '@hub-client/components/ui/HeaderFooter.vue';
+	import Menu from '@hub-client/components/ui/Menu.vue';
+	import MenuItem from '@hub-client/components/ui/MenuItem.vue';
+	import Notification from '@hub-client/components/ui/Notification.vue';
+	import RoomListHeader from '@hub-client/components/ui/RoomListHeader.vue';
+
 	// Logic
-	import { HubInformation } from '@/logic/store/hub-settings';
-	import { usePubHubs } from '@/logic/core/pubhubsStore';
-	import { PubHubsInvisibleMsgType } from '@/logic/core/events';
-	import { LOGGER } from '@/logic/foundation/Logger';
-	import { SMI } from '@/logic/foundation/StatusMessage';
-	import { useDialog } from '@/logic/store/dialog';
-	import { useMenu } from '@/logic/store/menu';
-	import { MessageType } from '@/logic/store/messagebox';
-	import { usePlugins } from '@/logic/store/plugins';
-	import { RoomType } from '@/logic/store/rooms';
-	import { FeatureFlag, useSettings } from '@/logic/store/settings';
-	import { Message, MessageBoxType, useHubSettings, useMessageBox, useRooms } from '@/logic/store/store';
-	import { useUser } from '@/logic/store/user';
+	import { PubHubsInvisibleMsgType } from '@hub-client/logic/core/events';
+	import { routes } from '@hub-client/logic/core/router';
+	import { LOGGER } from '@hub-client/logic/logging/Logger';
+	import { SMI } from '@hub-client/logic/logging/StatusMessage';
+
+	// Models
+	import { PublicRooms, SecuredRooms } from '@hub-client/models/rooms/TBaseRoom';
+
+	// Stores
+	import { useDialog } from '@hub-client/stores/dialog';
+	import { HubInformation } from '@hub-client/stores/hub-settings';
+	import { useHubSettings } from '@hub-client/stores/hub-settings';
+	import { useMenu } from '@hub-client/stores/menu';
+	import { MessageType } from '@hub-client/stores/messagebox';
+	import { Message, MessageBoxType, useMessageBox } from '@hub-client/stores/messagebox';
+	import { usePubhubsStore } from '@hub-client/stores/pubhubs';
+	import { useRooms } from '@hub-client/stores/rooms';
+	import { FeatureFlag, useSettings } from '@hub-client/stores/settings';
+	import { useUser } from '@hub-client/stores/user';
 
 	const { locale, availableLocales, t } = useI18n();
 	const router = useRouter();
@@ -142,18 +148,12 @@
 	const rooms = useRooms();
 	const messagebox = useMessageBox();
 	const dialog = useDialog();
-	const pubhubs = usePubHubs();
-	const plugins = usePlugins();
+	const pubhubs = usePubhubsStore();
 	const menu = useMenu();
 	const settingsDialog = ref(false);
 	const setupReady = ref(false);
-
 	const disclosureEnabled = settings.isFeatureEnabled(FeatureFlag.disclosure);
 	const isMobile = computed(() => settings.isMobileState);
-
-	onMounted(() => {
-		plugins.setPlugins(getCurrentInstance()?.appContext.config.globalProperties._plugins, router);
-	});
 
 	onMounted(async () => {
 		LOGGER.trace(SMI.STARTUP, 'App.vue onMounted');
@@ -188,18 +188,10 @@
 		// check if hash doesn't start with hub,
 		// then it is running only the hub-client, so we need to do some checks
 		if (!window.location.hash.startsWith('#/hub/')) {
-			pubhubs.login().then(() => {
-				setupReady.value = true;
-				addPushRules();
-			});
-			router.push({ name: 'home' });
-			// 2024 12 03 The await is removed, because of slow loading testhub
-			// After the next merge to stable, in case this gives no problems,
-			// the old code and comments can be removed
-			// If all works well: setupReady can also be removed, since it does have no function anymmore
-			// await pubhubs.login();
-			// setupReady.value = true; // needed if running only the hub-client
-			// router.push({ name: 'home' });
+			// With sliding-sync, loading is faster.
+			await pubhubs.login();
+			setupReady.value = true;
+			addPushRules();
 		}
 
 		if (!user.isLoggedIn) {
@@ -222,19 +214,16 @@
 
 			// Listen to roomchange
 			messagebox.addCallback('parentFrame', MessageType.RoomChange, async (message: Message) => {
-				const roomId = message.content as RouteParamValue;
-				if (rooms.currentRoomId !== roomId) {
-					rooms.currentRoomId = roomId;
-					if (rooms.securedRoom && rooms.securedRoom !== null) {
-						const securedRoomId = await rooms.getSecuredRoomInfo(roomId);
-						router.push({ name: 'room', params: { id: securedRoomId } });
-					} else {
-						router.push({ name: 'room', params: { id: roomId } });
-					}
+				const content = message.content as RouteParamValue;
+				const isNonRoomRoute = routes.some((r) => r.name === content && r.name !== 'room');
+				if (isNonRoomRoute) {
+					router.push({ name: content });
+				} else {
+					router.push({ name: 'room', params: { id: content } });
 				}
 			});
 
-			//Listen to global menu change
+			// Listen to global menu change
 			messagebox.addCallback('parentFrame', MessageType.BarHide, () => {
 				hubSettings.mobileHubMenu = false;
 			});
@@ -242,6 +231,9 @@
 			messagebox.addCallback('parentFrame', MessageType.BarShow, () => {
 				hubSettings.mobileHubMenu = true;
 			});
+
+			// Ask for hubinformation
+			messagebox.sendMessage(new Message(MessageType.SendHubInformation));
 		}
 	}
 

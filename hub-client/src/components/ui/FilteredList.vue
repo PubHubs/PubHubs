@@ -1,10 +1,10 @@
 <template>
 	<div class="flex w-full flex-col">
 		<div class="flex w-full items-center gap-4 pb-4">
-			<Icon type="pubhubs-home" class="text-surface-high dark:text-on-surface-dim" />
-			<TextInput v-if="!listTop" :placeholder="placeholder" v-model="filter" class="h-8 w-full border-none !bg-surface-low ~text-label-min/label-max" :class="inputClass" @input="changed()" />
+			<Icon type="compass" class="text-surface-high dark:text-on-surface-dim" />
+			<TextInput v-if="!listTop" :placeholder="placeholder" v-model="filter" class="!bg-surface-low text-label h-8 w-full border-none" :class="inputClass" @input="changed()" />
 		</div>
-		<ul v-if="filteredItems.length > 0" :class="listClass + ' flex h-full flex-col gap-2 overflow-y-auto overflow-x-hidden rounded-md'">
+		<ul v-if="filteredItems.length > 0" :class="listClass + ' flex h-full flex-col gap-2 overflow-x-hidden overflow-y-auto rounded-md'">
 			<li v-for="(item, index) in filteredItems" :key="index" class="group block" @click="clickedItem(item)">
 				<slot name="item" v-bind="{ item }"></slot>
 			</li>
@@ -13,16 +13,17 @@
 </template>
 
 <script setup lang="ts">
-	import { ref, computed } from 'vue';
-	import { FilteredListEvent } from '@/model/components/FilteredListEvent';
+	// Packages
 	import { User as MatrixUser } from 'matrix-js-sdk';
+	import { computed, ref } from 'vue';
 
-	import Icon from '@/components/elements/Icon.vue';
+	// Components
+	import Icon from '@hub-client/components/elements/Icon.vue';
 
-	const emit = defineEmits(['click', 'filter']);
+	// Models
+	import { FilteredListEvent } from '@hub-client/models/components/FilteredListEvent';
 
-	const filter = ref('');
-
+	// Types
 	type Props = {
 		items: Array<Record<string, any>>;
 		filterKey?: string[];
@@ -35,6 +36,9 @@
 		placeholder: string;
 		selected?: Array<MatrixUser>;
 	};
+
+	const emit = defineEmits(['click', 'filter']);
+	const filter = ref('');
 
 	const props = withDefaults(defineProps<Props>(), {
 		items: () => [],

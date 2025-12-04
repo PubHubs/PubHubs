@@ -1,32 +1,35 @@
 <template>
-	<div v-if="room.hasMessages()" class="mx-auto my-2 rounded-xl px-4 py-1" :class="newMessage ? 'bg-surface-high' : 'bg-surface-low'" @click="goToRoom">
+	<div class="mx-auto my-2 rounded-xl px-4 py-1" :class="newMessage ? 'bg-surface-high' : 'bg-surface-low'" @click="goToRoom">
 		<div class="flex min-w-0 items-center gap-4" :class="{ 'font-bold': newMessage }">
-			<AvatarCore :class="'flex-shrink-0'" :user="avatarUser" :img="avatarOverrideUrl" icon="two_users" />
-
+			<Avatar :class="'flex-shrink-0'" :avatar-url="avatarOverrideUrl" icon="users" />
 			<div class="min-w-0 flex-grow overflow-hidden">
 				<div class="flex flex-col gap-1">
 					<div class="flex flex-row items-center gap-2">
-						<p class="truncate font-bold leading-tight" :class="{ truncate: !isMobile }">
+						<p class="truncate leading-tight font-bold" :class="{ truncate: !isMobile }">
 							{{ displayName }}
 						</p>
 						<p v-if="isGroupOrContact" class="flex items-center leading-tight">
+							<span class="mr-2 truncate leading-tight font-bold" v-if="props.room.getType() === RoomType.PH_MESSAGE_STEWARD_CONTACT">({{ rooms.fetchRoomById(props.room.name.split(',')[0]).name }})</span>
 							<template v-if="props.room.getType() !== RoomType.PH_MESSAGE_ADMIN_CONTACT">
-								<span class="~text-label-small-min/label-small-max">{{ props.room.getRoomMembers() }}</span>
+								<span class="text-label-small">{{ props.room.getRoomMembers() }}</span>
 								<Icon type="user" size="sm" class="mr-1" />
-								<span class="~text-label-small-min/label-small-max">{{ $t('others.group_members') }}</span>
+								<span class="text-label-small">{{ $t('others.group_members') }}</span>
 							</template>
 							<template v-else>
 								<span class="truncate font-bold" v-if="getOtherUserDisplayName()"> - {{ getOtherUserDisplayName() }}</span>
 							</template>
 						</p>
-						<p v-else class="leading-tight ~text-label-small-min/label-small-max" :class="{ 'mt-[0.1rem] truncate': isMobile }">
+						<p v-else class="text-label-small leading-tight" :class="{ 'mt-[0.1rem] truncate': isMobile }">
 							{{ pseudonym }}
 						</p>
 					</div>
 
 					<!-- Right Section: Message Body -->
-					<div class="mt-1 min-w-0">
+					<div v-if="room.hasMessages()" class="mt-1 min-w-0">
 						<p v-html="event.getContent().ph_body" class="truncate"></p>
+					</div>
+					<div v-if="!room.hasMessages()" class="mt-1 min-w-0">
+						<p>{{ t('rooms.no_messages_yet') }}</p>
 					</div>
 				</div>
 			</div>
@@ -41,20 +44,27 @@
 </template>
 
 <script setup lang="ts">
-	import { computed } from 'vue';
-	import { useRouter } from 'vue-router';
+	// Packages
 	import { EventType, NotificationCountType, RoomMember } from 'matrix-js-sdk';
+	import { computed } from 'vue';
 	import { useI18n } from 'vue-i18n';
+	import { useRouter } from 'vue-router';
 
-	import filters from '@/logic/core/filters';
-	import Room from '@/model/rooms/Room';
-	import { RoomType } from '@/model/rooms/TBaseRoom';
+	// Components
+	import EventTime from '@hub-client/components/rooms/EventTime.vue';
+	import Avatar from '@hub-client/components/ui/Avatar.vue';
 
-	import AvatarCore from './AvatarCore.vue';
-	import Badge from '../elements/Badge.vue';
-	import EventTime from '../rooms/EventTime.vue';
+	// Logic
+	import filters from '@hub-client/logic/core/filters';
+
+	// Models
+	import Room from '@hub-client/models/rooms/Room';
+	import { RoomType } from '@hub-client/models/rooms/TBaseRoom';
+
+	import { useRooms } from '@hub-client/stores/rooms';
 
 	const router = useRouter();
+	const rooms = useRooms();
 	const { t } = useI18n();
 
 	const props = defineProps({

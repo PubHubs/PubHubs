@@ -1,7 +1,10 @@
-import { useSettings } from '@/logic/store/settings';
+// Packages
 import { EventType } from 'matrix-js-sdk';
 import { createPinia, setActivePinia } from 'pinia';
 import { beforeEach, describe, expect, test } from 'vitest';
+
+// Stores
+import { useSettings } from '@hub-client/stores/settings';
 
 describe('Settings Store', () => {
 	let settings = {} as any;
@@ -34,12 +37,12 @@ describe('Settings Store', () => {
 				availableLocales: ['en', 'nl'],
 			};
 
-			expect(settings.language).toBe('en');
-			expect(settings.getActiveLanguage).toBe('en');
-
-			settings.setLanguage('nl');
 			expect(settings.language).toBe('nl');
 			expect(settings.getActiveLanguage).toBe('nl');
+
+			settings.setLanguage('en');
+			expect(settings.language).toBe('en');
+			expect(settings.getActiveLanguage).toBe('en');
 		});
 	});
 

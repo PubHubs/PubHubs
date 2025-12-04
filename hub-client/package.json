@@ -1,5 +1,5 @@
 {
-	"name": "pubhubsclient",
+	"name": "@pubhubs/hub-client",
 	"version": "0.5.0",
 	"type": "module",
 	"private": true,
@@ -23,15 +23,15 @@
 		"@privacybydesign/yivi-core": "^0",
 		"@privacybydesign/yivi-frontend": "^0.1.2",
 		"@privacybydesign/yivi-web": "^0",
-		"@vitejs/plugin-vue": "^5.2.1",
 		"@vue/test-utils": "^2.2.3",
 		"@vuepic/vue-datepicker": "^11.0.2",
+		"@vueuse/core": "^13.7.0",
 		"chai": "^5.2.1",
 		"emojibase": "^16",
 		"emojibase-data": "^16",
 		"https-browserify": "^1.0.0",
 		"loglevel": "^1.8.0",
-		"matrix-js-sdk": "^37.8.0",
+		"matrix-js-sdk": "^39.3.0-rc.0",
 		"mavon-editor": "^3.0.2",
 		"pinia": "^3",
 		"register-service-worker": "^1.7.2",
@@ -46,23 +46,23 @@
 	},
 	"devDependencies": {
 		"@pinia/testing": "^1",
-		"@tailwindcss/forms": "^0.5.10",
+		"@tailwindcss/vite": "^4.1.11",
+		"@trivago/prettier-plugin-sort-imports": "^5.2.2",
 		"@types/sanitize-html": "^2.13.0",
-		"@typescript-eslint/eslint-plugin": "^7",
-		"@typescript-eslint/parser": "^7",
 		"@vitejs/plugin-vue": "^5",
 		"@vue/eslint-config-typescript": "^13",
 		"autoprefixer": "^10.4.21",
 		"eslint": "^8.44.0",
+		"eslint-config-prettier": "^10.1.8",
 		"eslint-plugin-vue": "^9",
-		"fluid-tailwind": "^1.0.4",
+		"jsdoc": "^4.0.2",
 		"jsdom": "^26",
 		"msw": "2.3.2",
 		"postcss": "^8.5.3",
 		"prettier": "^3.5.0",
 		"prettier-eslint": "^16.3.0",
 		"prettier-plugin-tailwindcss": "^0.6.11",
-		"tailwindcss": "^3.4.17",
+		"tailwindcss": "^4.1.11",
 		"typescript": "^5.0.2",
 		"vite-plugin-node-polyfills": "^0.23.0",
 		"vitest": "^3",
@@ -86,6 +86,7 @@
 		},
 		"rules": {
 			"no-unused-vars": "off",
+			"no-debugger": "warn",
 			"@typescript-eslint/no-unused-vars": [
 				"error",
 				{
@@ -97,26 +98,6 @@
 			],
 			"vue/multi-word-component-names": "off"
 		}
-	},
-	"prettier": {
-		"printWidth": 240,
-		"tabWidth": 4,
-		"useTabs": true,
-		"semi": true,
-		"singleQuote": true,
-		"quoteProps": "as-needed",
-		"trailingComma": "all",
-		"bracketSpacing": true,
-		"bracketSameLine": false,
-		"arrowParens": "always",
-		"htmlWhitespaceSensitivity": "css",
-		"vueIndentScriptAndStyle": true,
-		"endOfLine": "lf",
-		"embeddedLanguageFormatting": "auto",
-		"singleAttributePerLine": false,
-		"plugins": [
-			"prettier-plugin-tailwindcss"
-		]
 	},
 	"browser": {
 		"http": false,

@@ -8,6 +8,7 @@ use std::borrow::{Borrow as _, Cow};
 use std::fmt;
 
 use base64ct::{Base64UrlUnpadded, Encoding as _};
+use digest::Digest as _;
 use hmac::Mac as _;
 use rsa::{
     pkcs8::{
@@ -21,7 +22,9 @@ use serde::{
     de::{DeserializeOwned, Visitor},
 };
 
+use crate::id;
 use crate::misc::time_ext;
+use crate::phcrypto;
 
 /// Wrapper around [`String`] to indicate it should be interpretted as a JWT.
 ///
@@ -323,6 +326,21 @@ impl NumericDate {
     pub fn timestamp(&self) -> u64 {
         self.timestamp
     }
+
+    /// Returns the UTC date for this timestamp
+    pub fn date(&self) -> String {
+        // Maybe not the most efficient implementation using humantime,
+        // but it saves an additional direct dependency
+        let mut datetime = humantime::format_rfc3339(self.into()).to_string();
+
+        let Some(idx) = datetime.find('T') else {
+            panic!("bug: expected date returned by humantime to contain a 'T'");
+        };
+
+        datetime.truncate(idx);
+
+        datetime
+    }
 }
 
 impl From<&NumericDate> for std::time::SystemTime {
@@ -408,6 +426,12 @@ impl From<String> for JWT {
     }
 }
 
+impl From<JWT> for String {
+    fn from(jwt: JWT) -> String {
+        jwt.inner
+    }
+}
+
 impl JWT {
     /// Creates JWT from `claims` and [SigningKey] `key`.
     ///
@@ -484,6 +508,14 @@ impl JWT {
 
     pub fn as_str(&self) -> &str {
         &self.inner
+    }
+
+    pub fn sha256(&self) -> sha2::Sha256 {
+        sha2::Sha256::new().chain_update(&self.inner)
+    }
+
+    pub fn id(&self) -> id::Id {
+        phcrypto::jwt_id(self)
     }
 }
 

@@ -5,7 +5,7 @@
 			<p>{{ description }}</p>
 		</div>
 
-		<div class="h-14 mb-8 flex">
+		<div class="mb-8 flex h-14">
 			<input :accept="accept" ref="fileInput" type="file" class="hidden" @change="handleFileChange" />
 
 			<div class="">
@@ -13,8 +13,8 @@
 			</div>
 
 			<div>
-				<Icon @click="fileInput?.click()" type="edit" size="md" :as-button="true"></Icon>
-				<Icon @click="$emit('remove')" type="bin" size="md" :as-button="true"></Icon>
+				<Icon @click="fileInput?.click()" type="pencil-simple" size="md" :as-button="true"></Icon>
+				<Icon @click="$emit('remove')" type="trash" size="md" :as-button="true"></Icon>
 			</div>
 		</div>
 		<p v-if="errorText" class="text-red">{{ errorText }}</p>
@@ -22,9 +22,12 @@
 </template>
 
 <script setup lang="ts">
-	import Icon from '@/components/elements/Icon.vue';
-	import H3 from '@/components/elements/H3.vue';
+	// Packages
 	import { ref } from 'vue';
+
+	// Components
+	import H3 from '@hub-client/components/elements/H3.vue';
+	import Icon from '@hub-client/components/elements/Icon.vue';
 
 	defineProps({
 		title: {

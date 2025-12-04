@@ -7,7 +7,7 @@
 					<span>{{ ask.user.userId }}</span>
 					"<span v-if="ask.user.displayName" :title="ask.user.displayName">{{ ask.user.displayName.substring(0, 20) + (ask.user.displayName.length > 20 ? '...' : '') }}</span
 					>"
-					<Icon type="edit" class="float-right" />
+					<Icon type="pencil-simple" class="float-right" />
 				</span>
 				<Icon v-else type="plus" class="float-right cursor-pointer" @click="onChooseUser" />
 			</FormLine>
@@ -33,25 +33,31 @@
 </template>
 
 <script setup lang="ts">
-	// Components
-	import Dialog from '../ui/Dialog.vue';
-	import FormLine from '../forms/FormLine.vue';
-	import Label from '../forms/Label.vue';
-	import TextInput from '../forms/TextInput.vue';
-	import FormObjectInput from '../forms/FormObjectInput.vue';
-	import Icon from '../elements/Icon.vue';
-
+	// Packages
 	import { onBeforeMount, ref, watch } from 'vue';
-	import { buttonsSubmitCancel, DialogButtonAction } from '@/logic/store/dialog';
-	import { FormObjectInputTemplate } from '@/logic/composables/useFormInputEvents';
-	import { AskDisclosure } from '@/model/components/signedMessages';
-	import { useYivi } from '@/logic/store/yivi';
 	import { useI18n } from 'vue-i18n';
+
+	// Components
+	import Icon from '@hub-client/components/elements/Icon.vue';
+	import FormLine from '@hub-client/components/forms/FormLine.vue';
+	import FormObjectInput from '@hub-client/components/forms/FormObjectInput.vue';
+	import Label from '@hub-client/components/forms/Label.vue';
+	import TextInput from '@hub-client/components/forms/TextInput.vue';
+	import Dialog from '@hub-client/components/ui/Dialog.vue';
+
+	// Composables
+	import { FormObjectInputTemplate } from '@hub-client/composables/useFormInputEvents';
+
+	// Models
+	import { AskDisclosure } from '@hub-client/models/components/signedMessages';
+
+	// Stores
+	import { DialogButtonAction, buttonsSubmitCancel } from '@hub-client/stores/dialog';
+	import { useYivi } from '@hub-client/stores/yivi';
 
 	const { t } = useI18n();
 	const yivi = useYivi();
 	const emit = defineEmits(['submit', 'chooseUser', 'close']);
-
 	const ask = ref<AskDisclosure>();
 
 	const props = defineProps<{

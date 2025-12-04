@@ -5,10 +5,10 @@
 	<div class="mx-auto mb-8 flex w-full flex-col gap-4 px-8 md:w-4/6 md:px-0">
 		<!-- Search bar -->
 		<div class="-mt-[5.5rem] flex flex-col gap-2">
-			<div class="flex items-center whitespace-nowrap ~gap-1/4">
+			<div class="flex items-center gap-2 whitespace-nowrap">
 				<div class="flex items-center gap-2 py-2">
-					<Icon class="text-surface dark:text-on-surface" type="pubhubs-home" size="md" />
-					<div role="heading" class="font-headings font-semibold ~text-h3-min/h3-max">{{ $t('menu.discover') }}</div>
+					<Icon class="text-surface dark:text-on-surface" type="compass" size="md" />
+					<div role="heading" class="font-headings text-h3 font-semibold">{{ $t('menu.discover') }}</div>
 				</div>
 			</div>
 			<div class="relative">
@@ -16,16 +16,16 @@
 					type="text"
 					v-model="searchQuery"
 					:placeholder="$t('others.search_rooms')"
-					class="focus mb-4 w-full rounded border bg-surface px-4 py-2 text-on-surface placeholder-on-surface-dim ~text-label-min/label-max focus:placeholder-on-surface-variant focus:ring-accent-primary"
+					class="focus bg-surface text-on-surface placeholder-on-surface-dim text-label focus:placeholder-on-surface-variant focus:ring-accent-primary mb-4 w-full rounded-xs border px-4 py-2"
 				/>
-				<Icon type="search" class="pointer-events-none absolute right-2 top-[20%] z-10 text-on-surface-variant" size="sm" />
+				<Icon type="magnifying-glass" class="text-on-surface-variant pointer-events-none absolute top-[20%] right-2 z-10" size="sm" />
 			</div>
 		</div>
 
 		<!-- Room grid -->
 		<div class="flex w-full flex-col gap-2">
 			<div class="flex w-full justify-center rounded-xl py-8">
-				<TransitionGroup v-if="filteredRooms.length > 0" name="room-grid" tag="div" class="grid w-full grid-cols-1 gap-8 px-0 transition-all duration-300 md:grid-cols-2 lg:px-16 2xl:grid-cols-3">
+				<TransitionGroup v-if="filteredRooms.length > 0" name="room-grid" tag="div" class="3xl:grid-cols-3 grid w-full grid-cols-1 gap-8 px-0 transition-all duration-300 md:grid-cols-2 lg:px-16">
 					<RoomCard
 						v-for="room in filteredRooms"
 						:key="room.room_id"
@@ -47,23 +47,22 @@
 	</div>
 </template>
 <script setup lang="ts">
-	// External imports
-	import { computed, ref, onMounted, onBeforeMount, watchEffect } from 'vue';
+	// Packages
+	import { computed, onBeforeMount, onMounted, ref, watchEffect } from 'vue';
 	import { useI18n } from 'vue-i18n';
 
 	// Components
-	import HubBanner from '@/components/ui/HubBanner.vue';
-	import RoomCard from '@/components/rooms/RoomCard.vue';
-	import Icon from '@/components/elements/Icon.vue';
-	import P from '@/components/elements/P.vue';
+	import Icon from '@hub-client/components/elements/Icon.vue';
+	import P from '@hub-client/components/elements/P.vue';
+	import RoomCard from '@hub-client/components/rooms/RoomCard.vue';
+	import HubBanner from '@hub-client/components/ui/HubBanner.vue';
 
-	// Logic
-	import { useHubSettings } from '@/logic/store/hub-settings';
-	import { usePubHubs } from '@/logic/core/pubhubsStore';
-	import { useRooms } from '@/logic/store/store';
+	// Stores
+	import { useHubSettings } from '@hub-client/stores/hub-settings';
+	import { usePubhubsStore } from '@hub-client/stores/pubhubs';
+	import { useRooms } from '@hub-client/stores/rooms';
 
-	// Setup
-	const pubhubsStore = usePubHubs();
+	const pubhubsStore = usePubhubsStore();
 	const hubSettings = useHubSettings();
 	const rooms = useRooms();
 	const { t } = useI18n();

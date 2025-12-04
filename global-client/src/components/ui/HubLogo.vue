@@ -1,16 +1,16 @@
 <template>
 	<div class="flex h-full w-full items-center justify-center overflow-hidden rounded-xl">
 		<img class="h-full w-full object-cover" v-show="!fallback" :src="hubUrl + logoPath" @load="hideFallback" :alt="'logo of ' + hubId" />
-		<Icon v-if="fallback" type="hub_fallback" />
+		<Icon v-if="fallback" type="lightning-slash" />
 	</div>
 </template>
 
 <script setup lang="ts">
-	// Package imports
+	// Packages
 	import { computed, ref } from 'vue';
 
-	// Global imports
-	import { useSettings } from '@/logic/store/store';
+	// Stores
+	import { useSettings } from '@hub-client/stores/settings';
 
 	const settings = useSettings();
 	const props = defineProps<{ hubUrl: string; hubId: string; changeToDark: boolean }>();

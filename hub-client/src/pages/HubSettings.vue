@@ -3,7 +3,7 @@
 		<template #header>
 			<div class="hidden items-center gap-4 md:flex">
 				<span class="font-semibold uppercase">{{ $t('rooms.room') }}</span>
-				<hr class="h-[2px] grow bg-accent-secondary" />
+				<hr class="bg-accent-secondary h-[2px] grow" />
 			</div>
 			<div class="relative flex h-full items-center justify-between gap-4" :class="isMobile ? 'pl-12' : 'pl-0'">
 				<H3 class="text-on-surface">{{ $t('settings.title') }}</H3>
@@ -22,8 +22,8 @@
 			<div class="editor mb-2 flex flex-col gap-y-2">
 				<H3>{{ $t('hub_settings.summary_heading') }}</H3>
 				<P>{{ $t('hub_settings.summary_description') }}</P>
-				<TextArea v-model="hubSummary" class="border-hub-border max-h-16 w-full rounded-md border p-3 dark:text-black" rows="4" :placeholder="t('hub_settings.summary')" :maxlength="maxSummaryLength"></TextArea>
-				<P class="float-end ~text-label-small-min/label-small-max"> {{ hubSummary.length }} / {{ maxSummaryLength }} </P>
+				<TextArea v-model="hubSummary" class="border-hub-border max-h-16 w-full rounded-md border p-3" rows="4" :placeholder="t('hub_settings.summary')" :maxlength="maxSummaryLength"></TextArea>
+				<P class="text-label-small float-end"> {{ hubSummary.length }} / {{ maxSummaryLength }} </P>
 			</div>
 
 			<!-- Contact Section -->
@@ -43,8 +43,8 @@
 				@file-change="onFileChange('icon', $event)"
 				@remove="removeMedia('icon')"
 			>
-				<template #preview>
-					<HubIcon :icon-url="iconUrl" :icon-url-dark="iconUrl" class="mr-2 max-w-[70px] rounded-xl border p-2" />
+				<template #preview class="w-fit">
+					<HubIcon :icon-url="iconUrl" :icon-url-dark="iconUrl" class="mr-2 w-auto max-w-[70px] rounded-xl border p-2" />
 				</template>
 			</MediaUploadSection>
 
@@ -71,7 +71,7 @@
 					<mavon-editor v-model="hubConsent" language="en" :toolbars="toolbarSettings" :boxShadow="false" :placeholder="t('hub_settings.consent')" />
 				</div>
 			</div>
-			<div class="fixed bottom-5 right-10 z-20 ml-auto flex items-center">
+			<div class="fixed right-10 bottom-5 z-20 ml-auto flex items-center">
 				<P v-if="settingsSaved" class="text-hub-text-variant">{{ $t('hub_settings.settings_saved') }}</P>
 				<Button @click="saveChanges()" :disabled="!settingsChanged">{{ $t('hub_settings.save') }}</Button>
 			</div>
@@ -80,22 +80,31 @@
 </template>
 
 <script setup lang="ts">
-	import HubIcon from '@/components/ui/HubIcon.vue';
-	import HubBanner from '@/components/ui/HubBanner.vue';
-	import HeaderFooter from '@/components/ui/HeaderFooter.vue';
-	import MediaUploadSection from '@/components/ui/MediaUploadSection.vue';
-	import { SMI } from '@/logic/foundation/StatusMessage';
-	import { LOGGER } from '@/logic/foundation/Logger';
-	import { ALLOWED_HUB_ICON_TYPES, MAX_HUB_ICON_SIZE, useHubSettings, toolbarSettings } from '@/logic/store/hub-settings';
-	import { HubSettingsJSONParser } from '@/logic/store/json-utility';
-	import { computed, ref, onBeforeMount, watch } from 'vue';
+	// Packages
+	import { computed, onBeforeMount, ref, watch } from 'vue';
 	import { useI18n } from 'vue-i18n';
-	import H3 from '@/components/elements/H3.vue';
-	import P from '@/components/elements/P.vue';
-	import Button from '@/components/elements/Button.vue';
-	import { useSettings } from '@/logic/store/settings';
-	import TextArea from '@/components/forms/TextArea.vue';
-	import '@/assets/tailwind.css';
+
+	// Assets
+	import '@hub-client/assets/tailwind.css';
+
+	// Components
+	import Button from '@hub-client/components/elements/Button.vue';
+	import H3 from '@hub-client/components/elements/H3.vue';
+	import P from '@hub-client/components/elements/P.vue';
+	import TextArea from '@hub-client/components/forms/TextArea.vue';
+	import HeaderFooter from '@hub-client/components/ui/HeaderFooter.vue';
+	import HubBanner from '@hub-client/components/ui/HubBanner.vue';
+	import HubIcon from '@hub-client/components/ui/HubIcon.vue';
+	import MediaUploadSection from '@hub-client/components/ui/MediaUploadSection.vue';
+
+	// Logic
+	import { HubSettingsJSONParser } from '@hub-client/logic/json-utility';
+	import { LOGGER } from '@hub-client/logic/logging/Logger';
+	import { SMI } from '@hub-client/logic/logging/StatusMessage';
+
+	// Stores
+	import { ALLOWED_HUB_ICON_TYPES, MAX_HUB_ICON_SIZE, toolbarSettings, useHubSettings } from '@hub-client/stores/hub-settings';
+	import { useSettings } from '@hub-client/stores/settings';
 
 	const hubSettings = useHubSettings();
 	const { t } = useI18n();

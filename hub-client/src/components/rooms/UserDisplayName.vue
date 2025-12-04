@@ -1,30 +1,38 @@
 <template>
 	<span class="flex flex-row items-center gap-x-2 truncate" :title="displayTitle">
 		<!-- Display Name -->
-		<span v-if="showDisplayName" data-testid="display-name" :class="displayNameClasses">
+		<span v-if="showDisplayName" data-testid="display-name" class="text-label truncate font-semibold" :class="displayNameClasses">
 			{{ truncatedDisplayName }}
 		</span>
 
 		<!-- Pseudonym -->
-		<span v-if="showPseudonym" :class="pseudonymClasses">
+		<span v-if="showPseudonym" class="text-label-small text-nowrap" :class="pseudonymClasses">
 			{{ pseudonym }}
 		</span>
 	</span>
 </template>
 
 <script setup lang="ts">
-	import { useUserColor } from '@/logic/composables/useUserColor';
-	import filters from '@/logic/core/filters';
+	// Packages
 	import { computed } from 'vue';
-	import Room from '@/model/rooms/Room';
-	import { useSettings } from '@/logic/store/settings';
+
+	// Composables
+	import { useUserColor } from '@hub-client/composables/useUserColor';
+
+	// Logic
+	import filters from '@hub-client/logic/core/filters';
+
+	// Stores
+	import { useSettings } from '@hub-client/stores/settings';
+	import { useUser } from '@hub-client/stores/user';
 
 	const { color, textColor } = useUserColor();
 	const settings = useSettings();
+	const user = useUser();
 
 	interface Props {
-		user: string;
-		room: Room;
+		userId: string;
+		userDisplayName: string;
 		showDisplayName?: boolean;
 		showPseudonym?: boolean;
 		chooseColor?: boolean;
@@ -34,23 +42,22 @@
 		showDisplayName: true,
 		showPseudonym: true,
 		chooseColor: true,
+		userDisplayName: '',
 	});
 
-	// Computed properties for data
-	const member = computed(() => props.room.getMember(props.user));
+	// get Pseudonym
+	const pseudonym = computed(() => {
+		return filters.extractPseudonym(props.userId);
+	});
 
+	// If the display Name is not set then userDisplayName is equal to rawDisplayName. We only show pseudo
 	const displayName = computed(() => {
-		const memberData = member.value;
-		// If the display name is not set, we get user Id. In that case return empty display name.
-		if (props.user === memberData?.rawDisplayName || filters.extractPseudonym(props.user) === memberData?.rawDisplayName) {
-			return '';
-		}
-		return memberData?.rawDisplayName || '';
+		return props.userDisplayName ? props.userDisplayName : undefined;
 	});
 
-	const pseudonym = computed(() => filters.extractPseudonym(props.user));
-
-	const truncatedDisplayName = computed(() => filters.maxLengthText(displayName.value, settings.getDisplayNameMaxLength));
+	const truncatedDisplayName = computed(() => {
+		return filters.maxLengthText(displayName.value ?? '', settings.getDisplayNameMaxLength);
+	});
 
 	// Computed properties for display logic
 	const showDisplayName = computed(() => props.showDisplayName && displayName.value);
@@ -65,18 +72,15 @@
 	});
 
 	// Computed properties for styling
-	const userColorClass = computed(() => (props.chooseColor ? textColor(color(props.user)) : ''));
+	const userColorClass = computed(() => {
+		return props.chooseColor ? textColor(color(props.userId)) : '';
+	});
 
 	const displayNameClasses = computed(() => ({
-		truncate: true,
-		'font-semibold': true,
-		'~text-label-min/label-max': true,
 		[userColorClass.value]: props.chooseColor,
 	}));
 
 	const pseudonymClasses = computed(() => ({
-		'text-nowrap': true,
-		'~text-label-small-min/label-small-max': true,
 		'font-semibold': !displayName.value,
 		[userColorClass.value]: props.chooseColor && !displayName.value,
 	}));

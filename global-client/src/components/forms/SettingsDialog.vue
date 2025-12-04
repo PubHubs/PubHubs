@@ -19,13 +19,13 @@
 				<p v-if="!notificationSupported">{{ $t('notifications.notSupported') }}</p>
 			</div>
 			<div v-if="promptAllow || promptReset" class="flex">
-				<Icon type="warning" size="sm" class="mr-1 mt-[3px] shrink-0" />
+				<Icon type="warning" size="sm" class="mt-[3px] mr-1 shrink-0" />
 				<p v-if="promptAllow" class="italic">{{ $t('notifications.promptAllow') }}</p>
 				<p v-if="promptReset" class="italic">{{ $t('notifications.promptReset') }}</p>
 			</div>
 			<div v-if="promptInfo" class="flex">
 				<div class="mr-1 flex h-5 w-5 shrink-0 items-center justify-center rounded-full border-2">
-					<Icon type="information" size="xs" />
+					<Icon type="info" size="xs" />
 				</div>
 				<p class="italic">{{ $t('notifications.info') }}</p>
 			</div>
@@ -38,30 +38,32 @@
 </template>
 
 <script setup lang="ts">
-	// Package imports
+	// Packages
 	import { nextTick, onMounted, ref } from 'vue';
-
-	// Global imports
-	import { useSettings, Theme, TimeFormat, NotificationsPermission } from '@/logic/store/settings';
-	import { useFormState, FormDataType } from '@/logic/composables/useFormState';
-	import { useDialog, buttonsSubmitCancel, DialogOk } from '@/logic/store/dialog';
-	import { useInstallPromptStore } from '@/logic/store/installPromptPWA';
-
-	// Hub imports
-	import Button from '../../../../hub-client/src/components/elements/Button.vue';
-	import ButtonGroup from '@/../../hub-client/src/components/forms/ButtonGroup.vue';
-	import Dialog from '@/../../hub-client/src/components/ui/Dialog.vue';
-	import Icon from '@/../../hub-client/src/components/elements/Icon.vue';
-	import Label from '@/../../hub-client/src/components/forms/Label.vue';
-
 	import { useI18n } from 'vue-i18n';
+
+	// Components
+	import Button from '@hub-client/components/elements/Button.vue';
+	import Icon from '@hub-client/components/elements/Icon.vue';
+	import ButtonGroup from '@hub-client/components/forms/ButtonGroup.vue';
+	import Label from '@hub-client/components/forms/Label.vue';
+	import Dialog from '@hub-client/components/ui/Dialog.vue';
+
+	// Composables
+	import { FormDataType, useFormState } from '@hub-client/composables/useFormState';
+
+	// Stores
+	import { useInstallPromptStore } from '@global-client/stores/installPromptPWA';
+
+	import { DialogOk, buttonsSubmitCancel, useDialog } from '@hub-client/stores/dialog';
+	import { NotificationsPermission, Theme, TimeFormat, useSettings } from '@hub-client/stores/settings';
+
 	const { t } = useI18n();
 
 	const { data, setSubmitButton, setData, updateData, dataIsChanged, changed } = useFormState();
 	const settings = useSettings();
 	const dialog = useDialog();
 	const installPromptStore = useInstallPromptStore();
-
 	const promptAllow = ref<boolean>(false);
 	const promptReset = ref<boolean>(false);
 	const promptInfo = ref<boolean>(false);

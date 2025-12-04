@@ -5,6 +5,7 @@ Also make sure to not squash the commits so we can search for them later.
 
 ## PubHubs central
 ### Rust
+ - [ ] Make sure `rust-version` in [`Cargo.toml`](/pubhubs/Cargo.toml) is equal to the [latest version supported by NixOS](https://search.nixos.org/packages?channel=unstable&show=cargo&query=cargo).
  - [ ] In the `pubhubs` directory, run `cargo update -v` to install updates that are likely backwards compatible. 
  - [ ] *If* you are familiar with the rust code, check for (and likely breaking) major releases using `cargo update -v` and adjust `Cargo.toml` (and the code) accordingly.
 
@@ -14,8 +15,7 @@ Also make sure to not squash the commits so we can search for them later.
      - [ ] `FROM ghcr.io/element-hq/synapse:vXXXX` see [synapse releases](https://github.com/element-hq/synapse/releases)
      - [ ] `matrix-synapse==XXXX` in [python dependencies file](pubhubs_hub/requirements.txt) should be same version as synapse in dockerfile. 
    - [ ] `git clone https://github.com/privacybydesign/irmago --branch vXXXX` see [yivi releases](https://github.com/privacybydesign/irmago/releases)
-   - [ ] `FROM golang:<debian_version>` The [debian_version](https://www.debian.org/releases/stable/) should be the same for both golang and rust and the same as the version on which the synapse image is based. This is to prevent errors like to avoid errors like "OSError: /lib/x86_64-linux-gnu/libc.so.6: version `GLIBC_2.33' not found (required by /usr/lib/libpubhubs.so)".
-   - [ ] `FROM rust:<debian_version> AS libpubhubs_build`
+   - [ ] `FROM golang:<debian_version>` The [debian_version](https://www.debian.org/releases/stable/) should be the same as for golang and the same as the version on which the synapse image is based. This is to prevent errors like to avoid errors like "OSError: /lib/x86_64-linux-gnu/libc.so.6: version `GLIBC_2.33' not found".
 
 
 ## Global Client
@@ -33,6 +33,7 @@ For reference, dependencies are in `package.json`.
   - (2024-jul) updating 'msw' to 2.3.3 breaks the tests when its ran on gitlab. If it's not fixed in 2024-oct, make an issue at msw repo.
 - [ ] To address issues with breaking changes, check them and solve them if possible.
 
+
 ## Hub Client
 
 For reference, dependencies are in `package.json`.
@@ -46,6 +47,7 @@ For reference, dependencies are in `package.json`.
   - (2024-jul) This gives a warning about @vue/cli-service@3.3.1. You can ignore this as running npm audit fix --force breaks more things.
 - [ ] To address issues with breaking changes, check them and solve them if possible.
 
+
 ## Yivi docker
  - [ ] Check the version numbers in the [yivi Dockerfile](docker_yivi/Dockerfile)
    - [ ] `FROM golang:XXX`
@@ -54,3 +56,7 @@ For reference, dependencies are in `package.json`.
 
   (The `merge-to-stable` merge request template can be edited [here](https://gitlab.science.ru.nl/ilab/pubhubs_canonical/-/edit/main/.gitlab/issue_templates/update-dependencies.md).)
 
+## CICD
+
+ - [ ] Check if  `python:3.13` can be replaced by `python:latest` in the `hub-unit-test` job of [.gitlab-ci.yml](https://gitlab.science.ru.nl/ilab/pubhubs_canonical/-/blob/main/cicd/.gitlab-ci.yml) without making the tests fail.
+ - [ ] Update the node version in the [.gitlab-ci.yml](https://gitlab.science.ru.nl/ilab/pubhubs_canonical/-/blob/main/cicd/.gitlab-ci.yml?ref_type=heads#L190) file for global and hub client related jobs.

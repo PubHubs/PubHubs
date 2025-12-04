@@ -3,28 +3,27 @@
 </template>
 
 <script setup lang="ts">
-	// Package imports
-	import { onMounted, watch, ref, onUnmounted } from 'vue';
-	import { useRoute, useRouter } from 'vue-router';
+	// Packages
 	import { assert } from 'chai';
+	import { onMounted, onUnmounted, ref, watch } from 'vue';
+	import { useRoute, useRouter } from 'vue-router';
 
-	// Global imports
-	import { useGlobal } from '@/logic/store/global';
-	import { useHubs } from '@/logic/store/hubs';
-	import { iframeHubId } from '@/logic/store/messagebox';
-	import { useMSS } from '@/logic/store/mss';
-	import { FeatureFlag, useSettings } from '@/logic/store/settings';
+	// Logic
+	import { CONFIG } from '@hub-client/logic/logging/Config';
+	import { Logger } from '@hub-client/logic/logging/Logger';
+	import { SMI } from '@hub-client/logic/logging/StatusMessage';
 
-	// Hub imports
-	import { Logger } from '@/../../hub-client/src/logic/foundation/Logger';
-	import { CONFIG } from '@/../../hub-client/src/logic/foundation/Config';
-	import { SMI } from '@/../../hub-client/src/logic/foundation/StatusMessage';
+	// Stores
+	import { useGlobal } from '@global-client/stores/global';
+	import { useHubs } from '@global-client/stores/hubs';
+	import { useMSS } from '@global-client/stores/mss';
+
+	import { iframeHubId } from '@hub-client/stores/messagebox';
 
 	const route = useRoute();
 	const router = useRouter();
 	const hubs = useHubs();
 	const global = useGlobal();
-	const settings = useSettings();
 	const LOGGER = new Logger('GC', CONFIG);
 
 	onMounted(onRouteChange);
@@ -69,25 +68,11 @@
 	async function handleHubAuth(id: string) {
 		const hub = hubs.hub(id)!;
 		const hubId = hub?.hubId!;
-		const state = hubloggedinstatus(hubId, new URLSearchParams(window.location.search));
+		const state = hubloggedinstatus(hubId);
 
 		switch (state.kind) {
 			case Status.GlobalNotLoggedIn:
 				hubUrl.value = hub.url + '#/hub/';
-				break;
-			case Status.HubNotLoggedIn:
-				{
-					const hubServer = hubs.serverUrl(hubId);
-					const redirect = _env.PUBHUBS_URL + '/client%23' + window.location.hash.substring(1);
-					window.location.assign(hubServer + '_matrix/client/v3/login/sso/redirect?redirectUrl=' + redirect);
-				}
-				break;
-			case Status.LoginToken:
-				hubUrl.value = hub.url + '?loginToken=' + state.token;
-				window.history.replaceState('', '', '/client/#' + window.location.hash.substring(1));
-				break;
-			case Status.AccessToken:
-				hubUrl.value = hub.url + '?accessToken=' + state.token;
 				break;
 			case Status.MSSHubNotLoggedIn: {
 				try {
@@ -130,31 +115,14 @@
 
 	enum Status {
 		GlobalNotLoggedIn,
-		HubNotLoggedIn,
-		LoginToken,
-		AccessToken,
 		MSSAccessToken,
 		MSSHubNotLoggedIn,
 	}
 
-	type HubLoggedInStatus = GlobalNotLoggedIn | HubNotLoggedIn | LoginToken | AccessToken | MSSAccessToken | MSSHubNotLoggedIn;
+	type HubLoggedInStatus = GlobalNotLoggedIn | MSSAccessToken | MSSHubNotLoggedIn;
 
 	interface GlobalNotLoggedIn {
 		kind: Status.GlobalNotLoggedIn;
-	}
-
-	interface HubNotLoggedIn {
-		kind: Status.HubNotLoggedIn;
-	}
-
-	interface LoginToken {
-		kind: Status.LoginToken;
-		token: string;
-	}
-
-	interface AccessToken {
-		kind: Status.AccessToken;
-		token: string;
 	}
 
 	interface MSSHubNotLoggedIn {
@@ -167,42 +135,20 @@
 		userId: string;
 	}
 
-	function hubloggedinstatus(hubid: string, urlparams: URLSearchParams): HubLoggedInStatus {
+	function hubloggedinstatus(hubid: string): HubLoggedInStatus {
 		if (!global.loggedIn) {
 			return { kind: Status.GlobalNotLoggedIn };
 		}
 
-		if (settings.isFeatureEnabled(FeatureFlag.multiServerSetup)) {
-			const authInfo = global.getAuthInfo(hubid);
-			if (authInfo) {
-				return {
-					kind: Status.MSSAccessToken,
-					token: authInfo.token,
-					userId: authInfo.userId,
-				};
-			}
-
-			return { kind: Status.MSSHubNotLoggedIn };
-		}
-
-		const accesstoken = global.getAccessToken(hubid);
-
-		const logintoken = urlparams.get('loginToken');
-
-		if (logintoken && !accesstoken) {
+		const authInfo = global.getAuthInfo(hubid);
+		if (authInfo) {
 			return {
-				kind: Status.LoginToken,
-				token: logintoken,
+				kind: Status.MSSAccessToken,
+				token: authInfo.token,
+				userId: authInfo.userId,
 			};
 		}
 
-		if (accesstoken) {
-			return {
-				kind: Status.AccessToken,
-				token: accesstoken,
-			};
-		}
-
-		return { kind: Status.HubNotLoggedIn };
+		return { kind: Status.MSSHubNotLoggedIn };
 	}
 </script>

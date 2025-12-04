@@ -1,9 +1,9 @@
 <template>
-	<div class="flex h-[30rem] w-full max-w-[30rem] flex-col rounded-2xl bg-surface p-4" v-click-outside="close">
-		<input class="w-full rounded-md border-none bg-background py-2 text-on-surface ~text-label-min/label-max placeholder:text-on-surface-dim" v-model="searchQuery" type="text" :placeholder="$t('others.search')" />
-		<div class="flex flex-row gap-2 border-b py-3">
+	<div class="bg-surface flex h-[30rem] w-full max-w-[30rem] flex-col rounded-2xl p-4" v-click-outside="close">
+		<input class="bg-background text-on-surface text-label placeholder:text-on-surface-dim w-full rounded-md border-none py-2" v-model="searchQuery" type="text" :placeholder="$t('others.search')" />
+		<div class="flex flex-row justify-between border-b py-3">
 			<template v-for="(image, index) in imageList" :key="index">
-				<Icon :class="{ 'border-b-2': selectedGroup === index }" @click="index === 0 || index === 1 ? selectEmojiByGroup() : selectEmojiByGroup(index)" v-if="index !== 1" :type="image" class="w-6 cursor-pointer pb-1" />
+				<Icon :class="{ 'border-b-2': selectedGroup === index }" @click="index === 0 || index === 1 ? selectEmojiByGroup() : selectEmojiByGroup(index)" v-if="index !== 1" :type="image" size="md" class="cursor-pointer" />
 			</template>
 		</div>
 		<p>
@@ -11,7 +11,7 @@
 		</p>
 
 		<div class="scrollbar emoji-font flex flex-wrap gap-2 overflow-y-auto pr-2">
-			<span v-for="emoji in filterEmojis" :key="emoji.hexcode" @click="selectEmoji(emoji)" class="~text-body-min/body-max-min/base-max flex cursor-pointer items-center justify-center overflow-hidden">
+			<span v-for="emoji in filterEmojis" :key="emoji.hexcode" @click="selectEmoji(emoji)" class="text-body-min/base-max flex cursor-pointer items-center justify-center overflow-hidden">
 				{{ emoji.emoji }}
 			</span>
 		</div>
@@ -19,16 +19,18 @@
 </template>
 
 <script setup lang="ts">
-	import { onMounted, ref, computed } from 'vue';
-
-	import { useSettings } from '@/logic/store/settings';
-
+	// Packages
 	import { Emoji } from 'emojibase';
-	import emojiData from '@/locales/emojidata';
+	import { computed, onMounted, ref } from 'vue';
+
+	// Locales
+	import emojiData from '@hub-client/locales/emojidata';
+
+	// Stores
+	import { useSettings } from '@hub-client/stores/settings';
 
 	const settings = useSettings();
 	const language = settings.getActiveLanguage;
-
 	const emojis = ref([] as Emoji[]);
 	const searchQuery = ref('');
 	const selectedGroup = ref(0);
@@ -36,16 +38,16 @@
 
 	// Update this with new icons.
 	const imageList = [
-		'emoji_clock',
+		'clock',
 		'', /// Empty because there are two categories of smileys and we merge them.
-		'emoji_smiley',
-		'emoji_bear',
-		'emoji_cup',
-		'emoji_house',
-		'emoji_basketball',
-		'emoji_lightbulb',
-		'emoji_signs',
-		'emoji_flag',
+		'smiley',
+		'dog',
+		'coffee',
+		'house',
+		'basketball',
+		'lightbulb',
+		'globe',
+		'flag',
 	];
 
 	onMounted(() => {

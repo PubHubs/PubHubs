@@ -1,3 +1,4 @@
+// Packages
 import sanitize from 'sanitize-html';
 
 const removeHtml = (html: string): string => {

@@ -1,12 +1,9 @@
 {
-	"name": "pubhubsglobalclient",
+	"name": "@pubhubs/global-client",
 	"version": "0.5.0",
 	"type": "module",
 	"private": true,
 	"scripts": {
-		"serve": "vite --host",
-		"watch": "vite",
-		"build": "vite build",
 		"lint": "eslint --ext .js,.vue,.ts --ignore-path .gitignore --fix src",
 		"pwa": "vite build && npx http-server dist",
 		"test": "vitest",
@@ -25,43 +22,37 @@
 		"@vitejs/plugin-vue": "^5.2.1",
 		"@vue/test-utils": "^2.2.3",
 		"chai": "^5.2.1",
-		"core-js": "^3.8.3",
 		"mavon-editor": "^3.0.2",
 		"pinia": "^3",
 		"register-service-worker": "^1.7.2",
-		"tailwind-merge": "^2",
 		"typescript-cookie": "^1.0.4",
 		"util": "^0.12.5",
 		"vue": "^3.2.13",
 		"vue-i18n": "^11",
 		"vue-router": "^4.1.5",
-		"vuedraggable": "^4",
-		"vuejs3-logger": "1.0.0"
+		"vuedraggable": "^4"
 	},
 	"devDependencies": {
-		"@babel/core": "^7.12.16",
-		"@babel/eslint-parser": "^7.12.16",
-		"@tailwindcss/forms": "^0.5.10",
-		"@typescript-eslint/eslint-plugin": "^7",
-		"@typescript-eslint/parser": "^7",
+		"@tailwindcss/vite": "^4.1.11",
+		"@trivago/prettier-plugin-sort-imports": "^5.2.2",
 		"@vitejs/plugin-vue": "^5",
 		"@vue/eslint-config-typescript": "^13",
 		"autoprefixer": "^10.4.21",
-		"eslint": "^8",
+		"eslint": "^8.57.1",
+		"eslint-config-prettier": "^10.1.8",
 		"eslint-plugin-vue": "^9",
-		"fluid-tailwind": "^1.0.4",
 		"jsdoc": "^4.0.2",
 		"jsdom": "^26",
 		"msw": "2.3.2",
 		"postcss": "^8.5.3",
 		"prettier": "^3.5.0",
+		"prettier-eslint": "^16.3.0",
 		"prettier-plugin-tailwindcss": "^0.6.11",
-		"tailwindcss": "^3.4.17",
+		"tailwindcss": "^4.1.11",
 		"typescript": "^5.0.2",
 		"vite-plugin-node-polyfills": "^0.23.0",
 		"vite-plugin-pwa": "^1.0.0",
-		"vitest": "^3.1.1",
-		"vue-eslint-parser": "^9"
+		"vitest": "^3.1.1"
 	},
 	"eslintConfig": {
 		"root": true,
@@ -70,9 +61,10 @@
 			"vue/setup-compiler-macros": true
 		},
 		"extends": [
-			"plugin:vue/vue3-essential",
+			"@vue/typescript",
 			"eslint:recommended",
-			"@vue/typescript"
+			"plugin:vue/vue3-essential",
+			"prettier"
 		],
 		"parserOptions": {
 			"parser": "@typescript-eslint/parser"
@@ -94,26 +86,6 @@
 				"smart-tabs"
 			]
 		}
-	},
-	"prettier": {
-		"printWidth": 240,
-		"tabWidth": 4,
-		"useTabs": true,
-		"semi": true,
-		"singleQuote": true,
-		"quoteProps": "as-needed",
-		"trailingComma": "all",
-		"bracketSpacing": true,
-		"bracketSameLine": false,
-		"arrowParens": "always",
-		"htmlWhitespaceSensitivity": "css",
-		"vueIndentScriptAndStyle": true,
-		"endOfLine": "lf",
-		"embeddedLanguageFormatting": "auto",
-		"singleAttributePerLine": false,
-		"plugins": [
-			"prettier-plugin-tailwindcss"
-		]
 	},
 	"browserslist": [
 		"> 1%",

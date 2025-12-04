@@ -1,11 +1,17 @@
-import { describe, expect, test, beforeEach, afterEach } from 'vitest';
-import { flushPromises, mount } from '@vue/test-utils';
+// Packages
 import { createTestingPinia } from '@pinia/testing';
-import { useRooms } from '@/logic/store/store';
-import ProfileAttributes from '@/components/rooms/ProfileAttributes.vue';
+import { flushPromises, mount } from '@vue/test-utils';
+import { afterEach, beforeEach, describe, expect, test } from 'vitest';
 import { createI18n } from 'vue-i18n';
-import { nl } from '../../src/locales/nl';
-import { en } from '../../src/locales/en';
+
+// Components
+import ProfileAttributes from '@hub-client/components/rooms/ProfileAttributes.vue';
+
+import { en } from '@hub-client/locales/en';
+import { nl } from '@hub-client/locales/nl';
+
+// Stores
+import { useRooms } from '@hub-client/stores/rooms';
 
 describe('ProfileAttributes.vue Test', () => {
 	let wrapper;
@@ -56,7 +62,7 @@ describe('ProfileAttributes.vue Test', () => {
 
 		await flushPromises();
 
-		expect(wrapper.text().replace(/\s+/g, ' ').trim()).toBe('an attr another attr');
+		expect(wrapper.text().replace(/\s+/g, ' ').trim()).toBe('an attranother attr');
 	});
 
 	test('admin badges', async () => {

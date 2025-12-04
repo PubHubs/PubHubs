@@ -1,8 +1,6 @@
-<!-- Global Dialog, uses dialog.ts store. And is globally present in App.vue -->
-
 <template>
 	<div
-		class="fixed left-0 top-0 z-50 h-full w-full"
+		class="fixed top-0 left-0 z-50 h-full w-full"
 		@keydown.esc="doAction(DialogCancel)"
 		@keydown.enter="
 			if (dialog.properties.buttons.some((b) => b.action == 1 && b.enabled)) {
@@ -11,22 +9,20 @@
 		"
 	>
 		<!-- Scrim -->
-		<div v-if="dialog.properties.modal" class="absolute h-full w-full bg-surface-high opacity-80" />
+		<div v-if="dialog.properties.modal" class="bg-surface-high absolute h-full w-full opacity-80" />
 
 		<!-- Dialog -->
-		<div role="dialog" v-if="!dialog.properties.modalonly" class="relative left-0 top-0 flex h-full w-full items-center justify-center text-on-surface" @click="doAction(DialogCancel)">
-			<div class="m-2 flex max-h-full flex-col justify-between gap-1 rounded-md bg-surface-low p-4 shadow-xl shadow-surface-high md:m-4" :class="width" @click.stop>
+		<div role="dialog" v-if="!dialog.properties.modalonly" class="text-on-surface relative top-0 left-0 flex h-full w-full items-center justify-center" @click="doAction(DialogCancel)">
+			<div class="bg-surface-low shadow-surface-high m-2 flex max-h-full flex-col justify-between gap-1 rounded-md p-4 shadow-xl md:m-4" :class="width" @click.stop>
 				<div class="flex w-full items-center justify-between">
 					<H2 v-if="dialog.properties.title !== ''">{{ dialog.properties.title }}</H2>
 					<slot name="header"></slot>
-					<Icon v-if="dialog.properties.close" type="close" size="md" class="float-right -mt-1 cursor-pointer self-end hover:opacity-75" @click="doAction(DialogCancel)" />
+					<Icon v-if="dialog.properties.close" type="x" size="md" class="float-right -mt-1 cursor-pointer self-end hover:opacity-75" @click="doAction(DialogCancel)" />
 				</div>
 				<Line v-if="hasContent" class="z-0" />
 				<div v-if="hasContent" class="h-full py-1 pr-4 text-left" :class="props.allowOverflow ? 'overflow-visible' : 'overflow-y-auto'">
 					<slot></slot>
-					<div v-if="dialog.properties.content !== ''">
-						{{ dialog.properties.content }}
-					</div>
+					<div v-if="dialog.properties.content !== ''" v-html="dialog.properties.content"></div>
 				</div>
 				<Line class="z-0" />
 				<div class="flex w-full flex-row-reverse justify-start gap-2">
@@ -40,16 +36,17 @@
 </template>
 
 <script setup lang="ts">
-	// Package imports
-	import { onMounted, useSlots, computed, onUnmounted, watch } from 'vue';
+	// Packages
+	import { computed, onMounted, onUnmounted, useSlots, watch } from 'vue';
 
-	// Hub imports
-	import { DialogButton, DialogButtonAction, DialogOk, DialogCancel, useDialog } from '@/logic/store/dialog';
+	// Coponents
+	import Button from '@hub-client/components/elements/Button.vue';
+	import H2 from '@hub-client/components/elements/H2.vue';
+	import Icon from '@hub-client/components/elements/Icon.vue';
+	import Line from '@hub-client/components/elements/Line.vue';
 
-	import Icon from '@/components/elements/Icon.vue';
-	import H2 from '@/components/elements/H2.vue';
-	import Button from '@/components/elements/Button.vue';
-	import Line from '@/components/elements/Line.vue';
+	// Stores
+	import { DialogButton, DialogButtonAction, DialogCancel, DialogOk, useDialog } from '@hub-client/stores/dialog';
 
 	const emit = defineEmits(['close']);
 	const dialog = useDialog();

@@ -1,6 +1,9 @@
-import { LOGGER } from '@/logic/foundation/Logger.js';
-import { SMI } from '@/logic/foundation/StatusMessage.js';
+// Packages
 import { assert } from 'chai';
+
+// Logic
+import { LOGGER } from '@hub-client/logic/logging/Logger';
+import { SMI } from '@hub-client/logic/logging/StatusMessage';
 
 // Regex describing the general shape of a shortened pseudonym
 // Does not check the checkdigit, nor the fact that the left and right groups must be equally long.

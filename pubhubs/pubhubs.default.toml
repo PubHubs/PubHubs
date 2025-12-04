@@ -10,19 +10,29 @@
 # For a quick explanation of the TOML file format, see see https://toml.io
 phc_url = 'http://networkhost:5050'
 
+# NOTE: logging configured like this only starts after the configuration file is loaded. 
+# To get earlier log messages, configure logging using the RUST_LOG environmental variable.
+[log.modules]
+pubhubs = "debug"
+
 [host_aliases]
 networkhost.source_ip_for = "udp://k.root-servers.net:53"
 
 [auths]
 #port = 6060 
+attr_key_secret = "52f6ea1b26e9227ee4eb5ddce5cf974439d532926d3ab4c1853354fd20ef8839"
 
-#[auths.yivi]
-#requestor_url = "https://yivi.pubhubs.net"
-#server_name = "test"
-#
-#[auths.yivi.requestor_creds]
-#name = "requestor"
-#key.hs256 = "Asna"
+[auths.yivi]
+requestor_url = "http://networkhost:8188"
+server_name = "local-yivi"
+
+[auths.yivi.requestor_creds]
+name = "local-development"
+key.hs256 = "6576257d853bc1ea15cbf103dbc3950b819d65eef4fae4c55d80e9c32b683e06"
+
+[auths.yivi.card]
+type = "demo"
+# registration_source = "app.pubhubs.net"
 
 [[auths.attribute_types]]
 handles = ['email']
@@ -50,21 +60,35 @@ id = "QCGdNnTHNS69lyMUKt9UM_lrstmP-ZpRr53XaCR5rHI"
 name = "PubHubs card"
 bannable = false
 identifying = true
+not_addable_by_default = true
 sources = [
 	{ yivi.attr_type_id = "irma-demo.PubHubs.account.id" },
 ]
 
 [transcryptor]
 #port = 7070
+master_enc_key_part = "25f0990521c29f24df8d18d09b96f553e6cb462becee636a5ed41e2174212308"
+pseud_factor_secret = "6e0dbe747aeeee7ed06c82af9e0da7206660bfdb8743ffaf36702406e6e6d615"
 
 [phc]
 #port = 5050
 auths_url = 'http://networkhost:6060'
 transcryptor_url = 'http://networkhost:7070'
 global_client_url = 'http://localhost:8080'
+master_enc_key_part = "633a4aa3993eccdd7eed8849db707f047578211ade799a410ab97738a3deef02"
+attr_id_secret = "85b6f0da150d7f07343c258d93d7c6d8c0782f3fa8bcaa267d8f870a149b654e"
 
 [phc.object_store]
-url = "memory:///"
+url = "s3://phc"
+## If you cannot get garage to work, you can use this memory store instead:
+# url = "memory:///"
+
+[phc.object_store.options]
+aws_endpoint = "http://localhost:3900"
+aws_default_region = "garage"
+aws_access_key_id = "GK4ab65ecd61df5cd9382075c5"
+aws_secret_access_key = "c46af3789d8f98b527538e4eeea6c1130e1356b694f391fa6f9af5098121e50f"
+aws_allow_http = "true"
 
 # WARNINGs:
 # 
@@ -74,11 +98,40 @@ url = "memory:///"
 #
 #  - Never change the `id` of a hub because the users' pseudonyms are derived from it.
 [[phc.hubs]]
-handles = ['testhub', 'testhub_alias']
-name = "Testhub"
+handles = ['testhub0', 'testhub']
+name = "Testhub 0"
 description = '''This is the default testhub for local development'''
-url = 'http://localhost:8008/_synapse/client/'
-# NOTE: To generate a new `id`, use `cargo run tools generate id`
+url = 'http://networkhost:8008/_synapse/client/'
 id = 'i9RSgnZ44MMBdcJHX2GqDRNaOt_v63XOMekOmhLHvzg'
+
+[[phc.hubs]]
+handles = ['testhub1']
+name = "Testhub 1"
+description = '''This is the second testhub for local development'''
+url = 'http://networkhost:8009/_synapse/client/'
+id = 'FYj7KDsJZDziEU3-tNOimkq0rnc3tr0kTctaP6Msmew'
+
+[[phc.hubs]]
+handles = ['testhub2']
+name = "Testhub 2"
+description = '''This is the third testhub for local development'''
+url = 'http://networkhost:8010/_synapse/client/'
+id = 'sHrID6gjiICx7gkciOKYA9FyFKC6G3967X1CF7-qJhc'
+
+[[phc.hubs]]
+handles = ['testhub3']
+name = "Testhub 3"
+description = '''This is the fourth testhub for local development'''
+url = 'http://networkhost:8011/_synapse/client/'
+id = 'aBii1yp9tW8Uejn7fKBjZSFG9GRyoNy99VREZzhCuhU'
+
+[[phc.hubs]]
+handles = ['testhub4']
+name = "Testhub 4"
+description = '''This is the fifth testhub for local development'''
+url = 'http://networkhost:8012/_synapse/client/'
+# NOTE: To generate a new `id`, use `cargo run tools generate id`
+id = 'seS36YsdBj3oml98UyYT1IvPRFcLEX1TPa03PIa_XBA'
+
 
 

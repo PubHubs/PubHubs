@@ -1,18 +1,25 @@
 <template>
 	<span class="truncate" :title="displayname" :class="`${textColor(color(user?.userId))}`">{{ displayname }}</span>
-	<span class="mt-1 text-nowrap ~text-label-small-min/label-small-max">{{ filters.extractPseudonym(user?.userId) }}</span>
+	<span class="text-label-small mt-1 text-nowrap">{{ filters.extractPseudonym(user?.userId) }}</span>
 </template>
 
 <script setup lang="ts">
-	import { computed } from 'vue';
-	import filters from '@/logic/core/filters';
-	import { useUserColor } from '@/logic/composables/useUserColor';
-	import { usePubHubs } from '@/logic/core/pubhubsStore';
+	// Packages
 	import { User as MatrixUser } from 'matrix-js-sdk';
+	import { computed } from 'vue';
+
+	// Composables
+	import { useUserColor } from '@hub-client/composables/useUserColor';
+
+	// Logic
+	import filters from '@hub-client/logic/core/filters';
+
+	// Stores
+	import { usePubhubsStore } from '@hub-client/stores/pubhubs';
 
 	const { color, textColor } = useUserColor();
 
-	const pubhubs = usePubHubs();
+	const pubhubs = usePubhubsStore();
 
 	const user = computed(getMatrixUser);
 	const displayname = computed(getDisplayName);

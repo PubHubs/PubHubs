@@ -2,7 +2,7 @@
 	<div
 		role="button"
 		:class="buttonClass"
-		class="relative line-clamp-1 block h-fit shrink-0 cursor-pointer whitespace-nowrap rounded-lg text-center font-semibold transition-all duration-150 ease-in-out"
+		class="relative line-clamp-1 block h-fit shrink-0 cursor-pointer rounded-lg text-center font-semibold whitespace-nowrap transition-all duration-150 ease-in-out"
 		@click="click($event)"
 		:disabled="disabled"
 	>
@@ -11,8 +11,11 @@
 </template>
 
 <script setup lang="ts">
+	// Packages
 	import { computed } from 'vue';
-	import { buttonSizes } from '@/assets/sizes';
+
+	// Assets
+	import { buttonSizes } from '@hub-client/assets/sizes';
 
 	const colorClass: { [key: string]: string } = {
 		disabled: 'opacity-50 !cursor-not-allowed bg-on-surface-disabled text-on-surface-variant',

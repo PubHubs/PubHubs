@@ -2,6 +2,7 @@
 mod hub;
 mod server;
 mod user;
+mod user_card;
 mod user_object_store;
 mod user_sso;
 

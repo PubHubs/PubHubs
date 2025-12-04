@@ -1,9 +1,63 @@
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
+@import 'tailwindcss' source('../../../');
+
+/* Fonts */
+@font-face {
+	font-display: swap;
+	font-family: 'inter';
+	font-style: normal;
+	src: url('./fonts/Inter-VariableFont_opsz,wght.ttf') format('truetype');
+}
+
+@font-face {
+	font-display: swap;
+	font-family: 'inter';
+	font-style: italic;
+	src: url('./fonts/Inter-Italic-VariableFont_opsz,wght.ttf') format('truetype');
+}
+
+@font-face {
+	font-display: swap;
+	font-family: 'atkinson_hyperlegible';
+	font-style: normal;
+	src: url('./fonts/AtkinsonHyperlegibleNext-VariableFont_wght.ttf') format('truetype');
+}
+
+@font-face {
+	font-display: swap;
+	font-family: 'atkinson_hyperlegible';
+	font-style: italic;
+	src: url('./fonts/AtkinsonHyperlegibleNext-Italic-VariableFont_wght.ttf') format('truetype');
+}
+
+@font-face {
+	font-display: swap;
+	font-family: 'notocoloremoji';
+	font-style: normal;
+	font-weight: 400;
+	src: url('./fonts/NotoColorEmoji-Regular.ttf') format('truetype');
+}
 
 :root {
-	/* Main colors */
+	/* New colors */
+	--surface-background: #ffffff; /* Used for backgrounds */
+	--surface-base: #e3e5e8; /* Used for large surfaces */
+	--surface-elevated: #d1d1d1; /* Used for surfaces on top of a background or surface */
+	--on-surface-dim: #717171; /* Used for dim text */
+	--on-surface: #3d3c3c; /* Used for text */
+	--on-surface-bright: #202020; /* Used for bright text */
+
+	--accent-blue: #005a9e; /* Used for theming */
+	--on-accent-blue: #c0e3fd; /* Used for text on primary accent */
+	--accent-green: #4c6b1f;
+	--on-accent-green: #d3f1a7;
+	--accent-orange: #a54800;
+	--on-accent-orange: #fedec8;
+	--accent-error: #ae2e24;
+	--on-accent-error: #ffd5d2;
+	--accent-purple: #5e24ae;
+	--on-accent-purple: #e8d2ff;
+
+	/* Old colors */
 	--background: #ffffff; /* Used for room background */
 	--surface-low: #f2f3f5; /* Used for the room top bar and hub bar */
 	--surface: #e3e5e8; /* Used for the hub top bar and global bar */
@@ -13,8 +67,6 @@
 	--on-surface-variant: #333333; /* Used for secondary text */
 	--on-surface-dim: #666666; /* Used for dimmed text */
 	--on-surface-disabled: #aaaaaa; /* Used for disabled text */
-
-	/* Accent colors */
 	--accent-primary: #00adee; /* Used for theming */
 	--on-accent-primary: #ffffff; /* Used for text on primary accent */
 	--accent-secondary: #5c5e66; /* Used for theming */
@@ -35,10 +87,32 @@
 	--on-accent-blue: #000000;
 	--accent-orange: #fcba6d;
 	--on-accent-orange: #000000;
+
+	--font-atkinson: 'Atkinson Hyperlegible', sans-serif;
+	--font-inter: 'Inter', sans-serif;
 }
 
 .dark {
-	/* Main colors (dark) */
+	/* New colors (dark) */
+	--surface-background: #464545; /* Used for backgrounds */
+	--surface-base: #2f2e2e; /* Used for large surfaces */
+	--surface-elevated: #202020; /* Used for surfaces on top of a background or surface */
+	--on-surface-dim: #bbbbbb; /* Used for dim text */
+	--on-surface: #e3e5e8; /* Used for text */
+	--on-surface-bright: #ffffff; /* Used for bright text */
+
+	--accent-blue: #c0e3fd; /* Used for theming */
+	--on-accent-blue: #005a9e; /* Used for text on primary accent */
+	--accent-green: #d3f1a7;
+	--on-accent-green: #4c6b1f;
+	--accent-orange: #fedec8;
+	--on-accent-orange: #a54800;
+	--accent-error: #ffd5d2;
+	--on-accent-error: #ae2e24;
+	--accent-purple: #e8d2ff;
+	--on-accent-purple: #5e24ae;
+
+	/* Old colors (dark) */
 	--background: #464545;
 	--surface-low: #3d3c3c;
 	--surface: #2f2e2e;
@@ -48,6 +122,178 @@
 	--on-surface-variant: #cccccc;
 	--on-surface-dim: #999999;
 	--on-surface-disabled: #555555;
+}
+
+@theme {
+	/* New theme */
+	--color-currentColor: currentColor;
+	--color-transparent: transparent;
+	--color-black: #202020;
+	--color-white: #ffffff;
+
+	--color-surface-background: var(--surface-background);
+	--color-surface-base: var(--surface-base);
+	--color-surface-elevated: var(--surface-elevated);
+	--color-on-surface: var(--on-surface);
+	--color-on-surface-dim: var(--on-surface-dim);
+	--color-on-surface-bright: var(--on-surface-bright);
+
+	--color-accent-blue: var(--accent-blue);
+	--color-on-accent-blue: var(--on-accent-blue);
+	--color-accent-green: var(--accent-green);
+	--color-on-accent-green: var(--on-accent-green);
+	--color-accent-orange: var(--accent-orange);
+	--color-on-accent-orange: var(--on-accent-orange);
+	--color-accent-red: var(--accent-red);
+	--color-on-accent-red: var(--on-accent-red);
+	--color-accent-purple: var(--accent-purple);
+	--color-on-accent-purple: var(--on-accent-purple);
+
+	/* Aliases */
+	--color-accent-primary: var(--accent-blue);
+	--color-on-accent-primary: var(--on-accent-blue);
+	--color-accent-success: var(--accent-green);
+	--color-on-accent-success: var(--on-accent-green);
+	--color-accent-warning: var(--accent-orange);
+	--color-on-accent-warning: var(--on-accent-orange);
+	--color-accent-error: var(--accent-red);
+	--color-on-accent-error: var(--on-accent-red);
+	--color-accent-steward: var(--accent-purple);
+	--color-on-accent-steward: var(--on-accent-purple);
+
+	--font-headings: var(--font-atkinson);
+	--font-body: var(--font-inter);
+
+	--spacing-0: 0;
+	--spacing-thin: 0.5px;
+	--spacing-0125: 1px;
+	--spacing-020: 1.5px;
+	--spacing-025: 2px;
+	--spacing-050: 4px;
+	--spacing-075: 6px;
+	--spacing-100: 8px;
+	--spacing-150: 12px;
+	--spacing-175: 14px;
+	--spacing-200: 16px;
+	--spacing-250: 20px;
+	--spacing-300: 24px;
+	--spacing-400: 32px;
+	--spacing-500: 40px;
+	--spacing-550: 44px;
+	--spacing-600: 48px;
+	--spacing-800: 64px;
+	--spacing-1000: 80px;
+
+	--text-title: 24px;
+	--text-title--line-height: 1.28;
+	--text-title--font-weight: 600;
+	--text-heading-base: 20px;
+	--text-heading-base--line-height: 1.35;
+	--text-heading-base--font-weight: 600;
+	--text-heading-small: 16px;
+	--text-heading-small--line-height: 1.35;
+	--text-heading-small--font-weight: 600;
+	--text-body-base: 16px;
+	--text-body-base--line-height: 1.5;
+	--text-body-base--font-weight: 400;
+	--text-body-small: 14px;
+	--text-body-small--line-height: 1.5;
+	--text-body-small--font-weight: 400;
+	--text-display-base: 14px;
+	--text-display-base--line-height: 1.3;
+	--text-display-base--font-weight: 500;
+	--text-display-small: 12px;
+	--text-display-small--line-height: 1.3;
+	--text-display-small--font-weight: 500;
+
+	/* Old theme */
+	--breakpoint-xs: 480px;
+	--breakpoint-sm: 640px;
+	--breakpoint-md: 768px;
+	--breakpoint-lg: 1024px;
+	--breakpoint-xl: 1440px;
+	--breakpoint-2xl: 1536px;
+	--breakpoint-3xl: 1920px;
+
+	/* --color-currentColor: currentColor; */
+	/* --color-transparent: transparent; */
+	--color-background: var(--background);
+	--color-surface: var(--surface);
+	--color-surface-low: var(--surface-low);
+	--color-surface-subtle: var(--surface-subtle);
+	--color-surface-high: var(--surface-high);
+	--color-on-surface: var(--on-surface);
+	--color-on-surface-variant: var(--on-surface-variant);
+	--color-on-surface-dim: var(--on-surface-dim);
+	--color-on-surface-disabled: var(--on-surface-disabled);
+
+	--color-accent-primary: var(--accent-primary);
+	--color-on-accent-primary: var(--on-accent-primary);
+	--color-accent-secondary: var(--accent-secondary);
+	--color-on-accent-secondary: var(--on-accent-secondary);
+	--color-accent-error: var(--accent-error);
+	--color-on-accent-error: var(--on-accent-error);
+	--color-accent-lime: var(--accent-lime);
+	--color-on-accent-lime: var(--on-accent-lime);
+	--color-accent-pink: var(--accent-pink);
+	--color-on-accent-pink: var(--on-accent-pink);
+	--color-accent-yellow: var(--accent-yellow);
+	--color-on-accent-yellow: var(--on-accent-yellow);
+	--color-accent-red: var(--accent-red);
+	--color-on-accent-red: var(--on-accent-red);
+	--color-accent-teal: var(--accent-teal);
+	--color-on-accent-teal: var(--on-accent-teal);
+	--color-accent-blue: var(--accent-blue);
+	--color-on-accent-blue: var(--on-accent-blue);
+	--color-accent-orange: var(--accent-orange);
+	--color-on-accent-orange: var(--on-accent-orange);
+
+	/* --spacing-0: 0; */
+	--spacing-1: 4px;
+	--spacing-2: 8px;
+	--spacing-3: 12px;
+	--spacing-4: 16px;
+	--spacing-5: 20px;
+	--spacing-6: 24px;
+	--spacing-8: 28px;
+	--spacing-8: 32px;
+	--spacing-10: 40px;
+	--spacing-12: 48px;
+	--spacing-16: 64px;
+	--spacing-20: 80px;
+	--spacing-24: 96px;
+	--spacing-28: 112px;
+	--spacing-32: 128px;
+	--spacing-36: 144px;
+	--spacing-40: 160px;
+	--spacing-44: 176px;
+	--spacing-48: 192px;
+	--spacing-52: 208px;
+	--spacing-56: 224px;
+	--spacing-60: 240px;
+	--spacing-64: 256px;
+
+	--text-h1: 28px;
+	--text-h1--line-height: 1.28;
+	--text-h1--font-weight: 600;
+	--text-h2: 20px;
+	--text-h2--line-height: 1.35;
+	--text-h2--font-weight: 600;
+	--text-h3: 16px;
+	--text-h3--line-height: 1.35;
+	--text-h3--font-weight: 600;
+	--text-body: 16px;
+	--text-body--line-height: 1.5;
+	--text-body--font-weight: 400;
+	--text-label: 16px;
+	--text-label--line-height: 1.3;
+	--text-label--font-weight: 500;
+	--text-label-small: 14px;
+	--text-label-small--line-height: 1.3;
+	--text-label-small--font-weight: 500;
+	--text-label-tiny: 12px;
+	--text-label-tiny--line-height: 1.3;
+	--text-label-tiny--font-weight: 500;
 }
 
 @layer base {
@@ -98,8 +344,13 @@
 	}
 
 	::-webkit-scrollbar-thumb {
-		@apply rounded-full bg-on-surface-dim;
+		@apply bg-on-surface-dim rounded-full;
 	}
+
+	.message-link {
+		@apply text-accent-blue;
+	}
+
 	.v-note-wrapper .v-note-show ol {
 		list-style-type: i !important;
 	}
@@ -121,23 +372,35 @@
 	.editor .v-note-wrapper {
 		@apply relative !z-10 !max-h-[400px] !min-h-20 !resize-y overflow-y-auto;
 	}
+	.dark .editor .auto-textarea-wrapper .auto-textarea-input {
+		color: white !important;
+	}
+	.editor .auto-textarea-wrapper .auto-textarea-input {
+		color: black !important;
+	}
+
+	div[class='v-note-wrapper markdown-body'] {
+		background-color: rgba(0, 0, 0, 0) !important;
+		z-index: 0 !important;
+	}
 
 	.editor .v-note-wrapper .v-note-edit.divarea-wrapper .content-input-wrapper,
 	.editor .v-note-wrapper .v-note-edit.divarea-wrapper .content-input-wrapper .auto-textarea-wrapper,
 	.editor .v-note-wrapper .v-note-edit.divarea-wrapper .content-input-wrapper .auto-textarea-wrapper .auto-textarea-input {
-		@apply rounded-xl !border-none !bg-surface-low p-4 !pt-[15px] !font-body !text-base text-on-surface !~text-base-min/base-max;
+		@apply !bg-surface-low !font-body text-on-surface !text-body rounded-xl !border-none p-4 !pt-[15px];
 	}
 	.editor .v-note-wrapper .v-note-show,
 	.editor .v-note-wrapper .v-note-show .v-show-content {
-		@apply relative z-10 overflow-y-auto !rounded-none !bg-surface;
+		@apply !bg-surface relative z-10 overflow-y-auto !rounded-none;
 	}
 	.v-note-wrapper,
 	.v-note-wrapper .v-note-panel,
 	.v-note-wrapper .v-note-show,
 	.v-note-wrapper .v-note-edit,
 	.v-note-wrapper .v-note-show .v-show-content,
-	.v-note-wrapper .v-note-show .v-show-content-html {
-		@apply !relative !min-h-20 overflow-y-auto rounded-xl !border-none !bg-surface-low font-body text-on-surface ~text-base-min/base-max;
+	.v-note-wrapper .v-note-show .v-show-content-html,
+	div[class='scroll-style scroll-style-border-radius v-show-content'] {
+		@apply !bg-surface-low font-body text-on-surface text-body !relative !min-h-20 overflow-y-auto rounded-xl !border-none;
 	}
 	.global-preview .v-note-wrapper,
 	.global-preview .v-note-wrapper .v-note-panel,
@@ -145,61 +408,5 @@
 	.global-preview .v-note-wrapper .v-note-edit,
 	.global-preview .v-note-wrapper .v-note-show .v-show-content {
 		background: none !important;
-	}
-}
-
-/* Fonts */
-@font-face {
-	font-display: swap;
-	font-family: 'work_sans';
-	font-style: normal;
-	src: url('./fonts/WorkSans-VariableFont_wght.ttf') format('truetype');
-}
-
-@font-face {
-	font-display: swap;
-	font-family: 'work_sans';
-	font-style: italic;
-	src: url('./fonts/WorkSans-Italic-VariableFont_wght.ttf') format('truetype');
-}
-
-@font-face {
-	font-display: swap;
-	font-family: 'atkinson_hyperlegible';
-	font-style: normal;
-	src: url('./fonts/AtkinsonHyperlegibleNext-VariableFont_wght.ttf') format('truetype');
-}
-
-@font-face {
-	font-display: swap;
-	font-family: 'atkinson_hyperlegible';
-	font-style: italic;
-	src: url('./fonts/AtkinsonHyperlegibleNext-Italic-VariableFont_wght.ttf') format('truetype');
-}
-
-@font-face {
-	font-display: swap;
-	font-family: 'notocoloremoji';
-	font-style: normal;
-	font-weight: 400;
-	src: url('./fonts/NotoColorEmoji-Regular.ttf') format('truetype');
-}
-
-/* Classes */
-@layer components {
-	/* .highlighted {
-		@apply bg-surface-low transition duration-500 ease-out;
-	}
-
-	.unhighlighted {
-		@apply transition duration-500 ease-out;
-	} */
-
-	/* .message-mention {
-		@apply inline-block rounded-md bg-black px-1 text-white;
-	} */
-
-	.emoji-font {
-		font-family: notocoloremoji;
 	}
 }

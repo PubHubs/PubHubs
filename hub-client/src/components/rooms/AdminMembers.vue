@@ -1,10 +1,10 @@
 <template>
-	<div class="absolute inset-0 z-20 h-full bg-surface opacity-75"></div>
+	<div class="bg-surface absolute inset-0 z-20 h-full opacity-75"></div>
 	<div class="fixed inset-0 z-20 flex items-center justify-center p-4">
-		<div class="relative min-h-[300px] rounded-md border bg-surface-low p-8 sm:w-[480px] md:w-[640px]">
+		<div class="bg-surface-low relative min-h-[300px] rounded-md border p-8 sm:w-[480px] md:w-[640px]">
 			<div class="flex justify-between">
 				<h2 class="mx-2 my-2 mt-4 font-bold">{{ t('admin.title_room_join') }}</h2>
-				<Icon type="close" @click="close()"></Icon>
+				<Icon type="x" @click="close()"></Icon>
 			</div>
 
 			<hr class="mx-8 mt-2" />
@@ -14,7 +14,7 @@
 			</div>
 
 			<hr class="mx-8 mt-2" />
-			<Button @click="handleActionClick" class="absolute inset-0 mt-4 w-full rounded bg-on-surface-variant px-4 text-center hover:bg-surface-subtle dark:text-surface-low">
+			<Button @click="handleActionClick" class="bg-on-surface-variant hover:bg-surface-subtle dark:text-surface-low absolute inset-0 mt-4 w-full rounded-xs px-4 text-center">
 				{{ t('admin.join') }}
 			</Button>
 			<InlineSpinner v-if="inProgress"></InlineSpinner>
@@ -23,26 +23,31 @@
 </template>
 
 <script setup lang="ts">
-	import { ref, onMounted, onUnmounted, watch } from 'vue';
-
-	import { useUser } from '@/logic/store/user';
-	import { usePubHubs } from '@/logic/core/pubhubsStore';
-	import { APIService } from '@/logic/core/apiHubManagement';
-	import { ManagementUtils } from '@/model/hubmanagement/utility/managementutils';
-	import { useDialog } from '@/logic/store/dialog';
-	import Button from '../elements/Button.vue';
-
-	import Icon from '../elements/Icon.vue';
-
-	import { useI18n } from 'vue-i18n';
+	// Packages
 	import { EventType } from 'matrix-js-sdk';
-	import InlineSpinner from '../ui/InlineSpinner.vue';
+	import { onMounted, onUnmounted, ref, watch } from 'vue';
+	import { useI18n } from 'vue-i18n';
+
+	// Components
+	import Button from '@hub-client/components/elements/Button.vue';
+	import Icon from '@hub-client/components/elements/Icon.vue';
+	import InlineSpinner from '@hub-client/components/ui/InlineSpinner.vue';
+
+	// Logic
+	import { APIService } from '@hub-client/logic/core/apiHubManagement';
+
+	// Models
+	import { ManagementUtils } from '@hub-client/models/hubmanagement/utility/managementutils';
+
+	// Stores
+	import { useDialog } from '@hub-client/stores/dialog';
+	import { usePubhubsStore } from '@hub-client/stores/pubhubs';
+	import { useUser } from '@hub-client/stores/user';
 
 	const { t } = useI18n();
 	const user = useUser();
-	const pubhubs = usePubHubs();
+	const pubhubs = usePubhubsStore();
 	const dialog = useDialog();
-
 	const inProgress = ref<boolean>(false);
 
 	const props = defineProps<{ roomId: string }>();
@@ -91,7 +96,7 @@
 
 	async function joinAndMakeAdmin(roomId: string): Promise<void> {
 		await pubhubs.joinRoom(props.roomId);
-		await APIService.makeRoomAdmin(roomId, user.user.userId);
+		await APIService.makeRoomAdmin(roomId, user.userId);
 	}
 
 	async function attemptToJoinPrevAdmin(adminId: string): Promise<void> {
@@ -120,7 +125,7 @@
 		// Start polling for conditions
 		let pollInterval = setInterval(async () => {
 			// This Hub is now a room Admin
-			const isAdmin = await hasBecomeRoomAdmin(user.user.userId);
+			const isAdmin = await hasBecomeRoomAdmin(user.userId);
 			// Check if the previous admin is *not* found in the current members, meaning they've left
 			const roomMembers = (await APIService.adminGetRoomMembers(props.roomId)).members;
 			const hasPrevAdminLeft = !roomMembers.includes(roomCreator.value!);

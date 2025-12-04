@@ -1,38 +1,44 @@
 <template>
-	<div class="relative min-h-full overflow-hidden rounded-md bg-surface-subtle">
+	<div class="bg-surface-subtle relative min-h-full overflow-hidden rounded-md">
 		<div class="relative">
-			<div class="absolute left-0 top-0 h-[50%] w-full bg-on-surface-dim"></div>
+			<div class="bg-on-surface-dim absolute top-0 left-0 h-[50%] w-full"></div>
 			<div class="relative z-10 flex items-end justify-between px-4 py-4">
-				<Avatar :userId="event.sender" class="rounded-full object-cover shadow-md ring-2 ring-white ring-offset-1" />
-				<div v-if="user.user.userId !== event.sender && props.room?.getPowerLevel(event.sender) !== 50" class="mb-2 rounded-md bg-surface-low p-[2%]">
-					<Icon type="envelope" @click="goToUserRoom(event.sender)" class="cursor-pointer"></Icon>
+				<Avatar :avatar-url="user.userAvatar(event.sender)" :user-id="event.sender" class="rounded-full object-cover shadow-md ring-2 ring-white ring-offset-1" />
+				<div v-if="user.userId !== event.sender && props.room?.getPowerLevel(event.sender) !== 50" class="bg-surface-low mb-2 rounded-md p-[2%]">
+					<Button class="bg-on-surface-variant cursor-pointer" @click.once="goToUserRoom(event.sender)">
+						<Icon size="md" type="envelope"></Icon>
+					</Button>
 				</div>
 			</div>
 		</div>
 
 		<RoomBadge :user="event.sender" :room_id="event.room_id"></RoomBadge>
 		<div class="px-4 py-1">
-			<UserDisplayName :user="event.sender" :room="room" :show-display-name="false" :choose-color="false" />
-			<UserDisplayName :user="event.sender" :room="room" :show-pseudonym="false" :choose-color="false" />
+			<UserDisplayName :user-id="event.sender" :userDisplayName="user.userDisplayName(event.sender)" :show-display-name="false" :choose-color="false" />
+			<UserDisplayName :user-id="event.sender" :userDisplayName="user.userDisplayName(event.sender)" :show-pseudonym="false" :choose-color="false" />
 		</div>
 	</div>
 </template>
 
 <script setup lang="ts">
-	import RoomBadge from '../rooms/RoomBadge.vue';
-	import UserDisplayName from '../rooms/UserDisplayName.vue';
-	import Avatar from './Avatar.vue';
-	import Icon from '../elements/Icon.vue';
+	// Packages
+	import { RoomMember } from 'matrix-js-sdk';
 
-	import { TMessageEvent } from '@/model/events/TMessageEvent';
-	import RoomMember from '@/model/rooms/RoomMember';
-	import Room from '@/model/rooms/Room';
+	// Components
+	import Icon from '@hub-client/components/elements/Icon.vue';
+	import RoomBadge from '@hub-client/components/rooms/RoomBadge.vue';
+	import UserDisplayName from '@hub-client/components/rooms/UserDisplayName.vue';
+	import Avatar from '@hub-client/components/ui/Avatar.vue';
 
-	import { usePubHubs } from '@/logic/core/pubhubsStore';
-	import { useUser } from '@/logic/store/user';
+	// Models
+	import { TMessageEvent } from '@hub-client/models/events/TMessageEvent';
+	import Room from '@hub-client/models/rooms/Room';
 
-	const pubhubs = usePubHubs();
+	// Stores
+	import { usePubhubsStore } from '@hub-client/stores/pubhubs';
+	import { useUser } from '@hub-client/stores/user';
 
+	const pubhubs = usePubhubsStore();
 	const user = useUser();
 
 	const props = defineProps({
@@ -53,10 +59,11 @@
 	async function goToUserRoom(userId: string) {
 		let room;
 		const other = pubhubs.client.getUser(userId);
-		room = await pubhubs.createPrivateRoomWith(other);
-
-		if (room) {
-			await pubhubs.routeToRoomPage(room);
+		if (other) {
+			room = await pubhubs.createPrivateRoomWith(other);
+			if (room) {
+				await pubhubs.routeToRoomPage(room);
+			}
 		}
 	}
 </script>

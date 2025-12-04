@@ -6,20 +6,20 @@
 				<input type="file" id="avatar" accept="image/png, image/jpeg, image/svg" class="hidden" ref="file" @change="chooseAvatar($event)" />
 
 				<div class="flex flex-col justify-between md:w-4/6 md:flex-row">
-					<AvatarCore :img="blobUrl" :user="user.user" class="h-32 w-32 rounded-full"></AvatarCore>
+					<Avatar :avatar-url="blobUrl" class="h-32 w-32 rounded-full"></Avatar>
 
 					<div class="mt-5 flex justify-center md:mr-3 md:flex-col md:justify-normal md:space-y-4">
 						<label for="avatar">
-							<Icon size="lg" type="edit" class="cursor-pointer hover:text-on-surface-variant group-hover:block" />
+							<Icon size="lg" type="pencil-simple" class="hover:text-on-surface-variant cursor-pointer group-hover:block" data-testid="change-avatar" />
 						</label>
-						<Icon size="lg" type="bin" class="cursor-pointer hover:text-on-surface-variant group-hover:block" @click="removeAvatar" />
+						<Icon size="lg" type="trash" class="hover:text-on-surface-variant cursor-pointer group-hover:block" @click="removeAvatar" data-testid="remove-avatar" />
 					</div>
 				</div>
 			</div>
 			<div class="mb-4 flex flex-col md:flex-row">
 				<label class="text-gray w-2/6 font-semibold">{{ $t('settings.displayname') }}</label>
 				<TextInput
-					class="rounded border p-1 ~text-base-min/base-max focus:border-blue-500 focus:outline-none md:w-4/6"
+					class="text-body rounded-xs border p-1 focus:border-blue-500 focus:outline-none md:w-4/6"
 					name="displayname"
 					v-model.trim="formState.data.displayName.value"
 					:placeholder="$t('settings.displayname')"
@@ -28,8 +28,8 @@
 			</div>
 			<div class="mb-4 flex flex-col md:flex-row">
 				<label class="text-gray w-2/6 font-semibold">{{ $t('settings.userId') }}</label>
-				<div title="Hub specific User ID" class="p-1 text-lg italic text-on-surface-dim ~text-base-min/base-max md:w-4/6">
-					{{ user.user.userId }}
+				<div title="Hub specific User ID" class="text-on-surface-dim text-body p-1 text-lg italic md:w-4/6">
+					{{ user.userId }}
 				</div>
 			</div>
 		</form>
@@ -43,39 +43,43 @@
 </template>
 
 <script setup lang="ts">
-	import { fileUpload } from '@/logic/composables/fileUpload';
-	import { FormDataType, useFormState } from '@/logic/composables/useFormState';
-	import { useMatrixFiles } from '@/logic/composables/useMatrixFiles';
-	import { usePubHubs } from '@/logic/core/pubhubsStore';
-	import { useSettings } from '@/logic/store/settings';
-	import { buttonsSubmitCancel, DialogButtonAction, DialogSubmit, useDialog } from '@/logic/store/store';
-	import { useUser } from '@/logic/store/user';
+	// Packages
 	import { onMounted, ref } from 'vue';
 	import { useI18n } from 'vue-i18n';
 
 	// Components
-	import AvatarCore from '../ui/AvatarCore.vue';
-	import Dialog from '../ui/Dialog.vue';
-	import Icon from '../elements/Icon.vue';
-	import TextInput from './TextInput.vue';
-	import ValidationErrors from './ValidationErrors.vue';
+	import Icon from '@hub-client/components/elements/Icon.vue';
+	import TextInput from '@hub-client/components/forms/TextInput.vue';
+	import ValidationErrors from '@hub-client/components/forms/ValidationErrors.vue';
+	import Avatar from '@hub-client/components/ui/Avatar.vue';
+	import Dialog from '@hub-client/components/ui/Dialog.vue';
+
+	// Composables
+	import { fileUpload } from '@hub-client/composables/fileUpload';
+	import { FormDataType, useFormState } from '@hub-client/composables/useFormState';
+	import { useMatrixFiles } from '@hub-client/composables/useMatrixFiles';
+
+	// Stores
+	import { DialogButtonAction, DialogSubmit, buttonsSubmitCancel, useDialog } from '@hub-client/stores/dialog';
+	import { usePubhubsStore } from '@hub-client/stores/pubhubs';
+	import { useSettings } from '@hub-client/stores/settings';
+	import { useUser } from '@hub-client/stores/user';
 
 	const { t } = useI18n();
 	const user = useUser();
 	const settings = useSettings();
 	const dialog = useDialog();
 	const formState = useFormState();
-	const pubhubs = usePubHubs();
+	const pubhubs = usePubhubsStore();
 	const { imageTypes, uploadUrl } = useMatrixFiles();
 	const fileInfo = ref<File>();
-	// const avatarRemoved = ref<boolean>(false);
 
 	let avatarMxcUrl = ref<string | undefined>(undefined);
 	let blobUrl = ref<string | undefined>(undefined);
 
 	formState.setData({
 		displayName: {
-			value: user.user.displayName as string,
+			value: user.userDisplayName(user.userId!) as string,
 			validation: {
 				required: true,
 				max_length: settings.getDisplayNameMaxLength,
@@ -89,8 +93,8 @@
 
 	onMounted(() => {
 		formState.setSubmitButton(getSubmitButton());
-		formState.data.displayName.value = user.user.displayName as FormDataType;
-		blobUrl.value = user.avatarUrl;
+		formState.data.displayName.value = user.userDisplayName(user.userId!) as FormDataType;
+		blobUrl.value = user.userAvatar(user.userId!);
 	});
 
 	function dialogAction(action: DialogButtonAction) {
@@ -107,7 +111,7 @@
 		// This check enables empty values to be submitted since dataIsChanged() method can't handle empty values conditional cal.
 		if (formState.dataIsChanged('displayName')) {
 			const newDisplayName = formState.data.displayName.value as string;
-			await pubhubs.changeDisplayName(newDisplayName);
+			await user.setDisplayName(newDisplayName);
 			formState.setMessage(t('settings.displayname_changed', [newDisplayName]));
 			formState.updateData('displayName', newDisplayName);
 		}
@@ -115,7 +119,7 @@
 			await uploadAvatar();
 		}
 		if (avatarMxcUrl.value !== undefined) {
-			user.setAvatarMxcUrl(avatarMxcUrl.value, true);
+			user.setAvatarMxcUrl(avatarMxcUrl.value);
 		}
 		if (blobUrl.value) {
 			URL.revokeObjectURL(blobUrl.value);
@@ -145,7 +149,7 @@
 			fileUpload(errorMsg, accessToken, uploadUrl, imageTypes, syntheticEvent, (mxUrl) => {
 				avatarMxcUrl.value = mxUrl;
 				if (avatarMxcUrl.value !== undefined) {
-					user.setAvatarMxcUrl(avatarMxcUrl.value, true);
+					user.setAvatarMxcUrl(avatarMxcUrl.value);
 				}
 			});
 		} else {

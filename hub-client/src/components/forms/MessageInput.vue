@@ -4,22 +4,24 @@
 		<div class="relative">
 			<Popover v-if="messageInput.state.popover" @close="messageInput.togglePopover()" class="absolute bottom-4">
 				<div class="flex items-center">
-					<PopoverButton icon="upload" @click="clickedAttachment">{{ $t('message.upload_file') }}</PopoverButton>
+					<PopoverButton icon="upload-simple" data-testid="upload" @click="clickedAttachment">{{ $t('message.upload_file') }}</PopoverButton>
 					<template v-if="settings.isFeatureEnabled(FeatureFlag.votingWidget) && !inThread && !inReplyTo">
-						<PopoverButton icon="poll" @click="messageInput.openPoll()">{{ $t('message.poll') }}</PopoverButton>
-						<PopoverButton icon="scheduler" @click="messageInput.openScheduler()">{{ $t('message.scheduler') }}</PopoverButton>
+						<PopoverButton icon="chart-bar" data-testid="poll" @click="messageInput.openPoll()">{{ $t('message.poll') }}</PopoverButton>
+						<PopoverButton icon="calendar" data-testid="scheduler" @click="messageInput.openScheduler()">{{ $t('message.scheduler') }}</PopoverButton>
 					</template>
-					<PopoverButton icon="sign" v-if="!messageInput.state.signMessage && settings.isFeatureEnabled(FeatureFlag.signedMessages)" @click="messageInput.openSignMessage()">{{ $t('message.sign.add_signature') }}</PopoverButton>
+					<PopoverButton icon="pen-nib" data-testid="sign" v-if="!messageInput.state.signMessage && settings.isFeatureEnabled(FeatureFlag.signedMessages)" @click="messageInput.openSignMessage()">{{
+						$t('message.sign.add_signature')
+					}}</PopoverButton>
 				</div>
 			</Popover>
 			<Mention v-if="messageInput.state.showMention" :msg="value as string" :top="caretPos.top" :left="caretPos.left" :room="room" @click="mentionUser($event)" />
-			<div v-if="messageInput.state.emojiPicker" class="absolute bottom-2 right-0 z-20 xs:right-4 md:right-12">
+			<div v-if="messageInput.state.emojiPicker" class="xs:right-4 absolute right-0 bottom-2 z-20 md:right-12">
 				<EmojiPicker @emojiSelected="clickedEmoticon" @close="messageInput.toggleEmojiPicker()" />
 			</div>
 		</div>
 
 		<div class="flex max-h-12 items-end justify-between gap-2 md:max-h-[50vh]">
-			<div class="w-full rounded-xl bg-surface-high shadow-sm">
+			<div class="bg-surface-high w-full rounded-xl shadow-xs">
 				<!-- In reply to -->
 				<div class="flex h-10 items-center justify-between gap-2 px-2" v-if="inReplyTo">
 					<div class="flex w-fit gap-2 overflow-hidden">
@@ -34,7 +36,7 @@
 						</Suspense>
 					</div>
 					<button @click="messageActions.replyingTo = undefined">
-						<Icon type="closingCross" size="sm" />
+						<Icon type="x" size="sm" />
 					</button>
 				</div>
 
@@ -61,12 +63,12 @@
 					/>
 				</template>
 
-				<div v-if="messageInput.state.textArea" class="flex items-end gap-x-4 rounded-2xl px-4 py-2">
-					<Icon type="paperclip" size="md" @click.stop="messageInput.togglePopover()" :asButton="true" />
+				<div v-if="messageInput.state.textArea" class="flex items-center gap-x-4 rounded-2xl px-4 py-2">
+					<IconButton type="plus-circle" data-testid="paperclip" size="lg" @click.stop="messageInput.togglePopover()" />
 					<!-- Overflow-x-hidden prevents firefox from adding an extra row to the textarea for a possible scrollbar -->
 					<TextArea
 						ref="elTextInput"
-						class="max-h-40 overflow-x-hidden border-none bg-transparent ~text-label-min/label-max placeholder:text-on-surface-variant md:max-h-60"
+						class="text-label placeholder:text-on-surface-variant max-h-40 overflow-x-hidden border-none bg-transparent md:max-h-60"
 						v-focus
 						:placeholder="$t('rooms.new_message')"
 						:title="$t('rooms.new_message')"
@@ -78,37 +80,32 @@
 					/>
 
 					<!--Steward and above can broadcast only in main time line-->
-					<div
+					<button
 						v-if="room.getPowerLevel(user.user.userId) >= 50 && !inThread && !room.isPrivateRoom() && !room.isGroupRoom()"
-						class="flex aspect-square h-6 w-6 justify-center"
 						:class="!messageInput.state.sendButtonEnabled && 'opacity-50 hover:cursor-default'"
 						@click="isValidMessage() ? announcementMessage() : null"
 					>
-						<Icon type="announcement" size="md"></Icon>
-					</div>
+						<Icon type="megaphone-simple" size="lg"></Icon>
+					</button>
 
 					<!-- Emoji picker -->
-					<Icon type="emoticon" :iconColor="'text-background dark:text-on-surface-variant'" size="md" @click.stop="messageInput.toggleEmojiPicker()" :asButton="true" class="rounded-full bg-accent-secondary" />
+					<button>
+						<Icon type="smiley" size="lg" @click.stop="messageInput.toggleEmojiPicker()" />
+					</button>
 
 					<!-- Sendbutton -->
-					<Button
-						class="flex aspect-square h-7 w-7 items-center justify-center !rounded-full bg-background !p-0"
-						:title="$t('message.send')"
-						:class="!messageInput.state.sendButtonEnabled && 'opacity-50 hover:cursor-default'"
-						:disabled="!messageInput.state.sendButtonEnabled"
-						@click="submitMessage"
-					>
-						<Icon type="send" size="sm" class="shrink-0 text-on-surface-variant" />
-					</Button>
+					<button :title="$t('message.send')" :class="!messageInput.state.sendButtonEnabled && 'opacity-50 hover:cursor-default'" :disabled="!messageInput.state.sendButtonEnabled" @click="submitMessage">
+						<Icon type="paper-plane-right" size="lg" />
+					</button>
 				</div>
 
-				<div v-if="messageInput.state.signMessage" class="m-4 mt-0 flex items-center rounded-md bg-surface-low p-2">
-					<Icon type="sign" size="base" class="mt-1 self-start" />
+				<div v-if="messageInput.state.signMessage" class="bg-surface-low m-4 mt-0 flex items-center rounded-md p-2">
+					<Icon type="pen-nib" size="base" class="mt-1 self-start" />
 					<div class="ml-2 flex max-w-3xl flex-col justify-between">
 						<h3 class="font-bold">{{ $t('message.sign.heading') }}</h3>
 						<p>{{ $t('message.sign.info') }}</p>
 						<div class="mt-2 flex items-center">
-							<Icon type="warning" size="sm" class="mb-[2px] mr-2 mt-1 shrink-0 self-start" />
+							<Icon type="warning" size="sm" class="mt-1 mr-2 mb-[2px] shrink-0 self-start" />
 							<p class="italic">{{ $t('message.sign.warning') }}</p>
 						</div>
 						<Line class="mb-2" />
@@ -117,13 +114,13 @@
 							<p>Email</p>
 						</div>
 					</div>
-					<Icon type="closingCross" size="sm" :asButton="true" @click.stop="messageInput.resetAll(true)" class="ml-auto self-start" />
+					<IconButton type="x" size="sm" @click.stop="messageInput.resetAll(true)" class="ml-auto self-start" />
 				</div>
 			</div>
 
 			<!-- Yivi signing qr popup -->
 			<div class="absolute bottom-[10%] left-1/2 w-min -translate-x-1/2" v-show="messageInput.state.showYiviQR">
-				<Icon type="close" class="absolute right-2 z-10 cursor-pointer dark:text-black" @click="messageInput.state.showYiviQR = false" />
+				<Icon type="x" class="absolute right-2 z-10 cursor-pointer dark:text-black" @click="messageInput.state.showYiviQR = false" />
 				<div v-if="messageInput.state.signMessage" id="yivi-web-form"></div>
 			</div>
 		</div>
@@ -131,42 +128,52 @@
 </template>
 
 <script setup lang="ts">
-	// Components
-	import Popover from '../ui/Popover.vue';
-	import TextArea from './TextArea.vue';
-	import Button from '../elements/Button.vue';
-	import Icon from '../elements/Icon.vue';
-	import EmojiPicker from '../ui/EmojiPicker.vue';
-	import Mention from '../ui/Mention.vue';
-	import Line from '../elements/Line.vue';
-	import MessageSnippet from '../rooms/MessageSnippet.vue';
-	import PollMessageInput from '@/components/rooms/voting/poll/PollMessageInput.vue';
-	import SchedulerMessageInput from '@/components/rooms/voting/scheduler/SchedulerMessageInput.vue';
-	import PopoverButton from '../ui/PopoverButton.vue';
-
-	import { useFormInputEvents, usedEvents } from '@/logic/composables/useFormInputEvents';
-	import { onMounted, onUnmounted, PropType, ref, watch } from 'vue';
-	import { useMatrixFiles } from '@/logic/composables/useMatrixFiles';
-	import { fileUpload } from '@/logic/composables/fileUpload';
-	import filters from '@/logic/core/filters';
-	import { usePubHubs } from '@/logic/core/pubhubsStore';
-	import { useMessageActions } from '@/logic/store/message-actions';
-	import { useMessageInput } from '@/logic/store/messageInput';
-	import Room from '@/model/rooms/Room';
-	import { useRooms } from '@/logic/store/store';
-	import { useRoute } from 'vue-router';
-	import { useUser } from '@/logic/store/user';
-	import { FeatureFlag, useSettings } from '@/logic/store/settings';
-	import { YiviSigningSessionResult } from '@/model/components/signedMessages';
-	import { TMessageEvent } from '@/model/events/TMessageEvent';
-	import { Scheduler, Poll } from '@/model/events/voting/VotingTypes';
+	// Packages
+	import { PropType, onMounted, onUnmounted, ref, watch } from 'vue';
 	import { useI18n } from 'vue-i18n';
+	import { useRoute } from 'vue-router';
+
+	// Components
+	import Button from '@hub-client/components/elements/Button.vue';
+	import Icon from '@hub-client/components/elements/Icon.vue';
+	import Line from '@hub-client/components/elements/Line.vue';
+	import TextArea from '@hub-client/components/forms/TextArea.vue';
+	import MessageSnippet from '@hub-client/components/rooms/MessageSnippet.vue';
+	import PollMessageInput from '@hub-client/components/rooms/voting/poll/PollMessageInput.vue';
+	import SchedulerMessageInput from '@hub-client/components/rooms/voting/scheduler/SchedulerMessageInput.vue';
+	import EmojiPicker from '@hub-client/components/ui/EmojiPicker.vue';
+	import Mention from '@hub-client/components/ui/Mention.vue';
+	import Popover from '@hub-client/components/ui/Popover.vue';
+	import PopoverButton from '@hub-client/components/ui/PopoverButton.vue';
+
+	// Composables
+	import { fileUpload } from '@hub-client/composables/fileUpload';
+	import { useFormInputEvents, usedEvents } from '@hub-client/composables/useFormInputEvents';
+	import { useMatrixFiles } from '@hub-client/composables/useMatrixFiles';
+
+	// Logic
+	import filters from '@hub-client/logic/core/filters';
+	import { useMessageInput } from '@hub-client/logic/messageInput';
+
+	// Models
+	import { YiviSigningSessionResult } from '@hub-client/models/components/signedMessages';
+	import { RelationType } from '@hub-client/models/constants';
+	import { TMessageEvent } from '@hub-client/models/events/TMessageEvent';
+	import { Poll, Scheduler } from '@hub-client/models/events/voting/VotingTypes';
+	import Room from '@hub-client/models/rooms/Room';
+
+	// Stores
+	import { useMessageActions } from '@hub-client/stores/message-actions';
+	import { usePubhubsStore } from '@hub-client/stores/pubhubs';
+	import { useRooms } from '@hub-client/stores/rooms';
+	import { FeatureFlag, useSettings } from '@hub-client/stores/settings';
+	import { useUser } from '@hub-client/stores/user';
 
 	const { t } = useI18n();
 	const user = useUser();
 	const route = useRoute();
 	const rooms = useRooms();
-	const pubhubs = usePubHubs();
+	const pubhubs = usePubhubsStore();
 	const settings = useSettings();
 	const messageActions = useMessageActions();
 	const messageInput = useMessageInput();
@@ -254,7 +261,7 @@
 		() => props.editingPoll,
 		() => {
 			if (props.editingPoll) {
-				pubhubs.editPoll(props.editingPoll.poll, props.editingPoll.eventId);
+				pubhubs.editPoll(props.room.roomId, props.editingPoll.eventId, props.editingPoll.poll);
 				pollObject.value = props.editingPoll.poll;
 			}
 		},
@@ -264,7 +271,7 @@
 		() => props.editingScheduler,
 		() => {
 			if (props.editingScheduler) {
-				pubhubs.editScheduler(props.editingScheduler.scheduler, props.editingScheduler.eventId);
+				pubhubs.editScheduler(props.room.roomId, props.editingScheduler.eventId, props.editingScheduler.scheduler);
 				schedulerObject.value = props.editingScheduler.scheduler;
 			}
 		},
@@ -288,7 +295,7 @@
 		// if the message is not in a thread we can only set inReplyTo if we are not in a thread
 		if (messageActions.replyingTo) {
 			const message = ((await pubhubs.getEvent(rooms.currentRoomId, messageActions.replyingTo)) as TMessageEvent) ?? undefined;
-			if (message?.content['m.relates_to']?.['rel_type'] === 'm.thread') {
+			if (message?.content[RelationType.RelatesTo]?.[RelationType.RelType] === RelationType.Thread) {
 				inReplyTo.value = props.inThread ? message : undefined;
 			} else {
 				inReplyTo.value = !props.inThread ? message : undefined;
@@ -382,7 +389,7 @@
 	}
 
 	async function announcementMessage() {
-		const powerLevel = props.room.getPowerLevel(user.user.userId);
+		const powerLevel = props.room.getPowerLevel(user.userId);
 		// if (value.value?.toLocaleString().length === 0) return;
 		await pubhubs.addAnnouncementMessage(rooms.currentRoomId, value.value!.toString(), powerLevel);
 		value.value = '';

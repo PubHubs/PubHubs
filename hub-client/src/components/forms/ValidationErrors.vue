@@ -7,7 +7,8 @@
 </template>
 
 <script setup lang="ts">
-	import { ValidationErrors } from '@/logic/composables/useFormState';
+	// Composables
+	import { ValidationErrors } from '@hub-client/composables/useFormState';
 
 	defineProps<{ errors: ValidationErrors }>();
 </script>

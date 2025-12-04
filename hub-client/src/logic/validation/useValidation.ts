@@ -1,4 +1,5 @@
-import { ValidationMessage, ValidationRule, ValidationSchema } from '@/model/validation/TValidate.js';
+// Models
+import { ValidationMessage, ValidationRule, ValidationSchema } from '@hub-client/models/validation/TValidate';
 
 /**
  * useValidation provides a framework for form validation.

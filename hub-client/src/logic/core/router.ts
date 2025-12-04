@@ -1,82 +1,83 @@
-// Project imports
-import { Message, MessageType, useMessageBox } from '@/logic/store/messagebox';
-// React imports
+// Packages
 import { createRouter, createWebHashHistory } from 'vue-router';
 
-import { OnboardingType } from '@/model/constants';
-import { useHubSettings } from '@/logic/store/store';
-import { useUser } from '@/logic/store/user';
+// Models
+import { OnboardingType } from '@hub-client/models/constants';
+
+// Stores
+import { useHubSettings } from '@hub-client/stores/hub-settings';
+import { Message, MessageType, useMessageBox } from '@hub-client/stores/messagebox';
+import { useUser } from '@hub-client/stores/user';
 
 // Route definitions
 const routes = [
 	{
 		path: '/',
 		name: 'home',
-		component: () => import('@/pages/HomePage.vue'),
-		props: { showPubHubsCentralLoginButton: true },
+		component: () => import('@hub-client/pages/HomePage.vue'),
 		meta: { onboarding: true },
 	},
 	{
 		path: '/onboarding',
 		name: 'onboarding',
-		component: () => import('@/pages/Onboarding.vue'),
+		component: () => import('@hub-client/pages/Onboarding.vue'),
 		meta: { hideBar: true },
-	},
-	{
-		path: '/hub',
-		name: 'hubpage',
-		component: () => import('@/pages/HomePage.vue'),
-		props: { showPubHubsCentralLoginButton: false },
 	},
 	{
 		path: '/admin',
 		name: 'admin',
-		component: () => import('@/pages/Admin.vue'),
+		component: () => import('@hub-client/pages/Admin.vue'),
 		meta: { onlyAdmin: true, hideBar: true, onboarding: true },
 	},
 	{
-		path: '/manageusers',
-		name: 'manageusers',
-		component: () => import('@/pages/ManageUsers.vue'),
+		path: '/manage-users',
+		name: 'manage-users',
+		component: () => import('@hub-client/pages/ManageUsers.vue'),
 		meta: { onlyAdmin: true, hideBar: true, onboarding: true },
 	},
 	{
 		path: '/hub-settings',
 		name: 'hub-settings',
-		component: () => import('@/pages/HubSettings.vue'),
+		component: () => import('@hub-client/pages/HubSettings.vue'),
 		meta: { onlyAdmin: true, hideBar: true, onboarding: true },
 	},
 	{
 		path: '/ask-disclosure',
 		name: 'ask-disclosure',
-		component: () => import('@/pages/AskDisclosure.vue'),
+		component: () => import('@hub-client/pages/AskDisclosure.vue'),
 		meta: { onlyAdmin: true, onboarding: true },
 	},
-	{ path: '/direct-msg', name: 'direct-msg', component: () => import('@/pages/DirectMessage.vue'), meta: { hideBar: true, onboarding: true } },
+	{ path: '/direct-msg', name: 'direct-msg', component: () => import('@hub-client/pages/DirectMessage.vue'), meta: { hideBar: true, onboarding: true } },
 	{
 		path: '/room/:id',
 		name: 'room',
 		props: true,
-		component: () => import('@/pages/Room.vue'),
+		component: () => import('@hub-client/pages/Room.vue'),
 		meta: { hideBar: true, onboarding: true },
 	},
 	{
-		path: '/discoverrooms',
+		path: '/discover-rooms',
 		name: 'discover-rooms',
-		component: () => import('@/pages/DiscoverRoomsPage.vue'),
+		component: () => import('@hub-client/pages/DiscoverRoomsPage.vue'),
 		meta: { hideBar: true, onboarding: true },
 	},
 	{
-		path: '/error',
+		path: '/error-page',
 		name: 'error-page',
-		component: () => import('@/pages/ErrorPage.vue'),
+		component: () => import('@hub-client/pages/ErrorPage.vue'),
 		props: (route: { query: { errorKey: String; errorValues: Array<String | Number> } }) => ({ errorKey: route.query.errorKey || 'errors.general_error', errorValues: route.query.errorValues || [] }),
 		meta: { hideBar: true },
 	},
 	{
+		path: '/icons',
+		name: 'icons',
+		component: () => import('@hub-client/pages/Icons.vue'),
+		// meta: { onlyAdmin: true, hideBar: true, onboarding: true },
+	},
+	{
 		path: '/nop',
 		name: 'nop',
-		component: () => import('@/pages/NotImplemented.vue'),
+		component: () => import('@hub-client/pages/NotImplemented.vue'),
 	},
 ];
 
@@ -87,7 +88,7 @@ const router = createRouter({
 });
 
 // Navigation guard
-router.beforeEach((to) => {
+router.beforeEach((to, from) => {
 	const messagebox = useMessageBox();
 
 	// Notify parent iframe about non-room navigation
@@ -108,7 +109,7 @@ router.beforeEach((to) => {
 			const onboardingType = needsOnboarding ? OnboardingType.full : OnboardingType.consent;
 			return {
 				name: 'onboarding',
-				query: { type: onboardingType },
+				query: { type: onboardingType, originalRoute: to.path },
 			};
 		}
 	}
@@ -120,9 +121,12 @@ router.beforeEach((to) => {
 			return true;
 		}
 		console.log('ONLY FOR ADMINS', isAdmin);
-		return false;
+		return { name: 'home' };
 	}
-
+	if (to.name === 'error-page' && from.name === undefined) {
+		// Redirect to home if coming from a browser refresh (undefined)
+		return { name: 'home' };
+	}
 	// Default allow navigation
 	return true;
 });

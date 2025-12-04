@@ -1,12 +1,15 @@
 <template>
-	<span class="flex ~text-label-small-min/label-small-max">
+	<span class="text-label-small flex">
 		<span>{{ formatted }}</span>
 	</span>
 </template>
 
 <script setup lang="ts">
-	import { useTimeFormat } from '@/logic/composables/useTimeFormat';
+	// Packages
 	import { computed } from 'vue';
+
+	// Composables
+	import { useTimeFormat } from '@hub-client/composables/useTimeFormat';
 
 	const { formatTimestamp, formattedTimeInformation } = useTimeFormat();
 

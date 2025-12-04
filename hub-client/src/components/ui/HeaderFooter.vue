@@ -4,7 +4,7 @@
 			<div :class="['flex flex-col', bgBarMedium, isMobile ? 'h-[7.5rem] justify-center p-3' : 'h-[10rem] justify-start p-4']">
 				<slot name="header"></slot>
 			</div>
-			<div class="relative flex-1 overflow-y-auto">
+			<div class="relative flex-1 overflow-x-hidden overflow-y-auto">
 				<slot class="p-3 md:p-4"></slot>
 			</div>
 		</div>
@@ -15,11 +15,11 @@
 </template>
 
 <script setup lang="ts">
-	// Vue imports
+	// Packages
 	import { computed } from 'vue';
 
-	// Hub imports
-	import { useSettings } from '@/logic/store/settings';
+	// Stores
+	import { useSettings } from '@hub-client/stores/settings';
 
 	const settings = useSettings();
 	const isMobile = computed(() => settings.isMobileState);

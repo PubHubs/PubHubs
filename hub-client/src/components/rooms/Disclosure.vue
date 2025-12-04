@@ -14,13 +14,16 @@
 </template>
 
 <script setup lang="ts">
-	// Components
-	import Dialog from '../ui/Dialog.vue';
-	import DisclosureYivi from './DisclosureYivi.vue';
-
+	// Packages
 	import { ref } from 'vue';
-	import { DialogButton, DialogButtonAction, DialogOk, DialogCancel } from '@/logic/store/dialog';
-	import { useRooms } from '@/logic/store/store';
+
+	// Components
+	import DisclosureYivi from '@hub-client/components/rooms/DisclosureYivi.vue';
+	import Dialog from '@hub-client/components/ui/Dialog.vue';
+
+	// Stores
+	import { DialogButton, DialogButtonAction, DialogCancel, DialogOk } from '@hub-client/stores/dialog';
+	import { useRooms } from '@hub-client/stores/rooms';
 
 	const rooms = useRooms();
 	const emit = defineEmits(['close']);

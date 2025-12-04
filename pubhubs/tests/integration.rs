@@ -1,12 +1,15 @@
 // integration test, testing all aspects of the rust code
 
 use actix_web::web;
+use indexmap::IndexMap;
+
 use pubhubs::{
     api::{self, ApiResultExt as _, BytesPayload, EndpointDetails as _, NoPayload},
     attr, client, elgamal, handle, hub,
     misc::{jwt, serde_ext::bytes_wrapper::B64UU},
     servers::{self, yivi},
 };
+
 use std::collections::HashMap;
 use std::{sync::Arc, time::Duration};
 
@@ -26,6 +29,21 @@ async fn main_integration_test() {
     let mut config = servers::Config::load_from_path(std::path::Path::new(CONFIG_FILE_PATH))
         .unwrap()
         .unwrap();
+
+    // NOTE: the logging configuration in `config` is ignored.  Configure logging for testing
+    // using the RUST_LOG environmental variable.
+    //
+    // Use in-memory object store for pubhubs central
+    config
+        .phc
+        .as_mut()
+        .unwrap()
+        .object_store
+        .as_mut()
+        .unwrap()
+        .url = pubhubs::servers::config::host_aliases::UrlPwa::PerhapsWithAlias(
+        "memory://".parse().unwrap(),
+    );
 
     // Change randomly generated admin key to something we know
     let admin_sk = api::SigningKey::generate();
@@ -195,17 +213,15 @@ async fn main_integration_test_local(
         .await
         .unwrap();
 
-    // Run mock test hub
-    let testhub = config
-        .phc
-        .as_ref()
-        .unwrap()
-        .hubs
-        .iter()
-        .find(|h: &&hub::BasicInfo| &*h.handles[0] == "testhub")
-        .expect("could not find 'testhub' hub");
+    let welcome_resp = client
+        .query_with_retry::<api::phc::user::WelcomeEP, _, _>(config.phc_url.as_ref(), NoPayload)
+        .await
+        .unwrap();
 
-    let mock_hub = MockHub::new(testhub.clone(), constellation.clone());
+    // Run mock test hub
+    let testhub = welcome_resp.hubs[&"testhub0".parse().unwrap()].clone();
+
+    let mock_hub = MockHub::new(testhub.clone().into(), constellation.clone());
 
     let mut js = tokio::task::JoinSet::new();
     js.spawn(mock_hub.actix_server); // the actix server does not run itself
@@ -255,8 +271,12 @@ async fn main_integration_test_local(
     )
     .await;
 
-    let email = attrs.get(&"email".parse().unwrap()).unwrap();
-    let phone = attrs.get(&"phone".parse().unwrap()).unwrap();
+    let email = attrs
+        .get::<handle::Handle>(&"email".parse().unwrap())
+        .unwrap();
+    let phone = attrs
+        .get::<handle::Handle>(&"phone".parse().unwrap())
+        .unwrap();
 
     let attrs = request_attributes(
         &client,
@@ -267,8 +287,12 @@ async fn main_integration_test_local(
     )
     .await;
 
-    let email2 = attrs.get(&"email".parse().unwrap()).unwrap();
-    let _phone2 = attrs.get(&"phone".parse().unwrap()).unwrap();
+    let email2 = attrs
+        .get::<handle::Handle>(&"email".parse().unwrap())
+        .unwrap();
+    let phone2 = attrs
+        .get::<handle::Handle>(&"phone".parse().unwrap())
+        .unwrap();
 
     // Retrieve attribute key for email
     let Ok(api::auths::AttrKeysResp::Success(attr_keys)) = client
@@ -329,9 +353,9 @@ async fn main_integration_test_local(
             .query_with_retry::<api::phc::user::EnterEP, _, _>(
                 &constellation.phc_url,
                 &api::phc::user::EnterReq {
-                    identifying_attr: email.clone(),
+                    identifying_attr: Some(email.clone()),
                     mode: api::phc::user::EnterMode::Register,
-                    add_attrs: vec![]
+                    add_attrs: vec![],
                 },
             )
             .await
@@ -346,7 +370,7 @@ async fn main_integration_test_local(
 
         let phc_url = constellation.phc_url.clone();
         let req = api::phc::user::EnterReq {
-            identifying_attr: email.clone(),
+            identifying_attr: Some(email.clone()),
             mode: api::phc::user::EnterMode::LoginOrRegister,
             add_attrs: vec![phone.clone()],
         };
@@ -358,10 +382,15 @@ async fn main_integration_test_local(
             tjs.spawn_local(async move {
                 let enter_resp = enter_resp_fut.await.unwrap();
 
-                if let api::phc::user::EnterResp::Entered { new_account, .. } = enter_resp {
-                    new_account
-                } else {
-                    panic!("expected registration/login to succeed");
+                match enter_resp {
+                    api::phc::user::EnterResp::Entered { new_account, .. } => new_account,
+                    api::phc::user::EnterResp::AttributeAlreadyTaken(..) => {
+                        log::debug!("one registration failed likely due to parallel registration");
+                        false
+                    }
+                    _ => {
+                        panic!("expected registration/login to succeed");
+                    }
                 }
             });
         }
@@ -384,7 +413,7 @@ async fn main_integration_test_local(
             .query_with_retry::<api::phc::user::EnterEP, _, _>(
                 &constellation.phc_url,
                 &api::phc::user::EnterReq {
-                    identifying_attr: email.clone(),
+                    identifying_attr: Some(email.clone()),
                     mode: api::phc::user::EnterMode::Register,
                     add_attrs: vec![phone.clone()],
                 },
@@ -400,7 +429,7 @@ async fn main_integration_test_local(
             .query_with_retry::<api::phc::user::EnterEP, _, _>(
                 &constellation.phc_url,
                 &api::phc::user::EnterReq {
-                    identifying_attr: email2.clone(),
+                    identifying_attr: Some(email2.clone()),
                     mode: api::phc::user::EnterMode::Register,
                     add_attrs: vec![phone.clone()],
                 },
@@ -418,7 +447,7 @@ async fn main_integration_test_local(
         .query_with_retry::<api::phc::user::EnterEP, _, _>(
             &constellation.phc_url,
             &api::phc::user::EnterReq {
-                identifying_attr: email.clone(),
+                identifying_attr: Some(email.clone()),
                 mode: api::phc::user::EnterMode::Login,
                 add_attrs: vec![],
             },
@@ -440,7 +469,7 @@ async fn main_integration_test_local(
         .query_with_retry::<api::phc::user::EnterEP, _, _>(
             &constellation.phc_url,
             &api::phc::user::EnterReq {
-                identifying_attr: email.clone(),
+                identifying_attr: Some(email.clone()),
                 mode: api::phc::user::EnterMode::Login,
                 add_attrs: vec![phone.clone()],
             },
@@ -465,8 +494,73 @@ async fn main_integration_test_local(
         );
     }
 
+    // Logging in using the auth_token to add another phone number works too
+    let enter_resp = client
+        .query::<api::phc::user::EnterEP>(
+            &constellation.phc_url,
+            &api::phc::user::EnterReq {
+                identifying_attr: None,
+                mode: api::phc::user::EnterMode::Login,
+                add_attrs: vec![phone2.clone()],
+            },
+        )
+        .auth_header(auth_token.clone())
+        .with_retry()
+        .await
+        .unwrap();
+
+    let api::phc::user::EnterResp::Entered {
+        new_account: false,
+        auth_token_package: Ok(..),
+        attr_status,
+    } = enter_resp
+    else {
+        panic!();
+    };
+
+    for (attr, status) in attr_status {
+        assert!(
+            status == api::phc::user::AttrAddStatus::Added,
+            "{} should be added, but got status {status:?}",
+            attr.value
+        );
+    }
+
+    // Providing neither auth token nor identifying attribute shouldn't work
+    assert!(matches!(
+        client
+            .query::<api::phc::user::EnterEP>(
+                &constellation.phc_url,
+                &api::phc::user::EnterReq {
+                    identifying_attr: None,
+                    mode: api::phc::user::EnterMode::LoginOrRegister,
+                    add_attrs: vec![phone2.clone()],
+                },
+            )
+            .auth_header(auth_token.clone())
+            .with_retry()
+            .await,
+        Err(api::ErrorCode::BadRequest)
+    ));
+
+    // Registering a new account with an access token should not work
+    assert!(matches!(
+        client
+            .query::<api::phc::user::EnterEP>(
+                &constellation.phc_url,
+                &api::phc::user::EnterReq {
+                    identifying_attr: None,
+                    mode: api::phc::user::EnterMode::Login,
+                    add_attrs: vec![phone2.clone()],
+                },
+            )
+            .with_retry()
+            .await,
+        Err(api::ErrorCode::BadRequest)
+    ));
+
     // store object
-    let api::phc::user::StoreObjectResp::Stored { hash } = client
+    let api::phc::user::StoreObjectResp::Stored { stored_objects } = client
         .query::<api::phc::user::NewObjectEP>(
             &constellation.phc_url,
             &BytesPayload(bytes::Bytes::from_static(b"object contents!")),
@@ -496,13 +590,20 @@ async fn main_integration_test_local(
     ));
 
     // overriding the object should work
-    let api::phc::user::StoreObjectResp::Stored { hash: new_hash } = client
+    let api::phc::user::StoreObjectResp::Stored {
+        stored_objects: new_stored_objects,
+    } = client
         .query::<api::phc::user::OverwriteObjectEP>(
             &constellation.phc_url,
             BytesPayload(bytes::Bytes::from_static(b"object contents! 2")),
         )
         .path_param("handle", "objhandle")
-        .path_param("overwrite_hash", hash.to_string())
+        .path_param(
+            "overwrite_hash",
+            stored_objects[&"objhandle".parse().unwrap()]
+                .hash
+                .to_string(),
+        )
         .auth_header(auth_token.clone())
         .with_retry()
         .await
@@ -531,13 +632,21 @@ async fn main_integration_test_local(
         .get(&"objhandle".parse().unwrap())
         .unwrap();
 
-    assert_eq!(*obj_hash, new_hash);
+    assert_eq!(
+        *obj_hash,
+        new_stored_objects[&"objhandle".parse().unwrap()].hash
+    );
     assert_eq!(*obj_size, "object contents! 2".len() as u32);
 
     // retrieve object
     let api::Payload::Octets(bytes) = client
         .query::<api::phc::user::GetObjectEP>(&constellation.phc_url, NoPayload)
-        .path_param("hash", new_hash.to_string())
+        .path_param(
+            "hash",
+            new_stored_objects[&"objhandle".parse().unwrap()]
+                .hash
+                .to_string(),
+        )
         .path_param("hmac", obj_hmac.to_string())
         .with_retry()
         .await
@@ -757,7 +866,7 @@ async fn request_attributes(
     yivi_server_sk: &yivi::SigningKey,
     email_value: &str,
     phone_value: &str,
-) -> HashMap<handle::Handle, api::Signed<attr::Attr>> {
+) -> IndexMap<handle::Handle, api::Signed<attr::Attr>> {
     // request authentication as end-user
     let api::auths::AuthStartResp::Success {
         task: auth_task,
@@ -768,6 +877,8 @@ async fn request_attributes(
             &api::auths::AuthStartReq {
                 source: attr::Source::Yivi,
                 attr_types: vec!["email".parse().unwrap(), "phone".parse().unwrap()],
+                attr_type_choices: Default::default(),
+                yivi_chained_session: false,
             },
         )
         .await
@@ -845,7 +956,7 @@ async fn request_attributes(
 async fn handle_info_url(context: web::Data<Arc<MockHubContext>>) -> impl actix_web::Responder {
     let vk: api::VerifyingKey = context.sk.verifying_key().into();
     web::Json(api::Result::Ok(api::hub::InfoResp {
-        verifying_key: vk,
+        verifying_key: Some(vk),
         hub_version: "n/a".to_owned(),
         hub_client_url: "http://example.com".parse().unwrap(),
     }))

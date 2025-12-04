@@ -5,7 +5,8 @@
 </template>
 
 <script setup lang="ts">
-	import { ref, inject, onMounted } from 'vue';
+	// Packages
+	import { inject, onMounted, ref } from 'vue';
 
 	const registerTab = inject('registerTab') as Function;
 	const isActiveTab = inject('isActiveTab') as Function;

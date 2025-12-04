@@ -3,7 +3,7 @@ use crate::api::*;
 
 use std::collections::{HashMap, HashSet};
 
-use actix_web::http::header;
+use actix_web::http::{self, header};
 use serde::{Deserialize, Serialize};
 
 use crate::attr;
@@ -47,6 +47,9 @@ pub mod hub {
 
         /// No hub known with this handle
         UnknownHub,
+
+        /// Hub has no verifying key set
+        NoVerifyingKey,
     }
 
     pub type Ticket = Signed<TicketContent>;
@@ -143,9 +146,15 @@ pub mod user {
 
     /// Request to log in to an existing account, or register a new one.
     ///
+    /// Also used to add attributes to the new or existing user account.
+    ///
     /// May fail with [`ErrorCode::BadRequest`] when:
     ///  - [`identifying_attr`] is not identifying
     ///  - The same attribute appears twice among [`add_attrs`] and [`identifying_attr`].
+    ///  - A non-addable attribute is in `add_attrs` (such as a pubhubs card attribute not obtained
+    ///    via the [`auths::CardEP`] endpoint.
+    ///  - Neither an identifying nor a auth token (via the `Authorization` header) is provided.
+    ///  - When the auth token is used, but the mode is not login.
     ///
     /// [`identifying_attr`]: Self::identifying_attr
     /// [`add_attrs`]: Self::add_attrs
@@ -154,8 +163,10 @@ pub mod user {
     pub struct EnterReq {
         /// [`Attr`]ibute identifying the user.
         ///
+        /// If omitted, an `AuthToken` must be passed via the `Authorization` header instead.
+        ///
         /// [`Attr`]: attr::Attr
-        pub identifying_attr: Signed<attr::Attr>,
+        pub identifying_attr: Option<Signed<attr::Attr>>,
 
         /// The mode determines whether we want to create an account if none exists,
         /// and whether we expect an account to exist.
@@ -185,6 +196,9 @@ pub mod user {
 
         /// The given identifying attribute (in [`EnterReq::add_attrs`] or [`EnterReq::identifying_attr`])
         /// is already tied to another account.
+        ///
+        /// May occasionally happen under the [`EnterMode::LoginOrRegister`] mode if the account
+        /// was created by some parallel invocation of [`EnterEP`] at about the same time.
         AttributeAlreadyTaken(attr::Attr),
 
         /// Cannot register an account with these attributes:  no bannable attribute provided.
@@ -194,6 +208,10 @@ pub mod user {
         /// identifying attribute and retry.  If this fails even with a fresh attribute something
         /// is wrong with the server.
         RetryWithNewIdentifyingAttr,
+
+        /// An authtoken was passed via the Authorization header that is expired or otherwise invalid.  
+        /// Obtain a new one and retry.
+        RetryWithNewAuthToken,
 
         /// Signature on [`EnterReq::add_attrs`]  attribute is invalid or expired; please reobtain the
         /// attribute and retry.  If this fails even with a fresh attribute something
@@ -504,8 +522,10 @@ pub mod user {
         /// store, or when the global client is storing more than it should.
         QuotumReached(QuotumName),
 
-        /// The object was stored succesfully under the given hash
-        Stored { hash: Id },
+        /// The object was stored succesfully. The user objects that are currently stored for this user are returned.
+        Stored {
+            stored_objects: HashMap<handle::Handle, UserObjectDetails>,
+        },
     }
 
     /// Quota for a user
@@ -608,5 +628,50 @@ pub mod user {
 
         /// The requested hashed hub pseudonym package (HHPP).  
         Success(Signed<sso::HashedHubPseudonymPackage>),
+    }
+
+    /// A registration pseudonym used on pubhubs cards
+    #[derive(Serialize, Deserialize, Debug, Clone, Copy, PartialEq, Eq)]
+    #[serde(transparent)]
+    pub struct CardPseud(pub Id);
+
+    impl std::fmt::Display for CardPseud {
+        fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+            self.0.fmt(f)
+        }
+    }
+
+    /// A registration pseudonym coupled with the registration date.
+    #[derive(Serialize, Deserialize, Debug, Clone, Copy, PartialEq, Eq)]
+    pub struct CardPseudPackage {
+        pub card_pseud: CardPseud,
+        /// Registration date for this user.  Can be `None` for users that registered under v3.0.0.
+        pub registration_date: Option<NumericDate>,
+    }
+
+    having_message_code!(CardPseudPackage, CardPseudPackage);
+
+    /// Requests the 'registration pseudonym' used on PubHubs cards issued for this account.
+    /// Requires authentication.
+    pub struct CardPseudEP {}
+    impl EndpointDetails for CardPseudEP {
+        type RequestType = NoPayload;
+        type ResponseType = Result<CardPseudResp>;
+
+        const METHOD: http::Method = http::Method::POST;
+        const PATH: &'static str = ".ph/card-pseud";
+    }
+
+    /// Returned by [`CardPseudEP`].
+    #[derive(Serialize, Deserialize, Debug, Clone)]
+    #[serde(deny_unknown_fields)]
+    #[serde(rename = "snake_case")]
+    #[must_use]
+    pub enum CardPseudResp {
+        /// The auth provided is expired or otherwise invalid.  Obtain a new one and retry.
+        RetryWithNewAuthToken,
+
+        /// The requested registration pseudonym, signed by PHC's jwt key.
+        Success(Signed<CardPseudPackage>),
     }
 }

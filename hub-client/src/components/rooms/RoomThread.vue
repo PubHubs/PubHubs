@@ -1,22 +1,44 @@
 <template>
-	<div ref="elThreadTimeline" class="relative flex h-full w-full shrink-0 flex-col border-l border-surface-high bg-background md:w-[33%]">
-		<div class="m-3 mb-0 flex items-center gap-2 rounded-md bg-surface-low p-2">
+	<div ref="elThreadTimeline" class="border-surface-high bg-background relative flex h-full w-full shrink-0 flex-col border-l md:w-[33%]" data-testid="thread-sidekick">
+		<!-- Thread header -->
+		<div class="bg-surface-low m-3 mb-0 flex items-center gap-2 rounded-md p-2">
 			<button @click="closeThread" class="rounded-md p-1">
-				<Icon :type="'arrow'" :size="'sm'"></Icon>
+				<Icon type="arrow-left" :size="'sm'"></Icon>
 			</button>
-			<p class="truncate text-nowrap ~text-label-tiny-min/label-tiny-max">Thread ({{ numberOfThreadEvents ?? 0 }})</p>
+			<p class="text-label-tiny truncate text-nowrap">Thread ({{ numberOfThreadEvents }})</p>
 		</div>
 
-		<div class="h-full flex-1 overflow-y-scroll pb-8 pt-4">
-			<div v-for="item in filteredEvents" :key="item.event.event_id">
-				<div class="mx-3 rounded-md" ref="elRoomEvent" :id="item.event.event_id">
+		<!-- Thread message list -->
+		<div class="h-full flex-1 overflow-y-scroll pt-4 pb-8">
+			<!-- Root event -->
+			<div v-if="filteredEvents.length === 0" ref="elRoomEvent" :id="props.room.currentThread?.rootEvent?.event.event_id">
+				<RoomMessageBubble
+					:room="room"
+					:event="props.room.currentThread?.rootEvent?.event"
+					:viewFromThread="true"
+					:active-profile-card="activeProfileCard"
+					:active-reaction-panel="activeReactionPanel"
+					class="room-event"
+					@in-reply-to-click="onInReplyToClick"
+					@delete-message="confirmDeleteMessage"
+					@profile-card-toggle="toggleProfileCard"
+					@profile-card-close="closeProfileCard"
+					@reaction-panel-toggle="toggleReactionPanel"
+					@reaction-panel-close="closeReactionPanel"
+					@clicked-emoticon="sendEmoji"
+				>
+				</RoomMessageBubble>
+			</div>
+
+			<!-- Thread replies -->
+			<div v-for="item in filteredEvents" :key="item.matrixEvent.event.event_id">
+				<div class="mx-3 rounded-md" ref="elRoomEvent" :id="item.matrixEvent.event.event_id">
 					<RoomMessageBubble
-						v-if="item.getType() === EventType.RoomMessage"
 						:room="room"
-						:event="item.event"
+						:event="item.matrixEvent.event"
 						:viewFromThread="true"
 						:active-profile-card="activeProfileCard"
-						:activeReactionPanel="activeReactionPanel"
+						:active-reaction-panel="activeReactionPanel"
 						class="room-event"
 						@clicked-emoticon="sendEmoji"
 						@in-reply-to-click="onInReplyToClick"
@@ -26,44 +48,45 @@
 						@reaction-panel-toggle="toggleReactionPanel"
 						@reaction-panel-close="closeReactionPanel"
 					></RoomMessageBubble>
+
+					<!-- Reaction display for message -->
 					<div class="flex flex-wrap gap-2 px-20">
-						<Reaction v-if="reactionExistsForMessage(item.event.event_id)" :reactEvent="onlyReactionEvents" :messageEventId="item.event.event_id"></Reaction>
+						<Reaction v-if="reactionExistsForMessage(item)" :reactEvent="onlyReactionEvent(item.matrixEvent.event.event_id!)" :messageEventId="item.matrixEvent.event.event_id" />
 					</div>
 				</div>
 			</div>
 		</div>
 
+		<!-- Thread input -->
 		<MessageInput class="z-10 -mt-4" v-if="room" :room="room" :in-thread="true"></MessageInput>
 	</div>
-	<DeleteMessageDialog
-		v-if="showConfirmDelMsgDialog"
-		:event="eventToBeDeleted"
-		:room="room"
-		:thread-reaction-event="onlyReactionEvents"
-		:view-from-thread="true"
-		@close="showConfirmDelMsgDialog = false"
-		@yes="deleteMessage(eventToBeDeleted)"
-	></DeleteMessageDialog>
+
+	<!-- Delete message dialog -->
+	<DeleteMessageDialog v-if="showConfirmDelMsgDialog" :event="eventToBeDeleted" :room="room" :view-from-thread="true" @close="showConfirmDelMsgDialog = false" @yes="deleteMessage(eventToBeDeleted)"></DeleteMessageDialog>
 </template>
 
 <script setup lang="ts">
-	import { onMounted, ref, computed, reactive, Reactive, watch, onUnmounted, nextTick } from 'vue';
-	import { LOGGER } from '@/logic/foundation/Logger';
-	import { SMI } from '@/logic/foundation/StatusMessage';
-	import Room from '@/model/rooms/Room';
-	import { RelationType, RoomEmit } from '@/model/constants';
-	import MessageInput from '../forms/MessageInput.vue';
-	import { TMessageEvent, TMessageEventContent } from '@/model/events/TMessageEvent';
-	import { Thread, EventType, MatrixEvent } from 'matrix-js-sdk';
-	import { useUser } from '@/logic/store/user';
-	import { usePubHubs } from '@/logic/core/pubhubsStore';
+	// Packages
+	import { EventType, MatrixEvent } from 'matrix-js-sdk';
+	import { Reactive, computed, nextTick, onMounted, onUnmounted, reactive, ref, watch } from 'vue';
 
 	// Components
-	import Reaction from '../ui/Reaction.vue';
-	import RoomMessageBubble from './RoomMessageBubble.vue';
-	import DeleteMessageDialog from '../forms/DeleteMessageDialog.vue';
+	import DeleteMessageDialog from '@hub-client/components/forms/DeleteMessageDialog.vue';
+	import MessageInput from '@hub-client/components/forms/MessageInput.vue';
+	import RoomMessageBubble from '@hub-client/components/rooms/RoomMessageBubble.vue';
+	import Reaction from '@hub-client/components/ui/Reaction.vue';
 
-	const pubhubs = usePubHubs();
+	// Logic
+	import { LOGGER } from '@hub-client/logic/logging/Logger';
+	import { SMI } from '@hub-client/logic/logging/StatusMessage';
+
+	// Models
+	import { MatrixEventType, RelationType, RoomEmit, ScrollPosition, ScrollSelect } from '@hub-client/models/constants';
+	import { TMessageEvent, TMessageEventContent } from '@hub-client/models/events/TMessageEvent';
+	import { TimelineEvent } from '@hub-client/models/events/TimelineEvent';
+	import Room from '@hub-client/models/rooms/Room';
+
+	import { usePubhubsStore } from '@hub-client/stores/pubhubs';
 
 	const props = defineProps({
 		room: {
@@ -73,161 +96,103 @@
 		scrollToEventId: String,
 	});
 
+	const pubhubs = usePubhubsStore();
+
 	let deletedEvents: Reactive<MatrixEvent[]> = reactive<MatrixEvent[]>([]);
-	let threadEvents: Reactive<MatrixEvent[]> = reactive<MatrixEvent[]>([]);
-	const user = useUser();
+	let threadEvents: Reactive<TimelineEvent[]> = reactive<TimelineEvent[]>([]);
 	const emit = defineEmits([RoomEmit.ThreadLengthChanged, RoomEmit.ScrolledToEventId]);
 
+	const activeProfileCard = ref<string | null>(null);
+	const activeReactionPanel = ref<string | null>(null);
+
 	const filteredEvents = computed(() => {
-		// return all threadEvents that are not in the deletedEvents
-		return threadEvents.filter((event) => !deletedEvents.some((deletedEvent) => deletedEvent.getId() === event.getId()));
+		return threadEvents.filter((event) => !event.isDeleted && event.matrixEvent.getType() !== EventType.Reaction);
 	});
 
-	const onlyReactionEvents = computed(() => {
-		const rootEventId = props.room.currentThread?.rootEvent?.event.event_id;
-		if (!rootEventId) return;
-		const rootReactEvent = props.room.getReactionEvent(rootEventId);
+	const numberOfThreadEvents = computed(() => Math.max(filteredEvents.value.length, 1));
 
-		const filteredThreadEvents = filteredEvents.value.filter((event) => event.getType() === EventType.Reaction);
+	function onlyReactionEvent(eventId: string) {
+		// To stop from having duplicate events
+		props.room.getRelatedEventsByType(eventId, { eventType: EventType.Reaction, contentRelType: RelationType.Annotation }).forEach((reactEvent) => props.room.addCurrentEventToRelatedEvent(reactEvent.matrixEvent));
+		return props.room.getCurrentEventRelatedEvents();
+	}
 
-		return filteredThreadEvents.concat(rootReactEvent);
-	});
-
-	const numberOfThreadEvents = computed(() => {
-		return filteredEvents.value.length - 1;
-	});
+	watch(
+		() => props.room.threadUpdated,
+		() => getThreadEvents(),
+	);
 
 	watch(
 		() => props.room.currentThread?.threadId,
-		() => {
-			changeThreadId();
-		},
+		() => changeThreadId(),
 		{ immediate: true },
 	);
 
-	// Watch for currently visible eventId
 	watch(
 		() => props.scrollToEventId,
 		(newValue, oldValue) => {
-			// nextTick to make sure the element is already rendered before scrolling
-			nextTick(() => {
-				onScrollToEventId(newValue, oldValue);
-			});
+			nextTick(() => onScrollToEventId(newValue, oldValue));
 		},
 		{ immediate: true },
 	);
 
 	watch(
 		() => filteredEvents.value.length,
-		() => {
-			emit(RoomEmit.ThreadLengthChanged, numberOfThreadEvents.value ?? 0);
-		},
+		() => emit(RoomEmit.ThreadLengthChanged, numberOfThreadEvents.value),
 	);
 
 	const elThreadTimeline = ref<HTMLElement | null>(null);
 	const showConfirmDelMsgDialog = ref(false);
 	const eventToBeDeleted = ref<TMessageEvent>();
-	const activeProfileCard = ref<string | null>(null);
-	const activeReactionPanel = ref<string | null>(null);
 
 	onMounted(() => {
-		props.room.listenToThreadNewReply(newReplyListener.bind(this));
-		props.room.listenToThreadUpdate(updateReplyListener.bind(this));
-		LOGGER.log(SMI.ROOM_THREAD, `RoomThread mounted `);
+		LOGGER.log(SMI.ROOM_THREAD, 'RoomThread mounted');
 	});
 
 	onUnmounted(() => {
 		closeThread();
-		props.room.stopListeningToThreadNewReply(newReplyListener.bind(this));
-		props.room.stopListeningToThreadUpdate(updateReplyListener.bind(this));
 	});
 
 	function closeThread() {
 		props.room.setCurrentThreadId(undefined);
 	}
 
-	/**
-	 * Change the threadId to the current threadId of the room and jump to last event
-	 */
 	async function changeThreadId() {
 		await getThreadEvents();
-		if (props.room.getCurrentEventId()) {
-			scrollToEvent(props.room.getCurrentEventId()!, { position: 'center', select: 'Highlight' });
+		if (props.room.getCurrentEvent()) {
+			scrollToEvent(props.room.getCurrentEvent()!.eventId, { position: ScrollPosition.Center, select: ScrollSelect.Highlight });
 		} else {
 			const lastEvent = filteredEvents.value[filteredEvents.value.length - 1];
-			if (lastEvent?.event?.event_id) {
-				scrollToEvent(lastEvent.event.event_id, { position: 'end' });
+			if (lastEvent?.matrixEvent.event?.event_id) {
+				scrollToEvent(lastEvent.matrixEvent.event.event_id, { position: ScrollPosition.End });
 			}
 		}
 	}
 
-	// eslint-disable-next-line @typescript-eslint/no-unused-vars
 	async function onScrollToEventId(newEventId?: string, oldEventId?: string) {
 		if (!newEventId) return;
-		scrollToEvent(newEventId, { position: 'center', select: 'Highlight' });
+		scrollToEvent(newEventId, { position: ScrollPosition.Center, select: ScrollSelect.Highlight });
 	}
 
-	/**
-	 * Get the thread events from the room and set them to the threadEvents array
-	 * At the moment all messages from the thread are loaded at once
-	 * Possibly in the future depending of the size of threads this may have to be changed
-	 */
 	async function getThreadEvents() {
-		await props.room.getCurrentThreadEvents().then((events) => {
-			threadEvents.splice(0, threadEvents.length, ...events);
-		});
+		const events = await props.room.getCurrentThreadEvents();
+		threadEvents.splice(0, threadEvents.length, ...events);
+
+		if (threadEvents.length > 0) {
+			nextTick(() => scrollToEvent(threadEvents[threadEvents.length - 1].matrixEvent.event.event_id!));
+		}
 	}
 
 	function onInReplyToClick(inReplyToId: string) {
-		scrollToEvent(inReplyToId, { position: 'center', select: 'Highlight' });
+		scrollToEvent(inReplyToId, { position: ScrollPosition.Center, select: ScrollSelect.Highlight });
 	}
 
-	// parameters are not used, but needed to listen to the event, so:
-	// eslint-disable-next-line @typescript-eslint/no-unused-vars
-	async function newReplyListener(_thread: Thread, _threadEvent: MatrixEvent) {
-		// make sure the thread is a valid thread
-		props.room.AssureThread();
-
-		// update thread events
-		await getThreadEvents();
-		const newestMessageEventId = threadEvents[threadEvents.length - 1]?.event.event_id;
-		if (newestMessageEventId) {
-			// Make sure the new event is in the timeline when the user is the sender and/or the previous newest event was visible
-			const newestEvent = props.room.currentThread?.thread?.findEventById(newestMessageEventId)?.event;
-			const messageSendByUser = newestEvent?.sender === user.user.userId;
-			// When the new event is send by the user: scroll to the message
-			if (messageSendByUser && newestEvent?.event_id) {
-				await scrollToEvent(newestEvent.event_id);
-			}
-		}
-	}
-
-	// Listen to update event, also for deletion. Thread parameter is of current thread, not of changed one,
-	// so we need to always perform this
-	// parameters are not used, but needed to listen to the event, so:
-	// eslint-disable-next-line @typescript-eslint/no-unused-vars
-	async function updateReplyListener(thread: Thread) {
-		props.room.AssureThread();
-		await getThreadEvents();
-		// check for events of which the related event does no longer exist and add them to the RedeactedEventIds to make sure they are correctly displayed
-		threadEvents.forEach((event) => {
-			const eventId = event.event?.content?.[RelationType.RelatesTo]?.[RelationType.InReplyTo]?.event_id;
-			if (eventId) {
-				if (!threadEvents.find((e) => e.event.event_id === eventId)) {
-					props.room.addToRedactedEventIds(eventId);
-				}
-			}
-		});
-	}
-
-	async function scrollToEvent(eventId: string, options: { position: 'start' | 'center' | 'end'; select?: 'Highlight' | 'Select' } = { position: 'start' }) {
+	async function scrollToEvent(eventId: string, options: { position: ScrollPosition.Start | ScrollPosition.Center | ScrollPosition.End; select?: ScrollSelect.Highlight | ScrollSelect.Select } = { position: ScrollPosition.Start }) {
 		LOGGER.log(SMI.ROOM_THREAD, `scroll to event: ${eventId}`, { eventId });
 
 		const doScroll = (elEvent: Element) => {
 			elEvent.scrollIntoView({ block: options.position });
-
-			// Style the event depending on the select option.
-			if (options.select === 'Highlight') {
+			if (options.select === ScrollSelect.Highlight) {
 				elEvent.classList.add('highlighted');
 				window.setTimeout(() => {
 					elEvent.classList.add('unhighlighted');
@@ -254,10 +219,10 @@
 
 	function deleteMessage(event: TMessageEvent<TMessageEventContent> | undefined) {
 		if (event) {
-			let deletedEvent = threadEvents.find((e) => e.event.event_id === event.event_id);
-			props.room.deleteThreadMessage(event, deletedEvent?.threadRootId);
+			let deletedEvent = threadEvents.find((e) => e.matrixEvent.event.event_id === event.event_id);
+			props.room.deleteThreadMessage(event, deletedEvent?.matrixEvent.threadRootId);
 			if (deletedEvent) {
-				deletedEvents.push(deletedEvent as MatrixEvent);
+				deletedEvents.push(deletedEvent.matrixEvent as MatrixEvent);
 			}
 		}
 	}
@@ -277,29 +242,26 @@
 		activeReactionPanel.value = null;
 	}
 
-	// Reaction regions ///
-
 	async function sendEmoji(emoji: string, eventId: string) {
 		await pubhubs.addReactEvent(props.room.roomId, eventId, emoji);
 	}
 
-	// Is there a reaction for RoomMessageEvent ID.
-	// If there is then show the reaction otherwise dont render reaction UI component.
-	function reactionExistsForMessage(messageEventId: string): boolean {
-		if (!onlyReactionEvents.value) return false;
-		const reactionEvent = onlyReactionEvents.value.find((event) => {
+	function reactionExistsForMessage(timelineEvent: TimelineEvent): boolean {
+		if (timelineEvent.isDeleted || (timelineEvent.matrixEvent && timelineEvent.matrixEvent.isRedacted())) return false;
+		const messageEventId = timelineEvent.matrixEvent.event.event_id;
+		if (!messageEventId) return false;
+
+		const reactionEvent = onlyReactionEvent(messageEventId).find((event) => {
 			const relatesTo = event.getContent()[RelationType.RelatesTo];
 			// Check if this reaction relates to the target message
 			return relatesTo && relatesTo.event_id === messageEventId;
 		});
+
 		if (reactionEvent) {
 			const relatesTo = reactionEvent.getContent()[RelationType.RelatesTo];
-
-			return relatesTo?.key ? true : false;
+			return !!relatesTo?.key;
 		}
 
 		return false;
 	}
-
-	// End Reaction regions ///
 </script>

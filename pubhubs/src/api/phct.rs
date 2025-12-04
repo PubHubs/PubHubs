@@ -2,6 +2,7 @@
 use crate::api::*;
 use serde::{Deserialize, Serialize};
 
+use actix_web::http;
 use curve25519_dalek::scalar::Scalar;
 
 /// `.ph/hubs/` endpoints

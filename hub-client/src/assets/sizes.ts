@@ -1,13 +1,12 @@
-const iconSizes: { [key: string]: string } = {
-	xs: 'h-3 w-3',
-	sm: 'h-4 w-4',
-	base: 'h-6 w-6',
-	md: 'h-7 w-7',
-	lg: 'h-8 w-8',
-	xl: 'h-12 w-12',
-	'2xl': 'h-16 w-16',
-	'3xl': 'h-20 w-20',
-	'4xl': 'h-24 w-24',
+const iconSizes: { [key: string]: number } = {
+	xs: 8,
+	sm: 12,
+	base: 16,
+	md: 20,
+	lg: 24,
+	xl: 32,
+	'2xl': 48,
+	'3xl': 68,
 };
 
 const buttonSizes: { [key: string]: string } = {

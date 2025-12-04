@@ -1,22 +1,21 @@
 <template>
-	<div class="w-5/6 rounded-lg bg-surface-subtle p-5">
+	<div class="bg-surface-subtle w-5/6 rounded-lg p-5">
 		<div class="mb-4">
 			<div class="flex justify-between">
 				<div class="mb-2">
-					<Icon v-if="votingWidgetClosed" class="float-left -mt-1 mr-1 text-accent-orange" type="scheduler_lock" />
+					<Icon v-if="votingWidgetClosed" class="text-accent-orange float-left -mt-1 mr-1" type="lock" />
 					<span class="mr-1 font-bold">{{ votingWidget.title }}</span>
-					<span v-if="votingWidgetClosed" class="italic ~text-label-small-min/label-small-max"><br />{{ $t('message.scheduler_closed') }}</span>
+					<span v-if="votingWidgetClosed" class="text-label-small italic"><br />{{ $t('message.scheduler_closed') }}</span>
 				</div>
 
 				<div class="flex">
 					<Icon
 						v-if="hasUserVoted"
-						type="person"
-						:asButton="true"
-						size="sm"
-						class="rounded-md bg-surface p-1 hover:bg-accent-primary"
+						type="user"
+						size="lg"
+						class="bg-surface hover:bg-accent-primary rounded-md"
 						:title="$t(showVotes ? 'message.voting.hide_votes' : 'message.voting.show_votes')"
-						@click="toggleShowVotes()"
+						@click.stop="toggleShowVotes()"
 					></Icon>
 					<ActionMenu v-if="isCreator" class="ml-2">
 						<template v-if="votingWidget.type === VotingWidgetType.SCHEDULER">
@@ -33,14 +32,14 @@
 			</div>
 
 			<span class="flex [overflow-wrap:anywhere]" v-if="votingWidget.location">
-				<Icon :filled="true" class="mr-1 mt-1" type="map_pin" size="sm" />
+				<Icon class="mt-1 mr-1" type="map-pin" size="sm" />
 				{{ votingWidget.location }}
 			</span>
 			<span class="mt-2 flex [overflow-wrap:anywhere]">{{ votingWidget.description }}</span>
-			<span class="flex text-on-surface-variant" v-if="isEdited"> ({{ $t('message.voting.edited') }}) </span>
+			<span class="text-on-surface-variant flex" v-if="isEdited"> ({{ $t('message.voting.edited') }}) </span>
 			<div v-if="isCreator && votingWidgetClosed && pickedOptionId === -1" class="flex justify-center">
-				<div class="flex items-center rounded-md bg-background px-2 py-1">
-					<div class="mr-2 h-5 w-5 rounded-full bg-accent-orange text-center">!</div>
+				<div class="bg-background flex items-center rounded-md px-2 py-1">
+					<div class="bg-accent-orange mr-2 h-5 w-5 rounded-full text-center">!</div>
 					<span>{{ $t('message.pick_option') }} :</span>
 				</div>
 			</div>
@@ -71,27 +70,36 @@
 </template>
 
 <script setup lang="ts">
-	import ActionMenu from '@/components/ui/ActionMenu.vue';
-	import ActionMenuItem from '@/components/ui/ActionMenuItem.vue';
-	import PollOptionList from '@/components/rooms/voting/poll/PollOptionList.vue';
-	import SchedulerOptionList from '@/components/rooms/voting/scheduler/SchedulerOptionList.vue';
-	import Icon from '@/components/elements/Icon.vue';
-
-	import { Ref, ref, watch, onMounted, computed } from 'vue';
+	// Packages
+	import { MatrixEvent } from 'matrix-js-sdk';
+	import { Ref, computed, onMounted, ref, watch } from 'vue';
 	import { useI18n } from 'vue-i18n';
-	import filters from '@/logic/core/filters';
-	import { TVotingMessageEvent } from '@/model/events/voting/TVotingMessageEvent';
-	import { useUser } from '@/logic/store/user';
-	import { useRooms } from '@/logic/store/store';
-	import { usePubHubs } from '@/logic/core/pubhubsStore';
-	import { votesForOption, VotingOptions, VotingWidget, VotingWidgetType, Poll, PollOption, Scheduler, SchedulerOption } from '@/model/events/voting/VotingTypes';
-	import { TBaseEvent } from '@/model/events/TBaseEvent';
-	import { PubHubsMgType } from '@/logic/core/events';
-	import { TimeFormat, useSettings } from '@/logic/store/settings';
+
+	// Components
+	import Icon from '@hub-client/components/elements/Icon.vue';
+	import PollOptionList from '@hub-client/components/rooms/voting/poll/PollOptionList.vue';
+	import SchedulerOptionList from '@hub-client/components/rooms/voting/scheduler/SchedulerOptionList.vue';
+	import ActionMenu from '@hub-client/components/ui/ActionMenu.vue';
+	import ActionMenuItem from '@hub-client/components/ui/ActionMenuItem.vue';
+
+	// Logic
+	import { PubHubsMgType } from '@hub-client/logic/core/events';
+	import filters from '@hub-client/logic/core/filters';
+
+	// Models
+	import { TBaseEvent } from '@hub-client/models/events/TBaseEvent';
+	import { TVotingMessageEvent } from '@hub-client/models/events/voting/TVotingMessageEvent';
+	import { Poll, PollOption, Scheduler, SchedulerOption, VotingOptions, VotingWidget, VotingWidgetType, votesForOption } from '@hub-client/models/events/voting/VotingTypes';
+
+	// Stores
+	import { usePubhubsStore } from '@hub-client/stores/pubhubs';
+	import { useRooms } from '@hub-client/stores/rooms';
+	import { TimeFormat, useSettings } from '@hub-client/stores/settings';
+	import { useUser } from '@hub-client/stores/user';
 
 	const rooms = useRooms();
 	const currentRoom = rooms.currentRoom;
-	const pubhubs = usePubHubs();
+	const pubhubs = usePubhubsStore();
 	const user = useUser();
 	const settings = useSettings();
 	const { d } = useI18n();
@@ -104,7 +112,7 @@
 	}>();
 
 	let lastEventTimestamp: number;
-	const isCreator = user.user.userId == props.event.sender;
+	const isCreator = user.userId == props.event.sender;
 
 	const isEdited = ref(false);
 	const showVotes = ref(false);
@@ -120,7 +128,7 @@
 	watch(
 		() => votesByOption.value.options,
 		() => {
-			hasUserVoted.value = votesByOption.value.options.some((vote) => vote.votes.some((v) => v.userIds.includes(user.user.userId)));
+			hasUserVoted.value = votesByOption.value.options.some((vote) => vote.votes.some((v) => v.userIds.includes(user.userId)));
 		},
 	);
 
@@ -133,11 +141,12 @@
 		return settings.timeformat === TimeFormat.format24;
 	});
 
-	if (currentRoom) {
-		watch(currentRoom.getLiveTimelineEvents(), () => {
-			collectNewVotesInTimeline();
-		});
-	}
+	watch(
+		() => currentRoom?.filterRoomWidgetRelatedEvents(props.event.content.type, props.event.event_id),
+		(event) => {
+			collectNewVotes(event);
+		},
+	);
 
 	votingWidget.value.removeExcessOptions();
 
@@ -384,7 +393,7 @@
 			}
 
 			//check if the user has voted but don't count redacted votes
-			hasUserVoted.value = votesByOption.value.options.some((vote) => vote.votes.some((v) => v.userIds.includes(user.user.userId) && v.choice !== 'redacted'));
+			hasUserVoted.value = votesByOption.value.options.some((vote) => vote.votes.some((v) => v.userIds.includes(user.userId) && v.choice !== 'redacted'));
 		}
 	}
 
@@ -393,7 +402,7 @@
 		//events do not get registered instantly which leads to errors when creating polls
 		//this check makes sure that the votingwidget event exists
 		if (props.event.unsigned) {
-			const events = currentRoom?.getRelatedLiveTimeEvents(props.event.event_id);
+			const events = currentRoom?.filterRoomWidgetRelatedEvents(props.event.content.type, props.event.event_id);
 			votesByOption.value.options = initializeVotesByOption(votingWidget.value.options); //clear any stored data in votesByOption
 			events?.forEach((event) => {
 				lastEventTimestamp = event.event.origin_server_ts as number;
@@ -403,32 +412,11 @@
 		}
 	}
 
-	function collectNewVotesInTimeline() {
-		//find first event after 'lastEventTimestamp'
-		const timeline = currentRoom?.getLiveTimelineEvents();
-		if (timeline) {
-			let firstNewEventIndex = timeline.length - 1;
-			//newest event is at the end, so loop from end toward beginning
-			for (let i = timeline.length - 1; i >= 0; i--) {
-				firstNewEventIndex = i;
-				const timelineEvent = timeline.at(i)?.getEffectiveEvent();
-				if (timelineEvent?.origin_server_ts && timelineEvent.origin_server_ts < lastEventTimestamp) {
-					break;
-				}
-			}
-			firstNewEventIndex += 1;
-			for (let i = firstNewEventIndex; i < timeline.length; i++) {
-				const timelineEvent = timeline.at(i);
-				if (timelineEvent !== undefined) {
-					updateVotingWidgetWithEvent(timelineEvent.getEffectiveEvent() as TBaseEvent);
-				}
-			}
-			const lastEventTimestampMaybe = timeline.at(timeline.length - 1)?.getEffectiveEvent().origin_server_ts;
-			if (lastEventTimestampMaybe !== undefined) {
-				lastEventTimestamp = lastEventTimestampMaybe;
-			}
-			votesByOption.value.removeRedactedVotes();
-		}
+	function collectNewVotes(events: MatrixEvent[]) {
+		events.forEach((event) => {
+			updateVotingWidgetWithEvent(event.event);
+		});
+		votesByOption.value.removeRedactedVotes();
 	}
 
 	function get_user_ids() {

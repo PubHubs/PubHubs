@@ -1,2 +1,4 @@
-import { nl } from '@/../../hub-client/src/locales/nl';
+// Locales
+import { nl } from '@hub-client/locales/nl';
+
 export { nl };
