@@ -9,7 +9,7 @@ import { PHCEnterMode } from '@global-client/models/MSS/TPHC';
 
 export default class AuthenticationServer {
 	private _state: number[];
-	private _authsApi: Api;
+	private readonly _authsApi: Api;
 
 	constructor(authServerUrl: string) {
 		this._state = [];
@@ -30,7 +30,7 @@ export default class AuthenticationServer {
 	 * @param loginMethod The login method that is currently used.
 	 * @returns A set of the handles used in the login method that are identifying and thus can be used to login.
 	 */
-	public _checkAttributes(supportedAttrTypes: Record<string, TAuths.AttrType>, loginMethod: TAuths.LoginMethod, enterMode: PHCEnterMode): Set<string> {
+	public checkAttributes(supportedAttrTypes: Record<string, TAuths.AttrType>, loginMethod: TAuths.LoginMethod, enterMode: PHCEnterMode): Set<string> {
 		if (!loginMethod.attr_types.some((attr) => loginMethod.identifying_attr.includes(attr))) {
 			throw new Error(`The attributes "${loginMethod.attr_types}" do not include an identifying attribute from in the attribute list.`);
 		}
@@ -47,7 +47,7 @@ export default class AuthenticationServer {
 		const identifyingAttrsSet = new Set<string>();
 		let hasIdentifying = false;
 		// To login no bannable attribute is needed (apart from when there is not yet a bannable attribute registered, but then the enterEP will throw an error).
-		let hasBannable = enterMode === PHCEnterMode.Login ? true : false;
+		let hasBannable = enterMode === PHCEnterMode.Login;
 
 		for (const attr of loginMethod.attr_types) {
 			const type: TAuths.AttrType | undefined = handleToAttrMap.get(attr);
@@ -56,7 +56,7 @@ export default class AuthenticationServer {
 				throw new Error(`The attribute "${attr}" is not in the list of supported attributes.`);
 			}
 
-			if (attr in loginMethod.identifying_attr && !type.identifying) {
+			if (loginMethod.identifying_attr.includes(attr) && !type.identifying) {
 				throw new Error(`The attribute that is to be used as an identifying attribute (${attr}) is not an identifying attribute.`);
 			}
 
@@ -88,7 +88,7 @@ export default class AuthenticationServer {
 	 * @param loginMethod The login method that is currently used.
 	 * @returns The set of attribute handles used in the login method that belong to identifying attributes.
 	 */
-	public async _welcomeEPAuths(): Promise<Record<string, TAuths.AttrType>> {
+	public async welcomeEPAuths(): Promise<Record<string, TAuths.AttrType>> {
 		const welcomeResponseFn = () => this._authsApi.apiGET<TAuths.AuthsWelcomeResp>(this._authsApi.apiURLS.welcome);
 		const okWelcomeResp = await handleErrors<TAuths.WelcomeResp>(welcomeResponseFn);
 		return okWelcomeResp.attr_types;
@@ -112,7 +112,7 @@ export default class AuthenticationServer {
 	 *
 	 * @returns The task and state returned by the AuthStartEP.
 	 */
-	public async _authStartEP(requestBody: TAuths.AuthStartReq): Promise<TAuths.StartResp> {
+	public async authStartEP(requestBody: TAuths.AuthStartReq): Promise<TAuths.StartResp> {
 		const authStartRespFn = () => this._authsApi.api<TAuths.AuthStartResp>(this._authsApi.apiURLS.authStart, requestOptions<TAuths.AuthStartReq>(requestBody));
 		const okAuthStartResp = await handleErrors<TAuths.StartResp>(authStartRespFn);
 		return okAuthStartResp;
@@ -125,7 +125,7 @@ export default class AuthenticationServer {
 	 * @param state The state that was obtained during the call of the AuthStartEP.
 	 * @returns The attributes the user disclosed.
 	 */
-	public async _completeAuthEP(proof: TAuths.AuthProof, state: number[]): Promise<TAuths.SuccesResp> {
+	public async completeAuthEP(proof: TAuths.AuthProof, state: number[]): Promise<TAuths.SuccesResp> {
 		const requestPayload: TAuths.AuthCompleteReq = { proof, state };
 		const authCompleteRespFn = () => this._authsApi.api<TAuths.AuthCompleteResp>(this._authsApi.apiURLS.authComplete, requestOptions<TAuths.AuthCompleteReq>(requestPayload));
 		const okAuthCompleteResp = await handleErrors<TAuths.CompleteResp>(authCompleteRespFn);
@@ -173,7 +173,7 @@ export default class AuthenticationServer {
 	 * @param responseAttrs The list of attribute handles that were disclosed.
 	 * @returns True if the attributes are matching, false otherwise.
 	 */
-	public _responseEqualToRequested(responseAttrs: string[], attrTypes: readonly string[]): boolean {
+	public responseEqualToRequested(responseAttrs: string[], attrTypes: readonly string[]): boolean {
 		if (attrTypes.length !== responseAttrs.length) {
 			return false;
 		}
@@ -189,7 +189,7 @@ export default class AuthenticationServer {
 		return true;
 	}
 
-	public _decodeJWT(jwt: string) {
+	public decodeJWT(jwt: string) {
 		try {
 			// Only take the payload of the JWT
 			const base64Url = jwt.split('.')[1];
@@ -197,7 +197,7 @@ export default class AuthenticationServer {
 			// Decode the base64 encoded string to a buffer (bytes) and parse this buffer as JSON
 			const jsonPayload = Buffer.from(base64, 'base64').toString();
 			return JSON.parse(jsonPayload);
-		} catch (e) {
+		} catch {
 			throw new Error('Invalid JWT');
 		}
 	}
@@ -245,7 +245,7 @@ export default class AuthenticationServer {
  */
 export function base64fromBase64Url(base64Url: string) {
 	// Change from base64url encoding to standard base64 encoding
-	let base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
+	let base64 = base64Url.replaceAll('-', '+').replaceAll('_', '/');
 	// Add padding to make sure the length of the base64 encoded string is a multiple of 4
 	while (base64.length % 4) {
 		base64 += '=';
@@ -279,7 +279,7 @@ export function handleErrorCodes<T, E = ErrorCode>(response: Result<T, E> | Arra
 	if (isOk(response)) {
 		return response.Ok;
 	} else {
-		if (!response || !response.Err) {
+		if (!response?.Err) {
 			throw new Error('The global-client received an undefined response in handleErrorCodes');
 		}
 		throw new Error(String(response.Err));

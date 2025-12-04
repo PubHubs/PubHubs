@@ -9,7 +9,7 @@ import { Api } from '@hub-client/logic/core/apiCore';
 
 // Models
 import { base64fromBase64Url, handleErrorCodes, handleErrors, requestOptions } from '@global-client/models/MSS/Auths';
-import { ErrorCode, Result, isOk } from '@global-client/models/MSS/TGeneral';
+import { ErrorCode, Result } from '@global-client/models/MSS/TGeneral';
 import * as TPHC from '@global-client/models/MSS/TPHC';
 
 // Stores
@@ -22,7 +22,7 @@ import { useSettings } from '@hub-client/stores/settings';
 import { setLanguage, setUpi18n } from '@hub-client/i18n';
 
 export default class PHCServer {
-	private _phcAPI: Api;
+	private readonly _phcAPI: Api;
 	private _userStateObjects: Record<string, TPHC.UserObjectDetails> | undefined;
 	/** NOTE: Do not use this variable directly to prevent using an expired authToken. Instead, use _getAuthToken(). */
 	private _authToken: string | null = null;
@@ -50,19 +50,6 @@ export default class PHCServer {
 		const savedAuthToken = localStorage.getItem('PHauthToken');
 		if (savedAuthToken) {
 			const authToken: TPHC.AuthTokenPackage = JSON.parse(savedAuthToken);
-			this._authToken = authToken.auth_token;
-			this._expiryAuthToken = authToken.expires;
-		} else {
-			this._authToken = null;
-			this._expiryAuthToken = null;
-		}
-	}
-
-	reset() {
-		this._userStateObjects = undefined;
-		const savedAuthToken = localStorage.getItem('PHauthToken');
-		if (savedAuthToken) {
-			const authToken: mssTypes.AuthTokenPackage = JSON.parse(savedAuthToken);
 			this._authToken = authToken.auth_token;
 			this._expiryAuthToken = authToken.expires;
 		} else {
@@ -159,7 +146,7 @@ export default class PHCServer {
 	 * @param enterMode The mode determines whether we want to create an account if none exists and whether we expect an account to exist.
 	 * @returns An object with a boolean to know whether the user successfully entered PubHubs or not and an error message (which is null if no error occured).
 	 */
-	public async _enter(
+	public async enter(
 		signedAddAttrs: string[],
 		enterMode: TPHC.PHCEnterMode,
 		identifyingAttr?: string,
@@ -204,10 +191,10 @@ export default class PHCServer {
 	 * @throws Will throw an error if there is no backup user secret object stored while this is expected.
 	 * @throws Will throw an error if the backup user secret object differs from the user secret object.
 	 */
-	public async _getUserSecretObject(): Promise<{ object: TPHC.UserSecretObject; details: { usersecret: TPHC.UserObjectDetails; backup: TPHC.UserObjectDetails | null } } | null> {
+	public async getUserSecretObject(): Promise<{ object: TPHC.UserSecretObject; details: { usersecret: TPHC.UserObjectDetails; backup: TPHC.UserObjectDetails | null } } | null> {
 		const userSecretObject = await this.getUserObject('usersecret');
 
-		if (!userSecretObject || !userSecretObject.object) {
+		if (!userSecretObject?.object) {
 			return null;
 		}
 		const decoder = new TextDecoder();
@@ -216,7 +203,7 @@ export default class PHCServer {
 		// If the user secret object is stored in the new format, expect there to be a backup object stored.
 		if (TPHC.isUserSecretObjectNew(object)) {
 			const userSecretObjectBackup = await this.getUserObject('usersecretbackup');
-			if (!userSecretObjectBackup || !userSecretObjectBackup.object) {
+			if (!userSecretObjectBackup?.object) {
 				this.triggerLogoutProcedure();
 				throw new Error('Expected a backup of the user secret object to be stored, but could not find it.');
 			}
@@ -227,29 +214,6 @@ export default class PHCServer {
 		}
 		return { object, details: { usersecret: userSecretObject.details, backup: null } };
 	}
-
-	// async login(
-	// 	identifyingAttr: string,
-	// 	signedAddAttrs: string[],
-	// 	enterMode: TPHC.PHCEnterMode,
-	// ): Promise<
-	// 	| { entered: false; errorMessage: { key: string; values?: string[] }; objectDetails: null; userSecretObject: null }
-	// 	| { entered: true; errorMessage: null; objectDetails: null; userSecretObject: null }
-	// 	| { entered: true; errorMessage: null; objectDetails: { usersecret: TPHC.UserObjectDetails; backup: TPHC.UserObjectDetails | null }; userSecretObject: TPHC.UserSecretObject }
-	// > {
-	// 	const { entered, errorMessage } = await this._enter(signedAddAttrs, enterMode, identifyingAttr);
-
-	// 	if (!entered) {
-	// 		return { entered, errorMessage, objectDetails: null, userSecretObject: null };
-	// 	}
-	// 	await this.stateEP();
-	// 	const userSecretObject = await this._getUserSecretObject();
-
-	// 	if (!userSecretObject || !userSecretObject.object) {
-	// 		return { entered, errorMessage: null, objectDetails: null, userSecretObject: null };
-	// 	}
-	// 	return { entered, errorMessage: null, objectDetails: userSecretObject.details, userSecretObject: userSecretObject.object };
-	// }
 
 	/**
 	 * Call the refreshEP to refresh an (expired) authToken.
@@ -375,7 +339,7 @@ export default class PHCServer {
 		let userSecret: Uint8Array | null = null;
 		if (userSecretObject === null) {
 			// If this is the first time the user secret object is set, a random 256 bits (32 bytes) user secret needs to be generated.
-			userSecret = window.crypto.getRandomValues(new Uint8Array(32));
+			userSecret = globalThis.crypto.getRandomValues(new Uint8Array(32));
 		} else {
 			let referenceUserSecret: Uint8Array | null = null;
 
@@ -445,7 +409,7 @@ export default class PHCServer {
 			// Store the userSecret object (twice)
 			const overwriteHash = userSecretObjectDetails ? userSecretObjectDetails.usersecret.hash : undefined;
 			const storedUserSecret = await this._storeObject('usersecret', encodedNewUserSecretObject, overwriteHash);
-			const overwriteHashBackup = userSecretObjectDetails && userSecretObjectDetails.backup ? userSecretObjectDetails.backup.hash : undefined;
+			const overwriteHashBackup = userSecretObjectDetails?.backup ? userSecretObjectDetails.backup.hash : undefined;
 			const storedBackup = await this._storeObject('usersecretbackup', encodedNewUserSecretObject, overwriteHashBackup);
 
 			// Only set the _userSecret variable and store the user secret in localStorage if they were successfully written to the object store.
@@ -573,7 +537,7 @@ export default class PHCServer {
 	 *
 	 * @returns Either a message to retry with an updated token or the state of the current user.
 	 */
-	public async _stateEP() {
+	public async stateEP() {
 		const options = {
 			headers: { Authorization: await this._getAuthToken() },
 			method: 'GET',
@@ -581,7 +545,6 @@ export default class PHCServer {
 		const okStateResp = await handleErrors<TPHC.StateResp>(() => this._phcAPI.api<TPHC.PHCStateResp>(this._phcAPI.apiURLS.state, options));
 		if (okStateResp === 'RetryWithNewAuthToken') {
 			this.triggerLogoutProcedure();
-			return;
 		} else if ('State' in okStateResp) {
 			this._userStateObjects = okStateResp.State.stored_objects;
 			return okStateResp.State;
@@ -609,7 +572,7 @@ export default class PHCServer {
 				if (attempts === maxAttempts) {
 					throw new Error(`Could not retrieve the object with handle ${handle}, errorcode: ${getObjResp}`);
 				}
-				await this._stateEP();
+				await this.stateEP();
 				// TODO: check if this is the correct way to handle both of these cases
 				const objectDetails = await this._getObjectDetails(handle);
 				// If the object cannot be found, return null.
@@ -627,7 +590,7 @@ export default class PHCServer {
 
 	private async _getObjectDetails(handle: string): Promise<TPHC.UserObjectDetails | undefined> {
 		if (this._userStateObjects === undefined) {
-			await this._stateEP();
+			await this.stateEP();
 		}
 
 		assert.isDefined(this._userStateObjects, 'Could not retrieve the user state.');
@@ -653,7 +616,7 @@ export default class PHCServer {
 	async getDecryptedUserObject(handle: string) {
 		// Retrieve the contents of the object and the userSecret
 		const getObjectResp = await this.getUserObject(handle);
-		if (!getObjectResp || !getObjectResp.object) {
+		if (!getObjectResp?.object) {
 			return null;
 		}
 		const object = new Uint8Array(getObjectResp.object);
@@ -759,17 +722,18 @@ export default class PHCServer {
 					throw new Error('Unexpected response MissingHash for a newObjectEP request.');
 				case 'NotFound':
 					return await this._newObjectEP(handle, object);
-				case 'HashDidNotMatch':
+				case 'HashDidNotMatch': {
 					if (attempts === maxAttempts) {
 						throw new Error('The object stored at this handle has a different hash');
 					}
-					await this._stateEP();
+					await this.stateEP();
 					const existingObject = await this.getUserObject(handle);
 					if (existingObject !== null) {
 						hash = existingObject.details.hash;
 						continue;
 					}
 					throw new Error('Could not find the object.');
+				}
 				case 'NoChanges':
 					return true;
 				default:
@@ -837,7 +801,6 @@ export default class PHCServer {
 		const okPppResp = await handleErrors<TPHC.PppResp>(() => this._phcAPI.api<TPHC.PHCPppResp>(this._phcAPI.apiURLS.polymorphicPseudonymPackage, options));
 		if (okPppResp === 'RetryWithNewAuthToken') {
 			this.triggerLogoutProcedure();
-			return;
 		} else if ('Success' in okPppResp) {
 			return okPppResp.Success;
 		} else {

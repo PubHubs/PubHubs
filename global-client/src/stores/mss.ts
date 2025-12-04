@@ -12,7 +12,7 @@ import filters from '@hub-client/logic/core/filters';
 import AuthenticationServer, { handleErrors } from '@global-client/models/MSS/Auths';
 import PHCServer from '@global-client/models/MSS/PHC';
 import { AuthAttrKeyReq, AuthStartReq, CardReq, LoginMethod, SignedIdentifyingAttrs, Source } from '@global-client/models/MSS/TAuths';
-import { EnterStartResp, HubInfoResp, InfoResp, Result, ResultResponse, isResult } from '@global-client/models/MSS/TGeneral';
+import { EnterStartResp, HubInfoResp, InfoResp, ResultResponse, isResult } from '@global-client/models/MSS/TGeneral';
 import { Attr, Constellation, HubInformation, PHCEnterMode, isUserSecretObjectNew } from '@global-client/models/MSS/TPHC';
 import Transcryptor from '@global-client/models/MSS/Transcryptor';
 
@@ -85,16 +85,12 @@ const useMSS = defineStore('mss', {
 			const { attr: signedCardAttr, issuance_request, yivi_requestor_url } = cardResp.Success;
 
 			// 3. Add card attribute to PubHubs Central Server
-			const { entered, errorMessage } = await this.phcServer._enter([signedCardAttr], PHCEnterMode.Login, identifyingAttr);
+			const { entered, errorMessage } = await this.phcServer.enter([signedCardAttr], PHCEnterMode.Login, identifyingAttr);
 			if (!entered) {
 				return { cardAttr: null, errorMessage };
 			}
 			// 4. Add card to Yivi
-			if (!chainedSesssion) {
-				const yiviUrl = filters.removeTrailingSlash(yivi_requestor_url);
-				await startYiviAuthentication(yiviUrl, issuance_request);
-				// What to do if the disclosure fails?
-			} else {
+			if (chainedSesssion) {
 				const releaseResp = await authServer.YiviReleaseNextSessionEP({
 					state: authServer.getState(),
 					next_session: issuance_request,
@@ -102,9 +98,13 @@ const useMSS = defineStore('mss', {
 				if (!(ResultResponse.Success in releaseResp)) {
 					throw new Error('Failed to add the card to the Yivi chained session.');
 				}
+			} else {
+				const yiviUrl = filters.removeTrailingSlash(yivi_requestor_url);
+				await startYiviAuthentication(yiviUrl, issuance_request);
+				// What to do if the disclosure fails?
 			}
 			// 5. Decode and return card
-			const decoded = authServer._decodeJWT(signedCardAttr) as Attr;
+			const decoded = authServer.decodeJWT(signedCardAttr) as Attr;
 
 			return {
 				cardAttr: {
@@ -120,8 +120,8 @@ const useMSS = defineStore('mss', {
 			const authServer = await this.getAuthServer();
 
 			// 1. Fetch supported attr types
-			const supported = await authServer._welcomeEPAuths();
-			const identifyingAttrs = authServer._checkAttributes(supported, loginMethod, enterMode);
+			const supported = await authServer.welcomeEPAuths();
+			const identifyingAttrs = authServer.checkAttributes(supported, loginMethod, enterMode);
 
 			// 2. Build auth start request
 			const authStartReq: AuthStartReq =
@@ -140,7 +140,7 @@ const useMSS = defineStore('mss', {
 						};
 
 			// 3. Start authentication
-			const startResp = await authServer._authStartEP(authStartReq);
+			const startResp = await authServer.authStartEP(authStartReq);
 			if ('UnknownAttrType' in startResp) {
 				throw new Error(`Unknown attribute handle: ${startResp.UnknownAttrType}`);
 			}
@@ -174,15 +174,15 @@ const useMSS = defineStore('mss', {
 			}
 
 			// 5. Complete authentication
-			const authSuccess = await authServer._completeAuthEP(proof, authServer.getState());
+			const authSuccess = await authServer.completeAuthEP(proof, authServer.getState());
 			if (!authSuccess) {
 				throw new Error('Authentication completed with no data.');
 			}
 
 			// 6. Validate attributes
 			const keys = Object.keys(authSuccess.attrs);
-			const valid1 = authServer._responseEqualToRequested(keys, ['ph_card', 'phone']);
-			const valid2 = authServer._responseEqualToRequested(keys, ['email', 'phone']);
+			const valid1 = authServer.responseEqualToRequested(keys, ['ph_card', 'phone']);
+			const valid2 = authServer.responseEqualToRequested(keys, ['email', 'phone']);
 			if (!valid1 && !valid2) {
 				throw new Error('Disclosed attributes do not match the requested ones.');
 			}
@@ -195,7 +195,7 @@ const useMSS = defineStore('mss', {
 			const allDecodedAttrs: { handle: string; attr: Attr }[] = [];
 			for (const [handle, attr] of Object.entries(authSuccess.attrs)) {
 				if (typeof attr !== 'string') continue;
-				const dec = authServer._decodeJWT(attr) as Attr;
+				const dec = authServer.decodeJWT(attr) as Attr;
 				allDecodedAttrs.push({ handle, attr: dec });
 				if (identifyingAttrs.has(handle)) {
 					identifyingHandle = handle;
@@ -215,14 +215,14 @@ const useMSS = defineStore('mss', {
 
 			// 8. Enter PubHubs
 			const identifyingAttr = authSuccess.attrs[identifyingHandle];
-			const { entered, errorMessage, enterResp } = await this.phcServer._enter(signedAddAttrs, enterMode, identifyingAttr);
+			const { entered, errorMessage } = await this.phcServer.enter(signedAddAttrs, enterMode, identifyingAttr);
 			if (!entered) return errorMessage;
 
 			// Load updated state
-			await this.phcServer._stateEP();
+			await this.phcServer.stateEP();
 
 			// Load Secret objects
-			const userSecret = await this.phcServer._getUserSecretObject();
+			const userSecret = await this.phcServer.getUserSecretObject();
 			const objectDetails = userSecret?.details ?? null;
 			const userSecretObject = userSecret?.object ?? null;
 
@@ -288,7 +288,6 @@ const useMSS = defineStore('mss', {
 			await this.phcServer.encryptAndStoreObject<T>(handle, data, overwriteHash);
 		},
 
-		// TODO: possibly move this function to a utility file
 		withTimeout<T>(promise: Promise<T>, ms: number): Promise<T> {
 			return Promise.race([promise, new Promise<T>((_, reject) => setTimeout(() => reject(new Error('Timeout')), ms))]);
 		},
