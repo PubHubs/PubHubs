@@ -1,5 +1,6 @@
 // Logic
 import { delay } from '@global-client/logic/utils/generalUtils';
+
 // Models
 import { ErrorCode, Result, isOk } from '@global-client/models/MSS/TGeneral';
 
@@ -41,4 +42,33 @@ export async function handleErrors<T>(apiCallFn: () => Promise<Result<T, ErrorCo
 		}
 	}
 	throw new Error(ErrorCode.PleaseRetry);
+}
+/**
+ * Converts a base64url encoded string into a standard base64 string.
+ *
+ * @param base64Url The base64 url (unpadded) encoded string.
+ * @returns The standard base64 string.
+ */
+export function base64fromBase64Url(base64Url: string) {
+	// Change from base64url encoding to standard base64 encoding
+	let base64 = base64Url.replaceAll('-', '+').replaceAll('_', '/');
+	// Add padding to make sure the length of the base64 encoded string is a multiple of 4
+	while (base64.length % 4) {
+		base64 += '=';
+	}
+	return base64;
+}
+
+/**
+ * Generate the options for a POST request to one of the API endpoints.
+ *
+ * @param requestBody What needs to be sent as the body of the request.
+ * @returns The options that need to be sent with the POST request.
+ */
+export function requestOptions<T>(requestBody: T, authorization?: string | undefined) {
+	return {
+		body: JSON.stringify(requestBody),
+		headers: { 'Content-Type': 'application/json', Authorization: authorization },
+		method: 'POST',
+	};
 }

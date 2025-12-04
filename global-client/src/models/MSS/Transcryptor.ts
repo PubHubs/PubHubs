@@ -1,11 +1,10 @@
 // Logic
 import { tr_api } from '@global-client/logic/core/api';
-import { handleErrors } from '@global-client/logic/utils/mssUtils';
+import { handleErrors, requestOptions } from '@global-client/logic/utils/mssUtils';
 
 import { Api } from '@hub-client/logic/core/apiCore';
 
 // Models
-import { requestOptions } from '@global-client/models/MSS/Auths';
 import { EhppResp, EhpppReq, TrEhppResp } from '@global-client/models/MSS/TTranscryptor';
 
 export default class Transcryptor {
