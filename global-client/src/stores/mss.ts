@@ -22,9 +22,9 @@ import { useGlobal } from '@global-client/stores/global';
 const useMSS = defineStore('mss', {
 	state: () => {
 		return {
-			// NOTE: Do not access this._authServer directly. Use getAuthServer() instead to make sure the server is initialized with the correct API url.
+			// * NOTE: Do not access this._authServer directly. Use getAuthServer() instead to make sure the server is initialized with the correct API url.
 			_authServer: null as AuthenticationServer | null,
-			// NOTE: Do not access this._transcryptor directly. Use getTranscryptor() instead to make sure the server is initialized with the correct API url.
+			// * NOTE: Do not access this._transcryptor directly. Use getTranscryptor() instead to make sure the server is initialized with the correct API url.
 			_transcryptor: null as Transcryptor | null,
 			phcServer: new PHCServer(),
 			constellation: null as Constellation | null,
@@ -62,7 +62,7 @@ const useMSS = defineStore('mss', {
 			return this._transcryptor!;
 		},
 
-		async issueCard(chainedSesssion: boolean, comment: string, identifyingAttr?: string) {
+		async issueCard(chainedSession: boolean, comment: string, identifyingAttr?: string) {
 			const authServer = await this.getAuthServer();
 
 			// 1. Fetch pseudo card package from the Pubhubs Central Server
@@ -90,7 +90,7 @@ const useMSS = defineStore('mss', {
 				return { cardAttr: null, errorMessage };
 			}
 			// 4. Add card to Yivi
-			if (chainedSesssion) {
+			if (chainedSession) {
 				const releaseResp = await authServer.YiviReleaseNextSessionEP({
 					state: authServer.getState(),
 					next_session: issuance_request,
@@ -165,7 +165,6 @@ const useMSS = defineStore('mss', {
 			if (enterMode === PHCEnterMode.LoginOrRegister) {
 				startYiviAuthentication(yiviUrl, disclosure_request);
 				const jwt = await authServer.YiviWaitForResultEP(authServer.getState());
-
 				if (!(ResultResponse.Success in jwt)) throw new Error('Restart authentication please');
 				proof = { Yivi: jwt.Success };
 			} else {
@@ -181,9 +180,14 @@ const useMSS = defineStore('mss', {
 
 			// 6. Validate attributes
 			const keys = Object.keys(authSuccess.attrs);
-			const valid1 = authServer.responseEqualToRequested(keys, ['ph_card', 'phone']);
-			const valid2 = authServer.responseEqualToRequested(keys, ['email', 'phone']);
-			if (!valid1 && !valid2) {
+			let allowedAttributeSets: string[][];
+			if (enterMode === PHCEnterMode.LoginOrRegister) {
+				allowedAttributeSets = [['email', 'phone']];
+			} else {
+				allowedAttributeSets = [['ph_card'], ['email']];
+			}
+			const isValid = allowedAttributeSets.some((set) => authServer.responseEqualToRequested(keys, set));
+			if (!isValid) {
 				throw new Error('Disclosed attributes do not match the requested ones.');
 			}
 
@@ -305,17 +309,21 @@ const useMSS = defineStore('mss', {
 
 		async enterHub(id: string, nonceStatePair: EnterStartResp) {
 			const maxAttempts = 3;
-			for (let attempts = 0; attempts < maxAttempts; attempts++) {
+			for (let attempt = 0; attempt < maxAttempts; attempt++) {
+				// TODO create a delay function
+				if (attempt > 0) {
+					const ms = 100 * Math.pow(2, attempt - 1); // 100, 200, 400 …
+					await new Promise((resolve) => setTimeout(resolve, ms));
+				}
 				const sealedPPP = await this.phcServer.pppEP();
 				assert.isDefined(sealedPPP, 'Something went wrong, sealedPPP should be defined.');
 				const transcryptor = await this.getTranscryptor();
 				const sealedEhpp = await transcryptor.ehppEP(nonceStatePair.nonce, id, sealedPPP);
-				// TODO Floris: add a delay after every check
-				if (sealedEhpp === 'RetryWithNewPpp' && attempts < maxAttempts) continue;
+				if (sealedEhpp === 'RetryWithNewPpp' && attempt < maxAttempts) continue;
 				else if (sealedEhpp === 'RetryWithNewPpp') throw new Error('Theres something wrong with the sso::EncryptedHubPseudonymPackage');
 				assert.isDefined(sealedEhpp, 'Something went wrong, sealedEhpp should be defined or you should have gone back to requesting a new Ppp.');
 				const signedHhpp = await this.phcServer.hhppEP(sealedEhpp);
-				if (signedHhpp === 'RetryWithNewPpp' && attempts < maxAttempts) continue;
+				if (signedHhpp === 'RetryWithNewPpp' && attempt < maxAttempts) continue;
 				else if (signedHhpp === 'RetryWithNewPpp') throw new Error('Theres something wrong with the sso::EncryptedHubPseudonymPackage');
 				assert.isDefined(signedHhpp, 'Something went wrong, signedHhpp should be defined or you should have logged out or gone back to requesting a new Ppp.');
 				return signedHhpp;

@@ -31,7 +31,13 @@ export type LoginMethod = {
 };
 
 export const loginMethods: Record<string, LoginMethod> = {
-	Yivi: { source: Source.Yivi, attr_types: ['email', 'phone', 'ph_card'], identifying_attr: ['email', 'ph_card'], login_choices: [['ph_card', 'email'], ['phone']], register_attr: ['email', 'phone'] },
+	Yivi: {
+		source: Source.Yivi,
+		attr_types: ['email', 'phone', 'ph_card'],
+		identifying_attr: ['email', 'ph_card'],
+		login_choices: [['ph_card', 'email']],
+		register_attr: ['email', 'phone'],
+	},
 } as const;
 
 export type AuthStartReq = {

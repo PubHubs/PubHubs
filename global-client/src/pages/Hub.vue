@@ -77,15 +77,19 @@
 			case Status.MSSHubNotLoggedIn: {
 				try {
 					const maxAttempts = 3;
-					for (let attempts = 0; attempts < maxAttempts; attempts++) {
+					for (let attempt = 0; attempt < maxAttempts; attempt++) {
+						// TODO create a delay function
+						if (attempt > 0) {
+							const ms = 100 * Math.pow(2, attempt - 1); // 100, 200, 400 …
+							await new Promise((resolve) => setTimeout(resolve, ms));
+						}
 						const mss = useMSS();
 						const enterStartResp = await hub.enterStartEP();
 						assert.isDefined(enterStartResp, 'Something went wrong receiving/handling the response from enterStartEP.');
 						const hhpp = await mss.enterHub(id, enterStartResp);
 						assert.isDefined(hhpp, 'Something went wrong with getting the signedHhpp.');
 						const enterCompleteResp = await hub.enterCompleteEP(enterStartResp.state, hhpp);
-						// TODO Floris: Add a little delay for each retry
-						if (enterCompleteResp === 'RetryFromStart' && attempts < maxAttempts) continue;
+						if (enterCompleteResp === 'RetryFromStart' && attempt < maxAttempts) continue;
 						else if (enterCompleteResp === 'RetryFromStart') throw new Error('Max attemps for RetryFromStart were passed');
 						assert.isDefined(enterCompleteResp, 'Something went wrong receiving/handling a response from enterCompleteEP.');
 						const authInfo = JSON.stringify({
