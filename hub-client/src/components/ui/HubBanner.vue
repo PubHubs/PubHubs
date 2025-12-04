@@ -1,7 +1,7 @@
 <template>
 	<figure :class="[isMobile ? 'h-[7.5rem]' : 'flex h-[10rem]', props.class]" class="w-full">
-		<img v-if="props.bannerUrl" :src="props.bannerUrl" onerror="this.style.display='none'" class="h-full w-full object-cover" />
-		<img v-else :src="defaultUrl" onerror="this.style.display='none'" class="h-full w-full object-cover" />
+		<img v-if="props.bannerUrl" :src="props.bannerUrl" onerror="this.style.display = 'none'" class="h-full w-full object-cover" />
+		<img v-else :src="defaultUrl" onerror="this.style.display = 'none'" class="h-full w-full object-cover" />
 	</figure>
 </template>
 
