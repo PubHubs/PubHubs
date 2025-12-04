@@ -7,7 +7,8 @@
 		</label>
 
 		<!-- Input element -->
-		<textarea v-if="type==='textarea'"
+		<textarea
+			v-if="type === 'textarea'"
 			class="text-on-surface-dim bg-surface-base outline-offset-thin w-full justify-start rounded px-175 py-100 outline focus:ring-3"
 			v-model="model"
 			:aria-invalid="!validated ? 'true' : undefined"
@@ -17,7 +18,8 @@
 			:name="name"
 			:placeholder="placeholder"
 		/>
-		<input v-else
+		<input
+			v-else
 			class="text-on-surface-dim bg-surface-base outline-offset-thin w-full justify-start rounded px-175 py-100 outline focus:ring-3"
 			v-model="model"
 			:aria-invalid="!validated ? 'true' : undefined"
@@ -27,7 +29,7 @@
 			:name="name"
 			:placeholder="placeholder"
 			:type="type"
-		></input>
+		/>
 
 		<!-- Helper text -->
 		<p v-if="props.help && validated" class="text-on-surface-dim text-label-small justify-end" aria-live="polite">
