@@ -36,7 +36,7 @@
 
 		const reactionEvents = props.reactEvent.filter((event) => {
 			const relatesTo = event.getContent()[RelationType.RelatesTo];
-			return relatesTo && relatesTo.event_id === props.messageEventId && !rooms.currentRoom?.inRedactedMessageIds(event.getId());
+			return relatesTo && relatesTo.event_id === props.messageEventId && !rooms.currentRoom?.inRedactedMessageIds(event.getId()!);
 		});
 
 		// Map key -> list of { eventId, userId }

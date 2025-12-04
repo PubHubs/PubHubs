@@ -29,10 +29,9 @@
 						<Button v-if="memberOfRoom" @click="enterRoom" :title="t('rooms.already_joined')" class="w-fit shrink-0 whitespace-nowrap">
 							{{ t('rooms.already_joined') }}
 						</Button>
-						<Button v-else-if="isSecured" @click="toggleExpand" class="w-fit shrink-0" :title="t('rooms.view_access_requirements')" :color="!isExpanded ? 'primary' : 'secondary'">
-							{{ !isExpanded ? t('rooms.view_access_requirements') : t('rooms.close_access_requirements') }}
+						<Button v-else-if="isSecured" @click="joinSecureRoom" class="w-fit shrink-0" :title="t('rooms.view_access_requirements')" color="primary">
+							{{ t('rooms.join_secured_room') }}
 						</Button>
-
 						<Button v-else @click="joinRoom" class="w-fit shrink-0 whitespace-nowrap" :title="t('rooms.join_room')">
 							{{ t('rooms.join_room') }}
 						</Button>
@@ -42,10 +41,9 @@
 					<Button v-if="memberOfRoom" @click="enterRoom" :title="t('rooms.already_joined')" class="w-fit shrink-0 whitespace-nowrap">
 						{{ t('rooms.already_joined') }}
 					</Button>
-					<Button v-else-if="isSecured" @click="toggleExpand" class="w-fit shrink-0" :title="t('rooms.view_access_requirements')" :color="!isExpanded ? 'primary' : 'secondary'">
-						{{ !isExpanded ? t('rooms.view_access_requirements') : t('rooms.close_access_requirements') }}
+					<Button v-else-if="isSecured" @click="joinSecureRoom" class="w-fit shrink-0" :title="t('rooms.view_access_requirements')" color="primary">
+						{{ t('rooms.join_secured_room') }}
 					</Button>
-
 					<Button v-else @click="joinRoom" class="w-fit shrink-0 whitespace-nowrap" :title="t('rooms.join_room')">
 						{{ t('rooms.join_room') }}
 					</Button>
@@ -53,41 +51,13 @@
 			</div>
 		</div>
 
-		<!-- Expanded card for secure rooms -->
-		<div v-if="isSecured && isExpanded" class="bg-surface mt-8 flex h-full max-h-[320px] flex-col gap-4 p-8">
-			<H2 class="w-full">{{ t('admin.secured_description') }}</H2>
-			<div class="h-full overflow-y-auto">
-				<P class="mb-4">{{ accessVerifytext }}</P>
-				<div v-if="securedAttributes" class="flex flex-wrap items-center gap-y-2">
-					<div class="flew-row flex items-center gap-1">
-						<Icon v-if="memberOfRoom" type="lock-open" size="sm"></Icon>
-						<Icon v-else type="lock" size="sm"></Icon>
-						<P>{{ $t('attribute.heading') }}</P>
-					</div>
-					<div v-for="attribute in securedAttributes" :key="attribute.id" class="">
-						<div class="bg-surface-high text-label-small float-left ml-1 rounded-3xl p-1 px-2">
-							<P class="">{{ $t('attribute.' + attribute) }}</P>
-						</div>
-						<P class="float-left">&nbsp;</P>
-					</div>
-				</div>
-				<P v-else> {{ $t('common.loading') }}</P>
-			</div>
-			<div class="flex w-full items-end justify-end gap-8">
-				<Button @click="joinSecureRoom" class="w-fit shrink-0 truncate whitespace-nowrap">
-					{{ t('rooms.join_secured_room') }}
-				</Button>
-
-				<!-- Secure room join dialog -->
-				<RoomLoginDialog v-model:dialogOpen="dialogOpen" title="rooms.join_room" message="rooms.join_secured_room_dialog" :messageValues="[]" :secured="true" />
-			</div>
-		</div>
+		<RoomLoginDialog v-model:dialogOpen="dialogOpen" title="rooms.join_room" message="rooms.join_secured_room_dialog" :messageValues="[]" :secured="true" />
 	</div>
 </template>
 
 <script setup lang="ts">
 	// Packages
-	import { computed, ref, watch } from 'vue';
+	import { computed, ref } from 'vue';
 	import { useI18n } from 'vue-i18n';
 	import { useRouter } from 'vue-router';
 
@@ -134,10 +104,8 @@
 	const dialog = useDialog();
 	const pubhubsStore = usePubhubsStore();
 	const roomsStore = useRooms();
-	const accessVerifytext = ref('');
 	const panelOpen = ref(false);
 	const dialogOpen = ref<string | null>(null);
-	const securedAttributes = ref();
 
 	// Compute member count string
 	const memberCount = computed(() => {
@@ -145,25 +113,6 @@
 		const label = count === 1 ? t('rooms.member') : t('rooms.members');
 		return `${count} ${label}`;
 	});
-
-	// Handle expand
-	const emit = defineEmits(['toggleExpand']);
-
-	const toggleExpand = () => {
-		emit('toggleExpand', props.room.room_id);
-	};
-
-	watch(
-		() => props.isExpanded,
-		async (expanded) => {
-			if (expanded && props.isSecured) {
-				const securedRoom = await roomsStore.getSecuredRoomInfo(props.room.room_id);
-				accessVerifytext.value = securedRoom?.user_txt ?? '';
-				securedAttributes.value = securedRoom?.accepted ? Object.keys(securedRoom.accepted) : undefined;
-			}
-		},
-		{ immediate: true },
-	);
 
 	// Handle room join
 	const joinRoom = async () => {

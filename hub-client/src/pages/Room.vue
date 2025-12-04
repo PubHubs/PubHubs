@@ -230,7 +230,7 @@
 		searchParameters.value.roomId = rooms.currentRoom.roomId;
 
 		// If there is a position saved in scrollPositions for this room: go there
-		// otherwise go to the newest event
+		// otherwise it goes to the newest event in the timeline
 		const timeline = roomTimeLineComponent.value?.elRoomTimeline;
 		const savedPosition = rooms.scrollPositions[rooms.currentRoom.roomId];
 
@@ -238,12 +238,6 @@
 			rooms.currentRoom.setCurrentEvent({
 				eventId: savedPosition,
 				position: ScrollPosition.Start,
-			});
-		} else {
-			const lastEventId = rooms.currentRoom.getRoomNewestMessageId() ?? '';
-			rooms.currentRoom.setCurrentEvent({
-				eventId: lastEventId,
-				position: ScrollPosition.End,
 			});
 		}
 	}
