@@ -1,12 +1,12 @@
 // Logic
 import { auths_api } from '@global-client/logic/core/api';
-import { base64fromBase64Url, handleErrors, requestOptions } from '@global-client/logic/utils/mssUtils';
+import { handleErrors, requestOptions } from '@global-client/logic/utils/mssUtils';
 
 import { Api } from '@hub-client/logic/core/apiCore';
 
 // Models
 import * as TAuths from '@global-client/models/MSS/TAuths';
-import { ErrorCode, Result } from '@global-client/models/MSS/TGeneral';
+import { ErrorCode, Result, ResultResponse } from '@global-client/models/MSS/TGeneral';
 import { PHCEnterMode } from '@global-client/models/MSS/TPHC';
 
 export default class AuthenticationServer {
@@ -114,10 +114,19 @@ export default class AuthenticationServer {
 	 *
 	 * @returns The task and state returned by the AuthStartEP.
 	 */
-	public async authStartEP(requestBody: TAuths.AuthStartReq): Promise<TAuths.StartResp> {
+	public async authStartEP(requestBody: TAuths.AuthStartReq): Promise<TAuths.StartRespSuccess> {
 		const authStartRespFn = () => this._authsApi.api<TAuths.AuthStartResp>(this._authsApi.apiURLS.authStart, requestOptions<TAuths.AuthStartReq>(requestBody));
 		const okAuthStartResp = await handleErrors<TAuths.StartResp>(authStartRespFn);
-		return okAuthStartResp;
+		if ('UnknownAttrType' in okAuthStartResp) {
+			throw new Error(`Unknown attribute handle: ${okAuthStartResp.UnknownAttrType}`);
+		}
+		if ('SourceNotAvailableFor' in okAuthStartResp) {
+			throw new Error(`Source ${requestBody.source} not available for attribute: ${okAuthStartResp.SourceNotAvailableFor}`);
+		}
+		if (!(ResultResponse.Success in okAuthStartResp)) {
+			throw new Error('Unexpected response from startAuth.');
+		}
+		return okAuthStartResp.Success;
 	}
 
 	/**
@@ -140,45 +149,7 @@ export default class AuthenticationServer {
 		}
 	}
 
-	/**
-	 * A helper function to check whether the attributes the user disclosed are matching the attributes that were requested.
-	 *
-	 * @param attrTypes The list of attribute handles that were requested.
-	 * @param responseAttrs The list of attribute handles that were disclosed.
-	 * @returns True if the attributes are matching, false otherwise.
-	 */
-	public responseEqualToRequested(responseAttrs: string[], attrTypes: readonly string[]): boolean {
-		if (attrTypes.length !== responseAttrs.length) {
-			return false;
-		}
-
-		const setA = new Set(attrTypes);
-		const setB = new Set(responseAttrs);
-
-		for (const value of setA) {
-			if (!setB.has(value)) {
-				return false;
-			}
-		}
-		return true;
-	}
-
-	public decodeJWT(jwt: string) {
-		try {
-			// Only take the payload of the JWT
-			const base64Url = jwt.split('.')[1];
-			const base64 = base64fromBase64Url(base64Url);
-			// Decode the base64 encoded string to a buffer (bytes) and parse this buffer as JSON
-			const jsonPayload = Buffer.from(base64, 'base64').toString();
-			return JSON.parse(jsonPayload);
-		} catch {
-			throw new Error('Invalid JWT');
-		}
-	}
-
 	async attrKeysEP(attrKeyRequest: TAuths.AuthAttrKeyReq) {
 		return await handleErrors<TAuths.AttrKeysResp>(() => this._authsApi.api<TAuths.AuthAttrKeysResp>(this._authsApi.apiURLS.attrKeys, requestOptions<TAuths.AuthAttrKeyReq>(attrKeyRequest)));
 	}
 }
-
-

@@ -63,7 +63,9 @@ export type CardResp = { Success: { attr: string; issuance_request: string; yivi
 
 export type CardReq = { card_pseud_package: { card_pseud: number; registration_date?: Number }; comment: string };
 
-export type StartResp = { Success: { task: AuthTask; state: Array<number> } } | { UnknownAttrType: string } | { SourceNotAvailableFor: string };
+export type StartResp = { Success: StartRespSuccess } | { UnknownAttrType: string } | { SourceNotAvailableFor: string };
+
+export type StartRespSuccess = { task: AuthTask; state: Array<number> };
 
 export type AuthStartResp = Result<StartResp, ErrorCode>;
 

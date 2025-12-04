@@ -72,3 +72,38 @@ export function requestOptions<T>(requestBody: T, authorization?: string | undef
 		method: 'POST',
 	};
 }
+
+/**
+ * A helper function to check whether the attributes the user disclosed are matching the attributes that were requested.
+ *
+ * @param attrTypes The list of attribute handles that were requested.
+ * @param responseAttrs The list of attribute handles that were disclosed.
+ * @returns True if the attributes are matching, false otherwise.
+ */
+export function responseEqualToRequested(responseAttrs: string[], attrTypes: readonly string[]): boolean {
+	if (attrTypes.length !== responseAttrs.length) {
+		return false;
+	}
+
+	const setA = new Set(attrTypes);
+	const setB = new Set(responseAttrs);
+
+	for (const value of setA) {
+		if (!setB.has(value)) {
+			return false;
+		}
+	}
+	return true;
+}
+export function decodeJWT(jwt: string): any {
+	try {
+		// Only take the payload of the JWT
+		const base64Url = jwt.split('.')[1];
+		const base64 = base64fromBase64Url(base64Url);
+		// Decode the base64 encoded string to a buffer (bytes) and parse this buffer as JSON
+		const jsonPayload = Buffer.from(base64, 'base64').toString();
+		return JSON.parse(jsonPayload);
+	} catch {
+		throw new Error('Invalid JWT');
+	}
+}
