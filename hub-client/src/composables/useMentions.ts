@@ -50,7 +50,7 @@ export function useMentions() {
 		let match;
 		while ((match = mentionRegex.exec(body)) !== null) {
 			const marker = match[1] as '@' | '#';
-			const displayName = match[0].substring(0, match[0].indexOf('~'));
+			const displayName = match[1] + match[2];
 			const id = match[3];
 			const start = match.index;
 			const end = start + match[0].length;
