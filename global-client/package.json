@@ -52,7 +52,7 @@
 		"typescript": "^5.0.2",
 		"vite-plugin-node-polyfills": "^0.24.0",
 		"vite-plugin-pwa": "^1.0.0",
-		"vitest": "^4.0.15"
+		"vitest": "^3"
 	},
 	"eslintConfig": {
 		"root": true,
